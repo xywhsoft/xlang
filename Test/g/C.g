@@ -1,19 +1,4 @@
 /** ANSI C ANTLR v3 grammar
-
-根据Jim Idle的C输出目标改编-2007年4月。
-
-由Terence Parr翻译自Jutta Degener 1995年的ANSI C yacc语法
-2006年7月。词汇规则取自Java语法。
-
-Jutta说：“1985年，Jeff Lee发表了他的Yacc语法（
-与1985年4月30日的草案配套的Lex规范）
-ANSI C标准的版本。Tom Stockfisch在
-1987; 该原件，如对问题17.25的回答中所述
-comp.lang.cFAQ，可从ftp.uu.net下载，
-文件usenet/net.sources/ansi.c.grammar.Z。
-我打算使这个版本尽可能接近当前的C标准语法
-可能的如果你发现差异，请告诉我。Jutta Degener，1995年”
-
 一般来说，您需要符号表信息来解析C；类型定义
 定义类型，然后IDENTIFIERS是类型或纯ID。我在做
 这里需要的最小值仅跟踪类型名称。这是一个很好的例子
@@ -26,12 +11,6 @@ direct_declarator可以很容易地确定IDENTIFIER
 应声明为类型名。
 
 我只在一个文件上测试过这个，尽管它有3500行。
-
-此语法要求ANTLR v3（3.0b8或更高版本）
-
-编程语言实现模式
-2006年7月
-
 */
 grammar C;
 
@@ -45,7 +24,7 @@ options
 
 
 
-scope Symbols 
+scope Symbols
 {
     // 只有跟踪类型才能使解析器工作。Java示例使用Java.util.Set来跟踪这些。ANTLR3运行时有许多有用的“对象”，我们可以使用它们，它们的行为非常类似于Java哈希表、列表和向量。与Java程序员相比，您可以更好地控制它们，但它们有时会更“原始”一些。这里，对于每个作用域级别，我们都需要一组符号，因此我们可以使用ANTLR3运行时提供的哈希表，然后稍后我们将通过使用符号作为哈希表的键并查看该表是否包含该键来查看符号是否存储在任何级别
 	
