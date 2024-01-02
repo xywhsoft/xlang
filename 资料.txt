@@ -1,2 +1,4 @@
 https://www.jianshu.com/p/f3c08e866b26
 https://gitee.com/Brett-Tseng
+https://gitee.com/ShihaoGao/my-mini-complier
+https://gitee.com/lizijue/minipascal_compiler
