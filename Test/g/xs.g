@@ -1,4 +1,4 @@
-grammar xsl;
+grammar xs;
 
 options 
 {
