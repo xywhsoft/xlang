@@ -1,0 +1,577 @@
+语言类型：
+	C：基础语言，其他语言会编译为 C 语言代码，进而生成 EXE 或解释执行，C语言也作为中间体，负责将多种语言串联起来，实现类似 .NET 平台的兼容性效果。
+	XC：X C Language，类似 C 语言的语法
+	XB：X BASIC Language，类似 BASIC 语法
+	XS：X Script Language，类似 Lua 语法
+
+
+
+XS 关键字列表：
+	bool
+	byte		int8		ubyte		uint8
+	short		int16		ushort		uint16
+	int			int32		uint		uint32
+	longint		int64		ulongint	uint64
+	long		ulong
+	single		float32		double		float64		float
+	string		astr		wstr		ustr		buffer
+	array		table		struct		function
+	
+	var			in			is			true		false		null
+	and			or			xor			not
+	if			then		end			select		case
+	for			while		do
+	function	...			[...]
+	namespace	union		struct		create		destroy
+	object		get			set			meta		self		private
+	new			delete
+	async		await
+
+
+
+注释：
+	// REM
+	/* REM */
+
+
+
+原生数据类型：
+	var
+		null
+		bool
+		int
+			int8	（byte）
+			uint8	（ubyte）
+			int16	（short）
+			uint16	（ushort）
+			int32	（int）
+			uint32	（uint）
+			int64	（longint）
+			uint64	（ulongint）
+			long	（int32 或 int64 的别名）
+			ulong	（uint32 或 uint64 的别名）
+		float
+			float	（single）
+			float64	（double）
+		string
+			astr
+			wstr
+			ustr
+			binary
+		table
+		function
+		custom
+	array			（隐含类型，用于和 C 语言交换数据）
+	struct			（隐含类型，用于和 C 语言交换数据）
+
+
+
+变量定义：
+	C like：
+		type name[ = *][, *]
+		可以使用 【var a = 0】 这样的语句来定义一个变体类型
+	BASIC like：
+		Dim name[ as type][ = *][, *]
+		若省略【as type】，则定义为 var 类型
+	Script：
+		var name[ = *][, *]
+		XS 无法指定数据的类型，全部定义为 var 类型
+
+
+
+运算符：
+	>				大于
+	<				小于
+	>=				大于等于
+	<=				小于等于
+	!=				不等于
+	==				等于
+	
+	+				加法
+	-				减法
+	*				乘法
+	/				除法
+	%				取模
+	**				乘方
+	
+	&				位与
+	|				位或
+	~				位非
+	^				位异或
+	>>				右移位
+	<<				左移位
+	
+	!				逻辑非
+	||				逻辑或
+	&&				逻辑与
+	
+	=				赋值
+	+=				累加
+	-=				累减
+	*=				乘后赋值
+	/=				除后赋值
+	++				自增
+	--				自减
+	
+	&=				取非后赋值
+	|=				取或后赋值
+	^=				位异或后赋值
+	>>=				右移位后赋值
+	<<=				左移位后赋值
+	
+	@				值取指针
+	#				指针取值
+	
+	-				负号运算符
+	exp ? a : b		三目运算符
+	
+	in				表、数组、列表是否包含某元素
+	is				变量是否是某一数据类型
+
+
+
+条件分支：
+	C like：
+		if ( exp ) { code line }
+		if ( exp ) {
+			code block
+		} else if ( exp ) {
+			code block
+		} else {
+			code block
+		}
+	BASIC like：
+		If Exp Then code line
+		If Exp Then
+			code block
+		ElseIf Exp Then
+			code block
+		Else
+			code block
+		End If
+	Script
+		if exp then code line
+		if exp
+			code block
+		else if exp
+			code block
+		else
+			code block
+		end
+
+条件选择：
+	C like：
+		switch ( exp ) {
+			case A, B ... :
+				code block
+			case C, D ... :
+				code block
+			default:
+				code block
+		}
+	BASIC like：
+		Select Case Exp
+			Case A, B ...
+				code block
+			Case C, D ...
+				code block
+			Case Else
+				code block
+		End Select
+	Script：
+		select exp
+			case A, B ...
+				code block
+			case C, D ...
+				code block
+			else
+				code block
+		end
+
+
+
+计次循环：
+	C like：
+		for (var i = 0, i<100, i++) {
+			code block
+		}
+		跳出写法：
+			break
+	BASIC like：
+		For i = 1 to 100[ Step 1]
+			code block
+		Next
+		跳出写法：
+			Exit For
+	Script：
+		for i = 0, 100[, 1]
+			code block
+		end
+		跳出写法：
+			break
+
+迭代循环：
+	C like：
+		for ( [k, ]v in tbl ) {
+			code block
+		}
+		跳出写法：
+			break
+	BASIC like：
+		For [k, ]v In Tbl
+			code block
+		Next
+		跳出写法：
+			Exit For
+	Script
+		for [k, ]v in tbl
+			code block
+		end
+		跳出写法：
+			break
+
+条件循环：
+	C like：
+		while ( exp ) {
+			code block
+		}
+		do {
+			code block
+		} while ( exp )
+		跳出写法：
+			break
+	BASIC like：
+		Do
+			code block
+		Loop
+		Do While Exp
+			code block
+		Loop
+		Do Until Exp
+			code block
+		Loop
+		Do
+			code block
+		Loop While Exp
+		Do
+			code block
+		Loop Until Exp
+		跳出写法：
+			Exit Do
+	Script：
+		while exp
+			code block
+		end
+		do
+			code block
+		while exp end
+		跳出写法：
+			break
+
+
+
+函数定义：
+	C like：
+		type name([type ]param) {
+			code block
+		}
+		返回值写法：
+			return x
+			return（无返回值）
+	BASIC like：
+		Function name(param[ As type]) As type
+			code block
+		End Function
+		返回值写法：
+			Return x
+			name = x
+			Function = x
+			Exit Function（无返回值）
+	Script：
+		function name(param)
+			code block
+		end
+		返回值写法：
+			return x
+			return（无返回值）
+		Script 不限制返回值的数据类型，永远使用变体类型
+
+
+
+可选参数：
+	C like：
+		type name([type ]param, [type ]param = default) {
+			code block
+		}
+	BASIC like：
+		Function name(param[ As type], param[ As type] = default) As type
+			code block
+		End Function
+	Script：
+		function name(param, param = default)
+			code block
+		end
+
+可变参数：
+	C like：
+		type name([type ]param, ...) {
+			code block
+		}
+		访问：
+			[...] 将可变参数转换为数组，数组成员都是 var 类型
+	BASIC like：
+		Function name(param[ As type], ...) As type
+			code block
+		End Function
+		访问：
+			[...] 将可变参数转换为数组，数组成员都是 Variant 类型
+	Script：
+		function name(param, ...)
+			code block
+		end
+		访问：
+			[...] 将可变参数转换为数组
+
+
+
+命名空间定义：
+	C like：
+		namespace name {
+			body
+		}
+	BASIC like：
+		NameSpace name
+			body
+		End NameSpace
+	Script：
+		namespace name
+			body
+		end
+
+共用体定义：
+	C like：
+		union name {
+			body
+		}
+	BASIC like：
+		Union name
+			body
+		End Union
+	Script：
+		union name
+			body
+		end
+
+结构体定义（字段固定的数据结构，不支持构造、析构和面向对象能力，但可以继承数据结构）：
+	C like：
+		struct name[ : pclass] {
+			body
+		}
+	BASIC like：
+		Type name[ Extends pclass]
+			body
+		End Type
+	Script：
+		type name[ : pclass]
+			body
+		end
+
+
+
+对象定义（字段不固定，具有元编程特性的数据结构）：
+	C like：
+		object name[ : pobject] {
+			[name(param) {
+				// 构造
+			}]
+			[~name() {
+				// 析构
+			}]
+			body
+		}
+		单一声明：
+			object name : pobject
+	BASIC like：
+		Object name[ Extends pobject]
+			Constructor(param)
+				// 构造
+			End Constructor
+			Destructor()
+				// 析构
+			End Destructor
+			body
+		End Object
+		单一声明：
+			Object name Extends pobject
+	Script：
+		object name[ : pobject]
+			create(param)
+				// 构造
+			end
+			destroy()
+				// 析构
+			end
+			body
+		end
+		单一声明：
+			object name : pobject
+	
+	成员函数：
+		直接在结构域内定义即可：
+			C like：
+				type func(param) {
+					block code
+				}
+			BASIC like：
+				Function func(param)
+					block code
+				End Function
+			Script：
+				function func(param)
+					block code
+				end
+	
+	属性：
+		变量可直接作为结构的属性访问，或可定义函数属性：
+			C like：
+				type name get(param) {
+					block code
+				}
+				type name set(param) {
+					block code
+				}
+				同一名称的属性，参数类型必须完全相同，set 比 get 多一个参数，在最后面，代表设置的新值
+			BASIC like：
+				Property name(param) As type
+					block code
+				End Property
+				Property name(param)
+					block code
+				End Property
+				有返回值的，就是 get 操作，没有返回值的，就是 set 操作
+				同一名称的属性，参数类型必须完全相同，set 比 get 多一个参数，在最后面，代表设置的新值
+			Script：
+				get name(param)
+					block code
+				end
+				set name(param)
+					block code
+				end
+				同一名称的属性，参数数量只能差一个，set 比 get 多一个参数，在最后面，代表设置的新值
+		可以在结构域外定义，name 改为 class.name 即可
+	
+	元编程：
+		meta 代表实现一个元语言方法
+		C like：
+			meta func(param) {
+				block code
+			}
+		BASIC like：
+			Meta func(param)
+				block code
+			End Meta
+		Script：
+			meta func(param)
+				block code
+			end
+		支持的元方法列表：
+			set：设置了一个未知的成员值
+			get：读取了一个未知的成员值
+			call：调用了一个未知的函数
+			callself：调用了本身
+			to：类型转换
+
+	对象自身：
+		self
+
+	对象私有域（两条下划线的数据属于对象自身的数据）：
+		private
+			__type				用于 is 判断的类型名
+			__name				typename函数获取的类型名
+			__parent			继承的父表
+			__meta_set			元编程函数
+			__meta_get			元编程函数
+			__meta_call			元编程函数
+			__meta_callself		元编程函数
+			__meta_to			元编程函数
+			__create			构造函数
+			__destroy			析构函数
+
+创建对象：
+	C like：
+		type name = new(param)
+	BASIC like：
+		Dim name As type = New(param)
+		Dim name = New type(param)
+	Script：
+		var name = new type(param)
+
+
+
+立即值：
+	十进制整数：
+		数字直接表示
+	八进制整数：
+		&O数字表示
+		不支持C语言0开头的表示方法，歧义过大容易引发问题
+	十六进制整数：
+		0x数字表示
+		&H数字表示
+	二进制整数：
+		0b数字表示
+		&B数字表示
+	浮点数：
+		正常表示，可使用科学计数法
+	逻辑值：
+		true、false，不同语言决定是否区分大小写，C语言有 TRUE 和 FALSE 两个别名
+	字符串：
+		"文字内容，支持换行回车，支持转义符"
+		'文字内容，支持换行回车，不支持转义符，表达单引号本身用两个单引号'
+	ANSI字符串：
+		A"文字内容"
+		A'文字内容'
+		不管文件用什么编码，都以 ANSI 编码存储（OEM编码）
+	UNICODE字符串：
+		W"文字内容"
+		W"文字内容"
+		不管文件用什么编码，都以 UNICODE 编码存储
+	UTF-8字符串：
+		U"文字内容"
+		U"文字内容"
+		不管文件用什么编码，都以 utf-8 编码存储
+	动态编码字符串：
+		T"文字内容"
+		转换为对应的编码储存
+	数组（元组）：
+		[value, ...]
+		数组下标总是从 0 开始，不允许出现负数下标
+	表：
+		{key=value, ...}
+
+索引：
+	数组（元组）：
+		var[index]
+		var[-index]						从后向前的索引
+		var[a to b]						截取数组的一部分
+		var[a, b, c, d, ...]			按照索引截取数组的一部分，数组索引会按照顺序重新排列
+	表：
+		var[index]
+		var[a to b]						截取表的一部分（仅支持数字索引的表）
+		var[a, b, c, d, ...]			按照索引截取表的一部分
+
+数据类型强转：
+	C like：
+		(type)value
+	BASIC like：
+		Cast(type, value)
+	Script：
+		value.To(String)
+		value.To(Int32)
+		value.To(Double)
+
+
+
+语言特性：
+	async
+	await
+	GC

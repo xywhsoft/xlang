@@ -1,0 +1,9 @@
+
+
+
+function main(param)
+	var a
+	print(a)	// 默认为 null
+end
+
+

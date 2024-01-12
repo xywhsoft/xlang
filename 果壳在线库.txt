@@ -1,0 +1,380 @@
+{
+    "libs": [
+        {
+            "name": "adodb",
+            "title": "提供数据库访问功能",
+            "readme": "提供基于adodb的数据库访问功能。",
+            "author": "ErosOlmi",
+            "web": "https://www.thinbasic.com",
+            "icon": "http://",
+            "type": "官方",
+            "start": 3,
+            "packs": [
+                {
+                    "version": "1.0",
+                    "url": "value",
+                    "describe": "初始版本",
+                    "type": "稳定"
+                }
+            ],
+            "map": {
+                "1.0": 0
+            }
+        },
+        {
+            "name": "cJson",
+            "title": "提供 JSON 文件访问能力",
+            "readme": "描述",
+            "author": "ErosOlmi",
+            "web": "https://www.thinbasic.com",
+            "icon": "http://",
+            "type": "官方",
+            "start": 3,
+            "packs": [
+                {
+                    "version": "1.0",
+                    "url": "value",
+                    "describe": "初始版本",
+                    "type": "稳定"
+                }
+            ],
+            "map": {
+                "1.0": 0
+            }
+        },
+        {
+            "name": "Conlose",
+            "title": "控制台操作功能",
+            "readme": "提供控制台面板访问功能",
+            "author": "ErosOlmi",
+            "web": "https://www.thinbasic.com",
+            "icon": "http://",
+            "type": "官方",
+            "start": 3,
+            "packs": [
+                {
+                    "version": 1,
+                    "url": "value",
+                    "describe": "初始版本",
+                    "type": "稳定"
+                }
+            ],
+            "map": {
+                "1.0": 0
+            }
+        },
+        {
+            "name": "dm",
+            "title": "大漠插件（图色、OCR、全能的游戏脚本开发套件）",
+            "readme": "全能的游戏脚本开发套件",
+            "author": "大漠",
+            "web": null,
+            "icon": "http://",
+            "type": "推荐",
+            "start": 4,
+            "packs": [
+                {
+                    "version": "3.1433",
+                    "url": "value",
+                    "describe": "最后一个免费版",
+                    "type": "推荐"
+                }
+            ],
+            "map": {
+                "3.1433": 0
+            }
+        },
+        {
+            "name": "Excel",
+            "title": "提供 Excel 应用程序自动化能力",
+            "readme": "可以读写 xls、xlsx 等表格文件",
+            "author": "ErosOlmi",
+            "web": "https://www.thinbasic.com",
+            "icon": "http://",
+            "type": "官方",
+            "start": 3,
+            "packs": [
+                {
+                    "version": "1.0",
+                    "url": "value",
+                    "describe": "初始版本",
+                    "type": "稳定"
+                }
+            ],
+            "map": {
+                "1.0": 0
+            }
+        },
+        {
+            "name": "File",
+            "title": "文件操作",
+            "readme": "文件操作",
+            "author": "ErosOlmi",
+            "web": "https://www.thinbasic.com",
+            "icon": "http://",
+            "type": "官方",
+            "start": 3,
+            "packs": [
+                {
+                    "version": "1.0",
+                    "url": "value",
+                    "describe": "初始版本",
+                    "type": "稳定"
+                }
+            ],
+            "map": {
+                "1.0": 0
+            }
+        },
+        {
+            "name": "FileFind",
+            "title": "可实现文件查找和遍历功能",
+            "readme": "可实现文件查找和遍历功能",
+            "author": "xLeaves",
+            "web": "https://xxrpa.com",
+            "icon": "http://",
+            "type": "官方",
+            "start": 3,
+            "packs": [
+                {
+                    "version": "1.0",
+                    "url": "value",
+                    "describe": "初始版本",
+                    "type": "稳定"
+                }
+            ],
+            "map": {
+                "1.0": 0
+            }
+        },
+        {
+            "name": "ftp",
+            "title": "FTP文件传输协议",
+            "readme": "FTP文件传输协议",
+            "author": "ErosOlmi",
+            "web": "https://www.thinbasic.com",
+            "icon": "http://",
+            "type": "官方",
+            "start": 3,
+            "packs": [
+                {
+                    "version": "1.0",
+                    "url": "value",
+                    "describe": "初始版本",
+                    "type": "稳定"
+                }
+            ],
+            "map": {
+                "1.0": 0
+            }
+        },
+        {
+            "name": "GlobalData",
+            "title": "多线程全局数据访问插件",
+            "readme": "多线程全局数据访问插件",
+            "author": "xLeaves",
+            "web": "https://xxrpa.com",
+            "icon": "http://",
+            "type": "官方",
+            "start": 3,
+            "packs": [
+                {
+                    "version": "1.0",
+                    "url": "value",
+                    "describe": "初始版本",
+                    "type": "稳定"
+                }
+            ],
+            "map": {
+                "1.0": 0
+            }
+        },
+        {
+            "name": "ini",
+            "title": "ini配置文件读写",
+            "readme": "ini配置文件读写",
+            "author": "ErosOlmi",
+            "web": "https://www.thinbasic.com",
+            "icon": "http://",
+            "type": "官方",
+            "start": 3,
+            "packs": [
+                {
+                    "version": "1.0",
+                    "url": "value",
+                    "describe": "初始版本",
+                    "type": "稳定"
+                }
+            ],
+            "map": {
+                "1.0": 0
+            }
+        },
+        {
+            "name": "Redis",
+            "title": "键值对数据库",
+            "readme": "键值对数据库",
+            "author": "xLeaves",
+            "web": "https://xxrpa.com",
+            "icon": "http://",
+            "type": "官方",
+            "start": 3,
+            "packs": [
+                {
+                    "version": "1.0",
+                    "url": "value",
+                    "describe": "初始版本",
+                    "type": "稳定"
+                }
+            ],
+            "map": {
+                "1.0": 0
+            }
+        },
+        {
+            "name": "RedisServer",
+            "title": "Redis 本地服务器搭建组件",
+            "readme": "Redis 本地服务器搭建组件",
+            "author": "xLeaves",
+            "web": "https://xxrpa.com",
+            "icon": "http://",
+            "type": "官方",
+            "start": 3,
+            "packs": [
+                {
+                    "version": "1.0",
+                    "url": "value",
+                    "describe": "初始版本",
+                    "type": "稳定"
+                }
+            ],
+            "map": {
+                "1.0": 0
+            }
+        },
+        {
+            "name": "Registry",
+            "title": "注册表访问插件",
+            "readme": "注册表访问插件",
+            "author": "ErosOlmi",
+            "web": "https://www.thinbasic.com",
+            "icon": "http://",
+            "type": "官方",
+            "start": 3,
+            "packs": [
+                {
+                    "version": "1.0",
+                    "url": "value",
+                    "describe": "初始版本",
+                    "type": "稳定"
+                }
+            ],
+            "map": {
+                "1.0": 0
+            }
+        },
+        {
+            "name": "Sciter",
+            "title": "使用 html 制作华丽的程序界面",
+            "readme": "使用 html 制作华丽的程序界面",
+            "author": "xLeaves",
+            "web": "https://xxrpa.com",
+            "icon": "http://",
+            "type": "官方",
+            "start": 3,
+            "packs": [
+                {
+                    "version": "1.0",
+                    "url": "value",
+                    "describe": "初始版本",
+                    "type": "稳定"
+                }
+            ],
+            "map": {
+                "1.0": 0
+            }
+        },
+        {
+            "name": "SmWeb",
+            "title": "神梦无痕浏览器自动化插件",
+            "readme": "神梦无痕浏览器自动化插件",
+            "author": "神梦无痕",
+            "web": null,
+            "icon": "http://",
+            "type": "推荐",
+            "start": 4,
+            "packs": [
+                {
+                    "version": "1.0",
+                    "url": "value",
+                    "describe": "初始版本",
+                    "type": "稳定"
+                }
+            ],
+            "map": {
+                "1.0": 0
+            }
+        },
+        {
+            "name": "TuRing",
+            "title": "图灵文字识别插件",
+            "readme": "图灵文字识别插件",
+            "author": "一只鱼",
+            "web": null,
+            "icon": "http://",
+            "type": "推荐",
+            "start": 4,
+            "packs": [
+                {
+                    "version": "1.0",
+                    "url": "value",
+                    "describe": "初始版本",
+                    "type": "稳定"
+                }
+            ],
+            "map": {
+                "1.0": 0
+            }
+        },
+        {
+            "name": "xLib",
+            "title": "星月扩展库（综合功能的扩展库）",
+            "readme": "星月扩展库（综合功能的扩展库）",
+            "author": "xLeaves",
+            "web": "https://xxrpa.com",
+            "icon": "http://",
+            "type": "推荐",
+            "start": 4,
+            "packs": [
+                {
+                    "version": "1.0",
+                    "url": "value",
+                    "describe": "初始版本",
+                    "type": "稳定"
+                }
+            ],
+            "map": {
+                "1.0": 0
+            }
+        }
+    ],
+    "map": {
+        "adodb": 0,
+        "cJson": 1,
+        "Conlose": 2,
+        "dm": 3,
+        "Excel": 4,
+        "File": 5,
+        "FileFind": 6,
+        "ftp": 7,
+        "GlobalData": 8,
+        "ini": 9,
+        "Redis": 10,
+        "RedisServer": 11,
+        "Registry": 12,
+        "Sciter": 13,
+        "SmWeb": 14,
+        "TuRing": 15,
+        "xLib": 16
+    }
+}

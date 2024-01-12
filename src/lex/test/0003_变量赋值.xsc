@@ -1,0 +1,10 @@
+
+
+
+function main(param)
+	var a = 0
+	a = "新值"
+	print(a)
+end
+
+
