@@ -40,7 +40,9 @@ int main(int argc, char** argv)
 			printf("fopen error : %s\n", argv[1]);
 			return 1;
 		}
-		yylex();
+		do {
+			yylex();
+		} while ( yylex() != 0 );
 		fclose(yyin);
     } else {
 		do {

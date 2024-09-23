@@ -1,0 +1,306 @@
+数据类型：
+	var
+		empty							不存在的数据（伪类型，仅用于区分表元素中，NULL与EMPTY）
+		null							空类型（null）
+		bool							逻辑类型（true、false）
+		number							数字类型（细分为：int、float、curr、complex四种类型，每种类型下还有多种子类型）
+		string							字符串类型
+		binary							二进制类型（内存容器，可以和字符串相互转换，可以进行HEX或BASE64编码）
+		collect							集合类型（自动去重，无排序的数据集合，可以进行 较差并补 等操作）
+		array							数组类型（下标从 0 开始，不支持负数下标）
+		struct							结构体类型（长度固定，可以快速访问成员的C结构体）
+		table							表类型（长度、成员可变，访问效率较低但灵活性很强的自由结构）
+		object							对象类型（结构体 + 表，兼顾速度和灵活性的复杂数据结构）
+		function						函数类型
+		point							指针类型（隐藏类型，用于和C语言交换数据）
+		carray							C语言数组类型（隐藏类型，用于和C语言交换数据）
+		custom							自定义数据类型（隐藏类型，用于自定义扩展）
+
+数字隐含类型：
+	int			（i64）				整数类型，可选 8、16、32、64、128 位长度，支持无符号或有符号
+	float		（f64）				浮点类型，可选 32、64、128 位长度，不支持无符号
+	curr		（curr）				货币类型，可选 64、128 位长度，不支持无符号
+	complex		（complex64）		复数类型，可选 F32、F64、F128 三种长度的复数
+
+数据子类型：
+	int
+		i8			（byte）				8位有符号整数
+		u8			（ubyte）			8位无符号整数
+		i16			（short）			168位有符号整数
+		u16			（ushort）			16位无符号整数
+		i32			（int）				32位有符号整数
+		u32			（uint）				32位无符号整数
+		i64			（longint）			64位有符号整数
+		u64			（ulongint）			64位无符号整数
+		i128		（longint）			128位有符号整数
+		u128		（ulongint）			128位无符号整数
+	float
+		float		（single）			32位浮点数
+		float64		（double）			64位浮点数
+		float128	（longdouble）		128位浮点数
+		bignum							大数类型（可表示无限长度的数字）
+	curr
+		curr							64位货币类型
+		longcurr						128位货币类型
+	complex
+		complex32						32位实数 + 32位虚数
+		complex64						64位实数 + 64位虚数
+		complex128						128位实数 + 128位虚数
+	string
+		astr							ANSI 字符串
+		wstr							UNICODE 字符串
+		ustr							UTF8 字符串
+	function
+		xfunction						函数类型（xLang 函数，定义格式固定，通过结构体传递参数）
+		cfunction						C语言函数类型（可指定参数、调用约定等信息，仅支持调用）
+
+运算符：
+	>				大于
+	<				小于
+	>=				大于等于
+	<=				小于等于
+	!=				不等于
+	==				等于
+	~=				约等于（数字按照规则对比，字符串按照通配符对比，仅支持 浮点数 和 字符串）
+	
+	+				加法
+	-				减法
+	*				乘法
+	/				除法
+	%				取模
+	**				乘方
+	
+	&				位与
+	|				位或
+	!				位非
+	^				位异或
+	>>				右移位
+	<<				左移位
+	
+	and				逻辑与
+	or				逻辑或
+	not				逻辑非
+	
+	=				赋值
+	+=				累加
+	-=				累减
+	*=				乘后赋值
+	/=				除后赋值
+	++				自增
+	--				自减
+	
+	-				负号运算符
+	exp ? a : b		三目运算符
+	
+	??				null 缺省运算符（前值不存在则返回后值）		var a = b["asd"] ?? "找不到"
+	??=				为空则赋值									a ??= "找不到"
+	
+	.				类调用、命名空间调用、结构体调用
+	.?				安全调用，如果对应成员属性或函数不存在，则返回 null
+	[?(param)]		安全调用，如果对应成员属性或函数不存在，则返回 null
+	
+	is				变量是否是某一数据类型
+	in				判断是否包含在集合、数组、表、对象内，表和对象判断key，数组判断val
+
+
+
+注释：
+	// 注释内容
+	/* 多行注释 */				支持嵌套使用
+
+变量定义：
+	var name[ = val][...]
+	无法指定数据的类型，全部定义为 var 类型，可以赋带有数据类型的初始值
+
+条件分支：
+	if exp then code line
+	if exp
+		code block
+	elseif exp
+		code block
+	else
+		code block
+	end
+
+条件选择：
+	if exp in A, B, C then code line
+	if exp in 1 to 10 then code line
+	if exp in A, B, C
+		code block
+	elseif exp in 1 to 10
+		code block
+	else
+		code block
+	end
+
+计次循环：
+	for i = 1 to 10[ step x]
+		code block
+	end
+
+迭代循环：
+	for [k, ]v in obj
+		code block
+	end
+
+条件循环：
+	while exp
+		code block
+	end
+	do
+		code block
+	while exp end
+
+循环跳出：
+	break[(count)]
+	break				只跳出当前循环，相当于 break(1)
+	break(2)			跳出当前循环后，再立刻跳出外层循环一次
+
+函数定义：
+	function name(params)
+		code block
+	end
+
+函数返回值写法：
+	return x
+	return				无返回值，直接退出函数
+	不限制返回值的数据类型，永远使用变体类型
+
+可选参数：
+	function name(a, b = 1, c = 2)
+		code block
+	end
+	可选参数只能出现在尾端，不能出现在前端，避免参数传递出现歧义
+
+可变参数：
+	function name(a, ...)
+		code block
+	end
+	使用 ... 表示可变参数，使用可变参数的函数，内部会自动生成 argc 和 argv 参数，前者表示可变参数数量，后者表示可变参数数组
+
+结构体：
+	struct name[ : parent]
+		body
+	end
+	parent 表示父类，结构体的父类只能是一个结构体
+
+共用体：
+	union name
+		body
+	end
+
+数组定义：
+	var a = [1, 2, 3]
+
+表定义：
+	var a = {a = 1, b = 2, c = 3}
+
+对象定义：
+	object name[ : parent]
+		create(param)
+			// 构造
+		end
+		destroy()
+			// 析构
+		end
+		body
+	end
+	parent 表示父类，对象的父类可以是一个结构体定义，一个对象定义，或者一个表或对象的实体
+	对象代码块内，可使用 self 代表对象自身
+
+对象成员函数：
+	function func(param)
+		block code
+	end
+	可以在结构域外定义，name 改为 class.name 即可
+
+对象属性：
+	get name(param)
+		block code
+	end
+	set name(param, val)
+		block code
+	end
+	同一名称的属性，参数数量只能差一个，set 比 get 多一个参数，在最后面，代表设置的新值
+	可以在结构域外定义，name 改为 class.name 即可
+
+元编程：
+	meta func(param)
+		block code
+	end
+	meta 代表实现一个元语言方法
+	支持的元方法列表：
+		set：设置了一个未知的成员值
+		get：读取了一个未知的成员值
+		call：调用了一个未知的函数
+		callself：调用了本身
+		to：类型转换
+
+创建对象、结构体实体：
+	var name = new typename
+
+
+
+立即值表示：
+	十进制整数：
+		数字直接表示
+	八进制整数：
+		&O数字表示
+		不支持C语言0开头的表示方法，歧义过大容易引发问题
+	十六进制整数：
+		0x数字表示
+		&H数字表示
+	二进制整数：
+		0b数字表示
+		&B数字表示
+	浮点数：
+		正常表示，可使用科学计数法
+	逻辑值：
+		true、false
+	字符串：
+		"文字内容，支持换行回车，支持转义符"
+		'文字内容，支持换行回车，不支持转义符，表达单引号本身用两个单引号'
+		使用文件编码方式保存的字符串，例如文件使用 utf8，则这个字符串就是 utf8 类型的
+	ANSI字符串：
+		#A"文字内容"
+		#A'文字内容'
+		不管文件用什么编码，都以 ANSI 编码存储（OEM编码）
+	UNICODE字符串：
+		#W"文字内容"
+		#W'文字内容'
+		不管文件用什么编码，都以 UNICODE 编码存储
+	UTF-8字符串：
+		#U"文字内容"
+		#U'文字内容'
+		不管文件用什么编码，都以 utf-8 编码存储
+	动态编码字符串：
+		#T"文字内容"
+		#T'文字内容'
+		转换为对应的编码储存，对应编码为编译器编译时指定的编码
+	模板字符串：
+		`hello {$varname}`
+		#A`hello {$varname}`
+		#W`hello {$varname}`
+		#U`hello {$varname}`
+		#T`hello {$varname}`
+		模板字符串可以直接将变量代入字符串，模板字符串编码规则与字符串编码规则相同
+	数组（：
+		[value, ...]
+		数组下标总是从 0 开始，不允许出现负数下标
+	表：
+		{key=value, ...}
+	集合：
+		{key1, key2, ...}
+
+索引：
+	数组：
+		var[index]
+		var[-index]						从后向前的索引
+		var[a to b]						截取数组的一部分
+		var[a, b, c, d, ...]			按照索引截取数组的一部分，数组索引会按照顺序重新排列
+	表：
+		var[index]
+		var[~index]						按照通配符匹配，截取表的一部分
+		var[a, b, c, d, ...]			按照索引截取表的一部分
+	集合：
+		var[index]						判断集合中是否存在某值（相当于 index in var）

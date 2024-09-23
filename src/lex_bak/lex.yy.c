@@ -1,5 +1,6 @@
+	/* 固定在生成文件顶部的代码块 */
 
-#line 2 "lex.yy.c"
+#line 3 "lex.yy.c"
 
 #define  YY_INT_ALIGNED short int
 
@@ -547,8 +548,10 @@ int yy_flex_debug = 0;
 char *yytext;
 #line 1 "xs.l"
 #define YY_NO_INPUT 1
-#line 8 "xs.l"
+
+#line 14 "xs.l"
 	/* OPTIONS:
+		noyywrap    扫描单文件，不调用yywrap()
 		noyywrap    扫描单文件，不调用yywrap()
 		nounput     unput将字符插入输入流
 		noinput     input返回输入流的下一单个字符
@@ -560,12 +563,12 @@ char *yytext;
 	// 行号记录
 	int iLine = 1;
 	
-#line 563 "lex.yy.c"
+#line 566 "lex.yy.c"
 /* 空白字符 */
 /* 注释 */
 /* 数值立即值 */
 /* 标识符 */
-#line 568 "lex.yy.c"
+#line 571 "lex.yy.c"
 
 #define INITIAL 0
 
@@ -780,12 +783,12 @@ YY_DECL
 		}
 
 	{
-#line 44 "xs.l"
+#line 51 "xs.l"
 
 
-#line 47 "xs.l"
+#line 54 "xs.l"
  /* 空白字符和注释 */
-#line 788 "lex.yy.c"
+#line 791 "lex.yy.c"
 
 	while ( /*CONSTCOND*/1 )		/* loops until end-of-file is reached */
 		{
@@ -844,394 +847,394 @@ do_action:	/* This label is used only to access EOF actions. */
 
 case 1:
 YY_RULE_SETUP
-#line 48 "xs.l"
+#line 55 "xs.l"
 { printf("Lexer - WhiteSpace : %s\n", yytext); }
 	YY_BREAK
 case 2:
 /* rule 2 can match eol */
 YY_RULE_SETUP
-#line 49 "xs.l"
+#line 56 "xs.l"
 { iLine++; printf("Lexer - Linenr : %d\n", iLine); }
 	YY_BREAK
 case 3:
 YY_RULE_SETUP
-#line 50 "xs.l"
+#line 57 "xs.l"
 { printf("Lexer - LineComment : %s\n", yytext); }
 	YY_BREAK
 case 4:
 /* rule 4 can match eol */
 YY_RULE_SETUP
-#line 51 "xs.l"
+#line 58 "xs.l"
 { printf("Lexer - BlockComment : %s\n", yytext); }
 	YY_BREAK
 /* 变量声明 */
 case 5:
 YY_RULE_SETUP
-#line 54 "xs.l"
+#line 61 "xs.l"
 { printf("Lexer - var : %s\n", yytext); return XLTK_VAR; }
 	YY_BREAK
 case 6:
 YY_RULE_SETUP
-#line 55 "xs.l"
+#line 62 "xs.l"
 { printf("Lexer - null : %s\n", yytext); return XLTK_NULL; }
 	YY_BREAK
 case 7:
 YY_RULE_SETUP
-#line 56 "xs.l"
+#line 63 "xs.l"
 { printf("Lexer - true : %s\n", yytext); return XLTK_TRUE; }
 	YY_BREAK
 case 8:
 YY_RULE_SETUP
-#line 57 "xs.l"
+#line 64 "xs.l"
 { printf("Lexer - false : %s\n", yytext); return XLTK_FALSE; }
 	YY_BREAK
 /* 条件分支语句 */
 case 9:
 YY_RULE_SETUP
-#line 60 "xs.l"
+#line 67 "xs.l"
 { printf("Lexer - if : %s\n", yytext); return XLTK_IF; }
 	YY_BREAK
 case 10:
 YY_RULE_SETUP
-#line 61 "xs.l"
+#line 68 "xs.l"
 { printf("Lexer - then : %s\n", yytext); return XLTK_THEN; }
 	YY_BREAK
 case 11:
 YY_RULE_SETUP
-#line 62 "xs.l"
+#line 69 "xs.l"
 { printf("Lexer - else : %s\n", yytext); return XLTK_ELSE; }
 	YY_BREAK
 case 12:
 YY_RULE_SETUP
-#line 63 "xs.l"
+#line 70 "xs.l"
 { printf("Lexer - elseif : %s\n", yytext); return XLTK_ELSEIF; }
 	YY_BREAK
 case 13:
 YY_RULE_SETUP
-#line 64 "xs.l"
+#line 71 "xs.l"
 { printf("Lexer - select : %s\n", yytext); return XLTK_SELECT; }
 	YY_BREAK
 case 14:
 YY_RULE_SETUP
-#line 65 "xs.l"
+#line 72 "xs.l"
 { printf("Lexer - case : %s\n", yytext); return XLTK_CASE; }
 	YY_BREAK
 /* 循环语句 */
 case 15:
 YY_RULE_SETUP
-#line 68 "xs.l"
+#line 75 "xs.l"
 { printf("Lexer - do : %s\n", yytext); return XLTK_DO; }
 	YY_BREAK
 case 16:
 YY_RULE_SETUP
-#line 69 "xs.l"
+#line 76 "xs.l"
 { printf("Lexer - while : %s\n", yytext); return XLTK_WHILE; }
 	YY_BREAK
 case 17:
 YY_RULE_SETUP
-#line 70 "xs.l"
+#line 77 "xs.l"
 { printf("Lexer - for : %s\n", yytext); return XLTK_FOR; }
 	YY_BREAK
 case 18:
 YY_RULE_SETUP
-#line 71 "xs.l"
+#line 78 "xs.l"
 { printf("Lexer - in : %s\n", yytext); return XLTK_IN; }
 	YY_BREAK
 /* 代码块结束、跳出符号 */
 case 19:
 YY_RULE_SETUP
-#line 74 "xs.l"
+#line 81 "xs.l"
 { printf("Lexer - end : %s\n", yytext); return XLTK_END; }
 	YY_BREAK
 case 20:
 YY_RULE_SETUP
-#line 75 "xs.l"
+#line 82 "xs.l"
 { printf("Lexer - break : %s\n", yytext); return XLTK_BREAK; }
 	YY_BREAK
 case 21:
 YY_RULE_SETUP
-#line 76 "xs.l"
+#line 83 "xs.l"
 { printf("Lexer - continue : %s\n", yytext); return XLTK_CONTINUE; }
 	YY_BREAK
 /* 函数声明 */
 case 22:
 YY_RULE_SETUP
-#line 79 "xs.l"
+#line 86 "xs.l"
 { printf("Lexer - function : %s\n", yytext); return XLTK_FUNCTION; }
 	YY_BREAK
 case 23:
 YY_RULE_SETUP
-#line 80 "xs.l"
+#line 87 "xs.l"
 { printf("Lexer - return : %s\n", yytext); return XLTK_RETURN; }
 	YY_BREAK
 /* 命名空间声明 */
 /* 括号 */
 case 24:
 YY_RULE_SETUP
-#line 85 "xs.l"
+#line 92 "xs.l"
 { printf("Lexer - parentheses left : %s\n", yytext); return XLTK_PARANTHESES_L; }
 	YY_BREAK
 case 25:
 YY_RULE_SETUP
-#line 86 "xs.l"
+#line 93 "xs.l"
 { printf("Lexer - parentheses right : %s\n", yytext); return XLTK_PARANTHESES_R; }
 	YY_BREAK
 case 26:
 YY_RULE_SETUP
-#line 87 "xs.l"
+#line 94 "xs.l"
 { printf("Lexer - braces left : %s\n", yytext); return XLTK_BRACES_L; }
 	YY_BREAK
 case 27:
 YY_RULE_SETUP
-#line 88 "xs.l"
+#line 95 "xs.l"
 { printf("Lexer - braces right : %s\n", yytext); return XLTK_BRACES_R; }
 	YY_BREAK
 case 28:
 YY_RULE_SETUP
-#line 89 "xs.l"
+#line 96 "xs.l"
 { printf("Lexer - brackets left : %s\n", yytext); return XLTK_BRACKETS_L; }
 	YY_BREAK
 case 29:
 YY_RULE_SETUP
-#line 90 "xs.l"
+#line 97 "xs.l"
 { printf("Lexer - brackets right : %s\n", yytext); return XLTK_BRACKETS_R; }
 	YY_BREAK
 /* 比较运算符 */
 case 30:
 YY_RULE_SETUP
-#line 93 "xs.l"
+#line 100 "xs.l"
 { printf("Lexer - opera [>] : %s\n", yytext); return XLTK_OP_MORE; }
 	YY_BREAK
 case 31:
 YY_RULE_SETUP
-#line 94 "xs.l"
+#line 101 "xs.l"
 { printf("Lexer - opera [<] : %s\n", yytext); return XLTK_OP_LESS; }
 	YY_BREAK
 case 32:
 YY_RULE_SETUP
-#line 95 "xs.l"
+#line 102 "xs.l"
 { printf("Lexer - opera [>=] : %s\n", yytext); return XLTK_OP_MORE_EQUAL; }
 	YY_BREAK
 case 33:
 YY_RULE_SETUP
-#line 96 "xs.l"
+#line 103 "xs.l"
 { printf("Lexer - opera [<=] : %s\n", yytext); return XLTK_OP_LESS_EQUAL; }
 	YY_BREAK
 case 34:
 YY_RULE_SETUP
-#line 97 "xs.l"
+#line 104 "xs.l"
 { printf("Lexer - opera [!=] : %s\n", yytext); return XLTK_OP_UNEQUAL; }
 	YY_BREAK
 case 35:
 YY_RULE_SETUP
-#line 98 "xs.l"
+#line 105 "xs.l"
 { printf("Lexer - opera [==] : %s\n", yytext); return XLTK_OP_EQUAL; }
 	YY_BREAK
 /* 数学运算符 */
 case 36:
 YY_RULE_SETUP
-#line 101 "xs.l"
+#line 108 "xs.l"
 { printf("Lexer - opera [+] : %s\n", yytext); return XLTK_OP_ADD; }
 	YY_BREAK
 case 37:
 YY_RULE_SETUP
-#line 102 "xs.l"
+#line 109 "xs.l"
 { printf("Lexer - opera [-] : %s\n", yytext); return XLTK_OP_SUB; }
 	YY_BREAK
 case 38:
 YY_RULE_SETUP
-#line 103 "xs.l"
+#line 110 "xs.l"
 { printf("Lexer - opera [*] : %s\n", yytext); return XLTK_OP_MUL; }
 	YY_BREAK
 case 39:
 YY_RULE_SETUP
-#line 104 "xs.l"
+#line 111 "xs.l"
 { printf("Lexer - opera [/] : %s\n", yytext); return XLTK_OP_DIV; }
 	YY_BREAK
 case 40:
 YY_RULE_SETUP
-#line 105 "xs.l"
+#line 112 "xs.l"
 { printf("Lexer - opera [%%] : %s\n", yytext); return XLTK_OP_MOD; }
 	YY_BREAK
 case 41:
 YY_RULE_SETUP
-#line 106 "xs.l"
+#line 113 "xs.l"
 { printf("Lexer - opera [**] : %s\n", yytext); return XLTK_OP_POW; }
 	YY_BREAK
 /* 位运算符 */
 case 42:
 YY_RULE_SETUP
-#line 109 "xs.l"
+#line 116 "xs.l"
 { printf("Lexer - opera [&] : %s\n", yytext); return XLTK_OP_BINAND; }
 	YY_BREAK
 case 43:
 YY_RULE_SETUP
-#line 110 "xs.l"
+#line 117 "xs.l"
 { printf("Lexer - opera [|] : %s\n", yytext); return XLTK_OP_BINOR; }
 	YY_BREAK
 case 44:
 YY_RULE_SETUP
-#line 111 "xs.l"
+#line 118 "xs.l"
 { printf("Lexer - opera [~] : %s\n", yytext); return XLTK_OP_BINNOT; }
 	YY_BREAK
 case 45:
 YY_RULE_SETUP
-#line 112 "xs.l"
+#line 119 "xs.l"
 { printf("Lexer - opera [^] : %s\n", yytext); return XLTK_OP_BINXOR; }
 	YY_BREAK
 case 46:
 YY_RULE_SETUP
-#line 113 "xs.l"
+#line 120 "xs.l"
 { printf("Lexer - opera [>>] : %s\n", yytext); return XLTK_OP_BINRSH; }
 	YY_BREAK
 case 47:
 YY_RULE_SETUP
-#line 114 "xs.l"
+#line 121 "xs.l"
 { printf("Lexer - opera [<<] : %s\n", yytext); return XLTK_OP_BINLSH; }
 	YY_BREAK
 /* 逻辑运算符 */
 case 48:
 YY_RULE_SETUP
-#line 117 "xs.l"
+#line 124 "xs.l"
 { printf("Lexer - opera [!] : %s\n", yytext); return XLTK_OP_NOT; }
 	YY_BREAK
 case 49:
 YY_RULE_SETUP
-#line 118 "xs.l"
+#line 125 "xs.l"
 { printf("Lexer - opera [&&] : %s\n", yytext); return XLTK_OP_AND; }
 	YY_BREAK
 case 50:
 YY_RULE_SETUP
-#line 119 "xs.l"
+#line 126 "xs.l"
 { printf("Lexer - opera [||] : %s\n", yytext); return XLTK_OP_OR; }
 	YY_BREAK
 /* 赋值运算符 */
 case 51:
 YY_RULE_SETUP
-#line 122 "xs.l"
+#line 129 "xs.l"
 { printf("Lexer - opera [=] : %s\n", yytext); return XLTK_OP_SET; }
 	YY_BREAK
 case 52:
 YY_RULE_SETUP
-#line 123 "xs.l"
+#line 130 "xs.l"
 { printf("Lexer - opera [+=] : %s\n", yytext); return XLTK_OP_SET_ADD; }
 	YY_BREAK
 case 53:
 YY_RULE_SETUP
-#line 124 "xs.l"
+#line 131 "xs.l"
 { printf("Lexer - opera [-=] : %s\n", yytext); return XLTK_OP_SET_SUB; }
 	YY_BREAK
 case 54:
 YY_RULE_SETUP
-#line 125 "xs.l"
+#line 132 "xs.l"
 { printf("Lexer - opera [*=] : %s\n", yytext); return XLTK_OP_SET_MUL; }
 	YY_BREAK
 case 55:
 YY_RULE_SETUP
-#line 126 "xs.l"
+#line 133 "xs.l"
 { printf("Lexer - opera [/=] : %s\n", yytext); return XLTK_OP_SET_DIV; }
 	YY_BREAK
 case 56:
 YY_RULE_SETUP
-#line 127 "xs.l"
+#line 134 "xs.l"
 { printf("Lexer - opera [++] : %s\n", yytext); return XLTK_OP_ADDONE; }
 	YY_BREAK
 case 57:
 YY_RULE_SETUP
-#line 128 "xs.l"
+#line 135 "xs.l"
 { printf("Lexer - opera [--] : %s\n", yytext); return XLTK_OP_SUBONE; }
 	YY_BREAK
 case 58:
 YY_RULE_SETUP
-#line 129 "xs.l"
+#line 136 "xs.l"
 { printf("Lexer - opera [is] : %s\n", yytext); return XLTK_OP_IS; }
 	YY_BREAK
 /* 指针运算符 */
 case 59:
 YY_RULE_SETUP
-#line 132 "xs.l"
+#line 139 "xs.l"
 { printf("Lexer - opera [@] : %s\n", yytext); }
 	YY_BREAK
 case 60:
 YY_RULE_SETUP
-#line 133 "xs.l"
+#line 140 "xs.l"
 { printf("Lexer - opera [#] : %s\n", yytext); }
 	YY_BREAK
 /* 三目运算符 */
 case 61:
 YY_RULE_SETUP
-#line 136 "xs.l"
+#line 143 "xs.l"
 { printf("Lexer - opera [?] : %s\n", yytext); }
 	YY_BREAK
 case 62:
 YY_RULE_SETUP
-#line 137 "xs.l"
+#line 144 "xs.l"
 { printf("Lexer - opera [:] : %s\n", yytext); }
 	YY_BREAK
 /* 访问符号 */
 case 63:
 YY_RULE_SETUP
-#line 140 "xs.l"
+#line 147 "xs.l"
 { printf("Lexer - symbol [.] : %s\n", yytext); }
 	YY_BREAK
 /* 分行符号 */
 case 64:
 YY_RULE_SETUP
-#line 143 "xs.l"
+#line 150 "xs.l"
 { printf("Lexer - symbol [;] : %s\n", yytext); }
 	YY_BREAK
 /* 动态参数符号 */
 case 65:
 YY_RULE_SETUP
-#line 146 "xs.l"
+#line 153 "xs.l"
 { printf("Lexer - symbol [...] : %s\n", yytext); }
 	YY_BREAK
 /* 其他符号 */
 case 66:
 YY_RULE_SETUP
-#line 149 "xs.l"
+#line 156 "xs.l"
 { printf("Lexer - symbol [,] : %s\n", yytext); }
 	YY_BREAK
 /* 标识符 */
 case 67:
 YY_RULE_SETUP
-#line 152 "xs.l"
+#line 159 "xs.l"
 { printf("Lexer - Identifier : %s\n", yytext); }
 	YY_BREAK
 /* 立即值 */
 case 68:
 YY_RULE_SETUP
-#line 155 "xs.l"
+#line 162 "xs.l"
 { printf("Lexer - Integer : %s\n", yytext); return XLTK_INTEGER; }
 	YY_BREAK
 case 69:
 YY_RULE_SETUP
-#line 156 "xs.l"
+#line 163 "xs.l"
 { printf("Lexer - Hex : %s\n", yytext); return XLTK_HEX; }
 	YY_BREAK
 case 70:
 YY_RULE_SETUP
-#line 157 "xs.l"
+#line 164 "xs.l"
 { printf("Lexer - Number : %s\n", yytext); return XLTK_NUMBER; }
 	YY_BREAK
 case 71:
 /* rule 71 can match eol */
 YY_RULE_SETUP
-#line 158 "xs.l"
+#line 165 "xs.l"
 { printf("Lexer - String [\"] : %s\n", yytext); return XLTK_STRING; }
 	YY_BREAK
 case 72:
 /* rule 72 can match eol */
 YY_RULE_SETUP
-#line 159 "xs.l"
+#line 166 "xs.l"
 { printf("Lexer - Char ['] : %s\n", yytext); return XLTK_CHAR; }
 	YY_BREAK
 case 73:
 YY_RULE_SETUP
-#line 161 "xs.l"
+#line 168 "xs.l"
 ECHO;
 	YY_BREAK
-#line 1234 "lex.yy.c"
+#line 1237 "lex.yy.c"
 case YY_STATE_EOF(INITIAL):
 	yyterminate();
 
@@ -2199,7 +2202,7 @@ void yyfree (void * ptr )
 
 #define YYTABLES_NAME "yytables"
 
-#line 161 "xs.l"
+#line 168 "xs.l"
 
 
 

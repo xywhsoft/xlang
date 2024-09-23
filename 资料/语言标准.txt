@@ -48,21 +48,26 @@ XS 关键字列表：
 			uint32	（uint）
 			int64	（longint）
 			uint64	（ulongint）
+			int128	（longint）
+			uint128	（ulongint）
 			long	（int32 或 int64 的别名）
 			ulong	（uint32 或 uint64 的别名）
 		float
 			float	（single）
 			float64	（double）
+			bignum
 		string
 			astr
 			wstr
 			ustr
 			binary
+			tstr		模板字符串
+		array
+		struct
 		table
+		object
 		function
 		custom
-	array			（隐含类型，用于和 C 语言交换数据）
-	struct			（隐含类型，用于和 C 语言交换数据）
 
 
 
@@ -80,12 +85,12 @@ XS 关键字列表：
 
 
 运算符：
+	==				等于
+	!=				不等于
 	>				大于
 	<				小于
 	>=				大于等于
 	<=				小于等于
-	!=				不等于
-	==				等于
 	
 	+				加法
 	-				减法
@@ -101,9 +106,9 @@ XS 关键字列表：
 	>>				右移位
 	<<				左移位
 	
-	!				逻辑非
-	||				逻辑或
-	&&				逻辑与
+	!				逻辑非		not
+	||				逻辑或		or
+	&&				逻辑与		and
 	
 	=				赋值
 	+=				累加
@@ -125,8 +130,16 @@ XS 关键字列表：
 	-				负号运算符
 	exp ? a : b		三目运算符
 	
+	??				null 缺省运算符（前值不存在则返回后值）		var a = b["asd"] ?? "找不到"
+	??=				为空则赋值									a ??= "找不到"
+	
+	.				类调用、命名空间调用、结构体调用
+	?.				安全调用，如果对应成员属性或函数不存在，则返回 null
+	?[](param)		安全调用，可用于用
+	
 	in				表、数组、列表是否包含某元素
 	is				变量是否是某一数据类型
+	to				范围描述符（1 to 10）
 
 
 
