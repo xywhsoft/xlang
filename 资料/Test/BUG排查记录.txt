@@ -1,3 +1,0 @@
-1. 必须使用 Antlr 3.4 版本编译，否则会出现大量报错。
-2. Antlr 3.4 编译后的代码，CParser.c 558行左右会报错，一个指针调用后面没内容，改为 ctx->pCParser_SymbolsStack 即可
-3. Antlr 3.4 版本之后，antlr3AsciiFileStreamNew(sFile) 需要替换为 antlr3FileStreamNew(sFile, ANTLR3_ENC_8BIT)

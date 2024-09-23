@@ -1,8 +1,0 @@
-// 注释
-/*
-	多行注释
-*/
-
-function asd()
-	print(123)
-end
