@@ -20,6 +20,48 @@
 
 
 
+/*
+	Collect：
+		AVLTree
+		Length
+	Array：
+		BSMM
+		Length
+	Struct：
+		StructInfo Ptr
+	Table：
+		AVLTree Ptr
+		Length
+	Object：
+		StructInfo Ptr
+		AVLTree Ptr（Data）
+		Mate
+*/
+
+
+
+/*
+	xValueManage
+		pPage[256]				// 分页指针，256 个对象为一页，一个管理器最多能管理 256 页，一共 65536 个对象
+		iPageCount				// 已申请的页数
+		iCount					// 管理器内值的数量
+		arrFreeIdx[65536]		// 管理器存储已释放内存位置的数组
+		iFreeCount				// 管理器中记录了多少个已释放的内存
+		iFreeOffset				// 当前已释放内存位置偏移
+*/
+
+
+
+/*
+	Value->Flag 结构
+		[0000] [0000 0000 0000 0000 0000] [0000 0000]
+		第一部分：内存池类型（目前有 xValue16、xValue24、xValue40 三种内存池，0为非内存池管理的数据，应使用 free 释放）
+		第二部分：对象管理单元索引（有效范围 0 - 1048575）
+		第三部分：xValue 在对象管理单元中的索引（0-255）
+*/
+
+
+
 // 主类型定义（范围 0 - 255）
 #define XLVMT_EMPTY				0				// 无值，不占用内存
 #define XLVMT_NULL				1				// 4 字节，单一值 null
@@ -27,12 +69,13 @@
 #define XLVMT_NUMBER			3				// 多个子类型
 #define XLVMT_STRING			4				// 多个子类型
 #define XLVMT_BINARY			5				// 4 + 4 + sizeof(ptr) 字节
-#define XLVMT_COLLECT			6
-#define XLVMT_ARRAY				7
-#define XLVMT_STRUCT			8
-#define XLVMT_TABLE				9
-#define XLVMT_OBJECT			10
-#define XLVMT_FUNCTION			11				// 多个子类型
+#define XLVMT_TIME				6
+#define XLVMT_COLLECT			7
+#define XLVMT_ARRAY				8
+#define XLVMT_STRUCT			9
+#define XLVMT_TABLE				10
+#define XLVMT_OBJECT			11
+#define XLVMT_FUNCTION			12				// 多个子类型
 #define XLVMT_POINT				253				// 4 + sizeof(ptr) 字节，保存指针地址
 #define XLVMT_CARRAY			254				// 4 + 4 + sizeof(ptr) 字节，保存成员长度 + 指针地址
 #define XLVMT_CUSTOM			255				// 4 + 4 + ? 字节，保存额外数据长度，及额外数据本身
@@ -87,6 +130,7 @@
 #define XLVT_VARIANT			0x80000000		// 指示为变体类型
 
 // 各种类型掩码定义
+#define XLVT_MASK_MAINTYPE		0x000000FF		// 主类型掩码，可以获取所有主类型
 #define XLVT_MASK_BOOL			0x00040000		// 逻辑子类型掩码，可获取 true 或 false
 #define XLVT_MASK_FUNC			0x00080000		// 函数子类型掩码，可获取 xfunc 或 cfunc
 #define XLVT_MASK_STR			0x00300000		// 字符串子类型掩码，可获取 astr、wstr、ustr
@@ -99,83 +143,143 @@
 
 
 
-// 数据类型父类（4字节，只能表示 null 或 bool）
-typedef struct {
-	uint32 Type;
-} xVariantStruct, *xVariant;
+// xValue 管理器单元相关定义
+#define XVM_MASK_INDEX			0x000000FF		// xValue 在对象管理单元中的索引（0-255）
+#define XVM_MASK_MUID			0x0FFFFF00		// 对应的管理单元编号
+#define XVM_MASK_TYPE			0xF0000000		// 内存池类型掩码
 
-// 数据类型（8字节子类）
-typedef struct {
-	uint32 Type;
-	union {
-		int8 iVal8;
-		int16 iVal16;
-		int32 iVal32;
-		uint8 uVal8;
-		uint16 uVal16;
-		uint32 uVal32;
-		float fVal32;
-	}
-} xVariantStruct8, *xVariant8;
+#define XVM_TYPE_NONE			0				// 不使用内存池管理的内存，应使用 free 释放
+#define XVM_TYPE_VAL16			0x10000000		// 使用 16 字节值管理器单元阵列
+#define XVM_TYPE_VAL24			0x20000000		// 使用 24 字节值管理器单元阵列
+#define XVM_TYPE_VAL40			0x30000000		// 使用 40 字节值管理器单元阵列
 
-// 数据类型（12字节子类）
+
+
+// 基础类型定义
+typedef char i8;
+typedef unsigned char u8;
+typedef short i16;
+typedef unsigned short u16;
+typedef int i32;
+typedef unsigned int u32;
+typedef long long i64;
+typedef unsigned long long u64;
+typedef __int128_t i128;
+typedef __uint128_t u128;
+
+typedef float f32;
+typedef double f64;
+typedef __float128 f128;
+
+typedef i64 curr;
+typedef i128 longcurr;
+
+/* 暂不支持（需要依赖libbf库支持）
+typedef ptr bignum
+*/
+
+typedef float _Complex c32;
+typedef double _Complex c64;
+typedef long double _Complex c128;
+
+typedef char* astr;
+typedef wchar_t* wstr;
+typedef char* ustr;
+typedef u8* binary;
+
+typedef f64 time;
+typedef void* ptr;
+typedef intptr_t intptr;
+
+
+
+// 设置内存对齐 : 4byte
+#pragma pack(4)
+
+// 数据类型父类（8字节，只能表示 null 或 bool）
 typedef struct {
-	uint32 Type;
-	union {
-		int64 iVal64;
-		uint64 uVal64;
-		double dVal64;
-		int64 iCurr64;
-		ptr pVal;
-	}
-} xVariantStruct12, *xVariant12;
+	u32 Type;
+	u32 Flag;
+} xValueStruct, *xValue;
 
 // 数据类型（16字节子类）
 typedef struct {
-	uint32 Type;
-	uint32 Length;
+	u32 Type;
+	u32 Flag;
 	union {
-		astr sValA;
-		wstr sValW;
-		ustr sValU;
+		i8 iVal8;
+		i16 iVal16;
+		i32 iVal32;
+		u8 uVal8;
+		u16 uVal16;
+		u32 uVal32;
+		f32 fVal32;
+		i64 iVal64;
+		u64 uVal64;
+		f64 fVal64;
+		curr currVal64;
+		c32	cVal32;
+		time tVal;
 		ptr pVal;
-	}
-} xVariantStruct16, *xVariant16;
+	};
+} xValueStruct16, *xValue16;
 
-// 数据类型（20字节子类）
+// 数据类型（24字节子类）
 typedef struct {
-	uint32 Type;
+	u32 Type;
+	u32 Flag;
 	union {
-		int128 iVal128;
-		uint128 uVal128;
-		double dVal128;
-		int128 iCurr128;
-		ptr pVal;
-	}
-} xVariantStruct20, *xVariant20;
+		i128 iVal128;
+		u128 uVal128;
+		f128 fVal128;
+		longcurr currVal128;
+		c64 cVal64;
+		struct {					// // String and Binary and Point 使用的数据结构
+			u32 Length;
+			u32 Flag;
+			union {
+				astr sValA;
+				wstr sValW;
+				ustr sValU;
+				ptr ptrVal;
+				ptr arrVal;
+			};
+		} pVal;
+	};
+} xValueStruct24, *xValue24;
 
-// 数据类型（20字节子类 : carray）
+// 数据类型（40字节子类）
 typedef struct {
-	uint32 Type;
-	uint32 ItemType;
-	uint32 ItemLength;
-	ptr pArray;
-} xVariantStruct_CArray, *xVariant_CArray;
+	u32 Type;
+	u32 Flag;
+	union {
+		c128 cVal128;
+	};
+} xValueStruct40, *xValue40;
 
-// 数据类型（20字节子类 : custom）
-typedef struct {
-	uint32 Type;
-	uint32 ItemType;
-	uint32 ItemLength;
-	ptr pArray;
-} xVariantStruct_Custom, *xVariant_Custom;
+// 恢复内存对齐设置
+#pragma pack()
 
-// 数据类型（20字节子类 : xfunc）
-typedef struct {
-	uint32 Type;
-	uint32 ItemType;
-	uint32 ItemLength;
-	ptr pArray;
-} xVariantStruct_XFunc, *xVariant_XFunc;
+
+
+
+
+// 获取值的主类型
+int xVar_MainType(xValue pVar)
+{
+	return pVar->Type & XLVT_MASK_MAINTYPE;
+}
+
+// 获取值的数字细分类型
+int xVar_NumType(xValue pVar)
+{
+	return pVar->Type & XLVT_MASK_NUMTYPE;
+}
+
+// 获取值的子类型
+int xVar_SubType(xValue pVar)
+{
+	return pVar->Type & XLVT_MASK_SUBTYPE;
+}
 
 

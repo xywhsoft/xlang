@@ -13,3 +13,11 @@ https://www.cnblogs.com/lit10050528/p/4389137.html
 
 Flex Bison 多线程可重入：
 	https://blog.li-chunli.top/2022/03/11/Flex-Bison-%E5%A4%9A%E7%BA%BF%E7%A8%8B%E5%8F%AF%E9%87%8D%E5%85%A5/
+
+
+
+Int128 大数支持库：
+	https://github.com/staticlibs/Big-Numbers/blob/master/Lib/Src/Math/Int128x64.asm
+
+
+
