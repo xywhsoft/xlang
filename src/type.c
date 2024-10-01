@@ -8,6 +8,15 @@
 
 
 #include "type.h"
+#include "smm.h"
+#include "pmm.h"
+
+
+
+// 预创建值（null、true、false）
+xValueStruct xValue_Null = {XLVT_VARIANT | XLVMT_NULL, 0};
+xValueStruct xValue_True = {XLVT_VARIANT | XLVMT_BOOL | XLVT_BOOL_TRUE, 0};
+xValueStruct xValue_False = {XLVT_VARIANT | XLVMT_BOOL | XLVT_BOOL_FALSE, 0};
 
 
 
@@ -22,6 +31,15 @@ typedef struct {
 	u32 iValueFlag;									// 用于自动设置变量的 Flag（由全局管理器下发）
 	u32 noused;										// 预留未使用
 } xValueManageUnitStruct, *xValueManageUnit;
+
+// xValue 管理器对象数据结构
+typedef struct {
+	PmmStruct vm16;
+	PmmStruct vm24;
+	PmmStruct vm40;
+} xValueManageStruct, *xValueManage;
+
+
 
 // 创建 xValue 管理器单元
 xValueManageUnit xVMU_Create(u32 iSize, u32 iFlag)
@@ -82,6 +100,142 @@ int xVMU_Free(xValueManageUnit objUnit, xValue pVal)
 	objUnit->arrFreeIdx[(objUnit->iFreeOffset + objUnit->iFreeCount) & 0xFF] = idx;
 	objUnit->iFreeCount++;
 	objUnit->iValueCount--;
+}
+
+
+
+// 创建 xValue 管理器
+xValueManage xVM_Create()
+{
+	xValueManage xVM = malloc(sizeof(xValueManageStruct));
+	xVM->vm16.Memory = NULL;
+	xVM->vm16.Count = 0;
+	xVM->vm16.AllocCount = 0;
+	xVM->vm24.Memory = NULL;
+	xVM->vm24.Count = 0;
+	xVM->vm24.AllocCount = 0;
+	xVM->vm40.Memory = NULL;
+	xVM->vm40.Count = 0;
+	xVM->vm40.AllocCount = 0;
+}
+
+// 销毁 xValue 管理器
+void xVM_Destroy(xValueManage objVM)
+{
+	if ( objVM ) {
+		PMM_ReInit(&objVM->vm16);
+		PMM_ReInit(&objVM->vm24);
+		PMM_ReInit(&objVM->vm40);
+		free(objVM);
+	}
+}
+
+// 从 xValue 管理器中申请一个 16 字节变量（失败返回 null）
+xValue xVM_Alloc16(xValueManage objVM)
+{
+	xValueManageUnit objUnit = NULL;
+	// 获取一个空闲的管理器单元
+	for ( int i = 0; i < objVM->vm16.Count; i++ ) {
+		xValueManageUnit objVMU = objVM->vm16.Memory[i];		// 直接从偏移取出指针
+		if ( objVMU->iValueCount < 256 ) {
+			objUnit = objVMU;
+			break;
+		}
+	}
+	// 如果没有空闲的管理器单元，则创建一个新的管理器单元
+	if ( objUnit == NULL ) {
+		objUnit = xVMU_Create(sizeof(xValueStruct16), XVM_TYPE_VAL16 | (objVM->vm16.Count << 8));
+		if ( PMM_Append(&objVM->vm16, objUnit) == 0 ) {
+			// 管理器单元无法获取和申请，报错
+			printf("error : 变量内存空间申请失败！");
+		}
+	}
+	// 从管理器单元中取值
+	return xVMU_Alloc(objUnit);
+}
+
+// 从 xValue 管理器中申请一个 24 字节变量（失败返回 null）
+xValue xVM_Alloc24(xValueManage objVM)
+{
+	xValueManageUnit objUnit = NULL;
+	// 获取一个空闲的管理器单元
+	for ( int i = 0; i < objVM->vm24.Count; i++ ) {
+		xValueManageUnit objVMU = objVM->vm24.Memory[i];		// 直接从偏移取出指针
+		if ( objVMU->iValueCount < 256 ) {
+			objUnit = objVMU;
+			break;
+		}
+	}
+	// 如果没有空闲的管理器单元，则创建一个新的管理器单元
+	if ( objUnit == NULL ) {
+		objUnit = xVMU_Create(sizeof(xValueStruct24), XVM_TYPE_VAL24 | (objVM->vm24.Count << 8));
+		if ( PMM_Append(&objVM->vm24, objUnit) == 0 ) {
+			// 管理器单元无法获取和申请，报错
+			printf("error : 变量内存空间申请失败！");
+		}
+	}
+	// 从管理器单元中取值
+	return xVMU_Alloc(objUnit);
+}
+
+// 从 xValue 管理器中申请一个 40 字节变量（失败返回 null）
+xValue xVM_Alloc40(xValueManage objVM)
+{
+	xValueManageUnit objUnit = NULL;
+	// 获取一个空闲的管理器单元
+	for ( int i = 0; i < objVM->vm40.Count; i++ ) {
+		xValueManageUnit objVMU = objVM->vm40.Memory[i];		// 直接从偏移取出指针
+		if ( objVMU->iValueCount < 256 ) {
+			objUnit = objVMU;
+			break;
+		}
+	}
+	// 如果没有空闲的管理器单元，则创建一个新的管理器单元
+	if ( objUnit == NULL ) {
+		objUnit = xVMU_Create(sizeof(xValueStruct40), XVM_TYPE_VAL40 | (objVM->vm40.Count << 8));
+		if ( PMM_Append(&objVM->vm40, objUnit) == 0 ) {
+			// 管理器单元无法获取和申请，报错
+			printf("error : 变量内存空间申请失败！");
+		}
+	}
+	// 从管理器单元中取值
+	return xVMU_Alloc(objUnit);
+}
+
+// 从 xValue 管理器中申请一个变量
+xValue xVM_Alloc(xValueManage objVM, u32 iType)
+{
+	int iSize = 16;
+	int iMainType = iType & XLVT_MASK_MAINTYPE;
+	if ( iMainType == XLVMT_NUMBER ) {
+		int iSubType = iType & XLVT_MASK_SUBTYPE;
+		if ( (iSubType == XLVT_I128) || (iSubType == XLVT_U128) || (iSubType == XLVT_F128) || (iSubType == XLVT_LONGCURR) || (iSubType == XLVT_COMPLEXF64) ) {
+			iSize = 24;
+		} else if ( iSubType == XLVT_COMPLEXF128 ) {
+			iSize = 40;
+		}
+	} else if ( (iMainType == XLVMT_STRING) || (iMainType == XLVMT_BINARY) || (iMainType == XLVMT_POINT) || (iMainType == XLVMT_CUSTOM) ) {
+		iSize = 24;
+	} else if ( iMainType == XLVMT_BOOL ) {
+		if ( iType & XLVT_MASK_BOOL ) {
+			return &xValue_True;
+		} else {
+			return &xValue_False;
+		}
+	} else if ( iMainType == XLVMT_NULL ) {
+		return &xValue_Null;
+	}
+	// 根据长度调用不同的申请函数
+	xValue objVal = NULL;
+	if ( iSize == 16 ) {
+		objVal = xVM_Alloc16(objVM);
+	} else if ( iSize == 24 ) {
+		objVal = xVM_Alloc24(objVM);
+	} else if ( iSize == 40 ) {
+		objVal = xVM_Alloc40(objVM);
+	}
+	objVal->Type = iType;
+	return objVal;
 }
 
 

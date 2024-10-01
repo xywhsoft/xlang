@@ -146,7 +146,8 @@
 // xValue 管理器单元相关定义
 #define XVM_MASK_INDEX			0x000000FF		// xValue 在对象管理单元中的索引（0-255）
 #define XVM_MASK_MUID			0x0FFFFF00		// 对应的管理单元编号
-#define XVM_MASK_TYPE			0xF0000000		// 内存池类型掩码
+#define XVM_MASK_TYPE			0x70000000		// 内存池类型掩码
+#define XVM_MASK_GC				0x80000000		// 允许回收标记
 
 #define XVM_TYPE_NONE			0				// 不使用内存池管理的内存，应使用 free 释放
 #define XVM_TYPE_VAL16			0x10000000		// 使用 16 字节值管理器单元阵列
