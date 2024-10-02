@@ -31,7 +31,7 @@
 	
 	
 	// 申请步长
-	#define PMM_PREASSIGNSTEP	256
+	#define PMM_PREASSIGNSTEP	64
 	
 	
 	

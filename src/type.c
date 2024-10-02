@@ -84,17 +84,15 @@ xValue xVMU_Alloc(xValueManageUnit objUnit)
 		idx = objUnit->iValueCount;
 		objUnit->iValueCount++;
 	}
-	printf("alloc value : %d\n", idx);
 	pVal = (xValue)&objUnit->arrValue[objUnit->iValueSize * idx];
 	pVal->Flag = objUnit->iValueFlag | idx;
 	return pVal;
 }
 
 // 将 xValue 管理器单元中的某个变量释放
-int xVMU_Free(xValueManageUnit objUnit, xValue pVal)
+void xVMU_Free(xValueManageUnit objUnit, xValue pVal)
 {
 	u8 idx = pVal->Flag & XVM_MASK_INDEX;
-	printf("free value : %d\n", idx);
 	pVal->Type = 0;
 	pVal->Flag = 0;
 	objUnit->arrFreeIdx[(objUnit->iFreeOffset + objUnit->iFreeCount) & 0xFF] = idx;
@@ -123,6 +121,18 @@ xValueManage xVM_Create()
 void xVM_Destroy(xValueManage objVM)
 {
 	if ( objVM ) {
+		for ( int i = 0; i < objVM->vm16.Count; i++ ) {
+			xValueManageUnit objVMU = objVM->vm16.Memory[i];
+			xVMU_Destroy(objVMU);
+		}
+		for ( int i = 0; i < objVM->vm24.Count; i++ ) {
+			xValueManageUnit objVMU = objVM->vm24.Memory[i];
+			xVMU_Destroy(objVMU);
+		}
+		for ( int i = 0; i < objVM->vm40.Count; i++ ) {
+			xValueManageUnit objVMU = objVM->vm40.Memory[i];
+			xVMU_Destroy(objVMU);
+		}
 		PMM_ReInit(&objVM->vm16);
 		PMM_ReInit(&objVM->vm24);
 		PMM_ReInit(&objVM->vm40);
@@ -238,6 +248,43 @@ xValue xVM_Alloc(xValueManage objVM, u32 iType)
 	return objVal;
 }
 
+// 释放值内存
+void xVM_Free(xValueManage objVM, xValue pVal)
+{
+	if ( (pVal->Flag & XVM_MASK_TYPE) == XVM_TYPE_VAL16 ) {
+		u32 idx = (pVal->Flag & XVM_MASK_MUID) >> 8;
+		if ( idx < objVM->vm16.Count ) {
+			xValueManageUnit objVMU = objVM->vm16.Memory[idx];
+			xVMU_Free(objVMU, pVal);
+		} else {
+			// 释放变量指定了不合法的管理器单元编号
+			printf("error : 释放变量指定了不合法的管理器单元编号！");
+		}
+	} else if ( (pVal->Flag & XVM_MASK_TYPE) == XVM_TYPE_VAL24 ) {
+		u32 idx = (pVal->Flag & XVM_MASK_MUID) >> 8;
+		if ( idx < objVM->vm24.Count ) {
+			xValueManageUnit objVMU = objVM->vm24.Memory[idx];
+			xVMU_Free(objVMU, pVal);
+		} else {
+			// 释放变量指定了不合法的管理器单元编号
+			printf("error : 释放变量指定了不合法的管理器单元编号！");
+		}
+	} else if ( (pVal->Flag & XVM_MASK_TYPE) == XVM_TYPE_VAL40 ) {
+		u32 idx = (pVal->Flag & XVM_MASK_MUID) >> 8;
+		if ( idx < objVM->vm40.Count ) {
+			xValueManageUnit objVMU = objVM->vm40.Memory[idx];
+			xVMU_Free(objVMU, pVal);
+		} else {
+			// 释放变量指定了不合法的管理器单元编号
+			printf("error : 释放变量指定了不合法的管理器单元编号！");
+		}
+	} else {
+		// 未知的变量内存管理器分类
+		printf("error : 未知的变量内存管理器分类！");
+	}
+}
+
+
 
 
 
@@ -335,12 +382,8 @@ void xVMU_DebugPrint(xValueManageUnit objVMU)
 	}
 }
 
-
-
-int main(int argc, char** argv)
+void xVMU_Test()
 {
-	printf("start ...\n\n");
-	
 	xValueManageUnit objVMU = xVMU_Create(sizeof(xValueStruct16), 0);
 	
 	// null
@@ -433,6 +476,76 @@ int main(int argc, char** argv)
 	v17->iVal64 = 87654321;
 	
 	xVMU_DebugPrint(objVMU);
+	
+	xVMU_Destroy(objVMU);
+}
+
+
+
+
+
+void xVM_DebugPrint(xValueManage objVM)
+{
+	printf("Value Manage 16 Memory : %d, Count : %d, AllocCount : %d\n\n", objVM->vm16.Memory, objVM->vm16.Count, objVM->vm16.AllocCount);
+	for ( int i = 0; i < objVM->vm16.Count; i++ ) {
+		xValueManageUnit objVMU = objVM->vm16.Memory[i];
+		xVMU_DebugPrint(objVMU);
+	}
+	printf("Value Manage 24 Memory : %d, Count : %d, AllocCount : %d\n\n", objVM->vm24.Memory, objVM->vm24.Count, objVM->vm24.AllocCount);
+	for ( int i = 0; i < objVM->vm24.Count; i++ ) {
+		xValueManageUnit objVMU = objVM->vm24.Memory[i];
+		xVMU_DebugPrint(objVMU);
+	}
+	printf("Value Manage 40 Memory : %d, Count : %d, AllocCount : %d\n\n", objVM->vm40.Memory, objVM->vm40.Count, objVM->vm40.AllocCount);
+	for ( int i = 0; i < objVM->vm40.Count; i++ ) {
+		xValueManageUnit objVMU = objVM->vm40.Memory[i];
+		xVMU_DebugPrint(objVMU);
+	}
+}
+
+void xVM_Test()
+{
+	xValueManage objVM = xVM_Create();
+	
+	xValue16 v[300];
+	for ( int i = 0; i < 300; i++ ) {
+		v[i] = (xValue16)xVM_Alloc(objVM, XLVT_VARIANT | XLVMT_NUMBER | XLVT_NUM_INT | XLVT_I64);
+		v[i]->iVal64 = i;
+	}
+	for ( int i = 0; i < 300; i++ ) {
+		if ( i % 10 == 0 ) {
+			xVM_Free(objVM, (xValue)v[i]);
+		}
+	}
+	for ( int i = 0; i < 32; i++ ) {
+		xValue16 vn = (xValue16)xVM_Alloc(objVM, XLVT_VARIANT | XLVMT_NUMBER | XLVT_NUM_INT | XLVT_I64);
+		vn->iVal64 = 12340000 + i;
+	}
+	for ( int i = 0; i < 300; i++ ) {
+		if ( i % 10 == 0 ) {
+			xVM_Free(objVM, (xValue)v[i]);
+		}
+	}
+	for ( int i = 0; i < 30; i++ ) {
+		xValue16 vn = (xValue16)xVM_Alloc(objVM, XLVT_VARIANT | XLVMT_NUMBER | XLVT_NUM_INT | XLVT_I64);
+		vn->iVal64 = 99990000 + i;
+	}
+	
+	xVM_DebugPrint(objVM);
+	
+	xVM_Destroy(objVM);
+}
+
+
+
+
+
+int main(int argc, char** argv)
+{
+	printf("start ...\n\n");
+	
+	//xVMU_Test();
+	xVM_Test();
 	
 	printf("\nstop !\n");
 	return 0;
