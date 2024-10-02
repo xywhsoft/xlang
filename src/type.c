@@ -4,6 +4,9 @@
 #include <complex.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <stdarg.h>
+
 
 
 
@@ -38,6 +41,8 @@ typedef struct {
 	PmmStruct vm24;
 	PmmStruct vm40;
 } xValueManageStruct, *xValueManage;
+
+
 
 
 
@@ -99,6 +104,20 @@ void xVMU_Free(xValueManageUnit objUnit, xValue pVal)
 	objUnit->iFreeCount++;
 	objUnit->iValueCount--;
 }
+void xVMU_Free24(xValueManageUnit objUnit, xValue24 pVal)
+{
+	u8 idx = pVal->Flag & XVM_MASK_INDEX;
+	pVal->Type = 0;
+	pVal->Flag = 0;
+	if ( pVal->pVal.sValA ) {
+		free(pVal->pVal.sValA);
+	}
+	objUnit->arrFreeIdx[(objUnit->iFreeOffset + objUnit->iFreeCount) & 0xFF] = idx;
+	objUnit->iFreeCount++;
+	objUnit->iValueCount--;
+}
+
+
 
 
 
@@ -123,15 +142,32 @@ void xVM_Destroy(xValueManage objVM)
 	if ( objVM ) {
 		for ( int i = 0; i < objVM->vm16.Count; i++ ) {
 			xValueManageUnit objVMU = objVM->vm16.Memory[i];
-			xVMU_Destroy(objVMU);
+			if ( objVMU ) {
+				free(objVMU);
+			}
 		}
 		for ( int i = 0; i < objVM->vm24.Count; i++ ) {
 			xValueManageUnit objVMU = objVM->vm24.Memory[i];
-			xVMU_Destroy(objVMU);
+			if ( objVMU ) {
+				// xValue24 需要额外的内存释放
+				for ( int count = 0, idx = 0; count < objVMU->iValueCount; count++, idx++ ) {
+					xValue24 v = (xValue24)xVMU_GetValue(objVMU, idx);
+					if ( v->Type == 0 ) {
+						count--;
+						continue;
+					}
+					if ( v->pVal.sValA ) {
+						free(v->pVal.sValA);
+					}
+				}
+				free(objVMU);
+			}
 		}
 		for ( int i = 0; i < objVM->vm40.Count; i++ ) {
 			xValueManageUnit objVMU = objVM->vm40.Memory[i];
-			xVMU_Destroy(objVMU);
+			if ( objVMU ) {
+				free(objVMU);
+			}
 		}
 		PMM_ReInit(&objVM->vm16);
 		PMM_ReInit(&objVM->vm24);
@@ -248,6 +284,45 @@ xValue xVM_Alloc(xValueManage objVM, u32 iType)
 	return objVal;
 }
 
+// 确定类型的值申请
+xValue xVM_NewI64(xValueManage objVM, i64 iVal)
+{
+	xValue16 objVal = (xValue16)xVM_Alloc16(objVM);
+	objVal->Type = XLVT_VARIANT | XLVMT_NUMBER | XLVT_NUM_INT | XLVT_I64;
+	objVal->iVal64 = iVal;
+	return (xValue)objVal;
+}
+xValue xVM_NewU64(xValueManage objVM, u64 iVal)
+{
+	xValue16 objVal = (xValue16)xVM_Alloc16(objVM);
+	objVal->Type = XLVT_VARIANT | XLVMT_NUMBER | XLVT_NUM_INT | XLVT_U64;
+	objVal->uVal64 = iVal;
+	return (xValue)objVal;
+}
+xValue xVM_NewF64(xValueManage objVM, f64 fVal)
+{
+	xValue16 objVal = (xValue16)xVM_Alloc16(objVM);
+	objVal->Type = XLVT_VARIANT | XLVMT_NUMBER | XLVT_NUM_FLOAT | XLVT_F64;
+	objVal->fVal64 = fVal;
+	return (xValue)objVal;
+}
+xValue xVM_NewCurr(xValueManage objVM, curr fVal)
+{
+	xValue16 objVal = (xValue16)xVM_Alloc16(objVM);
+	objVal->Type = XLVT_VARIANT | XLVMT_NUMBER | XLVT_NUM_CURR | XLVT_CURR;
+	objVal->currVal64 = fVal;
+	return (xValue)objVal;
+}
+xValue xVM_NewStrA(xValueManage objVM, astr sVal, u32 Flag)
+{
+	xValue24 objVal = (xValue24)xVM_Alloc24(objVM);
+	objVal->Type = XLVT_VARIANT | XLVMT_STRING | XLVT_ASTR;
+	objVal->pVal.Length = strlen(sVal);
+	objVal->pVal.Flag = Flag;
+	objVal->pVal.sValA = sVal;
+	return (xValue)objVal;
+}
+
 // 释放值内存
 void xVM_Free(xValueManage objVM, xValue pVal)
 {
@@ -264,7 +339,7 @@ void xVM_Free(xValueManage objVM, xValue pVal)
 		u32 idx = (pVal->Flag & XVM_MASK_MUID) >> 8;
 		if ( idx < objVM->vm24.Count ) {
 			xValueManageUnit objVMU = objVM->vm24.Memory[idx];
-			xVMU_Free(objVMU, pVal);
+			xVMU_Free24(objVMU, (xValue24)pVal);
 		} else {
 			// 释放变量指定了不合法的管理器单元编号
 			printf("error : 释放变量指定了不合法的管理器单元编号！");
@@ -309,7 +384,11 @@ void xVMU_PrintValue(xValue v)
 	} else {
 		printf("-\t");
 	}
-	printf("%x\t", v->Flag);
+	if ( v->Flag < 0x10000000 ) {
+		printf("%x\t\t", v->Flag);
+	} else {
+		printf("%x\t", v->Flag);
+	}
 	if ( mt == XLVMT_NULL ) {
 		printf("null\n");
 	} else if ( mt == XLVMT_BOOL ) {
@@ -362,7 +441,7 @@ void xVMU_DebugPrint(xValueManageUnit objVMU)
 {
 	printf("objVMU Point : %d\narrValue Point : %d\nValueSize : %d\niValueFlag : %d\n\n", objVMU, objVMU->arrValue, objVMU->iValueSize, objVMU->iValueFlag);
 	printf("ValueCount : %d , List :\n\n", objVMU->iValueCount);
-	printf("id\tmt\tst\t\tnt\tFlag\ttype\tval\n");
+	printf("id\tmt\tst\t\tnt\tflag\t\ttype\tval\n");
 	for ( int i = 0, idx = 0; i < objVMU->iValueCount; i++, idx++ ) {
 		xValue v = xVMU_GetValue(objVMU, idx);
 		if ( v->Type == 0 ) {
@@ -373,7 +452,7 @@ void xVMU_DebugPrint(xValueManageUnit objVMU)
 		xVMU_PrintValue(v);
 	}
 	printf("\nFreeCount : %d ( FreeOffset : %d ), List :\n\n", objVMU->iFreeCount, objVMU->iFreeOffset);
-	printf("pos\tidx\tmt\tst\t\tnt\tFlag\ttype\tval\n");
+	printf("pos\tidx\tmt\tst\t\tnt\tflag\t\ttype\tval\n");
 	for ( int i = 0; i < objVMU->iFreeCount; i++ ) {
 		int idx = objVMU->arrFreeIdx[(objVMU->iFreeOffset + i) & 0xFF];
 		printf("%d\t%d\t", i, idx);
@@ -503,10 +582,31 @@ void xVM_DebugPrint(xValueManage objVM)
 	}
 }
 
+char* xCore_FormatA(char* sFormat, ...)
+{
+	if ( sFormat == NULL ) { return ""; }
+	va_list ip;
+	va_start(ip, sFormat);
+	int iSize = vsnprintf(NULL, 0, sFormat, ip);
+	va_end(ip);
+	if ( iSize >= 0 ) {
+		char* sRet = malloc(iSize + 1);
+		va_start(ip, sFormat);
+		iSize = vsnprintf(sRet, iSize + 1, sFormat, ip);
+		va_end(ip);
+		sRet[iSize] = 0;
+		//xCore.iRetSize = iSize;
+		return sRet;
+	} else {
+		return "";
+	}
+}
+
 void xVM_Test()
 {
 	xValueManage objVM = xVM_Create();
 	
+	/*
 	xValue16 v[300];
 	for ( int i = 0; i < 300; i++ ) {
 		v[i] = (xValue16)xVM_Alloc(objVM, XLVT_VARIANT | XLVMT_NUMBER | XLVT_NUM_INT | XLVT_I64);
@@ -518,8 +618,7 @@ void xVM_Test()
 		}
 	}
 	for ( int i = 0; i < 32; i++ ) {
-		xValue16 vn = (xValue16)xVM_Alloc(objVM, XLVT_VARIANT | XLVMT_NUMBER | XLVT_NUM_INT | XLVT_I64);
-		vn->iVal64 = 12340000 + i;
+		xVM_NewI64(objVM, 12340000 + i);
 	}
 	for ( int i = 0; i < 300; i++ ) {
 		if ( i % 10 == 0 ) {
@@ -527,8 +626,22 @@ void xVM_Test()
 		}
 	}
 	for ( int i = 0; i < 30; i++ ) {
-		xValue16 vn = (xValue16)xVM_Alloc(objVM, XLVT_VARIANT | XLVMT_NUMBER | XLVT_NUM_INT | XLVT_I64);
-		vn->iVal64 = 99990000 + i;
+		xVM_NewF64(objVM, i + 0.1234);
+	}
+	*/
+	
+	xValue24 v[300];
+	for ( int i = 0; i < 300; i++ ) {
+		v[i] = (xValue24)xVM_Alloc(objVM, XLVT_VARIANT | XLVMT_STRING | XLVT_ASTR);
+		v[i]->pVal.sValA = xCore_FormatA("Value - %d", i);
+	}
+	for ( int i = 0; i < 300; i++ ) {
+		if ( i % 10 == 0 ) {
+			xVM_Free(objVM, (xValue)v[i]);
+		}
+	}
+	for ( int i = 0; i < 32; i++ ) {
+		xVM_NewStrA(objVM, xCore_FormatA("NewValue - %d", i), 0);
 	}
 	
 	xVM_DebugPrint(objVM);
