@@ -638,3 +638,278 @@ void xl_register_builtins(XL_Context* ctx) {
     xl_context_set_var(ctx, "float", xl_value_builtin("float", builtin_float));
     xl_context_set_var(ctx, "push", xl_value_builtin("push", builtin_push));
 }
+
+// ==================== AST 打印 ====================
+
+// 获取节点类型名称
+static const char* node_type_name(XL_NodeType type) {
+    switch (type) {
+        case NODE_PROGRAM:      return "Program";
+        case NODE_BLOCK:        return "Block";
+        case NODE_VAR_DECL:     return "VarDecl";
+        case NODE_EXPR_STMT:    return "ExprStmt";
+        case NODE_IF_STMT:      return "If";
+        case NODE_WHILE_STMT:   return "While";
+        case NODE_FOR_STMT:     return "For";
+        case NODE_BREAK_STMT:   return "Break";
+        case NODE_CONTINUE_STMT:return "Continue";
+        case NODE_RETURN_STMT:  return "Return";
+        case NODE_FUNC_DEF:     return "FuncDef";
+        case NODE_BINARY_OP:    return "BinaryOp";
+        case NODE_UNARY_OP:     return "UnaryOp";
+        case NODE_ASSIGN:       return "Assign";
+        case NODE_CALL:         return "Call";
+        case NODE_INDEX:        return "Index";
+        case NODE_MEMBER:       return "Member";
+        case NODE_NULL:         return "Null";
+        case NODE_BOOL:         return "Bool";
+        case NODE_INT:          return "Int";
+        case NODE_FLOAT:        return "Float";
+        case NODE_STRING:       return "String";
+        case NODE_IDENT:        return "Ident";
+        case NODE_ARRAY:        return "Array";
+        case NODE_TABLE:        return "Table";
+        default:                return "Unknown";
+    }
+}
+
+// 获取运算符名称
+static const char* op_name(XL_OpType op) {
+    switch (op) {
+        case OP_ADD:        return "+";
+        case OP_SUB:        return "-";
+        case OP_MUL:        return "*";
+        case OP_DIV:        return "/";
+        case OP_MOD:        return "%";
+        case OP_POW:        return "**";
+        case OP_EQ:         return "==";
+        case OP_NE:         return "!=";
+        case OP_LT:         return "<";
+        case OP_LE:         return "<=";
+        case OP_GT:         return ">";
+        case OP_GE:         return ">=";
+        case OP_AND:        return "and";
+        case OP_OR:         return "or";
+        case OP_NOT:        return "not";
+        case OP_NEG:        return "-";
+        case OP_ASSIGN:     return "=";
+        case OP_ADDASSIGN:  return "+=";
+        case OP_SUBASSIGN:  return "-=";
+        case OP_MULASSIGN:  return "*=";
+        case OP_DIVASSIGN:  return "/=";
+        case OP_INC:        return "++";
+        case OP_DEC:        return "--";
+        default:            return "?";
+    }
+}
+
+// 打印缩进
+static void print_indent(int indent) {
+    for (int i = 0; i < indent; i++) {
+        printf("    ");
+    }
+}
+
+// 打印 AST 节点
+void xl_print_ast(XL_Node* node, int indent) {
+    if (!node) {
+        print_indent(indent);
+        printf("(null)\n");
+        return;
+    }
+    
+    print_indent(indent);
+    
+    switch (node->type) {
+        case NODE_PROGRAM:
+        case NODE_BLOCK:
+            printf("%s [%d stmts]\n", node_type_name(node->type), node->block.count);
+            for (int i = 0; i < node->block.count; i++) {
+                xl_print_ast(node->block.stmts[i], indent + 1);
+            }
+            break;
+            
+        case NODE_VAR_DECL:
+            printf("VarDecl: %s\n", node->var_decl.name);
+            if (node->var_decl.init) {
+                print_indent(indent + 1);
+                printf("init:\n");
+                xl_print_ast(node->var_decl.init, indent + 2);
+            }
+            break;
+            
+        case NODE_BINARY_OP:
+            printf("BinaryOp: %s\n", op_name(node->binary.op));
+            print_indent(indent + 1);
+            printf("left:\n");
+            xl_print_ast(node->binary.left, indent + 2);
+            print_indent(indent + 1);
+            printf("right:\n");
+            xl_print_ast(node->binary.right, indent + 2);
+            break;
+            
+        case NODE_UNARY_OP:
+            printf("UnaryOp: %s (%s)\n", op_name(node->unary.op),
+                   node->unary.prefix ? "prefix" : "postfix");
+            xl_print_ast(node->unary.operand, indent + 1);
+            break;
+            
+        case NODE_ASSIGN:
+            printf("Assign: %s\n", op_name(node->assign.op));
+            print_indent(indent + 1);
+            printf("target:\n");
+            xl_print_ast(node->assign.target, indent + 2);
+            print_indent(indent + 1);
+            printf("value:\n");
+            xl_print_ast(node->assign.value, indent + 2);
+            break;
+            
+        case NODE_IF_STMT:
+            printf("If\n");
+            print_indent(indent + 1);
+            printf("cond:\n");
+            xl_print_ast(node->if_stmt.cond, indent + 2);
+            print_indent(indent + 1);
+            printf("then:\n");
+            xl_print_ast(node->if_stmt.then_block, indent + 2);
+            for (int i = 0; i < node->if_stmt.elseif_count; i++) {
+                print_indent(indent + 1);
+                printf("elseif[%d] cond:\n", i);
+                xl_print_ast(node->if_stmt.elseif_conds[i], indent + 2);
+                print_indent(indent + 1);
+                printf("elseif[%d] body:\n", i);
+                xl_print_ast(node->if_stmt.elseif_blocks[i], indent + 2);
+            }
+            if (node->if_stmt.else_block) {
+                print_indent(indent + 1);
+                printf("else:\n");
+                xl_print_ast(node->if_stmt.else_block, indent + 2);
+            }
+            break;
+            
+        case NODE_WHILE_STMT:
+            printf("While\n");
+            print_indent(indent + 1);
+            printf("cond:\n");
+            xl_print_ast(node->while_stmt.cond, indent + 2);
+            print_indent(indent + 1);
+            printf("body:\n");
+            xl_print_ast(node->while_stmt.body, indent + 2);
+            break;
+            
+        case NODE_FOR_STMT:
+            printf("For: %s\n", node->for_stmt.var);
+            print_indent(indent + 1);
+            printf("start:\n");
+            xl_print_ast(node->for_stmt.start, indent + 2);
+            print_indent(indent + 1);
+            printf("end:\n");
+            xl_print_ast(node->for_stmt.end, indent + 2);
+            if (node->for_stmt.step) {
+                print_indent(indent + 1);
+                printf("step:\n");
+                xl_print_ast(node->for_stmt.step, indent + 2);
+            }
+            print_indent(indent + 1);
+            printf("body:\n");
+            xl_print_ast(node->for_stmt.body, indent + 2);
+            break;
+            
+        case NODE_BREAK_STMT:
+            printf("Break\n");
+            break;
+            
+        case NODE_CONTINUE_STMT:
+            printf("Continue\n");
+            break;
+            
+        case NODE_RETURN_STMT:
+            printf("Return\n");
+            if (node->return_stmt.value) {
+                xl_print_ast(node->return_stmt.value, indent + 1);
+            }
+            break;
+            
+        case NODE_FUNC_DEF:
+            printf("FuncDef: %s(", node->func_def.name);
+            for (int i = 0; i < node->func_def.param_count; i++) {
+                if (i > 0) printf(", ");
+                printf("%s", node->func_def.params[i]);
+            }
+            printf(")\n");
+            print_indent(indent + 1);
+            printf("body:\n");
+            xl_print_ast(node->func_def.body, indent + 2);
+            break;
+            
+        case NODE_CALL:
+            printf("Call [%d args]\n", node->call.arg_count);
+            print_indent(indent + 1);
+            printf("func:\n");
+            xl_print_ast(node->call.func, indent + 2);
+            for (int i = 0; i < node->call.arg_count; i++) {
+                print_indent(indent + 1);
+                printf("arg[%d]:\n", i);
+                xl_print_ast(node->call.args[i], indent + 2);
+            }
+            break;
+            
+        case NODE_INDEX:
+            printf("Index\n");
+            print_indent(indent + 1);
+            printf("array:\n");
+            xl_print_ast(node->index.array, indent + 2);
+            print_indent(indent + 1);
+            printf("index:\n");
+            xl_print_ast(node->index.index, indent + 2);
+            break;
+            
+        case NODE_MEMBER:
+            printf("Member: .%s\n", node->member.member);
+            xl_print_ast(node->member.object, indent + 1);
+            break;
+            
+        case NODE_NULL:
+            printf("Null\n");
+            break;
+            
+        case NODE_BOOL:
+            printf("Bool: %s\n", node->bool_val ? "true" : "false");
+            break;
+            
+        case NODE_INT:
+            printf("Int: %lld\n", node->int_val);
+            break;
+            
+        case NODE_FLOAT:
+            printf("Float: %g\n", node->float_val);
+            break;
+            
+        case NODE_STRING:
+            printf("String: \"%s\"\n", node->str_val);
+            break;
+            
+        case NODE_IDENT:
+            printf("Ident: %s\n", node->str_val);
+            break;
+            
+        case NODE_ARRAY:
+            printf("Array [%d elements]\n", node->array.count);
+            for (int i = 0; i < node->array.count; i++) {
+                xl_print_ast(node->array.elements[i], indent + 1);
+            }
+            break;
+            
+        case NODE_TABLE:
+            printf("Table [%d entries]\n", node->table.count);
+            for (int i = 0; i < node->table.count; i++) {
+                print_indent(indent + 1);
+                printf("%s:\n", node->table.keys[i]);
+                xl_print_ast(node->table.values[i], indent + 2);
+            }
+            break;
+            
+        default:
+            printf("Unknown node type: %d\n", node->type);
+    }
+}

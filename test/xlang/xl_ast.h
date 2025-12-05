@@ -335,4 +335,7 @@ XL_Value* xl_exec_program(XL_Context* ctx, XL_Node* program);
 // 内置函数注册
 void xl_register_builtins(XL_Context* ctx);
 
+// AST 打印
+void xl_print_ast(XL_Node* node, int indent);
+
 #endif // XL_AST_H

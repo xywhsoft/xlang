@@ -246,6 +246,18 @@ static XL_Value* exec_call(XL_Context* ctx, XL_Node* node) {
     else if (func->type == VAL_FUNCTION) {
         XL_Node* fn = func->func.node;
         
+        // 保存当前控制流状态
+        bool saved_return_flag = ctx->return_flag;
+        bool saved_break_flag = ctx->break_flag;
+        bool saved_continue_flag = ctx->continue_flag;
+        XL_Value* saved_return_value = ctx->return_value;
+        
+        // 重置控制流状态
+        ctx->return_flag = false;
+        ctx->break_flag = false;
+        ctx->continue_flag = false;
+        ctx->return_value = NULL;
+        
         // 创建新作用域
         xl_context_push_scope(ctx);
         
@@ -265,10 +277,15 @@ static XL_Value* exec_call(XL_Context* ctx, XL_Node* node) {
         if (ctx->return_flag) {
             result = ctx->return_value;
             ctx->return_value = NULL;
-            ctx->return_flag = false;
         }
         
         xl_context_pop_scope(ctx);
+        
+        // 恢复控制流状态
+        ctx->return_flag = saved_return_flag;
+        ctx->break_flag = saved_break_flag;
+        ctx->continue_flag = saved_continue_flag;
+        ctx->return_value = saved_return_value;
     }
     
     // 释放参数

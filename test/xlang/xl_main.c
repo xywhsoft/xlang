@@ -188,12 +188,36 @@ static void show_help(const char* prog) {
     printf("Usage: %s [options] [script_file]\n\n", prog);
     printf("Options:\n");
     printf("  -e <code>    Execute a code string\n");
+    printf("  -t <file>    Show AST tree of a script file\n");
     printf("  -i           Start interactive mode (REPL)\n");
     printf("  -h, --help   Show this help message\n");
     printf("\nExamples:\n");
     printf("  %s script.xl         Run a script file\n", prog);
     printf("  %s -e \"print(1+2)\"   Execute code directly\n", prog);
+    printf("  %s -t script.xl      Show AST tree\n", prog);
     printf("  %s -i                Start REPL\n", prog);
+}
+
+// 显示 AST 语法树
+static int show_ast(const char* filename) {
+    char* source = read_file(filename);
+    if (!source) {
+        return 1;
+    }
+    
+    XL_Node* program = parse_source(source);
+    free(source);
+    
+    if (!program) {
+        fprintf(stderr, "Failed to parse file\n");
+        return 1;
+    }
+    
+    printf("=== AST for %s ===\n", filename);
+    xl_print_ast(program, 0);
+    
+    xl_node_free(program);
+    return 0;
 }
 
 // 主函数
@@ -218,6 +242,14 @@ int main(int argc, char* argv[]) {
                 return run_source(argv[++i]);
             } else {
                 fprintf(stderr, "Error: -e requires an argument\n");
+                return 1;
+            }
+        }
+        else if (strcmp(argv[i], "-t") == 0) {
+            if (i + 1 < argc) {
+                return show_ast(argv[++i]);
+            } else {
+                fprintf(stderr, "Error: -t requires a file argument\n");
                 return 1;
             }
         }
