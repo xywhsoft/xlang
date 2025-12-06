@@ -10,9 +10,9 @@ echo ========================================
 echo.
 
 REM 设置工具路径
-set FLEX=..\tools\flex.exe
-set LEMON=..\tools\lemon.exe
-set LEMPAR=..\tools\lempar.c
+set FLEX=tools\flex.exe
+set LEMON=tools\lemon.exe
+set LEMPAR=tools\lempar.c
 
 REM 检查工具是否存在
 if not exist "%FLEX%" (
