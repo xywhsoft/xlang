@@ -55,61 +55,61 @@ int xl_get_parse_error(void) { return parse_error; }
 /**************** End of %include directives **********************************/
 /* These constants specify the various numeric values for terminal symbols.
 ***************** Begin token definitions *************************************/
-#ifndef OR
-#define OR                              1
-#define AND                             2
-#define NOT                             3
-#define EQ                              4
-#define NE                              5
-#define LT                              6
-#define LE                              7
-#define GT                              8
-#define GE                              9
-#define PLUS                           10
-#define MINUS                          11
-#define MUL                            12
-#define DIV                            13
-#define MOD                            14
-#define POW                            15
-#define UMINUS                         16
-#define SEMI                           17
-#define VAR                            18
-#define IDENT                          19
-#define ASSIGN                         20
-#define IF                             21
-#define END                            22
-#define THEN                           23
-#define ELSEIF                         24
-#define ELSE                           25
-#define WHILE                          26
-#define DO                             27
-#define FOR                            28
-#define TO                             29
-#define STEP                           30
-#define BREAK                          31
-#define CONTINUE                       32
-#define RETURN                         33
-#define FUNCTION                       34
-#define LPAREN                         35
-#define RPAREN                         36
-#define COMMA                          37
-#define PLUSEQ                         38
-#define MINUSEQ                        39
-#define MULEQ                          40
-#define DIVEQ                          41
-#define INC                            42
-#define DEC                            43
-#define LBRACKET                       44
-#define RBRACKET                       45
-#define DOT                            46
-#define NIL                            47
-#define TRUE                           48
-#define FALSE                          49
-#define INTEGER                        50
-#define NUMBER                         51
-#define STRING                         52
-#define LBRACE                         53
-#define RBRACE                         54
+#ifndef TK_OR
+#define TK_OR                           1
+#define TK_AND                          2
+#define TK_NOT                          3
+#define TK_EQ                           4
+#define TK_NE                           5
+#define TK_LT                           6
+#define TK_LE                           7
+#define TK_GT                           8
+#define TK_GE                           9
+#define TK_PLUS                        10
+#define TK_MINUS                       11
+#define TK_MUL                         12
+#define TK_DIV                         13
+#define TK_MOD                         14
+#define TK_POW                         15
+#define TK_UMINUS                      16
+#define TK_SEMI                        17
+#define TK_VAR                         18
+#define TK_IDENT                       19
+#define TK_ASSIGN                      20
+#define TK_IF                          21
+#define TK_END                         22
+#define TK_THEN                        23
+#define TK_ELSEIF                      24
+#define TK_ELSE                        25
+#define TK_WHILE                       26
+#define TK_DO                          27
+#define TK_FOR                         28
+#define TK_TO                          29
+#define TK_STEP                        30
+#define TK_BREAK                       31
+#define TK_CONTINUE                    32
+#define TK_RETURN                      33
+#define TK_FUNCTION                    34
+#define TK_LPAREN                      35
+#define TK_RPAREN                      36
+#define TK_COMMA                       37
+#define TK_PLUSEQ                      38
+#define TK_MINUSEQ                     39
+#define TK_MULEQ                       40
+#define TK_DIVEQ                       41
+#define TK_INC                         42
+#define TK_DEC                         43
+#define TK_LBRACKET                    44
+#define TK_RBRACKET                    45
+#define TK_DOT                         46
+#define TK_NIL                         47
+#define TK_TRUE                        48
+#define TK_FALSE                       49
+#define TK_INTEGER                     50
+#define TK_NUMBER                      51
+#define TK_STRING                      52
+#define TK_LBRACE                      53
+#define TK_RBRACE                      54
 #endif
 /**************** End token definitions ***************************************/
 
@@ -617,60 +617,60 @@ void ParseTrace(FILE *TraceFILE, char *zTracePrompt){
 ** are required.  The following table supplies these names */
 static const char *const yyTokenName[] = { 
   /*    0 */ "$",
-  /*    1 */ "OR",
-  /*    2 */ "AND",
-  /*    3 */ "NOT",
-  /*    4 */ "EQ",
-  /*    5 */ "NE",
-  /*    6 */ "LT",
-  /*    7 */ "LE",
-  /*    8 */ "GT",
-  /*    9 */ "GE",
-  /*   10 */ "PLUS",
-  /*   11 */ "MINUS",
-  /*   12 */ "MUL",
-  /*   13 */ "DIV",
-  /*   14 */ "MOD",
-  /*   15 */ "POW",
-  /*   16 */ "UMINUS",
-  /*   17 */ "SEMI",
-  /*   18 */ "VAR",
-  /*   19 */ "IDENT",
-  /*   20 */ "ASSIGN",
-  /*   21 */ "IF",
-  /*   22 */ "END",
-  /*   23 */ "THEN",
-  /*   24 */ "ELSEIF",
-  /*   25 */ "ELSE",
-  /*   26 */ "WHILE",
-  /*   27 */ "DO",
-  /*   28 */ "FOR",
-  /*   29 */ "TO",
-  /*   30 */ "STEP",
-  /*   31 */ "BREAK",
-  /*   32 */ "CONTINUE",
-  /*   33 */ "RETURN",
-  /*   34 */ "FUNCTION",
-  /*   35 */ "LPAREN",
-  /*   36 */ "RPAREN",
-  /*   37 */ "COMMA",
-  /*   38 */ "PLUSEQ",
-  /*   39 */ "MINUSEQ",
-  /*   40 */ "MULEQ",
-  /*   41 */ "DIVEQ",
-  /*   42 */ "INC",
-  /*   43 */ "DEC",
-  /*   44 */ "LBRACKET",
-  /*   45 */ "RBRACKET",
-  /*   46 */ "DOT",
-  /*   47 */ "NIL",
-  /*   48 */ "TRUE",
-  /*   49 */ "FALSE",
-  /*   50 */ "INTEGER",
-  /*   51 */ "NUMBER",
-  /*   52 */ "STRING",
-  /*   53 */ "LBRACE",
-  /*   54 */ "RBRACE",
+  /*    1 */ "TK_OR",
+  /*    2 */ "TK_AND",
+  /*    3 */ "TK_NOT",
+  /*    4 */ "TK_EQ",
+  /*    5 */ "TK_NE",
+  /*    6 */ "TK_LT",
+  /*    7 */ "TK_LE",
+  /*    8 */ "TK_GT",
+  /*    9 */ "TK_GE",
+  /*   10 */ "TK_PLUS",
+  /*   11 */ "TK_MINUS",
+  /*   12 */ "TK_MUL",
+  /*   13 */ "TK_DIV",
+  /*   14 */ "TK_MOD",
+  /*   15 */ "TK_POW",
+  /*   16 */ "TK_UMINUS",
+  /*   17 */ "TK_SEMI",
+  /*   18 */ "TK_VAR",
+  /*   19 */ "TK_IDENT",
+  /*   20 */ "TK_ASSIGN",
+  /*   21 */ "TK_IF",
+  /*   22 */ "TK_END",
+  /*   23 */ "TK_THEN",
+  /*   24 */ "TK_ELSEIF",
+  /*   25 */ "TK_ELSE",
+  /*   26 */ "TK_WHILE",
+  /*   27 */ "TK_DO",
+  /*   28 */ "TK_FOR",
+  /*   29 */ "TK_TO",
+  /*   30 */ "TK_STEP",
+  /*   31 */ "TK_BREAK",
+  /*   32 */ "TK_CONTINUE",
+  /*   33 */ "TK_RETURN",
+  /*   34 */ "TK_FUNCTION",
+  /*   35 */ "TK_LPAREN",
+  /*   36 */ "TK_RPAREN",
+  /*   37 */ "TK_COMMA",
+  /*   38 */ "TK_PLUSEQ",
+  /*   39 */ "TK_MINUSEQ",
+  /*   40 */ "TK_MULEQ",
+  /*   41 */ "TK_DIVEQ",
+  /*   42 */ "TK_INC",
+  /*   43 */ "TK_DEC",
+  /*   44 */ "TK_LBRACKET",
+  /*   45 */ "TK_RBRACKET",
+  /*   46 */ "TK_DOT",
+  /*   47 */ "TK_NIL",
+  /*   48 */ "TK_TRUE",
+  /*   49 */ "TK_FALSE",
+  /*   50 */ "TK_INTEGER",
+  /*   51 */ "TK_NUMBER",
+  /*   52 */ "TK_STRING",
+  /*   53 */ "TK_LBRACE",
+  /*   54 */ "TK_RBRACE",
   /*   55 */ "program",
   /*   56 */ "stmt_list",
   /*   57 */ "stmt",
@@ -726,93 +726,93 @@ static const char *const yyRuleName[] = {
  /*   9 */ "stmt ::= return_stmt",
  /*  10 */ "stmt ::= break_stmt",
  /*  11 */ "stmt ::= continue_stmt",
- /*  12 */ "stmt ::= SEMI",
- /*  13 */ "var_decl ::= VAR IDENT",
- /*  14 */ "var_decl ::= VAR IDENT ASSIGN expr",
+ /*  12 */ "stmt ::= TK_SEMI",
+ /*  13 */ "var_decl ::= TK_VAR TK_IDENT",
+ /*  14 */ "var_decl ::= TK_VAR TK_IDENT TK_ASSIGN expr",
  /*  15 */ "expr_stmt ::= expr",
- /*  16 */ "if_stmt ::= IF expr then_block elseif_list else_block END",
- /*  17 */ "if_stmt ::= IF expr THEN expr",
+ /*  16 */ "if_stmt ::= TK_IF expr then_block elseif_list else_block TK_END",
+ /*  17 */ "if_stmt ::= TK_IF expr TK_THEN expr",
  /*  18 */ "then_block ::= stmt_list",
- /*  19 */ "then_block ::= THEN stmt_list",
+ /*  19 */ "then_block ::= TK_THEN stmt_list",
  /*  20 */ "elseif_list ::=",
- /*  21 */ "elseif_list ::= elseif_list ELSEIF expr then_block",
+ /*  21 */ "elseif_list ::= elseif_list TK_ELSEIF expr then_block",
  /*  22 */ "else_block ::=",
- /*  23 */ "else_block ::= ELSE stmt_list",
- /*  24 */ "while_stmt ::= WHILE expr stmt_list END",
- /*  25 */ "while_stmt ::= DO stmt_list WHILE expr END",
- /*  26 */ "for_stmt ::= FOR IDENT ASSIGN expr TO expr stmt_list END",
- /*  27 */ "for_stmt ::= FOR IDENT ASSIGN expr TO expr STEP expr stmt_list END",
- /*  28 */ "break_stmt ::= BREAK",
- /*  29 */ "continue_stmt ::= CONTINUE",
- /*  30 */ "return_stmt ::= RETURN",
- /*  31 */ "return_stmt ::= RETURN expr",
- /*  32 */ "func_def ::= FUNCTION IDENT LPAREN param_list RPAREN stmt_list END",
+ /*  23 */ "else_block ::= TK_ELSE stmt_list",
+ /*  24 */ "while_stmt ::= TK_WHILE expr stmt_list TK_END",
+ /*  25 */ "while_stmt ::= TK_DO stmt_list TK_WHILE expr TK_END",
+ /*  26 */ "for_stmt ::= TK_FOR TK_IDENT TK_ASSIGN expr TK_TO expr stmt_list TK_END",
+ /*  27 */ "for_stmt ::= TK_FOR TK_IDENT TK_ASSIGN expr TK_TO expr TK_STEP expr stmt_list TK_END",
+ /*  28 */ "break_stmt ::= TK_BREAK",
+ /*  29 */ "continue_stmt ::= TK_CONTINUE",
+ /*  30 */ "return_stmt ::= TK_RETURN",
+ /*  31 */ "return_stmt ::= TK_RETURN expr",
+ /*  32 */ "func_def ::= TK_FUNCTION TK_IDENT TK_LPAREN param_list TK_RPAREN stmt_list TK_END",
  /*  33 */ "param_list ::=",
  /*  34 */ "param_list ::= param_list_ne",
- /*  35 */ "param_list_ne ::= IDENT",
- /*  36 */ "param_list_ne ::= param_list_ne COMMA IDENT",
+ /*  35 */ "param_list_ne ::= TK_IDENT",
+ /*  36 */ "param_list_ne ::= param_list_ne TK_COMMA TK_IDENT",
  /*  37 */ "expr ::= or_expr",
- /*  38 */ "expr ::= postfix_expr ASSIGN expr",
- /*  39 */ "expr ::= postfix_expr PLUSEQ expr",
- /*  40 */ "expr ::= postfix_expr MINUSEQ expr",
- /*  41 */ "expr ::= postfix_expr MULEQ expr",
- /*  42 */ "expr ::= postfix_expr DIVEQ expr",
+ /*  38 */ "expr ::= postfix_expr TK_ASSIGN expr",
+ /*  39 */ "expr ::= postfix_expr TK_PLUSEQ expr",
+ /*  40 */ "expr ::= postfix_expr TK_MINUSEQ expr",
+ /*  41 */ "expr ::= postfix_expr TK_MULEQ expr",
+ /*  42 */ "expr ::= postfix_expr TK_DIVEQ expr",
  /*  43 */ "or_expr ::= and_expr",
- /*  44 */ "or_expr ::= or_expr OR and_expr",
+ /*  44 */ "or_expr ::= or_expr TK_OR and_expr",
  /*  45 */ "and_expr ::= not_expr",
- /*  46 */ "and_expr ::= and_expr AND not_expr",
+ /*  46 */ "and_expr ::= and_expr TK_AND not_expr",
  /*  47 */ "not_expr ::= cmp_expr",
- /*  48 */ "not_expr ::= NOT not_expr",
+ /*  48 */ "not_expr ::= TK_NOT not_expr",
  /*  49 */ "cmp_expr ::= add_expr",
- /*  50 */ "cmp_expr ::= cmp_expr EQ add_expr",
- /*  51 */ "cmp_expr ::= cmp_expr NE add_expr",
- /*  52 */ "cmp_expr ::= cmp_expr LT add_expr",
- /*  53 */ "cmp_expr ::= cmp_expr LE add_expr",
- /*  54 */ "cmp_expr ::= cmp_expr GT add_expr",
- /*  55 */ "cmp_expr ::= cmp_expr GE add_expr",
+ /*  50 */ "cmp_expr ::= cmp_expr TK_EQ add_expr",
+ /*  51 */ "cmp_expr ::= cmp_expr TK_NE add_expr",
+ /*  52 */ "cmp_expr ::= cmp_expr TK_LT add_expr",
+ /*  53 */ "cmp_expr ::= cmp_expr TK_LE add_expr",
+ /*  54 */ "cmp_expr ::= cmp_expr TK_GT add_expr",
+ /*  55 */ "cmp_expr ::= cmp_expr TK_GE add_expr",
  /*  56 */ "add_expr ::= mul_expr",
- /*  57 */ "add_expr ::= add_expr PLUS mul_expr",
- /*  58 */ "add_expr ::= add_expr MINUS mul_expr",
+ /*  57 */ "add_expr ::= add_expr TK_PLUS mul_expr",
+ /*  58 */ "add_expr ::= add_expr TK_MINUS mul_expr",
  /*  59 */ "mul_expr ::= pow_expr",
- /*  60 */ "mul_expr ::= mul_expr MUL pow_expr",
- /*  61 */ "mul_expr ::= mul_expr DIV pow_expr",
- /*  62 */ "mul_expr ::= mul_expr MOD pow_expr",
+ /*  60 */ "mul_expr ::= mul_expr TK_MUL pow_expr",
+ /*  61 */ "mul_expr ::= mul_expr TK_DIV pow_expr",
+ /*  62 */ "mul_expr ::= mul_expr TK_MOD pow_expr",
  /*  63 */ "pow_expr ::= unary_expr",
- /*  64 */ "pow_expr ::= unary_expr POW pow_expr",
+ /*  64 */ "pow_expr ::= unary_expr TK_POW pow_expr",
  /*  65 */ "unary_expr ::= postfix_expr",
- /*  66 */ "unary_expr ::= MINUS unary_expr",
- /*  67 */ "unary_expr ::= INC postfix_expr",
- /*  68 */ "unary_expr ::= DEC postfix_expr",
+ /*  66 */ "unary_expr ::= TK_MINUS unary_expr",
+ /*  67 */ "unary_expr ::= TK_INC postfix_expr",
+ /*  68 */ "unary_expr ::= TK_DEC postfix_expr",
  /*  69 */ "postfix_expr ::= primary_expr",
- /*  70 */ "postfix_expr ::= postfix_expr LPAREN arg_list RPAREN",
- /*  71 */ "postfix_expr ::= postfix_expr LBRACKET expr RBRACKET",
- /*  72 */ "postfix_expr ::= postfix_expr DOT IDENT",
- /*  73 */ "postfix_expr ::= postfix_expr INC",
- /*  74 */ "postfix_expr ::= postfix_expr DEC",
+ /*  70 */ "postfix_expr ::= postfix_expr TK_LPAREN arg_list TK_RPAREN",
+ /*  71 */ "postfix_expr ::= postfix_expr TK_LBRACKET expr TK_RBRACKET",
+ /*  72 */ "postfix_expr ::= postfix_expr TK_DOT TK_IDENT",
+ /*  73 */ "postfix_expr ::= postfix_expr TK_INC",
+ /*  74 */ "postfix_expr ::= postfix_expr TK_DEC",
  /*  75 */ "arg_list ::=",
  /*  76 */ "arg_list ::= arg_list_ne",
  /*  77 */ "arg_list_ne ::= expr",
- /*  78 */ "arg_list_ne ::= arg_list_ne COMMA expr",
- /*  79 */ "primary_expr ::= NIL",
- /*  80 */ "primary_expr ::= TRUE",
- /*  81 */ "primary_expr ::= FALSE",
- /*  82 */ "primary_expr ::= INTEGER",
- /*  83 */ "primary_expr ::= NUMBER",
- /*  84 */ "primary_expr ::= STRING",
- /*  85 */ "primary_expr ::= IDENT",
- /*  86 */ "primary_expr ::= LPAREN expr RPAREN",
+ /*  78 */ "arg_list_ne ::= arg_list_ne TK_COMMA expr",
+ /*  79 */ "primary_expr ::= TK_NIL",
+ /*  80 */ "primary_expr ::= TK_TRUE",
+ /*  81 */ "primary_expr ::= TK_FALSE",
+ /*  82 */ "primary_expr ::= TK_INTEGER",
+ /*  83 */ "primary_expr ::= TK_NUMBER",
+ /*  84 */ "primary_expr ::= TK_STRING",
+ /*  85 */ "primary_expr ::= TK_IDENT",
+ /*  86 */ "primary_expr ::= TK_LPAREN expr TK_RPAREN",
  /*  87 */ "primary_expr ::= array_literal",
  /*  88 */ "primary_expr ::= table_literal",
- /*  89 */ "array_literal ::= LBRACKET array_elements RBRACKET",
+ /*  89 */ "array_literal ::= TK_LBRACKET array_elements TK_RBRACKET",
  /*  90 */ "array_elements ::=",
  /*  91 */ "array_elements ::= array_elements_ne",
  /*  92 */ "array_elements_ne ::= expr",
- /*  93 */ "array_elements_ne ::= array_elements_ne COMMA expr",
- /*  94 */ "table_literal ::= LBRACE table_entries RBRACE",
+ /*  93 */ "array_elements_ne ::= array_elements_ne TK_COMMA expr",
+ /*  94 */ "table_literal ::= TK_LBRACE table_entries TK_RBRACE",
  /*  95 */ "table_entries ::=",
  /*  96 */ "table_entries ::= table_entries_ne",
- /*  97 */ "table_entries_ne ::= IDENT ASSIGN expr",
- /*  98 */ "table_entries_ne ::= table_entries_ne COMMA IDENT ASSIGN expr",
+ /*  97 */ "table_entries_ne ::= TK_IDENT TK_ASSIGN expr",
+ /*  98 */ "table_entries_ne ::= table_entries_ne TK_COMMA TK_IDENT TK_ASSIGN expr",
 };
 #endif /* NDEBUG */
 
@@ -1236,93 +1236,93 @@ static const YYCODETYPE yyRuleInfoLhs[] = {
     57,  /* (9) stmt ::= return_stmt */
     57,  /* (10) stmt ::= break_stmt */
     57,  /* (11) stmt ::= continue_stmt */
-    57,  /* (12) stmt ::= SEMI */
-    58,  /* (13) var_decl ::= VAR IDENT */
-    58,  /* (14) var_decl ::= VAR IDENT ASSIGN expr */
+    57,  /* (12) stmt ::= TK_SEMI */
+    58,  /* (13) var_decl ::= TK_VAR TK_IDENT */
+    58,  /* (14) var_decl ::= TK_VAR TK_IDENT TK_ASSIGN expr */
     59,  /* (15) expr_stmt ::= expr */
-    60,  /* (16) if_stmt ::= IF expr then_block elseif_list else_block END */
-    60,  /* (17) if_stmt ::= IF expr THEN expr */
+    60,  /* (16) if_stmt ::= TK_IF expr then_block elseif_list else_block TK_END */
+    60,  /* (17) if_stmt ::= TK_IF expr TK_THEN expr */
     68,  /* (18) then_block ::= stmt_list */
-    68,  /* (19) then_block ::= THEN stmt_list */
+    68,  /* (19) then_block ::= TK_THEN stmt_list */
     69,  /* (20) elseif_list ::= */
-    69,  /* (21) elseif_list ::= elseif_list ELSEIF expr then_block */
+    69,  /* (21) elseif_list ::= elseif_list TK_ELSEIF expr then_block */
     70,  /* (22) else_block ::= */
-    70,  /* (23) else_block ::= ELSE stmt_list */
-    61,  /* (24) while_stmt ::= WHILE expr stmt_list END */
-    61,  /* (25) while_stmt ::= DO stmt_list WHILE expr END */
-    62,  /* (26) for_stmt ::= FOR IDENT ASSIGN expr TO expr stmt_list END */
-    62,  /* (27) for_stmt ::= FOR IDENT ASSIGN expr TO expr STEP expr stmt_list END */
-    65,  /* (28) break_stmt ::= BREAK */
-    66,  /* (29) continue_stmt ::= CONTINUE */
-    64,  /* (30) return_stmt ::= RETURN */
-    64,  /* (31) return_stmt ::= RETURN expr */
-    63,  /* (32) func_def ::= FUNCTION IDENT LPAREN param_list RPAREN stmt_list END */
+    70,  /* (23) else_block ::= TK_ELSE stmt_list */
+    61,  /* (24) while_stmt ::= TK_WHILE expr stmt_list TK_END */
+    61,  /* (25) while_stmt ::= TK_DO stmt_list TK_WHILE expr TK_END */
+    62,  /* (26) for_stmt ::= TK_FOR TK_IDENT TK_ASSIGN expr TK_TO expr stmt_list TK_END */
+    62,  /* (27) for_stmt ::= TK_FOR TK_IDENT TK_ASSIGN expr TK_TO expr TK_STEP expr stmt_list TK_END */
+    65,  /* (28) break_stmt ::= TK_BREAK */
+    66,  /* (29) continue_stmt ::= TK_CONTINUE */
+    64,  /* (30) return_stmt ::= TK_RETURN */
+    64,  /* (31) return_stmt ::= TK_RETURN expr */
+    63,  /* (32) func_def ::= TK_FUNCTION TK_IDENT TK_LPAREN param_list TK_RPAREN stmt_list TK_END */
     71,  /* (33) param_list ::= */
     71,  /* (34) param_list ::= param_list_ne */
-    72,  /* (35) param_list_ne ::= IDENT */
-    72,  /* (36) param_list_ne ::= param_list_ne COMMA IDENT */
+    72,  /* (35) param_list_ne ::= TK_IDENT */
+    72,  /* (36) param_list_ne ::= param_list_ne TK_COMMA TK_IDENT */
     67,  /* (37) expr ::= or_expr */
-    67,  /* (38) expr ::= postfix_expr ASSIGN expr */
-    67,  /* (39) expr ::= postfix_expr PLUSEQ expr */
-    67,  /* (40) expr ::= postfix_expr MINUSEQ expr */
-    67,  /* (41) expr ::= postfix_expr MULEQ expr */
-    67,  /* (42) expr ::= postfix_expr DIVEQ expr */
+    67,  /* (38) expr ::= postfix_expr TK_ASSIGN expr */
+    67,  /* (39) expr ::= postfix_expr TK_PLUSEQ expr */
+    67,  /* (40) expr ::= postfix_expr TK_MINUSEQ expr */
+    67,  /* (41) expr ::= postfix_expr TK_MULEQ expr */
+    67,  /* (42) expr ::= postfix_expr TK_DIVEQ expr */
     73,  /* (43) or_expr ::= and_expr */
-    73,  /* (44) or_expr ::= or_expr OR and_expr */
+    73,  /* (44) or_expr ::= or_expr TK_OR and_expr */
     75,  /* (45) and_expr ::= not_expr */
-    75,  /* (46) and_expr ::= and_expr AND not_expr */
+    75,  /* (46) and_expr ::= and_expr TK_AND not_expr */
     76,  /* (47) not_expr ::= cmp_expr */
-    76,  /* (48) not_expr ::= NOT not_expr */
+    76,  /* (48) not_expr ::= TK_NOT not_expr */
     77,  /* (49) cmp_expr ::= add_expr */
-    77,  /* (50) cmp_expr ::= cmp_expr EQ add_expr */
-    77,  /* (51) cmp_expr ::= cmp_expr NE add_expr */
-    77,  /* (52) cmp_expr ::= cmp_expr LT add_expr */
-    77,  /* (53) cmp_expr ::= cmp_expr LE add_expr */
-    77,  /* (54) cmp_expr ::= cmp_expr GT add_expr */
-    77,  /* (55) cmp_expr ::= cmp_expr GE add_expr */
+    77,  /* (50) cmp_expr ::= cmp_expr TK_EQ add_expr */
+    77,  /* (51) cmp_expr ::= cmp_expr TK_NE add_expr */
+    77,  /* (52) cmp_expr ::= cmp_expr TK_LT add_expr */
+    77,  /* (53) cmp_expr ::= cmp_expr TK_LE add_expr */
+    77,  /* (54) cmp_expr ::= cmp_expr TK_GT add_expr */
+    77,  /* (55) cmp_expr ::= cmp_expr TK_GE add_expr */
     78,  /* (56) add_expr ::= mul_expr */
-    78,  /* (57) add_expr ::= add_expr PLUS mul_expr */
-    78,  /* (58) add_expr ::= add_expr MINUS mul_expr */
+    78,  /* (57) add_expr ::= add_expr TK_PLUS mul_expr */
+    78,  /* (58) add_expr ::= add_expr TK_MINUS mul_expr */
     79,  /* (59) mul_expr ::= pow_expr */
-    79,  /* (60) mul_expr ::= mul_expr MUL pow_expr */
-    79,  /* (61) mul_expr ::= mul_expr DIV pow_expr */
-    79,  /* (62) mul_expr ::= mul_expr MOD pow_expr */
+    79,  /* (60) mul_expr ::= mul_expr TK_MUL pow_expr */
+    79,  /* (61) mul_expr ::= mul_expr TK_DIV pow_expr */
+    79,  /* (62) mul_expr ::= mul_expr TK_MOD pow_expr */
     80,  /* (63) pow_expr ::= unary_expr */
-    80,  /* (64) pow_expr ::= unary_expr POW pow_expr */
+    80,  /* (64) pow_expr ::= unary_expr TK_POW pow_expr */
     81,  /* (65) unary_expr ::= postfix_expr */
-    81,  /* (66) unary_expr ::= MINUS unary_expr */
-    81,  /* (67) unary_expr ::= INC postfix_expr */
-    81,  /* (68) unary_expr ::= DEC postfix_expr */
+    81,  /* (66) unary_expr ::= TK_MINUS unary_expr */
+    81,  /* (67) unary_expr ::= TK_INC postfix_expr */
+    81,  /* (68) unary_expr ::= TK_DEC postfix_expr */
     74,  /* (69) postfix_expr ::= primary_expr */
-    74,  /* (70) postfix_expr ::= postfix_expr LPAREN arg_list RPAREN */
-    74,  /* (71) postfix_expr ::= postfix_expr LBRACKET expr RBRACKET */
-    74,  /* (72) postfix_expr ::= postfix_expr DOT IDENT */
-    74,  /* (73) postfix_expr ::= postfix_expr INC */
-    74,  /* (74) postfix_expr ::= postfix_expr DEC */
+    74,  /* (70) postfix_expr ::= postfix_expr TK_LPAREN arg_list TK_RPAREN */
+    74,  /* (71) postfix_expr ::= postfix_expr TK_LBRACKET expr TK_RBRACKET */
+    74,  /* (72) postfix_expr ::= postfix_expr TK_DOT TK_IDENT */
+    74,  /* (73) postfix_expr ::= postfix_expr TK_INC */
+    74,  /* (74) postfix_expr ::= postfix_expr TK_DEC */
     83,  /* (75) arg_list ::= */
     83,  /* (76) arg_list ::= arg_list_ne */
     84,  /* (77) arg_list_ne ::= expr */
-    84,  /* (78) arg_list_ne ::= arg_list_ne COMMA expr */
-    82,  /* (79) primary_expr ::= NIL */
-    82,  /* (80) primary_expr ::= TRUE */
-    82,  /* (81) primary_expr ::= FALSE */
-    82,  /* (82) primary_expr ::= INTEGER */
-    82,  /* (83) primary_expr ::= NUMBER */
-    82,  /* (84) primary_expr ::= STRING */
-    82,  /* (85) primary_expr ::= IDENT */
-    82,  /* (86) primary_expr ::= LPAREN expr RPAREN */
+    84,  /* (78) arg_list_ne ::= arg_list_ne TK_COMMA expr */
+    82,  /* (79) primary_expr ::= TK_NIL */
+    82,  /* (80) primary_expr ::= TK_TRUE */
+    82,  /* (81) primary_expr ::= TK_FALSE */
+    82,  /* (82) primary_expr ::= TK_INTEGER */
+    82,  /* (83) primary_expr ::= TK_NUMBER */
+    82,  /* (84) primary_expr ::= TK_STRING */
+    82,  /* (85) primary_expr ::= TK_IDENT */
+    82,  /* (86) primary_expr ::= TK_LPAREN expr TK_RPAREN */
     82,  /* (87) primary_expr ::= array_literal */
     82,  /* (88) primary_expr ::= table_literal */
-    85,  /* (89) array_literal ::= LBRACKET array_elements RBRACKET */
+    85,  /* (89) array_literal ::= TK_LBRACKET array_elements TK_RBRACKET */
     87,  /* (90) array_elements ::= */
     87,  /* (91) array_elements ::= array_elements_ne */
     88,  /* (92) array_elements_ne ::= expr */
-    88,  /* (93) array_elements_ne ::= array_elements_ne COMMA expr */
-    86,  /* (94) table_literal ::= LBRACE table_entries RBRACE */
+    88,  /* (93) array_elements_ne ::= array_elements_ne TK_COMMA expr */
+    86,  /* (94) table_literal ::= TK_LBRACE table_entries TK_RBRACE */
     89,  /* (95) table_entries ::= */
     89,  /* (96) table_entries ::= table_entries_ne */
-    90,  /* (97) table_entries_ne ::= IDENT ASSIGN expr */
-    90,  /* (98) table_entries_ne ::= table_entries_ne COMMA IDENT ASSIGN expr */
+    90,  /* (97) table_entries_ne ::= TK_IDENT TK_ASSIGN expr */
+    90,  /* (98) table_entries_ne ::= table_entries_ne TK_COMMA TK_IDENT TK_ASSIGN expr */
 };
 
 /* For rule J, yyRuleInfoNRhs[J] contains the negative of the number
@@ -1340,93 +1340,93 @@ static const signed char yyRuleInfoNRhs[] = {
    -1,  /* (9) stmt ::= return_stmt */
    -1,  /* (10) stmt ::= break_stmt */
    -1,  /* (11) stmt ::= continue_stmt */
-   -1,  /* (12) stmt ::= SEMI */
-   -2,  /* (13) var_decl ::= VAR IDENT */
-   -4,  /* (14) var_decl ::= VAR IDENT ASSIGN expr */
+   -1,  /* (12) stmt ::= TK_SEMI */
+   -2,  /* (13) var_decl ::= TK_VAR TK_IDENT */
+   -4,  /* (14) var_decl ::= TK_VAR TK_IDENT TK_ASSIGN expr */
    -1,  /* (15) expr_stmt ::= expr */
-   -6,  /* (16) if_stmt ::= IF expr then_block elseif_list else_block END */
-   -4,  /* (17) if_stmt ::= IF expr THEN expr */
+   -6,  /* (16) if_stmt ::= TK_IF expr then_block elseif_list else_block TK_END */
+   -4,  /* (17) if_stmt ::= TK_IF expr TK_THEN expr */
    -1,  /* (18) then_block ::= stmt_list */
-   -2,  /* (19) then_block ::= THEN stmt_list */
+   -2,  /* (19) then_block ::= TK_THEN stmt_list */
     0,  /* (20) elseif_list ::= */
-   -4,  /* (21) elseif_list ::= elseif_list ELSEIF expr then_block */
+   -4,  /* (21) elseif_list ::= elseif_list TK_ELSEIF expr then_block */
     0,  /* (22) else_block ::= */
-   -2,  /* (23) else_block ::= ELSE stmt_list */
-   -4,  /* (24) while_stmt ::= WHILE expr stmt_list END */
-   -5,  /* (25) while_stmt ::= DO stmt_list WHILE expr END */
-   -8,  /* (26) for_stmt ::= FOR IDENT ASSIGN expr TO expr stmt_list END */
-  -10,  /* (27) for_stmt ::= FOR IDENT ASSIGN expr TO expr STEP expr stmt_list END */
-   -1,  /* (28) break_stmt ::= BREAK */
-   -1,  /* (29) continue_stmt ::= CONTINUE */
-   -1,  /* (30) return_stmt ::= RETURN */
-   -2,  /* (31) return_stmt ::= RETURN expr */
-   -7,  /* (32) func_def ::= FUNCTION IDENT LPAREN param_list RPAREN stmt_list END */
+   -2,  /* (23) else_block ::= TK_ELSE stmt_list */
+   -4,  /* (24) while_stmt ::= TK_WHILE expr stmt_list TK_END */
+   -5,  /* (25) while_stmt ::= TK_DO stmt_list TK_WHILE expr TK_END */
+   -8,  /* (26) for_stmt ::= TK_FOR TK_IDENT TK_ASSIGN expr TK_TO expr stmt_list TK_END */
+  -10,  /* (27) for_stmt ::= TK_FOR TK_IDENT TK_ASSIGN expr TK_TO expr TK_STEP expr stmt_list TK_END */
+   -1,  /* (28) break_stmt ::= TK_BREAK */
+   -1,  /* (29) continue_stmt ::= TK_CONTINUE */
+   -1,  /* (30) return_stmt ::= TK_RETURN */
+   -2,  /* (31) return_stmt ::= TK_RETURN expr */
+   -7,  /* (32) func_def ::= TK_FUNCTION TK_IDENT TK_LPAREN param_list TK_RPAREN stmt_list TK_END */
     0,  /* (33) param_list ::= */
    -1,  /* (34) param_list ::= param_list_ne */
-   -1,  /* (35) param_list_ne ::= IDENT */
-   -3,  /* (36) param_list_ne ::= param_list_ne COMMA IDENT */
+   -1,  /* (35) param_list_ne ::= TK_IDENT */
+   -3,  /* (36) param_list_ne ::= param_list_ne TK_COMMA TK_IDENT */
    -1,  /* (37) expr ::= or_expr */
-   -3,  /* (38) expr ::= postfix_expr ASSIGN expr */
-   -3,  /* (39) expr ::= postfix_expr PLUSEQ expr */
-   -3,  /* (40) expr ::= postfix_expr MINUSEQ expr */
-   -3,  /* (41) expr ::= postfix_expr MULEQ expr */
-   -3,  /* (42) expr ::= postfix_expr DIVEQ expr */
+   -3,  /* (38) expr ::= postfix_expr TK_ASSIGN expr */
+   -3,  /* (39) expr ::= postfix_expr TK_PLUSEQ expr */
+   -3,  /* (40) expr ::= postfix_expr TK_MINUSEQ expr */
+   -3,  /* (41) expr ::= postfix_expr TK_MULEQ expr */
+   -3,  /* (42) expr ::= postfix_expr TK_DIVEQ expr */
    -1,  /* (43) or_expr ::= and_expr */
-   -3,  /* (44) or_expr ::= or_expr OR and_expr */
+   -3,  /* (44) or_expr ::= or_expr TK_OR and_expr */
    -1,  /* (45) and_expr ::= not_expr */
-   -3,  /* (46) and_expr ::= and_expr AND not_expr */
+   -3,  /* (46) and_expr ::= and_expr TK_AND not_expr */
    -1,  /* (47) not_expr ::= cmp_expr */
-   -2,  /* (48) not_expr ::= NOT not_expr */
+   -2,  /* (48) not_expr ::= TK_NOT not_expr */
    -1,  /* (49) cmp_expr ::= add_expr */
-   -3,  /* (50) cmp_expr ::= cmp_expr EQ add_expr */
-   -3,  /* (51) cmp_expr ::= cmp_expr NE add_expr */
-   -3,  /* (52) cmp_expr ::= cmp_expr LT add_expr */
-   -3,  /* (53) cmp_expr ::= cmp_expr LE add_expr */
-   -3,  /* (54) cmp_expr ::= cmp_expr GT add_expr */
-   -3,  /* (55) cmp_expr ::= cmp_expr GE add_expr */
+   -3,  /* (50) cmp_expr ::= cmp_expr TK_EQ add_expr */
+   -3,  /* (51) cmp_expr ::= cmp_expr TK_NE add_expr */
+   -3,  /* (52) cmp_expr ::= cmp_expr TK_LT add_expr */
+   -3,  /* (53) cmp_expr ::= cmp_expr TK_LE add_expr */
+   -3,  /* (54) cmp_expr ::= cmp_expr TK_GT add_expr */
+   -3,  /* (55) cmp_expr ::= cmp_expr TK_GE add_expr */
    -1,  /* (56) add_expr ::= mul_expr */
-   -3,  /* (57) add_expr ::= add_expr PLUS mul_expr */
-   -3,  /* (58) add_expr ::= add_expr MINUS mul_expr */
+   -3,  /* (57) add_expr ::= add_expr TK_PLUS mul_expr */
+   -3,  /* (58) add_expr ::= add_expr TK_MINUS mul_expr */
    -1,  /* (59) mul_expr ::= pow_expr */
-   -3,  /* (60) mul_expr ::= mul_expr MUL pow_expr */
-   -3,  /* (61) mul_expr ::= mul_expr DIV pow_expr */
-   -3,  /* (62) mul_expr ::= mul_expr MOD pow_expr */
+   -3,  /* (60) mul_expr ::= mul_expr TK_MUL pow_expr */
+   -3,  /* (61) mul_expr ::= mul_expr TK_DIV pow_expr */
+   -3,  /* (62) mul_expr ::= mul_expr TK_MOD pow_expr */
    -1,  /* (63) pow_expr ::= unary_expr */
-   -3,  /* (64) pow_expr ::= unary_expr POW pow_expr */
+   -3,  /* (64) pow_expr ::= unary_expr TK_POW pow_expr */
    -1,  /* (65) unary_expr ::= postfix_expr */
-   -2,  /* (66) unary_expr ::= MINUS unary_expr */
-   -2,  /* (67) unary_expr ::= INC postfix_expr */
-   -2,  /* (68) unary_expr ::= DEC postfix_expr */
+   -2,  /* (66) unary_expr ::= TK_MINUS unary_expr */
+   -2,  /* (67) unary_expr ::= TK_INC postfix_expr */
+   -2,  /* (68) unary_expr ::= TK_DEC postfix_expr */
    -1,  /* (69) postfix_expr ::= primary_expr */
-   -4,  /* (70) postfix_expr ::= postfix_expr LPAREN arg_list RPAREN */
-   -4,  /* (71) postfix_expr ::= postfix_expr LBRACKET expr RBRACKET */
-   -3,  /* (72) postfix_expr ::= postfix_expr DOT IDENT */
-   -2,  /* (73) postfix_expr ::= postfix_expr INC */
-   -2,  /* (74) postfix_expr ::= postfix_expr DEC */
+   -4,  /* (70) postfix_expr ::= postfix_expr TK_LPAREN arg_list TK_RPAREN */
+   -4,  /* (71) postfix_expr ::= postfix_expr TK_LBRACKET expr TK_RBRACKET */
+   -3,  /* (72) postfix_expr ::= postfix_expr TK_DOT TK_IDENT */
+   -2,  /* (73) postfix_expr ::= postfix_expr TK_INC */
+   -2,  /* (74) postfix_expr ::= postfix_expr TK_DEC */
     0,  /* (75) arg_list ::= */
    -1,  /* (76) arg_list ::= arg_list_ne */
    -1,  /* (77) arg_list_ne ::= expr */
-   -3,  /* (78) arg_list_ne ::= arg_list_ne COMMA expr */
-   -1,  /* (79) primary_expr ::= NIL */
-   -1,  /* (80) primary_expr ::= TRUE */
-   -1,  /* (81) primary_expr ::= FALSE */
-   -1,  /* (82) primary_expr ::= INTEGER */
-   -1,  /* (83) primary_expr ::= NUMBER */
-   -1,  /* (84) primary_expr ::= STRING */
-   -1,  /* (85) primary_expr ::= IDENT */
-   -3,  /* (86) primary_expr ::= LPAREN expr RPAREN */
+   -3,  /* (78) arg_list_ne ::= arg_list_ne TK_COMMA expr */
+   -1,  /* (79) primary_expr ::= TK_NIL */
+   -1,  /* (80) primary_expr ::= TK_TRUE */
+   -1,  /* (81) primary_expr ::= TK_FALSE */
+   -1,  /* (82) primary_expr ::= TK_INTEGER */
+   -1,  /* (83) primary_expr ::= TK_NUMBER */
+   -1,  /* (84) primary_expr ::= TK_STRING */
+   -1,  /* (85) primary_expr ::= TK_IDENT */
+   -3,  /* (86) primary_expr ::= TK_LPAREN expr TK_RPAREN */
    -1,  /* (87) primary_expr ::= array_literal */
    -1,  /* (88) primary_expr ::= table_literal */
-   -3,  /* (89) array_literal ::= LBRACKET array_elements RBRACKET */
+   -3,  /* (89) array_literal ::= TK_LBRACKET array_elements TK_RBRACKET */
     0,  /* (90) array_elements ::= */
    -1,  /* (91) array_elements ::= array_elements_ne */
    -1,  /* (92) array_elements_ne ::= expr */
-   -3,  /* (93) array_elements_ne ::= array_elements_ne COMMA expr */
-   -3,  /* (94) table_literal ::= LBRACE table_entries RBRACE */
+   -3,  /* (93) array_elements_ne ::= array_elements_ne TK_COMMA expr */
+   -3,  /* (94) table_literal ::= TK_LBRACE table_entries TK_RBRACE */
     0,  /* (95) table_entries ::= */
    -1,  /* (96) table_entries ::= table_entries_ne */
-   -3,  /* (97) table_entries_ne ::= IDENT ASSIGN expr */
-   -5,  /* (98) table_entries_ne ::= table_entries_ne COMMA IDENT ASSIGN expr */
+   -3,  /* (97) table_entries_ne ::= TK_IDENT TK_ASSIGN expr */
+   -5,  /* (98) table_entries_ne ::= table_entries_ne TK_COMMA TK_IDENT TK_ASSIGN expr */
 };
 
 static void yy_accept(yyParser*);  /* Forward Declaration */
@@ -1523,26 +1523,26 @@ static YYACTIONTYPE yy_reduce(
 #line 1523 "xl.c"
   yymsp[0].minor.yy58 = yylhsminor.yy58;
         break;
-      case 12: /* stmt ::= SEMI */
+      case 12: /* stmt ::= TK_SEMI */
 #line 87 "xl.y"
 { yymsp[0].minor.yy58 = 0; }
 #line 1529 "xl.c"
         break;
-      case 13: /* var_decl ::= VAR IDENT */
+      case 13: /* var_decl ::= TK_VAR TK_IDENT */
 #line 90 "xl.y"
 { 
     yymsp[-1].minor.yy58 = xl_node_var_decl(yymsp[0].minor.yy0->text, 0);
 }
 #line 1536 "xl.c"
         break;
-      case 14: /* var_decl ::= VAR IDENT ASSIGN expr */
+      case 14: /* var_decl ::= TK_VAR TK_IDENT TK_ASSIGN expr */
 #line 93 "xl.y"
 { 
     yymsp[-3].minor.yy58 = xl_node_var_decl(yymsp[-2].minor.yy0->text, yymsp[0].minor.yy58); 
 }
 #line 1543 "xl.c"
         break;
-      case 16: /* if_stmt ::= IF expr then_block elseif_list else_block END */
+      case 16: /* if_stmt ::= TK_IF expr then_block elseif_list else_block TK_END */
 #line 101 "xl.y"
 {
     yymsp[-5].minor.yy58 = xl_node_if(yymsp[-4].minor.yy58, yymsp[-3].minor.yy58);
@@ -1557,7 +1557,7 @@ static YYACTIONTYPE yy_reduce(
 }
 #line 1558 "xl.c"
         break;
-      case 17: /* if_stmt ::= IF expr THEN expr */
+      case 17: /* if_stmt ::= TK_IF expr TK_THEN expr */
 #line 114 "xl.y"
 {
     XL_Node* block = xl_node_block();
@@ -1566,8 +1566,8 @@ static YYACTIONTYPE yy_reduce(
 }
 #line 1567 "xl.c"
         break;
-      case 19: /* then_block ::= THEN stmt_list */
-      case 23: /* else_block ::= ELSE stmt_list */ yytestcase(yyruleno==23);
+      case 19: /* then_block ::= TK_THEN stmt_list */
+      case 23: /* else_block ::= TK_ELSE stmt_list */ yytestcase(yyruleno==23);
 #line 121 "xl.y"
 { yymsp[-1].minor.yy58 = yymsp[0].minor.yy58; }
 #line 1573 "xl.c"
@@ -1582,7 +1582,7 @@ static YYACTIONTYPE yy_reduce(
 { yymsp[1].minor.yy58 = 0; }
 #line 1583 "xl.c"
         break;
-      case 21: /* elseif_list ::= elseif_list ELSEIF expr then_block */
+      case 21: /* elseif_list ::= elseif_list TK_ELSEIF expr then_block */
 #line 124 "xl.y"
 {
     if (yymsp[-3].minor.yy58 == 0) {
@@ -1596,14 +1596,14 @@ static YYACTIONTYPE yy_reduce(
 #line 1596 "xl.c"
   yymsp[-3].minor.yy58 = yylhsminor.yy58;
         break;
-      case 24: /* while_stmt ::= WHILE expr stmt_list END */
+      case 24: /* while_stmt ::= TK_WHILE expr stmt_list TK_END */
 #line 138 "xl.y"
 {
     yymsp[-3].minor.yy58 = xl_node_while(yymsp[-2].minor.yy58, yymsp[-1].minor.yy58);
 }
 #line 1604 "xl.c"
         break;
-      case 25: /* while_stmt ::= DO stmt_list WHILE expr END */
+      case 25: /* while_stmt ::= TK_DO stmt_list TK_WHILE expr TK_END */
 #line 142 "xl.y"
 {
     // do-while 转换为 while
@@ -1612,41 +1612,41 @@ static YYACTIONTYPE yy_reduce(
 }
 #line 1613 "xl.c"
         break;
-      case 26: /* for_stmt ::= FOR IDENT ASSIGN expr TO expr stmt_list END */
+      case 26: /* for_stmt ::= TK_FOR TK_IDENT TK_ASSIGN expr TK_TO expr stmt_list TK_END */
 #line 149 "xl.y"
 {
     yymsp[-7].minor.yy58 = xl_node_for(yymsp[-6].minor.yy0->text, yymsp[-4].minor.yy58, yymsp[-2].minor.yy58, 0, yymsp[-1].minor.yy58);
 }
 #line 1620 "xl.c"
         break;
-      case 27: /* for_stmt ::= FOR IDENT ASSIGN expr TO expr STEP expr stmt_list END */
+      case 27: /* for_stmt ::= TK_FOR TK_IDENT TK_ASSIGN expr TK_TO expr TK_STEP expr stmt_list TK_END */
 #line 153 "xl.y"
 {
     yymsp[-9].minor.yy58 = xl_node_for(yymsp[-8].minor.yy0->text, yymsp[-6].minor.yy58, yymsp[-4].minor.yy58, yymsp[-2].minor.yy58, yymsp[-1].minor.yy58);
 }
 #line 1627 "xl.c"
         break;
-      case 28: /* break_stmt ::= BREAK */
+      case 28: /* break_stmt ::= TK_BREAK */
 #line 158 "xl.y"
 { yymsp[0].minor.yy58 = xl_node_break(); }
 #line 1632 "xl.c"
         break;
-      case 29: /* continue_stmt ::= CONTINUE */
+      case 29: /* continue_stmt ::= TK_CONTINUE */
 #line 159 "xl.y"
 { yymsp[0].minor.yy58 = xl_node_continue(); }
 #line 1637 "xl.c"
         break;
-      case 30: /* return_stmt ::= RETURN */
+      case 30: /* return_stmt ::= TK_RETURN */
 #line 162 "xl.y"
 { yymsp[0].minor.yy58 = xl_node_return(0); }
 #line 1642 "xl.c"
         break;
-      case 31: /* return_stmt ::= RETURN expr */
+      case 31: /* return_stmt ::= TK_RETURN expr */
 #line 163 "xl.y"
 { yymsp[-1].minor.yy58 = xl_node_return(yymsp[0].minor.yy58); }
 #line 1647 "xl.c"
         break;
-      case 32: /* func_def ::= FUNCTION IDENT LPAREN param_list RPAREN stmt_list END */
+      case 32: /* func_def ::= TK_FUNCTION TK_IDENT TK_LPAREN param_list TK_RPAREN stmt_list TK_END */
 #line 166 "xl.y"
 {
     yymsp[-6].minor.yy58 = xl_node_func_def(yymsp[-5].minor.yy0->text, yymsp[-3].minor.yy58 ? (char**)yymsp[-3].minor.yy58->block.stmts : NULL, 
@@ -1655,7 +1655,7 @@ static YYACTIONTYPE yy_reduce(
 }
 #line 1656 "xl.c"
         break;
-      case 35: /* param_list_ne ::= IDENT */
+      case 35: /* param_list_ne ::= TK_IDENT */
 #line 175 "xl.y"
 { 
     yylhsminor.yy58 = xl_node_block();
@@ -1664,7 +1664,7 @@ static YYACTIONTYPE yy_reduce(
 #line 1664 "xl.c"
   yymsp[0].minor.yy58 = yylhsminor.yy58;
         break;
-      case 36: /* param_list_ne ::= param_list_ne COMMA IDENT */
+      case 36: /* param_list_ne ::= param_list_ne TK_COMMA TK_IDENT */
 #line 179 "xl.y"
 {
     yylhsminor.yy58 = yymsp[-2].minor.yy58;
@@ -1673,7 +1673,7 @@ static YYACTIONTYPE yy_reduce(
 #line 1673 "xl.c"
   yymsp[-2].minor.yy58 = yylhsminor.yy58;
         break;
-      case 38: /* expr ::= postfix_expr ASSIGN expr */
+      case 38: /* expr ::= postfix_expr TK_ASSIGN expr */
 #line 188 "xl.y"
 { 
     yylhsminor.yy58 = xl_node_assign(OP_ASSIGN, yymsp[-2].minor.yy58, yymsp[0].minor.yy58); 
@@ -1681,7 +1681,7 @@ static YYACTIONTYPE yy_reduce(
 #line 1681 "xl.c"
   yymsp[-2].minor.yy58 = yylhsminor.yy58;
         break;
-      case 39: /* expr ::= postfix_expr PLUSEQ expr */
+      case 39: /* expr ::= postfix_expr TK_PLUSEQ expr */
 #line 191 "xl.y"
 { 
     yylhsminor.yy58 = xl_node_assign(OP_ADDASSIGN, yymsp[-2].minor.yy58, yymsp[0].minor.yy58); 
@@ -1689,7 +1689,7 @@ static YYACTIONTYPE yy_reduce(
 #line 1689 "xl.c"
   yymsp[-2].minor.yy58 = yylhsminor.yy58;
         break;
-      case 40: /* expr ::= postfix_expr MINUSEQ expr */
+      case 40: /* expr ::= postfix_expr TK_MINUSEQ expr */
 #line 194 "xl.y"
 { 
     yylhsminor.yy58 = xl_node_assign(OP_SUBASSIGN, yymsp[-2].minor.yy58, yymsp[0].minor.yy58); 
@@ -1697,7 +1697,7 @@ static YYACTIONTYPE yy_reduce(
 #line 1697 "xl.c"
   yymsp[-2].minor.yy58 = yylhsminor.yy58;
         break;
-      case 41: /* expr ::= postfix_expr MULEQ expr */
+      case 41: /* expr ::= postfix_expr TK_MULEQ expr */
 #line 197 "xl.y"
 { 
     yylhsminor.yy58 = xl_node_assign(OP_MULASSIGN, yymsp[-2].minor.yy58, yymsp[0].minor.yy58); 
@@ -1705,7 +1705,7 @@ static YYACTIONTYPE yy_reduce(
 #line 1705 "xl.c"
   yymsp[-2].minor.yy58 = yylhsminor.yy58;
         break;
-      case 42: /* expr ::= postfix_expr DIVEQ expr */
+      case 42: /* expr ::= postfix_expr TK_DIVEQ expr */
 #line 200 "xl.y"
 { 
     yylhsminor.yy58 = xl_node_assign(OP_DIVASSIGN, yymsp[-2].minor.yy58, yymsp[0].minor.yy58); 
@@ -1713,7 +1713,7 @@ static YYACTIONTYPE yy_reduce(
 #line 1713 "xl.c"
   yymsp[-2].minor.yy58 = yylhsminor.yy58;
         break;
-      case 44: /* or_expr ::= or_expr OR and_expr */
+      case 44: /* or_expr ::= or_expr TK_OR and_expr */
 #line 206 "xl.y"
 { 
     yylhsminor.yy58 = xl_node_binary(OP_OR, yymsp[-2].minor.yy58, yymsp[0].minor.yy58); 
@@ -1721,7 +1721,7 @@ static YYACTIONTYPE yy_reduce(
 #line 1721 "xl.c"
   yymsp[-2].minor.yy58 = yylhsminor.yy58;
         break;
-      case 46: /* and_expr ::= and_expr AND not_expr */
+      case 46: /* and_expr ::= and_expr TK_AND not_expr */
 #line 212 "xl.y"
 { 
     yylhsminor.yy58 = xl_node_binary(OP_AND, yymsp[-2].minor.yy58, yymsp[0].minor.yy58); 
@@ -1729,14 +1729,14 @@ static YYACTIONTYPE yy_reduce(
 #line 1729 "xl.c"
   yymsp[-2].minor.yy58 = yylhsminor.yy58;
         break;
-      case 48: /* not_expr ::= NOT not_expr */
+      case 48: /* not_expr ::= TK_NOT not_expr */
 #line 218 "xl.y"
 { 
     yymsp[-1].minor.yy58 = xl_node_unary(OP_NOT, yymsp[0].minor.yy58, true); 
 }
 #line 1737 "xl.c"
         break;
-      case 50: /* cmp_expr ::= cmp_expr EQ add_expr */
+      case 50: /* cmp_expr ::= cmp_expr TK_EQ add_expr */
 #line 224 "xl.y"
 { 
     yylhsminor.yy58 = xl_node_binary(OP_EQ, yymsp[-2].minor.yy58, yymsp[0].minor.yy58); 
@@ -1744,7 +1744,7 @@ static YYACTIONTYPE yy_reduce(
 #line 1744 "xl.c"
   yymsp[-2].minor.yy58 = yylhsminor.yy58;
         break;
-      case 51: /* cmp_expr ::= cmp_expr NE add_expr */
+      case 51: /* cmp_expr ::= cmp_expr TK_NE add_expr */
 #line 227 "xl.y"
 { 
     yylhsminor.yy58 = xl_node_binary(OP_NE, yymsp[-2].minor.yy58, yymsp[0].minor.yy58); 
@@ -1752,7 +1752,7 @@ static YYACTIONTYPE yy_reduce(
 #line 1752 "xl.c"
   yymsp[-2].minor.yy58 = yylhsminor.yy58;
         break;
-      case 52: /* cmp_expr ::= cmp_expr LT add_expr */
+      case 52: /* cmp_expr ::= cmp_expr TK_LT add_expr */
 #line 230 "xl.y"
 { 
     yylhsminor.yy58 = xl_node_binary(OP_LT, yymsp[-2].minor.yy58, yymsp[0].minor.yy58); 
@@ -1760,7 +1760,7 @@ static YYACTIONTYPE yy_reduce(
 #line 1760 "xl.c"
   yymsp[-2].minor.yy58 = yylhsminor.yy58;
         break;
-      case 53: /* cmp_expr ::= cmp_expr LE add_expr */
+      case 53: /* cmp_expr ::= cmp_expr TK_LE add_expr */
 #line 233 "xl.y"
 { 
     yylhsminor.yy58 = xl_node_binary(OP_LE, yymsp[-2].minor.yy58, yymsp[0].minor.yy58); 
@@ -1768,7 +1768,7 @@ static YYACTIONTYPE yy_reduce(
 #line 1768 "xl.c"
   yymsp[-2].minor.yy58 = yylhsminor.yy58;
         break;
-      case 54: /* cmp_expr ::= cmp_expr GT add_expr */
+      case 54: /* cmp_expr ::= cmp_expr TK_GT add_expr */
 #line 236 "xl.y"
 { 
     yylhsminor.yy58 = xl_node_binary(OP_GT, yymsp[-2].minor.yy58, yymsp[0].minor.yy58); 
@@ -1776,7 +1776,7 @@ static YYACTIONTYPE yy_reduce(
 #line 1776 "xl.c"
   yymsp[-2].minor.yy58 = yylhsminor.yy58;
         break;
-      case 55: /* cmp_expr ::= cmp_expr GE add_expr */
+      case 55: /* cmp_expr ::= cmp_expr TK_GE add_expr */
 #line 239 "xl.y"
 { 
     yylhsminor.yy58 = xl_node_binary(OP_GE, yymsp[-2].minor.yy58, yymsp[0].minor.yy58); 
@@ -1784,7 +1784,7 @@ static YYACTIONTYPE yy_reduce(
 #line 1784 "xl.c"
   yymsp[-2].minor.yy58 = yylhsminor.yy58;
         break;
-      case 57: /* add_expr ::= add_expr PLUS mul_expr */
+      case 57: /* add_expr ::= add_expr TK_PLUS mul_expr */
 #line 245 "xl.y"
 { 
     yylhsminor.yy58 = xl_node_binary(OP_ADD, yymsp[-2].minor.yy58, yymsp[0].minor.yy58); 
@@ -1792,7 +1792,7 @@ static YYACTIONTYPE yy_reduce(
 #line 1792 "xl.c"
   yymsp[-2].minor.yy58 = yylhsminor.yy58;
         break;
-      case 58: /* add_expr ::= add_expr MINUS mul_expr */
+      case 58: /* add_expr ::= add_expr TK_MINUS mul_expr */
 #line 248 "xl.y"
 { 
     yylhsminor.yy58 = xl_node_binary(OP_SUB, yymsp[-2].minor.yy58, yymsp[0].minor.yy58); 
@@ -1800,7 +1800,7 @@ static YYACTIONTYPE yy_reduce(
 #line 1800 "xl.c"
   yymsp[-2].minor.yy58 = yylhsminor.yy58;
         break;
-      case 60: /* mul_expr ::= mul_expr MUL pow_expr */
+      case 60: /* mul_expr ::= mul_expr TK_MUL pow_expr */
 #line 254 "xl.y"
 { 
     yylhsminor.yy58 = xl_node_binary(OP_MUL, yymsp[-2].minor.yy58, yymsp[0].minor.yy58); 
@@ -1808,7 +1808,7 @@ static YYACTIONTYPE yy_reduce(
 #line 1808 "xl.c"
   yymsp[-2].minor.yy58 = yylhsminor.yy58;
         break;
-      case 61: /* mul_expr ::= mul_expr DIV pow_expr */
+      case 61: /* mul_expr ::= mul_expr TK_DIV pow_expr */
 #line 257 "xl.y"
 { 
     yylhsminor.yy58 = xl_node_binary(OP_DIV, yymsp[-2].minor.yy58, yymsp[0].minor.yy58); 
@@ -1816,7 +1816,7 @@ static YYACTIONTYPE yy_reduce(
 #line 1816 "xl.c"
   yymsp[-2].minor.yy58 = yylhsminor.yy58;
         break;
-      case 62: /* mul_expr ::= mul_expr MOD pow_expr */
+      case 62: /* mul_expr ::= mul_expr TK_MOD pow_expr */
 #line 260 "xl.y"
 { 
     yylhsminor.yy58 = xl_node_binary(OP_MOD, yymsp[-2].minor.yy58, yymsp[0].minor.yy58); 
@@ -1824,7 +1824,7 @@ static YYACTIONTYPE yy_reduce(
 #line 1824 "xl.c"
   yymsp[-2].minor.yy58 = yylhsminor.yy58;
         break;
-      case 64: /* pow_expr ::= unary_expr POW pow_expr */
+      case 64: /* pow_expr ::= unary_expr TK_POW pow_expr */
 #line 266 "xl.y"
 { 
     yylhsminor.yy58 = xl_node_binary(OP_POW, yymsp[-2].minor.yy58, yymsp[0].minor.yy58); 
@@ -1832,28 +1832,28 @@ static YYACTIONTYPE yy_reduce(
 #line 1832 "xl.c"
   yymsp[-2].minor.yy58 = yylhsminor.yy58;
         break;
-      case 66: /* unary_expr ::= MINUS unary_expr */
+      case 66: /* unary_expr ::= TK_MINUS unary_expr */
 #line 272 "xl.y"
 { 
     yymsp[-1].minor.yy58 = xl_node_unary(OP_NEG, yymsp[0].minor.yy58, true); 
 }
 #line 1840 "xl.c"
         break;
-      case 67: /* unary_expr ::= INC postfix_expr */
+      case 67: /* unary_expr ::= TK_INC postfix_expr */
 #line 275 "xl.y"
 { 
     yymsp[-1].minor.yy58 = xl_node_unary(OP_INC, yymsp[0].minor.yy58, true); 
 }
 #line 1847 "xl.c"
         break;
-      case 68: /* unary_expr ::= DEC postfix_expr */
+      case 68: /* unary_expr ::= TK_DEC postfix_expr */
 #line 278 "xl.y"
 { 
     yymsp[-1].minor.yy58 = xl_node_unary(OP_DEC, yymsp[0].minor.yy58, true); 
 }
 #line 1854 "xl.c"
         break;
-      case 70: /* postfix_expr ::= postfix_expr LPAREN arg_list RPAREN */
+      case 70: /* postfix_expr ::= postfix_expr TK_LPAREN arg_list TK_RPAREN */
 #line 284 "xl.y"
 {
     yylhsminor.yy58 = xl_node_call(yymsp[-3].minor.yy58, yymsp[-1].minor.yy58 ? (XL_Node**)yymsp[-1].minor.yy58->block.stmts : 0, 
@@ -1863,7 +1863,7 @@ static YYACTIONTYPE yy_reduce(
 #line 1863 "xl.c"
   yymsp[-3].minor.yy58 = yylhsminor.yy58;
         break;
-      case 71: /* postfix_expr ::= postfix_expr LBRACKET expr RBRACKET */
+      case 71: /* postfix_expr ::= postfix_expr TK_LBRACKET expr TK_RBRACKET */
 #line 289 "xl.y"
 {
     yylhsminor.yy58 = xl_node_index(yymsp[-3].minor.yy58, yymsp[-1].minor.yy58);
@@ -1871,7 +1871,7 @@ static YYACTIONTYPE yy_reduce(
 #line 1871 "xl.c"
   yymsp[-3].minor.yy58 = yylhsminor.yy58;
         break;
-      case 72: /* postfix_expr ::= postfix_expr DOT IDENT */
+      case 72: /* postfix_expr ::= postfix_expr TK_DOT TK_IDENT */
 #line 292 "xl.y"
 {
     yylhsminor.yy58 = xl_node_member(yymsp[-2].minor.yy58, yymsp[0].minor.yy0->text);
@@ -1879,7 +1879,7 @@ static YYACTIONTYPE yy_reduce(
 #line 1879 "xl.c"
   yymsp[-2].minor.yy58 = yylhsminor.yy58;
         break;
-      case 73: /* postfix_expr ::= postfix_expr INC */
+      case 73: /* postfix_expr ::= postfix_expr TK_INC */
 #line 295 "xl.y"
 {
     yylhsminor.yy58 = xl_node_unary(OP_INC, yymsp[-1].minor.yy58, false);
@@ -1887,7 +1887,7 @@ static YYACTIONTYPE yy_reduce(
 #line 1887 "xl.c"
   yymsp[-1].minor.yy58 = yylhsminor.yy58;
         break;
-      case 74: /* postfix_expr ::= postfix_expr DEC */
+      case 74: /* postfix_expr ::= postfix_expr TK_DEC */
 #line 298 "xl.y"
 {
     yylhsminor.yy58 = xl_node_unary(OP_DEC, yymsp[-1].minor.yy58, false);
@@ -1905,8 +1905,8 @@ static YYACTIONTYPE yy_reduce(
 #line 1905 "xl.c"
   yymsp[0].minor.yy58 = yylhsminor.yy58;
         break;
-      case 78: /* arg_list_ne ::= arg_list_ne COMMA expr */
-      case 93: /* array_elements_ne ::= array_elements_ne COMMA expr */ yytestcase(yyruleno==93);
+      case 78: /* arg_list_ne ::= arg_list_ne TK_COMMA expr */
+      case 93: /* array_elements_ne ::= array_elements_ne TK_COMMA expr */ yytestcase(yyruleno==93);
 #line 310 "xl.y"
 {
     yylhsminor.yy58 = yymsp[-2].minor.yy58;
@@ -1915,51 +1915,51 @@ static YYACTIONTYPE yy_reduce(
 #line 1915 "xl.c"
   yymsp[-2].minor.yy58 = yylhsminor.yy58;
         break;
-      case 79: /* primary_expr ::= NIL */
+      case 79: /* primary_expr ::= TK_NIL */
 #line 316 "xl.y"
 { yymsp[0].minor.yy58 = xl_node_null(); }
 #line 1921 "xl.c"
         break;
-      case 80: /* primary_expr ::= TRUE */
+      case 80: /* primary_expr ::= TK_TRUE */
 #line 317 "xl.y"
 { yymsp[0].minor.yy58 = xl_node_bool(true); }
 #line 1926 "xl.c"
         break;
-      case 81: /* primary_expr ::= FALSE */
+      case 81: /* primary_expr ::= TK_FALSE */
 #line 318 "xl.y"
 { yymsp[0].minor.yy58 = xl_node_bool(false); }
 #line 1931 "xl.c"
         break;
-      case 82: /* primary_expr ::= INTEGER */
+      case 82: /* primary_expr ::= TK_INTEGER */
 #line 319 "xl.y"
 { yylhsminor.yy58 = xl_node_int(yymsp[0].minor.yy0->ival); }
 #line 1936 "xl.c"
   yymsp[0].minor.yy58 = yylhsminor.yy58;
         break;
-      case 83: /* primary_expr ::= NUMBER */
+      case 83: /* primary_expr ::= TK_NUMBER */
 #line 320 "xl.y"
 { yylhsminor.yy58 = xl_node_float(yymsp[0].minor.yy0->fval); }
 #line 1942 "xl.c"
   yymsp[0].minor.yy58 = yylhsminor.yy58;
         break;
-      case 84: /* primary_expr ::= STRING */
+      case 84: /* primary_expr ::= TK_STRING */
 #line 321 "xl.y"
 { yylhsminor.yy58 = xl_node_string(yymsp[0].minor.yy0->sval); }
 #line 1948 "xl.c"
   yymsp[0].minor.yy58 = yylhsminor.yy58;
         break;
-      case 85: /* primary_expr ::= IDENT */
+      case 85: /* primary_expr ::= TK_IDENT */
 #line 322 "xl.y"
 { yylhsminor.yy58 = xl_node_ident(yymsp[0].minor.yy0->text); }
 #line 1954 "xl.c"
   yymsp[0].minor.yy58 = yylhsminor.yy58;
         break;
-      case 86: /* primary_expr ::= LPAREN expr RPAREN */
+      case 86: /* primary_expr ::= TK_LPAREN expr TK_RPAREN */
 #line 323 "xl.y"
 { yymsp[-2].minor.yy58 = yymsp[-1].minor.yy58; }
 #line 1960 "xl.c"
         break;
-      case 89: /* array_literal ::= LBRACKET array_elements RBRACKET */
+      case 89: /* array_literal ::= TK_LBRACKET array_elements TK_RBRACKET */
 #line 328 "xl.y"
 {
     yymsp[-2].minor.yy58 = xl_node_array(yymsp[-1].minor.yy58 ? (XL_Node**)yymsp[-1].minor.yy58->block.stmts : 0,
@@ -1968,7 +1968,7 @@ static YYACTIONTYPE yy_reduce(
 }
 #line 1969 "xl.c"
         break;
-      case 94: /* table_literal ::= LBRACE table_entries RBRACE */
+      case 94: /* table_literal ::= TK_LBRACE table_entries TK_RBRACE */
 #line 347 "xl.y"
 {
     if (yymsp[-1].minor.yy58) {
@@ -1988,7 +1988,7 @@ static YYACTIONTYPE yy_reduce(
 }
 #line 1989 "xl.c"
         break;
-      case 97: /* table_entries_ne ::= IDENT ASSIGN expr */
+      case 97: /* table_entries_ne ::= TK_IDENT TK_ASSIGN expr */
 #line 367 "xl.y"
 {
     yylhsminor.yy58 = xl_node_block();
@@ -1998,7 +1998,7 @@ static YYACTIONTYPE yy_reduce(
 #line 1998 "xl.c"
   yymsp[-2].minor.yy58 = yylhsminor.yy58;
         break;
-      case 98: /* table_entries_ne ::= table_entries_ne COMMA IDENT ASSIGN expr */
+      case 98: /* table_entries_ne ::= table_entries_ne TK_COMMA TK_IDENT TK_ASSIGN expr */
 #line 372 "xl.y"
 {
     yylhsminor.yy58 = yymsp[-4].minor.yy58;

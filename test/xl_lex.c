@@ -790,65 +790,14 @@ static const flex_int32_t yy_rule_can_match_eol[65] =
 // 包含 lemon 生成的 token 定义
 #include "xl_parser.h"
 
-// 将 TK_ 前缀映射到 lemon 的 token 名称
-#define TK_VAR       VAR
-#define TK_NIL       NIL
-#define TK_TRUE      TRUE
-#define TK_FALSE     FALSE
-#define TK_IF        IF
-#define TK_THEN      THEN
-#define TK_ELSEIF    ELSEIF
-#define TK_ELSE      ELSE
-#define TK_END       END
-#define TK_WHILE     WHILE
-#define TK_DO        DO
-#define TK_FOR       FOR
-#define TK_TO        TO
-#define TK_STEP      STEP
+// 使用 lemon 生成的 TK_ 前缀 token 定义
+#include "xl_parser.h"
+
 // TK_IN 未使用，定义为错误值
 #define TK_IN        (-100)
-#define TK_BREAK     BREAK
-#define TK_CONTINUE  CONTINUE
-#define TK_FUNCTION  FUNCTION
-#define TK_RETURN    RETURN
-#define TK_AND       AND
-#define TK_OR        OR
-#define TK_NOT       NOT
-#define TK_LPAREN    LPAREN
-#define TK_RPAREN    RPAREN
-#define TK_LBRACKET  LBRACKET
-#define TK_RBRACKET  RBRACKET
-#define TK_LBRACE    LBRACE
-#define TK_RBRACE    RBRACE
-#define TK_PLUS      PLUS
-#define TK_MINUS     MINUS
-#define TK_MUL       MUL
-#define TK_DIV       DIV
-#define TK_MOD       MOD
-#define TK_POW       POW
-#define TK_EQ        EQ
-#define TK_NE        NE
-#define TK_LT        LT
-#define TK_LE        LE
-#define TK_GT        GT
-#define TK_GE        GE
-#define TK_ASSIGN    ASSIGN
-#define TK_PLUSEQ    PLUSEQ
-#define TK_MINUSEQ   MINUSEQ
-#define TK_MULEQ     MULEQ
-#define TK_DIVEQ     DIVEQ
-#define TK_INC       INC
-#define TK_DEC       DEC
-#define TK_COMMA     COMMA
-#define TK_SEMI      SEMI
-#define TK_DOT       DOT
 // TK_COLON, TK_QUEST 未使用，定义为错误值
 #define TK_COLON     (-101)
 #define TK_QUEST     (-102)
-#define TK_INTEGER   INTEGER
-#define TK_NUMBER    NUMBER
-#define TK_STRING    STRING
-#define TK_IDENT     IDENT
 
 // 当前行号和列号
 static int xl_col = 1;
@@ -948,13 +897,13 @@ static XL_Token* make_raw_string_token(const char* text, int len, int line, int 
     return tok;
 }
 
-#line 951 "xl_lex.c"
+#line 900 "xl_lex.c"
 /* 空白字符 */
 /* 注释 */
 /* 数字 */
 /* 字符串 */
 /* 标识符 */
-#line 957 "xl_lex.c"
+#line 906 "xl_lex.c"
 
 #define INITIAL 0
 
@@ -1226,12 +1175,12 @@ YY_DECL
 		}
 
 	{
-#line 214 "xl.l"
+#line 163 "xl.l"
 
 
-#line 217 "xl.l"
+#line 166 "xl.l"
  /* 空白和换行 */
-#line 1234 "xl_lex.c"
+#line 1183 "xl_lex.c"
 
 	while ( /*CONSTCOND*/1 )		/* loops until end-of-file is reached */
 		{
@@ -1302,294 +1251,294 @@ do_action:	/* This label is used only to access EOF actions. */
 
 case 1:
 YY_RULE_SETUP
-#line 218 "xl.l"
+#line 167 "xl.l"
 { /* 忽略空白 */ }
 	YY_BREAK
 case 2:
 /* rule 2 can match eol */
 YY_RULE_SETUP
-#line 219 "xl.l"
+#line 168 "xl.l"
 { xl_col = 1; }
 	YY_BREAK
 /* 注释 */
 case 3:
 YY_RULE_SETUP
-#line 222 "xl.l"
+#line 171 "xl.l"
 { /* 忽略行注释 */ }
 	YY_BREAK
 case 4:
 /* rule 4 can match eol */
 YY_RULE_SETUP
-#line 223 "xl.l"
+#line 172 "xl.l"
 { /* 忽略块注释 */ }
 	YY_BREAK
 /* 关键字 */
 case 5:
 YY_RULE_SETUP
-#line 226 "xl.l"
+#line 175 "xl.l"
 { RETURN_TOKEN(TK_VAR); }
 	YY_BREAK
 case 6:
 YY_RULE_SETUP
-#line 227 "xl.l"
+#line 176 "xl.l"
 { RETURN_TOKEN(TK_NIL); }
 	YY_BREAK
 case 7:
 YY_RULE_SETUP
-#line 228 "xl.l"
+#line 177 "xl.l"
 { RETURN_TOKEN(TK_TRUE); }
 	YY_BREAK
 case 8:
 YY_RULE_SETUP
-#line 229 "xl.l"
+#line 178 "xl.l"
 { RETURN_TOKEN(TK_FALSE); }
 	YY_BREAK
 case 9:
 YY_RULE_SETUP
-#line 230 "xl.l"
+#line 179 "xl.l"
 { RETURN_TOKEN(TK_IF); }
 	YY_BREAK
 case 10:
 YY_RULE_SETUP
-#line 231 "xl.l"
+#line 180 "xl.l"
 { RETURN_TOKEN(TK_THEN); }
 	YY_BREAK
 case 11:
 YY_RULE_SETUP
-#line 232 "xl.l"
+#line 181 "xl.l"
 { RETURN_TOKEN(TK_ELSEIF); }
 	YY_BREAK
 case 12:
 YY_RULE_SETUP
-#line 233 "xl.l"
+#line 182 "xl.l"
 { RETURN_TOKEN(TK_ELSE); }
 	YY_BREAK
 case 13:
 YY_RULE_SETUP
-#line 234 "xl.l"
+#line 183 "xl.l"
 { RETURN_TOKEN(TK_END); }
 	YY_BREAK
 case 14:
 YY_RULE_SETUP
-#line 235 "xl.l"
+#line 184 "xl.l"
 { RETURN_TOKEN(TK_WHILE); }
 	YY_BREAK
 case 15:
 YY_RULE_SETUP
-#line 236 "xl.l"
+#line 185 "xl.l"
 { RETURN_TOKEN(TK_DO); }
 	YY_BREAK
 case 16:
 YY_RULE_SETUP
-#line 237 "xl.l"
+#line 186 "xl.l"
 { RETURN_TOKEN(TK_FOR); }
 	YY_BREAK
 case 17:
 YY_RULE_SETUP
-#line 238 "xl.l"
+#line 187 "xl.l"
 { RETURN_TOKEN(TK_TO); }
 	YY_BREAK
 case 18:
 YY_RULE_SETUP
-#line 239 "xl.l"
+#line 188 "xl.l"
 { RETURN_TOKEN(TK_STEP); }
 	YY_BREAK
 case 19:
 YY_RULE_SETUP
-#line 240 "xl.l"
+#line 189 "xl.l"
 { RETURN_TOKEN(TK_IN); }
 	YY_BREAK
 case 20:
 YY_RULE_SETUP
-#line 241 "xl.l"
+#line 190 "xl.l"
 { RETURN_TOKEN(TK_BREAK); }
 	YY_BREAK
 case 21:
 YY_RULE_SETUP
-#line 242 "xl.l"
+#line 191 "xl.l"
 { RETURN_TOKEN(TK_CONTINUE); }
 	YY_BREAK
 case 22:
 YY_RULE_SETUP
-#line 243 "xl.l"
+#line 192 "xl.l"
 { RETURN_TOKEN(TK_FUNCTION); }
 	YY_BREAK
 case 23:
 YY_RULE_SETUP
-#line 244 "xl.l"
+#line 193 "xl.l"
 { RETURN_TOKEN(TK_RETURN); }
 	YY_BREAK
 case 24:
 YY_RULE_SETUP
-#line 245 "xl.l"
+#line 194 "xl.l"
 { RETURN_TOKEN(TK_AND); }
 	YY_BREAK
 case 25:
 YY_RULE_SETUP
-#line 246 "xl.l"
+#line 195 "xl.l"
 { RETURN_TOKEN(TK_OR); }
 	YY_BREAK
 case 26:
 YY_RULE_SETUP
-#line 247 "xl.l"
+#line 196 "xl.l"
 { RETURN_TOKEN(TK_NOT); }
 	YY_BREAK
 /* 双字符运算符 */
 case 27:
 YY_RULE_SETUP
-#line 250 "xl.l"
+#line 199 "xl.l"
 { RETURN_TOKEN(TK_POW); }
 	YY_BREAK
 case 28:
 YY_RULE_SETUP
-#line 251 "xl.l"
+#line 200 "xl.l"
 { RETURN_TOKEN(TK_EQ); }
 	YY_BREAK
 case 29:
 YY_RULE_SETUP
-#line 252 "xl.l"
+#line 201 "xl.l"
 { RETURN_TOKEN(TK_NE); }
 	YY_BREAK
 case 30:
 YY_RULE_SETUP
-#line 253 "xl.l"
+#line 202 "xl.l"
 { RETURN_TOKEN(TK_LE); }
 	YY_BREAK
 case 31:
 YY_RULE_SETUP
-#line 254 "xl.l"
+#line 203 "xl.l"
 { RETURN_TOKEN(TK_GE); }
 	YY_BREAK
 case 32:
 YY_RULE_SETUP
-#line 255 "xl.l"
+#line 204 "xl.l"
 { RETURN_TOKEN(TK_PLUSEQ); }
 	YY_BREAK
 case 33:
 YY_RULE_SETUP
-#line 256 "xl.l"
+#line 205 "xl.l"
 { RETURN_TOKEN(TK_MINUSEQ); }
 	YY_BREAK
 case 34:
 YY_RULE_SETUP
-#line 257 "xl.l"
+#line 206 "xl.l"
 { RETURN_TOKEN(TK_MULEQ); }
 	YY_BREAK
 case 35:
 YY_RULE_SETUP
-#line 258 "xl.l"
+#line 207 "xl.l"
 { RETURN_TOKEN(TK_DIVEQ); }
 	YY_BREAK
 case 36:
 YY_RULE_SETUP
-#line 259 "xl.l"
+#line 208 "xl.l"
 { RETURN_TOKEN(TK_INC); }
 	YY_BREAK
 case 37:
 YY_RULE_SETUP
-#line 260 "xl.l"
+#line 209 "xl.l"
 { RETURN_TOKEN(TK_DEC); }
 	YY_BREAK
 /* 单字符运算符和分隔符 */
 case 38:
 YY_RULE_SETUP
-#line 263 "xl.l"
+#line 212 "xl.l"
 { RETURN_TOKEN(TK_PLUS); }
 	YY_BREAK
 case 39:
 YY_RULE_SETUP
-#line 264 "xl.l"
+#line 213 "xl.l"
 { RETURN_TOKEN(TK_MINUS); }
 	YY_BREAK
 case 40:
 YY_RULE_SETUP
-#line 265 "xl.l"
+#line 214 "xl.l"
 { RETURN_TOKEN(TK_MUL); }
 	YY_BREAK
 case 41:
 YY_RULE_SETUP
-#line 266 "xl.l"
+#line 215 "xl.l"
 { RETURN_TOKEN(TK_DIV); }
 	YY_BREAK
 case 42:
 YY_RULE_SETUP
-#line 267 "xl.l"
+#line 216 "xl.l"
 { RETURN_TOKEN(TK_MOD); }
 	YY_BREAK
 case 43:
 YY_RULE_SETUP
-#line 268 "xl.l"
+#line 217 "xl.l"
 { RETURN_TOKEN(TK_LT); }
 	YY_BREAK
 case 44:
 YY_RULE_SETUP
-#line 269 "xl.l"
+#line 218 "xl.l"
 { RETURN_TOKEN(TK_GT); }
 	YY_BREAK
 case 45:
 YY_RULE_SETUP
-#line 270 "xl.l"
+#line 219 "xl.l"
 { RETURN_TOKEN(TK_ASSIGN); }
 	YY_BREAK
 case 46:
 YY_RULE_SETUP
-#line 271 "xl.l"
+#line 220 "xl.l"
 { RETURN_TOKEN(TK_LPAREN); }
 	YY_BREAK
 case 47:
 YY_RULE_SETUP
-#line 272 "xl.l"
+#line 221 "xl.l"
 { RETURN_TOKEN(TK_RPAREN); }
 	YY_BREAK
 case 48:
 YY_RULE_SETUP
-#line 273 "xl.l"
+#line 222 "xl.l"
 { RETURN_TOKEN(TK_LBRACKET); }
 	YY_BREAK
 case 49:
 YY_RULE_SETUP
-#line 274 "xl.l"
+#line 223 "xl.l"
 { RETURN_TOKEN(TK_RBRACKET); }
 	YY_BREAK
 case 50:
 YY_RULE_SETUP
-#line 275 "xl.l"
+#line 224 "xl.l"
 { RETURN_TOKEN(TK_LBRACE); }
 	YY_BREAK
 case 51:
 YY_RULE_SETUP
-#line 276 "xl.l"
+#line 225 "xl.l"
 { RETURN_TOKEN(TK_RBRACE); }
 	YY_BREAK
 case 52:
 YY_RULE_SETUP
-#line 277 "xl.l"
+#line 226 "xl.l"
 { RETURN_TOKEN(TK_COMMA); }
 	YY_BREAK
 case 53:
 YY_RULE_SETUP
-#line 278 "xl.l"
+#line 227 "xl.l"
 { RETURN_TOKEN(TK_SEMI); }
 	YY_BREAK
 case 54:
 YY_RULE_SETUP
-#line 279 "xl.l"
+#line 228 "xl.l"
 { RETURN_TOKEN(TK_DOT); }
 	YY_BREAK
 case 55:
 YY_RULE_SETUP
-#line 280 "xl.l"
+#line 229 "xl.l"
 { RETURN_TOKEN(TK_COLON); }
 	YY_BREAK
 case 56:
 YY_RULE_SETUP
-#line 281 "xl.l"
+#line 230 "xl.l"
 { RETURN_TOKEN(TK_QUEST); }
 	YY_BREAK
 /* 数字字面量 */
 case 57:
 YY_RULE_SETUP
-#line 284 "xl.l"
+#line 233 "xl.l"
 { 
                         *yylval = make_hex_token(yytext, yyleng, yylineno, xl_col - yyleng);
                         return TK_INTEGER;
@@ -1597,7 +1546,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 58:
 YY_RULE_SETUP
-#line 288 "xl.l"
+#line 237 "xl.l"
 { 
                         *yylval = make_int_token(yytext, yyleng, yylineno, xl_col - yyleng);
                         return TK_INTEGER;
@@ -1605,7 +1554,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 59:
 YY_RULE_SETUP
-#line 292 "xl.l"
+#line 241 "xl.l"
 { 
                         *yylval = make_float_token(yytext, yyleng, yylineno, xl_col - yyleng);
                         return TK_NUMBER;
@@ -1614,7 +1563,7 @@ YY_RULE_SETUP
 /* 字符串字面量 */
 case 60:
 YY_RULE_SETUP
-#line 298 "xl.l"
+#line 247 "xl.l"
 { 
                         *yylval = make_string_token(yytext, yyleng, yylineno, xl_col - yyleng);
                         return TK_STRING;
@@ -1622,7 +1571,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 61:
 YY_RULE_SETUP
-#line 302 "xl.l"
+#line 251 "xl.l"
 { 
                         *yylval = make_raw_string_token(yytext, yyleng, yylineno, xl_col - yyleng);
                         return TK_STRING;
@@ -1631,7 +1580,7 @@ YY_RULE_SETUP
 /* 标识符 */
 case 62:
 YY_RULE_SETUP
-#line 308 "xl.l"
+#line 257 "xl.l"
 { 
                         *yylval = make_token(TK_IDENT, yytext, yyleng, yylineno, xl_col - yyleng);
                         return TK_IDENT;
@@ -1640,7 +1589,7 @@ YY_RULE_SETUP
 /* 未知字符 */
 case 63:
 YY_RULE_SETUP
-#line 314 "xl.l"
+#line 263 "xl.l"
 { 
                         fprintf(stderr, "Unknown character '%c' at line %d\n", yytext[0], yylineno);
                         return -1;
@@ -1648,10 +1597,10 @@ YY_RULE_SETUP
 	YY_BREAK
 case 64:
 YY_RULE_SETUP
-#line 319 "xl.l"
+#line 268 "xl.l"
 ECHO;
 	YY_BREAK
-#line 1654 "xl_lex.c"
+#line 1603 "xl_lex.c"
 case YY_STATE_EOF(INITIAL):
 	yyterminate();
 
@@ -2801,7 +2750,7 @@ void yyfree (void * ptr , yyscan_t yyscanner)
 
 #define YYTABLES_NAME "yytables"
 
-#line 319 "xl.l"
+#line 268 "xl.l"
 
 
 /* 用户自定义代码 */

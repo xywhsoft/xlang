@@ -31,65 +31,14 @@
 // 包含 lemon 生成的 token 定义
 #include "xl_parser.h"
 
-// 将 TK_ 前缀映射到 lemon 的 token 名称
-#define TK_VAR       VAR
-#define TK_NIL       NIL
-#define TK_TRUE      TRUE
-#define TK_FALSE     FALSE
-#define TK_IF        IF
-#define TK_THEN      THEN
-#define TK_ELSEIF    ELSEIF
-#define TK_ELSE      ELSE
-#define TK_END       END
-#define TK_WHILE     WHILE
-#define TK_DO        DO
-#define TK_FOR       FOR
-#define TK_TO        TO
-#define TK_STEP      STEP
+// 使用 lemon 生成的 TK_ 前缀 token 定义
+#include "xl_parser.h"
+
 // TK_IN 未使用，定义为错误值
 #define TK_IN        (-100)
-#define TK_BREAK     BREAK
-#define TK_CONTINUE  CONTINUE
-#define TK_FUNCTION  FUNCTION
-#define TK_RETURN    RETURN
-#define TK_AND       AND
-#define TK_OR        OR
-#define TK_NOT       NOT
-#define TK_LPAREN    LPAREN
-#define TK_RPAREN    RPAREN
-#define TK_LBRACKET  LBRACKET
-#define TK_RBRACKET  RBRACKET
-#define TK_LBRACE    LBRACE
-#define TK_RBRACE    RBRACE
-#define TK_PLUS      PLUS
-#define TK_MINUS     MINUS
-#define TK_MUL       MUL
-#define TK_DIV       DIV
-#define TK_MOD       MOD
-#define TK_POW       POW
-#define TK_EQ        EQ
-#define TK_NE        NE
-#define TK_LT        LT
-#define TK_LE        LE
-#define TK_GT        GT
-#define TK_GE        GE
-#define TK_ASSIGN    ASSIGN
-#define TK_PLUSEQ    PLUSEQ
-#define TK_MINUSEQ   MINUSEQ
-#define TK_MULEQ     MULEQ
-#define TK_DIVEQ     DIVEQ
-#define TK_INC       INC
-#define TK_DEC       DEC
-#define TK_COMMA     COMMA
-#define TK_SEMI      SEMI
-#define TK_DOT       DOT
 // TK_COLON, TK_QUEST 未使用，定义为错误值
 #define TK_COLON     (-101)
 #define TK_QUEST     (-102)
-#define TK_INTEGER   INTEGER
-#define TK_NUMBER    NUMBER
-#define TK_STRING    STRING
-#define TK_IDENT     IDENT
 
 // 当前行号和列号
 static int xl_col = 1;
