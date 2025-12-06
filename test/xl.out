@@ -72,7 +72,7 @@ State 1:
           postfix_expr ::= * postfix_expr TK_DOT TK_IDENT
           postfix_expr ::= * postfix_expr TK_INC
           postfix_expr ::= * postfix_expr TK_DEC
-          primary_expr ::= * TK_NIL
+          primary_expr ::= * TK_NULL
           primary_expr ::= * TK_TRUE
           primary_expr ::= * TK_FALSE
           primary_expr ::= * TK_INTEGER
@@ -103,7 +103,7 @@ State 1:
                         TK_INC shift        50     
                         TK_DEC shift        49     
                    TK_LBRACKET shift        10     
-                        TK_NIL shift-reduce 79     primary_expr ::= TK_NIL
+                       TK_NULL shift-reduce 79     primary_expr ::= TK_NULL
                        TK_TRUE shift-reduce 80     primary_expr ::= TK_TRUE
                       TK_FALSE shift-reduce 81     primary_expr ::= TK_FALSE
                     TK_INTEGER shift-reduce 82     primary_expr ::= TK_INTEGER
@@ -199,7 +199,7 @@ State 2:
           postfix_expr ::= * postfix_expr TK_DOT TK_IDENT
           postfix_expr ::= * postfix_expr TK_INC
           postfix_expr ::= * postfix_expr TK_DEC
-          primary_expr ::= * TK_NIL
+          primary_expr ::= * TK_NULL
           primary_expr ::= * TK_TRUE
           primary_expr ::= * TK_FALSE
           primary_expr ::= * TK_INTEGER
@@ -230,7 +230,7 @@ State 2:
                         TK_INC shift        50     
                         TK_DEC shift        49     
                    TK_LBRACKET shift        10     
-                        TK_NIL shift-reduce 79     primary_expr ::= TK_NIL
+                       TK_NULL shift-reduce 79     primary_expr ::= TK_NULL
                        TK_TRUE shift-reduce 80     primary_expr ::= TK_TRUE
                       TK_FALSE shift-reduce 81     primary_expr ::= TK_FALSE
                     TK_INTEGER shift-reduce 82     primary_expr ::= TK_INTEGER
@@ -326,7 +326,7 @@ State 3:
           postfix_expr ::= * postfix_expr TK_DOT TK_IDENT
           postfix_expr ::= * postfix_expr TK_INC
           postfix_expr ::= * postfix_expr TK_DEC
-          primary_expr ::= * TK_NIL
+          primary_expr ::= * TK_NULL
           primary_expr ::= * TK_TRUE
           primary_expr ::= * TK_FALSE
           primary_expr ::= * TK_INTEGER
@@ -357,7 +357,7 @@ State 3:
                         TK_INC shift        50     
                         TK_DEC shift        49     
                    TK_LBRACKET shift        10     
-                        TK_NIL shift-reduce 79     primary_expr ::= TK_NIL
+                       TK_NULL shift-reduce 79     primary_expr ::= TK_NULL
                        TK_TRUE shift-reduce 80     primary_expr ::= TK_TRUE
                       TK_FALSE shift-reduce 81     primary_expr ::= TK_FALSE
                     TK_INTEGER shift-reduce 82     primary_expr ::= TK_INTEGER
@@ -453,7 +453,7 @@ State 4:
           postfix_expr ::= * postfix_expr TK_DOT TK_IDENT
           postfix_expr ::= * postfix_expr TK_INC
           postfix_expr ::= * postfix_expr TK_DEC
-          primary_expr ::= * TK_NIL
+          primary_expr ::= * TK_NULL
           primary_expr ::= * TK_TRUE
           primary_expr ::= * TK_FALSE
           primary_expr ::= * TK_INTEGER
@@ -484,7 +484,7 @@ State 4:
                         TK_INC shift        50     
                         TK_DEC shift        49     
                    TK_LBRACKET shift        10     
-                        TK_NIL shift-reduce 79     primary_expr ::= TK_NIL
+                       TK_NULL shift-reduce 79     primary_expr ::= TK_NULL
                        TK_TRUE shift-reduce 80     primary_expr ::= TK_TRUE
                       TK_FALSE shift-reduce 81     primary_expr ::= TK_FALSE
                     TK_INTEGER shift-reduce 82     primary_expr ::= TK_INTEGER
@@ -580,7 +580,7 @@ State 5:
           postfix_expr ::= * postfix_expr TK_DOT TK_IDENT
           postfix_expr ::= * postfix_expr TK_INC
           postfix_expr ::= * postfix_expr TK_DEC
-          primary_expr ::= * TK_NIL
+          primary_expr ::= * TK_NULL
           primary_expr ::= * TK_TRUE
           primary_expr ::= * TK_FALSE
           primary_expr ::= * TK_INTEGER
@@ -611,7 +611,7 @@ State 5:
                         TK_INC shift        50     
                         TK_DEC shift        49     
                    TK_LBRACKET shift        10     
-                        TK_NIL shift-reduce 79     primary_expr ::= TK_NIL
+                       TK_NULL shift-reduce 79     primary_expr ::= TK_NULL
                        TK_TRUE shift-reduce 80     primary_expr ::= TK_TRUE
                       TK_FALSE shift-reduce 81     primary_expr ::= TK_FALSE
                     TK_INTEGER shift-reduce 82     primary_expr ::= TK_INTEGER
@@ -707,7 +707,7 @@ State 6:
           postfix_expr ::= * postfix_expr TK_DOT TK_IDENT
           postfix_expr ::= * postfix_expr TK_INC
           postfix_expr ::= * postfix_expr TK_DEC
-          primary_expr ::= * TK_NIL
+          primary_expr ::= * TK_NULL
           primary_expr ::= * TK_TRUE
           primary_expr ::= * TK_FALSE
           primary_expr ::= * TK_INTEGER
@@ -737,7 +737,7 @@ State 6:
                         TK_INC shift        50     
                         TK_DEC shift        49     
                    TK_LBRACKET shift        10     
-                        TK_NIL shift-reduce 79     primary_expr ::= TK_NIL
+                       TK_NULL shift-reduce 79     primary_expr ::= TK_NULL
                        TK_TRUE shift-reduce 80     primary_expr ::= TK_TRUE
                       TK_FALSE shift-reduce 81     primary_expr ::= TK_FALSE
                     TK_INTEGER shift-reduce 82     primary_expr ::= TK_INTEGER
@@ -834,7 +834,7 @@ State 7:
           postfix_expr ::= * postfix_expr TK_DOT TK_IDENT
           postfix_expr ::= * postfix_expr TK_INC
           postfix_expr ::= * postfix_expr TK_DEC
-          primary_expr ::= * TK_NIL
+          primary_expr ::= * TK_NULL
           primary_expr ::= * TK_TRUE
           primary_expr ::= * TK_FALSE
           primary_expr ::= * TK_INTEGER
@@ -864,7 +864,7 @@ State 7:
                         TK_INC shift        50     
                         TK_DEC shift        49     
                    TK_LBRACKET shift        10     
-                        TK_NIL shift-reduce 79     primary_expr ::= TK_NIL
+                       TK_NULL shift-reduce 79     primary_expr ::= TK_NULL
                        TK_TRUE shift-reduce 80     primary_expr ::= TK_TRUE
                       TK_FALSE shift-reduce 81     primary_expr ::= TK_FALSE
                     TK_INTEGER shift-reduce 82     primary_expr ::= TK_INTEGER
@@ -961,7 +961,7 @@ State 8:
           postfix_expr ::= * postfix_expr TK_DOT TK_IDENT
           postfix_expr ::= * postfix_expr TK_INC
           postfix_expr ::= * postfix_expr TK_DEC
-          primary_expr ::= * TK_NIL
+          primary_expr ::= * TK_NULL
           primary_expr ::= * TK_TRUE
           primary_expr ::= * TK_FALSE
           primary_expr ::= * TK_INTEGER
@@ -991,7 +991,7 @@ State 8:
                         TK_INC shift        50     
                         TK_DEC shift        49     
                    TK_LBRACKET shift        10     
-                        TK_NIL shift-reduce 79     primary_expr ::= TK_NIL
+                       TK_NULL shift-reduce 79     primary_expr ::= TK_NULL
                        TK_TRUE shift-reduce 80     primary_expr ::= TK_TRUE
                       TK_FALSE shift-reduce 81     primary_expr ::= TK_FALSE
                     TK_INTEGER shift-reduce 82     primary_expr ::= TK_INTEGER
@@ -1087,7 +1087,7 @@ State 9:
           postfix_expr ::= * postfix_expr TK_DOT TK_IDENT
           postfix_expr ::= * postfix_expr TK_INC
           postfix_expr ::= * postfix_expr TK_DEC
-          primary_expr ::= * TK_NIL
+          primary_expr ::= * TK_NULL
           primary_expr ::= * TK_TRUE
           primary_expr ::= * TK_FALSE
           primary_expr ::= * TK_INTEGER
@@ -1117,7 +1117,7 @@ State 9:
                         TK_INC shift        50     
                         TK_DEC shift        49     
                    TK_LBRACKET shift        10     
-                        TK_NIL shift-reduce 79     primary_expr ::= TK_NIL
+                       TK_NULL shift-reduce 79     primary_expr ::= TK_NULL
                        TK_TRUE shift-reduce 80     primary_expr ::= TK_TRUE
                       TK_FALSE shift-reduce 81     primary_expr ::= TK_FALSE
                     TK_INTEGER shift-reduce 82     primary_expr ::= TK_INTEGER
@@ -1188,7 +1188,7 @@ State 10:
           postfix_expr ::= * postfix_expr TK_DOT TK_IDENT
           postfix_expr ::= * postfix_expr TK_INC
           postfix_expr ::= * postfix_expr TK_DEC
-          primary_expr ::= * TK_NIL
+          primary_expr ::= * TK_NULL
           primary_expr ::= * TK_TRUE
           primary_expr ::= * TK_FALSE
           primary_expr ::= * TK_INTEGER
@@ -1213,7 +1213,7 @@ State 10:
                         TK_INC shift        50     
                         TK_DEC shift        49     
                    TK_LBRACKET shift        10     
-                        TK_NIL shift-reduce 79     primary_expr ::= TK_NIL
+                       TK_NULL shift-reduce 79     primary_expr ::= TK_NULL
                        TK_TRUE shift-reduce 80     primary_expr ::= TK_TRUE
                       TK_FALSE shift-reduce 81     primary_expr ::= TK_FALSE
                     TK_INTEGER shift-reduce 82     primary_expr ::= TK_INTEGER
@@ -1281,7 +1281,7 @@ State 11:
           arg_list ::= * arg_list_ne
           arg_list_ne ::= * expr
           arg_list_ne ::= * arg_list_ne TK_COMMA expr
-          primary_expr ::= * TK_NIL
+          primary_expr ::= * TK_NULL
           primary_expr ::= * TK_TRUE
           primary_expr ::= * TK_FALSE
           primary_expr ::= * TK_INTEGER
@@ -1301,7 +1301,7 @@ State 11:
                         TK_INC shift        50     
                         TK_DEC shift        49     
                    TK_LBRACKET shift        10     
-                        TK_NIL shift-reduce 79     primary_expr ::= TK_NIL
+                       TK_NULL shift-reduce 79     primary_expr ::= TK_NULL
                        TK_TRUE shift-reduce 80     primary_expr ::= TK_TRUE
                       TK_FALSE shift-reduce 81     primary_expr ::= TK_FALSE
                     TK_INTEGER shift-reduce 82     primary_expr ::= TK_INTEGER
@@ -1368,7 +1368,7 @@ State 12:
           postfix_expr ::= * postfix_expr TK_DOT TK_IDENT
           postfix_expr ::= * postfix_expr TK_INC
           postfix_expr ::= * postfix_expr TK_DEC
-          primary_expr ::= * TK_NIL
+          primary_expr ::= * TK_NULL
           primary_expr ::= * TK_TRUE
           primary_expr ::= * TK_FALSE
           primary_expr ::= * TK_INTEGER
@@ -1395,8 +1395,8 @@ State 12:
                         TK_DEC reduce       1       ** Parsing conflict **
                    TK_LBRACKET shift        10     
                    TK_LBRACKET reduce       1       ** Parsing conflict **
-                        TK_NIL shift-reduce 79     primary_expr ::= TK_NIL
-                        TK_NIL reduce       1       ** Parsing conflict **
+                       TK_NULL shift-reduce 79     primary_expr ::= TK_NULL
+                       TK_NULL reduce       1       ** Parsing conflict **
                        TK_TRUE shift-reduce 80     primary_expr ::= TK_TRUE
                        TK_TRUE reduce       1       ** Parsing conflict **
                       TK_FALSE shift-reduce 81     primary_expr ::= TK_FALSE
@@ -1465,7 +1465,7 @@ State 13:
           postfix_expr ::= * postfix_expr TK_DOT TK_IDENT
           postfix_expr ::= * postfix_expr TK_INC
           postfix_expr ::= * postfix_expr TK_DEC
-          primary_expr ::= * TK_NIL
+          primary_expr ::= * TK_NULL
           primary_expr ::= * TK_TRUE
           primary_expr ::= * TK_FALSE
           primary_expr ::= * TK_INTEGER
@@ -1485,7 +1485,7 @@ State 13:
                         TK_INC shift        50     
                         TK_DEC shift        49     
                    TK_LBRACKET shift        10     
-                        TK_NIL shift-reduce 79     primary_expr ::= TK_NIL
+                       TK_NULL shift-reduce 79     primary_expr ::= TK_NULL
                        TK_TRUE shift-reduce 80     primary_expr ::= TK_TRUE
                       TK_FALSE shift-reduce 81     primary_expr ::= TK_FALSE
                     TK_INTEGER shift-reduce 82     primary_expr ::= TK_INTEGER
@@ -1546,7 +1546,7 @@ State 14:
           postfix_expr ::= * postfix_expr TK_DOT TK_IDENT
           postfix_expr ::= * postfix_expr TK_INC
           postfix_expr ::= * postfix_expr TK_DEC
-          primary_expr ::= * TK_NIL
+          primary_expr ::= * TK_NULL
           primary_expr ::= * TK_TRUE
           primary_expr ::= * TK_FALSE
           primary_expr ::= * TK_INTEGER
@@ -1566,7 +1566,7 @@ State 14:
                         TK_INC shift        50     
                         TK_DEC shift        49     
                    TK_LBRACKET shift        10     
-                        TK_NIL shift-reduce 79     primary_expr ::= TK_NIL
+                       TK_NULL shift-reduce 79     primary_expr ::= TK_NULL
                        TK_TRUE shift-reduce 80     primary_expr ::= TK_TRUE
                       TK_FALSE shift-reduce 81     primary_expr ::= TK_FALSE
                     TK_INTEGER shift-reduce 82     primary_expr ::= TK_INTEGER
@@ -1628,7 +1628,7 @@ State 15:
           postfix_expr ::= * postfix_expr TK_DOT TK_IDENT
           postfix_expr ::= * postfix_expr TK_INC
           postfix_expr ::= * postfix_expr TK_DEC
-          primary_expr ::= * TK_NIL
+          primary_expr ::= * TK_NULL
           primary_expr ::= * TK_TRUE
           primary_expr ::= * TK_FALSE
           primary_expr ::= * TK_INTEGER
@@ -1655,8 +1655,8 @@ State 15:
                         TK_DEC reduce       30      ** Parsing conflict **
                    TK_LBRACKET shift        10     
                    TK_LBRACKET reduce       30      ** Parsing conflict **
-                        TK_NIL shift-reduce 79     primary_expr ::= TK_NIL
-                        TK_NIL reduce       30      ** Parsing conflict **
+                       TK_NULL shift-reduce 79     primary_expr ::= TK_NULL
+                       TK_NULL reduce       30      ** Parsing conflict **
                        TK_TRUE shift-reduce 80     primary_expr ::= TK_TRUE
                        TK_TRUE reduce       30      ** Parsing conflict **
                       TK_FALSE shift-reduce 81     primary_expr ::= TK_FALSE
@@ -1725,7 +1725,7 @@ State 16:
           postfix_expr ::= * postfix_expr TK_DOT TK_IDENT
           postfix_expr ::= * postfix_expr TK_INC
           postfix_expr ::= * postfix_expr TK_DEC
-          primary_expr ::= * TK_NIL
+          primary_expr ::= * TK_NULL
           primary_expr ::= * TK_TRUE
           primary_expr ::= * TK_FALSE
           primary_expr ::= * TK_INTEGER
@@ -1745,7 +1745,7 @@ State 16:
                         TK_INC shift        50     
                         TK_DEC shift        49     
                    TK_LBRACKET shift        10     
-                        TK_NIL shift-reduce 79     primary_expr ::= TK_NIL
+                       TK_NULL shift-reduce 79     primary_expr ::= TK_NULL
                        TK_TRUE shift-reduce 80     primary_expr ::= TK_TRUE
                       TK_FALSE shift-reduce 81     primary_expr ::= TK_FALSE
                     TK_INTEGER shift-reduce 82     primary_expr ::= TK_INTEGER
@@ -1807,7 +1807,7 @@ State 17:
           postfix_expr ::= * postfix_expr TK_DOT TK_IDENT
           postfix_expr ::= * postfix_expr TK_INC
           postfix_expr ::= * postfix_expr TK_DEC
-          primary_expr ::= * TK_NIL
+          primary_expr ::= * TK_NULL
           primary_expr ::= * TK_TRUE
           primary_expr ::= * TK_FALSE
           primary_expr ::= * TK_INTEGER
@@ -1827,7 +1827,7 @@ State 17:
                         TK_INC shift        50     
                         TK_DEC shift        49     
                    TK_LBRACKET shift        10     
-                        TK_NIL shift-reduce 79     primary_expr ::= TK_NIL
+                       TK_NULL shift-reduce 79     primary_expr ::= TK_NULL
                        TK_TRUE shift-reduce 80     primary_expr ::= TK_TRUE
                       TK_FALSE shift-reduce 81     primary_expr ::= TK_FALSE
                     TK_INTEGER shift-reduce 82     primary_expr ::= TK_INTEGER
@@ -1889,7 +1889,7 @@ State 18:
           postfix_expr ::= * postfix_expr TK_DOT TK_IDENT
           postfix_expr ::= * postfix_expr TK_INC
           postfix_expr ::= * postfix_expr TK_DEC
-          primary_expr ::= * TK_NIL
+          primary_expr ::= * TK_NULL
           primary_expr ::= * TK_TRUE
           primary_expr ::= * TK_FALSE
           primary_expr ::= * TK_INTEGER
@@ -1909,7 +1909,7 @@ State 18:
                         TK_INC shift        50     
                         TK_DEC shift        49     
                    TK_LBRACKET shift        10     
-                        TK_NIL shift-reduce 79     primary_expr ::= TK_NIL
+                       TK_NULL shift-reduce 79     primary_expr ::= TK_NULL
                        TK_TRUE shift-reduce 80     primary_expr ::= TK_TRUE
                       TK_FALSE shift-reduce 81     primary_expr ::= TK_FALSE
                     TK_INTEGER shift-reduce 82     primary_expr ::= TK_INTEGER
@@ -1970,7 +1970,7 @@ State 19:
           postfix_expr ::= * postfix_expr TK_DOT TK_IDENT
           postfix_expr ::= * postfix_expr TK_INC
           postfix_expr ::= * postfix_expr TK_DEC
-          primary_expr ::= * TK_NIL
+          primary_expr ::= * TK_NULL
           primary_expr ::= * TK_TRUE
           primary_expr ::= * TK_FALSE
           primary_expr ::= * TK_INTEGER
@@ -1990,7 +1990,7 @@ State 19:
                         TK_INC shift        50     
                         TK_DEC shift        49     
                    TK_LBRACKET shift        10     
-                        TK_NIL shift-reduce 79     primary_expr ::= TK_NIL
+                       TK_NULL shift-reduce 79     primary_expr ::= TK_NULL
                        TK_TRUE shift-reduce 80     primary_expr ::= TK_TRUE
                       TK_FALSE shift-reduce 81     primary_expr ::= TK_FALSE
                     TK_INTEGER shift-reduce 82     primary_expr ::= TK_INTEGER
@@ -2052,7 +2052,7 @@ State 20:
           postfix_expr ::= * postfix_expr TK_DOT TK_IDENT
           postfix_expr ::= * postfix_expr TK_INC
           postfix_expr ::= * postfix_expr TK_DEC
-          primary_expr ::= * TK_NIL
+          primary_expr ::= * TK_NULL
           primary_expr ::= * TK_TRUE
           primary_expr ::= * TK_FALSE
           primary_expr ::= * TK_INTEGER
@@ -2072,7 +2072,7 @@ State 20:
                         TK_INC shift        50     
                         TK_DEC shift        49     
                    TK_LBRACKET shift        10     
-                        TK_NIL shift-reduce 79     primary_expr ::= TK_NIL
+                       TK_NULL shift-reduce 79     primary_expr ::= TK_NULL
                        TK_TRUE shift-reduce 80     primary_expr ::= TK_TRUE
                       TK_FALSE shift-reduce 81     primary_expr ::= TK_FALSE
                     TK_INTEGER shift-reduce 82     primary_expr ::= TK_INTEGER
@@ -2133,7 +2133,7 @@ State 21:
           postfix_expr ::= * postfix_expr TK_INC
           postfix_expr ::= * postfix_expr TK_DEC
           arg_list_ne ::= arg_list_ne TK_COMMA * expr
-          primary_expr ::= * TK_NIL
+          primary_expr ::= * TK_NULL
           primary_expr ::= * TK_TRUE
           primary_expr ::= * TK_FALSE
           primary_expr ::= * TK_INTEGER
@@ -2153,7 +2153,7 @@ State 21:
                         TK_INC shift        50     
                         TK_DEC shift        49     
                    TK_LBRACKET shift        10     
-                        TK_NIL shift-reduce 79     primary_expr ::= TK_NIL
+                       TK_NULL shift-reduce 79     primary_expr ::= TK_NULL
                        TK_TRUE shift-reduce 80     primary_expr ::= TK_TRUE
                       TK_FALSE shift-reduce 81     primary_expr ::= TK_FALSE
                     TK_INTEGER shift-reduce 82     primary_expr ::= TK_INTEGER
@@ -2214,7 +2214,7 @@ State 22:
           postfix_expr ::= * postfix_expr TK_DOT TK_IDENT
           postfix_expr ::= * postfix_expr TK_INC
           postfix_expr ::= * postfix_expr TK_DEC
-          primary_expr ::= * TK_NIL
+          primary_expr ::= * TK_NULL
           primary_expr ::= * TK_TRUE
           primary_expr ::= * TK_FALSE
           primary_expr ::= * TK_INTEGER
@@ -2234,7 +2234,7 @@ State 22:
                         TK_INC shift        50     
                         TK_DEC shift        49     
                    TK_LBRACKET shift        10     
-                        TK_NIL shift-reduce 79     primary_expr ::= TK_NIL
+                       TK_NULL shift-reduce 79     primary_expr ::= TK_NULL
                        TK_TRUE shift-reduce 80     primary_expr ::= TK_TRUE
                       TK_FALSE shift-reduce 81     primary_expr ::= TK_FALSE
                     TK_INTEGER shift-reduce 82     primary_expr ::= TK_INTEGER
@@ -2295,7 +2295,7 @@ State 23:
           postfix_expr ::= * postfix_expr TK_DOT TK_IDENT
           postfix_expr ::= * postfix_expr TK_INC
           postfix_expr ::= * postfix_expr TK_DEC
-          primary_expr ::= * TK_NIL
+          primary_expr ::= * TK_NULL
           primary_expr ::= * TK_TRUE
           primary_expr ::= * TK_FALSE
           primary_expr ::= * TK_INTEGER
@@ -2315,7 +2315,7 @@ State 23:
                         TK_INC shift        50     
                         TK_DEC shift        49     
                    TK_LBRACKET shift        10     
-                        TK_NIL shift-reduce 79     primary_expr ::= TK_NIL
+                       TK_NULL shift-reduce 79     primary_expr ::= TK_NULL
                        TK_TRUE shift-reduce 80     primary_expr ::= TK_TRUE
                       TK_FALSE shift-reduce 81     primary_expr ::= TK_FALSE
                     TK_INTEGER shift-reduce 82     primary_expr ::= TK_INTEGER
@@ -2376,7 +2376,7 @@ State 24:
           postfix_expr ::= * postfix_expr TK_DOT TK_IDENT
           postfix_expr ::= * postfix_expr TK_INC
           postfix_expr ::= * postfix_expr TK_DEC
-          primary_expr ::= * TK_NIL
+          primary_expr ::= * TK_NULL
           primary_expr ::= * TK_TRUE
           primary_expr ::= * TK_FALSE
           primary_expr ::= * TK_INTEGER
@@ -2396,7 +2396,7 @@ State 24:
                         TK_INC shift        50     
                         TK_DEC shift        49     
                    TK_LBRACKET shift        10     
-                        TK_NIL shift-reduce 79     primary_expr ::= TK_NIL
+                       TK_NULL shift-reduce 79     primary_expr ::= TK_NULL
                        TK_TRUE shift-reduce 80     primary_expr ::= TK_TRUE
                       TK_FALSE shift-reduce 81     primary_expr ::= TK_FALSE
                     TK_INTEGER shift-reduce 82     primary_expr ::= TK_INTEGER
@@ -2457,7 +2457,7 @@ State 25:
           postfix_expr ::= * postfix_expr TK_DOT TK_IDENT
           postfix_expr ::= * postfix_expr TK_INC
           postfix_expr ::= * postfix_expr TK_DEC
-          primary_expr ::= * TK_NIL
+          primary_expr ::= * TK_NULL
           primary_expr ::= * TK_TRUE
           primary_expr ::= * TK_FALSE
           primary_expr ::= * TK_INTEGER
@@ -2477,7 +2477,7 @@ State 25:
                         TK_INC shift        50     
                         TK_DEC shift        49     
                    TK_LBRACKET shift        10     
-                        TK_NIL shift-reduce 79     primary_expr ::= TK_NIL
+                       TK_NULL shift-reduce 79     primary_expr ::= TK_NULL
                        TK_TRUE shift-reduce 80     primary_expr ::= TK_TRUE
                       TK_FALSE shift-reduce 81     primary_expr ::= TK_FALSE
                     TK_INTEGER shift-reduce 82     primary_expr ::= TK_INTEGER
@@ -2537,7 +2537,7 @@ State 26:
           postfix_expr ::= * postfix_expr TK_DOT TK_IDENT
           postfix_expr ::= * postfix_expr TK_INC
           postfix_expr ::= * postfix_expr TK_DEC
-          primary_expr ::= * TK_NIL
+          primary_expr ::= * TK_NULL
           primary_expr ::= * TK_TRUE
           primary_expr ::= * TK_FALSE
           primary_expr ::= * TK_INTEGER
@@ -2558,7 +2558,7 @@ State 26:
                         TK_INC shift        50     
                         TK_DEC shift        49     
                    TK_LBRACKET shift        10     
-                        TK_NIL shift-reduce 79     primary_expr ::= TK_NIL
+                       TK_NULL shift-reduce 79     primary_expr ::= TK_NULL
                        TK_TRUE shift-reduce 80     primary_expr ::= TK_TRUE
                       TK_FALSE shift-reduce 81     primary_expr ::= TK_FALSE
                     TK_INTEGER shift-reduce 82     primary_expr ::= TK_INTEGER
@@ -2618,7 +2618,7 @@ State 27:
           postfix_expr ::= * postfix_expr TK_DOT TK_IDENT
           postfix_expr ::= * postfix_expr TK_INC
           postfix_expr ::= * postfix_expr TK_DEC
-          primary_expr ::= * TK_NIL
+          primary_expr ::= * TK_NULL
           primary_expr ::= * TK_TRUE
           primary_expr ::= * TK_FALSE
           primary_expr ::= * TK_INTEGER
@@ -2639,7 +2639,7 @@ State 27:
                         TK_INC shift        50     
                         TK_DEC shift        49     
                    TK_LBRACKET shift        10     
-                        TK_NIL shift-reduce 79     primary_expr ::= TK_NIL
+                       TK_NULL shift-reduce 79     primary_expr ::= TK_NULL
                        TK_TRUE shift-reduce 80     primary_expr ::= TK_TRUE
                       TK_FALSE shift-reduce 81     primary_expr ::= TK_FALSE
                     TK_INTEGER shift-reduce 82     primary_expr ::= TK_INTEGER
@@ -2699,7 +2699,7 @@ State 28:
           postfix_expr ::= * postfix_expr TK_DOT TK_IDENT
           postfix_expr ::= * postfix_expr TK_INC
           postfix_expr ::= * postfix_expr TK_DEC
-          primary_expr ::= * TK_NIL
+          primary_expr ::= * TK_NULL
           primary_expr ::= * TK_TRUE
           primary_expr ::= * TK_FALSE
           primary_expr ::= * TK_INTEGER
@@ -2720,7 +2720,7 @@ State 28:
                         TK_INC shift        50     
                         TK_DEC shift        49     
                    TK_LBRACKET shift        10     
-                        TK_NIL shift-reduce 79     primary_expr ::= TK_NIL
+                       TK_NULL shift-reduce 79     primary_expr ::= TK_NULL
                        TK_TRUE shift-reduce 80     primary_expr ::= TK_TRUE
                       TK_FALSE shift-reduce 81     primary_expr ::= TK_FALSE
                     TK_INTEGER shift-reduce 82     primary_expr ::= TK_INTEGER
@@ -2780,7 +2780,7 @@ State 29:
           postfix_expr ::= * postfix_expr TK_DOT TK_IDENT
           postfix_expr ::= * postfix_expr TK_INC
           postfix_expr ::= * postfix_expr TK_DEC
-          primary_expr ::= * TK_NIL
+          primary_expr ::= * TK_NULL
           primary_expr ::= * TK_TRUE
           primary_expr ::= * TK_FALSE
           primary_expr ::= * TK_INTEGER
@@ -2801,7 +2801,7 @@ State 29:
                         TK_INC shift        50     
                         TK_DEC shift        49     
                    TK_LBRACKET shift        10     
-                        TK_NIL shift-reduce 79     primary_expr ::= TK_NIL
+                       TK_NULL shift-reduce 79     primary_expr ::= TK_NULL
                        TK_TRUE shift-reduce 80     primary_expr ::= TK_TRUE
                       TK_FALSE shift-reduce 81     primary_expr ::= TK_FALSE
                     TK_INTEGER shift-reduce 82     primary_expr ::= TK_INTEGER
@@ -2862,7 +2862,7 @@ State 30:
           postfix_expr ::= * postfix_expr TK_DOT TK_IDENT
           postfix_expr ::= * postfix_expr TK_INC
           postfix_expr ::= * postfix_expr TK_DEC
-          primary_expr ::= * TK_NIL
+          primary_expr ::= * TK_NULL
           primary_expr ::= * TK_TRUE
           primary_expr ::= * TK_FALSE
           primary_expr ::= * TK_INTEGER
@@ -2882,7 +2882,7 @@ State 30:
                         TK_INC shift        50     
                         TK_DEC shift        49     
                    TK_LBRACKET shift        10     
-                        TK_NIL shift-reduce 79     primary_expr ::= TK_NIL
+                       TK_NULL shift-reduce 79     primary_expr ::= TK_NULL
                        TK_TRUE shift-reduce 80     primary_expr ::= TK_TRUE
                       TK_FALSE shift-reduce 81     primary_expr ::= TK_FALSE
                     TK_INTEGER shift-reduce 82     primary_expr ::= TK_INTEGER
@@ -2943,7 +2943,7 @@ State 31:
           postfix_expr ::= * postfix_expr TK_DOT TK_IDENT
           postfix_expr ::= * postfix_expr TK_INC
           postfix_expr ::= * postfix_expr TK_DEC
-          primary_expr ::= * TK_NIL
+          primary_expr ::= * TK_NULL
           primary_expr ::= * TK_TRUE
           primary_expr ::= * TK_FALSE
           primary_expr ::= * TK_INTEGER
@@ -2963,7 +2963,7 @@ State 31:
                         TK_INC shift        50     
                         TK_DEC shift        49     
                    TK_LBRACKET shift        10     
-                        TK_NIL shift-reduce 79     primary_expr ::= TK_NIL
+                       TK_NULL shift-reduce 79     primary_expr ::= TK_NULL
                        TK_TRUE shift-reduce 80     primary_expr ::= TK_TRUE
                       TK_FALSE shift-reduce 81     primary_expr ::= TK_FALSE
                     TK_INTEGER shift-reduce 82     primary_expr ::= TK_INTEGER
@@ -3024,7 +3024,7 @@ State 32:
           postfix_expr ::= * postfix_expr TK_DOT TK_IDENT
           postfix_expr ::= * postfix_expr TK_INC
           postfix_expr ::= * postfix_expr TK_DEC
-          primary_expr ::= * TK_NIL
+          primary_expr ::= * TK_NULL
           primary_expr ::= * TK_TRUE
           primary_expr ::= * TK_FALSE
           primary_expr ::= * TK_INTEGER
@@ -3044,7 +3044,7 @@ State 32:
                         TK_INC shift        50     
                         TK_DEC shift        49     
                    TK_LBRACKET shift        10     
-                        TK_NIL shift-reduce 79     primary_expr ::= TK_NIL
+                       TK_NULL shift-reduce 79     primary_expr ::= TK_NULL
                        TK_TRUE shift-reduce 80     primary_expr ::= TK_TRUE
                       TK_FALSE shift-reduce 81     primary_expr ::= TK_FALSE
                     TK_INTEGER shift-reduce 82     primary_expr ::= TK_INTEGER
@@ -3097,7 +3097,7 @@ State 33:
           postfix_expr ::= * postfix_expr TK_DOT TK_IDENT
           postfix_expr ::= * postfix_expr TK_INC
           postfix_expr ::= * postfix_expr TK_DEC
-          primary_expr ::= * TK_NIL
+          primary_expr ::= * TK_NULL
           primary_expr ::= * TK_TRUE
           primary_expr ::= * TK_FALSE
           primary_expr ::= * TK_INTEGER
@@ -3117,7 +3117,7 @@ State 33:
                         TK_INC shift        50     
                         TK_DEC shift        49     
                    TK_LBRACKET shift        10     
-                        TK_NIL shift-reduce 79     primary_expr ::= TK_NIL
+                       TK_NULL shift-reduce 79     primary_expr ::= TK_NULL
                        TK_TRUE shift-reduce 80     primary_expr ::= TK_TRUE
                       TK_FALSE shift-reduce 81     primary_expr ::= TK_FALSE
                     TK_INTEGER shift-reduce 82     primary_expr ::= TK_INTEGER
@@ -3166,7 +3166,7 @@ State 34:
           postfix_expr ::= * postfix_expr TK_DOT TK_IDENT
           postfix_expr ::= * postfix_expr TK_INC
           postfix_expr ::= * postfix_expr TK_DEC
-          primary_expr ::= * TK_NIL
+          primary_expr ::= * TK_NULL
           primary_expr ::= * TK_TRUE
           primary_expr ::= * TK_FALSE
           primary_expr ::= * TK_INTEGER
@@ -3186,7 +3186,7 @@ State 34:
                         TK_INC shift        50     
                         TK_DEC shift        49     
                    TK_LBRACKET shift        10     
-                        TK_NIL shift-reduce 79     primary_expr ::= TK_NIL
+                       TK_NULL shift-reduce 79     primary_expr ::= TK_NULL
                        TK_TRUE shift-reduce 80     primary_expr ::= TK_TRUE
                       TK_FALSE shift-reduce 81     primary_expr ::= TK_FALSE
                     TK_INTEGER shift-reduce 82     primary_expr ::= TK_INTEGER
@@ -3234,7 +3234,7 @@ State 35:
           postfix_expr ::= * postfix_expr TK_DOT TK_IDENT
           postfix_expr ::= * postfix_expr TK_INC
           postfix_expr ::= * postfix_expr TK_DEC
-          primary_expr ::= * TK_NIL
+          primary_expr ::= * TK_NULL
           primary_expr ::= * TK_TRUE
           primary_expr ::= * TK_FALSE
           primary_expr ::= * TK_INTEGER
@@ -3254,7 +3254,7 @@ State 35:
                         TK_INC shift        50     
                         TK_DEC shift        49     
                    TK_LBRACKET shift        10     
-                        TK_NIL shift-reduce 79     primary_expr ::= TK_NIL
+                       TK_NULL shift-reduce 79     primary_expr ::= TK_NULL
                        TK_TRUE shift-reduce 80     primary_expr ::= TK_TRUE
                       TK_FALSE shift-reduce 81     primary_expr ::= TK_FALSE
                     TK_INTEGER shift-reduce 82     primary_expr ::= TK_INTEGER
@@ -3293,7 +3293,7 @@ State 36:
           postfix_expr ::= * postfix_expr TK_DOT TK_IDENT
           postfix_expr ::= * postfix_expr TK_INC
           postfix_expr ::= * postfix_expr TK_DEC
-          primary_expr ::= * TK_NIL
+          primary_expr ::= * TK_NULL
           primary_expr ::= * TK_TRUE
           primary_expr ::= * TK_FALSE
           primary_expr ::= * TK_INTEGER
@@ -3312,7 +3312,7 @@ State 36:
                         TK_INC shift        50     
                         TK_DEC shift        49     
                    TK_LBRACKET shift        10     
-                        TK_NIL shift-reduce 79     primary_expr ::= TK_NIL
+                       TK_NULL shift-reduce 79     primary_expr ::= TK_NULL
                        TK_TRUE shift-reduce 80     primary_expr ::= TK_TRUE
                       TK_FALSE shift-reduce 81     primary_expr ::= TK_FALSE
                     TK_INTEGER shift-reduce 82     primary_expr ::= TK_INTEGER
@@ -3349,7 +3349,7 @@ State 37:
           postfix_expr ::= * postfix_expr TK_DOT TK_IDENT
           postfix_expr ::= * postfix_expr TK_INC
           postfix_expr ::= * postfix_expr TK_DEC
-          primary_expr ::= * TK_NIL
+          primary_expr ::= * TK_NULL
           primary_expr ::= * TK_TRUE
           primary_expr ::= * TK_FALSE
           primary_expr ::= * TK_INTEGER
@@ -3368,7 +3368,7 @@ State 37:
                         TK_INC shift        50     
                         TK_DEC shift        49     
                    TK_LBRACKET shift        10     
-                        TK_NIL shift-reduce 79     primary_expr ::= TK_NIL
+                       TK_NULL shift-reduce 79     primary_expr ::= TK_NULL
                        TK_TRUE shift-reduce 80     primary_expr ::= TK_TRUE
                       TK_FALSE shift-reduce 81     primary_expr ::= TK_FALSE
                     TK_INTEGER shift-reduce 82     primary_expr ::= TK_INTEGER
@@ -3405,7 +3405,7 @@ State 38:
           postfix_expr ::= * postfix_expr TK_DOT TK_IDENT
           postfix_expr ::= * postfix_expr TK_INC
           postfix_expr ::= * postfix_expr TK_DEC
-          primary_expr ::= * TK_NIL
+          primary_expr ::= * TK_NULL
           primary_expr ::= * TK_TRUE
           primary_expr ::= * TK_FALSE
           primary_expr ::= * TK_INTEGER
@@ -3424,7 +3424,7 @@ State 38:
                         TK_INC shift        50     
                         TK_DEC shift        49     
                    TK_LBRACKET shift        10     
-                        TK_NIL shift-reduce 79     primary_expr ::= TK_NIL
+                       TK_NULL shift-reduce 79     primary_expr ::= TK_NULL
                        TK_TRUE shift-reduce 80     primary_expr ::= TK_TRUE
                       TK_FALSE shift-reduce 81     primary_expr ::= TK_FALSE
                     TK_INTEGER shift-reduce 82     primary_expr ::= TK_INTEGER
@@ -3461,7 +3461,7 @@ State 39:
           postfix_expr ::= * postfix_expr TK_DOT TK_IDENT
           postfix_expr ::= * postfix_expr TK_INC
           postfix_expr ::= * postfix_expr TK_DEC
-          primary_expr ::= * TK_NIL
+          primary_expr ::= * TK_NULL
           primary_expr ::= * TK_TRUE
           primary_expr ::= * TK_FALSE
           primary_expr ::= * TK_INTEGER
@@ -3480,7 +3480,7 @@ State 39:
                         TK_INC shift        50     
                         TK_DEC shift        49     
                    TK_LBRACKET shift        10     
-                        TK_NIL shift-reduce 79     primary_expr ::= TK_NIL
+                       TK_NULL shift-reduce 79     primary_expr ::= TK_NULL
                        TK_TRUE shift-reduce 80     primary_expr ::= TK_TRUE
                       TK_FALSE shift-reduce 81     primary_expr ::= TK_FALSE
                     TK_INTEGER shift-reduce 82     primary_expr ::= TK_INTEGER
@@ -3517,7 +3517,7 @@ State 40:
           postfix_expr ::= * postfix_expr TK_DOT TK_IDENT
           postfix_expr ::= * postfix_expr TK_INC
           postfix_expr ::= * postfix_expr TK_DEC
-          primary_expr ::= * TK_NIL
+          primary_expr ::= * TK_NULL
           primary_expr ::= * TK_TRUE
           primary_expr ::= * TK_FALSE
           primary_expr ::= * TK_INTEGER
@@ -3536,7 +3536,7 @@ State 40:
                         TK_INC shift        50     
                         TK_DEC shift        49     
                    TK_LBRACKET shift        10     
-                        TK_NIL shift-reduce 79     primary_expr ::= TK_NIL
+                       TK_NULL shift-reduce 79     primary_expr ::= TK_NULL
                        TK_TRUE shift-reduce 80     primary_expr ::= TK_TRUE
                       TK_FALSE shift-reduce 81     primary_expr ::= TK_FALSE
                     TK_INTEGER shift-reduce 82     primary_expr ::= TK_INTEGER
@@ -3573,7 +3573,7 @@ State 41:
           postfix_expr ::= * postfix_expr TK_DOT TK_IDENT
           postfix_expr ::= * postfix_expr TK_INC
           postfix_expr ::= * postfix_expr TK_DEC
-          primary_expr ::= * TK_NIL
+          primary_expr ::= * TK_NULL
           primary_expr ::= * TK_TRUE
           primary_expr ::= * TK_FALSE
           primary_expr ::= * TK_INTEGER
@@ -3592,7 +3592,7 @@ State 41:
                         TK_INC shift        50     
                         TK_DEC shift        49     
                    TK_LBRACKET shift        10     
-                        TK_NIL shift-reduce 79     primary_expr ::= TK_NIL
+                       TK_NULL shift-reduce 79     primary_expr ::= TK_NULL
                        TK_TRUE shift-reduce 80     primary_expr ::= TK_TRUE
                       TK_FALSE shift-reduce 81     primary_expr ::= TK_FALSE
                     TK_INTEGER shift-reduce 82     primary_expr ::= TK_INTEGER
@@ -3626,7 +3626,7 @@ State 42:
           postfix_expr ::= * postfix_expr TK_DOT TK_IDENT
           postfix_expr ::= * postfix_expr TK_INC
           postfix_expr ::= * postfix_expr TK_DEC
-          primary_expr ::= * TK_NIL
+          primary_expr ::= * TK_NULL
           primary_expr ::= * TK_TRUE
           primary_expr ::= * TK_FALSE
           primary_expr ::= * TK_INTEGER
@@ -3645,7 +3645,7 @@ State 42:
                         TK_INC shift        50     
                         TK_DEC shift        49     
                    TK_LBRACKET shift        10     
-                        TK_NIL shift-reduce 79     primary_expr ::= TK_NIL
+                       TK_NULL shift-reduce 79     primary_expr ::= TK_NULL
                        TK_TRUE shift-reduce 80     primary_expr ::= TK_TRUE
                       TK_FALSE shift-reduce 81     primary_expr ::= TK_FALSE
                     TK_INTEGER shift-reduce 82     primary_expr ::= TK_INTEGER
@@ -3678,7 +3678,7 @@ State 43:
           postfix_expr ::= * postfix_expr TK_DOT TK_IDENT
           postfix_expr ::= * postfix_expr TK_INC
           postfix_expr ::= * postfix_expr TK_DEC
-          primary_expr ::= * TK_NIL
+          primary_expr ::= * TK_NULL
           primary_expr ::= * TK_TRUE
           primary_expr ::= * TK_FALSE
           primary_expr ::= * TK_INTEGER
@@ -3697,7 +3697,7 @@ State 43:
                         TK_INC shift        50     
                         TK_DEC shift        49     
                    TK_LBRACKET shift        10     
-                        TK_NIL shift-reduce 79     primary_expr ::= TK_NIL
+                       TK_NULL shift-reduce 79     primary_expr ::= TK_NULL
                        TK_TRUE shift-reduce 80     primary_expr ::= TK_TRUE
                       TK_FALSE shift-reduce 81     primary_expr ::= TK_FALSE
                     TK_INTEGER shift-reduce 82     primary_expr ::= TK_INTEGER
@@ -3726,7 +3726,7 @@ State 44:
           postfix_expr ::= * postfix_expr TK_DOT TK_IDENT
           postfix_expr ::= * postfix_expr TK_INC
           postfix_expr ::= * postfix_expr TK_DEC
-          primary_expr ::= * TK_NIL
+          primary_expr ::= * TK_NULL
           primary_expr ::= * TK_TRUE
           primary_expr ::= * TK_FALSE
           primary_expr ::= * TK_INTEGER
@@ -3745,7 +3745,7 @@ State 44:
                         TK_INC shift        50     
                         TK_DEC shift        49     
                    TK_LBRACKET shift        10     
-                        TK_NIL shift-reduce 79     primary_expr ::= TK_NIL
+                       TK_NULL shift-reduce 79     primary_expr ::= TK_NULL
                        TK_TRUE shift-reduce 80     primary_expr ::= TK_TRUE
                       TK_FALSE shift-reduce 81     primary_expr ::= TK_FALSE
                     TK_INTEGER shift-reduce 82     primary_expr ::= TK_INTEGER
@@ -3773,7 +3773,7 @@ State 45:
           postfix_expr ::= * postfix_expr TK_DOT TK_IDENT
           postfix_expr ::= * postfix_expr TK_INC
           postfix_expr ::= * postfix_expr TK_DEC
-          primary_expr ::= * TK_NIL
+          primary_expr ::= * TK_NULL
           primary_expr ::= * TK_TRUE
           primary_expr ::= * TK_FALSE
           primary_expr ::= * TK_INTEGER
@@ -3792,7 +3792,7 @@ State 45:
                         TK_INC shift        50     
                         TK_DEC shift        49     
                    TK_LBRACKET shift        10     
-                        TK_NIL shift-reduce 79     primary_expr ::= TK_NIL
+                       TK_NULL shift-reduce 79     primary_expr ::= TK_NULL
                        TK_TRUE shift-reduce 80     primary_expr ::= TK_TRUE
                       TK_FALSE shift-reduce 81     primary_expr ::= TK_FALSE
                     TK_INTEGER shift-reduce 82     primary_expr ::= TK_INTEGER
@@ -3820,7 +3820,7 @@ State 46:
           postfix_expr ::= * postfix_expr TK_DOT TK_IDENT
           postfix_expr ::= * postfix_expr TK_INC
           postfix_expr ::= * postfix_expr TK_DEC
-          primary_expr ::= * TK_NIL
+          primary_expr ::= * TK_NULL
           primary_expr ::= * TK_TRUE
           primary_expr ::= * TK_FALSE
           primary_expr ::= * TK_INTEGER
@@ -3839,7 +3839,7 @@ State 46:
                         TK_INC shift        50     
                         TK_DEC shift        49     
                    TK_LBRACKET shift        10     
-                        TK_NIL shift-reduce 79     primary_expr ::= TK_NIL
+                       TK_NULL shift-reduce 79     primary_expr ::= TK_NULL
                        TK_TRUE shift-reduce 80     primary_expr ::= TK_TRUE
                       TK_FALSE shift-reduce 81     primary_expr ::= TK_FALSE
                     TK_INTEGER shift-reduce 82     primary_expr ::= TK_INTEGER
@@ -3867,7 +3867,7 @@ State 47:
           postfix_expr ::= * postfix_expr TK_DOT TK_IDENT
           postfix_expr ::= * postfix_expr TK_INC
           postfix_expr ::= * postfix_expr TK_DEC
-          primary_expr ::= * TK_NIL
+          primary_expr ::= * TK_NULL
           primary_expr ::= * TK_TRUE
           primary_expr ::= * TK_FALSE
           primary_expr ::= * TK_INTEGER
@@ -3886,7 +3886,7 @@ State 47:
                         TK_INC shift        50     
                         TK_DEC shift        49     
                    TK_LBRACKET shift        10     
-                        TK_NIL shift-reduce 79     primary_expr ::= TK_NIL
+                       TK_NULL shift-reduce 79     primary_expr ::= TK_NULL
                        TK_TRUE shift-reduce 80     primary_expr ::= TK_TRUE
                       TK_FALSE shift-reduce 81     primary_expr ::= TK_FALSE
                     TK_INTEGER shift-reduce 82     primary_expr ::= TK_INTEGER
@@ -3912,7 +3912,7 @@ State 48:
           postfix_expr ::= * postfix_expr TK_DOT TK_IDENT
           postfix_expr ::= * postfix_expr TK_INC
           postfix_expr ::= * postfix_expr TK_DEC
-          primary_expr ::= * TK_NIL
+          primary_expr ::= * TK_NULL
           primary_expr ::= * TK_TRUE
           primary_expr ::= * TK_FALSE
           primary_expr ::= * TK_INTEGER
@@ -3931,7 +3931,7 @@ State 48:
                         TK_INC shift        50     
                         TK_DEC shift        49     
                    TK_LBRACKET shift        10     
-                        TK_NIL shift-reduce 79     primary_expr ::= TK_NIL
+                       TK_NULL shift-reduce 79     primary_expr ::= TK_NULL
                        TK_TRUE shift-reduce 80     primary_expr ::= TK_TRUE
                       TK_FALSE shift-reduce 81     primary_expr ::= TK_FALSE
                     TK_INTEGER shift-reduce 82     primary_expr ::= TK_INTEGER
@@ -3952,7 +3952,7 @@ State 49:
           postfix_expr ::= * postfix_expr TK_DOT TK_IDENT
           postfix_expr ::= * postfix_expr TK_INC
           postfix_expr ::= * postfix_expr TK_DEC
-          primary_expr ::= * TK_NIL
+          primary_expr ::= * TK_NULL
           primary_expr ::= * TK_TRUE
           primary_expr ::= * TK_FALSE
           primary_expr ::= * TK_INTEGER
@@ -3968,7 +3968,7 @@ State 49:
                       TK_IDENT shift-reduce 85     primary_expr ::= TK_IDENT
                      TK_LPAREN shift        29     
                    TK_LBRACKET shift        10     
-                        TK_NIL shift-reduce 79     primary_expr ::= TK_NIL
+                       TK_NULL shift-reduce 79     primary_expr ::= TK_NULL
                        TK_TRUE shift-reduce 80     primary_expr ::= TK_TRUE
                       TK_FALSE shift-reduce 81     primary_expr ::= TK_FALSE
                     TK_INTEGER shift-reduce 82     primary_expr ::= TK_INTEGER
@@ -3988,7 +3988,7 @@ State 50:
           postfix_expr ::= * postfix_expr TK_DOT TK_IDENT
           postfix_expr ::= * postfix_expr TK_INC
           postfix_expr ::= * postfix_expr TK_DEC
-          primary_expr ::= * TK_NIL
+          primary_expr ::= * TK_NULL
           primary_expr ::= * TK_TRUE
           primary_expr ::= * TK_FALSE
           primary_expr ::= * TK_INTEGER
@@ -4004,7 +4004,7 @@ State 50:
                       TK_IDENT shift-reduce 85     primary_expr ::= TK_IDENT
                      TK_LPAREN shift        29     
                    TK_LBRACKET shift        10     
-                        TK_NIL shift-reduce 79     primary_expr ::= TK_NIL
+                       TK_NULL shift-reduce 79     primary_expr ::= TK_NULL
                        TK_TRUE shift-reduce 80     primary_expr ::= TK_TRUE
                       TK_FALSE shift-reduce 81     primary_expr ::= TK_FALSE
                     TK_INTEGER shift-reduce 82     primary_expr ::= TK_INTEGER
@@ -4561,7 +4561,7 @@ The first-set of non-terminals is shown after the name.
    44: TK_LBRACKET
    45: TK_RBRACKET
    46: TK_DOT
-   47: TK_NIL
+   47: TK_NULL
    48: TK_TRUE
    49: TK_FALSE
    50: TK_INTEGER
@@ -4569,11 +4569,11 @@ The first-set of non-terminals is shown after the name.
    52: TK_STRING
    53: TK_LBRACE
    54: TK_RBRACE
-   55: program: <lambda> TK_NOT TK_MINUS TK_SEMI TK_VAR TK_IDENT TK_IF TK_WHILE TK_DO TK_FOR TK_BREAK TK_CONTINUE TK_RETURN TK_FUNCTION TK_LPAREN TK_INC TK_DEC TK_LBRACKET TK_NIL TK_TRUE TK_FALSE TK_INTEGER TK_NUMBER TK_STRING TK_LBRACE
-   56: stmt_list: <lambda> TK_NOT TK_MINUS TK_SEMI TK_VAR TK_IDENT TK_IF TK_WHILE TK_DO TK_FOR TK_BREAK TK_CONTINUE TK_RETURN TK_FUNCTION TK_LPAREN TK_INC TK_DEC TK_LBRACKET TK_NIL TK_TRUE TK_FALSE TK_INTEGER TK_NUMBER TK_STRING TK_LBRACE
-   57: stmt: TK_NOT TK_MINUS TK_SEMI TK_VAR TK_IDENT TK_IF TK_WHILE TK_DO TK_FOR TK_BREAK TK_CONTINUE TK_RETURN TK_FUNCTION TK_LPAREN TK_INC TK_DEC TK_LBRACKET TK_NIL TK_TRUE TK_FALSE TK_INTEGER TK_NUMBER TK_STRING TK_LBRACE
+   55: program: <lambda> TK_NOT TK_MINUS TK_SEMI TK_VAR TK_IDENT TK_IF TK_WHILE TK_DO TK_FOR TK_BREAK TK_CONTINUE TK_RETURN TK_FUNCTION TK_LPAREN TK_INC TK_DEC TK_LBRACKET TK_NULL TK_TRUE TK_FALSE TK_INTEGER TK_NUMBER TK_STRING TK_LBRACE
+   56: stmt_list: <lambda> TK_NOT TK_MINUS TK_SEMI TK_VAR TK_IDENT TK_IF TK_WHILE TK_DO TK_FOR TK_BREAK TK_CONTINUE TK_RETURN TK_FUNCTION TK_LPAREN TK_INC TK_DEC TK_LBRACKET TK_NULL TK_TRUE TK_FALSE TK_INTEGER TK_NUMBER TK_STRING TK_LBRACE
+   57: stmt: TK_NOT TK_MINUS TK_SEMI TK_VAR TK_IDENT TK_IF TK_WHILE TK_DO TK_FOR TK_BREAK TK_CONTINUE TK_RETURN TK_FUNCTION TK_LPAREN TK_INC TK_DEC TK_LBRACKET TK_NULL TK_TRUE TK_FALSE TK_INTEGER TK_NUMBER TK_STRING TK_LBRACE
    58: var_decl: TK_VAR
-   59: expr_stmt: TK_NOT TK_MINUS TK_IDENT TK_LPAREN TK_INC TK_DEC TK_LBRACKET TK_NIL TK_TRUE TK_FALSE TK_INTEGER TK_NUMBER TK_STRING TK_LBRACE
+   59: expr_stmt: TK_NOT TK_MINUS TK_IDENT TK_LPAREN TK_INC TK_DEC TK_LBRACKET TK_NULL TK_TRUE TK_FALSE TK_INTEGER TK_NUMBER TK_STRING TK_LBRACE
    60: if_stmt: TK_IF
    61: while_stmt: TK_WHILE TK_DO
    62: for_stmt: TK_FOR
@@ -4581,28 +4581,28 @@ The first-set of non-terminals is shown after the name.
    64: return_stmt: TK_RETURN
    65: break_stmt: TK_BREAK
    66: continue_stmt: TK_CONTINUE
-   67: expr: TK_NOT TK_MINUS TK_IDENT TK_LPAREN TK_INC TK_DEC TK_LBRACKET TK_NIL TK_TRUE TK_FALSE TK_INTEGER TK_NUMBER TK_STRING TK_LBRACE
-   68: then_block: <lambda> TK_NOT TK_MINUS TK_SEMI TK_VAR TK_IDENT TK_IF TK_THEN TK_WHILE TK_DO TK_FOR TK_BREAK TK_CONTINUE TK_RETURN TK_FUNCTION TK_LPAREN TK_INC TK_DEC TK_LBRACKET TK_NIL TK_TRUE TK_FALSE TK_INTEGER TK_NUMBER TK_STRING TK_LBRACE
+   67: expr: TK_NOT TK_MINUS TK_IDENT TK_LPAREN TK_INC TK_DEC TK_LBRACKET TK_NULL TK_TRUE TK_FALSE TK_INTEGER TK_NUMBER TK_STRING TK_LBRACE
+   68: then_block: <lambda> TK_NOT TK_MINUS TK_SEMI TK_VAR TK_IDENT TK_IF TK_THEN TK_WHILE TK_DO TK_FOR TK_BREAK TK_CONTINUE TK_RETURN TK_FUNCTION TK_LPAREN TK_INC TK_DEC TK_LBRACKET TK_NULL TK_TRUE TK_FALSE TK_INTEGER TK_NUMBER TK_STRING TK_LBRACE
    69: elseif_list: <lambda> TK_ELSEIF
    70: else_block: <lambda> TK_ELSE
    71: param_list: <lambda> TK_IDENT
    72: param_list_ne: TK_IDENT
-   73: or_expr: TK_NOT TK_MINUS TK_IDENT TK_LPAREN TK_INC TK_DEC TK_LBRACKET TK_NIL TK_TRUE TK_FALSE TK_INTEGER TK_NUMBER TK_STRING TK_LBRACE
-   74: postfix_expr: TK_IDENT TK_LPAREN TK_LBRACKET TK_NIL TK_TRUE TK_FALSE TK_INTEGER TK_NUMBER TK_STRING TK_LBRACE
-   75: and_expr: TK_NOT TK_MINUS TK_IDENT TK_LPAREN TK_INC TK_DEC TK_LBRACKET TK_NIL TK_TRUE TK_FALSE TK_INTEGER TK_NUMBER TK_STRING TK_LBRACE
-   76: not_expr: TK_NOT TK_MINUS TK_IDENT TK_LPAREN TK_INC TK_DEC TK_LBRACKET TK_NIL TK_TRUE TK_FALSE TK_INTEGER TK_NUMBER TK_STRING TK_LBRACE
-   77: cmp_expr: TK_MINUS TK_IDENT TK_LPAREN TK_INC TK_DEC TK_LBRACKET TK_NIL TK_TRUE TK_FALSE TK_INTEGER TK_NUMBER TK_STRING TK_LBRACE
-   78: add_expr: TK_MINUS TK_IDENT TK_LPAREN TK_INC TK_DEC TK_LBRACKET TK_NIL TK_TRUE TK_FALSE TK_INTEGER TK_NUMBER TK_STRING TK_LBRACE
-   79: mul_expr: TK_MINUS TK_IDENT TK_LPAREN TK_INC TK_DEC TK_LBRACKET TK_NIL TK_TRUE TK_FALSE TK_INTEGER TK_NUMBER TK_STRING TK_LBRACE
-   80: pow_expr: TK_MINUS TK_IDENT TK_LPAREN TK_INC TK_DEC TK_LBRACKET TK_NIL TK_TRUE TK_FALSE TK_INTEGER TK_NUMBER TK_STRING TK_LBRACE
-   81: unary_expr: TK_MINUS TK_IDENT TK_LPAREN TK_INC TK_DEC TK_LBRACKET TK_NIL TK_TRUE TK_FALSE TK_INTEGER TK_NUMBER TK_STRING TK_LBRACE
-   82: primary_expr: TK_IDENT TK_LPAREN TK_LBRACKET TK_NIL TK_TRUE TK_FALSE TK_INTEGER TK_NUMBER TK_STRING TK_LBRACE
-   83: arg_list: <lambda> TK_NOT TK_MINUS TK_IDENT TK_LPAREN TK_INC TK_DEC TK_LBRACKET TK_NIL TK_TRUE TK_FALSE TK_INTEGER TK_NUMBER TK_STRING TK_LBRACE
-   84: arg_list_ne: TK_NOT TK_MINUS TK_IDENT TK_LPAREN TK_INC TK_DEC TK_LBRACKET TK_NIL TK_TRUE TK_FALSE TK_INTEGER TK_NUMBER TK_STRING TK_LBRACE
+   73: or_expr: TK_NOT TK_MINUS TK_IDENT TK_LPAREN TK_INC TK_DEC TK_LBRACKET TK_NULL TK_TRUE TK_FALSE TK_INTEGER TK_NUMBER TK_STRING TK_LBRACE
+   74: postfix_expr: TK_IDENT TK_LPAREN TK_LBRACKET TK_NULL TK_TRUE TK_FALSE TK_INTEGER TK_NUMBER TK_STRING TK_LBRACE
+   75: and_expr: TK_NOT TK_MINUS TK_IDENT TK_LPAREN TK_INC TK_DEC TK_LBRACKET TK_NULL TK_TRUE TK_FALSE TK_INTEGER TK_NUMBER TK_STRING TK_LBRACE
+   76: not_expr: TK_NOT TK_MINUS TK_IDENT TK_LPAREN TK_INC TK_DEC TK_LBRACKET TK_NULL TK_TRUE TK_FALSE TK_INTEGER TK_NUMBER TK_STRING TK_LBRACE
+   77: cmp_expr: TK_MINUS TK_IDENT TK_LPAREN TK_INC TK_DEC TK_LBRACKET TK_NULL TK_TRUE TK_FALSE TK_INTEGER TK_NUMBER TK_STRING TK_LBRACE
+   78: add_expr: TK_MINUS TK_IDENT TK_LPAREN TK_INC TK_DEC TK_LBRACKET TK_NULL TK_TRUE TK_FALSE TK_INTEGER TK_NUMBER TK_STRING TK_LBRACE
+   79: mul_expr: TK_MINUS TK_IDENT TK_LPAREN TK_INC TK_DEC TK_LBRACKET TK_NULL TK_TRUE TK_FALSE TK_INTEGER TK_NUMBER TK_STRING TK_LBRACE
+   80: pow_expr: TK_MINUS TK_IDENT TK_LPAREN TK_INC TK_DEC TK_LBRACKET TK_NULL TK_TRUE TK_FALSE TK_INTEGER TK_NUMBER TK_STRING TK_LBRACE
+   81: unary_expr: TK_MINUS TK_IDENT TK_LPAREN TK_INC TK_DEC TK_LBRACKET TK_NULL TK_TRUE TK_FALSE TK_INTEGER TK_NUMBER TK_STRING TK_LBRACE
+   82: primary_expr: TK_IDENT TK_LPAREN TK_LBRACKET TK_NULL TK_TRUE TK_FALSE TK_INTEGER TK_NUMBER TK_STRING TK_LBRACE
+   83: arg_list: <lambda> TK_NOT TK_MINUS TK_IDENT TK_LPAREN TK_INC TK_DEC TK_LBRACKET TK_NULL TK_TRUE TK_FALSE TK_INTEGER TK_NUMBER TK_STRING TK_LBRACE
+   84: arg_list_ne: TK_NOT TK_MINUS TK_IDENT TK_LPAREN TK_INC TK_DEC TK_LBRACKET TK_NULL TK_TRUE TK_FALSE TK_INTEGER TK_NUMBER TK_STRING TK_LBRACE
    85: array_literal: TK_LBRACKET
    86: table_literal: TK_LBRACE
-   87: array_elements: <lambda> TK_NOT TK_MINUS TK_IDENT TK_LPAREN TK_INC TK_DEC TK_LBRACKET TK_NIL TK_TRUE TK_FALSE TK_INTEGER TK_NUMBER TK_STRING TK_LBRACE
-   88: array_elements_ne: TK_NOT TK_MINUS TK_IDENT TK_LPAREN TK_INC TK_DEC TK_LBRACKET TK_NIL TK_TRUE TK_FALSE TK_INTEGER TK_NUMBER TK_STRING TK_LBRACE
+   87: array_elements: <lambda> TK_NOT TK_MINUS TK_IDENT TK_LPAREN TK_INC TK_DEC TK_LBRACKET TK_NULL TK_TRUE TK_FALSE TK_INTEGER TK_NUMBER TK_STRING TK_LBRACE
+   88: array_elements_ne: TK_NOT TK_MINUS TK_IDENT TK_LPAREN TK_INC TK_DEC TK_LBRACKET TK_NULL TK_TRUE TK_FALSE TK_INTEGER TK_NUMBER TK_STRING TK_LBRACE
    89: table_entries: <lambda> TK_IDENT
    90: table_entries_ne: TK_IDENT
 ----------------------------------------------------
@@ -4614,7 +4614,7 @@ TK_MUL TK_DIV TK_MOD TK_POW TK_UMINUS TK_SEMI TK_VAR TK_ASSIGN TK_IF TK_END
 TK_THEN TK_ELSEIF TK_ELSE TK_WHILE TK_DO TK_FOR TK_TO TK_STEP TK_BREAK
 TK_CONTINUE TK_RETURN TK_FUNCTION TK_LPAREN TK_RPAREN TK_COMMA TK_PLUSEQ
 TK_MINUSEQ TK_MULEQ TK_DIVEQ TK_INC TK_DEC TK_LBRACKET TK_RBRACKET TK_DOT
-TK_NIL TK_TRUE TK_FALSE TK_LBRACE TK_RBRACE program
+TK_NULL TK_TRUE TK_FALSE TK_LBRACE TK_RBRACE program
 ----------------------------------------------------
 Rules:
    0: program ::= stmt_list.
@@ -4696,7 +4696,7 @@ Rules:
   76: arg_list ::= arg_list_ne.
   77: arg_list_ne ::= expr.
   78: arg_list_ne ::= arg_list_ne TK_COMMA expr.
-  79: primary_expr ::= TK_NIL.
+  79: primary_expr ::= TK_NULL.
   80: primary_expr ::= TK_TRUE.
   81: primary_expr ::= TK_FALSE.
   82: primary_expr ::= TK_INTEGER.

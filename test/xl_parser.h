@@ -44,7 +44,7 @@
 #define TK_LBRACKET                     44
 #define TK_RBRACKET                     45
 #define TK_DOT                          46
-#define TK_NIL                          47
+#define TK_NULL                         47
 #define TK_TRUE                         48
 #define TK_FALSE                        49
 #define TK_INTEGER                      50

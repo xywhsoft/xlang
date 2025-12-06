@@ -172,7 +172,7 @@ IDENT       [a-zA-Z_][a-zA-Z0-9_]*
 
  /* 关键字 */
 "var"               { RETURN_TOKEN(TK_VAR); }
-"null"              { RETURN_TOKEN(TK_NIL); }
+"null"              { RETURN_TOKEN(TK_NULL); }
 "true"              { RETURN_TOKEN(TK_TRUE); }
 "false"             { RETURN_TOKEN(TK_FALSE); }
 "if"                { RETURN_TOKEN(TK_IF); }

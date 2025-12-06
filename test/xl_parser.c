@@ -102,7 +102,7 @@ int xl_get_parse_error(void) { return parse_error; }
 #define TK_LBRACKET                    44
 #define TK_RBRACKET                    45
 #define TK_DOT                         46
-#define TK_NIL                         47
+#define TK_NULL                        47
 #define TK_TRUE                        48
 #define TK_FALSE                       49
 #define TK_INTEGER                     50
@@ -663,7 +663,7 @@ static const char *const yyTokenName[] = {
   /*   44 */ "TK_LBRACKET",
   /*   45 */ "TK_RBRACKET",
   /*   46 */ "TK_DOT",
-  /*   47 */ "TK_NIL",
+  /*   47 */ "TK_NULL",
   /*   48 */ "TK_TRUE",
   /*   49 */ "TK_FALSE",
   /*   50 */ "TK_INTEGER",
@@ -793,7 +793,7 @@ static const char *const yyRuleName[] = {
  /*  76 */ "arg_list ::= arg_list_ne",
  /*  77 */ "arg_list_ne ::= expr",
  /*  78 */ "arg_list_ne ::= arg_list_ne TK_COMMA expr",
- /*  79 */ "primary_expr ::= TK_NIL",
+ /*  79 */ "primary_expr ::= TK_NULL",
  /*  80 */ "primary_expr ::= TK_TRUE",
  /*  81 */ "primary_expr ::= TK_FALSE",
  /*  82 */ "primary_expr ::= TK_INTEGER",
@@ -1303,7 +1303,7 @@ static const YYCODETYPE yyRuleInfoLhs[] = {
     83,  /* (76) arg_list ::= arg_list_ne */
     84,  /* (77) arg_list_ne ::= expr */
     84,  /* (78) arg_list_ne ::= arg_list_ne TK_COMMA expr */
-    82,  /* (79) primary_expr ::= TK_NIL */
+    82,  /* (79) primary_expr ::= TK_NULL */
     82,  /* (80) primary_expr ::= TK_TRUE */
     82,  /* (81) primary_expr ::= TK_FALSE */
     82,  /* (82) primary_expr ::= TK_INTEGER */
@@ -1407,7 +1407,7 @@ static const signed char yyRuleInfoNRhs[] = {
    -1,  /* (76) arg_list ::= arg_list_ne */
    -1,  /* (77) arg_list_ne ::= expr */
    -3,  /* (78) arg_list_ne ::= arg_list_ne TK_COMMA expr */
-   -1,  /* (79) primary_expr ::= TK_NIL */
+   -1,  /* (79) primary_expr ::= TK_NULL */
    -1,  /* (80) primary_expr ::= TK_TRUE */
    -1,  /* (81) primary_expr ::= TK_FALSE */
    -1,  /* (82) primary_expr ::= TK_INTEGER */
@@ -1915,7 +1915,7 @@ static YYACTIONTYPE yy_reduce(
 #line 1915 "xl.c"
   yymsp[-2].minor.yy58 = yylhsminor.yy58;
         break;
-      case 79: /* primary_expr ::= TK_NIL */
+      case 79: /* primary_expr ::= TK_NULL */
 #line 316 "xl.y"
 { yymsp[0].minor.yy58 = xl_node_null(); }
 #line 1921 "xl.c"

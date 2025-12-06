@@ -313,7 +313,7 @@ arg_list_ne(L) ::= arg_list_ne(A) TK_COMMA expr(E). {
 }
 
 // 基础表达式
-primary_expr(E) ::= TK_NIL. { E = xl_node_null(); }
+primary_expr(E) ::= TK_NULL. { E = xl_node_null(); }
 primary_expr(E) ::= TK_TRUE. { E = xl_node_bool(true); }
 primary_expr(E) ::= TK_FALSE. { E = xl_node_bool(false); }
 primary_expr(E) ::= TK_INTEGER(T). { E = xl_node_int(T->ival); }
