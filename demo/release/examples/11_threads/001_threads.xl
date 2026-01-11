@@ -1,0 +1,199 @@
+// ============================================================
+// xlang 示例：多线程
+// 演示线程创建、同步和并发控制
+// ============================================================
+
+// ---------- 创建线程 ----------
+var t = thread(function(string sArg)
+	print(`线程开始，参数: {$sArg}`)
+	sleep(100)
+	print("线程结束")
+	return "线程结果"
+end)
+
+t.start("hello")
+print("主线程继续执行")
+var result = t.join()					// 等待线程结束
+print(`线程返回: {$result}`)
+
+// ---------- spawn 快捷创建 ----------
+spawn function()
+	print("spawn 线程执行中...")
+end
+
+// ---------- 互斥锁 (mutex) ----------
+var mtx = mutex()
+var iSharedCounter = 0
+
+function incrementWithLock()
+	mtx.lock()
+	try
+		iSharedCounter++
+	finally
+		mtx.unlock()
+	end
+end
+
+// 使用 with 语句简化
+function incrementWithWith()
+	with mtx
+		iSharedCounter++
+	end
+end
+
+// ---------- 读写锁 (rwmutex) ----------
+var rwmtx = rwmutex()
+var tblSharedData = { value: 0 }
+
+function readData()
+	rwmtx.readLock()
+	try
+		return tblSharedData["value"]
+	finally
+		rwmtx.readUnlock()
+	end
+end
+
+function writeData(int iValue)
+	rwmtx.writeLock()
+	try
+		tblSharedData["value"] = iValue
+	finally
+		rwmtx.writeUnlock()
+	end
+end
+
+// ---------- 信号量 (semaphore) ----------
+var sem = semaphore(3)					// 最多 3 个并发
+
+function limitedTask(int iId)
+	sem.acquire()
+	try
+		print(`任务 {$iId} 开始`)
+		sleep(100)
+		print(`任务 {$iId} 结束`)
+	finally
+		sem.release()
+	end
+end
+
+// 启动 10 个任务，但最多 3 个并发
+for i = 1 to 10
+	spawn function()
+		limitedTask(i)
+	end
+end
+
+// ---------- 条件变量 (condition) ----------
+var cond = condition()
+var bReady = false
+
+// 生产者
+spawn function()
+	sleep(100)
+	with mtx
+		bReady = true
+		cond.signal()					// 通知等待的线程
+	end
+end
+
+// 消费者
+with mtx
+	while not bReady
+		cond.wait(mtx)					// 等待通知
+	end
+	print("数据已就绪")
+end
+
+// ---------- 原子操作 (atomic) ----------
+var atomicCounter = atomic(0)
+
+function atomicIncrement()
+	atomicCounter.add(1)
+end
+
+function atomicGetValue()
+	return atomicCounter.load()
+end
+
+// 多线程原子递增
+var lstThreads = []
+for i = 1 to 100
+	var t = spawn function()
+		atomicCounter.add(1)
+	end
+	lstThreads.append(t)
+end
+
+// 等待所有线程
+for t in lstThreads
+	t.join()
+end
+
+print(`原子计数器: {$atomicCounter.load()}`)
+
+// ---------- 通道 (channel) ----------
+var ch = channel(10)					// 缓冲区大小 10
+
+// 生产者
+spawn function()
+	for i = 1 to 5
+		ch.send(i)
+		print(`发送: {$i}`)
+	end
+	ch.close()
+end
+
+// 消费者
+for value in ch
+	print(`接收: {$value}`)
+end
+
+// ---------- select 多路复用 ----------
+var ch1 = channel()
+var ch2 = channel()
+
+spawn function()
+	sleep(100)
+	ch1.send("from ch1")
+end
+
+spawn function()
+	sleep(50)
+	ch2.send("from ch2")
+end
+
+select
+	case msg = ch1.recv()
+		print(`收到 ch1: {$msg}`)
+	case msg = ch2.recv()
+		print(`收到 ch2: {$msg}`)
+	default
+		print("无数据")
+end
+
+// ---------- 线程池 ----------
+var pool = threadpool(4)				// 4 个工作线程
+
+// 提交任务
+var future1 = pool.submit(function()
+	return "任务1结果"
+end)
+
+var future2 = pool.submit(function()
+	return "任务2结果"
+end)
+
+// 获取结果
+print(`结果1: {$future1.get()}`)
+print(`结果2: {$future2.get()}`)
+
+// 批量处理
+var lstData = [1, 2, 3, 4, 5]
+var lstResults = pool.map(function(x)
+	return x * x
+end, lstData)
+print(`批量结果: {$lstResults}`)
+
+// 关闭线程池
+pool.shutdown()

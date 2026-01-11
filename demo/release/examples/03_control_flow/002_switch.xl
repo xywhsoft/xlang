@@ -1,0 +1,103 @@
+// ============================================================
+// xlang 示例：高级 if 语句（代替 switch）
+// xlang 不提供 switch 语句，使用 if...in 语法实现相同功能
+// ============================================================
+
+int iDay = 3
+
+// ---------- 基本多值匹配 ----------
+if iDay in 1
+	print("星期一")
+elseif iDay in 2
+	print("星期二")
+elseif iDay in 3
+	print("星期三")
+elseif iDay in 4
+	print("星期四")
+elseif iDay in 5
+	print("星期五")
+elseif iDay in 6
+	print("星期六")
+elseif iDay in 7
+	print("星期日")
+else
+	print("无效的日期")
+end
+
+// ---------- 多值列表匹配 ----------
+int iMonth = 8
+
+if iMonth in 3, 4, 5
+	print("春季")
+elseif iMonth in 6, 7, 8
+	print("夏季")
+elseif iMonth in 9, 10, 11
+	print("秋季")
+elseif iMonth in 12, 1, 2
+	print("冬季")
+else
+	print("无效的月份")
+end
+
+// ---------- 范围匹配 ----------
+int iScore = 85
+
+if iScore in 90 to 100
+	print("等级: A")
+elseif iScore in 80 to 89
+	print("等级: B")
+elseif iScore in 70 to 79
+	print("等级: C")
+elseif iScore in 60 to 69
+	print("等级: D")
+else
+	print("等级: F")
+end
+
+// ---------- 字符串匹配 ----------
+string sCommand = "start"
+
+if sCommand in "start"
+	print("启动程序")
+elseif sCommand in "stop"
+	print("停止程序")
+elseif sCommand in "restart"
+	print("重启程序")
+elseif sCommand in "status", "state"		// 多个值都匹配
+	print("查看状态")
+else
+	print("未知命令")
+end
+
+// ---------- 单行 if...in 语句 ----------
+int iNum = 5
+if iNum in 1, 3, 5, 7, 9 then print("奇数")
+if iNum in 2, 4, 6, 8, 10 then print("偶数")
+if iNum in 1 to 10 then print("在 1-10 范围内")
+
+// ---------- 多条语句块 ----------
+string sGrade = "B"
+
+if sGrade in "A", "A+", "A-"
+	print("优秀！")
+	print("继续保持")
+elseif sGrade in "B", "B+", "B-"
+	print("良好")
+	print("还有进步空间")
+elseif sGrade in "C", "C+", "C-"
+	print("及格")
+	print("需要更加努力")
+else
+	print("不及格")
+	print("请重修")
+end
+
+// ---------- 组合条件 ----------
+int iAge = 25
+string sRole = "admin"
+
+if (sRole in "admin", "superadmin") and (iAge in 18 to 65)
+	print("有效的管理员")
+else
+	print("无权限")
+end

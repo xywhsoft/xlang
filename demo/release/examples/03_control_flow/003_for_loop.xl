@@ -1,0 +1,66 @@
+// ============================================================
+// xlang 示例：for 循环
+// 演示各种 for 循环形式
+// ============================================================
+
+// ---------- 范围 for 循环 (to) ----------
+print("1 到 5:")
+for i = 1 to 5
+	print(i)
+end
+
+// ---------- 带步长的 for 循环 ----------
+print("1 到 10，步长 2:")
+for i = 1 to 10 step 2
+	print(i)
+end
+
+// ---------- 递减循环 ----------
+print("10 到 1，倒数:")
+for i = 10 to 1 step -1
+	print(i)
+end
+
+// ---------- 遍历列表 ----------
+var lstFruits = ["苹果", "香蕉", "橙子", "葡萄"]
+print("水果列表:")
+for fruit in lstFruits
+	print(`  - {$fruit}`)
+end
+
+// ---------- 带索引遍历 ----------
+print("带索引的水果列表:")
+for i, fruit in lstFruits
+	print(`  [{$i}] {$fruit}`)
+end
+
+// ---------- 遍历字典 ----------
+var tblPerson = { name: "张三", age: 25, city: "北京" }
+print("个人信息:")
+for key, value in tblPerson
+	print(`  {$key}: {$value}`)
+end
+
+// ---------- 遍历字符串 ----------
+string sText = "Hello"
+print("字符串的字符:")
+for ch in sText
+	print(`  '{$ch}'`)
+end
+
+// ---------- 遍历集合 ----------
+var setNumbers = new set(3, 1, 4, 1, 5, 9)
+print("集合元素（自动去重排序）:")
+for num in setNumbers
+	print(`  {$num}`)
+end
+
+// ---------- 嵌套循环 ----------
+print("乘法表 (1-5):")
+for i = 1 to 5
+	string sLine = ""
+	for j = 1 to 5
+		sLine += `{$i}×{$j}={$i*j}\t`
+	end
+	print(sLine)
+end

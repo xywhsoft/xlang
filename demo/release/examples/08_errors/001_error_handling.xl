@@ -1,0 +1,156 @@
+// ============================================================
+// xlang 示例：错误处理
+// 演示 try-catch-finally 和自定义错误
+// ============================================================
+
+// ---------- 基本错误处理 ----------
+function divide(int a, int b)
+	if b == 0
+		throw new Error("除数不能为零")
+	end
+	return a / b
+end
+
+try
+	var vResult = divide(10, 0)
+	print(`结果: {$vResult}`)
+catch e
+	print(`错误: {$e.message}`)
+end
+
+// ---------- 多种错误类型 ----------
+try
+	var vValue = null
+	vValue.doSomething()				// 触发 null 引用错误
+catch TypeError e
+	print(`类型错误: {$e.message}`)
+catch ReferenceError e
+	print(`引用错误: {$e.message}`)
+catch e
+	print(`其他错误: {$e.message}`)
+end
+
+// ---------- finally 块 ----------
+function readFile(string sPath)
+	var hFile = null
+	try
+		hFile = open(sPath, "r")
+		return hFile.read()
+	catch e
+		print(`读取文件失败: {$e.message}`)
+		return null
+	finally
+		// 无论是否发生错误都会执行
+		if hFile != null
+			hFile.close()
+			print("文件已关闭")
+		end
+	end
+end
+
+// ---------- 错误传播 (?) ----------
+function parseNumber(string sValue)
+	if not sValue.match('^\d+$')
+		throw new Error("无效的数字格式")
+	end
+	return int(sValue)
+end
+
+function processInput(string sInput)
+	// ? 运算符：如果出错则向上传播
+	var iNum = parseNumber(sInput)?
+	return iNum * 2
+end
+
+try
+	print(`处理结果: {$processInput("123")}`)
+	print(`处理结果: {$processInput("abc")}`)
+catch e
+	print(`处理失败: {$e.message}`)
+end
+
+// ---------- 自定义错误类型 ----------
+class ValidationError extends Error
+	string sField
+	
+	function ValidationError(string field, string message)
+		super(message)
+		this.sField = field
+	end
+end
+
+class NetworkError extends Error
+	int iStatusCode
+	
+	function NetworkError(int code, string message)
+		super(message)
+		this.iStatusCode = code
+	end
+end
+
+function validateUser(var tblUser)
+	if not tblUser["name"]
+		throw new ValidationError("name", "姓名不能为空")
+	end
+	if tblUser["age"] < 0
+		throw new ValidationError("age", "年龄不能为负数")
+	end
+end
+
+try
+	validateUser({ name: "", age: 25 })
+catch ValidationError e
+	print(`验证失败 - 字段: {$e.sField}, 原因: {$e.message}`)
+catch e
+	print(`其他错误: {$e.message}`)
+end
+
+// ---------- 错误对象属性 ----------
+try
+	throw new Error("测试错误")
+catch e
+	print(`消息: {$e.message}`)
+	print(`类型: {$e.type}`)
+	print(`堆栈: {$e.stack}`)
+end
+
+// ---------- 重新抛出错误 ----------
+function processData(var vData)
+	try
+		// 处理数据
+		if vData == null
+			throw new Error("数据为空")
+		end
+	catch e
+		print("记录错误日志...")
+		throw e							// 重新抛出
+	end
+end
+
+// ---------- 断言 ----------
+function calculateSquareRoot(float fNumber)
+	assert fNumber >= 0, "平方根参数不能为负数"
+	return fNumber ** 0.5
+end
+
+try
+	print(`sqrt(16) = {$calculateSquareRoot(16.0)}`)
+	print(`sqrt(-1) = {$calculateSquareRoot(-1.0)}`)
+catch AssertionError e
+	print(`断言失败: {$e.message}`)
+end
+
+// ---------- 安全执行 ----------
+function safeExecute(var procFunc)
+	try
+		return { success: true, result: procFunc() }
+	catch e
+		return { success: false, error: e.message }
+	end
+end
+
+var tblResult = safeExecute(() => divide(10, 2))
+print(`安全执行结果: {$tblResult}`)
+
+tblResult = safeExecute(() => divide(10, 0))
+print(`安全执行结果: {$tblResult}`)

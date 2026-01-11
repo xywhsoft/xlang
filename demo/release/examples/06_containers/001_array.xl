@@ -1,0 +1,95 @@
+// ============================================================
+// xlang 示例：数组
+// 演示固定大小数组的创建和操作
+// ============================================================
+
+// ---------- 创建数组 ----------
+var arrNumbers = new array(1, 2, 3, 4, 5)
+var arrStrings = new array("a", "b", "c")
+var arrMixed = new array(1, "two", 3.0, true)
+
+print(`数组: {$arrNumbers}`)
+
+// ---------- 创建指定大小的数组 ----------
+var arrFixed = new array(10)				// 10 个元素，初始为 null
+var arrZeros = new array(5, 0)				// 5 个元素，初始为 0
+
+// ---------- 访问元素 ----------
+print(`第一个元素: {$arrNumbers[0]}`)
+print(`最后一个元素: {$arrNumbers[4]}`)
+
+// 负索引（从后向前）
+print(`倒数第一个: {$arrNumbers[-1]}`)
+print(`倒数第二个: {$arrNumbers[-2]}`)
+
+// ---------- 修改元素 ----------
+arrNumbers[0] = 100
+print(`修改后: {$arrNumbers}`)
+
+// ---------- 数组长度 ----------
+print(`长度: {$arrNumbers.length()}`)
+print(`大小: {$arrNumbers.size()}`)
+
+// ---------- 数组切片 ----------
+var arrFull = new array(0, 1, 2, 3, 4, 5, 6, 7, 8, 9)
+
+// 范围切片
+print(`[2 to 5]: {$arrFull[2 to 5]}`)			// [2, 3, 4, 5]
+print(`[0 to 3]: {$arrFull[0 to 3]}`)			// [0, 1, 2, 3]
+
+// 多索引切片
+print(`[0, 2, 4]: {$arrFull[0, 2, 4]}`)			// [0, 2, 4]
+print(`[1, 3, 5, 7]: {$arrFull[1, 3, 5, 7]}`)	// [1, 3, 5, 7]
+
+// ---------- 遍历数组 ----------
+print("遍历数组:")
+for i = 0 to arrNumbers.length() - 1
+	print(`  [{$i}] = {$arrNumbers[i]}`)
+end
+
+// for-in 遍历
+print("for-in 遍历:")
+for value in arrNumbers
+	print(`  {$value}`)
+end
+
+// 带索引遍历
+print("带索引遍历:")
+for i, value in arrNumbers
+	print(`  [{$i}] = {$value}`)
+end
+
+// ---------- 数组方法 ----------
+var arr = new array(3, 1, 4, 1, 5, 9, 2, 6)
+
+print(`indexOf(4): {$arr.indexOf(4)}`)			// 2
+print(`contains(5): {$arr.contains(5)}`)		// true
+print(`count(1): {$arr.count(1)}`)				// 2
+
+// ---------- 数组复制 ----------
+var arrCopy = arrNumbers.copy()
+arrCopy[0] = 999
+print(`原数组: {$arrNumbers}`)
+print(`复制数组: {$arrCopy}`)
+
+// ---------- 数组填充 ----------
+var arrFill = new array(5)
+arrFill.fill(42)
+print(`填充后: {$arrFill}`)
+
+// ---------- 二维数组 ----------
+var arr2D = new array(
+	new array(1, 2, 3),
+	new array(4, 5, 6),
+	new array(7, 8, 9)
+)
+
+print(`二维数组 [1][2]: {$arr2D[1][2]}`)		// 6
+
+// 遍历二维数组
+print("二维数组遍历:")
+for i = 0 to 2
+	for j = 0 to 2
+		print(`  [{$i}][{$j}] = {$arr2D[i][j]}`)
+	end
+end

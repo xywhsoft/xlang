@@ -1,0 +1,78 @@
+// ============================================================
+// xlang 示例：with 语句（资源管理）
+// 演示自动资源管理和作用域
+// ============================================================
+
+// ---------- 互斥锁的 with 语句 ----------
+var mtx = mutex()
+var iSharedCounter = 0
+
+function incrementCounter()
+	with mtx
+		// 自动加锁，块结束时自动解锁
+		iSharedCounter++
+		print(`计数器: {$iSharedCounter}`)
+	end
+end
+
+incrementCounter()
+incrementCounter()
+
+// ---------- 文件资源管理 ----------
+function readFileContent()
+	with var hFile = open("test.txt", "r")
+		// 文件打开后自动在块结束时关闭
+		var sContent = hFile.read()
+		print(`文件内容: {$sContent}`)
+	end
+	// hFile 已自动关闭
+end
+
+// ---------- 数据库连接管理 ----------
+function queryDatabase()
+	with var pConn = database.connect("mysql://localhost/test")
+		var lstResults = pConn.query("SELECT * FROM users")
+		for row in lstResults
+			print(row)
+		end
+	end
+	// 连接自动关闭
+end
+
+// ---------- 多资源管理 ----------
+function copyFile(sSrc, sDst)
+	with var hSrcFile = open(sSrc, "r"), var hDstFile = open(sDst, "w")
+		var sData = hSrcFile.read()
+		hDstFile.write(sData)
+	end
+	// 两个文件都自动关闭
+end
+
+// ---------- 嵌套 with ----------
+function nestedResources()
+	with var mtxOuter = mutex()
+		print("获取外层锁")
+		with var mtxInner = mutex()
+			print("获取内层锁")
+			// 执行需要两个锁的操作
+		end
+		print("释放内层锁")
+	end
+	print("释放外层锁")
+end
+
+nestedResources()
+
+// ---------- with 中的异常处理 ----------
+function safeFileOperation()
+	try
+		with var hFile = open("nonexistent.txt", "r")
+			var sContent = hFile.read()
+		end
+	catch e
+		print(`文件操作失败: {$e.message}`)
+		// 即使发生异常，with 也会确保资源被释放
+	end
+end
+
+safeFileOperation()

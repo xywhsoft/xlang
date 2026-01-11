@@ -1,0 +1,143 @@
+// ============================================================
+// xlang 示例：文件 IO
+// 演示文件读写操作
+// ============================================================
+
+// ---------- 读取文件 ----------
+// 一次性读取
+var sContent = readFile("test.txt")
+print(`文件内容:\n{$sContent}`)
+
+// 使用 open
+var hFile = open("test.txt", "r")
+sContent = hFile.read()
+hFile.close()
+
+// 使用 with 自动关闭
+with var hFile = open("test.txt", "r")
+	sContent = hFile.read()
+end
+
+// ---------- 按行读取 ----------
+with var hFile = open("test.txt", "r")
+	for line in hFile.lines()
+		print(`行: {$line}`)
+	end
+end
+
+// 读取所有行到列表
+var lstLines = readLines("test.txt")
+for i, line in lstLines
+	print(`[{$i}] {$line}`)
+end
+
+// ---------- 写入文件 ----------
+// 一次性写入
+writeFile("output.txt", "Hello, World!")
+
+// 使用 open
+with var hFile = open("output.txt", "w")
+	hFile.write("第一行\n")
+	hFile.write("第二行\n")
+end
+
+// 追加模式
+with var hFile = open("output.txt", "a")
+	hFile.write("追加的内容\n")
+end
+
+// ---------- 逐行写入 ----------
+var lstData = ["Line 1", "Line 2", "Line 3"]
+writeLines("output.txt", lstData)
+
+// ---------- 二进制文件 ----------
+// 读取二进制
+with var hFile = open("image.png", "rb")
+	var bData = hFile.readBytes()
+	print(`文件大小: {$bData.length()} 字节`)
+end
+
+// 写入二进制
+with var hFile = open("copy.png", "wb")
+	hFile.writeBytes(bData)
+end
+
+// ---------- 文件定位 ----------
+with var hFile = open("test.txt", "r")
+	hFile.seek(10)						// 移动到第 10 字节
+	var sPartial = hFile.read(5)		// 读取 5 字节
+	print(`位置 10 开始的 5 字节: {$sPartial}`)
+	
+	var iPos = hFile.tell()				// 获取当前位置
+	print(`当前位置: {$iPos}`)
+	
+	hFile.seek(0)						// 回到开头
+end
+
+// ---------- 文件信息 ----------
+var tblInfo = fileInfo("test.txt")
+print(`文件名: {$tblInfo["name"]}`)
+print(`大小: {$tblInfo["size"]} 字节`)
+print(`修改时间: {$tblInfo["modTime"]}`)
+print(`是否目录: {$tblInfo["isDir"]}`)
+
+// ---------- 文件操作 ----------
+// 检查存在
+if fileExists("test.txt")
+	print("文件存在")
+end
+
+// 复制文件
+copyFile("test.txt", "test_backup.txt")
+
+// 移动/重命名
+moveFile("old.txt", "new.txt")
+
+// 删除文件
+deleteFile("temp.txt")
+
+// ---------- 目录操作 ----------
+// 创建目录
+createDir("newdir")
+createDir("path/to/nested", recursive: true)
+
+// 列出目录
+var lstFiles = listDir(".")
+for item in lstFiles
+	print(`  {$item["name"]} ({$item["isDir"] ? "目录" : "文件"})`)
+end
+
+// 遍历目录树
+function walkDir(string sPath, int iIndent = 0)
+	var sIndent = "  ".repeat(iIndent)
+	for item in listDir(sPath)
+		print(`{$sIndent}{$item["name"]}`)
+		if item["isDir"]
+			walkDir(sPath + "/" + item["name"], iIndent + 1)
+		end
+	end
+end
+
+walkDir(".")
+
+// 删除目录
+deleteDir("emptydir")
+deleteDir("nonemptydir", recursive: true)
+
+// ---------- 路径操作 ----------
+var sPath = "/home/user/documents/file.txt"
+
+print(`目录: {$path.dirname(sPath)}`)		// /home/user/documents
+print(`文件名: {$path.basename(sPath)}`)	// file.txt
+print(`扩展名: {$path.extname(sPath)}`)		// .txt
+print(`无扩展名: {$path.stem(sPath)}`)		// file
+
+// 路径拼接
+var sFullPath = path.join("home", "user", "file.txt")
+print(`拼接: {$sFullPath}`)
+
+// 绝对路径
+print(`绝对路径: {$path.absolute("./test.txt")}`)
+
+// 规范化路径
+print(`规范化: {$path.normalize("/home/user/../user/./file.txt")}`)

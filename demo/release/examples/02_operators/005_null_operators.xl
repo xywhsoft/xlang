@@ -1,0 +1,71 @@
+// ============================================================
+// xlang 示例：空值运算符
+// 演示空值合并和可选链操作
+// ============================================================
+
+// ---------- 空值合并运算符 (??) ----------
+var vValue = null
+var vDefault = vValue ?? "默认值"
+print(`vValue ?? "默认值" = {$vDefault}`)	// 输出: 默认值
+
+var vNotNull = "实际值"
+var vResult = vNotNull ?? "默认值"
+print(`vNotNull ?? "默认值" = {$vResult}`)	// 输出: 实际值
+
+// 链式空值合并
+var a = null
+var b = null
+var c = "找到了"
+var vFound = a ?? b ?? c ?? "都没有"
+print(`a ?? b ?? c = {$vFound}`)			// 输出: 找到了
+
+// ---------- 空值合并赋值运算符 (??=) ----------
+var vTarget = null
+vTarget ??= "赋值成功"
+print(`vTarget ??= "赋值成功": {$vTarget}`)	// 输出: 赋值成功
+
+var vExisting = "已有值"
+vExisting ??= "不会被赋值"
+print(`vExisting ??= ...: {$vExisting}`)	// 输出: 已有值
+
+// ---------- 可选链访问 (.?) ----------
+class Person
+	string sName
+	Person pFriend
+end
+
+var pPerson = new Person()
+pPerson.sName = "张三"
+
+// 安全访问可能为 null 的属性
+var sFriendName = pPerson.pFriend.?sName
+print(`朋友的名字: {$sFriendName ?? "没有朋友"}`)
+
+// 与空值合并组合使用
+var sDisplayName = pPerson.pFriend.?sName ?? "未知"
+print(`显示名称: {$sDisplayName}`)
+
+// ---------- 可选链方法调用 (.?()) ----------
+class Service
+	function getData()
+		return "数据"
+	end
+end
+
+var pService = null
+var vData = pService.?getData()				// 不会抛出错误，返回 null
+print(`服务数据: {$vData ?? "服务不可用"}`)
+
+// 设置服务
+pService = new Service()
+vData = pService.?getData()
+print(`服务数据: {$vData}`)					// 输出: 数据
+
+// ---------- 可选链索引访问 ----------
+var tblData = null
+var vItem = tblData.?["key"]				// 安全索引访问
+print(`字典项: {$vItem ?? "字典为空"}`)
+
+tblData = { name: "测试", value: 100 }
+vItem = tblData.?["name"]
+print(`字典项: {$vItem}`)					// 输出: 测试

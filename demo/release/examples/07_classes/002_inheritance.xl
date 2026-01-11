@@ -1,0 +1,144 @@
+// ============================================================
+// xlang 示例：类的继承
+// 演示继承、方法重写和多态
+// ============================================================
+
+// ---------- 基类定义 ----------
+class Animal
+	string sName
+	
+	function Animal(string name)
+		this.sName = name
+	end
+	
+	function speak()
+		print(`{$this.sName} makes a sound`)
+	end
+	
+	function eat()
+		print(`{$this.sName} is eating`)
+	end
+end
+
+// ---------- 子类继承 ----------
+class Dog extends Animal
+	string sBreed
+	
+	function Dog(string name, string breed)
+		super(name)						// 调用父类构造函数
+		this.sBreed = breed
+	end
+	
+	// 重写父类方法
+	function speak()
+		print(`{$this.sName} barks: Woof!`)
+	end
+	
+	// 新增方法
+	function fetch()
+		print(`{$this.sName} is fetching the ball`)
+	end
+end
+
+class Cat extends Animal
+	function Cat(string name)
+		super(name)
+	end
+	
+	function speak()
+		print(`{$this.sName} meows: Meow!`)
+	end
+	
+	function climb()
+		print(`{$this.sName} is climbing`)
+	end
+end
+
+// ---------- 创建实例 ----------
+var pDog = new Dog("Buddy", "Golden Retriever")
+var pCat = new Cat("Whiskers")
+
+pDog.speak()			// Buddy barks: Woof!
+pDog.eat()				// 继承的方法
+pDog.fetch()			// 自己的方法
+
+pCat.speak()			// Whiskers meows: Meow!
+pCat.climb()
+
+// ---------- 多态 ----------
+function makeSound(Animal pAnimal)
+	pAnimal.speak()		// 根据实际类型调用
+end
+
+var lstAnimals = [pDog, pCat, new Animal("Generic")]
+for animal in lstAnimals
+	makeSound(animal)
+end
+
+// ---------- 类型检查 ----------
+print(`pDog is Dog: {$pDog is Dog}`)			// true
+print(`pDog is Animal: {$pDog is Animal}`)		// true
+print(`pDog is Cat: {$pDog is Cat}`)			// false
+
+// ---------- 调用父类方法 ----------
+class Bird extends Animal
+	function Bird(string name)
+		super(name)
+	end
+	
+	function speak()
+		super.speak()						// 调用父类方法
+		print(`{$this.sName} chirps: Tweet!`)
+	end
+end
+
+var pBird = new Bird("Tweety")
+pBird.speak()
+
+// ---------- 多层继承 ----------
+class GoldenRetriever extends Dog
+	function GoldenRetriever(string name)
+		super(name, "Golden Retriever")
+	end
+	
+	function swim()
+		print(`{$this.sName} loves swimming!`)
+	end
+end
+
+var pGolden = new GoldenRetriever("Max")
+pGolden.speak()
+pGolden.fetch()
+pGolden.swim()
+
+// ---------- 抽象方法（通过约定）----------
+class Shape
+	// 抽象方法：子类必须实现
+	function area()
+		throw new Error("Subclass must implement area()")
+	end
+	
+	function perimeter()
+		throw new Error("Subclass must implement perimeter()")
+	end
+end
+
+class Circle extends Shape
+	float fRadius
+	
+	function Circle(float radius)
+		this.fRadius = radius
+	end
+	
+	function area()
+		return 3.14159 * this.fRadius ** 2
+	end
+	
+	function perimeter()
+		return 2 * 3.14159 * this.fRadius
+	end
+end
+
+var pCircle = new Circle(5.0)
+print(`圆面积: {$pCircle.area()}`)
+print(`圆周长: {$pCircle.perimeter()}`)

@@ -1,0 +1,127 @@
+// ============================================================
+// xlang 示例：模块系统
+// 演示模块的导入和导出
+// ============================================================
+
+// ---------- include（文件包含，无命名空间）----------
+// 直接将文件内容插入当前位置
+include "utils.xl"						// 假设存在 utils.xl
+
+// ---------- import（模块导入，带命名空间）----------
+// 导入整个模块
+import math
+print(`PI = {$math.PI}`)
+print(`sin(0) = {$math.sin(0)}`)
+
+// 导入并重命名
+import json as JSON
+var sJson = JSON.stringify({ name: "张三" })
+
+// ---------- import 部分内容 ----------
+import { sin, cos, PI } from math
+print(`sin(PI/2) = {$sin(PI/2)}`)
+
+// 导入部分并重命名
+import { readFile as read, writeFile as write } from io
+
+// ---------- import 所有内容 ----------
+import * from math						// 将 math 所有内容导入当前命名空间
+
+// ---------- export（模块导出）----------
+// 在模块文件中使用 export 导出
+
+// mymodule.xl:
+// export const VERSION = "1.0.0"
+// 
+// export function greet(name)
+//     return `Hello, {$name}!`
+// end
+// 
+// export class Calculator
+//     function add(a, b)
+//         return a + b
+//     end
+// end
+
+// ---------- 默认导出 ----------
+// myclass.xl:
+// export default class MyClass
+//     // ...
+// end
+
+// 导入默认导出
+// import MyClass from "myclass.xl"
+
+// ---------- 条件导入 ----------
+if platform == "windows"
+	import win32api
+else
+	import posix
+end
+
+// ---------- 动态导入 ----------
+async function loadModule(string sName)
+	var module = await import(sName)
+	return module
+end
+
+// ---------- 相对路径导入 ----------
+// import "./utils.xl"					// 当前目录
+// import "../common/helper.xl"			// 上级目录
+// import "/lib/external.xl"			// 项目根目录
+
+// ---------- 模块别名（项目配置）----------
+// 在项目配置中设置别名：
+// {
+//     "aliases": {
+//         "@utils": "./src/utils",
+//         "@components": "./src/components"
+//     }
+// }
+// 
+// import "@utils/string"
+// import "@components/Button"
+
+// ---------- 示例：数学工具模块 ----------
+// mathutils.xl:
+/*
+export const E = 2.718281828
+export const PI = 3.14159265358979
+
+export function factorial(int n)
+	if n <= 1
+		return 1
+	end
+	return n * factorial(n - 1)
+end
+
+export function fibonacci(int n)
+	if n <= 1
+		return n
+	end
+	return fibonacci(n - 1) + fibonacci(n - 2)
+end
+
+export class Complex
+	float real
+	float imag
+	
+	function Complex(float r, float i)
+		this.real = r
+		this.imag = i
+	end
+	
+	function add(Complex other)
+		return new Complex(
+			this.real + other.real,
+			this.imag + other.imag
+		)
+	end
+	
+	function __str__()
+		return `{$this.real} + {$this.imag}i`
+	end
+end
+*/
+
+print("模块系统示例完成")

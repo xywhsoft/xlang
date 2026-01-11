@@ -1,0 +1,141 @@
+// ============================================================
+// xlang 示例：类的定义
+// 演示基本的类声明和实例化
+// ============================================================
+
+// ---------- 基本类定义 ----------
+class Person
+	// 属性
+	string sName
+	int iAge
+	
+	// 构造函数
+	function Person(string name, int age)
+		this.sName = name
+		this.iAge = age
+	end
+	
+	// 方法
+	function sayHello()
+		print(`Hello, I'm {$this.sName}, {$this.iAge} years old.`)
+	end
+	
+	function getInfo()
+		return `{$this.sName}, {$this.iAge}岁`
+	end
+end
+
+// 创建实例
+var pPerson = new Person("张三", 25)
+pPerson.sayHello()
+print(pPerson.getInfo())
+
+// ---------- 访问和修改属性 ----------
+print(`姓名: {$pPerson.sName}`)
+pPerson.iAge = 26
+print(`新年龄: {$pPerson.iAge}`)
+
+// ---------- 默认构造函数 ----------
+class Point
+	float x = 0.0
+	float y = 0.0
+end
+
+var pOrigin = new Point()
+print(`原点: ({$pOrigin.x}, {$pOrigin.y})`)
+
+// ---------- 静态属性和方法 ----------
+class Counter
+	static int iCount = 0
+	
+	function Counter()
+		Counter.iCount++
+	end
+	
+	static function getCount()
+		return Counter.iCount
+	end
+	
+	static function reset()
+		Counter.iCount = 0
+	end
+end
+
+new Counter()
+new Counter()
+new Counter()
+print(`创建了 {$Counter.getCount()} 个实例`)
+
+// ---------- 私有成员（约定以下划线开头）----------
+class Account
+	string sOwner
+	float _fBalance = 0.0				// 私有属性
+	
+	function Account(string owner, float balance)
+		this.sOwner = owner
+		this._fBalance = balance
+	end
+	
+	// 公开方法访问私有属性
+	function getBalance()
+		return this._fBalance
+	end
+	
+	function deposit(float amount)
+		if amount > 0
+			this._fBalance += amount
+			return true
+		end
+		return false
+	end
+	
+	function withdraw(float amount)
+		if ( (amount > 0) and (amount <= this._fBalance) )
+			this._fBalance -= amount
+			return true
+		end
+		return false
+	end
+end
+
+var pAccount = new Account("张三", 1000.0)
+print(`余额: {$pAccount.getBalance()}`)
+pAccount.deposit(500.0)
+print(`存款后: {$pAccount.getBalance()}`)
+pAccount.withdraw(200.0)
+print(`取款后: {$pAccount.getBalance()}`)
+
+// ---------- getter 和 setter ----------
+class Rectangle
+	float _fWidth
+	float _fHeight
+	
+	function Rectangle(float w, float h)
+		this._fWidth = w
+		this._fHeight = h
+	end
+	
+	// getter
+	property float area
+		get
+			return this._fWidth * this._fHeight
+		end
+	end
+	
+	// getter + setter
+	property float width
+		get
+			return this._fWidth
+		end
+		set
+			if value > 0
+				this._fWidth = value
+			end
+		end
+	end
+end
+
+var pRect = new Rectangle(10.0, 5.0)
+print(`面积: {$pRect.area}`)
+pRect.width = 20.0
+print(`新面积: {$pRect.area}`)

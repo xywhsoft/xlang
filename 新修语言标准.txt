@@ -95,6 +95,13 @@
 	-=				累减
 	*=				乘后赋值
 	/=				除后赋值
+	%=				取模后赋值
+	**=				乘方后赋值
+	&=				位与后赋值
+	|=				位或后赋值
+	^=				位异或后赋值
+	<<=				左移后赋值
+	>>=				右移后赋值
 	++				自增
 	--				自减
 	
@@ -197,6 +204,22 @@
 	else
 		code block
 	end
+	
+	!!! 注意 !!!
+	这里的 in 和 to 是一种特殊语法糖，仅存在于 if 和 do while 语句的条件表达式中。
+	语法糖仅在 in 后面有多个值时生效：
+		if exp in A, B, C			// 语法糖，in 后有多个值
+		if exp in 1 to 10			// 语法糖，使用 to 表示范围
+		if exp in [1, 2, 3]			// 运算符，in 后是单个列表表达式
+	编译时将展开为标准的比较表达式：
+		if exp in A, B, C
+		展开为：if (exp == A) or (exp == B) or (exp == C)
+		
+		if exp in 1 to 10
+		展开为：if (exp >= 1) and (exp <= 10)
+	
+	此语法糖不可用于其他上下文（如普通表达式、赋值语句等）。
+	当 in 后面是单个表达式时，使用运算符章节中的 in 运算符语义（判断是否包含在集合、列表、字典、对象内）。
 
 
 
@@ -211,6 +234,23 @@
 	for [k, ]v in obj
 		code block
 	end
+	
+	支持遍历的类型：
+	列表（list）：
+		for v in lst				// 遍历值
+		for i, v in lst				// 遍历索引和值
+	数组（array）：
+		for v in arr				// 遍历值
+		for i, v in arr				// 遍历索引和值
+	字典（dict）：
+		for k, v in tbl				// 遍历键和值
+		for k in tbl				// 遍历键
+	集合（set）：
+		for v in setObj				// 遍历元素（自动去重排序）
+	字符串（string）：
+		for ch in str				// 遍历字符，ch 为 int32 类型（UTF-32 字符代码）
+	对象类（class : object）：
+		for k, v in obj				// 遍历对象的所有属性
 
 
 
@@ -219,11 +259,23 @@
 	while exp
 		code block
 	end
+	支持 in 和 to 语法糖，例如：
+	while exp in A, B, C
+	end
+	展开为：
+	while (exp == A) or (exp == B) or (exp == C)
+	end
 	
 	// 后置条件检查（至少执行一次）
 	do
 		code block
 	while exp
+	支持 in 和 to 语法糖，例如：
+	do
+	while exp in A, B, C
+	展开为：
+	do
+	while (exp == A) or (exp == B) or (exp == C)
 
 
 
@@ -235,10 +287,103 @@
 
 
 
+资源管理语句（with）：
+	with 资源表达式
+		code block
+	end
+	
+	with 语句用于自动管理资源，在代码块结束时自动释放/清理资源。
+	
+	互斥锁自动加锁/解锁：
+		var mtx = mutex()
+		with mtx
+			// 自动加锁，块结束时自动解锁
+			sharedData += 1
+		end
+	
+	带变量声明的 with 语句：
+		with var hFile = open("test.txt", "r")
+			// 文件在块结束时自动关闭
+			var sContent = hFile.read()
+		end
+	
+	多资源管理（用逗号分隔）：
+		with var hSrc = open(sSrc, "r"), var hDst = open(sDst, "w")
+			hDst.write(hSrc.read())
+		end
+		// 两个文件都自动关闭
+	
+	支持嵌套 with 语句。
+	即使发生异常，with 也会确保资源被释放。
+	
+	实现原理：
+	with 语句在编译时展开为 try-finally 结构：
+		// 源代码
+		with var hFile = open("test.txt", "r")
+			var sContent = hFile.read()
+		end
+		
+		// 展开为
+		var hFile = open("test.txt", "r")
+		hFile.__enter__()		// 调用 meta enter
+		try
+			var sContent = hFile.read()
+		finally
+			hFile.__exit__()	// 调用 meta exit
+		end
+	
+	资源管理协议：
+	自定义类型通过实现 meta enter 和 meta exit 支持 with 语句：
+		class MyResource : object
+			meta enter()
+				// 获取资源，进入 with 块时调用
+			end
+			meta exit()
+				// 释放资源，退出 with 块时调用（包括异常情况）
+			end
+		end
+	
+	内置类型的默认行为：
+		类型				enter 行为			exit 行为
+		mutex				lock()				unlock()
+		rwmutex(读)			rlock()				runlock()
+		rwmutex(写)			wlock()				wunlock()
+		file				(已打开)			close()
+		数据库连接			(已连接)			disconnect()
+		自定义类			meta enter()		meta exit()
+	
+	多资源处理顺序：
+		with var a = res1(), var b = res2(), var c = res3()
+			// code
+		end
+		// 获取顺序：a -> b -> c
+		// 释放顺序：c -> b -> a（栈式，后进先出）
+
+
+
 函数定义：
 	function name(params)
 		code block
 	end
+	
+	参数类型声明：
+	参数可以声明数据类型，也可以不声明（不声明则为 var 类型）：
+		// 带类型声明的参数
+		function add(int a, int b)
+			return a + b
+		end
+		
+		// 不带类型声明的参数（默认为 var，仅 xcall 支持）
+		function process(a, b, c)
+			return a + b + c
+		end
+		
+		// 混合使用（仅 xcall 支持）
+		function format(string sName, age, city)
+			return `{$sName}, {$age}岁, 来自{$city}`
+		end
+	
+	注意：cdecl 和 stdcall 调用约定的参数必须声明数据类型，因为需要与 C 语言 ABI 兼容。
 	
 	调用约定：
 	函数默认使用 xcall 调用约定（通过数据结构传递参数）
@@ -252,6 +397,27 @@
 		stdcall function name(params)	// Stdcall
 			code block
 		end
+		fastcall function name(params)	// fastcall
+			code block
+		end
+
+
+
+外部函数声明（extern）：
+	用于声明来自外部库的函数，不包含函数体。
+	
+	单个外部函数声明：
+		extern cdecl function printf(string sFormat, ...)
+		extern stdcall function MessageBoxA(int hWnd, string sText, string sCaption, int uType)
+	
+	DLL 导入（批量声明）：
+		extern "user32.dll" {
+			stdcall function MessageBoxW(int hWnd, string sText, string sCaption, int uType) as MessageBox
+			stdcall function GetSystemMetrics(int nIndex)
+		}
+	
+	使用 as 关键字可以为导入的函数指定别名。
+	extern 声明的函数必须指定调用约定（cdecl/stdcall/fastcall）。
 
 
 
@@ -279,7 +445,98 @@
 函数返回值写法：
 	return x
 	return				无返回值，直接退出函数
-	不限制返回值的数据类型，永远使用变体类型
+	
+	返回值类型声明：
+	默认不声明返回值类型时，返回值为 var 类型：
+		function add(int a, int b)
+			return a + b		// 返回值为 var 类型
+		end
+	
+	类型前置声明，明确指定返回类型：
+		int function multiply(int a, int b)
+			return a * b		// 返回值为 int 类型
+		end
+	
+	多返回值（仅 xcall 调用约定支持）：
+		function divmod(int a, int b)
+			return a / b, a % b		// 返回两个值
+		end
+		
+		// 接收多返回值
+		int iQuotient, iRemainder = divmod(17, 5)
+		
+		// 也可以只接收部分返回值
+		int iQuotient = divmod(17, 5)		// 只接收第一个
+	
+	注意：cdecl 和 stdcall 调用约定不支持多返回值，因为它们需要与 C 语言 ABI 兼容。
+
+
+
+命名参数：
+	函数调用时可以使用命名参数，提高可读性：
+		function createPerson(string sName, int iAge, string sCity)
+			// ...
+		end
+		
+		// 使用命名参数调用
+		createPerson(sName: "张三", iAge: 25, sCity: "北京")
+		
+		// 命名参数可以打乱顺序
+		createPerson(sCity: "北京", sName: "张三", iAge: 25)
+		
+		// 混合使用（位置参数必须在前）
+		createPerson("张三", iAge: 25, sCity: "北京")
+	
+	注意：命名参数仅在 xcall 调用约定下支持。
+
+
+
+枚举类型：
+	enum name
+		VALUE1
+		VALUE2 = 10
+		VALUE3			// 自动为 11
+	end
+	
+	基本用法：
+		enum Color
+			RED
+			GREEN
+			BLUE
+		end
+		
+		var c = Color.RED
+		if c == Color.GREEN
+			print("绿色")
+		end
+	
+	指定底层类型：
+		enum Status : int8			// 使用 int8 存储
+			OK = 0
+			ERROR = -1
+		end
+	
+	字符串枚举：
+		enum HttpMethod : string
+			GET = "GET"
+			POST = "POST"
+			PUT = "PUT"
+			DELETE = "DELETE"
+		end
+	
+	位标志枚举：
+		enum Flags
+			NONE = 0
+			READ = 1
+			WRITE = 2
+			EXECUTE = 4
+			ALL = READ | WRITE | EXECUTE
+		end
+		
+		var perm = Flags.READ | Flags.WRITE
+		if (perm & Flags.READ) != 0
+			print("可读")
+		end
 
 
 
@@ -296,6 +553,27 @@
 	parent 表示父类，类的父类只能是其他类
 	类支持构造、析构
 	对象代码块内，可使用 self 代表对象自身
+	
+	成员可见性：
+	使用 public、private、protected 关键字控制成员的访问权限：
+		public				公开，任何地方都可以访问（默认）
+		private				私有，仅类内部可以访问
+		protected			受保护，类内部和子类可以访问
+	
+	示例：
+		class Person
+			public string sName			// 公开属性
+			private int iAge			// 私有属性
+			protected string sId		// 受保护属性
+			
+			public function getName()
+				return self.sName
+			end
+			
+			private function validate()
+				// 内部方法
+			end
+		end
 	
 	class 与 object 的区别：
 		class 类似 C++ 的 class，用于定义固定结构的类型
@@ -391,7 +669,10 @@
 		get：读取了一个未知的成员值
 		call：调用了一个未知的函数
 		callself：调用了本身
-		to：类型转换
+		to(type)：转换为指定类型，如 meta to(int)、meta to(string)
+		from(type)：从指定类型转入，如 meta from(float)、meta from(string)
+		enter：进入 with 语句块时调用（资源获取）
+		exit：退出 with 语句块时调用（资源释放，包括异常情况）
 
 
 
@@ -412,64 +693,34 @@
 	逻辑值：
 		true、false
 	字符串：
-		双引号字符串（支持转义）：
-			"文字内容"
-			支持转义符，可包含换行
-		
-		单引号字符串（原始字符串，不转义）：
-			'文字内容'
-			不解析转义符，反斜杠原样保留
-			表达单引号本身用两个单引号 ''
-		
-		转义符列表（仅双引号字符串支持）：
-			\n			换行
-			\r			回车
-			\t			制表符
-			\\			反斜杠
-			\"			双引号
-			\0			空字符
-			\xHH		十六进制字节
-			\u{HHHH}	Unicode 字符
-	
-	多行字符串：
-		三双引号（支持转义）：
-			"""
-			多行内容
-			支持 \n \t 等转义符
-			"""
-		
-		三单引号（原始字符串，不转义）：
-			'''
-			多行原始内容
-			\n 不会被转义，原样保留
-			'''
-			适合写正则表达式、路径、代码片段等
-	
-	模板字符串（原始 + 插值）：
-		单行模板：
-			`hello {$name}, you are {$age} years old`
-		
-		多行模板：
-			`
-			Dear {$name},
-			
-			Your order #{$orderId} has been shipped.
-			
-			Best regards
-			`
-		
-		模板字符串特性：
-			- 不解析转义符（原始字符串）
-			- 支持 {$var} 插入变量
-			- 支持 {$expr} 插入表达式
-			- 支持多行
+		"文字内容，支持换行回车，支持转义符"
+		'文字内容，支持换行回车，支持转义符'
+		'''多行字符串'''
+		"""多行字符串"""
+	模板字符串：
+		`hello {$varname}`
+		```
+			多行模板字符串
+		```
 	数组：
 		new array(value, ...)
 		数组使用 new 语法创建，下标从 0 开始
+		数组基于连续内存实现，索引必须从 0 开始且连续，性能高
 	列表：
 		[key:value, ...]
 		列表使用中括号表示，key 为 int64 类型
 		[] 表示空列表
+		列表基于 AVL 树实现，支持稀疏存储，索引可为 int64 范围内的任意整数
+	
+	数组与列表的区别：
+		特性				数组 (array)			列表 (list)
+		底层实现			连续内存				AVL 树
+		索引范围			0 开始，必须连续		int64 任意整数
+		稀疏存储			不支持				支持
+		随机访问性能		O(1)					O(log n)
+		插入/删除性能		O(n)					O(log n)
+		内存占用			较小					较大
+		适用场景			紧凑、顺序数据		稀疏、灵活索引
 	字典：
 		{key:value, ...}
 		字典使用花括号表示，key 为字符串类型
@@ -516,6 +767,12 @@
 			var response = await http.get(url)
 			var data = await response.json()
 			return data
+		end
+		
+		// 带返回类型的异步函数（async 在最前面）
+		async string function fetchText(url)
+			var response = await http.get(url)
+			return response.text()
 		end
 		
 		// 调用异步函数
@@ -637,26 +894,54 @@
 
 
 类型转换：
-	不支持 C 语言风格的隐式类型转换，采用函数转换方式：
+	不支持 C 语言风格的隐式类型转换，使用类型名作为转换函数：
 	
-	基础类型转换函数：
-		to_int(value)			// 转换为整数
-		to_float(value)			// 转换为浮点数
-		to_string(value)		// 转换为字符串
-		to_bool(value)			// 转换为布尔值
-		to_time(value)			// 转换为时间
+	基础类型转换：
+		int(value)				// 转换为整数
+		int8(value)				// 转换为 int8
+		uint32(value)			// 转换为 uint32
+		float(value)			// 转换为浮点数
+		float64(value)			// 转换为 float64
+		string(value)			// 转换为字符串
+		bool(value)				// 转换为布尔值
+		time(value)				// 转换为时间
 	
 	容器类型转换：
-		to_array(value)			// 转换为数组
-		to_list(value)			// 转换为列表
-		to_set(value)			// 转换为集合
-		to_dict(value)			// 转换为字典
+		array(value)			// 转换为数组
+		list(value)				// 转换为列表
+		set(value)				// 转换为集合
+		dict(value)				// 转换为字典
+	
+	自定义类型转换（通过元方法）：
+	class 需要定义 meta to 元方法才能转换为特定基础类型：
+		class Distance
+			private float fMeters
+			
+			// 转换为 float
+			meta to(float)
+				return self.fMeters
+			end
+			
+			// 转换为 string
+			meta to(string)
+				return `{$self.fMeters}m`
+			end
+			
+			// 支持从 float 转入
+			meta from(float f)
+				self.fMeters = f
+			end
+		end
+		
+		// 使用
+		var d = new Distance(100)
+		var f = float(d)			// 调用 meta to(float)
+		var s = string(d)			// 调用 meta to(string)
+		var d2 = Distance(50.5)		// 调用 meta from(float)
 	
 	特殊规则：
-		- 指针(point)和整数禁止混用，不提供互转函数
 		- 函数类型不能转换为其他类型
 		- var 类型可以转换为其他任何类型（运行时检查）
-		- class 可以通过 meta to 自定义类型转换规则
 
 
 
@@ -742,14 +1027,6 @@
 			print("Error: " + err)
 		else
 			print(result)
-		end
-	
-	错误传播运算符 ?：
-		// 如果函数返回错误，自动向上层传播
-		function wrapper()
-			var data = loadData()?		// 如果 loadData 失败，自动返回错误
-			var result = process(data)?	// 如果 process 失败，自动返回错误
-			return result, null
 		end
 	
 	快速错误检查：

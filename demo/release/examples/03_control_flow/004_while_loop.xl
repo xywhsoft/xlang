@@ -1,0 +1,78 @@
+// ============================================================
+// xlang 示例：while 循环
+// 演示 while 和 until 循环
+// ============================================================
+
+// ---------- 基本 while 循环 ----------
+int iCount = 1
+print("while 循环:")
+while iCount <= 5
+	print(`  计数: {$iCount}`)
+	iCount++
+end
+
+// ---------- while 条件表达式 ----------
+int iSum = 0
+int n = 1
+while n <= 100
+	iSum += n
+	n++
+end
+print(`1 到 100 的和: {$iSum}`)
+
+// ---------- while true + break ----------
+int iGuess = 0
+int iTarget = 7
+print("猜数字游戏模拟:")
+while true
+	iGuess++
+	print(`  尝试 {$iGuess}...`)
+	if iGuess == iTarget
+		print(`  找到了！答案是 {$iTarget}`)
+		break
+	end
+end
+
+// ---------- until 循环（条件为假时继续）----------
+int x = 1
+print("until 循环:")
+until x > 5
+	print(`  x = {$x}`)
+	x++
+end
+
+// ---------- 复杂条件 ----------
+int iAttempts = 0
+bool bSuccess = false
+print("重试机制模拟:")
+while ( (iAttempts < 3) and (not bSuccess) )
+	iAttempts++
+	print(`  第 {$iAttempts} 次尝试...`)
+	if iAttempts == 2
+		bSuccess = true
+		print("  成功！")
+	end
+end
+
+// ---------- 遍历到 null ----------
+class Node
+	int iValue
+	Node pNext
+end
+
+// 创建链表
+var pHead = new Node()
+pHead.iValue = 1
+pHead.pNext = new Node()
+pHead.pNext.iValue = 2
+pHead.pNext.pNext = new Node()
+pHead.pNext.pNext.iValue = 3
+pHead.pNext.pNext.pNext = null
+
+// 遍历链表
+print("链表遍历:")
+var pCurrent = pHead
+while pCurrent != null
+	print(`  节点值: {$pCurrent.iValue}`)
+	pCurrent = pCurrent.pNext
+end

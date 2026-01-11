@@ -1,0 +1,80 @@
+// ============================================================
+// xlang 示例：函数定义与调用
+// 演示基本的函数声明和使用
+// ============================================================
+
+// ---------- 无参数无返回值函数 ----------
+function sayHello()
+	print("Hello, World!")
+end
+
+sayHello()
+
+// ---------- 带参数的函数 ----------
+function greet(string sName)
+	print(`Hello, {$sName}!`)
+end
+
+greet("张三")
+greet("李四")
+
+// ---------- 带返回值的函数 ----------
+function add(int a, int b)
+	return a + b
+end
+
+int iSum = add(10, 20)
+print(`10 + 20 = {$iSum}`)
+
+// ---------- 多参数函数 ----------
+function formatPerson(string sName, int iAge, string sCity)
+	return `{$sName}, {$iAge}岁, 来自{$sCity}`
+end
+
+string sInfo = formatPerson("王五", 30, "上海")
+print(sInfo)
+
+// ---------- 类型前置声明 ----------
+int function multiply(int a, int b)
+	return a * b
+end
+
+print(`5 * 6 = {$multiply(5, 6)}`)
+
+// ---------- 提前返回 ----------
+function findPositive(var lstNumbers)
+	for num in lstNumbers
+		if num > 0
+			return num
+		end
+	end
+	return null
+end
+
+var vResult = findPositive([-1, -2, 3, 4])
+print(`第一个正数: {$vResult}`)
+
+// ---------- 多返回值 ----------
+function divmod(int a, int b)
+	return a / b, a % b
+end
+
+int iQuotient, iRemainder = divmod(17, 5)
+print(`17 / 5 = {$iQuotient} 余 {$iRemainder}`)
+
+// ---------- 函数作为值 ----------
+var procCallback = function(string sMsg)
+	print(`回调: {$sMsg}`)
+end
+
+procCallback("测试消息")
+
+// ---------- 递归函数 ----------
+function factorial(int n)
+	if n <= 1
+		return 1
+	end
+	return n * factorial(n - 1)
+end
+
+print(`5! = {$factorial(5)}`)

@@ -1,0 +1,69 @@
+// ============================================================
+// xlang 示例：调用约定
+// 演示不同调用约定的函数声明
+// ============================================================
+
+// ---------- 默认调用约定 (xlang) ----------
+function normalFunc(int a, int b)
+	return a + b
+end
+
+// ---------- C 调用约定 (cdecl) ----------
+// 用于与 C 语言库交互
+cdecl function cStyleFunc(int a, int b)
+	return a + b
+end
+
+// ---------- 标准调用约定 (stdcall) ----------
+// Windows API 常用
+stdcall function winApiStyleFunc(int a, int b)
+	return a + b
+end
+
+// ---------- 快速调用约定 (fastcall) ----------
+// 使用寄存器传参
+fastcall function fastFunc(int a, int b)
+	return a + b
+end
+
+// ---------- 外部函数声明 ----------
+// 声明来自外部库的函数
+extern cdecl function printf(string sFormat, var... arrArgs)
+extern stdcall function MessageBoxA(int hWnd, string sText, string sCaption, int uType)
+
+// ---------- 带返回类型的调用约定 ----------
+cdecl int function cAdd(int a, int b)
+	return a + b
+end
+
+stdcall string function formatString(string sFormat, var... arrArgs)
+	// 实现格式化
+	return sFormat
+end
+
+// ---------- 使用示例 ----------
+print(`normalFunc: {$normalFunc(1, 2)}`)
+print(`cStyleFunc: {$cStyleFunc(3, 4)}`)
+print(`winApiStyleFunc: {$winApiStyleFunc(5, 6)}`)
+print(`fastFunc: {$fastFunc(7, 8)}`)
+
+// ---------- 回调函数类型 ----------
+// 定义回调函数类型
+typedef cdecl function(int, int) -> int as BinaryOp
+
+function executeOp(BinaryOp procOp, int a, int b)
+	return procOp(a, b)
+end
+
+var iResult = executeOp(cStyleFunc, 10, 20)
+print(`executeOp result: {$iResult}`)
+
+// ---------- DLL 导入 ----------
+// 从 DLL 导入函数
+extern "user32.dll" {
+	stdcall function MessageBoxW(int hWnd, string sText, string sCaption, int uType) as MessageBox
+	stdcall function GetSystemMetrics(int nIndex)
+}
+
+// 使用导入的函数
+// MessageBox(0, "Hello", "Title", 0)

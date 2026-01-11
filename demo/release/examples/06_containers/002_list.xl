@@ -1,0 +1,110 @@
+// ============================================================
+// xlang 示例：列表
+// 列表是稀疏的键值对集合，键为 int64 类型
+// 与数组不同，列表不要求连续存储，下标可以是任意 int64 值
+// ============================================================
+
+// ---------- 创建列表 ----------
+var lstEmpty = []							// 空列表
+
+// 列表字面量使用 key:value 格式
+var lstData = [0:"zero", 1:"one", 2:"two", 3:"three"]
+print(`列表: {$lstData}`)
+
+// 稀疏列表：下标不需要连续
+var lstSparse = [0:"first", 100:"hundred", 1000:"thousand"]
+print(`稀疏列表: {$lstSparse}`)
+
+// 支持负数下标
+var lstNegative = [-100:"neg hundred", -1:"neg one", 0:"zero", 1:"one"]
+print(`负数下标: {$lstNegative}`)
+
+// 使用 new 创建
+var lstNew = new list()
+
+// ---------- 访问元素 ----------
+print(`lstData[0]: {$lstData[0]}`)			// "zero"
+print(`lstData[2]: {$lstData[2]}`)			// "two"
+print(`lstSparse[100]: {$lstSparse[100]}`)	// "hundred"
+print(`lstNegative[-1]: {$lstNegative[-1]}`)	// "neg one"
+
+// ---------- 修改元素 ----------
+lstData[0] = "ZERO"
+print(`修改后: {$lstData}`)
+
+// ---------- 添加元素 ----------
+var lst = [0:"a", 1:"b"]
+lst[2] = "c"								// 直接赋值添加
+print(`添加后: {$lst}`)
+
+// 添加任意下标
+lst[999] = "far away"
+lst[-50] = "negative"
+print(`任意下标: {$lst}`)
+
+// ---------- 删除元素 ----------
+lst.remove(999)								// 删除指定下标
+print(`删除后: {$lst}`)
+
+// ---------- 列表信息 ----------
+print(`元素数量: {$lstData.count()}`)
+print(`是否为空: {$lstEmpty.isEmpty()}`)
+
+// ---------- 检查下标是否存在 ----------
+print(`lstSparse[100] 存在: {$lstSparse.exists(100)}`)	// true
+print(`lstSparse[50] 存在: {$lstSparse.exists(50)}`)	// false
+
+// ---------- 列表切片 ----------
+var lstRange = [0:"a", 1:"b", 2:"c", 3:"d", 4:"e", 5:"f"]
+print(`[1 to 3]: {$lstRange[1 to 3]}`)		// 范围切片
+print(`[0, 2, 4]: {$lstRange[0, 2, 4]}`)	// 多索引切片
+
+// ---------- 列表合并 ----------
+var lstA = [0:"a", 1:"b"]
+var lstB = [2:"c", 3:"d"]
+var lstC = lstA.merge(lstB)
+print(`合并: {$lstC}`)
+
+// 合并时下标冲突，后者覆盖
+var lstX = [0:"x", 1:"y"]
+var lstY = [1:"Y", 2:"z"]
+var lstMerged = lstX.merge(lstY, rewrite: true)
+print(`覆盖合并: {$lstMerged}`)					// [0:"x", 1:"Y", 2:"z"]
+
+// ---------- 遍历列表 ----------
+print("遍历列表:")
+for k, v in lstData
+	print(`  [{$k}] = {$v}`)
+end
+
+// 仅遍历值
+print("仅遍历值:")
+for v in lstData
+	print(`  {$v}`)
+end
+
+// ---------- 获取所有键/值 ----------
+var arrKeys = lstData.keys()				// 返回键数组
+var arrValues = lstData.values()			// 返回值数组
+print(`所有键: {$arrKeys}`)
+print(`所有值: {$arrValues}`)
+
+// ---------- 父列表（继承查找） ----------
+var lstParent = [0:"parent0", 1:"parent1", 2:"parent2"]
+var lstChild = [1:"child1", 3:"child3"]
+lstChild.setParent(lstParent)
+
+print(`lstChild[0]: {$lstChild[0]}`)		// "parent0" (从父列表查找)
+print(`lstChild[1]: {$lstChild[1]}`)		// "child1" (子列表优先)
+print(`lstChild[2]: {$lstChild[2]}`)		// "parent2" (从父列表查找)
+print(`lstChild[3]: {$lstChild[3]}`)		// "child3"
+
+// ---------- 清空列表 ----------
+lstData.clear()
+print(`清空后: {$lstData}, 数量: {$lstData.count()}`)
+
+// ---------- int64 范围下标示例 ----------
+var lstBigIndex = new list()
+lstBigIndex[9223372036854775807] = "max int64"		// int64 最大值
+lstBigIndex[-9223372036854775808] = "min int64"		// int64 最小值
+print(`极限下标数量: {$lstBigIndex.count()}`)		// 2

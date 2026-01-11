@@ -1,0 +1,188 @@
+// ============================================================
+// xlang 示例：特殊类特性
+// 演示 object 继承、接口和运算符重载
+// ============================================================
+
+// ---------- 继承 object：获得字典特性 ----------
+class DynamicObject extends object
+	string sType
+	
+	function DynamicObject(string type)
+		this.sType = type
+	end
+end
+
+var pDynamic = new DynamicObject("config")
+
+// 可以像字典一样动态添加属性
+pDynamic["name"] = "MyApp"
+pDynamic["version"] = "1.0.0"
+pDynamic["debug"] = true
+
+print(`类型: {$pDynamic.sType}`)
+print(`名称: {$pDynamic["name"]}`)
+
+// 可以遍历动态属性
+print("动态属性:")
+for key, value in pDynamic
+	print(`  {$key}: {$value}`)
+end
+
+// ---------- 接口定义 ----------
+interface Drawable
+	function draw()
+	function getBounds()
+end
+
+interface Clickable
+	function onClick()
+	function onHover()
+end
+
+// 实现接口
+class Button implements Drawable, Clickable
+	string sLabel
+	
+	function Button(string label)
+		this.sLabel = label
+	end
+	
+	// 实现 Drawable
+	function draw()
+		print(`绘制按钮: [{$this.sLabel}]`)
+	end
+	
+	function getBounds()
+		return { x: 0, y: 0, width: 100, height: 30 }
+	end
+	
+	// 实现 Clickable
+	function onClick()
+		print(`按钮 {$this.sLabel} 被点击`)
+	end
+	
+	function onHover()
+		print(`鼠标悬停在 {$this.sLabel} 上`)
+	end
+end
+
+var pButton = new Button("提交")
+pButton.draw()
+pButton.onClick()
+
+// ---------- 运算符重载 ----------
+class Vector
+	float x
+	float y
+	
+	function Vector(float x, float y)
+		this.x = x
+		this.y = y
+	end
+	
+	// 加法运算符
+	function __add__(Vector other)
+		return new Vector(this.x + other.x, this.y + other.y)
+	end
+	
+	// 减法运算符
+	function __sub__(Vector other)
+		return new Vector(this.x - other.x, this.y - other.y)
+	end
+	
+	// 乘法运算符（标量）
+	function __mul__(float scalar)
+		return new Vector(this.x * scalar, this.y * scalar)
+	end
+	
+	// 相等比较
+	function __eq__(Vector other)
+		return (this.x == other.x) and (this.y == other.y)
+	end
+	
+	// 字符串表示
+	function __str__()
+		return `Vector({$this.x}, {$this.y})`
+	end
+	
+	// 长度（模）
+	function magnitude()
+		return (this.x ** 2 + this.y ** 2) ** 0.5
+	end
+end
+
+var v1 = new Vector(3.0, 4.0)
+var v2 = new Vector(1.0, 2.0)
+
+var v3 = v1 + v2						// 调用 __add__
+print(`v1 + v2 = {$v3}`)
+
+var v4 = v1 - v2						// 调用 __sub__
+print(`v1 - v2 = {$v4}`)
+
+var v5 = v1 * 2.0						// 调用 __mul__
+print(`v1 * 2 = {$v5}`)
+
+print(`v1 == v2: {$v1 == v2}`)			// 调用 __eq__
+
+print(`|v1| = {$v1.magnitude()}`)		// 5.0
+
+// ---------- 迭代器支持 ----------
+class Range
+	int iStart
+	int iEnd
+	
+	function Range(int start, int end)
+		this.iStart = start
+		this.iEnd = end
+	end
+	
+	// 迭代器
+	function __iter__()
+		int iCurrent = this.iStart
+		return function()
+			if iCurrent <= this.iEnd
+				int iValue = iCurrent
+				iCurrent++
+				return iValue
+			end
+			return null
+		end
+	end
+end
+
+var pRange = new Range(1, 5)
+print("自定义 Range 迭代:")
+for i in pRange
+	print(`  {$i}`)
+end
+
+// ---------- 索引操作符 ----------
+class Matrix
+	var _lstData
+	int iRows
+	int iCols
+	
+	function Matrix(int rows, int cols)
+		this.iRows = rows
+		this.iCols = cols
+		this._lstData = []
+		for i = 0 to rows * cols - 1
+			this._lstData.append(0)
+		end
+	end
+	
+	// 索引获取
+	function __getitem__(int row, int col)
+		return this._lstData[row * this.iCols + col]
+	end
+	
+	// 索引设置
+	function __setitem__(int row, int col, var value)
+		this._lstData[row * this.iCols + col] = value
+	end
+end
+
+var pMatrix = new Matrix(3, 3)
+pMatrix[1, 1] = 5
+print(`矩阵 [1,1] = {$pMatrix[1, 1]}`)

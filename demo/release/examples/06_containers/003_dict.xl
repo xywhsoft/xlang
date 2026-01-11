@@ -1,0 +1,139 @@
+// ============================================================
+// xlang 示例：字典
+// 演示键值对字典的创建和操作
+// ============================================================
+
+// ---------- 创建字典 ----------
+var tblEmpty = {}							// 空字典
+var tblPerson = {
+	name: "张三",
+	age: 25,
+	city: "北京"
+}
+
+print(`字典: {$tblPerson}`)
+print(`空字典: {$tblEmpty}`)
+
+// 使用 new 创建
+var tblNew = new dict()
+
+// ---------- 键名规则 ----------
+// 裸标识符作为字面量键名
+var tbl1 = { key: "value" }					// key 是字符串 "key"
+
+// 显式字符串键
+var tbl2 = { "my-key": 123, "带空格": 456 }
+
+// 变量作为键（方括号）
+var sKey = "dynamicKey"
+var tbl3 = { [sKey]: "dynamic value" }
+print(`动态键: {$tbl3}`)
+
+// 表达式作为键
+var tbl4 = { ["key_" + "1"]: "value1" }
+
+// ---------- 访问元素 ----------
+print(`name: {$tblPerson["name"]}`)
+print(`age: {$tblPerson["age"]}`)
+
+// 点语法访问（仅限合法标识符键）
+print(`city: {$tblPerson.city}`)
+
+// 访问不存在的键
+print(`email: {$tblPerson["email"]}`)		// null
+
+// 带默认值访问
+print(`email: {$tblPerson.get("email", "未设置")}`)
+
+// ---------- 修改元素 ----------
+tblPerson["age"] = 26
+tblPerson.city = "上海"
+print(`修改后: {$tblPerson}`)
+
+// ---------- 添加元素 ----------
+tblPerson["email"] = "zhangsan@example.com"
+tblPerson.phone = "13800138000"
+print(`添加后: {$tblPerson}`)
+
+// ---------- 删除元素 ----------
+tblPerson.remove("phone")
+print(`删除后: {$tblPerson}`)
+
+// ---------- 检查键存在 ----------
+print(`has "name": {$tblPerson.has("name")}`)		// true
+print(`has "phone": {$tblPerson.has("phone")}`)		// false
+print(`"name" in tblPerson: {$"name" in tblPerson}`)	// true
+
+// ---------- 获取键和值 ----------
+print(`keys: {$tblPerson.keys()}`)
+print(`values: {$tblPerson.values()}`)
+print(`entries: {$tblPerson.entries()}`)
+
+// ---------- 遍历字典 ----------
+print("遍历键值对:")
+for key, value in tblPerson
+	print(`  {$key}: {$value}`)
+end
+
+print("只遍历键:")
+for key in tblPerson.keys()
+	print(`  {$key}`)
+end
+
+// ---------- 字典长度 ----------
+print(`大小: {$tblPerson.size()}`)
+print(`是否为空: {$tblEmpty.isEmpty()}`)
+
+// ---------- 字典合并 ----------
+var tblA = { a: 1, b: 2 }
+var tblB = { b: 20, c: 3 }
+var tblC = tblA.merge(tblB)					// b 被覆盖
+print(`合并: {$tblC}`)
+
+// ---------- 字典截取 ----------
+var tblFull = { a: 1, b: 2, c: 3, d: 4, e: 5 }
+
+// 按键名截取
+print(`截取 [a, c]: {$tblFull["a", "c"]}`)
+
+// 按通配符截取
+// print(`通配符 [~a*]: {$tblFull[~"a*"]}`)
+
+// ---------- 嵌套字典 ----------
+var tblNested = {
+	user: {
+		name: "张三",
+		profile: {
+			avatar: "avatar.jpg",
+			bio: "程序员"
+		}
+	},
+	settings: {
+		theme: "dark",
+		language: "zh"
+	}
+}
+
+print(`嵌套访问: {$tblNested["user"]["profile"]["bio"]}`)
+print(`点语法: {$tblNested.user.profile.bio}`)
+
+// ---------- 字典方法 ----------
+var tblData = { x: 10, y: 20, z: 30 }
+
+// map
+var tblDoubled = tblData.mapValues((v) => v * 2)
+print(`mapValues: {$tblDoubled}`)
+
+// filter
+var tblFiltered = tblData.filter((k, v) => v > 15)
+print(`filter: {$tblFiltered}`)
+
+// ---------- 字典转换 ----------
+// 转为列表
+var lstPairs = tblPerson.toList()
+print(`toList: {$lstPairs}`)
+
+// 从列表创建
+var lstEntries = [["a", 1], ["b", 2], ["c", 3]]
+var tblFromList = dict.fromEntries(lstEntries)
+print(`fromEntries: {$tblFromList}`)

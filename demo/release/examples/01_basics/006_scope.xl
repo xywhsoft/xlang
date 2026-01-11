@@ -1,0 +1,42 @@
+// ============================================================
+// xlang 示例：作用域规则
+// 演示块级作用域和变量遮蔽
+// ============================================================
+
+// ---------- 全局变量 ----------
+int iGlobal = 100
+
+// ---------- 函数作用域 ----------
+function testScope()
+	// 局部变量
+	int iLocal = 200
+	print(`函数内 iLocal = {$iLocal}`)
+	print(`函数内 iGlobal = {$iGlobal}`)		// 可访问全局变量
+	
+	// 块级作用域
+	if true
+		int iBlock = 300
+		print(`块内 iBlock = {$iBlock}`)
+		
+		// 变量遮蔽
+		int iLocal = 999						// 遮蔽外层的 iLocal
+		print(`块内遮蔽后 iLocal = {$iLocal}`)
+	end
+	
+	// iBlock 在此处不可访问
+	print(`块外 iLocal = {$iLocal}`)			// 仍为 200（遮蔽是块级的）
+end
+
+// ---------- 循环作用域 ----------
+function loopScope()
+	for i = 0 to 2
+		int iLoopVar = i * 10
+		print(`循环内 iLoopVar = {$iLoopVar}`)
+	end
+	// i 和 iLoopVar 在此处不可访问
+end
+
+// ---------- 执行测试 ----------
+testScope()
+loopScope()
+print(`全局 iGlobal = {$iGlobal}`)

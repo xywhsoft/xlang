@@ -1,0 +1,54 @@
+// ============================================================
+// xlang 示例：函数参数
+// 演示默认参数、可变参数等特性
+// ============================================================
+
+// ---------- 默认参数 ----------
+function greet(string sName, string sGreeting = "Hello")
+	print(`{$sGreeting}, {$sName}!`)
+end
+
+greet("张三")						// Hello, 张三!
+greet("李四", "你好")				// 你好, 李四!
+
+// ---------- 多个默认参数 ----------
+function createUser(string sName, int iAge = 18, string sRole = "user")
+	print(`创建用户: {$sName}, {$iAge}岁, 角色: {$sRole}`)
+end
+
+createUser("小明")
+createUser("小红", 25)
+createUser("管理员", 30, "admin")
+
+// ---------- 可变参数 (...) ----------
+function sum(int... arrNumbers)
+	int iTotal = 0
+	for num in arrNumbers
+		iTotal += num
+	end
+	return iTotal
+end
+
+print(`sum(1,2,3) = {$sum(1, 2, 3)}`)
+print(`sum(1,2,3,4,5) = {$sum(1, 2, 3, 4, 5)}`)
+
+// ---------- 混合固定参数和可变参数 ----------
+function printFormatted(string sFormat, var... arrArgs)
+	// sFormat 是固定参数，arrArgs 是可变参数
+	var sResult = sFormat
+	for i, arg in arrArgs
+		sResult = sResult.replace(`{${$i}}`, string(arg))
+	end
+	print(sResult)
+end
+
+printFormatted("姓名: {0}, 年龄: {1}", "张三", 25)
+
+// ---------- 命名参数 ----------
+function connectDB(string sHost = "localhost", int iPort = 3306, string sUser = "root", string sPassword = "")
+	print(`连接到 {$sUser}@{$sHost}:{$iPort}`)
+end
+
+connectDB()
+connectDB(sHost: "192.168.1.100", iPort: 5432)
+connectDB(sUser: "admin", sPassword: "secret")

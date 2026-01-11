@@ -1,0 +1,65 @@
+// ============================================================
+// xlang 示例：逻辑运算符
+// 演示逻辑与、或、非操作
+// ============================================================
+
+bool bTrue = true
+bool bFalse = false
+
+// ---------- 逻辑与 (and) ----------
+print(`true and true: {$bTrue and bTrue}`)			// true
+print(`true and false: {$bTrue and bFalse}`)		// false
+print(`false and true: {$bFalse and bTrue}`)		// false
+print(`false and false: {$bFalse and bFalse}`)		// false
+
+// ---------- 逻辑或 (or) ----------
+print(`true or true: {$bTrue or bTrue}`)			// true
+print(`true or false: {$bTrue or bFalse}`)			// true
+print(`false or true: {$bFalse or bTrue}`)			// true
+print(`false or false: {$bFalse or bFalse}`)		// false
+
+// ---------- 逻辑非 (not) ----------
+print(`not true: {$not bTrue}`)						// false
+print(`not false: {$not bFalse}`)					// true
+
+// ---------- 复合逻辑表达式 ----------
+int iAge = 25
+bool bHasLicense = true
+bool bIsStudent = false
+
+// 推荐：使用括号明确优先级
+if ( (iAge >= 18) and (bHasLicense) )
+	print("可以驾驶")
+end
+
+if ( (iAge < 18) or (not bHasLicense) )
+	print("不能驾驶")
+end
+
+// 复杂条件
+if ( ((iAge >= 18) and (iAge <= 60)) and (bHasLicense or bIsStudent) )
+	print("符合条件")
+end
+
+// ---------- 短路求值 ----------
+function checkFirst()
+	print("检查第一个条件")
+	return false
+end
+
+function checkSecond()
+	print("检查第二个条件")
+	return true
+end
+
+// and 短路：第一个为 false，不执行第二个
+print("测试 and 短路:")
+if checkFirst() and checkSecond()
+	print("两个都为真")
+end
+
+// or 短路：第一个为 true，不执行第二个
+print("测试 or 短路:")
+if checkSecond() or checkFirst()
+	print("至少一个为真")
+end
