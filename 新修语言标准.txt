@@ -5,7 +5,7 @@
 		int
 			int8							8位有符号整数
 			uint8							8位无符号整数
-			int16							168位有符号整数
+			int16							16位有符号整数
 			uint16							16位无符号整数
 			int32							32位有符号整数
 			uint32							32位无符号整数
@@ -23,12 +23,26 @@
 			cdecl							C Call
 		array								数组
 		list								列表
-		collect								集合
+		set									集合
 		dict								字典
 		class								类或对象类（对象类支持自定义字段、元编程）
 		custom								自定义类型（使用 类型名$方函数名 扩展操作）
 	其他类型：
-		var									变体类型，支持所有原生类型
+		var									变体类型，支持的类型如下（int 和 float 支持 64 位）：
+			null
+			bool
+			int64
+			float64
+			string
+			time
+			point
+			function
+			array
+			list
+			set
+			dict
+			class
+			custom
 		struct								仅能用于 class 语句内
 		union								仅能用于 class 语句内
 	暂不支持的类型（预留设计空间，未来要支出）：
@@ -97,7 +111,7 @@
 	[?(param)]		安全调用，如果对应成员属性或函数不存在，则返回 null
 	
 	is				变量是否是某一数据类型
-	in				判断是否包含在集合、数组、表、对象内，表和对象判断key，数组判断val
+	in				判断是否包含在集合、列表、字典、对象内，字典和对象判断key，列表和数组判断val
 
 
 
@@ -134,14 +148,16 @@
 		a = "asd"
 		变体类型变量可以在运行时更改值的类型
 	变量定义初值可以赋值为数组、列表、集合、字典：
-		array a = [1, 2, 3]
-		list a = [1:100, 2:200, 3:300]
-		var a = []			// 无成员时默认代表数组
-		collect a = {1, 2, 3}
-		dict a = {a:1, b:2, c:3, "  中文":4}
-		var a = {}			// 无成员时默认代表字典
-		var a = [1, 2, 3]
-		使用 [...] 或 {...} 表示的数组、列表、集合、字典成员值默认为 var
+		array a = new array(1, 2, 3)	// 创建数组
+		list a = [1:100, 2:200, 3:300]	// 列表字面量
+		var a = []						// 空列表
+		set a = new set(1, 2, 3)		// 创建集合
+		dict a = {a:1, b:2, c:3, "  中文":4}	// 字典字面量
+		var a = {}						// 空字典
+		使用 [...] 表示的列表成员值默认为 var
+		使用 {...} 表示的字典成员值默认为 var
+		空数组使用 new array() 创建
+		空集合使用 new set() 创建
 	可以使用 new 语句创建对象（包含class、object或内置基础类型）
 		dict a = new dict(int)		// 创建一个成员只能包含 int 的字典
 		int a = new int(1234)		// 相当于 int a = 1234
@@ -199,12 +215,15 @@
 
 
 条件循环：
-	while exp do
+	// 前置条件检查
+	while exp
 		code block
 	end
+	
+	// 后置条件检查（至少执行一次）
 	do
 		code block
-	while exp end
+	while exp
 
 
 
@@ -220,6 +239,19 @@
 	function name(params)
 		code block
 	end
+	
+	调用约定：
+	函数默认使用 xcall 调用约定（通过数据结构传递参数）
+	可以在 function 关键字前添加调用约定关键字：
+		xcall function name(params)		// xLang Call（默认）
+			code block
+		end
+		cdecl function name(params)		// C Call
+			code block
+		end
+		stdcall function name(params)	// Stdcall
+			code block
+		end
 
 
 
@@ -265,6 +297,22 @@
 	类支持构造、析构
 	对象代码块内，可使用 self 代表对象自身
 	
+	class 与 object 的区别：
+		class 类似 C++ 的 class，用于定义固定结构的类型
+		object 是一种特殊的基类，当 class 继承自 object 时，将获得动态字典特性
+	
+	普通 class：
+		- 成员在编译时确定，不能动态添加
+		- 访问不存在的成员会报错
+		- 内存布局固定，效率更高
+	
+	class : object（对象类）：
+		- 具备字典特性，可动态添加/删除属性
+		- 可使用 obj["key"] = value 语法设置任意属性
+		- 可使用 for k, v in obj 遍历所有属性
+		- 支持元编程（meta 函数）
+		- 适合动态数据处理场景
+	
 	class name : object
 		create(param)
 			// 构造
@@ -274,7 +322,6 @@
 		end
 		body
 	end
-	继承自 object 的类表现为对象类（支持自定义字段、元编程等特性）
 	
 	类语句内可以使用结构体和共用体：
 	class name : object
@@ -365,43 +412,84 @@
 	逻辑值：
 		true、false
 	字符串：
-		"文字内容，支持换行回车，支持转义符"
-		'文字内容，支持换行回车，不支持转义符，表达单引号本身用两个单引号'
-		使用文件编码方式保存的字符串，例如文件使用 utf8，则这个字符串就是 utf8 类型的
-		'''多行字符串'''
-		"""多行字符串"""
-	ANSI字符串：
-		#A"文字内容"
-		#A'文字内容'
-		不管文件用什么编码，都以 ANSI 编码存储（OEM编码）
-	UNICODE字符串：
-		#W"文字内容"
-		#W'文字内容'
-		不管文件用什么编码，都以 UNICODE 编码存储
-	UTF-8字符串：
-		#U"文字内容"
-		#U'文字内容'
-		不管文件用什么编码，都以 utf-8 编码存储
-	动态编码字符串：
-		#T"文字内容"
-		#T'文字内容'
-		转换为对应的编码储存，对应编码为编译器编译时指定的编码
-	模板字符串：
-		`hello {$varname}`
-		#A`hello {$varname}`
-		#W`hello {$varname}`
-		#U`hello {$varname}`
-		#T`hello {$varname}`
-		模板字符串可以直接将变量代入字符串，模板字符串编码规则与字符串编码规则相同
+		双引号字符串（支持转义）：
+			"文字内容"
+			支持转义符，可包含换行
+		
+		单引号字符串（原始字符串，不转义）：
+			'文字内容'
+			不解析转义符，反斜杠原样保留
+			表达单引号本身用两个单引号 ''
+		
+		转义符列表（仅双引号字符串支持）：
+			\n			换行
+			\r			回车
+			\t			制表符
+			\\			反斜杠
+			\"			双引号
+			\0			空字符
+			\xHH		十六进制字节
+			\u{HHHH}	Unicode 字符
+	
+	多行字符串：
+		三双引号（支持转义）：
+			"""
+			多行内容
+			支持 \n \t 等转义符
+			"""
+		
+		三单引号（原始字符串，不转义）：
+			'''
+			多行原始内容
+			\n 不会被转义，原样保留
+			'''
+			适合写正则表达式、路径、代码片段等
+	
+	模板字符串（原始 + 插值）：
+		单行模板：
+			`hello {$name}, you are {$age} years old`
+		
+		多行模板：
+			`
+			Dear {$name},
+			
+			Your order #{$orderId} has been shipped.
+			
+			Best regards
+			`
+		
+		模板字符串特性：
+			- 不解析转义符（原始字符串）
+			- 支持 {$var} 插入变量
+			- 支持 {$expr} 插入表达式
+			- 支持多行
 	数组：
-		[value, ...]
-		数组下标总是从 0 开始，不允许出现负数下标
+		new array(value, ...)
+		数组使用 new 语法创建，下标从 0 开始
 	列表：
-		[1:1, 2:2, 3:3， ...]
-	表：
-		{key=value, ...}
+		[key:value, ...]
+		列表使用中括号表示，key 为 int64 类型
+		[] 表示空列表
+	字典：
+		{key:value, ...}
+		字典使用花括号表示，key 为字符串类型
+		{} 表示空字典
+		
+		键名解析规则：
+			裸标识符作为字面量键名：
+				{ name: "Tom", age: 25 }
+				// 等价于 { "name": "Tom", "age": 25 }
+			
+			显式字符串键（支持特殊字符）：
+				{ "my-key": 123, "带空格的键": 456 }
+			
+			变量/表达式作为键（使用方括号）：
+				var key = "name"
+				{ [key]: "Tom" }			// 等价于 { "name": "Tom" }
+				{ ["pre_" + key]: "value" }	// 支持表达式
 	集合：
-		{key1, key2, ...}
+		new set(value, ...)
+		集合使用 new 语法创建，元素自动去重排序
 
 
 
@@ -410,16 +498,441 @@
 		var[-index]						从后向前的索引
 	数组、列表：
 		var[index]						访问元素
-		var[a to b]						截取数组的一部分
-		var[a, b, c, d, ...]			按照索引截取数组的一部分，数组索引会按照顺序重新排列
-	表：
-		var[index]
-		var[~index]						按照通配符匹配，截取表的一部分
-		var[a, b, c, d, ...]			按照索引截取表的一部分
+		var[a to b]						截取一部分
+		var[a, b, c, d, ...]			按照索引截取一部分，索引按顺序重新排列
+	字典：
+		var[key]						访问元素
+		var[~pattern]					按照通配符匹配，截取字典的一部分
+		var[a, b, c, d, ...]			按照键名截取字典的一部分
 
 
 
-异步编程
-	async
-	await
-	Awaitable
+异步编程：
+	支持 async/await 和协程(yield)两种异步模式。
+	
+	async/await 语法：
+		// 定义异步函数
+		async function fetchData(url)
+			var response = await http.get(url)
+			var data = await response.json()
+			return data
+		end
+		
+		// 调用异步函数
+		async function main()
+			var data = await fetchData("http://api.com")
+			print(data)
+		end
+	
+	并发执行：
+		// 等待所有任务完成
+		var results = await parallel(
+			fetchData("url1"),
+			fetchData("url2"),
+			fetchData("url3")
+		)
+		
+		// 等待第一个完成的任务
+		var first = await race(
+			fetchData("url1"),
+			fetchData("url2")
+		)
+	
+	协程（生成器）：
+		// 使用 yield 创建生成器函数
+		function range(n)
+			for i = 0 to n - 1
+				yield i
+			end
+		end
+		
+		// 使用生成器
+		for v in range(10)
+			print(v)
+		end
+	
+	手动控制协程：
+		// 创建协程
+		var co = coroutine(function()
+			print("step 1")
+			yield "result1"
+			print("step 2")
+			yield "result2"
+			return "done"
+		end)
+		
+		// 恢复执行
+		var r1 = resume(co)		// "result1"
+		var r2 = resume(co)		// "result2"
+		var r3 = resume(co)		// "done"
+		
+		// 检查协程状态
+		if co.status == "dead"
+			print("协程已结束")
+		end
+	
+	Awaitable 类型：
+		// 所有 async 函数返回 Awaitable 对象
+		var task = fetchData("url")		// 不加 await，返回 Awaitable
+		// ... 其他代码 ...
+		var data = await task				// 稍后等待结果
+	
+	异常处理：
+		async function riskyTask()
+			try
+				var data = await fetchData("url")
+				return data
+			catch e
+				print("Async error: " + e.message)
+				return null
+			end
+		end
+
+
+
+作用域规则：
+	与 C 语言一致，采用块级作用域：
+	- 全局作用域：在所有函数外部定义的变量
+	- 局部作用域：在函数或代码块内部定义的变量
+	- 内层作用域可以访问外层作用域的变量
+	- 内层定义的同名变量会遮蔽外层变量
+	- 变量在定义它的代码块结束时自动释放
+	
+	示例：
+		int g = 100				// 全局变量
+		
+		function test()
+			int a = 1			// 局部变量
+			if true
+				int b = 2		// 块级局部变量
+				a = a + b		// 可以访问外层的 a
+			end
+			// b 在此处不可访问
+		end
+
+
+
+运算符优先级（从高到低）：
+	与 C 语言一致，并扩展了 xlang 特有运算符：
+	
+	优先级	运算符						说明					结合性
+	1			() [] . -> .? ->?			函数调用、索引、成员访问	左到右
+	2			not ++ -- -(负号) !(位非)	单目运算符				右到左
+	3			**								乘方						右到左
+	4			* / %							乘法、除法、取模			左到右
+	5			+ -								加法、减法				左到右
+	6			<< >>							位移位					左到右
+	7			< <= > >=						关系运算符				左到右
+	8			== != ~=						相等性运算符			左到右
+	9			is in							类型判断、包含判断		左到右
+	10			&								位与						左到右
+	11			^								位异或					左到右
+	12			|								位或						左到右
+	13			and								逻辑与					左到右
+	14			or								逻辑或					左到右
+	15			?:								三目运算符				右到左
+	16			?? ??=							空值合并					右到左
+	17			= += -= *= /= etc.			赋值运算符				右到左
+
+
+
+类型转换：
+	不支持 C 语言风格的隐式类型转换，采用函数转换方式：
+	
+	基础类型转换函数：
+		to_int(value)			// 转换为整数
+		to_float(value)			// 转换为浮点数
+		to_string(value)		// 转换为字符串
+		to_bool(value)			// 转换为布尔值
+		to_time(value)			// 转换为时间
+	
+	容器类型转换：
+		to_array(value)			// 转换为数组
+		to_list(value)			// 转换为列表
+		to_set(value)			// 转换为集合
+		to_dict(value)			// 转换为字典
+	
+	特殊规则：
+		- 指针(point)和整数禁止混用，不提供互转函数
+		- 函数类型不能转换为其他类型
+		- var 类型可以转换为其他任何类型（运行时检查）
+		- class 可以通过 meta to 自定义类型转换规则
+
+
+
+模块系统：
+	文件包含（文本替换，用于头文件）：
+		include "header.xlh"
+		将指定文件的内容直接插入当前位置，类似 C 语言的 #include
+	
+	模块导入：
+		import math					// 导入整个模块，使用 math.sin() 访问
+		import math.sin				// 导入单个成员，可直接使用 sin()
+		import math.sin, math.cos	// 导入多个成员
+		import math as m			// 别名导入，使用 m.sin() 访问
+	
+	模块定义：
+		每个 .xl 文件自动成为一个模块
+		模块名称默认为文件名（不含扩展名）
+		模块内所有定义默认为私有，需要显式导出
+	
+	导出语法：
+		export function foo()
+			// 导出函数
+		end
+		
+		export class Bar
+			// 导出类
+		end
+		
+		export const PI = 3.14159	// 导出常量
+		export var config = {}		// 导出变量
+	
+	模块路径：
+		- 相对路径：import "./utils"
+		- 绝对路径：import "/lib/math"
+		- 标准库：import math（从标准库目录查找）
+	
+	模块初始化：
+		模块可以包含顶层代码，在首次导入时执行
+		模块只会被初始化一次，后续导入使用缓存
+
+
+
+错误处理：
+	支持 try-catch 和错误返回值两种方式。
+	
+	try-catch 语法：
+		try
+			// 可能抛出异常的代码
+			var f = open("file.txt")
+			var data = f.read()
+		catch e
+			// 异常处理，e 为 Error 对象
+			print("Error: " + e.message)
+		finally
+			// 无论是否发生异常都会执行（可选）
+			f.close()
+		end
+	
+	抛出异常：
+		throw Error("Something wrong")			// 抛出 Error 对象
+		throw Error(code: 100, message: "Failed")	// 带错误码
+		throw "Simple message"						// 抛出字符串（自动包装为 Error）
+	
+	Error 内置类型：
+		class Error
+			var code		// 错误码（可选）
+			var message		// 错误消息
+			var stack		// 调用栈信息
+		end
+	
+	错误返回值方式：
+		// 函数返回多个值
+		function divide(a, b)
+			if b == 0
+				return null, "Division by zero"
+			end
+			return a / b, null
+		end
+		
+		// 使用
+		var result, err = divide(10, 0)
+		if err != null
+			print("Error: " + err)
+		else
+			print(result)
+		end
+	
+	错误传播运算符 ?：
+		// 如果函数返回错误，自动向上层传播
+		function wrapper()
+			var data = loadData()?		// 如果 loadData 失败，自动返回错误
+			var result = process(data)?	// 如果 process 失败，自动返回错误
+			return result, null
+		end
+	
+	快速错误检查：
+		// 如果表达式为假，抛出异常
+		assert condition, "Error message"
+		assert x > 0		// 默认错误消息："Assertion failed"
+
+
+
+多线程：
+	支持系统级多线程，利用多核 CPU 并行执行。
+	
+	创建线程：
+		// 创建线程对象
+		var t = thread(function(arg)
+			print("Thread running: " + arg)
+			return "result"
+		end)
+		
+		// 启动线程
+		t.start("hello")
+		
+		// 等待线程结束，获取返回值
+		var result = t.join()
+		
+		// 线程属性
+		t.id			// 线程ID
+		t.status		// "pending" / "running" / "finished" / "error"
+		t.detach()		// 分离线程（不需要 join）
+	
+	简化的 spawn 语法：
+		// 启动并行任务（自动创建线程）
+		var handle = spawn
+			heavyComputation()
+		end
+		
+		// 等待结果
+		var result = await handle
+	
+	互斥锁：
+		var mtx = mutex()
+		
+		mtx.lock()
+		// 临界区代码
+		mtx.unlock()
+		
+		// 自动解锁语法
+		with mtx
+			// 自动 lock/unlock
+			sharedData += 1
+		end
+		
+		// 尝试加锁（非阻塞）
+		if mtx.trylock()
+			// 成功获取锁
+			mtx.unlock()
+		end
+	
+	读写锁：
+		var rwlock = rwmutex()
+		
+		rwlock.rlock()		// 读锁（共享）
+		// 读取共享数据
+		rwlock.runlock()
+		
+		rwlock.wlock()		// 写锁（独占）
+		// 修改共享数据
+		rwlock.wunlock()
+	
+	信号量：
+		var sem = semaphore(5)	// 初始值 5
+		
+		sem.wait()		// P 操作，减 1
+		sem.signal()	// V 操作，加 1
+	
+	条件变量：
+		var cond = condition()
+		var mtx = mutex()
+		
+		// 等待线程
+		with mtx
+			while not ready
+				cond.wait(mtx)
+			end
+		end
+		
+		// 通知线程
+		with mtx
+			ready = true
+			cond.signal()		// 唤醒一个
+			cond.broadcast()	// 唤醒所有
+		end
+	
+	原子操作：
+		var counter = atomic(0)
+		
+		counter.load()			// 读取
+		counter.store(10)		// 存储
+		counter.add(1)			// 原子加
+		counter.sub(1)			// 原子减
+		counter.exchange(20)	// 交换
+		counter.cas(old, new)	// 比较并交换
+
+
+
+通道 (Channel)：
+	线程间通信的推荐方式。
+	
+	创建通道：
+		var ch = channel()			// 无缓冲通道（同步）
+		var ch = channel(10)		// 缓冲通道，容量 10
+	
+	发送和接收：
+		ch.send(value)				// 发送（可能阻塞）
+		var value = ch.recv()		// 接收（可能阻塞）
+	
+	非阻塞操作：
+		var ok = ch.trysend(value)	// 尝试发送
+		var value, ok = ch.tryrecv()	// 尝试接收
+	
+	关闭通道：
+		ch.close()
+	
+	遍历通道（直到关闭）：
+		for msg in ch
+			print(msg)
+		end
+	
+	select 多路复用：
+		select
+			case msg = ch1.recv()
+				print("from ch1: " + msg)
+			case msg = ch2.recv()
+				print("from ch2: " + msg)
+			case ch3.send("hello")
+				print("sent to ch3")
+			default
+				print("no channel ready")
+		end
+
+
+
+线程池：
+	管理一组工作线程，适合大量短任务。
+	
+	创建线程池：
+		var pool = threadpool(4)	// 4 个工作线程
+	
+	提交任务：
+		var future = pool.submit(function(x)
+			return x * x
+		end, 10)
+		
+		// 获取结果
+		var result = future.get()	// 阻塞等待
+		var result = await future	// 异步等待
+	
+	批量执行：
+		var results = pool.map(function(x)
+			return x * x
+		end, [1, 2, 3, 4, 5])
+	
+	关闭线程池：
+		pool.shutdown()			// 等待所有任务完成
+		pool.terminate()		// 立即终止
+
+
+
+协程与线程的配合：
+	// async/await 默认在单线程上运行（异步 I/O）
+	async function fetchAll(urls)
+		var results = []
+		for url in urls
+			var data = await http.get(url)	// 协程切换，不阻塞
+			results.append(data)
+		end
+		return results
+	end
+	
+	// 在线程池上执行 CPU 密集任务
+	async function processData(data)
+		var result = await threadpool.run(function()
+			return heavyComputation(data)
+		end)
+		return result
+	end
