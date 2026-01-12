@@ -1,8 +1,8 @@
 数据类型：
 	原生类型：
-		null								空值
+		null								空值（特殊的类型，不可声明为变量类型，但可以被 var 储存）
 		bool								逻辑
-		int
+		int									整数，int 是 int32 的别名
 			int8							8位有符号整数
 			uint8							8位无符号整数
 			int16							16位有符号整数
@@ -11,42 +11,64 @@
 			uint32							32位无符号整数
 			int64							64位有符号整数
 			uint64							64位无符号整数
-		float
+		float								浮点数，float 是 float32 的别名
 			float32							32位浮点数
 			float64							64位浮点数
 		string								字符串
 		time								时间
-		point								内存指针
+		point								内存指针（**不推荐类型** 用于表示 C 语言的指针、句柄等，和 C 语言交换数据使用）
+		array								数组（固定从 0 开始索引，长度可变的动态数组，索引必须连续）
+		list								列表（int64 索引范围，索引可以是正数或负数，索引可以不连续）
+		set									集合（没有值的哈希表，索引为 var，可以使用任何数据类型做索引）
+		dict								字典（哈希表，使用字符串做索引）
 		function
 			xcall							xLang Call（通过数据结构传递参数）
+			cdecl							cdecl
 			stdcall							Stdcall
-			cdecl							C Call
-		array								数组
-		list								列表
-		set									集合
-		dict								字典
-		class								类或对象类（对象类支持自定义字段、元编程）
-		custom								自定义类型（使用 类型名$方函数名 扩展操作）
-	其他类型：
-		var									变体类型，支持的类型如下（int 和 float 支持 64 位）：
+			fastcall						fastcall
+		class								类或对象类（继承自 object 的类即对象类，对象类支持自定义字段、元编程）
+		custom								自定义类型（和 class 类似，class 由 xlang 管理内存，custom 的类型主体是一个指针，由开发者自行管理数据，支持类成员函数、构造析构和元编程）
+	变体类型：
+		var									支持所有原生类型，int 和 float 只能表示 64 位精度
 			null
 			bool
-			int64
-			float64
+			int
+			float
 			string
 			time
 			point
-			function
 			array
 			list
 			set
 			dict
+			function
 			class
 			custom
-		struct								仅能用于 class 语句内
-		union								仅能用于 class 语句内
-	暂不支持的类型（预留设计空间，未来要支出）：
-		carray
+	自定义类型：
+		使用 class 语句自定义的数据结构或 custom 构建的自定义类（其他语言可以通过 custom 协议将任意函数组合封装成自定义类型，便于其他语言与 xlang 集成）
+	内置自定义类：
+		暂无，语言实现后，在基础运行库阶段开发补充
+	特殊类型：
+		range								一种特殊的数组， rang is array 返回 true，但不包含实际数据
+			range 构建语句（step 和后面的步长参数为可选语句）：
+			var r = 1 to 10 step 2
+		type								特殊类型，可以表示数据类型（用于特殊情况需要对数据类型做处理时使用）
+			var a = 1
+			type b = type(a)
+			if b == int
+				print("a 为 int 类型")
+			else
+				print("a 不为 int 类型")
+			end
+		auto								根据赋值的数据类型，自动推测变量类型（按最大存储范围推测，例如 int 自动推测为 int64）
+		void								兼容 C 语言无返回值的数据类型
+		object								特殊的继承类，当 class 继承自 object 时，自动转变为对象类
+	副类型或类成员：
+		enum								枚举类型，本质上是基础类型的枚举值
+	暂不支持的类型（未来计划）
+		carray								与 C 语言 array 进行数据交换的 **不推荐类型**
+		union								联合体，在 class 语句内使用（class本身就是结构体了）
+		bitField							位域，与 C 语言兼容
 		complex
 			complex32						32位实数 + 32位虚数
 			complex64						64位实数 + 64位虚数
@@ -59,6 +81,197 @@
 		float
 			float128	（longdouble）		128位浮点数
 			bignum							大数类型（可表示无限长度的数字）
+		array<int>							限制复合类型的成员类型（未来可能支持这种写法）
+
+
+
+数组与列表的区别：
+	特性				数组 (array)			列表 (list)
+	底层实现			连续内存				AVL 树
+	索引范围			0 开始，必须连续		int64 任意整数
+	稀疏存储			不支持				支持
+	随机访问性能		O(1)				O(log n)
+	插入/删除性能		O(n)				O(log n)
+	内存占用			较小					较大
+	适用场景			紧凑、顺序数据		稀疏、灵活索引
+
+
+
+立即值（字面量）表示：
+	十进制整数：
+		数字直接表示
+		可以使用下划线做数字分隔符，提升可读性
+	八进制整数：
+		&O数字表示
+		&o数字表示
+		不支持C语言0开头的表示方法，这种表示方法歧义过大
+	十六进制整数：
+		0x数字表示
+		&H数字表示
+		&h数字表示
+	二进制整数：
+		0b数字表示
+		&B数字表示
+		&b数字表示
+	浮点数：
+		正常表示，可使用科学计数法
+	null：
+		null
+	逻辑值：
+		true、false
+	字符串：
+		"文字内容，支持转义符"
+		'文字内容，不支持转义符'
+		"""多行字符串，支持换行回车，支持转义符"""
+		'''多行字符串，支持换行回车，不支持转义符'''
+	模板字符串（使用 xrt 的模板引擎）：
+		`hello {$varname}`
+		```
+			多行模板字符串 {$代入变量}
+		```
+	时间(ISO 8601)：
+		#2000-01-01
+		#12:00:00
+		#2000-01-01T12:00:00
+		#2000-01-01T12:00:00+08:00
+	数组：
+		[value, ...]			// 构建数组
+		new array()				// 创建空数组
+	列表：
+		[key:value, ...]		// 构建列表，key 为 int64 类型
+		[]						// 创建空列表
+		new list()				// 创建空列表
+	集合：
+		{value, ...}			// 构建集合
+		new set()				// 创建空集合
+	字典：
+		{key:value, ...}		// 构建字典，key 为 string 类型
+		{}						// 创建空字典
+		new dict()				// 创建空字典
+		键名解析规则：
+			裸标识符作为字面量键名：
+				{ name: "Tom", age: 25 }				// 等价于 { "name": "Tom", "age": 25 }
+			显式字符串键（支持特殊字符）：
+				{ "my-key": 123, "带空格的键": 456 }
+			变量/表达式作为键（使用方括号）：
+				var key = "name"
+				{ [key]: "Tom" }						// 等价于 { "name": "Tom" }
+				{ ["pre_" + key]: "value" }				// 支持表达式
+
+
+
+索引：
+	数组专有：
+		var[-index]						从后向前的索引
+	数组、列表：
+		var[index]						访问元素
+		var[a to b]						截取一部分
+		var[a, b, c, d, ...]			按照索引截取一部分，索引按顺序重新排列
+	字典：
+		var[key]						访问元素
+		var[~pattern]					按照通配符匹配，截取字典的一部分
+		var[a, b, c, d, ...]			按照键名截取字典的一部分
+
+
+
+作用域规则：
+	与 C 语言一致，采用块级作用域：
+	- 全局作用域：在所有函数外部定义的变量
+	- 局部作用域：在函数或代码块内部定义的变量
+	- 内层作用域可以访问外层作用域的变量
+	- 内层定义的同名变量会遮蔽外层变量
+	- 变量在定义它的代码块结束时自动释放
+	
+	示例：
+		int g = 100				// 全局变量
+		
+		function test()
+			int a = 1			// 局部变量
+			if true
+				int b = 2		// 块级局部变量
+				a = a + b		// 可以访问外层的 a
+			end
+			// b 在此处不可访问
+		end
+
+
+
+类型转换：
+	不支持 C 语言风格的隐式类型转换，使用类型名作为转换函数：
+	
+	基础类型转换：
+		int(value)				// 转换为整数
+		int8(value)				// 转换为 int8
+		uint32(value)			// 转换为 uint32
+		float(value)			// 转换为浮点数
+		float64(value)			// 转换为 float64
+		string(value)			// 转换为字符串
+		bool(value)				// 转换为布尔值
+		time(value)				// 转换为时间
+	
+	容器类型转换：
+		array(value)			// 转换为数组
+		list(value)				// 转换为列表
+		set(value)				// 转换为集合
+		dict(value)				// 转换为字典
+	
+	自定义类型转换（通过元方法）：
+	class 需要定义 meta to 元方法才能转换为特定基础类型（可以抛出异常）：
+		class Distance
+			private float fMeters
+			
+			// 构造函数
+			create(float val)
+				fMeters = val
+			end
+			
+			// 请求将类型转换为特定类型
+			meta to(type t)
+				if t == float
+					// 转换为 float
+					return self.fMeters
+				elseif t == string
+					// 转换为 string
+					return `{$self.fMeters}`
+				else
+					return null
+				end
+			end
+			
+			// 支持从 float 转入
+			meta from(type t, var val)
+				// 支持从 float 转入
+				if t == float
+					self.fMeters = val
+				else
+					self.fMeters = 0.0
+				end
+			end
+		end
+		
+		// 使用
+		var d = new Distance(100)
+		var f = float(d)			// 调用 meta to(float)
+		var s = string(d)			// 调用 meta to(string)
+		var d2 = Distance(50.5)		// 调用 meta from(float, 50.5)
+	
+	如果两种类型分别实现了对各自的 to 和 from 元方法，按照以下方式设定优先级：
+		目标类型的 from 方法 > 源类型的 to 方法
+	
+	内置类型转换规则：
+		由于 null 不可声明为变量类型，所以任何类型都不能转换为 null
+		bool：数字 0 为 false，其他值为 true（浮点数也是）；字符串空返回 false，其他值为 true；null 为 false，其他值为 true
+		int：null 为 0；true 为 1；false 为 0；数字和浮点数可以互相转换可能损时精度；字符串可以转换为数字；
+		float：null 为 0.0；true 为 1.0；false 为 0.0；数字和浮点数可以互相转换可能损时精度；字符串可以转换为数字；
+		string：null 为 ""；true 为 "true"；false 为 "false"；数字、时间、指针、数组、列表、集合、字典、类、对象类都可以转换为字符串（以各个类型的表达方式展示）。
+		time：只能和 int64、string 相互转换
+		point：只能和整数类型相互转换，或转换为字符串
+		array：可以转换为列表，可以和 set 互相转换（但可能丢失排序），可以转换为字符串			// 可以通过特定函数，将 list 和 dict 的 key、val 转换为 array
+		list：可以从 array 转换，可以转换为字符串
+		set：可以和 array 相互转换（但可能丢失排序），可以转换为字符串
+		dict：可以转换为字符串
+		function：不可以和任何类型相互转换（包括 point，因为 point 不包含调用信息）
+		class 和 custom 只能根据 to 和 from 元方法决定能够转换为哪些数据类型
 
 
 
@@ -97,28 +310,58 @@
 	/=				除后赋值
 	%=				取模后赋值
 	**=				乘方后赋值
-	&=				位与后赋值
-	|=				位或后赋值
-	^=				位异或后赋值
-	<<=				左移后赋值
-	>>=				右移后赋值
 	++				自增
 	--				自减
 	
-	-				负号运算符
+	-				负号
+	
 	exp ? a : b		三目运算符
 	
 	??				null 缺省运算符（前值不存在则返回后值）		var a = b["asd"] ?? "找不到"
-	??=				为空则赋值									a ??= "找不到"
+	?=				为空则赋值									a ?= "找不到"
 	
-	.				类调用、命名空间调用、结构体调用
-	->				指针调用
-	.?				安全调用，如果对应成员属性或函数不存在，则返回 null
-	->?				指针安全调用
-	[?(param)]		安全调用，如果对应成员属性或函数不存在，则返回 null
+	.				类成员访问、命名空间成员访问：
+					obj.v = obj.foo(param)
+	.?				安全访问，如果对应成员属性或函数不存在，则返回 null，不能用于左值（只能读取和调用，不能用于写入）
+					obj.v = obj.?foo(param)				// 如果 obj 对象存在 foo 函数则调用函数，否则返回 null（foo 不是函数名也返回 null）
+	.?:				安全访问，如果对应成员属性或函数不存在，则返回指定值，不能用于左值（只能读取和调用，不能用于写入）
+					obj.v = obj.?foo(param) : 1			// 如果 obj 对象存在 foo 函数则调用函数，否则返回 1（foo 不是函数名也返回 null）
+	[]				动态成员访问，例如字符串、数组、列表、集合、字典、对象类等，含有动态成员的数据结构
+					obj["v"] = obj[name](param)
+	[?]				安全访问，如果对应成员属性或函数不存在，则返回 null，不能用于左值（只能读取和调用，不能用于写入），支持字典、列表、对象
+					obj["v"] = obj[?name](param)		// 如果 obj 对象存在 name 变量内容表示的函数则调用，否则返回 null（name 指向的不是函数名也返回 null）
+	[?]:			安全访问，如果对应成员属性或函数不存在，则返回指定值，不能用于左值（只能读取和调用，不能用于写入）
+					obj["v"] = obj[?name](param) : 1	// 如果 obj 对象存在 name 变量内容表示的函数则调用，否则返回 1（name 指向的不是函数名也返回 1）
 	
-	is				变量是否是某一数据类型
-	in				判断是否包含在集合、列表、字典、对象内，字典和对象判断key，列表和数组判断val
+	is				变量是否是某一数据类型，例如 : var a = "" is string   // 返回 true
+	in				判断元素是否包含在数组、列表、集合、字典、对象类、范围对象内，数组和范围判断值，列表、集合、字典和对象类判断key
+	to				构建 range，range 是一种虚拟数组，类型为数组，可以遍历，访问，但只存储构建参数，不存储实际数据，例如：var r = 1 to 10 step 2		// [1, 3, 5, 7, 9]
+	
+	()				优先级运算符，括号里的先计算
+
+
+
+运算符优先级（从高到低）：
+	与 C 语言一致，扩展了 xlang 特有运算符：
+	
+	优先级		运算符						说明								结合性
+	1			() . .? .?: [] [?] [?]:		函数调用、索引、成员访问			左到右
+	2			not ++ -- -(负号) !(位非)	单目运算符						右到左
+	3			**							乘方								右到左
+	4			* / %						乘法、除法、取模					左到右
+	5			+ -							加法、减法						左到右
+	6			<< >>						位移位							左到右
+	7			< <= > >=					关系运算符						左到右
+	8			== != ~=					相等性运算符						左到右
+	9			is in to					类型判断、包含判断、构建range		左到右
+	10			&							位与								左到右
+	11			^							位异或							左到右
+	12			|							位或								左到右
+	13			and							逻辑与							左到右
+	14			or							逻辑或							左到右
+	15			?:							三目运算符						右到左
+	16			?? ??=						空值合并							右到左
+	17			= += -= *= /= %= **=		赋值运算符						右到左
 
 
 
@@ -139,6 +382,8 @@
 			int a = 0
 			int b = 1
 			int c = 2
+	多返回值写法(编译阶段会检查函数定义，只有定义了多返回值的函数，才能使用这种写法)：
+		int (a, b) = foo()
 	定义多个变量可以赋初值，也可以使用默认值：
 		int a, b = 1, c, d = 2, e
 		相当于
@@ -149,7 +394,7 @@
 			int e
 	可以使用自动类型，根据值推测出对应的静态类型：
 		auto a = 1
-		a 为 int 类型
+		a 为 int64 类型
 	可以定义变体类型变量：
 		var a = 1
 		a = "asd"
@@ -161,8 +406,6 @@
 		set a = new set(1, 2, 3)		// 创建集合
 		dict a = {a:1, b:2, c:3, "  中文":4}	// 字典字面量
 		var a = {}						// 空字典
-		使用 [...] 表示的列表成员值默认为 var
-		使用 {...} 表示的字典成员值默认为 var
 		空数组使用 new array() 创建
 		空集合使用 new set() 创建
 	可以使用 new 语句创建对象（包含class、object或内置基础类型）
@@ -176,9 +419,7 @@
 	常量定义只需要在变量定义的基础上前面加个 const：
 		const int a = 1
 	常量定义必须赋值，定义后不可修改
-	常量定义赋初值时，可以代入表达式，但表达式中不允许出现变量
-	
-	!!! WAR !!! 常量类型限定规则待补充
+	常量定义赋初值时，可以代入表达式，但表达式中只能出现常量和立即值（字面量）
 
 
 
@@ -195,9 +436,10 @@
 
 
 条件选择（使用 if 语句实现 select 语句的优势功能，不额外增加 select 语句）：
-	if exp in A, B, C then code line
+	if exp in [A, B, C] then code line
 	if exp in 1 to 10 then code line
-	if exp in A, B, C
+	if exp in 1 to 10 step 2 then code line			// 相当于 exp in [1, 3, 5, 7, 9]
+	if exp in [A, B, C]
 		code block
 	elseif exp in 1 to 10
 		code block
@@ -205,28 +447,17 @@
 		code block
 	end
 	
-	!!! 注意 !!!
-	这里的 in 和 to 是一种特殊语法糖，仅存在于 if 和 do while 语句的条件表达式中。
-	语法糖仅在 in 后面有多个值时生效：
-		if exp in A, B, C			// 语法糖，in 后有多个值
-		if exp in 1 to 10			// 语法糖，使用 to 表示范围
-		if exp in [1, 2, 3]			// 运算符，in 后是单个列表表达式
-	编译时将展开为标准的比较表达式：
-		if exp in A, B, C
+	当 exp in array 为立即值（字面量）编译时将展开为标准的比较表达式：
+		if exp in [A, B, C]
 		展开为：if (exp == A) or (exp == B) or (exp == C)
-		
+	
+	当 exp in 1 to 10 编译时，将展开为范围比较表达式：
 		if exp in 1 to 10
 		展开为：if (exp >= 1) and (exp <= 10)
 	
-	此语法糖不可用于其他上下文（如普通表达式、赋值语句等）。
-	当 in 后面是单个表达式时，使用运算符章节中的 in 运算符语义（判断是否包含在集合、列表、字典、对象内）。
-
-
-
-计次循环：
-	for i = 1 to 10[ step x]
-		code block
-	end
+	当 exp in 1 to 10 step 编译时，将展开为范围比较表达式 + 条件判断：
+		if exp in 1 to 10 step 2
+		展开为：if (exp >= 1) and (exp <= 10) and ((exp - 1) % 2 == 0)
 
 
 
@@ -236,6 +467,7 @@
 	end
 	
 	支持遍历的类型：
+	
 	列表（list）：
 		for v in lst				// 遍历值
 		for i, v in lst				// 遍历索引和值
@@ -249,41 +481,41 @@
 		for v in setObj				// 遍历元素（自动去重排序）
 	字符串（string）：
 		for ch in str				// 遍历字符，ch 为 int32 类型（UTF-32 字符代码）
-	对象类（class : object）：
+	对象类（class or object）：
 		for k, v in obj				// 遍历对象的所有属性
+		for k in obj				// 遍历对象的所有键
+	
+	也可以实现计次循环（range 也可以遍历）：
+	
+	for i in 1 to 10
+		code block
+	end
+	for i in 1 to 10 step 2
+		code block
+	end
 
 
 
 条件循环：
 	// 前置条件检查
-	while exp
+	while exp do
 		code block
-	end
-	支持 in 和 to 语法糖，例如：
-	while exp in A, B, C
-	end
-	展开为：
-	while (exp == A) or (exp == B) or (exp == C)
 	end
 	
 	// 后置条件检查（至少执行一次）
 	do
 		code block
-	while exp
-	支持 in 和 to 语法糖，例如：
-	do
-	while exp in A, B, C
-	展开为：
-	do
-	while (exp == A) or (exp == B) or (exp == C)
+	while exp end
+	
+	和 if 语句一样，支持对 in、to 语句的展开优化
 
 
 
 循环跳出：
-	break				只跳出当前循环，相当于 break(1)
-	break(2)			跳出当前循环后，再立刻跳出外层循环一次
-	continue			跳过本轮循环
-	continue(2)			跳过两轮循环
+	break				只跳出当前循环，相当于 break 1
+	break 2				跳出当前循环后，再立刻跳出外层循环一次
+	continue			跳过本轮循环，相当于 continue 1
+	continue 2			跳过两轮循环
 
 
 
@@ -295,20 +527,20 @@
 	with 语句用于自动管理资源，在代码块结束时自动释放/清理资源。
 	
 	互斥锁自动加锁/解锁：
-		var mtx = mutex()
+		mutex mtx = new mutex()
 		with mtx
 			// 自动加锁，块结束时自动解锁
 			sharedData += 1
 		end
 	
 	带变量声明的 with 语句：
-		with var hFile = open("test.txt", "r")
+		with open("test.txt", "r") as hFile
 			// 文件在块结束时自动关闭
 			var sContent = hFile.read()
 		end
 	
 	多资源管理（用逗号分隔）：
-		with var hSrc = open(sSrc, "r"), var hDst = open(sDst, "w")
+		with open(sSrc, "r") as hSrc, open(sDst, "w") as hDst
 			hDst.write(hSrc.read())
 		end
 		// 两个文件都自动关闭
@@ -319,12 +551,12 @@
 	实现原理：
 	with 语句在编译时展开为 try-finally 结构：
 		// 源代码
-		with var hFile = open("test.txt", "r")
+		with open("test.txt", "r") as hFile
 			var sContent = hFile.read()
 		end
 		
 		// 展开为
-		var hFile = open("test.txt", "r")
+		file hFile = open("test.txt", "r")
 		hFile.__enter__()		// 调用 meta enter
 		try
 			var sContent = hFile.read()
@@ -334,7 +566,7 @@
 	
 	资源管理协议：
 	自定义类型通过实现 meta enter 和 meta exit 支持 with 语句：
-		class MyResource : object
+		class MyResource extends object
 			meta enter()
 				// 获取资源，进入 with 块时调用
 			end
@@ -344,16 +576,14 @@
 		end
 	
 	内置类型的默认行为：
-		类型				enter 行为			exit 行为
+		类型					enter 行为			exit 行为
 		mutex				lock()				unlock()
-		rwmutex(读)			rlock()				runlock()
-		rwmutex(写)			wlock()				wunlock()
-		file				(已打开)			close()
-		数据库连接			(已连接)			disconnect()
-		自定义类			meta enter()		meta exit()
+		file				(已打开)				close()
+		数据库连接			(已连接)				disconnect()
+		自定义类				meta enter()		meta exit()
 	
 	多资源处理顺序：
-		with var a = res1(), var b = res2(), var c = res3()
+		with res1() as a, res2() as b, res3() as c
 			// code
 		end
 		// 获取顺序：a -> b -> c
@@ -362,62 +592,72 @@
 
 
 函数定义：
+	
+	// 默认返回值（返回 var 类型，默认为 null）
 	function name(params)
+		return				// 缺省返回 null
+	end
+	
+	// 设置返回值类型
+	function name(params) as int
+		return 0
+	end
+	
+	// 多返回值
+	function name(params) as int, string
+		return 0, "text"
+	end
+	
+	// 无返回值（兼容 C 语言）
+	function name(params) as void
+		return				// 退出函数，无返回值
+	end
+
+
+
+函数参数类型声明：
+	参数可以声明数据类型，也可以不声明（不声明则为 var 类型）：
+	
+	// 带类型声明的参数
+	function add(int a, int b)
+		return a + b
+	end
+	
+	// 不带类型声明的参数（参数默认使用 var 数据类型）
+	function process(a, b, c)
+		return a + b + c
+	end
+	
+	// 混合使用（未声明类型的参数使用 var 数据类型）
+	function format(string sName, age, city)
+		return `{$sName}, {$age}岁, 来自{$city}`
+	end
+
+
+
+函数调用约定
+	函数默认使用 xcall 调用约定，可以在 function 关键字前添加调用约定关键字
+	cdecl、Stdcall、fastcall 为 ABI 兼容其他语言函数调用使用，并不支持所有 xlang 语言特性。
+	
+	// xLang Call（默认）
+	xcall function name(params)
 		code block
 	end
 	
-	参数类型声明：
-	参数可以声明数据类型，也可以不声明（不声明则为 var 类型）：
-		// 带类型声明的参数
-		function add(int a, int b)
-			return a + b
-		end
-		
-		// 不带类型声明的参数（默认为 var，仅 xcall 支持）
-		function process(a, b, c)
-			return a + b + c
-		end
-		
-		// 混合使用（仅 xcall 支持）
-		function format(string sName, age, city)
-			return `{$sName}, {$age}岁, 来自{$city}`
-		end
+	// C Call
+	cdecl function name(params)
+		code block
+	end
 	
-	注意：cdecl 和 stdcall 调用约定的参数必须声明数据类型，因为需要与 C 语言 ABI 兼容。
+	// Stdcall
+	stdcall function name(params)
+		code block
+	end
 	
-	调用约定：
-	函数默认使用 xcall 调用约定（通过数据结构传递参数）
-	可以在 function 关键字前添加调用约定关键字：
-		xcall function name(params)		// xLang Call（默认）
-			code block
-		end
-		cdecl function name(params)		// C Call
-			code block
-		end
-		stdcall function name(params)	// Stdcall
-			code block
-		end
-		fastcall function name(params)	// fastcall
-			code block
-		end
-
-
-
-外部函数声明（extern）：
-	用于声明来自外部库的函数，不包含函数体。
-	
-	单个外部函数声明：
-		extern cdecl function printf(string sFormat, ...)
-		extern stdcall function MessageBoxA(int hWnd, string sText, string sCaption, int uType)
-	
-	DLL 导入（批量声明）：
-		extern "user32.dll" {
-			stdcall function MessageBoxW(int hWnd, string sText, string sCaption, int uType) as MessageBox
-			stdcall function GetSystemMetrics(int nIndex)
-		}
-	
-	使用 as 关键字可以为导入的函数指定别名。
-	extern 声明的函数必须指定调用约定（cdecl/stdcall/fastcall）。
+	// fastcall
+	fastcall function name(params)
+		code block
+	end
 
 
 
@@ -430,43 +670,51 @@
 
 
 函数可变参数：
+	
+	// 数组可变参数（仅 xcall 支持）
 	function name(a, ...)
-		code block
+		print(arg)				// 输出数组
 	end
 	使用 ... 表示数组型可变参数，使用可变参数的函数，内部会自动生成 arg 参数，表示可变参数数组
 	
+	// 字典可变参数（仅 xcall 支持）
 	function name(a, ***)
-		code block
+		print(arg)				// 输出字典
 	end
 	使用 *** 表示字典型可变参数，使用可变参数的函数，内部会自动生成 arg 参数，表示可变参数字典
+	
+	导入 xlang 环境的 cdecl 函数可以支持 ... 可变参数调用（但需要注意数据类型，xlang 不会进行类型转换，数据类型传递不正确可能导致程序崩溃）
 
 
 
 函数返回值写法：
-	return x
-	return				无返回值，直接退出函数
+	return						// 无返回值或返回 null
+	return x					// 单个返回值
+	return x, y, z				// 多返回值
 	
-	返回值类型声明：
-	默认不声明返回值类型时，返回值为 var 类型：
-		function add(int a, int b)
-			return a + b		// 返回值为 var 类型
-		end
+	// 默认不声明返回值类型时，返回值为 var 类型：
+	function add(int a, int b)
+		return a + b		// 返回值为 var 类型
+	end
 	
-	类型前置声明，明确指定返回类型：
-		int function multiply(int a, int b)
-			return a * b		// 返回值为 int 类型
-		end
+	// 声明类型，明确指定返回类型：
+	function multiply(int a, int b) as int
+		return a * b		// 返回值为 int 类型
+	end
 	
-	多返回值（仅 xcall 调用约定支持）：
-		function divmod(int a, int b)
-			return a / b, a % b		// 返回两个值
-		end
-		
-		// 接收多返回值
-		int iQuotient, iRemainder = divmod(17, 5)
-		
-		// 也可以只接收部分返回值
-		int iQuotient = divmod(17, 5)		// 只接收第一个
+	// 多返回值（仅 xcall 调用约定支持）：
+	function divmod(int a, int b) as int, int
+		return a / b, a % b		// 返回两个值
+	end
+	
+	// 接收多返回值（使用括号接收多个返回值时，必须接收全部返回值，编译器会进行参数数量和类型检查[可使用 auto 类型接收]，会报类型不匹配错误）
+	int (iQuotient, iRemainder) = divmod(17, 5)
+	
+	// 多个返回值类型不同是，可以使用 auto 关键字接收多返回值
+	auto (iQuotient, iRemainder) = divmod(17, 5)
+	
+	// 也可以只接收第一个返回值，编译器自动丢弃其他返回值数据
+	int iQuotient = divmod(17, 5)		// 只接收第一个返回值
 	
 	注意：cdecl 和 stdcall 调用约定不支持多返回值，因为它们需要与 C 语言 ABI 兼容。
 
@@ -474,26 +722,43 @@
 
 命名参数：
 	函数调用时可以使用命名参数，提高可读性：
-		function createPerson(string sName, int iAge, string sCity)
-			// ...
-		end
-		
-		// 使用命名参数调用
-		createPerson(sName: "张三", iAge: 25, sCity: "北京")
-		
-		// 命名参数可以打乱顺序
-		createPerson(sCity: "北京", sName: "张三", iAge: 25)
-		
-		// 混合使用（位置参数必须在前）
-		createPerson("张三", iAge: 25, sCity: "北京")
 	
-	注意：命名参数仅在 xcall 调用约定下支持。
+	function createPerson(string sName, int iAge, string sCity)
+		// ...
+	end
+	
+	// 使用命名参数调用
+	createPerson(sName: "张三", iAge: 25, sCity: "北京")
+	
+	// 命名参数可以打乱顺序
+	createPerson(sCity: "北京", sName: "张三", iAge: 25)
+	
+	// 混合使用（位置参数必须在前）
+	createPerson("张三", iAge: 25, sCity: "北京")
+
+
+
+外部函数声明（extern）：
+	用于声明来自外部库的函数，不包含函数体。
+	
+	// 单个外部函数声明
+	extern cdecl function printf(string sFormat, ...) as string
+	extern stdcall function MessageBoxA(int hWnd, string sText, string sCaption, int uType) as int32 alias msgbox
+	
+	// DLL 导入（批量声明）：
+	extern "user32.dll"
+		stdcall function MessageBoxW(int hWnd, string sText, string sCaption, int uType) as int32
+		stdcall function GetSystemMetrics(int nIndex) as int32
+	end
+	
+	使用 alias 关键字可以为导入的函数指定别名。
+	extern 声明的函数必须指定调用约定（xcall/cdecl/stdcall/fastcall）。
 
 
 
 枚举类型：
 	enum name
-		VALUE1
+		VALUE1			// 默认为 0
 		VALUE2 = 10
 		VALUE3			// 自动为 11
 	end
@@ -510,14 +775,14 @@
 			print("绿色")
 		end
 	
-	指定底层类型：
-		enum Status : int8			// 使用 int8 存储
+	指定底层类型（不指定则默认为 int）：
+		enum Status as int8			// 使用 int8 存储
 			OK = 0
 			ERROR = -1
 		end
 	
 	字符串枚举：
-		enum HttpMethod : string
+		enum HttpMethod as string
 			GET = "GET"
 			POST = "POST"
 			PUT = "PUT"
@@ -541,7 +806,7 @@
 
 
 类定义：
-	class name[ : parent]
+	class name[ extends parent]
 		create(param)
 			// 构造
 		end
@@ -555,7 +820,7 @@
 	对象代码块内，可使用 self 代表对象自身
 	
 	成员可见性：
-	使用 public、private、protected 关键字控制成员的访问权限：
+	使用 public、private、protected 关键字控制成员的访问权限（成员变量、成员函数、属性、共用体都可以使用）：
 		public				公开，任何地方都可以访问（默认）
 		private				私有，仅类内部可以访问
 		protected			受保护，类内部和子类可以访问
@@ -583,15 +848,20 @@
 		- 成员在编译时确定，不能动态添加
 		- 访问不存在的成员会报错
 		- 内存布局固定，效率更高
+		- 元编程支持有限
 	
-	class : object（对象类）：
+	class extends object（对象类）：
 		- 具备字典特性，可动态添加/删除属性
 		- 可使用 obj["key"] = value 语法设置任意属性
-		- 可使用 for k, v in obj 遍历所有属性
-		- 支持元编程（meta 函数）
+		- 可使用 for k, v in obj 遍历所有动态添加的属性
+		- 支持更多元编程特性（meta 函数）
 		- 适合动态数据处理场景
 	
-	class name : object
+	类语句内可以使用共用体（兼容 C 语言，可以使用 public、private、protected 关键字控制访问权限）：
+	class name extends object
+		union name
+			// 共用体
+		end
 		create(param)
 			// 构造
 		end
@@ -601,22 +871,7 @@
 		body
 	end
 	
-	类语句内可以使用结构体和共用体：
-	class name : object
-		create(param)
-			// 构造
-		end
-		destroy()
-			// 析构
-		end
-		struct name
-			// 结构体
-		end
-		union
-			// 共用体
-		end
-		body
-	end
+	类定义的成员不能使用相同的名字（get、set算一个成员），包括成员变量、属性、共用体成员
 
 
 
@@ -630,6 +885,14 @@
 	可以在结构域外定义，name 改为 class.name 即可：
 	function class.name()
 		block code
+	end
+	
+	构造函数也可以在结构域外定义：
+	create className(param)
+		// 构造
+	end
+	destroy className()
+		// 析构
 	end
 
 
@@ -647,7 +910,7 @@
 	同一名称的属性，参数数量只能差一个，set 比 get 多一个参数，在最后面，代表设置的新值
 	可以在结构域外定义，name 改为 class.name 即可
 	
-	属性可以传递多个参数，第二个参数开始，为索引参数：
+	属性可以传递多个参数，第二个参数开始，为索引参数，若存在同名的 get 和 set，set 的参数数量必须 = get 参数数量 + 1，且额外参数必须在末尾，否则直接报错。：
 	class name
 		get name(param, idx)
 			block code
@@ -655,6 +918,14 @@
 		set name(param, idx, val)
 			block code
 		end
+	end
+	
+	也可以在结构域外定义，name 改为 class.name 即可：
+	get class.name(param, idx)
+		block code
+	end
+	set class.name(param, idx, val)
+		block code
 	end
 
 
@@ -665,322 +936,14 @@
 	end
 	meta 代表实现一个元语言方法
 	支持的元方法列表：
-		set：设置了一个未知的成员值
-		get：读取了一个未知的成员值
-		call：调用了一个未知的函数
+		set：设置了一个未知的成员值（仅支持对象类）
+		get：读取了一个未知的成员值（仅支持对象类）
+		call：调用了一个未知的函数（仅支持对象类）
 		callself：调用了本身
-		to(type)：转换为指定类型，如 meta to(int)、meta to(string)
-		from(type)：从指定类型转入，如 meta from(float)、meta from(string)
+		to(type)：转换为指定类型
+		from(type, val)：从指定类型转入
 		enter：进入 with 语句块时调用（资源获取）
 		exit：退出 with 语句块时调用（资源释放，包括异常情况）
-
-
-
-立即值表示：
-	十进制整数：
-		数字直接表示
-	八进制整数：
-		&O数字表示
-		不支持C语言0开头的表示方法，歧义过大
-	十六进制整数：
-		0x数字表示
-		&H数字表示
-	二进制整数：
-		0b数字表示
-		&B数字表示
-	浮点数：
-		正常表示，可使用科学计数法
-	逻辑值：
-		true、false
-	字符串：
-		"文字内容，支持换行回车，支持转义符"
-		'文字内容，支持换行回车，支持转义符'
-		'''多行字符串'''
-		"""多行字符串"""
-	模板字符串：
-		`hello {$varname}`
-		```
-			多行模板字符串
-		```
-	数组：
-		new array(value, ...)
-		数组使用 new 语法创建，下标从 0 开始
-		数组基于连续内存实现，索引必须从 0 开始且连续，性能高
-	列表：
-		[key:value, ...]
-		列表使用中括号表示，key 为 int64 类型
-		[] 表示空列表
-		列表基于 AVL 树实现，支持稀疏存储，索引可为 int64 范围内的任意整数
-	
-	数组与列表的区别：
-		特性				数组 (array)			列表 (list)
-		底层实现			连续内存				AVL 树
-		索引范围			0 开始，必须连续		int64 任意整数
-		稀疏存储			不支持				支持
-		随机访问性能		O(1)					O(log n)
-		插入/删除性能		O(n)					O(log n)
-		内存占用			较小					较大
-		适用场景			紧凑、顺序数据		稀疏、灵活索引
-	字典：
-		{key:value, ...}
-		字典使用花括号表示，key 为字符串类型
-		{} 表示空字典
-		
-		键名解析规则：
-			裸标识符作为字面量键名：
-				{ name: "Tom", age: 25 }
-				// 等价于 { "name": "Tom", "age": 25 }
-			
-			显式字符串键（支持特殊字符）：
-				{ "my-key": 123, "带空格的键": 456 }
-			
-			变量/表达式作为键（使用方括号）：
-				var key = "name"
-				{ [key]: "Tom" }			// 等价于 { "name": "Tom" }
-				{ ["pre_" + key]: "value" }	// 支持表达式
-	集合：
-		new set(value, ...)
-		集合使用 new 语法创建，元素自动去重排序
-
-
-
-索引：
-	数组专有：
-		var[-index]						从后向前的索引
-	数组、列表：
-		var[index]						访问元素
-		var[a to b]						截取一部分
-		var[a, b, c, d, ...]			按照索引截取一部分，索引按顺序重新排列
-	字典：
-		var[key]						访问元素
-		var[~pattern]					按照通配符匹配，截取字典的一部分
-		var[a, b, c, d, ...]			按照键名截取字典的一部分
-
-
-
-异步编程：
-	支持 async/await 和协程(yield)两种异步模式。
-	
-	async/await 语法：
-		// 定义异步函数
-		async function fetchData(url)
-			var response = await http.get(url)
-			var data = await response.json()
-			return data
-		end
-		
-		// 带返回类型的异步函数（async 在最前面）
-		async string function fetchText(url)
-			var response = await http.get(url)
-			return response.text()
-		end
-		
-		// 调用异步函数
-		async function main()
-			var data = await fetchData("http://api.com")
-			print(data)
-		end
-	
-	并发执行：
-		// 等待所有任务完成
-		var results = await parallel(
-			fetchData("url1"),
-			fetchData("url2"),
-			fetchData("url3")
-		)
-		
-		// 等待第一个完成的任务
-		var first = await race(
-			fetchData("url1"),
-			fetchData("url2")
-		)
-	
-	协程（生成器）：
-		// 使用 yield 创建生成器函数
-		function range(n)
-			for i = 0 to n - 1
-				yield i
-			end
-		end
-		
-		// 使用生成器
-		for v in range(10)
-			print(v)
-		end
-	
-	手动控制协程：
-		// 创建协程
-		var co = coroutine(function()
-			print("step 1")
-			yield "result1"
-			print("step 2")
-			yield "result2"
-			return "done"
-		end)
-		
-		// 恢复执行
-		var r1 = resume(co)		// "result1"
-		var r2 = resume(co)		// "result2"
-		var r3 = resume(co)		// "done"
-		
-		// 检查协程状态
-		if co.status == "dead"
-			print("协程已结束")
-		end
-	
-	Awaitable 类型：
-		// 所有 async 函数返回 Awaitable 对象
-		var task = fetchData("url")		// 不加 await，返回 Awaitable
-		// ... 其他代码 ...
-		var data = await task				// 稍后等待结果
-	
-	异常处理：
-		async function riskyTask()
-			try
-				var data = await fetchData("url")
-				return data
-			catch e
-				print("Async error: " + e.message)
-				return null
-			end
-		end
-
-
-
-作用域规则：
-	与 C 语言一致，采用块级作用域：
-	- 全局作用域：在所有函数外部定义的变量
-	- 局部作用域：在函数或代码块内部定义的变量
-	- 内层作用域可以访问外层作用域的变量
-	- 内层定义的同名变量会遮蔽外层变量
-	- 变量在定义它的代码块结束时自动释放
-	
-	示例：
-		int g = 100				// 全局变量
-		
-		function test()
-			int a = 1			// 局部变量
-			if true
-				int b = 2		// 块级局部变量
-				a = a + b		// 可以访问外层的 a
-			end
-			// b 在此处不可访问
-		end
-
-
-
-运算符优先级（从高到低）：
-	与 C 语言一致，并扩展了 xlang 特有运算符：
-	
-	优先级	运算符						说明					结合性
-	1			() [] . -> .? ->?			函数调用、索引、成员访问	左到右
-	2			not ++ -- -(负号) !(位非)	单目运算符				右到左
-	3			**								乘方						右到左
-	4			* / %							乘法、除法、取模			左到右
-	5			+ -								加法、减法				左到右
-	6			<< >>							位移位					左到右
-	7			< <= > >=						关系运算符				左到右
-	8			== != ~=						相等性运算符			左到右
-	9			is in							类型判断、包含判断		左到右
-	10			&								位与						左到右
-	11			^								位异或					左到右
-	12			|								位或						左到右
-	13			and								逻辑与					左到右
-	14			or								逻辑或					左到右
-	15			?:								三目运算符				右到左
-	16			?? ??=							空值合并					右到左
-	17			= += -= *= /= etc.			赋值运算符				右到左
-
-
-
-类型转换：
-	不支持 C 语言风格的隐式类型转换，使用类型名作为转换函数：
-	
-	基础类型转换：
-		int(value)				// 转换为整数
-		int8(value)				// 转换为 int8
-		uint32(value)			// 转换为 uint32
-		float(value)			// 转换为浮点数
-		float64(value)			// 转换为 float64
-		string(value)			// 转换为字符串
-		bool(value)				// 转换为布尔值
-		time(value)				// 转换为时间
-	
-	容器类型转换：
-		array(value)			// 转换为数组
-		list(value)				// 转换为列表
-		set(value)				// 转换为集合
-		dict(value)				// 转换为字典
-	
-	自定义类型转换（通过元方法）：
-	class 需要定义 meta to 元方法才能转换为特定基础类型：
-		class Distance
-			private float fMeters
-			
-			// 转换为 float
-			meta to(float)
-				return self.fMeters
-			end
-			
-			// 转换为 string
-			meta to(string)
-				return `{$self.fMeters}m`
-			end
-			
-			// 支持从 float 转入
-			meta from(float f)
-				self.fMeters = f
-			end
-		end
-		
-		// 使用
-		var d = new Distance(100)
-		var f = float(d)			// 调用 meta to(float)
-		var s = string(d)			// 调用 meta to(string)
-		var d2 = Distance(50.5)		// 调用 meta from(float)
-	
-	特殊规则：
-		- 函数类型不能转换为其他类型
-		- var 类型可以转换为其他任何类型（运行时检查）
-
-
-
-模块系统：
-	文件包含（文本替换，用于头文件）：
-		include "header.xlh"
-		将指定文件的内容直接插入当前位置，类似 C 语言的 #include
-	
-	模块导入：
-		import math					// 导入整个模块，使用 math.sin() 访问
-		import math.sin				// 导入单个成员，可直接使用 sin()
-		import math.sin, math.cos	// 导入多个成员
-		import math as m			// 别名导入，使用 m.sin() 访问
-	
-	模块定义：
-		每个 .xl 文件自动成为一个模块
-		模块名称默认为文件名（不含扩展名）
-		模块内所有定义默认为私有，需要显式导出
-	
-	导出语法：
-		export function foo()
-			// 导出函数
-		end
-		
-		export class Bar
-			// 导出类
-		end
-		
-		export const PI = 3.14159	// 导出常量
-		export var config = {}		// 导出变量
-	
-	模块路径：
-		- 相对路径：import "./utils"
-		- 绝对路径：import "/lib/math"
-		- 标准库：import math（从标准库目录查找）
-	
-	模块初始化：
-		模块可以包含顶层代码，在首次导入时执行
-		模块只会被初始化一次，后续导入使用缓存
 
 
 
@@ -1001,42 +964,31 @@
 		end
 	
 	抛出异常：
-		throw Error("Something wrong")			// 抛出 Error 对象
-		throw Error(code: 100, message: "Failed")	// 带错误码
-		throw "Simple message"						// 抛出字符串（自动包装为 Error）
+		throw(Error.IO, "Something wrong", 1000)
 	
 	Error 内置类型：
 		class Error
-			var code		// 错误码（可选）
+			var type		// 异常类型
 			var message		// 错误消息
+			var code		// 错误码（可选）
 			var stack		// 调用栈信息
 		end
 	
-	错误返回值方式：
-		// 函数返回多个值
-		function divide(a, b)
-			if b == 0
-				return null, "Division by zero"
-			end
-			return a / b, null
-		end
-		
-		// 使用
-		var result, err = divide(10, 0)
-		if err != null
-			print("Error: " + err)
-		else
-			print(result)
-		end
-	
-	快速错误检查：
-		// 如果表达式为假，抛出异常
+	断言：
 		assert condition, "Error message"
 		assert x > 0		// 默认错误消息："Assertion failed"
 
 
 
-多线程：
+
+
+
+
+
+
+
+
+多线程（多线程以库的形式存在，不涉及语言特性，因此这一节废弃）：
 	支持系统级多线程，利用多核 CPU 并行执行。
 	
 	创建线程：
@@ -1129,47 +1081,45 @@
 		counter.sub(1)			// 原子减
 		counter.exchange(20)	// 交换
 		counter.cas(old, new)	// 比较并交换
+	
+	通道 (Channel)：
+		线程间通信的推荐方式。
+		
+		创建通道：
+			var ch = channel()			// 无缓冲通道（同步）
+			var ch = channel(10)		// 缓冲通道，容量 10
+		
+		发送和接收：
+			ch.send(value)				// 发送（可能阻塞）
+			var value = ch.recv()		// 接收（可能阻塞）
+		
+		非阻塞操作：
+			var ok = ch.trysend(value)	// 尝试发送
+			var value, ok = ch.tryrecv()	// 尝试接收
+		
+		关闭通道：
+			ch.close()
+		
+		遍历通道（直到关闭）：
+			for msg in ch
+				print(msg)
+			end
+		
+		select 多路复用：
+			select
+				case msg = ch1.recv()
+					print("from ch1: " + msg)
+				case msg = ch2.recv()
+					print("from ch2: " + msg)
+				case ch3.send("hello")
+					print("sent to ch3")
+				default
+					print("no channel ready")
+			end
 
 
 
-通道 (Channel)：
-	线程间通信的推荐方式。
-	
-	创建通道：
-		var ch = channel()			// 无缓冲通道（同步）
-		var ch = channel(10)		// 缓冲通道，容量 10
-	
-	发送和接收：
-		ch.send(value)				// 发送（可能阻塞）
-		var value = ch.recv()		// 接收（可能阻塞）
-	
-	非阻塞操作：
-		var ok = ch.trysend(value)	// 尝试发送
-		var value, ok = ch.tryrecv()	// 尝试接收
-	
-	关闭通道：
-		ch.close()
-	
-	遍历通道（直到关闭）：
-		for msg in ch
-			print(msg)
-		end
-	
-	select 多路复用：
-		select
-			case msg = ch1.recv()
-				print("from ch1: " + msg)
-			case msg = ch2.recv()
-				print("from ch2: " + msg)
-			case ch3.send("hello")
-				print("sent to ch3")
-			default
-				print("no channel ready")
-		end
-
-
-
-线程池：
+线程池（线程池以库的形式存在，不涉及语言特性，因此这一节废弃）：
 	管理一组工作线程，适合大量短任务。
 	
 	创建线程池：
@@ -1195,7 +1145,7 @@
 
 
 
-协程与线程的配合：
+协程与线程的配合（构思中）：
 	// async/await 默认在单线程上运行（异步 I/O）
 	async function fetchAll(urls)
 		var results = []
@@ -1213,3 +1163,131 @@
 		end)
 		return result
 	end
+
+
+
+异步编程（构思中）：
+	支持 async/await 和协程(yield)两种异步模式。
+	
+	async/await 语法：
+		// 定义异步函数
+		async function fetchData(url)
+			var response = await http.get(url)
+			var data = await response.json()
+			return data
+		end
+		
+		// 带返回类型的异步函数（async 在最前面）
+		async string function fetchText(url)
+			var response = await http.get(url)
+			return response.text()
+		end
+		
+		// 调用异步函数
+		async function main()
+			var data = await fetchData("http://api.com")
+			print(data)
+		end
+	
+	并发执行：
+		// 等待所有任务完成
+		var results = await parallel(
+			fetchData("url1"),
+			fetchData("url2"),
+			fetchData("url3")
+		)
+		
+		// 等待第一个完成的任务
+		var first = await race(
+			fetchData("url1"),
+			fetchData("url2")
+		)
+	
+	协程（生成器）：
+		// 使用 yield 创建生成器函数
+		function range(n)
+			for i = 0 to n - 1
+				yield i
+			end
+		end
+		
+		// 使用生成器
+		for v in range(10)
+			print(v)
+		end
+	
+	手动控制协程：
+		// 创建协程
+		var co = coroutine(function()
+			print("step 1")
+			yield "result1"
+			print("step 2")
+			yield "result2"
+			return "done"
+		end)
+		
+		// 恢复执行
+		var r1 = resume(co)		// "result1"
+		var r2 = resume(co)		// "result2"
+		var r3 = resume(co)		// "done"
+		
+		// 检查协程状态
+		if co.status == "dead"
+			print("协程已结束")
+		end
+	
+	Awaitable 类型：
+		// 所有 async 函数返回 Awaitable 对象
+		var task = fetchData("url")		// 不加 await，返回 Awaitable
+		// ... 其他代码 ...
+		var data = await task				// 稍后等待结果
+	
+	异常处理：
+		async function riskyTask()
+			try
+				var data = await fetchData("url")
+				return data
+			catch e
+				print("Async error: " + e.message)
+				return null
+			end
+		end
+
+
+
+模块系统（构思中）：
+	文件包含（文本替换，用于头文件）：
+		include "header.xlh"
+		将指定文件的内容直接插入当前位置，类似 C 语言的 #include
+	
+	模块导入：
+		import math					// 导入整个模块，使用 math.sin() 访问
+		import math.sin				// 导入单个成员，可直接使用 sin()
+		import math.sin, math.cos	// 导入多个成员
+		import math as m			// 别名导入，使用 m.sin() 访问
+	
+	模块定义：
+		每个 .xl 文件自动成为一个模块
+		模块名称默认为文件名（不含扩展名）
+		模块内所有定义默认为私有，需要显式导出
+	
+	导出语法：
+		export function foo()
+			// 导出函数
+		end
+		
+		export class Bar
+			// 导出类
+		end
+		
+		export const PI = 3.14159	// 导出常量
+		export var config = {}		// 导出变量
+	
+	模块路径：
+		- 相对路径：import "./utils"
+		- 绝对路径：import "/lib/math"
+		- 标准库：import math（从标准库目录查找）
+	
+	模块初始化：
+		模块可以包含顶层代码，在首次导入时执行
+		模块只会被初始化一次，后续导入使用缓存
