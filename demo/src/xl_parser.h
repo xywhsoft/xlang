@@ -671,11 +671,18 @@ static xvalue xlParsePostfixExpr( XL_Parser *pParser )
 			continue;
 		}
 
-		// 索引 expr[...]
+		// 索引 expr[...] 或切片 expr[a to b]
 		if ( xlParserMatch(pParser, XL_TK_LBRACKET) ) {
-			xvalue xIndex = xlParseExpr(pParser);
-			xlParserExpect(pParser, XL_TK_RBRACKET, (str)"]");
-			xExpr = xlAstCreateIndexExpr(xExpr, xIndex, iLine, iCol);
+			xvalue xStart = xlParseExpr(pParser);
+			// 检查是否是切片语法
+			if ( xlParserMatch(pParser, XL_TK_TO) ) {
+				xvalue xEnd = xlParseExpr(pParser);
+				xlParserExpect(pParser, XL_TK_RBRACKET, (str)"]");
+				xExpr = xlAstCreateSliceExpr(xExpr, xStart, xEnd, iLine, iCol);
+			} else {
+				xlParserExpect(pParser, XL_TK_RBRACKET, (str)"]");
+				xExpr = xlAstCreateIndexExpr(xExpr, xStart, iLine, iCol);
+			}
 			continue;
 		}
 
@@ -1107,8 +1114,10 @@ static xvalue xlParseVarDecl( XL_Parser *pParser, bool bIsConst )
 
 	xvalue xType = NULL;
 
-	// var / auto / 类型名
-	if ( xlParserMatch(pParser, XL_TK_VAR) || xlParserMatch(pParser, XL_TK_AUTO) ) {
+	// const 后面直接跟变量名，不需要 var/auto
+	if ( bIsConst ) {
+		// const name = value 形式，不需要类型关键字
+	} else if ( xlParserMatch(pParser, XL_TK_VAR) || xlParserMatch(pParser, XL_TK_AUTO) ) {
 		// 动态类型
 	} else {
 		// 静态类型
@@ -1266,6 +1275,31 @@ static xvalue xlParseForStmt( XL_Parser *pParser )
 
 		return xlAstCreateForInStmt(pszVar, iVarLen, pszValue, iValueLen, xIter, xBody, iLine, iCol);
 	} else if ( xlParserMatch(pParser, XL_TK_IN) ) {
+		// 检查是否是 range(...)
+		if ( xlParserCheck(pParser, XL_TK_RANGE) ) {
+			xlParserAdvance(pParser);  // 跳过 range
+			xlParserExpect(pParser, XL_TK_LPAREN, (str)"(");
+			
+			// 解析 start
+			xvalue xStart = xlParseExpr(pParser);
+			xlParserExpect(pParser, XL_TK_COMMA, (str)",");
+			
+			// 解析 end
+			xvalue xEnd = xlParseExpr(pParser);
+			
+			// 可选的 step
+			xvalue xStep = 0;
+			if ( xlParserMatch(pParser, XL_TK_COMMA) ) {
+				xStep = xlParseExpr(pParser);
+			}
+			
+			xlParserExpect(pParser, XL_TK_RPAREN, (str)")");
+			xvalue xBody = xlParseBlockStmt(pParser);
+			xlParserExpect(pParser, XL_TK_END, (str)"end");
+			
+			return xlAstCreateForStmt(pszVar, iVarLen, xStart, xEnd, xStep, xBody, iLine, iCol);
+		}
+		
 		// for v in iter
 		xvalue xIter = xlParseExpr(pParser);
 		xvalue xBody = xlParseBlockStmt(pParser);

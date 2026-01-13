@@ -513,8 +513,19 @@ static void xlSemanticAnalyzeExpr( XL_Semantic *pSem, xvalue xExpr )
 
 	// 赋值表达式
 	if ( strcmp((char*)pszKind, XL_AST_ASSIGN_EXPR) == 0 ) {
-		xlSemanticAnalyzeExpr(pSem, xlAstGetNode(xExpr, (str)"target"));
+		xvalue xTarget = xlAstGetNode(xExpr, (str)"target");
+		xlSemanticAnalyzeExpr(pSem, xTarget);
 		xlSemanticAnalyzeExpr(pSem, xlAstGetNode(xExpr, (str)"value"));
+
+		// 检查赋值目标是否为常量
+		str pszTargetKind = xlAstGetKind(xTarget);
+		if ( (pszTargetKind != NULL) && (strcmp((char*)pszTargetKind, XL_AST_IDENT) == 0) ) {
+			str pszName = xlAstGetStr(xTarget, (str)"name");
+			XL_Symbol *pSym = xlScopeLookup(pSem->pCurrentScope, pszName);
+			if ( (pSym != NULL) && (pSym->kind == XL_SYM_CONST) ) {
+				xlSemanticError(pSem, (u32)iLine, (u32)iCol, (str)"不能对常量 '%s' 重新赋值", (char*)pszName);
+			}
+		}
 		return;
 	}
 
@@ -533,6 +544,14 @@ static void xlSemanticAnalyzeExpr( XL_Semantic *pSem, xvalue xExpr )
 	if ( strcmp((char*)pszKind, XL_AST_INDEX_EXPR) == 0 ) {
 		xlSemanticAnalyzeExpr(pSem, xlAstGetNode(xExpr, (str)"object"));
 		xlSemanticAnalyzeExpr(pSem, xlAstGetNode(xExpr, (str)"index"));
+		return;
+	}
+
+	// 切片表达式
+	if ( strcmp((char*)pszKind, XL_AST_SLICE_EXPR) == 0 ) {
+		xlSemanticAnalyzeExpr(pSem, xlAstGetNode(xExpr, (str)"object"));
+		xlSemanticAnalyzeExpr(pSem, xlAstGetNode(xExpr, (str)"start"));
+		xlSemanticAnalyzeExpr(pSem, xlAstGetNode(xExpr, (str)"end"));
 		return;
 	}
 
