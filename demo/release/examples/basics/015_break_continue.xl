@@ -1,0 +1,49 @@
+// ============================================================
+// 测试 015: break 和 continue
+// 测试循环控制语句
+// ============================================================
+
+println("测试 015: break 和 continue")
+
+// for 循环中的 break
+println("break test:")
+for i = 1 to 10
+	if i > 5 then
+		break
+	end
+	println(i)
+end
+
+// for 循环中的 continue
+println("continue test:")
+for i = 1 to 10
+	if i % 2 == 0 then
+		continue
+	end
+	println(i)
+end
+
+// while 循环中的 break
+println("while break:")
+var j = 0
+while j < 100
+	j = j + 1
+	if j > 3 then
+		break
+	end
+	println(j)
+end
+
+// while 循环中的 continue
+println("while continue:")
+var k = 0
+while k < 10
+	k = k + 1
+	if k % 2 == 0 then
+		continue
+	end
+	println(k)
+end
+
+// 完成
+println("测试 015 通过")

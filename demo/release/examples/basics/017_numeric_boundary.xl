@@ -1,0 +1,49 @@
+// ============================================================
+// 测试 017: 边界值测试 - 数值
+// 测试各种数值边界情况
+// ============================================================
+
+println("测试 017: 边界值测试")
+
+// 零值
+var zero = 0
+println(zero)
+println(zero + 1)
+println(zero - 1)
+println(zero * 100)
+
+// 大整数
+var big = 1000000000
+println(big)
+println(big + big)
+
+// 小浮点数
+var small = 0.001
+println(small)
+println(small * 1000)
+
+// 负数运算
+var negative = -50
+println(negative)
+println(negative + 100)
+println(negative * -1)
+println(negative / 10)
+
+// 混合运算
+println(10 + -5)
+println(-10 + -5)
+println(-10 * -5)
+println(-10 / -2)
+
+// 浮点精度
+var f1 = 0.1
+var f2 = 0.2
+var f3 = f1 + f2
+println(f3)
+
+// 大浮点数
+var bigf = 1.5e10
+println(bigf)
+
+// 完成
+println("测试 017 通过")

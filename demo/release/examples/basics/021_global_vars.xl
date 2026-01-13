@@ -1,0 +1,52 @@
+// ============================================================
+// 测试 021: 全局变量访问
+// 测试函数内访问全局变量
+// ============================================================
+
+println("测试 021: 全局变量访问")
+
+// 全局变量
+var globalVar = 100
+var globalStr = "hello"
+
+// 读取全局变量的函数
+function readGlobal()
+	println(globalVar)
+	println(globalStr)
+end
+
+readGlobal()
+
+// 修改全局变量的函数
+function modifyGlobal()
+	globalVar = globalVar + 50
+	println(globalVar)
+end
+
+modifyGlobal()
+println(globalVar)
+
+// 多次调用
+function incrementGlobal()
+	globalVar = globalVar + 1
+end
+
+incrementGlobal()
+incrementGlobal()
+incrementGlobal()
+println(globalVar)
+
+// 多个函数访问同一全局变量
+function getGlobal()
+	return globalVar
+end
+
+function setGlobal(val)
+	globalVar = val
+end
+
+setGlobal(200)
+println(getGlobal())
+
+// 完成
+println("测试 021 通过")

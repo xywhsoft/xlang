@@ -1,0 +1,43 @@
+// ============================================================
+// 测试 011: 数组
+// 测试数组字面量和操作
+// ============================================================
+
+println("测试 011: 数组")
+
+// 数组字面量
+var arr1 = [1, 2, 3, 4, 5]
+println(arr1)
+
+// 空数组
+var arr2 = new array()
+println(arr2)
+
+// 混合类型数组
+var arr3 = [1, "hello", 3.14, true]
+println(arr3)
+
+// 嵌套数组
+var arr4 = [[1, 2], [3, 4], [5, 6]]
+println(arr4)
+
+// 数组长度
+println(len(arr1))
+println(len(arr2))
+println(len(arr3))
+
+// 单元素数组
+var arr5 = [42]
+println(arr5)
+println(len(arr5))
+
+// 多个数组
+var a = [1, 2]
+var b = [3, 4]
+var c = [5, 6]
+println(a)
+println(b)
+println(c)
+
+// 完成
+println("测试 011 通过")

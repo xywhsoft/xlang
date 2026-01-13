@@ -1,0 +1,48 @@
+// xlang Parser 测试文件
+
+// 变量声明
+var x = 10
+int y = 20
+var name = "hello"
+
+// 函数定义
+function add(a, b) as int
+	return a + b
+end
+
+// 条件语句
+if x > 5 then
+	y = y + 1
+elseif x == 5
+	y = y - 1
+else
+	y = 0
+end
+
+// 循环语句
+for i = 1 to 10
+	x = x + i
+end
+
+// for-in 循环
+for item in [1, 2, 3]
+	x = x + item
+end
+
+// while 循环
+while x > 0
+	x = x - 1
+end
+
+// 表达式
+var result = add(x, y)
+var arr = [1, 2, 3]
+var tbl = { a = 1, b = 2 }
+
+// 类定义
+class Person
+	var name
+	function greet()
+		return "Hello"
+	end
+end

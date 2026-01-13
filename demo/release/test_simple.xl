@@ -1,0 +1,10 @@
+// 简单的 xlang 测试
+
+function add(a, b)
+	return a + b
+end
+
+var x = 10
+var y = 20
+var result = add(x, y)
+println(result)

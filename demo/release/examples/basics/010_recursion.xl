@@ -1,0 +1,46 @@
+// ============================================================
+// 测试 010: 递归函数
+// 测试递归调用
+// ============================================================
+
+println("测试 010: 递归函数")
+
+// 阶乘
+function factorial(n)
+	if n <= 1 then
+		return 1
+	end
+	return n * factorial(n - 1)
+end
+
+println(factorial(0))
+println(factorial(1))
+println(factorial(5))
+println(factorial(10))
+
+// 斐波那契
+function fibonacci(n)
+	if n <= 1 then
+		return n
+	end
+	return fibonacci(n - 1) + fibonacci(n - 2)
+end
+
+println(fibonacci(0))
+println(fibonacci(1))
+println(fibonacci(10))
+println(fibonacci(15))
+
+// 求和 (1 to n)
+function sumTo(n)
+	if n <= 0 then
+		return 0
+	end
+	return n + sumTo(n - 1)
+end
+
+println(sumTo(10))
+println(sumTo(100))
+
+// 完成
+println("测试 010 通过")

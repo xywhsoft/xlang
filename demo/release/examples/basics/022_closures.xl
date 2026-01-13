@@ -1,0 +1,59 @@
+// Test 022: Closures (Lambda expressions)
+// Tests lambda expressions and variable capture
+
+println("=== Test 022: Closures ===")
+
+// Test 1: Simple lambda without captures
+println("Test 1: Simple lambda")
+var add = function(a, b)
+	return a + b
+end
+var result = add(3, 5)
+println(result)
+
+// Test 2: Lambda capturing outer variable
+println("Test 2: Lambda with capture")
+var x = 10
+var addX = function(n)
+	return n + x
+end
+println(addX(5))
+
+// Test 3: Counter closure (classic example)
+println("Test 3: Counter closure")
+function makeCounter()
+	var count = 0
+	return function()
+		count = count + 1
+		return count
+	end
+end
+
+var counter = makeCounter()
+println(counter())
+println(counter())
+println(counter())
+
+// Test 4: Multiple captures
+println("Test 4: Multiple captures")
+var a = 100
+var b = 200
+var sumAB = function(c)
+	return a + b + c
+end
+println(sumAB(50))
+
+// Test 5: Nested lambdas
+println("Test 5: Nested lambdas")
+function makeAdder(x)
+	return function(y)
+		return x + y
+	end
+end
+
+var add5 = makeAdder(5)
+var add10 = makeAdder(10)
+println(add5(3))
+println(add10(3))
+
+println("=== Closure Tests Complete ===")
