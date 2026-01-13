@@ -323,6 +323,10 @@ static xvalue xl_call_var(xvalue func, xvalue args) {
 }
 
 // 全局变量
+static xvalue xlv_a = NULL;
+static xvalue xlv_b = NULL;
+static xvalue xlv_c = NULL;
+static xvalue xlv_result = NULL;
 
 // 函数声明
 
@@ -333,13 +337,11 @@ int main(int argc, char* argv[])
 
 	// 初始化函数变量
 
-	xl_println(xvoCreateText((str)"测试 001: 基本输出", 0, FALSE));
-	xl_println(xvoCreateText((str)"Hello, World!", 0, FALSE));
-	xl_print(xvoCreateText((str)"Hello ", 0, FALSE));
-	xl_print(xvoCreateText((str)"xlang", 0, FALSE));
-	xl_println(xvoCreateText((str)"!", 0, FALSE));
-	xl_println(xvoCreateText((str)"你好，xlang！", 0, FALSE));
-	xl_println(xvoCreateText((str)"测试 001 通过", 0, FALSE));
+	xlv_a = xvoCreateInt(1);
+	xlv_b = xvoCreateInt(2);
+	xlv_c = xvoCreateInt(3);
+	xlv_result = xl_add(xl_add(xlv_a, xlv_b), xlv_c);
+	xl_println(xlv_result);
 
 	xrtUnit();
 	return 0;

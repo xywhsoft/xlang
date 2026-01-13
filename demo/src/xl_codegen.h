@@ -534,59 +534,136 @@ static void xlCodegenExpr( XL_Codegen *pGen, XL_CodeBuf *pBuf, xvalue xExpr )
 		xvalue xLeft = xlAstGetNode(xExpr, (str)"left");
 		xvalue xRight = xlAstGetNode(xExpr, (str)"right");
 
-		// 使用运行时函数进行操作
-		if ( strcmp((char*)pszOp, "+") == 0 ) {
-			xlCodeBufAppend(pBuf, "xl_add(");
-		} else if ( strcmp((char*)pszOp, "-") == 0 ) {
-			xlCodeBufAppend(pBuf, "xl_sub(");
-		} else if ( strcmp((char*)pszOp, "*") == 0 ) {
-			xlCodeBufAppend(pBuf, "xl_mul(");
-		} else if ( strcmp((char*)pszOp, "/") == 0 ) {
-			xlCodeBufAppend(pBuf, "xl_div(");
-		} else if ( strcmp((char*)pszOp, "%") == 0 ) {
-			xlCodeBufAppend(pBuf, "xl_mod(");
-		} else if ( strcmp((char*)pszOp, "**") == 0 ) {
-			xlCodeBufAppend(pBuf, "xl_pow(");
-		} else if ( strcmp((char*)pszOp, "==") == 0 ) {
-			xlCodeBufAppend(pBuf, "xl_eq(");
-		} else if ( strcmp((char*)pszOp, "!=") == 0 ) {
-			xlCodeBufAppend(pBuf, "xl_ne(");
-		} else if ( strcmp((char*)pszOp, "<") == 0 ) {
-			xlCodeBufAppend(pBuf, "xl_lt(");
-		} else if ( strcmp((char*)pszOp, "<=") == 0 ) {
-			xlCodeBufAppend(pBuf, "xl_le(");
-		} else if ( strcmp((char*)pszOp, ">") == 0 ) {
-			xlCodeBufAppend(pBuf, "xl_gt(");
-		} else if ( strcmp((char*)pszOp, ">=") == 0 ) {
-			xlCodeBufAppend(pBuf, "xl_ge(");
-		} else if ( (strcmp((char*)pszOp, "and") == 0) || (strcmp((char*)pszOp, "&&") == 0) ) {
-			xlCodeBufAppend(pBuf, "xl_and(");
-		} else if ( (strcmp((char*)pszOp, "or") == 0) || (strcmp((char*)pszOp, "||") == 0) ) {
-			xlCodeBufAppend(pBuf, "xl_or(");
-		} else if ( strcmp((char*)pszOp, "??") == 0 ) {
-			xlCodeBufAppend(pBuf, "xl_coalesce(");
-		} else if ( strcmp((char*)pszOp, "in") == 0 ) {
-			xlCodeBufAppend(pBuf, "xl_in(");
-		} else if ( strcmp((char*)pszOp, "is") == 0 ) {
-			xlCodeBufAppend(pBuf, "xl_is(");
-		} else if ( strcmp((char*)pszOp, "&") == 0 ) {
-			xlCodeBufAppend(pBuf, "xl_bitand(");
-		} else if ( strcmp((char*)pszOp, "|") == 0 ) {
-			xlCodeBufAppend(pBuf, "xl_bitor(");
-		} else if ( strcmp((char*)pszOp, "^") == 0 ) {
-			xlCodeBufAppend(pBuf, "xl_bitxor(");
-		} else if ( strcmp((char*)pszOp, "<<") == 0 ) {
-			xlCodeBufAppend(pBuf, "xl_shl(");
-		} else if ( strcmp((char*)pszOp, ">>") == 0 ) {
-			xlCodeBufAppend(pBuf, "xl_shr(");
-		} else {
-			xlCodeBufAppend(pBuf, "xl_binop(");
-		}
+		// 检查左右操作数是否为二元表达式（会产生临时对象）
+		str pszLeftKind = xlAstGetKind(xLeft);
+		str pszRightKind = xlAstGetKind(xRight);
+		bool bLeftIsBinary = (pszLeftKind && (strcmp((char*)pszLeftKind, XL_AST_BINARY_EXPR) == 0));
+		bool bRightIsBinary = (pszRightKind && (strcmp((char*)pszRightKind, XL_AST_BINARY_EXPR) == 0));
 
-		xlCodegenExpr(pGen, pBuf, xLeft);
-		xlCodeBufAppend(pBuf, ", ");
-		xlCodegenExpr(pGen, pBuf, xRight);
-		xlCodeBufAppend(pBuf, ")");
+		// 如果有任一操作数是二元表达式，需要使用临时变量管理引用计数
+		if ( bLeftIsBinary || bRightIsBinary ) {
+			xlCodeBufAppend(pBuf, "({ xvalue xl__left = ");
+			xlCodegenExpr(pGen, pBuf, xLeft);
+			xlCodeBufAppend(pBuf, "; xvalue xl__right = ");
+			xlCodegenExpr(pGen, pBuf, xRight);
+			xlCodeBufAppend(pBuf, "; xvalue xl__result = ");
+
+			// 使用运行时函数进行操作
+			if ( strcmp((char*)pszOp, "+") == 0 ) {
+				xlCodeBufAppend(pBuf, "xl_add(");
+			} else if ( strcmp((char*)pszOp, "-") == 0 ) {
+				xlCodeBufAppend(pBuf, "xl_sub(");
+			} else if ( strcmp((char*)pszOp, "*") == 0 ) {
+				xlCodeBufAppend(pBuf, "xl_mul(");
+			} else if ( strcmp((char*)pszOp, "/") == 0 ) {
+				xlCodeBufAppend(pBuf, "xl_div(");
+			} else if ( strcmp((char*)pszOp, "%") == 0 ) {
+				xlCodeBufAppend(pBuf, "xl_mod(");
+			} else if ( strcmp((char*)pszOp, "**") == 0 ) {
+				xlCodeBufAppend(pBuf, "xl_pow(");
+			} else if ( strcmp((char*)pszOp, "==") == 0 ) {
+				xlCodeBufAppend(pBuf, "xl_eq(");
+			} else if ( strcmp((char*)pszOp, "!=") == 0 ) {
+				xlCodeBufAppend(pBuf, "xl_ne(");
+			} else if ( strcmp((char*)pszOp, "<") == 0 ) {
+				xlCodeBufAppend(pBuf, "xl_lt(");
+			} else if ( strcmp((char*)pszOp, "<=") == 0 ) {
+				xlCodeBufAppend(pBuf, "xl_le(");
+			} else if ( strcmp((char*)pszOp, ">") == 0 ) {
+				xlCodeBufAppend(pBuf, "xl_gt(");
+			} else if ( strcmp((char*)pszOp, ">=") == 0 ) {
+				xlCodeBufAppend(pBuf, "xl_ge(");
+			} else if ( (strcmp((char*)pszOp, "and") == 0) || (strcmp((char*)pszOp, "&&") == 0) ) {
+				xlCodeBufAppend(pBuf, "xl_and(");
+			} else if ( (strcmp((char*)pszOp, "or") == 0) || (strcmp((char*)pszOp, "||") == 0) ) {
+				xlCodeBufAppend(pBuf, "xl_or(");
+			} else if ( strcmp((char*)pszOp, "??") == 0 ) {
+				xlCodeBufAppend(pBuf, "xl_coalesce(");
+			} else if ( strcmp((char*)pszOp, "in") == 0 ) {
+				xlCodeBufAppend(pBuf, "xl_in(");
+			} else if ( strcmp((char*)pszOp, "is") == 0 ) {
+				xlCodeBufAppend(pBuf, "xl_is(");
+			} else if ( strcmp((char*)pszOp, "&") == 0 ) {
+				xlCodeBufAppend(pBuf, "xl_bitand(");
+			} else if ( strcmp((char*)pszOp, "|") == 0 ) {
+				xlCodeBufAppend(pBuf, "xl_bitor(");
+			} else if ( strcmp((char*)pszOp, "^") == 0 ) {
+				xlCodeBufAppend(pBuf, "xl_bitxor(");
+			} else if ( strcmp((char*)pszOp, "<<") == 0 ) {
+				xlCodeBufAppend(pBuf, "xl_shl(");
+			} else if ( strcmp((char*)pszOp, ">>") == 0 ) {
+				xlCodeBufAppend(pBuf, "xl_shr(");
+			} else {
+				xlCodeBufAppend(pBuf, "xl_binop(");
+			}
+
+			xlCodeBufAppend(pBuf, "xl__left, xl__right); ");
+			
+			// 释放临时对象
+			if ( bLeftIsBinary ) {
+				xlCodeBufAppend(pBuf, "xvoUnref(xl__left); ");
+			}
+			if ( bRightIsBinary ) {
+				xlCodeBufAppend(pBuf, "xvoUnref(xl__right); ");
+			}
+			
+			xlCodeBufAppend(pBuf, "xl__result; })");
+		} else {
+			// 两个操作数都不是二元表达式，直接生成函数调用
+			// 使用运行时函数进行操作
+			if ( strcmp((char*)pszOp, "+") == 0 ) {
+				xlCodeBufAppend(pBuf, "xl_add(");
+			} else if ( strcmp((char*)pszOp, "-") == 0 ) {
+				xlCodeBufAppend(pBuf, "xl_sub(");
+			} else if ( strcmp((char*)pszOp, "*") == 0 ) {
+				xlCodeBufAppend(pBuf, "xl_mul(");
+			} else if ( strcmp((char*)pszOp, "/") == 0 ) {
+				xlCodeBufAppend(pBuf, "xl_div(");
+			} else if ( strcmp((char*)pszOp, "%") == 0 ) {
+				xlCodeBufAppend(pBuf, "xl_mod(");
+			} else if ( strcmp((char*)pszOp, "**") == 0 ) {
+				xlCodeBufAppend(pBuf, "xl_pow(");
+			} else if ( strcmp((char*)pszOp, "==") == 0 ) {
+				xlCodeBufAppend(pBuf, "xl_eq(");
+			} else if ( strcmp((char*)pszOp, "!=") == 0 ) {
+				xlCodeBufAppend(pBuf, "xl_ne(");
+			} else if ( strcmp((char*)pszOp, "<") == 0 ) {
+				xlCodeBufAppend(pBuf, "xl_lt(");
+			} else if ( strcmp((char*)pszOp, "<=") == 0 ) {
+				xlCodeBufAppend(pBuf, "xl_le(");
+			} else if ( strcmp((char*)pszOp, ">") == 0 ) {
+				xlCodeBufAppend(pBuf, "xl_gt(");
+			} else if ( strcmp((char*)pszOp, ">=") == 0 ) {
+				xlCodeBufAppend(pBuf, "xl_ge(");
+			} else if ( (strcmp((char*)pszOp, "and") == 0) || (strcmp((char*)pszOp, "&&") == 0) ) {
+				xlCodeBufAppend(pBuf, "xl_and(");
+			} else if ( (strcmp((char*)pszOp, "or") == 0) || (strcmp((char*)pszOp, "||") == 0) ) {
+				xlCodeBufAppend(pBuf, "xl_or(");
+			} else if ( strcmp((char*)pszOp, "??") == 0 ) {
+				xlCodeBufAppend(pBuf, "xl_coalesce(");
+			} else if ( strcmp((char*)pszOp, "in") == 0 ) {
+				xlCodeBufAppend(pBuf, "xl_in(");
+			} else if ( strcmp((char*)pszOp, "is") == 0 ) {
+				xlCodeBufAppend(pBuf, "xl_is(");
+			} else if ( strcmp((char*)pszOp, "&") == 0 ) {
+				xlCodeBufAppend(pBuf, "xl_bitand(");
+			} else if ( strcmp((char*)pszOp, "|") == 0 ) {
+				xlCodeBufAppend(pBuf, "xl_bitor(");
+			} else if ( strcmp((char*)pszOp, "^") == 0 ) {
+				xlCodeBufAppend(pBuf, "xl_bitxor(");
+			} else if ( strcmp((char*)pszOp, "<<") == 0 ) {
+				xlCodeBufAppend(pBuf, "xl_shl(");
+			} else if ( strcmp((char*)pszOp, ">>") == 0 ) {
+				xlCodeBufAppend(pBuf, "xl_shr(");
+			} else {
+				xlCodeBufAppend(pBuf, "xl_binop(");
+			}
+
+			xlCodegenExpr(pGen, pBuf, xLeft);
+			xlCodeBufAppend(pBuf, ", ");
+			xlCodegenExpr(pGen, pBuf, xRight);
+			xlCodeBufAppend(pBuf, ")");
+		}
 		return;
 	}
 
@@ -726,41 +803,41 @@ static void xlCodegenExpr( XL_Codegen *pGen, XL_CodeBuf *pBuf, xvalue xExpr )
 			} else {
 				// 普通变量赋值
 				if ( strcmp((char*)pszOp, "=") == 0 ) {
-					xlCodeBufAppendFmt(pBuf, "(xlv_%s = ", (char*)pszName);
+					xlCodeBufAppendFmt(pBuf, "({ xvalue xl__tmp = ", (char*)pszName);
 					xlCodegenExpr(pGen, pBuf, xValue);
-					xlCodeBufAppend(pBuf, ")");
+					xlCodeBufAppendFmt(pBuf, "; xvoUnref(xlv_%s); xlv_%s = xl__tmp; xl__tmp; })", (char*)pszName, (char*)pszName);
 				} else if ( strcmp((char*)pszOp, "+=") == 0 ) {
-					xlCodeBufAppendFmt(pBuf, "(xlv_%s = xl_add(xlv_%s, ", (char*)pszName, (char*)pszName);
+					xlCodeBufAppendFmt(pBuf, "({ xvalue xl__old = xlv_%s; xlv_%s = xl_add(xlv_%s, ", (char*)pszName, (char*)pszName, (char*)pszName);
 					xlCodegenExpr(pGen, pBuf, xValue);
-					xlCodeBufAppend(pBuf, "))");
+					xlCodeBufAppendFmt(pBuf, "); xvoUnref(xl__old); xlv_%s; })", (char*)pszName);
 				} else if ( strcmp((char*)pszOp, "-=") == 0 ) {
-					xlCodeBufAppendFmt(pBuf, "(xlv_%s = xl_sub(xlv_%s, ", (char*)pszName, (char*)pszName);
+					xlCodeBufAppendFmt(pBuf, "({ xvalue xl__old = xlv_%s; xlv_%s = xl_sub(xlv_%s, ", (char*)pszName, (char*)pszName, (char*)pszName);
 					xlCodegenExpr(pGen, pBuf, xValue);
-					xlCodeBufAppend(pBuf, "))");
+					xlCodeBufAppendFmt(pBuf, "); xvoUnref(xl__old); xlv_%s; })", (char*)pszName);
 				} else if ( strcmp((char*)pszOp, "*=") == 0 ) {
-					xlCodeBufAppendFmt(pBuf, "(xlv_%s = xl_mul(xlv_%s, ", (char*)pszName, (char*)pszName);
+					xlCodeBufAppendFmt(pBuf, "({ xvalue xl__old = xlv_%s; xlv_%s = xl_mul(xlv_%s, ", (char*)pszName, (char*)pszName, (char*)pszName);
 					xlCodegenExpr(pGen, pBuf, xValue);
-					xlCodeBufAppend(pBuf, "))");
+					xlCodeBufAppendFmt(pBuf, "); xvoUnref(xl__old); xlv_%s; })", (char*)pszName);
 				} else if ( strcmp((char*)pszOp, "/=") == 0 ) {
-					xlCodeBufAppendFmt(pBuf, "(xlv_%s = xl_div(xlv_%s, ", (char*)pszName, (char*)pszName);
+					xlCodeBufAppendFmt(pBuf, "({ xvalue xl__old = xlv_%s; xlv_%s = xl_div(xlv_%s, ", (char*)pszName, (char*)pszName, (char*)pszName);
 					xlCodegenExpr(pGen, pBuf, xValue);
-					xlCodeBufAppend(pBuf, "))");
+					xlCodeBufAppendFmt(pBuf, "); xvoUnref(xl__old); xlv_%s; })", (char*)pszName);
 				} else if ( strcmp((char*)pszOp, "%=") == 0 ) {
-					xlCodeBufAppendFmt(pBuf, "(xlv_%s = xl_mod(xlv_%s, ", (char*)pszName, (char*)pszName);
+					xlCodeBufAppendFmt(pBuf, "({ xvalue xl__old = xlv_%s; xlv_%s = xl_mod(xlv_%s, ", (char*)pszName, (char*)pszName, (char*)pszName);
 					xlCodegenExpr(pGen, pBuf, xValue);
-					xlCodeBufAppend(pBuf, "))");
+					xlCodeBufAppendFmt(pBuf, "); xvoUnref(xl__old); xlv_%s; })", (char*)pszName);
 				} else if ( strcmp((char*)pszOp, "**=") == 0 ) {
-					xlCodeBufAppendFmt(pBuf, "(xlv_%s = xl_pow(xlv_%s, ", (char*)pszName, (char*)pszName);
+					xlCodeBufAppendFmt(pBuf, "({ xvalue xl__old = xlv_%s; xlv_%s = xl_pow(xlv_%s, ", (char*)pszName, (char*)pszName, (char*)pszName);
 					xlCodegenExpr(pGen, pBuf, xValue);
-					xlCodeBufAppend(pBuf, "))");
+					xlCodeBufAppendFmt(pBuf, "); xvoUnref(xl__old); xlv_%s; })", (char*)pszName);
 				} else if ( strcmp((char*)pszOp, "?=") == 0 ) {
-					xlCodeBufAppendFmt(pBuf, "(xlv_%s = xl_coalesce(xlv_%s, ", (char*)pszName, (char*)pszName);
+					xlCodeBufAppendFmt(pBuf, "({ xvalue xl__old = xlv_%s; xlv_%s = xl_coalesce(xlv_%s, ", (char*)pszName, (char*)pszName, (char*)pszName);
 					xlCodegenExpr(pGen, pBuf, xValue);
-					xlCodeBufAppend(pBuf, "))");
+					xlCodeBufAppendFmt(pBuf, "); xvoUnref(xl__old); xlv_%s; })", (char*)pszName);
 				} else {
-					xlCodeBufAppendFmt(pBuf, "(xlv_%s = ", (char*)pszName);
+					xlCodeBufAppendFmt(pBuf, "({ xvalue xl__tmp = ", (char*)pszName);
 					xlCodegenExpr(pGen, pBuf, xValue);
-					xlCodeBufAppend(pBuf, ")");
+					xlCodeBufAppendFmt(pBuf, "; xvoUnref(xlv_%s); xlv_%s = xl__tmp; xl__tmp; })", (char*)pszName, (char*)pszName);
 				}
 			}
 		} else {
@@ -1251,12 +1328,16 @@ static void xlCodegenStmt( XL_Codegen *pGen, xvalue xStmt )
 		xlCodeBufAppend(pBuf, ";\n");
 
 		xlCodegenIndent(pGen, pBuf);
-		xlCodeBufAppendFmt(pBuf, "for ( xvalue xlv_%s = xl__start; (xvoGetInt(xl__step) > 0) ? (xvoGetInt(xlv_%s) <= xvoGetInt(xl__end)) : (xvoGetInt(xlv_%s) >= xvoGetInt(xl__end)); xlv_%s = xl_add(xlv_%s, xl__step) ) {\n",
-		                   (char*)pszVar, (char*)pszVar, (char*)pszVar, (char*)pszVar, (char*)pszVar);
+		xlCodeBufAppendFmt(pBuf, "for ( xvalue xlv_%s = xl__start; (xvoGetInt(xl__step) > 0) ? (xvoGetInt(xlv_%s) <= xvoGetInt(xl__end)) : (xvoGetInt(xlv_%s) >= xvoGetInt(xl__end)); ) {\n",
+		                   (char*)pszVar, (char*)pszVar, (char*)pszVar);
 
 		pGen->iIndent++;
 		xlCodegenStmt(pGen, xBody);
-		// continue 标签在循环体末尾
+		// 在循环体末尾更新循环变量，先释放旧值
+		xlCodegenIndent(pGen, pBuf);
+		xlCodeBufAppendFmt(pBuf, "{ xvalue xl__old = xlv_%s; xlv_%s = xl_add(xlv_%s, xl__step); xvoUnref(xl__old); }\n", 
+		                   (char*)pszVar, (char*)pszVar, (char*)pszVar);
+		// continue 标签在更新语句之前
 		xlCodegenIndent(pGen, pBuf);
 		xlCodeBufAppendFmt(pBuf, "xl__continue_%d:;\n", iLoopLabel);
 		pGen->iIndent--;
