@@ -323,10 +323,6 @@ static xvalue xl_call_var(xvalue func, xvalue args) {
 }
 
 // 全局变量
-static xvalue xlv_a = NULL;
-static xvalue xlv_b = NULL;
-static xvalue xlv_c = NULL;
-static xvalue xlv_result = NULL;
 
 // 函数声明
 
@@ -337,11 +333,42 @@ int main(int argc, char* argv[])
 
 	// 初始化函数变量
 
-	xlv_a = xvoCreateInt(1);
-	xlv_b = xvoCreateInt(2);
-	xlv_c = xvoCreateInt(3);
-	xlv_result = xl_add(xl_add(xlv_a, xlv_b), xlv_c);
-	xl_println(xlv_result);
+	{
+		xvalue xl__start = xvoCreateInt(1);
+		xvalue xl__end = xvoCreateInt(100000);
+		xvalue xl__step = xvoCreateInt(1);
+		for ( xvalue xlv_i = xl__start; (xvoGetInt(xl__step) > 0) ? (xvoGetInt(xlv_i) <= xvoGetInt(xl__end)) : (xvoGetInt(xlv_i) >= xvoGetInt(xl__end)); ) {
+			{
+				xvalue xlv_a = xvoCreateInt(1);
+				xvalue xlv_b = xvoCreateInt(2);
+				xvalue xlv_c = xvoCreateInt(3);
+				xvalue xlv_result = ({ xvalue xl__left = xl_add(xlv_a, xlv_b); xvalue xl__right = xlv_c; xvalue xl__result = xl_add(xl__left, xl__right); xvoUnref(xl__left); xl__result; });
+				xvoUnref(xlv_a);
+				xvoUnref(xlv_b);
+				xvoUnref(xlv_c);
+				xvoUnref(xlv_result);
+			}
+			{ xvalue xl__old = xlv_i; xlv_i = xl_add(xlv_i, xl__step); xvoUnref(xl__old); }
+			xl__continue_0:;
+		}
+	}
+	xl__break_0:;
+	xl_println(xvoCreateText((str)"Small test done", 0, FALSE));
+	{
+		xvalue xl__start = xvoCreateInt(1);
+		xvalue xl__end = xvoCreateInt(1000000);
+		xvalue xl__step = xvoCreateInt(1);
+		for ( xvalue xlv_i = xl__start; (xvoGetInt(xl__step) > 0) ? (xvoGetInt(xlv_i) <= xvoGetInt(xl__end)) : (xvoGetInt(xlv_i) >= xvoGetInt(xl__end)); ) {
+			{
+				xvalue xlv_temp = ({ xvalue xl__left = xl_add(xlv_i, xlv_i); xvalue xl__right = xlv_i; xvalue xl__result = xl_add(xl__left, xl__right); xvoUnref(xl__left); xl__result; });
+				xvoUnref(xlv_temp);
+			}
+			{ xvalue xl__old = xlv_i; xlv_i = xl_add(xlv_i, xl__step); xvoUnref(xl__old); }
+			xl__continue_1:;
+		}
+	}
+	xl__break_1:;
+	xl_println(xvoCreateText((str)"Medium test done", 0, FALSE));
 
 	xrtUnit();
 	return 0;

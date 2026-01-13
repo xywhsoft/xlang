@@ -45,6 +45,8 @@ typedef struct XL_Codegen {
 	int iLoopDepth;         // 当前循环嵌套深度
 	int arrLoopLabels[64];  // 循环标签栈（最多支持 64 层嵌套）
 	int iLoopLabelCounter;  // 循环标签计数器（用于生成唯一标签）
+	xvalue xScopeVars;      // 当前作用域内声明的变量列表（用于清理）
+	bool bTrackScopeVars;   // 是否追踪作用域变量（用于循环体清理）
 } XL_Codegen;
 
 
@@ -153,6 +155,8 @@ static inline XL_Codegen* xlCodegenCreate( XL_ErrorList *pErrors )
 		pGen->xLocalVars = xvoCreateArray();
 		pGen->xCapturedVars = NULL;
 		pGen->xOuterVars = xvoCreateArray();
+		pGen->xScopeVars = NULL;
+		pGen->bTrackScopeVars = FALSE;
 	}
 	return pGen;
 }
@@ -169,6 +173,7 @@ static inline void xlCodegenDestroy( XL_Codegen *pGen )
 		if ( pGen->xLocalVars ) xvoUnref(pGen->xLocalVars);
 		if ( pGen->xCapturedVars ) xvoUnref(pGen->xCapturedVars);
 		if ( pGen->xOuterVars ) xvoUnref(pGen->xOuterVars);
+		if ( pGen->xScopeVars ) xvoUnref(pGen->xScopeVars);
 		free(pGen);
 	}
 }
@@ -1145,6 +1150,12 @@ static void xlCodegenStmt( XL_Codegen *pGen, xvalue xStmt )
 		str pszName = xlAstGetStr(xStmt, (str)"name");
 		xvalue xInit = xlAstGetNode(xStmt, (str)"init");
 
+		// 如果开启了作用域变量追踪，记录这个变量
+		if ( pGen->bTrackScopeVars && pGen->xScopeVars ) {
+			xvalue xVarName = xvoCreateText(pszName, 0, FALSE);
+			xvoArrayAppendValue(pGen->xScopeVars, xVarName, FALSE);
+		}
+
 		xlCodegenIndent(pGen, pBuf);
 
 		// 顶层全局变量初始化模式：只赋值，不声明（iIndent==1 表示 main 函数顶层）
@@ -1330,9 +1341,36 @@ static void xlCodegenStmt( XL_Codegen *pGen, xvalue xStmt )
 		xlCodegenIndent(pGen, pBuf);
 		xlCodeBufAppendFmt(pBuf, "for ( xvalue xlv_%s = xl__start; (xvoGetInt(xl__step) > 0) ? (xvoGetInt(xlv_%s) <= xvoGetInt(xl__end)) : (xvoGetInt(xlv_%s) >= xvoGetInt(xl__end)); ) {\n",
 		                   (char*)pszVar, (char*)pszVar, (char*)pszVar);
-
+		
 		pGen->iIndent++;
+		// 为循环体创建作用域块，确保每次迭代的变量能被正确清理
+		xlCodegenIndent(pGen, pBuf);
+		xlCodeBufAppend(pBuf, "{\n");
+		pGen->iIndent++;
+		
+		// 开启变量追踪，创建变量列表
+		pGen->xScopeVars = xvoCreateArray();
+		pGen->bTrackScopeVars = TRUE;
+		
 		xlCodegenStmt(pGen, xBody);
+		
+		// 生成变量清理代码
+		if ( pGen->xScopeVars ) {
+			u32 iVarCount = xvoArrayItemCount(pGen->xScopeVars);
+			for ( u32 i = 0; i < iVarCount; i++ ) {
+				xvalue xVarName = xvoArrayGetValue(pGen->xScopeVars, i);
+				str pszVarName = xvoGetText(xVarName);
+				xlCodegenIndent(pGen, pBuf);
+				xlCodeBufAppendFmt(pBuf, "xvoUnref(xlv_%s);\n", (char*)pszVarName);
+			}
+			xvoUnref(pGen->xScopeVars);
+			pGen->xScopeVars = NULL;
+		}
+		pGen->bTrackScopeVars = FALSE;
+		
+		pGen->iIndent--;
+		xlCodegenIndent(pGen, pBuf);
+		xlCodeBufAppend(pBuf, "}\n");
 		// 在循环体末尾更新循环变量，先释放旧值
 		xlCodegenIndent(pGen, pBuf);
 		xlCodeBufAppendFmt(pBuf, "{ xvalue xl__old = xlv_%s; xlv_%s = xl_add(xlv_%s, xl__step); xvoUnref(xl__old); }\n", 
@@ -1383,6 +1421,10 @@ static void xlCodegenStmt( XL_Codegen *pGen, xvalue xStmt )
 		xlCodeBufAppend(pBuf, "for ( int xl__i = 0; xl__i < xl__len; xl__i++ ) {\n");
 
 		pGen->iIndent++;
+		// 为循环体创建作用域块
+		xlCodegenIndent(pGen, pBuf);
+		xlCodeBufAppend(pBuf, "{\n");
+		pGen->iIndent++;
 
 		if ( pszKey ) {
 			xlCodegenIndent(pGen, pBuf);
@@ -1392,12 +1434,41 @@ static void xlCodegenStmt( XL_Codegen *pGen, xvalue xStmt )
 		xlCodegenIndent(pGen, pBuf);
 		xlCodeBufAppendFmt(pBuf, "xvalue xlv_%s = xvoArrayGetValue(xl__iter, xl__i);\n", (char*)pszValue);
 
+		// 开启变量追踪
+		pGen->xScopeVars = xvoCreateArray();
+		pGen->bTrackScopeVars = TRUE;
+		
 		xlCodegenStmt(pGen, xBody);
+
+		// 生成变量清理代码
+		if ( pGen->xScopeVars ) {
+			u32 iVarCount = xvoArrayItemCount(pGen->xScopeVars);
+			for ( u32 i = 0; i < iVarCount; i++ ) {
+				xvalue xVarName = xvoArrayGetValue(pGen->xScopeVars, i);
+				str pszVarName = xvoGetText(xVarName);
+				xlCodegenIndent(pGen, pBuf);
+				xlCodeBufAppendFmt(pBuf, "xvoUnref(xlv_%s);\n", (char*)pszVarName);
+			}
+			xvoUnref(pGen->xScopeVars);
+			pGen->xScopeVars = NULL;
+		}
+		pGen->bTrackScopeVars = FALSE;
+		
+		// 清理循环变量
+		if ( pszKey ) {
+			xlCodegenIndent(pGen, pBuf);
+			xlCodeBufAppendFmt(pBuf, "xvoUnref(xlv_%s);\n", (char*)pszKey);
+		}
+		xlCodegenIndent(pGen, pBuf);
+		xlCodeBufAppendFmt(pBuf, "xvoUnref(xlv_%s);\n", (char*)pszValue);
 
 		// continue 标签在循环体末尾
 		xlCodegenIndent(pGen, pBuf);
 		xlCodeBufAppendFmt(pBuf, "xl__continue_%d:;\n", iLoopLabel);
 
+		pGen->iIndent--;
+		xlCodegenIndent(pGen, pBuf);
+		xlCodeBufAppend(pBuf, "}\n");
 		pGen->iIndent--;
 		xlCodegenIndent(pGen, pBuf);
 		xlCodeBufAppend(pBuf, "}\n");

@@ -1,0 +1,8 @@
+for i in range(1, 10000000)
+	var a = 1
+	var b = 2
+	var c = 3
+	var d = 4
+	var result = a + b + c + d
+end
+println("done")
