@@ -1,0 +1,178 @@
+
+
+
+print("===== 1. var and data type =====")
+
+var a = 10
+var b = 3.14
+var c = "Hello"
+var d = true
+var e = null
+
+print("int:", a)
+print("float:", b)
+print("string:", c)
+print("bool:", d)
+print("null:", e)
+
+
+
+print("")
+print("===== 2. eval =====")
+
+print("10 + 3 =", 10 + 3)
+print("10 - 3 =", 10 - 3)
+print("10 * 3 =", 10 * 3)
+print("10 / 3 =", 10 / 3)
+print("10 % 3 =", 10 % 3)
+print("2 ** 10 =", 2 ** 10)
+
+
+
+print("")
+print("===== 3. exp =====")
+
+print("10 > 5:", 10 > 5)
+print("10 < 5:", 10 < 5)
+print("10 == 10:", 10 == 10)
+print("10 != 5:", 10 != 5)
+print("true and false:", true and false)
+print("true or false:", true or false)
+print("not true:", not true)
+
+
+
+print("")
+print("===== 4. string =====")
+
+var s1 = "Hello"
+var s2 = "World"
+print("strcat:", s1 + " " + s2 + "!")
+print("strlen:", len(s1))
+
+
+
+print("")
+print("===== 5. if =====")
+
+var x = 15
+if x > 10
+    print("x > 10")
+elseif x > 5
+    print("x > 5 and < 10")
+else
+    print("x <= 5")
+end
+
+// 单行 if
+if x > 0 then print("x > 0")
+
+
+
+print("")
+print("===== 6. loop =====")
+
+// for 循环
+print("for loop (1 to 5):")
+for i = 1 to 5
+    print("  i =", i)
+end
+
+// for 循环带 step
+print("for loop (10 to 2, step -2):")
+for i = 10 to 2 step -2
+    print("  i =", i)
+end
+
+// while 循环
+print("while loop:")
+var n = 1
+while n <= 3
+    print("  n =", n)
+    n = n + 1
+end
+
+// break 和 continue
+print("break and continue test:")
+for i = 1 to 10
+    if i == 3
+        continue
+    end
+    if i == 6
+        break
+    end
+    print("  i =", i)
+end
+
+
+
+print("")
+print("===== 7. function ==========")
+
+// 定义函数
+function greet(name)
+    print("Hello,", name + "!")
+end
+
+function add(a, b)
+    return a + b
+end
+
+function factorial(n)
+    if n <= 1
+        return 1
+    end
+    return n * factorial(n - 1)
+end
+
+// 调用函数
+greet("xlang")
+print("add(3, 5) =", add(3, 5))
+print("factorial(5) =", factorial(5))
+
+
+
+print("")
+print("===== 8. array ==========")
+
+var arr = [1, 2, 3, 4, 5]
+print("array:", arr)
+print("array len:", len(arr))
+print("arr[0] =", arr[0])
+print("arr[2] =", arr[2])
+
+// 修改数组元素
+arr[0] = 100
+print("change arr[0] =", arr[0])
+
+
+
+print("")
+print("===== 9. table ==========")
+
+var tbl = {name = "xlang", version = 1, demo = true}
+print("table:", tbl)
+print("tbl.name =", tbl.name)
+print("tbl.version =", tbl.version)
+
+// 修改表成员
+tbl.author = "xLeaves"
+print("add tbl.author =", tbl.author)
+
+
+
+print("")
+print("===== 10. conv =====")
+
+print("str(123) =", str(123))
+print("int(\"456\") =", int("456"))
+print("float(\"3.14\") =", float("3.14"))
+print("type(123) =", type(123))
+print("type(\"hello\") =", type("hello"))
+print("type([1,2,3]) =", type([1,2,3]))
+
+
+
+print("")
+print("===== done =====")
+print("xlang DEMO sucess !")
