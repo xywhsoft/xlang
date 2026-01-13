@@ -22,6 +22,8 @@
 - 后端接口稳定、简洁，便于后续手动扩展新的后端。
 - 每个中间阶段有 **可视化/可打印的调试输出**（分词结果、AST、C 代码）。
 
+备注：xvalue 支持 xvoPrintValue 打印结构，尽可能使用 xvalue 存储各种结构化数据（字典、树、数组、列表等）。
+
 ---
 
 ## 2. 目录与工程结构
@@ -35,6 +37,7 @@ demo/
 	build.sh            // Linux 构建脚本
 	lib/                // 依赖的库（xrt、tcc、未来可能的辅助库）
 		xrt/            // xrt 源码或静态库/头文件（可链接已有项目）
+		other.h         // 非 xrt 实现的辅助函数封装（见下文说明）
 		...             // 其他内置库
 	tools/              // 工具（flex、lemon 源码或模板等）
 	release/
@@ -49,6 +52,48 @@ demo/
 
 > 说明：根目录 `src/`、`test/` 等保持保留，用于后续正式版本或平行实验。本 Spec 只约束 `demo/` 下这一版 Demo 的结构。
 
+### 2.1 other.h 辅助函数规范
+
+当某些功能无法通过 xrt 实现时，将封装函数放在 `lib/other.h` 中。这些函数的命名和风格应与 xrt 保持一致。
+
+```c
+/* lib/other.h - 非 xrt 实现的辅助函数 */
+
+#ifndef XLANG_OTHER_H
+#define XLANG_OTHER_H
+
+#include "xrt.h"
+
+/*
+ * 命名规范：
+ * - 函数名使用驼峰法，前缀 xlOther
+ * - 参数命名使用匈牙利命名法
+ * - 使用 xrt 类型系统（str, i64, u32, ptr 等）
+ * 
+ * 示例场景：
+ * - 系统调用封装（xrt 未提供的系统 API）
+ * - 特定平台功能（Windows/Linux 专用接口）
+ * - 第三方库封装（如需要接入其他 C 库）
+ */
+
+/* 示例：环境变量操作（xrt 可能未提供） */
+str xlOtherGetEnv(str pszName);
+void xlOtherSetEnv(str pszName, str pszValue);
+
+/* 示例：进程/线程相关（如 xrt 未提供） */
+u32 xlOtherGetPid();
+u32 xlOtherGetTid();
+
+/* 示例：动态库加载（跨平台封装） */
+ptr xlOtherLoadLib(str pszPath);
+ptr xlOtherGetProc(ptr hLib, str pszName);
+void xlOtherFreeLib(ptr hLib);
+
+#endif /* XLANG_OTHER_H */
+```
+
+> 注意：应优先使用 xrt 提供的功能，只有 xrt 确实无法实现的功能才放入 other.h。每个函数必须有清晰的注释说明其用途和平台差异。
+
 ---
 
 ## 3. 模块划分与分层架构
@@ -58,7 +103,7 @@ demo/
 ### 3.1 前端：词法分析（Lexer）
 
 - **职责**：将 xlang 源代码转换为 token 流。
-- **实现方式**：优先使用 flex 生成 `demo/tools/xl_lex.c`；如需手写，也按相同接口输出。
+- **实现方式**：优先使用 flex 生成 `demo/src/xl_lex.c`；如需手写，也按相同接口输出。
 - **核心数据结构**：
 	- `enum XL_TokenKind`：所有 token 类型（关键字、标识符、字面量、运算符等）。
 	- `typedef struct XL_Token { ... } XL_Token;`：包含 kind、源文本切片、行列号等。
@@ -68,188 +113,188 @@ demo/
 ```c
 typedef enum XL_TokenKind {
 	// ==================== 特殊 Token ====================
-	TK_EOF = 0,             // 文件结束
-	TK_ERROR,               // 词法错误
-	TK_NEWLINE,             // 换行（用于语句分隔）
+	XL_TK_EOF = 0,             // 文件结束
+	XL_TK_ERROR,               // 词法错误
+	XL_TK_NEWLINE,             // 换行（用于语句分隔）
 	
 	// ==================== 字面量 ====================
-	TK_IDENT,               // 标识符（含中文）
-	TK_INT,                 // 整数字面量（十进制）
-	TK_INT_HEX,             // 整数字面量（十六进制 0x / &H）
-	TK_INT_OCT,             // 整数字面量（八进制 &O）
-	TK_INT_BIN,             // 整数字面量（二进制 0b / &B）
-	TK_FLOAT,               // 浮点数字面量
-	TK_STRING,              // 字符串 "..." （支持转义）
-	TK_STRING_RAW,          // 原始字符串 '...' （不支持转义）
-	TK_STRING_MULTI,        // 多行字符串 """..."""
-	TK_STRING_MULTI_RAW,    // 多行原始字符串 '''...'''
-	TK_TEMPLATE,            // 模板字符串 `...`
-	TK_TEMPLATE_MULTI,      // 多行模板字符串 ```...```
-	TK_TIME,                // 时间字面量 #2000-01-01T12:00:00
+	XL_TK_IDENT,               // 标识符（含中文）
+	XL_TK_INT,                 // 整数字面量（十进制）
+	XL_TK_INT_HEX,             // 整数字面量（十六进制 0x / &H）
+	XL_TK_INT_OCT,             // 整数字面量（八进制 &O）
+	XL_TK_INT_BIN,             // 整数字面量（二进制 0b / &B）
+	XL_TK_FLOAT,               // 浮点数字面量
+	XL_TK_STRING,              // 字符串 "..." （支持转义）
+	XL_TK_STRING_RAW,          // 原始字符串 '...' （不支持转义）
+	XL_TK_STRING_MULTI,        // 多行字符串 """..."""
+	XL_TK_STRING_MULTI_RAW,    // 多行原始字符串 '''...'''
+	XL_TK_TEMPLATE,            // 模板字符串 `...`
+	XL_TK_TEMPLATE_MULTI,      // 多行模板字符串 ```...```
+	XL_TK_TIME,                // 时间字面量 #2000-01-01T12:00:00
 	
 	// ==================== 数据类型关键字 ====================
-	TK_NULL,                // null
-	TK_BOOL,                // bool
-	TK_TRUE,                // true
-	TK_FALSE,               // false
-	TK_INT_T,               // int
-	TK_INT8,                // int8
-	TK_INT16,               // int16
-	TK_INT32,               // int32
-	TK_INT64,               // int64
-	TK_UINT8,               // uint8
-	TK_UINT16,              // uint16
-	TK_UINT32,              // uint32
-	TK_UINT64,              // uint64
-	TK_FLOAT_T,             // float
-	TK_FLOAT32,             // float32
-	TK_FLOAT64,             // float64
-	TK_STRING_T,            // string
-	TK_TIME_T,              // time
-	TK_POINT,               // point
-	TK_ARRAY,               // array
-	TK_LIST,                // list
-	TK_SET,                 // set
-	TK_DICT,                // dict
-	TK_FUNCTION,            // function
-	TK_CLASS,               // class
-	TK_CUSTOM,              // custom
-	TK_VAR,                 // var
-	TK_AUTO,                // auto
-	TK_VOID,                // void
-	TK_TYPE,                // type
-	TK_TYPEDEF,             // typedef
-	TK_OBJECT,              // object
-	TK_ENUM,                // enum
-	TK_UNION,               // union
-	TK_RANGE,               // range
+	XL_TK_NULL,                // null
+	XL_TK_BOOL,                // bool
+	XL_TK_TRUE,                // true
+	XL_TK_FALSE,               // false
+	XL_TK_INT_T,               // int
+	XL_TK_INT8,                // int8
+	XL_TK_INT16,               // int16
+	XL_TK_INT32,               // int32
+	XL_TK_INT64,               // int64
+	XL_TK_UINT8,               // uint8
+	XL_TK_UINT16,              // uint16
+	XL_TK_UINT32,              // uint32
+	XL_TK_UINT64,              // uint64
+	XL_TK_FLOAT_T,             // float
+	XL_TK_FLOAT32,             // float32
+	XL_TK_FLOAT64,             // float64
+	XL_TK_STRING_T,            // string
+	XL_TK_TIME_T,              // time
+	XL_TK_POINT,               // point
+	XL_TK_ARRAY,               // array
+	XL_TK_LIST,                // list
+	XL_TK_SET,                 // set
+	XL_TK_DICT,                // dict
+	XL_TK_FUNCTION,            // function
+	XL_TK_CLASS,               // class
+	XL_TK_CUSTOM,              // custom
+	XL_TK_VAR,                 // var
+	XL_TK_AUTO,                // auto
+	XL_TK_VOID,                // void
+	XL_TK_TYPE,                // type
+	XL_TK_TYPEDEF,             // typedef
+	XL_TK_OBJECT,              // object
+	XL_TK_ENUM,                // enum
+	XL_TK_UNION,               // union
+	XL_TK_RANGE,               // range
 	
 	// ==================== 控制流关键字 ====================
-	TK_IF,                  // if
-	TK_THEN,                // then
-	TK_ELSE,                // else
-	TK_ELSEIF,              // elseif
-	TK_END,                 // end
-	TK_FOR,                 // for
-	TK_IN,                  // in
-	TK_TO,                  // to
-	TK_STEP,                // step
-	TK_WHILE,               // while
-	TK_DO,                  // do
-	TK_BREAK,               // break
-	TK_CONTINUE,            // continue
-	TK_RETURN,              // return
-	TK_WITH,                // with
-	TK_AS,                  // as
+	XL_TK_IF,                  // if
+	XL_TK_THEN,                // then
+	XL_TK_ELSE,                // else
+	XL_TK_ELSEIF,              // elseif
+	XL_TK_END,                 // end
+	XL_TK_FOR,                 // for
+	XL_TK_IN,                  // in
+	XL_TK_TO,                  // to
+	XL_TK_STEP,                // step
+	XL_TK_WHILE,               // while
+	XL_TK_DO,                  // do
+	XL_TK_BREAK,               // break
+	XL_TK_CONTINUE,            // continue
+	XL_TK_RETURN,              // return
+	XL_TK_WITH,                // with
+	XL_TK_AS,                  // as
 	
 	// ==================== 类与函数关键字 ====================
-	TK_CREATE,              // create
-	TK_DESTROY,             // destroy
-	TK_GET,                 // get
-	TK_LET,                 // let
-	TK_META,                // meta
-	TK_SELF,                // self
-	TK_SUPER,               // super
-	TK_PUBLIC,              // public
-	TK_PRIVATE,             // private
-	TK_PROTECTED,           // protected
-	TK_STATIC,              // static
-	TK_CONST,               // const
-	TK_NEW,                 // new
-	TK_EXTENDS,             // extends
+	XL_TK_CREATE,              // create
+	XL_TK_DESTROY,             // destroy
+	XL_TK_GET,                 // get
+	XL_TK_LET,                 // let
+	XL_TK_META,                // meta
+	XL_TK_SELF,                // self
+	XL_TK_SUPER,               // super
+	XL_TK_PUBLIC,              // public
+	XL_TK_PRIVATE,             // private
+	XL_TK_PROTECTED,           // protected
+	XL_TK_STATIC,              // static
+	XL_TK_CONST,               // const
+	XL_TK_NEW,                 // new
+	XL_TK_EXTENDS,             // extends
 	
 	// ==================== 调用约定关键字 ====================
-	TK_XCALL,               // xcall
-	TK_CDECL,               // cdecl
-	TK_STDCALL,             // stdcall
-	TK_FASTCALL,            // fastcall
-	TK_EXTERN,              // extern
-	TK_ALIAS,               // alias
+	XL_TK_XCALL,               // xcall
+	XL_TK_CDECL,               // cdecl
+	XL_TK_STDCALL,             // stdcall
+	XL_TK_FASTCALL,            // fastcall
+	XL_TK_EXTERN,              // extern
+	XL_TK_ALIAS,               // alias
 	
 	// ==================== 逻辑运算符关键字 ====================
-	TK_AND,                 // and
-	TK_OR,                  // or
-	TK_NOT,                 // not
-	TK_IS,                  // is
+	XL_TK_AND,                 // and
+	XL_TK_OR,                  // or
+	XL_TK_NOT,                 // not
+	XL_TK_IS,                  // is
 	
 	// ==================== 异常处理关键字 ====================
-	TK_TRY,                 // try
-	TK_CATCH,               // catch
-	TK_FINALLY,             // finally
-	TK_THROW,               // throw
-	TK_ASSERT,              // assert
+	XL_TK_TRY,                 // try
+	XL_TK_CATCH,               // catch
+	XL_TK_FINALLY,             // finally
+	XL_TK_THROW,               // throw
+	XL_TK_ASSERT,              // assert
 	
 	// ==================== 模块关键字（预留） ====================
-	TK_ASYNC,               // async
-	TK_AWAIT,               // await
-	TK_YIELD,               // yield
-	TK_IMPORT,              // import
-	TK_EXPORT,              // export
-	TK_INCLUDE,             // include
+	XL_TK_ASYNC,               // async
+	XL_TK_AWAIT,               // await
+	XL_TK_YIELD,               // yield
+	XL_TK_IMPORT,              // import
+	XL_TK_EXPORT,              // export
+	XL_TK_INCLUDE,             // include
 	
 	// ==================== 命名空间关键字 ====================
-	TK_NAMESPACE,           // namespace
-	TK_USING,               // using
+	XL_TK_NAMESPACE,           // namespace
+	XL_TK_USING,               // using
 	
 	// ==================== 比较运算符 ====================
-	TK_GT,                  // >
-	TK_LT,                  // <
-	TK_GE,                  // >=
-	TK_LE,                  // <=
-	TK_NE,                  // !=
-	TK_EQ,                  // ==
-	TK_APPROX,              // ~=  约等于
+	XL_TK_GT,                  // >
+	XL_TK_LT,                  // <
+	XL_TK_GE,                  // >=
+	XL_TK_LE,                  // <=
+	XL_TK_NE,                  // !=
+	XL_TK_EQ,                  // ==
+	XL_TK_APPROX,              // ~=  约等于
 	
 	// ==================== 算术运算符 ====================
-	TK_PLUS,                // +
-	TK_MINUS,               // -
-	TK_STAR,                // *
-	TK_SLASH,               // /
-	TK_PERCENT,             // %
-	TK_POWER,               // **  乘方
+	XL_TK_PLUS,                // +
+	XL_TK_MINUS,               // -
+	XL_TK_STAR,                // *
+	XL_TK_SLASH,               // /
+	XL_TK_PERCENT,             // %
+	XL_TK_POWER,               // **  乘方
 	
 	// ==================== 位运算符 ====================
-	TK_AMP,                 // &   位与
-	TK_PIPE,                // |   位或
-	TK_BANG,                // !   位非
-	TK_CARET,               // ^   位异或
-	TK_SHR,                 // >>  右移
-	TK_SHL,                 // <<  左移
+	XL_TK_AMP,                 // &   位与
+	XL_TK_PIPE,                // |   位或
+	XL_TK_BANG,                // !   位非
+	XL_TK_CARET,               // ^   位异或
+	XL_TK_SHR,                 // >>  右移
+	XL_TK_SHL,                 // <<  左移
 	
 	// ==================== 赋值运算符 ====================
-	TK_ASSIGN,              // =
-	TK_PLUS_ASSIGN,         // +=
-	TK_MINUS_ASSIGN,        // -=
-	TK_STAR_ASSIGN,         // *=
-	TK_SLASH_ASSIGN,        // /=
-	TK_PERCENT_ASSIGN,      // %=
-	TK_POWER_ASSIGN,        // **=
-	TK_INC,                 // ++  自增
-	TK_DEC,                 // --  自减
+	XL_TK_ASSIGN,              // =
+	XL_TK_PLUS_ASSIGN,         // +=
+	XL_TK_MINUS_ASSIGN,        // -=
+	XL_TK_STAR_ASSIGN,         // *=
+	XL_TK_SLASH_ASSIGN,        // /=
+	XL_TK_PERCENT_ASSIGN,      // %=
+	XL_TK_POWER_ASSIGN,        // **=
+	XL_TK_INC,                 // ++  自增
+	XL_TK_DEC,                 // --  自减
 	
 	// ==================== 特殊运算符 ====================
-	TK_QUESTION,            // ?
-	TK_COLON,               // :
-	TK_NULL_COALESCE,       // ??  空值合并
-	TK_NULL_ASSIGN,         // ?=  空值赋值
-	TK_DOT,                 // .   成员访问
-	TK_SAFE_DOT,            // ?.  安全成员访问
-	TK_DOTDOT,              // ..  （预留：范围）
-	TK_ELLIPSIS,            // ... 可变参数（数组）
-	TK_ELLIPSIS_DICT,       // *** 可变参数（字典）
+	XL_TK_QUESTION,            // ?
+	XL_TK_COLON,               // :
+	XL_TK_NULL_COALESCE,       // ??  空值合并
+	XL_TK_NULL_ASSIGN,         // ?=  空值赋值
+	XL_TK_DOT,                 // .   成员访问
+	XL_TK_SAFE_DOT,            // ?.  安全成员访问
+	XL_TK_DOTDOT,              // ..  （预留：范围）
+	XL_TK_ELLIPSIS,            // ... 可变参数（数组）
+	XL_TK_ELLIPSIS_DICT,       // *** 可变参数（字典）
 	
 	// ==================== 分隔符 ====================
-	TK_LPAREN,              // (
-	TK_RPAREN,              // )
-	TK_LBRACKET,            // [
-	TK_RBRACKET,            // ]
-	TK_LBRACE,              // {
-	TK_RBRACE,              // }
-	TK_COMMA,               // ,
-	TK_SEMICOLON,           // ;   （可选语句分隔符）
+	XL_TK_LPAREN,              // (
+	XL_TK_RPAREN,              // )
+	XL_TK_LBRACKET,            // [
+	XL_TK_RBRACKET,            // ]
+	XL_TK_LBRACE,              // {
+	XL_TK_RBRACE,              // }
+	XL_TK_COMMA,               // ,
+	XL_TK_SEMICOLON,           // ;   （可选语句分隔符）
 	
 	// ==================== 枚举结束标记 ====================
-	TK_COUNT                // Token 类型总数
+	XL_TK_COUNT                // Token 类型总数
 } XL_TokenKind;
 ```
 
@@ -258,20 +303,20 @@ typedef enum XL_TokenKind {
 ```c
 typedef struct XL_Token {
 	XL_TokenKind kind;      // Token 类型
-	const char *pszStart;   // 源码中的起始位置
-	uint32 iLength;         // Token 长度
-	uint32 iLine;           // 行号（从 1 开始）
-	uint32 iColumn;         // 列号（从 1 开始）
+	str pszStart;           // 源码中的起始位置
+	u32 iLength;            // Token 长度
+	u32 iLine;              // 行号（从 1 开始）
+	u32 iColumn;            // 列号（从 1 开始）
 	
 	// 字面量值（解析后）
 	union {
-		int64 iValue;       // 整数值
-		double fValue;      // 浮点值
+		i64 iValue;         // 整数值
+		f64 fValue;         // 浮点值
 		struct {
-			char *pszText;  // 字符串内容（已处理转义）
-			uint32 iLen;    // 字符串长度
+			str pszText;    // 字符串内容（已处理转义）
+			u32 iLen;       // 字符串长度
 		} sValue;
-		int64 tValue;       // 时间值（xtime）
+		xtime tValue;       // 时间值
 	};
 } XL_Token;
 ```
@@ -395,11 +440,12 @@ typedef struct XL_Token {
 ```c
 typedef struct XL_Lexer XL_Lexer;
 
-XL_Lexer* xl_lexer_new(const char *pszSource, const char *pszFileName);
-void xl_lexer_free(XL_Lexer *pLexer);
+XL_Lexer* xlLexerCreate(str sSource, str sScript, size_t iSize);
+XL_Lexer* xlLexerCreateWithFile(str sSource, str sFile);
+void xlLexerFree(XL_Lexer *pLexer);
 
 // 逐个取 token，返回 0 表示成功，非 0 表示错误或结束
-tint xl_lexer_next(XL_Lexer *pLexer, XL_Token *pOutToken);
+int xlLexerNext(XL_Lexer *pLexer, XL_Token *pOutToken);
 ```
 
 - **调试工具**：在 `main.c` 中提供模式：
@@ -812,10 +858,10 @@ template_part   ::= TEMPLATE_TEXT                      (* 纯文本部分 *)
 
 ```c
 // AST 根节点使用 xvalue 表达
-xvalue xl_parse(xvalue xLexerConfig, XL_ErrorList *pErrList);
+xvalue xlParse(xvalue xLexerConfig, XL_ErrorList *pErrList);
 ```
 
-> 实际实现中你可以使用更直接的签名，例如 `xvalue xl_parse_from_source(const char *pszSource, const char *pszFileName, XL_ErrorList *pErrList);`，内部自己创建/销毁 lexer。
+> 实际实现中你可以使用更直接的签名，例如 `xvalue xlParseFromSource(str pszSource, str pszFileName, XL_ErrorList *pErrList);`，内部自己创建/销毁 lexer。
 
 - **AST 结构约定（重要）**：
 	- 根节点：
@@ -1111,7 +1157,7 @@ typedef enum XL_SymbolKind {
 ```c
 typedef struct XL_Symbol {
 	XL_SymbolKind kind;         // 符号类型
-	const char *pszName;        // 符号名称
+	str pszName;                // 符号名称
 	xvalue xType;               // 类型信息（TypeRef AST 节点）
 	xvalue xDecl;               // 关联的声明 AST 节点
 	struct XL_Scope *pScope;    // 所属作用域
@@ -1127,7 +1173,7 @@ typedef struct XL_Symbol {
 	int iLocalIndex;            // 在局部变量表中的索引
 	
 	// 代码生成相关
-	const char *pszCName;       // 生成的 C 变量/函数名
+	str pszCName;               // 生成的 C 变量/函数名
 } XL_Symbol;
 ```
 
@@ -1160,11 +1206,11 @@ typedef struct XL_Scope {
 
 ```c
 // 符号表 API
-XL_Scope* xl_scope_create(XL_ScopeKind kind, XL_Scope *pParent);
-void xl_scope_destroy(XL_Scope *pScope);
-XL_Symbol* xl_scope_define(XL_Scope *pScope, const char *pszName, XL_SymbolKind kind);
-XL_Symbol* xl_scope_lookup(XL_Scope *pScope, const char *pszName);           // 当前作用域
-XL_Symbol* xl_scope_resolve(XL_Scope *pScope, const char *pszName);          // 向上查找
+XL_Scope* xlScopeCreate(XL_ScopeKind kind, XL_Scope *pParent);
+void xlScopeDestroy(XL_Scope *pScope);
+XL_Symbol* xlScopeDefine(XL_Scope *pScope, str pszName, XL_SymbolKind kind);
+XL_Symbol* xlScopeLookup(XL_Scope *pScope, str pszName);           // 当前作用域
+XL_Symbol* xlScopeResolve(XL_Scope *pScope, str pszName);          // 向上查找
 ```
 
 #### 闭包实现方案
@@ -1208,14 +1254,14 @@ function makeCounter()
 end
 
 // 生成的 C 代码（概念）
-xvalue xl_fn_main_makeCounter(XL_ExecCtx *pCtx)
+xvalue xlFnMainMakeCounter(XL_ExecCtx *pCtx)
 {
 	// count 被捕获，分配到闭包环境
-	XL_ClosureEnv *pEnv = xl_closure_env_create(1);
+	XL_ClosureEnv *pEnv = xlClosureEnvCreate(1);
 	pEnv->arrVars[0] = xvoCreateInt(0);  // count 初始值
 	
 	// 创建闭包对象
-	XL_Closure *pClosure = xl_closure_create(__anon_1, pEnv);
+	XL_Closure *pClosure = xlClosureCreate(__anon_1, pEnv);
 	return xvoCreateFunc((xfunction)pClosure);
 }
 
@@ -1223,7 +1269,7 @@ xvalue xl_fn_main_makeCounter(XL_ExecCtx *pCtx)
 xvalue __anon_1(XL_ExecCtx *pCtx, XL_ClosureEnv *pEnv)
 {
 	// 访问捕获的 count（索引 0）
-	int64 iCount = xvoGetInt(pEnv->arrVars[0]);
+	i64 iCount = xvoGetInt(pEnv->arrVars[0]);
 	iCount = iCount + 1;
 	xvoUnref(pEnv->arrVars[0]);
 	pEnv->arrVars[0] = xvoCreateInt(iCount);
@@ -1287,9 +1333,9 @@ typedef struct XL_Error {
 	int iCode;                  // 错误码
 	int iLine;                  // 行号
 	int iColumn;                // 列号
-	const char *pszFile;        // 文件名
-	const char *pszMessage;     // 错误消息
-	const char *pszContext;     // 上下文（源码片段）
+	str pszFile;                // 文件名
+	str pszMessage;             // 错误消息
+	str pszContext;             // 上下文（源码片段）
 } XL_Error;
 
 typedef struct XL_ErrorList {
@@ -1334,18 +1380,18 @@ xlang --dump-sem file.xl
 
 ```c
 typedef struct XL_BackendConfig {
-	const char *pszName;           // 后端名称，例如 "c_tcc"、"c_gcc"、"llvm_jit"
+	str pszName;                   // 后端名称，例如 "c_tcc"、"c_gcc"、"llvm_jit"
 	// 将来可扩展：优化级别、目标平台等
 } XL_BackendConfig;
 
 // 后端上下文
 typedef struct XL_BackendCtx XL_BackendCtx;
 
-XL_BackendCtx* xl_backend_create(const XL_BackendConfig *pCfg);
-void xl_backend_destroy(XL_BackendCtx *pCtx);
+XL_BackendCtx* xlBackendCreate(const XL_BackendConfig *pCfg);
+void xlBackendDestroy(XL_BackendCtx *pCtx);
 
-// 核心：从“语义完成的 AST”生成后端目标（当前是 C 源码）
-int xl_backend_generate(XL_BackendCtx *pCtx, xvalue xSemModule, const char *pszOutPath);
+// 核心：从"语义完成的 AST"生成后端目标（当前是 C 源码）
+int xlBackendGenerate(XL_BackendCtx *pCtx, xvalue xSemModule, str pszOutPath);
 ```
 
 > 约定：`xSemModule` 是已经经过语义分析的 AST 根节点。
@@ -1381,21 +1427,21 @@ int xl_backend_generate(XL_BackendCtx *pCtx, xvalue xSemModule, const char *pszO
 |-----------|--------|------------|------|
 | `null` | - | XVO_DT_NULL | 空值，使用 xvoCreateNull() |
 | `bool` | `int` | XVO_DT_BOOL | 0/1，使用 xvoCreateBool() |
-| `int` | `int64_t` | XVO_DT_INT | 默认 64 位 |
-| `int8` | `int8_t` | XVO_DT_INT | 8 位有符号 |
-| `int16` | `int16_t` | XVO_DT_INT | 16 位有符号 |
-| `int32` | `int32_t` | XVO_DT_INT | 32 位有符号 |
-| `int64` | `int64_t` | XVO_DT_INT | 64 位有符号 |
-| `uint8` | `uint8_t` | XVO_DT_INT | 8 位无符号 |
-| `uint16` | `uint16_t` | XVO_DT_INT | 16 位无符号 |
-| `uint32` | `uint32_t` | XVO_DT_INT | 32 位无符号 |
-| `uint64` | `uint64_t` | XVO_DT_INT | 64 位无符号 |
-| `float` | `double` | XVO_DT_FLOAT | 默认 64 位 |
-| `float32` | `float` | XVO_DT_FLOAT | 32 位浮点 |
-| `float64` | `double` | XVO_DT_FLOAT | 64 位浮点 |
+| `int` | `i64` | XVO_DT_INT | 默认 64 位 |
+| `int8` | `i8` | XVO_DT_INT | 8 位有符号 |
+| `int16` | `i16` | XVO_DT_INT | 16 位有符号 |
+| `int32` | `i32` | XVO_DT_INT | 32 位有符号 |
+| `int64` | `i64` | XVO_DT_INT | 64 位有符号 |
+| `uint8` | `u8` | XVO_DT_INT | 8 位无符号 |
+| `uint16` | `u16` | XVO_DT_INT | 16 位无符号 |
+| `uint32` | `u32` | XVO_DT_INT | 32 位无符号 |
+| `uint64` | `u64` | XVO_DT_INT | 64 位无符号 |
+| `float` | `f64` | XVO_DT_FLOAT | 默认 64 位 |
+| `float32` | `f32` | XVO_DT_FLOAT | 32 位浮点 |
+| `float64` | `f64` | XVO_DT_FLOAT | 64 位浮点 |
 | `string` | `str` (xrt) | XVO_DT_TEXT | UTF-8 字符串 |
-| `time` | `xtime` (int64) | XVO_DT_TIME | xrt 时间戳 |
-| `point` | `ptr` (void*) | XVO_DT_POINT | 通用指针 |
+| `time` | `xtime` | XVO_DT_TIME | xrt 时间戳 |
+| `point` | `ptr` | XVO_DT_POINT | 通用指针 |
 | `array` | `xvalue` | XVO_DT_ARRAY | 动态数组 |
 | `list` | `xvalue` | XVO_DT_LIST | int64 索引列表 |
 | `set` | `xvalue` | XVO_DT_COLL | 集合 |
@@ -1414,32 +1460,32 @@ int xl_backend_generate(XL_BackendCtx *pCtx, xvalue xSemModule, const char *pszO
 ```c
 // 规则 1：静态类型参数使用对应 C 类型
 // xlang: function add(int a, int b) as int
-int64_t xl_fn_main_add(XL_ExecCtx *pCtx, int64_t iA, int64_t iB);
+i64 xlFnMainAdd(XL_ExecCtx *pCtx, i64 iA, i64 iB);
 
 // 规则 2：var 类型参数使用 xvalue
 // xlang: function process(var x) as var
-xvalue xl_fn_main_process(XL_ExecCtx *pCtx, xvalue x);
+xvalue xlFnMainProcess(XL_ExecCtx *pCtx, xvalue x);
 
 // 规则 3：多返回值使用 xvalue 数组
 // xlang: function divmod(int a, int b) as int, int
-xvalue xl_fn_main_divmod(XL_ExecCtx *pCtx, int64_t iA, int64_t iB);
+xvalue xlFnMainDivmod(XL_ExecCtx *pCtx, i64 iA, i64 iB);
 // 返回: xvalue array [商, 余数]
 
 // 规则 4：可变参数
 // xlang: function printf(string fmt, ...)
-xvalue xl_fn_main_printf(XL_ExecCtx *pCtx, str sFmt, xvalue arrArgs);
+xvalue xlFnMainPrintf(XL_ExecCtx *pCtx, str sFmt, xvalue arrArgs);
 
 // 规则 5：字典可变参数
 // xlang: function config(***)
-xvalue xl_fn_main_config(XL_ExecCtx *pCtx, xvalue tblArgs);
+xvalue xlFnMainConfig(XL_ExecCtx *pCtx, xvalue tblArgs);
 ```
 
 #### 装箱与拆箱
 
 ```c
 // 拆箱：xvalue -> C 原生类型
-int64_t iVal = xvoGetInt(xVal);
-double fVal = xvoGetFloat(xVal);
+i64 iVal = xvoGetInt(xVal);
+f64 fVal = xvoGetFloat(xVal);
 str sVal = xvoGetText(xVal);
 xtime tVal = xvoGetTime(xVal);
 ptr pVal = xvoGetPoint(xVal);
@@ -1476,7 +1522,7 @@ end
 - 可能生成的 C 代码（示例规范）：
 
 ```c
-int64_t xl_fn_main_add(XL_ExecCtx *pCtx, int64_t iA, int64_t iB)
+i64 xlFnMainAdd(XL_ExecCtx *pCtx, i64 iA, i64 iB)
 {
 	return iA + iB;
 }
@@ -1493,10 +1539,10 @@ end
 - 生成（示例）：
 
 ```c
-xvalue xl_fn_main_foo(XL_ExecCtx *pCtx, xvalue x)
+xvalue xlFnMainFoo(XL_ExecCtx *pCtx, xvalue x)
 {
 	// 使用 xrt 的加法接口
-	return xrt_add_int(pCtx, x, 1);
+	return xlOpAddInt(pCtx, x, 1);
 }
 ```
 
@@ -1509,7 +1555,7 @@ xvalue xl_fn_main_foo(XL_ExecCtx *pCtx, xvalue x)
 	- 展开为标准 C for 循环：
 
 ```c
-for ( int64_t i = iStart; iCondition; i += iStep ) {
+for ( i64 i = iStart; iCondition; i += iStep ) {
 	// 循环体
 }
 ```
@@ -1520,7 +1566,7 @@ for ( int64_t i = iStart; iCondition; i += iStep ) {
 ### 4.4 异常与 Error
 
 - `throw(Error.Value, "msg", 1001)`：
-	- 生成调用：`xl_rt_throw(pCtx, Error_Value, "msg", 1001);`，内部负责 longjmp。
+	- 生成调用：`xlRtThrow(pCtx, Error_Value, "msg", 1001);`，内部负责 longjmp。
 - `try-catch-finally`：
 	- 在 C 层使用 `setjmp`：
 
@@ -1596,11 +1642,11 @@ typedef struct XL_Instance_Person {
 	int iRefCount;                  // 引用计数
 	// 字段数据（静态类型字段直接存储，var 字段用 xvalue）
 	str sName;                      // string sName
-	int64_t iAge;                   // int iAge
+	i64 iAge;                       // int iAge
 } XL_Instance_Person;
 
 // 3. 构造函数
-xvalue xl_create_Person(XL_ExecCtx *pCtx, str sName, int64_t iAge)
+xvalue xlCreatePerson(XL_ExecCtx *pCtx, str sName, i64 iAge)
 {
 	XL_Instance_Person *pInst = xrtMalloc(sizeof(XL_Instance_Person));
 	pInst->pMeta = &g_ClassMeta_Person;
@@ -1611,7 +1657,7 @@ xvalue xl_create_Person(XL_ExecCtx *pCtx, str sName, int64_t iAge)
 }
 
 // 4. 析构函数
-void xl_destroy_Person(XL_ExecCtx *pCtx, xvalue xSelf)
+void xlDestroyPerson(XL_ExecCtx *pCtx, xvalue xSelf)
 {
 	XL_Instance_Person *pInst = xvoGetClass(xSelf);
 	xrtFree(pInst->sName);
@@ -1619,7 +1665,7 @@ void xl_destroy_Person(XL_ExecCtx *pCtx, xvalue xSelf)
 }
 
 // 5. 成员方法
-str xl_m_Person_greet(XL_ExecCtx *pCtx, xvalue xSelf)
+str xlMPersonGreet(XL_ExecCtx *pCtx, xvalue xSelf)
 {
 	XL_Instance_Person *pInst = xvoGetClass(xSelf);
 	return xrtFormat("Hello, %s", pInst->sName);
@@ -1643,18 +1689,18 @@ end
 typedef struct XL_Instance_DynamicObj {
 	XL_ClassMeta *pMeta;
 	int iRefCount;
-	int64_t iId;                    // 静态字段
+	i64 iId;                        // 静态字段
 	xvalue xDynamic;                // 动态属性表（xvalue table）
 } XL_Instance_DynamicObj;
 
 // 动态属性访问
-xvalue xl_meta_DynamicObj_get(XL_ExecCtx *pCtx, xvalue xSelf, str sName)
+xvalue xlMetaDynamicObjGet(XL_ExecCtx *pCtx, xvalue xSelf, str sName)
 {
 	XL_Instance_DynamicObj *pInst = xvoGetClass(xSelf);
 	return xvoTableGetValue(pInst->xDynamic, sName, 0);
 }
 
-void xl_meta_DynamicObj_let(XL_ExecCtx *pCtx, xvalue xSelf, str sName, xvalue xVal)
+void xlMetaDynamicObjLet(XL_ExecCtx *pCtx, xvalue xSelf, str sName, xvalue xVal)
 {
 	XL_Instance_DynamicObj *pInst = xvoGetClass(xSelf);
 	xvoTableSetValue(pInst->xDynamic, sName, 0, xVal, FALSE);
@@ -1681,12 +1727,12 @@ typedef struct XL_Instance_Student {
 	XL_ClassMeta *pMeta;
 	int iRefCount;
 	str sName;                      // 继承自 Person
-	int64_t iAge;                   // 继承自 Person
+	i64 iAge;                       // 继承自 Person
 	// Student 自有字段
 	str sSchool;
 } XL_Instance_Student;
 
-xvalue xl_create_Student(XL_ExecCtx *pCtx, str sName, int64_t iAge, str sSchool)
+xvalue xlCreateStudent(XL_ExecCtx *pCtx, str sName, i64 iAge, str sSchool)
 {
 	XL_Instance_Student *pInst = xrtMalloc(sizeof(XL_Instance_Student));
 	pInst->pMeta = &g_ClassMeta_Student;
@@ -1723,33 +1769,33 @@ end
 // 生成的 C 代码
 
 // getter
-int64_t xl_get_Rectangle_width(XL_ExecCtx *pCtx, xvalue xSelf)
+i64 xlGetRectangleWidth(XL_ExecCtx *pCtx, xvalue xSelf)
 {
 	XL_Instance_Rectangle *pInst = xvoGetClass(xSelf);
 	return pInst->_iWidth;
 }
 
 // setter
-void xl_let_Rectangle_width(XL_ExecCtx *pCtx, xvalue xSelf, int64_t iVal)
+void xlLetRectangleWidth(XL_ExecCtx *pCtx, xvalue xSelf, i64 iVal)
 {
 	if ( iVal < 0 ) {
-		xl_ctx_throw(pCtx, XL_ERR_VALUE, "宽度不能为负", 0);
+		xlCtxThrow(pCtx, XL_ERR_VALUE, "宽度不能为负", 0);
 	}
 	XL_Instance_Rectangle *pInst = xvoGetClass(xSelf);
 	pInst->_iWidth = iVal;
 }
 
 // 只读属性（仅 getter）
-int64_t xl_get_Rectangle_area(XL_ExecCtx *pCtx, xvalue xSelf)
+i64 xlGetRectangleArea(XL_ExecCtx *pCtx, xvalue xSelf)
 {
 	XL_Instance_Rectangle *pInst = xvoGetClass(xSelf);
 	return pInst->_iWidth * pInst->_iHeight;
 }
 
 // 属性访问调用点生成
-// r.width = 100  →  xl_let_Rectangle_width(pCtx, xR, 100);
-// var w = r.width  →  int64_t iW = xl_get_Rectangle_width(pCtx, xR);
-// var a = r.area  →  int64_t iA = xl_get_Rectangle_area(pCtx, xR);
+// r.width = 100  →  xlLetRectangleWidth(pCtx, xR, 100);
+// var w = r.width  →  i64 iW = xlGetRectangleWidth(pCtx, xR);
+// var a = r.area  →  i64 iA = xlGetRectangleArea(pCtx, xR);
 ```
 
 ### 4.8 元方法生成
@@ -1784,15 +1830,15 @@ end
 // 生成的 C 代码
 
 // meta add
-xvalue xl_meta_Vector_add(XL_ExecCtx *pCtx, xvalue xSelf, xvalue xOther)
+xvalue xlMetaVectorAdd(XL_ExecCtx *pCtx, xvalue xSelf, xvalue xOther)
 {
 	XL_Instance_Vector *pSelf = xvoGetClass(xSelf);
 	XL_Instance_Vector *pOther = xvoGetClass(xOther);
-	return xl_create_Vector(pCtx, pSelf->iX + pOther->iX, pSelf->iY + pOther->iY);
+	return xlCreateVector(pCtx, pSelf->iX + pOther->iX, pSelf->iY + pOther->iY);
 }
 
 // meta eq
-int xl_meta_Vector_eq(XL_ExecCtx *pCtx, xvalue xSelf, xvalue xOther)
+int xlMetaVectorEq(XL_ExecCtx *pCtx, xvalue xSelf, xvalue xOther)
 {
 	XL_Instance_Vector *pSelf = xvoGetClass(xSelf);
 	XL_Instance_Vector *pOther = xvoGetClass(xOther);
@@ -1800,17 +1846,17 @@ int xl_meta_Vector_eq(XL_ExecCtx *pCtx, xvalue xSelf, xvalue xOther)
 }
 
 // meta index
-int64_t xl_meta_Vector_index(XL_ExecCtx *pCtx, xvalue xSelf, int64_t iIdx)
+i64 xlMetaVectorIndex(XL_ExecCtx *pCtx, xvalue xSelf, i64 iIdx)
 {
 	XL_Instance_Vector *pInst = xvoGetClass(xSelf);
 	if ( iIdx == 0 ) { return pInst->iX; }
 	if ( iIdx == 1 ) { return pInst->iY; }
-	xl_ctx_throw(pCtx, XL_ERR_INDEX, "索引超出范围", 0);
+	xlCtxThrow(pCtx, XL_ERR_INDEX, "索引超出范围", 0);
 	return 0; // unreachable
 }
 
 // meta to
-xvalue xl_meta_Vector_to(XL_ExecCtx *pCtx, xvalue xSelf, int iTargetType)
+xvalue xlMetaVectorTo(XL_ExecCtx *pCtx, xvalue xSelf, int iTargetType)
 {
 	if ( iTargetType == XVO_DT_TEXT ) {
 		XL_Instance_Vector *pInst = xvoGetClass(xSelf);
@@ -1821,10 +1867,10 @@ xvalue xl_meta_Vector_to(XL_ExecCtx *pCtx, xvalue xSelf, int iTargetType)
 }
 
 // 运算符调用点生成
-// v1 + v2  →  xl_meta_Vector_add(pCtx, xV1, xV2)
-// v1 == v2  →  xl_meta_Vector_eq(pCtx, xV1, xV2)
-// v[0]  →  xl_meta_Vector_index(pCtx, xV, 0)
-// string(v)  →  xl_meta_Vector_to(pCtx, xV, XVO_DT_TEXT)
+// v1 + v2  →  xlMetaVectorAdd(pCtx, xV1, xV2)
+// v1 == v2  →  xlMetaVectorEq(pCtx, xV1, xV2)
+// v[0]  →  xlMetaVectorIndex(pCtx, xV, 0)
+// string(v)  →  xlMetaVectorTo(pCtx, xV, XVO_DT_TEXT)
 ```
 
 ### 4.9 custom 类型生成
@@ -1855,11 +1901,11 @@ typedef struct XL_CustomInstance_File {
 } XL_CustomInstance_File;
 
 // 构造函数包装
-xvalue xl_create_File(XL_ExecCtx *pCtx, str sPath, str sMode)
+xvalue xlCreateFile(XL_ExecCtx *pCtx, str sPath, str sMode)
 {
-	void *pHandle = file_open(sPath, sMode);
+	ptr pHandle = file_open(sPath, sMode);
 	if ( !pHandle ) {
-		xl_ctx_throw(pCtx, XL_ERR_IO, "无法打开文件", 0);
+		xlCtxThrow(pCtx, XL_ERR_IO, "无法打开文件", 0);
 	}
 	XL_CustomInstance_File *pInst = xrtMalloc(sizeof(XL_CustomInstance_File));
 	pInst->pMeta = &g_CustomMeta_File;
@@ -1869,7 +1915,7 @@ xvalue xl_create_File(XL_ExecCtx *pCtx, str sPath, str sMode)
 }
 
 // 析构函数包装
-void xl_destroy_File(XL_ExecCtx *pCtx, xvalue xSelf)
+void xlDestroyFile(XL_ExecCtx *pCtx, xvalue xSelf)
 {
 	XL_CustomInstance_File *pInst = xvoGetCustom(xSelf);
 	if ( pInst->pHandle ) {
@@ -1879,13 +1925,13 @@ void xl_destroy_File(XL_ExecCtx *pCtx, xvalue xSelf)
 }
 
 // 方法包装
-str xl_m_File_read(XL_ExecCtx *pCtx, xvalue xSelf)
+str xlMFileRead(XL_ExecCtx *pCtx, xvalue xSelf)
 {
 	XL_CustomInstance_File *pInst = xvoGetCustom(xSelf);
 	return file_read(pInst->pHandle);
 }
 
-void xl_m_File_write(XL_ExecCtx *pCtx, xvalue xSelf, str sContent)
+void xlMFileWrite(XL_ExecCtx *pCtx, xvalue xSelf, str sContent)
 {
 	XL_CustomInstance_File *pInst = xvoGetCustom(xSelf);
 	file_write(pInst->pHandle, sContent);
@@ -1912,36 +1958,36 @@ void xl_m_File_write(XL_ExecCtx *pCtx, xvalue xSelf, str sContent)
 #### 内置函数 C 实现模板
 
 ```c
-// 命名规则：xl_builtin_<name>
+// 命名规则：xlBuiltin<name>
 // 所有内置函数第一个参数为 XL_ExecCtx *pCtx
 
 // 类型转换 - int()
-xvalue xl_builtin_int(XL_ExecCtx *pCtx, xvalue xVal)
+xvalue xlBuiltinInt(XL_ExecCtx *pCtx, xvalue xVal)
 {
-	int64_t iResult = 0;
+	i64 iResult = 0;
 	switch ( xvoType(xVal) ) {
 		case XVO_DT_INT:
 			iResult = xvoGetInt(xVal);
 			break;
 		case XVO_DT_FLOAT:
-			iResult = (int64_t)xvoGetFloat(xVal);
+			iResult = (i64)xvoGetFloat(xVal);
 			break;
 		case XVO_DT_TEXT:
-			iResult = strtoll(xvoGetText(xVal), NULL, 10);
+			iResult = xrtStrToI64(xvoGetText(xVal), 0);
 			break;
 		case XVO_DT_BOOL:
 			iResult = xvoGetBool(xVal) ? 1 : 0;
 			break;
 		default:
-			xl_ctx_throw(pCtx, XL_ERR_TYPE, "无法转换为 int", 0);
+			xlCtxThrow(pCtx, XL_ERR_TYPE, "无法转换为 int", 0);
 	}
 	return xvoCreateInt(iResult);
 }
 
 // 长度 - len()
-xvalue xl_builtin_len(XL_ExecCtx *pCtx, xvalue xVal)
+xvalue xlBuiltinLen(XL_ExecCtx *pCtx, xvalue xVal)
 {
-	int64_t iLen = 0;
+	i64 iLen = 0;
 	switch ( xvoType(xVal) ) {
 		case XVO_DT_TEXT:
 			iLen = xvoGetSize(xVal);
@@ -1960,45 +2006,45 @@ xvalue xl_builtin_len(XL_ExecCtx *pCtx, xvalue xVal)
 			break;
 		default:
 			// 检查 meta len
-			if ( xl_has_meta(xVal, "len") ) {
-				return xl_call_meta(pCtx, xVal, "len", NULL);
+			if ( xlHasMeta(xVal, "len") ) {
+				return xlCallMeta(pCtx, xVal, "len", NULL);
 			}
-			xl_ctx_throw(pCtx, XL_ERR_TYPE, "对象不支持 len()", 0);
+			xlCtxThrow(pCtx, XL_ERR_TYPE, "对象不支持 len()", 0);
 	}
 	return xvoCreateInt(iLen);
 }
 
 // 类型获取 - type()
-xvalue xl_builtin_type(XL_ExecCtx *pCtx, xvalue xVal)
+xvalue xlBuiltinType(XL_ExecCtx *pCtx, xvalue xVal)
 {
 	return xvoCreateInt(xvoType(xVal));
 }
 
 // 类型检查 - is()
-xvalue xl_builtin_is(XL_ExecCtx *pCtx, xvalue xVal, int iType)
+xvalue xlBuiltinIs(XL_ExecCtx *pCtx, xvalue xVal, int iType)
 {
 	return xvoCreateBool(xvoType(xVal) == iType);
 }
 
 // print() - 输出不换行
-void xl_builtin_print(XL_ExecCtx *pCtx, xvalue xVal)
+void xlBuiltinPrint(XL_ExecCtx *pCtx, xvalue xVal)
 {
 	str s = xvoGetText(xVal);
 	printf("%s", s);
 }
 
 // println() - 输出并换行
-void xl_builtin_println(XL_ExecCtx *pCtx, xvalue xVal)
+void xlBuiltinPrintln(XL_ExecCtx *pCtx, xvalue xVal)
 {
 	str s = xvoGetText(xVal);
 	printf("%s\n", s);
 }
 
 // range() - 创建范围对象
-xvalue xl_builtin_range(XL_ExecCtx *pCtx, int64_t iStart, int64_t iEnd, int64_t iStep)
+xvalue xlBuiltinRange(XL_ExecCtx *pCtx, i64 iStart, i64 iEnd, i64 iStep)
 {
 	if ( iStep == 0 ) {
-		xl_ctx_throw(pCtx, XL_ERR_VALUE, "步长不能为 0", 0);
+		xlCtxThrow(pCtx, XL_ERR_VALUE, "步长不能为 0", 0);
 	}
 	xvalue xRange = xvoCreateTable();
 	xvoTableSetInt(xRange, "start", 0, iStart);
@@ -2009,36 +2055,36 @@ xvalue xl_builtin_range(XL_ExecCtx *pCtx, int64_t iStart, int64_t iEnd, int64_t 
 }
 
 // now() - 当前时间
-xvalue xl_builtin_now(XL_ExecCtx *pCtx)
+xvalue xlBuiltinNow(XL_ExecCtx *pCtx)
 {
 	return xvoCreateTime(xrtNow());
 }
 
 // abs() - 绝对值
-xvalue xl_builtin_abs(XL_ExecCtx *pCtx, xvalue xVal)
+xvalue xlBuiltinAbs(XL_ExecCtx *pCtx, xvalue xVal)
 {
 	if ( xvoType(xVal) == XVO_DT_INT ) {
-		int64_t i = xvoGetInt(xVal);
+		i64 i = xvoGetInt(xVal);
 		return xvoCreateInt(i < 0 ? -i : i);
 	} else if ( xvoType(xVal) == XVO_DT_FLOAT ) {
-		double f = xvoGetFloat(xVal);
+		f64 f = xvoGetFloat(xVal);
 		return xvoCreateFloat(f < 0 ? -f : f);
 	}
-	xl_ctx_throw(pCtx, XL_ERR_TYPE, "abs() 需要数值参数", 0);
+	xlCtxThrow(pCtx, XL_ERR_TYPE, "abs() 需要数值参数", 0);
 	return xvoCreateNull();
 }
 
 // min/max - 多参数
-xvalue xl_builtin_min(XL_ExecCtx *pCtx, xvalue arrArgs)
+xvalue xlBuiltinMin(XL_ExecCtx *pCtx, xvalue arrArgs)
 {
 	int iCount = xvoArrayItemCount(arrArgs);
 	if ( iCount == 0 ) {
-		xl_ctx_throw(pCtx, XL_ERR_VALUE, "min() 至少需要一个参数", 0);
+		xlCtxThrow(pCtx, XL_ERR_VALUE, "min() 至少需要一个参数", 0);
 	}
 	xvalue xMin = xvoArrayGetValue(arrArgs, 0);
 	for ( int i = 1; i < iCount; i++ ) {
 		xvalue xCur = xvoArrayGetValue(arrArgs, i);
-		if ( xl_compare(pCtx, xCur, xMin) < 0 ) {
+		if ( xlCompare(pCtx, xCur, xMin) < 0 ) {
 			xMin = xCur;
 		}
 	}
@@ -2051,36 +2097,36 @@ xvalue xl_builtin_min(XL_ExecCtx *pCtx, xvalue arrArgs)
 ```c
 // 内置函数注册结构
 typedef struct XL_BuiltinFunc {
-	const char *pszName;            // 函数名
+	str pszName;                    // 函数名
 	int iParamCount;                // 参数数量（-1 表示可变参数）
-	void *pFunc;                    // 函数指针
+	ptr pFunc;                      // 函数指针
 	int iReturnType;                // 返回类型
 } XL_BuiltinFunc;
 
 // 内置函数表（全局）
 static XL_BuiltinFunc g_arrBuiltins[] = {
-	{ "int",     1, xl_builtin_int,     XVO_DT_INT },
-	{ "float",   1, xl_builtin_float,   XVO_DT_FLOAT },
-	{ "string",  1, xl_builtin_string,  XVO_DT_TEXT },
-	{ "bool",    1, xl_builtin_bool,    XVO_DT_BOOL },
-	{ "len",     1, xl_builtin_len,     XVO_DT_INT },
-	{ "type",    1, xl_builtin_type,    XVO_DT_INT },
-	{ "print",   1, xl_builtin_print,   XVO_DT_NULL },
-	{ "println", 1, xl_builtin_println, XVO_DT_NULL },
-	{ "range",   3, xl_builtin_range,   XVO_DT_TABLE },
-	{ "now",     0, xl_builtin_now,     XVO_DT_TIME },
-	{ "abs",     1, xl_builtin_abs,     -1 },  // 返回类型与输入相同
-	{ "min",    -1, xl_builtin_min,     -1 },
-	{ "max",    -1, xl_builtin_max,     -1 },
+	{ "int",     1, xlBuiltinInt,     XVO_DT_INT },
+	{ "float",   1, xlBuiltinFloat,   XVO_DT_FLOAT },
+	{ "string",  1, xlBuiltinString,  XVO_DT_TEXT },
+	{ "bool",    1, xlBuiltinBool,    XVO_DT_BOOL },
+	{ "len",     1, xlBuiltinLen,     XVO_DT_INT },
+	{ "type",    1, xlBuiltinType,    XVO_DT_INT },
+	{ "print",   1, xlBuiltinPrint,   XVO_DT_NULL },
+	{ "println", 1, xlBuiltinPrintln, XVO_DT_NULL },
+	{ "range",   3, xlBuiltinRange,   XVO_DT_TABLE },
+	{ "now",     0, xlBuiltinNow,     XVO_DT_TIME },
+	{ "abs",     1, xlBuiltinAbs,     -1 },  // 返回类型与输入相同
+	{ "min",    -1, xlBuiltinMin,     -1 },
+	{ "max",    -1, xlBuiltinMax,     -1 },
 	// ... 更多内置函数
 	{ NULL, 0, NULL, 0 }  // 结束标记
 };
 
 // 查找内置函数
-XL_BuiltinFunc* xl_lookup_builtin(const char *pszName)
+XL_BuiltinFunc* xlLookupBuiltin(str pszName)
 {
 	for ( int i = 0; g_arrBuiltins[i].pszName; i++ ) {
-		if ( strcmp(g_arrBuiltins[i].pszName, pszName) == 0 ) {
+		if ( xrtStrComp(g_arrBuiltins[i].pszName, pszName, 0, FALSE) == 0 ) {
 			return &g_arrBuiltins[i];
 		}
 	}
@@ -2102,10 +2148,10 @@ XL_BuiltinFunc* xl_lookup_builtin(const char *pszName)
 - 建议封装一层 AST 工具函数：
 
 ```c
-xvalue xl_ast_new_node(const char *pszKind);
-void xl_ast_set(xvalue node, const char *pszKey, xvalue val);
-xvalue xl_ast_get(xvalue node, const char *pszKey);
-void xl_ast_append_child(xvalue node, const char *pszKey, xvalue child);
+xvalue xlAstNewNode(str pszKind);
+void xlAstSet(xvalue node, str pszKey, xvalue val);
+xvalue xlAstGet(xvalue node, str pszKey);
+void xlAstAppendChild(xvalue node, str pszKey, xvalue child);
 ```
 
 ### 5.2 执行上下文 `XL_ExecCtx`
@@ -2149,15 +2195,15 @@ typedef struct XL_ExecCtx {
 	xvalue xTempValues;             // 临时值列表（函数返回时清理）
 	
 	// 调试信息
-	const char *pszCurFile;         // 当前执行文件
+	str pszCurFile;                 // 当前执行文件
 	int iCurLine;                   // 当前行号
 	bool bDebugMode;                // 是否调试模式
 } XL_ExecCtx;
 
 // 调用栈帧信息
 typedef struct XL_StackFrame {
-	const char *pszFuncName;        // 函数名
-	const char *pszFile;            // 文件名
+	str pszFuncName;                // 函数名
+	str pszFile;                    // 文件名
 	int iLine;                      // 调用行号
 	xvalue xLocals;                 // 局部变量（调试用）
 } XL_StackFrame;
@@ -2167,19 +2213,19 @@ typedef struct XL_StackFrame {
 
 ```c
 // 创建/销毁上下文
-XL_ExecCtx* xl_ctx_create();
-void xl_ctx_destroy(XL_ExecCtx *pCtx);
+XL_ExecCtx* xlCtxCreate();
+void xlCtxDestroy(XL_ExecCtx *pCtx);
 
 // 异常处理
-void xl_ctx_push_jmp(XL_ExecCtx *pCtx, XL_JmpFrame *pFrame);
-void xl_ctx_pop_jmp(XL_ExecCtx *pCtx);
-void xl_ctx_throw(XL_ExecCtx *pCtx, int iType, const char *pszMsg, int iCode);
-void xl_ctx_clear_error(XL_ExecCtx *pCtx);
+void xlCtxPushJmp(XL_ExecCtx *pCtx, XL_JmpFrame *pFrame);
+void xlCtxPopJmp(XL_ExecCtx *pCtx);
+void xlCtxThrow(XL_ExecCtx *pCtx, int iType, str pszMsg, int iCode);
+void xlCtxClearError(XL_ExecCtx *pCtx);
 
 // 调用栈管理
-void xl_ctx_push_frame(XL_ExecCtx *pCtx, const char *pszFunc, const char *pszFile, int iLine);
-void xl_ctx_pop_frame(XL_ExecCtx *pCtx);
-xvalue xl_ctx_get_stacktrace(XL_ExecCtx *pCtx);
+void xlCtxPushFrame(XL_ExecCtx *pCtx, str pszFunc, str pszFile, int iLine);
+void xlCtxPopFrame(XL_ExecCtx *pCtx);
+xvalue xlCtxGetStacktrace(XL_ExecCtx *pCtx);
 ```
 
 #### try-catch-finally 生成模式
@@ -2197,23 +2243,23 @@ end
 // 生成的 C 代码
 {
 	XL_JmpFrame __jmpFrame;
-	xl_ctx_push_jmp(pCtx, &__jmpFrame);
+	xlCtxPushJmp(pCtx, &__jmpFrame);
 	
 	if ( setjmp(__jmpFrame.jEnv) == 0 ) {
 		// try 块
-		xl_fn_main_riskyOperation(pCtx);
-		xl_ctx_pop_jmp(pCtx);
+		xlFnMainRiskyOperation(pCtx);
+		xlCtxPopJmp(pCtx);
 	} else {
 		// catch 块
-		xl_ctx_pop_jmp(pCtx);
+		xlCtxPopJmp(pCtx);
 		xvalue e = pCtx->xCurError;
-		xl_ctx_clear_error(pCtx);
-		xl_fn_main_handleError(pCtx, e);
+		xlCtxClearError(pCtx);
+		xlFnMainHandleError(pCtx, e);
 		xvoUnref(e);
 	}
 	
 	// finally 块（总是执行）
-	xl_fn_main_cleanup(pCtx);
+	xlFnMainCleanup(pCtx);
 }
 ```
 
@@ -2224,8 +2270,8 @@ end
 throw(Error.Value, "参数无效", 1001)
 
 // 生成的 C 代码
-xl_ctx_throw(pCtx, XL_ERR_VALUE, "参数无效", 1001);
-// 注意：xl_ctx_throw 内部调用 longjmp，不会返回
+xlCtxThrow(pCtx, XL_ERR_VALUE, "参数无效", 1001);
+// 注意：xlCtxThrow 内部调用 longjmp，不会返回
 ```
 
 ### 5.3 运行时库接口规范
@@ -2234,62 +2280,62 @@ xl_ctx_throw(pCtx, XL_ERR_VALUE, "参数无效", 1001);
 
 | 模块 | 前缀 | 说明 |
 |------|------|------|
-| 执行上下文 | `xl_ctx_*` | 上下文管理、异常处理 |
-| AST 操作 | `xl_ast_*` | AST 节点创建与操作 |
-| 类型系统 | `xl_type_*` | 类型检查、转换 |
-| 运算符 | `xl_op_*` | 运算符实现 |
-| 容器操作 | `xl_arr_*`, `xl_list_*`, `xl_set_*`, `xl_dict_*` | 容器操作 |
-| 类与对象 | `xl_class_*`, `xl_obj_*` | 类与对象操作 |
-| 字符串 | `xl_str_*` | 字符串操作 |
-| 迭代器 | `xl_iter_*` | 迭代器协议 |
-| 元方法 | `xl_meta_*` | 元方法调用 |
+| 执行上下文 | `xlCtx*` | 上下文管理、异常处理 |
+| AST 操作 | `xlAst*` | AST 节点创建与操作 |
+| 类型系统 | `xlType*` | 类型检查、转换 |
+| 运算符 | `xlOp*` | 运算符实现 |
+| 容器操作 | `xlArr*`, `xlList*`, `xlSet*`, `xlDict*` | 容器操作 |
+| 类与对象 | `xlClass*`, `xlObj*` | 类与对象操作 |
+| 字符串 | `xlStr*` | 字符串操作 |
+| 迭代器 | `xlIter*` | 迭代器协议 |
+| 元方法 | `xlMeta*` | 元方法调用 |
 
 #### 运算符运行时接口
 
 ```c
 // ============== 算术运算 ==============
-xvalue xl_op_add(XL_ExecCtx *pCtx, xvalue xLeft, xvalue xRight);
-xvalue xl_op_sub(XL_ExecCtx *pCtx, xvalue xLeft, xvalue xRight);
-xvalue xl_op_mul(XL_ExecCtx *pCtx, xvalue xLeft, xvalue xRight);
-xvalue xl_op_div(XL_ExecCtx *pCtx, xvalue xLeft, xvalue xRight);
-xvalue xl_op_mod(XL_ExecCtx *pCtx, xvalue xLeft, xvalue xRight);
-xvalue xl_op_pow(XL_ExecCtx *pCtx, xvalue xLeft, xvalue xRight);
-xvalue xl_op_neg(XL_ExecCtx *pCtx, xvalue xVal);
+xvalue xlOpAdd(XL_ExecCtx *pCtx, xvalue xLeft, xvalue xRight);
+xvalue xlOpSub(XL_ExecCtx *pCtx, xvalue xLeft, xvalue xRight);
+xvalue xlOpMul(XL_ExecCtx *pCtx, xvalue xLeft, xvalue xRight);
+xvalue xlOpDiv(XL_ExecCtx *pCtx, xvalue xLeft, xvalue xRight);
+xvalue xlOpMod(XL_ExecCtx *pCtx, xvalue xLeft, xvalue xRight);
+xvalue xlOpPow(XL_ExecCtx *pCtx, xvalue xLeft, xvalue xRight);
+xvalue xlOpNeg(XL_ExecCtx *pCtx, xvalue xVal);
 
 // ============== 比较运算 ==============
-int xl_op_cmp(XL_ExecCtx *pCtx, xvalue xLeft, xvalue xRight);  // 返回 -1/0/1
-bool xl_op_eq(XL_ExecCtx *pCtx, xvalue xLeft, xvalue xRight);
-bool xl_op_ne(XL_ExecCtx *pCtx, xvalue xLeft, xvalue xRight);
-bool xl_op_lt(XL_ExecCtx *pCtx, xvalue xLeft, xvalue xRight);
-bool xl_op_le(XL_ExecCtx *pCtx, xvalue xLeft, xvalue xRight);
-bool xl_op_gt(XL_ExecCtx *pCtx, xvalue xLeft, xvalue xRight);
-bool xl_op_ge(XL_ExecCtx *pCtx, xvalue xLeft, xvalue xRight);
-bool xl_op_approx(XL_ExecCtx *pCtx, xvalue xLeft, xvalue xRight);  // ~= 约等于
+int xlOpCmp(XL_ExecCtx *pCtx, xvalue xLeft, xvalue xRight);  // 返回 -1/0/1
+bool xlOpEq(XL_ExecCtx *pCtx, xvalue xLeft, xvalue xRight);
+bool xlOpNe(XL_ExecCtx *pCtx, xvalue xLeft, xvalue xRight);
+bool xlOpLt(XL_ExecCtx *pCtx, xvalue xLeft, xvalue xRight);
+bool xlOpLe(XL_ExecCtx *pCtx, xvalue xLeft, xvalue xRight);
+bool xlOpGt(XL_ExecCtx *pCtx, xvalue xLeft, xvalue xRight);
+bool xlOpGe(XL_ExecCtx *pCtx, xvalue xLeft, xvalue xRight);
+bool xlOpApprox(XL_ExecCtx *pCtx, xvalue xLeft, xvalue xRight);  // ~= 约等于
 
 // ============== 逻辑运算 ==============
-bool xl_op_and(XL_ExecCtx *pCtx, xvalue xLeft, xvalue xRight);
-bool xl_op_or(XL_ExecCtx *pCtx, xvalue xLeft, xvalue xRight);
-bool xl_op_not(XL_ExecCtx *pCtx, xvalue xVal);
+bool xlOpAnd(XL_ExecCtx *pCtx, xvalue xLeft, xvalue xRight);
+bool xlOpOr(XL_ExecCtx *pCtx, xvalue xLeft, xvalue xRight);
+bool xlOpNot(XL_ExecCtx *pCtx, xvalue xVal);
 
 // ============== 位运算 ==============
-int64_t xl_op_band(XL_ExecCtx *pCtx, xvalue xLeft, xvalue xRight);
-int64_t xl_op_bor(XL_ExecCtx *pCtx, xvalue xLeft, xvalue xRight);
-int64_t xl_op_bxor(XL_ExecCtx *pCtx, xvalue xLeft, xvalue xRight);
-int64_t xl_op_bnot(XL_ExecCtx *pCtx, xvalue xVal);
-int64_t xl_op_shl(XL_ExecCtx *pCtx, xvalue xLeft, xvalue xRight);
-int64_t xl_op_shr(XL_ExecCtx *pCtx, xvalue xLeft, xvalue xRight);
+i64 xlOpBand(XL_ExecCtx *pCtx, xvalue xLeft, xvalue xRight);
+i64 xlOpBor(XL_ExecCtx *pCtx, xvalue xLeft, xvalue xRight);
+i64 xlOpBxor(XL_ExecCtx *pCtx, xvalue xLeft, xvalue xRight);
+i64 xlOpBnot(XL_ExecCtx *pCtx, xvalue xVal);
+i64 xlOpShl(XL_ExecCtx *pCtx, xvalue xLeft, xvalue xRight);
+i64 xlOpShr(XL_ExecCtx *pCtx, xvalue xLeft, xvalue xRight);
 
 // ============== 特殊运算 ==============
-bool xl_op_in(XL_ExecCtx *pCtx, xvalue xElem, xvalue xContainer);
-bool xl_op_is(XL_ExecCtx *pCtx, xvalue xVal, int iType);
-xvalue xl_op_coalesce(XL_ExecCtx *pCtx, xvalue xLeft, xvalue xRight);  // ??
+bool xlOpIn(XL_ExecCtx *pCtx, xvalue xElem, xvalue xContainer);
+bool xlOpIs(XL_ExecCtx *pCtx, xvalue xVal, int iType);
+xvalue xlOpCoalesce(XL_ExecCtx *pCtx, xvalue xLeft, xvalue xRight);  // ??
 ```
 
 #### 运算符实现示例
 
 ```c
 // 加法运算 - 支持多种类型
-xvalue xl_op_add(XL_ExecCtx *pCtx, xvalue xLeft, xvalue xRight)
+xvalue xlOpAdd(XL_ExecCtx *pCtx, xvalue xLeft, xvalue xRight)
 {
 	int iTypeL = xvoType(xLeft);
 	int iTypeR = xvoType(xRight);
@@ -2340,12 +2386,12 @@ xvalue xl_op_add(XL_ExecCtx *pCtx, xvalue xLeft, xvalue xRight)
 	
 	// 检查 meta add
 	if ( (iTypeL == XVO_DT_CLASS) || (iTypeL == XVO_DT_CUSTOM) ) {
-		if ( xl_has_meta(xLeft, "add") ) {
-			return xl_call_meta(pCtx, xLeft, "add", xRight);
+		if ( xlHasMeta(xLeft, "add") ) {
+			return xlCallMeta(pCtx, xLeft, "add", xRight);
 		}
 	}
 	
-	xl_ctx_throw(pCtx, XL_ERR_TYPE, "不支持的加法操作", 0);
+	xlCtxThrow(pCtx, XL_ERR_TYPE, "不支持的加法操作", 0);
 	return xvoCreateNull();
 }
 ```
@@ -2359,74 +2405,74 @@ typedef struct XL_Iterator {
 	int iType;                  // 迭代器类型
 	union {
 		struct {
-			int64_t iCurrent;   // 当前索引
-			int64_t iEnd;       // 结束索引
-			int64_t iStep;      // 步长
+			i64 iCurrent;           // 当前索引
+			i64 iEnd;               // 结束索引
+			i64 iStep;              // 步长
 		} range;
 		struct {
-			int iIndex;         // 当前数组索引
+			int iIndex;             // 当前数组索引
 		} array;
 		struct {
-			void *pNode;        // 当前节点（用于 list/dict）
+			ptr pNode;              // 当前节点（用于 list/dict）
 		} container;
 	};
 } XL_Iterator;
 
 // 迭代器 API
-XL_Iterator* xl_iter_create(XL_ExecCtx *pCtx, xvalue xSource);
-void xl_iter_destroy(XL_Iterator *pIter);
-bool xl_iter_has_next(XL_Iterator *pIter);
-xvalue xl_iter_next(XL_ExecCtx *pCtx, XL_Iterator *pIter);
-xvalue xl_iter_next_kv(XL_ExecCtx *pCtx, XL_Iterator *pIter, xvalue *pKey);
+XL_Iterator* xlIterCreate(XL_ExecCtx *pCtx, xvalue xSource);
+void xlIterDestroy(XL_Iterator *pIter);
+bool xlIterHasNext(XL_Iterator *pIter);
+xvalue xlIterNext(XL_ExecCtx *pCtx, XL_Iterator *pIter);
+xvalue xlIterNextKv(XL_ExecCtx *pCtx, XL_Iterator *pIter, xvalue *pKey);
 
 // for 循环生成模式
 // xlang: for v in container
 // 生成:
-XL_Iterator *__iter = xl_iter_create(pCtx, xContainer);
-while ( xl_iter_has_next(__iter) ) {
-	xvalue v = xl_iter_next(pCtx, __iter);
+XL_Iterator *__iter = xlIterCreate(pCtx, xContainer);
+while ( xlIterHasNext(__iter) ) {
+	xvalue v = xlIterNext(pCtx, __iter);
 	// 循环体
 }
-xl_iter_destroy(__iter);
+xlIterDestroy(__iter);
 
 // xlang: for k, v in container
 // 生成:
-XL_Iterator *__iter = xl_iter_create(pCtx, xContainer);
-while ( xl_iter_has_next(__iter) ) {
+XL_Iterator *__iter = xlIterCreate(pCtx, xContainer);
+while ( xlIterHasNext(__iter) ) {
 	xvalue k;
-	xvalue v = xl_iter_next_kv(pCtx, __iter, &k);
+	xvalue v = xlIterNextKv(pCtx, __iter, &k);
 	// 循环体
 }
-xl_iter_destroy(__iter);
+xlIterDestroy(__iter);
 ```
 
 #### 类型转换接口
 
 ```c
 // 类型转换（自动调用 meta to）
-xvalue xl_type_convert(XL_ExecCtx *pCtx, xvalue xVal, int iTargetType);
+xvalue xlTypeConvert(XL_ExecCtx *pCtx, xvalue xVal, int iTargetType);
 
 // 类型判断
-bool xl_type_check(xvalue xVal, int iType);
-bool xl_type_is_numeric(xvalue xVal);
-bool xl_type_is_container(xvalue xVal);
-bool xl_type_is_callable(xvalue xVal);
+bool xlTypeCheck(xvalue xVal, int iType);
+bool xlTypeIsNumeric(xvalue xVal);
+bool xlTypeIsContainer(xvalue xVal);
+bool xlTypeIsCallable(xvalue xVal);
 
 // 获取类型名称
-const char* xl_type_name(int iType);
+str xlTypeName(int iType);
 ```
 
 #### 元方法调用接口
 
 ```c
 // 检查对象是否有指定元方法
-bool xl_has_meta(xvalue xObj, const char *pszMetaName);
+bool xlHasMeta(xvalue xObj, str pszMetaName);
 
 // 调用元方法（单参数）
-xvalue xl_call_meta(XL_ExecCtx *pCtx, xvalue xObj, const char *pszMetaName, xvalue xArg);
+xvalue xlCallMeta(XL_ExecCtx *pCtx, xvalue xObj, str pszMetaName, xvalue xArg);
 
 // 调用元方法（多参数）
-xvalue xl_call_meta_v(XL_ExecCtx *pCtx, xvalue xObj, const char *pszMetaName, xvalue arrArgs);
+xvalue xlCallMetaV(XL_ExecCtx *pCtx, xvalue xObj, str pszMetaName, xvalue arrArgs);
 
 // 元方法查找表
 typedef struct XL_MetaTable {
@@ -2488,7 +2534,7 @@ typedef struct XL_ErrorObject {
 } XL_ErrorObject;
 
 // 创建 Error 对象
-xvalue xl_error_create(XL_ErrorType iType, const char *pszMsg, int iCode);
+xvalue xlErrorCreate(XL_ErrorType iType, str pszMsg, int iCode);
 ```
 
 ---
@@ -2605,7 +2651,7 @@ $CC $CFLAGS demo/main.c demo/*.c -o demo/release/bin/xlang $LDFLAGS
 
 ### 阶段 4：后端接口与 C 代码生成（TCC 后端）
 
-- [ ] 固化后端接口类型：`XL_BackendConfig`、`XL_BackendCtx`、`xl_backend_generate()`。
+- [ ] 固化后端接口类型：`XL_BackendConfig`、`XL_BackendCtx`、`xlBackendGenerate()`。
 - [ ] 设计 C 代码的模板结构：
 	- 头文件引入。
 	- 全局变量与运行时初始化。
@@ -2673,7 +2719,7 @@ flowchart TD
     end
     
     subgraph Lexer["词法分析"]
-        LEX["Lexer<br/>xl_lexer_next()"]
+        LEX["Lexer<br/>xlLexerNext()"]
         TOKENS[/"Token 流"/]
         SRC --> LEX --> TOKENS
     end
@@ -2685,13 +2731,13 @@ flowchart TD
     end
     
     subgraph Semantic["语义分析"]
-        SEM["Semantic<br/>xl_semantic_analyze()"]
+        SEM["Semantic<br/>xlSemanticAnalyze()"]
         SEM_AST[/"语义注解 AST<br/>(类型/捕获信息)"/]
         AST --> SEM --> SEM_AST
     end
     
     subgraph Backend["后端代码生成"]
-        CODEGEN["CodeGen<br/>xl_backend_generate()"]
+        CODEGEN["CodeGen<br/>xlBackendGenerate()"]
         CSRC[/"C 源代码<br/>(.c)"/]
         SEM_AST --> CODEGEN --> CSRC
     end
@@ -2856,18 +2902,18 @@ flowchart TD
     end
     
     subgraph Generated["生成的 C 代码"]
-        FN_MAIN["xl_fn_main_*()"]
-        FN_CLASS["xl_m_Class_*()"]
-        FN_META["xl_meta_Class_*()"]
-        FN_GET["xl_get_Class_*()"]
-        FN_LET["xl_let_Class_*()"]
+        FN_MAIN["xlFnMain*()"]
+        FN_CLASS["xlMClass*()"]
+        FN_META["xlMetaClass*()"]
+        FN_GET["xlGetClass*()"]
+        FN_LET["xlLetClass*()"]
     end
     
     subgraph Runtime["运行时库"]
-        OP["xl_op_*()<br/>运算符"]
-        BUILTIN["xl_builtin_*()<br/>内置函数"]
-        ITER["xl_iter_*()<br/>迭代器"]
-        TYPE["xl_type_*()<br/>类型操作"]
+        OP["xlOp*()<br/>运算符"]
+        BUILTIN["xlBuiltin*()<br/>内置函数"]
+        ITER["xlIter*()<br/>迭代器"]
+        TYPE["xlType*()<br/>类型操作"]
     end
     
     subgraph XRT["xrt 库"]
@@ -2898,20 +2944,20 @@ sequenceDiagram
     participant Catch as catch 块
     participant Finally as finally 块
     
-    Main->>Main: xl_ctx_push_jmp()
+    Main->>Main: xlCtxPushJmp()
     Main->>Try: setjmp() == 0
     
     alt 正常执行
         Try->>Try: 执行 try 块代码
-        Try->>Main: xl_ctx_pop_jmp()
+        Try->>Main: xlCtxPopJmp()
         Main->>Finally: 执行 finally 块
     else 发生异常
-        Try->>Throw: xl_ctx_throw()
+        Try->>Throw: xlCtxThrow()
         Throw->>Throw: longjmp()
         Throw->>Catch: setjmp() != 0
-        Catch->>Catch: xl_ctx_pop_jmp()
+        Catch->>Catch: xlCtxPopJmp()
         Catch->>Catch: 获取 pCtx->xCurError
-        Catch->>Catch: xl_ctx_clear_error()
+        Catch->>Catch: xlCtxClearError()
         Catch->>Catch: 执行 catch 块代码
         Catch->>Finally: 执行 finally 块
     end
@@ -3061,15 +3107,15 @@ sequenceDiagram
     participant Iter as 迭代器
     participant Container as 容器
     
-    Code->>Iter: xl_iter_create(container)
+    Code->>Iter: xlIterCreate(container)
     Iter->>Container: 获取容器类型
     Iter->>Iter: 初始化迭代状态
     
     loop 遍历
-        Code->>Iter: xl_iter_has_next()
+        Code->>Iter: xlIterHasNext()
         alt 还有元素
             Iter-->>Code: true
-            Code->>Iter: xl_iter_next() / xl_iter_next_kv()
+            Code->>Iter: xlIterNext() / xlIterNextKv()
             Iter->>Container: 获取当前元素
             Iter->>Iter: 移动到下一位置
             Iter-->>Code: 返回元素值
@@ -3079,7 +3125,7 @@ sequenceDiagram
         end
     end
     
-    Code->>Iter: xl_iter_destroy()
+    Code->>Iter: xlIterDestroy()
     Iter->>Iter: 释放资源
 ```
 
@@ -3114,7 +3160,7 @@ ${STRING_POOL}
 
 ```c
 /* xlang: func ${FUNC_NAME}(${PARAMS}) -> ${RETURN_TYPE} */
-static ${C_RETURN_TYPE} xl_fn_${MODULE}_${FUNC_NAME}( XL_ExecCtx* pCtx${PARAM_LIST} )
+static ${C_RETURN_TYPE} xlFn${MODULE}${FUNC_NAME}( XL_ExecCtx* pCtx${PARAM_LIST} )
 {
 	${LOCAL_DECLARATIONS}
 	
@@ -3137,18 +3183,18 @@ typedef struct XL_Instance_${CLASS_NAME} {
 } XL_Instance_${CLASS_NAME};
 
 /* 类元信息 (静态) */
-static XL_ClassMeta xl_meta_${CLASS_NAME} = {
+static XL_ClassMeta xlMeta${CLASS_NAME} = {
 	.pszName = "${CLASS_NAME}",
 	.pParent = ${PARENT_META},
 	.iFieldCount = ${FIELD_COUNT},
 	.iMethodCount = ${METHOD_COUNT},
-	.procNew = xl_m_${CLASS_NAME}_new,
-	.procFree = xl_m_${CLASS_NAME}_free,
-	.pMetaTable = &xl_metatbl_${CLASS_NAME}
+	.procNew = xlM${CLASS_NAME}New,
+	.procFree = xlM${CLASS_NAME}Free,
+	.pMetaTable = &xlMetaTbl${CLASS_NAME}
 };
 
 /* 元方法表 */
-static XL_MetaTable xl_metatbl_${CLASS_NAME} = {
+static XL_MetaTable xlMetaTbl${CLASS_NAME} = {
 	.procAdd = ${META_ADD},
 	.procSub = ${META_SUB},
 	.procMul = ${META_MUL},
@@ -3162,20 +3208,20 @@ static XL_MetaTable xl_metatbl_${CLASS_NAME} = {
 };
 
 /* 构造函数 */
-static XL_Instance_${CLASS_NAME}* xl_m_${CLASS_NAME}_new( XL_ExecCtx* pCtx${CTOR_PARAMS} )
+static XL_Instance_${CLASS_NAME}* xlM${CLASS_NAME}New( XL_ExecCtx* pCtx${CTOR_PARAMS} )
 {
-	XL_Instance_${CLASS_NAME}* pSelf = xl_alloc( sizeof(XL_Instance_${CLASS_NAME}) );
-	pSelf->pMeta = &xl_meta_${CLASS_NAME};
+	XL_Instance_${CLASS_NAME}* pSelf = xlAlloc( sizeof(XL_Instance_${CLASS_NAME}) );
+	pSelf->pMeta = &xlMeta${CLASS_NAME};
 	pSelf->iRefCount = 1;
 	${FIELD_INIT}
 	return pSelf;
 }
 
 /* 析构函数 */
-static void xl_m_${CLASS_NAME}_free( XL_ExecCtx* pCtx, XL_Instance_${CLASS_NAME}* pSelf )
+static void xlM${CLASS_NAME}Free( XL_ExecCtx* pCtx, XL_Instance_${CLASS_NAME}* pSelf )
 {
 	${FIELD_CLEANUP}
-	xl_free( pSelf );
+	xlFree( pSelf );
 }
 
 /* 方法实现 */
@@ -3188,18 +3234,18 @@ ${METHOD_IMPLEMENTATIONS}
 /* xlang: try-catch-finally */
 {
 	XL_JmpBuf jmpBuf;
-	xl_ctx_push_jmp( pCtx, &jmpBuf );
+	xlCtxPushJmp( pCtx, &jmpBuf );
 	
 	if ( setjmp( jmpBuf.jmp ) == 0 ) {
 		/* try 块 */
 		${TRY_BODY}
 		
-		xl_ctx_pop_jmp( pCtx );
+		xlCtxPopJmp( pCtx );
 	} else {
 		/* catch 块 */
-		xl_ctx_pop_jmp( pCtx );
+		xlCtxPopJmp( pCtx );
 		xvalue ${CATCH_VAR} = pCtx->xCurError;
-		xl_ctx_clear_error( pCtx );
+		xlCtxClearError( pCtx );
 		
 		${CATCH_BODY}
 	}
@@ -3221,15 +3267,15 @@ typedef struct XL_Env_${CLOSURE_ID} {
 } XL_Env_${CLOSURE_ID};
 
 /* 匿名函数实现 */
-static ${RETURN_TYPE} xl_anon_${CLOSURE_ID}( XL_ExecCtx* pCtx, XL_Env_${CLOSURE_ID}* pEnv${PARAMS} )
+static ${RETURN_TYPE} xlAnon${CLOSURE_ID}( XL_ExecCtx* pCtx, XL_Env_${CLOSURE_ID}* pEnv${PARAMS} )
 {
 	/* 通过 pEnv-> 访问捕获的变量 */
 	${LAMBDA_BODY}
 }
 
 /* 创建闭包 */
-XL_Closure* pClosure = xl_closure_create( pCtx, 
-	(XL_ClosureFunc)xl_anon_${CLOSURE_ID},
+XL_Closure* pClosure = xlClosureCreate( pCtx, 
+	(XL_ClosureFunc)xlAnon${CLOSURE_ID},
 	sizeof(XL_Env_${CLOSURE_ID}) );
 XL_Env_${CLOSURE_ID}* pEnv = (XL_Env_${CLOSURE_ID}*)pClosure->pEnv;
 pEnv->iRefCount = 1;
@@ -3242,29 +3288,29 @@ ${CAPTURE_INIT}
 /* xlang: for item in container { ... } */
 {
 	XL_Iterator iter;
-	xl_iter_create( pCtx, &iter, ${CONTAINER} );
+	xlIterCreate( pCtx, &iter, ${CONTAINER} );
 	
-	while ( xl_iter_has_next( &iter ) ) {
-		${ITEM_TYPE} ${ITEM_VAR} = xl_iter_next( &iter );
+	while ( xlIterHasNext( &iter ) ) {
+		${ITEM_TYPE} ${ITEM_VAR} = xlIterNext( &iter );
 		${LOOP_BODY}
 	}
 	
-	xl_iter_destroy( &iter );
+	xlIterDestroy( &iter );
 }
 
 /* xlang: for key, value in container { ... } */
 {
 	XL_Iterator iter;
-	xl_iter_create( pCtx, &iter, ${CONTAINER} );
+	xlIterCreate( pCtx, &iter, ${CONTAINER} );
 	
-	while ( xl_iter_has_next( &iter ) ) {
+	while ( xlIterHasNext( &iter ) ) {
 		${KEY_TYPE} ${KEY_VAR};
 		${VALUE_TYPE} ${VALUE_VAR};
-		xl_iter_next_kv( &iter, &${KEY_VAR}, &${VALUE_VAR} );
+		xlIterNextKv( &iter, &${KEY_VAR}, &${VALUE_VAR} );
 		${LOOP_BODY}
 	}
 	
-	xl_iter_destroy( &iter );
+	xlIterDestroy( &iter );
 }
 ```
 
@@ -3272,14 +3318,14 @@ ${CAPTURE_INIT}
 
 ```c
 /* 隐式类型转换 (编译器自动插入) */
-int iVal = xl_to_int( pCtx, xDynamic );           /* var -> int */
-float fVal = xl_to_float( pCtx, xDynamic );       /* var -> float */
-xvalue xStr = xl_to_string( pCtx, xDynamic );     /* var -> string */
-bool bVal = xl_to_bool( pCtx, xDynamic );         /* var -> bool */
+int iVal = xlToInt( pCtx, xDynamic );           /* var -> int */
+f32 fVal = xlToFloat( pCtx, xDynamic );         /* var -> float */
+xvalue xStr = xlToString( pCtx, xDynamic );     /* var -> string */
+bool bVal = xlToBool( pCtx, xDynamic );         /* var -> bool */
 
 /* 显式类型转换 (用户代码) */
-int iCasted = (int)xl_cast( pCtx, xSource, XL_TYPE_INT );
-xvalue xConverted = xl_convert( pCtx, xSource, XL_TYPE_STRING );
+int iCasted = (int)xlCast( pCtx, xSource, XL_TYPE_INT );
+xvalue xConverted = xlConvert( pCtx, xSource, XL_TYPE_STRING );
 ```
 
 ---
@@ -3301,17 +3347,17 @@ func main()
 ```c
 #include "xlang_runtime.h"
 
-static void xl_fn_main_main( XL_ExecCtx* pCtx )
+static void xlFnMainMain( XL_ExecCtx* pCtx )
 {
-	xl_builtin_print( pCtx, xl_str_new( "Hello, xlang!" ) );
+	xlBuiltinPrint( pCtx, xlStrNew( "Hello, xlang!" ) );
 }
 
 int main( int argc, char** argv )
 {
 	XL_ExecCtx ctx;
-	xl_ctx_init( &ctx );
-	xl_fn_main_main( &ctx );
-	xl_ctx_destroy( &ctx );
+	xlCtxInit( &ctx );
+	xlFnMainMain( &ctx );
+	xlCtxDestroy( &ctx );
 	return 0;
 }
 ```
@@ -3826,66 +3872,66 @@ typedef struct XL_TestCtx {
 	int iTotalTests;
 	int iPassedTests;
 	int iFailedTests;
-	const char* pszCurrentTest;
-	char* pszFailureMsg;
+	str pszCurrentTest;
+	str pszFailureMsg;
 } XL_TestCtx;
 
 /* 初始化/销毁 */
-void xl_test_init( XL_TestCtx* pCtx );
-void xl_test_destroy( XL_TestCtx* pCtx );
+void xlTestInit( XL_TestCtx* pCtx );
+void xlTestDestroy( XL_TestCtx* pCtx );
 
 /* 测试注册 */
-void xl_test_begin( XL_TestCtx* pCtx, const char* pszName );
-void xl_test_end( XL_TestCtx* pCtx );
+void xlTestBegin( XL_TestCtx* pCtx, str pszName );
+void xlTestEnd( XL_TestCtx* pCtx );
 
 /* 断言宏 */
 #define XL_ASSERT( pCtx, cond ) \
-	xl_assert_impl( pCtx, (cond), #cond, __FILE__, __LINE__ )
+	xlAssertImpl( pCtx, (cond), #cond, __FILE__, __LINE__ )
 
 #define XL_ASSERT_EQ( pCtx, expected, actual ) \
-	xl_assert_eq_impl( pCtx, (expected), (actual), __FILE__, __LINE__ )
+	xlAssertEqImpl( pCtx, (expected), (actual), __FILE__, __LINE__ )
 
 #define XL_ASSERT_STR_EQ( pCtx, expected, actual ) \
-	xl_assert_str_eq_impl( pCtx, (expected), (actual), __FILE__, __LINE__ )
+	xlAssertStrEqImpl( pCtx, (expected), (actual), __FILE__, __LINE__ )
 
 #define XL_ASSERT_FLOAT_EQ( pCtx, expected, actual, epsilon ) \
-	xl_assert_float_eq_impl( pCtx, (expected), (actual), (epsilon), __FILE__, __LINE__ )
+	xlAssertFloatEqImpl( pCtx, (expected), (actual), (epsilon), __FILE__, __LINE__ )
 
 #define XL_ASSERT_NULL( pCtx, ptr ) \
-	xl_assert_null_impl( pCtx, (ptr), __FILE__, __LINE__ )
+	xlAssertNullImpl( pCtx, (ptr), __FILE__, __LINE__ )
 
 #define XL_ASSERT_NOT_NULL( pCtx, ptr ) \
-	xl_assert_not_null_impl( pCtx, (ptr), __FILE__, __LINE__ )
+	xlAssertNotNullImpl( pCtx, (ptr), __FILE__, __LINE__ )
 
 #define XL_ASSERT_THROWS( pCtx, code, error_type ) \
 	do { \
 		bool bCaught = false; \
 		XL_JmpBuf jmpBuf; \
-		xl_ctx_push_jmp( pCtx->pExecCtx, &jmpBuf ); \
+		xlCtxPushJmp( pCtx->pExecCtx, &jmpBuf ); \
 		if ( setjmp( jmpBuf.jmp ) == 0 ) { \
 			code; \
-			xl_ctx_pop_jmp( pCtx->pExecCtx ); \
+			xlCtxPopJmp( pCtx->pExecCtx ); \
 		} else { \
-			xl_ctx_pop_jmp( pCtx->pExecCtx ); \
-			bCaught = xl_error_is_type( pCtx->pExecCtx->xCurError, error_type ); \
-			xl_ctx_clear_error( pCtx->pExecCtx ); \
+			xlCtxPopJmp( pCtx->pExecCtx ); \
+			bCaught = xlErrorIsType( pCtx->pExecCtx->xCurError, error_type ); \
+			xlCtxClearError( pCtx->pExecCtx ); \
 		} \
 		if ( !bCaught ) { \
-			xl_test_fail( pCtx, "Expected " #error_type " but none thrown", __FILE__, __LINE__ ); \
+			xlTestFail( pCtx, "Expected " #error_type " but none thrown", __FILE__, __LINE__ ); \
 		} \
 	} while (0)
 
 /* 断言实现 */
-void xl_assert_impl( XL_TestCtx* pCtx, bool bCond, const char* pszExpr, const char* pszFile, int iLine );
-void xl_assert_eq_impl( XL_TestCtx* pCtx, int64_t iExpected, int64_t iActual, const char* pszFile, int iLine );
-void xl_assert_str_eq_impl( XL_TestCtx* pCtx, const char* pszExpected, const char* pszActual, const char* pszFile, int iLine );
-void xl_assert_float_eq_impl( XL_TestCtx* pCtx, double fExpected, double fActual, double fEpsilon, const char* pszFile, int iLine );
-void xl_assert_null_impl( XL_TestCtx* pCtx, const void* ptr, const char* pszFile, int iLine );
-void xl_assert_not_null_impl( XL_TestCtx* pCtx, const void* ptr, const char* pszFile, int iLine );
-void xl_test_fail( XL_TestCtx* pCtx, const char* pszMsg, const char* pszFile, int iLine );
+void xlAssertImpl( XL_TestCtx* pCtx, bool bCond, str pszExpr, str pszFile, int iLine );
+void xlAssertEqImpl( XL_TestCtx* pCtx, i64 iExpected, i64 iActual, str pszFile, int iLine );
+void xlAssertStrEqImpl( XL_TestCtx* pCtx, str pszExpected, str pszActual, str pszFile, int iLine );
+void xlAssertFloatEqImpl( XL_TestCtx* pCtx, f64 fExpected, f64 fActual, f64 fEpsilon, str pszFile, int iLine );
+void xlAssertNullImpl( XL_TestCtx* pCtx, ptr pPtr, str pszFile, int iLine );
+void xlAssertNotNullImpl( XL_TestCtx* pCtx, ptr pPtr, str pszFile, int iLine );
+void xlTestFail( XL_TestCtx* pCtx, str pszMsg, str pszFile, int iLine );
 
 /* 结果输出 */
-void xl_test_report( XL_TestCtx* pCtx );
+void xlTestReport( XL_TestCtx* pCtx );
 
 #endif /* XLANG_TEST_H */
 ```
@@ -3897,86 +3943,86 @@ void xl_test_report( XL_TestCtx* pCtx );
 
 #include "xlang_test.h"
 
-void test_arithmetic_operators( XL_TestCtx* pTestCtx, XL_ExecCtx* pCtx )
+void testArithmeticOperators( XL_TestCtx* pTestCtx, XL_ExecCtx* pCtx )
 {
-	xl_test_begin( pTestCtx, "算术运算符测试" );
+	xlTestBegin( pTestCtx, "算术运算符测试" );
 	
 	/* 整数加法 */
-	xvalue a = xl_int_new( 10 );
-	xvalue b = xl_int_new( 5 );
-	xvalue result = xl_op_add( pCtx, a, b );
-	XL_ASSERT_EQ( pTestCtx, 15, xl_to_int( pCtx, result ) );
+	xvalue a = xlIntNew( 10 );
+	xvalue b = xlIntNew( 5 );
+	xvalue result = xlOpAdd( pCtx, a, b );
+	XL_ASSERT_EQ( pTestCtx, 15, xlToInt( pCtx, result ) );
 	
 	/* 整数减法 */
-	result = xl_op_sub( pCtx, a, b );
-	XL_ASSERT_EQ( pTestCtx, 5, xl_to_int( pCtx, result ) );
+	result = xlOpSub( pCtx, a, b );
+	XL_ASSERT_EQ( pTestCtx, 5, xlToInt( pCtx, result ) );
 	
 	/* 整数乘法 */
-	result = xl_op_mul( pCtx, a, b );
-	XL_ASSERT_EQ( pTestCtx, 50, xl_to_int( pCtx, result ) );
+	result = xlOpMul( pCtx, a, b );
+	XL_ASSERT_EQ( pTestCtx, 50, xlToInt( pCtx, result ) );
 	
 	/* 整数除法 */
-	result = xl_op_div( pCtx, a, b );
-	XL_ASSERT_EQ( pTestCtx, 2, xl_to_int( pCtx, result ) );
+	result = xlOpDiv( pCtx, a, b );
+	XL_ASSERT_EQ( pTestCtx, 2, xlToInt( pCtx, result ) );
 	
 	/* 取模 */
-	a = xl_int_new( 17 );
-	b = xl_int_new( 5 );
-	result = xl_op_mod( pCtx, a, b );
-	XL_ASSERT_EQ( pTestCtx, 2, xl_to_int( pCtx, result ) );
+	a = xlIntNew( 17 );
+	b = xlIntNew( 5 );
+	result = xlOpMod( pCtx, a, b );
+	XL_ASSERT_EQ( pTestCtx, 2, xlToInt( pCtx, result ) );
 	
 	/* 浮点数运算 */
-	xvalue f1 = xl_float_new( 3.14 );
-	xvalue f2 = xl_float_new( 2.0 );
-	result = xl_op_mul( pCtx, f1, f2 );
-	XL_ASSERT_FLOAT_EQ( pTestCtx, 6.28, xl_to_float( pCtx, result ), 0.001 );
+	xvalue f1 = xlFloatNew( 3.14 );
+	xvalue f2 = xlFloatNew( 2.0 );
+	result = xlOpMul( pCtx, f1, f2 );
+	XL_ASSERT_FLOAT_EQ( pTestCtx, 6.28, xlToFloat( pCtx, result ), 0.001 );
 	
-	xl_test_end( pTestCtx );
+	xlTestEnd( pTestCtx );
 }
 
-void test_comparison_operators( XL_TestCtx* pTestCtx, XL_ExecCtx* pCtx )
+void testComparisonOperators( XL_TestCtx* pTestCtx, XL_ExecCtx* pCtx )
 {
-	xl_test_begin( pTestCtx, "比较运算符测试" );
+	xlTestBegin( pTestCtx, "比较运算符测试" );
 	
-	xvalue a = xl_int_new( 10 );
-	xvalue b = xl_int_new( 5 );
-	xvalue c = xl_int_new( 10 );
+	xvalue a = xlIntNew( 10 );
+	xvalue b = xlIntNew( 5 );
+	xvalue c = xlIntNew( 10 );
 	
 	/* 相等 */
-	XL_ASSERT( pTestCtx, xl_op_eq( pCtx, a, c ) );
-	XL_ASSERT( pTestCtx, !xl_op_eq( pCtx, a, b ) );
+	XL_ASSERT( pTestCtx, xlOpEq( pCtx, a, c ) );
+	XL_ASSERT( pTestCtx, !xlOpEq( pCtx, a, b ) );
 	
 	/* 不等 */
-	XL_ASSERT( pTestCtx, xl_op_ne( pCtx, a, b ) );
+	XL_ASSERT( pTestCtx, xlOpNe( pCtx, a, b ) );
 	
 	/* 小于 */
-	XL_ASSERT( pTestCtx, xl_op_lt( pCtx, b, a ) );
-	XL_ASSERT( pTestCtx, !xl_op_lt( pCtx, a, b ) );
+	XL_ASSERT( pTestCtx, xlOpLt( pCtx, b, a ) );
+	XL_ASSERT( pTestCtx, !xlOpLt( pCtx, a, b ) );
 	
 	/* 大于 */
-	XL_ASSERT( pTestCtx, xl_op_gt( pCtx, a, b ) );
+	XL_ASSERT( pTestCtx, xlOpGt( pCtx, a, b ) );
 	
 	/* 小于等于 */
-	XL_ASSERT( pTestCtx, xl_op_le( pCtx, b, a ) );
-	XL_ASSERT( pTestCtx, xl_op_le( pCtx, a, c ) );
+	XL_ASSERT( pTestCtx, xlOpLe( pCtx, b, a ) );
+	XL_ASSERT( pTestCtx, xlOpLe( pCtx, a, c ) );
 	
 	/* 大于等于 */
-	XL_ASSERT( pTestCtx, xl_op_ge( pCtx, a, b ) );
-	XL_ASSERT( pTestCtx, xl_op_ge( pCtx, a, c ) );
+	XL_ASSERT( pTestCtx, xlOpGe( pCtx, a, b ) );
+	XL_ASSERT( pTestCtx, xlOpGe( pCtx, a, c ) );
 	
-	xl_test_end( pTestCtx );
+	xlTestEnd( pTestCtx );
 }
 
-void test_division_by_zero( XL_TestCtx* pTestCtx, XL_ExecCtx* pCtx )
+void testDivisionByZero( XL_TestCtx* pTestCtx, XL_ExecCtx* pCtx )
 {
-	xl_test_begin( pTestCtx, "除零异常测试" );
+	xlTestBegin( pTestCtx, "除零异常测试" );
 	
-	xvalue a = xl_int_new( 10 );
-	xvalue zero = xl_int_new( 0 );
+	xvalue a = xlIntNew( 10 );
+	xvalue zero = xlIntNew( 0 );
 	
-	XL_ASSERT_THROWS( pTestCtx, xl_op_div( pCtx, a, zero ), XL_ERROR_DIVISION_BY_ZERO );
+	XL_ASSERT_THROWS( pTestCtx, xlOpDiv( pCtx, a, zero ), XL_ERROR_DIVISION_BY_ZERO );
 	
-	xl_test_end( pTestCtx );
+	xlTestEnd( pTestCtx );
 }
 
 int main()
@@ -3984,18 +4030,18 @@ int main()
 	XL_ExecCtx execCtx;
 	XL_TestCtx testCtx;
 	
-	xl_ctx_init( &execCtx );
-	xl_test_init( &testCtx );
+	xlCtxInit( &execCtx );
+	xlTestInit( &testCtx );
 	testCtx.pExecCtx = &execCtx;
 	
-	test_arithmetic_operators( &testCtx, &execCtx );
-	test_comparison_operators( &testCtx, &execCtx );
-	test_division_by_zero( &testCtx, &execCtx );
+	testArithmeticOperators( &testCtx, &execCtx );
+	testComparisonOperators( &testCtx, &execCtx );
+	testDivisionByZero( &testCtx, &execCtx );
 	
-	xl_test_report( &testCtx );
+	xlTestReport( &testCtx );
 	
-	xl_test_destroy( &testCtx );
-	xl_ctx_destroy( &execCtx );
+	xlTestDestroy( &testCtx );
+	xlCtxDestroy( &execCtx );
 	
 	return testCtx.iFailedTests > 0 ? 1 : 0;
 }
