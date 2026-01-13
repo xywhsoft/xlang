@@ -7,8 +7,8 @@ println("测试 016: 嵌套循环")
 
 // 双层 for 循环
 println("2x3 matrix:")
-for i = 1 to 2
-	for j = 1 to 3
+for i in range(1, 2)
+	for j in range(1, 3)
 		print(i)
 		print("x")
 		print(j)
@@ -20,9 +20,9 @@ end
 // 三层 for 循环
 println("3D:")
 var count = 0
-for i = 1 to 2
-	for j = 1 to 2
-		for k = 1 to 2
+for i in range(1, 2)
+	for j in range(1, 2)
+		for k in range(1, 2)
 			count = count + 1
 		end
 	end
@@ -45,7 +45,7 @@ end
 
 // 混合嵌套
 println("mixed:")
-for i = 1 to 3
+for i in range(1, 3)
 	var j = 1
 	while j <= i
 		print("*")

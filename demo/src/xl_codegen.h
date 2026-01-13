@@ -645,6 +645,18 @@ static void xlCodegenExpr( XL_Codegen *pGen, XL_CodeBuf *pBuf, xvalue xExpr )
 					xlCodeBufAppendFmt(pBuf, "(pEnv->pVars[%d] = xl_div(pEnv->pVars[%d], ", iCaptureIdx, iCaptureIdx);
 					xlCodegenExpr(pGen, pBuf, xValue);
 					xlCodeBufAppend(pBuf, "))");
+				} else if ( strcmp((char*)pszOp, "%=") == 0 ) {
+					xlCodeBufAppendFmt(pBuf, "(pEnv->pVars[%d] = xl_mod(pEnv->pVars[%d], ", iCaptureIdx, iCaptureIdx);
+					xlCodegenExpr(pGen, pBuf, xValue);
+					xlCodeBufAppend(pBuf, "))");
+				} else if ( strcmp((char*)pszOp, "**=") == 0 ) {
+					xlCodeBufAppendFmt(pBuf, "(pEnv->pVars[%d] = xl_pow(pEnv->pVars[%d], ", iCaptureIdx, iCaptureIdx);
+					xlCodegenExpr(pGen, pBuf, xValue);
+					xlCodeBufAppend(pBuf, "))");
+				} else if ( strcmp((char*)pszOp, "?=") == 0 ) {
+					xlCodeBufAppendFmt(pBuf, "(pEnv->pVars[%d] = xl_coalesce(pEnv->pVars[%d], ", iCaptureIdx, iCaptureIdx);
+					xlCodegenExpr(pGen, pBuf, xValue);
+					xlCodeBufAppend(pBuf, "))");
 				} else {
 					xlCodeBufAppendFmt(pBuf, "(pEnv->pVars[%d] = ", iCaptureIdx);
 					xlCodegenExpr(pGen, pBuf, xValue);
@@ -670,6 +682,18 @@ static void xlCodegenExpr( XL_Codegen *pGen, XL_CodeBuf *pBuf, xvalue xExpr )
 					xlCodeBufAppend(pBuf, "))");
 				} else if ( strcmp((char*)pszOp, "/=") == 0 ) {
 					xlCodeBufAppendFmt(pBuf, "(xlv_%s = xl_div(xlv_%s, ", (char*)pszName, (char*)pszName);
+					xlCodegenExpr(pGen, pBuf, xValue);
+					xlCodeBufAppend(pBuf, "))");
+				} else if ( strcmp((char*)pszOp, "%=") == 0 ) {
+					xlCodeBufAppendFmt(pBuf, "(xlv_%s = xl_mod(xlv_%s, ", (char*)pszName, (char*)pszName);
+					xlCodegenExpr(pGen, pBuf, xValue);
+					xlCodeBufAppend(pBuf, "))");
+				} else if ( strcmp((char*)pszOp, "**=") == 0 ) {
+					xlCodeBufAppendFmt(pBuf, "(xlv_%s = xl_pow(xlv_%s, ", (char*)pszName, (char*)pszName);
+					xlCodegenExpr(pGen, pBuf, xValue);
+					xlCodeBufAppend(pBuf, "))");
+				} else if ( strcmp((char*)pszOp, "?=") == 0 ) {
+					xlCodeBufAppendFmt(pBuf, "(xlv_%s = xl_coalesce(xlv_%s, ", (char*)pszName, (char*)pszName);
 					xlCodegenExpr(pGen, pBuf, xValue);
 					xlCodeBufAppend(pBuf, "))");
 				} else {
@@ -756,6 +780,22 @@ static void xlCodegenExpr( XL_Codegen *pGen, XL_CodeBuf *pBuf, xvalue xExpr )
 		xlCodegenExpr(pGen, pBuf, xObject);
 		xlCodeBufAppend(pBuf, ", ");
 		xlCodegenExpr(pGen, pBuf, xIndex);
+		xlCodeBufAppend(pBuf, ")");
+		return;
+	}
+
+	// 切片表达式
+	if ( strcmp((char*)pszKind, XL_AST_SLICE_EXPR) == 0 ) {
+		xvalue xObject = xlAstGetNode(xExpr, (str)"object");
+		xvalue xStart = xlAstGetNode(xExpr, (str)"start");
+		xvalue xEnd = xlAstGetNode(xExpr, (str)"end");
+
+		xlCodeBufAppend(pBuf, "xl_slice(");
+		xlCodegenExpr(pGen, pBuf, xObject);
+		xlCodeBufAppend(pBuf, ", ");
+		xlCodegenExpr(pGen, pBuf, xStart);
+		xlCodeBufAppend(pBuf, ", ");
+		xlCodegenExpr(pGen, pBuf, xEnd);
 		xlCodeBufAppend(pBuf, ")");
 		return;
 	}
@@ -1122,8 +1162,8 @@ static void xlCodegenStmt( XL_Codegen *pGen, xvalue xStmt )
 		xlCodeBufAppend(pBuf, ";\n");
 
 		xlCodegenIndent(pGen, pBuf);
-		xlCodeBufAppendFmt(pBuf, "for ( xvalue xlv_%s = xl__start; xvoGetInt(xlv_%s) <= xvoGetInt(xl__end); xlv_%s = xl_add(xlv_%s, xl__step) ) {\n",
-		                   (char*)pszVar, (char*)pszVar, (char*)pszVar, (char*)pszVar);
+		xlCodeBufAppendFmt(pBuf, "for ( xvalue xlv_%s = xl__start; (xvoGetInt(xl__step) > 0) ? (xvoGetInt(xlv_%s) <= xvoGetInt(xl__end)) : (xvoGetInt(xlv_%s) >= xvoGetInt(xl__end)); xlv_%s = xl_add(xlv_%s, xl__step) ) {\n",
+		                   (char*)pszVar, (char*)pszVar, (char*)pszVar, (char*)pszVar, (char*)pszVar);
 
 		pGen->iIndent++;
 		xlCodegenStmt(pGen, xBody);
@@ -1501,6 +1541,14 @@ static inline bool xlCodegenGenerate( XL_Codegen *pGen, xvalue xModule )
 	xlCodeBufAppend(pGen->pHeader, "\treturn xvoCreateInt(xvoGetInt(a) % xvoGetInt(b));\n");
 	xlCodeBufAppend(pGen->pHeader, "}\n\n");
 
+	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_pow(xvalue a, xvalue b) {\n");
+	xlCodeBufAppend(pGen->pHeader, "\tif ( (xvoType(a) == XVO_DT_INT) && (xvoType(b) == XVO_DT_INT) ) {\n");
+	xlCodeBufAppend(pGen->pHeader, "\t\ti64 base = xvoGetInt(a), exp = xvoGetInt(b), result = 1;\n");
+	xlCodeBufAppend(pGen->pHeader, "\t\tif ( exp >= 0 ) { while ( exp-- > 0 ) result *= base; return xvoCreateInt(result); }\n");
+	xlCodeBufAppend(pGen->pHeader, "\t}\n");
+	xlCodeBufAppend(pGen->pHeader, "\treturn xvoCreateFloat(pow(xvoGetFloat(a), xvoGetFloat(b)));\n");
+	xlCodeBufAppend(pGen->pHeader, "}\n\n");
+
 	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_neg(xvalue a) {\n");
 	xlCodeBufAppend(pGen->pHeader, "\tif ( xvoType(a) == XVO_DT_INT ) return xvoCreateInt(-xvoGetInt(a));\n");
 	xlCodeBufAppend(pGen->pHeader, "\treturn xvoCreateFloat(-xvoGetFloat(a));\n");
@@ -1516,7 +1564,33 @@ static inline bool xlCodegenGenerate( XL_Codegen *pGen, xvalue xModule )
 	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_and(xvalue a, xvalue b) { return xvoCreateBool(xvoIsTrue(a) && xvoIsTrue(b)); }\n");
 	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_or(xvalue a, xvalue b) { return xvoCreateBool(xvoIsTrue(a) || xvoIsTrue(b)); }\n");
 	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_coalesce(xvalue a, xvalue b) { return xvoType(a) == XVO_DT_NULL ? b : a; }\n");
-	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_index(xvalue obj, xvalue idx) { return xvoArrayGetValue(obj, xvoGetInt(idx)); }\n");
+	xlCodeBufAppend(pGen->pHeader, "static i64 xl__len_i64(xvalue obj) {\n");
+	xlCodeBufAppend(pGen->pHeader, "\tif ( xvoType(obj) == XVO_DT_TEXT ) return xvoGetSize(obj);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tif ( xvoType(obj) == XVO_DT_ARRAY ) return xvoArrayItemCount(obj);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tif ( xvoType(obj) == XVO_DT_LIST ) return xvoListItemCount(obj);\n");
+	xlCodeBufAppend(pGen->pHeader, "\treturn 0;\n");
+	xlCodeBufAppend(pGen->pHeader, "}\n");
+	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_index(xvalue obj, xvalue idx) {\n");
+	xlCodeBufAppend(pGen->pHeader, "\ti64 i = xvoGetInt(idx);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tif ( i < 0 ) i = xl__len_i64(obj) + i;\n");
+	xlCodeBufAppend(pGen->pHeader, "\treturn xvoArrayGetValue(obj, (u32)i);\n");
+	xlCodeBufAppend(pGen->pHeader, "}\n");
+	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_slice(xvalue obj, xvalue start, xvalue end) {\n");
+	xlCodeBufAppend(pGen->pHeader, "\ti64 len = xl__len_i64(obj);\n");
+	xlCodeBufAppend(pGen->pHeader, "\ti64 s = xvoGetInt(start);\n");
+	xlCodeBufAppend(pGen->pHeader, "\ti64 e = xvoGetInt(end);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tif ( s < 0 ) s = len + s;\n");
+	xlCodeBufAppend(pGen->pHeader, "\tif ( e < 0 ) e = len + e;\n");
+	xlCodeBufAppend(pGen->pHeader, "\tif ( s < 0 ) s = 0;\n");
+	xlCodeBufAppend(pGen->pHeader, "\tif ( e > len ) e = len;\n");
+	xlCodeBufAppend(pGen->pHeader, "\tif ( xvoType(obj) == XVO_DT_TEXT ) {\n");
+	xlCodeBufAppend(pGen->pHeader, "\t\tstr p = xvoGetText(obj);\n");
+	xlCodeBufAppend(pGen->pHeader, "\t\treturn xvoCreateText(p + s, (u32)(e - s), FALSE);\n");
+	xlCodeBufAppend(pGen->pHeader, "\t}\n");
+	xlCodeBufAppend(pGen->pHeader, "\txvalue arr = xvoCreateArray();\n");
+	xlCodeBufAppend(pGen->pHeader, "\tfor ( i64 i = s; i < e; i++ ) xvoArrayAppendValue(arr, xvoArrayGetValue(obj, (u32)i), FALSE);\n");
+	xlCodeBufAppend(pGen->pHeader, "\treturn arr;\n");
+	xlCodeBufAppend(pGen->pHeader, "}\n");
 	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_member(xvalue obj, const char* name) { return xvoTableGetValue(obj, (str)name, 0); }\n");
 	xlCodeBufAppend(pGen->pHeader, "\n");
 

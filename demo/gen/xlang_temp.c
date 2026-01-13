@@ -34,6 +34,14 @@ static xvalue xl_mod(xvalue a, xvalue b) {
 	return xvoCreateInt(xvoGetInt(a) % xvoGetInt(b));
 }
 
+static xvalue xl_pow(xvalue a, xvalue b) {
+	if ( (xvoType(a) == XVO_DT_INT) && (xvoType(b) == XVO_DT_INT) ) {
+		i64 base = xvoGetInt(a), exp = xvoGetInt(b), result = 1;
+		if ( exp >= 0 ) { while ( exp-- > 0 ) result *= base; return xvoCreateInt(result); }
+	}
+	return xvoCreateFloat(pow(xvoGetFloat(a), xvoGetFloat(b)));
+}
+
 static xvalue xl_neg(xvalue a) {
 	if ( xvoType(a) == XVO_DT_INT ) return xvoCreateInt(-xvoGetInt(a));
 	return xvoCreateFloat(-xvoGetFloat(a));
@@ -49,7 +57,33 @@ static xvalue xl_ge(xvalue a, xvalue b) { return xvoCreateBool(xvoGetInt(a) >= x
 static xvalue xl_and(xvalue a, xvalue b) { return xvoCreateBool(xvoIsTrue(a) && xvoIsTrue(b)); }
 static xvalue xl_or(xvalue a, xvalue b) { return xvoCreateBool(xvoIsTrue(a) || xvoIsTrue(b)); }
 static xvalue xl_coalesce(xvalue a, xvalue b) { return xvoType(a) == XVO_DT_NULL ? b : a; }
-static xvalue xl_index(xvalue obj, xvalue idx) { return xvoArrayGetValue(obj, xvoGetInt(idx)); }
+static i64 xl__len_i64(xvalue obj) {
+	if ( xvoType(obj) == XVO_DT_TEXT ) return xvoGetSize(obj);
+	if ( xvoType(obj) == XVO_DT_ARRAY ) return xvoArrayItemCount(obj);
+	if ( xvoType(obj) == XVO_DT_LIST ) return xvoListItemCount(obj);
+	return 0;
+}
+static xvalue xl_index(xvalue obj, xvalue idx) {
+	i64 i = xvoGetInt(idx);
+	if ( i < 0 ) i = xl__len_i64(obj) + i;
+	return xvoArrayGetValue(obj, (u32)i);
+}
+static xvalue xl_slice(xvalue obj, xvalue start, xvalue end) {
+	i64 len = xl__len_i64(obj);
+	i64 s = xvoGetInt(start);
+	i64 e = xvoGetInt(end);
+	if ( s < 0 ) s = len + s;
+	if ( e < 0 ) e = len + e;
+	if ( s < 0 ) s = 0;
+	if ( e > len ) e = len;
+	if ( xvoType(obj) == XVO_DT_TEXT ) {
+		str p = xvoGetText(obj);
+		return xvoCreateText(p + s, (u32)(e - s), FALSE);
+	}
+	xvalue arr = xvoCreateArray();
+	for ( i64 i = s; i < e; i++ ) xvoArrayAppendValue(arr, xvoArrayGetValue(obj, (u32)i), FALSE);
+	return arr;
+}
 static xvalue xl_member(xvalue obj, const char* name) { return xvoTableGetValue(obj, (str)name, 0); }
 
 static xvalue xl_array(int count, ...) {
@@ -180,8 +214,16 @@ static xvalue xl_call_var(xvalue func, xvalue args) {
 }
 
 // 全局变量
-static xvalue xlv_i = NULL;
-static xvalue xlv_x = NULL;
+static xvalue xlv_arr = NULL;
+static xvalue xlv_slice1 = NULL;
+static xvalue xlv_slice2 = NULL;
+static xvalue xlv_slice3 = NULL;
+static xvalue xlv_s = NULL;
+static xvalue xlv_nums = NULL;
+static xvalue xlv_one = NULL;
+static xvalue xlv_all = NULL;
+static xvalue xlv_filename = NULL;
+static xvalue xlv_items = NULL;
 
 // 函数声明
 
@@ -192,48 +234,63 @@ int main(int argc, char* argv[])
 
 	// 初始化函数变量
 
-	xl_println(xvoCreateText((str)"Test break n / continue n", 0, FALSE));
-	xl_println(xvoCreateText((str)"break 2 test:", 0, FALSE));
-	xlv_i = xvoCreateInt(0);
-	while ( xvoIsTrue(xl_lt(xlv_i, xvoCreateInt(3))) ) {
-		(xlv_i = xl_add(xlv_i, xvoCreateInt(1)));
-		xvalue xlv_j = xvoCreateInt(0);
-		while ( xvoIsTrue(xl_lt(xlv_j, xvoCreateInt(3))) ) {
-			(xlv_j = xl_add(xlv_j, xvoCreateInt(1)));
-			xl_println(xlv_i);
-			xl_println(xlv_j);
-			if ( xvoIsTrue(xl_eq(xlv_j, xvoCreateInt(2))) ) {
-				goto xl__break_0;
-			} else {
-			}
-			xl__continue_1:;
-		}
-		xl__break_1:;
-		xl__continue_0:;
-	}
-	xl__break_0:;
-	xl_println(xvoCreateText((str)"after break 2", 0, FALSE));
-	xl_println(xvoCreateText((str)"continue 2 test:", 0, FALSE));
-	xlv_x = xvoCreateInt(0);
-	while ( xvoIsTrue(xl_lt(xlv_x, xvoCreateInt(3))) ) {
-		(xlv_x = xl_add(xlv_x, xvoCreateInt(1)));
-		xvalue xlv_y = xvoCreateInt(0);
-		while ( xvoIsTrue(xl_lt(xlv_y, xvoCreateInt(3))) ) {
-			(xlv_y = xl_add(xlv_y, xvoCreateInt(1)));
-			if ( xvoIsTrue(xl_eq(xlv_y, xvoCreateInt(2))) ) {
-				goto xl__continue_2;
-			} else {
-			}
-			xl_println(xlv_x);
-			xl_println(xlv_y);
-			xl__continue_3:;
-		}
-		xl__break_3:;
-		xl_println(xvoCreateText((str)"inner loop done", 0, FALSE));
-		xl__continue_2:;
-	}
-	xl__break_2:;
-	xl_println(xvoCreateText((str)"done", 0, FALSE));
+	xl_print(xvoCreateText((str)"=== 数组负索引 ===", 0, FALSE));
+	xlv_arr = xl_array(5, xvoCreateInt(10), xvoCreateInt(20), xvoCreateInt(30), xvoCreateInt(40), xvoCreateInt(50));
+	xl_print(xvoCreateText((str)"arr = [10, 20, 30, 40, 50]", 0, FALSE));
+	xl_print(xvoCreateText((str)"arr[0] (第一个) =", 0, FALSE));
+	xl_print(xl_index(xlv_arr, xvoCreateInt(0)));
+	xl_print(xvoCreateText((str)"arr[-1] (最后一个) =", 0, FALSE));
+	xl_print(xl_index(xlv_arr, xl_neg(xvoCreateInt(1))));
+	xl_print(xvoCreateText((str)"arr[-2] (倒数第二个) =", 0, FALSE));
+	xl_print(xl_index(xlv_arr, xl_neg(xvoCreateInt(2))));
+	xl_print(xvoCreateText((str)"arr[-3] (倒数第三个) =", 0, FALSE));
+	xl_print(xl_index(xlv_arr, xl_neg(xvoCreateInt(3))));
+	xl_print(xvoCreateText((str)"=== 数组切片 ===", 0, FALSE));
+	xl_print(xvoCreateText((str)"arr[0 to 3] (前三个) =", 0, FALSE));
+	xlv_slice1 = xl_slice(xlv_arr, xvoCreateInt(0), xvoCreateInt(3));
+	xl_print(xl_index(xlv_slice1, xvoCreateInt(0)));
+	xl_print(xl_index(xlv_slice1, xvoCreateInt(1)));
+	xl_print(xl_index(xlv_slice1, xvoCreateInt(2)));
+	xl_print(xvoCreateText((str)"arr[1 to 4] (中间三个) =", 0, FALSE));
+	xlv_slice2 = xl_slice(xlv_arr, xvoCreateInt(1), xvoCreateInt(4));
+	xl_print(xl_index(xlv_slice2, xvoCreateInt(0)));
+	xl_print(xl_index(xlv_slice2, xvoCreateInt(1)));
+	xl_print(xl_index(xlv_slice2, xvoCreateInt(2)));
+	xl_print(xvoCreateText((str)"arr[2 to 5] (后三个) =", 0, FALSE));
+	xlv_slice3 = xl_slice(xlv_arr, xvoCreateInt(2), xvoCreateInt(5));
+	xl_print(xl_index(xlv_slice3, xvoCreateInt(0)));
+	xl_print(xl_index(xlv_slice3, xvoCreateInt(1)));
+	xl_print(xl_index(xlv_slice3, xvoCreateInt(2)));
+	xl_print(xvoCreateText((str)"=== 字符串切片 ===", 0, FALSE));
+	xlv_s = xvoCreateText((str)"Hello World", 0, FALSE);
+	xl_print(xvoCreateText((str)"s = 'Hello World'", 0, FALSE));
+	xl_print(xvoCreateText((str)"s[0 to 5] =", 0, FALSE));
+	xl_print(xl_slice(xlv_s, xvoCreateInt(0), xvoCreateInt(5)));
+	xl_print(xvoCreateText((str)"s[6 to 11] =", 0, FALSE));
+	xl_print(xl_slice(xlv_s, xvoCreateInt(6), xvoCreateInt(11)));
+	xl_print(xvoCreateText((str)"=== 边界测试 ===", 0, FALSE));
+	xlv_nums = xl_array(10, xvoCreateInt(1), xvoCreateInt(2), xvoCreateInt(3), xvoCreateInt(4), xvoCreateInt(5), xvoCreateInt(6), xvoCreateInt(7), xvoCreateInt(8), xvoCreateInt(9), xvoCreateInt(10));
+	xl_print(xvoCreateText((str)"nums = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]", 0, FALSE));
+	xl_print(xvoCreateText((str)"nums[0 to 1] (只取第一个) =", 0, FALSE));
+	xlv_one = xl_slice(xlv_nums, xvoCreateInt(0), xvoCreateInt(1));
+	xl_print(xl_index(xlv_one, xvoCreateInt(0)));
+	xl_print(xvoCreateText((str)"nums[-1] (最后一个) =", 0, FALSE));
+	xl_print(xl_index(xlv_nums, xl_neg(xvoCreateInt(1))));
+	xl_print(xvoCreateText((str)"nums[0 to 10] (全部) 长度应为 10", 0, FALSE));
+	xlv_all = xl_slice(xlv_nums, xvoCreateInt(0), xvoCreateInt(10));
+	xl_print(xvoCreateText((str)"已获取全部元素", 0, FALSE));
+	xl_print(xvoCreateText((str)"=== 实际应用场景 ===", 0, FALSE));
+	xlv_filename = xvoCreateText((str)"document.txt", 0, FALSE);
+	xl_print(xvoCreateText((str)"filename = 'document.txt'", 0, FALSE));
+	xl_print(xvoCreateText((str)"后4个字符 (扩展名部分):", 0, FALSE));
+	xl_print(xl_slice(xlv_filename, xvoCreateInt(8), xvoCreateInt(12)));
+	xlv_items = xl_array(5, xvoCreateText((str)"first", 0, FALSE), xvoCreateText((str)"second", 0, FALSE), xvoCreateText((str)"third", 0, FALSE), xvoCreateText((str)"fourth", 0, FALSE), xvoCreateText((str)"last", 0, FALSE));
+	xl_print(xvoCreateText((str)"items 数组:", 0, FALSE));
+	xl_print(xvoCreateText((str)"第一个元素: items[0] =", 0, FALSE));
+	xl_print(xl_index(xlv_items, xvoCreateInt(0)));
+	xl_print(xvoCreateText((str)"最后一个元素: items[-1] =", 0, FALSE));
+	xl_print(xl_index(xlv_items, xl_neg(xvoCreateInt(1))));
+	xl_print(xvoCreateText((str)"=== 负索引和切片测试完成 ===", 0, FALSE));
 
 	xrtUnit();
 	return 0;

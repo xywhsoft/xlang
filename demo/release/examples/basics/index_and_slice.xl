@@ -1,0 +1,99 @@
+// index_and_slice.xl
+// 负索引和范围截取（切片）测试
+
+// ============================================
+// 1. 数组负索引
+// ============================================
+print("=== 数组负索引 ===")
+
+var arr = [10, 20, 30, 40, 50]
+print("arr = [10, 20, 30, 40, 50]")
+
+print("arr[0] (第一个) =")
+print(arr[0])
+
+print("arr[-1] (最后一个) =")
+print(arr[-1])
+
+print("arr[-2] (倒数第二个) =")
+print(arr[-2])
+
+print("arr[-3] (倒数第三个) =")
+print(arr[-3])
+
+// ============================================
+// 2. 数组切片
+// ============================================
+print("=== 数组切片 ===")
+
+print("arr[0 to 3] (前三个) =")
+var slice1 = arr[0 to 3]
+print(slice1[0])
+print(slice1[1])
+print(slice1[2])
+
+print("arr[1 to 4] (中间三个) =")
+var slice2 = arr[1 to 4]
+print(slice2[0])
+print(slice2[1])
+print(slice2[2])
+
+print("arr[2 to 5] (后三个) =")
+var slice3 = arr[2 to 5]
+print(slice3[0])
+print(slice3[1])
+print(slice3[2])
+
+// ============================================
+// 3. 字符串负索引
+// ============================================
+print("=== 字符串切片 ===")
+
+var s = "Hello World"
+print("s = 'Hello World'")
+
+print("s[0 to 5] =")
+print(s[0 to 5])
+
+print("s[6 to 11] =")
+print(s[6 to 11])
+
+// ============================================
+// 4. 边界测试
+// ============================================
+print("=== 边界测试 ===")
+
+var nums = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+print("nums = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]")
+
+print("nums[0 to 1] (只取第一个) =")
+var one = nums[0 to 1]
+print(one[0])
+
+print("nums[-1] (最后一个) =")
+print(nums[-1])
+
+print("nums[0 to 10] (全部) 长度应为 10")
+var all = nums[0 to 10]
+print("已获取全部元素")
+
+// ============================================
+// 5. 实际应用场景
+// ============================================
+print("=== 实际应用场景 ===")
+
+// 获取文件扩展名
+var filename = "document.txt"
+print("filename = 'document.txt'")
+print("后4个字符 (扩展名部分):")
+print(filename[8 to 12])
+
+// 首尾元素
+var items = ["first", "second", "third", "fourth", "last"]
+print("items 数组:")
+print("第一个元素: items[0] =")
+print(items[0])
+print("最后一个元素: items[-1] =")
+print(items[-1])
+
+print("=== 负索引和切片测试完成 ===")

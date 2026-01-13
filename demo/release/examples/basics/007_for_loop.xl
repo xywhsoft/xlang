@@ -1,39 +1,39 @@
 // ============================================================
 // 测试 007: for 循环
-// 测试 for-to-step 循环
+// 测试 for-in-range 循环
 // ============================================================
 
 println("测试 007: for 循环")
 
 // 基本 for 循环
 println("1 to 5:")
-for i = 1 to 5
+for i in range(1, 5)
 	println(i)
 end
 
 // 带 step 的 for 循环
 println("0 to 10 step 2:")
-for i = 0 to 10 step 2
+for i in range(0, 10, 2)
 	println(i)
 end
 
 // 递减循环
 println("5 to 1 step -1:")
-for i = 5 to 1 step -1
+for i in range(5, 1, -1)
 	println(i)
 end
 
 // 累加
 var total = 0
-for i = 1 to 10
+for i in range(1, 10)
 	total = total + i
 end
 println(total)
 
 // 嵌套循环
 println("nested:")
-for i = 1 to 3
-	for j = 1 to 3
+for i in range(1, 3)
+	for j in range(1, 3)
 		print(i * j)
 		print(" ")
 	end
@@ -42,13 +42,13 @@ end
 
 // 边界：单次循环
 println("single iteration:")
-for i = 5 to 5
+for i in range(5, 5)
 	println(i)
 end
 
 // 边界：零次循环
 println("zero iteration:")
-for i = 5 to 4
+for i in range(5, 4)
 	println(i)
 end
 println("(nothing)")

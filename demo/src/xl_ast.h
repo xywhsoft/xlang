@@ -54,6 +54,7 @@
 #define XL_AST_UNARY_EXPR       "UnaryExpr"
 #define XL_AST_CALL_EXPR        "CallExpr"
 #define XL_AST_INDEX_EXPR       "IndexExpr"
+#define XL_AST_SLICE_EXPR       "SliceExpr"
 #define XL_AST_MEMBER_EXPR      "MemberExpr"
 #define XL_AST_ASSIGN_EXPR      "AssignExpr"
 #define XL_AST_TERNARY_EXPR     "TernaryExpr"
@@ -538,6 +539,19 @@ static inline xvalue xlAstCreateIndexExpr( xvalue xObject, xvalue xIndex,
 	xvalue xNode = xlAstCreate((str)XL_AST_INDEX_EXPR, iLine, iCol);
 	xlAstSetNode(xNode, (str)"object", xObject);
 	xlAstSetNode(xNode, (str)"index", xIndex);
+	return xNode;
+}
+
+
+// 创建切片表达式节点
+// SliceExpr: { kind, line, col, object, start, end }
+static inline xvalue xlAstCreateSliceExpr( xvalue xObject, xvalue xStart, xvalue xEnd,
+                                           u32 iLine, u32 iCol )
+{
+	xvalue xNode = xlAstCreate((str)XL_AST_SLICE_EXPR, iLine, iCol);
+	xlAstSetNode(xNode, (str)"object", xObject);
+	xlAstSetNode(xNode, (str)"start", xStart);
+	xlAstSetNode(xNode, (str)"end", xEnd);
 	return xNode;
 }
 

@@ -7,13 +7,13 @@ println("测试 018: 空值和特殊情况")
 
 // 单次循环
 println("single iteration for:")
-for i = 1 to 1
+for i in range(1, 1)
 	println(i)
 end
 
 // 空循环 (start > end)
 println("empty for loop:")
-for i = 10 to 5
+for i in range(10, 5)
 	println("should not print")
 end
 println("done")
