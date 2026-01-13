@@ -51,7 +51,7 @@
 	特殊类型：
 		range								一种特殊的数组， rang is array 返回 true，但不包含实际数据
 			range 构建语句（step 和后面的步长参数为可选语句）：
-			var r = 1 to 10 step 2
+			var r = range(1, 10, 2)
 		type								特殊类型，可以表示数据类型（用于特殊情况需要对数据类型做处理时使用）
 			var a = 1
 			type b = type(a)
@@ -91,7 +91,7 @@
 	索引范围			0 开始，必须连续		int64 任意整数
 	稀疏存储			不支持				支持
 	随机访问性能		O(1)				O(log n)
-	插入/删除性能		O(n)				O(log n)
+	插入/删除性能		O(n)			O(log n)
 	内存占用			较小					较大
 	适用场景			紧凑、顺序数据		稀疏、灵活索引
 
@@ -161,16 +161,23 @@
 
 
 索引：
-	数组专有：
-		var[-index]						从后向前的索引
+	数组专有（索引从 0 开始）：
+		arr[idx]						正常索引
+		var[-idx]						从后向前索引（编译时映射为 length - idx）
+		var[a to b]						截取一部分（返回数组）
+		var[a, b, c, d, ...]			按照索引截取一部分（返回数组）
 	数组、列表：
-		var[index]						访问元素
-		var[a to b]						截取一部分
-		var[a, b, c, d, ...]			按照索引截取一部分，索引按顺序重新排列
+		var[idx]						正常索引（list 使用 int64 做 key，因此正数负数都支持作为索引使用）
+		var[a to b]						截取一部分（返回列表）
+		var[a, b, c, d, ...]			按照索引截取一部分（返回列表）
 	字典：
 		var[key]						访问元素
 		var[~pattern]					按照通配符匹配，截取字典的一部分
 		var[a, b, c, d, ...]			按照键名截取字典的一部分
+	字符串（索引从 0 开始）：
+		str[idx]						返回第 i 个字符
+		str[-idx]						返回倒数第 i 个字符（编译时映射为 length - idx）
+		var[a to b]						返回字符串中的某一段
 
 
 
@@ -256,7 +263,11 @@
 		var d2 = Distance(50.5)		// 调用 meta from(float, 50.5)
 	
 	如果两种类型分别实现了对各自的 to 和 from 元方法，按照以下方式设定优先级：
-		目标类型的 from 方法 > 源类型的 to 方法
+		目标类型的 from 方法 > 源类型的 to 方法，当调用目标类型的 from 方法返回 null 时，会再尝试调用源类型的 to 方法
+	
+	可以调用 to 和 from 方法转换类型（会调用对应的元方法）：
+		obj.to(string)
+		obj.from(int, 1000)
 	
 	内置类型转换规则：
 		由于 null 不可声明为变量类型，所以任何类型都不能转换为 null
@@ -329,15 +340,14 @@
 	?[]				安全访问，如果对应成员属性或函数不存在，则返回 null，不能用于左值（只能读取和调用，不能用于写入），支持字典、列表、对象
 					obj["v"] = obj?[name](param)		// 如果 obj 对象存在 name 变量内容表示的函数则调用，否则返回 null（name 指向的不是函数名也返回 null）
 	
-	is				变量是否是某一数据类型，例如 : var a = "" is string   // 返回 true
+	is				变量是否是某一数据类型，相当于 type(var) == type，本质上是一种语法糖，例如 : var a = "" is string   // 返回 true
 	in				判断元素是否包含在数组、列表、集合、字典、对象类、范围对象内，数组和范围判断值，列表、集合、字典和对象类判断key
-	to				构建 range，range 是一种虚拟数组，类型为数组，可以遍历，访问，但只存储构建参数，不存储实际数据，例如：var r = 1 to 10 step 2		// [1, 3, 5, 7, 9]
 	
 	()				优先级运算符，括号里的先计算
 
 
 
-运算符优先级（从高到低）：
+运算符优先级（数字越小，优先级越高）：
 	与 C 语言一致，扩展了 xlang 特有运算符：
 	
 	优先级		运算符						说明								结合性
@@ -347,17 +357,18 @@
 	4			* / %						乘法、除法、取模					左到右
 	5			+ -							加法、减法						左到右
 	6			<< >>						位移位							左到右
-	7			< <= > >=					关系运算符						左到右
+	7			< <= > >= in is				关系运算符						左到右
 	8			== != ~=					相等性运算符						左到右
-	9			is in to					类型判断、包含判断、构建range		左到右
-	10			&							位与								左到右
-	11			^							位异或							左到右
-	12			|							位或								左到右
-	13			and							逻辑与							左到右
-	14			or							逻辑或							左到右
-	15			?:							三目运算符						右到左
-	16			?? ??=						空值合并							右到左
-	17			= += -= *= /= %= **=		赋值运算符						右到左
+	9			&							位与								左到右
+	10			^							位异或							左到右
+	11			|							位或								左到右
+	12			and							逻辑与							左到右
+	13			or							逻辑或							左到右
+	14			?:							三目运算符						右到左
+	15			?? ?=						空值取值、赋值					右到左
+	16			= += -= *= /= %= **=		赋值运算符						右到左
+	
+	?. 和 ?[] 具备短路访问特性，实际上是 . 和 [] 的变体，其短路访问逻辑的优先级需要包含在运算符内
 
 
 
@@ -379,7 +390,14 @@
 			int b = 1
 			int c = 2
 	多返回值写法(编译阶段会检查函数定义，只有定义了多返回值的函数，才能使用这种写法)：
-		int (a, b) = foo()
+		auto (a, b) = foo()
+		不同类型的多返回值，可以先定义后接收：
+		int iCode
+		string sRet
+		(iCode, sRet) = foo()
+		等号左侧值使用括号包起来多个变量的情况，是属于多返回值的专用写法，编译期间会检查右值，右值必须为函数，或多值赋值写法，否则会报错：
+		(a, b) = (b, a)
+		
 	定义多个变量可以赋初值，也可以使用默认值：
 		int a, b = 1, c, d = 2, e
 		相当于
@@ -464,17 +482,17 @@
 	
 	支持遍历的类型：
 	
-	列表（list）：
-		for v in lst				// 遍历值
-		for i, v in lst				// 遍历索引和值
 	数组（array）：
 		for v in arr				// 遍历值
 		for i, v in arr				// 遍历索引和值
+	列表（list）：
+		for v in lst				// 遍历值
+		for i, v in lst				// 遍历索引和值
 	字典（dict）：
 		for k, v in tbl				// 遍历键和值
 		for k in tbl				// 遍历键
 	集合（set）：
-		for v in setObj				// 遍历元素（自动去重排序）
+		for v in setObj				// 遍历集合元素
 	字符串（string）：
 		for ch in str				// 遍历字符，ch 为 int32 类型（UTF-32 字符代码）
 	对象类（class or object）：
@@ -704,10 +722,10 @@
 	end
 	
 	// 接收多返回值（使用括号接收多个返回值时，必须接收全部返回值，编译器会进行参数数量和类型检查[可使用 auto 类型接收]，会报类型不匹配错误）
-	int (iQuotient, iRemainder) = divmod(17, 5)
-	
-	// 多个返回值类型不同是，可以使用 auto 关键字接收多返回值
 	auto (iQuotient, iRemainder) = divmod(17, 5)
+	
+	// 等号左侧值使用括号包起来多个变量的情况，是属于多返回值的专用写法
+	(iQuotient, iRemainder) = divmod(17, 5)
 	
 	// 也可以只接收第一个返回值，编译器自动丢弃其他返回值数据
 	int iQuotient = divmod(17, 5)		// 只接收第一个返回值
@@ -981,192 +999,6 @@
 	断言：
 		assert condition, "Error message"
 		assert x > 0		// 默认错误消息："Assertion failed"
-
-
-
-
-
-
-
-
-
-
-
-多线程（多线程以库的形式存在，不涉及语言特性，因此这一节废弃）：
-	支持系统级多线程，利用多核 CPU 并行执行。
-	
-	创建线程：
-		// 创建线程对象
-		var t = thread(function(arg)
-			print("Thread running: " + arg)
-			return "result"
-		end)
-		
-		// 启动线程
-		t.start("hello")
-		
-		// 等待线程结束，获取返回值
-		var result = t.join()
-		
-		// 线程属性
-		t.id			// 线程ID
-		t.status		// "pending" / "running" / "finished" / "error"
-		t.detach()		// 分离线程（不需要 join）
-	
-	简化的 spawn 语法：
-		// 启动并行任务（自动创建线程）
-		var handle = spawn
-			heavyComputation()
-		end
-		
-		// 等待结果
-		var result = await handle
-	
-	互斥锁：
-		var mtx = mutex()
-		
-		mtx.lock()
-		// 临界区代码
-		mtx.unlock()
-		
-		// 自动解锁语法
-		with mtx
-			// 自动 lock/unlock
-			sharedData += 1
-		end
-		
-		// 尝试加锁（非阻塞）
-		if mtx.trylock()
-			// 成功获取锁
-			mtx.unlock()
-		end
-	
-	读写锁：
-		var rwlock = rwmutex()
-		
-		rwlock.rlock()		// 读锁（共享）
-		// 读取共享数据
-		rwlock.runlock()
-		
-		rwlock.wlock()		// 写锁（独占）
-		// 修改共享数据
-		rwlock.wunlock()
-	
-	信号量：
-		var sem = semaphore(5)	// 初始值 5
-		
-		sem.wait()		// P 操作，减 1
-		sem.signal()	// V 操作，加 1
-	
-	条件变量：
-		var cond = condition()
-		var mtx = mutex()
-		
-		// 等待线程
-		with mtx
-			while not ready
-				cond.wait(mtx)
-			end
-		end
-		
-		// 通知线程
-		with mtx
-			ready = true
-			cond.signal()		// 唤醒一个
-			cond.broadcast()	// 唤醒所有
-		end
-	
-	原子操作：
-		var counter = atomic(0)
-		
-		counter.load()			// 读取
-		counter.store(10)		// 存储
-		counter.add(1)			// 原子加
-		counter.sub(1)			// 原子减
-		counter.exchange(20)	// 交换
-		counter.cas(old, new)	// 比较并交换
-	
-	通道 (Channel)：
-		线程间通信的推荐方式。
-		
-		创建通道：
-			var ch = channel()			// 无缓冲通道（同步）
-			var ch = channel(10)		// 缓冲通道，容量 10
-		
-		发送和接收：
-			ch.send(value)				// 发送（可能阻塞）
-			var value = ch.recv()		// 接收（可能阻塞）
-		
-		非阻塞操作：
-			var ok = ch.trysend(value)	// 尝试发送
-			var value, ok = ch.tryrecv()	// 尝试接收
-		
-		关闭通道：
-			ch.close()
-		
-		遍历通道（直到关闭）：
-			for msg in ch
-				print(msg)
-			end
-		
-		select 多路复用：
-			select
-				case msg = ch1.recv()
-					print("from ch1: " + msg)
-				case msg = ch2.recv()
-					print("from ch2: " + msg)
-				case ch3.send("hello")
-					print("sent to ch3")
-				default
-					print("no channel ready")
-			end
-
-
-
-线程池（线程池以库的形式存在，不涉及语言特性，因此这一节废弃）：
-	管理一组工作线程，适合大量短任务。
-	
-	创建线程池：
-		var pool = threadpool(4)	// 4 个工作线程
-	
-	提交任务：
-		var future = pool.submit(function(x)
-			return x * x
-		end, 10)
-		
-		// 获取结果
-		var result = future.get()	// 阻塞等待
-		var result = await future	// 异步等待
-	
-	批量执行：
-		var results = pool.map(function(x)
-			return x * x
-		end, [1, 2, 3, 4, 5])
-	
-	关闭线程池：
-		pool.shutdown()			// 等待所有任务完成
-		pool.terminate()		// 立即终止
-
-
-
-协程与线程的配合（构思中）：
-	// async/await 默认在单线程上运行（异步 I/O）
-	async function fetchAll(urls)
-		var results = []
-		for url in urls
-			var data = await http.get(url)	// 协程切换，不阻塞
-			results.append(data)
-		end
-		return results
-	end
-	
-	// 在线程池上执行 CPU 密集任务
-	async function processData(data)
-		var result = await threadpool.run(function()
-			return heavyComputation(data)
-		end)
-		return result
-	end
 
 
 
