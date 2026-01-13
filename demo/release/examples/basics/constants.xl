@@ -1,0 +1,72 @@
+// ============================================================
+// xlang 示例：常量声明与使用
+// 演示常量的声明方式和使用方法
+// ============================================================
+
+// ---------- 基本常量声明 ----------
+
+// 整数常量
+const int iMAX_SIZE = 100
+print("整数常量:", iMAX_SIZE)
+
+// 浮点常量
+const float fPI = 3.1415926535
+print("浮点常量:", fPI)
+
+// 字符串常量
+const string sAPP_NAME = "xlang Demo"
+print("字符串常量:", sAPP_NAME)
+
+// 布尔常量
+const bool bDEBUG = false
+print("布尔常量:", bDEBUG)
+
+// ---------- 常量表达式 ----------
+
+// 常量可以由其他常量和字面量组成表达式
+const int iBASE = 10
+const int iDOUBLE_BASE = iBASE * 2
+const int iTRIPLE_BASE = iBASE * 3
+print("常量表达式:", iBASE, iDOUBLE_BASE, iTRIPLE_BASE)
+
+// 复杂常量表达式
+const int iCOMPLEX = (iMAX_SIZE / 2) + (iBASE * 5) - 10
+print("复杂常量表达式:", iCOMPLEX)
+
+// ---------- 常量数组和字典 ----------
+
+// 常量数组
+const array arrCONST = [1, 2, 3, 4, 5]
+print("常量数组:", arrCONST)
+
+// 常量字典
+const dict dictCONST = {name: "常量字典", value: 100}
+print("常量字典:", dictCONST)
+
+// ---------- 常量的使用场景 ----------
+
+// 1. 配置参数
+const string sCONFIG_FILE = "config.ini"
+const int iTIMEOUT = 5000
+
+// 2. 数学常量
+const float fE = 2.718281828459045
+const float fSQRT2 = 1.41421356237
+
+// 3. 枚举替代
+const int STATE_IDLE = 0
+const int STATE_RUNNING = 1
+const int STATE_PAUSED = 2
+const int STATE_STOPPED = 3
+
+// 使用常量作为状态
+var iCurrentState = STATE_RUNNING
+print("当前状态:", iCurrentState)
+
+// ---------- 常量不可修改 ----------
+
+// 以下代码会导致编译错误，因为常量不能被修改
+// iMAX_SIZE = 200  // 错误：常量不能赋值
+// sAPP_NAME = "New Name"  // 错误：常量不能赋值
+
+print("常量演示完成")

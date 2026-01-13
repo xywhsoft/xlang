@@ -1,0 +1,140 @@
+// for_loops.xl
+// 演示各种 for 循环语法
+
+// 1. 基本 for 循环
+print("1. 基本 for 循环")
+for var i = 0; i < 5; i++ {
+    print("i =", i)
+}
+print("")
+
+// 2. 省略初始化语句
+print("2. 省略初始化语句")
+var iStart = 1
+for ; iStart < 4; iStart++ {
+    print("iStart =", iStart)
+}
+print("")
+
+// 3. 省略条件语句
+print("3. 省略条件语句")
+var iCount = 0
+for var i = 0; ; i++ {
+    iCount++
+    if iCount > 3 {
+        break
+    }
+    print("i =", i)
+}
+print("")
+
+// 4. 省略递增语句
+print("4. 省略递增语句")
+for var i = 0; i < 5; {
+    print("i =", i)
+    i += 1
+}
+print("")
+
+// 5. 省略所有可选语句（无限循环）
+print("5. 省略所有可选语句（无限循环）")
+var iLimit = 0
+for ; ; {
+    iLimit++
+    if iLimit > 2 {
+        break
+    }
+    print("无限循环第", iLimit, "次迭代")
+}
+print("")
+
+// 6. 使用不同的递增步长
+print("6. 使用不同的递增步长")
+for var i = 0; i < 10; i += 2 {
+    print("i =", i)
+}
+print("")
+
+// 7. 递减循环
+print("7. 递减循环")
+for var i = 5; i > 0; i-- {
+    print("i =", i)
+}
+print("")
+
+// 8. 使用浮点数
+print("8. 使用浮点数")
+for var f = 0.0; f < 1.0; f += 0.2 {
+    print("f =", f)
+}
+print("")
+
+// 9. for-in 循环遍历数组
+print("9. for-in 循环遍历数组")
+var arrNumbers = [1, 2, 3, 4, 5]
+for var i in arrNumbers {
+    print("数组元素:", i)
+}
+print("")
+
+// 10. for-in 循环遍历字符串
+print("10. for-in 循环遍历字符串")
+var sText = "xlang"
+for var c in sText {
+    print("字符:", c)
+}
+print("")
+
+// 11. for-in 循环遍历字典
+print("11. for-in 循环遍历字典")
+var tblInfo = {"name": "xlang", "version": "3.0", "type": "programming language"}
+for var key, value in tblInfo {
+    print("键:", key, ", 值:", value)
+}
+print("")
+
+// 12. for-each 循环遍历列表
+print("12. for-each 循环遍历列表")
+var lstItems = list("apple", "banana", "cherry")
+for var item in lstItems {
+    print("列表项:", item)
+}
+print("")
+
+// 13. 嵌套 for 循环
+print("13. 嵌套 for 循环")
+for var i = 1; i <= 3; i++ {
+    for var j = 1; j <= 3; j++ {
+        print("i =", i, ", j =", j)
+    }
+}
+print("")
+
+// 14. 使用 continue 语句
+print("14. 使用 continue 语句")
+for var i = 0; i < 5; i++ {
+    if i == 2 {
+        continue
+    }
+    print("i =", i)
+}
+print("")
+
+// 15. 使用 break 语句
+print("15. 使用 break 语句")
+for var i = 0; i < 10; i++ {
+    if i == 3 {
+        break
+    }
+    print("i =", i)
+}
+print("")
+
+// 16. 循环中修改变量
+print("16. 循环中修改变量")
+var iTotal = 0
+for var i = 1; i <= 5; i++ {
+    iTotal += i
+    print("当前总和:", iTotal)
+}
+print("最终总和:", iTotal)

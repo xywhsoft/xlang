@@ -1,0 +1,144 @@
+// ============================================================
+// xlang 示例：数组类型
+// 演示数组的声明、初始化和基本操作
+// ============================================================
+
+// ---------- 数组的声明和初始化 ----------
+
+// 使用数组字面量初始化
+var arrLiteral = [1, 2, 3, 4, 5]
+print("数组字面量:", arrLiteral)
+
+// 使用 new 关键字创建数组
+var arrNew = new array(10, 20, 30, 40, 50)
+print("使用 new 创建数组:", arrNew)
+
+// 创建空数组
+var arrEmpty = new array()
+print("空数组:", arrEmpty)
+
+// 指定类型的数组
+var arrTyped = [int(1), int(2), int(3)]
+print("指定类型的数组:", arrTyped)
+
+// ---------- 数组的基本操作 ----------
+
+// 获取数组长度
+var iLength = len(arrLiteral)
+print("\n数组长度:", arrLiteral, "长度 =", iLength)
+
+// 访问数组元素
+var iFirst = arrLiteral[0]
+var iLast = arrLiteral[-1]
+print("访问数组元素:")
+print("第一个元素:", iFirst)
+print("最后一个元素:", iLast)
+
+// 修改数组元素
+arrLiteral[2] = 100
+print("修改数组元素:", arrLiteral)
+
+// 添加元素到数组末尾
+append(arrLiteral, 600)
+append(arrLiteral, 700)
+print("添加元素到末尾:", arrLiteral)
+
+// 在指定位置插入元素
+insert(arrLiteral, 1, 200)
+print("在位置1插入元素:", arrLiteral)
+
+// 删除指定位置的元素
+var iRemoved = removeAt(arrLiteral, 1)
+print("删除位置1的元素:", arrLiteral, "被删除的元素:", iRemoved)
+
+// 删除指定值的元素
+remove(arrLiteral, 5)
+print("删除值为5的元素:", arrLiteral)
+
+// ---------- 数组切片 ----------
+
+// 切片语法：array[start to end]
+var arrSlice1 = arrLiteral[1 to 4]
+print("\n数组切片 [1 to 4]:", arrSlice1)
+
+// 从开始到指定位置
+var arrSlice2 = arrLiteral[ to 3]
+print("从开始到位置3:", arrSlice2)
+
+// 从指定位置到结尾
+var arrSlice3 = arrLiteral[2 to]
+print("从位置2到结尾:", arrSlice3)
+
+// 负索引切片
+var arrSlice4 = arrLiteral[-3 to]
+print("从倒数第3个到结尾:", arrSlice4)
+
+// ---------- 数组的遍历 ----------
+
+print("\n数组遍历:")
+// 使用 for-in 循环遍历数组值
+for v in arrLiteral {
+    print("  ", v)
+}
+
+// 使用 for-in 循环遍历索引和值
+for i, v in arrLiteral {
+    print("  ", i, ":", v)
+}
+
+// 使用 while 循环遍历
+print("\n使用 while 循环遍历:")
+var iIndex = 0
+while iIndex < len(arrLiteral) {
+    print("  ", arrLiteral[iIndex])
+    iIndex += 1
+}
+
+// ---------- 数组的高级操作 ----------
+
+// 数组连接
+var arrConcat1 = [1, 2, 3]
+var arrConcat2 = [4, 5, 6]
+var arrResult = arrConcat1 + arrConcat2
+print("\n数组连接:", arrConcat1, "+", arrConcat2, "=", arrResult)
+
+// 数组重复
+var arrRepeat = [1, 2] * 3
+print("数组重复:", [1, 2], "* 3 =", arrRepeat)
+
+// 数组排序
+var arrUnsorted = [5, 2, 8, 1, 9, 3]
+var arrSorted = sort(arrUnsorted)
+print("\n数组排序:")
+print("原始数组:", arrUnsorted)
+print("排序后:", arrSorted)
+
+// 数组反转
+var arrReversed = reverse(arrUnsorted)
+print("数组反转:", arrReversed)
+
+// 数组包含
+var bContains = contains(arrLiteral, 100)
+print("数组包含100:", bContains)
+
+// 查找元素索引
+var iFindIndex = indexOf(arrLiteral, 100)
+print("元素100的索引:", iFindIndex)
+
+// ---------- 多维数组 ----------
+
+// 创建二维数组
+var arr2D = [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
+print("\n二维数组:", arr2D)
+
+// 访问二维数组元素
+var i2DElement = arr2D[1][2]
+print("二维数组元素 arr2D[1][2]:", i2DElement)
+
+// 遍历二维数组
+print("遍历二维数组:")
+for i, row in arr2D {
+    for j, cell in row {
+        print("  ", i, ",", j, ":", cell)
+    }
+}

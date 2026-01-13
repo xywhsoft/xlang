@@ -1,0 +1,251 @@
+// file_basics.xl
+// 演示文件操作的基本语法和使用
+
+// 1. 写入文件
+print("1. 写入文件")
+
+/*
+try {
+    // 打开文件进行写入（覆盖模式）
+    var hFile = open("test.txt", "w")
+    write(hFile, "Hello, xlang!\n")
+    write(hFile, "这是一个文件写入测试。\n")
+    write(hFile, "1234567890\n")
+    close(hFile)
+    print("文件写入成功")
+} catch e {
+    print("文件写入失败:", e)
+}
+print("")
+
+// 2. 追加到文件
+print("2. 追加到文件")
+
+try {
+    // 打开文件进行追加
+    var hFile = open("test.txt", "a")
+    write(hFile, "这是追加的内容。\n")
+    write(hFile, "追加第二行。\n")
+    close(hFile)
+    print("文件追加成功")
+} catch e {
+    print("文件追加失败:", e)
+}
+print("")
+
+// 3. 读取文件（完整读取）
+print("3. 读取文件（完整读取）")
+
+try {
+    // 打开文件进行读取
+    var hFile = open("test.txt", "r")
+    var sContent = read(hFile)
+    close(hFile)
+    print("文件内容:")
+    print(sContent)
+} catch e {
+    print("文件读取失败:", e)
+}
+print("")
+
+// 4. 逐行读取文件
+print("4. 逐行读取文件")
+
+try {
+    var hFile = open("test.txt", "r")
+    var sLine
+    var iLineNumber = 0
+    
+    while true {
+        sLine = readline(hFile)
+        if sLine is null {
+            break
+        }
+        iLineNumber++
+        print("行", iLineNumber, ":", sLine)
+    }
+    
+    close(hFile)
+} catch e {
+    print("逐行读取文件失败:", e)
+}
+print("")
+
+// 5. 读取文件的特定字节数
+print("5. 读取文件的特定字节数")
+
+try {
+    var hFile = open("test.txt", "r")
+    var sContent = read(hFile, 20)  // 读取前 20 个字符
+    close(hFile)
+    print("读取的前 20 个字符:", sContent)
+} catch e {
+    print("读取文件特定字节数失败:", e)
+}
+print("")
+
+// 6. 检查文件是否存在
+print("6. 检查文件是否存在")
+
+try {
+    if exists("test.txt") {
+        print("test.txt 文件存在")
+    } else {
+        print("test.txt 文件不存在")
+    }
+    
+    if exists("nonexistent.txt") {
+        print("nonexistent.txt 文件存在")
+    } else {
+        print("nonexistent.txt 文件不存在")
+    }
+} catch e {
+    print("检查文件存在失败:", e)
+}
+print("")
+
+// 7. 获取文件信息
+print("7. 获取文件信息")
+
+try {
+    if exists("test.txt") {
+        print("文件大小:", size("test.txt"), "字节")
+        print("创建时间:", create_time("test.txt"))
+        print("修改时间:", modify_time("test.txt"))
+        print("访问时间:", access_time("test.txt"))
+    }
+} catch e {
+    print("获取文件信息失败:", e)
+}
+print("")
+
+// 8. 删除文件
+print("8. 删除文件")
+
+try {
+    if exists("test.txt") {
+        remove("test.txt")
+        print("test.txt 文件删除成功")
+    } else {
+        print("test.txt 文件不存在，无法删除")
+    }
+} catch e {
+    print("删除文件失败:", e)
+}
+
+// 验证文件是否已删除
+try {
+    if exists("test.txt") {
+        print("test.txt 文件仍然存在")
+    } else {
+        print("test.txt 文件已被删除")
+    }
+} catch e {
+    print("检查文件存在失败:", e)
+}
+print("")
+
+// 9. 重命名文件
+print("9. 重命名文件")
+
+// 先创建一个测试文件
+try {
+    var hFile = open("old_name.txt", "w")
+    write(hFile, "这是一个测试文件。\n")
+    close(hFile)
+    print("创建测试文件成功")
+    
+    // 重命名文件
+    rename("old_name.txt", "new_name.txt")
+    print("文件重命名成功")
+    
+    // 验证重命名
+    if exists("new_name.txt") {
+        print("new_name.txt 文件存在")
+    } else {
+        print("new_name.txt 文件不存在")
+    }
+    
+    if exists("old_name.txt") {
+        print("old_name.txt 文件仍然存在")
+    } else {
+        print("old_name.txt 文件已不存在")
+    }
+    
+    // 清理
+    remove("new_name.txt")
+} catch e {
+    print("文件重命名失败:", e)
+}
+print("")
+
+// 10. 文件指针操作
+print("10. 文件指针操作")
+
+try {
+    // 创建测试文件
+    var hFile = open("seek_test.txt", "w")
+    write(hFile, "1234567890abcdefghij")
+    close(hFile)
+    
+    // 打开文件进行读取
+    hFile = open("seek_test.txt", "r")
+    
+    // 读取前 5 个字符
+    var sContent = read(hFile, 5)
+    print("读取前 5 个字符:", sContent)
+    
+    // 移动文件指针到开头
+    seek(hFile, 0)
+    
+    // 再次读取前 3 个字符
+    sContent = read(hFile, 3)
+    print("再次读取前 3 个字符:", sContent)
+    
+    // 移动文件指针到第 10 个字符位置
+    seek(hFile, 10)
+    
+    // 读取 5 个字符
+    sContent = read(hFile, 5)
+    print("从第 10 个字符开始读取 5 个字符:", sContent)
+    
+    // 关闭文件
+    close(hFile)
+    
+    // 清理
+    remove("seek_test.txt")
+} catch e {
+    print("文件指针操作失败:", e)
+}
+print("")
+
+// 11. 二进制文件操作
+print("11. 二进制文件操作")
+
+try {
+    // 写入二进制文件
+    var hFile = open("binary_test.bin", "wb")
+    var arrBytes = [0x48, 0x65, 0x6C, 0x6C, 0x6F, 0x20, 0x78, 0x6C, 0x61, 0x6E, 0x67]
+    write_binary(hFile, arrBytes)
+    close(hFile)
+    print("二进制文件写入成功")
+    
+    // 读取二进制文件
+    hFile = open("binary_test.bin", "rb")
+    var arrReadBytes = read_binary(hFile)
+    close(hFile)
+    print("二进制文件读取成功")
+    print("读取的字节数组:", arrReadBytes)
+    
+    // 转换为字符串
+    var sText = bytes_to_string(arrReadBytes)
+    print("转换为字符串:", sText)
+    
+    // 清理
+    remove("binary_test.bin")
+} catch e {
+    print("二进制文件操作失败:", e)
+}
+*/
+
+print("注意: 实际运行时需要确保文件操作相关的函数可用")

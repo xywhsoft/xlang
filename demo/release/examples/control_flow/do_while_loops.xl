@@ -1,0 +1,108 @@
+// do_while_loops.xl
+// 演示各种 do-while 循环语法
+
+// 1. 基本 do-while 循环
+print("1. 基本 do-while 循环")
+var i = 0
+var iLoopCount = 0
+
+do {
+    print("i =", i, ", 循环次数:", iLoopCount)
+    i++
+    iLoopCount++
+} while i < 5
+print("")
+
+// 2. do-while 循环使用 -- 操作符
+print("2. do-while 循环使用 -- 操作符")
+var iCount = 3
+
+do {
+    print("iCount =", iCount)
+    iCount--
+} while iCount > 0
+print("")
+
+// 3. do-while 循环使用浮点数
+print("3. do-while 循环使用浮点数")
+var fValue = 0.0
+
+do {
+    print("fValue =", fValue)
+    fValue += 0.2
+} while fValue < 1.0
+print("")
+
+// 4. do-while 循环使用字符串
+print("4. do-while 循环使用字符串")
+var sText = "xlang"
+var iIndex = 0
+
+do {
+    print("字符:", sText[iIndex])
+    iIndex++
+} while iIndex < len(sText)
+print("")
+
+// 5. do-while 循环使用 break 语句
+print("5. do-while 循环使用 break 语句")
+var iBreak = 0
+var iBreakCount = 0
+
+do {
+    print("iBreak =", iBreak, ", 循环次数:", iBreakCount)
+    iBreak++
+    iBreakCount++
+    if iBreak >= 3 {
+        break
+    }
+} while true
+print("")
+
+// 6. do-while 循环使用 continue 语句
+print("6. do-while 循环使用 continue 语句")
+var iContinue = 0
+var iContinueCount = 0
+
+do {
+    iContinue++
+    if iContinue == 3 {
+        continue
+    }
+    print("iContinue =", iContinue, ", 循环次数:", iContinueCount)
+    iContinueCount++
+} while iContinue < 5
+print("")
+
+// 7. do-while 循环执行至少一次
+print("7. do-while 循环执行至少一次")
+var iFalse = 0
+
+do {
+    print("即使条件初始为假，do-while 也会执行一次")
+} while iFalse > 5
+print("")
+
+// 8. do-while 循环修改数组
+print("8. do-while 循环修改数组")
+var arrNumbers = [5, 4, 3, 2, 1]
+var iArrayIndex = 0
+
+do {
+    print("数组元素:", arrNumbers[iArrayIndex])
+    arrNumbers[iArrayIndex] = 0
+    iArrayIndex++
+} while iArrayIndex < len(arrNumbers)
+print("修改后的数组:", arrNumbers)
+
+// 9. do-while 循环计算累加和
+print("\n9. do-while 循环计算累加和")
+var iSum = 0
+var iNumber = 1
+
+do {
+    iSum += iNumber
+    print("当前数:", iNumber, ", 当前和:", iSum)
+    iNumber++
+} while iNumber <= 5
+print("最终累加和:", iSum)

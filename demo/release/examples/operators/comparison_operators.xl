@@ -1,0 +1,110 @@
+// ============================================================
+// xlang 示例：比较运算符
+// 演示各种比较运算符的使用
+// ============================================================
+
+var iA = 10
+var iB = 20
+var iC = 10
+var fD = 10.0
+var fE = 10.5
+var sF = "hello"
+var sG = "world"
+var sH = "hello"
+
+print("比较运算符示例:")
+print("iA =", iA, "iB =", iB, "iC =", iC)
+print("fD =", fD, "fE =", fE)
+print("sF =", sF, "sG =", sG, "sH =", sH)
+
+// ---------- 相等运算符 ----------
+
+print("\n相等运算符 (==):")
+print("iA == iC =", iA == iC)    // 整数相等
+print("iA == iB =", iA == iB)    // 整数不相等
+print("iA == fD =", iA == fD)    // 整数与浮点数相等
+print("sF == sH =", sF == sH)    // 字符串相等
+print("sF == sG =", sF == sG)    // 字符串不相等
+
+// ---------- 不等运算符 ----------
+
+print("\n不等运算符 (!=):")
+print("iA != iB =", iA != iB)    // 整数不相等
+print("iA != iC =", iA != iC)    // 整数相等
+print("iA != fD =", iA != fD)    // 整数与浮点数相等
+print("sF != sG =", sF != sG)    // 字符串不相等
+print("sF != sH =", sF != sH)    // 字符串相等
+
+// ---------- 大于运算符 ----------
+
+print("\n大于运算符 (>):")
+print("iB > iA =", iB > iA)      // 20 > 10
+print("iA > iB =", iA > iB)      // 10 > 20
+print("fE > fD =", fE > fD)      // 10.5 > 10.0
+print("sG > sF =", sG > sF)      // 字符串比较
+
+// ---------- 大于等于运算符 ----------
+
+print("\n大于等于运算符 (>=):")
+print("iB >= iA =", iB >= iA)    // 20 >= 10
+print("iA >= iC =", iA >= iC)    // 10 >= 10
+print("fD >= iA =", fD >= iA)    // 10.0 >= 10
+print("iA >= fE =", iA >= fE)    // 10 >= 10.5
+
+// ---------- 小于运算符 ----------
+
+print("\n小于运算符 (<):")
+print("iA < iB =", iA < iB)      // 10 < 20
+print("iB < iA =", iB < iA)      // 20 < 10
+print("fD < fE =", fD < fE)      // 10.0 < 10.5
+print("sF < sG =", sF < sG)      // 字符串比较
+
+// ---------- 小于等于运算符 ----------
+
+print("\n小于等于运算符 (<=):")
+print("iA <= iB =", iA <= iB)    // 10 <= 20
+print("iA <= iC =", iA <= iC)    // 10 <= 10
+print("fE <= iA =", fE <= iA)    // 10.5 <= 10
+print("fD <= iA =", fD <= iA)    // 10.0 <= 10
+
+// ---------- 约等于运算符 ----------
+
+print("\n约等于运算符 (~=):")
+print("10 ~= 10 =", 10 ~= 10)              // 完全相等
+print("10 ~= 10.0001 =", 10 ~= 10.0001)       // 接近相等
+print("10 ~= 11 =", 10 ~= 11)              // 不相等
+print("10.5 ~= 10.50001 =", 10.5 ~= 10.50001)   // 浮点数接近相等
+print("\"hello\" ~= \"hallo\" =", "hello" ~= "hallo")  // 字符串接近相等
+
+// ---------- 比较运算符的优先级 ----------
+
+print("\n比较运算符的优先级:")
+var bResult1 = iA + iC > iB
+var bResult2 = iA > iB + iC
+var bResult3 = iA > iB || iA == iC
+var bResult4 = (iA > iB) || (iA == iC)
+
+print("iA + iC > iB =", bResult1)    // (10 + 10) > 20 = 20 > 20 = false
+print("iA > iB + iC =", bResult2)    // 10 > (20 + 10) = 10 > 30 = false
+print("iA > iB || iA == iC =", bResult3)  // (10 > 20) || (10 == 10) = false || true = true
+print("(iA > iB) || (iA == iC) =", bResult4)  // 同上，使用括号明确优先级
+
+// ---------- 在条件语句中使用比较运算符 ----------
+
+print("\n在条件语句中使用比较运算符:")
+
+if iA < iB {
+    print("iA 小于 iB")
+}
+
+if sF != sG {
+    print("sF 不等于 sG")
+}
+
+if iA == fD {
+    print("iA 等于 fD")
+}
+
+if fE ~= 10.5 {
+    print("fE 约等于 10.5")
+}

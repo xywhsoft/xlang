@@ -1,0 +1,104 @@
+// string_boundary.xl
+// 字符串边界测试
+
+// 1. 空字符串
+print("1. 空字符串测试")
+var sEmpty = ""
+print("空字符串长度:", len(sEmpty))
+print("空字符串类型:", type(sEmpty))
+print("空字符串 == \"\":", sEmpty == "")
+print("空字符串 + \"test\":", sEmpty + "test")
+print("")
+
+// 2. 单个字符字符串
+print("2. 单个字符字符串")
+var sSingleChar = "a"
+print("单个字符长度:", len(sSingleChar))
+print("获取第0个字符:", sSingleChar[0])
+print("单个字符字符串 + 单个字符:", sSingleChar + "b")
+print("")
+
+// 3. 长字符串
+print("3. 长字符串")
+var sLong = ""
+// 生成一个长字符串
+for var i = 0; i < 10; i++ {
+    sLong += "xlang" + str(i)
+}
+print("长字符串长度:", len(sLong))
+print("长字符串前10个字符:", sLong[0:10])
+print("长字符串后10个字符:", sLong[-10:])
+print("")
+
+// 4. 包含特殊字符的字符串
+print("4. 包含特殊字符的字符串")
+var sSpecial = "Hello\nWorld\t!\"'\\/"
+print("包含特殊字符的字符串:", sSpecial)
+print("字符串长度:", len(sSpecial))
+print("")
+
+// 5. 包含中文字符的字符串
+print("5. 包含中文字符的字符串")
+var sChinese = "你好，xlang！"
+print("中文字符串:", sChinese)
+print("字符串长度:", len(sChinese))
+print("获取第0个字符:", sChinese[0])
+print("获取第1个字符:", sChinese[1])
+print("")
+
+// 6. 字符串索引边界测试
+print("6. 字符串索引边界测试")
+var sTest = "test"
+print("字符串:", sTest)
+print("字符串长度:", len(sTest))
+print("sTest[0]:", sTest[0])  // 第一个字符
+print("sTest[3]:", sTest[3])  // 最后一个字符
+// print("sTest[4]:", sTest[4])  // 超出边界，应该抛出异常
+// print("sTest[-5]:", sTest[-5])  // 负索引超出边界，应该抛出异常
+print("")
+
+// 7. 字符串切片边界测试
+print("7. 字符串切片边界测试")
+print("sTest[0:2]:", sTest[0:2])  // 正常切片
+print("sTest[0:10]:", sTest[0:10])  // 结束索引超出边界
+print("sTest[-10:10]:", sTest[-10:10])  // 开始索引超出边界，结束索引超出边界
+print("sTest[2:0]:", sTest[2:0])  // 开始索引大于结束索引，返回空字符串
+print("sTest[:]:", sTest[:])  // 完整切片
+print("sTest[:3]:", sTest[:3])  // 从开始到索引3
+print("sTest[1:]:", sTest[1:])  // 从索引1到结束
+print("")
+
+// 8. 字符串拼接边界测试
+print("8. 字符串拼接边界测试")
+var sA = "a"
+var sB = "b"
+var sC = "c"
+print("sA + sB + sC:", sA + sB + sC)
+print("sA + 123:", sA + 123)  // 字符串与数字拼接
+print("123 + sA:", 123 + sA)  // 数字与字符串拼接
+print("空字符串 + 空字符串:", "" + "")
+print("空字符串 + sA:", "" + sA)
+print("sA + 空字符串:", sA + "")
+print("")
+
+// 9. 字符串比较边界测试
+print("9. 字符串比较边界测试")
+print("\"a\" < \"b\":", "a" < "b")
+print("\"a\" > \"A\":", "a" > "A")
+print("\"a\" == \"a\":", "a" == "a")
+print("\"a\" == \"A\":", "a" == "A")
+print("空字符串 == 空字符串:", "" == "")
+print("空字符串 == \" \t\":", "" == " \t")
+print("\"abc\" == \"abcd\":", "abc" == "abcd")
+print("")
+
+// 10. 字符串函数边界测试
+print("10. 字符串函数边界测试")
+print("len(空字符串):", len(""))
+print("len(单个字符):", len("a"))
+print("str(123):", str(123))
+print("str(0):", str(0))
+print("str(-123):", str(-123))
+print("str(3.14159):", str(3.14159))
+print("str(true):", str(true))
+print("str(false):", str(false))

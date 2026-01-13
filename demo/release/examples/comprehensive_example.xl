@@ -1,0 +1,301 @@
+// comprehensive_example.xl
+// 综合示例：学生成绩管理系统
+// 展示如何将各种 xlang 功能结合在一起
+
+// 1. 定义类
+class Student {
+    init(id, name, age) {
+        this.id = id
+        this.name = name
+        this.age = age
+        this.courses = {}  // 课程名称: 成绩
+    }
+    
+    addCourse(courseName, score = 0) {
+        if score < 0 || score > 100 {
+            throw Exception("成绩必须在 0-100 之间")
+        }
+        this.courses[courseName] = score
+        print(this.name, "添加了课程:", courseName, "，成绩:", score)
+    }
+    
+    updateScore(courseName, score) {
+        if courseName not in this.courses {
+            throw Exception("课程", courseName, "不存在")
+        }
+        if score < 0 || score > 100 {
+            throw Exception("成绩必须在 0-100 之间")
+        }
+        this.courses[courseName] = score
+        print(this.name, "更新了课程", courseName, "的成绩为:", score)
+    }
+    
+    getAverageScore() {
+        if len(this.courses) == 0 {
+            return 0
+        }
+        
+        var iTotal = 0
+        for var course, score in this.courses {
+            iTotal += score
+        }
+        
+        return iTotal / len(this.courses)
+    }
+    
+    getGrade() {
+        var fAvg = this.getAverageScore()
+        if fAvg >= 90 {
+            return "优秀"
+        } else if fAvg >= 80 {
+            return "良好"
+        } else if fAvg >= 70 {
+            return "中等"
+        } else if fAvg >= 60 {
+            return "及格"
+        } else {
+            return "不及格"
+        }
+    }
+    
+    displayInfo() {
+        print("\n===== 学生信息 =====")
+        print("学号:", this.id)
+        print("姓名:", this.name)
+        print("年龄:", this.age)
+        print("课程成绩:")
+        
+        if len(this.courses) == 0 {
+            print("  暂无课程成绩")
+        } else {
+            for var course, score in this.courses {
+                print("  ", course, ":", score)
+            }
+        }
+        
+        var fAvg = this.getAverageScore()
+        var sGrade = this.getGrade()
+        print("平均成绩:", fAvg)
+        print("等级:", sGrade)
+        print("====================")
+    }
+}
+
+// 2. 定义学生管理类
+class StudentManager {
+    init() {
+        this.students = {}  // 学号: 学生对象
+        this.nextId = 1001  // 下一个可用学号
+    }
+    
+    addStudent(name, age) {
+        var sId = str(this.nextId)
+        var pStudent = Student(sId, name, age)
+        this.students[sId] = pStudent
+        this.nextId++
+        print("添加学生成功: 学号", sId, "，姓名", name)
+        return pStudent
+    }
+    
+    getStudent(id) {
+        if id not in this.students {
+            throw Exception("学生", id, "不存在")
+        }
+        return this.students[id]
+    }
+    
+    removeStudent(id) {
+        if id not in this.students {
+            throw Exception("学生", id, "不存在")
+        }
+        delete this.students[id]
+        print("删除学生成功: 学号", id)
+    }
+    
+    getAllStudents() {
+        return this.students
+    }
+    
+    getStudentCount() {
+        return len(this.students)
+    }
+    
+    displayAllStudents() {
+        print("\n===== 所有学生信息 =====")
+        print("当前学生总数:", this.getStudentCount())
+        
+        if this.getStudentCount() == 0 {
+            print("暂无学生信息")
+        } else {
+            for var id, pStudent in this.students {
+                pStudent.displayInfo()
+            }
+        }
+        print("=========================")
+    }
+    
+    // 统计功能
+    getClassAverage() {
+        if this.getStudentCount() == 0 {
+            return 0
+        }
+        
+        var fTotal = 0
+        var iCount = 0
+        
+        for var id, pStudent in this.students {
+            var fAvg = pStudent.getAverageScore()
+            if fAvg > 0 {
+                fTotal += fAvg
+                iCount++
+            }
+        }
+        
+        if iCount == 0 {
+            return 0
+        }
+        
+        return fTotal / iCount
+    }
+    
+    getGradeDistribution() {
+        var tblDistribution = {
+            "优秀": 0,
+            "良好": 0,
+            "中等": 0,
+            "及格": 0,
+            "不及格": 0
+        }
+        
+        for var id, pStudent in this.students {
+            var sGrade = pStudent.getGrade()
+            tblDistribution[sGrade]++
+        }
+        
+        return tblDistribution
+    }
+    
+    displayStatistics() {
+        print("\n===== 班级统计信息 =====")
+        print("班级平均成绩:", this.getClassAverage())
+        
+        var tblDistribution = this.getGradeDistribution()
+        print("成绩分布:")
+        for var grade, count in tblDistribution {
+            print("  ", grade, ":", count, "人")
+        }
+        print("=========================")
+    }
+}
+
+// 3. 主程序
+print("=====================================")
+print("        学生成绩管理系统")
+print("=====================================")
+
+// 创建学生管理器实例
+var pManager = StudentManager()
+
+// 4. 添加一些学生
+print("\n1. 添加学生")
+try {
+    var pStudent1 = pManager.addStudent("张三", 18)
+    var pStudent2 = pManager.addStudent("李四", 19)
+    var pStudent3 = pManager.addStudent("王五", 18)
+    var pStudent4 = pManager.addStudent("赵六", 20)
+} catch e {
+    print("添加学生失败:", e)
+}
+
+// 5. 为学生添加课程和成绩
+print("\n2. 为学生添加课程和成绩")
+try {
+    // 张三的课程
+    var pStudent1 = pManager.getStudent("1001")
+    pStudent1.addCourse("高等数学", 85)
+    pStudent1.addCourse("程序设计", 92)
+    pStudent1.addCourse("大学英语", 78)
+    
+    // 李四的课程
+    var pStudent2 = pManager.getStudent("1002")
+    pStudent2.addCourse("高等数学", 76)
+    pStudent2.addCourse("程序设计", 88)
+    pStudent2.addCourse("大学英语", 82)
+    pStudent2.addCourse("数据结构", 90)
+    
+    // 王五的课程
+    var pStudent3 = pManager.getStudent("1003")
+    pStudent3.addCourse("高等数学", 65)
+    pStudent3.addCourse("程序设计", 72)
+    
+    // 赵六的课程
+    var pStudent4 = pManager.getStudent("1004")
+    pStudent4.addCourse("高等数学", 95)
+    pStudent4.addCourse("程序设计", 98)
+    pStudent4.addCourse("大学英语", 88)
+    pStudent4.addCourse("数据结构", 92)
+    pStudent4.addCourse("操作系统", 89)
+    
+} catch e {
+    print("添加课程成绩失败:", e)
+}
+
+// 6. 更新学生成绩
+print("\n3. 更新学生成绩")
+try {
+    var pStudent3 = pManager.getStudent("1003")
+    pStudent3.updateScore("高等数学", 70)
+    pStudent3.updateScore("程序设计", 78)
+} catch e {
+    print("更新成绩失败:", e)
+}
+
+// 7. 显示单个学生信息
+print("\n4. 显示单个学生信息")
+try {
+    var pStudent2 = pManager.getStudent("1002")
+    pStudent2.displayInfo()
+} catch e {
+    print("显示学生信息失败:", e)
+}
+
+// 8. 显示所有学生信息
+print("\n5. 显示所有学生信息")
+pManager.displayAllStudents()
+
+// 9. 显示班级统计信息
+print("\n6. 显示班级统计信息")
+pManager.displayStatistics()
+
+// 10. 删除学生
+print("\n7. 删除学生")
+try {
+    pManager.removeStudent("1004")
+    print("删除学生后，剩余学生数:", pManager.getStudentCount())
+} catch e {
+    print("删除学生失败:", e)
+}
+
+// 11. 再次显示班级统计信息
+print("\n8. 更新后的班级统计信息")
+pManager.displayStatistics()
+
+print("\n=====================================")
+print("        程序运行结束")
+print("=====================================")
+
+// 12. 演示异常处理
+print("\n9. 异常处理演示")
+
+try {
+    var pStudent = Student("1005", "测试学生", 18)
+    pStudent.addCourse("高等数学", 150)  // 超出范围的成绩，会抛出异常
+} catch e {
+    print("捕获到异常:", e)
+}
+
+try {
+    pManager.getStudent("9999")  // 不存在的学生，会抛出异常
+} catch e {
+    print("捕获到异常:", e)
+}

@@ -1,0 +1,66 @@
+// ============================================================
+// xlang 示例：变量声明与使用
+// 演示各种变量声明方式和使用方法
+// ============================================================
+
+// ---------- 动态类型变量 (var) ----------
+var vDynamic = 42
+print("动态类型初始值:", vDynamic)
+
+// 动态类型可以在运行时改变类型
+vDynamic = "now I'm a string"
+print("动态类型改为字符串:", vDynamic)
+
+vDynamic = true
+print("动态类型改为布尔值:", vDynamic)
+
+// ---------- 显式类型变量 ----------
+
+// 整数类型
+int iInt = 100
+print("整数类型:", iInt)
+
+// 浮点类型
+float fFloat = 3.14
+print("浮点类型:", fFloat)
+
+// 字符串类型
+string sString = "Hello, xlang!"
+print("字符串类型:", sString)
+
+// 布尔类型
+bool bBool = true
+print("布尔类型:", bBool)
+
+// ---------- 变量作用域 ----------
+
+// 全局变量
+var gGlobalVar = 100
+
+function testScope() {
+    // 局部变量
+    var lLocalVar = 200
+    print("局部变量:", lLocalVar)
+    
+    // 访问全局变量
+    print("访问全局变量:", gGlobalVar)
+    
+    // 局部变量遮蔽全局变量
+    var gGlobalVar = 300
+    print("遮蔽后的全局变量:", gGlobalVar)
+}
+
+testScope()
+print("全局变量原始值:", gGlobalVar)
+
+// ---------- 变量命名规则 ----------
+
+// 合法标识符
+var normalVar = 1
+var camelCase = 2
+var PascalCase = 3
+var _privateVar = 4
+var 中文变量 = 5
+var var123 = 6
+
+print("合法标识符示例:", normalVar, camelCase, PascalCase, _privateVar, 中文变量, var123)

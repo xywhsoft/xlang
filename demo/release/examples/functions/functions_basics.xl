@@ -1,0 +1,144 @@
+// functions_basics.xl
+// 演示函数的基本语法和使用
+
+// 1. 基本函数定义和调用
+print("1. 基本函数定义和调用")
+
+func sayHello() {
+    print("Hello from function!")
+}
+
+sayHello()
+print("")
+
+// 2. 带参数的函数
+print("2. 带参数的函数")
+
+func greet(name) {
+    print("Hello, ", name, "!")
+}
+
+greet("xlang")
+greet("world")
+print("")
+
+// 3. 带返回值的函数
+print("3. 带返回值的函数")
+
+func add(a, b) {
+    return a + b
+}
+
+var iSum = add(10, 20)
+print("10 + 20 =", iSum)
+print("")
+
+// 4. 带多个返回值的函数
+print("4. 带多个返回值的函数")
+
+func getMinMax(numbers) {
+    var iMin = numbers[0]
+    var iMax = numbers[0]
+    
+    for var num in numbers {
+        if num < iMin {
+            iMin = num
+        }
+        if num > iMax {
+            iMax = num
+        }
+    }
+    
+    return iMin, iMax
+}
+
+var arrNumbers = [5, 2, 9, 1, 7]
+var iMin, iMax = getMinMax(arrNumbers)
+print("数组", arrNumbers)
+print("最小值:", iMin, ", 最大值:", iMax)
+print("")
+
+// 5. 函数参数默认值
+print("5. 函数参数默认值")
+
+func power(base, exponent = 2) {
+    var iResult = 1
+    for var i = 0; i < exponent; i++ {
+        iResult *= base
+    }
+    return iResult
+}
+
+print("power(3):", power(3))        // 使用默认指数 2
+print("power(3, 3):", power(3, 3))   // 使用指定指数 3
+print("")
+
+// 6. 可变参数函数
+print("6. 可变参数函数")
+
+func sum(...numbers) {
+    var iTotal = 0
+    for var num in numbers {
+        iTotal += num
+    }
+    return iTotal
+}
+
+print("sum(1, 2, 3):", sum(1, 2, 3))
+print("sum(1, 2, 3, 4, 5):", sum(1, 2, 3, 4, 5))
+print("")
+
+// 7. 匿名函数（lambda）
+print("7. 匿名函数（lambda）")
+
+var procAdd = func(a, b) {
+    return a + b
+}
+
+print("procAdd(5, 3):", procAdd(5, 3))
+print("")
+
+// 8. 函数作为参数
+print("8. 函数作为参数")
+
+func applyOperation(a, b, operation) {
+    return operation(a, b)
+}
+
+var iResult1 = applyOperation(10, 5, func(a, b) { return a + b })
+var iResult2 = applyOperation(10, 5, func(a, b) { return a - b })
+var iResult3 = applyOperation(10, 5, func(a, b) { return a * b })
+var iResult4 = applyOperation(10, 5, func(a, b) { return a / b })
+
+print("10 + 5 =", iResult1)
+print("10 - 5 =", iResult2)
+print("10 * 5 =", iResult3)
+print("10 / 5 =", iResult4)
+print("")
+
+// 9. 函数嵌套
+print("9. 函数嵌套")
+
+func outerFunc(x) {
+    func innerFunc(y) {
+        return x + y
+    }
+    return innerFunc
+}
+
+var procInner = outerFunc(10)
+print("procInner(5):", procInner(5))
+print("")
+
+// 10. 递归函数
+print("10. 递归函数")
+
+func factorial(n) {
+    if n <= 1 {
+        return 1
+    }
+    return n * factorial(n - 1)
+}
+
+print("factorial(5):", factorial(5))
+print("factorial(10):", factorial(10))

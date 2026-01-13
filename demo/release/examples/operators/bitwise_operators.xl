@@ -1,0 +1,146 @@
+// ============================================================
+// xlang 示例：位运算符
+// 演示各种位运算符的使用
+// ============================================================
+
+var iA = 10  // 二进制: 1010
+var iB = 6   // 二进制: 0110
+var iC = -10 // 二进制补码: 11111111111111111111111111110110 (32位)
+
+print("位运算符示例:")
+print("iA =", iA, "(二进制:", bin(iA), ")")
+print("iB =", iB, "(二进制:", bin(iB), ")")
+print("iC =", iC, "(二进制:", bin(iC), ")")
+
+// ---------- 按位与运算符 (&) ----------
+
+print("\n按位与运算符 (&):")
+var iAndResult = iA & iB  // 1010 & 0110 = 0010 (2)
+print("iA & iB =", iAndResult, "(二进制:", bin(iAndResult), ")")
+print("iA & iA =", iA & iA)
+print("iA & 0 =", iA & 0)
+
+// ---------- 按位或运算符 (|) ----------
+
+print("\n按位或运算符 (|):")
+var iOrResult = iA | iB  // 1010 | 0110 = 1110 (14)
+print("iA | iB =", iOrResult, "(二进制:", bin(iOrResult), ")")
+print("iA | iA =", iA | iA)
+print("iA | 0 =", iA | 0)
+
+// ---------- 按位异或运算符 (^) ----------
+
+print("\n按位异或运算符 (^):")
+var iXorResult = iA ^ iB  // 1010 ^ 0110 = 1100 (12)
+print("iA ^ iB =", iXorResult, "(二进制:", bin(iXorResult), ")")
+print("iA ^ iA =", iA ^ iA)  // 相同的数异或为 0
+print("iA ^ 0 =", iA ^ 0)    // 与 0 异或不变
+
+// ---------- 按位非运算符 (!) ----------
+
+print("\n按位非运算符 (!):")
+var iNotResult = !iA  // ~1010 = 0101 (5) - 注意：xlang 中按位非是 !
+print("!iA =", iNotResult, "(二进制:", bin(iNotResult), ")")
+print("!iB =", !iB, "(二进制:", bin(!iB), ")")
+print("!!iA =", !!iA)  // 双重按位非，结果为 0 或 1
+
+// ---------- 左移位运算符 (<<) ----------
+
+print("\n左移位运算符 (<<):")
+var iShlResult1 = iA << 1  // 1010 << 1 = 10100 (20)
+var iShlResult2 = iA << 2  // 1010 << 2 = 101000 (40)
+var iShlResult3 = iB << 3  // 0110 << 3 = 110000 (48)
+
+print("iA << 1 =", iShlResult1, "(二进制:", bin(iShlResult1), ")")
+print("iA << 2 =", iShlResult2, "(二进制:", bin(iShlResult2), ")")
+print("iB << 3 =", iShlResult3, "(二进制:", bin(iShlResult3), ")")
+
+// ---------- 右移位运算符 (>>) ----------
+
+print("\n右移位运算符 (>>):")
+var iShrResult1 = iA >> 1  // 1010 >> 1 = 0101 (5)
+var iShrResult2 = iA >> 2  // 1010 >> 2 = 0010 (2)
+var iShrResult3 = iB >> 1  // 0110 >> 1 = 0011 (3)
+var iShrResult4 = iC >> 1  // 负数右移，高位补 1
+
+print("iA >> 1 =", iShrResult1, "(二进制:", bin(iShrResult1), ")")
+print("iA >> 2 =", iShrResult2, "(二进制:", bin(iShrResult2), ")")
+print("iB >> 1 =", iShrResult3, "(二进制:", bin(iShrResult3), ")")
+print("iC >> 1 =", iShrResult4, "(二进制:", bin(iShrResult4), ")")
+
+// ---------- 复合位赋值运算符 ----------
+
+print("\n复合位赋值运算符:")
+var iX = 10  // 1010
+print("初始 iX =", iX, "(二进制:", bin(iX), ")")
+
+// &= 按位与赋值
+iX &= 6  // 1010 & 0110 = 0010 (2)
+print("iX &= 6 =", iX, "(二进制:", bin(iX), ")")
+
+// |= 按位或赋值
+iX = 10  // 重置为 1010
+iX |= 6  // 1010 | 0110 = 1110 (14)
+print("iX |= 6 =", iX, "(二进制:", bin(iX), ")")
+
+// ^= 按位异或赋值
+iX = 10  // 重置为 1010
+iX ^= 6  // 1010 ^ 0110 = 1100 (12)
+print("iX ^= 6 =", iX, "(二进制:", bin(iX), ")")
+
+// <<= 左移位赋值
+iX = 10  // 重置为 1010
+iX <<= 2  // 1010 << 2 = 101000 (40)
+print("iX <<= 2 =", iX, "(二进制:", bin(iX), ")")
+
+// >>= 右移位赋值
+iX = 10  // 重置为 1010
+iX >>= 2  // 1010 >> 2 = 0010 (2)
+print("iX >>= 2 =", iX, "(二进制:", bin(iX), ")")
+
+// ---------- 位运算符的应用示例 ----------
+
+print("\n位运算符的应用示例:")
+
+// 1. 检查某一位是否为 1
+var iValue = 0b101010
+var iBitPos = 2  // 从 0 开始计数
+var bIsSet = (iValue & (1 << iBitPos)) != 0
+print("检查 iValue =", iValue, "的第", iBitPos, "位是否为 1:", bIsSet)
+
+// 2. 设置某一位为 1
+var iSetValue = iValue | (1 << 3)  // 设置第 3 位为 1
+print("设置 iValue 的第 3 位为 1:", iSetValue, "(二进制:", bin(iSetValue), ")")
+
+// 3. 清除某一位为 0
+var iClearValue = iSetValue & ~(1 << 3)  // 清除第 3 位为 0
+print("清除 iSetValue 的第 3 位为 0:", iClearValue, "(二进制:", bin(iClearValue), ")")
+
+// 4. 切换某一位的值
+var iToggleValue = iValue ^ (1 << 1)  // 切换第 1 位的值
+print("切换 iValue 的第 1 位的值:", iToggleValue, "(二进制:", bin(iToggleValue), ")")
+
+// 5. 获取最低位的 1
+var iLowestOne = iValue & -iValue
+print("获取 iValue 最低位的 1:", iLowestOne, "(二进制:", bin(iLowestOne), ")")
+
+// 6. 判断是否为奇数
+var iTest = 5
+var bIsOdd = (iTest & 1) != 0
+print("判断", iTest, "是否为奇数:", bIsOdd)
+
+var iTest2 = 6
+var bIsEven = (iTest2 & 1) == 0
+print("判断", iTest2, "是否为偶数:", bIsEven)
+
+// 7. 交换两个数（不使用临时变量）
+var iX1 = 10
+var iY1 = 20
+print("\n交换两个数（不使用临时变量）:")
+print("交换前: iX1 =", iX1, "iY1 =", iY1)
+
+iX1 ^= iY1
+iY1 ^= iX1
+iX1 ^= iY1
+
+print("交换后: iX1 =", iX1, "iY1 =", iY1)

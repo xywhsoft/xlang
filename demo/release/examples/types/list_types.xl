@@ -1,0 +1,123 @@
+// ============================================================
+// xlang 示例：列表类型
+// 演示列表的声明、初始化和基本操作
+// ============================================================
+
+// ---------- 列表的声明和初始化 ----------
+
+// 使用列表字面量初始化
+var lstLiteral = [0:10, 1:20, 2:30]
+print("列表字面量:", lstLiteral)
+
+// 使用 new 关键字创建列表
+var lstNew = new list()
+print("使用 new 创建列表:", lstNew)
+
+// 空列表
+var lstEmpty = []
+print("空列表:", lstEmpty)
+
+// 创建带有非连续索引的列表
+var lstSparse = [0:100, 5:200, 10:300]
+print("非连续索引列表:", lstSparse)
+
+// ---------- 列表的基本操作 ----------
+
+// 获取列表长度
+var iLength = len(lstLiteral)
+print("\n列表长度:", lstLiteral, "长度 =", iLength)
+
+// 访问列表元素
+var iFirst = lstLiteral[0]
+var iSecond = lstLiteral[1]
+print("访问列表元素:")
+print("索引0:", iFirst)
+print("索引1:", iSecond)
+
+// 修改列表元素
+lstLiteral[1] = 200
+print("修改列表元素:", lstLiteral)
+
+// 添加新的键值对
+lstLiteral[3] = 400
+print("添加新键值对 [3]:400:", lstLiteral)
+
+// 删除指定键的元素
+delete lstLiteral[1]
+print("删除索引1的元素:", lstLiteral)
+
+// 检查键是否存在
+var bHasKey = 2 in lstLiteral
+print("索引2是否存在:", bHasKey)
+
+// ---------- 列表的遍历 ----------
+
+print("\n列表遍历:")
+
+// 使用 for-in 循环遍历值
+for v in lstLiteral {
+    print("  ", v)
+}
+
+// 使用 for-in 循环遍历键和值
+for k, v in lstLiteral {
+    print("  ", k, ":", v)
+}
+
+// 使用 while 循环遍历非连续列表
+print("\n遍历非连续列表:")
+var lstKeys = keys(lstSparse)
+for k in lstKeys {
+    print("  ", k, ":", lstSparse[k])
+}
+
+// ---------- 列表的高级操作 ----------
+
+// 列表连接
+var lstConcat1 = [0:10, 1:20]
+var lstConcat2 = [2:30, 3:40]
+var lstResult = lstConcat1 + lstConcat2
+print("\n列表连接:", lstConcat1, "+", lstConcat2, "=", lstResult)
+
+// 列表转换为数组
+var arrFromList = array(lstLiteral)
+print("列表转换为数组:", arrFromList)
+
+// 数组转换为列表
+var lstFromArray = list([10, 20, 30])
+print("数组转换为列表:", lstFromArray)
+
+// 获取列表的键和值
+var lstAllKeys = keys(lstSparse)
+var lstAllValues = values(lstSparse)
+print("\n列表的键:", lstAllKeys)
+print("列表的值:", lstAllValues)
+
+// 清空列表
+clear(lstNew)
+print("清空列表:", lstNew)
+
+// ---------- 列表与数组的比较 ----------
+
+print("\n列表与数组的比较:")
+
+var arrArray = [1, 2, 3]
+var lstList = [0:1, 1:2, 2:3]
+
+print("数组:", arrArray, "类型:", type(arrArray))
+print("列表:", lstList, "类型:", type(lstList))
+print("数组索引必须连续，列表索引可以不连续")
+print("数组随机访问 O(1)，列表随机访问 O(log n)")
+print("数组插入/删除 O(n)，列表插入/删除 O(log n)")
+
+// ---------- 负索引在列表中的使用 ----------
+
+var lstNegative = [0:10, 1:20, 2:30, 3:40, 4:50]
+print("\n负索引在列表中的使用:")
+print("原始列表:", lstNegative)
+print("索引-1:", lstNegative[-1])  // 最后一个元素
+print("索引-2:", lstNegative[-2])  // 倒数第二个元素
+
+// 修改负索引对应的元素
+lstNegative[-1] = 500
+print("修改索引-1的元素:", lstNegative)

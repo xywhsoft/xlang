@@ -1,0 +1,225 @@
+// classes_objects.xl
+// 演示类和对象的基本语法和使用
+
+// 1. 基本类定义和实例化
+print("1. 基本类定义和实例化")
+
+class Person {
+    // 构造函数
+    init(name, age) {
+        this.name = name
+        this.age = age
+    }
+    
+    // 实例方法
+    greet() {
+        print("你好，我的名字是", this.name, "，今年", this.age, "岁。")
+    }
+    
+    // 实例方法，修改属性
+    haveBirthday() {
+        this.age++
+        print(this.name, "过生日了，现在", this.age, "岁。")
+    }
+}
+
+// 创建对象实例
+var pPerson1 = Person("张三", 25)
+var pPerson2 = Person("李四", 30)
+
+// 调用实例方法
+pPerson1.greet()
+pPerson2.greet()
+pPerson1.haveBirthday()
+pPerson1.greet()
+print("")
+
+// 2. 访问和修改对象属性
+print("2. 访问和修改对象属性")
+
+print("pPerson2 的名字:", pPerson2.name)
+print("pPerson2 的年龄:", pPerson2.age)
+
+// 修改对象属性
+pPerson2.age = 31
+pPerson2.name = "李小四"
+pPerson2.greet()
+print("")
+
+// 3. 类的属性（静态属性）和方法（静态方法）
+print("3. 类的属性（静态属性）和方法（静态方法）")
+
+class MathUtil {
+    // 静态属性
+    static PI = 3.14159265359
+    static E = 2.71828182846
+    
+    // 静态方法
+    static add(a, b) {
+        return a + b
+    }
+    
+    static multiply(a, b) {
+        return a * b
+    }
+    
+    static circleArea(radius) {
+        return this.PI * radius * radius
+    }
+}
+
+// 访问静态属性
+print("MathUtil.PI:", MathUtil.PI)
+print("MathUtil.E:", MathUtil.E)
+
+// 调用静态方法
+print("MathUtil.add(5, 3):", MathUtil.add(5, 3))
+print("MathUtil.multiply(5, 3):", MathUtil.multiply(5, 3))
+print("MathUtil.circleArea(2):", MathUtil.circleArea(2))
+print("")
+
+// 4. 继承
+print("4. 继承")
+
+class Student extends Person {
+    init(name, age, studentId, major) {
+        // 调用父类构造函数
+        super.init(name, age)
+        this.studentId = studentId
+        this.major = major
+        this.courses = []
+    }
+    
+    // 重写父类方法
+    greet() {
+        print("你好，我是学生", this.name, "，今年", this.age, "岁，学号是", this.studentId, "，专业是", this.major, "。")
+    }
+    
+    // 新增方法
+    addCourse(course) {
+        push(this.courses, course)
+        print(this.name, "添加了课程:", course)
+    }
+    
+    listCourses() {
+        print(this.name, "的课程列表:", this.courses)
+    }
+}
+
+// 创建子类实例
+var pStudent = Student("王五", 20, "2021001", "计算机科学")
+pStudent.greet()
+pStudent.haveBirthday() // 继承自父类的方法
+pStudent.addCourse("高等数学")
+pStudent.addCourse("程序设计")
+pStudent.addCourse("数据结构")
+pStudent.listCourses()
+print("")
+
+// 5. 多态
+print("5. 多态")
+
+func introduce(person) {
+    person.greet() // 调用对象的 greet 方法，根据对象类型不同执行不同的实现
+}
+
+introduce(pPerson1) // 调用 Person 的 greet 方法
+introduce(pStudent) // 调用 Student 的 greet 方法（重写后的方法）
+print("")
+
+// 6. 封装 - 使用 getter 和 setter
+print("6. 封装 - 使用 getter 和 setter")
+
+class BankAccount {
+    init(owner, initialBalance = 0) {
+        this.owner = owner
+        this.__balance = initialBalance // 私有属性，使用双下划线前缀
+    }
+    
+    // getter 方法
+    get balance() {
+        print("访问余额")
+        return this.__balance
+    }
+    
+    // setter 方法
+    set balance(amount) {
+        if amount < 0 {
+            print("余额不能为负数")
+            return
+        }
+        print("设置余额为", amount)
+        this.__balance = amount
+    }
+    
+    // 存款方法
+    deposit(amount) {
+        if amount > 0 {
+            this.__balance += amount
+            print(this.owner, "存款", amount, "元，当前余额:", this.__balance, "元。")
+        } else {
+            print("存款金额必须大于 0")
+        }
+    }
+    
+    // 取款方法
+    withdraw(amount) {
+        if amount > 0 {
+            if amount <= this.__balance {
+                this.__balance -= amount
+                print(this.owner, "取款", amount, "元，当前余额:", this.__balance, "元。")
+            } else {
+                print(this.owner, "取款失败，余额不足。")
+            }
+        } else {
+            print("取款金额必须大于 0")
+        }
+    }
+}
+
+var pAccount = BankAccount("赵六", 1000)
+print(pAccount.owner)
+// print(pAccount.__balance) // 直接访问私有属性会出错
+print("当前余额:", pAccount.balance) // 通过 getter 访问
+
+pAccount.deposit(500)
+pAccount.withdraw(200)
+pAccount.withdraw(2000) // 测试余额不足情况
+
+// 通过 setter 修改余额
+pAccount.balance = 5000
+print("设置后的余额:", pAccount.balance)
+
+pAccount.balance = -1000 // 测试设置负数余额
+print("")
+
+// 7. 类的继承链
+print("7. 类的继承链")
+
+class GraduateStudent extends Student {
+    init(name, age, studentId, major, advisor) {
+        super.init(name, age, studentId, major)
+        this.advisor = advisor
+        this.thesisTopic = ""
+    }
+    
+    setThesisTopic(topic) {
+        this.thesisTopic = topic
+        print(this.name, "的论文题目是:", this.thesisTopic)
+    }
+    
+    greet() {
+        print("你好，我是研究生", this.name, "，导师是", this.advisor, "。")
+    }
+}
+
+var pGradStudent = GraduateStudent("孙七", 23, "2021002", "计算机科学", "王教授")
+pGradStudent.greet()
+pGradStudent.haveBirthday() // 继承自 Person 类
+pGradStudent.addCourse("高级算法") // 继承自 Student 类
+pGradStudent.setThesisTopic("人工智能在自然语言处理中的应用")
+
+// 检查对象类型
+print("pGradStudent 是 GraduateStudent 类型吗?", pGradStudent is GraduateStudent)
+print("pGradStudent 是 Student 类型吗?", pGradStudent is Student)
+print("pGradStudent 是 Person 类型吗?", pGradStudent is Person)

@@ -1,0 +1,105 @@
+// ============================================================
+// xlang 示例：类型转换
+// 演示各种类型转换方式和规则
+// ============================================================
+
+// ---------- 基本类型转换 ----------
+
+// 整数转浮点数
+var iInt = 10
+var fFloat = float(iInt)
+print("整数转浮点数:", iInt, "->", fFloat)
+
+// 浮点数转整数
+var fPi = 3.14159
+var iPiInt = int(fPi)
+print("浮点数转整数:", fPi, "->", iPiInt)
+
+// 整数转字符串
+var iNum = 123
+var sNum = string(iNum)
+print("整数转字符串:", iNum, "->", sNum)
+
+// 字符串转整数
+var sStrNum = "456"
+var iStrNum = int(sStrNum)
+print("字符串转整数:", sStrNum, "->", iStrNum)
+
+// 布尔值转整数
+bool bTrue = true
+bool bFalse = false
+print("布尔值转整数:", bTrue, "->", int(bTrue), ",", bFalse, "->", int(bFalse))
+
+// 整数转布尔值
+var iZero = 0
+var iNonZero = 100
+print("整数转布尔值:", iZero, "->", bool(iZero), ",", iNonZero, "->", bool(iNonZero))
+
+// ---------- 容器类型转换 ----------
+
+// 数组转列表
+var arrArray = [1, 2, 3, 4, 5]
+var lstList = list(arrArray)
+print("数组转列表:", arrArray, "->", lstList)
+
+// 列表转数组
+var lstList2 = [0:10, 1:20, 2:30]
+var arrArray2 = array(lstList2)
+print("列表转数组:", lstList2, "->", arrArray2)
+
+// 数组转集合
+var arrArray3 = [1, 2, 3, 2, 1]
+var setSet = set(arrArray3)
+print("数组转集合:", arrArray3, "->", setSet)
+
+// 集合转数组
+var setSet2 = {1, 2, 3, 4, 5}
+var arrArray4 = array(setSet2)
+print("集合转数组:", setSet2, "->", arrArray4)
+
+// ---------- 自定义类型转换 ----------
+
+// 定义一个简单的类
+class Distance {
+    private float fMeters
+    
+    create(float val) {
+        self.fMeters = val
+    }
+    
+    meta to(type t) {
+        if t == float {
+            return self.fMeters
+        } elseif t == string {
+            return string(self.fMeters) + " meters"
+        }
+        return null
+    }
+    
+    meta from(type t, var val) {
+        if t == float {
+            self.fMeters = val
+        } elseif t == string {
+            self.fMeters = float(val)
+        }
+    }
+}
+
+// 创建对象
+var dist = new Distance(100.5)
+
+// 转换为float
+var fDistance = float(dist)
+print("对象转float:", dist, "->", fDistance)
+
+// 转换为string
+var sDistance = string(dist)
+print("对象转string:", dist, "->", sDistance)
+
+// ---------- 隐式类型转换规则 ----------
+
+// 数值运算中的自动类型提升
+var iIntNum = 10
+var fFloatNum = 3.14
+var fResult = iIntNum + fFloatNum
+print("数值提升:", iIntNum, "+", fFloatNum, "->", fResult, "(类型:", type(fResult), ")")

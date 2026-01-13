@@ -1,0 +1,207 @@
+// exception_handling.xl
+// 演示异常处理的基本语法和使用
+
+// 1. 基本 try-catch 语句
+print("1. 基本 try-catch 语句")
+
+try {
+    print("尝试执行可能出错的代码")
+    var iResult = 10 / 0  // 除以零，会抛出异常
+    print("结果:", iResult)  // 这行不会执行
+} catch e {
+    print("捕获到异常:", e)
+    print("异常类型:", type(e))
+}
+print("")
+
+// 2. try-catch-finally 语句
+print("2. try-catch-finally 语句")
+
+try {
+    print("尝试打开文件")
+    // 这里模拟文件操作失败
+    throw Exception("无法打开文件")
+} catch e {
+    print("捕获到异常:", e)
+} finally {
+    print("finally 块总是执行，用于清理资源")
+}
+print("")
+
+// 3. 抛出自定义异常
+print("3. 抛出自定义异常")
+
+try {
+    var iAge = -5
+    if iAge < 0 {
+        throw Exception("年龄不能为负数")
+    }
+    print("年龄:", iAge)
+} catch e {
+    print("捕获到自定义异常:", e)
+}
+print("")
+
+// 4. 不同类型异常的处理
+print("4. 不同类型异常的处理")
+
+try {
+    var arrNumbers = [1, 2, 3]
+    print("访问数组元素:", arrNumbers[5])  // 访问超出范围的索引
+} catch e {
+    if type(e) is "IndexError" {
+        print("数组索引错误:", e)
+    } else if type(e) is "ZeroDivisionError" {
+        print("除以零错误:", e)
+    } else {
+        print("其他类型异常:", e)
+    }
+}
+print("")
+
+// 5. 使用 finally 确保资源释放
+print("5. 使用 finally 确保资源释放")
+
+func processFile() {
+    var bFileOpened = false
+    
+    try {
+        print("打开文件")
+        bFileOpened = true
+        // 模拟文件处理过程中出错
+        throw Exception("文件读取错误")
+        print("处理文件内容")  // 这行不会执行
+    } catch e {
+        print("处理文件时出错:", e)
+    } finally {
+        if bFileOpened {
+            print("关闭文件，释放资源")
+            bFileOpened = false
+        }
+    }
+    
+    print("函数执行完毕")
+}
+
+processFile()
+print("")
+
+// 6. 重新抛出异常
+print("6. 重新抛出异常")
+
+try {
+    try {
+        print("内层 try 块")
+        throw Exception("原始异常")
+    } catch e {
+        print("内层 catch 捕获异常:", e)
+        print("记录异常信息")
+        throw e  // 重新抛出异常
+    }
+} catch e {
+    print("外层 catch 捕获重新抛出的异常:", e)
+}
+print("")
+
+// 7. 自定义异常类型
+print("7. 自定义异常类型")
+
+class ValidationError extends Exception {
+    init(message, fieldName) {
+        super.init(message)
+        this.fieldName = fieldName
+    }
+    
+    toString() {
+        return "ValidationError: " + this.message + " (字段: " + this.fieldName + ")"
+    }
+}
+
+try {
+    var sEmail = "invalid-email"
+    if !contains(sEmail, "@") {
+        throw ValidationError("无效的电子邮件格式", "email")
+    }
+    print("电子邮件有效:", sEmail)
+} catch e {
+    print("捕获到验证异常:", e)
+    if e is ValidationError {
+        print("验证失败的字段:", e.fieldName)
+    }
+}
+print("")
+
+// 8. 异常处理在函数中的应用
+print("8. 异常处理在函数中的应用")
+
+func divide(a, b) {
+    if b == 0 {
+        throw Exception("除数不能为零")
+    }
+    return a / b
+}
+
+try {
+    var iResult1 = divide(10, 2)
+    print("10 / 2 =", iResult1)
+    
+    var iResult2 = divide(10, 0)
+    print("10 / 0 =", iResult2)  // 这行不会执行
+} catch e {
+    print("调用 divide 函数时出错:", e)
+}
+print("")
+
+// 9. 多个 catch 块
+print("9. 多个 catch 块")
+
+class FileNotFoundError extends Exception {
+    init(filename) {
+        super.init("文件未找到: " + filename)
+        this.filename = filename
+    }
+}
+
+class PermissionError extends Exception {
+    init(filename) {
+        super.init("没有权限访问文件: " + filename)
+        this.filename = filename
+    }
+}
+
+try {
+    var sFilename = "nonexistent.txt"
+    // 模拟文件操作
+    var iRandom = rand(0, 2)
+    if iRandom == 0 {
+        throw FileNotFoundError(sFilename)
+    } else if iRandom == 1 {
+        throw PermissionError(sFilename)
+    } else {
+        throw Exception("未知错误")
+    }
+} catch FileNotFoundError e {
+    print("文件未找到错误:", e)
+} catch PermissionError e {
+    print("权限错误:", e)
+} catch e {
+    print("其他错误:", e)
+}
+print("")
+
+// 10. 使用 try 表达式
+print("10. 使用 try 表达式")
+
+var iResult = try {
+    10 / 2
+} catch e {
+    0  // 异常时返回默认值
+}
+print("try 表达式结果:", iResult)
+
+var iResult2 = try {
+    10 / 0
+} catch e {
+    -1  // 异常时返回默认值
+}
+print("try 表达式结果 (异常情况):", iResult2)

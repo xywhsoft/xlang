@@ -1,0 +1,106 @@
+// while_loops.xl
+// 演示各种 while 循环语法
+
+// 1. 基本 while 循环
+print("1. 基本 while 循环")
+var i = 0
+while i < 5 {
+    print("i =", i)
+    i++
+}
+print("")
+
+// 2. while 循环中使用 -- 操作符
+print("2. while 循环中使用 -- 操作符")
+var iCount = 5
+while iCount > 0 {
+    print("iCount =", iCount)
+    iCount--
+}
+print("")
+
+// 3. while 循环使用浮点数
+print("3. while 循环使用浮点数")
+var fValue = 0.0
+while fValue < 1.0 {
+    print("fValue =", fValue)
+    fValue += 0.2
+}
+print("")
+
+// 4. while 循环使用字符串
+print("4. while 循环使用字符串")
+var sText = "xlang"
+var iIndex = 0
+while iIndex < len(sText) {
+    print("字符:", sText[iIndex])
+    iIndex++
+}
+print("")
+
+// 5. while 循环使用数组
+print("5. while 循环使用数组")
+var arrNumbers = [10, 20, 30, 40, 50]
+var iArrayIndex = 0
+while iArrayIndex < len(arrNumbers) {
+    print("数组元素:", arrNumbers[iArrayIndex])
+    iArrayIndex++
+}
+print("")
+
+// 6. while 循环中使用 break 语句
+print("6. while 循环中使用 break 语句")
+var iBreak = 0
+while true {
+    print("iBreak =", iBreak)
+    iBreak++
+    if iBreak >= 3 {
+        break
+    }
+}
+print("")
+
+// 7. while 循环中使用 continue 语句
+print("7. while 循环中使用 continue 语句")
+var iContinue = 0
+while iContinue < 5 {
+    iContinue++
+    if iContinue == 3 {
+        continue
+    }
+    print("iContinue =", iContinue)
+}
+print("")
+
+// 8. 嵌套 while 循环
+print("8. 嵌套 while 循环")
+var iOuter = 1
+while iOuter <= 2 {
+    var iInner = 1
+    while iInner <= 3 {
+        print("外层:", iOuter, ", 内层:", iInner)
+        iInner++
+    }
+    iOuter++
+}
+print("")
+
+// 9. while 循环修改列表
+print("9. while 循环修改列表")
+var lstItems = list(1, 2, 3, 4, 5)
+while len(lstItems) > 0 {
+    print("列表长度:", len(lstItems), ", 第一个元素:", lstItems[0])
+    pop(lstItems, 0)
+}
+print("列表为空")
+
+// 10. while 循环计算阶乘
+print("\n10. while 循环计算阶乘")
+var iFactorial = 5
+var iResult = 1
+var iTemp = iFactorial
+while iTemp > 0 {
+    iResult *= iTemp
+    iTemp--
+}
+print(iFactorial, "的阶乘是:", iResult)
