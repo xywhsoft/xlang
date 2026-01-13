@@ -165,6 +165,14 @@ static inline i64 xlAstGetInt( xvalue xNode, str pszKey )
 }
 
 
+// 获取布尔字段
+static inline bool xlAstGetBool( xvalue xNode, str pszKey )
+{
+	xvalue xVal = xvoTableGetValue(xNode, pszKey, 0);
+	return xvoGetBool(xVal);
+}
+
+
 // 获取子节点字段
 static inline xvalue xlAstGetNode( xvalue xNode, str pszKey )
 {

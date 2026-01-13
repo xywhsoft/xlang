@@ -325,15 +325,15 @@ static xvalue xlParsePrimaryExpr( XL_Parser *pParser )
 		}
 
 		// 方括号字面量 [...] - 可能是数组或列表
-		// [] = 空列表, [val, ...] = 数组, [key:val, ...] = 列表
+		// [] = 空数组, [val, ...] = 数组, [key:val, ...] = 列表
 		case XL_TK_LBRACKET: {
 			xlParserAdvance(pParser);
 			xvalue xElements = xlAstCreateArray();
 
-			// 空方括号 = 空列表
+			// 空方括号 = 空数组
 			if ( xlParserCheck(pParser, XL_TK_RBRACKET) ) {
 				xlParserAdvance(pParser);
-				return xlAstCreateListLit(xElements, iLine, iCol);
+				return xlAstCreateArrayLit(xElements, iLine, iCol);
 			}
 
 			// 解析第一个元素，判断是数组还是列表
