@@ -1,0 +1,220 @@
+
+
+
+接口与抽象类（设计决策）：
+	基于 xlang 的动态覆盖模型，不提供传统的 interface/abstract 关键字。
+	采用鸭子类型和基类模板方式实现类似功能。
+	
+	设计理念：
+		- 无需过多前置设计，保持最大灵活性
+		- 任何设计缺陷都可通过继承进行补丁或重构
+		- 约定优于强制，信任开发者的判断
+	
+	接口替代方案（鸭子类型）：
+		不使用 interface 关键字，而是约定“有某方法即可使用”：
+		
+		// 任何有 compareTo 方法的对象都可用于比较
+		function sortItems(array items)
+			for i = 0 to items.length - 2
+				for j = i + 1 to items.length - 1
+					if items[i].compareTo(items[j]) > 0 then
+						(items[i], items[j]) = (items[j], items[i])
+					end
+				end
+			end
+		end
+		
+		// 定义可比较的类
+		class Score
+			int iValue
+			
+			function compareTo(other) as int
+				return self.iValue - other.iValue
+			end
+		end
+		
+		// 使用
+		array scores = [new Score(80), new Score(95), new Score(70)]
+		sortItems(scores)	// 正常工作，因为 Score 有 compareTo 方法
+	
+	抽象类替代方案（基类模板）：
+		使用“抛异常占位”代替 abstract 关键字：
+		
+		class Shape
+			// "抽象方法"：基类提供占位，子类必须覆盖
+			function area() as float
+				throw(Error.NotImplemented, "子类必须实现 area()")
+			end
+			
+			// 普通方法：可直接使用或覆盖
+			function describe()
+				print(`面积: {$self.area()}`)
+			end
+		end
+		
+		class Circle extends Shape
+			float fRadius
+			
+			// 覆盖实现
+			function area() as float
+				return 3.14159 * self.fRadius ** 2
+			end
+		end
+		
+		class Rectangle extends Shape
+			float fWidth
+			float fHeight
+			
+			function area() as float
+				return self.fWidth * self.fHeight
+			end
+		end
+		
+		// 使用
+		Circle c = new Circle()
+		c.fRadius = 5.0
+		c.describe()		// 输出: 面积: 78.53975
+		
+		// Shape s = new Shape()
+		// s.area()			// 运行时抛出 NotImplemented 错误
+	
+	不采用的关键字：
+		- interface		不需要，用鸭子类型替代
+		- implements	不需要，有方法即符合接口
+		- abstract		不需要，用抛异常占位替代
+		- virtual		不需要，所有方法默认可覆盖
+		- override		不需要，同名同签名自动覆盖
+		- final			不需要，保持最大灵活性
+	
+	类型检查方式：
+		- 编译期：仅检查语法正确性
+		- 运行期：方法不存在时抛出错误
+		- 开发者可通过单元测试确保接口完整性
+
+
+
+异步编程（构思中）：
+	支持 async/await 和协程(yield)两种异步模式。
+	
+	async/await 语法：
+		// 定义异步函数
+		async function fetchData(url)
+			var response = await http.get(url)
+			var data = await response.json()
+			return data
+		end
+		
+		// 带返回类型的异步函数
+		async function fetchText(url) as string
+			var response = await http.get(url)
+			return response.text()
+		end
+		
+		// 调用异步函数
+		async function main()
+			var data = await fetchData("http://api.com")
+			print(data)
+		end
+	
+	并发执行：
+		// 等待所有任务完成
+		var results = await parallel(
+			fetchData("url1"),
+			fetchData("url2"),
+			fetchData("url3")
+		)
+		
+		// 等待第一个完成的任务
+		var first = await race(
+			fetchData("url1"),
+			fetchData("url2")
+		)
+	
+	协程（生成器）：
+		// 使用 yield 创建生成器函数
+		function range(n)
+			for i in 0 to n - 1
+				yield i
+			end
+		end
+		
+		// 使用生成器
+		for v in range(10)
+			print(v)
+		end
+	
+	手动控制协程：
+		// 创建协程
+		var co = coroutine(function()
+			print("step 1")
+			yield "result1"
+			print("step 2")
+			yield "result2"
+			return "done"
+		end)
+		
+		// 恢复执行
+		var r1 = resume(co)		// "result1"
+		var r2 = resume(co)		// "result2"
+		var r3 = resume(co)		// "done"
+		
+		// 检查协程状态
+		if co.status == "dead"
+			print("协程已结束")
+		end
+	
+	Awaitable 类型：
+		// 所有 async 函数返回 Awaitable 对象
+		var task = fetchData("url")		// 不加 await，返回 Awaitable
+		// ... 其他代码 ...
+		var data = await task				// 稍后等待结果
+	
+	异常处理：
+		async function riskyTask()
+			try
+				var data = await fetchData("url")
+				return data
+			catch e
+				print("Async error: " + e.message)
+				return null
+			end
+		end
+
+
+
+模块系统（构思中）：
+	文件包含（文本替换，用于头文件）：
+		include "header.xlh"
+		将指定文件的内容直接插入当前位置，类似 C 语言的 #include
+	
+	模块导入：
+		import math					// 导入整个模块，使用 math.sin() 访问
+		import math.sin				// 导入单个成员，可直接使用 sin()
+		import math.sin, math.cos	// 导入多个成员
+		import math as m			// 别名导入，使用 m.sin() 访问
+	
+	模块定义：
+		每个 .xl 文件自动成为一个模块
+		模块名称默认为文件名（不含扩展名）
+		模块内所有定义默认为私有，需要显式导出
+	
+	导出语法：
+		export function foo()
+			// 导出函数
+		end
+		
+		export class Bar
+			// 导出类
+		end
+		
+		export const PI = 3.14159	// 导出常量
+		export var config = {}		// 导出变量
+	
+	模块路径：
+		- 相对路径：import "./utils"
+		- 绝对路径：import "/lib/math"
+		- 标准库：import math（从标准库目录查找）
+	
+	模块初始化：
+		模块可以包含顶层代码，在首次导入时执行
+		模块只会被初始化一次，后续导入使用缓存
