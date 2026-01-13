@@ -1,132 +1,122 @@
-// ============================================================
-// xlang 示例：逻辑运算符
-// 演示各种逻辑运算符的使用
-// ============================================================
+// logical_operators.xl
+// 演示逻辑运算符
 
-var bTrue = true
-var bFalse = false
-var iA = 10
-var iB = 20
-var sC = "hello"
+println("=== 逻辑运算符测试 ===")
 
-print("逻辑运算符示例:")
-print("bTrue =", bTrue, "bFalse =", bFalse)
-print("iA =", iA, "iB =", iB, "sC =", sC)
+// 1. 基本逻辑运算
+println("")
+println("1. 基本逻辑运算")
+var t = true
+var f = false
+println("true and true: " + (t and t))
+println("true and false: " + (t and f))
+println("false and true: " + (f and t))
+println("false and false: " + (f and f))
 
-// ---------- 逻辑与运算符 (and) ----------
+// 2. 逻辑或运算
+println("")
+println("2. 逻辑或运算")
+println("true or true: " + (t or t))
+println("true or false: " + (t or f))
+println("false or true: " + (f or t))
+println("false or false: " + (f or f))
 
-print("\n逻辑与运算符 (and):")
-print("bTrue and bTrue =", bTrue and bTrue)
-print("bTrue and bFalse =", bTrue and bFalse)
-print("bFalse and bTrue =", bFalse and bTrue)
-print("bFalse and bFalse =", bFalse and bFalse)
+// 3. 逻辑非运算
+println("")
+println("3. 逻辑非运算")
+println("not true: " + (not t))
+println("not false: " + (not f))
+println("!true: " + (!t))
+println("!false: " + (!f))
 
-// 逻辑与的短路求值
-var iCounter = 0
-print("\n逻辑与的短路求值:")
-var bResult1 = bFalse and (iCounter += 1)  // 第二个表达式不会执行
-print("bFalse and (iCounter += 1) =", bResult1, "iCounter =", iCounter)
+// 4. 复合逻辑表达式
+println("")
+println("4. 复合逻辑表达式")
+var a = true
+var b = false
+var c = true
+println("a and b or c: " + (a and b or c))
+println("(a and b) or c: " + ((a and b) or c))
+println("a and (b or c): " + (a and (b or c)))
+println("not a or b: " + (not a or b))
+println("not (a or b): " + (not (a or b)))
 
-var bResult2 = bTrue and (iCounter += 1)   // 第二个表达式会执行
-print("bTrue and (iCounter += 1) =", bResult2, "iCounter =", iCounter)
+// 5. 与数值比较组合
+println("")
+println("5. 与数值比较组合")
+var x = 10
+var y = 20
+var z = 15
+println("(x < y) and (y > z): " + ((x < y) and (y > z)))
+println("(x > y) or (z < y): " + ((x > y) or (z < y)))
+println("not (x > y): " + (not (x > y)))
 
-// ---------- 逻辑或运算符 (or) ----------
+// 6. 条件判断中使用
+println("")
+println("6. 条件判断中使用")
+var age = 25
+var hasLicense = true
+if age >= 18 and hasLicense
+	println("可以开车")
+else
+	println("不能开车")
+end
 
-print("\n逻辑或运算符 (or):")
-print("bTrue or bTrue =", bTrue or bTrue)
-print("bTrue or bFalse =", bTrue or bFalse)
-print("bFalse or bTrue =", bFalse or bTrue)
-print("bFalse or bFalse =", bFalse or bFalse)
+var isWeekend = false
+var isHoliday = true
+if isWeekend or isHoliday
+	println("今天可以休息")
+else
+	println("今天要工作")
+end
 
-// 逻辑或的短路求值
-iCounter = 0
-print("\n逻辑或的短路求值:")
-var bResult3 = bTrue or (iCounter += 1)   // 第二个表达式不会执行
-print("bTrue or (iCounter += 1) =", bResult3, "iCounter =", iCounter)
+// 7. 多重条件
+println("")
+println("7. 多重条件")
+var score = 85
+var attendance = 90
+if (score >= 60) and (attendance >= 80)
+	println("课程通过")
+else
+	println("课程未通过")
+end
 
-var bResult4 = bFalse or (iCounter += 1)  // 第二个表达式会执行
-print("bFalse or (iCounter += 1) =", bResult4, "iCounter =", iCounter)
+// 8. 短路求值验证
+println("")
+println("8. 短路求值")
+var val = 0
+// and 短路: 第一个为 false 时不会计算第二个
+if false and (val > 0)
+	println("不会执行")
+end
+println("and 短路测试通过")
 
-// ---------- 逻辑非运算符 (not) ----------
+// or 短路: 第一个为 true 时不会计算第二个
+if true or (val > 0)
+	println("or 短路测试通过")
+end
 
-print("\n逻辑非运算符 (not):")
-print("not bTrue =", not bTrue)
-print("not bFalse =", not bFalse)
-print("not (iA > iB) =", not (iA > iB))
-print("not (sC == \"hello\") =", not (sC == "hello"))
+// 9. 逻辑运算与循环
+println("")
+println("9. 逻辑运算与循环")
+var i = 0
+while (i < 10) and (i != 5)
+	print(i + " ")
+	i++
+end
+println("")
 
-// ---------- 逻辑运算符的优先级 ----------
+// 10. 嵌套逻辑条件
+println("")
+println("10. 嵌套逻辑条件")
+var temp = 25
+var humidity = 60
+var isRaining = false
+if ((temp >= 20) and (temp <= 30)) and ((humidity >= 40) and (humidity <= 70)) and (not isRaining)
+	println("天气适合户外活动")
+else
+	println("天气不适合户外活动")
+end
 
-print("\n逻辑运算符的优先级:")
-var bResult5 = bTrue and bFalse or bTrue  // (bTrue and bFalse) or bTrue = false or true = true
-var bResult6 = bTrue and (bFalse or bTrue)  // bTrue and (false or true) = bTrue and true = true
-var bResult7 = not bFalse and bTrue  // (not bFalse) and bTrue = true and true = true
-var bResult8 = not (bFalse and bTrue)  // not (false and true) = not false = true
-
-print("bTrue and bFalse or bTrue =", bResult5)
-print("bTrue and (bFalse or bTrue) =", bResult6)
-print("not bFalse and bTrue =", bResult7)
-print("not (bFalse and bTrue) =", bResult8)
-
-// ---------- 组合使用逻辑运算符 ----------
-
-print("\n组合使用逻辑运算符:")
-
-// 检查变量是否在某个范围内
-var iNum = 15
-var bInRange = (iNum > 10) and (iNum < 20)
-print("iNum =", iNum, "是否在 10 到 20 之间:", bInRange)
-
-// 检查字符串是否为空或 null
-var sEmpty = ""
-var sNull = null
-var bIsValid1 = (sEmpty != null) and (len(sEmpty) > 0)
-var bIsValid2 = (sNull != null) and (len(sNull) > 0)
-var bIsValid3 = (sC != null) and (len(sC) > 0)
-print("sEmpty 是否有效:", bIsValid1)
-print("sNull 是否有效:", bIsValid2)
-print("sC 是否有效:", bIsValid3)
-
-// 复杂的逻辑表达式
-var bComplex = (iA > 5) and (iB < 30) or (sC == "world")
-print("复杂逻辑表达式:", bComplex)
-
-// 使用括号明确优先级
-var bComplexWithParens = ((iA > 5) and (iB < 30)) or (sC == "world")
-print("使用括号的复杂逻辑表达式:", bComplexWithParens)
-
-// ---------- 在条件语句中使用逻辑运算符 ----------
-
-print("\n在条件语句中使用逻辑运算符:")
-
-if (iA > 5) and (iA < 15) {
-    print("iA 在 5 到 15 之间")
-}
-
-if (iB < 15) or (iB > 15) {
-    print("iB 不等于 15")
-}
-
-if not (sC == "world") {
-    print("sC 不等于 world")
-}
-
-// ---------- 与比较运算符结合使用 ----------
-
-print("\n与比较运算符结合使用:")
-
-var iX = 5
-var iY = 15
-var iZ = 25
-
-// 检查 x 是否在 y 和 z 之间
-if (iX < iY) and (iY < iZ) {
-    print("iY 在 iX 和 iZ 之间")
-}
-
-// 检查 x 或 z 是否等于 y
-if (iX == iY) or (iZ == iY) {
-    print("iX 或 iZ 等于 iY")
-} else {
-    print("iX 和 iZ 都不等于 iY")
-}
+println("")
+println("=== 逻辑运算符测试完成 ===")

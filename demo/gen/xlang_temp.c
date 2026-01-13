@@ -9,7 +9,34 @@
 #define xvoIsTrue(x) (xvoGetBool(x) || xvoGetInt(x) || xvoGetFloat(x))
 
 static xvalue xl_add(xvalue a, xvalue b) {
-	if ( (xvoType(a) == XVO_DT_INT) && (xvoType(b) == XVO_DT_INT) )
+	int ta = xvoType(a), tb = xvoType(b);
+	// 字符串拼接
+	if ( (ta == XVO_DT_TEXT) || (tb == XVO_DT_TEXT) ) {
+		char sa[64] = {0}, sb[64] = {0};
+		str pa = (ta == XVO_DT_TEXT) ? xvoGetText(a) : (str)sa;
+		str pb = (tb == XVO_DT_TEXT) ? xvoGetText(b) : (str)sb;
+		if ( ta == XVO_DT_INT ) snprintf(sa, 64, "%lld", (long long)xvoGetInt(a));
+		else if ( ta == XVO_DT_FLOAT ) snprintf(sa, 64, "%g", xvoGetFloat(a));
+		else if ( ta == XVO_DT_BOOL ) snprintf(sa, 64, "%s", xvoGetBool(a) ? "true" : "false");
+		if ( tb == XVO_DT_INT ) snprintf(sb, 64, "%lld", (long long)xvoGetInt(b));
+		else if ( tb == XVO_DT_FLOAT ) snprintf(sb, 64, "%g", xvoGetFloat(b));
+		else if ( tb == XVO_DT_BOOL ) snprintf(sb, 64, "%s", xvoGetBool(b) ? "true" : "false");
+		u32 la = (u32)strlen((char*)pa), lb = (u32)strlen((char*)pb);
+		str result = (str)malloc(la + lb + 1);
+		memcpy(result, pa, la);
+		memcpy(result + la, pb, lb + 1);
+		return xvoCreateText(result, la + lb, TRUE);
+	}
+	// 数组合并
+	if ( (ta == XVO_DT_ARRAY) && (tb == XVO_DT_ARRAY) ) {
+		xvalue arr = xvoCreateArray();
+		u32 la = xvoArrayItemCount(a), lb = xvoArrayItemCount(b);
+		for ( u32 i = 0; i < la; i++ ) xvoArrayAppendValue(arr, xvoArrayGetValue(a, i), FALSE);
+		for ( u32 i = 0; i < lb; i++ ) xvoArrayAppendValue(arr, xvoArrayGetValue(b, i), FALSE);
+		return arr;
+	}
+	// 数字加法
+	if ( (ta == XVO_DT_INT) && (tb == XVO_DT_INT) )
 		return xvoCreateInt(xvoGetInt(a) + xvoGetInt(b));
 	return xvoCreateFloat(xvoGetFloat(a) + xvoGetFloat(b));
 }
@@ -21,7 +48,32 @@ static xvalue xl_sub(xvalue a, xvalue b) {
 }
 
 static xvalue xl_mul(xvalue a, xvalue b) {
-	if ( (xvoType(a) == XVO_DT_INT) && (xvoType(b) == XVO_DT_INT) )
+	int ta = xvoType(a), tb = xvoType(b);
+	// 字符串重复: "ab" * 3 = "ababab"
+	if ( (ta == XVO_DT_TEXT) && (tb == XVO_DT_INT) ) {
+		str s = xvoGetText(a);
+		i64 n = xvoGetInt(b);
+		if ( n <= 0 ) return xvoCreateText((str)"", 0, FALSE);
+		u32 slen = xvoGetSize(a);
+		u32 newlen = slen * (u32)n;
+		str result = (str)malloc(newlen + 1);
+		for ( i64 i = 0; i < n; i++ ) memcpy(result + i * slen, s, slen);
+		result[newlen] = 0;
+		return xvoCreateText(result, newlen, TRUE);
+	}
+	// 数组重复: [1,2] * 3 = [1,2,1,2,1,2]
+	if ( (ta == XVO_DT_ARRAY) && (tb == XVO_DT_INT) ) {
+		i64 n = xvoGetInt(b);
+		xvalue arr = xvoCreateArray();
+		if ( n <= 0 ) return arr;
+		u32 len = xvoArrayItemCount(a);
+		for ( i64 j = 0; j < n; j++ ) {
+			for ( u32 i = 0; i < len; i++ ) xvoArrayAppendValue(arr, xvoArrayGetValue(a, i), FALSE);
+		}
+		return arr;
+	}
+	// 数字乘法
+	if ( (ta == XVO_DT_INT) && (tb == XVO_DT_INT) )
 		return xvoCreateInt(xvoGetInt(a) * xvoGetInt(b));
 	return xvoCreateFloat(xvoGetFloat(a) * xvoGetFloat(b));
 }
@@ -45,6 +97,32 @@ static xvalue xl_pow(xvalue a, xvalue b) {
 static xvalue xl_neg(xvalue a) {
 	if ( xvoType(a) == XVO_DT_INT ) return xvoCreateInt(-xvoGetInt(a));
 	return xvoCreateFloat(-xvoGetFloat(a));
+}
+
+static xvalue xl_preinc(xvalue *p) {
+	if ( xvoType(*p) == XVO_DT_INT ) *p = xvoCreateInt(xvoGetInt(*p) + 1);
+	else *p = xvoCreateFloat(xvoGetFloat(*p) + 1.0);
+	return *p;
+}
+
+static xvalue xl_predec(xvalue *p) {
+	if ( xvoType(*p) == XVO_DT_INT ) *p = xvoCreateInt(xvoGetInt(*p) - 1);
+	else *p = xvoCreateFloat(xvoGetFloat(*p) - 1.0);
+	return *p;
+}
+
+static xvalue xl_postinc(xvalue *p) {
+	xvalue old = *p;
+	if ( xvoType(*p) == XVO_DT_INT ) *p = xvoCreateInt(xvoGetInt(*p) + 1);
+	else *p = xvoCreateFloat(xvoGetFloat(*p) + 1.0);
+	return old;
+}
+
+static xvalue xl_postdec(xvalue *p) {
+	xvalue old = *p;
+	if ( xvoType(*p) == XVO_DT_INT ) *p = xvoCreateInt(xvoGetInt(*p) - 1);
+	else *p = xvoCreateFloat(xvoGetFloat(*p) - 1.0);
+	return old;
 }
 
 static xvalue xl_not(xvalue a) { return xvoCreateBool(!xvoIsTrue(a)); }
@@ -85,6 +163,37 @@ static xvalue xl_slice(xvalue obj, xvalue start, xvalue end) {
 	return arr;
 }
 static xvalue xl_member(xvalue obj, const char* name) { return xvoTableGetValue(obj, (str)name, 0); }
+
+static xvalue xl_in(xvalue val, xvalue container) {
+	int dt = xvoType(container);
+	if ( dt == XVO_DT_TEXT ) {
+		str s = xvoGetText(container);
+		str sub = xvoGetText(val);
+		return xvoCreateBool(strstr((char*)s, (char*)sub) != NULL);
+	}
+	if ( dt == XVO_DT_ARRAY ) {
+		u32 len = xvoArrayItemCount(container);
+		for ( u32 i = 0; i < len; i++ ) {
+			if ( xvoIsTrue(xl_eq(val, xvoArrayGetValue(container, i))) ) return xvoCreateBool(TRUE);
+		}
+		return xvoCreateBool(FALSE);
+	}
+	if ( dt == XVO_DT_TABLE ) {
+		str key = xvoGetText(val);
+		xvalue v = xvoTableGetValue(container, key, 0);
+		return xvoCreateBool((v != NULL) && (xvoType(v) != XVO_DT_NULL));
+	}
+	return xvoCreateBool(FALSE);
+}
+static xvalue xl_is(xvalue val, xvalue typeVal) {
+	return xvoCreateBool(xvoType(val) == xvoGetInt(typeVal));
+}
+static xvalue xl_bitand(xvalue a, xvalue b) { return xvoCreateInt(xvoGetInt(a) & xvoGetInt(b)); }
+static xvalue xl_bitor(xvalue a, xvalue b) { return xvoCreateInt(xvoGetInt(a) | xvoGetInt(b)); }
+static xvalue xl_bitxor(xvalue a, xvalue b) { return xvoCreateInt(xvoGetInt(a) ^ xvoGetInt(b)); }
+static xvalue xl_shl(xvalue a, xvalue b) { return xvoCreateInt(xvoGetInt(a) << xvoGetInt(b)); }
+static xvalue xl_shr(xvalue a, xvalue b) { return xvoCreateInt(xvoGetInt(a) >> xvoGetInt(b)); }
+static xvalue xl_bitnot(xvalue a) { return xvoCreateInt(~xvoGetInt(a)); }
 
 static xvalue xl_array(int count, ...) {
 	xvalue arr = xvoCreateArray();
@@ -214,16 +323,6 @@ static xvalue xl_call_var(xvalue func, xvalue args) {
 }
 
 // 全局变量
-static xvalue xlv_arr = NULL;
-static xvalue xlv_slice1 = NULL;
-static xvalue xlv_slice2 = NULL;
-static xvalue xlv_slice3 = NULL;
-static xvalue xlv_s = NULL;
-static xvalue xlv_nums = NULL;
-static xvalue xlv_one = NULL;
-static xvalue xlv_all = NULL;
-static xvalue xlv_filename = NULL;
-static xvalue xlv_items = NULL;
 
 // 函数声明
 
@@ -234,63 +333,13 @@ int main(int argc, char* argv[])
 
 	// 初始化函数变量
 
-	xl_print(xvoCreateText((str)"=== 数组负索引 ===", 0, FALSE));
-	xlv_arr = xl_array(5, xvoCreateInt(10), xvoCreateInt(20), xvoCreateInt(30), xvoCreateInt(40), xvoCreateInt(50));
-	xl_print(xvoCreateText((str)"arr = [10, 20, 30, 40, 50]", 0, FALSE));
-	xl_print(xvoCreateText((str)"arr[0] (第一个) =", 0, FALSE));
-	xl_print(xl_index(xlv_arr, xvoCreateInt(0)));
-	xl_print(xvoCreateText((str)"arr[-1] (最后一个) =", 0, FALSE));
-	xl_print(xl_index(xlv_arr, xl_neg(xvoCreateInt(1))));
-	xl_print(xvoCreateText((str)"arr[-2] (倒数第二个) =", 0, FALSE));
-	xl_print(xl_index(xlv_arr, xl_neg(xvoCreateInt(2))));
-	xl_print(xvoCreateText((str)"arr[-3] (倒数第三个) =", 0, FALSE));
-	xl_print(xl_index(xlv_arr, xl_neg(xvoCreateInt(3))));
-	xl_print(xvoCreateText((str)"=== 数组切片 ===", 0, FALSE));
-	xl_print(xvoCreateText((str)"arr[0 to 3] (前三个) =", 0, FALSE));
-	xlv_slice1 = xl_slice(xlv_arr, xvoCreateInt(0), xvoCreateInt(3));
-	xl_print(xl_index(xlv_slice1, xvoCreateInt(0)));
-	xl_print(xl_index(xlv_slice1, xvoCreateInt(1)));
-	xl_print(xl_index(xlv_slice1, xvoCreateInt(2)));
-	xl_print(xvoCreateText((str)"arr[1 to 4] (中间三个) =", 0, FALSE));
-	xlv_slice2 = xl_slice(xlv_arr, xvoCreateInt(1), xvoCreateInt(4));
-	xl_print(xl_index(xlv_slice2, xvoCreateInt(0)));
-	xl_print(xl_index(xlv_slice2, xvoCreateInt(1)));
-	xl_print(xl_index(xlv_slice2, xvoCreateInt(2)));
-	xl_print(xvoCreateText((str)"arr[2 to 5] (后三个) =", 0, FALSE));
-	xlv_slice3 = xl_slice(xlv_arr, xvoCreateInt(2), xvoCreateInt(5));
-	xl_print(xl_index(xlv_slice3, xvoCreateInt(0)));
-	xl_print(xl_index(xlv_slice3, xvoCreateInt(1)));
-	xl_print(xl_index(xlv_slice3, xvoCreateInt(2)));
-	xl_print(xvoCreateText((str)"=== 字符串切片 ===", 0, FALSE));
-	xlv_s = xvoCreateText((str)"Hello World", 0, FALSE);
-	xl_print(xvoCreateText((str)"s = 'Hello World'", 0, FALSE));
-	xl_print(xvoCreateText((str)"s[0 to 5] =", 0, FALSE));
-	xl_print(xl_slice(xlv_s, xvoCreateInt(0), xvoCreateInt(5)));
-	xl_print(xvoCreateText((str)"s[6 to 11] =", 0, FALSE));
-	xl_print(xl_slice(xlv_s, xvoCreateInt(6), xvoCreateInt(11)));
-	xl_print(xvoCreateText((str)"=== 边界测试 ===", 0, FALSE));
-	xlv_nums = xl_array(10, xvoCreateInt(1), xvoCreateInt(2), xvoCreateInt(3), xvoCreateInt(4), xvoCreateInt(5), xvoCreateInt(6), xvoCreateInt(7), xvoCreateInt(8), xvoCreateInt(9), xvoCreateInt(10));
-	xl_print(xvoCreateText((str)"nums = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]", 0, FALSE));
-	xl_print(xvoCreateText((str)"nums[0 to 1] (只取第一个) =", 0, FALSE));
-	xlv_one = xl_slice(xlv_nums, xvoCreateInt(0), xvoCreateInt(1));
-	xl_print(xl_index(xlv_one, xvoCreateInt(0)));
-	xl_print(xvoCreateText((str)"nums[-1] (最后一个) =", 0, FALSE));
-	xl_print(xl_index(xlv_nums, xl_neg(xvoCreateInt(1))));
-	xl_print(xvoCreateText((str)"nums[0 to 10] (全部) 长度应为 10", 0, FALSE));
-	xlv_all = xl_slice(xlv_nums, xvoCreateInt(0), xvoCreateInt(10));
-	xl_print(xvoCreateText((str)"已获取全部元素", 0, FALSE));
-	xl_print(xvoCreateText((str)"=== 实际应用场景 ===", 0, FALSE));
-	xlv_filename = xvoCreateText((str)"document.txt", 0, FALSE);
-	xl_print(xvoCreateText((str)"filename = 'document.txt'", 0, FALSE));
-	xl_print(xvoCreateText((str)"后4个字符 (扩展名部分):", 0, FALSE));
-	xl_print(xl_slice(xlv_filename, xvoCreateInt(8), xvoCreateInt(12)));
-	xlv_items = xl_array(5, xvoCreateText((str)"first", 0, FALSE), xvoCreateText((str)"second", 0, FALSE), xvoCreateText((str)"third", 0, FALSE), xvoCreateText((str)"fourth", 0, FALSE), xvoCreateText((str)"last", 0, FALSE));
-	xl_print(xvoCreateText((str)"items 数组:", 0, FALSE));
-	xl_print(xvoCreateText((str)"第一个元素: items[0] =", 0, FALSE));
-	xl_print(xl_index(xlv_items, xvoCreateInt(0)));
-	xl_print(xvoCreateText((str)"最后一个元素: items[-1] =", 0, FALSE));
-	xl_print(xl_index(xlv_items, xl_neg(xvoCreateInt(1))));
-	xl_print(xvoCreateText((str)"=== 负索引和切片测试完成 ===", 0, FALSE));
+	xl_println(xvoCreateText((str)"测试 001: 基本输出", 0, FALSE));
+	xl_println(xvoCreateText((str)"Hello, World!", 0, FALSE));
+	xl_print(xvoCreateText((str)"Hello ", 0, FALSE));
+	xl_print(xvoCreateText((str)"xlang", 0, FALSE));
+	xl_println(xvoCreateText((str)"!", 0, FALSE));
+	xl_println(xvoCreateText((str)"你好，xlang！", 0, FALSE));
+	xl_println(xvoCreateText((str)"测试 001 通过", 0, FALSE));
 
 	xrtUnit();
 	return 0;

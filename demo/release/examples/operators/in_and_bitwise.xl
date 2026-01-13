@@ -1,0 +1,76 @@
+// 测试 in 运算符和位运算符
+
+// ============================================
+// 1. in 运算符 - 字符串
+// ============================================
+print("=== in 运算符 - 字符串 ===")
+
+var s = "Hello World"
+var r1 = "World" in s
+print("'World' in 'Hello World' =")
+print(r1)
+
+var r2 = "xyz" in s
+print("'xyz' in 'Hello World' =")
+print(r2)
+
+// ============================================
+// 2. in 运算符 - 数组
+// ============================================
+print("=== in 运算符 - 数组 ===")
+
+var arr = [1, 2, 3, 4, 5]
+var r3 = 3 in arr
+print("3 in [1,2,3,4,5] =")
+print(r3)
+
+var r4 = 10 in arr
+print("10 in [1,2,3,4,5] =")
+print(r4)
+
+// ============================================
+// 3. in 运算符 - 字典
+// ============================================
+print("=== in 运算符 - 字典 ===")
+
+var d = {name: "Tom", age: 25}
+var r5 = "name" in d
+print("'name' in {name:'Tom', age:25} =")
+print(r5)
+
+var r6 = "address" in d
+print("'address' in {name:'Tom', age:25} =")
+print(r6)
+
+// ============================================
+// 4. 位运算符
+// ============================================
+print("=== 位运算符 ===")
+
+var a = 0b1010
+var b = 0b1100
+
+print("a = 0b1010 (10)")
+print("b = 0b1100 (12)")
+
+var and_r = a & b
+print("a & b =")
+print(and_r)
+
+var or_r = a | b
+print("a | b =")
+print(or_r)
+
+var xor_r = a ^ b
+print("a ^ b =")
+print(xor_r)
+
+var shl_r = a << 2
+print("a << 2 =")
+print(shl_r)
+
+var shr_r = b >> 2
+print("b >> 2 =")
+print(shr_r)
+
+print("=== 测试完成 ===")

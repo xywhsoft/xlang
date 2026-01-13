@@ -1,153 +1,107 @@
-// ============================================================
-// xlang 示例：布尔类型
-// 演示布尔类型的声明、使用和基本操作
-// ============================================================
+// bool_types.xl
+// 演示布尔类型操作
 
-// ---------- 布尔字面量 ----------
+println("=== 布尔类型测试 ===")
 
-// 布尔值 true
-var bTrue = true
-print("布尔值 true:", bTrue)
+// 1. 布尔字面量
+println("")
+println("1. 布尔字面量")
+var t = true
+var f = false
+println("true = " + t)
+println("false = " + f)
 
-// 布尔值 false
-var bFalse = false
-print("布尔值 false:", bFalse)
+// 2. 布尔类型检查
+println("")
+println("2. 布尔类型检查")
+println("type(true) = " + type(t))
+println("type(false) = " + type(f))
 
-// ---------- 布尔运算 ----------
+// 3. 逻辑运算
+println("")
+println("3. 逻辑运算")
+println("true and true = " + (true and true))
+println("true and false = " + (true and false))
+println("true or false = " + (true or false))
+println("not true = " + (not true))
+println("not false = " + (not false))
 
-// 逻辑与 (and)
-var bAnd1 = true and true
-var bAnd2 = true and false
-var bAnd3 = false and true
-var bAnd4 = false and false
-print("\n逻辑与 (and):")
-print("true and true =", bAnd1)
-print("true and false =", bAnd2)
-print("false and true =", bAnd3)
-print("false and false =", bAnd4)
+// 4. 比较运算结果
+println("")
+println("4. 比较运算结果")
+var a = 10
+var b = 20
+println("10 < 20 = " + (a < b))
+println("10 > 20 = " + (a > b))
+println("10 == 10 = " + (a == a))
+println("10 != 20 = " + (a != b))
 
-// 逻辑或 (or)
-var bOr1 = true or true
-var bOr2 = true or false
-var bOr3 = false or true
-var bOr4 = false or false
-print("\n逻辑或 (or):")
-print("true or true =", bOr1)
-print("true or false =", bOr2)
-print("false or true =", bOr3)
-print("false or false =", bOr4)
+// 5. 布尔值在条件中使用
+println("")
+println("5. 布尔值在条件中使用")
+var flag = true
+if flag
+	println("flag 为真")
+end
+if not flag
+	println("不会打印")
+else
+	println("flag 不为假")
+end
 
-// 逻辑非 (not)
-var bNot1 = not true
-var bNot2 = not false
-print("\n逻辑非 (not):")
-print("not true =", bNot1)
-print("not false =", bNot2)
+// 6. 布尔表达式
+println("")
+println("6. 布尔表达式")
+var x = 5
+var y = 10
+var result = (x < y) and (y < 20)
+println("(5 < 10) and (10 < 20) = " + result)
+result = (x > y) or (y > 0)
+println("(5 > 10) or (10 > 0) = " + result)
 
-// ---------- 比较运算结果 ----------
+// 7. 复合条件
+println("")
+println("7. 复合条件")
+var age = 25
+var hasJob = true
+var hasLicense = true
+if (age >= 18) and hasJob and hasLicense
+	println("符合所有条件")
+end
 
-// 等于 (==)
-var bEq1 = 10 == 10
-var bEq2 = 10 == 20
-print("\n等于 (==):")
-print("10 == 10 =", bEq1)
-print("10 == 20 =", bEq2)
+// 8. 布尔值与循环
+println("")
+println("8. 布尔值与循环")
+var continue_loop = true
+var count = 0
+while continue_loop
+	count++
+	print(count + " ")
+	if count >= 5
+		continue_loop = false
+	end
+end
+println("")
 
-// 不等于 (!=)
-var bNe1 = 10 != 10
-var bNe2 = 10 != 20
-print("\n不等于 (!=):")
-print("10 != 10 =", bNe1)
-print("10 != 20 =", bNe2)
+// 9. 布尔值存储在数组中
+println("")
+println("9. 布尔值存储在数组中")
+var flags = [true, false, true, true, false]
+var trueCount = 0
+for flag in flags
+	if flag
+		trueCount++
+	end
+end
+println("true 的数量: " + trueCount)
 
-// 大于 (>) 和大于等于 (>=)
-var bGt = 20 > 10
-var bGe1 = 20 >= 20
-var bGe2 = 10 >= 20
-print("\n大于 (>) 和大于等于 (>=):")
-print("20 > 10 =", bGt)
-print("20 >= 20 =", bGe1)
-print("10 >= 20 =", bGe2)
+// 10. 布尔值比较
+println("")
+println("10. 布尔值比较")
+println("true == true: " + (true == true))
+println("false == false: " + (false == false))
+println("true == false: " + (true == false))
+println("true != false: " + (true != false))
 
-// 小于 (<) 和小于等于 (<=)
-var bLt = 10 < 20
-var bLe1 = 20 <= 20
-var bLe2 = 20 <= 10
-print("\n小于 (<) 和小于等于 (<=):")
-print("10 < 20 =", bLt)
-print("20 <= 20 =", bLe1)
-print("20 <= 10 =", bLe2)
-
-// ---------- 约等于 (~=) ----------
-
-var bApprox1 = 1.0 ~= 1.0
-var bApprox2 = 1.0 ~= 1.00001
-var bApprox3 = "hello" ~= "hallo"
-print("\n约等于 (~=):")
-print("1.0 ~= 1.0 =", bApprox1)
-print("1.0 ~= 1.00001 =", bApprox2)
-print("\"hello\" ~= \"hallo\" =", bApprox3)
-
-// ---------- 布尔类型转换 ----------
-
-// 从其他类型转换为布尔值
-var bFromInt1 = bool(0)
-var bFromInt2 = bool(1)
-var bFromInt3 = bool(-1)
-var bFromFloat1 = bool(0.0)
-var bFromFloat2 = bool(0.1)
-var bFromString1 = bool("")
-var bFromString2 = bool("non-empty")
-var bFromNull = bool(null)
-
-print("\n从其他类型转换为布尔值:")
-print("bool(0) =", bFromInt1)
-print("bool(1) =", bFromInt2)
-print("bool(-1) =", bFromInt3)
-print("bool(0.0) =", bFromFloat1)
-print("bool(0.1) =", bFromFloat2)
-print("bool(\"\") =", bFromString1)
-print("bool(\"non-empty\") =", bFromString2)
-print("bool(null) =", bFromNull)
-
-// 从布尔值转换为其他类型
-var iFromBool1 = int(true)
-var iFromBool2 = int(false)
-var fFromBool1 = float(true)
-var fFromBool2 = float(false)
-var sFromBool1 = string(true)
-var sFromBool2 = string(false)
-
-print("\n从布尔值转换为其他类型:")
-print("int(true) =", iFromBool1)
-print("int(false) =", iFromBool2)
-print("float(true) =", fFromBool1)
-print("float(false) =", fFromBool2)
-print("string(true) =", sFromBool1)
-print("string(false) =", sFromBool2)
-
-// ---------- 布尔值在条件语句中的使用 ----------
-
-var iNumber = 10
-print("\n布尔值在条件语句中的使用:")
-
-if iNumber > 5 {
-    print("iNumber 大于 5")
-}
-
-if not (iNumber > 20) {
-    print("iNumber 不大于 20")
-}
-
-// ---------- 短路求值 ----------
-
-var iCounter = 0
-
-// 逻辑与短路：第二个表达式不会执行
-var bShortAnd = false and (iCounter += 1)
-print("\n短路求值:")
-print("逻辑与短路结果:", bShortAnd, "计数器值:", iCounter)
-
-// 逻辑或短路：第二个表达式不会执行
-var bShortOr = true or (iCounter += 1)
-print("逻辑或短路结果:", bShortOr, "计数器值:", iCounter)
+println("")
+println("=== 布尔类型测试完成 ===")

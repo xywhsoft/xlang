@@ -1,123 +1,105 @@
-// ============================================================
-// xlang 示例：列表类型
-// 演示列表的声明、初始化和基本操作
-// ============================================================
+// list_types.xl
+// 演示列表类型操作
+// 注意: 列表是键值对结构，使用 [key: value] 语法
 
-// ---------- 列表的声明和初始化 ----------
+println("=== 列表类型测试 ===")
 
-// 使用列表字面量初始化
-var lstLiteral = [0:10, 1:20, 2:30]
-print("列表字面量:", lstLiteral)
+// 1. 使用数组模拟列表行为
+println("")
+println("1. 数组作为有序集合")
+var items = ["first", "second", "third"]
+println("items[0] = " + items[0])
+println("items[1] = " + items[1])
+println("items[2] = " + items[2])
+println("长度: " + len(items))
 
-// 使用 new 关键字创建列表
-var lstNew = new list()
-print("使用 new 创建列表:", lstNew)
+// 2. 数组遍历
+println("")
+println("2. 数组遍历")
+for v in items
+	println("值: " + v)
+end
 
-// 空列表
-var lstEmpty = []
-print("空列表:", lstEmpty)
+// 3. 数组索引访问
+println("")
+println("3. 数组索引访问")
+var nums = [10, 20, 30, 40, 50]
+println("正向索引:")
+println("nums[0] = " + nums[0])
+println("nums[2] = " + nums[2])
+println("负向索引:")
+println("nums[-1] = " + nums[-1])
+println("nums[-2] = " + nums[-2])
 
-// 创建带有非连续索引的列表
-var lstSparse = [0:100, 5:200, 10:300]
-print("非连续索引列表:", lstSparse)
+// 4. 混合值类型数组
+println("")
+println("4. 混合值类型数组")
+var mixed = [100, "text", true, 3.14]
+println("元素0: " + mixed[0] + " (类型: " + type(mixed[0]) + ")")
+println("元素1: " + mixed[1] + " (类型: " + type(mixed[1]) + ")")
+println("元素2: " + mixed[2] + " (类型: " + type(mixed[2]) + ")")
+println("元素3: " + mixed[3] + " (类型: " + type(mixed[3]) + ")")
 
-// ---------- 列表的基本操作 ----------
+// 5. 数组在条件中使用
+println("")
+println("5. 数组在条件中使用")
+var flags = [true, false, true, true, false]
+var trueCount = 0
+for v in flags
+	if v
+		trueCount++
+	end
+end
+println("true 的数量: " + trueCount)
 
-// 获取列表长度
-var iLength = len(lstLiteral)
-print("\n列表长度:", lstLiteral, "长度 =", iLength)
+// 6. 嵌套数组
+println("")
+println("6. 嵌套数组")
+var matrix = [
+	["a", "b"],
+	["c", "d"]
+]
+println("matrix[0][0] = " + matrix[0][0])
+println("matrix[0][1] = " + matrix[0][1])
+println("matrix[1][0] = " + matrix[1][0])
+println("matrix[1][1] = " + matrix[1][1])
 
-// 访问列表元素
-var iFirst = lstLiteral[0]
-var iSecond = lstLiteral[1]
-print("访问列表元素:")
-print("索引0:", iFirst)
-print("索引1:", iSecond)
+// 7. 数组切片
+println("")
+println("7. 数组切片")
+var data = [0, 1, 2, 3, 4, 5]
+var slice = data[1 to 4]
+println("data[1 to 4]:")
+for v in slice
+	print(v + " ")
+end
+println("")
 
-// 修改列表元素
-lstLiteral[1] = 200
-print("修改列表元素:", lstLiteral)
+// 8. 数组合并
+println("")
+println("8. 数组合并")
+var a = [1, 2]
+var b = [3, 4]
+var c = a + b
+println("[1,2] + [3,4]:")
+for v in c
+	print(v + " ")
+end
+println("")
 
-// 添加新的键值对
-lstLiteral[3] = 400
-print("添加新键值对 [3]:400:", lstLiteral)
+// 9. 数组类型检查
+println("")
+println("9. 数组类型检查")
+var arr = [1, 2, 3]
+println("type(arr) = " + type(arr))
+println("len(arr) = " + len(arr))
 
-// 删除指定键的元素
-delete lstLiteral[1]
-print("删除索引1的元素:", lstLiteral)
+// 10. 空数组
+println("")
+println("10. 空数组")
+var empty = []
+println("空数组长度: " + len(empty))
+println("空数组类型: " + type(empty))
 
-// 检查键是否存在
-var bHasKey = 2 in lstLiteral
-print("索引2是否存在:", bHasKey)
-
-// ---------- 列表的遍历 ----------
-
-print("\n列表遍历:")
-
-// 使用 for-in 循环遍历值
-for v in lstLiteral {
-    print("  ", v)
-}
-
-// 使用 for-in 循环遍历键和值
-for k, v in lstLiteral {
-    print("  ", k, ":", v)
-}
-
-// 使用 while 循环遍历非连续列表
-print("\n遍历非连续列表:")
-var lstKeys = keys(lstSparse)
-for k in lstKeys {
-    print("  ", k, ":", lstSparse[k])
-}
-
-// ---------- 列表的高级操作 ----------
-
-// 列表连接
-var lstConcat1 = [0:10, 1:20]
-var lstConcat2 = [2:30, 3:40]
-var lstResult = lstConcat1 + lstConcat2
-print("\n列表连接:", lstConcat1, "+", lstConcat2, "=", lstResult)
-
-// 列表转换为数组
-var arrFromList = array(lstLiteral)
-print("列表转换为数组:", arrFromList)
-
-// 数组转换为列表
-var lstFromArray = list([10, 20, 30])
-print("数组转换为列表:", lstFromArray)
-
-// 获取列表的键和值
-var lstAllKeys = keys(lstSparse)
-var lstAllValues = values(lstSparse)
-print("\n列表的键:", lstAllKeys)
-print("列表的值:", lstAllValues)
-
-// 清空列表
-clear(lstNew)
-print("清空列表:", lstNew)
-
-// ---------- 列表与数组的比较 ----------
-
-print("\n列表与数组的比较:")
-
-var arrArray = [1, 2, 3]
-var lstList = [0:1, 1:2, 2:3]
-
-print("数组:", arrArray, "类型:", type(arrArray))
-print("列表:", lstList, "类型:", type(lstList))
-print("数组索引必须连续，列表索引可以不连续")
-print("数组随机访问 O(1)，列表随机访问 O(log n)")
-print("数组插入/删除 O(n)，列表插入/删除 O(log n)")
-
-// ---------- 负索引在列表中的使用 ----------
-
-var lstNegative = [0:10, 1:20, 2:30, 3:40, 4:50]
-print("\n负索引在列表中的使用:")
-print("原始列表:", lstNegative)
-print("索引-1:", lstNegative[-1])  // 最后一个元素
-print("索引-2:", lstNegative[-2])  // 倒数第二个元素
-
-// 修改负索引对应的元素
-lstNegative[-1] = 500
-print("修改索引-1的元素:", lstNegative)
+println("")
+println("=== 列表类型测试完成 ===")

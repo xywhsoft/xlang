@@ -1,131 +1,107 @@
-// ============================================================
-// xlang 示例：算术运算符
-// 演示各种算术运算符的使用
-// ============================================================
+// arithmetic_operators.xl
+// 演示算术运算符
 
-// ---------- 基本算术运算符 ----------
+println("=== 算术运算符测试 ===")
 
-var iA = 10
-var iB = 3
-var fC = 3.5
-var fD = 2.5
+// 1. 基本算术运算
+println("")
+println("1. 基本算术运算")
+var a = 10
+var b = 3
+println("a = " + a + ", b = " + b)
+println("a + b = " + (a + b))
+println("a - b = " + (a - b))
+println("a * b = " + (a * b))
+println("a / b = " + (a / b))
+println("a % b = " + (a % b))
 
-print("基本算术运算:")
-print("iA =", iA, "iB =", iB, "fC =", fC, "fD =", fD)
+// 2. 乘方运算
+println("")
+println("2. 乘方运算")
+println("2 ** 3 = " + (2 ** 3))
+println("2 ** 10 = " + (2 ** 10))
+println("10 ** 0 = " + (10 ** 0))
+println("5 ** 1 = " + (5 ** 1))
+println("2 ** -1 = " + (2 ** -1))
 
-// 加法
-var iSum = iA + iB
-var fSum = fC + fD
-print("\n加法:")
-print("iA + iB =", iSum)
-print("fC + fD =", fSum)
-print("iA + fC =", iA + fC)  // 自动类型提升
+// 3. 浮点数运算
+println("")
+println("3. 浮点数运算")
+var x = 10.5
+var y = 3.2
+println("x = " + x + ", y = " + y)
+println("x + y = " + (x + y))
+println("x - y = " + (x - y))
+println("x * y = " + (x * y))
+println("x / y = " + (x / y))
 
-// 减法
-var iDiff = iA - iB
-var fDiff = fC - fD
-print("\n减法:")
-print("iA - iB =", iDiff)
-print("fC - fD =", fDiff)
-print("iA - fC =", iA - fC)  // 自动类型提升
+// 4. 混合类型运算
+println("")
+println("4. 混合类型运算")
+var intVal = 10
+var floatVal = 3.5
+println("int + float = " + (intVal + floatVal))
+println("int * float = " + (intVal * floatVal))
 
-// 乘法
-var iProd = iA * iB
-var fProd = fC * fD
-print("\n乘法:")
-print("iA * iB =", iProd)
-print("fC * fD =", fProd)
-print("iA * fC =", iA * fC)  // 自动类型提升
+// 5. 负数运算
+println("")
+println("5. 负数运算")
+var neg = -5
+println("-5 + 3 = " + (neg + 3))
+println("-5 * -3 = " + (neg * -3))
+println("-5 / 2 = " + (neg / 2))
 
-// 除法
-var iQuot = iA / iB  // 整数除法
-var fQuot = fC / fD
-var fQuot2 = iA / fB  // 自动类型提升
-print("\n除法:")
-print("iA / iB =", iQuot)  // 整数除法，结果为整数
-print("fC / fD =", fQuot)
-print("iA / fB =", fQuot2)  // 自动类型提升
+// 6. 复合赋值运算符
+println("")
+println("6. 复合赋值运算符")
+var c = 10
+println("初始值 c = " + c)
+c += 5
+println("c += 5 -> c = " + c)
+c -= 3
+println("c -= 3 -> c = " + c)
+c *= 2
+println("c *= 2 -> c = " + c)
+c /= 4
+println("c /= 4 -> c = " + c)
+c %= 3
+println("c %= 3 -> c = " + c)
 
-// 取模（求余数）
-var iMod = iA % iB
-print("\n取模:")
-print("iA % iB =", iMod)
+// 7. 乘方赋值运算符
+println("")
+println("7. 乘方赋值运算符")
+var d = 2
+println("初始值 d = " + d)
+d **= 3
+println("d **= 3 -> d = " + d)
 
-// 乘方
-var fPow1 = iA ** iB
-var fPow2 = fC ** fD
-print("\n乘方:")
-print("iA ** iB =", fPow1)  // 结果为浮点数
-print("fC ** fD =", fPow2)
+// 8. 自增自减运算符
+println("")
+println("8. 自增自减运算符")
+var e = 5
+println("初始值 e = " + e)
+println("++e = " + (++e))
+println("e 现在 = " + e)
+println("e++ = " + (e++))
+println("e 现在 = " + e)
+println("--e = " + (--e))
+println("e 现在 = " + e)
+println("e-- = " + (e--))
+println("e 现在 = " + e)
 
-// 负号（一元运算符）
-var iNeg = -iA
-var fNeg = -fC
-print("\n负号:")
-print("-iA =", iNeg)
-print("-fC =", fNeg)
+// 9. 运算优先级
+println("")
+println("9. 运算优先级")
+println("2 + 3 * 4 = " + (2 + 3 * 4))
+println("(2 + 3) * 4 = " + ((2 + 3) * 4))
+println("2 ** 3 ** 2 = " + (2 ** 3 ** 2))
+println("10 - 5 - 2 = " + (10 - 5 - 2))
 
-// ---------- 复合赋值运算符 ----------
+// 10. 除零行为
+println("")
+println("10. 除零测试")
+var zero = 0
+println("10 / 0.0 = " + (10 / 0.0))
 
-var iX = 100
-print("\n复合赋值运算符:")
-print("初始 iX =", iX)
-
-// += 加法赋值
-iX += 20
-print("iX += 20 =", iX)
-
-// -= 减法赋值
-iX -= 30
-print("iX -= 30 =", iX)
-
-// *= 乘法赋值
-iX *= 2
-print("iX *= 2 =", iX)
-
-// /= 除法赋值
-iX /= 3
-print("iX /= 3 =", iX)
-
-// %= 取模赋值
-iX %= 7
-print("iX %= 7 =", iX)
-
-// **= 乘方赋值
-var fY = 2.0
-fY **= 3
-print("\nfY = 2.0, fY **= 3 =", fY)
-
-// ---------- 自增和自减运算符 ----------
-
-var iCount = 5
-print("\n自增和自减运算符:")
-print("初始 iCount =", iCount)
-
-// 后缀自增
-var iPostInc = iCount++
-print("iPostInc = iCount++:")
-print("  iPostInc =", iPostInc)
-print("  iCount =", iCount)
-
-// 后缀自减
-var iPostDec = iCount--
-print("iPostDec = iCount--:")
-print("  iPostDec =", iPostDec)
-print("  iCount =", iCount)
-
-// 注意：xlang 不支持前缀自增/自减
-// ++iCount  // 这会导致编译错误
-// --iCount  // 这会导致编译错误
-
-// ---------- 字符串拼接 ----------
-
-var sStr1 = "Hello"
-var sStr2 = "xlang"
-var sConcat = sStr1 + ", " + sStr2 + "!"
-print("\n字符串拼接:")
-print("sStr1 + ", \" + sStr2 + \"!\" =", sConcat)
-
-// 字符串与数字拼接
-var sNumStr = "The answer is: " + 42
-print("字符串与数字拼接:", sNumStr)
+println("")
+println("=== 算术运算符测试完成 ===")

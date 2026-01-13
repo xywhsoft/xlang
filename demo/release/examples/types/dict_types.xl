@@ -1,156 +1,94 @@
-// ============================================================
-// xlang 示例：字典类型
-// 演示字典的声明、初始化和基本操作
-// ============================================================
+// dict_types.xl
+// 演示字典类型操作
 
-// ---------- 字典的声明和初始化 ----------
+println("=== 字典类型测试 ===")
 
-// 使用字典字面量初始化
-var dictLiteral = {name: "张三", age: 25, city: "北京"}
-print("字典字面量:", dictLiteral)
+// 1. 字典创建
+println("")
+println("1. 字典创建")
+var person = {name: "Tom", age: 25, city: "Beijing"}
+println("person 创建成功")
 
-// 使用 new 关键字创建字典
-var dictNew = new dict()
-print("使用 new 创建字典:", dictNew)
+// 2. 字典访问
+println("")
+println("2. 字典访问")
+println("name: " + person.name)
+println("age: " + person.age)
+println("city: " + person.city)
 
-// 空字典
-var dictEmpty = {}
-print("空字典:", dictEmpty)
+// 3. 空字典
+println("")
+println("3. 空字典")
+var empty = {}
+println("空字典创建成功")
 
-// 带有计算键的字典
-var sKey = "dynamic_key"
-var dictComputed = {
-    name: "测试",
-    [sKey]: "动态值",
-    ["computed_" + "key"]: "计算结果"
+// 4. 字符串键字典
+println("")
+println("4. 字符串键字典")
+var info = {"first-name": "John", "last-name": "Doe"}
+println("字符串键字典创建成功")
+
+// 5. 字典遍历
+println("")
+println("5. 字典遍历")
+var data = {x: 10, y: 20, z: 30}
+for k, v in data
+	println(k + " = " + v)
+end
+
+// 6. in 运算符
+println("")
+println("6. in 运算符检查键")
+var config = {host: "localhost", port: 8080}
+println("'host' in config: " + ("host" in config))
+println("'timeout' in config: " + ("timeout" in config))
+
+// 7. 嵌套字典
+println("")
+println("7. 嵌套字典")
+var nested = {
+	user: {name: "Alice", role: "admin"},
+	settings: {theme: "dark", lang: "zh"}
 }
-print("带有计算键的字典:", dictComputed)
+println("user.name: " + nested.user.name)
+println("settings.theme: " + nested.settings.theme)
 
-// ---------- 字典的基本操作 ----------
-
-// 获取字典长度
-var iLength = len(dictLiteral)
-print("\n字典长度:", dictLiteral, "长度 =", iLength)
-
-// 访问字典元素
-var sName = dictLiteral["name"]
-var iAge = dictLiteral["age"]
-print("访问字典元素:")
-print("name:", sName)
-print("age:", iAge)
-
-// 修改字典元素
-dictLiteral["age"] = 26
-print("修改字典元素:", dictLiteral)
-
-// 添加新的键值对
-dictLiteral["email"] = "zhangsan@example.com"
-print("添加新键值对 email:", dictLiteral)
-
-// 删除指定键的元素
-delete dictLiteral["city"]
-print("删除键 city:", dictLiteral)
-
-// 检查键是否存在
-var bHasKey = "email" in dictLiteral
-print("键 email 是否存在:", bHasKey)
-var bHasCity = "city" in dictLiteral
-print("键 city 是否存在:", bHasCity)
-
-// ---------- 字典的遍历 ----------
-
-print("\n字典遍历:")
-
-// 使用 for-in 循环遍历键
-for k in dictLiteral {
-    print("  键:", k)
+// 8. 混合类型值
+println("")
+println("8. 混合类型值")
+var mixed = {
+	count: 100,
+	rate: 3.14,
+	active: true,
+	label: "test"
 }
+println("count 类型: " + type(mixed.count))
+println("rate 类型: " + type(mixed.rate))
+println("active 类型: " + type(mixed.active))
+println("label 类型: " + type(mixed.label))
 
-// 使用 for-in 循环遍历键和值
-for k, v in dictLiteral {
-    print("  ", k, ":", v)
-}
+// 9. 字典在条件中使用
+println("")
+println("9. 字典在条件中使用")
+var user = {name: "Bob", verified: true}
+if user.verified
+	println(user.name + " 已验证")
+else
+	println(user.name + " 未验证")
+end
 
-// ---------- 字典的高级操作 ----------
+// 10. 字典键值统计
+println("")
+println("10. 字典遍历统计")
+var scores = {math: 90, english: 85, physics: 92}
+var total = 0
+var count = 0
+for k, v in scores
+	total = total + v
+	count++
+end
+println("科目数: " + count)
+println("总分: " + total)
 
-// 字典连接
-var dictConcat1 = {a: 1, b: 2}
-var dictConcat2 = {b: 3, c: 4}
-var dictResult = dictConcat1 + dictConcat2
-print("\n字典连接:", dictConcat1, "+", dictConcat2, "=", dictResult)
-
-// 获取字典的键和值
-var arrKeys = keys(dictLiteral)
-var arrValues = values(dictLiteral)
-print("字典的键:", arrKeys)
-print("字典的值:", arrValues)
-
-// 清空字典
-clear(dictNew)
-print("清空字典:", dictNew)
-
-// 复制字典
-var dictCopy = copy(dictLiteral)
-print("复制字典:", dictCopy)
-
-// 合并字典
-var dictMerge1 = {x: 10, y: 20}
-var dictMerge2 = {y: 30, z: 40}
-merge(dictMerge1, dictMerge2)
-print("合并字典:", dictMerge1)
-
-// ---------- 嵌套字典 ----------
-
-// 创建嵌套字典
-var dictNested = {
-    person: {
-        name: "李四",
-        age: 30,
-        address: {
-            city: "上海",
-            street: "南京路",
-            zipcode: "200000"
-        }
-    },
-    contact: {
-        email: "lisi@example.com",
-        phone: "13800138000"
-    }
-}
-print("\n嵌套字典:", dictNested)
-
-// 访问嵌套字典元素
-var sNestedCity = dictNested["person"]["address"]["city"]
-print("访问嵌套字典元素 person.address.city:", sNestedCity)
-
-// 修改嵌套字典元素
-dictNested["person"]["age"] = 31
-dictNested["person"]["address"]["zipcode"] = "200120"
-print("修改嵌套字典元素:", dictNested)
-
-// ---------- 字典的实际应用 ----------
-
-print("\n字典的实际应用:")
-
-// 1. 存储配置信息
-var dictConfig = {
-    app_name: "xlang Demo",
-    version: "1.0.0",
-    debug: true,
-    database: {
-        host: "localhost",
-        port: 3306,
-        username: "root",
-        password: "password"
-    }
-}
-print("配置信息字典:", dictConfig)
-
-// 2. 存储用户信息
-var dictUser = {
-    id: 1001,
-    name: "王五",
-    roles: ["admin", "user"],
-    permissions: {read: true, write: true, delete: false}
-}
-print("用户信息字典:", dictUser)
+println("")
+println("=== 字典类型测试完成 ===")
