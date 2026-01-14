@@ -379,6 +379,36 @@ static xvalue xl_string(xvalue v) {
 	return xvoCreateText((str)szBuf, (u32)strlen(szBuf), FALSE);
 }
 
+static xvalue xl_tostring(xvalue v) { return xl_string(v); }
+
+static xvalue xl_template_concat(xvalue first, ...) {
+	va_list args;
+	va_start(args, first);
+	int count = va_arg(args, int);
+	va_end(args);
+	if ( count <= 0 ) return xvoCreateText((str)"", 0, FALSE);
+	if ( count == 1 ) return first;
+	// 计算总长度并拼接
+	size_t iTotalLen = 0;
+	xvalue parts[64] = {0};
+	if ( count > 64 ) count = 64;
+	va_start(args, first);
+	parts[0] = first;
+	for ( int i = 1; i < count; i++ ) parts[i] = va_arg(args, xvalue);
+	va_arg(args, int); // skip count
+	va_end(args);
+	for ( int i = 0; i < count; i++ ) {
+		if ( xvoType(parts[i]) == XVO_DT_TEXT ) iTotalLen += xvoGetSize(parts[i]);
+		else { parts[i] = xl_string(parts[i]); iTotalLen += xvoGetSize(parts[i]); }
+	}
+	char *pszResult = (char*)malloc(iTotalLen + 1);
+	pszResult[0] = 0;
+	for ( int i = 0; i < count; i++ ) strcat(pszResult, (char*)xvoGetText(parts[i]));
+	xvalue result = xvoCreateText((str)pszResult, (u32)iTotalLen, FALSE);
+	free(pszResult);
+	return result;
+}
+
 static xvalue xl_bool(xvalue v) {
 	return xvoCreateBool(xvoIsTrue(v));
 }
@@ -579,47 +609,34 @@ static xvalue xl_call_var(xvalue func, xvalue args) {
 	return xvoCreateNull();
 }
 
-xvalue xlf_getType(xvalue xlv_value);
-static xvalue xlfw_getType(XL_ClosureEnv *pEnv, xvalue xl__args);
-xvalue xlf_checkType(xvalue xlv_value, xvalue xlv_expectedType);
-static xvalue xlfw_checkType(XL_ClosureEnv *pEnv, xvalue xl__args);
 // 全局变量
-static xvalue xlv_t = NULL;
-static xvalue xlv_s = NULL;
-static xvalue xlv_x = NULL;
-static xvalue xlv_y = NULL;
-static xvalue xlv_z = NULL;
-static xvalue xlv_b = NULL;
-static xvalue xlv_n = NULL;
+static xvalue xlv_dec = NULL;
+static xvalue xlv_hex1 = NULL;
+static xvalue xlv_hex2 = NULL;
+static xvalue xlv_bin1 = NULL;
+static xvalue xlv_bin2 = NULL;
+static xvalue xlv_oct1 = NULL;
+static xvalue xlv_oct2 = NULL;
+static xvalue xlv_f1 = NULL;
+static xvalue xlv_f2 = NULL;
+static xvalue xlv_s1 = NULL;
+static xvalue xlv_s2 = NULL;
+static xvalue xlv_s3 = NULL;
+static xvalue xlv_name = NULL;
+static xvalue xlv_age = NULL;
+static xvalue xlv_msg = NULL;
+static xvalue xlv_greeting = NULL;
+static xvalue xlv_plain = NULL;
+static xvalue xlv_t1 = NULL;
+static xvalue xlv_t2 = NULL;
 static xvalue xlv_arr = NULL;
 static xvalue xlv_tbl = NULL;
 static xvalue xlv_lst = NULL;
-static xvalue xlv_getType = NULL;
-static xvalue xlv_checkType = NULL;
+static xvalue xlv_b1 = NULL;
+static xvalue xlv_b2 = NULL;
+static xvalue xlv_n = NULL;
 
 // 函数声明
-
-xvalue xlf_getType(xvalue xlv_value)
-{
-	return xl_typeof(xlv_value);
-	return xvoCreateNull();
-}
-
-static xvalue xlfw_getType(XL_ClosureEnv *pEnv, xvalue xl__args)
-{
-	return xlf_getType(xvoArrayGetValue(xl__args, 0));
-}
-
-xvalue xlf_checkType(xvalue xlv_value, xvalue xlv_expectedType)
-{
-	return xl_eq(xl_typeof(xlv_value), xlv_expectedType);
-	return xvoCreateNull();
-}
-
-static xvalue xlfw_checkType(XL_ClosureEnv *pEnv, xvalue xl__args)
-{
-	return xlf_checkType(xvoArrayGetValue(xl__args, 0), xvoArrayGetValue(xl__args, 1));
-}
 
 // 方法分发函数
 static xvalue xl_method_call(xvalue obj, const char* method, xvalue args)
@@ -668,64 +685,68 @@ int main(int argc, char* argv[])
 	// 初始化类静态成员
 
 	// 初始化函数变量
-	xlv_getType = xl_closure_create(xlfw_getType, NULL);
-	xlv_checkType = xl_closure_create(xlfw_checkType, NULL);
 
-	xl_println(xvoCreateText((str)"=== 类型作为值 ===", 0, FALSE));
-	xlv_t = xvoCreateInt(XVO_DT_INT);
-	xl_println(xl_add(xvoCreateText((str)"t = int, t 的值: ", 0, FALSE), xl_string(xlv_t)));
-	xlv_s = xvoCreateInt(XVO_DT_TEXT);
-	xl_println(xl_add(xvoCreateText((str)"s = string, s 的值: ", 0, FALSE), xl_string(xlv_s)));
+	xl_println(xvoCreateText((str)"=== 整数字面量 ===", 0, FALSE));
+	xlv_dec = xvoCreateInt(255);
+	xl_println(xl_add(xvoCreateText((str)"十进制 255 = ", 0, FALSE), xl_string(xlv_dec)));
+	xlv_hex1 = xvoCreateInt(255);
+	xl_println(xl_add(xvoCreateText((str)"十六进制 0xFF = ", 0, FALSE), xl_string(xlv_hex1)));
+	xlv_hex2 = xvoCreateInt(255);
+	xl_println(xl_add(xvoCreateText((str)"十六进制 &HFF = ", 0, FALSE), xl_string(xlv_hex2)));
+	xlv_bin1 = xvoCreateInt(255);
+	xl_println(xl_add(xvoCreateText((str)"二进制 0b11111111 = ", 0, FALSE), xl_string(xlv_bin1)));
+	xlv_bin2 = xvoCreateInt(255);
+	xl_println(xl_add(xvoCreateText((str)"二进制 &B11111111 = ", 0, FALSE), xl_string(xlv_bin2)));
+	xlv_oct1 = xvoCreateInt(255);
+	xl_println(xl_add(xvoCreateText((str)"八进制 &O377 = ", 0, FALSE), xl_string(xlv_oct1)));
+	xlv_oct2 = xvoCreateInt(15);
+	xl_println(xl_add(xvoCreateText((str)"八进制 &o17 = ", 0, FALSE), xl_string(xlv_oct2)));
 	xl_println(xvoCreateText((str)"", 0, FALSE));
-	xl_println(xvoCreateText((str)"=== typeof() 函数 ===", 0, FALSE));
-	xlv_x = xvoCreateInt(42);
-	xlv_y = xvoCreateText((str)"hello", 0, FALSE);
-	xlv_z = xvoCreateFloat(3.14);
-	xlv_b = xvoCreateBool(TRUE);
+	xl_println(xvoCreateText((str)"=== 浮点数字面量 ===", 0, FALSE));
+	xlv_f1 = xvoCreateFloat(3.14159);
+	xl_println(xl_add(xvoCreateText((str)"浮点数 3.14159 = ", 0, FALSE), xl_string(xlv_f1)));
+	xlv_f2 = xvoCreateFloat(1.5e+10);
+	xl_println(xl_add(xvoCreateText((str)"科学计数法 1.5e10 = ", 0, FALSE), xl_string(xlv_f2)));
+	xl_println(xvoCreateText((str)"", 0, FALSE));
+	xl_println(xvoCreateText((str)"=== 字符串字面量 ===", 0, FALSE));
+	xlv_s1 = xvoCreateText((str)"Hello\tWorld\n", 0, FALSE);
+	xl_println(xl_add(xvoCreateText((str)"双引号字符串: ", 0, FALSE), xlv_s1));
+	xlv_s2 = xvoCreateText((str)"Hello\\tWorld", 0, FALSE);
+	xl_println(xl_add(xvoCreateText((str)"单引号字符串: ", 0, FALSE), xlv_s2));
+	xlv_s3 = xvoCreateText((str)"这是\r\n多行\r\n字符串", 0, FALSE);
+	xl_println(xl_add(xvoCreateText((str)"多行字符串: ", 0, FALSE), xlv_s3));
+	xl_println(xvoCreateText((str)"", 0, FALSE));
+	xl_println(xvoCreateText((str)"=== 模板字符串 ===", 0, FALSE));
+	xlv_name = xvoCreateText((str)"张三", 0, FALSE);
+	xlv_age = xvoCreateInt(25);
+	xlv_msg = xl_template_concat(xvoCreateText((str)"姓名: ", 0, FALSE), xl_tostring(xlv_name), xvoCreateText((str)", 年龄: ", 0, FALSE), xl_tostring(xlv_age), 4);
+	xl_println(xlv_msg);
+	xlv_greeting = xl_template_concat(xvoCreateText((str)"Hello ", 0, FALSE), xl_tostring(xlv_name), xvoCreateText((str)"!", 0, FALSE), 3);
+	xl_println(xlv_greeting);
+	xlv_plain = xl_template_concat(xvoCreateText((str)"这是纯文本模板", 0, FALSE), 1);
+	xl_println(xlv_plain);
+	xl_println(xvoCreateText((str)"", 0, FALSE));
+	xl_println(xvoCreateText((str)"=== 时间字面量 ===", 0, FALSE));
+	xlv_t1 = xvoCreateNull();
+	xl_println(xl_add(xvoCreateText((str)"日期: ", 0, FALSE), xl_string(xlv_t1)));
+	xlv_t2 = xvoCreateNull();
+	xl_println(xl_add(xvoCreateText((str)"日期时间: ", 0, FALSE), xl_string(xlv_t2)));
+	xl_println(xvoCreateText((str)"", 0, FALSE));
+	xl_println(xvoCreateText((str)"=== 集合字面量 ===", 0, FALSE));
+	xlv_arr = xl_array(5, xvoCreateInt(1), xvoCreateInt(2), xvoCreateInt(3), xvoCreateInt(4), xvoCreateInt(5));
+	xl_println(xl_add(xvoCreateText((str)"数组长度: ", 0, FALSE), xl_string(xl_len(xlv_arr))));
+	xlv_tbl = xl_table(2, "name", xvoCreateText((str)"Tom", 0, FALSE), "age", xvoCreateInt(30));
+	xl_println(xl_add(xvoCreateText((str)"字典[name]: ", 0, FALSE), xl_index(xlv_tbl, xvoCreateText((str)"name", 0, FALSE))));
+	xlv_lst = xl_table(3, "", xvoCreateText((str)"零", 0, FALSE), "", xvoCreateText((str)"一", 0, FALSE), "", xvoCreateText((str)"二", 0, FALSE));
+	xl_println(xl_add(xvoCreateText((str)"列表[1]: ", 0, FALSE), xl_index(xlv_lst, xvoCreateInt(1))));
+	xl_println(xvoCreateText((str)"", 0, FALSE));
+	xl_println(xvoCreateText((str)"=== 布尔和 null ===", 0, FALSE));
+	xlv_b1 = xvoCreateBool(TRUE);
+	xlv_b2 = xvoCreateBool(FALSE);
 	xlv_n = xvoCreateNull();
-	xl_println(xl_add(xvoCreateText((str)"typeof(42) = ", 0, FALSE), xl_string(xl_typeof(xlv_x))));
-	xl_println(xl_add(xvoCreateText((str)"typeof(\"hello\") = ", 0, FALSE), xl_string(xl_typeof(xlv_y))));
-	xl_println(xl_add(xvoCreateText((str)"typeof(3.14) = ", 0, FALSE), xl_string(xl_typeof(xlv_z))));
-	xl_println(xl_add(xvoCreateText((str)"typeof(true) = ", 0, FALSE), xl_string(xl_typeof(xlv_b))));
-	xl_println(xl_add(xvoCreateText((str)"typeof(null) = ", 0, FALSE), xl_string(xl_typeof(xlv_n))));
-	xl_println(xvoCreateText((str)"", 0, FALSE));
-	xl_println(xvoCreateText((str)"=== 类型比较 ===", 0, FALSE));
-	xl_println(xl_add(xvoCreateText((str)"typeof(42) == int: ", 0, FALSE), xl_string(xl_eq(xl_typeof(xlv_x), xvoCreateInt(XVO_DT_INT)))));
-	xl_println(xl_add(xvoCreateText((str)"typeof(42) == string: ", 0, FALSE), xl_string(xl_eq(xl_typeof(xlv_x), xvoCreateInt(XVO_DT_TEXT)))));
-	xl_println(xl_add(xvoCreateText((str)"typeof(\"hello\") == string: ", 0, FALSE), xl_string(xl_eq(xl_typeof(xlv_y), xvoCreateInt(XVO_DT_TEXT)))));
-	xl_println(xl_add(xvoCreateText((str)"typeof(3.14) == float: ", 0, FALSE), xl_string(xl_eq(xl_typeof(xlv_z), xvoCreateInt(XVO_DT_FLOAT)))));
-	xl_println(xl_add(xvoCreateText((str)"typeof(true) == bool: ", 0, FALSE), xl_string(xl_eq(xl_typeof(xlv_b), xvoCreateInt(XVO_DT_BOOL)))));
-	xl_println(xl_add(xvoCreateText((str)"typeof(null) == null: ", 0, FALSE), xl_string(xl_eq(xl_typeof(xlv_n), xvoCreateNull()))));
-	xl_println(xvoCreateText((str)"", 0, FALSE));
-	xl_println(xvoCreateText((str)"=== type() 函数 ===", 0, FALSE));
-	xl_println(xl_add(xvoCreateText((str)"type(42) = ", 0, FALSE), xl_type(xlv_x)));
-	xl_println(xl_add(xvoCreateText((str)"type(\"hello\") = ", 0, FALSE), xl_type(xlv_y)));
-	xl_println(xl_add(xvoCreateText((str)"type(3.14) = ", 0, FALSE), xl_type(xlv_z)));
-	xl_println(xl_add(xvoCreateText((str)"type(true) = ", 0, FALSE), xl_type(xlv_b)));
-	xl_println(xl_add(xvoCreateText((str)"type(null) = ", 0, FALSE), xl_type(xlv_n)));
-	xl_println(xvoCreateText((str)"", 0, FALSE));
-	xl_println(xvoCreateText((str)"=== is 运算符 ===", 0, FALSE));
-	xl_println(xl_add(xvoCreateText((str)"42 is int: ", 0, FALSE), xl_string(xl_is(xlv_x, xvoCreateInt(XVO_DT_INT)))));
-	xl_println(xl_add(xvoCreateText((str)"42 is string: ", 0, FALSE), xl_string(xl_is(xlv_x, xvoCreateInt(XVO_DT_TEXT)))));
-	xl_println(xl_add(xvoCreateText((str)"\"hello\" is string: ", 0, FALSE), xl_string(xl_is(xlv_y, xvoCreateInt(XVO_DT_TEXT)))));
-	xl_println(xvoCreateText((str)"", 0, FALSE));
-	xl_println(xvoCreateText((str)"=== 集合类型 ===", 0, FALSE));
-	xlv_arr = xl_array(3, xvoCreateInt(1), xvoCreateInt(2), xvoCreateInt(3));
-	xlv_tbl = xl_table(2, "a", xvoCreateInt(1), "b", xvoCreateInt(2));
-	xlv_lst = xl_list(3, xvoCreateInt(1), xvoCreateInt(2), xvoCreateInt(3));
-	xl_println(xl_add(xvoCreateText((str)"typeof([1,2,3]) == array: ", 0, FALSE), xl_string(xl_eq(xl_typeof(xlv_arr), xvoCreateInt(XVO_DT_ARRAY)))));
-	xl_println(xl_add(xvoCreateText((str)"typeof({a:1}) == dict: ", 0, FALSE), xl_string(xl_eq(xl_typeof(xlv_tbl), xvoCreateInt(XVO_DT_TABLE)))));
-	xl_println(xl_add(xvoCreateText((str)"typeof(list()) == list: ", 0, FALSE), xl_string(xl_eq(xl_typeof(xlv_lst), xvoCreateInt(XVO_DT_LIST)))));
-	xl_println(xvoCreateText((str)"", 0, FALSE));
-	xl_println(xvoCreateText((str)"=== 类型值传递 ===", 0, FALSE));
-	xl_println(xl_add(xvoCreateText((str)"getType(100) == int: ", 0, FALSE), xl_string(xl_eq(xl_call_var(xlv_getType, xl_array(1, xvoCreateInt(100))), xvoCreateInt(XVO_DT_INT)))));
-	xl_println(xl_add(xvoCreateText((str)"checkType(\"test\", string): ", 0, FALSE), xl_string(xl_call_var(xlv_checkType, xl_array(2, xvoCreateText((str)"test", 0, FALSE), xvoCreateInt(XVO_DT_TEXT))))));
-	xl_println(xl_add(xvoCreateText((str)"checkType(3.14, int): ", 0, FALSE), xl_string(xl_call_var(xlv_checkType, xl_array(2, xvoCreateFloat(3.14), xvoCreateInt(XVO_DT_INT))))));
-	xl_println(xvoCreateText((str)"", 0, FALSE));
-	xl_println(xvoCreateText((str)"=== 类型转换 ===", 0, FALSE));
-	xl_println(xl_add(xvoCreateText((str)"int(\"123\") = ", 0, FALSE), xl_string(xl_int(xvoCreateText((str)"123", 0, FALSE)))));
-	xl_println(xl_add(xvoCreateText((str)"string(456) = ", 0, FALSE), xl_string(xvoCreateInt(456))));
-	xl_println(xl_add(xvoCreateText((str)"float(\"3.14\") = ", 0, FALSE), xl_string(xl_float(xvoCreateText((str)"3.14", 0, FALSE)))));
+	xl_println(xl_add(xvoCreateText((str)"true = ", 0, FALSE), xl_string(xlv_b1)));
+	xl_println(xl_add(xvoCreateText((str)"false = ", 0, FALSE), xl_string(xlv_b2)));
+	xl_println(xl_add(xvoCreateText((str)"null = ", 0, FALSE), xl_string(xlv_n)));
 	xl_println(xvoCreateText((str)"", 0, FALSE));
 	xl_println(xvoCreateText((str)"=== 测试完成 ===", 0, FALSE));
 

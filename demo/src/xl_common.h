@@ -497,6 +497,12 @@ static inline bool xlIsHexDigit( u8 c )
 	       ( (c >= 'A') && (c <= 'F') );
 }
 
+// 判断是否为八进制数字
+static inline bool xlIsOctDigit( u8 c )
+{
+	return ( c >= '0' ) && ( c <= '7' );
+}
+
 // 判断是否为空白字符
 static inline bool xlIsSpace( u8 c )
 {
