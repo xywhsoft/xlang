@@ -54,6 +54,33 @@ typedef struct XL_Codegen {
 	char arrClassParents[64][64]; // 每个类的父类名
 	char szCurrentClass[64]; // 当前正在生成的类名
 	bool arrClassHasStatic[64]; // 每个类是否有静态成员
+	bool arrClassHasMetaLet[64];  // 每个类是否有 meta let
+	bool arrClassHasMetaGet[64];  // 每个类是否有 meta get
+	bool arrClassHasMetaCall[64]; // 每个类是否有 meta call
+	// 运算符重载元方法
+	bool arrClassHasMetaAdd[64];  // meta add (+)
+	bool arrClassHasMetaSub[64];  // meta sub (-)
+	bool arrClassHasMetaMul[64];  // meta mul (*)
+	bool arrClassHasMetaDiv[64];  // meta div (/)
+	bool arrClassHasMetaMod[64];  // meta mod (%)
+	bool arrClassHasMetaPow[64];  // meta pow (**)
+	bool arrClassHasMetaNeg[64];  // meta neg (一元负号)
+	bool arrClassHasMetaEq[64];   // meta eq (==)
+	bool arrClassHasMetaLt[64];   // meta lt (<)
+	bool arrClassHasMetaLe[64];   // meta le (<=)
+	// 索引元方法
+	bool arrClassHasMetaIndex[64];    // meta index ([])
+	bool arrClassHasMetaNewindex[64]; // meta newindex ([]=)
+	bool arrClassHasMetaLen[64];      // meta len
+	// 迭代器元方法
+	bool arrClassHasMetaIter[64]; // meta iter
+	bool arrClassHasMetaNext[64]; // meta next
+	// 类型转换元方法
+	bool arrClassHasMetaTo[64];   // meta to
+	bool arrClassHasMetaFrom[64]; // meta from
+	// with 语句元方法
+	bool arrClassHasMetaEnter[64]; // meta enter
+	bool arrClassHasMetaExit[64];  // meta exit
 } XL_Codegen;
 
 
@@ -517,19 +544,38 @@ static void xlCodegenExpr( XL_Codegen *pGen, XL_CodeBuf *pBuf, xvalue xExpr )
 			return;
 		}
 		
-		// 解析模板字符串，生成字符串拼接代码
-		xlCodeBufAppend(pBuf, "xl_template_concat(");
+		// 第一遍：统计部分数量
 		int iPartCount = 0;
 		const char *p = (char*)pszVal;
 		const char *pszSegStart = p;
+		while ( *p ) {
+			if ( (p[0] == '{') && (p[1] == '$') ) {
+				if ( p > pszSegStart ) iPartCount++;  // 文本段
+				p += 2;
+				while ( *p && (*p != '}') ) p++;
+				if ( *p == '}' ) { iPartCount++; p++; }  // 变量段
+				pszSegStart = p;
+			} else {
+				p++;
+			}
+		}
+		if ( p > pszSegStart ) iPartCount++;  // 最后的文本段
+		
+		if ( iPartCount == 0 ) {
+			xlCodeBufAppend(pBuf, "xvoCreateText((str)\"\", 0, FALSE)");
+			return;
+		}
+		
+		// 第二遍：生成代码
+		xlCodeBufAppendFmt(pBuf, "xl_template_concat(%d", iPartCount);
+		p = (char*)pszVal;
+		pszSegStart = p;
 		
 		while ( *p ) {
-			// 检查是否是变量插值 {$varname}
 			if ( (p[0] == '{') && (p[1] == '$') ) {
-				// 先输出之前的文本段
+				// 输出之前的文本段
 				if ( p > pszSegStart ) {
-					if ( iPartCount > 0 ) xlCodeBufAppend(pBuf, ", ");
-					xlCodeBufAppend(pBuf, "xvoCreateText((str)\"");
+					xlCodeBufAppend(pBuf, ", xvoCreateText((str)\"");
 					for ( const char *s = pszSegStart; s < p; s++ ) {
 						switch ( *s ) {
 							case '\\': xlCodeBufAppend(pBuf, "\\\\"); break;
@@ -541,23 +587,20 @@ static void xlCodegenExpr( XL_Codegen *pGen, XL_CodeBuf *pBuf, xvalue xExpr )
 						}
 					}
 					xlCodeBufAppend(pBuf, "\", 0, FALSE)");
-					iPartCount++;
 				}
 				
 				// 解析变量名
-				p += 2;  // 跳过 {$
+				p += 2;
 				const char *pszVarStart = p;
 				while ( *p && (*p != '}') ) p++;
 				
 				if ( *p == '}' ) {
-					if ( iPartCount > 0 ) xlCodeBufAppend(pBuf, ", ");
-					xlCodeBufAppend(pBuf, "xl_tostring(xlv_");
+					xlCodeBufAppend(pBuf, ", xl_tostring(xlv_");
 					for ( const char *v = pszVarStart; v < p; v++ ) {
 						xlCodeBufAppendFmt(pBuf, "%c", *v);
 					}
 					xlCodeBufAppend(pBuf, ")");
-					iPartCount++;
-					p++;  // 跳过 }
+					p++;
 					pszSegStart = p;
 				}
 			} else {
@@ -567,8 +610,7 @@ static void xlCodegenExpr( XL_Codegen *pGen, XL_CodeBuf *pBuf, xvalue xExpr )
 		
 		// 输出最后的文本段
 		if ( p > pszSegStart ) {
-			if ( iPartCount > 0 ) xlCodeBufAppend(pBuf, ", ");
-			xlCodeBufAppend(pBuf, "xvoCreateText((str)\"");
+			xlCodeBufAppend(pBuf, ", xvoCreateText((str)\"");
 			for ( const char *s = pszSegStart; s < p; s++ ) {
 				switch ( *s ) {
 					case '\\': xlCodeBufAppend(pBuf, "\\\\"); break;
@@ -580,15 +622,9 @@ static void xlCodegenExpr( XL_Codegen *pGen, XL_CodeBuf *pBuf, xvalue xExpr )
 				}
 			}
 			xlCodeBufAppend(pBuf, "\", 0, FALSE)");
-			iPartCount++;
 		}
 		
-		// 如果没有任何部分，输出空字符串
-		if ( iPartCount == 0 ) {
-			xlCodeBufAppend(pBuf, "xvoCreateText((str)\"\", 0, FALSE)");
-		}
-		
-		xlCodeBufAppendFmt(pBuf, ", %d)", iPartCount);
+		xlCodeBufAppend(pBuf, ")");
 		return;
 	}
 
@@ -664,6 +700,8 @@ static void xlCodegenExpr( XL_Codegen *pGen, XL_CodeBuf *pBuf, xvalue xExpr )
 				xlCodeBufAppend(pBuf, "xl_eq(");
 			} else if ( strcmp((char*)pszOp, "!=") == 0 ) {
 				xlCodeBufAppend(pBuf, "xl_ne(");
+			} else if ( strcmp((char*)pszOp, "~=") == 0 ) {
+				xlCodeBufAppend(pBuf, "xl_approx(");
 			} else if ( strcmp((char*)pszOp, "<") == 0 ) {
 				xlCodeBufAppend(pBuf, "xl_lt(");
 			} else if ( strcmp((char*)pszOp, "<=") == 0 ) {
@@ -726,6 +764,8 @@ static void xlCodegenExpr( XL_Codegen *pGen, XL_CodeBuf *pBuf, xvalue xExpr )
 				xlCodeBufAppend(pBuf, "xl_eq(");
 			} else if ( strcmp((char*)pszOp, "!=") == 0 ) {
 				xlCodeBufAppend(pBuf, "xl_ne(");
+			} else if ( strcmp((char*)pszOp, "~=") == 0 ) {
+				xlCodeBufAppend(pBuf, "xl_approx(");
 			} else if ( strcmp((char*)pszOp, "<") == 0 ) {
 				xlCodeBufAppend(pBuf, "xl_lt(");
 			} else if ( strcmp((char*)pszOp, "<=") == 0 ) {
@@ -968,12 +1008,12 @@ static void xlCodegenExpr( XL_Codegen *pGen, XL_CodeBuf *pBuf, xvalue xExpr )
 					xlCodegenExpr(pGen, pBuf, xValue);
 					xlCodeBufAppend(pBuf, ")");
 				} else {
-					// 实例成员赋值
-					xlCodeBufAppend(pBuf, "xvoTableSetValue(");
+					// 实例成员赋值（支持 meta let）
+					xlCodeBufAppend(pBuf, "xl_member_set(");
 					xlCodegenExpr(pGen, pBuf, xObj);
-					xlCodeBufAppendFmt(pBuf, ", (str)\"%s\", 0, ", (char*)pszMemberName);
+					xlCodeBufAppendFmt(pBuf, ", \"%s\", ", (char*)pszMemberName);
 					xlCodegenExpr(pGen, pBuf, xValue);
-					xlCodeBufAppend(pBuf, ", FALSE)");
+					xlCodeBufAppend(pBuf, ")");
 				}
 			} else if ( strcmp((char*)pszTargetKind, XL_AST_INDEX_EXPR) == 0 ) {
 				// 索引赋值: obj[index] = value
@@ -994,6 +1034,42 @@ static void xlCodegenExpr( XL_Codegen *pGen, XL_CodeBuf *pBuf, xvalue xExpr )
 				xlCodegenExpr(pGen, pBuf, xValue);
 				xlCodeBufAppend(pBuf, ")");
 			}
+		}
+		return;
+	}
+
+	// new 表达式 - 创建类实例
+	if ( strcmp((char*)pszKind, XL_AST_NEW_EXPR) == 0 ) {
+		xvalue xType = xlAstGetNode(xExpr, (str)"type");
+		xvalue xArgs = xlAstGetNode(xExpr, (str)"args");
+		str pszTypeName = xlAstGetStr(xType, (str)"name");
+		
+		if ( pszTypeName ) {
+			// 检查是否是内置类型
+			if ( (strcmp((char*)pszTypeName, "array") == 0) ||
+			     (strcmp((char*)pszTypeName, "Array") == 0) ) {
+				xlCodeBufAppend(pBuf, "xvoCreateArray()");
+			} else if ( (strcmp((char*)pszTypeName, "list") == 0) ||
+			            (strcmp((char*)pszTypeName, "List") == 0) ) {
+				xlCodeBufAppend(pBuf, "xvoCreateList()");
+			} else if ( (strcmp((char*)pszTypeName, "dict") == 0) ||
+			            (strcmp((char*)pszTypeName, "Dict") == 0) ) {
+				xlCodeBufAppend(pBuf, "xvoCreateTable()");
+			} else if ( (strcmp((char*)pszTypeName, "set") == 0) ||
+			            (strcmp((char*)pszTypeName, "Set") == 0) ) {
+				xlCodeBufAppend(pBuf, "xl_set(0)");
+			} else {
+				// 自定义类：调用构造函数 xlc_ClassName_new(args)
+				xlCodeBufAppendFmt(pBuf, "xlc_%s_new(", (char*)pszTypeName);
+				int iLen = xlAstArrayLen(xArgs);
+				for ( int i = 0; i < iLen; i++ ) {
+					if ( i > 0 ) xlCodeBufAppend(pBuf, ", ");
+					xlCodegenExpr(pGen, pBuf, xlAstArrayGet(xArgs, i));
+				}
+				xlCodeBufAppend(pBuf, ")");
+			}
+		} else {
+			xlCodeBufAppend(pBuf, "xvoCreateNull()");
 		}
 		return;
 	}
@@ -1020,6 +1096,13 @@ static void xlCodegenExpr( XL_Codegen *pGen, XL_CodeBuf *pBuf, xvalue xExpr )
 			     (strcmp((char*)pszName, "abs") == 0) ||
 			     (strcmp((char*)pszName, "min") == 0) ||
 			     (strcmp((char*)pszName, "max") == 0) ||
+			     (strcmp((char*)pszName, "round") == 0) ||
+			     (strcmp((char*)pszName, "floor") == 0) ||
+			     (strcmp((char*)pszName, "ceil") == 0) ||
+			     (strcmp((char*)pszName, "chr") == 0) ||
+			     (strcmp((char*)pszName, "ord") == 0) ||
+			     (strcmp((char*)pszName, "hash") == 0) ||
+			     (strcmp((char*)pszName, "id") == 0) ||
 			     (strcmp((char*)pszName, "int") == 0) ||
 			     (strcmp((char*)pszName, "float") == 0) ||
 			     (strcmp((char*)pszName, "string") == 0) ||
@@ -1027,7 +1110,64 @@ static void xlCodegenExpr( XL_Codegen *pGen, XL_CodeBuf *pBuf, xvalue xExpr )
 			     (strcmp((char*)pszName, "list") == 0) ||
 			     (strcmp((char*)pszName, "set") == 0) ||
 			     (strcmp((char*)pszName, "datetime") == 0) ||
-			     (strcmp((char*)pszName, "now") == 0) ) {
+			     (strcmp((char*)pszName, "now") == 0) ||
+			     // 字符串函数
+			     (strcmp((char*)pszName, "trim") == 0) ||
+			     (strcmp((char*)pszName, "ltrim") == 0) ||
+			     (strcmp((char*)pszName, "rtrim") == 0) ||
+			     (strcmp((char*)pszName, "upper") == 0) ||
+			     (strcmp((char*)pszName, "lower") == 0) ||
+			     (strcmp((char*)pszName, "replace") == 0) ||
+			     (strcmp((char*)pszName, "split") == 0) ||
+			     (strcmp((char*)pszName, "join") == 0) ||
+			     (strcmp((char*)pszName, "find") == 0) ||
+			     (strcmp((char*)pszName, "contains") == 0) ||
+			     (strcmp((char*)pszName, "substr") == 0) ||
+			     (strcmp((char*)pszName, "startswith") == 0) ||
+			     (strcmp((char*)pszName, "endswith") == 0) ||
+			     (strcmp((char*)pszName, "repeat") == 0) ||
+			     (strcmp((char*)pszName, "reverse") == 0) ||
+			     // 数学函数
+			     (strcmp((char*)pszName, "rand") == 0) ||
+			     (strcmp((char*)pszName, "random") == 0) ||
+			     (strcmp((char*)pszName, "randrange") == 0) ||
+			     (strcmp((char*)pszName, "pow") == 0) ||
+			     (strcmp((char*)pszName, "sqrt") == 0) ||
+			     (strcmp((char*)pszName, "log") == 0) ||
+			     (strcmp((char*)pszName, "sin") == 0) ||
+			     (strcmp((char*)pszName, "cos") == 0) ||
+			     (strcmp((char*)pszName, "tan") == 0) ||
+			     // 时间函数
+			     (strcmp((char*)pszName, "year") == 0) ||
+			     (strcmp((char*)pszName, "month") == 0) ||
+			     (strcmp((char*)pszName, "day") == 0) ||
+			     (strcmp((char*)pszName, "hour") == 0) ||
+			     (strcmp((char*)pszName, "minute") == 0) ||
+			     (strcmp((char*)pszName, "second") == 0) ||
+			     (strcmp((char*)pszName, "weekday") == 0) ||
+			     (strcmp((char*)pszName, "strftime") == 0) ||
+			     (strcmp((char*)pszName, "timestamp") == 0) ||
+			     (strcmp((char*)pszName, "fromtimestamp") == 0) ||
+			     (strcmp((char*)pszName, "sleep") == 0) ||
+			     (strcmp((char*)pszName, "timer") == 0) ||
+			     // 文件函数
+			     (strcmp((char*)pszName, "readfile") == 0) ||
+			     (strcmp((char*)pszName, "writefile") == 0) ||
+			     (strcmp((char*)pszName, "appendfile") == 0) ||
+			     (strcmp((char*)pszName, "exists") == 0) ||
+			     (strcmp((char*)pszName, "isfile") == 0) ||
+			     (strcmp((char*)pszName, "isdir") == 0) ||
+			     (strcmp((char*)pszName, "filesize") == 0) ||
+			     (strcmp((char*)pszName, "mkdir") == 0) ||
+			     (strcmp((char*)pszName, "remove") == 0) ||
+			     // JSON函数
+			     (strcmp((char*)pszName, "json_parse") == 0) ||
+			     (strcmp((char*)pszName, "json_stringify") == 0) ||
+			     // 编码函数
+			     (strcmp((char*)pszName, "base64_encode") == 0) ||
+			     (strcmp((char*)pszName, "base64_decode") == 0) ||
+			     (strcmp((char*)pszName, "hex_encode") == 0) ||
+			     (strcmp((char*)pszName, "hex_decode") == 0) ) {
 				bBuiltin = true;
 			}
 
@@ -1285,6 +1425,7 @@ static void xlCodegenExpr( XL_Codegen *pGen, XL_CodeBuf *pBuf, xvalue xExpr )
 	if ( strcmp((char*)pszKind, XL_AST_MEMBER_EXPR) == 0 ) {
 		xvalue xObject = xlAstGetNode(xExpr, (str)"object");
 		str pszMember = xlAstGetStr(xExpr, (str)"member");
+		bool bIsSafe = xlAstGetBool(xExpr, (str)"isSafe");
 
 		// 检查是否是 super.member
 		str pszObjKind = xlAstGetKind(xObject);
@@ -1306,9 +1447,16 @@ static void xlCodegenExpr( XL_Codegen *pGen, XL_CodeBuf *pBuf, xvalue xExpr )
 			}
 		}
 
-		xlCodeBufAppend(pBuf, "xl_member(");
-		xlCodegenExpr(pGen, pBuf, xObject);
-		xlCodeBufAppendFmt(pBuf, ", \"%s\")", (char*)pszMember);
+		if ( bIsSafe ) {
+			// 安全访问: obj?.member -> xl_safe_member(obj, "member")
+			xlCodeBufAppend(pBuf, "xl_safe_member(");
+			xlCodegenExpr(pGen, pBuf, xObject);
+			xlCodeBufAppendFmt(pBuf, ", \"%s\")", (char*)pszMember);
+		} else {
+			xlCodeBufAppend(pBuf, "xl_member(");
+			xlCodegenExpr(pGen, pBuf, xObject);
+			xlCodeBufAppendFmt(pBuf, ", \"%s\")", (char*)pszMember);
+		}
 		return;
 	}
 
@@ -1837,9 +1985,80 @@ static void xlCodegenStmt( XL_Codegen *pGen, xvalue xStmt )
 		pGen->iIndent++;
 
 		xlCodegenIndent(pGen, pBuf);
-		xlCodeBufAppend(pBuf, "xvalue xl__iter = ");
+		xlCodeBufAppend(pBuf, "xvalue xl__iter_obj = ");
 		xlCodegenExpr(pGen, pBuf, xIter);
 		xlCodeBufAppend(pBuf, ";\n");
+
+		// 检查是否是自定义迭代器
+		xlCodegenIndent(pGen, pBuf);
+		xlCodeBufAppend(pBuf, "if ( xl_is_custom_obj(xl__iter_obj) && xl_has_meta_op(xl__iter_obj, \"iter\") ) {\n");
+		pGen->iIndent++;
+		
+		// 自定义迭代器逻辑
+		xlCodegenIndent(pGen, pBuf);
+		xlCodeBufAppend(pBuf, "xvalue xl__iterator = xl_op_iter(xl__iter_obj);\n");
+		xlCodegenIndent(pGen, pBuf);
+		xlCodeBufAppend(pBuf, "int xl__idx = 0;\n");
+		xlCodegenIndent(pGen, pBuf);
+		xlCodeBufAppend(pBuf, "while ( 1 ) {\n");
+		pGen->iIndent++;
+		xlCodegenIndent(pGen, pBuf);
+		xlCodeBufAppend(pBuf, "xvalue xl__next_val = xl_op_next(xl__iterator);\n");
+		xlCodegenIndent(pGen, pBuf);
+		xlCodeBufAppend(pBuf, "if ( (xl__next_val == NULL) || (xvoType(xl__next_val) == XVO_DT_NULL) ) break;\n");
+		xlCodegenIndent(pGen, pBuf);
+		xlCodeBufAppend(pBuf, "{\n");
+		pGen->iIndent++;
+		
+		if ( pszKey ) {
+			xlCodegenIndent(pGen, pBuf);
+			xlCodeBufAppendFmt(pBuf, "xvalue xlv_%s = xvoCreateInt(xl__idx++);\n", (char*)pszKey);
+		} else {
+			xlCodegenIndent(pGen, pBuf);
+			xlCodeBufAppend(pBuf, "xl__idx++;\n");
+		}
+		xlCodegenIndent(pGen, pBuf);
+		xlCodeBufAppendFmt(pBuf, "xvalue xlv_%s = xl__next_val;\n", (char*)pszValue);
+
+		// 开启变量追踪
+		pGen->xScopeVars = xvoCreateArray();
+		pGen->bTrackScopeVars = TRUE;
+		
+		xlCodegenStmt(pGen, xBody);
+
+		// 生成变量清理代码
+		if ( pGen->xScopeVars ) {
+			u32 iVarCount = xvoArrayItemCount(pGen->xScopeVars);
+			for ( u32 i = 0; i < iVarCount; i++ ) {
+				xvalue xVarName = xvoArrayGetValue(pGen->xScopeVars, i);
+				str pszVarName = xvoGetText(xVarName);
+				xlCodegenIndent(pGen, pBuf);
+				xlCodeBufAppendFmt(pBuf, "xvoUnref(xlv_%s);\n", (char*)pszVarName);
+			}
+			xvoUnref(pGen->xScopeVars);
+			pGen->xScopeVars = NULL;
+		}
+		pGen->bTrackScopeVars = FALSE;
+		
+		// continue 标签 (自定义迭代器分支)
+		xlCodegenIndent(pGen, pBuf);
+		xlCodeBufAppendFmt(pBuf, "xl__continue_c_%d:;\n", iLoopLabel);
+		
+		pGen->iIndent--;
+		xlCodegenIndent(pGen, pBuf);
+		xlCodeBufAppend(pBuf, "}\n");
+		pGen->iIndent--;
+		xlCodegenIndent(pGen, pBuf);
+		xlCodeBufAppend(pBuf, "}\n");
+		
+		pGen->iIndent--;
+		xlCodegenIndent(pGen, pBuf);
+		xlCodeBufAppend(pBuf, "} else {\n");
+		pGen->iIndent++;
+		
+		// 默认数组迭代逻辑
+		xlCodegenIndent(pGen, pBuf);
+		xlCodeBufAppend(pBuf, "xvalue xl__iter = xl__iter_obj;\n");
 
 		xlCodegenIndent(pGen, pBuf);
 		xlCodeBufAppend(pBuf, "int xl__len = xvoArrayItemCount(xl__iter);\n");
@@ -1889,9 +2108,9 @@ static void xlCodegenStmt( XL_Codegen *pGen, xvalue xStmt )
 		xlCodegenIndent(pGen, pBuf);
 		xlCodeBufAppendFmt(pBuf, "xvoUnref(xlv_%s);\n", (char*)pszValue);
 
-		// continue 标签在循环体末尾
+		// continue 标签在循环体末尾 (数组迭代分支)
 		xlCodegenIndent(pGen, pBuf);
-		xlCodeBufAppendFmt(pBuf, "xl__continue_%d:;\n", iLoopLabel);
+		xlCodeBufAppendFmt(pBuf, "xl__continue_a_%d:;\n", iLoopLabel);
 
 		pGen->iIndent--;
 		xlCodegenIndent(pGen, pBuf);
@@ -1900,6 +2119,10 @@ static void xlCodegenStmt( XL_Codegen *pGen, xvalue xStmt )
 		xlCodegenIndent(pGen, pBuf);
 		xlCodeBufAppend(pBuf, "}\n");
 
+		pGen->iIndent--;
+		xlCodegenIndent(pGen, pBuf);
+		xlCodeBufAppend(pBuf, "}\n");
+		
 		pGen->iIndent--;
 		xlCodegenIndent(pGen, pBuf);
 		xlCodeBufAppend(pBuf, "}\n");
@@ -1995,6 +2218,44 @@ static void xlCodegenStmt( XL_Codegen *pGen, xvalue xStmt )
 			xlCodegenIndent(pGen, pBuf);
 			xlCodeBufAppend(pBuf, "}\n");
 		}
+		return;
+	}
+
+	// with 语句 - 调用 enter/exit 元方法
+	if ( strcmp((char*)pszKind, XL_AST_WITH_STMT) == 0 ) {
+		xvalue xExpr = xlAstGetNode(xStmt, (str)"expr");
+		str pszVar = xlAstGetStr(xStmt, (str)"var");
+		xvalue xBody = xlAstGetNode(xStmt, (str)"body");
+
+		xlCodegenIndent(pGen, pBuf);
+		xlCodeBufAppend(pBuf, "{ /* with */\n");
+		pGen->iIndent++;
+
+		// 计算表达式并调用 enter
+		xlCodegenIndent(pGen, pBuf);
+		xlCodeBufAppend(pBuf, "xvalue xl__with_obj = ");
+		xlCodegenExpr(pGen, pBuf, xExpr);
+		xlCodeBufAppend(pBuf, ";\n");
+
+		xlCodegenIndent(pGen, pBuf);
+		xlCodeBufAppend(pBuf, "xvalue xl__with_val = xl_op_enter(xl__with_obj);\n");
+
+		// 如果有 as var，创建变量绑定
+		if ( pszVar ) {
+			xlCodegenIndent(pGen, pBuf);
+			xlCodeBufAppendFmt(pBuf, "xvalue xlv_%s = xl__with_val;\n", (char*)pszVar);
+		}
+
+		// 生成 body
+		xlCodegenStmt(pGen, xBody);
+
+		// 调用 exit
+		xlCodegenIndent(pGen, pBuf);
+		xlCodeBufAppend(pBuf, "xl_op_exit(xl__with_obj);\n");
+
+		pGen->iIndent--;
+		xlCodegenIndent(pGen, pBuf);
+		xlCodeBufAppend(pBuf, "}\n");
 		return;
 	}
 }
@@ -2104,9 +2365,23 @@ static void xlCodegenDecl( XL_Codegen *pGen, xvalue xDecl )
 		strncpy(pGen->szCurrentClass, (char*)pszName, 63);
 		pGen->szCurrentClass[63] = '\0';
 
-		// 先扫描成员，找出构造函数和析构函数
+		// 先扫描成员，找出构造函数、析构函数和 meta 方法
 		xvalue xCtor = NULL;
 		xvalue xDtor = NULL;
+		xvalue xMetaLet = NULL;
+		xvalue xMetaGet = NULL;
+		xvalue xMetaCall = NULL;
+		// 运算符重载元方法
+		xvalue xMetaAdd = NULL, xMetaSub = NULL, xMetaMul = NULL, xMetaDiv = NULL;
+		xvalue xMetaMod = NULL, xMetaPow = NULL, xMetaNeg = NULL;
+		xvalue xMetaEq = NULL, xMetaLt = NULL, xMetaLe = NULL;
+		// 索引和迭代器元方法
+		xvalue xMetaIndex = NULL, xMetaNewindex = NULL, xMetaLen = NULL;
+		xvalue xMetaIter = NULL, xMetaNext = NULL;
+		// 类型转换元方法
+		xvalue xMetaTo = NULL, xMetaFrom = NULL;
+		// with 语句元方法
+		xvalue xMetaEnter = NULL, xMetaExit = NULL;
 		int iMemberCount = xlAstArrayLen(xMembers);
 		for ( int i = 0; i < iMemberCount; i++ ) {
 			xvalue xMember = xlAstArrayGet(xMembers, i);
@@ -2115,8 +2390,95 @@ static void xlCodegenDecl( XL_Codegen *pGen, xvalue xDecl )
 				xCtor = xMember;
 			} else if ( strcmp((char*)pszMemberKind, XL_AST_DTOR_DECL) == 0 ) {
 				xDtor = xMember;
+			} else if ( strcmp((char*)pszMemberKind, XL_AST_META_DECL) == 0 ) {
+				str pszMetaType = xlAstGetStr(xMember, (str)"metaType");
+				// 基础元方法
+				if ( strcmp((char*)pszMetaType, "let") == 0 ) {
+					xMetaLet = xMember;
+				} else if ( strcmp((char*)pszMetaType, "get") == 0 ) {
+					xMetaGet = xMember;
+				} else if ( strcmp((char*)pszMetaType, "call") == 0 ) {
+					xMetaCall = xMember;
+				}
+				// 运算符重载
+				else if ( strcmp((char*)pszMetaType, "add") == 0 ) {
+					xMetaAdd = xMember;
+				} else if ( strcmp((char*)pszMetaType, "sub") == 0 ) {
+					xMetaSub = xMember;
+				} else if ( strcmp((char*)pszMetaType, "mul") == 0 ) {
+					xMetaMul = xMember;
+				} else if ( strcmp((char*)pszMetaType, "div") == 0 ) {
+					xMetaDiv = xMember;
+				} else if ( strcmp((char*)pszMetaType, "mod") == 0 ) {
+					xMetaMod = xMember;
+				} else if ( strcmp((char*)pszMetaType, "pow") == 0 ) {
+					xMetaPow = xMember;
+				} else if ( strcmp((char*)pszMetaType, "neg") == 0 ) {
+					xMetaNeg = xMember;
+				} else if ( strcmp((char*)pszMetaType, "eq") == 0 ) {
+					xMetaEq = xMember;
+				} else if ( strcmp((char*)pszMetaType, "lt") == 0 ) {
+					xMetaLt = xMember;
+				} else if ( strcmp((char*)pszMetaType, "le") == 0 ) {
+					xMetaLe = xMember;
+				}
+				// 索引和长度
+				else if ( strcmp((char*)pszMetaType, "index") == 0 ) {
+					xMetaIndex = xMember;
+				} else if ( strcmp((char*)pszMetaType, "newindex") == 0 ) {
+					xMetaNewindex = xMember;
+				} else if ( strcmp((char*)pszMetaType, "len") == 0 ) {
+					xMetaLen = xMember;
+				}
+				// 迭代器
+				else if ( strcmp((char*)pszMetaType, "iter") == 0 ) {
+					xMetaIter = xMember;
+				} else if ( strcmp((char*)pszMetaType, "next") == 0 ) {
+					xMetaNext = xMember;
+				}
+				// 类型转换
+				else if ( strcmp((char*)pszMetaType, "to") == 0 ) {
+					xMetaTo = xMember;
+				} else if ( strcmp((char*)pszMetaType, "from") == 0 ) {
+					xMetaFrom = xMember;
+				}
+				// with 语句
+				else if ( strcmp((char*)pszMetaType, "enter") == 0 ) {
+					xMetaEnter = xMember;
+				} else if ( strcmp((char*)pszMetaType, "exit") == 0 ) {
+					xMetaExit = xMember;
+				}
 			}
 		}
+
+		// 记录 meta 方法状态
+		pGen->arrClassHasMetaLet[iClassIdx] = (xMetaLet != NULL);
+		pGen->arrClassHasMetaGet[iClassIdx] = (xMetaGet != NULL);
+		pGen->arrClassHasMetaCall[iClassIdx] = (xMetaCall != NULL);
+		// 运算符重载
+		pGen->arrClassHasMetaAdd[iClassIdx] = (xMetaAdd != NULL);
+		pGen->arrClassHasMetaSub[iClassIdx] = (xMetaSub != NULL);
+		pGen->arrClassHasMetaMul[iClassIdx] = (xMetaMul != NULL);
+		pGen->arrClassHasMetaDiv[iClassIdx] = (xMetaDiv != NULL);
+		pGen->arrClassHasMetaMod[iClassIdx] = (xMetaMod != NULL);
+		pGen->arrClassHasMetaPow[iClassIdx] = (xMetaPow != NULL);
+		pGen->arrClassHasMetaNeg[iClassIdx] = (xMetaNeg != NULL);
+		pGen->arrClassHasMetaEq[iClassIdx] = (xMetaEq != NULL);
+		pGen->arrClassHasMetaLt[iClassIdx] = (xMetaLt != NULL);
+		pGen->arrClassHasMetaLe[iClassIdx] = (xMetaLe != NULL);
+		// 索引
+		pGen->arrClassHasMetaIndex[iClassIdx] = (xMetaIndex != NULL);
+		pGen->arrClassHasMetaNewindex[iClassIdx] = (xMetaNewindex != NULL);
+		pGen->arrClassHasMetaLen[iClassIdx] = (xMetaLen != NULL);
+		// 迭代器
+		pGen->arrClassHasMetaIter[iClassIdx] = (xMetaIter != NULL);
+		pGen->arrClassHasMetaNext[iClassIdx] = (xMetaNext != NULL);
+		// 类型转换
+		pGen->arrClassHasMetaTo[iClassIdx] = (xMetaTo != NULL);
+		pGen->arrClassHasMetaFrom[iClassIdx] = (xMetaFrom != NULL);
+		// with 语句
+		pGen->arrClassHasMetaEnter[iClassIdx] = (xMetaEnter != NULL);
+		pGen->arrClassHasMetaExit[iClassIdx] = (xMetaExit != NULL);
 
 		// 类作为 table 实现
 		xlCodeBufAppendFmt(pGen->pHeader, "// class %s\n", (char*)pszName);
@@ -2317,6 +2679,215 @@ static void xlCodegenDecl( XL_Codegen *pGen, xvalue xDecl )
 			}
 		}
 
+		// 生成 meta 方法
+		// meta get(name) - 属性获取拦截
+		if ( xMetaGet ) {
+			xvalue xMetaParams = xlAstGetNode(xMetaGet, (str)"params");
+			xvalue xMetaBody = xlAstGetNode(xMetaGet, (str)"body");
+
+			// 声明
+			xlCodeBufAppendFmt(pGen->pHeader, "xvalue xlc_%s_meta_get(xvalue xlv_self, xvalue xlv_name);\n", (char*)pszName);
+
+			// 实现
+			xlCodeBufAppendFmt(pGen->pBody, "\nxvalue xlc_%s_meta_get(xvalue xlv_self, xvalue xlv_name)\n{\n", (char*)pszName);
+			// 如果有参数名，使用它；否则使用默认的 xlv_name
+			int iParamCount = xlAstArrayLen(xMetaParams);
+			if ( iParamCount > 0 ) {
+				xvalue xParam = xlAstArrayGet(xMetaParams, 0);
+				str pszParamName = xlAstGetStr(xParam, (str)"name");
+				if ( strcmp((char*)pszParamName, "name") != 0 ) {
+					xlCodeBufAppendFmt(pGen->pBody, "\txvalue xlv_%s = xlv_name;\n", (char*)pszParamName);
+				}
+			}
+			pGen->iIndent = 1;
+			xlCodegenStmt(pGen, xMetaBody);
+			pGen->iIndent = 0;
+			xlCodeBufAppend(pGen->pBody, "\treturn xvoCreateNull();\n");
+			xlCodeBufAppend(pGen->pBody, "}\n");
+		}
+
+		// meta let(name, value) - 属性设置拦截
+		if ( xMetaLet ) {
+			xvalue xMetaParams = xlAstGetNode(xMetaLet, (str)"params");
+			xvalue xMetaBody = xlAstGetNode(xMetaLet, (str)"body");
+
+			// 声明
+			xlCodeBufAppendFmt(pGen->pHeader, "xvalue xlc_%s_meta_let(xvalue xlv_self, xvalue xlv_name, xvalue xlv_value);\n", (char*)pszName);
+
+			// 实现
+			xlCodeBufAppendFmt(pGen->pBody, "\nxvalue xlc_%s_meta_let(xvalue xlv_self, xvalue xlv_name, xvalue xlv_value)\n{\n", (char*)pszName);
+			// 映射参数名
+			int iParamCount = xlAstArrayLen(xMetaParams);
+			if ( iParamCount >= 1 ) {
+				xvalue xParam = xlAstArrayGet(xMetaParams, 0);
+				str pszParamName = xlAstGetStr(xParam, (str)"name");
+				if ( strcmp((char*)pszParamName, "name") != 0 ) {
+					xlCodeBufAppendFmt(pGen->pBody, "\txvalue xlv_%s = xlv_name;\n", (char*)pszParamName);
+				}
+			}
+			if ( iParamCount >= 2 ) {
+				xvalue xParam = xlAstArrayGet(xMetaParams, 1);
+				str pszParamName = xlAstGetStr(xParam, (str)"name");
+				if ( strcmp((char*)pszParamName, "value") != 0 ) {
+					xlCodeBufAppendFmt(pGen->pBody, "\txvalue xlv_%s = xlv_value;\n", (char*)pszParamName);
+				}
+			}
+			pGen->iIndent = 1;
+			xlCodegenStmt(pGen, xMetaBody);
+			pGen->iIndent = 0;
+			xlCodeBufAppend(pGen->pBody, "\treturn xvoCreateNull();\n");
+			xlCodeBufAppend(pGen->pBody, "}\n");
+		}
+
+		// meta call(...) - 对象作为函数调用拦截
+		if ( xMetaCall ) {
+			xvalue xMetaParams = xlAstGetNode(xMetaCall, (str)"params");
+			xvalue xMetaBody = xlAstGetNode(xMetaCall, (str)"body");
+
+			// 声明
+			xlCodeBufAppendFmt(pGen->pHeader, "xvalue xlc_%s_meta_call(xvalue xlv_self, xvalue xlv_args);\n", (char*)pszName);
+
+			// 实现
+			xlCodeBufAppendFmt(pGen->pBody, "\nxvalue xlc_%s_meta_call(xvalue xlv_self, xvalue xlv_args)\n{\n", (char*)pszName);
+			// 映射参数
+			int iParamCount = xlAstArrayLen(xMetaParams);
+			for ( int p = 0; p < iParamCount; p++ ) {
+				xvalue xParam = xlAstArrayGet(xMetaParams, p);
+				str pszParamName = xlAstGetStr(xParam, (str)"name");
+				xlCodeBufAppendFmt(pGen->pBody, "\txvalue xlv_%s = xvoArrayGetValue(xlv_args, %d);\n", (char*)pszParamName, p);
+			}
+			pGen->iIndent = 1;
+			xlCodegenStmt(pGen, xMetaBody);
+			pGen->iIndent = 0;
+			xlCodeBufAppend(pGen->pBody, "\treturn xvoCreateNull();\n");
+			xlCodeBufAppend(pGen->pBody, "}\n");
+		}
+
+		// 运算符重载元方法 - 生成辅助宏
+		#define XLCODEGEN_META_BINARY(metaVar, metaName) \
+			if ( metaVar ) { \
+				xvalue xMetaParams = xlAstGetNode(metaVar, (str)"params"); \
+				xvalue xMetaBody = xlAstGetNode(metaVar, (str)"body"); \
+				xlCodeBufAppendFmt(pGen->pHeader, "xvalue xlc_%s_meta_%s(xvalue xlv_self, xvalue xlv_other);\n", (char*)pszName, metaName); \
+				xlCodeBufAppendFmt(pGen->pBody, "\nxvalue xlc_%s_meta_%s(xvalue xlv_self, xvalue xlv_other)\n{\n", (char*)pszName, metaName); \
+				int iPC = xlAstArrayLen(xMetaParams); \
+				if ( iPC > 0 ) { \
+					xvalue xP = xlAstArrayGet(xMetaParams, 0); \
+					str pN = xlAstGetStr(xP, (str)"name"); \
+					if ( strcmp((char*)pN, "other") != 0 ) \
+						xlCodeBufAppendFmt(pGen->pBody, "\txvalue xlv_%s = xlv_other;\n", (char*)pN); \
+				} \
+				pGen->iIndent = 1; \
+				xlCodegenStmt(pGen, xMetaBody); \
+				pGen->iIndent = 0; \
+				xlCodeBufAppend(pGen->pBody, "\treturn xvoCreateNull();\n"); \
+				xlCodeBufAppend(pGen->pBody, "}\n"); \
+			}
+
+		#define XLCODEGEN_META_UNARY(metaVar, metaName) \
+			if ( metaVar ) { \
+				xvalue xMetaBody = xlAstGetNode(metaVar, (str)"body"); \
+				xlCodeBufAppendFmt(pGen->pHeader, "xvalue xlc_%s_meta_%s(xvalue xlv_self);\n", (char*)pszName, metaName); \
+				xlCodeBufAppendFmt(pGen->pBody, "\nxvalue xlc_%s_meta_%s(xvalue xlv_self)\n{\n", (char*)pszName, metaName); \
+				pGen->iIndent = 1; \
+				xlCodegenStmt(pGen, xMetaBody); \
+				pGen->iIndent = 0; \
+				xlCodeBufAppend(pGen->pBody, "\treturn xvoCreateNull();\n"); \
+				xlCodeBufAppend(pGen->pBody, "}\n"); \
+			}
+
+		// 二元运算符
+		XLCODEGEN_META_BINARY(xMetaAdd, "add")
+		XLCODEGEN_META_BINARY(xMetaSub, "sub")
+		XLCODEGEN_META_BINARY(xMetaMul, "mul")
+		XLCODEGEN_META_BINARY(xMetaDiv, "div")
+		XLCODEGEN_META_BINARY(xMetaMod, "mod")
+		XLCODEGEN_META_BINARY(xMetaPow, "pow")
+		XLCODEGEN_META_BINARY(xMetaEq, "eq")
+		XLCODEGEN_META_BINARY(xMetaLt, "lt")
+		XLCODEGEN_META_BINARY(xMetaLe, "le")
+
+		// 一元运算符
+		XLCODEGEN_META_UNARY(xMetaNeg, "neg")
+		XLCODEGEN_META_UNARY(xMetaLen, "len")
+
+		// meta index(key) - 索引读取
+		if ( xMetaIndex ) {
+			xvalue xMetaParams = xlAstGetNode(xMetaIndex, (str)"params");
+			xvalue xMetaBody = xlAstGetNode(xMetaIndex, (str)"body");
+			xlCodeBufAppendFmt(pGen->pHeader, "xvalue xlc_%s_meta_index(xvalue xlv_self, xvalue xlv_key);\n", (char*)pszName);
+			xlCodeBufAppendFmt(pGen->pBody, "\nxvalue xlc_%s_meta_index(xvalue xlv_self, xvalue xlv_key)\n{\n", (char*)pszName);
+			int iPC = xlAstArrayLen(xMetaParams);
+			if ( iPC > 0 ) {
+				xvalue xP = xlAstArrayGet(xMetaParams, 0);
+				str pN = xlAstGetStr(xP, (str)"name");
+				if ( strcmp((char*)pN, "key") != 0 )
+					xlCodeBufAppendFmt(pGen->pBody, "\txvalue xlv_%s = xlv_key;\n", (char*)pN);
+			}
+			pGen->iIndent = 1;
+			xlCodegenStmt(pGen, xMetaBody);
+			pGen->iIndent = 0;
+			xlCodeBufAppend(pGen->pBody, "\treturn xvoCreateNull();\n");
+			xlCodeBufAppend(pGen->pBody, "}\n");
+		}
+
+		// meta newindex(key, val) - 索引写入
+		if ( xMetaNewindex ) {
+			xvalue xMetaParams = xlAstGetNode(xMetaNewindex, (str)"params");
+			xvalue xMetaBody = xlAstGetNode(xMetaNewindex, (str)"body");
+			xlCodeBufAppendFmt(pGen->pHeader, "xvalue xlc_%s_meta_newindex(xvalue xlv_self, xvalue xlv_key, xvalue xlv_val);\n", (char*)pszName);
+			xlCodeBufAppendFmt(pGen->pBody, "\nxvalue xlc_%s_meta_newindex(xvalue xlv_self, xvalue xlv_key, xvalue xlv_val)\n{\n", (char*)pszName);
+			int iPC = xlAstArrayLen(xMetaParams);
+			if ( iPC >= 1 ) {
+				xvalue xP = xlAstArrayGet(xMetaParams, 0);
+				str pN = xlAstGetStr(xP, (str)"name");
+				if ( strcmp((char*)pN, "key") != 0 )
+					xlCodeBufAppendFmt(pGen->pBody, "\txvalue xlv_%s = xlv_key;\n", (char*)pN);
+			}
+			if ( iPC >= 2 ) {
+				xvalue xP = xlAstArrayGet(xMetaParams, 1);
+				str pN = xlAstGetStr(xP, (str)"name");
+				if ( strcmp((char*)pN, "val") != 0 )
+					xlCodeBufAppendFmt(pGen->pBody, "\txvalue xlv_%s = xlv_val;\n", (char*)pN);
+			}
+			pGen->iIndent = 1;
+			xlCodegenStmt(pGen, xMetaBody);
+			pGen->iIndent = 0;
+			xlCodeBufAppend(pGen->pBody, "\treturn xvoCreateNull();\n");
+			xlCodeBufAppend(pGen->pBody, "}\n");
+		}
+
+		// meta iter() - 迭代器
+		XLCODEGEN_META_UNARY(xMetaIter, "iter")
+		XLCODEGEN_META_UNARY(xMetaNext, "next")
+
+		// meta to(type) - 类型转换
+		if ( xMetaTo ) {
+			xvalue xMetaParams = xlAstGetNode(xMetaTo, (str)"params");
+			xvalue xMetaBody = xlAstGetNode(xMetaTo, (str)"body");
+			xlCodeBufAppendFmt(pGen->pHeader, "xvalue xlc_%s_meta_to(xvalue xlv_self, xvalue xlv_type);\n", (char*)pszName);
+			xlCodeBufAppendFmt(pGen->pBody, "\nxvalue xlc_%s_meta_to(xvalue xlv_self, xvalue xlv_type)\n{\n", (char*)pszName);
+			int iPC = xlAstArrayLen(xMetaParams);
+			if ( iPC > 0 ) {
+				xvalue xP = xlAstArrayGet(xMetaParams, 0);
+				str pN = xlAstGetStr(xP, (str)"name");
+				if ( pN && (strcmp((char*)pN, "type") != 0) )
+					xlCodeBufAppendFmt(pGen->pBody, "\txvalue xlv_%s = xlv_type;\n", (char*)pN);
+			}
+			pGen->iIndent = 1;
+			xlCodegenStmt(pGen, xMetaBody);
+			pGen->iIndent = 0;
+			xlCodeBufAppend(pGen->pBody, "\treturn xvoCreateNull();\n");
+			xlCodeBufAppend(pGen->pBody, "}\n");
+		}
+
+		// meta enter/exit - with 语句支持
+		XLCODEGEN_META_UNARY(xMetaEnter, "enter")
+		XLCODEGEN_META_UNARY(xMetaExit, "exit")
+
+		#undef XLCODEGEN_META_BINARY
+		#undef XLCODEGEN_META_UNARY
+
 		// 生成静态初始化函数实现
 		bool bHasStaticInit = false;
 		for ( int i = 0; i < iMemberCount; i++ ) {
@@ -2388,7 +2959,39 @@ static inline bool xlCodegenGenerate( XL_Codegen *pGen, xvalue xModule )
 	xlCodeBufAppend(pGen->pHeader, "#define xvoIsTrue(x) (xvoGetBool(x) || xvoGetInt(x) || xvoGetFloat(x))\n");
 	xlCodeBufAppend(pGen->pHeader, "\n");
 
+	// 运算符重载分发函数前向声明
+	xlCodeBufAppend(pGen->pHeader, "// 运算符重载分发函数（在 body 中实现）\n");
+	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_op_add(xvalue a, xvalue b);\n");
+	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_op_sub(xvalue a, xvalue b);\n");
+	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_op_mul(xvalue a, xvalue b);\n");
+	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_op_div(xvalue a, xvalue b);\n");
+	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_op_mod(xvalue a, xvalue b);\n");
+	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_op_pow(xvalue a, xvalue b);\n");
+	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_op_neg(xvalue a);\n");
+	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_op_eq(xvalue a, xvalue b);\n");
+	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_op_lt(xvalue a, xvalue b);\n");
+	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_op_le(xvalue a, xvalue b);\n");
+	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_op_index(xvalue obj, xvalue key);\n");
+	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_op_newindex(xvalue obj, xvalue key, xvalue val);\n");
+	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_op_len(xvalue obj);\n");
+	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_op_iter(xvalue obj);\n");
+	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_op_next(xvalue obj);\n");
+	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_op_to(xvalue obj, xvalue type);\n");
+	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_op_enter(xvalue obj);\n");
+	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_op_exit(xvalue obj);\n");
+	xlCodeBufAppend(pGen->pHeader, "static int xl_has_meta_op(xvalue obj, const char* op);\n");
+	xlCodeBufAppend(pGen->pHeader, "\n");
+
+	// 检查是否是自定义类对象
+	xlCodeBufAppend(pGen->pHeader, "static int xl_is_custom_obj(xvalue obj) {\n");
+	xlCodeBufAppend(pGen->pHeader, "\tif ( xvoType(obj) != XVO_DT_TABLE ) return 0;\n");
+	xlCodeBufAppend(pGen->pHeader, "\txvalue cn = xvoTableGetValue(obj, (str)\"__class__\", 0);\n");
+	xlCodeBufAppend(pGen->pHeader, "\treturn (cn && (xvoType(cn) == XVO_DT_TEXT));\n");
+	xlCodeBufAppend(pGen->pHeader, "}\n\n");
+
 	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_add(xvalue a, xvalue b) {\n");
+	xlCodeBufAppend(pGen->pHeader, "\t// 检查运算符重载\n");
+	xlCodeBufAppend(pGen->pHeader, "\tif ( xl_is_custom_obj(a) && xl_has_meta_op(a, \"add\") ) return xl_op_add(a, b);\n");
 	xlCodeBufAppend(pGen->pHeader, "\tint ta = xvoType(a), tb = xvoType(b);\n");
 	xlCodeBufAppend(pGen->pHeader, "\t// 字符串拼接\n");
 	xlCodeBufAppend(pGen->pHeader, "\tif ( (ta == XVO_DT_TEXT) || (tb == XVO_DT_TEXT) ) {\n");
@@ -2422,12 +3025,14 @@ static inline bool xlCodegenGenerate( XL_Codegen *pGen, xvalue xModule )
 	xlCodeBufAppend(pGen->pHeader, "}\n\n");
 
 	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_sub(xvalue a, xvalue b) {\n");
+	xlCodeBufAppend(pGen->pHeader, "\tif ( xl_is_custom_obj(a) && xl_has_meta_op(a, \"sub\") ) return xl_op_sub(a, b);\n");
 	xlCodeBufAppend(pGen->pHeader, "\tif ( (xvoType(a) == XVO_DT_INT) && (xvoType(b) == XVO_DT_INT) )\n");
 	xlCodeBufAppend(pGen->pHeader, "\t\treturn xvoCreateInt(xvoGetInt(a) - xvoGetInt(b));\n");
 	xlCodeBufAppend(pGen->pHeader, "\treturn xvoCreateFloat(xvoGetFloat(a) - xvoGetFloat(b));\n");
 	xlCodeBufAppend(pGen->pHeader, "}\n\n");
 
 	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_mul(xvalue a, xvalue b) {\n");
+	xlCodeBufAppend(pGen->pHeader, "\tif ( xl_is_custom_obj(a) && xl_has_meta_op(a, \"mul\") ) return xl_op_mul(a, b);\n");
 	xlCodeBufAppend(pGen->pHeader, "\tint ta = xvoType(a), tb = xvoType(b);\n");
 	xlCodeBufAppend(pGen->pHeader, "\t// 字符串重复: \"ab\" * 3 = \"ababab\"\n");
 	xlCodeBufAppend(pGen->pHeader, "\tif ( (ta == XVO_DT_TEXT) && (tb == XVO_DT_INT) ) {\n");
@@ -2459,14 +3064,17 @@ static inline bool xlCodegenGenerate( XL_Codegen *pGen, xvalue xModule )
 	xlCodeBufAppend(pGen->pHeader, "}\n\n");
 
 	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_div(xvalue a, xvalue b) {\n");
+	xlCodeBufAppend(pGen->pHeader, "\tif ( xl_is_custom_obj(a) && xl_has_meta_op(a, \"div\") ) return xl_op_div(a, b);\n");
 	xlCodeBufAppend(pGen->pHeader, "\treturn xvoCreateFloat(xvoGetFloat(a) / xvoGetFloat(b));\n");
 	xlCodeBufAppend(pGen->pHeader, "}\n\n");
 
 	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_mod(xvalue a, xvalue b) {\n");
+	xlCodeBufAppend(pGen->pHeader, "\tif ( xl_is_custom_obj(a) && xl_has_meta_op(a, \"mod\") ) return xl_op_mod(a, b);\n");
 	xlCodeBufAppend(pGen->pHeader, "\treturn xvoCreateInt(xvoGetInt(a) % xvoGetInt(b));\n");
 	xlCodeBufAppend(pGen->pHeader, "}\n\n");
 
 	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_pow(xvalue a, xvalue b) {\n");
+	xlCodeBufAppend(pGen->pHeader, "\tif ( xl_is_custom_obj(a) && xl_has_meta_op(a, \"pow\") ) return xl_op_pow(a, b);\n");
 	xlCodeBufAppend(pGen->pHeader, "\tif ( (xvoType(a) == XVO_DT_INT) && (xvoType(b) == XVO_DT_INT) ) {\n");
 	xlCodeBufAppend(pGen->pHeader, "\t\ti64 base = xvoGetInt(a), exp = xvoGetInt(b), result = 1;\n");
 	xlCodeBufAppend(pGen->pHeader, "\t\tif ( exp >= 0 ) { while ( exp-- > 0 ) result *= base; return xvoCreateInt(result); }\n");
@@ -2475,6 +3083,7 @@ static inline bool xlCodegenGenerate( XL_Codegen *pGen, xvalue xModule )
 	xlCodeBufAppend(pGen->pHeader, "}\n\n");
 
 	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_neg(xvalue a) {\n");
+	xlCodeBufAppend(pGen->pHeader, "\tif ( xl_is_custom_obj(a) && xl_has_meta_op(a, \"neg\") ) return xl_op_neg(a);\n");
 	xlCodeBufAppend(pGen->pHeader, "\tif ( xvoType(a) == XVO_DT_INT ) return xvoCreateInt(-xvoGetInt(a));\n");
 	xlCodeBufAppend(pGen->pHeader, "\treturn xvoCreateFloat(-xvoGetFloat(a));\n");
 	xlCodeBufAppend(pGen->pHeader, "}\n\n");
@@ -2510,27 +3119,46 @@ static inline bool xlCodegenGenerate( XL_Codegen *pGen, xvalue xModule )
 	xlCodeBufAppend(pGen->pHeader, "}\n\n");
 
 	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_not(xvalue a) { return xvoCreateBool(!xvoIsTrue(a)); }\n");
-	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_eq(xvalue a, xvalue b) { return xvoCreateBool(xvoGetInt(a) == xvoGetInt(b)); }\n");
-	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_ne(xvalue a, xvalue b) { return xvoCreateBool(xvoGetInt(a) != xvoGetInt(b)); }\n");
-	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_lt(xvalue a, xvalue b) { return xvoCreateBool(xvoGetInt(a) < xvoGetInt(b)); }\n");
-	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_le(xvalue a, xvalue b) { return xvoCreateBool(xvoGetInt(a) <= xvoGetInt(b)); }\n");
-	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_gt(xvalue a, xvalue b) { return xvoCreateBool(xvoGetInt(a) > xvoGetInt(b)); }\n");
-	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_ge(xvalue a, xvalue b) { return xvoCreateBool(xvoGetInt(a) >= xvoGetInt(b)); }\n");
+	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_eq(xvalue a, xvalue b) {\n");
+	xlCodeBufAppend(pGen->pHeader, "\tif ( xl_is_custom_obj(a) && xl_has_meta_op(a, \"eq\") ) return xl_op_eq(a, b);\n");
+	xlCodeBufAppend(pGen->pHeader, "\treturn xvoCreateBool(xvoGetInt(a) == xvoGetInt(b));\n");
+	xlCodeBufAppend(pGen->pHeader, "}\n");
+	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_ne(xvalue a, xvalue b) { return xvoCreateBool(!xvoIsTrue(xl_eq(a, b))); }\n");
+	// 约等于运算符 - 用于浮点数比较，使用 1e-9 作为容差
+	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_approx(xvalue a, xvalue b) {\n");
+	xlCodeBufAppend(pGen->pHeader, "\tdouble da = xvoGetFloat(a), db = xvoGetFloat(b);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tdouble diff = da - db;\n");
+	xlCodeBufAppend(pGen->pHeader, "\tif ( diff < 0 ) diff = -diff;\n");
+	xlCodeBufAppend(pGen->pHeader, "\treturn xvoCreateBool(diff < 1e-9);\n");
+	xlCodeBufAppend(pGen->pHeader, "}\n");
+	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_lt(xvalue a, xvalue b) {\n");
+	xlCodeBufAppend(pGen->pHeader, "\tif ( xl_is_custom_obj(a) && xl_has_meta_op(a, \"lt\") ) return xl_op_lt(a, b);\n");
+	xlCodeBufAppend(pGen->pHeader, "\treturn xvoCreateBool(xvoGetInt(a) < xvoGetInt(b));\n");
+	xlCodeBufAppend(pGen->pHeader, "}\n");
+	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_le(xvalue a, xvalue b) {\n");
+	xlCodeBufAppend(pGen->pHeader, "\tif ( xl_is_custom_obj(a) && xl_has_meta_op(a, \"le\") ) return xl_op_le(a, b);\n");
+	xlCodeBufAppend(pGen->pHeader, "\treturn xvoCreateBool(xvoGetInt(a) <= xvoGetInt(b));\n");
+	xlCodeBufAppend(pGen->pHeader, "}\n");
+	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_gt(xvalue a, xvalue b) { return xl_lt(b, a); }\n");
+	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_ge(xvalue a, xvalue b) { return xl_le(b, a); }\n");
 	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_and(xvalue a, xvalue b) { return xvoCreateBool(xvoIsTrue(a) && xvoIsTrue(b)); }\n");
 	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_or(xvalue a, xvalue b) { return xvoCreateBool(xvoIsTrue(a) || xvoIsTrue(b)); }\n");
 	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_coalesce(xvalue a, xvalue b) { return xvoType(a) == XVO_DT_NULL ? b : a; }\n");
 	xlCodeBufAppend(pGen->pHeader, "static i64 xl__len_i64(xvalue obj) {\n");
+	xlCodeBufAppend(pGen->pHeader, "\tif ( xl_is_custom_obj(obj) && xl_has_meta_op(obj, \"len\") ) return xvoGetInt(xl_op_len(obj));\n");
 	xlCodeBufAppend(pGen->pHeader, "\tif ( xvoType(obj) == XVO_DT_TEXT ) return xvoGetSize(obj);\n");
 	xlCodeBufAppend(pGen->pHeader, "\tif ( xvoType(obj) == XVO_DT_ARRAY ) return xvoArrayItemCount(obj);\n");
 	xlCodeBufAppend(pGen->pHeader, "\tif ( xvoType(obj) == XVO_DT_LIST ) return xvoListItemCount(obj);\n");
 	xlCodeBufAppend(pGen->pHeader, "\treturn 0;\n");
 	xlCodeBufAppend(pGen->pHeader, "}\n");
 	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_index(xvalue obj, xvalue idx) {\n");
+	xlCodeBufAppend(pGen->pHeader, "\tif ( xl_is_custom_obj(obj) && xl_has_meta_op(obj, \"index\") ) return xl_op_index(obj, idx);\n");
 	xlCodeBufAppend(pGen->pHeader, "\ti64 i = xvoGetInt(idx);\n");
 	xlCodeBufAppend(pGen->pHeader, "\tif ( i < 0 ) i = xl__len_i64(obj) + i;\n");
 	xlCodeBufAppend(pGen->pHeader, "\treturn xvoArrayGetValue(obj, (u32)i);\n");
 	xlCodeBufAppend(pGen->pHeader, "}\n");
 	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_index_set(xvalue obj, xvalue idx, xvalue val) {\n");
+	xlCodeBufAppend(pGen->pHeader, "\tif ( xl_is_custom_obj(obj) && xl_has_meta_op(obj, \"newindex\") ) return xl_op_newindex(obj, idx, val);\n");
 	xlCodeBufAppend(pGen->pHeader, "\ti64 i = xvoGetInt(idx);\n");
 	xlCodeBufAppend(pGen->pHeader, "\tif ( i < 0 ) i = xl__len_i64(obj) + i;\n");
 	xlCodeBufAppend(pGen->pHeader, "\txvoArraySetValue(obj, (u32)i, val, FALSE);\n");
@@ -2552,7 +3180,29 @@ static inline bool xlCodegenGenerate( XL_Codegen *pGen, xvalue xModule )
 	xlCodeBufAppend(pGen->pHeader, "\tfor ( i64 i = s; i < e; i++ ) xvoArrayAppendValue(arr, xvoArrayGetValue(obj, (u32)i), FALSE);\n");
 	xlCodeBufAppend(pGen->pHeader, "\treturn arr;\n");
 	xlCodeBufAppend(pGen->pHeader, "}\n");
-	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_member(xvalue obj, const char* name) { return xvoTableGetValue(obj, (str)name, 0); }\n");
+	// meta 方法前向声明（在 body 中实现，但 xl_member 需要使用）
+	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_meta_get(xvalue obj, const char* name);\n");
+	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_meta_let(xvalue obj, const char* name, xvalue val);\n");
+	xlCodeBufAppend(pGen->pHeader, "static int xl_has_meta_get(xvalue obj);\n");
+	xlCodeBufAppend(pGen->pHeader, "static int xl_has_meta_let(xvalue obj);\n");
+	// xl_member 支持 meta get
+	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_member(xvalue obj, const char* name) {\n");
+	xlCodeBufAppend(pGen->pHeader, "\txvalue val = xvoTableGetValue(obj, (str)name, 0);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tif ( (val == NULL) || (xvoType(val) == XVO_DT_NULL) ) {\n");
+	xlCodeBufAppend(pGen->pHeader, "\t\tif ( xl_has_meta_get(obj) ) return xl_meta_get(obj, name);\n");
+	xlCodeBufAppend(pGen->pHeader, "\t}\n");
+	xlCodeBufAppend(pGen->pHeader, "\treturn val ? val : xvoCreateNull();\n");
+	xlCodeBufAppend(pGen->pHeader, "}\n");
+	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_safe_member(xvalue obj, const char* name) {\n");
+	xlCodeBufAppend(pGen->pHeader, "\tif ( !obj || (xvoType(obj) == XVO_DT_NULL) ) return xvoCreateNull();\n");
+	xlCodeBufAppend(pGen->pHeader, "\treturn xl_member(obj, name);\n");
+	xlCodeBufAppend(pGen->pHeader, "}\n");
+	// xl_member_set 支持 meta let
+	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_member_set(xvalue obj, const char* name, xvalue val) {\n");
+	xlCodeBufAppend(pGen->pHeader, "\tif ( xl_has_meta_let(obj) ) return xl_meta_let(obj, name, val);\n");
+	xlCodeBufAppend(pGen->pHeader, "\txvoTableSetValue(obj, (str)name, 0, val, FALSE);\n");
+	xlCodeBufAppend(pGen->pHeader, "\treturn val;\n");
+	xlCodeBufAppend(pGen->pHeader, "}\n");
 	xlCodeBufAppend(pGen->pHeader, "\n");
 
 	// in 运算符 - 判断元素是否在容器中
@@ -2688,7 +3338,12 @@ static inline bool xlCodegenGenerate( XL_Codegen *pGen, xvalue xModule )
 	xlCodeBufAppend(pGen->pHeader, "\txvalue arr = xvoCreateArray();\n");
 	xlCodeBufAppend(pGen->pHeader, "\ti64 iStart = xvoGetInt(start);\n");
 	xlCodeBufAppend(pGen->pHeader, "\ti64 iEnd = xvoGetInt(end);\n");
-	xlCodeBufAppend(pGen->pHeader, "\ti64 iStep = (xvoType(step) == XVO_DT_NULL) ? 1 : xvoGetInt(step);\n");
+	xlCodeBufAppend(pGen->pHeader, "\ti64 iStep;\n");
+	xlCodeBufAppend(pGen->pHeader, "\tif ( xvoType(step) == XVO_DT_NULL ) {\n");
+	xlCodeBufAppend(pGen->pHeader, "\t\tiStep = (iStart <= iEnd) ? 1 : -1;\n");
+	xlCodeBufAppend(pGen->pHeader, "\t} else {\n");
+	xlCodeBufAppend(pGen->pHeader, "\t\tiStep = xvoGetInt(step);\n");
+	xlCodeBufAppend(pGen->pHeader, "\t}\n");
 	xlCodeBufAppend(pGen->pHeader, "\tif ( iStep == 0 ) return arr;\n");
 	xlCodeBufAppend(pGen->pHeader, "\tif ( iStep > 0 ) {\n");
 	xlCodeBufAppend(pGen->pHeader, "\t\tfor ( i64 i = iStart; i < iEnd; i += iStep ) {\n");
@@ -2748,8 +3403,97 @@ static inline bool xlCodegenGenerate( XL_Codegen *pGen, xvalue xModule )
 	xlCodeBufAppend(pGen->pHeader, "\treturn xvoCreateFloat(fa > fb ? fa : fb);\n");
 	xlCodeBufAppend(pGen->pHeader, "}\n\n");
 
+	// round 内置函数 - 四舍五入
+	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_round(xvalue v) {\n");
+	xlCodeBufAppend(pGen->pHeader, "\tif ( xvoType(v) == XVO_DT_INT ) return v;\n");
+	xlCodeBufAppend(pGen->pHeader, "\tf64 f = xvoGetFloat(v);\n");
+	xlCodeBufAppend(pGen->pHeader, "\treturn xvoCreateInt((i64)(f >= 0 ? f + 0.5 : f - 0.5));\n");
+	xlCodeBufAppend(pGen->pHeader, "}\n\n");
+
+	// floor 内置函数 - 向下取整
+	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_floor(xvalue v) {\n");
+	xlCodeBufAppend(pGen->pHeader, "\tif ( xvoType(v) == XVO_DT_INT ) return v;\n");
+	xlCodeBufAppend(pGen->pHeader, "\tf64 f = xvoGetFloat(v);\n");
+	xlCodeBufAppend(pGen->pHeader, "\ti64 i = (i64)f;\n");
+	xlCodeBufAppend(pGen->pHeader, "\treturn xvoCreateInt((f < 0 && f != i) ? i - 1 : i);\n");
+	xlCodeBufAppend(pGen->pHeader, "}\n\n");
+
+	// ceil 内置函数 - 向上取整
+	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_ceil(xvalue v) {\n");
+	xlCodeBufAppend(pGen->pHeader, "\tif ( xvoType(v) == XVO_DT_INT ) return v;\n");
+	xlCodeBufAppend(pGen->pHeader, "\tf64 f = xvoGetFloat(v);\n");
+	xlCodeBufAppend(pGen->pHeader, "\ti64 i = (i64)f;\n");
+	xlCodeBufAppend(pGen->pHeader, "\treturn xvoCreateInt((f > 0 && f != i) ? i + 1 : i);\n");
+	xlCodeBufAppend(pGen->pHeader, "}\n\n");
+
+	// chr 内置函数 - Unicode 码点转字符
+	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_chr(xvalue v) {\n");
+	xlCodeBufAppend(pGen->pHeader, "\tchar szBuf[8] = {0};\n");
+	xlCodeBufAppend(pGen->pHeader, "\ti64 code = xvoGetInt(v);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tif ( code < 0x80 ) {\n");
+	xlCodeBufAppend(pGen->pHeader, "\t\tszBuf[0] = (char)code;\n");
+	xlCodeBufAppend(pGen->pHeader, "\t} else if ( code < 0x800 ) {\n");
+	xlCodeBufAppend(pGen->pHeader, "\t\tszBuf[0] = (char)(0xC0 | (code >> 6));\n");
+	xlCodeBufAppend(pGen->pHeader, "\t\tszBuf[1] = (char)(0x80 | (code & 0x3F));\n");
+	xlCodeBufAppend(pGen->pHeader, "\t} else if ( code < 0x10000 ) {\n");
+	xlCodeBufAppend(pGen->pHeader, "\t\tszBuf[0] = (char)(0xE0 | (code >> 12));\n");
+	xlCodeBufAppend(pGen->pHeader, "\t\tszBuf[1] = (char)(0x80 | ((code >> 6) & 0x3F));\n");
+	xlCodeBufAppend(pGen->pHeader, "\t\tszBuf[2] = (char)(0x80 | (code & 0x3F));\n");
+	xlCodeBufAppend(pGen->pHeader, "\t} else {\n");
+	xlCodeBufAppend(pGen->pHeader, "\t\tszBuf[0] = (char)(0xF0 | (code >> 18));\n");
+	xlCodeBufAppend(pGen->pHeader, "\t\tszBuf[1] = (char)(0x80 | ((code >> 12) & 0x3F));\n");
+	xlCodeBufAppend(pGen->pHeader, "\t\tszBuf[2] = (char)(0x80 | ((code >> 6) & 0x3F));\n");
+	xlCodeBufAppend(pGen->pHeader, "\t\tszBuf[3] = (char)(0x80 | (code & 0x3F));\n");
+	xlCodeBufAppend(pGen->pHeader, "\t}\n");
+	xlCodeBufAppend(pGen->pHeader, "\treturn xvoCreateText((str)szBuf, (u32)strlen(szBuf), FALSE);\n");
+	xlCodeBufAppend(pGen->pHeader, "}\n\n");
+
+	// ord 内置函数 - 字符转 Unicode 码点
+	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_ord(xvalue v) {\n");
+	xlCodeBufAppend(pGen->pHeader, "\tif ( xvoType(v) != XVO_DT_TEXT ) return xvoCreateInt(0);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tconst unsigned char* s = (const unsigned char*)xvoGetText(v);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tif ( !s || !*s ) return xvoCreateInt(0);\n");
+	xlCodeBufAppend(pGen->pHeader, "\ti64 code = 0;\n");
+	xlCodeBufAppend(pGen->pHeader, "\tif ( (s[0] & 0x80) == 0 ) {\n");
+	xlCodeBufAppend(pGen->pHeader, "\t\tcode = s[0];\n");
+	xlCodeBufAppend(pGen->pHeader, "\t} else if ( (s[0] & 0xE0) == 0xC0 ) {\n");
+	xlCodeBufAppend(pGen->pHeader, "\t\tcode = ((s[0] & 0x1F) << 6) | (s[1] & 0x3F);\n");
+	xlCodeBufAppend(pGen->pHeader, "\t} else if ( (s[0] & 0xF0) == 0xE0 ) {\n");
+	xlCodeBufAppend(pGen->pHeader, "\t\tcode = ((s[0] & 0x0F) << 12) | ((s[1] & 0x3F) << 6) | (s[2] & 0x3F);\n");
+	xlCodeBufAppend(pGen->pHeader, "\t} else if ( (s[0] & 0xF8) == 0xF0 ) {\n");
+	xlCodeBufAppend(pGen->pHeader, "\t\tcode = ((s[0] & 0x07) << 18) | ((s[1] & 0x3F) << 12) | ((s[2] & 0x3F) << 6) | (s[3] & 0x3F);\n");
+	xlCodeBufAppend(pGen->pHeader, "\t}\n");
+	xlCodeBufAppend(pGen->pHeader, "\treturn xvoCreateInt(code);\n");
+	xlCodeBufAppend(pGen->pHeader, "}\n\n");
+
+	// hash 内置函数 - 获取哈希值
+	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_hash(xvalue v) {\n");
+	xlCodeBufAppend(pGen->pHeader, "\tu64 h = 0;\n");
+	xlCodeBufAppend(pGen->pHeader, "\tswitch ( xvoType(v) ) {\n");
+	xlCodeBufAppend(pGen->pHeader, "\t\tcase XVO_DT_NULL:  h = 0; break;\n");
+	xlCodeBufAppend(pGen->pHeader, "\t\tcase XVO_DT_BOOL:  h = xvoGetBool(v) ? 1 : 0; break;\n");
+	xlCodeBufAppend(pGen->pHeader, "\t\tcase XVO_DT_INT:   h = (u64)xvoGetInt(v); break;\n");
+	xlCodeBufAppend(pGen->pHeader, "\t\tcase XVO_DT_FLOAT: { f64 f = xvoGetFloat(v); h = *(u64*)&f; } break;\n");
+	xlCodeBufAppend(pGen->pHeader, "\t\tcase XVO_DT_TEXT:  {\n");
+	xlCodeBufAppend(pGen->pHeader, "\t\t\tconst char* s = (const char*)xvoGetText(v);\n");
+	xlCodeBufAppend(pGen->pHeader, "\t\t\twhile ( *s ) { h = h * 31 + *s++; }\n");
+	xlCodeBufAppend(pGen->pHeader, "\t\t} break;\n");
+	xlCodeBufAppend(pGen->pHeader, "\t\tdefault: h = (u64)(size_t)v; break;\n");
+	xlCodeBufAppend(pGen->pHeader, "\t}\n");
+	xlCodeBufAppend(pGen->pHeader, "\treturn xvoCreateInt((i64)h);\n");
+	xlCodeBufAppend(pGen->pHeader, "}\n\n");
+
+	// id 内置函数 - 获取对象唯一标识（内存地址）
+	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_id(xvalue v) {\n");
+	xlCodeBufAppend(pGen->pHeader, "\treturn xvoCreateInt((i64)(size_t)v);\n");
+	xlCodeBufAppend(pGen->pHeader, "}\n\n");
+
 	// int 类型转换函数
 	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_int(xvalue v) {\n");
+	xlCodeBufAppend(pGen->pHeader, "\t// 检查自定义对象的 meta to 方法\n");
+	xlCodeBufAppend(pGen->pHeader, "\tif ( xl_is_custom_obj(v) && xl_has_meta_op(v, \"to\") ) {\n");
+	xlCodeBufAppend(pGen->pHeader, "\t\treturn xl_op_to(v, xvoCreateText((str)\"int\", 3, FALSE));\n");
+	xlCodeBufAppend(pGen->pHeader, "\t}\n");
 	xlCodeBufAppend(pGen->pHeader, "\tswitch ( xvoType(v) ) {\n");
 	xlCodeBufAppend(pGen->pHeader, "\t\tcase XVO_DT_INT:   return v;\n");
 	xlCodeBufAppend(pGen->pHeader, "\t\tcase XVO_DT_FLOAT: return xvoCreateInt((i64)xvoGetFloat(v));\n");
@@ -2761,6 +3505,10 @@ static inline bool xlCodegenGenerate( XL_Codegen *pGen, xvalue xModule )
 
 	// float 类型转换函数
 	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_float(xvalue v) {\n");
+	xlCodeBufAppend(pGen->pHeader, "\t// 检查自定义对象的 meta to 方法\n");
+	xlCodeBufAppend(pGen->pHeader, "\tif ( xl_is_custom_obj(v) && xl_has_meta_op(v, \"to\") ) {\n");
+	xlCodeBufAppend(pGen->pHeader, "\t\treturn xl_op_to(v, xvoCreateText((str)\"float\", 5, FALSE));\n");
+	xlCodeBufAppend(pGen->pHeader, "\t}\n");
 	xlCodeBufAppend(pGen->pHeader, "\tswitch ( xvoType(v) ) {\n");
 	xlCodeBufAppend(pGen->pHeader, "\t\tcase XVO_DT_FLOAT: return v;\n");
 	xlCodeBufAppend(pGen->pHeader, "\t\tcase XVO_DT_INT:   return xvoCreateFloat((f64)xvoGetInt(v));\n");
@@ -2772,6 +3520,10 @@ static inline bool xlCodegenGenerate( XL_Codegen *pGen, xvalue xModule )
 
 	// string 类型转换函数
 	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_string(xvalue v) {\n");
+	xlCodeBufAppend(pGen->pHeader, "\t// 检查自定义对象的 meta to 方法\n");
+	xlCodeBufAppend(pGen->pHeader, "\tif ( xl_is_custom_obj(v) && xl_has_meta_op(v, \"to\") ) {\n");
+	xlCodeBufAppend(pGen->pHeader, "\t\treturn xl_op_to(v, xvoCreateText((str)\"string\", 6, FALSE));\n");
+	xlCodeBufAppend(pGen->pHeader, "\t}\n");
 	xlCodeBufAppend(pGen->pHeader, "\tchar szBuf[128] = {0};\n");
 	xlCodeBufAppend(pGen->pHeader, "\tswitch ( xvoType(v) ) {\n");
 	xlCodeBufAppend(pGen->pHeader, "\t\tcase XVO_DT_TEXT:  return v;\n");
@@ -2788,22 +3540,17 @@ static inline bool xlCodegenGenerate( XL_Codegen *pGen, xvalue xModule )
 	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_tostring(xvalue v) { return xl_string(v); }\n\n");
 
 	// 模板字符串拼接函数
-	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_template_concat(xvalue first, ...) {\n");
-	xlCodeBufAppend(pGen->pHeader, "\tva_list args;\n");
-	xlCodeBufAppend(pGen->pHeader, "\tva_start(args, first);\n");
-	xlCodeBufAppend(pGen->pHeader, "\tint count = va_arg(args, int);\n");
-	xlCodeBufAppend(pGen->pHeader, "\tva_end(args);\n");
+	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_template_concat(int count, ...) {\n");
 	xlCodeBufAppend(pGen->pHeader, "\tif ( count <= 0 ) return xvoCreateText((str)\"\", 0, FALSE);\n");
-	xlCodeBufAppend(pGen->pHeader, "\tif ( count == 1 ) return first;\n");
-	xlCodeBufAppend(pGen->pHeader, "\t// 计算总长度并拼接\n");
-	xlCodeBufAppend(pGen->pHeader, "\tsize_t iTotalLen = 0;\n");
+	xlCodeBufAppend(pGen->pHeader, "\tva_list args;\n");
+	xlCodeBufAppend(pGen->pHeader, "\tva_start(args, count);\n");
 	xlCodeBufAppend(pGen->pHeader, "\txvalue parts[64] = {0};\n");
 	xlCodeBufAppend(pGen->pHeader, "\tif ( count > 64 ) count = 64;\n");
-	xlCodeBufAppend(pGen->pHeader, "\tva_start(args, first);\n");
-	xlCodeBufAppend(pGen->pHeader, "\tparts[0] = first;\n");
-	xlCodeBufAppend(pGen->pHeader, "\tfor ( int i = 1; i < count; i++ ) parts[i] = va_arg(args, xvalue);\n");
-	xlCodeBufAppend(pGen->pHeader, "\tva_arg(args, int); // skip count\n");
+	xlCodeBufAppend(pGen->pHeader, "\tfor ( int i = 0; i < count; i++ ) parts[i] = va_arg(args, xvalue);\n");
 	xlCodeBufAppend(pGen->pHeader, "\tva_end(args);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tif ( count == 1 ) return parts[0];\n");
+	xlCodeBufAppend(pGen->pHeader, "\t// 计算总长度并拼接\n");
+	xlCodeBufAppend(pGen->pHeader, "\tsize_t iTotalLen = 0;\n");
 	xlCodeBufAppend(pGen->pHeader, "\tfor ( int i = 0; i < count; i++ ) {\n");
 	xlCodeBufAppend(pGen->pHeader, "\t\tif ( xvoType(parts[i]) == XVO_DT_TEXT ) iTotalLen += xvoGetSize(parts[i]);\n");
 	xlCodeBufAppend(pGen->pHeader, "\t\telse { parts[i] = xl_string(parts[i]); iTotalLen += xvoGetSize(parts[i]); }\n");
@@ -2954,6 +3701,437 @@ static inline bool xlCodegenGenerate( XL_Codegen *pGen, xvalue xModule )
 	xlCodeBufAppend(pGen->pHeader, "\treturn xvoCreateNull();\n");
 	xlCodeBufAppend(pGen->pHeader, "}\n\n");
 
+	// ========== 字符串内置函数 ==========
+
+	// trim - 去除首尾空白
+	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_trim(xvalue v) {\n");
+	xlCodeBufAppend(pGen->pHeader, "\tif ( xvoType(v) != XVO_DT_TEXT ) return v;\n");
+	xlCodeBufAppend(pGen->pHeader, "\tstr s = xvoGetText(v);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tsize_t iSize = xvoGetSize(v);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tstr result = xrtTrim(s, iSize, NULL, 0, FALSE, &iSize);\n");
+	xlCodeBufAppend(pGen->pHeader, "\treturn xvoCreateText(result, (u32)iSize, TRUE);\n");
+	xlCodeBufAppend(pGen->pHeader, "}\n\n");
+
+	// ltrim - 去除左侧空白
+	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_ltrim(xvalue v) {\n");
+	xlCodeBufAppend(pGen->pHeader, "\tif ( xvoType(v) != XVO_DT_TEXT ) return v;\n");
+	xlCodeBufAppend(pGen->pHeader, "\tstr s = xvoGetText(v);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tsize_t iSize = xvoGetSize(v);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tstr result = xrtLTrim(s, iSize, NULL, 0, FALSE, &iSize);\n");
+	xlCodeBufAppend(pGen->pHeader, "\treturn xvoCreateText(result, (u32)iSize, TRUE);\n");
+	xlCodeBufAppend(pGen->pHeader, "}\n\n");
+
+	// rtrim - 去除右侧空白
+	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_rtrim(xvalue v) {\n");
+	xlCodeBufAppend(pGen->pHeader, "\tif ( xvoType(v) != XVO_DT_TEXT ) return v;\n");
+	xlCodeBufAppend(pGen->pHeader, "\tstr s = xvoGetText(v);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tsize_t iSize = xvoGetSize(v);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tstr result = xrtRTrim(s, iSize, NULL, 0, FALSE, &iSize);\n");
+	xlCodeBufAppend(pGen->pHeader, "\treturn xvoCreateText(result, (u32)iSize, TRUE);\n");
+	xlCodeBufAppend(pGen->pHeader, "}\n\n");
+
+	// upper - 转大写
+	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_upper(xvalue v) {\n");
+	xlCodeBufAppend(pGen->pHeader, "\tif ( xvoType(v) != XVO_DT_TEXT ) return v;\n");
+	xlCodeBufAppend(pGen->pHeader, "\tstr s = xvoGetText(v);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tu32 iSize = xvoGetSize(v);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tstr result = xrtUCase(s, iSize, FALSE);\n");
+	xlCodeBufAppend(pGen->pHeader, "\treturn xvoCreateText(result, iSize, TRUE);\n");
+	xlCodeBufAppend(pGen->pHeader, "}\n\n");
+
+	// lower - 转小写
+	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_lower(xvalue v) {\n");
+	xlCodeBufAppend(pGen->pHeader, "\tif ( xvoType(v) != XVO_DT_TEXT ) return v;\n");
+	xlCodeBufAppend(pGen->pHeader, "\tstr s = xvoGetText(v);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tu32 iSize = xvoGetSize(v);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tstr result = xrtLCase(s, iSize, FALSE);\n");
+	xlCodeBufAppend(pGen->pHeader, "\treturn xvoCreateText(result, iSize, TRUE);\n");
+	xlCodeBufAppend(pGen->pHeader, "}\n\n");
+
+	// replace - 字符串替换
+	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_replace(xvalue src, xvalue old, xvalue rep) {\n");
+	xlCodeBufAppend(pGen->pHeader, "\tif ( xvoType(src) != XVO_DT_TEXT ) return src;\n");
+	xlCodeBufAppend(pGen->pHeader, "\tstr s = xvoGetText(src);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tsize_t iSize = xvoGetSize(src);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tstr sOld = xvoGetText(old);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tsize_t iOldSize = xvoGetSize(old);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tstr sRep = xvoGetText(rep);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tsize_t iRepSize = xvoGetSize(rep);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tsize_t iRetSize = 0;\n");
+	xlCodeBufAppend(pGen->pHeader, "\tstr result = xrtReplace(s, iSize, sOld, iOldSize, sRep, iRepSize, &iRetSize);\n");
+	xlCodeBufAppend(pGen->pHeader, "\treturn xvoCreateText(result, (u32)iRetSize, TRUE);\n");
+	xlCodeBufAppend(pGen->pHeader, "}\n\n");
+
+	// split - 分割字符串
+	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_split(xvalue src, xvalue sep) {\n");
+	xlCodeBufAppend(pGen->pHeader, "\tif ( xvoType(src) != XVO_DT_TEXT ) return xvoCreateArray();\n");
+	xlCodeBufAppend(pGen->pHeader, "\tstr s = xvoGetText(src);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tsize_t iSize = xvoGetSize(src);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tstr sSep = xvoGetText(sep);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tsize_t iSepSize = xvoGetSize(sep);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tsize_t iRetSize = 0;\n");
+	xlCodeBufAppend(pGen->pHeader, "\tstr *arrParts = xrtSplit(s, iSize, sSep, iSepSize, FALSE, &iRetSize);\n");
+	xlCodeBufAppend(pGen->pHeader, "\txvalue arr = xvoCreateArray();\n");
+	xlCodeBufAppend(pGen->pHeader, "\tfor ( size_t i = 0; i < iRetSize; i++ ) {\n");
+	xlCodeBufAppend(pGen->pHeader, "\t\txvoArrayAppendText(arr, arrParts[i], 0, TRUE);\n");
+	xlCodeBufAppend(pGen->pHeader, "\t}\n");
+	xlCodeBufAppend(pGen->pHeader, "\treturn arr;\n");
+	xlCodeBufAppend(pGen->pHeader, "}\n\n");
+
+	// join - 连接数组
+	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_join(xvalue arr, xvalue sep) {\n");
+	xlCodeBufAppend(pGen->pHeader, "\tif ( xvoType(arr) != XVO_DT_ARRAY ) return xvoCreateText((str)\"\", 0, FALSE);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tstr sSep = xvoType(sep) == XVO_DT_TEXT ? xvoGetText(sep) : (str)\"\";\n");
+	xlCodeBufAppend(pGen->pHeader, "\tu32 iSepLen = xvoType(sep) == XVO_DT_TEXT ? xvoGetSize(sep) : 0;\n");
+	xlCodeBufAppend(pGen->pHeader, "\tu32 iCount = xvoArrayItemCount(arr);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tif ( iCount == 0 ) return xvoCreateText((str)\"\", 0, FALSE);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tsize_t iTotalLen = 0;\n");
+	xlCodeBufAppend(pGen->pHeader, "\tfor ( u32 i = 0; i < iCount; i++ ) {\n");
+	xlCodeBufAppend(pGen->pHeader, "\t\txvalue v = xvoArrayGetValue(arr, i);\n");
+	xlCodeBufAppend(pGen->pHeader, "\t\tif ( xvoType(v) == XVO_DT_TEXT ) iTotalLen += xvoGetSize(v);\n");
+	xlCodeBufAppend(pGen->pHeader, "\t\tif ( i > 0 ) iTotalLen += iSepLen;\n");
+	xlCodeBufAppend(pGen->pHeader, "\t}\n");
+	xlCodeBufAppend(pGen->pHeader, "\tchar *pszResult = (char*)malloc(iTotalLen + 1);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tpszResult[0] = 0;\n");
+	xlCodeBufAppend(pGen->pHeader, "\tfor ( u32 i = 0; i < iCount; i++ ) {\n");
+	xlCodeBufAppend(pGen->pHeader, "\t\tif ( i > 0 && iSepLen > 0 ) strcat(pszResult, (char*)sSep);\n");
+	xlCodeBufAppend(pGen->pHeader, "\t\txvalue v = xvoArrayGetValue(arr, i);\n");
+	xlCodeBufAppend(pGen->pHeader, "\t\tif ( xvoType(v) == XVO_DT_TEXT ) strcat(pszResult, (char*)xvoGetText(v));\n");
+	xlCodeBufAppend(pGen->pHeader, "\t}\n");
+	xlCodeBufAppend(pGen->pHeader, "\txvalue result = xvoCreateText((str)pszResult, (u32)strlen(pszResult), FALSE);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tfree(pszResult);\n");
+	xlCodeBufAppend(pGen->pHeader, "\treturn result;\n");
+	xlCodeBufAppend(pGen->pHeader, "}\n\n");
+
+	// find - 查找子串位置 (使用 strstr 避免 xrt memmem 的 off-by-one bug)
+	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_find(xvalue src, xvalue sub) {\n");
+	xlCodeBufAppend(pGen->pHeader, "\tif ( xvoType(src) != XVO_DT_TEXT ) return xvoCreateInt(-1);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tstr s = xvoGetText(src);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tstr sSub = xvoGetText(sub);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tstr found = strstr(s, sSub);\n");
+	xlCodeBufAppend(pGen->pHeader, "\treturn xvoCreateInt(found ? (i64)(found - s) : -1);\n");
+	xlCodeBufAppend(pGen->pHeader, "}\n\n");
+
+	// contains - 是否包含子串 (使用 strstr 避免 xrt memmem 的 off-by-one bug)
+	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_contains(xvalue src, xvalue sub) {\n");
+	xlCodeBufAppend(pGen->pHeader, "\tif ( xvoType(src) != XVO_DT_TEXT ) return xvoCreateBool(FALSE);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tstr s = xvoGetText(src);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tstr sSub = xvoGetText(sub);\n");
+	xlCodeBufAppend(pGen->pHeader, "\treturn xvoCreateBool(strstr(s, sSub) != NULL);\n");
+	xlCodeBufAppend(pGen->pHeader, "}\n\n");
+
+	// substr - 子串截取
+	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_substr(xvalue src, xvalue start, xvalue length) {\n");
+	xlCodeBufAppend(pGen->pHeader, "\tif ( xvoType(src) != XVO_DT_TEXT ) return xvoCreateText((str)\"\", 0, FALSE);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tstr s = xvoGetText(src);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tu32 iSize = xvoGetSize(src);\n");
+	xlCodeBufAppend(pGen->pHeader, "\ti64 iStart = xvoGetInt(start);\n");
+	xlCodeBufAppend(pGen->pHeader, "\ti64 iLen = xvoType(length) == XVO_DT_NULL ? (i64)iSize - iStart : xvoGetInt(length);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tif ( iStart < 0 ) iStart = 0;\n");
+	xlCodeBufAppend(pGen->pHeader, "\tif ( iStart >= iSize ) return xvoCreateText((str)\"\", 0, FALSE);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tif ( iLen <= 0 ) return xvoCreateText((str)\"\", 0, FALSE);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tif ( iStart + iLen > iSize ) iLen = iSize - iStart;\n");
+	xlCodeBufAppend(pGen->pHeader, "\treturn xvoCreateText(s + iStart, (u32)iLen, FALSE);\n");
+	xlCodeBufAppend(pGen->pHeader, "}\n\n");
+
+	// startswith - 前缀判断
+	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_startswith(xvalue src, xvalue prefix) {\n");
+	xlCodeBufAppend(pGen->pHeader, "\tif ( xvoType(src) != XVO_DT_TEXT ) return xvoCreateBool(FALSE);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tstr s = xvoGetText(src);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tu32 iSize = xvoGetSize(src);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tstr sPrefix = xvoGetText(prefix);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tu32 iPrefixSize = xvoGetSize(prefix);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tif ( iPrefixSize > iSize ) return xvoCreateBool(FALSE);\n");
+	xlCodeBufAppend(pGen->pHeader, "\treturn xvoCreateBool(memcmp(s, sPrefix, iPrefixSize) == 0);\n");
+	xlCodeBufAppend(pGen->pHeader, "}\n\n");
+
+	// endswith - 后缀判断
+	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_endswith(xvalue src, xvalue suffix) {\n");
+	xlCodeBufAppend(pGen->pHeader, "\tif ( xvoType(src) != XVO_DT_TEXT ) return xvoCreateBool(FALSE);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tstr s = xvoGetText(src);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tu32 iSize = xvoGetSize(src);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tstr sSuffix = xvoGetText(suffix);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tu32 iSuffixSize = xvoGetSize(suffix);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tif ( iSuffixSize > iSize ) return xvoCreateBool(FALSE);\n");
+	xlCodeBufAppend(pGen->pHeader, "\treturn xvoCreateBool(memcmp(s + iSize - iSuffixSize, sSuffix, iSuffixSize) == 0);\n");
+	xlCodeBufAppend(pGen->pHeader, "}\n\n");
+
+	// repeat - 重复字符串
+	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_repeat(xvalue src, xvalue times) {\n");
+	xlCodeBufAppend(pGen->pHeader, "\tif ( xvoType(src) != XVO_DT_TEXT ) return xvoCreateText((str)\"\", 0, FALSE);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tstr s = xvoGetText(src);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tu32 iSize = xvoGetSize(src);\n");
+	xlCodeBufAppend(pGen->pHeader, "\ti64 iTimes = xvoGetInt(times);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tif ( iTimes <= 0 ) return xvoCreateText((str)\"\", 0, FALSE);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tsize_t iLen = iSize * iTimes;\n");
+	xlCodeBufAppend(pGen->pHeader, "\tchar *pszResult = (char*)malloc(iLen + 1);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tpszResult[0] = 0;\n");
+	xlCodeBufAppend(pGen->pHeader, "\tfor ( i64 i = 0; i < iTimes; i++ ) strcat(pszResult, (char*)s);\n");
+	xlCodeBufAppend(pGen->pHeader, "\txvalue result = xvoCreateText((str)pszResult, (u32)iLen, FALSE);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tfree(pszResult);\n");
+	xlCodeBufAppend(pGen->pHeader, "\treturn result;\n");
+	xlCodeBufAppend(pGen->pHeader, "}\n\n");
+
+	// reverse - 反转字符串
+	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_reverse(xvalue src) {\n");
+	xlCodeBufAppend(pGen->pHeader, "\tif ( xvoType(src) != XVO_DT_TEXT ) return xvoCreateText((str)\"\", 0, FALSE);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tstr s = xvoGetText(src);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tu32 iSize = xvoGetSize(src);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tchar *pszResult = (char*)malloc(iSize + 1);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tfor ( u32 i = 0; i < iSize; i++ ) pszResult[i] = s[iSize - 1 - i];\n");
+	xlCodeBufAppend(pGen->pHeader, "\tpszResult[iSize] = 0;\n");
+	xlCodeBufAppend(pGen->pHeader, "\txvalue result = xvoCreateText((str)pszResult, iSize, FALSE);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tfree(pszResult);\n");
+	xlCodeBufAppend(pGen->pHeader, "\treturn result;\n");
+	xlCodeBufAppend(pGen->pHeader, "}\n\n");
+
+	// ========== 数学内置函数 ==========
+
+	// rand - 随机整数
+	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_rand() {\n");
+	xlCodeBufAppend(pGen->pHeader, "\treturn xvoCreateInt((i64)xrtRand64());\n");
+	xlCodeBufAppend(pGen->pHeader, "}\n\n");
+
+	// random - 随机浮点数 0.0-1.0
+	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_random() {\n");
+	xlCodeBufAppend(pGen->pHeader, "\treturn xvoCreateFloat((f64)xrtRand64() / (f64)0xFFFFFFFFFFFFFFFFULL);\n");
+	xlCodeBufAppend(pGen->pHeader, "}\n\n");
+
+	// randrange - 区间随机整数
+	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_randrange(xvalue a, xvalue b) {\n");
+	xlCodeBufAppend(pGen->pHeader, "\ti64 iMin = xvoGetInt(a);\n");
+	xlCodeBufAppend(pGen->pHeader, "\ti64 iMax = xvoGetInt(b);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tif ( iMin > iMax ) { i64 t = iMin; iMin = iMax; iMax = t; }\n");
+	xlCodeBufAppend(pGen->pHeader, "\treturn xvoCreateInt(iMin + (i64)(xrtRand64() % (u64)(iMax - iMin + 1)));\n");
+	xlCodeBufAppend(pGen->pHeader, "}\n\n");
+
+	// sqrt - 平方根
+	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_sqrt(xvalue v) {\n");
+	xlCodeBufAppend(pGen->pHeader, "\tf64 f = (xvoType(v) == XVO_DT_INT) ? (f64)xvoGetInt(v) : xvoGetFloat(v);\n");
+	xlCodeBufAppend(pGen->pHeader, "\treturn xvoCreateFloat(sqrt(f));\n");
+	xlCodeBufAppend(pGen->pHeader, "}\n\n");
+
+	// log - 自然对数
+	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_log(xvalue v) {\n");
+	xlCodeBufAppend(pGen->pHeader, "\tf64 f = (xvoType(v) == XVO_DT_INT) ? (f64)xvoGetInt(v) : xvoGetFloat(v);\n");
+	xlCodeBufAppend(pGen->pHeader, "\treturn xvoCreateFloat(log(f));\n");
+	xlCodeBufAppend(pGen->pHeader, "}\n\n");
+
+	// sin/cos/tan
+	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_sin(xvalue v) {\n");
+	xlCodeBufAppend(pGen->pHeader, "\tf64 f = (xvoType(v) == XVO_DT_INT) ? (f64)xvoGetInt(v) : xvoGetFloat(v);\n");
+	xlCodeBufAppend(pGen->pHeader, "\treturn xvoCreateFloat(sin(f));\n");
+	xlCodeBufAppend(pGen->pHeader, "}\n\n");
+
+	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_cos(xvalue v) {\n");
+	xlCodeBufAppend(pGen->pHeader, "\tf64 f = (xvoType(v) == XVO_DT_INT) ? (f64)xvoGetInt(v) : xvoGetFloat(v);\n");
+	xlCodeBufAppend(pGen->pHeader, "\treturn xvoCreateFloat(cos(f));\n");
+	xlCodeBufAppend(pGen->pHeader, "}\n\n");
+
+	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_tan(xvalue v) {\n");
+	xlCodeBufAppend(pGen->pHeader, "\tf64 f = (xvoType(v) == XVO_DT_INT) ? (f64)xvoGetInt(v) : xvoGetFloat(v);\n");
+	xlCodeBufAppend(pGen->pHeader, "\treturn xvoCreateFloat(tan(f));\n");
+	xlCodeBufAppend(pGen->pHeader, "}\n\n");
+
+	// ========== 时间内置函数 ==========
+
+	// year/month/day/hour/minute/second
+	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_year(xvalue t) {\n");
+	xlCodeBufAppend(pGen->pHeader, "\tif ( xvoType(t) != XVO_DT_TIME ) return xvoCreateInt(0);\n");
+	xlCodeBufAppend(pGen->pHeader, "\treturn xvoCreateInt(xrtYear(xvoGetTime(t)));\n");
+	xlCodeBufAppend(pGen->pHeader, "}\n\n");
+
+	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_month(xvalue t) {\n");
+	xlCodeBufAppend(pGen->pHeader, "\tif ( xvoType(t) != XVO_DT_TIME ) return xvoCreateInt(0);\n");
+	xlCodeBufAppend(pGen->pHeader, "\treturn xvoCreateInt(xrtMonth(xvoGetTime(t)));\n");
+	xlCodeBufAppend(pGen->pHeader, "}\n\n");
+
+	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_day(xvalue t) {\n");
+	xlCodeBufAppend(pGen->pHeader, "\tif ( xvoType(t) != XVO_DT_TIME ) return xvoCreateInt(0);\n");
+	xlCodeBufAppend(pGen->pHeader, "\treturn xvoCreateInt(xrtDay(xvoGetTime(t)));\n");
+	xlCodeBufAppend(pGen->pHeader, "}\n\n");
+
+	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_hour(xvalue t) {\n");
+	xlCodeBufAppend(pGen->pHeader, "\tif ( xvoType(t) != XVO_DT_TIME ) return xvoCreateInt(0);\n");
+	xlCodeBufAppend(pGen->pHeader, "\treturn xvoCreateInt(xrtHour(xvoGetTime(t)));\n");
+	xlCodeBufAppend(pGen->pHeader, "}\n\n");
+
+	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_minute(xvalue t) {\n");
+	xlCodeBufAppend(pGen->pHeader, "\tif ( xvoType(t) != XVO_DT_TIME ) return xvoCreateInt(0);\n");
+	xlCodeBufAppend(pGen->pHeader, "\treturn xvoCreateInt(xrtMinute(xvoGetTime(t)));\n");
+	xlCodeBufAppend(pGen->pHeader, "}\n\n");
+
+	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_second(xvalue t) {\n");
+	xlCodeBufAppend(pGen->pHeader, "\tif ( xvoType(t) != XVO_DT_TIME ) return xvoCreateInt(0);\n");
+	xlCodeBufAppend(pGen->pHeader, "\treturn xvoCreateInt(xrtSecond(xvoGetTime(t)));\n");
+	xlCodeBufAppend(pGen->pHeader, "}\n\n");
+
+	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_weekday(xvalue t) {\n");
+	xlCodeBufAppend(pGen->pHeader, "\tif ( xvoType(t) != XVO_DT_TIME ) return xvoCreateInt(0);\n");
+	xlCodeBufAppend(pGen->pHeader, "\treturn xvoCreateInt(xrtWeekday(xvoGetTime(t)));\n");
+	xlCodeBufAppend(pGen->pHeader, "}\n\n");
+
+	// strftime - 格式化时间
+	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_strftime(xvalue t, xvalue fmt) {\n");
+	xlCodeBufAppend(pGen->pHeader, "\tif ( xvoType(t) != XVO_DT_TIME ) return xvoCreateText((str)\"\", 0, FALSE);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tstr sFmt = xvoGetText(fmt);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tstr s = xrtTimeFormat(xvoGetTime(t), sFmt);\n");
+	xlCodeBufAppend(pGen->pHeader, "\treturn xvoCreateText(s, (u32)strlen((char*)s), TRUE);\n");
+	xlCodeBufAppend(pGen->pHeader, "}\n\n");
+
+	// timestamp - 获取Unix时间戳
+	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_timestamp(xvalue t) {\n");
+	xlCodeBufAppend(pGen->pHeader, "\tif ( xvoType(t) == XVO_DT_NULL ) return xvoCreateInt(xrtToUnixTime(xrtNow()));\n");
+	xlCodeBufAppend(pGen->pHeader, "\tif ( xvoType(t) != XVO_DT_TIME ) return xvoCreateInt(0);\n");
+	xlCodeBufAppend(pGen->pHeader, "\treturn xvoCreateInt(xrtToUnixTime(xvoGetTime(t)));\n");
+	xlCodeBufAppend(pGen->pHeader, "}\n\n");
+
+	// fromtimestamp - 从Unix时间戳创建时间
+	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_fromtimestamp(xvalue ts) {\n");
+	xlCodeBufAppend(pGen->pHeader, "\ti64 iTs = xvoGetInt(ts);\n");
+	xlCodeBufAppend(pGen->pHeader, "\treturn xvoCreateTime(xrtFromUnixTime(iTs));\n");
+	xlCodeBufAppend(pGen->pHeader, "}\n\n");
+
+	// sleep - 毫秒延时
+	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_sleep(xvalue ms) {\n");
+	xlCodeBufAppend(pGen->pHeader, "\ti64 iMs = xvoGetInt(ms);\n");
+	xlCodeBufAppend(pGen->pHeader, "\txrtSleep((u32)iMs);\n");
+	xlCodeBufAppend(pGen->pHeader, "\treturn xvoCreateNull();\n");
+	xlCodeBufAppend(pGen->pHeader, "}\n\n");
+
+	// timer - 高精度计时器
+	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_timer() {\n");
+	xlCodeBufAppend(pGen->pHeader, "\treturn xvoCreateFloat(xrtTimer());\n");
+	xlCodeBufAppend(pGen->pHeader, "}\n\n");
+
+	// ========== 文件内置函数 ==========
+
+	// readfile - 读取文件全部内容
+	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_readfile(xvalue path) {\n");
+	xlCodeBufAppend(pGen->pHeader, "\tif ( xvoType(path) != XVO_DT_TEXT ) return xvoCreateNull();\n");
+	xlCodeBufAppend(pGen->pHeader, "\tstr sPath = xvoGetText(path);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tsize_t iSize = 0;\n");
+	xlCodeBufAppend(pGen->pHeader, "\tstr sContent = xrtFileReadAll(sPath, XRT_CP_UTF8, &iSize);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tif ( !sContent ) return xvoCreateNull();\n");
+	xlCodeBufAppend(pGen->pHeader, "\treturn xvoCreateText(sContent, (u32)iSize, TRUE);\n");
+	xlCodeBufAppend(pGen->pHeader, "}\n\n");
+
+	// writefile - 写入文件
+	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_writefile(xvalue path, xvalue content) {\n");
+	xlCodeBufAppend(pGen->pHeader, "\tif ( xvoType(path) != XVO_DT_TEXT ) return xvoCreateBool(FALSE);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tstr sPath = xvoGetText(path);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tstr sContent = xvoGetText(content);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tu32 iSize = xvoGetSize(content);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tint ret = xrtFileWriteAll(sPath, sContent, iSize, XRT_CP_UTF8);\n");
+	xlCodeBufAppend(pGen->pHeader, "\treturn xvoCreateBool(ret > 0);\n");
+	xlCodeBufAppend(pGen->pHeader, "}\n\n");
+
+	// appendfile - 追加写入文件
+	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_appendfile(xvalue path, xvalue content) {\n");
+	xlCodeBufAppend(pGen->pHeader, "\tif ( xvoType(path) != XVO_DT_TEXT ) return xvoCreateBool(FALSE);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tstr sPath = xvoGetText(path);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tstr sContent = xvoGetText(content);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tu32 iSize = xvoGetSize(content);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tint ret = xrtFileAppend(sPath, sContent, iSize, XRT_CP_UTF8);\n");
+	xlCodeBufAppend(pGen->pHeader, "\treturn xvoCreateBool(ret > 0);\n");
+	xlCodeBufAppend(pGen->pHeader, "}\n\n");
+
+	// exists - 路径是否存在
+	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_exists(xvalue path) {\n");
+	xlCodeBufAppend(pGen->pHeader, "\tif ( xvoType(path) != XVO_DT_TEXT ) return xvoCreateBool(FALSE);\n");
+	xlCodeBufAppend(pGen->pHeader, "\treturn xvoCreateBool(xrtPathExists(xvoGetText(path)));\n");
+	xlCodeBufAppend(pGen->pHeader, "}\n\n");
+
+	// isfile - 是否为文件
+	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_isfile(xvalue path) {\n");
+	xlCodeBufAppend(pGen->pHeader, "\tif ( xvoType(path) != XVO_DT_TEXT ) return xvoCreateBool(FALSE);\n");
+	xlCodeBufAppend(pGen->pHeader, "\treturn xvoCreateBool(xrtFileExists(xvoGetText(path)));\n");
+	xlCodeBufAppend(pGen->pHeader, "}\n\n");
+
+	// isdir - 是否为目录
+	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_isdir(xvalue path) {\n");
+	xlCodeBufAppend(pGen->pHeader, "\tif ( xvoType(path) != XVO_DT_TEXT ) return xvoCreateBool(FALSE);\n");
+	xlCodeBufAppend(pGen->pHeader, "\treturn xvoCreateBool(xrtDirExists(xvoGetText(path)));\n");
+	xlCodeBufAppend(pGen->pHeader, "}\n\n");
+
+	// filesize - 获取文件大小
+	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_filesize(xvalue path) {\n");
+	xlCodeBufAppend(pGen->pHeader, "\tif ( xvoType(path) != XVO_DT_TEXT ) return xvoCreateInt(0);\n");
+	xlCodeBufAppend(pGen->pHeader, "\treturn xvoCreateInt(xrtFileGetSize(xvoGetText(path)));\n");
+	xlCodeBufAppend(pGen->pHeader, "}\n\n");
+
+	// mkdir - 创建目录
+	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_mkdir(xvalue path) {\n");
+	xlCodeBufAppend(pGen->pHeader, "\tif ( xvoType(path) != XVO_DT_TEXT ) return xvoCreateBool(FALSE);\n");
+	xlCodeBufAppend(pGen->pHeader, "\treturn xvoCreateBool(xrtDirCreateAll(xvoGetText(path)));\n");
+	xlCodeBufAppend(pGen->pHeader, "}\n\n");
+
+	// remove - 删除文件
+	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_remove(xvalue path) {\n");
+	xlCodeBufAppend(pGen->pHeader, "\tif ( xvoType(path) != XVO_DT_TEXT ) return xvoCreateBool(FALSE);\n");
+	xlCodeBufAppend(pGen->pHeader, "\treturn xvoCreateBool(xrtFileDelete(xvoGetText(path)));\n");
+	xlCodeBufAppend(pGen->pHeader, "}\n\n");
+
+	// ========== JSON 内置函数 ==========
+
+	// json_parse - 解析JSON
+	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_json_parse(xvalue src) {\n");
+	xlCodeBufAppend(pGen->pHeader, "\tif ( xvoType(src) != XVO_DT_TEXT ) return xvoCreateNull();\n");
+	xlCodeBufAppend(pGen->pHeader, "\tstr s = xvoGetText(src);\n");
+	xlCodeBufAppend(pGen->pHeader, "\treturn xrtParseJSON(s, 0);\n");
+	xlCodeBufAppend(pGen->pHeader, "}\n\n");
+
+	// json_stringify - 序列化JSON
+	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_json_stringify(xvalue v) {\n");
+	xlCodeBufAppend(pGen->pHeader, "\tsize_t iSize = 0;\n");
+	xlCodeBufAppend(pGen->pHeader, "\tstr s = xrtStringifyJSON(v, TRUE, &iSize);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tif ( !s ) return xvoCreateText((str)\"\", 0, FALSE);\n");
+	xlCodeBufAppend(pGen->pHeader, "\treturn xvoCreateText(s, (u32)iSize, TRUE);\n");
+	xlCodeBufAppend(pGen->pHeader, "}\n\n");
+
+	// ========== 编码内置函数 ==========
+
+	// base64_encode
+	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_base64_encode(xvalue src) {\n");
+	xlCodeBufAppend(pGen->pHeader, "\tif ( xvoType(src) != XVO_DT_TEXT ) return xvoCreateText((str)\"\", 0, FALSE);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tstr s = xvoGetText(src);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tu32 iSize = xvoGetSize(src);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tstr result = xrtBase64Encode((ptr)s, iSize, NULL);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tif ( !result ) return xvoCreateText((str)\"\", 0, FALSE);\n");
+	xlCodeBufAppend(pGen->pHeader, "\treturn xvoCreateText(result, (u32)strlen((char*)result), TRUE);\n");
+	xlCodeBufAppend(pGen->pHeader, "}\n\n");
+
+	// base64_decode
+	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_base64_decode(xvalue src) {\n");
+	xlCodeBufAppend(pGen->pHeader, "\tif ( xvoType(src) != XVO_DT_TEXT ) return xvoCreateText((str)\"\", 0, FALSE);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tstr s = xvoGetText(src);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tsize_t iSize = xvoGetSize(src);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tptr result = xrtBase64Decode(s, iSize, NULL);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tif ( !result ) return xvoCreateText((str)\"\", 0, FALSE);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tsize_t iRetSize = iSize * 3 / 4;\n");
+	xlCodeBufAppend(pGen->pHeader, "\treturn xvoCreateText((str)result, (u32)iRetSize, TRUE);\n");
+	xlCodeBufAppend(pGen->pHeader, "}\n\n");
+
+	// hex_encode
+	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_hex_encode(xvalue src) {\n");
+	xlCodeBufAppend(pGen->pHeader, "\tif ( xvoType(src) != XVO_DT_TEXT ) return xvoCreateText((str)\"\", 0, FALSE);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tstr s = xvoGetText(src);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tu32 iSize = xvoGetSize(src);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tstr result = xrtHexEncode((ptr)s, iSize);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tif ( !result ) return xvoCreateText((str)\"\", 0, FALSE);\n");
+	xlCodeBufAppend(pGen->pHeader, "\treturn xvoCreateText(result, iSize * 2, TRUE);\n");
+	xlCodeBufAppend(pGen->pHeader, "}\n\n");
+
+	// hex_decode
+	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_hex_decode(xvalue src) {\n");
+	xlCodeBufAppend(pGen->pHeader, "\tif ( xvoType(src) != XVO_DT_TEXT ) return xvoCreateText((str)\"\", 0, FALSE);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tstr s = xvoGetText(src);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tsize_t iSize = xvoGetSize(src);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tptr result = xrtHexDecode(s, iSize);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tif ( !result ) return xvoCreateText((str)\"\", 0, FALSE);\n");
+	xlCodeBufAppend(pGen->pHeader, "\treturn xvoCreateText((str)result, (u32)(iSize / 2), TRUE);\n");
+	xlCodeBufAppend(pGen->pHeader, "}\n\n");
+
 	// 闭包运行时支持
 	xlCodeBufAppend(pGen->pHeader, "// 闭包运行时\n");
 	xlCodeBufAppend(pGen->pHeader, "typedef struct XL_ClosureEnv {\n");
@@ -3006,7 +4184,14 @@ static inline bool xlCodegenGenerate( XL_Codegen *pGen, xvalue xModule )
 
 	// 前向声明方法调用函数（在 body 中实现）
 	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_method_call(xvalue obj, const char* method, xvalue args);\n");
-	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_super_call(xvalue obj, const char* method, xvalue args);\n\n");
+	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_super_call(xvalue obj, const char* method, xvalue args);\n");
+	// meta 方法分发函数前向声明
+	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_meta_get(xvalue obj, const char* name);\n");
+	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_meta_let(xvalue obj, const char* name, xvalue val);\n");
+	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_meta_call(xvalue obj, xvalue args);\n");
+	xlCodeBufAppend(pGen->pHeader, "static int xl_has_meta_get(xvalue obj);\n");
+	xlCodeBufAppend(pGen->pHeader, "static int xl_has_meta_let(xvalue obj);\n");
+	xlCodeBufAppend(pGen->pHeader, "static int xl_has_meta_call(xvalue obj);\n\n");
 
 	xlCodeBufAppend(pGen->pHeader, "static void xl_closure_free(xvalue closure) {\n");
 	xlCodeBufAppend(pGen->pHeader, "\tXL_Closure *pClosure = (XL_Closure*)xvoGetPoint(closure);\n");
@@ -3153,6 +4338,289 @@ static inline bool xlCodegenGenerate( XL_Codegen *pGen, xvalue xModule )
 
 	xlCodeBufAppend(pGen->pBody, "\treturn xvoCreateNull();\n");
 	xlCodeBufAppend(pGen->pBody, "}\n");
+
+	// 生成 meta get 分发函数
+	xlCodeBufAppend(pGen->pBody, "\n// meta get 属性获取拦截\n");
+	xlCodeBufAppend(pGen->pBody, "static xvalue xl_meta_get(xvalue obj, const char* name)\n{\n");
+	xlCodeBufAppend(pGen->pBody, "\tif ( xvoType(obj) != XVO_DT_TABLE ) return xvoCreateNull();\n");
+	xlCodeBufAppend(pGen->pBody, "\txvalue classNameVal = xvoTableGetValue(obj, (str)\"__class__\", 0);\n");
+	xlCodeBufAppend(pGen->pBody, "\tif ( (!classNameVal) || (xvoType(classNameVal) == XVO_DT_NULL) ) return xvoCreateNull();\n");
+	xlCodeBufAppend(pGen->pBody, "\tstr className = xvoGetText(classNameVal);\n");
+	for ( int c = 0; c < pGen->iClassCount; c++ ) {
+		if ( pGen->arrClassHasMetaGet[c] ) {
+			xlCodeBufAppendFmt(pGen->pBody, "\tif ( strcmp((char*)className, \"%s\") == 0 ) return xlc_%s_meta_get(obj, xvoCreateText((str)name, 0, FALSE));\n",
+				pGen->arrClassNames[c], pGen->arrClassNames[c]);
+		}
+	}
+	xlCodeBufAppend(pGen->pBody, "\treturn xvoCreateNull();\n");
+	xlCodeBufAppend(pGen->pBody, "}\n");
+
+	// 生成 meta let 分发函数
+	xlCodeBufAppend(pGen->pBody, "\n// meta let 属性设置拦截\n");
+	xlCodeBufAppend(pGen->pBody, "static xvalue xl_meta_let(xvalue obj, const char* name, xvalue val)\n{\n");
+	xlCodeBufAppend(pGen->pBody, "\tif ( xvoType(obj) != XVO_DT_TABLE ) return xvoCreateNull();\n");
+	xlCodeBufAppend(pGen->pBody, "\txvalue classNameVal = xvoTableGetValue(obj, (str)\"__class__\", 0);\n");
+	xlCodeBufAppend(pGen->pBody, "\tif ( (!classNameVal) || (xvoType(classNameVal) == XVO_DT_NULL) ) return xvoCreateNull();\n");
+	xlCodeBufAppend(pGen->pBody, "\tstr className = xvoGetText(classNameVal);\n");
+	for ( int c = 0; c < pGen->iClassCount; c++ ) {
+		if ( pGen->arrClassHasMetaLet[c] ) {
+			xlCodeBufAppendFmt(pGen->pBody, "\tif ( strcmp((char*)className, \"%s\") == 0 ) return xlc_%s_meta_let(obj, xvoCreateText((str)name, 0, FALSE), val);\n",
+				pGen->arrClassNames[c], pGen->arrClassNames[c]);
+		}
+	}
+	xlCodeBufAppend(pGen->pBody, "\treturn xvoCreateNull();\n");
+	xlCodeBufAppend(pGen->pBody, "}\n");
+
+	// 生成 meta call 分发函数
+	xlCodeBufAppend(pGen->pBody, "\n// meta call 对象调用拦截\n");
+	xlCodeBufAppend(pGen->pBody, "static xvalue xl_meta_call(xvalue obj, xvalue args)\n{\n");
+	xlCodeBufAppend(pGen->pBody, "\tif ( xvoType(obj) != XVO_DT_TABLE ) return xvoCreateNull();\n");
+	xlCodeBufAppend(pGen->pBody, "\txvalue classNameVal = xvoTableGetValue(obj, (str)\"__class__\", 0);\n");
+	xlCodeBufAppend(pGen->pBody, "\tif ( (!classNameVal) || (xvoType(classNameVal) == XVO_DT_NULL) ) return xvoCreateNull();\n");
+	xlCodeBufAppend(pGen->pBody, "\tstr className = xvoGetText(classNameVal);\n");
+	for ( int c = 0; c < pGen->iClassCount; c++ ) {
+		if ( pGen->arrClassHasMetaCall[c] ) {
+			xlCodeBufAppendFmt(pGen->pBody, "\tif ( strcmp((char*)className, \"%s\") == 0 ) return xlc_%s_meta_call(obj, args);\n",
+				pGen->arrClassNames[c], pGen->arrClassNames[c]);
+		}
+	}
+	xlCodeBufAppend(pGen->pBody, "\treturn xvoCreateNull();\n");
+	xlCodeBufAppend(pGen->pBody, "}\n");
+
+	// 生成检查类是否有 meta 方法的辅助函数
+	xlCodeBufAppend(pGen->pBody, "\n// 检查对象是否有 meta get\n");
+	xlCodeBufAppend(pGen->pBody, "static int xl_has_meta_get(xvalue obj)\n{\n");
+	xlCodeBufAppend(pGen->pBody, "\tif ( xvoType(obj) != XVO_DT_TABLE ) return 0;\n");
+	xlCodeBufAppend(pGen->pBody, "\txvalue classNameVal = xvoTableGetValue(obj, (str)\"__class__\", 0);\n");
+	xlCodeBufAppend(pGen->pBody, "\tif ( (!classNameVal) || (xvoType(classNameVal) == XVO_DT_NULL) ) return 0;\n");
+	xlCodeBufAppend(pGen->pBody, "\tstr className = xvoGetText(classNameVal);\n");
+	for ( int c = 0; c < pGen->iClassCount; c++ ) {
+		if ( pGen->arrClassHasMetaGet[c] ) {
+			xlCodeBufAppendFmt(pGen->pBody, "\tif ( strcmp((char*)className, \"%s\") == 0 ) return 1;\n", pGen->arrClassNames[c]);
+		}
+	}
+	xlCodeBufAppend(pGen->pBody, "\treturn 0;\n");
+	xlCodeBufAppend(pGen->pBody, "}\n");
+
+	xlCodeBufAppend(pGen->pBody, "\n// 检查对象是否有 meta let\n");
+	xlCodeBufAppend(pGen->pBody, "static int xl_has_meta_let(xvalue obj)\n{\n");
+	xlCodeBufAppend(pGen->pBody, "\tif ( xvoType(obj) != XVO_DT_TABLE ) return 0;\n");
+	xlCodeBufAppend(pGen->pBody, "\txvalue classNameVal = xvoTableGetValue(obj, (str)\"__class__\", 0);\n");
+	xlCodeBufAppend(pGen->pBody, "\tif ( (!classNameVal) || (xvoType(classNameVal) == XVO_DT_NULL) ) return 0;\n");
+	xlCodeBufAppend(pGen->pBody, "\tstr className = xvoGetText(classNameVal);\n");
+	for ( int c = 0; c < pGen->iClassCount; c++ ) {
+		if ( pGen->arrClassHasMetaLet[c] ) {
+			xlCodeBufAppendFmt(pGen->pBody, "\tif ( strcmp((char*)className, \"%s\") == 0 ) return 1;\n", pGen->arrClassNames[c]);
+		}
+	}
+	xlCodeBufAppend(pGen->pBody, "\treturn 0;\n");
+	xlCodeBufAppend(pGen->pBody, "}\n");
+
+	xlCodeBufAppend(pGen->pBody, "\n// 检查对象是否有 meta call\n");
+	xlCodeBufAppend(pGen->pBody, "static int xl_has_meta_call(xvalue obj)\n{\n");
+	xlCodeBufAppend(pGen->pBody, "\tif ( xvoType(obj) != XVO_DT_TABLE ) return 0;\n");
+	xlCodeBufAppend(pGen->pBody, "\txvalue classNameVal = xvoTableGetValue(obj, (str)\"__class__\", 0);\n");
+	xlCodeBufAppend(pGen->pBody, "\tif ( (!classNameVal) || (xvoType(classNameVal) == XVO_DT_NULL) ) return 0;\n");
+	xlCodeBufAppend(pGen->pBody, "\tstr className = xvoGetText(classNameVal);\n");
+	for ( int c = 0; c < pGen->iClassCount; c++ ) {
+		if ( pGen->arrClassHasMetaCall[c] ) {
+			xlCodeBufAppendFmt(pGen->pBody, "\tif ( strcmp((char*)className, \"%s\") == 0 ) return 1;\n", pGen->arrClassNames[c]);
+		}
+	}
+	xlCodeBufAppend(pGen->pBody, "\treturn 0;\n");
+	xlCodeBufAppend(pGen->pBody, "}\n");
+
+	// 生成 xl_has_meta_op - 检查对象是否有特定运算符重载
+	xlCodeBufAppend(pGen->pBody, "\n// 检查对象是否有特定运算符重载\n");
+	xlCodeBufAppend(pGen->pBody, "static int xl_has_meta_op(xvalue obj, const char* op)\n{\n");
+	xlCodeBufAppend(pGen->pBody, "\tif ( xvoType(obj) != XVO_DT_TABLE ) return 0;\n");
+	xlCodeBufAppend(pGen->pBody, "\txvalue classNameVal = xvoTableGetValue(obj, (str)\"__class__\", 0);\n");
+	xlCodeBufAppend(pGen->pBody, "\tif ( (!classNameVal) || (xvoType(classNameVal) == XVO_DT_NULL) ) return 0;\n");
+	xlCodeBufAppend(pGen->pBody, "\tstr className = xvoGetText(classNameVal);\n");
+	for ( int c = 0; c < pGen->iClassCount; c++ ) {
+		xlCodeBufAppendFmt(pGen->pBody, "\tif ( strcmp((char*)className, \"%s\") == 0 ) {\n", pGen->arrClassNames[c]);
+		if ( pGen->arrClassHasMetaAdd[c] ) xlCodeBufAppend(pGen->pBody, "\t\tif ( strcmp(op, \"add\") == 0 ) return 1;\n");
+		if ( pGen->arrClassHasMetaSub[c] ) xlCodeBufAppend(pGen->pBody, "\t\tif ( strcmp(op, \"sub\") == 0 ) return 1;\n");
+		if ( pGen->arrClassHasMetaMul[c] ) xlCodeBufAppend(pGen->pBody, "\t\tif ( strcmp(op, \"mul\") == 0 ) return 1;\n");
+		if ( pGen->arrClassHasMetaDiv[c] ) xlCodeBufAppend(pGen->pBody, "\t\tif ( strcmp(op, \"div\") == 0 ) return 1;\n");
+		if ( pGen->arrClassHasMetaMod[c] ) xlCodeBufAppend(pGen->pBody, "\t\tif ( strcmp(op, \"mod\") == 0 ) return 1;\n");
+		if ( pGen->arrClassHasMetaPow[c] ) xlCodeBufAppend(pGen->pBody, "\t\tif ( strcmp(op, \"pow\") == 0 ) return 1;\n");
+		if ( pGen->arrClassHasMetaNeg[c] ) xlCodeBufAppend(pGen->pBody, "\t\tif ( strcmp(op, \"neg\") == 0 ) return 1;\n");
+		if ( pGen->arrClassHasMetaEq[c] ) xlCodeBufAppend(pGen->pBody, "\t\tif ( strcmp(op, \"eq\") == 0 ) return 1;\n");
+		if ( pGen->arrClassHasMetaLt[c] ) xlCodeBufAppend(pGen->pBody, "\t\tif ( strcmp(op, \"lt\") == 0 ) return 1;\n");
+		if ( pGen->arrClassHasMetaLe[c] ) xlCodeBufAppend(pGen->pBody, "\t\tif ( strcmp(op, \"le\") == 0 ) return 1;\n");
+		if ( pGen->arrClassHasMetaIndex[c] ) xlCodeBufAppend(pGen->pBody, "\t\tif ( strcmp(op, \"index\") == 0 ) return 1;\n");
+		if ( pGen->arrClassHasMetaNewindex[c] ) xlCodeBufAppend(pGen->pBody, "\t\tif ( strcmp(op, \"newindex\") == 0 ) return 1;\n");
+		if ( pGen->arrClassHasMetaLen[c] ) xlCodeBufAppend(pGen->pBody, "\t\tif ( strcmp(op, \"len\") == 0 ) return 1;\n");
+		if ( pGen->arrClassHasMetaIter[c] ) xlCodeBufAppend(pGen->pBody, "\t\tif ( strcmp(op, \"iter\") == 0 ) return 1;\n");
+		if ( pGen->arrClassHasMetaNext[c] ) xlCodeBufAppend(pGen->pBody, "\t\tif ( strcmp(op, \"next\") == 0 ) return 1;\n");
+		if ( pGen->arrClassHasMetaTo[c] ) xlCodeBufAppend(pGen->pBody, "\t\tif ( strcmp(op, \"to\") == 0 ) return 1;\n");
+		if ( pGen->arrClassHasMetaEnter[c] ) xlCodeBufAppend(pGen->pBody, "\t\tif ( strcmp(op, \"enter\") == 0 ) return 1;\n");
+		if ( pGen->arrClassHasMetaExit[c] ) xlCodeBufAppend(pGen->pBody, "\t\tif ( strcmp(op, \"exit\") == 0 ) return 1;\n");
+		xlCodeBufAppend(pGen->pBody, "\t}\n");
+	}
+	xlCodeBufAppend(pGen->pBody, "\treturn 0;\n");
+	xlCodeBufAppend(pGen->pBody, "}\n");
+
+	// 生成运算符重载分发函数
+	#define XLGEN_OP_DISPATCH_BINARY(opName, metaFlag) \
+		xlCodeBufAppendFmt(pGen->pBody, "\n// 运算符重载: %s\n", opName); \
+		xlCodeBufAppendFmt(pGen->pBody, "static xvalue xl_op_%s(xvalue a, xvalue b)\n{\n", opName); \
+		xlCodeBufAppend(pGen->pBody, "\tif ( xvoType(a) != XVO_DT_TABLE ) return xvoCreateNull();\n"); \
+		xlCodeBufAppend(pGen->pBody, "\txvalue classNameVal = xvoTableGetValue(a, (str)\"__class__\", 0);\n"); \
+		xlCodeBufAppend(pGen->pBody, "\tif ( (!classNameVal) || (xvoType(classNameVal) == XVO_DT_NULL) ) return xvoCreateNull();\n"); \
+		xlCodeBufAppend(pGen->pBody, "\tstr className = xvoGetText(classNameVal);\n"); \
+		for ( int c = 0; c < pGen->iClassCount; c++ ) { \
+			if ( pGen->metaFlag[c] ) { \
+				xlCodeBufAppendFmt(pGen->pBody, "\tif ( strcmp((char*)className, \"%s\") == 0 ) return xlc_%s_meta_%s(a, b);\n", \
+					pGen->arrClassNames[c], pGen->arrClassNames[c], opName); \
+			} \
+		} \
+		xlCodeBufAppend(pGen->pBody, "\treturn xvoCreateNull();\n"); \
+		xlCodeBufAppend(pGen->pBody, "}\n");
+
+	#define XLGEN_OP_DISPATCH_UNARY(opName, metaFlag) \
+		xlCodeBufAppendFmt(pGen->pBody, "\n// 运算符重载: %s\n", opName); \
+		xlCodeBufAppendFmt(pGen->pBody, "static xvalue xl_op_%s(xvalue a)\n{\n", opName); \
+		xlCodeBufAppend(pGen->pBody, "\tif ( xvoType(a) != XVO_DT_TABLE ) return xvoCreateNull();\n"); \
+		xlCodeBufAppend(pGen->pBody, "\txvalue classNameVal = xvoTableGetValue(a, (str)\"__class__\", 0);\n"); \
+		xlCodeBufAppend(pGen->pBody, "\tif ( (!classNameVal) || (xvoType(classNameVal) == XVO_DT_NULL) ) return xvoCreateNull();\n"); \
+		xlCodeBufAppend(pGen->pBody, "\tstr className = xvoGetText(classNameVal);\n"); \
+		for ( int c = 0; c < pGen->iClassCount; c++ ) { \
+			if ( pGen->metaFlag[c] ) { \
+				xlCodeBufAppendFmt(pGen->pBody, "\tif ( strcmp((char*)className, \"%s\") == 0 ) return xlc_%s_meta_%s(a);\n", \
+					pGen->arrClassNames[c], pGen->arrClassNames[c], opName); \
+			} \
+		} \
+		xlCodeBufAppend(pGen->pBody, "\treturn xvoCreateNull();\n"); \
+		xlCodeBufAppend(pGen->pBody, "}\n");
+
+	XLGEN_OP_DISPATCH_BINARY("add", arrClassHasMetaAdd)
+	XLGEN_OP_DISPATCH_BINARY("sub", arrClassHasMetaSub)
+	XLGEN_OP_DISPATCH_BINARY("mul", arrClassHasMetaMul)
+	XLGEN_OP_DISPATCH_BINARY("div", arrClassHasMetaDiv)
+	XLGEN_OP_DISPATCH_BINARY("mod", arrClassHasMetaMod)
+	XLGEN_OP_DISPATCH_BINARY("pow", arrClassHasMetaPow)
+	XLGEN_OP_DISPATCH_UNARY("neg", arrClassHasMetaNeg)
+	XLGEN_OP_DISPATCH_BINARY("eq", arrClassHasMetaEq)
+	XLGEN_OP_DISPATCH_BINARY("lt", arrClassHasMetaLt)
+	XLGEN_OP_DISPATCH_BINARY("le", arrClassHasMetaLe)
+	XLGEN_OP_DISPATCH_UNARY("len", arrClassHasMetaLen)
+
+	// meta index(key)
+	xlCodeBufAppend(pGen->pBody, "\n// 运算符重载: index\n");
+	xlCodeBufAppend(pGen->pBody, "static xvalue xl_op_index(xvalue obj, xvalue key)\n{\n");
+	xlCodeBufAppend(pGen->pBody, "\tif ( xvoType(obj) != XVO_DT_TABLE ) return xvoCreateNull();\n");
+	xlCodeBufAppend(pGen->pBody, "\txvalue classNameVal = xvoTableGetValue(obj, (str)\"__class__\", 0);\n");
+	xlCodeBufAppend(pGen->pBody, "\tif ( (!classNameVal) || (xvoType(classNameVal) == XVO_DT_NULL) ) return xvoCreateNull();\n");
+	xlCodeBufAppend(pGen->pBody, "\tstr className = xvoGetText(classNameVal);\n");
+	for ( int c = 0; c < pGen->iClassCount; c++ ) {
+		if ( pGen->arrClassHasMetaIndex[c] ) {
+			xlCodeBufAppendFmt(pGen->pBody, "\tif ( strcmp((char*)className, \"%s\") == 0 ) return xlc_%s_meta_index(obj, key);\n",
+				pGen->arrClassNames[c], pGen->arrClassNames[c]);
+		}
+	}
+	xlCodeBufAppend(pGen->pBody, "\treturn xvoCreateNull();\n");
+	xlCodeBufAppend(pGen->pBody, "}\n");
+
+	// meta newindex(key, val)
+	xlCodeBufAppend(pGen->pBody, "\n// 运算符重载: newindex\n");
+	xlCodeBufAppend(pGen->pBody, "static xvalue xl_op_newindex(xvalue obj, xvalue key, xvalue val)\n{\n");
+	xlCodeBufAppend(pGen->pBody, "\tif ( xvoType(obj) != XVO_DT_TABLE ) return xvoCreateNull();\n");
+	xlCodeBufAppend(pGen->pBody, "\txvalue classNameVal = xvoTableGetValue(obj, (str)\"__class__\", 0);\n");
+	xlCodeBufAppend(pGen->pBody, "\tif ( (!classNameVal) || (xvoType(classNameVal) == XVO_DT_NULL) ) return xvoCreateNull();\n");
+	xlCodeBufAppend(pGen->pBody, "\tstr className = xvoGetText(classNameVal);\n");
+	for ( int c = 0; c < pGen->iClassCount; c++ ) {
+		if ( pGen->arrClassHasMetaNewindex[c] ) {
+			xlCodeBufAppendFmt(pGen->pBody, "\tif ( strcmp((char*)className, \"%s\") == 0 ) return xlc_%s_meta_newindex(obj, key, val);\n",
+				pGen->arrClassNames[c], pGen->arrClassNames[c]);
+		}
+	}
+	xlCodeBufAppend(pGen->pBody, "\treturn xvoCreateNull();\n");
+	xlCodeBufAppend(pGen->pBody, "}\n");
+
+	// meta iter() - 迭代器初始化
+	xlCodeBufAppend(pGen->pBody, "\n// 元方法: iter\n");
+	xlCodeBufAppend(pGen->pBody, "static xvalue xl_op_iter(xvalue obj)\n{\n");
+	xlCodeBufAppend(pGen->pBody, "\tif ( xvoType(obj) != XVO_DT_TABLE ) return xvoCreateNull();\n");
+	xlCodeBufAppend(pGen->pBody, "\txvalue classNameVal = xvoTableGetValue(obj, (str)\"__class__\", 0);\n");
+	xlCodeBufAppend(pGen->pBody, "\tif ( (!classNameVal) || (xvoType(classNameVal) == XVO_DT_NULL) ) return xvoCreateNull();\n");
+	xlCodeBufAppend(pGen->pBody, "\tstr className = xvoGetText(classNameVal);\n");
+	for ( int c = 0; c < pGen->iClassCount; c++ ) {
+		if ( pGen->arrClassHasMetaIter[c] ) {
+			xlCodeBufAppendFmt(pGen->pBody, "\tif ( strcmp((char*)className, \"%s\") == 0 ) return xlc_%s_meta_iter(obj);\n",
+				pGen->arrClassNames[c], pGen->arrClassNames[c]);
+		}
+	}
+	xlCodeBufAppend(pGen->pBody, "\treturn xvoCreateNull();\n");
+	xlCodeBufAppend(pGen->pBody, "}\n");
+
+	// meta next() - 迭代器获取下一个值
+	xlCodeBufAppend(pGen->pBody, "\n// 元方法: next\n");
+	xlCodeBufAppend(pGen->pBody, "static xvalue xl_op_next(xvalue obj)\n{\n");
+	xlCodeBufAppend(pGen->pBody, "\tif ( xvoType(obj) != XVO_DT_TABLE ) return xvoCreateNull();\n");
+	xlCodeBufAppend(pGen->pBody, "\txvalue classNameVal = xvoTableGetValue(obj, (str)\"__class__\", 0);\n");
+	xlCodeBufAppend(pGen->pBody, "\tif ( (!classNameVal) || (xvoType(classNameVal) == XVO_DT_NULL) ) return xvoCreateNull();\n");
+	xlCodeBufAppend(pGen->pBody, "\tstr className = xvoGetText(classNameVal);\n");
+	for ( int c = 0; c < pGen->iClassCount; c++ ) {
+		if ( pGen->arrClassHasMetaNext[c] ) {
+			xlCodeBufAppendFmt(pGen->pBody, "\tif ( strcmp((char*)className, \"%s\") == 0 ) return xlc_%s_meta_next(obj);\n",
+				pGen->arrClassNames[c], pGen->arrClassNames[c]);
+		}
+	}
+	xlCodeBufAppend(pGen->pBody, "\treturn xvoCreateNull();\n");
+	xlCodeBufAppend(pGen->pBody, "}\n");
+
+	// meta to(type) - 类型转换
+	xlCodeBufAppend(pGen->pBody, "\n// 元方法: to (类型转换)\n");
+	xlCodeBufAppend(pGen->pBody, "static xvalue xl_op_to(xvalue obj, xvalue type)\n{\n");
+	xlCodeBufAppend(pGen->pBody, "\tif ( xvoType(obj) != XVO_DT_TABLE ) return xvoCreateNull();\n");
+	xlCodeBufAppend(pGen->pBody, "\txvalue classNameVal = xvoTableGetValue(obj, (str)\"__class__\", 0);\n");
+	xlCodeBufAppend(pGen->pBody, "\tif ( (!classNameVal) || (xvoType(classNameVal) == XVO_DT_NULL) ) return xvoCreateNull();\n");
+	xlCodeBufAppend(pGen->pBody, "\tstr className = xvoGetText(classNameVal);\n");
+	for ( int c = 0; c < pGen->iClassCount; c++ ) {
+		if ( pGen->arrClassHasMetaTo[c] ) {
+			xlCodeBufAppendFmt(pGen->pBody, "\tif ( strcmp((char*)className, \"%s\") == 0 ) return xlc_%s_meta_to(obj, type);\n",
+				pGen->arrClassNames[c], pGen->arrClassNames[c]);
+		}
+	}
+	xlCodeBufAppend(pGen->pBody, "\treturn xvoCreateNull();\n");
+	xlCodeBufAppend(pGen->pBody, "}\n");
+
+	// meta enter() - with 语句进入
+	xlCodeBufAppend(pGen->pBody, "\n// 元方法: enter (with 语句)\n");
+	xlCodeBufAppend(pGen->pBody, "static xvalue xl_op_enter(xvalue obj)\n{\n");
+	xlCodeBufAppend(pGen->pBody, "\tif ( xvoType(obj) != XVO_DT_TABLE ) return obj;\n");
+	xlCodeBufAppend(pGen->pBody, "\txvalue classNameVal = xvoTableGetValue(obj, (str)\"__class__\", 0);\n");
+	xlCodeBufAppend(pGen->pBody, "\tif ( (!classNameVal) || (xvoType(classNameVal) == XVO_DT_NULL) ) return obj;\n");
+	xlCodeBufAppend(pGen->pBody, "\tstr className = xvoGetText(classNameVal);\n");
+	for ( int c = 0; c < pGen->iClassCount; c++ ) {
+		if ( pGen->arrClassHasMetaEnter[c] ) {
+			xlCodeBufAppendFmt(pGen->pBody, "\tif ( strcmp((char*)className, \"%s\") == 0 ) return xlc_%s_meta_enter(obj);\n",
+				pGen->arrClassNames[c], pGen->arrClassNames[c]);
+		}
+	}
+	xlCodeBufAppend(pGen->pBody, "\treturn obj;\n");
+	xlCodeBufAppend(pGen->pBody, "}\n");
+
+	// meta exit() - with 语句退出
+	xlCodeBufAppend(pGen->pBody, "\n// 元方法: exit (with 语句)\n");
+	xlCodeBufAppend(pGen->pBody, "static xvalue xl_op_exit(xvalue obj)\n{\n");
+	xlCodeBufAppend(pGen->pBody, "\tif ( xvoType(obj) != XVO_DT_TABLE ) return xvoCreateNull();\n");
+	xlCodeBufAppend(pGen->pBody, "\txvalue classNameVal = xvoTableGetValue(obj, (str)\"__class__\", 0);\n");
+	xlCodeBufAppend(pGen->pBody, "\tif ( (!classNameVal) || (xvoType(classNameVal) == XVO_DT_NULL) ) return xvoCreateNull();\n");
+	xlCodeBufAppend(pGen->pBody, "\tstr className = xvoGetText(classNameVal);\n");
+	for ( int c = 0; c < pGen->iClassCount; c++ ) {
+		if ( pGen->arrClassHasMetaExit[c] ) {
+			xlCodeBufAppendFmt(pGen->pBody, "\tif ( strcmp((char*)className, \"%s\") == 0 ) return xlc_%s_meta_exit(obj);\n",
+				pGen->arrClassNames[c], pGen->arrClassNames[c]);
+		}
+	}
+	xlCodeBufAppend(pGen->pBody, "\treturn xvoCreateNull();\n");
+	xlCodeBufAppend(pGen->pBody, "}\n");
+
+	#undef XLGEN_OP_DISPATCH_BINARY
+	#undef XLGEN_OP_DISPATCH_UNARY
 
 	// 生成 main 函数
 	xlCodeBufAppend(pGen->pBody, "\n// 程序入口\n");

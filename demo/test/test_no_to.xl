@@ -1,0 +1,16 @@
+// 不含 meta to 的测试
+
+println("start")
+
+class Point
+	var x = 0
+	
+	create(x)
+		self.x = x
+	end
+end
+
+println("class defined")
+
+var p = new Point(1)
+println("done")

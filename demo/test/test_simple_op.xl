@@ -1,0 +1,24 @@
+// Simple operator overload test
+
+println("=== Simple Operator Overload ===")
+
+class Vec
+	var x = 0
+	
+	create(x)
+		self.x = x
+	end
+	
+	meta add(other)
+		return new Vec(self.x + other.x)
+	end
+end
+
+var a = new Vec(1)
+var b = new Vec(2)
+println("a.x = " + string(a.x))
+println("b.x = " + string(b.x))
+var c = a + b
+println("c.x = " + string(c.x))
+
+println("=== Done ===")

@@ -1,0 +1,5 @@
+// 带变量的模板字符串测试
+var name = "World"
+println("name = " + name)
+var s = `Hello {$name}!`
+println("s = " + s)

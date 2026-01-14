@@ -14,7 +14,7 @@
 		char* pMemC = pMem;
 		char* pSubC = pSub;
 		size_t iRange = iMemSize - iSubSize;
-		for ( int i = 0; i < iRange; i++ ) {
+		for ( int i = 0; i <= iRange; i++ ) {
 			char* pPos = &pMemC[i];
 			int bOK = TRUE;
 			for ( int j = 0; j < iSubSize; j++ ) {

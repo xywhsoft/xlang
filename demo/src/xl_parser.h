@@ -1141,7 +1141,7 @@ static xvalue xlParseVarDecl( XL_Parser *pParser, bool bIsConst )
 	// const 后面直接跟变量名，不需要 var/auto
 	if ( bIsConst ) {
 		// const name = value 形式，不需要类型关键字
-	} else if ( xlParserMatch(pParser, XL_TK_VAR) || xlParserMatch(pParser, XL_TK_AUTO) ) {
+	} else if ( xlParserMatch(pParser, XL_TK_VAR) || xlParserMatch(pParser, XL_TK_AUTO) || xlParserMatch(pParser, XL_TK_LET) ) {
 		// 动态类型
 	} else {
 		// 静态类型
@@ -1398,7 +1398,40 @@ static xvalue xlParseTryStmt( XL_Parser *pParser )
 }
 
 
-// 解析块语句（直到遇到 end/else/elseif/catch/finally）
+// 解析 with 语句
+// with expr [as var] ... end
+static xvalue xlParseWithStmt( XL_Parser *pParser )
+{
+	u32 iLine = pParser->token.iLine;
+	u32 iCol = pParser->token.iColumn;
+
+	xlParserExpect(pParser, XL_TK_WITH, (str)"with");
+
+	xvalue xExpr = xlParseExpr(pParser);
+
+	// 可选的 as var
+	str pszVar = NULL;
+	u32 iVarLen = 0;
+	if ( xlParserMatch(pParser, XL_TK_AS) ) {
+		if ( xlParserCheck(pParser, XL_TK_IDENT) ) {
+			pszVar = pParser->token.pszStart;
+			iVarLen = pParser->token.iLength;
+			xlParserAdvance(pParser);
+		} else {
+			xlErrorListAddFmt(pParser->pErrors, XL_ERR_SYN_EXPECTED_TOKEN,
+				pParser->token.iLine, pParser->token.iColumn,
+				(str)"Expected identifier after 'as'");
+		}
+	}
+
+	xvalue xBody = xlParseBlockStmt(pParser);
+	xlParserExpect(pParser, XL_TK_END, (str)"end");
+
+	return xlAstCreateWithStmt(xExpr, pszVar, iVarLen, xBody, iLine, iCol);
+}
+
+
+// 解析块语句（直到遇到 end/else/elseif/catch/finally/while）
 static xvalue xlParseBlockStmt( XL_Parser *pParser )
 {
 	u32 iLine = pParser->token.iLine;
@@ -1411,6 +1444,7 @@ static xvalue xlParseBlockStmt( XL_Parser *pParser )
 	        !xlParserCheck(pParser, XL_TK_ELSEIF) &&
 	        !xlParserCheck(pParser, XL_TK_CATCH) &&
 	        !xlParserCheck(pParser, XL_TK_FINALLY) &&
+	        !xlParserCheck(pParser, XL_TK_WHILE) &&
 	        !xlParserCheck(pParser, XL_TK_EOF) ) {
 		xvalue xStmt = xlParseStmt(pParser);
 		if ( xStmt ) {
@@ -1432,6 +1466,7 @@ static xvalue xlParseStmt( XL_Parser *pParser )
 	switch ( pParser->token.kind ) {
 		case XL_TK_VAR:
 		case XL_TK_AUTO:
+		case XL_TK_LET:
 			return xlParseVarDecl(pParser, false);
 
 		case XL_TK_CONST:
@@ -1489,6 +1524,9 @@ static xvalue xlParseStmt( XL_Parser *pParser )
 
 		case XL_TK_TRY:
 			return xlParseTryStmt(pParser);
+
+		case XL_TK_WITH:
+			return xlParseWithStmt(pParser);
 
 		case XL_TK_THROW: {
 			u32 iLine = pParser->token.iLine;
@@ -1762,6 +1800,41 @@ static xvalue xlParseClassDecl( XL_Parser *pParser )
 			xlParserExpect(pParser, XL_TK_END, (str)"end");
 
 			xMember = xlAstCreateDtorDecl(xBody, iDtorLine, iDtorCol);
+			xlAstSetInt(xMember, (str)"access", iAccess);
+		}
+		// meta 元方法 (meta let/get/call)
+		else if ( xlParserCheck(pParser, XL_TK_META) ) {
+			u32 iMetaLine = pParser->token.iLine;
+			u32 iMetaCol = pParser->token.iColumn;
+			xlParserAdvance(pParser);
+
+			// 获取元方法类型：let, get, call, to, in 等
+			// 注意：有些 meta 名称是保留关键字(to, in)，需要特殊处理
+			if ( !xlParserCheck(pParser, XL_TK_LET) &&
+			     !xlParserCheck(pParser, XL_TK_GET) &&
+			     !xlParserCheck(pParser, XL_TK_TO) &&
+			     !xlParserCheck(pParser, XL_TK_IN) &&
+			     !xlParserCheck(pParser, XL_TK_IDENT) ) {
+				xlErrorListAddFmt(pParser->pErrors, XL_ERR_SYN_EXPECTED_TOKEN,
+				                  pParser->token.iLine, pParser->token.iColumn,
+				                  (str)"meta 后期望 let, get, call, to 等元方法名");
+				pParser->bHadError = true;
+				continue;
+			}
+
+			str pszMetaType = pParser->token.pszStart;
+			u32 iMetaTypeLen = pParser->token.iLength;
+			xlParserAdvance(pParser);
+
+			// 参数列表
+			xvalue xParams = xlParseParamList(pParser);
+
+			// 函数体
+			xvalue xBody = xlParseBlockStmt(pParser);
+
+			xlParserExpect(pParser, XL_TK_END, (str)"end");
+
+			xMember = xlAstCreateMetaDecl(pszMetaType, iMetaTypeLen, xParams, xBody, iMetaLine, iMetaCol);
 			xlAstSetInt(xMember, (str)"access", iAccess);
 		}
 		// 函数/方法

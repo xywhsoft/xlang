@@ -1,0 +1,66 @@
+// 组合测试2 - 添加 with 和 meta get/let
+
+println("=== Combined Test 2 ===")
+
+class Vec2
+	var x = 0
+	var y = 0
+	
+	create(x, y)
+		self.x = x
+		self.y = y
+	end
+	
+	meta add(other)
+		return new Vec2(self.x + other.x, self.y + other.y)
+	end
+end
+
+class Resource
+	var name = ""
+	
+	create(name)
+		self.name = name
+	end
+	
+	meta enter()
+		println("  enter: " + self.name)
+		return self
+	end
+	
+	meta exit()
+		println("  exit: " + self.name)
+	end
+end
+
+class Proxy
+	var data = {}
+	
+	meta get(name)
+		println("  get: " + name)
+		return self.data[name]
+	end
+	
+	meta let(name, val)
+		println("  let: " + name)
+		self.data[name] = val
+	end
+end
+
+println("--- Vec2 ---")
+var v1 = new Vec2(1, 2)
+var v2 = new Vec2(3, 4)
+var v3 = v1 + v2
+println("v3.x = " + string(v3.x))
+
+println("--- With ---")
+with new Resource("test") as r
+	println("  inside with")
+end
+
+println("--- Proxy ---")
+var p = new Proxy()
+p.foo = 123
+println("p.foo = " + string(p.foo))
+
+println("=== Done ===")

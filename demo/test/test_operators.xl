@@ -1,0 +1,41 @@
+// 测试运算符和控制流
+
+println("=== 安全访问运算符 ?. ===")
+var obj = {name: "Test", value: 42}
+var empty = null
+
+println("obj?.name = " + obj?.name)
+println("obj?.value = " + string(obj?.value))
+println("empty?.name = " + string(empty?.name))
+println("empty?.missing = " + string(empty?.missing))
+
+println("")
+println("=== 约等于运算符 ~= ===")
+var a = 1.0000000001
+var b = 1.0
+var c = 1.1
+println("1.0000000001 ~= 1.0: " + string(a ~= b))
+println("1.1 ~= 1.0: " + string(c ~= b))
+
+println("")
+println("=== 空值合并运算符 ?? ===")
+var x = null
+var y = 100
+println("null ?? 42 = " + string(x ?? 42))
+println("100 ?? 42 = " + string(y ?? 42))
+
+println("")
+println("=== 乘方运算符 ** ===")
+println("2 ** 10 = " + string(2 ** 10))
+println("3 ** 3 = " + string(3 ** 3))
+
+println("")
+println("=== do-while 循环 ===")
+var i = 0
+do
+	println("do-while i = " + string(i))
+	i = i + 1
+while i < 3
+
+println("")
+println("=== 测试完成 ===")

@@ -1,0 +1,86 @@
+// Test: meta methods (let/get/call)
+
+println("=== Meta Methods Test ===")
+
+// Test 1: Simple meta get
+class ProxyGet
+	var _store = {}
+	
+	create()
+		// Initialize with xvoTableSetValue (direct, no meta)
+	end
+	
+	meta get(name)
+		println("  [meta get] " + string(name))
+		return 42
+	end
+end
+
+println("")
+println("--- Test 1: meta get ---")
+var pg = new ProxyGet()
+println("pg.foo = " + string(pg.foo))
+println("pg.bar = " + string(pg.bar))
+
+
+// Test 2: Simple meta let  
+class ProxyLet
+	var _store = {}
+	
+	create()
+	end
+	
+	meta let(name, value)
+		println("  [meta let] " + string(name) + " = " + string(value))
+	end
+end
+
+println("")
+println("--- Test 2: meta let ---")
+var pl = new ProxyLet()
+pl.x = 10
+pl.y = "hello"
+
+
+// Test 3: Both meta get and let
+class ProxyBoth
+	meta get(name)
+		println("  [get] " + string(name))
+		return "value_" + string(name)
+	end
+	
+	meta let(name, value)
+		println("  [set] " + string(name) + " <- " + string(value))
+	end
+end
+
+println("")
+println("--- Test 3: meta get + let ---")
+var pb = new ProxyBoth()
+pb.test = 100
+println("pb.test = " + string(pb.test))
+
+
+// Test 4: meta call
+class Functor
+	var factor = 0
+	
+	create(f)
+		self.factor = f
+	end
+	
+	meta call(x)
+		println("  [call] x=" + string(x))
+		return x * self.factor
+	end
+end
+
+println("")
+println("--- Test 4: meta call ---")
+var fn = new Functor(5)
+println("fn.factor = " + string(fn.factor))
+// Note: To actually call fn(10), we need special syntax support
+
+
+println("")
+println("=== All meta tests passed ===")

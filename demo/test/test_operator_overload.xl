@@ -1,0 +1,141 @@
+// Test: Operator Overloading (meta methods)
+
+println("=== Operator Overload Test ===")
+
+// Vector class with operator overloading
+class Vector
+	var x = 0
+	var y = 0
+	
+	create(x, y)
+		self.x = x
+		self.y = y
+	end
+	
+	meta add(other)
+		return new Vector(self.x + other.x, self.y + other.y)
+	end
+	
+	meta sub(other)
+		return new Vector(self.x - other.x, self.y - other.y)
+	end
+	
+	meta mul(other)
+		// scalar multiplication
+		return new Vector(self.x * other, self.y * other)
+	end
+	
+	meta neg()
+		return new Vector(-self.x, -self.y)
+	end
+	
+	meta eq(other)
+		return (self.x == other.x) and (self.y == other.y)
+	end
+	
+	function toString()
+		return "(" + string(self.x) + ", " + string(self.y) + ")"
+	end
+end
+
+println("")
+println("--- Vector operations ---")
+var v1 = new Vector(1, 2)
+var v2 = new Vector(3, 4)
+
+println("v1 = " + v1.toString())
+println("v2 = " + v2.toString())
+
+var v3 = v1 + v2
+println("v1 + v2 = " + v3.toString())
+
+var v4 = v2 - v1
+println("v2 - v1 = " + v4.toString())
+
+var v5 = v1 * 3
+println("v1 * 3 = " + v5.toString())
+
+var v6 = -v1
+println("-v1 = " + v6.toString())
+
+println("v1 == v1: " + string(v1 == v1))
+println("v1 == v2: " + string(v1 == v2))
+
+
+// CustomArray with index overloading
+class CustomArray
+	var _data = []
+	var _default = 0
+	
+	create(default_val)
+		self._data = []
+		self._default = default_val
+	end
+	
+	meta index(key)
+		println("  [index] key=" + string(key))
+		var idx = int(key)
+		if idx < len(self._data) then
+			return self._data[idx]
+		end
+		return self._default
+	end
+	
+	meta newindex(key, val)
+		println("  [newindex] key=" + string(key) + " val=" + string(val))
+		var idx = int(key)
+		while len(self._data) <= idx
+			self._data = self._data + [self._default]
+		end
+		self._data[idx] = val
+	end
+	
+	meta len()
+		return len(self._data)
+	end
+end
+
+println("")
+println("--- CustomArray with index/newindex/len ---")
+var arr = new CustomArray(-1)
+arr[0] = 10
+arr[2] = 30
+println("arr[0] = " + string(arr[0]))
+println("arr[1] = " + string(arr[1]))
+println("arr[2] = " + string(arr[2]))
+
+
+// Comparison operators
+class Number
+	var val = 0
+	
+	create(v)
+		self.val = v
+	end
+	
+	meta lt(other)
+		return self.val < other.val
+	end
+	
+	meta le(other)
+		return self.val <= other.val
+	end
+	
+	meta eq(other)
+		return self.val == other.val
+	end
+end
+
+println("")
+println("--- Comparison operators ---")
+var n1 = new Number(5)
+var n2 = new Number(10)
+var n3 = new Number(5)
+
+println("n1(5) < n2(10): " + string(n1 < n2))
+println("n2(10) < n1(5): " + string(n2 < n1))
+println("n1(5) <= n3(5): " + string(n1 <= n3))
+println("n1(5) == n3(5): " + string(n1 == n3))
+
+println("")
+println("=== All operator overload tests completed ===")
