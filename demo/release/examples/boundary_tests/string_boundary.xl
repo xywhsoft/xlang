@@ -22,12 +22,12 @@ print("")
 print("3. 长字符串")
 var sLong = ""
 // 生成一个长字符串
-for var i = 0; i < 10; i++ {
-    sLong += "xlang" + str(i)
-}
+for i in range(0, 10)
+	sLong += "xlang" + str(i)
+end
 print("长字符串长度:", len(sLong))
-print("长字符串前10个字符:", sLong[0:10])
-print("长字符串后10个字符:", sLong[-10:])
+print("长字符串前10个字符:", sLong[0 to 10])
+print("长字符串后10个字符:", sLong[-10 to 0])
 print("")
 
 // 4. 包含特殊字符的字符串
@@ -59,13 +59,13 @@ print("")
 
 // 7. 字符串切片边界测试
 print("7. 字符串切片边界测试")
-print("sTest[0:2]:", sTest[0:2])  // 正常切片
-print("sTest[0:10]:", sTest[0:10])  // 结束索引超出边界
-print("sTest[-10:10]:", sTest[-10:10])  // 开始索引超出边界，结束索引超出边界
-print("sTest[2:0]:", sTest[2:0])  // 开始索引大于结束索引，返回空字符串
-print("sTest[:]:", sTest[:])  // 完整切片
-print("sTest[:3]:", sTest[:3])  // 从开始到索引3
-print("sTest[1:]:", sTest[1:])  // 从索引1到结束
+print("sTest[0:2]:", sTest[0 to 2])  // 正常切片
+print("sTest[0:10]:", sTest[0 to 10])  // 结束索引超出边界
+print("sTest[-10:10]:", sTest[-10 to 10])  // 开始索引超出边界，结束索引超出边界
+print("sTest[2:0]:", sTest[2 to 0])  // 开始索引大于结束索引，返回空字符串
+//print("sTest[:]:", sTest[:])  // 完整切片
+print("sTest[:3]:", sTest[0 to 3])  // 从开始到索引3
+print("sTest[1:]:", sTest[1 to 10])  // 从索引1到结束
 print("")
 
 // 8. 字符串拼接边界测试

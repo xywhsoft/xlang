@@ -74,7 +74,7 @@ println("")
 println("8. 布尔值与循环")
 var continue_loop = true
 var count = 0
-while continue_loop
+while continue_loop do
 	count++
 	print(count + " ")
 	if count >= 5

@@ -664,6 +664,7 @@ static xvalue xlParsePrimaryExpr( XL_Parser *pParser )
 			                  (str)"意外的 Token: %s",
 			                  (char*)xlTokenKindName(pParser->token.kind));
 			pParser->bHadError = true;
+			pParser->bPanicMode = true;
 			return 0;
 	}
 }
@@ -1243,6 +1244,7 @@ static xvalue xlParseIfStmt( XL_Parser *pParser )
 
 
 // 解析 while 语句
+// 语法: while exp do ... end
 static xvalue xlParseWhileStmt( XL_Parser *pParser )
 {
 	u32 iLine = pParser->token.iLine;
@@ -1251,6 +1253,8 @@ static xvalue xlParseWhileStmt( XL_Parser *pParser )
 	xlParserExpect(pParser, XL_TK_WHILE, (str)"while");
 
 	xvalue xCond = xlParseExpr(pParser);
+
+	xlParserExpect(pParser, XL_TK_DO, (str)"do");
 
 	xvalue xBody = xlParseBlockStmt(pParser);
 
@@ -1261,6 +1265,7 @@ static xvalue xlParseWhileStmt( XL_Parser *pParser )
 
 
 // 解析 do-while 语句
+// 语法: do ... while exp end
 static xvalue xlParseDoWhileStmt( XL_Parser *pParser )
 {
 	u32 iLine = pParser->token.iLine;
@@ -1268,10 +1273,32 @@ static xvalue xlParseDoWhileStmt( XL_Parser *pParser )
 
 	xlParserExpect(pParser, XL_TK_DO, (str)"do");
 
-	xvalue xBody = xlParseBlockStmt(pParser);
+	// do-while 专用的块解析，在遇到 while 时停止
+	u32 iBlockLine = pParser->token.iLine;
+	u32 iBlockCol = pParser->token.iColumn;
+	xvalue xBody = xlAstCreateBlockStmt(iBlockLine, iBlockCol);
+
+	while ( !xlParserCheck(pParser, XL_TK_WHILE) &&
+	        !xlParserCheck(pParser, XL_TK_EOF) ) {
+		// 记录当前 token 位置，用于检测无限循环
+		str pszPrevToken = pParser->token.pszStart;
+		
+		xvalue xStmt = xlParseStmt(pParser);
+		if ( xStmt ) {
+			xlAstBlockAddStmt(xBody, xStmt);
+		}
+		if ( pParser->bPanicMode ) {
+			xlParserSync(pParser);
+		} else if ( !xStmt && (pParser->token.pszStart == pszPrevToken) ) {
+			// 如果语句解析失败且 token 没有前进，强制跳过以避免无限循环
+			xlParserAdvance(pParser);
+		}
+	}
 
 	xlParserExpect(pParser, XL_TK_WHILE, (str)"while");
 	xvalue xCond = xlParseExpr(pParser);
+
+	xlParserExpect(pParser, XL_TK_END, (str)"end");
 
 	return xlAstCreateDoWhileStmt(xBody, xCond, iLine, iCol);
 }
@@ -1291,6 +1318,7 @@ static xvalue xlParseForStmt( XL_Parser *pParser )
 		                  pParser->token.iLine, pParser->token.iColumn,
 		                  (str)"期望变量名");
 		pParser->bHadError = true;
+		pParser->bPanicMode = true;
 		return 0;
 	}
 
@@ -1306,6 +1334,7 @@ static xvalue xlParseForStmt( XL_Parser *pParser )
 			                  pParser->token.iLine, pParser->token.iColumn,
 			                  (str)"期望变量名");
 			pParser->bHadError = true;
+			pParser->bPanicMode = true;
 			return 0;
 		}
 
@@ -1333,6 +1362,7 @@ static xvalue xlParseForStmt( XL_Parser *pParser )
 	                  pParser->token.iLine, pParser->token.iColumn,
 	                  (str)"无效的 for 语句");
 	pParser->bHadError = true;
+	pParser->bPanicMode = true;
 	return 0;
 }
 
@@ -1431,7 +1461,7 @@ static xvalue xlParseWithStmt( XL_Parser *pParser )
 }
 
 
-// 解析块语句（直到遇到 end/else/elseif/catch/finally/while）
+// 解析块语句（直到遇到 end/else/elseif/catch/finally）
 static xvalue xlParseBlockStmt( XL_Parser *pParser )
 {
 	u32 iLine = pParser->token.iLine;
@@ -1444,8 +1474,10 @@ static xvalue xlParseBlockStmt( XL_Parser *pParser )
 	        !xlParserCheck(pParser, XL_TK_ELSEIF) &&
 	        !xlParserCheck(pParser, XL_TK_CATCH) &&
 	        !xlParserCheck(pParser, XL_TK_FINALLY) &&
-	        !xlParserCheck(pParser, XL_TK_WHILE) &&
 	        !xlParserCheck(pParser, XL_TK_EOF) ) {
+		// 记录当前 token 位置，用于检测无限循环
+		str pszPrevToken = pParser->token.pszStart;
+		
 		xvalue xStmt = xlParseStmt(pParser);
 		if ( xStmt ) {
 			xlAstBlockAddStmt(xBlock, xStmt);
@@ -1453,6 +1485,9 @@ static xvalue xlParseBlockStmt( XL_Parser *pParser )
 
 		if ( pParser->bPanicMode ) {
 			xlParserSync(pParser);
+		} else if ( !xStmt && (pParser->token.pszStart == pszPrevToken) ) {
+			// 如果语句解析失败且 token 没有前进，强制跳过以避免无限循环
+			xlParserAdvance(pParser);
 		}
 	}
 
@@ -1899,6 +1934,9 @@ static inline xvalue xlParserParse( XL_Parser *pParser, str pszFileName )
 
 	// 解析所有顶层声明
 	while ( !xlParserCheck(pParser, XL_TK_EOF) ) {
+		// 记录当前 token 位置，用于检测无限循环
+		str pszPrevToken = pParser->token.pszStart;
+		
 		xvalue xDecl = xlParseDecl(pParser);
 		if ( xDecl ) {
 			xlAstModuleAddDecl(xModule, xDecl);
@@ -1906,6 +1944,9 @@ static inline xvalue xlParserParse( XL_Parser *pParser, str pszFileName )
 
 		if ( pParser->bPanicMode ) {
 			xlParserSync(pParser);
+		} else if ( !xDecl && (pParser->token.pszStart == pszPrevToken) ) {
+			// 如果声明解析失败且 token 没有前进，强制跳过以避免无限循环
+			xlParserAdvance(pParser);
 		}
 	}
 

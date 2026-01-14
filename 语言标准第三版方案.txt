@@ -735,14 +735,14 @@
 
 条件循环：
 	// 前置条件检查
-	while exp
+	while exp do
 		code block
 	end
 	
 	// 后置条件检查（至少执行一次）
 	do
 		code block
-	while exp
+	while exp end
 	
 	和 if 语句一样，支持对 in、to 语句的展开优化
 

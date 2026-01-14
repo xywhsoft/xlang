@@ -26,7 +26,7 @@ end
 // while 循环中的 break
 println("while break:")
 var j = 0
-while j < 100
+while j < 100 do
 	j = j + 1
 	if j > 3 then
 		break
@@ -37,7 +37,7 @@ end
 // while 循环中的 continue
 println("while continue:")
 var k = 0
-while k < 10
+while k < 10 do
 	k = k + 1
 	if k % 2 == 0 then
 		continue
@@ -48,10 +48,10 @@ end
 // break n 测试（跳出多层循环）
 println("break 2 test:")
 var outer = 0
-while outer < 3
+while outer < 3 do
 	outer = outer + 1
 	var inner = 0
-	while inner < 3
+	while inner < 3 do
 		inner = inner + 1
 		if inner == 2 then
 			break 2

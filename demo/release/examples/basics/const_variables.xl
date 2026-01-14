@@ -4,78 +4,78 @@
 // ============================================
 // 1. 基本常量声明
 // ============================================
-print("=== 基本常量声明 ===")
+println("=== 基本常量声明 ===")
 
 const PI = 3.14159
-print("const PI = 3.14159")
-print("PI =")
-print(PI)
+println("const PI = 3.14159")
+println("PI =")
+println(PI)
 
 const MAX_VALUE = 100
-print("const MAX_VALUE = 100")
-print("MAX_VALUE =")
-print(MAX_VALUE)
+println("const MAX_VALUE = 100")
+println("MAX_VALUE =")
+println(MAX_VALUE)
 
 const MESSAGE = "Hello, World!"
-print("const MESSAGE = 'Hello, World!'")
-print("MESSAGE =")
-print(MESSAGE)
+println("const MESSAGE = 'Hello, World!'")
+println("MESSAGE =")
+println(MESSAGE)
 
 // ============================================
 // 2. 常量参与表达式
 // ============================================
-print("=== 常量参与表达式 ===")
+println("=== 常量参与表达式 ===")
 
 var radius = 5
 var area = PI * radius * radius
-print("radius = 5")
-print("area = PI * radius * radius =")
-print(area)
+println("radius = 5")
+println("area = PI * radius * radius =")
+println(area)
 
 var circumference = 2 * PI * radius
-print("circumference = 2 * PI * radius =")
-print(circumference)
+println("circumference = 2 * PI * radius =")
+println(circumference)
 
 // ============================================
 // 3. 多个常量
 // ============================================
-print("=== 多个常量 ===")
+println("=== 多个常量 ===")
 
 const MIN = 0
 const MAX = 100
 const STEP = 10
 
-print("MIN =")
-print(MIN)
-print("MAX =")
-print(MAX)
-print("STEP =")
-print(STEP)
+println("MIN =")
+println(MIN)
+println("MAX =")
+println(MAX)
+println("STEP =")
+println(STEP)
 
 var range_size = (MAX - MIN) / STEP
-print("range_size = (MAX - MIN) / STEP =")
-print(range_size)
+println("range_size = (MAX - MIN) / STEP =")
+println(range_size)
 
 // ============================================
 // 4. 常量类型
 // ============================================
-print("=== 常量类型 ===")
+println("=== 常量类型 ===")
 
 const INT_CONST = 42
 const FLOAT_CONST = 3.14
 const BOOL_CONST = true
 const STR_CONST = "constant string"
 
-print("INT_CONST =")
-print(INT_CONST)
-print("FLOAT_CONST =")
-print(FLOAT_CONST)
-print("BOOL_CONST =")
-print(BOOL_CONST)
-print("STR_CONST =")
-print(STR_CONST)
+println("INT_CONST =")
+println(INT_CONST)
+println("FLOAT_CONST =")
+println(FLOAT_CONST)
+println("BOOL_CONST =")
+println(BOOL_CONST)
+println("STR_CONST =")
+println(STR_CONST)
 
-print("=== 常量测试完成 ===")
+println("=== 常量测试完成 ===")
 
 // 注意：对常量重新赋值会产生编译错误
 // 以下代码如果取消注释将导致错误：

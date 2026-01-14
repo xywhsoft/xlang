@@ -11,17 +11,17 @@ for i in range(1, 1)
 	println(i)
 end
 
-// 空循环 (start > end)
+// 反向循环 (start > end)
 println("empty for loop:")
 for i in range(10, 5)
-	println("should not print")
+	println(i)
 end
 println("done")
 
 // while 条件立即为 false
 println("immediate false while:")
 var x = 10
-while x < 5
+while x < 5 do
 	println("should not print")
 end
 println("ok")

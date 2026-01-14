@@ -3,9 +3,9 @@ println("=== break n / continue n 测试 ===")
 // 测试 break 2
 println("测试 break 2:")
 var i = 0
-while i < 5
+while i < 5 do
 	var j = 0
-	while j < 5
+	while j < 5 do
 		if j == 2 then break 2
 		print("i=")
 		print(i)
