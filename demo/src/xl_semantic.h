@@ -332,6 +332,76 @@ static inline XL_Semantic* xlSemanticCreate( XL_ErrorList *pErrors )
 		XL_Symbol *pType = xlSymbolCreate((str)"type", XL_SYM_FUNCTION, 0, 0);
 		pType->pType = xlTypeCreate(XL_TYPE_FUNCTION);
 		xlScopeDefine(pSem->pGlobalScope, pType);
+
+		// typeof 内置函数 - 返回类型整数值
+		XL_Symbol *pTypeof = xlSymbolCreate((str)"typeof", XL_SYM_FUNCTION, 0, 0);
+		pTypeof->pType = xlTypeCreate(XL_TYPE_FUNCTION);
+		xlScopeDefine(pSem->pGlobalScope, pTypeof);
+
+		// range 内置函数
+		XL_Symbol *pRange = xlSymbolCreate((str)"range", XL_SYM_FUNCTION, 0, 0);
+		pRange->pType = xlTypeCreate(XL_TYPE_FUNCTION);
+		xlScopeDefine(pSem->pGlobalScope, pRange);
+
+		// input 内置函数
+		XL_Symbol *pInput = xlSymbolCreate((str)"input", XL_SYM_FUNCTION, 0, 0);
+		pInput->pType = xlTypeCreate(XL_TYPE_FUNCTION);
+		xlScopeDefine(pSem->pGlobalScope, pInput);
+
+		// abs 内置函数
+		XL_Symbol *pAbs = xlSymbolCreate((str)"abs", XL_SYM_FUNCTION, 0, 0);
+		pAbs->pType = xlTypeCreate(XL_TYPE_FUNCTION);
+		xlScopeDefine(pSem->pGlobalScope, pAbs);
+
+		// min 内置函数
+		XL_Symbol *pMin = xlSymbolCreate((str)"min", XL_SYM_FUNCTION, 0, 0);
+		pMin->pType = xlTypeCreate(XL_TYPE_FUNCTION);
+		xlScopeDefine(pSem->pGlobalScope, pMin);
+
+		// max 内置函数
+		XL_Symbol *pMax = xlSymbolCreate((str)"max", XL_SYM_FUNCTION, 0, 0);
+		pMax->pType = xlTypeCreate(XL_TYPE_FUNCTION);
+		xlScopeDefine(pSem->pGlobalScope, pMax);
+
+		// int 类型转换函数
+		XL_Symbol *pInt = xlSymbolCreate((str)"int", XL_SYM_FUNCTION, 0, 0);
+		pInt->pType = xlTypeCreate(XL_TYPE_FUNCTION);
+		xlScopeDefine(pSem->pGlobalScope, pInt);
+
+		// float 类型转换函数
+		XL_Symbol *pFloat = xlSymbolCreate((str)"float", XL_SYM_FUNCTION, 0, 0);
+		pFloat->pType = xlTypeCreate(XL_TYPE_FUNCTION);
+		xlScopeDefine(pSem->pGlobalScope, pFloat);
+
+		// string 类型转换函数
+		XL_Symbol *pString = xlSymbolCreate((str)"string", XL_SYM_FUNCTION, 0, 0);
+		pString->pType = xlTypeCreate(XL_TYPE_FUNCTION);
+		xlScopeDefine(pSem->pGlobalScope, pString);
+
+		// bool 类型转换函数
+		XL_Symbol *pBool = xlSymbolCreate((str)"bool", XL_SYM_FUNCTION, 0, 0);
+		pBool->pType = xlTypeCreate(XL_TYPE_FUNCTION);
+		xlScopeDefine(pSem->pGlobalScope, pBool);
+
+		// list 创建函数
+		XL_Symbol *pList = xlSymbolCreate((str)"list", XL_SYM_FUNCTION, 0, 0);
+		pList->pType = xlTypeCreate(XL_TYPE_FUNCTION);
+		xlScopeDefine(pSem->pGlobalScope, pList);
+
+		// set 创建函数
+		XL_Symbol *pSet = xlSymbolCreate((str)"set", XL_SYM_FUNCTION, 0, 0);
+		pSet->pType = xlTypeCreate(XL_TYPE_FUNCTION);
+		xlScopeDefine(pSem->pGlobalScope, pSet);
+
+		// datetime 创建函数
+		XL_Symbol *pDateTime = xlSymbolCreate((str)"datetime", XL_SYM_FUNCTION, 0, 0);
+		pDateTime->pType = xlTypeCreate(XL_TYPE_FUNCTION);
+		xlScopeDefine(pSem->pGlobalScope, pDateTime);
+
+		// now 获取当前时间
+		XL_Symbol *pNow = xlSymbolCreate((str)"now", XL_SYM_FUNCTION, 0, 0);
+		pNow->pType = xlTypeCreate(XL_TYPE_FUNCTION);
+		xlScopeDefine(pSem->pGlobalScope, pNow);
 	}
 	return pSem;
 }
@@ -917,6 +987,11 @@ static void xlSemanticAnalyzeDecl( XL_Semantic *pSem, xvalue xDecl )
 		pSelfSym->pType = xlTypeCreate(XL_TYPE_CLASS);
 		pSelfSym->pType->pszName = xlStrDup(pszName, 0);
 		xlScopeDefine(pSem->pCurrentScope, pSelfSym);
+
+		// 添加 super 符号（用于继承）
+		XL_Symbol *pSuperSym = xlSymbolCreate((str)"super", XL_SYM_VAR, (u32)iLine, (u32)iCol);
+		pSuperSym->pType = xlTypeCreate(XL_TYPE_CLASS);
+		xlScopeDefine(pSem->pCurrentScope, pSuperSym);
 
 		// 分析成员
 		xvalue xMembers = xlAstGetNode(xDecl, (str)"members");

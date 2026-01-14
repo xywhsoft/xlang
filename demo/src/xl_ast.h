@@ -32,6 +32,8 @@
 #define XL_AST_METHOD_DECL      "MethodDecl"
 #define XL_AST_ENUM_DECL        "EnumDecl"
 #define XL_AST_TYPEDEF_DECL     "TypedefDecl"
+#define XL_AST_CTOR_DECL        "CtorDecl"       // 构造函数
+#define XL_AST_DTOR_DECL        "DtorDecl"       // 析构函数
 
 // 语句节点
 #define XL_AST_BLOCK_STMT       "BlockStmt"
@@ -314,6 +316,28 @@ static inline xvalue xlAstCreateClassDecl( str pszName, u32 iNameLen,
 	xlAstSetStrN(xNode, (str)"name", pszName, iNameLen);
 	xlAstSetNode(xNode, (str)"parent", xParent);
 	xlAstSetNode(xNode, (str)"members", xMembers ? xMembers : xlAstCreateArray());
+	return xNode;
+}
+
+
+// 创建构造函数声明节点
+// CtorDecl: { kind, line, col, params[], body }
+static inline xvalue xlAstCreateCtorDecl( xvalue xParams, xvalue xBody,
+                                          u32 iLine, u32 iCol )
+{
+	xvalue xNode = xlAstCreate((str)XL_AST_CTOR_DECL, iLine, iCol);
+	xlAstSetNode(xNode, (str)"params", xParams ? xParams : xlAstCreateArray());
+	xlAstSetNode(xNode, (str)"body", xBody);
+	return xNode;
+}
+
+
+// 创建析构函数声明节点
+// DtorDecl: { kind, line, col, body }
+static inline xvalue xlAstCreateDtorDecl( xvalue xBody, u32 iLine, u32 iCol )
+{
+	xvalue xNode = xlAstCreate((str)XL_AST_DTOR_DECL, iLine, iCol);
+	xlAstSetNode(xNode, (str)"body", xBody);
 	return xNode;
 }
 

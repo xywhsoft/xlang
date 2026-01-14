@@ -1,0 +1,47 @@
+// 测试静态成员
+
+class Counter
+	static var count = 0
+	var name
+
+	create(n)
+		self.name = n
+		Counter.count = Counter.count + 1
+	end
+
+	function getName()
+		return self.name
+	end
+
+	static function getCount()
+		return Counter.count
+	end
+
+	static function reset()
+		Counter.count = 0
+	end
+end
+
+// 测试静态变量
+println("Initial count: " + string(Counter.count))
+
+// 创建几个实例
+var a = Counter("A")
+println("After creating A: " + string(Counter.count))
+
+var b = Counter("B")
+println("After creating B: " + string(Counter.count))
+
+var c = Counter("C")
+println("After creating C: " + string(Counter.count))
+
+// 测试静态方法
+println("Using static method: " + string(Counter.getCount()))
+
+// 测试重置
+Counter.reset()
+println("After reset: " + string(Counter.count))
+
+// 测试实例方法仍然有效
+println("Instance A name: " + a.getName())
+println("Instance B name: " + b.getName())

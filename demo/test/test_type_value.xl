@@ -1,0 +1,86 @@
+// 测试类型值功能
+
+// 1. 类型作为值
+println("=== 类型作为值 ===")
+var t = int
+println("t = int, t 的值: " + string(t))
+
+var s = string
+println("s = string, s 的值: " + string(s))
+
+// 2. typeof() 函数
+println("")
+println("=== typeof() 函数 ===")
+var x = 42
+var y = "hello"
+var z = 3.14
+var b = true
+var n = null
+
+println("typeof(42) = " + string(typeof(x)))
+println("typeof(\"hello\") = " + string(typeof(y)))
+println("typeof(3.14) = " + string(typeof(z)))
+println("typeof(true) = " + string(typeof(b)))
+println("typeof(null) = " + string(typeof(n)))
+
+// 3. 类型比较
+println("")
+println("=== 类型比较 ===")
+println("typeof(42) == int: " + string(typeof(x) == int))
+println("typeof(42) == string: " + string(typeof(x) == string))
+println("typeof(\"hello\") == string: " + string(typeof(y) == string))
+println("typeof(3.14) == float: " + string(typeof(z) == float))
+println("typeof(true) == bool: " + string(typeof(b) == bool))
+println("typeof(null) == null: " + string(typeof(n) == null))
+
+// 4. type() 函数 (返回字符串)
+println("")
+println("=== type() 函数 ===")
+println("type(42) = " + type(x))
+println("type(\"hello\") = " + type(y))
+println("type(3.14) = " + type(z))
+println("type(true) = " + type(b))
+println("type(null) = " + type(n))
+
+// 5. is 运算符
+println("")
+println("=== is 运算符 ===")
+println("42 is int: " + string(x is int))
+println("42 is string: " + string(x is string))
+println("\"hello\" is string: " + string(y is string))
+
+// 6. 集合类型
+println("")
+println("=== 集合类型 ===")
+var arr = [1, 2, 3]
+var tbl = {a: 1, b: 2}
+var lst = list(1, 2, 3)
+
+println("typeof([1,2,3]) == array: " + string(typeof(arr) == array))
+println("typeof({a:1}) == dict: " + string(typeof(tbl) == dict))
+println("typeof(list()) == list: " + string(typeof(lst) == list))
+
+// 7. 类型值的传递和存储
+println("")
+println("=== 类型值传递 ===")
+function getType(value)
+	return typeof(value)
+end
+
+function checkType(value, expectedType)
+	return typeof(value) == expectedType
+end
+
+println("getType(100) == int: " + string(getType(100) == int))
+println("checkType(\"test\", string): " + string(checkType("test", string)))
+println("checkType(3.14, int): " + string(checkType(3.14, int)))
+
+// 8. 类型转换函数仍然可用
+println("")
+println("=== 类型转换 ===")
+println("int(\"123\") = " + string(int("123")))
+println("string(456) = " + string(456))
+println("float(\"3.14\") = " + string(float("3.14")))
+
+println("")
+println("=== 测试完成 ===")

@@ -316,6 +316,12 @@ static xvalue xlParsePrimaryExpr( XL_Parser *pParser )
 			return xlAstCreateIdent((str)"super", 5, iLine, iCol);
 		}
 
+		// range 关键字作为函数调用
+		case XL_TK_RANGE: {
+			xlParserAdvance(pParser);
+			return xlAstCreateIdent((str)"range", 5, iLine, iCol);
+		}
+
 		// 括号表达式
 		case XL_TK_LPAREN: {
 			xlParserAdvance(pParser);
@@ -607,8 +613,8 @@ static xvalue xlParsePrimaryExpr( XL_Parser *pParser )
 			return xlAstCreateLambdaExpr(xParams, xReturns, xBody, iLine, iCol);
 		}
 
-		// 类型关键字作为函数调用（类型转换）
-		// 例如: int("123"), string(123), type(x)
+		// 类型关键字作为值（类型值）或类型转换函数
+		// 例如: var t = int  或  int("123")
 		case XL_TK_TYPE:
 		case XL_TK_INT_T:
 		case XL_TK_INT8:
@@ -627,11 +633,18 @@ static xvalue xlParsePrimaryExpr( XL_Parser *pParser )
 		case XL_TK_ARRAY:
 		case XL_TK_LIST:
 		case XL_TK_DICT:
+		case XL_TK_TIME_T:
 		case XL_TK_SET: {
 			str pszName = pParser->token.pszStart;
 			u32 iNameLen = pParser->token.iLength;
 			xlParserAdvance(pParser);
-			return xlAstCreateIdent(pszName, iNameLen, iLine, iCol);
+			// 如果后面跟着括号，返回标识符用于函数调用（类型转换）
+			// 否则返回类型引用（类型值）
+			if ( xlParserCheck(pParser, XL_TK_LPAREN) ) {
+				return xlAstCreateIdent(pszName, iNameLen, iLine, iCol);
+			} else {
+				return xlAstCreateTypeRef(pszName, iNameLen, false, false, iLine, iCol);
+			}
 		}
 
 		default:
@@ -1165,33 +1178,54 @@ static xvalue xlParseIfStmt( XL_Parser *pParser )
 	// 条件
 	xvalue xCond = xlParseExpr(pParser);
 
-	// then（可选关键字）
-	xlParserMatch(pParser, XL_TK_THEN);
+	// then（可选关键字）- 检查是否是单行模式
+	bool bSingleLine = false;
+	u32 iThenLine = 0;
+	if ( xlParserCheck(pParser, XL_TK_THEN) ) {
+		iThenLine = pParser->token.iLine;
+		xlParserAdvance(pParser);  // 消耗 then
+		// 如果 then 后的 token 在同一行，说明是单行 if-then
+		if ( pParser->token.iLine == iThenLine ) {
+			bSingleLine = true;
+		}
+	}
 
-	// then 块
-	xvalue xThen = xlParseBlockStmt(pParser);
-
-	// elseif 列表
+	xvalue xThen;
 	xvalue xElseIfs = xlAstCreateArray();
-	while ( xlParserMatch(pParser, XL_TK_ELSEIF) ) {
-		xvalue xElseIfCond = xlParseExpr(pParser);
-		xlParserMatch(pParser, XL_TK_THEN);
-		xvalue xElseIfBody = xlParseBlockStmt(pParser);
-
-		xvalue xElseIf = xlAstCreate((str)"ElseIf", pParser->token.iLine, pParser->token.iColumn);
-		xvoTableSetValue(xElseIf, (str)"cond", 0, xElseIfCond, FALSE);
-		xvoTableSetValue(xElseIf, (str)"body", 0, xElseIfBody, FALSE);
-		xlAstArrayAppend(xElseIfs, xElseIf);
-	}
-
-	// else 块（可选）
 	xvalue xElse = NULL;
-	if ( xlParserMatch(pParser, XL_TK_ELSE) ) {
-		xElse = xlParseBlockStmt(pParser);
-	}
 
-	// end
-	xlParserExpect(pParser, XL_TK_END, (str)"end");
+	if ( bSingleLine ) {
+		// 单行模式：解析单条语句，不需要 end
+		xThen = xlAstCreateBlockStmt(pParser->token.iLine, pParser->token.iColumn);
+		xvalue xStmt = xlParseStmt(pParser);
+		if ( xStmt ) {
+			xlAstBlockAddStmt(xThen, xStmt);
+		}
+		// 单行模式不支持 elseif/else，直接返回
+	} else {
+		// 多行模式：解析 then 块
+		xThen = xlParseBlockStmt(pParser);
+
+		// elseif 列表
+		while ( xlParserMatch(pParser, XL_TK_ELSEIF) ) {
+			xvalue xElseIfCond = xlParseExpr(pParser);
+			xlParserMatch(pParser, XL_TK_THEN);
+			xvalue xElseIfBody = xlParseBlockStmt(pParser);
+
+			xvalue xElseIf = xlAstCreate((str)"ElseIf", pParser->token.iLine, pParser->token.iColumn);
+			xvoTableSetValue(xElseIf, (str)"cond", 0, xElseIfCond, FALSE);
+			xvoTableSetValue(xElseIf, (str)"body", 0, xElseIfBody, FALSE);
+			xlAstArrayAppend(xElseIfs, xElseIf);
+		}
+
+		// else 块（可选）
+		if ( xlParserMatch(pParser, XL_TK_ELSE) ) {
+			xElse = xlParseBlockStmt(pParser);
+		}
+
+		// end
+		xlParserExpect(pParser, XL_TK_END, (str)"end");
+	}
 
 	return xlAstCreateIfStmt(xCond, xThen, xElseIfs, xElse, iLine, iCol);
 }
@@ -1275,32 +1309,8 @@ static xvalue xlParseForStmt( XL_Parser *pParser )
 
 		return xlAstCreateForInStmt(pszVar, iVarLen, pszValue, iValueLen, xIter, xBody, iLine, iCol);
 	} else if ( xlParserMatch(pParser, XL_TK_IN) ) {
-		// 检查是否是 range(...)
-		if ( xlParserCheck(pParser, XL_TK_RANGE) ) {
-			xlParserAdvance(pParser);  // 跳过 range
-			xlParserExpect(pParser, XL_TK_LPAREN, (str)"(");
-			
-			// 解析 start
-			xvalue xStart = xlParseExpr(pParser);
-			xlParserExpect(pParser, XL_TK_COMMA, (str)",");
-			
-			// 解析 end
-			xvalue xEnd = xlParseExpr(pParser);
-			
-			// 可选的 step
-			xvalue xStep = 0;
-			if ( xlParserMatch(pParser, XL_TK_COMMA) ) {
-				xStep = xlParseExpr(pParser);
-			}
-			
-			xlParserExpect(pParser, XL_TK_RPAREN, (str)")");
-			xvalue xBody = xlParseBlockStmt(pParser);
-			xlParserExpect(pParser, XL_TK_END, (str)"end");
-			
-			return xlAstCreateForStmt(pszVar, iVarLen, xStart, xEnd, xStep, xBody, iLine, iCol);
-		}
-		
 		// for v in iter
+		// range() 作为内置函数处理，不需要特殊解析
 		xvalue xIter = xlParseExpr(pParser);
 		xvalue xBody = xlParseBlockStmt(pParser);
 		xlParserExpect(pParser, XL_TK_END, (str)"end");
@@ -1693,13 +1703,69 @@ static xvalue xlParseClassDecl( XL_Parser *pParser )
 	while ( !xlParserCheck(pParser, XL_TK_END) && !xlParserCheck(pParser, XL_TK_EOF) ) {
 		xvalue xMember = NULL;
 
+		// 检查访问修饰符
+		int iAccess = 0; // 0=public(默认), 1=private, 2=protected
+		if ( xlParserMatch(pParser, XL_TK_PUBLIC) ) {
+			iAccess = 0;
+		} else if ( xlParserMatch(pParser, XL_TK_PRIVATE) ) {
+			iAccess = 1;
+		} else if ( xlParserMatch(pParser, XL_TK_PROTECTED) ) {
+			iAccess = 2;
+		}
+
+		// 检查 static 修饰符
+		bool bStatic = xlParserMatch(pParser, XL_TK_STATIC);
+
+		// 构造函数 create(params)
+		if ( xlParserCheck(pParser, XL_TK_CREATE) ) {
+			u32 iCtorLine = pParser->token.iLine;
+			u32 iCtorCol = pParser->token.iColumn;
+			xlParserAdvance(pParser);
+
+			// 参数列表
+			xvalue xParams = xlParseParamList(pParser);
+
+			// 函数体
+			xvalue xBody = xlParseBlockStmt(pParser);
+
+			xlParserExpect(pParser, XL_TK_END, (str)"end");
+
+			xMember = xlAstCreateCtorDecl(xParams, xBody, iCtorLine, iCtorCol);
+			xlAstSetInt(xMember, (str)"access", iAccess);
+		}
+		// 析构函数 destroy()
+		else if ( xlParserCheck(pParser, XL_TK_DESTROY) ) {
+			u32 iDtorLine = pParser->token.iLine;
+			u32 iDtorCol = pParser->token.iColumn;
+			xlParserAdvance(pParser);
+
+			// 可选的空参数列表
+			if ( xlParserCheck(pParser, XL_TK_LPAREN) ) {
+				xlParserAdvance(pParser);
+				xlParserExpect(pParser, XL_TK_RPAREN, (str)")");
+			}
+
+			// 函数体
+			xvalue xBody = xlParseBlockStmt(pParser);
+
+			xlParserExpect(pParser, XL_TK_END, (str)"end");
+
+			xMember = xlAstCreateDtorDecl(xBody, iDtorLine, iDtorCol);
+			xlAstSetInt(xMember, (str)"access", iAccess);
+		}
 		// 函数/方法
-		if ( xlParserCheck(pParser, XL_TK_FUNCTION) ) {
+		else if ( xlParserCheck(pParser, XL_TK_FUNCTION) ) {
 			xMember = xlParseFuncDecl(pParser);
+			xlAstSetInt(xMember, (str)"access", iAccess);
+			xlAstSetBool(xMember, (str)"isStatic", bStatic);
 		}
 		// 字段（类型 名称）
 		else {
 			xMember = xlParseVarDecl(pParser, false);
+			if ( xMember ) {
+				xlAstSetInt(xMember, (str)"access", iAccess);
+				xlAstSetBool(xMember, (str)"isStatic", bStatic);
+			}
 		}
 
 		if ( xMember ) {
