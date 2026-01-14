@@ -508,6 +508,90 @@ static void xlCodegenExpr( XL_Codegen *pGen, XL_CodeBuf *pBuf, xvalue xExpr )
 		return;
 	}
 
+	// 模板字符串字面量
+	// 格式: `hello {$name}` 转换为字符串拼接
+	if ( strcmp((char*)pszKind, XL_AST_TEMPLATE_LIT) == 0 ) {
+		str pszVal = xlAstGetStr(xExpr, (str)"value");
+		if ( !pszVal || !*pszVal ) {
+			xlCodeBufAppend(pBuf, "xvoCreateText((str)\"\", 0, FALSE)");
+			return;
+		}
+		
+		// 解析模板字符串，生成字符串拼接代码
+		xlCodeBufAppend(pBuf, "xl_template_concat(");
+		int iPartCount = 0;
+		const char *p = (char*)pszVal;
+		const char *pszSegStart = p;
+		
+		while ( *p ) {
+			// 检查是否是变量插值 {$varname}
+			if ( (p[0] == '{') && (p[1] == '$') ) {
+				// 先输出之前的文本段
+				if ( p > pszSegStart ) {
+					if ( iPartCount > 0 ) xlCodeBufAppend(pBuf, ", ");
+					xlCodeBufAppend(pBuf, "xvoCreateText((str)\"");
+					for ( const char *s = pszSegStart; s < p; s++ ) {
+						switch ( *s ) {
+							case '\\': xlCodeBufAppend(pBuf, "\\\\"); break;
+							case '"':  xlCodeBufAppend(pBuf, "\\\""); break;
+							case '\n': xlCodeBufAppend(pBuf, "\\n"); break;
+							case '\r': xlCodeBufAppend(pBuf, "\\r"); break;
+							case '\t': xlCodeBufAppend(pBuf, "\\t"); break;
+							default:   xlCodeBufAppendFmt(pBuf, "%c", *s); break;
+						}
+					}
+					xlCodeBufAppend(pBuf, "\", 0, FALSE)");
+					iPartCount++;
+				}
+				
+				// 解析变量名
+				p += 2;  // 跳过 {$
+				const char *pszVarStart = p;
+				while ( *p && (*p != '}') ) p++;
+				
+				if ( *p == '}' ) {
+					if ( iPartCount > 0 ) xlCodeBufAppend(pBuf, ", ");
+					xlCodeBufAppend(pBuf, "xl_tostring(xlv_");
+					for ( const char *v = pszVarStart; v < p; v++ ) {
+						xlCodeBufAppendFmt(pBuf, "%c", *v);
+					}
+					xlCodeBufAppend(pBuf, ")");
+					iPartCount++;
+					p++;  // 跳过 }
+					pszSegStart = p;
+				}
+			} else {
+				p++;
+			}
+		}
+		
+		// 输出最后的文本段
+		if ( p > pszSegStart ) {
+			if ( iPartCount > 0 ) xlCodeBufAppend(pBuf, ", ");
+			xlCodeBufAppend(pBuf, "xvoCreateText((str)\"");
+			for ( const char *s = pszSegStart; s < p; s++ ) {
+				switch ( *s ) {
+					case '\\': xlCodeBufAppend(pBuf, "\\\\"); break;
+					case '"':  xlCodeBufAppend(pBuf, "\\\""); break;
+					case '\n': xlCodeBufAppend(pBuf, "\\n"); break;
+					case '\r': xlCodeBufAppend(pBuf, "\\r"); break;
+					case '\t': xlCodeBufAppend(pBuf, "\\t"); break;
+					default:   xlCodeBufAppendFmt(pBuf, "%c", *s); break;
+				}
+			}
+			xlCodeBufAppend(pBuf, "\", 0, FALSE)");
+			iPartCount++;
+		}
+		
+		// 如果没有任何部分，输出空字符串
+		if ( iPartCount == 0 ) {
+			xlCodeBufAppend(pBuf, "xvoCreateText((str)\"\", 0, FALSE)");
+		}
+		
+		xlCodeBufAppendFmt(pBuf, ", %d)", iPartCount);
+		return;
+	}
+
 	// 布尔字面量
 	if ( strcmp((char*)pszKind, XL_AST_BOOL_LIT) == 0 ) {
 		xvalue xVal = xvoTableGetValue(xExpr, (str)"value", 0);
@@ -2698,6 +2782,38 @@ static inline bool xlCodegenGenerate( XL_Codegen *pGen, xvalue xModule )
 	xlCodeBufAppend(pGen->pHeader, "\t\tdefault:           snprintf(szBuf, 128, \"[object]\"); break;\n");
 	xlCodeBufAppend(pGen->pHeader, "\t}\n");
 	xlCodeBufAppend(pGen->pHeader, "\treturn xvoCreateText((str)szBuf, (u32)strlen(szBuf), FALSE);\n");
+	xlCodeBufAppend(pGen->pHeader, "}\n\n");
+
+	// xl_tostring - 与 xl_string 相同，用于模板字符串
+	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_tostring(xvalue v) { return xl_string(v); }\n\n");
+
+	// 模板字符串拼接函数
+	xlCodeBufAppend(pGen->pHeader, "static xvalue xl_template_concat(xvalue first, ...) {\n");
+	xlCodeBufAppend(pGen->pHeader, "\tva_list args;\n");
+	xlCodeBufAppend(pGen->pHeader, "\tva_start(args, first);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tint count = va_arg(args, int);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tva_end(args);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tif ( count <= 0 ) return xvoCreateText((str)\"\", 0, FALSE);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tif ( count == 1 ) return first;\n");
+	xlCodeBufAppend(pGen->pHeader, "\t// 计算总长度并拼接\n");
+	xlCodeBufAppend(pGen->pHeader, "\tsize_t iTotalLen = 0;\n");
+	xlCodeBufAppend(pGen->pHeader, "\txvalue parts[64] = {0};\n");
+	xlCodeBufAppend(pGen->pHeader, "\tif ( count > 64 ) count = 64;\n");
+	xlCodeBufAppend(pGen->pHeader, "\tva_start(args, first);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tparts[0] = first;\n");
+	xlCodeBufAppend(pGen->pHeader, "\tfor ( int i = 1; i < count; i++ ) parts[i] = va_arg(args, xvalue);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tva_arg(args, int); // skip count\n");
+	xlCodeBufAppend(pGen->pHeader, "\tva_end(args);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tfor ( int i = 0; i < count; i++ ) {\n");
+	xlCodeBufAppend(pGen->pHeader, "\t\tif ( xvoType(parts[i]) == XVO_DT_TEXT ) iTotalLen += xvoGetSize(parts[i]);\n");
+	xlCodeBufAppend(pGen->pHeader, "\t\telse { parts[i] = xl_string(parts[i]); iTotalLen += xvoGetSize(parts[i]); }\n");
+	xlCodeBufAppend(pGen->pHeader, "\t}\n");
+	xlCodeBufAppend(pGen->pHeader, "\tchar *pszResult = (char*)malloc(iTotalLen + 1);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tpszResult[0] = 0;\n");
+	xlCodeBufAppend(pGen->pHeader, "\tfor ( int i = 0; i < count; i++ ) strcat(pszResult, (char*)xvoGetText(parts[i]));\n");
+	xlCodeBufAppend(pGen->pHeader, "\txvalue result = xvoCreateText((str)pszResult, (u32)iTotalLen, FALSE);\n");
+	xlCodeBufAppend(pGen->pHeader, "\tfree(pszResult);\n");
+	xlCodeBufAppend(pGen->pHeader, "\treturn result;\n");
 	xlCodeBufAppend(pGen->pHeader, "}\n\n");
 
 	// bool 类型转换函数

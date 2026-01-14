@@ -76,6 +76,7 @@
 #define XL_AST_LIST_LIT         "ListLit"
 #define XL_AST_DICT_LIT         "DictLit"
 #define XL_AST_SET_LIT          "SetLit"
+#define XL_AST_TEMPLATE_LIT     "TemplateLit"
 
 // 类型引用节点
 #define XL_AST_TYPE_REF         "TypeRef"
@@ -759,6 +760,16 @@ static inline xvalue xlAstCreateSetLit( xvalue xElements, u32 iLine, u32 iCol )
 {
 	xvalue xNode = xlAstCreate((str)XL_AST_SET_LIT, iLine, iCol);
 	xlAstSetNode(xNode, (str)"elements", xElements ? xElements : xlAstCreateArray());
+	return xNode;
+}
+
+
+// 创建模板字符串字面量节点
+// TemplateLit: { kind, line, col, value }
+static inline xvalue xlAstCreateTemplateLit( str pszValue, u32 iLen, u32 iLine, u32 iCol )
+{
+	xvalue xNode = xlAstCreate((str)XL_AST_TEMPLATE_LIT, iLine, iCol);
+	xlAstSetStrN(xNode, (str)"value", pszValue, iLen);
 	return xNode;
 }
 

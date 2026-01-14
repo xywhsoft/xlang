@@ -336,6 +336,31 @@ static inline void xlLexerParseBin( XL_Lexer *pLexer, XL_Token *pToken,
 }
 
 
+// 解析八进制整数 (&O 或 &o)
+static inline void xlLexerParseOct( XL_Lexer *pLexer, XL_Token *pToken,
+                                    str pszStart, u32 iLine, u32 iCol )
+{
+	xlLexerAdvance(pLexer);  // 跳过 O 或 o
+	str pszNumStart = pLexer->pszCurrent;
+
+	while ( xlIsOctDigit(xlLexerPeek(pLexer)) ) {
+		xlLexerAdvance(pLexer);
+	}
+
+	if ( pLexer->pszCurrent == pszNumStart ) {
+		xlErrorListAddFmt(pLexer->pErrors, XL_ERR_LEX_INVALID_OCT,
+		                  iLine, iCol, (str)"无效的八进制数");
+		xlLexerMakeToken(pLexer, pToken, XL_TK_ERROR, pszStart,
+		                 (u32)(pLexer->pszCurrent - pszStart), iLine, iCol);
+		return;
+	}
+
+	u32 iLen = (u32)(pLexer->pszCurrent - pszStart);
+	xlLexerMakeToken(pLexer, pToken, XL_TK_INT_OCT, pszStart, iLen, iLine, iCol);
+	pToken->iValue = strtoll((char*)pszNumStart, NULL, 8);
+}
+
+
 // 解析字符串 "..."
 static inline void xlLexerParseString( XL_Lexer *pLexer, XL_Token *pToken,
                                        str pszStart, u32 iLine, u32 iCol )
@@ -806,10 +831,27 @@ static inline int xlLexerNext( XL_Lexer *pLexer, XL_Token *pToken )
 			}
 			return 0;
 
-		// 位运算符
-		case '&':
+		// 位运算符 & 或 VB 风格进制前缀 (&O, &H, &B)
+		case '&': {
+			u8 next = xlLexerPeek(pLexer);
+			if ( (next == 'O') || (next == 'o') ) {
+				// 八进制: &O 或 &o
+				xlLexerParseOct(pLexer, pToken, pszStart, iLine, iCol);
+				return 0;
+			}
+			if ( (next == 'H') || (next == 'h') ) {
+				// 十六进制: &H 或 &h
+				xlLexerParseHex(pLexer, pToken, pszStart, iLine, iCol);
+				return 0;
+			}
+			if ( (next == 'B') || (next == 'b') ) {
+				// 二进制: &B 或 &b
+				xlLexerParseBin(pLexer, pToken, pszStart, iLine, iCol);
+				return 0;
+			}
 			xlLexerMakeToken(pLexer, pToken, XL_TK_AMP, pszStart, 1, iLine, iCol);
 			return 0;
+		}
 
 		case '|':
 			xlLexerMakeToken(pLexer, pToken, XL_TK_PIPE, pszStart, 1, iLine, iCol);

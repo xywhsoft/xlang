@@ -272,6 +272,17 @@ static xvalue xlParsePrimaryExpr( XL_Parser *pParser )
 			return xNode;
 		}
 
+		// 模板字符串 `hello {$name}`
+		case XL_TK_TEMPLATE:
+		case XL_TK_TEMPLATE_MULTI: {
+			str pszValue = pParser->token.sValue.pszText;
+			u32 iLen = pParser->token.sValue.iLen;
+			xlParserAdvance(pParser);
+			xvalue xNode = xlAstCreateTemplateLit(pszValue, iLen, iLine, iCol);
+			XL_SAFE_FREE(pszValue);
+			return xNode;
+		}
+
 		case XL_TK_TRUE: {
 			xlParserAdvance(pParser);
 			return xlAstCreateBoolLit(true, iLine, iCol);
