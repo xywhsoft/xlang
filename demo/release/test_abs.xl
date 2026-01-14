@@ -1,0 +1,3 @@
+// 测试 abs
+let r = abs(-5)
+println(r)

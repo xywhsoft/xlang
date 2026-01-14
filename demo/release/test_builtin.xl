@@ -1,0 +1,44 @@
+// 测试内置函数
+
+// 1. 测试 round 函数 - 四舍五入
+println("=== round ===")
+println(round(3.4))
+println(round(3.5))
+println(round(-3.4))
+println(round(-3.5))
+
+// 2. 测试 floor 函数 - 向下取整
+println("=== floor ===")
+println(floor(3.7))
+println(floor(-3.2))
+
+// 3. 测试 ceil 函数 - 向上取整
+println("=== ceil ===")
+println(ceil(3.2))
+println(ceil(-3.7))
+
+// 4. 测试 chr 函数 - Unicode码点转字符
+println("=== chr ===")
+println(chr(65))
+println(chr(97))
+println(chr(20013))
+
+// 5. 测试 ord 函数 - 字符转Unicode码点
+println("=== ord ===")
+println(ord("A"))
+println(ord("a"))
+
+// 6. 测试 hash 函数
+println("=== hash ===")
+println(hash(123))
+println(hash("hello"))
+
+// 7. 测试 id 函数
+println("=== id ===")
+var a = [1, 2, 3]
+var b = a
+var c = [1, 2, 3]
+println(id(a) == id(b))
+println(id(a) == id(c))
+
+println("=== Done ===")

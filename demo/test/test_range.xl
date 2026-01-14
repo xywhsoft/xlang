@@ -1,0 +1,41 @@
+// range 功能测试
+
+println("=== Range Test ===")
+
+// 基本 range
+println("--- range(1, 5) ---")
+for i in range(1, 5)
+	print(string(i) + " ")
+end
+println("")
+
+// 单参数 range
+println("--- range(5) ---")
+for i in range(5)
+	print(string(i) + " ")
+end
+println("")
+
+// 带步长 range
+println("--- range(0, 10, 2) ---")
+for i in range(0, 10, 2)
+	print(string(i) + " ")
+end
+println("")
+
+// 倒序 range
+println("--- range(5, 0, -1) ---")
+for i in range(5, 0, -1)
+	print(string(i) + " ")
+end
+println("")
+
+// range 作为数组
+println("--- range as array ---")
+var r = range(1, 4)
+println("len(r) = " + string(len(r)))
+println("r[0] = " + string(r[0]))
+println("r[1] = " + string(r[1]))
+println("r[2] = " + string(r[2]))
+
+println("=== Done ===")

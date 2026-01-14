@@ -1,0 +1,123 @@
+// Full meta test - simplified
+
+println("=== Full Meta Test ===")
+
+// 1. Vec2 with multiple operators
+class Vec2
+	var x = 0
+	var y = 0
+	
+	create(x, y)
+		self.x = x
+		self.y = y
+	end
+	
+	meta add(other)
+		return new Vec2(self.x + other.x, self.y + other.y)
+	end
+	
+	meta sub(other)
+		return new Vec2(self.x - other.x, self.y - other.y)
+	end
+	
+	meta mul(other)
+		return new Vec2(self.x * other.x, self.y * other.y)
+	end
+	
+	meta neg()
+		return new Vec2(-self.x, -self.y)
+	end
+	
+	meta to(t)
+		if t == "string" then
+			return "Vec2(" + string(self.x) + ", " + string(self.y) + ")"
+		end
+		return null
+	end
+end
+
+// 2. MyArray with index
+class MyArray
+	var data = [10, 20, 30, 40, 50]
+	
+	meta index(key)
+		return self.data[key]
+	end
+	
+	meta newindex(key, val)
+		self.data[key] = val
+	end
+end
+
+// 3. Range iterator
+class Range
+	var start = 0
+	var stop = 0
+	var current = 0
+	
+	create(start, stop)
+		self.start = start
+		self.stop = stop
+	end
+	
+	meta iter()
+		self.current = self.start
+		return self
+	end
+	
+	meta next()
+		if self.current >= self.stop then
+			return null
+		end
+		var val = self.current
+		self.current = self.current + 1
+		return val
+	end
+end
+
+// 4. Resource with enter/exit
+class Resource
+	var name = ""
+	
+	create(name)
+		self.name = name
+	end
+	
+	meta enter()
+		println("  enter: " + self.name)
+		return self
+	end
+	
+	meta exit()
+		println("  exit: " + self.name)
+	end
+end
+
+// Tests
+println("--- Vec2 ---")
+var v1 = new Vec2(3, 4)
+var v2 = new Vec2(1, 2)
+println("v1 + v2 = " + string(v1 + v2))
+println("v1 - v2 = " + string(v1 - v2))
+println("v1 * v2 = " + string(v1 * v2))
+println("-v1 = " + string(-v1))
+
+println("--- MyArray ---")
+var arr = new MyArray()
+println("arr[2] = " + string(arr[2]))
+arr[2] = 999
+println("arr[2] = " + string(arr[2]))
+
+println("--- Range ---")
+print("Range(1,5): ")
+for v in new Range(1, 5)
+	print(string(v) + " ")
+end
+println("")
+
+println("--- Resource ---")
+with new Resource("db") as r
+	println("  using resource")
+end
+
+println("=== All Done ===")

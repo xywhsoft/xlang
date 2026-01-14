@@ -1,0 +1,173 @@
+// 完整元编程功能测试
+
+println("=== 元编程功能测试 ===")
+
+// 1. 运算符重载测试
+println("\n--- 1. 运算符重载 ---")
+
+class Vec2
+	var x = 0
+	var y = 0
+	
+	create(x, y)
+		self.x = x
+		self.y = y
+	end
+	
+	meta add(other)
+		return new Vec2(self.x + other.x, self.y + other.y)
+	end
+	
+	meta sub(other)
+		return new Vec2(self.x - other.x, self.y - other.y)
+	end
+	
+	meta mul(other)
+		return new Vec2(self.x * other.x, self.y * other.y)
+	end
+	
+	meta eq(other)
+		return self.x == other.x and self.y == other.y
+	end
+	
+	meta neg()
+		return new Vec2(-self.x, -self.y)
+	end
+	
+	meta to(t)
+		if t == "string" then
+			return "Vec2(" + string(self.x) + ", " + string(self.y) + ")"
+		end
+		return null
+	end
+end
+
+var v1 = new Vec2(3, 4)
+var v2 = new Vec2(1, 2)
+var v3 = v1 + v2
+println("v1 + v2 = (" + string(v3.x) + ", " + string(v3.y) + ")")
+
+var v4 = v1 - v2
+println("v1 - v2 = (" + string(v4.x) + ", " + string(v4.y) + ")")
+
+var v5 = v1 * v2
+println("v1 * v2 = (" + string(v5.x) + ", " + string(v5.y) + ")")
+
+var v6 = -v1
+println("-v1 = (" + string(v6.x) + ", " + string(v6.y) + ")")
+
+// 2. 类型转换测试
+println("\n--- 2. 类型转换 (meta to) ---")
+
+println("string(v1) = " + string(v1))
+
+// 3. 索引操作测试
+println("\n--- 3. 索引操作 ---")
+
+class MyArray
+	var data = [10, 20, 30, 40, 50]
+	
+	meta index(key)
+		println("  [index] 读取索引 " + string(key))
+		return self.data[key]
+	end
+	
+	meta newindex(key, val)
+		println("  [newindex] 设置索引 " + string(key) + " = " + string(val))
+		self.data[key] = val
+	end
+	
+	meta len()
+		return 5
+	end
+end
+
+var arr = new MyArray()
+println("arr[2] = " + string(arr[2]))
+arr[2] = 999
+println("arr[2] = " + string(arr[2]))
+
+// 4. 迭代器测试
+println("\n--- 4. 迭代器 (meta iter/next) ---")
+
+class Range
+	var start = 0
+	var stop = 0
+	var current = 0
+	
+	create(start, stop)
+		self.start = start
+		self.stop = stop
+	end
+	
+	meta iter()
+		self.current = self.start
+		return self
+	end
+	
+	meta next()
+		if self.current >= self.stop then
+			return null
+		end
+		var val = self.current
+		self.current = self.current + 1
+		return val
+	end
+end
+
+print("Range(1, 5): ")
+for v in new Range(1, 5)
+	print(string(v) + " ")
+end
+println("")
+
+// 5. with 语句测试
+println("\n--- 5. with 语句 (meta enter/exit) ---")
+
+class Resource
+	var name = ""
+	
+	create(name)
+		self.name = name
+	end
+	
+	meta enter()
+		println("  [enter] 获取资源: " + self.name)
+		return self
+	end
+	
+	meta exit()
+		println("  [exit] 释放资源: " + self.name)
+	end
+	
+	func use()
+		println("  [use] 使用资源: " + self.name)
+	end
+end
+
+with new Resource("数据库连接") as db
+	db.use()
+end
+
+// 6. meta get/let 测试
+println("\n--- 6. meta get/let ---")
+
+class Proxy
+	var data = {}
+	
+	meta get(name)
+		println("  [get] 读取属性: " + name)
+		return self.data[name]
+	end
+	
+	meta let(name, val)
+		println("  [let] 设置属性: " + name + " = " + string(val))
+		self.data[name] = val
+	end
+end
+
+var proxy = new Proxy()
+proxy.foo = 123
+println("proxy.foo = " + string(proxy.foo))
+
+println("\n=== 所有测试完成 ===")

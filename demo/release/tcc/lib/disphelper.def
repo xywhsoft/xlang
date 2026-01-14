@@ -1,0 +1,116 @@
+LIBRARY disphelper.dll
+EXPORTS
+CLSID_CColorPropPage DATA
+CLSID_CFontPropPage DATA
+CLSID_CPicturePropPage DATA
+CLSID_Picture_Dib DATA
+CLSID_Picture_Metafile DATA
+CLSID_StaticDib DATA
+CLSID_StaticMetafile DATA
+CLSID_StdFont DATA
+CLSID_StdPicture DATA
+ConvertAnsiStrToBStr
+ConvertBStrToAnsiStr
+ConvertFileTimeToVariantTime
+ConvertSystemTimeToVariantTime
+ConvertTimeTToVariantTime
+ConvertVariantTimeToFileTime
+ConvertVariantTimeToSystemTime
+ConvertVariantTimeToTimeT
+GUID_NULL DATA
+IID_IAdviseSink DATA
+IID_IAdviseSink2 DATA
+IID_IBindCtx DATA
+IID_IClassActivator DATA
+IID_IClassFactory DATA
+IID_IClientSecurity DATA
+IID_ICreateErrorInfo DATA
+IID_ICreateTypeInfo DATA
+IID_ICreateTypeInfo2 DATA
+IID_ICreateTypeLib DATA
+IID_ICreateTypeLib2 DATA
+IID_IDataAdviseHolder DATA
+IID_IDataObject DATA
+IID_IDebug DATA
+IID_IDebugStream DATA
+IID_IDispatch DATA
+IID_IEnumFORMATETC DATA
+IID_IEnumMoniker DATA
+IID_IEnumOLEVERB DATA
+IID_IEnumSTATDATA DATA
+IID_IEnumSTATSTG DATA
+IID_IEnumString DATA
+IID_IEnumUnknown DATA
+IID_IEnumVARIANT DATA
+IID_IErrorInfo DATA
+IID_IExternalConnection DATA
+IID_IFillLockBytes DATA
+IID_ILockBytes DATA
+IID_IMalloc DATA
+IID_IMallocSpy DATA
+IID_IMarshal DATA
+IID_IMessageFilter DATA
+IID_IMoniker DATA
+IID_IOleLink DATA
+IID_IPSFactory DATA
+IID_IPSFactoryBuffer DATA
+IID_IPersist DATA
+IID_IPersistFile DATA
+IID_IPersistStorage DATA
+IID_IPersistStream DATA
+IID_IProgressNotify DATA
+IID_IPropertySetStorage DATA
+IID_IPropertyStorage DATA
+IID_IROTData DATA
+IID_IRootStorage DATA
+IID_IRpcChannel DATA
+IID_IRpcChannelBuffer DATA
+IID_IRpcProxy DATA
+IID_IRpcProxyBuffer DATA
+IID_IRpcStub DATA
+IID_IRpcStubBuffer DATA
+IID_IRunnableObject DATA
+IID_IRunningObjectTable DATA
+IID_ISequentialStream DATA
+IID_IServerSecurity DATA
+IID_IStdMarshalInfo DATA
+IID_IStorage DATA
+IID_IStream DATA
+IID_ISupportErrorInfo DATA
+IID_ITypeInfo DATA
+IID_ITypeInfo2 DATA
+IID_ITypeLib DATA
+IID_ITypeLib2 DATA
+IID_IUnknown DATA
+dhCallMethod
+dhCallMethodV
+dhCleanupThreadException
+dhCreateObject
+dhCreateObjectEx
+dhEnter
+dhEnumBegin
+dhEnumBeginV
+dhEnumNextObject
+dhEnumNextVariant
+dhExitEx
+dhFormatExceptionA
+dhFormatExceptionW
+dhGetExceptionOptions
+dhGetLastException
+dhGetObject
+dhGetObjectEx
+dhGetValue
+dhGetValueV
+dhInitializeImp
+dhInvoke
+dhInvokeArray
+dhInvokeV
+dhPutRef
+dhPutRefV
+dhPutValue
+dhPutValueV
+dhSetExceptionOptions
+dhShowException
+dhToggleExceptions
+dhUninitialize
+dh_g_bIsUnicodeMode DATA

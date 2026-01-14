@@ -1,0 +1,10 @@
+// 简单测试 find
+var s = "hello world"
+var sub = "world"
+println("s = " + s)
+println("sub = " + sub)
+println("find result = " + find(s, sub))
+println("contains result = " + contains(s, sub))
+
+// 测试直接字符串
+println("direct find = " + find("hello world", "world"))

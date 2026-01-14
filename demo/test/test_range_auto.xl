@@ -1,0 +1,26 @@
+// range 步长自动推断测试
+
+println("=== Range Auto Step Test ===")
+
+// start < end，步长应该自动为 1
+println("--- range(1, 5) - should be 1 2 3 4 ---")
+for i in range(1, 5)
+	print(string(i) + " ")
+end
+println("")
+
+// start > end，步长应该自动为 -1
+println("--- range(5, 1) - should be 5 4 3 2 ---")
+for i in range(5, 1)
+	print(string(i) + " ")
+end
+println("")
+
+// start == end，应该是空
+println("--- range(3, 3) - should be empty ---")
+for i in range(3, 3)
+	print(string(i) + " ")
+end
+println("(empty)")
+
+println("=== Done ===")

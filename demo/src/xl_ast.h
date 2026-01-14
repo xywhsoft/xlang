@@ -34,6 +34,7 @@
 #define XL_AST_TYPEDEF_DECL     "TypedefDecl"
 #define XL_AST_CTOR_DECL        "CtorDecl"       // 构造函数
 #define XL_AST_DTOR_DECL        "DtorDecl"       // 析构函数
+#define XL_AST_META_DECL        "MetaDecl"       // meta 元方法 (let/get/call)
 
 // 语句节点
 #define XL_AST_BLOCK_STMT       "BlockStmt"
@@ -343,6 +344,21 @@ static inline xvalue xlAstCreateDtorDecl( xvalue xBody, u32 iLine, u32 iCol )
 }
 
 
+// 创建 meta 元方法声明节点
+// MetaDecl: { kind, line, col, metaType, params[], body }
+// metaType: "let", "get", "call"
+static inline xvalue xlAstCreateMetaDecl( str pszMetaType, u32 iTypeLen,
+                                          xvalue xParams, xvalue xBody,
+                                          u32 iLine, u32 iCol )
+{
+	xvalue xNode = xlAstCreate((str)XL_AST_META_DECL, iLine, iCol);
+	xlAstSetStrN(xNode, (str)"metaType", pszMetaType, iTypeLen);
+	xlAstSetNode(xNode, (str)"params", xParams ? xParams : xlAstCreateArray());
+	xlAstSetNode(xNode, (str)"body", xBody);
+	return xNode;
+}
+
+
 
 
 // ============================================================================
@@ -476,6 +492,21 @@ static inline xvalue xlAstCreateReturnStmt( xvalue xValues, u32 iLine, u32 iCol 
 {
 	xvalue xNode = xlAstCreate((str)XL_AST_RETURN_STMT, iLine, iCol);
 	xlAstSetNode(xNode, (str)"values", xValues ? xValues : xlAstCreateArray());
+	return xNode;
+}
+
+
+// 创建 with 语句节点
+// WithStmt: { kind, line, col, expr, var?, body }
+static inline xvalue xlAstCreateWithStmt( xvalue xExpr, str pszVar, u32 iVarLen,
+                                          xvalue xBody, u32 iLine, u32 iCol )
+{
+	xvalue xNode = xlAstCreate((str)XL_AST_WITH_STMT, iLine, iCol);
+	xlAstSetNode(xNode, (str)"expr", xExpr);
+	if ( pszVar && (iVarLen > 0) ) {
+		xlAstSetStrN(xNode, (str)"var", pszVar, iVarLen);
+	}
+	xlAstSetNode(xNode, (str)"body", xBody);
 	return xNode;
 }
 

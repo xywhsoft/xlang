@@ -1,0 +1,3 @@
+// 简单测试 round
+let r = round(3.5)
+println(r)

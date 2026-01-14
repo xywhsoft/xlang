@@ -402,6 +402,102 @@ static inline XL_Semantic* xlSemanticCreate( XL_ErrorList *pErrors )
 		XL_Symbol *pNow = xlSymbolCreate((str)"now", XL_SYM_FUNCTION, 0, 0);
 		pNow->pType = xlTypeCreate(XL_TYPE_FUNCTION);
 		xlScopeDefine(pSem->pGlobalScope, pNow);
+
+		// round 四舍五入
+		XL_Symbol *pRound = xlSymbolCreate((str)"round", XL_SYM_FUNCTION, 0, 0);
+		pRound->pType = xlTypeCreate(XL_TYPE_FUNCTION);
+		xlScopeDefine(pSem->pGlobalScope, pRound);
+
+		// floor 向下取整
+		XL_Symbol *pFloor = xlSymbolCreate((str)"floor", XL_SYM_FUNCTION, 0, 0);
+		pFloor->pType = xlTypeCreate(XL_TYPE_FUNCTION);
+		xlScopeDefine(pSem->pGlobalScope, pFloor);
+
+		// ceil 向上取整
+		XL_Symbol *pCeil = xlSymbolCreate((str)"ceil", XL_SYM_FUNCTION, 0, 0);
+		pCeil->pType = xlTypeCreate(XL_TYPE_FUNCTION);
+		xlScopeDefine(pSem->pGlobalScope, pCeil);
+
+		// chr Unicode码点转字符
+		XL_Symbol *pChr = xlSymbolCreate((str)"chr", XL_SYM_FUNCTION, 0, 0);
+		pChr->pType = xlTypeCreate(XL_TYPE_FUNCTION);
+		xlScopeDefine(pSem->pGlobalScope, pChr);
+
+		// ord 字符转Unicode码点
+		XL_Symbol *pOrd = xlSymbolCreate((str)"ord", XL_SYM_FUNCTION, 0, 0);
+		pOrd->pType = xlTypeCreate(XL_TYPE_FUNCTION);
+		xlScopeDefine(pSem->pGlobalScope, pOrd);
+
+		// hash 获取哈希值
+		XL_Symbol *pHash = xlSymbolCreate((str)"hash", XL_SYM_FUNCTION, 0, 0);
+		pHash->pType = xlTypeCreate(XL_TYPE_FUNCTION);
+		xlScopeDefine(pSem->pGlobalScope, pHash);
+
+		// id 获取对象唯一标识
+		XL_Symbol *pId = xlSymbolCreate((str)"id", XL_SYM_FUNCTION, 0, 0);
+		pId->pType = xlTypeCreate(XL_TYPE_FUNCTION);
+		xlScopeDefine(pSem->pGlobalScope, pId);
+
+		// ========== 字符串函数 ==========
+		const char* arrStringFuncs[] = {
+			"trim", "ltrim", "rtrim", "upper", "lower", "replace", "split", "join",
+			"find", "contains", "substr", "startswith", "endswith", "repeat", "reverse"
+		};
+		for ( int i = 0; i < sizeof(arrStringFuncs)/sizeof(arrStringFuncs[0]); i++ ) {
+			XL_Symbol *p = xlSymbolCreate((str)arrStringFuncs[i], XL_SYM_FUNCTION, 0, 0);
+			p->pType = xlTypeCreate(XL_TYPE_FUNCTION);
+			xlScopeDefine(pSem->pGlobalScope, p);
+		}
+
+		// ========== 数学函数 ==========
+		const char* arrMathFuncs[] = {
+			"rand", "random", "randrange", "pow", "sqrt", "log", "sin", "cos", "tan"
+		};
+		for ( int i = 0; i < sizeof(arrMathFuncs)/sizeof(arrMathFuncs[0]); i++ ) {
+			XL_Symbol *p = xlSymbolCreate((str)arrMathFuncs[i], XL_SYM_FUNCTION, 0, 0);
+			p->pType = xlTypeCreate(XL_TYPE_FUNCTION);
+			xlScopeDefine(pSem->pGlobalScope, p);
+		}
+
+		// ========== 时间函数 ==========
+		const char* arrTimeFuncs[] = {
+			"year", "month", "day", "hour", "minute", "second", "weekday",
+			"strftime", "timestamp", "fromtimestamp", "sleep", "timer"
+		};
+		for ( int i = 0; i < sizeof(arrTimeFuncs)/sizeof(arrTimeFuncs[0]); i++ ) {
+			XL_Symbol *p = xlSymbolCreate((str)arrTimeFuncs[i], XL_SYM_FUNCTION, 0, 0);
+			p->pType = xlTypeCreate(XL_TYPE_FUNCTION);
+			xlScopeDefine(pSem->pGlobalScope, p);
+		}
+
+		// ========== 文件函数 ==========
+		const char* arrFileFuncs[] = {
+			"readfile", "writefile", "appendfile", "exists", "isfile", "isdir",
+			"filesize", "mkdir", "remove"
+		};
+		for ( int i = 0; i < sizeof(arrFileFuncs)/sizeof(arrFileFuncs[0]); i++ ) {
+			XL_Symbol *p = xlSymbolCreate((str)arrFileFuncs[i], XL_SYM_FUNCTION, 0, 0);
+			p->pType = xlTypeCreate(XL_TYPE_FUNCTION);
+			xlScopeDefine(pSem->pGlobalScope, p);
+		}
+
+		// ========== JSON函数 ==========
+		const char* arrJsonFuncs[] = { "json_parse", "json_stringify" };
+		for ( int i = 0; i < sizeof(arrJsonFuncs)/sizeof(arrJsonFuncs[0]); i++ ) {
+			XL_Symbol *p = xlSymbolCreate((str)arrJsonFuncs[i], XL_SYM_FUNCTION, 0, 0);
+			p->pType = xlTypeCreate(XL_TYPE_FUNCTION);
+			xlScopeDefine(pSem->pGlobalScope, p);
+		}
+
+		// ========== 编码函数 ==========
+		const char* arrEncodeFuncs[] = {
+			"base64_encode", "base64_decode", "hex_encode", "hex_decode"
+		};
+		for ( int i = 0; i < sizeof(arrEncodeFuncs)/sizeof(arrEncodeFuncs[0]); i++ ) {
+			XL_Symbol *p = xlSymbolCreate((str)arrEncodeFuncs[i], XL_SYM_FUNCTION, 0, 0);
+			p->pType = xlTypeCreate(XL_TYPE_FUNCTION);
+			xlScopeDefine(pSem->pGlobalScope, p);
+		}
 	}
 	return pSem;
 }

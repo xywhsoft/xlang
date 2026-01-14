@@ -8,7 +8,36 @@
 // xlang 运行时
 #define xvoIsTrue(x) (xvoGetBool(x) || xvoGetInt(x) || xvoGetFloat(x))
 
+// 运算符重载分发函数（在 body 中实现）
+static xvalue xl_op_add(xvalue a, xvalue b);
+static xvalue xl_op_sub(xvalue a, xvalue b);
+static xvalue xl_op_mul(xvalue a, xvalue b);
+static xvalue xl_op_div(xvalue a, xvalue b);
+static xvalue xl_op_mod(xvalue a, xvalue b);
+static xvalue xl_op_pow(xvalue a, xvalue b);
+static xvalue xl_op_neg(xvalue a);
+static xvalue xl_op_eq(xvalue a, xvalue b);
+static xvalue xl_op_lt(xvalue a, xvalue b);
+static xvalue xl_op_le(xvalue a, xvalue b);
+static xvalue xl_op_index(xvalue obj, xvalue key);
+static xvalue xl_op_newindex(xvalue obj, xvalue key, xvalue val);
+static xvalue xl_op_len(xvalue obj);
+static xvalue xl_op_iter(xvalue obj);
+static xvalue xl_op_next(xvalue obj);
+static xvalue xl_op_to(xvalue obj, xvalue type);
+static xvalue xl_op_enter(xvalue obj);
+static xvalue xl_op_exit(xvalue obj);
+static int xl_has_meta_op(xvalue obj, const char* op);
+
+static int xl_is_custom_obj(xvalue obj) {
+	if ( xvoType(obj) != XVO_DT_TABLE ) return 0;
+	xvalue cn = xvoTableGetValue(obj, (str)"__class__", 0);
+	return (cn && (xvoType(cn) == XVO_DT_TEXT));
+}
+
 static xvalue xl_add(xvalue a, xvalue b) {
+	// 检查运算符重载
+	if ( xl_is_custom_obj(a) && xl_has_meta_op(a, "add") ) return xl_op_add(a, b);
 	int ta = xvoType(a), tb = xvoType(b);
 	// 字符串拼接
 	if ( (ta == XVO_DT_TEXT) || (tb == XVO_DT_TEXT) ) {
@@ -42,12 +71,14 @@ static xvalue xl_add(xvalue a, xvalue b) {
 }
 
 static xvalue xl_sub(xvalue a, xvalue b) {
+	if ( xl_is_custom_obj(a) && xl_has_meta_op(a, "sub") ) return xl_op_sub(a, b);
 	if ( (xvoType(a) == XVO_DT_INT) && (xvoType(b) == XVO_DT_INT) )
 		return xvoCreateInt(xvoGetInt(a) - xvoGetInt(b));
 	return xvoCreateFloat(xvoGetFloat(a) - xvoGetFloat(b));
 }
 
 static xvalue xl_mul(xvalue a, xvalue b) {
+	if ( xl_is_custom_obj(a) && xl_has_meta_op(a, "mul") ) return xl_op_mul(a, b);
 	int ta = xvoType(a), tb = xvoType(b);
 	// 字符串重复: "ab" * 3 = "ababab"
 	if ( (ta == XVO_DT_TEXT) && (tb == XVO_DT_INT) ) {
@@ -79,14 +110,17 @@ static xvalue xl_mul(xvalue a, xvalue b) {
 }
 
 static xvalue xl_div(xvalue a, xvalue b) {
+	if ( xl_is_custom_obj(a) && xl_has_meta_op(a, "div") ) return xl_op_div(a, b);
 	return xvoCreateFloat(xvoGetFloat(a) / xvoGetFloat(b));
 }
 
 static xvalue xl_mod(xvalue a, xvalue b) {
+	if ( xl_is_custom_obj(a) && xl_has_meta_op(a, "mod") ) return xl_op_mod(a, b);
 	return xvoCreateInt(xvoGetInt(a) % xvoGetInt(b));
 }
 
 static xvalue xl_pow(xvalue a, xvalue b) {
+	if ( xl_is_custom_obj(a) && xl_has_meta_op(a, "pow") ) return xl_op_pow(a, b);
 	if ( (xvoType(a) == XVO_DT_INT) && (xvoType(b) == XVO_DT_INT) ) {
 		i64 base = xvoGetInt(a), exp = xvoGetInt(b), result = 1;
 		if ( exp >= 0 ) { while ( exp-- > 0 ) result *= base; return xvoCreateInt(result); }
@@ -95,6 +129,7 @@ static xvalue xl_pow(xvalue a, xvalue b) {
 }
 
 static xvalue xl_neg(xvalue a) {
+	if ( xl_is_custom_obj(a) && xl_has_meta_op(a, "neg") ) return xl_op_neg(a);
 	if ( xvoType(a) == XVO_DT_INT ) return xvoCreateInt(-xvoGetInt(a));
 	return xvoCreateFloat(-xvoGetFloat(a));
 }
@@ -126,27 +161,45 @@ static xvalue xl_postdec(xvalue *p) {
 }
 
 static xvalue xl_not(xvalue a) { return xvoCreateBool(!xvoIsTrue(a)); }
-static xvalue xl_eq(xvalue a, xvalue b) { return xvoCreateBool(xvoGetInt(a) == xvoGetInt(b)); }
-static xvalue xl_ne(xvalue a, xvalue b) { return xvoCreateBool(xvoGetInt(a) != xvoGetInt(b)); }
-static xvalue xl_lt(xvalue a, xvalue b) { return xvoCreateBool(xvoGetInt(a) < xvoGetInt(b)); }
-static xvalue xl_le(xvalue a, xvalue b) { return xvoCreateBool(xvoGetInt(a) <= xvoGetInt(b)); }
-static xvalue xl_gt(xvalue a, xvalue b) { return xvoCreateBool(xvoGetInt(a) > xvoGetInt(b)); }
-static xvalue xl_ge(xvalue a, xvalue b) { return xvoCreateBool(xvoGetInt(a) >= xvoGetInt(b)); }
+static xvalue xl_eq(xvalue a, xvalue b) {
+	if ( xl_is_custom_obj(a) && xl_has_meta_op(a, "eq") ) return xl_op_eq(a, b);
+	return xvoCreateBool(xvoGetInt(a) == xvoGetInt(b));
+}
+static xvalue xl_ne(xvalue a, xvalue b) { return xvoCreateBool(!xvoIsTrue(xl_eq(a, b))); }
+static xvalue xl_approx(xvalue a, xvalue b) {
+	double da = xvoGetFloat(a), db = xvoGetFloat(b);
+	double diff = da - db;
+	if ( diff < 0 ) diff = -diff;
+	return xvoCreateBool(diff < 1e-9);
+}
+static xvalue xl_lt(xvalue a, xvalue b) {
+	if ( xl_is_custom_obj(a) && xl_has_meta_op(a, "lt") ) return xl_op_lt(a, b);
+	return xvoCreateBool(xvoGetInt(a) < xvoGetInt(b));
+}
+static xvalue xl_le(xvalue a, xvalue b) {
+	if ( xl_is_custom_obj(a) && xl_has_meta_op(a, "le") ) return xl_op_le(a, b);
+	return xvoCreateBool(xvoGetInt(a) <= xvoGetInt(b));
+}
+static xvalue xl_gt(xvalue a, xvalue b) { return xl_lt(b, a); }
+static xvalue xl_ge(xvalue a, xvalue b) { return xl_le(b, a); }
 static xvalue xl_and(xvalue a, xvalue b) { return xvoCreateBool(xvoIsTrue(a) && xvoIsTrue(b)); }
 static xvalue xl_or(xvalue a, xvalue b) { return xvoCreateBool(xvoIsTrue(a) || xvoIsTrue(b)); }
 static xvalue xl_coalesce(xvalue a, xvalue b) { return xvoType(a) == XVO_DT_NULL ? b : a; }
 static i64 xl__len_i64(xvalue obj) {
+	if ( xl_is_custom_obj(obj) && xl_has_meta_op(obj, "len") ) return xvoGetInt(xl_op_len(obj));
 	if ( xvoType(obj) == XVO_DT_TEXT ) return xvoGetSize(obj);
 	if ( xvoType(obj) == XVO_DT_ARRAY ) return xvoArrayItemCount(obj);
 	if ( xvoType(obj) == XVO_DT_LIST ) return xvoListItemCount(obj);
 	return 0;
 }
 static xvalue xl_index(xvalue obj, xvalue idx) {
+	if ( xl_is_custom_obj(obj) && xl_has_meta_op(obj, "index") ) return xl_op_index(obj, idx);
 	i64 i = xvoGetInt(idx);
 	if ( i < 0 ) i = xl__len_i64(obj) + i;
 	return xvoArrayGetValue(obj, (u32)i);
 }
 static xvalue xl_index_set(xvalue obj, xvalue idx, xvalue val) {
+	if ( xl_is_custom_obj(obj) && xl_has_meta_op(obj, "newindex") ) return xl_op_newindex(obj, idx, val);
 	i64 i = xvoGetInt(idx);
 	if ( i < 0 ) i = xl__len_i64(obj) + i;
 	xvoArraySetValue(obj, (u32)i, val, FALSE);
@@ -168,7 +221,26 @@ static xvalue xl_slice(xvalue obj, xvalue start, xvalue end) {
 	for ( i64 i = s; i < e; i++ ) xvoArrayAppendValue(arr, xvoArrayGetValue(obj, (u32)i), FALSE);
 	return arr;
 }
-static xvalue xl_member(xvalue obj, const char* name) { return xvoTableGetValue(obj, (str)name, 0); }
+static xvalue xl_meta_get(xvalue obj, const char* name);
+static xvalue xl_meta_let(xvalue obj, const char* name, xvalue val);
+static int xl_has_meta_get(xvalue obj);
+static int xl_has_meta_let(xvalue obj);
+static xvalue xl_member(xvalue obj, const char* name) {
+	xvalue val = xvoTableGetValue(obj, (str)name, 0);
+	if ( (val == NULL) || (xvoType(val) == XVO_DT_NULL) ) {
+		if ( xl_has_meta_get(obj) ) return xl_meta_get(obj, name);
+	}
+	return val ? val : xvoCreateNull();
+}
+static xvalue xl_safe_member(xvalue obj, const char* name) {
+	if ( !obj || (xvoType(obj) == XVO_DT_NULL) ) return xvoCreateNull();
+	return xl_member(obj, name);
+}
+static xvalue xl_member_set(xvalue obj, const char* name, xvalue val) {
+	if ( xl_has_meta_let(obj) ) return xl_meta_let(obj, name, val);
+	xvoTableSetValue(obj, (str)name, 0, val, FALSE);
+	return val;
+}
 
 static xvalue xl_in(xvalue val, xvalue container) {
 	int dt = xvoType(container);
@@ -290,7 +362,12 @@ static xvalue xl_range(xvalue start, xvalue end, xvalue step) {
 	xvalue arr = xvoCreateArray();
 	i64 iStart = xvoGetInt(start);
 	i64 iEnd = xvoGetInt(end);
-	i64 iStep = (xvoType(step) == XVO_DT_NULL) ? 1 : xvoGetInt(step);
+	i64 iStep;
+	if ( xvoType(step) == XVO_DT_NULL ) {
+		iStep = (iStart <= iEnd) ? 1 : -1;
+	} else {
+		iStep = xvoGetInt(step);
+	}
 	if ( iStep == 0 ) return arr;
 	if ( iStep > 0 ) {
 		for ( i64 i = iStart; i < iEnd; i += iStep ) {
@@ -346,7 +423,89 @@ static xvalue xl_max(xvalue a, xvalue b) {
 	return xvoCreateFloat(fa > fb ? fa : fb);
 }
 
+static xvalue xl_round(xvalue v) {
+	if ( xvoType(v) == XVO_DT_INT ) return v;
+	f64 f = xvoGetFloat(v);
+	return xvoCreateInt((i64)(f >= 0 ? f + 0.5 : f - 0.5));
+}
+
+static xvalue xl_floor(xvalue v) {
+	if ( xvoType(v) == XVO_DT_INT ) return v;
+	f64 f = xvoGetFloat(v);
+	i64 i = (i64)f;
+	return xvoCreateInt((f < 0 && f != i) ? i - 1 : i);
+}
+
+static xvalue xl_ceil(xvalue v) {
+	if ( xvoType(v) == XVO_DT_INT ) return v;
+	f64 f = xvoGetFloat(v);
+	i64 i = (i64)f;
+	return xvoCreateInt((f > 0 && f != i) ? i + 1 : i);
+}
+
+static xvalue xl_chr(xvalue v) {
+	char szBuf[8] = {0};
+	i64 code = xvoGetInt(v);
+	if ( code < 0x80 ) {
+		szBuf[0] = (char)code;
+	} else if ( code < 0x800 ) {
+		szBuf[0] = (char)(0xC0 | (code >> 6));
+		szBuf[1] = (char)(0x80 | (code & 0x3F));
+	} else if ( code < 0x10000 ) {
+		szBuf[0] = (char)(0xE0 | (code >> 12));
+		szBuf[1] = (char)(0x80 | ((code >> 6) & 0x3F));
+		szBuf[2] = (char)(0x80 | (code & 0x3F));
+	} else {
+		szBuf[0] = (char)(0xF0 | (code >> 18));
+		szBuf[1] = (char)(0x80 | ((code >> 12) & 0x3F));
+		szBuf[2] = (char)(0x80 | ((code >> 6) & 0x3F));
+		szBuf[3] = (char)(0x80 | (code & 0x3F));
+	}
+	return xvoCreateText((str)szBuf, (u32)strlen(szBuf), FALSE);
+}
+
+static xvalue xl_ord(xvalue v) {
+	if ( xvoType(v) != XVO_DT_TEXT ) return xvoCreateInt(0);
+	const unsigned char* s = (const unsigned char*)xvoGetText(v);
+	if ( !s || !*s ) return xvoCreateInt(0);
+	i64 code = 0;
+	if ( (s[0] & 0x80) == 0 ) {
+		code = s[0];
+	} else if ( (s[0] & 0xE0) == 0xC0 ) {
+		code = ((s[0] & 0x1F) << 6) | (s[1] & 0x3F);
+	} else if ( (s[0] & 0xF0) == 0xE0 ) {
+		code = ((s[0] & 0x0F) << 12) | ((s[1] & 0x3F) << 6) | (s[2] & 0x3F);
+	} else if ( (s[0] & 0xF8) == 0xF0 ) {
+		code = ((s[0] & 0x07) << 18) | ((s[1] & 0x3F) << 12) | ((s[2] & 0x3F) << 6) | (s[3] & 0x3F);
+	}
+	return xvoCreateInt(code);
+}
+
+static xvalue xl_hash(xvalue v) {
+	u64 h = 0;
+	switch ( xvoType(v) ) {
+		case XVO_DT_NULL:  h = 0; break;
+		case XVO_DT_BOOL:  h = xvoGetBool(v) ? 1 : 0; break;
+		case XVO_DT_INT:   h = (u64)xvoGetInt(v); break;
+		case XVO_DT_FLOAT: { f64 f = xvoGetFloat(v); h = *(u64*)&f; } break;
+		case XVO_DT_TEXT:  {
+			const char* s = (const char*)xvoGetText(v);
+			while ( *s ) { h = h * 31 + *s++; }
+		} break;
+		default: h = (u64)(size_t)v; break;
+	}
+	return xvoCreateInt((i64)h);
+}
+
+static xvalue xl_id(xvalue v) {
+	return xvoCreateInt((i64)(size_t)v);
+}
+
 static xvalue xl_int(xvalue v) {
+	// 检查自定义对象的 meta to 方法
+	if ( xl_is_custom_obj(v) && xl_has_meta_op(v, "to") ) {
+		return xl_op_to(v, xvoCreateText((str)"int", 3, FALSE));
+	}
 	switch ( xvoType(v) ) {
 		case XVO_DT_INT:   return v;
 		case XVO_DT_FLOAT: return xvoCreateInt((i64)xvoGetFloat(v));
@@ -357,6 +516,10 @@ static xvalue xl_int(xvalue v) {
 }
 
 static xvalue xl_float(xvalue v) {
+	// 检查自定义对象的 meta to 方法
+	if ( xl_is_custom_obj(v) && xl_has_meta_op(v, "to") ) {
+		return xl_op_to(v, xvoCreateText((str)"float", 5, FALSE));
+	}
 	switch ( xvoType(v) ) {
 		case XVO_DT_FLOAT: return v;
 		case XVO_DT_INT:   return xvoCreateFloat((f64)xvoGetInt(v));
@@ -367,6 +530,10 @@ static xvalue xl_float(xvalue v) {
 }
 
 static xvalue xl_string(xvalue v) {
+	// 检查自定义对象的 meta to 方法
+	if ( xl_is_custom_obj(v) && xl_has_meta_op(v, "to") ) {
+		return xl_op_to(v, xvoCreateText((str)"string", 6, FALSE));
+	}
 	char szBuf[128] = {0};
 	switch ( xvoType(v) ) {
 		case XVO_DT_TEXT:  return v;
@@ -381,22 +548,17 @@ static xvalue xl_string(xvalue v) {
 
 static xvalue xl_tostring(xvalue v) { return xl_string(v); }
 
-static xvalue xl_template_concat(xvalue first, ...) {
-	va_list args;
-	va_start(args, first);
-	int count = va_arg(args, int);
-	va_end(args);
+static xvalue xl_template_concat(int count, ...) {
 	if ( count <= 0 ) return xvoCreateText((str)"", 0, FALSE);
-	if ( count == 1 ) return first;
-	// 计算总长度并拼接
-	size_t iTotalLen = 0;
+	va_list args;
+	va_start(args, count);
 	xvalue parts[64] = {0};
 	if ( count > 64 ) count = 64;
-	va_start(args, first);
-	parts[0] = first;
-	for ( int i = 1; i < count; i++ ) parts[i] = va_arg(args, xvalue);
-	va_arg(args, int); // skip count
+	for ( int i = 0; i < count; i++ ) parts[i] = va_arg(args, xvalue);
 	va_end(args);
+	if ( count == 1 ) return parts[0];
+	// 计算总长度并拼接
+	size_t iTotalLen = 0;
 	for ( int i = 0; i < count; i++ ) {
 		if ( xvoType(parts[i]) == XVO_DT_TEXT ) iTotalLen += xvoGetSize(parts[i]);
 		else { parts[i] = xl_string(parts[i]); iTotalLen += xvoGetSize(parts[i]); }
@@ -541,6 +703,383 @@ static xvalue xl_time_method(xvalue t, const char* method, xvalue args) {
 	return xvoCreateNull();
 }
 
+static xvalue xl_trim(xvalue v) {
+	if ( xvoType(v) != XVO_DT_TEXT ) return v;
+	str s = xvoGetText(v);
+	size_t iSize = xvoGetSize(v);
+	str result = xrtTrim(s, iSize, NULL, 0, FALSE, &iSize);
+	return xvoCreateText(result, (u32)iSize, TRUE);
+}
+
+static xvalue xl_ltrim(xvalue v) {
+	if ( xvoType(v) != XVO_DT_TEXT ) return v;
+	str s = xvoGetText(v);
+	size_t iSize = xvoGetSize(v);
+	str result = xrtLTrim(s, iSize, NULL, 0, FALSE, &iSize);
+	return xvoCreateText(result, (u32)iSize, TRUE);
+}
+
+static xvalue xl_rtrim(xvalue v) {
+	if ( xvoType(v) != XVO_DT_TEXT ) return v;
+	str s = xvoGetText(v);
+	size_t iSize = xvoGetSize(v);
+	str result = xrtRTrim(s, iSize, NULL, 0, FALSE, &iSize);
+	return xvoCreateText(result, (u32)iSize, TRUE);
+}
+
+static xvalue xl_upper(xvalue v) {
+	if ( xvoType(v) != XVO_DT_TEXT ) return v;
+	str s = xvoGetText(v);
+	u32 iSize = xvoGetSize(v);
+	str result = xrtUCase(s, iSize, FALSE);
+	return xvoCreateText(result, iSize, TRUE);
+}
+
+static xvalue xl_lower(xvalue v) {
+	if ( xvoType(v) != XVO_DT_TEXT ) return v;
+	str s = xvoGetText(v);
+	u32 iSize = xvoGetSize(v);
+	str result = xrtLCase(s, iSize, FALSE);
+	return xvoCreateText(result, iSize, TRUE);
+}
+
+static xvalue xl_replace(xvalue src, xvalue old, xvalue rep) {
+	if ( xvoType(src) != XVO_DT_TEXT ) return src;
+	str s = xvoGetText(src);
+	size_t iSize = xvoGetSize(src);
+	str sOld = xvoGetText(old);
+	size_t iOldSize = xvoGetSize(old);
+	str sRep = xvoGetText(rep);
+	size_t iRepSize = xvoGetSize(rep);
+	size_t iRetSize = 0;
+	str result = xrtReplace(s, iSize, sOld, iOldSize, sRep, iRepSize, &iRetSize);
+	return xvoCreateText(result, (u32)iRetSize, TRUE);
+}
+
+static xvalue xl_split(xvalue src, xvalue sep) {
+	if ( xvoType(src) != XVO_DT_TEXT ) return xvoCreateArray();
+	str s = xvoGetText(src);
+	size_t iSize = xvoGetSize(src);
+	str sSep = xvoGetText(sep);
+	size_t iSepSize = xvoGetSize(sep);
+	size_t iRetSize = 0;
+	str *arrParts = xrtSplit(s, iSize, sSep, iSepSize, FALSE, &iRetSize);
+	xvalue arr = xvoCreateArray();
+	for ( size_t i = 0; i < iRetSize; i++ ) {
+		xvoArrayAppendText(arr, arrParts[i], 0, TRUE);
+	}
+	return arr;
+}
+
+static xvalue xl_join(xvalue arr, xvalue sep) {
+	if ( xvoType(arr) != XVO_DT_ARRAY ) return xvoCreateText((str)"", 0, FALSE);
+	str sSep = xvoType(sep) == XVO_DT_TEXT ? xvoGetText(sep) : (str)"";
+	u32 iSepLen = xvoType(sep) == XVO_DT_TEXT ? xvoGetSize(sep) : 0;
+	u32 iCount = xvoArrayItemCount(arr);
+	if ( iCount == 0 ) return xvoCreateText((str)"", 0, FALSE);
+	size_t iTotalLen = 0;
+	for ( u32 i = 0; i < iCount; i++ ) {
+		xvalue v = xvoArrayGetValue(arr, i);
+		if ( xvoType(v) == XVO_DT_TEXT ) iTotalLen += xvoGetSize(v);
+		if ( i > 0 ) iTotalLen += iSepLen;
+	}
+	char *pszResult = (char*)malloc(iTotalLen + 1);
+	pszResult[0] = 0;
+	for ( u32 i = 0; i < iCount; i++ ) {
+		if ( i > 0 && iSepLen > 0 ) strcat(pszResult, (char*)sSep);
+		xvalue v = xvoArrayGetValue(arr, i);
+		if ( xvoType(v) == XVO_DT_TEXT ) strcat(pszResult, (char*)xvoGetText(v));
+	}
+	xvalue result = xvoCreateText((str)pszResult, (u32)strlen(pszResult), FALSE);
+	free(pszResult);
+	return result;
+}
+
+static xvalue xl_find(xvalue src, xvalue sub) {
+	if ( xvoType(src) != XVO_DT_TEXT ) return xvoCreateInt(-1);
+	str s = xvoGetText(src);
+	str sSub = xvoGetText(sub);
+	str found = strstr(s, sSub);
+	return xvoCreateInt(found ? (i64)(found - s) : -1);
+}
+
+static xvalue xl_contains(xvalue src, xvalue sub) {
+	if ( xvoType(src) != XVO_DT_TEXT ) return xvoCreateBool(FALSE);
+	str s = xvoGetText(src);
+	str sSub = xvoGetText(sub);
+	return xvoCreateBool(strstr(s, sSub) != NULL);
+}
+
+static xvalue xl_substr(xvalue src, xvalue start, xvalue length) {
+	if ( xvoType(src) != XVO_DT_TEXT ) return xvoCreateText((str)"", 0, FALSE);
+	str s = xvoGetText(src);
+	u32 iSize = xvoGetSize(src);
+	i64 iStart = xvoGetInt(start);
+	i64 iLen = xvoType(length) == XVO_DT_NULL ? (i64)iSize - iStart : xvoGetInt(length);
+	if ( iStart < 0 ) iStart = 0;
+	if ( iStart >= iSize ) return xvoCreateText((str)"", 0, FALSE);
+	if ( iLen <= 0 ) return xvoCreateText((str)"", 0, FALSE);
+	if ( iStart + iLen > iSize ) iLen = iSize - iStart;
+	return xvoCreateText(s + iStart, (u32)iLen, FALSE);
+}
+
+static xvalue xl_startswith(xvalue src, xvalue prefix) {
+	if ( xvoType(src) != XVO_DT_TEXT ) return xvoCreateBool(FALSE);
+	str s = xvoGetText(src);
+	u32 iSize = xvoGetSize(src);
+	str sPrefix = xvoGetText(prefix);
+	u32 iPrefixSize = xvoGetSize(prefix);
+	if ( iPrefixSize > iSize ) return xvoCreateBool(FALSE);
+	return xvoCreateBool(memcmp(s, sPrefix, iPrefixSize) == 0);
+}
+
+static xvalue xl_endswith(xvalue src, xvalue suffix) {
+	if ( xvoType(src) != XVO_DT_TEXT ) return xvoCreateBool(FALSE);
+	str s = xvoGetText(src);
+	u32 iSize = xvoGetSize(src);
+	str sSuffix = xvoGetText(suffix);
+	u32 iSuffixSize = xvoGetSize(suffix);
+	if ( iSuffixSize > iSize ) return xvoCreateBool(FALSE);
+	return xvoCreateBool(memcmp(s + iSize - iSuffixSize, sSuffix, iSuffixSize) == 0);
+}
+
+static xvalue xl_repeat(xvalue src, xvalue times) {
+	if ( xvoType(src) != XVO_DT_TEXT ) return xvoCreateText((str)"", 0, FALSE);
+	str s = xvoGetText(src);
+	u32 iSize = xvoGetSize(src);
+	i64 iTimes = xvoGetInt(times);
+	if ( iTimes <= 0 ) return xvoCreateText((str)"", 0, FALSE);
+	size_t iLen = iSize * iTimes;
+	char *pszResult = (char*)malloc(iLen + 1);
+	pszResult[0] = 0;
+	for ( i64 i = 0; i < iTimes; i++ ) strcat(pszResult, (char*)s);
+	xvalue result = xvoCreateText((str)pszResult, (u32)iLen, FALSE);
+	free(pszResult);
+	return result;
+}
+
+static xvalue xl_reverse(xvalue src) {
+	if ( xvoType(src) != XVO_DT_TEXT ) return xvoCreateText((str)"", 0, FALSE);
+	str s = xvoGetText(src);
+	u32 iSize = xvoGetSize(src);
+	char *pszResult = (char*)malloc(iSize + 1);
+	for ( u32 i = 0; i < iSize; i++ ) pszResult[i] = s[iSize - 1 - i];
+	pszResult[iSize] = 0;
+	xvalue result = xvoCreateText((str)pszResult, iSize, FALSE);
+	free(pszResult);
+	return result;
+}
+
+static xvalue xl_rand() {
+	return xvoCreateInt((i64)xrtRand64());
+}
+
+static xvalue xl_random() {
+	return xvoCreateFloat((f64)xrtRand64() / (f64)0xFFFFFFFFFFFFFFFFULL);
+}
+
+static xvalue xl_randrange(xvalue a, xvalue b) {
+	i64 iMin = xvoGetInt(a);
+	i64 iMax = xvoGetInt(b);
+	if ( iMin > iMax ) { i64 t = iMin; iMin = iMax; iMax = t; }
+	return xvoCreateInt(iMin + (i64)(xrtRand64() % (u64)(iMax - iMin + 1)));
+}
+
+static xvalue xl_sqrt(xvalue v) {
+	f64 f = (xvoType(v) == XVO_DT_INT) ? (f64)xvoGetInt(v) : xvoGetFloat(v);
+	return xvoCreateFloat(sqrt(f));
+}
+
+static xvalue xl_log(xvalue v) {
+	f64 f = (xvoType(v) == XVO_DT_INT) ? (f64)xvoGetInt(v) : xvoGetFloat(v);
+	return xvoCreateFloat(log(f));
+}
+
+static xvalue xl_sin(xvalue v) {
+	f64 f = (xvoType(v) == XVO_DT_INT) ? (f64)xvoGetInt(v) : xvoGetFloat(v);
+	return xvoCreateFloat(sin(f));
+}
+
+static xvalue xl_cos(xvalue v) {
+	f64 f = (xvoType(v) == XVO_DT_INT) ? (f64)xvoGetInt(v) : xvoGetFloat(v);
+	return xvoCreateFloat(cos(f));
+}
+
+static xvalue xl_tan(xvalue v) {
+	f64 f = (xvoType(v) == XVO_DT_INT) ? (f64)xvoGetInt(v) : xvoGetFloat(v);
+	return xvoCreateFloat(tan(f));
+}
+
+static xvalue xl_year(xvalue t) {
+	if ( xvoType(t) != XVO_DT_TIME ) return xvoCreateInt(0);
+	return xvoCreateInt(xrtYear(xvoGetTime(t)));
+}
+
+static xvalue xl_month(xvalue t) {
+	if ( xvoType(t) != XVO_DT_TIME ) return xvoCreateInt(0);
+	return xvoCreateInt(xrtMonth(xvoGetTime(t)));
+}
+
+static xvalue xl_day(xvalue t) {
+	if ( xvoType(t) != XVO_DT_TIME ) return xvoCreateInt(0);
+	return xvoCreateInt(xrtDay(xvoGetTime(t)));
+}
+
+static xvalue xl_hour(xvalue t) {
+	if ( xvoType(t) != XVO_DT_TIME ) return xvoCreateInt(0);
+	return xvoCreateInt(xrtHour(xvoGetTime(t)));
+}
+
+static xvalue xl_minute(xvalue t) {
+	if ( xvoType(t) != XVO_DT_TIME ) return xvoCreateInt(0);
+	return xvoCreateInt(xrtMinute(xvoGetTime(t)));
+}
+
+static xvalue xl_second(xvalue t) {
+	if ( xvoType(t) != XVO_DT_TIME ) return xvoCreateInt(0);
+	return xvoCreateInt(xrtSecond(xvoGetTime(t)));
+}
+
+static xvalue xl_weekday(xvalue t) {
+	if ( xvoType(t) != XVO_DT_TIME ) return xvoCreateInt(0);
+	return xvoCreateInt(xrtWeekday(xvoGetTime(t)));
+}
+
+static xvalue xl_strftime(xvalue t, xvalue fmt) {
+	if ( xvoType(t) != XVO_DT_TIME ) return xvoCreateText((str)"", 0, FALSE);
+	str sFmt = xvoGetText(fmt);
+	str s = xrtTimeFormat(xvoGetTime(t), sFmt);
+	return xvoCreateText(s, (u32)strlen((char*)s), TRUE);
+}
+
+static xvalue xl_timestamp(xvalue t) {
+	if ( xvoType(t) == XVO_DT_NULL ) return xvoCreateInt(xrtToUnixTime(xrtNow()));
+	if ( xvoType(t) != XVO_DT_TIME ) return xvoCreateInt(0);
+	return xvoCreateInt(xrtToUnixTime(xvoGetTime(t)));
+}
+
+static xvalue xl_fromtimestamp(xvalue ts) {
+	i64 iTs = xvoGetInt(ts);
+	return xvoCreateTime(xrtFromUnixTime(iTs));
+}
+
+static xvalue xl_sleep(xvalue ms) {
+	i64 iMs = xvoGetInt(ms);
+	xrtSleep((u32)iMs);
+	return xvoCreateNull();
+}
+
+static xvalue xl_timer() {
+	return xvoCreateFloat(xrtTimer());
+}
+
+static xvalue xl_readfile(xvalue path) {
+	if ( xvoType(path) != XVO_DT_TEXT ) return xvoCreateNull();
+	str sPath = xvoGetText(path);
+	size_t iSize = 0;
+	str sContent = xrtFileReadAll(sPath, XRT_CP_UTF8, &iSize);
+	if ( !sContent ) return xvoCreateNull();
+	return xvoCreateText(sContent, (u32)iSize, TRUE);
+}
+
+static xvalue xl_writefile(xvalue path, xvalue content) {
+	if ( xvoType(path) != XVO_DT_TEXT ) return xvoCreateBool(FALSE);
+	str sPath = xvoGetText(path);
+	str sContent = xvoGetText(content);
+	u32 iSize = xvoGetSize(content);
+	int ret = xrtFileWriteAll(sPath, sContent, iSize, XRT_CP_UTF8);
+	return xvoCreateBool(ret > 0);
+}
+
+static xvalue xl_appendfile(xvalue path, xvalue content) {
+	if ( xvoType(path) != XVO_DT_TEXT ) return xvoCreateBool(FALSE);
+	str sPath = xvoGetText(path);
+	str sContent = xvoGetText(content);
+	u32 iSize = xvoGetSize(content);
+	int ret = xrtFileAppend(sPath, sContent, iSize, XRT_CP_UTF8);
+	return xvoCreateBool(ret > 0);
+}
+
+static xvalue xl_exists(xvalue path) {
+	if ( xvoType(path) != XVO_DT_TEXT ) return xvoCreateBool(FALSE);
+	return xvoCreateBool(xrtPathExists(xvoGetText(path)));
+}
+
+static xvalue xl_isfile(xvalue path) {
+	if ( xvoType(path) != XVO_DT_TEXT ) return xvoCreateBool(FALSE);
+	return xvoCreateBool(xrtFileExists(xvoGetText(path)));
+}
+
+static xvalue xl_isdir(xvalue path) {
+	if ( xvoType(path) != XVO_DT_TEXT ) return xvoCreateBool(FALSE);
+	return xvoCreateBool(xrtDirExists(xvoGetText(path)));
+}
+
+static xvalue xl_filesize(xvalue path) {
+	if ( xvoType(path) != XVO_DT_TEXT ) return xvoCreateInt(0);
+	return xvoCreateInt(xrtFileGetSize(xvoGetText(path)));
+}
+
+static xvalue xl_mkdir(xvalue path) {
+	if ( xvoType(path) != XVO_DT_TEXT ) return xvoCreateBool(FALSE);
+	return xvoCreateBool(xrtDirCreateAll(xvoGetText(path)));
+}
+
+static xvalue xl_remove(xvalue path) {
+	if ( xvoType(path) != XVO_DT_TEXT ) return xvoCreateBool(FALSE);
+	return xvoCreateBool(xrtFileDelete(xvoGetText(path)));
+}
+
+static xvalue xl_json_parse(xvalue src) {
+	if ( xvoType(src) != XVO_DT_TEXT ) return xvoCreateNull();
+	str s = xvoGetText(src);
+	return xrtParseJSON(s, 0);
+}
+
+static xvalue xl_json_stringify(xvalue v) {
+	size_t iSize = 0;
+	str s = xrtStringifyJSON(v, TRUE, &iSize);
+	if ( !s ) return xvoCreateText((str)"", 0, FALSE);
+	return xvoCreateText(s, (u32)iSize, TRUE);
+}
+
+static xvalue xl_base64_encode(xvalue src) {
+	if ( xvoType(src) != XVO_DT_TEXT ) return xvoCreateText((str)"", 0, FALSE);
+	str s = xvoGetText(src);
+	u32 iSize = xvoGetSize(src);
+	str result = xrtBase64Encode((ptr)s, iSize, NULL);
+	if ( !result ) return xvoCreateText((str)"", 0, FALSE);
+	return xvoCreateText(result, (u32)strlen((char*)result), TRUE);
+}
+
+static xvalue xl_base64_decode(xvalue src) {
+	if ( xvoType(src) != XVO_DT_TEXT ) return xvoCreateText((str)"", 0, FALSE);
+	str s = xvoGetText(src);
+	size_t iSize = xvoGetSize(src);
+	ptr result = xrtBase64Decode(s, iSize, NULL);
+	if ( !result ) return xvoCreateText((str)"", 0, FALSE);
+	size_t iRetSize = iSize * 3 / 4;
+	return xvoCreateText((str)result, (u32)iRetSize, TRUE);
+}
+
+static xvalue xl_hex_encode(xvalue src) {
+	if ( xvoType(src) != XVO_DT_TEXT ) return xvoCreateText((str)"", 0, FALSE);
+	str s = xvoGetText(src);
+	u32 iSize = xvoGetSize(src);
+	str result = xrtHexEncode((ptr)s, iSize);
+	if ( !result ) return xvoCreateText((str)"", 0, FALSE);
+	return xvoCreateText(result, iSize * 2, TRUE);
+}
+
+static xvalue xl_hex_decode(xvalue src) {
+	if ( xvoType(src) != XVO_DT_TEXT ) return xvoCreateText((str)"", 0, FALSE);
+	str s = xvoGetText(src);
+	size_t iSize = xvoGetSize(src);
+	ptr result = xrtHexDecode(s, iSize);
+	if ( !result ) return xvoCreateText((str)"", 0, FALSE);
+	return xvoCreateText((str)result, (u32)(iSize / 2), TRUE);
+}
+
 // 闭包运行时
 typedef struct XL_ClosureEnv {
 	int iRefCount;
@@ -592,6 +1131,12 @@ static xvalue xl_closure_call(xvalue closure, xvalue args) {
 
 static xvalue xl_method_call(xvalue obj, const char* method, xvalue args);
 static xvalue xl_super_call(xvalue obj, const char* method, xvalue args);
+static xvalue xl_meta_get(xvalue obj, const char* name);
+static xvalue xl_meta_let(xvalue obj, const char* name, xvalue val);
+static xvalue xl_meta_call(xvalue obj, xvalue args);
+static int xl_has_meta_get(xvalue obj);
+static int xl_has_meta_let(xvalue obj);
+static int xl_has_meta_call(xvalue obj);
 
 static void xl_closure_free(xvalue closure) {
 	XL_Closure *pClosure = (XL_Closure*)xvoGetPoint(closure);
@@ -610,31 +1155,13 @@ static xvalue xl_call_var(xvalue func, xvalue args) {
 }
 
 // 全局变量
-static xvalue xlv_dec = NULL;
-static xvalue xlv_hex1 = NULL;
-static xvalue xlv_hex2 = NULL;
-static xvalue xlv_bin1 = NULL;
-static xvalue xlv_bin2 = NULL;
-static xvalue xlv_oct1 = NULL;
-static xvalue xlv_oct2 = NULL;
-static xvalue xlv_f1 = NULL;
-static xvalue xlv_f2 = NULL;
-static xvalue xlv_s1 = NULL;
-static xvalue xlv_s2 = NULL;
-static xvalue xlv_s3 = NULL;
-static xvalue xlv_name = NULL;
-static xvalue xlv_age = NULL;
-static xvalue xlv_msg = NULL;
-static xvalue xlv_greeting = NULL;
-static xvalue xlv_plain = NULL;
-static xvalue xlv_t1 = NULL;
-static xvalue xlv_t2 = NULL;
+static xvalue xlv_s = NULL;
 static xvalue xlv_arr = NULL;
-static xvalue xlv_tbl = NULL;
-static xvalue xlv_lst = NULL;
-static xvalue xlv_b1 = NULL;
-static xvalue xlv_b2 = NULL;
-static xvalue xlv_n = NULL;
+static xvalue xlv_t = NULL;
+static xvalue xlv_obj = NULL;
+static xvalue xlv_jsonStr = NULL;
+static xvalue xlv_parsed = NULL;
+static xvalue xlv_encoded = NULL;
 
 // 函数声明
 
@@ -677,6 +1204,256 @@ static xvalue xl_super_call(xvalue obj, const char* method, xvalue args)
 	return xvoCreateNull();
 }
 
+// meta get 属性获取拦截
+static xvalue xl_meta_get(xvalue obj, const char* name)
+{
+	if ( xvoType(obj) != XVO_DT_TABLE ) return xvoCreateNull();
+	xvalue classNameVal = xvoTableGetValue(obj, (str)"__class__", 0);
+	if ( (!classNameVal) || (xvoType(classNameVal) == XVO_DT_NULL) ) return xvoCreateNull();
+	str className = xvoGetText(classNameVal);
+	return xvoCreateNull();
+}
+
+// meta let 属性设置拦截
+static xvalue xl_meta_let(xvalue obj, const char* name, xvalue val)
+{
+	if ( xvoType(obj) != XVO_DT_TABLE ) return xvoCreateNull();
+	xvalue classNameVal = xvoTableGetValue(obj, (str)"__class__", 0);
+	if ( (!classNameVal) || (xvoType(classNameVal) == XVO_DT_NULL) ) return xvoCreateNull();
+	str className = xvoGetText(classNameVal);
+	return xvoCreateNull();
+}
+
+// meta call 对象调用拦截
+static xvalue xl_meta_call(xvalue obj, xvalue args)
+{
+	if ( xvoType(obj) != XVO_DT_TABLE ) return xvoCreateNull();
+	xvalue classNameVal = xvoTableGetValue(obj, (str)"__class__", 0);
+	if ( (!classNameVal) || (xvoType(classNameVal) == XVO_DT_NULL) ) return xvoCreateNull();
+	str className = xvoGetText(classNameVal);
+	return xvoCreateNull();
+}
+
+// 检查对象是否有 meta get
+static int xl_has_meta_get(xvalue obj)
+{
+	if ( xvoType(obj) != XVO_DT_TABLE ) return 0;
+	xvalue classNameVal = xvoTableGetValue(obj, (str)"__class__", 0);
+	if ( (!classNameVal) || (xvoType(classNameVal) == XVO_DT_NULL) ) return 0;
+	str className = xvoGetText(classNameVal);
+	return 0;
+}
+
+// 检查对象是否有 meta let
+static int xl_has_meta_let(xvalue obj)
+{
+	if ( xvoType(obj) != XVO_DT_TABLE ) return 0;
+	xvalue classNameVal = xvoTableGetValue(obj, (str)"__class__", 0);
+	if ( (!classNameVal) || (xvoType(classNameVal) == XVO_DT_NULL) ) return 0;
+	str className = xvoGetText(classNameVal);
+	return 0;
+}
+
+// 检查对象是否有 meta call
+static int xl_has_meta_call(xvalue obj)
+{
+	if ( xvoType(obj) != XVO_DT_TABLE ) return 0;
+	xvalue classNameVal = xvoTableGetValue(obj, (str)"__class__", 0);
+	if ( (!classNameVal) || (xvoType(classNameVal) == XVO_DT_NULL) ) return 0;
+	str className = xvoGetText(classNameVal);
+	return 0;
+}
+
+// 检查对象是否有特定运算符重载
+static int xl_has_meta_op(xvalue obj, const char* op)
+{
+	if ( xvoType(obj) != XVO_DT_TABLE ) return 0;
+	xvalue classNameVal = xvoTableGetValue(obj, (str)"__class__", 0);
+	if ( (!classNameVal) || (xvoType(classNameVal) == XVO_DT_NULL) ) return 0;
+	str className = xvoGetText(classNameVal);
+	return 0;
+}
+
+// 运算符重载: add
+static xvalue xl_op_add(xvalue a, xvalue b)
+{
+	if ( xvoType(a) != XVO_DT_TABLE ) return xvoCreateNull();
+	xvalue classNameVal = xvoTableGetValue(a, (str)"__class__", 0);
+	if ( (!classNameVal) || (xvoType(classNameVal) == XVO_DT_NULL) ) return xvoCreateNull();
+	str className = xvoGetText(classNameVal);
+	return xvoCreateNull();
+}
+
+// 运算符重载: sub
+static xvalue xl_op_sub(xvalue a, xvalue b)
+{
+	if ( xvoType(a) != XVO_DT_TABLE ) return xvoCreateNull();
+	xvalue classNameVal = xvoTableGetValue(a, (str)"__class__", 0);
+	if ( (!classNameVal) || (xvoType(classNameVal) == XVO_DT_NULL) ) return xvoCreateNull();
+	str className = xvoGetText(classNameVal);
+	return xvoCreateNull();
+}
+
+// 运算符重载: mul
+static xvalue xl_op_mul(xvalue a, xvalue b)
+{
+	if ( xvoType(a) != XVO_DT_TABLE ) return xvoCreateNull();
+	xvalue classNameVal = xvoTableGetValue(a, (str)"__class__", 0);
+	if ( (!classNameVal) || (xvoType(classNameVal) == XVO_DT_NULL) ) return xvoCreateNull();
+	str className = xvoGetText(classNameVal);
+	return xvoCreateNull();
+}
+
+// 运算符重载: div
+static xvalue xl_op_div(xvalue a, xvalue b)
+{
+	if ( xvoType(a) != XVO_DT_TABLE ) return xvoCreateNull();
+	xvalue classNameVal = xvoTableGetValue(a, (str)"__class__", 0);
+	if ( (!classNameVal) || (xvoType(classNameVal) == XVO_DT_NULL) ) return xvoCreateNull();
+	str className = xvoGetText(classNameVal);
+	return xvoCreateNull();
+}
+
+// 运算符重载: mod
+static xvalue xl_op_mod(xvalue a, xvalue b)
+{
+	if ( xvoType(a) != XVO_DT_TABLE ) return xvoCreateNull();
+	xvalue classNameVal = xvoTableGetValue(a, (str)"__class__", 0);
+	if ( (!classNameVal) || (xvoType(classNameVal) == XVO_DT_NULL) ) return xvoCreateNull();
+	str className = xvoGetText(classNameVal);
+	return xvoCreateNull();
+}
+
+// 运算符重载: pow
+static xvalue xl_op_pow(xvalue a, xvalue b)
+{
+	if ( xvoType(a) != XVO_DT_TABLE ) return xvoCreateNull();
+	xvalue classNameVal = xvoTableGetValue(a, (str)"__class__", 0);
+	if ( (!classNameVal) || (xvoType(classNameVal) == XVO_DT_NULL) ) return xvoCreateNull();
+	str className = xvoGetText(classNameVal);
+	return xvoCreateNull();
+}
+
+// 运算符重载: neg
+static xvalue xl_op_neg(xvalue a)
+{
+	if ( xvoType(a) != XVO_DT_TABLE ) return xvoCreateNull();
+	xvalue classNameVal = xvoTableGetValue(a, (str)"__class__", 0);
+	if ( (!classNameVal) || (xvoType(classNameVal) == XVO_DT_NULL) ) return xvoCreateNull();
+	str className = xvoGetText(classNameVal);
+	return xvoCreateNull();
+}
+
+// 运算符重载: eq
+static xvalue xl_op_eq(xvalue a, xvalue b)
+{
+	if ( xvoType(a) != XVO_DT_TABLE ) return xvoCreateNull();
+	xvalue classNameVal = xvoTableGetValue(a, (str)"__class__", 0);
+	if ( (!classNameVal) || (xvoType(classNameVal) == XVO_DT_NULL) ) return xvoCreateNull();
+	str className = xvoGetText(classNameVal);
+	return xvoCreateNull();
+}
+
+// 运算符重载: lt
+static xvalue xl_op_lt(xvalue a, xvalue b)
+{
+	if ( xvoType(a) != XVO_DT_TABLE ) return xvoCreateNull();
+	xvalue classNameVal = xvoTableGetValue(a, (str)"__class__", 0);
+	if ( (!classNameVal) || (xvoType(classNameVal) == XVO_DT_NULL) ) return xvoCreateNull();
+	str className = xvoGetText(classNameVal);
+	return xvoCreateNull();
+}
+
+// 运算符重载: le
+static xvalue xl_op_le(xvalue a, xvalue b)
+{
+	if ( xvoType(a) != XVO_DT_TABLE ) return xvoCreateNull();
+	xvalue classNameVal = xvoTableGetValue(a, (str)"__class__", 0);
+	if ( (!classNameVal) || (xvoType(classNameVal) == XVO_DT_NULL) ) return xvoCreateNull();
+	str className = xvoGetText(classNameVal);
+	return xvoCreateNull();
+}
+
+// 运算符重载: len
+static xvalue xl_op_len(xvalue a)
+{
+	if ( xvoType(a) != XVO_DT_TABLE ) return xvoCreateNull();
+	xvalue classNameVal = xvoTableGetValue(a, (str)"__class__", 0);
+	if ( (!classNameVal) || (xvoType(classNameVal) == XVO_DT_NULL) ) return xvoCreateNull();
+	str className = xvoGetText(classNameVal);
+	return xvoCreateNull();
+}
+
+// 运算符重载: index
+static xvalue xl_op_index(xvalue obj, xvalue key)
+{
+	if ( xvoType(obj) != XVO_DT_TABLE ) return xvoCreateNull();
+	xvalue classNameVal = xvoTableGetValue(obj, (str)"__class__", 0);
+	if ( (!classNameVal) || (xvoType(classNameVal) == XVO_DT_NULL) ) return xvoCreateNull();
+	str className = xvoGetText(classNameVal);
+	return xvoCreateNull();
+}
+
+// 运算符重载: newindex
+static xvalue xl_op_newindex(xvalue obj, xvalue key, xvalue val)
+{
+	if ( xvoType(obj) != XVO_DT_TABLE ) return xvoCreateNull();
+	xvalue classNameVal = xvoTableGetValue(obj, (str)"__class__", 0);
+	if ( (!classNameVal) || (xvoType(classNameVal) == XVO_DT_NULL) ) return xvoCreateNull();
+	str className = xvoGetText(classNameVal);
+	return xvoCreateNull();
+}
+
+// 元方法: iter
+static xvalue xl_op_iter(xvalue obj)
+{
+	if ( xvoType(obj) != XVO_DT_TABLE ) return xvoCreateNull();
+	xvalue classNameVal = xvoTableGetValue(obj, (str)"__class__", 0);
+	if ( (!classNameVal) || (xvoType(classNameVal) == XVO_DT_NULL) ) return xvoCreateNull();
+	str className = xvoGetText(classNameVal);
+	return xvoCreateNull();
+}
+
+// 元方法: next
+static xvalue xl_op_next(xvalue obj)
+{
+	if ( xvoType(obj) != XVO_DT_TABLE ) return xvoCreateNull();
+	xvalue classNameVal = xvoTableGetValue(obj, (str)"__class__", 0);
+	if ( (!classNameVal) || (xvoType(classNameVal) == XVO_DT_NULL) ) return xvoCreateNull();
+	str className = xvoGetText(classNameVal);
+	return xvoCreateNull();
+}
+
+// 元方法: to (类型转换)
+static xvalue xl_op_to(xvalue obj, xvalue type)
+{
+	if ( xvoType(obj) != XVO_DT_TABLE ) return xvoCreateNull();
+	xvalue classNameVal = xvoTableGetValue(obj, (str)"__class__", 0);
+	if ( (!classNameVal) || (xvoType(classNameVal) == XVO_DT_NULL) ) return xvoCreateNull();
+	str className = xvoGetText(classNameVal);
+	return xvoCreateNull();
+}
+
+// 元方法: enter (with 语句)
+static xvalue xl_op_enter(xvalue obj)
+{
+	if ( xvoType(obj) != XVO_DT_TABLE ) return obj;
+	xvalue classNameVal = xvoTableGetValue(obj, (str)"__class__", 0);
+	if ( (!classNameVal) || (xvoType(classNameVal) == XVO_DT_NULL) ) return obj;
+	str className = xvoGetText(classNameVal);
+	return obj;
+}
+
+// 元方法: exit (with 语句)
+static xvalue xl_op_exit(xvalue obj)
+{
+	if ( xvoType(obj) != XVO_DT_TABLE ) return xvoCreateNull();
+	xvalue classNameVal = xvoTableGetValue(obj, (str)"__class__", 0);
+	if ( (!classNameVal) || (xvoType(classNameVal) == XVO_DT_NULL) ) return xvoCreateNull();
+	str className = xvoGetText(classNameVal);
+	return xvoCreateNull();
+}
+
 // 程序入口
 int main(int argc, char* argv[])
 {
@@ -686,69 +1463,63 @@ int main(int argc, char* argv[])
 
 	// 初始化函数变量
 
-	xl_println(xvoCreateText((str)"=== 整数字面量 ===", 0, FALSE));
-	xlv_dec = xvoCreateInt(255);
-	xl_println(xl_add(xvoCreateText((str)"十进制 255 = ", 0, FALSE), xl_string(xlv_dec)));
-	xlv_hex1 = xvoCreateInt(255);
-	xl_println(xl_add(xvoCreateText((str)"十六进制 0xFF = ", 0, FALSE), xl_string(xlv_hex1)));
-	xlv_hex2 = xvoCreateInt(255);
-	xl_println(xl_add(xvoCreateText((str)"十六进制 &HFF = ", 0, FALSE), xl_string(xlv_hex2)));
-	xlv_bin1 = xvoCreateInt(255);
-	xl_println(xl_add(xvoCreateText((str)"二进制 0b11111111 = ", 0, FALSE), xl_string(xlv_bin1)));
-	xlv_bin2 = xvoCreateInt(255);
-	xl_println(xl_add(xvoCreateText((str)"二进制 &B11111111 = ", 0, FALSE), xl_string(xlv_bin2)));
-	xlv_oct1 = xvoCreateInt(255);
-	xl_println(xl_add(xvoCreateText((str)"八进制 &O377 = ", 0, FALSE), xl_string(xlv_oct1)));
-	xlv_oct2 = xvoCreateInt(15);
-	xl_println(xl_add(xvoCreateText((str)"八进制 &o17 = ", 0, FALSE), xl_string(xlv_oct2)));
-	xl_println(xvoCreateText((str)"", 0, FALSE));
-	xl_println(xvoCreateText((str)"=== 浮点数字面量 ===", 0, FALSE));
-	xlv_f1 = xvoCreateFloat(3.14159);
-	xl_println(xl_add(xvoCreateText((str)"浮点数 3.14159 = ", 0, FALSE), xl_string(xlv_f1)));
-	xlv_f2 = xvoCreateFloat(1.5e+10);
-	xl_println(xl_add(xvoCreateText((str)"科学计数法 1.5e10 = ", 0, FALSE), xl_string(xlv_f2)));
-	xl_println(xvoCreateText((str)"", 0, FALSE));
-	xl_println(xvoCreateText((str)"=== 字符串字面量 ===", 0, FALSE));
-	xlv_s1 = xvoCreateText((str)"Hello\tWorld\n", 0, FALSE);
-	xl_println(xl_add(xvoCreateText((str)"双引号字符串: ", 0, FALSE), xlv_s1));
-	xlv_s2 = xvoCreateText((str)"Hello\\tWorld", 0, FALSE);
-	xl_println(xl_add(xvoCreateText((str)"单引号字符串: ", 0, FALSE), xlv_s2));
-	xlv_s3 = xvoCreateText((str)"这是\r\n多行\r\n字符串", 0, FALSE);
-	xl_println(xl_add(xvoCreateText((str)"多行字符串: ", 0, FALSE), xlv_s3));
-	xl_println(xvoCreateText((str)"", 0, FALSE));
-	xl_println(xvoCreateText((str)"=== 模板字符串 ===", 0, FALSE));
-	xlv_name = xvoCreateText((str)"张三", 0, FALSE);
-	xlv_age = xvoCreateInt(25);
-	xlv_msg = xl_template_concat(xvoCreateText((str)"姓名: ", 0, FALSE), xl_tostring(xlv_name), xvoCreateText((str)", 年龄: ", 0, FALSE), xl_tostring(xlv_age), 4);
-	xl_println(xlv_msg);
-	xlv_greeting = xl_template_concat(xvoCreateText((str)"Hello ", 0, FALSE), xl_tostring(xlv_name), xvoCreateText((str)"!", 0, FALSE), 3);
-	xl_println(xlv_greeting);
-	xlv_plain = xl_template_concat(xvoCreateText((str)"这是纯文本模板", 0, FALSE), 1);
-	xl_println(xlv_plain);
-	xl_println(xvoCreateText((str)"", 0, FALSE));
-	xl_println(xvoCreateText((str)"=== 时间字面量 ===", 0, FALSE));
-	xlv_t1 = xvoCreateNull();
-	xl_println(xl_add(xvoCreateText((str)"日期: ", 0, FALSE), xl_string(xlv_t1)));
-	xlv_t2 = xvoCreateNull();
-	xl_println(xl_add(xvoCreateText((str)"日期时间: ", 0, FALSE), xl_string(xlv_t2)));
-	xl_println(xvoCreateText((str)"", 0, FALSE));
-	xl_println(xvoCreateText((str)"=== 集合字面量 ===", 0, FALSE));
-	xlv_arr = xl_array(5, xvoCreateInt(1), xvoCreateInt(2), xvoCreateInt(3), xvoCreateInt(4), xvoCreateInt(5));
-	xl_println(xl_add(xvoCreateText((str)"数组长度: ", 0, FALSE), xl_string(xl_len(xlv_arr))));
-	xlv_tbl = xl_table(2, "name", xvoCreateText((str)"Tom", 0, FALSE), "age", xvoCreateInt(30));
-	xl_println(xl_add(xvoCreateText((str)"字典[name]: ", 0, FALSE), xl_index(xlv_tbl, xvoCreateText((str)"name", 0, FALSE))));
-	xlv_lst = xl_table(3, "", xvoCreateText((str)"零", 0, FALSE), "", xvoCreateText((str)"一", 0, FALSE), "", xvoCreateText((str)"二", 0, FALSE));
-	xl_println(xl_add(xvoCreateText((str)"列表[1]: ", 0, FALSE), xl_index(xlv_lst, xvoCreateInt(1))));
-	xl_println(xvoCreateText((str)"", 0, FALSE));
-	xl_println(xvoCreateText((str)"=== 布尔和 null ===", 0, FALSE));
-	xlv_b1 = xvoCreateBool(TRUE);
-	xlv_b2 = xvoCreateBool(FALSE);
-	xlv_n = xvoCreateNull();
-	xl_println(xl_add(xvoCreateText((str)"true = ", 0, FALSE), xl_string(xlv_b1)));
-	xl_println(xl_add(xvoCreateText((str)"false = ", 0, FALSE), xl_string(xlv_b2)));
-	xl_println(xl_add(xvoCreateText((str)"null = ", 0, FALSE), xl_string(xlv_n)));
-	xl_println(xvoCreateText((str)"", 0, FALSE));
-	xl_println(xvoCreateText((str)"=== 测试完成 ===", 0, FALSE));
+	xl_println(xvoCreateText((str)"========== 字符串函数测试 ==========", 0, FALSE));
+	xlv_s = xvoCreateText((str)"  Hello World  ", 0, FALSE);
+	xl_println(({ xvalue xl__left = xl_add(xvoCreateText((str)"trim: [", 0, FALSE), xl_trim(xlv_s)); xvalue xl__right = xvoCreateText((str)"]", 0, FALSE); xvalue xl__result = xl_add(xl__left, xl__right); xvoUnref(xl__left); xl__result; }));
+	xl_println(({ xvalue xl__left = xl_add(xvoCreateText((str)"ltrim: [", 0, FALSE), xl_ltrim(xlv_s)); xvalue xl__right = xvoCreateText((str)"]", 0, FALSE); xvalue xl__result = xl_add(xl__left, xl__right); xvoUnref(xl__left); xl__result; }));
+	xl_println(({ xvalue xl__left = xl_add(xvoCreateText((str)"rtrim: [", 0, FALSE), xl_rtrim(xlv_s)); xvalue xl__right = xvoCreateText((str)"]", 0, FALSE); xvalue xl__result = xl_add(xl__left, xl__right); xvoUnref(xl__left); xl__result; }));
+	xl_println(xl_add(xvoCreateText((str)"upper: ", 0, FALSE), xl_upper(xvoCreateText((str)"hello", 0, FALSE))));
+	xl_println(xl_add(xvoCreateText((str)"lower: ", 0, FALSE), xl_lower(xvoCreateText((str)"HELLO", 0, FALSE))));
+	xl_println(xl_add(xvoCreateText((str)"replace: ", 0, FALSE), xl_replace(xvoCreateText((str)"hello world", 0, FALSE), xvoCreateText((str)"world", 0, FALSE), xvoCreateText((str)"xlang", 0, FALSE))));
+	xlv_arr = xl_split(xvoCreateText((str)"a,b,c,d", 0, FALSE), xvoCreateText((str)",", 0, FALSE));
+	xl_println(({ xvalue xl__left = xl_add(xvoCreateText((str)"split: ", 0, FALSE), xl_len(xlv_arr)); xvalue xl__right = xvoCreateText((str)" items", 0, FALSE); xvalue xl__result = xl_add(xl__left, xl__right); xvoUnref(xl__left); xl__result; }));
+	xl_println(xl_add(xvoCreateText((str)"join: ", 0, FALSE), xl_join(xlv_arr, xvoCreateText((str)"-", 0, FALSE))));
+	xl_println(xl_add(xvoCreateText((str)"find: ", 0, FALSE), xl_find(xvoCreateText((str)"hello world", 0, FALSE), xvoCreateText((str)"world", 0, FALSE))));
+	xl_println(xl_add(xvoCreateText((str)"contains: ", 0, FALSE), xl_contains(xvoCreateText((str)"hello world", 0, FALSE), xvoCreateText((str)"world", 0, FALSE))));
+	xl_println(xl_add(xvoCreateText((str)"substr: ", 0, FALSE), xl_substr(xvoCreateText((str)"hello world", 0, FALSE), xvoCreateInt(0), xvoCreateInt(5))));
+	xl_println(xl_add(xvoCreateText((str)"startswith: ", 0, FALSE), xl_startswith(xvoCreateText((str)"hello", 0, FALSE), xvoCreateText((str)"hel", 0, FALSE))));
+	xl_println(xl_add(xvoCreateText((str)"endswith: ", 0, FALSE), xl_endswith(xvoCreateText((str)"hello", 0, FALSE), xvoCreateText((str)"llo", 0, FALSE))));
+	xl_println(xl_add(xvoCreateText((str)"repeat: ", 0, FALSE), xl_repeat(xvoCreateText((str)"ab", 0, FALSE), xvoCreateInt(3))));
+	xl_println(xl_add(xvoCreateText((str)"reverse: ", 0, FALSE), xl_reverse(xvoCreateText((str)"hello", 0, FALSE))));
+	xl_println(xvoCreateText((str)"\n========== 数学函数测试 ==========", 0, FALSE));
+	xl_println(xl_add(xvoCreateText((str)"rand: ", 0, FALSE), xl_rand()));
+	xl_println(xl_add(xvoCreateText((str)"random: ", 0, FALSE), xl_random()));
+	xl_println(xl_add(xvoCreateText((str)"randrange(1,10): ", 0, FALSE), xl_randrange(xvoCreateInt(1), xvoCreateInt(10))));
+	xl_println(xl_add(xvoCreateText((str)"pow(2,10): ", 0, FALSE), xl_pow(xvoCreateInt(2), xvoCreateInt(10))));
+	xl_println(xl_add(xvoCreateText((str)"sqrt(16): ", 0, FALSE), xl_sqrt(xvoCreateInt(16))));
+	xl_println(xl_add(xvoCreateText((str)"log(2.718): ", 0, FALSE), xl_log(xvoCreateFloat(2.718))));
+	xl_println(xl_add(xvoCreateText((str)"sin(0): ", 0, FALSE), xl_sin(xvoCreateInt(0))));
+	xl_println(xl_add(xvoCreateText((str)"cos(0): ", 0, FALSE), xl_cos(xvoCreateInt(0))));
+	xl_println(xvoCreateText((str)"\n========== 时间函数测试 ==========", 0, FALSE));
+	xlv_t = xvoCreateTime(xrtNow());
+	xl_println(xl_add(xvoCreateText((str)"now: ", 0, FALSE), xlv_t));
+	xl_println(xl_add(xvoCreateText((str)"year: ", 0, FALSE), xl_year(xlv_t)));
+	xl_println(xl_add(xvoCreateText((str)"month: ", 0, FALSE), xl_month(xlv_t)));
+	xl_println(xl_add(xvoCreateText((str)"day: ", 0, FALSE), xl_day(xlv_t)));
+	xl_println(xl_add(xvoCreateText((str)"hour: ", 0, FALSE), xl_hour(xlv_t)));
+	xl_println(xl_add(xvoCreateText((str)"minute: ", 0, FALSE), xl_minute(xlv_t)));
+	xl_println(xl_add(xvoCreateText((str)"second: ", 0, FALSE), xl_second(xlv_t)));
+	xl_println(xl_add(xvoCreateText((str)"weekday: ", 0, FALSE), xl_weekday(xlv_t)));
+	xl_println(xl_add(xvoCreateText((str)"strftime: ", 0, FALSE), xl_strftime(xlv_t, xvoCreateText((str)"yyyy-mm-dd hh:nn:ss", 0, FALSE))));
+	xl_println(xl_add(xvoCreateText((str)"timestamp: ", 0, FALSE), xl_timestamp(xlv_t)));
+	xl_println(xl_add(xvoCreateText((str)"timer: ", 0, FALSE), xl_timer()));
+	xl_println(xvoCreateText((str)"\n========== 文件函数测试 ==========", 0, FALSE));
+	xl_println(xl_add(xvoCreateText((str)"exists(.): ", 0, FALSE), xl_exists(xvoCreateText((str)".", 0, FALSE))));
+	xl_println(xl_add(xvoCreateText((str)"isdir(.): ", 0, FALSE), xl_isdir(xvoCreateText((str)".", 0, FALSE))));
+	xl_println(xl_add(xvoCreateText((str)"isfile(test_stdlib.xl): ", 0, FALSE), xl_isfile(xvoCreateText((str)"test_stdlib.xl", 0, FALSE))));
+	xl_println(xvoCreateText((str)"\n========== JSON函数测试 ==========", 0, FALSE));
+	xlv_obj = xl_table(2, "name", xvoCreateText((str)"xlang", 0, FALSE), "version", xvoCreateFloat(1));
+	xlv_jsonStr = xl_json_stringify(xlv_obj);
+	xl_println(xl_add(xvoCreateText((str)"json_stringify: ", 0, FALSE), xlv_jsonStr));
+	xlv_parsed = xl_json_parse(xvoCreateText((str)"{\"a\":1,\"b\":2}", 0, FALSE));
+	xl_println(xl_add(xvoCreateText((str)"json_parse: ", 0, FALSE), xl_index(xlv_parsed, xvoCreateText((str)"a", 0, FALSE))));
+	xl_println(xvoCreateText((str)"\n========== 编码函数测试 ==========", 0, FALSE));
+	xlv_encoded = xl_base64_encode(xvoCreateText((str)"Hello World", 0, FALSE));
+	xl_println(xl_add(xvoCreateText((str)"base64_encode: ", 0, FALSE), xlv_encoded));
+	xl_println(xl_add(xvoCreateText((str)"base64_decode: ", 0, FALSE), xl_base64_decode(xlv_encoded)));
+	xl_println(xl_add(xvoCreateText((str)"hex_encode: ", 0, FALSE), xl_hex_encode(xvoCreateText((str)"ABC", 0, FALSE))));
+	xl_println(xl_add(xvoCreateText((str)"hex_decode: ", 0, FALSE), xl_hex_decode(xvoCreateText((str)"414243", 0, FALSE))));
+	xl_println(xvoCreateText((str)"\n========== 所有测试完成 ==========", 0, FALSE));
 
 	xrtUnit();
 	return 0;

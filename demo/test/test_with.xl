@@ -1,0 +1,22 @@
+// 测试 with 语句
+
+println("=== With Test ===")
+
+class Res
+	var name = "test"
+	
+	meta enter()
+		println("enter")
+		return self
+	end
+	
+	meta exit()
+		println("exit")
+	end
+end
+
+with new Res() as r
+	println("in with")
+end
+
+println("=== Done ===")

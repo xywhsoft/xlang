@@ -1,0 +1,20 @@
+// 最简单的 meta to 测试
+
+println("start")
+
+class Point
+	var x = 0
+	
+	create(x)
+		self.x = x
+	end
+	
+	meta to(t)
+		return "test"
+	end
+end
+
+println("class defined")
+
+var p = new Point(1)
+println("done")
