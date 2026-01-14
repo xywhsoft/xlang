@@ -1,0 +1,5 @@
+// 简单 range 测试
+println("开始测试")
+var arr = range(5)
+println("创建了 range")
+println(len(arr))

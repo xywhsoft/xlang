@@ -1,0 +1,68 @@
+// 测试 list 类型
+
+println("=== Testing list ===")
+
+// 创建空列表
+var lst = list()
+println("Empty list created")
+
+// 添加元素
+lst.add(10)
+lst.add(20)
+lst.add(30)
+
+// 获取长度
+var iLen = lst.len()
+println("List length: " + string(iLen))
+
+// 获取元素 (使用 at 代替 get)
+var v0 = lst.at(0)
+var v1 = lst.at(1)
+var v2 = lst.at(2)
+println("Element 0: " + string(v0))
+println("Element 1: " + string(v1))
+println("Element 2: " + string(v2))
+
+// 设置元素 (使用 put 代替 set)
+lst.put(1, 200)
+v1 = lst.at(1)
+println("After put(1, 200): " + string(v1))
+
+// 检查元素是否存在
+var b0 = lst.has(0)
+var b99 = lst.has(99)
+println("Has key 0: " + string(b0))
+println("Has key 99: " + string(b99))
+
+println("")
+println("=== Testing set ===")
+
+// 创建带初始值的集合
+var s = set(1, 2, 3)
+println("Set created")
+
+// 添加元素
+s.add(4)
+s.add(5)
+println("After adding 4, 5")
+
+// 检查元素是否存在
+var h1 = s.has(1)
+var h3 = s.has(3)
+var h99 = s.has(99)
+println("Has 1: " + string(h1))
+println("Has 3: " + string(h3))
+println("Has 99: " + string(h99))
+
+// 删除元素
+s.remove(3)
+h3 = s.has(3)
+println("After remove(3), has 3: " + string(h3))
+
+// 清空集合
+s.clear()
+var sLen = s.len()
+println("After clear, length: " + string(sLen))
+
+println("")
+println("=== All tests passed ===")

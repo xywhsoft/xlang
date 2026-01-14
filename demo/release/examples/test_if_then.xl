@@ -1,0 +1,20 @@
+println("=== 单行 if-then 测试 ===")
+
+var a = 10
+
+// 单行 if-then
+if a > 5 then println("a > 5")
+if a < 5 then println("a < 5")
+if a == 10 then println("a == 10")
+
+// 多行 if (传统形式)
+if a > 5
+	println("多行: a > 5")
+end
+
+// 带 then 的多行 if
+if a > 5 then
+	println("带 then 的多行: a > 5")
+end
+
+println("=== 测试完成 ===")

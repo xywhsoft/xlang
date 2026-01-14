@@ -1,0 +1,52 @@
+println("=== 继承测试 ===")
+
+// 父类
+class Animal
+	var name = ""
+	
+	create(n)
+		self.name = n
+		println("Animal created: " + self.name)
+	end
+	
+	function speak()
+		println(self.name + " makes a sound")
+	end
+	
+	function getName()
+		return self.name
+	end
+end
+
+// 子类
+class Dog extends Animal
+	var breed = ""
+	
+	create(n, b)
+		self.name = n
+		self.breed = b
+		println("Dog created: " + self.name + " (" + self.breed + ")")
+	end
+	
+	function speak()
+		println(self.name + " barks!")
+	end
+	
+	function getBreed()
+		return self.breed
+	end
+end
+
+// 测试
+println("\n-- 测试父类 --")
+var a = Animal("Cat")
+a.speak()
+println("Name: " + a.getName())
+
+println("\n-- 测试子类 --")
+var d = Dog("Buddy", "Labrador")
+d.speak()
+println("Name: " + d.getName())
+println("Breed: " + d.getBreed())
+
+println("\n=== 测试完成 ===")

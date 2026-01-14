@@ -1,0 +1,54 @@
+println("=== 构造/析构函数测试 ===")
+
+// 测试1: 带参数的构造函数
+class Person
+	var name = ""
+	var age = 0
+	
+	create(n, a)
+		self.name = n
+		self.age = a
+		println("Person created: " + self.name)
+	end
+	
+	destroy()
+		println("Person destroyed: " + self.name)
+	end
+	
+	function greet()
+		println("Hello, I'm " + self.name + ", age " + self.age)
+	end
+end
+
+var p1 = Person("张三", 25)
+p1.greet()
+
+var p2 = Person("李四", 30)
+p2.greet()
+
+println("")
+
+// 测试2: 无参数的构造函数
+class Counter
+	var count = 0
+	
+	create()
+		self.count = 100
+		println("Counter initialized to " + self.count)
+	end
+	
+	function increment()
+		self.count = self.count + 1
+	end
+	
+	function getValue()
+		return self.count
+	end
+end
+
+var c = Counter()
+c.increment()
+c.increment()
+println("Counter value: " + c.getValue())
+
+println("\n=== 测试完成 ===")

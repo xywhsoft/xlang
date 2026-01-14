@@ -1,0 +1,48 @@
+println("=== is/in 运算符测试 ===")
+
+// 测试 in 运算符 - 字符串
+println("\n字符串包含测试:")
+var s = "Hello World"
+println("ll" in s)  // true
+println("xyz" in s)  // false
+
+// 测试 in 运算符 - 数组
+println("\n数组包含测试:")
+var arr = [1, 2, 3, 4, 5]
+println(3 in arr)  // true
+println(6 in arr)  // false
+
+// 测试 in 运算符 - 列表（键值对）
+println("\n列表键测试:")
+var lst = ["name": "张三", "age": 25]
+println("name" in lst)  // true
+println("email" in lst)  // false
+
+// 测试 is 运算符
+println("\n类型判断测试:")
+var num = 42
+var str1 = "hello"
+var arr2 = [1, 2, 3]
+var flt = 3.14
+var bol = true
+
+println("42 is int: ")
+println(num is "int")  // true
+println("42 is string: ")
+println(num is "string")  // false
+
+println("hello is string: ")
+println(str1 is "string")  // true
+println("hello is int: ")
+println(str1 is "int")  // false
+
+println("[1,2,3] is array: ")
+println(arr2 is "array")  // true
+
+println("3.14 is float: ")
+println(flt is "float")  // true
+
+println("true is bool: ")
+println(bol is "bool")  // true
+
+println("\n=== 测试完成 ===")

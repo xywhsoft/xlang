@@ -1,0 +1,43 @@
+println("=== 多返回值测试 ===")
+
+// 返回多值的函数
+function divmod(a, b)
+	return a / b, a % b
+end
+
+// 调用并接收多返回值
+var result = divmod(10, 3)
+println("divmod(10, 3) = ")
+println(result)
+println("商: ")
+println(result[0])
+println("余: ")
+println(result[1])
+
+// 另一个例子
+function minmax(a, b, c)
+	var mn = a
+	var mx = a
+	if b < mn
+		mn = b
+	end
+	if c < mn
+		mn = c
+	end
+	if b > mx
+		mx = b
+	end
+	if c > mx
+		mx = c
+	end
+	return mn, mx
+end
+
+var mm = minmax(5, 2, 8)
+println("\nminmax(5, 2, 8):")
+println("min: ")
+println(mm[0])
+println("max: ")
+println(mm[1])
+
+println("\n=== 测试完成 ===")

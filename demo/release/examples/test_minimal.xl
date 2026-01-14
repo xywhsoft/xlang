@@ -1,0 +1,31 @@
+println("=== range 测试 ===")
+
+// 测试 range(end)
+var arr1 = range(5)
+println("range(5):")
+for i in arr1
+	println(i)
+end
+
+// 测试 range(start, end)
+var arr2 = range(2, 7)
+println("range(2, 7):")
+for i in arr2
+	println(i)
+end
+
+// 测试 range(start, end, step)
+var arr3 = range(0, 10, 2)
+println("range(0, 10, 2):")
+for i in arr3
+	println(i)
+end
+
+// 测试反向 range
+var arr4 = range(10, 0, -2)
+println("range(10, 0, -2):")
+for i in arr4
+	println(i)
+end
+
+println("=== 测试完成 ===")

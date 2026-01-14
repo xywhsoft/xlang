@@ -1,0 +1,32 @@
+println("=== 访问控制测试 ===")
+
+class Person
+	public var name = ""
+	private var age = 0
+	protected var id = ""
+	
+	create(n, a)
+		self.name = n
+		self.age = a
+		self.id = "ID001"
+	end
+	
+	public function getName()
+		return self.name
+	end
+	
+	private function getAge()
+		return self.age
+	end
+	
+	public function showInfo()
+		println("Name: " + self.name)
+		println("Age: " + self.getAge())
+	end
+end
+
+var p = Person("张三", 25)
+p.showInfo()
+println("Direct name access: " + p.getName())
+
+println("\n=== 测试完成 ===")

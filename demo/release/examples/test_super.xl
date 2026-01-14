@@ -1,0 +1,38 @@
+println("=== super 关键字测试 ===")
+
+// 父类
+class Animal
+	var name = ""
+	
+	create(n)
+		self.name = n
+		println("Animal constructor called")
+	end
+	
+	function speak()
+		println(self.name + " makes a sound")
+	end
+end
+
+// 子类
+class Dog extends Animal
+	var breed = ""
+	
+	create(n, b)
+		self.name = n
+		self.breed = b
+		println("Dog constructor called")
+	end
+	
+	function speak()
+		super.speak()
+		println(self.name + " barks: Woof!")
+	end
+end
+
+// 测试 super.method()
+println("\n-- 测试 super.speak() --")
+var d = Dog("Max", "Golden")
+d.speak()
+
+println("\n=== 测试完成 ===")

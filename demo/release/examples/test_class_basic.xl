@@ -1,0 +1,19 @@
+println("=== 类测试 ===")
+
+class Person
+	var name = "未命名"
+	var age = 0
+	
+	function greet()
+		print("Hello, I'm ")
+		println(self.name)
+	end
+end
+
+var p = Person()
+p.name = "张三"
+p.age = 25
+p.greet()
+println(p.age)
+
+println("\n=== 测试完成 ===")
