@@ -43,6 +43,7 @@
 #include "src/xl_semantic.h"
 #include "src/xl_codegen.h"
 #include "src/xl_backend.h"
+#include "src/xl_tcc.h"
 
 
 
@@ -51,8 +52,18 @@
 // 运行模式
 // ============================================================================
 
+// 编译器类型枚举
+typedef enum XL_Compiler {
+	XL_COMPILER_TCC = 0,    // 默认：TCC
+	XL_COMPILER_GCC,        // GCC
+	XL_COMPILER_CLANG,      // Clang
+	XL_COMPILER_VC          // Visual C++
+} XL_Compiler;
+
+
 typedef enum XL_Mode {
-	XL_MODE_RUN = 0,        // 默认：编译并运行
+	XL_MODE_RUN = 0,        // 默认：TCC 运行
+	XL_MODE_COMPILE,        // 编译为 EXE
 	XL_MODE_DUMP_TOKENS,    // --dump-tokens
 	XL_MODE_DUMP_AST,       // --dump-ast
 	XL_MODE_DUMP_SEM,       // --dump-sem
@@ -65,6 +76,7 @@ typedef enum XL_Mode {
 // 命令行配置
 typedef struct XL_Config {
 	XL_Mode mode;           // 运行模式
+	XL_Compiler compiler;   // 编译器类型（仅编译模式有效）
 	str pszInputFile;       // 输入文件
 	str pszOutputFile;      // 输出文件（--emit-c 或 -o）
 } XL_Config;
@@ -83,18 +95,29 @@ static void xlPrintUsage( void )
 	printf("用法: xlang [选项] <文件.xl>\n");
 	printf("\n");
 	printf("选项:\n");
-	printf("  --dump-tokens     打印 Token 列表\n");
-	printf("  --dump-ast        打印 AST 结构\n");
-	printf("  --dump-sem        打印语义信息（符号表、类型）\n");
-	printf("  --emit-c          生成 C 代码\n");
-	printf("  --run             编译并运行（默认）\n");
-	printf("  -o <文件>         指定输出文件\n");
-	printf("  -h, --help        显示帮助信息\n");
-	printf("  -v, --version     显示版本信息\n");
+	printf("  -r, --run              TCC 运行模式（默认）\n");
+	printf("  -c, --compile          编译为 EXE（默认使用 TCC）\n");
+	printf("  -c=<编译器>            指定编译器（tcc/gcc/clang/vc）\n");
+	printf("  --compile=<编译器>     同上\n");
+	printf("  --dump-tokens          打印 Token 列表\n");
+	printf("  --dump-ast             打印 AST 结构\n");
+	printf("  --dump-sem             打印语义信息（符号表、类型）\n");
+	printf("  --emit-c               生成 C 代码\n");
+	printf("  -o <文件>              指定输出文件\n");
+	printf("  -h, --help             显示帮助信息\n");
+	printf("  -v, --version          显示版本信息\n");
+	printf("\n");
+	printf("编译器选项:\n");
+	printf("  tcc    - Tiny C Compiler（默认，快速编译）\n");
+	printf("  gcc    - GNU C Compiler（优化编译）\n");
+	printf("  clang  - LLVM Clang\n");
+	printf("  vc     - Visual C++（仅 Windows）\n");
 	printf("\n");
 	printf("示例:\n");
-	printf("  xlang hello.xl                运行 hello.xl\n");
-	printf("  xlang --dump-tokens hello.xl  打印 Token 列表\n");
+	printf("  xlang hello.xl              TCC 运行 hello.xl\n");
+	printf("  xlang -r hello.xl           同上\n");
+	printf("  xlang -c hello.xl           TCC 编译为 EXE\n");
+	printf("  xlang -c=gcc hello.xl       GCC 编译为 EXE\n");
 	printf("  xlang --emit-c -o out.c hello.xl  生成 C 代码到 out.c\n");
 }
 
@@ -112,10 +135,32 @@ static void xlPrintVersion( void )
 // 命令行参数解析
 // ============================================================================
 
+// 解析编译器名称
+static XL_Compiler xlParseCompiler( const char* name )
+{
+	if ( (strcmp(name, "tcc") == 0) || (strcmp(name, "TCC") == 0) ) {
+		return XL_COMPILER_TCC;
+	}
+	if ( (strcmp(name, "gcc") == 0) || (strcmp(name, "GCC") == 0) ) {
+		return XL_COMPILER_GCC;
+	}
+	if ( (strcmp(name, "clang") == 0) || (strcmp(name, "CLANG") == 0) || (strcmp(name, "Clang") == 0) ) {
+		return XL_COMPILER_CLANG;
+	}
+	if ( (strcmp(name, "vc") == 0) || (strcmp(name, "VC") == 0) || (strcmp(name, "msvc") == 0) || (strcmp(name, "MSVC") == 0) ) {
+		return XL_COMPILER_VC;
+	}
+	fprintf(stderr, "警告: 未知编译器 '%s'，使用默认 TCC\n", name);
+	return XL_COMPILER_TCC;
+}
+
+
+
 static XL_Config xlParseArgs( int argc, char* argv[] )
 {
 	XL_Config config = {0};
 	config.mode = XL_MODE_RUN;
+	config.compiler = XL_COMPILER_TCC;
 
 	for ( int i = 1; i < argc; i++ ) {
 		char* arg = argv[i];
@@ -128,6 +173,29 @@ static XL_Config xlParseArgs( int argc, char* argv[] )
 		if ( (strcmp(arg, "-v") == 0) || (strcmp(arg, "--version") == 0) ) {
 			config.mode = XL_MODE_VERSION;
 			return config;
+		}
+
+		if ( (strcmp(arg, "-r") == 0) || (strcmp(arg, "--run") == 0) ) {
+			config.mode = XL_MODE_RUN;
+			continue;
+		}
+
+		// -c 或 --compile（默认 TCC）
+		if ( (strcmp(arg, "-c") == 0) || (strcmp(arg, "--compile") == 0) ) {
+			config.mode = XL_MODE_COMPILE;
+			continue;
+		}
+
+		// -c=xxx 或 --compile=xxx
+		if ( strncmp(arg, "-c=", 3) == 0 ) {
+			config.mode = XL_MODE_COMPILE;
+			config.compiler = xlParseCompiler(arg + 3);
+			continue;
+		}
+		if ( strncmp(arg, "--compile=", 10) == 0 ) {
+			config.mode = XL_MODE_COMPILE;
+			config.compiler = xlParseCompiler(arg + 10);
+			continue;
 		}
 
 		if ( strcmp(arg, "--dump-tokens") == 0 ) {
@@ -147,11 +215,6 @@ static XL_Config xlParseArgs( int argc, char* argv[] )
 
 		if ( strcmp(arg, "--emit-c") == 0 ) {
 			config.mode = XL_MODE_EMIT_C;
-			continue;
-		}
-
-		if ( strcmp(arg, "--run") == 0 ) {
-			config.mode = XL_MODE_RUN;
 			continue;
 		}
 
@@ -408,7 +471,7 @@ int main( int argc, char* argv[] )
 		}
 
 		case XL_MODE_RUN: {
-			// 完整编译运行
+			// TCC 运行模式
 			XL_Lexer *pLexer = xlLexerCreate(pszSource, iSize, config.pszInputFile);
 			if ( pLexer ) {
 				XL_Parser *pParser = xlParserCreate(pLexer);
@@ -424,53 +487,169 @@ int main( int argc, char* argv[] )
 									xlCodegenGenerate(pGen, xModule);
 									char *pszCode = xlCodegenGetCode(pGen);
 									if ( pszCode ) {
-										// 使用 xrt 路径函数获取程序所在目录
-										str sExeDir = xrtPathGetDir((str)xCore.AppPath, 0);
-										
-										// 如果在 release 子目录，向上一级到项目根目录
-										if ( strstr(sExeDir, "release") ) {
-											str sParent = xrtPathGetDir(sExeDir, 0);
-											xrtFree(sExeDir);
-											sExeDir = sParent;
-										}
+										// 使用 TCC 运行
+										iExitCode = xlRunWithTCC(pszCode, config.pszInputFile);
+										free(pszCode);
+									}
+									xlCodegenDestroy(pGen);
+								} else {
+									fprintf(stderr, "错误: 创建代码生成器失败\n");
+									iExitCode = 1;
+								}
+							} else {
+								xlErrorListPrint(pSem->pErrors);
+								iExitCode = 1;
+							}
+							xlSemanticDestroy(pSem);
+						} else {
+							fprintf(stderr, "错误: 创建语义分析器失败\n");
+							iExitCode = 1;
+						}
+					} else {
+						xlErrorListPrint(pParser->pErrors);
+						iExitCode = 1;
+					}
+					xlParserDestroy(pParser);
+				} else {
+					fprintf(stderr, "错误: 创建语法分析器失败\n");
+					iExitCode = 1;
+				}
+				xlLexerDestroy(pLexer);
+			} else {
+				fprintf(stderr, "错误: 创建词法分析器失败\n");
+				iExitCode = 1;
+			}
+			break;
+		}
 
-										// 使用 xrtPathJoin 生成路径（自动处理跨平台分隔符）
+		case XL_MODE_COMPILE: {
+			// 编译为 EXE
+			XL_Lexer *pLexer = xlLexerCreate(pszSource, iSize, config.pszInputFile);
+			if ( pLexer ) {
+				XL_Parser *pParser = xlParserCreate(pLexer);
+				if ( pParser ) {
+					xvalue xModule = xlParserParse(pParser, config.pszInputFile);
+					if ( xModule && !pParser->bHadError ) {
+						XL_Semantic *pSem = xlSemanticCreate(pParser->pErrors);
+						if ( pSem ) {
+							bool bOk = xlSemanticAnalyze(pSem, xModule);
+							if ( bOk ) {
+								XL_Codegen *pGen = xlCodegenCreate(pParser->pErrors);
+								if ( pGen ) {
+									xlCodegenGenerate(pGen, xModule);
+									char *pszCode = xlCodegenGetCode(pGen);
+									if ( pszCode ) {
+										// 生成路径：AppPath 下的 gen 目录
+										str sAppDir = (str)xCore.AppPath;
+										
+										// 确保 gen 目录存在
+										str sGenDir = xrtPathJoin(2, sAppDir, "gen");
+										if ( !xrtDirExists(sGenDir) ) {
+											xrtDirCreate(sGenDir);
+										}
+										
+										// 生成临时文件和输出文件路径
 										#ifdef _WIN32
-										str sTmpFile = xrtPathJoin(3, sExeDir, "gen", "xlang_temp.c");
-										str sTmpExe = xrtPathJoin(3, sExeDir, "gen", "xlang_temp.exe");
+										str sTmpFile = xrtPathJoin(2, sGenDir, "xlang_temp.c");
+										str sDefaultExe = xrtPathJoin(2, sGenDir, "xlang_temp.exe");
 										#else
-										str sTmpFile = xrtPathJoin(3, sExeDir, "gen", "xlang_temp.c");
-										str sTmpExe = xrtPathJoin(3, sExeDir, "gen", "xlang_temp");
+										str sTmpFile = xrtPathJoin(2, sGenDir, "xlang_temp.c");
+										str sDefaultExe = xrtPathJoin(2, sGenDir, "xlang_temp");
 										#endif
-										str sXrtPath = xrtPathJoin(4, sExeDir, "lib", "xrt", "xrt.c");
+										
+										// xrt.c 路径：使用 tcc/xrt/xrt.c
+										str sXrtPath = xrtPathJoin(4, sAppDir, "tcc", "xrt", "xrt.c");
+										if ( !xrtFileExists(sXrtPath) ) {
+											fprintf(stderr, "错误: 找不到运行时文件 %s\n", sXrtPath);
+											xrtFree(sXrtPath);
+											xrtFree(sGenDir);
+											xrtFree(sTmpFile);
+											xrtFree(sDefaultExe);
+											free(pszCode);
+											xlCodegenDestroy(pGen);
+											xlSemanticDestroy(pSem);
+											xlParserDestroy(pParser);
+											xlLexerDestroy(pLexer);
+											free(pszSource);
+											xrtUnit();
+											return 1;
+										}
+										
+										// include 路径：使用 tcc 目录
+										str sIncludeDir = xrtPathJoin(2, sAppDir, "tcc");
+
+										// 输出文件
+										str sOutFile = config.pszOutputFile ? (str)config.pszOutputFile : sDefaultExe;
 
 										FILE *fp = fopen(sTmpFile, "w");
 										if ( fp ) {
 											fputs(pszCode, fp);
 											fclose(fp);
 
-											// 使用外部编译器编译运行
-											#ifdef _WIN32
-											char szCmd[2048];
-											snprintf(szCmd, sizeof(szCmd),
-											         "gcc \"%s\" \"%s\" -I\"%s\" -lshlwapi -lgdi32 -lws2_32 -lIPHLPAPI -o \"%s\" && \"%s\"",
-											         sTmpFile, sXrtPath, sExeDir, sTmpExe, sTmpExe);
-											iExitCode = system(szCmd);
-											#else
-											char szCmd[2048];
-											snprintf(szCmd, sizeof(szCmd),
-											         "gcc \"%s\" \"%s\" -I\"%s\" -o \"%s\" && \"%s\"",
-											         sTmpFile, sXrtPath, sExeDir, sTmpExe, sTmpExe);
-											iExitCode = system(szCmd);
-											#endif
+											char szCmd[4096];
+											switch ( config.compiler ) {
+												case XL_COMPILER_TCC:
+													#ifdef _WIN32
+													snprintf(szCmd, sizeof(szCmd),
+														"tcc \"%s\" \"%s\" -I\"%s\" -lshlwapi -lgdi32 -lws2_32 -lIPHLPAPI -o \"%s\"",
+														sTmpFile, sXrtPath, sIncludeDir, sOutFile);
+													#else
+													snprintf(szCmd, sizeof(szCmd),
+														"tcc \"%s\" \"%s\" -I\"%s\" -o \"%s\"",
+														sTmpFile, sXrtPath, sIncludeDir, sOutFile);
+													#endif
+													break;
+												case XL_COMPILER_GCC:
+													#ifdef _WIN32
+													snprintf(szCmd, sizeof(szCmd),
+														"gcc \"%s\" \"%s\" -I\"%s\" -lshlwapi -lgdi32 -lws2_32 -lIPHLPAPI -o \"%s\"",
+														sTmpFile, sXrtPath, sIncludeDir, sOutFile);
+													#else
+													snprintf(szCmd, sizeof(szCmd),
+														"gcc \"%s\" \"%s\" -I\"%s\" -o \"%s\"",
+														sTmpFile, sXrtPath, sIncludeDir, sOutFile);
+													#endif
+													break;
+												case XL_COMPILER_CLANG:
+													#ifdef _WIN32
+													snprintf(szCmd, sizeof(szCmd),
+														"clang \"%s\" \"%s\" -I\"%s\" -lshlwapi -lgdi32 -lws2_32 -lIPHLPAPI -o \"%s\"",
+														sTmpFile, sXrtPath, sIncludeDir, sOutFile);
+													#else
+													snprintf(szCmd, sizeof(szCmd),
+														"clang \"%s\" \"%s\" -I\"%s\" -o \"%s\"",
+														sTmpFile, sXrtPath, sIncludeDir, sOutFile);
+													#endif
+													break;
+												case XL_COMPILER_VC:
+													#ifdef _WIN32
+													snprintf(szCmd, sizeof(szCmd),
+														"cl /Fe\"%s\" \"%s\" \"%s\" /I\"%s\" shlwapi.lib gdi32.lib ws2_32.lib iphlpapi.lib",
+														sOutFile, sTmpFile, sXrtPath, sIncludeDir);
+													#else
+													fprintf(stderr, "错误: VC 编译器仅支持 Windows\n");
+													iExitCode = 1;
+													szCmd[0] = '\0';  // 清空命令
+													#endif
+													break;
+											}
+
+											if ( szCmd[0] != '\0' ) {
+												iExitCode = system(szCmd);
+												if ( iExitCode == 0 ) {
+													printf("编译成功: %s\n", sOutFile);
+												}
+											}
 										} else {
 											fprintf(stderr, "错误: 无法创建临时文件 %s\n", sTmpFile);
 											iExitCode = 1;
 										}
+
 										xrtFree(sTmpFile);
-										xrtFree(sTmpExe);
+										xrtFree(sDefaultExe);
 										xrtFree(sXrtPath);
-										xrtFree(sExeDir);
+										xrtFree(sGenDir);
+										xrtFree(sIncludeDir);
 										free(pszCode);
 									}
 									xlCodegenDestroy(pGen);
