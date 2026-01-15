@@ -1,9 +1,0 @@
-LIBRARY fastxml.dll
-EXPORTS
-cxml_add_root_node
-cxml_make_node
-cxml_new_cxml
-cxml_node_add_attr
-cxml_node_add_node
-new_cxml_from_string2
-new_string_from_cxml

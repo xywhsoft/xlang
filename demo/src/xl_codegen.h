@@ -2951,7 +2951,7 @@ static inline bool xlCodegenGenerate( XL_Codegen *pGen, xvalue xModule )
 	xlCodeBufAppend(pGen->pHeader, "#include <stdlib.h>\n");
 	xlCodeBufAppend(pGen->pHeader, "#include <string.h>\n");
 	xlCodeBufAppend(pGen->pHeader, "#include <stdarg.h>\n");
-	xlCodeBufAppend(pGen->pHeader, "#include \"lib/xrt/xrt.h\"\n");
+	xlCodeBufAppend(pGen->pHeader, "#include \"xrt/xrt.h\"\n");
 	xlCodeBufAppend(pGen->pHeader, "\n");
 
 	// 运行时辅助函数
