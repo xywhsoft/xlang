@@ -1,0 +1,64 @@
+
+bool varBool = true
+varBool = bool(0)
+
+int8 varInt8 = 123
+varInt8 = int8(-123)
+
+int16 varInt16 = 456
+varInt16 = int16(-456)
+
+int32 varInt32 = 123456
+varInt32 = int32(654321)
+
+int64 varInt64 = 12345678
+varInt64 = int64(87654321)
+
+// int 是 int64 的别名，数据类型要引入别名机制
+int varInt = 111
+varInt = int(222)
+
+uint8 varUInt8 = 123
+varUInt8 = uint8(234)
+
+uint16 varUInt16 = 456
+varUInt16 = uint16(654)
+
+uint32 varUInt32 = 123456
+varUInt32 = uint32(654321)
+
+uint64 varUInt64 = 12345678
+varUInt64 = uint64(87654321)
+
+float32 varFloat32 = 3.14
+varFloat32 = float32(0.1 + 0.2)
+
+float64 varFloat64 = 3.14
+varFloat64 = float64(0.1 + 0.2)
+
+// float 是 float64 的别名
+float varFloat = 3.14
+varFloat = float(0.1 + 0.2)
+
+string varStr = "字符串"
+varStr = string(3.1415926)
+
+time varTime = # 2025-01-01 12:00:00 #
+varTime = time("2022-12-30 12:00:00")
+
+// 不推荐的内置类型（用于兼容 C 语言）
+point varPtr = 0x12345678
+varPtr = point(print)
+
+array varArr = [ 1, 2, 3 ]
+varArr = array( 3, 2, 1 )
+
+list varLst = [ 1:123, 2:456, 3:789 ]
+varLst = list(varArr)
+
+set varSet = { 1, 2, 3 }
+varSet = set( 3, 2, 1 )
+
+dict varTbl = { key1: "val1", key2: "val2", key3: "val3" }
+varTbl = dict()
+
