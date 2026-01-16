@@ -1,0 +1,65 @@
+类型表：
+	类型ID
+	构造函数
+	析构函数
+
+函数定义表（函数类型需要到这个表里查找定义）：
+	参数列表
+		参数名称
+		数据类型
+		默认值（为 null 则为可选）
+	可变参数类型（无、数组可变参数、字典可变参数）
+	所属命名空间
+	调用约定
+	访问权限（public、privete）
+	
+	null		n
+	bool		b
+	int			i1、i2、i4、i8
+	uint		u1、u2、u4、u8
+	float		f4、f8
+	string		s
+	time		t
+	point		p
+	array		arr
+	list		lst
+	set			set
+	dict		tbl
+	function	fn - 根据函数定义
+	class		cs - 根据类型定义
+	custom		cs - 根据类型定义
+	
+	重载函数名：
+		xf4_name_i8_s_s_fn
+		xc4_class_name_i2_f4_s_i4
+		
+		第一位：
+			x 为固定的函数名首位符号，后跟着参数数量（可变参数的 ... 或 *** 算作一个参数）
+		
+		第二位：
+			f 为函数
+			c 为 class 成员函数
+			g 为 class 属性（读取）函数
+			l 为 class 属性（写入）函数
+		
+		第三位：
+			数字代表参数数量
+		
+		class：
+			为类名的 hex 编码（如果有命名空间，则连通命名空间一起 hex 编码，这样做是为了支持中文函数名）
+		
+		name
+			为函数名的 hex 编码（如果有命名空间，则连通命名空间一起 hex 编码，这样做是为了支持中文函数名）
+		
+		后续 _ 分割：
+			为参数类型，基础类型直接写基础类型声明值
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	xtl 文件（xlang type library）类型定义文件，编译后，保存源代码的类型定义结构（JSON）
