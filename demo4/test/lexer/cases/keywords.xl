@@ -1,0 +1,50 @@
+// xlang v4 - 关键字与标识符测试
+// 按照类型注册系统设计，类型名不是关键字，而是标识符
+// 由 Parser 查询类型系统来判断标识符是否为类型名
+
+// === 真正的关键字 ===
+
+// 内置类型关键字
+null function
+
+// 布尔字面量
+true false
+
+// 声明关键字
+var auto
+
+// 控制流关键字
+if then else elseif end
+for in to step
+while do
+break continue return
+
+// 函数关键字
+func arg as const
+
+// 逻辑运算符关键字
+and or not
+
+// === 标识符（包括类型名） ===
+// 这些在 Lexer 中都被识别为 IDENT
+// 由 Parser 查询类型系统来确定是否为类型名
+
+// 基本类型名（作为标识符）
+bool
+i8 u8 i16 u16 i32 u32 i64 u64
+int
+f32 f64
+float
+string time point
+
+// 复合类型名（作为标识符）
+array list set dict
+type range
+
+// 普通标识符
+myVar
+_private
+camelCase
+snake_case
+中文标识符
+变量名
