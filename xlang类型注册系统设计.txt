@@ -1,0 +1,1123 @@
+================================================================================
+xlang 类型注册系统设计方案
+================================================================================
+
+版本：v4.0
+目标：实现可扩展的类型系统，所有类型（除 function 外）均通过注册机制添加
+
+
+
+================================================================================
+一、设计理念
+================================================================================
+
+1.1 核心原则
+------------
+- xlang 编译器核心认识两种内置类型：function 和 null
+- 所有其他类型（bool、int、string 等）都是「注册类型」
+- 类型注册发生在编译器初始化阶段，早于任何源代码解析
+- xlang lite = 空类型表 + 用户自定义注册
+- xlang full = 预注册标准类型集
+
+为什么 null 是内置类型：
+- null 只能作为字面量存在，不能作为类型声明（不能 null a）
+- null 用于 type(a) == null 判断
+- null 没有构造钩子的必要（不能 null(xxx)）
+- null 的实现与其他类型区别较大
+
+
+1.2 职责划分（重要）
+--------------------
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  词法分析器（Lexer）                                                         │
+│    - 识别并解析字面量（数字、字符串、布尔、时间等）                            │
+│    - 产出带类型信息的 Token                                                  │
+│    - 字面量解析是词法层的职责，与类型系统无关                                  │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  语法分析器（Parser）                                                        │
+│    - 查询类型系统，识别类型名（int、string 等是否为已注册类型）                 │
+│    - 构建 AST，节点携带类型 ID                                               │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  类型系统（TypeSystem）                                                      │
+│    - 注册和管理类型信息                                                      │
+│    - 提供类型名查询（供 Parser 判断标识符是否为类型名）                        │
+│    - 提供运算符支持信息（类型 A 支持哪些运算符）                               │
+│    - 提供类型转换规则（类型 A 能否转换为类型 B）                               │
+│    - 提供代码生成钩子（供 Codegen 调用）                                      │
+│    - 【不负责】字面量解析（那是 Lexer 的事）                                  │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  代码生成器（Codegen）                                                       │
+│    - 根据 AST 节点的类型 ID，调用类型系统的钩子生成 C 代码                     │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+
+1.3 类型分类
+------------
+┌─────────────────────────────────────────────────────────────┐
+│                      xlang 类型系统                          │
+├─────────────────────────────────────────────────────────────┤
+│  内置类型（硬编码，不通过注册机制）                            │
+│    ├─ function        函数类型                               │
+│    └─ null            空值类型（只能作为字面量和类型判断）      │
+├─────────────────────────────────────────────────────────────┤
+│  注册类型（可扩展）                                           │
+│    ├─ 原子类型        bool, int系列, float系列, time, point  │
+│    ├─ 复合类型        string                                 │
+│    ├─ 容器类型        array, list, set, dict                │
+│    ├─ 特殊类型        var, type, range                      │
+│    └─ 用户类型        class, custom, object（后续阶段）      │
+└─────────────────────────────────────────────────────────────┘
+
+
+
+================================================================================
+二、类型注册数据结构
+================================================================================
+
+2.1 类型描述符（XL_TypeDesc）
+-----------------------------
+/**
+ * 类型描述符 - 描述一个注册类型的完整信息
+ */
+typedef struct XL_TypeDesc {
+	// ===== 基础信息 =====
+	str pszName;                    // 类型名称（如 "int", "i32", "string"）
+	str pszAlias;                   // 类型别名（如 "int" 是 "i64" 的别名，NULL 表示无别名）
+	int iTypeId;                    // 类型 ID（运行时类型标识）
+	int iCategory;                  // 类型类别（XL_TYPE_CAT_*）
+	
+	// ===== 存储信息 =====
+	int iSize;                      // 类型大小（字节），0 表示动态大小
+	int iAlign;                     // 对齐要求
+	bool bValueType;                // 是否为值类型（true=值类型，false=引用类型）
+	
+	// ===== C 代码生成信息 =====
+	str pszCType;                   // 对应的 C 类型名（如 "int64_t", "xvalue"）
+	str pszCDefault;                // C 默认值表达式（如 "0", "NULL", "xvoNew()"）
+	str pszCHeader;                 // 需要包含的 C 头文件（可选）
+	
+	// ===== 代码生成钩子（编译期）=====
+	XL_TypeCodegenFunc procCodegenDecl;     // 生成变量声明代码
+	XL_TypeCodegenFunc procCodegenAssign;   // 生成赋值代码
+	XL_TypeCodegenFunc procCodegenConvert;  // 生成类型转换代码
+	XL_TypeCodegenFunc procCodegenOp;       // 生成运算符代码
+	XL_TypeCodegenFunc procCodegenIndex;    // 生成索引访问代码
+	XL_TypeCodegenFunc procCodegenCall;     // 生成构造调用代码 Type(val)
+	
+	// ===== 运算符支持 =====
+	XL_OpSupport* pOps;             // 支持的运算符列表
+	int iOpCount;                   // 运算符数量
+	
+	// ===== 转换规则 =====
+	XL_ConvertRule* pConvertFrom;   // 可从哪些类型转换而来
+	int iConvertFromCount;
+	XL_ConvertRule* pConvertTo;     // 可转换为哪些类型
+	int iConvertToCount;
+	
+	// ===== 扩展数据 =====
+	void* pUserData;                // 用户自定义数据
+} XL_TypeDesc;
+
+
+2.2 类型类别常量
+----------------
+// 类型类别
+#define XL_TYPE_CAT_BUILTIN     0   // 内置类型（function, null）
+#define XL_TYPE_CAT_ATOMIC      1   // 原子类型（bool, int, float, time, point）
+#define XL_TYPE_CAT_COMPOUND    2   // 复合类型（string）
+#define XL_TYPE_CAT_CONTAINER   3   // 容器类型（array, list, set, dict）
+#define XL_TYPE_CAT_SPECIAL     4   // 特殊类型（var, type, range）
+#define XL_TYPE_CAT_USER        5   // 用户定义类型（class, custom）
+
+
+2.3 运算符支持描述
+------------------
+/**
+ * 运算符支持描述
+ */
+typedef struct XL_OpSupport {
+	int iOp;                        // 运算符类型（XL_OP_*）
+	int iRhsTypeId;                 // 右操作数类型 ID（-1 表示任意）
+	int iResultTypeId;              // 结果类型 ID
+	str pszCodeTemplate;            // C 代码模板（使用 {lhs}, {rhs}, {result} 占位符）
+} XL_OpSupport;
+
+
+2.4 类型转换规则
+----------------
+/**
+ * 类型转换规则
+ */
+typedef struct XL_ConvertRule {
+	int iTargetTypeId;              // 目标类型 ID
+	int iConvertKind;               // 转换类型（隐式/显式/有损）
+	str pszCodeTemplate;            // C 代码转换模板
+} XL_ConvertRule;
+
+// 转换类型常量
+#define XL_CONVERT_IMPLICIT     0   // 隐式转换（自动）
+#define XL_CONVERT_EXPLICIT     1   // 显式转换（需要 Type(val) 语法）
+#define XL_CONVERT_LOSSY        2   // 有损转换（可能丢失精度）
+
+
+
+================================================================================
+三、类型注册 API
+================================================================================
+
+3.1 核心注册函数
+----------------
+/**
+ * 注册新类型
+ * @param pCompiler     编译器实例
+ * @param pTypeDesc     类型描述符
+ * @return              类型 ID，失败返回 -1
+ */
+int xlTypeRegister(XL_Compiler* pCompiler, XL_TypeDesc* pTypeDesc);
+
+/**
+ * 注册类型别名
+ * @param pCompiler     编译器实例
+ * @param pszAlias      别名
+ * @param pszTarget     目标类型名
+ * @return              成功返回 true
+ */
+bool xlTypeRegisterAlias(XL_Compiler* pCompiler, str pszAlias, str pszTarget);
+
+/**
+ * 批量注册标准类型
+ * @param pCompiler     编译器实例
+ * @return              成功返回 true
+ */
+bool xlTypeRegisterStandard(XL_Compiler* pCompiler);
+
+
+3.2 类型查询函数
+----------------
+/**
+ * 根据名称查找类型
+ */
+XL_TypeDesc* xlTypeLookup(XL_Compiler* pCompiler, str pszName);
+
+/**
+ * 根据 ID 查找类型
+ */
+XL_TypeDesc* xlTypeLookupById(XL_Compiler* pCompiler, int iTypeId);
+
+/**
+ * 检查类型是否已注册
+ */
+bool xlTypeExists(XL_Compiler* pCompiler, str pszName);
+
+/**
+ * 获取所有注册类型
+ */
+XL_TypeDesc** xlTypeGetAll(XL_Compiler* pCompiler, int* pCount);
+
+
+3.3 类型检查函数
+----------------
+/**
+ * 检查是否可以从 srcType 转换到 dstType
+ */
+int xlTypeCanConvert(XL_Compiler* pCompiler, int iSrcTypeId, int iDstTypeId);
+
+/**
+ * 检查运算符是否支持
+ */
+bool xlTypeSupportsOp(XL_Compiler* pCompiler, int iTypeId, int iOp, int iRhsTypeId);
+
+/**
+ * 获取运算结果类型
+ */
+int xlTypeGetOpResult(XL_Compiler* pCompiler, int iLhsTypeId, int iOp, int iRhsTypeId);
+
+
+
+================================================================================
+四、代码生成钩子接口
+================================================================================
+
+4.1 回调函数类型定义
+--------------------
+/**
+ * 代码生成回调
+ * @param pCompiler     编译器实例
+ * @param pTypeDesc     类型描述符
+ * @param pContext      代码生成上下文
+ * @param pOutCode      输出：生成的 C 代码
+ * @return              成功返回 true
+ */
+typedef bool (*XL_TypeCodegenFunc)(
+	XL_Compiler* pCompiler,
+	XL_TypeDesc* pTypeDesc,
+	XL_CodegenContext* pContext,
+	str* pOutCode
+);
+
+
+4.2 代码生成上下文
+------------------
+/**
+ * 代码生成上下文 - 传递给钩子的信息
+ */
+typedef struct XL_CodegenContext {
+	int iContextType;               // 上下文类型
+	
+	// 变量声明上下文 (XL_CTX_DECL)
+	str pszVarName;                 // 变量名
+	str pszInitExpr;                // 初始化表达式代码（可选，NULL 表示使用默认值）
+	bool bIsConst;                  // 是否常量
+	
+	// 赋值上下文 (XL_CTX_ASSIGN)
+	str pszTargetExpr;              // 赋值目标表达式
+	str pszValueExpr;               // 值表达式代码
+	
+	// 类型转换上下文 (XL_CTX_CONVERT)
+	int iSrcTypeId;                 // 源类型 ID
+	str pszSrcExpr;                 // 源表达式代码
+	
+	// 运算符上下文 (XL_CTX_OPERATOR)
+	int iOp;                        // 运算符
+	str pszLhsExpr;                 // 左操作数代码
+	int iLhsTypeId;                 // 左操作数类型
+	str pszRhsExpr;                 // 右操作数代码（可选）
+	int iRhsTypeId;                 // 右操作数类型（可选）
+	
+	// 索引上下文 (XL_CTX_INDEX)
+	str pszContainerExpr;           // 容器表达式代码
+	str pszIndexExpr;               // 索引表达式代码
+	int iIndexTypeId;               // 索引类型
+	bool bIsLValue;                 // 是否左值（赋值目标）
+	str pszAssignExpr;              // 赋值表达式（仅左值时有效）
+	
+	// 构造调用上下文 (XL_CTX_CALL) - 用于 Type(val) 语法
+	str pszArgExpr;                 // 参数表达式代码
+	int iArgTypeId;                 // 参数类型 ID
+} XL_CodegenContext;
+
+// 上下文类型常量
+#define XL_CTX_DECL             1   // 变量声明
+#define XL_CTX_ASSIGN           2   // 赋值
+#define XL_CTX_CONVERT          3   // 类型转换
+#define XL_CTX_OPERATOR         4   // 运算符
+#define XL_CTX_INDEX            5   // 索引访问
+#define XL_CTX_CALL             6   // 构造调用 Type(val)
+
+
+
+================================================================================
+五、标准类型注册示例
+================================================================================
+
+5.1 注册 int（i64）类型
+-----------------------
+// 变量声明钩子
+static bool xlIntCodegenDecl(XL_Compiler* p, XL_TypeDesc* t, XL_CodegenContext* ctx, str* out)
+{
+	if ( ctx->pszInitExpr ) {
+		*out = xrtFormat("int64_t %s = %s;", ctx->pszVarName, ctx->pszInitExpr);
+	} else {
+		*out = xrtFormat("int64_t %s = 0;", ctx->pszVarName);
+	}
+	return true;
+}
+
+// 类型转换钩子
+static bool xlIntCodegenConvert(XL_Compiler* p, XL_TypeDesc* t, XL_CodegenContext* ctx, str* out)
+{
+	XL_TypeDesc* pSrcType = xlTypeLookupById(p, ctx->iSrcTypeId);
+	
+	if ( strcmp(pSrcType->pszName, "float") == 0 || strcmp(pSrcType->pszName, "f64") == 0 ) {
+		*out = xrtFormat("(int64_t)(%s)", ctx->pszSrcExpr);
+	} else if ( strcmp(pSrcType->pszName, "string") == 0 ) {
+		*out = xrtFormat("xrtStrToInt(%s)", ctx->pszSrcExpr);
+	} else if ( strcmp(pSrcType->pszName, "bool") == 0 ) {
+		*out = xrtFormat("(int64_t)(%s)", ctx->pszSrcExpr);
+	} else {
+		*out = xrtFormat("(int64_t)(%s)", ctx->pszSrcExpr);
+	}
+	return true;
+}
+
+// 构造调用钩子 int(val)
+static bool xlIntCodegenCall(XL_Compiler* p, XL_TypeDesc* t, XL_CodegenContext* ctx, str* out)
+{
+	// int(val) 等价于类型转换
+	return xlIntCodegenConvert(p, t, ctx, out);
+}
+
+// 运算符支持表
+static XL_OpSupport arrIntOps[] = {
+	{ XL_OP_ADD,    XL_TYPE_INT, XL_TYPE_INT, "({lhs} + {rhs})" },
+	{ XL_OP_SUB,    XL_TYPE_INT, XL_TYPE_INT, "({lhs} - {rhs})" },
+	{ XL_OP_MUL,    XL_TYPE_INT, XL_TYPE_INT, "({lhs} * {rhs})" },
+	{ XL_OP_DIV,    XL_TYPE_INT, XL_TYPE_INT, "({lhs} / {rhs})" },
+	{ XL_OP_MOD,    XL_TYPE_INT, XL_TYPE_INT, "({lhs} % {rhs})" },
+	{ XL_OP_POW,    XL_TYPE_INT, XL_TYPE_INT, "xlPow({lhs}, {rhs})" },
+	{ XL_OP_EQ,     XL_TYPE_INT, XL_TYPE_BOOL, "({lhs} == {rhs})" },
+	{ XL_OP_NE,     XL_TYPE_INT, XL_TYPE_BOOL, "({lhs} != {rhs})" },
+	{ XL_OP_LT,     XL_TYPE_INT, XL_TYPE_BOOL, "({lhs} < {rhs})" },
+	{ XL_OP_LE,     XL_TYPE_INT, XL_TYPE_BOOL, "({lhs} <= {rhs})" },
+	{ XL_OP_GT,     XL_TYPE_INT, XL_TYPE_BOOL, "({lhs} > {rhs})" },
+	{ XL_OP_GE,     XL_TYPE_INT, XL_TYPE_BOOL, "({lhs} >= {rhs})" },
+	{ XL_OP_NEG,    -1,          XL_TYPE_INT, "(-{lhs})" },
+	{ XL_OP_BAND,   XL_TYPE_INT, XL_TYPE_INT, "({lhs} & {rhs})" },
+	{ XL_OP_BOR,    XL_TYPE_INT, XL_TYPE_INT, "({lhs} | {rhs})" },
+	{ XL_OP_BXOR,   XL_TYPE_INT, XL_TYPE_INT, "({lhs} ^ {rhs})" },
+	{ XL_OP_BNOT,   -1,          XL_TYPE_INT, "(~{lhs})" },
+	{ XL_OP_SHL,    XL_TYPE_INT, XL_TYPE_INT, "({lhs} << {rhs})" },
+	{ XL_OP_SHR,    XL_TYPE_INT, XL_TYPE_INT, "({lhs} >> {rhs})" },
+};
+
+// 类型转换规则
+static XL_ConvertRule arrIntConvertFrom[] = {
+	{ XL_TYPE_BOOL,   XL_CONVERT_IMPLICIT, "(int64_t)({src})" },
+	{ XL_TYPE_I8,     XL_CONVERT_IMPLICIT, "(int64_t)({src})" },
+	{ XL_TYPE_I16,    XL_CONVERT_IMPLICIT, "(int64_t)({src})" },
+	{ XL_TYPE_I32,    XL_CONVERT_IMPLICIT, "(int64_t)({src})" },
+	{ XL_TYPE_U8,     XL_CONVERT_IMPLICIT, "(int64_t)({src})" },
+	{ XL_TYPE_U16,    XL_CONVERT_IMPLICIT, "(int64_t)({src})" },
+	{ XL_TYPE_U32,    XL_CONVERT_IMPLICIT, "(int64_t)({src})" },
+	{ XL_TYPE_FLOAT,  XL_CONVERT_LOSSY,    "(int64_t)({src})" },
+	{ XL_TYPE_STRING, XL_CONVERT_EXPLICIT, "xrtStrToInt({src})" },
+};
+
+// 注册函数
+void xlRegisterTypeInt(XL_Compiler* pCompiler)
+{
+	XL_TypeDesc desc = {0};
+	
+	desc.pszName = "i64";
+	desc.pszAlias = NULL;
+	desc.iTypeId = XL_TYPE_I64;
+	desc.iCategory = XL_TYPE_CAT_ATOMIC;
+	
+	desc.iSize = 8;
+	desc.iAlign = 8;
+	desc.bValueType = true;
+	
+	desc.pszCType = "int64_t";
+	desc.pszCDefault = "0";
+	desc.pszCHeader = "<stdint.h>";
+	
+	desc.procCodegenDecl = xlIntCodegenDecl;
+	desc.procCodegenConvert = xlIntCodegenConvert;
+	desc.procCodegenCall = xlIntCodegenCall;
+	
+	desc.pOps = arrIntOps;
+	desc.iOpCount = sizeof(arrIntOps) / sizeof(arrIntOps[0]);
+	
+	desc.pConvertFrom = arrIntConvertFrom;
+	desc.iConvertFromCount = sizeof(arrIntConvertFrom) / sizeof(arrIntConvertFrom[0]);
+	
+	xlTypeRegister(pCompiler, &desc);
+	
+	// 注册别名 int -> i64
+	xlTypeRegisterAlias(pCompiler, "int", "i64");
+}
+
+
+5.2 注册 string 类型
+--------------------
+// 变量声明钩子
+static bool xlStringCodegenDecl(XL_Compiler* p, XL_TypeDesc* t, XL_CodegenContext* ctx, str* out)
+{
+	if ( ctx->pszInitExpr ) {
+		*out = xrtFormat("str %s = %s;", ctx->pszVarName, ctx->pszInitExpr);
+	} else {
+		*out = xrtFormat("str %s = \"\";", ctx->pszVarName);
+	}
+	return true;
+}
+
+// 运算符钩子
+static bool xlStringCodegenOp(XL_Compiler* p, XL_TypeDesc* t, XL_CodegenContext* ctx, str* out)
+{
+	switch ( ctx->iOp ) {
+		case XL_OP_ADD:
+			// 字符串拼接
+			*out = xrtFormat("xrtStrCat(%s, %s)", ctx->pszLhsExpr, ctx->pszRhsExpr);
+			return true;
+		case XL_OP_MUL:
+			// 字符串重复
+			*out = xrtFormat("xrtStrRepeat(%s, %s)", ctx->pszLhsExpr, ctx->pszRhsExpr);
+			return true;
+		case XL_OP_EQ:
+			*out = xrtFormat("(strcmp(%s, %s) == 0)", ctx->pszLhsExpr, ctx->pszRhsExpr);
+			return true;
+		// ... 其他运算符
+	}
+	return false;
+}
+
+// 索引钩子
+static bool xlStringCodegenIndex(XL_Compiler* p, XL_TypeDesc* t, XL_CodegenContext* ctx, str* out)
+{
+	// str[idx] -> 获取第 idx 个字符
+	*out = xrtFormat("xrtStrCharAt(%s, %s)", ctx->pszContainerExpr, ctx->pszIndexExpr);
+	return true;
+}
+
+void xlRegisterTypeString(XL_Compiler* pCompiler)
+{
+	XL_TypeDesc desc = {0};
+	
+	desc.pszName = "string";
+	desc.iTypeId = XL_TYPE_STRING;
+	desc.iCategory = XL_TYPE_CAT_COMPOUND;
+	
+	desc.iSize = sizeof(void*);  // 指针大小
+	desc.iAlign = sizeof(void*);
+	desc.bValueType = true;      // string 在 xlang 中是值类型
+	
+	desc.pszCType = "str";
+	desc.pszCDefault = "\"\"";
+	desc.pszCHeader = NULL;      // 使用 xrt
+	
+	desc.procCodegenDecl = xlStringCodegenDecl;
+	desc.procCodegenOp = xlStringCodegenOp;
+	desc.procCodegenIndex = xlStringCodegenIndex;
+	
+	// ... 设置运算符和转换规则
+	
+	xlTypeRegister(pCompiler, &desc);
+}
+
+
+5.3 注册 array 类型
+-------------------
+// 变量声明钩子
+static bool xlArrayCodegenDecl(XL_Compiler* p, XL_TypeDesc* t, XL_CodegenContext* ctx, str* out)
+{
+	if ( ctx->pszInitExpr ) {
+		*out = xrtFormat("xvalue %s = %s;", ctx->pszVarName, ctx->pszInitExpr);
+	} else {
+		*out = xrtFormat("xvalue %s = xvoNewArray();", ctx->pszVarName);
+	}
+	return true;
+}
+
+// 索引钩子
+static bool xlArrayCodegenIndex(XL_Compiler* p, XL_TypeDesc* t, XL_CodegenContext* ctx, str* out)
+{
+	if ( ctx->bIsLValue ) {
+		// arr[idx] = val -> xvoArraySet(arr, idx, val)
+		*out = xrtFormat("xvoArraySet(%s, %s, %s)", 
+			ctx->pszContainerExpr, ctx->pszIndexExpr, ctx->pszAssignExpr);
+	} else {
+		// arr[idx] -> xvoArrayGet(arr, idx)
+		*out = xrtFormat("xvoArrayGet(%s, %s)", ctx->pszContainerExpr, ctx->pszIndexExpr);
+	}
+	return true;
+}
+
+// 运算符钩子
+static bool xlArrayCodegenOp(XL_Compiler* p, XL_TypeDesc* t, XL_CodegenContext* ctx, str* out)
+{
+	switch ( ctx->iOp ) {
+		case XL_OP_ADD:
+			// 数组合并 [1,2] + [3,4] -> [1,2,3,4]
+			*out = xrtFormat("xvoArrayConcat(%s, %s)", ctx->pszLhsExpr, ctx->pszRhsExpr);
+			return true;
+		case XL_OP_MUL:
+			// 数组重复 [1,2] * 3 -> [1,2,1,2,1,2]
+			*out = xrtFormat("xvoArrayRepeat(%s, %s)", ctx->pszLhsExpr, ctx->pszRhsExpr);
+			return true;
+	}
+	return false;
+}
+
+void xlRegisterTypeArray(XL_Compiler* pCompiler)
+{
+	XL_TypeDesc desc = {0};
+	
+	desc.pszName = "array";
+	desc.iTypeId = XL_TYPE_ARRAY;
+	desc.iCategory = XL_TYPE_CAT_CONTAINER;
+	
+	desc.iSize = sizeof(void*);
+	desc.iAlign = sizeof(void*);
+	desc.bValueType = false;     // 引用类型
+	
+	desc.pszCType = "xvalue";
+	desc.pszCDefault = "xvoNewArray()";
+	
+	desc.procCodegenDecl = xlArrayCodegenDecl;
+	desc.procCodegenIndex = xlArrayCodegenIndex;
+	desc.procCodegenOp = xlArrayCodegenOp;
+	
+	xlTypeRegister(pCompiler, &desc);
+}
+
+
+5.4 注册 var 类型（变体类型）
+-----------------------------
+// 变量声明钩子
+static bool xlVarCodegenDecl(XL_Compiler* p, XL_TypeDesc* t, XL_CodegenContext* ctx, str* out)
+{
+	if ( ctx->pszInitExpr ) {
+		*out = xrtFormat("xvalue %s = %s;", ctx->pszVarName, ctx->pszInitExpr);
+	} else {
+		*out = xrtFormat("xvalue %s = xvoNull();", ctx->pszVarName);
+	}
+	return true;
+}
+
+// var 类型的运算符需要运行时分派
+static bool xlVarCodegenOp(XL_Compiler* p, XL_TypeDesc* t, XL_CodegenContext* ctx, str* out)
+{
+	// 生成运行时分派代码
+	*out = xrtFormat("xvoOp(%d, %s, %s)", ctx->iOp, ctx->pszLhsExpr, ctx->pszRhsExpr);
+	return true;
+}
+
+void xlRegisterTypeVar(XL_Compiler* pCompiler)
+{
+	XL_TypeDesc desc = {0};
+	
+	desc.pszName = "var";
+	desc.iTypeId = XL_TYPE_VAR;
+	desc.iCategory = XL_TYPE_CAT_SPECIAL;
+	
+	desc.iSize = sizeof(void*);  // xvalue 指针
+	desc.iAlign = sizeof(void*);
+	desc.bValueType = false;
+	
+	desc.pszCType = "xvalue";
+	desc.pszCDefault = "xvoNull()";
+	
+	desc.procCodegenDecl = xlVarCodegenDecl;
+	desc.procCodegenOp = xlVarCodegenOp;
+	
+	// var 可以从任何类型转换
+	// var 的运算符支持在运行时决定
+	
+	xlTypeRegister(pCompiler, &desc);
+}
+
+
+
+================================================================================
+六、编译器集成
+================================================================================
+
+6.1 编译器初始化流程
+--------------------
+XL_Compiler* xlCompilerCreate(void)
+{
+	XL_Compiler* pCompiler = xrtAlloc(sizeof(XL_Compiler));
+	memset(pCompiler, 0, sizeof(XL_Compiler));
+	
+	// 1. 初始化类型表
+	pCompiler->pTypeTable = xlTypeTableCreate();
+	
+	// 2. 注册内置类型（function 和 null）
+	xlRegisterBuiltinFunction(pCompiler);
+	xlRegisterBuiltinNull(pCompiler);
+	
+	// 3. 注册标准类型（可选，xlang full 模式）
+	// xlTypeRegisterStandard(pCompiler);
+	
+	return pCompiler;
+}
+
+bool xlTypeRegisterStandard(XL_Compiler* pCompiler)
+{
+	// 原子类型（注意：null 是内置类型，不在此注册）
+	xlRegisterTypeBool(pCompiler);
+	xlRegisterTypeI8(pCompiler);
+	xlRegisterTypeU8(pCompiler);
+	xlRegisterTypeI16(pCompiler);
+	xlRegisterTypeU16(pCompiler);
+	xlRegisterTypeI32(pCompiler);
+	xlRegisterTypeU32(pCompiler);
+	xlRegisterTypeI64(pCompiler);   // 注册别名 int -> i64
+	xlRegisterTypeU64(pCompiler);
+	xlRegisterTypeF32(pCompiler);
+	xlRegisterTypeF64(pCompiler);   // 注册别名 float -> f64
+	xlRegisterTypeTime(pCompiler);  // 本质为 int64
+	xlRegisterTypePoint(pCompiler); // 本质为 void*
+	
+	// 复合类型
+	xlRegisterTypeString(pCompiler);
+	
+	// 容器类型
+	xlRegisterTypeArray(pCompiler);
+	xlRegisterTypeList(pCompiler);
+	xlRegisterTypeSet(pCompiler);
+	xlRegisterTypeDict(pCompiler);
+	
+	// 特殊类型
+	xlRegisterTypeVar(pCompiler);
+	xlRegisterTypeType(pCompiler);
+	xlRegisterTypeRange(pCompiler);
+	
+	return true;
+}
+
+
+6.2 语法分析器集成（核心挑战）
+------------------------------
+/**
+ * 解析类型时需要查询类型系统
+ * 
+ * 挑战：标识符可能是类型名，也可能是变量名/函数名
+ * 解决：在语法上下文中判断，当期望类型时查询类型系统
+ */
+
+// 判断标识符是否为已注册类型名
+bool xlParserIsTypeName(XL_Parser* pParser, str pszIdent)
+{
+	return xlTypeExists(pParser->pCompiler, pszIdent);
+}
+
+// 解析类型声明
+XL_AstNode* xlParserParseType(XL_Parser* pParser)
+{
+	XL_Token* pToken = xlParserPeek(pParser);
+	
+	// 检查是否是标识符
+	if ( pToken->iType == XL_TOK_IDENT ) {
+		str sIdent = pToken->pszValue;
+		
+		// 查询类型系统
+		XL_TypeDesc* pType = xlTypeLookup(pParser->pCompiler, sIdent);
+		if ( pType ) {
+			xlParserAdvance(pParser);
+			return xlAstTypeRef(pType->iTypeId, sIdent);
+		}
+		
+		// 不是类型名，可能是表达式
+		return NULL;
+	}
+	
+	// 特殊处理 auto 和 var（这两个是关键字）
+	if ( pToken->iType == XL_TOK_KW_AUTO ) {
+		xlParserAdvance(pParser);
+		return xlAstTypeAuto();
+	}
+	
+	if ( pToken->iType == XL_TOK_KW_VAR ) {
+		xlParserAdvance(pParser);
+		XL_TypeDesc* pType = xlTypeLookup(pParser->pCompiler, "var");
+		return xlAstTypeRef(pType->iTypeId, "var");
+	}
+	
+	return NULL;
+}
+
+// 解析变量声明
+// 语法：Type name [= expr]
+XL_AstNode* xlParserParseVarDecl(XL_Parser* pParser)
+{
+	// 尝试解析类型
+	XL_AstNode* pTypeNode = xlParserParseType(pParser);
+	if ( !pTypeNode ) {
+		return NULL;  // 不是变量声明
+	}
+	
+	// 期望标识符（变量名）
+	XL_Token* pNameToken = xlParserExpect(pParser, XL_TOK_IDENT);
+	if ( !pNameToken ) {
+		xlError("Expected variable name after type");
+		return NULL;
+	}
+	
+	XL_AstNode* pVarDecl = xlAstVarDecl(pTypeNode, pNameToken->pszValue);
+	
+	// 可选的初始化表达式
+	if ( xlParserMatch(pParser, XL_TOK_ASSIGN) ) {
+		pVarDecl->pInitExpr = xlParserParseExpr(pParser);
+	}
+	
+	return pVarDecl;
+}
+
+// 解析语句时的歧义处理
+// 问题：int a 可能是变量声明，也可能是表达式（如果 int 被重载为函数）
+// 解决：优先尝试变量声明，失败则回退到表达式
+XL_AstNode* xlParserParseStatement(XL_Parser* pParser)
+{
+	// 保存当前位置，用于回退
+	int iSavePos = pParser->iPos;
+	
+	// 尝试解析变量声明
+	XL_AstNode* pVarDecl = xlParserParseVarDecl(pParser);
+	if ( pVarDecl ) {
+		return pVarDecl;
+	}
+	
+	// 回退并尝试解析表达式语句
+	pParser->iPos = iSavePos;
+	return xlParserParseExprStmt(pParser);
+}
+
+// 解析 Type(val) 构造调用
+// 语法：TypeName '(' expr ')'
+XL_AstNode* xlParserParseTypeCall(XL_Parser* pParser)
+{
+	XL_Token* pToken = xlParserPeek(pParser);
+	
+	if ( pToken->iType == XL_TOK_IDENT ) {
+		str sIdent = pToken->pszValue;
+		XL_TypeDesc* pType = xlTypeLookup(pParser->pCompiler, sIdent);
+		
+		if ( pType ) {
+			// 是类型名，检查是否跟着 (
+			XL_Token* pNext = xlParserPeekNext(pParser);
+			if ( pNext && pNext->iType == XL_TOK_LPAREN ) {
+				// Type(...)  -> 构造调用
+				xlParserAdvance(pParser);  // 消耗类型名
+				xlParserAdvance(pParser);  // 消耗 (
+				
+				XL_AstNode* pArg = xlParserParseExpr(pParser);
+				xlParserExpect(pParser, XL_TOK_RPAREN);
+				
+				return xlAstTypeCall(pType->iTypeId, pArg);
+			}
+		}
+	}
+	
+	return NULL;
+}
+
+
+6.3 代码生成器集成
+------------------
+// 生成变量声明代码
+str xlCodegenVarDecl(XL_Codegen* pGen, XL_AstNode* pNode)
+{
+	int iTypeId = pNode->pTypeNode->iTypeId;
+	XL_TypeDesc* pType = xlTypeLookupById(pGen->pCompiler, iTypeId);
+	
+	if ( !pType ) {
+		xlError("Unknown type id: %d", iTypeId);
+		return NULL;
+	}
+	
+	// 准备上下文
+	XL_CodegenContext ctx = {0};
+	ctx.iContextType = XL_CTX_DECL;
+	ctx.pszVarName = pNode->pszVarName;
+	ctx.bIsConst = pNode->bIsConst;
+	
+	// 如果有初始化表达式，先生成表达式代码
+	if ( pNode->pInitExpr ) {
+		ctx.pszInitExpr = xlCodegenExpr(pGen, pNode->pInitExpr);
+	}
+	
+	// 使用类型的代码生成钩子
+	if ( pType->procCodegenDecl ) {
+		str sCode = NULL;
+		if ( pType->procCodegenDecl(pGen->pCompiler, pType, &ctx, &sCode) ) {
+			if ( ctx.pszInitExpr ) xrtFree(ctx.pszInitExpr);
+			return sCode;
+		}
+	}
+	
+	// 回退到默认代码生成
+	str sCode = NULL;
+	if ( ctx.pszInitExpr ) {
+		sCode = xrtFormat("%s %s = %s;", pType->pszCType, ctx.pszVarName, ctx.pszInitExpr);
+		xrtFree(ctx.pszInitExpr);
+	} else {
+		sCode = xrtFormat("%s %s = %s;", pType->pszCType, ctx.pszVarName, pType->pszCDefault);
+	}
+	return sCode;
+}
+
+// 生成运算符代码
+str xlCodegenBinaryOp(XL_Codegen* pGen, XL_AstNode* pNode)
+{
+	int iLhsType = xlGetExprType(pGen, pNode->pLeft);
+	int iRhsType = xlGetExprType(pGen, pNode->pRight);
+	int iOp = pNode->iOp;
+	
+	XL_TypeDesc* pType = xlTypeLookupById(pGen->pCompiler, iLhsType);
+	
+	// 先查找运算符支持表
+	XL_OpSupport* pOpInfo = xlTypeFindOp(pType, iOp, iRhsType);
+	
+	if ( pOpInfo ) {
+		// 使用模板生成代码
+		str sLhs = xlCodegenExpr(pGen, pNode->pLeft);
+		str sRhs = xlCodegenExpr(pGen, pNode->pRight);
+		
+		str sCode = xrtStrReplace(pOpInfo->pszCodeTemplate, "{lhs}", sLhs);
+		sCode = xrtStrReplace(sCode, "{rhs}", sRhs);
+		
+		xrtFree(sLhs);
+		xrtFree(sRhs);
+		return sCode;
+	}
+	
+	// 使用类型的代码生成钩子
+	if ( pType->procCodegenOp ) {
+		XL_CodegenContext ctx = {0};
+		ctx.iContextType = XL_CTX_OPERATOR;
+		ctx.iOp = iOp;
+		ctx.pszLhsExpr = xlCodegenExpr(pGen, pNode->pLeft);
+		ctx.iLhsTypeId = iLhsType;
+		ctx.pszRhsExpr = xlCodegenExpr(pGen, pNode->pRight);
+		ctx.iRhsTypeId = iRhsType;
+		
+		str sCode = NULL;
+		if ( pType->procCodegenOp(pGen->pCompiler, pType, &ctx, &sCode) ) {
+			xrtFree(ctx.pszLhsExpr);
+			xrtFree(ctx.pszRhsExpr);
+			return sCode;
+		}
+		
+		xrtFree(ctx.pszLhsExpr);
+		xrtFree(ctx.pszRhsExpr);
+	}
+	
+	xlError("Operator %d not supported for type %s", iOp, pType->pszName);
+	return NULL;
+}
+
+// 生成类型构造调用代码 Type(val)
+str xlCodegenTypeCall(XL_Codegen* pGen, XL_AstNode* pNode)
+{
+	int iTargetType = pNode->iTypeId;
+	XL_TypeDesc* pType = xlTypeLookupById(pGen->pCompiler, iTargetType);
+	
+	// 准备上下文
+	XL_CodegenContext ctx = {0};
+	ctx.iContextType = XL_CTX_CALL;
+	ctx.pszArgExpr = xlCodegenExpr(pGen, pNode->pArgExpr);
+	ctx.iArgTypeId = xlGetExprType(pGen, pNode->pArgExpr);
+	
+	// 使用类型的构造调用钩子
+	if ( pType->procCodegenCall ) {
+		str sCode = NULL;
+		if ( pType->procCodegenCall(pGen->pCompiler, pType, &ctx, &sCode) ) {
+			xrtFree(ctx.pszArgExpr);
+			return sCode;
+		}
+	}
+	
+	// 回退到类型转换钩子
+	ctx.iContextType = XL_CTX_CONVERT;
+	ctx.iSrcTypeId = ctx.iArgTypeId;
+	ctx.pszSrcExpr = ctx.pszArgExpr;
+	
+	if ( pType->procCodegenConvert ) {
+		str sCode = NULL;
+		if ( pType->procCodegenConvert(pGen->pCompiler, pType, &ctx, &sCode) ) {
+			xrtFree(ctx.pszArgExpr);
+			return sCode;
+		}
+	}
+	
+	xrtFree(ctx.pszArgExpr);
+	xlError("Cannot construct type %s from given argument", pType->pszName);
+	return NULL;
+}
+
+
+
+================================================================================
+七、xlang lite vs xlang full
+================================================================================
+
+7.1 xlang lite（最小内核）
+--------------------------
+// 仅包含 function 和 null 内置类型，其他类型由用户注册
+XL_Compiler* xlCompilerCreateLite(void)
+{
+	XL_Compiler* pCompiler = xrtAlloc(sizeof(XL_Compiler));
+	memset(pCompiler, 0, sizeof(XL_Compiler));
+	
+	pCompiler->pTypeTable = xlTypeTableCreate();
+	
+	// 注册内置类型（function 和 null）
+	xlRegisterBuiltinFunction(pCompiler);
+	xlRegisterBuiltinNull(pCompiler);
+	
+	return pCompiler;
+}
+
+
+7.2 xlang full（标准发行版）
+----------------------------
+// 包含所有标准类型
+XL_Compiler* xlCompilerCreateFull(void)
+{
+	XL_Compiler* pCompiler = xlCompilerCreateLite();
+	
+	// 注册所有标准类型
+	xlTypeRegisterStandard(pCompiler);
+	
+	return pCompiler;
+}
+
+
+7.3 自定义类型注册示例
+----------------------
+// 用户可以注册自己的类型
+void myRegisterVector3(XL_Compiler* pCompiler)
+{
+	XL_TypeDesc desc = {0};
+	
+	desc.pszName = "vec3";
+	desc.iTypeId = 1000;  // 用户类型 ID 从 1000 开始
+	desc.iCategory = XL_TYPE_CAT_USER;
+	
+	desc.iSize = sizeof(float) * 3;
+	desc.iAlign = sizeof(float);
+	desc.bValueType = true;
+	
+	desc.pszCType = "Vector3";
+	desc.pszCDefault = "{0, 0, 0}";
+	desc.pszCHeader = "\"my_math.h\"";
+	
+	// 设置自定义的代码生成回调
+	desc.procCodegenVar = myVec3CodegenVar;
+	desc.procCodegenOp = myVec3CodegenOp;
+	
+	xlTypeRegister(pCompiler, &desc);
+}
+
+// 使用
+XL_Compiler* pCompiler = xlCompilerCreateLite();
+xlTypeRegisterStandard(pCompiler);  // 可选：加载标准类型
+myRegisterVector3(pCompiler);       // 注册自定义类型
+
+// 现在可以在 xlang 代码中使用 vec3 类型
+// vec3 pos = vec3(1.0, 2.0, 3.0)
+
+
+
+================================================================================
+八、运行时类型支持
+================================================================================
+
+8.1 运行时类型信息
+------------------
+// 运行时需要保留类型信息，用于 var 类型的动态分派
+typedef struct XL_RuntimeType {
+	int iTypeId;
+	str pszName;
+	
+	// 运行时操作函数指针
+	XL_RTOpFunc procAdd;
+	XL_RTOpFunc procSub;
+	XL_RTOpFunc procMul;
+	XL_RTOpFunc procDiv;
+	XL_RTOpFunc procEq;
+	XL_RTOpFunc procLt;
+	// ... 其他运算符
+	
+	XL_RTConvertFunc procConvertTo;
+	XL_RTIndexFunc procIndex;
+	XL_RTIterFunc procIter;
+} XL_RuntimeType;
+
+
+8.2 运行时分派
+--------------
+// var 类型的运算符在运行时分派
+xvalue xvoOp(int iOp, xvalue xLhs, xvalue xRhs)
+{
+	int iLhsType = xvoGetType(xLhs);
+	XL_RuntimeType* pType = xlRTLookupType(iLhsType);
+	
+	switch ( iOp ) {
+		case XL_OP_ADD:
+			if ( pType->procAdd ) {
+				return pType->procAdd(xLhs, xRhs);
+			}
+			break;
+		// ... 其他运算符
+	}
+	
+	// 错误：不支持的运算
+	return xvoNull();
+}
+
+
+
+================================================================================
+九、类型 ID 分配
+================================================================================
+
+// 内置类型 ID（0-99）
+#define XL_TYPE_FUNCTION    0   // 内置类型：函数
+#define XL_TYPE_NULL        1   // 内置类型：空值
+
+// 标准类型 ID（100-999）
+// 原子类型
+#define XL_TYPE_BOOL        101
+#define XL_TYPE_I8          110
+#define XL_TYPE_U8          111
+#define XL_TYPE_I16         112
+#define XL_TYPE_U16         113
+#define XL_TYPE_I32         114
+#define XL_TYPE_U32         115
+#define XL_TYPE_I64         116
+#define XL_TYPE_U64         117
+#define XL_TYPE_F32         120
+#define XL_TYPE_F64         121
+#define XL_TYPE_TIME        122     // 本质为 int64
+#define XL_TYPE_POINT       123     // 本质为 void*
+// 复合类型
+#define XL_TYPE_STRING      130
+// 容器类型
+#define XL_TYPE_ARRAY       140
+#define XL_TYPE_LIST        141
+#define XL_TYPE_SET         142
+#define XL_TYPE_DICT        143
+// 特殊类型
+#define XL_TYPE_VAR         150
+#define XL_TYPE_TYPE        151
+#define XL_TYPE_RANGE       152
+
+// 别名映射
+#define XL_TYPE_INT         XL_TYPE_I64
+#define XL_TYPE_FLOAT       XL_TYPE_F64
+
+// 用户类型 ID（1000+）
+#define XL_TYPE_USER_BASE   1000
+
+
+
+================================================================================
+十、总结
+================================================================================
+
+职责划分（核心原则）：
+	┌────────────┬──────────────────────────────────────────────────────────┐
+	│  模块      │  职责                                                     │
+	├────────────┼──────────────────────────────────────────────────────────┤
+	│  Lexer     │  解析字面量（数字、字符串、时间等），产出带类型的 Token     │
+	│  Parser    │  查询类型系统识别类型名，构建 AST                          │
+	│  TypeSys   │  管理类型信息，提供查询和代码生成钩子                       │
+	│  Codegen   │  调用类型系统钩子生成 C 代码                               │
+	└────────────┴──────────────────────────────────────────────────────────┘
+
+设计优势：
+	1. 高度可扩展 - 任何类型都可以通过注册机制添加
+	2. 职责清晰 - 字面量解析在 Lexer，类型管理在 TypeSys
+	3. 编译期优化 - 静态类型的运算在编译期确定，生成高效代码
+	4. 运行时灵活 - var 类型支持动态分派
+	5. 代码生成可定制 - 每个类型可以完全控制自己的 C 代码生成
+	6. xlang lite 最小化 - 可以构建只有 function 和 null 内置类型的最小内核
+	7. 易于扩展 - 游戏引擎可以轻松注册 vec3, mat4, quaternion 等类型
+
+实现步骤：
+	1. 实现类型表数据结构（XL_TypeTable）
+	2. 实现类型注册 API（xlTypeRegister、xlTypeLookup 等）
+	3. 实现标准类型注册函数（xlRegisterTypeInt、xlRegisterTypeString 等）
+	4. 修改语法分析器：在需要类型的上下文中查询类型系统
+	5. 修改代码生成器：使用类型钩子生成代码
+	6. 实现运行时类型支持（用于 var 类型的动态分派）
+
+语法解析的核心挑战：
+	问题：标识符 "int" 可能是类型名，也可能是变量名
+	解决：在语法上下文中判断
+	      - 期望类型的位置（变量声明、函数参数等）→ 查询类型系统
+	      - 期望表达式的位置 → 优先作为标识符处理
+	      - Type(val) 语法 → 检查是否为类型名 + 括号 → 构造调用
+
