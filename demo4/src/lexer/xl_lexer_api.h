@@ -2,6 +2,7 @@
  * xlang v4 词法分析器 API
  * 
  * 对 Flex 生成的词法分析器的高级封装
+ * Token 类型定义在 xl_tokens.h 中（由 main.c 先 include）
  */
 
 #ifndef XL_LEXER_API_H

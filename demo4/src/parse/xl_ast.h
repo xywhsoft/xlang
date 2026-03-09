@@ -2,7 +2,7 @@
  * xlang v4 - AST 模块
  * 
  * 使用 xvalue (xrt table) 表示 AST 节点
- * 参考第三版 demo 的做法，所有节点以 xvalue Table 存储
+ * 节点类型使用数字枚举 XL_AstType
  * 
  * 仅支持 v4 一阶段语法：
  * - 变量/常量声明
@@ -18,52 +18,84 @@
 
 
 // ============================================================================
-// AST 节点类型常量
+// AST 节点类型枚举
 // ============================================================================
 
-// 顶层
-#define XL_AST_MODULE           "Module"
+typedef enum XL_AstType {
+	AST_NONE = 0,
 
-// 声明
-#define XL_AST_VAR_DECL         "VarDecl"
-#define XL_AST_CONST_DECL       "ConstDecl"
-#define XL_AST_FUNC_DECL        "FuncDecl"
-#define XL_AST_PARAM_DECL       "ParamDecl"
+	// 顶层
+	AST_MODULE,
 
-// 语句
-#define XL_AST_BLOCK_STMT       "BlockStmt"
-#define XL_AST_EXPR_STMT        "ExprStmt"
-#define XL_AST_IF_STMT          "IfStmt"
-#define XL_AST_FOR_STMT         "ForStmt"
-#define XL_AST_FOR_IN_STMT      "ForInStmt"
-#define XL_AST_WHILE_STMT       "WhileStmt"
-#define XL_AST_DO_WHILE_STMT    "DoWhileStmt"
-#define XL_AST_BREAK_STMT       "BreakStmt"
-#define XL_AST_CONTINUE_STMT    "ContinueStmt"
-#define XL_AST_RETURN_STMT      "ReturnStmt"
+	// 声明
+	AST_VAR_DECL,
+	AST_CONST_DECL,
+	AST_FUNC_DECL,
+	AST_PARAM_DECL,
 
-// 表达式
-#define XL_AST_BINARY_EXPR      "BinaryExpr"
-#define XL_AST_UNARY_EXPR       "UnaryExpr"
-#define XL_AST_CALL_EXPR        "CallExpr"
-#define XL_AST_INDEX_EXPR       "IndexExpr"
-#define XL_AST_MEMBER_EXPR      "MemberExpr"
-#define XL_AST_ASSIGN_EXPR      "AssignExpr"
-#define XL_AST_TERNARY_EXPR     "TernaryExpr"
+	// 语句
+	AST_BLOCK_STMT,
+	AST_EXPR_STMT,
+	AST_IF_STMT,
+	AST_FOR_STMT,
+	AST_FOR_IN_STMT,
+	AST_WHILE_STMT,
+	AST_DO_WHILE_STMT,
+	AST_BREAK_STMT,
+	AST_CONTINUE_STMT,
+	AST_RETURN_STMT,
 
-// 字面量
-#define XL_AST_IDENT            "Ident"
-#define XL_AST_INT_LIT          "IntLit"
-#define XL_AST_FLOAT_LIT        "FloatLit"
-#define XL_AST_STRING_LIT       "StringLit"
-#define XL_AST_BOOL_LIT         "BoolLit"
-#define XL_AST_NULL_LIT         "NullLit"
-#define XL_AST_TIME_LIT         "TimeLit"
-#define XL_AST_ARRAY_LIT        "ArrayLit"
-#define XL_AST_DICT_LIT         "DictLit"
+	// 表达式
+	AST_BINARY_EXPR,
+	AST_UNARY_EXPR,
+	AST_CALL_EXPR,
+	AST_INDEX_EXPR,
+	AST_MEMBER_EXPR,
+	AST_ASSIGN_EXPR,
+	AST_TERNARY_EXPR,
 
-// 类型引用
-#define XL_AST_TYPE_REF         "TypeRef"
+	// 字面量
+	AST_IDENT,
+	AST_INT_LIT,
+	AST_FLOAT_LIT,
+	AST_STRING_LIT,
+	AST_BOOL_LIT,
+	AST_NULL_LIT,
+	AST_TIME_LIT,
+	AST_ARRAY_LIT,
+	AST_DICT_LIT,
+	AST_SET_LIT,
+
+	// 辅助
+	AST_DICT_ENTRY,
+	AST_ELSEIF,
+	AST_TYPE_REF,
+
+	AST_COUNT
+} XL_AstType;
+
+
+
+// AST 类型名称（调试用）
+static const char* xlAstTypeName( XL_AstType type )
+{
+	static const char* names[] = {
+		"None",
+		"Module",
+		"VarDecl", "ConstDecl", "FuncDecl", "ParamDecl",
+		"BlockStmt", "ExprStmt", "IfStmt", "ForStmt", "ForInStmt",
+		"WhileStmt", "DoWhileStmt", "BreakStmt", "ContinueStmt", "ReturnStmt",
+		"BinaryExpr", "UnaryExpr", "CallExpr", "IndexExpr", "MemberExpr",
+		"AssignExpr", "TernaryExpr",
+		"Ident", "IntLit", "FloatLit", "StringLit", "BoolLit", "NullLit",
+		"TimeLit", "ArrayLit", "DictLit", "SetLit",
+		"DictEntry", "ElseIf", "TypeRef"
+	};
+	if ( (type >= 0) && (type < AST_COUNT) ) {
+		return names[type];
+	}
+	return "Unknown";
+}
 
 
 
@@ -71,11 +103,11 @@
 // AST 基础操作
 // ============================================================================
 
-// 创建基本节点 { kind, line, col }
-static inline xvalue xlAstCreate( const char* pszKind, int iLine, int iCol )
+// 创建基本节点 { kind(int), line, col }
+static inline xvalue xlAstCreate( XL_AstType iKind, int iLine, int iCol )
 {
 	xvalue xNode = xvoCreateTable();
-	xvoTableSetText(xNode, (str)"kind", 0, (str)pszKind, 0, FALSE);
+	xvoTableSetInt(xNode, (str)"kind", 0, (int)iKind);
 	xvoTableSetInt(xNode, (str)"line", 0, iLine);
 	xvoTableSetInt(xNode, (str)"col", 0, iCol);
 	return xNode;
@@ -154,10 +186,10 @@ static inline xvalue xlAstGetNode( xvalue xNode, const char* pszKey )
 }
 
 
-// 获取节点类型
-static inline const char* xlAstGetKind( xvalue xNode )
+// 获取节点类型（数字枚举）
+static inline XL_AstType xlAstGetKind( xvalue xNode )
 {
-	return xlAstGetStr(xNode, "kind");
+	return (XL_AstType)xlAstGetInt(xNode, "kind");
 }
 
 
@@ -199,7 +231,7 @@ static inline xvalue xlAstArrayGet( xvalue xArr, int iIdx )
 // Module: { kind, file, body[] }
 static inline xvalue xlAstCreateModule( const char* pszFile )
 {
-	xvalue xNode = xlAstCreate(XL_AST_MODULE, 1, 1);
+	xvalue xNode = xlAstCreate(AST_MODULE, 1, 1);
 	xlAstSetStr(xNode, "file", pszFile, 0);
 	xlAstSetNode(xNode, "body", xlAstCreateArray());
 	return xNode;
@@ -223,7 +255,7 @@ static inline xvalue xlAstCreateVarDecl( const char* pszName, int iNameLen,
                                          xvalue xInit, int bIsConst,
                                          int iLine, int iCol )
 {
-	xvalue xNode = xlAstCreate(XL_AST_VAR_DECL, iLine, iCol);
+	xvalue xNode = xlAstCreate(AST_VAR_DECL, iLine, iCol);
 	xlAstSetStr(xNode, "name", pszName, iNameLen);
 	if ( pszType && (iTypeLen > 0) ) {
 		xlAstSetStr(xNode, "varType", pszType, iTypeLen);
@@ -240,7 +272,7 @@ static inline xvalue xlAstCreateParamDecl( const char* pszName, int iNameLen,
                                            xvalue xDefault,
                                            int iLine, int iCol )
 {
-	xvalue xNode = xlAstCreate(XL_AST_PARAM_DECL, iLine, iCol);
+	xvalue xNode = xlAstCreate(AST_PARAM_DECL, iLine, iCol);
 	xlAstSetStr(xNode, "name", pszName, iNameLen);
 	if ( pszType && (iTypeLen > 0) ) {
 		xlAstSetStr(xNode, "paramType", pszType, iTypeLen);
@@ -257,7 +289,7 @@ static inline xvalue xlAstCreateFuncDecl( const char* pszName, int iNameLen,
                                           xvalue xBody,
                                           int iLine, int iCol )
 {
-	xvalue xNode = xlAstCreate(XL_AST_FUNC_DECL, iLine, iCol);
+	xvalue xNode = xlAstCreate(AST_FUNC_DECL, iLine, iCol);
 	xlAstSetStr(xNode, "name", pszName, iNameLen);
 	xlAstSetNode(xNode, "params", xParams ? xParams : xlAstCreateArray());
 	if ( pszRetType && (iRetTypeLen > 0) ) {
@@ -276,7 +308,7 @@ static inline xvalue xlAstCreateFuncDecl( const char* pszName, int iNameLen,
 // BlockStmt: { kind, line, col, stmts[] }
 static inline xvalue xlAstCreateBlockStmt( int iLine, int iCol )
 {
-	xvalue xNode = xlAstCreate(XL_AST_BLOCK_STMT, iLine, iCol);
+	xvalue xNode = xlAstCreate(AST_BLOCK_STMT, iLine, iCol);
 	xlAstSetNode(xNode, "stmts", xlAstCreateArray());
 	return xNode;
 }
@@ -291,7 +323,7 @@ static inline void xlAstBlockAddStmt( xvalue xBlock, xvalue xStmt )
 // ExprStmt: { kind, line, col, expr }
 static inline xvalue xlAstCreateExprStmt( xvalue xExpr, int iLine, int iCol )
 {
-	xvalue xNode = xlAstCreate(XL_AST_EXPR_STMT, iLine, iCol);
+	xvalue xNode = xlAstCreate(AST_EXPR_STMT, iLine, iCol);
 	xlAstSetNode(xNode, "expr", xExpr);
 	return xNode;
 }
@@ -302,7 +334,7 @@ static inline xvalue xlAstCreateIfStmt( xvalue xCond, xvalue xThen,
                                         xvalue xElseIfs, xvalue xElse,
                                         int iLine, int iCol )
 {
-	xvalue xNode = xlAstCreate(XL_AST_IF_STMT, iLine, iCol);
+	xvalue xNode = xlAstCreate(AST_IF_STMT, iLine, iCol);
 	xlAstSetNode(xNode, "cond", xCond);
 	xlAstSetNode(xNode, "then", xThen);
 	xlAstSetNode(xNode, "elseifs", xElseIfs ? xElseIfs : xlAstCreateArray());
@@ -316,7 +348,7 @@ static inline xvalue xlAstCreateForStmt( const char* pszVar, int iVarLen,
                                          xvalue xStart, xvalue xEnd, xvalue xStep,
                                          xvalue xBody, int iLine, int iCol )
 {
-	xvalue xNode = xlAstCreate(XL_AST_FOR_STMT, iLine, iCol);
+	xvalue xNode = xlAstCreate(AST_FOR_STMT, iLine, iCol);
 	xlAstSetStr(xNode, "var", pszVar, iVarLen);
 	xlAstSetNode(xNode, "start", xStart);
 	xlAstSetNode(xNode, "end", xEnd);
@@ -332,7 +364,7 @@ static inline xvalue xlAstCreateForInStmt( const char* pszKey, int iKeyLen,
                                            xvalue xIter, xvalue xBody,
                                            int iLine, int iCol )
 {
-	xvalue xNode = xlAstCreate(XL_AST_FOR_IN_STMT, iLine, iCol);
+	xvalue xNode = xlAstCreate(AST_FOR_IN_STMT, iLine, iCol);
 	if ( pszKey && (iKeyLen > 0) ) {
 		xlAstSetStr(xNode, "key", pszKey, iKeyLen);
 	}
@@ -347,7 +379,7 @@ static inline xvalue xlAstCreateForInStmt( const char* pszKey, int iKeyLen,
 static inline xvalue xlAstCreateWhileStmt( xvalue xCond, xvalue xBody,
                                            int iLine, int iCol )
 {
-	xvalue xNode = xlAstCreate(XL_AST_WHILE_STMT, iLine, iCol);
+	xvalue xNode = xlAstCreate(AST_WHILE_STMT, iLine, iCol);
 	xlAstSetNode(xNode, "cond", xCond);
 	xlAstSetNode(xNode, "body", xBody);
 	return xNode;
@@ -358,7 +390,7 @@ static inline xvalue xlAstCreateWhileStmt( xvalue xCond, xvalue xBody,
 static inline xvalue xlAstCreateDoWhileStmt( xvalue xBody, xvalue xCond,
                                              int iLine, int iCol )
 {
-	xvalue xNode = xlAstCreate(XL_AST_DO_WHILE_STMT, iLine, iCol);
+	xvalue xNode = xlAstCreate(AST_DO_WHILE_STMT, iLine, iCol);
 	xlAstSetNode(xNode, "body", xBody);
 	xlAstSetNode(xNode, "cond", xCond);
 	return xNode;
@@ -368,7 +400,7 @@ static inline xvalue xlAstCreateDoWhileStmt( xvalue xBody, xvalue xCond,
 // BreakStmt: { kind, line, col, level }
 static inline xvalue xlAstCreateBreakStmt( int iLevel, int iLine, int iCol )
 {
-	xvalue xNode = xlAstCreate(XL_AST_BREAK_STMT, iLine, iCol);
+	xvalue xNode = xlAstCreate(AST_BREAK_STMT, iLine, iCol);
 	xlAstSetInt(xNode, "level", iLevel);
 	return xNode;
 }
@@ -377,7 +409,7 @@ static inline xvalue xlAstCreateBreakStmt( int iLevel, int iLine, int iCol )
 // ContinueStmt: { kind, line, col, level }
 static inline xvalue xlAstCreateContinueStmt( int iLevel, int iLine, int iCol )
 {
-	xvalue xNode = xlAstCreate(XL_AST_CONTINUE_STMT, iLine, iCol);
+	xvalue xNode = xlAstCreate(AST_CONTINUE_STMT, iLine, iCol);
 	xlAstSetInt(xNode, "level", iLevel);
 	return xNode;
 }
@@ -386,7 +418,7 @@ static inline xvalue xlAstCreateContinueStmt( int iLevel, int iLine, int iCol )
 // ReturnStmt: { kind, line, col, value? }
 static inline xvalue xlAstCreateReturnStmt( xvalue xValue, int iLine, int iCol )
 {
-	xvalue xNode = xlAstCreate(XL_AST_RETURN_STMT, iLine, iCol);
+	xvalue xNode = xlAstCreate(AST_RETURN_STMT, iLine, iCol);
 	xlAstSetNode(xNode, "value", xValue);
 	return xNode;
 }
@@ -402,7 +434,7 @@ static inline xvalue xlAstCreateBinaryExpr( const char* pszOp,
                                             xvalue xLeft, xvalue xRight,
                                             int iLine, int iCol )
 {
-	xvalue xNode = xlAstCreate(XL_AST_BINARY_EXPR, iLine, iCol);
+	xvalue xNode = xlAstCreate(AST_BINARY_EXPR, iLine, iCol);
 	xlAstSetStr(xNode, "op", pszOp, 0);
 	xlAstSetNode(xNode, "left", xLeft);
 	xlAstSetNode(xNode, "right", xRight);
@@ -414,7 +446,7 @@ static inline xvalue xlAstCreateBinaryExpr( const char* pszOp,
 static inline xvalue xlAstCreateUnaryExpr( const char* pszOp, xvalue xOperand,
                                            int bIsPrefix, int iLine, int iCol )
 {
-	xvalue xNode = xlAstCreate(XL_AST_UNARY_EXPR, iLine, iCol);
+	xvalue xNode = xlAstCreate(AST_UNARY_EXPR, iLine, iCol);
 	xlAstSetStr(xNode, "op", pszOp, 0);
 	xlAstSetNode(xNode, "operand", xOperand);
 	xlAstSetBool(xNode, "isPrefix", bIsPrefix);
@@ -427,7 +459,7 @@ static inline xvalue xlAstCreateAssignExpr( const char* pszOp,
                                             xvalue xTarget, xvalue xValue,
                                             int iLine, int iCol )
 {
-	xvalue xNode = xlAstCreate(XL_AST_ASSIGN_EXPR, iLine, iCol);
+	xvalue xNode = xlAstCreate(AST_ASSIGN_EXPR, iLine, iCol);
 	xlAstSetStr(xNode, "op", pszOp, 0);
 	xlAstSetNode(xNode, "target", xTarget);
 	xlAstSetNode(xNode, "value", xValue);
@@ -439,7 +471,7 @@ static inline xvalue xlAstCreateAssignExpr( const char* pszOp,
 static inline xvalue xlAstCreateCallExpr( xvalue xCallee, xvalue xArgs,
                                           int iLine, int iCol )
 {
-	xvalue xNode = xlAstCreate(XL_AST_CALL_EXPR, iLine, iCol);
+	xvalue xNode = xlAstCreate(AST_CALL_EXPR, iLine, iCol);
 	xlAstSetNode(xNode, "callee", xCallee);
 	xlAstSetNode(xNode, "args", xArgs ? xArgs : xlAstCreateArray());
 	return xNode;
@@ -450,7 +482,7 @@ static inline xvalue xlAstCreateCallExpr( xvalue xCallee, xvalue xArgs,
 static inline xvalue xlAstCreateIndexExpr( xvalue xObject, xvalue xIndex,
                                            int iLine, int iCol )
 {
-	xvalue xNode = xlAstCreate(XL_AST_INDEX_EXPR, iLine, iCol);
+	xvalue xNode = xlAstCreate(AST_INDEX_EXPR, iLine, iCol);
 	xlAstSetNode(xNode, "object", xObject);
 	xlAstSetNode(xNode, "index", xIndex);
 	return xNode;
@@ -462,7 +494,7 @@ static inline xvalue xlAstCreateMemberExpr( xvalue xObject,
                                             const char* pszMember, int iMemberLen,
                                             int bIsSafe, int iLine, int iCol )
 {
-	xvalue xNode = xlAstCreate(XL_AST_MEMBER_EXPR, iLine, iCol);
+	xvalue xNode = xlAstCreate(AST_MEMBER_EXPR, iLine, iCol);
 	xlAstSetNode(xNode, "object", xObject);
 	xlAstSetStr(xNode, "member", pszMember, iMemberLen);
 	xlAstSetBool(xNode, "isSafe", bIsSafe);
@@ -474,7 +506,7 @@ static inline xvalue xlAstCreateMemberExpr( xvalue xObject,
 static inline xvalue xlAstCreateTernaryExpr( xvalue xCond, xvalue xThen,
                                              xvalue xElse, int iLine, int iCol )
 {
-	xvalue xNode = xlAstCreate(XL_AST_TERNARY_EXPR, iLine, iCol);
+	xvalue xNode = xlAstCreate(AST_TERNARY_EXPR, iLine, iCol);
 	xlAstSetNode(xNode, "cond", xCond);
 	xlAstSetNode(xNode, "then", xThen);
 	xlAstSetNode(xNode, "else", xElse);
@@ -491,7 +523,7 @@ static inline xvalue xlAstCreateTernaryExpr( xvalue xCond, xvalue xThen,
 static inline xvalue xlAstCreateIdent( const char* pszName, int iLen,
                                        int iLine, int iCol )
 {
-	xvalue xNode = xlAstCreate(XL_AST_IDENT, iLine, iCol);
+	xvalue xNode = xlAstCreate(AST_IDENT, iLine, iCol);
 	xlAstSetStr(xNode, "name", pszName, iLen);
 	return xNode;
 }
@@ -500,7 +532,7 @@ static inline xvalue xlAstCreateIdent( const char* pszName, int iLen,
 // IntLit: { kind, line, col, value }
 static inline xvalue xlAstCreateIntLit( int64_t iVal, int iLine, int iCol )
 {
-	xvalue xNode = xlAstCreate(XL_AST_INT_LIT, iLine, iCol);
+	xvalue xNode = xlAstCreate(AST_INT_LIT, iLine, iCol);
 	xlAstSetInt(xNode, "value", iVal);
 	return xNode;
 }
@@ -509,7 +541,7 @@ static inline xvalue xlAstCreateIntLit( int64_t iVal, int iLine, int iCol )
 // FloatLit: { kind, line, col, value }
 static inline xvalue xlAstCreateFloatLit( double fVal, int iLine, int iCol )
 {
-	xvalue xNode = xlAstCreate(XL_AST_FLOAT_LIT, iLine, iCol);
+	xvalue xNode = xlAstCreate(AST_FLOAT_LIT, iLine, iCol);
 	xlAstSetFloat(xNode, "value", fVal);
 	return xNode;
 }
@@ -519,7 +551,7 @@ static inline xvalue xlAstCreateFloatLit( double fVal, int iLine, int iCol )
 static inline xvalue xlAstCreateStringLit( const char* pszVal, int iLen,
                                            int iLine, int iCol )
 {
-	xvalue xNode = xlAstCreate(XL_AST_STRING_LIT, iLine, iCol);
+	xvalue xNode = xlAstCreate(AST_STRING_LIT, iLine, iCol);
 	xlAstSetStr(xNode, "value", pszVal, iLen);
 	return xNode;
 }
@@ -528,7 +560,7 @@ static inline xvalue xlAstCreateStringLit( const char* pszVal, int iLen,
 // BoolLit: { kind, line, col, value }
 static inline xvalue xlAstCreateBoolLit( int bVal, int iLine, int iCol )
 {
-	xvalue xNode = xlAstCreate(XL_AST_BOOL_LIT, iLine, iCol);
+	xvalue xNode = xlAstCreate(AST_BOOL_LIT, iLine, iCol);
 	xlAstSetBool(xNode, "value", bVal);
 	return xNode;
 }
@@ -537,7 +569,7 @@ static inline xvalue xlAstCreateBoolLit( int bVal, int iLine, int iCol )
 // NullLit: { kind, line, col }
 static inline xvalue xlAstCreateNullLit( int iLine, int iCol )
 {
-	return xlAstCreate(XL_AST_NULL_LIT, iLine, iCol);
+	return xlAstCreate(AST_NULL_LIT, iLine, iCol);
 }
 
 
@@ -545,7 +577,7 @@ static inline xvalue xlAstCreateNullLit( int iLine, int iCol )
 static inline xvalue xlAstCreateTimeLit( const char* pszVal, int iLen,
                                          int iLine, int iCol )
 {
-	xvalue xNode = xlAstCreate(XL_AST_TIME_LIT, iLine, iCol);
+	xvalue xNode = xlAstCreate(AST_TIME_LIT, iLine, iCol);
 	xlAstSetStr(xNode, "value", pszVal, iLen);
 	return xNode;
 }
@@ -554,18 +586,48 @@ static inline xvalue xlAstCreateTimeLit( const char* pszVal, int iLen,
 // ArrayLit: { kind, line, col, elements[] }
 static inline xvalue xlAstCreateArrayLit( xvalue xElements, int iLine, int iCol )
 {
-	xvalue xNode = xlAstCreate(XL_AST_ARRAY_LIT, iLine, iCol);
+	xvalue xNode = xlAstCreate(AST_ARRAY_LIT, iLine, iCol);
 	xlAstSetNode(xNode, "elements", xElements ? xElements : xlAstCreateArray());
 	return xNode;
 }
 
 
 // DictLit: { kind, line, col, entries[] }
-// entries 中每项为 { key, value } 的 table
 static inline xvalue xlAstCreateDictLit( xvalue xEntries, int iLine, int iCol )
 {
-	xvalue xNode = xlAstCreate(XL_AST_DICT_LIT, iLine, iCol);
+	xvalue xNode = xlAstCreate(AST_DICT_LIT, iLine, iCol);
 	xlAstSetNode(xNode, "entries", xEntries ? xEntries : xlAstCreateArray());
+	return xNode;
+}
+
+
+// SetLit: { kind, line, col, elements[] }
+static inline xvalue xlAstCreateSetLit( xvalue xElements, int iLine, int iCol )
+{
+	xvalue xNode = xlAstCreate(AST_SET_LIT, iLine, iCol);
+	xlAstSetNode(xNode, "elements", xElements ? xElements : xlAstCreateArray());
+	return xNode;
+}
+
+
+// DictEntry: { kind, line, col, key, value }
+static inline xvalue xlAstCreateDictEntry( xvalue xKey, xvalue xValue,
+                                           int iLine, int iCol )
+{
+	xvalue xNode = xlAstCreate(AST_DICT_ENTRY, iLine, iCol);
+	xlAstSetNode(xNode, "key", xKey);
+	xlAstSetNode(xNode, "value", xValue);
+	return xNode;
+}
+
+
+// ElseIf: { kind, line, col, cond, body }
+static inline xvalue xlAstCreateElseIf( xvalue xCond, xvalue xBody,
+                                        int iLine, int iCol )
+{
+	xvalue xNode = xlAstCreate(AST_ELSEIF, iLine, iCol);
+	xlAstSetNode(xNode, "cond", xCond);
+	xlAstSetNode(xNode, "body", xBody);
 	return xNode;
 }
 
@@ -611,14 +673,15 @@ static void xlAstPrintNode( xvalue xNode, int iIndent )
 		return;
 	}
 
-	const char* pszKind = xlAstGetKind(xNode);
+	XL_AstType iKind = xlAstGetKind(xNode);
+	const char* pszKind = xlAstTypeName(iKind);
 	int64_t iLine = xlAstGetInt(xNode, "line");
 	int64_t iCol = xlAstGetInt(xNode, "col");
 
 	xlAstPrintIndent(iIndent);
-	printf("%s [%lld:%lld] {\n", pszKind ? pszKind : "?", (long long)iLine, (long long)iCol);
+	printf("%s [%lld:%lld] {\n", pszKind, (long long)iLine, (long long)iCol);
 
-	if ( !pszKind ) {
+	if ( iKind == AST_NONE ) {
 		xlAstPrintIndent(iIndent);
 		printf("}\n");
 		return;
@@ -680,24 +743,24 @@ static void xlAstPrintNode( xvalue xNode, int iIndent )
 	}
 
 	const char* pszValue = xlAstGetStr(xNode, "value");
-	if ( pszValue && (strcmp(pszKind, XL_AST_FOR_IN_STMT) == 0) ) {
+	if ( pszValue && (iKind == AST_FOR_IN_STMT) ) {
 		xlAstPrintIndent(iIndent + 1);
 		printf("value: \"%s\"\n", pszValue);
 	}
 
 	/* 字面量值 */
-	if ( strcmp(pszKind, XL_AST_INT_LIT) == 0 ) {
+	if ( iKind == AST_INT_LIT ) {
 		xlAstPrintIndent(iIndent + 1);
 		printf("value: %lld\n", (long long)xlAstGetInt(xNode, "value"));
-	} else if ( strcmp(pszKind, XL_AST_FLOAT_LIT) == 0 ) {
+	} else if ( iKind == AST_FLOAT_LIT ) {
 		xlAstPrintIndent(iIndent + 1);
 		xvalue xVal = xvoTableGetValue(xNode, (str)"value", 0);
 		printf("value: %g\n", xvoGetFloat(xVal));
-	} else if ( (strcmp(pszKind, XL_AST_STRING_LIT) == 0) || (strcmp(pszKind, XL_AST_TIME_LIT) == 0) ) {
+	} else if ( (iKind == AST_STRING_LIT) || (iKind == AST_TIME_LIT) ) {
 		const char* pszV = xlAstGetStr(xNode, "value");
 		xlAstPrintIndent(iIndent + 1);
 		printf("value: \"%s\"\n", pszV ? pszV : "");
-	} else if ( strcmp(pszKind, XL_AST_BOOL_LIT) == 0 ) {
+	} else if ( iKind == AST_BOOL_LIT ) {
 		xlAstPrintIndent(iIndent + 1);
 		xvalue xVal = xvoTableGetValue(xNode, (str)"value", 0);
 		printf("value: %s\n", xvoGetBool(xVal) ? "true" : "false");
@@ -721,7 +784,7 @@ static void xlAstPrintNode( xvalue xNode, int iIndent )
 	}
 
 	/* break/continue level */
-	if ( (strcmp(pszKind, XL_AST_BREAK_STMT) == 0) || (strcmp(pszKind, XL_AST_CONTINUE_STMT) == 0) ) {
+	if ( (iKind == AST_BREAK_STMT) || (iKind == AST_CONTINUE_STMT) ) {
 		xvalue xLevel = xvoTableGetValue(xNode, (str)"level", 0);
 		if ( xLevel && (xvoType(xLevel) == XVO_DT_INT) ) {
 			int64_t iLevel = xvoGetInt(xLevel);
@@ -773,7 +836,7 @@ static void xlAstPrintNode( xvalue xNode, int iIndent )
 
 	/* return value */
 	xvalue xRetVal = xlAstGetNode(xNode, "value");
-	if ( xRetVal && (xvoType(xRetVal) == XVO_DT_TABLE) && (strcmp(pszKind, XL_AST_RETURN_STMT) == 0) ) {
+	if ( xRetVal && (xvoType(xRetVal) == XVO_DT_TABLE) && (iKind == AST_RETURN_STMT) ) {
 		xlAstPrintIndent(iIndent + 1);
 		printf("value:\n");
 		xlAstPrintNode(xRetVal, iIndent + 2);
@@ -781,10 +844,16 @@ static void xlAstPrintNode( xvalue xNode, int iIndent )
 
 	/* assign value */
 	xvalue xAssignVal = xlAstGetNode(xNode, "value");
-	if ( xAssignVal && (xvoType(xAssignVal) == XVO_DT_TABLE) && (strcmp(pszKind, XL_AST_ASSIGN_EXPR) == 0) ) {
+	if ( xAssignVal && (xvoType(xAssignVal) == XVO_DT_TABLE) && (iKind == AST_ASSIGN_EXPR) ) {
 		xlAstPrintIndent(iIndent + 1);
 		printf("value:\n");
 		xlAstPrintNode(xAssignVal, iIndent + 2);
+	}
+
+	/* DictEntry key/value */
+	if ( iKind == AST_DICT_ENTRY ) {
+		XL_AST_PRINT_CHILD("key");
+		XL_AST_PRINT_CHILD("value");
 	}
 
 	/* 数组字段 */

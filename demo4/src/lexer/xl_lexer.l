@@ -5,9 +5,10 @@
  * 支持 xlang v4 一阶段所有 Token 类型
  * 
  * 设计原则：
- * - Lexer 只识别真正的关键字（控制流、函数声明等）
- * - 类型名（int, string, array 等）作为普通标识符
- * - 由 Parser 查询类型系统来判断标识符是否为类型名
+ * - Lexer 识别所有关键字（控制流、函数声明、类型名等）
+ * - 12 个类型名硬关键字（bool, int, float, string 等）
+ * - 软关键字（i8, u8 等）作为普通标识符，Parser 查表判断
+ * - Token 类型定义在 xl_tokens.h 中共享
  */
 
 %{
@@ -16,148 +17,8 @@
 #include <string.h>
 #include <stdint.h>
 
-/* Token 类型枚举 - 统一使用 XL_ 前缀避免关键字冲突 */
-typedef enum XL_TokenType {
-	/* === 特殊 Token === */
-	XL_TOK_EOF = 0,
-	XL_TOK_ERROR,
-	XL_TOK_NEWLINE,
-	
-	/* === 字面量 === */
-	XL_TOK_IDENT,           /* 标识符（包括类型名，由 Parser 判断） */
-	XL_TOK_INT,
-	XL_TOK_INT_HEX,
-	XL_TOK_INT_OCT,
-	XL_TOK_INT_BIN,
-	XL_TOK_FLOAT,
-	XL_TOK_STRING,
-	XL_TOK_STRING_RAW,
-	XL_TOK_STRING_MULTI,
-	XL_TOK_STRING_MULTI_RAW,
-	XL_TOK_TIME,
-	
-	/* === 内置类型关键字（只有这两个是真正的内置类型） === */
-	XL_KW_NULL,             /* null - 内置类型 */
-	XL_KW_FUNCTION,         /* function - 内置类型 */
-	
-	/* === 布尔字面量（是字面量，不是类型） === */
-	XL_KW_TRUE,
-	XL_KW_FALSE,
-	
-	/* === 声明关键字 === */
-	XL_KW_VAR,              /* var - 变体类型声明 */
-	XL_KW_AUTO,             /* auto - 自动类型推导 */
-	
-	/* === 控制流关键字 === */
-	XL_KW_IF,
-	XL_KW_THEN,
-	XL_KW_ELSE,
-	XL_KW_ELSEIF,
-	XL_KW_END,
-	XL_KW_FOR,
-	XL_KW_IN,
-	XL_KW_TO,
-	XL_KW_STEP,
-	XL_KW_WHILE,
-	XL_KW_DO,
-	XL_KW_BREAK,
-	XL_KW_CONTINUE,
-	XL_KW_RETURN,
-	
-	/* === 函数关键字 === */
-	XL_KW_FUNC,
-	XL_KW_ARG,
-	XL_KW_AS,
-	XL_KW_CONST,
-	
-	/* === 逻辑运算符关键字 === */
-	XL_KW_AND,
-	XL_KW_OR,
-	XL_KW_NOT,
-	
-	/* === 比较运算符 === */
-	XL_OP_GT,
-	XL_OP_LT,
-	XL_OP_GE,
-	XL_OP_LE,
-	XL_OP_NE,
-	XL_OP_EQ,
-	XL_OP_APPROX,
-	
-	/* === 算术运算符 === */
-	XL_OP_PLUS,
-	XL_OP_MINUS,
-	XL_OP_STAR,
-	XL_OP_SLASH,
-	XL_OP_PERCENT,
-	XL_OP_POWER,
-	
-	/* === 位运算符 === */
-	XL_OP_AMP,
-	XL_OP_PIPE,
-	XL_OP_BANG,
-	XL_OP_CARET,
-	XL_OP_SHR,
-	XL_OP_SHL,
-	
-	/* === 赋值运算符 === */
-	XL_OP_ASSIGN,
-	XL_OP_PLUS_ASSIGN,
-	XL_OP_MINUS_ASSIGN,
-	XL_OP_STAR_ASSIGN,
-	XL_OP_SLASH_ASSIGN,
-	XL_OP_PERCENT_ASSIGN,
-	XL_OP_POWER_ASSIGN,
-	XL_OP_INC,
-	XL_OP_DEC,
-	
-	/* === 特殊运算符 === */
-	XL_OP_QUESTION,
-	XL_OP_COLON,
-	XL_OP_NULL_COALESCE,
-	XL_OP_NULL_ASSIGN,
-	XL_OP_DOT,
-	XL_OP_SAFE_DOT,
-	XL_OP_SAFE_BRACKET,
-	XL_OP_ELLIPSIS,
-	XL_OP_ELLIPSIS_DICT,
-	XL_OP_RANGE,
-	
-	/* === 分隔符 === */
-	XL_TOK_LPAREN,
-	XL_TOK_RPAREN,
-	XL_TOK_LBRACKET,
-	XL_TOK_RBRACKET,
-	XL_TOK_LBRACE,
-	XL_TOK_RBRACE,
-	XL_TOK_COMMA,
-	XL_TOK_SEMICOLON,
-	
-	XL_TOK_COUNT
-} XL_TokenType;
-
-/* Token 结构 */
-typedef struct XL_Token {
-	XL_TokenType type;
-	char* text;
-	size_t length;
-	int line;
-	int column;
-	union {
-		int64_t iVal;
-		double fVal;
-		char* sVal;
-	};
-} XL_Token;
-
-/* Lexer 额外数据 */
-typedef struct XL_LexerExtra {
-	const char* filename;
-	int column;
-	int prevColumn;
-	char* errorMsg;
-	XL_Token currentToken;
-} XL_LexerExtra;
+/* Token 类型和结构体定义在 xl_tokens.h 中（由 main.c 先 include） */
+/* 此处仅使用这些类型，不再重复定义 */
 
 #define YY_EXTRA_TYPE XL_LexerExtra*
 
@@ -419,8 +280,6 @@ UTF8_ANY    {UTF8_2}|{UTF8_3}|{UTF8_4}
 <STRING_MULTI_SINGLE>.        { /* 累积字符 */ }
 
 	/* === 关键字（必须在标识符之前匹配） === */
-	/* 注意：类型名（int, string, array 等）不在此定义 */
-	/* 它们作为标识符，由 Parser 查询类型系统来判断 */
 
 	/* 内置类型关键字 */
 "null"                  { return XL_KW_NULL; }
@@ -461,42 +320,26 @@ UTF8_ANY    {UTF8_2}|{UTF8_3}|{UTF8_4}
 "or"                    { return XL_KW_OR; }
 "not"                   { return XL_KW_NOT; }
 
+	/* 类型名硬关键字（12 个） */
+"bool"                  { return XL_KW_BOOL; }
+"int"                   { return XL_KW_INT; }
+"float"                 { return XL_KW_FLOAT; }
+"string"                { return XL_KW_STRING; }
+"time"                  { return XL_KW_TIME; }
+"point"                 { return XL_KW_POINT; }
+"array"                 { return XL_KW_ARRAY; }
+"list"                  { return XL_KW_LIST; }
+"set"                   { return XL_KW_SET; }
+"dict"                  { return XL_KW_DICT; }
+"type"                  { return XL_KW_TYPE; }
+"range"                 { return XL_KW_RANGE; }
+
 	/* === 标识符（支持中文） === */
-	/* 类型名（int, string, array 等）会被识别为标识符 */
-	/* 由 Parser 查询类型系统来判断是否为类型名 */
+	/* 软关键字（i8, u8 等）会被识别为标识符 */
+	/* 由 Parser 查表判断是否为软类型名 */
 ({LETTER}|{UTF8_ANY})({IDENT_CHAR}|{UTF8_ANY})*   { return XL_TOK_IDENT; }
 
 	/* === 未识别字符 === */
 .                       { return XL_TOK_ERROR; }
 
 %%
-
-/* === Lexer API 实现 === */
-
-/* 获取 Token 类型名称 */
-const char* xlTokenTypeName(XL_TokenType type)
-{
-	static const char* names[] = {
-		"EOF", "ERROR", "NEWLINE",
-		"IDENT", "INT", "INT_HEX", "INT_OCT", "INT_BIN",
-		"FLOAT", "STRING", "STRING_RAW", "STRING_MULTI", "STRING_MULTI_RAW", "TIME",
-		"null", "function",
-		"true", "false",
-		"var", "auto",
-		"if", "then", "else", "elseif", "end",
-		"for", "in", "to", "step", "while", "do",
-		"break", "continue", "return",
-		"func", "arg", "as", "const",
-		"and", "or", "not",
-		">", "<", ">=", "<=", "!=", "==", "~=",
-		"+", "-", "*", "/", "%", "**",
-		"&", "|", "!", "^", ">>", "<<",
-		"=", "+=", "-=", "*=", "/=", "%=", "**=", "++", "--",
-		"?", ":", "??", "?=", ".", "?.", "?[", "...", "***", "..",
-		"(", ")", "[", "]", "{", "}", ",", ";"
-	};
-	if ( (type >= 0) && (type < XL_TOK_COUNT) ) {
-		return names[type];
-	}
-	return "UNKNOWN";
-}
