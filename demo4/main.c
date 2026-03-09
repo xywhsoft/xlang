@@ -1,7 +1,11 @@
 /**
- * xlang v4 词法分析工具
+ * xlang v4 编译器工具
  * 
- * 用法: xllex [选项] <文件>
+ * 用法: xlang [模式] [选项] <文件>
+ * 
+ * 模式:
+ *   --lex         词法分析（输出 Token 列表）
+ *   --ast         语法分析（输出 AST 树）
  * 
  * 选项:
  *   -o <文件>     输出到文件（默认标准输出）
@@ -9,6 +13,9 @@
  *   -v            显示详细信息
  *   -h            显示帮助
  */
+
+#define XRT_IMPLEMENTATION
+#include "lib/xrt/xrt.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -20,10 +27,22 @@
 /* Lexer 高级 API */
 #include "src/lexer/xl_lexer_api.h"
 
+/* AST 定义 */
+#include "src/parse/xl_ast.h"
+
+/* Parser */
+#include "src/parse/xl_parser.h"
+
 
 
 /* === 命令行选项 === */
+typedef enum RunMode {
+	MODE_LEX = 0,
+	MODE_AST
+} RunMode;
+
 typedef struct Options {
+	RunMode mode;
 	const char* sInputFile;
 	const char* sOutputFile;
 	int bJsonOutput;
@@ -34,32 +53,42 @@ typedef struct Options {
 
 
 /* === 帮助信息 === */
-static void PrintHelp(const char* sProgName)
+static void PrintHelp( const char* sProgName )
 {
-	printf("xlang v4 词法分析工具\n\n");
-	printf("用法: %s [选项] <文件>\n\n", sProgName);
-	printf("选项:\n");
+	printf("xlang v4 编译器工具\n\n");
+	printf("用法: %s [模式] [选项] <文件>\n\n", sProgName);
+	printf("模式:\n");
+	printf("  --lex         词法分析（输出 Token 列表）\n");
+	printf("  --ast         语法分析（输出 AST 树，默认模式）\n");
+	printf("\n选项:\n");
 	printf("  -o <文件>     输出到文件（默认标准输出）\n");
 	printf("  -j            输出 JSON 格式\n");
 	printf("  -v            显示详细信息\n");
 	printf("  -h            显示帮助\n");
 	printf("\n示例:\n");
-	printf("  %s test.xl           扫描 test.xl 并输出 Token 列表\n", sProgName);
-	printf("  %s -j test.xl        输出 JSON 格式的 Token 列表\n", sProgName);
+	printf("  %s test.xl             解析 test.xl 并输出 AST\n", sProgName);
+	printf("  %s --lex test.xl       输出 Token 列表\n", sProgName);
+	printf("  %s --lex -j test.xl    输出 JSON 格式的 Token 列表\n", sProgName);
+	printf("  %s --ast test.xl       输出 AST 树\n", sProgName);
 }
 
 
 /* === 解析命令行参数 === */
-static int ParseArgs(int argc, char** argv, Options* pOpts)
+static int ParseArgs( int argc, char** argv, Options* pOpts )
 {
 	memset(pOpts, 0, sizeof(Options));
+	pOpts->mode = MODE_AST;  /* 默认 AST 模式 */
 	
 	for ( int i = 1; i < argc; i++ ) {
-		if ( strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0 ) {
+		if ( (strcmp(argv[i], "-h") == 0) || (strcmp(argv[i], "--help") == 0) ) {
 			pOpts->bHelp = 1;
-		} else if ( strcmp(argv[i], "-j") == 0 || strcmp(argv[i], "--json") == 0 ) {
+		} else if ( strcmp(argv[i], "--lex") == 0 ) {
+			pOpts->mode = MODE_LEX;
+		} else if ( strcmp(argv[i], "--ast") == 0 ) {
+			pOpts->mode = MODE_AST;
+		} else if ( (strcmp(argv[i], "-j") == 0) || (strcmp(argv[i], "--json") == 0) ) {
 			pOpts->bJsonOutput = 1;
-		} else if ( strcmp(argv[i], "-v") == 0 || strcmp(argv[i], "--verbose") == 0 ) {
+		} else if ( (strcmp(argv[i], "-v") == 0) || (strcmp(argv[i], "--verbose") == 0) ) {
 			pOpts->bVerbose = 1;
 		} else if ( strcmp(argv[i], "-o") == 0 ) {
 			if ( i + 1 >= argc ) {
@@ -84,8 +113,70 @@ static int ParseArgs(int argc, char** argv, Options* pOpts)
 
 
 
+/* === 词法分析模式 === */
+static int RunLexMode( Options* pOpts )
+{
+	XL_Lexer* pLexer = xlLexerCreateFromFile(pOpts->sInputFile);
+	if ( !pLexer ) {
+		fprintf(stderr, "错误: 无法打开文件 %s\n", pOpts->sInputFile);
+		return 1;
+	}
+	
+	if ( pOpts->bJsonOutput ) {
+		xlLexerDumpTokensJson(pLexer);
+	} else {
+		xlLexerDumpTokens(pLexer);
+	}
+	
+	xlLexerDestroy(pLexer);
+	return 0;
+}
+
+
+
+/* === 语法分析模式 === */
+static int RunAstMode( Options* pOpts )
+{
+	XL_Lexer* pLexer = xlLexerCreateFromFile(pOpts->sInputFile);
+	if ( !pLexer ) {
+		fprintf(stderr, "错误: 无法打开文件 %s\n", pOpts->sInputFile);
+		return 1;
+	}
+	
+	XL_Parser* pParser = xlParserCreate(pLexer);
+	if ( !pParser ) {
+		fprintf(stderr, "错误: 无法创建 Parser\n");
+		xlLexerDestroy(pLexer);
+		return 1;
+	}
+	
+	xvalue xAST = xlParserParse(pParser, (const char*)pOpts->sInputFile);
+	
+	if ( pParser->bHadError ) {
+		fprintf(stderr, "共 %d 个语法错误\n", pParser->iErrorCount);
+	}
+	
+	if ( xAST ) {
+		if ( pOpts->bJsonOutput ) {
+			xvoPrintValue(xAST, 0, 0, 0, NULL);
+			printf("\n");
+		} else {
+			xlAstPrint(xAST);
+		}
+	}
+	
+	int bHadError = pParser->bHadError;
+	
+	xlParserDestroy(pParser);
+	xlLexerDestroy(pLexer);
+	
+	return bHadError ? 1 : 0;
+}
+
+
+
 /* === 主程序 === */
-int main(int argc, char** argv)
+int main( int argc, char** argv )
 {
 	Options opts;
 	
@@ -107,6 +198,16 @@ int main(int argc, char** argv)
 		return 1;
 	}
 	
+	/* 详细模式 */
+	if ( opts.bVerbose ) {
+		fprintf(stderr, "输入文件: %s\n", opts.sInputFile);
+		fprintf(stderr, "模式: %s\n", opts.mode == MODE_LEX ? "词法分析" : "语法分析");
+		if ( opts.sOutputFile ) {
+			fprintf(stderr, "输出文件: %s\n", opts.sOutputFile);
+		}
+		fprintf(stderr, "\n");
+	}
+	
 	/* 重定向输出 */
 	FILE* fpOutput = stdout;
 	if ( opts.sOutputFile ) {
@@ -117,39 +218,30 @@ int main(int argc, char** argv)
 		}
 	}
 	
-	/* 详细模式 */
-	if ( opts.bVerbose ) {
-		fprintf(stderr, "输入文件: %s\n", opts.sInputFile);
-		if ( opts.sOutputFile ) {
-			fprintf(stderr, "输出文件: %s\n", opts.sOutputFile);
-		}
-		fprintf(stderr, "输出格式: %s\n", opts.bJsonOutput ? "JSON" : "文本");
-		fprintf(stderr, "\n");
+	/* 初始化 xrt（AST 模式需要） */
+	int iResult = 0;
+	if ( opts.mode == MODE_AST ) {
+		xrtInit();
 	}
 	
-	/* 创建 Lexer */
-	XL_Lexer* pLexer = xlLexerCreateFromFile(opts.sInputFile);
-	if ( !pLexer ) {
-		fprintf(stderr, "错误: 无法打开文件 %s\n", opts.sInputFile);
-		if ( fpOutput != stdout ) {
-			fclose(fpOutput);
-		}
-		return 1;
-	}
-	
-	/* 输出 Token */
-	if ( opts.bJsonOutput ) {
-		xlLexerDumpTokensJson(pLexer);
-	} else {
-		xlLexerDumpTokens(pLexer);
+	/* 执行对应模式 */
+	switch ( opts.mode ) {
+		case MODE_LEX:
+			iResult = RunLexMode(&opts);
+			break;
+		case MODE_AST:
+			iResult = RunAstMode(&opts);
+			break;
 	}
 	
 	/* 清理 */
-	xlLexerDestroy(pLexer);
+	if ( opts.mode == MODE_AST ) {
+		xrtUnit();
+	}
 	
 	if ( fpOutput != stdout ) {
 		fclose(fpOutput);
 	}
 	
-	return 0;
+	return iResult;
 }
