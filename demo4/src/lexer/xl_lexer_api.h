@@ -141,6 +141,9 @@ static int xlLexerNextToken(XL_Lexer* pLexer, XL_Token* pToken)
 	pToken->line = xlget_lineno(pLexer->scanner);
 	pToken->column = pLexer->extra.prevColumn;
 	
+	/* 复制解析后的值（整数/浮点数在 lexer 规则中通过 xlMakeToken 设置） */
+	pToken->iVal = pLexer->extra.currentToken.iVal;
+	
 	return iType;
 }
 
