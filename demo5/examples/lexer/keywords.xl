@@ -1,0 +1,16 @@
+func 入口() as int
+	const 数值 = 1
+	if true and not false then
+		return 数值
+	else
+		throw `bad {$数值}`
+	end
+end
+
+async func 等待() as task
+	await 等待()
+	yield 1
+end
+
+import core
+export 入口

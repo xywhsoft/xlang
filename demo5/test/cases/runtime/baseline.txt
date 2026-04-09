@@ -1,0 +1,16 @@
+demo5 unified test runner
+project=demo5
+selector=runtime
+[PASS] runtime.run_basic
+[PASS] runtime.throw_basic
+[PASS] runtime.module_use_math
+[PASS] runtime.native_std_core
+hello world
+[PASS] runtime.hello_world
+[PASS] runtime.async_run_main
+[PASS] runtime.async_multi_await
+[PASS] runtime.generator_run
+[PASS] runtime.for_in_range
+[PASS] runtime.loop_jump_levels
+[PASS] runtime.task_basic
+summary: total=11 pass=11 fail=0

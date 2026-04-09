@@ -1,0 +1,6 @@
+func series() as int
+	const int seed = 10
+	yield seed
+	yield seed + 1
+	return seed + 2
+end

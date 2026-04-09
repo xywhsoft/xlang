@@ -1,0 +1,8 @@
+async func get_value() as int
+	return 3
+end
+
+async func entry_async() as int
+	const int a = await get_value()
+	return a + await get_value()
+end

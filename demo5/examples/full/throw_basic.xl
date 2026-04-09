@@ -1,0 +1,3 @@
+func 入口() as int
+	throw "boom"
+end

@@ -1,0 +1,33 @@
+demo5 unified test runner
+project=demo5
+[PASS] lexer.minimal
+[PASS] lexer.keywords
+[PASS] parser.for_in
+[PASS] parser.syntax_error
+[PASS] sem.overload
+[PASS] sem.unresolved
+[PASS] sem.no_overload
+[PASS] sem.for_in_generator
+[PASS] lower.basic
+[PASS] lower.async_basic
+[PASS] lower.generator_basic
+[PASS] lower.for_in_range
+[PASS] cgen.module_use_math
+[PASS] cgen.native_std_core
+[PASS] cgen.hello_world
+[PASS] cgen.task_basic
+[PASS] cgen.generator_run
+[PASS] cgen.loop_jump_levels
+[PASS] runtime.run_basic
+[PASS] runtime.throw_basic
+[PASS] runtime.module_use_math
+[PASS] runtime.native_std_core
+hello world
+[PASS] runtime.hello_world
+[PASS] runtime.async_run_main
+[PASS] runtime.async_multi_await
+[PASS] runtime.generator_run
+[PASS] runtime.for_in_range
+[PASS] runtime.loop_jump_levels
+[PASS] runtime.task_basic
+summary: total=29 pass=29 fail=0

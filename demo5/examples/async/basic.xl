@@ -1,0 +1,7 @@
+async func get_value() as int
+	return 7
+end
+
+async func entry_async() as int
+	return await get_value()
+end

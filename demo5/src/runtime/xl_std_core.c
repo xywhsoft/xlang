@@ -1,0 +1,36 @@
+#include "../common/xl_common.h"
+
+const char* xlStdCoreModuleSource(void)
+{
+	return
+		"func 恒等(int x) as int\n"
+		"\treturn x\n"
+		"end\n"
+		"\n"
+		"func print(int x) as void\n"
+		"end\n"
+		"func print(float x) as void\n"
+		"end\n"
+		"func print(string x) as void\n"
+		"end\n"
+		"func print(bool x) as void\n"
+		"end\n"
+		"\n"
+		"func println() as void\n"
+		"end\n"
+		"func println(int x) as void\n"
+		"end\n"
+		"func println(float x) as void\n"
+		"end\n"
+		"func println(string x) as void\n"
+		"end\n"
+		"func println(bool x) as void\n"
+		"end\n"
+		"\n"
+		"const int 版本 = 5\n"
+		"\n"
+		"export 恒等\n"
+		"export print\n"
+		"export println\n"
+		"export 版本\n";
+}

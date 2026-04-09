@@ -1,0 +1,123 @@
+#include "xl_mir.h"
+
+static char* __xlMirDupText(const char* sText)
+{
+	size_t iLen;
+	char* sCopy;
+
+	if ( sText == NULL ) {
+		sText = "";
+	}
+
+	iLen = strlen(sText);
+	sCopy = (char*)malloc(iLen + 1);
+	if ( sCopy == NULL ) {
+		return NULL;
+	}
+
+	memcpy(sCopy, sText, iLen + 1);
+	return sCopy;
+}
+
+XL_MirNode* xlMirCreateNode(XL_MirKind eKind, const XL_HirNode* pHir)
+{
+	XL_MirNode* pNode;
+
+	pNode = (XL_MirNode*)calloc(1, sizeof(XL_MirNode));
+	if ( pNode == NULL ) {
+		return NULL;
+	}
+
+	pNode->eKind = eKind;
+	if ( pHir != NULL ) {
+		pNode->iLine = pHir->iLine;
+		pNode->iColumn = pHir->iColumn;
+	}
+	return pNode;
+}
+
+void xlMirSetText(XL_MirNode* pNode, const char* sText)
+{
+	if ( pNode == NULL ) {
+		return;
+	}
+
+	free(pNode->sText);
+	pNode->sText = __xlMirDupText(sText);
+}
+
+void xlMirSetTypeName(XL_MirNode* pNode, const char* sTypeName)
+{
+	if ( pNode == NULL ) {
+		return;
+	}
+
+	free(pNode->sTypeName);
+	pNode->sTypeName = __xlMirDupText(sTypeName);
+}
+
+void xlMirAppendChild(XL_MirNode* pNode, XL_MirNode* pChild)
+{
+	XL_MirNode** ppNewItems;
+	size_t iNewCap;
+
+	if ( (pNode == NULL) || (pChild == NULL) ) {
+		return;
+	}
+	if ( pNode->iChildCount >= pNode->iChildCapacity ) {
+		iNewCap = (pNode->iChildCapacity == 0) ? 4 : (pNode->iChildCapacity * 2);
+		ppNewItems = (XL_MirNode**)realloc(pNode->ppChildren, sizeof(XL_MirNode*) * iNewCap);
+		if ( ppNewItems == NULL ) {
+			return;
+		}
+
+		pNode->ppChildren = ppNewItems;
+		pNode->iChildCapacity = iNewCap;
+	}
+
+	pNode->ppChildren[pNode->iChildCount++] = pChild;
+}
+
+void xlMirFree(XL_MirNode* pNode)
+{
+	size_t i;
+
+	if ( pNode == NULL ) {
+		return;
+	}
+
+	for ( i = 0; i < pNode->iChildCount; ++i ) {
+		xlMirFree(pNode->ppChildren[i]);
+	}
+	free(pNode->ppChildren);
+	free(pNode->sText);
+	free(pNode->sTypeName);
+	free(pNode);
+}
+
+const char* xlMirKindName(XL_MirKind eKind)
+{
+	static const char* arrNames[] = {
+		"Program",
+		"Func",
+		"Block",
+		"Bind",
+		"Branch",
+		"ForIn",
+		"Return",
+		"Break",
+		"Continue",
+		"Throw",
+		"Yield",
+		"Import",
+		"Export",
+		"Call",
+		"Value"
+	};
+
+	if ( ((int)eKind >= 0) && (eKind <= XL_MIR_VALUE) ) {
+		return arrNames[eKind];
+	}
+
+	return "Unknown";
+}
