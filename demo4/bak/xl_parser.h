@@ -36,6 +36,11 @@ static inline int xlIsTypeName( const char* pszText, int iLen )
 	return 0;
 }
 
+static inline int xlIsHardTypeToken( XL_TokenType type )
+{
+	return (type >= XL_KW_BOOL) && (type <= XL_KW_RANGE);
+}
+
 
 
 // ============================================================================
@@ -207,8 +212,16 @@ static inline void xlParserSync( XL_Parser *pParser )
 // 检查当前 IDENT 是否为类型名
 static inline int xlParserCheckTypeName( XL_Parser *pParser )
 {
+	if ( xlIsHardTypeToken(pParser->token.type) ) {
+		return 1;
+	}
 	if ( pParser->token.type != XL_TOK_IDENT ) return 0;
 	return xlIsTypeName(pParser->token.text, (int)pParser->token.length);
+}
+
+static inline int xlParserIsSameLineContinuation( XL_Parser *pParser )
+{
+	return pParser->token.line == pParser->prevToken.line;
 }
 
 
@@ -292,6 +305,25 @@ static xvalue xlParsePrimaryExpr( XL_Parser *pParser )
 
 		/* 标识符（可能是类型构造/转换） */
 		case XL_TOK_IDENT: {
+			const char* pszName = pParser->token.text;
+			int iNameLen = (int)pParser->token.length;
+			xlParserAdvance(pParser);
+			return xlAstCreateIdent(pszName, iNameLen, iLine, iCol);
+		}
+
+		/* 硬关键字类型名在表达式中也可作为类型构造标识符 */
+		case XL_KW_BOOL:
+		case XL_KW_INT:
+		case XL_KW_FLOAT:
+		case XL_KW_STRING:
+		case XL_KW_TIME:
+		case XL_KW_POINT:
+		case XL_KW_ARRAY:
+		case XL_KW_LIST:
+		case XL_KW_SET:
+		case XL_KW_DICT:
+		case XL_KW_TYPE:
+		case XL_KW_RANGE: {
 			const char* pszName = pParser->token.text;
 			int iNameLen = (int)pParser->token.length;
 			xlParserAdvance(pParser);
@@ -479,6 +511,11 @@ static xvalue xlParsePostfixExpr( XL_Parser *pParser )
 	if ( !xExpr ) return 0;
 
 	while ( 1 ) {
+		/* 后缀操作必须与前一个 token 在同一行，避免把下一行的语句起始误接到当前表达式后面 */
+		if ( !xlParserIsSameLineContinuation(pParser) ) {
+			break;
+		}
+
 		int iLine = pParser->token.line;
 		int iCol = pParser->token.column;
 
@@ -587,7 +624,7 @@ static xvalue xlParsePowerExpr( XL_Parser *pParser )
 {
 	xvalue xLeft = xlParseUnaryExpr(pParser);
 	if ( !xLeft ) return 0;
-	if ( xlParserMatch(pParser, XL_OP_POWER) ) {
+	if ( xlParserIsSameLineContinuation(pParser) && xlParserMatch(pParser, XL_OP_POWER) ) {
 		int iLine = pParser->prevToken.line;
 		int iCol = pParser->prevToken.column;
 		return xlAstCreateBinaryExpr("**", xLeft, xlParsePowerExpr(pParser), iLine, iCol);
@@ -601,6 +638,7 @@ static xvalue xlParseMulExpr( XL_Parser *pParser )
 	xvalue xLeft = xlParsePowerExpr(pParser);
 	if ( !xLeft ) return 0;
 	while ( 1 ) {
+		if ( !xlParserIsSameLineContinuation(pParser) ) break;
 		int iLine = pParser->token.line;
 		int iCol = pParser->token.column;
 		const char* pszOp = NULL;
@@ -619,6 +657,7 @@ static xvalue xlParseAddExpr( XL_Parser *pParser )
 	xvalue xLeft = xlParseMulExpr(pParser);
 	if ( !xLeft ) return 0;
 	while ( 1 ) {
+		if ( !xlParserIsSameLineContinuation(pParser) ) break;
 		int iLine = pParser->token.line;
 		int iCol = pParser->token.column;
 		const char* pszOp = NULL;
@@ -636,6 +675,7 @@ static xvalue xlParseShiftExpr( XL_Parser *pParser )
 	xvalue xLeft = xlParseAddExpr(pParser);
 	if ( !xLeft ) return 0;
 	while ( 1 ) {
+		if ( !xlParserIsSameLineContinuation(pParser) ) break;
 		int iLine = pParser->token.line;
 		int iCol = pParser->token.column;
 		const char* pszOp = NULL;
@@ -653,6 +693,7 @@ static xvalue xlParseCompareExpr( XL_Parser *pParser )
 	xvalue xLeft = xlParseShiftExpr(pParser);
 	if ( !xLeft ) return 0;
 	while ( 1 ) {
+		if ( !xlParserIsSameLineContinuation(pParser) ) break;
 		int iLine = pParser->token.line;
 		int iCol = pParser->token.column;
 		const char* pszOp = NULL;
@@ -673,6 +714,7 @@ static xvalue xlParseEqualityExpr( XL_Parser *pParser )
 	xvalue xLeft = xlParseCompareExpr(pParser);
 	if ( !xLeft ) return 0;
 	while ( 1 ) {
+		if ( !xlParserIsSameLineContinuation(pParser) ) break;
 		int iLine = pParser->token.line;
 		int iCol = pParser->token.column;
 		const char* pszOp = NULL;
@@ -690,7 +732,7 @@ static xvalue xlParseBitAndExpr( XL_Parser *pParser )
 {
 	xvalue xLeft = xlParseEqualityExpr(pParser);
 	if ( !xLeft ) return 0;
-	while ( xlParserMatch(pParser, XL_OP_AMP) ) {
+	while ( xlParserIsSameLineContinuation(pParser) && xlParserMatch(pParser, XL_OP_AMP) ) {
 		int iLine = pParser->prevToken.line;
 		int iCol = pParser->prevToken.column;
 		xLeft = xlAstCreateBinaryExpr("&", xLeft, xlParseEqualityExpr(pParser), iLine, iCol);
@@ -703,7 +745,7 @@ static xvalue xlParseBitXorExpr( XL_Parser *pParser )
 {
 	xvalue xLeft = xlParseBitAndExpr(pParser);
 	if ( !xLeft ) return 0;
-	while ( xlParserMatch(pParser, XL_OP_CARET) ) {
+	while ( xlParserIsSameLineContinuation(pParser) && xlParserMatch(pParser, XL_OP_CARET) ) {
 		int iLine = pParser->prevToken.line;
 		int iCol = pParser->prevToken.column;
 		xLeft = xlAstCreateBinaryExpr("^", xLeft, xlParseBitAndExpr(pParser), iLine, iCol);
@@ -716,7 +758,7 @@ static xvalue xlParseBitOrExpr( XL_Parser *pParser )
 {
 	xvalue xLeft = xlParseBitXorExpr(pParser);
 	if ( !xLeft ) return 0;
-	while ( xlParserMatch(pParser, XL_OP_PIPE) ) {
+	while ( xlParserIsSameLineContinuation(pParser) && xlParserMatch(pParser, XL_OP_PIPE) ) {
 		int iLine = pParser->prevToken.line;
 		int iCol = pParser->prevToken.column;
 		xLeft = xlAstCreateBinaryExpr("|", xLeft, xlParseBitXorExpr(pParser), iLine, iCol);
@@ -729,7 +771,7 @@ static xvalue xlParseAndExpr( XL_Parser *pParser )
 {
 	xvalue xLeft = xlParseBitOrExpr(pParser);
 	if ( !xLeft ) return 0;
-	while ( xlParserMatch(pParser, XL_KW_AND) ) {
+	while ( xlParserIsSameLineContinuation(pParser) && xlParserMatch(pParser, XL_KW_AND) ) {
 		int iLine = pParser->prevToken.line;
 		int iCol = pParser->prevToken.column;
 		xLeft = xlAstCreateBinaryExpr("and", xLeft, xlParseBitOrExpr(pParser), iLine, iCol);
@@ -742,7 +784,7 @@ static xvalue xlParseOrExpr( XL_Parser *pParser )
 {
 	xvalue xLeft = xlParseAndExpr(pParser);
 	if ( !xLeft ) return 0;
-	while ( xlParserMatch(pParser, XL_KW_OR) ) {
+	while ( xlParserIsSameLineContinuation(pParser) && xlParserMatch(pParser, XL_KW_OR) ) {
 		int iLine = pParser->prevToken.line;
 		int iCol = pParser->prevToken.column;
 		xLeft = xlAstCreateBinaryExpr("or", xLeft, xlParseAndExpr(pParser), iLine, iCol);
@@ -755,7 +797,7 @@ static xvalue xlParseCoalesceExpr( XL_Parser *pParser )
 {
 	xvalue xLeft = xlParseOrExpr(pParser);
 	if ( !xLeft ) return 0;
-	while ( xlParserMatch(pParser, XL_OP_NULL_COALESCE) ) {
+	while ( xlParserIsSameLineContinuation(pParser) && xlParserMatch(pParser, XL_OP_NULL_COALESCE) ) {
 		int iLine = pParser->prevToken.line;
 		int iCol = pParser->prevToken.column;
 		xLeft = xlAstCreateBinaryExpr("??", xLeft, xlParseOrExpr(pParser), iLine, iCol);
@@ -768,7 +810,7 @@ static xvalue xlParseRangeExpr( XL_Parser *pParser )
 {
 	xvalue xLeft = xlParseCoalesceExpr(pParser);
 	if ( !xLeft ) return 0;
-	if ( xlParserMatch(pParser, XL_OP_RANGE) ) {
+	if ( xlParserIsSameLineContinuation(pParser) && xlParserMatch(pParser, XL_OP_RANGE) ) {
 		int iLine = pParser->prevToken.line;
 		int iCol = pParser->prevToken.column;
 		xLeft = xlAstCreateBinaryExpr("..", xLeft, xlParseCoalesceExpr(pParser), iLine, iCol);
@@ -781,7 +823,7 @@ static xvalue xlParseTernaryExpr( XL_Parser *pParser )
 {
 	xvalue xCond = xlParseRangeExpr(pParser);
 	if ( !xCond ) return 0;
-	if ( xlParserMatch(pParser, XL_OP_QUESTION) ) {
+	if ( xlParserIsSameLineContinuation(pParser) && xlParserMatch(pParser, XL_OP_QUESTION) ) {
 		int iLine = pParser->prevToken.line;
 		int iCol = pParser->prevToken.column;
 		xvalue xThen = xlParseExpr(pParser);
@@ -802,14 +844,16 @@ static xvalue xlParseAssignExpr( XL_Parser *pParser )
 	int iCol = pParser->token.column;
 	const char* pszOp = NULL;
 
-	if ( xlParserMatch(pParser, XL_OP_ASSIGN) ) pszOp = "=";
-	else if ( xlParserMatch(pParser, XL_OP_PLUS_ASSIGN) ) pszOp = "+=";
-	else if ( xlParserMatch(pParser, XL_OP_MINUS_ASSIGN) ) pszOp = "-=";
-	else if ( xlParserMatch(pParser, XL_OP_STAR_ASSIGN) ) pszOp = "*=";
-	else if ( xlParserMatch(pParser, XL_OP_SLASH_ASSIGN) ) pszOp = "/=";
-	else if ( xlParserMatch(pParser, XL_OP_PERCENT_ASSIGN) ) pszOp = "%=";
-	else if ( xlParserMatch(pParser, XL_OP_POWER_ASSIGN) ) pszOp = "**=";
-	else if ( xlParserMatch(pParser, XL_OP_NULL_ASSIGN) ) pszOp = "?=";
+	if ( xlParserIsSameLineContinuation(pParser) ) {
+		if ( xlParserMatch(pParser, XL_OP_ASSIGN) ) pszOp = "=";
+		else if ( xlParserMatch(pParser, XL_OP_PLUS_ASSIGN) ) pszOp = "+=";
+		else if ( xlParserMatch(pParser, XL_OP_MINUS_ASSIGN) ) pszOp = "-=";
+		else if ( xlParserMatch(pParser, XL_OP_STAR_ASSIGN) ) pszOp = "*=";
+		else if ( xlParserMatch(pParser, XL_OP_SLASH_ASSIGN) ) pszOp = "/=";
+		else if ( xlParserMatch(pParser, XL_OP_PERCENT_ASSIGN) ) pszOp = "%=";
+		else if ( xlParserMatch(pParser, XL_OP_POWER_ASSIGN) ) pszOp = "**=";
+		else if ( xlParserMatch(pParser, XL_OP_NULL_ASSIGN) ) pszOp = "?=";
+	}
 
 	if ( pszOp ) {
 		return xlAstCreateAssignExpr(pszOp, xLeft, xlParseAssignExpr(pParser), iLine, iCol);
@@ -1101,6 +1145,20 @@ static xvalue xlParseStmt( XL_Parser *pParser )
 	switch ( pParser->token.type ) {
 		case XL_KW_VAR:
 		case XL_KW_AUTO:
+			return xlParseVarDecl(pParser, 0);
+
+		case XL_KW_BOOL:
+		case XL_KW_INT:
+		case XL_KW_FLOAT:
+		case XL_KW_STRING:
+		case XL_KW_TIME:
+		case XL_KW_POINT:
+		case XL_KW_ARRAY:
+		case XL_KW_LIST:
+		case XL_KW_SET:
+		case XL_KW_DICT:
+		case XL_KW_TYPE:
+		case XL_KW_RANGE:
 			return xlParseVarDecl(pParser, 0);
 
 		case XL_KW_CONST:
