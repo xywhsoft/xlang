@@ -1,0 +1,12 @@
+func make_values() as int
+	yield 1
+	yield 2
+	return 3
+end
+
+func main() as int
+	for value in make_values()
+		return value
+	end
+	return 0
+end

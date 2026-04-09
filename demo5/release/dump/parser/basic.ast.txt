@@ -1,0 +1,39 @@
+Program @ 0:0-0:0
+	FuncDecl @ 1:6-1:8 text="入口"
+		List @ 0:0-0:0
+			Param @ 1:13-1:15 text="初值"
+				TypeRef @ 1:9-1:12 text="int"
+		TypeRef @ 1:20-1:23 text="int"
+		Block @ 0:0-0:0
+			ConstDecl @ 2:12-2:14 text="数值"
+				TypeRef @ 2:8-2:11 text="int"
+				Ident @ 2:17-2:19 text="初值"
+			If @ 3:2-3:4
+				Binary @ 3:8-3:9 text=">"
+					Ident @ 3:5-3:7 text="数值"
+					Int @ 3:10-3:11 text="0"
+				Block @ 0:0-0:0
+					ConstDecl @ 4:13-4:15 text="加一"
+						TypeRef @ 4:9-4:12 text="int"
+						Binary @ 4:21-4:22 text="+"
+							Ident @ 4:18-4:20 text="数值"
+							Int @ 4:23-4:24 text="1" int=1
+					Return @ 5:3-5:9
+						Ident @ 5:10-5:12 text="加一"
+				List @ 0:0-0:0
+				Block @ 0:0-0:0
+					Return @ 7:3-7:9
+						Ident @ 7:10-7:12 text="数值"
+	FuncDecl @ 11:6-11:8 text="调用"
+		List @ 0:0-0:0
+		TypeRef @ 11:14-11:17 text="int"
+		Block @ 0:0-0:0
+			Return @ 12:2-12:8
+				Call @ 12:13-12:14
+					Ident @ 12:9-12:11 text="入口"
+					List @ 0:0-0:0
+						Int @ 12:12-12:13 text="1" int=1
+	Import @ 15:1-15:7
+		Ident @ 15:8-15:12 text="core"
+	Export @ 16:1-16:7
+		Ident @ 16:8-16:10 text="入口"

@@ -1,0 +1,63 @@
+{
+	"modules": [
+		{
+			"key": "std.task",
+			"file": "<native:std.task>",
+			"native": 1,
+			"binding": "std.task",
+			"exports": [
+				{
+					"name": "ready",
+					"symbol": "xl_mod_std_task__ready"
+				},
+				{
+					"name": "done",
+					"symbol": "xl_mod_std_task__done"
+				},
+				{
+					"name": "spawn",
+					"symbol": "xl_mod_std_task__spawn"
+				},
+				{
+					"name": "all",
+					"symbol": "xl_mod_std_task__all"
+				},
+				{
+					"name": "race",
+					"symbol": "xl_mod_std_task__race"
+				},
+				{
+					"name": "cancel",
+					"symbol": "xl_mod_std_task__cancel"
+				}
+			]
+		},
+		{
+			"key": "<root>",
+			"file": "D:\\Git\\x-lang\\demo5\\examples\\task\\basic.xl",
+			"native": 0,
+			"binding": "",
+			"exports": []
+		}
+	],
+	"registry": {
+	"nativeModules": [
+		{
+			"key": "std.core",
+			"binding": "std.core",
+			"path": "<native:std.core>"
+		},
+		{
+			"key": "std.time",
+			"binding": "std.time",
+			"path": "<native:std.time>"
+		},
+		{
+			"key": "std.task",
+			"binding": "std.task",
+			"path": "<native:std.task>"
+		}
+	]
+}
+
+}

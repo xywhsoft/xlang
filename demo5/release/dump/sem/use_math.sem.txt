@@ -1,0 +1,26 @@
+SemanticResult hadError=0
+Types (9)
+	- any builtin=1 @ 0:0
+	- bool builtin=1 @ 0:0
+	- float builtin=1 @ 0:0
+	- int builtin=1 @ 0:0
+	- null builtin=1 @ 0:0
+	- string builtin=1 @ 0:0
+	- task builtin=1 @ 0:0
+	- time builtin=1 @ 0:0
+	- void builtin=1 @ 0:0
+Functions (2)
+	- xl_mod_math__加一(int x) as int scope=0 async=0 @ 1:6
+	- 入口() as int scope=0 async=0 @ 3:6
+Scopes (5)
+	- #0 module "<module>" parent=-1 depth=0 @ 0:0
+	- #1 func "xl_mod_math__加一" parent=0 depth=1 @ 1:6
+	- #2 block "func.body" parent=1 depth=2 @ 0:0
+	- #3 func "入口" parent=0 depth=1 @ 3:6
+	- #4 block "func.body" parent=3 depth=2 @ 0:0
+Symbols (4)
+	- func xl_mod_math__加一 scope=0 type=int async=0 @ 1:6
+	- func 入口 scope=0 type=int async=0 @ 3:6
+	- param x scope=1 type=int async=0 @ 1:13
+	- const xl_mod_math__基数 scope=0 type=int async=0 @ 5:11
+Diagnostics (0)

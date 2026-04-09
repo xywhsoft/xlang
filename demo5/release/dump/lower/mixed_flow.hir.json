@@ -1,0 +1,121 @@
+{
+	"kind": "Program",
+	"line": 0,
+	"column": 0,
+	"text": null,
+	"children": [
+		{
+			"kind": "Func",
+			"line": 1,
+			"column": 6,
+			"text": "series",
+			"children": [
+				{
+					"kind": "Block",
+					"line": 1,
+					"column": 6,
+					"text": "params",
+					"children": []
+				},
+				{
+					"kind": "Block",
+					"line": 0,
+					"column": 0,
+					"text": null,
+					"children": [
+						{
+							"kind": "Const",
+							"line": 2,
+							"column": 12,
+							"text": "seed",
+							"children": [
+								{
+									"kind": "Literal",
+									"line": 2,
+									"column": 19,
+									"text": "10",
+									"children": []
+								}
+							]
+						},
+						{
+							"kind": "Yield",
+							"line": 3,
+							"column": 2,
+							"text": null,
+							"children": [
+								{
+									"kind": "Name",
+									"line": 3,
+									"column": 8,
+									"text": "seed",
+									"children": []
+								}
+							]
+						},
+						{
+							"kind": "Yield",
+							"line": 4,
+							"column": 2,
+							"text": null,
+							"children": [
+								{
+									"kind": "Binary",
+									"line": 4,
+									"column": 13,
+									"text": "+",
+									"children": [
+										{
+											"kind": "Name",
+											"line": 4,
+											"column": 8,
+											"text": "seed",
+											"children": []
+										},
+										{
+											"kind": "Literal",
+											"line": 4,
+											"column": 15,
+											"text": "1",
+											"children": []
+										}
+									]
+								}
+							]
+						},
+						{
+							"kind": "Return",
+							"line": 5,
+							"column": 2,
+							"text": null,
+							"children": [
+								{
+									"kind": "Binary",
+									"line": 5,
+									"column": 14,
+									"text": "+",
+									"children": [
+										{
+											"kind": "Name",
+											"line": 5,
+											"column": 9,
+											"text": "seed",
+											"children": []
+										},
+										{
+											"kind": "Literal",
+											"line": 5,
+											"column": 16,
+											"text": "2",
+											"children": []
+										}
+									]
+								}
+							]
+						}
+					]
+				}
+			]
+		}
+	]
+}

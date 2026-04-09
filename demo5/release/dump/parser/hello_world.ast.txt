@@ -1,0 +1,17 @@
+Program @ 0:0-0:0
+	Import @ 1:1-1:7
+		Member @ 1:11-1:12 text="core"
+			Ident @ 1:8-1:11 text="std"
+	FuncDecl @ 3:6-3:10 text="main"
+		List @ 0:0-0:0
+		TypeRef @ 3:16-3:19 text="int"
+		Block @ 0:0-0:0
+			ExprStmt @ 0:0-0:0
+				Call @ 4:32-4:33
+					Member @ 4:10-4:11 text="println"
+						Member @ 4:5-4:6 text="core"
+							Ident @ 4:2-4:5 text="std"
+					List @ 0:0-0:0
+						String @ 4:19-4:32 text="\"hello world\""
+			Return @ 5:2-5:8
+				Int @ 5:9-5:10 text="0"

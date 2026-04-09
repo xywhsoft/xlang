@@ -1,0 +1,31 @@
+{
+	"modules": [
+		{
+			"key": "<root>",
+			"file": "D:\\Git\\x-lang\\demo5\\examples\\full\\for_in_range.xl",
+			"native": 0,
+			"binding": "",
+			"exports": []
+		}
+	],
+	"registry": {
+	"nativeModules": [
+		{
+			"key": "std.core",
+			"binding": "std.core",
+			"path": "<native:std.core>"
+		},
+		{
+			"key": "std.time",
+			"binding": "std.time",
+			"path": "<native:std.time>"
+		},
+		{
+			"key": "std.task",
+			"binding": "std.task",
+			"path": "<native:std.task>"
+		}
+	]
+}
+
+}

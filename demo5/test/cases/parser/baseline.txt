@@ -1,0 +1,6 @@
+demo5 unified test runner
+project=demo5
+selector=parser
+[PASS] parser.for_in
+[PASS] parser.syntax_error
+summary: total=2 pass=2 fail=0

@@ -1,0 +1,31 @@
+SemanticResult hadError=0
+Types (9)
+	- any builtin=1 @ 0:0
+	- bool builtin=1 @ 0:0
+	- float builtin=1 @ 0:0
+	- int builtin=1 @ 0:0
+	- null builtin=1 @ 0:0
+	- string builtin=1 @ 0:0
+	- task builtin=1 @ 0:0
+	- time builtin=1 @ 0:0
+	- void builtin=1 @ 0:0
+Functions (3)
+	- 转换(int 值) as int scope=0 async=0 @ 1:6
+	- 转换(string 值) as string scope=0 async=0 @ 5:6
+	- 入口() as int scope=0 async=0 @ 9:6
+Scopes (7)
+	- #0 module "<module>" parent=-1 depth=0 @ 0:0
+	- #1 func "转换" parent=0 depth=1 @ 1:6
+	- #2 block "func.body" parent=1 depth=2 @ 0:0
+	- #3 func "转换" parent=0 depth=1 @ 5:6
+	- #4 block "func.body" parent=3 depth=2 @ 0:0
+	- #5 func "入口" parent=0 depth=1 @ 9:6
+	- #6 block "func.body" parent=5 depth=2 @ 0:0
+Symbols (6)
+	- func 转换 scope=0 type=int async=0 @ 1:6
+	- func 转换 scope=0 type=string async=0 @ 5:6
+	- func 入口 scope=0 type=int async=0 @ 9:6
+	- param 值 scope=1 type=int async=0 @ 1:13
+	- param 值 scope=3 type=string async=0 @ 5:16
+	- const 数值 scope=6 type=int async=0 @ 10:12
+Diagnostics (0)

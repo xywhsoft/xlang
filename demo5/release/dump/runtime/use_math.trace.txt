@@ -1,0 +1,16 @@
+ModuleLoadOrder
+- [0] math -> D:\Git\x-lang\demo5\examples\module\math.xl
+- [1] <root> -> D:\Git\x-lang\demo5\examples\module\use_math.xl
+ModuleExports
+- module=math
+  export 加一 -> xl_mod_math__加一
+  export 基数 -> xl_mod_math__基数
+- module=<root>
+input=D:\Git\x-lang\demo5\examples\module\use_math.xl
+libtcc=D:\Git\x-lang\demo5\lib\tcc\libtcc.dll
+tcc_root=D:\Git\x-lang\demo5\release\tcc
+compile_string
+relocate
+resolve_symbol=xl_generated_entry
+execute
+exit_code=42

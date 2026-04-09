@@ -1,0 +1,48 @@
+HIR
+Program @ 0:0
+	Func @ 1:12 text="get_value" type="int" flag=1
+		Block @ 1:12 text="params"
+		Block @ 0:0
+			Return @ 2:2
+				Literal @ 2:9 text="9" type="int" int=9
+	Func @ 5:12 text="main" type="int" flag=1
+		Block @ 5:12 text="params"
+		Block @ 0:0
+			Return @ 6:2
+				Unary @ 6:9 text="await"
+					Call @ 6:25 text=""
+						Name @ 6:15 text="get_value"
+						Block @ 6:25 text="args"
+MIR
+Program @ 0:0 text=""
+	Func @ 1:12 text="get_value" type="int"
+		Block @ 1:12 text="params"
+		Block @ 0:0 text=""
+			Return @ 2:2 text=""
+				Value @ 2:9 text="9" type="int"
+	Func @ 5:12 text="main" type="int"
+		Block @ 5:12 text="params"
+		Block @ 0:0 text=""
+			Return @ 6:2 text=""
+				Value @ 6:9 text="await"
+					Call @ 6:25 text=""
+						Value @ 6:15 text="get_value"
+						Block @ 6:25 text="args"
+AsyncStateMachine
+Func get_value @ 1:12
+	S0 label=entry next=1 suspend=0 final=0 @ 1:12
+		detail: async entry
+	S1 label=step next=2 suspend=0 final=0 @ 2:2
+		detail: Return
+	S2 label=done next=-1 suspend=0 final=1 @ 1:12
+		detail: async final
+Func main @ 5:12
+	S0 label=entry next=1 suspend=0 final=0 @ 5:12
+		detail: async entry
+	S1 label=await next=2 suspend=1 final=0 @ 6:2
+		detail: Return
+		await: get_value()
+	S2 label=resume next=3 suspend=0 final=0 @ 6:2
+		detail: resume after await
+	S3 label=done next=-1 suspend=0 final=1 @ 5:12
+		detail: async final

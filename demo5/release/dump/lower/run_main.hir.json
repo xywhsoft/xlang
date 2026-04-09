@@ -1,0 +1,107 @@
+{
+	"kind": "Program",
+	"line": 0,
+	"column": 0,
+	"text": null,
+	"children": [
+		{
+			"kind": "Func",
+			"line": 1,
+			"column": 12,
+			"text": "get_value",
+			"children": [
+				{
+					"kind": "Block",
+					"line": 1,
+					"column": 12,
+					"text": "params",
+					"children": []
+				},
+				{
+					"kind": "Block",
+					"line": 0,
+					"column": 0,
+					"text": null,
+					"children": [
+						{
+							"kind": "Return",
+							"line": 2,
+							"column": 2,
+							"text": null,
+							"children": [
+								{
+									"kind": "Literal",
+									"line": 2,
+									"column": 9,
+									"text": "9",
+									"children": []
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"kind": "Func",
+			"line": 5,
+			"column": 12,
+			"text": "main",
+			"children": [
+				{
+					"kind": "Block",
+					"line": 5,
+					"column": 12,
+					"text": "params",
+					"children": []
+				},
+				{
+					"kind": "Block",
+					"line": 0,
+					"column": 0,
+					"text": null,
+					"children": [
+						{
+							"kind": "Return",
+							"line": 6,
+							"column": 2,
+							"text": null,
+							"children": [
+								{
+									"kind": "Unary",
+									"line": 6,
+									"column": 9,
+									"text": "await",
+									"children": [
+										{
+											"kind": "Call",
+											"line": 6,
+											"column": 25,
+											"text": "",
+											"children": [
+												{
+													"kind": "Name",
+													"line": 6,
+													"column": 15,
+													"text": "get_value",
+													"children": []
+												},
+												{
+													"kind": "Block",
+													"line": 6,
+													"column": 25,
+													"text": "args",
+													"children": []
+												}
+											]
+										}
+									]
+								}
+							]
+						}
+					]
+				}
+			]
+		}
+	]
+}

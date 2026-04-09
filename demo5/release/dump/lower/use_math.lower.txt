@@ -1,0 +1,40 @@
+HIR
+Program @ 0:0
+	Func @ 1:6 text="xl_mod_math__加一" type="int"
+		Block @ 1:6 text="params"
+			Param @ 1:13 text="x" type="int"
+		Block @ 0:0
+			Return @ 2:2
+				Binary @ 2:11 text="+"
+					Name @ 2:9 text="x"
+					Literal @ 2:13 text="1" type="int" int=1
+	Const @ 5:11 text="xl_mod_math__基数" type="int"
+		Literal @ 5:16 text="41" type="int" int=41
+	Func @ 3:6 text="入口" type="int"
+		Block @ 3:6 text="params"
+		Block @ 0:0
+			Return @ 4:2
+				Call @ 4:24 text=""
+					Name @ 4:13 text="xl_mod_math__加一"
+					Block @ 4:24 text="args"
+						Name @ 4:21 text="xl_mod_math__基数"
+MIR
+Program @ 0:0 text=""
+	Func @ 1:6 text="xl_mod_math__加一" type="int"
+		Block @ 1:6 text="params"
+			Value @ 1:13 text="x" type="int"
+		Block @ 0:0 text=""
+			Return @ 2:2 text=""
+				Value @ 2:11 text="+"
+					Value @ 2:9 text="x"
+					Value @ 2:13 text="1" type="int"
+	Bind @ 5:11 text="xl_mod_math__基数" type="int"
+		Value @ 5:16 text="41" type="int"
+	Func @ 3:6 text="入口" type="int"
+		Block @ 3:6 text="params"
+		Block @ 0:0 text=""
+			Return @ 4:2 text=""
+				Call @ 4:24 text=""
+					Value @ 4:13 text="xl_mod_math__加一"
+					Block @ 4:24 text="args"
+						Value @ 4:21 text="xl_mod_math__基数"

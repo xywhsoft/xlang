@@ -1,0 +1,5 @@
+func make_values() as int
+	yield 1
+	yield 2
+	return 3
+end

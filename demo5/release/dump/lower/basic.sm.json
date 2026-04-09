@@ -1,0 +1,113 @@
+{
+	"asyncSm": {
+	"funcs": [
+		{
+			"name": "slow_add",
+			"line": 3,
+			"column": 12,
+			"states": [
+				{
+					"id": 0,
+					"label": "entry",
+					"next": 1,
+					"suspend": 0,
+					"final": 0,
+					"detail": "async entry",
+					"await": null
+				},
+				{
+					"id": 1,
+					"label": "step",
+					"next": 2,
+					"suspend": 0,
+					"final": 0,
+					"detail": "Return",
+					"await": null
+				},
+				{
+					"id": 2,
+					"label": "done",
+					"next": -1,
+					"suspend": 0,
+					"final": 1,
+					"detail": "async final",
+					"await": null
+				}
+			]
+		},
+		{
+			"name": "slow_mul",
+			"line": 7,
+			"column": 12,
+			"states": [
+				{
+					"id": 0,
+					"label": "entry",
+					"next": 1,
+					"suspend": 0,
+					"final": 0,
+					"detail": "async entry",
+					"await": null
+				},
+				{
+					"id": 1,
+					"label": "step",
+					"next": 2,
+					"suspend": 0,
+					"final": 0,
+					"detail": "Return",
+					"await": null
+				},
+				{
+					"id": 2,
+					"label": "done",
+					"next": -1,
+					"suspend": 0,
+					"final": 1,
+					"detail": "async final",
+					"await": null
+				}
+			]
+		},
+		{
+			"name": "slow_sub",
+			"line": 11,
+			"column": 12,
+			"states": [
+				{
+					"id": 0,
+					"label": "entry",
+					"next": 1,
+					"suspend": 0,
+					"final": 0,
+					"detail": "async entry",
+					"await": null
+				},
+				{
+					"id": 1,
+					"label": "step",
+					"next": 2,
+					"suspend": 0,
+					"final": 0,
+					"detail": "Return",
+					"await": null
+				},
+				{
+					"id": 2,
+					"label": "done",
+					"next": -1,
+					"suspend": 0,
+					"final": 1,
+					"detail": "async final",
+					"await": null
+				}
+			]
+		}
+	]
+}
+,
+	"generatorSm": {
+	"funcs": []
+}
+
+}

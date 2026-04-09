@@ -1,0 +1,8 @@
+input=D:\Git\x-lang\demo5\examples\full\run_basic.xl
+libtcc=D:\Git\x-lang\demo5\lib\tcc\libtcc.dll
+tcc_root=D:\Git\x-lang\demo5\release\tcc
+compile_string
+relocate
+resolve_symbol=xl_generated_entry
+execute
+exit_code=42

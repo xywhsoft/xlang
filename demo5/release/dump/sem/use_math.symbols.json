@@ -1,0 +1,38 @@
+[
+	{
+		"kind": "func",
+		"scopeId": 0,
+		"name": "xl_mod_math__加一",
+		"typeName": "int",
+		"line": 1,
+		"column": 6,
+		"async": 0
+	},
+	{
+		"kind": "func",
+		"scopeId": 0,
+		"name": "入口",
+		"typeName": "int",
+		"line": 3,
+		"column": 6,
+		"async": 0
+	},
+	{
+		"kind": "param",
+		"scopeId": 1,
+		"name": "x",
+		"typeName": "int",
+		"line": 1,
+		"column": 13,
+		"async": 0
+	},
+	{
+		"kind": "const",
+		"scopeId": 0,
+		"name": "xl_mod_math__基数",
+		"typeName": "int",
+		"line": 5,
+		"column": 11,
+		"async": 0
+	}
+]

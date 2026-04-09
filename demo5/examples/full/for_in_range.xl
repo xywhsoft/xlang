@@ -1,0 +1,11 @@
+func main() as int
+	for index, value in range(2, 10, 2)
+		if index == 1 then
+			continue
+		end
+		if value == 6 then
+			return value
+		end
+	end
+	return -1
+end

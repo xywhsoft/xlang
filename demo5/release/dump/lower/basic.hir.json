@@ -1,0 +1,1262 @@
+{
+	"kind": "Program",
+	"line": 0,
+	"column": 0,
+	"text": null,
+	"children": [
+		{
+			"kind": "Const",
+			"line": 1,
+			"column": 11,
+			"text": "xl_mod_std_task__ready",
+			"children": [
+				{
+					"kind": "Literal",
+					"line": 1,
+					"column": 19,
+					"text": "1",
+					"children": []
+				}
+			]
+		},
+		{
+			"kind": "Const",
+			"line": 2,
+			"column": 11,
+			"text": "xl_mod_std_task__done",
+			"children": [
+				{
+					"kind": "Literal",
+					"line": 2,
+					"column": 18,
+					"text": "2",
+					"children": []
+				}
+			]
+		},
+		{
+			"kind": "Func",
+			"line": 4,
+			"column": 6,
+			"text": "xl_mod_std_task__spawn",
+			"children": [
+				{
+					"kind": "Block",
+					"line": 4,
+					"column": 6,
+					"text": "params",
+					"children": [
+						{
+							"kind": "Param",
+							"line": 4,
+							"column": 16,
+							"text": "value",
+							"children": []
+						}
+					]
+				},
+				{
+					"kind": "Block",
+					"line": 0,
+					"column": 0,
+					"text": null,
+					"children": [
+						{
+							"kind": "Return",
+							"line": 5,
+							"column": 2,
+							"text": null,
+							"children": [
+								{
+									"kind": "Name",
+									"line": 5,
+									"column": 9,
+									"text": "value",
+									"children": []
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"kind": "Func",
+			"line": 7,
+			"column": 6,
+			"text": "xl_mod_std_task__spawn",
+			"children": [
+				{
+					"kind": "Block",
+					"line": 7,
+					"column": 6,
+					"text": "params",
+					"children": [
+						{
+							"kind": "Param",
+							"line": 7,
+							"column": 18,
+							"text": "value",
+							"children": []
+						}
+					]
+				},
+				{
+					"kind": "Block",
+					"line": 0,
+					"column": 0,
+					"text": null,
+					"children": [
+						{
+							"kind": "Return",
+							"line": 8,
+							"column": 2,
+							"text": null,
+							"children": [
+								{
+									"kind": "Name",
+									"line": 8,
+									"column": 9,
+									"text": "value",
+									"children": []
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"kind": "Func",
+			"line": 10,
+			"column": 6,
+			"text": "xl_mod_std_task__spawn",
+			"children": [
+				{
+					"kind": "Block",
+					"line": 10,
+					"column": 6,
+					"text": "params",
+					"children": [
+						{
+							"kind": "Param",
+							"line": 10,
+							"column": 19,
+							"text": "value",
+							"children": []
+						}
+					]
+				},
+				{
+					"kind": "Block",
+					"line": 0,
+					"column": 0,
+					"text": null,
+					"children": [
+						{
+							"kind": "Return",
+							"line": 11,
+							"column": 2,
+							"text": null,
+							"children": [
+								{
+									"kind": "Name",
+									"line": 11,
+									"column": 9,
+									"text": "value",
+									"children": []
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"kind": "Func",
+			"line": 13,
+			"column": 6,
+			"text": "xl_mod_std_task__spawn",
+			"children": [
+				{
+					"kind": "Block",
+					"line": 13,
+					"column": 6,
+					"text": "params",
+					"children": [
+						{
+							"kind": "Param",
+							"line": 13,
+							"column": 17,
+							"text": "value",
+							"children": []
+						}
+					]
+				},
+				{
+					"kind": "Block",
+					"line": 0,
+					"column": 0,
+					"text": null,
+					"children": [
+						{
+							"kind": "Return",
+							"line": 14,
+							"column": 2,
+							"text": null,
+							"children": [
+								{
+									"kind": "Name",
+									"line": 14,
+									"column": 9,
+									"text": "value",
+									"children": []
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"kind": "Func",
+			"line": 17,
+			"column": 6,
+			"text": "xl_mod_std_task__all",
+			"children": [
+				{
+					"kind": "Block",
+					"line": 17,
+					"column": 6,
+					"text": "params",
+					"children": [
+						{
+							"kind": "Param",
+							"line": 17,
+							"column": 14,
+							"text": "left",
+							"children": []
+						},
+						{
+							"kind": "Param",
+							"line": 17,
+							"column": 24,
+							"text": "right",
+							"children": []
+						}
+					]
+				},
+				{
+					"kind": "Block",
+					"line": 0,
+					"column": 0,
+					"text": null,
+					"children": [
+						{
+							"kind": "Return",
+							"line": 18,
+							"column": 2,
+							"text": null,
+							"children": [
+								{
+									"kind": "Name",
+									"line": 18,
+									"column": 9,
+									"text": "right",
+									"children": []
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"kind": "Func",
+			"line": 20,
+			"column": 6,
+			"text": "xl_mod_std_task__all",
+			"children": [
+				{
+					"kind": "Block",
+					"line": 20,
+					"column": 6,
+					"text": "params",
+					"children": [
+						{
+							"kind": "Param",
+							"line": 20,
+							"column": 16,
+							"text": "left",
+							"children": []
+						},
+						{
+							"kind": "Param",
+							"line": 20,
+							"column": 28,
+							"text": "right",
+							"children": []
+						}
+					]
+				},
+				{
+					"kind": "Block",
+					"line": 0,
+					"column": 0,
+					"text": null,
+					"children": [
+						{
+							"kind": "Return",
+							"line": 21,
+							"column": 2,
+							"text": null,
+							"children": [
+								{
+									"kind": "Name",
+									"line": 21,
+									"column": 9,
+									"text": "right",
+									"children": []
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"kind": "Func",
+			"line": 23,
+			"column": 6,
+			"text": "xl_mod_std_task__all",
+			"children": [
+				{
+					"kind": "Block",
+					"line": 23,
+					"column": 6,
+					"text": "params",
+					"children": [
+						{
+							"kind": "Param",
+							"line": 23,
+							"column": 17,
+							"text": "left",
+							"children": []
+						},
+						{
+							"kind": "Param",
+							"line": 23,
+							"column": 30,
+							"text": "right",
+							"children": []
+						}
+					]
+				},
+				{
+					"kind": "Block",
+					"line": 0,
+					"column": 0,
+					"text": null,
+					"children": [
+						{
+							"kind": "Return",
+							"line": 24,
+							"column": 2,
+							"text": null,
+							"children": [
+								{
+									"kind": "Name",
+									"line": 24,
+									"column": 9,
+									"text": "right",
+									"children": []
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"kind": "Func",
+			"line": 26,
+			"column": 6,
+			"text": "xl_mod_std_task__all",
+			"children": [
+				{
+					"kind": "Block",
+					"line": 26,
+					"column": 6,
+					"text": "params",
+					"children": [
+						{
+							"kind": "Param",
+							"line": 26,
+							"column": 15,
+							"text": "left",
+							"children": []
+						},
+						{
+							"kind": "Param",
+							"line": 26,
+							"column": 26,
+							"text": "right",
+							"children": []
+						}
+					]
+				},
+				{
+					"kind": "Block",
+					"line": 0,
+					"column": 0,
+					"text": null,
+					"children": [
+						{
+							"kind": "Return",
+							"line": 27,
+							"column": 2,
+							"text": null,
+							"children": [
+								{
+									"kind": "Name",
+									"line": 27,
+									"column": 9,
+									"text": "right",
+									"children": []
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"kind": "Func",
+			"line": 30,
+			"column": 6,
+			"text": "xl_mod_std_task__race",
+			"children": [
+				{
+					"kind": "Block",
+					"line": 30,
+					"column": 6,
+					"text": "params",
+					"children": [
+						{
+							"kind": "Param",
+							"line": 30,
+							"column": 15,
+							"text": "left",
+							"children": []
+						},
+						{
+							"kind": "Param",
+							"line": 30,
+							"column": 25,
+							"text": "right",
+							"children": []
+						}
+					]
+				},
+				{
+					"kind": "Block",
+					"line": 0,
+					"column": 0,
+					"text": null,
+					"children": [
+						{
+							"kind": "Return",
+							"line": 31,
+							"column": 2,
+							"text": null,
+							"children": [
+								{
+									"kind": "Name",
+									"line": 31,
+									"column": 9,
+									"text": "left",
+									"children": []
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"kind": "Func",
+			"line": 33,
+			"column": 6,
+			"text": "xl_mod_std_task__race",
+			"children": [
+				{
+					"kind": "Block",
+					"line": 33,
+					"column": 6,
+					"text": "params",
+					"children": [
+						{
+							"kind": "Param",
+							"line": 33,
+							"column": 17,
+							"text": "left",
+							"children": []
+						},
+						{
+							"kind": "Param",
+							"line": 33,
+							"column": 29,
+							"text": "right",
+							"children": []
+						}
+					]
+				},
+				{
+					"kind": "Block",
+					"line": 0,
+					"column": 0,
+					"text": null,
+					"children": [
+						{
+							"kind": "Return",
+							"line": 34,
+							"column": 2,
+							"text": null,
+							"children": [
+								{
+									"kind": "Name",
+									"line": 34,
+									"column": 9,
+									"text": "left",
+									"children": []
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"kind": "Func",
+			"line": 36,
+			"column": 6,
+			"text": "xl_mod_std_task__race",
+			"children": [
+				{
+					"kind": "Block",
+					"line": 36,
+					"column": 6,
+					"text": "params",
+					"children": [
+						{
+							"kind": "Param",
+							"line": 36,
+							"column": 18,
+							"text": "left",
+							"children": []
+						},
+						{
+							"kind": "Param",
+							"line": 36,
+							"column": 31,
+							"text": "right",
+							"children": []
+						}
+					]
+				},
+				{
+					"kind": "Block",
+					"line": 0,
+					"column": 0,
+					"text": null,
+					"children": [
+						{
+							"kind": "Return",
+							"line": 37,
+							"column": 2,
+							"text": null,
+							"children": [
+								{
+									"kind": "Name",
+									"line": 37,
+									"column": 9,
+									"text": "left",
+									"children": []
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"kind": "Func",
+			"line": 39,
+			"column": 6,
+			"text": "xl_mod_std_task__race",
+			"children": [
+				{
+					"kind": "Block",
+					"line": 39,
+					"column": 6,
+					"text": "params",
+					"children": [
+						{
+							"kind": "Param",
+							"line": 39,
+							"column": 16,
+							"text": "left",
+							"children": []
+						},
+						{
+							"kind": "Param",
+							"line": 39,
+							"column": 27,
+							"text": "right",
+							"children": []
+						}
+					]
+				},
+				{
+					"kind": "Block",
+					"line": 0,
+					"column": 0,
+					"text": null,
+					"children": [
+						{
+							"kind": "Return",
+							"line": 40,
+							"column": 2,
+							"text": null,
+							"children": [
+								{
+									"kind": "Name",
+									"line": 40,
+									"column": 9,
+									"text": "left",
+									"children": []
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"kind": "Func",
+			"line": 43,
+			"column": 6,
+			"text": "xl_mod_std_task__cancel",
+			"children": [
+				{
+					"kind": "Block",
+					"line": 43,
+					"column": 6,
+					"text": "params",
+					"children": [
+						{
+							"kind": "Param",
+							"line": 43,
+							"column": 17,
+							"text": "value",
+							"children": []
+						}
+					]
+				},
+				{
+					"kind": "Block",
+					"line": 0,
+					"column": 0,
+					"text": null,
+					"children": [
+						{
+							"kind": "Return",
+							"line": 44,
+							"column": 2,
+							"text": null,
+							"children": [
+								{
+									"kind": "Literal",
+									"line": 44,
+									"column": 9,
+									"text": "1",
+									"children": []
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"kind": "Func",
+			"line": 46,
+			"column": 6,
+			"text": "xl_mod_std_task__cancel",
+			"children": [
+				{
+					"kind": "Block",
+					"line": 46,
+					"column": 6,
+					"text": "params",
+					"children": [
+						{
+							"kind": "Param",
+							"line": 46,
+							"column": 19,
+							"text": "value",
+							"children": []
+						}
+					]
+				},
+				{
+					"kind": "Block",
+					"line": 0,
+					"column": 0,
+					"text": null,
+					"children": [
+						{
+							"kind": "Return",
+							"line": 47,
+							"column": 2,
+							"text": null,
+							"children": [
+								{
+									"kind": "Literal",
+									"line": 47,
+									"column": 9,
+									"text": "1",
+									"children": []
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"kind": "Func",
+			"line": 49,
+			"column": 6,
+			"text": "xl_mod_std_task__cancel",
+			"children": [
+				{
+					"kind": "Block",
+					"line": 49,
+					"column": 6,
+					"text": "params",
+					"children": [
+						{
+							"kind": "Param",
+							"line": 49,
+							"column": 20,
+							"text": "value",
+							"children": []
+						}
+					]
+				},
+				{
+					"kind": "Block",
+					"line": 0,
+					"column": 0,
+					"text": null,
+					"children": [
+						{
+							"kind": "Return",
+							"line": 50,
+							"column": 2,
+							"text": null,
+							"children": [
+								{
+									"kind": "Literal",
+									"line": 50,
+									"column": 9,
+									"text": "1",
+									"children": []
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"kind": "Func",
+			"line": 52,
+			"column": 6,
+			"text": "xl_mod_std_task__cancel",
+			"children": [
+				{
+					"kind": "Block",
+					"line": 52,
+					"column": 6,
+					"text": "params",
+					"children": [
+						{
+							"kind": "Param",
+							"line": 52,
+							"column": 18,
+							"text": "value",
+							"children": []
+						}
+					]
+				},
+				{
+					"kind": "Block",
+					"line": 0,
+					"column": 0,
+					"text": null,
+					"children": [
+						{
+							"kind": "Return",
+							"line": 53,
+							"column": 2,
+							"text": null,
+							"children": [
+								{
+									"kind": "Literal",
+									"line": 53,
+									"column": 9,
+									"text": "1",
+									"children": []
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"kind": "Func",
+			"line": 3,
+			"column": 12,
+			"text": "slow_add",
+			"children": [
+				{
+					"kind": "Block",
+					"line": 3,
+					"column": 12,
+					"text": "params",
+					"children": []
+				},
+				{
+					"kind": "Block",
+					"line": 0,
+					"column": 0,
+					"text": null,
+					"children": [
+						{
+							"kind": "Return",
+							"line": 4,
+							"column": 2,
+							"text": null,
+							"children": [
+								{
+									"kind": "Literal",
+									"line": 4,
+									"column": 9,
+									"text": "4",
+									"children": []
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"kind": "Func",
+			"line": 7,
+			"column": 12,
+			"text": "slow_mul",
+			"children": [
+				{
+					"kind": "Block",
+					"line": 7,
+					"column": 12,
+					"text": "params",
+					"children": []
+				},
+				{
+					"kind": "Block",
+					"line": 0,
+					"column": 0,
+					"text": null,
+					"children": [
+						{
+							"kind": "Return",
+							"line": 8,
+							"column": 2,
+							"text": null,
+							"children": [
+								{
+									"kind": "Literal",
+									"line": 8,
+									"column": 9,
+									"text": "6",
+									"children": []
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"kind": "Func",
+			"line": 11,
+			"column": 12,
+			"text": "slow_sub",
+			"children": [
+				{
+					"kind": "Block",
+					"line": 11,
+					"column": 12,
+					"text": "params",
+					"children": []
+				},
+				{
+					"kind": "Block",
+					"line": 0,
+					"column": 0,
+					"text": null,
+					"children": [
+						{
+							"kind": "Return",
+							"line": 12,
+							"column": 2,
+							"text": null,
+							"children": [
+								{
+									"kind": "Literal",
+									"line": 12,
+									"column": 9,
+									"text": "3",
+									"children": []
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"kind": "Func",
+			"line": 15,
+			"column": 6,
+			"text": "main",
+			"children": [
+				{
+					"kind": "Block",
+					"line": 15,
+					"column": 6,
+					"text": "params",
+					"children": []
+				},
+				{
+					"kind": "Block",
+					"line": 0,
+					"column": 0,
+					"text": null,
+					"children": [
+						{
+							"kind": "Const",
+							"line": 16,
+							"column": 12,
+							"text": "winner",
+							"children": [
+								{
+									"kind": "Call",
+									"line": 16,
+									"column": 111,
+									"text": "",
+									"children": [
+										{
+											"kind": "Name",
+											"line": 16,
+											"column": 25,
+											"text": "xl_mod_std_task__race",
+											"children": []
+										},
+										{
+											"kind": "Block",
+											"line": 16,
+											"column": 111,
+											"text": "args",
+											"children": [
+												{
+													"kind": "Call",
+													"line": 16,
+													"column": 52,
+													"text": "",
+													"children": [
+														{
+															"kind": "Name",
+															"line": 16,
+															"column": 35,
+															"text": "xl_mod_std_task__spawn",
+															"children": []
+														},
+														{
+															"kind": "Block",
+															"line": 16,
+															"column": 52,
+															"text": "args",
+															"children": [
+																{
+																	"kind": "Call",
+																	"line": 16,
+																	"column": 51,
+																	"text": "",
+																	"children": [
+																		{
+																			"kind": "Name",
+																			"line": 16,
+																			"column": 42,
+																			"text": "slow_add",
+																			"children": []
+																		},
+																		{
+																			"kind": "Block",
+																			"line": 16,
+																			"column": 51,
+																			"text": "args",
+																			"children": []
+																		}
+																	]
+																}
+															]
+														}
+													]
+												},
+												{
+													"kind": "Call",
+													"line": 16,
+													"column": 110,
+													"text": "",
+													"children": [
+														{
+															"kind": "Name",
+															"line": 16,
+															"column": 59,
+															"text": "xl_mod_std_task__all",
+															"children": []
+														},
+														{
+															"kind": "Block",
+															"line": 16,
+															"column": 110,
+															"text": "args",
+															"children": [
+																{
+																	"kind": "Call",
+																	"line": 16,
+																	"column": 85,
+																	"text": "",
+																	"children": [
+																		{
+																			"kind": "Name",
+																			"line": 16,
+																			"column": 68,
+																			"text": "xl_mod_std_task__spawn",
+																			"children": []
+																		},
+																		{
+																			"kind": "Block",
+																			"line": 16,
+																			"column": 85,
+																			"text": "args",
+																			"children": [
+																				{
+																					"kind": "Call",
+																					"line": 16,
+																					"column": 84,
+																					"text": "",
+																					"children": [
+																						{
+																							"kind": "Name",
+																							"line": 16,
+																							"column": 75,
+																							"text": "slow_mul",
+																							"children": []
+																						},
+																						{
+																							"kind": "Block",
+																							"line": 16,
+																							"column": 84,
+																							"text": "args",
+																							"children": []
+																						}
+																					]
+																				}
+																			]
+																		}
+																	]
+																},
+																{
+																	"kind": "Call",
+																	"line": 16,
+																	"column": 109,
+																	"text": "",
+																	"children": [
+																		{
+																			"kind": "Name",
+																			"line": 16,
+																			"column": 92,
+																			"text": "xl_mod_std_task__spawn",
+																			"children": []
+																		},
+																		{
+																			"kind": "Block",
+																			"line": 16,
+																			"column": 109,
+																			"text": "args",
+																			"children": [
+																				{
+																					"kind": "Call",
+																					"line": 16,
+																					"column": 108,
+																					"text": "",
+																					"children": [
+																						{
+																							"kind": "Name",
+																							"line": 16,
+																							"column": 99,
+																							"text": "slow_sub",
+																							"children": []
+																						},
+																						{
+																							"kind": "Block",
+																							"line": 16,
+																							"column": 108,
+																							"text": "args",
+																							"children": []
+																						}
+																					]
+																				}
+																			]
+																		}
+																	]
+																}
+															]
+														}
+													]
+												}
+											]
+										}
+									]
+								}
+							]
+						},
+						{
+							"kind": "Const",
+							"line": 17,
+							"column": 12,
+							"text": "canceled",
+							"children": [
+								{
+									"kind": "Call",
+									"line": 17,
+									"column": 57,
+									"text": "",
+									"children": [
+										{
+											"kind": "Name",
+											"line": 17,
+											"column": 27,
+											"text": "xl_mod_std_task__cancel",
+											"children": []
+										},
+										{
+											"kind": "Block",
+											"line": 17,
+											"column": 57,
+											"text": "args",
+											"children": [
+												{
+													"kind": "Call",
+													"line": 17,
+													"column": 56,
+													"text": "",
+													"children": [
+														{
+															"kind": "Name",
+															"line": 17,
+															"column": 39,
+															"text": "xl_mod_std_task__spawn",
+															"children": []
+														},
+														{
+															"kind": "Block",
+															"line": 17,
+															"column": 56,
+															"text": "args",
+															"children": [
+																{
+																	"kind": "Call",
+																	"line": 17,
+																	"column": 55,
+																	"text": "",
+																	"children": [
+																		{
+																			"kind": "Name",
+																			"line": 17,
+																			"column": 46,
+																			"text": "slow_mul",
+																			"children": []
+																		},
+																		{
+																			"kind": "Block",
+																			"line": 17,
+																			"column": 55,
+																			"text": "args",
+																			"children": []
+																		}
+																	]
+																}
+															]
+														}
+													]
+												}
+											]
+										}
+									]
+								}
+							]
+						},
+						{
+							"kind": "Return",
+							"line": 18,
+							"column": 2,
+							"text": null,
+							"children": [
+								{
+									"kind": "Binary",
+									"line": 18,
+									"column": 16,
+									"text": "+",
+									"children": [
+										{
+											"kind": "Name",
+											"line": 18,
+											"column": 9,
+											"text": "winner",
+											"children": []
+										},
+										{
+											"kind": "Name",
+											"line": 18,
+											"column": 18,
+											"text": "canceled",
+											"children": []
+										}
+									]
+								}
+							]
+						}
+					]
+				}
+			]
+		}
+	]
+}

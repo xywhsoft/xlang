@@ -1,0 +1,5 @@
+import std.core
+
+func 入口() as int
+	return std.core.恒等(std.core.版本)
+end

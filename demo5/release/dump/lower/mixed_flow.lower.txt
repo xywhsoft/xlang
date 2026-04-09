@@ -1,0 +1,56 @@
+HIR
+Program @ 0:0
+	Func @ 1:6 text="series" type="int"
+		Block @ 1:6 text="params"
+		Block @ 0:0
+			Const @ 2:12 text="seed" type="int"
+				Literal @ 2:19 text="10" type="int" int=10
+			Yield @ 3:2
+				Name @ 3:8 text="seed"
+			Yield @ 4:2
+				Binary @ 4:13 text="+"
+					Name @ 4:8 text="seed"
+					Literal @ 4:15 text="1" type="int" int=1
+			Return @ 5:2
+				Binary @ 5:14 text="+"
+					Name @ 5:9 text="seed"
+					Literal @ 5:16 text="2" type="int" int=2
+MIR
+Program @ 0:0 text=""
+	Func @ 1:6 text="series" type="int"
+		Block @ 1:6 text="params"
+		Block @ 0:0 text=""
+			Bind @ 2:12 text="seed" type="int"
+				Value @ 2:19 text="10" type="int"
+			Yield @ 3:2 text=""
+				Value @ 3:8 text="seed"
+			Yield @ 4:2 text=""
+				Value @ 4:13 text="+"
+					Value @ 4:8 text="seed"
+					Value @ 4:15 text="1" type="int"
+			Return @ 5:2 text=""
+				Value @ 5:14 text="+"
+					Value @ 5:9 text="seed"
+					Value @ 5:16 text="2" type="int"
+AsyncStateMachine
+	<none>
+GeneratorStateMachine
+Func series @ 1:6
+	S0 label=entry next=1 suspend=0 final=0 @ 1:6
+		detail: generator entry
+	S1 label=step next=2 suspend=0 final=0 @ 2:12
+		detail: Const
+	S2 label=yield next=3 suspend=1 final=0 @ 3:2
+		detail: Yield
+		yield: seed
+	S3 label=resume next=4 suspend=0 final=0 @ 3:2
+		detail: resume after yield
+	S4 label=yield next=5 suspend=1 final=0 @ 4:2
+		detail: Yield
+		yield: seed + 1
+	S5 label=resume next=6 suspend=0 final=0 @ 4:2
+		detail: resume after yield
+	S6 label=step next=7 suspend=0 final=0 @ 5:2
+		detail: Return
+	S7 label=done next=-1 suspend=0 final=1 @ 1:6
+		detail: generator final

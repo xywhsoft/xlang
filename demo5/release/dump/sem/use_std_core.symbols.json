@@ -1,0 +1,212 @@
+[
+	{
+		"kind": "func",
+		"scopeId": 0,
+		"name": "xl_mod_std_core__恒等",
+		"typeName": "int",
+		"line": 1,
+		"column": 6,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "func",
+		"scopeId": 0,
+		"name": "xl_mod_std_core__print",
+		"typeName": "void",
+		"line": 5,
+		"column": 6,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "func",
+		"scopeId": 0,
+		"name": "xl_mod_std_core__print",
+		"typeName": "void",
+		"line": 7,
+		"column": 6,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "func",
+		"scopeId": 0,
+		"name": "xl_mod_std_core__print",
+		"typeName": "void",
+		"line": 9,
+		"column": 6,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "func",
+		"scopeId": 0,
+		"name": "xl_mod_std_core__print",
+		"typeName": "void",
+		"line": 11,
+		"column": 6,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "func",
+		"scopeId": 0,
+		"name": "xl_mod_std_core__println",
+		"typeName": "void",
+		"line": 14,
+		"column": 6,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "func",
+		"scopeId": 0,
+		"name": "xl_mod_std_core__println",
+		"typeName": "void",
+		"line": 16,
+		"column": 6,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "func",
+		"scopeId": 0,
+		"name": "xl_mod_std_core__println",
+		"typeName": "void",
+		"line": 18,
+		"column": 6,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "func",
+		"scopeId": 0,
+		"name": "xl_mod_std_core__println",
+		"typeName": "void",
+		"line": 20,
+		"column": 6,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "func",
+		"scopeId": 0,
+		"name": "xl_mod_std_core__println",
+		"typeName": "void",
+		"line": 22,
+		"column": 6,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "func",
+		"scopeId": 0,
+		"name": "入口",
+		"typeName": "int",
+		"line": 3,
+		"column": 6,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "param",
+		"scopeId": 1,
+		"name": "x",
+		"typeName": "int",
+		"line": 1,
+		"column": 13,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "param",
+		"scopeId": 3,
+		"name": "x",
+		"typeName": "int",
+		"line": 5,
+		"column": 16,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "param",
+		"scopeId": 5,
+		"name": "x",
+		"typeName": "float",
+		"line": 7,
+		"column": 18,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "param",
+		"scopeId": 7,
+		"name": "x",
+		"typeName": "string",
+		"line": 9,
+		"column": 19,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "param",
+		"scopeId": 9,
+		"name": "x",
+		"typeName": "bool",
+		"line": 11,
+		"column": 17,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "param",
+		"scopeId": 13,
+		"name": "x",
+		"typeName": "int",
+		"line": 16,
+		"column": 18,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "param",
+		"scopeId": 15,
+		"name": "x",
+		"typeName": "float",
+		"line": 18,
+		"column": 20,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "param",
+		"scopeId": 17,
+		"name": "x",
+		"typeName": "string",
+		"line": 20,
+		"column": 21,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "param",
+		"scopeId": 19,
+		"name": "x",
+		"typeName": "bool",
+		"line": 22,
+		"column": 19,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "const",
+		"scopeId": 0,
+		"name": "xl_mod_std_core__版本",
+		"typeName": "int",
+		"line": 25,
+		"column": 11,
+		"async": 0,
+		"generator": 0
+	}
+]

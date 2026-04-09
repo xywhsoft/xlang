@@ -588,6 +588,7 @@ ABI 原则：
 
 单行形式：
 	if cond then expr
+	if cond then expr else expr
 
 
 8.2 while

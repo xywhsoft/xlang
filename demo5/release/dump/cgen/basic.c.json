@@ -1,0 +1,3 @@
+{
+	"code": "#include <stdint.h>\n#include <stdbool.h>\n\nstatic int 入口(int 初值)\n{\n\tint 数值 = 初值;\n\tif ( (数值 > 0) )\n\t{\n\t\tint 加一 = (数值 + 1);\n\t\treturn 加一;\n\t}\n\telse\n\t{\n\t\treturn 数值;\n\t}\n}\n\nstatic int 调用()\n{\n\treturn 入口(1);\n}\n\n"
+}

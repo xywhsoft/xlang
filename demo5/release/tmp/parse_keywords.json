@@ -1,0 +1,325 @@
+{
+	"kind": "Program",
+	"line": 0,
+	"column": 0,
+	"text": null,
+	"intValue": 0,
+	"flag": 0,
+	"children": [
+		{
+			"kind": "FuncDecl",
+			"line": 1,
+			"column": 6,
+			"text": "入口",
+			"intValue": 0,
+			"flag": 0,
+			"children": [
+				{
+					"kind": "List",
+					"line": 0,
+					"column": 0,
+					"text": null,
+					"intValue": 0,
+					"flag": 0,
+					"children": []
+				},
+				{
+					"kind": "TypeRef",
+					"line": 1,
+					"column": 14,
+					"text": "int",
+					"intValue": 0,
+					"flag": 0,
+					"children": []
+				},
+				{
+					"kind": "Block",
+					"line": 0,
+					"column": 0,
+					"text": null,
+					"intValue": 0,
+					"flag": 0,
+					"children": [
+						{
+							"kind": "ConstDecl",
+							"line": 2,
+							"column": 8,
+							"text": "数值",
+							"intValue": 0,
+							"flag": 0,
+							"children": [
+								{
+									"kind": "Int",
+									"line": 2,
+									"column": 13,
+									"text": "1",
+									"intValue": 1,
+									"flag": 0,
+									"children": []
+								}
+							]
+						},
+						{
+							"kind": "If",
+							"line": 3,
+							"column": 2,
+							"text": null,
+							"intValue": 0,
+							"flag": 0,
+							"children": [
+								{
+									"kind": "Binary",
+									"line": 3,
+									"column": 10,
+									"text": "and",
+									"intValue": 0,
+									"flag": 0,
+									"children": [
+										{
+											"kind": "Bool",
+											"line": 3,
+											"column": 5,
+											"text": "true",
+											"intValue": 0,
+											"flag": 1,
+											"children": []
+										},
+										{
+											"kind": "Unary",
+											"line": 3,
+											"column": 14,
+											"text": "not",
+											"intValue": 0,
+											"flag": 0,
+											"children": [
+												{
+													"kind": "Bool",
+													"line": 3,
+													"column": 18,
+													"text": "false",
+													"intValue": 0,
+													"flag": 0,
+													"children": []
+												}
+											]
+										}
+									]
+								},
+								{
+									"kind": "Block",
+									"line": 0,
+									"column": 0,
+									"text": null,
+									"intValue": 0,
+									"flag": 0,
+									"children": [
+										{
+											"kind": "Return",
+											"line": 4,
+											"column": 3,
+											"text": null,
+											"intValue": 0,
+											"flag": 0,
+											"children": [
+												{
+													"kind": "Ident",
+													"line": 4,
+													"column": 10,
+													"text": "数值",
+													"intValue": 0,
+													"flag": 0,
+													"children": []
+												}
+											]
+										}
+									]
+								},
+								{
+									"kind": "List",
+									"line": 0,
+									"column": 0,
+									"text": null,
+									"intValue": 0,
+									"flag": 0,
+									"children": []
+								},
+								{
+									"kind": "Block",
+									"line": 0,
+									"column": 0,
+									"text": null,
+									"intValue": 0,
+									"flag": 0,
+									"children": [
+										{
+											"kind": "Throw",
+											"line": 6,
+											"column": 3,
+											"text": null,
+											"intValue": 0,
+											"flag": 0,
+											"children": [
+												{
+													"kind": "Template",
+													"line": 6,
+													"column": 9,
+													"text": "`bad {$数值}`",
+													"intValue": 0,
+													"flag": 0,
+													"children": []
+												}
+											]
+										}
+									]
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"kind": "FuncDecl",
+			"line": 10,
+			"column": 12,
+			"text": "等待",
+			"intValue": 0,
+			"flag": 1,
+			"children": [
+				{
+					"kind": "List",
+					"line": 0,
+					"column": 0,
+					"text": null,
+					"intValue": 0,
+					"flag": 0,
+					"children": []
+				},
+				{
+					"kind": "TypeRef",
+					"line": 10,
+					"column": 20,
+					"text": "task",
+					"intValue": 0,
+					"flag": 0,
+					"children": []
+				},
+				{
+					"kind": "Block",
+					"line": 0,
+					"column": 0,
+					"text": null,
+					"intValue": 0,
+					"flag": 0,
+					"children": [
+						{
+							"kind": "ExprStmt",
+							"line": 0,
+							"column": 0,
+							"text": null,
+							"intValue": 0,
+							"flag": 0,
+							"children": [
+								{
+									"kind": "Unary",
+									"line": 11,
+									"column": 2,
+									"text": "await",
+									"intValue": 0,
+									"flag": 0,
+									"children": [
+										{
+											"kind": "Call",
+											"line": 11,
+											"column": 11,
+											"text": null,
+											"intValue": 0,
+											"flag": 0,
+											"children": [
+												{
+													"kind": "Ident",
+													"line": 11,
+													"column": 8,
+													"text": "等待",
+													"intValue": 0,
+													"flag": 0,
+													"children": []
+												},
+												{
+													"kind": "List",
+													"line": 0,
+													"column": 0,
+													"text": null,
+													"intValue": 0,
+													"flag": 0,
+													"children": []
+												}
+											]
+										}
+									]
+								}
+							]
+						},
+						{
+							"kind": "Yield",
+							"line": 12,
+							"column": 2,
+							"text": null,
+							"intValue": 0,
+							"flag": 0,
+							"children": [
+								{
+									"kind": "Int",
+									"line": 12,
+									"column": 8,
+									"text": "1",
+									"intValue": 1,
+									"flag": 0,
+									"children": []
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"kind": "Import",
+			"line": 15,
+			"column": 1,
+			"text": null,
+			"intValue": 0,
+			"flag": 0,
+			"children": [
+				{
+					"kind": "Ident",
+					"line": 15,
+					"column": 8,
+					"text": "core",
+					"intValue": 0,
+					"flag": 0,
+					"children": []
+				}
+			]
+		},
+		{
+			"kind": "Export",
+			"line": 16,
+			"column": 1,
+			"text": null,
+			"intValue": 0,
+			"flag": 0,
+			"children": [
+				{
+					"kind": "Ident",
+					"line": 16,
+					"column": 8,
+					"text": "入口",
+					"intValue": 0,
+					"flag": 0,
+					"children": []
+				}
+			]
+		}
+	]
+}

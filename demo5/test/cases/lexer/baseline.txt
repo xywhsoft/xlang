@@ -1,0 +1,6 @@
+demo5 unified test runner
+project=demo5
+selector=lexer
+[PASS] lexer.minimal
+[PASS] lexer.keywords
+summary: total=2 pass=2 fail=0

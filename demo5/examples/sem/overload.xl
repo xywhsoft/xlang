@@ -1,0 +1,12 @@
+func 转换(int 值) as int
+	return 值
+end
+
+func 转换(string 值) as string
+	return 值
+end
+
+func 入口() as int
+	const int 数值 = 转换(1)
+	return 数值
+end

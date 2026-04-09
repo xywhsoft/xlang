@@ -1,0 +1,67 @@
+HIR
+Program @ 0:0
+	Func @ 1:12 text="get_value" type="int" flag=1
+		Block @ 1:12 text="params"
+		Block @ 0:0
+			Return @ 2:2
+				Literal @ 2:9 text="3" type="int" int=3
+	Func @ 5:12 text="entry_async" type="int" flag=1
+		Block @ 5:12 text="params"
+		Block @ 0:0
+			Const @ 6:12 text="a" type="int"
+				Unary @ 6:16 text="await"
+					Call @ 6:32 text=""
+						Name @ 6:22 text="get_value"
+						Block @ 6:32 text="args"
+			Return @ 7:2
+				Binary @ 7:11 text="+"
+					Name @ 7:9 text="a"
+					Unary @ 7:13 text="await"
+						Call @ 7:29 text=""
+							Name @ 7:19 text="get_value"
+							Block @ 7:29 text="args"
+MIR
+Program @ 0:0 text=""
+	Func @ 1:12 text="get_value" type="int"
+		Block @ 1:12 text="params"
+		Block @ 0:0 text=""
+			Return @ 2:2 text=""
+				Value @ 2:9 text="3" type="int"
+	Func @ 5:12 text="entry_async" type="int"
+		Block @ 5:12 text="params"
+		Block @ 0:0 text=""
+			Bind @ 6:12 text="a" type="int"
+				Value @ 6:16 text="await"
+					Call @ 6:32 text=""
+						Value @ 6:22 text="get_value"
+						Block @ 6:32 text="args"
+			Return @ 7:2 text=""
+				Value @ 7:11 text="+"
+					Value @ 7:9 text="a"
+					Value @ 7:13 text="await"
+						Call @ 7:29 text=""
+							Value @ 7:19 text="get_value"
+							Block @ 7:29 text="args"
+AsyncStateMachine
+Func get_value @ 1:12
+	S0 label=entry next=1 suspend=0 final=0 @ 1:12
+		detail: async entry
+	S1 label=step next=2 suspend=0 final=0 @ 2:2
+		detail: Return
+	S2 label=done next=-1 suspend=0 final=1 @ 1:12
+		detail: async final
+Func entry_async @ 5:12
+	S0 label=entry next=1 suspend=0 final=0 @ 5:12
+		detail: async entry
+	S1 label=await next=2 suspend=1 final=0 @ 6:12
+		detail: Const
+		await: get_value()
+	S2 label=resume next=3 suspend=0 final=0 @ 6:12
+		detail: resume after await
+	S3 label=await next=4 suspend=1 final=0 @ 7:2
+		detail: Return
+		await: get_value()
+	S4 label=resume next=5 suspend=0 final=0 @ 7:2
+		detail: resume after await
+	S5 label=done next=-1 suspend=0 final=1 @ 5:12
+		detail: async final
