@@ -756,6 +756,8 @@ static void xlAstPrintNode( xvalue xNode, int iIndent )
 	XL_AST_PRINT_CHILD("end");
 	XL_AST_PRINT_CHILD("step");
 	XL_AST_PRINT_CHILD("iter");
+	XL_AST_PRINT_CHILD("key");
+	XL_AST_PRINT_CHILD("default");
 
 	/* then / else（可能是 table 或 null） */
 	xvalue xThen = xlAstGetNode(xNode, "then");
@@ -782,6 +784,13 @@ static void xlAstPrintNode( xvalue xNode, int iIndent )
 	/* assign value */
 	xvalue xAssignVal = xlAstGetNode(xNode, "value");
 	if ( xAssignVal && (xvoType(xAssignVal) == XVO_DT_TABLE) && (strcmp(pszKind, XL_AST_ASSIGN_EXPR) == 0) ) {
+		xlAstPrintIndent(iIndent + 1);
+		printf("value:\n");
+		xlAstPrintNode(xAssignVal, iIndent + 2);
+	}
+
+	/* dict entry value */
+	if ( xAssignVal && (xvoType(xAssignVal) == XVO_DT_TABLE) && (strcmp(pszKind, "DictEntry") == 0) ) {
 		xlAstPrintIndent(iIndent + 1);
 		printf("value:\n");
 		xlAstPrintNode(xAssignVal, iIndent + 2);

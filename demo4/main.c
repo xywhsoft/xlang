@@ -21,17 +21,20 @@
 #include <stdlib.h>
 #include <string.h>
 
-/* Flex 生成的实现（包含类型定义和所有函数） */
+/* 共享 Token 定义 */
+#include "src/parse/xl_tokens.h"
+
+/* Flex 生成的实现（作为头文件 include） */
 #include "src/lexer/xl_lexer_impl.h"
 
 /* Lexer 高级 API */
 #include "src/lexer/xl_lexer_api.h"
 
 /* AST 定义 */
-#include "src/parse/xl_ast.h"
+#include "bak/xl_ast.h"
 
 /* Parser */
-#include "src/parse/xl_parser.h"
+#include "bak/xl_parser.h"
 
 
 
@@ -209,10 +212,8 @@ int main( int argc, char** argv )
 	}
 	
 	/* 重定向输出 */
-	FILE* fpOutput = stdout;
 	if ( opts.sOutputFile ) {
-		fpOutput = fopen(opts.sOutputFile, "w");
-		if ( !fpOutput ) {
+		if ( !freopen(opts.sOutputFile, "w", stdout) ) {
 			fprintf(stderr, "错误: 无法打开输出文件 %s\n", opts.sOutputFile);
 			return 1;
 		}
@@ -237,10 +238,6 @@ int main( int argc, char** argv )
 	/* 清理 */
 	if ( opts.mode == MODE_AST ) {
 		xrtUnit();
-	}
-	
-	if ( fpOutput != stdout ) {
-		fclose(fpOutput);
 	}
 	
 	return iResult;

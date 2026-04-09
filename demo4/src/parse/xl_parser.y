@@ -6,7 +6,7 @@
  * 
  * 设计说明：
  * - 容器字面量使用统一项列表，语义动作中判断 dict/set/array/list
- * - do-while 语法: do ... end while expr（end 显式终结块）
+ * - do-while 语法: do ... while expr end
  * - 单行 if 由 Token Filter 注入合成 KW_END 处理
  * - 不支持 IDENT IDENT 变量声明（软关键字需用 var 前缀）
  */
@@ -96,9 +96,24 @@ program ::= stmt_list(L). {
 	pCtx->xAst = xModule;
 }
 
+%type stmt_sep { int }
+stmt_sep(A) ::= TOK_SEMICOLON. { A = 1; }
+stmt_sep(A) ::= stmt_sep TOK_SEMICOLON. { A = 1; }
+
+%type opt_stmt_sep { int }
+opt_stmt_sep(A) ::= stmt_sep. { A = 1; }
+opt_stmt_sep(A) ::= . { A = 0; }
+
 %type stmt_list { xvalue }
-stmt_list(A) ::= stmt_list(L) stmt(S). {
+stmt_list(A) ::= stmt_list(L) stmt_sep stmt(S). {
 	A = L;
+	if ( S ) xlAstArrayAppend(A, S);
+}
+stmt_list(A) ::= stmt_list(L) stmt_sep. {
+	A = L;
+}
+stmt_list(A) ::= stmt(S). {
+	A = xlAstCreateArray();
 	if ( S ) xlAstArrayAppend(A, S);
 }
 stmt_list(A) ::= . {
@@ -153,7 +168,7 @@ stmt(A) ::= KW_CONST(C) KW_AUTO TOK_IDENT(N) OP_ASSIGN expr(E). {
 
 /* --- if 语句 --- */
 
-stmt(A) ::= KW_IF(I) expr(COND) opt_then block(THEN) elseif_list(EIS) opt_else(ELSE) KW_END. {
+stmt(A) ::= KW_IF(I) expr(COND) opt_then opt_stmt_sep block(THEN) elseif_list(EIS) opt_else(ELSE) KW_END. {
 	A = xlAstCreateIfStmt(COND, THEN, EIS, ELSE, I.line, I.column);
 }
 
@@ -161,7 +176,7 @@ opt_then ::= KW_THEN.
 opt_then ::= .
 
 %type elseif_list { xvalue }
-elseif_list(A) ::= elseif_list(L) KW_ELSEIF expr(COND) opt_then block(BODY). {
+elseif_list(A) ::= elseif_list(L) KW_ELSEIF expr(COND) opt_then opt_stmt_sep block(BODY). {
 	A = L;
 	xlAstArrayAppend(A, xlAstCreateElseIf(COND, BODY, 0, 0));
 }
@@ -170,36 +185,36 @@ elseif_list(A) ::= . {
 }
 
 %type opt_else { xvalue }
-opt_else(A) ::= KW_ELSE block(B). { A = B; }
+opt_else(A) ::= KW_ELSE opt_stmt_sep block(B). { A = B; }
 opt_else(A) ::= . { A = 0; }
 
 /* --- while 循环 --- */
 
-stmt(A) ::= KW_WHILE(W) expr(COND) KW_DO block(BODY) KW_END. {
+stmt(A) ::= KW_WHILE(W) expr(COND) KW_DO opt_stmt_sep block(BODY) KW_END. {
 	A = xlAstCreateWhileStmt(COND, BODY, W.line, W.column);
 }
 
-/* --- do-while 循环: do ... end while expr --- */
+/* --- do-while 循环: do ... while expr end --- */
 
-stmt(A) ::= KW_DO(D) block(BODY) KW_END KW_WHILE expr(COND). {
+stmt(A) ::= KW_DO(D) opt_stmt_sep block(BODY) KW_WHILE expr(COND) KW_END. {
 	A = xlAstCreateDoWhileStmt(BODY, COND, D.line, D.column);
 }
 
 /* --- for 循环 --- */
 
-stmt(A) ::= KW_FOR(F) TOK_IDENT(V) KW_IN expr(ITER) block(BODY) KW_END. {
+stmt(A) ::= KW_FOR(F) TOK_IDENT(V) KW_IN expr(ITER) opt_stmt_sep block(BODY) KW_END. {
 	A = xlAstCreateForInStmt(NULL, 0, V.text, (int)V.length, ITER, BODY, F.line, F.column);
 }
 
-stmt(A) ::= KW_FOR(F) TOK_IDENT(K) TOK_COMMA TOK_IDENT(V) KW_IN expr(ITER) block(BODY) KW_END. {
+stmt(A) ::= KW_FOR(F) TOK_IDENT(K) TOK_COMMA TOK_IDENT(V) KW_IN expr(ITER) opt_stmt_sep block(BODY) KW_END. {
 	A = xlAstCreateForInStmt(K.text, (int)K.length, V.text, (int)V.length, ITER, BODY, F.line, F.column);
 }
 
-stmt(A) ::= KW_FOR(F) TOK_IDENT(V) OP_ASSIGN expr(START) KW_TO expr(END) block(BODY) KW_END. {
+stmt(A) ::= KW_FOR(F) TOK_IDENT(V) OP_ASSIGN expr(START) KW_TO expr(END) opt_stmt_sep block(BODY) KW_END. {
 	A = xlAstCreateForStmt(V.text, (int)V.length, START, END, 0, BODY, F.line, F.column);
 }
 
-stmt(A) ::= KW_FOR(F) TOK_IDENT(V) OP_ASSIGN expr(START) KW_TO expr(END) KW_STEP expr(STEP) block(BODY) KW_END. {
+stmt(A) ::= KW_FOR(F) TOK_IDENT(V) OP_ASSIGN expr(START) KW_TO expr(END) KW_STEP expr(STEP) opt_stmt_sep block(BODY) KW_END. {
 	A = xlAstCreateForStmt(V.text, (int)V.length, START, END, STEP, BODY, F.line, F.column);
 }
 
@@ -228,7 +243,7 @@ stmt(A) ::= KW_CONTINUE(C). {
 
 /* --- 函数声明 --- */
 
-stmt(A) ::= KW_FUNC(F) TOK_IDENT(N) TOK_LPAREN param_list(P) TOK_RPAREN ret_type(R) block(BODY) KW_END. {
+stmt(A) ::= KW_FUNC(F) TOK_IDENT(N) TOK_LPAREN param_list(P) TOK_RPAREN ret_type(R) opt_stmt_sep block(BODY) KW_END. {
 	A = xlAstCreateFuncDecl(N.text, (int)N.length, P, R.text, (int)R.length, BODY, F.line, F.column);
 }
 
@@ -263,8 +278,15 @@ block(A) ::= block_stmts(L). {
 }
 
 %type block_stmts { xvalue }
-block_stmts(A) ::= block_stmts(L) stmt(S). {
+block_stmts(A) ::= block_stmts(L) stmt_sep stmt(S). {
 	A = L;
+	if ( S ) xlAstArrayAppend(A, S);
+}
+block_stmts(A) ::= block_stmts(L) stmt_sep. {
+	A = L;
+}
+block_stmts(A) ::= stmt(S). {
+	A = xlAstCreateArray();
 	if ( S ) xlAstArrayAppend(A, S);
 }
 block_stmts(A) ::= . {
