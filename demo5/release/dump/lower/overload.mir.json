@@ -1,0 +1,268 @@
+{
+	"kind": "Program",
+	"line": 0,
+	"column": 0,
+	"text": "",
+	"type": null,
+	"scopeId": 0,
+	"symbolIndex": -1,
+	"funcIndex": -1,
+	"children": [
+		{
+			"kind": "Func",
+			"line": 1,
+			"column": 6,
+			"text": "转换",
+			"type": "int",
+			"scopeId": 1,
+			"symbolIndex": 0,
+			"funcIndex": 3,
+			"children": [
+				{
+					"kind": "Block",
+					"line": 1,
+					"column": 6,
+					"text": "params",
+					"type": null,
+					"scopeId": -1,
+					"symbolIndex": -1,
+					"funcIndex": -1,
+					"children": [
+						{
+							"kind": "Value",
+							"line": 1,
+							"column": 13,
+							"text": "值",
+							"type": "int",
+							"scopeId": 1,
+							"symbolIndex": 3,
+							"funcIndex": -1,
+							"children": []
+						}
+					]
+				},
+				{
+					"kind": "Block",
+					"line": 0,
+					"column": 0,
+					"text": "",
+					"type": null,
+					"scopeId": 2,
+					"symbolIndex": -1,
+					"funcIndex": -1,
+					"children": [
+						{
+							"kind": "Return",
+							"line": 2,
+							"column": 2,
+							"text": "",
+							"type": null,
+							"scopeId": -1,
+							"symbolIndex": -1,
+							"funcIndex": -1,
+							"children": [
+								{
+									"kind": "Value",
+									"line": 2,
+									"column": 9,
+									"text": "值",
+									"type": "int",
+									"scopeId": 2,
+									"symbolIndex": 3,
+									"funcIndex": -1,
+									"children": []
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"kind": "Func",
+			"line": 5,
+			"column": 6,
+			"text": "转换",
+			"type": "string",
+			"scopeId": 3,
+			"symbolIndex": 1,
+			"funcIndex": 4,
+			"children": [
+				{
+					"kind": "Block",
+					"line": 5,
+					"column": 6,
+					"text": "params",
+					"type": null,
+					"scopeId": -1,
+					"symbolIndex": -1,
+					"funcIndex": -1,
+					"children": [
+						{
+							"kind": "Value",
+							"line": 5,
+							"column": 16,
+							"text": "值",
+							"type": "string",
+							"scopeId": 3,
+							"symbolIndex": 4,
+							"funcIndex": -1,
+							"children": []
+						}
+					]
+				},
+				{
+					"kind": "Block",
+					"line": 0,
+					"column": 0,
+					"text": "",
+					"type": null,
+					"scopeId": 4,
+					"symbolIndex": -1,
+					"funcIndex": -1,
+					"children": [
+						{
+							"kind": "Return",
+							"line": 6,
+							"column": 2,
+							"text": "",
+							"type": null,
+							"scopeId": -1,
+							"symbolIndex": -1,
+							"funcIndex": -1,
+							"children": [
+								{
+									"kind": "Value",
+									"line": 6,
+									"column": 9,
+									"text": "值",
+									"type": "string",
+									"scopeId": 4,
+									"symbolIndex": 4,
+									"funcIndex": -1,
+									"children": []
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"kind": "Func",
+			"line": 9,
+			"column": 6,
+			"text": "入口",
+			"type": "int",
+			"scopeId": 5,
+			"symbolIndex": 2,
+			"funcIndex": 5,
+			"children": [
+				{
+					"kind": "Block",
+					"line": 9,
+					"column": 6,
+					"text": "params",
+					"type": null,
+					"scopeId": -1,
+					"symbolIndex": -1,
+					"funcIndex": -1,
+					"children": []
+				},
+				{
+					"kind": "Block",
+					"line": 0,
+					"column": 0,
+					"text": "",
+					"type": null,
+					"scopeId": 6,
+					"symbolIndex": -1,
+					"funcIndex": -1,
+					"children": [
+						{
+							"kind": "Bind",
+							"line": 10,
+							"column": 12,
+							"text": "数值",
+							"type": "int",
+							"scopeId": 6,
+							"symbolIndex": 5,
+							"funcIndex": -1,
+							"children": [
+								{
+									"kind": "Call",
+									"line": 10,
+									"column": 21,
+									"text": "",
+									"type": "int",
+									"scopeId": 6,
+									"symbolIndex": -1,
+									"funcIndex": 3,
+									"children": [
+										{
+											"kind": "Value",
+											"line": 10,
+											"column": 17,
+											"text": "转换",
+											"type": null,
+											"scopeId": -1,
+											"symbolIndex": -1,
+											"funcIndex": -1,
+											"children": []
+										},
+										{
+											"kind": "Block",
+											"line": 10,
+											"column": 21,
+											"text": "args",
+											"type": null,
+											"scopeId": -1,
+											"symbolIndex": -1,
+											"funcIndex": -1,
+											"children": [
+												{
+													"kind": "Value",
+													"line": 10,
+													"column": 20,
+													"text": "1",
+													"type": "int",
+													"scopeId": 6,
+													"symbolIndex": -1,
+													"funcIndex": -1,
+													"children": []
+												}
+											]
+										}
+									]
+								}
+							]
+						},
+						{
+							"kind": "Return",
+							"line": 11,
+							"column": 2,
+							"text": "",
+							"type": null,
+							"scopeId": -1,
+							"symbolIndex": -1,
+							"funcIndex": -1,
+							"children": [
+								{
+									"kind": "Value",
+									"line": 11,
+									"column": 9,
+									"text": "数值",
+									"type": "int",
+									"scopeId": 6,
+									"symbolIndex": 5,
+									"funcIndex": -1,
+									"children": []
+								}
+							]
+						}
+					]
+				}
+			]
+		}
+	]
+}

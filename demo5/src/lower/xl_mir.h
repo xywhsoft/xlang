@@ -11,15 +11,18 @@ typedef enum XL_MirKind {
 	XL_MIR_BLOCK,
 	XL_MIR_BIND,
 	XL_MIR_BRANCH,
+	XL_MIR_TRY,
 	XL_MIR_FORIN,
 	XL_MIR_RETURN,
 	XL_MIR_BREAK,
 	XL_MIR_CONTINUE,
 	XL_MIR_THROW,
+	XL_MIR_ASSERT,
 	XL_MIR_YIELD,
 	XL_MIR_IMPORT,
 	XL_MIR_EXPORT,
 	XL_MIR_CALL,
+	XL_MIR_MEMBER,
 	XL_MIR_VALUE
 } XL_MirKind;
 
@@ -27,6 +30,9 @@ typedef struct XL_MirNode {
 	XL_MirKind eKind;
 	char* sText;
 	char* sTypeName;
+	int iScopeId;
+	int iSymbolIndex;
+	int iFuncIndex;
 	int64_t iIntValue;
 	double fFloatValue;
 	int bFlag;

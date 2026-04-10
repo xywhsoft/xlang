@@ -58,6 +58,8 @@ static void __xlFuncInfoFree(XL_FuncInfo* pInfo)
 	}
 	free(pInfo->arrParamNames);
 	free(pInfo->arrParamTypes);
+	free(pInfo->arrParamHasDefault);
+	free((void*)pInfo->arrParamDefaultValues);
 	memset(pInfo, 0, sizeof(*pInfo));
 }
 
@@ -90,6 +92,8 @@ int xlFuncTableAdd(
 	const char* const* arrParamNames,
 	const char* const* arrParamTypes,
 	size_t iParamCount,
+	const unsigned char* arrParamHasDefault,
+	const XL_AstNode* const* arrParamDefaultValues,
 	int iScopeId,
 	int iLine,
 	int iColumn,
@@ -122,7 +126,10 @@ int xlFuncTableAdd(
 	if ( iParamCount != 0 ) {
 		pInfo->arrParamNames = (char**)calloc(iParamCount, sizeof(char*));
 		pInfo->arrParamTypes = (char**)calloc(iParamCount, sizeof(char*));
-		if ( (pInfo->arrParamNames == NULL) || (pInfo->arrParamTypes == NULL) ) {
+		pInfo->arrParamHasDefault = (unsigned char*)calloc(iParamCount, sizeof(unsigned char));
+		pInfo->arrParamDefaultValues = (const XL_AstNode**)calloc(iParamCount, sizeof(XL_AstNode*));
+		if ( (pInfo->arrParamNames == NULL) || (pInfo->arrParamTypes == NULL) ||
+			(pInfo->arrParamHasDefault == NULL) || (pInfo->arrParamDefaultValues == NULL) ) {
 			__xlFuncInfoFree(pInfo);
 			return XL_RC_IO_ERROR;
 		}
@@ -130,6 +137,8 @@ int xlFuncTableAdd(
 		for ( i = 0; i < iParamCount; ++i ) {
 			pInfo->arrParamNames[i] = __xlFuncDupText((arrParamNames != NULL) ? arrParamNames[i] : "");
 			pInfo->arrParamTypes[i] = __xlFuncDupText((arrParamTypes != NULL) ? arrParamTypes[i] : "");
+			pInfo->arrParamHasDefault[i] = (arrParamHasDefault != NULL) ? arrParamHasDefault[i] : 0;
+			pInfo->arrParamDefaultValues[i] = (arrParamDefaultValues != NULL) ? arrParamDefaultValues[i] : NULL;
 			if ( (pInfo->arrParamNames[i] == NULL) || (pInfo->arrParamTypes[i] == NULL) ) {
 				__xlFuncInfoFree(pInfo);
 				return XL_RC_IO_ERROR;

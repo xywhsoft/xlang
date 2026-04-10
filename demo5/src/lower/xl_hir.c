@@ -29,6 +29,9 @@ XL_HirNode* xlHirCreateNode(XL_HirKind eKind, const XL_AstNode* pAst)
 	}
 
 	pNode->eKind = eKind;
+	pNode->iScopeId = -1;
+	pNode->iSymbolIndex = -1;
+	pNode->iFuncIndex = -1;
 	if ( pAst != NULL ) {
 		pNode->iLine = pAst->iLine;
 		pNode->iColumn = pAst->iColumn;
@@ -105,11 +108,13 @@ const char* xlHirKindName(XL_HirKind eKind)
 		"Const",
 		"Var",
 		"If",
+		"Try",
 		"ForIn",
 		"Return",
 		"Break",
 		"Continue",
 		"Throw",
+		"Assert",
 		"Yield",
 		"Import",
 		"Export",

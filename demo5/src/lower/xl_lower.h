@@ -3,6 +3,7 @@
 
 #include "../ast/xl_ast.h"
 #include "../diag/xl_diag.h"
+#include "../sem/xl_resolve.h"
 #include "xl_hir.h"
 #include "xl_mir.h"
 
@@ -69,7 +70,13 @@ typedef struct XL_LowerResult {
 
 void xlLowerResultInit(XL_LowerResult* pResult);
 void xlLowerResultFree(XL_LowerResult* pResult);
-int xlLowerAst(const XL_AstNode* pRoot, XL_DiagContext* pDiag, int bTraceLower, XL_LowerResult* pResult);
+int xlLowerAst(
+	const XL_AstNode* pRoot,
+	const XL_SemResult* pSemResult,
+	XL_DiagContext* pDiag,
+	int bTraceLower,
+	XL_LowerResult* pResult
+);
 char* xlLowerDumpText(const XL_LowerResult* pResult);
 char* xlLowerDumpJson(const XL_LowerResult* pResult);
 char* xlHirDumpJson(const XL_HirNode* pNode);

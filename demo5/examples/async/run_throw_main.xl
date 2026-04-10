@@ -1,0 +1,7 @@
+async func fail() as int
+	throw Error("async boom")
+end
+
+async func main() as int
+	return await fail()
+end

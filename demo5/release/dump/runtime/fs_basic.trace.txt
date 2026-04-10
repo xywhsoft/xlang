@@ -1,30 +1,49 @@
 ModuleLoadOrder
 - [0] std.fs -> <native:std.fs> native=1 binding=std.fs
 - [1] std.io -> <native:std.io> native=1 binding=std.io
-- [2] <root> -> D:\Git\x-lang\demo5\examples\native\fs_basic.xl native=0 binding=
+- [2] <root> -> D:\git\x-lang\demo5\examples\native\fs_basic.xl native=0 binding=
 ModuleExports
 - module=std.fs
   export exists -> xl_mod_std_fs__exists
+  export is_file -> xl_mod_std_fs__is_file
+  export is_dir -> xl_mod_std_fs__is_dir
+  export size -> xl_mod_std_fs__size
   export read_all -> xl_mod_std_fs__read_all
   export write_all -> xl_mod_std_fs__write_all
   export append_all -> xl_mod_std_fs__append_all
   export mkdir_all -> xl_mod_std_fs__mkdir_all
+  export copy -> xl_mod_std_fs__copy
+  export move -> xl_mod_std_fs__move
+  export delete -> xl_mod_std_fs__delete
 - module=std.io
   export print -> xl_mod_std_io__print
   export println -> xl_mod_std_io__println
 - module=<root>
 NativeRegistry
 - key=std.core binding=std.core path=<native:std.core>
+- key=std.dir binding=std.dir path=<native:std.dir>
+- key=std.env binding=std.env path=<native:std.env>
+- key=std.fmt binding=std.fmt path=<native:std.fmt>
 - key=std.fs binding=std.fs path=<native:std.fs>
+- key=std.host binding=std.host path=<native:std.host>
 - key=std.io binding=std.io path=<native:std.io>
 - key=std.path binding=std.path path=<native:std.path>
+- key=std.rand binding=std.rand path=<native:std.rand>
+- key=std.process binding=std.process path=<native:std.process>
+- key=std.str binding=std.str path=<native:std.str>
 - key=std.time binding=std.time path=<native:std.time>
 - key=std.task binding=std.task path=<native:std.task>
-input=.\examples\native\fs_basic.xl
-libtcc=D:\Git\x-lang\demo5\lib\tcc\libtcc.dll
-tcc_root=D:\Git\x-lang\demo5\release\tcc
-compile_string
+tcc_root=D:\git\x-lang\demo5\release\tcc
+include=D:\git\x-lang\demo5\release\tcc\include_win
+include=D:\git\x-lang\demo5\release\tcc\include_win\winapi
+include=D:\git\x-lang\demo5\src\runtime
+include=D:\git\x-lang\demo5\lib\xrt
+lib=D:\git\x-lang\demo5\release\tcc\lib
+compile_text=D:\git\x-lang\demo5\examples\native\fs_basic.xl
 relocate
 resolve_symbol=xl_generated_entry
+cwd.prev=D:\git\x-lang\demo5
+cwd.exec=D:\git\x-lang\demo5
 execute
 exit_code=0
+cwd.restore=D:\git\x-lang\demo5

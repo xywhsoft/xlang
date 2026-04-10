@@ -1,5 +1,5 @@
 import std.core
 
 func 入口() as int
-	return std.core.恒等(std.core.版本)
+	return std.core.identity(std.core.version)
 end

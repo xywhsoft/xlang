@@ -1,0 +1,16 @@
+func 入口() as int
+	try
+		try
+			throw Error("inner")
+		catch e
+			throw Error("outer", cause = e)
+		end
+	catch e
+		if e.message == "outer"
+			if e.cause.message == "inner"
+				return 23
+			end
+		end
+		return 24
+	end
+end

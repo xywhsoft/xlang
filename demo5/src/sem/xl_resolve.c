@@ -6,6 +6,7 @@ typedef struct XL_ResolveContext {
 	int bTraceSem;
 	int iCurrentScopeId;
 	int iLoopDepth;
+	int iAsyncDepth;
 } XL_ResolveContext;
 
 static const XL_AstNode* __xlAstChild(const XL_AstNode* pNode, size_t iIndex)
@@ -15,6 +16,150 @@ static const XL_AstNode* __xlAstChild(const XL_AstNode* pNode, size_t iIndex)
 	}
 
 	return pNode->ppChildren[iIndex];
+}
+
+static const char* __xlArgName(const XL_AstNode* pNode)
+{
+	if ( (pNode == NULL) || (pNode->eKind != XL_AST_NAMED_ARG) ) {
+		return NULL;
+	}
+
+	return pNode->sText;
+}
+
+static const XL_AstNode* __xlArgValue(const XL_AstNode* pNode)
+{
+	if ( pNode == NULL ) {
+		return NULL;
+	}
+	if ( pNode->eKind == XL_AST_NAMED_ARG ) {
+		return __xlAstChild(pNode, 0);
+	}
+
+	return pNode;
+}
+
+static const XL_AstNode* __xlParamTypeNode(const XL_AstNode* pNode)
+{
+	return __xlAstChild(pNode, 0);
+}
+
+static const XL_AstNode* __xlParamDefaultNode(const XL_AstNode* pNode)
+{
+	return __xlAstChild(pNode, 1);
+}
+
+static int __xlIsStaticDefaultExpr(const XL_AstNode* pNode)
+{
+	size_t i;
+
+	if ( pNode == NULL ) {
+		return 1;
+	}
+
+	switch ( pNode->eKind ) {
+		case XL_AST_INT:
+		case XL_AST_FLOAT:
+		case XL_AST_STRING:
+		case XL_AST_TEMPLATE:
+		case XL_AST_BOOL:
+		case XL_AST_NULL:
+		case XL_AST_TIME:
+			return 1;
+		case XL_AST_UNARY:
+		case XL_AST_BINARY:
+			for ( i = 0; i < pNode->iChildCount; ++i ) {
+				if ( !__xlIsStaticDefaultExpr(pNode->ppChildren[i]) ) {
+					return 0;
+				}
+			}
+			return 1;
+		default:
+			return 0;
+	}
+}
+
+static const XL_AstNode* __xlBuiltinDefaultIntZero(void)
+{
+	static XL_AstNode* pNode = NULL;
+
+	if ( pNode == NULL ) {
+		pNode = xlAstCreateNode(XL_AST_INT, NULL);
+		if ( pNode != NULL ) {
+			pNode->iIntValue = 0;
+			xlAstSetText(pNode, "0", 1);
+		}
+	}
+	return pNode;
+}
+
+static const XL_AstNode* __xlBuiltinDefaultEmptyString(void)
+{
+	static XL_AstNode* pNode = NULL;
+
+	if ( pNode == NULL ) {
+		pNode = xlAstCreateNode(XL_AST_STRING, NULL);
+		if ( pNode != NULL ) {
+			xlAstSetText(pNode, "", 0);
+		}
+	}
+	return pNode;
+}
+
+static const XL_AstNode* __xlBuiltinDefaultNull(void)
+{
+	static XL_AstNode* pNode = NULL;
+
+	if ( pNode == NULL ) {
+		pNode = xlAstCreateNode(XL_AST_NULL, NULL);
+		if ( pNode != NULL ) {
+			xlAstSetText(pNode, "null", 4);
+		}
+	}
+	return pNode;
+}
+
+static const char* __xlErrorFieldTypeName(const char* sFieldName)
+{
+	if ( sFieldName == NULL ) {
+		return NULL;
+	}
+	if ( (strcmp(sFieldName, "type") == 0) || (strcmp(sFieldName, "message") == 0) ||
+		(strcmp(sFieldName, "data") == 0) || (strcmp(sFieldName, "stack") == 0) ) {
+		return "string";
+	}
+	if ( strcmp(sFieldName, "code") == 0 ) {
+		return "int";
+	}
+	if ( strcmp(sFieldName, "cause") == 0 ) {
+		return "error";
+	}
+	return NULL;
+}
+
+static int __xlTypeMatches(const char* sExpectedType, const char* sActualType)
+{
+	if ( (sExpectedType == NULL) || (sExpectedType[0] == '\0') ) {
+		return 1;
+	}
+	if ( (sActualType == NULL) || (sActualType[0] == '\0') ) {
+		return 1;
+	}
+	if ( strcmp(sExpectedType, sActualType) == 0 ) {
+		return 1;
+	}
+	if ( strcmp(sExpectedType, "any") == 0 ) {
+		return 1;
+	}
+	if ( (strcmp(sActualType, "null") == 0) && (strcmp(sExpectedType, "error") == 0) ) {
+		return 1;
+	}
+	if ( ((strcmp(sExpectedType, "string") == 0) && (strcmp(sActualType, "error") == 0)) ||
+		((strcmp(sExpectedType, "error") == 0) && (strcmp(sActualType, "string") == 0)) ) {
+		return 1;
+	}
+
+	return 0;
 }
 
 static int __xlNodeHasYield(const XL_AstNode* pNode)
@@ -40,6 +185,29 @@ static int __xlNodeHasYield(const XL_AstNode* pNode)
 	return 0;
 }
 
+static int __xlNodeHasFinallyEscape(const XL_AstNode* pNode)
+{
+	size_t i;
+
+	if ( pNode == NULL ) {
+		return 0;
+	}
+	if ( pNode->eKind == XL_AST_FUNC_DECL ) {
+		return 0;
+	}
+	if ( (pNode->eKind == XL_AST_RETURN) || (pNode->eKind == XL_AST_BREAK) || (pNode->eKind == XL_AST_CONTINUE) ) {
+		return 1;
+	}
+
+	for ( i = 0; i < pNode->iChildCount; ++i ) {
+		if ( __xlNodeHasFinallyEscape(pNode->ppChildren[i]) ) {
+			return 1;
+		}
+	}
+
+	return 0;
+}
+
 static char* __xlSemDupText(const char* sText)
 {
 	size_t iLen;
@@ -57,6 +225,114 @@ static char* __xlSemDupText(const char* sText)
 
 	memcpy(sCopy, sText, iLen + 1);
 	return sCopy;
+}
+
+static int __xlSemNodeGrow(XL_SemNodeTable* pTable)
+{
+	XL_SemNodeInfo* pNewItems;
+	size_t iNewCapacity;
+
+	if ( pTable == NULL ) {
+		return XL_RC_BAD_ARG;
+	}
+	if ( pTable->iCount < pTable->iCapacity ) {
+		return XL_RC_OK;
+	}
+
+	iNewCapacity = (pTable->iCapacity == 0) ? 32 : (pTable->iCapacity * 2);
+	pNewItems = (XL_SemNodeInfo*)realloc(pTable->pItems, sizeof(XL_SemNodeInfo) * iNewCapacity);
+	if ( pNewItems == NULL ) {
+		return XL_RC_IO_ERROR;
+	}
+
+	pTable->pItems = pNewItems;
+	pTable->iCapacity = iNewCapacity;
+	return XL_RC_OK;
+}
+
+static XL_SemNodeInfo* __xlSemNodeEnsure(XL_SemResult* pResult, const XL_AstNode* pNode)
+{
+	size_t i;
+
+	if ( (pResult == NULL) || (pNode == NULL) ) {
+		return NULL;
+	}
+
+	for ( i = 0; i < pResult->nodes.iCount; ++i ) {
+		if ( pResult->nodes.pItems[i].pNode == pNode ) {
+			return &pResult->nodes.pItems[i];
+		}
+	}
+
+	if ( __xlSemNodeGrow(&pResult->nodes) != XL_RC_OK ) {
+		return NULL;
+	}
+
+	memset(&pResult->nodes.pItems[pResult->nodes.iCount], 0, sizeof(pResult->nodes.pItems[pResult->nodes.iCount]));
+	pResult->nodes.pItems[pResult->nodes.iCount].pNode = pNode;
+	pResult->nodes.pItems[pResult->nodes.iCount].iScopeId = -1;
+	pResult->nodes.pItems[pResult->nodes.iCount].iSymbolIndex = -1;
+	pResult->nodes.pItems[pResult->nodes.iCount].iFuncIndex = -1;
+	return &pResult->nodes.pItems[pResult->nodes.iCount++];
+}
+
+static void __xlSemNodeSetType(XL_SemResult* pResult, const XL_AstNode* pNode, const char* sTypeName)
+{
+	XL_SemNodeInfo* pInfo;
+
+	if ( (pResult == NULL) || (pNode == NULL) ) {
+		return;
+	}
+
+	pInfo = __xlSemNodeEnsure(pResult, pNode);
+	if ( pInfo == NULL ) {
+		return;
+	}
+
+	free(pInfo->sTypeName);
+	pInfo->sTypeName = __xlSemDupText((sTypeName != NULL) ? sTypeName : "");
+}
+
+static void __xlSemNodeSetScope(XL_SemResult* pResult, const XL_AstNode* pNode, int iScopeId)
+{
+	XL_SemNodeInfo* pInfo;
+
+	if ( (pResult == NULL) || (pNode == NULL) ) {
+		return;
+	}
+
+	pInfo = __xlSemNodeEnsure(pResult, pNode);
+	if ( pInfo != NULL ) {
+		pInfo->iScopeId = iScopeId;
+	}
+}
+
+static void __xlSemNodeSetSymbol(XL_SemResult* pResult, const XL_AstNode* pNode, int iSymbolIndex)
+{
+	XL_SemNodeInfo* pInfo;
+
+	if ( (pResult == NULL) || (pNode == NULL) ) {
+		return;
+	}
+
+	pInfo = __xlSemNodeEnsure(pResult, pNode);
+	if ( pInfo != NULL ) {
+		pInfo->iSymbolIndex = iSymbolIndex;
+	}
+}
+
+static void __xlSemNodeSetFunc(XL_SemResult* pResult, const XL_AstNode* pNode, int iFuncIndex)
+{
+	XL_SemNodeInfo* pInfo;
+
+	if ( (pResult == NULL) || (pNode == NULL) ) {
+		return;
+	}
+
+	pInfo = __xlSemNodeEnsure(pResult, pNode);
+	if ( pInfo != NULL ) {
+		pInfo->iFuncIndex = iFuncIndex;
+	}
 }
 
 static int __xlSemDiagGrow(XL_SemDiagList* pList)
@@ -94,6 +370,23 @@ const char* xlSemDiagLevelName(XL_SemDiagLevel eLevel)
 		default:
 			return "unknown";
 	}
+}
+
+const XL_SemNodeInfo* xlSemNodeInfoFind(const XL_SemResult* pResult, const XL_AstNode* pNode)
+{
+	size_t i;
+
+	if ( (pResult == NULL) || (pNode == NULL) ) {
+		return NULL;
+	}
+
+	for ( i = 0; i < pResult->nodes.iCount; ++i ) {
+		if ( pResult->nodes.pItems[i].pNode == pNode ) {
+			return &pResult->nodes.pItems[i];
+		}
+	}
+
+	return NULL;
 }
 
 static int __xlSemAddDiag(
@@ -259,6 +552,9 @@ static int __xlDeclareSymbol(
 	const XL_AstNode* pNode
 )
 {
+	size_t iPrevCount;
+	int iRc;
+
 	if ( (sName == NULL) || (sName[0] == '\0') ) {
 		return XL_RC_OK;
 	}
@@ -266,7 +562,14 @@ static int __xlDeclareSymbol(
 		return __xlSemAddDiag(pCtx, XL_SEM_DIAG_ERROR, pNode, "duplicate symbol '%s' in current scope", sName);
 	}
 
-	return xlSymbolTableAdd(&pCtx->pResult->symbols, eKind, iScopeId, sName, sTypeName, iLine, iColumn, bAsync, bGenerator);
+	iPrevCount = pCtx->pResult->symbols.iCount;
+	iRc = xlSymbolTableAdd(&pCtx->pResult->symbols, eKind, iScopeId, sName, sTypeName, iLine, iColumn, bAsync, bGenerator);
+	if ( iRc == XL_RC_OK ) {
+		__xlSemNodeSetScope(pCtx->pResult, pNode, iScopeId);
+		__xlSemNodeSetSymbol(pCtx->pResult, pNode, (int)iPrevCount);
+		__xlSemNodeSetType(pCtx->pResult, pNode, sTypeName);
+	}
+	return iRc;
 }
 
 static int __xlResolveTypeRef(XL_ResolveContext* pCtx, const XL_AstNode* pNode)
@@ -330,16 +633,24 @@ static int __xlCollectFuncInfo(XL_ResolveContext* pCtx, const XL_AstNode* pNode,
 	const XL_AstNode* pRetType;
 	const XL_AstNode* pParam;
 	const XL_AstNode* pParamType;
+	const XL_AstNode* pParamDefault;
 	const char** arrParamNames;
 	const char** arrParamTypes;
+	const XL_AstNode** arrParamDefaults;
+	unsigned char* arrParamHasDefault;
 	size_t i;
 	int iRc;
 	int bGenerator;
+	int bSeenDefault;
+	size_t iPrevCount;
 
 	pParams = __xlAstChild(pNode, 0);
 	pRetType = __xlAstChild(pNode, 1);
 	arrParamNames = NULL;
 	arrParamTypes = NULL;
+	arrParamDefaults = NULL;
+	arrParamHasDefault = NULL;
+	bSeenDefault = 0;
 
 	if ( (pNode == NULL) || (pNode->sText == NULL) ) {
 		return XL_RC_BAD_ARG;
@@ -348,22 +659,46 @@ static int __xlCollectFuncInfo(XL_ResolveContext* pCtx, const XL_AstNode* pNode,
 	if ( (pParams != NULL) && (pParams->iChildCount != 0) ) {
 		arrParamNames = (const char**)calloc(pParams->iChildCount, sizeof(const char*));
 		arrParamTypes = (const char**)calloc(pParams->iChildCount, sizeof(const char*));
-		if ( (arrParamNames == NULL) || (arrParamTypes == NULL) ) {
+		arrParamDefaults = (const XL_AstNode**)calloc(pParams->iChildCount, sizeof(XL_AstNode*));
+		arrParamHasDefault = (unsigned char*)calloc(pParams->iChildCount, sizeof(unsigned char));
+		if ( (arrParamNames == NULL) || (arrParamTypes == NULL) ||
+			(arrParamDefaults == NULL) || (arrParamHasDefault == NULL) ) {
 			free(arrParamNames);
 			free(arrParamTypes);
+			free(arrParamDefaults);
+			free(arrParamHasDefault);
 			return XL_RC_IO_ERROR;
 		}
 
 		for ( i = 0; i < pParams->iChildCount; ++i ) {
 			pParam = pParams->ppChildren[i];
-			pParamType = __xlAstChild(pParam, 0);
+			pParamType = __xlParamTypeNode(pParam);
+			pParamDefault = __xlParamDefaultNode(pParam);
 			arrParamNames[i] = (pParam != NULL) ? pParam->sText : "";
 			arrParamTypes[i] = ((pParamType != NULL) && (pParamType->sText != NULL)) ? pParamType->sText : "";
+			arrParamDefaults[i] = pParamDefault;
+			arrParamHasDefault[i] = (pParamDefault != NULL) ? 1u : 0u;
+			if ( pParamDefault != NULL ) {
+				bSeenDefault = 1;
+			} else if ( bSeenDefault ) {
+				free(arrParamNames);
+				free(arrParamTypes);
+				free(arrParamDefaults);
+				free(arrParamHasDefault);
+				return __xlSemAddDiag(
+					pCtx,
+					XL_SEM_DIAG_ERROR,
+					pParam,
+					"required parameter '%s' cannot follow a default parameter",
+					(pParam != NULL) ? pParam->sText : ""
+				);
+			}
 		}
 	}
 
 	bGenerator = __xlNodeHasYield(__xlAstChild(pNode, 2));
 
+	iPrevCount = pCtx->pResult->funcs.iCount;
 	iRc = xlFuncTableAdd(
 		&pCtx->pResult->funcs,
 		pNode->sText,
@@ -371,6 +706,8 @@ static int __xlCollectFuncInfo(XL_ResolveContext* pCtx, const XL_AstNode* pNode,
 		arrParamNames,
 		arrParamTypes,
 		(pParams != NULL) ? pParams->iChildCount : 0,
+		arrParamHasDefault,
+		arrParamDefaults,
 		iScopeId,
 		pNode->iLine,
 		pNode->iColumn,
@@ -380,6 +717,16 @@ static int __xlCollectFuncInfo(XL_ResolveContext* pCtx, const XL_AstNode* pNode,
 
 	free(arrParamNames);
 	free(arrParamTypes);
+	free(arrParamDefaults);
+	free(arrParamHasDefault);
+	if ( iRc == XL_RC_OK ) {
+		__xlSemNodeSetFunc(pCtx->pResult, pNode, (int)iPrevCount);
+		__xlSemNodeSetType(
+			pCtx->pResult,
+			pNode,
+			((pRetType != NULL) && (pRetType->sText != NULL)) ? pRetType->sText : ""
+		);
+	}
 	return iRc;
 }
 
@@ -387,6 +734,7 @@ static const char* __xlInferExprType(XL_ResolveContext* pCtx, const XL_AstNode* 
 static int __xlResolveExpr(XL_ResolveContext* pCtx, const XL_AstNode* pNode);
 static int __xlResolveStmt(XL_ResolveContext* pCtx, const XL_AstNode* pNode);
 static int __xlResolveForIn(XL_ResolveContext* pCtx, const XL_AstNode* pNode);
+static int __xlResolveTry(XL_ResolveContext* pCtx, const XL_AstNode* pNode);
 
 static int __xlResolveBlock(XL_ResolveContext* pCtx, const XL_AstNode* pNode, const char* sName)
 {
@@ -412,6 +760,7 @@ static int __xlResolveBlock(XL_ResolveContext* pCtx, const XL_AstNode* pNode, co
 		return iRc;
 	}
 
+	__xlSemNodeSetScope(pCtx->pResult, pNode, iBlockScopeId);
 	__xlSemTrace(pCtx, pNode, "enter block '%s'", (sName != NULL) ? sName : "block");
 	iPrevScopeId = pCtx->iCurrentScopeId;
 	pCtx->iCurrentScopeId = iBlockScopeId;
@@ -496,7 +845,7 @@ static int __xlFormatArgTypes(
 	sOut[0] = '\0';
 	iUsed = 0;
 	for ( i = 0; (pArgs != NULL) && (i < pArgs->iChildCount); ++i ) {
-		sTypeName = __xlInferExprType(pCtx, pArgs->ppChildren[i]);
+		sTypeName = __xlInferExprType(pCtx, __xlArgValue(pArgs->ppChildren[i]));
 		iUsed += (size_t)snprintf(
 			sOut + iUsed,
 			(iUsed < iOutSize) ? (iOutSize - iUsed) : 0,
@@ -509,6 +858,156 @@ static int __xlFormatArgTypes(
 	return XL_RC_OK;
 }
 
+static int __xlFindParamIndexByName(const XL_FuncInfo* pFunc, const char* sName)
+{
+	size_t i;
+
+	if ( (pFunc == NULL) || (sName == NULL) || (sName[0] == '\0') ) {
+		return -1;
+	}
+
+	for ( i = 0; i < pFunc->iParamCount; ++i ) {
+		if ( (pFunc->arrParamNames[i] != NULL) && (strcmp(pFunc->arrParamNames[i], sName) == 0) ) {
+			return (int)i;
+		}
+	}
+
+	return -1;
+}
+
+static int __xlValidateCallArgShape(XL_ResolveContext* pCtx, const XL_AstNode* pCallNode, const XL_AstNode* pArgs)
+{
+	const XL_AstNode* pArg;
+	const char* sName;
+	size_t i;
+	size_t j;
+	int bSeenNamed;
+
+	bSeenNamed = 0;
+	for ( i = 0; (pArgs != NULL) && (i < pArgs->iChildCount); ++i ) {
+		pArg = pArgs->ppChildren[i];
+		sName = __xlArgName(pArg);
+		if ( sName != NULL ) {
+			bSeenNamed = 1;
+			for ( j = i + 1; j < pArgs->iChildCount; ++j ) {
+				if ( (__xlArgName(pArgs->ppChildren[j]) != NULL) &&
+					(strcmp(sName, __xlArgName(pArgs->ppChildren[j])) == 0) ) {
+					return __xlSemAddDiag(pCtx, XL_SEM_DIAG_ERROR, pCallNode, "duplicate named argument '%s'", sName);
+				}
+			}
+			continue;
+		}
+
+		if ( bSeenNamed ) {
+			return __xlSemAddDiag(pCtx, XL_SEM_DIAG_ERROR, pCallNode, "positional arguments cannot follow named arguments");
+		}
+	}
+
+	return XL_RC_OK;
+}
+
+static int __xlMatchCallToFunc(
+	XL_ResolveContext* pCtx,
+	const XL_FuncInfo* pFunc,
+	const XL_AstNode* pArgs,
+	int* piScore
+)
+{
+	const XL_AstNode* pArg;
+	const XL_AstNode* pValue;
+	const char* sName;
+	const char* sArgType;
+	const char* sParamType;
+	unsigned char* arrBound;
+	size_t i;
+	size_t iNextPos;
+	int iParamIndex;
+	int iScore;
+
+	if ( piScore != NULL ) {
+		*piScore = -1;
+	}
+	if ( (pCtx == NULL) || (pFunc == NULL) ) {
+		return XL_RC_BAD_ARG;
+	}
+
+	arrBound = (unsigned char*)calloc((pFunc->iParamCount != 0) ? pFunc->iParamCount : 1, sizeof(unsigned char));
+	if ( arrBound == NULL ) {
+		return XL_RC_IO_ERROR;
+	}
+
+	iScore = 0;
+	iNextPos = 0;
+	for ( i = 0; (pArgs != NULL) && (i < pArgs->iChildCount); ++i ) {
+		pArg = pArgs->ppChildren[i];
+		pValue = __xlArgValue(pArg);
+		sName = __xlArgName(pArg);
+		if ( sName != NULL ) {
+			iParamIndex = __xlFindParamIndexByName(pFunc, sName);
+			if ( iParamIndex < 0 ) {
+				free(arrBound);
+				return XL_RC_FAIL;
+			}
+		} else {
+			while ( (iNextPos < pFunc->iParamCount) && arrBound[iNextPos] ) {
+				++iNextPos;
+			}
+			if ( iNextPos >= pFunc->iParamCount ) {
+				free(arrBound);
+				return XL_RC_FAIL;
+			}
+			iParamIndex = (int)iNextPos;
+			++iNextPos;
+		}
+
+		if ( arrBound[iParamIndex] ) {
+			free(arrBound);
+			return XL_RC_FAIL;
+		}
+		arrBound[iParamIndex] = 1u;
+
+		sArgType = __xlInferExprType(pCtx, pValue);
+		sParamType = pFunc->arrParamTypes[iParamIndex];
+		if ( (sArgType != NULL) && (sArgType[0] != '\0') && (sParamType != NULL) && (sParamType[0] != '\0') ) {
+			if ( !__xlTypeMatches(sParamType, sArgType) ) {
+				free(arrBound);
+				return XL_RC_FAIL;
+			}
+			iScore += 2;
+		} else {
+			iScore += 1;
+		}
+	}
+
+	for ( i = 0; i < pFunc->iParamCount; ++i ) {
+		if ( arrBound[i] ) {
+			continue;
+		}
+		if ( (pFunc->arrParamHasDefault != NULL) && pFunc->arrParamHasDefault[i] ) {
+			sArgType = __xlInferExprType(pCtx, pFunc->arrParamDefaultValues[i]);
+			sParamType = pFunc->arrParamTypes[i];
+			if ( (sArgType != NULL) && (sArgType[0] != '\0') && (sParamType != NULL) && (sParamType[0] != '\0') ) {
+				if ( !__xlTypeMatches(sParamType, sArgType) ) {
+					free(arrBound);
+					return XL_RC_FAIL;
+				}
+				iScore += 2;
+			} else {
+				iScore += 1;
+			}
+			continue;
+		}
+		free(arrBound);
+		return XL_RC_FAIL;
+	}
+
+	free(arrBound);
+	if ( piScore != NULL ) {
+		*piScore = iScore;
+	}
+	return XL_RC_OK;
+}
+
 static int __xlResolveCallByName(
 	XL_ResolveContext* pCtx,
 	const XL_AstNode* pCallNode,
@@ -518,10 +1017,7 @@ static int __xlResolveCallByName(
 {
 	const XL_FuncInfo* pFunc;
 	const XL_SymbolInfo* pNonFunc;
-	const char* sArgType;
-	const char* sParamType;
 	size_t i;
-	size_t j;
 	size_t iArgCount;
 	size_t iNameMatchCount;
 	size_t iCompatibleCount;
@@ -529,7 +1025,6 @@ static int __xlResolveCallByName(
 	size_t iBestFuncIndex;
 	int iScore;
 	int iBestScore;
-	int bCompatible;
 	char sArgText[XL_DIAG_TEXT_MAX];
 
 	iArgCount = (pArgs != NULL) ? pArgs->iChildCount : 0;
@@ -549,28 +1044,7 @@ static int __xlResolveCallByName(
 		}
 
 		iNameMatchCount += 1;
-		if ( pFunc->iParamCount != iArgCount ) {
-			continue;
-		}
-
-		bCompatible = 1;
-		iScore = 0;
-		for ( j = 0; j < iArgCount; ++j ) {
-			sArgType = __xlInferExprType(pCtx, pArgs->ppChildren[j]);
-			sParamType = pFunc->arrParamTypes[j];
-			if ( (sArgType != NULL) && (sArgType[0] != '\0') && (sParamType != NULL) && (sParamType[0] != '\0') ) {
-				if ( strcmp(sArgType, sParamType) == 0 ) {
-					iScore += 2;
-				} else {
-					bCompatible = 0;
-					break;
-				}
-			} else {
-				iScore += 1;
-			}
-		}
-
-		if ( !bCompatible ) {
+		if ( __xlMatchCallToFunc(pCtx, pFunc, pArgs, &iScore) != XL_RC_OK ) {
 			continue;
 		}
 
@@ -618,6 +1092,12 @@ static int __xlResolveCallByName(
 
 	pFunc = xlFuncTableGet(&pCtx->pResult->funcs, iBestFuncIndex);
 	if ( pFunc != NULL ) {
+		__xlSemNodeSetFunc(pCtx->pResult, pCallNode, (int)iBestFuncIndex);
+		__xlSemNodeSetType(
+			pCtx->pResult,
+			pCallNode,
+			pFunc->bGenerator ? "generator" : ((pFunc->sReturnTypeName != NULL) ? pFunc->sReturnTypeName : "")
+		);
 		__xlSemTrace(
 			pCtx,
 			pCallNode,
@@ -641,6 +1121,11 @@ static int __xlResolveCallExpr(XL_ResolveContext* pCtx, const XL_AstNode* pNode)
 	pCallee = __xlAstChild(pNode, 0);
 	pArgs = __xlAstChild(pNode, 1);
 
+	iRc = __xlValidateCallArgShape(pCtx, pNode, pArgs);
+	if ( iRc != XL_RC_OK ) {
+		return iRc;
+	}
+
 	iRc = __xlResolveExprList(pCtx, pArgs);
 	if ( iRc != XL_RC_OK ) {
 		return iRc;
@@ -660,6 +1145,7 @@ static int __xlResolveCallExpr(XL_ResolveContext* pCtx, const XL_AstNode* pNode)
 
 static const char* __xlInferExprType(XL_ResolveContext* pCtx, const XL_AstNode* pNode)
 {
+	const XL_SemNodeInfo* pInfo;
 	const XL_SymbolInfo* pSymbol;
 	const XL_FuncInfo* pFunc;
 	const XL_AstNode* pLeft;
@@ -668,12 +1154,6 @@ static const char* __xlInferExprType(XL_ResolveContext* pCtx, const XL_AstNode* 
 	const char* sLeftType;
 	const char* sRightType;
 	size_t i;
-	size_t iArgCount;
-	int iBestScore;
-	size_t iBestFuncIndex;
-	size_t iBestMatchCount;
-	int iScore;
-	int bCompatible;
 
 	if ( pNode == NULL ) {
 		return "";
@@ -704,6 +1184,8 @@ static const char* __xlInferExprType(XL_ResolveContext* pCtx, const XL_AstNode* 
 				return "bool";
 			}
 			return __xlInferExprType(pCtx, __xlAstChild(pNode, 0));
+		case XL_AST_NAMED_ARG:
+			return __xlInferExprType(pCtx, __xlAstChild(pNode, 0));
 		case XL_AST_BINARY:
 			pLeft = __xlAstChild(pNode, 0);
 			pRight = __xlAstChild(pNode, 1);
@@ -728,58 +1210,9 @@ static const char* __xlInferExprType(XL_ResolveContext* pCtx, const XL_AstNode* 
 			}
 			return sLeftType;
 		case XL_AST_CALL:
-			pCallee = __xlAstChild(pNode, 0);
-			if ( (pCallee == NULL) || (pCallee->eKind != XL_AST_IDENT) || (pCallee->sText == NULL) ) {
-				return "";
-			}
-
-			iArgCount = (__xlAstChild(pNode, 1) != NULL) ? __xlAstChild(pNode, 1)->iChildCount : 0;
-			iBestScore = -1;
-			iBestFuncIndex = 0;
-			iBestMatchCount = 0;
-			for ( i = 0; i < pCtx->pResult->funcs.iCount; ++i ) {
-				pFunc = xlFuncTableGet(&pCtx->pResult->funcs, i);
-				if ( (pFunc == NULL) || (strcmp(pFunc->sName, pCallee->sText) != 0) ) {
-					continue;
-				}
-				if ( !__xlScopeContains(&pCtx->pResult->scopes, pCtx->iCurrentScopeId, pFunc->iScopeId) ) {
-					continue;
-				}
-				if ( pFunc->iParamCount != iArgCount ) {
-					continue;
-				}
-
-				bCompatible = 1;
-				iScore = 0;
-				for ( size_t j = 0; j < iArgCount; ++j ) {
-					sLeftType = __xlInferExprType(pCtx, __xlAstChild(__xlAstChild(pNode, 1), j));
-					sRightType = pFunc->arrParamTypes[j];
-					if ( (sLeftType != NULL) && (sLeftType[0] != '\0') && (sRightType != NULL) && (sRightType[0] != '\0') ) {
-						if ( strcmp(sLeftType, sRightType) == 0 ) {
-							iScore += 2;
-						} else {
-							bCompatible = 0;
-							break;
-						}
-					} else {
-						iScore += 1;
-					}
-				}
-
-				if ( !bCompatible ) {
-					continue;
-				}
-				if ( iScore > iBestScore ) {
-					iBestScore = iScore;
-					iBestFuncIndex = i;
-					iBestMatchCount = 1;
-				} else if ( iScore == iBestScore ) {
-					iBestMatchCount += 1;
-				}
-			}
-
-			if ( iBestMatchCount == 1 ) {
-				pFunc = xlFuncTableGet(&pCtx->pResult->funcs, iBestFuncIndex);
+			pInfo = xlSemNodeInfoFind(pCtx->pResult, pNode);
+			if ( (pInfo != NULL) && (pInfo->iFuncIndex >= 0) ) {
+				pFunc = xlFuncTableGet(&pCtx->pResult->funcs, (size_t)pInfo->iFuncIndex);
 				if ( pFunc == NULL ) {
 					return "";
 				}
@@ -787,6 +1220,19 @@ static const char* __xlInferExprType(XL_ResolveContext* pCtx, const XL_AstNode* 
 					return "generator";
 				}
 				return pFunc->sReturnTypeName;
+			}
+
+			pCallee = __xlAstChild(pNode, 0);
+			if ( (pCallee == NULL) || (pCallee->eKind != XL_AST_IDENT) || (pCallee->sText == NULL) ) {
+				return "";
+			}
+			return "";
+		case XL_AST_MEMBER:
+			pLeft = __xlAstChild(pNode, 0);
+			sLeftType = __xlInferExprType(pCtx, pLeft);
+			if ( (sLeftType != NULL) && (strcmp(sLeftType, "error") == 0) ) {
+				sRightType = __xlErrorFieldTypeName(pNode->sText);
+				return (sRightType != NULL) ? sRightType : "";
 			}
 			return "";
 		default:
@@ -825,6 +1271,7 @@ static int __xlResolveForIn(XL_ResolveContext* pCtx, const XL_AstNode* pNode)
 	}
 
 	sIterableType = __xlInferExprType(pCtx, pIterable);
+	__xlSemNodeSetType(pCtx->pResult, pIterable, sIterableType);
 	if ( (sIterableType != NULL) && (sIterableType[0] != '\0') && !xlCheckIterableTypeName(sIterableType) ) {
 		return __xlSemAddDiag(pCtx, XL_SEM_DIAG_ERROR, pIterable, "type '%s' is not iterable", sIterableType);
 	}
@@ -848,6 +1295,7 @@ static int __xlResolveForIn(XL_ResolveContext* pCtx, const XL_AstNode* pNode)
 		return iRc;
 	}
 
+	__xlSemNodeSetScope(pCtx->pResult, pNode, iLoopScopeId);
 	iPrevScopeId = pCtx->iCurrentScopeId;
 	iPrevLoopDepth = pCtx->iLoopDepth;
 	pCtx->iCurrentScopeId = iLoopScopeId;
@@ -893,6 +1341,7 @@ static int __xlResolveForIn(XL_ResolveContext* pCtx, const XL_AstNode* pNode)
 static int __xlResolveExpr(XL_ResolveContext* pCtx, const XL_AstNode* pNode)
 {
 	const XL_SymbolInfo* pSymbol;
+	const char* sTypeName;
 	size_t i;
 	int iRc;
 
@@ -906,11 +1355,42 @@ static int __xlResolveExpr(XL_ResolveContext* pCtx, const XL_AstNode* pNode)
 			if ( pSymbol == NULL ) {
 				return __xlSemAddDiag(pCtx, XL_SEM_DIAG_ERROR, pNode, "unresolved identifier '%s'", pNode->sText);
 			}
+			__xlSemNodeSetSymbol(pCtx->pResult, pNode, (int)(pSymbol - pCtx->pResult->symbols.pItems));
+			__xlSemNodeSetScope(pCtx->pResult, pNode, pCtx->iCurrentScopeId);
+			__xlSemNodeSetType(pCtx->pResult, pNode, pSymbol->sTypeName);
 			__xlSemTrace(pCtx, pNode, "resolved identifier '%s' -> %s", pNode->sText, xlSymbolKindName(pSymbol->eKind));
 			return XL_RC_OK;
 		case XL_AST_CALL:
-			return __xlResolveCallExpr(pCtx, pNode);
+			iRc = __xlResolveCallExpr(pCtx, pNode);
+			if ( iRc == XL_RC_OK ) {
+				__xlSemNodeSetScope(pCtx->pResult, pNode, pCtx->iCurrentScopeId);
+				__xlSemNodeSetType(pCtx->pResult, pNode, __xlInferExprType(pCtx, pNode));
+			}
+			return iRc;
 		case XL_AST_MEMBER:
+			for ( i = 0; i < pNode->iChildCount; ++i ) {
+				iRc = __xlResolveExpr(pCtx, pNode->ppChildren[i]);
+				if ( iRc != XL_RC_OK ) {
+					return iRc;
+				}
+			}
+			__xlSemNodeSetScope(pCtx->pResult, pNode, pCtx->iCurrentScopeId);
+			sTypeName = __xlInferExprType(pCtx, pNode);
+			if ( (__xlInferExprType(pCtx, __xlAstChild(pNode, 0)) != NULL) &&
+				(strcmp(__xlInferExprType(pCtx, __xlAstChild(pNode, 0)), "error") == 0) &&
+				((sTypeName == NULL) || (sTypeName[0] == '\0')) ) {
+				return __xlSemAddDiag(
+					pCtx,
+					XL_SEM_DIAG_ERROR,
+					pNode,
+					"error has no field '%s'",
+					(pNode->sText != NULL) ? pNode->sText : ""
+				);
+			}
+			if ( (sTypeName != NULL) && (sTypeName[0] != '\0') ) {
+				__xlSemNodeSetType(pCtx->pResult, pNode, sTypeName);
+			}
+			return XL_RC_OK;
 		case XL_AST_INDEX:
 		case XL_AST_BINARY:
 		case XL_AST_UNARY:
@@ -920,6 +1400,15 @@ static int __xlResolveExpr(XL_ResolveContext* pCtx, const XL_AstNode* pNode)
 				if ( iRc != XL_RC_OK ) {
 					return iRc;
 				}
+			}
+			if ( (pNode->eKind == XL_AST_UNARY) && (pNode->sText != NULL) && (strcmp(pNode->sText, "await") == 0) &&
+				(pCtx->iAsyncDepth <= 0) ) {
+				return __xlSemAddDiag(pCtx, XL_SEM_DIAG_ERROR, pNode, "await is only allowed in async function");
+			}
+			__xlSemNodeSetScope(pCtx->pResult, pNode, pCtx->iCurrentScopeId);
+			sTypeName = __xlInferExprType(pCtx, pNode);
+			if ( (sTypeName != NULL) && (sTypeName[0] != '\0') ) {
+				__xlSemNodeSetType(pCtx->pResult, pNode, sTypeName);
 			}
 			return XL_RC_OK;
 		case XL_AST_LIST:
@@ -931,6 +1420,8 @@ static int __xlResolveExpr(XL_ResolveContext* pCtx, const XL_AstNode* pNode)
 		case XL_AST_BOOL:
 		case XL_AST_NULL:
 		case XL_AST_TIME:
+			__xlSemNodeSetScope(pCtx->pResult, pNode, pCtx->iCurrentScopeId);
+			__xlSemNodeSetType(pCtx->pResult, pNode, __xlInferExprType(pCtx, pNode));
 			return XL_RC_OK;
 		default:
 			for ( i = 0; i < pNode->iChildCount; ++i ) {
@@ -938,6 +1429,11 @@ static int __xlResolveExpr(XL_ResolveContext* pCtx, const XL_AstNode* pNode)
 				if ( iRc != XL_RC_OK ) {
 					return iRc;
 				}
+			}
+			__xlSemNodeSetScope(pCtx->pResult, pNode, pCtx->iCurrentScopeId);
+			sTypeName = __xlInferExprType(pCtx, pNode);
+			if ( (sTypeName != NULL) && (sTypeName[0] != '\0') ) {
+				__xlSemNodeSetType(pCtx->pResult, pNode, sTypeName);
 			}
 			return XL_RC_OK;
 	}
@@ -976,7 +1472,15 @@ static int __xlResolveConstDecl(XL_ResolveContext* pCtx, const XL_AstNode* pNode
 	}
 
 	__xlSemTrace(pCtx, pNode, "declared %s '%s'", xlSymbolKindName(eKind), pNode->sText);
-	return __xlResolveExpr(pCtx, pValueNode);
+	iRc = __xlResolveExpr(pCtx, pValueNode);
+	if ( iRc == XL_RC_OK ) {
+		if ( (pTypeNode != NULL) && (pTypeNode->sText != NULL) ) {
+			__xlSemNodeSetType(pCtx->pResult, pNode, pTypeNode->sText);
+		} else {
+			__xlSemNodeSetType(pCtx->pResult, pNode, __xlInferExprType(pCtx, pValueNode));
+		}
+	}
+	return iRc;
 }
 
 static int __xlResolveIf(XL_ResolveContext* pCtx, const XL_AstNode* pNode)
@@ -1020,6 +1524,97 @@ static int __xlResolveIf(XL_ResolveContext* pCtx, const XL_AstNode* pNode)
 	return __xlResolveBlock(pCtx, pElseBlock, "if.else");
 }
 
+static int __xlResolveTry(XL_ResolveContext* pCtx, const XL_AstNode* pNode)
+{
+	const XL_AstNode* pTryBlock;
+	const XL_AstNode* pCatchName;
+	const XL_AstNode* pCatchBlock;
+	const XL_AstNode* pFinallyBlock;
+	int bHasCatch;
+	int bHasFinally;
+	int iRc;
+	int iPrevScopeId;
+	int iCatchScopeId;
+
+	pTryBlock = __xlAstChild(pNode, 0);
+	pCatchName = __xlAstChild(pNode, 1);
+	pCatchBlock = __xlAstChild(pNode, 2);
+	pFinallyBlock = __xlAstChild(pNode, 3);
+	bHasCatch = (pNode->bFlag & 1) != 0;
+	bHasFinally = (pNode->bFlag & 2) != 0;
+
+	if ( !bHasCatch && !bHasFinally ) {
+		return __xlSemAddDiag(pCtx, XL_SEM_DIAG_ERROR, pNode, "try requires catch or finally");
+	}
+	if ( bHasFinally &&
+		(__xlNodeHasFinallyEscape(pTryBlock) || __xlNodeHasFinallyEscape(pCatchBlock) || __xlNodeHasFinallyEscape(pFinallyBlock)) ) {
+		return __xlSemAddDiag(
+			pCtx,
+			XL_SEM_DIAG_ERROR,
+			pNode,
+			"return/break/continue inside try-finally is not supported in demo5"
+		);
+	}
+
+	iRc = __xlResolveBlock(pCtx, pTryBlock, "try.body");
+	if ( iRc != XL_RC_OK ) {
+		return iRc;
+	}
+
+	if ( bHasCatch ) {
+		iRc = xlScopeTableAdd(
+			&pCtx->pResult->scopes,
+			XL_SCOPE_BLOCK,
+			pCtx->iCurrentScopeId,
+			"try.catch",
+			pNode->iLine,
+			pNode->iColumn,
+			&iCatchScopeId
+		);
+		if ( iRc != XL_RC_OK ) {
+			return iRc;
+		}
+
+		iPrevScopeId = pCtx->iCurrentScopeId;
+		pCtx->iCurrentScopeId = iCatchScopeId;
+		if ( pCatchName != NULL ) {
+			iRc = __xlDeclareSymbol(
+				pCtx,
+				XL_SYMBOL_VAR,
+				pCtx->iCurrentScopeId,
+				pCatchName->sText,
+				"error",
+				pCatchName->iLine,
+				pCatchName->iColumn,
+				0,
+				0,
+				pCatchName
+			);
+			if ( iRc != XL_RC_OK ) {
+				pCtx->iCurrentScopeId = iPrevScopeId;
+				return iRc;
+			}
+			__xlSemTrace(pCtx, pCatchName, "declared catch binding '%s'", pCatchName->sText);
+		}
+
+		iRc = __xlResolveBlock(pCtx, pCatchBlock, "try.catch.body");
+		pCtx->iCurrentScopeId = iPrevScopeId;
+		if ( iRc != XL_RC_OK ) {
+			return iRc;
+		}
+	}
+
+	if ( bHasFinally ) {
+		iRc = __xlResolveBlock(pCtx, pFinallyBlock, "try.finally");
+		if ( iRc != XL_RC_OK ) {
+			return iRc;
+		}
+	}
+
+	__xlSemNodeSetScope(pCtx->pResult, pNode, pCtx->iCurrentScopeId);
+	return XL_RC_OK;
+}
+
 static int __xlResolveFuncDecl(XL_ResolveContext* pCtx, const XL_AstNode* pNode)
 {
 	const XL_AstNode* pParams;
@@ -1027,8 +1622,11 @@ static int __xlResolveFuncDecl(XL_ResolveContext* pCtx, const XL_AstNode* pNode)
 	const XL_AstNode* pBody;
 	const XL_AstNode* pParamNode;
 	const XL_AstNode* pParamType;
+	const XL_AstNode* pParamDefault;
+	const char* sDefaultType;
 	int iFuncScopeId;
 	int iPrevScopeId;
+	int iPrevAsyncDepth;
 	int iRc;
 	size_t i;
 
@@ -1079,14 +1677,20 @@ static int __xlResolveFuncDecl(XL_ResolveContext* pCtx, const XL_AstNode* pNode)
 		return iRc;
 	}
 
+	__xlSemNodeSetScope(pCtx->pResult, pNode, iFuncScopeId);
 	iPrevScopeId = pCtx->iCurrentScopeId;
+	iPrevAsyncDepth = pCtx->iAsyncDepth;
 	pCtx->iCurrentScopeId = iFuncScopeId;
+	if ( pNode->bFlag ) {
+		pCtx->iAsyncDepth += 1;
+	}
 	__xlSemTrace(pCtx, pNode, "enter func '%s'", pNode->sText);
 
 	if ( pParams != NULL ) {
 		for ( i = 0; i < pParams->iChildCount; ++i ) {
 			pParamNode = pParams->ppChildren[i];
-			pParamType = __xlAstChild(pParamNode, 0);
+			pParamType = __xlParamTypeNode(pParamNode);
+			pParamDefault = __xlParamDefaultNode(pParamNode);
 			if ( pParamType != NULL ) {
 				iRc = __xlResolveTypeRef(pCtx, pParamType);
 				if ( iRc != XL_RC_OK ) {
@@ -1111,11 +1715,48 @@ static int __xlResolveFuncDecl(XL_ResolveContext* pCtx, const XL_AstNode* pNode)
 				return iRc;
 			}
 			__xlSemTrace(pCtx, pParamNode, "declared param '%s'", pParamNode->sText);
+
+			if ( pParamDefault != NULL ) {
+				if ( !__xlIsStaticDefaultExpr(pParamDefault) ) {
+					pCtx->iCurrentScopeId = iPrevScopeId;
+					pCtx->iAsyncDepth = iPrevAsyncDepth;
+					return __xlSemAddDiag(
+						pCtx,
+						XL_SEM_DIAG_ERROR,
+						pParamDefault,
+						"default value for parameter '%s' must be a static expression in demo5",
+						pParamNode->sText
+					);
+				}
+				iRc = __xlResolveExpr(pCtx, pParamDefault);
+				if ( iRc != XL_RC_OK ) {
+					pCtx->iCurrentScopeId = iPrevScopeId;
+					pCtx->iAsyncDepth = iPrevAsyncDepth;
+					return iRc;
+				}
+				if ( (pParamType != NULL) && (pParamType->sText != NULL) && (pParamType->sText[0] != '\0') ) {
+					sDefaultType = __xlInferExprType(pCtx, pParamDefault);
+					if ( (sDefaultType != NULL) && (sDefaultType[0] != '\0') && !__xlTypeMatches(pParamType->sText, sDefaultType) ) {
+						pCtx->iCurrentScopeId = iPrevScopeId;
+						pCtx->iAsyncDepth = iPrevAsyncDepth;
+						return __xlSemAddDiag(
+							pCtx,
+							XL_SEM_DIAG_ERROR,
+							pParamDefault,
+							"default value for parameter '%s' has type '%s', expected '%s'",
+							pParamNode->sText,
+							sDefaultType,
+							pParamType->sText
+						);
+					}
+				}
+			}
 		}
 	}
 
 	iRc = __xlResolveBlock(pCtx, pBody, "func.body");
 	pCtx->iCurrentScopeId = iPrevScopeId;
+	pCtx->iAsyncDepth = iPrevAsyncDepth;
 	return iRc;
 }
 
@@ -1137,6 +1778,8 @@ static int __xlResolveStmt(XL_ResolveContext* pCtx, const XL_AstNode* pNode)
 			return __xlResolveConstDecl(pCtx, pNode, XL_SYMBOL_VAR);
 		case XL_AST_IF:
 			return __xlResolveIf(pCtx, pNode);
+		case XL_AST_TRY:
+			return __xlResolveTry(pCtx, pNode);
 		case XL_AST_FORIN:
 			return __xlResolveForIn(pCtx, pNode);
 		case XL_AST_IMPORT:
@@ -1162,9 +1805,33 @@ static int __xlResolveStmt(XL_ResolveContext* pCtx, const XL_AstNode* pNode)
 			return __xlResolveExpr(pCtx, __xlAstChild(pNode, 0));
 		case XL_AST_RETURN:
 		case XL_AST_THROW:
-		case XL_AST_ASSERT:
 		case XL_AST_YIELD:
 			return __xlResolveExpr(pCtx, __xlAstChild(pNode, 0));
+		case XL_AST_ASSERT:
+			iRc = __xlResolveExpr(pCtx, __xlAstChild(pNode, 0));
+			if ( iRc != XL_RC_OK ) {
+				return iRc;
+			}
+			if ( __xlAstChild(pNode, 1) != NULL ) {
+				const char* sAssertMsgType;
+
+				iRc = __xlResolveExpr(pCtx, __xlAstChild(pNode, 1));
+				if ( iRc != XL_RC_OK ) {
+					return iRc;
+				}
+				sAssertMsgType = __xlInferExprType(pCtx, __xlAstChild(pNode, 1));
+				if ( (sAssertMsgType != NULL) && (sAssertMsgType[0] != '\0') &&
+					!__xlTypeMatches("string", sAssertMsgType) ) {
+					return __xlSemAddDiag(
+						pCtx,
+						XL_SEM_DIAG_ERROR,
+						__xlAstChild(pNode, 1),
+						"assert message must be string-compatible, got '%s'",
+						sAssertMsgType
+					);
+				}
+			}
+			return XL_RC_OK;
 		case XL_AST_BREAK:
 			if ( !xlCheckJumpLevel((int)pNode->iIntValue) ) {
 				return __xlSemAddDiag(pCtx, XL_SEM_DIAG_ERROR, pNode, "break level must be a positive integer");
@@ -1193,6 +1860,7 @@ static int __xlRegisterBuiltinTypes(XL_SemResult* pResult)
 	static const char* arrBuiltinTypes[] = {
 		"any",
 		"bool",
+		"error",
 		"float",
 		"generator",
 		"int",
@@ -1226,18 +1894,59 @@ static int __xlRegisterBuiltinFuncs(XL_SemResult* pResult)
 	static const char* arrRange2Types[] = { "int", "int" };
 	static const char* arrRange3Names[] = { "start", "stop", "step" };
 	static const char* arrRange3Types[] = { "int", "int", "int" };
+	static const char* arrErrorNames[] = { "message", "code", "data", "stack", "cause" };
+	static const char* arrErrorTypes[] = { "string", "int", "string", "string", "error" };
+	static const unsigned char arrErrorHasDefault[] = { 0, 1, 1, 1, 1 };
+	const XL_AstNode* arrErrorDefaults[5];
 	int iRc;
 
-	iRc = xlFuncTableAdd(&pResult->funcs, "range", "range", arrRange1Names, arrRange1Types, 1, 0, 0, 0, 0, 0);
+	arrErrorDefaults[0] = NULL;
+	arrErrorDefaults[1] = __xlBuiltinDefaultIntZero();
+	arrErrorDefaults[2] = __xlBuiltinDefaultEmptyString();
+	arrErrorDefaults[3] = __xlBuiltinDefaultEmptyString();
+	arrErrorDefaults[4] = __xlBuiltinDefaultNull();
+
+	iRc = xlFuncTableAdd(&pResult->funcs, "range", "range", arrRange1Names, arrRange1Types, 1, NULL, NULL, 0, 0, 0, 0, 0);
 	if ( iRc != XL_RC_OK ) {
 		return iRc;
 	}
-	iRc = xlFuncTableAdd(&pResult->funcs, "range", "range", arrRange2Names, arrRange2Types, 2, 0, 0, 0, 0, 0);
+	iRc = xlFuncTableAdd(&pResult->funcs, "range", "range", arrRange2Names, arrRange2Types, 2, NULL, NULL, 0, 0, 0, 0, 0);
 	if ( iRc != XL_RC_OK ) {
 		return iRc;
 	}
-	iRc = xlFuncTableAdd(&pResult->funcs, "range", "range", arrRange3Names, arrRange3Types, 3, 0, 0, 0, 0, 0);
-	return iRc;
+	iRc = xlFuncTableAdd(&pResult->funcs, "range", "range", arrRange3Names, arrRange3Types, 3, NULL, NULL, 0, 0, 0, 0, 0);
+	if ( iRc != XL_RC_OK ) {
+		return iRc;
+	}
+	iRc = xlFuncTableAdd(&pResult->funcs, "Error", "error", arrErrorNames, arrErrorTypes, 5, arrErrorHasDefault, arrErrorDefaults, 0, 0, 0, 0, 0);
+	if ( iRc != XL_RC_OK ) {
+		return iRc;
+	}
+	iRc = xlFuncTableAdd(&pResult->funcs, "TypeError", "error", arrErrorNames, arrErrorTypes, 5, arrErrorHasDefault, arrErrorDefaults, 0, 0, 0, 0, 0);
+	if ( iRc != XL_RC_OK ) {
+		return iRc;
+	}
+	iRc = xlFuncTableAdd(&pResult->funcs, "ValueError", "error", arrErrorNames, arrErrorTypes, 5, arrErrorHasDefault, arrErrorDefaults, 0, 0, 0, 0, 0);
+	if ( iRc != XL_RC_OK ) {
+		return iRc;
+	}
+	iRc = xlFuncTableAdd(&pResult->funcs, "IOError", "error", arrErrorNames, arrErrorTypes, 5, arrErrorHasDefault, arrErrorDefaults, 0, 0, 0, 0, 0);
+	if ( iRc != XL_RC_OK ) {
+		return iRc;
+	}
+	iRc = xlFuncTableAdd(&pResult->funcs, "TimeoutError", "error", arrErrorNames, arrErrorTypes, 5, arrErrorHasDefault, arrErrorDefaults, 0, 0, 0, 0, 0);
+	if ( iRc != XL_RC_OK ) {
+		return iRc;
+	}
+	iRc = xlFuncTableAdd(&pResult->funcs, "CancelledError", "error", arrErrorNames, arrErrorTypes, 5, arrErrorHasDefault, arrErrorDefaults, 0, 0, 0, 0, 0);
+	if ( iRc != XL_RC_OK ) {
+		return iRc;
+	}
+	iRc = xlFuncTableAdd(&pResult->funcs, "NotImplementedError", "error", arrErrorNames, arrErrorTypes, 5, arrErrorHasDefault, arrErrorDefaults, 0, 0, 0, 0, 0);
+	if ( iRc != XL_RC_OK ) {
+		return iRc;
+	}
+	return xlFuncTableAdd(&pResult->funcs, "NativeError", "error", arrErrorNames, arrErrorTypes, 5, arrErrorHasDefault, arrErrorDefaults, 0, 0, 0, 0, 0);
 }
 
 static int __xlCollectTopLevelFuncs(XL_ResolveContext* pCtx, const XL_AstNode* pRoot)
@@ -1303,7 +2012,11 @@ void xlSemResultFree(XL_SemResult* pResult)
 	for ( i = 0; i < pResult->diags.iCount; ++i ) {
 		free(pResult->diags.pItems[i].sMessage);
 	}
+	for ( i = 0; i < pResult->nodes.iCount; ++i ) {
+		free(pResult->nodes.pItems[i].sTypeName);
+	}
 	free(pResult->diags.pItems);
+	free(pResult->nodes.pItems);
 	xlScopeTableFree(&pResult->scopes);
 	xlSymbolTableFree(&pResult->symbols);
 	xlTypeTableFree(&pResult->types);
@@ -1333,6 +2046,7 @@ int xlSemAnalyzeAst(const XL_AstNode* pRoot, XL_DiagContext* pDiag, int bTraceSe
 		xlSemResultFree(pResult);
 		return iRc;
 	}
+	__xlSemNodeSetScope(pResult, pRoot, ctx.iCurrentScopeId);
 
 	iRc = __xlRegisterBuiltinTypes(pResult);
 	if ( iRc != XL_RC_OK ) {
