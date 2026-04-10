@@ -1,0 +1,721 @@
+{
+	"format": "xlp-0",
+	"package": {
+		"name": "stdlib_pipeline",
+		"version": "0.0.0",
+		"abiVersion": "1",
+		"xlangAbi": "1",
+		"abiId": "stdlib_pipeline@0.0.0#abi1"
+	},
+	"dependencies": [
+		{
+			"name": "std.fs",
+			"kind": "native",
+			"version": "0.0.0",
+			"abiVersion": "1",
+			"abiId": "std.fs@0.0.0#abi1",
+			"binding": "std.fs",
+			"usedBy": ["<root>"]
+		},
+		{
+			"name": "std.str",
+			"kind": "native",
+			"version": "0.0.0",
+			"abiVersion": "1",
+			"abiId": "std.str@0.0.0#abi1",
+			"binding": "std.str",
+			"usedBy": ["<root>"]
+		},
+		{
+			"name": "std.process",
+			"kind": "native",
+			"version": "0.0.0",
+			"abiVersion": "1",
+			"abiId": "std.process@0.0.0#abi1",
+			"binding": "std.process",
+			"usedBy": ["<root>"]
+		}
+	],
+	"modules": [
+		{
+			"key": "std.fs",
+			"abiId": "stdlib_pipeline@0.0.0#abi1::std.fs",
+			"file": "<native:std.fs>",
+			"root": 0,
+			"native": 1,
+			"binding": "std.fs",
+			"imports": [],
+			"exports": [
+				{
+					"name": "exists",
+					"symbol": "xl_mod_std_fs__exists",
+					"kind": "function",
+					"overloadCount": 1
+				},
+				{
+					"name": "is_file",
+					"symbol": "xl_mod_std_fs__is_file",
+					"kind": "function",
+					"overloadCount": 1
+				},
+				{
+					"name": "is_dir",
+					"symbol": "xl_mod_std_fs__is_dir",
+					"kind": "function",
+					"overloadCount": 1
+				},
+				{
+					"name": "size",
+					"symbol": "xl_mod_std_fs__size",
+					"kind": "function",
+					"overloadCount": 1
+				},
+				{
+					"name": "read_all",
+					"symbol": "xl_mod_std_fs__read_all",
+					"kind": "function",
+					"overloadCount": 1
+				},
+				{
+					"name": "write_all",
+					"symbol": "xl_mod_std_fs__write_all",
+					"kind": "function",
+					"overloadCount": 1
+				},
+				{
+					"name": "append_all",
+					"symbol": "xl_mod_std_fs__append_all",
+					"kind": "function",
+					"overloadCount": 1
+				},
+				{
+					"name": "mkdir_all",
+					"symbol": "xl_mod_std_fs__mkdir_all",
+					"kind": "function",
+					"overloadCount": 1
+				},
+				{
+					"name": "copy",
+					"symbol": "xl_mod_std_fs__copy",
+					"kind": "function",
+					"overloadCount": 1
+				},
+				{
+					"name": "move",
+					"symbol": "xl_mod_std_fs__move",
+					"kind": "function",
+					"overloadCount": 1
+				},
+				{
+					"name": "delete",
+					"symbol": "xl_mod_std_fs__delete",
+					"kind": "function",
+					"overloadCount": 1
+				}
+			]
+		},
+		{
+			"key": "std.str",
+			"abiId": "stdlib_pipeline@0.0.0#abi1::std.str",
+			"file": "<native:std.str>",
+			"root": 0,
+			"native": 1,
+			"binding": "std.str",
+			"imports": [],
+			"exports": [
+				{
+					"name": "contains",
+					"symbol": "xl_mod_std_str__contains",
+					"kind": "function",
+					"overloadCount": 1
+				},
+				{
+					"name": "starts_with",
+					"symbol": "xl_mod_std_str__starts_with",
+					"kind": "function",
+					"overloadCount": 1
+				},
+				{
+					"name": "ends_with",
+					"symbol": "xl_mod_std_str__ends_with",
+					"kind": "function",
+					"overloadCount": 1
+				},
+				{
+					"name": "lower",
+					"symbol": "xl_mod_std_str__lower",
+					"kind": "function",
+					"overloadCount": 1
+				},
+				{
+					"name": "upper",
+					"symbol": "xl_mod_std_str__upper",
+					"kind": "function",
+					"overloadCount": 1
+				},
+				{
+					"name": "replace",
+					"symbol": "xl_mod_std_str__replace",
+					"kind": "function",
+					"overloadCount": 1
+				}
+			]
+		},
+		{
+			"key": "std.process",
+			"abiId": "stdlib_pipeline@0.0.0#abi1::std.process",
+			"file": "<native:std.process>",
+			"root": 0,
+			"native": 1,
+			"binding": "std.process",
+			"imports": [],
+			"exports": [
+				{
+					"name": "exec",
+					"symbol": "xl_mod_std_process__exec",
+					"kind": "function",
+					"overloadCount": 1
+				},
+				{
+					"name": "capture",
+					"symbol": "xl_mod_std_process__capture",
+					"kind": "function",
+					"overloadCount": 1
+				},
+				{
+					"name": "exec_in",
+					"symbol": "xl_mod_std_process__exec_in",
+					"kind": "function",
+					"overloadCount": 1
+				},
+				{
+					"name": "capture_in",
+					"symbol": "xl_mod_std_process__capture_in",
+					"kind": "function",
+					"overloadCount": 1
+				}
+			]
+		},
+		{
+			"key": "<root>",
+			"abiId": "stdlib_pipeline@0.0.0#abi1::<root>",
+			"file": "D:\\git\\x-lang\\demo5\\examples\\native\\stdlib_pipeline.xl",
+			"root": 1,
+			"native": 0,
+			"binding": "",
+			"imports": ["std.fs", "std.str", "std.process"],
+			"exports": []
+		}
+	],
+	"functions": [
+		{
+			"module": "std.fs",
+			"moduleAbiId": "stdlib_pipeline@0.0.0#abi1::std.fs",
+			"exportName": "exists",
+			"symbol": "xl_mod_std_fs__exists",
+			"overloadGroup": "global::xl_mod_std_fs__exists",
+			"signatureId": "xl_mod_std_fs__exists(string)",
+			"dispatchKey": "xl_mod_std_fs__exists$arity1|path:string",
+			"abiSymbol": "xl__xl_mod_std_fs__exists__arity1__path__string__ret__bool",
+			"returnType": "bool",
+			"async": 0,
+			"generator": 0,
+			"params": [
+				{
+					"name": "path",
+					"label": "path",
+					"type": "string",
+					"hasDefault": 0
+				}
+			]
+		},
+		{
+			"module": "std.fs",
+			"moduleAbiId": "stdlib_pipeline@0.0.0#abi1::std.fs",
+			"exportName": "is_file",
+			"symbol": "xl_mod_std_fs__is_file",
+			"overloadGroup": "global::xl_mod_std_fs__is_file",
+			"signatureId": "xl_mod_std_fs__is_file(string)",
+			"dispatchKey": "xl_mod_std_fs__is_file$arity1|path:string",
+			"abiSymbol": "xl__xl_mod_std_fs__is_file__arity1__path__string__ret__bool",
+			"returnType": "bool",
+			"async": 0,
+			"generator": 0,
+			"params": [
+				{
+					"name": "path",
+					"label": "path",
+					"type": "string",
+					"hasDefault": 0
+				}
+			]
+		},
+		{
+			"module": "std.fs",
+			"moduleAbiId": "stdlib_pipeline@0.0.0#abi1::std.fs",
+			"exportName": "is_dir",
+			"symbol": "xl_mod_std_fs__is_dir",
+			"overloadGroup": "global::xl_mod_std_fs__is_dir",
+			"signatureId": "xl_mod_std_fs__is_dir(string)",
+			"dispatchKey": "xl_mod_std_fs__is_dir$arity1|path:string",
+			"abiSymbol": "xl__xl_mod_std_fs__is_dir__arity1__path__string__ret__bool",
+			"returnType": "bool",
+			"async": 0,
+			"generator": 0,
+			"params": [
+				{
+					"name": "path",
+					"label": "path",
+					"type": "string",
+					"hasDefault": 0
+				}
+			]
+		},
+		{
+			"module": "std.fs",
+			"moduleAbiId": "stdlib_pipeline@0.0.0#abi1::std.fs",
+			"exportName": "size",
+			"symbol": "xl_mod_std_fs__size",
+			"overloadGroup": "global::xl_mod_std_fs__size",
+			"signatureId": "xl_mod_std_fs__size(string)",
+			"dispatchKey": "xl_mod_std_fs__size$arity1|path:string",
+			"abiSymbol": "xl__xl_mod_std_fs__size__arity1__path__string__ret__int",
+			"returnType": "int",
+			"async": 0,
+			"generator": 0,
+			"params": [
+				{
+					"name": "path",
+					"label": "path",
+					"type": "string",
+					"hasDefault": 0
+				}
+			]
+		},
+		{
+			"module": "std.fs",
+			"moduleAbiId": "stdlib_pipeline@0.0.0#abi1::std.fs",
+			"exportName": "read_all",
+			"symbol": "xl_mod_std_fs__read_all",
+			"overloadGroup": "global::xl_mod_std_fs__read_all",
+			"signatureId": "xl_mod_std_fs__read_all(string)",
+			"dispatchKey": "xl_mod_std_fs__read_all$arity1|path:string",
+			"abiSymbol": "xl__xl_mod_std_fs__read_all__arity1__path__string__ret__string",
+			"returnType": "string",
+			"async": 0,
+			"generator": 0,
+			"params": [
+				{
+					"name": "path",
+					"label": "path",
+					"type": "string",
+					"hasDefault": 0
+				}
+			]
+		},
+		{
+			"module": "std.fs",
+			"moduleAbiId": "stdlib_pipeline@0.0.0#abi1::std.fs",
+			"exportName": "write_all",
+			"symbol": "xl_mod_std_fs__write_all",
+			"overloadGroup": "global::xl_mod_std_fs__write_all",
+			"signatureId": "xl_mod_std_fs__write_all(string,string)",
+			"dispatchKey": "xl_mod_std_fs__write_all$arity2|path:string|text:string",
+			"abiSymbol": "xl__xl_mod_std_fs__write_all__arity2__path__string__text__string__ret__bool",
+			"returnType": "bool",
+			"async": 0,
+			"generator": 0,
+			"params": [
+				{
+					"name": "path",
+					"label": "path",
+					"type": "string",
+					"hasDefault": 0
+				},
+				{
+					"name": "text",
+					"label": "text",
+					"type": "string",
+					"hasDefault": 0
+				}
+			]
+		},
+		{
+			"module": "std.fs",
+			"moduleAbiId": "stdlib_pipeline@0.0.0#abi1::std.fs",
+			"exportName": "append_all",
+			"symbol": "xl_mod_std_fs__append_all",
+			"overloadGroup": "global::xl_mod_std_fs__append_all",
+			"signatureId": "xl_mod_std_fs__append_all(string,string)",
+			"dispatchKey": "xl_mod_std_fs__append_all$arity2|path:string|text:string",
+			"abiSymbol": "xl__xl_mod_std_fs__append_all__arity2__path__string__text__string__ret__bool",
+			"returnType": "bool",
+			"async": 0,
+			"generator": 0,
+			"params": [
+				{
+					"name": "path",
+					"label": "path",
+					"type": "string",
+					"hasDefault": 0
+				},
+				{
+					"name": "text",
+					"label": "text",
+					"type": "string",
+					"hasDefault": 0
+				}
+			]
+		},
+		{
+			"module": "std.fs",
+			"moduleAbiId": "stdlib_pipeline@0.0.0#abi1::std.fs",
+			"exportName": "mkdir_all",
+			"symbol": "xl_mod_std_fs__mkdir_all",
+			"overloadGroup": "global::xl_mod_std_fs__mkdir_all",
+			"signatureId": "xl_mod_std_fs__mkdir_all(string)",
+			"dispatchKey": "xl_mod_std_fs__mkdir_all$arity1|path:string",
+			"abiSymbol": "xl__xl_mod_std_fs__mkdir_all__arity1__path__string__ret__bool",
+			"returnType": "bool",
+			"async": 0,
+			"generator": 0,
+			"params": [
+				{
+					"name": "path",
+					"label": "path",
+					"type": "string",
+					"hasDefault": 0
+				}
+			]
+		},
+		{
+			"module": "std.fs",
+			"moduleAbiId": "stdlib_pipeline@0.0.0#abi1::std.fs",
+			"exportName": "copy",
+			"symbol": "xl_mod_std_fs__copy",
+			"overloadGroup": "global::xl_mod_std_fs__copy",
+			"signatureId": "xl_mod_std_fs__copy(string,string)",
+			"dispatchKey": "xl_mod_std_fs__copy$arity2|src:string|dst:string",
+			"abiSymbol": "xl__xl_mod_std_fs__copy__arity2__src__string__dst__string__ret__bool",
+			"returnType": "bool",
+			"async": 0,
+			"generator": 0,
+			"params": [
+				{
+					"name": "src",
+					"label": "src",
+					"type": "string",
+					"hasDefault": 0
+				},
+				{
+					"name": "dst",
+					"label": "dst",
+					"type": "string",
+					"hasDefault": 0
+				}
+			]
+		},
+		{
+			"module": "std.fs",
+			"moduleAbiId": "stdlib_pipeline@0.0.0#abi1::std.fs",
+			"exportName": "move",
+			"symbol": "xl_mod_std_fs__move",
+			"overloadGroup": "global::xl_mod_std_fs__move",
+			"signatureId": "xl_mod_std_fs__move(string,string)",
+			"dispatchKey": "xl_mod_std_fs__move$arity2|src:string|dst:string",
+			"abiSymbol": "xl__xl_mod_std_fs__move__arity2__src__string__dst__string__ret__bool",
+			"returnType": "bool",
+			"async": 0,
+			"generator": 0,
+			"params": [
+				{
+					"name": "src",
+					"label": "src",
+					"type": "string",
+					"hasDefault": 0
+				},
+				{
+					"name": "dst",
+					"label": "dst",
+					"type": "string",
+					"hasDefault": 0
+				}
+			]
+		},
+		{
+			"module": "std.fs",
+			"moduleAbiId": "stdlib_pipeline@0.0.0#abi1::std.fs",
+			"exportName": "delete",
+			"symbol": "xl_mod_std_fs__delete",
+			"overloadGroup": "global::xl_mod_std_fs__delete",
+			"signatureId": "xl_mod_std_fs__delete(string)",
+			"dispatchKey": "xl_mod_std_fs__delete$arity1|path:string",
+			"abiSymbol": "xl__xl_mod_std_fs__delete__arity1__path__string__ret__bool",
+			"returnType": "bool",
+			"async": 0,
+			"generator": 0,
+			"params": [
+				{
+					"name": "path",
+					"label": "path",
+					"type": "string",
+					"hasDefault": 0
+				}
+			]
+		},
+
+		{
+			"module": "std.str",
+			"moduleAbiId": "stdlib_pipeline@0.0.0#abi1::std.str",
+			"exportName": "contains",
+			"symbol": "xl_mod_std_str__contains",
+			"overloadGroup": "global::xl_mod_std_str__contains",
+			"signatureId": "xl_mod_std_str__contains(string,string)",
+			"dispatchKey": "xl_mod_std_str__contains$arity2|text:string|part:string",
+			"abiSymbol": "xl__xl_mod_std_str__contains__arity2__text__string__part__string__ret__bool",
+			"returnType": "bool",
+			"async": 0,
+			"generator": 0,
+			"params": [
+				{
+					"name": "text",
+					"label": "text",
+					"type": "string",
+					"hasDefault": 0
+				},
+				{
+					"name": "part",
+					"label": "part",
+					"type": "string",
+					"hasDefault": 0
+				}
+			]
+		},
+		{
+			"module": "std.str",
+			"moduleAbiId": "stdlib_pipeline@0.0.0#abi1::std.str",
+			"exportName": "starts_with",
+			"symbol": "xl_mod_std_str__starts_with",
+			"overloadGroup": "global::xl_mod_std_str__starts_with",
+			"signatureId": "xl_mod_std_str__starts_with(string,string)",
+			"dispatchKey": "xl_mod_std_str__starts_with$arity2|text:string|part:string",
+			"abiSymbol": "xl__xl_mod_std_str__starts_with__arity2__text__string__part__string__ret__bool",
+			"returnType": "bool",
+			"async": 0,
+			"generator": 0,
+			"params": [
+				{
+					"name": "text",
+					"label": "text",
+					"type": "string",
+					"hasDefault": 0
+				},
+				{
+					"name": "part",
+					"label": "part",
+					"type": "string",
+					"hasDefault": 0
+				}
+			]
+		},
+		{
+			"module": "std.str",
+			"moduleAbiId": "stdlib_pipeline@0.0.0#abi1::std.str",
+			"exportName": "ends_with",
+			"symbol": "xl_mod_std_str__ends_with",
+			"overloadGroup": "global::xl_mod_std_str__ends_with",
+			"signatureId": "xl_mod_std_str__ends_with(string,string)",
+			"dispatchKey": "xl_mod_std_str__ends_with$arity2|text:string|part:string",
+			"abiSymbol": "xl__xl_mod_std_str__ends_with__arity2__text__string__part__string__ret__bool",
+			"returnType": "bool",
+			"async": 0,
+			"generator": 0,
+			"params": [
+				{
+					"name": "text",
+					"label": "text",
+					"type": "string",
+					"hasDefault": 0
+				},
+				{
+					"name": "part",
+					"label": "part",
+					"type": "string",
+					"hasDefault": 0
+				}
+			]
+		},
+		{
+			"module": "std.str",
+			"moduleAbiId": "stdlib_pipeline@0.0.0#abi1::std.str",
+			"exportName": "lower",
+			"symbol": "xl_mod_std_str__lower",
+			"overloadGroup": "global::xl_mod_std_str__lower",
+			"signatureId": "xl_mod_std_str__lower(string)",
+			"dispatchKey": "xl_mod_std_str__lower$arity1|text:string",
+			"abiSymbol": "xl__xl_mod_std_str__lower__arity1__text__string__ret__string",
+			"returnType": "string",
+			"async": 0,
+			"generator": 0,
+			"params": [
+				{
+					"name": "text",
+					"label": "text",
+					"type": "string",
+					"hasDefault": 0
+				}
+			]
+		},
+		{
+			"module": "std.str",
+			"moduleAbiId": "stdlib_pipeline@0.0.0#abi1::std.str",
+			"exportName": "upper",
+			"symbol": "xl_mod_std_str__upper",
+			"overloadGroup": "global::xl_mod_std_str__upper",
+			"signatureId": "xl_mod_std_str__upper(string)",
+			"dispatchKey": "xl_mod_std_str__upper$arity1|text:string",
+			"abiSymbol": "xl__xl_mod_std_str__upper__arity1__text__string__ret__string",
+			"returnType": "string",
+			"async": 0,
+			"generator": 0,
+			"params": [
+				{
+					"name": "text",
+					"label": "text",
+					"type": "string",
+					"hasDefault": 0
+				}
+			]
+		},
+		{
+			"module": "std.str",
+			"moduleAbiId": "stdlib_pipeline@0.0.0#abi1::std.str",
+			"exportName": "replace",
+			"symbol": "xl_mod_std_str__replace",
+			"overloadGroup": "global::xl_mod_std_str__replace",
+			"signatureId": "xl_mod_std_str__replace(string,string,string)",
+			"dispatchKey": "xl_mod_std_str__replace$arity3|text:string|part:string|value:string",
+			"abiSymbol": "xl__xl_mod_std_str__replace__arity3__text__string__part__string__value__string__ret__string",
+			"returnType": "string",
+			"async": 0,
+			"generator": 0,
+			"params": [
+				{
+					"name": "text",
+					"label": "text",
+					"type": "string",
+					"hasDefault": 0
+				},
+				{
+					"name": "part",
+					"label": "part",
+					"type": "string",
+					"hasDefault": 0
+				},
+				{
+					"name": "value",
+					"label": "value",
+					"type": "string",
+					"hasDefault": 0
+				}
+			]
+		},
+
+		{
+			"module": "std.process",
+			"moduleAbiId": "stdlib_pipeline@0.0.0#abi1::std.process",
+			"exportName": "exec",
+			"symbol": "xl_mod_std_process__exec",
+			"overloadGroup": "global::xl_mod_std_process__exec",
+			"signatureId": "xl_mod_std_process__exec(string)",
+			"dispatchKey": "xl_mod_std_process__exec$arity1|command:string",
+			"abiSymbol": "xl__xl_mod_std_process__exec__arity1__command__string__ret__int",
+			"returnType": "int",
+			"async": 0,
+			"generator": 0,
+			"params": [
+				{
+					"name": "command",
+					"label": "command",
+					"type": "string",
+					"hasDefault": 0
+				}
+			]
+		},
+		{
+			"module": "std.process",
+			"moduleAbiId": "stdlib_pipeline@0.0.0#abi1::std.process",
+			"exportName": "capture",
+			"symbol": "xl_mod_std_process__capture",
+			"overloadGroup": "global::xl_mod_std_process__capture",
+			"signatureId": "xl_mod_std_process__capture(string)",
+			"dispatchKey": "xl_mod_std_process__capture$arity1|command:string",
+			"abiSymbol": "xl__xl_mod_std_process__capture__arity1__command__string__ret__string",
+			"returnType": "string",
+			"async": 0,
+			"generator": 0,
+			"params": [
+				{
+					"name": "command",
+					"label": "command",
+					"type": "string",
+					"hasDefault": 0
+				}
+			]
+		},
+		{
+			"module": "std.process",
+			"moduleAbiId": "stdlib_pipeline@0.0.0#abi1::std.process",
+			"exportName": "exec_in",
+			"symbol": "xl_mod_std_process__exec_in",
+			"overloadGroup": "global::xl_mod_std_process__exec_in",
+			"signatureId": "xl_mod_std_process__exec_in(string,string)",
+			"dispatchKey": "xl_mod_std_process__exec_in$arity2|command:string|workdir:string",
+			"abiSymbol": "xl__xl_mod_std_process__exec_in__arity2__command__string__workdir__string__ret__int",
+			"returnType": "int",
+			"async": 0,
+			"generator": 0,
+			"params": [
+				{
+					"name": "command",
+					"label": "command",
+					"type": "string",
+					"hasDefault": 0
+				},
+				{
+					"name": "workdir",
+					"label": "workdir",
+					"type": "string",
+					"hasDefault": 0
+				}
+			]
+		},
+		{
+			"module": "std.process",
+			"moduleAbiId": "stdlib_pipeline@0.0.0#abi1::std.process",
+			"exportName": "capture_in",
+			"symbol": "xl_mod_std_process__capture_in",
+			"overloadGroup": "global::xl_mod_std_process__capture_in",
+			"signatureId": "xl_mod_std_process__capture_in(string,string)",
+			"dispatchKey": "xl_mod_std_process__capture_in$arity2|command:string|workdir:string",
+			"abiSymbol": "xl__xl_mod_std_process__capture_in__arity2__command__string__workdir__string__ret__string",
+			"returnType": "string",
+			"async": 0,
+			"generator": 0,
+			"params": [
+				{
+					"name": "command",
+					"label": "command",
+					"type": "string",
+					"hasDefault": 0
+				},
+				{
+					"name": "workdir",
+					"label": "workdir",
+					"type": "string",
+					"hasDefault": 0
+				}
+			]
+		}
+	]
+}

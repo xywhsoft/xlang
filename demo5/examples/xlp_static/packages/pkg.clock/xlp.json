@@ -1,0 +1,83 @@
+{
+	"format": "xlp-0",
+	"package": {
+		"name": "pkg.clock",
+		"version": "1.0.0",
+		"abiVersion": "1",
+		"xlangAbi": "1",
+		"abiId": "pkg.clock@1.0.0#abi1"
+	},
+	"artifact": {
+		"kind": "static",
+		"path": "lib\\pkg_clock.a"
+	},
+	"dependencies": [],
+	"modules": [
+		{
+			"key": "pkg.clock",
+			"abiId": "pkg.clock@1.0.0#abi1::pkg.clock",
+			"file": "lib\\pkg_clock.a",
+			"root": 0,
+			"native": 1,
+			"binding": "std.time",
+			"imports": [],
+			"exports": [
+				{
+					"name": "now",
+					"symbol": "now",
+					"kind": "function",
+					"overloadCount": 1
+				},
+				{
+					"name": "to_string",
+					"symbol": "to_string",
+					"kind": "function",
+					"overloadCount": 1
+				},
+				{
+					"name": "now_text",
+					"symbol": "now_text",
+					"kind": "function",
+					"overloadCount": 1
+				},
+				{
+					"name": "date_text",
+					"symbol": "date_text",
+					"kind": "function",
+					"overloadCount": 1
+				},
+				{
+					"name": "time_text",
+					"symbol": "time_text",
+					"kind": "function",
+					"overloadCount": 1
+				},
+				{
+					"name": "relative",
+					"symbol": "relative",
+					"kind": "function",
+					"overloadCount": 1
+				},
+				{
+					"name": "parse",
+					"symbol": "parse",
+					"kind": "function",
+					"overloadCount": 1
+				},
+				{
+					"name": "millis_per_second",
+					"symbol": "millis_per_second",
+					"kind": "value",
+					"overloadCount": 0
+				},
+				{
+					"name": "seconds_per_day",
+					"symbol": "seconds_per_day",
+					"kind": "value",
+					"overloadCount": 0
+				}
+			]
+		}
+	],
+	"functions": []
+}

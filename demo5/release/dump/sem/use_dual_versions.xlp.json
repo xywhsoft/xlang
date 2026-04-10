@@ -1,0 +1,213 @@
+{
+	"format": "xlp-0",
+	"package": {
+		"name": "use_dual_versions",
+		"version": "0.0.0",
+		"abiVersion": "1",
+		"xlangAbi": "1",
+		"abiId": "use_dual_versions@0.0.0#abi1"
+	},
+	"dependencies": [
+		{
+			"name": "pkg.math",
+			"kind": "source",
+			"version": "1.0.0",
+			"abiVersion": "1",
+			"abiId": "pkg.math@1.0.0#abi1",
+			"manifest": "D:\\git\\x-lang\\demo5\\examples\\xlp_versions\\packages\\pkg.math@1.0.0\\xlp.json",
+			"binding": "",
+			"usedBy": ["pkg.a"]
+		},
+		{
+			"name": "pkg.a",
+			"kind": "source",
+			"version": "1.0.0",
+			"abiVersion": "1",
+			"abiId": "pkg.a@1.0.0#abi1",
+			"manifest": "D:\\git\\x-lang\\demo5\\examples\\xlp_versions\\packages\\pkg.a\\xlp.json",
+			"binding": "",
+			"usedBy": ["<root>"]
+		},
+		{
+			"name": "pkg.math",
+			"kind": "source",
+			"version": "2.0.0",
+			"abiVersion": "1",
+			"abiId": "pkg.math@2.0.0#abi1",
+			"manifest": "D:\\git\\x-lang\\demo5\\examples\\xlp_versions\\packages\\pkg.math@2.0.0\\xlp.json",
+			"binding": "",
+			"usedBy": ["pkg.b"]
+		},
+		{
+			"name": "pkg.b",
+			"kind": "source",
+			"version": "1.0.0",
+			"abiVersion": "1",
+			"abiId": "pkg.b@1.0.0#abi1",
+			"manifest": "D:\\git\\x-lang\\demo5\\examples\\xlp_versions\\packages\\pkg.b\\xlp.json",
+			"binding": "",
+			"usedBy": ["<root>"]
+		}
+	],
+	"modules": [
+		{
+			"key": "pkg.math",
+			"packageName": "pkg.math",
+			"packageVersion": "1.0.0",
+			"packageAbiVersion": "1",
+			"abiId": "pkg.math@1.0.0#abi1::pkg.math",
+			"manifest": "D:\\git\\x-lang\\demo5\\examples\\xlp_versions\\packages\\pkg.math@1.0.0\\xlp.json",
+			"file": "D:\\git\\x-lang\\demo5\\examples\\xlp_versions\\packages\\pkg.math@1.0.0\\src\\math_v1.xl",
+			"root": 0,
+			"native": 0,
+			"binding": "",
+			"imports": [],
+			"exports": [
+				{
+					"name": "get",
+					"symbol": "xl_mod_pkg_math_1_0_0_abi1__pkg_math__get",
+					"kind": "function",
+					"overloadCount": 1
+				}
+			]
+		},
+		{
+			"key": "pkg.a",
+			"packageName": "pkg.a",
+			"packageVersion": "1.0.0",
+			"packageAbiVersion": "1",
+			"abiId": "pkg.a@1.0.0#abi1::pkg.a",
+			"manifest": "D:\\git\\x-lang\\demo5\\examples\\xlp_versions\\packages\\pkg.a\\xlp.json",
+			"file": "D:\\git\\x-lang\\demo5\\examples\\xlp_versions\\packages\\pkg.a\\src\\pkg_a_impl.xl",
+			"root": 0,
+			"native": 0,
+			"binding": "",
+			"imports": ["pkg.math"],
+			"exports": [
+				{
+					"name": "value",
+					"symbol": "xl_mod_pkg_a_1_0_0_abi1__pkg_a__value",
+					"kind": "function",
+					"overloadCount": 1
+				}
+			]
+		},
+		{
+			"key": "pkg.math",
+			"packageName": "pkg.math",
+			"packageVersion": "2.0.0",
+			"packageAbiVersion": "1",
+			"abiId": "pkg.math@2.0.0#abi1::pkg.math",
+			"manifest": "D:\\git\\x-lang\\demo5\\examples\\xlp_versions\\packages\\pkg.math@2.0.0\\xlp.json",
+			"file": "D:\\git\\x-lang\\demo5\\examples\\xlp_versions\\packages\\pkg.math@2.0.0\\src\\math_v2.xl",
+			"root": 0,
+			"native": 0,
+			"binding": "",
+			"imports": [],
+			"exports": [
+				{
+					"name": "get",
+					"symbol": "xl_mod_pkg_math_2_0_0_abi1__pkg_math__get",
+					"kind": "function",
+					"overloadCount": 1
+				}
+			]
+		},
+		{
+			"key": "pkg.b",
+			"packageName": "pkg.b",
+			"packageVersion": "1.0.0",
+			"packageAbiVersion": "1",
+			"abiId": "pkg.b@1.0.0#abi1::pkg.b",
+			"manifest": "D:\\git\\x-lang\\demo5\\examples\\xlp_versions\\packages\\pkg.b\\xlp.json",
+			"file": "D:\\git\\x-lang\\demo5\\examples\\xlp_versions\\packages\\pkg.b\\src\\pkg_b_impl.xl",
+			"root": 0,
+			"native": 0,
+			"binding": "",
+			"imports": ["pkg.math"],
+			"exports": [
+				{
+					"name": "value",
+					"symbol": "xl_mod_pkg_b_1_0_0_abi1__pkg_b__value",
+					"kind": "function",
+					"overloadCount": 1
+				}
+			]
+		},
+		{
+			"key": "<root>",
+			"packageName": "use_dual_versions",
+			"packageVersion": "0.0.0",
+			"packageAbiVersion": "1",
+			"abiId": "use_dual_versions@0.0.0#abi1::<root>",
+			"manifest": "",
+			"file": "D:\\git\\x-lang\\demo5\\examples\\xlp_versions\\use_dual_versions.xl",
+			"root": 1,
+			"native": 0,
+			"binding": "",
+			"imports": ["pkg.a", "pkg.b"],
+			"exports": []
+		}
+	],
+	"functions": [
+		{
+			"module": "pkg.math",
+			"moduleAbiId": "pkg.math@1.0.0#abi1::pkg.math",
+			"exportName": "get",
+			"symbol": "xl_mod_pkg_math_1_0_0_abi1__pkg_math__get",
+			"overloadGroup": "global::xl_mod_pkg_math_1_0_0_abi1__pkg_math__get",
+			"signatureId": "xl_mod_pkg_math_1_0_0_abi1__pkg_math__get()",
+			"dispatchKey": "xl_mod_pkg_math_1_0_0_abi1__pkg_math__get$arity0",
+			"abiSymbol": "xl__xl_mod_pkg_math_1_0_0_abi1__pkg_math__get__arity0__ret__int",
+			"returnType": "int",
+			"async": 0,
+			"generator": 0,
+			"params": []
+		},
+
+		{
+			"module": "pkg.a",
+			"moduleAbiId": "pkg.a@1.0.0#abi1::pkg.a",
+			"exportName": "value",
+			"symbol": "xl_mod_pkg_a_1_0_0_abi1__pkg_a__value",
+			"overloadGroup": "global::xl_mod_pkg_a_1_0_0_abi1__pkg_a__value",
+			"signatureId": "xl_mod_pkg_a_1_0_0_abi1__pkg_a__value()",
+			"dispatchKey": "xl_mod_pkg_a_1_0_0_abi1__pkg_a__value$arity0",
+			"abiSymbol": "xl__xl_mod_pkg_a_1_0_0_abi1__pkg_a__value__arity0__ret__int",
+			"returnType": "int",
+			"async": 0,
+			"generator": 0,
+			"params": []
+		},
+
+		{
+			"module": "pkg.math",
+			"moduleAbiId": "pkg.math@2.0.0#abi1::pkg.math",
+			"exportName": "get",
+			"symbol": "xl_mod_pkg_math_2_0_0_abi1__pkg_math__get",
+			"overloadGroup": "global::xl_mod_pkg_math_2_0_0_abi1__pkg_math__get",
+			"signatureId": "xl_mod_pkg_math_2_0_0_abi1__pkg_math__get()",
+			"dispatchKey": "xl_mod_pkg_math_2_0_0_abi1__pkg_math__get$arity0",
+			"abiSymbol": "xl__xl_mod_pkg_math_2_0_0_abi1__pkg_math__get__arity0__ret__int",
+			"returnType": "int",
+			"async": 0,
+			"generator": 0,
+			"params": []
+		},
+
+		{
+			"module": "pkg.b",
+			"moduleAbiId": "pkg.b@1.0.0#abi1::pkg.b",
+			"exportName": "value",
+			"symbol": "xl_mod_pkg_b_1_0_0_abi1__pkg_b__value",
+			"overloadGroup": "global::xl_mod_pkg_b_1_0_0_abi1__pkg_b__value",
+			"signatureId": "xl_mod_pkg_b_1_0_0_abi1__pkg_b__value()",
+			"dispatchKey": "xl_mod_pkg_b_1_0_0_abi1__pkg_b__value$arity0",
+			"abiSymbol": "xl__xl_mod_pkg_b_1_0_0_abi1__pkg_b__value__arity0__ret__int",
+			"returnType": "int",
+			"async": 0,
+			"generator": 0,
+			"params": []
+		}
+	]
+}

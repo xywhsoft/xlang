@@ -1,0 +1,11 @@
+func convert(int value) as int
+	return value + 1
+end
+
+func convert(string value) as string
+	return value
+end
+
+func main() as int
+	return convert(41)
+end

@@ -1,0 +1,42 @@
+[
+	{
+		"kind": "func",
+		"scopeId": 0,
+		"name": "xl_mod_pkg_math_1_0_0_abi1__pkg_math__add_one",
+		"typeName": "int",
+		"line": 1,
+		"column": 6,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "func",
+		"scopeId": 0,
+		"name": "main",
+		"typeName": "int",
+		"line": 3,
+		"column": 6,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "param",
+		"scopeId": 1,
+		"name": "value",
+		"typeName": "int",
+		"line": 1,
+		"column": 18,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "const",
+		"scopeId": 0,
+		"name": "xl_mod_pkg_math_1_0_0_abi1__pkg_math__base",
+		"typeName": "int",
+		"line": 5,
+		"column": 11,
+		"async": 0,
+		"generator": 0
+	}
+]

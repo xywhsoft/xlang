@@ -13,6 +13,8 @@ D:/git/x-lang/demo5/src/diag/xl_dump.c
 D:/git/x-lang/demo5/src/driver/xl_cli.c
 D:/git/x-lang/demo5/src/driver/xl_driver.c
 D:/git/x-lang/demo5/src/driver/xl_module_link.c
+D:/git/x-lang/demo5/src/driver/xl_xlp_dump.c
+D:/git/x-lang/demo5/src/driver/xl_xlp_load.c
 D:/git/x-lang/demo5/src/host/xl_host.c
 D:/git/x-lang/demo5/src/host/xl_host_runtime.c
 D:/git/x-lang/demo5/src/host/xl_host_symbols.c

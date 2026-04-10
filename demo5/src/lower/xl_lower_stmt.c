@@ -7,6 +7,7 @@ void xlLowerGeneratorTouch(void);
 static void __xlApplySemNodeInfo(XL_HirNode* pHir, const XL_SemResult* pSem, const XL_AstNode* pNode)
 {
 	const XL_SemNodeInfo* pInfo;
+	const XL_FuncInfo* pFunc;
 
 	if ( (pHir == NULL) || (pSem == NULL) || (pNode == NULL) ) {
 		return;
@@ -20,6 +21,10 @@ static void __xlApplySemNodeInfo(XL_HirNode* pHir, const XL_SemResult* pSem, con
 	pHir->iScopeId = pInfo->iScopeId;
 	pHir->iSymbolIndex = pInfo->iSymbolIndex;
 	pHir->iFuncIndex = pInfo->iFuncIndex;
+	pFunc = (pInfo->iFuncIndex >= 0) ? xlFuncTableGet(&pSem->funcs, (size_t)pInfo->iFuncIndex) : NULL;
+	if ( (pFunc != NULL) && (pFunc->sAbiSymbol != NULL) && (pFunc->sAbiSymbol[0] != '\0') ) {
+		xlHirSetAbiName(pHir, pFunc->sAbiSymbol);
+	}
 	if ( (pInfo->sTypeName != NULL) && (pInfo->sTypeName[0] != '\0') ) {
 		xlHirSetTypeName(pHir, pInfo->sTypeName);
 	}
@@ -98,6 +103,9 @@ static XL_HirNode* __xlLowerFuncToHir(const XL_AstNode* pNode, const XL_SemResul
 	}
 
 	xlHirSetText(pFunc, pNode->sText);
+	if ( (pNode->sText2 != NULL) && (pNode->sText2[0] != '\0') ) {
+		xlHirSetExternName(pFunc, pNode->sText2);
+	}
 	__xlApplySemNodeInfo(pFunc, pSem, pNode);
 	if ( ((pFunc->sTypeName == NULL) || (pFunc->sTypeName[0] == '\0')) && (__xlAstChild(pNode, 1) != NULL) ) {
 		xlHirSetTypeName(pFunc, __xlAstChild(pNode, 1)->sText);
@@ -361,6 +369,8 @@ static XL_MirNode* __xlLowerHirToMir(const XL_HirNode* pHir)
 	}
 
 	xlMirSetText(pMir, pHir->sText);
+	xlMirSetAbiName(pMir, pHir->sAbiName);
+	xlMirSetExternName(pMir, pHir->sExternName);
 	xlMirSetTypeName(pMir, pHir->sTypeName);
 	pMir->iScopeId = pHir->iScopeId;
 	pMir->iSymbolIndex = pHir->iSymbolIndex;

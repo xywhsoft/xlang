@@ -1,0 +1,70 @@
+SemanticResult hadError=0
+Types (14)
+	- any builtin=1 @ 0:0
+	- bool builtin=1 @ 0:0
+	- error builtin=1 @ 0:0
+	- float builtin=1 @ 0:0
+	- generator builtin=1 @ 0:0
+	- int builtin=1 @ 0:0
+	- iterable builtin=1 @ 0:0
+	- iterator builtin=1 @ 0:0
+	- null builtin=1 @ 0:0
+	- range builtin=1 @ 0:0
+	- string builtin=1 @ 0:0
+	- task builtin=1 @ 0:0
+	- time builtin=1 @ 0:0
+	- void builtin=1 @ 0:0
+Functions (19)
+	- range(int stop) as range scope=0 async=0 generator=0 abi=xl__range__arity1__stop__int__ret__range sig=range(int) @ 0:0
+	- range(int start, int stop) as range scope=0 async=0 generator=0 abi=xl__range__arity2__start__int__stop__int__ret__range sig=range(int,int) @ 0:0
+	- range(int start, int stop, int step) as range scope=0 async=0 generator=0 abi=xl__range__arity3__start__int__stop__int__step__int__ret__range sig=range(int,int,int) @ 0:0
+	- Error(string message, int code, string data, string stack, error cause) as error scope=0 async=0 generator=0 abi=xl__Error__arity5__message__string__code__int__data__string__stack__string__cause__error__ret__error sig=Error(string,int,string,string,error) @ 0:0
+	- TypeError(string message, int code, string data, string stack, error cause) as error scope=0 async=0 generator=0 abi=xl__TypeError__arity5__message__string__code__int__data__string__stack__string__cause__error__ret__error sig=TypeError(string,int,string,string,error) @ 0:0
+	- ValueError(string message, int code, string data, string stack, error cause) as error scope=0 async=0 generator=0 abi=xl__ValueError__arity5__message__string__code__int__data__string__stack__string__cause__error__ret__error sig=ValueError(string,int,string,string,error) @ 0:0
+	- IOError(string message, int code, string data, string stack, error cause) as error scope=0 async=0 generator=0 abi=xl__IOError__arity5__message__string__code__int__data__string__stack__string__cause__error__ret__error sig=IOError(string,int,string,string,error) @ 0:0
+	- TimeoutError(string message, int code, string data, string stack, error cause) as error scope=0 async=0 generator=0 abi=xl__TimeoutError__arity5__message__string__code__int__data__string__stack__string__cause__error__ret__error sig=TimeoutError(string,int,string,string,error) @ 0:0
+	- CancelledError(string message, int code, string data, string stack, error cause) as error scope=0 async=0 generator=0 abi=xl__CancelledError__arity5__message__string__code__int__data__string__stack__string__cause__error__ret__error sig=CancelledError(string,int,string,string,error) @ 0:0
+	- NotImplementedError(string message, int code, string data, string stack, error cause) as error scope=0 async=0 generator=0 abi=xl__NotImplementedError__arity5__message__string__code__int__data__string__stack__string__cause__error__ret__error sig=NotImplementedError(string,int,string,string,error) @ 0:0
+	- NativeError(string message, int code, string data, string stack, error cause) as error scope=0 async=0 generator=0 abi=xl__NativeError__arity5__message__string__code__int__data__string__stack__string__cause__error__ret__error sig=NativeError(string,int,string,string,error) @ 0:0
+	- xl_mod_pkg_clock_1_0_0_abi1__pkg_clock__now() as time scope=0 async=0 generator=0 abi=xl__xl_mod_pkg_clock_1_0_0_abi1__pkg_clock__now__arity0__ret__time sig=xl_mod_pkg_clock_1_0_0_abi1__pkg_clock__now() @ 1:6
+	- xl_mod_pkg_clock_1_0_0_abi1__pkg_clock__to_string(time value) as string scope=0 async=0 generator=0 abi=xl__xl_mod_pkg_clock_1_0_0_abi1__pkg_clock__to_string__arity1__value__time__ret__string sig=xl_mod_pkg_clock_1_0_0_abi1__pkg_clock__to_string(time) @ 3:6
+	- xl_mod_pkg_clock_1_0_0_abi1__pkg_clock__now_text() as string scope=0 async=0 generator=0 abi=xl__xl_mod_pkg_clock_1_0_0_abi1__pkg_clock__now_text__arity0__ret__string sig=xl_mod_pkg_clock_1_0_0_abi1__pkg_clock__now_text() @ 5:6
+	- xl_mod_pkg_clock_1_0_0_abi1__pkg_clock__date_text() as string scope=0 async=0 generator=0 abi=xl__xl_mod_pkg_clock_1_0_0_abi1__pkg_clock__date_text__arity0__ret__string sig=xl_mod_pkg_clock_1_0_0_abi1__pkg_clock__date_text() @ 7:6
+	- xl_mod_pkg_clock_1_0_0_abi1__pkg_clock__time_text() as string scope=0 async=0 generator=0 abi=xl__xl_mod_pkg_clock_1_0_0_abi1__pkg_clock__time_text__arity0__ret__string sig=xl_mod_pkg_clock_1_0_0_abi1__pkg_clock__time_text() @ 9:6
+	- xl_mod_pkg_clock_1_0_0_abi1__pkg_clock__relative(time value, time base) as string scope=0 async=0 generator=0 abi=xl__xl_mod_pkg_clock_1_0_0_abi1__pkg_clock__relative__arity2__value__time__base__time__ret__string sig=xl_mod_pkg_clock_1_0_0_abi1__pkg_clock__relative(time,time) @ 11:6
+	- xl_mod_pkg_clock_1_0_0_abi1__pkg_clock__parse(string value) as time scope=0 async=0 generator=0 abi=xl__xl_mod_pkg_clock_1_0_0_abi1__pkg_clock__parse__arity1__value__string__ret__time sig=xl_mod_pkg_clock_1_0_0_abi1__pkg_clock__parse(string) @ 13:6
+	- main() as int scope=0 async=0 generator=0 abi=xl__main__arity0__ret__int sig=main() @ 3:6
+Scopes (17)
+	- #0 module "<module>" parent=-1 depth=0 @ 0:0
+	- #1 func "xl_mod_pkg_clock_1_0_0_abi1__pkg_clock__now" parent=0 depth=1 @ 1:6
+	- #2 block "func.body" parent=1 depth=2 @ 0:0
+	- #3 func "xl_mod_pkg_clock_1_0_0_abi1__pkg_clock__to_string" parent=0 depth=1 @ 3:6
+	- #4 block "func.body" parent=3 depth=2 @ 0:0
+	- #5 func "xl_mod_pkg_clock_1_0_0_abi1__pkg_clock__now_text" parent=0 depth=1 @ 5:6
+	- #6 block "func.body" parent=5 depth=2 @ 0:0
+	- #7 func "xl_mod_pkg_clock_1_0_0_abi1__pkg_clock__date_text" parent=0 depth=1 @ 7:6
+	- #8 block "func.body" parent=7 depth=2 @ 0:0
+	- #9 func "xl_mod_pkg_clock_1_0_0_abi1__pkg_clock__time_text" parent=0 depth=1 @ 9:6
+	- #10 block "func.body" parent=9 depth=2 @ 0:0
+	- #11 func "xl_mod_pkg_clock_1_0_0_abi1__pkg_clock__relative" parent=0 depth=1 @ 11:6
+	- #12 block "func.body" parent=11 depth=2 @ 0:0
+	- #13 func "xl_mod_pkg_clock_1_0_0_abi1__pkg_clock__parse" parent=0 depth=1 @ 13:6
+	- #14 block "func.body" parent=13 depth=2 @ 0:0
+	- #15 func "main" parent=0 depth=1 @ 3:6
+	- #16 block "func.body" parent=15 depth=2 @ 0:0
+Symbols (14)
+	- func xl_mod_pkg_clock_1_0_0_abi1__pkg_clock__now scope=0 type=time async=0 generator=0 @ 1:6
+	- func xl_mod_pkg_clock_1_0_0_abi1__pkg_clock__to_string scope=0 type=string async=0 generator=0 @ 3:6
+	- func xl_mod_pkg_clock_1_0_0_abi1__pkg_clock__now_text scope=0 type=string async=0 generator=0 @ 5:6
+	- func xl_mod_pkg_clock_1_0_0_abi1__pkg_clock__date_text scope=0 type=string async=0 generator=0 @ 7:6
+	- func xl_mod_pkg_clock_1_0_0_abi1__pkg_clock__time_text scope=0 type=string async=0 generator=0 @ 9:6
+	- func xl_mod_pkg_clock_1_0_0_abi1__pkg_clock__relative scope=0 type=string async=0 generator=0 @ 11:6
+	- func xl_mod_pkg_clock_1_0_0_abi1__pkg_clock__parse scope=0 type=time async=0 generator=0 @ 13:6
+	- func main scope=0 type=int async=0 generator=0 @ 3:6
+	- param value scope=3 type=time async=0 generator=0 @ 3:21
+	- param value scope=11 type=time async=0 generator=0 @ 11:20
+	- param base scope=11 type=time async=0 generator=0 @ 11:32
+	- param value scope=13 type=string async=0 generator=0 @ 13:19
+	- const xl_mod_pkg_clock_1_0_0_abi1__pkg_clock__millis_per_second scope=0 type=int async=0 generator=0 @ 16:11
+	- const xl_mod_pkg_clock_1_0_0_abi1__pkg_clock__seconds_per_day scope=0 type=int async=0 generator=0 @ 17:11
+Diagnostics (0)

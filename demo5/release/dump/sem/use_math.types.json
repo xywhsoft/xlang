@@ -12,7 +12,19 @@
 		"column": 0
 	},
 	{
+		"name": "error",
+		"builtin": 1,
+		"line": 0,
+		"column": 0
+	},
+	{
 		"name": "float",
+		"builtin": 1,
+		"line": 0,
+		"column": 0
+	},
+	{
+		"name": "generator",
 		"builtin": 1,
 		"line": 0,
 		"column": 0
@@ -24,7 +36,25 @@
 		"column": 0
 	},
 	{
+		"name": "iterable",
+		"builtin": 1,
+		"line": 0,
+		"column": 0
+	},
+	{
+		"name": "iterator",
+		"builtin": 1,
+		"line": 0,
+		"column": 0
+	},
+	{
 		"name": "null",
+		"builtin": 1,
+		"line": 0,
+		"column": 0
+	},
+	{
+		"name": "range",
 		"builtin": 1,
 		"line": 0,
 		"column": 0

@@ -29,6 +29,8 @@ typedef enum XL_MirKind {
 typedef struct XL_MirNode {
 	XL_MirKind eKind;
 	char* sText;
+	char* sAbiName;
+	char* sExternName;
 	char* sTypeName;
 	int iScopeId;
 	int iSymbolIndex;
@@ -45,6 +47,8 @@ typedef struct XL_MirNode {
 
 XL_MirNode* xlMirCreateNode(XL_MirKind eKind, const XL_HirNode* pHir);
 void xlMirSetText(XL_MirNode* pNode, const char* sText);
+void xlMirSetAbiName(XL_MirNode* pNode, const char* sAbiName);
+void xlMirSetExternName(XL_MirNode* pNode, const char* sExternName);
 void xlMirSetTypeName(XL_MirNode* pNode, const char* sTypeName);
 void xlMirAppendChild(XL_MirNode* pNode, XL_MirNode* pChild);
 void xlMirFree(XL_MirNode* pNode);

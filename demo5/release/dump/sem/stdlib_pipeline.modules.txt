@@ -2,27 +2,43 @@ ModuleLoadOrder
 - [0] std.fs -> <native:std.fs> native=1 binding=std.fs
 - [1] std.str -> <native:std.str> native=1 binding=std.str
 - [2] std.process -> <native:std.process> native=1 binding=std.process
-- [3] <root> -> D:\Git\x-lang\demo5\examples\native\stdlib_pipeline.xl native=0 binding=
+- [3] <root> -> D:\git\x-lang\demo5\examples\native\stdlib_pipeline.xl native=0 binding=
 ModuleExports
 - module=std.fs
   export exists -> xl_mod_std_fs__exists
+  export is_file -> xl_mod_std_fs__is_file
+  export is_dir -> xl_mod_std_fs__is_dir
+  export size -> xl_mod_std_fs__size
   export read_all -> xl_mod_std_fs__read_all
   export write_all -> xl_mod_std_fs__write_all
   export append_all -> xl_mod_std_fs__append_all
   export mkdir_all -> xl_mod_std_fs__mkdir_all
+  export copy -> xl_mod_std_fs__copy
+  export move -> xl_mod_std_fs__move
+  export delete -> xl_mod_std_fs__delete
 - module=std.str
   export contains -> xl_mod_std_str__contains
   export starts_with -> xl_mod_std_str__starts_with
   export ends_with -> xl_mod_std_str__ends_with
+  export lower -> xl_mod_std_str__lower
+  export upper -> xl_mod_std_str__upper
+  export replace -> xl_mod_std_str__replace
 - module=std.process
   export exec -> xl_mod_std_process__exec
   export capture -> xl_mod_std_process__capture
+  export exec_in -> xl_mod_std_process__exec_in
+  export capture_in -> xl_mod_std_process__capture_in
 - module=<root>
 NativeRegistry
 - key=std.core binding=std.core path=<native:std.core>
+- key=std.dir binding=std.dir path=<native:std.dir>
+- key=std.env binding=std.env path=<native:std.env>
+- key=std.fmt binding=std.fmt path=<native:std.fmt>
 - key=std.fs binding=std.fs path=<native:std.fs>
+- key=std.host binding=std.host path=<native:std.host>
 - key=std.io binding=std.io path=<native:std.io>
 - key=std.path binding=std.path path=<native:std.path>
+- key=std.rand binding=std.rand path=<native:std.rand>
 - key=std.process binding=std.process path=<native:std.process>
 - key=std.str binding=std.str path=<native:std.str>
 - key=std.time binding=std.time path=<native:std.time>

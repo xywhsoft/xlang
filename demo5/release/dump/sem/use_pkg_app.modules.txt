@@ -1,0 +1,27 @@
+ModuleLoadOrder
+- [0] pkg.math -> D:\git\x-lang\demo5\examples\xlp_transitive\packages\pkg.math\src\pkg_math_impl.xl native=0 binding=
+- [1] pkg.mid -> D:\git\x-lang\demo5\examples\xlp_transitive\packages\pkg.mid\src\pkg_mid_impl.xl native=0 binding=
+- [2] pkg.app -> D:\git\x-lang\demo5\examples\xlp_transitive\packages\pkg.app\src\pkg_app_impl.xl native=0 binding=
+- [3] <root> -> D:\git\x-lang\demo5\examples\xlp_transitive\use_pkg_app.xl native=0 binding=
+ModuleExports
+- module=pkg.math
+  export value -> xl_mod_pkg_math_1_0_0_abi1__pkg_math__value
+- module=pkg.mid
+  export value -> xl_mod_pkg_mid_1_0_0_abi1__pkg_mid__value
+- module=pkg.app
+  export value -> xl_mod_pkg_app_1_0_0_abi1__pkg_app__value
+- module=<root>
+NativeRegistry
+- key=std.core binding=std.core path=<native:std.core>
+- key=std.dir binding=std.dir path=<native:std.dir>
+- key=std.env binding=std.env path=<native:std.env>
+- key=std.fmt binding=std.fmt path=<native:std.fmt>
+- key=std.fs binding=std.fs path=<native:std.fs>
+- key=std.host binding=std.host path=<native:std.host>
+- key=std.io binding=std.io path=<native:std.io>
+- key=std.path binding=std.path path=<native:std.path>
+- key=std.rand binding=std.rand path=<native:std.rand>
+- key=std.process binding=std.process path=<native:std.process>
+- key=std.str binding=std.str path=<native:std.str>
+- key=std.time binding=std.time path=<native:std.time>
+- key=std.task binding=std.task path=<native:std.task>

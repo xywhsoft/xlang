@@ -1,0 +1,13 @@
+[xlp] load request key=<root> file=D:\git\x-lang\demo5\examples\xlp_versions\use_dual_versions.xl root=1 importerManifest=
+[xlp] parsed key=<root> file=D:\git\x-lang\demo5\examples\xlp_versions\use_dual_versions.xl
+[xlp] imports key=<root> count=2
+[xlp] load request key=pkg.a file=D:\git\x-lang\demo5\examples\xlp_versions\pkg\a.xl root=0 importerManifest=
+[xlp] resolved key=pkg.a manifest=D:\git\x-lang\demo5\examples\xlp_versions\packages\pkg.a\xlp.json module=D:\git\x-lang\demo5\examples\xlp_versions\packages\pkg.a\src\pkg_a_impl.xl native=0
+[xlp] parsed key=pkg.a file=D:\git\x-lang\demo5\examples\xlp_versions\packages\pkg.a\src\pkg_a_impl.xl
+[xlp] imports key=pkg.a count=1
+[xlp] load request key=pkg.math file=D:\git\x-lang\demo5\examples\xlp_versions\packages\pkg.a\src\pkg\math.xl root=0 importerManifest=D:\git\x-lang\demo5\examples\xlp_versions\packages\pkg.a\xlp.json
+[xlp] resolved key=pkg.math manifest=D:\git\x-lang\demo5\examples\xlp_versions\packages\pkg.math@1.0.0\xlp.json module=D:\git\x-lang\demo5\examples\xlp_versions\packages\pkg.math@1.0.0\src\math_v1.xl native=0
+[xlp] parsed key=pkg.math file=D:\git\x-lang\demo5\examples\xlp_versions\packages\pkg.math@1.0.0\src\math_v1.xl
+[xlp] imports key=pkg.math count=0
+[xlp] rewrote key=pkg.math
+[xlp] ordered key=pkg.math

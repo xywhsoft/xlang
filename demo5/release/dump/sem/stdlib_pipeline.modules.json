@@ -11,6 +11,18 @@
 					"symbol": "xl_mod_std_fs__exists"
 				},
 				{
+					"name": "is_file",
+					"symbol": "xl_mod_std_fs__is_file"
+				},
+				{
+					"name": "is_dir",
+					"symbol": "xl_mod_std_fs__is_dir"
+				},
+				{
+					"name": "size",
+					"symbol": "xl_mod_std_fs__size"
+				},
+				{
 					"name": "read_all",
 					"symbol": "xl_mod_std_fs__read_all"
 				},
@@ -25,6 +37,18 @@
 				{
 					"name": "mkdir_all",
 					"symbol": "xl_mod_std_fs__mkdir_all"
+				},
+				{
+					"name": "copy",
+					"symbol": "xl_mod_std_fs__copy"
+				},
+				{
+					"name": "move",
+					"symbol": "xl_mod_std_fs__move"
+				},
+				{
+					"name": "delete",
+					"symbol": "xl_mod_std_fs__delete"
 				}
 			]
 		},
@@ -45,6 +69,18 @@
 				{
 					"name": "ends_with",
 					"symbol": "xl_mod_std_str__ends_with"
+				},
+				{
+					"name": "lower",
+					"symbol": "xl_mod_std_str__lower"
+				},
+				{
+					"name": "upper",
+					"symbol": "xl_mod_std_str__upper"
+				},
+				{
+					"name": "replace",
+					"symbol": "xl_mod_std_str__replace"
 				}
 			]
 		},
@@ -61,12 +97,20 @@
 				{
 					"name": "capture",
 					"symbol": "xl_mod_std_process__capture"
+				},
+				{
+					"name": "exec_in",
+					"symbol": "xl_mod_std_process__exec_in"
+				},
+				{
+					"name": "capture_in",
+					"symbol": "xl_mod_std_process__capture_in"
 				}
 			]
 		},
 		{
 			"key": "<root>",
-			"file": "D:\\Git\\x-lang\\demo5\\examples\\native\\stdlib_pipeline.xl",
+			"file": "D:\\git\\x-lang\\demo5\\examples\\native\\stdlib_pipeline.xl",
 			"native": 0,
 			"binding": "",
 			"exports": []
@@ -80,9 +124,29 @@
 			"path": "<native:std.core>"
 		},
 		{
+			"key": "std.dir",
+			"binding": "std.dir",
+			"path": "<native:std.dir>"
+		},
+		{
+			"key": "std.env",
+			"binding": "std.env",
+			"path": "<native:std.env>"
+		},
+		{
+			"key": "std.fmt",
+			"binding": "std.fmt",
+			"path": "<native:std.fmt>"
+		},
+		{
 			"key": "std.fs",
 			"binding": "std.fs",
 			"path": "<native:std.fs>"
+		},
+		{
+			"key": "std.host",
+			"binding": "std.host",
+			"path": "<native:std.host>"
 		},
 		{
 			"key": "std.io",
@@ -93,6 +157,11 @@
 			"key": "std.path",
 			"binding": "std.path",
 			"path": "<native:std.path>"
+		},
+		{
+			"key": "std.rand",
+			"binding": "std.rand",
+			"path": "<native:std.rand>"
 		},
 		{
 			"key": "std.process",

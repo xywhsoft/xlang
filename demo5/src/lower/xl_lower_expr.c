@@ -25,6 +25,7 @@ static XL_HirKind __xlExprKind(const XL_AstNode* pNode)
 static void __xlApplySemNodeInfo(XL_HirNode* pHir, const XL_SemResult* pSem, const XL_AstNode* pNode)
 {
 	const XL_SemNodeInfo* pInfo;
+	const XL_FuncInfo* pFunc;
 
 	if ( (pHir == NULL) || (pSem == NULL) || (pNode == NULL) ) {
 		return;
@@ -38,6 +39,10 @@ static void __xlApplySemNodeInfo(XL_HirNode* pHir, const XL_SemResult* pSem, con
 	pHir->iScopeId = pInfo->iScopeId;
 	pHir->iSymbolIndex = pInfo->iSymbolIndex;
 	pHir->iFuncIndex = pInfo->iFuncIndex;
+	pFunc = (pInfo->iFuncIndex >= 0) ? xlFuncTableGet(&pSem->funcs, (size_t)pInfo->iFuncIndex) : NULL;
+	if ( (pFunc != NULL) && (pFunc->sAbiSymbol != NULL) && (pFunc->sAbiSymbol[0] != '\0') ) {
+		xlHirSetAbiName(pHir, pFunc->sAbiSymbol);
+	}
 	if ( (pInfo->sTypeName != NULL) && (pInfo->sTypeName[0] != '\0') ) {
 		xlHirSetTypeName(pHir, pInfo->sTypeName);
 	}

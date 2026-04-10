@@ -129,6 +129,11 @@ static void __xlDumpHirText(XL_LowerTextBuffer* pBuf, const XL_HirNode* pNode, i
 		__xlLowerAppendEscaped(pBuf, pNode->sText);
 		__xlLowerBufAppend(pBuf, "\"");
 	}
+	if ( (pNode->sAbiName != NULL) && (pNode->sAbiName[0] != '\0') ) {
+		__xlLowerBufAppend(pBuf, " abi=\"");
+		__xlLowerAppendEscaped(pBuf, pNode->sAbiName);
+		__xlLowerBufAppend(pBuf, "\"");
+	}
 	if ( (pNode->sTypeName != NULL) && (pNode->sTypeName[0] != '\0') ) {
 		__xlLowerBufAppend(pBuf, " type=\"");
 		__xlLowerAppendEscaped(pBuf, pNode->sTypeName);
@@ -173,6 +178,11 @@ static void __xlDumpMirText(XL_LowerTextBuffer* pBuf, const XL_MirNode* pNode, i
 		__xlLowerAppendEscaped(pBuf, pNode->sText);
 		__xlLowerBufAppend(pBuf, "\"");
 	}
+	if ( (pNode->sAbiName != NULL) && (pNode->sAbiName[0] != '\0') ) {
+		__xlLowerBufAppend(pBuf, " abi=\"");
+		__xlLowerAppendEscaped(pBuf, pNode->sAbiName);
+		__xlLowerBufAppend(pBuf, "\"");
+	}
 	if ( (pNode->sTypeName != NULL) && (pNode->sTypeName[0] != '\0') ) {
 		__xlLowerBufAppend(pBuf, " type=\"");
 		__xlLowerAppendEscaped(pBuf, pNode->sTypeName);
@@ -215,6 +225,16 @@ static void __xlDumpHirJson(XL_LowerTextBuffer* pBuf, const XL_HirNode* pNode, i
 	if ( pNode->sText != NULL ) {
 		__xlLowerBufAppend(pBuf, "\"");
 		__xlLowerAppendEscaped(pBuf, pNode->sText);
+		__xlLowerBufAppend(pBuf, "\"");
+	} else {
+		__xlLowerBufAppend(pBuf, "null");
+	}
+	__xlLowerBufAppend(pBuf, ",\n");
+	for ( i = 0; i < (size_t)(iIndent + 1); ++i ) { __xlLowerBufAppend(pBuf, "\t"); }
+	__xlLowerBufAppend(pBuf, "\"abiSymbol\": ");
+	if ( (pNode->sAbiName != NULL) && (pNode->sAbiName[0] != '\0') ) {
+		__xlLowerBufAppend(pBuf, "\"");
+		__xlLowerAppendEscaped(pBuf, pNode->sAbiName);
 		__xlLowerBufAppend(pBuf, "\"");
 	} else {
 		__xlLowerBufAppend(pBuf, "null");
@@ -279,6 +299,16 @@ static void __xlDumpMirJson(XL_LowerTextBuffer* pBuf, const XL_MirNode* pNode, i
 	if ( pNode->sText != NULL ) {
 		__xlLowerBufAppend(pBuf, "\"");
 		__xlLowerAppendEscaped(pBuf, pNode->sText);
+		__xlLowerBufAppend(pBuf, "\"");
+	} else {
+		__xlLowerBufAppend(pBuf, "null");
+	}
+	__xlLowerBufAppend(pBuf, ",\n");
+	for ( i = 0; i < (size_t)(iIndent + 1); ++i ) { __xlLowerBufAppend(pBuf, "\t"); }
+	__xlLowerBufAppend(pBuf, "\"abiSymbol\": ");
+	if ( (pNode->sAbiName != NULL) && (pNode->sAbiName[0] != '\0') ) {
+		__xlLowerBufAppend(pBuf, "\"");
+		__xlLowerAppendEscaped(pBuf, pNode->sAbiName);
 		__xlLowerBufAppend(pBuf, "\"");
 	} else {
 		__xlLowerBufAppend(pBuf, "null");

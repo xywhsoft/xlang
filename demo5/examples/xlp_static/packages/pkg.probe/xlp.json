@@ -1,0 +1,50 @@
+{
+	"format": "xlp-0",
+	"package": {
+		"name": "pkg.probe",
+		"version": "1.0.0",
+		"abiVersion": "1",
+		"xlangAbi": "1",
+		"abiId": "pkg.probe@1.0.0#abi1"
+	},
+	"artifact": {
+		"kind": "static",
+		"path": "lib\\pkg_probe.a"
+	},
+	"dependencies": [],
+	"modules": [
+		{
+			"key": "pkg.probe",
+			"abiId": "pkg.probe@1.0.0#abi1::pkg.probe",
+			"file": "lib\\pkg_probe.a",
+			"root": 0,
+			"native": 1,
+			"binding": "pkg.probe",
+			"imports": [],
+			"exports": [
+				{
+					"name": "probe",
+					"symbol": "probe",
+					"kind": "function",
+					"overloadCount": 1
+				}
+			]
+		}
+	],
+	"functions": [
+		{
+			"module": "pkg.probe",
+			"moduleAbiId": "pkg.probe@1.0.0#abi1::pkg.probe",
+			"exportName": "probe",
+			"symbol": "pkg_clock_artifact_probe",
+			"overloadGroup": "pkg.probe::probe",
+			"signatureId": "probe()",
+			"dispatchKey": "probe$arity0",
+			"abiSymbol": "pkg_probe_probe$arity0",
+			"returnType": "int",
+			"async": 0,
+			"generator": 0,
+			"params": []
+		}
+	]
+}

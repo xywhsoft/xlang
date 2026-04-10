@@ -8,6 +8,10 @@ typedef struct XL_AstNode XL_AstNode;
 typedef struct XL_FuncInfo {
 	char* sName;
 	char* sReturnTypeName;
+	char* sOverloadGroup;
+	char* sSignatureId;
+	char* sDispatchKey;
+	char* sAbiSymbol;
 	char** arrParamNames;
 	char** arrParamTypes;
 	unsigned char* arrParamHasDefault;

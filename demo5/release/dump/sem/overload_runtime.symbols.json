@@ -1,0 +1,52 @@
+[
+	{
+		"kind": "func",
+		"scopeId": 0,
+		"name": "convert",
+		"typeName": "int",
+		"line": 1,
+		"column": 6,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "func",
+		"scopeId": 0,
+		"name": "convert",
+		"typeName": "string",
+		"line": 5,
+		"column": 6,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "func",
+		"scopeId": 0,
+		"name": "main",
+		"typeName": "int",
+		"line": 9,
+		"column": 6,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "param",
+		"scopeId": 1,
+		"name": "value",
+		"typeName": "int",
+		"line": 1,
+		"column": 18,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "param",
+		"scopeId": 3,
+		"name": "value",
+		"typeName": "string",
+		"line": 5,
+		"column": 21,
+		"async": 0,
+		"generator": 0
+	}
+]

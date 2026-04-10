@@ -154,6 +154,54 @@ void xlHostContextInit(XL_HostContext* pCtx, const char* sInputFile, const char*
 	__xlBuildPath3(pCtx->sTccRoot, sizeof(pCtx->sTccRoot), pCtx->sProjectRoot, "release", "tcc");
 }
 
+int xlHostContextAddArtifact(XL_HostContext* pCtx, const char* sKind, const char* sFile)
+{
+	size_t i;
+
+	if ( (pCtx == NULL) || (sKind == NULL) || (sFile == NULL) || (sKind[0] == '\0') || (sFile[0] == '\0') ) {
+		return XL_RC_BAD_ARG;
+	}
+
+	for ( i = 0; i < pCtx->iArtifactCount; ++i ) {
+		if ( (strcmp(pCtx->arrArtifacts[i].sKind, sKind) == 0) &&
+			(strcmp(pCtx->arrArtifacts[i].sFile, sFile) == 0) ) {
+			return XL_RC_OK;
+		}
+	}
+
+	if ( pCtx->iArtifactCount >= XL_HOST_ARTIFACT_MAX ) {
+		return XL_RC_FAIL;
+	}
+
+	__xlCopyText(pCtx->arrArtifacts[pCtx->iArtifactCount].sKind, sizeof(pCtx->arrArtifacts[pCtx->iArtifactCount].sKind), sKind);
+	__xlCopyText(pCtx->arrArtifacts[pCtx->iArtifactCount].sFile, sizeof(pCtx->arrArtifacts[pCtx->iArtifactCount].sFile), sFile);
+	pCtx->iArtifactCount += 1;
+	return XL_RC_OK;
+}
+
+int xlHostContextAddExternSymbol(XL_HostContext* pCtx, const char* sName)
+{
+	size_t i;
+
+	if ( (pCtx == NULL) || (sName == NULL) || (sName[0] == '\0') ) {
+		return XL_RC_BAD_ARG;
+	}
+
+	for ( i = 0; i < pCtx->iExternSymbolCount; ++i ) {
+		if ( strcmp(pCtx->arrExternSymbols[i].sName, sName) == 0 ) {
+			return XL_RC_OK;
+		}
+	}
+
+	if ( pCtx->iExternSymbolCount >= XL_HOST_EXTERN_SYMBOL_MAX ) {
+		return XL_RC_FAIL;
+	}
+
+	__xlCopyText(pCtx->arrExternSymbols[pCtx->iExternSymbolCount].sName, sizeof(pCtx->arrExternSymbols[pCtx->iExternSymbolCount].sName), sName);
+	pCtx->iExternSymbolCount += 1;
+	return XL_RC_OK;
+}
+
 int xlHostRunCText(
 	const XL_HostContext* pCtx,
 	XL_DiagContext* pDiag,

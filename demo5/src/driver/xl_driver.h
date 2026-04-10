@@ -14,6 +14,7 @@
 #include "../sem/xl_sem_dump.h"
 #include "xl_cli.h"
 #include "xl_module_link.h"
+#include "xl_xlp_dump.h"
 
 int xlDriverRun(const XL_CliOptions* pOpts, XL_DiagContext* pDiag, XL_DumpContext* pDump);
 

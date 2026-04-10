@@ -1,4 +1,5 @@
 #include "xl_driver.h"
+#include "xl_xlp_load.h"
 
 #include "../host/xl_host_symbols.h"
 #include "../../test/xl_test.h"
@@ -150,27 +151,184 @@ static void __xlBuildDumpPath(
 	const char* sSuffix
 )
 {
-	const char* sName;
-	const char* sScan;
+	char sStem[XL_PATH_MAX_LEN];
+	const char* sInput;
 	const char* sDot;
-	size_t iLen;
+	size_t iInLen;
+	size_t iOutLen;
+	size_t i;
 
-	sName = sInputFile;
-	if ( sName == NULL ) {
-		sName = "stdin";
+	sInput = (sInputFile != NULL) ? sInputFile : "stdin";
+	sDot = strrchr(sInput, '.');
+	iInLen = (sDot != NULL) ? (size_t)(sDot - sInput) : strlen(sInput);
+	if ( iInLen >= sizeof(sStem) ) {
+		iInLen = sizeof(sStem) - 1;
 	}
 
-	sScan = sName;
-	while ( *sScan != '\0' ) {
-		if ( xlPathIsSep((unsigned char)*sScan) ) {
-			sName = sScan + 1;
+	iOutLen = 0;
+	for ( i = 0; i < iInLen; ++i ) {
+		unsigned char ch;
+
+		ch = (unsigned char)sInput[i];
+		if ( xlPathIsSep(ch) || (ch == ':') ) {
+			if ( (iOutLen == 0) || (sStem[iOutLen - 1] != '_') ) {
+				sStem[iOutLen++] = '_';
+			}
+			continue;
 		}
-		++sScan;
+		if ( ((ch >= 'a') && (ch <= 'z')) ||
+			((ch >= 'A') && (ch <= 'Z')) ||
+			((ch >= '0') && (ch <= '9')) ||
+			(ch == '_') || (ch == '-') ) {
+			sStem[iOutLen++] = (char)ch;
+		} else {
+			sStem[iOutLen++] = '_';
+		}
+		if ( iOutLen >= (sizeof(sStem) - 1) ) {
+			break;
+		}
+	}
+	if ( iOutLen == 0 ) {
+		snprintf(sStem, sizeof(sStem), "stdin");
+	} else {
+		sStem[iOutLen] = '\0';
 	}
 
-	sDot = strrchr(sName, '.');
-	iLen = (sDot != NULL) ? (size_t)(sDot - sName) : strlen(sName);
-	snprintf(sOut, iOutSize, "dump\\%s\\%.*s%s", (sGroup != NULL) ? sGroup : "misc", (int)iLen, sName, sSuffix);
+	snprintf(sOut, iOutSize, "dump\\%s\\%s%s", (sGroup != NULL) ? sGroup : "misc", sStem, sSuffix);
+}
+
+static int __xlAddModuleArtifactsToExecCtx(XL_ExecCtx* pExecCtx, const XL_ModuleLinkResult* pModuleResult)
+{
+	size_t i;
+
+	if ( (pExecCtx == NULL) || (pModuleResult == NULL) ) {
+		return XL_RC_BAD_ARG;
+	}
+
+	for ( i = 0; i < pModuleResult->iModuleCount; ++i ) {
+		const XL_ModuleSummary* pModule;
+
+		pModule = &pModuleResult->pModules[i];
+		if ( pModule->bIsRoot ) {
+			continue;
+		}
+		if ( (pModule->sConsumeMode == NULL) || (pModule->sArtifactFile == NULL) ) {
+			continue;
+		}
+		if ( ((strcmp(pModule->sConsumeMode, "shared-bridge") != 0) &&
+			(strcmp(pModule->sConsumeMode, "static-bridge") != 0)) ||
+			(pModule->sArtifactFile[0] == '\0') ) {
+			continue;
+		}
+		if ( xlExecCtxAddArtifact(pExecCtx, pModule->sArtifactKind, pModule->sArtifactFile) != XL_RC_OK ) {
+			return XL_RC_FAIL;
+		}
+	}
+
+	return XL_RC_OK;
+}
+
+static int __xlAddModuleArtifactsToHostCtx(XL_HostContext* pHostCtx, const XL_ModuleLinkResult* pModuleResult)
+{
+	size_t i;
+
+	if ( (pHostCtx == NULL) || (pModuleResult == NULL) ) {
+		return XL_RC_BAD_ARG;
+	}
+
+	for ( i = 0; i < pModuleResult->iModuleCount; ++i ) {
+		const XL_ModuleSummary* pModule;
+
+		pModule = &pModuleResult->pModules[i];
+		if ( pModule->bIsRoot ) {
+			continue;
+		}
+		if ( (pModule->sConsumeMode == NULL) || (pModule->sArtifactFile == NULL) ) {
+			continue;
+		}
+		if ( ((strcmp(pModule->sConsumeMode, "shared-bridge") != 0) &&
+			(strcmp(pModule->sConsumeMode, "static-bridge") != 0)) ||
+			(pModule->sArtifactFile[0] == '\0') ) {
+			continue;
+		}
+		if ( xlHostContextAddArtifact(pHostCtx, pModule->sArtifactKind, pModule->sArtifactFile) != XL_RC_OK ) {
+			return XL_RC_FAIL;
+		}
+	}
+
+	return XL_RC_OK;
+}
+
+static int __xlAddModuleExternSymbolsToExecCtx(XL_ExecCtx* pExecCtx, const XL_ModuleLinkResult* pModuleResult)
+{
+	size_t i;
+
+	if ( (pExecCtx == NULL) || (pModuleResult == NULL) ) {
+		return XL_RC_BAD_ARG;
+	}
+
+	for ( i = 0; i < pModuleResult->iModuleCount; ++i ) {
+		const XL_ModuleSummary* pModule;
+		XL_XlpFunctionInfo* pFuncs;
+		size_t iFuncCount;
+		size_t j;
+
+		pModule = &pModuleResult->pModules[i];
+		if ( pModule->bIsRoot || !pModule->bIsNative || (pModule->sManifestPath == NULL) || (pModule->sManifestPath[0] == '\0') ||
+			(pModule->sConsumeMode == NULL) || (strcmp(pModule->sConsumeMode, "shared-bridge") != 0) ) {
+			continue;
+		}
+		pFuncs = NULL;
+		iFuncCount = 0;
+		if ( xlXlpReadFunctions(pModule->sManifestPath, pModule->sKey, &pFuncs, &iFuncCount) != XL_RC_OK ) {
+			continue;
+		}
+		for ( j = 0; j < iFuncCount; ++j ) {
+			if ( (pFuncs[j].sSymbol[0] != '\0') && (xlExecCtxAddExternSymbol(pExecCtx, pFuncs[j].sSymbol) != XL_RC_OK) ) {
+				xlXlpFunctionInfoFree(pFuncs, iFuncCount);
+				return XL_RC_FAIL;
+			}
+		}
+		xlXlpFunctionInfoFree(pFuncs, iFuncCount);
+	}
+
+	return XL_RC_OK;
+}
+
+static int __xlAddModuleExternSymbolsToHostCtx(XL_HostContext* pHostCtx, const XL_ModuleLinkResult* pModuleResult)
+{
+	size_t i;
+
+	if ( (pHostCtx == NULL) || (pModuleResult == NULL) ) {
+		return XL_RC_BAD_ARG;
+	}
+
+	for ( i = 0; i < pModuleResult->iModuleCount; ++i ) {
+		const XL_ModuleSummary* pModule;
+		XL_XlpFunctionInfo* pFuncs;
+		size_t iFuncCount;
+		size_t j;
+
+		pModule = &pModuleResult->pModules[i];
+		if ( pModule->bIsRoot || !pModule->bIsNative || (pModule->sManifestPath == NULL) || (pModule->sManifestPath[0] == '\0') ||
+			(pModule->sConsumeMode == NULL) || (strcmp(pModule->sConsumeMode, "shared-bridge") != 0) ) {
+			continue;
+		}
+		pFuncs = NULL;
+		iFuncCount = 0;
+		if ( xlXlpReadFunctions(pModule->sManifestPath, pModule->sKey, &pFuncs, &iFuncCount) != XL_RC_OK ) {
+			continue;
+		}
+		for ( j = 0; j < iFuncCount; ++j ) {
+			if ( (pFuncs[j].sSymbol[0] != '\0') && (xlHostContextAddExternSymbol(pHostCtx, pFuncs[j].sSymbol) != XL_RC_OK) ) {
+				xlXlpFunctionInfoFree(pFuncs, iFuncCount);
+				return XL_RC_FAIL;
+			}
+		}
+		xlXlpFunctionInfoFree(pFuncs, iFuncCount);
+	}
+
+	return XL_RC_OK;
 }
 
 static void __xlBuildDefaultOutputPath(
@@ -401,6 +559,9 @@ static int __xlDriverRunSem(
 	char* sJsonDump;
 	char* sSymbolsJson;
 	char* sTypesJson;
+	char* sFuncsJson;
+	char* sXlpFuncsJson;
+	char* sXlpJson;
 	char* sDiagText;
 	char sDefaultPath[XL_PATH_MAX_LEN];
 	int iRc;
@@ -411,6 +572,9 @@ static int __xlDriverRunSem(
 	sJsonDump = NULL;
 	sSymbolsJson = NULL;
 	sTypesJson = NULL;
+	sFuncsJson = NULL;
+	sXlpFuncsJson = NULL;
+	sXlpJson = NULL;
 	sDiagText = NULL;
 
 	iRc = xlModuleLinkFromFile(pOpts->sInputFile, pDiag, pOpts->bTraceParser ? 1 : 0, &moduleResult);
@@ -423,8 +587,12 @@ static int __xlDriverRunSem(
 	sJsonDump = xlSemDumpJson(&semResult);
 	sSymbolsJson = xlSemDumpSymbolsJson(&semResult);
 	sTypesJson = xlSemDumpTypesJson(&semResult);
+	sFuncsJson = xlSemDumpFuncsJson(&semResult);
+	sXlpFuncsJson = xlSemDumpXlpFunctionsJson(&semResult);
+	sXlpJson = xlXlpDumpPackageJson(&moduleResult, &semResult, pOpts->sInputFile);
 	sDiagText = xlSemDumpDiagText(&semResult);
-	if ( (sTextDump == NULL) || (sJsonDump == NULL) || (sSymbolsJson == NULL) || (sTypesJson == NULL) || (sDiagText == NULL) ) {
+	if ( (sTextDump == NULL) || (sJsonDump == NULL) || (sSymbolsJson == NULL) || (sTypesJson == NULL) ||
+		(sFuncsJson == NULL) || (sXlpFuncsJson == NULL) || (sXlpJson == NULL) || (sDiagText == NULL) ) {
 		XL_DIAG_ERROR(pDiag, "sem", "failed to build semantic dump output");
 		iRc = XL_RC_IO_ERROR;
 		goto cleanup;
@@ -466,6 +634,21 @@ static int __xlDriverRunSem(
 			XL_DIAG_WARN(pDiag, "sem", "failed to write type dump: %s", sDefaultPath);
 		}
 
+		__xlBuildDumpPath(sDefaultPath, sizeof(sDefaultPath), "sem", pOpts->sInputFile, ".funcs.json");
+		if ( xlDumpWriteText(pDump, sDefaultPath, sFuncsJson) != XL_RC_OK ) {
+			XL_DIAG_WARN(pDiag, "sem", "failed to write function dump: %s", sDefaultPath);
+		}
+
+		__xlBuildDumpPath(sDefaultPath, sizeof(sDefaultPath), "sem", pOpts->sInputFile, ".xlp.functions.json");
+		if ( xlDumpWriteText(pDump, sDefaultPath, sXlpFuncsJson) != XL_RC_OK ) {
+			XL_DIAG_WARN(pDiag, "sem", "failed to write xlp function dump: %s", sDefaultPath);
+		}
+
+		__xlBuildDumpPath(sDefaultPath, sizeof(sDefaultPath), "sem", pOpts->sInputFile, ".xlp.json");
+		if ( xlDumpWriteText(pDump, sDefaultPath, sXlpJson) != XL_RC_OK ) {
+			XL_DIAG_WARN(pDiag, "sem", "failed to write xlp package dump: %s", sDefaultPath);
+		}
+
 		__xlBuildDumpPath(sDefaultPath, sizeof(sDefaultPath), "sem", pOpts->sInputFile, ".diag.txt");
 		if ( xlDumpWriteText(pDump, sDefaultPath, sDiagText) != XL_RC_OK ) {
 			XL_DIAG_WARN(pDiag, "sem", "failed to write diagnostic dump: %s", sDefaultPath);
@@ -487,6 +670,9 @@ cleanup:
 	free(sJsonDump);
 	free(sSymbolsJson);
 	free(sTypesJson);
+	free(sFuncsJson);
+	free(sXlpFuncsJson);
+	free(sXlpJson);
 	free(sDiagText);
 	xlSemResultFree(&semResult);
 	xlModuleLinkResultFree(&moduleResult);
@@ -766,6 +952,16 @@ static int __xlDriverRunProgram(
 	if ( iRc != XL_RC_OK ) {
 		goto cleanup;
 	}
+	if ( __xlAddModuleArtifactsToExecCtx(&execCtx, &moduleResult) != XL_RC_OK ) {
+		XL_DIAG_ERROR(pDiag, "run", "failed to collect module artifacts");
+		iRc = XL_RC_FAIL;
+		goto cleanup;
+	}
+	if ( __xlAddModuleExternSymbolsToExecCtx(&execCtx, &moduleResult) != XL_RC_OK ) {
+		XL_DIAG_ERROR(pDiag, "run", "failed to collect module extern symbols");
+		iRc = XL_RC_FAIL;
+		goto cleanup;
+	}
 
 	__xlBuildDumpPath(sCodePath, sizeof(sCodePath), "cgen", pOpts->sInputFile, ".run.c");
 	if ( xlDumpWriteText(pDump, sCodePath, sCode) != XL_RC_OK ) {
@@ -919,6 +1115,16 @@ static int __xlDriverBuildProgram(
 	if ( iRc != XL_RC_OK ) goto cleanup;
 	iRc = xlCgenMir(lowerResult.pMirRoot, pDiag, &sCode);
 	if ( iRc != XL_RC_OK ) goto cleanup;
+	if ( __xlAddModuleArtifactsToHostCtx(&hostCtx, &moduleResult) != XL_RC_OK ) {
+		XL_DIAG_ERROR(pDiag, "build", "failed to collect module artifacts");
+		iRc = XL_RC_FAIL;
+		goto cleanup;
+	}
+	if ( __xlAddModuleExternSymbolsToHostCtx(&hostCtx, &moduleResult) != XL_RC_OK ) {
+		XL_DIAG_ERROR(pDiag, "build", "failed to collect module extern symbols");
+		iRc = XL_RC_FAIL;
+		goto cleanup;
+	}
 
 	__xlBuildDumpPath(sCodePath, sizeof(sCodePath), "cgen", pOpts->sInputFile, ".build.c");
 	if ( xlDumpWriteText(pDump, sCodePath, sCode) != XL_RC_OK ) {
