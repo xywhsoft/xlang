@@ -4,7 +4,24 @@ selector=cgen
 [PASS] cgen.module_use_math
 [PASS] cgen.native_std_core
 [PASS] cgen.hello_world
+[PASS] cgen.hello_world_io
+[PASS] cgen.time_basic
+[PASS] cgen.path_basic
+[PASS] cgen.fs_basic
+[PASS] cgen.str_basic
+[PASS] cgen.process_basic
+[PASS] cgen.fs_plus
+[PASS] cgen.path_plus
+[PASS] cgen.str_plus
+[PASS] cgen.rand_basic
+[PASS] cgen.time_text
+[PASS] cgen.host_basic
+[PASS] cgen.fmt_basic
+[PASS] cgen.env_basic
+[PASS] cgen.dir_basic
+[PASS] cgen.process_in_basic
+[PASS] cgen.stdlib_pipeline
 [PASS] cgen.task_basic
 [PASS] cgen.generator_run
 [PASS] cgen.loop_jump_levels
-summary: total=6 pass=6 fail=0
+summary: total=23 pass=23 fail=0

@@ -1,6 +1,9 @@
 #include "xl_exec_ctx.h"
 
 #if defined(_WIN32) || defined(_WIN64)
+	#include <winsock2.h>
+	#include <ws2tcpip.h>
+	#include <iphlpapi.h>
 	#include <windows.h>
 #endif
 
@@ -24,11 +27,115 @@ typedef struct XL_TccApi {
 	int (*fn_tcc_add_include_path)(TCCState* s, const char* pathname);
 	int (*fn_tcc_add_sysinclude_path)(TCCState* s, const char* pathname);
 	int (*fn_tcc_add_library_path)(TCCState* s, const char* pathname);
-	int (*fn_tcc_add_file)(TCCState* s, const char* filename);
+	int (*fn_tcc_add_symbol)(TCCState* s, const char* name, const void* val);
 	int (*fn_tcc_compile_string)(TCCState* s, const char* buf);
 	int (*fn_tcc_relocate)(TCCState* s);
 	void* (*fn_tcc_get_symbol)(TCCState* s, const char* name);
 } XL_TccApi;
+
+#if defined(_WIN32) || defined(_WIN64)
+static const char* __xlHostName(void)
+{
+	static char sName[256];
+	DWORD iSize;
+
+	memset(sName, 0, sizeof(sName));
+	iSize = (DWORD)sizeof(sName);
+	if ( GetComputerNameA(sName, &iSize) == 0 ) {
+		sName[0] = '\0';
+	} else {
+		sName[sizeof(sName) - 1] = '\0';
+	}
+	return sName;
+}
+
+static const char* __xlHostIp(void)
+{
+	static char sIp[64];
+
+	/* Keep std.host non-blocking in the demo runtime. */
+	snprintf(sIp, sizeof(sIp), "%s", "127.0.0.1");
+	return sIp;
+}
+
+static const char* __xlEnvGet(const char* sName)
+{
+	const char* sValue;
+
+	if ( sName == NULL ) {
+		return "";
+	}
+	sValue = getenv(sName);
+	return (sValue != NULL) ? sValue : "";
+}
+
+static int __xlEnvExists(const char* sName)
+{
+	const char* sValue;
+
+	if ( sName == NULL ) {
+		return 0;
+	}
+	sValue = getenv(sName);
+	return (sValue != NULL) ? 1 : 0;
+}
+
+static const char* __xlEnvCwd(void)
+{
+	static char sPath[XL_PATH_MAX_LEN];
+	DWORD iLen;
+
+	memset(sPath, 0, sizeof(sPath));
+	iLen = GetCurrentDirectoryA((DWORD)sizeof(sPath), sPath);
+	if ( (iLen == 0u) || (iLen >= (DWORD)sizeof(sPath)) ) {
+		sPath[0] = '\0';
+	}
+	return sPath;
+}
+#else
+static const char* __xlHostName(void)
+{
+	return "";
+}
+
+static const char* __xlHostIp(void)
+{
+	return "";
+}
+
+static const char* __xlEnvGet(const char* sName)
+{
+	const char* sValue;
+
+	if ( sName == NULL ) {
+		return "";
+	}
+	sValue = getenv(sName);
+	return (sValue != NULL) ? sValue : "";
+}
+
+static int __xlEnvExists(const char* sName)
+{
+	const char* sValue;
+
+	if ( sName == NULL ) {
+		return 0;
+	}
+	sValue = getenv(sName);
+	return (sValue != NULL) ? 1 : 0;
+}
+
+static const char* __xlEnvCwd(void)
+{
+	static char sPath[XL_PATH_MAX_LEN];
+
+	memset(sPath, 0, sizeof(sPath));
+	if ( getcwd(sPath, sizeof(sPath)) == NULL ) {
+		sPath[0] = '\0';
+	}
+	return sPath;
+}
+#endif
 
 static int __xlRunTraceGrow(XL_RunTraceBuffer* pBuf, size_t iNeed)
 {
@@ -310,7 +417,7 @@ static int __xlLoadTccApi(XL_TccApi* pApi, const char* sDllPath)
 		(__xlLoadProc(pApi, "tcc_add_include_path", (void**)&pApi->fn_tcc_add_include_path) != XL_RC_OK) ||
 		(__xlLoadProc(pApi, "tcc_add_sysinclude_path", (void**)&pApi->fn_tcc_add_sysinclude_path) != XL_RC_OK) ||
 		(__xlLoadProc(pApi, "tcc_add_library_path", (void**)&pApi->fn_tcc_add_library_path) != XL_RC_OK) ||
-		(__xlLoadProc(pApi, "tcc_add_file", (void**)&pApi->fn_tcc_add_file) != XL_RC_OK) ||
+		(__xlLoadProc(pApi, "tcc_add_symbol", (void**)&pApi->fn_tcc_add_symbol) != XL_RC_OK) ||
 		(__xlLoadProc(pApi, "tcc_compile_string", (void**)&pApi->fn_tcc_compile_string) != XL_RC_OK) ||
 		(__xlLoadProc(pApi, "tcc_relocate", (void**)&pApi->fn_tcc_relocate) != XL_RC_OK) ||
 		(__xlLoadProc(pApi, "tcc_get_symbol", (void**)&pApi->fn_tcc_get_symbol) != XL_RC_OK) ) {
@@ -425,6 +532,54 @@ int xlExecRunCode(XL_ExecCtx* pCtx, XL_DiagContext* pDiag, const char* sCode, ch
 	api.fn_tcc_add_include_path(pTcc, sProjectXrtInc);
 	api.fn_tcc_add_sysinclude_path(pTcc, sIncludeWin);
 	api.fn_tcc_add_library_path(pTcc, sLibDir);
+	api.fn_tcc_add_symbol(pTcc, "xrtThreadIsAttached", xrtThreadIsAttached);
+	api.fn_tcc_add_symbol(pTcc, "xrtThreadAttachCurrent", xrtThreadAttachCurrent);
+	api.fn_tcc_add_symbol(pTcc, "xrtThreadDetachCurrent", xrtThreadDetachCurrent);
+	api.fn_tcc_add_symbol(pTcc, "xrtNow", xrtNow);
+	api.fn_tcc_add_symbol(pTcc, "xrtTimeToStr", xrtTimeToStr);
+	api.fn_tcc_add_symbol(pTcc, "xrtNowStr", xrtNowStr);
+	api.fn_tcc_add_symbol(pTcc, "xrtDateStr", xrtDateStr);
+	api.fn_tcc_add_symbol(pTcc, "xrtTimeStr", xrtTimeStr);
+	api.fn_tcc_add_symbol(pTcc, "xrtRelativeTime", xrtRelativeTime);
+	api.fn_tcc_add_symbol(pTcc, "xrtStrToTime", xrtStrToTime);
+	api.fn_tcc_add_symbol(pTcc, "xrtPathJoin", xrtPathJoin);
+	api.fn_tcc_add_symbol(pTcc, "xrtPathGetNameExt", xrtPathGetNameExt);
+	api.fn_tcc_add_symbol(pTcc, "xrtPathGetName", xrtPathGetName);
+	api.fn_tcc_add_symbol(pTcc, "xrtPathGetExt", xrtPathGetExt);
+	api.fn_tcc_add_symbol(pTcc, "xrtPathGetDir", xrtPathGetDir);
+	api.fn_tcc_add_symbol(pTcc, "xrtPathIsAbs", xrtPathIsAbs);
+	api.fn_tcc_add_symbol(pTcc, "xrtPathRandom", xrtPathRandom);
+	api.fn_tcc_add_symbol(pTcc, "xrtPathExists", xrtPathExists);
+	api.fn_tcc_add_symbol(pTcc, "xrtFileExists", xrtFileExists);
+	api.fn_tcc_add_symbol(pTcc, "xrtDirExists", xrtDirExists);
+	api.fn_tcc_add_symbol(pTcc, "xrtFileGetSize", xrtFileGetSize);
+	api.fn_tcc_add_symbol(pTcc, "xrtFileAppend", xrtFileAppend);
+	api.fn_tcc_add_symbol(pTcc, "xrtFileWriteAll", xrtFileWriteAll);
+	api.fn_tcc_add_symbol(pTcc, "xrtFileReadAll", xrtFileReadAll);
+	api.fn_tcc_add_symbol(pTcc, "xrtFileCopy", xrtFileCopy);
+	api.fn_tcc_add_symbol(pTcc, "xrtFileMove", xrtFileMove);
+	api.fn_tcc_add_symbol(pTcc, "xrtFileDelete", xrtFileDelete);
+	api.fn_tcc_add_symbol(pTcc, "xrtDirCreateAll", xrtDirCreateAll);
+	api.fn_tcc_add_symbol(pTcc, "xrtDirScan", xrtDirScan);
+	api.fn_tcc_add_symbol(pTcc, "xrtStrComp", xrtStrComp);
+	api.fn_tcc_add_symbol(pTcc, "xrtFindStr", xrtFindStr);
+	api.fn_tcc_add_symbol(pTcc, "xrtLCase", xrtLCase);
+	api.fn_tcc_add_symbol(pTcc, "xrtUCase", xrtUCase);
+	api.fn_tcc_add_symbol(pTcc, "xrtReplace", xrtReplace);
+	api.fn_tcc_add_symbol(pTcc, "xrtIntFormat", xrtIntFormat);
+	api.fn_tcc_add_symbol(pTcc, "xrtNumFormat", xrtNumFormat);
+	api.fn_tcc_add_symbol(pTcc, "xrtRand32", xrtRand32);
+	api.fn_tcc_add_symbol(pTcc, "xrtRandRange", xrtRandRange);
+	api.fn_tcc_add_symbol(pTcc, "xrtRandStr", xrtRandStr);
+	api.fn_tcc_add_symbol(pTcc, "xlrt_host_name", __xlHostName);
+	api.fn_tcc_add_symbol(pTcc, "xlrt_host_ip", __xlHostIp);
+	api.fn_tcc_add_symbol(pTcc, "xlrt_env_get", __xlEnvGet);
+	api.fn_tcc_add_symbol(pTcc, "xlrt_env_exists", __xlEnvExists);
+	api.fn_tcc_add_symbol(pTcc, "xlrt_env_cwd", __xlEnvCwd);
+	api.fn_tcc_add_symbol(pTcc, "xrtProcessConfigInit", xrtProcessConfigInit);
+	api.fn_tcc_add_symbol(pTcc, "xrtExecCapture", xrtExecCapture);
+	api.fn_tcc_add_symbol(pTcc, "xrtProcessResultUnit", xrtProcessResultUnit);
+	api.fn_tcc_add_symbol(pTcc, "xrtCopyStr", xrtCopyStr);
 
 	__xlRunTraceAppend(&trace, "compile_string\n");
 	if ( api.fn_tcc_compile_string(pTcc, sCode) < 0 ) {

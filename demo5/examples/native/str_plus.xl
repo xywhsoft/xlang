@@ -1,0 +1,27 @@
+import std.str
+
+func main() as int
+	const string lower_text = str.lower("AbC")
+	const string upper_text = str.upper("AbC")
+	const string replaced = str.replace("alpha-beta-beta", "beta", "x")
+
+	if str.starts_with(lower_text, "ab") == false
+		return 1
+	end
+	if str.ends_with(lower_text, "bc") == false
+		return 2
+	end
+	if str.starts_with(upper_text, "AB") == false
+		return 3
+	end
+	if str.ends_with(upper_text, "BC") == false
+		return 4
+	end
+	if str.contains(replaced, "x-x") == false
+		return 5
+	end
+	if str.contains(replaced, "beta")
+		return 6
+	end
+	return 0
+end

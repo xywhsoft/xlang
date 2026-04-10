@@ -1,0 +1,22 @@
+import std.rand
+import std.str
+
+func main() as int
+	const int value = rand.range(3, 9)
+	const int raw = rand.int32()
+	const string text = rand.text(8)
+
+	if str.contains(text, "") == false
+		return 1
+	end
+	if raw != raw
+		return 2
+	end
+	if value == value
+		return 0
+	end
+	if text == text
+		return 3
+	end
+	return 4
+end

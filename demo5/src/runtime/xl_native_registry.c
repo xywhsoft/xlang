@@ -1,7 +1,16 @@
 #include "xl_native_registry.h"
 
 const char* xlStdCoreModuleSource(void);
+const char* xlStdDirModuleSource(void);
+const char* xlStdEnvModuleSource(void);
+const char* xlStdFmtModuleSource(void);
+const char* xlStdFsModuleSource(void);
+const char* xlStdHostModuleSource(void);
 const char* xlStdIoModuleSource(void);
+const char* xlStdPathModuleSource(void);
+const char* xlStdRandModuleSource(void);
+const char* xlStdProcessModuleSource(void);
+const char* xlStdStrModuleSource(void);
 const char* xlStdTimeModuleSource(void);
 const char* xlStdTaskModuleSource(void);
 
@@ -20,7 +29,16 @@ typedef struct XL_NativeTextBuffer {
 
 static const XL_NativeRegistryEntry g_arrNativeModules[] = {
 	{ "std.core", "std.core", "<native:std.core>", xlStdCoreModuleSource },
+	{ "std.dir", "std.dir", "<native:std.dir>", xlStdDirModuleSource },
+	{ "std.env", "std.env", "<native:std.env>", xlStdEnvModuleSource },
+	{ "std.fmt", "std.fmt", "<native:std.fmt>", xlStdFmtModuleSource },
+	{ "std.fs", "std.fs", "<native:std.fs>", xlStdFsModuleSource },
+	{ "std.host", "std.host", "<native:std.host>", xlStdHostModuleSource },
 	{ "std.io", "std.io", "<native:std.io>", xlStdIoModuleSource },
+	{ "std.path", "std.path", "<native:std.path>", xlStdPathModuleSource },
+	{ "std.rand", "std.rand", "<native:std.rand>", xlStdRandModuleSource },
+	{ "std.process", "std.process", "<native:std.process>", xlStdProcessModuleSource },
+	{ "std.str", "std.str", "<native:std.str>", xlStdStrModuleSource },
 	{ "std.time", "std.time", "<native:std.time>", xlStdTimeModuleSource },
 	{ "std.task", "std.task", "<native:std.task>", xlStdTaskModuleSource }
 };

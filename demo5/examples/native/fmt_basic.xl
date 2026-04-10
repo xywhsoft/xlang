@@ -1,0 +1,18 @@
+import std.fmt
+import std.str
+
+func main() as int
+	const string int_text = fmt.int_text(12345, ",")
+	const string float_text = fmt.float_text(12.5, ".2")
+
+	if str.contains(int_text, "12") == false
+		return 1
+	end
+	if str.contains(float_text, "12") == false
+		return 2
+	end
+	if str.contains(float_text, ".") == false
+		return 3
+	end
+	return 0
+end

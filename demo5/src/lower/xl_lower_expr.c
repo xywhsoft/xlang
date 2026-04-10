@@ -50,6 +50,9 @@ XL_HirNode* xlLowerExprToHir(const XL_AstNode* pNode, XL_DiagContext* pDiag, int
 		case XL_AST_TEMPLATE:
 			xlHirSetTypeName(pHir, "string");
 			break;
+		case XL_AST_TIME:
+			xlHirSetTypeName(pHir, "time");
+			break;
 		case XL_AST_BOOL:
 			xlHirSetTypeName(pHir, "bool");
 			break;

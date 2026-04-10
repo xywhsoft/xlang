@@ -1,0 +1,13 @@
+import std.path
+
+func main() as int
+	const string full = path.join("C:\\demo", "file.txt")
+	const string name = path.name(full)
+	const string ext = path.ext(full)
+	const string dir = path.dir(full)
+	const bool abs = path.is_abs(full)
+	if abs == false
+		return 1
+	end
+	return 0
+end

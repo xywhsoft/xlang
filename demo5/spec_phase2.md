@@ -36,19 +36,19 @@
 ## 4. 第二阶段进度
 
 - [x] `P00` 建立第二阶段 spec，并冻结范围
-- [ ] `P01` 建立生成 C 使用的 `xlrt` 适配层骨架
-- [ ] `P02` 让生成 C 入口显式接入 `xrt` 线程运行时
-- [ ] `P03` 将 `print/println` 从内嵌 helper 迁到 `xlrt`
-- [ ] `P04` 建立 `std.io` 模块并接通输出主路径
-- [ ] `P05` 将 `std.time` 主路径迁到 `xrt` 时间接口
-- [ ] `P06` 建立 `std.path` 模块并接通 `xrtPath*`
-- [ ] `P07` 建立 `std.fs` 模块并接通 `xrtFile*`
-- [ ] `P08` 建立 `std.str` 第一批字符串工具
-- [ ] `P09` 建立 `std.process` 最小进程能力
-- [ ] `P10` 清理与 `xrt` 重叠的旧 runtime helper
-- [ ] `P11` 补 `xrt` 接管后的 C 产物检查用例
-- [ ] `P12` 补标准库样例进入统一 runner
-- [ ] `P13` 完成一轮 `test + regress` 基线更新
+- [x] `P01` 建立生成 C 使用的 `xlrt` 适配层骨架
+- [x] `P02` 让生成 C 入口显式接入 `xrt` 线程运行时
+- [x] `P03` 将 `print/println` 从内嵌 helper 迁到 `xlrt`
+- [x] `P04` 建立 `std.io` 模块并接通输出主路径
+- [x] `P05` 将 `std.time` 主路径迁到 `xrt` 时间接口
+- [x] `P06` 建立 `std.path` 模块并接通 `xrtPath*`
+- [x] `P07` 建立 `std.fs` 模块并接通 `xrtFile*`
+- [x] `P08` 建立 `std.str` 第一批字符串工具
+- [x] `P09` 建立 `std.process` 最小进程能力
+- [x] `P10` 清理与 `xrt` 重叠的旧 runtime helper
+- [x] `P11` 补 `xrt` 接管后的 C 产物检查用例
+- [x] `P12` 补标准库样例进入统一 runner
+- [x] `P13` 完成一轮 `test + regress` 基线更新
 
 ## 5. 推荐顺序
 

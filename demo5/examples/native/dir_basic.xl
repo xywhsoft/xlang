@@ -1,0 +1,28 @@
+import std.dir
+import std.env
+import std.str
+
+func main() as int
+	const string cwd_text = env.cwd()
+	const string list_text = dir.list(cwd_text)
+	const string files_text = dir.files(cwd_text)
+	const string dirs_text = dir.dirs(cwd_text)
+	const string tree_text = dir.tree("release\\tmp")
+
+	if cwd_text == ""
+		return 1
+	end
+	if str.contains(list_text, "examples") == false
+		return 2
+	end
+	if str.contains(files_text, "build_gcc.bat") == false
+		return 3
+	end
+	if str.contains(dirs_text, "src") == false
+		return 4
+	end
+	if str.contains(tree_text, "release\\tmp") == false
+		return 5
+	end
+	return 0
+end
