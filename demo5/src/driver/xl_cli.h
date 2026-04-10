@@ -11,7 +11,10 @@ typedef enum XL_Command {
 	XL_CMD_SEM,
 	XL_CMD_LOWER,
 	XL_CMD_CGEN,
+	XL_CMD_BUILD,
 	XL_CMD_RUN,
+	XL_CMD_BUILD_C,
+	XL_CMD_RUN_C,
 	XL_CMD_TEST
 } XL_Command;
 

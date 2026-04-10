@@ -1,0 +1,754 @@
+#include "xl_host_tcc.h"
+
+#include "xl_host_symbols.h"
+
+#include "../../lib/libtcc.h"
+
+#if defined(_WIN32) || defined(_WIN64)
+	#include <windows.h>
+#else
+	#include <unistd.h>
+#endif
+
+typedef struct XL_RunTraceBuffer {
+	char* sData;
+	size_t iLen;
+	size_t iCap;
+} XL_RunTraceBuffer;
+
+typedef enum XL_HostOutputType {
+	XL_HOST_OUTPUT_EXE = TCC_OUTPUT_EXE,
+	XL_HOST_OUTPUT_OBJ = TCC_OUTPUT_OBJ,
+	XL_HOST_OUTPUT_DLL = TCC_OUTPUT_DLL
+} XL_HostOutputType;
+
+typedef struct XL_CwdScope {
+	int bActive;
+	char sPrev[XL_PATH_MAX_LEN];
+} XL_CwdScope;
+
+static int __xlRunTraceGrow(XL_RunTraceBuffer* pBuf, size_t iNeed)
+{
+	char* sNewData;
+	size_t iNewCap;
+
+	if ( (pBuf->iLen + iNeed + 1) <= pBuf->iCap ) {
+		return XL_RC_OK;
+	}
+
+	iNewCap = (pBuf->iCap == 0) ? 512 : pBuf->iCap;
+	while ( iNewCap < (pBuf->iLen + iNeed + 1) ) {
+		iNewCap *= 2;
+	}
+
+	sNewData = (char*)realloc(pBuf->sData, iNewCap);
+	if ( sNewData == NULL ) {
+		return XL_RC_IO_ERROR;
+	}
+
+	pBuf->sData = sNewData;
+	pBuf->iCap = iNewCap;
+	return XL_RC_OK;
+}
+
+static void __xlRunTraceAppend(XL_RunTraceBuffer* pBuf, const char* sText)
+{
+	size_t iLen;
+
+	if ( sText == NULL ) {
+		return;
+	}
+
+	iLen = strlen(sText);
+	if ( __xlRunTraceGrow(pBuf, iLen) != XL_RC_OK ) {
+		return;
+	}
+
+	memcpy(pBuf->sData + pBuf->iLen, sText, iLen);
+	pBuf->iLen += iLen;
+	pBuf->sData[pBuf->iLen] = '\0';
+}
+
+static void __xlRunTraceAppendFormat(XL_RunTraceBuffer* pBuf, const char* sFormat, ...)
+{
+	va_list args;
+	va_list args2;
+	int iNeed;
+
+	va_start(args, sFormat);
+	va_copy(args2, args);
+	iNeed = vsnprintf(NULL, 0, sFormat, args);
+	va_end(args);
+	if ( iNeed < 0 ) {
+		va_end(args2);
+		return;
+	}
+
+	if ( __xlRunTraceGrow(pBuf, (size_t)iNeed) != XL_RC_OK ) {
+		va_end(args2);
+		return;
+	}
+
+	vsnprintf(pBuf->sData + pBuf->iLen, pBuf->iCap - pBuf->iLen, sFormat, args2);
+	va_end(args2);
+	pBuf->iLen += (size_t)iNeed;
+}
+
+static void __xlTccErrorThunk(void* pOpaque, const char* sMsg)
+{
+	XL_RunTraceBuffer* pTrace;
+
+	pTrace = (XL_RunTraceBuffer*)pOpaque;
+	if ( (pTrace != NULL) && (sMsg != NULL) ) {
+		__xlRunTraceAppendFormat(pTrace, "[tcc] %s\n", sMsg);
+	}
+}
+
+static int __xlPushProjectCwd(const XL_HostContext* pCtx, XL_RunTraceBuffer* pTrace, XL_CwdScope* pScope)
+{
+	if ( pScope == NULL ) {
+		return XL_RC_BAD_ARG;
+	}
+
+	memset(pScope, 0, sizeof(*pScope));
+	if ( (pCtx == NULL) || (pCtx->sProjectRoot[0] == '\0') ) {
+		return XL_RC_OK;
+	}
+
+#if defined(_WIN32) || defined(_WIN64)
+	if ( GetCurrentDirectoryA((DWORD)sizeof(pScope->sPrev), pScope->sPrev) == 0u ) {
+		return XL_RC_FAIL;
+	}
+	if ( !SetCurrentDirectoryA(pCtx->sProjectRoot) ) {
+		return XL_RC_FAIL;
+	}
+#else
+	if ( getcwd(pScope->sPrev, sizeof(pScope->sPrev)) == NULL ) {
+		return XL_RC_FAIL;
+	}
+	if ( chdir(pCtx->sProjectRoot) != 0 ) {
+		return XL_RC_FAIL;
+	}
+#endif
+
+	pScope->bActive = 1;
+	__xlRunTraceAppendFormat(pTrace, "cwd.prev=%s\n", pScope->sPrev);
+	__xlRunTraceAppendFormat(pTrace, "cwd.exec=%s\n", pCtx->sProjectRoot);
+	return XL_RC_OK;
+}
+
+static void __xlPopProjectCwd(XL_RunTraceBuffer* pTrace, XL_CwdScope* pScope)
+{
+	int bRestored;
+
+	if ( (pScope == NULL) || (pScope->bActive == 0) ) {
+		return;
+	}
+
+	bRestored = 0;
+#if defined(_WIN32) || defined(_WIN64)
+	bRestored = SetCurrentDirectoryA(pScope->sPrev) ? 1 : 0;
+#else
+	bRestored = (chdir(pScope->sPrev) == 0) ? 1 : 0;
+#endif
+
+	if ( bRestored ) {
+		__xlRunTraceAppendFormat(pTrace, "cwd.restore=%s\n", pScope->sPrev);
+	} else {
+		__xlRunTraceAppendFormat(pTrace, "cwd.restore_failed=%s\n", pScope->sPrev);
+	}
+	pScope->bActive = 0;
+}
+
+static void __xlBuildPath2(char* sOut, size_t iOutSize, const char* sBase, const char* sPart1)
+{
+	char sTmp[XL_PATH_MAX_LEN];
+
+	snprintf(sTmp, sizeof(sTmp), "%s", (sBase != NULL) ? sBase : "");
+	xlPathJoin(sOut, iOutSize, sTmp, sPart1);
+}
+
+static void __xlBuildPath3(char* sOut, size_t iOutSize, const char* sBase, const char* sPart1, const char* sPart2)
+{
+	char sTmp[XL_PATH_MAX_LEN];
+
+	snprintf(sTmp, sizeof(sTmp), "%s", (sBase != NULL) ? sBase : "");
+	xlPathJoin(sTmp, sizeof(sTmp), sTmp, sPart1);
+	xlPathJoin(sOut, iOutSize, sTmp, sPart2);
+}
+
+static char* __xlWrapSourceText(const char* sVirtualPath, const char* sCode)
+{
+	const char* sPath;
+	size_t iHeadLen;
+	size_t iCodeLen;
+	size_t iOutLen;
+	char* sOut;
+
+	sPath = (sVirtualPath != NULL) ? sVirtualPath : "<memory>";
+	if ( sCode == NULL ) {
+		sCode = "";
+	}
+
+	iHeadLen = strlen(sPath) + 32;
+	iCodeLen = strlen(sCode);
+	iOutLen = iHeadLen + iCodeLen + 1;
+	sOut = (char*)malloc(iOutLen);
+	if ( sOut == NULL ) {
+		return NULL;
+	}
+
+	snprintf(sOut, iOutLen, "#line 1 \"%s\"\n%s", sPath, sCode);
+	return sOut;
+}
+
+static char* __xlWrapBuildText(
+	const char* sVirtualPath,
+	const char* sCode,
+	const char* sEntrySymbol,
+	int bNeedMainEntry
+)
+{
+	char* sBase;
+	char* sOut;
+	size_t iBaseLen;
+	size_t iOutLen;
+
+	sBase = __xlWrapSourceText(sVirtualPath, sCode);
+	if ( sBase == NULL ) {
+		return NULL;
+	}
+
+	if ( !bNeedMainEntry || (sEntrySymbol == NULL) || (sEntrySymbol[0] == '\0') ) {
+		return sBase;
+	}
+
+	iBaseLen = strlen(sBase);
+	iOutLen = iBaseLen + strlen(sEntrySymbol) + 96u;
+	sOut = (char*)malloc(iOutLen);
+	if ( sOut == NULL ) {
+		free(sBase);
+		return NULL;
+	}
+
+	snprintf(
+		sOut,
+		iOutLen,
+		"%s\nint main(int argc, char** argv)\n{\n\t(void)argc;\n\t(void)argv;\n\treturn %s();\n}\n",
+		sBase,
+		sEntrySymbol
+	);
+	free(sBase);
+	return sOut;
+}
+
+static int __xlConfigureTcc(
+	const XL_HostContext* pCtx,
+	TCCState* pTcc,
+	XL_RunTraceBuffer* pTrace,
+	int bRegisterSymbols
+)
+{
+	char sIncludeWin[XL_PATH_MAX_LEN];
+	char sIncludeWinApi[XL_PATH_MAX_LEN];
+	char sProjectRuntimeInc[XL_PATH_MAX_LEN];
+	char sProjectXrtInc[XL_PATH_MAX_LEN];
+	char sLibDir[XL_PATH_MAX_LEN];
+
+	if ( (pCtx == NULL) || (pTcc == NULL) ) {
+		return XL_RC_BAD_ARG;
+	}
+
+	tcc_set_error_func(pTcc, pTrace, __xlTccErrorThunk);
+	tcc_set_lib_path(pTcc, pCtx->sTccRoot);
+	tcc_set_options(pTcc, "-D_CRT_SECURE_NO_WARNINGS -include xlrt_profile.h");
+
+	__xlBuildPath2(sIncludeWin, sizeof(sIncludeWin), pCtx->sTccRoot, "include_win");
+	__xlBuildPath3(sIncludeWinApi, sizeof(sIncludeWinApi), pCtx->sTccRoot, "include_win", "winapi");
+	__xlBuildPath3(sProjectRuntimeInc, sizeof(sProjectRuntimeInc), pCtx->sProjectRoot, "src", "runtime");
+	__xlBuildPath3(sProjectXrtInc, sizeof(sProjectXrtInc), pCtx->sProjectRoot, "lib", "xrt");
+	__xlBuildPath2(sLibDir, sizeof(sLibDir), pCtx->sTccRoot, "lib");
+
+	__xlRunTraceAppendFormat(pTrace, "tcc_root=%s\n", pCtx->sTccRoot);
+	__xlRunTraceAppendFormat(pTrace, "include=%s\n", sIncludeWin);
+	__xlRunTraceAppendFormat(pTrace, "include=%s\n", sIncludeWinApi);
+	__xlRunTraceAppendFormat(pTrace, "include=%s\n", sProjectRuntimeInc);
+	__xlRunTraceAppendFormat(pTrace, "include=%s\n", sProjectXrtInc);
+	__xlRunTraceAppendFormat(pTrace, "lib=%s\n", sLibDir);
+
+	if ( tcc_add_include_path(pTcc, sIncludeWin) < 0 ) return XL_RC_FAIL;
+	if ( tcc_add_include_path(pTcc, sIncludeWinApi) < 0 ) return XL_RC_FAIL;
+	if ( tcc_add_include_path(pTcc, sProjectRuntimeInc) < 0 ) return XL_RC_FAIL;
+	if ( tcc_add_include_path(pTcc, sProjectXrtInc) < 0 ) return XL_RC_FAIL;
+	if ( tcc_add_sysinclude_path(pTcc, sIncludeWin) < 0 ) return XL_RC_FAIL;
+	if ( tcc_add_library_path(pTcc, sLibDir) < 0 ) return XL_RC_FAIL;
+	if ( bRegisterSymbols && (xlHostRegisterSymbols(pTcc) != XL_RC_OK) ) return XL_RC_FAIL;
+
+	return XL_RC_OK;
+}
+
+static void __xlInitRunResult(XL_HostRunResult* pResult, const char* sEntrySymbol)
+{
+	if ( pResult == NULL ) {
+		return;
+	}
+
+	memset(pResult, 0, sizeof(*pResult));
+	snprintf(pResult->sEntrySymbol, sizeof(pResult->sEntrySymbol), "%s", (sEntrySymbol != NULL) ? sEntrySymbol : "");
+}
+
+static void __xlInitBuildResult(XL_HostBuildResult* pResult, const char* sOutputFile, const char* sOutputKind, const char* sEntrySymbol)
+{
+	if ( pResult == NULL ) {
+		return;
+	}
+
+	memset(pResult, 0, sizeof(*pResult));
+	snprintf(pResult->sOutputFile, sizeof(pResult->sOutputFile), "%s", (sOutputFile != NULL) ? sOutputFile : "");
+	snprintf(pResult->sOutputKind, sizeof(pResult->sOutputKind), "%s", (sOutputKind != NULL) ? sOutputKind : "");
+	snprintf(pResult->sEntrySymbol, sizeof(pResult->sEntrySymbol), "%s", (sEntrySymbol != NULL) ? sEntrySymbol : "");
+}
+
+static void __xlFillExceptionInfo(TCCState* pTcc, XL_RunTraceBuffer* pTrace, XL_HostRunResult* pResult)
+{
+	int* piHadException;
+	int* piExceptionKind;
+	const char** psExceptionText;
+	int64_t* piExceptionInt;
+	double* pfExceptionFloat;
+
+	if ( (pTcc == NULL) || (pResult == NULL) ) {
+		return;
+	}
+
+	piHadException = (int*)tcc_get_symbol(pTcc, "xl_generated_had_exception");
+	piExceptionKind = (int*)tcc_get_symbol(pTcc, "xl_generated_exception_kind");
+	psExceptionText = (const char**)tcc_get_symbol(pTcc, "xl_generated_exception_text");
+	piExceptionInt = (int64_t*)tcc_get_symbol(pTcc, "xl_generated_exception_int");
+	pfExceptionFloat = (double*)tcc_get_symbol(pTcc, "xl_generated_exception_float");
+	if ( (piHadException == NULL) || (*piHadException == 0) ) {
+		return;
+	}
+
+	pResult->bHadException = 1;
+	pResult->iExceptionKind = (piExceptionKind != NULL) ? *piExceptionKind : 0;
+	pResult->iExceptionInt = (piExceptionInt != NULL) ? *piExceptionInt : 0;
+	pResult->fExceptionFloat = (pfExceptionFloat != NULL) ? *pfExceptionFloat : 0.0;
+	snprintf(
+		pResult->sExceptionText,
+		sizeof(pResult->sExceptionText),
+		"%s",
+		((psExceptionText != NULL) && (*psExceptionText != NULL)) ? *psExceptionText : "throw"
+	);
+	__xlRunTraceAppendFormat(pTrace, "exception.kind=%d\n", pResult->iExceptionKind);
+	__xlRunTraceAppendFormat(pTrace, "exception.text=%s\n", pResult->sExceptionText);
+}
+
+static XL_HostOutputType __xlDetectOutputType(const char* sOutputFile, const char** psKindText)
+{
+	const char* sExt;
+
+	if ( psKindText != NULL ) {
+		*psKindText = "exe";
+	}
+	if ( sOutputFile == NULL ) {
+		return XL_HOST_OUTPUT_EXE;
+	}
+
+	sExt = strrchr(sOutputFile, '.');
+	if ( sExt == NULL ) {
+		return XL_HOST_OUTPUT_EXE;
+	}
+	if ( (_stricmp(sExt, ".obj") == 0) || (_stricmp(sExt, ".o") == 0) ) {
+		if ( psKindText != NULL ) *psKindText = "obj";
+		return XL_HOST_OUTPUT_OBJ;
+	}
+	if ( _stricmp(sExt, ".dll") == 0 ) {
+		if ( psKindText != NULL ) *psKindText = "dll";
+		return XL_HOST_OUTPUT_DLL;
+	}
+	return XL_HOST_OUTPUT_EXE;
+}
+
+static int __xlAddBuildLibraries(TCCState* pTcc, XL_RunTraceBuffer* pTrace)
+{
+	static const char* arrLibs[] = { "shell32", "ws2_32", "iphlpapi" };
+	size_t i;
+
+	for ( i = 0; i < XL_COUNTOF(arrLibs); ++i ) {
+		__xlRunTraceAppendFormat(pTrace, "link_lib=%s\n", arrLibs[i]);
+		if ( tcc_add_library(pTcc, arrLibs[i]) < 0 ) {
+			return XL_RC_FAIL;
+		}
+	}
+
+	return XL_RC_OK;
+}
+
+static int __xlAddBuildSupportSources(const XL_HostContext* pCtx, TCCState* pTcc, XL_RunTraceBuffer* pTrace)
+{
+	char sRuntimeImpl[XL_PATH_MAX_LEN];
+	char sGeneratedImpl[XL_PATH_MAX_LEN];
+	char sHostRuntimeImpl[XL_PATH_MAX_LEN];
+
+	__xlBuildPath3(sRuntimeImpl, sizeof(sRuntimeImpl), pCtx->sProjectRoot, "src", "runtime");
+	xlPathJoin(sRuntimeImpl, sizeof(sRuntimeImpl), sRuntimeImpl, "xlrt_host.c");
+	__xlBuildPath3(sGeneratedImpl, sizeof(sGeneratedImpl), pCtx->sProjectRoot, "src", "runtime");
+	xlPathJoin(sGeneratedImpl, sizeof(sGeneratedImpl), sGeneratedImpl, "xlrt_generated.c");
+	__xlBuildPath3(sHostRuntimeImpl, sizeof(sHostRuntimeImpl), pCtx->sProjectRoot, "src", "host");
+	xlPathJoin(sHostRuntimeImpl, sizeof(sHostRuntimeImpl), sHostRuntimeImpl, "xl_host_runtime.c");
+
+	__xlRunTraceAppendFormat(pTrace, "support_source=%s\n", sRuntimeImpl);
+	if ( tcc_add_file(pTcc, sRuntimeImpl) < 0 ) return XL_RC_FAIL;
+	__xlRunTraceAppendFormat(pTrace, "support_source=%s\n", sGeneratedImpl);
+	if ( tcc_add_file(pTcc, sGeneratedImpl) < 0 ) return XL_RC_FAIL;
+	__xlRunTraceAppendFormat(pTrace, "support_source=%s\n", sHostRuntimeImpl);
+	if ( tcc_add_file(pTcc, sHostRuntimeImpl) < 0 ) return XL_RC_FAIL;
+
+	return XL_RC_OK;
+}
+
+int xlHostTccRunText(
+	const XL_HostContext* pCtx,
+	XL_DiagContext* pDiag,
+	const char* sVirtualPath,
+	const char* sCode,
+	const char* sEntrySymbol,
+	char** psTraceText,
+	XL_HostRunResult* pResult
+)
+{
+	XL_RunTraceBuffer trace;
+	XL_CwdScope cwdScope;
+	TCCState* pTcc;
+	char* sWrapped;
+	int (*pfnEntry)(void);
+	const char* sAsyncTrace;
+	int* piAsyncTraceLen;
+	int iRc;
+
+	if ( (pCtx == NULL) || (sCode == NULL) || (psTraceText == NULL) || (pResult == NULL) ) return XL_RC_BAD_ARG;
+
+	memset(&trace, 0, sizeof(trace));
+	memset(&cwdScope, 0, sizeof(cwdScope));
+	__xlInitRunResult(pResult, (sEntrySymbol != NULL) ? sEntrySymbol : "xl_generated_entry");
+	*psTraceText = NULL;
+	sWrapped = NULL;
+
+	pTcc = tcc_new();
+	if ( pTcc == NULL ) {
+		XL_DIAG_ERROR(pDiag, "host.tcc", "failed to create TCC state");
+		return XL_RC_FAIL;
+	}
+
+	if ( tcc_set_output_type(pTcc, TCC_OUTPUT_MEMORY) < 0 ) {
+		XL_DIAG_ERROR(pDiag, "host.tcc", "failed to set TCC output type");
+		tcc_delete(pTcc);
+		return XL_RC_FAIL;
+	}
+	if ( __xlConfigureTcc(pCtx, pTcc, &trace, 1) != XL_RC_OK ) {
+		XL_DIAG_ERROR(pDiag, "host.tcc", "failed to configure TCC");
+		tcc_delete(pTcc);
+		*psTraceText = trace.sData;
+		return XL_RC_FAIL;
+	}
+
+	sWrapped = __xlWrapSourceText(sVirtualPath, sCode);
+	if ( sWrapped == NULL ) {
+		tcc_delete(pTcc);
+		return XL_RC_IO_ERROR;
+	}
+
+	__xlRunTraceAppendFormat(&trace, "compile_text=%s\n", (sVirtualPath != NULL) ? sVirtualPath : "<memory>");
+	if ( tcc_compile_string(pTcc, sWrapped) < 0 ) {
+		XL_DIAG_ERROR(pDiag, "host.tcc", "tcc compile failed");
+		free(sWrapped);
+		tcc_delete(pTcc);
+		pResult->bHadRuntimeError = 1;
+		*psTraceText = trace.sData;
+		return XL_RC_FAIL;
+	}
+	free(sWrapped);
+
+	__xlRunTraceAppend(&trace, "relocate\n");
+	if ( tcc_relocate(pTcc) < 0 ) {
+		XL_DIAG_ERROR(pDiag, "host.tcc", "tcc relocate failed");
+		tcc_delete(pTcc);
+		pResult->bHadRuntimeError = 1;
+		*psTraceText = trace.sData;
+		return XL_RC_FAIL;
+	}
+
+	__xlRunTraceAppendFormat(&trace, "resolve_symbol=%s\n", pResult->sEntrySymbol);
+	pfnEntry = (int (*)(void))tcc_get_symbol(pTcc, pResult->sEntrySymbol);
+	if ( pfnEntry == NULL ) {
+		XL_DIAG_ERROR(pDiag, "host.tcc", "entry symbol not found: %s", pResult->sEntrySymbol);
+		tcc_delete(pTcc);
+		pResult->bHadRuntimeError = 1;
+		*psTraceText = trace.sData;
+		return XL_RC_FAIL;
+	}
+
+	if ( __xlPushProjectCwd(pCtx, &trace, &cwdScope) != XL_RC_OK ) {
+		XL_DIAG_ERROR(pDiag, "host.tcc", "failed to switch cwd: %s", pCtx->sProjectRoot);
+		tcc_delete(pTcc);
+		pResult->bHadRuntimeError = 1;
+		*psTraceText = trace.sData;
+		return XL_RC_FAIL;
+	}
+
+	__xlRunTraceAppend(&trace, "execute\n");
+	pResult->iExitCode = pfnEntry();
+	__xlRunTraceAppendFormat(&trace, "exit_code=%d\n", pResult->iExitCode);
+	__xlPopProjectCwd(&trace, &cwdScope);
+
+	sAsyncTrace = (const char*)tcc_get_symbol(pTcc, "xl_generated_async_trace");
+	piAsyncTraceLen = (int*)tcc_get_symbol(pTcc, "xl_generated_async_trace_len");
+	if ( (sAsyncTrace != NULL) && (piAsyncTraceLen != NULL) && (*piAsyncTraceLen > 0) ) {
+		__xlRunTraceAppend(&trace, sAsyncTrace);
+	}
+
+	__xlFillExceptionInfo(pTcc, &trace, pResult);
+	iRc = (pResult->bHadException != 0) ? XL_RC_FAIL : XL_RC_OK;
+	if ( pResult->bHadException ) {
+		pResult->bHadRuntimeError = 1;
+		XL_DIAG_ERROR(pDiag, "host.tcc", "uncaught exception: %s", pResult->sExceptionText);
+	}
+
+	tcc_delete(pTcc);
+	*psTraceText = trace.sData;
+	return iRc;
+}
+
+int xlHostTccRunFile(
+	const XL_HostContext* pCtx,
+	XL_DiagContext* pDiag,
+	const char* sSourceFile,
+	char** psTraceText,
+	XL_HostRunResult* pResult
+)
+{
+	XL_RunTraceBuffer trace;
+	XL_CwdScope cwdScope;
+	TCCState* pTcc;
+	char* arrArgv[2];
+	int iRunRc;
+
+	if ( (pCtx == NULL) || (sSourceFile == NULL) || (psTraceText == NULL) || (pResult == NULL) ) return XL_RC_BAD_ARG;
+
+	memset(&trace, 0, sizeof(trace));
+	memset(&cwdScope, 0, sizeof(cwdScope));
+	__xlInitRunResult(pResult, "main");
+	*psTraceText = NULL;
+
+	pTcc = tcc_new();
+	if ( pTcc == NULL ) {
+		XL_DIAG_ERROR(pDiag, "host.tcc", "failed to create TCC state");
+		return XL_RC_FAIL;
+	}
+
+	if ( tcc_set_output_type(pTcc, TCC_OUTPUT_MEMORY) < 0 ) {
+		XL_DIAG_ERROR(pDiag, "host.tcc", "failed to set TCC output type");
+		tcc_delete(pTcc);
+		return XL_RC_FAIL;
+	}
+	if ( __xlConfigureTcc(pCtx, pTcc, &trace, 1) != XL_RC_OK ) {
+		XL_DIAG_ERROR(pDiag, "host.tcc", "failed to configure TCC");
+		tcc_delete(pTcc);
+		*psTraceText = trace.sData;
+		return XL_RC_FAIL;
+	}
+
+	__xlRunTraceAppendFormat(&trace, "compile_file=%s\n", sSourceFile);
+	if ( tcc_add_file(pTcc, sSourceFile) < 0 ) {
+		XL_DIAG_ERROR(pDiag, "host.tcc", "failed to add C file: %s", sSourceFile);
+		tcc_delete(pTcc);
+		pResult->bHadRuntimeError = 1;
+		*psTraceText = trace.sData;
+		return XL_RC_FAIL;
+	}
+
+	arrArgv[0] = (char*)sSourceFile;
+	arrArgv[1] = NULL;
+	if ( __xlPushProjectCwd(pCtx, &trace, &cwdScope) != XL_RC_OK ) {
+		XL_DIAG_ERROR(pDiag, "host.tcc", "failed to switch cwd: %s", pCtx->sProjectRoot);
+		tcc_delete(pTcc);
+		pResult->bHadRuntimeError = 1;
+		*psTraceText = trace.sData;
+		return XL_RC_FAIL;
+	}
+	__xlRunTraceAppend(&trace, "tcc_run\n");
+	iRunRc = tcc_run(pTcc, 1, arrArgv);
+	__xlPopProjectCwd(&trace, &cwdScope);
+	pResult->iExitCode = iRunRc;
+	__xlRunTraceAppendFormat(&trace, "exit_code=%d\n", pResult->iExitCode);
+	if ( iRunRc < 0 ) {
+		XL_DIAG_ERROR(pDiag, "host.tcc", "failed to run C file: %s", sSourceFile);
+		pResult->bHadRuntimeError = 1;
+		tcc_delete(pTcc);
+		*psTraceText = trace.sData;
+		return XL_RC_FAIL;
+	}
+
+	tcc_delete(pTcc);
+	*psTraceText = trace.sData;
+	return XL_RC_OK;
+}
+
+static int __xlHostTccBuildCommon(
+	const XL_HostContext* pCtx,
+	XL_DiagContext* pDiag,
+	TCCState* pTcc,
+	const char* sOutputFile,
+	const char* sOutputKind,
+	XL_RunTraceBuffer* pTrace,
+	XL_HostBuildResult* pResult
+)
+{
+	__xlRunTraceAppendFormat(pTrace, "output=%s\n", sOutputFile);
+	__xlRunTraceAppendFormat(pTrace, "output_kind=%s\n", sOutputKind);
+	if ( __xlAddBuildSupportSources(pCtx, pTcc, pTrace) != XL_RC_OK ) {
+		XL_DIAG_ERROR(pDiag, "host.tcc", "failed to add runtime support sources");
+		pResult->bHadBuildError = 1;
+		return XL_RC_FAIL;
+	}
+	if ( __xlAddBuildLibraries(pTcc, pTrace) != XL_RC_OK ) {
+		XL_DIAG_ERROR(pDiag, "host.tcc", "failed to add system libraries");
+		pResult->bHadBuildError = 1;
+		return XL_RC_FAIL;
+	}
+	if ( xlPathEnsureParentDir(sOutputFile) != XL_RC_OK ) {
+		XL_DIAG_ERROR(pDiag, "host.tcc", "failed to prepare output directory: %s", sOutputFile);
+		pResult->bHadBuildError = 1;
+		return XL_RC_IO_ERROR;
+	}
+	if ( tcc_output_file(pTcc, sOutputFile) < 0 ) {
+		XL_DIAG_ERROR(pDiag, "host.tcc", "failed to write output file: %s", sOutputFile);
+		pResult->bHadBuildError = 1;
+		return XL_RC_FAIL;
+	}
+	return XL_RC_OK;
+}
+
+int xlHostTccBuildText(
+	const XL_HostContext* pCtx,
+	XL_DiagContext* pDiag,
+	const char* sVirtualPath,
+	const char* sCode,
+	const char* sEntrySymbol,
+	const char* sOutputFile,
+	char** psTraceText,
+	XL_HostBuildResult* pResult
+)
+{
+	XL_RunTraceBuffer trace;
+	TCCState* pTcc;
+	char* sWrapped;
+	const char* sKindText;
+	XL_HostOutputType eOutputType;
+	int iRc;
+
+	if ( (pCtx == NULL) || (sCode == NULL) || (sOutputFile == NULL) || (psTraceText == NULL) || (pResult == NULL) ) return XL_RC_BAD_ARG;
+
+	memset(&trace, 0, sizeof(trace));
+	sKindText = "exe";
+	eOutputType = __xlDetectOutputType(sOutputFile, &sKindText);
+	__xlInitBuildResult(pResult, sOutputFile, sKindText, sEntrySymbol);
+	*psTraceText = NULL;
+
+	pTcc = tcc_new();
+	if ( pTcc == NULL ) {
+		XL_DIAG_ERROR(pDiag, "host.tcc", "failed to create TCC state");
+		return XL_RC_FAIL;
+	}
+
+	if ( tcc_set_output_type(pTcc, (int)eOutputType) < 0 ) {
+		XL_DIAG_ERROR(pDiag, "host.tcc", "failed to set build output type");
+		tcc_delete(pTcc);
+		return XL_RC_FAIL;
+	}
+	if ( __xlConfigureTcc(pCtx, pTcc, &trace, 0) != XL_RC_OK ) {
+		XL_DIAG_ERROR(pDiag, "host.tcc", "failed to configure TCC");
+		tcc_delete(pTcc);
+		*psTraceText = trace.sData;
+		return XL_RC_FAIL;
+	}
+
+	sWrapped = __xlWrapBuildText(sVirtualPath, sCode, sEntrySymbol, eOutputType == XL_HOST_OUTPUT_EXE);
+	if ( sWrapped == NULL ) {
+		tcc_delete(pTcc);
+		return XL_RC_IO_ERROR;
+	}
+
+	__xlRunTraceAppendFormat(&trace, "compile_text=%s\n", (sVirtualPath != NULL) ? sVirtualPath : "<memory>");
+	if ( tcc_compile_string(pTcc, sWrapped) < 0 ) {
+		XL_DIAG_ERROR(pDiag, "host.tcc", "tcc compile failed");
+		free(sWrapped);
+		tcc_delete(pTcc);
+		pResult->bHadBuildError = 1;
+		*psTraceText = trace.sData;
+		return XL_RC_FAIL;
+	}
+	free(sWrapped);
+
+	iRc = __xlHostTccBuildCommon(pCtx, pDiag, pTcc, sOutputFile, sKindText, &trace, pResult);
+	tcc_delete(pTcc);
+	*psTraceText = trace.sData;
+	return iRc;
+}
+
+int xlHostTccBuildFile(
+	const XL_HostContext* pCtx,
+	XL_DiagContext* pDiag,
+	const char* sSourceFile,
+	const char* sOutputFile,
+	char** psTraceText,
+	XL_HostBuildResult* pResult
+)
+{
+	XL_RunTraceBuffer trace;
+	TCCState* pTcc;
+	const char* sKindText;
+	XL_HostOutputType eOutputType;
+	int iRc;
+
+	if ( (pCtx == NULL) || (sSourceFile == NULL) || (sOutputFile == NULL) || (psTraceText == NULL) || (pResult == NULL) ) return XL_RC_BAD_ARG;
+
+	memset(&trace, 0, sizeof(trace));
+	sKindText = "exe";
+	eOutputType = __xlDetectOutputType(sOutputFile, &sKindText);
+	__xlInitBuildResult(pResult, sOutputFile, sKindText, "main");
+	*psTraceText = NULL;
+
+	pTcc = tcc_new();
+	if ( pTcc == NULL ) {
+		XL_DIAG_ERROR(pDiag, "host.tcc", "failed to create TCC state");
+		return XL_RC_FAIL;
+	}
+
+	if ( tcc_set_output_type(pTcc, (int)eOutputType) < 0 ) {
+		XL_DIAG_ERROR(pDiag, "host.tcc", "failed to set build output type");
+		tcc_delete(pTcc);
+		return XL_RC_FAIL;
+	}
+	if ( __xlConfigureTcc(pCtx, pTcc, &trace, 0) != XL_RC_OK ) {
+		XL_DIAG_ERROR(pDiag, "host.tcc", "failed to configure TCC");
+		tcc_delete(pTcc);
+		*psTraceText = trace.sData;
+		return XL_RC_FAIL;
+	}
+
+	__xlRunTraceAppendFormat(&trace, "compile_file=%s\n", sSourceFile);
+	if ( tcc_add_file(pTcc, sSourceFile) < 0 ) {
+		XL_DIAG_ERROR(pDiag, "host.tcc", "failed to add C file: %s", sSourceFile);
+		tcc_delete(pTcc);
+		pResult->bHadBuildError = 1;
+		*psTraceText = trace.sData;
+		return XL_RC_FAIL;
+	}
+
+	iRc = __xlHostTccBuildCommon(pCtx, pDiag, pTcc, sOutputFile, sKindText, &trace, pResult);
+	tcc_delete(pTcc);
+	*psTraceText = trace.sData;
+	return iRc;
+}

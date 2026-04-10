@@ -13,11 +13,13 @@ typedef enum XL_HirKind {
 	XL_HIR_CONST,
 	XL_HIR_VAR,
 	XL_HIR_IF,
+	XL_HIR_TRY,
 	XL_HIR_FORIN,
 	XL_HIR_RETURN,
 	XL_HIR_BREAK,
 	XL_HIR_CONTINUE,
 	XL_HIR_THROW,
+	XL_HIR_ASSERT,
 	XL_HIR_YIELD,
 	XL_HIR_IMPORT,
 	XL_HIR_EXPORT,
@@ -34,6 +36,9 @@ typedef struct XL_HirNode {
 	XL_HirKind eKind;
 	char* sText;
 	char* sTypeName;
+	int iScopeId;
+	int iSymbolIndex;
+	int iFuncIndex;
 	int64_t iIntValue;
 	double fFloatValue;
 	int bFlag;

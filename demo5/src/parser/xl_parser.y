@@ -97,6 +97,7 @@ stmt(A) ::= error. {
 stmt(A) ::= func_decl(F). { A = F; }
 stmt(A) ::= const_decl(C). { A = C; }
 stmt(A) ::= if_stmt(I). { A = I; }
+stmt(A) ::= try_stmt(T). { A = T; }
 stmt(A) ::= for_in_stmt(F). { A = F; }
 stmt(A) ::= import_stmt(I). { A = I; }
 stmt(A) ::= export_stmt(E). { A = E; }
@@ -106,9 +107,12 @@ stmt(A) ::= KW_BREAK(T). { A = xlAstCreateBreak(&T, 1); }
 stmt(A) ::= KW_CONTINUE(T) INT(N). { A = xlAstCreateContinue(&T, (int)N.iIntValue); }
 stmt(A) ::= KW_CONTINUE(T). { A = xlAstCreateContinue(&T, 1); }
 stmt(A) ::= KW_THROW(T) expr(E). { A = xlAstCreateThrow(&T, E); }
-stmt(A) ::= KW_ASSERT(T) expr(E). { A = xlAstCreateAssert(&T, E); }
+stmt(A) ::= KW_ASSERT(T) expr(E) assert_message(M). { A = xlAstCreateAssert(&T, E, M); }
 stmt(A) ::= KW_YIELD(T) expr_opt(E). { A = xlAstCreateYield(&T, E); }
 stmt(A) ::= expr(E). { A = xlAstCreateExprStmt(E); }
+
+assert_message(A) ::= TK_COMMA expr(E). { A = E; }
+assert_message(A) ::= . { A = NULL; }
 
 async_opt(A) ::= KW_ASYNC. { A = 1; }
 async_opt(A) ::= . { A = 0; }
@@ -134,10 +138,16 @@ params(A) ::= params(L) TK_COMMA param(P). {
 }
 
 param(A) ::= TOK_IDENT(N). {
-	A = xlAstCreateParam(&N, NULL);
+	A = xlAstCreateParam(&N, NULL, NULL);
 }
 param(A) ::= TOK_IDENT(T) TOK_IDENT(N). {
-	A = xlAstCreateParam(&N, xlAstCreateTypeRef(&T));
+	A = xlAstCreateParam(&N, xlAstCreateTypeRef(&T), NULL);
+}
+param(A) ::= TOK_IDENT(N) OP_ASSIGN expr(E). {
+	A = xlAstCreateParam(&N, NULL, E);
+}
+param(A) ::= TOK_IDENT(T) TOK_IDENT(N) OP_ASSIGN expr(E). {
+	A = xlAstCreateParam(&N, xlAstCreateTypeRef(&T), E);
 }
 
 ret_type(A) ::= . { A = NULL; }
@@ -152,6 +162,16 @@ const_decl(A) ::= KW_CONST TOK_IDENT(T) TOK_IDENT(N) OP_ASSIGN expr(E). {
 
 if_stmt(A) ::= KW_IF(T) expr(C) then_opt opt_stmt_sep block(B) elseif_list(EI) else_opt(EL) KW_END. {
 	A = xlAstCreateIf(&T, C, B, EI, EL);
+}
+
+try_stmt(A) ::= KW_TRY(T) opt_stmt_sep block(B) KW_CATCH TOK_IDENT(N) opt_stmt_sep block(C) KW_END. {
+	A = xlAstCreateTry(&T, B, xlAstCreateIdent(&N), C, NULL);
+}
+try_stmt(A) ::= KW_TRY(T) opt_stmt_sep block(B) KW_CATCH TOK_IDENT(N) opt_stmt_sep block(C) KW_FINALLY opt_stmt_sep block(F) KW_END. {
+	A = xlAstCreateTry(&T, B, xlAstCreateIdent(&N), C, F);
+}
+try_stmt(A) ::= KW_TRY(T) opt_stmt_sep block(B) KW_FINALLY opt_stmt_sep block(F) KW_END. {
+	A = xlAstCreateTry(&T, B, NULL, NULL, F);
 }
 
 for_in_stmt(A) ::= KW_FOR(T) for_bindings(BS) KW_IN expr(E) opt_stmt_sep block(B) KW_END. {
@@ -218,6 +238,14 @@ args(A) ::= expr(E). {
 args(A) ::= args(L) TK_COMMA expr(E). {
 	A = L;
 	xlAstAppendChild(A, E);
+}
+args(A) ::= TOK_IDENT(N) OP_ASSIGN expr(E). {
+	A = xlPList();
+	xlAstAppendChild(A, xlAstCreateNamedArg(&N, E));
+}
+args(A) ::= args(L) TK_COMMA TOK_IDENT(N) OP_ASSIGN expr(E). {
+	A = L;
+	xlAstAppendChild(A, xlAstCreateNamedArg(&N, E));
 }
 
 expr(A) ::= null_expr(E). {

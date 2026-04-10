@@ -1,0 +1,396 @@
+xlang 第五版语言标准总表
+
+一、词法与基础风格
+
+1. 源文件与标识符
+- 源码编码：UTF-8
+- 标识符允许中文
+- 标识符区分大小写
+- 标识符不允许以数字开头
+
+2. 语句分隔
+- 以换行作为主要语句分隔
+- 分号不作为核心语法
+- 仅在语法允许处支持跨行续接
+
+3. 块结构
+- func ... end
+- if ... elseif ... else ... end
+- try ... catch ... finally ... end
+- while ... do ... end
+- do ... while ... end
+- for ... in ... end
+
+4. 保留关键字
+- 控制流：if, then, else, elseif, end, for, in, while, do, break, continue, return
+- 声明：func, const, as
+- 异步与协程：async, await, yield
+- 错误处理：try, catch, finally, throw, assert
+- 模块：import, export
+- 逻辑：and, or, not
+- 特殊值：null, true, false
+
+二、类型系统
+
+1. 基础值类型
+- bool
+- int
+- i8, u8, i16, u16, i32, u32, i64, u64
+- float
+- f32, f64
+- string
+- bytes
+- time
+- point
+- null
+
+2. 容器类型
+- array
+- list
+- set
+- dict
+- range
+
+3. 特殊类型
+- var
+- auto
+- type
+- function
+
+4. 运行时标准类型
+- error
+- module
+- future
+- task
+- channel
+- generator
+
+5. 类型分类
+- 值类型
+- 引用类型
+
+6. 类型声明形式
+- int a = 1
+- var v = anyValue
+- auto x = expr
+- int a
+
+7. 类型构造与转换
+- Type(expr)
+- 安全隐式转换
+- 有损显式转换
+
+8. 类型别名
+- typedef Name = Type
+
+三、字面量与表达式
+
+1. 字面量
+- 整数字面量
+- 浮点字面量
+- 布尔字面量
+- null 字面量
+- string 字面量
+- bytes 字面量
+- time 字面量
+- array 字面量
+- list 字面量
+- set 字面量
+- dict 字面量
+- 模板字符串
+
+2. 成员与索引
+- obj.member
+- obj?.member
+- obj[index]
+- obj?[index]
+
+3. 调用
+- f(...)
+- Type(...)
+
+4. 运算符
+- 算术：+, -, *, /, %, **
+- 比较：==, !=, <, >, <=, >=, ~=
+- 逻辑：and, or, not
+- 位运算：&, |, ^, !, <<, >>
+- 赋值：=, +=, -=, *=, /=, %=, **=
+- 特殊：?:, ??, ?=
+
+四、作用域与声明
+
+1. 作用域
+- 模块作用域
+- 函数作用域
+- 块作用域
+
+2. 变量声明
+- int a
+- int a = 0
+- var a = expr
+- auto a = expr
+
+3. 常量声明
+- const int MAX = 100
+- const string NAME = "xlang"
+
+五、函数系统
+
+1. 函数定义
+- func add(int a, int b) as int ... end
+- async func fetch(...) as T ... end
+
+2. 参数能力
+- 位置参数
+- 默认参数
+  示例：func add(int a, int b = 1) as int ... end
+- 数组可变参数 ...
+- 字典可变参数 ***
+
+3. 命名参数
+- createUser(name = "Tom", age = 18)
+- 位置参数在前、命名参数在后
+- 命名参数参与重载决议
+
+4. 返回值
+- 单返回值
+- 多返回值保留内部设计余量
+
+5. 重载
+- 同一作用域允许同名不同签名函数
+- 编译期候选收集
+- 编译期匹配与决议
+- 多义性报错
+- var 参数优先级低于精确类型匹配
+
+6. 重载元信息机制
+- 声明 -> 规范化签名 -> 元信息项 -> 目标符号
+- 模块导出元信息
+- native 绑定元信息
+- class/custom 预留元信息扩展位
+
+7. 函数 ABI
+- 语言层 ABI
+- C 层目标 ABI
+- 版本绑定 ABI
+
+8. 函数类型
+- function 作为标准类型概念存在
+
+六、流程控制
+
+1. if
+- if cond ... end
+- if cond ... elseif cond2 ... else ... end
+- if cond then expr
+- if cond then expr else expr
+
+2. while
+- while cond do ... end
+
+3. do-while
+- do ... while cond end
+
+4. for
+- for v in iterable ... end
+- for k, v in iterable ... end
+- for i in range(1, 10) ... end
+- for i in range(0, 100, 5) ... end
+
+5. break / continue
+- break
+- continue
+- break 2
+- continue 2
+
+6. 控制流机制
+- HIR 结构化控制流
+- MIR 显式基本块/跳转
+- break n / continue n 在语义阶段绑定
+- async/generator 场景统一状态机化
+
+七、错误处理
+
+1. try-catch-finally
+- try ... catch e ... end
+- try ... finally ... end
+- try ... catch e ... finally ... end
+- demo5 当前 `catch e` 已收敛为 `error` 类型，运行时底层已收敛为正式 `error` 对象
+- demo5 当前宿主 trace 仍保留 `exception.text` 文本桥接，用于调试与兼容
+- demo5 当前 `finally` 暂不支持包裹 `return / break / continue`
+- demo5 当前已支持 rejected future 经 `await` 转回异常并进入 `try/catch`
+
+2. throw
+- throw Error("message")
+- throw Error("message", code = 1001, data = "ctx", stack = "main")
+- throw Error("message", code = 1001, data = "ctx", stack = "main", cause = Error("inner"))
+- throw IOError("file not found")
+- throw e
+
+3. Error 运行时类型
+- Error
+- TypeError
+- ValueError
+- IOError
+- TimeoutError
+- CancelledError
+- NotImplementedError
+- NativeError
+
+4. Error 标准字段
+- type
+- message
+- code
+- data
+- stack
+- cause
+- demo5 当前已实现 `type / message / code / data / stack / cause` 字段访问
+- demo5 当前 `cause` 已支持作为 `error` 对象链入构造参数，默认值为 `null`
+
+5. Error 构造能力
+- Error(message)
+- Error(message, code = 0)
+- Error(message, code = 0, data = "")
+- Error(message, code = 0, data = "", stack = "")
+- Error(message, code = 0, data = "", stack = "", cause = null)
+- TypeError / ValueError / IOError / TimeoutError / CancelledError / NotImplementedError / NativeError
+- demo5 当前已支持默认参数与命名参数形式构造上述 error 对象
+
+6. assert
+- assert cond
+- assert cond, "message"
+- demo5 当前 `assert cond, "message"` 已实现，失败时会抛出 `Error(message)`
+
+7. 错误处理机制
+- 同步异常帧模型
+- 异步 rejected/await 传播模型
+- native 错误桥接
+- 模块初始化错误传播
+- demo5 当前根级非函数语句会收进 generated `xl_generated_module_init()`，顶层 `const/var` 采用“全局声明 + 初始化赋值”，模块初始化异常会在入口调用前直接回传宿主
+- demo5 当前同步 try/catch 已收敛为 `XL_GeneratedExceptionFrame` 帧模型，嵌套捕获与重抛共享统一保存/恢复路径
+- demo5 当前 `std.fs/std.process` 的失败路径已可上报 host native error，并在 generated C 中统一转入 `IOError/NativeError`
+
+八、异步与 Awaitable
+
+1. async func
+- async func foo() as int ... end
+
+2. async 约束
+- await 只能出现在 async 上下文
+- demo5 当前已在语义阶段拦截非 async 上下文中的 `await`
+
+3. async 返回语义
+- 逻辑返回类型 T
+- 实际结果 Awaitable<T>
+
+4. async 机制
+- async lowering 为状态机
+- 状态结构体
+- step 函数
+- 输出 future/task
+- demo5 当前 rejected future 已有最小闭环：`await` 命中 rejected 时回填全局异常槽，并交由后续语句/return 传播
+
+5. await
+- await expr
+- await 是表达式
+- await 成功返回值
+- await 失败重新抛错
+- await 取消抛出取消错误
+
+6. Awaitable 协议
+- future
+- task
+- native async 结果可扩展接入
+
+九、yield 与生成器
+
+1. generator function
+- 普通 func 中出现 yield 即 generator function
+
+2. yield
+- yield value
+- yield 只能出现在 generator 函数中
+- yield 是挂起点
+
+3. generator 调用结果
+- 调用结果是 generator
+- generator 可被 for in 遍历
+
+4. 限制
+- 首版不支持 async generator
+- 首版不支持 yield 作为表达式值
+
+5. generator 机制
+- generator lowering 为状态机
+- next/resume 函数
+- 当前值槽位
+- 完成标记
+
+十、任务编排
+
+1. 标准接口
+- task.spawn
+- task.all
+- task.race
+- task.delay
+- task.cancel
+
+2. 语义关系
+- 任务编排属于标准库能力
+- 编译器需要认识结果类型
+- 任务结果可被 await
+
+十一、模块系统
+
+1. import
+- import math
+- import math as m
+- import math.sin
+- import math.sin, math.cos
+- import "./utils"
+
+2. export
+- export func foo() ... end
+- export const PI = 3.14159
+- export var config = {}
+
+3. 模块规则
+- 每个 .xl 文件天然是一个模块
+- 顶层定义默认私有
+- 显式 export 才可导出
+- 模块首次导入初始化一次
+- 后续导入使用缓存
+- 顶层代码允许存在
+
+4. include
+- include 不属于第五版核心语言标准
+
+5. 模块机制
+- 模块描述符
+- 导出表
+- 初始化函数
+- 导入依赖表
+- 模块循环依赖首版视为编译期错误
+
+6. 模块 ABI 与分发
+- 模块 ABI 与版本绑定
+- 扩展包统一为 .xlp
+- 共享库扩展包
+- 静态库扩展包
+- 分享库扩展包
+
+十二、标准协议与 native 绑定
+
+1. 标准协议
+- Callable
+- Indexable
+- Iterable
+- Iterator
+- Awaitable
+- Generator
+
+2. native 绑定
+- 标准库模块绑定
+- xrt 功能映射
+- 用户扩展模块
+- extern 作为后续细化能力保留

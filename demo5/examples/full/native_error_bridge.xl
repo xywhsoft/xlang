@@ -1,0 +1,16 @@
+import std.fs
+
+func 入口() as int
+	const string path = "release\\tmp\\native_error_bridge\\missing.txt"
+	try
+		const string text = fs.read_all(path)
+		return 1
+	catch e
+		if e.type == "IOError"
+			if e.data == path
+				return 31
+			end
+		end
+		return 32
+	end
+end

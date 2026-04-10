@@ -3,11 +3,15 @@
 
 #include "../common/xl_common.h"
 
+typedef struct XL_AstNode XL_AstNode;
+
 typedef struct XL_FuncInfo {
 	char* sName;
 	char* sReturnTypeName;
 	char** arrParamNames;
 	char** arrParamTypes;
+	unsigned char* arrParamHasDefault;
+	const XL_AstNode** arrParamDefaultValues;
 	size_t iParamCount;
 	int iScopeId;
 	int iLine;
@@ -31,6 +35,8 @@ int xlFuncTableAdd(
 	const char* const* arrParamNames,
 	const char* const* arrParamTypes,
 	size_t iParamCount,
+	const unsigned char* arrParamHasDefault,
+	const XL_AstNode* const* arrParamDefaultValues,
 	int iScopeId,
 	int iLine,
 	int iColumn,

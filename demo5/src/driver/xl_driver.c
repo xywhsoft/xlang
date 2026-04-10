@@ -1,5 +1,6 @@
 #include "xl_driver.h"
 
+#include "../host/xl_host_symbols.h"
 #include "../../test/xl_test.h"
 
 static int __xlWriteTextFile(const char* sFilePath, const char* sText)
@@ -170,6 +171,37 @@ static void __xlBuildDumpPath(
 	sDot = strrchr(sName, '.');
 	iLen = (sDot != NULL) ? (size_t)(sDot - sName) : strlen(sName);
 	snprintf(sOut, iOutSize, "dump\\%s\\%.*s%s", (sGroup != NULL) ? sGroup : "misc", (int)iLen, sName, sSuffix);
+}
+
+static void __xlBuildDefaultOutputPath(
+	char* sOut,
+	size_t iOutSize,
+	const XL_DumpContext* pDump,
+	const char* sInputFile,
+	const char* sExt
+)
+{
+	const char* sName;
+	const char* sScan;
+	const char* sDot;
+	size_t iLen;
+	char sBaseName[XL_PATH_MAX_LEN];
+	char sBinDir[XL_PATH_MAX_LEN];
+
+	sName = (sInputFile != NULL) ? sInputFile : "output";
+	sScan = sName;
+	while ( *sScan != '\0' ) {
+		if ( xlPathIsSep((unsigned char)*sScan) ) {
+			sName = sScan + 1;
+		}
+		++sScan;
+	}
+
+	sDot = strrchr(sName, '.');
+	iLen = (sDot != NULL) ? (size_t)(sDot - sName) : strlen(sName);
+	snprintf(sBaseName, sizeof(sBaseName), "%.*s%s", (int)iLen, sName, (sExt != NULL) ? sExt : ".exe");
+	xlPathJoin(sBinDir, sizeof(sBinDir), (pDump != NULL) ? pDump->sRoot : "release", "bin");
+	xlPathJoin(sOut, iOutSize, sBinDir, sBaseName);
 }
 
 static int __xlDriverWriteStubDump(
@@ -499,7 +531,7 @@ static int __xlDriverRunLower(
 		goto cleanup;
 	}
 
-	iRc = xlLowerAst(moduleResult.pLinkedRoot, pDiag, pOpts->bTraceLower ? 1 : 0, &lowerResult);
+	iRc = xlLowerAst(moduleResult.pLinkedRoot, &semResult, pDiag, pOpts->bTraceLower ? 1 : 0, &lowerResult);
 	if ( iRc != XL_RC_OK ) {
 		goto cleanup;
 	}
@@ -620,7 +652,7 @@ static int __xlDriverRunCgen(
 		goto cleanup;
 	}
 
-	iRc = xlLowerAst(moduleResult.pLinkedRoot, pDiag, pOpts->bTraceLower ? 1 : 0, &lowerResult);
+	iRc = xlLowerAst(moduleResult.pLinkedRoot, &semResult, pDiag, pOpts->bTraceLower ? 1 : 0, &lowerResult);
 	if ( iRc != XL_RC_OK ) {
 		goto cleanup;
 	}
@@ -725,7 +757,7 @@ static int __xlDriverRunProgram(
 		goto cleanup;
 	}
 
-	iRc = xlLowerAst(moduleResult.pLinkedRoot, pDiag, pOpts->bTraceLower ? 1 : 0, &lowerResult);
+	iRc = xlLowerAst(moduleResult.pLinkedRoot, &semResult, pDiag, pOpts->bTraceLower ? 1 : 0, &lowerResult);
 	if ( iRc != XL_RC_OK ) {
 		goto cleanup;
 	}
@@ -785,6 +817,203 @@ cleanup:
 	return iRc;
 }
 
+static int __xlDriverRunCProgram(
+	const XL_CliOptions* pOpts,
+	XL_DiagContext* pDiag,
+	XL_DumpContext* pDump
+)
+{
+	XL_HostContext hostCtx;
+	XL_HostRunResult result;
+	char* sTraceText;
+	char sTracePath[XL_PATH_MAX_LEN];
+	char sSummary[XL_DIAG_TEXT_MAX];
+	char* sJsonDump;
+	int iRc;
+
+	xlHostContextInit(&hostCtx, pOpts->sInputFile, pDump->sRoot);
+	memset(&result, 0, sizeof(result));
+	sTraceText = NULL;
+	sJsonDump = NULL;
+
+	iRc = xlHostRunCFile(&hostCtx, pDiag, pOpts->sInputFile, &sTraceText, &result);
+	__xlBuildDumpPath(sTracePath, sizeof(sTracePath), "host", pOpts->sInputFile, ".trace.txt");
+	if ( xlDumpWriteText(pDump, sTracePath, (sTraceText != NULL) ? sTraceText : "") != XL_RC_OK ) {
+		XL_DIAG_WARN(pDiag, "run-c", "failed to write host trace: %s", sTracePath);
+	}
+	if ( iRc != XL_RC_OK ) {
+		free(sTraceText);
+		return iRc;
+	}
+
+	snprintf(
+		sSummary,
+		sizeof(sSummary),
+		"RunCResult exitCode=%d entry=%s\n",
+		result.iExitCode,
+		(result.sEntrySymbol[0] != '\0') ? result.sEntrySymbol : "main"
+	);
+	sJsonDump = __xlWrapJsonText("result", sSummary);
+	if ( pOpts->bDumpJson ) {
+		if ( sJsonDump != NULL ) {
+			fputs(sJsonDump, stdout);
+		}
+	} else {
+		fputs(sSummary, stdout);
+	}
+
+	if ( pOpts->sEmitPath != NULL ) {
+		if ( __xlWriteTextFile(pOpts->sEmitPath, pOpts->bDumpJson ? ((sJsonDump != NULL) ? sJsonDump : "") : sSummary) != XL_RC_OK ) {
+			XL_DIAG_ERROR(pDiag, "run-c", "failed to write emit file: %s", pOpts->sEmitPath);
+			iRc = XL_RC_IO_ERROR;
+		}
+	}
+
+	free(sTraceText);
+	free(sJsonDump);
+	return iRc;
+}
+
+static int __xlDriverBuildProgram(
+	const XL_CliOptions* pOpts,
+	XL_DiagContext* pDiag,
+	XL_DumpContext* pDump
+)
+{
+	XL_ModuleLinkResult moduleResult;
+	XL_SemResult semResult;
+	XL_LowerResult lowerResult;
+	XL_HostContext hostCtx;
+	XL_HostBuildResult result;
+	char* sCode;
+	char* sTraceText;
+	char* sSymbolsJson;
+	char* sJsonDump;
+	char sCodePath[XL_PATH_MAX_LEN];
+	char sTracePath[XL_PATH_MAX_LEN];
+	char sSymbolsPath[XL_PATH_MAX_LEN];
+	char sOutputFile[XL_PATH_MAX_LEN];
+	char sSummary[XL_DIAG_TEXT_MAX];
+	int iRc;
+
+	xlModuleLinkResultInit(&moduleResult);
+	xlSemResultInit(&semResult);
+	xlLowerResultInit(&lowerResult);
+	xlHostContextInit(&hostCtx, pOpts->sInputFile, pDump->sRoot);
+	memset(&result, 0, sizeof(result));
+	sCode = NULL;
+	sTraceText = NULL;
+	sSymbolsJson = NULL;
+	sJsonDump = NULL;
+	if ( pOpts->sEmitPath != NULL ) {
+		snprintf(sOutputFile, sizeof(sOutputFile), "%s", pOpts->sEmitPath);
+	} else {
+		__xlBuildDefaultOutputPath(sOutputFile, sizeof(sOutputFile), pDump, pOpts->sInputFile, ".exe");
+	}
+
+	iRc = xlModuleLinkFromFile(pOpts->sInputFile, pDiag, pOpts->bTraceParser ? 1 : 0, &moduleResult);
+	if ( (iRc != XL_RC_OK) || (moduleResult.pLinkedRoot == NULL) ) goto cleanup;
+	iRc = xlSemAnalyzeAst(moduleResult.pLinkedRoot, pDiag, pOpts->bTraceSem ? 1 : 0, &semResult);
+	if ( iRc != XL_RC_OK ) goto cleanup;
+	iRc = xlLowerAst(moduleResult.pLinkedRoot, &semResult, pDiag, pOpts->bTraceLower ? 1 : 0, &lowerResult);
+	if ( iRc != XL_RC_OK ) goto cleanup;
+	iRc = xlCgenMir(lowerResult.pMirRoot, pDiag, &sCode);
+	if ( iRc != XL_RC_OK ) goto cleanup;
+
+	__xlBuildDumpPath(sCodePath, sizeof(sCodePath), "cgen", pOpts->sInputFile, ".build.c");
+	if ( xlDumpWriteText(pDump, sCodePath, sCode) != XL_RC_OK ) {
+		XL_DIAG_WARN(pDiag, "build", "failed to write build C dump: %s", sCodePath);
+	}
+
+	iRc = xlHostBuildCText(&hostCtx, pDiag, pOpts->sInputFile, sCode, "xl_generated_entry", sOutputFile, &sTraceText, &result);
+	__xlBuildDumpPath(sTracePath, sizeof(sTracePath), "host", pOpts->sInputFile, ".build.trace.txt");
+	if ( xlDumpWriteText(pDump, sTracePath, (sTraceText != NULL) ? sTraceText : "") != XL_RC_OK ) {
+		XL_DIAG_WARN(pDiag, "build", "failed to write host build trace: %s", sTracePath);
+	}
+	sSymbolsJson = xlHostDumpSymbolsJson();
+	__xlBuildDumpPath(sSymbolsPath, sizeof(sSymbolsPath), "host", pOpts->sInputFile, ".symbols.json");
+	if ( xlDumpWriteText(pDump, sSymbolsPath, (sSymbolsJson != NULL) ? sSymbolsJson : "{\n\t\"symbols\": []\n}\n") != XL_RC_OK ) {
+		XL_DIAG_WARN(pDiag, "build", "failed to write symbol dump: %s", sSymbolsPath);
+	}
+	if ( iRc != XL_RC_OK ) goto cleanup;
+
+	snprintf(sSummary, sizeof(sSummary), "BuildResult output=%s kind=%s entry=%s\n", result.sOutputFile, result.sOutputKind, result.sEntrySymbol);
+	sJsonDump = __xlWrapJsonText("result", sSummary);
+	if ( pOpts->bDumpJson ) {
+		if ( sJsonDump != NULL ) fputs(sJsonDump, stdout);
+	} else {
+		fputs(sSummary, stdout);
+	}
+
+cleanup:
+	free(sCode);
+	free(sTraceText);
+	free(sSymbolsJson);
+	free(sJsonDump);
+	xlLowerResultFree(&lowerResult);
+	xlSemResultFree(&semResult);
+	xlModuleLinkResultFree(&moduleResult);
+	return iRc;
+}
+
+static int __xlDriverBuildCProgram(
+	const XL_CliOptions* pOpts,
+	XL_DiagContext* pDiag,
+	XL_DumpContext* pDump
+)
+{
+	XL_HostContext hostCtx;
+	XL_HostBuildResult result;
+	char* sTraceText;
+	char* sSymbolsJson;
+	char* sJsonDump;
+	char sTracePath[XL_PATH_MAX_LEN];
+	char sSymbolsPath[XL_PATH_MAX_LEN];
+	char sOutputFile[XL_PATH_MAX_LEN];
+	char sSummary[XL_DIAG_TEXT_MAX];
+	int iRc;
+
+	xlHostContextInit(&hostCtx, pOpts->sInputFile, pDump->sRoot);
+	memset(&result, 0, sizeof(result));
+	sTraceText = NULL;
+	sSymbolsJson = NULL;
+	sJsonDump = NULL;
+	if ( pOpts->sEmitPath != NULL ) {
+		snprintf(sOutputFile, sizeof(sOutputFile), "%s", pOpts->sEmitPath);
+	} else {
+		__xlBuildDefaultOutputPath(sOutputFile, sizeof(sOutputFile), pDump, pOpts->sInputFile, ".exe");
+	}
+
+	iRc = xlHostBuildCFile(&hostCtx, pDiag, pOpts->sInputFile, sOutputFile, &sTraceText, &result);
+	__xlBuildDumpPath(sTracePath, sizeof(sTracePath), "host", pOpts->sInputFile, ".build.trace.txt");
+	if ( xlDumpWriteText(pDump, sTracePath, (sTraceText != NULL) ? sTraceText : "") != XL_RC_OK ) {
+		XL_DIAG_WARN(pDiag, "build-c", "failed to write host build trace: %s", sTracePath);
+	}
+	sSymbolsJson = xlHostDumpSymbolsJson();
+	__xlBuildDumpPath(sSymbolsPath, sizeof(sSymbolsPath), "host", pOpts->sInputFile, ".symbols.json");
+	if ( xlDumpWriteText(pDump, sSymbolsPath, (sSymbolsJson != NULL) ? sSymbolsJson : "{\n\t\"symbols\": []\n}\n") != XL_RC_OK ) {
+		XL_DIAG_WARN(pDiag, "build-c", "failed to write symbol dump: %s", sSymbolsPath);
+	}
+	if ( iRc != XL_RC_OK ) {
+		free(sTraceText);
+		free(sSymbolsJson);
+		return iRc;
+	}
+
+	snprintf(sSummary, sizeof(sSummary), "BuildCResult output=%s kind=%s entry=%s\n", result.sOutputFile, result.sOutputKind, result.sEntrySymbol);
+	sJsonDump = __xlWrapJsonText("result", sSummary);
+	if ( pOpts->bDumpJson ) {
+		if ( sJsonDump != NULL ) fputs(sJsonDump, stdout);
+	} else {
+		fputs(sSummary, stdout);
+	}
+
+	free(sTraceText);
+	free(sSymbolsJson);
+	free(sJsonDump);
+	return iRc;
+}
+
 static int __xlDriverRunTests(
 	const XL_CliOptions* pOpts,
 	XL_DiagContext* pDiag,
@@ -829,8 +1058,17 @@ int xlDriverRun(const XL_CliOptions* pOpts, XL_DiagContext* pDiag, XL_DumpContex
 	if ( pOpts->eCommand == XL_CMD_CGEN ) {
 		return __xlDriverRunCgen(pOpts, pDiag, pDump);
 	}
+	if ( pOpts->eCommand == XL_CMD_BUILD ) {
+		return __xlDriverBuildProgram(pOpts, pDiag, pDump);
+	}
 	if ( pOpts->eCommand == XL_CMD_RUN ) {
 		return __xlDriverRunProgram(pOpts, pDiag, pDump);
+	}
+	if ( pOpts->eCommand == XL_CMD_BUILD_C ) {
+		return __xlDriverBuildCProgram(pOpts, pDiag, pDump);
+	}
+	if ( pOpts->eCommand == XL_CMD_RUN_C ) {
+		return __xlDriverRunCProgram(pOpts, pDiag, pDump);
 	}
 	if ( pOpts->eCommand == XL_CMD_TEST ) {
 		return __xlDriverRunTests(pOpts, pDiag, pDump);

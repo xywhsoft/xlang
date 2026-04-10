@@ -29,6 +29,9 @@ XL_MirNode* xlMirCreateNode(XL_MirKind eKind, const XL_HirNode* pHir)
 	}
 
 	pNode->eKind = eKind;
+	pNode->iScopeId = -1;
+	pNode->iSymbolIndex = -1;
+	pNode->iFuncIndex = -1;
 	if ( pHir != NULL ) {
 		pNode->iLine = pHir->iLine;
 		pNode->iColumn = pHir->iColumn;
@@ -103,15 +106,18 @@ const char* xlMirKindName(XL_MirKind eKind)
 		"Block",
 		"Bind",
 		"Branch",
+		"Try",
 		"ForIn",
 		"Return",
 		"Break",
 		"Continue",
 		"Throw",
+		"Assert",
 		"Yield",
 		"Import",
 		"Export",
 		"Call",
+		"Member",
 		"Value"
 	};
 

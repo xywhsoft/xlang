@@ -9,6 +9,7 @@
 #include "../codegen/c/xl_cgen.h"
 #include "../lower/xl_lower.h"
 #include "../parser/xl_parser_api.h"
+#include "../host/xl_host.h"
 #include "../runtime/xl_exec_ctx.h"
 #include "../sem/xl_sem_dump.h"
 #include "xl_cli.h"

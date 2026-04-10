@@ -2,16 +2,13 @@
 #define XL_EXEC_CTX_H
 
 #include "../common/xl_common.h"
-#include "../common/xl_path.h"
 #include "../diag/xl_diag.h"
-#include "../../lib/libtcc.h"
-#include "../../lib/xrt/xrt.h"
+#include "../host/xl_host.h"
 
 typedef struct XL_ExecCtx {
 	char sInputFile[XL_PATH_MAX_LEN];
 	char sReleaseRoot[XL_PATH_MAX_LEN];
 	char sProjectRoot[XL_PATH_MAX_LEN];
-	char sLibTccDll[XL_PATH_MAX_LEN];
 	char sTccRoot[XL_PATH_MAX_LEN];
 	char sEntrySymbol[64];
 	int iExitCode;

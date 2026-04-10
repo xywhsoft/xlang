@@ -3,7 +3,7 @@
 const char* xlStdCoreModuleSource(void)
 {
 	return
-		"func 恒等(int x) as int\n"
+		"func identity(int x) as int\n"
 		"\treturn x\n"
 		"end\n"
 		"\n"
@@ -27,10 +27,10 @@ const char* xlStdCoreModuleSource(void)
 		"func println(bool x) as void\n"
 		"end\n"
 		"\n"
-		"const int 版本 = 5\n"
+		"const int version = 5\n"
 		"\n"
-		"export 恒等\n"
+		"export identity\n"
 		"export print\n"
 		"export println\n"
-		"export 版本\n";
+		"export version\n";
 }

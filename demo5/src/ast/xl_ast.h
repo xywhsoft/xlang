@@ -18,6 +18,7 @@ typedef enum XL_AstKind {
 	XL_AST_FORIN,
 	XL_AST_IMPORT,
 	XL_AST_EXPORT,
+	XL_AST_TRY,
 	XL_AST_RETURN,
 	XL_AST_BREAK,
 	XL_AST_CONTINUE,
@@ -25,6 +26,7 @@ typedef enum XL_AstKind {
 	XL_AST_ASSERT,
 	XL_AST_YIELD,
 	XL_AST_EXPR_STMT,
+	XL_AST_NAMED_ARG,
 	XL_AST_ASSIGN,
 	XL_AST_BINARY,
 	XL_AST_UNARY,
@@ -66,7 +68,7 @@ XL_AstNode* xlAstCreateIdent(const XL_Token* pToken);
 XL_AstNode* xlAstCreateLiteralFromToken(const XL_Token* pToken);
 
 XL_AstNode* xlAstCreateFuncDecl(const XL_Token* pName, int bAsync, XL_AstNode* pParams, XL_AstNode* pRetType, XL_AstNode* pBody);
-XL_AstNode* xlAstCreateParam(const XL_Token* pName, XL_AstNode* pType);
+XL_AstNode* xlAstCreateParam(const XL_Token* pName, XL_AstNode* pType, XL_AstNode* pDefaultValue);
 XL_AstNode* xlAstCreateConstDecl(const XL_Token* pName, XL_AstNode* pType, XL_AstNode* pValue);
 XL_AstNode* xlAstCreateVarDecl(const XL_Token* pName, XL_AstNode* pType, XL_AstNode* pValue);
 XL_AstNode* xlAstCreateIf(const XL_Token* pToken, XL_AstNode* pCond, XL_AstNode* pThenBlock, XL_AstNode* pElseIfList, XL_AstNode* pElseBlock);
@@ -74,13 +76,15 @@ XL_AstNode* xlAstCreateElseIf(const XL_Token* pToken, XL_AstNode* pCond, XL_AstN
 XL_AstNode* xlAstCreateForIn(const XL_Token* pToken, XL_AstNode* pTargets, XL_AstNode* pIterable, XL_AstNode* pBody);
 XL_AstNode* xlAstCreateImport(const XL_Token* pToken, XL_AstNode* pTarget);
 XL_AstNode* xlAstCreateExport(const XL_Token* pToken, XL_AstNode* pValue);
+XL_AstNode* xlAstCreateTry(const XL_Token* pToken, XL_AstNode* pTryBlock, XL_AstNode* pCatchName, XL_AstNode* pCatchBlock, XL_AstNode* pFinallyBlock);
 XL_AstNode* xlAstCreateReturn(const XL_Token* pToken, XL_AstNode* pValue);
 XL_AstNode* xlAstCreateBreak(const XL_Token* pToken, int iLevel);
 XL_AstNode* xlAstCreateContinue(const XL_Token* pToken, int iLevel);
 XL_AstNode* xlAstCreateThrow(const XL_Token* pToken, XL_AstNode* pValue);
-XL_AstNode* xlAstCreateAssert(const XL_Token* pToken, XL_AstNode* pValue);
+XL_AstNode* xlAstCreateAssert(const XL_Token* pToken, XL_AstNode* pValue, XL_AstNode* pMessage);
 XL_AstNode* xlAstCreateYield(const XL_Token* pToken, XL_AstNode* pValue);
 XL_AstNode* xlAstCreateExprStmt(XL_AstNode* pExpr);
+XL_AstNode* xlAstCreateNamedArg(const XL_Token* pName, XL_AstNode* pValue);
 XL_AstNode* xlAstCreateBinary(const XL_Token* pToken, const char* sOp, XL_AstNode* pLeft, XL_AstNode* pRight);
 XL_AstNode* xlAstCreateUnary(const XL_Token* pToken, const char* sOp, XL_AstNode* pValue);
 XL_AstNode* xlAstCreateCall(XL_AstNode* pCallee, XL_AstNode* pArgs, const XL_Token* pToken);

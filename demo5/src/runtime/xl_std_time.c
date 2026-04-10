@@ -18,8 +18,8 @@ const char* xlStdTimeModuleSource(void)
 		"func parse(string value) as time\n"
 		"end\n"
 		"\n"
-		"const int 每秒毫秒 = 1000\n"
-		"const int 每天秒数 = 86400\n"
+		"const int millis_per_second = 1000\n"
+		"const int seconds_per_day = 86400\n"
 		"\n"
 		"export now\n"
 		"export to_string\n"
@@ -28,6 +28,6 @@ const char* xlStdTimeModuleSource(void)
 		"export time_text\n"
 		"export relative\n"
 		"export parse\n"
-		"export 每秒毫秒\n"
-		"export 每天秒数\n";
+		"export millis_per_second\n"
+		"export seconds_per_day\n";
 }

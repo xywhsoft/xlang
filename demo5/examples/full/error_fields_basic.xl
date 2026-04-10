@@ -1,0 +1,45 @@
+import std.str
+
+func 入口() as int
+	try
+		throw IOError("disk", code = 5, data = "path=disk", stack = "main", cause = Error("inner", code = 42))
+	catch e
+		if e.type != "IOError"
+			return 1
+		end
+		if e.message != "disk"
+			return 2
+		end
+		if e.code != 5
+			return 3
+		end
+		if str.contains(e.message, "disk") == false
+			return 4
+		end
+		if e.data != "path=disk"
+			return 5
+		end
+		if e.stack != "main"
+			return 6
+		end
+		if e.cause == null
+			return 7
+		end
+		if e.cause.type != "Error"
+			return 8
+		end
+		if e.cause.message != "inner"
+			return 9
+		end
+		if e.cause.code != 42
+			return 10
+		end
+		if e.cause.data != ""
+			return 11
+		end
+		if e.cause.stack != ""
+			return 12
+		end
+		return 13
+	end
+end

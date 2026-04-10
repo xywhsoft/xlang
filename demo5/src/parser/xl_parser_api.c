@@ -77,6 +77,12 @@ static int __xlParserMapToken(XL_TokenKind eKind)
 			return XLPG_KW_AWAIT;
 		case XL_KW_YIELD:
 			return XLPG_KW_YIELD;
+		case XL_KW_TRY:
+			return XLPG_KW_TRY;
+		case XL_KW_CATCH:
+			return XLPG_KW_CATCH;
+		case XL_KW_FINALLY:
+			return XLPG_KW_FINALLY;
 		case XL_KW_THROW:
 			return XLPG_KW_THROW;
 		case XL_KW_ASSERT:

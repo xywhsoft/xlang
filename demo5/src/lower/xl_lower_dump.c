@@ -134,6 +134,15 @@ static void __xlDumpHirText(XL_LowerTextBuffer* pBuf, const XL_HirNode* pNode, i
 		__xlLowerAppendEscaped(pBuf, pNode->sTypeName);
 		__xlLowerBufAppend(pBuf, "\"");
 	}
+	if ( pNode->iScopeId >= 0 ) {
+		__xlLowerBufAppendFormat(pBuf, " scope=%d", pNode->iScopeId);
+	}
+	if ( pNode->iSymbolIndex >= 0 ) {
+		__xlLowerBufAppendFormat(pBuf, " symbol=%d", pNode->iSymbolIndex);
+	}
+	if ( pNode->iFuncIndex >= 0 ) {
+		__xlLowerBufAppendFormat(pBuf, " func=%d", pNode->iFuncIndex);
+	}
 	if ( pNode->iIntValue != 0 ) {
 		__xlLowerBufAppendFormat(pBuf, " int=%lld", (long long)pNode->iIntValue);
 	}
@@ -169,6 +178,15 @@ static void __xlDumpMirText(XL_LowerTextBuffer* pBuf, const XL_MirNode* pNode, i
 		__xlLowerAppendEscaped(pBuf, pNode->sTypeName);
 		__xlLowerBufAppend(pBuf, "\"");
 	}
+	if ( pNode->iScopeId >= 0 ) {
+		__xlLowerBufAppendFormat(pBuf, " scope=%d", pNode->iScopeId);
+	}
+	if ( pNode->iSymbolIndex >= 0 ) {
+		__xlLowerBufAppendFormat(pBuf, " symbol=%d", pNode->iSymbolIndex);
+	}
+	if ( pNode->iFuncIndex >= 0 ) {
+		__xlLowerBufAppendFormat(pBuf, " func=%d", pNode->iFuncIndex);
+	}
 	__xlLowerBufAppend(pBuf, "\n");
 
 	for ( i = 0; i < pNode->iChildCount; ++i ) {
@@ -202,6 +220,22 @@ static void __xlDumpHirJson(XL_LowerTextBuffer* pBuf, const XL_HirNode* pNode, i
 		__xlLowerBufAppend(pBuf, "null");
 	}
 	__xlLowerBufAppend(pBuf, ",\n");
+	for ( i = 0; i < (size_t)(iIndent + 1); ++i ) { __xlLowerBufAppend(pBuf, "\t"); }
+	__xlLowerBufAppend(pBuf, "\"type\": ");
+	if ( (pNode->sTypeName != NULL) && (pNode->sTypeName[0] != '\0') ) {
+		__xlLowerBufAppend(pBuf, "\"");
+		__xlLowerAppendEscaped(pBuf, pNode->sTypeName);
+		__xlLowerBufAppend(pBuf, "\"");
+	} else {
+		__xlLowerBufAppend(pBuf, "null");
+	}
+	__xlLowerBufAppend(pBuf, ",\n");
+	for ( i = 0; i < (size_t)(iIndent + 1); ++i ) { __xlLowerBufAppend(pBuf, "\t"); }
+	__xlLowerBufAppendFormat(pBuf, "\"scopeId\": %d,\n", pNode->iScopeId);
+	for ( i = 0; i < (size_t)(iIndent + 1); ++i ) { __xlLowerBufAppend(pBuf, "\t"); }
+	__xlLowerBufAppendFormat(pBuf, "\"symbolIndex\": %d,\n", pNode->iSymbolIndex);
+	for ( i = 0; i < (size_t)(iIndent + 1); ++i ) { __xlLowerBufAppend(pBuf, "\t"); }
+	__xlLowerBufAppendFormat(pBuf, "\"funcIndex\": %d,\n", pNode->iFuncIndex);
 	for ( i = 0; i < (size_t)(iIndent + 1); ++i ) { __xlLowerBufAppend(pBuf, "\t"); }
 	__xlLowerBufAppend(pBuf, "\"children\": [");
 	if ( pNode->iChildCount != 0 ) {
@@ -250,6 +284,22 @@ static void __xlDumpMirJson(XL_LowerTextBuffer* pBuf, const XL_MirNode* pNode, i
 		__xlLowerBufAppend(pBuf, "null");
 	}
 	__xlLowerBufAppend(pBuf, ",\n");
+	for ( i = 0; i < (size_t)(iIndent + 1); ++i ) { __xlLowerBufAppend(pBuf, "\t"); }
+	__xlLowerBufAppend(pBuf, "\"type\": ");
+	if ( (pNode->sTypeName != NULL) && (pNode->sTypeName[0] != '\0') ) {
+		__xlLowerBufAppend(pBuf, "\"");
+		__xlLowerAppendEscaped(pBuf, pNode->sTypeName);
+		__xlLowerBufAppend(pBuf, "\"");
+	} else {
+		__xlLowerBufAppend(pBuf, "null");
+	}
+	__xlLowerBufAppend(pBuf, ",\n");
+	for ( i = 0; i < (size_t)(iIndent + 1); ++i ) { __xlLowerBufAppend(pBuf, "\t"); }
+	__xlLowerBufAppendFormat(pBuf, "\"scopeId\": %d,\n", pNode->iScopeId);
+	for ( i = 0; i < (size_t)(iIndent + 1); ++i ) { __xlLowerBufAppend(pBuf, "\t"); }
+	__xlLowerBufAppendFormat(pBuf, "\"symbolIndex\": %d,\n", pNode->iSymbolIndex);
+	for ( i = 0; i < (size_t)(iIndent + 1); ++i ) { __xlLowerBufAppend(pBuf, "\t"); }
+	__xlLowerBufAppendFormat(pBuf, "\"funcIndex\": %d,\n", pNode->iFuncIndex);
 	for ( i = 0; i < (size_t)(iIndent + 1); ++i ) { __xlLowerBufAppend(pBuf, "\t"); }
 	__xlLowerBufAppend(pBuf, "\"children\": [");
 	if ( pNode->iChildCount != 0 ) {

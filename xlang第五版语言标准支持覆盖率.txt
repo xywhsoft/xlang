@@ -1,0 +1,185 @@
+xlang 第五版语言标准支持覆盖率
+
+说明：
+- ☑ 已实现或已验证
+- ☐ 未实现、未验证，或与标准目标仍不一致
+
+一、词法与基础风格
+- ☑ UTF-8 源文件
+- ☑ 中文标识符
+- ☑ 标识符区分大小写
+- ☑ 换行为主要语句分隔
+- ☑ func ... end
+- ☑ if / elseif / else / end
+- ☑ try / catch / finally / end
+- ☐ while / do / end
+- ☐ do ... while ... end
+- ☑ for ... in ... end
+
+二、类型系统
+- ☑ bool
+- ☑ int
+- ☐ i8 / u8 / i16 / u16 / i32 / u32 / i64 / u64
+- ☑ float
+- ☐ f32 / f64
+- ☑ string
+- ☐ bytes
+- ☑ time
+- ☐ point
+- ☑ null
+- ☐ array
+- ☐ list
+- ☐ set
+- ☐ dict
+- ☑ range
+- ☐ var
+- ☐ auto
+- ☐ type
+- ☐ function
+- ☑ error
+- ☐ module
+- ☐ future
+- ☐ task
+- ☐ channel
+- ☑ generator
+- ☐ 类型构造 Type(expr)
+- ☐ typedef
+
+三、字面量与表达式
+- ☑ 整数字面量
+- ☑ 浮点字面量
+- ☑ 布尔字面量
+- ☑ null 字面量
+- ☑ string 字面量
+- ☐ bytes 字面量
+- ☑ time 字面量
+- ☐ array / list / set / dict 字面量
+- ☐ 模板字符串
+- ☑ 成员访问 obj.member
+- ☐ 安全成员访问 obj?.member
+- ☑ 调用 f(...)
+- ☑ 算术 + - * / %
+- ☐ 幂运算 **
+- ☑ 比较 == != < > <= >=
+- ☐ 近似比较 ~=
+- ☐ 逻辑 and / or / not
+- ☑ 位运算 & | ^ << >>
+- ☑ 一元 ! / -
+- ☐ 赋值运算族 = += -= *= /= %= **=
+- ☐ ?? / ?: / ?=
+
+四、作用域与声明
+- ☑ 模块作用域
+- ☑ 函数作用域
+- ☑ 块作用域
+- ☐ int a
+- ☐ int a = 0
+- ☐ var a = expr
+- ☐ auto a = expr
+- ☑ const int A = 1
+- ☑ const string S = "x"
+
+五、函数系统
+- ☑ 普通 func 定义
+- ☑ async func 定义
+- ☑ 位置参数
+- ☑ 默认参数
+- ☐ 数组可变参数 ...
+- ☐ 字典可变参数 ***
+- ☑ 命名参数
+- ☑ 单返回值
+- ☐ 多返回值
+- ☑ 同名重载声明
+- ☑ 编译期重载决议
+- ☑ 重载多义性报错
+- ☐ var 参数优先级规则
+- ☐ 模块/跨语言重载元信息表
+- ☐ 语言层 ABI + C 层 ABI 双层模型
+- ☐ 版本绑定 ABI
+- ☐ function 动态函数值
+
+六、流程控制
+- ☑ 多行 if / elseif / else
+- ☐ 单行 if then expr
+- ☐ 单行 if then expr else expr
+- ☐ while
+- ☐ do-while
+- ☐ for v in 任意 Iterable
+- ☑ for v in range(...)
+- ☑ for v in generator
+- ☐ for k, v in 任意 Iterable
+- ☑ break
+- ☑ continue
+- ☑ break n
+- ☑ continue n
+- ☑ 结构化循环到后端跳转的基本 lowering
+- ☐ async/generator 场景统一状态机控制流
+
+七、错误处理
+- ☑ try / catch / finally
+- ☑ throw
+- ☑ throw Error(...)
+- ☑ Error(message, code = 0, data = "", stack = "", cause = null)
+- ☑ Error 运行时对象
+- ☑ Error 分类族
+- ☑ error.type / error.message / error.code / error.data / error.stack
+- ☑ error.cause
+- ☑ assert cond
+- ☑ assert cond, "message"
+- ☑ 同步异常帧模型
+- ☑ 异步 rejected / await 错误传播模型
+- ☑ native 错误桥接
+
+八、异步与 Awaitable
+- ☑ async func
+- ☑ await expr
+- ☑ await 仅限 async 上下文
+- ☐ Awaitable 协议
+- ☐ future 公开类型
+- ☐ task 公开类型
+- ☑ async 调用结果可被 await
+- ☑ async 基本 lowering
+- ☐ 基于 xrt 的正式异步状态机
+
+九、yield 与生成器
+- ☑ yield
+- ☑ generator function
+- ☑ generator 可被 for in 遍历
+- ☐ async generator
+- ☐ yield 作为表达式值
+- ☑ generator 基本 lowering
+- ☐ 基于恢复执行器的正式 generator 状态机
+
+十、任务编排
+- ☑ task.spawn
+- ☑ task.all
+- ☑ task.race
+- ☐ task.delay
+- ☑ task.cancel
+- ☐ 与标准 Awaitable/task 类型对齐
+
+十一、模块系统
+- ☑ import module
+- ☐ import module as alias
+- ☑ import module.member
+- ☐ import 多项列表
+- ☐ import 字符串路径
+- ☑ export 标识符/表达式
+- ☐ export func 定义式
+- ☐ export const / var 定义式
+- ☑ 顶层代码
+- ☑ 模块初始化错误传播
+- ☑ 模块初始化缓存语义
+- ☐ 模块描述符 / 导出表 / 初始化函数 ABI
+- ☐ xlp 扩展包加载
+- ☐ 多版本依赖共存
+
+十二、标准协议与 native 绑定
+- ☐ Callable
+- ☐ Indexable
+- ☐ Iterable
+- ☐ Iterator
+- ☐ Awaitable
+- ☐ Generator 协议注册
+- ☑ native 标准库模块绑定
+- ☐ extern

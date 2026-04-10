@@ -1,0 +1,12 @@
+import std.str
+
+func 入口() as int
+	try
+		throw Error("boom")
+	catch e
+		if str.contains(e, "boom")
+			return 7
+		end
+		return 8
+	end
+end

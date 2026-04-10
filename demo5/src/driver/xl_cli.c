@@ -11,7 +11,10 @@ static const XL_CommandEntry __gXLCommands[] = {
 	{"sem", XL_CMD_SEM},
 	{"lower", XL_CMD_LOWER},
 	{"cgen", XL_CMD_CGEN},
+	{"build", XL_CMD_BUILD},
 	{"run", XL_CMD_RUN},
+	{"build-c", XL_CMD_BUILD_C},
+	{"run-c", XL_CMD_RUN_C},
 	{"test", XL_CMD_TEST}
 };
 
@@ -196,7 +199,10 @@ void xlCliPrintHelp(const char* sProgName)
 	printf("  sem      run semantic analysis\n");
 	printf("  lower    lower AST into HIR/MIR\n");
 	printf("  cgen     generate C code\n");
+	printf("  build    build source into an output artifact\n");
 	printf("  run      run program through compiler pipeline\n");
+	printf("  build-c  build a C source file through embedded TCC\n");
+	printf("  run-c    run a C source file through embedded TCC\n");
 	printf("  test     run unified test entry\n\n");
 	printf("Test Selector:\n");
 	printf("  selector may match a test name or group, e.g. runtime or parser.for_in\n\n");
