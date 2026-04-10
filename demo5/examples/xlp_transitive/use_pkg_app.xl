@@ -1,0 +1,5 @@
+import pkg.app
+
+func main() as int
+	return pkg.app.value()
+end

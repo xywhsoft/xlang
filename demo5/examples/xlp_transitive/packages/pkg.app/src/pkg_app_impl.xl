@@ -1,0 +1,7 @@
+import pkg.mid
+
+func value() as int
+	return pkg.mid.value() + 1
+end
+
+export value

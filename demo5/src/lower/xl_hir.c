@@ -49,6 +49,26 @@ void xlHirSetText(XL_HirNode* pNode, const char* sText)
 	pNode->sText = __xlHirDupText(sText);
 }
 
+void xlHirSetAbiName(XL_HirNode* pNode, const char* sAbiName)
+{
+	if ( pNode == NULL ) {
+		return;
+	}
+
+	free(pNode->sAbiName);
+	pNode->sAbiName = __xlHirDupText(sAbiName);
+}
+
+void xlHirSetExternName(XL_HirNode* pNode, const char* sExternName)
+{
+	if ( pNode == NULL ) {
+		return;
+	}
+
+	free(pNode->sExternName);
+	pNode->sExternName = __xlHirDupText(sExternName);
+}
+
 void xlHirSetTypeName(XL_HirNode* pNode, const char* sTypeName)
 {
 	if ( pNode == NULL ) {
@@ -94,6 +114,8 @@ void xlHirFree(XL_HirNode* pNode)
 	}
 	free(pNode->ppChildren);
 	free(pNode->sText);
+	free(pNode->sAbiName);
+	free(pNode->sExternName);
 	free(pNode->sTypeName);
 	free(pNode);
 }

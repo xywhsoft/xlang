@@ -1,4 +1,5 @@
 #include "xl_module_link.h"
+#include "xl_xlp_load.h"
 
 #include "../common/xl_path.h"
 #include "../lexer/xl_lexer_api.h"
@@ -30,8 +31,18 @@ typedef struct XL_ModuleInfo {
 	char* sFilePath;
 	char* sLeafAlias;
 	char* sBindingName;
+	char* sManifestPath;
+	char* sPackageName;
+	char* sPackageVersion;
+	char* sPackageAbiVersion;
+	char* sPackageAbiId;
+	char* sArtifactKind;
+	char* sArtifactPath;
+	char* sArtifactFile;
+	char* sConsumeMode;
 	XL_AstNode* pRoot;
 	char** arrImportKeys;
+	char** arrResolvedImportFiles;
 	size_t iImportCount;
 	size_t iImportCap;
 	XL_ModuleNameMap* arrNames;
@@ -58,7 +69,7 @@ typedef struct XL_ModuleLinkContext {
 	XL_ModuleInfo* pModules;
 	size_t iModuleCount;
 	size_t iModuleCap;
-	XL_ModuleInfo** ppOrder;
+	size_t* pOrderIndices;
 	size_t iOrderCount;
 	size_t iOrderCap;
 } XL_ModuleLinkContext;
@@ -408,6 +419,7 @@ static int __xlResolveImportFile(char* sOut, size_t iOutSize, const char* sCurre
 static int __xlModuleInfoAddImport(XL_ModuleInfo* pModule, const char* sImportKey)
 {
 	char** arrNew;
+	char** arrResolvedNew;
 	size_t iNewCap;
 
 	if ( (pModule == NULL) || (sImportKey == NULL) || (sImportKey[0] == '\0') ) {
@@ -417,10 +429,19 @@ static int __xlModuleInfoAddImport(XL_ModuleInfo* pModule, const char* sImportKe
 	if ( pModule->iImportCount >= pModule->iImportCap ) {
 		iNewCap = (pModule->iImportCap == 0) ? 4 : (pModule->iImportCap * 2);
 		arrNew = (char**)realloc(pModule->arrImportKeys, sizeof(char*) * iNewCap);
-		if ( arrNew == NULL ) {
+		arrResolvedNew = (char**)realloc(pModule->arrResolvedImportFiles, sizeof(char*) * iNewCap);
+		if ( (arrNew == NULL) || (arrResolvedNew == NULL) ) {
+			if ( arrNew != NULL ) {
+				pModule->arrImportKeys = arrNew;
+			}
+			if ( arrResolvedNew != NULL ) {
+				pModule->arrResolvedImportFiles = arrResolvedNew;
+			}
 			return XL_RC_IO_ERROR;
 		}
 		pModule->arrImportKeys = arrNew;
+		pModule->arrResolvedImportFiles = arrResolvedNew;
+		memset(pModule->arrResolvedImportFiles + pModule->iImportCap, 0, sizeof(char*) * (iNewCap - pModule->iImportCap));
 		pModule->iImportCap = iNewCap;
 	}
 
@@ -429,6 +450,24 @@ static int __xlModuleInfoAddImport(XL_ModuleInfo* pModule, const char* sImportKe
 		return XL_RC_IO_ERROR;
 	}
 	pModule->iImportCount += 1;
+	return XL_RC_OK;
+}
+
+static int __xlModuleInfoResolveImport(XL_ModuleInfo* pModule, size_t iImportIndex, const char* sResolvedFile)
+{
+	char* sCopy;
+
+	if ( (pModule == NULL) || (iImportIndex >= pModule->iImportCount) ) {
+		return XL_RC_BAD_ARG;
+	}
+
+	sCopy = __xlModuleDupText(sResolvedFile);
+	if ( (sResolvedFile != NULL) && (sCopy == NULL) ) {
+		return XL_RC_IO_ERROR;
+	}
+
+	free(pModule->arrResolvedImportFiles[iImportIndex]);
+	pModule->arrResolvedImportFiles[iImportIndex] = sCopy;
 	return XL_RC_OK;
 }
 
@@ -504,12 +543,23 @@ static void __xlModuleInfoFree(XL_ModuleInfo* pModule)
 	free(pModule->sFilePath);
 	free(pModule->sLeafAlias);
 	free(pModule->sBindingName);
+	free(pModule->sManifestPath);
+	free(pModule->sPackageName);
+	free(pModule->sPackageVersion);
+	free(pModule->sPackageAbiVersion);
+	free(pModule->sPackageAbiId);
+	free(pModule->sArtifactKind);
+	free(pModule->sArtifactPath);
+	free(pModule->sArtifactFile);
+	free(pModule->sConsumeMode);
 	xlAstFree(pModule->pRoot);
 
 	for ( i = 0; i < pModule->iImportCount; ++i ) {
 		free(pModule->arrImportKeys[i]);
+		free(pModule->arrResolvedImportFiles[i]);
 	}
 	free(pModule->arrImportKeys);
+	free(pModule->arrResolvedImportFiles);
 
 	for ( i = 0; i < pModule->iNameCount; ++i ) {
 		free(pModule->arrNames[i].sOriginalName);
@@ -530,8 +580,12 @@ static XL_ModuleInfo* __xlFindModuleByFile(XL_ModuleLinkContext* pCtx, const cha
 {
 	size_t i;
 
+	if ( (pCtx == NULL) || (sFilePath == NULL) || (sFilePath[0] == '\0') ) {
+		return NULL;
+	}
+
 	for ( i = 0; i < pCtx->iModuleCount; ++i ) {
-		if ( strcmp(pCtx->pModules[i].sFilePath, sFilePath) == 0 ) {
+		if ( (pCtx->pModules[i].sFilePath != NULL) && (strcmp(pCtx->pModules[i].sFilePath, sFilePath) == 0) ) {
 			return &pCtx->pModules[i];
 		}
 	}
@@ -543,8 +597,12 @@ static XL_ModuleInfo* __xlFindModuleByKey(const XL_ModuleLinkContext* pCtx, cons
 {
 	size_t i;
 
+	if ( (pCtx == NULL) || (sModuleKey == NULL) || (sModuleKey[0] == '\0') ) {
+		return NULL;
+	}
+
 	for ( i = 0; i < pCtx->iModuleCount; ++i ) {
-		if ( strcmp(pCtx->pModules[i].sModuleKey, sModuleKey) == 0 ) {
+		if ( (pCtx->pModules[i].sModuleKey != NULL) && (strcmp(pCtx->pModules[i].sModuleKey, sModuleKey) == 0) ) {
 			return &pCtx->pModules[i];
 		}
 	}
@@ -554,8 +612,9 @@ static XL_ModuleInfo* __xlFindModuleByKey(const XL_ModuleLinkContext* pCtx, cons
 
 static int __xlAppendOrder(XL_ModuleLinkContext* pCtx, XL_ModuleInfo* pModule)
 {
-	XL_ModuleInfo** ppNew;
+	size_t* pNewIndices;
 	size_t iNewCap;
+	size_t iModuleIndex;
 
 	if ( (pCtx == NULL) || (pModule == NULL) ) {
 		return XL_RC_BAD_ARG;
@@ -563,15 +622,16 @@ static int __xlAppendOrder(XL_ModuleLinkContext* pCtx, XL_ModuleInfo* pModule)
 
 	if ( pCtx->iOrderCount >= pCtx->iOrderCap ) {
 		iNewCap = (pCtx->iOrderCap == 0) ? 4 : (pCtx->iOrderCap * 2);
-		ppNew = (XL_ModuleInfo**)realloc(pCtx->ppOrder, sizeof(XL_ModuleInfo*) * iNewCap);
-		if ( ppNew == NULL ) {
+		pNewIndices = (size_t*)realloc(pCtx->pOrderIndices, sizeof(size_t) * iNewCap);
+		if ( pNewIndices == NULL ) {
 			return XL_RC_IO_ERROR;
 		}
-		pCtx->ppOrder = ppNew;
+		pCtx->pOrderIndices = pNewIndices;
 		pCtx->iOrderCap = iNewCap;
 	}
 
-	pCtx->ppOrder[pCtx->iOrderCount++] = pModule;
+	iModuleIndex = (size_t)(pModule - pCtx->pModules);
+	pCtx->pOrderIndices[pCtx->iOrderCount++] = iModuleIndex;
 	return XL_RC_OK;
 }
 
@@ -645,6 +705,30 @@ static int __xlModuleHasImportKey(const XL_ModuleInfo* pModule, const char* sMod
 	return 0;
 }
 
+static XL_ModuleInfo* __xlFindImportedModule(const XL_ModuleLinkContext* pCtx, const XL_ModuleInfo* pModule, const char* sModuleKey)
+{
+	size_t i;
+	XL_ModuleInfo* pImported;
+
+	if ( (pCtx == NULL) || (pModule == NULL) || (sModuleKey == NULL) ) {
+		return NULL;
+	}
+
+	for ( i = 0; i < pModule->iImportCount; ++i ) {
+		if ( strcmp(pModule->arrImportKeys[i], sModuleKey) != 0 ) {
+			continue;
+		}
+		if ( pModule->arrResolvedImportFiles[i] != NULL ) {
+			pImported = __xlFindModuleByFile((XL_ModuleLinkContext*)pCtx, pModule->arrResolvedImportFiles[i]);
+			if ( pImported != NULL ) {
+				return pImported;
+			}
+		}
+	}
+
+	return __xlFindModuleByKey(pCtx, sModuleKey);
+}
+
 static void __xlReplaceNodeWithIdent(XL_AstNode* pNode, const char* sName)
 {
 	size_t i;
@@ -696,6 +780,26 @@ static int __xlCollectImports(XL_ModuleInfo* pModule)
 	return XL_RC_OK;
 }
 
+static const char* __xlModuleMangleKey(const XL_ModuleInfo* pModule, char* sBuffer, size_t iBufferSize)
+{
+	if ( (sBuffer == NULL) || (iBufferSize == 0) ) {
+		return "";
+	}
+
+	if ( pModule == NULL ) {
+		sBuffer[0] = '\0';
+		return sBuffer;
+	}
+
+	if ( (pModule->sPackageAbiId != NULL) && (pModule->sPackageAbiId[0] != '\0') && !pModule->bIsRoot ) {
+		snprintf(sBuffer, iBufferSize, "%s__%s", pModule->sPackageAbiId, (pModule->sModuleKey != NULL) ? pModule->sModuleKey : "module");
+	} else {
+		snprintf(sBuffer, iBufferSize, "%s", (pModule->sModuleKey != NULL) ? pModule->sModuleKey : "module");
+	}
+
+	return sBuffer;
+}
+
 static char* __xlBuildMangledName(const char* sModuleKey, const char* sName)
 {
 	char sPrefix[XL_PATH_MAX_LEN];
@@ -728,6 +832,7 @@ static int __xlCollectTopLevelNamesAndExports(XL_ModuleLinkContext* pCtx, XL_Mod
 	XL_AstNode* pStmt;
 	const XL_AstNode* pValue;
 	char* sMangledName;
+	char sMangleKey[XL_PATH_MAX_LEN];
 	const char* sResolvedName;
 	size_t i;
 	size_t j;
@@ -740,7 +845,7 @@ static int __xlCollectTopLevelNamesAndExports(XL_ModuleLinkContext* pCtx, XL_Mod
 		}
 
 		if ( (pStmt->eKind == XL_AST_FUNC_DECL) || (pStmt->eKind == XL_AST_CONST_DECL) || (pStmt->eKind == XL_AST_VAR_DECL) ) {
-			sMangledName = pModule->bIsRoot ? __xlModuleDupText(pStmt->sText) : __xlBuildMangledName(pModule->sModuleKey, pStmt->sText);
+			sMangledName = pModule->bIsRoot ? __xlModuleDupText(pStmt->sText) : __xlBuildMangledName(__xlModuleMangleKey(pModule, sMangleKey, sizeof(sMangleKey)), pStmt->sText);
 			if ( sMangledName == NULL ) {
 				return XL_RC_IO_ERROR;
 			}
@@ -849,7 +954,7 @@ static void __xlRewriteMemberImportRef(XL_ModuleLinkContext* pCtx, XL_ModuleInfo
 	sImportKey = sChain;
 	if ( !__xlModuleHasImportKey(pModule, sImportKey) ) {
 		for ( i = 0; i < pModule->iImportCount; ++i ) {
-			pImported = __xlFindModuleByKey(pCtx, pModule->arrImportKeys[i]);
+			pImported = __xlFindImportedModule(pCtx, pModule, pModule->arrImportKeys[i]);
 			if ( (pImported != NULL) && (pImported->sLeafAlias != NULL) && (strcmp(pImported->sLeafAlias, sImportKey) == 0) ) {
 				sImportKey = pImported->sModuleKey;
 				break;
@@ -857,7 +962,7 @@ static void __xlRewriteMemberImportRef(XL_ModuleLinkContext* pCtx, XL_ModuleInfo
 		}
 	}
 
-	pImported = __xlFindModuleByKey(pCtx, sImportKey);
+	pImported = __xlFindImportedModule(pCtx, pModule, sImportKey);
 	if ( (pImported == NULL) || !__xlModuleHasImportKey(pModule, sImportKey) ) {
 		if ( strcmp(sImportKey, sChain) != 0 ) {
 			/* alias path already resolved */
@@ -1029,18 +1134,199 @@ static int __xlParseSourceToAst(const char* sSourceText, const char* sVirtualPat
 	return XL_RC_OK;
 }
 
-static int __xlLoadModule(XL_ModuleLinkContext* pCtx, const char* sFilePath, const char* sModuleKey, int bIsRoot, XL_ModuleInfo** ppModule)
+static void __xlSanitizeIdentPart(char* sOut, size_t iOutSize, const char* sText)
+{
+	size_t iOut;
+	const unsigned char* pScan;
+
+	if ( (sOut == NULL) || (iOutSize == 0) ) {
+		return;
+	}
+
+	iOut = 0;
+	for ( pScan = (const unsigned char*)((sText != NULL) ? sText : ""); (*pScan != 0) && (iOut + 1 < iOutSize); ++pScan ) {
+		if ( ((*pScan >= 'A') && (*pScan <= 'Z')) ||
+			((*pScan >= 'a') && (*pScan <= 'z')) ||
+			((*pScan >= '0') && (*pScan <= '9')) ||
+			(*pScan == '_') ) {
+			sOut[iOut++] = (char)(*pScan);
+		} else {
+			sOut[iOut++] = '_';
+		}
+	}
+	sOut[iOut] = '\0';
+}
+
+static void __xlBuildXlpNativeVirtualPath(char* sOut, size_t iOutSize, const char* sManifestPath, const char* sModuleKey)
+{
+	char sModuleKeySafe[XL_PATH_MAX_LEN];
+
+	__xlSanitizeIdentPart(sModuleKeySafe, sizeof(sModuleKeySafe), sModuleKey);
+	snprintf(sOut, iOutSize, "<xlp-native:%s:%s>", (sManifestPath != NULL) ? sManifestPath : "", sModuleKeySafe);
+}
+
+static void __xlBuildXlpNativeHelperName(char* sOut, size_t iOutSize, const char* sModuleKey, size_t iFuncIndex)
+{
+	char sModuleKeySafe[XL_PATH_MAX_LEN];
+
+	__xlSanitizeIdentPart(sModuleKeySafe, sizeof(sModuleKeySafe), sModuleKey);
+	snprintf(sOut, iOutSize, "__xlp_extern__%s__%llu", sModuleKeySafe, (unsigned long long)iFuncIndex);
+}
+
+static char* __xlBuildXlpNativeSource(const char* sModuleKey, const XL_XlpFunctionInfo* pFuncs, size_t iFuncCount)
+{
+	XL_ModuleTextBuffer buf;
+	size_t i;
+	size_t j;
+	int bHasExport;
+
+	memset(&buf, 0, sizeof(buf));
+	bHasExport = 0;
+	for ( i = 0; i < iFuncCount; ++i ) {
+		char sHelperName[256];
+		const XL_XlpFunctionInfo* pFunc;
+
+		pFunc = &pFuncs[i];
+		if ( pFunc->bAsync || pFunc->bGenerator ) {
+			continue;
+		}
+		if ( (pFunc->sExportName[0] == '\0') || (pFunc->sSymbol[0] == '\0') ) {
+			continue;
+		}
+
+		__xlBuildXlpNativeHelperName(sHelperName, sizeof(sHelperName), sModuleKey, i);
+		__xlModuleBufAppendFormat(&buf, "func %s(", sHelperName);
+		for ( j = 0; j < pFunc->iParamCount; ++j ) {
+			if ( j != 0 ) {
+				__xlModuleBufAppend(&buf, ", ");
+			}
+			__xlModuleBufAppendFormat(&buf, "%s %s", (pFunc->pParams[j].sType[0] != '\0') ? pFunc->pParams[j].sType : "int",
+				(pFunc->pParams[j].sName[0] != '\0') ? pFunc->pParams[j].sName : "arg");
+		}
+		__xlModuleBufAppend(&buf, ")");
+		if ( (pFunc->sReturnType[0] != '\0') && (strcmp(pFunc->sReturnType, "void") != 0) ) {
+			__xlModuleBufAppendFormat(&buf, " as %s", pFunc->sReturnType);
+		}
+		__xlModuleBufAppend(&buf, "\nend\n");
+
+		__xlModuleBufAppendFormat(&buf, "func %s(", pFunc->sExportName);
+		for ( j = 0; j < pFunc->iParamCount; ++j ) {
+			if ( j != 0 ) {
+				__xlModuleBufAppend(&buf, ", ");
+			}
+			__xlModuleBufAppendFormat(&buf, "%s %s", (pFunc->pParams[j].sType[0] != '\0') ? pFunc->pParams[j].sType : "int",
+				(pFunc->pParams[j].sName[0] != '\0') ? pFunc->pParams[j].sName : "arg");
+		}
+		__xlModuleBufAppend(&buf, ")");
+		if ( (pFunc->sReturnType[0] != '\0') && (strcmp(pFunc->sReturnType, "void") != 0) ) {
+			__xlModuleBufAppendFormat(&buf, " as %s", pFunc->sReturnType);
+		}
+		__xlModuleBufAppend(&buf, "\n");
+		if ( (pFunc->sReturnType[0] == '\0') || (strcmp(pFunc->sReturnType, "void") == 0) ) {
+			__xlModuleBufAppend(&buf, "\t");
+			__xlModuleBufAppendFormat(&buf, "%s(", sHelperName);
+		} else {
+			__xlModuleBufAppend(&buf, "\treturn ");
+			__xlModuleBufAppendFormat(&buf, "%s(", sHelperName);
+		}
+		for ( j = 0; j < pFunc->iParamCount; ++j ) {
+			if ( j != 0 ) {
+				__xlModuleBufAppend(&buf, ", ");
+			}
+			__xlModuleBufAppend(&buf, (pFunc->pParams[j].sName[0] != '\0') ? pFunc->pParams[j].sName : "arg");
+		}
+		__xlModuleBufAppend(&buf, ")\nend\n");
+
+		if ( (i == 0) || (strcmp(pFunc->sExportName, pFuncs[i - 1].sExportName) != 0) ) {
+			__xlModuleBufAppendFormat(&buf, "export %s\n", pFunc->sExportName);
+			bHasExport = 1;
+		}
+	}
+
+	if ( !bHasExport ) {
+		free(buf.sData);
+		return NULL;
+	}
+	return buf.sData;
+}
+
+static void __xlAnnotateXlpNativeExterns(XL_AstNode* pRoot, const char* sModuleKey, const XL_XlpFunctionInfo* pFuncs, size_t iFuncCount)
+{
+	size_t i;
+	size_t j;
+
+	if ( (pRoot == NULL) || (pFuncs == NULL) ) {
+		return;
+	}
+
+	for ( i = 0; i < iFuncCount; ++i ) {
+		char sHelperName[256];
+
+		if ( pFuncs[i].sSymbol[0] == '\0' ) {
+			continue;
+		}
+		__xlBuildXlpNativeHelperName(sHelperName, sizeof(sHelperName), sModuleKey, i);
+		for ( j = 0; j < pRoot->iChildCount; ++j ) {
+			XL_AstNode* pStmt;
+
+			pStmt = pRoot->ppChildren[j];
+			if ( (pStmt == NULL) || (pStmt->eKind != XL_AST_FUNC_DECL) || (pStmt->sText == NULL) ) {
+				continue;
+			}
+			if ( strcmp(pStmt->sText, sHelperName) == 0 ) {
+				xlAstSetText2(pStmt, pFuncs[i].sSymbol, strlen(pFuncs[i].sSymbol));
+				break;
+			}
+		}
+	}
+}
+
+static int __xlLoadModule(
+	XL_ModuleLinkContext* pCtx,
+	const char* sFilePath,
+	const char* sModuleKey,
+	int bIsRoot,
+	const char* sImporterManifestPath,
+	XL_ModuleInfo** ppModule
+)
 {
 	XL_ModuleInfo* pModule;
+	XL_ModuleInfo* pImportedModule;
 	XL_NativeModuleInfo nativeInfo;
 	char sImportFile[XL_PATH_MAX_LEN];
+	char sCurrentModuleFile[XL_PATH_MAX_LEN];
+	char sNativeVirtualPath[XL_PATH_MAX_LEN];
+	XL_XlpResolveInfo xlpInfo;
+	XL_XlpFunctionInfo* pXlpFuncs;
+	size_t iXlpFuncCount;
 	char* sImportKey;
 	size_t i;
 	int iRc;
 
 	pModule = __xlFindModuleByFile(pCtx, sFilePath);
 	if ( (pModule == NULL) && !bIsRoot && (sModuleKey != NULL) && !__xlFileExists(sFilePath) ) {
-		pModule = __xlFindModuleByKey(pCtx, sModuleKey);
+		xlXlpResolveInfoInit(&xlpInfo);
+		if ( xlXlpFindModuleSource(sFilePath, sImporterManifestPath, sModuleKey, &xlpInfo) == XL_RC_OK ) {
+			if ( xlpInfo.bIsNative ) {
+				pXlpFuncs = NULL;
+				iXlpFuncCount = 0;
+				if ( xlXlpReadFunctions(xlpInfo.sManifestPath, sModuleKey, &pXlpFuncs, &iXlpFuncCount) == XL_RC_OK && (iXlpFuncCount != 0) ) {
+					__xlBuildXlpNativeVirtualPath(sNativeVirtualPath, sizeof(sNativeVirtualPath), xlpInfo.sManifestPath, sModuleKey);
+					pModule = __xlFindModuleByFile(pCtx, sNativeVirtualPath);
+				} else {
+					const char* sNativeKey;
+
+					sNativeKey = (xlpInfo.sBindingName[0] != '\0') ? xlpInfo.sBindingName : sModuleKey;
+					memset(&nativeInfo, 0, sizeof(nativeInfo));
+					if ( xlNativeRegistryFind(sNativeKey, &nativeInfo) == XL_RC_OK ) {
+						pModule = __xlFindModuleByFile(pCtx, nativeInfo.sVirtualPath);
+					}
+				}
+				xlXlpFunctionInfoFree(pXlpFuncs, iXlpFuncCount);
+			} else {
+				pModule = __xlFindModuleByFile(pCtx, xlpInfo.sModuleFile);
+			}
+		}
 	}
 	if ( pModule != NULL ) {
 		if ( pModule->iState == 1 ) {
@@ -1067,9 +1353,74 @@ static int __xlLoadModule(XL_ModuleLinkContext* pCtx, const char* sFilePath, con
 	}
 
 	memset(&nativeInfo, 0, sizeof(nativeInfo));
+	xlXlpResolveInfoInit(&xlpInfo);
+	pXlpFuncs = NULL;
+	iXlpFuncCount = 0;
 	if ( bIsRoot || __xlFileExists(sFilePath) ) {
 		pModule->sFilePath = __xlModuleDupText(sFilePath);
 		iRc = __xlParseFileToAst(sFilePath, pCtx->pDiag, pCtx->bTraceParser, &pModule->pRoot);
+	} else if ( (sModuleKey != NULL) &&
+		(xlXlpFindModuleSource(sFilePath, sImporterManifestPath, sModuleKey, &xlpInfo) == XL_RC_OK) ) {
+		pModule->sManifestPath = __xlModuleDupText(xlpInfo.sManifestPath);
+		pModule->sPackageName = __xlModuleDupText(xlpInfo.sPackageName);
+		pModule->sPackageVersion = __xlModuleDupText(xlpInfo.sPackageVersion);
+		pModule->sPackageAbiVersion = __xlModuleDupText(xlpInfo.sPackageAbiVersion);
+		pModule->sPackageAbiId = __xlModuleDupText(xlpInfo.sPackageAbiId);
+		pModule->sArtifactKind = __xlModuleDupText(xlpInfo.sArtifactKind);
+		pModule->sArtifactPath = __xlModuleDupText(xlpInfo.sArtifactPath);
+		pModule->sArtifactFile = __xlModuleDupText(xlpInfo.sArtifactFile);
+		pModule->sConsumeMode = __xlModuleDupText(xlpInfo.sConsumeMode);
+		if ( (pModule->sManifestPath == NULL) || (pModule->sPackageName == NULL) || (pModule->sPackageVersion == NULL) ||
+			(pModule->sPackageAbiVersion == NULL) || (pModule->sPackageAbiId == NULL) ||
+			(pModule->sArtifactKind == NULL) || (pModule->sArtifactPath == NULL) ||
+			(pModule->sArtifactFile == NULL) || (pModule->sConsumeMode == NULL) ) {
+			return XL_RC_IO_ERROR;
+		}
+		if ( xlpInfo.bIsNative ) {
+			if ( (strcmp(xlpInfo.sConsumeMode, "native-registry") != 0) &&
+				(strcmp(xlpInfo.sConsumeMode, "shared-bridge") != 0) &&
+				(strcmp(xlpInfo.sConsumeMode, "static-bridge") != 0) ) {
+				XL_DIAG_ERROR(pCtx->pDiag, "module", "unsupported xlp native consume mode: %s", xlpInfo.sConsumeMode);
+				return XL_RC_IO_ERROR;
+			}
+			pModule->bIsNative = 1;
+			pModule->sBindingName = __xlModuleDupText(xlpInfo.sBindingName);
+			iRc = xlXlpReadFunctions(xlpInfo.sManifestPath, sModuleKey, &pXlpFuncs, &iXlpFuncCount);
+			if ( (iRc == XL_RC_OK) && (iXlpFuncCount != 0) ) {
+				char* sNativeSource;
+
+				__xlBuildXlpNativeVirtualPath(sNativeVirtualPath, sizeof(sNativeVirtualPath), xlpInfo.sManifestPath, sModuleKey);
+				pModule->sFilePath = __xlModuleDupText(sNativeVirtualPath);
+				sNativeSource = __xlBuildXlpNativeSource(sModuleKey, pXlpFuncs, iXlpFuncCount);
+				if ( sNativeSource == NULL ) {
+					xlXlpFunctionInfoFree(pXlpFuncs, iXlpFuncCount);
+					return XL_RC_IO_ERROR;
+				}
+				iRc = __xlParseSourceToAst(sNativeSource, sNativeVirtualPath, pCtx->pDiag, pCtx->bTraceParser, &pModule->pRoot);
+				if ( iRc == XL_RC_OK ) {
+					__xlAnnotateXlpNativeExterns(pModule->pRoot, sModuleKey, pXlpFuncs, iXlpFuncCount);
+				}
+				free(sNativeSource);
+			} else {
+				const char* sNativeKey;
+
+				sNativeKey = (xlpInfo.sBindingName[0] != '\0') ? xlpInfo.sBindingName : sModuleKey;
+				if ( xlNativeRegistryFind(sNativeKey, &nativeInfo) != XL_RC_OK ) {
+					xlXlpFunctionInfoFree(pXlpFuncs, iXlpFuncCount);
+					XL_DIAG_ERROR(pCtx->pDiag, "module", "xlp native module not found in registry: %s", sNativeKey);
+					return XL_RC_IO_ERROR;
+				}
+				pModule->sFilePath = __xlModuleDupText(nativeInfo.sVirtualPath);
+				free(pModule->sBindingName);
+				pModule->sBindingName = __xlModuleDupText(nativeInfo.sBindingName);
+				iRc = __xlParseSourceToAst(nativeInfo.sSourceText, nativeInfo.sVirtualPath, pCtx->pDiag, pCtx->bTraceParser, &pModule->pRoot);
+			}
+			xlXlpFunctionInfoFree(pXlpFuncs, iXlpFuncCount);
+		} else {
+			pModule->sFilePath = __xlModuleDupText(xlpInfo.sModuleFile);
+			pModule->sBindingName = __xlModuleDupText(xlpInfo.sBindingName);
+			iRc = __xlParseFileToAst(xlpInfo.sModuleFile, pCtx->pDiag, pCtx->bTraceParser, &pModule->pRoot);
+		}
 	} else if ( (sModuleKey != NULL) && (xlNativeRegistryFind(sModuleKey, &nativeInfo) == XL_RC_OK) ) {
 		pModule->bIsNative = 1;
 		pModule->sFilePath = __xlModuleDupText(nativeInfo.sVirtualPath);
@@ -1082,14 +1433,17 @@ static int __xlLoadModule(XL_ModuleLinkContext* pCtx, const char* sFilePath, con
 	if ( iRc != XL_RC_OK ) {
 		return iRc;
 	}
+	snprintf(sCurrentModuleFile, sizeof(sCurrentModuleFile), "%s", (pModule->sFilePath != NULL) ? pModule->sFilePath : "");
 	if ( pCtx->bTraceParser && (pCtx->pDiag != NULL) ) {
 		__xlModuleTrace(
 			pCtx->pDiag,
-			"load module key='%s' file='%s' native=%d binding='%s'",
+			"load module key='%s' file='%s' native=%d binding='%s' artifactKind='%s' consumeMode='%s'",
 			pModule->sModuleKey,
 			pModule->sFilePath,
 			pModule->bIsNative,
-			(pModule->sBindingName != NULL) ? pModule->sBindingName : ""
+			(pModule->sBindingName != NULL) ? pModule->sBindingName : "",
+			(pModule->sArtifactKind != NULL) ? pModule->sArtifactKind : "",
+			(pModule->sConsumeMode != NULL) ? pModule->sConsumeMode : ""
 		);
 	}
 
@@ -1104,11 +1458,19 @@ static int __xlLoadModule(XL_ModuleLinkContext* pCtx, const char* sFilePath, con
 		if ( iRc != XL_RC_OK ) {
 			return iRc;
 		}
-		iRc = __xlLoadModule(pCtx, sImportFile, sImportKey, 0, &pModule);
+		pImportedModule = NULL;
+		iRc = __xlLoadModule(pCtx, sImportFile, sImportKey, 0, pModule->sManifestPath, &pImportedModule);
 		if ( iRc != XL_RC_OK ) {
 			return iRc;
 		}
-		pModule = __xlFindModuleByFile(pCtx, sFilePath);
+		pModule = __xlFindModuleByFile(pCtx, sCurrentModuleFile);
+		if ( pModule == NULL ) {
+			return XL_RC_FAIL;
+		}
+		iRc = __xlModuleInfoResolveImport(pModule, i, (pImportedModule != NULL) ? pImportedModule->sFilePath : NULL);
+		if ( iRc != XL_RC_OK ) {
+			return iRc;
+		}
 	}
 
 	iRc = __xlLinkAndRewriteModule(pCtx, pModule);
@@ -1152,7 +1514,7 @@ static int __xlBuildLinkedRoot(XL_ModuleLinkContext* pCtx, XL_AstNode** ppRoot)
 	}
 
 	for ( i = 0; i < pCtx->iOrderCount; ++i ) {
-		pModule = pCtx->ppOrder[i];
+		pModule = &pCtx->pModules[pCtx->pOrderIndices[i]];
 		for ( j = 0; (pModule != NULL) && (pModule->pRoot != NULL) && (j < pModule->pRoot->iChildCount); ++j ) {
 			pStmt = pModule->pRoot->ppChildren[j];
 			if ( (pStmt == NULL) || (pStmt->eKind == XL_AST_IMPORT) || (pStmt->eKind == XL_AST_EXPORT) ) {
@@ -1179,7 +1541,7 @@ static void __xlBuildModuleTextDump(const XL_ModuleLinkContext* pCtx, char** psT
 	memset(&buf, 0, sizeof(buf));
 	__xlModuleBufAppend(&buf, "ModuleLoadOrder\n");
 	for ( i = 0; i < pCtx->iOrderCount; ++i ) {
-		pModule = pCtx->ppOrder[i];
+		pModule = &pCtx->pModules[pCtx->pOrderIndices[i]];
 		__xlModuleBufAppendFormat(
 			&buf,
 			"- [%zu] %s -> %s native=%d binding=%s\n",
@@ -1192,7 +1554,7 @@ static void __xlBuildModuleTextDump(const XL_ModuleLinkContext* pCtx, char** psT
 	}
 	__xlModuleBufAppend(&buf, "ModuleExports\n");
 	for ( i = 0; i < pCtx->iOrderCount; ++i ) {
-		pModule = pCtx->ppOrder[i];
+		pModule = &pCtx->pModules[pCtx->pOrderIndices[i]];
 		__xlModuleBufAppendFormat(&buf, "- module=%s\n", pModule->sModuleKey);
 		for ( j = 0; j < pModule->iExportCount; ++j ) {
 			__xlModuleBufAppendFormat(&buf, "  export %s -> %s\n", pModule->arrExports[j].sName, pModule->arrExports[j].sMangledName);
@@ -1217,7 +1579,7 @@ static void __xlBuildModuleJsonDump(const XL_ModuleLinkContext* pCtx, char** psJ
 	memset(&buf, 0, sizeof(buf));
 	__xlModuleBufAppend(&buf, "{\n\t\"modules\": [\n");
 	for ( i = 0; i < pCtx->iOrderCount; ++i ) {
-		pModule = pCtx->ppOrder[i];
+		pModule = &pCtx->pModules[pCtx->pOrderIndices[i]];
 		__xlModuleBufAppend(&buf, "\t\t{\n");
 		__xlModuleBufAppend(&buf, "\t\t\t\"key\": \"");
 		__xlModuleBufAppendEscaped(&buf, pModule->sModuleKey);
@@ -1227,6 +1589,14 @@ static void __xlBuildModuleJsonDump(const XL_ModuleLinkContext* pCtx, char** psJ
 		__xlModuleBufAppend(&buf, pModule->bIsNative ? "1" : "0");
 		__xlModuleBufAppend(&buf, ",\n\t\t\t\"binding\": \"");
 		__xlModuleBufAppendEscaped(&buf, (pModule->sBindingName != NULL) ? pModule->sBindingName : "");
+		__xlModuleBufAppend(&buf, "\",\n\t\t\t\"artifactKind\": \"");
+		__xlModuleBufAppendEscaped(&buf, (pModule->sArtifactKind != NULL) ? pModule->sArtifactKind : "");
+		__xlModuleBufAppend(&buf, "\",\n\t\t\t\"artifactPath\": \"");
+		__xlModuleBufAppendEscaped(&buf, (pModule->sArtifactPath != NULL) ? pModule->sArtifactPath : "");
+		__xlModuleBufAppend(&buf, "\",\n\t\t\t\"artifactFile\": \"");
+		__xlModuleBufAppendEscaped(&buf, (pModule->sArtifactFile != NULL) ? pModule->sArtifactFile : "");
+		__xlModuleBufAppend(&buf, "\",\n\t\t\t\"consumeMode\": \"");
+		__xlModuleBufAppendEscaped(&buf, (pModule->sConsumeMode != NULL) ? pModule->sConsumeMode : "");
 		__xlModuleBufAppend(&buf, "\",\n\t\t\t\"exports\": [");
 		if ( pModule->iExportCount != 0 ) {
 			__xlModuleBufAppend(&buf, "\n");
@@ -1265,6 +1635,88 @@ static void __xlBuildModuleJsonDump(const XL_ModuleLinkContext* pCtx, char** psJ
 	*psJson = buf.sData;
 }
 
+static int __xlCopyModuleSummaries(const XL_ModuleLinkContext* pCtx, XL_ModuleLinkResult* pResult)
+{
+	size_t i;
+	size_t j;
+
+	if ( (pCtx == NULL) || (pResult == NULL) ) {
+		return XL_RC_BAD_ARG;
+	}
+	if ( pCtx->iOrderCount == 0 ) {
+		return XL_RC_OK;
+	}
+
+	pResult->pModules = (XL_ModuleSummary*)calloc(pCtx->iOrderCount, sizeof(*pResult->pModules));
+	if ( pResult->pModules == NULL ) {
+		return XL_RC_IO_ERROR;
+	}
+	pResult->iModuleCount = pCtx->iOrderCount;
+
+	for ( i = 0; i < pCtx->iOrderCount; ++i ) {
+		XL_ModuleInfo* pModule;
+		XL_ModuleSummary* pSummary;
+
+		pModule = &pCtx->pModules[pCtx->pOrderIndices[i]];
+		pSummary = &pResult->pModules[i];
+		pSummary->sKey = __xlModuleDupText((pModule != NULL) ? pModule->sModuleKey : "");
+		pSummary->sFilePath = __xlModuleDupText((pModule != NULL) ? pModule->sFilePath : "");
+		pSummary->sBindingName = __xlModuleDupText((pModule != NULL) ? pModule->sBindingName : "");
+		pSummary->sManifestPath = __xlModuleDupText((pModule != NULL) ? pModule->sManifestPath : "");
+		pSummary->sPackageName = __xlModuleDupText((pModule != NULL) ? pModule->sPackageName : "");
+		pSummary->sPackageVersion = __xlModuleDupText((pModule != NULL) ? pModule->sPackageVersion : "");
+		pSummary->sPackageAbiVersion = __xlModuleDupText((pModule != NULL) ? pModule->sPackageAbiVersion : "");
+		pSummary->sPackageAbiId = __xlModuleDupText((pModule != NULL) ? pModule->sPackageAbiId : "");
+		pSummary->sArtifactKind = __xlModuleDupText((pModule != NULL) ? pModule->sArtifactKind : "");
+		pSummary->sArtifactPath = __xlModuleDupText((pModule != NULL) ? pModule->sArtifactPath : "");
+		pSummary->sArtifactFile = __xlModuleDupText((pModule != NULL) ? pModule->sArtifactFile : "");
+		pSummary->sConsumeMode = __xlModuleDupText((pModule != NULL) ? pModule->sConsumeMode : "");
+		pSummary->bIsRoot = (pModule != NULL) ? pModule->bIsRoot : 0;
+		pSummary->bIsNative = (pModule != NULL) ? pModule->bIsNative : 0;
+		pSummary->iImportCount = (pModule != NULL) ? pModule->iImportCount : 0;
+		pSummary->iExportCount = (pModule != NULL) ? pModule->iExportCount : 0;
+		if ( (pSummary->sKey == NULL) || (pSummary->sFilePath == NULL) || (pSummary->sBindingName == NULL) ||
+			(pSummary->sManifestPath == NULL) || (pSummary->sPackageName == NULL) || (pSummary->sPackageVersion == NULL) ||
+			(pSummary->sPackageAbiVersion == NULL) || (pSummary->sPackageAbiId == NULL) ||
+			(pSummary->sArtifactKind == NULL) || (pSummary->sArtifactPath == NULL) ||
+			(pSummary->sArtifactFile == NULL) || (pSummary->sConsumeMode == NULL) ) {
+			return XL_RC_IO_ERROR;
+		}
+		if ( pSummary->iImportCount != 0 ) {
+			pSummary->arrImports = (char**)calloc(pSummary->iImportCount, sizeof(*pSummary->arrImports));
+			pSummary->arrResolvedImports = (char**)calloc(pSummary->iImportCount, sizeof(*pSummary->arrResolvedImports));
+			if ( (pSummary->arrImports == NULL) || (pSummary->arrResolvedImports == NULL) ) {
+				return XL_RC_IO_ERROR;
+			}
+			for ( j = 0; j < pSummary->iImportCount; ++j ) {
+				pSummary->arrImports[j] = __xlModuleDupText(pModule->arrImportKeys[j]);
+				pSummary->arrResolvedImports[j] = __xlModuleDupText(pModule->arrResolvedImportFiles[j]);
+				if ( (pSummary->arrImports[j] == NULL) || ((pModule->arrResolvedImportFiles[j] != NULL) && (pSummary->arrResolvedImports[j] == NULL)) ) {
+					return XL_RC_IO_ERROR;
+				}
+			}
+		}
+		if ( pSummary->iExportCount == 0 ) {
+			continue;
+		}
+
+		pSummary->pExports = (XL_ModuleExportSummary*)calloc(pSummary->iExportCount, sizeof(*pSummary->pExports));
+		if ( pSummary->pExports == NULL ) {
+			return XL_RC_IO_ERROR;
+		}
+
+		for ( j = 0; j < pSummary->iExportCount; ++j ) {
+			pSummary->pExports[j].sName = __xlModuleDupText(pModule->arrExports[j].sName);
+			pSummary->pExports[j].sSymbol = __xlModuleDupText(pModule->arrExports[j].sMangledName);
+			if ( (pSummary->pExports[j].sName == NULL) || (pSummary->pExports[j].sSymbol == NULL) ) {
+				return XL_RC_IO_ERROR;
+			}
+		}
+	}
+
+	return XL_RC_OK;
+}
+
 void xlModuleLinkResultInit(XL_ModuleLinkResult* pResult)
 {
 	if ( pResult != NULL ) {
@@ -1274,6 +1726,9 @@ void xlModuleLinkResultInit(XL_ModuleLinkResult* pResult)
 
 void xlModuleLinkResultFree(XL_ModuleLinkResult* pResult)
 {
+	size_t i;
+	size_t j;
+
 	if ( pResult == NULL ) {
 		return;
 	}
@@ -1281,6 +1736,32 @@ void xlModuleLinkResultFree(XL_ModuleLinkResult* pResult)
 	xlAstFree(pResult->pLinkedRoot);
 	free(pResult->sTextDump);
 	free(pResult->sJsonDump);
+	for ( i = 0; i < pResult->iModuleCount; ++i ) {
+		for ( j = 0; j < pResult->pModules[i].iImportCount; ++j ) {
+			free(pResult->pModules[i].arrImports[j]);
+			free(pResult->pModules[i].arrResolvedImports[j]);
+		}
+		free(pResult->pModules[i].arrImports);
+		free(pResult->pModules[i].arrResolvedImports);
+		for ( j = 0; j < pResult->pModules[i].iExportCount; ++j ) {
+			free(pResult->pModules[i].pExports[j].sName);
+			free(pResult->pModules[i].pExports[j].sSymbol);
+		}
+		free(pResult->pModules[i].pExports);
+		free(pResult->pModules[i].sKey);
+		free(pResult->pModules[i].sFilePath);
+		free(pResult->pModules[i].sBindingName);
+		free(pResult->pModules[i].sManifestPath);
+		free(pResult->pModules[i].sPackageName);
+		free(pResult->pModules[i].sPackageVersion);
+		free(pResult->pModules[i].sPackageAbiVersion);
+		free(pResult->pModules[i].sPackageAbiId);
+		free(pResult->pModules[i].sArtifactKind);
+		free(pResult->pModules[i].sArtifactPath);
+		free(pResult->pModules[i].sArtifactFile);
+		free(pResult->pModules[i].sConsumeMode);
+	}
+	free(pResult->pModules);
 	memset(pResult, 0, sizeof(*pResult));
 }
 
@@ -1302,7 +1783,7 @@ int xlModuleLinkFromFile(const char* sInputFile, XL_DiagContext* pDiag, int bTra
 	ctx.bTraceParser = bTraceParser;
 
 	__xlModuleNormalizePath(sFullPath, sizeof(sFullPath), sInputFile);
-	iRc = __xlLoadModule(&ctx, sFullPath, "<root>", 1, &pRootModule);
+	iRc = __xlLoadModule(&ctx, sFullPath, "<root>", 1, NULL, &pRootModule);
 	if ( iRc != XL_RC_OK ) {
 		goto cleanup;
 	}
@@ -1314,6 +1795,10 @@ int xlModuleLinkFromFile(const char* sInputFile, XL_DiagContext* pDiag, int bTra
 
 	__xlBuildModuleTextDump(&ctx, &pResult->sTextDump);
 	__xlBuildModuleJsonDump(&ctx, &pResult->sJsonDump);
+	iRc = __xlCopyModuleSummaries(&ctx, pResult);
+	if ( iRc != XL_RC_OK ) {
+		goto cleanup;
+	}
 	iRc = XL_RC_OK;
 
 cleanup:
@@ -1322,7 +1807,7 @@ cleanup:
 		__xlModuleInfoFree(&ctx.pModules[i]);
 	}
 	free(ctx.pModules);
-	free(ctx.ppOrder);
+	free(ctx.pOrderIndices);
 	if ( iRc != XL_RC_OK ) {
 		xlModuleLinkResultFree(pResult);
 	}

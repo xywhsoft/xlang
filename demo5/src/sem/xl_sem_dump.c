@@ -192,6 +192,30 @@ static void __xlSemDumpFuncsJsonTo(const XL_SemResult* pResult, XL_SemTextBuffer
 		for ( j = 0; j < (size_t)(iIndent + 2); ++j ) {
 			__xlSemBufAppend(pBuf, "\t");
 		}
+		__xlSemBufAppend(pBuf, "\"overloadGroup\": \"");
+		__xlSemAppendEscaped(pBuf, pFunc->sOverloadGroup);
+		__xlSemBufAppend(pBuf, "\",\n");
+		for ( j = 0; j < (size_t)(iIndent + 2); ++j ) {
+			__xlSemBufAppend(pBuf, "\t");
+		}
+		__xlSemBufAppend(pBuf, "\"signatureId\": \"");
+		__xlSemAppendEscaped(pBuf, pFunc->sSignatureId);
+		__xlSemBufAppend(pBuf, "\",\n");
+		for ( j = 0; j < (size_t)(iIndent + 2); ++j ) {
+			__xlSemBufAppend(pBuf, "\t");
+		}
+		__xlSemBufAppend(pBuf, "\"dispatchKey\": \"");
+		__xlSemAppendEscaped(pBuf, pFunc->sDispatchKey);
+		__xlSemBufAppend(pBuf, "\",\n");
+		for ( j = 0; j < (size_t)(iIndent + 2); ++j ) {
+			__xlSemBufAppend(pBuf, "\t");
+		}
+		__xlSemBufAppend(pBuf, "\"abiSymbol\": \"");
+		__xlSemAppendEscaped(pBuf, pFunc->sAbiSymbol);
+		__xlSemBufAppend(pBuf, "\",\n");
+		for ( j = 0; j < (size_t)(iIndent + 2); ++j ) {
+			__xlSemBufAppend(pBuf, "\t");
+		}
 		__xlSemBufAppend(pBuf, "\"returnType\": \"");
 		__xlSemAppendEscaped(pBuf, pFunc->sReturnTypeName);
 		__xlSemBufAppend(pBuf, "\",\n");
@@ -236,9 +260,19 @@ static void __xlSemDumpFuncsJsonTo(const XL_SemResult* pResult, XL_SemTextBuffer
 			for ( j = 0; j < (size_t)(iIndent + 4); ++j ) {
 				__xlSemBufAppend(pBuf, "\t");
 			}
+			__xlSemBufAppend(pBuf, "\"label\": \"");
+			__xlSemAppendEscaped(pBuf, pFunc->arrParamNames[k]);
+			__xlSemBufAppend(pBuf, "\",\n");
+			for ( j = 0; j < (size_t)(iIndent + 4); ++j ) {
+				__xlSemBufAppend(pBuf, "\t");
+			}
 			__xlSemBufAppend(pBuf, "\"type\": \"");
 			__xlSemAppendEscaped(pBuf, pFunc->arrParamTypes[k]);
-			__xlSemBufAppend(pBuf, "\"\n");
+			__xlSemBufAppend(pBuf, "\",\n");
+			for ( j = 0; j < (size_t)(iIndent + 4); ++j ) {
+				__xlSemBufAppend(pBuf, "\t");
+			}
+			__xlSemBufAppendFormat(pBuf, "\"hasDefault\": %d\n", ((pFunc->arrParamHasDefault != NULL) && pFunc->arrParamHasDefault[k]) ? 1 : 0);
 			for ( j = 0; j < (size_t)(iIndent + 3); ++j ) {
 				__xlSemBufAppend(pBuf, "\t");
 			}
@@ -501,11 +535,13 @@ char* xlSemDumpText(const XL_SemResult* pResult)
 		}
 		__xlSemBufAppendFormat(
 			&buf,
-			") as %s scope=%d async=%d generator=%d @ %d:%d\n",
+			") as %s scope=%d async=%d generator=%d abi=%s sig=%s @ %d:%d\n",
 			pFunc->sReturnTypeName,
 			pFunc->iScopeId,
 			pFunc->bAsync,
 			pFunc->bGenerator,
+			(pFunc->sAbiSymbol != NULL) ? pFunc->sAbiSymbol : "",
+			(pFunc->sSignatureId != NULL) ? pFunc->sSignatureId : "",
 			pFunc->iLine,
 			pFunc->iColumn
 		);
@@ -585,6 +621,27 @@ char* xlSemDumpSymbolsJson(const XL_SemResult* pResult)
 	memset(&buf, 0, sizeof(buf));
 	__xlSemDumpSymbolsJsonTo(pResult, &buf, 0);
 	__xlSemBufAppend(&buf, "\n");
+	return buf.sData;
+}
+
+char* xlSemDumpFuncsJson(const XL_SemResult* pResult)
+{
+	XL_SemTextBuffer buf;
+
+	memset(&buf, 0, sizeof(buf));
+	__xlSemDumpFuncsJsonTo(pResult, &buf, 0);
+	__xlSemBufAppend(&buf, "\n");
+	return buf.sData;
+}
+
+char* xlSemDumpXlpFunctionsJson(const XL_SemResult* pResult)
+{
+	XL_SemTextBuffer buf;
+
+	memset(&buf, 0, sizeof(buf));
+	__xlSemBufAppend(&buf, "{\n\t\"functions\": ");
+	__xlSemDumpFuncsJsonTo(pResult, &buf, 1);
+	__xlSemBufAppend(&buf, "\n}\n");
 	return buf.sData;
 }
 

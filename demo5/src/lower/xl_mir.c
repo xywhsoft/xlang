@@ -49,6 +49,26 @@ void xlMirSetText(XL_MirNode* pNode, const char* sText)
 	pNode->sText = __xlMirDupText(sText);
 }
 
+void xlMirSetAbiName(XL_MirNode* pNode, const char* sAbiName)
+{
+	if ( pNode == NULL ) {
+		return;
+	}
+
+	free(pNode->sAbiName);
+	pNode->sAbiName = __xlMirDupText(sAbiName);
+}
+
+void xlMirSetExternName(XL_MirNode* pNode, const char* sExternName)
+{
+	if ( pNode == NULL ) {
+		return;
+	}
+
+	free(pNode->sExternName);
+	pNode->sExternName = __xlMirDupText(sExternName);
+}
+
 void xlMirSetTypeName(XL_MirNode* pNode, const char* sTypeName)
 {
 	if ( pNode == NULL ) {
@@ -94,6 +114,8 @@ void xlMirFree(XL_MirNode* pNode)
 	}
 	free(pNode->ppChildren);
 	free(pNode->sText);
+	free(pNode->sAbiName);
+	free(pNode->sExternName);
 	free(pNode->sTypeName);
 	free(pNode);
 }

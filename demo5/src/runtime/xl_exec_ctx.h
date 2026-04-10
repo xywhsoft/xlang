@@ -10,6 +10,10 @@ typedef struct XL_ExecCtx {
 	char sReleaseRoot[XL_PATH_MAX_LEN];
 	char sProjectRoot[XL_PATH_MAX_LEN];
 	char sTccRoot[XL_PATH_MAX_LEN];
+	XL_HostArtifact arrArtifacts[XL_HOST_ARTIFACT_MAX];
+	size_t iArtifactCount;
+	XL_HostExternSymbol arrExternSymbols[XL_HOST_EXTERN_SYMBOL_MAX];
+	size_t iExternSymbolCount;
 	char sEntrySymbol[64];
 	int iExitCode;
 	int bHadRuntimeError;
@@ -21,6 +25,8 @@ typedef struct XL_ExecCtx {
 } XL_ExecCtx;
 
 void xlExecCtxInit(XL_ExecCtx* pCtx, const char* sInputFile, const char* sReleaseRoot);
+int xlExecCtxAddArtifact(XL_ExecCtx* pCtx, const char* sKind, const char* sFile);
+int xlExecCtxAddExternSymbol(XL_ExecCtx* pCtx, const char* sName);
 int xlExecRunCode(XL_ExecCtx* pCtx, XL_DiagContext* pDiag, const char* sCode, char** psTraceText);
 
 #endif

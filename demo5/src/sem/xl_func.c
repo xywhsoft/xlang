@@ -1,5 +1,11 @@
 #include "xl_func.h"
 
+typedef struct XL_FuncTextBuffer {
+	char* sData;
+	size_t iLen;
+	size_t iCap;
+} XL_FuncTextBuffer;
+
 static char* __xlFuncDupText(const char* sText)
 {
 	size_t iLen;
@@ -17,6 +23,277 @@ static char* __xlFuncDupText(const char* sText)
 
 	memcpy(sCopy, sText, iLen + 1);
 	return sCopy;
+}
+
+static int __xlFuncBufGrow(XL_FuncTextBuffer* pBuf, size_t iNeed)
+{
+	char* sNewData;
+	size_t iNewCap;
+
+	if ( (pBuf->iLen + iNeed + 1) <= pBuf->iCap ) {
+		return XL_RC_OK;
+	}
+
+	iNewCap = (pBuf->iCap == 0) ? 64 : pBuf->iCap;
+	while ( iNewCap < (pBuf->iLen + iNeed + 1) ) {
+		iNewCap *= 2;
+	}
+
+	sNewData = (char*)realloc(pBuf->sData, iNewCap);
+	if ( sNewData == NULL ) {
+		return XL_RC_IO_ERROR;
+	}
+
+	pBuf->sData = sNewData;
+	pBuf->iCap = iNewCap;
+	return XL_RC_OK;
+}
+
+static int __xlFuncBufAppend(XL_FuncTextBuffer* pBuf, const char* sText)
+{
+	size_t iLen;
+
+	if ( sText == NULL ) {
+		return XL_RC_OK;
+	}
+
+	iLen = strlen(sText);
+	if ( __xlFuncBufGrow(pBuf, iLen) != XL_RC_OK ) {
+		return XL_RC_IO_ERROR;
+	}
+
+	memcpy(pBuf->sData + pBuf->iLen, sText, iLen);
+	pBuf->iLen += iLen;
+	pBuf->sData[pBuf->iLen] = '\0';
+	return XL_RC_OK;
+}
+
+static int __xlFuncBufAppendFormat(XL_FuncTextBuffer* pBuf, const char* sFormat, ...)
+{
+	va_list args;
+	va_list args2;
+	int iNeed;
+
+	va_start(args, sFormat);
+	va_copy(args2, args);
+	iNeed = vsnprintf(NULL, 0, sFormat, args);
+	va_end(args);
+	if ( iNeed < 0 ) {
+		va_end(args2);
+		return XL_RC_IO_ERROR;
+	}
+	if ( __xlFuncBufGrow(pBuf, (size_t)iNeed) != XL_RC_OK ) {
+		va_end(args2);
+		return XL_RC_IO_ERROR;
+	}
+
+	vsnprintf(pBuf->sData + pBuf->iLen, pBuf->iCap - pBuf->iLen, sFormat, args2);
+	va_end(args2);
+	pBuf->iLen += (size_t)iNeed;
+	return XL_RC_OK;
+}
+
+static int __xlFuncIsIdentByte(unsigned char ch)
+{
+	return ((ch >= 'a') && (ch <= 'z')) ||
+		((ch >= 'A') && (ch <= 'Z')) ||
+		((ch >= '0') && (ch <= '9')) ||
+		(ch == '_');
+}
+
+static int __xlFuncBufAppendSanitized(XL_FuncTextBuffer* pBuf, const char* sText)
+{
+	const unsigned char* pScan;
+
+	if ( sText == NULL ) {
+		return __xlFuncBufAppend(pBuf, "void");
+	}
+
+	for ( pScan = (const unsigned char*)sText; *pScan != 0; ++pScan ) {
+		if ( __xlFuncIsIdentByte(*pScan) ) {
+			char sTmp[2];
+
+			sTmp[0] = (char)(*pScan);
+			sTmp[1] = '\0';
+			if ( __xlFuncBufAppend(pBuf, sTmp) != XL_RC_OK ) {
+				return XL_RC_IO_ERROR;
+			}
+		} else {
+			if ( __xlFuncBufAppendFormat(pBuf, "_x%02X", (unsigned int)(*pScan)) != XL_RC_OK ) {
+				return XL_RC_IO_ERROR;
+			}
+		}
+	}
+
+	return XL_RC_OK;
+}
+
+static char* __xlFuncBufTake(XL_FuncTextBuffer* pBuf)
+{
+	char* sData;
+
+	if ( pBuf == NULL ) {
+		return NULL;
+	}
+
+	sData = pBuf->sData;
+	pBuf->sData = NULL;
+	pBuf->iLen = 0;
+	pBuf->iCap = 0;
+	return sData;
+}
+
+static void __xlFuncBufFree(XL_FuncTextBuffer* pBuf)
+{
+	if ( pBuf == NULL ) {
+		return;
+	}
+
+	free(pBuf->sData);
+	memset(pBuf, 0, sizeof(*pBuf));
+}
+
+static char* __xlFuncBuildOverloadGroup(const char* sName)
+{
+	XL_FuncTextBuffer buf;
+
+	memset(&buf, 0, sizeof(buf));
+	if ( __xlFuncBufAppend(&buf, "global::") != XL_RC_OK ) {
+		__xlFuncBufFree(&buf);
+		return NULL;
+	}
+	if ( __xlFuncBufAppend(&buf, (sName != NULL) ? sName : "") != XL_RC_OK ) {
+		__xlFuncBufFree(&buf);
+		return NULL;
+	}
+	return __xlFuncBufTake(&buf);
+}
+
+static char* __xlFuncBuildSignatureId(const char* sName, const char* const* arrParamTypes, size_t iParamCount)
+{
+	XL_FuncTextBuffer buf;
+	size_t i;
+
+	memset(&buf, 0, sizeof(buf));
+	if ( (__xlFuncBufAppend(&buf, (sName != NULL) ? sName : "") != XL_RC_OK) ||
+		(__xlFuncBufAppend(&buf, "(") != XL_RC_OK) ) {
+		__xlFuncBufFree(&buf);
+		return NULL;
+	}
+
+	for ( i = 0; i < iParamCount; ++i ) {
+		if ( i != 0 ) {
+			if ( __xlFuncBufAppend(&buf, ",") != XL_RC_OK ) {
+				__xlFuncBufFree(&buf);
+				return NULL;
+			}
+		}
+		if ( __xlFuncBufAppend(&buf, ((arrParamTypes != NULL) && (arrParamTypes[i] != NULL)) ? arrParamTypes[i] : "") != XL_RC_OK ) {
+			__xlFuncBufFree(&buf);
+			return NULL;
+		}
+	}
+
+	if ( __xlFuncBufAppend(&buf, ")") != XL_RC_OK ) {
+		__xlFuncBufFree(&buf);
+		return NULL;
+	}
+	return __xlFuncBufTake(&buf);
+}
+
+static char* __xlFuncBuildDispatchKey(
+	const char* sName,
+	const char* const* arrParamNames,
+	const char* const* arrParamTypes,
+	size_t iParamCount
+)
+{
+	XL_FuncTextBuffer buf;
+	size_t i;
+
+	memset(&buf, 0, sizeof(buf));
+	if ( __xlFuncBufAppend(&buf, (sName != NULL) ? sName : "") != XL_RC_OK ) {
+		__xlFuncBufFree(&buf);
+		return NULL;
+	}
+	if ( __xlFuncBufAppendFormat(&buf, "$arity%llu", (unsigned long long)iParamCount) != XL_RC_OK ) {
+		__xlFuncBufFree(&buf);
+		return NULL;
+	}
+
+	for ( i = 0; i < iParamCount; ++i ) {
+		if ( __xlFuncBufAppend(&buf, "|") != XL_RC_OK ) {
+			__xlFuncBufFree(&buf);
+			return NULL;
+		}
+		if ( __xlFuncBufAppend(&buf, ((arrParamNames != NULL) && (arrParamNames[i] != NULL)) ? arrParamNames[i] : "") != XL_RC_OK ) {
+			__xlFuncBufFree(&buf);
+			return NULL;
+		}
+		if ( __xlFuncBufAppend(&buf, ":") != XL_RC_OK ) {
+			__xlFuncBufFree(&buf);
+			return NULL;
+		}
+		if ( __xlFuncBufAppend(&buf, ((arrParamTypes != NULL) && (arrParamTypes[i] != NULL)) ? arrParamTypes[i] : "") != XL_RC_OK ) {
+			__xlFuncBufFree(&buf);
+			return NULL;
+		}
+	}
+
+	return __xlFuncBufTake(&buf);
+}
+
+static char* __xlFuncBuildAbiSymbol(
+	const char* sName,
+	const char* sReturnTypeName,
+	const char* const* arrParamNames,
+	const char* const* arrParamTypes,
+	size_t iParamCount
+)
+{
+	XL_FuncTextBuffer buf;
+	size_t i;
+
+	memset(&buf, 0, sizeof(buf));
+	if ( __xlFuncBufAppend(&buf, "xl__") != XL_RC_OK ) {
+		__xlFuncBufFree(&buf);
+		return NULL;
+	}
+	if ( __xlFuncBufAppendSanitized(&buf, (sName != NULL) ? sName : "") != XL_RC_OK ) {
+		__xlFuncBufFree(&buf);
+		return NULL;
+	}
+	if ( __xlFuncBufAppendFormat(&buf, "__arity%llu", (unsigned long long)iParamCount) != XL_RC_OK ) {
+		__xlFuncBufFree(&buf);
+		return NULL;
+	}
+	for ( i = 0; i < iParamCount; ++i ) {
+		if ( __xlFuncBufAppend(&buf, "__") != XL_RC_OK ) {
+			__xlFuncBufFree(&buf);
+			return NULL;
+		}
+		if ( __xlFuncBufAppendSanitized(&buf, ((arrParamNames != NULL) && (arrParamNames[i] != NULL)) ? arrParamNames[i] : "") != XL_RC_OK ) {
+			__xlFuncBufFree(&buf);
+			return NULL;
+		}
+		if ( __xlFuncBufAppend(&buf, "__") != XL_RC_OK ) {
+			__xlFuncBufFree(&buf);
+			return NULL;
+		}
+		if ( __xlFuncBufAppendSanitized(&buf, ((arrParamTypes != NULL) && (arrParamTypes[i] != NULL)) ? arrParamTypes[i] : "") != XL_RC_OK ) {
+			__xlFuncBufFree(&buf);
+			return NULL;
+		}
+	}
+	if ( __xlFuncBufAppend(&buf, "__ret__") != XL_RC_OK ) {
+		__xlFuncBufFree(&buf);
+		return NULL;
+	}
+	if ( __xlFuncBufAppendSanitized(&buf, (sReturnTypeName != NULL) ? sReturnTypeName : "void") != XL_RC_OK ) {
+		__xlFuncBufFree(&buf);
+		return NULL;
+	}
+	return __xlFuncBufTake(&buf);
 }
 
 static int __xlFuncTableGrow(XL_FuncTable* pTable)
@@ -52,6 +329,10 @@ static void __xlFuncInfoFree(XL_FuncInfo* pInfo)
 
 	free(pInfo->sName);
 	free(pInfo->sReturnTypeName);
+	free(pInfo->sOverloadGroup);
+	free(pInfo->sSignatureId);
+	free(pInfo->sDispatchKey);
+	free(pInfo->sAbiSymbol);
 	for ( i = 0; i < pInfo->iParamCount; ++i ) {
 		free(pInfo->arrParamNames[i]);
 		free(pInfo->arrParamTypes[i]);
@@ -116,6 +397,10 @@ int xlFuncTableAdd(
 
 	pInfo->sName = __xlFuncDupText(sName);
 	pInfo->sReturnTypeName = __xlFuncDupText(sReturnTypeName);
+	pInfo->sOverloadGroup = __xlFuncBuildOverloadGroup(sName);
+	pInfo->sSignatureId = __xlFuncBuildSignatureId(sName, arrParamTypes, iParamCount);
+	pInfo->sDispatchKey = __xlFuncBuildDispatchKey(sName, arrParamNames, arrParamTypes, iParamCount);
+	pInfo->sAbiSymbol = __xlFuncBuildAbiSymbol(sName, sReturnTypeName, arrParamNames, arrParamTypes, iParamCount);
 	pInfo->iScopeId = iScopeId;
 	pInfo->iLine = iLine;
 	pInfo->iColumn = iColumn;
@@ -146,7 +431,9 @@ int xlFuncTableAdd(
 		}
 	}
 
-	if ( (pInfo->sName == NULL) || (pInfo->sReturnTypeName == NULL) ) {
+	if ( (pInfo->sName == NULL) || (pInfo->sReturnTypeName == NULL) ||
+		(pInfo->sOverloadGroup == NULL) || (pInfo->sSignatureId == NULL) ||
+		(pInfo->sDispatchKey == NULL) || (pInfo->sAbiSymbol == NULL) ) {
 		__xlFuncInfoFree(pInfo);
 		return XL_RC_IO_ERROR;
 	}

@@ -173,6 +173,7 @@ xlang 第五版语言标准总表
 - 语言层 ABI
 - C 层目标 ABI
 - 版本绑定 ABI
+- demo5 当前已落地“源名 + funcIndex + abiSymbol”的内部 ABI 过渡模型，自编译函数的 C 目标符号已稳定脱离源名；版本绑定 ABI 与 xlp 对外元信息仍未完成
 
 8. 函数类型
 - function 作为标准类型概念存在

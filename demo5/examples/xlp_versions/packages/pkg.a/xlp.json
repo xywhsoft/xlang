@@ -1,0 +1,39 @@
+{
+	"format": "xlp-0",
+	"package": {
+		"name": "pkg.a",
+		"version": "1.0.0",
+		"abiVersion": "1",
+		"xlangAbi": "1",
+		"abiId": "pkg.a@1.0.0#abi1"
+	},
+	"dependencies": [
+		{
+			"name": "pkg.math",
+			"kind": "source",
+			"version": "1.0.0",
+			"abiVersion": "1",
+			"abiId": "pkg.math@1.0.0#abi1"
+		}
+	],
+	"modules": [
+		{
+			"key": "pkg.a",
+			"abiId": "pkg.a@1.0.0#abi1::pkg.a",
+			"file": "src\\pkg_a_impl.xl",
+			"root": 0,
+			"native": 0,
+			"binding": "",
+			"imports": ["pkg.math"],
+			"exports": [
+				{
+					"name": "value",
+					"symbol": "value",
+					"kind": "function",
+					"overloadCount": 1
+				}
+			]
+		}
+	],
+	"functions": []
+}

@@ -4,6 +4,10 @@ cd /d %~dp0
 
 if not exist release\bin mkdir release\bin
 if not exist release\tmp mkdir release\tmp
+if not exist examples\xlp_native\packages\pkg.clock\bin mkdir examples\xlp_native\packages\pkg.clock\bin
+if not exist examples\xlp_native\packages\pkg.probe\bin mkdir examples\xlp_native\packages\pkg.probe\bin
+if not exist examples\xlp_static\packages\pkg.clock\lib mkdir examples\xlp_static\packages\pkg.clock\lib
+if not exist examples\xlp_static\packages\pkg.probe\lib mkdir examples\xlp_static\packages\pkg.probe\lib
 
 set SRC_LIST=release\tmp\gcc_sources.rsp
 set TEST_SRC_LIST=release\tmp\gcc_test_sources.rsp
@@ -71,6 +75,42 @@ gcc -std=c11 -Wall -Wextra -Werror -Wno-unused-parameter -Wno-unused-variable -D
 
 if errorlevel 1 (
 	echo Test runner build failed.
+	exit /b 1
+)
+
+echo Building xlp example artifacts...
+gcc -std=c11 -shared -o examples\xlp_native\packages\pkg.clock\bin\pkg_clock.dll examples\xlp_artifacts\pkg_clock_artifact.c
+
+if errorlevel 1 (
+	echo Shared xlp artifact build failed.
+	exit /b 1
+)
+
+gcc -std=c11 -shared -o examples\xlp_native\packages\pkg.probe\bin\pkg_probe.dll examples\xlp_artifacts\pkg_clock_artifact.c
+
+if errorlevel 1 (
+	echo Shared xlp probe artifact build failed.
+	exit /b 1
+)
+
+gcc -std=c11 -c examples\xlp_artifacts\pkg_clock_artifact.c -o release\tmp\pkg_clock_artifact.o
+
+if errorlevel 1 (
+	echo Static xlp artifact object build failed.
+	exit /b 1
+)
+
+ar rcs examples\xlp_static\packages\pkg.clock\lib\pkg_clock.a release\tmp\pkg_clock_artifact.o
+
+if errorlevel 1 (
+	echo Static xlp artifact archive build failed.
+	exit /b 1
+)
+
+ar rcs examples\xlp_static\packages\pkg.probe\lib\pkg_probe.a release\tmp\pkg_clock_artifact.o
+
+if errorlevel 1 (
+	echo Static xlp probe artifact archive build failed.
 	exit /b 1
 )
 

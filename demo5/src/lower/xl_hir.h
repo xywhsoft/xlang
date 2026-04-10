@@ -35,6 +35,8 @@ typedef enum XL_HirKind {
 typedef struct XL_HirNode {
 	XL_HirKind eKind;
 	char* sText;
+	char* sAbiName;
+	char* sExternName;
 	char* sTypeName;
 	int iScopeId;
 	int iSymbolIndex;
@@ -53,6 +55,8 @@ typedef struct XL_LowerResult XL_LowerResult;
 
 XL_HirNode* xlHirCreateNode(XL_HirKind eKind, const XL_AstNode* pAst);
 void xlHirSetText(XL_HirNode* pNode, const char* sText);
+void xlHirSetAbiName(XL_HirNode* pNode, const char* sAbiName);
+void xlHirSetExternName(XL_HirNode* pNode, const char* sExternName);
 void xlHirSetTypeName(XL_HirNode* pNode, const char* sTypeName);
 void xlHirAppendChild(XL_HirNode* pNode, XL_HirNode* pChild);
 void xlHirFree(XL_HirNode* pNode);
