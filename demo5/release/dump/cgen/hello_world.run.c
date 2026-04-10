@@ -3,6 +3,8 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
+#include "xrt.h"
+#include "xlrt_generated.h"
 
 int xl_generated_had_exception = 0;
 int xl_generated_exception_kind = 0;
@@ -67,55 +69,6 @@ static void xl_generated_generator_trace_event(const char* sEvent, const char* s
 	}
 	snprintf(sLine, sizeof(sLine), "generator.%s=%s\n", sEvent, sName);
 	xl_generated_async_trace_append(sLine);
-}
-
-static void xl_core_print_int(int value)
-{
-	printf("%d", value);
-}
-
-static void xl_core_print_float(double value)
-{
-	printf("%g", value);
-}
-
-static void xl_core_print_string(const char* value)
-{
-	fputs((value != NULL) ? value : "", stdout);
-}
-
-static void xl_core_print_bool(int value)
-{
-	fputs(value ? "true" : "false", stdout);
-}
-
-static void xl_core_println_void(void)
-{
-	fputc('\n', stdout);
-}
-
-static void xl_core_println_int(int value)
-{
-	xl_core_print_int(value);
-	xl_core_println_void();
-}
-
-static void xl_core_println_float(double value)
-{
-	xl_core_print_float(value);
-	xl_core_println_void();
-}
-
-static void xl_core_println_string(const char* value)
-{
-	xl_core_print_string(value);
-	xl_core_println_void();
-}
-
-static void xl_core_println_bool(int value)
-{
-	xl_core_print_bool(value);
-	xl_core_println_void();
 }
 
 static void xl_generated_runtime_reset(void)
@@ -621,6 +574,10 @@ static int main()
 
 int xl_generated_entry(void)
 {
+	int xlrt_attached_here = xlrt_attach_generated_runtime();
+	int xlrt_result = 0;
 	xl_generated_runtime_reset();
-	return main();
+	xlrt_result = main();
+	xlrt_detach_generated_runtime(xlrt_attached_here);
+	return xlrt_result;
 }

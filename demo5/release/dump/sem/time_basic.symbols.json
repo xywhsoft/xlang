@@ -1,0 +1,82 @@
+[
+	{
+		"kind": "func",
+		"scopeId": 0,
+		"name": "xl_mod_std_time__now",
+		"typeName": "time",
+		"line": 1,
+		"column": 6,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "func",
+		"scopeId": 0,
+		"name": "xl_mod_std_time__to_string",
+		"typeName": "string",
+		"line": 3,
+		"column": 6,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "func",
+		"scopeId": 0,
+		"name": "main",
+		"typeName": "int",
+		"line": 3,
+		"column": 6,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "param",
+		"scopeId": 3,
+		"name": "value",
+		"typeName": "time",
+		"line": 3,
+		"column": 21,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "const",
+		"scopeId": 0,
+		"name": "xl_mod_std_time__每秒毫秒",
+		"typeName": "int",
+		"line": 6,
+		"column": 11,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "const",
+		"scopeId": 0,
+		"name": "xl_mod_std_time__每天秒数",
+		"typeName": "int",
+		"line": 7,
+		"column": 11,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "const",
+		"scopeId": 6,
+		"name": "now",
+		"typeName": "time",
+		"line": 4,
+		"column": 13,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "const",
+		"scopeId": 6,
+		"name": "text",
+		"typeName": "string",
+		"line": 5,
+		"column": 15,
+		"async": 0,
+		"generator": 0
+	}
+]

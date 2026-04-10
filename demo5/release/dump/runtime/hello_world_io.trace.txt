@@ -1,0 +1,21 @@
+ModuleLoadOrder
+- [0] std.io -> <native:std.io> native=1 binding=std.io
+- [1] <root> -> D:\Git\x-lang\demo5\examples\native\hello_world_io.xl native=0 binding=
+ModuleExports
+- module=std.io
+  export print -> xl_mod_std_io__print
+  export println -> xl_mod_std_io__println
+- module=<root>
+NativeRegistry
+- key=std.core binding=std.core path=<native:std.core>
+- key=std.io binding=std.io path=<native:std.io>
+- key=std.time binding=std.time path=<native:std.time>
+- key=std.task binding=std.task path=<native:std.task>
+input=.\examples\native\hello_world_io.xl
+libtcc=D:\Git\x-lang\demo5\lib\tcc\libtcc.dll
+tcc_root=D:\Git\x-lang\demo5\release\tcc
+compile_string
+relocate
+resolve_symbol=xl_generated_entry
+execute
+exit_code=0

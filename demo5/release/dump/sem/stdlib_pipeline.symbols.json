@@ -1,0 +1,292 @@
+[
+	{
+		"kind": "func",
+		"scopeId": 0,
+		"name": "xl_mod_std_fs__exists",
+		"typeName": "bool",
+		"line": 1,
+		"column": 6,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "func",
+		"scopeId": 0,
+		"name": "xl_mod_std_fs__read_all",
+		"typeName": "string",
+		"line": 3,
+		"column": 6,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "func",
+		"scopeId": 0,
+		"name": "xl_mod_std_fs__write_all",
+		"typeName": "bool",
+		"line": 5,
+		"column": 6,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "func",
+		"scopeId": 0,
+		"name": "xl_mod_std_fs__append_all",
+		"typeName": "bool",
+		"line": 7,
+		"column": 6,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "func",
+		"scopeId": 0,
+		"name": "xl_mod_std_fs__mkdir_all",
+		"typeName": "bool",
+		"line": 9,
+		"column": 6,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "func",
+		"scopeId": 0,
+		"name": "xl_mod_std_str__contains",
+		"typeName": "bool",
+		"line": 1,
+		"column": 6,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "func",
+		"scopeId": 0,
+		"name": "xl_mod_std_str__starts_with",
+		"typeName": "bool",
+		"line": 3,
+		"column": 6,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "func",
+		"scopeId": 0,
+		"name": "xl_mod_std_str__ends_with",
+		"typeName": "bool",
+		"line": 5,
+		"column": 6,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "func",
+		"scopeId": 0,
+		"name": "xl_mod_std_process__exec",
+		"typeName": "int",
+		"line": 1,
+		"column": 6,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "func",
+		"scopeId": 0,
+		"name": "xl_mod_std_process__capture",
+		"typeName": "string",
+		"line": 3,
+		"column": 6,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "func",
+		"scopeId": 0,
+		"name": "main",
+		"typeName": "int",
+		"line": 5,
+		"column": 6,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "param",
+		"scopeId": 1,
+		"name": "path",
+		"typeName": "string",
+		"line": 1,
+		"column": 20,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "param",
+		"scopeId": 3,
+		"name": "path",
+		"typeName": "string",
+		"line": 3,
+		"column": 22,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "param",
+		"scopeId": 5,
+		"name": "path",
+		"typeName": "string",
+		"line": 5,
+		"column": 23,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "param",
+		"scopeId": 5,
+		"name": "text",
+		"typeName": "string",
+		"line": 5,
+		"column": 36,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "param",
+		"scopeId": 7,
+		"name": "path",
+		"typeName": "string",
+		"line": 7,
+		"column": 24,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "param",
+		"scopeId": 7,
+		"name": "text",
+		"typeName": "string",
+		"line": 7,
+		"column": 37,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "param",
+		"scopeId": 9,
+		"name": "path",
+		"typeName": "string",
+		"line": 9,
+		"column": 23,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "param",
+		"scopeId": 11,
+		"name": "text",
+		"typeName": "string",
+		"line": 1,
+		"column": 22,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "param",
+		"scopeId": 11,
+		"name": "part",
+		"typeName": "string",
+		"line": 1,
+		"column": 35,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "param",
+		"scopeId": 13,
+		"name": "text",
+		"typeName": "string",
+		"line": 3,
+		"column": 25,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "param",
+		"scopeId": 13,
+		"name": "part",
+		"typeName": "string",
+		"line": 3,
+		"column": 38,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "param",
+		"scopeId": 15,
+		"name": "text",
+		"typeName": "string",
+		"line": 5,
+		"column": 23,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "param",
+		"scopeId": 15,
+		"name": "part",
+		"typeName": "string",
+		"line": 5,
+		"column": 36,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "param",
+		"scopeId": 17,
+		"name": "command",
+		"typeName": "string",
+		"line": 1,
+		"column": 18,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "param",
+		"scopeId": 19,
+		"name": "command",
+		"typeName": "string",
+		"line": 3,
+		"column": 21,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "const",
+		"scopeId": 22,
+		"name": "dir",
+		"typeName": "string",
+		"line": 6,
+		"column": 15,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "const",
+		"scopeId": 22,
+		"name": "file_path",
+		"typeName": "string",
+		"line": 7,
+		"column": 15,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "const",
+		"scopeId": 22,
+		"name": "proc_out",
+		"typeName": "string",
+		"line": 8,
+		"column": 15,
+		"async": 0,
+		"generator": 0
+	}
+]

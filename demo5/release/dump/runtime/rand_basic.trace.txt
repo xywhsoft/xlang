@@ -1,0 +1,35 @@
+ModuleLoadOrder
+- [0] std.rand -> <native:std.rand> native=1 binding=std.rand
+- [1] std.str -> <native:std.str> native=1 binding=std.str
+- [2] <root> -> D:\Git\x-lang\demo5\examples\native\rand_basic.xl native=0 binding=
+ModuleExports
+- module=std.rand
+  export int32 -> xl_mod_std_rand__int32
+  export range -> xl_mod_std_rand__range
+  export text -> xl_mod_std_rand__text
+- module=std.str
+  export contains -> xl_mod_std_str__contains
+  export starts_with -> xl_mod_std_str__starts_with
+  export ends_with -> xl_mod_std_str__ends_with
+  export lower -> xl_mod_std_str__lower
+  export upper -> xl_mod_std_str__upper
+  export replace -> xl_mod_std_str__replace
+- module=<root>
+NativeRegistry
+- key=std.core binding=std.core path=<native:std.core>
+- key=std.fs binding=std.fs path=<native:std.fs>
+- key=std.io binding=std.io path=<native:std.io>
+- key=std.path binding=std.path path=<native:std.path>
+- key=std.rand binding=std.rand path=<native:std.rand>
+- key=std.process binding=std.process path=<native:std.process>
+- key=std.str binding=std.str path=<native:std.str>
+- key=std.time binding=std.time path=<native:std.time>
+- key=std.task binding=std.task path=<native:std.task>
+input=.\examples\native\rand_basic.xl
+libtcc=D:\Git\x-lang\demo5\lib\tcc\libtcc.dll
+tcc_root=D:\Git\x-lang\demo5\release\tcc
+compile_string
+relocate
+resolve_symbol=xl_generated_entry
+execute
+exit_code=0

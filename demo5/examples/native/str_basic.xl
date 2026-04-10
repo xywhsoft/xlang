@@ -1,0 +1,17 @@
+import std.str
+
+func main() as int
+	if str.contains("alphabet", "pha") == false
+		return 1
+	end
+	if str.starts_with("alphabet", "alpha") == false
+		return 2
+	end
+	if str.ends_with("alphabet", "bet") == false
+		return 3
+	end
+	if str.contains("alphabet", "xyz")
+		return 4
+	end
+	return 0
+end

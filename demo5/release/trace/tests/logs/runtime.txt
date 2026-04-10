@@ -7,10 +7,30 @@ selector=runtime
 [PASS] runtime.native_std_core
 hello world
 [PASS] runtime.hello_world
+hello io
+[PASS] runtime.hello_world_io
+[PASS] runtime.time_basic
+[PASS] runtime.path_basic
+alpha
+beta
+[PASS] runtime.fs_basic
+[PASS] runtime.str_basic
+[PASS] runtime.process_basic
+[PASS] runtime.fs_plus
+[PASS] runtime.path_plus
+[PASS] runtime.str_plus
+[PASS] runtime.rand_basic
+[PASS] runtime.time_text
+[PASS] runtime.host_basic
+[PASS] runtime.fmt_basic
+[PASS] runtime.env_basic
+[PASS] runtime.dir_basic
+[PASS] runtime.process_in_basic
+[PASS] runtime.stdlib_pipeline
 [PASS] runtime.async_run_main
 [PASS] runtime.async_multi_await
 [PASS] runtime.generator_run
 [PASS] runtime.for_in_range
 [PASS] runtime.loop_jump_levels
 [PASS] runtime.task_basic
-summary: total=11 pass=11 fail=0
+summary: total=28 pass=28 fail=0

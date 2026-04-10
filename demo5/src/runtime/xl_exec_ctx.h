@@ -5,6 +5,7 @@
 #include "../common/xl_path.h"
 #include "../diag/xl_diag.h"
 #include "../../lib/libtcc.h"
+#include "../../lib/xrt/xrt.h"
 
 typedef struct XL_ExecCtx {
 	char sInputFile[XL_PATH_MAX_LEN];

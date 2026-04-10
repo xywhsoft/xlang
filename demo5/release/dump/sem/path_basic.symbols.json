@@ -1,0 +1,172 @@
+[
+	{
+		"kind": "func",
+		"scopeId": 0,
+		"name": "xl_mod_std_path__join",
+		"typeName": "string",
+		"line": 1,
+		"column": 6,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "func",
+		"scopeId": 0,
+		"name": "xl_mod_std_path__name",
+		"typeName": "string",
+		"line": 3,
+		"column": 6,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "func",
+		"scopeId": 0,
+		"name": "xl_mod_std_path__ext",
+		"typeName": "string",
+		"line": 5,
+		"column": 6,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "func",
+		"scopeId": 0,
+		"name": "xl_mod_std_path__dir",
+		"typeName": "string",
+		"line": 7,
+		"column": 6,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "func",
+		"scopeId": 0,
+		"name": "xl_mod_std_path__is_abs",
+		"typeName": "bool",
+		"line": 9,
+		"column": 6,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "func",
+		"scopeId": 0,
+		"name": "main",
+		"typeName": "int",
+		"line": 3,
+		"column": 6,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "param",
+		"scopeId": 1,
+		"name": "left",
+		"typeName": "string",
+		"line": 1,
+		"column": 18,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "param",
+		"scopeId": 1,
+		"name": "right",
+		"typeName": "string",
+		"line": 1,
+		"column": 31,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "param",
+		"scopeId": 3,
+		"name": "value",
+		"typeName": "string",
+		"line": 3,
+		"column": 18,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "param",
+		"scopeId": 5,
+		"name": "value",
+		"typeName": "string",
+		"line": 5,
+		"column": 17,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "param",
+		"scopeId": 7,
+		"name": "value",
+		"typeName": "string",
+		"line": 7,
+		"column": 17,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "param",
+		"scopeId": 9,
+		"name": "value",
+		"typeName": "string",
+		"line": 9,
+		"column": 20,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "const",
+		"scopeId": 12,
+		"name": "full",
+		"typeName": "string",
+		"line": 4,
+		"column": 15,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "const",
+		"scopeId": 12,
+		"name": "name",
+		"typeName": "string",
+		"line": 5,
+		"column": 15,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "const",
+		"scopeId": 12,
+		"name": "ext",
+		"typeName": "string",
+		"line": 6,
+		"column": 15,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "const",
+		"scopeId": 12,
+		"name": "dir",
+		"typeName": "string",
+		"line": 7,
+		"column": 15,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "const",
+		"scopeId": 12,
+		"name": "abs",
+		"typeName": "bool",
+		"line": 8,
+		"column": 13,
+		"async": 0,
+		"generator": 0
+	}
+]

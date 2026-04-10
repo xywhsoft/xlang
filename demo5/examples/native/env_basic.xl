@@ -1,0 +1,17 @@
+import std.env
+
+func main() as int
+	const string path_text = env.get("PATH")
+	const string cwd_text = env.cwd()
+
+	if env.exists("PATH") == false
+		return 1
+	end
+	if path_text == ""
+		return 2
+	end
+	if cwd_text == ""
+		return 3
+	end
+	return 0
+end

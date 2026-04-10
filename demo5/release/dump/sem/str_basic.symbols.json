@@ -1,0 +1,102 @@
+[
+	{
+		"kind": "func",
+		"scopeId": 0,
+		"name": "xl_mod_std_str__contains",
+		"typeName": "bool",
+		"line": 1,
+		"column": 6,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "func",
+		"scopeId": 0,
+		"name": "xl_mod_std_str__starts_with",
+		"typeName": "bool",
+		"line": 3,
+		"column": 6,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "func",
+		"scopeId": 0,
+		"name": "xl_mod_std_str__ends_with",
+		"typeName": "bool",
+		"line": 5,
+		"column": 6,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "func",
+		"scopeId": 0,
+		"name": "main",
+		"typeName": "int",
+		"line": 3,
+		"column": 6,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "param",
+		"scopeId": 1,
+		"name": "text",
+		"typeName": "string",
+		"line": 1,
+		"column": 22,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "param",
+		"scopeId": 1,
+		"name": "part",
+		"typeName": "string",
+		"line": 1,
+		"column": 35,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "param",
+		"scopeId": 3,
+		"name": "text",
+		"typeName": "string",
+		"line": 3,
+		"column": 25,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "param",
+		"scopeId": 3,
+		"name": "part",
+		"typeName": "string",
+		"line": 3,
+		"column": 38,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "param",
+		"scopeId": 5,
+		"name": "text",
+		"typeName": "string",
+		"line": 5,
+		"column": 23,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "param",
+		"scopeId": 5,
+		"name": "part",
+		"typeName": "string",
+		"line": 5,
+		"column": 36,
+		"async": 0,
+		"generator": 0
+	}
+]

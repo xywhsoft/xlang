@@ -20,7 +20,6 @@ NativeRegistry
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
-#define XRT_IMPLEMENTATION
 #include "xrt.h"
 #include "xlrt_generated.h"
 

@@ -40,7 +40,7 @@ if not "%LEMON_RC%"=="0" (
 )
 
 echo Building demo5 with GCC...
-gcc -std=c11 -Wall -Wextra -Werror -Wno-unused-parameter -Wno-unused-variable -D_CRT_SECURE_NO_WARNINGS -I. -Ilib\xrt @"%SRC_LIST%" -o release\bin\xl5.exe
+gcc -std=c11 -Wall -Wextra -Werror -Wno-unused-parameter -Wno-unused-variable -D_CRT_SECURE_NO_WARNINGS -I. -Ilib\xrt @"%SRC_LIST%" -o release\bin\xl5.exe -lshell32 -lws2_32 -liphlpapi
 
 if errorlevel 1 (
 	echo Build failed.
@@ -48,7 +48,7 @@ if errorlevel 1 (
 )
 
 echo Building demo5 test runner with GCC...
-gcc -std=c11 -Wall -Wextra -Werror -Wno-unused-parameter -Wno-unused-variable -D_CRT_SECURE_NO_WARNINGS -I. -Ilib\xrt @"%TEST_SRC_LIST%" -o release\bin\xl5_test.exe
+gcc -std=c11 -Wall -Wextra -Werror -Wno-unused-parameter -Wno-unused-variable -D_CRT_SECURE_NO_WARNINGS -I. -Ilib\xrt @"%TEST_SRC_LIST%" -o release\bin\xl5_test.exe -lshell32 -lws2_32 -liphlpapi
 
 if errorlevel 1 (
 	echo Test runner build failed.
