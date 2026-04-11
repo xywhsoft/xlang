@@ -207,6 +207,22 @@ static XL_HirNode* __xlLowerForInToHir(const XL_AstNode* pNode, const XL_SemResu
 	return pLoop;
 }
 
+static XL_HirNode* __xlLowerWhileToHir(const XL_AstNode* pNode, const XL_SemResult* pSem, XL_DiagContext* pDiag, int bTraceLower)
+{
+	XL_HirNode* pLoop;
+
+	pLoop = xlHirCreateNode(XL_HIR_WHILE, pNode);
+	if ( pLoop == NULL ) {
+		return NULL;
+	}
+	__xlApplySemNodeInfo(pLoop, pSem, pNode);
+	pLoop->bFlag = pNode->bFlag;
+
+	xlHirAppendChild(pLoop, xlLowerExprToHir(__xlAstChild(pNode, 0), pSem, pDiag, bTraceLower));
+	xlHirAppendChild(pLoop, __xlLowerBlockToHir(__xlAstChild(pNode, 1), pSem, pDiag, bTraceLower));
+	return pLoop;
+}
+
 static XL_HirNode* __xlLowerTryToHir(const XL_AstNode* pNode, const XL_SemResult* pSem, XL_DiagContext* pDiag, int bTraceLower)
 {
 	XL_HirNode* pTry;
@@ -249,20 +265,33 @@ static XL_HirNode* __xlLowerStmtToHir(const XL_AstNode* pNode, const XL_SemResul
 			return __xlLowerFuncToHir(pNode, pSem, pDiag, bTraceLower);
 		case XL_AST_CONST_DECL:
 		case XL_AST_VAR_DECL:
+		{
+			const XL_AstNode* pTypeNode;
+			const XL_AstNode* pValueNode;
+
 			pHir = xlHirCreateNode((pNode->eKind == XL_AST_CONST_DECL) ? XL_HIR_CONST : XL_HIR_VAR, pNode);
 			xlHirSetText(pHir, pNode->sText);
 			__xlApplySemNodeInfo(pHir, pSem, pNode);
-			if ( ((pHir->sTypeName == NULL) || (pHir->sTypeName[0] == '\0')) && (__xlAstChild(pNode, 0) != NULL) ) {
-				xlHirSetTypeName(pHir, __xlAstChild(pNode, 0)->sText);
+			pTypeNode = __xlAstChild(pNode, 0);
+			pValueNode = __xlAstChild(pNode, 1);
+			if ( (pValueNode == NULL) && (pTypeNode != NULL) && (pTypeNode->eKind != XL_AST_TYPE_REF) ) {
+				pValueNode = pTypeNode;
+				pTypeNode = NULL;
 			}
-			xlHirAppendChild(pHir, xlLowerExprToHir(__xlAstChild(pNode, 1), pSem, pDiag, bTraceLower));
+			if ( ((pHir->sTypeName == NULL) || (pHir->sTypeName[0] == '\0')) && (pTypeNode != NULL) ) {
+				xlHirSetTypeName(pHir, pTypeNode->sText);
+			}
+			xlHirAppendChild(pHir, xlLowerExprToHir(pValueNode, pSem, pDiag, bTraceLower));
 			return pHir;
+		}
 		case XL_AST_IF:
 			return __xlLowerIfToHir(pNode, pSem, pDiag, bTraceLower);
 		case XL_AST_TRY:
 			return __xlLowerTryToHir(pNode, pSem, pDiag, bTraceLower);
 		case XL_AST_FORIN:
 			return __xlLowerForInToHir(pNode, pSem, pDiag, bTraceLower);
+		case XL_AST_WHILE:
+			return __xlLowerWhileToHir(pNode, pSem, pDiag, bTraceLower);
 		case XL_AST_RETURN:
 			pHir = xlHirCreateNode(XL_HIR_RETURN, pNode);
 			__xlApplySemNodeInfo(pHir, pSem, pNode);
@@ -327,6 +356,8 @@ static XL_MirKind __xlMirKindFromHir(XL_HirKind eKind)
 			return XL_MIR_BRANCH;
 		case XL_HIR_TRY:
 			return XL_MIR_TRY;
+		case XL_HIR_WHILE:
+			return XL_MIR_WHILE;
 		case XL_HIR_FORIN:
 			return XL_MIR_FORIN;
 		case XL_HIR_RETURN:

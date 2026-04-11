@@ -259,6 +259,67 @@ static int __xlAddModuleArtifactsToHostCtx(XL_HostContext* pHostCtx, const XL_Mo
 	return XL_RC_OK;
 }
 
+static int __xlModuleNeedsSharedExternSymbols(const XL_ModuleSummary* pModule)
+{
+	if ( pModule == NULL ) {
+		return 0;
+	}
+	return !pModule->bIsRoot &&
+		pModule->bIsNative &&
+		(pModule->sManifestPath != NULL) &&
+		(pModule->sManifestPath[0] != '\0') &&
+		(pModule->sConsumeMode != NULL) &&
+		(strcmp(pModule->sConsumeMode, "shared-bridge") == 0);
+}
+
+static int __xlAddSharedExternSymbolsFromModule(
+	const XL_ModuleSummary* pModule,
+	int (*fnAddSymbol)(void* pCtx, const char* sName),
+	void* pCtx
+)
+{
+	XL_XlpFunctionInfo* pFuncs;
+	size_t iFuncCount;
+	size_t j;
+
+	if ( (pModule == NULL) || (fnAddSymbol == NULL) ) {
+		return XL_RC_BAD_ARG;
+	}
+	if ( !__xlModuleNeedsSharedExternSymbols(pModule) ) {
+		return XL_RC_OK;
+	}
+
+	pFuncs = NULL;
+	iFuncCount = 0;
+	if ( xlXlpReadFunctions(pModule->sManifestPath, pModule->sKey, &pFuncs, &iFuncCount) != XL_RC_OK ) {
+		return XL_RC_OK;
+	}
+
+	for ( j = 0; j < iFuncCount; ++j ) {
+		/*
+		 * functions[].symbol is the host-resolved external target exported by the
+		 * shared artifact. abiSymbol stays inside generated code as the wrapper ABI name.
+		 */
+		if ( (pFuncs[j].sSymbol[0] != '\0') && (fnAddSymbol(pCtx, pFuncs[j].sSymbol) != XL_RC_OK) ) {
+			xlXlpFunctionInfoFree(pFuncs, iFuncCount);
+			return XL_RC_FAIL;
+		}
+	}
+
+	xlXlpFunctionInfoFree(pFuncs, iFuncCount);
+	return XL_RC_OK;
+}
+
+static int __xlExecCtxAddExternSymbolAdapter(void* pCtx, const char* sName)
+{
+	return xlExecCtxAddExternSymbol((XL_ExecCtx*)pCtx, sName);
+}
+
+static int __xlHostCtxAddExternSymbolAdapter(void* pCtx, const char* sName)
+{
+	return xlHostContextAddExternSymbol((XL_HostContext*)pCtx, sName);
+}
+
 static int __xlAddModuleExternSymbolsToExecCtx(XL_ExecCtx* pExecCtx, const XL_ModuleLinkResult* pModuleResult)
 {
 	size_t i;
@@ -269,27 +330,11 @@ static int __xlAddModuleExternSymbolsToExecCtx(XL_ExecCtx* pExecCtx, const XL_Mo
 
 	for ( i = 0; i < pModuleResult->iModuleCount; ++i ) {
 		const XL_ModuleSummary* pModule;
-		XL_XlpFunctionInfo* pFuncs;
-		size_t iFuncCount;
-		size_t j;
 
 		pModule = &pModuleResult->pModules[i];
-		if ( pModule->bIsRoot || !pModule->bIsNative || (pModule->sManifestPath == NULL) || (pModule->sManifestPath[0] == '\0') ||
-			(pModule->sConsumeMode == NULL) || (strcmp(pModule->sConsumeMode, "shared-bridge") != 0) ) {
-			continue;
+		if ( __xlAddSharedExternSymbolsFromModule(pModule, __xlExecCtxAddExternSymbolAdapter, pExecCtx) != XL_RC_OK ) {
+			return XL_RC_FAIL;
 		}
-		pFuncs = NULL;
-		iFuncCount = 0;
-		if ( xlXlpReadFunctions(pModule->sManifestPath, pModule->sKey, &pFuncs, &iFuncCount) != XL_RC_OK ) {
-			continue;
-		}
-		for ( j = 0; j < iFuncCount; ++j ) {
-			if ( (pFuncs[j].sSymbol[0] != '\0') && (xlExecCtxAddExternSymbol(pExecCtx, pFuncs[j].sSymbol) != XL_RC_OK) ) {
-				xlXlpFunctionInfoFree(pFuncs, iFuncCount);
-				return XL_RC_FAIL;
-			}
-		}
-		xlXlpFunctionInfoFree(pFuncs, iFuncCount);
 	}
 
 	return XL_RC_OK;
@@ -305,27 +350,11 @@ static int __xlAddModuleExternSymbolsToHostCtx(XL_HostContext* pHostCtx, const X
 
 	for ( i = 0; i < pModuleResult->iModuleCount; ++i ) {
 		const XL_ModuleSummary* pModule;
-		XL_XlpFunctionInfo* pFuncs;
-		size_t iFuncCount;
-		size_t j;
 
 		pModule = &pModuleResult->pModules[i];
-		if ( pModule->bIsRoot || !pModule->bIsNative || (pModule->sManifestPath == NULL) || (pModule->sManifestPath[0] == '\0') ||
-			(pModule->sConsumeMode == NULL) || (strcmp(pModule->sConsumeMode, "shared-bridge") != 0) ) {
-			continue;
+		if ( __xlAddSharedExternSymbolsFromModule(pModule, __xlHostCtxAddExternSymbolAdapter, pHostCtx) != XL_RC_OK ) {
+			return XL_RC_FAIL;
 		}
-		pFuncs = NULL;
-		iFuncCount = 0;
-		if ( xlXlpReadFunctions(pModule->sManifestPath, pModule->sKey, &pFuncs, &iFuncCount) != XL_RC_OK ) {
-			continue;
-		}
-		for ( j = 0; j < iFuncCount; ++j ) {
-			if ( (pFuncs[j].sSymbol[0] != '\0') && (xlHostContextAddExternSymbol(pHostCtx, pFuncs[j].sSymbol) != XL_RC_OK) ) {
-				xlXlpFunctionInfoFree(pFuncs, iFuncCount);
-				return XL_RC_FAIL;
-			}
-		}
-		xlXlpFunctionInfoFree(pFuncs, iFuncCount);
 	}
 
 	return XL_RC_OK;

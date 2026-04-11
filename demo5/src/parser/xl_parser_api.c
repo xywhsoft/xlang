@@ -49,6 +49,8 @@ static int __xlParserMapToken(XL_TokenKind eKind)
 			return XLPG_KW_FUNC;
 		case XL_KW_CONST:
 			return XLPG_KW_CONST;
+		case XL_KW_VAR:
+			return XLPG_KW_VAR;
 		case XL_KW_AS:
 			return XLPG_KW_AS;
 		case XL_KW_IF:
@@ -65,6 +67,10 @@ static int __xlParserMapToken(XL_TokenKind eKind)
 			return XLPG_KW_FOR;
 		case XL_KW_IN:
 			return XLPG_KW_IN;
+		case XL_KW_WHILE:
+			return XLPG_KW_WHILE;
+		case XL_KW_DO:
+			return XLPG_KW_DO;
 		case XL_KW_BREAK:
 			return XLPG_KW_BREAK;
 		case XL_KW_CONTINUE:
@@ -137,8 +143,26 @@ static int __xlParserMapToken(XL_TokenKind eKind)
 			return XLPG_OP_SHL;
 		case XL_OP_ASSIGN:
 			return XLPG_OP_ASSIGN;
+		case XL_OP_PLUS_ASSIGN:
+			return XLPG_OP_PLUS_ASSIGN;
+		case XL_OP_MINUS_ASSIGN:
+			return XLPG_OP_MINUS_ASSIGN;
+		case XL_OP_STAR_ASSIGN:
+			return XLPG_OP_STAR_ASSIGN;
+		case XL_OP_SLASH_ASSIGN:
+			return XLPG_OP_SLASH_ASSIGN;
+		case XL_OP_PERCENT_ASSIGN:
+			return XLPG_OP_PERCENT_ASSIGN;
+		case XL_OP_POWER_ASSIGN:
+			return XLPG_OP_POWER_ASSIGN;
 		case XL_OP_NULL_COALESCE:
 			return XLPG_OP_NULL_COALESCE;
+		case XL_OP_NULL_ASSIGN:
+			return XLPG_OP_NULL_ASSIGN;
+		case XL_OP_QUESTION:
+			return XLPG_OP_QUESTION;
+		case XL_OP_COLON:
+			return XLPG_OP_COLON;
 		case XL_OP_DOT:
 			return XLPG_OP_DOT;
 		case XL_OP_SAFE_DOT:

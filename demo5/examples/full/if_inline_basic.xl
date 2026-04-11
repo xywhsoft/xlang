@@ -1,0 +1,5 @@
+func main() as int
+	var int value = 7
+	if true then value = 42
+	return value
+end

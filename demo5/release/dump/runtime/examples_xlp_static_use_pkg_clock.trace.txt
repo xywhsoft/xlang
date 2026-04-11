@@ -1,0 +1,51 @@
+ModuleLoadOrder
+- [0] pkg.clock -> <native:std.time> native=1 binding=std.time
+- [1] <root> -> D:\Git\x-lang\demo5\examples\xlp_static\use_pkg_clock.xl native=0 binding=
+ModuleExports
+- module=pkg.clock
+  export now -> xl_mod_pkg_clock_1_0_0_abi1__pkg_clock__now
+  export to_string -> xl_mod_pkg_clock_1_0_0_abi1__pkg_clock__to_string
+  export now_text -> xl_mod_pkg_clock_1_0_0_abi1__pkg_clock__now_text
+  export date_text -> xl_mod_pkg_clock_1_0_0_abi1__pkg_clock__date_text
+  export time_text -> xl_mod_pkg_clock_1_0_0_abi1__pkg_clock__time_text
+  export relative -> xl_mod_pkg_clock_1_0_0_abi1__pkg_clock__relative
+  export parse -> xl_mod_pkg_clock_1_0_0_abi1__pkg_clock__parse
+  export millis_per_second -> xl_mod_pkg_clock_1_0_0_abi1__pkg_clock__millis_per_second
+  export seconds_per_day -> xl_mod_pkg_clock_1_0_0_abi1__pkg_clock__seconds_per_day
+- module=<root>
+NativeRegistry
+- key=std.core binding=std.core path=<native:std.core>
+- key=std.dir binding=std.dir path=<native:std.dir>
+- key=std.env binding=std.env path=<native:std.env>
+- key=std.fmt binding=std.fmt path=<native:std.fmt>
+- key=std.fs binding=std.fs path=<native:std.fs>
+- key=std.host binding=std.host path=<native:std.host>
+- key=std.io binding=std.io path=<native:std.io>
+- key=std.path binding=std.path path=<native:std.path>
+- key=std.rand binding=std.rand path=<native:std.rand>
+- key=std.process binding=std.process path=<native:std.process>
+- key=std.str binding=std.str path=<native:std.str>
+- key=std.time binding=std.time path=<native:std.time>
+- key=std.task binding=std.task path=<native:std.task>
+tcc_root=D:\Git\x-lang\demo5\release\tcc
+include=D:\Git\x-lang\demo5\release\tcc\include_win
+include=D:\Git\x-lang\demo5\release\tcc\include_win\winapi
+include=D:\Git\x-lang\demo5\src\runtime
+include=D:\Git\x-lang\demo5\lib\xrt
+lib=D:\Git\x-lang\demo5\release\tcc\lib
+compile_text=examples\xlp_static\use_pkg_clock.xl
+[tcc] examples/xlp_static/use_pkg_clock.xl:1135: warning: function might return no value: 'xl__xl_mod_pkg_clock_1_0_0_abi1__pkg_clock__now__arity0__ret__time'
+[tcc] examples/xlp_static/use_pkg_clock.xl:1139: warning: function might return no value: 'xl__xl_mod_pkg_clock_1_0_0_abi1__pkg_clock__to_string__arity1__value__time__ret__string'
+[tcc] examples/xlp_static/use_pkg_clock.xl:1143: warning: function might return no value: 'xl__xl_mod_pkg_clock_1_0_0_abi1__pkg_clock__now_text__arity0__ret__string'
+[tcc] examples/xlp_static/use_pkg_clock.xl:1147: warning: function might return no value: 'xl__xl_mod_pkg_clock_1_0_0_abi1__pkg_clock__date_text__arity0__ret__string'
+[tcc] examples/xlp_static/use_pkg_clock.xl:1151: warning: function might return no value: 'xl__xl_mod_pkg_clock_1_0_0_abi1__pkg_clock__time_text__arity0__ret__string'
+[tcc] examples/xlp_static/use_pkg_clock.xl:1155: warning: function might return no value: 'xl__xl_mod_pkg_clock_1_0_0_abi1__pkg_clock__relative__arity2__value__time__base__time__ret__string'
+[tcc] examples/xlp_static/use_pkg_clock.xl:1159: warning: function might return no value: 'xl__xl_mod_pkg_clock_1_0_0_abi1__pkg_clock__parse__arity1__value__string__ret__time'
+artifact.static.link=D:\Git\x-lang\demo5\examples\xlp_static\packages\pkg.clock\lib\pkg_clock.a
+cwd.prev=D:\Git\x-lang\demo5
+cwd.exec=D:\Git\x-lang\demo5
+relocate
+resolve_symbol=xl_generated_entry
+execute
+exit_code=86
+cwd.restore=D:\Git\x-lang\demo5

@@ -131,6 +131,7 @@ const char* xlHirKindName(XL_HirKind eKind)
 		"Var",
 		"If",
 		"Try",
+		"While",
 		"ForIn",
 		"Return",
 		"Break",

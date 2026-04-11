@@ -1,0 +1,6 @@
+int base = 40
+
+func 入口() as int
+	int delta
+	return base + delta + 2
+end

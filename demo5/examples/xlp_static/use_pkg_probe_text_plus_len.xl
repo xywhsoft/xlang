@@ -1,0 +1,5 @@
+import pkg.probe
+
+func main() as int
+	return pkg.probe.text_plus_len("probe", 5)
+end

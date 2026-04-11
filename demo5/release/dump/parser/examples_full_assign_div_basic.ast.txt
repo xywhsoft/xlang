@@ -1,0 +1,14 @@
+Program @ 0:0-0:0
+	FuncDecl @ 1:6-1:10 text="main"
+		List @ 0:0-0:0
+		TypeRef @ 1:16-1:19 text="int"
+		Block @ 0:0-0:0
+			VarDecl @ 2:6-2:11 text="value"
+				TypeRef @ 2:2-2:5 text="int"
+				Int @ 2:14-2:16 text="84" int=84
+			ExprStmt @ 0:0-0:0
+				Assign @ 3:8-3:10 text="/="
+					Ident @ 3:2-3:7 text="value"
+					Int @ 3:11-3:12 text="2" int=2
+			Return @ 4:2-4:8
+				Ident @ 4:9-4:14 text="value"

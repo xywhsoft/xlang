@@ -11,6 +11,8 @@ static XL_HirKind __xlExprKind(const XL_AstNode* pNode)
 			return XL_HIR_MEMBER;
 		case XL_AST_INDEX:
 			return XL_HIR_INDEX;
+		case XL_AST_ASSIGN:
+		case XL_AST_TERNARY:
 		case XL_AST_BINARY:
 			return XL_HIR_BINARY;
 		case XL_AST_UNARY:

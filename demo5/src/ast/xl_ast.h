@@ -15,6 +15,7 @@ typedef enum XL_AstKind {
 	XL_AST_VAR_DECL,
 	XL_AST_IF,
 	XL_AST_ELSEIF,
+	XL_AST_WHILE,
 	XL_AST_FORIN,
 	XL_AST_IMPORT,
 	XL_AST_EXPORT,
@@ -28,6 +29,7 @@ typedef enum XL_AstKind {
 	XL_AST_EXPR_STMT,
 	XL_AST_NAMED_ARG,
 	XL_AST_ASSIGN,
+	XL_AST_TERNARY,
 	XL_AST_BINARY,
 	XL_AST_UNARY,
 	XL_AST_CALL,
@@ -73,8 +75,9 @@ XL_AstNode* xlAstCreateConstDecl(const XL_Token* pName, XL_AstNode* pType, XL_As
 XL_AstNode* xlAstCreateVarDecl(const XL_Token* pName, XL_AstNode* pType, XL_AstNode* pValue);
 XL_AstNode* xlAstCreateIf(const XL_Token* pToken, XL_AstNode* pCond, XL_AstNode* pThenBlock, XL_AstNode* pElseIfList, XL_AstNode* pElseBlock);
 XL_AstNode* xlAstCreateElseIf(const XL_Token* pToken, XL_AstNode* pCond, XL_AstNode* pBody);
+XL_AstNode* xlAstCreateWhile(const XL_Token* pToken, XL_AstNode* pCond, XL_AstNode* pBody);
 XL_AstNode* xlAstCreateForIn(const XL_Token* pToken, XL_AstNode* pTargets, XL_AstNode* pIterable, XL_AstNode* pBody);
-XL_AstNode* xlAstCreateImport(const XL_Token* pToken, XL_AstNode* pTarget);
+XL_AstNode* xlAstCreateImport(const XL_Token* pToken, XL_AstNode* pTarget, const XL_Token* pAlias);
 XL_AstNode* xlAstCreateExport(const XL_Token* pToken, XL_AstNode* pValue);
 XL_AstNode* xlAstCreateTry(const XL_Token* pToken, XL_AstNode* pTryBlock, XL_AstNode* pCatchName, XL_AstNode* pCatchBlock, XL_AstNode* pFinallyBlock);
 XL_AstNode* xlAstCreateReturn(const XL_Token* pToken, XL_AstNode* pValue);
@@ -85,11 +88,14 @@ XL_AstNode* xlAstCreateAssert(const XL_Token* pToken, XL_AstNode* pValue, XL_Ast
 XL_AstNode* xlAstCreateYield(const XL_Token* pToken, XL_AstNode* pValue);
 XL_AstNode* xlAstCreateExprStmt(XL_AstNode* pExpr);
 XL_AstNode* xlAstCreateNamedArg(const XL_Token* pName, XL_AstNode* pValue);
+XL_AstNode* xlAstCreateAssign(const XL_Token* pToken, XL_AstNode* pLeft, XL_AstNode* pRight);
+XL_AstNode* xlAstCreateTernary(const XL_Token* pToken, XL_AstNode* pCond, XL_AstNode* pThenValue, XL_AstNode* pElseValue);
 XL_AstNode* xlAstCreateBinary(const XL_Token* pToken, const char* sOp, XL_AstNode* pLeft, XL_AstNode* pRight);
 XL_AstNode* xlAstCreateUnary(const XL_Token* pToken, const char* sOp, XL_AstNode* pValue);
 XL_AstNode* xlAstCreateCall(XL_AstNode* pCallee, XL_AstNode* pArgs, const XL_Token* pToken);
 XL_AstNode* xlAstCreateMember(XL_AstNode* pBase, const XL_Token* pName, int bSafe, const XL_Token* pToken);
 XL_AstNode* xlAstCreateIndex(XL_AstNode* pBase, XL_AstNode* pIndex, int bSafe, const XL_Token* pToken);
+XL_AstNode* xlAstCreateIdentText(const char* sText);
 
 void xlAstSetText(XL_AstNode* pNode, const char* sText, size_t iLen);
 void xlAstSetText2(XL_AstNode* pNode, const char* sText, size_t iLen);

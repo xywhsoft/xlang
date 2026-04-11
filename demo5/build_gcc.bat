@@ -93,21 +93,28 @@ if errorlevel 1 (
 	exit /b 1
 )
 
-gcc -std=c11 -c examples\xlp_artifacts\pkg_clock_artifact.c -o release\tmp\pkg_clock_artifact.o
+release\bin\xl5.exe build-c examples\xlp_artifacts\pkg_clock_artifact.c --emit release\tmp\pkg_clock_artifact.obj >nul
 
 if errorlevel 1 (
 	echo Static xlp artifact object build failed.
 	exit /b 1
 )
 
-ar rcs examples\xlp_static\packages\pkg.clock\lib\pkg_clock.a release\tmp\pkg_clock_artifact.o
+ar rcs release\tmp\pkg_clock_static.a release\tmp\pkg_clock_artifact.obj
 
 if errorlevel 1 (
 	echo Static xlp artifact archive build failed.
 	exit /b 1
 )
 
-ar rcs examples\xlp_static\packages\pkg.probe\lib\pkg_probe.a release\tmp\pkg_clock_artifact.o
+copy /y release\tmp\pkg_clock_static.a examples\xlp_static\packages\pkg.clock\lib\pkg_clock.a >nul
+
+if errorlevel 1 (
+	echo Static xlp artifact copy failed.
+	exit /b 1
+)
+
+copy /y release\tmp\pkg_clock_static.a examples\xlp_static\packages\pkg.probe\lib\pkg_probe.a >nul
 
 if errorlevel 1 (
 	echo Static xlp probe artifact archive build failed.

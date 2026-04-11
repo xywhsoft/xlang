@@ -1,0 +1,11 @@
+import std.str as s
+
+func main() as int
+	if s.contains("alphabet", "pha") == false
+		return 1
+	end
+	if s.starts_with("alphabet", "alpha") == false
+		return 2
+	end
+	return 0
+end

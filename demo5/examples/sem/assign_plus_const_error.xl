@@ -1,0 +1,6 @@
+const int value = 1
+
+func main() as int
+	value += 2
+	return value
+end

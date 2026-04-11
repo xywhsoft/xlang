@@ -78,7 +78,6 @@
 			int
 			float
 			string
-			bytes
 			time
 			point
 			array

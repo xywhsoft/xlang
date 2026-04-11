@@ -1,0 +1,6 @@
+func main() as int
+	if true and not false or false then
+		return 1
+	end
+	return 0
+end

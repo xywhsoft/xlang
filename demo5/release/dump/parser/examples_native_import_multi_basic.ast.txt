@@ -1,0 +1,30 @@
+Program @ 0:0-0:0
+	Import @ 1:11-1:12
+		Member @ 1:11-1:12 text="fmt"
+			Ident @ 1:8-1:11 text="std"
+	Import @ 1:20-1:21
+		Member @ 1:20-1:21 text="str"
+			Ident @ 1:17-1:20 text="std"
+	FuncDecl @ 3:6-3:10 text="main"
+		List @ 0:0-0:0
+		TypeRef @ 3:16-3:19 text="int"
+		Block @ 0:0-0:0
+			If @ 4:2-4:4
+				Binary @ 4:42-4:44 text="=="
+					Call @ 4:40-4:41
+						Member @ 4:8-4:9 text="contains"
+							Ident @ 4:5-4:8 text="str"
+						List @ 0:0-0:0
+							Call @ 4:33-4:34
+								Member @ 4:21-4:22 text="int_text"
+									Ident @ 4:18-4:21 text="fmt"
+								List @ 0:0-0:0
+									Int @ 4:31-4:33 text="42" int=42
+							String @ 4:36-4:40 text="\"42\""
+					Bool @ 4:45-4:50 text="false"
+				Block @ 0:0-0:0
+					Return @ 5:3-5:9
+						Int @ 5:10-5:11 text="1" int=1
+				List @ 0:0-0:0
+			Return @ 7:2-7:8
+				Int @ 7:9-7:10 text="0"
