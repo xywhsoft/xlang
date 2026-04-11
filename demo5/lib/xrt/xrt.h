@@ -71885,35 +71885,59 @@ XXAPI str xvoGetText(xvalue pVal)
 	// 以下复合类型返回地址格式描述字符串
 	} else if ( pVal->Type == XVO_DT_POINT ) {
 		str sRet = xrtTempMemory(48);
-		sprintf(__xrt_str(sRet), "[point:%p]", pVal->vPoint);
+		if ( sRet == NULL ) {
+			return xCore.sNull;
+		}
+		snprintf(__xrt_str(sRet), 48, "[point:%p]", (void*)pVal->vPoint);
 		return sRet;
 	} else if ( pVal->Type == XVO_DT_FUNC ) {
 		str sRet = xrtTempMemory(48);
-		sprintf(__xrt_str(sRet), "[function:%p]", pVal->vFunc);
+		if ( sRet == NULL ) {
+			return xCore.sNull;
+		}
+		snprintf(__xrt_str(sRet), 48, "[function:%p]", (void*)pVal->vFunc);
 		return sRet;
 	} else if ( pVal->Type == XVO_DT_ARRAY ) {
 		str sRet = xrtTempMemory(48);
-		sprintf(__xrt_str(sRet), "[array:%p]", pVal->vArray);
+		if ( sRet == NULL ) {
+			return xCore.sNull;
+		}
+		snprintf(__xrt_str(sRet), 48, "[array:%p]", (void*)pVal->vArray);
 		return sRet;
 	} else if ( pVal->Type == XVO_DT_LIST ) {
 		str sRet = xrtTempMemory(48);
-		sprintf(__xrt_str(sRet), "[list:%p]", pVal->vList);
+		if ( sRet == NULL ) {
+			return xCore.sNull;
+		}
+		snprintf(__xrt_str(sRet), 48, "[list:%p]", (void*)pVal->vList);
 		return sRet;
 	} else if ( pVal->Type == XVO_DT_COLL ) {
 		str sRet = xrtTempMemory(48);
-		sprintf(__xrt_str(sRet), "[coll:%p]", pVal->vColl);
+		if ( sRet == NULL ) {
+			return xCore.sNull;
+		}
+		snprintf(__xrt_str(sRet), 48, "[coll:%p]", (void*)pVal->vColl);
 		return sRet;
 	} else if ( pVal->Type == XVO_DT_TABLE ) {
 		str sRet = xrtTempMemory(48);
-		sprintf(__xrt_str(sRet), "[table:%p]", pVal->vTable);
+		if ( sRet == NULL ) {
+			return xCore.sNull;
+		}
+		snprintf(__xrt_str(sRet), 48, "[table:%p]", (void*)pVal->vTable);
 		return sRet;
 	} else if ( pVal->Type == XVO_DT_CLASS ) {
 		str sRet = xrtTempMemory(48);
-		sprintf(__xrt_str(sRet), "[class:%p]", pVal->vStruct);
+		if ( sRet == NULL ) {
+			return xCore.sNull;
+		}
+		snprintf(__xrt_str(sRet), 48, "[class:%p]", (void*)pVal->vStruct);
 		return sRet;
 	} else if ( pVal->Type == XVO_DT_CUSTOM ) {
 		str sRet = xrtTempMemory(48);
-		sprintf(__xrt_str(sRet), "[custom:%p]", pVal->vCustom);
+		if ( sRet == NULL ) {
+			return xCore.sNull;
+		}
+		snprintf(__xrt_str(sRet), 48, "[custom:%p]", (void*)pVal->vCustom);
 		return sRet;
 	// 未知类型返回空字符串
 	} else {

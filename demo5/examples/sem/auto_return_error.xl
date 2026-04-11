@@ -1,0 +1,3 @@
+func add() as auto
+	return 0
+end

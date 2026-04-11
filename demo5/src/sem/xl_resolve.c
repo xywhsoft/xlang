@@ -158,6 +158,21 @@ static const char* __xlErrorFieldTypeName(const char* sFieldName)
 	return NULL;
 }
 
+static int __xlTypeHasBaseName(const char* sTypeName, const char* sBaseName)
+{
+	size_t iBaseLen;
+
+	if ( (sTypeName == NULL) || (sBaseName == NULL) ) {
+		return 0;
+	}
+
+	iBaseLen = strlen(sBaseName);
+	if ( strncmp(sTypeName, sBaseName, iBaseLen) != 0 ) {
+		return 0;
+	}
+	return (sTypeName[iBaseLen] == '\0') || (sTypeName[iBaseLen] == '<');
+}
+
 static const char* __xlLengthPropertyTypeName(const char* sBaseTypeName, const char* sFieldName)
 {
 	if ( (sFieldName == NULL) || (strcmp(sFieldName, "length") != 0) ) {
@@ -172,21 +187,6 @@ static const char* __xlLengthPropertyTypeName(const char* sBaseTypeName, const c
 		return "int";
 	}
 	return NULL;
-}
-
-static int __xlTypeHasBaseName(const char* sTypeName, const char* sBaseName)
-{
-	size_t iBaseLen;
-
-	if ( (sTypeName == NULL) || (sBaseName == NULL) ) {
-		return 0;
-	}
-
-	iBaseLen = strlen(sBaseName);
-	if ( strncmp(sTypeName, sBaseName, iBaseLen) != 0 ) {
-		return 0;
-	}
-	return (sTypeName[iBaseLen] == '\0') || (sTypeName[iBaseLen] == '<');
 }
 
 static int __xlExtractContainerValueType(const char* sTypeName, const char* sBaseName, char* sOut, size_t iOutSize)
@@ -295,6 +295,11 @@ static int __xlIsVarTypeName(const char* sTypeName)
 	return (sTypeName != NULL) && (strcmp(sTypeName, "var") == 0);
 }
 
+static int __xlIsPointTypeName(const char* sTypeName)
+{
+	return (sTypeName != NULL) && (strcmp(sTypeName, "point") == 0);
+}
+
 static int __xlIsVarCompatibleTypeName(const char* sTypeName)
 {
 	if ( (sTypeName == NULL) || (sTypeName[0] == '\0') ) {
@@ -306,6 +311,7 @@ static int __xlIsVarCompatibleTypeName(const char* sTypeName)
 		__xlIsIntegerTypeName(sTypeName) ||
 		__xlIsFloatTypeName(sTypeName) ||
 		(strcmp(sTypeName, "string") == 0) ||
+		__xlIsPointTypeName(sTypeName) ||
 		(strcmp(sTypeName, "time") == 0) ||
 		__xlTypeHasBaseName(sTypeName, "array") ||
 		__xlTypeHasBaseName(sTypeName, "list") ||
@@ -342,7 +348,7 @@ static int __xlTypeMatches(const char* sExpectedType, const char* sActualType)
 		return 1;
 	}
 	if ( (strcmp(sActualType, "null") == 0) &&
-		((strcmp(sExpectedType, "error") == 0) || (strcmp(sExpectedType, "string") == 0)) ) {
+		((strcmp(sExpectedType, "error") == 0) || (strcmp(sExpectedType, "string") == 0) || __xlIsPointTypeName(sExpectedType)) ) {
 		return 1;
 	}
 	if ( ((strcmp(sExpectedType, "string") == 0) && (strcmp(sActualType, "error") == 0)) ||
@@ -367,6 +373,21 @@ static int __xlTypeMatches(const char* sExpectedType, const char* sActualType)
 	}
 
 	return 0;
+}
+
+static int __xlTypeMatchScore(const char* sExpectedType, const char* sActualType)
+{
+	if ( (sExpectedType == NULL) || (sExpectedType[0] == '\0') ||
+		(sActualType == NULL) || (sActualType[0] == '\0') ) {
+		return 1;
+	}
+	if ( strcmp(sExpectedType, sActualType) == 0 ) {
+		return __xlIsVarTypeName(sExpectedType) ? 1 : 4;
+	}
+	if ( __xlIsVarTypeName(sExpectedType) ) {
+		return __xlTypeMatches(sExpectedType, sActualType) ? 1 : 0;
+	}
+	return __xlTypeMatches(sExpectedType, sActualType) ? 2 : 0;
 }
 
 static int __xlNodeHasYield(const XL_AstNode* pNode)
@@ -826,21 +847,63 @@ static int __xlDeclareSymbol(
 	return iRc;
 }
 
+static const char* __xlResolveTypeName(XL_ResolveContext* pCtx, const XL_AstNode* pNode, const char* sTypeName)
+{
+	const XL_TypeInfo* pType;
+	const char* arrSeen[64];
+	const char* sCurrent;
+	size_t iDepth;
+	size_t i;
+
+	if ( (sTypeName == NULL) || (sTypeName[0] == '\0') ) {
+		__xlSemAddDiag(pCtx, XL_SEM_DIAG_ERROR, pNode, "empty type reference");
+		return NULL;
+	}
+	if ( strcmp(sTypeName, "auto") == 0 ) {
+		return sTypeName;
+	}
+
+	sCurrent = sTypeName;
+	for ( iDepth = 0; iDepth < XL_COUNTOF(arrSeen); ++iDepth ) {
+		pType = xlTypeTableFind(&pCtx->pResult->types, sCurrent);
+		if ( pType == NULL ) {
+			__xlSemAddDiag(pCtx, XL_SEM_DIAG_ERROR, pNode, "unknown type '%s'", sTypeName);
+			return NULL;
+		}
+
+		for ( i = 0; i < iDepth; ++i ) {
+			if ( strcmp(arrSeen[i], pType->sName) == 0 ) {
+				__xlSemAddDiag(pCtx, XL_SEM_DIAG_ERROR, pNode, "typedef cycle detected for '%s'", sTypeName);
+				return NULL;
+			}
+		}
+
+		arrSeen[iDepth] = pType->sName;
+		if ( (pType->sAliasTarget == NULL) || (pType->sAliasTarget[0] == '\0') ) {
+			return pType->sName;
+		}
+		sCurrent = pType->sAliasTarget;
+	}
+
+	__xlSemAddDiag(pCtx, XL_SEM_DIAG_ERROR, pNode, "typedef chain is too deep for '%s'", sTypeName);
+	return NULL;
+}
+
 static int __xlResolveTypeRef(XL_ResolveContext* pCtx, const XL_AstNode* pNode)
 {
+	const char* sResolvedType;
+
 	if ( pNode == NULL ) {
 		return XL_RC_OK;
 	}
-	if ( (pNode->sText == NULL) || (pNode->sText[0] == '\0') ) {
-		return __xlSemAddDiag(pCtx, XL_SEM_DIAG_ERROR, pNode, "empty type reference");
-	}
-	if ( strcmp(pNode->sText, "auto") == 0 ) {
-		return XL_RC_OK;
-	}
-	if ( xlTypeTableFind(&pCtx->pResult->types, pNode->sText) == NULL ) {
-		return __xlSemAddDiag(pCtx, XL_SEM_DIAG_ERROR, pNode, "unknown type '%s'", pNode->sText);
+
+	sResolvedType = __xlResolveTypeName(pCtx, pNode, pNode->sText);
+	if ( sResolvedType == NULL ) {
+		return XL_RC_FAIL;
 	}
 
+	__xlSemNodeSetScope(pCtx->pResult, pNode, pCtx->iCurrentScopeId);
+	__xlSemNodeSetType(pCtx->pResult, pNode, sResolvedType);
 	return XL_RC_OK;
 }
 
@@ -924,6 +987,26 @@ static char* __xlBuildImportPath(const XL_AstNode* pNode)
 	return sOut;
 }
 
+static int __xlIsImportLikeExpr(XL_ResolveContext* pCtx, const XL_AstNode* pNode)
+{
+	const XL_SymbolInfo* pSymbol;
+
+	if ( (pCtx == NULL) || (pNode == NULL) ) {
+		return 0;
+	}
+
+	if ( pNode->eKind == XL_AST_IDENT ) {
+		pSymbol = xlSymbolTableFindVisible(&pCtx->pResult->symbols, &pCtx->pResult->scopes, pCtx->iCurrentScopeId, pNode->sText);
+		return (pSymbol != NULL) && (pSymbol->eKind == XL_SYMBOL_IMPORT);
+	}
+
+	if ( pNode->eKind == XL_AST_MEMBER ) {
+		return __xlIsImportLikeExpr(pCtx, __xlAstChild(pNode, 0));
+	}
+
+	return 0;
+}
+
 static int __xlCollectFuncInfo(XL_ResolveContext* pCtx, const XL_AstNode* pNode, int iScopeId)
 {
 	const XL_AstNode* pParams;
@@ -935,6 +1018,9 @@ static int __xlCollectFuncInfo(XL_ResolveContext* pCtx, const XL_AstNode* pNode,
 	const XL_AstNode* pSelfParam;
 	const char** arrParamNames;
 	const char** arrParamTypes;
+	const char* sResolvedReceiverType;
+	const char* sResolvedParamType;
+	const char* sResolvedReturnType;
 	const XL_AstNode** arrParamDefaults;
 	unsigned char* arrParamHasDefault;
 	size_t i;
@@ -949,6 +1035,8 @@ static int __xlCollectFuncInfo(XL_ResolveContext* pCtx, const XL_AstNode* pNode,
 	arrParamTypes = NULL;
 	arrParamDefaults = NULL;
 	arrParamHasDefault = NULL;
+	sResolvedReceiverType = "";
+	sResolvedReturnType = ((pRetType != NULL) && (pRetType->sText != NULL)) ? pRetType->sText : "";
 	bSeenDefault = 0;
 
 	if ( (pNode == NULL) || (pNode->sText == NULL) ) {
@@ -960,6 +1048,10 @@ static int __xlCollectFuncInfo(XL_ResolveContext* pCtx, const XL_AstNode* pNode,
 		iRc = __xlResolveTypeRef(pCtx, pReceiverType);
 		if ( iRc != XL_RC_OK ) {
 			return iRc;
+		}
+		sResolvedReceiverType = __xlResolveTypeName(pCtx, pReceiverType, pReceiverType->sText);
+		if ( sResolvedReceiverType == NULL ) {
+			return XL_RC_FAIL;
 		}
 		if ( (pParams == NULL) || (pParams->iChildCount == 0) ) {
 			return __xlSemAddDiag(
@@ -981,16 +1073,27 @@ static int __xlCollectFuncInfo(XL_ResolveContext* pCtx, const XL_AstNode* pNode,
 				(__xlFuncMethodName(pNode) != NULL) ? __xlFuncMethodName(pNode) : pNode->sText
 			);
 		}
-		if ( !__xlTypeMatches(pReceiverType->sText, pParamType->sText) ) {
+		sResolvedParamType = __xlResolveTypeName(pCtx, pParamType, pParamType->sText);
+		if ( sResolvedParamType == NULL ) {
+			return XL_RC_FAIL;
+		}
+		if ( !__xlTypeMatches(sResolvedReceiverType, sResolvedParamType) ) {
 			return __xlSemAddDiag(
 				pCtx,
 				XL_SEM_DIAG_ERROR,
 				pSelfParam,
 				"method receiver '%s' requires self parameter type '%s', got '%s'",
 				(__xlFuncMethodName(pNode) != NULL) ? __xlFuncMethodName(pNode) : pNode->sText,
-				pReceiverType->sText,
-				pParamType->sText
+				sResolvedReceiverType,
+				sResolvedParamType
 			);
+		}
+	}
+
+	if ( pRetType != NULL ) {
+		sResolvedReturnType = __xlResolveTypeName(pCtx, pRetType, pRetType->sText);
+		if ( sResolvedReturnType == NULL ) {
+			return XL_RC_FAIL;
 		}
 	}
 
@@ -1013,7 +1116,16 @@ static int __xlCollectFuncInfo(XL_ResolveContext* pCtx, const XL_AstNode* pNode,
 			pParamType = __xlParamTypeNode(pParam);
 			pParamDefault = __xlParamDefaultNode(pParam);
 			arrParamNames[i] = (pParam != NULL) ? pParam->sText : "";
-			arrParamTypes[i] = ((pParamType != NULL) && (pParamType->sText != NULL)) ? pParamType->sText : "";
+			sResolvedParamType = ((pParamType != NULL) && (pParamType->sText != NULL)) ?
+				__xlResolveTypeName(pCtx, pParamType, pParamType->sText) : "";
+			if ( ((pParamType != NULL) && (pParamType->sText != NULL)) && (sResolvedParamType == NULL) ) {
+				free(arrParamNames);
+				free(arrParamTypes);
+				free(arrParamDefaults);
+				free(arrParamHasDefault);
+				return XL_RC_FAIL;
+			}
+			arrParamTypes[i] = sResolvedParamType;
 			arrParamDefaults[i] = pParamDefault;
 			arrParamHasDefault[i] = (pParamDefault != NULL) ? 1u : 0u;
 			if ( pParamDefault != NULL ) {
@@ -1040,9 +1152,9 @@ static int __xlCollectFuncInfo(XL_ResolveContext* pCtx, const XL_AstNode* pNode,
 	iRc = xlFuncTableAdd(
 		&pCtx->pResult->funcs,
 		pNode->sText,
-		(__xlFuncReceiverNode(pNode) != NULL) ? __xlFuncReceiverNode(pNode)->sText : "",
+		sResolvedReceiverType,
 		(__xlFuncMethodName(pNode) != NULL) ? __xlFuncMethodName(pNode) : "",
-		((pRetType != NULL) && (pRetType->sText != NULL)) ? pRetType->sText : "",
+		sResolvedReturnType,
 		arrParamNames,
 		arrParamTypes,
 		(pParams != NULL) ? pParams->iChildCount : 0,
@@ -1064,7 +1176,7 @@ static int __xlCollectFuncInfo(XL_ResolveContext* pCtx, const XL_AstNode* pNode,
 		__xlSemNodeSetType(
 			pCtx->pResult,
 			pNode,
-			((pRetType != NULL) && (pRetType->sText != NULL)) ? pRetType->sText : ""
+			sResolvedReturnType
 		);
 	}
 	return iRc;
@@ -1100,6 +1212,60 @@ static const XL_SymbolInfo* __xlFindVisibleNonFuncSymbol(
 	int iScopeId,
 	const char* sName
 );
+
+static const char* __xlBuiltinMethodTargetName(const char* sBaseType, const char* sMethodName)
+{
+	if ( (sBaseType == NULL) || (sMethodName == NULL) ) {
+		return NULL;
+	}
+
+	if ( strcmp(sBaseType, "string") == 0 ) {
+		if ( strcmp(sMethodName, "contains") == 0 ) return "xl_mod_std_str__contains";
+		if ( strcmp(sMethodName, "index_of") == 0 ) return "xl_mod_std_str__index_of";
+		if ( strcmp(sMethodName, "last_index_of") == 0 ) return "xl_mod_std_str__last_index_of";
+		if ( strcmp(sMethodName, "slice") == 0 ) return "xl_mod_std_str__slice";
+		if ( strcmp(sMethodName, "repeat") == 0 ) return "xl_mod_std_str__repeat";
+		if ( strcmp(sMethodName, "split") == 0 ) return "xl_mod_std_str__split";
+		if ( strcmp(sMethodName, "split_lines") == 0 ) return "xl_mod_std_str__split_lines";
+		if ( strcmp(sMethodName, "starts_with") == 0 ) return "xl_mod_std_str__starts_with";
+		if ( strcmp(sMethodName, "ends_with") == 0 ) return "xl_mod_std_str__ends_with";
+		if ( strcmp(sMethodName, "trim") == 0 ) return "xl_mod_std_str__trim";
+		if ( strcmp(sMethodName, "trim_left") == 0 ) return "xl_mod_std_str__trim_left";
+		if ( strcmp(sMethodName, "trim_right") == 0 ) return "xl_mod_std_str__trim_right";
+		if ( strcmp(sMethodName, "lower") == 0 ) return "xl_mod_std_str__lower";
+		if ( strcmp(sMethodName, "upper") == 0 ) return "xl_mod_std_str__upper";
+		if ( strcmp(sMethodName, "replace") == 0 ) return "xl_mod_std_str__replace";
+		if ( strcmp(sMethodName, "len") == 0 ) return "xl_mod_std_core__len";
+	}
+	if ( __xlTypeHasBaseName(sBaseType, "array") ) {
+		if ( strcmp(sMethodName, "len") == 0 ) return "xl_mod_std_core__len";
+		if ( strcmp(sMethodName, "append") == 0 ) return "__xl_method_append";
+		if ( strcmp(sMethodName, "join") == 0 ) return "__xl_method_join";
+		if ( strcmp(sMethodName, "clear") == 0 ) return "__xl_method_clear";
+		if ( strcmp(sMethodName, "remove") == 0 ) return "__xl_method_remove";
+	}
+	if ( __xlTypeHasBaseName(sBaseType, "list") ) {
+		if ( strcmp(sMethodName, "len") == 0 ) return "xl_mod_std_core__len";
+		if ( strcmp(sMethodName, "append") == 0 ) return "__xl_method_append";
+		if ( strcmp(sMethodName, "join") == 0 ) return "__xl_method_join";
+		if ( strcmp(sMethodName, "clear") == 0 ) return "__xl_method_clear";
+		if ( strcmp(sMethodName, "remove") == 0 ) return "__xl_method_remove";
+	}
+	if ( __xlTypeHasBaseName(sBaseType, "set") ) {
+		if ( strcmp(sMethodName, "len") == 0 ) return "xl_mod_std_core__len";
+		if ( strcmp(sMethodName, "has") == 0 ) return "__xl_method_has";
+		if ( strcmp(sMethodName, "clear") == 0 ) return "__xl_method_clear";
+		if ( strcmp(sMethodName, "remove") == 0 ) return "__xl_method_remove";
+	}
+	if ( __xlTypeHasBaseName(sBaseType, "dict") ) {
+		if ( strcmp(sMethodName, "len") == 0 ) return "xl_mod_std_core__len";
+		if ( strcmp(sMethodName, "has") == 0 ) return "__xl_method_has";
+		if ( strcmp(sMethodName, "clear") == 0 ) return "__xl_method_clear";
+		if ( strcmp(sMethodName, "remove") == 0 ) return "__xl_method_remove";
+	}
+
+	return NULL;
+}
 
 static int __xlResolveMethodCall(
 	XL_ResolveContext* pCtx,
@@ -1191,6 +1357,29 @@ static int __xlResolveMethodCall(
 	}
 
 	if ( iNameMatchCount == 0 ) {
+		const char* sBuiltinTargetName = __xlBuiltinMethodTargetName(sBaseType, sMethodName);
+
+		if ( sBuiltinTargetName != NULL ) {
+			for ( i = 0; i < pCtx->pResult->funcs.iCount; ++i ) {
+				pFunc = xlFuncTableGet(&pCtx->pResult->funcs, i);
+				if ( (pFunc == NULL) || (strcmp(pFunc->sName, sBuiltinTargetName) != 0) ) {
+					continue;
+				}
+				if ( !__xlTypeMatches(pFunc->sReceiverType, sBaseType) ) {
+					continue;
+				}
+				if ( __xlMatchCallToFuncEx(pCtx, pFunc, pArgs, sBaseType, 1, &iScore) != XL_RC_OK ) {
+					continue;
+				}
+				__xlSemNodeSetFunc(pCtx->pResult, pCallNode, (int)i);
+				__xlSemNodeSetType(
+					pCtx->pResult,
+					pCallNode,
+					pFunc->bGenerator ? "generator" : ((pFunc->sReturnTypeName != NULL) ? pFunc->sReturnTypeName : "")
+				);
+				return XL_RC_OK;
+			}
+		}
 		return __xlSemAddDiag(
 			pCtx,
 			XL_SEM_DIAG_ERROR,
@@ -1597,9 +1786,68 @@ static int __xlIsTimeTypeName(const char* sTypeName)
 	return (sTypeName != NULL) && (strcmp(sTypeName, "time") == 0);
 }
 
+static int __xlIsTypeCtorTargetName(const char* sTypeName)
+{
+	return __xlIsIntegerTypeName(sTypeName) ||
+		__xlIsFloatTypeName(sTypeName) ||
+		__xlIsBoolTypeName(sTypeName) ||
+		__xlIsStringTypeName(sTypeName) ||
+		__xlIsPointTypeName(sTypeName) ||
+		__xlIsTimeTypeName(sTypeName) ||
+		__xlIsVarTypeName(sTypeName);
+}
+
+static const char* __xlResolveKnownTypeName(XL_ResolveContext* pCtx, const XL_AstNode* pNode, const char* sTypeName)
+{
+	if ( (sTypeName == NULL) || (sTypeName[0] == '\0') ) {
+		return NULL;
+	}
+	if ( xlTypeTableFind(&pCtx->pResult->types, sTypeName) == NULL ) {
+		return NULL;
+	}
+	return __xlResolveTypeName(pCtx, pNode, sTypeName);
+}
+
+static int __xlCanTypeConstruct(const char* sTargetType, const char* sSourceType)
+{
+	if ( (sTargetType == NULL) || (sTargetType[0] == '\0') || (sSourceType == NULL) || (sSourceType[0] == '\0') ) {
+		return 0;
+	}
+	if ( __xlTypeMatches(sTargetType, sSourceType) ) {
+		return 1;
+	}
+	if ( __xlIsVarTypeName(sTargetType) ) {
+		return __xlIsVarCompatibleTypeName(sSourceType);
+	}
+	if ( __xlIsIntegerTypeName(sTargetType) || __xlIsFloatTypeName(sTargetType) || __xlIsBoolTypeName(sTargetType) ) {
+		return __xlIsIntegerTypeName(sSourceType) ||
+			__xlIsFloatTypeName(sSourceType) ||
+			__xlIsBoolTypeName(sSourceType) ||
+			__xlIsStringTypeName(sSourceType) ||
+			__xlIsVarTypeName(sSourceType);
+	}
+	if ( __xlIsStringTypeName(sTargetType) ) {
+		return __xlIsVarCompatibleTypeName(sSourceType) ||
+			__xlIsTimeTypeName(sSourceType);
+	}
+	if ( __xlIsPointTypeName(sTargetType) ) {
+		return __xlIsPointTypeName(sSourceType) ||
+			__xlIsVarTypeName(sSourceType) ||
+			__xlIsNullTypeName(sSourceType);
+	}
+	if ( __xlIsTimeTypeName(sTargetType) ) {
+		return __xlIsStringTypeName(sSourceType) ||
+			__xlIsTimeTypeName(sSourceType) ||
+			__xlIsVarTypeName(sSourceType);
+	}
+
+	return 0;
+}
+
 static int __xlIsNullableTypeName(const char* sTypeName)
 {
 	return __xlIsStringTypeName(sTypeName) ||
+		__xlIsPointTypeName(sTypeName) ||
 		__xlIsVarTypeName(sTypeName) ||
 		((sTypeName != NULL) && (strcmp(sTypeName, "error") == 0));
 }
@@ -1883,15 +2131,18 @@ static int __xlMatchCallToFuncEx(
 	iScore = 0;
 	iNextPos = iHiddenParamCount;
 	for ( i = 0; i < iHiddenParamCount; ++i ) {
+		int iMatchScore;
+
 		sParamType = pFunc->arrParamTypes[i];
+		iMatchScore = __xlTypeMatchScore(sParamType, sHiddenParamType);
 		if ( (sHiddenParamType != NULL) && (sHiddenParamType[0] != '\0') &&
 			(sParamType != NULL) && (sParamType[0] != '\0') &&
-			!__xlTypeMatches(sParamType, sHiddenParamType) ) {
+			(iMatchScore == 0) ) {
 			free(arrBound);
 			return XL_RC_FAIL;
 		}
 		arrBound[i] = 1u;
-		iScore += ((sParamType != NULL) && (sParamType[0] != '\0') && __xlIsVarTypeName(sParamType)) ? 1 : 2;
+		iScore += (iMatchScore != 0) ? iMatchScore : 1;
 	}
 
 	for ( i = 0; (pArgs != NULL) && (i < pArgs->iChildCount); ++i ) {
@@ -1925,11 +2176,14 @@ static int __xlMatchCallToFuncEx(
 		sArgType = __xlInferExprType(pCtx, pValue);
 		sParamType = pFunc->arrParamTypes[iParamIndex];
 		if ( (sArgType != NULL) && (sArgType[0] != '\0') && (sParamType != NULL) && (sParamType[0] != '\0') ) {
-			if ( !__xlTypeMatches(sParamType, sArgType) ) {
+			int iMatchScore;
+
+			iMatchScore = __xlTypeMatchScore(sParamType, sArgType);
+			if ( iMatchScore == 0 ) {
 				free(arrBound);
 				return XL_RC_FAIL;
 			}
-			iScore += __xlIsVarTypeName(sParamType) ? 1 : 2;
+			iScore += iMatchScore;
 		} else {
 			iScore += 1;
 		}
@@ -1943,11 +2197,14 @@ static int __xlMatchCallToFuncEx(
 			sArgType = __xlInferExprType(pCtx, pFunc->arrParamDefaultValues[i]);
 			sParamType = pFunc->arrParamTypes[i];
 			if ( (sArgType != NULL) && (sArgType[0] != '\0') && (sParamType != NULL) && (sParamType[0] != '\0') ) {
-				if ( !__xlTypeMatches(sParamType, sArgType) ) {
+				int iMatchScore;
+
+				iMatchScore = __xlTypeMatchScore(sParamType, sArgType);
+				if ( iMatchScore == 0 ) {
 					free(arrBound);
 					return XL_RC_FAIL;
 				}
-				iScore += __xlIsVarTypeName(sParamType) ? 1 : 2;
+				iScore += iMatchScore;
 			} else {
 				iScore += 1;
 			}
@@ -2171,6 +2428,50 @@ static int __xlResolveCallExpr(XL_ResolveContext* pCtx, const XL_AstNode* pNode)
 	}
 
 	if ( (pCallee != NULL) && (pCallee->eKind == XL_AST_IDENT) && (pCallee->sText != NULL) ) {
+		const char* sCtorTypeName;
+		const XL_AstNode* pArgNode;
+		const XL_AstNode* pArgValue;
+		const char* sArgType;
+
+		sCtorTypeName = __xlResolveKnownTypeName(pCtx, pCallee, pCallee->sText);
+		if ( (sCtorTypeName != NULL) && __xlIsTypeCtorTargetName(sCtorTypeName) ) {
+			if ( (pArgs == NULL) || (pArgs->iChildCount != 1) ) {
+				return __xlSemAddDiag(
+					pCtx,
+					XL_SEM_DIAG_ERROR,
+					pNode,
+					"type constructor '%s' expects exactly 1 argument",
+					pCallee->sText
+				);
+			}
+			pArgNode = pArgs->ppChildren[0];
+			if ( __xlArgName(pArgNode) != NULL ) {
+				return __xlSemAddDiag(
+					pCtx,
+					XL_SEM_DIAG_ERROR,
+					pArgNode,
+					"type constructor '%s' does not support named arguments",
+					pCallee->sText
+				);
+			}
+			pArgValue = __xlArgValue(pArgNode);
+			sArgType = __xlInferExprType(pCtx, pArgValue);
+			if ( !__xlCanTypeConstruct(sCtorTypeName, sArgType) ) {
+				return __xlSemAddDiag(
+					pCtx,
+					XL_SEM_DIAG_ERROR,
+					pNode,
+					"type constructor '%s' cannot convert from '%s'",
+					pCallee->sText,
+					((sArgType != NULL) && (sArgType[0] != '\0')) ? sArgType : "?"
+				);
+			}
+
+			__xlSemNodeSetScope(pCtx->pResult, pNode, pCtx->iCurrentScopeId);
+			__xlSemNodeSetType(pCtx->pResult, pNode, sCtorTypeName);
+			return XL_RC_OK;
+		}
+
 		return __xlResolveCallByName(pCtx, pNode, pCallee->sText, pArgs);
 	}
 	if ( (pCallee != NULL) && (pCallee->eKind == XL_AST_MEMBER) ) {
@@ -2290,6 +2591,10 @@ static const char* __xlInferExprType(XL_ResolveContext* pCtx, const XL_AstNode* 
 			if ( (sLeftType != NULL) && (strcmp(sLeftType, "error") == 0) ) {
 				sRightType = __xlErrorFieldTypeName(pNode->sText);
 				return (sRightType != NULL) ? sRightType : "";
+			}
+			sRightType = __xlLengthPropertyTypeName(sLeftType, pNode->sText);
+			if ( sRightType != NULL ) {
+				return sRightType;
 			}
 			return "";
 		case XL_AST_INDEX:
@@ -2884,8 +3189,19 @@ static int __xlResolveExpr(XL_ResolveContext* pCtx, const XL_AstNode* pNode)
 			}
 			if ( (sTypeName != NULL) && (sTypeName[0] != '\0') ) {
 				__xlSemNodeSetType(pCtx->pResult, pNode, sTypeName);
+				return XL_RC_OK;
 			}
-			return XL_RC_OK;
+			if ( __xlIsImportLikeExpr(pCtx, pNode) ) {
+				return XL_RC_OK;
+			}
+			return __xlSemAddDiag(
+				pCtx,
+				XL_SEM_DIAG_ERROR,
+				pNode,
+				"type '%s' has no property '%s'",
+				((sBaseTypeName != NULL) && (sBaseTypeName[0] != '\0')) ? sBaseTypeName : "?",
+				(pNode->sText != NULL) ? pNode->sText : ""
+			);
 		case XL_AST_ASSIGN:
 			return __xlResolveAssign(pCtx, pNode);
 		case XL_AST_TERNARY:
@@ -2943,6 +3259,7 @@ static int __xlResolveConstDecl(XL_ResolveContext* pCtx, const XL_AstNode* pNode
 	const XL_AstNode* pValueNode;
 	const XL_SemNodeInfo* pInfo;
 	const char* sDeclaredType;
+	const char* sResolvedDeclaredType;
 	const char* sValueType;
 	const char* sFinalType;
 	int iRc;
@@ -2962,13 +3279,17 @@ static int __xlResolveConstDecl(XL_ResolveContext* pCtx, const XL_AstNode* pNode
 	}
 
 	sDeclaredType = (pTypeNode != NULL) ? pTypeNode->sText : ((eKind == XL_SYMBOL_VAR) ? "var" : "");
+	sResolvedDeclaredType = (pTypeNode != NULL) ? __xlResolveTypeName(pCtx, pTypeNode, pTypeNode->sText) : sDeclaredType;
+	if ( (pTypeNode != NULL) && (sResolvedDeclaredType == NULL) ) {
+		return XL_RC_FAIL;
+	}
 
 	iRc = __xlDeclareSymbol(
 		pCtx,
 		eKind,
 		pCtx->iCurrentScopeId,
 		pNode->sText,
-		sDeclaredType,
+		sResolvedDeclaredType,
 		pNode->iLine,
 		pNode->iColumn,
 		0,
@@ -2983,7 +3304,7 @@ static int __xlResolveConstDecl(XL_ResolveContext* pCtx, const XL_AstNode* pNode
 	iRc = __xlResolveExpr(pCtx, pValueNode);
 	if ( iRc == XL_RC_OK ) {
 		sValueType = __xlInferExprType(pCtx, pValueNode);
-		if ( __xlIsVarTypeName(sDeclaredType) && !__xlIsVarCompatibleTypeName(sValueType) ) {
+		if ( __xlIsVarTypeName(sResolvedDeclaredType) && !__xlIsVarCompatibleTypeName(sValueType) ) {
 			return __xlSemAddDiag(
 				pCtx,
 				XL_SEM_DIAG_ERROR,
@@ -2992,7 +3313,7 @@ static int __xlResolveConstDecl(XL_ResolveContext* pCtx, const XL_AstNode* pNode
 				((sValueType != NULL) && (sValueType[0] != '\0')) ? sValueType : "?"
 			);
 		}
-		sFinalType = __xlChooseDeclaredValueType(sDeclaredType, sValueType);
+		sFinalType = __xlChooseDeclaredValueType(sResolvedDeclaredType, sValueType);
 		if ( (sFinalType != NULL) && (sFinalType[0] != '\0') ) {
 			__xlSemNodeSetType(pCtx->pResult, pNode, sFinalType);
 			pInfo = xlSemNodeInfoFind(pCtx->pResult, pNode);
@@ -3002,6 +3323,81 @@ static int __xlResolveConstDecl(XL_ResolveContext* pCtx, const XL_AstNode* pNode
 		}
 	}
 	return iRc;
+}
+
+static int __xlResolveTypeDefDecl(XL_ResolveContext* pCtx, const XL_AstNode* pNode)
+{
+	const XL_AstNode* pTypeNode;
+	const XL_TypeInfo* pExistingType;
+	const char* sResolvedType;
+	int iRc;
+
+	if ( pCtx->iCurrentScopeId != 0 ) {
+		return __xlSemAddDiag(pCtx, XL_SEM_DIAG_ERROR, pNode, "typedef is only supported at module scope in demo5");
+	}
+	if ( (pNode == NULL) || (pNode->sText == NULL) || (pNode->sText[0] == '\0') ) {
+		return __xlSemAddDiag(pCtx, XL_SEM_DIAG_ERROR, pNode, "typedef requires an alias name");
+	}
+
+	pTypeNode = __xlAstChild(pNode, 0);
+	if ( pTypeNode == NULL ) {
+		return __xlSemAddDiag(pCtx, XL_SEM_DIAG_ERROR, pNode, "typedef requires a target type");
+	}
+
+	iRc = __xlResolveTypeRef(pCtx, pTypeNode);
+	if ( iRc != XL_RC_OK ) {
+		return iRc;
+	}
+
+	sResolvedType = __xlResolveTypeName(pCtx, pTypeNode, pTypeNode->sText);
+	if ( sResolvedType == NULL ) {
+		return XL_RC_FAIL;
+	}
+	if ( strcmp(pNode->sText, "auto") == 0 ) {
+		return __xlSemAddDiag(pCtx, XL_SEM_DIAG_ERROR, pNode, "typedef cannot alias reserved type name 'auto'");
+	}
+	pExistingType = xlTypeTableFind(&pCtx->pResult->types, pNode->sText);
+	if ( pExistingType != NULL ) {
+		if ( (pExistingType->bBuiltin == 0) && (pExistingType->sAliasTarget != NULL) &&
+			(strcmp(pExistingType->sAliasTarget, sResolvedType) == 0) ) {
+			__xlSemNodeSetScope(pCtx->pResult, pNode, pCtx->iCurrentScopeId);
+			__xlSemNodeSetType(pCtx->pResult, pNode, sResolvedType);
+			return XL_RC_OK;
+		}
+		return __xlSemAddDiag(pCtx, XL_SEM_DIAG_ERROR, pNode, "duplicate type '%s'", pNode->sText);
+	}
+
+	iRc = xlTypeTableAddAlias(&pCtx->pResult->types, pNode->sText, sResolvedType, pNode->iLine, pNode->iColumn);
+	if ( iRc != XL_RC_OK ) {
+		return XL_RC_IO_ERROR;
+	}
+
+	__xlSemNodeSetScope(pCtx->pResult, pNode, pCtx->iCurrentScopeId);
+	__xlSemNodeSetType(pCtx->pResult, pNode, sResolvedType);
+	__xlSemTrace(pCtx, pNode, "typedef '%s' -> %s", pNode->sText, sResolvedType);
+	return XL_RC_OK;
+}
+
+static int __xlRegisterTopLevelTypeDefs(XL_ResolveContext* pCtx, const XL_AstNode* pRoot)
+{
+	size_t i;
+	int iRc;
+
+	if ( pRoot == NULL ) {
+		return XL_RC_OK;
+	}
+
+	for ( i = 0; i < pRoot->iChildCount; ++i ) {
+		if ( (pRoot->ppChildren[i] == NULL) || (pRoot->ppChildren[i]->eKind != XL_AST_TYPEDEF) ) {
+			continue;
+		}
+		iRc = __xlResolveTypeDefDecl(pCtx, pRoot->ppChildren[i]);
+		if ( iRc != XL_RC_OK ) {
+			return iRc;
+		}
+	}
+
+	return XL_RC_OK;
 }
 
 static int __xlResolveIf(XL_ResolveContext* pCtx, const XL_AstNode* pNode)
@@ -3144,7 +3540,9 @@ static int __xlResolveFuncDecl(XL_ResolveContext* pCtx, const XL_AstNode* pNode)
 	const XL_AstNode* pParamNode;
 	const XL_AstNode* pParamType;
 	const XL_AstNode* pParamDefault;
+	const char* sResolvedRetType;
 	const char* sDefaultType;
+	const char* sResolvedParamType;
 	int iFuncScopeId;
 	int iPrevScopeId;
 	int iPrevAsyncDepth;
@@ -3154,6 +3552,21 @@ static int __xlResolveFuncDecl(XL_ResolveContext* pCtx, const XL_AstNode* pNode)
 	pParams = __xlAstChild(pNode, 0);
 	pRetType = __xlAstChild(pNode, 1);
 	pBody = __xlAstChild(pNode, 2);
+	sResolvedRetType = ((pRetType != NULL) && (pRetType->sText != NULL)) ? pRetType->sText : "";
+
+	if ( pRetType != NULL ) {
+		iRc = __xlResolveTypeRef(pCtx, pRetType);
+		if ( iRc != XL_RC_OK ) {
+			return iRc;
+		}
+		if ( (pRetType->sText != NULL) && (strcmp(pRetType->sText, "auto") == 0) ) {
+			return __xlSemAddDiag(pCtx, XL_SEM_DIAG_ERROR, pRetType, "auto is only allowed in variable declarations");
+		}
+		sResolvedRetType = __xlResolveTypeName(pCtx, pRetType, pRetType->sText);
+		if ( sResolvedRetType == NULL ) {
+			return XL_RC_FAIL;
+		}
+	}
 
 	if ( pCtx->iCurrentScopeId != 0 ) {
 		iRc = __xlDeclareSymbol(
@@ -3161,7 +3574,7 @@ static int __xlResolveFuncDecl(XL_ResolveContext* pCtx, const XL_AstNode* pNode)
 			XL_SYMBOL_FUNC,
 			pCtx->iCurrentScopeId,
 			pNode->sText,
-			((pRetType != NULL) && (pRetType->sText != NULL)) ? pRetType->sText : "",
+			sResolvedRetType,
 			pNode->iLine,
 			pNode->iColumn,
 			pNode->bFlag,
@@ -3173,13 +3586,6 @@ static int __xlResolveFuncDecl(XL_ResolveContext* pCtx, const XL_AstNode* pNode)
 		}
 
 		iRc = __xlCollectFuncInfo(pCtx, pNode, pCtx->iCurrentScopeId);
-		if ( iRc != XL_RC_OK ) {
-			return iRc;
-		}
-	}
-
-	if ( pRetType != NULL ) {
-		iRc = __xlResolveTypeRef(pCtx, pRetType);
 		if ( iRc != XL_RC_OK ) {
 			return iRc;
 		}
@@ -3218,13 +3624,24 @@ static int __xlResolveFuncDecl(XL_ResolveContext* pCtx, const XL_AstNode* pNode)
 					pCtx->iCurrentScopeId = iPrevScopeId;
 					return iRc;
 				}
+				if ( (pParamType->sText != NULL) && (strcmp(pParamType->sText, "auto") == 0) ) {
+					pCtx->iCurrentScopeId = iPrevScopeId;
+					pCtx->iAsyncDepth = iPrevAsyncDepth;
+					return __xlSemAddDiag(pCtx, XL_SEM_DIAG_ERROR, pParamType, "auto is only allowed in variable declarations");
+				}
+			}
+			sResolvedParamType = (pParamType != NULL) ? __xlResolveTypeName(pCtx, pParamType, pParamType->sText) : "";
+			if ( (pParamType != NULL) && (sResolvedParamType == NULL) ) {
+				pCtx->iCurrentScopeId = iPrevScopeId;
+				pCtx->iAsyncDepth = iPrevAsyncDepth;
+				return XL_RC_FAIL;
 			}
 			iRc = __xlDeclareSymbol(
 				pCtx,
 				XL_SYMBOL_PARAM,
 				pCtx->iCurrentScopeId,
 				pParamNode->sText,
-				(pParamType != NULL) ? pParamType->sText : "",
+				sResolvedParamType,
 				pParamNode->iLine,
 				pParamNode->iColumn,
 				0,
@@ -3255,9 +3672,9 @@ static int __xlResolveFuncDecl(XL_ResolveContext* pCtx, const XL_AstNode* pNode)
 					pCtx->iAsyncDepth = iPrevAsyncDepth;
 					return iRc;
 				}
-				if ( (pParamType != NULL) && (pParamType->sText != NULL) && (pParamType->sText[0] != '\0') ) {
+				if ( (pParamType != NULL) && (sResolvedParamType != NULL) && (sResolvedParamType[0] != '\0') ) {
 					sDefaultType = __xlInferExprType(pCtx, pParamDefault);
-					if ( (sDefaultType != NULL) && (sDefaultType[0] != '\0') && !__xlTypeMatches(pParamType->sText, sDefaultType) ) {
+					if ( (sDefaultType != NULL) && (sDefaultType[0] != '\0') && !__xlTypeMatches(sResolvedParamType, sDefaultType) ) {
 						pCtx->iCurrentScopeId = iPrevScopeId;
 						pCtx->iAsyncDepth = iPrevAsyncDepth;
 						return __xlSemAddDiag(
@@ -3267,7 +3684,7 @@ static int __xlResolveFuncDecl(XL_ResolveContext* pCtx, const XL_AstNode* pNode)
 							"default value for parameter '%s' has type '%s', expected '%s'",
 							pParamNode->sText,
 							sDefaultType,
-							pParamType->sText
+							sResolvedParamType
 						);
 					}
 				}
@@ -3294,6 +3711,8 @@ static int __xlResolveStmt(XL_ResolveContext* pCtx, const XL_AstNode* pNode)
 	switch ( pNode->eKind ) {
 		case XL_AST_FUNC_DECL:
 			return __xlResolveFuncDecl(pCtx, pNode);
+		case XL_AST_TYPEDEF:
+			return __xlResolveTypeDefDecl(pCtx, pNode);
 		case XL_AST_CONST_DECL:
 			return __xlResolveConstDecl(pCtx, pNode, XL_SYMBOL_CONST);
 		case XL_AST_VAR_DECL:
@@ -3386,11 +3805,14 @@ static int __xlRegisterBuiltinTypes(XL_SemResult* pResult)
 		"any",
 		"array",
 		"bool",
+		"channel",
 		"dict",
 		"error",
 		"float",
 		"float32",
 		"float64",
+		"function",
+		"future",
 		"generator",
 		"int",
 		"int8",
@@ -3405,6 +3827,7 @@ static int __xlRegisterBuiltinTypes(XL_SemResult* pResult)
 		"iterator",
 		"list",
 		"null",
+		"point",
 		"range",
 		"set",
 		"string",
@@ -3443,6 +3866,9 @@ static int __xlRegisterBuiltinFuncs(XL_SemResult* pResult)
 	static const char* arrMethodSelf[] = { "self" };
 	static const char* arrMethodSelfPart[] = { "self", "part" };
 	static const char* arrMethodSelfPartValue[] = { "self", "part", "value" };
+	static const char* arrMethodSelfSep[] = { "self", "sep" };
+	static const char* arrMethodSelfCount[] = { "self", "count" };
+	static const char* arrMethodSelfStartCount[] = { "self", "start", "count" };
 	static const char* arrMethodValue[] = { "self", "value" };
 	static const char* arrMethodKey[] = { "self", "key" };
 	static const char* arrSelfString[] = { "string" };
@@ -3452,8 +3878,12 @@ static int __xlRegisterBuiltinFuncs(XL_SemResult* pResult)
 	static const char* arrSelfDict[] = { "dict" };
 	static const char* arrStringString[] = { "string", "string" };
 	static const char* arrStringStringString[] = { "string", "string", "string" };
+	static const char* arrStringInt[] = { "string", "int" };
+	static const char* arrStringIntInt[] = { "string", "int", "int" };
 	static const char* arrArrayAny[] = { "array", "any" };
+	static const char* arrArrayString[] = { "array<string>", "string" };
 	static const char* arrListAny[] = { "list", "any" };
+	static const char* arrListString[] = { "list<string>", "string" };
 	static const char* arrSetAny[] = { "set", "any" };
 	static const char* arrDictString[] = { "dict", "string" };
 	static const char* arrArrayInt[] = { "array", "int" };
@@ -3525,14 +3955,25 @@ static int __xlRegisterBuiltinFuncs(XL_SemResult* pResult)
 	XL_ADD_BUILTIN_METHOD("len", "dict", "xl_mod_std_core__len", "int", arrMethodSelf, arrSelfDict, 1);
 
 	XL_ADD_BUILTIN_METHOD("contains", "string", "xl_mod_std_str__contains", "bool", arrMethodSelfPart, arrStringString, 2);
+	XL_ADD_BUILTIN_METHOD("index_of", "string", "xl_mod_std_str__index_of", "int", arrMethodSelfPart, arrStringString, 2);
+	XL_ADD_BUILTIN_METHOD("last_index_of", "string", "xl_mod_std_str__last_index_of", "int", arrMethodSelfPart, arrStringString, 2);
+	XL_ADD_BUILTIN_METHOD("slice", "string", "xl_mod_std_str__slice", "string", arrMethodSelfStartCount, arrStringIntInt, 3);
+	XL_ADD_BUILTIN_METHOD("repeat", "string", "xl_mod_std_str__repeat", "string", arrMethodSelfCount, arrStringInt, 2);
+	XL_ADD_BUILTIN_METHOD("split", "string", "xl_mod_std_str__split", "list<string>", arrMethodSelfPart, arrStringString, 2);
+	XL_ADD_BUILTIN_METHOD("split_lines", "string", "xl_mod_std_str__split_lines", "list<string>", arrMethodSelf, arrSelfString, 1);
 	XL_ADD_BUILTIN_METHOD("starts_with", "string", "xl_mod_std_str__starts_with", "bool", arrMethodSelfPart, arrStringString, 2);
 	XL_ADD_BUILTIN_METHOD("ends_with", "string", "xl_mod_std_str__ends_with", "bool", arrMethodSelfPart, arrStringString, 2);
+	XL_ADD_BUILTIN_METHOD("trim", "string", "xl_mod_std_str__trim", "string", arrMethodSelf, arrSelfString, 1);
+	XL_ADD_BUILTIN_METHOD("trim_left", "string", "xl_mod_std_str__trim_left", "string", arrMethodSelf, arrSelfString, 1);
+	XL_ADD_BUILTIN_METHOD("trim_right", "string", "xl_mod_std_str__trim_right", "string", arrMethodSelf, arrSelfString, 1);
 	XL_ADD_BUILTIN_METHOD("lower", "string", "xl_mod_std_str__lower", "string", arrMethodSelf, arrSelfString, 1);
 	XL_ADD_BUILTIN_METHOD("upper", "string", "xl_mod_std_str__upper", "string", arrMethodSelf, arrSelfString, 1);
 	XL_ADD_BUILTIN_METHOD("replace", "string", "xl_mod_std_str__replace", "string", arrMethodSelfPartValue, arrStringStringString, 3);
 
 	XL_ADD_BUILTIN_METHOD("append", "array", "__xl_method_append", "void", arrMethodValue, arrArrayAny, 2);
 	XL_ADD_BUILTIN_METHOD("append", "list", "__xl_method_append", "void", arrMethodValue, arrListAny, 2);
+	XL_ADD_BUILTIN_METHOD("join", "array<string>", "__xl_method_join", "string", arrMethodSelfSep, arrArrayString, 2);
+	XL_ADD_BUILTIN_METHOD("join", "list<string>", "__xl_method_join", "string", arrMethodSelfSep, arrListString, 2);
 	XL_ADD_BUILTIN_METHOD("has", "set", "__xl_method_has", "bool", arrMethodValue, arrSetAny, 2);
 	XL_ADD_BUILTIN_METHOD("has", "dict", "__xl_method_has", "bool", arrMethodKey, arrDictString, 2);
 	XL_ADD_BUILTIN_METHOD("clear", "array", "__xl_method_clear", "void", arrMethodSelf, arrSelfArray, 1);
@@ -3659,10 +4100,22 @@ int xlSemAnalyzeAst(const XL_AstNode* pRoot, XL_DiagContext* pDiag, int bTraceSe
 		return iRc;
 	}
 
+	iRc = __xlRegisterTopLevelTypeDefs(&ctx, pRoot);
+	if ( iRc != XL_RC_OK ) {
+		if ( iRc == XL_RC_IO_ERROR ) {
+			xlSemResultFree(pResult);
+			return iRc;
+		}
+		return XL_RC_FAIL;
+	}
+
 	iRc = __xlCollectTopLevelFuncs(&ctx, pRoot);
 	if ( iRc != XL_RC_OK ) {
-		xlSemResultFree(pResult);
-		return iRc;
+		if ( iRc == XL_RC_IO_ERROR ) {
+			xlSemResultFree(pResult);
+			return iRc;
+		}
+		return XL_RC_FAIL;
 	}
 
 	for ( i = 0; i < pRoot->iChildCount; ++i ) {

@@ -270,6 +270,8 @@ static XL_HirNode* __xlLowerStmtToHir(const XL_AstNode* pNode, const XL_SemResul
 
 	__xlLowerTrace(pDiag, bTraceLower, pNode, "lower stmt");
 	switch ( pNode->eKind ) {
+		case XL_AST_TYPEDEF:
+			return NULL;
 		case XL_AST_FUNC_DECL:
 			return __xlLowerFuncToHir(pNode, pSem, pDiag, bTraceLower);
 		case XL_AST_CONST_DECL:

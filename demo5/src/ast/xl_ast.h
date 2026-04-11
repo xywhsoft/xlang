@@ -11,6 +11,7 @@ typedef enum XL_AstKind {
 	XL_AST_FUNC_DECL,
 	XL_AST_PARAM,
 	XL_AST_TYPE_REF,
+	XL_AST_TYPEDEF,
 	XL_AST_CONST_DECL,
 	XL_AST_VAR_DECL,
 	XL_AST_IF,
@@ -66,6 +67,7 @@ XL_AstNode* xlAstCreateList(void);
 XL_AstNode* xlAstCreateProgram(void);
 XL_AstNode* xlAstCreateBlock(const XL_Token* pToken);
 XL_AstNode* xlAstCreateTypeRef(const XL_Token* pToken);
+XL_AstNode* xlAstCreateTypeDef(const XL_Token* pName, XL_AstNode* pType);
 XL_AstNode* xlAstCreateIdent(const XL_Token* pToken);
 XL_AstNode* xlAstCreateLiteralFromToken(const XL_Token* pToken);
 

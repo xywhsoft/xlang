@@ -110,7 +110,7 @@ static void __xlAstAdoptNodeRange(XL_AstNode* pNode, const XL_AstNode* pSource)
 const char* xlAstKindName(XL_AstKind eKind)
 {
 	static const char* arrNames[] = {
-		"List", "Program", "Block", "FuncDecl", "Param", "TypeRef", "ConstDecl", "VarDecl",
+		"List", "Program", "Block", "FuncDecl", "Param", "TypeRef", "TypeDef", "ConstDecl", "VarDecl",
 		"If", "ElseIf", "While", "ForIn", "Import", "Export", "Try", "Return", "Break", "Continue", "Throw", "Assert", "Yield",
 		"ExprStmt", "NamedArg", "Assign", "Ternary", "Binary", "Unary", "Call", "Member", "Index", "Ident", "Int", "Float",
 		"String", "Template", "Bool", "Null", "Time"
@@ -158,6 +158,18 @@ XL_AstNode* xlAstCreateTypeRef(const XL_Token* pToken)
 	pNode = xlAstCreateNode(XL_AST_TYPE_REF, pToken);
 	if ( (pNode != NULL) && (pToken != NULL) ) {
 		__xlAstSetNormalizedTypeText(pNode, pToken);
+	}
+	return pNode;
+}
+
+XL_AstNode* xlAstCreateTypeDef(const XL_Token* pName, XL_AstNode* pType)
+{
+	XL_AstNode* pNode;
+
+	pNode = xlAstCreateNode(XL_AST_TYPEDEF, pName);
+	if ( (pNode != NULL) && (pName != NULL) ) {
+		xlAstSetText(pNode, pName->sText, pName->iTextLen);
+		xlAstAppendChild(pNode, pType);
 	}
 	return pNode;
 }

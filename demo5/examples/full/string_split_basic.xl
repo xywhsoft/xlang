@@ -1,0 +1,8 @@
+import std.core
+
+func main() as int
+	auto parts = "red,green,blue".split(",")
+	auto single = "solo".split(",")
+	std.core.println(parts[0] + "|" + parts[2])
+	return parts.length + single.length + parts[1].length
+end

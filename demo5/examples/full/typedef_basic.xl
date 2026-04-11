@@ -1,0 +1,12 @@
+typedef Text = string
+typedef Count = int
+
+func join(Text left, Text right) as Text
+	return left + right
+end
+
+func main() as int
+	Text message = join("hello", " world")
+	Count size = message.length
+	return size
+end

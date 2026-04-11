@@ -1,0 +1,13 @@
+import std.task
+
+async func fail() as error
+	return Error("boom")
+end
+
+func main() as int
+	const error winner = task.race(task.spawn(fail()), task.all(task.spawn(Error("left")), task.spawn(Error("right"))))
+	if winner.message == "boom"
+		return task.cancel(task.spawn(winner))
+	end
+	return 0
+end
