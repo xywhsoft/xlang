@@ -1,0 +1,22 @@
+func main() as int
+	array values = [1, 2, 3]
+	list items = list{4, 5}
+	set flags = set{6, 7}
+	dict pairs = dict{"a": 1, "b": 2}
+	int total = 0
+
+	if values.remove(1) then
+		total += 10
+	end
+	if items.remove(0) then
+		total += 20
+	end
+	if flags.remove(7) then
+		total += 30
+	end
+	if pairs.remove("a") then
+		total += 40
+	end
+
+	return total + values.len() + items.len() + flags.len() + pairs.len() + values[1] + items[0]
+end

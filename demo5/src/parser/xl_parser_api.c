@@ -4,6 +4,7 @@
 typedef struct XL_ParseContext {
 	XL_AstNode* pRoot;
 	XL_DiagContext* pDiag;
+	const char* sSourceFile;
 	int bHadError;
 	int iErrorCount;
 } XL_ParseContext;
@@ -177,6 +178,10 @@ static int __xlParserMapToken(XL_TokenKind eKind)
 			return XLPG_TK_LBRACKET;
 		case XL_TK_RBRACKET:
 			return XLPG_TK_RBRACKET;
+		case XL_TK_LBRACE:
+			return XLPG_TK_LBRACE;
+		case XL_TK_RBRACE:
+			return XLPG_TK_RBRACE;
 		case XL_TK_COMMA:
 			return XLPG_TK_COMMA;
 		default:
@@ -216,6 +221,7 @@ int xlParserParseLexer(XL_Lexer* pLexer, XL_DiagContext* pDiag, int bTraceParser
 	xlParseResultInit(pResult);
 	memset(&ctx, 0, sizeof(ctx));
 	ctx.pDiag = pDiag;
+	ctx.sSourceFile = xlLexerFileName(pLexer);
 
 	xlTokenListInit(&list);
 	iRc = xlLexerTokenizeAll(pLexer, &list);
@@ -243,12 +249,15 @@ int xlParserParseLexer(XL_Lexer* pLexer, XL_DiagContext* pDiag, int bTraceParser
 			ctx.bHadError = 1;
 			ctx.iErrorCount += 1;
 			if ( pDiag != NULL ) {
-				xlDiagEmit(
+				xlDiagEmitSource(
 					pDiag,
 					XL_DIAG_LEVEL_ERROR,
 					"lexer",
 					__FILE__,
 					__LINE__,
+					xlLexerFileName(pLexer),
+					token.iStartLine,
+					token.iStartColumn,
 					"lexer error near token \"%s\": %s",
 					token.sText,
 					token.sMessage
@@ -266,12 +275,15 @@ int xlParserParseLexer(XL_Lexer* pLexer, XL_DiagContext* pDiag, int bTraceParser
 			ctx.bHadError = 1;
 			ctx.iErrorCount += 1;
 			if ( pDiag != NULL ) {
-				xlDiagEmit(
+				xlDiagEmitSource(
 					pDiag,
 					XL_DIAG_LEVEL_ERROR,
 					"parser",
 					__FILE__,
 					__LINE__,
+					xlLexerFileName(pLexer),
+					token.iStartLine,
+					token.iStartColumn,
 					"unsupported token for parser: %s",
 					xlTokenKindName(token.eKind)
 				);

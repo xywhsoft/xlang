@@ -77,7 +77,7 @@ static const XL_AstNode* __xlArgValue(const XL_AstNode* pNode)
 	return pNode;
 }
 
-static int __xlFindParamIndexByName(const XL_FuncInfo* pFunc, const char* sName)
+static int __xlFindParamIndexByNameFrom(const XL_FuncInfo* pFunc, const char* sName, size_t iStartIndex)
 {
 	size_t i;
 
@@ -85,7 +85,7 @@ static int __xlFindParamIndexByName(const XL_FuncInfo* pFunc, const char* sName)
 		return -1;
 	}
 
-	for ( i = 0; i < pFunc->iParamCount; ++i ) {
+	for ( i = iStartIndex; i < pFunc->iParamCount; ++i ) {
 		if ( (pFunc->arrParamNames[i] != NULL) && (strcmp(pFunc->arrParamNames[i], sName) == 0) ) {
 			return (int)i;
 		}
@@ -123,8 +123,10 @@ static void __xlLowerCallArgsResolved(
 	const XL_AstNode* pArg;
 	const XL_AstNode* pValue;
 	const XL_AstNode** arrBound;
+	const XL_AstNode* pSelfValue;
 	size_t i;
 	size_t iNextPos;
+	size_t iStartIndex;
 	int iParamIndex;
 
 	pInfo = (pSem != NULL) ? xlSemNodeInfoFind(pSem, pCallNode) : NULL;
@@ -141,12 +143,29 @@ static void __xlLowerCallArgsResolved(
 		return;
 	}
 
+	pSelfValue = NULL;
 	iNextPos = 0;
+	iStartIndex = 0;
+	if ( (pFunc->sReceiverType != NULL) && (pFunc->sReceiverType[0] != '\0') ) {
+		const XL_AstNode* pCallee;
+
+		pCallee = __xlAstChild(pCallNode, 0);
+		pSelfValue = ((pCallee != NULL) && (pCallee->eKind == XL_AST_MEMBER)) ? __xlAstChild(pCallee, 0) : NULL;
+		if ( pSelfValue == NULL ) {
+			free(arrBound);
+			__xlLowerCallArgsOriginal(pArgs, pAstArgs, pSem, pDiag, bTraceLower);
+			return;
+		}
+		arrBound[0] = pSelfValue;
+		iNextPos = 1;
+		iStartIndex = 1;
+	}
+
 	for ( i = 0; (pAstArgs != NULL) && (i < pAstArgs->iChildCount); ++i ) {
 		pArg = pAstArgs->ppChildren[i];
 		pValue = __xlArgValue(pArg);
 		if ( __xlArgName(pArg) != NULL ) {
-			iParamIndex = __xlFindParamIndexByName(pFunc, __xlArgName(pArg));
+			iParamIndex = __xlFindParamIndexByNameFrom(pFunc, __xlArgName(pArg), iStartIndex);
 		} else {
 			while ( (iNextPos < pFunc->iParamCount) && (arrBound[iNextPos] != NULL) ) {
 				++iNextPos;
@@ -177,6 +196,9 @@ XL_HirNode* xlLowerExprToHir(const XL_AstNode* pNode, const XL_SemResult* pSem, 
 {
 	XL_HirNode* pHir;
 	XL_HirNode* pArgs;
+	XL_HirNode* pCalleeHir;
+	const XL_SemNodeInfo* pInfo;
+	const XL_FuncInfo* pFunc;
 	size_t i;
 
 	XL_UNUSED(bTraceLower);
@@ -227,7 +249,21 @@ XL_HirNode* xlLowerExprToHir(const XL_AstNode* pNode, const XL_SemResult* pSem, 
 	}
 
 	if ( pNode->eKind == XL_AST_CALL ) {
-		xlHirAppendChild(pHir, xlLowerExprToHir(pNode->ppChildren[0], pSem, pDiag, bTraceLower));
+		pInfo = (pSem != NULL) ? xlSemNodeInfoFind(pSem, pNode) : NULL;
+		pFunc = ((pSem != NULL) && (pInfo != NULL) && (pInfo->iFuncIndex >= 0)) ? xlFuncTableGet(&pSem->funcs, (size_t)pInfo->iFuncIndex) : NULL;
+		if ( (pFunc != NULL) && (pFunc->sReceiverType != NULL) && (pFunc->sReceiverType[0] != '\0') ) {
+			pCalleeHir = xlHirCreateNode(XL_HIR_NAME, pNode->ppChildren[0]);
+			if ( pCalleeHir != NULL ) {
+				xlHirSetText(pCalleeHir, pFunc->sName);
+				pCalleeHir->iFuncIndex = (pInfo != NULL) ? pInfo->iFuncIndex : -1;
+				if ( (pFunc->sAbiSymbol != NULL) && (pFunc->sAbiSymbol[0] != '\0') ) {
+					xlHirSetAbiName(pCalleeHir, pFunc->sAbiSymbol);
+				}
+			}
+			xlHirAppendChild(pHir, pCalleeHir);
+		} else {
+			xlHirAppendChild(pHir, xlLowerExprToHir(pNode->ppChildren[0], pSem, pDiag, bTraceLower));
+		}
 
 		pArgs = xlHirCreateNode(XL_HIR_BLOCK, pNode);
 		if ( pArgs != NULL ) {

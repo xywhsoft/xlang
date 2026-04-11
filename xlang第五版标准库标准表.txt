@@ -41,6 +41,11 @@ xlang 第五版标准库标准表
 - func println(float x) as void
 - func println(string x) as void
 - func println(bool x) as void
+- func len(string x) as int
+- func len(array x) as int
+- func len(list x) as int
+- func len(set x) as int
+- func len(dict x) as int
 
 三、std.io
 

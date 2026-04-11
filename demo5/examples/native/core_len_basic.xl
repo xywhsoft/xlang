@@ -1,0 +1,10 @@
+import std.core
+
+func main() as int
+	string text = "hello"
+	array values = [1, 2, 3]
+	list items = list{4, 5}
+	set flags = set{6, 7}
+	dict pairs = dict{"a": 1, "b": 2}
+	return std.core.len(text) + std.core.len(values) + std.core.len(items) + std.core.len(flags) + std.core.len(pairs)
+end

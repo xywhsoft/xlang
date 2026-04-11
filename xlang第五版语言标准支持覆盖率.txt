@@ -19,19 +19,19 @@ xlang 第五版语言标准支持覆盖率
 二、类型系统
 - ☑ bool
 - ☑ int
-- ☐ i8 / u8 / i16 / u16 / i32 / u32 / i64 / u64
+- ☑ int8 / uint8 / int16 / uint16 / int32 / uint32 / int64 / uint64
 - ☑ float
-- ☐ f32 / f64
+- ☑ float32 / float64
 - ☑ string（默认 UTF-8，也可承载任意字节序列；不再单列 bytes 类型）
 - ☑ time
 - ☐ point
 - ☑ null
-- ☐ array
-- ☐ list
-- ☐ set
-- ☐ dict
+- ☑ array
+- ☑ list
+- ☑ set
+- ☑ dict
 - ☑ range
-- ☐ var
+- ☑ var
 - ☐ auto
 - ☐ type
 - ☐ function
@@ -51,10 +51,17 @@ xlang 第五版语言标准支持覆盖率
 - ☑ null 字面量
 - ☑ string 字面量（默认 UTF-8，也可用于承载 bytes 数据）
 - ☑ time 字面量
-- ☐ array / list / set / dict 字面量
-- ☐ 模板字符串
+- ☑ array / list / set / dict 字面量（含裸 [] / {} 规则）
+- ☑ 模板字符串
 - ☑ 成员访问 obj.member
-- ☐ 安全成员访问 obj?.member
+- ☑ 安全成员访问 obj?.member
+- ☑ 类型方法声明 func Type.name(...)
+- ☑ 类型方法调用 expr.method(...)
+- ☑ 模块导出/导入类型方法
+- ☑ 容器基础成员调用 obj.len() / obj.has(...)
+- ☑ 容器追加调用 obj.append(...)
+- ☑ 容器清空调用 obj.clear()
+- ☑ 容器删除调用 obj.remove(...)
 - ☑ 调用 f(...)
 - ☑ 算术 + - * / %
 - ☑ 幂运算 **
@@ -90,7 +97,7 @@ xlang 第五版语言标准支持覆盖率
 - ☑ 同名重载声明
 - ☑ 编译期重载决议
 - ☑ 重载多义性报错
-- ☐ var 参数优先级规则
+- ☑ var 参数优先级规则
 - ☐ 模块/跨语言重载元信息表
 - ☐ 语言层 ABI + C 层 ABI 双层模型
 - ☐ 版本绑定 ABI
@@ -102,10 +109,10 @@ xlang 第五版语言标准支持覆盖率
 - ☑ 单行 if then expr else expr
 - ☑ while
 - ☑ do-while
-- ☐ for v in 任意 Iterable
+- ☑ for v in 任意 Iterable
 - ☑ for v in range(...)
 - ☑ for v in generator
-- ☐ for k, v in 任意 Iterable
+- ☑ for k, v in 任意 Iterable
 - ☑ break
 - ☑ continue
 - ☑ break n
@@ -152,7 +159,7 @@ xlang 第五版语言标准支持覆盖率
 - ☑ task.spawn
 - ☑ task.all
 - ☑ task.race
-- ☐ task.delay
+- ☑ task.delay
 - ☑ task.cancel
 - ☐ 与标准 Awaitable/task 类型对齐
 

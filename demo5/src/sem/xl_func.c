@@ -328,6 +328,8 @@ static void __xlFuncInfoFree(XL_FuncInfo* pInfo)
 	}
 
 	free(pInfo->sName);
+	free(pInfo->sReceiverType);
+	free(pInfo->sMethodName);
 	free(pInfo->sReturnTypeName);
 	free(pInfo->sOverloadGroup);
 	free(pInfo->sSignatureId);
@@ -369,6 +371,8 @@ void xlFuncTableFree(XL_FuncTable* pTable)
 int xlFuncTableAdd(
 	XL_FuncTable* pTable,
 	const char* sName,
+	const char* sReceiverType,
+	const char* sMethodName,
 	const char* sReturnTypeName,
 	const char* const* arrParamNames,
 	const char* const* arrParamTypes,
@@ -396,6 +400,8 @@ int xlFuncTableAdd(
 	memset(pInfo, 0, sizeof(*pInfo));
 
 	pInfo->sName = __xlFuncDupText(sName);
+	pInfo->sReceiverType = __xlFuncDupText(sReceiverType);
+	pInfo->sMethodName = __xlFuncDupText(sMethodName);
 	pInfo->sReturnTypeName = __xlFuncDupText(sReturnTypeName);
 	pInfo->sOverloadGroup = __xlFuncBuildOverloadGroup(sName);
 	pInfo->sSignatureId = __xlFuncBuildSignatureId(sName, arrParamTypes, iParamCount);
@@ -431,7 +437,8 @@ int xlFuncTableAdd(
 		}
 	}
 
-	if ( (pInfo->sName == NULL) || (pInfo->sReturnTypeName == NULL) ||
+	if ( (pInfo->sName == NULL) || (pInfo->sReceiverType == NULL) || (pInfo->sMethodName == NULL) ||
+		(pInfo->sReturnTypeName == NULL) ||
 		(pInfo->sOverloadGroup == NULL) || (pInfo->sSignatureId == NULL) ||
 		(pInfo->sDispatchKey == NULL) || (pInfo->sAbiSymbol == NULL) ) {
 		__xlFuncInfoFree(pInfo);

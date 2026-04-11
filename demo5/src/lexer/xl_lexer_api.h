@@ -8,6 +8,7 @@ typedef struct XL_Lexer XL_Lexer;
 XL_Lexer* xlLexerCreateFromString(const char* sSource, size_t iLen, const char* sFileName);
 XL_Lexer* xlLexerCreateFromFile(const char* sFilePath);
 void xlLexerDestroy(XL_Lexer* pLexer);
+const char* xlLexerFileName(const XL_Lexer* pLexer);
 
 int xlLexerTokenizeAll(XL_Lexer* pLexer, XL_TokenList* pList);
 void xlTokenListInit(XL_TokenList* pList);

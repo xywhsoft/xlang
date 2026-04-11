@@ -310,6 +310,14 @@ void xlLexerDestroy(XL_Lexer* pLexer)
 	free(pLexer);
 }
 
+const char* xlLexerFileName(const XL_Lexer* pLexer)
+{
+	if ( pLexer == NULL ) {
+		return NULL;
+	}
+	return pLexer->extra.sFileName;
+}
+
 int xlLexerTokenizeAll(XL_Lexer* pLexer, XL_TokenList* pList)
 {
 	int iType;

@@ -1,0 +1,4 @@
+func main() as int
+	dict values = dict{"a": 1}
+	return values.remove(1)
+end

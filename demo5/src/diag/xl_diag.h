@@ -26,6 +26,18 @@ void xlDiagEmit(
 	const char* sFormat,
 	...
 );
+void xlDiagEmitSource(
+	XL_DiagContext* pDiag,
+	XL_DiagLevel eLevel,
+	const char* sPhase,
+	const char* sFile,
+	int iLine,
+	const char* sSourceFile,
+	int iSourceLine,
+	int iSourceColumn,
+	const char* sFormat,
+	...
+);
 
 #define XL_DIAG_INFO(diag, phase, fmt, ...) xlDiagEmit((diag), XL_DIAG_LEVEL_INFO, (phase), __FILE__, __LINE__, (fmt), ##__VA_ARGS__)
 #define XL_DIAG_WARN(diag, phase, fmt, ...) xlDiagEmit((diag), XL_DIAG_LEVEL_WARN, (phase), __FILE__, __LINE__, (fmt), ##__VA_ARGS__)

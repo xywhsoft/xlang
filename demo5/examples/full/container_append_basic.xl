@@ -1,0 +1,9 @@
+func main() as int
+	array values = [1, 2]
+	list items = list{3}
+
+	values.append(4)
+	items.append(5)
+
+	return values.len() + items.len() + values[2] + items[1]
+end

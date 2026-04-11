@@ -26,6 +26,48 @@ void xl_core_println_int(int value) { xl_core_print_int(value); xl_core_println_
 void xl_core_println_float(double value) { xl_core_print_float(value); xl_core_println_void(); }
 void xl_core_println_string(const char* value) { xl_core_print_string(value); xl_core_println_void(); }
 void xl_core_println_bool(int value) { xl_core_print_bool(value); xl_core_println_void(); }
+int xl_core_len_string(const char* value) { return (int)__xlTextLen(value); }
+int xl_core_len_array(xvalue value) { return (int)xvoArrayItemCount(value); }
+int xl_core_len_list(xvalue value) { return (int)xvoListItemCount(value); }
+int xl_core_len_set(xvalue value) { return (int)xvoCollItemCount(value); }
+int xl_core_len_dict(xvalue value) { return (int)xvoTableItemCount(value); }
+void xl_array_append(xvalue value, xvalue item) { (void)xvoArrayAppendValue(value, item, TRUE); }
+void xl_list_append(xvalue value, xvalue item) { (void)xvoListSetValue(value, (int64)xvoListItemCount(value), item, TRUE); }
+void xl_array_clear(xvalue value) { (void)xvoArrayClear(value); }
+void xl_list_clear(xvalue value) { (void)xvoListClear(value); }
+void xl_set_clear(xvalue value) { (void)xvoCollClear(value); }
+void xl_dict_clear(xvalue value) { (void)xvoTableClear(value); }
+int xl_array_remove(xvalue value, int index)
+{
+	if ( index < 0 ) {
+		return 0;
+	}
+	return xvoArrayRemove(value, (uint32)index, 1u) ? 1 : 0;
+}
+int xl_list_remove(xvalue value, int index)
+{
+	uint32 iCount;
+	uint32 i;
+	if ( index < 0 ) {
+		return 0;
+	}
+	iCount = xvoListItemCount(value);
+	if ( (uint32)index >= iCount ) {
+		return 0;
+	}
+	for ( i = (uint32)index; (i + 1u) < iCount; ++i ) {
+		/* Shift existing values left while preserving their refcounts. */
+		if ( !xvoListSetValue(value, (int64)i, xvoListGetValue(value, (int64)(i + 1u)), FALSE) ) {
+			return 0;
+		}
+	}
+	return xvoListRemove(value, (int64)(iCount - 1u)) ? 1 : 0;
+}
+int xl_set_remove(xvalue value, xvalue item) { return xvoCollRemove(value, item) ? 1 : 0; }
+int xl_dict_remove(xvalue value, const char* key)
+{
+	return xvoTableRemove(value, (str)key, (uint32)__xlTextLen(key)) ? 1 : 0;
+}
 
 xtime xl_time_now(void) { return xrtNow(); }
 const char* xl_time_to_string(xtime value) { return XLRT_CSTR(xrtTimeToStr(value, XRT_TIME_FORMAT_DATETIME)); }
@@ -151,6 +193,10 @@ int xl_str_ends_with(const char* sText, const char* sPart)
 	iTextLen = __xlTextLen(sText);
 	if ( iTextLen < iPartLen ) return 0;
 	return (xrtStrComp((str)(sText + iTextLen - iPartLen), (str)sPart, iPartLen, FALSE) == 0) ? 1 : 0;
+}
+const char* xl_str_concat(const char* sLeft, const char* sRight)
+{
+	return XLRT_CSTR(xrtFormat("%s%s", (sLeft != NULL) ? sLeft : "", (sRight != NULL) ? sRight : ""));
 }
 const char* xl_str_lower(const char* sText) { return XLRT_CSTR(xrtLCase((str)sText, __xlTextLen(sText), FALSE)); }
 const char* xl_str_upper(const char* sText) { return XLRT_CSTR(xrtUCase((str)sText, __xlTextLen(sText), FALSE)); }

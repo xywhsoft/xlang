@@ -58,10 +58,15 @@ const char* xlStdTaskModuleSource(void)
 		"\treturn 1\n"
 		"end\n"
 		"\n"
+		"func delay(int ms) as int\n"
+		"\treturn ms\n"
+		"end\n"
+		"\n"
 		"export ready\n"
 		"export done\n"
 		"export spawn\n"
 		"export all\n"
 		"export race\n"
-		"export cancel\n";
+		"export cancel\n"
+		"export delay\n";
 }
