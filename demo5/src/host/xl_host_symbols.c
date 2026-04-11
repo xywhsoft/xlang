@@ -10,6 +10,20 @@ typedef struct XL_HostSymbolEntry {
 	const void* pValue;
 } XL_HostSymbolEntry;
 
+/*
+ * Wrap point helpers locally before handing them to TCC.
+ * This avoids relying on direct addresses from the single-header xrt build.
+ */
+static xvalue __xlHostXvoCreatePoint(ptr pValue)
+{
+	return xvoCreatePoint(pValue);
+}
+
+static ptr __xlHostXvoGetPoint(xvalue value)
+{
+	return xvoGetPoint(value);
+}
+
 static int __xlAddSymbol(TCCState* pTcc, const char* sName, const void* pValue)
 {
 	char sAlias[160];
@@ -63,6 +77,10 @@ static const XL_HostSymbolEntry __gXLHostSymbols[] = {
 	{ "xrtDirScan", xrtDirScan },
 	{ "xrtStrComp", xrtStrComp },
 	{ "xrtFindStr", xrtFindStr },
+	{ "xrtSplit", xrtSplit },
+	{ "xrtLTrim", xrtLTrim },
+	{ "xrtRTrim", xrtRTrim },
+	{ "xrtTrim", xrtTrim },
 	{ "xrtLCase", xrtLCase },
 	{ "xrtUCase", xrtUCase },
 	{ "xrtReplace", xrtReplace },
@@ -81,6 +99,7 @@ static const XL_HostSymbolEntry __gXLHostSymbols[] = {
 	{ "xvoCreateFloat", xvoCreateFloat },
 	{ "xvoCreateText", xvoCreateText },
 	{ "xvoCreateTime", xvoCreateTime },
+	{ "xvoCreatePoint", __xlHostXvoCreatePoint },
 	{ "xvoCopy", xvoCopy },
 	{ "xvoUnref", xvoUnref },
 	{ "xvoGetBool", xvoGetBool },
@@ -88,6 +107,7 @@ static const XL_HostSymbolEntry __gXLHostSymbols[] = {
 	{ "xvoGetFloat", xvoGetFloat },
 	{ "xvoGetText", xvoGetText },
 	{ "xvoGetTime", xvoGetTime },
+	{ "xvoGetPoint", __xlHostXvoGetPoint },
 	{ "xvoGetColl", xvoGetColl },
 	{ "xvoGetTable", xvoGetTable },
 	{ "xvoGetSize", xvoGetSize },
@@ -148,8 +168,12 @@ static const XL_HostSymbolEntry __gXLHostSymbols[] = {
 	{ "xl_core_len_list", xl_core_len_list },
 	{ "xl_core_len_set", xl_core_len_set },
 	{ "xl_core_len_dict", xl_core_len_dict },
+	{ "xl_point_to_string", xl_point_to_string },
+	{ "xl_value_to_string", xl_value_to_string },
 	{ "xl_array_append", xl_array_append },
 	{ "xl_list_append", xl_list_append },
+	{ "xl_array_join", xl_array_join },
+	{ "xl_list_join", xl_list_join },
 	{ "xl_array_clear", xl_array_clear },
 	{ "xl_list_clear", xl_list_clear },
 	{ "xl_set_clear", xl_set_clear },
@@ -184,9 +208,18 @@ static const XL_HostSymbolEntry __gXLHostSymbols[] = {
 	{ "xl_fs_move", xl_fs_move },
 	{ "xl_fs_delete", xl_fs_delete },
 	{ "xl_str_contains", xl_str_contains },
+	{ "xl_str_index_of", xl_str_index_of },
+	{ "xl_str_last_index_of", xl_str_last_index_of },
+	{ "xl_str_slice", xl_str_slice },
+	{ "xl_str_repeat", xl_str_repeat },
+	{ "xl_str_split", xl_str_split },
+	{ "xl_str_split_lines", xl_str_split_lines },
 	{ "xl_str_starts_with", xl_str_starts_with },
 	{ "xl_str_ends_with", xl_str_ends_with },
 	{ "xl_str_concat", xl_str_concat },
+	{ "xl_str_trim", xl_str_trim },
+	{ "xl_str_trim_left", xl_str_trim_left },
+	{ "xl_str_trim_right", xl_str_trim_right },
 	{ "xl_str_lower", xl_str_lower },
 	{ "xl_str_upper", xl_str_upper },
 	{ "xl_str_replace", xl_str_replace },

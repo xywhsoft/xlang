@@ -1046,7 +1046,7 @@ static XL_TokenKind __xlLookupKeyword(const char* sText, int iLen)
 
 	static const XL_KeywordEntry arrKeywords[] = {
 		{"null", XL_KW_NULL}, {"true", XL_KW_TRUE}, {"false", XL_KW_FALSE},
-		{"func", XL_KW_FUNC}, {"const", XL_KW_CONST}, {"var", XL_KW_VAR}, {"as", XL_KW_AS},
+		{"func", XL_KW_FUNC}, {"const", XL_KW_CONST}, {"var", XL_KW_VAR}, {"typedef", XL_KW_TYPEDEF}, {"as", XL_KW_AS},
 		{"if", XL_KW_IF}, {"then", XL_KW_THEN}, {"else", XL_KW_ELSE}, {"elseif", XL_KW_ELSEIF}, {"end", XL_KW_END},
 		{"for", XL_KW_FOR}, {"in", XL_KW_IN}, {"while", XL_KW_WHILE}, {"do", XL_KW_DO},
 		{"break", XL_KW_BREAK}, {"continue", XL_KW_CONTINUE}, {"return", XL_KW_RETURN},

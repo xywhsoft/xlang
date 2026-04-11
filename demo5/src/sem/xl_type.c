@@ -59,6 +59,7 @@ void xlTypeTableFree(XL_TypeTable* pTable)
 
 	for ( i = 0; i < pTable->iCount; ++i ) {
 		free(pTable->pItems[i].sName);
+		free(pTable->pItems[i].sAliasTarget);
 	}
 	free(pTable->pItems);
 	memset(pTable, 0, sizeof(*pTable));
@@ -87,6 +88,38 @@ int xlTypeTableAdd(XL_TypeTable* pTable, const char* sName, int bBuiltin, int iL
 	}
 
 	pItem->bBuiltin = bBuiltin;
+	pItem->iLine = iLine;
+	pItem->iColumn = iColumn;
+	return XL_RC_OK;
+}
+
+int xlTypeTableAddAlias(XL_TypeTable* pTable, const char* sName, const char* sAliasTarget, int iLine, int iColumn)
+{
+	XL_TypeInfo* pItem;
+
+	if ( (pTable == NULL) || (sName == NULL) || (sName[0] == '\0') || (sAliasTarget == NULL) || (sAliasTarget[0] == '\0') ) {
+		return XL_RC_BAD_ARG;
+	}
+	if ( xlTypeTableFind(pTable, sName) != NULL ) {
+		return XL_RC_BAD_ARG;
+	}
+	if ( __xlTypeTableGrow(pTable) != XL_RC_OK ) {
+		return XL_RC_IO_ERROR;
+	}
+
+	pItem = &pTable->pItems[pTable->iCount++];
+	memset(pItem, 0, sizeof(*pItem));
+	pItem->sName = __xlTypeDupText(sName);
+	pItem->sAliasTarget = __xlTypeDupText(sAliasTarget);
+	if ( (pItem->sName == NULL) || (pItem->sAliasTarget == NULL) ) {
+		free(pItem->sName);
+		free(pItem->sAliasTarget);
+		memset(pItem, 0, sizeof(*pItem));
+		pTable->iCount -= 1;
+		return XL_RC_IO_ERROR;
+	}
+
+	pItem->bBuiltin = 0;
 	pItem->iLine = iLine;
 	pItem->iColumn = iColumn;
 	return XL_RC_OK;

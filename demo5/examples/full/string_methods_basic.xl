@@ -1,0 +1,66 @@
+func main() as int
+	auto source = "  AbC-beta  "
+	auto trimmed = source.trim()
+	auto left_trimmed = source.trim_left()
+	auto right_trimmed = source.trim_right()
+	auto middle = trimmed.slice(2, 3)
+	auto echoed = "xo".repeat(3)
+	auto lower_text = trimmed.lower()
+	auto upper_text = trimmed.upper()
+	auto replaced = trimmed.replace("beta", "x")
+	auto parts = "red,green,blue".split(",")
+	auto lines = "\nred\r\ngreen\nblue\n".split_lines()
+	auto colors = ["red", "green", "blue"]
+	auto labels = list{"A", "B"}
+
+	if lower_text.starts_with("abc") == false
+		return 1
+	end
+	if upper_text.ends_with("ETA") == false
+		return 2
+	end
+	if replaced.contains("x") == false
+		return 3
+	end
+	if replaced.contains("beta")
+		return 4
+	end
+	if trimmed.index_of("C-") != 2
+		return 5
+	end
+	if trimmed.last_index_of("a") != 7
+		return 6
+	end
+	if left_trimmed != "AbC-beta  "
+		return 7
+	end
+	if right_trimmed != "  AbC-beta"
+		return 8
+	end
+	if middle != "C-b"
+		return 9
+	end
+	if echoed != "xoxoxo"
+		return 10
+	end
+	if colors.join("-") != "red-green-blue"
+		return 11
+	end
+	if labels.join("|") != "A|B"
+		return 12
+	end
+	if parts.length != 3
+		return 13
+	end
+	if parts[1] != "green"
+		return 14
+	end
+	if lines.length != 4
+		return 15
+	end
+	if lines[0] != "" or lines[2] != "green" or lines[3] != "blue"
+		return 16
+	end
+
+	return 88
+end

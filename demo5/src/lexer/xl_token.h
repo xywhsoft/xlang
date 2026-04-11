@@ -23,6 +23,7 @@ typedef enum XL_TokenKind {
 	XL_KW_FUNC,
 	XL_KW_CONST,
 	XL_KW_VAR,
+	XL_KW_TYPEDEF,
 	XL_KW_AS,
 	XL_KW_IF,
 	XL_KW_THEN,
@@ -142,7 +143,7 @@ static inline const char* xlTokenKindName(XL_TokenKind eKind)
 	static const char* arrNames[] = {
 		"EOF", "ERROR", "NEWLINE",
 		"IDENT", "INT", "INT_HEX", "INT_OCT", "INT_BIN", "FLOAT", "STRING", "STRING_RAW", "TEMPLATE", "TIME",
-		"null", "true", "false", "func", "const", "var", "as",
+		"null", "true", "false", "func", "const", "var", "typedef", "as",
 		"if", "then", "else", "elseif", "end", "for", "in", "while", "do", "break", "continue", "return",
 		"async", "await", "yield", "try", "catch", "finally", "throw", "assert", "import", "export", "include",
 		"and", "or", "not",

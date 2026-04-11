@@ -52,6 +52,8 @@ static int __xlParserMapToken(XL_TokenKind eKind)
 			return XLPG_KW_CONST;
 		case XL_KW_VAR:
 			return XLPG_KW_VAR;
+		case XL_KW_TYPEDEF:
+			return XLPG_KW_TYPEDEF;
 		case XL_KW_AS:
 			return XLPG_KW_AS;
 		case XL_KW_IF:

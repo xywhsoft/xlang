@@ -3,6 +3,7 @@
 %token_type { XL_Token }
 %default_type { XL_AstNode* }
 %extra_argument { XL_ParseContext* pCtx }
+%fallback TOK_IDENT KW_VAR.
 
 %include {
 #include "src/ast/xl_ast.h"
@@ -460,6 +461,7 @@ static void xlPAppendStmt(XL_AstNode* pList, XL_AstNode* pStmt)
 %type type_name { XL_Token }
 %type export_func_decl { XL_AstNode* }
 %type typed_var_decl { XL_AstNode* }
+%type typedef_decl { XL_AstNode* }
 %type assign_stmt { XL_AstNode* }
 %type while_stmt { XL_AstNode* }
 %type do_while_stmt { XL_AstNode* }
@@ -515,6 +517,7 @@ stmt(A) ::= error. {
 	A = NULL;
 }
 stmt(A) ::= func_decl(F). { A = F; }
+stmt(A) ::= typedef_decl(T). { A = T; }
 stmt(A) ::= const_decl(C). { A = C; }
 stmt(A) ::= var_decl(V). { A = V; }
 stmt(A) ::= typed_var_decl(V). { A = V; }
@@ -547,6 +550,10 @@ func_decl(A) ::= async_opt(B) KW_FUNC TOK_IDENT(N) TK_LPAREN param_list(P) TK_RP
 }
 func_decl(A) ::= async_opt(B) KW_FUNC type_name(TY) OP_DOT TOK_IDENT(N) TK_LPAREN param_list(P) TK_RPAREN ret_type(R) opt_stmt_sep block(BODY) KW_END. {
 	A = xlPCreateMethodFuncDecl(&TY, &N, B, P, R, BODY);
+}
+
+typedef_decl(A) ::= KW_TYPEDEF TOK_IDENT(N) OP_ASSIGN type_name(T). {
+	A = xlAstCreateTypeDef(&N, xlAstCreateTypeRef(&T));
 }
 
 param_list(A) ::= . {
@@ -716,6 +723,7 @@ do_while_stmt_item(A) ::= error. {
 	A = NULL;
 }
 do_while_stmt_item(A) ::= func_decl(F). { A = F; }
+do_while_stmt_item(A) ::= typedef_decl(T). { A = T; }
 do_while_stmt_item(A) ::= const_decl(C). { A = C; }
 do_while_stmt_item(A) ::= var_decl(V). { A = V; }
 do_while_stmt_item(A) ::= typed_var_decl(V). { A = V; }
@@ -1033,6 +1041,9 @@ postfix_expr(A) ::= postfix_expr(B) OP_SAFE_LBRACKET(T) expr(E) TK_RBRACKET. {
 
 primary_expr(A) ::= literal(L). {
 	A = L;
+}
+primary_expr(A) ::= KW_VAR(N). [TK_LBRACE] {
+	A = xlAstCreateIdent(&N);
 }
 primary_expr(A) ::= TOK_IDENT(N). [TK_LBRACE] {
 	A = xlAstCreateIdent(&N);

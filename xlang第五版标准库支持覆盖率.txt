@@ -49,8 +49,17 @@ xlang 第五版标准库支持覆盖率
 
 四、std.str
 - ☑ func contains(string text, string part) as bool
+- ☑ func index_of(string text, string part) as int
+- ☑ func last_index_of(string text, string part) as int
+- ☑ func slice(string text, int start, int count) as string
+- ☑ func repeat(string text, int count) as string
+- ☑ func split(string text, string part) as list
+- ☑ func split_lines(string text) as list
 - ☑ func starts_with(string text, string part) as bool
 - ☑ func ends_with(string text, string part) as bool
+- ☑ func trim(string text) as string
+- ☑ func trim_left(string text) as string
+- ☑ func trim_right(string text) as string
 - ☑ func lower(string text) as string
 - ☑ func upper(string text) as string
 - ☑ func replace(string text, string part, string value) as string

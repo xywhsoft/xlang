@@ -1,0 +1,4 @@
+func main() as int
+	point raw = point(123)
+	return 0
+end
