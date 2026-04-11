@@ -1,0 +1,45 @@
+{
+	"format": "xlp-0",
+	"package": {
+		"name": "math_export_values",
+		"version": "0.0.0",
+		"abiVersion": "1",
+		"xlangAbi": "1",
+		"abiId": "math_export_values@0.0.0#abi1"
+	},
+	"dependencies": [],
+	"modules": [
+		{
+			"key": "<root>",
+			"packageName": "math_export_values",
+			"packageVersion": "0.0.0",
+			"packageAbiVersion": "1",
+			"abiId": "math_export_values@0.0.0#abi1::<root>",
+			"manifest": "",
+			"file": "D:\\Git\\x-lang\\demo5\\examples\\module\\math_export_values.xl",
+			"root": 1,
+			"native": 0,
+			"binding": "",
+			"artifactKind": "",
+			"artifactPath": "",
+			"artifactFile": "",
+			"consumeMode": "",
+			"imports": [],
+			"exports": [
+				{
+					"name": "鍩烘暟",
+					"symbol": "鍩烘暟",
+					"kind": "value",
+					"overloadCount": 0
+				},
+				{
+					"name": "姝ラ暱",
+					"symbol": "姝ラ暱",
+					"kind": "value",
+					"overloadCount": 0
+				}
+			]
+		}
+	],
+	"functions": []
+}

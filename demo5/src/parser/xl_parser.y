@@ -11,6 +11,7 @@
 typedef struct XL_ParseContext {
 	XL_AstNode* pRoot;
 	XL_DiagContext* pDiag;
+	const char* sSourceFile;
 	int bHadError;
 	int iErrorCount;
 } XL_ParseContext;
@@ -57,6 +58,14 @@ static XL_AstNode* xlPCreateDefaultValueForType(const XL_Token* pTypeToken)
 		return pNode;
 	}
 
+	if ( (pTypeToken->iTextLen == 3) && (memcmp(pTypeToken->sText, "var", 3) == 0) ) {
+		pNode = xlAstCreateNode(XL_AST_NULL, pTypeToken);
+		if ( pNode != NULL ) {
+			xlAstSetText(pNode, "null", 4);
+		}
+		return pNode;
+	}
+
 	return NULL;
 }
 
@@ -88,12 +97,15 @@ static XL_AstNode* xlPCreateTypedVarDecl(XL_ParseContext* pCtx, const XL_Token* 
 				pCtx->bHadError = 1;
 				pCtx->iErrorCount += 1;
 				if ( pCtx->pDiag != NULL ) {
-					xlDiagEmit(
+					xlDiagEmitSource(
 						pCtx->pDiag,
 						XL_DIAG_LEVEL_ERROR,
 						"parser",
 						__FILE__,
 						__LINE__,
+						pCtx->sSourceFile,
+						pTypeToken->iStartLine,
+						pTypeToken->iStartColumn,
 						"'auto' requires an initializer"
 					);
 				}
@@ -101,8 +113,14 @@ static XL_AstNode* xlPCreateTypedVarDecl(XL_ParseContext* pCtx, const XL_Token* 
 			return NULL;
 		}
 
-		pDecl = xlAstCreateVarDecl(pNameToken, NULL, pValue);
+		pTypeRef = xlAstCreateTypeRef(pTypeToken);
+		if ( pTypeRef == NULL ) {
+			xlAstFree(pValue);
+			return NULL;
+		}
+		pDecl = xlAstCreateVarDecl(pNameToken, pTypeRef, pValue);
 		if ( pDecl == NULL ) {
+			xlAstFree(pTypeRef);
 			xlAstFree(pValue);
 		}
 		return pDecl;
@@ -113,12 +131,15 @@ static XL_AstNode* xlPCreateTypedVarDecl(XL_ParseContext* pCtx, const XL_Token* 
 			pCtx->bHadError = 1;
 			pCtx->iErrorCount += 1;
 			if ( pCtx->pDiag != NULL ) {
-				xlDiagEmit(
+				xlDiagEmitSource(
 					pCtx->pDiag,
 					XL_DIAG_LEVEL_ERROR,
 					"parser",
 					__FILE__,
 					__LINE__,
+					pCtx->sSourceFile,
+					pTypeToken->iStartLine,
+					pTypeToken->iStartColumn,
 					"type %.*s requires an initializer",
 					(int)pTypeToken->iTextLen,
 					pTypeToken->sText
@@ -212,6 +233,179 @@ static XL_AstNode* xlPCreateBlockFromStmt(XL_AstNode* pStmt)
 	return pBlock;
 }
 
+static XL_AstNode* xlPCreateMethodFuncDecl(
+	const XL_Token* pReceiverTypeToken,
+	const XL_Token* pNameToken,
+	int bAsync,
+	XL_AstNode* pParams,
+	XL_AstNode* pRetType,
+	XL_AstNode* pBody
+)
+{
+	XL_AstNode* pDecl;
+	XL_AstNode* pReceiverType;
+
+	if ( (pReceiverTypeToken == NULL) || (pNameToken == NULL) ) {
+		xlAstFree(pParams);
+		xlAstFree(pRetType);
+		xlAstFree(pBody);
+		return NULL;
+	}
+
+	pDecl = xlAstCreateFuncDecl(pNameToken, bAsync, pParams, pRetType, pBody);
+	if ( pDecl == NULL ) {
+		return NULL;
+	}
+
+	pReceiverType = xlAstCreateTypeRef(pReceiverTypeToken);
+	if ( pReceiverType == NULL ) {
+		xlAstFree(pDecl);
+		return NULL;
+	}
+
+	xlAstSetText2(pDecl, pNameToken->sText, pNameToken->iTextLen);
+	xlAstAppendChild(pDecl, pReceiverType);
+	return pDecl;
+}
+
+static XL_AstNode* xlPCreateHiddenCall(const char* sName, XL_AstNode* pArgs, const XL_Token* pToken)
+{
+	XL_AstNode* pCallee;
+	XL_AstNode* pCall;
+
+	pCallee = xlAstCreateIdentText(sName);
+	if ( pCallee == NULL ) {
+		xlAstFree(pArgs);
+		return NULL;
+	}
+
+	if ( pArgs == NULL ) {
+		pArgs = xlPList();
+		if ( pArgs == NULL ) {
+			xlAstFree(pCallee);
+			return NULL;
+		}
+	}
+
+	pCall = xlAstCreateCall(pCallee, pArgs, pToken);
+	if ( pCall == NULL ) {
+		xlAstFree(pCallee);
+		xlAstFree(pArgs);
+	}
+	return pCall;
+}
+
+static XL_AstNode* xlPCreateDictLiteralItems(XL_AstNode* pKey, XL_AstNode* pValue)
+{
+	XL_AstNode* pItems;
+
+	pItems = xlPList();
+	if ( pItems == NULL ) {
+		xlAstFree(pKey);
+		xlAstFree(pValue);
+		return NULL;
+	}
+
+	xlAstAppendChild(pItems, pKey);
+	xlAstAppendChild(pItems, pValue);
+	return pItems;
+}
+
+static XL_AstNode* xlPCreateBareBraceLiteral(XL_AstNode* pItems, int bIsDict, const XL_Token* pToken)
+{
+	if ( bIsDict ) {
+		return xlPCreateHiddenCall("__dict_literal", pItems, pToken);
+	}
+	return xlPCreateHiddenCall("__set_literal", pItems, pToken);
+}
+
+static XL_AstNode* xlPCreateBareBracketLiteral(XL_AstNode* pItems, int bIsList, const XL_Token* pToken)
+{
+	if ( bIsList ) {
+		return xlPCreateHiddenCall("__list_literal_indexed", pItems, pToken);
+	}
+	return xlPCreateHiddenCall("__array_literal", pItems, pToken);
+}
+
+static XL_AstNode* xlPCreateBracedValueLiteral(
+	XL_ParseContext* pCtx,
+	const XL_Token* pNameToken,
+	XL_AstNode* pItems
+)
+{
+	if ( (pNameToken == NULL) || (pNameToken->sText == NULL) ) {
+		xlAstFree(pItems);
+		return NULL;
+	}
+
+	if ( xlPTokenEquals(pNameToken, "list") ) {
+		return xlPCreateHiddenCall("__list_literal", pItems, pNameToken);
+	}
+	if ( xlPTokenEquals(pNameToken, "set") ) {
+		return xlPCreateHiddenCall("__set_literal", pItems, pNameToken);
+	}
+	if ( xlPTokenEquals(pNameToken, "dict") && (pItems != NULL) && (pItems->iChildCount == 0) ) {
+		return xlPCreateHiddenCall("__dict_literal", pItems, pNameToken);
+	}
+
+	if ( pCtx != NULL ) {
+		pCtx->bHadError = 1;
+		pCtx->iErrorCount += 1;
+		if ( pCtx->pDiag != NULL ) {
+			xlDiagEmitSource(
+				pCtx->pDiag,
+				XL_DIAG_LEVEL_ERROR,
+				"parser",
+				__FILE__,
+				__LINE__,
+				pCtx->sSourceFile,
+				pNameToken->iStartLine,
+				pNameToken->iStartColumn,
+				"'%.*s{...}' is not a supported literal form",
+				(int)pNameToken->iTextLen,
+				pNameToken->sText
+			);
+		}
+	}
+
+	xlAstFree(pItems);
+	return NULL;
+}
+
+static XL_AstNode* xlPCreateBracedDictLiteral(
+	XL_ParseContext* pCtx,
+	const XL_Token* pNameToken,
+	XL_AstNode* pItems
+)
+{
+	if ( (pNameToken != NULL) && xlPTokenEquals(pNameToken, "dict") ) {
+		return xlPCreateHiddenCall("__dict_literal", pItems, pNameToken);
+	}
+
+	if ( (pCtx != NULL) && (pNameToken != NULL) ) {
+		pCtx->bHadError = 1;
+		pCtx->iErrorCount += 1;
+		if ( pCtx->pDiag != NULL ) {
+			xlDiagEmitSource(
+				pCtx->pDiag,
+				XL_DIAG_LEVEL_ERROR,
+				"parser",
+				__FILE__,
+				__LINE__,
+				pCtx->sSourceFile,
+				pNameToken->iStartLine,
+				pNameToken->iStartColumn,
+				"'%.*s{key: value}' is only supported for dict literals",
+				(int)pNameToken->iTextLen,
+				pNameToken->sText
+			);
+		}
+	}
+
+	xlAstFree(pItems);
+	return NULL;
+}
+
 static void xlPAppendStmt(XL_AstNode* pList, XL_AstNode* pStmt)
 {
 	if ( (pList == NULL) || (pStmt == NULL) ) {
@@ -229,12 +423,15 @@ static void xlPAppendStmt(XL_AstNode* pList, XL_AstNode* pStmt)
 	pCtx->bHadError = 1;
 	pCtx->iErrorCount += 1;
 	if ( pCtx->pDiag != NULL ) {
-		xlDiagEmit(
+		xlDiagEmitSource(
 			pCtx->pDiag,
 			XL_DIAG_LEVEL_ERROR,
 			"parser",
 			__FILE__,
 			__LINE__,
+			pCtx->sSourceFile,
+			TOKEN.iStartLine,
+			TOKEN.iStartColumn,
 			"syntax error near %s",
 			xlTokenKindName(TOKEN.eKind)
 		);
@@ -242,7 +439,7 @@ static void xlPAppendStmt(XL_AstNode* pList, XL_AstNode* pStmt)
 }
 
 %parse_failure {
-	if ( pCtx->pDiag != NULL ) {
+	if ( (pCtx->pDiag != NULL) && (pCtx->iErrorCount == 0) ) {
 		xlDiagEmit(pCtx->pDiag, XL_DIAG_LEVEL_ERROR, "parser", __FILE__, __LINE__, "parse failure");
 	}
 }
@@ -260,6 +457,7 @@ static void xlPAppendStmt(XL_AstNode* pList, XL_AstNode* pStmt)
 %type import_item { XL_AstNode* }
 %type import_path { XL_AstNode* }
 %type import_alias_opt { XL_Token }
+%type type_name { XL_Token }
 %type export_func_decl { XL_AstNode* }
 %type typed_var_decl { XL_AstNode* }
 %type assign_stmt { XL_AstNode* }
@@ -269,6 +467,12 @@ static void xlPAppendStmt(XL_AstNode* pList, XL_AstNode* pStmt)
 %type do_while_stmt_items { XL_AstNode* }
 %type do_while_stmt_item { XL_AstNode* }
 %type inline_stmt { XL_AstNode* }
+%type bare_brace_literal { XL_AstNode* }
+%type bare_bracket_literal { XL_AstNode* }
+%type dict_items { XL_AstNode* }
+%type dict_item { XL_AstNode* }
+%type indexed_items { XL_AstNode* }
+%type indexed_item { XL_AstNode* }
 
 %left OP_SHL OP_SHR.
 %left OP_PLUS OP_MINUS.
@@ -277,9 +481,10 @@ static void xlPAppendStmt(XL_AstNode* pList, XL_AstNode* pStmt)
 %right KW_THEN.
 %right KW_ELSE.
 %right UMINUS KW_NOT OP_BANG KW_AWAIT.
+%right TK_LBRACE.
 %left OP_DOT OP_SAFE_DOT TK_LBRACKET OP_SAFE_LBRACKET TK_LPAREN.
 
-program ::= stmt_list(L). {
+program ::= opt_stmt_sep stmt_list(L). {
 	XL_AstNode* pProgram = xlAstCreateProgram();
 	xlAstAppendChildren(pProgram, L);
 	pCtx->pRoot = pProgram;
@@ -340,6 +545,9 @@ async_opt(A) ::= . { A = 0; }
 func_decl(A) ::= async_opt(B) KW_FUNC TOK_IDENT(N) TK_LPAREN param_list(P) TK_RPAREN ret_type(R) opt_stmt_sep block(BODY) KW_END. {
 	A = xlAstCreateFuncDecl(&N, B, P, R, BODY);
 }
+func_decl(A) ::= async_opt(B) KW_FUNC type_name(TY) OP_DOT TOK_IDENT(N) TK_LPAREN param_list(P) TK_RPAREN ret_type(R) opt_stmt_sep block(BODY) KW_END. {
+	A = xlPCreateMethodFuncDecl(&TY, &N, B, P, R, BODY);
+}
 
 param_list(A) ::= . {
 	A = xlPList();
@@ -360,18 +568,21 @@ params(A) ::= params(L) TK_COMMA param(P). {
 param(A) ::= TOK_IDENT(N). {
 	A = xlAstCreateParam(&N, NULL, NULL);
 }
-param(A) ::= TOK_IDENT(T) TOK_IDENT(N). {
+param(A) ::= type_name(T) TOK_IDENT(N). {
 	A = xlAstCreateParam(&N, xlAstCreateTypeRef(&T), NULL);
 }
 param(A) ::= TOK_IDENT(N) OP_ASSIGN expr(E). {
 	A = xlAstCreateParam(&N, NULL, E);
 }
-param(A) ::= TOK_IDENT(T) TOK_IDENT(N) OP_ASSIGN expr(E). {
+param(A) ::= type_name(T) TOK_IDENT(N) OP_ASSIGN expr(E). {
 	A = xlAstCreateParam(&N, xlAstCreateTypeRef(&T), E);
 }
 
 ret_type(A) ::= . { A = NULL; }
-ret_type(A) ::= KW_AS TOK_IDENT(T). { A = xlAstCreateTypeRef(&T); }
+ret_type(A) ::= KW_AS type_name(T). { A = xlAstCreateTypeRef(&T); }
+
+type_name(A) ::= TOK_IDENT(T). { A = T; }
+type_name(A) ::= KW_VAR(T). { A = T; }
 
 const_decl(A) ::= KW_CONST TOK_IDENT(N) OP_ASSIGN expr(E). {
 	A = xlAstCreateConstDecl(&N, NULL, E);
@@ -596,6 +807,9 @@ export_stmt(A) ::= KW_EXPORT(T) var_decl(V). {
 export_func_decl(A) ::= async_opt(B) KW_FUNC TOK_IDENT(N) TK_LPAREN param_list(P) TK_RPAREN ret_type(R) opt_stmt_sep block(BODY) KW_END. {
 	A = xlPCreateExportedDeclList(&N, xlAstCreateFuncDecl(&N, B, P, R, BODY), &N);
 }
+export_func_decl(A) ::= async_opt(B) KW_FUNC type_name(TY) OP_DOT TOK_IDENT(N) TK_LPAREN param_list(P) TK_RPAREN ret_type(R) opt_stmt_sep block(BODY) KW_END. {
+	A = xlPCreateExportedDeclList(&N, xlPCreateMethodFuncDecl(&TY, &N, B, P, R, BODY), &N);
+}
 
 expr_opt(A) ::= . { A = NULL; }
 expr_opt(A) ::= expr(E). { A = E; }
@@ -622,6 +836,39 @@ args(A) ::= TOK_IDENT(N) OP_ASSIGN expr(E). {
 args(A) ::= args(L) TK_COMMA TOK_IDENT(N) OP_ASSIGN expr(E). {
 	A = L;
 	xlAstAppendChild(A, xlAstCreateNamedArg(&N, E));
+}
+
+expr_items(A) ::= expr(E). {
+	A = xlPList();
+	xlAstAppendChild(A, E);
+}
+expr_items(A) ::= expr_items(L) TK_COMMA expr(E). {
+	A = L;
+	xlAstAppendChild(A, E);
+}
+
+dict_items(A) ::= dict_item(I). {
+	A = I;
+}
+dict_items(A) ::= dict_items(L) TK_COMMA dict_item(I). {
+	A = L;
+	xlAstAppendChildren(A, I);
+}
+
+dict_item(A) ::= expr(K) OP_COLON expr(V). {
+	A = xlPCreateDictLiteralItems(K, V);
+}
+
+indexed_items(A) ::= indexed_item(I). {
+	A = I;
+}
+indexed_items(A) ::= indexed_items(L) TK_COMMA indexed_item(I). {
+	A = L;
+	xlAstAppendChildren(A, I);
+}
+
+indexed_item(A) ::= expr(K) OP_COLON expr(V). {
+	A = xlPCreateDictLiteralItems(K, V);
 }
 
 expr(A) ::= null_expr(E). {
@@ -787,11 +1034,46 @@ postfix_expr(A) ::= postfix_expr(B) OP_SAFE_LBRACKET(T) expr(E) TK_RBRACKET. {
 primary_expr(A) ::= literal(L). {
 	A = L;
 }
-primary_expr(A) ::= TOK_IDENT(N). {
+primary_expr(A) ::= TOK_IDENT(N). [TK_LBRACE] {
 	A = xlAstCreateIdent(&N);
 }
 primary_expr(A) ::= TK_LPAREN expr(E) TK_RPAREN. {
 	A = E;
+}
+primary_expr(A) ::= bare_bracket_literal(L). {
+	A = L;
+}
+primary_expr(A) ::= bare_brace_literal(L). {
+	A = L;
+}
+primary_expr(A) ::= TOK_IDENT(N) TK_LBRACE TK_RBRACE. {
+	A = xlPCreateBracedValueLiteral(pCtx, &N, xlPList());
+}
+primary_expr(A) ::= TOK_IDENT(N) TK_LBRACE expr_items(ITEMS) TK_RBRACE. {
+	A = xlPCreateBracedValueLiteral(pCtx, &N, ITEMS);
+}
+primary_expr(A) ::= TOK_IDENT(N) TK_LBRACE dict_items(ITEMS) TK_RBRACE. {
+	A = xlPCreateBracedDictLiteral(pCtx, &N, ITEMS);
+}
+
+bare_bracket_literal(A) ::= TK_LBRACKET(T) TK_RBRACKET. {
+	A = xlPCreateHiddenCall("__array_literal", xlPList(), &T);
+}
+bare_bracket_literal(A) ::= TK_LBRACKET(T) expr_items(ITEMS) TK_RBRACKET. {
+	A = xlPCreateHiddenCall("__array_literal", ITEMS, &T);
+}
+bare_bracket_literal(A) ::= TK_LBRACKET(T) indexed_items(ITEMS) TK_RBRACKET. {
+	A = xlPCreateBareBracketLiteral(ITEMS, 1, &T);
+}
+
+bare_brace_literal(A) ::= TK_LBRACE(T) TK_RBRACE. {
+	A = xlPCreateBareBraceLiteral(xlPList(), 1, &T);
+}
+bare_brace_literal(A) ::= TK_LBRACE(T) expr_items(ITEMS) TK_RBRACE. {
+	A = xlPCreateBareBraceLiteral(ITEMS, 0, &T);
+}
+bare_brace_literal(A) ::= TK_LBRACE(T) dict_items(ITEMS) TK_RBRACE. {
+	A = xlPCreateBareBraceLiteral(ITEMS, 1, &T);
 }
 
 literal(A) ::= INT(T). { A = xlAstCreateLiteralFromToken(&T); }

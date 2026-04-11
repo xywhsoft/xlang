@@ -1,0 +1,30 @@
+int8 small = 1
+uint8 small_u = 2
+int16 mid = 3
+uint16 mid_u = 4
+int32 base = 40
+uint32 wide32 = 5
+int64 big = 6
+uint64 wide = 7
+float32 ratio32 = 1.25
+float64 ratio64 = 2.5
+
+func bump_int32(int32 value) as int32
+	return value + 1
+end
+
+func bump_float64(float64 value) as float64
+	return value + 0.5
+end
+
+func main() as int
+	int32 total = bump_int32(base) + 1
+	uint64 carry = wide + 1
+	float64 score = bump_float64(ratio64)
+
+	if small > 0 and small_u > 0 and mid > 0 and mid_u > 0 and wide32 > 0 and big > 0 and carry > 0 and score > 2.9 and ratio32 > 1.0
+		return total
+	end
+
+	return 0
+end

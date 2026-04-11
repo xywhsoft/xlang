@@ -1,0 +1,4 @@
+func main() as int
+    array values = [40, 2]
+    return values[0] + values[1]
+end

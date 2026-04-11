@@ -39,6 +39,15 @@ static const XL_AstNode* __xlAstChild(const XL_AstNode* pNode, size_t iIndex)
 	return pNode->ppChildren[iIndex];
 }
 
+static const XL_AstNode* __xlFuncReceiverNode(const XL_AstNode* pNode)
+{
+	if ( (pNode == NULL) || (pNode->eKind != XL_AST_FUNC_DECL) || (pNode->iChildCount <= 3) ) {
+		return NULL;
+	}
+
+	return pNode->ppChildren[3];
+}
+
 static void __xlLowerTrace(XL_DiagContext* pDiag, int bTraceLower, const XL_AstNode* pNode, const char* sFormat, ...)
 {
 	va_list args;
@@ -103,7 +112,7 @@ static XL_HirNode* __xlLowerFuncToHir(const XL_AstNode* pNode, const XL_SemResul
 	}
 
 	xlHirSetText(pFunc, pNode->sText);
-	if ( (pNode->sText2 != NULL) && (pNode->sText2[0] != '\0') ) {
+	if ( (__xlFuncReceiverNode(pNode) == NULL) && (pNode->sText2 != NULL) && (pNode->sText2[0] != '\0') ) {
 		xlHirSetExternName(pFunc, pNode->sText2);
 	}
 	__xlApplySemNodeInfo(pFunc, pSem, pNode);

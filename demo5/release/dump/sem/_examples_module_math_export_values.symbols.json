@@ -1,0 +1,22 @@
+[
+	{
+		"kind": "const",
+		"scopeId": 0,
+		"name": "鍩烘暟",
+		"typeName": "int",
+		"line": 1,
+		"column": 18,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "var",
+		"scopeId": 0,
+		"name": "姝ラ暱",
+		"typeName": "int",
+		"line": 2,
+		"column": 16,
+		"async": 0,
+		"generator": 0
+	}
+]

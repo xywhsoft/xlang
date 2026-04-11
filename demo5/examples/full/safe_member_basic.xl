@@ -1,0 +1,31 @@
+func main() as int
+	error current = null
+	string missing = current?.message ?? "missing"
+	if missing != "missing"
+		return 1
+	end
+	if current?.code != 0
+		return 2
+	end
+
+	current = Error("disk", code = 7, cause = Error("inner", code = 2))
+	if current?.type != "Error"
+		return 3
+	end
+	if current?.message != "disk"
+		return 4
+	end
+	if current?.code != 7
+		return 5
+	end
+	if current?.cause == null
+		return 6
+	end
+	if current?.cause?.message != "inner"
+		return 7
+	end
+	if current?.cause?.code != 2
+		return 8
+	end
+	return 42
+end

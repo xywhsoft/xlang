@@ -1,0 +1,8 @@
+tcc_root=D:\Git\x-lang\demo5\release\tcc
+include=D:\Git\x-lang\demo5\release\tcc\include_win
+include=D:\Git\x-lang\demo5\release\tcc\include_win\winapi
+include=D:\Git\x-lang\demo5\src\runtime
+include=D:\Git\x-lang\demo5\lib\xrt
+lib=D:\Git\x-lang\demo5\release\tcc\lib
+compile_file=examples\full\bare_container_literals_basic.xl
+[tcc] examples\full\bare_container_literals_basic.xl: error: examples\full\bare_container_literals_basic.xl: unrecognized file type

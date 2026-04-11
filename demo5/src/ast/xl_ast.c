@@ -16,6 +16,58 @@ static char* __xlAstDupText(const char* sText, size_t iLen)
 	return sCopy;
 }
 
+static void __xlAstSetNormalizedTemplateText(XL_AstNode* pNode, const XL_Token* pToken)
+{
+	const char* sSource;
+	char* sBuffer;
+	size_t iSourceLen;
+	size_t i;
+	size_t iOut;
+
+	if ( (pNode == NULL) || (pToken == NULL) || (pToken->sText == NULL) ) {
+		return;
+	}
+
+	sSource = pToken->sText;
+	iSourceLen = pToken->iTextLen;
+	if ( (iSourceLen >= 2) && (sSource[0] == '`') && (sSource[iSourceLen - 1] == '`') ) {
+		sSource += 1;
+		iSourceLen -= 2;
+	}
+
+	sBuffer = (char*)malloc((iSourceLen * 2) + 3);
+	if ( sBuffer == NULL ) {
+		xlAstSetText(pNode, pToken->sText, pToken->iTextLen);
+		return;
+	}
+
+	iOut = 0;
+	sBuffer[iOut++] = '"';
+	for ( i = 0; i < iSourceLen; ++i ) {
+		char ch;
+
+		ch = sSource[i];
+		if ( ch == '"' ) {
+			sBuffer[iOut++] = '\\';
+			sBuffer[iOut++] = '"';
+			continue;
+		}
+		if ( ch == '\\' ) {
+			sBuffer[iOut++] = '\\';
+			if ( (i + 1) < iSourceLen ) {
+				sBuffer[iOut++] = sSource[++i];
+			}
+			continue;
+		}
+		sBuffer[iOut++] = ch;
+	}
+	sBuffer[iOut++] = '"';
+	sBuffer[iOut] = '\0';
+
+	xlAstSetText(pNode, sBuffer, iOut);
+	free(sBuffer);
+}
+
 static void __xlAstSetNormalizedTypeText(XL_AstNode* pNode, const XL_Token* pToken)
 {
 	if ( (pNode == NULL) || (pToken == NULL) ) {
@@ -157,7 +209,7 @@ XL_AstNode* xlAstCreateLiteralFromToken(const XL_Token* pToken)
 		case XL_TK_TEMPLATE:
 			pNode = xlAstCreateNode(XL_AST_TEMPLATE, pToken);
 			if ( pNode != NULL ) {
-				xlAstSetText(pNode, pToken->sText, pToken->iTextLen);
+				__xlAstSetNormalizedTemplateText(pNode, pToken);
 			}
 			return pNode;
 		case XL_TK_TIME:

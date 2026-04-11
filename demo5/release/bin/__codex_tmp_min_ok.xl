@@ -1,0 +1,5 @@
+import std.core
+
+func main() as int
+	return 0
+end

@@ -1,0 +1,15 @@
+tcc_root=D:\git\x-lang\demo5\release\tcc
+include=D:\git\x-lang\demo5\release\tcc\include_win
+include=D:\git\x-lang\demo5\release\tcc\include_win\winapi
+include=D:\git\x-lang\demo5\src\runtime
+include=D:\git\x-lang\demo5\lib\xrt
+lib=D:\git\x-lang\demo5\release\tcc\lib
+compile_text=test.xl
+output=release\bin\test.exe
+output_kind=exe
+support_source=D:\git\x-lang\demo5\src\runtime\xlrt_host.c
+support_source=D:\git\x-lang\demo5\src\runtime\xlrt_generated.c
+support_source=D:\git\x-lang\demo5\src\host\xl_host_runtime.c
+link_lib=shell32
+link_lib=ws2_32
+link_lib=iphlpapi

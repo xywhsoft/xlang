@@ -1,0 +1,17 @@
+func string.wrap(string self, string left, string right) as string
+	return left + self + right
+end
+
+func main() as int
+	auto text = "asd".replace("s", ".").wrap("[", "]")
+	auto values = [1, 2]
+	auto pairs = {}
+
+	values.append(3)
+	pairs["k"] = "v"
+
+	if text == "[a.d]" and values.len() == 3 and {"x", "y"}.has("x") and pairs.has("k") then
+		return 42
+	end
+	return 0
+end

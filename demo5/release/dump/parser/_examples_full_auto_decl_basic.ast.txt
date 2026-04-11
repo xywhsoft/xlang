@@ -1,0 +1,13 @@
+Program @ 0:0-0:0
+	VarDecl @ 1:6-1:10 text="base"
+		Int @ 1:13-1:15 text="40" int=40
+	FuncDecl @ 3:6-3:8 text="入口"
+		List @ 0:0-0:0
+		TypeRef @ 3:14-3:17 text="int"
+		Block @ 0:0-0:0
+			VarDecl @ 4:7-4:12 text="delta"
+				Int @ 4:15-4:16 text="2" int=2
+			Return @ 5:2-5:8
+				Binary @ 5:14-5:15 text="+"
+					Ident @ 5:9-5:13 text="base"
+					Ident @ 5:16-5:21 text="delta"

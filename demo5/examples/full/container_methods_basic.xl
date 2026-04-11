@@ -1,0 +1,16 @@
+func main() as int
+	array values = [1, 2, 3]
+	list items = list{4, 5}
+	set flags = set{6, 7}
+	dict pairs = dict{"a": 1, "b": 2}
+	int total = values.len() + items.len() + flags.len() + pairs.len()
+
+	if flags.has(7) then
+		total += 1
+	end
+	if pairs.has("a") then
+		total += 2
+	end
+
+	return total
+end

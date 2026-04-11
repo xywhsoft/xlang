@@ -1,0 +1,55 @@
+SemanticResult hadError=1
+Types (29)
+	- any builtin=1 @ 0:0
+	- array builtin=1 @ 0:0
+	- bool builtin=1 @ 0:0
+	- dict builtin=1 @ 0:0
+	- error builtin=1 @ 0:0
+	- float builtin=1 @ 0:0
+	- float32 builtin=1 @ 0:0
+	- float64 builtin=1 @ 0:0
+	- generator builtin=1 @ 0:0
+	- int builtin=1 @ 0:0
+	- int8 builtin=1 @ 0:0
+	- uint8 builtin=1 @ 0:0
+	- int16 builtin=1 @ 0:0
+	- uint16 builtin=1 @ 0:0
+	- int32 builtin=1 @ 0:0
+	- uint32 builtin=1 @ 0:0
+	- int64 builtin=1 @ 0:0
+	- uint64 builtin=1 @ 0:0
+	- iterable builtin=1 @ 0:0
+	- iterator builtin=1 @ 0:0
+	- list builtin=1 @ 0:0
+	- null builtin=1 @ 0:0
+	- range builtin=1 @ 0:0
+	- set builtin=1 @ 0:0
+	- string builtin=1 @ 0:0
+	- task builtin=1 @ 0:0
+	- time builtin=1 @ 0:0
+	- var builtin=1 @ 0:0
+	- void builtin=1 @ 0:0
+Functions (12)
+	- range(int stop) as range scope=0 async=0 generator=0 abi=xl__range__arity1__stop__int__ret__range sig=range(int) @ 0:0
+	- range(int start, int stop) as range scope=0 async=0 generator=0 abi=xl__range__arity2__start__int__stop__int__ret__range sig=range(int,int) @ 0:0
+	- range(int start, int stop, int step) as range scope=0 async=0 generator=0 abi=xl__range__arity3__start__int__stop__int__step__int__ret__range sig=range(int,int,int) @ 0:0
+	- Error(string message, int code, string data, string stack, error cause) as error scope=0 async=0 generator=0 abi=xl__Error__arity5__message__string__code__int__data__string__stack__string__cause__error__ret__error sig=Error(string,int,string,string,error) @ 0:0
+	- TypeError(string message, int code, string data, string stack, error cause) as error scope=0 async=0 generator=0 abi=xl__TypeError__arity5__message__string__code__int__data__string__stack__string__cause__error__ret__error sig=TypeError(string,int,string,string,error) @ 0:0
+	- ValueError(string message, int code, string data, string stack, error cause) as error scope=0 async=0 generator=0 abi=xl__ValueError__arity5__message__string__code__int__data__string__stack__string__cause__error__ret__error sig=ValueError(string,int,string,string,error) @ 0:0
+	- IOError(string message, int code, string data, string stack, error cause) as error scope=0 async=0 generator=0 abi=xl__IOError__arity5__message__string__code__int__data__string__stack__string__cause__error__ret__error sig=IOError(string,int,string,string,error) @ 0:0
+	- TimeoutError(string message, int code, string data, string stack, error cause) as error scope=0 async=0 generator=0 abi=xl__TimeoutError__arity5__message__string__code__int__data__string__stack__string__cause__error__ret__error sig=TimeoutError(string,int,string,string,error) @ 0:0
+	- CancelledError(string message, int code, string data, string stack, error cause) as error scope=0 async=0 generator=0 abi=xl__CancelledError__arity5__message__string__code__int__data__string__stack__string__cause__error__ret__error sig=CancelledError(string,int,string,string,error) @ 0:0
+	- NotImplementedError(string message, int code, string data, string stack, error cause) as error scope=0 async=0 generator=0 abi=xl__NotImplementedError__arity5__message__string__code__int__data__string__stack__string__cause__error__ret__error sig=NotImplementedError(string,int,string,string,error) @ 0:0
+	- NativeError(string message, int code, string data, string stack, error cause) as error scope=0 async=0 generator=0 abi=xl__NativeError__arity5__message__string__code__int__data__string__stack__string__cause__error__ret__error sig=NativeError(string,int,string,string,error) @ 0:0
+	- 入口() as int scope=0 async=0 generator=0 abi=xl___xE5_x85_xA5_xE5_x8F_xA3__arity0__ret__int sig=入口() @ 3:6
+Scopes (3)
+	- #0 module "<module>" parent=-1 depth=0 @ 0:0
+	- #1 func "入口" parent=0 depth=1 @ 3:6
+	- #2 block "func.body" parent=1 depth=2 @ 0:0
+Symbols (3)
+	- func 入口 scope=0 type=int async=0 generator=0 @ 3:6
+	- const xl_mod_math_export_values__鍩烘暟 scope=0 type=int async=0 generator=0 @ 1:18
+	- var xl_mod_math_export_values__姝ラ暱 scope=0 type=int async=0 generator=0 @ 2:16
+Diagnostics (2)
+	- error @ 4:9 unresolved identifier 'math_export_values'
+	- error @ 4:33 unresolved identifier 'math_export_values'

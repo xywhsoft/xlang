@@ -1,0 +1,14 @@
+
+
+
+import std.core
+
+
+
+func main() as int
+	auto a = {"b": "hello", "c": " world"}
+	std.core.println(a["b"] + a["c"])
+	return 1234
+end
+
+

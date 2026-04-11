@@ -35,9 +35,9 @@ xlang 第五版语言标准总表
 1. 基础值类型
 - bool
 - int
-- i8, u8, i16, u16, i32, u32, i64, u64
+- int8, uint8, int16, uint16, int32, uint32, int64, uint64
 - float
-- f32, f64
+- float32, float64
 - string（默认 UTF-8，也可承载任意字节序列）
 - time
 - point
@@ -100,6 +100,7 @@ xlang 第五版语言标准总表
 2. 成员与索引
 - obj.member
 - obj?.member
+- expr.method(...)
 - obj[index]
 - obj?[index]
 
@@ -136,6 +137,7 @@ xlang 第五版语言标准总表
 
 1. 函数定义
 - func add(int a, int b) as int ... end
+- func string.replace(string self, string old, string value) as string ... end
 - async func fetch(...) as T ... end
 
 2. 参数能力

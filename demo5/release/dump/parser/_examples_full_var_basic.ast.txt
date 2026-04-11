@@ -1,0 +1,63 @@
+Program @ 0:0-0:0
+	FuncDecl @ 15:6-15:10 text="main"
+		List @ 0:0-0:0
+		TypeRef @ 15:16-15:19 text="int"
+		Block @ 0:0-0:0
+			VarDecl @ 16:6-16:11 text="value"
+				Int @ 16:14-16:16 text="40" int=40
+			ExprStmt @ 0:0-0:0
+				Assign @ 17:8-17:9 text="="
+					Ident @ 17:2-17:7 text="value"
+					Int @ 17:10-17:12 text="41" int=41
+			VarDecl @ 19:6-19:12 text="number"
+				TypeRef @ 19:2-19:5 text="int"
+				Call @ 19:32-19:33
+					Ident @ 19:15-19:26 text="passthrough"
+					List @ 0:0-0:0
+						Ident @ 19:27-19:32 text="value"
+			VarDecl @ 20:6-20:13 text="message"
+				Call @ 20:35-20:36
+					Ident @ 20:16-20:27 text="passthrough"
+					List @ 0:0-0:0
+						String @ 20:28-20:35 text="\"hello\""
+			VarDecl @ 21:9-21:13 text="text"
+				TypeRef @ 21:2-21:8 text="string"
+				Ident @ 21:16-21:23 text="message"
+			If @ 23:2-23:4
+				Binary @ 23:109-23:112 text="and"
+					Binary @ 23:83-23:86 text="and"
+						Binary @ 23:47-23:50 text="and"
+							Binary @ 23:18-23:21 text="and"
+								Binary @ 23:12-23:14 text="=="
+									Ident @ 23:5-23:11 text="number"
+									Int @ 23:15-23:17 text="41" int=41
+								Binary @ 23:41-23:43 text="=="
+									Call @ 23:39-23:40
+										Ident @ 23:22-23:33 text="passthrough"
+										List @ 0:0-0:0
+											Ident @ 23:34-23:39 text="value"
+									Int @ 23:44-23:46 text="41" int=41
+							Binary @ 23:72-23:74 text="=="
+								Call @ 23:70-23:71
+									Ident @ 23:51-23:62 text="passthrough"
+									List @ 0:0-0:0
+										String @ 23:63-23:70 text="\"hello\""
+								String @ 23:75-23:82 text="\"hello\""
+						Binary @ 23:103-23:105 text="=="
+							Call @ 23:101-23:102
+								Ident @ 23:87-23:95 text="read_int"
+								List @ 0:0-0:0
+									Ident @ 23:96-23:101 text="value"
+							Int @ 23:106-23:108 text="42" int=42
+					Binary @ 23:129-23:131 text="=="
+						Call @ 23:127-23:128
+							Ident @ 23:113-23:122 text="read_text"
+							List @ 0:0-0:0
+								String @ 23:123-23:127 text="\"ok\""
+						String @ 23:132-23:136 text="\"ok\""
+				Block @ 0:0-0:0
+					Return @ 24:3-24:9
+						Int @ 24:10-24:12 text="42" int=42
+				List @ 0:0-0:0
+			Return @ 26:2-26:8
+				Int @ 26:9-26:10 text="0"

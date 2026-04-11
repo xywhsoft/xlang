@@ -1,0 +1,13 @@
+Program @ 0:0-0:0
+	Import @ 1:8-1:26
+		Ident @ 1:8-1:26 text="math_export_values"
+	FuncDecl @ 3:6-3:8 text="入口"
+		List @ 0:0-0:0
+		TypeRef @ 3:14-3:17 text="int"
+		Block @ 0:0-0:0
+			Return @ 4:2-4:8
+				Binary @ 4:31-4:32 text="+"
+					Member @ 4:27-4:28 text="基数"
+						Ident @ 4:9-4:27 text="math_export_values"
+					Member @ 4:51-4:52 text="步长"
+						Ident @ 4:33-4:51 text="math_export_values"

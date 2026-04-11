@@ -204,8 +204,8 @@ xlang 第五版 Demo 设计方案
 基础值类型：
 	- null
 	- bool
-	- int / i8 / u8 / i16 / u16 / i32 / u32 / i64 / u64
-	- float / f32 / f64
+	- int / int8 / uint8 / int16 / uint16 / int32 / uint32 / int64 / uint64
+	- float / float32 / float64
 	- string（默认 UTF-8，也可承载任意字节序列）
 	- time
 	- point

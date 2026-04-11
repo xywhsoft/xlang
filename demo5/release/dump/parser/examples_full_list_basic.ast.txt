@@ -1,0 +1,13 @@
+Program @ 0:0-0:0
+	FuncDecl @ 1:6-1:10 text="main"
+		List @ 0:0-0:0
+		TypeRef @ 1:16-1:19 text="int"
+		Block @ 0:0-0:0
+			Return @ 3:2-3:8
+				Binary @ 3:19-3:20 text="+"
+					Index @ 3:15-3:16
+						Ident @ 3:9-3:15 text="values"
+						Int @ 3:16-3:17 text="0"
+					Index @ 3:27-3:28
+						Ident @ 3:21-3:27 text="values"
+						Int @ 3:28-3:29 text="1" int=1

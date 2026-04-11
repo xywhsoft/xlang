@@ -7,6 +7,8 @@ typedef struct XL_AstNode XL_AstNode;
 
 typedef struct XL_FuncInfo {
 	char* sName;
+	char* sReceiverType;
+	char* sMethodName;
 	char* sReturnTypeName;
 	char* sOverloadGroup;
 	char* sSignatureId;
@@ -35,6 +37,8 @@ void xlFuncTableFree(XL_FuncTable* pTable);
 int xlFuncTableAdd(
 	XL_FuncTable* pTable,
 	const char* sName,
+	const char* sReceiverType,
+	const char* sMethodName,
 	const char* sReturnTypeName,
 	const char* const* arrParamNames,
 	const char* const* arrParamTypes,

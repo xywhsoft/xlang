@@ -1,0 +1,3 @@
+func string.wrap(int self, string left, string right) as string
+	return left + right
+end

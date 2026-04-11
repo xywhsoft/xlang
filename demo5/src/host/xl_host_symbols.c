@@ -12,11 +12,23 @@ typedef struct XL_HostSymbolEntry {
 
 static int __xlAddSymbol(TCCState* pTcc, const char* sName, const void* pValue)
 {
+	char sAlias[160];
+
 	if ( (pTcc == NULL) || (sName == NULL) || (pValue == NULL) ) {
 		return XL_RC_BAD_ARG;
 	}
-
-	return (tcc_add_symbol(pTcc, sName, pValue) == 0) ? XL_RC_OK : XL_RC_FAIL;
+	if ( tcc_add_symbol(pTcc, sName, pValue) != 0 ) {
+		return XL_RC_FAIL;
+	}
+#if defined(_WIN32) || defined(_WIN64)
+	snprintf(sAlias, sizeof(sAlias), "_%s", sName);
+	tcc_add_symbol(pTcc, sAlias, pValue);
+	snprintf(sAlias, sizeof(sAlias), "__imp_%s", sName);
+	tcc_add_symbol(pTcc, sAlias, pValue);
+	snprintf(sAlias, sizeof(sAlias), "__imp__%s", sName);
+	tcc_add_symbol(pTcc, sAlias, pValue);
+#endif
+	return XL_RC_OK;
 }
 
 static const XL_HostSymbolEntry __gXLHostSymbols[] = {
@@ -63,6 +75,51 @@ static const XL_HostSymbolEntry __gXLHostSymbols[] = {
 	{ "xrtExecCapture", xrtExecCapture },
 	{ "xrtProcessResultUnit", xrtProcessResultUnit },
 	{ "xrtCopyStr", xrtCopyStr },
+	{ "xvoCreateNull", xvoCreateNull },
+	{ "xvoCreateBool", xvoCreateBool },
+	{ "xvoCreateInt", xvoCreateInt },
+	{ "xvoCreateFloat", xvoCreateFloat },
+	{ "xvoCreateText", xvoCreateText },
+	{ "xvoCreateTime", xvoCreateTime },
+	{ "xvoCopy", xvoCopy },
+	{ "xvoUnref", xvoUnref },
+	{ "xvoGetBool", xvoGetBool },
+	{ "xvoGetInt", xvoGetInt },
+	{ "xvoGetFloat", xvoGetFloat },
+	{ "xvoGetText", xvoGetText },
+	{ "xvoGetTime", xvoGetTime },
+	{ "xvoGetColl", xvoGetColl },
+	{ "xvoGetTable", xvoGetTable },
+	{ "xvoGetSize", xvoGetSize },
+	{ "xvoArrayItemCount", xvoArrayItemCount },
+	{ "xvoListItemCount", xvoListItemCount },
+	{ "xvoTypeName", xvoTypeName },
+	{ "xvoIsNumber", xvoIsNumber },
+	{ "xvoIsBasic", xvoIsBasic },
+	{ "xvoIsContainer", xvoIsContainer },
+	{ "xvoCanCompareBasic", xvoCanCompareBasic },
+	{ "xvoBasicCompare", xvoBasicCompare },
+	{ "xvoBasicEqual", xvoBasicEqual },
+	{ "xvoCreateArray", xvoCreateArray },
+	{ "xvoArrayGetValue", xvoArrayGetValue },
+	{ "xvoArraySetValue", xvoArraySetValue },
+	{ "xvoArrayAppendValue", xvoArrayAppendValue },
+	{ "xvoCreateList", xvoCreateList },
+	{ "xvoListGetValue", xvoListGetValue },
+	{ "xvoListSetValue", xvoListSetValue },
+	{ "xvoCreateColl", xvoCreateColl },
+	{ "xvoCollExists", xvoCollExists },
+	{ "xvoCreateTable", xvoCreateTable },
+	{ "xvoCollSetValue", xvoCollSetValue },
+	{ "xvoTableGetValue", xvoTableGetValue },
+	{ "xvoTableExists", xvoTableExists },
+	{ "xvoTableSetValue", xvoTableSetValue },
+	{ "xrtAVLTB_IterBegin", xrtAVLTB_IterBegin },
+	{ "xrtAVLTB_IterNext", xrtAVLTB_IterNext },
+	{ "xrtAVLTB_IterEnd", xrtAVLTB_IterEnd },
+	{ "xrtAVLTreeIterBegin", xrtAVLTreeIterBegin },
+	{ "xrtAVLTreeIterNext", xrtAVLTreeIterNext },
+	{ "xrtAVLTreeIterEnd", xrtAVLTreeIterEnd },
 	{ "xlrt_attach_generated_runtime", xlrt_attach_generated_runtime },
 	{ "xlrt_detach_generated_runtime", xlrt_detach_generated_runtime },
 	{ "xlrt_host_name", xlrt_host_name },
@@ -86,6 +143,21 @@ static const XL_HostSymbolEntry __gXLHostSymbols[] = {
 	{ "xl_core_println_float", xl_core_println_float },
 	{ "xl_core_println_string", xl_core_println_string },
 	{ "xl_core_println_bool", xl_core_println_bool },
+	{ "xl_core_len_string", xl_core_len_string },
+	{ "xl_core_len_array", xl_core_len_array },
+	{ "xl_core_len_list", xl_core_len_list },
+	{ "xl_core_len_set", xl_core_len_set },
+	{ "xl_core_len_dict", xl_core_len_dict },
+	{ "xl_array_append", xl_array_append },
+	{ "xl_list_append", xl_list_append },
+	{ "xl_array_clear", xl_array_clear },
+	{ "xl_list_clear", xl_list_clear },
+	{ "xl_set_clear", xl_set_clear },
+	{ "xl_dict_clear", xl_dict_clear },
+	{ "xl_array_remove", xl_array_remove },
+	{ "xl_list_remove", xl_list_remove },
+	{ "xl_set_remove", xl_set_remove },
+	{ "xl_dict_remove", xl_dict_remove },
 	{ "xl_time_now", xl_time_now },
 	{ "xl_time_to_string", xl_time_to_string },
 	{ "xl_time_now_text", xl_time_now_text },
@@ -114,6 +186,7 @@ static const XL_HostSymbolEntry __gXLHostSymbols[] = {
 	{ "xl_str_contains", xl_str_contains },
 	{ "xl_str_starts_with", xl_str_starts_with },
 	{ "xl_str_ends_with", xl_str_ends_with },
+	{ "xl_str_concat", xl_str_concat },
 	{ "xl_str_lower", xl_str_lower },
 	{ "xl_str_upper", xl_str_upper },
 	{ "xl_str_replace", xl_str_replace },

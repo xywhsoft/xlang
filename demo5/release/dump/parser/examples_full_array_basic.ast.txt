@@ -1,0 +1,20 @@
+Program @ 0:0-0:0
+	FuncDecl @ 1:6-1:10 text="main"
+		List @ 0:0-0:0
+		TypeRef @ 1:16-1:19 text="int"
+		Block @ 0:0-0:0
+			VarDecl @ 2:11-2:17 text="values"
+				TypeRef @ 2:5-2:10 text="array"
+				Call @ 2:20-2:21
+					Ident @ 0:0-0:0 text="__array_literal"
+					List @ 0:0-0:0
+						Int @ 2:21-2:23 text="40" int=40
+						Int @ 2:25-2:26 text="2" int=2
+			Return @ 3:5-3:11
+				Binary @ 3:22-3:23 text="+"
+					Index @ 3:18-3:19
+						Ident @ 3:12-3:18 text="values"
+						Int @ 3:19-3:20 text="0"
+					Index @ 3:30-3:31
+						Ident @ 3:24-3:30 text="values"
+						Int @ 3:31-3:32 text="1" int=1

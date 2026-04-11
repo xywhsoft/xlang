@@ -1,0 +1,42 @@
+HIR
+Program @ 0:0 scope=0
+	Func @ 1:6 text="main" abi="xl__main__arity0__ret__int" type="int" scope=1 symbol=0 func=11
+		Block @ 1:6 text="params"
+		Block @ 0:0 scope=2
+			Var @ 2:11 text="values" type="array<int>" scope=2 symbol=1
+				Call @ 2:20 text="" type="array<int>" scope=2
+					Name @ 0:0 text="__array_literal"
+					Block @ 2:20 text="args"
+						Literal @ 2:21 text="40" type="int" scope=2 int=40
+						Literal @ 2:25 text="2" type="int" scope=2 int=2
+			Return @ 3:5
+				Binary @ 3:22 text="+" type="int" scope=2
+					Index @ 3:18 text="" type="int" scope=2
+						Name @ 3:12 text="values" type="array<int>" scope=2 symbol=1
+						Literal @ 3:19 text="0" type="int" scope=2
+					Index @ 3:30 text="" type="int" scope=2
+						Name @ 3:24 text="values" type="array<int>" scope=2 symbol=1
+						Literal @ 3:31 text="1" type="int" scope=2 int=1
+MIR
+Program @ 0:0 text="" scope=0
+	Func @ 1:6 text="main" abi="xl__main__arity0__ret__int" type="int" scope=1 symbol=0 func=11
+		Block @ 1:6 text="params"
+		Block @ 0:0 text="" scope=2
+			Bind @ 2:11 text="values" type="array<int>" scope=2 symbol=1
+				Call @ 2:20 text="" type="array<int>" scope=2
+					Value @ 0:0 text="__array_literal"
+					Block @ 2:20 text="args"
+						Value @ 2:21 text="40" type="int" scope=2
+						Value @ 2:25 text="2" type="int" scope=2
+			Return @ 3:5 text=""
+				Value @ 3:22 text="+" type="int" scope=2
+					Value @ 3:18 text="" type="int" scope=2
+						Value @ 3:12 text="values" type="array<int>" scope=2 symbol=1
+						Value @ 3:19 text="0" type="int" scope=2
+					Value @ 3:30 text="" type="int" scope=2
+						Value @ 3:24 text="values" type="array<int>" scope=2 symbol=1
+						Value @ 3:31 text="1" type="int" scope=2
+AsyncStateMachine
+	<none>
+GeneratorStateMachine
+	<none>

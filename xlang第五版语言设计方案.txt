@@ -168,8 +168,8 @@ xlang 第五版语言设计方案
 --------------
 基础值类型：
 	- bool
-	- int / i8 / u8 / i16 / u16 / i32 / u32 / i64 / u64
-	- float / f32 / f64
+	- int / int8 / uint8 / int16 / uint16 / int32 / uint32 / int64 / uint64
+	- float / float32 / float64
 	- string
 	- time
 	- point
@@ -255,6 +255,12 @@ xlang 第五版语言设计方案
 4.6 类型别名
 ------------
 第五版建议保留 `typedef`，但作为二级能力，不阻塞核心标准。
+
+内建数值类型命名约定：
+	- `int` 与 `float` 保留为默认整数/浮点类型名
+	- 精确位宽类型使用全称：`int8` / `uint8` / `int16` / `uint16` / `int32` / `uint32` / `int64` / `uint64`
+	- 浮点精度类型使用全称：`float32` / `float64`
+	- 不再采用 `i32` / `u64` / `f64` 这类缩写作为第五版标准命名
 
 建议形式：
 	typedef MyInt = int

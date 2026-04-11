@@ -1,0 +1,32 @@
+{
+	"format": "xlp-0",
+	"package": {
+		"name": "array_basic",
+		"version": "0.0.0",
+		"abiVersion": "1",
+		"xlangAbi": "1",
+		"abiId": "array_basic@0.0.0#abi1"
+	},
+	"dependencies": [],
+	"modules": [
+		{
+			"key": "<root>",
+			"packageName": "array_basic",
+			"packageVersion": "0.0.0",
+			"packageAbiVersion": "1",
+			"abiId": "array_basic@0.0.0#abi1::<root>",
+			"manifest": "",
+			"file": "D:\\Git\\x-lang\\demo5\\examples\\full\\array_basic.xl",
+			"root": 1,
+			"native": 0,
+			"binding": "",
+			"artifactKind": "",
+			"artifactPath": "",
+			"artifactFile": "",
+			"consumeMode": "",
+			"imports": [],
+			"exports": []
+		}
+	],
+	"functions": []
+}

@@ -1,0 +1,15 @@
+Program @ 0:0-0:0
+	FuncDecl @ 1:6-1:10 text="main"
+		List @ 0:0-0:0
+		TypeRef @ 1:16-1:19 text="int"
+		Block @ 0:0-0:0
+			If @ 3:2-3:4
+				Binary @ 3:8-3:10 text="in"
+					Int @ 3:5-3:7 text="40" int=40
+					Ident @ 3:11-3:17 text="values"
+				Block @ 0:0-0:0
+					Return @ 4:3-4:9
+						Int @ 4:10-4:12 text="42" int=42
+				List @ 0:0-0:0
+			Return @ 6:2-6:8
+				Int @ 6:9-6:10 text="0"
