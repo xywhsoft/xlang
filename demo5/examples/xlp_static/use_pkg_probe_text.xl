@@ -1,0 +1,9 @@
+import pkg.probe
+import std.str
+
+func main() as int
+	if str.contains(pkg.probe.text(), "probe") == false
+		return 1
+	end
+	return 0
+end

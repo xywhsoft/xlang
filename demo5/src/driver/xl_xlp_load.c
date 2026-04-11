@@ -916,7 +916,12 @@ static int __xlXlpTryResolveFromSearchRoot(const char* sSearchRoot, const char* 
 			}
 
 			xlPathJoin(sCandidateFile, sizeof(sCandidateFile), sPackageDir, sImportKey);
-			snprintf(sCandidateDir, sizeof(sCandidateDir), "%s@%s.xlp.json", sCandidateFile, sVersion);
+			snprintf(sCandidateDir, sizeof(sCandidateDir), "%s", sCandidateFile);
+			if ( strlen(sCandidateDir) < (sizeof(sCandidateDir) - 1) ) {
+				strncat(sCandidateDir, "@", sizeof(sCandidateDir) - strlen(sCandidateDir) - 1);
+			}
+			strncat(sCandidateDir, sVersion, sizeof(sCandidateDir) - strlen(sCandidateDir) - 1);
+			strncat(sCandidateDir, ".xlp.json", sizeof(sCandidateDir) - strlen(sCandidateDir) - 1);
 			if ( __xlXlpFileExists(sCandidateDir) ) {
 				return __xlXlpResolveModuleFromManifest(sCandidateDir, sImportKey, pInfo);
 			}
@@ -929,7 +934,8 @@ static int __xlXlpTryResolveFromSearchRoot(const char* sSearchRoot, const char* 
 		}
 
 		xlPathJoin(sCandidateFile, sizeof(sCandidateFile), sPackageDir, sImportKey);
-		snprintf(sCandidateDir, sizeof(sCandidateDir), "%s.xlp.json", sCandidateFile);
+		snprintf(sCandidateDir, sizeof(sCandidateDir), "%s", sCandidateFile);
+		strncat(sCandidateDir, ".xlp.json", sizeof(sCandidateDir) - strlen(sCandidateDir) - 1);
 		if ( __xlXlpFileExists(sCandidateDir) ) {
 			return __xlXlpResolveModuleFromManifest(sCandidateDir, sImportKey, pInfo);
 		}

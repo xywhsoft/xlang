@@ -1,0 +1,8 @@
+import pkg.probe
+
+func main() as int
+	if pkg.probe.is_probe_text() == false
+		return 1
+	end
+	return 0
+end

@@ -14,6 +14,7 @@ typedef enum XL_HirKind {
 	XL_HIR_VAR,
 	XL_HIR_IF,
 	XL_HIR_TRY,
+	XL_HIR_WHILE,
 	XL_HIR_FORIN,
 	XL_HIR_RETURN,
 	XL_HIR_BREAK,

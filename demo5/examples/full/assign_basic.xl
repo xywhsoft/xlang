@@ -1,0 +1,5 @@
+func main() as int
+	int value
+	value = 42
+	return value
+end

@@ -171,7 +171,6 @@ xlang 第五版语言设计方案
 	- int / i8 / u8 / i16 / u16 / i32 / u32 / i64 / u64
 	- float / f32 / f64
 	- string
-	- bytes
 	- time
 	- point
 
@@ -205,8 +204,7 @@ xlang 第五版语言设计方案
 	- bool
 	- 整数系列
 	- 浮点系列
-	- string
-	- bytes
+	- string（默认 UTF-8，也可承载任意字节序列）
 	- time
 	- point
 
@@ -274,8 +272,7 @@ xlang 第五版语言设计方案
 	- 浮点数
 	- 布尔
 	- null
-	- string
-	- bytes
+	- string（默认 UTF-8，也可承载任意字节序列）
 	- time
 	- array
 	- list

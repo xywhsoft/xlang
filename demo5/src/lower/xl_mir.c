@@ -129,6 +129,7 @@ const char* xlMirKindName(XL_MirKind eKind)
 		"Bind",
 		"Branch",
 		"Try",
+		"While",
 		"ForIn",
 		"Return",
 		"Break",

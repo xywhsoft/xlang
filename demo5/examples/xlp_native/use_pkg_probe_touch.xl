@@ -1,0 +1,6 @@
+import pkg.probe
+
+func main() as int
+	pkg.probe.touch()
+	return 0
+end

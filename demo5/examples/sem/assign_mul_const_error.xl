@@ -1,0 +1,6 @@
+const int value = 6
+
+func main() as int
+	value *= 7
+	return value
+end

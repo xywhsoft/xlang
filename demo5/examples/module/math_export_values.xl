@@ -1,0 +1,2 @@
+export const int 基数 = 40
+export var 步长 = 2

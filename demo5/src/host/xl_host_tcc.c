@@ -37,6 +37,12 @@ typedef struct XL_SharedArtifactHandle {
 #endif
 } XL_SharedArtifactHandle;
 
+typedef struct XL_StaticExtractedFile {
+	char sFile[XL_PATH_MAX_LEN];
+} XL_StaticExtractedFile;
+
+#define XL_HOST_STATIC_EXTRACT_MAX 256
+
 static int __xlRunTraceGrow(XL_RunTraceBuffer* pBuf, size_t iNeed)
 {
 	char* sNewData;
@@ -203,11 +209,319 @@ static int __xlFileExists(const char* sFilePath)
 	return 1;
 }
 
-static int __xlApplyStaticArtifacts(const XL_HostContext* pCtx, TCCState* pTcc, XL_RunTraceBuffer* pTrace)
+static int __xlReadBinaryFile(const char* sFilePath, unsigned char** ppData, size_t* piSize)
+{
+	FILE* pFile;
+	long iSize;
+	size_t iRead;
+	unsigned char* pData;
+
+	if ( ppData != NULL ) {
+		*ppData = NULL;
+	}
+	if ( piSize != NULL ) {
+		*piSize = 0;
+	}
+	if ( (sFilePath == NULL) || (ppData == NULL) || (piSize == NULL) ) {
+		return XL_RC_BAD_ARG;
+	}
+
+	pFile = fopen(sFilePath, "rb");
+	if ( pFile == NULL ) {
+		return XL_RC_IO_ERROR;
+	}
+	if ( fseek(pFile, 0, SEEK_END) != 0 ) {
+		fclose(pFile);
+		return XL_RC_IO_ERROR;
+	}
+	iSize = ftell(pFile);
+	if ( iSize < 0 ) {
+		fclose(pFile);
+		return XL_RC_IO_ERROR;
+	}
+	if ( fseek(pFile, 0, SEEK_SET) != 0 ) {
+		fclose(pFile);
+		return XL_RC_IO_ERROR;
+	}
+
+	pData = (unsigned char*)malloc((size_t)iSize);
+	if ( pData == NULL ) {
+		fclose(pFile);
+		return XL_RC_IO_ERROR;
+	}
+
+	iRead = fread(pData, 1, (size_t)iSize, pFile);
+	fclose(pFile);
+	if ( iRead != (size_t)iSize ) {
+		free(pData);
+		return XL_RC_IO_ERROR;
+	}
+
+	*ppData = pData;
+	*piSize = (size_t)iSize;
+	return XL_RC_OK;
+}
+
+static int __xlWriteBinaryFile(const char* sFilePath, const unsigned char* pData, size_t iSize)
+{
+	FILE* pFile;
+
+	if ( (sFilePath == NULL) || (pData == NULL) ) {
+		return XL_RC_BAD_ARG;
+	}
+	if ( xlPathEnsureParentDir(sFilePath) != XL_RC_OK ) {
+		return XL_RC_IO_ERROR;
+	}
+
+	pFile = fopen(sFilePath, "wb");
+	if ( pFile == NULL ) {
+		return XL_RC_IO_ERROR;
+	}
+	if ( (iSize != 0) && (fwrite(pData, 1, iSize, pFile) != iSize) ) {
+		fclose(pFile);
+		return XL_RC_IO_ERROR;
+	}
+	fclose(pFile);
+	return XL_RC_OK;
+}
+
+static size_t __xlArParseDecimal(const unsigned char* pText, size_t iLen)
+{
+	char sBuf[32];
+	size_t iCopyLen;
+	size_t i;
+	size_t iValue;
+
+	if ( (pText == NULL) || (iLen == 0) ) {
+		return 0;
+	}
+
+	iCopyLen = (iLen < (sizeof(sBuf) - 1)) ? iLen : (sizeof(sBuf) - 1);
+	memcpy(sBuf, pText, iCopyLen);
+	sBuf[iCopyLen] = '\0';
+	for ( i = 0; i < iCopyLen; ++i ) {
+		if ( (sBuf[i] == ' ') || (sBuf[i] == '\t') ) {
+			sBuf[i] = '\0';
+			break;
+		}
+	}
+
+	iValue = 0;
+	for ( i = 0; sBuf[i] != '\0'; ++i ) {
+		if ( (sBuf[i] < '0') || (sBuf[i] > '9') ) {
+			break;
+		}
+		iValue = (iValue * 10) + (size_t)(sBuf[i] - '0');
+	}
+	return iValue;
+}
+
+static void __xlArResolveMemberName(
+	char* sOut,
+	size_t iOutSize,
+	const unsigned char* pRawName,
+	const unsigned char* pLongNames,
+	size_t iLongNamesSize
+)
 {
 	size_t i;
 
-	if ( (pCtx == NULL) || (pTcc == NULL) ) {
+	if ( (sOut == NULL) || (iOutSize == 0) ) {
+		return;
+	}
+	sOut[0] = '\0';
+	if ( pRawName == NULL ) {
+		return;
+	}
+
+	if ( (pRawName[0] == '/') && (pRawName[1] == ' ') ) {
+		snprintf(sOut, iOutSize, "/");
+		return;
+	}
+	if ( (pRawName[0] == '/') && (pRawName[1] == '/') ) {
+		snprintf(sOut, iOutSize, "//");
+		return;
+	}
+	if ( (pRawName[0] == '/') && (pRawName[1] >= '0') && (pRawName[1] <= '9') && (pLongNames != NULL) ) {
+		size_t iOffset;
+		size_t iOutLen;
+
+		iOffset = __xlArParseDecimal(pRawName + 1, 15);
+		if ( iOffset >= iLongNamesSize ) {
+			return;
+		}
+
+		iOutLen = 0;
+		for ( i = iOffset; i < iLongNamesSize; ++i ) {
+			unsigned char ch;
+
+			ch = pLongNames[i];
+			if ( (ch == '\0') || (ch == '\n') || (ch == '\r') ) {
+				break;
+			}
+			if ( ch == '/' ) {
+				break;
+			}
+			if ( iOutLen + 1 >= iOutSize ) {
+				break;
+			}
+			sOut[iOutLen++] = (char)ch;
+		}
+		sOut[iOutLen] = '\0';
+		return;
+	}
+
+	for ( i = 0; i < 16; ++i ) {
+		unsigned char ch;
+
+		ch = pRawName[i];
+		if ( (ch == '\0') || (ch == ' ') || (ch == '/') ) {
+			break;
+		}
+		if ( i + 1 >= iOutSize ) {
+			break;
+		}
+		sOut[i] = (char)ch;
+	}
+	sOut[i] = '\0';
+}
+
+static void __xlCleanupStaticExtractedFiles(XL_StaticExtractedFile* arrFiles, size_t iFileCount)
+{
+	size_t i;
+
+	if ( arrFiles == NULL ) {
+		return;
+	}
+
+	for ( i = 0; i < iFileCount; ++i ) {
+		if ( arrFiles[i].sFile[0] != '\0' ) {
+			remove(arrFiles[i].sFile);
+		}
+	}
+}
+
+static int __xlApplyStaticArchive(
+	const XL_HostContext* pCtx,
+	TCCState* pTcc,
+	XL_RunTraceBuffer* pTrace,
+	const char* sArchiveFile,
+	size_t iArtifactIndex,
+	XL_StaticExtractedFile* arrExtractedFiles,
+	size_t iExtractedCap,
+	size_t* piExtractedCount
+)
+{
+	unsigned char* pArchive;
+	size_t iArchiveSize;
+	const unsigned char* pLongNames;
+	size_t iLongNamesSize;
+	size_t iPos;
+	size_t iMemberIndex;
+	int iRc;
+
+	if ( (pCtx == NULL) || (pTcc == NULL) || (sArchiveFile == NULL) || (arrExtractedFiles == NULL) || (piExtractedCount == NULL) ) {
+		return XL_RC_BAD_ARG;
+	}
+
+	pArchive = NULL;
+	iArchiveSize = 0;
+	pLongNames = NULL;
+	iLongNamesSize = 0;
+	iRc = __xlReadBinaryFile(sArchiveFile, &pArchive, &iArchiveSize);
+	if ( iRc != XL_RC_OK ) {
+		return iRc;
+	}
+
+	if ( (iArchiveSize < 8) || (memcmp(pArchive, "!<arch>\n", 8) != 0) ) {
+		free(pArchive);
+		return XL_RC_FAIL;
+	}
+
+	iPos = 8;
+	iMemberIndex = 0;
+	while ( (iPos + 60) <= iArchiveSize ) {
+		const unsigned char* pHeader;
+		const unsigned char* pData;
+		size_t iMemberSize;
+		char sMemberName[128];
+
+		pHeader = pArchive + iPos;
+		iPos += 60;
+		if ( (pHeader[58] != '`') || (pHeader[59] != '\n') ) {
+			free(pArchive);
+			return XL_RC_FAIL;
+		}
+
+		iMemberSize = __xlArParseDecimal(pHeader + 48, 10);
+		if ( (iPos + iMemberSize) > iArchiveSize ) {
+			free(pArchive);
+			return XL_RC_FAIL;
+		}
+
+		pData = pArchive + iPos;
+		__xlArResolveMemberName(sMemberName, sizeof(sMemberName), pHeader, pLongNames, iLongNamesSize);
+		if ( strcmp(sMemberName, "/") == 0 ) {
+			/* GNU/BSD symbol table member. */
+		} else if ( strcmp(sMemberName, "//") == 0 ) {
+			pLongNames = pData;
+			iLongNamesSize = iMemberSize;
+		} else if ( sMemberName[0] != '\0' ) {
+			char sExtractPath[XL_PATH_MAX_LEN];
+			char sExtractDir[XL_PATH_MAX_LEN];
+			char sExtractName[64];
+
+			if ( *piExtractedCount >= iExtractedCap ) {
+				free(pArchive);
+				return XL_RC_FAIL;
+			}
+
+			xlPathJoin(sExtractDir, sizeof(sExtractDir), pCtx->sProjectRoot, "release");
+			xlPathJoin(sExtractDir, sizeof(sExtractDir), sExtractDir, "tmp");
+			xlPathJoin(sExtractDir, sizeof(sExtractDir), sExtractDir, "host_static");
+			snprintf(sExtractName, sizeof(sExtractName), "artifact_%zu_member_%zu.obj", iArtifactIndex, iMemberIndex);
+			xlPathJoin(sExtractPath, sizeof(sExtractPath), sExtractDir, sExtractName);
+			iRc = __xlWriteBinaryFile(sExtractPath, pData, iMemberSize);
+			if ( iRc != XL_RC_OK ) {
+				free(pArchive);
+				return iRc;
+			}
+			snprintf(arrExtractedFiles[*piExtractedCount].sFile, sizeof(arrExtractedFiles[*piExtractedCount].sFile), "%s", sExtractPath);
+			*piExtractedCount += 1;
+			iMemberIndex += 1;
+
+			__xlRunTraceAppendFormat(pTrace, "artifact.static.object=%s\n", sExtractPath);
+			if ( tcc_add_file(pTcc, sExtractPath) < 0 ) {
+				free(pArchive);
+				return XL_RC_FAIL;
+			}
+		}
+
+		iPos += iMemberSize;
+		if ( (iPos & 1u) != 0u ) {
+			iPos += 1;
+		}
+	}
+
+	free(pArchive);
+	return XL_RC_OK;
+}
+
+static int __xlApplyStaticArtifacts(
+	const XL_HostContext* pCtx,
+	TCCState* pTcc,
+	XL_RunTraceBuffer* pTrace,
+	XL_StaticExtractedFile* arrExtractedFiles,
+	size_t iExtractedCap,
+	size_t* piExtractedCount
+)
+{
+	size_t i;
+
+	if ( piExtractedCount != NULL ) {
+		*piExtractedCount = 0;
+	}
+	if ( (pCtx == NULL) || (pTcc == NULL) || (arrExtractedFiles == NULL) || (piExtractedCount == NULL) ) {
 		return XL_RC_BAD_ARG;
 	}
 
@@ -223,6 +537,20 @@ static int __xlApplyStaticArtifacts(const XL_HostContext* pCtx, TCCState* pTcc, 
 			__xlRunTraceAppendFormat(pTrace, "artifact.static.missing=%s\n", pArtifact->sFile);
 			return XL_RC_FAIL;
 		}
+
+		if ( __xlApplyStaticArchive(
+			pCtx,
+			pTcc,
+			pTrace,
+			pArtifact->sFile,
+			i,
+			arrExtractedFiles,
+			iExtractedCap,
+			piExtractedCount
+		) == XL_RC_OK ) {
+			continue;
+		}
+
 		if ( tcc_add_file(pTcc, pArtifact->sFile) < 0 ) {
 			__xlRunTraceAppendFormat(pTrace, "artifact.static.link_failed=%s\n", pArtifact->sFile);
 			return XL_RC_FAIL;
@@ -614,6 +942,8 @@ int xlHostTccRunText(
 	XL_RunTraceBuffer trace;
 	XL_CwdScope cwdScope;
 	XL_SharedArtifactHandle arrSharedHandles[XL_HOST_ARTIFACT_MAX];
+	XL_StaticExtractedFile arrStaticExtracted[XL_HOST_STATIC_EXTRACT_MAX];
+	size_t iStaticExtractedCount;
 	size_t iSharedHandleCount;
 	TCCState* pTcc;
 	char* sWrapped;
@@ -627,6 +957,8 @@ int xlHostTccRunText(
 	memset(&trace, 0, sizeof(trace));
 	memset(&cwdScope, 0, sizeof(cwdScope));
 	memset(arrSharedHandles, 0, sizeof(arrSharedHandles));
+	memset(arrStaticExtracted, 0, sizeof(arrStaticExtracted));
+	iStaticExtractedCount = 0;
 	iSharedHandleCount = 0;
 	__xlInitRunResult(pResult, (sEntrySymbol != NULL) ? sEntrySymbol : "xl_generated_entry");
 	*psTraceText = NULL;
@@ -667,8 +999,16 @@ int xlHostTccRunText(
 	}
 	free(sWrapped);
 
-	if ( __xlApplyStaticArtifacts(pCtx, pTcc, &trace) != XL_RC_OK ) {
+	if ( __xlApplyStaticArtifacts(
+		pCtx,
+		pTcc,
+		&trace,
+		arrStaticExtracted,
+		XL_COUNTOF(arrStaticExtracted),
+		&iStaticExtractedCount
+	) != XL_RC_OK ) {
 		XL_DIAG_ERROR(pDiag, "host.tcc", "failed to link static xlp artifacts");
+		__xlCleanupStaticExtractedFiles(arrStaticExtracted, iStaticExtractedCount);
 		tcc_delete(pTcc);
 		pResult->bHadRuntimeError = 1;
 		*psTraceText = trace.sData;
@@ -676,6 +1016,7 @@ int xlHostTccRunText(
 	}
 	if ( __xlPushProjectCwd(pCtx, &trace, &cwdScope) != XL_RC_OK ) {
 		XL_DIAG_ERROR(pDiag, "host.tcc", "failed to switch cwd: %s", pCtx->sProjectRoot);
+		__xlCleanupStaticExtractedFiles(arrStaticExtracted, iStaticExtractedCount);
 		tcc_delete(pTcc);
 		pResult->bHadRuntimeError = 1;
 		*psTraceText = trace.sData;
@@ -684,6 +1025,7 @@ int xlHostTccRunText(
 	if ( __xlLoadSharedArtifacts(pCtx, &trace, arrSharedHandles, XL_COUNTOF(arrSharedHandles), &iSharedHandleCount) != XL_RC_OK ) {
 		XL_DIAG_ERROR(pDiag, "host.tcc", "failed to load shared xlp artifacts");
 		__xlPopProjectCwd(&trace, &cwdScope);
+		__xlCleanupStaticExtractedFiles(arrStaticExtracted, iStaticExtractedCount);
 		tcc_delete(pTcc);
 		pResult->bHadRuntimeError = 1;
 		*psTraceText = trace.sData;
@@ -693,6 +1035,7 @@ int xlHostTccRunText(
 		XL_DIAG_ERROR(pDiag, "host.tcc", "failed to register shared xlp symbols");
 		__xlUnloadSharedArtifacts(&trace, arrSharedHandles, iSharedHandleCount);
 		__xlPopProjectCwd(&trace, &cwdScope);
+		__xlCleanupStaticExtractedFiles(arrStaticExtracted, iStaticExtractedCount);
 		tcc_delete(pTcc);
 		pResult->bHadRuntimeError = 1;
 		*psTraceText = trace.sData;
@@ -704,6 +1047,7 @@ int xlHostTccRunText(
 		__xlUnloadSharedArtifacts(&trace, arrSharedHandles, iSharedHandleCount);
 		__xlPopProjectCwd(&trace, &cwdScope);
 		XL_DIAG_ERROR(pDiag, "host.tcc", "tcc relocate failed");
+		__xlCleanupStaticExtractedFiles(arrStaticExtracted, iStaticExtractedCount);
 		tcc_delete(pTcc);
 		pResult->bHadRuntimeError = 1;
 		*psTraceText = trace.sData;
@@ -716,6 +1060,7 @@ int xlHostTccRunText(
 		__xlUnloadSharedArtifacts(&trace, arrSharedHandles, iSharedHandleCount);
 		__xlPopProjectCwd(&trace, &cwdScope);
 		XL_DIAG_ERROR(pDiag, "host.tcc", "entry symbol not found: %s", pResult->sEntrySymbol);
+		__xlCleanupStaticExtractedFiles(arrStaticExtracted, iStaticExtractedCount);
 		tcc_delete(pTcc);
 		pResult->bHadRuntimeError = 1;
 		*psTraceText = trace.sData;
@@ -727,6 +1072,7 @@ int xlHostTccRunText(
 	__xlRunTraceAppendFormat(&trace, "exit_code=%d\n", pResult->iExitCode);
 	__xlUnloadSharedArtifacts(&trace, arrSharedHandles, iSharedHandleCount);
 	__xlPopProjectCwd(&trace, &cwdScope);
+	__xlCleanupStaticExtractedFiles(arrStaticExtracted, iStaticExtractedCount);
 
 	sAsyncTrace = (const char*)tcc_get_symbol(pTcc, "xl_generated_async_trace");
 	piAsyncTraceLen = (int*)tcc_get_symbol(pTcc, "xl_generated_async_trace_len");
@@ -757,6 +1103,8 @@ int xlHostTccRunFile(
 	XL_RunTraceBuffer trace;
 	XL_CwdScope cwdScope;
 	XL_SharedArtifactHandle arrSharedHandles[XL_HOST_ARTIFACT_MAX];
+	XL_StaticExtractedFile arrStaticExtracted[XL_HOST_STATIC_EXTRACT_MAX];
+	size_t iStaticExtractedCount;
 	size_t iSharedHandleCount;
 	TCCState* pTcc;
 	char* arrArgv[2];
@@ -767,6 +1115,8 @@ int xlHostTccRunFile(
 	memset(&trace, 0, sizeof(trace));
 	memset(&cwdScope, 0, sizeof(cwdScope));
 	memset(arrSharedHandles, 0, sizeof(arrSharedHandles));
+	memset(arrStaticExtracted, 0, sizeof(arrStaticExtracted));
+	iStaticExtractedCount = 0;
 	iSharedHandleCount = 0;
 	__xlInitRunResult(pResult, "main");
 	*psTraceText = NULL;
@@ -797,8 +1147,16 @@ int xlHostTccRunFile(
 		*psTraceText = trace.sData;
 		return XL_RC_FAIL;
 	}
-	if ( __xlApplyStaticArtifacts(pCtx, pTcc, &trace) != XL_RC_OK ) {
+	if ( __xlApplyStaticArtifacts(
+		pCtx,
+		pTcc,
+		&trace,
+		arrStaticExtracted,
+		XL_COUNTOF(arrStaticExtracted),
+		&iStaticExtractedCount
+	) != XL_RC_OK ) {
 		XL_DIAG_ERROR(pDiag, "host.tcc", "failed to link static xlp artifacts");
+		__xlCleanupStaticExtractedFiles(arrStaticExtracted, iStaticExtractedCount);
 		tcc_delete(pTcc);
 		pResult->bHadRuntimeError = 1;
 		*psTraceText = trace.sData;
@@ -809,6 +1167,7 @@ int xlHostTccRunFile(
 	arrArgv[1] = NULL;
 	if ( __xlPushProjectCwd(pCtx, &trace, &cwdScope) != XL_RC_OK ) {
 		XL_DIAG_ERROR(pDiag, "host.tcc", "failed to switch cwd: %s", pCtx->sProjectRoot);
+		__xlCleanupStaticExtractedFiles(arrStaticExtracted, iStaticExtractedCount);
 		tcc_delete(pTcc);
 		pResult->bHadRuntimeError = 1;
 		*psTraceText = trace.sData;
@@ -817,6 +1176,7 @@ int xlHostTccRunFile(
 	if ( __xlLoadSharedArtifacts(pCtx, &trace, arrSharedHandles, XL_COUNTOF(arrSharedHandles), &iSharedHandleCount) != XL_RC_OK ) {
 		XL_DIAG_ERROR(pDiag, "host.tcc", "failed to load shared xlp artifacts");
 		__xlPopProjectCwd(&trace, &cwdScope);
+		__xlCleanupStaticExtractedFiles(arrStaticExtracted, iStaticExtractedCount);
 		tcc_delete(pTcc);
 		pResult->bHadRuntimeError = 1;
 		*psTraceText = trace.sData;
@@ -826,6 +1186,7 @@ int xlHostTccRunFile(
 		XL_DIAG_ERROR(pDiag, "host.tcc", "failed to register shared xlp symbols");
 		__xlUnloadSharedArtifacts(&trace, arrSharedHandles, iSharedHandleCount);
 		__xlPopProjectCwd(&trace, &cwdScope);
+		__xlCleanupStaticExtractedFiles(arrStaticExtracted, iStaticExtractedCount);
 		tcc_delete(pTcc);
 		pResult->bHadRuntimeError = 1;
 		*psTraceText = trace.sData;
@@ -835,6 +1196,7 @@ int xlHostTccRunFile(
 	iRunRc = tcc_run(pTcc, 1, arrArgv);
 	__xlUnloadSharedArtifacts(&trace, arrSharedHandles, iSharedHandleCount);
 	__xlPopProjectCwd(&trace, &cwdScope);
+	__xlCleanupStaticExtractedFiles(arrStaticExtracted, iStaticExtractedCount);
 	pResult->iExitCode = iRunRc;
 	__xlRunTraceAppendFormat(&trace, "exit_code=%d\n", pResult->iExitCode);
 	if ( iRunRc < 0 ) {
@@ -861,45 +1223,65 @@ static int __xlHostTccBuildCommon(
 )
 {
 	XL_SharedArtifactHandle arrSharedHandles[XL_HOST_ARTIFACT_MAX];
+	XL_StaticExtractedFile arrStaticExtracted[XL_HOST_STATIC_EXTRACT_MAX];
+	size_t iStaticExtractedCount;
 	size_t iSharedHandleCount;
+	int bObjOutput;
 
 	memset(arrSharedHandles, 0, sizeof(arrSharedHandles));
+	memset(arrStaticExtracted, 0, sizeof(arrStaticExtracted));
+	iStaticExtractedCount = 0;
 	iSharedHandleCount = 0;
+	bObjOutput = (sOutputKind != NULL) && (strcmp(sOutputKind, "obj") == 0);
 	__xlRunTraceAppendFormat(pTrace, "output=%s\n", sOutputFile);
 	__xlRunTraceAppendFormat(pTrace, "output_kind=%s\n", sOutputKind);
-	if ( __xlAddBuildSupportSources(pCtx, pTcc, pTrace) != XL_RC_OK ) {
-		XL_DIAG_ERROR(pDiag, "host.tcc", "failed to add runtime support sources");
-		pResult->bHadBuildError = 1;
-		return XL_RC_FAIL;
-	}
-	if ( __xlAddBuildLibraries(pTcc, pTrace) != XL_RC_OK ) {
-		XL_DIAG_ERROR(pDiag, "host.tcc", "failed to add system libraries");
-		pResult->bHadBuildError = 1;
-		return XL_RC_FAIL;
-	}
-	if ( __xlApplyStaticArtifacts(pCtx, pTcc, pTrace) != XL_RC_OK ) {
-		XL_DIAG_ERROR(pDiag, "host.tcc", "failed to link static xlp artifacts");
-		pResult->bHadBuildError = 1;
-		return XL_RC_FAIL;
-	}
-	if ( __xlLoadSharedArtifacts(pCtx, pTrace, arrSharedHandles, XL_COUNTOF(arrSharedHandles), &iSharedHandleCount) != XL_RC_OK ) {
-		XL_DIAG_ERROR(pDiag, "host.tcc", "failed to preload shared xlp artifacts");
-		pResult->bHadBuildError = 1;
-		return XL_RC_FAIL;
+	if ( !bObjOutput ) {
+		if ( __xlAddBuildSupportSources(pCtx, pTcc, pTrace) != XL_RC_OK ) {
+			XL_DIAG_ERROR(pDiag, "host.tcc", "failed to add runtime support sources");
+			pResult->bHadBuildError = 1;
+			return XL_RC_FAIL;
+		}
+		if ( __xlAddBuildLibraries(pTcc, pTrace) != XL_RC_OK ) {
+			XL_DIAG_ERROR(pDiag, "host.tcc", "failed to add system libraries");
+			pResult->bHadBuildError = 1;
+			return XL_RC_FAIL;
+		}
+		if ( __xlApplyStaticArtifacts(
+			pCtx,
+			pTcc,
+			pTrace,
+			arrStaticExtracted,
+			XL_COUNTOF(arrStaticExtracted),
+			&iStaticExtractedCount
+		) != XL_RC_OK ) {
+			XL_DIAG_ERROR(pDiag, "host.tcc", "failed to link static xlp artifacts");
+			__xlCleanupStaticExtractedFiles(arrStaticExtracted, iStaticExtractedCount);
+			pResult->bHadBuildError = 1;
+			return XL_RC_FAIL;
+		}
+		if ( __xlLoadSharedArtifacts(pCtx, pTrace, arrSharedHandles, XL_COUNTOF(arrSharedHandles), &iSharedHandleCount) != XL_RC_OK ) {
+			XL_DIAG_ERROR(pDiag, "host.tcc", "failed to preload shared xlp artifacts");
+			__xlCleanupStaticExtractedFiles(arrStaticExtracted, iStaticExtractedCount);
+			pResult->bHadBuildError = 1;
+			return XL_RC_FAIL;
+		}
 	}
 	if ( xlPathEnsureParentDir(sOutputFile) != XL_RC_OK ) {
 		__xlUnloadSharedArtifacts(pTrace, arrSharedHandles, iSharedHandleCount);
+		__xlCleanupStaticExtractedFiles(arrStaticExtracted, iStaticExtractedCount);
 		XL_DIAG_ERROR(pDiag, "host.tcc", "failed to prepare output directory: %s", sOutputFile);
 		pResult->bHadBuildError = 1;
 		return XL_RC_IO_ERROR;
 	}
 	if ( tcc_output_file(pTcc, sOutputFile) < 0 ) {
 		__xlUnloadSharedArtifacts(pTrace, arrSharedHandles, iSharedHandleCount);
+		__xlCleanupStaticExtractedFiles(arrStaticExtracted, iStaticExtractedCount);
 		XL_DIAG_ERROR(pDiag, "host.tcc", "failed to write output file: %s", sOutputFile);
 		pResult->bHadBuildError = 1;
 		return XL_RC_FAIL;
 	}
 	__xlUnloadSharedArtifacts(pTrace, arrSharedHandles, iSharedHandleCount);
+	__xlCleanupStaticExtractedFiles(arrStaticExtracted, iStaticExtractedCount);
 	return XL_RC_OK;
 }
 

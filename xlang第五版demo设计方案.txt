@@ -131,7 +131,7 @@ xlang 第五版 Demo 设计方案
 --------------------
 运行时由 xrt 与生成代码共同承担：
 	- 内存管理
-	- 字符串 / bytes / time / 容器实现
+	- string（默认 UTF-8，也可承载任意字节序列）/ time / 容器实现
 	- var / xvalue 动态值
 	- Future / Task / Coroutine / Channel / Mutex 等并发原语
 	- 异步文件 / 网络
@@ -187,7 +187,7 @@ xlang 第五版 Demo 设计方案
 	- and / or / not
 
 软关键字（由类型表决定）：
-	- bool / int / float / string / bytes / time
+	- bool / int / float / string / time
 	- array / list / set / dict / range / type
 	- function
 	- future / task / channel / error / module
@@ -206,8 +206,7 @@ xlang 第五版 Demo 设计方案
 	- bool
 	- int / i8 / u8 / i16 / u16 / i32 / u32 / i64 / u64
 	- float / f32 / f64
-	- string
-	- bytes
+	- string（默认 UTF-8，也可承载任意字节序列）
 	- time
 	- point
 

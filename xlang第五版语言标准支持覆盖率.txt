@@ -12,8 +12,8 @@ xlang 第五版语言标准支持覆盖率
 - ☑ func ... end
 - ☑ if / elseif / else / end
 - ☑ try / catch / finally / end
-- ☐ while / do / end
-- ☐ do ... while ... end
+- ☑ while / do / end
+- ☑ do ... while ... end
 - ☑ for ... in ... end
 
 二、类型系统
@@ -22,8 +22,7 @@ xlang 第五版语言标准支持覆盖率
 - ☐ i8 / u8 / i16 / u16 / i32 / u32 / i64 / u64
 - ☑ float
 - ☐ f32 / f64
-- ☑ string
-- ☐ bytes
+- ☑ string（默认 UTF-8，也可承载任意字节序列；不再单列 bytes 类型）
 - ☑ time
 - ☐ point
 - ☑ null
@@ -50,8 +49,7 @@ xlang 第五版语言标准支持覆盖率
 - ☑ 浮点字面量
 - ☑ 布尔字面量
 - ☑ null 字面量
-- ☑ string 字面量
-- ☐ bytes 字面量
+- ☑ string 字面量（默认 UTF-8，也可用于承载 bytes 数据）
 - ☑ time 字面量
 - ☐ array / list / set / dict 字面量
 - ☐ 模板字符串
@@ -59,23 +57,23 @@ xlang 第五版语言标准支持覆盖率
 - ☐ 安全成员访问 obj?.member
 - ☑ 调用 f(...)
 - ☑ 算术 + - * / %
-- ☐ 幂运算 **
+- ☑ 幂运算 **
 - ☑ 比较 == != < > <= >=
-- ☐ 近似比较 ~=
-- ☐ 逻辑 and / or / not
+- ☑ 近似比较 ~=
+- ☑ 逻辑 and / or / not
 - ☑ 位运算 & | ^ << >>
 - ☑ 一元 ! / -
-- ☐ 赋值运算族 = += -= *= /= %= **=
-- ☐ ?? / ?: / ?=
+- ☑ 赋值运算族 = += -= *= /= %= **=
+- ☑ ?? / ?: / ?=
 
 四、作用域与声明
 - ☑ 模块作用域
 - ☑ 函数作用域
 - ☑ 块作用域
-- ☐ int a
-- ☐ int a = 0
-- ☐ var a = expr
-- ☐ auto a = expr
+- ☑ int a
+- ☑ int a = 0
+- ☑ var a = expr
+- ☑ auto a = expr
 - ☑ const int A = 1
 - ☑ const string S = "x"
 
@@ -100,10 +98,10 @@ xlang 第五版语言标准支持覆盖率
 
 六、流程控制
 - ☑ 多行 if / elseif / else
-- ☐ 单行 if then expr
-- ☐ 单行 if then expr else expr
-- ☐ while
-- ☐ do-while
+- ☑ 单行 if then expr
+- ☑ 单行 if then expr else expr
+- ☑ while
+- ☑ do-while
 - ☐ for v in 任意 Iterable
 - ☑ for v in range(...)
 - ☑ for v in generator
@@ -160,13 +158,13 @@ xlang 第五版语言标准支持覆盖率
 
 十一、模块系统
 - ☑ import module
-- ☐ import module as alias
+- ☑ import module as alias
 - ☑ import module.member
-- ☐ import 多项列表
-- ☐ import 字符串路径
+- ☑ import 多项列表
+- ☑ import 字符串路径
 - ☑ export 标识符/表达式
-- ☐ export func 定义式
-- ☐ export const / var 定义式
+- ☑ export func 定义式
+- ☑ export const / var 定义式
 - ☑ 顶层代码
 - ☑ 模块初始化错误传播
 - ☑ 模块初始化缓存语义

@@ -42,6 +42,7 @@ typedef struct XL_ModuleInfo {
 	char* sConsumeMode;
 	XL_AstNode* pRoot;
 	char** arrImportKeys;
+	char** arrImportAliases;
 	char** arrResolvedImportFiles;
 	size_t iImportCount;
 	size_t iImportCap;
@@ -353,7 +354,10 @@ static char* __xlBuildImportKey(const XL_AstNode* pNode)
 {
 	char* sLeft;
 	char* sText;
+	size_t iLen;
 	size_t iNeed;
+	size_t i;
+	size_t iOutLen;
 
 	if ( pNode == NULL ) {
 		return __xlModuleDupText("");
@@ -361,6 +365,43 @@ static char* __xlBuildImportKey(const XL_AstNode* pNode)
 
 	if ( pNode->eKind == XL_AST_IDENT ) {
 		return __xlModuleDupText(pNode->sText);
+	}
+	if ( pNode->eKind == XL_AST_STRING ) {
+		const char* sSource;
+
+		sSource = (pNode->sText != NULL) ? pNode->sText : "";
+		iLen = strlen(sSource);
+		if ( (iLen >= 2) &&
+			(((sSource[0] == '\"') && (sSource[iLen - 1] == '\"')) ||
+			((sSource[0] == '\'') && (sSource[iLen - 1] == '\''))) ) {
+			sSource += 1;
+			iLen -= 2;
+		}
+
+		sText = (char*)malloc(iLen + 1);
+		if ( sText == NULL ) {
+			return NULL;
+		}
+
+		iOutLen = 0;
+		for ( i = 0; i < iLen; ++i ) {
+			char ch;
+
+			ch = sSource[i];
+			if ( (ch == '/') || (ch == '\\') ) {
+				if ( (iOutLen == 0) || (sText[iOutLen - 1] == '.') ) {
+					continue;
+				}
+				sText[iOutLen++] = '.';
+				continue;
+			}
+			sText[iOutLen++] = ch;
+		}
+		if ( (iOutLen >= 3) && (strcmp(sText + iOutLen - 3, ".xl") == 0) ) {
+			iOutLen -= 3;
+		}
+		sText[iOutLen] = '\0';
+		return sText;
 	}
 	if ( (pNode->eKind != XL_AST_MEMBER) || (pNode->sText == NULL) ) {
 		return __xlModuleDupText("");
@@ -416,10 +457,12 @@ static int __xlResolveImportFile(char* sOut, size_t iOutSize, const char* sCurre
 	return XL_RC_OK;
 }
 
-static int __xlModuleInfoAddImport(XL_ModuleInfo* pModule, const char* sImportKey)
+static int __xlModuleInfoAddImport(XL_ModuleInfo* pModule, const char* sImportKey, const char* sImportAlias)
 {
 	char** arrNew;
+	char** arrAliasNew;
 	char** arrResolvedNew;
+	char* sAliasCopy;
 	size_t iNewCap;
 
 	if ( (pModule == NULL) || (sImportKey == NULL) || (sImportKey[0] == '\0') ) {
@@ -429,10 +472,14 @@ static int __xlModuleInfoAddImport(XL_ModuleInfo* pModule, const char* sImportKe
 	if ( pModule->iImportCount >= pModule->iImportCap ) {
 		iNewCap = (pModule->iImportCap == 0) ? 4 : (pModule->iImportCap * 2);
 		arrNew = (char**)realloc(pModule->arrImportKeys, sizeof(char*) * iNewCap);
+		arrAliasNew = (char**)realloc(pModule->arrImportAliases, sizeof(char*) * iNewCap);
 		arrResolvedNew = (char**)realloc(pModule->arrResolvedImportFiles, sizeof(char*) * iNewCap);
-		if ( (arrNew == NULL) || (arrResolvedNew == NULL) ) {
+		if ( (arrNew == NULL) || (arrAliasNew == NULL) || (arrResolvedNew == NULL) ) {
 			if ( arrNew != NULL ) {
 				pModule->arrImportKeys = arrNew;
+			}
+			if ( arrAliasNew != NULL ) {
+				pModule->arrImportAliases = arrAliasNew;
 			}
 			if ( arrResolvedNew != NULL ) {
 				pModule->arrResolvedImportFiles = arrResolvedNew;
@@ -440,7 +487,9 @@ static int __xlModuleInfoAddImport(XL_ModuleInfo* pModule, const char* sImportKe
 			return XL_RC_IO_ERROR;
 		}
 		pModule->arrImportKeys = arrNew;
+		pModule->arrImportAliases = arrAliasNew;
 		pModule->arrResolvedImportFiles = arrResolvedNew;
+		memset(pModule->arrImportAliases + pModule->iImportCap, 0, sizeof(char*) * (iNewCap - pModule->iImportCap));
 		memset(pModule->arrResolvedImportFiles + pModule->iImportCap, 0, sizeof(char*) * (iNewCap - pModule->iImportCap));
 		pModule->iImportCap = iNewCap;
 	}
@@ -449,6 +498,16 @@ static int __xlModuleInfoAddImport(XL_ModuleInfo* pModule, const char* sImportKe
 	if ( pModule->arrImportKeys[pModule->iImportCount] == NULL ) {
 		return XL_RC_IO_ERROR;
 	}
+	sAliasCopy = NULL;
+	if ( (sImportAlias != NULL) && (sImportAlias[0] != '\0') ) {
+		sAliasCopy = __xlModuleDupText(sImportAlias);
+		if ( sAliasCopy == NULL ) {
+			free(pModule->arrImportKeys[pModule->iImportCount]);
+			pModule->arrImportKeys[pModule->iImportCount] = NULL;
+			return XL_RC_IO_ERROR;
+		}
+	}
+	pModule->arrImportAliases[pModule->iImportCount] = sAliasCopy;
 	pModule->iImportCount += 1;
 	return XL_RC_OK;
 }
@@ -556,9 +615,11 @@ static void __xlModuleInfoFree(XL_ModuleInfo* pModule)
 
 	for ( i = 0; i < pModule->iImportCount; ++i ) {
 		free(pModule->arrImportKeys[i]);
+		free(pModule->arrImportAliases[i]);
 		free(pModule->arrResolvedImportFiles[i]);
 	}
 	free(pModule->arrImportKeys);
+	free(pModule->arrImportAliases);
 	free(pModule->arrResolvedImportFiles);
 
 	for ( i = 0; i < pModule->iNameCount; ++i ) {
@@ -705,6 +766,23 @@ static int __xlModuleHasImportKey(const XL_ModuleInfo* pModule, const char* sMod
 	return 0;
 }
 
+static const char* __xlFindImportKeyByAlias(const XL_ModuleInfo* pModule, const char* sAlias)
+{
+	size_t i;
+
+	if ( (pModule == NULL) || (sAlias == NULL) || (sAlias[0] == '\0') ) {
+		return NULL;
+	}
+
+	for ( i = 0; i < pModule->iImportCount; ++i ) {
+		if ( (pModule->arrImportAliases[i] != NULL) && (strcmp(pModule->arrImportAliases[i], sAlias) == 0) ) {
+			return pModule->arrImportKeys[i];
+		}
+	}
+
+	return NULL;
+}
+
 static XL_ModuleInfo* __xlFindImportedModule(const XL_ModuleLinkContext* pCtx, const XL_ModuleInfo* pModule, const char* sModuleKey)
 {
 	size_t i;
@@ -756,6 +834,7 @@ static void __xlReplaceNodeWithIdent(XL_AstNode* pNode, const char* sName)
 static int __xlCollectImports(XL_ModuleInfo* pModule)
 {
 	const XL_AstNode* pStmt;
+	const char* sImportAlias;
 	char* sImportKey;
 	size_t i;
 	int iRc;
@@ -770,7 +849,8 @@ static int __xlCollectImports(XL_ModuleInfo* pModule)
 		if ( sImportKey == NULL ) {
 			return XL_RC_IO_ERROR;
 		}
-		iRc = __xlModuleInfoAddImport(pModule, sImportKey);
+		sImportAlias = ((pStmt->sText2 != NULL) && (pStmt->sText2[0] != '\0')) ? pStmt->sText2 : NULL;
+		iRc = __xlModuleInfoAddImport(pModule, sImportKey, sImportAlias);
 		free(sImportKey);
 		if ( iRc != XL_RC_OK ) {
 			return iRc;
@@ -953,11 +1033,18 @@ static void __xlRewriteMemberImportRef(XL_ModuleLinkContext* pCtx, XL_ModuleInfo
 	*sDot = '\0';
 	sImportKey = sChain;
 	if ( !__xlModuleHasImportKey(pModule, sImportKey) ) {
-		for ( i = 0; i < pModule->iImportCount; ++i ) {
-			pImported = __xlFindImportedModule(pCtx, pModule, pModule->arrImportKeys[i]);
-			if ( (pImported != NULL) && (pImported->sLeafAlias != NULL) && (strcmp(pImported->sLeafAlias, sImportKey) == 0) ) {
-				sImportKey = pImported->sModuleKey;
-				break;
+		const char* sAliasedImportKey;
+
+		sAliasedImportKey = __xlFindImportKeyByAlias(pModule, sImportKey);
+		if ( sAliasedImportKey != NULL ) {
+			sImportKey = (char*)sAliasedImportKey;
+		} else {
+			for ( i = 0; i < pModule->iImportCount; ++i ) {
+				pImported = __xlFindImportedModule(pCtx, pModule, pModule->arrImportKeys[i]);
+				if ( (pImported != NULL) && (pImported->sLeafAlias != NULL) && (strcmp(pImported->sLeafAlias, sImportKey) == 0) ) {
+					sImportKey = pImported->sModuleKey;
+					break;
+				}
 			}
 		}
 	}
@@ -1204,7 +1291,7 @@ static char* __xlBuildXlpNativeSource(const char* sModuleKey, const XL_XlpFuncti
 				(pFunc->pParams[j].sName[0] != '\0') ? pFunc->pParams[j].sName : "arg");
 		}
 		__xlModuleBufAppend(&buf, ")");
-		if ( (pFunc->sReturnType[0] != '\0') && (strcmp(pFunc->sReturnType, "void") != 0) ) {
+		if ( pFunc->sReturnType[0] != '\0' ) {
 			__xlModuleBufAppendFormat(&buf, " as %s", pFunc->sReturnType);
 		}
 		__xlModuleBufAppend(&buf, "\nend\n");
@@ -1218,7 +1305,7 @@ static char* __xlBuildXlpNativeSource(const char* sModuleKey, const XL_XlpFuncti
 				(pFunc->pParams[j].sName[0] != '\0') ? pFunc->pParams[j].sName : "arg");
 		}
 		__xlModuleBufAppend(&buf, ")");
-		if ( (pFunc->sReturnType[0] != '\0') && (strcmp(pFunc->sReturnType, "void") != 0) ) {
+		if ( pFunc->sReturnType[0] != '\0' ) {
 			__xlModuleBufAppendFormat(&buf, " as %s", pFunc->sReturnType);
 		}
 		__xlModuleBufAppend(&buf, "\n");
