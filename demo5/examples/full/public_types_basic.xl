@@ -1,0 +1,19 @@
+func main() as int
+	if future.name != "future"
+		return 1
+	end
+	if task.name != "task"
+		return 2
+	end
+	if channel.name != "channel"
+		return 3
+	end
+	if error.name != "error"
+		return 4
+	end
+	if module.name != "module"
+		return 5
+	end
+
+	return 77
+end

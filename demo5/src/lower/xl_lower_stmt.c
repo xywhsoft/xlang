@@ -68,6 +68,371 @@ static const XL_FuncInfo* __xlResolvedFuncInfo(const XL_SemResult* pSem, const X
 	return xlFuncTableGet(&pSem->funcs, (size_t)pInfo->iFuncIndex);
 }
 
+static char* __xlLowerDupText(const char* sText)
+{
+	size_t iLen;
+	char* sCopy;
+
+	if ( sText == NULL ) {
+		sText = "";
+	}
+	iLen = strlen(sText);
+	sCopy = (char*)malloc(iLen + 1);
+	if ( sCopy == NULL ) {
+		return NULL;
+	}
+	memcpy(sCopy, sText, iLen + 1);
+	return sCopy;
+}
+
+static const XL_GeneratorSmFunc* __xlFindGeneratorSmFunc(
+	const XL_GeneratorSm* pSm,
+	const XL_AsyncSmFunc* pAsyncFunc
+)
+{
+	size_t i;
+
+	if ( (pSm == NULL) || (pAsyncFunc == NULL) ) {
+		return NULL;
+	}
+
+	for ( i = 0; i < pSm->iFuncCount; ++i ) {
+		const XL_GeneratorSmFunc* pFunc = &pSm->pFuncs[i];
+
+		if ( pFunc->iLine != pAsyncFunc->iLine || pFunc->iColumn != pAsyncFunc->iColumn ) {
+			continue;
+		}
+		if ( strcmp((pFunc->sFuncName != NULL) ? pFunc->sFuncName : "", (pAsyncFunc->sFuncName != NULL) ? pAsyncFunc->sFuncName : "") != 0 ) {
+			continue;
+		}
+		return pFunc;
+	}
+
+	return NULL;
+}
+
+static int __xlHybridSmGrow(XL_HybridSm* pSm)
+{
+	XL_HybridSmFunc* pNewFuncs;
+	size_t iNewCap;
+
+	if ( pSm->iFuncCount < pSm->iFuncCap ) {
+		return XL_RC_OK;
+	}
+	iNewCap = (pSm->iFuncCap == 0) ? 4 : (pSm->iFuncCap * 2);
+	pNewFuncs = (XL_HybridSmFunc*)realloc(pSm->pFuncs, sizeof(XL_HybridSmFunc) * iNewCap);
+	if ( pNewFuncs == NULL ) {
+		return XL_RC_IO_ERROR;
+	}
+	memset(pNewFuncs + pSm->iFuncCap, 0, sizeof(XL_HybridSmFunc) * (iNewCap - pSm->iFuncCap));
+	pSm->pFuncs = pNewFuncs;
+	pSm->iFuncCap = iNewCap;
+	return XL_RC_OK;
+}
+
+static int __xlHybridPointGrow(XL_HybridSmFunc* pFunc)
+{
+	XL_HybridSmPoint* pNewPoints;
+	size_t iNewCap;
+
+	if ( pFunc->iPointCount < pFunc->iPointCap ) {
+		return XL_RC_OK;
+	}
+	iNewCap = (pFunc->iPointCap == 0) ? 4 : (pFunc->iPointCap * 2);
+	pNewPoints = (XL_HybridSmPoint*)realloc(pFunc->pPoints, sizeof(XL_HybridSmPoint) * iNewCap);
+	if ( pNewPoints == NULL ) {
+		return XL_RC_IO_ERROR;
+	}
+	memset(pNewPoints + pFunc->iPointCap, 0, sizeof(XL_HybridSmPoint) * (iNewCap - pFunc->iPointCap));
+	pFunc->pPoints = pNewPoints;
+	pFunc->iPointCap = iNewCap;
+	return XL_RC_OK;
+}
+
+static int __xlHybridFindPoint(const XL_HybridSmFunc* pFunc, int iLine, int iColumn)
+{
+	size_t i;
+
+	for ( i = 0; i < pFunc->iPointCount; ++i ) {
+		if ( pFunc->pPoints[i].iLine == iLine && pFunc->pPoints[i].iColumn == iColumn ) {
+			return (int)i;
+		}
+	}
+	return -1;
+}
+
+static int __xlHybridEnsurePoint(XL_HybridSmFunc* pFunc, int iLine, int iColumn)
+{
+	int iIndex;
+
+	iIndex = __xlHybridFindPoint(pFunc, iLine, iColumn);
+	if ( iIndex >= 0 ) {
+		return iIndex;
+	}
+	if ( __xlHybridPointGrow(pFunc) != XL_RC_OK ) {
+		return -1;
+	}
+	iIndex = (int)pFunc->iPointCount;
+	pFunc->pPoints[iIndex].iLine = iLine;
+	pFunc->pPoints[iIndex].iColumn = iColumn;
+	pFunc->pPoints[iIndex].iAsyncStateId = -1;
+	pFunc->pPoints[iIndex].iGeneratorStateId = -1;
+	pFunc->pPoints[iIndex].iProjectionGroupId = -1;
+	pFunc->pPoints[iIndex].iProjectedGeneratorStateId = -1;
+	pFunc->pPoints[iIndex].iProjectedPointIndex = -1;
+	pFunc->iPointCount += 1;
+	return iIndex;
+}
+
+static int __xlHybridPointCompare(const void* pLeft, const void* pRight)
+{
+	const XL_HybridSmPoint* pA;
+	const XL_HybridSmPoint* pB;
+
+	pA = (const XL_HybridSmPoint*)pLeft;
+	pB = (const XL_HybridSmPoint*)pRight;
+	if ( pA->iLine != pB->iLine ) {
+		return (pA->iLine < pB->iLine) ? -1 : 1;
+	}
+	if ( pA->iColumn != pB->iColumn ) {
+		return (pA->iColumn < pB->iColumn) ? -1 : 1;
+	}
+	return 0;
+}
+
+void xlHybridSmInit(XL_HybridSm* pSm)
+{
+	if ( pSm != NULL ) {
+		memset(pSm, 0, sizeof(*pSm));
+	}
+}
+
+void xlHybridSmFree(XL_HybridSm* pSm)
+{
+	size_t i;
+
+	if ( pSm == NULL ) {
+		return;
+	}
+	for ( i = 0; i < pSm->iFuncCount; ++i ) {
+		free(pSm->pFuncs[i].sFuncName);
+		free(pSm->pFuncs[i].pPoints);
+	}
+	free(pSm->pFuncs);
+	memset(pSm, 0, sizeof(*pSm));
+}
+
+static int __xlHybridAssignProjectionGroups(XL_HybridSmFunc* pFunc, XL_DiagContext* pDiag)
+{
+	size_t i;
+	size_t iNextYieldIndex;
+
+	if ( pFunc == NULL ) {
+		return XL_RC_BAD_ARG;
+	}
+
+	for ( i = 0; i < pFunc->iPointCount; ++i ) {
+		pFunc->pPoints[i].iProjectionGroupId = -1;
+		pFunc->pPoints[i].iProjectedGeneratorStateId = -1;
+		pFunc->pPoints[i].iProjectedPointIndex = -1;
+	}
+
+	iNextYieldIndex = 0;
+	for ( i = 0; i < pFunc->iPointCount; ++i ) {
+		XL_HybridSmPoint* pPoint = &pFunc->pPoints[i];
+
+		if ( !pPoint->bYield ) {
+			continue;
+		}
+		pPoint->iProjectionGroupId = (int)iNextYieldIndex;
+		pPoint->iProjectedGeneratorStateId = pPoint->iGeneratorStateId;
+		pPoint->iProjectedPointIndex = (int)i;
+		iNextYieldIndex += 1;
+	}
+
+	for ( i = 0; i < pFunc->iPointCount; ++i ) {
+		XL_HybridSmPoint* pPoint = &pFunc->pPoints[i];
+		size_t j;
+
+		if ( !pPoint->bAwait ) {
+			continue;
+		}
+		for ( j = i; j < pFunc->iPointCount; ++j ) {
+			XL_HybridSmPoint* pTarget = &pFunc->pPoints[j];
+
+			if ( !pTarget->bYield ) {
+				continue;
+			}
+			if ( j < i ) {
+				continue;
+			}
+			pPoint->iProjectionGroupId = pTarget->iProjectionGroupId;
+			pPoint->iProjectedGeneratorStateId = pTarget->iGeneratorStateId;
+			pPoint->iProjectedPointIndex = (int)j;
+			break;
+		}
+		if ( pPoint->iProjectionGroupId >= 0 ) {
+			continue;
+		}
+		XL_DIAG_ERROR(
+			pDiag,
+			"lower",
+			"async suspend point in %s at %d:%d could not be projected onto a later generator suspend point",
+			(pFunc->sFuncName != NULL) ? pFunc->sFuncName : "<anonymous>",
+			pPoint->iLine,
+			pPoint->iColumn
+		);
+		return XL_RC_FAIL;
+	}
+
+	return XL_RC_OK;
+}
+
+int xlLowerBuildHybridSm(const XL_AsyncSm* pAsyncSm, const XL_GeneratorSm* pGeneratorSm, XL_DiagContext* pDiag, XL_HybridSm* pSm)
+{
+	size_t i;
+
+	if ( (pAsyncSm == NULL) || (pGeneratorSm == NULL) || (pSm == NULL) ) {
+		return XL_RC_BAD_ARG;
+	}
+	xlHybridSmInit(pSm);
+	for ( i = 0; i < pAsyncSm->iFuncCount; ++i ) {
+		const XL_AsyncSmFunc* pAsyncFunc;
+		const XL_GeneratorSmFunc* pGeneratorFunc;
+		XL_HybridSmFunc* pHybridFunc;
+		size_t j;
+
+		pAsyncFunc = &pAsyncSm->pFuncs[i];
+		pGeneratorFunc = __xlFindGeneratorSmFunc(pGeneratorSm, pAsyncFunc);
+		if ( pGeneratorFunc == NULL ) {
+			continue;
+		}
+		if ( __xlHybridSmGrow(pSm) != XL_RC_OK ) {
+			xlHybridSmFree(pSm);
+			return XL_RC_IO_ERROR;
+		}
+		pHybridFunc = &pSm->pFuncs[pSm->iFuncCount++];
+		memset(pHybridFunc, 0, sizeof(*pHybridFunc));
+		pHybridFunc->sFuncName = __xlLowerDupText((pAsyncFunc->sFuncName != NULL) ? pAsyncFunc->sFuncName : "");
+		if ( pHybridFunc->sFuncName == NULL ) {
+			xlHybridSmFree(pSm);
+			return XL_RC_IO_ERROR;
+		}
+		pHybridFunc->iLine = pAsyncFunc->iLine;
+		pHybridFunc->iColumn = pAsyncFunc->iColumn;
+
+		for ( j = 0; j < pAsyncFunc->iStateCount; ++j ) {
+			int iIndex;
+
+			if ( pAsyncFunc->pStates[j].bFinal ) {
+				pHybridFunc->iAsyncFinalCount += 1;
+			}
+			if ( !pAsyncFunc->pStates[j].bSuspend ) {
+				continue;
+			}
+			iIndex = __xlHybridEnsurePoint(pHybridFunc, pAsyncFunc->pStates[j].iLine, pAsyncFunc->pStates[j].iColumn);
+			if ( iIndex < 0 ) {
+				xlHybridSmFree(pSm);
+				return XL_RC_IO_ERROR;
+			}
+			pHybridFunc->pPoints[iIndex].bAwait = 1;
+			pHybridFunc->pPoints[iIndex].iAsyncStateId = pAsyncFunc->pStates[j].iStateId;
+		}
+		for ( j = 0; j < pGeneratorFunc->iStateCount; ++j ) {
+			int iIndex;
+
+			if ( pGeneratorFunc->pStates[j].bFinal ) {
+				pHybridFunc->iGeneratorFinalCount += 1;
+			}
+			if ( !pGeneratorFunc->pStates[j].bSuspend ) {
+				continue;
+			}
+			iIndex = __xlHybridEnsurePoint(pHybridFunc, pGeneratorFunc->pStates[j].iLine, pGeneratorFunc->pStates[j].iColumn);
+			if ( iIndex < 0 ) {
+				xlHybridSmFree(pSm);
+				return XL_RC_IO_ERROR;
+			}
+			pHybridFunc->pPoints[iIndex].bYield = 1;
+			pHybridFunc->pPoints[iIndex].iGeneratorStateId = pGeneratorFunc->pStates[j].iStateId;
+		}
+		if ( pHybridFunc->iPointCount > 1 ) {
+			qsort(pHybridFunc->pPoints, pHybridFunc->iPointCount, sizeof(XL_HybridSmPoint), __xlHybridPointCompare);
+		}
+		if ( __xlHybridAssignProjectionGroups(pHybridFunc, pDiag) != XL_RC_OK ) {
+			xlHybridSmFree(pSm);
+			return XL_RC_FAIL;
+		}
+	}
+	return XL_RC_OK;
+}
+
+static int __xlValidateHybridStateMachines(const XL_LowerResult* pResult, XL_DiagContext* pDiag)
+{
+	size_t i;
+
+	if ( pResult == NULL ) {
+		return XL_RC_BAD_ARG;
+	}
+
+	for ( i = 0; i < pResult->hybridSm.iFuncCount; ++i ) {
+		const XL_HybridSmFunc* pHybridFunc;
+		size_t iAwaitCount;
+		size_t iYieldCount;
+		size_t j;
+
+		pHybridFunc = &pResult->hybridSm.pFuncs[i];
+		iAwaitCount = 0;
+		iYieldCount = 0;
+		for ( j = 0; j < pHybridFunc->iPointCount; ++j ) {
+			if ( pHybridFunc->pPoints[j].bAwait ) {
+				iAwaitCount += 1;
+				if ( pHybridFunc->pPoints[j].iProjectedGeneratorStateId <= 0 ) {
+					XL_DIAG_ERROR(
+						pDiag,
+						"lower",
+						"async suspend point in %s at %d:%d is missing projected generator state",
+						(pHybridFunc->sFuncName != NULL) ? pHybridFunc->sFuncName : "<anonymous>",
+						pHybridFunc->pPoints[j].iLine,
+						pHybridFunc->pPoints[j].iColumn
+					);
+					return XL_RC_FAIL;
+				}
+			}
+			if ( pHybridFunc->pPoints[j].bYield ) {
+				iYieldCount += 1;
+			}
+		}
+		if ( iAwaitCount > iYieldCount ) {
+			XL_DIAG_ERROR(
+				pDiag,
+				"lower",
+				"async/generator suspend count mismatch in %s at %d:%d (async=%zu generator=%zu)",
+				(pHybridFunc->sFuncName != NULL) ? pHybridFunc->sFuncName : "<anonymous>",
+				pHybridFunc->iLine,
+				pHybridFunc->iColumn,
+				iAwaitCount,
+				iYieldCount
+			);
+			return XL_RC_FAIL;
+		}
+		if ( pHybridFunc->iAsyncFinalCount != pHybridFunc->iGeneratorFinalCount ) {
+			XL_DIAG_ERROR(
+				pDiag,
+				"lower",
+				"async/generator final-state count mismatch in %s at %d:%d (async=%zu generator=%zu)",
+				(pHybridFunc->sFuncName != NULL) ? pHybridFunc->sFuncName : "<anonymous>",
+				pHybridFunc->iLine,
+				pHybridFunc->iColumn,
+				pHybridFunc->iAsyncFinalCount,
+				pHybridFunc->iGeneratorFinalCount
+			);
+			return XL_RC_FAIL;
+		}
+	}
+
+	return XL_RC_OK;
+}
+
 static XL_HirNode* __xlCreateLiteralHir(const XL_AstNode* pSource, const char* sTypeName, const char* sText, int64_t iIntValue)
 {
 	XL_HirNode* pNode;
@@ -615,6 +980,7 @@ void xlLowerResultFree(XL_LowerResult* pResult)
 	xlMirFree(pResult->pMirRoot);
 	xlAsyncSmFree(&pResult->asyncSm);
 	xlGeneratorSmFree(&pResult->generatorSm);
+	xlHybridSmFree(&pResult->hybridSm);
 	memset(pResult, 0, sizeof(*pResult));
 }
 
@@ -660,6 +1026,14 @@ int xlLowerAst(
 	if ( xlLowerBuildGeneratorSm(pResult->pHirRoot, pDiag, bTraceLower, &pResult->generatorSm) != XL_RC_OK ) {
 		xlLowerResultFree(pResult);
 		return XL_RC_IO_ERROR;
+	}
+	if ( xlLowerBuildHybridSm(&pResult->asyncSm, &pResult->generatorSm, pDiag, &pResult->hybridSm) != XL_RC_OK ) {
+		xlLowerResultFree(pResult);
+		return XL_RC_IO_ERROR;
+	}
+	if ( __xlValidateHybridStateMachines(pResult, pDiag) != XL_RC_OK ) {
+		xlLowerResultFree(pResult);
+		return XL_RC_FAIL;
 	}
 
 	return XL_RC_OK;

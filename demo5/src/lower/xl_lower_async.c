@@ -411,6 +411,54 @@ static int __xlAsyncAddStatementStates(
 	return iRc;
 }
 
+static int __xlAsyncAddNodeStatesRecursive(
+	XL_AsyncSmFunc* pFunc,
+	const XL_HirNode* pNode,
+	XL_DiagContext* pDiag,
+	int bTraceLower
+)
+{
+	size_t i;
+	int iRc;
+
+	if ( (pFunc == NULL) || (pNode == NULL) ) {
+		return XL_RC_OK;
+	}
+
+	switch ( pNode->eKind ) {
+		case XL_HIR_BLOCK:
+			for ( i = 0; i < pNode->iChildCount; ++i ) {
+				iRc = __xlAsyncAddNodeStatesRecursive(pFunc, pNode->ppChildren[i], pDiag, bTraceLower);
+				if ( iRc != XL_RC_OK ) {
+					return iRc;
+				}
+			}
+			return XL_RC_OK;
+		case XL_HIR_TRY:
+			iRc = __xlAsyncAddNodeStatesRecursive(pFunc, (pNode->iChildCount != 0) ? pNode->ppChildren[0] : NULL, pDiag, bTraceLower);
+			if ( iRc != XL_RC_OK ) {
+				return iRc;
+			}
+			iRc = __xlAsyncAddNodeStatesRecursive(pFunc, (pNode->iChildCount > 2) ? pNode->ppChildren[2] : NULL, pDiag, bTraceLower);
+			if ( iRc != XL_RC_OK ) {
+				return iRc;
+			}
+			return __xlAsyncAddNodeStatesRecursive(pFunc, (pNode->iChildCount > 3) ? pNode->ppChildren[3] : NULL, pDiag, bTraceLower);
+		case XL_HIR_IF:
+			iRc = __xlAsyncAddNodeStatesRecursive(pFunc, (pNode->iChildCount > 1) ? pNode->ppChildren[1] : NULL, pDiag, bTraceLower);
+			if ( iRc != XL_RC_OK ) {
+				return iRc;
+			}
+			return __xlAsyncAddNodeStatesRecursive(pFunc, (pNode->iChildCount > 2) ? pNode->ppChildren[2] : NULL, pDiag, bTraceLower);
+		case XL_HIR_WHILE:
+			return __xlAsyncAddNodeStatesRecursive(pFunc, (pNode->iChildCount > 1) ? pNode->ppChildren[1] : NULL, pDiag, bTraceLower);
+		case XL_HIR_FORIN:
+			return __xlAsyncAddNodeStatesRecursive(pFunc, (pNode->iChildCount > 1) ? pNode->ppChildren[1] : NULL, pDiag, bTraceLower);
+		default:
+			return __xlAsyncAddStatementStates(pFunc, pNode, pDiag, bTraceLower);
+	}
+}
+
 static int __xlBuildAsyncStatesForFunc(
 	XL_AsyncSmFunc* pFunc,
 	const XL_HirNode* pFuncNode,
@@ -429,7 +477,7 @@ static int __xlBuildAsyncStatesForFunc(
 	}
 
 	for ( i = 0; (pBody != NULL) && (i < pBody->iChildCount); ++i ) {
-		iRc = __xlAsyncAddStatementStates(pFunc, pBody->ppChildren[i], pDiag, bTraceLower);
+		iRc = __xlAsyncAddNodeStatesRecursive(pFunc, pBody->ppChildren[i], pDiag, bTraceLower);
 		if ( iRc != XL_RC_OK ) {
 			return iRc;
 		}

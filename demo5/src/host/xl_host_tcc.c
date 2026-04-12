@@ -11,6 +11,8 @@
 	#include <unistd.h>
 #endif
 
+extern void xrtNetSyncShutdownHiddenEngine(void);
+
 typedef struct XL_RunTraceBuffer {
 	char* sData;
 	size_t iLen;
@@ -560,6 +562,39 @@ static int __xlApplyStaticArtifacts(
 	return XL_RC_OK;
 }
 
+static int __xlApplySharedArtifacts(
+	const XL_HostContext* pCtx,
+	TCCState* pTcc,
+	XL_RunTraceBuffer* pTrace
+)
+{
+	size_t i;
+
+	if ( (pCtx == NULL) || (pTcc == NULL) ) {
+		return XL_RC_BAD_ARG;
+	}
+
+	for ( i = 0; i < pCtx->iArtifactCount; ++i ) {
+		const XL_HostArtifact* pArtifact;
+
+		pArtifact = &pCtx->arrArtifacts[i];
+		if ( strcmp(pArtifact->sKind, "shared") != 0 ) {
+			continue;
+		}
+		__xlRunTraceAppendFormat(pTrace, "artifact.shared.link=%s\n", pArtifact->sFile);
+		if ( !__xlFileExists(pArtifact->sFile) ) {
+			__xlRunTraceAppendFormat(pTrace, "artifact.shared.missing=%s\n", pArtifact->sFile);
+			return XL_RC_FAIL;
+		}
+		if ( tcc_add_file(pTcc, pArtifact->sFile) < 0 ) {
+			__xlRunTraceAppendFormat(pTrace, "artifact.shared.link_failed=%s\n", pArtifact->sFile);
+			return XL_RC_FAIL;
+		}
+	}
+
+	return XL_RC_OK;
+}
+
 static int __xlLoadSharedArtifacts(
 	const XL_HostContext* pCtx,
 	XL_RunTraceBuffer* pTrace,
@@ -1087,6 +1122,7 @@ int xlHostTccRunText(
 		XL_DIAG_ERROR(pDiag, "host.tcc", "uncaught exception: %s", pResult->sExceptionText);
 	}
 
+	xrtNetSyncShutdownHiddenEngine();
 	tcc_delete(pTcc);
 	*psTraceText = trace.sData;
 	return iRc;
@@ -1222,16 +1258,12 @@ static int __xlHostTccBuildCommon(
 	XL_HostBuildResult* pResult
 )
 {
-	XL_SharedArtifactHandle arrSharedHandles[XL_HOST_ARTIFACT_MAX];
 	XL_StaticExtractedFile arrStaticExtracted[XL_HOST_STATIC_EXTRACT_MAX];
 	size_t iStaticExtractedCount;
-	size_t iSharedHandleCount;
 	int bObjOutput;
 
-	memset(arrSharedHandles, 0, sizeof(arrSharedHandles));
 	memset(arrStaticExtracted, 0, sizeof(arrStaticExtracted));
 	iStaticExtractedCount = 0;
-	iSharedHandleCount = 0;
 	bObjOutput = (sOutputKind != NULL) && (strcmp(sOutputKind, "obj") == 0);
 	__xlRunTraceAppendFormat(pTrace, "output=%s\n", sOutputFile);
 	__xlRunTraceAppendFormat(pTrace, "output_kind=%s\n", sOutputKind);
@@ -1259,35 +1291,25 @@ static int __xlHostTccBuildCommon(
 			pResult->bHadBuildError = 1;
 			return XL_RC_FAIL;
 		}
-		if ( __xlLoadSharedArtifacts(pCtx, pTrace, arrSharedHandles, XL_COUNTOF(arrSharedHandles), &iSharedHandleCount) != XL_RC_OK ) {
-			XL_DIAG_ERROR(pDiag, "host.tcc", "failed to preload shared xlp artifacts");
-			__xlCleanupStaticExtractedFiles(arrStaticExtracted, iStaticExtractedCount);
-			pResult->bHadBuildError = 1;
-			return XL_RC_FAIL;
-		}
-		if ( __xlRegisterSharedArtifactSymbols(pCtx, pTcc, pTrace, arrSharedHandles, iSharedHandleCount) != XL_RC_OK ) {
-			XL_DIAG_ERROR(pDiag, "host.tcc", "failed to register shared xlp symbols");
-			__xlUnloadSharedArtifacts(pTrace, arrSharedHandles, iSharedHandleCount);
+		if ( __xlApplySharedArtifacts(pCtx, pTcc, pTrace) != XL_RC_OK ) {
+			XL_DIAG_ERROR(pDiag, "host.tcc", "failed to link shared xlp artifacts");
 			__xlCleanupStaticExtractedFiles(arrStaticExtracted, iStaticExtractedCount);
 			pResult->bHadBuildError = 1;
 			return XL_RC_FAIL;
 		}
 	}
 	if ( xlPathEnsureParentDir(sOutputFile) != XL_RC_OK ) {
-		__xlUnloadSharedArtifacts(pTrace, arrSharedHandles, iSharedHandleCount);
 		__xlCleanupStaticExtractedFiles(arrStaticExtracted, iStaticExtractedCount);
 		XL_DIAG_ERROR(pDiag, "host.tcc", "failed to prepare output directory: %s", sOutputFile);
 		pResult->bHadBuildError = 1;
 		return XL_RC_IO_ERROR;
 	}
 	if ( tcc_output_file(pTcc, sOutputFile) < 0 ) {
-		__xlUnloadSharedArtifacts(pTrace, arrSharedHandles, iSharedHandleCount);
 		__xlCleanupStaticExtractedFiles(arrStaticExtracted, iStaticExtractedCount);
 		XL_DIAG_ERROR(pDiag, "host.tcc", "failed to write output file: %s", sOutputFile);
 		pResult->bHadBuildError = 1;
 		return XL_RC_FAIL;
 	}
-	__xlUnloadSharedArtifacts(pTrace, arrSharedHandles, iSharedHandleCount);
 	__xlCleanupStaticExtractedFiles(arrStaticExtracted, iStaticExtractedCount);
 	return XL_RC_OK;
 }

@@ -1,0 +1,29 @@
+import std.task
+
+async func odd_before_break(int stop) as int
+	int current = 0
+
+	while current < stop do
+		current += 1
+		auto delayed = await task.delay(current)
+		if delayed == 2 then
+			continue
+		end
+		if delayed == 5 then
+			break
+		end
+		yield delayed
+	end
+
+	return 0
+end
+
+func main() as int
+	int sum = 0
+
+	for value in odd_before_break(6)
+		sum += value
+	end
+
+	return sum
+end

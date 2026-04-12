@@ -1,0 +1,12 @@
+async func get_value() as int
+	return 5
+end
+
+func add(int a, int b) as int
+	return a + b
+end
+
+async func main() as int
+	const int a = add(await get_value(), 2)
+	return add(a, await get_value())
+end

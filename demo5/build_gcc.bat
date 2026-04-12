@@ -4,6 +4,8 @@ cd /d %~dp0
 
 if not exist release\bin mkdir release\bin
 if not exist release\tmp mkdir release\tmp
+if exist release\tmp\*.fallback.exe del /f /q release\tmp\*.fallback.exe >nul 2>nul
+if exist release\tmp\*.trace.txt del /f /q release\tmp\*.trace.txt >nul 2>nul
 if not exist examples\xlp_native\packages\pkg.clock\bin mkdir examples\xlp_native\packages\pkg.clock\bin
 if not exist examples\xlp_native\packages\pkg.probe\bin mkdir examples\xlp_native\packages\pkg.probe\bin
 if not exist examples\xlp_static\packages\pkg.clock\lib mkdir examples\xlp_static\packages\pkg.clock\lib
@@ -12,6 +14,18 @@ if not exist examples\xlp_static\packages\pkg.probe\lib mkdir examples\xlp_stati
 set SRC_LIST=release\tmp\gcc_sources.rsp
 set TEST_SRC_LIST=release\tmp\gcc_test_sources.rsp
 set TCC_OBJ=release\tmp\libtcc.o
+set XL5_BUILD_EXE=release\tmp\xl5.build.exe
+set XL5_TEST_BUILD_EXE=release\tmp\xl5_test.build.exe
+set BUILD_STAMP_HEADER=release\tmp\xl_test_build_stamp.h
+set XL5_SMOKE_LOG=release\tmp\xl5_smoke.log
+set XL5_TEST_SMOKE_LOG=release\tmp\xl5_test_smoke.log
+set SMOKE_SELECTOR=lower.async_generator_loop_control_hybrid_groups_json
+
+for /f "delims=" %%i in ('powershell -NoProfile -Command "(Get-Date).ToString('yyyy-MM-dd HH:mm:ss.fff')"') do set BUILD_ID=%%i
+set BUILD_ID=%BUILD_ID% run-%RANDOM%-%RANDOM%
+> "%BUILD_STAMP_HEADER%" echo #ifndef XL_TEST_BUILD_ID
+>> "%BUILD_STAMP_HEADER%" echo #define XL_TEST_BUILD_ID "%BUILD_ID%"
+>> "%BUILD_STAMP_HEADER%" echo #endif
 
 echo Generating lexer with Flex...
 tools\flex.exe --wincompat --noline -o src\lexer\xl_lexer_gen.c --header-file=src\lexer\xl_lexer_gen.h src\lexer\xl_lexer.l
@@ -63,7 +77,7 @@ if errorlevel 1 (
 )
 
 echo Building demo5 with GCC...
-gcc -std=c11 -Wall -Wextra -Werror -Wno-unused-parameter -Wno-unused-variable -Wno-unused-function -D_CRT_SECURE_NO_WARNINGS -I. -Ilib\xrt -Ilib\tcc @"%SRC_LIST%" "%TCC_OBJ%" -o release\bin\xl5.exe -lshell32 -lws2_32 -liphlpapi
+gcc -std=c11 -Wall -Wextra -Werror -Wno-unused-parameter -Wno-unused-variable -Wno-unused-function -D_CRT_SECURE_NO_WARNINGS -I. -Ilib\xrt -Ilib\tcc @"%SRC_LIST%" "%TCC_OBJ%" -o "%XL5_BUILD_EXE%" -lshell32 -lws2_32 -liphlpapi
 
 if errorlevel 1 (
 	echo Build failed.
@@ -71,7 +85,7 @@ if errorlevel 1 (
 )
 
 echo Building demo5 test runner with GCC...
-gcc -std=c11 -Wall -Wextra -Werror -Wno-unused-parameter -Wno-unused-variable -Wno-unused-function -D_CRT_SECURE_NO_WARNINGS -I. -Ilib\xrt -Ilib\tcc @"%TEST_SRC_LIST%" "%TCC_OBJ%" -o release\bin\xl5_test.exe -lshell32 -lws2_32 -liphlpapi
+gcc -std=c11 -Wall -Wextra -Werror -Wno-unused-parameter -Wno-unused-variable -Wno-unused-function -D_CRT_SECURE_NO_WARNINGS -I. -Ilib\xrt -Ilib\tcc @"%TEST_SRC_LIST%" "%TCC_OBJ%" -o "%XL5_TEST_BUILD_EXE%" -lshell32 -lws2_32 -liphlpapi
 
 if errorlevel 1 (
 	echo Test runner build failed.
@@ -93,7 +107,7 @@ if errorlevel 1 (
 	exit /b 1
 )
 
-release\bin\xl5.exe build-c examples\xlp_artifacts\pkg_clock_artifact.c --emit release\tmp\pkg_clock_artifact.obj >nul
+"%XL5_BUILD_EXE%" build-c examples\xlp_artifacts\pkg_clock_artifact.c --emit release\tmp\pkg_clock_artifact.obj >nul
 
 if errorlevel 1 (
 	echo Static xlp artifact object build failed.
@@ -118,6 +132,43 @@ copy /y release\tmp\pkg_clock_static.a examples\xlp_static\packages\pkg.probe\li
 
 if errorlevel 1 (
 	echo Static xlp probe artifact archive build failed.
+	exit /b 1
+)
+
+if exist release\bin\xl5.exe del /f /q release\bin\xl5.exe >nul
+move /y "%XL5_BUILD_EXE%" release\bin\xl5.exe >nul
+
+if errorlevel 1 (
+	echo xl5.exe publish failed.
+	exit /b 1
+)
+
+if exist release\bin\xl5_test.exe del /f /q release\bin\xl5_test.exe >nul
+move /y "%XL5_TEST_BUILD_EXE%" release\bin\xl5_test.exe >nul
+
+if errorlevel 1 (
+	echo xl5_test.exe publish failed.
+	exit /b 1
+)
+
+if exist "%XL5_SMOKE_LOG%" del /f /q "%XL5_SMOKE_LOG%" >nul
+if exist "%XL5_TEST_SMOKE_LOG%" del /f /q "%XL5_TEST_SMOKE_LOG%" >nul
+
+release\bin\xl5.exe test %SMOKE_SELECTOR% > "%XL5_SMOKE_LOG%" 2>&1
+
+if errorlevel 1 (
+	echo xl5.exe smoke test failed for %SMOKE_SELECTOR%.
+	type "%BUILD_STAMP_HEADER%"
+	type "%XL5_SMOKE_LOG%"
+	exit /b 1
+)
+
+release\bin\xl5_test.exe %SMOKE_SELECTOR% > "%XL5_TEST_SMOKE_LOG%" 2>&1
+
+if errorlevel 1 (
+	echo xl5_test.exe smoke test failed for %SMOKE_SELECTOR%.
+	type "%BUILD_STAMP_HEADER%"
+	type "%XL5_TEST_SMOKE_LOG%"
 	exit /b 1
 )
 

@@ -130,7 +130,7 @@ xlang 第五版语言标准支持覆盖率
 - ☑ break n
 - ☑ continue n
 - ☑ 结构化循环到后端跳转的基本 lowering
-- ☐ async/generator 场景统一状态机控制流（当前 lowering 已可同时产出 asyncSm + generatorSm，codegen/runtime 尚未统一）
+- ◐ async/generator 场景统一状态机控制流（当前 lowering 已可同时产出 asyncSm + generatorSm，并新增 HybridStateMachine 统一摘要、await->yield 投影分组/分组统计与一致性校验；嵌套 block/if/try/while/forin 中的 suspend 点已支持递归采集，并已覆盖“多个 await 归并到同一个 yield group”以及 `yield expr + await + resume(value)` 组合路径；codegen 已在摘要完整时优先消费 HybridStateMachine 的 generatorStateId，并对 generator 内 await 与 resume 骨架显式标注其 hybrid group / projected yield state，且 async generator 关键样例已补 group / resume_group 的存在、次数与顺序级回归；runtime 已补 group / resume_group 的存在、次数与顺序级回归，fallback executable 路径也已支持回收生成期 async trace，并在 trace 中显式给出 fallback reason；目前已确认 async generator resume 基础路径、point 基础路径、function value 基础路径均可直接走 embedded runtime，复杂控制流仍保留顺序状态回退兜底）
 
 七、错误处理
 - ☑ try / catch / finally
@@ -158,13 +158,13 @@ xlang 第五版语言标准支持覆盖率
 - ☑ async 调用结果可被 await
 - ☑ `channel.recv()` 多返回值（`bool, var`）
 - ☑ async 基本 lowering
-- ☐ 基于 xrt 的正式异步状态机
+- ☐ 基于 xrt 的正式异步状态机（当前已把 lowering 产出的 asyncSm 状态编号接到 cgen/runtime trace，并且普通 async 已支持 `return await ...`、“单次 `bind await` 后线性继续执行并 `return`”、`const x = 1 + await ...` 这类 bind 初始化表达式恢复、静态函数调用参数中的 `await` 恢复、function value 调用参数中的 `await` 恢复，以及“多次顺序 await 串联 / `return a + await ...` 这类线性 return 表达式恢复”这几类最小非阻塞恢复式链路，底层走 `xFutureFinallyEngine + xPromise`；但普通 async 的通用执行模型仍以同步 `xFutureWait` 为主，复杂控制流、多语句通用恢复尚未整体切到正式状态机）
 
 九、yield 与生成器
 - ☑ yield
 - ☑ generator function
 - ☑ generator 可被 for in 遍历（当前 direct-call `for in make_values()`、先绑定再遍历 `auto g = make_values(); for v in g`，以及 `func wrap() as generator return make_values()` 这类 wrapper 返回后再遍历都已支持惰性恢复执行；并已支持按 generator 返回类型推导循环变量类型，局部变量、循环控制流，以及 loop 内 try/catch/finally 状态都可跨 yield 保持。抽象 `generator` 形参/返回值在 item type 未知时会于 stage 1 明确报错）
-- ☑ async generator（当前已支持 stage 1 最小版：外部按 generator 遍历，函数体内可 `await`，lowering 的 async/generator 双状态机与 cgen/runtime 已接通；更正式的统一恢复执行器仍待后续收敛）
+- ☑ async generator（当前已支持 stage 1 最小版：外部按 generator 遍历，函数体内可 `await`，lowering 的 async/generator 双状态机与 cgen/runtime 已接通；已覆盖 `yield await ...`、`yield expr + resume(value)`、`for in`、`while + await + yield`、`continue/break`、`try/catch/finally`，以及循环内 nested try flow 等异常控制流；更正式的统一恢复执行器仍待后续收敛）
 - ☑ yield 作为表达式值（当前已支持 stage 1：`yield` 可作为表达式返回恢复值，恢复值类型按 `var` 处理，并通过 `generator.next()` / `generator.resume(value)` 驱动）
 - ☑ generator 基本 lowering
 - ☐ 基于恢复执行器的正式 generator 状态机

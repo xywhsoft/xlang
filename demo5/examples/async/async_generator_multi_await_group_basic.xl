@@ -1,0 +1,19 @@
+import std.task
+
+async func stream() as int
+	auto left = await task.delay(2)
+	auto right = await task.delay(3)
+	yield left + right
+	yield 7
+	return 0
+end
+
+func main() as int
+	int sum = 0
+
+	for value in stream()
+		sum += value
+	end
+
+	return sum
+end

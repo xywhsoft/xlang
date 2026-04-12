@@ -1,0 +1,13 @@
+func add(int a, int b) as int
+	return a + b
+end
+
+async func get_value() as int
+	return 6
+end
+
+async func main() as int
+	function<int(int,int)> op = add
+	const int a = op(await get_value(), 2)
+	return op(a, await get_value())
+end

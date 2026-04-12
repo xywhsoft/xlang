@@ -1102,6 +1102,10 @@ static const char* __xlSymbolResolvedTypeName(const XL_SymbolInfo* pSymbol)
 	if ( __xlIsFunctionTypeName(pSymbol->sValueTypeName) ) {
 		return pSymbol->sValueTypeName;
 	}
+	if ( (pSymbol->eKind == XL_SYMBOL_IMPORT) &&
+		((pSymbol->sTypeName == NULL) || (pSymbol->sTypeName[0] == '\0')) ) {
+		return "module";
+	}
 	return (pSymbol->sTypeName != NULL) ? pSymbol->sTypeName : "";
 }
 
@@ -2316,6 +2320,7 @@ static int __xlIsTypeQueryCall(XL_ResolveContext* pCtx, const XL_AstNode* pNode)
 static int __xlValidateTypeQueryArgs(XL_ResolveContext* pCtx, const XL_AstNode* pCallNode, const XL_AstNode* pArgs)
 {
 	const XL_AstNode* pArgNode;
+	const XL_AstNode* pArgValue;
 	int iRc;
 
 	iRc = __xlValidateCtorArgs(pCtx, pCallNode, pArgs, "Type");
@@ -2327,7 +2332,19 @@ static int __xlValidateTypeQueryArgs(XL_ResolveContext* pCtx, const XL_AstNode* 
 	}
 
 	pArgNode = pArgs->ppChildren[0];
-	return __xlResolveExpr(pCtx, __xlArgValue(pArgNode));
+	pArgValue = __xlArgValue(pArgNode);
+	iRc = __xlResolveExpr(pCtx, pArgValue);
+	if ( iRc != XL_RC_OK ) {
+		return iRc;
+	}
+	if ( __xlIsImportLikeExpr(pCtx, pArgValue) ) {
+		/*
+		 * Imports remain namespace-like during normal resolution, but Type(expr)
+		 * should expose the public module type.
+		 */
+		__xlSemNodeSetType(pCtx->pResult, pArgValue, "module");
+	}
+	return XL_RC_OK;
 }
 
 static int __xlValidateChannelCtorArgs(XL_ResolveContext* pCtx, const XL_AstNode* pCallNode, const XL_AstNode* pArgs)
@@ -5330,7 +5347,7 @@ static int __xlResolveStmt(XL_ResolveContext* pCtx, const XL_AstNode* pNode)
 				XL_SYMBOL_IMPORT,
 				pCtx->iCurrentScopeId,
 				sImportName,
-				"",
+				"module",
 				pNode->iLine,
 				pNode->iColumn,
 				0,
@@ -5507,6 +5524,7 @@ static int __xlRegisterBuiltinTypes(XL_SemResult* pResult)
 		"iterable",
 		"iterator",
 		"list",
+		"module",
 		"null",
 		"point",
 		"range",

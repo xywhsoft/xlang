@@ -61,11 +61,41 @@ typedef struct XL_GeneratorSm {
 	size_t iFuncCap;
 } XL_GeneratorSm;
 
+typedef struct XL_HybridSmPoint {
+	int iLine;
+	int iColumn;
+	int iAsyncStateId;
+	int iGeneratorStateId;
+	int iProjectionGroupId;
+	int iProjectedGeneratorStateId;
+	int iProjectedPointIndex;
+	int bAwait;
+	int bYield;
+} XL_HybridSmPoint;
+
+typedef struct XL_HybridSmFunc {
+	char* sFuncName;
+	XL_HybridSmPoint* pPoints;
+	size_t iPointCount;
+	size_t iPointCap;
+	size_t iAsyncFinalCount;
+	size_t iGeneratorFinalCount;
+	int iLine;
+	int iColumn;
+} XL_HybridSmFunc;
+
+typedef struct XL_HybridSm {
+	XL_HybridSmFunc* pFuncs;
+	size_t iFuncCount;
+	size_t iFuncCap;
+} XL_HybridSm;
+
 typedef struct XL_LowerResult {
 	XL_HirNode* pHirRoot;
 	XL_MirNode* pMirRoot;
 	XL_AsyncSm asyncSm;
 	XL_GeneratorSm generatorSm;
+	XL_HybridSm hybridSm;
 } XL_LowerResult;
 
 void xlLowerResultInit(XL_LowerResult* pResult);
@@ -91,6 +121,9 @@ void xlGeneratorSmFree(XL_GeneratorSm* pSm);
 int xlLowerBuildGeneratorSm(const XL_HirNode* pHirRoot, XL_DiagContext* pDiag, int bTraceLower, XL_GeneratorSm* pSm);
 char* xlGeneratorSmDumpText(const XL_GeneratorSm* pSm);
 char* xlGeneratorSmDumpJson(const XL_GeneratorSm* pSm);
+void xlHybridSmInit(XL_HybridSm* pSm);
+void xlHybridSmFree(XL_HybridSm* pSm);
+int xlLowerBuildHybridSm(const XL_AsyncSm* pAsyncSm, const XL_GeneratorSm* pGeneratorSm, XL_DiagContext* pDiag, XL_HybridSm* pSm);
 char* xlLowerDumpStateMachinesText(const XL_LowerResult* pResult);
 char* xlLowerDumpStateMachinesJson(const XL_LowerResult* pResult);
 

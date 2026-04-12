@@ -12,11 +12,11 @@ xlang 第五版标准库支持覆盖率
 - ☑ time
 - ☑ range
 - ☑ generator
-- ☐ error
-- ☐ module
-- ☐ future
-- ☐ task
-- ☐ channel
+- ☑ error
+- ☑ module
+- ☑ future
+- ☑ task
+- ☑ channel
 
 二、std.core
 - ☑ const int version

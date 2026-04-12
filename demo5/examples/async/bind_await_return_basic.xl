@@ -1,0 +1,10 @@
+async func get_value() as int
+	return 20
+end
+
+async func main() as int
+	auto base = 1
+	auto current = await get_value()
+	auto total = base + current
+	return total + 2
+end
