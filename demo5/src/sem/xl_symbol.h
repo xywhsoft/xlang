@@ -19,6 +19,7 @@ typedef struct XL_SymbolInfo {
 	int iScopeId;
 	char* sName;
 	char* sTypeName;
+	char* sValueTypeName;
 	int iLine;
 	int iColumn;
 	int bAsync;

@@ -47,6 +47,7 @@ typedef struct XL_SemResult {
 	XL_ScopeTable scopes;
 	XL_SymbolTable symbols;
 	XL_TypeTable types;
+	XL_ProtocolTable protocols;
 	XL_FuncTable funcs;
 	XL_SemDiagList diags;
 	XL_SemNodeTable nodes;

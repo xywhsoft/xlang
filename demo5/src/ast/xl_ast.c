@@ -110,7 +110,7 @@ static void __xlAstAdoptNodeRange(XL_AstNode* pNode, const XL_AstNode* pSource)
 const char* xlAstKindName(XL_AstKind eKind)
 {
 	static const char* arrNames[] = {
-		"List", "Program", "Block", "FuncDecl", "Param", "TypeRef", "TypeDef", "ConstDecl", "VarDecl",
+		"List", "Program", "Block", "FuncDecl", "Param", "TypeRef", "TypeDef", "ConstDecl", "VarDecl", "UnpackDecl",
 		"If", "ElseIf", "While", "ForIn", "Import", "Export", "Try", "Return", "Break", "Continue", "Throw", "Assert", "Yield",
 		"ExprStmt", "NamedArg", "Assign", "Ternary", "Binary", "Unary", "Call", "Member", "Index", "Ident", "Int", "Float",
 		"String", "Template", "Bool", "Null", "Time"
@@ -158,6 +158,21 @@ XL_AstNode* xlAstCreateTypeRef(const XL_Token* pToken)
 	pNode = xlAstCreateNode(XL_AST_TYPE_REF, pToken);
 	if ( (pNode != NULL) && (pToken != NULL) ) {
 		__xlAstSetNormalizedTypeText(pNode, pToken);
+	}
+	return pNode;
+}
+
+XL_AstNode* xlAstCreateTypeRefText(const char* sText)
+{
+	XL_AstNode* pNode;
+
+	if ( sText == NULL ) {
+		return NULL;
+	}
+
+	pNode = xlAstCreateNode(XL_AST_TYPE_REF, NULL);
+	if ( pNode != NULL ) {
+		xlAstSetText(pNode, sText, strlen(sText));
 	}
 	return pNode;
 }
@@ -249,17 +264,23 @@ XL_AstNode* xlAstCreateLiteralFromToken(const XL_Token* pToken)
 	}
 }
 
-XL_AstNode* xlAstCreateFuncDecl(const XL_Token* pName, int bAsync, XL_AstNode* pParams, XL_AstNode* pRetType, XL_AstNode* pBody)
+XL_AstNode* xlAstCreateFuncDecl(const XL_Token* pName, int bAsync, XL_AstNode* pParams, XL_AstNode* pRetTypes, XL_AstNode* pBody)
 {
 	XL_AstNode* pNode;
+	XL_AstNode* pSafeParams;
+	XL_AstNode* pSafeRetTypes;
+	XL_AstNode* pSafeBody;
 
 	pNode = xlAstCreateNode(XL_AST_FUNC_DECL, pName);
 	if ( (pNode != NULL) && (pName != NULL) ) {
 		pNode->bFlag = bAsync;
 		xlAstSetText(pNode, pName->sText, pName->iTextLen);
-		xlAstAppendChild(pNode, pParams);
-		xlAstAppendChild(pNode, pRetType);
-		xlAstAppendChild(pNode, pBody);
+		pSafeParams = (pParams != NULL) ? pParams : xlAstCreateList();
+		pSafeRetTypes = (pRetTypes != NULL) ? pRetTypes : xlAstCreateList();
+		pSafeBody = (pBody != NULL) ? pBody : xlAstCreateBlock(NULL);
+		xlAstAppendChild(pNode, pSafeParams);
+		xlAstAppendChild(pNode, pSafeRetTypes);
+		xlAstAppendChild(pNode, pSafeBody);
 	}
 	return pNode;
 }
@@ -325,6 +346,21 @@ XL_AstNode* xlAstCreateElseIf(const XL_Token* pToken, XL_AstNode* pCond, XL_AstN
 	if ( pNode != NULL ) {
 		xlAstAppendChild(pNode, pCond);
 		xlAstAppendChild(pNode, pBody);
+	}
+	return pNode;
+}
+
+XL_AstNode* xlAstCreateUnpackDecl(const XL_Token* pTypeToken, XL_AstNode* pTargets, XL_AstNode* pValue)
+{
+	XL_AstNode* pNode;
+
+	pNode = xlAstCreateNode(XL_AST_UNPACK_DECL, pTypeToken);
+	if ( pNode != NULL ) {
+		if ( pTypeToken != NULL ) {
+			xlAstSetText(pNode, pTypeToken->sText, pTypeToken->iTextLen);
+		}
+		xlAstAppendChild(pNode, (pTargets != NULL) ? pTargets : xlAstCreateList());
+		xlAstAppendChild(pNode, pValue);
 	}
 	return pNode;
 }
@@ -422,13 +458,13 @@ XL_AstNode* xlAstCreateTry(const XL_Token* pToken, XL_AstNode* pTryBlock, XL_Ast
 	return pNode;
 }
 
-XL_AstNode* xlAstCreateReturn(const XL_Token* pToken, XL_AstNode* pValue)
+XL_AstNode* xlAstCreateReturn(const XL_Token* pToken, XL_AstNode* pValues)
 {
 	XL_AstNode* pNode;
 
 	pNode = xlAstCreateNode(XL_AST_RETURN, pToken);
 	if ( pNode != NULL ) {
-		xlAstAppendChild(pNode, pValue);
+		xlAstAppendChild(pNode, (pValues != NULL) ? pValues : xlAstCreateList());
 	}
 	return pNode;
 }

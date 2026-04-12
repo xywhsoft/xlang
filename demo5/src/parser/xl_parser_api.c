@@ -48,6 +48,8 @@ static int __xlParserMapToken(XL_TokenKind eKind)
 			return XLPG_KW_FALSE;
 		case XL_KW_FUNC:
 			return XLPG_KW_FUNC;
+		case XL_KW_FUNCTION:
+			return XLPG_KW_FUNCTION;
 		case XL_KW_CONST:
 			return XLPG_KW_CONST;
 		case XL_KW_VAR:
@@ -100,6 +102,8 @@ static int __xlParserMapToken(XL_TokenKind eKind)
 			return XLPG_KW_IMPORT;
 		case XL_KW_EXPORT:
 			return XLPG_KW_EXPORT;
+		case XL_KW_EXTERN:
+			return XLPG_KW_EXTERN;
 		case XL_KW_AND:
 			return XLPG_KW_AND;
 		case XL_KW_OR:
@@ -132,6 +136,8 @@ static int __xlParserMapToken(XL_TokenKind eKind)
 			return XLPG_OP_PERCENT;
 		case XL_OP_POWER:
 			return XLPG_OP_POWER;
+		case XL_OP_ELLIPSIS:
+			return XLPG_OP_ELLIPSIS;
 		case XL_OP_AMP:
 			return XLPG_OP_AMP;
 		case XL_OP_PIPE:

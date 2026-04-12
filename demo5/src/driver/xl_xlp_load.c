@@ -1014,6 +1014,9 @@ static int __xlXlpResolveModuleFromManifest(
 				char* sModuleKey;
 				char* sModuleFile;
 				char* sBindingName;
+				char* sInitSymbol;
+				char* sExportsSymbol;
+				char* sDescriptorSymbol;
 				int bIsNative;
 
 				if ( *cur.pCur == ']' ) {
@@ -1029,6 +1032,9 @@ static int __xlXlpResolveModuleFromManifest(
 				sModuleKey = NULL;
 				sModuleFile = NULL;
 				sBindingName = NULL;
+				sInitSymbol = NULL;
+				sExportsSymbol = NULL;
+				sDescriptorSymbol = NULL;
 				bIsNative = 0;
 				while ( cur.pCur < cur.pEnd ) {
 					char* sField;
@@ -1043,6 +1049,9 @@ static int __xlXlpResolveModuleFromManifest(
 						free(sModuleKey);
 						free(sModuleFile);
 						free(sBindingName);
+						free(sInitSymbol);
+						free(sExportsSymbol);
+						free(sDescriptorSymbol);
 						free(sKey);
 						free(sJson);
 						return XL_RC_FAIL;
@@ -1053,6 +1062,9 @@ static int __xlXlpResolveModuleFromManifest(
 						free(sModuleKey);
 						free(sModuleFile);
 						free(sBindingName);
+						free(sInitSymbol);
+						free(sExportsSymbol);
+						free(sDescriptorSymbol);
 						free(sKey);
 						free(sJson);
 						return XL_RC_FAIL;
@@ -1070,6 +1082,18 @@ static int __xlXlpResolveModuleFromManifest(
 						free(sBindingName);
 						sBindingName = NULL;
 						iRc = __xlXlpParseString(&cur, &sBindingName);
+					} else if ( strcmp(sField, "initSymbol") == 0 ) {
+						free(sInitSymbol);
+						sInitSymbol = NULL;
+						iRc = __xlXlpParseString(&cur, &sInitSymbol);
+					} else if ( strcmp(sField, "exportsSymbol") == 0 ) {
+						free(sExportsSymbol);
+						sExportsSymbol = NULL;
+						iRc = __xlXlpParseString(&cur, &sExportsSymbol);
+					} else if ( strcmp(sField, "descriptorSymbol") == 0 ) {
+						free(sDescriptorSymbol);
+						sDescriptorSymbol = NULL;
+						iRc = __xlXlpParseString(&cur, &sDescriptorSymbol);
 					} else if ( strcmp(sField, "native") == 0 ) {
 						__xlXlpSkipWs(&cur);
 						if ( __xlXlpMatchLiteral(&cur, "true") || __xlXlpMatchLiteral(&cur, "1") ) {
@@ -1089,6 +1113,9 @@ static int __xlXlpResolveModuleFromManifest(
 						free(sModuleKey);
 						free(sModuleFile);
 						free(sBindingName);
+						free(sInitSymbol);
+						free(sExportsSymbol);
+						free(sDescriptorSymbol);
 						free(sKey);
 						free(sJson);
 						return iRc;
@@ -1104,11 +1131,17 @@ static int __xlXlpResolveModuleFromManifest(
 					if ( bIsNative ) {
 						__xlXlpCopyText(pInfo->sModuleFile, sizeof(pInfo->sModuleFile), (sModuleFile != NULL) ? sModuleFile : "");
 						__xlXlpCopyText(pInfo->sBindingName, sizeof(pInfo->sBindingName), (sBindingName != NULL) ? sBindingName : sImportKey);
+						__xlXlpCopyText(pInfo->sInitSymbol, sizeof(pInfo->sInitSymbol), (sInitSymbol != NULL) ? sInitSymbol : "");
+						__xlXlpCopyText(pInfo->sExportsSymbol, sizeof(pInfo->sExportsSymbol), (sExportsSymbol != NULL) ? sExportsSymbol : "");
+						__xlXlpCopyText(pInfo->sDescriptorSymbol, sizeof(pInfo->sDescriptorSymbol), (sDescriptorSymbol != NULL) ? sDescriptorSymbol : "");
 						iRc = __xlXlpFinalizeArtifactInfo(pInfo, sManifestPath, sModuleFile, 1);
 						if ( iRc != XL_RC_OK ) {
 							free(sModuleKey);
 							free(sModuleFile);
 							free(sBindingName);
+							free(sInitSymbol);
+							free(sExportsSymbol);
+							free(sDescriptorSymbol);
 							free(sKey);
 							free(sJson);
 							return iRc;
@@ -1117,6 +1150,9 @@ static int __xlXlpResolveModuleFromManifest(
 						free(sModuleKey);
 						free(sModuleFile);
 						free(sBindingName);
+						free(sInitSymbol);
+						free(sExportsSymbol);
+						free(sDescriptorSymbol);
 						free(sKey);
 						free(sJson);
 						return XL_RC_OK;
@@ -1125,6 +1161,9 @@ static int __xlXlpResolveModuleFromManifest(
 						free(sModuleKey);
 						free(sModuleFile);
 						free(sBindingName);
+						free(sInitSymbol);
+						free(sExportsSymbol);
+						free(sDescriptorSymbol);
 						free(sKey);
 						free(sJson);
 						return XL_RC_FAIL;
@@ -1145,15 +1184,24 @@ static int __xlXlpResolveModuleFromManifest(
 						free(sModuleKey);
 						free(sModuleFile);
 						free(sBindingName);
+						free(sInitSymbol);
+						free(sExportsSymbol);
+						free(sDescriptorSymbol);
 						free(sKey);
 						free(sJson);
 						return iRc;
 					}
 					__xlXlpCopyText(pInfo->sBindingName, sizeof(pInfo->sBindingName), (sBindingName != NULL) ? sBindingName : "");
+					__xlXlpCopyText(pInfo->sInitSymbol, sizeof(pInfo->sInitSymbol), (sInitSymbol != NULL) ? sInitSymbol : "");
+					__xlXlpCopyText(pInfo->sExportsSymbol, sizeof(pInfo->sExportsSymbol), (sExportsSymbol != NULL) ? sExportsSymbol : "");
+					__xlXlpCopyText(pInfo->sDescriptorSymbol, sizeof(pInfo->sDescriptorSymbol), (sDescriptorSymbol != NULL) ? sDescriptorSymbol : "");
 					pInfo->bIsNative = 0;
 					free(sModuleKey);
 					free(sModuleFile);
 					free(sBindingName);
+					free(sInitSymbol);
+					free(sExportsSymbol);
+					free(sDescriptorSymbol);
 					free(sKey);
 					free(sJson);
 					return XL_RC_OK;
@@ -1162,6 +1210,9 @@ static int __xlXlpResolveModuleFromManifest(
 				free(sModuleKey);
 				free(sModuleFile);
 				free(sBindingName);
+				free(sInitSymbol);
+				free(sExportsSymbol);
+				free(sDescriptorSymbol);
 				__xlXlpSkipWs(&cur);
 				if ( *cur.pCur == ',' ) {
 					cur.pCur += 1;
@@ -1481,6 +1532,14 @@ static int __xlXlpParseFunctions(const char* sJson, const char* sModuleKey, XL_X
 							__xlXlpCopyText(func.sSignatureId, sizeof(func.sSignatureId), sValue);
 						} else if ( strcmp(sField, "dispatchKey") == 0 ) {
 							__xlXlpCopyText(func.sDispatchKey, sizeof(func.sDispatchKey), sValue);
+						} else if ( strcmp(sField, "languageAbi") == 0 ) {
+							__xlXlpCopyText(func.sLanguageAbi, sizeof(func.sLanguageAbi), sValue);
+						} else if ( strcmp(sField, "nativeAbi") == 0 ) {
+							__xlXlpCopyText(func.sNativeAbi, sizeof(func.sNativeAbi), sValue);
+						} else if ( strcmp(sField, "languageAbiId") == 0 ) {
+							__xlXlpCopyText(func.sLanguageAbiId, sizeof(func.sLanguageAbiId), sValue);
+						} else if ( strcmp(sField, "nativeAbiId") == 0 ) {
+							__xlXlpCopyText(func.sNativeAbiId, sizeof(func.sNativeAbiId), sValue);
 						} else if ( strcmp(sField, "abiSymbol") == 0 ) {
 							__xlXlpCopyText(func.sAbiSymbol, sizeof(func.sAbiSymbol), sValue);
 						} else if ( strcmp(sField, "returnType") == 0 ) {

@@ -1,0 +1,9 @@
+func make_values() as int
+    yield 1
+    yield 2
+end
+
+func main() as int
+    auto g = make_values()
+    return 0
+end

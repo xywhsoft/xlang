@@ -1,0 +1,162 @@
+HIR
+Program @ 0:0 scope=0
+	Func @ 1:6 text="make_values" abi="xl__make_values__arity0__ret__int" type="int" scope=1 symbol=0 func=50
+		Block @ 1:6 text="params"
+		Block @ 0:0 scope=2
+			Var @ 2:7 text="current" type="int" scope=2 symbol=2
+				Call @ 2:30 text="" type="int" scope=2
+					Name @ 2:17 text="int"
+					Block @ 2:30 text="args"
+						Yield @ 2:22 text="" type="var" scope=2
+							Literal @ 2:28 text="1" type="int" scope=2 int=1
+			Yield @ 3:2 type="var" scope=2
+				Binary @ 3:16 text="+" type="int" scope=2
+					Name @ 3:8 text="current" type="int" scope=2 symbol=2
+					Literal @ 3:18 text="1" type="int" scope=2 int=1
+			Return @ 4:2
+				Literal @ 4:9 text="0" type="int" scope=2
+	Func @ 7:6 text="main" abi="xl__main__arity0__ret__int" type="int" scope=3 symbol=1 func=51
+		Block @ 7:6 text="params"
+		Block @ 0:0 scope=4
+			Var @ 8:7 text="gen" type="generator" scope=4 symbol=3
+				Call @ 8:25 text="" abi="xl__make_values__arity0__ret__int" type="generator" scope=4 func=50
+					Name @ 8:13 text="make_values"
+					Block @ 8:25 text="args"
+			Var @ 9:2 text="xl_unpack_9_2" type="array<var>"
+				Call @ 9:30 text="" abi="xl____xl_method_generator_next__arity1__self__generator__ret__array_x3Cvar_x3E" type="array<var>" scope=4 func=48
+					Name @ 9:24 text="__xl_method_generator_next" abi="xl____xl_method_generator_next__arity1__self__generator__ret__array_x3Cvar_x3E" func=48
+					Block @ 9:30 text="args"
+						Name @ 9:21 text="gen" type="generator" scope=4 symbol=3
+			Var @ 9:7 text="ok1" type="bool"
+				Index @ 9:7 type="bool"
+					Name @ 9:7 text="xl_unpack_9_2" type="array<var>"
+					Literal @ 9:7 text="0" type="int"
+			Var @ 9:12 text="value1" type="var"
+				Index @ 9:12 type="var"
+					Name @ 9:12 text="xl_unpack_9_2" type="array<var>"
+					Literal @ 9:12 text="1" type="int" int=1
+			Var @ 10:2 text="xl_unpack_10_2" type="array<var>"
+				Call @ 10:33 text="" abi="xl____xl_method_generator_resume__arity2__self__generator__value__var__ret__array_x3Cvar_x3E" type="array<var>" scope=4 func=49
+					Name @ 10:24 text="__xl_method_generator_resume" abi="xl____xl_method_generator_resume__arity2__self__generator__value__var__ret__array_x3Cvar_x3E" func=49
+					Block @ 10:33 text="args"
+						Name @ 10:21 text="gen" type="generator" scope=4 symbol=3
+						Literal @ 10:32 text="7" type="int" scope=4 int=7
+			Var @ 10:7 text="ok2" type="bool"
+				Index @ 10:7 type="bool"
+					Name @ 10:7 text="xl_unpack_10_2" type="array<var>"
+					Literal @ 10:7 text="0" type="int"
+			Var @ 10:12 text="value2" type="var"
+				Index @ 10:12 type="var"
+					Name @ 10:12 text="xl_unpack_10_2" type="array<var>"
+					Literal @ 10:12 text="1" type="int" int=1
+			If @ 11:2
+				Binary @ 11:15 text="or" type="bool" scope=4
+					Unary @ 11:6 text="not" type="bool" scope=4
+						Name @ 11:10 text="ok1" type="bool" scope=4 symbol=4
+					Unary @ 11:19 text="not" type="bool" scope=4
+						Name @ 11:23 text="ok2" type="bool" scope=4 symbol=6
+				Block @ 0:0 scope=5
+					Return @ 12:3
+						Unary @ 12:10 text="-" type="int" scope=5
+							Literal @ 12:11 text="1" type="int" scope=5 int=1
+			Return @ 14:2
+				Binary @ 14:21 text="+" type="int" scope=4
+					Call @ 14:19 text="" type="int" scope=4
+						Name @ 14:9 text="int"
+						Block @ 14:19 text="args"
+							Name @ 14:13 text="value1" type="var" scope=4 symbol=5
+					Call @ 14:33 text="" type="int" scope=4
+						Name @ 14:23 text="int"
+						Block @ 14:33 text="args"
+							Name @ 14:27 text="value2" type="var" scope=4 symbol=7
+MIR
+Program @ 0:0 text="" scope=0
+	Func @ 1:6 text="make_values" abi="xl__make_values__arity0__ret__int" type="int" scope=1 symbol=0 func=50
+		Block @ 1:6 text="params"
+		Block @ 0:0 text="" scope=2
+			Bind @ 2:7 text="current" type="int" scope=2 symbol=2
+				Call @ 2:30 text="" type="int" scope=2
+					Value @ 2:17 text="int"
+					Block @ 2:30 text="args"
+						Yield @ 2:22 text="" type="var" scope=2
+							Value @ 2:28 text="1" type="int" scope=2
+			Yield @ 3:2 text="" type="var" scope=2
+				Value @ 3:16 text="+" type="int" scope=2
+					Value @ 3:8 text="current" type="int" scope=2 symbol=2
+					Value @ 3:18 text="1" type="int" scope=2
+			Return @ 4:2 text=""
+				Value @ 4:9 text="0" type="int" scope=2
+	Func @ 7:6 text="main" abi="xl__main__arity0__ret__int" type="int" scope=3 symbol=1 func=51
+		Block @ 7:6 text="params"
+		Block @ 0:0 text="" scope=4
+			Bind @ 8:7 text="gen" type="generator" scope=4 symbol=3
+				Call @ 8:25 text="" abi="xl__make_values__arity0__ret__int" type="generator" scope=4 func=50
+					Value @ 8:13 text="make_values"
+					Block @ 8:25 text="args"
+			Bind @ 9:2 text="xl_unpack_9_2" type="array<var>"
+				Call @ 9:30 text="" abi="xl____xl_method_generator_next__arity1__self__generator__ret__array_x3Cvar_x3E" type="array<var>" scope=4 func=48
+					Value @ 9:24 text="__xl_method_generator_next" abi="xl____xl_method_generator_next__arity1__self__generator__ret__array_x3Cvar_x3E" func=48
+					Block @ 9:30 text="args"
+						Value @ 9:21 text="gen" type="generator" scope=4 symbol=3
+			Bind @ 9:7 text="ok1" type="bool"
+				Value @ 9:7 text="" type="bool"
+					Value @ 9:7 text="xl_unpack_9_2" type="array<var>"
+					Value @ 9:7 text="0" type="int"
+			Bind @ 9:12 text="value1" type="var"
+				Value @ 9:12 text="" type="var"
+					Value @ 9:12 text="xl_unpack_9_2" type="array<var>"
+					Value @ 9:12 text="1" type="int"
+			Bind @ 10:2 text="xl_unpack_10_2" type="array<var>"
+				Call @ 10:33 text="" abi="xl____xl_method_generator_resume__arity2__self__generator__value__var__ret__array_x3Cvar_x3E" type="array<var>" scope=4 func=49
+					Value @ 10:24 text="__xl_method_generator_resume" abi="xl____xl_method_generator_resume__arity2__self__generator__value__var__ret__array_x3Cvar_x3E" func=49
+					Block @ 10:33 text="args"
+						Value @ 10:21 text="gen" type="generator" scope=4 symbol=3
+						Value @ 10:32 text="7" type="int" scope=4
+			Bind @ 10:7 text="ok2" type="bool"
+				Value @ 10:7 text="" type="bool"
+					Value @ 10:7 text="xl_unpack_10_2" type="array<var>"
+					Value @ 10:7 text="0" type="int"
+			Bind @ 10:12 text="value2" type="var"
+				Value @ 10:12 text="" type="var"
+					Value @ 10:12 text="xl_unpack_10_2" type="array<var>"
+					Value @ 10:12 text="1" type="int"
+			Branch @ 11:2 text=""
+				Value @ 11:15 text="or" type="bool" scope=4
+					Value @ 11:6 text="not" type="bool" scope=4
+						Value @ 11:10 text="ok1" type="bool" scope=4 symbol=4
+					Value @ 11:19 text="not" type="bool" scope=4
+						Value @ 11:23 text="ok2" type="bool" scope=4 symbol=6
+				Block @ 0:0 text="" scope=5
+					Return @ 12:3 text=""
+						Value @ 12:10 text="-" type="int" scope=5
+							Value @ 12:11 text="1" type="int" scope=5
+			Return @ 14:2 text=""
+				Value @ 14:21 text="+" type="int" scope=4
+					Call @ 14:19 text="" type="int" scope=4
+						Value @ 14:9 text="int"
+						Block @ 14:19 text="args"
+							Value @ 14:13 text="value1" type="var" scope=4 symbol=5
+					Call @ 14:33 text="" type="int" scope=4
+						Value @ 14:23 text="int"
+						Block @ 14:33 text="args"
+							Value @ 14:27 text="value2" type="var" scope=4 symbol=7
+AsyncStateMachine
+	<none>
+GeneratorStateMachine
+Func make_values @ 1:6
+	S0 label=entry next=1 suspend=0 final=0 @ 1:6
+		detail: generator entry
+	S1 label=yield next=2 suspend=1 final=0 @ 2:7
+		detail: Var
+		yield: 1
+	S2 label=resume next=3 suspend=0 final=0 @ 2:7
+		detail: resume after yield
+	S3 label=yield next=4 suspend=1 final=0 @ 3:2
+		detail: Yield
+		yield: current + 1
+	S4 label=resume next=5 suspend=0 final=0 @ 3:2
+		detail: resume after yield
+	S5 label=step next=6 suspend=0 final=0 @ 4:2
+		detail: Return
+	S6 label=done next=-1 suspend=0 final=1 @ 1:6
+		detail: generator final

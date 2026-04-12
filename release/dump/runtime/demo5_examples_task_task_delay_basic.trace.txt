@@ -1,0 +1,58 @@
+ModuleLoadOrder
+- [0] std.task -> <native:std.task> native=1 binding=std.task
+- [1] <root> -> D:\Git\x-lang\demo5\examples\task\task_delay_basic.xl native=0 binding=
+ModuleExports
+- module=std.task
+  abi init= exports= descriptor=
+  export ready -> xl_mod_std_task__ready
+  export done -> xl_mod_std_task__done
+  export spawn -> xl_mod_std_task__spawn
+  export all -> xl_mod_std_task__all
+  export race -> xl_mod_std_task__race
+  export cancel -> xl_mod_std_task__cancel
+  export delay -> xl_mod_std_task__delay
+- module=<root>
+  abi init=xl_mod__root___init exports=xl_mod__root___exports descriptor=xl_mod__root___descriptor
+NativeRegistry
+- key=std.core binding=std.core path=<native:std.core>
+- key=std.dir binding=std.dir path=<native:std.dir>
+- key=std.env binding=std.env path=<native:std.env>
+- key=std.fmt binding=std.fmt path=<native:std.fmt>
+- key=std.fs binding=std.fs path=<native:std.fs>
+- key=std.host binding=std.host path=<native:std.host>
+- key=std.io binding=std.io path=<native:std.io>
+- key=std.path binding=std.path path=<native:std.path>
+- key=std.rand binding=std.rand path=<native:std.rand>
+- key=std.process binding=std.process path=<native:std.process>
+- key=std.str binding=std.str path=<native:std.str>
+- key=std.time binding=std.time path=<native:std.time>
+- key=std.task binding=std.task path=<native:std.task>
+[runtime] prefer fallback executable
+
+[fallback.build]
+tcc_root=D:\Git\x-lang\demo5\release\tcc
+include=D:\Git\x-lang\demo5\release\tcc\include_win
+include=D:\Git\x-lang\demo5\release\tcc\include_win\winapi
+include=D:\Git\x-lang\demo5\src\runtime
+include=D:\Git\x-lang\demo5\lib\xrt
+lib=D:\Git\x-lang\demo5\release\tcc\lib
+compile_text=demo5\examples\task\task_delay_basic.xl
+[tcc] demo5/examples/task/task_delay_basic.xl:1421: warning: implicit declaration of function 'xl__xl_mod_std_task__cancel__arity1__value__int__ret__int'
+[tcc] demo5/examples/task/task_delay_basic.xl:1429: warning: implicit declaration of function 'xl__xl_mod_std_task__cancel__arity1__value__float__ret__int'
+[tcc] demo5/examples/task/task_delay_basic.xl:1437: warning: implicit declaration of function 'xl__xl_mod_std_task__cancel__arity1__value__string__ret__int'
+[tcc] demo5/examples/task/task_delay_basic.xl:1445: warning: implicit declaration of function 'xl__xl_mod_std_task__cancel__arity1__value__bool__ret__int'
+[tcc] demo5/examples/task/task_delay_basic.xl:1452: warning: assignment from incompatible pointer type
+[tcc] demo5/examples/task/task_delay_basic.xl:1453: warning: implicit declaration of function 'xl__xl_mod_std_task__cancel__arity1__value__error__ret__int'
+output=D:\Git\x-lang\demo5\release\tmp\task_delay_basic.077e4a85_0000b05c_0001.fallback.exe
+output_kind=exe
+support_source=D:\Git\x-lang\demo5\src\runtime\xlrt_host.c
+support_source=D:\Git\x-lang\demo5\src\runtime\xlrt_generated.c
+support_source=D:\Git\x-lang\demo5\src\host\xl_host_runtime.c
+link_lib=shell32
+link_lib=ws2_32
+link_lib=iphlpapi
+[tcc] tcc: error: undefined symbol 'xl__xl_mod_std_task__cancel__arity1__value__int__ret__int'
+[tcc] tcc: error: undefined symbol 'xl__xl_mod_std_task__cancel__arity1__value__float__ret__int'
+[tcc] tcc: error: undefined symbol 'xl__xl_mod_std_task__cancel__arity1__value__string__ret__int'
+[tcc] tcc: error: undefined symbol 'xl__xl_mod_std_task__cancel__arity1__value__bool__ret__int'
+[tcc] tcc: error: undefined symbol 'xl__xl_mod_std_task__cancel__arity1__value__error__ret__int'

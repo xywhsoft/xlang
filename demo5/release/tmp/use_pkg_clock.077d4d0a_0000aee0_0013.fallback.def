@@ -1,0 +1,13 @@
+LIBRARY use_pkg_clock.077d4d0a_0000aee0_0013.fallback.exe
+
+EXPORTS
+pkg_clock_artifact_add_half
+pkg_clock_artifact_add_one
+pkg_clock_artifact_bool_score
+pkg_clock_artifact_float_value
+pkg_clock_artifact_is_probe_text
+pkg_clock_artifact_probe
+pkg_clock_artifact_text
+pkg_clock_artifact_text_len
+pkg_clock_artifact_text_plus_len
+pkg_clock_artifact_touch

@@ -1,0 +1,62 @@
+[
+	{
+		"kind": "func",
+		"scopeId": 0,
+		"name": "add",
+		"typeName": "int",
+		"line": 1,
+		"column": 6,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "func",
+		"scopeId": 0,
+		"name": "main",
+		"typeName": "int",
+		"line": 5,
+		"column": 6,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "param",
+		"scopeId": 1,
+		"name": "a",
+		"typeName": "int",
+		"line": 1,
+		"column": 14,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "param",
+		"scopeId": 1,
+		"name": "b",
+		"typeName": "int",
+		"line": 1,
+		"column": 21,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "var",
+		"scopeId": 4,
+		"name": "op",
+		"typeName": "function<int(int,int)>",
+		"line": 6,
+		"column": 25,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "var",
+		"scopeId": 4,
+		"name": "also",
+		"typeName": "function<int(int,int)>",
+		"line": 7,
+		"column": 7,
+		"async": 0,
+		"generator": 0
+	}
+]

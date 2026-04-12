@@ -1,0 +1,70 @@
+Program @ 0:0-0:0
+	FuncDecl @ 1:6-1:17 text="make_values"
+		List @ 0:0-0:0
+		List @ 0:0-0:0
+			TypeRef @ 1:23-1:26 text="int"
+		Block @ 0:0-0:0
+			VarDecl @ 2:7-2:14 text="current"
+				TypeRef @ 2:2-2:6 text="auto"
+				Call @ 2:30-2:31
+					Ident @ 2:17-2:20 text="int"
+					List @ 0:0-0:0
+						Yield @ 2:22-2:27
+							Int @ 2:28-2:29 text="1" int=1
+			Yield @ 3:2-3:7
+				Binary @ 3:16-3:17 text="+"
+					Ident @ 3:8-3:15 text="current"
+					Int @ 3:18-3:19 text="1" int=1
+			Return @ 4:2-4:8
+				List @ 0:0-0:0
+					Int @ 4:9-4:10 text="0"
+	FuncDecl @ 7:6-7:10 text="main"
+		List @ 0:0-0:0
+		List @ 0:0-0:0
+			TypeRef @ 7:16-7:19 text="int"
+		Block @ 0:0-0:0
+			VarDecl @ 8:7-8:10 text="gen"
+				TypeRef @ 8:2-8:6 text="auto"
+				Call @ 8:25-8:26
+					Ident @ 8:13-8:24 text="make_values"
+					List @ 0:0-0:0
+			UnpackDecl @ 9:2-9:6 text="auto"
+				List @ 0:0-0:0
+					Ident @ 9:7-9:10 text="ok1"
+					Ident @ 9:12-9:18 text="value1"
+				Call @ 9:30-9:31
+					Member @ 9:24-9:25 text="next"
+						Ident @ 9:21-9:24 text="gen"
+					List @ 0:0-0:0
+			UnpackDecl @ 10:2-10:6 text="auto"
+				List @ 0:0-0:0
+					Ident @ 10:7-10:10 text="ok2"
+					Ident @ 10:12-10:18 text="value2"
+				Call @ 10:33-10:34
+					Member @ 10:24-10:25 text="resume"
+						Ident @ 10:21-10:24 text="gen"
+					List @ 0:0-0:0
+						Int @ 10:32-10:33 text="7" int=7
+			If @ 11:2-11:4
+				Binary @ 11:15-11:17 text="or"
+					Unary @ 11:6-11:9 text="not"
+						Ident @ 11:10-11:13 text="ok1"
+					Unary @ 11:19-11:22 text="not"
+						Ident @ 11:23-11:26 text="ok2"
+				Block @ 0:0-0:0
+					Return @ 12:3-12:9
+						List @ 0:0-0:0
+							Unary @ 12:10-12:11 text="-"
+								Int @ 12:11-12:12 text="1" int=1
+				List @ 0:0-0:0
+			Return @ 14:2-14:8
+				List @ 0:0-0:0
+					Binary @ 14:21-14:22 text="+"
+						Call @ 14:19-14:20
+							Ident @ 14:9-14:12 text="int"
+							List @ 0:0-0:0
+								Ident @ 14:13-14:19 text="value1"
+						Call @ 14:33-14:34
+							Ident @ 14:23-14:26 text="int"
+							List @ 0:0-0:0
+								Ident @ 14:27-14:33 text="value2"

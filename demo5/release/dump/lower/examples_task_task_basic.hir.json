@@ -1,0 +1,2509 @@
+{
+	"kind": "Program",
+	"line": 0,
+	"column": 0,
+	"text": null,
+	"abiSymbol": null,
+	"type": null,
+	"scopeId": 0,
+	"symbolIndex": -1,
+	"funcIndex": -1,
+	"children": [
+		{
+			"kind": "Const",
+			"line": 1,
+			"column": 11,
+			"text": "xl_mod_std_task__ready",
+			"abiSymbol": null,
+			"type": "int",
+			"scopeId": 0,
+			"symbolIndex": 25,
+			"funcIndex": -1,
+			"children": [
+				{
+					"kind": "Literal",
+					"line": 1,
+					"column": 19,
+					"text": "1",
+					"abiSymbol": null,
+					"type": "int",
+					"scopeId": 0,
+					"symbolIndex": -1,
+					"funcIndex": -1,
+					"children": []
+				}
+			]
+		},
+		{
+			"kind": "Const",
+			"line": 2,
+			"column": 11,
+			"text": "xl_mod_std_task__done",
+			"abiSymbol": null,
+			"type": "int",
+			"scopeId": 0,
+			"symbolIndex": 26,
+			"funcIndex": -1,
+			"children": [
+				{
+					"kind": "Literal",
+					"line": 2,
+					"column": 18,
+					"text": "2",
+					"abiSymbol": null,
+					"type": "int",
+					"scopeId": 0,
+					"symbolIndex": -1,
+					"funcIndex": -1,
+					"children": []
+				}
+			]
+		},
+		{
+			"kind": "Func",
+			"line": 4,
+			"column": 12,
+			"text": "xl_mod_std_task__spawn",
+			"abiSymbol": "xl__xl_mod_std_task__spawn__arity1__value__int__ret__future_x3Cint_x3E",
+			"type": "int",
+			"scopeId": 1,
+			"symbolIndex": 0,
+			"funcIndex": 48,
+			"children": [
+				{
+					"kind": "Block",
+					"line": 4,
+					"column": 12,
+					"text": "params",
+					"abiSymbol": null,
+					"type": null,
+					"scopeId": -1,
+					"symbolIndex": -1,
+					"funcIndex": -1,
+					"children": [
+						{
+							"kind": "Param",
+							"line": 4,
+							"column": 22,
+							"text": "value",
+							"abiSymbol": null,
+							"type": "int",
+							"scopeId": 1,
+							"symbolIndex": 27,
+							"funcIndex": -1,
+							"children": []
+						}
+					]
+				},
+				{
+					"kind": "Block",
+					"line": 0,
+					"column": 0,
+					"text": null,
+					"abiSymbol": null,
+					"type": null,
+					"scopeId": 2,
+					"symbolIndex": -1,
+					"funcIndex": -1,
+					"children": [
+						{
+							"kind": "Return",
+							"line": 5,
+							"column": 2,
+							"text": null,
+							"abiSymbol": null,
+							"type": null,
+							"scopeId": -1,
+							"symbolIndex": -1,
+							"funcIndex": -1,
+							"children": [
+								{
+									"kind": "Name",
+									"line": 5,
+									"column": 9,
+									"text": "value",
+									"abiSymbol": null,
+									"type": "int",
+									"scopeId": 2,
+									"symbolIndex": 27,
+									"funcIndex": -1,
+									"children": []
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"kind": "Func",
+			"line": 7,
+			"column": 12,
+			"text": "xl_mod_std_task__spawn",
+			"abiSymbol": "xl__xl_mod_std_task__spawn__arity1__value__float__ret__future_x3Cfloat_x3E",
+			"type": "float",
+			"scopeId": 3,
+			"symbolIndex": 1,
+			"funcIndex": 49,
+			"children": [
+				{
+					"kind": "Block",
+					"line": 7,
+					"column": 12,
+					"text": "params",
+					"abiSymbol": null,
+					"type": null,
+					"scopeId": -1,
+					"symbolIndex": -1,
+					"funcIndex": -1,
+					"children": [
+						{
+							"kind": "Param",
+							"line": 7,
+							"column": 24,
+							"text": "value",
+							"abiSymbol": null,
+							"type": "float",
+							"scopeId": 3,
+							"symbolIndex": 28,
+							"funcIndex": -1,
+							"children": []
+						}
+					]
+				},
+				{
+					"kind": "Block",
+					"line": 0,
+					"column": 0,
+					"text": null,
+					"abiSymbol": null,
+					"type": null,
+					"scopeId": 4,
+					"symbolIndex": -1,
+					"funcIndex": -1,
+					"children": [
+						{
+							"kind": "Return",
+							"line": 8,
+							"column": 2,
+							"text": null,
+							"abiSymbol": null,
+							"type": null,
+							"scopeId": -1,
+							"symbolIndex": -1,
+							"funcIndex": -1,
+							"children": [
+								{
+									"kind": "Name",
+									"line": 8,
+									"column": 9,
+									"text": "value",
+									"abiSymbol": null,
+									"type": "float",
+									"scopeId": 4,
+									"symbolIndex": 28,
+									"funcIndex": -1,
+									"children": []
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"kind": "Func",
+			"line": 10,
+			"column": 12,
+			"text": "xl_mod_std_task__spawn",
+			"abiSymbol": "xl__xl_mod_std_task__spawn__arity1__value__string__ret__future_x3Cstring_x3E",
+			"type": "string",
+			"scopeId": 5,
+			"symbolIndex": 2,
+			"funcIndex": 50,
+			"children": [
+				{
+					"kind": "Block",
+					"line": 10,
+					"column": 12,
+					"text": "params",
+					"abiSymbol": null,
+					"type": null,
+					"scopeId": -1,
+					"symbolIndex": -1,
+					"funcIndex": -1,
+					"children": [
+						{
+							"kind": "Param",
+							"line": 10,
+							"column": 25,
+							"text": "value",
+							"abiSymbol": null,
+							"type": "string",
+							"scopeId": 5,
+							"symbolIndex": 29,
+							"funcIndex": -1,
+							"children": []
+						}
+					]
+				},
+				{
+					"kind": "Block",
+					"line": 0,
+					"column": 0,
+					"text": null,
+					"abiSymbol": null,
+					"type": null,
+					"scopeId": 6,
+					"symbolIndex": -1,
+					"funcIndex": -1,
+					"children": [
+						{
+							"kind": "Return",
+							"line": 11,
+							"column": 2,
+							"text": null,
+							"abiSymbol": null,
+							"type": null,
+							"scopeId": -1,
+							"symbolIndex": -1,
+							"funcIndex": -1,
+							"children": [
+								{
+									"kind": "Name",
+									"line": 11,
+									"column": 9,
+									"text": "value",
+									"abiSymbol": null,
+									"type": "string",
+									"scopeId": 6,
+									"symbolIndex": 29,
+									"funcIndex": -1,
+									"children": []
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"kind": "Func",
+			"line": 13,
+			"column": 12,
+			"text": "xl_mod_std_task__spawn",
+			"abiSymbol": "xl__xl_mod_std_task__spawn__arity1__value__bool__ret__future_x3Cbool_x3E",
+			"type": "bool",
+			"scopeId": 7,
+			"symbolIndex": 3,
+			"funcIndex": 51,
+			"children": [
+				{
+					"kind": "Block",
+					"line": 13,
+					"column": 12,
+					"text": "params",
+					"abiSymbol": null,
+					"type": null,
+					"scopeId": -1,
+					"symbolIndex": -1,
+					"funcIndex": -1,
+					"children": [
+						{
+							"kind": "Param",
+							"line": 13,
+							"column": 23,
+							"text": "value",
+							"abiSymbol": null,
+							"type": "bool",
+							"scopeId": 7,
+							"symbolIndex": 30,
+							"funcIndex": -1,
+							"children": []
+						}
+					]
+				},
+				{
+					"kind": "Block",
+					"line": 0,
+					"column": 0,
+					"text": null,
+					"abiSymbol": null,
+					"type": null,
+					"scopeId": 8,
+					"symbolIndex": -1,
+					"funcIndex": -1,
+					"children": [
+						{
+							"kind": "Return",
+							"line": 14,
+							"column": 2,
+							"text": null,
+							"abiSymbol": null,
+							"type": null,
+							"scopeId": -1,
+							"symbolIndex": -1,
+							"funcIndex": -1,
+							"children": [
+								{
+									"kind": "Name",
+									"line": 14,
+									"column": 9,
+									"text": "value",
+									"abiSymbol": null,
+									"type": "bool",
+									"scopeId": 8,
+									"symbolIndex": 30,
+									"funcIndex": -1,
+									"children": []
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"kind": "Func",
+			"line": 16,
+			"column": 12,
+			"text": "xl_mod_std_task__spawn",
+			"abiSymbol": "xl__xl_mod_std_task__spawn__arity1__value__error__ret__future_x3Cerror_x3E",
+			"type": "error",
+			"scopeId": 9,
+			"symbolIndex": 4,
+			"funcIndex": 52,
+			"children": [
+				{
+					"kind": "Block",
+					"line": 16,
+					"column": 12,
+					"text": "params",
+					"abiSymbol": null,
+					"type": null,
+					"scopeId": -1,
+					"symbolIndex": -1,
+					"funcIndex": -1,
+					"children": [
+						{
+							"kind": "Param",
+							"line": 16,
+							"column": 24,
+							"text": "value",
+							"abiSymbol": null,
+							"type": "error",
+							"scopeId": 9,
+							"symbolIndex": 31,
+							"funcIndex": -1,
+							"children": []
+						}
+					]
+				},
+				{
+					"kind": "Block",
+					"line": 0,
+					"column": 0,
+					"text": null,
+					"abiSymbol": null,
+					"type": null,
+					"scopeId": 10,
+					"symbolIndex": -1,
+					"funcIndex": -1,
+					"children": [
+						{
+							"kind": "Return",
+							"line": 17,
+							"column": 2,
+							"text": null,
+							"abiSymbol": null,
+							"type": null,
+							"scopeId": -1,
+							"symbolIndex": -1,
+							"funcIndex": -1,
+							"children": [
+								{
+									"kind": "Name",
+									"line": 17,
+									"column": 9,
+									"text": "value",
+									"abiSymbol": null,
+									"type": "error",
+									"scopeId": 10,
+									"symbolIndex": 31,
+									"funcIndex": -1,
+									"children": []
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"kind": "Func",
+			"line": 20,
+			"column": 12,
+			"text": "xl_mod_std_task__all",
+			"abiSymbol": "xl__xl_mod_std_task__all__arity2__left__int__right__int__ret__future_x3Cint_x3E",
+			"type": "int",
+			"scopeId": 11,
+			"symbolIndex": 5,
+			"funcIndex": 53,
+			"children": [
+				{
+					"kind": "Block",
+					"line": 20,
+					"column": 12,
+					"text": "params",
+					"abiSymbol": null,
+					"type": null,
+					"scopeId": -1,
+					"symbolIndex": -1,
+					"funcIndex": -1,
+					"children": [
+						{
+							"kind": "Param",
+							"line": 20,
+							"column": 20,
+							"text": "left",
+							"abiSymbol": null,
+							"type": "int",
+							"scopeId": 11,
+							"symbolIndex": 32,
+							"funcIndex": -1,
+							"children": []
+						},
+						{
+							"kind": "Param",
+							"line": 20,
+							"column": 30,
+							"text": "right",
+							"abiSymbol": null,
+							"type": "int",
+							"scopeId": 11,
+							"symbolIndex": 33,
+							"funcIndex": -1,
+							"children": []
+						}
+					]
+				},
+				{
+					"kind": "Block",
+					"line": 0,
+					"column": 0,
+					"text": null,
+					"abiSymbol": null,
+					"type": null,
+					"scopeId": 12,
+					"symbolIndex": -1,
+					"funcIndex": -1,
+					"children": [
+						{
+							"kind": "Return",
+							"line": 21,
+							"column": 2,
+							"text": null,
+							"abiSymbol": null,
+							"type": null,
+							"scopeId": -1,
+							"symbolIndex": -1,
+							"funcIndex": -1,
+							"children": [
+								{
+									"kind": "Name",
+									"line": 21,
+									"column": 9,
+									"text": "right",
+									"abiSymbol": null,
+									"type": "int",
+									"scopeId": 12,
+									"symbolIndex": 33,
+									"funcIndex": -1,
+									"children": []
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"kind": "Func",
+			"line": 23,
+			"column": 12,
+			"text": "xl_mod_std_task__all",
+			"abiSymbol": "xl__xl_mod_std_task__all__arity2__left__float__right__float__ret__future_x3Cfloat_x3E",
+			"type": "float",
+			"scopeId": 13,
+			"symbolIndex": 6,
+			"funcIndex": 54,
+			"children": [
+				{
+					"kind": "Block",
+					"line": 23,
+					"column": 12,
+					"text": "params",
+					"abiSymbol": null,
+					"type": null,
+					"scopeId": -1,
+					"symbolIndex": -1,
+					"funcIndex": -1,
+					"children": [
+						{
+							"kind": "Param",
+							"line": 23,
+							"column": 22,
+							"text": "left",
+							"abiSymbol": null,
+							"type": "float",
+							"scopeId": 13,
+							"symbolIndex": 34,
+							"funcIndex": -1,
+							"children": []
+						},
+						{
+							"kind": "Param",
+							"line": 23,
+							"column": 34,
+							"text": "right",
+							"abiSymbol": null,
+							"type": "float",
+							"scopeId": 13,
+							"symbolIndex": 35,
+							"funcIndex": -1,
+							"children": []
+						}
+					]
+				},
+				{
+					"kind": "Block",
+					"line": 0,
+					"column": 0,
+					"text": null,
+					"abiSymbol": null,
+					"type": null,
+					"scopeId": 14,
+					"symbolIndex": -1,
+					"funcIndex": -1,
+					"children": [
+						{
+							"kind": "Return",
+							"line": 24,
+							"column": 2,
+							"text": null,
+							"abiSymbol": null,
+							"type": null,
+							"scopeId": -1,
+							"symbolIndex": -1,
+							"funcIndex": -1,
+							"children": [
+								{
+									"kind": "Name",
+									"line": 24,
+									"column": 9,
+									"text": "right",
+									"abiSymbol": null,
+									"type": "float",
+									"scopeId": 14,
+									"symbolIndex": 35,
+									"funcIndex": -1,
+									"children": []
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"kind": "Func",
+			"line": 26,
+			"column": 12,
+			"text": "xl_mod_std_task__all",
+			"abiSymbol": "xl__xl_mod_std_task__all__arity2__left__string__right__string__ret__future_x3Cstring_x3E",
+			"type": "string",
+			"scopeId": 15,
+			"symbolIndex": 7,
+			"funcIndex": 55,
+			"children": [
+				{
+					"kind": "Block",
+					"line": 26,
+					"column": 12,
+					"text": "params",
+					"abiSymbol": null,
+					"type": null,
+					"scopeId": -1,
+					"symbolIndex": -1,
+					"funcIndex": -1,
+					"children": [
+						{
+							"kind": "Param",
+							"line": 26,
+							"column": 23,
+							"text": "left",
+							"abiSymbol": null,
+							"type": "string",
+							"scopeId": 15,
+							"symbolIndex": 36,
+							"funcIndex": -1,
+							"children": []
+						},
+						{
+							"kind": "Param",
+							"line": 26,
+							"column": 36,
+							"text": "right",
+							"abiSymbol": null,
+							"type": "string",
+							"scopeId": 15,
+							"symbolIndex": 37,
+							"funcIndex": -1,
+							"children": []
+						}
+					]
+				},
+				{
+					"kind": "Block",
+					"line": 0,
+					"column": 0,
+					"text": null,
+					"abiSymbol": null,
+					"type": null,
+					"scopeId": 16,
+					"symbolIndex": -1,
+					"funcIndex": -1,
+					"children": [
+						{
+							"kind": "Return",
+							"line": 27,
+							"column": 2,
+							"text": null,
+							"abiSymbol": null,
+							"type": null,
+							"scopeId": -1,
+							"symbolIndex": -1,
+							"funcIndex": -1,
+							"children": [
+								{
+									"kind": "Name",
+									"line": 27,
+									"column": 9,
+									"text": "right",
+									"abiSymbol": null,
+									"type": "string",
+									"scopeId": 16,
+									"symbolIndex": 37,
+									"funcIndex": -1,
+									"children": []
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"kind": "Func",
+			"line": 29,
+			"column": 12,
+			"text": "xl_mod_std_task__all",
+			"abiSymbol": "xl__xl_mod_std_task__all__arity2__left__bool__right__bool__ret__future_x3Cbool_x3E",
+			"type": "bool",
+			"scopeId": 17,
+			"symbolIndex": 8,
+			"funcIndex": 56,
+			"children": [
+				{
+					"kind": "Block",
+					"line": 29,
+					"column": 12,
+					"text": "params",
+					"abiSymbol": null,
+					"type": null,
+					"scopeId": -1,
+					"symbolIndex": -1,
+					"funcIndex": -1,
+					"children": [
+						{
+							"kind": "Param",
+							"line": 29,
+							"column": 21,
+							"text": "left",
+							"abiSymbol": null,
+							"type": "bool",
+							"scopeId": 17,
+							"symbolIndex": 38,
+							"funcIndex": -1,
+							"children": []
+						},
+						{
+							"kind": "Param",
+							"line": 29,
+							"column": 32,
+							"text": "right",
+							"abiSymbol": null,
+							"type": "bool",
+							"scopeId": 17,
+							"symbolIndex": 39,
+							"funcIndex": -1,
+							"children": []
+						}
+					]
+				},
+				{
+					"kind": "Block",
+					"line": 0,
+					"column": 0,
+					"text": null,
+					"abiSymbol": null,
+					"type": null,
+					"scopeId": 18,
+					"symbolIndex": -1,
+					"funcIndex": -1,
+					"children": [
+						{
+							"kind": "Return",
+							"line": 30,
+							"column": 2,
+							"text": null,
+							"abiSymbol": null,
+							"type": null,
+							"scopeId": -1,
+							"symbolIndex": -1,
+							"funcIndex": -1,
+							"children": [
+								{
+									"kind": "Name",
+									"line": 30,
+									"column": 9,
+									"text": "right",
+									"abiSymbol": null,
+									"type": "bool",
+									"scopeId": 18,
+									"symbolIndex": 39,
+									"funcIndex": -1,
+									"children": []
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"kind": "Func",
+			"line": 32,
+			"column": 12,
+			"text": "xl_mod_std_task__all",
+			"abiSymbol": "xl__xl_mod_std_task__all__arity2__left__error__right__error__ret__future_x3Cerror_x3E",
+			"type": "error",
+			"scopeId": 19,
+			"symbolIndex": 9,
+			"funcIndex": 57,
+			"children": [
+				{
+					"kind": "Block",
+					"line": 32,
+					"column": 12,
+					"text": "params",
+					"abiSymbol": null,
+					"type": null,
+					"scopeId": -1,
+					"symbolIndex": -1,
+					"funcIndex": -1,
+					"children": [
+						{
+							"kind": "Param",
+							"line": 32,
+							"column": 22,
+							"text": "left",
+							"abiSymbol": null,
+							"type": "error",
+							"scopeId": 19,
+							"symbolIndex": 40,
+							"funcIndex": -1,
+							"children": []
+						},
+						{
+							"kind": "Param",
+							"line": 32,
+							"column": 34,
+							"text": "right",
+							"abiSymbol": null,
+							"type": "error",
+							"scopeId": 19,
+							"symbolIndex": 41,
+							"funcIndex": -1,
+							"children": []
+						}
+					]
+				},
+				{
+					"kind": "Block",
+					"line": 0,
+					"column": 0,
+					"text": null,
+					"abiSymbol": null,
+					"type": null,
+					"scopeId": 20,
+					"symbolIndex": -1,
+					"funcIndex": -1,
+					"children": [
+						{
+							"kind": "Return",
+							"line": 33,
+							"column": 2,
+							"text": null,
+							"abiSymbol": null,
+							"type": null,
+							"scopeId": -1,
+							"symbolIndex": -1,
+							"funcIndex": -1,
+							"children": [
+								{
+									"kind": "Name",
+									"line": 33,
+									"column": 9,
+									"text": "right",
+									"abiSymbol": null,
+									"type": "error",
+									"scopeId": 20,
+									"symbolIndex": 41,
+									"funcIndex": -1,
+									"children": []
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"kind": "Func",
+			"line": 36,
+			"column": 12,
+			"text": "xl_mod_std_task__race",
+			"abiSymbol": "xl__xl_mod_std_task__race__arity2__left__int__right__int__ret__future_x3Cint_x3E",
+			"type": "int",
+			"scopeId": 21,
+			"symbolIndex": 10,
+			"funcIndex": 58,
+			"children": [
+				{
+					"kind": "Block",
+					"line": 36,
+					"column": 12,
+					"text": "params",
+					"abiSymbol": null,
+					"type": null,
+					"scopeId": -1,
+					"symbolIndex": -1,
+					"funcIndex": -1,
+					"children": [
+						{
+							"kind": "Param",
+							"line": 36,
+							"column": 21,
+							"text": "left",
+							"abiSymbol": null,
+							"type": "int",
+							"scopeId": 21,
+							"symbolIndex": 42,
+							"funcIndex": -1,
+							"children": []
+						},
+						{
+							"kind": "Param",
+							"line": 36,
+							"column": 31,
+							"text": "right",
+							"abiSymbol": null,
+							"type": "int",
+							"scopeId": 21,
+							"symbolIndex": 43,
+							"funcIndex": -1,
+							"children": []
+						}
+					]
+				},
+				{
+					"kind": "Block",
+					"line": 0,
+					"column": 0,
+					"text": null,
+					"abiSymbol": null,
+					"type": null,
+					"scopeId": 22,
+					"symbolIndex": -1,
+					"funcIndex": -1,
+					"children": [
+						{
+							"kind": "Return",
+							"line": 37,
+							"column": 2,
+							"text": null,
+							"abiSymbol": null,
+							"type": null,
+							"scopeId": -1,
+							"symbolIndex": -1,
+							"funcIndex": -1,
+							"children": [
+								{
+									"kind": "Name",
+									"line": 37,
+									"column": 9,
+									"text": "left",
+									"abiSymbol": null,
+									"type": "int",
+									"scopeId": 22,
+									"symbolIndex": 42,
+									"funcIndex": -1,
+									"children": []
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"kind": "Func",
+			"line": 39,
+			"column": 12,
+			"text": "xl_mod_std_task__race",
+			"abiSymbol": "xl__xl_mod_std_task__race__arity2__left__float__right__float__ret__future_x3Cfloat_x3E",
+			"type": "float",
+			"scopeId": 23,
+			"symbolIndex": 11,
+			"funcIndex": 59,
+			"children": [
+				{
+					"kind": "Block",
+					"line": 39,
+					"column": 12,
+					"text": "params",
+					"abiSymbol": null,
+					"type": null,
+					"scopeId": -1,
+					"symbolIndex": -1,
+					"funcIndex": -1,
+					"children": [
+						{
+							"kind": "Param",
+							"line": 39,
+							"column": 23,
+							"text": "left",
+							"abiSymbol": null,
+							"type": "float",
+							"scopeId": 23,
+							"symbolIndex": 44,
+							"funcIndex": -1,
+							"children": []
+						},
+						{
+							"kind": "Param",
+							"line": 39,
+							"column": 35,
+							"text": "right",
+							"abiSymbol": null,
+							"type": "float",
+							"scopeId": 23,
+							"symbolIndex": 45,
+							"funcIndex": -1,
+							"children": []
+						}
+					]
+				},
+				{
+					"kind": "Block",
+					"line": 0,
+					"column": 0,
+					"text": null,
+					"abiSymbol": null,
+					"type": null,
+					"scopeId": 24,
+					"symbolIndex": -1,
+					"funcIndex": -1,
+					"children": [
+						{
+							"kind": "Return",
+							"line": 40,
+							"column": 2,
+							"text": null,
+							"abiSymbol": null,
+							"type": null,
+							"scopeId": -1,
+							"symbolIndex": -1,
+							"funcIndex": -1,
+							"children": [
+								{
+									"kind": "Name",
+									"line": 40,
+									"column": 9,
+									"text": "left",
+									"abiSymbol": null,
+									"type": "float",
+									"scopeId": 24,
+									"symbolIndex": 44,
+									"funcIndex": -1,
+									"children": []
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"kind": "Func",
+			"line": 42,
+			"column": 12,
+			"text": "xl_mod_std_task__race",
+			"abiSymbol": "xl__xl_mod_std_task__race__arity2__left__string__right__string__ret__future_x3Cstring_x3E",
+			"type": "string",
+			"scopeId": 25,
+			"symbolIndex": 12,
+			"funcIndex": 60,
+			"children": [
+				{
+					"kind": "Block",
+					"line": 42,
+					"column": 12,
+					"text": "params",
+					"abiSymbol": null,
+					"type": null,
+					"scopeId": -1,
+					"symbolIndex": -1,
+					"funcIndex": -1,
+					"children": [
+						{
+							"kind": "Param",
+							"line": 42,
+							"column": 24,
+							"text": "left",
+							"abiSymbol": null,
+							"type": "string",
+							"scopeId": 25,
+							"symbolIndex": 46,
+							"funcIndex": -1,
+							"children": []
+						},
+						{
+							"kind": "Param",
+							"line": 42,
+							"column": 37,
+							"text": "right",
+							"abiSymbol": null,
+							"type": "string",
+							"scopeId": 25,
+							"symbolIndex": 47,
+							"funcIndex": -1,
+							"children": []
+						}
+					]
+				},
+				{
+					"kind": "Block",
+					"line": 0,
+					"column": 0,
+					"text": null,
+					"abiSymbol": null,
+					"type": null,
+					"scopeId": 26,
+					"symbolIndex": -1,
+					"funcIndex": -1,
+					"children": [
+						{
+							"kind": "Return",
+							"line": 43,
+							"column": 2,
+							"text": null,
+							"abiSymbol": null,
+							"type": null,
+							"scopeId": -1,
+							"symbolIndex": -1,
+							"funcIndex": -1,
+							"children": [
+								{
+									"kind": "Name",
+									"line": 43,
+									"column": 9,
+									"text": "left",
+									"abiSymbol": null,
+									"type": "string",
+									"scopeId": 26,
+									"symbolIndex": 46,
+									"funcIndex": -1,
+									"children": []
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"kind": "Func",
+			"line": 45,
+			"column": 12,
+			"text": "xl_mod_std_task__race",
+			"abiSymbol": "xl__xl_mod_std_task__race__arity2__left__bool__right__bool__ret__future_x3Cbool_x3E",
+			"type": "bool",
+			"scopeId": 27,
+			"symbolIndex": 13,
+			"funcIndex": 61,
+			"children": [
+				{
+					"kind": "Block",
+					"line": 45,
+					"column": 12,
+					"text": "params",
+					"abiSymbol": null,
+					"type": null,
+					"scopeId": -1,
+					"symbolIndex": -1,
+					"funcIndex": -1,
+					"children": [
+						{
+							"kind": "Param",
+							"line": 45,
+							"column": 22,
+							"text": "left",
+							"abiSymbol": null,
+							"type": "bool",
+							"scopeId": 27,
+							"symbolIndex": 48,
+							"funcIndex": -1,
+							"children": []
+						},
+						{
+							"kind": "Param",
+							"line": 45,
+							"column": 33,
+							"text": "right",
+							"abiSymbol": null,
+							"type": "bool",
+							"scopeId": 27,
+							"symbolIndex": 49,
+							"funcIndex": -1,
+							"children": []
+						}
+					]
+				},
+				{
+					"kind": "Block",
+					"line": 0,
+					"column": 0,
+					"text": null,
+					"abiSymbol": null,
+					"type": null,
+					"scopeId": 28,
+					"symbolIndex": -1,
+					"funcIndex": -1,
+					"children": [
+						{
+							"kind": "Return",
+							"line": 46,
+							"column": 2,
+							"text": null,
+							"abiSymbol": null,
+							"type": null,
+							"scopeId": -1,
+							"symbolIndex": -1,
+							"funcIndex": -1,
+							"children": [
+								{
+									"kind": "Name",
+									"line": 46,
+									"column": 9,
+									"text": "left",
+									"abiSymbol": null,
+									"type": "bool",
+									"scopeId": 28,
+									"symbolIndex": 48,
+									"funcIndex": -1,
+									"children": []
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"kind": "Func",
+			"line": 48,
+			"column": 12,
+			"text": "xl_mod_std_task__race",
+			"abiSymbol": "xl__xl_mod_std_task__race__arity2__left__error__right__error__ret__future_x3Cerror_x3E",
+			"type": "error",
+			"scopeId": 29,
+			"symbolIndex": 14,
+			"funcIndex": 62,
+			"children": [
+				{
+					"kind": "Block",
+					"line": 48,
+					"column": 12,
+					"text": "params",
+					"abiSymbol": null,
+					"type": null,
+					"scopeId": -1,
+					"symbolIndex": -1,
+					"funcIndex": -1,
+					"children": [
+						{
+							"kind": "Param",
+							"line": 48,
+							"column": 23,
+							"text": "left",
+							"abiSymbol": null,
+							"type": "error",
+							"scopeId": 29,
+							"symbolIndex": 50,
+							"funcIndex": -1,
+							"children": []
+						},
+						{
+							"kind": "Param",
+							"line": 48,
+							"column": 35,
+							"text": "right",
+							"abiSymbol": null,
+							"type": "error",
+							"scopeId": 29,
+							"symbolIndex": 51,
+							"funcIndex": -1,
+							"children": []
+						}
+					]
+				},
+				{
+					"kind": "Block",
+					"line": 0,
+					"column": 0,
+					"text": null,
+					"abiSymbol": null,
+					"type": null,
+					"scopeId": 30,
+					"symbolIndex": -1,
+					"funcIndex": -1,
+					"children": [
+						{
+							"kind": "Return",
+							"line": 49,
+							"column": 2,
+							"text": null,
+							"abiSymbol": null,
+							"type": null,
+							"scopeId": -1,
+							"symbolIndex": -1,
+							"funcIndex": -1,
+							"children": [
+								{
+									"kind": "Name",
+									"line": 49,
+									"column": 9,
+									"text": "left",
+									"abiSymbol": null,
+									"type": "error",
+									"scopeId": 30,
+									"symbolIndex": 50,
+									"funcIndex": -1,
+									"children": []
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"kind": "Func",
+			"line": 52,
+			"column": 6,
+			"text": "xl_mod_std_task__cancel",
+			"abiSymbol": "xl__xl_mod_std_task__cancel__arity1__value__int__ret__int",
+			"type": "int",
+			"scopeId": 31,
+			"symbolIndex": 15,
+			"funcIndex": 63,
+			"children": [
+				{
+					"kind": "Block",
+					"line": 52,
+					"column": 6,
+					"text": "params",
+					"abiSymbol": null,
+					"type": null,
+					"scopeId": -1,
+					"symbolIndex": -1,
+					"funcIndex": -1,
+					"children": [
+						{
+							"kind": "Param",
+							"line": 52,
+							"column": 17,
+							"text": "value",
+							"abiSymbol": null,
+							"type": "int",
+							"scopeId": 31,
+							"symbolIndex": 52,
+							"funcIndex": -1,
+							"children": []
+						}
+					]
+				},
+				{
+					"kind": "Block",
+					"line": 0,
+					"column": 0,
+					"text": null,
+					"abiSymbol": null,
+					"type": null,
+					"scopeId": 32,
+					"symbolIndex": -1,
+					"funcIndex": -1,
+					"children": [
+						{
+							"kind": "Return",
+							"line": 53,
+							"column": 2,
+							"text": null,
+							"abiSymbol": null,
+							"type": null,
+							"scopeId": -1,
+							"symbolIndex": -1,
+							"funcIndex": -1,
+							"children": [
+								{
+									"kind": "Literal",
+									"line": 53,
+									"column": 9,
+									"text": "1",
+									"abiSymbol": null,
+									"type": "int",
+									"scopeId": 32,
+									"symbolIndex": -1,
+									"funcIndex": -1,
+									"children": []
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"kind": "Func",
+			"line": 55,
+			"column": 6,
+			"text": "xl_mod_std_task__cancel",
+			"abiSymbol": "xl__xl_mod_std_task__cancel__arity1__value__float__ret__int",
+			"type": "int",
+			"scopeId": 33,
+			"symbolIndex": 16,
+			"funcIndex": 64,
+			"children": [
+				{
+					"kind": "Block",
+					"line": 55,
+					"column": 6,
+					"text": "params",
+					"abiSymbol": null,
+					"type": null,
+					"scopeId": -1,
+					"symbolIndex": -1,
+					"funcIndex": -1,
+					"children": [
+						{
+							"kind": "Param",
+							"line": 55,
+							"column": 19,
+							"text": "value",
+							"abiSymbol": null,
+							"type": "float",
+							"scopeId": 33,
+							"symbolIndex": 53,
+							"funcIndex": -1,
+							"children": []
+						}
+					]
+				},
+				{
+					"kind": "Block",
+					"line": 0,
+					"column": 0,
+					"text": null,
+					"abiSymbol": null,
+					"type": null,
+					"scopeId": 34,
+					"symbolIndex": -1,
+					"funcIndex": -1,
+					"children": [
+						{
+							"kind": "Return",
+							"line": 56,
+							"column": 2,
+							"text": null,
+							"abiSymbol": null,
+							"type": null,
+							"scopeId": -1,
+							"symbolIndex": -1,
+							"funcIndex": -1,
+							"children": [
+								{
+									"kind": "Literal",
+									"line": 56,
+									"column": 9,
+									"text": "1",
+									"abiSymbol": null,
+									"type": "int",
+									"scopeId": 34,
+									"symbolIndex": -1,
+									"funcIndex": -1,
+									"children": []
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"kind": "Func",
+			"line": 58,
+			"column": 6,
+			"text": "xl_mod_std_task__cancel",
+			"abiSymbol": "xl__xl_mod_std_task__cancel__arity1__value__string__ret__int",
+			"type": "int",
+			"scopeId": 35,
+			"symbolIndex": 17,
+			"funcIndex": 65,
+			"children": [
+				{
+					"kind": "Block",
+					"line": 58,
+					"column": 6,
+					"text": "params",
+					"abiSymbol": null,
+					"type": null,
+					"scopeId": -1,
+					"symbolIndex": -1,
+					"funcIndex": -1,
+					"children": [
+						{
+							"kind": "Param",
+							"line": 58,
+							"column": 20,
+							"text": "value",
+							"abiSymbol": null,
+							"type": "string",
+							"scopeId": 35,
+							"symbolIndex": 54,
+							"funcIndex": -1,
+							"children": []
+						}
+					]
+				},
+				{
+					"kind": "Block",
+					"line": 0,
+					"column": 0,
+					"text": null,
+					"abiSymbol": null,
+					"type": null,
+					"scopeId": 36,
+					"symbolIndex": -1,
+					"funcIndex": -1,
+					"children": [
+						{
+							"kind": "Return",
+							"line": 59,
+							"column": 2,
+							"text": null,
+							"abiSymbol": null,
+							"type": null,
+							"scopeId": -1,
+							"symbolIndex": -1,
+							"funcIndex": -1,
+							"children": [
+								{
+									"kind": "Literal",
+									"line": 59,
+									"column": 9,
+									"text": "1",
+									"abiSymbol": null,
+									"type": "int",
+									"scopeId": 36,
+									"symbolIndex": -1,
+									"funcIndex": -1,
+									"children": []
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"kind": "Func",
+			"line": 61,
+			"column": 6,
+			"text": "xl_mod_std_task__cancel",
+			"abiSymbol": "xl__xl_mod_std_task__cancel__arity1__value__bool__ret__int",
+			"type": "int",
+			"scopeId": 37,
+			"symbolIndex": 18,
+			"funcIndex": 66,
+			"children": [
+				{
+					"kind": "Block",
+					"line": 61,
+					"column": 6,
+					"text": "params",
+					"abiSymbol": null,
+					"type": null,
+					"scopeId": -1,
+					"symbolIndex": -1,
+					"funcIndex": -1,
+					"children": [
+						{
+							"kind": "Param",
+							"line": 61,
+							"column": 18,
+							"text": "value",
+							"abiSymbol": null,
+							"type": "bool",
+							"scopeId": 37,
+							"symbolIndex": 55,
+							"funcIndex": -1,
+							"children": []
+						}
+					]
+				},
+				{
+					"kind": "Block",
+					"line": 0,
+					"column": 0,
+					"text": null,
+					"abiSymbol": null,
+					"type": null,
+					"scopeId": 38,
+					"symbolIndex": -1,
+					"funcIndex": -1,
+					"children": [
+						{
+							"kind": "Return",
+							"line": 62,
+							"column": 2,
+							"text": null,
+							"abiSymbol": null,
+							"type": null,
+							"scopeId": -1,
+							"symbolIndex": -1,
+							"funcIndex": -1,
+							"children": [
+								{
+									"kind": "Literal",
+									"line": 62,
+									"column": 9,
+									"text": "1",
+									"abiSymbol": null,
+									"type": "int",
+									"scopeId": 38,
+									"symbolIndex": -1,
+									"funcIndex": -1,
+									"children": []
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"kind": "Func",
+			"line": 64,
+			"column": 6,
+			"text": "xl_mod_std_task__cancel",
+			"abiSymbol": "xl__xl_mod_std_task__cancel__arity1__value__error__ret__int",
+			"type": "int",
+			"scopeId": 39,
+			"symbolIndex": 19,
+			"funcIndex": 67,
+			"children": [
+				{
+					"kind": "Block",
+					"line": 64,
+					"column": 6,
+					"text": "params",
+					"abiSymbol": null,
+					"type": null,
+					"scopeId": -1,
+					"symbolIndex": -1,
+					"funcIndex": -1,
+					"children": [
+						{
+							"kind": "Param",
+							"line": 64,
+							"column": 19,
+							"text": "value",
+							"abiSymbol": null,
+							"type": "error",
+							"scopeId": 39,
+							"symbolIndex": 56,
+							"funcIndex": -1,
+							"children": []
+						}
+					]
+				},
+				{
+					"kind": "Block",
+					"line": 0,
+					"column": 0,
+					"text": null,
+					"abiSymbol": null,
+					"type": null,
+					"scopeId": 40,
+					"symbolIndex": -1,
+					"funcIndex": -1,
+					"children": [
+						{
+							"kind": "Return",
+							"line": 65,
+							"column": 2,
+							"text": null,
+							"abiSymbol": null,
+							"type": null,
+							"scopeId": -1,
+							"symbolIndex": -1,
+							"funcIndex": -1,
+							"children": [
+								{
+									"kind": "Literal",
+									"line": 65,
+									"column": 9,
+									"text": "1",
+									"abiSymbol": null,
+									"type": "int",
+									"scopeId": 40,
+									"symbolIndex": -1,
+									"funcIndex": -1,
+									"children": []
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"kind": "Func",
+			"line": 68,
+			"column": 12,
+			"text": "xl_mod_std_task__delay",
+			"abiSymbol": "xl__xl_mod_std_task__delay__arity1__ms__int__ret__future_x3Cint_x3E",
+			"type": "int",
+			"scopeId": 41,
+			"symbolIndex": 20,
+			"funcIndex": 68,
+			"children": [
+				{
+					"kind": "Block",
+					"line": 68,
+					"column": 12,
+					"text": "params",
+					"abiSymbol": null,
+					"type": null,
+					"scopeId": -1,
+					"symbolIndex": -1,
+					"funcIndex": -1,
+					"children": [
+						{
+							"kind": "Param",
+							"line": 68,
+							"column": 22,
+							"text": "ms",
+							"abiSymbol": null,
+							"type": "int",
+							"scopeId": 41,
+							"symbolIndex": 57,
+							"funcIndex": -1,
+							"children": []
+						}
+					]
+				},
+				{
+					"kind": "Block",
+					"line": 0,
+					"column": 0,
+					"text": null,
+					"abiSymbol": null,
+					"type": null,
+					"scopeId": 42,
+					"symbolIndex": -1,
+					"funcIndex": -1,
+					"children": [
+						{
+							"kind": "Return",
+							"line": 69,
+							"column": 2,
+							"text": null,
+							"abiSymbol": null,
+							"type": null,
+							"scopeId": -1,
+							"symbolIndex": -1,
+							"funcIndex": -1,
+							"children": [
+								{
+									"kind": "Name",
+									"line": 69,
+									"column": 9,
+									"text": "ms",
+									"abiSymbol": null,
+									"type": "int",
+									"scopeId": 42,
+									"symbolIndex": 57,
+									"funcIndex": -1,
+									"children": []
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"kind": "Func",
+			"line": 3,
+			"column": 12,
+			"text": "slow_add",
+			"abiSymbol": "xl__slow_add__arity0__ret__future_x3Cint_x3E",
+			"type": "int",
+			"scopeId": 43,
+			"symbolIndex": 21,
+			"funcIndex": 69,
+			"children": [
+				{
+					"kind": "Block",
+					"line": 3,
+					"column": 12,
+					"text": "params",
+					"abiSymbol": null,
+					"type": null,
+					"scopeId": -1,
+					"symbolIndex": -1,
+					"funcIndex": -1,
+					"children": []
+				},
+				{
+					"kind": "Block",
+					"line": 0,
+					"column": 0,
+					"text": null,
+					"abiSymbol": null,
+					"type": null,
+					"scopeId": 44,
+					"symbolIndex": -1,
+					"funcIndex": -1,
+					"children": [
+						{
+							"kind": "Return",
+							"line": 4,
+							"column": 2,
+							"text": null,
+							"abiSymbol": null,
+							"type": null,
+							"scopeId": -1,
+							"symbolIndex": -1,
+							"funcIndex": -1,
+							"children": [
+								{
+									"kind": "Literal",
+									"line": 4,
+									"column": 9,
+									"text": "4",
+									"abiSymbol": null,
+									"type": "int",
+									"scopeId": 44,
+									"symbolIndex": -1,
+									"funcIndex": -1,
+									"children": []
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"kind": "Func",
+			"line": 7,
+			"column": 12,
+			"text": "slow_mul",
+			"abiSymbol": "xl__slow_mul__arity0__ret__future_x3Cint_x3E",
+			"type": "int",
+			"scopeId": 45,
+			"symbolIndex": 22,
+			"funcIndex": 70,
+			"children": [
+				{
+					"kind": "Block",
+					"line": 7,
+					"column": 12,
+					"text": "params",
+					"abiSymbol": null,
+					"type": null,
+					"scopeId": -1,
+					"symbolIndex": -1,
+					"funcIndex": -1,
+					"children": []
+				},
+				{
+					"kind": "Block",
+					"line": 0,
+					"column": 0,
+					"text": null,
+					"abiSymbol": null,
+					"type": null,
+					"scopeId": 46,
+					"symbolIndex": -1,
+					"funcIndex": -1,
+					"children": [
+						{
+							"kind": "Return",
+							"line": 8,
+							"column": 2,
+							"text": null,
+							"abiSymbol": null,
+							"type": null,
+							"scopeId": -1,
+							"symbolIndex": -1,
+							"funcIndex": -1,
+							"children": [
+								{
+									"kind": "Literal",
+									"line": 8,
+									"column": 9,
+									"text": "6",
+									"abiSymbol": null,
+									"type": "int",
+									"scopeId": 46,
+									"symbolIndex": -1,
+									"funcIndex": -1,
+									"children": []
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"kind": "Func",
+			"line": 11,
+			"column": 12,
+			"text": "slow_sub",
+			"abiSymbol": "xl__slow_sub__arity0__ret__future_x3Cint_x3E",
+			"type": "int",
+			"scopeId": 47,
+			"symbolIndex": 23,
+			"funcIndex": 71,
+			"children": [
+				{
+					"kind": "Block",
+					"line": 11,
+					"column": 12,
+					"text": "params",
+					"abiSymbol": null,
+					"type": null,
+					"scopeId": -1,
+					"symbolIndex": -1,
+					"funcIndex": -1,
+					"children": []
+				},
+				{
+					"kind": "Block",
+					"line": 0,
+					"column": 0,
+					"text": null,
+					"abiSymbol": null,
+					"type": null,
+					"scopeId": 48,
+					"symbolIndex": -1,
+					"funcIndex": -1,
+					"children": [
+						{
+							"kind": "Return",
+							"line": 12,
+							"column": 2,
+							"text": null,
+							"abiSymbol": null,
+							"type": null,
+							"scopeId": -1,
+							"symbolIndex": -1,
+							"funcIndex": -1,
+							"children": [
+								{
+									"kind": "Literal",
+									"line": 12,
+									"column": 9,
+									"text": "3",
+									"abiSymbol": null,
+									"type": "int",
+									"scopeId": 48,
+									"symbolIndex": -1,
+									"funcIndex": -1,
+									"children": []
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"kind": "Func",
+			"line": 15,
+			"column": 12,
+			"text": "main",
+			"abiSymbol": "xl__main__arity0__ret__future_x3Cint_x3E",
+			"type": "int",
+			"scopeId": 49,
+			"symbolIndex": 24,
+			"funcIndex": 72,
+			"children": [
+				{
+					"kind": "Block",
+					"line": 15,
+					"column": 12,
+					"text": "params",
+					"abiSymbol": null,
+					"type": null,
+					"scopeId": -1,
+					"symbolIndex": -1,
+					"funcIndex": -1,
+					"children": []
+				},
+				{
+					"kind": "Block",
+					"line": 0,
+					"column": 0,
+					"text": null,
+					"abiSymbol": null,
+					"type": null,
+					"scopeId": 50,
+					"symbolIndex": -1,
+					"funcIndex": -1,
+					"children": [
+						{
+							"kind": "Const",
+							"line": 16,
+							"column": 12,
+							"text": "winner",
+							"abiSymbol": null,
+							"type": "int",
+							"scopeId": 50,
+							"symbolIndex": 58,
+							"funcIndex": -1,
+							"children": [
+								{
+									"kind": "Unary",
+									"line": 16,
+									"column": 21,
+									"text": "await",
+									"abiSymbol": null,
+									"type": "int",
+									"scopeId": 50,
+									"symbolIndex": -1,
+									"funcIndex": -1,
+									"children": [
+										{
+											"kind": "Call",
+											"line": 16,
+											"column": 117,
+											"text": "",
+											"abiSymbol": "xl__xl_mod_std_task__race__arity2__left__int__right__int__ret__future_x3Cint_x3E",
+											"type": "future<int>",
+											"scopeId": 50,
+											"symbolIndex": -1,
+											"funcIndex": 58,
+											"children": [
+												{
+													"kind": "Name",
+													"line": 16,
+													"column": 31,
+													"text": "xl_mod_std_task__race",
+													"abiSymbol": null,
+													"type": null,
+													"scopeId": -1,
+													"symbolIndex": -1,
+													"funcIndex": -1,
+													"children": []
+												},
+												{
+													"kind": "Block",
+													"line": 16,
+													"column": 117,
+													"text": "args",
+													"abiSymbol": null,
+													"type": null,
+													"scopeId": -1,
+													"symbolIndex": -1,
+													"funcIndex": -1,
+													"children": [
+														{
+															"kind": "Call",
+															"line": 16,
+															"column": 58,
+															"text": "",
+															"abiSymbol": "xl__xl_mod_std_task__spawn__arity1__value__int__ret__future_x3Cint_x3E",
+															"type": "future<int>",
+															"scopeId": 50,
+															"symbolIndex": -1,
+															"funcIndex": 48,
+															"children": [
+																{
+																	"kind": "Name",
+																	"line": 16,
+																	"column": 41,
+																	"text": "xl_mod_std_task__spawn",
+																	"abiSymbol": null,
+																	"type": null,
+																	"scopeId": -1,
+																	"symbolIndex": -1,
+																	"funcIndex": -1,
+																	"children": []
+																},
+																{
+																	"kind": "Block",
+																	"line": 16,
+																	"column": 58,
+																	"text": "args",
+																	"abiSymbol": null,
+																	"type": null,
+																	"scopeId": -1,
+																	"symbolIndex": -1,
+																	"funcIndex": -1,
+																	"children": [
+																		{
+																			"kind": "Call",
+																			"line": 16,
+																			"column": 57,
+																			"text": "",
+																			"abiSymbol": "xl__slow_add__arity0__ret__future_x3Cint_x3E",
+																			"type": "future<int>",
+																			"scopeId": 50,
+																			"symbolIndex": -1,
+																			"funcIndex": 69,
+																			"children": [
+																				{
+																					"kind": "Name",
+																					"line": 16,
+																					"column": 48,
+																					"text": "slow_add",
+																					"abiSymbol": null,
+																					"type": null,
+																					"scopeId": -1,
+																					"symbolIndex": -1,
+																					"funcIndex": -1,
+																					"children": []
+																				},
+																				{
+																					"kind": "Block",
+																					"line": 16,
+																					"column": 57,
+																					"text": "args",
+																					"abiSymbol": null,
+																					"type": null,
+																					"scopeId": -1,
+																					"symbolIndex": -1,
+																					"funcIndex": -1,
+																					"children": []
+																				}
+																			]
+																		}
+																	]
+																}
+															]
+														},
+														{
+															"kind": "Call",
+															"line": 16,
+															"column": 116,
+															"text": "",
+															"abiSymbol": "xl__xl_mod_std_task__all__arity2__left__int__right__int__ret__future_x3Cint_x3E",
+															"type": "future<int>",
+															"scopeId": 50,
+															"symbolIndex": -1,
+															"funcIndex": 53,
+															"children": [
+																{
+																	"kind": "Name",
+																	"line": 16,
+																	"column": 65,
+																	"text": "xl_mod_std_task__all",
+																	"abiSymbol": null,
+																	"type": null,
+																	"scopeId": -1,
+																	"symbolIndex": -1,
+																	"funcIndex": -1,
+																	"children": []
+																},
+																{
+																	"kind": "Block",
+																	"line": 16,
+																	"column": 116,
+																	"text": "args",
+																	"abiSymbol": null,
+																	"type": null,
+																	"scopeId": -1,
+																	"symbolIndex": -1,
+																	"funcIndex": -1,
+																	"children": [
+																		{
+																			"kind": "Call",
+																			"line": 16,
+																			"column": 91,
+																			"text": "",
+																			"abiSymbol": "xl__xl_mod_std_task__spawn__arity1__value__int__ret__future_x3Cint_x3E",
+																			"type": "future<int>",
+																			"scopeId": 50,
+																			"symbolIndex": -1,
+																			"funcIndex": 48,
+																			"children": [
+																				{
+																					"kind": "Name",
+																					"line": 16,
+																					"column": 74,
+																					"text": "xl_mod_std_task__spawn",
+																					"abiSymbol": null,
+																					"type": null,
+																					"scopeId": -1,
+																					"symbolIndex": -1,
+																					"funcIndex": -1,
+																					"children": []
+																				},
+																				{
+																					"kind": "Block",
+																					"line": 16,
+																					"column": 91,
+																					"text": "args",
+																					"abiSymbol": null,
+																					"type": null,
+																					"scopeId": -1,
+																					"symbolIndex": -1,
+																					"funcIndex": -1,
+																					"children": [
+																						{
+																							"kind": "Call",
+																							"line": 16,
+																							"column": 90,
+																							"text": "",
+																							"abiSymbol": "xl__slow_mul__arity0__ret__future_x3Cint_x3E",
+																							"type": "future<int>",
+																							"scopeId": 50,
+																							"symbolIndex": -1,
+																							"funcIndex": 70,
+																							"children": [
+																								{
+																									"kind": "Name",
+																									"line": 16,
+																									"column": 81,
+																									"text": "slow_mul",
+																									"abiSymbol": null,
+																									"type": null,
+																									"scopeId": -1,
+																									"symbolIndex": -1,
+																									"funcIndex": -1,
+																									"children": []
+																								},
+																								{
+																									"kind": "Block",
+																									"line": 16,
+																									"column": 90,
+																									"text": "args",
+																									"abiSymbol": null,
+																									"type": null,
+																									"scopeId": -1,
+																									"symbolIndex": -1,
+																									"funcIndex": -1,
+																									"children": []
+																								}
+																							]
+																						}
+																					]
+																				}
+																			]
+																		},
+																		{
+																			"kind": "Call",
+																			"line": 16,
+																			"column": 115,
+																			"text": "",
+																			"abiSymbol": "xl__xl_mod_std_task__spawn__arity1__value__int__ret__future_x3Cint_x3E",
+																			"type": "future<int>",
+																			"scopeId": 50,
+																			"symbolIndex": -1,
+																			"funcIndex": 48,
+																			"children": [
+																				{
+																					"kind": "Name",
+																					"line": 16,
+																					"column": 98,
+																					"text": "xl_mod_std_task__spawn",
+																					"abiSymbol": null,
+																					"type": null,
+																					"scopeId": -1,
+																					"symbolIndex": -1,
+																					"funcIndex": -1,
+																					"children": []
+																				},
+																				{
+																					"kind": "Block",
+																					"line": 16,
+																					"column": 115,
+																					"text": "args",
+																					"abiSymbol": null,
+																					"type": null,
+																					"scopeId": -1,
+																					"symbolIndex": -1,
+																					"funcIndex": -1,
+																					"children": [
+																						{
+																							"kind": "Call",
+																							"line": 16,
+																							"column": 114,
+																							"text": "",
+																							"abiSymbol": "xl__slow_sub__arity0__ret__future_x3Cint_x3E",
+																							"type": "future<int>",
+																							"scopeId": 50,
+																							"symbolIndex": -1,
+																							"funcIndex": 71,
+																							"children": [
+																								{
+																									"kind": "Name",
+																									"line": 16,
+																									"column": 105,
+																									"text": "slow_sub",
+																									"abiSymbol": null,
+																									"type": null,
+																									"scopeId": -1,
+																									"symbolIndex": -1,
+																									"funcIndex": -1,
+																									"children": []
+																								},
+																								{
+																									"kind": "Block",
+																									"line": 16,
+																									"column": 114,
+																									"text": "args",
+																									"abiSymbol": null,
+																									"type": null,
+																									"scopeId": -1,
+																									"symbolIndex": -1,
+																									"funcIndex": -1,
+																									"children": []
+																								}
+																							]
+																						}
+																					]
+																				}
+																			]
+																		}
+																	]
+																}
+															]
+														}
+													]
+												}
+											]
+										}
+									]
+								}
+							]
+						},
+						{
+							"kind": "Const",
+							"line": 17,
+							"column": 12,
+							"text": "canceled",
+							"abiSymbol": null,
+							"type": "int",
+							"scopeId": 50,
+							"symbolIndex": 59,
+							"funcIndex": -1,
+							"children": [
+								{
+									"kind": "Call",
+									"line": 17,
+									"column": 57,
+									"text": "",
+									"abiSymbol": "xl__xl_mod_std_task__cancel__arity1__value__int__ret__int",
+									"type": "int",
+									"scopeId": 50,
+									"symbolIndex": -1,
+									"funcIndex": 63,
+									"children": [
+										{
+											"kind": "Name",
+											"line": 17,
+											"column": 27,
+											"text": "xl_mod_std_task__cancel",
+											"abiSymbol": null,
+											"type": null,
+											"scopeId": -1,
+											"symbolIndex": -1,
+											"funcIndex": -1,
+											"children": []
+										},
+										{
+											"kind": "Block",
+											"line": 17,
+											"column": 57,
+											"text": "args",
+											"abiSymbol": null,
+											"type": null,
+											"scopeId": -1,
+											"symbolIndex": -1,
+											"funcIndex": -1,
+											"children": [
+												{
+													"kind": "Call",
+													"line": 17,
+													"column": 56,
+													"text": "",
+													"abiSymbol": "xl__xl_mod_std_task__spawn__arity1__value__int__ret__future_x3Cint_x3E",
+													"type": "future<int>",
+													"scopeId": 50,
+													"symbolIndex": -1,
+													"funcIndex": 48,
+													"children": [
+														{
+															"kind": "Name",
+															"line": 17,
+															"column": 39,
+															"text": "xl_mod_std_task__spawn",
+															"abiSymbol": null,
+															"type": null,
+															"scopeId": -1,
+															"symbolIndex": -1,
+															"funcIndex": -1,
+															"children": []
+														},
+														{
+															"kind": "Block",
+															"line": 17,
+															"column": 56,
+															"text": "args",
+															"abiSymbol": null,
+															"type": null,
+															"scopeId": -1,
+															"symbolIndex": -1,
+															"funcIndex": -1,
+															"children": [
+																{
+																	"kind": "Call",
+																	"line": 17,
+																	"column": 55,
+																	"text": "",
+																	"abiSymbol": "xl__slow_mul__arity0__ret__future_x3Cint_x3E",
+																	"type": "future<int>",
+																	"scopeId": 50,
+																	"symbolIndex": -1,
+																	"funcIndex": 70,
+																	"children": [
+																		{
+																			"kind": "Name",
+																			"line": 17,
+																			"column": 46,
+																			"text": "slow_mul",
+																			"abiSymbol": null,
+																			"type": null,
+																			"scopeId": -1,
+																			"symbolIndex": -1,
+																			"funcIndex": -1,
+																			"children": []
+																		},
+																		{
+																			"kind": "Block",
+																			"line": 17,
+																			"column": 55,
+																			"text": "args",
+																			"abiSymbol": null,
+																			"type": null,
+																			"scopeId": -1,
+																			"symbolIndex": -1,
+																			"funcIndex": -1,
+																			"children": []
+																		}
+																	]
+																}
+															]
+														}
+													]
+												}
+											]
+										}
+									]
+								}
+							]
+						},
+						{
+							"kind": "Return",
+							"line": 18,
+							"column": 2,
+							"text": null,
+							"abiSymbol": null,
+							"type": null,
+							"scopeId": -1,
+							"symbolIndex": -1,
+							"funcIndex": -1,
+							"children": [
+								{
+									"kind": "Binary",
+									"line": 18,
+									"column": 16,
+									"text": "+",
+									"abiSymbol": null,
+									"type": "int",
+									"scopeId": 50,
+									"symbolIndex": -1,
+									"funcIndex": -1,
+									"children": [
+										{
+											"kind": "Name",
+											"line": 18,
+											"column": 9,
+											"text": "winner",
+											"abiSymbol": null,
+											"type": "int",
+											"scopeId": 50,
+											"symbolIndex": 58,
+											"funcIndex": -1,
+											"children": []
+										},
+										{
+											"kind": "Name",
+											"line": 18,
+											"column": 18,
+											"text": "canceled",
+											"abiSymbol": null,
+											"type": "int",
+											"scopeId": 50,
+											"symbolIndex": 59,
+											"funcIndex": -1,
+											"children": []
+										}
+									]
+								}
+							]
+						}
+					]
+				}
+			]
+		}
+	]
+}

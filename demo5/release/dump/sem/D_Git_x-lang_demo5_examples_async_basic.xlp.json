@@ -1,0 +1,32 @@
+{
+	"format": "xlp-0",
+	"package": {
+		"name": "basic",
+		"version": "0.0.0",
+		"abiVersion": "1",
+		"xlangAbi": "1",
+		"abiId": "basic@0.0.0#abi1"
+	},
+	"dependencies": [],
+	"modules": [
+		{
+			"key": "<root>",
+			"packageName": "basic",
+			"packageVersion": "0.0.0",
+			"packageAbiVersion": "1",
+			"abiId": "basic@0.0.0#abi1::<root>",
+			"manifest": "",
+			"file": "D:\\Git\\x-lang\\demo5\\examples\\async\\basic.xl",
+			"root": 1,
+			"native": 0,
+			"binding": "",
+			"artifactKind": "",
+			"artifactPath": "",
+			"artifactFile": "",
+			"consumeMode": "",
+			"imports": [],
+			"exports": []
+		}
+	],
+	"functions": []
+}

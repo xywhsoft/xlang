@@ -1265,6 +1265,13 @@ static int __xlHostTccBuildCommon(
 			pResult->bHadBuildError = 1;
 			return XL_RC_FAIL;
 		}
+		if ( __xlRegisterSharedArtifactSymbols(pCtx, pTcc, pTrace, arrSharedHandles, iSharedHandleCount) != XL_RC_OK ) {
+			XL_DIAG_ERROR(pDiag, "host.tcc", "failed to register shared xlp symbols");
+			__xlUnloadSharedArtifacts(pTrace, arrSharedHandles, iSharedHandleCount);
+			__xlCleanupStaticExtractedFiles(arrStaticExtracted, iStaticExtractedCount);
+			pResult->bHadBuildError = 1;
+			return XL_RC_FAIL;
+		}
 	}
 	if ( xlPathEnsureParentDir(sOutputFile) != XL_RC_OK ) {
 		__xlUnloadSharedArtifacts(pTrace, arrSharedHandles, iSharedHandleCount);

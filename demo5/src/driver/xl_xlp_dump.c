@@ -177,6 +177,193 @@ static void __xlXlpBuildModuleAbiId(const char* sPackageAbiId, const char* sModu
 	snprintf(sOut, iOutSize, "%s::%s", (sPackageAbiId != NULL) ? sPackageAbiId : "package@0.0.0#abi1", (sModuleKey != NULL) ? sModuleKey : "<root>");
 }
 
+static void __xlXlpBuildFunctionLanguageAbiId(
+	const char* sModuleAbiId,
+	const char* sSignatureId,
+	const char* sLanguageAbi,
+	char* sOut,
+	size_t iOutSize
+)
+{
+	snprintf(
+		sOut,
+		iOutSize,
+		"%s::%s#%s",
+		(sModuleAbiId != NULL) ? sModuleAbiId : "package@0.0.0#abi1::<root>",
+		(sSignatureId != NULL) ? sSignatureId : "",
+		(sLanguageAbi != NULL) ? sLanguageAbi : "xlang@v1"
+	);
+}
+
+static void __xlXlpBuildFunctionNativeAbiId(
+	const char* sModuleAbiId,
+	const char* sAbiSymbol,
+	const char* sNativeAbi,
+	char* sOut,
+	size_t iOutSize
+)
+{
+	snprintf(
+		sOut,
+		iOutSize,
+		"%s::%s#%s",
+		(sModuleAbiId != NULL) ? sModuleAbiId : "package@0.0.0#abi1::<root>",
+		(sAbiSymbol != NULL) ? sAbiSymbol : "",
+		(sNativeAbi != NULL) ? sNativeAbi : "c@v1"
+	);
+}
+
+static void __xlXlpBuildExportAbiId(
+	const char* sModuleAbiId,
+	const char* sExportName,
+	char* sOut,
+	size_t iOutSize
+)
+{
+	snprintf(
+		sOut,
+		iOutSize,
+		"%s::%s",
+		(sModuleAbiId != NULL) ? sModuleAbiId : "package@0.0.0#abi1::<root>",
+		(sExportName != NULL) ? sExportName : ""
+	);
+}
+
+static void __xlXlpBuildExportVersionedSymbol(
+	const char* sModuleAbiId,
+	const char* sSymbol,
+	char* sOut,
+	size_t iOutSize
+)
+{
+	snprintf(
+		sOut,
+		iOutSize,
+		"%s::%s",
+		(sModuleAbiId != NULL) ? sModuleAbiId : "package@0.0.0#abi1::<root>",
+		(sSymbol != NULL) ? sSymbol : ""
+	);
+}
+
+static void __xlXlpSanitizeIdentPart(char* sOut, size_t iOutSize, const char* sText)
+{
+	size_t iOut;
+	const unsigned char* pScan;
+
+	if ( (sOut == NULL) || (iOutSize == 0) ) {
+		return;
+	}
+
+	iOut = 0;
+	for ( pScan = (const unsigned char*)((sText != NULL) ? sText : ""); (*pScan != 0) && (iOut + 1 < iOutSize); ++pScan ) {
+		if ( ((*pScan >= 'A') && (*pScan <= 'Z')) ||
+			((*pScan >= 'a') && (*pScan <= 'z')) ||
+			((*pScan >= '0') && (*pScan <= '9')) ||
+			(*pScan == '_') ) {
+			sOut[iOut++] = (char)(*pScan);
+		} else {
+			sOut[iOut++] = '_';
+		}
+	}
+	sOut[iOut] = '\0';
+}
+
+static void __xlXlpBuildModuleAbiSymbol(
+	const char* sModuleKey,
+	const char* sSuffix,
+	char* sOut,
+	size_t iOutSize
+)
+{
+	char sModuleKeySafe[XL_PATH_MAX_LEN];
+
+	__xlXlpSanitizeIdentPart(sModuleKeySafe, sizeof(sModuleKeySafe), sModuleKey);
+	snprintf(
+		sOut,
+		iOutSize,
+		"xl_mod_%s__%s",
+		(sModuleKeySafe[0] != '\0') ? sModuleKeySafe : "module",
+		(sSuffix != NULL) ? sSuffix : ""
+	);
+}
+
+static int __xlXlpModuleKeyHasCollision(const XL_ModuleLinkResult* pModuleResult, const XL_ModuleSummary* pTarget)
+{
+	size_t i;
+	size_t iMatchCount;
+	const char* sTargetKey;
+
+	if ( (pModuleResult == NULL) || (pModuleResult->pModules == NULL) || (pTarget == NULL) ) {
+		return 0;
+	}
+
+	sTargetKey = ((pTarget->sKey != NULL) && (pTarget->sKey[0] != '\0')) ? pTarget->sKey : "<root>";
+	iMatchCount = 0;
+	for ( i = 0; i < pModuleResult->iModuleCount; ++i ) {
+		const XL_ModuleSummary* pModule;
+		const char* sModuleKey;
+
+		pModule = &pModuleResult->pModules[i];
+		sModuleKey = ((pModule->sKey != NULL) && (pModule->sKey[0] != '\0')) ? pModule->sKey : "<root>";
+		if ( strcmp(sModuleKey, sTargetKey) != 0 ) {
+			continue;
+		}
+		++iMatchCount;
+		if ( iMatchCount > 1u ) {
+			return 1;
+		}
+	}
+
+	return 0;
+}
+
+static void __xlXlpBuildUniqueModuleAbiSymbol(const XL_ModuleSummary* pModule, const char* sSuffix, char* sOut, size_t iOutSize)
+{
+	char sUniqueKey[XL_PATH_MAX_LEN];
+	const char* sModuleKey;
+
+	if ( (pModule != NULL) &&
+		!pModule->bIsRoot &&
+		(pModule->sPackageAbiId != NULL) && (pModule->sPackageAbiId[0] != '\0') ) {
+		sModuleKey = ((pModule->sKey != NULL) && (pModule->sKey[0] != '\0')) ? pModule->sKey : "module";
+		snprintf(sUniqueKey, sizeof(sUniqueKey), "%s__%s", pModule->sPackageAbiId, sModuleKey);
+		__xlXlpBuildModuleAbiSymbol(sUniqueKey, sSuffix, sOut, iOutSize);
+		return;
+	}
+
+	__xlXlpBuildModuleAbiSymbol((pModule != NULL) ? pModule->sKey : NULL, sSuffix, sOut, iOutSize);
+}
+
+static void __xlXlpGetEffectiveModuleAbiSymbol(
+	const XL_ModuleLinkResult* pModuleResult,
+	const XL_ModuleSummary* pModule,
+	const char* sExistingSymbol,
+	const char* sSuffix,
+	char* sOut,
+	size_t iOutSize
+)
+{
+	char sDefaultSymbol[XL_PATH_MAX_LEN];
+
+	if ( (sOut == NULL) || (iOutSize == 0) ) {
+		return;
+	}
+
+	__xlXlpBuildModuleAbiSymbol((pModule != NULL) ? pModule->sKey : NULL, sSuffix, sDefaultSymbol, sizeof(sDefaultSymbol));
+	if ( __xlXlpModuleKeyHasCollision(pModuleResult, pModule) &&
+		( ((sExistingSymbol == NULL) || (sExistingSymbol[0] == '\0')) || (strcmp(sExistingSymbol, sDefaultSymbol) == 0) ) ) {
+		__xlXlpBuildUniqueModuleAbiSymbol(pModule, sSuffix, sOut, iOutSize);
+		return;
+	}
+
+	if ( (sExistingSymbol != NULL) && (sExistingSymbol[0] != '\0') ) {
+		snprintf(sOut, iOutSize, "%s", sExistingSymbol);
+		return;
+	}
+
+	snprintf(sOut, iOutSize, "%s", sDefaultSymbol);
+}
+
 static const char* __xlXlpModulePackageName(const XL_ModuleSummary* pModule)
 {
 	if ( (pModule != NULL) && (pModule->sPackageName != NULL) && (pModule->sPackageName[0] != '\0') ) {
@@ -545,6 +732,9 @@ char* xlXlpDumpPackageJson(const XL_ModuleLinkResult* pModuleResult, const XL_Se
 		const char* sModulePackageAbiIdText;
 		char sModulePackageAbiFallback[XL_PATH_MAX_LEN];
 		char sModuleAbiId[XL_PATH_MAX_LEN];
+		char sInitSymbol[XL_PATH_MAX_LEN];
+		char sExportsSymbol[XL_PATH_MAX_LEN];
+		char sDescriptorSymbol[XL_PATH_MAX_LEN];
 
 		pModule = &pModuleResult->pModules[i];
 		if ( pModule->bIsRoot ) {
@@ -567,6 +757,9 @@ char* xlXlpDumpPackageJson(const XL_ModuleLinkResult* pModuleResult, const XL_Se
 			}
 		}
 		__xlXlpBuildModuleAbiId(sModulePackageAbiIdText, pModule->sKey, sModuleAbiId, sizeof(sModuleAbiId));
+		__xlXlpGetEffectiveModuleAbiSymbol(pModuleResult, pModule, pModule->sInitSymbol, "init", sInitSymbol, sizeof(sInitSymbol));
+		__xlXlpGetEffectiveModuleAbiSymbol(pModuleResult, pModule, pModule->sExportsSymbol, "exports", sExportsSymbol, sizeof(sExportsSymbol));
+		__xlXlpGetEffectiveModuleAbiSymbol(pModuleResult, pModule, pModule->sDescriptorSymbol, "descriptor", sDescriptorSymbol, sizeof(sDescriptorSymbol));
 		__xlXlpBufAppend(&buf, "\t\t{\n");
 		__xlXlpBufAppend(&buf, "\t\t\t\"key\": \"");
 		__xlXlpAppendEscaped(&buf, pModule->sKey);
@@ -606,6 +799,15 @@ char* xlXlpDumpPackageJson(const XL_ModuleLinkResult* pModuleResult, const XL_Se
 		__xlXlpBufAppend(&buf, "\t\t\t\"consumeMode\": \"");
 		__xlXlpAppendEscaped(&buf, pModule->sConsumeMode);
 		__xlXlpBufAppend(&buf, "\",\n");
+		__xlXlpBufAppend(&buf, "\t\t\t\"initSymbol\": \"");
+		__xlXlpAppendEscaped(&buf, sInitSymbol);
+		__xlXlpBufAppend(&buf, "\",\n");
+		__xlXlpBufAppend(&buf, "\t\t\t\"exportsSymbol\": \"");
+		__xlXlpAppendEscaped(&buf, sExportsSymbol);
+		__xlXlpBufAppend(&buf, "\",\n");
+		__xlXlpBufAppend(&buf, "\t\t\t\"descriptorSymbol\": \"");
+		__xlXlpAppendEscaped(&buf, sDescriptorSymbol);
+		__xlXlpBufAppend(&buf, "\",\n");
 		__xlXlpBufAppend(&buf, "\t\t\t\"imports\": [");
 		for ( j = 0; j < pModule->iImportCount; ++j ) {
 			if ( j != 0 ) {
@@ -622,14 +824,24 @@ char* xlXlpDumpPackageJson(const XL_ModuleLinkResult* pModuleResult, const XL_Se
 		}
 		for ( j = 0; j < pModule->iExportCount; ++j ) {
 			size_t iMatchCount;
+			char sExportAbiId[XL_PATH_MAX_LEN];
+			char sVersionedSymbol[XL_PATH_MAX_LEN];
 
 			iMatchCount = __xlXlpCountExportFuncs(pSemResult, pModule->pExports[j].sSymbol);
+			__xlXlpBuildExportAbiId(sModuleAbiId, pModule->pExports[j].sName, sExportAbiId, sizeof(sExportAbiId));
+			__xlXlpBuildExportVersionedSymbol(sModuleAbiId, pModule->pExports[j].sSymbol, sVersionedSymbol, sizeof(sVersionedSymbol));
 			__xlXlpBufAppend(&buf, "\t\t\t\t{\n");
 			__xlXlpBufAppend(&buf, "\t\t\t\t\t\"name\": \"");
 			__xlXlpAppendEscaped(&buf, pModule->pExports[j].sName);
 			__xlXlpBufAppend(&buf, "\",\n");
 			__xlXlpBufAppend(&buf, "\t\t\t\t\t\"symbol\": \"");
 			__xlXlpAppendEscaped(&buf, pModule->pExports[j].sSymbol);
+			__xlXlpBufAppend(&buf, "\",\n");
+			__xlXlpBufAppend(&buf, "\t\t\t\t\t\"abiId\": \"");
+			__xlXlpAppendEscaped(&buf, sExportAbiId);
+			__xlXlpBufAppend(&buf, "\",\n");
+			__xlXlpBufAppend(&buf, "\t\t\t\t\t\"versionedSymbol\": \"");
+			__xlXlpAppendEscaped(&buf, sVersionedSymbol);
 			__xlXlpBufAppend(&buf, "\",\n");
 			__xlXlpBufAppendFormat(&buf, "\t\t\t\t\t\"kind\": \"%s\",\n", (iMatchCount != 0) ? "function" : "value");
 			__xlXlpBufAppendFormat(&buf, "\t\t\t\t\t\"overloadCount\": %llu\n", (unsigned long long)iMatchCount);
@@ -667,6 +879,8 @@ char* xlXlpDumpPackageJson(const XL_ModuleLinkResult* pModuleResult, const XL_Se
 				const char* sModulePackageAbiIdText;
 				char sModulePackageAbiFallback[XL_PATH_MAX_LEN];
 				char sModuleAbiId[XL_PATH_MAX_LEN];
+				char sLanguageAbiId[XL_PATH_MAX_LEN];
+				char sNativeAbiId[XL_PATH_MAX_LEN];
 
 				pFunc = xlFuncTableGet(&pSemResult->funcs, k);
 				if ( (pFunc == NULL) || (pFunc->sName == NULL) || (strcmp(pFunc->sName, pModule->pExports[j].sSymbol) != 0) ) {
@@ -681,6 +895,8 @@ char* xlXlpDumpPackageJson(const XL_ModuleLinkResult* pModuleResult, const XL_Se
 					sModulePackageAbiIdText = sPackageAbiId;
 				}
 				__xlXlpBuildModuleAbiId(sModulePackageAbiIdText, pModule->sKey, sModuleAbiId, sizeof(sModuleAbiId));
+				__xlXlpBuildFunctionLanguageAbiId(sModuleAbiId, pFunc->sSignatureId, pFunc->sLanguageAbi, sLanguageAbiId, sizeof(sLanguageAbiId));
+				__xlXlpBuildFunctionNativeAbiId(sModuleAbiId, pFunc->sAbiSymbol, pFunc->sNativeAbi, sNativeAbiId, sizeof(sNativeAbiId));
 
 				if ( bNeedModulePrefix ) {
 					__xlXlpBufAppend(&buf, "\n");
@@ -707,6 +923,18 @@ char* xlXlpDumpPackageJson(const XL_ModuleLinkResult* pModuleResult, const XL_Se
 				__xlXlpBufAppend(&buf, "\",\n");
 				__xlXlpBufAppend(&buf, "\t\t\t\"dispatchKey\": \"");
 				__xlXlpAppendEscaped(&buf, pFunc->sDispatchKey);
+				__xlXlpBufAppend(&buf, "\",\n");
+				__xlXlpBufAppend(&buf, "\t\t\t\"languageAbi\": \"");
+				__xlXlpAppendEscaped(&buf, pFunc->sLanguageAbi);
+				__xlXlpBufAppend(&buf, "\",\n");
+				__xlXlpBufAppend(&buf, "\t\t\t\"nativeAbi\": \"");
+				__xlXlpAppendEscaped(&buf, pFunc->sNativeAbi);
+				__xlXlpBufAppend(&buf, "\",\n");
+				__xlXlpBufAppend(&buf, "\t\t\t\"languageAbiId\": \"");
+				__xlXlpAppendEscaped(&buf, sLanguageAbiId);
+				__xlXlpBufAppend(&buf, "\",\n");
+				__xlXlpBufAppend(&buf, "\t\t\t\"nativeAbiId\": \"");
+				__xlXlpAppendEscaped(&buf, sNativeAbiId);
 				__xlXlpBufAppend(&buf, "\",\n");
 				__xlXlpBufAppend(&buf, "\t\t\t\"abiSymbol\": \"");
 				__xlXlpAppendEscaped(&buf, pFunc->sAbiSymbol);

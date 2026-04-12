@@ -3,9 +3,19 @@ ModuleLoadOrder
 - [1] <root> -> D:\Git\x-lang\demo5\examples\xlp_native\use_pkg_probe.xl native=0 binding=
 ModuleExports
 - module=pkg.probe
+  abi init=xl_mod_pkg_probe__init exports=xl_mod_pkg_probe__exports descriptor=xl_mod_pkg_probe__descriptor
   export probe -> xl_mod_pkg_probe_1_0_0_abi1__pkg_probe__probe
   export add_one -> xl_mod_pkg_probe_1_0_0_abi1__pkg_probe__add_one
+  export text -> xl_mod_pkg_probe_1_0_0_abi1__pkg_probe__text
+  export text_len -> xl_mod_pkg_probe_1_0_0_abi1__pkg_probe__text_len
+  export touch -> xl_mod_pkg_probe_1_0_0_abi1__pkg_probe__touch
+  export text_plus_len -> xl_mod_pkg_probe_1_0_0_abi1__pkg_probe__text_plus_len
+  export is_probe_text -> xl_mod_pkg_probe_1_0_0_abi1__pkg_probe__is_probe_text
+  export bool_score -> xl_mod_pkg_probe_1_0_0_abi1__pkg_probe__bool_score
+  export float_value -> xl_mod_pkg_probe_1_0_0_abi1__pkg_probe__float_value
+  export add_half -> xl_mod_pkg_probe_1_0_0_abi1__pkg_probe__add_half
 - module=<root>
+  abi init=xl_mod__root___init exports=xl_mod__root___exports descriptor=xl_mod__root___descriptor
 NativeRegistry
 - key=std.core binding=std.core path=<native:std.core>
 - key=std.dir binding=std.dir path=<native:std.dir>
@@ -20,6 +30,9 @@ NativeRegistry
 - key=std.str binding=std.str path=<native:std.str>
 - key=std.time binding=std.time path=<native:std.time>
 - key=std.task binding=std.task path=<native:std.task>
+[runtime] prefer fallback executable
+
+[fallback.build]
 tcc_root=D:\Git\x-lang\demo5\release\tcc
 include=D:\Git\x-lang\demo5\release\tcc\include_win
 include=D:\Git\x-lang\demo5\release\tcc\include_win\winapi
@@ -27,15 +40,26 @@ include=D:\Git\x-lang\demo5\src\runtime
 include=D:\Git\x-lang\demo5\lib\xrt
 lib=D:\Git\x-lang\demo5\release\tcc\lib
 compile_text=examples\xlp_native\use_pkg_probe.xl
-cwd.prev=D:\Git\x-lang\demo5
-cwd.exec=D:\Git\x-lang\demo5
+output=D:\Git\x-lang\demo5\release\tmp\use_pkg_probe.078f852a_0000af04_0001.fallback.exe
+output_kind=exe
+support_source=D:\Git\x-lang\demo5\src\runtime\xlrt_host.c
+support_source=D:\Git\x-lang\demo5\src\runtime\xlrt_generated.c
+support_source=D:\Git\x-lang\demo5\src\host\xl_host_runtime.c
+link_lib=shell32
+link_lib=ws2_32
+link_lib=iphlpapi
 artifact.shared.load=D:\Git\x-lang\demo5\examples\xlp_native\packages\pkg.probe\bin\pkg_probe.dll
 artifact.shared.ready=D:\Git\x-lang\demo5\examples\xlp_native\packages\pkg.probe\bin\pkg_probe.dll
 artifact.shared.symbol=pkg_clock_artifact_probe
 artifact.shared.symbol=pkg_clock_artifact_add_one
-relocate
-resolve_symbol=xl_generated_entry
-execute
-exit_code=123
+artifact.shared.symbol=pkg_clock_artifact_text
+artifact.shared.symbol=pkg_clock_artifact_text_len
+artifact.shared.symbol=pkg_clock_artifact_touch
+artifact.shared.symbol=pkg_clock_artifact_text_plus_len
+artifact.shared.symbol=pkg_clock_artifact_is_probe_text
+artifact.shared.symbol=pkg_clock_artifact_bool_score
+artifact.shared.symbol=pkg_clock_artifact_float_value
+artifact.shared.symbol=pkg_clock_artifact_add_half
 artifact.shared.unload=D:\Git\x-lang\demo5\examples\xlp_native\packages\pkg.probe\bin\pkg_probe.dll
-cwd.restore=D:\Git\x-lang\demo5
+
+[fallback.exec]

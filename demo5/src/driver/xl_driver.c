@@ -801,12 +801,12 @@ static int __xlDriverRunLower(
 
 		__xlBuildDumpPath(sDefaultPath, sizeof(sDefaultPath), "lower", pOpts->sInputFile, ".sm.txt");
 		if ( xlDumpWriteText(pDump, sDefaultPath, sSmText) != XL_RC_OK ) {
-			XL_DIAG_WARN(pDiag, "lower", "failed to write async state-machine dump: %s", sDefaultPath);
+			XL_DIAG_WARN(pDiag, "lower", "failed to write state-machine dump: %s", sDefaultPath);
 		}
 
 		__xlBuildDumpPath(sDefaultPath, sizeof(sDefaultPath), "lower", pOpts->sInputFile, ".sm.json");
 		if ( xlDumpWriteText(pDump, sDefaultPath, sSmJson) != XL_RC_OK ) {
-			XL_DIAG_WARN(pDiag, "lower", "failed to write async state-machine json dump: %s", sDefaultPath);
+			XL_DIAG_WARN(pDiag, "lower", "failed to write state-machine json dump: %s", sDefaultPath);
 		}
 
 		__xlBuildDumpPath(sDefaultPath, sizeof(sDefaultPath), "lower", pOpts->sInputFile, ".modules.txt");
@@ -872,7 +872,7 @@ static int __xlDriverRunCgen(
 		goto cleanup;
 	}
 
-	iRc = xlCgenMir(lowerResult.pMirRoot, pDiag, &sCode);
+	iRc = xlCgenMir(lowerResult.pMirRoot, &moduleResult, pDiag, &sCode);
 	if ( iRc != XL_RC_OK ) {
 		goto cleanup;
 	}
@@ -977,7 +977,7 @@ static int __xlDriverRunProgram(
 		goto cleanup;
 	}
 
-	iRc = xlCgenMir(lowerResult.pMirRoot, pDiag, &sCode);
+	iRc = xlCgenMir(lowerResult.pMirRoot, &moduleResult, pDiag, &sCode);
 	if ( iRc != XL_RC_OK ) {
 		goto cleanup;
 	}
@@ -1142,7 +1142,7 @@ static int __xlDriverBuildProgram(
 	if ( iRc != XL_RC_OK ) goto cleanup;
 	iRc = xlLowerAst(moduleResult.pLinkedRoot, &semResult, pDiag, pOpts->bTraceLower ? 1 : 0, &lowerResult);
 	if ( iRc != XL_RC_OK ) goto cleanup;
-	iRc = xlCgenMir(lowerResult.pMirRoot, pDiag, &sCode);
+	iRc = xlCgenMir(lowerResult.pMirRoot, &moduleResult, pDiag, &sCode);
 	if ( iRc != XL_RC_OK ) goto cleanup;
 	if ( __xlAddModuleArtifactsToHostCtx(&hostCtx, &moduleResult) != XL_RC_OK ) {
 		XL_DIAG_ERROR(pDiag, "build", "failed to collect module artifacts");

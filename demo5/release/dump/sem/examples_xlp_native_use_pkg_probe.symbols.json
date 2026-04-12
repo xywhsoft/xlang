@@ -1,0 +1,332 @@
+[
+	{
+		"kind": "func",
+		"scopeId": 0,
+		"name": "xl_mod_pkg_probe_1_0_0_abi1__pkg_probe____xlp_extern__pkg_probe__0",
+		"typeName": "int",
+		"line": 1,
+		"column": 6,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "func",
+		"scopeId": 0,
+		"name": "xl_mod_pkg_probe_1_0_0_abi1__pkg_probe__probe",
+		"typeName": "int",
+		"line": 3,
+		"column": 6,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "func",
+		"scopeId": 0,
+		"name": "xl_mod_pkg_probe_1_0_0_abi1__pkg_probe____xlp_extern__pkg_probe__1",
+		"typeName": "int",
+		"line": 7,
+		"column": 6,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "func",
+		"scopeId": 0,
+		"name": "xl_mod_pkg_probe_1_0_0_abi1__pkg_probe__add_one",
+		"typeName": "int",
+		"line": 9,
+		"column": 6,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "func",
+		"scopeId": 0,
+		"name": "xl_mod_pkg_probe_1_0_0_abi1__pkg_probe____xlp_extern__pkg_probe__2",
+		"typeName": "string",
+		"line": 13,
+		"column": 6,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "func",
+		"scopeId": 0,
+		"name": "xl_mod_pkg_probe_1_0_0_abi1__pkg_probe__text",
+		"typeName": "string",
+		"line": 15,
+		"column": 6,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "func",
+		"scopeId": 0,
+		"name": "xl_mod_pkg_probe_1_0_0_abi1__pkg_probe____xlp_extern__pkg_probe__3",
+		"typeName": "int",
+		"line": 19,
+		"column": 6,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "func",
+		"scopeId": 0,
+		"name": "xl_mod_pkg_probe_1_0_0_abi1__pkg_probe__text_len",
+		"typeName": "int",
+		"line": 21,
+		"column": 6,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "func",
+		"scopeId": 0,
+		"name": "xl_mod_pkg_probe_1_0_0_abi1__pkg_probe____xlp_extern__pkg_probe__4",
+		"typeName": "void",
+		"line": 25,
+		"column": 6,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "func",
+		"scopeId": 0,
+		"name": "xl_mod_pkg_probe_1_0_0_abi1__pkg_probe__touch",
+		"typeName": "void",
+		"line": 27,
+		"column": 6,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "func",
+		"scopeId": 0,
+		"name": "xl_mod_pkg_probe_1_0_0_abi1__pkg_probe____xlp_extern__pkg_probe__5",
+		"typeName": "int",
+		"line": 31,
+		"column": 6,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "func",
+		"scopeId": 0,
+		"name": "xl_mod_pkg_probe_1_0_0_abi1__pkg_probe__text_plus_len",
+		"typeName": "int",
+		"line": 33,
+		"column": 6,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "func",
+		"scopeId": 0,
+		"name": "xl_mod_pkg_probe_1_0_0_abi1__pkg_probe____xlp_extern__pkg_probe__6",
+		"typeName": "bool",
+		"line": 37,
+		"column": 6,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "func",
+		"scopeId": 0,
+		"name": "xl_mod_pkg_probe_1_0_0_abi1__pkg_probe__is_probe_text",
+		"typeName": "bool",
+		"line": 39,
+		"column": 6,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "func",
+		"scopeId": 0,
+		"name": "xl_mod_pkg_probe_1_0_0_abi1__pkg_probe____xlp_extern__pkg_probe__7",
+		"typeName": "int",
+		"line": 43,
+		"column": 6,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "func",
+		"scopeId": 0,
+		"name": "xl_mod_pkg_probe_1_0_0_abi1__pkg_probe__bool_score",
+		"typeName": "int",
+		"line": 45,
+		"column": 6,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "func",
+		"scopeId": 0,
+		"name": "xl_mod_pkg_probe_1_0_0_abi1__pkg_probe____xlp_extern__pkg_probe__8",
+		"typeName": "float",
+		"line": 49,
+		"column": 6,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "func",
+		"scopeId": 0,
+		"name": "xl_mod_pkg_probe_1_0_0_abi1__pkg_probe__float_value",
+		"typeName": "float",
+		"line": 51,
+		"column": 6,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "func",
+		"scopeId": 0,
+		"name": "xl_mod_pkg_probe_1_0_0_abi1__pkg_probe____xlp_extern__pkg_probe__9",
+		"typeName": "float",
+		"line": 55,
+		"column": 6,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "func",
+		"scopeId": 0,
+		"name": "xl_mod_pkg_probe_1_0_0_abi1__pkg_probe__add_half",
+		"typeName": "float",
+		"line": 57,
+		"column": 6,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "func",
+		"scopeId": 0,
+		"name": "main",
+		"typeName": "int",
+		"line": 3,
+		"column": 6,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "param",
+		"scopeId": 5,
+		"name": "value",
+		"typeName": "int",
+		"line": 7,
+		"column": 37,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "param",
+		"scopeId": 7,
+		"name": "value",
+		"typeName": "int",
+		"line": 9,
+		"column": 18,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "param",
+		"scopeId": 13,
+		"name": "value",
+		"typeName": "string",
+		"line": 19,
+		"column": 40,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "param",
+		"scopeId": 15,
+		"name": "value",
+		"typeName": "string",
+		"line": 21,
+		"column": 22,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "param",
+		"scopeId": 21,
+		"name": "value",
+		"typeName": "string",
+		"line": 31,
+		"column": 40,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "param",
+		"scopeId": 21,
+		"name": "extra",
+		"typeName": "int",
+		"line": 31,
+		"column": 51,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "param",
+		"scopeId": 23,
+		"name": "value",
+		"typeName": "string",
+		"line": 33,
+		"column": 27,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "param",
+		"scopeId": 23,
+		"name": "extra",
+		"typeName": "int",
+		"line": 33,
+		"column": 38,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "param",
+		"scopeId": 29,
+		"name": "flag",
+		"typeName": "bool",
+		"line": 43,
+		"column": 38,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "param",
+		"scopeId": 31,
+		"name": "flag",
+		"typeName": "bool",
+		"line": 45,
+		"column": 22,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "param",
+		"scopeId": 37,
+		"name": "value",
+		"typeName": "float",
+		"line": 55,
+		"column": 39,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "param",
+		"scopeId": 39,
+		"name": "value",
+		"typeName": "float",
+		"line": 57,
+		"column": 21,
+		"async": 0,
+		"generator": 0
+	}
+]

@@ -1,0 +1,50 @@
+ModuleLoadOrder
+- [0] <root> -> D:\Git\x-lang\demo5\examples\full\function_value_basic.xl native=0 binding=
+ModuleExports
+- module=<root>
+  abi init=xl_mod__root___init exports=xl_mod__root___exports descriptor=xl_mod__root___descriptor
+NativeRegistry
+- key=std.core binding=std.core path=<native:std.core>
+- key=std.dir binding=std.dir path=<native:std.dir>
+- key=std.env binding=std.env path=<native:std.env>
+- key=std.fmt binding=std.fmt path=<native:std.fmt>
+- key=std.fs binding=std.fs path=<native:std.fs>
+- key=std.host binding=std.host path=<native:std.host>
+- key=std.io binding=std.io path=<native:std.io>
+- key=std.path binding=std.path path=<native:std.path>
+- key=std.rand binding=std.rand path=<native:std.rand>
+- key=std.process binding=std.process path=<native:std.process>
+- key=std.str binding=std.str path=<native:std.str>
+- key=std.time binding=std.time path=<native:std.time>
+- key=std.task binding=std.task path=<native:std.task>
+tcc_root=D:\Git\x-lang\demo5\release\tcc
+include=D:\Git\x-lang\demo5\release\tcc\include_win
+include=D:\Git\x-lang\demo5\release\tcc\include_win\winapi
+include=D:\Git\x-lang\demo5\src\runtime
+include=D:\Git\x-lang\demo5\lib\xrt
+lib=D:\Git\x-lang\demo5\release\tcc\lib
+compile_text=demo5\examples\full\function_value_basic.xl
+cwd.prev=D:\Git\x-lang
+cwd.exec=D:\Git\x-lang\demo5
+relocate
+[tcc] tcc: error: undefined symbol 'xvoCreateFunc'
+cwd.restore=D:\Git\x-lang
+
+[fallback.build]
+tcc_root=D:\Git\x-lang\demo5\release\tcc
+include=D:\Git\x-lang\demo5\release\tcc\include_win
+include=D:\Git\x-lang\demo5\release\tcc\include_win\winapi
+include=D:\Git\x-lang\demo5\src\runtime
+include=D:\Git\x-lang\demo5\lib\xrt
+lib=D:\Git\x-lang\demo5\release\tcc\lib
+compile_text=demo5\examples\full\function_value_basic.xl
+output=D:\Git\x-lang\demo5\release\tmp\function_value_basic.06b46da3_00009888_0001.fallback.exe
+output_kind=exe
+support_source=D:\Git\x-lang\demo5\src\runtime\xlrt_host.c
+support_source=D:\Git\x-lang\demo5\src\runtime\xlrt_generated.c
+support_source=D:\Git\x-lang\demo5\src\host\xl_host_runtime.c
+link_lib=shell32
+link_lib=ws2_32
+link_lib=iphlpapi
+
+[fallback.exec]

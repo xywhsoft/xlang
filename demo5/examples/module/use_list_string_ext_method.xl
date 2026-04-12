@@ -1,0 +1,14 @@
+import list_string_ext_method
+
+func main() as int
+	auto items = list{"A", "B"}
+	var dyn = list{"X", "Y"}
+
+	if items.wrap_join("[", "|", "]") != "[A|B]" then
+		return 1
+	end
+	if dyn.wrap_join("<", ",", ">") != "<X,Y>" then
+		return 2
+	end
+	return 79
+end

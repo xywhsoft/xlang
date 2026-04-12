@@ -12,8 +12,8 @@ async func slow_sub() as int
 	return 3
 end
 
-func main() as int
-	const int winner = task.race(task.spawn(slow_add()), task.all(task.spawn(slow_mul()), task.spawn(slow_sub())))
+async func main() as int
+	const int winner = await task.race(task.spawn(slow_add()), task.all(task.spawn(slow_mul()), task.spawn(slow_sub())))
 	const int canceled = task.cancel(task.spawn(slow_mul()))
 	return winner + canceled
 end

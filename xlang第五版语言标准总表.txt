@@ -318,8 +318,8 @@ xlang 第五版语言标准总表
 - generator 可被 for in 遍历
 
 4. 限制
-- 首版不支持 async generator
-- 首版不支持 yield 作为表达式值
+- 首版支持 async generator 的 stage 1 最小版
+- 首版支持 yield 作为表达式值；stage 1 恢复值类型按 var 处理
 
 5. generator 机制
 - generator lowering 为状态机

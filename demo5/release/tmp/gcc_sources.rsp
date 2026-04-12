@@ -32,6 +32,7 @@ D:/git/x-lang/demo5/src/parser/xl_parser.c
 D:/git/x-lang/demo5/src/parser/xl_parser_api.c
 D:/git/x-lang/demo5/src/runtime/xlrt_generated.c
 D:/git/x-lang/demo5/src/runtime/xlrt_host.c
+D:/git/x-lang/demo5/src/runtime/xl_channel_runtime.c
 D:/git/x-lang/demo5/src/runtime/xl_exec_ctx.c
 D:/git/x-lang/demo5/src/runtime/xl_native_registry.c
 D:/git/x-lang/demo5/src/runtime/xl_std_core.c

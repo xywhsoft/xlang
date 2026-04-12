@@ -1,0 +1,22 @@
+[
+	{
+		"kind": "func",
+		"scopeId": 0,
+		"name": "get_value",
+		"typeName": "int",
+		"line": 1,
+		"column": 12,
+		"async": 1,
+		"generator": 0
+	},
+	{
+		"kind": "func",
+		"scopeId": 0,
+		"name": "entry_async",
+		"typeName": "int",
+		"line": 5,
+		"column": 12,
+		"async": 1,
+		"generator": 0
+	}
+]

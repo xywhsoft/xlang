@@ -47,6 +47,10 @@ extern int xl_array_remove(xvalue value, int index);
 extern int xl_list_remove(xvalue value, int index);
 extern int xl_set_remove(xvalue value, xvalue item);
 extern int xl_dict_remove(xvalue value, const char* key);
+extern xvalue xl_channel_create(int iCapacity);
+extern int xl_channel_send(xvalue value, xvalue item);
+extern xvalue xl_channel_recv(xvalue value);
+extern int xl_channel_close(xvalue value);
 
 extern xtime xl_time_now(void);
 extern const char* xl_time_to_string(xtime value);

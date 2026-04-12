@@ -1,0 +1,16 @@
+async func main() as int
+	auto ch = channel(2)
+	bool sent0 = ch.send(10)
+	bool sent1 = ch.send(20)
+	bool closed = ch.close()
+	auto ok0, first = await ch.recv()
+	auto _, second = await ch.recv()
+	auto ok2, _ = await ch.recv()
+	if not sent0 or not sent1 or not closed
+		return 1
+	end
+	if not ok0 or ok2
+		return 2
+	end
+	return int(first) + int(second)
+end

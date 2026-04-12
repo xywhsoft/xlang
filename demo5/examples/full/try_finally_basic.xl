@@ -1,11 +1,11 @@
 import std.fs
 
 func 入口() as int
-	fs.mkdir_all("release\\tmp\\try_finally_basic")
+	fs.mkdir_all("release\\tmp\\try_finally_basic_out")
 	try
-		fs.write_all("release\\tmp\\try_finally_basic\\note.txt", "body")
+		fs.write_all("release\\tmp\\try_finally_basic_out\\note.txt", "body")
 	finally
-		fs.append_all("release\\tmp\\try_finally_basic\\note.txt", "|finally")
+		fs.append_all("release\\tmp\\try_finally_basic_out\\note.txt", "|finally")
 	end
 	return 0
 end

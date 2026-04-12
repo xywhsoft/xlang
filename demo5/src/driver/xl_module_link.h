@@ -14,6 +14,9 @@ typedef struct XL_ModuleSummary {
 	char* sKey;
 	char* sFilePath;
 	char* sBindingName;
+	char* sInitSymbol;
+	char* sExportsSymbol;
+	char* sDescriptorSymbol;
 	char* sManifestPath;
 	char* sPackageName;
 	char* sPackageVersion;

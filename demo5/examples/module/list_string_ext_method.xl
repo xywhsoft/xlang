@@ -1,0 +1,3 @@
+export func list<string>.wrap_join(list<string> self, string left, string sep, string right) as string
+	return left + self.join(sep) + right
+end

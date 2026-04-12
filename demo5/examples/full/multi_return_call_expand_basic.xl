@@ -1,0 +1,14 @@
+func pair() as int, string
+	return 40, "2"
+end
+
+func join(int left, string right) as int
+	if right == "2"
+		return left + 2
+	end
+	return 0
+end
+
+func main() as int
+	return join(pair())
+end

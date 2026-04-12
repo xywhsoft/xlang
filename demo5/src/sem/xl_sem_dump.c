@@ -216,6 +216,18 @@ static void __xlSemDumpFuncsJsonTo(const XL_SemResult* pResult, XL_SemTextBuffer
 		for ( j = 0; j < (size_t)(iIndent + 2); ++j ) {
 			__xlSemBufAppend(pBuf, "\t");
 		}
+		__xlSemBufAppend(pBuf, "\"languageAbi\": \"");
+		__xlSemAppendEscaped(pBuf, pFunc->sLanguageAbi);
+		__xlSemBufAppend(pBuf, "\",\n");
+		for ( j = 0; j < (size_t)(iIndent + 2); ++j ) {
+			__xlSemBufAppend(pBuf, "\t");
+		}
+		__xlSemBufAppend(pBuf, "\"nativeAbi\": \"");
+		__xlSemAppendEscaped(pBuf, pFunc->sNativeAbi);
+		__xlSemBufAppend(pBuf, "\",\n");
+		for ( j = 0; j < (size_t)(iIndent + 2); ++j ) {
+			__xlSemBufAppend(pBuf, "\t");
+		}
 		__xlSemBufAppend(pBuf, "\"returnType\": \"");
 		__xlSemAppendEscaped(pBuf, pFunc->sReturnTypeName);
 		__xlSemBufAppend(pBuf, "\",\n");

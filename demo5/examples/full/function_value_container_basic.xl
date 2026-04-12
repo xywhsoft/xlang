@@ -1,0 +1,15 @@
+func add(int a, int b) as int
+	return a + b
+end
+
+func sub(int a, int b) as int
+	return a - b
+end
+
+func main() as int
+	auto arr = [add, sub]
+	auto named = {"sum": add, "sub": sub}
+	var dyn_arr = [add, sub]
+	var dyn_dict = {"sum": add, "sub": sub}
+	return arr[0](20, 20) + named["sum"](1, 1) + dyn_arr[0](0, 0) + dyn_dict["sub"](1, 1)
+end

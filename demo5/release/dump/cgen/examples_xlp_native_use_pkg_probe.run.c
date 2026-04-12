@@ -3,8 +3,15 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
+#include <math.h>
 #include "xrt.h"
 #include "xlrt_generated.h"
+
+#ifndef XL_GENERATED_XVO_TYPE_LOCAL
+#define XL_GENERATED_XVO_TYPE_LOCAL 1
+#define xvoType(value) (((value) == NULL) ? XVO_DT_NULL : ((value)->Type))
+#define xvoTypeName(kind) ((str)(((kind) == XVO_DT_NULL) ? "null" : ((kind) == XVO_DT_BOOL) ? "bool" : ((kind) == XVO_DT_INT) ? "int" : ((kind) == XVO_DT_FLOAT) ? "float" : ((kind) == XVO_DT_TEXT) ? "string" : ((kind) == XVO_DT_TIME) ? "time" : ((kind) == XVO_DT_POINT) ? "point" : ((kind) == XVO_DT_FUNC) ? "function" : ((kind) == XVO_DT_ARRAY) ? "array" : ((kind) == XVO_DT_LIST) ? "list" : ((kind) == XVO_DT_COLL) ? "set" : ((kind) == XVO_DT_TABLE) ? "dict" : ((kind) == XVO_DT_CLASS) ? "class" : ((kind) == XVO_DT_CUSTOM) ? "custom" : "unknown"))
+#endif
 
 typedef struct XL_GeneratedError XL_GeneratedError;
 struct XL_GeneratedError {
@@ -303,6 +310,30 @@ static const char* xl_generated_copy_text(const char* sText)
 	return (sCopy != NULL) ? sCopy : sValue;
 }
 
+static const char* xl_generated_type_of_value(xvalue value)
+{
+	if ( value == NULL ) {
+		return "null";
+	}
+	switch ( value->Type ) {
+		case XVO_DT_NULL: return "null";
+		case XVO_DT_BOOL: return "bool";
+		case XVO_DT_INT: return "int";
+		case XVO_DT_FLOAT: return "float";
+		case XVO_DT_TEXT: return "string";
+		case XVO_DT_TIME: return "time";
+		case XVO_DT_POINT: return "point";
+		case XVO_DT_FUNC: return "function";
+		case XVO_DT_ARRAY: return "array";
+		case XVO_DT_LIST: return "list";
+		case XVO_DT_COLL: return "set";
+		case XVO_DT_TABLE: return "dict";
+		case XVO_DT_CLASS: return "class";
+		case XVO_DT_CUSTOM: return "custom";
+		default: return "unknown";
+	}
+}
+
 static int xl_generated_capture_native_error(void)
 {
 	if ( !xlrt_native_error_has() ) {
@@ -448,6 +479,157 @@ static int xl_generated_text_equal(const char* left, const char* right)
 	return strcmp(left, right) == 0;
 }
 
+static int xl_generated_number_approx(double left, double right)
+{
+	double diff = fabs(left - right);
+	double scale = fmax(fabs(left), fabs(right));
+	if ( scale < 1.0 ) {
+		scale = 1.0;
+	}
+	return diff <= (0.000001 * scale);
+}
+
+static int xl_generated_time_approx(xtime left, xtime right)
+{
+	xtime diff = left - right;
+	if ( diff < 0 ) {
+		diff = -diff;
+	}
+	return diff <= 1;
+}
+
+static int xl_generated_text_has_wildcard(const char* value)
+{
+	size_t i;
+	if ( value == NULL ) {
+		return 0;
+	}
+	for ( i = 0; value[i] != '\0'; ++i ) {
+		if ( (value[i] == '*') || (value[i] == '?') ) {
+			return 1;
+		}
+	}
+	return 0;
+}
+
+static int xl_generated_text_pattern_match(const char* value, const char* pattern)
+{
+	if ( value == NULL ) {
+		value = "";
+	}
+	if ( pattern == NULL ) {
+		pattern = "";
+	}
+	while ( *pattern != '\0' ) {
+		if ( *pattern == '*' ) {
+			while ( *pattern == '*' ) {
+				++pattern;
+			}
+			if ( *pattern == '\0' ) {
+				return 1;
+			}
+			while ( *value != '\0' ) {
+				if ( xl_generated_text_pattern_match(value, pattern) ) {
+					return 1;
+				}
+				++value;
+			}
+			return 0;
+		}
+		if ( *value == '\0' ) {
+			return 0;
+		}
+		if ( (*pattern != '?') && (*pattern != *value) ) {
+			return 0;
+		}
+		++pattern;
+		++value;
+	}
+	return *value == '\0';
+}
+
+static int xl_generated_text_approx(const char* left, const char* right)
+{
+	if ( left == NULL ) {
+		left = "";
+	}
+	if ( right == NULL ) {
+		right = "";
+	}
+	if ( xl_generated_text_pattern_match(left, right) ) {
+		return 1;
+	}
+	if ( xl_generated_text_has_wildcard(left) ) {
+		return xl_generated_text_pattern_match(right, left);
+	}
+	return 0;
+}
+
+static const char* xl_generated_null_assign_text(const char** pTarget, const char* value)
+{
+	if ( (pTarget != NULL) && (*pTarget == NULL) ) {
+		*pTarget = value;
+	}
+	return (pTarget != NULL) ? *pTarget : value;
+}
+
+static XL_GeneratedError* xl_generated_null_assign_error(XL_GeneratedError** pTarget, XL_GeneratedError* value)
+{
+	if ( (pTarget != NULL) && (*pTarget == NULL) ) {
+		*pTarget = value;
+	}
+	return (pTarget != NULL) ? *pTarget : value;
+}
+
+static int xl_generated_power_int(int base, int exponent)
+{
+	int result = 1;
+	int factor = base;
+	int power = exponent;
+	if ( power < 0 ) {
+		if ( base == 1 ) {
+			return 1;
+		}
+		if ( base == -1 ) {
+			return ((power & 1) == 0) ? 1 : -1;
+		}
+		return 0;
+	}
+	while ( power > 0 ) {
+		if ( (power & 1) != 0 ) {
+			result *= factor;
+		}
+		power >>= 1;
+		if ( power > 0 ) {
+			factor *= factor;
+		}
+	}
+	return result;
+}
+
+static double xl_generated_power_float(double base, double exponent)
+{
+	return pow(base, exponent);
+}
+
+static int xl_generated_power_assign_int(int* pTarget, int exponent)
+{
+	if ( pTarget == NULL ) {
+		return 0;
+	}
+	*pTarget = xl_generated_power_int(*pTarget, exponent);
+	return *pTarget;
+}
+
+static double xl_generated_power_assign_float(double* pTarget, double exponent)
+{
+	if ( pTarget == NULL ) {
+		return 0.0;
+	}
+	*pTarget = xl_generated_power_float(*pTarget, exponent);
+	return *pTarget;
+}
+
 typedef struct XL_FutureInt {
 	int status;
 	int value;
@@ -473,6 +655,42 @@ static XL_FutureInt xl_future_int_error(XL_GeneratedError* error)
 }
 
 static int xl_future_int_await(const char* sName, XL_FutureInt future)
+{
+	xl_generated_async_trace_event("await", (sName != NULL) ? sName : "");
+	if ( future.status != 0 ) {
+		xl_generated_raise_error((future.error != NULL) ? future.error : xl_generated_error_make("Error", "await failed", 0, "", ""));
+		xl_generated_async_trace_event("resume", (sName != NULL) ? sName : "");
+		return future.value;
+	}
+	xl_generated_async_trace_event("resume", (sName != NULL) ? sName : "");
+	return future.value;
+}
+
+typedef struct XL_FutureBool {
+	int status;
+	int value;
+	XL_GeneratedError* error;
+} XL_FutureBool;
+
+static XL_FutureBool xl_future_bool_ready(int value)
+{
+	XL_FutureBool future;
+	future.status = 0;
+	future.value = value;
+	future.error = NULL;
+	return future;
+}
+
+static XL_FutureBool xl_future_bool_error(XL_GeneratedError* error)
+{
+	XL_FutureBool future;
+	future.status = 1;
+	future.value = 0;
+	future.error = error;
+	return future;
+}
+
+static int xl_future_bool_await(const char* sName, XL_FutureBool future)
 {
 	xl_generated_async_trace_event("await", (sName != NULL) ? sName : "");
 	if ( future.status != 0 ) {
@@ -904,24 +1122,24 @@ static int xl_generator_ptr_next(const char* sName, XL_GeneratorPtr* pGen, void*
 	return 1;
 }
 
-static int xl_task_spawn_int(const char* sName, int value)
+static XL_FutureInt xl_task_spawn_int(const char* sName, int value)
 {
 	xl_generated_task_trace_event("spawn", (sName != NULL) ? sName : "");
-	return value;
+	return xl_future_int_ready(value);
 }
 
-static int xl_task_all_int(const char* sName, int left, int right)
+static XL_FutureInt xl_task_all_int(const char* sName, int left, int right)
 {
 	(void)left;
 	xl_generated_task_trace_event("all", (sName != NULL) ? sName : "");
-	return right;
+	return xl_future_int_ready(right);
 }
 
-static int xl_task_race_int(const char* sName, int left, int right)
+static XL_FutureInt xl_task_race_int(const char* sName, int left, int right)
 {
 	(void)right;
 	xl_generated_task_trace_event("race", (sName != NULL) ? sName : "");
-	return left;
+	return xl_future_int_ready(left);
 }
 
 static int xl_task_cancel_int(const char* sName, int value)
@@ -931,29 +1149,49 @@ static int xl_task_cancel_int(const char* sName, int value)
 	return 1;
 }
 
+static XL_FutureInt xl__xl_mod_std_task__spawn__arity1__value__int__ret__future_x3Cint_x3E(int value)
+{
+	return xl_task_spawn_int("xl_mod_std_task__spawn", value);
+}
+
+static XL_FutureInt xl__xl_mod_std_task__all__arity2__left__int__right__int__ret__future_x3Cint_x3E(int left, int right)
+{
+	return xl_task_all_int("xl_mod_std_task__all", left, right);
+}
+
+static XL_FutureInt xl__xl_mod_std_task__race__arity2__left__int__right__int__ret__future_x3Cint_x3E(int left, int right)
+{
+	return xl_task_race_int("xl_mod_std_task__race", left, right);
+}
+
+static int xl__xl_mod_std_task__cancel__arity1__value__int__ret__int(int value)
+{
+	return xl_task_cancel_int("xl_mod_std_task__cancel", value);
+}
+
 static int xl_task_default_int(void)
 {
 	return 0;
 }
 
-static double xl_task_spawn_float(const char* sName, double value)
+static XL_FutureFloat xl_task_spawn_float(const char* sName, double value)
 {
 	xl_generated_task_trace_event("spawn", (sName != NULL) ? sName : "");
-	return value;
+	return xl_future_float_ready(value);
 }
 
-static double xl_task_all_float(const char* sName, double left, double right)
+static XL_FutureFloat xl_task_all_float(const char* sName, double left, double right)
 {
 	(void)left;
 	xl_generated_task_trace_event("all", (sName != NULL) ? sName : "");
-	return right;
+	return xl_future_float_ready(right);
 }
 
-static double xl_task_race_float(const char* sName, double left, double right)
+static XL_FutureFloat xl_task_race_float(const char* sName, double left, double right)
 {
 	(void)right;
 	xl_generated_task_trace_event("race", (sName != NULL) ? sName : "");
-	return left;
+	return xl_future_float_ready(left);
 }
 
 static int xl_task_cancel_float(const char* sName, double value)
@@ -963,29 +1201,49 @@ static int xl_task_cancel_float(const char* sName, double value)
 	return 1;
 }
 
+static XL_FutureFloat xl__xl_mod_std_task__spawn__arity1__value__float__ret__future_x3Cfloat_x3E(double value)
+{
+	return xl_task_spawn_float("xl_mod_std_task__spawn", value);
+}
+
+static XL_FutureFloat xl__xl_mod_std_task__all__arity2__left__float__right__float__ret__future_x3Cfloat_x3E(double left, double right)
+{
+	return xl_task_all_float("xl_mod_std_task__all", left, right);
+}
+
+static XL_FutureFloat xl__xl_mod_std_task__race__arity2__left__float__right__float__ret__future_x3Cfloat_x3E(double left, double right)
+{
+	return xl_task_race_float("xl_mod_std_task__race", left, right);
+}
+
+static int xl__xl_mod_std_task__cancel__arity1__value__float__ret__int(double value)
+{
+	return xl_task_cancel_float("xl_mod_std_task__cancel", value);
+}
+
 static double xl_task_default_float(void)
 {
 	return 0.0;
 }
 
-static const char* xl_task_spawn_string(const char* sName, const char* value)
+static XL_FutureString xl_task_spawn_string(const char* sName, const char* value)
 {
 	xl_generated_task_trace_event("spawn", (sName != NULL) ? sName : "");
-	return value;
+	return xl_future_string_ready(value);
 }
 
-static const char* xl_task_all_string(const char* sName, const char* left, const char* right)
+static XL_FutureString xl_task_all_string(const char* sName, const char* left, const char* right)
 {
 	(void)left;
 	xl_generated_task_trace_event("all", (sName != NULL) ? sName : "");
-	return right;
+	return xl_future_string_ready(right);
 }
 
-static const char* xl_task_race_string(const char* sName, const char* left, const char* right)
+static XL_FutureString xl_task_race_string(const char* sName, const char* left, const char* right)
 {
 	(void)right;
 	xl_generated_task_trace_event("race", (sName != NULL) ? sName : "");
-	return left;
+	return xl_future_string_ready(left);
 }
 
 static int xl_task_cancel_string(const char* sName, const char* value)
@@ -995,29 +1253,49 @@ static int xl_task_cancel_string(const char* sName, const char* value)
 	return 1;
 }
 
+static XL_FutureString xl__xl_mod_std_task__spawn__arity1__value__string__ret__future_x3Cstring_x3E(const char* value)
+{
+	return xl_task_spawn_string("xl_mod_std_task__spawn", value);
+}
+
+static XL_FutureString xl__xl_mod_std_task__all__arity2__left__string__right__string__ret__future_x3Cstring_x3E(const char* left, const char* right)
+{
+	return xl_task_all_string("xl_mod_std_task__all", left, right);
+}
+
+static XL_FutureString xl__xl_mod_std_task__race__arity2__left__string__right__string__ret__future_x3Cstring_x3E(const char* left, const char* right)
+{
+	return xl_task_race_string("xl_mod_std_task__race", left, right);
+}
+
+static int xl__xl_mod_std_task__cancel__arity1__value__string__ret__int(const char* value)
+{
+	return xl_task_cancel_string("xl_mod_std_task__cancel", value);
+}
+
 static const char* xl_task_default_string(void)
 {
 	return NULL;
 }
 
-static XL_GeneratedError* xl_task_spawn_error(const char* sName, XL_GeneratedError* value)
+static XL_FutureError xl_task_spawn_error(const char* sName, XL_GeneratedError* value)
 {
 	xl_generated_task_trace_event("spawn", (sName != NULL) ? sName : "");
-	return value;
+	return xl_future_error_ready(value);
 }
 
-static XL_GeneratedError* xl_task_all_error(const char* sName, XL_GeneratedError* left, XL_GeneratedError* right)
+static XL_FutureError xl_task_all_error(const char* sName, XL_GeneratedError* left, XL_GeneratedError* right)
 {
 	(void)left;
 	xl_generated_task_trace_event("all", (sName != NULL) ? sName : "");
-	return right;
+	return xl_future_error_ready(right);
 }
 
-static XL_GeneratedError* xl_task_race_error(const char* sName, XL_GeneratedError* left, XL_GeneratedError* right)
+static XL_FutureError xl_task_race_error(const char* sName, XL_GeneratedError* left, XL_GeneratedError* right)
 {
 	(void)right;
 	xl_generated_task_trace_event("race", (sName != NULL) ? sName : "");
-	return left;
+	return xl_future_error_ready(left);
 }
 
 static int xl_task_cancel_error(const char* sName, XL_GeneratedError* value)
@@ -1027,29 +1305,49 @@ static int xl_task_cancel_error(const char* sName, XL_GeneratedError* value)
 	return 1;
 }
 
+static XL_FutureError xl__xl_mod_std_task__spawn__arity1__value__error__ret__future_x3Cerror_x3E(XL_GeneratedError* value)
+{
+	return xl_task_spawn_error("xl_mod_std_task__spawn", value);
+}
+
+static XL_FutureError xl__xl_mod_std_task__all__arity2__left__error__right__error__ret__future_x3Cerror_x3E(XL_GeneratedError* left, XL_GeneratedError* right)
+{
+	return xl_task_all_error("xl_mod_std_task__all", left, right);
+}
+
+static XL_FutureError xl__xl_mod_std_task__race__arity2__left__error__right__error__ret__future_x3Cerror_x3E(XL_GeneratedError* left, XL_GeneratedError* right)
+{
+	return xl_task_race_error("xl_mod_std_task__race", left, right);
+}
+
+static int xl__xl_mod_std_task__cancel__arity1__value__error__ret__int(XL_GeneratedError* value)
+{
+	return xl_task_cancel_error("xl_mod_std_task__cancel", value);
+}
+
 static XL_GeneratedError* xl_task_default_error(void)
 {
 	return NULL;
 }
 
-static int xl_task_spawn_bool(const char* sName, int value)
+static XL_FutureBool xl_task_spawn_bool(const char* sName, int value)
 {
 	xl_generated_task_trace_event("spawn", (sName != NULL) ? sName : "");
-	return value;
+	return xl_future_bool_ready(value);
 }
 
-static int xl_task_all_bool(const char* sName, int left, int right)
+static XL_FutureBool xl_task_all_bool(const char* sName, int left, int right)
 {
 	(void)left;
 	xl_generated_task_trace_event("all", (sName != NULL) ? sName : "");
-	return right;
+	return xl_future_bool_ready(right);
 }
 
-static int xl_task_race_bool(const char* sName, int left, int right)
+static XL_FutureBool xl_task_race_bool(const char* sName, int left, int right)
 {
 	(void)right;
 	xl_generated_task_trace_event("race", (sName != NULL) ? sName : "");
-	return left;
+	return xl_future_bool_ready(left);
 }
 
 static int xl_task_cancel_bool(const char* sName, int value)
@@ -1059,9 +1357,40 @@ static int xl_task_cancel_bool(const char* sName, int value)
 	return 1;
 }
 
+static XL_FutureBool xl__xl_mod_std_task__spawn__arity1__value__bool__ret__future_x3Cbool_x3E(int value)
+{
+	return xl_task_spawn_bool("xl_mod_std_task__spawn", value);
+}
+
+static XL_FutureBool xl__xl_mod_std_task__all__arity2__left__bool__right__bool__ret__future_x3Cbool_x3E(int left, int right)
+{
+	return xl_task_all_bool("xl_mod_std_task__all", left, right);
+}
+
+static XL_FutureBool xl__xl_mod_std_task__race__arity2__left__bool__right__bool__ret__future_x3Cbool_x3E(int left, int right)
+{
+	return xl_task_race_bool("xl_mod_std_task__race", left, right);
+}
+
+static int xl__xl_mod_std_task__cancel__arity1__value__bool__ret__int(int value)
+{
+	return xl_task_cancel_bool("xl_mod_std_task__cancel", value);
+}
+
 static int xl_task_default_bool(void)
 {
 	return 0;
+}
+
+static XL_FutureInt xl_task_delay(const char* sName, int ms)
+{
+	xl_generated_task_trace_event("delay", (sName != NULL) ? sName : "");
+	return xl_future_int_ready(ms);
+}
+
+static XL_FutureInt xl__xl_mod_std_task__delay__arity1__ms__int__ret__future_x3Cint_x3E(int ms)
+{
+	return xl_task_delay("xl_mod_std_task__delay", ms);
 }
 
 typedef struct XL_FutureVoid {
@@ -1099,14 +1428,113 @@ static void xl_future_void_await(const char* sName, XL_FutureVoid future)
 	xl_generated_async_trace_event("resume", (sName != NULL) ? sName : "");
 }
 
+typedef struct XL_GeneratedModuleExport {
+	const char* name;
+	const char* symbol;
+} XL_GeneratedModuleExport;
+
+typedef struct XL_GeneratedModuleDescriptor {
+	const char* key;
+	const char* abiId;
+	const char* initSymbol;
+	const char* exportsSymbol;
+	const char* descriptorSymbol;
+	size_t exportCount;
+	const XL_GeneratedModuleExport* exports;
+} XL_GeneratedModuleDescriptor;
+
+static int xl_generated_module_init_done = 0;
+static void xl_generated_module_init(void)
+{
+	if ( xl_generated_module_init_done )
+	{
+		return;
+	}
+	xl_generated_module_init_done = 1;
+}
+
+const XL_GeneratedModuleExport xl_mod_pkg_probe__exports[] = {
+	{ "probe", "xl_mod_pkg_probe_1_0_0_abi1__pkg_probe__probe" },
+	{ "add_one", "xl_mod_pkg_probe_1_0_0_abi1__pkg_probe__add_one" },
+	{ "text", "xl_mod_pkg_probe_1_0_0_abi1__pkg_probe__text" },
+	{ "text_len", "xl_mod_pkg_probe_1_0_0_abi1__pkg_probe__text_len" },
+	{ "touch", "xl_mod_pkg_probe_1_0_0_abi1__pkg_probe__touch" },
+	{ "text_plus_len", "xl_mod_pkg_probe_1_0_0_abi1__pkg_probe__text_plus_len" },
+	{ "is_probe_text", "xl_mod_pkg_probe_1_0_0_abi1__pkg_probe__is_probe_text" },
+	{ "bool_score", "xl_mod_pkg_probe_1_0_0_abi1__pkg_probe__bool_score" },
+	{ "float_value", "xl_mod_pkg_probe_1_0_0_abi1__pkg_probe__float_value" },
+	{ "add_half", "xl_mod_pkg_probe_1_0_0_abi1__pkg_probe__add_half" }
+};
+void xl_mod_pkg_probe__init(void)
+{
+	xl_generated_module_init();
+}
+const XL_GeneratedModuleDescriptor xl_mod_pkg_probe__descriptor = {
+	"pkg.probe",
+	"pkg.probe@1.0.0#abi1::pkg.probe",
+	"xl_mod_pkg_probe__init",
+	"xl_mod_pkg_probe__exports",
+	"xl_mod_pkg_probe__descriptor",
+	10,
+	xl_mod_pkg_probe__exports
+};
+
+const XL_GeneratedModuleExport xl_mod__root___exports[] = {
+};
+void xl_mod__root___init(void)
+{
+	xl_generated_module_init();
+}
+const XL_GeneratedModuleDescriptor xl_mod__root___descriptor = {
+	"<root>",
+	"use_pkg_probe@0.0.0#abi1::<root>",
+	"xl_mod__root___init",
+	"xl_mod__root___exports",
+	"xl_mod__root___descriptor",
+	0,
+	xl_mod__root___exports
+};
+
+static xvalue xl__xl_mod_pkg_probe_1_0_0_abi1__pkg_probe____xlp_extern__pkg_probe__0__arity0__ret__int__boxed(xvalue varENV, xvalue arrParam);
+static xvalue xl__xl_mod_pkg_probe_1_0_0_abi1__pkg_probe__probe__arity0__ret__int__boxed(xvalue varENV, xvalue arrParam);
+static xvalue xl__xl_mod_pkg_probe_1_0_0_abi1__pkg_probe____xlp_extern__pkg_probe__1__arity1__value__int__ret__int__boxed(xvalue varENV, xvalue arrParam);
+static xvalue xl__xl_mod_pkg_probe_1_0_0_abi1__pkg_probe__add_one__arity1__value__int__ret__int__boxed(xvalue varENV, xvalue arrParam);
+static xvalue xl__xl_mod_pkg_probe_1_0_0_abi1__pkg_probe____xlp_extern__pkg_probe__2__arity0__ret__string__boxed(xvalue varENV, xvalue arrParam);
+static xvalue xl__xl_mod_pkg_probe_1_0_0_abi1__pkg_probe__text__arity0__ret__string__boxed(xvalue varENV, xvalue arrParam);
+static xvalue xl__xl_mod_pkg_probe_1_0_0_abi1__pkg_probe____xlp_extern__pkg_probe__3__arity1__value__string__ret__int__boxed(xvalue varENV, xvalue arrParam);
+static xvalue xl__xl_mod_pkg_probe_1_0_0_abi1__pkg_probe__text_len__arity1__value__string__ret__int__boxed(xvalue varENV, xvalue arrParam);
+static xvalue xl__xl_mod_pkg_probe_1_0_0_abi1__pkg_probe____xlp_extern__pkg_probe__4__arity0__ret__void__boxed(xvalue varENV, xvalue arrParam);
+static xvalue xl__xl_mod_pkg_probe_1_0_0_abi1__pkg_probe__touch__arity0__ret__void__boxed(xvalue varENV, xvalue arrParam);
+static xvalue xl__xl_mod_pkg_probe_1_0_0_abi1__pkg_probe____xlp_extern__pkg_probe__5__arity2__value__string__extra__int__ret__int__boxed(xvalue varENV, xvalue arrParam);
+static xvalue xl__xl_mod_pkg_probe_1_0_0_abi1__pkg_probe__text_plus_len__arity2__value__string__extra__int__ret__int__boxed(xvalue varENV, xvalue arrParam);
+static xvalue xl__xl_mod_pkg_probe_1_0_0_abi1__pkg_probe____xlp_extern__pkg_probe__6__arity0__ret__bool__boxed(xvalue varENV, xvalue arrParam);
+static xvalue xl__xl_mod_pkg_probe_1_0_0_abi1__pkg_probe__is_probe_text__arity0__ret__bool__boxed(xvalue varENV, xvalue arrParam);
+static xvalue xl__xl_mod_pkg_probe_1_0_0_abi1__pkg_probe____xlp_extern__pkg_probe__7__arity1__flag__bool__ret__int__boxed(xvalue varENV, xvalue arrParam);
+static xvalue xl__xl_mod_pkg_probe_1_0_0_abi1__pkg_probe__bool_score__arity1__flag__bool__ret__int__boxed(xvalue varENV, xvalue arrParam);
+static xvalue xl__xl_mod_pkg_probe_1_0_0_abi1__pkg_probe____xlp_extern__pkg_probe__8__arity0__ret__float__boxed(xvalue varENV, xvalue arrParam);
+static xvalue xl__xl_mod_pkg_probe_1_0_0_abi1__pkg_probe__float_value__arity0__ret__float__boxed(xvalue varENV, xvalue arrParam);
+static xvalue xl__xl_mod_pkg_probe_1_0_0_abi1__pkg_probe____xlp_extern__pkg_probe__9__arity1__value__float__ret__float__boxed(xvalue varENV, xvalue arrParam);
+static xvalue xl__xl_mod_pkg_probe_1_0_0_abi1__pkg_probe__add_half__arity1__value__float__ret__float__boxed(xvalue varENV, xvalue arrParam);
+static xvalue xl__main__arity0__ret__int__boxed(xvalue varENV, xvalue arrParam);
+
 extern int pkg_clock_artifact_probe();
 static int xl__xl_mod_pkg_probe_1_0_0_abi1__pkg_probe____xlp_extern__pkg_probe__0__arity0__ret__int()
 {
 	return pkg_clock_artifact_probe();
 }
 
+static xvalue xl__xl_mod_pkg_probe_1_0_0_abi1__pkg_probe____xlp_extern__pkg_probe__0__arity0__ret__int__boxed(xvalue varENV, xvalue arrParam)
+{
+	(void)varENV;
+	int xl_func_result_48 = xl__xl_mod_pkg_probe_1_0_0_abi1__pkg_probe____xlp_extern__pkg_probe__0__arity0__ret__int();
+	return xvoCreateInt((int64)(xl_func_result_48));
+}
+
 static int xl__xl_mod_pkg_probe_1_0_0_abi1__pkg_probe__probe__arity0__ret__int()
 {
+	int xl_escape_kind_3_6 = 0;
+	int xl_escape_level_3_6 = 0;
+	int xl_escape_value_3_6 = 0;
  	int xl_ret_4_2 = xl__xl_mod_pkg_probe_1_0_0_abi1__pkg_probe____xlp_extern__pkg_probe__0__arity0__ret__int();
 	if ( xl_generated_had_exception )
 	{
@@ -1119,14 +1547,32 @@ static int xl__xl_mod_pkg_probe_1_0_0_abi1__pkg_probe__probe__arity0__ret__int()
 	return xl_ret_4_2;
 }
 
+static xvalue xl__xl_mod_pkg_probe_1_0_0_abi1__pkg_probe__probe__arity0__ret__int__boxed(xvalue varENV, xvalue arrParam)
+{
+	(void)varENV;
+	int xl_func_result_49 = xl__xl_mod_pkg_probe_1_0_0_abi1__pkg_probe__probe__arity0__ret__int();
+	return xvoCreateInt((int64)(xl_func_result_49));
+}
+
 extern int pkg_clock_artifact_add_one(int value);
 static int xl__xl_mod_pkg_probe_1_0_0_abi1__pkg_probe____xlp_extern__pkg_probe__1__arity1__value__int__ret__int(int value)
 {
 	return pkg_clock_artifact_add_one(value);
 }
 
+static xvalue xl__xl_mod_pkg_probe_1_0_0_abi1__pkg_probe____xlp_extern__pkg_probe__1__arity1__value__int__ret__int__boxed(xvalue varENV, xvalue arrParam)
+{
+	(void)varENV;
+	int value = ((int)xvoGetInt((xvalue)(xvoArrayGetValue((xvalue)(arrParam), (uint32)(0)))));
+	int xl_func_result_50 = xl__xl_mod_pkg_probe_1_0_0_abi1__pkg_probe____xlp_extern__pkg_probe__1__arity1__value__int__ret__int(value);
+	return xvoCreateInt((int64)(xl_func_result_50));
+}
+
 static int xl__xl_mod_pkg_probe_1_0_0_abi1__pkg_probe__add_one__arity1__value__int__ret__int(int value)
 {
+	int xl_escape_kind_9_6 = 0;
+	int xl_escape_level_9_6 = 0;
+	int xl_escape_value_9_6 = 0;
  	int xl_ret_10_2 = xl__xl_mod_pkg_probe_1_0_0_abi1__pkg_probe____xlp_extern__pkg_probe__1__arity1__value__int__ret__int(value);
 	if ( xl_generated_had_exception )
 	{
@@ -1139,8 +1585,324 @@ static int xl__xl_mod_pkg_probe_1_0_0_abi1__pkg_probe__add_one__arity1__value__i
 	return xl_ret_10_2;
 }
 
+static xvalue xl__xl_mod_pkg_probe_1_0_0_abi1__pkg_probe__add_one__arity1__value__int__ret__int__boxed(xvalue varENV, xvalue arrParam)
+{
+	(void)varENV;
+	int value = ((int)xvoGetInt((xvalue)(xvoArrayGetValue((xvalue)(arrParam), (uint32)(0)))));
+	int xl_func_result_51 = xl__xl_mod_pkg_probe_1_0_0_abi1__pkg_probe__add_one__arity1__value__int__ret__int(value);
+	return xvoCreateInt((int64)(xl_func_result_51));
+}
+
+extern const char* pkg_clock_artifact_text();
+static const char* xl__xl_mod_pkg_probe_1_0_0_abi1__pkg_probe____xlp_extern__pkg_probe__2__arity0__ret__string()
+{
+	return pkg_clock_artifact_text();
+}
+
+static xvalue xl__xl_mod_pkg_probe_1_0_0_abi1__pkg_probe____xlp_extern__pkg_probe__2__arity0__ret__string__boxed(xvalue varENV, xvalue arrParam)
+{
+	(void)varENV;
+	const char* xl_func_result_52 = xl__xl_mod_pkg_probe_1_0_0_abi1__pkg_probe____xlp_extern__pkg_probe__2__arity0__ret__string();
+	return ({ const char* xl_text_value = (xl_func_result_52 != NULL) ? (xl_func_result_52) : ""; xvoCreateText((ptr)xl_text_value, (uint32)strlen(xl_text_value), FALSE); });
+}
+
+static const char* xl__xl_mod_pkg_probe_1_0_0_abi1__pkg_probe__text__arity0__ret__string()
+{
+	int xl_escape_kind_15_6 = 0;
+	int xl_escape_level_15_6 = 0;
+	const char* xl_escape_value_15_6 = NULL;
+ 	const char* xl_ret_16_2 = xl__xl_mod_pkg_probe_1_0_0_abi1__pkg_probe____xlp_extern__pkg_probe__2__arity0__ret__string();
+	if ( xl_generated_had_exception )
+	{
+				return NULL;
+	}
+	if ( xl_generated_capture_native_error() )
+	{
+				return NULL;
+	}
+	return xl_ret_16_2;
+}
+
+static xvalue xl__xl_mod_pkg_probe_1_0_0_abi1__pkg_probe__text__arity0__ret__string__boxed(xvalue varENV, xvalue arrParam)
+{
+	(void)varENV;
+	const char* xl_func_result_53 = xl__xl_mod_pkg_probe_1_0_0_abi1__pkg_probe__text__arity0__ret__string();
+	return ({ const char* xl_text_value = (xl_func_result_53 != NULL) ? (xl_func_result_53) : ""; xvoCreateText((ptr)xl_text_value, (uint32)strlen(xl_text_value), FALSE); });
+}
+
+extern int pkg_clock_artifact_text_len(const char* value);
+static int xl__xl_mod_pkg_probe_1_0_0_abi1__pkg_probe____xlp_extern__pkg_probe__3__arity1__value__string__ret__int(const char* value)
+{
+	return pkg_clock_artifact_text_len(value);
+}
+
+static xvalue xl__xl_mod_pkg_probe_1_0_0_abi1__pkg_probe____xlp_extern__pkg_probe__3__arity1__value__string__ret__int__boxed(xvalue varENV, xvalue arrParam)
+{
+	(void)varENV;
+	const char* value = xl_generated_copy_text(xl_value_to_string((xvalue)(xvoArrayGetValue((xvalue)(arrParam), (uint32)(0)))));
+	int xl_func_result_54 = xl__xl_mod_pkg_probe_1_0_0_abi1__pkg_probe____xlp_extern__pkg_probe__3__arity1__value__string__ret__int(value);
+	return xvoCreateInt((int64)(xl_func_result_54));
+}
+
+static int xl__xl_mod_pkg_probe_1_0_0_abi1__pkg_probe__text_len__arity1__value__string__ret__int(const char* value)
+{
+	int xl_escape_kind_21_6 = 0;
+	int xl_escape_level_21_6 = 0;
+	int xl_escape_value_21_6 = 0;
+ 	int xl_ret_22_2 = xl__xl_mod_pkg_probe_1_0_0_abi1__pkg_probe____xlp_extern__pkg_probe__3__arity1__value__string__ret__int(value);
+	if ( xl_generated_had_exception )
+	{
+				return 0;
+	}
+	if ( xl_generated_capture_native_error() )
+	{
+				return 0;
+	}
+	return xl_ret_22_2;
+}
+
+static xvalue xl__xl_mod_pkg_probe_1_0_0_abi1__pkg_probe__text_len__arity1__value__string__ret__int__boxed(xvalue varENV, xvalue arrParam)
+{
+	(void)varENV;
+	const char* value = xl_generated_copy_text(xl_value_to_string((xvalue)(xvoArrayGetValue((xvalue)(arrParam), (uint32)(0)))));
+	int xl_func_result_55 = xl__xl_mod_pkg_probe_1_0_0_abi1__pkg_probe__text_len__arity1__value__string__ret__int(value);
+	return xvoCreateInt((int64)(xl_func_result_55));
+}
+
+extern void pkg_clock_artifact_touch();
+static void xl__xl_mod_pkg_probe_1_0_0_abi1__pkg_probe____xlp_extern__pkg_probe__4__arity0__ret__void()
+{
+	pkg_clock_artifact_touch();
+	return;
+}
+
+static xvalue xl__xl_mod_pkg_probe_1_0_0_abi1__pkg_probe____xlp_extern__pkg_probe__4__arity0__ret__void__boxed(xvalue varENV, xvalue arrParam)
+{
+	(void)varENV;
+	xl__xl_mod_pkg_probe_1_0_0_abi1__pkg_probe____xlp_extern__pkg_probe__4__arity0__ret__void();
+	return xvoCreateNull();
+}
+
+static void xl__xl_mod_pkg_probe_1_0_0_abi1__pkg_probe__touch__arity0__ret__void()
+{
+	int xl_escape_kind_27_6 = 0;
+	int xl_escape_level_27_6 = 0;
+	xl__xl_mod_pkg_probe_1_0_0_abi1__pkg_probe____xlp_extern__pkg_probe__4__arity0__ret__void();
+	if ( xl_generated_had_exception )
+	{
+				return;
+	}
+	if ( xl_generated_capture_native_error() )
+	{
+				return;
+	}
+}
+
+static xvalue xl__xl_mod_pkg_probe_1_0_0_abi1__pkg_probe__touch__arity0__ret__void__boxed(xvalue varENV, xvalue arrParam)
+{
+	(void)varENV;
+	xl__xl_mod_pkg_probe_1_0_0_abi1__pkg_probe__touch__arity0__ret__void();
+	return xvoCreateNull();
+}
+
+extern int pkg_clock_artifact_text_plus_len(const char* value, int extra);
+static int xl__xl_mod_pkg_probe_1_0_0_abi1__pkg_probe____xlp_extern__pkg_probe__5__arity2__value__string__extra__int__ret__int(const char* value, int extra)
+{
+	return pkg_clock_artifact_text_plus_len(value, extra);
+}
+
+static xvalue xl__xl_mod_pkg_probe_1_0_0_abi1__pkg_probe____xlp_extern__pkg_probe__5__arity2__value__string__extra__int__ret__int__boxed(xvalue varENV, xvalue arrParam)
+{
+	(void)varENV;
+	const char* value = xl_generated_copy_text(xl_value_to_string((xvalue)(xvoArrayGetValue((xvalue)(arrParam), (uint32)(0)))));
+	int extra = ((int)xvoGetInt((xvalue)(xvoArrayGetValue((xvalue)(arrParam), (uint32)(1)))));
+	int xl_func_result_58 = xl__xl_mod_pkg_probe_1_0_0_abi1__pkg_probe____xlp_extern__pkg_probe__5__arity2__value__string__extra__int__ret__int(value, extra);
+	return xvoCreateInt((int64)(xl_func_result_58));
+}
+
+static int xl__xl_mod_pkg_probe_1_0_0_abi1__pkg_probe__text_plus_len__arity2__value__string__extra__int__ret__int(const char* value, int extra)
+{
+	int xl_escape_kind_33_6 = 0;
+	int xl_escape_level_33_6 = 0;
+	int xl_escape_value_33_6 = 0;
+ 	int xl_ret_34_2 = xl__xl_mod_pkg_probe_1_0_0_abi1__pkg_probe____xlp_extern__pkg_probe__5__arity2__value__string__extra__int__ret__int(value, extra);
+	if ( xl_generated_had_exception )
+	{
+				return 0;
+	}
+	if ( xl_generated_capture_native_error() )
+	{
+				return 0;
+	}
+	return xl_ret_34_2;
+}
+
+static xvalue xl__xl_mod_pkg_probe_1_0_0_abi1__pkg_probe__text_plus_len__arity2__value__string__extra__int__ret__int__boxed(xvalue varENV, xvalue arrParam)
+{
+	(void)varENV;
+	const char* value = xl_generated_copy_text(xl_value_to_string((xvalue)(xvoArrayGetValue((xvalue)(arrParam), (uint32)(0)))));
+	int extra = ((int)xvoGetInt((xvalue)(xvoArrayGetValue((xvalue)(arrParam), (uint32)(1)))));
+	int xl_func_result_59 = xl__xl_mod_pkg_probe_1_0_0_abi1__pkg_probe__text_plus_len__arity2__value__string__extra__int__ret__int(value, extra);
+	return xvoCreateInt((int64)(xl_func_result_59));
+}
+
+extern int pkg_clock_artifact_is_probe_text();
+static int xl__xl_mod_pkg_probe_1_0_0_abi1__pkg_probe____xlp_extern__pkg_probe__6__arity0__ret__bool()
+{
+	return pkg_clock_artifact_is_probe_text();
+}
+
+static xvalue xl__xl_mod_pkg_probe_1_0_0_abi1__pkg_probe____xlp_extern__pkg_probe__6__arity0__ret__bool__boxed(xvalue varENV, xvalue arrParam)
+{
+	(void)varENV;
+	int xl_func_result_60 = xl__xl_mod_pkg_probe_1_0_0_abi1__pkg_probe____xlp_extern__pkg_probe__6__arity0__ret__bool();
+	return xvoCreateBool((xl_func_result_60) ? TRUE : FALSE);
+}
+
+static int xl__xl_mod_pkg_probe_1_0_0_abi1__pkg_probe__is_probe_text__arity0__ret__bool()
+{
+	int xl_escape_kind_39_6 = 0;
+	int xl_escape_level_39_6 = 0;
+	int xl_escape_value_39_6 = 0;
+ 	int xl_ret_40_2 = xl__xl_mod_pkg_probe_1_0_0_abi1__pkg_probe____xlp_extern__pkg_probe__6__arity0__ret__bool();
+	if ( xl_generated_had_exception )
+	{
+				return 0;
+	}
+	if ( xl_generated_capture_native_error() )
+	{
+				return 0;
+	}
+	return xl_ret_40_2;
+}
+
+static xvalue xl__xl_mod_pkg_probe_1_0_0_abi1__pkg_probe__is_probe_text__arity0__ret__bool__boxed(xvalue varENV, xvalue arrParam)
+{
+	(void)varENV;
+	int xl_func_result_61 = xl__xl_mod_pkg_probe_1_0_0_abi1__pkg_probe__is_probe_text__arity0__ret__bool();
+	return xvoCreateBool((xl_func_result_61) ? TRUE : FALSE);
+}
+
+extern int pkg_clock_artifact_bool_score(int flag);
+static int xl__xl_mod_pkg_probe_1_0_0_abi1__pkg_probe____xlp_extern__pkg_probe__7__arity1__flag__bool__ret__int(int flag)
+{
+	return pkg_clock_artifact_bool_score(flag);
+}
+
+static xvalue xl__xl_mod_pkg_probe_1_0_0_abi1__pkg_probe____xlp_extern__pkg_probe__7__arity1__flag__bool__ret__int__boxed(xvalue varENV, xvalue arrParam)
+{
+	(void)varENV;
+	int flag = (xvoGetBool((xvalue)(xvoArrayGetValue((xvalue)(arrParam), (uint32)(0)))) ? 1 : 0);
+	int xl_func_result_62 = xl__xl_mod_pkg_probe_1_0_0_abi1__pkg_probe____xlp_extern__pkg_probe__7__arity1__flag__bool__ret__int(flag);
+	return xvoCreateInt((int64)(xl_func_result_62));
+}
+
+static int xl__xl_mod_pkg_probe_1_0_0_abi1__pkg_probe__bool_score__arity1__flag__bool__ret__int(int flag)
+{
+	int xl_escape_kind_45_6 = 0;
+	int xl_escape_level_45_6 = 0;
+	int xl_escape_value_45_6 = 0;
+ 	int xl_ret_46_2 = xl__xl_mod_pkg_probe_1_0_0_abi1__pkg_probe____xlp_extern__pkg_probe__7__arity1__flag__bool__ret__int(flag);
+	if ( xl_generated_had_exception )
+	{
+				return 0;
+	}
+	if ( xl_generated_capture_native_error() )
+	{
+				return 0;
+	}
+	return xl_ret_46_2;
+}
+
+static xvalue xl__xl_mod_pkg_probe_1_0_0_abi1__pkg_probe__bool_score__arity1__flag__bool__ret__int__boxed(xvalue varENV, xvalue arrParam)
+{
+	(void)varENV;
+	int flag = (xvoGetBool((xvalue)(xvoArrayGetValue((xvalue)(arrParam), (uint32)(0)))) ? 1 : 0);
+	int xl_func_result_63 = xl__xl_mod_pkg_probe_1_0_0_abi1__pkg_probe__bool_score__arity1__flag__bool__ret__int(flag);
+	return xvoCreateInt((int64)(xl_func_result_63));
+}
+
+extern double pkg_clock_artifact_float_value();
+static double xl__xl_mod_pkg_probe_1_0_0_abi1__pkg_probe____xlp_extern__pkg_probe__8__arity0__ret__float()
+{
+	return pkg_clock_artifact_float_value();
+}
+
+static xvalue xl__xl_mod_pkg_probe_1_0_0_abi1__pkg_probe____xlp_extern__pkg_probe__8__arity0__ret__float__boxed(xvalue varENV, xvalue arrParam)
+{
+	(void)varENV;
+	double xl_func_result_64 = xl__xl_mod_pkg_probe_1_0_0_abi1__pkg_probe____xlp_extern__pkg_probe__8__arity0__ret__float();
+	return xvoCreateFloat((double)(xl_func_result_64));
+}
+
+static double xl__xl_mod_pkg_probe_1_0_0_abi1__pkg_probe__float_value__arity0__ret__float()
+{
+	int xl_escape_kind_51_6 = 0;
+	int xl_escape_level_51_6 = 0;
+	double xl_escape_value_51_6 = 0.0;
+ 	double xl_ret_52_2 = xl__xl_mod_pkg_probe_1_0_0_abi1__pkg_probe____xlp_extern__pkg_probe__8__arity0__ret__float();
+	if ( xl_generated_had_exception )
+	{
+				return 0.0;
+	}
+	if ( xl_generated_capture_native_error() )
+	{
+				return 0.0;
+	}
+	return xl_ret_52_2;
+}
+
+static xvalue xl__xl_mod_pkg_probe_1_0_0_abi1__pkg_probe__float_value__arity0__ret__float__boxed(xvalue varENV, xvalue arrParam)
+{
+	(void)varENV;
+	double xl_func_result_65 = xl__xl_mod_pkg_probe_1_0_0_abi1__pkg_probe__float_value__arity0__ret__float();
+	return xvoCreateFloat((double)(xl_func_result_65));
+}
+
+extern double pkg_clock_artifact_add_half(double value);
+static double xl__xl_mod_pkg_probe_1_0_0_abi1__pkg_probe____xlp_extern__pkg_probe__9__arity1__value__float__ret__float(double value)
+{
+	return pkg_clock_artifact_add_half(value);
+}
+
+static xvalue xl__xl_mod_pkg_probe_1_0_0_abi1__pkg_probe____xlp_extern__pkg_probe__9__arity1__value__float__ret__float__boxed(xvalue varENV, xvalue arrParam)
+{
+	(void)varENV;
+	double value = ((double)xvoGetFloat((xvalue)(xvoArrayGetValue((xvalue)(arrParam), (uint32)(0)))));
+	double xl_func_result_66 = xl__xl_mod_pkg_probe_1_0_0_abi1__pkg_probe____xlp_extern__pkg_probe__9__arity1__value__float__ret__float(value);
+	return xvoCreateFloat((double)(xl_func_result_66));
+}
+
+static double xl__xl_mod_pkg_probe_1_0_0_abi1__pkg_probe__add_half__arity1__value__float__ret__float(double value)
+{
+	int xl_escape_kind_57_6 = 0;
+	int xl_escape_level_57_6 = 0;
+	double xl_escape_value_57_6 = 0.0;
+ 	double xl_ret_58_2 = xl__xl_mod_pkg_probe_1_0_0_abi1__pkg_probe____xlp_extern__pkg_probe__9__arity1__value__float__ret__float(value);
+	if ( xl_generated_had_exception )
+	{
+				return 0.0;
+	}
+	if ( xl_generated_capture_native_error() )
+	{
+				return 0.0;
+	}
+	return xl_ret_58_2;
+}
+
+static xvalue xl__xl_mod_pkg_probe_1_0_0_abi1__pkg_probe__add_half__arity1__value__float__ret__float__boxed(xvalue varENV, xvalue arrParam)
+{
+	(void)varENV;
+	double value = ((double)xvoGetFloat((xvalue)(xvoArrayGetValue((xvalue)(arrParam), (uint32)(0)))));
+	double xl_func_result_67 = xl__xl_mod_pkg_probe_1_0_0_abi1__pkg_probe__add_half__arity1__value__float__ret__float(value);
+	return xvoCreateFloat((double)(xl_func_result_67));
+}
+
 static int xl__main__arity0__ret__int()
 {
+	int xl_escape_kind_3_6 = 0;
+	int xl_escape_level_3_6 = 0;
+	int xl_escape_value_3_6 = 0;
  	int xl_ret_4_2 = xl__xl_mod_pkg_probe_1_0_0_abi1__pkg_probe__probe__arity0__ret__int();
 	if ( xl_generated_had_exception )
 	{
@@ -1151,6 +1913,13 @@ static int xl__main__arity0__ret__int()
 				return 0;
 	}
 	return xl_ret_4_2;
+}
+
+static xvalue xl__main__arity0__ret__int__boxed(xvalue varENV, xvalue arrParam)
+{
+	(void)varENV;
+	int xl_func_result_68 = xl__main__arity0__ret__int();
+	return xvoCreateInt((int64)(xl_func_result_68));
 }
 
 int xl_generated_entry(void)

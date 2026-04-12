@@ -80,6 +80,7 @@ void xlSymbolTableFree(XL_SymbolTable* pTable)
 	for ( i = 0; i < pTable->iCount; ++i ) {
 		free(pTable->pItems[i].sName);
 		free(pTable->pItems[i].sTypeName);
+		free(pTable->pItems[i].sValueTypeName);
 	}
 	free(pTable->pItems);
 	memset(pTable, 0, sizeof(*pTable));
@@ -112,9 +113,11 @@ int xlSymbolTableAdd(
 	pItem->iScopeId = iScopeId;
 	pItem->sName = __xlSymbolDupText(sName);
 	pItem->sTypeName = __xlSymbolDupText((sTypeName != NULL) ? sTypeName : "");
-	if ( (pItem->sName == NULL) || (pItem->sTypeName == NULL) ) {
+	pItem->sValueTypeName = __xlSymbolDupText("");
+	if ( (pItem->sName == NULL) || (pItem->sTypeName == NULL) || (pItem->sValueTypeName == NULL) ) {
 		free(pItem->sName);
 		free(pItem->sTypeName);
+		free(pItem->sValueTypeName);
 		memset(pItem, 0, sizeof(*pItem));
 		return XL_RC_IO_ERROR;
 	}

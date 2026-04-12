@@ -24,17 +24,24 @@
 			"artifactPath": "",
 			"artifactFile": "",
 			"consumeMode": "",
+			"initSymbol": "xl_mod_math__init",
+			"exportsSymbol": "xl_mod_math__exports",
+			"descriptorSymbol": "xl_mod_math__descriptor",
 			"imports": [],
 			"exports": [
 				{
 					"name": "加一",
 					"symbol": "xl_mod_math__加一",
+					"abiId": "use_math@0.0.0#abi1::math::加一",
+					"versionedSymbol": "use_math@0.0.0#abi1::math::xl_mod_math__加一",
 					"kind": "function",
 					"overloadCount": 1
 				},
 				{
 					"name": "基数",
 					"symbol": "xl_mod_math__基数",
+					"abiId": "use_math@0.0.0#abi1::math::基数",
+					"versionedSymbol": "use_math@0.0.0#abi1::math::xl_mod_math__基数",
 					"kind": "value",
 					"overloadCount": 0
 				}
@@ -55,6 +62,9 @@
 			"artifactPath": "",
 			"artifactFile": "",
 			"consumeMode": "",
+			"initSymbol": "xl_mod__root___init",
+			"exportsSymbol": "xl_mod__root___exports",
+			"descriptorSymbol": "xl_mod__root___descriptor",
 			"imports": ["math"],
 			"exports": []
 		}
@@ -68,6 +78,10 @@
 			"overloadGroup": "global::xl_mod_math__加一",
 			"signatureId": "xl_mod_math__加一(int)",
 			"dispatchKey": "xl_mod_math__加一$arity1|x:int",
+			"languageAbi": "xlang@v1",
+			"nativeAbi": "c@v1",
+			"languageAbiId": "use_math@0.0.0#abi1::math::xl_mod_math__加一(int)#xlang@v1",
+			"nativeAbiId": "use_math@0.0.0#abi1::math::xl__xl_mod_math___xE5_x8A_xA0_xE4_xB8_x80__arity1__x__int__ret__int#c@v1",
 			"abiSymbol": "xl__xl_mod_math___xE5_x8A_xA0_xE4_xB8_x80__arity1__x__int__ret__int",
 			"returnType": "int",
 			"async": 0,

@@ -1,0 +1,49 @@
+ModuleLoadOrder
+- [0] pkg.math -> D:\Git\x-lang\demo5\examples\xlp_versions\packages\pkg.math@1.0.0\src\math_v1.xl native=0 binding=
+- [1] pkg.a -> D:\Git\x-lang\demo5\examples\xlp_versions\packages\pkg.a\src\pkg_a_impl.xl native=0 binding=
+- [2] pkg.math -> D:\Git\x-lang\demo5\examples\xlp_versions\packages\pkg.math@2.0.0\src\math_v2.xl native=0 binding=
+- [3] pkg.b -> D:\Git\x-lang\demo5\examples\xlp_versions\packages\pkg.b\src\pkg_b_impl.xl native=0 binding=
+- [4] <root> -> D:\Git\x-lang\demo5\examples\xlp_versions\use_dual_versions.xl native=0 binding=
+ModuleExports
+- module=pkg.math
+  abi init=xl_mod_pkg_math_1_0_0_abi1__pkg_math__init exports=xl_mod_pkg_math_1_0_0_abi1__pkg_math__exports descriptor=xl_mod_pkg_math_1_0_0_abi1__pkg_math__descriptor
+  export get -> xl_mod_pkg_math_1_0_0_abi1__pkg_math__get
+- module=pkg.a
+  abi init=xl_mod_pkg_a__init exports=xl_mod_pkg_a__exports descriptor=xl_mod_pkg_a__descriptor
+  export value -> xl_mod_pkg_a_1_0_0_abi1__pkg_a__value
+- module=pkg.math
+  abi init=xl_mod_pkg_math_2_0_0_abi1__pkg_math__init exports=xl_mod_pkg_math_2_0_0_abi1__pkg_math__exports descriptor=xl_mod_pkg_math_2_0_0_abi1__pkg_math__descriptor
+  export get -> xl_mod_pkg_math_2_0_0_abi1__pkg_math__get
+- module=pkg.b
+  abi init=xl_mod_pkg_b__init exports=xl_mod_pkg_b__exports descriptor=xl_mod_pkg_b__descriptor
+  export value -> xl_mod_pkg_b_1_0_0_abi1__pkg_b__value
+- module=<root>
+  abi init=xl_mod__root___init exports=xl_mod__root___exports descriptor=xl_mod__root___descriptor
+NativeRegistry
+- key=std.core binding=std.core path=<native:std.core>
+- key=std.dir binding=std.dir path=<native:std.dir>
+- key=std.env binding=std.env path=<native:std.env>
+- key=std.fmt binding=std.fmt path=<native:std.fmt>
+- key=std.fs binding=std.fs path=<native:std.fs>
+- key=std.host binding=std.host path=<native:std.host>
+- key=std.io binding=std.io path=<native:std.io>
+- key=std.path binding=std.path path=<native:std.path>
+- key=std.rand binding=std.rand path=<native:std.rand>
+- key=std.process binding=std.process path=<native:std.process>
+- key=std.str binding=std.str path=<native:std.str>
+- key=std.time binding=std.time path=<native:std.time>
+- key=std.task binding=std.task path=<native:std.task>
+tcc_root=D:\Git\x-lang\demo5\release\tcc
+include=D:\Git\x-lang\demo5\release\tcc\include_win
+include=D:\Git\x-lang\demo5\release\tcc\include_win\winapi
+include=D:\Git\x-lang\demo5\src\runtime
+include=D:\Git\x-lang\demo5\lib\xrt
+lib=D:\Git\x-lang\demo5\release\tcc\lib
+compile_text=demo5\examples\xlp_versions\use_dual_versions.xl
+cwd.prev=D:\Git\x-lang
+cwd.exec=D:\Git\x-lang\demo5
+relocate
+resolve_symbol=xl_generated_entry
+execute
+exit_code=30
+cwd.restore=D:\Git\x-lang

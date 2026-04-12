@@ -1,0 +1,11 @@
+func list<string>.wrap_join(list<string> self, string left, string sep, string right) as string
+	return left + self.join(sep) + right
+end
+
+func main() as int
+	var labels = list{"A", "B"}
+	if labels.wrap_join("[", "|", "]") == "[A|B]" then
+		return 42
+	end
+	return 0
+end

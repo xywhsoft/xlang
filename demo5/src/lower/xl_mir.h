@@ -27,6 +27,8 @@ typedef enum XL_MirKind {
 	XL_MIR_VALUE
 } XL_MirKind;
 
+#define XL_MIR_FLAG_STORAGE_VAR 0x10000
+
 typedef struct XL_MirNode {
 	XL_MirKind eKind;
 	char* sText;

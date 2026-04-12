@@ -1,0 +1,35 @@
+Program @ 0:0-0:0
+	FuncDecl @ 1:6-1:10 text="pick"
+		List @ 0:0-0:0
+			Param @ 1:15-1:20 text="value"
+				TypeRef @ 1:11-1:14 text="int"
+		List @ 0:0-0:0
+			TypeRef @ 1:25-1:28 text="int"
+		Block @ 0:0-0:0
+			Return @ 2:2-2:8
+				List @ 0:0-0:0
+					Ident @ 2:9-2:14 text="value"
+	FuncDecl @ 5:6-5:10 text="pick"
+		List @ 0:0-0:0
+			Param @ 5:18-5:23 text="value"
+				TypeRef @ 5:11-5:17 text="string"
+		List @ 0:0-0:0
+			TypeRef @ 5:28-5:34 text="string"
+		Block @ 0:0-0:0
+			Return @ 6:2-6:8
+				List @ 0:0-0:0
+					Ident @ 6:9-6:14 text="value"
+	FuncDecl @ 9:6-9:10 text="main"
+		List @ 0:0-0:0
+		List @ 0:0-0:0
+			TypeRef @ 9:16-9:19 text="int"
+		Block @ 0:0-0:0
+			VarDecl @ 10:21-10:23 text="op"
+				TypeRef @ 10:2-10:10 text="function<int(int)>"
+				Ident @ 10:26-10:30 text="pick"
+			Return @ 11:2-11:8
+				List @ 0:0-0:0
+					Call @ 11:14-11:15
+						Ident @ 11:9-11:11 text="op"
+						List @ 0:0-0:0
+							Int @ 11:12-11:14 text="42" int=42
