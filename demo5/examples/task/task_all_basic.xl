@@ -1,0 +1,5 @@
+import std.task
+
+async func main() as int
+	return await task.all(task.delay(2), task.delay(3))
+end

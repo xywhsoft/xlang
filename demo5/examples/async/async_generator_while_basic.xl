@@ -1,0 +1,22 @@
+import std.task
+
+async func countdown(int start) as int
+	int current = start
+
+	while current > 0 do
+		yield await task.delay(current)
+		current -= 1
+	end
+
+	return 0
+end
+
+func main() as int
+	int sum = 0
+
+	for value in countdown(3)
+		sum += value
+	end
+
+	return sum
+end

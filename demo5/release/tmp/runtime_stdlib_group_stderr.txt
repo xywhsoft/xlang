@@ -1,0 +1,16 @@
+[trace][run][pass] path=examples\native\stdlib_pipeline.xl
+tcc_root=D:\Git\x-lang\demo5\release\tcc
+include=D:\Git\x-lang\demo5\release\tcc\include_win
+include=D:\Git\x-lang\demo5\release\tcc\include_win\winapi
+include=D:\Git\x-lang\demo5\src\runtime
+include=D:\Git\x-lang\demo5\lib\xrt
+lib=D:\Git\x-lang\demo5\release\tcc\lib
+compile_text=D:\Git\x-lang\demo5\examples\native\stdlib_pipeline.xl
+cwd.prev=D:\Git\x-lang
+cwd.exec=D:\Git\x-lang\demo5
+relocate
+resolve_symbol=xl_generated_entry
+execute
+exit_code=0
+cwd.restore=D:\Git\x-lang
+

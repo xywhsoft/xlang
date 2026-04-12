@@ -1,0 +1,7 @@
+demo5 unified test runner
+project=demo5
+build_stamp=2026-04-13 00:32:34.625 run-32607-15382
+test_count=593
+selector=runtime.env
+[PASS] runtime.env_basic
+summary: total=1 pass=1 fail=0

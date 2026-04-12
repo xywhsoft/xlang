@@ -1,0 +1,32 @@
+demo5 unified test runner
+project=demo5
+build_stamp=2026-04-13 01:48:23.297 run-14694-20027
+test_count=593
+selector=runtime.generator_nested_try_flow_basic
+[PASS] runtime.generator_nested_try_flow_basic
+summary: total=1 pass=1 fail=0
+[trace][run][pass] path=examples\full\generator_nested_try_flow_basic.xl
+tcc_root=D:\Git\x-lang\demo5\release\tcc
+include=D:\Git\x-lang\demo5\release\tcc\include_win
+include=D:\Git\x-lang\demo5\release\tcc\include_win\winapi
+include=D:\Git\x-lang\demo5\src\runtime
+include=D:\Git\x-lang\demo5\lib\xrt
+lib=D:\Git\x-lang\demo5\release\tcc\lib
+compile_text=D:\Git\x-lang\demo5\examples\full\generator_nested_try_flow_basic.xl
+cwd.prev=D:\Git\x-lang\demo5
+cwd.exec=D:\Git\x-lang\demo5
+relocate
+resolve_symbol=xl_generated_entry
+execute
+exit_code=34
+cwd.restore=D:\Git\x-lang\demo5
+generator.yield=stream
+generator.next=stream
+generator.yield=stream
+generator.next=stream
+generator.yield=stream
+generator.next=stream
+generator.yield=stream
+generator.next=stream
+generator.done=stream
+

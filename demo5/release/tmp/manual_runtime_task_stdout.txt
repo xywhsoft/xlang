@@ -1,0 +1,16 @@
+demo5 unified test runner
+project=demo5
+build_stamp=2026-04-13 01:11:07.696 run-7396-16283
+test_count=594
+selector=runtime.task
+[PASS] runtime.task_basic
+[PASS] runtime.task_value_basic
+[PASS] runtime.task_delay
+[debug] task_error.stage=enter_case
+[debug] task_error.stage=begin
+[debug] task_error.stage=module_link rc=0
+[debug] task_error.stage=sem rc=0
+[debug] task_error.stage=lower rc=0
+[debug] task_error.stage=cgen rc=0
+[debug] task_error.stage=artifacts rc=0
+[debug] task_error.stage=externs rc=0

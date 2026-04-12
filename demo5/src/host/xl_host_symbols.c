@@ -24,6 +24,16 @@ static ptr __xlHostXvoGetPoint(xvalue value)
 	return xvoGetPoint(value);
 }
 
+static xvalue __xlHostXvoCreateFunc(xfunction pFunc)
+{
+	return xvoCreateFunc(pFunc);
+}
+
+static xfunction __xlHostXvoGetFunc(xvalue value)
+{
+	return xvoGetFunc(value);
+}
+
 static int __xlAddSymbol(TCCState* pTcc, const char* sName, const void* pValue)
 {
 	char sAlias[160];
@@ -108,6 +118,9 @@ static const XL_HostSymbolEntry __gXLHostSymbols[] = {
 	{ "xPromiseReject", xPromiseReject },
 	{ "xTaskRunDelayed", xTaskRunDelayed },
 	{ "xFutureThenInline", xFutureThenInline },
+	{ "xFutureThenCurrent", xFutureThenCurrent },
+	{ "xFutureThenEngine", xFutureThenEngine },
+	{ "xFutureFinallyEngine", xFutureFinallyEngine },
 	{ "xFutureWhenAll", xFutureWhenAll },
 	{ "xFutureRace", xFutureRace },
 	{ "xvoCreateNull", xvoCreateNull },
@@ -117,6 +130,7 @@ static const XL_HostSymbolEntry __gXLHostSymbols[] = {
 	{ "xvoCreateText", xvoCreateText },
 	{ "xvoCreateTime", xvoCreateTime },
 	{ "xvoCreatePoint", __xlHostXvoCreatePoint },
+	{ "xvoCreateFunc", __xlHostXvoCreateFunc },
 	{ "xvoCopy", xvoCopy },
 	{ "xvoUnref", xvoUnref },
 	{ "xvoGetBool", xvoGetBool },
@@ -125,6 +139,7 @@ static const XL_HostSymbolEntry __gXLHostSymbols[] = {
 	{ "xvoGetText", xvoGetText },
 	{ "xvoGetTime", xvoGetTime },
 	{ "xvoGetPoint", __xlHostXvoGetPoint },
+	{ "xvoGetFunc", __xlHostXvoGetFunc },
 	{ "xvoGetColl", xvoGetColl },
 	{ "xvoGetTable", xvoGetTable },
 	{ "xvoGetSize", xvoGetSize },

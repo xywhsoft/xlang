@@ -127,6 +127,68 @@ static char* __xlConcatText3(const char* sA, const char* sB, const char* sC)
 	return sOut;
 }
 
+static char* __xlReadTextFile(const char* sFile)
+{
+	FILE* pFile;
+	long iSize;
+	size_t iRead;
+	char* sText;
+
+	if ( (sFile == NULL) || (sFile[0] == '\0') ) {
+		return NULL;
+	}
+
+	pFile = fopen(sFile, "rb");
+	if ( pFile == NULL ) {
+		return NULL;
+	}
+	if ( fseek(pFile, 0, SEEK_END) != 0 ) {
+		fclose(pFile);
+		return NULL;
+	}
+	iSize = ftell(pFile);
+	if ( iSize < 0 ) {
+		fclose(pFile);
+		return NULL;
+	}
+	if ( fseek(pFile, 0, SEEK_SET) != 0 ) {
+		fclose(pFile);
+		return NULL;
+	}
+
+	sText = (char*)malloc((size_t)iSize + 1u);
+	if ( sText == NULL ) {
+		fclose(pFile);
+		return NULL;
+	}
+
+	iRead = (iSize > 0) ? fread(sText, 1u, (size_t)iSize, pFile) : 0u;
+	fclose(pFile);
+	if ( iRead != (size_t)iSize ) {
+		free(sText);
+		return NULL;
+	}
+
+	sText[iRead] = '\0';
+	return sText;
+}
+
+static void __xlRemoveFileBestEffort(const char* sFile)
+{
+	int iAttempt;
+
+	if ( (sFile == NULL) || (sFile[0] == '\0') ) {
+		return;
+	}
+
+	for ( iAttempt = 0; iAttempt < 20; ++iAttempt ) {
+		if ( remove(sFile) == 0 ) {
+			return;
+		}
+		xrtSleep(10u);
+	}
+}
+
 static void __xlBuildFallbackExePath(XL_ExecCtx* pCtx, char* sOut, size_t iOutSize)
 {
 	const char* sInput;
@@ -257,24 +319,45 @@ static char* __xlBuildFallbackPathEnv(const XL_ExecCtx* pCtx)
 #endif
 }
 
+static char* __xlBuildFallbackAsyncTraceEnv(const char* sTraceFile)
+{
+	if ( (sTraceFile == NULL) || (sTraceFile[0] == '\0') ) {
+		return NULL;
+	}
+
+	return __xlConcatText3("XL_GENERATED_ASYNC_TRACE_FILE=", sTraceFile, "");
+}
+
 static void __xlFreeExecFallbackConfig(xprocessconfig* pConfig)
 {
+	size_t i;
+
 	if ( (pConfig == NULL) || (pConfig->arrEnv == NULL) ) {
 		return;
 	}
 
-	if ( pConfig->iEnvCount != 0u && pConfig->arrEnv[0] != NULL ) {
-		free(pConfig->arrEnv[0]);
+	for ( i = 0u; i < pConfig->iEnvCount; ++i ) {
+		if ( pConfig->arrEnv[i] != NULL ) {
+			free(pConfig->arrEnv[i]);
+		}
 	}
 	free(pConfig->arrEnv);
 	pConfig->arrEnv = NULL;
 	pConfig->iEnvCount = 0u;
 }
 
-static void __xlInitExecFallbackConfig(xprocessconfig* pConfig, const XL_ExecCtx* pCtx, const char* sExePath, const char* sWorkDir)
+static void __xlInitExecFallbackConfig(
+	xprocessconfig* pConfig,
+	const XL_ExecCtx* pCtx,
+	const char* sExePath,
+	const char* sWorkDir,
+	const char* sTraceFile
+)
 {
-	char* sEnvText;
+	char* sEnvPath;
+	char* sEnvTrace;
 	str* arrEnv;
+	size_t iEnvCount;
 
 	if ( pConfig == NULL ) {
 		return;
@@ -288,33 +371,45 @@ static void __xlInitExecFallbackConfig(xprocessconfig* pConfig, const XL_ExecCtx
 	pConfig->bMergeStderr = true;
 	pConfig->iMaxCaptureBytes = 65536u;
 
-	sEnvText = __xlBuildFallbackPathEnv(pCtx);
-	if ( sEnvText == NULL ) {
+	sEnvPath = __xlBuildFallbackPathEnv(pCtx);
+	sEnvTrace = __xlBuildFallbackAsyncTraceEnv(sTraceFile);
+	iEnvCount = ((sEnvPath != NULL) ? 1u : 0u) + ((sEnvTrace != NULL) ? 1u : 0u);
+	if ( iEnvCount == 0u ) {
 		return;
 	}
 
-	arrEnv = (str*)calloc(1u, sizeof(str));
+	arrEnv = (str*)calloc(iEnvCount, sizeof(str));
 	if ( arrEnv == NULL ) {
-		free(sEnvText);
+		free(sEnvPath);
+		free(sEnvTrace);
 		return;
 	}
 
-	arrEnv[0] = (str)sEnvText;
+	iEnvCount = 0u;
+	if ( sEnvPath != NULL ) {
+		arrEnv[iEnvCount++] = (str)sEnvPath;
+	}
+	if ( sEnvTrace != NULL ) {
+		arrEnv[iEnvCount++] = (str)sEnvTrace;
+	}
+
 	pConfig->arrEnv = arrEnv;
-	pConfig->iEnvCount = 1u;
+	pConfig->iEnvCount = iEnvCount;
 	pConfig->bInheritEnv = true;
 }
 
 static char* __xlBuildFallbackTrace(
 	const char* sRunTrace,
 	const char* sBuildTrace,
-	const xprocessresult* pResult
+	const xprocessresult* pResult,
+	const char* sAsyncTrace
 )
 {
 	const char* sStdout;
 	char* sWithBuild;
 	char* sWithHeader;
 	char* sOut;
+	char* sWithAsync;
 
 	sStdout = ((pResult != NULL) && (pResult->pStdout != NULL)) ? (const char*)pResult->pStdout : "";
 	sWithBuild = __xlConcatText3(
@@ -336,45 +431,21 @@ static char* __xlBuildFallbackTrace(
 		return __xlDupText(sRunTrace);
 	}
 
-	sOut = sWithHeader;
-	return sOut;
-}
-
-static int __xlShouldPreferFallbackExe(const XL_ExecCtx* pCtx, const char* sCode)
-{
-	size_t i;
-
-	if ( pCtx != NULL ) {
-		for ( i = 0u; i < pCtx->iArtifactCount; ++i ) {
-			if ( strcmp(pCtx->arrArtifacts[i].sKind, "shared") == 0 ) {
-				/*
-				 * Shared xlp artifacts are currently reliable only through the
-				 * embedded TCC path. Emitting a fallback executable leaves TCC
-				 * with an invalid import descriptor on Windows.
-				 */
-				return 0;
-			}
+	if ( (sAsyncTrace != NULL) && (sAsyncTrace[0] != '\0') ) {
+		sWithAsync = __xlConcatText3(
+			sWithHeader,
+			"\n[fallback.async_trace]\n",
+			sAsyncTrace
+		);
+		free(sWithHeader);
+		if ( sWithAsync == NULL ) {
+			return __xlDupText(sRunTrace);
 		}
+		sOut = sWithAsync;
+	} else {
+		sOut = sWithHeader;
 	}
-
-	if ( sCode == NULL ) {
-		return 0;
-	}
-
-	/*
-	 * Embedded TCC still mis-executes point-related generated code even though
-	 * the equivalent built executable returns the correct result.
-	 *
-	 * Stage-1 generator yield-expression resume code also relies on a control
-	 * flow pattern that the embedded in-memory path currently mis-executes,
-	 * while the built fallback executable produces the expected behavior.
-	 */
-	return
-		(strstr(sCode, "xvoCreatePoint(") != NULL) ||
-		(strstr(sCode, "xvoGetPoint(") != NULL) ||
-		(strstr(sCode, "xl_value_to_string(") != NULL) ||
-		(strstr(sCode, "xl_point_to_string(") != NULL) ||
-		(strstr(sCode, "xl_gen_resume_result_") != NULL);
+	return sOut;
 }
 
 void xlExecCtxInit(XL_ExecCtx* pCtx, const char* sInputFile, const char* sReleaseRoot)
@@ -460,13 +531,14 @@ int xlExecRunCode(XL_ExecCtx* pCtx, XL_DiagContext* pDiag, const char* sCode, ch
 	xprocessconfig procConfig;
 	xprocessresult procResult;
 	char sFallbackExe[XL_PATH_MAX_LEN];
+	char sFallbackTraceFile[XL_PATH_MAX_LEN];
 	char* sRunTraceText;
 	char* sBuildTraceText;
 	char* sFallbackTrace;
+	char* sFallbackAsyncTrace;
 	int bExecOk;
 	int iRc;
 	size_t i;
-	int bPreferFallbackExe;
 
 	if ( (pCtx == NULL) || (sCode == NULL) || (psTraceText == NULL) ) {
 		return XL_RC_BAD_ARG;
@@ -480,7 +552,7 @@ int xlExecRunCode(XL_ExecCtx* pCtx, XL_DiagContext* pDiag, const char* sCode, ch
 	sRunTraceText = NULL;
 	sBuildTraceText = NULL;
 	sFallbackTrace = NULL;
-	bPreferFallbackExe = __xlShouldPreferFallbackExe(pCtx, sCode) ? 1 : 0;
+	sFallbackAsyncTrace = NULL;
 	__xlCopyText(hostCtx.sInputFile, sizeof(hostCtx.sInputFile), pCtx->sInputFile);
 	__xlCopyText(hostCtx.sReleaseRoot, sizeof(hostCtx.sReleaseRoot), pCtx->sReleaseRoot);
 	__xlCopyText(hostCtx.sProjectRoot, sizeof(hostCtx.sProjectRoot), pCtx->sProjectRoot);
@@ -499,19 +571,15 @@ int xlExecRunCode(XL_ExecCtx* pCtx, XL_DiagContext* pDiag, const char* sCode, ch
 	}
 
 	iRc = XL_RC_FAIL;
-	if ( !bPreferFallbackExe ) {
-		iRc = xlHostRunCText(
-			&hostCtx,
-			pDiag,
-			pCtx->sInputFile,
-			sCode,
-			pCtx->sEntrySymbol,
-			&sRunTraceText,
-			&result
-		);
-	} else {
-		sRunTraceText = __xlDupText("[runtime] prefer fallback executable\n");
-	}
+	iRc = xlHostRunCText(
+		&hostCtx,
+		pDiag,
+		pCtx->sInputFile,
+		sCode,
+		pCtx->sEntrySymbol,
+		&sRunTraceText,
+		&result
+	);
 
 	if ( psTraceText != NULL ) {
 		*psTraceText = sRunTraceText;
@@ -566,7 +634,15 @@ int xlExecRunCode(XL_ExecCtx* pCtx, XL_DiagContext* pDiag, const char* sCode, ch
 		return iRc;
 	}
 
-	__xlInitExecFallbackConfig(&procConfig, pCtx, buildResult.sOutputFile, pCtx->sProjectRoot);
+	__xlCopyText(sFallbackTraceFile, sizeof(sFallbackTraceFile), buildResult.sOutputFile);
+	if ( !__xlAppendText(sFallbackTraceFile, sizeof(sFallbackTraceFile), ".trace.txt") ) {
+		sFallbackTraceFile[0] = '\0';
+	}
+	if ( sFallbackTraceFile[0] != '\0' ) {
+		__xlRemoveFileBestEffort(sFallbackTraceFile);
+	}
+
+	__xlInitExecFallbackConfig(&procConfig, pCtx, buildResult.sOutputFile, pCtx->sProjectRoot, sFallbackTraceFile);
 	bExecOk = xrtExecCapture(&procConfig, &procResult, 0u) ? 1 : 0;
 	__xlFreeExecFallbackConfig(&procConfig);
 	pCtx->iExitCode = procResult.iExitCode;
@@ -577,7 +653,12 @@ int xlExecRunCode(XL_ExecCtx* pCtx, XL_DiagContext* pDiag, const char* sCode, ch
 	pCtx->iExceptionInt = 0;
 	pCtx->fExceptionFloat = 0.0;
 
-	sFallbackTrace = __xlBuildFallbackTrace(sRunTraceText, sBuildTraceText, &procResult);
+	if ( sFallbackTraceFile[0] != '\0' ) {
+		sFallbackAsyncTrace = __xlReadTextFile(sFallbackTraceFile);
+		__xlRemoveFileBestEffort(sFallbackTraceFile);
+	}
+
+	sFallbackTrace = __xlBuildFallbackTrace(sRunTraceText, sBuildTraceText, &procResult, sFallbackAsyncTrace);
 	if ( sFallbackTrace != NULL ) {
 		free(sRunTraceText);
 		sRunTraceText = sFallbackTrace;
@@ -587,7 +668,11 @@ int xlExecRunCode(XL_ExecCtx* pCtx, XL_DiagContext* pDiag, const char* sCode, ch
 	}
 
 	free(sBuildTraceText);
+	free(sFallbackAsyncTrace);
 	xrtProcessResultUnit(&procResult);
+	if ( buildResult.sOutputFile[0] != '\0' ) {
+		__xlRemoveFileBestEffort(buildResult.sOutputFile);
+	}
 	if ( !bExecOk && (pCtx->iExitCode == 0) ) {
 		return XL_RC_FAIL;
 	}

@@ -1,0 +1,9 @@
+async.enter=main
+async.enter=fail
+async.throw=fail
+async.state_1=main
+async.await=fail
+async.resume=fail
+async.return=main
+async.await=main
+async.resume=main

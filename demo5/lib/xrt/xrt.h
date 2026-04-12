@@ -1,7 +1,7 @@
 /*
 
     XRT Single Header File
-    Generated: 2026-04-11 14:32:05
+    Generated: 2026-04-13 01:48:21
 
     MIT License
 
@@ -7575,7 +7575,7 @@
 
 
 // ========================================
-// File: D:\Git\xrt\xrt.c
+// File: D:\Git\xrt/xrt.c
 // ========================================
 
 
@@ -50136,6 +50136,25 @@ static void __xnetFutureGroupFree(__xnet_future_group_ctx* pGroup)
 	__xnetFutureResultFree(&pGroup->tFirstFailure);
 	XNET_FREE(pGroup);
 }
+// Internal: retain future group context.
+static __xnet_future_group_ctx* __xnetFutureGroupAddRef(__xnet_future_group_ctx* pGroup)
+{
+	if ( pGroup == NULL ) {
+		return NULL;
+	}
+	(void)__xnetAtomicAddFetch32(&pGroup->iRefCount, 1);
+	return pGroup;
+}
+// Internal: release future group context reference.
+static void __xnetFutureGroupRelease(__xnet_future_group_ctx* pGroup)
+{
+	if ( pGroup == NULL ) {
+		return;
+	}
+	if ( __xnetAtomicAddFetch32(&pGroup->iRefCount, -1) == 0 ) {
+		__xnetFutureGroupFree(pGroup);
+	}
+}
 // 内部函数：__xnetFutureGroupOnSourceDone
 static void __xnetFutureGroupOnSourceDone(const xfuture_result* pIn, ptr pArg)
 {
@@ -50227,9 +50246,7 @@ static void __xnetFutureGroupOnSourceDone(const xfuture_result* pIn, ptr pArg)
 		(void)__xnetPromiseCompleteResult(pGroup->pPromise, &tOk);
 	}
 	// 减少组引用计数, 若归零则释放
-	if ( __xnetAtomicAddFetch32(&pGroup->iRefCount, -1) == 0 ) {
-		__xnetFutureGroupFree(pGroup);
-	}
+	__xnetFutureGroupRelease(pGroup);
 }
 // 内部函数：创建 Future 组
 static xfuture* __xnetFutureCreateGroup(xfuture** arrFuture, int iCount, __xnet_future_group_mode iMode)
@@ -50263,7 +50280,7 @@ static xfuture* __xnetFutureCreateGroup(xfuture** arrFuture, int iCount, __xnet_
 	pGroup->iMode = iMode;
 	pGroup->iCount = iCount;
 	pGroup->iRemaining = iCount;
-	pGroup->iRefCount = iCount;
+	pGroup->iRefCount = 1;
 	pGroup->pPromise = pPromise;
 	// 创建组互斥锁
 	pGroup->pLock = xrtMutexCreate();
@@ -50287,22 +50304,25 @@ static xfuture* __xnetFutureCreateGroup(xfuture** arrFuture, int iCount, __xnet_
 		xfuture* pChild;
 		if ( arrFuture[i] == NULL ) {
 			__xnetSyncSetError("future group source is null.");
-			__xnetFutureGroupFree(pGroup);
+			__xnetFutureGroupRelease(pGroup);
 			xFutureRelease(pOut);
 			return NULL;
 		}
 		pGroup->arrSources[i] = xFutureAddRef(arrFuture[i]);
 		pGroup->arrItems[i].pGroup = pGroup;
 		pGroup->arrItems[i].iIndex = i;
+		(void)__xnetFutureGroupAddRef(pGroup);
 		// 为每个源 Future 注册 finally 回调, 用于追踪完成事件
 		pChild = xFutureFinallyEngine(arrFuture[i], NULL, 0, __xnetFutureGroupOnSourceDone, &pGroup->arrItems[i]);
 		if ( pChild == NULL ) {
-			__xnetFutureGroupFree(pGroup);
+			__xnetFutureGroupRelease(pGroup);
+			__xnetFutureGroupRelease(pGroup);
 			xFutureRelease(pOut);
 			return NULL;
 		}
 		xFutureRelease(pChild);
 	}
+	__xnetFutureGroupRelease(pGroup);
 	return pOut;
 }
 #endif
@@ -71885,59 +71905,35 @@ XXAPI str xvoGetText(xvalue pVal)
 	// 以下复合类型返回地址格式描述字符串
 	} else if ( pVal->Type == XVO_DT_POINT ) {
 		str sRet = xrtTempMemory(48);
-		if ( sRet == NULL ) {
-			return xCore.sNull;
-		}
-		snprintf(__xrt_str(sRet), 48, "[point:%p]", (void*)pVal->vPoint);
+		sprintf(__xrt_str(sRet), "[point:%p]", pVal->vPoint);
 		return sRet;
 	} else if ( pVal->Type == XVO_DT_FUNC ) {
 		str sRet = xrtTempMemory(48);
-		if ( sRet == NULL ) {
-			return xCore.sNull;
-		}
-		snprintf(__xrt_str(sRet), 48, "[function:%p]", (void*)pVal->vFunc);
+		sprintf(__xrt_str(sRet), "[function:%p]", pVal->vFunc);
 		return sRet;
 	} else if ( pVal->Type == XVO_DT_ARRAY ) {
 		str sRet = xrtTempMemory(48);
-		if ( sRet == NULL ) {
-			return xCore.sNull;
-		}
-		snprintf(__xrt_str(sRet), 48, "[array:%p]", (void*)pVal->vArray);
+		sprintf(__xrt_str(sRet), "[array:%p]", pVal->vArray);
 		return sRet;
 	} else if ( pVal->Type == XVO_DT_LIST ) {
 		str sRet = xrtTempMemory(48);
-		if ( sRet == NULL ) {
-			return xCore.sNull;
-		}
-		snprintf(__xrt_str(sRet), 48, "[list:%p]", (void*)pVal->vList);
+		sprintf(__xrt_str(sRet), "[list:%p]", pVal->vList);
 		return sRet;
 	} else if ( pVal->Type == XVO_DT_COLL ) {
 		str sRet = xrtTempMemory(48);
-		if ( sRet == NULL ) {
-			return xCore.sNull;
-		}
-		snprintf(__xrt_str(sRet), 48, "[coll:%p]", (void*)pVal->vColl);
+		sprintf(__xrt_str(sRet), "[coll:%p]", pVal->vColl);
 		return sRet;
 	} else if ( pVal->Type == XVO_DT_TABLE ) {
 		str sRet = xrtTempMemory(48);
-		if ( sRet == NULL ) {
-			return xCore.sNull;
-		}
-		snprintf(__xrt_str(sRet), 48, "[table:%p]", (void*)pVal->vTable);
+		sprintf(__xrt_str(sRet), "[table:%p]", pVal->vTable);
 		return sRet;
 	} else if ( pVal->Type == XVO_DT_CLASS ) {
 		str sRet = xrtTempMemory(48);
-		if ( sRet == NULL ) {
-			return xCore.sNull;
-		}
-		snprintf(__xrt_str(sRet), 48, "[class:%p]", (void*)pVal->vStruct);
+		sprintf(__xrt_str(sRet), "[class:%p]", pVal->vStruct);
 		return sRet;
 	} else if ( pVal->Type == XVO_DT_CUSTOM ) {
 		str sRet = xrtTempMemory(48);
-		if ( sRet == NULL ) {
-			return xCore.sNull;
-		}
-		snprintf(__xrt_str(sRet), 48, "[custom:%p]", (void*)pVal->vCustom);
+		sprintf(__xrt_str(sRet), "[custom:%p]", pVal->vCustom);
 		return sRet;
 	// 未知类型返回空字符串
 	} else {

@@ -1,0 +1,242 @@
+stress_first_run report
+project_root=D:\git\x-lang\demo5
+iterations=5
+primary_selector=lower.async_generator_loop_control_hybrid_groups_json
+secondary_selector=cgen.async_generator_try_catch_basic
+fail_on_anomaly=True
+
+[iteration_summary]
+
+Iteration Xl5Length Xl5LastWriteTime        Xl5TestLength Xl5TestLastWrite        BuildStamp                           
+--------- --------- ----------------        ------------- ----------------        ----------                           
+        1   2135719 2026-04-13 00:03:43.667       2135171 2026-04-13 00:03:58.461 2026-04-13 00:03:27.043 run-26902-...
+        2   2135719 2026-04-13 00:04:17.246       2135171 2026-04-13 00:04:31.975 2026-04-13 00:04:00.784 run-27010-...
+        3   2135719 2026-04-13 00:04:50.862       2135171 2026-04-13 00:05:05.652 2026-04-13 00:04:34.136 run-27121-...
+        4   2135719 2026-04-13 00:05:24.431       2135171 2026-04-13 00:05:39.247 2026-04-13 00:05:07.812 run-27229-...
+        5   2135719 2026-04-13 00:05:57.897       2135171 2026-04-13 00:06:12.616 2026-04-13 00:05:41.441 run-27340-...
+
+[summary]
+
+Iteration Exe          Args                                                       Pass NoMatch BuildStamp              
+--------- ---          ----                                                       ---- ------- ----------              
+        1 xl5.exe      test lower.async_generator_loop_control_hybrid_groups_json True   False 2026-04-13 00:03:27.0...
+        1 xl5_test.exe lower.async_generator_loop_control_hybrid_groups_json      True   False 2026-04-13 00:03:27.0...
+        1 xl5.exe      test cgen.async_generator_try_catch_basic                  True   False 2026-04-13 00:03:27.0...
+        1 xl5_test.exe cgen.async_generator_try_catch_basic                       True   False 2026-04-13 00:03:27.0...
+        2 xl5.exe      test lower.async_generator_loop_control_hybrid_groups_json True   False 2026-04-13 00:04:00.7...
+        2 xl5_test.exe lower.async_generator_loop_control_hybrid_groups_json      True   False 2026-04-13 00:04:00.7...
+        2 xl5.exe      test cgen.async_generator_try_catch_basic                  True   False 2026-04-13 00:04:00.7...
+        2 xl5_test.exe cgen.async_generator_try_catch_basic                       True   False 2026-04-13 00:04:00.7...
+        3 xl5.exe      test lower.async_generator_loop_control_hybrid_groups_json True   False 2026-04-13 00:04:34.1...
+        3 xl5_test.exe lower.async_generator_loop_control_hybrid_groups_json      True   False 2026-04-13 00:04:34.1...
+        3 xl5.exe      test cgen.async_generator_try_catch_basic                  True   False 2026-04-13 00:04:34.1...
+        3 xl5_test.exe cgen.async_generator_try_catch_basic                       True   False 2026-04-13 00:04:34.1...
+        4 xl5.exe      test lower.async_generator_loop_control_hybrid_groups_json True   False 2026-04-13 00:05:07.8...
+        4 xl5_test.exe lower.async_generator_loop_control_hybrid_groups_json      True   False 2026-04-13 00:05:07.8...
+        4 xl5.exe      test cgen.async_generator_try_catch_basic                  True   False 2026-04-13 00:05:07.8...
+        4 xl5_test.exe cgen.async_generator_try_catch_basic                       True   False 2026-04-13 00:05:07.8...
+        5 xl5.exe      test lower.async_generator_loop_control_hybrid_groups_json True   False 2026-04-13 00:05:41.4...
+        5 xl5_test.exe lower.async_generator_loop_control_hybrid_groups_json      True   False 2026-04-13 00:05:41.4...
+        5 xl5.exe      test cgen.async_generator_try_catch_basic                  True   False 2026-04-13 00:05:41.4...
+        5 xl5_test.exe cgen.async_generator_try_catch_basic                       True   False 2026-04-13 00:05:41.4...
+
+[details]
+[1] xl5.exe test lower.async_generator_loop_control_hybrid_groups_json
+pass=True no_match=False build_stamp=2026-04-13 00:03:27.043 run-26902-13980 test_count=593
+demo5 unified test runner
+project=demo5
+build_stamp=2026-04-13 00:03:27.043 run-26902-13980
+test_count=593
+selector=lower.async_generator_loop_control_hybrid_groups_json
+[PASS] lower.async_generator_loop_control_hybrid_groups_json
+summary: total=1 pass=1 fail=0
+
+[1] xl5_test.exe lower.async_generator_loop_control_hybrid_groups_json
+pass=True no_match=False build_stamp=2026-04-13 00:03:27.043 run-26902-13980 test_count=593
+demo5 unified test runner
+project=demo5
+build_stamp=2026-04-13 00:03:27.043 run-26902-13980
+test_count=593
+selector=lower.async_generator_loop_control_hybrid_groups_json
+[PASS] lower.async_generator_loop_control_hybrid_groups_json
+summary: total=1 pass=1 fail=0
+
+[1] xl5.exe test cgen.async_generator_try_catch_basic
+pass=True no_match=False build_stamp=2026-04-13 00:03:27.043 run-26902-13980 test_count=593
+demo5 unified test runner
+project=demo5
+build_stamp=2026-04-13 00:03:27.043 run-26902-13980
+test_count=593
+selector=cgen.async_generator_try_catch_basic
+[PASS] cgen.async_generator_try_catch_basic
+summary: total=1 pass=1 fail=0
+
+[1] xl5_test.exe cgen.async_generator_try_catch_basic
+pass=True no_match=False build_stamp=2026-04-13 00:03:27.043 run-26902-13980 test_count=593
+demo5 unified test runner
+project=demo5
+build_stamp=2026-04-13 00:03:27.043 run-26902-13980
+test_count=593
+selector=cgen.async_generator_try_catch_basic
+[PASS] cgen.async_generator_try_catch_basic
+summary: total=1 pass=1 fail=0
+
+[2] xl5.exe test lower.async_generator_loop_control_hybrid_groups_json
+pass=True no_match=False build_stamp=2026-04-13 00:04:00.784 run-27010-8230 test_count=593
+demo5 unified test runner
+project=demo5
+build_stamp=2026-04-13 00:04:00.784 run-27010-8230
+test_count=593
+selector=lower.async_generator_loop_control_hybrid_groups_json
+[PASS] lower.async_generator_loop_control_hybrid_groups_json
+summary: total=1 pass=1 fail=0
+
+[2] xl5_test.exe lower.async_generator_loop_control_hybrid_groups_json
+pass=True no_match=False build_stamp=2026-04-13 00:04:00.784 run-27010-8230 test_count=593
+demo5 unified test runner
+project=demo5
+build_stamp=2026-04-13 00:04:00.784 run-27010-8230
+test_count=593
+selector=lower.async_generator_loop_control_hybrid_groups_json
+[PASS] lower.async_generator_loop_control_hybrid_groups_json
+summary: total=1 pass=1 fail=0
+
+[2] xl5.exe test cgen.async_generator_try_catch_basic
+pass=True no_match=False build_stamp=2026-04-13 00:04:00.784 run-27010-8230 test_count=593
+demo5 unified test runner
+project=demo5
+build_stamp=2026-04-13 00:04:00.784 run-27010-8230
+test_count=593
+selector=cgen.async_generator_try_catch_basic
+[PASS] cgen.async_generator_try_catch_basic
+summary: total=1 pass=1 fail=0
+
+[2] xl5_test.exe cgen.async_generator_try_catch_basic
+pass=True no_match=False build_stamp=2026-04-13 00:04:00.784 run-27010-8230 test_count=593
+demo5 unified test runner
+project=demo5
+build_stamp=2026-04-13 00:04:00.784 run-27010-8230
+test_count=593
+selector=cgen.async_generator_try_catch_basic
+[PASS] cgen.async_generator_try_catch_basic
+summary: total=1 pass=1 fail=0
+
+[3] xl5.exe test lower.async_generator_loop_control_hybrid_groups_json
+pass=True no_match=False build_stamp=2026-04-13 00:04:34.136 run-27121-13227 test_count=593
+demo5 unified test runner
+project=demo5
+build_stamp=2026-04-13 00:04:34.136 run-27121-13227
+test_count=593
+selector=lower.async_generator_loop_control_hybrid_groups_json
+[PASS] lower.async_generator_loop_control_hybrid_groups_json
+summary: total=1 pass=1 fail=0
+
+[3] xl5_test.exe lower.async_generator_loop_control_hybrid_groups_json
+pass=True no_match=False build_stamp=2026-04-13 00:04:34.136 run-27121-13227 test_count=593
+demo5 unified test runner
+project=demo5
+build_stamp=2026-04-13 00:04:34.136 run-27121-13227
+test_count=593
+selector=lower.async_generator_loop_control_hybrid_groups_json
+[PASS] lower.async_generator_loop_control_hybrid_groups_json
+summary: total=1 pass=1 fail=0
+
+[3] xl5.exe test cgen.async_generator_try_catch_basic
+pass=True no_match=False build_stamp=2026-04-13 00:04:34.136 run-27121-13227 test_count=593
+demo5 unified test runner
+project=demo5
+build_stamp=2026-04-13 00:04:34.136 run-27121-13227
+test_count=593
+selector=cgen.async_generator_try_catch_basic
+[PASS] cgen.async_generator_try_catch_basic
+summary: total=1 pass=1 fail=0
+
+[3] xl5_test.exe cgen.async_generator_try_catch_basic
+pass=True no_match=False build_stamp=2026-04-13 00:04:34.136 run-27121-13227 test_count=593
+demo5 unified test runner
+project=demo5
+build_stamp=2026-04-13 00:04:34.136 run-27121-13227
+test_count=593
+selector=cgen.async_generator_try_catch_basic
+[PASS] cgen.async_generator_try_catch_basic
+summary: total=1 pass=1 fail=0
+
+[4] xl5.exe test lower.async_generator_loop_control_hybrid_groups_json
+pass=True no_match=False build_stamp=2026-04-13 00:05:07.812 run-27229-7477 test_count=593
+demo5 unified test runner
+project=demo5
+build_stamp=2026-04-13 00:05:07.812 run-27229-7477
+test_count=593
+selector=lower.async_generator_loop_control_hybrid_groups_json
+[PASS] lower.async_generator_loop_control_hybrid_groups_json
+summary: total=1 pass=1 fail=0
+
+[4] xl5_test.exe lower.async_generator_loop_control_hybrid_groups_json
+pass=True no_match=False build_stamp=2026-04-13 00:05:07.812 run-27229-7477 test_count=593
+demo5 unified test runner
+project=demo5
+build_stamp=2026-04-13 00:05:07.812 run-27229-7477
+test_count=593
+selector=lower.async_generator_loop_control_hybrid_groups_json
+[PASS] lower.async_generator_loop_control_hybrid_groups_json
+summary: total=1 pass=1 fail=0
+
+[4] xl5.exe test cgen.async_generator_try_catch_basic
+pass=True no_match=False build_stamp=2026-04-13 00:05:07.812 run-27229-7477 test_count=593
+demo5 unified test runner
+project=demo5
+build_stamp=2026-04-13 00:05:07.812 run-27229-7477
+test_count=593
+selector=cgen.async_generator_try_catch_basic
+[PASS] cgen.async_generator_try_catch_basic
+summary: total=1 pass=1 fail=0
+
+[4] xl5_test.exe cgen.async_generator_try_catch_basic
+pass=True no_match=False build_stamp=2026-04-13 00:05:07.812 run-27229-7477 test_count=593
+demo5 unified test runner
+project=demo5
+build_stamp=2026-04-13 00:05:07.812 run-27229-7477
+test_count=593
+selector=cgen.async_generator_try_catch_basic
+[PASS] cgen.async_generator_try_catch_basic
+summary: total=1 pass=1 fail=0
+
+[5] xl5.exe test lower.async_generator_loop_control_hybrid_groups_json
+pass=True no_match=False build_stamp=2026-04-13 00:05:41.441 run-27340-12475 test_count=593
+demo5 unified test runner
+project=demo5
+build_stamp=2026-04-13 00:05:41.441 run-27340-12475
+test_count=593
+selector=lower.async_generator_loop_control_hybrid_groups_json
+[PASS] lower.async_generator_loop_control_hybrid_groups_json
+summary: total=1 pass=1 fail=0
+
+[5] xl5_test.exe lower.async_generator_loop_control_hybrid_groups_json
+pass=True no_match=False build_stamp=2026-04-13 00:05:41.441 run-27340-12475 test_count=593
+demo5 unified test runner
+project=demo5
+build_stamp=2026-04-13 00:05:41.441 run-27340-12475
+test_count=593
+selector=lower.async_generator_loop_control_hybrid_groups_json
+[PASS] lower.async_generator_loop_control_hybrid_groups_json
+summary: total=1 pass=1 fail=0
+
+[5] xl5.exe test cgen.async_generator_try_catch_basic
+pass=True no_match=False build_stamp=2026-04-13 00:05:41.441 run-27340-12475 test_count=593
+demo5 unified test runner
+project=demo5
+build_stamp=2026-04-13 00:05:41.441 run-27340-12475
+test_count=593
+selector=cgen.async_generator_try_catch_basic
+[PASS] cgen.async_generator_try_catch_basic
+summary: total=1 pass=1 fail=0
+
+[5] xl5_test.exe cgen.async_generator_try_catch_basic
+pass=True no_match=False build_stamp=2026-04-13 00:05:41.441 run-27340-12475 test_count=593
+demo5 unified test runner
+project=demo5
+build_stamp=2026-04-13 00:05:41.441 run-27340-12475
+test_count=593
+selector=cgen.async_generator_try_catch_basic
+[PASS] cgen.async_generator_try_catch_basic
+summary: total=1 pass=1 fail=0
