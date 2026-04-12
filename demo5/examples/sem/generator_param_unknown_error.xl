@@ -1,0 +1,16 @@
+func make_values() as int
+	yield 1
+	yield 2
+end
+
+func take(generator g) as int
+	auto sum = 0
+	for v in g
+		sum += v
+	end
+	return sum
+end
+
+func main() as int
+	return take(make_values())
+end

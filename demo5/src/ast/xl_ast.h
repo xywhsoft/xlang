@@ -14,6 +14,7 @@ typedef enum XL_AstKind {
 	XL_AST_TYPEDEF,
 	XL_AST_CONST_DECL,
 	XL_AST_VAR_DECL,
+	XL_AST_UNPACK_DECL,
 	XL_AST_IF,
 	XL_AST_ELSEIF,
 	XL_AST_WHILE,
@@ -62,19 +63,25 @@ typedef struct XL_AstNode {
 	size_t iChildCapacity;
 } XL_AstNode;
 
+#define XL_PARAM_VARIADIC_NONE 0
+#define XL_PARAM_VARIADIC_ARRAY 1
+#define XL_PARAM_VARIADIC_DICT 2
+
 XL_AstNode* xlAstCreateNode(XL_AstKind eKind, const XL_Token* pToken);
 XL_AstNode* xlAstCreateList(void);
 XL_AstNode* xlAstCreateProgram(void);
 XL_AstNode* xlAstCreateBlock(const XL_Token* pToken);
 XL_AstNode* xlAstCreateTypeRef(const XL_Token* pToken);
+XL_AstNode* xlAstCreateTypeRefText(const char* sText);
 XL_AstNode* xlAstCreateTypeDef(const XL_Token* pName, XL_AstNode* pType);
 XL_AstNode* xlAstCreateIdent(const XL_Token* pToken);
 XL_AstNode* xlAstCreateLiteralFromToken(const XL_Token* pToken);
 
-XL_AstNode* xlAstCreateFuncDecl(const XL_Token* pName, int bAsync, XL_AstNode* pParams, XL_AstNode* pRetType, XL_AstNode* pBody);
+XL_AstNode* xlAstCreateFuncDecl(const XL_Token* pName, int bAsync, XL_AstNode* pParams, XL_AstNode* pRetTypes, XL_AstNode* pBody);
 XL_AstNode* xlAstCreateParam(const XL_Token* pName, XL_AstNode* pType, XL_AstNode* pDefaultValue);
 XL_AstNode* xlAstCreateConstDecl(const XL_Token* pName, XL_AstNode* pType, XL_AstNode* pValue);
 XL_AstNode* xlAstCreateVarDecl(const XL_Token* pName, XL_AstNode* pType, XL_AstNode* pValue);
+XL_AstNode* xlAstCreateUnpackDecl(const XL_Token* pTypeToken, XL_AstNode* pTargets, XL_AstNode* pValue);
 XL_AstNode* xlAstCreateIf(const XL_Token* pToken, XL_AstNode* pCond, XL_AstNode* pThenBlock, XL_AstNode* pElseIfList, XL_AstNode* pElseBlock);
 XL_AstNode* xlAstCreateElseIf(const XL_Token* pToken, XL_AstNode* pCond, XL_AstNode* pBody);
 XL_AstNode* xlAstCreateWhile(const XL_Token* pToken, XL_AstNode* pCond, XL_AstNode* pBody);
@@ -82,7 +89,7 @@ XL_AstNode* xlAstCreateForIn(const XL_Token* pToken, XL_AstNode* pTargets, XL_As
 XL_AstNode* xlAstCreateImport(const XL_Token* pToken, XL_AstNode* pTarget, const XL_Token* pAlias);
 XL_AstNode* xlAstCreateExport(const XL_Token* pToken, XL_AstNode* pValue);
 XL_AstNode* xlAstCreateTry(const XL_Token* pToken, XL_AstNode* pTryBlock, XL_AstNode* pCatchName, XL_AstNode* pCatchBlock, XL_AstNode* pFinallyBlock);
-XL_AstNode* xlAstCreateReturn(const XL_Token* pToken, XL_AstNode* pValue);
+XL_AstNode* xlAstCreateReturn(const XL_Token* pToken, XL_AstNode* pValues);
 XL_AstNode* xlAstCreateBreak(const XL_Token* pToken, int iLevel);
 XL_AstNode* xlAstCreateContinue(const XL_Token* pToken, int iLevel);
 XL_AstNode* xlAstCreateThrow(const XL_Token* pToken, XL_AstNode* pValue);

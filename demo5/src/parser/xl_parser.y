@@ -22,47 +22,73 @@ static XL_AstNode* xlPList(void)
 	return xlAstCreateList();
 }
 
+static XL_AstNode* xlPCreateVariadicParam(const XL_Token* pToken, int iKind)
+{
+	XL_AstNode* pParam;
+	const char* sTypeName;
+
+	sTypeName = (iKind == XL_PARAM_VARIADIC_DICT) ? "dict<var>" : "array<var>";
+	pParam = xlAstCreateParam(pToken, xlAstCreateTypeRefText(sTypeName), NULL);
+	if ( pParam != NULL ) {
+		xlAstSetText(pParam, "arg", 3);
+		pParam->bFlag = iKind;
+	}
+	return pParam;
+}
+
 static void xlPAppendStmt(XL_AstNode* pList, XL_AstNode* pStmt);
 
-static XL_AstNode* xlPCreateDefaultValueForType(const XL_Token* pTypeToken)
+static XL_AstNode* xlPCreateDefaultValueForType(const XL_AstNode* pTypeNode)
 {
 	XL_AstNode* pNode;
+	const char* sTypeText;
+	size_t iTypeLen;
 
-	if ( (pTypeToken == NULL) || (pTypeToken->sText == NULL) ) {
+	if ( (pTypeNode == NULL) || (pTypeNode->sText == NULL) ) {
 		return NULL;
 	}
+	sTypeText = pTypeNode->sText;
+	iTypeLen = strlen(sTypeText);
 
-	if ( (pTypeToken->iTextLen == 3) && (memcmp(pTypeToken->sText, "int", 3) == 0) ) {
-		pNode = xlAstCreateNode(XL_AST_INT, pTypeToken);
+	if ( (iTypeLen == 3) && (memcmp(sTypeText, "int", 3) == 0) ) {
+		pNode = xlAstCreateNode(XL_AST_INT, NULL);
 		if ( pNode != NULL ) {
 			pNode->iIntValue = 0;
 			xlAstSetText(pNode, "0", 1);
+			pNode->iLine = pTypeNode->iLine;
+			pNode->iColumn = pTypeNode->iColumn;
 		}
 		return pNode;
 	}
 
-	if ( (pTypeToken->iTextLen == 5) && (memcmp(pTypeToken->sText, "float", 5) == 0) ) {
-		pNode = xlAstCreateNode(XL_AST_FLOAT, pTypeToken);
+	if ( (iTypeLen == 5) && (memcmp(sTypeText, "float", 5) == 0) ) {
+		pNode = xlAstCreateNode(XL_AST_FLOAT, NULL);
 		if ( pNode != NULL ) {
 			pNode->fFloatValue = 0.0;
 			xlAstSetText(pNode, "0.0", 3);
+			pNode->iLine = pTypeNode->iLine;
+			pNode->iColumn = pTypeNode->iColumn;
 		}
 		return pNode;
 	}
 
-	if ( (pTypeToken->iTextLen == 4) && (memcmp(pTypeToken->sText, "bool", 4) == 0) ) {
-		pNode = xlAstCreateNode(XL_AST_BOOL, pTypeToken);
+	if ( (iTypeLen == 4) && (memcmp(sTypeText, "bool", 4) == 0) ) {
+		pNode = xlAstCreateNode(XL_AST_BOOL, NULL);
 		if ( pNode != NULL ) {
 			pNode->bFlag = 0;
 			xlAstSetText(pNode, "false", 5);
+			pNode->iLine = pTypeNode->iLine;
+			pNode->iColumn = pTypeNode->iColumn;
 		}
 		return pNode;
 	}
 
-	if ( (pTypeToken->iTextLen == 3) && (memcmp(pTypeToken->sText, "var", 3) == 0) ) {
-		pNode = xlAstCreateNode(XL_AST_NULL, pTypeToken);
+	if ( (iTypeLen == 3) && (memcmp(sTypeText, "var", 3) == 0) ) {
+		pNode = xlAstCreateNode(XL_AST_NULL, NULL);
 		if ( pNode != NULL ) {
 			xlAstSetText(pNode, "null", 4);
+			pNode->iLine = pTypeNode->iLine;
+			pNode->iColumn = pTypeNode->iColumn;
 		}
 		return pNode;
 	}
@@ -82,17 +108,29 @@ static int xlPTokenEquals(const XL_Token* pToken, const char* sText)
 	return (pToken->iTextLen == iLen) && (memcmp(pToken->sText, sText, iLen) == 0);
 }
 
-static XL_AstNode* xlPCreateTypedVarDecl(XL_ParseContext* pCtx, const XL_Token* pTypeToken, const XL_Token* pNameToken, XL_AstNode* pValue)
+static int xlPNodeTextEquals(const XL_AstNode* pNode, const char* sText)
 {
-	XL_AstNode* pTypeRef;
+	size_t iLen;
+
+	if ( (pNode == NULL) || (pNode->sText == NULL) || (sText == NULL) ) {
+		return 0;
+	}
+
+	iLen = strlen(sText);
+	return (strlen(pNode->sText) == iLen) && (memcmp(pNode->sText, sText, iLen) == 0);
+}
+
+static XL_AstNode* xlPCreateTypedVarDecl(XL_ParseContext* pCtx, XL_AstNode* pTypeNode, const XL_Token* pNameToken, XL_AstNode* pValue)
+{
 	XL_AstNode* pDecl;
 
-	if ( (pTypeToken == NULL) || (pNameToken == NULL) ) {
+	if ( (pTypeNode == NULL) || (pNameToken == NULL) ) {
+		xlAstFree(pTypeNode);
 		xlAstFree(pValue);
 		return NULL;
 	}
 
-	if ( xlPTokenEquals(pTypeToken, "auto") ) {
+	if ( xlPNodeTextEquals(pTypeNode, "auto") ) {
 		if ( pValue == NULL ) {
 			if ( pCtx != NULL ) {
 				pCtx->bHadError = 1;
@@ -105,23 +143,19 @@ static XL_AstNode* xlPCreateTypedVarDecl(XL_ParseContext* pCtx, const XL_Token* 
 						__FILE__,
 						__LINE__,
 						pCtx->sSourceFile,
-						pTypeToken->iStartLine,
-						pTypeToken->iStartColumn,
+						pTypeNode->iLine,
+						pTypeNode->iColumn,
 						"'auto' requires an initializer"
 					);
 				}
 			}
+			xlAstFree(pTypeNode);
 			return NULL;
 		}
 
-		pTypeRef = xlAstCreateTypeRef(pTypeToken);
-		if ( pTypeRef == NULL ) {
-			xlAstFree(pValue);
-			return NULL;
-		}
-		pDecl = xlAstCreateVarDecl(pNameToken, pTypeRef, pValue);
+		pDecl = xlAstCreateVarDecl(pNameToken, pTypeNode, pValue);
 		if ( pDecl == NULL ) {
-			xlAstFree(pTypeRef);
+			xlAstFree(pTypeNode);
 			xlAstFree(pValue);
 		}
 		return pDecl;
@@ -134,29 +168,126 @@ static XL_AstNode* xlPCreateTypedVarDecl(XL_ParseContext* pCtx, const XL_Token* 
 			if ( pCtx->pDiag != NULL ) {
 				xlDiagEmitSource(
 					pCtx->pDiag,
-					XL_DIAG_LEVEL_ERROR,
-					"parser",
-					__FILE__,
-					__LINE__,
-					pCtx->sSourceFile,
-					pTypeToken->iStartLine,
-					pTypeToken->iStartColumn,
-					"type %.*s requires an initializer",
-					(int)pTypeToken->iTextLen,
-					pTypeToken->sText
-				);
+						XL_DIAG_LEVEL_ERROR,
+						"parser",
+						__FILE__,
+						__LINE__,
+						pCtx->sSourceFile,
+						pTypeNode->iLine,
+						pTypeNode->iColumn,
+						"type %.*s requires an initializer",
+						(int)strlen(pTypeNode->sText),
+						pTypeNode->sText
+					);
+				}
 			}
-		}
+		xlAstFree(pTypeNode);
 		return NULL;
 	}
 
-	pTypeRef = xlAstCreateTypeRef(pTypeToken);
-	pDecl = xlAstCreateVarDecl(pNameToken, pTypeRef, pValue);
+	pDecl = xlAstCreateVarDecl(pNameToken, pTypeNode, pValue);
 	if ( pDecl == NULL ) {
-		xlAstFree(pTypeRef);
+		xlAstFree(pTypeNode);
 		xlAstFree(pValue);
 	}
 	return pDecl;
+}
+
+static XL_AstNode* xlPCreateTypedVarDeclFromToken(XL_ParseContext* pCtx, const XL_Token* pTypeToken, const XL_Token* pNameToken, int bWithDefaultValue, XL_AstNode* pValue)
+{
+	XL_AstNode* pTypeNode;
+
+	pTypeNode = xlAstCreateTypeRef(pTypeToken);
+	if ( pTypeNode == NULL ) {
+		xlAstFree(pValue);
+		return NULL;
+	}
+	if ( bWithDefaultValue ) {
+		pValue = xlPCreateDefaultValueForType(pTypeNode);
+	}
+	return xlPCreateTypedVarDecl(pCtx, pTypeNode, pNameToken, pValue);
+}
+
+static XL_AstNode* xlPCreateTypedUnpackDecl(XL_ParseContext* pCtx, XL_AstNode* pTypeNode, XL_AstNode* pTargets, XL_AstNode* pValue)
+{
+	XL_AstNode* pDecl;
+
+	if ( pTypeNode == NULL ) {
+		xlAstFree(pTargets);
+		xlAstFree(pValue);
+		return NULL;
+	}
+
+	if ( !xlPNodeTextEquals(pTypeNode, "auto") ) {
+		if ( pCtx != NULL ) {
+			pCtx->bHadError = 1;
+			pCtx->iErrorCount += 1;
+			if ( pCtx->pDiag != NULL ) {
+				xlDiagEmitSource(
+					pCtx->pDiag,
+						XL_DIAG_LEVEL_ERROR,
+						"parser",
+						__FILE__,
+						__LINE__,
+						pCtx->sSourceFile,
+						pTypeNode->iLine,
+						pTypeNode->iColumn,
+						"destructuring declarations currently require 'auto'"
+					);
+				}
+			}
+		xlAstFree(pTypeNode);
+		xlAstFree(pTargets);
+		xlAstFree(pValue);
+		return NULL;
+	}
+
+	if ( pValue == NULL ) {
+		if ( pCtx != NULL ) {
+			pCtx->bHadError = 1;
+			pCtx->iErrorCount += 1;
+			if ( pCtx->pDiag != NULL ) {
+				xlDiagEmitSource(
+					pCtx->pDiag,
+						XL_DIAG_LEVEL_ERROR,
+						"parser",
+						__FILE__,
+						__LINE__,
+						pCtx->sSourceFile,
+						pTypeNode->iLine,
+						pTypeNode->iColumn,
+						"'auto' requires an initializer"
+					);
+				}
+			}
+		xlAstFree(pTypeNode);
+		xlAstFree(pTargets);
+		return NULL;
+	}
+
+	pDecl = xlAstCreateUnpackDecl(NULL, pTargets, pValue);
+	if ( pDecl != NULL ) {
+		xlAstSetText(pDecl, pTypeNode->sText, strlen(pTypeNode->sText));
+		pDecl->iLine = pTypeNode->iLine;
+		pDecl->iColumn = pTypeNode->iColumn;
+		pDecl->iEndLine = pTypeNode->iEndLine;
+		pDecl->iEndColumn = pTypeNode->iEndColumn;
+	}
+	xlAstFree(pTypeNode);
+	return pDecl;
+}
+
+static XL_AstNode* xlPCreateTypedUnpackDeclFromToken(XL_ParseContext* pCtx, const XL_Token* pTypeToken, XL_AstNode* pTargets, XL_AstNode* pValue)
+{
+	XL_AstNode* pTypeNode;
+
+	pTypeNode = xlAstCreateTypeRef(pTypeToken);
+	if ( pTypeNode == NULL ) {
+		xlAstFree(pTargets);
+		xlAstFree(pValue);
+		return NULL;
+	}
+	return xlPCreateTypedUnpackDecl(pCtx, pTypeNode, pTargets, pValue);
 }
 
 static XL_AstNode* xlPCreateExportedDeclList(const XL_Token* pExportToken, XL_AstNode* pDecl, const XL_Token* pNameToken)
@@ -235,38 +366,173 @@ static XL_AstNode* xlPCreateBlockFromStmt(XL_AstNode* pStmt)
 }
 
 static XL_AstNode* xlPCreateMethodFuncDecl(
-	const XL_Token* pReceiverTypeToken,
+	XL_AstNode* pReceiverType,
 	const XL_Token* pNameToken,
 	int bAsync,
 	XL_AstNode* pParams,
-	XL_AstNode* pRetType,
+	XL_AstNode* pRetTypes,
 	XL_AstNode* pBody
 )
 {
 	XL_AstNode* pDecl;
-	XL_AstNode* pReceiverType;
 
-	if ( (pReceiverTypeToken == NULL) || (pNameToken == NULL) ) {
+	if ( (pReceiverType == NULL) || (pNameToken == NULL) ) {
+		xlAstFree(pReceiverType);
 		xlAstFree(pParams);
-		xlAstFree(pRetType);
+		xlAstFree(pRetTypes);
 		xlAstFree(pBody);
 		return NULL;
 	}
 
-	pDecl = xlAstCreateFuncDecl(pNameToken, bAsync, pParams, pRetType, pBody);
+	pDecl = xlAstCreateFuncDecl(pNameToken, bAsync, pParams, pRetTypes, pBody);
 	if ( pDecl == NULL ) {
-		return NULL;
-	}
-
-	pReceiverType = xlAstCreateTypeRef(pReceiverTypeToken);
-	if ( pReceiverType == NULL ) {
-		xlAstFree(pDecl);
+		xlAstFree(pReceiverType);
 		return NULL;
 	}
 
 	xlAstSetText2(pDecl, pNameToken->sText, pNameToken->iTextLen);
 	xlAstAppendChild(pDecl, pReceiverType);
 	return pDecl;
+}
+
+static void xlPAttachExternSymbol(XL_AstNode* pDecl, const XL_Token* pNameToken, const XL_Token* pSymbolToken)
+{
+	const char* sText;
+	size_t iLen;
+
+	if ( pDecl == NULL ) {
+		return;
+	}
+
+	if ( (pSymbolToken == NULL) || (pSymbolToken->sText == NULL) ) {
+		if ( (pNameToken != NULL) && (pNameToken->sText != NULL) ) {
+			xlAstSetText2(pDecl, pNameToken->sText, pNameToken->iTextLen);
+		}
+		return;
+	}
+
+	sText = pSymbolToken->sText;
+	iLen = pSymbolToken->iTextLen;
+	if ( (iLen >= 2) && ((sText[0] == '"') || (sText[0] == '\'')) ) {
+		sText += 1;
+		iLen -= 2;
+	}
+	xlAstSetText2(pDecl, sText, iLen);
+}
+
+static void xlPAppendTypeText(char** psBuf, size_t* piLen, size_t* piCap, const char* sText)
+{
+	size_t iNeed;
+	char* sNewBuf;
+
+	if ( (psBuf == NULL) || (piLen == NULL) || (piCap == NULL) || (sText == NULL) ) {
+		return;
+	}
+
+	iNeed = strlen(sText);
+	if ( (*piLen + iNeed + 1) > *piCap ) {
+		size_t iNewCap = (*piCap == 0) ? 64 : *piCap;
+
+		while ( iNewCap < (*piLen + iNeed + 1) ) {
+			iNewCap *= 2;
+		}
+		sNewBuf = (char*)realloc(*psBuf, iNewCap);
+		if ( sNewBuf == NULL ) {
+			return;
+		}
+		*psBuf = sNewBuf;
+		*piCap = iNewCap;
+	}
+
+	memcpy((*psBuf) + (*piLen), sText, iNeed);
+	*piLen += iNeed;
+	(*psBuf)[*piLen] = '\0';
+}
+
+static XL_AstNode* xlPCreateGenericTypeRef(XL_AstNode* pBaseType, XL_AstNode* pTypeArgs)
+{
+	XL_AstNode* pNode;
+	XL_AstNode* pLastArg;
+	char* sBuf;
+	size_t iLen;
+	size_t iCap;
+	size_t i;
+
+	if ( (pBaseType == NULL) || (pTypeArgs == NULL) || (pBaseType->sText == NULL) || (pTypeArgs->iChildCount == 0) ) {
+		xlAstFree(pBaseType);
+		xlAstFree(pTypeArgs);
+		return NULL;
+	}
+
+	sBuf = NULL;
+	iLen = 0;
+	iCap = 0;
+	xlPAppendTypeText(&sBuf, &iLen, &iCap, pBaseType->sText);
+	xlPAppendTypeText(&sBuf, &iLen, &iCap, "<");
+	for ( i = 0; i < pTypeArgs->iChildCount; ++i ) {
+		if ( i != 0 ) {
+			xlPAppendTypeText(&sBuf, &iLen, &iCap, ",");
+		}
+		xlPAppendTypeText(&sBuf, &iLen, &iCap, pTypeArgs->ppChildren[i]->sText);
+	}
+	xlPAppendTypeText(&sBuf, &iLen, &iCap, ">");
+
+	pNode = xlAstCreateTypeRefText(sBuf);
+	if ( pNode != NULL ) {
+		pNode->iLine = pBaseType->iLine;
+		pNode->iColumn = pBaseType->iColumn;
+		pNode->iEndLine = pBaseType->iEndLine;
+		pNode->iEndColumn = pBaseType->iEndColumn;
+		pLastArg = pTypeArgs->ppChildren[pTypeArgs->iChildCount - 1];
+		if ( pLastArg != NULL ) {
+			pNode->iEndLine = pLastArg->iEndLine;
+			pNode->iEndColumn = pLastArg->iEndColumn;
+		}
+	}
+
+	free(sBuf);
+	xlAstFree(pBaseType);
+	xlAstFree(pTypeArgs);
+	return pNode;
+}
+
+static XL_AstNode* xlPCreateFunctionTypeRef(const XL_Token* pNameToken, XL_AstNode* pReturnType, XL_AstNode* pParamTypes)
+{
+	XL_AstNode* pNode;
+	char* sBuf;
+	size_t iLen;
+	size_t iCap;
+	size_t i;
+
+	if ( (pNameToken == NULL) || !xlPTokenEquals(pNameToken, "function") || (pReturnType == NULL) || (pParamTypes == NULL) ) {
+		xlAstFree(pReturnType);
+		xlAstFree(pParamTypes);
+		return NULL;
+	}
+
+	sBuf = NULL;
+	iLen = 0;
+	iCap = 0;
+	xlPAppendTypeText(&sBuf, &iLen, &iCap, "function<");
+	xlPAppendTypeText(&sBuf, &iLen, &iCap, pReturnType->sText);
+	xlPAppendTypeText(&sBuf, &iLen, &iCap, "(");
+	for ( i = 0; i < pParamTypes->iChildCount; ++i ) {
+		if ( i != 0 ) {
+			xlPAppendTypeText(&sBuf, &iLen, &iCap, ",");
+		}
+		xlPAppendTypeText(&sBuf, &iLen, &iCap, pParamTypes->ppChildren[i]->sText);
+	}
+	xlPAppendTypeText(&sBuf, &iLen, &iCap, ")>");
+
+	pNode = xlAstCreateNode(XL_AST_TYPE_REF, pNameToken);
+	if ( (pNode != NULL) && (sBuf != NULL) ) {
+		xlAstSetText(pNode, sBuf, iLen);
+	}
+
+	free(sBuf);
+	xlAstFree(pReturnType);
+	xlAstFree(pParamTypes);
+	return pNode;
 }
 
 static XL_AstNode* xlPCreateHiddenCall(const char* sName, XL_AstNode* pArgs, const XL_Token* pToken)
@@ -459,7 +725,15 @@ static void xlPAppendStmt(XL_AstNode* pList, XL_AstNode* pStmt)
 %type import_path { XL_AstNode* }
 %type import_alias_opt { XL_Token }
 %type type_name { XL_Token }
+%type generic_type_ref { XL_AstNode* }
+%type generic_type_args { XL_AstNode* }
+%type func_decl_type { XL_AstNode* }
+%type function_type_ref { XL_AstNode* }
+%type func_type_param_list { XL_AstNode* }
+%type func_type_params { XL_AstNode* }
 %type export_func_decl { XL_AstNode* }
+%type extern_decl { XL_AstNode* }
+%type extern_symbol_opt { XL_Token }
 %type typed_var_decl { XL_AstNode* }
 %type typedef_decl { XL_AstNode* }
 %type assign_stmt { XL_AstNode* }
@@ -475,7 +749,9 @@ static void xlPAppendStmt(XL_AstNode* pList, XL_AstNode* pStmt)
 %type dict_item { XL_AstNode* }
 %type indexed_items { XL_AstNode* }
 %type indexed_item { XL_AstNode* }
+%type yield_expr { XL_AstNode* }
 
+%right OP_LT OP_GT OP_LE OP_GE OP_EQ OP_NE OP_APPROX KW_IN.
 %left OP_SHL OP_SHR.
 %left OP_PLUS OP_MINUS.
 %left OP_STAR OP_SLASH OP_PERCENT.
@@ -517,6 +793,7 @@ stmt(A) ::= error. {
 	A = NULL;
 }
 stmt(A) ::= func_decl(F). { A = F; }
+stmt(A) ::= extern_decl(E). { A = E; }
 stmt(A) ::= typedef_decl(T). { A = T; }
 stmt(A) ::= const_decl(C). { A = C; }
 stmt(A) ::= var_decl(V). { A = V; }
@@ -529,7 +806,7 @@ stmt(A) ::= try_stmt(T). { A = T; }
 stmt(A) ::= for_in_stmt(F). { A = F; }
 stmt(A) ::= import_stmt(I). { A = I; }
 stmt(A) ::= export_stmt(E). { A = E; }
-stmt(A) ::= KW_RETURN(T) expr_opt(E). { A = xlAstCreateReturn(&T, E); }
+stmt(A) ::= KW_RETURN(T) return_value_list(V). { A = xlAstCreateReturn(&T, V); }
 stmt(A) ::= KW_BREAK(T) INT(N). { A = xlAstCreateBreak(&T, (int)N.iIntValue); }
 stmt(A) ::= KW_BREAK(T). { A = xlAstCreateBreak(&T, 1); }
 stmt(A) ::= KW_CONTINUE(T) INT(N). { A = xlAstCreateContinue(&T, (int)N.iIntValue); }
@@ -549,11 +826,33 @@ func_decl(A) ::= async_opt(B) KW_FUNC TOK_IDENT(N) TK_LPAREN param_list(P) TK_RP
 	A = xlAstCreateFuncDecl(&N, B, P, R, BODY);
 }
 func_decl(A) ::= async_opt(B) KW_FUNC type_name(TY) OP_DOT TOK_IDENT(N) TK_LPAREN param_list(P) TK_RPAREN ret_type(R) opt_stmt_sep block(BODY) KW_END. {
-	A = xlPCreateMethodFuncDecl(&TY, &N, B, P, R, BODY);
+	A = xlPCreateMethodFuncDecl(xlAstCreateTypeRef(&TY), &N, B, P, R, BODY);
+}
+func_decl(A) ::= async_opt(B) KW_FUNC generic_type_ref(TY) OP_DOT TOK_IDENT(N) TK_LPAREN param_list(P) TK_RPAREN ret_type(R) opt_stmt_sep block(BODY) KW_END. {
+	A = xlPCreateMethodFuncDecl(TY, &N, B, P, R, BODY);
+}
+func_decl(A) ::= async_opt(B) KW_FUNC function_type_ref(TY) OP_DOT TOK_IDENT(N) TK_LPAREN param_list(P) TK_RPAREN ret_type(R) opt_stmt_sep block(BODY) KW_END. {
+	A = xlPCreateMethodFuncDecl(TY, &N, B, P, R, BODY);
+}
+
+extern_symbol_opt(A) ::= STRING(S). { A = S; }
+extern_symbol_opt(A) ::= . {
+	memset(&A, 0, sizeof(A));
+}
+
+extern_decl(A) ::= KW_EXTERN(E) extern_symbol_opt(S) KW_FUNC TOK_IDENT(N) TK_LPAREN param_list(P) TK_RPAREN ret_type(R). {
+	A = xlAstCreateFuncDecl(&N, 0, P, R, xlAstCreateBlock(&E));
+	xlPAttachExternSymbol(A, &N, (S.eKind != 0) ? &S : NULL);
 }
 
 typedef_decl(A) ::= KW_TYPEDEF TOK_IDENT(N) OP_ASSIGN type_name(T). {
 	A = xlAstCreateTypeDef(&N, xlAstCreateTypeRef(&T));
+}
+typedef_decl(A) ::= KW_TYPEDEF TOK_IDENT(N) OP_ASSIGN generic_type_ref(T). {
+	A = xlAstCreateTypeDef(&N, T);
+}
+typedef_decl(A) ::= KW_TYPEDEF TOK_IDENT(N) OP_ASSIGN function_type_ref(T). {
+	A = xlAstCreateTypeDef(&N, T);
 }
 
 param_list(A) ::= . {
@@ -578,38 +877,188 @@ param(A) ::= TOK_IDENT(N). {
 param(A) ::= type_name(T) TOK_IDENT(N). {
 	A = xlAstCreateParam(&N, xlAstCreateTypeRef(&T), NULL);
 }
+param(A) ::= generic_type_ref(T) TOK_IDENT(N). {
+	A = xlAstCreateParam(&N, T, NULL);
+}
+param(A) ::= function_type_ref(T) TOK_IDENT(N). {
+	A = xlAstCreateParam(&N, T, NULL);
+}
 param(A) ::= TOK_IDENT(N) OP_ASSIGN expr(E). {
 	A = xlAstCreateParam(&N, NULL, E);
 }
 param(A) ::= type_name(T) TOK_IDENT(N) OP_ASSIGN expr(E). {
 	A = xlAstCreateParam(&N, xlAstCreateTypeRef(&T), E);
 }
+param(A) ::= generic_type_ref(T) TOK_IDENT(N) OP_ASSIGN expr(E). {
+	A = xlAstCreateParam(&N, T, E);
+}
+param(A) ::= function_type_ref(T) TOK_IDENT(N) OP_ASSIGN expr(E). {
+	A = xlAstCreateParam(&N, T, E);
+}
+param(A) ::= OP_ELLIPSIS(T). {
+	A = xlPCreateVariadicParam(&T, XL_PARAM_VARIADIC_ARRAY);
+}
+param(A) ::= OP_POWER(T) OP_STAR. {
+	A = xlPCreateVariadicParam(&T, XL_PARAM_VARIADIC_DICT);
+}
 
-ret_type(A) ::= . { A = NULL; }
-ret_type(A) ::= KW_AS type_name(T). { A = xlAstCreateTypeRef(&T); }
+ret_type(A) ::= . { A = xlPList(); }
+ret_type(A) ::= KW_AS type_name(T). {
+	A = xlPList();
+	xlAstAppendChild(A, xlAstCreateTypeRef(&T));
+}
+ret_type(A) ::= KW_AS generic_type_ref(T). {
+	A = xlPList();
+	xlAstAppendChild(A, T);
+}
+ret_type(A) ::= KW_AS function_type_ref(T). {
+	A = xlPList();
+	xlAstAppendChild(A, T);
+}
+ret_type(A) ::= KW_AS type_name(T) ret_type_tail(L). {
+	A = xlPList();
+	xlAstAppendChild(A, xlAstCreateTypeRef(&T));
+	xlAstAppendChildren(A, L);
+}
+ret_type(A) ::= KW_AS generic_type_ref(T) ret_type_tail(L). {
+	A = xlPList();
+	xlAstAppendChild(A, T);
+	xlAstAppendChildren(A, L);
+}
+ret_type(A) ::= KW_AS function_type_ref(T) ret_type_tail(L). {
+	A = xlPList();
+	xlAstAppendChild(A, T);
+	xlAstAppendChildren(A, L);
+}
 
-type_name(A) ::= TOK_IDENT(T). { A = T; }
-type_name(A) ::= KW_VAR(T). { A = T; }
+ret_type_tail(A) ::= TK_COMMA type_name(T). {
+	A = xlPList();
+	xlAstAppendChild(A, xlAstCreateTypeRef(&T));
+}
+ret_type_tail(A) ::= TK_COMMA generic_type_ref(T). {
+	A = xlPList();
+	xlAstAppendChild(A, T);
+}
+ret_type_tail(A) ::= TK_COMMA function_type_ref(T). {
+	A = xlPList();
+	xlAstAppendChild(A, T);
+}
+ret_type_tail(A) ::= ret_type_tail(L) TK_COMMA type_name(T). {
+	A = L;
+	xlAstAppendChild(A, xlAstCreateTypeRef(&T));
+}
+ret_type_tail(A) ::= ret_type_tail(L) TK_COMMA generic_type_ref(T). {
+	A = L;
+	xlAstAppendChild(A, T);
+}
+ret_type_tail(A) ::= ret_type_tail(L) TK_COMMA function_type_ref(T). {
+	A = L;
+	xlAstAppendChild(A, T);
+}
+
+type_name(A) ::= TOK_IDENT(T). [OP_LT] { A = T; }
+type_name(A) ::= KW_VAR(T). [OP_LT] { A = T; }
+type_name(A) ::= KW_TYPE(T). [OP_LT] { A = T; }
+
+generic_type_ref(A) ::= type_name(T) OP_LT generic_type_args(L) OP_GT. {
+	A = xlPCreateGenericTypeRef(xlAstCreateTypeRef(&T), L);
+}
+
+generic_type_args(A) ::= func_decl_type(T). {
+	A = xlPList();
+	xlAstAppendChild(A, T);
+}
+generic_type_args(A) ::= generic_type_args(L) TK_COMMA func_decl_type(T). {
+	A = L;
+	xlAstAppendChild(A, T);
+}
+
+func_decl_type(A) ::= type_name(T). {
+	A = xlAstCreateTypeRef(&T);
+}
+func_decl_type(A) ::= generic_type_ref(T). {
+	A = T;
+}
+func_decl_type(A) ::= function_type_ref(T). {
+	A = T;
+}
+
+function_type_ref(A) ::= KW_FUNCTION(T) OP_LT func_decl_type(R) TK_LPAREN func_type_param_list(P) TK_RPAREN OP_GT. {
+	A = xlPCreateFunctionTypeRef(&T, R, P);
+}
+
+func_type_param_list(A) ::= . {
+	A = xlPList();
+}
+func_type_param_list(A) ::= func_type_params(P). {
+	A = P;
+}
+
+func_type_params(A) ::= func_decl_type(T). {
+	A = xlPList();
+	xlAstAppendChild(A, T);
+}
+func_type_params(A) ::= func_type_params(L) TK_COMMA func_decl_type(T). {
+	A = L;
+	xlAstAppendChild(A, T);
+}
 
 const_decl(A) ::= KW_CONST TOK_IDENT(N) OP_ASSIGN expr(E). {
 	A = xlAstCreateConstDecl(&N, NULL, E);
 }
-const_decl(A) ::= KW_CONST TOK_IDENT(T) TOK_IDENT(N) OP_ASSIGN expr(E). {
+const_decl(A) ::= KW_CONST type_name(T) TOK_IDENT(N) OP_ASSIGN expr(E). {
 	A = xlAstCreateConstDecl(&N, xlAstCreateTypeRef(&T), E);
+}
+const_decl(A) ::= KW_CONST generic_type_ref(T) TOK_IDENT(N) OP_ASSIGN expr(E). {
+	A = xlAstCreateConstDecl(&N, T, E);
+}
+const_decl(A) ::= KW_CONST function_type_ref(T) TOK_IDENT(N) OP_ASSIGN expr(E). {
+	A = xlAstCreateConstDecl(&N, T, E);
 }
 
 var_decl(A) ::= KW_VAR TOK_IDENT(N) OP_ASSIGN expr(E). {
 	A = xlAstCreateVarDecl(&N, NULL, E);
 }
-var_decl(A) ::= KW_VAR TOK_IDENT(T) TOK_IDENT(N) OP_ASSIGN expr(E). {
+var_decl(A) ::= KW_VAR type_name(T) TOK_IDENT(N) OP_ASSIGN expr(E). {
 	A = xlAstCreateVarDecl(&N, xlAstCreateTypeRef(&T), E);
+}
+var_decl(A) ::= KW_VAR generic_type_ref(T) TOK_IDENT(N) OP_ASSIGN expr(E). {
+	A = xlAstCreateVarDecl(&N, T, E);
+}
+var_decl(A) ::= KW_VAR function_type_ref(T) TOK_IDENT(N) OP_ASSIGN expr(E). {
+	A = xlAstCreateVarDecl(&N, T, E);
 }
 
 typed_var_decl(A) ::= TOK_IDENT(T) TOK_IDENT(N). {
-	A = xlPCreateTypedVarDecl(pCtx, &T, &N, xlPCreateDefaultValueForType(&T));
+	A = xlPCreateTypedVarDeclFromToken(pCtx, &T, &N, 1, NULL);
 }
 typed_var_decl(A) ::= TOK_IDENT(T) TOK_IDENT(N) OP_ASSIGN expr(E). {
-	A = xlPCreateTypedVarDecl(pCtx, &T, &N, E);
+	A = xlPCreateTypedVarDeclFromToken(pCtx, &T, &N, 0, E);
+}
+typed_var_decl(A) ::= TOK_IDENT(T) unpack_target_list(L) OP_ASSIGN expr(E). {
+	A = xlPCreateTypedUnpackDeclFromToken(pCtx, &T, L, E);
+}
+typed_var_decl(A) ::= generic_type_ref(T) TOK_IDENT(N) OP_ASSIGN expr(E). {
+	A = xlPCreateTypedVarDecl(pCtx, T, &N, E);
+}
+typed_var_decl(A) ::= generic_type_ref(T) unpack_target_list(L) OP_ASSIGN expr(E). {
+	A = xlPCreateTypedUnpackDecl(pCtx, T, L, E);
+}
+typed_var_decl(A) ::= function_type_ref(T) TOK_IDENT(N) OP_ASSIGN expr(E). {
+	A = xlPCreateTypedVarDecl(pCtx, T, &N, E);
+}
+typed_var_decl(A) ::= function_type_ref(T) unpack_target_list(L) OP_ASSIGN expr(E). {
+	A = xlPCreateTypedUnpackDecl(pCtx, T, L, E);
+}
+
+unpack_target_list(A) ::= TOK_IDENT(N) TK_COMMA TOK_IDENT(M). {
+	A = xlPList();
+	xlAstAppendChild(A, xlAstCreateIdent(&N));
+	xlAstAppendChild(A, xlAstCreateIdent(&M));
+}
+unpack_target_list(A) ::= unpack_target_list(L) TK_COMMA TOK_IDENT(N). {
+	A = L;
+	xlAstAppendChild(A, xlAstCreateIdent(&N));
 }
 
 assign_stmt(A) ::= postfix_expr(L) OP_ASSIGN(T) expr(E). {
@@ -732,7 +1181,7 @@ do_while_stmt_item(A) ::= try_stmt(T). { A = T; }
 do_while_stmt_item(A) ::= for_in_stmt(F). { A = F; }
 do_while_stmt_item(A) ::= import_stmt(I). { A = I; }
 do_while_stmt_item(A) ::= export_stmt(E). { A = E; }
-do_while_stmt_item(A) ::= KW_RETURN(T) expr_opt(E). { A = xlAstCreateReturn(&T, E); }
+do_while_stmt_item(A) ::= KW_RETURN(T) return_value_list(V). { A = xlAstCreateReturn(&T, V); }
 do_while_stmt_item(A) ::= KW_BREAK(T) INT(N). { A = xlAstCreateBreak(&T, (int)N.iIntValue); }
 do_while_stmt_item(A) ::= KW_BREAK(T). { A = xlAstCreateBreak(&T, 1); }
 do_while_stmt_item(A) ::= KW_CONTINUE(T) INT(N). { A = xlAstCreateContinue(&T, (int)N.iIntValue); }
@@ -746,7 +1195,7 @@ inline_stmt(A) ::= const_decl(C). { A = C; }
 inline_stmt(A) ::= var_decl(V). { A = V; }
 inline_stmt(A) ::= typed_var_decl(V). { A = V; }
 inline_stmt(A) ::= assign_stmt(S). { A = S; }
-inline_stmt(A) ::= KW_RETURN(T) expr_opt(E). { A = xlAstCreateReturn(&T, E); }
+inline_stmt(A) ::= KW_RETURN(T) return_value_list(V). { A = xlAstCreateReturn(&T, V); }
 inline_stmt(A) ::= KW_BREAK(T) INT(N). { A = xlAstCreateBreak(&T, (int)N.iIntValue); }
 inline_stmt(A) ::= KW_BREAK(T). { A = xlAstCreateBreak(&T, 1); }
 inline_stmt(A) ::= KW_CONTINUE(T) INT(N). { A = xlAstCreateContinue(&T, (int)N.iIntValue); }
@@ -816,11 +1265,29 @@ export_func_decl(A) ::= async_opt(B) KW_FUNC TOK_IDENT(N) TK_LPAREN param_list(P
 	A = xlPCreateExportedDeclList(&N, xlAstCreateFuncDecl(&N, B, P, R, BODY), &N);
 }
 export_func_decl(A) ::= async_opt(B) KW_FUNC type_name(TY) OP_DOT TOK_IDENT(N) TK_LPAREN param_list(P) TK_RPAREN ret_type(R) opt_stmt_sep block(BODY) KW_END. {
-	A = xlPCreateExportedDeclList(&N, xlPCreateMethodFuncDecl(&TY, &N, B, P, R, BODY), &N);
+	A = xlPCreateExportedDeclList(&N, xlPCreateMethodFuncDecl(xlAstCreateTypeRef(&TY), &N, B, P, R, BODY), &N);
+}
+export_func_decl(A) ::= async_opt(B) KW_FUNC generic_type_ref(TY) OP_DOT TOK_IDENT(N) TK_LPAREN param_list(P) TK_RPAREN ret_type(R) opt_stmt_sep block(BODY) KW_END. {
+	A = xlPCreateExportedDeclList(&N, xlPCreateMethodFuncDecl(TY, &N, B, P, R, BODY), &N);
+}
+export_func_decl(A) ::= async_opt(B) KW_FUNC function_type_ref(TY) OP_DOT TOK_IDENT(N) TK_LPAREN param_list(P) TK_RPAREN ret_type(R) opt_stmt_sep block(BODY) KW_END. {
+	A = xlPCreateExportedDeclList(&N, xlPCreateMethodFuncDecl(TY, &N, B, P, R, BODY), &N);
 }
 
 expr_opt(A) ::= . { A = NULL; }
 expr_opt(A) ::= expr(E). { A = E; }
+
+return_value_list(A) ::= . { A = xlPList(); }
+return_value_list(A) ::= return_values(V). { A = V; }
+
+return_values(A) ::= expr(E). {
+	A = xlPList();
+	xlAstAppendChild(A, E);
+}
+return_values(A) ::= return_values(L) TK_COMMA expr(E). {
+	A = L;
+	xlAstAppendChild(A, E);
+}
 
 arg_list(A) ::= . {
 	A = xlPList();
@@ -1004,6 +1471,10 @@ power_expr(A) ::= unary_expr(L) OP_POWER(T) power_expr(R). {
 	A = xlAstCreateBinary(&T, "**", L, R);
 }
 
+yield_expr(A) ::= KW_YIELD(T) expr_opt(E). {
+	A = xlAstCreateYield(&T, E);
+}
+
 unary_expr(A) ::= postfix_expr(E). [KW_AWAIT] {
 	A = E;
 }
@@ -1049,6 +1520,9 @@ primary_expr(A) ::= TOK_IDENT(N). [TK_LBRACE] {
 	A = xlAstCreateIdent(&N);
 }
 primary_expr(A) ::= TK_LPAREN expr(E) TK_RPAREN. {
+	A = E;
+}
+primary_expr(A) ::= TK_LPAREN yield_expr(E) TK_RPAREN. {
 	A = E;
 }
 primary_expr(A) ::= bare_bracket_literal(L). {

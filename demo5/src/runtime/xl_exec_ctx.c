@@ -69,6 +69,24 @@ static int __xlAppendText(char* sBuf, size_t iBufSize, const char* sText)
 	return 1;
 }
 
+static void __xlStripFileName(char* sPath)
+{
+	size_t iLen;
+
+	if ( sPath == NULL ) {
+		return;
+	}
+
+	iLen = strlen(sPath);
+	while ( iLen > 0u ) {
+		if ( (sPath[iLen - 1] == '\\') || (sPath[iLen - 1] == '/') ) {
+			sPath[iLen - 1] = '\0';
+			return;
+		}
+		--iLen;
+	}
+}
+
 static char* __xlConcatText3(const char* sA, const char* sB, const char* sC)
 {
 	size_t iLenA;
@@ -188,8 +206,76 @@ static void __xlBuildFallbackExePath(XL_ExecCtx* pCtx, char* sOut, size_t iOutSi
 	}
 }
 
-static void __xlInitExecFallbackConfig(xprocessconfig* pConfig, const char* sExePath, const char* sWorkDir)
+static char* __xlBuildFallbackPathEnv(const XL_ExecCtx* pCtx)
 {
+#if defined(_WIN32) || defined(_WIN64)
+	char sPathValue[8192];
+	char sDir[XL_PATH_MAX_LEN];
+	char* sEnvText;
+	const char* sCurrentPath;
+	size_t i;
+
+	if ( pCtx == NULL ) {
+		return NULL;
+	}
+
+	sPathValue[0] = '\0';
+	for ( i = 0u; i < pCtx->iArtifactCount; ++i ) {
+		if ( strcmp(pCtx->arrArtifacts[i].sKind, "shared") != 0 ) {
+			continue;
+		}
+		__xlCopyText(sDir, sizeof(sDir), pCtx->arrArtifacts[i].sFile);
+		__xlStripFileName(sDir);
+		if ( sDir[0] == '\0' ) {
+			continue;
+		}
+		if ( sPathValue[0] != '\0' && !__xlAppendText(sPathValue, sizeof(sPathValue), ";") ) {
+			return NULL;
+		}
+		if ( !__xlAppendText(sPathValue, sizeof(sPathValue), sDir) ) {
+			return NULL;
+		}
+	}
+
+	if ( sPathValue[0] == '\0' ) {
+		return NULL;
+	}
+
+	sCurrentPath = getenv("PATH");
+	if ( (sCurrentPath != NULL) && (sCurrentPath[0] != '\0') ) {
+		if ( !__xlAppendText(sPathValue, sizeof(sPathValue), ";") ||
+			!__xlAppendText(sPathValue, sizeof(sPathValue), sCurrentPath) ) {
+			return NULL;
+		}
+	}
+
+	sEnvText = __xlConcatText3("PATH=", sPathValue, "");
+	return sEnvText;
+#else
+	XL_UNUSED(pCtx);
+	return NULL;
+#endif
+}
+
+static void __xlFreeExecFallbackConfig(xprocessconfig* pConfig)
+{
+	if ( (pConfig == NULL) || (pConfig->arrEnv == NULL) ) {
+		return;
+	}
+
+	if ( pConfig->iEnvCount != 0u && pConfig->arrEnv[0] != NULL ) {
+		free(pConfig->arrEnv[0]);
+	}
+	free(pConfig->arrEnv);
+	pConfig->arrEnv = NULL;
+	pConfig->iEnvCount = 0u;
+}
+
+static void __xlInitExecFallbackConfig(xprocessconfig* pConfig, const XL_ExecCtx* pCtx, const char* sExePath, const char* sWorkDir)
+{
+	char* sEnvText;
+	str* arrEnv;
+
 	if ( pConfig == NULL ) {
 		return;
 	}
@@ -201,6 +287,22 @@ static void __xlInitExecFallbackConfig(xprocessconfig* pConfig, const char* sExe
 	pConfig->bHideWindow = true;
 	pConfig->bMergeStderr = true;
 	pConfig->iMaxCaptureBytes = 65536u;
+
+	sEnvText = __xlBuildFallbackPathEnv(pCtx);
+	if ( sEnvText == NULL ) {
+		return;
+	}
+
+	arrEnv = (str*)calloc(1u, sizeof(str));
+	if ( arrEnv == NULL ) {
+		free(sEnvText);
+		return;
+	}
+
+	arrEnv[0] = (str)sEnvText;
+	pConfig->arrEnv = arrEnv;
+	pConfig->iEnvCount = 1u;
+	pConfig->bInheritEnv = true;
 }
 
 static char* __xlBuildFallbackTrace(
@@ -238,8 +340,23 @@ static char* __xlBuildFallbackTrace(
 	return sOut;
 }
 
-static int __xlShouldPreferFallbackExe(const char* sCode)
+static int __xlShouldPreferFallbackExe(const XL_ExecCtx* pCtx, const char* sCode)
 {
+	size_t i;
+
+	if ( pCtx != NULL ) {
+		for ( i = 0u; i < pCtx->iArtifactCount; ++i ) {
+			if ( strcmp(pCtx->arrArtifacts[i].sKind, "shared") == 0 ) {
+				/*
+				 * Shared xlp artifacts are currently reliable only through the
+				 * embedded TCC path. Emitting a fallback executable leaves TCC
+				 * with an invalid import descriptor on Windows.
+				 */
+				return 0;
+			}
+		}
+	}
+
 	if ( sCode == NULL ) {
 		return 0;
 	}
@@ -247,12 +364,17 @@ static int __xlShouldPreferFallbackExe(const char* sCode)
 	/*
 	 * Embedded TCC still mis-executes point-related generated code even though
 	 * the equivalent built executable returns the correct result.
+	 *
+	 * Stage-1 generator yield-expression resume code also relies on a control
+	 * flow pattern that the embedded in-memory path currently mis-executes,
+	 * while the built fallback executable produces the expected behavior.
 	 */
 	return
 		(strstr(sCode, "xvoCreatePoint(") != NULL) ||
 		(strstr(sCode, "xvoGetPoint(") != NULL) ||
 		(strstr(sCode, "xl_value_to_string(") != NULL) ||
-		(strstr(sCode, "xl_point_to_string(") != NULL);
+		(strstr(sCode, "xl_point_to_string(") != NULL) ||
+		(strstr(sCode, "xl_gen_resume_result_") != NULL);
 }
 
 void xlExecCtxInit(XL_ExecCtx* pCtx, const char* sInputFile, const char* sReleaseRoot)
@@ -358,7 +480,7 @@ int xlExecRunCode(XL_ExecCtx* pCtx, XL_DiagContext* pDiag, const char* sCode, ch
 	sRunTraceText = NULL;
 	sBuildTraceText = NULL;
 	sFallbackTrace = NULL;
-	bPreferFallbackExe = __xlShouldPreferFallbackExe(sCode);
+	bPreferFallbackExe = __xlShouldPreferFallbackExe(pCtx, sCode) ? 1 : 0;
 	__xlCopyText(hostCtx.sInputFile, sizeof(hostCtx.sInputFile), pCtx->sInputFile);
 	__xlCopyText(hostCtx.sReleaseRoot, sizeof(hostCtx.sReleaseRoot), pCtx->sReleaseRoot);
 	__xlCopyText(hostCtx.sProjectRoot, sizeof(hostCtx.sProjectRoot), pCtx->sProjectRoot);
@@ -407,6 +529,14 @@ int xlExecRunCode(XL_ExecCtx* pCtx, XL_DiagContext* pDiag, const char* sCode, ch
 	if ( iRc == XL_RC_OK ) {
 		return iRc;
 	}
+	if ( result.bHadException ) {
+		/*
+		 * Preserve the embedded-run failure for language-level exceptions.
+		 * The host trace already carries exception.kind / exception.text, and
+		 * falling back to an external executable would erase that outcome.
+		 */
+		return iRc;
+	}
 
 	__xlBuildFallbackExePath(pCtx, sFallbackExe, sizeof(sFallbackExe));
 	iRc = xlHostBuildCText(
@@ -436,8 +566,9 @@ int xlExecRunCode(XL_ExecCtx* pCtx, XL_DiagContext* pDiag, const char* sCode, ch
 		return iRc;
 	}
 
-	__xlInitExecFallbackConfig(&procConfig, buildResult.sOutputFile, pCtx->sProjectRoot);
+	__xlInitExecFallbackConfig(&procConfig, pCtx, buildResult.sOutputFile, pCtx->sProjectRoot);
 	bExecOk = xrtExecCapture(&procConfig, &procResult, 0u) ? 1 : 0;
+	__xlFreeExecFallbackConfig(&procConfig);
 	pCtx->iExitCode = procResult.iExitCode;
 	pCtx->bHadRuntimeError = bExecOk ? 0 : 1;
 	pCtx->bHadException = 0;

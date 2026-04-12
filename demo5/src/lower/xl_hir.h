@@ -33,6 +33,8 @@ typedef enum XL_HirKind {
 	XL_HIR_LITERAL
 } XL_HirKind;
 
+#define XL_HIR_FLAG_STORAGE_VAR 0x10000
+
 typedef struct XL_HirNode {
 	XL_HirKind eKind;
 	char* sText;

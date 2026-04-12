@@ -1,0 +1,11 @@
+import std.task
+
+async func plus_one(int value) as int
+	return value + 1
+end
+
+async func main() as int
+	task pending = plus_one(40)
+	task waited = task.delay(1)
+	return await pending + await waited
+end

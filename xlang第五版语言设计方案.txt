@@ -196,6 +196,12 @@ xlang 第五版语言设计方案
 	- channel
 	- generator
 
+补充说明：
+	- `type` 是运行时类型对象
+	- `int` / `string` / `array` 等类型名可以作为 `type` 值参与传递
+	- `Type(expr)` 返回 `type`
+	- 运行时需要支持 `t.name`、`t == string` 这类基础反射能力
+
 
 4.3 值类型与引用类型
 --------------------
@@ -248,7 +254,8 @@ xlang 第五版语言设计方案
 
 规则：
 	- 隐式转换只允许安全转换
-	- 显式转换通过 `Type(expr)` 触发
+	- `int(expr)` / `string(expr)` / `time(expr)` 等表示显式构造或转换
+	- `Type(expr)` 返回运行时 `type` 对象
 	- 有损转换默认必须显式书写
 
 
@@ -373,8 +380,8 @@ xlang 第五版语言设计方案
 支持：
 	- 位置参数
 	- 默认参数
-	- 数组可变参数
-	- 字典可变参数
+	- 数组可变参数 `...`
+	- 字典可变参数 `***`
 
 示例：
 	func greet(string name, string msg = "Hello")
@@ -382,12 +389,25 @@ xlang 第五版语言设计方案
 	end
 
 	func sum(...)
-		...
+		return arg.length
 	end
 
 	func config(***)
-		...
+		return arg.length
 	end
+
+规则：
+	- 第五版首版中，`...` 与 `***` 互斥，一个函数不能同时声明两者
+	- `func f(int a, ...)` 中，函数体内自动注入保留变量 `arg`，其静态类型为 `array<var>`
+	- `func f(int a, ***)` 中，函数体内自动注入保留变量 `arg`，其静态类型为 `dict<var>`
+	- `arg` 为保留名，声明了可变参数的函数内部不得再次声明同名参数或局部变量
+	- `...` 用于自动收敛多余位置参数
+	- `***` 用于自动收敛多余命名参数
+	- 除自动收敛外，也允许显式整包传入：
+		- `f(1, arg = [2, 3, 4])`
+		- `f(1, arg = {"x": 10, "y": 20})`
+	- 自动收敛与显式整包传入不能混用
+	- 第五版首版不支持在调用点把已有数组或字典再次展开为 `...arr` / `***map`
 
 
 7.3 命名参数
@@ -405,16 +425,26 @@ xlang 第五版语言设计方案
 
 7.4 返回值
 ----------
-第五版首版先保留单返回值为核心标准。
+第五版正式支持多返回值。
 
-但必须提前为多返回值留出设计余量：
-	- 第五版后的 xlang 调用约定函数一定支持多返回值
+标准写法：
+	func split_name(string s) as string, string
+		return "a", "b"
+	end
+
+接收写法：
+	auto first, second = split_name("x")
+	auto first, _ = split_name("x")
+
+规则：
+	- 函数声明写法固定为 `func f() as int, string`
+	- `return` 直接写作 `return a, b`
+	- 调用结果支持解构接收
+	- `_` 作为忽略位
+	- 多返回值不是一般意义上的一等 tuple 值
+	- 但允许在“调用参数位置”展开，如 `g(f())`
+	- `auto x = f()` 若 `f()` 返回多个值，则必须报错
 	- `cdecl`、`stdcall` 等外部调用约定默认不要求支持多返回值
-	- 函数声明表、元信息表、调用 Lowering、ABI 描述都必须从一开始支持“返回值列表”字段
-
-结论：
-	- 语言首版表面先只开放单返回值
-	- 但内部机制不能按“永远只有一个返回值”设计
 
 
 7.5 重载
@@ -550,6 +580,32 @@ ABI 原则：
 	- native 模块、模块导出、调试系统都复用这套“声明 -> 元信息 -> 目标符号”体系
 	- 最终 ABI 必须与版本绑定，以支持同名库多版本天然共存
 
+第五版首版已落地的最小双层 ABI 元信息：
+	- 每个函数元信息项显式携带 `languageAbi`
+	- 当前固定为 `xlang@v1`
+	- 每个函数元信息项显式携带 `nativeAbi`
+	- 当前固定为 `c@v1`
+	- `signatureId` / `dispatchKey` 继续承担语言层签名定位
+	- `abiSymbol` 继续承担当前 C 层目标符号定位
+	- 首版先稳定“语言层签名 id + ABI 版本 + native 符号名”三者并存
+	- 更细的版本绑定符号编码规则留待后续 `版本绑定 ABI` 再推进
+
+第五版首版的版本绑定 ABI：
+	- xlp 函数元信息继续保留未绑定版本的 `signatureId` / `abiSymbol`
+	- 同时额外显式输出版本绑定后的 `languageAbiId`
+	- 格式为：`<moduleAbiId>::<signatureId>#<languageAbi>`
+	- 同时额外显式输出版本绑定后的 `nativeAbiId`
+	- 格式为：`<moduleAbiId>::<abiSymbol>#<nativeAbi>`
+	- 其中 `moduleAbiId` 已绑定包名、包版本、ABI 版本
+	- 因此 `languageAbiId` / `nativeAbiId` 可直接作为稳定分发与多版本共存的函数 ABI 身份标识
+	- 模块导出表中的每个导出项也显式输出 `abiId`
+	- 格式为：`<moduleAbiId>::<exportName>`
+	- 同时显式输出 `versionedSymbol`
+	- 格式为：`<moduleAbiId>::<symbol>`
+	- 这样加载器无需反推即可直接得到“导出名身份”与“版本绑定后的目标符号”
+	- 第五版首版先把“版本绑定”稳定在元信息 id 层
+	- 是否进一步把版本编码进最终真实 C 导出符号名，可在后续模块 ABI 统一落地时再推进
+
 
 7.5.6 对未来 custom/class 的设计余量
 -----------------------------------
@@ -565,12 +621,19 @@ ABI 原则：
 
 7.6 函数类型
 ------------
-`function` 保留为标准类型。
-但函数作为动态值存在具备较高落地难度，第五版首版先搁置其完整设计。
+`function` 是标准类型，并支持签名化函数值。
 
-也就是说：
-	- 语言层保留 `function` 类型概念
-	- 但完整函数值、闭包函数值、动态传递函数对象等能力，后续再单独展开标准
+标准形式：
+	- `function<int(string)>`
+	- `function<void()>`
+
+规则：
+	- 函数引用语法使用裸函数名：`foo`
+	- `function` 必须携带签名信息
+	- `var` 也可存储函数值，但运行时必须同时保存签名信息
+	- 重载函数作为值使用时，必须能由目标签名唯一决议，否则报错
+	- 第五版首版先支持“无捕获函数值”
+	- 闭包与捕获语义后续再补，但底层表示需预留扩展能力
 
 
 
@@ -774,9 +837,10 @@ ABI 原则：
 	end
 
 规则：
-	- `async func` 调用结果是 Awaitable
+	- `async func` 的声明返回类型仍写逻辑结果类型
+	- `async func` 调用结果是 Awaitable / future 语义值
 	- 编译期要标记该函数为异步状态机
-	- 最终返回值通过 future/task 承载
+	- 最终返回值通过 future 运行时值承载
 
 
 10.2 async 上下文
@@ -796,7 +860,7 @@ ABI 原则：
 
 语义上表示：
 	- 逻辑返回类型是 `int`
-	- 实际调用结果是 `Awaitable<int>`
+	- 实际调用结果是 `Awaitable<int>` / `future<int>` 语义
 
 这套泛型化表示先作为语义概念，不要求第五版首版一定提供完整泛型语法。
 
@@ -851,7 +915,10 @@ ABI 原则：
 
 首版满足 Awaitable 的标准类型：
 	- future
-	- task
+
+说明：
+	- `future` 是首版主要公开异步值类型
+	- `task` 首版更偏标准库编排接口与调度语义层，不强制再引入第二套独立值模型
 
 后续可扩展：
 	- native async IO 结果
@@ -877,7 +944,7 @@ ABI 原则：
 
 12.1 设计目标
 -------------
-第五版正式支持 `yield`，但首版只支持 generator 语义，不支持 async generator。
+第五版正式支持 `yield`，首版已支持 generator 语义，并支持 async generator 的 stage 1 最小版。
 
 
 12.2 形式
@@ -901,8 +968,8 @@ ABI 原则：
 12.4 yield 上下文限制
 ---------------------
 	- `yield` 只能出现在 generator 函数中
-	- 首版不支持在 `async func` 中使用 `yield`
-	- 首版不支持把 `yield` 当表达式值回传
+	- 首版支持在 `async func` 中使用 `yield`（stage 1 最小版）
+	- 首版支持把 `yield` 当表达式值回传；stage 1 恢复值类型按 `var` 处理，通过 `generator.next()` / `generator.resume(value)` 驱动
 
 
 12.5 手动协程控制
@@ -937,8 +1004,8 @@ ABI 原则：
 	- 返回给调用方
 
 限制：
-	- 第五版首版不支持 async generator
-	- 第五版首版不支持 `yield` 作为双向值交换表达式
+	- 第五版首版支持 async generator 的 stage 1 最小版
+	- 第五版首版支持 `yield` 作为双向值交换表达式；stage 1 恢复值按 `var` 传递
 
 
 
@@ -959,6 +1026,13 @@ ABI 原则：
 	task.delay(ms)
 	task.cancel(t)
 
+首版约定：
+	- `spawn` / `all` / `race` / `delay` 的结果按 `future` 语义处理
+	- `cancel` 返回 `bool`
+	- `task` 是标准库命名空间，不是额外语法关键字
+	- 第五版首版同时允许使用 `task` 作为声明类型接收 async / `std.task` 的结果
+	- 该声明类型在实现上收敛为具体 `future<T>`，不额外引入第二套独立异步值表示
+
 
 13.3 与语言语义的关系
 --------------------
@@ -970,6 +1044,26 @@ ABI 原则：
 		fetchB(),
 		fetchC()
 	])
+
+13.4 channel
+------------
+第五版首版将 `channel` 作为标准运行时类型。
+
+建议构造形式：
+	channel()
+	channel(16)
+
+建议接口：
+	ch.send(v)
+	auto ok, v = await ch.recv()
+	ch.close()
+
+规则：
+	- 第五版首版不强制要求 `channel<T>` 泛型语法
+	- channel 首版内部元素统一按 `var` 语义承载
+	- `recv()` 在关闭且已读空时返回 `false, null`
+	- 不使用 `null` 作为单一结束哨兵，因为 `null` 本身是合法数据
+	- `select` 暂不纳入第五版首版核心标准，后续单独扩展
 
 
 
@@ -1066,6 +1160,11 @@ ABI 原则：
 	- 导出函数 -> 已决议的 C 符号
 	- 导出常量 -> 运行时值或静态值访问器
 	- 导出变量 -> 运行时槽位
+	- 首版 xlp 元信息中，每个模块额外显式携带 `initSymbol`
+	- 首版 xlp 元信息中，每个模块额外显式携带 `exportsSymbol`
+	- 首版 xlp 元信息中，每个模块额外显式携带 `descriptorSymbol`
+	- 首版 xlp 元信息中，每个导出项额外显式携带 `abiId = <moduleAbiId>::<exportName>`
+	- 首版 xlp 元信息中，每个导出项额外显式携带 `versionedSymbol = <moduleAbiId>::<symbol>`
 
 建议首版限制：
 	- 模块循环依赖在第五版首版直接视为编译期错误
@@ -1136,8 +1235,23 @@ ABI 原则：
 
 说明：
 	- 这些协议首先服务编译器机制
-	- 首版不要求一定开放用户自定义协议语法
-	- 但标准类型、native 类型都应能通过注册机制实现这些协议
+	- 首版采用“显式注册为标准模型，内建类型自动注册”的方向
+	- 后续 class / custom 与基础类型共用同一套协议注册机制
+	- 建议保留内部方法名：
+		- `Callable -> __call__`
+		- `Indexable -> __get_index__ / __set_index__`
+		- `Iterable -> __iter__`
+		- `Iterator -> __next__`
+		- `Awaitable -> __await__`
+	- `Iterator.__next__` 与 `channel.recv()` 建议统一采用多返回值 `bool, var`
+	- 第五版首版实现采用“显式协议注册表 + 内建类型自动注册”
+		- `function -> Callable`
+		- `array/list/dict -> Indexable`
+		- `array/list/set/dict/range/generator -> Iterable`
+		- `generator -> Iterator + Generator`
+		- `future -> Awaitable`
+	- 首版先让 `call / index / for in / await` 语义检查统一走协议查询
+	- 自定义类型协议注册语法后续再补，但模型先与基础类型共用
 
 
 
@@ -1161,11 +1275,25 @@ native 绑定要支持：
 
 16.3 extern
 -----------
-第五版建议 `extern` 保留，但不作为首轮讨论重点。
+第五版保留 `extern`，并给出最小可用标准。
 
-原因：
-	- 第五版首先更重要的是模块式 native 绑定
-	- `extern cdecl func ...` 这种声明可在第二轮标准里细化
+标准形式：
+	extern func foo(int a) as int
+	extern "native_symbol" func foo(int a) as int
+
+规则：
+	- `extern` 只能出现在顶层
+	- 允许顶层独立函数声明，不要求一切经由模块包装
+	- C 符号名既可默认按 ABI 推导，也可显式绑定
+	- 第五版首版语法支持：
+		- `extern func foo(int a) as int`
+		- `extern "native_symbol" func foo(int a) as int`
+	- 第五版首版暂不支持 `extern async func`
+	- 第五版首版暂不支持类型方法形式的 `extern`
+	- 第五版首版固定最小 ABI 版本：
+		- 语言层 ABI：`xlang@v1`
+		- native C ABI：`c@v1`
+	- 每个导出函数都应同时拥有语言层签名标识与具体 native 符号名
 
 
 

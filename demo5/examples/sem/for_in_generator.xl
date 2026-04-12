@@ -6,7 +6,10 @@ end
 
 func main() as int
 	for value in make_values()
-		return value
+		if value == 1 then
+			return 1
+		end
+		return 2
 	end
 	return 0
 end

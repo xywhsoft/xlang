@@ -7,6 +7,9 @@ typedef struct XL_XlpResolveInfo {
 	char sManifestPath[XL_PATH_MAX_LEN];
 	char sModuleFile[XL_PATH_MAX_LEN];
 	char sBindingName[XL_PATH_MAX_LEN];
+	char sInitSymbol[XL_PATH_MAX_LEN];
+	char sExportsSymbol[XL_PATH_MAX_LEN];
+	char sDescriptorSymbol[XL_PATH_MAX_LEN];
 	char sPackageName[XL_PATH_MAX_LEN];
 	char sPackageVersion[64];
 	char sPackageAbiVersion[32];
@@ -41,6 +44,10 @@ typedef struct XL_XlpFunctionInfo {
 	char sOverloadGroup[256];
 	char sSignatureId[256];
 	char sDispatchKey[256];
+	char sLanguageAbi[64];
+	char sNativeAbi[64];
+	char sLanguageAbiId[XL_PATH_MAX_LEN];
+	char sNativeAbiId[XL_PATH_MAX_LEN];
 	char sAbiSymbol[256];
 	char sReturnType[64];
 	int bAsync;

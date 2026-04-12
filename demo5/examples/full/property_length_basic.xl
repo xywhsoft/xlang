@@ -1,5 +1,3 @@
-import std.core
-
 func main() as int
 	auto text = "hello"
 	auto values = [1, 2, 3]
@@ -7,6 +5,5 @@ func main() as int
 	auto flags = {1, 2}
 	auto pairs = {"a": 1}
 	auto total = text.length + values.length + items.length + flags.length + pairs.length
-	std.core.println(total)
 	return total
 end

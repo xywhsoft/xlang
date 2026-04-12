@@ -19,6 +19,8 @@ static XL_HirKind __xlExprKind(const XL_AstNode* pNode)
 			return XL_HIR_UNARY;
 		case XL_AST_IDENT:
 			return XL_HIR_NAME;
+		case XL_AST_YIELD:
+			return XL_HIR_YIELD;
 		default:
 			return XL_HIR_LITERAL;
 	}
@@ -28,6 +30,7 @@ static void __xlApplySemNodeInfo(XL_HirNode* pHir, const XL_SemResult* pSem, con
 {
 	const XL_SemNodeInfo* pInfo;
 	const XL_FuncInfo* pFunc;
+	const XL_SymbolInfo* pSymbol;
 
 	if ( (pHir == NULL) || (pSem == NULL) || (pNode == NULL) ) {
 		return;
@@ -41,12 +44,16 @@ static void __xlApplySemNodeInfo(XL_HirNode* pHir, const XL_SemResult* pSem, con
 	pHir->iScopeId = pInfo->iScopeId;
 	pHir->iSymbolIndex = pInfo->iSymbolIndex;
 	pHir->iFuncIndex = pInfo->iFuncIndex;
+	pSymbol = (pInfo->iSymbolIndex >= 0) ? xlSymbolTableGet(&pSem->symbols, (size_t)pInfo->iSymbolIndex) : NULL;
 	pFunc = (pInfo->iFuncIndex >= 0) ? xlFuncTableGet(&pSem->funcs, (size_t)pInfo->iFuncIndex) : NULL;
 	if ( (pFunc != NULL) && (pFunc->sAbiSymbol != NULL) && (pFunc->sAbiSymbol[0] != '\0') ) {
 		xlHirSetAbiName(pHir, pFunc->sAbiSymbol);
 	}
 	if ( (pInfo->sTypeName != NULL) && (pInfo->sTypeName[0] != '\0') ) {
 		xlHirSetTypeName(pHir, pInfo->sTypeName);
+	}
+	if ( (pSymbol != NULL) && (pSymbol->sTypeName != NULL) && (strcmp(pSymbol->sTypeName, "var") == 0) ) {
+		pHir->bFlag |= XL_HIR_FLAG_STORAGE_VAR;
 	}
 }
 
@@ -75,6 +82,43 @@ static const XL_AstNode* __xlArgValue(const XL_AstNode* pNode)
 	}
 
 	return pNode;
+}
+
+static const XL_FuncInfo* __xlResolvedFuncInfo(const XL_SemResult* pSem, const XL_AstNode* pNode)
+{
+	const XL_SemNodeInfo* pInfo;
+
+	if ( (pSem == NULL) || (pNode == NULL) ) {
+		return NULL;
+	}
+
+	pInfo = xlSemNodeInfoFind(pSem, pNode);
+	if ( (pInfo == NULL) || (pInfo->iFuncIndex < 0) ) {
+		return NULL;
+	}
+	return xlFuncTableGet(&pSem->funcs, (size_t)pInfo->iFuncIndex);
+}
+
+static const XL_FuncInfo* __xlExprMultiReturnFunc(const XL_SemResult* pSem, const XL_AstNode* pNode)
+{
+	const XL_FuncInfo* pFunc;
+	const XL_AstNode* pTargetNode;
+
+	if ( pNode == NULL ) {
+		return NULL;
+	}
+
+	pTargetNode = pNode;
+	if ( (pNode->eKind == XL_AST_UNARY) && (pNode->sText != NULL) && (strcmp(pNode->sText, "await") == 0) ) {
+		pTargetNode = __xlAstChild(pNode, 0);
+	}
+
+	if ( (pTargetNode == NULL) || (pTargetNode->eKind != XL_AST_CALL) ) {
+		return NULL;
+	}
+
+	pFunc = __xlResolvedFuncInfo(pSem, pTargetNode);
+	return ((pFunc != NULL) && (pFunc->iReturnCount > 1)) ? pFunc : NULL;
 }
 
 static int __xlFindParamIndexByNameFrom(const XL_FuncInfo* pFunc, const char* sName, size_t iStartIndex)
@@ -109,6 +153,104 @@ static void __xlLowerCallArgsOriginal(
 	}
 }
 
+static XL_HirNode* __xlCreateHiddenCallHir(const XL_AstNode* pSource, const char* sName, const char* sTypeName)
+{
+	XL_HirNode* pCall;
+	XL_HirNode* pCallee;
+	XL_HirNode* pArgs;
+
+	pCall = xlHirCreateNode(XL_HIR_CALL, pSource);
+	pCallee = xlHirCreateNode(XL_HIR_NAME, pSource);
+	pArgs = xlHirCreateNode(XL_HIR_BLOCK, pSource);
+	if ( (pCall == NULL) || (pCallee == NULL) || (pArgs == NULL) ) {
+		xlHirFree(pCall);
+		xlHirFree(pCallee);
+		xlHirFree(pArgs);
+		return NULL;
+	}
+
+	xlHirSetText(pCallee, sName);
+	xlHirSetText(pArgs, "args");
+	if ( (sTypeName != NULL) && (sTypeName[0] != '\0') ) {
+		xlHirSetTypeName(pCall, sTypeName);
+	}
+	xlHirAppendChild(pCall, pCallee);
+	xlHirAppendChild(pCall, pArgs);
+	return pCall;
+}
+
+static XL_HirNode* __xlCreateStringLiteralHir(const XL_AstNode* pSource, const char* sText)
+{
+	XL_HirNode* pNode;
+	char* sQuoted;
+	size_t iLen;
+
+	if ( sText == NULL ) {
+		sText = "";
+	}
+
+	iLen = strlen(sText);
+	sQuoted = (char*)malloc(iLen + 3);
+	if ( sQuoted == NULL ) {
+		return NULL;
+	}
+
+	sQuoted[0] = '"';
+	memcpy(sQuoted + 1, sText, iLen);
+	sQuoted[iLen + 1] = '"';
+	sQuoted[iLen + 2] = '\0';
+
+	pNode = xlHirCreateNode(XL_HIR_LITERAL, pSource);
+	if ( pNode != NULL ) {
+		xlHirSetText(pNode, sQuoted);
+		xlHirSetTypeName(pNode, "string");
+	}
+
+	free(sQuoted);
+	return pNode;
+}
+
+static XL_HirNode* __xlCreateIntLiteralHir(const XL_AstNode* pSource, int64_t iValue)
+{
+	XL_HirNode* pNode;
+	char sText[32];
+
+	pNode = xlHirCreateNode(XL_HIR_LITERAL, pSource);
+	if ( pNode != NULL ) {
+		snprintf(sText, sizeof(sText), "%lld", (long long)iValue);
+		xlHirSetText(pNode, sText);
+		xlHirSetTypeName(pNode, "int");
+		pNode->iIntValue = iValue;
+	}
+	return pNode;
+}
+
+static XL_HirNode* __xlCreateExpandedMultiReturnItemHir(
+	const XL_AstNode* pSource,
+	const XL_AstNode* pCallNode,
+	size_t iItemIndex,
+	const char* sTypeName,
+	const XL_SemResult* pSem,
+	XL_DiagContext* pDiag,
+	int bTraceLower
+)
+{
+	XL_HirNode* pIndex;
+
+	pIndex = xlHirCreateNode(XL_HIR_INDEX, pSource);
+	if ( pIndex == NULL ) {
+		return NULL;
+	}
+
+	xlHirSetText(pIndex, "__mret_item__");
+	if ( (sTypeName != NULL) && (sTypeName[0] != '\0') ) {
+		xlHirSetTypeName(pIndex, sTypeName);
+	}
+	xlHirAppendChild(pIndex, xlLowerExprToHir(pCallNode, pSem, pDiag, bTraceLower));
+	xlHirAppendChild(pIndex, __xlCreateIntLiteralHir(pSource, (int64_t)iItemIndex));
+	return pIndex;
+}
+
 static void __xlLowerCallArgsResolved(
 	XL_HirNode* pArgs,
 	const XL_AstNode* pCallNode,
@@ -123,7 +265,15 @@ static void __xlLowerCallArgsResolved(
 	const XL_AstNode* pArg;
 	const XL_AstNode* pValue;
 	const XL_AstNode** arrBound;
+	int* arrBoundExpandIndex;
 	const XL_AstNode* pSelfValue;
+	const XL_AstNode** arrVarArgValues;
+	const char** arrVarArgNames;
+	int* arrVarArgExpandIndex;
+	const XL_AstNode* pPackedArgValue;
+	size_t iFixedParamCount;
+	size_t iVarArgIndex;
+	size_t iVarArgCount;
 	size_t i;
 	size_t iNextPos;
 	size_t iStartIndex;
@@ -136,12 +286,27 @@ static void __xlLowerCallArgsResolved(
 		__xlLowerCallArgsOriginal(pArgs, pAstArgs, pSem, pDiag, bTraceLower);
 		return;
 	}
+	iVarArgIndex = (pFunc->eVarArgKind != XL_FUNC_VARARG_NONE) ? (pFunc->iParamCount - 1) : pFunc->iParamCount;
+	iFixedParamCount = iVarArgIndex;
 
 	arrBound = (const XL_AstNode**)calloc(pFunc->iParamCount, sizeof(XL_AstNode*));
-	if ( arrBound == NULL ) {
+	arrBoundExpandIndex = (int*)calloc(pFunc->iParamCount, sizeof(int));
+	arrVarArgValues = (const XL_AstNode**)calloc(((pAstArgs != NULL) && (pAstArgs->iChildCount != 0)) ? pAstArgs->iChildCount : 1, sizeof(XL_AstNode*));
+	arrVarArgNames = (const char**)calloc(((pAstArgs != NULL) && (pAstArgs->iChildCount != 0)) ? pAstArgs->iChildCount : 1, sizeof(const char*));
+	arrVarArgExpandIndex = (int*)calloc(((pAstArgs != NULL) && (pAstArgs->iChildCount != 0)) ? pAstArgs->iChildCount : 1, sizeof(int));
+	pPackedArgValue = NULL;
+	iVarArgCount = 0;
+	if ( (arrBound == NULL) || (arrBoundExpandIndex == NULL) || (arrVarArgValues == NULL) || (arrVarArgNames == NULL) || (arrVarArgExpandIndex == NULL) ) {
+		free(arrBound);
+		free(arrBoundExpandIndex);
+		free(arrVarArgValues);
+		free(arrVarArgNames);
+		free(arrVarArgExpandIndex);
 		__xlLowerCallArgsOriginal(pArgs, pAstArgs, pSem, pDiag, bTraceLower);
 		return;
 	}
+	memset(arrBoundExpandIndex, 0xFF, sizeof(int) * pFunc->iParamCount);
+	memset(arrVarArgExpandIndex, 0xFF, sizeof(int) * ((((pAstArgs != NULL) && (pAstArgs->iChildCount != 0)) ? pAstArgs->iChildCount : 1)));
 
 	pSelfValue = NULL;
 	iNextPos = 0;
@@ -153,6 +318,8 @@ static void __xlLowerCallArgsResolved(
 		pSelfValue = ((pCallee != NULL) && (pCallee->eKind == XL_AST_MEMBER)) ? __xlAstChild(pCallee, 0) : NULL;
 		if ( pSelfValue == NULL ) {
 			free(arrBound);
+			free(arrVarArgValues);
+			free(arrVarArgNames);
 			__xlLowerCallArgsOriginal(pArgs, pAstArgs, pSem, pDiag, bTraceLower);
 			return;
 		}
@@ -164,32 +331,127 @@ static void __xlLowerCallArgsResolved(
 	for ( i = 0; (pAstArgs != NULL) && (i < pAstArgs->iChildCount); ++i ) {
 		pArg = pAstArgs->ppChildren[i];
 		pValue = __xlArgValue(pArg);
+		if ( (__xlArgName(pArg) != NULL) && (pFunc->eVarArgKind != XL_FUNC_VARARG_NONE) && (strcmp(__xlArgName(pArg), "arg") == 0) ) {
+			pPackedArgValue = pValue;
+			continue;
+		}
+		if ( (__xlArgName(pArg) == NULL) && (__xlExprMultiReturnFunc(pSem, pValue) != NULL) ) {
+			const XL_FuncInfo* pExpandedFunc;
+			size_t j;
+
+			pExpandedFunc = __xlExprMultiReturnFunc(pSem, pValue);
+			for ( j = 0; (pExpandedFunc != NULL) && (j < pExpandedFunc->iReturnCount); ++j ) {
+				while ( (iNextPos < iFixedParamCount) && (arrBound[iNextPos] != NULL) ) {
+					++iNextPos;
+				}
+				iParamIndex = (iNextPos < iFixedParamCount) ? (int)iNextPos : -1;
+				if ( iParamIndex >= 0 ) {
+					arrBound[iParamIndex] = pValue;
+					arrBoundExpandIndex[iParamIndex] = (int)j;
+					++iNextPos;
+				} else if ( pFunc->eVarArgKind == XL_FUNC_VARARG_ARRAY ) {
+					arrVarArgNames[iVarArgCount] = NULL;
+					arrVarArgValues[iVarArgCount] = pValue;
+					arrVarArgExpandIndex[iVarArgCount] = (int)j;
+					iVarArgCount += 1;
+				}
+			}
+			continue;
+		}
 		if ( __xlArgName(pArg) != NULL ) {
 			iParamIndex = __xlFindParamIndexByNameFrom(pFunc, __xlArgName(pArg), iStartIndex);
 		} else {
-			while ( (iNextPos < pFunc->iParamCount) && (arrBound[iNextPos] != NULL) ) {
+			while ( (iNextPos < iFixedParamCount) && (arrBound[iNextPos] != NULL) ) {
 				++iNextPos;
 			}
-			iParamIndex = (iNextPos < pFunc->iParamCount) ? (int)iNextPos : -1;
+			iParamIndex = (iNextPos < iFixedParamCount) ? (int)iNextPos : -1;
 			++iNextPos;
 		}
 
-		if ( (iParamIndex >= 0) && ((size_t)iParamIndex < pFunc->iParamCount) ) {
+		if ( (iParamIndex >= 0) && ((size_t)iParamIndex < iFixedParamCount) ) {
 			arrBound[iParamIndex] = pValue;
+		} else if ( pFunc->eVarArgKind != XL_FUNC_VARARG_NONE ) {
+			arrVarArgNames[iVarArgCount] = __xlArgName(pArg);
+			arrVarArgValues[iVarArgCount] = pValue;
+			iVarArgCount += 1;
 		}
 	}
 
-	for ( i = 0; i < pFunc->iParamCount; ++i ) {
+	for ( i = 0; i < iFixedParamCount; ++i ) {
 		pValue = arrBound[i];
 		if ( (pValue == NULL) && (pFunc->arrParamHasDefault != NULL) && pFunc->arrParamHasDefault[i] ) {
 			pValue = pFunc->arrParamDefaultValues[i];
 		}
 		if ( pValue != NULL ) {
-			xlHirAppendChild(pArgs, xlLowerExprToHir(pValue, pSem, pDiag, bTraceLower));
+			if ( arrBoundExpandIndex[i] >= 0 ) {
+				xlHirAppendChild(
+					pArgs,
+					__xlCreateExpandedMultiReturnItemHir(
+						pValue,
+						pValue,
+						(size_t)arrBoundExpandIndex[i],
+						(pFunc->arrParamTypes != NULL) ? pFunc->arrParamTypes[i] : NULL,
+						pSem,
+						pDiag,
+						bTraceLower
+					)
+				);
+			} else {
+				xlHirAppendChild(pArgs, xlLowerExprToHir(pValue, pSem, pDiag, bTraceLower));
+			}
+		}
+	}
+	if ( pFunc->eVarArgKind == XL_FUNC_VARARG_ARRAY ) {
+		XL_HirNode* pPackedCall;
+		XL_HirNode* pPackedArgs;
+
+		if ( pPackedArgValue != NULL ) {
+			xlHirAppendChild(pArgs, xlLowerExprToHir(pPackedArgValue, pSem, pDiag, bTraceLower));
+		} else {
+			pPackedCall = __xlCreateHiddenCallHir(pCallNode, "__array_literal", "array<var>");
+			pPackedArgs = (pPackedCall != NULL) ? pPackedCall->ppChildren[1] : NULL;
+			for ( i = 0; i < iVarArgCount; ++i ) {
+				if ( arrVarArgExpandIndex[i] >= 0 ) {
+					xlHirAppendChild(
+						pPackedArgs,
+						__xlCreateExpandedMultiReturnItemHir(
+							arrVarArgValues[i],
+							arrVarArgValues[i],
+							(size_t)arrVarArgExpandIndex[i],
+							"var",
+							pSem,
+							pDiag,
+							bTraceLower
+						)
+					);
+				} else {
+					xlHirAppendChild(pPackedArgs, xlLowerExprToHir(arrVarArgValues[i], pSem, pDiag, bTraceLower));
+				}
+			}
+			xlHirAppendChild(pArgs, pPackedCall);
+		}
+	} else if ( pFunc->eVarArgKind == XL_FUNC_VARARG_DICT ) {
+		XL_HirNode* pPackedCall;
+		XL_HirNode* pPackedArgs;
+
+		if ( pPackedArgValue != NULL ) {
+			xlHirAppendChild(pArgs, xlLowerExprToHir(pPackedArgValue, pSem, pDiag, bTraceLower));
+		} else {
+			pPackedCall = __xlCreateHiddenCallHir(pCallNode, "__dict_literal", "dict<var>");
+			pPackedArgs = (pPackedCall != NULL) ? pPackedCall->ppChildren[1] : NULL;
+			for ( i = 0; i < iVarArgCount; ++i ) {
+				xlHirAppendChild(pPackedArgs, __xlCreateStringLiteralHir(pCallNode, (arrVarArgNames[i] != NULL) ? arrVarArgNames[i] : ""));
+				xlHirAppendChild(pPackedArgs, xlLowerExprToHir(arrVarArgValues[i], pSem, pDiag, bTraceLower));
+			}
+			xlHirAppendChild(pArgs, pPackedCall);
 		}
 	}
 
 	free(arrBound);
+	free(arrBoundExpandIndex);
+	free(arrVarArgValues);
+	free(arrVarArgNames);
+	free(arrVarArgExpandIndex);
 }
 
 XL_HirNode* xlLowerExprToHir(const XL_AstNode* pNode, const XL_SemResult* pSem, XL_DiagContext* pDiag, int bTraceLower)

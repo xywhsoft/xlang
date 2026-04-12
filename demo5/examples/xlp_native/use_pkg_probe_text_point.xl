@@ -1,0 +1,17 @@
+import pkg.probe
+import std.str
+
+func main() as int
+	point raw = point(null)
+	var boxed = var(raw)
+	point again = point(boxed)
+	string marker = string(again)
+
+	if str.contains(pkg.probe.text(), "probe") == false
+		return 1
+	end
+	if marker.length > 0 then
+		return 0
+	end
+	return 2
+end

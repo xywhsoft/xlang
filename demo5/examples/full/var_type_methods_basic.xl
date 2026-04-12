@@ -1,0 +1,11 @@
+func string.wrap(string self, string left, string right) as string
+	return left + self + right
+end
+
+func main() as int
+	var text = "asd"
+	if text.wrap("[", "]") == "[asd]" then
+		return 42
+	end
+	return 0
+end

@@ -1,0 +1,33 @@
+func loop_score() as int
+	auto sum = 0
+	auto marks = 0
+	auto i = 0
+	while i < 5 do
+		i += 1
+		try
+			if i == 2 then
+				continue
+			end
+			if i == 4 then
+				break
+			end
+			sum += i
+		finally
+			marks += 10
+		end
+	end
+	return sum + marks
+end
+
+func early() as int
+	auto value = 5
+	try
+		return value
+	finally
+		value = 9
+	end
+end
+
+func main() as int
+	return loop_score() + early()
+end

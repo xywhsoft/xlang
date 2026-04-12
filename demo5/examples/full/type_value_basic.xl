@@ -1,0 +1,11 @@
+func main() as int
+	type a = int
+	type b = Type("hello")
+	var c = 7
+	type d = Type(c)
+
+	if a.name == "int" and b == string and d == int then
+		return 42
+	end
+	return 0
+end

@@ -331,16 +331,24 @@ static void __xlFuncInfoFree(XL_FuncInfo* pInfo)
 	free(pInfo->sReceiverType);
 	free(pInfo->sMethodName);
 	free(pInfo->sReturnTypeName);
+	free(pInfo->sStorageReturnTypeName);
+	free(pInfo->sGeneratorValueTypeName);
 	free(pInfo->sOverloadGroup);
 	free(pInfo->sSignatureId);
 	free(pInfo->sDispatchKey);
+	free(pInfo->sLanguageAbi);
+	free(pInfo->sNativeAbi);
 	free(pInfo->sAbiSymbol);
 	for ( i = 0; i < pInfo->iParamCount; ++i ) {
 		free(pInfo->arrParamNames[i]);
 		free(pInfo->arrParamTypes[i]);
 	}
+	for ( i = 0; i < pInfo->iReturnCount; ++i ) {
+		free(pInfo->arrReturnTypeNames[i]);
+	}
 	free(pInfo->arrParamNames);
 	free(pInfo->arrParamTypes);
+	free(pInfo->arrReturnTypeNames);
 	free(pInfo->arrParamHasDefault);
 	free((void*)pInfo->arrParamDefaultValues);
 	memset(pInfo, 0, sizeof(*pInfo));
@@ -368,12 +376,15 @@ void xlFuncTableFree(XL_FuncTable* pTable)
 	memset(pTable, 0, sizeof(*pTable));
 }
 
-int xlFuncTableAdd(
+int xlFuncTableAddEx(
 	XL_FuncTable* pTable,
 	const char* sName,
 	const char* sReceiverType,
 	const char* sMethodName,
 	const char* sReturnTypeName,
+	const char* sStorageReturnTypeName,
+	const char* const* arrReturnTypeNames,
+	size_t iReturnCount,
 	const char* const* arrParamNames,
 	const char* const* arrParamTypes,
 	size_t iParamCount,
@@ -383,7 +394,8 @@ int xlFuncTableAdd(
 	int iLine,
 	int iColumn,
 	int bAsync,
-	int bGenerator
+	int bGenerator,
+	int eVarArgKind
 )
 {
 	XL_FuncInfo* pInfo;
@@ -403,16 +415,22 @@ int xlFuncTableAdd(
 	pInfo->sReceiverType = __xlFuncDupText(sReceiverType);
 	pInfo->sMethodName = __xlFuncDupText(sMethodName);
 	pInfo->sReturnTypeName = __xlFuncDupText(sReturnTypeName);
+	pInfo->sStorageReturnTypeName = __xlFuncDupText((sStorageReturnTypeName != NULL) ? sStorageReturnTypeName : sReturnTypeName);
+	pInfo->sGeneratorValueTypeName = __xlFuncDupText(bGenerator ? ((sReturnTypeName != NULL) ? sReturnTypeName : "") : "");
 	pInfo->sOverloadGroup = __xlFuncBuildOverloadGroup(sName);
 	pInfo->sSignatureId = __xlFuncBuildSignatureId(sName, arrParamTypes, iParamCount);
 	pInfo->sDispatchKey = __xlFuncBuildDispatchKey(sName, arrParamNames, arrParamTypes, iParamCount);
-	pInfo->sAbiSymbol = __xlFuncBuildAbiSymbol(sName, sReturnTypeName, arrParamNames, arrParamTypes, iParamCount);
+	pInfo->sLanguageAbi = __xlFuncDupText(XL_FUNC_LANGUAGE_ABI_V1);
+	pInfo->sNativeAbi = __xlFuncDupText(XL_FUNC_NATIVE_ABI_V1);
+	pInfo->sAbiSymbol = __xlFuncBuildAbiSymbol(sName, (sStorageReturnTypeName != NULL) ? sStorageReturnTypeName : sReturnTypeName, arrParamNames, arrParamTypes, iParamCount);
 	pInfo->iScopeId = iScopeId;
 	pInfo->iLine = iLine;
 	pInfo->iColumn = iColumn;
 	pInfo->bAsync = bAsync;
 	pInfo->bGenerator = bGenerator;
+	pInfo->eVarArgKind = eVarArgKind;
 	pInfo->iParamCount = iParamCount;
+	pInfo->iReturnCount = iReturnCount;
 
 	if ( iParamCount != 0 ) {
 		pInfo->arrParamNames = (char**)calloc(iParamCount, sizeof(char*));
@@ -437,16 +455,80 @@ int xlFuncTableAdd(
 		}
 	}
 
+	if ( iReturnCount != 0 ) {
+		pInfo->arrReturnTypeNames = (char**)calloc(iReturnCount, sizeof(char*));
+		if ( pInfo->arrReturnTypeNames == NULL ) {
+			__xlFuncInfoFree(pInfo);
+			return XL_RC_IO_ERROR;
+		}
+		for ( i = 0; i < iReturnCount; ++i ) {
+			pInfo->arrReturnTypeNames[i] = __xlFuncDupText((arrReturnTypeNames != NULL) ? arrReturnTypeNames[i] : "");
+			if ( pInfo->arrReturnTypeNames[i] == NULL ) {
+				__xlFuncInfoFree(pInfo);
+				return XL_RC_IO_ERROR;
+			}
+		}
+	}
+
 	if ( (pInfo->sName == NULL) || (pInfo->sReceiverType == NULL) || (pInfo->sMethodName == NULL) ||
-		(pInfo->sReturnTypeName == NULL) ||
+		(pInfo->sReturnTypeName == NULL) || (pInfo->sStorageReturnTypeName == NULL) ||
+		(pInfo->sGeneratorValueTypeName == NULL) ||
 		(pInfo->sOverloadGroup == NULL) || (pInfo->sSignatureId == NULL) ||
-		(pInfo->sDispatchKey == NULL) || (pInfo->sAbiSymbol == NULL) ) {
+		(pInfo->sDispatchKey == NULL) || (pInfo->sLanguageAbi == NULL) ||
+		(pInfo->sNativeAbi == NULL) || (pInfo->sAbiSymbol == NULL) ) {
 		__xlFuncInfoFree(pInfo);
 		return XL_RC_IO_ERROR;
 	}
 
 	pTable->iCount += 1;
 	return XL_RC_OK;
+}
+
+int xlFuncTableAdd(
+	XL_FuncTable* pTable,
+	const char* sName,
+	const char* sReceiverType,
+	const char* sMethodName,
+	const char* sReturnTypeName,
+	const char* const* arrParamNames,
+	const char* const* arrParamTypes,
+	size_t iParamCount,
+	const unsigned char* arrParamHasDefault,
+	const XL_AstNode* const* arrParamDefaultValues,
+	int iScopeId,
+	int iLine,
+	int iColumn,
+	int bAsync,
+	int bGenerator,
+	int eVarArgKind
+)
+{
+	const char* arrReturnTypes[1];
+	size_t iReturnCount;
+
+	iReturnCount = ((sReturnTypeName != NULL) && (sReturnTypeName[0] != '\0') && (strcmp(sReturnTypeName, "void") != 0)) ? 1 : 0;
+	arrReturnTypes[0] = sReturnTypeName;
+	return xlFuncTableAddEx(
+		pTable,
+		sName,
+		sReceiverType,
+		sMethodName,
+		(iReturnCount != 0) ? sReturnTypeName : "",
+		(iReturnCount != 0) ? sReturnTypeName : "void",
+		(iReturnCount != 0) ? arrReturnTypes : NULL,
+		iReturnCount,
+		arrParamNames,
+		arrParamTypes,
+		iParamCount,
+		arrParamHasDefault,
+		arrParamDefaultValues,
+		iScopeId,
+		iLine,
+		iColumn,
+		bAsync,
+		bGenerator,
+		eVarArgKind
+	);
 }
 
 const XL_FuncInfo* xlFuncTableGet(const XL_FuncTable* pTable, size_t iIndex)
