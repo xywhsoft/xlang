@@ -105,6 +105,13 @@ static int __xlIsTextLikeType(const char* sTypeName);
 static int __xlCallHasExpandedMultiReturnArg(const XL_MirNode* pCall);
 static const XL_MirNode* __xlContainerMethodBase(const XL_MirNode* pCallNode);
 static const char* __xlContainerMethodName(const XL_MirNode* pCallNode);
+static int __xlCanAsyncLinearResolveStmt(XL_CgenContext* pCtx, const XL_MirNode* pStmt, const XL_MirNode* pAwaitNode);
+static void __xlCgenAsyncLinearStateCleanup(
+	XL_CgenContext* pCtx,
+	const XL_MirNode* pParams,
+	const XL_CgenAsyncLinearResumeCandidate* pCandidate,
+	const char* sStateName
+);
 
 typedef enum XL_CorePrintHelperKind {
 	XL_CORE_PRINT_NONE = 0,
@@ -1809,6 +1816,163 @@ static int __xlCanAsyncLinearReplaceAwaitExpr(XL_CgenContext* pCtx, const XL_Mir
 	return 0;
 }
 
+static int __xlCanAsyncLinearResolveTryFinallyStmt(
+	XL_CgenContext* pCtx,
+	const XL_MirNode* pStmt,
+	const XL_MirNode* pAwaitNode,
+	const XL_MirNode** ppInnerStmt,
+	const XL_MirNode** ppFinallyBlock
+)
+{
+	const XL_MirNode* pTryBlock;
+	const XL_MirNode* pInnerStmt;
+	const XL_MirNode* pFinallyBlock;
+	size_t i;
+
+	if ( ppInnerStmt != NULL ) {
+		*ppInnerStmt = NULL;
+	}
+	if ( ppFinallyBlock != NULL ) {
+		*ppFinallyBlock = NULL;
+	}
+	if ( (pCtx == NULL) || (pStmt == NULL) || (pStmt->eKind != XL_MIR_TRY) || (pAwaitNode == NULL) ) {
+		return 0;
+	}
+
+	if ( ((pStmt->bFlag & 1) != 0) || ((pStmt->bFlag & 2) == 0) ) {
+		return 0;
+	}
+
+	pTryBlock = (pStmt->iChildCount != 0) ? pStmt->ppChildren[0] : NULL;
+	pFinallyBlock = (pStmt->iChildCount > 3) ? pStmt->ppChildren[3] : NULL;
+	if ( (pTryBlock == NULL) || (pTryBlock->eKind != XL_MIR_BLOCK) || (pTryBlock->iChildCount == 0) || (pFinallyBlock == NULL) ) {
+		return 0;
+	}
+
+	pInnerStmt = pTryBlock->ppChildren[0];
+	for ( i = 1; i < pTryBlock->iChildCount; ++i ) {
+		const XL_MirNode* pTailStmt = pTryBlock->ppChildren[i];
+
+		if ( (pTailStmt == NULL) ||
+			__xlMirContainsAwaitExpr(pTailStmt) ||
+			(__xlMirCountKind(pTailStmt, XL_MIR_RETURN) != 0) ||
+			(__xlMirCountKind(pTailStmt, XL_MIR_BREAK) != 0) ||
+			(__xlMirCountKind(pTailStmt, XL_MIR_CONTINUE) != 0) ) {
+			return 0;
+		}
+	}
+	if ( (pInnerStmt == NULL) ||
+		(__xlMirCountAwaitExpr(pTryBlock) != 1) ||
+		(__xlMirFindFirstAwaitExpr(pTryBlock) != pAwaitNode) ||
+		(__xlMirContainsAwaitExpr(pFinallyBlock)) ||
+		(__xlMirCountKind(pFinallyBlock, XL_MIR_RETURN) != 0) ||
+		(__xlMirCountKind(pFinallyBlock, XL_MIR_BREAK) != 0) ||
+		(__xlMirCountKind(pFinallyBlock, XL_MIR_CONTINUE) != 0) ||
+		!__xlCanAsyncLinearResolveStmt(pCtx, pInnerStmt, pAwaitNode) ) {
+		return 0;
+	}
+
+	if ( ppInnerStmt != NULL ) {
+		*ppInnerStmt = pInnerStmt;
+	}
+	if ( ppFinallyBlock != NULL ) {
+		*ppFinallyBlock = pFinallyBlock;
+	}
+	return 1;
+}
+
+static int __xlCanAsyncLinearResolveTryCatchStmt(
+	XL_CgenContext* pCtx,
+	const XL_MirNode* pStmt,
+	const XL_MirNode* pAwaitNode,
+	const XL_MirNode** ppInnerStmt,
+	const XL_MirNode** ppCatchName,
+	const XL_MirNode** ppCatchBlock,
+	const XL_MirNode** ppFinallyBlock
+)
+{
+	const XL_MirNode* pTryBlock;
+	const XL_MirNode* pInnerStmt;
+	const XL_MirNode* pCatchName;
+	const XL_MirNode* pCatchBlock;
+	const XL_MirNode* pFinallyBlock;
+	const char* sCatchTypeName;
+	size_t i;
+
+	if ( ppInnerStmt != NULL ) {
+		*ppInnerStmt = NULL;
+	}
+	if ( ppCatchName != NULL ) {
+		*ppCatchName = NULL;
+	}
+	if ( ppCatchBlock != NULL ) {
+		*ppCatchBlock = NULL;
+	}
+	if ( ppFinallyBlock != NULL ) {
+		*ppFinallyBlock = NULL;
+	}
+	if ( (pCtx == NULL) || (pStmt == NULL) || (pStmt->eKind != XL_MIR_TRY) || (pAwaitNode == NULL) ) {
+		return 0;
+	}
+	if ( (pStmt->bFlag & 1) == 0 ) {
+		return 0;
+	}
+
+	pTryBlock = (pStmt->iChildCount != 0) ? pStmt->ppChildren[0] : NULL;
+	pCatchName = (pStmt->iChildCount > 1) ? pStmt->ppChildren[1] : NULL;
+	pCatchBlock = (pStmt->iChildCount > 2) ? pStmt->ppChildren[2] : NULL;
+	pFinallyBlock = (pStmt->iChildCount > 3) ? pStmt->ppChildren[3] : NULL;
+	if ( (pTryBlock == NULL) || (pTryBlock->eKind != XL_MIR_BLOCK) || (pTryBlock->iChildCount == 0) || (pCatchBlock == NULL) ) {
+		return 0;
+	}
+
+	sCatchTypeName = ((pCatchName != NULL) && (pCatchName->sTypeName != NULL) && (pCatchName->sTypeName[0] != '\0')) ? pCatchName->sTypeName : "error";
+	if ( strcmp(sCatchTypeName, "error") != 0 ) {
+		return 0;
+	}
+
+	pInnerStmt = pTryBlock->ppChildren[0];
+	for ( i = 1; i < pTryBlock->iChildCount; ++i ) {
+		const XL_MirNode* pTailStmt = pTryBlock->ppChildren[i];
+
+		if ( (pTailStmt == NULL) ||
+			__xlMirContainsAwaitExpr(pTailStmt) ||
+			(__xlMirCountKind(pTailStmt, XL_MIR_RETURN) != 0) ||
+			(__xlMirCountKind(pTailStmt, XL_MIR_BREAK) != 0) ||
+			(__xlMirCountKind(pTailStmt, XL_MIR_CONTINUE) != 0) ) {
+			return 0;
+		}
+	}
+	if ( (pInnerStmt == NULL) ||
+		(__xlMirCountAwaitExpr(pTryBlock) != 1) ||
+		(__xlMirFindFirstAwaitExpr(pTryBlock) != pAwaitNode) ||
+		(__xlMirContainsAwaitExpr(pCatchBlock)) ||
+		((pFinallyBlock != NULL) && __xlMirContainsAwaitExpr(pFinallyBlock)) ||
+		(__xlMirCountKind(pCatchBlock, XL_MIR_RETURN) != 0) ||
+		(__xlMirCountKind(pCatchBlock, XL_MIR_BREAK) != 0) ||
+		(__xlMirCountKind(pCatchBlock, XL_MIR_CONTINUE) != 0) ||
+		((pFinallyBlock != NULL) && (__xlMirCountKind(pFinallyBlock, XL_MIR_RETURN) != 0)) ||
+		((pFinallyBlock != NULL) && (__xlMirCountKind(pFinallyBlock, XL_MIR_BREAK) != 0)) ||
+		((pFinallyBlock != NULL) && (__xlMirCountKind(pFinallyBlock, XL_MIR_CONTINUE) != 0)) ||
+		!__xlCanAsyncLinearResolveStmt(pCtx, pInnerStmt, pAwaitNode) ) {
+		return 0;
+	}
+
+	if ( ppInnerStmt != NULL ) {
+		*ppInnerStmt = pInnerStmt;
+	}
+	if ( ppCatchName != NULL ) {
+		*ppCatchName = pCatchName;
+	}
+	if ( ppCatchBlock != NULL ) {
+		*ppCatchBlock = pCatchBlock;
+	}
+	if ( ppFinallyBlock != NULL ) {
+		*ppFinallyBlock = pFinallyBlock;
+	}
+	return 1;
+}
+
 static int __xlCanAsyncLinearResolveStmt(XL_CgenContext* pCtx, const XL_MirNode* pStmt, const XL_MirNode* pAwaitNode)
 {
 	const XL_MirNode* pCond;
@@ -1840,11 +2004,16 @@ static int __xlCanAsyncLinearResolveStmt(XL_CgenContext* pCtx, const XL_MirNode*
 			(__xlMirFindFirstAwaitExpr(pCond) != pAwaitNode) ||
 			!__xlCanAsyncLinearReplaceAwaitExpr(pCtx, pCond, pAwaitNode) ||
 			__xlMirContainsAwaitExpr(pBody) ||
-			(pStmt->bFlag && ((__xlMirCountKind(pBody, XL_MIR_BREAK) != 0) || (__xlMirCountKind(pBody, XL_MIR_CONTINUE) != 0))) ||
 			(__xlMirCountKind(pBody, XL_MIR_RETURN) != 0) ) {
 			return 0;
 		}
 		return 1;
+	}
+	if ( pStmt->eKind == XL_MIR_TRY ) {
+		if ( __xlCanAsyncLinearResolveTryCatchStmt(pCtx, pStmt, pAwaitNode, NULL, NULL, NULL, NULL) ) {
+			return 1;
+		}
+		return __xlCanAsyncLinearResolveTryFinallyStmt(pCtx, pStmt, pAwaitNode, NULL, NULL);
 	}
 
 	return __xlCanAsyncLinearReplaceAwaitExpr(pCtx, pStmt, pAwaitNode);
@@ -9425,6 +9594,201 @@ static void __xlCgenAsyncLinearPendingErrorCheck(XL_CgenContext* pCtx, const cha
 	__xlCgenAppend(&pCtx->buf, "}\n");
 }
 
+static void __xlCgenAsyncLinearRejectCurrentAndCleanup(
+	XL_CgenContext* pCtx,
+	const XL_MirNode* pParams,
+	const XL_CgenAsyncLinearResumeCandidate* pCandidate,
+	const char* sStateName,
+	const char* sFallback
+)
+{
+	if ( (pCtx == NULL) || (pCandidate == NULL) || (sStateName == NULL) ) {
+		return;
+	}
+
+	__xlCgenAppendIndent(&pCtx->buf);
+	__xlCgenAppendFormat(&pCtx->buf, "(void)xl_generated_promise_reject_current(%s->pPromise, ", sStateName);
+	__xlCgenAppendCString(&pCtx->buf, (sFallback != NULL) ? sFallback : "await failed");
+	__xlCgenAppend(&pCtx->buf, ");\n");
+	__xlCgenAppendIndent(&pCtx->buf);
+	__xlCgenAppendFormat(&pCtx->buf, "if ( %s->pPromise != NULL ) {\n", sStateName);
+	pCtx->buf.iIndent += 1;
+	__xlCgenAppendIndent(&pCtx->buf);
+	__xlCgenAppendFormat(&pCtx->buf, "xPromiseDestroy(%s->pPromise);\n", sStateName);
+	pCtx->buf.iIndent -= 1;
+	__xlCgenAppendIndent(&pCtx->buf);
+	__xlCgenAppend(&pCtx->buf, "}\n");
+	__xlCgenAsyncLinearStateCleanup(pCtx, pParams, pCandidate, sStateName);
+	__xlCgenAppendIndent(&pCtx->buf);
+	__xlCgenAppendFormat(&pCtx->buf, "xrtFree(%s);\n", sStateName);
+	__xlCgenAppendIndent(&pCtx->buf);
+	__xlCgenAppend(&pCtx->buf, "return;\n");
+}
+
+static void __xlCgenAsyncLinearRejectResultAndCleanup(
+	XL_CgenContext* pCtx,
+	const XL_MirNode* pParams,
+	const XL_CgenAsyncLinearResumeCandidate* pCandidate,
+	const char* sStateName,
+	const char* sResultName,
+	const char* sFallback
+)
+{
+	if ( (pCtx == NULL) || (pCandidate == NULL) || (sStateName == NULL) ) {
+		return;
+	}
+
+	__xlCgenAppendIndent(&pCtx->buf);
+	__xlCgenAppendFormat(&pCtx->buf, "(void)xl_generated_promise_reject_result(%s->pPromise, %s, ", sStateName, (sResultName != NULL) ? sResultName : "NULL");
+	__xlCgenAppendCString(&pCtx->buf, (sFallback != NULL) ? sFallback : "await failed");
+	__xlCgenAppend(&pCtx->buf, ");\n");
+	__xlCgenAppendIndent(&pCtx->buf);
+	__xlCgenAppendFormat(&pCtx->buf, "if ( %s->pPromise != NULL ) {\n", sStateName);
+	pCtx->buf.iIndent += 1;
+	__xlCgenAppendIndent(&pCtx->buf);
+	__xlCgenAppendFormat(&pCtx->buf, "xPromiseDestroy(%s->pPromise);\n", sStateName);
+	pCtx->buf.iIndent -= 1;
+	__xlCgenAppendIndent(&pCtx->buf);
+	__xlCgenAppend(&pCtx->buf, "}\n");
+	__xlCgenAsyncLinearStateCleanup(pCtx, pParams, pCandidate, sStateName);
+	__xlCgenAppendIndent(&pCtx->buf);
+	__xlCgenAppendFormat(&pCtx->buf, "xrtFree(%s);\n", sStateName);
+	__xlCgenAppendIndent(&pCtx->buf);
+	__xlCgenAppend(&pCtx->buf, "return;\n");
+}
+
+static void __xlCgenAsyncLinearCatchValueDeclFromCurrent(XL_CgenContext* pCtx, const XL_MirNode* pCatchName)
+{
+	const char* sTypeName;
+	const char* sVarName;
+
+	if ( pCtx == NULL ) {
+		return;
+	}
+
+	sTypeName = ((pCatchName != NULL) && (pCatchName->sTypeName != NULL) && (pCatchName->sTypeName[0] != '\0')) ? pCatchName->sTypeName : "error";
+	sVarName = ((pCatchName != NULL) && (pCatchName->sText != NULL) && (pCatchName->sText[0] != '\0')) ? pCatchName->sText : "xl_async_catch_error";
+	__xlCgenAppendIndent(&pCtx->buf);
+	__xlCgenAppendFormat(&pCtx->buf, "%s %s = xl_generated_capture_exception_error();\n", __xlCTypeName(sTypeName), sVarName);
+}
+
+static void __xlCgenAsyncLinearCatchValueDeclFromResult(XL_CgenContext* pCtx, const XL_MirNode* pCatchName, const char* sResultName)
+{
+	const char* sTypeName;
+	const char* sVarName;
+	const char* sName;
+
+	if ( pCtx == NULL ) {
+		return;
+	}
+
+	sTypeName = ((pCatchName != NULL) && (pCatchName->sTypeName != NULL) && (pCatchName->sTypeName[0] != '\0')) ? pCatchName->sTypeName : "error";
+	sVarName = ((pCatchName != NULL) && (pCatchName->sText != NULL) && (pCatchName->sText[0] != '\0')) ? pCatchName->sText : "xl_async_catch_error";
+	sName = (sResultName != NULL) ? sResultName : "NULL";
+	__xlCgenAppendIndent(&pCtx->buf);
+	__xlCgenAppendFormat(
+		&pCtx->buf,
+		"%s %s = xl_generated_error_from_text(((%s != NULL) && (%s->sError != NULL) && (%s->sError[0] != '\\0')) ? (const char*)%s->sError : \"await failed\");\n",
+		__xlCTypeName(sTypeName),
+		sVarName,
+		sName,
+		sName,
+		sName,
+		sName
+	);
+}
+
+static void __xlCgenAsyncLinearRestorePendingFromResult(XL_CgenContext* pCtx, const char* sResultName)
+{
+	const char* sName;
+
+	if ( pCtx == NULL ) {
+		return;
+	}
+
+	sName = (sResultName != NULL) ? sResultName : "NULL";
+	__xlCgenAppendIndent(&pCtx->buf);
+	__xlCgenAppendFormat(
+		&pCtx->buf,
+		"xl_generated_raise_error(xl_generated_error_from_text(((%s != NULL) && (%s->sError != NULL) && (%s->sError[0] != '\\0')) ? (const char*)%s->sError : \"await failed\"));\n",
+		sName,
+		sName,
+		sName,
+		sName
+	);
+}
+
+static void __xlCgenAsyncLinearTryHandleFailureFromResult(
+	XL_CgenContext* pCtx,
+	const XL_MirNode* pStmt,
+	const char* sResultName
+)
+{
+	const XL_MirNode* pTryBlock;
+	const XL_MirNode* pInnerStmt;
+	const XL_MirNode* pCatchName;
+	const XL_MirNode* pCatchBlock;
+	const XL_MirNode* pFinallyBlock;
+	size_t i;
+	int bHasCatch;
+
+	if ( (pCtx == NULL) || (pStmt == NULL) || (pStmt->eKind != XL_MIR_TRY) ) {
+		return;
+	}
+
+	pTryBlock = (pStmt->iChildCount != 0) ? pStmt->ppChildren[0] : NULL;
+	pInnerStmt = ((pTryBlock != NULL) && (pTryBlock->eKind == XL_MIR_BLOCK) && (pTryBlock->iChildCount != 0)) ? pTryBlock->ppChildren[0] : NULL;
+	pCatchName = (pStmt->iChildCount > 1) ? pStmt->ppChildren[1] : NULL;
+	pCatchBlock = (pStmt->iChildCount > 2) ? pStmt->ppChildren[2] : NULL;
+	pFinallyBlock = (pStmt->iChildCount > 3) ? pStmt->ppChildren[3] : NULL;
+	bHasCatch = ((pStmt->bFlag & 1) != 0) && (pCatchBlock != NULL);
+
+	__xlCgenAppendIndent(&pCtx->buf);
+	__xlCgenAppend(&pCtx->buf, "{\n");
+	pCtx->buf.iIndent += 1;
+
+	if ( (pInnerStmt != NULL) && (pInnerStmt->eKind == XL_MIR_TRY) ) {
+		__xlCgenAsyncLinearTryHandleFailureFromResult(pCtx, pInnerStmt, sResultName);
+	} else {
+		__xlCgenAsyncLinearRestorePendingFromResult(pCtx, sResultName);
+	}
+
+	if ( (pTryBlock != NULL) && (pTryBlock->eKind == XL_MIR_BLOCK) && (pTryBlock->iChildCount > 1) ) {
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppend(&pCtx->buf, "if ( !xl_generated_async_has_pending_error() )\n");
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppend(&pCtx->buf, "{\n");
+		pCtx->buf.iIndent += 1;
+		for ( i = 1; i < pTryBlock->iChildCount; ++i ) {
+			__xlCgenStmt(pCtx, pTryBlock->ppChildren[i], NULL);
+		}
+		pCtx->buf.iIndent -= 1;
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppend(&pCtx->buf, "}\n");
+	}
+
+	if ( bHasCatch ) {
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppend(&pCtx->buf, "if ( xl_generated_async_has_pending_error() ) {\n");
+		pCtx->buf.iIndent += 1;
+		__xlCgenAsyncLinearCatchValueDeclFromCurrent(pCtx, pCatchName);
+		__xlCgenStmt(pCtx, pCatchBlock, NULL);
+		pCtx->buf.iIndent -= 1;
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppend(&pCtx->buf, "}\n");
+	}
+
+	if ( pFinallyBlock != NULL ) {
+		__xlCgenSetCurrentFinallyBody(pCtx, 1);
+		__xlCgenStmt(pCtx, pFinallyBlock, NULL);
+		__xlCgenSetCurrentFinallyBody(pCtx, 0);
+	}
+
+	pCtx->buf.iIndent -= 1;
+	__xlCgenAppendIndent(&pCtx->buf);
+	__xlCgenAppend(&pCtx->buf, "}\n");
+}
+
 static void __xlCgenAsyncLinearAwaitValueDecl(XL_CgenContext* pCtx, const XL_MirNode* pBind)
 {
 	const char* sTypeName;
@@ -10763,6 +11127,12 @@ static void __xlCgenAsyncLinearStmtResolve(
 	const XL_MirNode* pThenBlock;
 	const XL_MirNode* pElseBlock;
 	const XL_MirNode* pBody;
+	const XL_MirNode* pTryBlock;
+	const XL_MirNode* pInnerTryStmt;
+	const XL_MirNode* pCatchName;
+	const XL_MirNode* pCatchBlock;
+	const XL_MirNode* pFinallyBlock;
+	size_t i;
 
 	if ( (pCtx == NULL) || (pStmt == NULL) ) {
 		return;
@@ -10918,6 +11288,104 @@ static void __xlCgenAsyncLinearStmtResolve(
 		__xlCgenAppend(&pCtx->buf, "}\n");
 		return;
 	}
+	if ( __xlCanAsyncLinearResolveTryCatchStmt(pCtx, pStmt, pAwaitNode, &pInnerTryStmt, &pCatchName, &pCatchBlock, &pFinallyBlock) ) {
+		pTryBlock = (pStmt->iChildCount != 0) ? pStmt->ppChildren[0] : NULL;
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppend(&pCtx->buf, "{\n");
+		pCtx->buf.iIndent += 1;
+		__xlCgenAsyncLinearStmtResolve(
+			pCtx,
+			pInnerTryStmt,
+			pParams,
+			pCandidate,
+			iStepIndex,
+			sStateName,
+			pAwaitNode,
+			sReplacementName,
+			sResumeCallbackName
+		);
+		if ( (pTryBlock != NULL) && (pTryBlock->eKind == XL_MIR_BLOCK) && (pTryBlock->iChildCount > 1) ) {
+			__xlCgenAppendIndent(&pCtx->buf);
+			__xlCgenAppend(&pCtx->buf, "if ( !xl_generated_async_has_pending_error() )\n");
+			__xlCgenAppendIndent(&pCtx->buf);
+			__xlCgenAppend(&pCtx->buf, "{\n");
+			pCtx->buf.iIndent += 1;
+			for ( i = 1; i < pTryBlock->iChildCount; ++i ) {
+				__xlCgenStmt(pCtx, pTryBlock->ppChildren[i], NULL);
+			}
+			pCtx->buf.iIndent -= 1;
+			__xlCgenAppendIndent(&pCtx->buf);
+			__xlCgenAppend(&pCtx->buf, "}\n");
+		}
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppend(&pCtx->buf, "if ( xl_generated_async_has_pending_error() ) {\n");
+		pCtx->buf.iIndent += 1;
+		__xlCgenAsyncLinearCatchValueDeclFromCurrent(pCtx, pCatchName);
+		__xlCgenStmt(pCtx, pCatchBlock, NULL);
+		pCtx->buf.iIndent -= 1;
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppend(&pCtx->buf, "}\n");
+		if ( pFinallyBlock != NULL ) {
+			__xlCgenSetCurrentFinallyBody(pCtx, 1);
+			__xlCgenStmt(pCtx, pFinallyBlock, NULL);
+			__xlCgenSetCurrentFinallyBody(pCtx, 0);
+		}
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppend(&pCtx->buf, "if ( xl_generated_async_has_pending_error() ) {\n");
+		pCtx->buf.iIndent += 1;
+		__xlCgenAsyncLinearRejectCurrentAndCleanup(pCtx, pParams, pCandidate, sStateName, "async linear try/catch failed");
+		pCtx->buf.iIndent -= 1;
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppend(&pCtx->buf, "}\n");
+		pCtx->buf.iIndent -= 1;
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppend(&pCtx->buf, "}\n");
+		return;
+	}
+	if ( __xlCanAsyncLinearResolveTryFinallyStmt(pCtx, pStmt, pAwaitNode, &pInnerTryStmt, &pFinallyBlock) ) {
+		pTryBlock = (pStmt->iChildCount != 0) ? pStmt->ppChildren[0] : NULL;
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppend(&pCtx->buf, "{\n");
+		pCtx->buf.iIndent += 1;
+		__xlCgenAsyncLinearStmtResolve(
+			pCtx,
+			pInnerTryStmt,
+			pParams,
+			pCandidate,
+			iStepIndex,
+			sStateName,
+			pAwaitNode,
+			sReplacementName,
+			sResumeCallbackName
+		);
+		if ( (pTryBlock != NULL) && (pTryBlock->eKind == XL_MIR_BLOCK) && (pTryBlock->iChildCount > 1) ) {
+			__xlCgenAppendIndent(&pCtx->buf);
+			__xlCgenAppend(&pCtx->buf, "if ( !xl_generated_async_has_pending_error() )\n");
+			__xlCgenAppendIndent(&pCtx->buf);
+			__xlCgenAppend(&pCtx->buf, "{\n");
+			pCtx->buf.iIndent += 1;
+			for ( i = 1; i < pTryBlock->iChildCount; ++i ) {
+				__xlCgenStmt(pCtx, pTryBlock->ppChildren[i], NULL);
+			}
+			pCtx->buf.iIndent -= 1;
+			__xlCgenAppendIndent(&pCtx->buf);
+			__xlCgenAppend(&pCtx->buf, "}\n");
+		}
+		__xlCgenSetCurrentFinallyBody(pCtx, 1);
+			__xlCgenStmt(pCtx, pFinallyBlock, NULL);
+		__xlCgenSetCurrentFinallyBody(pCtx, 0);
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppend(&pCtx->buf, "if ( xl_generated_async_has_pending_error() ) {\n");
+		pCtx->buf.iIndent += 1;
+		__xlCgenAsyncLinearRejectCurrentAndCleanup(pCtx, pParams, pCandidate, sStateName, "async linear try/finally failed");
+		pCtx->buf.iIndent -= 1;
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppend(&pCtx->buf, "}\n");
+		pCtx->buf.iIndent -= 1;
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppend(&pCtx->buf, "}\n");
+		return;
+	}
 
 	__xlCgenAppendIndent(&pCtx->buf);
 	if ( (pAwaitNode != NULL) && (sReplacementName != NULL) ) {
@@ -10981,11 +11449,19 @@ static void __xlCgenEmitAsyncLinearResumeHelper(
 		const char* sAwaitTraceName = __xlCallCalleeName(pStep->pAwaitInner);
 		int iResumeStateId = (pFuncInfo->pAsyncFunc != NULL) ? __xlCgenFindAsyncStateId(pFuncInfo->pAsyncFunc, __xlCgenAsyncLinearStepAnchorNode(pCandidate, pStep), "resume") : -1;
 		char sAwaitResultName[96];
+		char sAfterStepLabel[96];
+		const XL_MirNode* pInnerTryStmt;
+		const XL_MirNode* pCatchName;
+		const XL_MirNode* pCatchBlock;
+		const XL_MirNode* pFinallyBlock;
+		int bTryCatchStep;
 
 		if ( (sAwaitTraceName == NULL) || (sAwaitTraceName[0] == '\0') ) {
 			sAwaitTraceName = ((pStep->pAwaitBind != NULL) && (pStep->pAwaitBind->sText != NULL)) ? pStep->pAwaitBind->sText : "await";
 		}
 		__xlCgenAsyncLinearStepResultName(sAwaitResultName, sizeof(sAwaitResultName), pStep);
+		snprintf(sAfterStepLabel, sizeof(sAfterStepLabel), "xl_async_after_step_%zu", i);
+		bTryCatchStep = __xlCanAsyncLinearResolveTryCatchStmt(pCtx, pStep->pAwaitStmt, pStep->pAwaitNode, &pInnerTryStmt, &pCatchName, &pCatchBlock, &pFinallyBlock);
 		__xlCgenAsyncLinearResumeCallbackName(sResumeCallbackName, sizeof(sResumeCallbackName), sResumeFuncName, i);
 		__xlCgenAppendFormat(&pCtx->buf, "static void %s(const xfuture_result* pIn, ptr pArg)\n{\n", sResumeCallbackName);
 		pCtx->buf.iIndent += 1;
@@ -11011,29 +11487,44 @@ static void __xlCgenEmitAsyncLinearResumeHelper(
 			__xlCgenAppendCString(&pCtx->buf, pFuncInfo->sName);
 			__xlCgenAppendFormat(&pCtx->buf, ", %d);\n", iResumeStateId);
 		}
-		__xlCgenAppendIndent(&pCtx->buf);
-		__xlCgenAppend(&pCtx->buf, "if ( (pIn == NULL) || (pIn->iStatus != XRT_NET_OK) ) {\n");
-		pCtx->buf.iIndent += 1;
-		__xlCgenAppendIndent(&pCtx->buf);
-		__xlCgenAppend(&pCtx->buf, "(void)xl_generated_promise_reject_result(pState->pPromise, pIn, \"await failed\");\n");
-		__xlCgenAppendIndent(&pCtx->buf);
-		__xlCgenAppend(&pCtx->buf, "if ( pState->pPromise != NULL ) {\n");
-		pCtx->buf.iIndent += 1;
-		__xlCgenAppendIndent(&pCtx->buf);
-		__xlCgenAppend(&pCtx->buf, "xPromiseDestroy(pState->pPromise);\n");
-		pCtx->buf.iIndent -= 1;
-		__xlCgenAppendIndent(&pCtx->buf);
-		__xlCgenAppend(&pCtx->buf, "}\n");
-		__xlCgenAsyncLinearStateCleanup(pCtx, pParams, pCandidate, "pState");
-		__xlCgenAppendIndent(&pCtx->buf);
-		__xlCgenAppend(&pCtx->buf, "xrtFree(pState);\n");
-		__xlCgenAppendIndent(&pCtx->buf);
-		__xlCgenAppend(&pCtx->buf, "return;\n");
-		pCtx->buf.iIndent -= 1;
-		__xlCgenAppendIndent(&pCtx->buf);
-		__xlCgenAppend(&pCtx->buf, "}\n");
+		if ( bTryCatchStep || __xlCanAsyncLinearResolveTryFinallyStmt(pCtx, pStep->pAwaitStmt, pStep->pAwaitNode, &pInnerTryStmt, &pFinallyBlock) ) {
+			__xlCgenAsyncLinearRestoreScope(pCtx, pParams, pCandidate, i, "pState");
+			__xlCgenAppendIndent(&pCtx->buf);
+			__xlCgenAppend(&pCtx->buf, "if ( (pIn == NULL) || (pIn->iStatus != XRT_NET_OK) ) {\n");
+			pCtx->buf.iIndent += 1;
+			__xlCgenAsyncLinearTryHandleFailureFromResult(pCtx, pStep->pAwaitStmt, "pIn");
+			__xlCgenAppendIndent(&pCtx->buf);
+			__xlCgenAppend(&pCtx->buf, "if ( xl_generated_async_has_pending_error() ) {\n");
+			pCtx->buf.iIndent += 1;
+			__xlCgenAsyncLinearRejectCurrentAndCleanup(
+				pCtx,
+				pParams,
+				pCandidate,
+				"pState",
+				bTryCatchStep ? "async linear try/catch failed" : "async linear try/finally failed"
+			);
+			pCtx->buf.iIndent -= 1;
+			__xlCgenAppendIndent(&pCtx->buf);
+			__xlCgenAppend(&pCtx->buf, "}\n");
+			__xlCgenAppendIndent(&pCtx->buf);
+			__xlCgenAppendFormat(&pCtx->buf, "goto %s;\n", sAfterStepLabel);
+			pCtx->buf.iIndent -= 1;
+			__xlCgenAppendIndent(&pCtx->buf);
+			__xlCgenAppend(&pCtx->buf, "}\n");
+		} else {
+			__xlCgenAppendIndent(&pCtx->buf);
+			__xlCgenAppend(&pCtx->buf, "if ( (pIn == NULL) || (pIn->iStatus != XRT_NET_OK) ) {\n");
+			pCtx->buf.iIndent += 1;
+			__xlCgenAsyncLinearRejectResultAndCleanup(pCtx, pParams, pCandidate, "pState", "pIn", "await failed");
+			pCtx->buf.iIndent -= 1;
+			__xlCgenAppendIndent(&pCtx->buf);
+			__xlCgenAppend(&pCtx->buf, "}\n");
+		}
 
-		__xlCgenAsyncLinearRestoreScope(pCtx, pParams, pCandidate, i, "pState");
+		if ( !bTryCatchStep &&
+			!__xlCanAsyncLinearResolveTryFinallyStmt(pCtx, pStep->pAwaitStmt, pStep->pAwaitNode, &pInnerTryStmt, &pFinallyBlock) ) {
+			__xlCgenAsyncLinearRestoreScope(pCtx, pParams, pCandidate, i, "pState");
+		}
 		if ( (pStep->pAwaitBind != NULL) && !pStep->bExprAwait ) {
 			__xlCgenAsyncLinearAwaitValueDecl(pCtx, pStep->pAwaitBind);
 		} else if ( (pStep->pAwaitBind != NULL) && pStep->bExprAwait ) {
@@ -11045,6 +11536,10 @@ static void __xlCgenEmitAsyncLinearResumeHelper(
 		} else {
 			__xlCgenAsyncLinearAwaitValueDeclNamed(pCtx, __xlCgenAsyncLinearStepResultTypeName(pStep), sAwaitResultName);
 		}
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppendFormat(&pCtx->buf, "%s:\n", sAfterStepLabel);
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppend(&pCtx->buf, ";\n");
 
 		pPrevFuncInfo = pCtx->pCurrentFuncInfo;
 		pCtx->pCurrentFuncInfo = pFuncInfo;
@@ -11183,13 +11678,21 @@ static int __xlCgenEmitAsyncLinearResumeFunc(
 	char sPromiseName[64];
 	char sStateName[64];
 	char sHookName[64];
+	char sFirstResumeCallbackName[320];
+	char sDoWhileBreakLabel[64];
+	char sDoWhileContinueLabel[64];
 	const char* sAwaitExprType;
 	const char* sAwaitTraceName;
 	int iAwaitStateId;
 	const XL_CgenAsyncLinearResumeStep* pFirstStep;
+	const XL_MirNode* pDoWhileBody;
+	int bFirstDoWhile;
 	size_t i;
 
-	if ( (pCtx == NULL) || (pFuncInfo == NULL) || !__xlCollectAsyncLinearResumeCandidate(pCtx, pBody, &candidate) ) {
+	if ( (pCtx == NULL) || (pFuncInfo == NULL) ) {
+		return 0;
+	}
+	if ( !__xlCollectAsyncLinearResumeCandidate(pCtx, pBody, &candidate) ) {
 		return 0;
 	}
 	if ( __xlCgenCurrentTryFrame(pCtx) != NULL || __xlCgenCurrentFinallyFrame(pCtx) != NULL ) {
@@ -11207,6 +11710,13 @@ static int __xlCgenEmitAsyncLinearResumeFunc(
 	snprintf(sPromiseName, sizeof(sPromiseName), "xl_async_promise_%zu", pFirstStep->iAwaitStmtIndex);
 	snprintf(sStateName, sizeof(sStateName), "xl_async_state_%zu", pFirstStep->iAwaitStmtIndex);
 	snprintf(sHookName, sizeof(sHookName), "xl_async_hook_%zu", pFirstStep->iAwaitStmtIndex);
+	__xlCgenAsyncLinearResumeCallbackName(sFirstResumeCallbackName, sizeof(sFirstResumeCallbackName), sResumeFuncName, 0);
+	bFirstDoWhile = (pFirstStep->pAwaitStmt != NULL) &&
+		(pFirstStep->pAwaitStmt->eKind == XL_MIR_WHILE) &&
+		pFirstStep->pAwaitStmt->bFlag;
+	pDoWhileBody = bFirstDoWhile && (pFirstStep->pAwaitStmt->iChildCount > 1) ? pFirstStep->pAwaitStmt->ppChildren[1] : NULL;
+	snprintf(sDoWhileBreakLabel, sizeof(sDoWhileBreakLabel), "xl_async_do_while_break_%d_%d", (pFirstStep->pAwaitStmt != NULL) ? pFirstStep->pAwaitStmt->iLine : 0, (pFirstStep->pAwaitStmt != NULL) ? pFirstStep->pAwaitStmt->iColumn : 0);
+	snprintf(sDoWhileContinueLabel, sizeof(sDoWhileContinueLabel), "xl_async_do_while_continue_%d_%d", (pFirstStep->pAwaitStmt != NULL) ? pFirstStep->pAwaitStmt->iLine : 0, (pFirstStep->pAwaitStmt != NULL) ? pFirstStep->pAwaitStmt->iColumn : 0);
 
 	sAwaitExprType = __xlInferExprTypeName(pCtx, pFirstStep->pAwaitInner);
 	sAwaitTraceName = __xlCallCalleeName(pFirstStep->pAwaitInner);
@@ -11224,15 +11734,203 @@ static int __xlCgenEmitAsyncLinearResumeFunc(
 	for ( i = 0; i < candidate.iPreBindCount; ++i ) {
 		__xlCgenStmt(pCtx, candidate.arrPreBinds[i], pFuncInfo);
 	}
-	if ( (pFirstStep->pAwaitStmt != NULL) &&
-		(pFirstStep->pAwaitStmt->eKind == XL_MIR_WHILE) &&
-		pFirstStep->pAwaitStmt->bFlag ) {
-		const XL_MirNode* pDoWhileBody = (pFirstStep->pAwaitStmt->iChildCount > 1) ? pFirstStep->pAwaitStmt->ppChildren[1] : NULL;
+	if ( bFirstDoWhile ) {
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppendFormat(&pCtx->buf, "xfuture* %s = xFutureCreate();\n", sOutFutureName);
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppendFormat(&pCtx->buf, "xpromise* %s;\n", sPromiseName);
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppendFormat(&pCtx->buf, "%s* %s;\n", sStateTypeName, sStateName);
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppendFormat(&pCtx->buf, "xfuture* %s;\n", sHookName);
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppendFormat(&pCtx->buf, "if ( %s == NULL ) {\n", sOutFutureName);
+		pCtx->buf.iIndent += 1;
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppendFormat(&pCtx->buf, "return %s(xl_generated_error_make(\"Error\", \"async linear future alloc failed\", 0, \"\", \"\"));\n", __xlFutureErrorFunc(pFuncInfo->sTypeName));
+		pCtx->buf.iIndent -= 1;
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppend(&pCtx->buf, "}\n");
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppendFormat(&pCtx->buf, "(void)xFutureSetDebugName(%s, (str)", sOutFutureName);
+		__xlCgenAppendCString(&pCtx->buf, __xlFutureTypeDebugName(pFuncInfo->sTypeName));
+		__xlCgenAppend(&pCtx->buf, ");\n");
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppendFormat(&pCtx->buf, "%s = xPromiseCreate(%s);\n", sPromiseName, sOutFutureName);
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppendFormat(&pCtx->buf, "if ( %s == NULL ) {\n", sPromiseName);
+		pCtx->buf.iIndent += 1;
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppendFormat(&pCtx->buf, "xFutureRelease(%s);\n", sOutFutureName);
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppendFormat(&pCtx->buf, "return %s(xl_generated_error_make(\"Error\", \"async linear promise alloc failed\", 0, \"\", \"\"));\n", __xlFutureErrorFunc(pFuncInfo->sTypeName));
+		pCtx->buf.iIndent -= 1;
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppend(&pCtx->buf, "}\n");
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppendFormat(&pCtx->buf, "%s = (%s*)xrtMalloc(sizeof(*%s));\n", sStateName, sStateTypeName, sStateName);
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppendFormat(&pCtx->buf, "if ( %s == NULL ) {\n", sStateName);
+		pCtx->buf.iIndent += 1;
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppendFormat(&pCtx->buf, "xPromiseDestroy(%s);\n", sPromiseName);
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppendFormat(&pCtx->buf, "xFutureRelease(%s);\n", sOutFutureName);
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppendFormat(&pCtx->buf, "return %s(xl_generated_error_make(\"Error\", \"async linear state alloc failed\", 0, \"\", \"\"));\n", __xlFutureErrorFunc(pFuncInfo->sTypeName));
+		pCtx->buf.iIndent -= 1;
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppend(&pCtx->buf, "}\n");
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppendFormat(&pCtx->buf, "memset(%s, 0, sizeof(*%s));\n", sStateName, sStateName);
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppendFormat(&pCtx->buf, "%s->pPromise = %s;\n", sStateName, sPromiseName);
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppendFormat(&pCtx->buf, "%s->iStep = 0;\n", sStateName);
 
 		if ( pDoWhileBody != NULL ) {
+			__xlCgenPushLoopFrame(pCtx, sDoWhileBreakLabel, sDoWhileContinueLabel);
 			__xlCgenStmt(pCtx, pDoWhileBody, pFuncInfo);
-			__xlCgenPropagatePendingException(pCtx, pFuncInfo);
+			__xlCgenPopLoopFrame(pCtx);
 		}
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppend(&pCtx->buf, "if ( xl_generated_had_exception ) {\n");
+		pCtx->buf.iIndent += 1;
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppendFormat(&pCtx->buf, "xrtFree(%s);\n", sStateName);
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppendFormat(&pCtx->buf, "xPromiseDestroy(%s);\n", sPromiseName);
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppendFormat(&pCtx->buf, "xFutureRelease(%s);\n", sOutFutureName);
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppendFormat(&pCtx->buf, "return %s(xl_generated_capture_exception_error());\n", __xlFutureErrorFunc(pFuncInfo->sTypeName));
+		pCtx->buf.iIndent -= 1;
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppend(&pCtx->buf, "}\n");
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppend(&pCtx->buf, "if ( xl_generated_capture_native_error() ) {\n");
+		pCtx->buf.iIndent += 1;
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppendFormat(&pCtx->buf, "xrtFree(%s);\n", sStateName);
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppendFormat(&pCtx->buf, "xPromiseDestroy(%s);\n", sPromiseName);
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppendFormat(&pCtx->buf, "xFutureRelease(%s);\n", sOutFutureName);
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppendFormat(&pCtx->buf, "return %s(xl_generated_capture_exception_error());\n", __xlFutureErrorFunc(pFuncInfo->sTypeName));
+		pCtx->buf.iIndent -= 1;
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppend(&pCtx->buf, "}\n");
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppendFormat(&pCtx->buf, "%s:\n", sDoWhileContinueLabel);
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppend(&pCtx->buf, ";\n");
+		for ( i = 0; (pParams != NULL) && (i < pParams->iChildCount); ++i ) {
+			__xlCgenAsyncLinearStateFieldStore(pCtx, pParams->ppChildren[i], sStateName);
+		}
+		for ( i = 0; i < candidate.iPreBindCount; ++i ) {
+			__xlCgenAsyncLinearStateFieldStore(pCtx, candidate.arrPreBinds[i], sStateName);
+		}
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppendFormat(&pCtx->buf, "%s %s = ", __xlCTypeName(sAwaitExprType), sFutureValueName);
+		__xlCgenExprAsType(pCtx, pFirstStep->pAwaitInner, sAwaitExprType);
+		__xlCgenAppend(&pCtx->buf, ";\n");
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppend(&pCtx->buf, "if ( xl_generated_had_exception ) {\n");
+		pCtx->buf.iIndent += 1;
+		__xlCgenAsyncLinearStateCleanup(pCtx, pParams, &candidate, sStateName);
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppendFormat(&pCtx->buf, "xrtFree(%s);\n", sStateName);
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppendFormat(&pCtx->buf, "xPromiseDestroy(%s);\n", sPromiseName);
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppendFormat(&pCtx->buf, "xFutureRelease(%s);\n", sOutFutureName);
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppendFormat(&pCtx->buf, "return %s(xl_generated_capture_exception_error());\n", __xlFutureErrorFunc(pFuncInfo->sTypeName));
+		pCtx->buf.iIndent -= 1;
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppend(&pCtx->buf, "}\n");
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppend(&pCtx->buf, "if ( xl_generated_capture_native_error() ) {\n");
+		pCtx->buf.iIndent += 1;
+		__xlCgenAsyncLinearStateCleanup(pCtx, pParams, &candidate, sStateName);
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppendFormat(&pCtx->buf, "xrtFree(%s);\n", sStateName);
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppendFormat(&pCtx->buf, "xPromiseDestroy(%s);\n", sPromiseName);
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppendFormat(&pCtx->buf, "xFutureRelease(%s);\n", sOutFutureName);
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppendFormat(&pCtx->buf, "return %s(xl_generated_capture_exception_error());\n", __xlFutureErrorFunc(pFuncInfo->sTypeName));
+		pCtx->buf.iIndent -= 1;
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppend(&pCtx->buf, "}\n");
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppendFormat(&pCtx->buf, "if ( %s.handle == NULL ) {\n", sFutureValueName);
+		pCtx->buf.iIndent += 1;
+		__xlCgenAsyncLinearStateCleanup(pCtx, pParams, &candidate, sStateName);
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppendFormat(&pCtx->buf, "xrtFree(%s);\n", sStateName);
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppendFormat(&pCtx->buf, "xPromiseDestroy(%s);\n", sPromiseName);
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppendFormat(&pCtx->buf, "xFutureRelease(%s);\n", sOutFutureName);
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppendFormat(&pCtx->buf, "return %s(xl_generated_error_make(\"Error\", \"async await future missing\", 0, \"\", \"\"));\n", __xlFutureErrorFunc(pFuncInfo->sTypeName));
+		pCtx->buf.iIndent -= 1;
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppend(&pCtx->buf, "}\n");
+		if ( iAwaitStateId >= 0 ) {
+			__xlCgenAppendIndent(&pCtx->buf);
+			__xlCgenAppend(&pCtx->buf, "xl_generated_async_trace_state_event(");
+			__xlCgenAppendCString(&pCtx->buf, pFuncInfo->sName);
+			__xlCgenAppendFormat(&pCtx->buf, ", %d);\n", iAwaitStateId);
+		}
+		__xlCgenTraceEventStmt(pCtx, "await", sAwaitTraceName);
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppendFormat(&pCtx->buf, "%s = xFutureFinallyEngine(%s.handle, NULL, 0u, %s, %s);\n", sHookName, sFutureValueName, sResumeFuncName, sStateName);
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppendFormat(&pCtx->buf, "if ( %s == NULL ) {\n", sHookName);
+		pCtx->buf.iIndent += 1;
+		__xlCgenAsyncLinearStateCleanup(pCtx, pParams, &candidate, sStateName);
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppendFormat(&pCtx->buf, "xrtFree(%s);\n", sStateName);
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppendFormat(&pCtx->buf, "xPromiseDestroy(%s);\n", sPromiseName);
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppendFormat(&pCtx->buf, "xFutureRelease(%s);\n", sOutFutureName);
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppendFormat(&pCtx->buf, "return %s(xl_generated_error_make(\"Error\", \"async linear hook failed\", 0, \"\", \"\"));\n", __xlFutureErrorFunc(pFuncInfo->sTypeName));
+		pCtx->buf.iIndent -= 1;
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppend(&pCtx->buf, "}\n");
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppendFormat(&pCtx->buf, "xFutureRelease(%s);\n", sHookName);
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppendFormat(&pCtx->buf, "return (%s){ %s };\n", __xlFutureTypeName(pFuncInfo->sTypeName), sOutFutureName);
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppendFormat(&pCtx->buf, "%s:\n", sDoWhileBreakLabel);
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppend(&pCtx->buf, ";\n");
+		for ( i = 0; (pParams != NULL) && (i < pParams->iChildCount); ++i ) {
+			__xlCgenAsyncLinearStateFieldStore(pCtx, pParams->ppChildren[i], sStateName);
+		}
+		for ( i = 0; i < candidate.iPreBindCount; ++i ) {
+			__xlCgenAsyncLinearStateFieldStore(pCtx, candidate.arrPreBinds[i], sStateName);
+		}
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppend(&pCtx->buf, "{\n");
+		pCtx->buf.iIndent += 1;
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppend(&pCtx->buf, "xfuture_result xl_async_break_result = { XRT_NET_OK, NULL, NULL, XFUTURE_RESULT_F_NONE };\n");
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppendFormat(&pCtx->buf, "%s(&xl_async_break_result, %s);\n", sFirstResumeCallbackName, sStateName);
+		pCtx->buf.iIndent -= 1;
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppend(&pCtx->buf, "}\n");
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppendFormat(&pCtx->buf, "return (%s){ %s };\n", __xlFutureTypeName(pFuncInfo->sTypeName), sOutFutureName);
+		return 1;
 	}
 
 	__xlCgenAppendIndent(&pCtx->buf);
