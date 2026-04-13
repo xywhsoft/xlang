@@ -3085,6 +3085,333 @@ static int __xlTestCgenAsyncDoWhileCondThenAwaitBasic(XL_TestContext* pCtx)
 
 	return __xlRunCgenCaseAll(pCtx, "examples\\async\\do_while_cond_then_await_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
 }
+static int __xlTestCgenAsyncDoWhileCondContainerThenAwaitBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"int value = 0;",
+		"xvalue items = ({ xvalue xl_arr_literal = xvoCreateArray();",
+		"xl_array_append((xvalue)(items), xvoCreateInt((int64)(value)))",
+		"xl_generated_async_trace_event(\"await\", \"keep_going\")",
+		"xl_generated_async_trace_event(\"await\", \"next_value\")",
+		"int xl_async_ret_"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\async\\do_while_cond_container_then_await_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenAsyncDoWhileCondBreakBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"goto xl_async_do_while_break_",
+		"xl_async_do_while_break_",
+		"xl_generated_async_trace_event(\"await\", \"keep_going\")",
+		"int xl_async_ret_"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\async\\do_while_cond_break_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenAsyncDoWhileCondContinueBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"goto xl_async_do_while_continue_",
+		"xl_async_do_while_continue_",
+		"xl_generated_async_trace_event(\"await\", \"keep_going\")",
+		"int xl_async_ret_"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\async\\do_while_cond_continue_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenAsyncDoWhileCondBreakThenAwaitBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"goto xl_async_do_while_break_",
+		"xl_generated_async_trace_event(\"await\", \"next_value\")",
+		"int xl_async_ret_"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\async\\do_while_cond_break_then_await_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenAsyncDoWhileCondContinueThenAwaitBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"goto xl_async_do_while_continue_",
+		"xl_generated_async_trace_event(\"await\", \"next_value\")",
+		"int xl_async_ret_"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\async\\do_while_cond_continue_then_await_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenAsyncTryFinallyAwaitBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"typedef struct xl__main__arity0__ret__future_x3Cint_x3E__async_linear_state {",
+		"static void xl__main__arity0__ret__future_x3Cint_x3E__async_linear_resume(",
+		"xl_async_hook_2 = xFutureFinallyEngine(",
+		"async linear try/finally failed",
+		"(mark = 10);",
+		"int xl_async_ret_"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\async\\try_finally_await_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenAsyncTryCatchFinallyAwaitBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"typedef struct xl__main__arity0__ret__future_x3Cint_x3E__async_linear_state {",
+		"static void xl__main__arity0__ret__future_x3Cint_x3E__async_linear_resume(",
+		"xl_generated_raise_error(xl_generated_error_from_text(",
+		"XL_GeneratedError* e = xl_generated_capture_exception_error();",
+		"(mark = 10);",
+		"int xl_async_ret_"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\async\\try_catch_finally_await_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenAsyncTryCatchFinallyThenAwaitBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"typedef struct xl__main__arity0__ret__future_x3Cint_x3E__async_linear_state {",
+		"static void xl__main__arity0__ret__future_x3Cint_x3E__async_linear_resume_1(",
+		"xl_generated_error_from_text(",
+		"xl_async_hook_3 = xFutureFinallyEngine(",
+		"(mark = 10);",
+		"int xl_async_ret_23_2 = ((value + mark) + xl_async_return_await_23_24);"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\async\\try_catch_finally_then_await_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenAsyncTryFinallyThenAwaitBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"typedef struct xl__main__arity0__ret__future_x3Cint_x3E__async_linear_state {",
+		"static void xl__main__arity0__ret__future_x3Cint_x3E__async_linear_resume_1(",
+		"xl_async_hook_3 = xFutureFinallyEngine(",
+		"int xl_async_ret_17_2 = ((value + mark) + xl_async_return_await_17_24);",
+		"(mark = 10);"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\async\\try_finally_then_await_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenAsyncTryFinallyTailThenAwaitBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"typedef struct xl__main__arity0__ret__future_x3Cint_x3E__async_linear_state {",
+		"if ( !xl_generated_async_has_pending_error() )",
+		"(mark = (mark + 10));",
+		"(mark = (mark + 2));",
+		"xl_async_hook_3 = xFutureFinallyEngine(",
+		"((value + mark) + xl_async_return_await_"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\async\\try_finally_tail_then_await_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenAsyncTryCatchFinallyTailThenAwaitBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"typedef struct xl__main__arity0__ret__future_x3Cint_x3E__async_linear_state {",
+		"if ( !xl_generated_async_has_pending_error() )",
+		"(mark = 99);",
+		"xl_generated_error_from_text(",
+		"(mark = (mark + 10));",
+		"((value + mark) + xl_async_return_await_"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\async\\try_catch_finally_tail_then_await_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenAsyncTryFinallyIfThenAwaitBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"typedef struct xl__main__arity0__ret__future_x3Cint_x3E__async_linear_state {",
+		"int xl_if_cond_",
+		"if ( !xl_generated_async_has_pending_error() )",
+		"(mark = 10);",
+		"(mark = (mark + 3));",
+		"((value + mark) + xl_async_return_await_"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\async\\try_finally_if_then_await_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenAsyncTryCatchFinallyWhileThenAwaitBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"typedef struct xl__main__arity0__ret__future_x3Cint_x3E__async_linear_state {",
+		"int xl_while_cond_",
+		"if ( !xl_generated_async_has_pending_error() )",
+		"(mark = 99);",
+		"xl_generated_error_from_text(",
+		"(mark = (mark + 10));"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\async\\try_catch_finally_while_then_await_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenAsyncTryFinallyDoWhileThenAwaitBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"typedef struct xl__main__arity0__ret__future_x3Cint_x3E__async_linear_state {",
+		"(value = (value + 1));",
+		"xl_generated_async_trace_event(\"await\", \"keep_going\")",
+		"(mark = (mark + 20));",
+		"(mark = (mark + 3));",
+		"((value + mark) + xl_async_return_await_"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\async\\try_finally_do_while_then_await_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenAsyncTryFinallyDoWhileBreakThenAwaitBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"typedef struct xl__main__arity0__ret__future_x3Cint_x3E__async_linear_state {",
+		"xl_generated_async_trace_event(\"await\", \"keep_going\")",
+		"(mark = (mark + 20));",
+		"(mark = (mark + 3));",
+		"xl_generated_async_trace_event(\"await\", \"bonus\")",
+		"int xl_async_ret_"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\async\\try_finally_do_while_break_then_await_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenAsyncTryNestedInnerCatchThenOuterFinallyBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"typedef struct xl__main__arity0__ret__future_x3Cint_x3E__async_linear_state {",
+		"xl_generated_raise_error(xl_generated_error_from_text(",
+		"XL_GeneratedError* e = xl_generated_capture_exception_error();",
+		"(mark = (mark + 20));",
+		"(mark = (mark + 2));",
+		"((value + mark) + xl_async_return_await_"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\async\\try_nested_inner_catch_then_outer_finally_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenAsyncTryNestedInnerFinallyOuterCatchBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"typedef struct xl__main__arity0__ret__future_x3Cint_x3E__async_linear_state {",
+		"xl_generated_raise_error(xl_generated_error_from_text(",
+		"(mark = (mark + 10));",
+		"(mark = 99);",
+		"XL_GeneratedError* e = xl_generated_capture_exception_error();",
+		"(mark = (mark + 2));"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\async\\try_nested_inner_finally_outer_catch_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenAsyncTryNestedIfFinallyThenAwaitBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"typedef struct xl__main__arity0__ret__future_x3Cint_x3E__async_linear_state {",
+		"int xl_if_cond_",
+		"(mark = (mark + 10));",
+		"(mark = (mark + 20));",
+		"(mark = (mark + 3));",
+		"((value + mark) + xl_async_return_await_"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\async\\try_nested_if_finally_then_await_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenAsyncTryNestedWhileFinallyOuterCatchThenAwaitBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"typedef struct xl__main__arity0__ret__future_x3Cint_x3E__async_linear_state {",
+		"int xl_while_cond_",
+		"xl_generated_raise_error(xl_generated_error_from_text(",
+		"(mark = (mark + 10));",
+		"(mark = 99);",
+		"(mark = (mark + 2));"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\async\\try_nested_while_finally_outer_catch_then_await_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenAsyncTryNestedDoWhileFinallyOuterCatchThenAwaitBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"typedef struct xl__main__arity0__ret__future_x3Cint_x3E__async_linear_state {",
+		"(value = (value + 1));",
+		"xl_generated_raise_error(xl_generated_error_from_text(",
+		"(mark = (mark + 10));",
+		"XL_GeneratedError* e = xl_generated_capture_exception_error();",
+		"(mark = (mark + 2));"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\async\\try_nested_do_while_finally_outer_catch_then_await_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenAsyncTryNestedDoWhileContinueOuterCatchThenAwaitBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"typedef struct xl__main__arity0__ret__future_x3Cint_x3E__async_linear_state {",
+		"xl_generated_async_trace_event(\"await\", \"keep_going\")",
+		"xl_generated_raise_error(xl_generated_error_from_text(",
+		"(mark = (mark + 10));",
+		"XL_GeneratedError* e = xl_generated_capture_exception_error();",
+		"(mark = (mark + 2));"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\async\\try_nested_do_while_continue_outer_catch_then_await_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenAsyncTryNestedFullChainInnerCatchThenAwaitBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"typedef struct xl__main__arity0__ret__future_x3Cint_x3E__async_linear_state {",
+		"xl_generated_raise_error(xl_generated_error_from_text(",
+		"XL_GeneratedError* e = xl_generated_capture_exception_error();",
+		"(mark = (mark + 20));",
+		"(mark = (mark + 2));",
+		"((value + mark) + xl_async_return_await_"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\async\\try_nested_full_chain_inner_catch_then_await_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenAsyncTryNestedFullChainOuterCatchThenAwaitBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"typedef struct xl__main__arity0__ret__future_x3Cint_x3E__async_linear_state {",
+		"xl_generated_raise_error(xl_generated_error_from_text(",
+		"(mark = (mark + 10));",
+		"(mark = 99);",
+		"XL_GeneratedError* e = xl_generated_capture_exception_error();",
+		"(mark = (mark + 2));"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\async\\try_nested_full_chain_outer_catch_then_await_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenAsyncTryTripleNestedInnerCatchThenAwaitBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"typedef struct xl__main__arity0__ret__future_x3Cint_x3E__async_linear_state {",
+		"xl_generated_raise_error(xl_generated_error_from_text(",
+		"XL_GeneratedError* e = xl_generated_capture_exception_error();",
+		"(mark = (mark + 30));",
+		"(mark = (mark + 40));",
+		"(mark = (mark + 2));"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\async\\try_triple_nested_inner_catch_then_await_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenAsyncTryTripleNestedOuterCatchThenAwaitBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"typedef struct xl__main__arity0__ret__future_x3Cint_x3E__async_linear_state {",
+		"xl_generated_raise_error(xl_generated_error_from_text(",
+		"(mark = (mark + 10));",
+		"(mark = (mark + 30));",
+		"XL_GeneratedError* e = xl_generated_capture_exception_error();",
+		"(mark = (mark + 2));"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\async\\try_triple_nested_outer_catch_then_await_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenAsyncTryTripleNestedWhileOuterCatchThenAwaitBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"typedef struct xl__main__arity0__ret__future_x3Cint_x3E__async_linear_state {",
+		"int xl_while_cond_",
+		"xl_generated_raise_error(xl_generated_error_from_text(",
+		"(mark = (mark + 10));",
+		"(mark = (mark + 30));",
+		"XL_GeneratedError* e = xl_generated_capture_exception_error();"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\async\\try_triple_nested_while_outer_catch_then_await_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
 static int __xlTestCgenAsyncCallArgAwaitBasic(XL_TestContext* pCtx)
 {
 	static const char* const aNeedles[] = {
@@ -4924,6 +5251,760 @@ static int __xlTestRunAsyncDoWhileCondThenAwaitBasic(XL_TestContext* pCtx)
 		NULL
 	);
 }
+static int __xlTestRunAsyncDoWhileCondContainerThenAwaitBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"async.await=keep_going",
+		"async.resume=keep_going",
+		"async.await=next_value",
+		"async.resume=next_value",
+		"async.return=main"
+	};
+	static const XL_TraceCountExpectation aCounts[] = {
+		{ "async.await=keep_going", 2u },
+		{ "async.resume=keep_going", 2u },
+		{ "async.await=next_value", 1u },
+		{ "async.resume=next_value", 1u }
+	};
+
+	return __xlRunProgramCaseAllCounts(
+		pCtx,
+		"examples\\async\\do_while_cond_container_then_await_basic.xl",
+		1,
+		6,
+		aNeedles,
+		XL_COUNTOF(aNeedles),
+		aCounts,
+		XL_COUNTOF(aCounts),
+		NULL,
+		0u,
+		NULL
+	);
+}
+static int __xlTestRunAsyncDoWhileCondBreakBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"async.return=main"
+	};
+
+	return __xlRunProgramCaseAllCounts(
+		pCtx,
+		"examples\\async\\do_while_cond_break_basic.xl",
+		1,
+		7,
+		aNeedles,
+		XL_COUNTOF(aNeedles),
+		NULL,
+		0u,
+		NULL,
+		0u,
+		NULL
+	);
+}
+static int __xlTestRunAsyncDoWhileCondContinueBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"async.await=keep_going",
+		"async.resume=keep_going",
+		"async.return=main"
+	};
+	static const XL_TraceCountExpectation aCounts[] = {
+		{ "async.await=keep_going", 2u },
+		{ "async.resume=keep_going", 2u }
+	};
+
+	return __xlRunProgramCaseAllCounts(
+		pCtx,
+		"examples\\async\\do_while_cond_continue_basic.xl",
+		1,
+		8,
+		aNeedles,
+		XL_COUNTOF(aNeedles),
+		aCounts,
+		XL_COUNTOF(aCounts),
+		NULL,
+		0u,
+		NULL
+	);
+}
+static int __xlTestRunAsyncDoWhileCondBreakThenAwaitBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"async.await=next_value",
+		"async.resume=next_value",
+		"async.return=main"
+	};
+	static const XL_TraceCountExpectation aCounts[] = {
+		{ "async.await=next_value", 1u },
+		{ "async.resume=next_value", 1u }
+	};
+
+	return __xlRunProgramCaseAllCounts(
+		pCtx,
+		"examples\\async\\do_while_cond_break_then_await_basic.xl",
+		1,
+		6,
+		aNeedles,
+		XL_COUNTOF(aNeedles),
+		aCounts,
+		XL_COUNTOF(aCounts),
+		NULL,
+		0u,
+		NULL
+	);
+}
+static int __xlTestRunAsyncDoWhileCondContinueThenAwaitBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"async.await=keep_going",
+		"async.resume=keep_going",
+		"async.await=next_value",
+		"async.resume=next_value",
+		"async.return=main"
+	};
+	static const XL_TraceCountExpectation aCounts[] = {
+		{ "async.await=keep_going", 2u },
+		{ "async.resume=keep_going", 2u },
+		{ "async.await=next_value", 1u },
+		{ "async.resume=next_value", 1u }
+	};
+
+	return __xlRunProgramCaseAllCounts(
+		pCtx,
+		"examples\\async\\do_while_cond_continue_then_await_basic.xl",
+		1,
+		7,
+		aNeedles,
+		XL_COUNTOF(aNeedles),
+		aCounts,
+		XL_COUNTOF(aCounts),
+		NULL,
+		0u,
+		NULL
+	);
+}
+static int __xlTestRunAsyncTryFinallyAwaitBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"async.await=next_value",
+		"async.resume=next_value",
+		"async.return=main"
+	};
+	static const XL_TraceCountExpectation aCounts[] = {
+		{ "async.await=next_value", 1u },
+		{ "async.resume=next_value", 1u }
+	};
+
+	return __xlRunProgramCaseAllCounts(
+		pCtx,
+		"examples\\async\\try_finally_await_basic.xl",
+		1,
+		17,
+		aNeedles,
+		XL_COUNTOF(aNeedles),
+		aCounts,
+		XL_COUNTOF(aCounts),
+		NULL,
+		0u,
+		NULL
+	);
+}
+static int __xlTestRunAsyncTryCatchFinallyAwaitBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"async.await=fail",
+		"async.resume=fail",
+		"async.return=main"
+	};
+	static const XL_TraceCountExpectation aCounts[] = {
+		{ "async.await=fail", 1u },
+		{ "async.resume=fail", 1u }
+	};
+
+	return __xlRunProgramCaseAllCounts(
+		pCtx,
+		"examples\\async\\try_catch_finally_await_basic.xl",
+		1,
+		17,
+		aNeedles,
+		XL_COUNTOF(aNeedles),
+		aCounts,
+		XL_COUNTOF(aCounts),
+		NULL,
+		0u,
+		NULL
+	);
+}
+static int __xlTestRunAsyncTryCatchFinallyThenAwaitBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"async.await=fail",
+		"async.resume=fail",
+		"async.await=bonus",
+		"async.resume=bonus",
+		"async.return=main"
+	};
+	static const XL_TraceCountExpectation aCounts[] = {
+		{ "async.await=fail", 1u },
+		{ "async.resume=fail", 1u },
+		{ "async.await=bonus", 1u },
+		{ "async.resume=bonus", 1u }
+	};
+
+	return __xlRunProgramCaseAllCounts(
+		pCtx,
+		"examples\\async\\try_catch_finally_then_await_basic.xl",
+		1,
+		22,
+		aNeedles,
+		XL_COUNTOF(aNeedles),
+		aCounts,
+		XL_COUNTOF(aCounts),
+		NULL,
+		0u,
+		NULL
+	);
+}
+static int __xlTestRunAsyncTryFinallyThenAwaitBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"async.await=next_value",
+		"async.resume=next_value",
+		"async.await=bonus",
+		"async.resume=bonus",
+		"async.return=main"
+	};
+	static const XL_TraceCountExpectation aCounts[] = {
+		{ "async.await=next_value", 1u },
+		{ "async.resume=next_value", 1u },
+		{ "async.await=bonus", 1u },
+		{ "async.resume=bonus", 1u }
+	};
+
+	return __xlRunProgramCaseAllCounts(
+		pCtx,
+		"examples\\async\\try_finally_then_await_basic.xl",
+		1,
+		22,
+		aNeedles,
+		XL_COUNTOF(aNeedles),
+		aCounts,
+		XL_COUNTOF(aCounts),
+		NULL,
+		0u,
+		NULL
+	);
+}
+static int __xlTestRunAsyncTryFinallyTailThenAwaitBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"async.await=next_value",
+		"async.resume=next_value",
+		"async.await=bonus",
+		"async.resume=bonus",
+		"async.return=main"
+	};
+	static const XL_TraceCountExpectation aCounts[] = {
+		{ "async.await=next_value", 1u },
+		{ "async.resume=next_value", 1u },
+		{ "async.await=bonus", 1u },
+		{ "async.resume=bonus", 1u }
+	};
+
+	return __xlRunProgramCaseAllCounts(
+		pCtx,
+		"examples\\async\\try_finally_tail_then_await_basic.xl",
+		1,
+		25,
+		aNeedles,
+		XL_COUNTOF(aNeedles),
+		aCounts,
+		XL_COUNTOF(aCounts),
+		NULL,
+		0u,
+		NULL
+	);
+}
+static int __xlTestRunAsyncTryCatchFinallyTailThenAwaitBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"async.await=fail",
+		"async.resume=fail",
+		"async.await=bonus",
+		"async.resume=bonus",
+		"async.return=main"
+	};
+	static const XL_TraceCountExpectation aCounts[] = {
+		{ "async.await=fail", 1u },
+		{ "async.resume=fail", 1u },
+		{ "async.await=bonus", 1u },
+		{ "async.resume=bonus", 1u }
+	};
+
+	return __xlRunProgramCaseAllCounts(
+		pCtx,
+		"examples\\async\\try_catch_finally_tail_then_await_basic.xl",
+		1,
+		23,
+		aNeedles,
+		XL_COUNTOF(aNeedles),
+		aCounts,
+		XL_COUNTOF(aCounts),
+		NULL,
+		0u,
+		NULL
+	);
+}
+static int __xlTestRunAsyncTryFinallyIfThenAwaitBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"async.await=next_flag",
+		"async.resume=next_flag",
+		"async.await=bonus",
+		"async.resume=bonus",
+		"async.return=main"
+	};
+	static const XL_TraceCountExpectation aCounts[] = {
+		{ "async.await=next_flag", 1u },
+		{ "async.resume=next_flag", 1u },
+		{ "async.await=bonus", 1u },
+		{ "async.resume=bonus", 1u }
+	};
+
+	return __xlRunProgramCaseAllCounts(
+		pCtx,
+		"examples\\async\\try_finally_if_then_await_basic.xl",
+		1,
+		21,
+		aNeedles,
+		XL_COUNTOF(aNeedles),
+		aCounts,
+		XL_COUNTOF(aCounts),
+		NULL,
+		0u,
+		NULL
+	);
+}
+static int __xlTestRunAsyncTryCatchFinallyWhileThenAwaitBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"async.await=keep_going",
+		"async.resume=keep_going",
+		"async.await=bonus",
+		"async.resume=bonus",
+		"async.return=main"
+	};
+	static const XL_TraceCountExpectation aCounts[] = {
+		{ "async.await=keep_going", 2u },
+		{ "async.resume=keep_going", 2u },
+		{ "async.await=bonus", 1u },
+		{ "async.resume=bonus", 1u }
+	};
+
+	return __xlRunProgramCaseAllCounts(
+		pCtx,
+		"examples\\async\\try_catch_finally_while_then_await_basic.xl",
+		1,
+		24,
+		aNeedles,
+		XL_COUNTOF(aNeedles),
+		aCounts,
+		XL_COUNTOF(aCounts),
+		NULL,
+		0u,
+		NULL
+	);
+}
+static int __xlTestRunAsyncTryFinallyDoWhileThenAwaitBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"async.await=keep_going",
+		"async.resume=keep_going",
+		"async.await=bonus",
+		"async.resume=bonus",
+		"async.return=main"
+	};
+	static const XL_TraceCountExpectation aCounts[] = {
+		{ "async.await=keep_going", 3u },
+		{ "async.resume=keep_going", 3u },
+		{ "async.await=bonus", 1u },
+		{ "async.resume=bonus", 1u }
+	};
+
+	return __xlRunProgramCaseAllCounts(
+		pCtx,
+		"examples\\async\\try_finally_do_while_then_await_basic.xl",
+		1,
+		31,
+		aNeedles,
+		XL_COUNTOF(aNeedles),
+		aCounts,
+		XL_COUNTOF(aCounts),
+		NULL,
+		0u,
+		NULL
+	);
+}
+static int __xlTestRunAsyncTryFinallyDoWhileBreakThenAwaitBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"async.await=keep_going",
+		"async.resume=keep_going",
+		"async.await=bonus",
+		"async.resume=bonus",
+		"async.return=main"
+	};
+	static const XL_TraceCountExpectation aCounts[] = {
+		{ "async.await=keep_going", 2u },
+		{ "async.resume=keep_going", 2u },
+		{ "async.await=bonus", 1u },
+		{ "async.resume=bonus", 1u }
+	};
+
+	return __xlRunProgramCaseAllCounts(
+		pCtx,
+		"examples\\async\\try_finally_do_while_break_then_await_basic.xl",
+		1,
+		31,
+		aNeedles,
+		XL_COUNTOF(aNeedles),
+		aCounts,
+		XL_COUNTOF(aCounts),
+		NULL,
+		0u,
+		NULL
+	);
+}
+static int __xlTestRunAsyncTryNestedInnerCatchThenOuterFinallyBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"async.await=fail",
+		"async.resume=fail",
+		"async.await=bonus",
+		"async.resume=bonus",
+		"async.return=main"
+	};
+	static const XL_TraceCountExpectation aCounts[] = {
+		{ "async.await=fail", 1u },
+		{ "async.resume=fail", 1u },
+		{ "async.await=bonus", 1u },
+		{ "async.resume=bonus", 1u }
+	};
+
+	return __xlRunProgramCaseAllCounts(
+		pCtx,
+		"examples\\async\\try_nested_inner_catch_then_outer_finally_basic.xl",
+		1,
+		45,
+		aNeedles,
+		XL_COUNTOF(aNeedles),
+		aCounts,
+		XL_COUNTOF(aCounts),
+		NULL,
+		0u,
+		NULL
+	);
+}
+static int __xlTestRunAsyncTryNestedInnerFinallyOuterCatchBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"async.await=fail",
+		"async.resume=fail",
+		"async.await=bonus",
+		"async.resume=bonus",
+		"async.return=main"
+	};
+	static const XL_TraceCountExpectation aCounts[] = {
+		{ "async.await=fail", 1u },
+		{ "async.resume=fail", 1u },
+		{ "async.await=bonus", 1u },
+		{ "async.resume=bonus", 1u }
+	};
+
+	return __xlRunProgramCaseAllCounts(
+		pCtx,
+		"examples\\async\\try_nested_inner_finally_outer_catch_basic.xl",
+		1,
+		25,
+		aNeedles,
+		XL_COUNTOF(aNeedles),
+		aCounts,
+		XL_COUNTOF(aCounts),
+		NULL,
+		0u,
+		NULL
+	);
+}
+static int __xlTestRunAsyncTryNestedIfFinallyThenAwaitBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"async.await=next_flag",
+		"async.resume=next_flag",
+		"async.await=bonus",
+		"async.resume=bonus",
+		"async.return=main"
+	};
+	static const XL_TraceCountExpectation aCounts[] = {
+		{ "async.await=next_flag", 1u },
+		{ "async.resume=next_flag", 1u },
+		{ "async.await=bonus", 1u },
+		{ "async.resume=bonus", 1u }
+	};
+
+	return __xlRunProgramCaseAllCounts(
+		pCtx,
+		"examples\\async\\try_nested_if_finally_then_await_basic.xl",
+		1,
+		41,
+		aNeedles,
+		XL_COUNTOF(aNeedles),
+		aCounts,
+		XL_COUNTOF(aCounts),
+		NULL,
+		0u,
+		NULL
+	);
+}
+static int __xlTestRunAsyncTryNestedWhileFinallyOuterCatchThenAwaitBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"async.await=keep_going",
+		"async.resume=keep_going",
+		"async.await=bonus",
+		"async.resume=bonus",
+		"async.return=main"
+	};
+	static const XL_TraceCountExpectation aCounts[] = {
+		{ "async.await=keep_going", 2u },
+		{ "async.resume=keep_going", 2u },
+		{ "async.await=bonus", 1u },
+		{ "async.resume=bonus", 1u }
+	};
+
+	return __xlRunProgramCaseAllCounts(
+		pCtx,
+		"examples\\async\\try_nested_while_finally_outer_catch_then_await_basic.xl",
+		1,
+		26,
+		aNeedles,
+		XL_COUNTOF(aNeedles),
+		aCounts,
+		XL_COUNTOF(aCounts),
+		NULL,
+		0u,
+		NULL
+	);
+}
+static int __xlTestRunAsyncTryNestedDoWhileFinallyOuterCatchThenAwaitBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"async.await=keep_going",
+		"async.resume=keep_going",
+		"async.await=bonus",
+		"async.resume=bonus",
+		"async.return=main"
+	};
+	static const XL_TraceCountExpectation aCounts[] = {
+		{ "async.await=keep_going", 2u },
+		{ "async.resume=keep_going", 2u },
+		{ "async.await=bonus", 1u },
+		{ "async.resume=bonus", 1u }
+	};
+
+	return __xlRunProgramCaseAllCounts(
+		pCtx,
+		"examples\\async\\try_nested_do_while_finally_outer_catch_then_await_basic.xl",
+		1,
+		26,
+		aNeedles,
+		XL_COUNTOF(aNeedles),
+		aCounts,
+		XL_COUNTOF(aCounts),
+		NULL,
+		0u,
+		NULL
+	);
+}
+static int __xlTestRunAsyncTryNestedDoWhileContinueOuterCatchThenAwaitBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"async.await=keep_going",
+		"async.resume=keep_going",
+		"async.await=bonus",
+		"async.resume=bonus",
+		"async.return=main"
+	};
+	static const XL_TraceCountExpectation aCounts[] = {
+		{ "async.await=keep_going", 3u },
+		{ "async.resume=keep_going", 3u },
+		{ "async.await=bonus", 1u },
+		{ "async.resume=bonus", 1u }
+	};
+
+	return __xlRunProgramCaseAllCounts(
+		pCtx,
+		"examples\\async\\try_nested_do_while_continue_outer_catch_then_await_basic.xl",
+		1,
+		28,
+		aNeedles,
+		XL_COUNTOF(aNeedles),
+		aCounts,
+		XL_COUNTOF(aCounts),
+		NULL,
+		0u,
+		NULL
+	);
+}
+static int __xlTestRunAsyncTryNestedFullChainInnerCatchThenAwaitBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"async.await=fail",
+		"async.resume=fail",
+		"async.await=bonus",
+		"async.resume=bonus",
+		"async.return=main"
+	};
+	static const XL_TraceCountExpectation aCounts[] = {
+		{ "async.await=fail", 1u },
+		{ "async.resume=fail", 1u },
+		{ "async.await=bonus", 1u },
+		{ "async.resume=bonus", 1u }
+	};
+
+	return __xlRunProgramCaseAllCounts(
+		pCtx,
+		"examples\\async\\try_nested_full_chain_inner_catch_then_await_basic.xl",
+		1,
+		45,
+		aNeedles,
+		XL_COUNTOF(aNeedles),
+		aCounts,
+		XL_COUNTOF(aCounts),
+		NULL,
+		0u,
+		NULL
+	);
+}
+static int __xlTestRunAsyncTryNestedFullChainOuterCatchThenAwaitBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"async.await=fail",
+		"async.resume=fail",
+		"async.await=bonus",
+		"async.resume=bonus",
+		"async.return=main"
+	};
+	static const XL_TraceCountExpectation aCounts[] = {
+		{ "async.await=fail", 1u },
+		{ "async.resume=fail", 1u },
+		{ "async.await=bonus", 1u },
+		{ "async.resume=bonus", 1u }
+	};
+
+	return __xlRunProgramCaseAllCounts(
+		pCtx,
+		"examples\\async\\try_nested_full_chain_outer_catch_then_await_basic.xl",
+		1,
+		25,
+		aNeedles,
+		XL_COUNTOF(aNeedles),
+		aCounts,
+		XL_COUNTOF(aCounts),
+		NULL,
+		0u,
+		NULL
+	);
+}
+static int __xlTestRunAsyncTryTripleNestedInnerCatchThenAwaitBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"async.await=fail",
+		"async.resume=fail",
+		"async.await=bonus",
+		"async.resume=bonus",
+		"async.return=main"
+	};
+	static const XL_TraceCountExpectation aCounts[] = {
+		{ "async.await=fail", 1u },
+		{ "async.resume=fail", 1u },
+		{ "async.await=bonus", 1u },
+		{ "async.resume=bonus", 1u }
+	};
+
+	return __xlRunProgramCaseAllCounts(
+		pCtx,
+		"examples\\async\\try_triple_nested_inner_catch_then_await_basic.xl",
+		1,
+		115,
+		aNeedles,
+		XL_COUNTOF(aNeedles),
+		aCounts,
+		XL_COUNTOF(aCounts),
+		NULL,
+		0u,
+		NULL
+	);
+}
+static int __xlTestRunAsyncTryTripleNestedOuterCatchThenAwaitBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"async.await=fail",
+		"async.resume=fail",
+		"async.await=bonus",
+		"async.resume=bonus",
+		"async.return=main"
+	};
+	static const XL_TraceCountExpectation aCounts[] = {
+		{ "async.await=fail", 1u },
+		{ "async.resume=fail", 1u },
+		{ "async.await=bonus", 1u },
+		{ "async.resume=bonus", 1u }
+	};
+
+	return __xlRunProgramCaseAllCounts(
+		pCtx,
+		"examples\\async\\try_triple_nested_outer_catch_then_await_basic.xl",
+		1,
+		55,
+		aNeedles,
+		XL_COUNTOF(aNeedles),
+		aCounts,
+		XL_COUNTOF(aCounts),
+		NULL,
+		0u,
+		NULL
+	);
+}
+static int __xlTestRunAsyncTryTripleNestedWhileOuterCatchThenAwaitBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"async.await=keep_going",
+		"async.resume=keep_going",
+		"async.await=bonus",
+		"async.resume=bonus",
+		"async.return=main"
+	};
+	static const XL_TraceCountExpectation aCounts[] = {
+		{ "async.await=keep_going", 2u },
+		{ "async.resume=keep_going", 2u },
+		{ "async.await=bonus", 1u },
+		{ "async.resume=bonus", 1u }
+	};
+
+	return __xlRunProgramCaseAllCounts(
+		pCtx,
+		"examples\\async\\try_triple_nested_while_outer_catch_then_await_basic.xl",
+		1,
+		56,
+		aNeedles,
+		XL_COUNTOF(aNeedles),
+		aCounts,
+		XL_COUNTOF(aCounts),
+		NULL,
+		0u,
+		NULL
+	);
+}
 static int __xlTestRunAsyncCallArgAwaitBasic(XL_TestContext* pCtx)
 {
 	static const char* const aNeedles[] = {
@@ -6147,6 +7228,32 @@ static const XL_TestCase __gXLTests[] = {
 	{ "cgen.async_while_cond_continue_then_await_basic", "cgen", __xlTestCgenAsyncWhileCondContinueThenAwaitBasic },
 	{ "cgen.async_do_while_cond_await_basic", "cgen", __xlTestCgenAsyncDoWhileCondAwaitBasic },
 	{ "cgen.async_do_while_cond_then_await_basic", "cgen", __xlTestCgenAsyncDoWhileCondThenAwaitBasic },
+	{ "cgen.async_do_while_cond_container_then_await_basic", "cgen", __xlTestCgenAsyncDoWhileCondContainerThenAwaitBasic },
+	{ "cgen.async_do_while_cond_break_basic", "cgen", __xlTestCgenAsyncDoWhileCondBreakBasic },
+	{ "cgen.async_do_while_cond_continue_basic", "cgen", __xlTestCgenAsyncDoWhileCondContinueBasic },
+	{ "cgen.async_do_while_cond_break_then_await_basic", "cgen", __xlTestCgenAsyncDoWhileCondBreakThenAwaitBasic },
+	{ "cgen.async_do_while_cond_continue_then_await_basic", "cgen", __xlTestCgenAsyncDoWhileCondContinueThenAwaitBasic },
+	{ "cgen.async_try_finally_await_basic", "cgen", __xlTestCgenAsyncTryFinallyAwaitBasic },
+	{ "cgen.async_try_catch_finally_await_basic", "cgen", __xlTestCgenAsyncTryCatchFinallyAwaitBasic },
+	{ "cgen.async_try_catch_finally_then_await_basic", "cgen", __xlTestCgenAsyncTryCatchFinallyThenAwaitBasic },
+	{ "cgen.async_try_finally_then_await_basic", "cgen", __xlTestCgenAsyncTryFinallyThenAwaitBasic },
+	{ "cgen.async_try_finally_tail_then_await_basic", "cgen", __xlTestCgenAsyncTryFinallyTailThenAwaitBasic },
+	{ "cgen.async_try_catch_finally_tail_then_await_basic", "cgen", __xlTestCgenAsyncTryCatchFinallyTailThenAwaitBasic },
+	{ "cgen.async_try_finally_if_then_await_basic", "cgen", __xlTestCgenAsyncTryFinallyIfThenAwaitBasic },
+	{ "cgen.async_try_catch_finally_while_then_await_basic", "cgen", __xlTestCgenAsyncTryCatchFinallyWhileThenAwaitBasic },
+	{ "cgen.async_try_finally_do_while_then_await_basic", "cgen", __xlTestCgenAsyncTryFinallyDoWhileThenAwaitBasic },
+	{ "cgen.async_try_finally_do_while_break_then_await_basic", "cgen", __xlTestCgenAsyncTryFinallyDoWhileBreakThenAwaitBasic },
+	{ "cgen.async_try_nested_inner_catch_then_outer_finally_basic", "cgen", __xlTestCgenAsyncTryNestedInnerCatchThenOuterFinallyBasic },
+	{ "cgen.async_try_nested_inner_finally_outer_catch_basic", "cgen", __xlTestCgenAsyncTryNestedInnerFinallyOuterCatchBasic },
+	{ "cgen.async_try_nested_if_finally_then_await_basic", "cgen", __xlTestCgenAsyncTryNestedIfFinallyThenAwaitBasic },
+	{ "cgen.async_try_nested_while_finally_outer_catch_then_await_basic", "cgen", __xlTestCgenAsyncTryNestedWhileFinallyOuterCatchThenAwaitBasic },
+	{ "cgen.async_try_nested_do_while_finally_outer_catch_then_await_basic", "cgen", __xlTestCgenAsyncTryNestedDoWhileFinallyOuterCatchThenAwaitBasic },
+	{ "cgen.async_try_nested_do_while_continue_outer_catch_then_await_basic", "cgen", __xlTestCgenAsyncTryNestedDoWhileContinueOuterCatchThenAwaitBasic },
+	{ "cgen.async_try_nested_full_chain_inner_catch_then_await_basic", "cgen", __xlTestCgenAsyncTryNestedFullChainInnerCatchThenAwaitBasic },
+	{ "cgen.async_try_nested_full_chain_outer_catch_then_await_basic", "cgen", __xlTestCgenAsyncTryNestedFullChainOuterCatchThenAwaitBasic },
+	{ "cgen.async_try_triple_nested_inner_catch_then_await_basic", "cgen", __xlTestCgenAsyncTryTripleNestedInnerCatchThenAwaitBasic },
+	{ "cgen.async_try_triple_nested_outer_catch_then_await_basic", "cgen", __xlTestCgenAsyncTryTripleNestedOuterCatchThenAwaitBasic },
+	{ "cgen.async_try_triple_nested_while_outer_catch_then_await_basic", "cgen", __xlTestCgenAsyncTryTripleNestedWhileOuterCatchThenAwaitBasic },
 	{ "cgen.xlp_native_funcs", "cgen", __xlTestCgenXlpNativeFuncs },
 	{ "cgen.xlp_native_funcs_params", "cgen", __xlTestCgenXlpNativeFuncsParams },
 	{ "cgen.xlp_native_funcs_string", "cgen", __xlTestCgenXlpNativeFuncsString },
@@ -6345,6 +7452,32 @@ static const XL_TestCase __gXLTests[] = {
 	{ "runtime.async_while_cond_continue_then_await_basic", "runtime", __xlTestRunAsyncWhileCondContinueThenAwaitBasic },
 	{ "runtime.async_do_while_cond_await_basic", "runtime", __xlTestRunAsyncDoWhileCondAwaitBasic },
 	{ "runtime.async_do_while_cond_then_await_basic", "runtime", __xlTestRunAsyncDoWhileCondThenAwaitBasic },
+	{ "runtime.async_do_while_cond_container_then_await_basic", "runtime", __xlTestRunAsyncDoWhileCondContainerThenAwaitBasic },
+	{ "runtime.async_do_while_cond_break_basic", "runtime", __xlTestRunAsyncDoWhileCondBreakBasic },
+	{ "runtime.async_do_while_cond_continue_basic", "runtime", __xlTestRunAsyncDoWhileCondContinueBasic },
+	{ "runtime.async_do_while_cond_break_then_await_basic", "runtime", __xlTestRunAsyncDoWhileCondBreakThenAwaitBasic },
+	{ "runtime.async_do_while_cond_continue_then_await_basic", "runtime", __xlTestRunAsyncDoWhileCondContinueThenAwaitBasic },
+	{ "runtime.async_try_finally_await_basic", "runtime", __xlTestRunAsyncTryFinallyAwaitBasic },
+	{ "runtime.async_try_catch_finally_await_basic", "runtime", __xlTestRunAsyncTryCatchFinallyAwaitBasic },
+	{ "runtime.async_try_catch_finally_then_await_basic", "runtime", __xlTestRunAsyncTryCatchFinallyThenAwaitBasic },
+	{ "runtime.async_try_finally_then_await_basic", "runtime", __xlTestRunAsyncTryFinallyThenAwaitBasic },
+	{ "runtime.async_try_finally_tail_then_await_basic", "runtime", __xlTestRunAsyncTryFinallyTailThenAwaitBasic },
+	{ "runtime.async_try_catch_finally_tail_then_await_basic", "runtime", __xlTestRunAsyncTryCatchFinallyTailThenAwaitBasic },
+	{ "runtime.async_try_finally_if_then_await_basic", "runtime", __xlTestRunAsyncTryFinallyIfThenAwaitBasic },
+	{ "runtime.async_try_catch_finally_while_then_await_basic", "runtime", __xlTestRunAsyncTryCatchFinallyWhileThenAwaitBasic },
+	{ "runtime.async_try_finally_do_while_then_await_basic", "runtime", __xlTestRunAsyncTryFinallyDoWhileThenAwaitBasic },
+	{ "runtime.async_try_finally_do_while_break_then_await_basic", "runtime", __xlTestRunAsyncTryFinallyDoWhileBreakThenAwaitBasic },
+	{ "runtime.async_try_nested_inner_catch_then_outer_finally_basic", "runtime", __xlTestRunAsyncTryNestedInnerCatchThenOuterFinallyBasic },
+	{ "runtime.async_try_nested_inner_finally_outer_catch_basic", "runtime", __xlTestRunAsyncTryNestedInnerFinallyOuterCatchBasic },
+	{ "runtime.async_try_nested_if_finally_then_await_basic", "runtime", __xlTestRunAsyncTryNestedIfFinallyThenAwaitBasic },
+	{ "runtime.async_try_nested_while_finally_outer_catch_then_await_basic", "runtime", __xlTestRunAsyncTryNestedWhileFinallyOuterCatchThenAwaitBasic },
+	{ "runtime.async_try_nested_do_while_finally_outer_catch_then_await_basic", "runtime", __xlTestRunAsyncTryNestedDoWhileFinallyOuterCatchThenAwaitBasic },
+	{ "runtime.async_try_nested_do_while_continue_outer_catch_then_await_basic", "runtime", __xlTestRunAsyncTryNestedDoWhileContinueOuterCatchThenAwaitBasic },
+	{ "runtime.async_try_nested_full_chain_inner_catch_then_await_basic", "runtime", __xlTestRunAsyncTryNestedFullChainInnerCatchThenAwaitBasic },
+	{ "runtime.async_try_nested_full_chain_outer_catch_then_await_basic", "runtime", __xlTestRunAsyncTryNestedFullChainOuterCatchThenAwaitBasic },
+	{ "runtime.async_try_triple_nested_inner_catch_then_await_basic", "runtime", __xlTestRunAsyncTryTripleNestedInnerCatchThenAwaitBasic },
+	{ "runtime.async_try_triple_nested_outer_catch_then_await_basic", "runtime", __xlTestRunAsyncTryTripleNestedOuterCatchThenAwaitBasic },
+	{ "runtime.async_try_triple_nested_while_outer_catch_then_await_basic", "runtime", __xlTestRunAsyncTryTripleNestedWhileOuterCatchThenAwaitBasic },
 	{ "runtime.async_call_arg_await_basic", "runtime", __xlTestRunAsyncCallArgAwaitBasic },
 	{ "runtime.async_function_value_arg_await_basic", "runtime", __xlTestRunAsyncFunctionValueArgAwaitBasic },
 	{ "runtime.async_string_method_arg_await_basic", "runtime", __xlTestRunAsyncStringMethodArgAwaitBasic },
