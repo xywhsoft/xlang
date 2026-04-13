@@ -35,6 +35,7 @@ extern int xl_core_len_set(xvalue value);
 extern int xl_core_len_dict(xvalue value);
 extern const char* xl_point_to_string(void* value);
 extern const char* xl_value_to_string(xvalue value);
+extern xvalue xl_value_clone_async_state(xvalue value);
 extern void xl_array_append(xvalue value, xvalue item);
 extern void xl_list_append(xvalue value, xvalue item);
 extern const char* xl_array_join(xvalue value, const char* sSep);

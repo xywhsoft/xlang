@@ -1,0 +1,16 @@
+11205:	snprintf(sFutureValueName, sizeof(sFutureValueName), "xl_async_future_%zu", pFirstStep->iAwaitStmtIndex);
+11206:	snprintf(sOutFutureName, sizeof(sOutFutureName), "xl_async_out_%zu", pFirstStep->iAwaitStmtIndex);
+11207:	snprintf(sPromiseName, sizeof(sPromiseName), "xl_async_promise_%zu", pFirstStep->iAwaitStmtIndex);
+11208:	snprintf(sStateName, sizeof(sStateName), "xl_async_state_%zu", pFirstStep->iAwaitStmtIndex);
+11209:	snprintf(sHookName, sizeof(sHookName), "xl_async_hook_%zu", pFirstStep->iAwaitStmtIndex);
+11211:	sAwaitExprType = __xlInferExprTypeName(pCtx, pFirstStep->pAwaitInner);
+11212:	sAwaitTraceName = __xlCallCalleeName(pFirstStep->pAwaitInner);
+11214:		if ( (pFirstStep->pAwaitBind != NULL) && (pFirstStep->pAwaitBind->sText != NULL) ) {
+11215:			sAwaitTraceName = pFirstStep->pAwaitBind->sText;
+11216:		} else if ( (pFirstStep->pAwaitStmt != NULL) && (pFirstStep->pAwaitStmt->sText != NULL) && (pFirstStep->pAwaitStmt->sText[0] != '\0') ) {
+11217:			sAwaitTraceName = pFirstStep->pAwaitStmt->sText;
+11227:	if ( (pFirstStep->pAwaitStmt != NULL) &&
+11228:		(pFirstStep->pAwaitStmt->eKind == XL_MIR_WHILE) &&
+11229:		pFirstStep->pAwaitStmt->bFlag ) {
+11230:		const XL_MirNode* pDoWhileBody = (pFirstStep->pAwaitStmt->iChildCount > 1) ? pFirstStep->pAwaitStmt->ppChildren[1] : NULL;
+11240:	__xlCgenExprAsType(pCtx, pFirstStep->pAwaitInner, sAwaitExprType);

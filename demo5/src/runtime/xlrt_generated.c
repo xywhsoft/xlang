@@ -17,6 +17,164 @@ static void __xlWriteText(const char* sText)
 	fputs((sText != NULL) ? sText : "", stdout);
 }
 
+static xvalue __xlValueCloneAsyncState(xvalue value);
+
+typedef struct XL_AsyncStateCloneDictCtx {
+	xvalue value;
+	int failed;
+} XL_AsyncStateCloneDictCtx;
+
+typedef struct XL_AsyncStateCloneSetCtx {
+	xvalue value;
+	int failed;
+} XL_AsyncStateCloneSetCtx;
+
+static bool __xlValueCloneAsyncStateDictProc(Dict_Key* pKey, ptr pVal, ptr pArg)
+{
+	XL_AsyncStateCloneDictCtx* pCtx;
+	xvalue* ppItem;
+	xvalue cloned;
+
+	pCtx = (XL_AsyncStateCloneDictCtx*)pArg;
+	ppItem = (xvalue*)pVal;
+	if ( (pCtx == NULL) || (pCtx->value == NULL) || (pKey == NULL) || (ppItem == NULL) ) {
+		return TRUE;
+	}
+	cloned = __xlValueCloneAsyncState(ppItem[0]);
+	if ( (ppItem[0] != NULL) && (cloned == NULL) ) {
+		pCtx->failed = 1;
+		return TRUE;
+	}
+	if ( !xvoTableSetValue(pCtx->value, pKey->Key, pKey->KeyLen, cloned, TRUE) ) {
+		if ( cloned != NULL ) {
+			xvoUnref(cloned);
+		}
+		pCtx->failed = 1;
+		return TRUE;
+	}
+	return FALSE;
+}
+
+static bool __xlValueCloneAsyncStateSetProc(ptr pNode, ptr pArg)
+{
+	XL_AsyncStateCloneSetCtx* pCtx;
+	Coll_Key* pKey;
+	xvalue cloned;
+
+	pCtx = (XL_AsyncStateCloneSetCtx*)pArg;
+	pKey = (Coll_Key*)pNode;
+	if ( (pCtx == NULL) || (pCtx->value == NULL) || (pKey == NULL) ) {
+		return TRUE;
+	}
+	cloned = __xlValueCloneAsyncState(pKey->Value);
+	if ( (pKey->Value != NULL) && (cloned == NULL) ) {
+		pCtx->failed = 1;
+		return TRUE;
+	}
+	if ( !xvoCollSetValue(pCtx->value, cloned, TRUE) ) {
+		if ( cloned != NULL ) {
+			xvoUnref(cloned);
+		}
+		pCtx->failed = 1;
+		return TRUE;
+	}
+	return FALSE;
+}
+
+static xvalue __xlValueCloneAsyncState(xvalue value)
+{
+	xvalue cloned;
+	uint32 i;
+
+	if ( value == NULL ) {
+		return NULL;
+	}
+
+	switch ( value->Type ) {
+		case XVO_DT_ARRAY:
+			cloned = xvoCreateArrayEx(XRT_OBJMODE_SHARED);
+			if ( cloned == NULL ) {
+				return NULL;
+			}
+			for ( i = 0; i < xvoArrayItemCount(value); ++i ) {
+				xvalue item = __xlValueCloneAsyncState(xvoArrayGetValue(value, i));
+				if ( (xvoArrayGetValue(value, i) != NULL) && (item == NULL) ) {
+					xvoUnref(cloned);
+					return NULL;
+				}
+				if ( !xvoArrayAppendValue(cloned, item, TRUE) ) {
+					if ( item != NULL ) {
+						xvoUnref(item);
+					}
+					xvoUnref(cloned);
+					return NULL;
+				}
+			}
+			return cloned;
+		case XVO_DT_LIST:
+			cloned = xvoCreateListEx(XRT_OBJMODE_SHARED);
+			if ( cloned == NULL ) {
+				return NULL;
+			}
+			for ( i = 0; i < xvoListItemCount(value); ++i ) {
+				xvalue item = __xlValueCloneAsyncState(xvoListGetValue(value, (int64)i));
+				if ( (xvoListGetValue(value, (int64)i) != NULL) && (item == NULL) ) {
+					xvoUnref(cloned);
+					return NULL;
+				}
+				if ( !xvoListSetValue(cloned, (int64)i, item, TRUE) ) {
+					if ( item != NULL ) {
+						xvoUnref(item);
+					}
+					xvoUnref(cloned);
+					return NULL;
+				}
+			}
+			return cloned;
+		case XVO_DT_TABLE:
+		{
+			XL_AsyncStateCloneDictCtx ctx;
+
+			cloned = xvoCreateTableEx(XRT_OBJMODE_SHARED);
+			if ( cloned == NULL ) {
+				return NULL;
+			}
+			ctx.value = cloned;
+			ctx.failed = 0;
+			xrtDictWalk(value->vTable, __xlValueCloneAsyncStateDictProc, &ctx);
+			if ( ctx.failed ) {
+				xvoUnref(cloned);
+				return NULL;
+			}
+			return cloned;
+		}
+		case XVO_DT_COLL:
+		{
+			XL_AsyncStateCloneSetCtx ctx;
+
+			cloned = xvoCreateCollEx(XRT_OBJMODE_SHARED);
+			if ( cloned == NULL ) {
+				return NULL;
+			}
+			ctx.value = cloned;
+			ctx.failed = 0;
+			(void)xrtAVLTreeWalk(value->vColl, __xlValueCloneAsyncStateSetProc, &ctx);
+			if ( ctx.failed ) {
+				xvoUnref(cloned);
+				return NULL;
+			}
+			return cloned;
+		}
+		default:
+			return xvoCopy(value);
+	}
+}
+
+xvalue xl_value_clone_async_state(xvalue value)
+{
+	return __xlValueCloneAsyncState(value);
+}
+
 const char* xl_point_to_string(void* value)
 {
 	char sBuf[64];

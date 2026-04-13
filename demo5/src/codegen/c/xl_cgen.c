@@ -71,10 +71,13 @@ typedef struct XL_CgenGeneratorTryFrameField {
 
 typedef struct XL_CgenAsyncLinearResumeStep {
 	const XL_MirNode* pAwaitBind;
+	const XL_MirNode* pAwaitStmt;
 	const XL_MirNode* pAwaitInner;
 	const XL_MirNode* pAwaitNode;
 	const XL_MirNode* arrPostBinds[64];
 	size_t iPostBindCount;
+	const XL_MirNode* arrPostStmts[64];
+	size_t iPostStmtCount;
 	size_t iAwaitStmtIndex;
 	int bExprAwait;
 	int bReturnExprAwait;
@@ -1704,6 +1707,36 @@ static int __xlCanAsyncLinearReplaceAwaitExpr(XL_CgenContext* pCtx, const XL_Mir
 		}
 		return __xlCanAsyncLinearReplaceAwaitExpr(pCtx, pNode->ppChildren[0], pAwaitNode);
 	}
+	if ( (pNode->eKind == XL_MIR_VALUE) && (pNode->iChildCount == 2) && (pNode->sText != NULL) && (strcmp(pNode->sText, "=") == 0) ) {
+		const XL_MirNode* pLeft = pNode->ppChildren[0];
+		const XL_MirNode* pRight = pNode->ppChildren[1];
+		const char* sLeftTypeName = __xlInferExprTypeName(pCtx, pLeft);
+		const char* sRightTypeName = __xlInferExprTypeName(pCtx, pRight);
+
+		if ( (pLeft != NULL) &&
+			(pLeft->iChildCount == 2) &&
+			((pLeft->sText == NULL) || (pLeft->sText[0] == '\0')) ) {
+			const XL_MirNode* pBase = pLeft->ppChildren[0];
+			const XL_MirNode* pIndex = pLeft->ppChildren[1];
+			const char* sBaseTypeName = __xlInferExprTypeName(pCtx, pBase);
+
+			if ( __xlTypeHasBaseName(sBaseTypeName, "array") ||
+				__xlTypeHasBaseName(sBaseTypeName, "list") ||
+				__xlTypeHasBaseName(sBaseTypeName, "dict") ) {
+				return !__xlMirContainsAwaitExpr(pBase) &&
+					__xlCanAsyncLinearReplaceAwaitExpr(pCtx, pIndex, pAwaitNode) &&
+					__xlCanAsyncLinearReplaceAwaitExpr(pCtx, pRight, pAwaitNode);
+			}
+		}
+		if ( __xlMirContainsAwaitExpr(pLeft) ||
+			__xlIsVarTypeName(sLeftTypeName) ||
+			__xlIsVarTypeName(sRightTypeName) ||
+			__xlIsFunctionTypeName(sLeftTypeName) ||
+			__xlIsFunctionTypeName(sRightTypeName) ) {
+			return 0;
+		}
+		return __xlCanAsyncLinearReplaceAwaitExpr(pCtx, pRight, pAwaitNode);
+	}
 	if ( (pNode->eKind == XL_MIR_VALUE) && (pNode->iChildCount == 2) && (pNode->sText != NULL) && (pNode->sText[0] != '\0') ) {
 		const char* sLeftTypeName = __xlInferExprTypeName(pCtx, pNode->ppChildren[0]);
 		const char* sRightTypeName = __xlInferExprTypeName(pCtx, pNode->ppChildren[1]);
@@ -1716,10 +1749,7 @@ static int __xlCanAsyncLinearReplaceAwaitExpr(XL_CgenContext* pCtx, const XL_Mir
 			(strcmp(pNode->sText, "in") == 0) ||
 			(strcmp(pNode->sText, "=") == 0) ||
 			__xlIsVarTypeName(sLeftTypeName) ||
-			__xlIsVarTypeName(sRightTypeName) ||
-			((strcmp(pNode->sText, "+") == 0) && (__xlIsTextLikeType(sLeftTypeName) || __xlIsTextLikeType(sRightTypeName))) ||
-			(((strcmp(pNode->sText, "==") == 0) || (strcmp(pNode->sText, "!=") == 0)) &&
-				(__xlIsTextLikeType(sLeftTypeName) || __xlIsTextLikeType(sRightTypeName)))) {
+			__xlIsVarTypeName(sRightTypeName) ) {
 			return 0;
 		}
 		return __xlCanAsyncLinearReplaceAwaitExpr(pCtx, pNode->ppChildren[0], pAwaitNode) &&
@@ -1777,6 +1807,47 @@ static int __xlCanAsyncLinearReplaceAwaitExpr(XL_CgenContext* pCtx, const XL_Mir
 		return 1;
 	}
 	return 0;
+}
+
+static int __xlCanAsyncLinearResolveStmt(XL_CgenContext* pCtx, const XL_MirNode* pStmt, const XL_MirNode* pAwaitNode)
+{
+	const XL_MirNode* pCond;
+	const XL_MirNode* pThenBlock;
+	const XL_MirNode* pElseBlock;
+	const XL_MirNode* pBody;
+
+	if ( (pCtx == NULL) || (pStmt == NULL) || (pAwaitNode == NULL) ) {
+		return 0;
+	}
+
+	if ( pStmt->eKind == XL_MIR_BRANCH ) {
+		pCond = (pStmt->iChildCount != 0) ? pStmt->ppChildren[0] : NULL;
+		pThenBlock = (pStmt->iChildCount > 1) ? pStmt->ppChildren[1] : NULL;
+		pElseBlock = (pStmt->iChildCount > 2) ? pStmt->ppChildren[2] : NULL;
+		if ( (__xlMirCountAwaitExpr(pCond) != 1) ||
+			(__xlMirFindFirstAwaitExpr(pCond) != pAwaitNode) ||
+			!__xlCanAsyncLinearReplaceAwaitExpr(pCtx, pCond, pAwaitNode) ||
+			__xlMirContainsAwaitExpr(pThenBlock) ||
+			__xlMirContainsAwaitExpr(pElseBlock) ) {
+			return 0;
+		}
+		return 1;
+	}
+	if ( pStmt->eKind == XL_MIR_WHILE ) {
+		pCond = (pStmt->iChildCount != 0) ? pStmt->ppChildren[0] : NULL;
+		pBody = (pStmt->iChildCount > 1) ? pStmt->ppChildren[1] : NULL;
+		if ( (__xlMirCountAwaitExpr(pCond) != 1) ||
+			(__xlMirFindFirstAwaitExpr(pCond) != pAwaitNode) ||
+			!__xlCanAsyncLinearReplaceAwaitExpr(pCtx, pCond, pAwaitNode) ||
+			__xlMirContainsAwaitExpr(pBody) ||
+			(pStmt->bFlag && ((__xlMirCountKind(pBody, XL_MIR_BREAK) != 0) || (__xlMirCountKind(pBody, XL_MIR_CONTINUE) != 0))) ||
+			(__xlMirCountKind(pBody, XL_MIR_RETURN) != 0) ) {
+			return 0;
+		}
+		return 1;
+	}
+
+	return __xlCanAsyncLinearReplaceAwaitExpr(pCtx, pStmt, pAwaitNode);
 }
 
 static int __xlCollectAsyncLinearResumeCandidate(
@@ -1888,6 +1959,33 @@ static int __xlCollectAsyncLinearResumeCandidate(
 			}
 			pCandidate->pReturn = pStmt;
 			return 1;
+		}
+		if ( __xlMirCountAwaitExpr(pStmt) == 0 ) {
+			if ( (pCandidate->iStepCount == 0) ||
+				(pCurrentStep == NULL) ||
+				(pCurrentStep->iPostStmtCount >= XL_COUNTOF(pCurrentStep->arrPostStmts)) ) {
+				return 0;
+			}
+			pCurrentStep->arrPostStmts[pCurrentStep->iPostStmtCount++] = pStmt;
+			continue;
+		}
+		if ( __xlMirCountAwaitExpr(pStmt) == 1 ) {
+			const XL_MirNode* pAwaitNode = __xlMirFindFirstAwaitExpr(pStmt);
+
+			if ( (i + 1) >= pBody->iChildCount ||
+				(pAwaitNode == NULL) ||
+				(pCandidate->iStepCount >= XL_COUNTOF(pCandidate->arrSteps)) ||
+				!__xlCanAsyncLinearResolveStmt(pCtx, pStmt, pAwaitNode) ) {
+				return 0;
+			}
+			pCurrentStep = &pCandidate->arrSteps[pCandidate->iStepCount++];
+			memset(pCurrentStep, 0, sizeof(*pCurrentStep));
+			pCurrentStep->pAwaitStmt = pStmt;
+			pCurrentStep->pAwaitInner = __xlAwaitInnerExpr(pAwaitNode);
+			pCurrentStep->pAwaitNode = pAwaitNode;
+			pCurrentStep->iAwaitStmtIndex = i;
+			pCurrentStep->bExprAwait = 1;
+			continue;
 		}
 		return 0;
 	}
@@ -9431,6 +9529,127 @@ static int __xlCgenExprReplacingAwait(
 	const XL_MirNode* pAwaitNode,
 	const char* sReplacementName
 );
+static int __xlCgenTextExprReplacingAwait(
+	XL_CgenContext* pCtx,
+	const XL_MirNode* pNode,
+	const XL_MirNode* pAwaitNode,
+	const char* sReplacementName
+);
+static int __xlCgenExprAsTypeReplacingAwait(
+	XL_CgenContext* pCtx,
+	const XL_MirNode* pNode,
+	const char* sExpectedTypeName,
+	const XL_MirNode* pAwaitNode,
+	const char* sReplacementName
+);
+static int __xlCgenBoxExprReplacingAwait(
+	XL_CgenContext* pCtx,
+	const XL_MirNode* pNode,
+	const XL_MirNode* pAwaitNode,
+	const char* sReplacementName
+);
+
+static int __xlCgenIndexAssignReplacingAwait(
+	XL_CgenContext* pCtx,
+	const XL_MirNode* pLeft,
+	const XL_MirNode* pRight,
+	const XL_MirNode* pAwaitNode,
+	const char* sReplacementName
+)
+{
+	const XL_MirNode* pBase;
+	const XL_MirNode* pIndex;
+	const char* sBaseTypeName;
+	const char* sValueTypeName;
+	const char* sSetFuncName;
+	const char* sIndexTypeName;
+	char sBaseName[64];
+	char sIndexName[64];
+	char sValueName[64];
+	char sKeyName[64];
+
+	pBase = (pLeft != NULL) && (pLeft->iChildCount != 0) ? pLeft->ppChildren[0] : NULL;
+	pIndex = (pLeft != NULL) && (pLeft->iChildCount > 1) ? pLeft->ppChildren[1] : NULL;
+	sBaseTypeName = __xlInferExprTypeName(pCtx, pBase);
+	sValueTypeName = __xlInferExprTypeName(pCtx, pLeft);
+
+	if ( __xlMirContainsAwaitExpr(pBase) ) {
+		return 0;
+	}
+
+	snprintf(sBaseName, sizeof(sBaseName), "xl_assign_base_%d_%d", (pLeft != NULL) ? pLeft->iLine : 0, (pLeft != NULL) ? pLeft->iColumn : 0);
+	snprintf(sIndexName, sizeof(sIndexName), "xl_assign_index_%d_%d", (pLeft != NULL) ? pLeft->iLine : 0, (pLeft != NULL) ? pLeft->iColumn : 0);
+	snprintf(sValueName, sizeof(sValueName), "xl_assign_value_%d_%d", (pLeft != NULL) ? pLeft->iLine : 0, (pLeft != NULL) ? pLeft->iColumn : 0);
+	snprintf(sKeyName, sizeof(sKeyName), "xl_assign_key_%d_%d", (pLeft != NULL) ? pLeft->iLine : 0, (pLeft != NULL) ? pLeft->iColumn : 0);
+
+	if ( __xlTypeHasBaseName(sBaseTypeName, "dict") ) {
+		__xlCgenAppend(&pCtx->buf, "({ xvalue ");
+		__xlCgenAppend(&pCtx->buf, sBaseName);
+		__xlCgenAppend(&pCtx->buf, " = ");
+		__xlCgenExpr(pCtx, pBase);
+		__xlCgenAppend(&pCtx->buf, "; const char* ");
+		__xlCgenAppend(&pCtx->buf, sKeyName);
+		__xlCgenAppend(&pCtx->buf, " = ");
+		if ( !__xlCgenExprAsTypeReplacingAwait(pCtx, pIndex, "string", pAwaitNode, sReplacementName) ) {
+			return 0;
+		}
+		__xlCgenAppend(&pCtx->buf, "; xvalue ");
+		__xlCgenAppend(&pCtx->buf, sValueName);
+		__xlCgenAppend(&pCtx->buf, " = ");
+		if ( !__xlCgenBoxExprReplacingAwait(pCtx, pRight, pAwaitNode, sReplacementName) ) {
+			return 0;
+		}
+		__xlCgenAppend(&pCtx->buf, "; (void)xvoTableSetValue((xvalue)(");
+		__xlCgenAppend(&pCtx->buf, sBaseName);
+		__xlCgenAppend(&pCtx->buf, "), (const void*)");
+		__xlCgenAppend(&pCtx->buf, sKeyName);
+		__xlCgenAppend(&pCtx->buf, ", (uint32)strlen((");
+		__xlCgenAppend(&pCtx->buf, sKeyName);
+		__xlCgenAppend(&pCtx->buf, " != NULL) ? ");
+		__xlCgenAppend(&pCtx->buf, sKeyName);
+		__xlCgenAppend(&pCtx->buf, " : \"\"), ");
+		__xlCgenAppend(&pCtx->buf, sValueName);
+		__xlCgenAppend(&pCtx->buf, ", TRUE); ");
+		__xlCgenValueExprAsType(pCtx, sValueName, sValueTypeName);
+		__xlCgenAppend(&pCtx->buf, "; })");
+		return 1;
+	}
+
+	sSetFuncName = __xlTypeHasBaseName(sBaseTypeName, "list") ? "xvoListSetValue" : "xvoArraySetValue";
+	sIndexTypeName = __xlTypeHasBaseName(sBaseTypeName, "list") ? "int64" : "uint32";
+	__xlCgenAppend(&pCtx->buf, "({ xvalue ");
+	__xlCgenAppend(&pCtx->buf, sBaseName);
+	__xlCgenAppend(&pCtx->buf, " = ");
+	__xlCgenExpr(pCtx, pBase);
+	__xlCgenAppend(&pCtx->buf, "; ");
+	__xlCgenAppend(&pCtx->buf, sIndexTypeName);
+	__xlCgenAppend(&pCtx->buf, " ");
+	__xlCgenAppend(&pCtx->buf, sIndexName);
+	__xlCgenAppend(&pCtx->buf, " = ");
+	if ( !__xlCgenExprAsTypeReplacingAwait(pCtx, pIndex, "int", pAwaitNode, sReplacementName) ) {
+		return 0;
+	}
+	__xlCgenAppend(&pCtx->buf, "; xvalue ");
+	__xlCgenAppend(&pCtx->buf, sValueName);
+	__xlCgenAppend(&pCtx->buf, " = ");
+	if ( !__xlCgenBoxExprReplacingAwait(pCtx, pRight, pAwaitNode, sReplacementName) ) {
+		return 0;
+	}
+	__xlCgenAppend(&pCtx->buf, "; (void)");
+	__xlCgenAppend(&pCtx->buf, sSetFuncName);
+	__xlCgenAppend(&pCtx->buf, "((xvalue)(");
+	__xlCgenAppend(&pCtx->buf, sBaseName);
+	__xlCgenAppend(&pCtx->buf, "), (");
+	__xlCgenAppend(&pCtx->buf, sIndexTypeName);
+	__xlCgenAppend(&pCtx->buf, ")(");
+	__xlCgenAppend(&pCtx->buf, sIndexName);
+	__xlCgenAppend(&pCtx->buf, "), ");
+	__xlCgenAppend(&pCtx->buf, sValueName);
+	__xlCgenAppend(&pCtx->buf, ", TRUE); ");
+	__xlCgenValueExprAsType(pCtx, sValueName, sValueTypeName);
+	__xlCgenAppend(&pCtx->buf, "; })");
+	return 1;
+}
 static int __xlCgenExprAsTypeReplacingAwait(
 	XL_CgenContext* pCtx,
 	const XL_MirNode* pNode,
@@ -9496,6 +9715,20 @@ static void __xlCgenAsyncLinearStepResultName(char* sOut, size_t iOutSize, const
 		((pStep != NULL) && (pStep->pAwaitNode != NULL)) ? pStep->pAwaitNode->iLine : 0,
 		((pStep != NULL) && (pStep->pAwaitNode != NULL)) ? pStep->pAwaitNode->iColumn : 0
 	);
+}
+
+static const XL_MirNode* __xlCgenAsyncLinearStepAnchorNode(
+	const XL_CgenAsyncLinearResumeCandidate* pCandidate,
+	const XL_CgenAsyncLinearResumeStep* pStep
+)
+{
+	if ( (pStep != NULL) && (pStep->pAwaitBind != NULL) ) {
+		return pStep->pAwaitBind;
+	}
+	if ( (pStep != NULL) && (pStep->pAwaitStmt != NULL) ) {
+		return pStep->pAwaitStmt;
+	}
+	return (pCandidate != NULL) ? pCandidate->pReturn : NULL;
 }
 
 static void __xlCgenAsyncLinearStateFieldDecl(XL_CgenContext* pCtx, const XL_MirNode* pNode)
@@ -9578,6 +9811,7 @@ static void __xlCgenAsyncLinearStateFieldStore(XL_CgenContext* pCtx, const XL_Mi
 {
 	const char* sTypeName;
 	const char* sName;
+	const char* sCTypeName;
 
 	if ( (pCtx == NULL) || (pNode == NULL) || (sStateName == NULL) ) {
 		return;
@@ -9586,15 +9820,25 @@ static void __xlCgenAsyncLinearStateFieldStore(XL_CgenContext* pCtx, const XL_Mi
 	sTypeName = ((pNode->sTypeName != NULL) && (pNode->sTypeName[0] != '\0')) ? pNode->sTypeName : "int";
 	sName = (pNode->sText != NULL) ? pNode->sText : "tmp";
 	if ( __xlIsValueBackedTypeName(sTypeName) ) {
-		__xlCgenAsyncLinearStateFieldRelease(pCtx, pNode, sStateName);
+		sCTypeName = __xlCTypeName(sTypeName);
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppend(&pCtx->buf, "{\n");
+		pCtx->buf.iIndent += 1;
 		__xlCgenAppendIndent(&pCtx->buf);
 		if ( __xlAsyncLinearStateFieldNeedsCopy(pNode) ) {
-			__xlCgenAppendFormat(&pCtx->buf, "%s->%s = (%s != NULL) ? xvoCopy(%s) : NULL;\n", sStateName, sName, sName, sName);
+			__xlCgenAppendFormat(&pCtx->buf, "%s xl_async_store_%s = (%s != NULL) ? xl_value_clone_async_state(%s) : NULL;\n", sCTypeName, sName, sName, sName);
 		} else {
-			__xlCgenAppendFormat(&pCtx->buf, "if ( %s != NULL ) xvoAddRef_Inline(%s);\n", sName, sName);
 			__xlCgenAppendIndent(&pCtx->buf);
-			__xlCgenAppendFormat(&pCtx->buf, "%s->%s = %s;\n", sStateName, sName, sName);
+			__xlCgenAppendFormat(&pCtx->buf, "%s xl_async_store_%s = %s;\n", sCTypeName, sName, sName);
+			__xlCgenAppendIndent(&pCtx->buf);
+			__xlCgenAppendFormat(&pCtx->buf, "if ( xl_async_store_%s != NULL ) xvoAddRef_Inline(xl_async_store_%s);\n", sName, sName);
 		}
+		__xlCgenAsyncLinearStateFieldRelease(pCtx, pNode, sStateName);
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppendFormat(&pCtx->buf, "%s->%s = xl_async_store_%s;\n", sStateName, sName, sName);
+		pCtx->buf.iIndent -= 1;
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppend(&pCtx->buf, "}\n");
 		return;
 	}
 	__xlCgenAppendIndent(&pCtx->buf);
@@ -9666,6 +9910,39 @@ static void __xlCgenAsyncLinearRestoreScope(
 	}
 }
 
+static void __xlCgenAsyncLinearStoreScope(
+	XL_CgenContext* pCtx,
+	const XL_MirNode* pParams,
+	const XL_CgenAsyncLinearResumeCandidate* pCandidate,
+	size_t iStepIndex,
+	const char* sStateName
+)
+{
+	size_t i;
+	size_t j;
+
+	if ( (pCtx == NULL) || (pCandidate == NULL) || (sStateName == NULL) ) {
+		return;
+	}
+
+	for ( i = 0; (pParams != NULL) && (i < pParams->iChildCount); ++i ) {
+		__xlCgenAsyncLinearStateFieldStore(pCtx, pParams->ppChildren[i], sStateName);
+	}
+	for ( i = 0; i < pCandidate->iPreBindCount; ++i ) {
+		__xlCgenAsyncLinearStateFieldStore(pCtx, pCandidate->arrPreBinds[i], sStateName);
+	}
+	for ( i = 0; i < iStepIndex; ++i ) {
+		const XL_CgenAsyncLinearResumeStep* pStep = &pCandidate->arrSteps[i];
+
+		if ( pStep->pAwaitBind != NULL ) {
+			__xlCgenAsyncLinearStateFieldStore(pCtx, pStep->pAwaitBind, sStateName);
+		}
+		for ( j = 0; j < pStep->iPostBindCount; ++j ) {
+			__xlCgenAsyncLinearStateFieldStore(pCtx, pStep->arrPostBinds[j], sStateName);
+		}
+	}
+}
+
 static void __xlCgenAsyncLinearResumeCallbackName(char* sOut, size_t iOutSize, const char* sBaseName, size_t iStepIndex)
 {
 	if ( (sOut == NULL) || (iOutSize == 0) ) {
@@ -9698,6 +9975,15 @@ static void __xlCgenAsyncLinearPostBind(XL_CgenContext* pCtx, const XL_MirNode* 
 	__xlCgenExprAsType(pCtx, pInit, sTypeName);
 	__xlCgenAppend(&pCtx->buf, ";\n");
 	__xlCgenAsyncLinearPendingErrorCheck(pCtx, sStateName, "async linear bind failed");
+}
+
+static void __xlCgenAsyncLinearPostStmt(XL_CgenContext* pCtx, const XL_MirNode* pStmt, const XL_CgenFuncInfo* pFuncInfo)
+{
+	if ( (pCtx == NULL) || (pStmt == NULL) || (pFuncInfo == NULL) ) {
+		return;
+	}
+
+	__xlCgenStmt(pCtx, pStmt, pFuncInfo);
 }
 
 static void __xlCgenAsyncLinearBindResolve(
@@ -9848,6 +10134,47 @@ static int __xlCgenBoxExprReplacingAwait(
 	__xlCgenBoxTypedCExpr(pCtx, sTypeName, "xl_async_boxed_value");
 	__xlCgenAppend(&pCtx->buf, "; })");
 	return 1;
+}
+
+static int __xlCgenTextExprReplacingAwait(
+	XL_CgenContext* pCtx,
+	const XL_MirNode* pNode,
+	const XL_MirNode* pAwaitNode,
+	const char* sReplacementName
+)
+{
+	const char* sTypeName;
+
+	if ( (pCtx == NULL) || (pNode == NULL) ) {
+		return 0;
+	}
+
+	sTypeName = __xlInferExprTypeName(pCtx, pNode);
+	if ( __xlIsVarTypeName(sTypeName) ) {
+		__xlCgenAppend(&pCtx->buf, "xl_value_to_string((xvalue)(");
+		if ( !__xlCgenExprReplacingAwait(pCtx, pNode, pAwaitNode, sReplacementName) ) {
+			return 0;
+		}
+		__xlCgenAppend(&pCtx->buf, "))");
+		return 1;
+	}
+	if ( __xlIsPointTypeName(sTypeName) ) {
+		__xlCgenAppend(&pCtx->buf, "xl_point_to_string(");
+		if ( !__xlCgenExprReplacingAwait(pCtx, pNode, pAwaitNode, sReplacementName) ) {
+			return 0;
+		}
+		__xlCgenAppend(&pCtx->buf, ")");
+		return 1;
+	}
+	if ( (sTypeName != NULL) && (strcmp(sTypeName, "error") == 0) ) {
+		__xlCgenAppend(&pCtx->buf, "xl_generated_error_text(");
+		if ( !__xlCgenExprReplacingAwait(pCtx, pNode, pAwaitNode, sReplacementName) ) {
+			return 0;
+		}
+		__xlCgenAppend(&pCtx->buf, ")");
+		return 1;
+	}
+	return __xlCgenExprAsTypeReplacingAwait(pCtx, pNode, "string", pAwaitNode, sReplacementName);
 }
 
 static int __xlCgenFunctionValueCallExprReplacingAwait(
@@ -10223,7 +10550,74 @@ static int __xlCgenExprReplacingAwait(
 		}
 		return __xlCgenExprReplacingAwait(pCtx, pNode->ppChildren[0], pAwaitNode, sReplacementName);
 	}
+	if ( (pNode->eKind == XL_MIR_VALUE) && (pNode->iChildCount == 2) && (pNode->sText != NULL) && (strcmp(pNode->sText, "=") == 0) ) {
+		const XL_MirNode* pLeft = pNode->ppChildren[0];
+		const XL_MirNode* pRight = pNode->ppChildren[1];
+		const char* sLeftTypeName = __xlInferExprTypeName(pCtx, pLeft);
+		const char* sRightTypeName = __xlInferExprTypeName(pCtx, pRight);
+
+		if ( (pLeft != NULL) &&
+			(pLeft->iChildCount == 2) &&
+			((pLeft->sText == NULL) || (pLeft->sText[0] == '\0')) ) {
+			const XL_MirNode* pBase = pLeft->ppChildren[0];
+			const char* sBaseTypeName = __xlInferExprTypeName(pCtx, pBase);
+
+			if ( __xlTypeHasBaseName(sBaseTypeName, "array") ||
+				__xlTypeHasBaseName(sBaseTypeName, "list") ||
+				__xlTypeHasBaseName(sBaseTypeName, "dict") ) {
+				return __xlCgenIndexAssignReplacingAwait(pCtx, pLeft, pRight, pAwaitNode, sReplacementName);
+			}
+		}
+		if ( __xlMirContainsAwaitExpr(pLeft) ||
+			__xlIsVarTypeName(sLeftTypeName) ||
+			__xlIsVarTypeName(sRightTypeName) ||
+			__xlIsFunctionTypeName(sLeftTypeName) ||
+			__xlIsFunctionTypeName(sRightTypeName) ) {
+			return 0;
+		}
+		__xlCgenAppend(&pCtx->buf, "(");
+		__xlCgenExpr(pCtx, pLeft);
+		__xlCgenAppend(&pCtx->buf, " = ");
+		if ( !__xlCgenExprAsTypeReplacingAwait(pCtx, pRight, sLeftTypeName, pAwaitNode, sReplacementName) ) {
+			return 0;
+		}
+		__xlCgenAppend(&pCtx->buf, ")");
+		return 1;
+	}
 	if ( (pNode->eKind == XL_MIR_VALUE) && (pNode->iChildCount == 2) && (pNode->sText != NULL) && (pNode->sText[0] != '\0') ) {
+		const char* sLeftTypeName = __xlInferExprTypeName(pCtx, pNode->ppChildren[0]);
+		const char* sRightTypeName = __xlInferExprTypeName(pCtx, pNode->ppChildren[1]);
+
+		if ( (strcmp(pNode->sText, "+") == 0) &&
+			(__xlIsTextLikeType(sLeftTypeName) || __xlIsTextLikeType(sRightTypeName)) ) {
+			__xlCgenAppend(&pCtx->buf, "xl_str_concat(");
+			if ( !__xlCgenTextExprReplacingAwait(pCtx, pNode->ppChildren[0], pAwaitNode, sReplacementName) ) {
+				return 0;
+			}
+			__xlCgenAppend(&pCtx->buf, ", ");
+			if ( !__xlCgenTextExprReplacingAwait(pCtx, pNode->ppChildren[1], pAwaitNode, sReplacementName) ) {
+				return 0;
+			}
+			__xlCgenAppend(&pCtx->buf, ")");
+			return 1;
+		}
+		if ( ((strcmp(pNode->sText, "==") == 0) || (strcmp(pNode->sText, "!=") == 0)) &&
+			(__xlIsTextLikeType(sLeftTypeName) || __xlIsTextLikeType(sRightTypeName)) ) {
+			if ( strcmp(pNode->sText, "!=") == 0 ) {
+				__xlCgenAppend(&pCtx->buf, "(!xl_generated_text_equal(");
+			} else {
+				__xlCgenAppend(&pCtx->buf, "xl_generated_text_equal(");
+			}
+			if ( !__xlCgenTextExprReplacingAwait(pCtx, pNode->ppChildren[0], pAwaitNode, sReplacementName) ) {
+				return 0;
+			}
+			__xlCgenAppend(&pCtx->buf, ", ");
+			if ( !__xlCgenTextExprReplacingAwait(pCtx, pNode->ppChildren[1], pAwaitNode, sReplacementName) ) {
+				return 0;
+			}
+			__xlCgenAppend(&pCtx->buf, (strcmp(pNode->sText, "!=") == 0) ? "))" : ")");
+			return 1;
+		}
 		__xlCgenAppend(&pCtx->buf, "(");
 		if ( !__xlCgenExprReplacingAwait(pCtx, pNode->ppChildren[0], pAwaitNode, sReplacementName) ) {
 			return 0;
@@ -10353,6 +10747,190 @@ static void __xlCgenAsyncLinearReturnResolve(
 	__xlCgenAppend(&pCtx->buf, "}\n");
 }
 
+static void __xlCgenAsyncLinearStmtResolve(
+	XL_CgenContext* pCtx,
+	const XL_MirNode* pStmt,
+	const XL_MirNode* pParams,
+	const XL_CgenAsyncLinearResumeCandidate* pCandidate,
+	size_t iStepIndex,
+	const char* sStateName,
+	const XL_MirNode* pAwaitNode,
+	const char* sReplacementName,
+	const char* sResumeCallbackName
+)
+{
+	const XL_MirNode* pCond;
+	const XL_MirNode* pThenBlock;
+	const XL_MirNode* pElseBlock;
+	const XL_MirNode* pBody;
+
+	if ( (pCtx == NULL) || (pStmt == NULL) ) {
+		return;
+	}
+
+	if ( pStmt->eKind == XL_MIR_BRANCH ) {
+		pCond = (pStmt->iChildCount != 0) ? pStmt->ppChildren[0] : NULL;
+		pThenBlock = (pStmt->iChildCount > 1) ? pStmt->ppChildren[1] : NULL;
+		pElseBlock = (pStmt->iChildCount > 2) ? pStmt->ppChildren[2] : NULL;
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppendFormat(&pCtx->buf, "int xl_if_cond_%d_%d = ", pStmt->iLine, pStmt->iColumn);
+		if ( (pAwaitNode != NULL) && (sReplacementName != NULL) ) {
+			if ( !__xlCgenExprReplacingAwait(pCtx, pCond, pAwaitNode, sReplacementName) ) {
+				__xlCgenExpr(pCtx, pCond);
+			}
+		} else {
+			__xlCgenExpr(pCtx, pCond);
+		}
+		__xlCgenAppend(&pCtx->buf, ";\n");
+		__xlCgenAsyncLinearPendingErrorCheck(pCtx, sStateName, "async linear branch failed");
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppendFormat(&pCtx->buf, "if ( xl_if_cond_%d_%d )\n", pStmt->iLine, pStmt->iColumn);
+		__xlCgenStmt(pCtx, pThenBlock, pCtx->pCurrentFuncInfo);
+		if ( pElseBlock != NULL ) {
+			__xlCgenAppendIndent(&pCtx->buf);
+			__xlCgenAppend(&pCtx->buf, "else\n");
+			__xlCgenStmt(pCtx, pElseBlock, pCtx->pCurrentFuncInfo);
+		}
+		__xlCgenAsyncLinearPendingErrorCheck(pCtx, sStateName, "async linear branch failed");
+		return;
+	}
+	if ( pStmt->eKind == XL_MIR_WHILE ) {
+		const XL_CgenAsyncLinearResumeStep* pStep;
+		const XL_CgenFuncInfo* pFuncInfo;
+		const char* sAwaitExprType;
+		const char* sAwaitTraceName;
+		int iAwaitStateId;
+		char sFutureValueName[64];
+		char sHookName[64];
+		char sBreakLabel[64];
+		char sContinueLabel[64];
+
+		pStep = ((pCandidate != NULL) && (iStepIndex < pCandidate->iStepCount)) ? &pCandidate->arrSteps[iStepIndex] : NULL;
+		pFuncInfo = pCtx->pCurrentFuncInfo;
+		pCond = (pStmt->iChildCount != 0) ? pStmt->ppChildren[0] : NULL;
+		pBody = (pStmt->iChildCount > 1) ? pStmt->ppChildren[1] : NULL;
+		sAwaitExprType = (pStep != NULL) ? __xlInferExprTypeName(pCtx, pStep->pAwaitInner) : NULL;
+		sAwaitTraceName = (pStep != NULL) ? __xlCallCalleeName(pStep->pAwaitInner) : NULL;
+		iAwaitStateId = ((pFuncInfo != NULL) && (pFuncInfo->pAsyncFunc != NULL) && (pStep != NULL))
+			? __xlCgenFindAsyncStateId(pFuncInfo->pAsyncFunc, __xlCgenAsyncLinearStepAnchorNode(pCandidate, pStep), "await")
+			: -1;
+		if ( (sAwaitTraceName == NULL) || (sAwaitTraceName[0] == '\0') ) {
+			sAwaitTraceName = "await";
+		}
+		snprintf(sFutureValueName, sizeof(sFutureValueName), "xl_async_future_loop_%zu", (pStep != NULL) ? pStep->iAwaitStmtIndex : iStepIndex);
+		snprintf(sHookName, sizeof(sHookName), "xl_async_hook_loop_%zu", (pStep != NULL) ? pStep->iAwaitStmtIndex : iStepIndex);
+		snprintf(sBreakLabel, sizeof(sBreakLabel), "xl_async_while_break_%d_%d", pStmt->iLine, pStmt->iColumn);
+		snprintf(sContinueLabel, sizeof(sContinueLabel), "xl_async_while_continue_%d_%d", pStmt->iLine, pStmt->iColumn);
+
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppendFormat(&pCtx->buf, "int xl_while_cond_%d_%d = ", pStmt->iLine, pStmt->iColumn);
+		if ( (pAwaitNode != NULL) && (sReplacementName != NULL) ) {
+			if ( !__xlCgenExprReplacingAwait(pCtx, pCond, pAwaitNode, sReplacementName) ) {
+				__xlCgenExpr(pCtx, pCond);
+			}
+		} else {
+			__xlCgenExpr(pCtx, pCond);
+		}
+		__xlCgenAppend(&pCtx->buf, ";\n");
+		__xlCgenAsyncLinearPendingErrorCheck(pCtx, sStateName, "async linear while failed");
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppendFormat(&pCtx->buf, "if ( xl_while_cond_%d_%d )\n", pStmt->iLine, pStmt->iColumn);
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppend(&pCtx->buf, "{\n");
+		pCtx->buf.iIndent += 1;
+		__xlCgenPushLoopFrame(pCtx, sBreakLabel, sContinueLabel);
+		if ( pBody != NULL ) {
+			__xlCgenStmt(pCtx, pBody, pCtx->pCurrentFuncInfo);
+		}
+		__xlCgenPopLoopFrame(pCtx);
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppendFormat(&pCtx->buf, "%s:\n", sContinueLabel);
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppend(&pCtx->buf, ";\n");
+		__xlCgenAsyncLinearPendingErrorCheck(pCtx, sStateName, "async linear while body failed");
+		__xlCgenAsyncLinearStoreScope(pCtx, pParams, pCandidate, iStepIndex, sStateName);
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppendFormat(&pCtx->buf, "%s %s = ", __xlCTypeName(sAwaitExprType), sFutureValueName);
+		__xlCgenExprAsType(pCtx, (pStep != NULL) ? pStep->pAwaitInner : __xlAwaitInnerExpr(pAwaitNode), sAwaitExprType);
+		__xlCgenAppend(&pCtx->buf, ";\n");
+		__xlCgenAsyncLinearPendingErrorCheck(pCtx, sStateName, "async linear await failed");
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppendFormat(&pCtx->buf, "if ( %s.handle == NULL ) {\n", sFutureValueName);
+		pCtx->buf.iIndent += 1;
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppend(&pCtx->buf, "(void)xl_generated_promise_reject_text(pState->pPromise, XRT_NET_ERROR, \"async await future missing\");\n");
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppend(&pCtx->buf, "if ( pState->pPromise != NULL ) {\n");
+		pCtx->buf.iIndent += 1;
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppend(&pCtx->buf, "xPromiseDestroy(pState->pPromise);\n");
+		pCtx->buf.iIndent -= 1;
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppend(&pCtx->buf, "}\n");
+		__xlCgenAsyncLinearStateCleanup(pCtx, pParams, pCandidate, "pState");
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppend(&pCtx->buf, "xrtFree(pState);\n");
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppend(&pCtx->buf, "return;\n");
+		pCtx->buf.iIndent -= 1;
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppend(&pCtx->buf, "}\n");
+		if ( iAwaitStateId >= 0 ) {
+			__xlCgenAppendIndent(&pCtx->buf);
+			__xlCgenAppend(&pCtx->buf, "xl_generated_async_trace_state_event(");
+			__xlCgenAppendCString(&pCtx->buf, (pFuncInfo != NULL) ? pFuncInfo->sName : "");
+			__xlCgenAppendFormat(&pCtx->buf, ", %d);\n", iAwaitStateId);
+		}
+		__xlCgenTraceEventStmt(pCtx, "await", sAwaitTraceName);
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppendFormat(&pCtx->buf, "xfuture* %s = xFutureFinallyEngine(%s.handle, NULL, 0u, %s, pState);\n", sHookName, sFutureValueName, (sResumeCallbackName != NULL) ? sResumeCallbackName : "NULL");
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppendFormat(&pCtx->buf, "if ( %s == NULL ) {\n", sHookName);
+		pCtx->buf.iIndent += 1;
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppend(&pCtx->buf, "(void)xl_generated_promise_reject_text(pState->pPromise, XRT_NET_ERROR, \"async linear hook failed\");\n");
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppend(&pCtx->buf, "if ( pState->pPromise != NULL ) {\n");
+		pCtx->buf.iIndent += 1;
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppend(&pCtx->buf, "xPromiseDestroy(pState->pPromise);\n");
+		pCtx->buf.iIndent -= 1;
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppend(&pCtx->buf, "}\n");
+		__xlCgenAsyncLinearStateCleanup(pCtx, pParams, pCandidate, "pState");
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppend(&pCtx->buf, "xrtFree(pState);\n");
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppend(&pCtx->buf, "return;\n");
+		pCtx->buf.iIndent -= 1;
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppend(&pCtx->buf, "}\n");
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppendFormat(&pCtx->buf, "xFutureRelease(%s);\n", sHookName);
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppend(&pCtx->buf, "return;\n");
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppendFormat(&pCtx->buf, "%s:\n", sBreakLabel);
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppend(&pCtx->buf, ";\n");
+		pCtx->buf.iIndent -= 1;
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppend(&pCtx->buf, "}\n");
+		return;
+	}
+
+	__xlCgenAppendIndent(&pCtx->buf);
+	if ( (pAwaitNode != NULL) && (sReplacementName != NULL) ) {
+		if ( !__xlCgenExprReplacingAwait(pCtx, pStmt, pAwaitNode, sReplacementName) ) {
+			__xlCgenExpr(pCtx, pStmt);
+		}
+	} else {
+		__xlCgenExpr(pCtx, pStmt);
+	}
+	__xlCgenAppend(&pCtx->buf, ";\n");
+	__xlCgenAsyncLinearPendingErrorCheck(pCtx, sStateName, "async linear stmt failed");
+}
+
 static void __xlCgenEmitAsyncLinearResumeHelper(
 	XL_CgenContext* pCtx,
 	const XL_MirNode* pParams,
@@ -10401,7 +10979,7 @@ static void __xlCgenEmitAsyncLinearResumeHelper(
 	for ( i = 0; i < pCandidate->iStepCount; ++i ) {
 		const XL_CgenAsyncLinearResumeStep* pStep = &pCandidate->arrSteps[i];
 		const char* sAwaitTraceName = __xlCallCalleeName(pStep->pAwaitInner);
-		int iResumeStateId = (pFuncInfo->pAsyncFunc != NULL) ? __xlCgenFindAsyncStateId(pFuncInfo->pAsyncFunc, (pStep->pAwaitBind != NULL) ? pStep->pAwaitBind : pCandidate->pReturn, "resume") : -1;
+		int iResumeStateId = (pFuncInfo->pAsyncFunc != NULL) ? __xlCgenFindAsyncStateId(pFuncInfo->pAsyncFunc, __xlCgenAsyncLinearStepAnchorNode(pCandidate, pStep), "resume") : -1;
 		char sAwaitResultName[96];
 
 		if ( (sAwaitTraceName == NULL) || (sAwaitTraceName[0] == '\0') ) {
@@ -10458,11 +11036,12 @@ static void __xlCgenEmitAsyncLinearResumeHelper(
 		__xlCgenAsyncLinearRestoreScope(pCtx, pParams, pCandidate, i, "pState");
 		if ( (pStep->pAwaitBind != NULL) && !pStep->bExprAwait ) {
 			__xlCgenAsyncLinearAwaitValueDecl(pCtx, pStep->pAwaitBind);
-			__xlCgenAsyncLinearStateFieldStore(pCtx, pStep->pAwaitBind, "pState");
 		} else if ( (pStep->pAwaitBind != NULL) && pStep->bExprAwait ) {
 			__xlCgenAsyncLinearAwaitValueDeclNamed(pCtx, __xlCgenAsyncLinearStepResultTypeName(pStep), sAwaitResultName);
 			__xlCgenAsyncLinearBindResolve(pCtx, pStep->pAwaitBind, "pState", pStep->pAwaitNode, sAwaitResultName);
-			__xlCgenAsyncLinearStateFieldStore(pCtx, pStep->pAwaitBind, "pState");
+		} else if ( pStep->pAwaitStmt != NULL ) {
+			__xlCgenAsyncLinearAwaitValueDeclNamed(pCtx, __xlCgenAsyncLinearStepResultTypeName(pStep), sAwaitResultName);
+			__xlCgenAsyncLinearStmtResolve(pCtx, pStep->pAwaitStmt, pParams, pCandidate, i, "pState", pStep->pAwaitNode, sAwaitResultName, sResumeCallbackName);
 		} else {
 			__xlCgenAsyncLinearAwaitValueDeclNamed(pCtx, __xlCgenAsyncLinearStepResultTypeName(pStep), sAwaitResultName);
 		}
@@ -10471,19 +11050,28 @@ static void __xlCgenEmitAsyncLinearResumeHelper(
 		pCtx->pCurrentFuncInfo = pFuncInfo;
 		for ( j = 0; j < pStep->iPostBindCount; ++j ) {
 			__xlCgenAsyncLinearPostBind(pCtx, pStep->arrPostBinds[j], "pState");
-			__xlCgenAsyncLinearStateFieldStore(pCtx, pStep->arrPostBinds[j], "pState");
+		}
+		for ( j = 0; j < pStep->iPostStmtCount; ++j ) {
+			__xlCgenAsyncLinearPostStmt(pCtx, pStep->arrPostStmts[j], pFuncInfo);
 		}
 		if ( (i + 1) < pCandidate->iStepCount ) {
 			const XL_CgenAsyncLinearResumeStep* pNextStep = &pCandidate->arrSteps[i + 1];
 			const char* sNextAwaitExprType = __xlInferExprTypeName(pCtx, pNextStep->pAwaitInner);
 			const char* sNextAwaitTraceName = __xlCallCalleeName(pNextStep->pAwaitInner);
-			int iAwaitStateId = (pFuncInfo->pAsyncFunc != NULL) ? __xlCgenFindAsyncStateId(pFuncInfo->pAsyncFunc, (pNextStep->pAwaitBind != NULL) ? pNextStep->pAwaitBind : pCandidate->pReturn, "await") : -1;
+			int iAwaitStateId = (pFuncInfo->pAsyncFunc != NULL) ? __xlCgenFindAsyncStateId(pFuncInfo->pAsyncFunc, __xlCgenAsyncLinearStepAnchorNode(pCandidate, pNextStep), "await") : -1;
 			char sFutureValueName[64];
 			char sHookName[64];
 
 			if ( (sNextAwaitTraceName == NULL) || (sNextAwaitTraceName[0] == '\0') ) {
-				sNextAwaitTraceName = ((pNextStep->pAwaitBind != NULL) && (pNextStep->pAwaitBind->sText != NULL)) ? pNextStep->pAwaitBind->sText : "await";
+				if ( (pNextStep->pAwaitBind != NULL) && (pNextStep->pAwaitBind->sText != NULL) ) {
+					sNextAwaitTraceName = pNextStep->pAwaitBind->sText;
+				} else if ( (pNextStep->pAwaitStmt != NULL) && (pNextStep->pAwaitStmt->sText != NULL) && (pNextStep->pAwaitStmt->sText[0] != '\0') ) {
+					sNextAwaitTraceName = pNextStep->pAwaitStmt->sText;
+				} else {
+					sNextAwaitTraceName = "await";
+				}
 			}
+			__xlCgenAsyncLinearStoreScope(pCtx, pParams, pCandidate, i + 1, "pState");
 			snprintf(sFutureValueName, sizeof(sFutureValueName), "xl_async_future_%zu", pNextStep->iAwaitStmtIndex);
 			snprintf(sHookName, sizeof(sHookName), "xl_async_hook_%zu", pNextStep->iAwaitStmtIndex);
 			__xlCgenAsyncLinearResumeCallbackName(sNextResumeCallbackName, sizeof(sNextResumeCallbackName), sResumeFuncName, i + 1);
@@ -10623,12 +11211,28 @@ static int __xlCgenEmitAsyncLinearResumeFunc(
 	sAwaitExprType = __xlInferExprTypeName(pCtx, pFirstStep->pAwaitInner);
 	sAwaitTraceName = __xlCallCalleeName(pFirstStep->pAwaitInner);
 	if ( (sAwaitTraceName == NULL) || (sAwaitTraceName[0] == '\0') ) {
-		sAwaitTraceName = ((pFirstStep->pAwaitBind != NULL) && (pFirstStep->pAwaitBind->sText != NULL)) ? pFirstStep->pAwaitBind->sText : "await";
+		if ( (pFirstStep->pAwaitBind != NULL) && (pFirstStep->pAwaitBind->sText != NULL) ) {
+			sAwaitTraceName = pFirstStep->pAwaitBind->sText;
+		} else if ( (pFirstStep->pAwaitStmt != NULL) && (pFirstStep->pAwaitStmt->sText != NULL) && (pFirstStep->pAwaitStmt->sText[0] != '\0') ) {
+			sAwaitTraceName = pFirstStep->pAwaitStmt->sText;
+		} else {
+			sAwaitTraceName = "await";
+		}
 	}
-	iAwaitStateId = (pFuncInfo->pAsyncFunc != NULL) ? __xlCgenFindAsyncStateId(pFuncInfo->pAsyncFunc, (pFirstStep->pAwaitBind != NULL) ? pFirstStep->pAwaitBind : candidate.pReturn, "await") : -1;
+	iAwaitStateId = (pFuncInfo->pAsyncFunc != NULL) ? __xlCgenFindAsyncStateId(pFuncInfo->pAsyncFunc, __xlCgenAsyncLinearStepAnchorNode(&candidate, pFirstStep), "await") : -1;
 
 	for ( i = 0; i < candidate.iPreBindCount; ++i ) {
 		__xlCgenStmt(pCtx, candidate.arrPreBinds[i], pFuncInfo);
+	}
+	if ( (pFirstStep->pAwaitStmt != NULL) &&
+		(pFirstStep->pAwaitStmt->eKind == XL_MIR_WHILE) &&
+		pFirstStep->pAwaitStmt->bFlag ) {
+		const XL_MirNode* pDoWhileBody = (pFirstStep->pAwaitStmt->iChildCount > 1) ? pFirstStep->pAwaitStmt->ppChildren[1] : NULL;
+
+		if ( pDoWhileBody != NULL ) {
+			__xlCgenStmt(pCtx, pDoWhileBody, pFuncInfo);
+			__xlCgenPropagatePendingException(pCtx, pFuncInfo);
+		}
 	}
 
 	__xlCgenAppendIndent(&pCtx->buf);
