@@ -1176,6 +1176,7 @@ do_while_stmt_item(A) ::= typedef_decl(T). { A = T; }
 do_while_stmt_item(A) ::= const_decl(C). { A = C; }
 do_while_stmt_item(A) ::= var_decl(V). { A = V; }
 do_while_stmt_item(A) ::= typed_var_decl(V). { A = V; }
+do_while_stmt_item(A) ::= assign_stmt(S). { A = S; }
 do_while_stmt_item(A) ::= if_stmt(I). { A = I; }
 do_while_stmt_item(A) ::= try_stmt(T). { A = T; }
 do_while_stmt_item(A) ::= for_in_stmt(F). { A = F; }

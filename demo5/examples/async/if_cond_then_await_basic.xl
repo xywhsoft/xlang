@@ -1,0 +1,18 @@
+async func next_flag() as bool
+	return true
+end
+
+async func next_value() as int
+	return 8
+end
+
+async func main() as int
+	int value = 1
+	if await next_flag()
+		value = value + 2
+	else
+		value = 0
+	end
+	value = value + 3
+	return value + await next_value()
+end

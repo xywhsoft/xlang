@@ -1,0 +1,9 @@
+async func next_value() as int
+	return 7
+end
+
+async func main() as int
+	int value = 4
+	value = await next_value()
+	return value + 5
+end

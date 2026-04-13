@@ -1,0 +1,15 @@
+async func first_value() as int
+	return 3
+end
+
+async func second_value() as int
+	return 7
+end
+
+async func main() as int
+	int value = 0
+	value = await first_value()
+	value = value + 1
+	value = value + await second_value()
+	return value + 5
+end

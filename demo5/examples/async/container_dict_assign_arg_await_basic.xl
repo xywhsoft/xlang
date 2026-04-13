@@ -1,0 +1,9 @@
+async func next_text() as string
+	return "v"
+end
+
+async func main() as int
+	dict pairs = dict{"seed": ""}
+	pairs["k"] = await next_text()
+	return (pairs.has("k") and pairs["k"] == "v") ? 42 : 0
+end

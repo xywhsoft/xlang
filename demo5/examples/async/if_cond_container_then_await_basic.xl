@@ -1,0 +1,17 @@
+async func next_flag() as bool
+	return true
+end
+
+async func next_value() as int
+	return 9
+end
+
+async func main() as int
+	auto values = [1, 2]
+	if await next_flag()
+		values.append(3)
+	else
+		values.append(0)
+	end
+	return values[2] + await next_value()
+end

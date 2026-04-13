@@ -2900,6 +2900,191 @@ static int __xlTestCgenAsyncBindExprAwaitBasic(XL_TestContext* pCtx)
 
 	return __xlRunCgenCaseAll(pCtx, "examples\\async\\bind_expr_await_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
 }
+static int __xlTestCgenAsyncAssignArgAwaitBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"typedef struct xl__main__arity0__ret__future_x3Cint_x3E__async_linear_state {",
+		"int value;",
+		"int xl_async_return_await_",
+		"(value = xl_async_return_await_",
+		"int xl_async_ret_"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\async\\assign_arg_await_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenAsyncAssignStringArgAwaitBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"typedef struct xl__main__arity0__ret__future_x3Cint_x3E__async_linear_state {",
+		"const char* text;",
+		"const char* xl_async_return_await_",
+		"(text = xl_async_return_await_",
+		"int xl_async_ret_"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\async\\assign_string_arg_await_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenAsyncAssignMultiAwaitBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"typedef struct xl__main__arity0__ret__future_x3Cint_x3E__async_linear_state {",
+		"int value;",
+		"(value = xl_async_return_await_",
+		"(value = (value + xl_async_return_await_",
+		"int xl_async_ret_"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\async\\assign_multi_await_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenAsyncStringExprAwaitBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"xl_future_string_await_state(\"next_text\"",
+		"xl_str_concat(\"a\", xl_future_string_await_state(",
+		"xl_generated_text_equal(xl_str_concat(",
+		"int xl_async_ret_"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\async\\string_expr_await_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenAsyncIfCondAwaitBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"typedef struct xl__main__arity0__ret__future_x3Cint_x3E__async_linear_state {",
+		"int value;",
+		"int xl_if_cond_",
+		"if ( xl_if_cond_",
+		"int xl_async_ret_"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\async\\if_cond_await_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenAsyncIfCondThenAwaitBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"typedef struct xl__main__arity0__ret__future_x3Cint_x3E__async_linear_state {",
+		"int value;",
+		"int xl_if_cond_",
+		"xl_generated_async_trace_event(\"await\", \"next_value\")",
+		"int xl_async_ret_"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\async\\if_cond_then_await_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenAsyncIfCondContainerThenAwaitBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"typedef struct xl__main__arity0__ret__future_x3Cint_x3E__async_linear_state {",
+		"xvalue values;",
+		"xl_array_append((xvalue)(values), xvoCreateInt((int64)(3)))",
+		"xl_generated_async_trace_event(\"await\", \"next_value\")",
+		"int xl_async_ret_"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\async\\if_cond_container_then_await_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenAsyncWhileCondAwaitBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"typedef struct xl__main__arity0__ret__future_x3Cint_x3E__async_linear_state {",
+		"int value;",
+		"int xl_while_cond_",
+		"xl_generated_async_trace_event(\"await\", \"keep_going\")",
+		"int xl_async_ret_"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\async\\while_cond_await_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenAsyncWhileCondThenAwaitBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"typedef struct xl__main__arity0__ret__future_x3Cint_x3E__async_linear_state {",
+		"int value;",
+		"int xl_while_cond_",
+		"xl_generated_async_trace_event(\"await\", \"next_value\")",
+		"int xl_async_ret_"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\async\\while_cond_then_await_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenAsyncWhileCondContainerThenAwaitBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"typedef struct xl__main__arity0__ret__future_x3Cint_x3E__async_linear_state {",
+		"int value;",
+		"xvalue items;",
+		"xl_array_append((xvalue)(items), xvoCreateInt((int64)(value)))",
+		"xl_generated_async_trace_event(\"await\", \"next_value\")",
+		"int xl_async_ret_"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\async\\while_cond_container_then_await_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenAsyncWhileCondBreakBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"typedef struct xl__main__arity0__ret__future_x3Cint_x3E__async_linear_state {",
+		"goto xl_async_while_break_",
+		"xl_async_while_break_",
+		"int xl_async_ret_"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\async\\while_cond_break_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenAsyncWhileCondContinueBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"typedef struct xl__main__arity0__ret__future_x3Cint_x3E__async_linear_state {",
+		"goto xl_async_while_continue_",
+		"xl_async_while_continue_",
+		"int xl_async_ret_"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\async\\while_cond_continue_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenAsyncWhileCondBreakThenAwaitBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"goto xl_async_while_break_",
+		"xl_generated_async_trace_event(\"await\", \"next_value\")",
+		"int xl_async_ret_"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\async\\while_cond_break_then_await_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenAsyncWhileCondContinueThenAwaitBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"goto xl_async_while_continue_",
+		"xl_generated_async_trace_event(\"await\", \"next_value\")",
+		"int xl_async_ret_"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\async\\while_cond_continue_then_await_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenAsyncDoWhileCondAwaitBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"int value = 0;",
+		"(value = (value + 1));",
+		"xl_generated_async_trace_event(\"await\", \"keep_going\")",
+		"int xl_async_ret_"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\async\\do_while_cond_await_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenAsyncDoWhileCondThenAwaitBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"int value = 0;",
+		"(value = (value + 1));",
+		"xl_generated_async_trace_event(\"await\", \"keep_going\")",
+		"xl_generated_async_trace_event(\"await\", \"next_value\")",
+		"int xl_async_ret_"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\async\\do_while_cond_then_await_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
 static int __xlTestCgenAsyncCallArgAwaitBasic(XL_TestContext* pCtx)
 {
 	static const char* const aNeedles[] = {
@@ -3002,6 +3187,67 @@ static int __xlTestCgenAsyncContainerListJoinArgAwaitBasic(XL_TestContext* pCtx)
 	};
 
 	return __xlRunCgenCaseAll(pCtx, "examples\\async\\container_list_join_arg_await_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenAsyncContainerListAppendArgAwaitBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"typedef struct xl__main__arity0__ret__future_x3Cint_x3E__async_linear_state {",
+		"xvalue values;",
+		"int xl_async_return_await_7_16 = ",
+		"xl_list_append((xvalue)(values), ({ int xl_async_boxed_value = xl_async_return_await_7_16; xvoCreateInt((int64)(xl_async_boxed_value)); }));",
+		"int xl_async_ret_8_2 = (xl_core_len_list(values) + xvoListGetInt((xvalue)(values), (int64)(2)));"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\async\\container_list_append_arg_await_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenAsyncContainerDictAssignArgAwaitBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"typedef struct xl__main__arity0__ret__future_x3Cint_x3E__async_linear_state {",
+		"xvalue pairs;",
+		"const char* xl_async_return_await_7_15 = ",
+		"xvoTableSetValue((xvalue)(",
+		"xvoTableGetText((xvalue)(pairs)",
+		"int xl_async_ret_8_2 = "
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\async\\container_dict_assign_arg_await_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenAsyncContainerArrayIndexAssignArgAwaitBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"typedef struct xl__main__arity0__ret__future_x3Cint_x3E__async_linear_state {",
+		"xvalue values;",
+		"int xl_async_return_await_",
+		"xvoArraySetValue((xvalue)(",
+		"int xl_async_ret_"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\async\\container_array_index_assign_arg_await_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenAsyncContainerListIndexAssignArgAwaitBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"typedef struct xl__main__arity0__ret__future_x3Cint_x3E__async_linear_state {",
+		"xvalue values;",
+		"int xl_async_return_await_",
+		"xvoListSetValue((xvalue)(",
+		"int xl_async_ret_"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\async\\container_list_index_assign_arg_await_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenAsyncContainerArrayAppendArgAwaitBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"typedef struct xl__main__arity0__ret__future_x3Cint_x3E__async_linear_state {",
+		"xvalue values;",
+		"int xl_async_return_await_7_16 = ",
+		"xl_array_append((xvalue)(values), ({ int xl_async_boxed_value = xl_async_return_await_7_16; xvoCreateInt((int64)(xl_async_boxed_value)); }));",
+		"int xl_async_ret_8_2 = (xl_core_len_array(values) + xvoArrayGetInt((xvalue)(values), (uint32)(2)));"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\async\\container_array_append_arg_await_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
 }
 static int __xlTestCgenAsyncContainerArrayRemoveArgAwaitBasic(XL_TestContext* pCtx)
 {
@@ -4230,6 +4476,454 @@ static int __xlTestRunAsyncBindExprAwaitBasic(XL_TestContext* pCtx)
 		NULL
 	);
 }
+static int __xlTestRunAsyncAssignArgAwaitBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"async.await=next_value",
+		"async.resume=next_value",
+		"async.return=main",
+		"async.state_2=main",
+		"async.state_3=main"
+	};
+	static const XL_TraceCountExpectation aCounts[] = {
+		{ "async.state_2=main", 1u },
+		{ "async.state_3=main", 1u }
+	};
+
+	return __xlRunProgramCaseAllCounts(
+		pCtx,
+		"examples\\async\\assign_arg_await_basic.xl",
+		1,
+		12,
+		aNeedles,
+		XL_COUNTOF(aNeedles),
+		aCounts,
+		XL_COUNTOF(aCounts),
+		NULL,
+		0u,
+		NULL
+	);
+}
+static int __xlTestRunAsyncAssignStringArgAwaitBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"async.await=next_text",
+		"async.resume=next_text",
+		"async.return=main",
+		"async.state_2=main",
+		"async.state_3=main"
+	};
+	static const XL_TraceCountExpectation aCounts[] = {
+		{ "async.state_2=main", 1u },
+		{ "async.state_3=main", 1u }
+	};
+
+	return __xlRunProgramCaseAllCounts(
+		pCtx,
+		"examples\\async\\assign_string_arg_await_basic.xl",
+		1,
+		12,
+		aNeedles,
+		XL_COUNTOF(aNeedles),
+		aCounts,
+		XL_COUNTOF(aCounts),
+		NULL,
+		0u,
+		NULL
+	);
+}
+static int __xlTestRunAsyncAssignMultiAwaitBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"async.await=first_value",
+		"async.resume=first_value",
+		"async.await=second_value",
+		"async.resume=second_value",
+		"async.return=main"
+	};
+	static const XL_TraceCountExpectation aCounts[] = {
+		{ "async.await=first_value", 1u },
+		{ "async.resume=first_value", 1u },
+		{ "async.await=second_value", 1u },
+		{ "async.resume=second_value", 1u }
+	};
+
+	return __xlRunProgramCaseAllCounts(
+		pCtx,
+		"examples\\async\\assign_multi_await_basic.xl",
+		1,
+		16,
+		aNeedles,
+		XL_COUNTOF(aNeedles),
+		aCounts,
+		XL_COUNTOF(aCounts),
+		NULL,
+		0u,
+		NULL
+	);
+}
+static int __xlTestRunAsyncStringExprAwaitBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"async.await=next_text",
+		"async.resume=next_text",
+		"async.return=main"
+	};
+
+	return __xlRunProgramCaseAllCounts(
+		pCtx,
+		"examples\\async\\string_expr_await_basic.xl",
+		1,
+		14,
+		aNeedles,
+		XL_COUNTOF(aNeedles),
+		NULL,
+		0u,
+		NULL,
+		0u,
+		NULL
+	);
+}
+static int __xlTestRunAsyncIfCondAwaitBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"async.await=next_flag",
+		"async.resume=next_flag",
+		"async.return=main"
+	};
+	static const XL_TraceCountExpectation aCounts[] = {
+		{ "async.await=next_flag", 1u },
+		{ "async.resume=next_flag", 1u }
+	};
+
+	return __xlRunProgramCaseAllCounts(
+		pCtx,
+		"examples\\async\\if_cond_await_basic.xl",
+		1,
+		12,
+		aNeedles,
+		XL_COUNTOF(aNeedles),
+		aCounts,
+		XL_COUNTOF(aCounts),
+		NULL,
+		0u,
+		NULL
+	);
+}
+static int __xlTestRunAsyncIfCondThenAwaitBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"async.await=next_flag",
+		"async.resume=next_flag",
+		"async.await=next_value",
+		"async.resume=next_value",
+		"async.return=main"
+	};
+	static const XL_TraceCountExpectation aCounts[] = {
+		{ "async.await=next_flag", 1u },
+		{ "async.resume=next_flag", 1u },
+		{ "async.await=next_value", 1u },
+		{ "async.resume=next_value", 1u }
+	};
+
+	return __xlRunProgramCaseAllCounts(
+		pCtx,
+		"examples\\async\\if_cond_then_await_basic.xl",
+		1,
+		14,
+		aNeedles,
+		XL_COUNTOF(aNeedles),
+		aCounts,
+		XL_COUNTOF(aCounts),
+		NULL,
+		0u,
+		NULL
+	);
+}
+static int __xlTestRunAsyncIfCondContainerThenAwaitBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"async.await=next_flag",
+		"async.resume=next_flag",
+		"async.await=next_value",
+		"async.resume=next_value",
+		"async.return=main"
+	};
+	static const XL_TraceCountExpectation aCounts[] = {
+		{ "async.await=next_flag", 1u },
+		{ "async.resume=next_flag", 1u },
+		{ "async.await=next_value", 1u },
+		{ "async.resume=next_value", 1u }
+	};
+
+	return __xlRunProgramCaseAllCounts(
+		pCtx,
+		"examples\\async\\if_cond_container_then_await_basic.xl",
+		1,
+		12,
+		aNeedles,
+		XL_COUNTOF(aNeedles),
+		aCounts,
+		XL_COUNTOF(aCounts),
+		NULL,
+		0u,
+		NULL
+	);
+}
+static int __xlTestRunAsyncWhileCondAwaitBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"async.await=keep_going",
+		"async.resume=keep_going",
+		"async.return=main"
+	};
+	static const XL_TraceCountExpectation aCounts[] = {
+		{ "async.await=keep_going", 3u },
+		{ "async.resume=keep_going", 3u }
+	};
+
+	return __xlRunProgramCaseAllCounts(
+		pCtx,
+		"examples\\async\\while_cond_await_basic.xl",
+		1,
+		7,
+		aNeedles,
+		XL_COUNTOF(aNeedles),
+		aCounts,
+		XL_COUNTOF(aCounts),
+		NULL,
+		0u,
+		NULL
+	);
+}
+static int __xlTestRunAsyncWhileCondThenAwaitBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"async.await=keep_going",
+		"async.resume=keep_going",
+		"async.await=next_value",
+		"async.resume=next_value",
+		"async.return=main"
+	};
+	static const XL_TraceCountExpectation aCounts[] = {
+		{ "async.await=keep_going", 3u },
+		{ "async.resume=keep_going", 3u },
+		{ "async.await=next_value", 1u },
+		{ "async.resume=next_value", 1u }
+	};
+
+	return __xlRunProgramCaseAllCounts(
+		pCtx,
+		"examples\\async\\while_cond_then_await_basic.xl",
+		1,
+		6,
+		aNeedles,
+		XL_COUNTOF(aNeedles),
+		aCounts,
+		XL_COUNTOF(aCounts),
+		NULL,
+		0u,
+		NULL
+	);
+}
+static int __xlTestRunAsyncWhileCondContainerThenAwaitBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"async.await=keep_going",
+		"async.resume=keep_going",
+		"async.await=next_value",
+		"async.resume=next_value",
+		"async.return=main"
+	};
+	static const XL_TraceCountExpectation aCounts[] = {
+		{ "async.await=keep_going", 3u },
+		{ "async.resume=keep_going", 3u },
+		{ "async.await=next_value", 1u },
+		{ "async.resume=next_value", 1u }
+	};
+
+	return __xlRunProgramCaseAllCounts(
+		pCtx,
+		"examples\\async\\while_cond_container_then_await_basic.xl",
+		1,
+		6,
+		aNeedles,
+		XL_COUNTOF(aNeedles),
+		aCounts,
+		XL_COUNTOF(aCounts),
+		NULL,
+		0u,
+		NULL
+	);
+}
+static int __xlTestRunAsyncWhileCondBreakBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"async.await=keep_going",
+		"async.resume=keep_going",
+		"async.return=main"
+	};
+	static const XL_TraceCountExpectation aCounts[] = {
+		{ "async.await=keep_going", 2u },
+		{ "async.resume=keep_going", 2u }
+	};
+
+	return __xlRunProgramCaseAllCounts(
+		pCtx,
+		"examples\\async\\while_cond_break_basic.xl",
+		1,
+		7,
+		aNeedles,
+		XL_COUNTOF(aNeedles),
+		aCounts,
+		XL_COUNTOF(aCounts),
+		NULL,
+		0u,
+		NULL
+	);
+}
+static int __xlTestRunAsyncWhileCondContinueBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"async.await=keep_going",
+		"async.resume=keep_going",
+		"async.return=main"
+	};
+	static const XL_TraceCountExpectation aCounts[] = {
+		{ "async.await=keep_going", 4u },
+		{ "async.resume=keep_going", 4u }
+	};
+
+	return __xlRunProgramCaseAllCounts(
+		pCtx,
+		"examples\\async\\while_cond_continue_basic.xl",
+		1,
+		9,
+		aNeedles,
+		XL_COUNTOF(aNeedles),
+		aCounts,
+		XL_COUNTOF(aCounts),
+		NULL,
+		0u,
+		NULL
+	);
+}
+static int __xlTestRunAsyncWhileCondBreakThenAwaitBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"async.await=keep_going",
+		"async.resume=keep_going",
+		"async.await=next_value",
+		"async.resume=next_value",
+		"async.return=main"
+	};
+	static const XL_TraceCountExpectation aCounts[] = {
+		{ "async.await=keep_going", 2u },
+		{ "async.resume=keep_going", 2u },
+		{ "async.await=next_value", 1u },
+		{ "async.resume=next_value", 1u }
+	};
+
+	return __xlRunProgramCaseAllCounts(
+		pCtx,
+		"examples\\async\\while_cond_break_then_await_basic.xl",
+		1,
+		6,
+		aNeedles,
+		XL_COUNTOF(aNeedles),
+		aCounts,
+		XL_COUNTOF(aCounts),
+		NULL,
+		0u,
+		NULL
+	);
+}
+static int __xlTestRunAsyncWhileCondContinueThenAwaitBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"async.await=keep_going",
+		"async.resume=keep_going",
+		"async.await=next_value",
+		"async.resume=next_value",
+		"async.return=main"
+	};
+	static const XL_TraceCountExpectation aCounts[] = {
+		{ "async.await=keep_going", 4u },
+		{ "async.resume=keep_going", 4u },
+		{ "async.await=next_value", 1u },
+		{ "async.resume=next_value", 1u }
+	};
+
+	return __xlRunProgramCaseAllCounts(
+		pCtx,
+		"examples\\async\\while_cond_continue_then_await_basic.xl",
+		1,
+		8,
+		aNeedles,
+		XL_COUNTOF(aNeedles),
+		aCounts,
+		XL_COUNTOF(aCounts),
+		NULL,
+		0u,
+		NULL
+	);
+}
+static int __xlTestRunAsyncDoWhileCondAwaitBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"async.await=keep_going",
+		"async.resume=keep_going",
+		"async.return=main"
+	};
+	static const XL_TraceCountExpectation aCounts[] = {
+		{ "async.await=keep_going", 2u },
+		{ "async.resume=keep_going", 2u }
+	};
+
+	return __xlRunProgramCaseAllCounts(
+		pCtx,
+		"examples\\async\\do_while_cond_await_basic.xl",
+		1,
+		7,
+		aNeedles,
+		XL_COUNTOF(aNeedles),
+		aCounts,
+		XL_COUNTOF(aCounts),
+		NULL,
+		0u,
+		NULL
+	);
+}
+static int __xlTestRunAsyncDoWhileCondThenAwaitBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"async.await=keep_going",
+		"async.resume=keep_going",
+		"async.await=next_value",
+		"async.resume=next_value",
+		"async.return=main"
+	};
+	static const XL_TraceCountExpectation aCounts[] = {
+		{ "async.await=keep_going", 2u },
+		{ "async.resume=keep_going", 2u },
+		{ "async.await=next_value", 1u },
+		{ "async.resume=next_value", 1u }
+	};
+
+	return __xlRunProgramCaseAllCounts(
+		pCtx,
+		"examples\\async\\do_while_cond_then_await_basic.xl",
+		1,
+		6,
+		aNeedles,
+		XL_COUNTOF(aNeedles),
+		aCounts,
+		XL_COUNTOF(aCounts),
+		NULL,
+		0u,
+		NULL
+	);
+}
 static int __xlTestRunAsyncCallArgAwaitBasic(XL_TestContext* pCtx)
 {
 	static const char* const aNeedles[] = {
@@ -4481,6 +5175,146 @@ static int __xlTestRunAsyncContainerListJoinArgAwaitBasic(XL_TestContext* pCtx)
 		"examples\\async\\container_list_join_arg_await_basic.xl",
 		1,
 		21,
+		aNeedles,
+		XL_COUNTOF(aNeedles),
+		aCounts,
+		XL_COUNTOF(aCounts),
+		NULL,
+		0u,
+		NULL
+	);
+}
+static int __xlTestRunAsyncContainerArrayAppendArgAwaitBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"async.await=next_value",
+		"async.resume=next_value",
+		"async.return=main",
+		"async.state_2=main",
+		"async.state_3=main"
+	};
+	static const XL_TraceCountExpectation aCounts[] = {
+		{ "async.state_2=main", 1u },
+		{ "async.state_3=main", 1u }
+	};
+
+	return __xlRunProgramCaseAllCounts(
+		pCtx,
+		"examples\\async\\container_array_append_arg_await_basic.xl",
+		1,
+		9,
+		aNeedles,
+		XL_COUNTOF(aNeedles),
+		aCounts,
+		XL_COUNTOF(aCounts),
+		NULL,
+		0u,
+		NULL
+	);
+}
+static int __xlTestRunAsyncContainerListAppendArgAwaitBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"async.await=next_value",
+		"async.resume=next_value",
+		"async.return=main",
+		"async.state_2=main",
+		"async.state_3=main"
+	};
+	static const XL_TraceCountExpectation aCounts[] = {
+		{ "async.state_2=main", 1u },
+		{ "async.state_3=main", 1u }
+	};
+
+	return __xlRunProgramCaseAllCounts(
+		pCtx,
+		"examples\\async\\container_list_append_arg_await_basic.xl",
+		1,
+		9,
+		aNeedles,
+		XL_COUNTOF(aNeedles),
+		aCounts,
+		XL_COUNTOF(aCounts),
+		NULL,
+		0u,
+		NULL
+	);
+}
+static int __xlTestRunAsyncContainerDictAssignArgAwaitBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"async.await=next_text",
+		"async.resume=next_text",
+		"async.return=main",
+		"async.state_2=main",
+		"async.state_3=main"
+	};
+	static const XL_TraceCountExpectation aCounts[] = {
+		{ "async.state_2=main", 1u },
+		{ "async.state_3=main", 1u }
+	};
+
+	return __xlRunProgramCaseAllCounts(
+		pCtx,
+		"examples\\async\\container_dict_assign_arg_await_basic.xl",
+		1,
+		42,
+		aNeedles,
+		XL_COUNTOF(aNeedles),
+		aCounts,
+		XL_COUNTOF(aCounts),
+		NULL,
+		0u,
+		NULL
+	);
+}
+static int __xlTestRunAsyncContainerArrayIndexAssignArgAwaitBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"async.await=next_value",
+		"async.resume=next_value",
+		"async.return=main",
+		"async.state_2=main",
+		"async.state_3=main"
+	};
+	static const XL_TraceCountExpectation aCounts[] = {
+		{ "async.state_2=main", 1u },
+		{ "async.state_3=main", 1u }
+	};
+
+	return __xlRunProgramCaseAllCounts(
+		pCtx,
+		"examples\\async\\container_array_index_assign_arg_await_basic.xl",
+		1,
+		13,
+		aNeedles,
+		XL_COUNTOF(aNeedles),
+		aCounts,
+		XL_COUNTOF(aCounts),
+		NULL,
+		0u,
+		NULL
+	);
+}
+static int __xlTestRunAsyncContainerListIndexAssignArgAwaitBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"async.await=next_value",
+		"async.resume=next_value",
+		"async.return=main",
+		"async.state_2=main",
+		"async.state_3=main"
+	};
+	static const XL_TraceCountExpectation aCounts[] = {
+		{ "async.state_2=main", 1u },
+		{ "async.state_3=main", 1u }
+	};
+
+	return __xlRunProgramCaseAllCounts(
+		pCtx,
+		"examples\\async\\container_list_index_assign_arg_await_basic.xl",
+		1,
+		13,
 		aNeedles,
 		XL_COUNTOF(aNeedles),
 		aCounts,
@@ -5281,6 +6115,11 @@ static const XL_TestCase __gXLTests[] = {
 	{ "cgen.async_container_dict_remove_arg_await_basic", "cgen", __xlTestCgenAsyncContainerDictRemoveArgAwaitBasic },
 	{ "cgen.async_container_list_remove_arg_await_basic", "cgen", __xlTestCgenAsyncContainerListRemoveArgAwaitBasic },
 	{ "cgen.async_container_list_join_arg_await_basic", "cgen", __xlTestCgenAsyncContainerListJoinArgAwaitBasic },
+	{ "cgen.async_container_list_append_arg_await_basic", "cgen", __xlTestCgenAsyncContainerListAppendArgAwaitBasic },
+	{ "cgen.async_container_dict_assign_arg_await_basic", "cgen", __xlTestCgenAsyncContainerDictAssignArgAwaitBasic },
+	{ "cgen.async_container_array_index_assign_arg_await_basic", "cgen", __xlTestCgenAsyncContainerArrayIndexAssignArgAwaitBasic },
+	{ "cgen.async_container_list_index_assign_arg_await_basic", "cgen", __xlTestCgenAsyncContainerListIndexAssignArgAwaitBasic },
+	{ "cgen.async_container_array_append_arg_await_basic", "cgen", __xlTestCgenAsyncContainerArrayAppendArgAwaitBasic },
 	{ "cgen.async_container_array_remove_arg_await_basic", "cgen", __xlTestCgenAsyncContainerArrayRemoveArgAwaitBasic },
 	{ "cgen.async_container_set_remove_arg_await_basic", "cgen", __xlTestCgenAsyncContainerSetRemoveArgAwaitBasic },
 	{ "cgen.async_multi_await_state", "cgen", __xlTestCgenAsyncMultiAwaitState },
@@ -5292,6 +6131,22 @@ static const XL_TestCase __gXLTests[] = {
 	{ "cgen.public_types_basic", "cgen", __xlTestCgenPublicTypesBasic },
 	{ "cgen.assert_message", "cgen", __xlTestCgenAssertMessage },
 	{ "cgen.native_error_bridge", "cgen", __xlTestCgenNativeErrorBridge },
+	{ "cgen.async_assign_arg_await_basic", "cgen", __xlTestCgenAsyncAssignArgAwaitBasic },
+	{ "cgen.async_assign_string_arg_await_basic", "cgen", __xlTestCgenAsyncAssignStringArgAwaitBasic },
+	{ "cgen.async_assign_multi_await_basic", "cgen", __xlTestCgenAsyncAssignMultiAwaitBasic },
+	{ "cgen.async_string_expr_await_basic", "cgen", __xlTestCgenAsyncStringExprAwaitBasic },
+	{ "cgen.async_if_cond_await_basic", "cgen", __xlTestCgenAsyncIfCondAwaitBasic },
+	{ "cgen.async_if_cond_then_await_basic", "cgen", __xlTestCgenAsyncIfCondThenAwaitBasic },
+	{ "cgen.async_if_cond_container_then_await_basic", "cgen", __xlTestCgenAsyncIfCondContainerThenAwaitBasic },
+	{ "cgen.async_while_cond_await_basic", "cgen", __xlTestCgenAsyncWhileCondAwaitBasic },
+	{ "cgen.async_while_cond_then_await_basic", "cgen", __xlTestCgenAsyncWhileCondThenAwaitBasic },
+	{ "cgen.async_while_cond_container_then_await_basic", "cgen", __xlTestCgenAsyncWhileCondContainerThenAwaitBasic },
+	{ "cgen.async_while_cond_break_basic", "cgen", __xlTestCgenAsyncWhileCondBreakBasic },
+	{ "cgen.async_while_cond_continue_basic", "cgen", __xlTestCgenAsyncWhileCondContinueBasic },
+	{ "cgen.async_while_cond_break_then_await_basic", "cgen", __xlTestCgenAsyncWhileCondBreakThenAwaitBasic },
+	{ "cgen.async_while_cond_continue_then_await_basic", "cgen", __xlTestCgenAsyncWhileCondContinueThenAwaitBasic },
+	{ "cgen.async_do_while_cond_await_basic", "cgen", __xlTestCgenAsyncDoWhileCondAwaitBasic },
+	{ "cgen.async_do_while_cond_then_await_basic", "cgen", __xlTestCgenAsyncDoWhileCondThenAwaitBasic },
 	{ "cgen.xlp_native_funcs", "cgen", __xlTestCgenXlpNativeFuncs },
 	{ "cgen.xlp_native_funcs_params", "cgen", __xlTestCgenXlpNativeFuncsParams },
 	{ "cgen.xlp_native_funcs_string", "cgen", __xlTestCgenXlpNativeFuncsString },
@@ -5474,6 +6329,22 @@ static const XL_TestCase __gXLTests[] = {
 	{ "runtime.async_run_main", "runtime", __xlTestRunAsyncMain },
 	{ "runtime.async_bind_await_return_basic", "runtime", __xlTestRunAsyncBindAwaitReturnBasic },
 	{ "runtime.async_bind_expr_await_basic", "runtime", __xlTestRunAsyncBindExprAwaitBasic },
+	{ "runtime.async_assign_arg_await_basic", "runtime", __xlTestRunAsyncAssignArgAwaitBasic },
+	{ "runtime.async_assign_string_arg_await_basic", "runtime", __xlTestRunAsyncAssignStringArgAwaitBasic },
+	{ "runtime.async_assign_multi_await_basic", "runtime", __xlTestRunAsyncAssignMultiAwaitBasic },
+	{ "runtime.async_string_expr_await_basic", "runtime", __xlTestRunAsyncStringExprAwaitBasic },
+	{ "runtime.async_if_cond_await_basic", "runtime", __xlTestRunAsyncIfCondAwaitBasic },
+	{ "runtime.async_if_cond_then_await_basic", "runtime", __xlTestRunAsyncIfCondThenAwaitBasic },
+	{ "runtime.async_if_cond_container_then_await_basic", "runtime", __xlTestRunAsyncIfCondContainerThenAwaitBasic },
+	{ "runtime.async_while_cond_await_basic", "runtime", __xlTestRunAsyncWhileCondAwaitBasic },
+	{ "runtime.async_while_cond_then_await_basic", "runtime", __xlTestRunAsyncWhileCondThenAwaitBasic },
+	{ "runtime.async_while_cond_container_then_await_basic", "runtime", __xlTestRunAsyncWhileCondContainerThenAwaitBasic },
+	{ "runtime.async_while_cond_break_basic", "runtime", __xlTestRunAsyncWhileCondBreakBasic },
+	{ "runtime.async_while_cond_continue_basic", "runtime", __xlTestRunAsyncWhileCondContinueBasic },
+	{ "runtime.async_while_cond_break_then_await_basic", "runtime", __xlTestRunAsyncWhileCondBreakThenAwaitBasic },
+	{ "runtime.async_while_cond_continue_then_await_basic", "runtime", __xlTestRunAsyncWhileCondContinueThenAwaitBasic },
+	{ "runtime.async_do_while_cond_await_basic", "runtime", __xlTestRunAsyncDoWhileCondAwaitBasic },
+	{ "runtime.async_do_while_cond_then_await_basic", "runtime", __xlTestRunAsyncDoWhileCondThenAwaitBasic },
 	{ "runtime.async_call_arg_await_basic", "runtime", __xlTestRunAsyncCallArgAwaitBasic },
 	{ "runtime.async_function_value_arg_await_basic", "runtime", __xlTestRunAsyncFunctionValueArgAwaitBasic },
 	{ "runtime.async_string_method_arg_await_basic", "runtime", __xlTestRunAsyncStringMethodArgAwaitBasic },
@@ -5483,6 +6354,11 @@ static const XL_TestCase __gXLTests[] = {
 	{ "runtime.async_container_dict_remove_arg_await_basic", "runtime", __xlTestRunAsyncContainerDictRemoveArgAwaitBasic },
 	{ "runtime.async_container_list_remove_arg_await_basic", "runtime", __xlTestRunAsyncContainerListRemoveArgAwaitBasic },
 	{ "runtime.async_container_list_join_arg_await_basic", "runtime", __xlTestRunAsyncContainerListJoinArgAwaitBasic },
+	{ "runtime.async_container_list_append_arg_await_basic", "runtime", __xlTestRunAsyncContainerListAppendArgAwaitBasic },
+	{ "runtime.async_container_dict_assign_arg_await_basic", "runtime", __xlTestRunAsyncContainerDictAssignArgAwaitBasic },
+	{ "runtime.async_container_array_index_assign_arg_await_basic", "runtime", __xlTestRunAsyncContainerArrayIndexAssignArgAwaitBasic },
+	{ "runtime.async_container_list_index_assign_arg_await_basic", "runtime", __xlTestRunAsyncContainerListIndexAssignArgAwaitBasic },
+	{ "runtime.async_container_array_append_arg_await_basic", "runtime", __xlTestRunAsyncContainerArrayAppendArgAwaitBasic },
 	{ "runtime.async_container_array_remove_arg_await_basic", "runtime", __xlTestRunAsyncContainerArrayRemoveArgAwaitBasic },
 	{ "runtime.async_container_set_remove_arg_await_basic", "runtime", __xlTestRunAsyncContainerSetRemoveArgAwaitBasic },
 	{ "runtime.async_multi_await", "runtime", __xlTestRunAsyncMultiAwait },

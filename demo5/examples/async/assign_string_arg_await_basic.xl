@@ -1,0 +1,9 @@
+async func next_text() as string
+	return "new"
+end
+
+async func main() as int
+	string text = "old"
+	text = await next_text()
+	return text == "new" ? 12 : 0
+end
