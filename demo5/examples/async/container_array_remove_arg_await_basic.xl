@@ -1,0 +1,8 @@
+async func index_value() as int
+	return 1
+end
+
+async func main() as int
+	const bool ok = [4, 5, 6].remove(await index_value())
+	return ok ? 22 : 0
+end
