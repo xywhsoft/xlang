@@ -469,8 +469,9 @@ char* xlLowerDumpStateMachinesText(const XL_LowerResult* pResult)
 
 			__xlLowerBufAppendFormat(
 				&buf,
-				"Func %s @ %d:%d suspendPoints=%zu groupCount=%d asyncFinal=%zu generatorFinal=%zu\n",
+				"Func %s abi=%s @ %d:%d suspendPoints=%zu groupCount=%d asyncFinal=%zu generatorFinal=%zu\n",
 				(pFunc->sFuncName != NULL) ? pFunc->sFuncName : "",
+				(pFunc->sAbiName != NULL) ? pFunc->sAbiName : "",
 				pFunc->iLine,
 				pFunc->iColumn,
 				pFunc->iPointCount,
@@ -551,6 +552,9 @@ char* xlLowerDumpStateMachinesJson(const XL_LowerResult* pResult)
 			__xlLowerBufAppend(&buf, "\t\t{\n");
 			__xlLowerBufAppend(&buf, "\t\t\t\"func\": \"");
 			__xlLowerAppendEscaped(&buf, (pFunc->sFuncName != NULL) ? pFunc->sFuncName : "");
+			__xlLowerBufAppend(&buf, "\",\n");
+			__xlLowerBufAppend(&buf, "\t\t\t\"abiSymbol\": \"");
+			__xlLowerAppendEscaped(&buf, (pFunc->sAbiName != NULL) ? pFunc->sAbiName : "");
 			__xlLowerBufAppend(&buf, "\",\n");
 			__xlLowerBufAppendFormat(&buf, "\t\t\t\"line\": %d,\n", pFunc->iLine);
 			__xlLowerBufAppendFormat(&buf, "\t\t\t\"column\": %d,\n", pFunc->iColumn);

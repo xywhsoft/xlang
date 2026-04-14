@@ -202,3 +202,12 @@ xlang 第五版语言标准支持覆盖率
 - ☑ native 标准库模块绑定
 - ☑ extern（首版：支持 `extern func` / `extern "symbol" func` 顶层声明）
 update 2026-04-14: async try const-else wrapped nested_full_chain / triple_nested inner-catch and outer-catch await flows verified in cgen/runtime.
+update 2026-04-14: async try const-else wrapped top-level if / while / prelude / do-while await variants verified in cgen/runtime.
+update 2026-04-15: async generator const-else wrapped try/catch, try/finally, and nested-try await/yield flows verified across parser/sem/lower/cgen/runtime.
+update 2026-04-15: generator codegen now prefers lowering-produced generatorSm state ids for resume dispatch, keeping sequential numbering only as fallback.
+update 2026-04-15: generator resume fallback now consumes lowering suspend-state order before legacy linear numbering, and cgen checks lock concrete generatorSm ids like while=2 / loop-control=5.
+update 2026-04-15: when generatorSm is present and suspend counts match, generator cgen no longer keeps the legacy linear resume counter alive for that function.
+update 2026-04-15: async/generator/hybrid state-machine metadata now carries abiSymbol, and cgen/lower matching prefers ABI-stable lookup over name+line fallback.
+update 2026-04-15: generator fallback no longer hardcodes resume state 1 when generatorSm is available; it now falls back to the first suspend state defined by lowering.
+update 2026-04-15: regular generator try/catch, try/finally, and nested-try cgen tests now assert concrete lowering state ids (try/catch=1/4/6, try/finally=1/3, nested-try=4/6/8), further pinning generatorSm-driven resume dispatch.
+update 2026-04-15: regular generator cgen has now removed the legacy sequential `case 1/2/3 -> xl_gen_resume_1/2/3` dispatch fallback entirely; resume labels are driven by lowering generatorSm state ids, and while/loop-control cgen tests additionally assert the old `case 1` / `goto xl_gen_resume_1` pattern is absent.

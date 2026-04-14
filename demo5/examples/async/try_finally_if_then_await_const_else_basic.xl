@@ -1,0 +1,31 @@
+async func next_flag() as bool
+	return true
+end
+
+async func bonus() as int
+	return 5
+end
+
+async func main() as int
+	int value = 1
+	int mark = 0
+
+	if false then
+		mark = mark + 400
+	else
+		mark = mark + 40
+		try
+			if await next_flag() then
+				value = value + 2
+			else
+				value = 0
+			end
+			mark = 10
+		finally
+			mark = mark + 3
+		end
+		mark = mark + 50
+	end
+
+	return value + mark + await bonus()
+end

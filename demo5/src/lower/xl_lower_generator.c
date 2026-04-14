@@ -512,6 +512,7 @@ static void __xlGeneratorFreeFunc(XL_GeneratorSmFunc* pFunc)
 	}
 
 	free(pFunc->sFuncName);
+	free(pFunc->sAbiName);
 	for ( i = 0; i < pFunc->iStateCount; ++i ) {
 		free(pFunc->pStates[i].sLabel);
 		free(pFunc->pStates[i].sDetail);
@@ -572,7 +573,8 @@ int xlLowerBuildGeneratorSm(const XL_HirNode* pHirRoot, XL_DiagContext* pDiag, i
 		pFunc = &pSm->pFuncs[pSm->iFuncCount];
 		memset(pFunc, 0, sizeof(*pFunc));
 		pFunc->sFuncName = __xlGeneratorDupText((pNode->sText != NULL) ? pNode->sText : "generator");
-		if ( pFunc->sFuncName == NULL ) {
+		pFunc->sAbiName = __xlGeneratorDupText((pNode->sAbiName != NULL) ? pNode->sAbiName : "");
+		if ( (pFunc->sFuncName == NULL) || (pFunc->sAbiName == NULL) ) {
 			xlGeneratorSmFree(pSm);
 			return XL_RC_IO_ERROR;
 		}
@@ -606,8 +608,9 @@ char* xlGeneratorSmDumpText(const XL_GeneratorSm* pSm)
 	for ( i = 0; i < pSm->iFuncCount; ++i ) {
 		__xlGeneratorBufAppendFormat(
 			&buf,
-			"Func %s @ %d:%d\n",
+			"Func %s abi=%s @ %d:%d\n",
 			(pSm->pFuncs[i].sFuncName != NULL) ? pSm->pFuncs[i].sFuncName : "",
+			(pSm->pFuncs[i].sAbiName != NULL) ? pSm->pFuncs[i].sAbiName : "",
 			pSm->pFuncs[i].iLine,
 			pSm->pFuncs[i].iColumn
 		);
@@ -653,6 +656,8 @@ char* xlGeneratorSmDumpJson(const XL_GeneratorSm* pSm)
 	for ( i = 0; (pSm != NULL) && (i < pSm->iFuncCount); ++i ) {
 		__xlGeneratorBufAppend(&buf, "\t\t{\n\t\t\t\"name\": \"");
 		__xlGeneratorAppendEscaped(&buf, pSm->pFuncs[i].sFuncName);
+		__xlGeneratorBufAppend(&buf, "\",\n\t\t\t\"abiSymbol\": \"");
+		__xlGeneratorAppendEscaped(&buf, pSm->pFuncs[i].sAbiName);
 		__xlGeneratorBufAppend(&buf, "\",\n\t\t\t\"line\": ");
 		__xlGeneratorBufAppendFormat(&buf, "%d,\n", pSm->pFuncs[i].iLine);
 		__xlGeneratorBufAppend(&buf, "\t\t\t\"column\": ");
