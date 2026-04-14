@@ -1,0 +1,49 @@
+async func fail_then() as int
+	throw Error("then boom")
+end
+
+async func fail_else() as int
+	throw Error("else boom")
+end
+
+async func bonus() as int
+	return 5
+end
+
+async func main() as int
+	int seed = 1
+	int value = 0
+	int mark = 0
+
+	try
+		if false then
+			mark = -100
+		else
+			mark = mark + 40
+			try
+				if seed == 1 then
+					mark = mark + 10
+					value = await fail_then()
+					mark = mark + 20
+				else
+					mark = mark + 2
+					value = await fail_else()
+					mark = mark + 30
+				end
+			finally
+				mark = mark + 4
+			end
+			mark = mark + 50
+		end
+	catch e
+		if e.message == "then boom" then
+			value = 70
+		else
+			value = 3
+		end
+	finally
+		mark = mark + 3
+	end
+
+	return value + mark + await bonus()
+end

@@ -1,0 +1,49 @@
+async func keep_going(int value) as bool
+	if value == 1 then
+		throw Error("stop")
+	end
+	return value < 3
+end
+
+async func bonus() as int
+	return 5
+end
+
+async func main() as int
+	int value = 0
+	int sum = 0
+	int mark = 1
+
+	if false then
+		mark = mark + 400
+	else
+		mark = mark + 40
+		try
+			try
+				try
+					while await keep_going(value) do
+						value = value + 1
+						sum = sum + value
+					end
+				finally
+					mark = mark + 10
+				end
+				mark = 99
+			finally
+				mark = mark + 30
+			end
+			mark = 199
+		catch e
+			if e.message == "stop" then
+				sum = sum + 7
+			else
+				sum = sum + 1
+			end
+		finally
+			mark = mark + 2
+		end
+		mark = mark + 50
+	end
+
+	return sum + mark + await bonus()
+end

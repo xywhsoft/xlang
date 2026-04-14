@@ -1,0 +1,39 @@
+async func next_then() as int
+	return 7
+end
+
+async func next_else() as int
+	return 8
+end
+
+async func bonus() as int
+	return 5
+end
+
+async func main() as int
+	int seed = 0
+	int value = 1
+	int mark = 0
+
+	try
+		if false then
+			mark = -100
+		else
+			mark = mark + 40
+			if seed == 1 then
+				mark = mark + 10
+				value = await next_then()
+				mark = mark + 20
+			else
+				mark = mark + 2
+				value = await next_else()
+				mark = mark + 30
+			end
+			mark = mark + 50
+		end
+	finally
+		mark = mark + 3
+	end
+
+	return value + mark + await bonus()
+end
