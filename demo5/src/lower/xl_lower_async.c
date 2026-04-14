@@ -512,6 +512,7 @@ static void __xlAsyncFreeFunc(XL_AsyncSmFunc* pFunc)
 	}
 
 	free(pFunc->sFuncName);
+	free(pFunc->sAbiName);
 	for ( i = 0; i < pFunc->iStateCount; ++i ) {
 		free(pFunc->pStates[i].sLabel);
 		free(pFunc->pStates[i].sDetail);
@@ -569,7 +570,8 @@ int xlLowerBuildAsyncSm(const XL_HirNode* pHirRoot, XL_DiagContext* pDiag, int b
 		pFunc = &pSm->pFuncs[pSm->iFuncCount];
 		memset(pFunc, 0, sizeof(*pFunc));
 		pFunc->sFuncName = __xlAsyncDupText((pNode->sText != NULL) ? pNode->sText : "async");
-		if ( pFunc->sFuncName == NULL ) {
+		pFunc->sAbiName = __xlAsyncDupText((pNode->sAbiName != NULL) ? pNode->sAbiName : "");
+		if ( (pFunc->sFuncName == NULL) || (pFunc->sAbiName == NULL) ) {
 			xlAsyncSmFree(pSm);
 			return XL_RC_IO_ERROR;
 		}
@@ -603,8 +605,9 @@ char* xlAsyncSmDumpText(const XL_AsyncSm* pSm)
 	for ( i = 0; i < pSm->iFuncCount; ++i ) {
 		__xlAsyncBufAppendFormat(
 			&buf,
-			"Func %s @ %d:%d\n",
+			"Func %s abi=%s @ %d:%d\n",
 			(pSm->pFuncs[i].sFuncName != NULL) ? pSm->pFuncs[i].sFuncName : "",
+			(pSm->pFuncs[i].sAbiName != NULL) ? pSm->pFuncs[i].sAbiName : "",
 			pSm->pFuncs[i].iLine,
 			pSm->pFuncs[i].iColumn
 		);
@@ -650,6 +653,8 @@ char* xlAsyncSmDumpJson(const XL_AsyncSm* pSm)
 	for ( i = 0; (pSm != NULL) && (i < pSm->iFuncCount); ++i ) {
 		__xlAsyncBufAppend(&buf, "\t\t{\n\t\t\t\"name\": \"");
 		__xlAsyncAppendEscaped(&buf, pSm->pFuncs[i].sFuncName);
+		__xlAsyncBufAppend(&buf, "\",\n\t\t\t\"abiSymbol\": \"");
+		__xlAsyncAppendEscaped(&buf, pSm->pFuncs[i].sAbiName);
 		__xlAsyncBufAppend(&buf, "\",\n\t\t\t\"line\": ");
 		__xlAsyncBufAppendFormat(&buf, "%d,\n", pSm->pFuncs[i].iLine);
 		__xlAsyncBufAppend(&buf, "\t\t\t\"column\": ");

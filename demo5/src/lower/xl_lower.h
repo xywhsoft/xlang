@@ -21,6 +21,7 @@ typedef struct XL_AsyncSmState {
 
 typedef struct XL_AsyncSmFunc {
 	char* sFuncName;
+	char* sAbiName;
 	XL_AsyncSmState* pStates;
 	size_t iStateCount;
 	size_t iStateCap;
@@ -48,6 +49,7 @@ typedef struct XL_GeneratorSmState {
 
 typedef struct XL_GeneratorSmFunc {
 	char* sFuncName;
+	char* sAbiName;
 	XL_GeneratorSmState* pStates;
 	size_t iStateCount;
 	size_t iStateCap;
@@ -75,6 +77,7 @@ typedef struct XL_HybridSmPoint {
 
 typedef struct XL_HybridSmFunc {
 	char* sFuncName;
+	char* sAbiName;
 	XL_HybridSmPoint* pPoints;
 	size_t iPointCount;
 	size_t iPointCap;

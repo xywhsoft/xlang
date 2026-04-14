@@ -1,0 +1,28 @@
+async func next_value() as int
+	return 7
+end
+
+async func bonus() as int
+	return 5
+end
+
+async func main() as int
+	int value = 0
+	int mark = 1
+
+	if false then
+		mark = mark + 400
+	else
+		mark = mark + 40
+		try
+			mark = mark + 10
+			value = await next_value()
+			mark = mark + 20
+		finally
+			mark = mark + 3
+		end
+		mark = mark + 50
+	end
+
+	return value + mark + await bonus()
+end

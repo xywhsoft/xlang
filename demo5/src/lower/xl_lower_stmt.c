@@ -91,15 +91,28 @@ static const XL_GeneratorSmFunc* __xlFindGeneratorSmFunc(
 )
 {
 	size_t i;
+	const XL_GeneratorSmFunc* pNameMatch;
+	size_t iNameMatchCount;
 
 	if ( (pSm == NULL) || (pAsyncFunc == NULL) ) {
 		return NULL;
 	}
 
+	pNameMatch = NULL;
+	iNameMatchCount = 0;
 	for ( i = 0; i < pSm->iFuncCount; ++i ) {
 		const XL_GeneratorSmFunc* pFunc = &pSm->pFuncs[i];
 
+		if ( (pAsyncFunc->sAbiName != NULL) && (pAsyncFunc->sAbiName[0] != '\0') ) {
+			if ( strcmp((pFunc->sAbiName != NULL) ? pFunc->sAbiName : "", pAsyncFunc->sAbiName) == 0 ) {
+				return pFunc;
+			}
+		}
 		if ( pFunc->iLine != pAsyncFunc->iLine || pFunc->iColumn != pAsyncFunc->iColumn ) {
+			if ( strcmp((pFunc->sFuncName != NULL) ? pFunc->sFuncName : "", (pAsyncFunc->sFuncName != NULL) ? pAsyncFunc->sFuncName : "") == 0 ) {
+				pNameMatch = pFunc;
+				++iNameMatchCount;
+			}
 			continue;
 		}
 		if ( strcmp((pFunc->sFuncName != NULL) ? pFunc->sFuncName : "", (pAsyncFunc->sFuncName != NULL) ? pAsyncFunc->sFuncName : "") != 0 ) {
@@ -107,7 +120,9 @@ static const XL_GeneratorSmFunc* __xlFindGeneratorSmFunc(
 		}
 		return pFunc;
 	}
-
+	if ( iNameMatchCount == 1 ) {
+		return pNameMatch;
+	}
 	return NULL;
 }
 
@@ -216,6 +231,7 @@ void xlHybridSmFree(XL_HybridSm* pSm)
 	}
 	for ( i = 0; i < pSm->iFuncCount; ++i ) {
 		free(pSm->pFuncs[i].sFuncName);
+		free(pSm->pFuncs[i].sAbiName);
 		free(pSm->pFuncs[i].pPoints);
 	}
 	free(pSm->pFuncs);
@@ -314,7 +330,8 @@ int xlLowerBuildHybridSm(const XL_AsyncSm* pAsyncSm, const XL_GeneratorSm* pGene
 		pHybridFunc = &pSm->pFuncs[pSm->iFuncCount++];
 		memset(pHybridFunc, 0, sizeof(*pHybridFunc));
 		pHybridFunc->sFuncName = __xlLowerDupText((pAsyncFunc->sFuncName != NULL) ? pAsyncFunc->sFuncName : "");
-		if ( pHybridFunc->sFuncName == NULL ) {
+		pHybridFunc->sAbiName = __xlLowerDupText((pAsyncFunc->sAbiName != NULL) ? pAsyncFunc->sAbiName : "");
+		if ( (pHybridFunc->sFuncName == NULL) || (pHybridFunc->sAbiName == NULL) ) {
 			xlHybridSmFree(pSm);
 			return XL_RC_IO_ERROR;
 		}

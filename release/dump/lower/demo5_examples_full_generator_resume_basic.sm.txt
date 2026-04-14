@@ -1,0 +1,21 @@
+AsyncStateMachine
+	<none>
+GeneratorStateMachine
+Func make_values abi=xl__make_values__arity0__ret__int @ 1:6
+	S0 label=entry next=1 suspend=0 final=0 @ 1:6
+		detail: generator entry
+	S1 label=yield next=2 suspend=1 final=0 @ 2:7
+		detail: Var
+		yield: 1
+	S2 label=resume next=3 suspend=0 final=0 @ 2:7
+		detail: resume after yield
+	S3 label=yield next=4 suspend=1 final=0 @ 3:2
+		detail: Yield
+		yield: current + 1
+	S4 label=resume next=5 suspend=0 final=0 @ 3:2
+		detail: resume after yield
+	S5 label=step next=6 suspend=0 final=0 @ 4:2
+		detail: Return
+	S6 label=done next=-1 suspend=0 final=1 @ 1:6
+		detail: generator final
+HybridStateMachine

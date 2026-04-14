@@ -1,0 +1,36 @@
+import std.task
+
+async func guarded() as int
+	int mark = 0
+
+	if false then
+		mark += 100
+	else
+		mark += 10
+		try
+			int first = await task.delay(1)
+			yield first + mark
+			throw Error("boom")
+		catch e
+			int second = await task.delay(2)
+			yield second + mark
+			if e.message == "boom" then
+				int third = await task.delay(4)
+				yield third + mark
+			end
+		end
+		mark += 20
+	end
+
+	return 0
+end
+
+func main() as int
+	int sum = 0
+
+	for value in guarded()
+		sum += value
+	end
+
+	return sum
+end
