@@ -1,0 +1,692 @@
+{
+	"kind": "Program",
+	"line": 0,
+	"column": 0,
+	"text": "",
+	"abiSymbol": null,
+	"type": null,
+	"scopeId": 0,
+	"symbolIndex": -1,
+	"funcIndex": -1,
+	"children": [
+		{
+			"kind": "Func",
+			"line": 1,
+			"column": 12,
+			"text": "next_value",
+			"abiSymbol": "xl__next_value__arity0__ret__future_x3Cint_x3E",
+			"type": "int",
+			"scopeId": 1,
+			"symbolIndex": 0,
+			"funcIndex": 50,
+			"children": [
+				{
+					"kind": "Block",
+					"line": 1,
+					"column": 12,
+					"text": "params",
+					"abiSymbol": null,
+					"type": null,
+					"scopeId": -1,
+					"symbolIndex": -1,
+					"funcIndex": -1,
+					"children": []
+				},
+				{
+					"kind": "Block",
+					"line": 0,
+					"column": 0,
+					"text": "",
+					"abiSymbol": null,
+					"type": null,
+					"scopeId": 2,
+					"symbolIndex": -1,
+					"funcIndex": -1,
+					"children": [
+						{
+							"kind": "Return",
+							"line": 2,
+							"column": 2,
+							"text": "",
+							"abiSymbol": null,
+							"type": null,
+							"scopeId": -1,
+							"symbolIndex": -1,
+							"funcIndex": -1,
+							"children": [
+								{
+									"kind": "Value",
+									"line": 2,
+									"column": 9,
+									"text": "7",
+									"abiSymbol": null,
+									"type": "int",
+									"scopeId": 2,
+									"symbolIndex": -1,
+									"funcIndex": -1,
+									"children": []
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"kind": "Func",
+			"line": 5,
+			"column": 12,
+			"text": "bonus",
+			"abiSymbol": "xl__bonus__arity0__ret__future_x3Cint_x3E",
+			"type": "int",
+			"scopeId": 3,
+			"symbolIndex": 1,
+			"funcIndex": 51,
+			"children": [
+				{
+					"kind": "Block",
+					"line": 5,
+					"column": 12,
+					"text": "params",
+					"abiSymbol": null,
+					"type": null,
+					"scopeId": -1,
+					"symbolIndex": -1,
+					"funcIndex": -1,
+					"children": []
+				},
+				{
+					"kind": "Block",
+					"line": 0,
+					"column": 0,
+					"text": "",
+					"abiSymbol": null,
+					"type": null,
+					"scopeId": 4,
+					"symbolIndex": -1,
+					"funcIndex": -1,
+					"children": [
+						{
+							"kind": "Return",
+							"line": 6,
+							"column": 2,
+							"text": "",
+							"abiSymbol": null,
+							"type": null,
+							"scopeId": -1,
+							"symbolIndex": -1,
+							"funcIndex": -1,
+							"children": [
+								{
+									"kind": "Value",
+									"line": 6,
+									"column": 9,
+									"text": "5",
+									"abiSymbol": null,
+									"type": "int",
+									"scopeId": 4,
+									"symbolIndex": -1,
+									"funcIndex": -1,
+									"children": []
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"kind": "Func",
+			"line": 9,
+			"column": 12,
+			"text": "main",
+			"abiSymbol": "xl__main__arity0__ret__future_x3Cint_x3E",
+			"type": "int",
+			"scopeId": 5,
+			"symbolIndex": 2,
+			"funcIndex": 52,
+			"children": [
+				{
+					"kind": "Block",
+					"line": 9,
+					"column": 12,
+					"text": "params",
+					"abiSymbol": null,
+					"type": null,
+					"scopeId": -1,
+					"symbolIndex": -1,
+					"funcIndex": -1,
+					"children": []
+				},
+				{
+					"kind": "Block",
+					"line": 0,
+					"column": 0,
+					"text": "",
+					"abiSymbol": null,
+					"type": null,
+					"scopeId": 6,
+					"symbolIndex": -1,
+					"funcIndex": -1,
+					"children": [
+						{
+							"kind": "Bind",
+							"line": 10,
+							"column": 6,
+							"text": "value",
+							"abiSymbol": null,
+							"type": "int",
+							"scopeId": 6,
+							"symbolIndex": 3,
+							"funcIndex": -1,
+							"children": [
+								{
+									"kind": "Value",
+									"line": 10,
+									"column": 14,
+									"text": "1",
+									"abiSymbol": null,
+									"type": "int",
+									"scopeId": 6,
+									"symbolIndex": -1,
+									"funcIndex": -1,
+									"children": []
+								}
+							]
+						},
+						{
+							"kind": "Bind",
+							"line": 11,
+							"column": 6,
+							"text": "mark",
+							"abiSymbol": null,
+							"type": "int",
+							"scopeId": 6,
+							"symbolIndex": 4,
+							"funcIndex": -1,
+							"children": [
+								{
+									"kind": "Value",
+									"line": 11,
+									"column": 13,
+									"text": "0",
+									"abiSymbol": null,
+									"type": "int",
+									"scopeId": 6,
+									"symbolIndex": -1,
+									"funcIndex": -1,
+									"children": []
+								}
+							]
+						},
+						{
+							"kind": "Branch",
+							"line": 13,
+							"column": 2,
+							"text": "",
+							"abiSymbol": null,
+							"type": null,
+							"scopeId": -1,
+							"symbolIndex": -1,
+							"funcIndex": -1,
+							"children": [
+								{
+									"kind": "Value",
+									"line": 13,
+									"column": 5,
+									"text": "true",
+									"abiSymbol": null,
+									"type": "bool",
+									"scopeId": 6,
+									"symbolIndex": -1,
+									"funcIndex": -1,
+									"children": []
+								},
+								{
+									"kind": "Block",
+									"line": 0,
+									"column": 0,
+									"text": "",
+									"abiSymbol": null,
+									"type": null,
+									"scopeId": 7,
+									"symbolIndex": -1,
+									"funcIndex": -1,
+									"children": [
+										{
+											"kind": "Value",
+											"line": 0,
+											"column": 0,
+											"text": "",
+											"abiSymbol": null,
+											"type": null,
+											"scopeId": 7,
+											"symbolIndex": -1,
+											"funcIndex": -1,
+											"children": [
+												{
+													"kind": "Value",
+													"line": 14,
+													"column": 8,
+													"text": "=",
+													"abiSymbol": null,
+													"type": "int",
+													"scopeId": 7,
+													"symbolIndex": -1,
+													"funcIndex": -1,
+													"children": [
+														{
+															"kind": "Value",
+															"line": 14,
+															"column": 3,
+															"text": "mark",
+															"abiSymbol": null,
+															"type": "int",
+															"scopeId": 7,
+															"symbolIndex": 4,
+															"funcIndex": -1,
+															"children": []
+														},
+														{
+															"kind": "Value",
+															"line": 14,
+															"column": 15,
+															"text": "+",
+															"abiSymbol": null,
+															"type": "int",
+															"scopeId": 7,
+															"symbolIndex": -1,
+															"funcIndex": -1,
+															"children": [
+																{
+																	"kind": "Value",
+																	"line": 14,
+																	"column": 10,
+																	"text": "mark",
+																	"abiSymbol": null,
+																	"type": "int",
+																	"scopeId": 7,
+																	"symbolIndex": 4,
+																	"funcIndex": -1,
+																	"children": []
+																},
+																{
+																	"kind": "Value",
+																	"line": 14,
+																	"column": 17,
+																	"text": "10",
+																	"abiSymbol": null,
+																	"type": "int",
+																	"scopeId": 7,
+																	"symbolIndex": -1,
+																	"funcIndex": -1,
+																	"children": []
+																}
+															]
+														}
+													]
+												}
+											]
+										},
+										{
+											"kind": "Value",
+											"line": 0,
+											"column": 0,
+											"text": "",
+											"abiSymbol": null,
+											"type": null,
+											"scopeId": 7,
+											"symbolIndex": -1,
+											"funcIndex": -1,
+											"children": [
+												{
+													"kind": "Value",
+													"line": 15,
+													"column": 9,
+													"text": "=",
+													"abiSymbol": null,
+													"type": "int",
+													"scopeId": 7,
+													"symbolIndex": -1,
+													"funcIndex": -1,
+													"children": [
+														{
+															"kind": "Value",
+															"line": 15,
+															"column": 3,
+															"text": "value",
+															"abiSymbol": null,
+															"type": "int",
+															"scopeId": 7,
+															"symbolIndex": 3,
+															"funcIndex": -1,
+															"children": []
+														},
+														{
+															"kind": "Value",
+															"line": 15,
+															"column": 11,
+															"text": "await",
+															"abiSymbol": null,
+															"type": "int",
+															"scopeId": 7,
+															"symbolIndex": -1,
+															"funcIndex": -1,
+															"children": [
+																{
+																	"kind": "Call",
+																	"line": 15,
+																	"column": 28,
+																	"text": "",
+																	"abiSymbol": "xl__next_value__arity0__ret__future_x3Cint_x3E",
+																	"type": "future<int>",
+																	"scopeId": 7,
+																	"symbolIndex": -1,
+																	"funcIndex": 50,
+																	"children": [
+																		{
+																			"kind": "Value",
+																			"line": 15,
+																			"column": 17,
+																			"text": "next_value",
+																			"abiSymbol": null,
+																			"type": null,
+																			"scopeId": -1,
+																			"symbolIndex": -1,
+																			"funcIndex": -1,
+																			"children": []
+																		},
+																		{
+																			"kind": "Block",
+																			"line": 15,
+																			"column": 28,
+																			"text": "args",
+																			"abiSymbol": null,
+																			"type": null,
+																			"scopeId": -1,
+																			"symbolIndex": -1,
+																			"funcIndex": -1,
+																			"children": []
+																		}
+																	]
+																}
+															]
+														}
+													]
+												}
+											]
+										},
+										{
+											"kind": "Value",
+											"line": 0,
+											"column": 0,
+											"text": "",
+											"abiSymbol": null,
+											"type": null,
+											"scopeId": 7,
+											"symbolIndex": -1,
+											"funcIndex": -1,
+											"children": [
+												{
+													"kind": "Value",
+													"line": 16,
+													"column": 8,
+													"text": "=",
+													"abiSymbol": null,
+													"type": "int",
+													"scopeId": 7,
+													"symbolIndex": -1,
+													"funcIndex": -1,
+													"children": [
+														{
+															"kind": "Value",
+															"line": 16,
+															"column": 3,
+															"text": "mark",
+															"abiSymbol": null,
+															"type": "int",
+															"scopeId": 7,
+															"symbolIndex": 4,
+															"funcIndex": -1,
+															"children": []
+														},
+														{
+															"kind": "Value",
+															"line": 16,
+															"column": 15,
+															"text": "+",
+															"abiSymbol": null,
+															"type": "int",
+															"scopeId": 7,
+															"symbolIndex": -1,
+															"funcIndex": -1,
+															"children": [
+																{
+																	"kind": "Value",
+																	"line": 16,
+																	"column": 10,
+																	"text": "mark",
+																	"abiSymbol": null,
+																	"type": "int",
+																	"scopeId": 7,
+																	"symbolIndex": 4,
+																	"funcIndex": -1,
+																	"children": []
+																},
+																{
+																	"kind": "Value",
+																	"line": 16,
+																	"column": 17,
+																	"text": "20",
+																	"abiSymbol": null,
+																	"type": "int",
+																	"scopeId": 7,
+																	"symbolIndex": -1,
+																	"funcIndex": -1,
+																	"children": []
+																}
+															]
+														}
+													]
+												}
+											]
+										}
+									]
+								},
+								{
+									"kind": "Block",
+									"line": 0,
+									"column": 0,
+									"text": "else",
+									"abiSymbol": null,
+									"type": null,
+									"scopeId": 8,
+									"symbolIndex": -1,
+									"funcIndex": -1,
+									"children": [
+										{
+											"kind": "Value",
+											"line": 0,
+											"column": 0,
+											"text": "",
+											"abiSymbol": null,
+											"type": null,
+											"scopeId": 8,
+											"symbolIndex": -1,
+											"funcIndex": -1,
+											"children": [
+												{
+													"kind": "Value",
+													"line": 18,
+													"column": 8,
+													"text": "=",
+													"abiSymbol": null,
+													"type": "int",
+													"scopeId": 8,
+													"symbolIndex": -1,
+													"funcIndex": -1,
+													"children": [
+														{
+															"kind": "Value",
+															"line": 18,
+															"column": 3,
+															"text": "mark",
+															"abiSymbol": null,
+															"type": "int",
+															"scopeId": 8,
+															"symbolIndex": 4,
+															"funcIndex": -1,
+															"children": []
+														},
+														{
+															"kind": "Value",
+															"line": 18,
+															"column": 10,
+															"text": "-",
+															"abiSymbol": null,
+															"type": "int",
+															"scopeId": 8,
+															"symbolIndex": -1,
+															"funcIndex": -1,
+															"children": [
+																{
+																	"kind": "Value",
+																	"line": 18,
+																	"column": 11,
+																	"text": "100",
+																	"abiSymbol": null,
+																	"type": "int",
+																	"scopeId": 8,
+																	"symbolIndex": -1,
+																	"funcIndex": -1,
+																	"children": []
+																}
+															]
+														}
+													]
+												}
+											]
+										}
+									]
+								}
+							]
+						},
+						{
+							"kind": "Return",
+							"line": 21,
+							"column": 2,
+							"text": "",
+							"abiSymbol": null,
+							"type": null,
+							"scopeId": -1,
+							"symbolIndex": -1,
+							"funcIndex": -1,
+							"children": [
+								{
+									"kind": "Value",
+									"line": 21,
+									"column": 22,
+									"text": "+",
+									"abiSymbol": null,
+									"type": "int",
+									"scopeId": 6,
+									"symbolIndex": -1,
+									"funcIndex": -1,
+									"children": [
+										{
+											"kind": "Value",
+											"line": 21,
+											"column": 15,
+											"text": "+",
+											"abiSymbol": null,
+											"type": "int",
+											"scopeId": 6,
+											"symbolIndex": -1,
+											"funcIndex": -1,
+											"children": [
+												{
+													"kind": "Value",
+													"line": 21,
+													"column": 9,
+													"text": "value",
+													"abiSymbol": null,
+													"type": "int",
+													"scopeId": 6,
+													"symbolIndex": 3,
+													"funcIndex": -1,
+													"children": []
+												},
+												{
+													"kind": "Value",
+													"line": 21,
+													"column": 17,
+													"text": "mark",
+													"abiSymbol": null,
+													"type": "int",
+													"scopeId": 6,
+													"symbolIndex": 4,
+													"funcIndex": -1,
+													"children": []
+												}
+											]
+										},
+										{
+											"kind": "Value",
+											"line": 21,
+											"column": 24,
+											"text": "await",
+											"abiSymbol": null,
+											"type": "int",
+											"scopeId": 6,
+											"symbolIndex": -1,
+											"funcIndex": -1,
+											"children": [
+												{
+													"kind": "Call",
+													"line": 21,
+													"column": 36,
+													"text": "",
+													"abiSymbol": "xl__bonus__arity0__ret__future_x3Cint_x3E",
+													"type": "future<int>",
+													"scopeId": 6,
+													"symbolIndex": -1,
+													"funcIndex": 51,
+													"children": [
+														{
+															"kind": "Value",
+															"line": 21,
+															"column": 30,
+															"text": "bonus",
+															"abiSymbol": null,
+															"type": null,
+															"scopeId": -1,
+															"symbolIndex": -1,
+															"funcIndex": -1,
+															"children": []
+														},
+														{
+															"kind": "Block",
+															"line": 21,
+															"column": 36,
+															"text": "args",
+															"abiSymbol": null,
+															"type": null,
+															"scopeId": -1,
+															"symbolIndex": -1,
+															"funcIndex": -1,
+															"children": []
+														}
+													]
+												}
+											]
+										}
+									]
+								}
+							]
+						}
+					]
+				}
+			]
+		}
+	]
+}

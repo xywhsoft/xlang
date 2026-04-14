@@ -1,0 +1,37 @@
+ModuleLoadOrder
+- [0] <root> -> D:\Git\x-lang\demo5\examples\async\try_triple_nested_inner_catch_then_await_const_else_basic.xl native=0 binding=
+ModuleExports
+- module=<root>
+  abi init=xl_mod__root___init exports=xl_mod__root___exports descriptor=xl_mod__root___descriptor
+NativeRegistry
+- key=std.core binding=std.core path=<native:std.core>
+- key=std.dir binding=std.dir path=<native:std.dir>
+- key=std.env binding=std.env path=<native:std.env>
+- key=std.fmt binding=std.fmt path=<native:std.fmt>
+- key=std.fs binding=std.fs path=<native:std.fs>
+- key=std.host binding=std.host path=<native:std.host>
+- key=std.io binding=std.io path=<native:std.io>
+- key=std.path binding=std.path path=<native:std.path>
+- key=std.rand binding=std.rand path=<native:std.rand>
+- key=std.process binding=std.process path=<native:std.process>
+- key=std.str binding=std.str path=<native:std.str>
+- key=std.time binding=std.time path=<native:std.time>
+- key=std.task binding=std.task path=<native:std.task>
+tcc_root=D:\Git\x-lang\demo5\release\tcc
+include=D:\Git\x-lang\demo5\release\tcc\include_win
+include=D:\Git\x-lang\demo5\release\tcc\include_win\winapi
+include=D:\Git\x-lang\demo5\src\runtime
+include=D:\Git\x-lang\demo5\lib\xrt
+lib=D:\Git\x-lang\demo5\release\tcc\lib
+compile_text=examples\async\try_triple_nested_inner_catch_then_await_const_else_basic.xl
+[tcc] examples/async/try_triple_nested_inner_catch_then_await_const_else_basic.xl:2348: error: 'xl_async_future_2' undeclared
+
+[fallback.build]
+tcc_root=D:\Git\x-lang\demo5\release\tcc
+include=D:\Git\x-lang\demo5\release\tcc\include_win
+include=D:\Git\x-lang\demo5\release\tcc\include_win\winapi
+include=D:\Git\x-lang\demo5\src\runtime
+include=D:\Git\x-lang\demo5\lib\xrt
+lib=D:\Git\x-lang\demo5\release\tcc\lib
+compile_text=examples\async\try_triple_nested_inner_catch_then_await_const_else_basic.xl
+[tcc] examples/async/try_triple_nested_inner_catch_then_await_const_else_basic.xl:2348: error: 'xl_async_future_2' undeclared

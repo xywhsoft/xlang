@@ -1,0 +1,28 @@
+async func fail() as int
+	throw Error("boom")
+end
+
+async func bonus() as int
+	return 5
+end
+
+async func main() as int
+	int value = 0
+	int mark = 1
+
+	try
+		mark = mark + 10
+		value = await fail()
+		mark = 99
+	catch e
+		if e.message == "boom" then
+			value = 7
+		else
+			value = 3
+		end
+	finally
+		mark = mark + 2
+	end
+
+	return value + mark + await bonus()
+end
