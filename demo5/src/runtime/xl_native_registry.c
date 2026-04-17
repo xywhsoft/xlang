@@ -1,18 +1,28 @@
 #include "xl_native_registry.h"
 
 const char* xlStdCoreModuleSource(void);
+const char* xlStdCryptoModuleSource(void);
+const char* xlStdDebugModuleSource(void);
 const char* xlStdDirModuleSource(void);
+const char* xlStdEncodeModuleSource(void);
 const char* xlStdEnvModuleSource(void);
+const char* xlStdErrorModuleSource(void);
 const char* xlStdFmtModuleSource(void);
 const char* xlStdFsModuleSource(void);
+const char* xlStdHashModuleSource(void);
 const char* xlStdHostModuleSource(void);
 const char* xlStdIoModuleSource(void);
+const char* xlStdJsonModuleSource(void);
+const char* xlStdAssertModuleSource(void);
+const char* xlStdLogModuleSource(void);
 const char* xlStdMathModuleSource(void);
 const char* xlStdPathModuleSource(void);
 const char* xlStdPackModuleSource(void);
 const char* xlStdRandModuleSource(void);
+const char* xlStdRegexModuleSource(void);
 const char* xlStdProcessModuleSource(void);
 const char* xlStdStrModuleSource(void);
+const char* xlStdTraceModuleSource(void);
 const char* xlStdTimeModuleSource(void);
 const char* xlStdTaskModuleSource(void);
 
@@ -31,18 +41,28 @@ typedef struct XL_NativeTextBuffer {
 
 static const XL_NativeRegistryEntry g_arrNativeModules[] = {
 	{ "std.core", "std.core", "<native:std.core>", xlStdCoreModuleSource },
+	{ "std.crypto", "std.crypto", "<native:std.crypto>", xlStdCryptoModuleSource },
+	{ "std.debug", "std.debug", "<native:std.debug>", xlStdDebugModuleSource },
 	{ "std.dir", "std.dir", "<native:std.dir>", xlStdDirModuleSource },
+	{ "std.encode", "std.encode", "<native:std.encode>", xlStdEncodeModuleSource },
 	{ "std.env", "std.env", "<native:std.env>", xlStdEnvModuleSource },
+	{ "std.error", "std.error", "<native:std.error>", xlStdErrorModuleSource },
 	{ "std.fmt", "std.fmt", "<native:std.fmt>", xlStdFmtModuleSource },
 	{ "std.fs", "std.fs", "<native:std.fs>", xlStdFsModuleSource },
+	{ "std.hash", "std.hash", "<native:std.hash>", xlStdHashModuleSource },
 	{ "std.host", "std.host", "<native:std.host>", xlStdHostModuleSource },
 	{ "std.io", "std.io", "<native:std.io>", xlStdIoModuleSource },
+	{ "std.json", "std.json", "<native:std.json>", xlStdJsonModuleSource },
+	{ "std.assert", "std.assert", "<native:std.assert>", xlStdAssertModuleSource },
+	{ "std.log", "std.log", "<native:std.log>", xlStdLogModuleSource },
 	{ "std.math", "std.math", "<native:std.math>", xlStdMathModuleSource },
 	{ "std.pack", "std.pack", "<native:std.pack>", xlStdPackModuleSource },
 	{ "std.path", "std.path", "<native:std.path>", xlStdPathModuleSource },
 	{ "std.rand", "std.rand", "<native:std.rand>", xlStdRandModuleSource },
+	{ "std.regex", "std.regex", "<native:std.regex>", xlStdRegexModuleSource },
 	{ "std.process", "std.process", "<native:std.process>", xlStdProcessModuleSource },
 	{ "std.str", "std.str", "<native:std.str>", xlStdStrModuleSource },
+	{ "std.trace", "std.trace", "<native:std.trace>", xlStdTraceModuleSource },
 	{ "std.time", "std.time", "<native:std.time>", xlStdTimeModuleSource },
 	{ "std.task", "std.task", "<native:std.task>", xlStdTaskModuleSource }
 };

@@ -23,18 +23,18 @@ xlang 第五版增强标准库支持覆盖率
 1. 基础与通用
 - ☐ std.core
 - ☐ std.types
-- ☐ std.math
-- ☐ std.rand
-- ☐ std.time
+- ☑ std.math
+- ☑ std.rand
+- ☑ std.time
 - ☐ std.clock
-- ☐ std.fmt
-- ☐ std.str
-- ☐ std.regex
-- ☐ std.hash
-- ☐ std.crypto
-- ☐ std.encode
-- ☐ std.pack
-- ☐ std.debug
+- ☑ std.fmt
+- ☑ std.str
+- ☑ std.regex
+- ☑ std.hash
+- ☑ std.crypto
+- ☑ std.encode
+- ☑ std.pack
+- ☑ std.debug
 
 2. 集合与迭代
 - ☐ std.iter
@@ -45,19 +45,19 @@ xlang 第五版增强标准库支持覆盖率
 - ◐ std.range
 
 3. 错误、断言、日志与诊断
-- ☐ std.error
-- ☐ std.assert
-- ☐ std.log
-- ☐ std.trace
+- ☑ std.error
+- ☑ std.assert
+- ☑ std.log
+- ☑ std.trace
 
 4. 文件系统与环境
-- ◐ std.io
-- ◐ std.fs
-- ◐ std.path
-- ◐ std.dir
-- ◐ std.env
-- ◐ std.process
-- ◐ std.host
+- ☑ std.io
+- ☑ std.fs
+- ☑ std.path
+- ☑ std.dir
+- ☑ std.env
+- ☑ std.process
+- ☑ std.host
 - ☐ std.os
 
 5. 并发与异步
@@ -84,7 +84,7 @@ xlang 第五版增强标准库支持覆盖率
 - ☐ std.net.tls
 
 7. 数据格式
-- ◐ std.json
+- ☑ std.json
 - ☐ std.query
 - ☐ std.template
 
@@ -153,9 +153,9 @@ xlang 第五版增强标准库支持覆盖率
 - ☐ std.str
 - ☐ std.fmt
 - ☐ std.math
-- ☐ std.rand
-- ☐ std.time
-- ☐ std.regex
+- ☑ std.rand
+- ☑ std.time
+- ☑ std.regex
 - ☐ std.path
 - ☐ std.fs
 - ☐ std.dir
@@ -168,8 +168,8 @@ xlang 第五版增强标准库支持覆盖率
 - ☐ std.net.url
 - ☐ std.net.http
 - ☐ std.json
-- ☐ std.hash
-- ☐ std.encode
+- ☑ std.hash
+- ☑ std.encode
 - ☐ std.pack
 
 第二批：
@@ -178,8 +178,8 @@ xlang 第五版增强标准库支持覆盖率
 - ☐ std.list
 - ☐ std.set
 - ☐ std.dict
-- ☐ std.log
-- ☐ std.debug
+- ☑ std.log
+- ☑ std.debug
 - ☐ std.net.httpd
 - ☐ std.net.ws
 - ☐ std.net.tls

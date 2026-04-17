@@ -8,6 +8,7 @@
 	#include <ws2tcpip.h>
 	#include <iphlpapi.h>
 	#include <windows.h>
+	#include <Lmcons.h>
 #endif
 
 typedef struct XLRT_NativeErrorState {
@@ -85,6 +86,78 @@ const char* xlrt_host_ip(void)
 	return sIp;
 }
 
+const char* xlrt_host_user(void)
+{
+	static char sUser[256];
+
+#if defined(_WIN32) || defined(_WIN64)
+	DWORD iSize;
+
+	memset(sUser, 0, sizeof(sUser));
+	iSize = (DWORD)sizeof(sUser);
+	if ( GetUserNameA(sUser, &iSize) == 0 ) {
+		const char* sEnvUser = getenv("USERNAME");
+		__xlCopyNativeText(sUser, sizeof(sUser), sEnvUser);
+	}
+#else
+	__xlCopyNativeText(sUser, sizeof(sUser), getenv("USER"));
+#endif
+
+	return sUser;
+}
+
+const char* xlrt_host_os(void)
+{
+#if defined(_WIN32) || defined(_WIN64)
+	return "windows";
+#elif defined(__APPLE__)
+	return "macos";
+#elif defined(__linux__)
+	return "linux";
+#else
+	return "unknown";
+#endif
+}
+
+const char* xlrt_host_arch(void)
+{
+#if defined(_M_X64) || defined(__x86_64__) || defined(__amd64__)
+	return "x64";
+#elif defined(_M_IX86) || defined(__i386__)
+	return "x86";
+#elif defined(_M_ARM64) || defined(__aarch64__)
+	return "arm64";
+#elif defined(_M_ARM) || defined(__arm__)
+	return "arm";
+#else
+	return "unknown";
+#endif
+}
+
+const char* xlrt_host_executable(void)
+{
+	static char sPath[XL_PATH_MAX_LEN];
+
+	memset(sPath, 0, sizeof(sPath));
+#if defined(_WIN32) || defined(_WIN64)
+	if ( GetModuleFileNameA(NULL, sPath, (DWORD)sizeof(sPath)) == 0u ) {
+		sPath[0] = '\0';
+	}
+#elif defined(__linux__)
+	{
+		ssize_t iLen = readlink("/proc/self/exe", sPath, sizeof(sPath) - 1u);
+		if ( iLen <= 0 ) {
+			sPath[0] = '\0';
+		} else {
+			sPath[iLen] = '\0';
+		}
+	}
+#else
+	sPath[0] = '\0';
+#endif
+	return sPath;
+}
+
 const char* xlrt_env_get(const char* sName)
 {
 	const char* sValue;
@@ -106,6 +179,19 @@ int xlrt_env_exists(const char* sName)
 	return getenv(sName) != NULL;
 }
 
+int xlrt_env_set(const char* sName, const char* sValue)
+{
+	if ( (sName == NULL) || (sName[0] == '\0') || (sValue == NULL) ) {
+		return 0;
+	}
+
+#if defined(_WIN32) || defined(_WIN64)
+	return (_putenv_s(sName, sValue) == 0) ? 1 : 0;
+#else
+	return (setenv(sName, sValue, 1) == 0) ? 1 : 0;
+#endif
+}
+
 const char* xlrt_env_cwd(void)
 {
 	static char sPath[XL_PATH_MAX_LEN];
@@ -119,6 +205,44 @@ const char* xlrt_env_cwd(void)
 	if ( getcwd(sPath, sizeof(sPath)) == NULL ) {
 		sPath[0] = '\0';
 	}
+#endif
+	return sPath;
+}
+
+const char* xlrt_env_temp(void)
+{
+	static char sPath[XL_PATH_MAX_LEN];
+
+	memset(sPath, 0, sizeof(sPath));
+#if defined(_WIN32) || defined(_WIN64)
+	if ( GetTempPathA((DWORD)sizeof(sPath), sPath) == 0u ) {
+		__xlCopyNativeText(sPath, sizeof(sPath), getenv("TEMP"));
+	}
+#else
+	__xlCopyNativeText(sPath, sizeof(sPath), getenv("TMPDIR"));
+	if ( sPath[0] == '\0' ) {
+		__xlCopyNativeText(sPath, sizeof(sPath), "/tmp");
+	}
+#endif
+	return sPath;
+}
+
+const char* xlrt_env_home(void)
+{
+	static char sPath[XL_PATH_MAX_LEN];
+
+	memset(sPath, 0, sizeof(sPath));
+#if defined(_WIN32) || defined(_WIN64)
+	__xlCopyNativeText(sPath, sizeof(sPath), getenv("USERPROFILE"));
+	if ( sPath[0] == '\0' ) {
+		const char* sDrive = getenv("HOMEDRIVE");
+		const char* sHomePath = getenv("HOMEPATH");
+		if ( (sDrive != NULL) && (sHomePath != NULL) ) {
+			snprintf(sPath, sizeof(sPath), "%s%s", sDrive, sHomePath);
+		}
+	}
+#else
+	__xlCopyNativeText(sPath, sizeof(sPath), getenv("HOME"));
 #endif
 	return sPath;
 }

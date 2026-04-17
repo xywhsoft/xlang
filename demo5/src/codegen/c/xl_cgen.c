@@ -284,6 +284,14 @@ typedef enum XL_CorePrintHelperKind {
 	XL_CORE_PRINTLN
 } XL_CorePrintHelperKind;
 
+typedef enum XL_IoHelperKind {
+	XL_IO_HELPER_NONE = 0,
+	XL_IO_HELPER_EPRINT,
+	XL_IO_HELPER_EPRINTLN,
+	XL_IO_HELPER_READ_LINE,
+	XL_IO_HELPER_FLUSH
+} XL_IoHelperKind;
+
 typedef enum XL_CoreLenHelperKind {
 	XL_CORE_LEN_NONE = 0,
 	XL_CORE_LEN
@@ -297,7 +305,11 @@ typedef enum XL_TimeHelperKind {
 	XL_TIME_HELPER_DATE_TEXT,
 	XL_TIME_HELPER_TIME_TEXT,
 	XL_TIME_HELPER_RELATIVE,
-	XL_TIME_HELPER_PARSE
+	XL_TIME_HELPER_PARSE,
+	XL_TIME_HELPER_FORMAT,
+	XL_TIME_HELPER_PARSE_FORMAT,
+	XL_TIME_HELPER_SLEEP,
+	XL_TIME_HELPER_IS_LEAP_YEAR
 } XL_TimeHelperKind;
 
 typedef enum XL_PathHelperKind {
@@ -307,6 +319,7 @@ typedef enum XL_PathHelperKind {
 	XL_PATH_HELPER_NAME,
 	XL_PATH_HELPER_EXT,
 	XL_PATH_HELPER_DIR,
+	XL_PATH_HELPER_EXISTS,
 	XL_PATH_HELPER_IS_ABS,
 	XL_PATH_HELPER_RANDOM
 } XL_PathHelperKind;
@@ -317,6 +330,9 @@ typedef enum XL_FsHelperKind {
 	XL_FS_HELPER_IS_FILE,
 	XL_FS_HELPER_IS_DIR,
 	XL_FS_HELPER_SIZE,
+	XL_FS_HELPER_SET_SIZE,
+	XL_FS_HELPER_ACCESS_TIME,
+	XL_FS_HELPER_CHANGE_TIME,
 	XL_FS_HELPER_READ_ALL,
 	XL_FS_HELPER_WRITE_ALL,
 	XL_FS_HELPER_APPEND_ALL,
@@ -328,6 +344,8 @@ typedef enum XL_FsHelperKind {
 
 typedef enum XL_StrHelperKind {
 	XL_STR_HELPER_NONE = 0,
+	XL_STR_HELPER_EMPTY,
+	XL_STR_HELPER_BYTE_LEN,
 	XL_STR_HELPER_CONTAINS,
 	XL_STR_HELPER_INDEX_OF,
 	XL_STR_HELPER_LAST_INDEX_OF,
@@ -342,7 +360,10 @@ typedef enum XL_StrHelperKind {
 	XL_STR_HELPER_TRIM_RIGHT,
 	XL_STR_HELPER_LOWER,
 	XL_STR_HELPER_UPPER,
-	XL_STR_HELPER_REPLACE
+	XL_STR_HELPER_REPLACE,
+	XL_STR_HELPER_REVERSE,
+	XL_STR_HELPER_PAD_LEFT,
+	XL_STR_HELPER_PAD_RIGHT
 } XL_StrHelperKind;
 
 static XL_StrHelperKind __xlStrHelperKind(const char* sCalleeName);
@@ -350,21 +371,83 @@ static XL_StrHelperKind __xlStrHelperKind(const char* sCalleeName);
 typedef enum XL_RandHelperKind {
 	XL_RAND_HELPER_NONE = 0,
 	XL_RAND_HELPER_INT32,
+	XL_RAND_HELPER_BOOL,
 	XL_RAND_HELPER_RANGE,
-	XL_RAND_HELPER_TEXT
+	XL_RAND_HELPER_TEXT,
+	XL_RAND_HELPER_TEXT_FROM
 } XL_RandHelperKind;
 
 typedef enum XL_HostHelperKind {
 	XL_HOST_HELPER_NONE = 0,
 	XL_HOST_HELPER_NAME,
-	XL_HOST_HELPER_IP
+	XL_HOST_HELPER_IP,
+	XL_HOST_HELPER_USER,
+	XL_HOST_HELPER_OS,
+	XL_HOST_HELPER_ARCH,
+	XL_HOST_HELPER_EXECUTABLE
 } XL_HostHelperKind;
 
 typedef enum XL_FmtHelperKind {
 	XL_FMT_HELPER_NONE = 0,
 	XL_FMT_HELPER_INT_TEXT,
-	XL_FMT_HELPER_FLOAT_TEXT
+	XL_FMT_HELPER_FLOAT_TEXT,
+	XL_FMT_HELPER_BOOL_TEXT
 } XL_FmtHelperKind;
+
+typedef enum XL_DebugHelperKind {
+	XL_DEBUG_HELPER_NONE = 0,
+	XL_DEBUG_HELPER_TEXT,
+	XL_DEBUG_HELPER_PRINT,
+	XL_DEBUG_HELPER_PRINTLN
+} XL_DebugHelperKind;
+
+typedef enum XL_LogHelperKind {
+	XL_LOG_HELPER_NONE = 0,
+	XL_LOG_HELPER_DEBUG,
+	XL_LOG_HELPER_INFO,
+	XL_LOG_HELPER_WARN,
+	XL_LOG_HELPER_ERROR
+} XL_LogHelperKind;
+
+typedef enum XL_TraceHelperKind {
+	XL_TRACE_HELPER_NONE = 0,
+	XL_TRACE_HELPER_WRITE,
+	XL_TRACE_HELPER_ERROR
+} XL_TraceHelperKind;
+
+typedef enum XL_RegexHelperKind {
+	XL_REGEX_HELPER_NONE = 0,
+	XL_REGEX_HELPER_IS_MATCH,
+	XL_REGEX_HELPER_FIND,
+	XL_REGEX_HELPER_CAPTURES,
+	XL_REGEX_HELPER_CAPTURE_COUNT,
+	XL_REGEX_HELPER_REPLACE_FIRST,
+	XL_REGEX_HELPER_REPLACE_ALL
+} XL_RegexHelperKind;
+
+typedef enum XL_CryptoHelperKind {
+	XL_CRYPTO_HELPER_NONE = 0,
+	XL_CRYPTO_HELPER_HMAC_SHA256,
+	XL_CRYPTO_HELPER_HMAC_SHA512
+} XL_CryptoHelperKind;
+
+typedef enum XL_EncodeHelperKind {
+	XL_ENCODE_HELPER_NONE = 0,
+	XL_ENCODE_HELPER_HEX_ENCODE,
+	XL_ENCODE_HELPER_HEX_DECODE,
+	XL_ENCODE_HELPER_BASE64_ENCODE,
+	XL_ENCODE_HELPER_BASE64_DECODE
+} XL_EncodeHelperKind;
+
+typedef enum XL_HashHelperKind {
+	XL_HASH_HELPER_NONE = 0,
+	XL_HASH_HELPER_HASH32,
+	XL_HASH_HELPER_HASH64,
+	XL_HASH_HELPER_HASH64_MICRO,
+	XL_HASH_HELPER_HASH64_NANO,
+	XL_HASH_HELPER_SHA256,
+	XL_HASH_HELPER_SHA512
+} XL_HashHelperKind;
 
 typedef enum XL_MathHelperKind {
 	XL_MATH_HELPER_NONE = 0,
@@ -400,19 +483,32 @@ typedef enum XL_PackHelperKind {
 	XL_PACK_HELPER_READ_U32_BE
 } XL_PackHelperKind;
 
+typedef enum XL_JsonHelperKind {
+	XL_JSON_HELPER_NONE = 0,
+	XL_JSON_HELPER_ENCODE,
+	XL_JSON_HELPER_DECODE
+} XL_JsonHelperKind;
+
 typedef enum XL_EnvHelperKind {
 	XL_ENV_HELPER_NONE = 0,
 	XL_ENV_HELPER_GET,
 	XL_ENV_HELPER_EXISTS,
-	XL_ENV_HELPER_CWD
+	XL_ENV_HELPER_SET,
+	XL_ENV_HELPER_CWD,
+	XL_ENV_HELPER_TEMP,
+	XL_ENV_HELPER_HOME
 } XL_EnvHelperKind;
 
 typedef enum XL_DirHelperKind {
 	XL_DIR_HELPER_NONE = 0,
+	XL_DIR_HELPER_CREATE,
 	XL_DIR_HELPER_LIST,
 	XL_DIR_HELPER_FILES,
 	XL_DIR_HELPER_DIRS,
-	XL_DIR_HELPER_TREE
+	XL_DIR_HELPER_TREE,
+	XL_DIR_HELPER_COPY,
+	XL_DIR_HELPER_MOVE,
+	XL_DIR_HELPER_DELETE
 } XL_DirHelperKind;
 
 typedef enum XL_ProcessHelperKind {
@@ -420,7 +516,8 @@ typedef enum XL_ProcessHelperKind {
 	XL_PROCESS_HELPER_EXEC,
 	XL_PROCESS_HELPER_CAPTURE,
 	XL_PROCESS_HELPER_EXEC_IN,
-	XL_PROCESS_HELPER_CAPTURE_IN
+	XL_PROCESS_HELPER_CAPTURE_IN,
+	XL_PROCESS_HELPER_TERMINAL_SUPPORTED
 } XL_ProcessHelperKind;
 
 static int __xlCgenBufGrow(XL_CgenBuffer* pBuf, size_t iNeed)
@@ -6505,6 +6602,26 @@ static XL_CorePrintHelperKind __xlCorePrintHelperKind(const char* sCalleeName)
 	return XL_CORE_PRINT_NONE;
 }
 
+static XL_IoHelperKind __xlIoHelperKind(const char* sCalleeName)
+{
+	if ( sCalleeName == NULL ) {
+		return XL_IO_HELPER_NONE;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_io__eprint") == 0 ) {
+		return XL_IO_HELPER_EPRINT;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_io__eprintln") == 0 ) {
+		return XL_IO_HELPER_EPRINTLN;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_io__read_line") == 0 ) {
+		return XL_IO_HELPER_READ_LINE;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_io__flush") == 0 ) {
+		return XL_IO_HELPER_FLUSH;
+	}
+	return XL_IO_HELPER_NONE;
+}
+
 static XL_CoreLenHelperKind __xlCoreLenHelperKind(const char* sCalleeName)
 {
 	if ( sCalleeName == NULL ) {
@@ -6865,6 +6982,18 @@ static XL_TimeHelperKind __xlTimeHelperKind(const char* sCalleeName)
 	if ( strcmp(sCalleeName, "xl_mod_std_time__parse") == 0 ) {
 		return XL_TIME_HELPER_PARSE;
 	}
+	if ( strcmp(sCalleeName, "xl_mod_std_time__format") == 0 ) {
+		return XL_TIME_HELPER_FORMAT;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_time__parse_format") == 0 ) {
+		return XL_TIME_HELPER_PARSE_FORMAT;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_time__sleep") == 0 ) {
+		return XL_TIME_HELPER_SLEEP;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_time__is_leap_year") == 0 ) {
+		return XL_TIME_HELPER_IS_LEAP_YEAR;
+	}
 	return XL_TIME_HELPER_NONE;
 }
 
@@ -6887,6 +7016,9 @@ static XL_PathHelperKind __xlPathHelperKind(const char* sCalleeName)
 	}
 	if ( strcmp(sCalleeName, "xl_mod_std_path__dir") == 0 ) {
 		return XL_PATH_HELPER_DIR;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_path__exists") == 0 ) {
+		return XL_PATH_HELPER_EXISTS;
 	}
 	if ( strcmp(sCalleeName, "xl_mod_std_path__is_abs") == 0 ) {
 		return XL_PATH_HELPER_IS_ABS;
@@ -6913,6 +7045,15 @@ static XL_FsHelperKind __xlFsHelperKind(const char* sCalleeName)
 	}
 	if ( strcmp(sCalleeName, "xl_mod_std_fs__size") == 0 ) {
 		return XL_FS_HELPER_SIZE;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_fs__set_size") == 0 ) {
+		return XL_FS_HELPER_SET_SIZE;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_fs__access_time") == 0 ) {
+		return XL_FS_HELPER_ACCESS_TIME;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_fs__change_time") == 0 ) {
+		return XL_FS_HELPER_CHANGE_TIME;
 	}
 	if ( strcmp(sCalleeName, "xl_mod_std_fs__read_all") == 0 ) {
 		return XL_FS_HELPER_READ_ALL;
@@ -6945,6 +7086,12 @@ static XL_StrHelperKind __xlStrHelperKind(const char* sCalleeName)
 	}
 	if ( strcmp(sCalleeName, "xl_mod_std_str__contains") == 0 ) {
 		return XL_STR_HELPER_CONTAINS;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_str__empty") == 0 ) {
+		return XL_STR_HELPER_EMPTY;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_str__byte_len") == 0 ) {
+		return XL_STR_HELPER_BYTE_LEN;
 	}
 	if ( strcmp(sCalleeName, "xl_mod_std_str__index_of") == 0 ) {
 		return XL_STR_HELPER_INDEX_OF;
@@ -6988,6 +7135,15 @@ static XL_StrHelperKind __xlStrHelperKind(const char* sCalleeName)
 	if ( strcmp(sCalleeName, "xl_mod_std_str__replace") == 0 ) {
 		return XL_STR_HELPER_REPLACE;
 	}
+	if ( strcmp(sCalleeName, "xl_mod_std_str__reverse") == 0 ) {
+		return XL_STR_HELPER_REVERSE;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_str__pad_left") == 0 ) {
+		return XL_STR_HELPER_PAD_LEFT;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_str__pad_right") == 0 ) {
+		return XL_STR_HELPER_PAD_RIGHT;
+	}
 	return XL_STR_HELPER_NONE;
 }
 
@@ -6999,11 +7155,17 @@ static XL_RandHelperKind __xlRandHelperKind(const char* sCalleeName)
 	if ( strcmp(sCalleeName, "xl_mod_std_rand__int32") == 0 ) {
 		return XL_RAND_HELPER_INT32;
 	}
+	if ( strcmp(sCalleeName, "xl_mod_std_rand__bool") == 0 ) {
+		return XL_RAND_HELPER_BOOL;
+	}
 	if ( strcmp(sCalleeName, "xl_mod_std_rand__range") == 0 ) {
 		return XL_RAND_HELPER_RANGE;
 	}
 	if ( strcmp(sCalleeName, "xl_mod_std_rand__text") == 0 ) {
 		return XL_RAND_HELPER_TEXT;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_rand__text_from") == 0 ) {
+		return XL_RAND_HELPER_TEXT_FROM;
 	}
 	return XL_RAND_HELPER_NONE;
 }
@@ -7019,6 +7181,18 @@ static XL_HostHelperKind __xlHostHelperKind(const char* sCalleeName)
 	if ( strcmp(sCalleeName, "xl_mod_std_host__ip") == 0 ) {
 		return XL_HOST_HELPER_IP;
 	}
+	if ( strcmp(sCalleeName, "xl_mod_std_host__user") == 0 ) {
+		return XL_HOST_HELPER_USER;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_host__os") == 0 ) {
+		return XL_HOST_HELPER_OS;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_host__arch") == 0 ) {
+		return XL_HOST_HELPER_ARCH;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_host__executable") == 0 ) {
+		return XL_HOST_HELPER_EXECUTABLE;
+	}
 	return XL_HOST_HELPER_NONE;
 }
 
@@ -7033,7 +7207,147 @@ static XL_FmtHelperKind __xlFmtHelperKind(const char* sCalleeName)
 	if ( strcmp(sCalleeName, "xl_mod_std_fmt__float_text") == 0 ) {
 		return XL_FMT_HELPER_FLOAT_TEXT;
 	}
+	if ( strcmp(sCalleeName, "xl_mod_std_fmt__bool_text") == 0 ) {
+		return XL_FMT_HELPER_BOOL_TEXT;
+	}
 	return XL_FMT_HELPER_NONE;
+}
+
+static XL_DebugHelperKind __xlDebugHelperKind(const char* sCalleeName)
+{
+	if ( sCalleeName == NULL ) {
+		return XL_DEBUG_HELPER_NONE;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_debug__text") == 0 ) {
+		return XL_DEBUG_HELPER_TEXT;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_debug__print") == 0 ) {
+		return XL_DEBUG_HELPER_PRINT;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_debug__println") == 0 ) {
+		return XL_DEBUG_HELPER_PRINTLN;
+	}
+	return XL_DEBUG_HELPER_NONE;
+}
+
+static XL_LogHelperKind __xlLogHelperKind(const char* sCalleeName)
+{
+	if ( sCalleeName == NULL ) {
+		return XL_LOG_HELPER_NONE;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_log__debug") == 0 ) {
+		return XL_LOG_HELPER_DEBUG;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_log__info") == 0 ) {
+		return XL_LOG_HELPER_INFO;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_log__warn") == 0 ) {
+		return XL_LOG_HELPER_WARN;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_log__error") == 0 ) {
+		return XL_LOG_HELPER_ERROR;
+	}
+	return XL_LOG_HELPER_NONE;
+}
+
+static XL_TraceHelperKind __xlTraceHelperKind(const char* sCalleeName)
+{
+	if ( sCalleeName == NULL ) {
+		return XL_TRACE_HELPER_NONE;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_trace__write") == 0 ) {
+		return XL_TRACE_HELPER_WRITE;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_trace__error") == 0 ) {
+		return XL_TRACE_HELPER_ERROR;
+	}
+	return XL_TRACE_HELPER_NONE;
+}
+
+static XL_RegexHelperKind __xlRegexHelperKind(const char* sCalleeName)
+{
+	if ( sCalleeName == NULL ) {
+		return XL_REGEX_HELPER_NONE;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_regex__is_match") == 0 ) {
+		return XL_REGEX_HELPER_IS_MATCH;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_regex__find") == 0 ) {
+		return XL_REGEX_HELPER_FIND;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_regex__captures") == 0 ) {
+		return XL_REGEX_HELPER_CAPTURES;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_regex__capture_count") == 0 ) {
+		return XL_REGEX_HELPER_CAPTURE_COUNT;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_regex__replace_first") == 0 ) {
+		return XL_REGEX_HELPER_REPLACE_FIRST;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_regex__replace_all") == 0 ) {
+		return XL_REGEX_HELPER_REPLACE_ALL;
+	}
+	return XL_REGEX_HELPER_NONE;
+}
+
+static XL_CryptoHelperKind __xlCryptoHelperKind(const char* sCalleeName)
+{
+	if ( sCalleeName == NULL ) {
+		return XL_CRYPTO_HELPER_NONE;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_crypto__hmac_sha256") == 0 ) {
+		return XL_CRYPTO_HELPER_HMAC_SHA256;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_crypto__hmac_sha512") == 0 ) {
+		return XL_CRYPTO_HELPER_HMAC_SHA512;
+	}
+	return XL_CRYPTO_HELPER_NONE;
+}
+
+static XL_EncodeHelperKind __xlEncodeHelperKind(const char* sCalleeName)
+{
+	if ( sCalleeName == NULL ) {
+		return XL_ENCODE_HELPER_NONE;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_encode__hex_encode") == 0 ) {
+		return XL_ENCODE_HELPER_HEX_ENCODE;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_encode__hex_decode") == 0 ) {
+		return XL_ENCODE_HELPER_HEX_DECODE;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_encode__base64_encode") == 0 ) {
+		return XL_ENCODE_HELPER_BASE64_ENCODE;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_encode__base64_decode") == 0 ) {
+		return XL_ENCODE_HELPER_BASE64_DECODE;
+	}
+	return XL_ENCODE_HELPER_NONE;
+}
+
+static XL_HashHelperKind __xlHashHelperKind(const char* sCalleeName)
+{
+	if ( sCalleeName == NULL ) {
+		return XL_HASH_HELPER_NONE;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_hash__hash32") == 0 ) {
+		return XL_HASH_HELPER_HASH32;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_hash__hash64") == 0 ) {
+		return XL_HASH_HELPER_HASH64;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_hash__hash64_micro") == 0 ) {
+		return XL_HASH_HELPER_HASH64_MICRO;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_hash__hash64_nano") == 0 ) {
+		return XL_HASH_HELPER_HASH64_NANO;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_hash__sha256") == 0 ) {
+		return XL_HASH_HELPER_SHA256;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_hash__sha512") == 0 ) {
+		return XL_HASH_HELPER_SHA512;
+	}
+	return XL_HASH_HELPER_NONE;
 }
 
 static XL_MathHelperKind __xlMathHelperKind(const char* sCalleeName)
@@ -7130,6 +7444,20 @@ static XL_PackHelperKind __xlPackHelperKind(const char* sCalleeName)
 	return XL_PACK_HELPER_NONE;
 }
 
+static XL_JsonHelperKind __xlJsonHelperKind(const char* sCalleeName)
+{
+	if ( sCalleeName == NULL ) {
+		return XL_JSON_HELPER_NONE;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_json__encode") == 0 ) {
+		return XL_JSON_HELPER_ENCODE;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_json__decode") == 0 ) {
+		return XL_JSON_HELPER_DECODE;
+	}
+	return XL_JSON_HELPER_NONE;
+}
+
 static XL_EnvHelperKind __xlEnvHelperKind(const char* sCalleeName)
 {
 	if ( sCalleeName == NULL ) {
@@ -7141,8 +7469,17 @@ static XL_EnvHelperKind __xlEnvHelperKind(const char* sCalleeName)
 	if ( strcmp(sCalleeName, "xl_mod_std_env__exists") == 0 ) {
 		return XL_ENV_HELPER_EXISTS;
 	}
+	if ( strcmp(sCalleeName, "xl_mod_std_env__set") == 0 ) {
+		return XL_ENV_HELPER_SET;
+	}
 	if ( strcmp(sCalleeName, "xl_mod_std_env__cwd") == 0 ) {
 		return XL_ENV_HELPER_CWD;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_env__temp") == 0 ) {
+		return XL_ENV_HELPER_TEMP;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_env__home") == 0 ) {
+		return XL_ENV_HELPER_HOME;
 	}
 	return XL_ENV_HELPER_NONE;
 }
@@ -7155,6 +7492,9 @@ static XL_DirHelperKind __xlDirHelperKind(const char* sCalleeName)
 	if ( strcmp(sCalleeName, "xl_mod_std_dir__list") == 0 ) {
 		return XL_DIR_HELPER_LIST;
 	}
+	if ( strcmp(sCalleeName, "xl_mod_std_dir__create") == 0 ) {
+		return XL_DIR_HELPER_CREATE;
+	}
 	if ( strcmp(sCalleeName, "xl_mod_std_dir__files") == 0 ) {
 		return XL_DIR_HELPER_FILES;
 	}
@@ -7163,6 +7503,15 @@ static XL_DirHelperKind __xlDirHelperKind(const char* sCalleeName)
 	}
 	if ( strcmp(sCalleeName, "xl_mod_std_dir__tree") == 0 ) {
 		return XL_DIR_HELPER_TREE;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_dir__copy") == 0 ) {
+		return XL_DIR_HELPER_COPY;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_dir__move") == 0 ) {
+		return XL_DIR_HELPER_MOVE;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_dir__delete") == 0 ) {
+		return XL_DIR_HELPER_DELETE;
 	}
 	return XL_DIR_HELPER_NONE;
 }
@@ -7183,6 +7532,9 @@ static XL_ProcessHelperKind __xlProcessHelperKind(const char* sCalleeName)
 	}
 	if ( strcmp(sCalleeName, "xl_mod_std_process__capture_in") == 0 ) {
 		return XL_PROCESS_HELPER_CAPTURE_IN;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_process__terminal_supported") == 0 ) {
+		return XL_PROCESS_HELPER_TERMINAL_SUPPORTED;
 	}
 	return XL_PROCESS_HELPER_NONE;
 }
@@ -7207,6 +7559,12 @@ static const char* __xlInferExprTypeName(const XL_CgenContext* pCtx, const XL_Mi
 			return ((pFunc->sTypeName != NULL) && (pFunc->sTypeName[0] != '\0')) ? pFunc->sTypeName : "future<void>";
 		}
 		if ( __xlCorePrintHelperKind(sCalleeName) != XL_CORE_PRINT_NONE ) {
+			return "void";
+		}
+		if ( __xlIoHelperKind(sCalleeName) == XL_IO_HELPER_READ_LINE ) {
+			return "string";
+		}
+		if ( __xlIoHelperKind(sCalleeName) != XL_IO_HELPER_NONE ) {
 			return "void";
 		}
 		if ( __xlCoreLenHelperKind(sCalleeName) != XL_CORE_LEN_NONE ) {
@@ -8387,6 +8745,54 @@ static void __xlCgenCorePrintCall(XL_CgenContext* pCtx, const XL_MirNode* pNode)
 	__xlCgenAppend(&pCtx->buf, ")");
 }
 
+static void __xlCgenIoCall(XL_CgenContext* pCtx, const XL_MirNode* pNode)
+{
+	const XL_MirNode* pArgs;
+	const XL_MirNode* pArg0;
+	const char* sArgTypeName;
+	const char* sSuffix;
+	XL_IoHelperKind eKind;
+
+	eKind = __xlIoHelperKind(__xlCallCalleeName(pNode));
+	pArgs = (pNode->iChildCount > 1) ? pNode->ppChildren[1] : NULL;
+	pArg0 = ((pArgs != NULL) && (pArgs->iChildCount != 0)) ? pArgs->ppChildren[0] : NULL;
+	sArgTypeName = __xlInferExprTypeName(pCtx, pArg0);
+	sSuffix = __xlCorePrintTypeSuffix(sArgTypeName);
+
+	switch ( eKind ) {
+		case XL_IO_HELPER_EPRINT:
+			__xlCgenAppendFormat(&pCtx->buf, "xl_io_eprint_%s(", sSuffix);
+			if ( (sArgTypeName != NULL) && (strcmp(sArgTypeName, "error") == 0) ) {
+				__xlCgenTextExpr(pCtx, pArg0);
+			} else {
+				__xlCgenExprAsType(pCtx, pArg0, sArgTypeName);
+			}
+			__xlCgenAppend(&pCtx->buf, ")");
+			return;
+		case XL_IO_HELPER_EPRINTLN:
+			if ( (pArgs == NULL) || (pArgs->iChildCount == 0) ) {
+				__xlCgenAppend(&pCtx->buf, "xl_io_eprintln_void()");
+				return;
+			}
+			__xlCgenAppendFormat(&pCtx->buf, "xl_io_eprintln_%s(", sSuffix);
+			if ( (sArgTypeName != NULL) && (strcmp(sArgTypeName, "error") == 0) ) {
+				__xlCgenTextExpr(pCtx, pArg0);
+			} else {
+				__xlCgenExprAsType(pCtx, pArg0, sArgTypeName);
+			}
+			__xlCgenAppend(&pCtx->buf, ")");
+			return;
+		case XL_IO_HELPER_READ_LINE:
+			__xlCgenAppend(&pCtx->buf, "xl_io_read_line()");
+			return;
+		case XL_IO_HELPER_FLUSH:
+			__xlCgenAppend(&pCtx->buf, "xl_io_flush()");
+			return;
+		default:
+			return;
+	}
+}
+
 static void __xlCgenCoreLenCall(XL_CgenContext* pCtx, const XL_MirNode* pNode)
 {
 	const XL_MirNode* pArgs;
@@ -8676,6 +9082,34 @@ static void __xlCgenTimeCall(XL_CgenContext* pCtx, const XL_MirNode* pNode)
 		__xlCgenAppend(&pCtx->buf, "xl_time_parse(");
 		__xlCgenExpr(pCtx, pArg0);
 		__xlCgenAppend(&pCtx->buf, ")");
+		return;
+	}
+	if ( eKind == XL_TIME_HELPER_FORMAT ) {
+		__xlCgenAppend(&pCtx->buf, "xl_time_format(");
+		__xlCgenExpr(pCtx, pArg0);
+		__xlCgenAppend(&pCtx->buf, ", ");
+		__xlCgenExpr(pCtx, pArg1);
+		__xlCgenAppend(&pCtx->buf, ")");
+		return;
+	}
+	if ( eKind == XL_TIME_HELPER_PARSE_FORMAT ) {
+		__xlCgenAppend(&pCtx->buf, "xl_time_parse_format(");
+		__xlCgenExpr(pCtx, pArg0);
+		__xlCgenAppend(&pCtx->buf, ", ");
+		__xlCgenExpr(pCtx, pArg1);
+		__xlCgenAppend(&pCtx->buf, ")");
+		return;
+	}
+	if ( eKind == XL_TIME_HELPER_SLEEP ) {
+		__xlCgenAppend(&pCtx->buf, "xl_time_sleep(");
+		__xlCgenExpr(pCtx, pArg0);
+		__xlCgenAppend(&pCtx->buf, ")");
+		return;
+	}
+	if ( eKind == XL_TIME_HELPER_IS_LEAP_YEAR ) {
+		__xlCgenAppend(&pCtx->buf, "xl_time_is_leap_year(");
+		__xlCgenExpr(pCtx, pArg0);
+		__xlCgenAppend(&pCtx->buf, ")");
 	}
 }
 
@@ -8726,6 +9160,11 @@ static void __xlCgenPathCall(XL_CgenContext* pCtx, const XL_MirNode* pNode)
 			__xlCgenExprAsType(pCtx, pArg0, "string");
 			__xlCgenAppend(&pCtx->buf, ")");
 			return;
+		case XL_PATH_HELPER_EXISTS:
+			__xlCgenAppend(&pCtx->buf, "xl_path_exists(");
+			__xlCgenExprAsType(pCtx, pArg0, "string");
+			__xlCgenAppend(&pCtx->buf, ")");
+			return;
 		case XL_PATH_HELPER_RANDOM:
 			__xlCgenAppend(&pCtx->buf, "xl_path_random(");
 			__xlCgenExprAsType(pCtx, pArg0, "string");
@@ -8770,6 +9209,23 @@ static void __xlCgenFsCall(XL_CgenContext* pCtx, const XL_MirNode* pNode)
 			return;
 		case XL_FS_HELPER_SIZE:
 			__xlCgenAppend(&pCtx->buf, "xl_fs_size(");
+			__xlCgenExprAsType(pCtx, pArg0, "string");
+			__xlCgenAppend(&pCtx->buf, ")");
+			return;
+		case XL_FS_HELPER_SET_SIZE:
+			__xlCgenAppend(&pCtx->buf, "xl_fs_set_size(");
+			__xlCgenExprAsType(pCtx, pArg0, "string");
+			__xlCgenAppend(&pCtx->buf, ", ");
+			__xlCgenExpr(pCtx, pArg1);
+			__xlCgenAppend(&pCtx->buf, ")");
+			return;
+		case XL_FS_HELPER_ACCESS_TIME:
+			__xlCgenAppend(&pCtx->buf, "xl_fs_access_time(");
+			__xlCgenExprAsType(pCtx, pArg0, "string");
+			__xlCgenAppend(&pCtx->buf, ")");
+			return;
+		case XL_FS_HELPER_CHANGE_TIME:
+			__xlCgenAppend(&pCtx->buf, "xl_fs_change_time(");
 			__xlCgenExprAsType(pCtx, pArg0, "string");
 			__xlCgenAppend(&pCtx->buf, ")");
 			return;
@@ -8836,6 +9292,16 @@ static void __xlCgenStrCall(XL_CgenContext* pCtx, const XL_MirNode* pNode)
 	pArg2 = ((pArgs != NULL) && (pArgs->iChildCount > 2)) ? pArgs->ppChildren[2] : NULL;
 
 	switch ( eKind ) {
+		case XL_STR_HELPER_EMPTY:
+			__xlCgenAppend(&pCtx->buf, "xl_str_empty(");
+			__xlCgenExprAsType(pCtx, pArg0, "string");
+			__xlCgenAppend(&pCtx->buf, ")");
+			return;
+		case XL_STR_HELPER_BYTE_LEN:
+			__xlCgenAppend(&pCtx->buf, "xl_str_byte_len(");
+			__xlCgenExprAsType(pCtx, pArg0, "string");
+			__xlCgenAppend(&pCtx->buf, ")");
+			return;
 		case XL_STR_HELPER_CONTAINS:
 			__xlCgenAppend(&pCtx->buf, "xl_str_contains(");
 			__xlCgenExprAsType(pCtx, pArg0, "string");
@@ -8933,6 +9399,29 @@ static void __xlCgenStrCall(XL_CgenContext* pCtx, const XL_MirNode* pNode)
 			__xlCgenExprAsType(pCtx, pArg2, "string");
 			__xlCgenAppend(&pCtx->buf, ")");
 			return;
+		case XL_STR_HELPER_REVERSE:
+			__xlCgenAppend(&pCtx->buf, "xl_str_reverse(");
+			__xlCgenExprAsType(pCtx, pArg0, "string");
+			__xlCgenAppend(&pCtx->buf, ")");
+			return;
+		case XL_STR_HELPER_PAD_LEFT:
+			__xlCgenAppend(&pCtx->buf, "xl_str_pad_left(");
+			__xlCgenExprAsType(pCtx, pArg0, "string");
+			__xlCgenAppend(&pCtx->buf, ", ");
+			__xlCgenExprAsType(pCtx, pArg1, "int");
+			__xlCgenAppend(&pCtx->buf, ", ");
+			__xlCgenExprAsType(pCtx, pArg2, "string");
+			__xlCgenAppend(&pCtx->buf, ")");
+			return;
+		case XL_STR_HELPER_PAD_RIGHT:
+			__xlCgenAppend(&pCtx->buf, "xl_str_pad_right(");
+			__xlCgenExprAsType(pCtx, pArg0, "string");
+			__xlCgenAppend(&pCtx->buf, ", ");
+			__xlCgenExprAsType(pCtx, pArg1, "int");
+			__xlCgenAppend(&pCtx->buf, ", ");
+			__xlCgenExprAsType(pCtx, pArg2, "string");
+			__xlCgenAppend(&pCtx->buf, ")");
+			return;
 		default:
 			return;
 	}
@@ -8954,6 +9443,9 @@ static void __xlCgenRandCall(XL_CgenContext* pCtx, const XL_MirNode* pNode)
 		case XL_RAND_HELPER_INT32:
 			__xlCgenAppend(&pCtx->buf, "xl_rand_int32()");
 			return;
+		case XL_RAND_HELPER_BOOL:
+			__xlCgenAppend(&pCtx->buf, "xl_rand_bool()");
+			return;
 		case XL_RAND_HELPER_RANGE:
 			__xlCgenAppend(&pCtx->buf, "xl_rand_range(");
 			__xlCgenExpr(pCtx, pArg0);
@@ -8964,6 +9456,13 @@ static void __xlCgenRandCall(XL_CgenContext* pCtx, const XL_MirNode* pNode)
 		case XL_RAND_HELPER_TEXT:
 			__xlCgenAppend(&pCtx->buf, "xl_rand_text(");
 			__xlCgenExpr(pCtx, pArg0);
+			__xlCgenAppend(&pCtx->buf, ")");
+			return;
+		case XL_RAND_HELPER_TEXT_FROM:
+			__xlCgenAppend(&pCtx->buf, "xl_rand_text_from(");
+			__xlCgenExpr(pCtx, pArg0);
+			__xlCgenAppend(&pCtx->buf, ", ");
+			__xlCgenExpr(pCtx, pArg1);
 			__xlCgenAppend(&pCtx->buf, ")");
 			return;
 		default:
@@ -8982,6 +9481,18 @@ static void __xlCgenHostCall(XL_CgenContext* pCtx, const XL_MirNode* pNode)
 			return;
 		case XL_HOST_HELPER_IP:
 			__xlCgenAppend(&pCtx->buf, "xl_host_ip()");
+			return;
+		case XL_HOST_HELPER_USER:
+			__xlCgenAppend(&pCtx->buf, "xl_host_user()");
+			return;
+		case XL_HOST_HELPER_OS:
+			__xlCgenAppend(&pCtx->buf, "xl_host_os()");
+			return;
+		case XL_HOST_HELPER_ARCH:
+			__xlCgenAppend(&pCtx->buf, "xl_host_arch()");
+			return;
+		case XL_HOST_HELPER_EXECUTABLE:
+			__xlCgenAppend(&pCtx->buf, "xl_host_executable()");
 			return;
 		default:
 			return;
@@ -9015,6 +9526,196 @@ static void __xlCgenFmtCall(XL_CgenContext* pCtx, const XL_MirNode* pNode)
 			__xlCgenExpr(pCtx, pArg1);
 			__xlCgenAppend(&pCtx->buf, ")");
 			return;
+		case XL_FMT_HELPER_BOOL_TEXT:
+			__xlCgenAppend(&pCtx->buf, "xl_fmt_bool_text(");
+			__xlCgenExpr(pCtx, pArg0);
+			__xlCgenAppend(&pCtx->buf, ")");
+			return;
+		default:
+			return;
+	}
+}
+
+static void __xlCgenDebugCall(XL_CgenContext* pCtx, const XL_MirNode* pNode)
+{
+	const XL_MirNode* pArgs;
+	const XL_MirNode* pArg0;
+	const char* sType0;
+	XL_DebugHelperKind eKind;
+
+	eKind = __xlDebugHelperKind(__xlCallCalleeName(pNode));
+	pArgs = (pNode->iChildCount > 1) ? pNode->ppChildren[1] : NULL;
+	pArg0 = ((pArgs != NULL) && (pArgs->iChildCount != 0)) ? pArgs->ppChildren[0] : NULL;
+	sType0 = __xlInferExprTypeName(pCtx, pArg0);
+
+	switch ( eKind ) {
+		case XL_DEBUG_HELPER_TEXT:
+			if ( (sType0 != NULL) && (strcmp(sType0, "error") == 0) ) {
+				__xlCgenAppend(&pCtx->buf, "xl_generated_error_text(");
+				__xlCgenExpr(pCtx, pArg0);
+				__xlCgenAppend(&pCtx->buf, ")");
+			} else {
+				__xlCgenAppend(&pCtx->buf, "xl_debug_text(");
+				__xlCgenExprAsType(pCtx, pArg0, "var");
+				__xlCgenAppend(&pCtx->buf, ")");
+			}
+			return;
+		case XL_DEBUG_HELPER_PRINT:
+			if ( (sType0 != NULL) && (strcmp(sType0, "error") == 0) ) {
+				__xlCgenAppend(&pCtx->buf, "xl_core_print_string(xl_generated_error_text(");
+				__xlCgenExpr(pCtx, pArg0);
+				__xlCgenAppend(&pCtx->buf, "))");
+			} else {
+				__xlCgenAppend(&pCtx->buf, "xl_debug_print(");
+				__xlCgenExprAsType(pCtx, pArg0, "var");
+				__xlCgenAppend(&pCtx->buf, ")");
+			}
+			return;
+		case XL_DEBUG_HELPER_PRINTLN:
+			if ( (sType0 != NULL) && (strcmp(sType0, "error") == 0) ) {
+				__xlCgenAppend(&pCtx->buf, "xl_core_println_string(xl_generated_error_text(");
+				__xlCgenExpr(pCtx, pArg0);
+				__xlCgenAppend(&pCtx->buf, "))");
+			} else {
+				__xlCgenAppend(&pCtx->buf, "xl_debug_println(");
+				__xlCgenExprAsType(pCtx, pArg0, "var");
+				__xlCgenAppend(&pCtx->buf, ")");
+			}
+			return;
+		default:
+			return;
+	}
+}
+
+static void __xlCgenLogCall(XL_CgenContext* pCtx, const XL_MirNode* pNode)
+{
+	const XL_MirNode* pArgs;
+	const XL_MirNode* pArg0;
+	const char* sType0;
+	XL_LogHelperKind eKind;
+
+	eKind = __xlLogHelperKind(__xlCallCalleeName(pNode));
+	pArgs = (pNode->iChildCount > 1) ? pNode->ppChildren[1] : NULL;
+	pArg0 = ((pArgs != NULL) && (pArgs->iChildCount != 0)) ? pArgs->ppChildren[0] : NULL;
+	sType0 = __xlInferExprTypeName(pCtx, pArg0);
+
+	switch ( eKind ) {
+		case XL_LOG_HELPER_DEBUG:
+			__xlCgenAppend(&pCtx->buf, "xl_log_debug(");
+			break;
+		case XL_LOG_HELPER_INFO:
+			__xlCgenAppend(&pCtx->buf, "xl_log_info(");
+			break;
+		case XL_LOG_HELPER_WARN:
+			__xlCgenAppend(&pCtx->buf, "xl_log_warn(");
+			break;
+		case XL_LOG_HELPER_ERROR:
+			__xlCgenAppend(&pCtx->buf, "xl_log_error(");
+			break;
+		default:
+			return;
+	}
+
+	if ( (sType0 != NULL) && (strcmp(sType0, "error") == 0) ) {
+		__xlCgenAppend(&pCtx->buf, "xl_generated_error_text(");
+		__xlCgenExpr(pCtx, pArg0);
+		__xlCgenAppend(&pCtx->buf, ")");
+	} else {
+		__xlCgenExprAsType(pCtx, pArg0, "string");
+	}
+	__xlCgenAppend(&pCtx->buf, ")");
+}
+
+static void __xlCgenTraceCall(XL_CgenContext* pCtx, const XL_MirNode* pNode)
+{
+	const XL_MirNode* pArgs;
+	const XL_MirNode* pArg0;
+	const char* sType0;
+	XL_TraceHelperKind eKind;
+
+	eKind = __xlTraceHelperKind(__xlCallCalleeName(pNode));
+	pArgs = (pNode->iChildCount > 1) ? pNode->ppChildren[1] : NULL;
+	pArg0 = ((pArgs != NULL) && (pArgs->iChildCount != 0)) ? pArgs->ppChildren[0] : NULL;
+	sType0 = __xlInferExprTypeName(pCtx, pArg0);
+
+	switch ( eKind ) {
+		case XL_TRACE_HELPER_WRITE:
+		case XL_TRACE_HELPER_ERROR:
+			__xlCgenAppend(&pCtx->buf, "xl_trace_write(");
+			break;
+		default:
+			return;
+	}
+
+	if ( (sType0 != NULL) && (strcmp(sType0, "error") == 0) ) {
+		__xlCgenAppend(&pCtx->buf, "xl_generated_error_text(");
+		__xlCgenExpr(pCtx, pArg0);
+		__xlCgenAppend(&pCtx->buf, ")");
+	} else {
+		__xlCgenExprAsType(pCtx, pArg0, "string");
+	}
+	__xlCgenAppend(&pCtx->buf, ")");
+}
+
+static void __xlCgenRegexCall(XL_CgenContext* pCtx, const XL_MirNode* pNode)
+{
+	const XL_MirNode* pArgs;
+	const XL_MirNode* pArg0;
+	const XL_MirNode* pArg1;
+	const XL_MirNode* pArg2;
+	XL_RegexHelperKind eKind;
+
+	eKind = __xlRegexHelperKind(__xlCallCalleeName(pNode));
+	pArgs = (pNode->iChildCount > 1) ? pNode->ppChildren[1] : NULL;
+	pArg0 = ((pArgs != NULL) && (pArgs->iChildCount != 0)) ? pArgs->ppChildren[0] : NULL;
+	pArg1 = ((pArgs != NULL) && (pArgs->iChildCount > 1)) ? pArgs->ppChildren[1] : NULL;
+	pArg2 = ((pArgs != NULL) && (pArgs->iChildCount > 2)) ? pArgs->ppChildren[2] : NULL;
+
+	switch ( eKind ) {
+		case XL_REGEX_HELPER_IS_MATCH:
+			__xlCgenAppend(&pCtx->buf, "xl_regex_is_match(");
+			__xlCgenExprAsType(pCtx, pArg0, "string");
+			__xlCgenAppend(&pCtx->buf, ", ");
+			__xlCgenExprAsType(pCtx, pArg1, "string");
+			__xlCgenAppend(&pCtx->buf, ")");
+			return;
+		case XL_REGEX_HELPER_FIND:
+			__xlCgenAppend(&pCtx->buf, "xl_regex_find(");
+			__xlCgenExprAsType(pCtx, pArg0, "string");
+			__xlCgenAppend(&pCtx->buf, ", ");
+			__xlCgenExprAsType(pCtx, pArg1, "string");
+			__xlCgenAppend(&pCtx->buf, ")");
+			return;
+		case XL_REGEX_HELPER_CAPTURES:
+			__xlCgenAppend(&pCtx->buf, "xl_regex_captures(");
+			__xlCgenExprAsType(pCtx, pArg0, "string");
+			__xlCgenAppend(&pCtx->buf, ", ");
+			__xlCgenExprAsType(pCtx, pArg1, "string");
+			__xlCgenAppend(&pCtx->buf, ")");
+			return;
+		case XL_REGEX_HELPER_CAPTURE_COUNT:
+			__xlCgenAppend(&pCtx->buf, "xl_regex_capture_count(");
+			__xlCgenExprAsType(pCtx, pArg0, "string");
+			__xlCgenAppend(&pCtx->buf, ")");
+			return;
+		case XL_REGEX_HELPER_REPLACE_FIRST:
+			__xlCgenAppend(&pCtx->buf, "xl_regex_replace_first(");
+			__xlCgenExprAsType(pCtx, pArg0, "string");
+			__xlCgenAppend(&pCtx->buf, ", ");
+			__xlCgenExprAsType(pCtx, pArg1, "string");
+			__xlCgenAppend(&pCtx->buf, ", ");
+			__xlCgenExprAsType(pCtx, pArg2, "string");
+			__xlCgenAppend(&pCtx->buf, ")");
+			return;
+		case XL_REGEX_HELPER_REPLACE_ALL:
+			__xlCgenAppend(&pCtx->buf, "xl_regex_replace_all(");
+			__xlCgenExprAsType(pCtx, pArg0, "string");
+			__xlCgenAppend(&pCtx->buf, ", ");
+			__xlCgenExprAsType(pCtx, pArg1, "string");
+			__xlCgenAppend(&pCtx->buf, ", ");
+			__xlCgenExprAsType(pCtx, pArg2, "string");
+			__xlCgenAppend(&pCtx->buf, ")");
+			return;
 		default:
 			return;
 	}
@@ -9024,11 +9725,13 @@ static void __xlCgenEnvCall(XL_CgenContext* pCtx, const XL_MirNode* pNode)
 {
 	const XL_MirNode* pArgs;
 	const XL_MirNode* pArg0;
+	const XL_MirNode* pArg1;
 	XL_EnvHelperKind eKind;
 
 	eKind = __xlEnvHelperKind(__xlCallCalleeName(pNode));
 	pArgs = (pNode->iChildCount > 1) ? pNode->ppChildren[1] : NULL;
 	pArg0 = ((pArgs != NULL) && (pArgs->iChildCount != 0)) ? pArgs->ppChildren[0] : NULL;
+	pArg1 = ((pArgs != NULL) && (pArgs->iChildCount > 1)) ? pArgs->ppChildren[1] : NULL;
 
 	switch ( eKind ) {
 		case XL_ENV_HELPER_GET:
@@ -9041,8 +9744,21 @@ static void __xlCgenEnvCall(XL_CgenContext* pCtx, const XL_MirNode* pNode)
 			__xlCgenExpr(pCtx, pArg0);
 			__xlCgenAppend(&pCtx->buf, ")");
 			return;
+		case XL_ENV_HELPER_SET:
+			__xlCgenAppend(&pCtx->buf, "xl_env_set(");
+			__xlCgenExpr(pCtx, pArg0);
+			__xlCgenAppend(&pCtx->buf, ", ");
+			__xlCgenExpr(pCtx, pArg1);
+			__xlCgenAppend(&pCtx->buf, ")");
+			return;
 		case XL_ENV_HELPER_CWD:
 			__xlCgenAppend(&pCtx->buf, "xl_env_cwd()");
+			return;
+		case XL_ENV_HELPER_TEMP:
+			__xlCgenAppend(&pCtx->buf, "xl_env_temp()");
+			return;
+		case XL_ENV_HELPER_HOME:
+			__xlCgenAppend(&pCtx->buf, "xl_env_home()");
 			return;
 		default:
 			return;
@@ -9053,13 +9769,20 @@ static void __xlCgenDirCall(XL_CgenContext* pCtx, const XL_MirNode* pNode)
 {
 	const XL_MirNode* pArgs;
 	const XL_MirNode* pArg0;
+	const XL_MirNode* pArg1;
 	XL_DirHelperKind eKind;
 
 	eKind = __xlDirHelperKind(__xlCallCalleeName(pNode));
 	pArgs = (pNode->iChildCount > 1) ? pNode->ppChildren[1] : NULL;
 	pArg0 = ((pArgs != NULL) && (pArgs->iChildCount != 0)) ? pArgs->ppChildren[0] : NULL;
+	pArg1 = ((pArgs != NULL) && (pArgs->iChildCount > 1)) ? pArgs->ppChildren[1] : NULL;
 
 	switch ( eKind ) {
+		case XL_DIR_HELPER_CREATE:
+			__xlCgenAppend(&pCtx->buf, "xl_dir_create(");
+			__xlCgenExprAsType(pCtx, pArg0, "string");
+			__xlCgenAppend(&pCtx->buf, ")");
+			return;
 		case XL_DIR_HELPER_LIST:
 			__xlCgenAppend(&pCtx->buf, "xl_dir_list(");
 			__xlCgenExpr(pCtx, pArg0);
@@ -9078,6 +9801,25 @@ static void __xlCgenDirCall(XL_CgenContext* pCtx, const XL_MirNode* pNode)
 		case XL_DIR_HELPER_TREE:
 			__xlCgenAppend(&pCtx->buf, "xl_dir_tree(");
 			__xlCgenExpr(pCtx, pArg0);
+			__xlCgenAppend(&pCtx->buf, ")");
+			return;
+		case XL_DIR_HELPER_COPY:
+			__xlCgenAppend(&pCtx->buf, "xl_dir_copy(");
+			__xlCgenExprAsType(pCtx, pArg0, "string");
+			__xlCgenAppend(&pCtx->buf, ", ");
+			__xlCgenExprAsType(pCtx, pArg1, "string");
+			__xlCgenAppend(&pCtx->buf, ")");
+			return;
+		case XL_DIR_HELPER_MOVE:
+			__xlCgenAppend(&pCtx->buf, "xl_dir_move(");
+			__xlCgenExprAsType(pCtx, pArg0, "string");
+			__xlCgenAppend(&pCtx->buf, ", ");
+			__xlCgenExprAsType(pCtx, pArg1, "string");
+			__xlCgenAppend(&pCtx->buf, ")");
+			return;
+		case XL_DIR_HELPER_DELETE:
+			__xlCgenAppend(&pCtx->buf, "xl_dir_delete(");
+			__xlCgenExprAsType(pCtx, pArg0, "string");
 			__xlCgenAppend(&pCtx->buf, ")");
 			return;
 		default:
@@ -9121,6 +9863,9 @@ static void __xlCgenProcessCall(XL_CgenContext* pCtx, const XL_MirNode* pNode)
 			__xlCgenAppend(&pCtx->buf, ", ");
 			__xlCgenExpr(pCtx, pArg1);
 			__xlCgenAppend(&pCtx->buf, ")");
+			return;
+		case XL_PROCESS_HELPER_TERMINAL_SUPPORTED:
+			__xlCgenAppend(&pCtx->buf, "xl_process_terminal_supported()");
 			return;
 		default:
 			return;
@@ -9210,6 +9955,7 @@ static int __xlCgenEmitBuiltinHelperFunc(
 	const char* sType0;
 	const char* sSuffix;
 	XL_CorePrintHelperKind eCorePrintKind;
+	XL_IoHelperKind eIoKind;
 	XL_CoreLenHelperKind eCoreLenKind;
 	XL_TimeHelperKind eTimeKind;
 	XL_PathHelperKind ePathKind;
@@ -9218,8 +9964,16 @@ static int __xlCgenEmitBuiltinHelperFunc(
 	XL_RandHelperKind eRandKind;
 	XL_HostHelperKind eHostKind;
 	XL_FmtHelperKind eFmtKind;
+	XL_DebugHelperKind eDebugKind;
+	XL_LogHelperKind eLogKind;
+	XL_TraceHelperKind eTraceKind;
+	XL_RegexHelperKind eRegexKind;
+	XL_CryptoHelperKind eCryptoKind;
+	XL_EncodeHelperKind eEncodeKind;
+	XL_HashHelperKind eHashKind;
 	XL_MathHelperKind eMathKind;
 	XL_PackHelperKind ePackKind;
+	XL_JsonHelperKind eJsonKind;
 	XL_EnvHelperKind eEnvKind;
 	XL_DirHelperKind eDirKind;
 	XL_ProcessHelperKind eProcessKind;
@@ -9268,6 +10022,58 @@ static int __xlCgenEmitBuiltinHelperFunc(
 		return 1;
 	}
 
+	eIoKind = __xlIoHelperKind(pFuncInfo->sName);
+	if ( eIoKind != XL_IO_HELPER_NONE ) {
+		__xlCgenEmitHelperFuncOpen(pCtx, pFuncInfo, pParams);
+		__xlCgenAppendIndent(&pCtx->buf);
+		sSuffix = __xlCorePrintTypeSuffix(sType0);
+		switch ( eIoKind ) {
+			case XL_IO_HELPER_EPRINT:
+				__xlCgenAppendFormat(&pCtx->buf, "xl_io_eprint_%s(", sSuffix);
+				if ( strcmp(sType0, "error") == 0 ) {
+					__xlCgenAppendFormat(&pCtx->buf, "xl_generated_error_text(%s)", sParam0);
+				} else {
+					__xlCgenAppend(&pCtx->buf, sParam0);
+				}
+				__xlCgenAppend(&pCtx->buf, ");\n");
+				__xlCgenAppendIndent(&pCtx->buf);
+				__xlCgenAppend(&pCtx->buf, "return;\n");
+				__xlCgenEmitHelperFuncClose(pCtx);
+				return 1;
+			case XL_IO_HELPER_EPRINTLN:
+				if ( (pParams == NULL) || (pParams->iChildCount == 0) ) {
+					__xlCgenAppend(&pCtx->buf, "xl_io_eprintln_void();\n");
+					__xlCgenAppendIndent(&pCtx->buf);
+					__xlCgenAppend(&pCtx->buf, "return;\n");
+					__xlCgenEmitHelperFuncClose(pCtx);
+					return 1;
+				}
+				__xlCgenAppendFormat(&pCtx->buf, "xl_io_eprintln_%s(", sSuffix);
+				if ( strcmp(sType0, "error") == 0 ) {
+					__xlCgenAppendFormat(&pCtx->buf, "xl_generated_error_text(%s)", sParam0);
+				} else {
+					__xlCgenAppend(&pCtx->buf, sParam0);
+				}
+				__xlCgenAppend(&pCtx->buf, ");\n");
+				__xlCgenAppendIndent(&pCtx->buf);
+				__xlCgenAppend(&pCtx->buf, "return;\n");
+				__xlCgenEmitHelperFuncClose(pCtx);
+				return 1;
+			case XL_IO_HELPER_READ_LINE:
+				__xlCgenAppend(&pCtx->buf, "return xl_io_read_line();\n");
+				__xlCgenEmitHelperFuncClose(pCtx);
+				return 1;
+			case XL_IO_HELPER_FLUSH:
+				__xlCgenAppend(&pCtx->buf, "xl_io_flush();\n");
+				__xlCgenAppendIndent(&pCtx->buf);
+				__xlCgenAppend(&pCtx->buf, "return;\n");
+				__xlCgenEmitHelperFuncClose(pCtx);
+				return 1;
+			default:
+				break;
+		}
+	}
+
 	eCoreLenKind = __xlCoreLenHelperKind(pFuncInfo->sName);
 	if ( eCoreLenKind != XL_CORE_LEN_NONE ) {
 		(void)eCoreLenKind;
@@ -9291,6 +10097,10 @@ static int __xlCgenEmitBuiltinHelperFunc(
 			case XL_TIME_HELPER_TIME_TEXT: __xlCgenAppend(&pCtx->buf, "return xl_time_time_text();\n"); break;
 			case XL_TIME_HELPER_RELATIVE: __xlCgenAppendFormat(&pCtx->buf, "return xl_time_relative(%s, %s);\n", sParam0, sParam1); break;
 			case XL_TIME_HELPER_PARSE: __xlCgenAppendFormat(&pCtx->buf, "return xl_time_parse(%s);\n", sParam0); break;
+			case XL_TIME_HELPER_FORMAT: __xlCgenAppendFormat(&pCtx->buf, "return xl_time_format(%s, %s);\n", sParam0, sParam1); break;
+			case XL_TIME_HELPER_PARSE_FORMAT: __xlCgenAppendFormat(&pCtx->buf, "return xl_time_parse_format(%s, %s);\n", sParam0, sParam1); break;
+			case XL_TIME_HELPER_SLEEP: __xlCgenAppendFormat(&pCtx->buf, "xl_time_sleep(%s);\n", sParam0); __xlCgenAppendIndent(&pCtx->buf); __xlCgenAppend(&pCtx->buf, "return;\n"); break;
+			case XL_TIME_HELPER_IS_LEAP_YEAR: __xlCgenAppendFormat(&pCtx->buf, "return xl_time_is_leap_year(%s);\n", sParam0); break;
 			default: break;
 		}
 		__xlCgenEmitHelperFuncClose(pCtx);
@@ -9307,6 +10117,7 @@ static int __xlCgenEmitBuiltinHelperFunc(
 			case XL_PATH_HELPER_NAME: __xlCgenAppendFormat(&pCtx->buf, "return xl_path_name(%s);\n", sParam0); break;
 			case XL_PATH_HELPER_EXT: __xlCgenAppendFormat(&pCtx->buf, "return xl_path_ext(%s);\n", sParam0); break;
 			case XL_PATH_HELPER_DIR: __xlCgenAppendFormat(&pCtx->buf, "return xl_path_dir(%s);\n", sParam0); break;
+			case XL_PATH_HELPER_EXISTS: __xlCgenAppendFormat(&pCtx->buf, "return xl_path_exists(%s);\n", sParam0); break;
 			case XL_PATH_HELPER_IS_ABS: __xlCgenAppendFormat(&pCtx->buf, "return xl_path_is_abs(%s);\n", sParam0); break;
 			case XL_PATH_HELPER_RANDOM: __xlCgenAppendFormat(&pCtx->buf, "return xl_path_random(%s, %s, %s);\n", sParam0, sParam1, sParam2); break;
 			default: break;
@@ -9324,6 +10135,9 @@ static int __xlCgenEmitBuiltinHelperFunc(
 			case XL_FS_HELPER_IS_FILE: __xlCgenAppendFormat(&pCtx->buf, "return xl_fs_is_file(%s);\n", sParam0); break;
 			case XL_FS_HELPER_IS_DIR: __xlCgenAppendFormat(&pCtx->buf, "return xl_fs_is_dir(%s);\n", sParam0); break;
 			case XL_FS_HELPER_SIZE: __xlCgenAppendFormat(&pCtx->buf, "return xl_fs_size(%s);\n", sParam0); break;
+			case XL_FS_HELPER_SET_SIZE: __xlCgenAppendFormat(&pCtx->buf, "return xl_fs_set_size(%s, %s);\n", sParam0, sParam1); break;
+			case XL_FS_HELPER_ACCESS_TIME: __xlCgenAppendFormat(&pCtx->buf, "return xl_fs_access_time(%s);\n", sParam0); break;
+			case XL_FS_HELPER_CHANGE_TIME: __xlCgenAppendFormat(&pCtx->buf, "return xl_fs_change_time(%s);\n", sParam0); break;
 			case XL_FS_HELPER_READ_ALL: __xlCgenAppendFormat(&pCtx->buf, "return xl_fs_read_all(%s);\n", sParam0); break;
 			case XL_FS_HELPER_WRITE_ALL: __xlCgenAppendFormat(&pCtx->buf, "return xl_fs_write_all(%s, %s);\n", sParam0, sParam1); break;
 			case XL_FS_HELPER_APPEND_ALL: __xlCgenAppendFormat(&pCtx->buf, "return xl_fs_append_all(%s, %s);\n", sParam0, sParam1); break;
@@ -9342,6 +10156,8 @@ static int __xlCgenEmitBuiltinHelperFunc(
 		__xlCgenEmitHelperFuncOpen(pCtx, pFuncInfo, pParams);
 		__xlCgenAppendIndent(&pCtx->buf);
 		switch ( eStrKind ) {
+			case XL_STR_HELPER_EMPTY: __xlCgenAppendFormat(&pCtx->buf, "return xl_str_empty(%s);\n", sParam0); break;
+			case XL_STR_HELPER_BYTE_LEN: __xlCgenAppendFormat(&pCtx->buf, "return xl_str_byte_len(%s);\n", sParam0); break;
 			case XL_STR_HELPER_CONTAINS: __xlCgenAppendFormat(&pCtx->buf, "return xl_str_contains(%s, %s);\n", sParam0, sParam1); break;
 			case XL_STR_HELPER_INDEX_OF: __xlCgenAppendFormat(&pCtx->buf, "return xl_str_index_of(%s, %s);\n", sParam0, sParam1); break;
 			case XL_STR_HELPER_LAST_INDEX_OF: __xlCgenAppendFormat(&pCtx->buf, "return xl_str_last_index_of(%s, %s);\n", sParam0, sParam1); break;
@@ -9357,6 +10173,9 @@ static int __xlCgenEmitBuiltinHelperFunc(
 			case XL_STR_HELPER_LOWER: __xlCgenAppendFormat(&pCtx->buf, "return xl_str_lower(%s);\n", sParam0); break;
 			case XL_STR_HELPER_UPPER: __xlCgenAppendFormat(&pCtx->buf, "return xl_str_upper(%s);\n", sParam0); break;
 			case XL_STR_HELPER_REPLACE: __xlCgenAppendFormat(&pCtx->buf, "return xl_str_replace(%s, %s, %s);\n", sParam0, sParam1, sParam2); break;
+			case XL_STR_HELPER_REVERSE: __xlCgenAppendFormat(&pCtx->buf, "return xl_str_reverse(%s);\n", sParam0); break;
+			case XL_STR_HELPER_PAD_LEFT: __xlCgenAppendFormat(&pCtx->buf, "return xl_str_pad_left(%s, %s, %s);\n", sParam0, sParam1, sParam2); break;
+			case XL_STR_HELPER_PAD_RIGHT: __xlCgenAppendFormat(&pCtx->buf, "return xl_str_pad_right(%s, %s, %s);\n", sParam0, sParam1, sParam2); break;
 			default: break;
 		}
 		__xlCgenEmitHelperFuncClose(pCtx);
@@ -9369,8 +10188,10 @@ static int __xlCgenEmitBuiltinHelperFunc(
 		__xlCgenAppendIndent(&pCtx->buf);
 		switch ( eRandKind ) {
 			case XL_RAND_HELPER_INT32: __xlCgenAppend(&pCtx->buf, "return xl_rand_int32();\n"); break;
+			case XL_RAND_HELPER_BOOL: __xlCgenAppend(&pCtx->buf, "return xl_rand_bool();\n"); break;
 			case XL_RAND_HELPER_RANGE: __xlCgenAppendFormat(&pCtx->buf, "return xl_rand_range(%s, %s);\n", sParam0, sParam1); break;
 			case XL_RAND_HELPER_TEXT: __xlCgenAppendFormat(&pCtx->buf, "return xl_rand_text(%s);\n", sParam0); break;
+			case XL_RAND_HELPER_TEXT_FROM: __xlCgenAppendFormat(&pCtx->buf, "return xl_rand_text_from(%s, %s);\n", sParam0, sParam1); break;
 			default: break;
 		}
 		__xlCgenEmitHelperFuncClose(pCtx);
@@ -9384,6 +10205,10 @@ static int __xlCgenEmitBuiltinHelperFunc(
 		switch ( eHostKind ) {
 			case XL_HOST_HELPER_NAME: __xlCgenAppend(&pCtx->buf, "return xl_host_name();\n"); break;
 			case XL_HOST_HELPER_IP: __xlCgenAppend(&pCtx->buf, "return xl_host_ip();\n"); break;
+			case XL_HOST_HELPER_USER: __xlCgenAppend(&pCtx->buf, "return xl_host_user();\n"); break;
+			case XL_HOST_HELPER_OS: __xlCgenAppend(&pCtx->buf, "return xl_host_os();\n"); break;
+			case XL_HOST_HELPER_ARCH: __xlCgenAppend(&pCtx->buf, "return xl_host_arch();\n"); break;
+			case XL_HOST_HELPER_EXECUTABLE: __xlCgenAppend(&pCtx->buf, "return xl_host_executable();\n"); break;
 			default: break;
 		}
 		__xlCgenEmitHelperFuncClose(pCtx);
@@ -9397,6 +10222,171 @@ static int __xlCgenEmitBuiltinHelperFunc(
 		switch ( eFmtKind ) {
 			case XL_FMT_HELPER_INT_TEXT: __xlCgenAppendFormat(&pCtx->buf, "return xl_fmt_int_text(%s, %s);\n", sParam0, sParam1); break;
 			case XL_FMT_HELPER_FLOAT_TEXT: __xlCgenAppendFormat(&pCtx->buf, "return xl_fmt_float_text(%s, %s);\n", sParam0, sParam1); break;
+			case XL_FMT_HELPER_BOOL_TEXT: __xlCgenAppendFormat(&pCtx->buf, "return xl_fmt_bool_text(%s);\n", sParam0); break;
+			default: break;
+		}
+		__xlCgenEmitHelperFuncClose(pCtx);
+		return 1;
+	}
+
+	eDebugKind = __xlDebugHelperKind(pFuncInfo->sName);
+	if ( eDebugKind != XL_DEBUG_HELPER_NONE ) {
+		__xlCgenEmitHelperFuncOpen(pCtx, pFuncInfo, pParams);
+		__xlCgenAppendIndent(&pCtx->buf);
+		switch ( eDebugKind ) {
+			case XL_DEBUG_HELPER_TEXT:
+				__xlCgenAppendFormat(&pCtx->buf, "return xl_debug_text(%s);\n", sParam0);
+				break;
+			case XL_DEBUG_HELPER_PRINT:
+				__xlCgenAppendFormat(&pCtx->buf, "xl_debug_print(%s);\n", sParam0);
+				__xlCgenAppendIndent(&pCtx->buf);
+				__xlCgenAppend(&pCtx->buf, "return;\n");
+				break;
+			case XL_DEBUG_HELPER_PRINTLN:
+				__xlCgenAppendFormat(&pCtx->buf, "xl_debug_println(%s);\n", sParam0);
+				__xlCgenAppendIndent(&pCtx->buf);
+				__xlCgenAppend(&pCtx->buf, "return;\n");
+				break;
+			default:
+				break;
+		}
+		__xlCgenEmitHelperFuncClose(pCtx);
+		return 1;
+	}
+
+	eLogKind = __xlLogHelperKind(pFuncInfo->sName);
+	if ( eLogKind != XL_LOG_HELPER_NONE ) {
+		__xlCgenEmitHelperFuncOpen(pCtx, pFuncInfo, pParams);
+		__xlCgenAppendIndent(&pCtx->buf);
+		switch ( eLogKind ) {
+			case XL_LOG_HELPER_DEBUG:
+				if ( (sType0 != NULL) && (strcmp(sType0, "error") == 0) ) {
+					__xlCgenAppendFormat(&pCtx->buf, "xl_log_debug(xl_generated_error_text(%s));\n", sParam0);
+				} else {
+					__xlCgenAppendFormat(&pCtx->buf, "xl_log_debug(%s);\n", sParam0);
+				}
+				break;
+			case XL_LOG_HELPER_INFO:
+				if ( (sType0 != NULL) && (strcmp(sType0, "error") == 0) ) {
+					__xlCgenAppendFormat(&pCtx->buf, "xl_log_info(xl_generated_error_text(%s));\n", sParam0);
+				} else {
+					__xlCgenAppendFormat(&pCtx->buf, "xl_log_info(%s);\n", sParam0);
+				}
+				break;
+			case XL_LOG_HELPER_WARN:
+				if ( (sType0 != NULL) && (strcmp(sType0, "error") == 0) ) {
+					__xlCgenAppendFormat(&pCtx->buf, "xl_log_warn(xl_generated_error_text(%s));\n", sParam0);
+				} else {
+					__xlCgenAppendFormat(&pCtx->buf, "xl_log_warn(%s);\n", sParam0);
+				}
+				break;
+			case XL_LOG_HELPER_ERROR:
+				if ( (sType0 != NULL) && (strcmp(sType0, "error") == 0) ) {
+					__xlCgenAppendFormat(&pCtx->buf, "xl_log_error(xl_generated_error_text(%s));\n", sParam0);
+				} else {
+					__xlCgenAppendFormat(&pCtx->buf, "xl_log_error(%s);\n", sParam0);
+				}
+				break;
+			default:
+				break;
+		}
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppend(&pCtx->buf, "return;\n");
+		__xlCgenEmitHelperFuncClose(pCtx);
+		return 1;
+	}
+
+	eTraceKind = __xlTraceHelperKind(pFuncInfo->sName);
+	if ( eTraceKind != XL_TRACE_HELPER_NONE ) {
+		__xlCgenEmitHelperFuncOpen(pCtx, pFuncInfo, pParams);
+		__xlCgenAppendIndent(&pCtx->buf);
+		switch ( eTraceKind ) {
+			case XL_TRACE_HELPER_WRITE:
+			case XL_TRACE_HELPER_ERROR:
+				if ( (sType0 != NULL) && (strcmp(sType0, "error") == 0) ) {
+					__xlCgenAppendFormat(&pCtx->buf, "xl_trace_write(xl_generated_error_text(%s));\n", sParam0);
+				} else {
+					__xlCgenAppendFormat(&pCtx->buf, "xl_trace_write(%s);\n", sParam0);
+				}
+				break;
+			default:
+				break;
+		}
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppend(&pCtx->buf, "return;\n");
+		__xlCgenEmitHelperFuncClose(pCtx);
+		return 1;
+	}
+
+	eRegexKind = __xlRegexHelperKind(pFuncInfo->sName);
+	if ( eRegexKind != XL_REGEX_HELPER_NONE ) {
+		__xlCgenEmitHelperFuncOpen(pCtx, pFuncInfo, pParams);
+		__xlCgenAppendIndent(&pCtx->buf);
+		switch ( eRegexKind ) {
+			case XL_REGEX_HELPER_IS_MATCH:
+				__xlCgenAppendFormat(&pCtx->buf, "return xl_regex_is_match(%s, %s);\n", sParam0, sParam1);
+				break;
+			case XL_REGEX_HELPER_FIND:
+				__xlCgenAppendFormat(&pCtx->buf, "return xl_regex_find(%s, %s);\n", sParam0, sParam1);
+				break;
+			case XL_REGEX_HELPER_CAPTURES:
+				__xlCgenAppendFormat(&pCtx->buf, "return xl_regex_captures(%s, %s);\n", sParam0, sParam1);
+				break;
+			case XL_REGEX_HELPER_CAPTURE_COUNT:
+				__xlCgenAppendFormat(&pCtx->buf, "return xl_regex_capture_count(%s);\n", sParam0);
+				break;
+			case XL_REGEX_HELPER_REPLACE_FIRST:
+				__xlCgenAppendFormat(&pCtx->buf, "return xl_regex_replace_first(%s, %s, %s);\n", sParam0, sParam1, sParam2);
+				break;
+			case XL_REGEX_HELPER_REPLACE_ALL:
+				__xlCgenAppendFormat(&pCtx->buf, "return xl_regex_replace_all(%s, %s, %s);\n", sParam0, sParam1, sParam2);
+				break;
+			default:
+				break;
+		}
+		__xlCgenEmitHelperFuncClose(pCtx);
+		return 1;
+	}
+
+	eCryptoKind = __xlCryptoHelperKind(pFuncInfo->sName);
+	if ( eCryptoKind != XL_CRYPTO_HELPER_NONE ) {
+		__xlCgenEmitHelperFuncOpen(pCtx, pFuncInfo, pParams);
+		__xlCgenAppendIndent(&pCtx->buf);
+		switch ( eCryptoKind ) {
+			case XL_CRYPTO_HELPER_HMAC_SHA256: __xlCgenAppendFormat(&pCtx->buf, "return xl_crypto_hmac_sha256(%s, %s);\n", sParam0, sParam1); break;
+			case XL_CRYPTO_HELPER_HMAC_SHA512: __xlCgenAppendFormat(&pCtx->buf, "return xl_crypto_hmac_sha512(%s, %s);\n", sParam0, sParam1); break;
+			default: break;
+		}
+		__xlCgenEmitHelperFuncClose(pCtx);
+		return 1;
+	}
+
+	eEncodeKind = __xlEncodeHelperKind(pFuncInfo->sName);
+	if ( eEncodeKind != XL_ENCODE_HELPER_NONE ) {
+		__xlCgenEmitHelperFuncOpen(pCtx, pFuncInfo, pParams);
+		__xlCgenAppendIndent(&pCtx->buf);
+		switch ( eEncodeKind ) {
+			case XL_ENCODE_HELPER_HEX_ENCODE: __xlCgenAppendFormat(&pCtx->buf, "return xl_encode_hex_encode(%s);\n", sParam0); break;
+			case XL_ENCODE_HELPER_HEX_DECODE: __xlCgenAppendFormat(&pCtx->buf, "return xl_encode_hex_decode(%s);\n", sParam0); break;
+			case XL_ENCODE_HELPER_BASE64_ENCODE: __xlCgenAppendFormat(&pCtx->buf, "return xl_encode_base64_encode(%s);\n", sParam0); break;
+			case XL_ENCODE_HELPER_BASE64_DECODE: __xlCgenAppendFormat(&pCtx->buf, "return xl_encode_base64_decode(%s);\n", sParam0); break;
+			default: break;
+		}
+		__xlCgenEmitHelperFuncClose(pCtx);
+		return 1;
+	}
+
+	eHashKind = __xlHashHelperKind(pFuncInfo->sName);
+	if ( eHashKind != XL_HASH_HELPER_NONE ) {
+		__xlCgenEmitHelperFuncOpen(pCtx, pFuncInfo, pParams);
+		__xlCgenAppendIndent(&pCtx->buf);
+		switch ( eHashKind ) {
+			case XL_HASH_HELPER_HASH32: __xlCgenAppendFormat(&pCtx->buf, "return xl_hash_hash32(%s);\n", sParam0); break;
+			case XL_HASH_HELPER_HASH64: __xlCgenAppendFormat(&pCtx->buf, "return xl_hash_hash64(%s);\n", sParam0); break;
+			case XL_HASH_HELPER_HASH64_MICRO: __xlCgenAppendFormat(&pCtx->buf, "return xl_hash_hash64_micro(%s);\n", sParam0); break;
+			case XL_HASH_HELPER_HASH64_NANO: __xlCgenAppendFormat(&pCtx->buf, "return xl_hash_hash64_nano(%s);\n", sParam0); break;
+			case XL_HASH_HELPER_SHA256: __xlCgenAppendFormat(&pCtx->buf, "return xl_hash_sha256(%s);\n", sParam0); break;
+			case XL_HASH_HELPER_SHA512: __xlCgenAppendFormat(&pCtx->buf, "return xl_hash_sha512(%s);\n", sParam0); break;
 			default: break;
 		}
 		__xlCgenEmitHelperFuncClose(pCtx);
@@ -9487,6 +10477,24 @@ static int __xlCgenEmitBuiltinHelperFunc(
 		return 1;
 	}
 
+	eJsonKind = __xlJsonHelperKind(pFuncInfo->sName);
+	if ( eJsonKind != XL_JSON_HELPER_NONE ) {
+		__xlCgenEmitHelperFuncOpen(pCtx, pFuncInfo, pParams);
+		__xlCgenAppendIndent(&pCtx->buf);
+		switch ( eJsonKind ) {
+			case XL_JSON_HELPER_ENCODE:
+				__xlCgenAppendFormat(&pCtx->buf, "return xl_json_encode(%s);\n", sParam0);
+				break;
+			case XL_JSON_HELPER_DECODE:
+				__xlCgenAppendFormat(&pCtx->buf, "return xl_json_decode(%s);\n", sParam0);
+				break;
+			default:
+				break;
+		}
+		__xlCgenEmitHelperFuncClose(pCtx);
+		return 1;
+	}
+
 	eEnvKind = __xlEnvHelperKind(pFuncInfo->sName);
 	if ( eEnvKind != XL_ENV_HELPER_NONE ) {
 		__xlCgenEmitHelperFuncOpen(pCtx, pFuncInfo, pParams);
@@ -9494,7 +10502,10 @@ static int __xlCgenEmitBuiltinHelperFunc(
 		switch ( eEnvKind ) {
 			case XL_ENV_HELPER_GET: __xlCgenAppendFormat(&pCtx->buf, "return xl_env_get(%s);\n", sParam0); break;
 			case XL_ENV_HELPER_EXISTS: __xlCgenAppendFormat(&pCtx->buf, "return xl_env_exists(%s);\n", sParam0); break;
+			case XL_ENV_HELPER_SET: __xlCgenAppendFormat(&pCtx->buf, "return xl_env_set(%s, %s);\n", sParam0, sParam1); break;
 			case XL_ENV_HELPER_CWD: __xlCgenAppend(&pCtx->buf, "return xl_env_cwd();\n"); break;
+			case XL_ENV_HELPER_TEMP: __xlCgenAppend(&pCtx->buf, "return xl_env_temp();\n"); break;
+			case XL_ENV_HELPER_HOME: __xlCgenAppend(&pCtx->buf, "return xl_env_home();\n"); break;
 			default: break;
 		}
 		__xlCgenEmitHelperFuncClose(pCtx);
@@ -9506,10 +10517,14 @@ static int __xlCgenEmitBuiltinHelperFunc(
 		__xlCgenEmitHelperFuncOpen(pCtx, pFuncInfo, pParams);
 		__xlCgenAppendIndent(&pCtx->buf);
 		switch ( eDirKind ) {
+			case XL_DIR_HELPER_CREATE: __xlCgenAppendFormat(&pCtx->buf, "return xl_dir_create(%s);\n", sParam0); break;
 			case XL_DIR_HELPER_LIST: __xlCgenAppendFormat(&pCtx->buf, "return xl_dir_list(%s);\n", sParam0); break;
 			case XL_DIR_HELPER_FILES: __xlCgenAppendFormat(&pCtx->buf, "return xl_dir_files(%s);\n", sParam0); break;
 			case XL_DIR_HELPER_DIRS: __xlCgenAppendFormat(&pCtx->buf, "return xl_dir_dirs(%s);\n", sParam0); break;
 			case XL_DIR_HELPER_TREE: __xlCgenAppendFormat(&pCtx->buf, "return xl_dir_tree(%s);\n", sParam0); break;
+			case XL_DIR_HELPER_COPY: __xlCgenAppendFormat(&pCtx->buf, "return xl_dir_copy(%s, %s);\n", sParam0, sParam1); break;
+			case XL_DIR_HELPER_MOVE: __xlCgenAppendFormat(&pCtx->buf, "return xl_dir_move(%s, %s);\n", sParam0, sParam1); break;
+			case XL_DIR_HELPER_DELETE: __xlCgenAppendFormat(&pCtx->buf, "return xl_dir_delete(%s);\n", sParam0); break;
 			default: break;
 		}
 		__xlCgenEmitHelperFuncClose(pCtx);
@@ -9525,6 +10540,7 @@ static int __xlCgenEmitBuiltinHelperFunc(
 			case XL_PROCESS_HELPER_CAPTURE: __xlCgenAppendFormat(&pCtx->buf, "return xl_process_capture(%s);\n", sParam0); break;
 			case XL_PROCESS_HELPER_EXEC_IN: __xlCgenAppendFormat(&pCtx->buf, "return xl_process_exec_in(%s, %s);\n", sParam0, sParam1); break;
 			case XL_PROCESS_HELPER_CAPTURE_IN: __xlCgenAppendFormat(&pCtx->buf, "return xl_process_capture_in(%s, %s);\n", sParam0, sParam1); break;
+			case XL_PROCESS_HELPER_TERMINAL_SUPPORTED: __xlCgenAppend(&pCtx->buf, "return xl_process_terminal_supported();\n"); break;
 			default: break;
 		}
 		__xlCgenEmitHelperFuncClose(pCtx);
@@ -9789,6 +10805,10 @@ static void __xlCgenExpr(XL_CgenContext* pCtx, const XL_MirNode* pNode)
 		__xlCgenCorePrintCall(pCtx, pNode);
 		return;
 	}
+	if ( (pNode->eKind == XL_MIR_CALL) && (__xlIoHelperKind(__xlCallCalleeName(pNode)) != XL_IO_HELPER_NONE) ) {
+		__xlCgenIoCall(pCtx, pNode);
+		return;
+	}
 	if ( (pNode->eKind == XL_MIR_CALL) && (__xlCoreLenHelperKind(__xlCallCalleeName(pNode)) != XL_CORE_LEN_NONE) ) {
 		__xlCgenCoreLenCall(pCtx, pNode);
 		return;
@@ -9831,6 +10851,22 @@ static void __xlCgenExpr(XL_CgenContext* pCtx, const XL_MirNode* pNode)
 	}
 	if ( (pNode->eKind == XL_MIR_CALL) && (__xlFmtHelperKind(__xlCallCalleeName(pNode)) != XL_FMT_HELPER_NONE) ) {
 		__xlCgenFmtCall(pCtx, pNode);
+		return;
+	}
+	if ( (pNode->eKind == XL_MIR_CALL) && (__xlDebugHelperKind(__xlCallCalleeName(pNode)) != XL_DEBUG_HELPER_NONE) ) {
+		__xlCgenDebugCall(pCtx, pNode);
+		return;
+	}
+	if ( (pNode->eKind == XL_MIR_CALL) && (__xlLogHelperKind(__xlCallCalleeName(pNode)) != XL_LOG_HELPER_NONE) ) {
+		__xlCgenLogCall(pCtx, pNode);
+		return;
+	}
+	if ( (pNode->eKind == XL_MIR_CALL) && (__xlTraceHelperKind(__xlCallCalleeName(pNode)) != XL_TRACE_HELPER_NONE) ) {
+		__xlCgenTraceCall(pCtx, pNode);
+		return;
+	}
+	if ( (pNode->eKind == XL_MIR_CALL) && (__xlRegexHelperKind(__xlCallCalleeName(pNode)) != XL_REGEX_HELPER_NONE) ) {
+		__xlCgenRegexCall(pCtx, pNode);
 		return;
 	}
 	if ( (pNode->eKind == XL_MIR_CALL) && (__xlEnvHelperKind(__xlCallCalleeName(pNode)) != XL_ENV_HELPER_NONE) ) {
@@ -12743,6 +13779,16 @@ static int __xlCgenStrCallReplacingAwait(
 	pArg2 = ((pArgs != NULL) && (pArgs->iChildCount > 2)) ? pArgs->ppChildren[2] : NULL;
 
 	switch ( eKind ) {
+		case XL_STR_HELPER_EMPTY:
+			__xlCgenAppend(&pCtx->buf, "xl_str_empty(");
+			if ( !__xlCgenExprAsTypeReplacingAwait(pCtx, pArg0, "string", pAwaitNode, sReplacementName) ) return 0;
+			__xlCgenAppend(&pCtx->buf, ")");
+			return 1;
+		case XL_STR_HELPER_BYTE_LEN:
+			__xlCgenAppend(&pCtx->buf, "xl_str_byte_len(");
+			if ( !__xlCgenExprAsTypeReplacingAwait(pCtx, pArg0, "string", pAwaitNode, sReplacementName) ) return 0;
+			__xlCgenAppend(&pCtx->buf, ")");
+			return 1;
 		case XL_STR_HELPER_CONTAINS:
 			__xlCgenAppend(&pCtx->buf, "xl_str_contains(");
 			if ( !__xlCgenExprAsTypeReplacingAwait(pCtx, pArg0, "string", pAwaitNode, sReplacementName) ) return 0;
@@ -12836,6 +13882,29 @@ static int __xlCgenStrCallReplacingAwait(
 			if ( !__xlCgenExprAsTypeReplacingAwait(pCtx, pArg0, "string", pAwaitNode, sReplacementName) ) return 0;
 			__xlCgenAppend(&pCtx->buf, ", ");
 			if ( !__xlCgenExprAsTypeReplacingAwait(pCtx, pArg1, "string", pAwaitNode, sReplacementName) ) return 0;
+			__xlCgenAppend(&pCtx->buf, ", ");
+			if ( !__xlCgenExprAsTypeReplacingAwait(pCtx, pArg2, "string", pAwaitNode, sReplacementName) ) return 0;
+			__xlCgenAppend(&pCtx->buf, ")");
+			return 1;
+		case XL_STR_HELPER_REVERSE:
+			__xlCgenAppend(&pCtx->buf, "xl_str_reverse(");
+			if ( !__xlCgenExprAsTypeReplacingAwait(pCtx, pArg0, "string", pAwaitNode, sReplacementName) ) return 0;
+			__xlCgenAppend(&pCtx->buf, ")");
+			return 1;
+		case XL_STR_HELPER_PAD_LEFT:
+			__xlCgenAppend(&pCtx->buf, "xl_str_pad_left(");
+			if ( !__xlCgenExprAsTypeReplacingAwait(pCtx, pArg0, "string", pAwaitNode, sReplacementName) ) return 0;
+			__xlCgenAppend(&pCtx->buf, ", ");
+			if ( !__xlCgenExprAsTypeReplacingAwait(pCtx, pArg1, "int", pAwaitNode, sReplacementName) ) return 0;
+			__xlCgenAppend(&pCtx->buf, ", ");
+			if ( !__xlCgenExprAsTypeReplacingAwait(pCtx, pArg2, "string", pAwaitNode, sReplacementName) ) return 0;
+			__xlCgenAppend(&pCtx->buf, ")");
+			return 1;
+		case XL_STR_HELPER_PAD_RIGHT:
+			__xlCgenAppend(&pCtx->buf, "xl_str_pad_right(");
+			if ( !__xlCgenExprAsTypeReplacingAwait(pCtx, pArg0, "string", pAwaitNode, sReplacementName) ) return 0;
+			__xlCgenAppend(&pCtx->buf, ", ");
+			if ( !__xlCgenExprAsTypeReplacingAwait(pCtx, pArg1, "int", pAwaitNode, sReplacementName) ) return 0;
 			__xlCgenAppend(&pCtx->buf, ", ");
 			if ( !__xlCgenExprAsTypeReplacingAwait(pCtx, pArg2, "string", pAwaitNode, sReplacementName) ) return 0;
 			__xlCgenAppend(&pCtx->buf, ")");

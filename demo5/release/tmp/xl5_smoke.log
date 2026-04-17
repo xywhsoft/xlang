@@ -1,7 +1,7 @@
 demo5 unified test runner
 project=demo5
-build_stamp=2026-04-18 00:07:39.364 run-29435-1238
-test_count=890
+build_stamp=2026-04-18 02:28:43.745 run-24307-11782
+test_count=938
 selector=lower.async_generator_loop_control_hybrid_groups_json
 [PASS] lower.async_generator_loop_control_hybrid_groups_json
 summary: total=1 pass=1 fail=0

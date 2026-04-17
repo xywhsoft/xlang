@@ -11,9 +11,12 @@ const char* xlStdProcessModuleSource(void)
 		"end\n"
 		"func capture_in(string command, string workdir) as string\n"
 		"end\n"
+		"func terminal_supported() as bool\n"
+		"end\n"
 		"\n"
 		"export exec\n"
 		"export capture\n"
 		"export exec_in\n"
-		"export capture_in\n";
+		"export capture_in\n"
+		"export terminal_supported\n";
 }

@@ -1,0 +1,69 @@
+ModuleLoadOrder
+- [0] std.rand -> <native:std.rand> native=1 binding=std.rand
+- [1] std.str -> <native:std.str> native=1 binding=std.str
+- [2] <root> -> D:\Git\x-lang\demo5\examples\native\rand_plus_basic.xl native=0 binding=
+ModuleExports
+- module=std.rand
+  abi init=xl_mod_std_rand__init exports=xl_mod_std_rand__exports descriptor=xl_mod_std_rand__descriptor
+  export int32 -> xl_mod_std_rand__int32
+  export bool -> xl_mod_std_rand__bool
+  export range -> xl_mod_std_rand__range
+  export text -> xl_mod_std_rand__text
+  export text_from -> xl_mod_std_rand__text_from
+- module=std.str
+  abi init=xl_mod_std_str__init exports=xl_mod_std_str__exports descriptor=xl_mod_std_str__descriptor
+  export empty -> xl_mod_std_str__empty
+  export byte_len -> xl_mod_std_str__byte_len
+  export contains -> xl_mod_std_str__contains
+  export index_of -> xl_mod_std_str__index_of
+  export last_index_of -> xl_mod_std_str__last_index_of
+  export slice -> xl_mod_std_str__slice
+  export repeat -> xl_mod_std_str__repeat
+  export split -> xl_mod_std_str__split
+  export split_lines -> xl_mod_std_str__split_lines
+  export starts_with -> xl_mod_std_str__starts_with
+  export ends_with -> xl_mod_std_str__ends_with
+  export trim -> xl_mod_std_str__trim
+  export trim_left -> xl_mod_std_str__trim_left
+  export trim_right -> xl_mod_std_str__trim_right
+  export lower -> xl_mod_std_str__lower
+  export upper -> xl_mod_std_str__upper
+  export replace -> xl_mod_std_str__replace
+  export reverse -> xl_mod_std_str__reverse
+  export pad_left -> xl_mod_std_str__pad_left
+  export pad_right -> xl_mod_std_str__pad_right
+- module=<root>
+  abi init=xl_mod__root___init exports=xl_mod__root___exports descriptor=xl_mod__root___descriptor
+NativeRegistry
+- key=std.core binding=std.core path=<native:std.core>
+- key=std.crypto binding=std.crypto path=<native:std.crypto>
+- key=std.dir binding=std.dir path=<native:std.dir>
+- key=std.encode binding=std.encode path=<native:std.encode>
+- key=std.env binding=std.env path=<native:std.env>
+- key=std.fmt binding=std.fmt path=<native:std.fmt>
+- key=std.fs binding=std.fs path=<native:std.fs>
+- key=std.hash binding=std.hash path=<native:std.hash>
+- key=std.host binding=std.host path=<native:std.host>
+- key=std.io binding=std.io path=<native:std.io>
+- key=std.math binding=std.math path=<native:std.math>
+- key=std.pack binding=std.pack path=<native:std.pack>
+- key=std.path binding=std.path path=<native:std.path>
+- key=std.rand binding=std.rand path=<native:std.rand>
+- key=std.process binding=std.process path=<native:std.process>
+- key=std.str binding=std.str path=<native:std.str>
+- key=std.time binding=std.time path=<native:std.time>
+- key=std.task binding=std.task path=<native:std.task>
+tcc_root=D:\Git\x-lang\demo5\release\tcc
+include=D:\Git\x-lang\demo5\release\tcc\include_win
+include=D:\Git\x-lang\demo5\release\tcc\include_win\winapi
+include=D:\Git\x-lang\demo5\src\runtime
+include=D:\Git\x-lang\demo5\lib\xrt
+lib=D:\Git\x-lang\demo5\release\tcc\lib
+compile_text=demo5\examples\native\rand_plus_basic.xl
+cwd.prev=D:\Git\x-lang
+cwd.exec=D:\Git\x-lang\demo5
+relocate
+resolve_symbol=xl_generated_entry
+execute
+exit_code=0
+cwd.restore=D:\Git\x-lang

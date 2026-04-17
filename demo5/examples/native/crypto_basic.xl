@@ -1,0 +1,11 @@
+import std.crypto
+
+func main() as int
+	if crypto.hmac_sha256("key", "hello") != "9307b3b915efb5171ff14d8cb55fbcc798c6c0ef1456d66ded1a6aa723a58b7b"
+		return 1
+	end
+	if crypto.hmac_sha512("key", "hello") != "ff06ab36757777815c008d32c8e14a705b4e7bf310351a06a23b612dc4c7433e7757d20525a5593b71020ea2ee162d2311b247e9855862b270122419652c0c92"
+		return 2
+	end
+	return 0
+end

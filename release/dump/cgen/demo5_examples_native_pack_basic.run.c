@@ -2280,9 +2280,7 @@ static xvalue xl__main__arity0__ret__int__boxed(xvalue varENV, xvalue arrParam);
 
 static const char* xl__xl_mod_std_pack__write_u8__arity1__value__int__ret__string(int value)
 {
-	int xl_escape_kind_1_6 = 0;
-	int xl_escape_level_1_6 = 0;
-	const char* xl_escape_value_1_6 = NULL;
+	return xl_pack_write_u8(value);
 }
 
 static xvalue xl__xl_mod_std_pack__write_u8__arity1__value__int__ret__string__boxed(xvalue varENV, xvalue arrParam)
@@ -2295,9 +2293,7 @@ static xvalue xl__xl_mod_std_pack__write_u8__arity1__value__int__ret__string__bo
 
 static const char* xl__xl_mod_std_pack__write_u16_le__arity1__value__int__ret__string(int value)
 {
-	int xl_escape_kind_3_6 = 0;
-	int xl_escape_level_3_6 = 0;
-	const char* xl_escape_value_3_6 = NULL;
+	return xl_pack_write_u16_le(value);
 }
 
 static xvalue xl__xl_mod_std_pack__write_u16_le__arity1__value__int__ret__string__boxed(xvalue varENV, xvalue arrParam)
@@ -2310,9 +2306,7 @@ static xvalue xl__xl_mod_std_pack__write_u16_le__arity1__value__int__ret__string
 
 static const char* xl__xl_mod_std_pack__write_u16_be__arity1__value__int__ret__string(int value)
 {
-	int xl_escape_kind_5_6 = 0;
-	int xl_escape_level_5_6 = 0;
-	const char* xl_escape_value_5_6 = NULL;
+	return xl_pack_write_u16_be(value);
 }
 
 static xvalue xl__xl_mod_std_pack__write_u16_be__arity1__value__int__ret__string__boxed(xvalue varENV, xvalue arrParam)
@@ -2325,9 +2319,7 @@ static xvalue xl__xl_mod_std_pack__write_u16_be__arity1__value__int__ret__string
 
 static const char* xl__xl_mod_std_pack__write_u32_le__arity1__value__int__ret__string(int value)
 {
-	int xl_escape_kind_7_6 = 0;
-	int xl_escape_level_7_6 = 0;
-	const char* xl_escape_value_7_6 = NULL;
+	return xl_pack_write_u32_le(value);
 }
 
 static xvalue xl__xl_mod_std_pack__write_u32_le__arity1__value__int__ret__string__boxed(xvalue varENV, xvalue arrParam)
@@ -2340,9 +2332,7 @@ static xvalue xl__xl_mod_std_pack__write_u32_le__arity1__value__int__ret__string
 
 static const char* xl__xl_mod_std_pack__write_u32_be__arity1__value__int__ret__string(int value)
 {
-	int xl_escape_kind_9_6 = 0;
-	int xl_escape_level_9_6 = 0;
-	const char* xl_escape_value_9_6 = NULL;
+	return xl_pack_write_u32_be(value);
 }
 
 static xvalue xl__xl_mod_std_pack__write_u32_be__arity1__value__int__ret__string__boxed(xvalue varENV, xvalue arrParam)
@@ -2355,9 +2345,7 @@ static xvalue xl__xl_mod_std_pack__write_u32_be__arity1__value__int__ret__string
 
 static int xl__xl_mod_std_pack__read_u8__arity2__data__string__offset__int__ret__int(const char* data, int offset)
 {
-	int xl_escape_kind_11_6 = 0;
-	int xl_escape_level_11_6 = 0;
-	int xl_escape_value_11_6 = 0;
+	return xl_pack_read_u8(data, offset);
 }
 
 static xvalue xl__xl_mod_std_pack__read_u8__arity2__data__string__offset__int__ret__int__boxed(xvalue varENV, xvalue arrParam)
@@ -2371,9 +2359,7 @@ static xvalue xl__xl_mod_std_pack__read_u8__arity2__data__string__offset__int__r
 
 static int xl__xl_mod_std_pack__read_u16_le__arity2__data__string__offset__int__ret__int(const char* data, int offset)
 {
-	int xl_escape_kind_13_6 = 0;
-	int xl_escape_level_13_6 = 0;
-	int xl_escape_value_13_6 = 0;
+	return xl_pack_read_u16_le(data, offset);
 }
 
 static xvalue xl__xl_mod_std_pack__read_u16_le__arity2__data__string__offset__int__ret__int__boxed(xvalue varENV, xvalue arrParam)
@@ -2387,9 +2373,7 @@ static xvalue xl__xl_mod_std_pack__read_u16_le__arity2__data__string__offset__in
 
 static int xl__xl_mod_std_pack__read_u16_be__arity2__data__string__offset__int__ret__int(const char* data, int offset)
 {
-	int xl_escape_kind_15_6 = 0;
-	int xl_escape_level_15_6 = 0;
-	int xl_escape_value_15_6 = 0;
+	return xl_pack_read_u16_be(data, offset);
 }
 
 static xvalue xl__xl_mod_std_pack__read_u16_be__arity2__data__string__offset__int__ret__int__boxed(xvalue varENV, xvalue arrParam)
@@ -2403,9 +2387,7 @@ static xvalue xl__xl_mod_std_pack__read_u16_be__arity2__data__string__offset__in
 
 static int xl__xl_mod_std_pack__read_u32_le__arity2__data__string__offset__int__ret__int(const char* data, int offset)
 {
-	int xl_escape_kind_17_6 = 0;
-	int xl_escape_level_17_6 = 0;
-	int xl_escape_value_17_6 = 0;
+	return xl_pack_read_u32_le(data, offset);
 }
 
 static xvalue xl__xl_mod_std_pack__read_u32_le__arity2__data__string__offset__int__ret__int__boxed(xvalue varENV, xvalue arrParam)
@@ -2419,9 +2401,7 @@ static xvalue xl__xl_mod_std_pack__read_u32_le__arity2__data__string__offset__in
 
 static int xl__xl_mod_std_pack__read_u32_be__arity2__data__string__offset__int__ret__int(const char* data, int offset)
 {
-	int xl_escape_kind_19_6 = 0;
-	int xl_escape_level_19_6 = 0;
-	int xl_escape_value_19_6 = 0;
+	return xl_pack_read_u32_be(data, offset);
 }
 
 static xvalue xl__xl_mod_std_pack__read_u32_be__arity2__data__string__offset__int__ret__int__boxed(xvalue varENV, xvalue arrParam)

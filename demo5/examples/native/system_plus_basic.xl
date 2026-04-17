@@ -1,0 +1,83 @@
+import std.path
+import std.fs
+import std.dir
+import std.process
+import std.time
+
+func main() as int
+	auto tmp_root = "release\\tmp"
+	if fs.mkdir_all(tmp_root) == false
+		return 101
+	end
+	auto root = path.join(tmp_root, "sys_plus_case")
+	auto src_dir = path.join(root, "src")
+	auto src_file = path.join(src_dir, "note.txt")
+	auto copy_dir = path.join(root, "copy")
+	auto moved_dir = path.join(root, "moved")
+	auto moved_file = path.join(moved_dir, "note.txt")
+
+	if path.exists(root)
+		if dir.delete(root) == false
+			return 102
+		end
+	end
+
+	if dir.create(root) == false
+		return 1
+	end
+	if path.exists(root) == false
+		return 2
+	end
+	if dir.create(src_dir) == false
+		return 3
+	end
+	if fs.write_all(src_file, "abcdef") == false
+		return 4
+	end
+	if fs.set_size(src_file, 3) == false
+		return 5
+	end
+	if fs.size(src_file) != 3
+		return 6
+	end
+	if time.to_string(fs.access_time(src_file)) == ""
+		return 7
+	end
+	if time.to_string(fs.change_time(src_file)) == ""
+		return 8
+	end
+	if dir.copy(src_dir, copy_dir) == false
+		return 9
+	end
+	if path.exists(path.join(copy_dir, "note.txt")) == false
+		return 10
+	end
+	if dir.move(copy_dir, moved_dir) == false
+		return 11
+	end
+	if path.exists(moved_file) == false
+		return 12
+	end
+	if fs.delete(moved_file) == false
+		return 13
+	end
+	if dir.delete(moved_dir) == false
+		return 14
+	end
+	if path.exists(moved_dir)
+		return 15
+	end
+	if process.terminal_supported() and false
+		return 16
+	end
+	if fs.delete(src_file) == false
+		return 17
+	end
+	if dir.delete(src_dir) == false
+		return 18
+	end
+	if dir.delete(root) == false
+		return 19
+	end
+	return 0
+end

@@ -1,0 +1,47 @@
+import std.error
+import std.assert
+import std.log
+import std.trace
+import std.debug
+
+func main() as int
+	auto e = IOError("disk", 7, "path=disk", "main", Error("inner", 1))
+
+	if std.error.kind(e) != "IOError"
+		return 1
+	end
+	if std.error.message(e) != "disk"
+		return 2
+	end
+	if std.error.code(e) != 7
+		return 3
+	end
+	if std.error.data(e) != "path=disk"
+		return 4
+	end
+	if std.error.stack(e) != "main"
+		return 5
+	end
+	if std.error.cause(e).message != "inner"
+		return 6
+	end
+	if std.error.is_type(e, "IOError") == false
+		return 7
+	end
+	if std.error.is_native(e)
+		return 8
+	end
+	if std.debug.text(123) != "123"
+		return 9
+	end
+	if std.debug.text(true) != "true"
+		return 10
+	end
+
+	std.assert.that(std.error.text(e) == "IOError: disk", "error text mismatch")
+	std.assert.equal(7, std.error.code(e), "error code mismatch")
+	std.log.info("hello")
+	std.trace.write("world")
+	std.debug.println(e)
+	return 0
+end

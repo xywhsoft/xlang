@@ -1,0 +1,87 @@
+ModuleLoadOrder
+- [0] std.core -> <native:std.core> native=1 binding=std.core
+- [1] std.path -> <native:std.path> native=1 binding=std.path
+- [2] std.fs -> <native:std.fs> native=1 binding=std.fs
+- [3] std.dir -> <native:std.dir> native=1 binding=std.dir
+- [4] <root> -> D:\Git\x-lang\demo5\examples\native\_tmp_dir_debug.xl native=0 binding=
+ModuleExports
+- module=std.core
+  abi init=xl_mod_std_core__init exports=xl_mod_std_core__exports descriptor=xl_mod_std_core__descriptor
+  export identity -> xl_mod_std_core__identity
+  export len -> xl_mod_std_core__len
+  export print -> xl_mod_std_core__print
+  export println -> xl_mod_std_core__println
+  export version -> xl_mod_std_core__version
+- module=std.path
+  abi init=xl_mod_std_path__init exports=xl_mod_std_path__exports descriptor=xl_mod_std_path__descriptor
+  export join -> xl_mod_std_path__join
+  export name_ext -> xl_mod_std_path__name_ext
+  export name -> xl_mod_std_path__name
+  export ext -> xl_mod_std_path__ext
+  export dir -> xl_mod_std_path__dir
+  export exists -> xl_mod_std_path__exists
+  export is_abs -> xl_mod_std_path__is_abs
+  export random -> xl_mod_std_path__random
+- module=std.fs
+  abi init=xl_mod_std_fs__init exports=xl_mod_std_fs__exports descriptor=xl_mod_std_fs__descriptor
+  export exists -> xl_mod_std_fs__exists
+  export is_file -> xl_mod_std_fs__is_file
+  export is_dir -> xl_mod_std_fs__is_dir
+  export size -> xl_mod_std_fs__size
+  export set_size -> xl_mod_std_fs__set_size
+  export access_time -> xl_mod_std_fs__access_time
+  export change_time -> xl_mod_std_fs__change_time
+  export read_all -> xl_mod_std_fs__read_all
+  export write_all -> xl_mod_std_fs__write_all
+  export append_all -> xl_mod_std_fs__append_all
+  export mkdir_all -> xl_mod_std_fs__mkdir_all
+  export copy -> xl_mod_std_fs__copy
+  export move -> xl_mod_std_fs__move
+  export delete -> xl_mod_std_fs__delete
+- module=std.dir
+  abi init=xl_mod_std_dir__init exports=xl_mod_std_dir__exports descriptor=xl_mod_std_dir__descriptor
+  export create -> xl_mod_std_dir__create
+  export list -> xl_mod_std_dir__list
+  export files -> xl_mod_std_dir__files
+  export dirs -> xl_mod_std_dir__dirs
+  export tree -> xl_mod_std_dir__tree
+  export copy -> xl_mod_std_dir__copy
+  export move -> xl_mod_std_dir__move
+  export delete -> xl_mod_std_dir__delete
+- module=<root>
+  abi init=xl_mod__root___init exports=xl_mod__root___exports descriptor=xl_mod__root___descriptor
+NativeRegistry
+- key=std.core binding=std.core path=<native:std.core>
+- key=std.crypto binding=std.crypto path=<native:std.crypto>
+- key=std.dir binding=std.dir path=<native:std.dir>
+- key=std.encode binding=std.encode path=<native:std.encode>
+- key=std.env binding=std.env path=<native:std.env>
+- key=std.fmt binding=std.fmt path=<native:std.fmt>
+- key=std.fs binding=std.fs path=<native:std.fs>
+- key=std.hash binding=std.hash path=<native:std.hash>
+- key=std.host binding=std.host path=<native:std.host>
+- key=std.io binding=std.io path=<native:std.io>
+- key=std.math binding=std.math path=<native:std.math>
+- key=std.pack binding=std.pack path=<native:std.pack>
+- key=std.path binding=std.path path=<native:std.path>
+- key=std.rand binding=std.rand path=<native:std.rand>
+- key=std.process binding=std.process path=<native:std.process>
+- key=std.str binding=std.str path=<native:std.str>
+- key=std.time binding=std.time path=<native:std.time>
+- key=std.task binding=std.task path=<native:std.task>
+tcc_root=D:\Git\x-lang\demo5\release\tcc
+include=D:\Git\x-lang\demo5\release\tcc\include_win
+include=D:\Git\x-lang\demo5\release\tcc\include_win\winapi
+include=D:\Git\x-lang\demo5\src\runtime
+include=D:\Git\x-lang\demo5\lib\xrt
+lib=D:\Git\x-lang\demo5\release\tcc\lib
+compile_text=demo5\examples\native\_tmp_dir_debug.xl
+cwd.prev=D:\Git\x-lang
+cwd.exec=D:\Git\x-lang\demo5
+relocate
+resolve_symbol=xl_generated_entry
+execute
+exit_code=0
+cwd.restore=D:\Git\x-lang
+exception.kind=4
+exception.text=IOError: dir.create failed

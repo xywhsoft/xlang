@@ -1,0 +1,44 @@
+import std.regex
+import std.str
+
+func main() as int
+	auto hit = regex.is_match("h.llo", "hello")
+	auto miss = regex.is_match("^abc$", "ab")
+	auto found = regex.find("a([0-9]+)", "x a42 y")
+	auto caps = regex.captures("a([0-9]+)", "x a42 y")
+	auto count = regex.capture_count("a([0-9]+)")
+	auto once = regex.replace_first("[0-9]+", "a1b22c333", "#")
+	auto all = regex.replace_all("[0-9]+", "a1b22c333", "#")
+
+	if hit == false
+		return 1
+	end
+	if miss
+		return 2
+	end
+	if found != "a42"
+		return 3
+	end
+	if count != 1
+		return 4
+	end
+	if caps.length != 2
+		return 5
+	end
+	if caps[0] != "a42"
+		return 6
+	end
+	if caps[1] != "42"
+		return 7
+	end
+	if once != "a#b22c333"
+		return 8
+	end
+	if all != "a#b#c#"
+		return 9
+	end
+	if str.contains(regex.find("z+", "abc"), "z")
+		return 10
+	end
+	return 0
+end

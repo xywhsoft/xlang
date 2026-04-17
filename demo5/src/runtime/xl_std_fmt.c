@@ -7,7 +7,10 @@ const char* xlStdFmtModuleSource(void)
 		"end\n"
 		"func float_text(float value, string pattern) as string\n"
 		"end\n"
+		"func bool_text(bool value) as string\n"
+		"end\n"
 		"\n"
 		"export int_text\n"
-		"export float_text\n";
+		"export float_text\n"
+		"export bool_text\n";
 }
