@@ -766,6 +766,179 @@ const char* xl_dir_dirs(const char* sPath) { return __xlDirCollect(sPath, 0, 0, 
 const char* xl_dir_tree(const char* sPath) { return __xlDirCollect(sPath, 1, 1, 1); }
 const char* xl_fmt_int_text(int value, const char* sPattern) { return XLRT_CSTR(xrtIntFormat((int64)value, (str)sPattern)); }
 const char* xl_fmt_float_text(double value, const char* sPattern) { return XLRT_CSTR(xrtNumFormat(value, (str)sPattern)); }
+int xl_math_abs_int(int value) { return (value < 0) ? -value : value; }
+double xl_math_abs_float(double value) { return fabs(value); }
+int xl_math_min_int(int left, int right) { return (left < right) ? left : right; }
+double xl_math_min_float(double left, double right) { return (left < right) ? left : right; }
+int xl_math_max_int(int left, int right) { return (left > right) ? left : right; }
+double xl_math_max_float(double left, double right) { return (left > right) ? left : right; }
+int xl_math_clamp_int(int value, int low, int high)
+{
+	if ( value < low ) {
+		return low;
+	}
+	if ( value > high ) {
+		return high;
+	}
+	return value;
+}
+double xl_math_clamp_float(double value, double low, double high)
+{
+	if ( value < low ) {
+		return low;
+	}
+	if ( value > high ) {
+		return high;
+	}
+	return value;
+}
+double xl_math_floor(double value) { return floor(value); }
+double xl_math_ceil(double value) { return ceil(value); }
+double xl_math_round(double value) { return round(value); }
+double xl_math_trunc(double value) { return trunc(value); }
+int xl_math_sqrt_int(int value) { return (int)sqrt((double)value); }
+double xl_math_sqrt(double value) { return sqrt(value); }
+int xl_math_pow_int(int value, int exp) { return (int)pow((double)value, (double)exp); }
+double xl_math_pow(double value, double exp) { return pow(value, exp); }
+double xl_math_sin(double value) { return sin(value); }
+double xl_math_cos(double value) { return cos(value); }
+double xl_math_tan(double value) { return tan(value); }
+double xl_math_exp(double value) { return exp(value); }
+double xl_math_log(double value) { return log(value); }
+double xl_math_log10(double value) { return log10(value); }
+
+static const char* __xlPackBytes(const unsigned char* pBytes, size_t iCount)
+{
+	char* sBuf;
+	size_t i;
+
+	if ( pBytes == NULL ) {
+		return "";
+	}
+	for ( i = 0; i < iCount; ++i ) {
+		if ( pBytes[i] == 0u ) {
+			__xlRaiseNativeError("PackError", "pack write does not support NUL bytes in stage 1", 0, NULL);
+			return "";
+		}
+	}
+	sBuf = (char*)malloc(iCount + 1u);
+	if ( sBuf == NULL ) {
+		__xlRaiseNativeError("PackError", "pack allocation failed", 0, NULL);
+		return "";
+	}
+	for ( i = 0; i < iCount; ++i ) {
+		sBuf[i] = (char)pBytes[i];
+	}
+	sBuf[iCount] = '\0';
+	return sBuf;
+}
+
+static int __xlPackCanRead(const char* sData, int iOffset, size_t iNeed)
+{
+	size_t iLen;
+
+	if ( (sData == NULL) || (iOffset < 0) ) {
+		return 0;
+	}
+	iLen = __xlTextLen(sData);
+	return (((size_t)iOffset) + iNeed <= iLen) ? 1 : 0;
+}
+
+const char* xl_pack_write_u8(int value)
+{
+	unsigned char b;
+
+	b = (unsigned char)(value & 0xff);
+	return __xlPackBytes(&b, 1u);
+}
+const char* xl_pack_write_u16_le(int value)
+{
+	unsigned char aBytes[2];
+
+	aBytes[0] = (unsigned char)(value & 0xff);
+	aBytes[1] = (unsigned char)((value >> 8) & 0xff);
+	return __xlPackBytes(aBytes, 2u);
+}
+const char* xl_pack_write_u16_be(int value)
+{
+	unsigned char aBytes[2];
+
+	aBytes[0] = (unsigned char)((value >> 8) & 0xff);
+	aBytes[1] = (unsigned char)(value & 0xff);
+	return __xlPackBytes(aBytes, 2u);
+}
+const char* xl_pack_write_u32_le(int value)
+{
+	unsigned char aBytes[4];
+
+	aBytes[0] = (unsigned char)(value & 0xff);
+	aBytes[1] = (unsigned char)((value >> 8) & 0xff);
+	aBytes[2] = (unsigned char)((value >> 16) & 0xff);
+	aBytes[3] = (unsigned char)((value >> 24) & 0xff);
+	return __xlPackBytes(aBytes, 4u);
+}
+const char* xl_pack_write_u32_be(int value)
+{
+	unsigned char aBytes[4];
+
+	aBytes[0] = (unsigned char)((value >> 24) & 0xff);
+	aBytes[1] = (unsigned char)((value >> 16) & 0xff);
+	aBytes[2] = (unsigned char)((value >> 8) & 0xff);
+	aBytes[3] = (unsigned char)(value & 0xff);
+	return __xlPackBytes(aBytes, 4u);
+}
+int xl_pack_read_u8(const char* sData, int iOffset)
+{
+	if ( !__xlPackCanRead(sData, iOffset, 1u) ) {
+		__xlRaiseNativeError("PackError", "pack read out of range", 0, NULL);
+		return 0;
+	}
+	return (int)(unsigned char)sData[iOffset];
+}
+int xl_pack_read_u16_le(const char* sData, int iOffset)
+{
+	if ( !__xlPackCanRead(sData, iOffset, 2u) ) {
+		__xlRaiseNativeError("PackError", "pack read out of range", 0, NULL);
+		return 0;
+	}
+	return
+		((int)(unsigned char)sData[iOffset]) |
+		(((int)(unsigned char)sData[iOffset + 1]) << 8);
+}
+int xl_pack_read_u16_be(const char* sData, int iOffset)
+{
+	if ( !__xlPackCanRead(sData, iOffset, 2u) ) {
+		__xlRaiseNativeError("PackError", "pack read out of range", 0, NULL);
+		return 0;
+	}
+	return
+		(((int)(unsigned char)sData[iOffset]) << 8) |
+		((int)(unsigned char)sData[iOffset + 1]);
+}
+int xl_pack_read_u32_le(const char* sData, int iOffset)
+{
+	if ( !__xlPackCanRead(sData, iOffset, 4u) ) {
+		__xlRaiseNativeError("PackError", "pack read out of range", 0, NULL);
+		return 0;
+	}
+	return
+		((int)(unsigned char)sData[iOffset]) |
+		(((int)(unsigned char)sData[iOffset + 1]) << 8) |
+		(((int)(unsigned char)sData[iOffset + 2]) << 16) |
+		(((int)(unsigned char)sData[iOffset + 3]) << 24);
+}
+int xl_pack_read_u32_be(const char* sData, int iOffset)
+{
+	if ( !__xlPackCanRead(sData, iOffset, 4u) ) {
+		__xlRaiseNativeError("PackError", "pack read out of range", 0, NULL);
+		return 0;
+	}
+	return
+		(((int)(unsigned char)sData[iOffset]) << 24) |
+		(((int)(unsigned char)sData[iOffset + 1]) << 16) |
+		(((int)(unsigned char)sData[iOffset + 2]) << 8) |
+		((int)(unsigned char)sData[iOffset + 3]);
+}
 
 static void __xlProcessInitConfig(xprocessconfig* pConfig, const char* sCommand, size_t iMaxCaptureBytes)
 {

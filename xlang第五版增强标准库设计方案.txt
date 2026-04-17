@@ -1,0 +1,571 @@
+xlang 第五版增强标准库设计方案
+================================
+
+版本：v5.0-final-draft1
+定位：作为 xlang 第五版后续标准库建设的定稿母版。
+
+
+一、总目标
+----------
+
+第五版增强标准库的目标不是补几个工具函数，而是建立一套能长期演进、能覆盖真实开发需求的完整标准库体系。
+
+核心目标：
+- 让 xlang 具备业务开发、系统编程、网络服务、工具开发、运行时桥接的完整标准库能力。
+- xrt 作为 xlang 的运行标准库，其公开能力原则上应全部导入到 xlang 环境。
+- crt 中未被 xrt 重写但仍有价值的能力，应直接融入 xlang 标准库，而不是再单独建立一套 `std.c.*` 体系。
+- 标准库分为核心稳定标准与官方扩展标准两类，避免把所有领域能力都塞进最小内置标准库。
+
+
+二、分层原则
+------------
+
+第五版标准库采用三层结构：
+
+1. 语言内建层
+- 由语言、编译器、runtime 直接支持。
+- 包括：
+  - 基础类型：`bool/int/float/string/time/point/null`
+  - 容器类型：`array/list/set/dict/range`
+  - 运行时类型：`error/module/future/task/channel/type/function`
+- 类型方法、属性、协议能力优先放在这一层。
+
+2. 核心标准库 `std.*`
+- 面向绝大多数 xlang 项目。
+- 命名稳定、语义友好、跨平台优先。
+- 属于“默认应该存在”的公共能力。
+
+3. 官方扩展库
+- 由 xlang 官方维护，但不属于最小核心标准库。
+- 用于数据库、压缩、图像、额外文本格式等大型领域能力。
+- 可随 xlang 一起分发，但不进入核心 `std.*` 最小承诺集合。
+
+
+三、命名空间定稿
+----------------
+
+本轮定稿后采用：
+
+1. `std.*`
+- 核心稳定标准库。
+
+2. `std.sys.*`
+- 核心标准库中的系统级接口。
+- 仍属于标准库的一部分。
+- 用于暴露更底层、更接近 xrt/crt 的系统能力。
+
+3. 官方扩展库命名空间
+- 不进入核心标准库。
+- 建议采用：
+  - `x.db.*`
+  - `x.cache.*`
+  - `x.archive.*`
+  - `x.compress.*`
+  - `x.image.*`
+  - `x.xml`
+  - `x.yaml`
+  - `x.ini`
+  - `x.csv`
+
+不再采用：
+- `std.c.*`
+- `std.xrt.*`
+
+原因：
+- 对于可自然融入 xlang 的能力，应直接归入 `std.*` / `std.sys.*`
+- 对于不适合标准化封装的能力，后续通过 extern / ffi / 混编方案直接接入
+- 不再额外维护一套“C 映射命名空间”或“xrt 镜像命名空间”
+
+
+四、核心设计决策
+----------------
+
+4.1 转换能力
+
+不再保留独立 `std.conv`。
+
+转换能力应优先落在：
+- 基础类型方法
+  - `"123".to_int()`
+  - `"3.14".to_float()`
+  - `123.to_string()`
+- 少量公共辅助可进入：
+  - `std.core`
+  - `std.str`
+
+
+4.2 二进制打包能力
+
+不再使用 `std.data`，定稿为：
+- `std.pack`
+
+职责：
+- 二进制打包/解包
+- 字节序处理
+- 定长整数/浮点读写
+- 协议帧和文件格式的底层数据访问
+
+说明：
+- `class` 可以承载结构化数据，但不能替代 pack/unpack、字节序、定长数值读写。
+- 因此 `std.pack` 必须保留在核心标准库中。
+
+
+4.3 文本格式
+
+核心标准库内只保留：
+- `std.json`
+
+不进入核心标准库：
+- xml
+- yaml
+- ini
+- csv
+
+它们改为官方扩展库：
+- `x.xml`
+- `x.yaml`
+- `x.ini`
+- `x.csv`
+
+
+4.4 数据库与缓存
+
+不进入核心标准库。
+
+作为官方扩展库设计：
+- `x.db.sqlite`
+- `x.db.mysql`
+- `x.db.redis`
+- `x.cache.*`
+
+原因：
+- 领域过大
+- 平台依赖强
+- 生命周期与核心语言标准不同步更合理
+
+
+4.5 密码学、哈希与安全
+
+核心标准库保留，但以 xrt 已有能力为准。
+
+原则：
+- 不为了“看起来完整”而保留弱算法
+- 去掉：
+  - `crc32`
+  - `md5`
+- 增加：
+  - `hash32`
+  - `hash64`
+- 其余算法以 xrt 已集成能力为准，逐步纳入
+
+
+4.6 压缩、归档与资源
+
+不进入核心标准库。
+
+作为官方扩展库：
+- `x.archive.zip`
+- `x.archive.tar`
+- `x.compress.*`
+- `x.resource.*`
+
+
+4.7 容器模块与类型方法
+
+`std.array / std.list / std.set / std.dict` 仍然保留，但定位调整：
+
+1. 基础操作优先做到类型方法里
+- `[].append(123)`
+- `a.remove(x)`
+- `d.has("k")`
+- `s.clear()`
+
+2. 容器模块保留为算法层
+- `std.array.sort(a)`
+- `std.list.map(a, f)`
+- `std.dict.keys(d)`
+- `std.set.union(a, b)`
+
+结论：
+- 类型方法是主路径
+- 容器模块是批量算法与工具入口
+
+
+五、核心标准库模块定稿
+----------------------
+
+以下模块进入第五版增强核心标准库：
+
+1. 基础与通用
+- `std.core`
+- `std.types`
+- `std.math`
+- `std.rand`
+- `std.time`
+- `std.clock`
+- `std.fmt`
+- `std.str`
+- `std.regex`
+- `std.hash`
+- `std.crypto`
+- `std.encode`
+- `std.pack`
+- `std.debug`
+
+2. 集合与迭代
+- `std.iter`
+- `std.array`
+- `std.list`
+- `std.set`
+- `std.dict`
+- `std.range`
+
+3. 错误、断言、日志与诊断
+- `std.error`
+- `std.assert`
+- `std.log`
+- `std.trace`
+
+4. 文件系统与环境
+- `std.io`
+- `std.fs`
+- `std.path`
+- `std.dir`
+- `std.env`
+- `std.process`
+- `std.host`
+- `std.os`
+
+5. 并发与异步
+- `std.future`
+- `std.task`
+- `std.channel`
+- `std.sync`
+- `std.thread`
+- `std.atomic`
+
+6. 网络与协议
+- `std.net`
+- `std.net.ip`
+- `std.net.tcp`
+- `std.net.udp`
+- `std.net.dns`
+- `std.net.url`
+- `std.net.http`
+- `std.net.httpd`
+- `std.net.ws`
+- `std.net.mime`
+- `std.net.multipart`
+- `std.net.proxy`
+- `std.net.tls`
+
+7. 数据格式
+- `std.json`
+- `std.query`
+- `std.template`
+
+8. 系统级模块
+- `std.sys.file`
+- `std.sys.process`
+- `std.sys.env`
+- `std.sys.net`
+- `std.sys.wait`
+- `std.sys.mem`
+
+
+六、官方扩展库定稿
+------------------
+
+以下能力作为官方扩展库，不进入核心标准库：
+
+1. 文本格式扩展
+- `x.xml`
+- `x.yaml`
+- `x.ini`
+- `x.csv`
+
+2. 数据库与缓存
+- `x.db.sqlite`
+- `x.db.mysql`
+- `x.db.redis`
+- `x.cache.redis`
+
+3. 压缩、归档与资源
+- `x.archive.zip`
+- `x.archive.tar`
+- `x.compress.zlib`
+- `x.compress.gzip`
+- `x.resource`
+
+4. 媒体与图像
+- `x.image`
+- `x.image.png`
+- `x.image.jpeg`
+- `x.image.bmp`
+
+
+七、各核心模块职责
+------------------
+
+7.1 `std.core`
+- 最短路径公共能力
+- 版本信息
+- print / println / eprint / eprintln
+- len / empty
+- panic / exit
+- 最基础公共常量与工具
+
+
+7.2 `std.types`
+- 类型反射
+- `Type(expr)`
+- `name(type)`
+- `is_builtin`
+- `is_container`
+- `is_numeric`
+- `is_callable`
+- `is_iterable`
+
+
+7.3 `std.math`
+- 数值、统计、三角函数、边界运算
+
+
+7.4 `std.fmt`
+- 格式化输出
+- 字符串格式化
+- pretty / dump / hexdump
+
+
+7.5 `std.str`
+- string 文本/字节双语义支持
+- 文本查找
+- 分割拼接
+- 替换裁剪
+- utf8/byte 长度
+
+
+7.6 `std.regex`
+- 正则编译、匹配、查找、替换、capture
+
+
+7.7 `std.encode`
+- base64
+- hex
+- url encode/decode
+- utf8 validate
+
+
+7.8 `std.pack`
+- `pack`
+- `unpack`
+- `size_of`
+- `read_u8/u16/u32/u64`
+- `read_i8/i16/i32/i64`
+- `read_f32/read_f64`
+- `write_u8/u16/u32/u64`
+- `write_i8/i16/i32/i64`
+- `write_f32/write_f64`
+- little-endian / big-endian 支持
+
+
+7.9 `std.hash`
+- `hash32`
+- `hash64`
+- 其余仅纳入 xrt 已有且确认保留的算法
+
+
+7.10 `std.crypto`
+- 只纳入 xrt 已有安全算法
+- 不引入仅为凑数的弱算法
+
+
+7.11 `std.iter`
+- map / filter / reduce
+- take / skip
+- enumerate
+- zip
+- collect_array / collect_list / collect_set / collect_dict
+
+
+7.12 `std.array/std.list/std.set/std.dict`
+- 模块算法层
+- 基础操作主路径仍然是类型方法
+
+
+7.13 `std.error/std.assert/std.log/std.trace/std.debug`
+- 错误模型
+- 断言
+- 日志
+- 调试与运行时观测
+
+
+7.14 `std.io/std.fs/std.path/std.dir/std.env/std.process/std.host/std.os`
+- 文件、目录、路径、环境变量、进程、主机与平台信息
+
+
+7.15 `std.future/std.task/std.channel/std.sync/std.thread/std.atomic`
+- future/task/channel 配套 API
+- 同步原语
+- 线程与原子操作
+
+
+7.16 `std.net.*`
+- 网络基础能力
+- TCP/UDP
+- DNS
+- URL
+- HTTP client/server
+- WebSocket
+- TLS
+- MIME / multipart / proxy
+
+
+7.17 `std.json/std.query/std.template`
+- JSON 解析与生成
+- query string
+- 模板能力
+
+
+7.18 `std.sys.*`
+- 更接近 xrt/crt 的系统级能力
+- 作为核心标准库的一部分，但不追求高层 API 手感
+
+
+八、xrt 导入原则
+----------------
+
+xrt 的所有公开功能最终都应能在 xlang 中访问。
+
+导入原则：
+
+1. 能自然抽象成稳定高层接口的，直接进入 `std.*`
+2. 更偏系统底层控制的，进入 `std.sys.*`
+3. 不要求保留 xrt 原始命名空间
+4. 不要求逐个函数机械镜像
+5. 重点是“能力全部可达”，不是“形式逐字复制”
+
+映射举例：
+- xrt 时间能力 -> `std.time` / `std.clock`
+- xrt 文件能力 -> `std.fs` / `std.path` / `std.dir` / `std.sys.file`
+- xrt 线程同步 -> `std.thread` / `std.sync` / `std.atomic`
+- xrt future/task/channel -> `std.future` / `std.task` / `std.channel`
+- xrt regex -> `std.regex`
+- xrt json -> `std.json`
+- xrt http/ws/url/tls -> `std.net.*`
+
+
+九、crt 导入原则
+----------------
+
+不再建立 `std.c.*`。
+
+crt 导入规则：
+
+1. 可被 xlang 风格自然吸收的，直接进入 `std.*` 或 `std.sys.*`
+2. 不适合纳入标准库语义体系的，不单独封装
+3. 后续通过：
+- extern
+- ffi
+- C 混编
+来直接接入
+
+这意味着：
+- 不做 `std.c.string`
+- 不做 `std.c.stdio`
+- 不做 `std.c.time`
+
+而是把真正有价值的能力吸收进：
+- `std.str`
+- `std.io`
+- `std.time`
+- `std.process`
+- `std.sys.*`
+
+
+十、API 风格定稿
+----------------
+
+1. 高层 API 统一英文蛇形命名
+2. 模块短、函数清晰
+3. 基础容器与基础类型优先用类型方法
+4. 模块函数主要承载：
+- 算法
+- 批量处理
+- 底层控制
+5. 同步/异步接口并存时：
+- `read_all`
+- `read_all_async`
+6. 标准库优先使用 xlang 基础类型：
+- string
+- int / float / bool
+- array / list / set / dict
+- var
+
+
+十一、首批实施优先级
+--------------------
+
+第一批必须优先完成：
+- `std.core`
+- `std.io`
+- `std.str`
+- `std.fmt`
+- `std.math`
+- `std.rand`
+- `std.time`
+- `std.regex`
+- `std.path`
+- `std.fs`
+- `std.dir`
+- `std.env`
+- `std.process`
+- `std.host`
+- `std.future`
+- `std.task`
+- `std.channel`
+- `std.sync`
+- `std.net.url`
+- `std.net.http`
+- `std.json`
+- `std.hash`
+- `std.encode`
+- `std.pack`
+
+第二批：
+- `std.net.httpd`
+- `std.net.ws`
+- `std.net.tls`
+- `std.iter`
+- `std.array`
+- `std.list`
+- `std.set`
+- `std.dict`
+- `std.log`
+- `std.debug`
+- `std.sys.*`
+
+第三批：
+- 其余核心标准库
+- 官方扩展库体系
+
+
+十二、结论
+----------
+
+第五版增强标准库定稿后的结构是：
+
+1. 核心标准库 `std.*`
+2. 系统级标准库 `std.sys.*`
+3. 官方扩展库 `x.*`
+
+关键收缩结论：
+- 删除 `std.conv`
+- `std.data` 改为 `std.pack`
+- 核心标准库只保留 `std.json`
+- 数据库、缓存、压缩、归档、资源、xml/yaml/ini/csv 转为官方扩展库
+- 不再建立 `std.c.*`
+- xrt 能力按语义吸收进 `std.*` / `std.sys.*`
+- 基础容器操作以类型方法为主，模块算法为辅
+
+这套方案即作为后续标准库标准表与覆盖率跟踪文档的依据。

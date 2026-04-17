@@ -1,0 +1,30 @@
+import std.pack
+
+func main() as int
+	auto a = pack.write_u8(127)
+	if pack.read_u8(a, 0) != 127
+		return 1
+	end
+
+	auto b = pack.write_u16_be(4660)
+	if pack.read_u16_be(b, 0) != 4660
+		return 2
+	end
+
+	auto c = pack.write_u16_le(4660)
+	if pack.read_u16_le(c, 0) != 4660
+		return 3
+	end
+
+	auto d = pack.write_u32_be(16909060)
+	if pack.read_u32_be(d, 0) != 16909060
+		return 4
+	end
+
+	auto e = pack.write_u32_le(2018915346)
+	if pack.read_u32_le(e, 0) != 2018915346
+		return 5
+	end
+
+	return 0
+end

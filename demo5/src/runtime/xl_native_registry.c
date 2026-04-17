@@ -7,7 +7,9 @@ const char* xlStdFmtModuleSource(void);
 const char* xlStdFsModuleSource(void);
 const char* xlStdHostModuleSource(void);
 const char* xlStdIoModuleSource(void);
+const char* xlStdMathModuleSource(void);
 const char* xlStdPathModuleSource(void);
+const char* xlStdPackModuleSource(void);
 const char* xlStdRandModuleSource(void);
 const char* xlStdProcessModuleSource(void);
 const char* xlStdStrModuleSource(void);
@@ -35,6 +37,8 @@ static const XL_NativeRegistryEntry g_arrNativeModules[] = {
 	{ "std.fs", "std.fs", "<native:std.fs>", xlStdFsModuleSource },
 	{ "std.host", "std.host", "<native:std.host>", xlStdHostModuleSource },
 	{ "std.io", "std.io", "<native:std.io>", xlStdIoModuleSource },
+	{ "std.math", "std.math", "<native:std.math>", xlStdMathModuleSource },
+	{ "std.pack", "std.pack", "<native:std.pack>", xlStdPackModuleSource },
 	{ "std.path", "std.path", "<native:std.path>", xlStdPathModuleSource },
 	{ "std.rand", "std.rand", "<native:std.rand>", xlStdRandModuleSource },
 	{ "std.process", "std.process", "<native:std.process>", xlStdProcessModuleSource },
