@@ -1,2 +1,0 @@
-error @ 25:17 no overload matches 'xl_mod_std_math__sqrt(int)'
-error @ 28:18 no overload matches 'xl_mod_std_math__pow(int, int)'

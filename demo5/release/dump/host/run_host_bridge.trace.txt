@@ -1,9 +1,0 @@
-tcc_root=D:\git\x-lang\demo5\release\tcc
-include=D:\git\x-lang\demo5\release\tcc\include_win
-include=D:\git\x-lang\demo5\release\tcc\include_win\winapi
-include=D:\git\x-lang\demo5\src\runtime
-include=D:\git\x-lang\demo5\lib\xrt
-lib=D:\git\x-lang\demo5\release\tcc\lib
-compile_file=D:\git\x-lang\demo5\examples\c\run_host_bridge.c
-tcc_run
-exit_code=7

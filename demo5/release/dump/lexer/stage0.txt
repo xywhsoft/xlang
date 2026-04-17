@@ -1,3 +1,0 @@
-demo5 stage0 stub
-command=lex
-input=D:\Git\x-lang\demo5\examples\lexer\minimal.xl

@@ -1,9 +1,0 @@
-Program @ 0:0-0:0
-	FuncDecl @ 1:6-1:10 text="main"
-		List @ 0:0-0:0
-		TypeRef @ 1:16-1:19 text="int"
-		Block @ 0:0-0:0
-			Return @ 3:2-3:8
-				Index @ 3:15-3:16
-					Ident @ 3:9-3:15 text="values"
-					String @ 3:16-3:24 text="\"answer\""

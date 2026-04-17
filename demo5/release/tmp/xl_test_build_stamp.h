@@ -1,3 +1,0 @@
-#ifndef XL_TEST_BUILD_ID
-#define XL_TEST_BUILD_ID "2026-04-18 02:28:43.745 run-24307-11782"
-#endif

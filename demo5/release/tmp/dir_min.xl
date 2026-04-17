@@ -1,5 +1,0 @@
-import std.dir
-
-func main() as int
-	return 0
-end

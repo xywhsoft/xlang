@@ -1,8 +1,0 @@
-demo5 unified test runner
-project=demo5
-build_stamp=2026-04-13 01:05:35.984 run-6308-8775
-test_count=594
-selector=runtime.task
-[PASS] runtime.task_basic
-[PASS] runtime.task_value_basic
-[PASS] runtime.task_delay

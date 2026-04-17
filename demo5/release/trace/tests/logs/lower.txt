@@ -1,8 +1,0 @@
-demo5 unified test runner
-project=demo5
-selector=lower
-[PASS] lower.basic
-[PASS] lower.async_basic
-[PASS] lower.generator_basic
-[PASS] lower.for_in_range
-summary: total=4 pass=4 fail=0

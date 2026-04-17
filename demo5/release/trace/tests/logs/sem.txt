@@ -1,8 +1,0 @@
-demo5 unified test runner
-project=demo5
-selector=sem
-[PASS] sem.overload
-[PASS] sem.unresolved
-[PASS] sem.no_overload
-[PASS] sem.for_in_generator
-summary: total=4 pass=4 fail=0
