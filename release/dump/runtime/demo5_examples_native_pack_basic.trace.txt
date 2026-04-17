@@ -1,0 +1,58 @@
+ModuleLoadOrder
+- [0] std.pack -> <native:std.pack> native=1 binding=std.pack
+- [1] <root> -> D:\Git\x-lang\demo5\examples\native\pack_basic.xl native=0 binding=
+ModuleExports
+- module=std.pack
+  abi init=xl_mod_std_pack__init exports=xl_mod_std_pack__exports descriptor=xl_mod_std_pack__descriptor
+  export write_u8 -> xl_mod_std_pack__write_u8
+  export write_u16_le -> xl_mod_std_pack__write_u16_le
+  export write_u16_be -> xl_mod_std_pack__write_u16_be
+  export write_u32_le -> xl_mod_std_pack__write_u32_le
+  export write_u32_be -> xl_mod_std_pack__write_u32_be
+  export read_u8 -> xl_mod_std_pack__read_u8
+  export read_u16_le -> xl_mod_std_pack__read_u16_le
+  export read_u16_be -> xl_mod_std_pack__read_u16_be
+  export read_u32_le -> xl_mod_std_pack__read_u32_le
+  export read_u32_be -> xl_mod_std_pack__read_u32_be
+- module=<root>
+  abi init=xl_mod__root___init exports=xl_mod__root___exports descriptor=xl_mod__root___descriptor
+NativeRegistry
+- key=std.core binding=std.core path=<native:std.core>
+- key=std.dir binding=std.dir path=<native:std.dir>
+- key=std.env binding=std.env path=<native:std.env>
+- key=std.fmt binding=std.fmt path=<native:std.fmt>
+- key=std.fs binding=std.fs path=<native:std.fs>
+- key=std.host binding=std.host path=<native:std.host>
+- key=std.io binding=std.io path=<native:std.io>
+- key=std.math binding=std.math path=<native:std.math>
+- key=std.pack binding=std.pack path=<native:std.pack>
+- key=std.path binding=std.path path=<native:std.path>
+- key=std.rand binding=std.rand path=<native:std.rand>
+- key=std.process binding=std.process path=<native:std.process>
+- key=std.str binding=std.str path=<native:std.str>
+- key=std.time binding=std.time path=<native:std.time>
+- key=std.task binding=std.task path=<native:std.task>
+tcc_root=D:\Git\x-lang\demo5\release\tcc
+include=D:\Git\x-lang\demo5\release\tcc\include_win
+include=D:\Git\x-lang\demo5\release\tcc\include_win\winapi
+include=D:\Git\x-lang\demo5\src\runtime
+include=D:\Git\x-lang\demo5\lib\xrt
+lib=D:\Git\x-lang\demo5\release\tcc\lib
+compile_text=demo5\examples\native\pack_basic.xl
+[tcc] demo5/examples/native/pack_basic.xl:2286: warning: function might return no value: 'xl__xl_mod_std_pack__write_u8__arity1__value__int__ret__string'
+[tcc] demo5/examples/native/pack_basic.xl:2301: warning: function might return no value: 'xl__xl_mod_std_pack__write_u16_le__arity1__value__int__ret__string'
+[tcc] demo5/examples/native/pack_basic.xl:2316: warning: function might return no value: 'xl__xl_mod_std_pack__write_u16_be__arity1__value__int__ret__string'
+[tcc] demo5/examples/native/pack_basic.xl:2331: warning: function might return no value: 'xl__xl_mod_std_pack__write_u32_le__arity1__value__int__ret__string'
+[tcc] demo5/examples/native/pack_basic.xl:2346: warning: function might return no value: 'xl__xl_mod_std_pack__write_u32_be__arity1__value__int__ret__string'
+[tcc] demo5/examples/native/pack_basic.xl:2361: warning: function might return no value: 'xl__xl_mod_std_pack__read_u8__arity2__data__string__offset__int__ret__int'
+[tcc] demo5/examples/native/pack_basic.xl:2377: warning: function might return no value: 'xl__xl_mod_std_pack__read_u16_le__arity2__data__string__offset__int__ret__int'
+[tcc] demo5/examples/native/pack_basic.xl:2393: warning: function might return no value: 'xl__xl_mod_std_pack__read_u16_be__arity2__data__string__offset__int__ret__int'
+[tcc] demo5/examples/native/pack_basic.xl:2409: warning: function might return no value: 'xl__xl_mod_std_pack__read_u32_le__arity2__data__string__offset__int__ret__int'
+[tcc] demo5/examples/native/pack_basic.xl:2425: warning: function might return no value: 'xl__xl_mod_std_pack__read_u32_be__arity2__data__string__offset__int__ret__int'
+cwd.prev=D:\Git\x-lang
+cwd.exec=D:\Git\x-lang\demo5
+relocate
+resolve_symbol=xl_generated_entry
+execute
+exit_code=1
+cwd.restore=D:\Git\x-lang

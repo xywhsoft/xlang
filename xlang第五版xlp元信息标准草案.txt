@@ -529,6 +529,13 @@ XLP 至少承担以下职责：
 			- function
 			- type
 			- value
+		首版实现中，`modules[].exports[]` 建议直接展开为对象数组，每个导出项显式给出：
+			- `name`
+			- `symbol`
+			- `abiId`
+			- `versionedSymbol`
+			- `kind`
+			- `overloadCount`
 
 	- `source`
 		可选，声明该模块来自的源单元或文件
@@ -540,6 +547,9 @@ XLP 至少承担以下职责：
 	- 导入绑定必须精确到模块名 + abi_id
 	- `init_symbol` 只能初始化当前模块 ABI 实例
 	- 模块导出的任一项都必须属于同一个模块 ABI 视图
+	- `modules[].exports[].abiId` 用于表达“导出名身份”，格式固定为 `<moduleAbiId>::<exportName>`
+	- `modules[].exports[].versionedSymbol` 用于表达“版本绑定后的目标符号名”，格式固定为 `<moduleAbiId>::<symbol>`
+	- 加载器不应再通过包名/版本/模块名反推导出身份，而应直接消费 `abiId` 与 `versionedSymbol`
 
 
 

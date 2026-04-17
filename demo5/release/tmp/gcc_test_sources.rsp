@@ -42,6 +42,8 @@ D:/git/x-lang/demo5/src/runtime/xl_std_fmt.c
 D:/git/x-lang/demo5/src/runtime/xl_std_fs.c
 D:/git/x-lang/demo5/src/runtime/xl_std_host.c
 D:/git/x-lang/demo5/src/runtime/xl_std_io.c
+D:/git/x-lang/demo5/src/runtime/xl_std_math.c
+D:/git/x-lang/demo5/src/runtime/xl_std_pack.c
 D:/git/x-lang/demo5/src/runtime/xl_std_path.c
 D:/git/x-lang/demo5/src/runtime/xl_std_process.c
 D:/git/x-lang/demo5/src/runtime/xl_std_rand.c

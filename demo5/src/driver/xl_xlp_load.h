@@ -56,6 +56,17 @@ typedef struct XL_XlpFunctionInfo {
 	size_t iParamCount;
 } XL_XlpFunctionInfo;
 
+typedef struct XL_XlpExportInfo {
+	char sModule[XL_PATH_MAX_LEN];
+	char sModuleAbiId[XL_PATH_MAX_LEN];
+	char sName[128];
+	char sSymbol[128];
+	char sAbiId[XL_PATH_MAX_LEN];
+	char sVersionedSymbol[XL_PATH_MAX_LEN];
+	char sKind[32];
+	int iOverloadCount;
+} XL_XlpExportInfo;
+
 void xlXlpResolveInfoInit(XL_XlpResolveInfo* pInfo);
 
 int xlXlpFindModuleSource(
@@ -84,6 +95,13 @@ int xlXlpReadFunctions(
 	const char* sModuleKey,
 	XL_XlpFunctionInfo** ppFuncs,
 	size_t* piFuncCount
+);
+void xlXlpExportInfoFree(XL_XlpExportInfo* pExports);
+int xlXlpReadExports(
+	const char* sManifestPath,
+	const char* sModuleKey,
+	XL_XlpExportInfo** ppExports,
+	size_t* piExportCount
 );
 
 #endif

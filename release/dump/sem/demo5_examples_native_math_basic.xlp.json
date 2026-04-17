@@ -1,0 +1,773 @@
+{
+	"format": "xlp-0",
+	"package": {
+		"name": "math_basic",
+		"version": "0.0.0",
+		"abiVersion": "1",
+		"xlangAbi": "1",
+		"abiId": "math_basic@0.0.0#abi1"
+	},
+	"dependencies": [
+		{
+			"name": "std.math",
+			"kind": "native",
+			"version": "0.0.0",
+			"abiVersion": "1",
+			"abiId": "std.math@0.0.0#abi1",
+			"manifest": "",
+			"binding": "std.math",
+			"artifactKind": "",
+			"artifactPath": "",
+			"artifactFile": "",
+			"consumeMode": "",
+			"usedBy": ["<root>"],
+			"dependsOn": [],
+			"dependsOnAbi": []
+		}
+	],
+	"modules": [
+		{
+			"key": "std.math",
+			"packageName": "std.math",
+			"packageVersion": "0.0.0",
+			"packageAbiVersion": "1",
+			"abiId": "std.math@0.0.0#abi1::std.math",
+			"manifest": "",
+			"file": "<native:std.math>",
+			"root": 0,
+			"native": 1,
+			"binding": "std.math",
+			"artifactKind": "",
+			"artifactPath": "",
+			"artifactFile": "",
+			"consumeMode": "",
+			"initSymbol": "xl_mod_std_math__init",
+			"exportsSymbol": "xl_mod_std_math__exports",
+			"descriptorSymbol": "xl_mod_std_math__descriptor",
+			"imports": [],
+			"exports": [
+				{
+					"name": "abs",
+					"symbol": "xl_mod_std_math__abs",
+					"abiId": "std.math@0.0.0#abi1::std.math::abs",
+					"versionedSymbol": "std.math@0.0.0#abi1::std.math::xl_mod_std_math__abs",
+					"kind": "function",
+					"overloadCount": 2
+				},
+				{
+					"name": "min",
+					"symbol": "xl_mod_std_math__min",
+					"abiId": "std.math@0.0.0#abi1::std.math::min",
+					"versionedSymbol": "std.math@0.0.0#abi1::std.math::xl_mod_std_math__min",
+					"kind": "function",
+					"overloadCount": 2
+				},
+				{
+					"name": "max",
+					"symbol": "xl_mod_std_math__max",
+					"abiId": "std.math@0.0.0#abi1::std.math::max",
+					"versionedSymbol": "std.math@0.0.0#abi1::std.math::xl_mod_std_math__max",
+					"kind": "function",
+					"overloadCount": 2
+				},
+				{
+					"name": "clamp",
+					"symbol": "xl_mod_std_math__clamp",
+					"abiId": "std.math@0.0.0#abi1::std.math::clamp",
+					"versionedSymbol": "std.math@0.0.0#abi1::std.math::xl_mod_std_math__clamp",
+					"kind": "function",
+					"overloadCount": 2
+				},
+				{
+					"name": "floor",
+					"symbol": "xl_mod_std_math__floor",
+					"abiId": "std.math@0.0.0#abi1::std.math::floor",
+					"versionedSymbol": "std.math@0.0.0#abi1::std.math::xl_mod_std_math__floor",
+					"kind": "function",
+					"overloadCount": 1
+				},
+				{
+					"name": "ceil",
+					"symbol": "xl_mod_std_math__ceil",
+					"abiId": "std.math@0.0.0#abi1::std.math::ceil",
+					"versionedSymbol": "std.math@0.0.0#abi1::std.math::xl_mod_std_math__ceil",
+					"kind": "function",
+					"overloadCount": 1
+				},
+				{
+					"name": "round",
+					"symbol": "xl_mod_std_math__round",
+					"abiId": "std.math@0.0.0#abi1::std.math::round",
+					"versionedSymbol": "std.math@0.0.0#abi1::std.math::xl_mod_std_math__round",
+					"kind": "function",
+					"overloadCount": 1
+				},
+				{
+					"name": "trunc",
+					"symbol": "xl_mod_std_math__trunc",
+					"abiId": "std.math@0.0.0#abi1::std.math::trunc",
+					"versionedSymbol": "std.math@0.0.0#abi1::std.math::xl_mod_std_math__trunc",
+					"kind": "function",
+					"overloadCount": 1
+				},
+				{
+					"name": "sqrt",
+					"symbol": "xl_mod_std_math__sqrt",
+					"abiId": "std.math@0.0.0#abi1::std.math::sqrt",
+					"versionedSymbol": "std.math@0.0.0#abi1::std.math::xl_mod_std_math__sqrt",
+					"kind": "function",
+					"overloadCount": 1
+				},
+				{
+					"name": "pow",
+					"symbol": "xl_mod_std_math__pow",
+					"abiId": "std.math@0.0.0#abi1::std.math::pow",
+					"versionedSymbol": "std.math@0.0.0#abi1::std.math::xl_mod_std_math__pow",
+					"kind": "function",
+					"overloadCount": 1
+				},
+				{
+					"name": "sin",
+					"symbol": "xl_mod_std_math__sin",
+					"abiId": "std.math@0.0.0#abi1::std.math::sin",
+					"versionedSymbol": "std.math@0.0.0#abi1::std.math::xl_mod_std_math__sin",
+					"kind": "function",
+					"overloadCount": 1
+				},
+				{
+					"name": "cos",
+					"symbol": "xl_mod_std_math__cos",
+					"abiId": "std.math@0.0.0#abi1::std.math::cos",
+					"versionedSymbol": "std.math@0.0.0#abi1::std.math::xl_mod_std_math__cos",
+					"kind": "function",
+					"overloadCount": 1
+				},
+				{
+					"name": "tan",
+					"symbol": "xl_mod_std_math__tan",
+					"abiId": "std.math@0.0.0#abi1::std.math::tan",
+					"versionedSymbol": "std.math@0.0.0#abi1::std.math::xl_mod_std_math__tan",
+					"kind": "function",
+					"overloadCount": 1
+				},
+				{
+					"name": "exp",
+					"symbol": "xl_mod_std_math__exp",
+					"abiId": "std.math@0.0.0#abi1::std.math::exp",
+					"versionedSymbol": "std.math@0.0.0#abi1::std.math::xl_mod_std_math__exp",
+					"kind": "function",
+					"overloadCount": 1
+				},
+				{
+					"name": "log",
+					"symbol": "xl_mod_std_math__log",
+					"abiId": "std.math@0.0.0#abi1::std.math::log",
+					"versionedSymbol": "std.math@0.0.0#abi1::std.math::xl_mod_std_math__log",
+					"kind": "function",
+					"overloadCount": 1
+				},
+				{
+					"name": "log10",
+					"symbol": "xl_mod_std_math__log10",
+					"abiId": "std.math@0.0.0#abi1::std.math::log10",
+					"versionedSymbol": "std.math@0.0.0#abi1::std.math::xl_mod_std_math__log10",
+					"kind": "function",
+					"overloadCount": 1
+				},
+				{
+					"name": "pi",
+					"symbol": "xl_mod_std_math__pi",
+					"abiId": "std.math@0.0.0#abi1::std.math::pi",
+					"versionedSymbol": "std.math@0.0.0#abi1::std.math::xl_mod_std_math__pi",
+					"kind": "value",
+					"overloadCount": 0
+				},
+				{
+					"name": "e",
+					"symbol": "xl_mod_std_math__e",
+					"abiId": "std.math@0.0.0#abi1::std.math::e",
+					"versionedSymbol": "std.math@0.0.0#abi1::std.math::xl_mod_std_math__e",
+					"kind": "value",
+					"overloadCount": 0
+				}
+			]
+		},
+		{
+			"key": "<root>",
+			"packageName": "math_basic",
+			"packageVersion": "0.0.0",
+			"packageAbiVersion": "1",
+			"abiId": "math_basic@0.0.0#abi1::<root>",
+			"manifest": "",
+			"file": "D:\\Git\\x-lang\\demo5\\examples\\native\\math_basic.xl",
+			"root": 1,
+			"native": 0,
+			"binding": "",
+			"artifactKind": "",
+			"artifactPath": "",
+			"artifactFile": "",
+			"consumeMode": "",
+			"initSymbol": "xl_mod__root___init",
+			"exportsSymbol": "xl_mod__root___exports",
+			"descriptorSymbol": "xl_mod__root___descriptor",
+			"imports": ["std.math"],
+			"exports": []
+		}
+	],
+	"functions": [
+		{
+			"module": "std.math",
+			"moduleAbiId": "std.math@0.0.0#abi1::std.math",
+			"exportName": "abs",
+			"symbol": "xl_mod_std_math__abs",
+			"overloadGroup": "global::xl_mod_std_math__abs",
+			"signatureId": "xl_mod_std_math__abs(int)",
+			"dispatchKey": "xl_mod_std_math__abs$arity1|value:int",
+			"languageAbi": "xlang@v1",
+			"nativeAbi": "c@v1",
+			"languageAbiId": "std.math@0.0.0#abi1::std.math::xl_mod_std_math__abs(int)#xlang@v1",
+			"nativeAbiId": "std.math@0.0.0#abi1::std.math::xl__xl_mod_std_math__abs__arity1__value__int__ret__int#c@v1",
+			"abiSymbol": "xl__xl_mod_std_math__abs__arity1__value__int__ret__int",
+			"returnType": "int",
+			"async": 0,
+			"generator": 0,
+			"params": [
+				{
+					"name": "value",
+					"label": "value",
+					"type": "int",
+					"hasDefault": 0
+				}
+			]
+		},
+		{
+			"module": "std.math",
+			"moduleAbiId": "std.math@0.0.0#abi1::std.math",
+			"exportName": "abs",
+			"symbol": "xl_mod_std_math__abs",
+			"overloadGroup": "global::xl_mod_std_math__abs",
+			"signatureId": "xl_mod_std_math__abs(float)",
+			"dispatchKey": "xl_mod_std_math__abs$arity1|value:float",
+			"languageAbi": "xlang@v1",
+			"nativeAbi": "c@v1",
+			"languageAbiId": "std.math@0.0.0#abi1::std.math::xl_mod_std_math__abs(float)#xlang@v1",
+			"nativeAbiId": "std.math@0.0.0#abi1::std.math::xl__xl_mod_std_math__abs__arity1__value__float__ret__float#c@v1",
+			"abiSymbol": "xl__xl_mod_std_math__abs__arity1__value__float__ret__float",
+			"returnType": "float",
+			"async": 0,
+			"generator": 0,
+			"params": [
+				{
+					"name": "value",
+					"label": "value",
+					"type": "float",
+					"hasDefault": 0
+				}
+			]
+		},
+		{
+			"module": "std.math",
+			"moduleAbiId": "std.math@0.0.0#abi1::std.math",
+			"exportName": "min",
+			"symbol": "xl_mod_std_math__min",
+			"overloadGroup": "global::xl_mod_std_math__min",
+			"signatureId": "xl_mod_std_math__min(int,int)",
+			"dispatchKey": "xl_mod_std_math__min$arity2|left:int|right:int",
+			"languageAbi": "xlang@v1",
+			"nativeAbi": "c@v1",
+			"languageAbiId": "std.math@0.0.0#abi1::std.math::xl_mod_std_math__min(int,int)#xlang@v1",
+			"nativeAbiId": "std.math@0.0.0#abi1::std.math::xl__xl_mod_std_math__min__arity2__left__int__right__int__ret__int#c@v1",
+			"abiSymbol": "xl__xl_mod_std_math__min__arity2__left__int__right__int__ret__int",
+			"returnType": "int",
+			"async": 0,
+			"generator": 0,
+			"params": [
+				{
+					"name": "left",
+					"label": "left",
+					"type": "int",
+					"hasDefault": 0
+				},
+				{
+					"name": "right",
+					"label": "right",
+					"type": "int",
+					"hasDefault": 0
+				}
+			]
+		},
+		{
+			"module": "std.math",
+			"moduleAbiId": "std.math@0.0.0#abi1::std.math",
+			"exportName": "min",
+			"symbol": "xl_mod_std_math__min",
+			"overloadGroup": "global::xl_mod_std_math__min",
+			"signatureId": "xl_mod_std_math__min(float,float)",
+			"dispatchKey": "xl_mod_std_math__min$arity2|left:float|right:float",
+			"languageAbi": "xlang@v1",
+			"nativeAbi": "c@v1",
+			"languageAbiId": "std.math@0.0.0#abi1::std.math::xl_mod_std_math__min(float,float)#xlang@v1",
+			"nativeAbiId": "std.math@0.0.0#abi1::std.math::xl__xl_mod_std_math__min__arity2__left__float__right__float__ret__float#c@v1",
+			"abiSymbol": "xl__xl_mod_std_math__min__arity2__left__float__right__float__ret__float",
+			"returnType": "float",
+			"async": 0,
+			"generator": 0,
+			"params": [
+				{
+					"name": "left",
+					"label": "left",
+					"type": "float",
+					"hasDefault": 0
+				},
+				{
+					"name": "right",
+					"label": "right",
+					"type": "float",
+					"hasDefault": 0
+				}
+			]
+		},
+		{
+			"module": "std.math",
+			"moduleAbiId": "std.math@0.0.0#abi1::std.math",
+			"exportName": "max",
+			"symbol": "xl_mod_std_math__max",
+			"overloadGroup": "global::xl_mod_std_math__max",
+			"signatureId": "xl_mod_std_math__max(int,int)",
+			"dispatchKey": "xl_mod_std_math__max$arity2|left:int|right:int",
+			"languageAbi": "xlang@v1",
+			"nativeAbi": "c@v1",
+			"languageAbiId": "std.math@0.0.0#abi1::std.math::xl_mod_std_math__max(int,int)#xlang@v1",
+			"nativeAbiId": "std.math@0.0.0#abi1::std.math::xl__xl_mod_std_math__max__arity2__left__int__right__int__ret__int#c@v1",
+			"abiSymbol": "xl__xl_mod_std_math__max__arity2__left__int__right__int__ret__int",
+			"returnType": "int",
+			"async": 0,
+			"generator": 0,
+			"params": [
+				{
+					"name": "left",
+					"label": "left",
+					"type": "int",
+					"hasDefault": 0
+				},
+				{
+					"name": "right",
+					"label": "right",
+					"type": "int",
+					"hasDefault": 0
+				}
+			]
+		},
+		{
+			"module": "std.math",
+			"moduleAbiId": "std.math@0.0.0#abi1::std.math",
+			"exportName": "max",
+			"symbol": "xl_mod_std_math__max",
+			"overloadGroup": "global::xl_mod_std_math__max",
+			"signatureId": "xl_mod_std_math__max(float,float)",
+			"dispatchKey": "xl_mod_std_math__max$arity2|left:float|right:float",
+			"languageAbi": "xlang@v1",
+			"nativeAbi": "c@v1",
+			"languageAbiId": "std.math@0.0.0#abi1::std.math::xl_mod_std_math__max(float,float)#xlang@v1",
+			"nativeAbiId": "std.math@0.0.0#abi1::std.math::xl__xl_mod_std_math__max__arity2__left__float__right__float__ret__float#c@v1",
+			"abiSymbol": "xl__xl_mod_std_math__max__arity2__left__float__right__float__ret__float",
+			"returnType": "float",
+			"async": 0,
+			"generator": 0,
+			"params": [
+				{
+					"name": "left",
+					"label": "left",
+					"type": "float",
+					"hasDefault": 0
+				},
+				{
+					"name": "right",
+					"label": "right",
+					"type": "float",
+					"hasDefault": 0
+				}
+			]
+		},
+		{
+			"module": "std.math",
+			"moduleAbiId": "std.math@0.0.0#abi1::std.math",
+			"exportName": "clamp",
+			"symbol": "xl_mod_std_math__clamp",
+			"overloadGroup": "global::xl_mod_std_math__clamp",
+			"signatureId": "xl_mod_std_math__clamp(int,int,int)",
+			"dispatchKey": "xl_mod_std_math__clamp$arity3|value:int|low:int|high:int",
+			"languageAbi": "xlang@v1",
+			"nativeAbi": "c@v1",
+			"languageAbiId": "std.math@0.0.0#abi1::std.math::xl_mod_std_math__clamp(int,int,int)#xlang@v1",
+			"nativeAbiId": "std.math@0.0.0#abi1::std.math::xl__xl_mod_std_math__clamp__arity3__value__int__low__int__high__int__ret__int#c@v1",
+			"abiSymbol": "xl__xl_mod_std_math__clamp__arity3__value__int__low__int__high__int__ret__int",
+			"returnType": "int",
+			"async": 0,
+			"generator": 0,
+			"params": [
+				{
+					"name": "value",
+					"label": "value",
+					"type": "int",
+					"hasDefault": 0
+				},
+				{
+					"name": "low",
+					"label": "low",
+					"type": "int",
+					"hasDefault": 0
+				},
+				{
+					"name": "high",
+					"label": "high",
+					"type": "int",
+					"hasDefault": 0
+				}
+			]
+		},
+		{
+			"module": "std.math",
+			"moduleAbiId": "std.math@0.0.0#abi1::std.math",
+			"exportName": "clamp",
+			"symbol": "xl_mod_std_math__clamp",
+			"overloadGroup": "global::xl_mod_std_math__clamp",
+			"signatureId": "xl_mod_std_math__clamp(float,float,float)",
+			"dispatchKey": "xl_mod_std_math__clamp$arity3|value:float|low:float|high:float",
+			"languageAbi": "xlang@v1",
+			"nativeAbi": "c@v1",
+			"languageAbiId": "std.math@0.0.0#abi1::std.math::xl_mod_std_math__clamp(float,float,float)#xlang@v1",
+			"nativeAbiId": "std.math@0.0.0#abi1::std.math::xl__xl_mod_std_math__clamp__arity3__value__float__low__float__high__float__ret__float#c@v1",
+			"abiSymbol": "xl__xl_mod_std_math__clamp__arity3__value__float__low__float__high__float__ret__float",
+			"returnType": "float",
+			"async": 0,
+			"generator": 0,
+			"params": [
+				{
+					"name": "value",
+					"label": "value",
+					"type": "float",
+					"hasDefault": 0
+				},
+				{
+					"name": "low",
+					"label": "low",
+					"type": "float",
+					"hasDefault": 0
+				},
+				{
+					"name": "high",
+					"label": "high",
+					"type": "float",
+					"hasDefault": 0
+				}
+			]
+		},
+		{
+			"module": "std.math",
+			"moduleAbiId": "std.math@0.0.0#abi1::std.math",
+			"exportName": "floor",
+			"symbol": "xl_mod_std_math__floor",
+			"overloadGroup": "global::xl_mod_std_math__floor",
+			"signatureId": "xl_mod_std_math__floor(float)",
+			"dispatchKey": "xl_mod_std_math__floor$arity1|value:float",
+			"languageAbi": "xlang@v1",
+			"nativeAbi": "c@v1",
+			"languageAbiId": "std.math@0.0.0#abi1::std.math::xl_mod_std_math__floor(float)#xlang@v1",
+			"nativeAbiId": "std.math@0.0.0#abi1::std.math::xl__xl_mod_std_math__floor__arity1__value__float__ret__float#c@v1",
+			"abiSymbol": "xl__xl_mod_std_math__floor__arity1__value__float__ret__float",
+			"returnType": "float",
+			"async": 0,
+			"generator": 0,
+			"params": [
+				{
+					"name": "value",
+					"label": "value",
+					"type": "float",
+					"hasDefault": 0
+				}
+			]
+		},
+		{
+			"module": "std.math",
+			"moduleAbiId": "std.math@0.0.0#abi1::std.math",
+			"exportName": "ceil",
+			"symbol": "xl_mod_std_math__ceil",
+			"overloadGroup": "global::xl_mod_std_math__ceil",
+			"signatureId": "xl_mod_std_math__ceil(float)",
+			"dispatchKey": "xl_mod_std_math__ceil$arity1|value:float",
+			"languageAbi": "xlang@v1",
+			"nativeAbi": "c@v1",
+			"languageAbiId": "std.math@0.0.0#abi1::std.math::xl_mod_std_math__ceil(float)#xlang@v1",
+			"nativeAbiId": "std.math@0.0.0#abi1::std.math::xl__xl_mod_std_math__ceil__arity1__value__float__ret__float#c@v1",
+			"abiSymbol": "xl__xl_mod_std_math__ceil__arity1__value__float__ret__float",
+			"returnType": "float",
+			"async": 0,
+			"generator": 0,
+			"params": [
+				{
+					"name": "value",
+					"label": "value",
+					"type": "float",
+					"hasDefault": 0
+				}
+			]
+		},
+		{
+			"module": "std.math",
+			"moduleAbiId": "std.math@0.0.0#abi1::std.math",
+			"exportName": "round",
+			"symbol": "xl_mod_std_math__round",
+			"overloadGroup": "global::xl_mod_std_math__round",
+			"signatureId": "xl_mod_std_math__round(float)",
+			"dispatchKey": "xl_mod_std_math__round$arity1|value:float",
+			"languageAbi": "xlang@v1",
+			"nativeAbi": "c@v1",
+			"languageAbiId": "std.math@0.0.0#abi1::std.math::xl_mod_std_math__round(float)#xlang@v1",
+			"nativeAbiId": "std.math@0.0.0#abi1::std.math::xl__xl_mod_std_math__round__arity1__value__float__ret__float#c@v1",
+			"abiSymbol": "xl__xl_mod_std_math__round__arity1__value__float__ret__float",
+			"returnType": "float",
+			"async": 0,
+			"generator": 0,
+			"params": [
+				{
+					"name": "value",
+					"label": "value",
+					"type": "float",
+					"hasDefault": 0
+				}
+			]
+		},
+		{
+			"module": "std.math",
+			"moduleAbiId": "std.math@0.0.0#abi1::std.math",
+			"exportName": "trunc",
+			"symbol": "xl_mod_std_math__trunc",
+			"overloadGroup": "global::xl_mod_std_math__trunc",
+			"signatureId": "xl_mod_std_math__trunc(float)",
+			"dispatchKey": "xl_mod_std_math__trunc$arity1|value:float",
+			"languageAbi": "xlang@v1",
+			"nativeAbi": "c@v1",
+			"languageAbiId": "std.math@0.0.0#abi1::std.math::xl_mod_std_math__trunc(float)#xlang@v1",
+			"nativeAbiId": "std.math@0.0.0#abi1::std.math::xl__xl_mod_std_math__trunc__arity1__value__float__ret__float#c@v1",
+			"abiSymbol": "xl__xl_mod_std_math__trunc__arity1__value__float__ret__float",
+			"returnType": "float",
+			"async": 0,
+			"generator": 0,
+			"params": [
+				{
+					"name": "value",
+					"label": "value",
+					"type": "float",
+					"hasDefault": 0
+				}
+			]
+		},
+		{
+			"module": "std.math",
+			"moduleAbiId": "std.math@0.0.0#abi1::std.math",
+			"exportName": "sqrt",
+			"symbol": "xl_mod_std_math__sqrt",
+			"overloadGroup": "global::xl_mod_std_math__sqrt",
+			"signatureId": "xl_mod_std_math__sqrt(float)",
+			"dispatchKey": "xl_mod_std_math__sqrt$arity1|value:float",
+			"languageAbi": "xlang@v1",
+			"nativeAbi": "c@v1",
+			"languageAbiId": "std.math@0.0.0#abi1::std.math::xl_mod_std_math__sqrt(float)#xlang@v1",
+			"nativeAbiId": "std.math@0.0.0#abi1::std.math::xl__xl_mod_std_math__sqrt__arity1__value__float__ret__float#c@v1",
+			"abiSymbol": "xl__xl_mod_std_math__sqrt__arity1__value__float__ret__float",
+			"returnType": "float",
+			"async": 0,
+			"generator": 0,
+			"params": [
+				{
+					"name": "value",
+					"label": "value",
+					"type": "float",
+					"hasDefault": 0
+				}
+			]
+		},
+		{
+			"module": "std.math",
+			"moduleAbiId": "std.math@0.0.0#abi1::std.math",
+			"exportName": "pow",
+			"symbol": "xl_mod_std_math__pow",
+			"overloadGroup": "global::xl_mod_std_math__pow",
+			"signatureId": "xl_mod_std_math__pow(float,float)",
+			"dispatchKey": "xl_mod_std_math__pow$arity2|value:float|exp:float",
+			"languageAbi": "xlang@v1",
+			"nativeAbi": "c@v1",
+			"languageAbiId": "std.math@0.0.0#abi1::std.math::xl_mod_std_math__pow(float,float)#xlang@v1",
+			"nativeAbiId": "std.math@0.0.0#abi1::std.math::xl__xl_mod_std_math__pow__arity2__value__float__exp__float__ret__float#c@v1",
+			"abiSymbol": "xl__xl_mod_std_math__pow__arity2__value__float__exp__float__ret__float",
+			"returnType": "float",
+			"async": 0,
+			"generator": 0,
+			"params": [
+				{
+					"name": "value",
+					"label": "value",
+					"type": "float",
+					"hasDefault": 0
+				},
+				{
+					"name": "exp",
+					"label": "exp",
+					"type": "float",
+					"hasDefault": 0
+				}
+			]
+		},
+		{
+			"module": "std.math",
+			"moduleAbiId": "std.math@0.0.0#abi1::std.math",
+			"exportName": "sin",
+			"symbol": "xl_mod_std_math__sin",
+			"overloadGroup": "global::xl_mod_std_math__sin",
+			"signatureId": "xl_mod_std_math__sin(float)",
+			"dispatchKey": "xl_mod_std_math__sin$arity1|value:float",
+			"languageAbi": "xlang@v1",
+			"nativeAbi": "c@v1",
+			"languageAbiId": "std.math@0.0.0#abi1::std.math::xl_mod_std_math__sin(float)#xlang@v1",
+			"nativeAbiId": "std.math@0.0.0#abi1::std.math::xl__xl_mod_std_math__sin__arity1__value__float__ret__float#c@v1",
+			"abiSymbol": "xl__xl_mod_std_math__sin__arity1__value__float__ret__float",
+			"returnType": "float",
+			"async": 0,
+			"generator": 0,
+			"params": [
+				{
+					"name": "value",
+					"label": "value",
+					"type": "float",
+					"hasDefault": 0
+				}
+			]
+		},
+		{
+			"module": "std.math",
+			"moduleAbiId": "std.math@0.0.0#abi1::std.math",
+			"exportName": "cos",
+			"symbol": "xl_mod_std_math__cos",
+			"overloadGroup": "global::xl_mod_std_math__cos",
+			"signatureId": "xl_mod_std_math__cos(float)",
+			"dispatchKey": "xl_mod_std_math__cos$arity1|value:float",
+			"languageAbi": "xlang@v1",
+			"nativeAbi": "c@v1",
+			"languageAbiId": "std.math@0.0.0#abi1::std.math::xl_mod_std_math__cos(float)#xlang@v1",
+			"nativeAbiId": "std.math@0.0.0#abi1::std.math::xl__xl_mod_std_math__cos__arity1__value__float__ret__float#c@v1",
+			"abiSymbol": "xl__xl_mod_std_math__cos__arity1__value__float__ret__float",
+			"returnType": "float",
+			"async": 0,
+			"generator": 0,
+			"params": [
+				{
+					"name": "value",
+					"label": "value",
+					"type": "float",
+					"hasDefault": 0
+				}
+			]
+		},
+		{
+			"module": "std.math",
+			"moduleAbiId": "std.math@0.0.0#abi1::std.math",
+			"exportName": "tan",
+			"symbol": "xl_mod_std_math__tan",
+			"overloadGroup": "global::xl_mod_std_math__tan",
+			"signatureId": "xl_mod_std_math__tan(float)",
+			"dispatchKey": "xl_mod_std_math__tan$arity1|value:float",
+			"languageAbi": "xlang@v1",
+			"nativeAbi": "c@v1",
+			"languageAbiId": "std.math@0.0.0#abi1::std.math::xl_mod_std_math__tan(float)#xlang@v1",
+			"nativeAbiId": "std.math@0.0.0#abi1::std.math::xl__xl_mod_std_math__tan__arity1__value__float__ret__float#c@v1",
+			"abiSymbol": "xl__xl_mod_std_math__tan__arity1__value__float__ret__float",
+			"returnType": "float",
+			"async": 0,
+			"generator": 0,
+			"params": [
+				{
+					"name": "value",
+					"label": "value",
+					"type": "float",
+					"hasDefault": 0
+				}
+			]
+		},
+		{
+			"module": "std.math",
+			"moduleAbiId": "std.math@0.0.0#abi1::std.math",
+			"exportName": "exp",
+			"symbol": "xl_mod_std_math__exp",
+			"overloadGroup": "global::xl_mod_std_math__exp",
+			"signatureId": "xl_mod_std_math__exp(float)",
+			"dispatchKey": "xl_mod_std_math__exp$arity1|value:float",
+			"languageAbi": "xlang@v1",
+			"nativeAbi": "c@v1",
+			"languageAbiId": "std.math@0.0.0#abi1::std.math::xl_mod_std_math__exp(float)#xlang@v1",
+			"nativeAbiId": "std.math@0.0.0#abi1::std.math::xl__xl_mod_std_math__exp__arity1__value__float__ret__float#c@v1",
+			"abiSymbol": "xl__xl_mod_std_math__exp__arity1__value__float__ret__float",
+			"returnType": "float",
+			"async": 0,
+			"generator": 0,
+			"params": [
+				{
+					"name": "value",
+					"label": "value",
+					"type": "float",
+					"hasDefault": 0
+				}
+			]
+		},
+		{
+			"module": "std.math",
+			"moduleAbiId": "std.math@0.0.0#abi1::std.math",
+			"exportName": "log",
+			"symbol": "xl_mod_std_math__log",
+			"overloadGroup": "global::xl_mod_std_math__log",
+			"signatureId": "xl_mod_std_math__log(float)",
+			"dispatchKey": "xl_mod_std_math__log$arity1|value:float",
+			"languageAbi": "xlang@v1",
+			"nativeAbi": "c@v1",
+			"languageAbiId": "std.math@0.0.0#abi1::std.math::xl_mod_std_math__log(float)#xlang@v1",
+			"nativeAbiId": "std.math@0.0.0#abi1::std.math::xl__xl_mod_std_math__log__arity1__value__float__ret__float#c@v1",
+			"abiSymbol": "xl__xl_mod_std_math__log__arity1__value__float__ret__float",
+			"returnType": "float",
+			"async": 0,
+			"generator": 0,
+			"params": [
+				{
+					"name": "value",
+					"label": "value",
+					"type": "float",
+					"hasDefault": 0
+				}
+			]
+		},
+		{
+			"module": "std.math",
+			"moduleAbiId": "std.math@0.0.0#abi1::std.math",
+			"exportName": "log10",
+			"symbol": "xl_mod_std_math__log10",
+			"overloadGroup": "global::xl_mod_std_math__log10",
+			"signatureId": "xl_mod_std_math__log10(float)",
+			"dispatchKey": "xl_mod_std_math__log10$arity1|value:float",
+			"languageAbi": "xlang@v1",
+			"nativeAbi": "c@v1",
+			"languageAbiId": "std.math@0.0.0#abi1::std.math::xl_mod_std_math__log10(float)#xlang@v1",
+			"nativeAbiId": "std.math@0.0.0#abi1::std.math::xl__xl_mod_std_math__log10__arity1__value__float__ret__float#c@v1",
+			"abiSymbol": "xl__xl_mod_std_math__log10__arity1__value__float__ret__float",
+			"returnType": "float",
+			"async": 0,
+			"generator": 0,
+			"params": [
+				{
+					"name": "value",
+					"label": "value",
+					"type": "float",
+					"hasDefault": 0
+				}
+			]
+		}
+	]
+}

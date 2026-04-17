@@ -15,6 +15,7 @@ static int __xlXlpResolveModuleFromManifest(const char* sManifestPath, const cha
 static int __xlXlpFindDependencyVersion(const char* sManifestPath, const char* sImportKey, char* sOutVersion, size_t iOutVersionSize);
 static int __xlXlpParseDependencies(const char* sJson, XL_XlpDependencyInfo** ppDeps, size_t* piDepCount);
 static int __xlXlpParseFunctions(const char* sJson, const char* sModuleKey, XL_XlpFunctionInfo** ppFuncs, size_t* piFuncCount);
+static int __xlXlpParseExports(const char* sJson, const char* sModuleKey, XL_XlpExportInfo** ppExports, size_t* piExportCount);
 static int __xlXlpParseArtifactSection(const char* sJson, XL_XlpResolveInfo* pInfo);
 static int __xlXlpFinalizeArtifactInfo(XL_XlpResolveInfo* pInfo, const char* sManifestPath, const char* sModuleFile, int bIsNative);
 
@@ -1331,6 +1332,32 @@ void xlXlpFunctionInfoFree(XL_XlpFunctionInfo* pFuncs, size_t iFuncCount)
 	free(pFuncs);
 }
 
+void xlXlpExportInfoFree(XL_XlpExportInfo* pExports)
+{
+	free(pExports);
+}
+
+static int __xlXlpExportInfoAdd(XL_XlpExportInfo** ppExports, size_t* piExportCount, const XL_XlpExportInfo* pExport)
+{
+	XL_XlpExportInfo* pNewExports;
+	size_t iNewCount;
+
+	if ( (ppExports == NULL) || (piExportCount == NULL) || (pExport == NULL) ) {
+		return XL_RC_BAD_ARG;
+	}
+
+	iNewCount = (*piExportCount) + 1u;
+	pNewExports = (XL_XlpExportInfo*)realloc(*ppExports, sizeof(*pNewExports) * iNewCount);
+	if ( pNewExports == NULL ) {
+		return XL_RC_IO_ERROR;
+	}
+
+	*ppExports = pNewExports;
+	(*ppExports)[*piExportCount] = *pExport;
+	*piExportCount = iNewCount;
+	return XL_RC_OK;
+}
+
 static int __xlXlpParseParams(XL_XlpJsonCursor* pCur, XL_XlpFunctionInfo* pFunc)
 {
 	if ( (pCur == NULL) || (pFunc == NULL) ) {
@@ -1405,6 +1432,117 @@ static int __xlXlpParseParams(XL_XlpJsonCursor* pCur, XL_XlpFunctionInfo* pFunc)
 
 		if ( __xlXlpFunctionInfoAddParam(pFunc, &param) != XL_RC_OK ) {
 			return XL_RC_IO_ERROR;
+		}
+
+		__xlXlpSkipWs(pCur);
+		if ( *pCur->pCur == ',' ) {
+			pCur->pCur += 1;
+			continue;
+		}
+		if ( *pCur->pCur == ']' ) {
+			pCur->pCur += 1;
+			return XL_RC_OK;
+		}
+	}
+
+	return XL_RC_FAIL;
+}
+
+static int __xlXlpParseModuleExports(
+	XL_XlpJsonCursor* pCur,
+	const char* sFilterModuleKey,
+	const char* sModuleKey,
+	const char* sModuleAbiId,
+	XL_XlpExportInfo** ppExports,
+	size_t* piExportCount
+)
+{
+	if ( (pCur == NULL) || (ppExports == NULL) || (piExportCount == NULL) ) {
+		return XL_RC_BAD_ARG;
+	}
+
+	__xlXlpSkipWs(pCur);
+	if ( (pCur->pCur >= pCur->pEnd) || (*pCur->pCur != '[') ) {
+		return XL_RC_FAIL;
+	}
+	pCur->pCur += 1;
+
+	while ( pCur->pCur < pCur->pEnd ) {
+		XL_XlpExportInfo info;
+
+		memset(&info, 0, sizeof(info));
+		__xlXlpCopyText(info.sModule, sizeof(info.sModule), sModuleKey);
+		__xlXlpCopyText(info.sModuleAbiId, sizeof(info.sModuleAbiId), sModuleAbiId);
+
+		__xlXlpSkipWs(pCur);
+		if ( *pCur->pCur == ']' ) {
+			pCur->pCur += 1;
+			return XL_RC_OK;
+		}
+		if ( *pCur->pCur != '{' ) {
+			return XL_RC_FAIL;
+		}
+		pCur->pCur += 1;
+
+		while ( pCur->pCur < pCur->pEnd ) {
+			char* sField;
+			char* sValue;
+
+			__xlXlpSkipWs(pCur);
+			if ( *pCur->pCur == '}' ) {
+				pCur->pCur += 1;
+				break;
+			}
+
+			sField = NULL;
+			if ( __xlXlpParseString(pCur, &sField) != XL_RC_OK ) {
+				return XL_RC_FAIL;
+			}
+			__xlXlpSkipWs(pCur);
+			if ( (pCur->pCur >= pCur->pEnd) || (*pCur->pCur != ':') ) {
+				free(sField);
+				return XL_RC_FAIL;
+			}
+			pCur->pCur += 1;
+
+			sValue = NULL;
+			if ( __xlXlpParseString(pCur, &sValue) == XL_RC_OK ) {
+				if ( strcmp(sField, "name") == 0 ) {
+					__xlXlpCopyText(info.sName, sizeof(info.sName), sValue);
+				} else if ( strcmp(sField, "symbol") == 0 ) {
+					__xlXlpCopyText(info.sSymbol, sizeof(info.sSymbol), sValue);
+				} else if ( strcmp(sField, "abiId") == 0 ) {
+					__xlXlpCopyText(info.sAbiId, sizeof(info.sAbiId), sValue);
+				} else if ( strcmp(sField, "versionedSymbol") == 0 ) {
+					__xlXlpCopyText(info.sVersionedSymbol, sizeof(info.sVersionedSymbol), sValue);
+				} else if ( strcmp(sField, "kind") == 0 ) {
+					__xlXlpCopyText(info.sKind, sizeof(info.sKind), sValue);
+				}
+				free(sValue);
+			} else if ( strcmp(sField, "overloadCount") == 0 ) {
+				if ( __xlXlpParseBoolLike(pCur, &info.iOverloadCount) != XL_RC_OK ) {
+					free(sField);
+					return XL_RC_FAIL;
+				}
+			} else if ( __xlXlpSkipValue(pCur) != XL_RC_OK ) {
+				free(sField);
+				return XL_RC_FAIL;
+			}
+
+			free(sField);
+			__xlXlpSkipWs(pCur);
+			if ( *pCur->pCur == ',' ) {
+				pCur->pCur += 1;
+				continue;
+			}
+		}
+
+		if ( ((sFilterModuleKey == NULL) || (sFilterModuleKey[0] == '\0') || (strcmp(info.sModule, sFilterModuleKey) == 0)) &&
+			(info.sName[0] != '\0') &&
+			(info.sSymbol[0] != '\0') ) {
+			if ( __xlXlpExportInfoAdd(ppExports, piExportCount, &info) != XL_RC_OK ) {
+				return XL_RC_IO_ERROR;
+			}
 		}
 
 		__xlXlpSkipWs(pCur);
@@ -1804,6 +1942,157 @@ static int __xlXlpParseDependencies(const char* sJson, XL_XlpDependencyInfo** pp
 	return XL_RC_OK;
 }
 
+static int __xlXlpParseExports(const char* sJson, const char* sModuleKey, XL_XlpExportInfo** ppExports, size_t* piExportCount)
+{
+	XL_XlpJsonCursor cur;
+	char* sKey;
+	XL_XlpExportInfo* pExports;
+	size_t iExportCount;
+
+	if ( (sJson == NULL) || (ppExports == NULL) || (piExportCount == NULL) ) {
+		return XL_RC_BAD_ARG;
+	}
+
+	*ppExports = NULL;
+	*piExportCount = 0;
+	pExports = NULL;
+	iExportCount = 0;
+	sKey = NULL;
+
+	cur.pCur = sJson;
+	cur.pEnd = sJson + strlen(sJson);
+	__xlXlpSkipWs(&cur);
+	if ( (cur.pCur >= cur.pEnd) || (*cur.pCur != '{') ) {
+		return XL_RC_FAIL;
+	}
+	cur.pCur += 1;
+
+	while ( cur.pCur < cur.pEnd ) {
+		sKey = NULL;
+		__xlXlpSkipWs(&cur);
+		if ( (cur.pCur < cur.pEnd) && (*cur.pCur == '}') ) {
+			break;
+		}
+		if ( __xlXlpParseString(&cur, &sKey) != XL_RC_OK ) {
+			xlXlpExportInfoFree(pExports);
+			return XL_RC_FAIL;
+		}
+		__xlXlpSkipWs(&cur);
+		if ( (cur.pCur >= cur.pEnd) || (*cur.pCur != ':') ) {
+			free(sKey);
+			xlXlpExportInfoFree(pExports);
+			return XL_RC_FAIL;
+		}
+		cur.pCur += 1;
+
+		if ( strcmp(sKey, "modules") == 0 ) {
+			__xlXlpSkipWs(&cur);
+			if ( (cur.pCur >= cur.pEnd) || (*cur.pCur != '[') ) {
+				free(sKey);
+				xlXlpExportInfoFree(pExports);
+				return XL_RC_FAIL;
+			}
+			cur.pCur += 1;
+
+			while ( cur.pCur < cur.pEnd ) {
+				char sModuleName[XL_PATH_MAX_LEN];
+				char sModuleAbiId[XL_PATH_MAX_LEN];
+
+				memset(sModuleName, 0, sizeof(sModuleName));
+				memset(sModuleAbiId, 0, sizeof(sModuleAbiId));
+				__xlXlpSkipWs(&cur);
+				if ( *cur.pCur == ']' ) {
+					cur.pCur += 1;
+					break;
+				}
+				if ( *cur.pCur != '{' ) {
+					free(sKey);
+					xlXlpExportInfoFree(pExports);
+					return XL_RC_FAIL;
+				}
+				cur.pCur += 1;
+
+				while ( cur.pCur < cur.pEnd ) {
+					char* sField;
+					char* sValue;
+
+					__xlXlpSkipWs(&cur);
+					if ( *cur.pCur == '}' ) {
+						cur.pCur += 1;
+						break;
+					}
+
+					sField = NULL;
+					if ( __xlXlpParseString(&cur, &sField) != XL_RC_OK ) {
+						free(sKey);
+						xlXlpExportInfoFree(pExports);
+						return XL_RC_FAIL;
+					}
+					__xlXlpSkipWs(&cur);
+					if ( (cur.pCur >= cur.pEnd) || (*cur.pCur != ':') ) {
+						free(sField);
+						free(sKey);
+						xlXlpExportInfoFree(pExports);
+						return XL_RC_FAIL;
+					}
+					cur.pCur += 1;
+
+					sValue = NULL;
+					if ( __xlXlpParseString(&cur, &sValue) == XL_RC_OK ) {
+						if ( strcmp(sField, "key") == 0 ) {
+							__xlXlpCopyText(sModuleName, sizeof(sModuleName), sValue);
+						} else if ( strcmp(sField, "abiId") == 0 ) {
+							__xlXlpCopyText(sModuleAbiId, sizeof(sModuleAbiId), sValue);
+						}
+						free(sValue);
+					} else if ( strcmp(sField, "exports") == 0 ) {
+						if ( __xlXlpParseModuleExports(&cur, sModuleKey, sModuleName, sModuleAbiId, &pExports, &iExportCount) != XL_RC_OK ) {
+							free(sField);
+							free(sKey);
+							xlXlpExportInfoFree(pExports);
+							return XL_RC_FAIL;
+						}
+					} else if ( __xlXlpSkipValue(&cur) != XL_RC_OK ) {
+						free(sField);
+						free(sKey);
+						xlXlpExportInfoFree(pExports);
+						return XL_RC_FAIL;
+					}
+
+					free(sField);
+					__xlXlpSkipWs(&cur);
+					if ( *cur.pCur == ',' ) {
+						cur.pCur += 1;
+						continue;
+					}
+				}
+
+				__xlXlpSkipWs(&cur);
+				if ( *cur.pCur == ',' ) {
+					cur.pCur += 1;
+					continue;
+				}
+			}
+		} else if ( __xlXlpSkipValue(&cur) != XL_RC_OK ) {
+			free(sKey);
+			xlXlpExportInfoFree(pExports);
+			return XL_RC_FAIL;
+		}
+
+		free(sKey);
+		sKey = NULL;
+		__xlXlpSkipWs(&cur);
+		if ( *cur.pCur == ',' ) {
+			cur.pCur += 1;
+			continue;
+		}
+	}
+
+	*ppExports = pExports;
+	*piExportCount = iExportCount;
+	return XL_RC_OK;
+}
+
 int xlXlpReadDependencies(
 	const char* sManifestPath,
 	XL_XlpDependencyInfo** ppDeps,
@@ -1849,6 +2138,33 @@ int xlXlpReadFunctions(
 		return iRc;
 	}
 	iRc = __xlXlpParseFunctions(sJson, sModuleKey, ppFuncs, piFuncCount);
+	free(sJson);
+	return iRc;
+}
+
+int xlXlpReadExports(
+	const char* sManifestPath,
+	const char* sModuleKey,
+	XL_XlpExportInfo** ppExports,
+	size_t* piExportCount
+)
+{
+	char* sJson;
+	int iRc;
+
+	if ( (sManifestPath == NULL) || (ppExports == NULL) || (piExportCount == NULL) ) {
+		return XL_RC_BAD_ARG;
+	}
+
+	*ppExports = NULL;
+	*piExportCount = 0;
+	sJson = NULL;
+	iRc = __xlXlpReadFileText(sManifestPath, &sJson);
+	if ( iRc != XL_RC_OK ) {
+		return iRc;
+	}
+
+	iRc = __xlXlpParseExports(sJson, sModuleKey, ppExports, piExportCount);
 	free(sJson);
 	return iRc;
 }

@@ -81,7 +81,8 @@ release\bin\xl5.exe test [selector]
 
 当前首轮主链路已经可用，但仍保留这些边界：
 
-- generator 当前是“物化 yielded 值后再迭代”的最小运行时，不是完整挂起/恢复执行器
+- generator 当前已切到显式恢复执行器主路径：生成状态结构体 + executor 统一管理 suspend/resume/done；async/generator 复杂控制流的 embedded runtime 直跑回归也已补齐，并通过禁用 `[fallback.*]` 痕迹断言固定下来
+- xlp 元信息当前已显式携带 `moduleAbiId` / `languageAbiId` / `nativeAbiId`，以及导出项级别的 `abiId` / `versionedSymbol`
 - `for in` 的运行期主路径当前聚焦 `range(...)`
 - `std.task` 当前是最小可运行编排语义，不是完整调度系统
 - 更多样例和更细粒度断言会继续通过统一 runner 逐步补齐

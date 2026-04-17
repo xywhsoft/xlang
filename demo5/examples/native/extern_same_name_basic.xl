@@ -1,0 +1,5 @@
+extern func atoi(string text) as int
+
+func main() as int
+	return atoi("42")
+end

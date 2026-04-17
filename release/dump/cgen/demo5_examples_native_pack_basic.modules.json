@@ -1,0 +1,153 @@
+{
+	"modules": [
+		{
+			"key": "std.pack",
+			"file": "<native:std.pack>",
+			"native": 1,
+			"binding": "std.pack",
+			"artifactKind": "",
+			"artifactPath": "",
+			"artifactFile": "",
+			"consumeMode": "",
+			"initSymbol": "xl_mod_std_pack__init",
+			"exportsSymbol": "xl_mod_std_pack__exports",
+			"descriptorSymbol": "xl_mod_std_pack__descriptor",
+			"exports": [
+				{
+					"name": "write_u8",
+					"symbol": "xl_mod_std_pack__write_u8"
+				},
+				{
+					"name": "write_u16_le",
+					"symbol": "xl_mod_std_pack__write_u16_le"
+				},
+				{
+					"name": "write_u16_be",
+					"symbol": "xl_mod_std_pack__write_u16_be"
+				},
+				{
+					"name": "write_u32_le",
+					"symbol": "xl_mod_std_pack__write_u32_le"
+				},
+				{
+					"name": "write_u32_be",
+					"symbol": "xl_mod_std_pack__write_u32_be"
+				},
+				{
+					"name": "read_u8",
+					"symbol": "xl_mod_std_pack__read_u8"
+				},
+				{
+					"name": "read_u16_le",
+					"symbol": "xl_mod_std_pack__read_u16_le"
+				},
+				{
+					"name": "read_u16_be",
+					"symbol": "xl_mod_std_pack__read_u16_be"
+				},
+				{
+					"name": "read_u32_le",
+					"symbol": "xl_mod_std_pack__read_u32_le"
+				},
+				{
+					"name": "read_u32_be",
+					"symbol": "xl_mod_std_pack__read_u32_be"
+				}
+			]
+		},
+		{
+			"key": "<root>",
+			"file": "D:\\Git\\x-lang\\demo5\\examples\\native\\pack_basic.xl",
+			"native": 0,
+			"binding": "",
+			"artifactKind": "",
+			"artifactPath": "",
+			"artifactFile": "",
+			"consumeMode": "",
+			"initSymbol": "xl_mod__root___init",
+			"exportsSymbol": "xl_mod__root___exports",
+			"descriptorSymbol": "xl_mod__root___descriptor",
+			"exports": []
+		}
+	],
+	"registry": {
+	"nativeModules": [
+		{
+			"key": "std.core",
+			"binding": "std.core",
+			"path": "<native:std.core>"
+		},
+		{
+			"key": "std.dir",
+			"binding": "std.dir",
+			"path": "<native:std.dir>"
+		},
+		{
+			"key": "std.env",
+			"binding": "std.env",
+			"path": "<native:std.env>"
+		},
+		{
+			"key": "std.fmt",
+			"binding": "std.fmt",
+			"path": "<native:std.fmt>"
+		},
+		{
+			"key": "std.fs",
+			"binding": "std.fs",
+			"path": "<native:std.fs>"
+		},
+		{
+			"key": "std.host",
+			"binding": "std.host",
+			"path": "<native:std.host>"
+		},
+		{
+			"key": "std.io",
+			"binding": "std.io",
+			"path": "<native:std.io>"
+		},
+		{
+			"key": "std.math",
+			"binding": "std.math",
+			"path": "<native:std.math>"
+		},
+		{
+			"key": "std.pack",
+			"binding": "std.pack",
+			"path": "<native:std.pack>"
+		},
+		{
+			"key": "std.path",
+			"binding": "std.path",
+			"path": "<native:std.path>"
+		},
+		{
+			"key": "std.rand",
+			"binding": "std.rand",
+			"path": "<native:std.rand>"
+		},
+		{
+			"key": "std.process",
+			"binding": "std.process",
+			"path": "<native:std.process>"
+		},
+		{
+			"key": "std.str",
+			"binding": "std.str",
+			"path": "<native:std.str>"
+		},
+		{
+			"key": "std.time",
+			"binding": "std.time",
+			"path": "<native:std.time>"
+		},
+		{
+			"key": "std.task",
+			"binding": "std.task",
+			"path": "<native:std.task>"
+		}
+	]
+}
+
+}

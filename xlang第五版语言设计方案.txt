@@ -588,7 +588,8 @@ ABI 原则：
 	- `signatureId` / `dispatchKey` 继续承担语言层签名定位
 	- `abiSymbol` 继续承担当前 C 层目标符号定位
 	- 首版先稳定“语言层签名 id + ABI 版本 + native 符号名”三者并存
-	- 更细的版本绑定符号编码规则留待后续 `版本绑定 ABI` 再推进
+	- 首版先把稳定分发身份固定在元信息层：函数显式输出 `languageAbiId` / `nativeAbiId`，模块导出显式输出 `abiId` / `versionedSymbol`
+	- 更激进的“把版本编码继续压进最终 C 导出符号名”可以后续再讨论，但不再作为首版版本绑定 ABI 的阻塞项
 
 第五版首版的版本绑定 ABI：
 	- xlp 函数元信息继续保留未绑定版本的 `signatureId` / `abiSymbol`
@@ -1358,7 +1359,7 @@ native 绑定要支持：
 
 	8. native 绑定
 		- 标准模块映射
-		- extern 是否进入首版标准
+		- extern 的首版最小标准已经进入：支持顶层 `extern func` 与 `extern "symbol" func`
 
 
 

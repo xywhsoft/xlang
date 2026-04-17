@@ -1,0 +1,522 @@
+[
+	{
+		"kind": "func",
+		"scopeId": 0,
+		"name": "xl_mod_std_math__abs",
+		"typeName": "int",
+		"line": 1,
+		"column": 6,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "func",
+		"scopeId": 0,
+		"name": "xl_mod_std_math__abs",
+		"typeName": "float",
+		"line": 3,
+		"column": 6,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "func",
+		"scopeId": 0,
+		"name": "xl_mod_std_math__min",
+		"typeName": "int",
+		"line": 5,
+		"column": 6,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "func",
+		"scopeId": 0,
+		"name": "xl_mod_std_math__min",
+		"typeName": "float",
+		"line": 7,
+		"column": 6,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "func",
+		"scopeId": 0,
+		"name": "xl_mod_std_math__max",
+		"typeName": "int",
+		"line": 9,
+		"column": 6,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "func",
+		"scopeId": 0,
+		"name": "xl_mod_std_math__max",
+		"typeName": "float",
+		"line": 11,
+		"column": 6,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "func",
+		"scopeId": 0,
+		"name": "xl_mod_std_math__clamp",
+		"typeName": "int",
+		"line": 13,
+		"column": 6,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "func",
+		"scopeId": 0,
+		"name": "xl_mod_std_math__clamp",
+		"typeName": "float",
+		"line": 15,
+		"column": 6,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "func",
+		"scopeId": 0,
+		"name": "xl_mod_std_math__floor",
+		"typeName": "float",
+		"line": 17,
+		"column": 6,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "func",
+		"scopeId": 0,
+		"name": "xl_mod_std_math__ceil",
+		"typeName": "float",
+		"line": 19,
+		"column": 6,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "func",
+		"scopeId": 0,
+		"name": "xl_mod_std_math__round",
+		"typeName": "float",
+		"line": 21,
+		"column": 6,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "func",
+		"scopeId": 0,
+		"name": "xl_mod_std_math__trunc",
+		"typeName": "float",
+		"line": 23,
+		"column": 6,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "func",
+		"scopeId": 0,
+		"name": "xl_mod_std_math__sqrt",
+		"typeName": "float",
+		"line": 25,
+		"column": 6,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "func",
+		"scopeId": 0,
+		"name": "xl_mod_std_math__pow",
+		"typeName": "float",
+		"line": 27,
+		"column": 6,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "func",
+		"scopeId": 0,
+		"name": "xl_mod_std_math__sin",
+		"typeName": "float",
+		"line": 29,
+		"column": 6,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "func",
+		"scopeId": 0,
+		"name": "xl_mod_std_math__cos",
+		"typeName": "float",
+		"line": 31,
+		"column": 6,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "func",
+		"scopeId": 0,
+		"name": "xl_mod_std_math__tan",
+		"typeName": "float",
+		"line": 33,
+		"column": 6,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "func",
+		"scopeId": 0,
+		"name": "xl_mod_std_math__exp",
+		"typeName": "float",
+		"line": 35,
+		"column": 6,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "func",
+		"scopeId": 0,
+		"name": "xl_mod_std_math__log",
+		"typeName": "float",
+		"line": 37,
+		"column": 6,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "func",
+		"scopeId": 0,
+		"name": "xl_mod_std_math__log10",
+		"typeName": "float",
+		"line": 39,
+		"column": 6,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "func",
+		"scopeId": 0,
+		"name": "main",
+		"typeName": "int",
+		"line": 3,
+		"column": 6,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "param",
+		"scopeId": 1,
+		"name": "value",
+		"typeName": "int",
+		"line": 1,
+		"column": 14,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "param",
+		"scopeId": 3,
+		"name": "value",
+		"typeName": "float",
+		"line": 3,
+		"column": 16,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "param",
+		"scopeId": 5,
+		"name": "left",
+		"typeName": "int",
+		"line": 5,
+		"column": 14,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "param",
+		"scopeId": 5,
+		"name": "right",
+		"typeName": "int",
+		"line": 5,
+		"column": 24,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "param",
+		"scopeId": 7,
+		"name": "left",
+		"typeName": "float",
+		"line": 7,
+		"column": 16,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "param",
+		"scopeId": 7,
+		"name": "right",
+		"typeName": "float",
+		"line": 7,
+		"column": 28,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "param",
+		"scopeId": 9,
+		"name": "left",
+		"typeName": "int",
+		"line": 9,
+		"column": 14,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "param",
+		"scopeId": 9,
+		"name": "right",
+		"typeName": "int",
+		"line": 9,
+		"column": 24,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "param",
+		"scopeId": 11,
+		"name": "left",
+		"typeName": "float",
+		"line": 11,
+		"column": 16,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "param",
+		"scopeId": 11,
+		"name": "right",
+		"typeName": "float",
+		"line": 11,
+		"column": 28,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "param",
+		"scopeId": 13,
+		"name": "value",
+		"typeName": "int",
+		"line": 13,
+		"column": 16,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "param",
+		"scopeId": 13,
+		"name": "low",
+		"typeName": "int",
+		"line": 13,
+		"column": 27,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "param",
+		"scopeId": 13,
+		"name": "high",
+		"typeName": "int",
+		"line": 13,
+		"column": 36,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "param",
+		"scopeId": 15,
+		"name": "value",
+		"typeName": "float",
+		"line": 15,
+		"column": 18,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "param",
+		"scopeId": 15,
+		"name": "low",
+		"typeName": "float",
+		"line": 15,
+		"column": 31,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "param",
+		"scopeId": 15,
+		"name": "high",
+		"typeName": "float",
+		"line": 15,
+		"column": 42,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "param",
+		"scopeId": 17,
+		"name": "value",
+		"typeName": "float",
+		"line": 17,
+		"column": 18,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "param",
+		"scopeId": 19,
+		"name": "value",
+		"typeName": "float",
+		"line": 19,
+		"column": 17,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "param",
+		"scopeId": 21,
+		"name": "value",
+		"typeName": "float",
+		"line": 21,
+		"column": 18,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "param",
+		"scopeId": 23,
+		"name": "value",
+		"typeName": "float",
+		"line": 23,
+		"column": 18,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "param",
+		"scopeId": 25,
+		"name": "value",
+		"typeName": "float",
+		"line": 25,
+		"column": 17,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "param",
+		"scopeId": 27,
+		"name": "value",
+		"typeName": "float",
+		"line": 27,
+		"column": 16,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "param",
+		"scopeId": 27,
+		"name": "exp",
+		"typeName": "float",
+		"line": 27,
+		"column": 29,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "param",
+		"scopeId": 29,
+		"name": "value",
+		"typeName": "float",
+		"line": 29,
+		"column": 16,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "param",
+		"scopeId": 31,
+		"name": "value",
+		"typeName": "float",
+		"line": 31,
+		"column": 16,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "param",
+		"scopeId": 33,
+		"name": "value",
+		"typeName": "float",
+		"line": 33,
+		"column": 16,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "param",
+		"scopeId": 35,
+		"name": "value",
+		"typeName": "float",
+		"line": 35,
+		"column": 16,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "param",
+		"scopeId": 37,
+		"name": "value",
+		"typeName": "float",
+		"line": 37,
+		"column": 16,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "param",
+		"scopeId": 39,
+		"name": "value",
+		"typeName": "float",
+		"line": 39,
+		"column": 18,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "const",
+		"scopeId": 0,
+		"name": "xl_mod_std_math__pi",
+		"typeName": "float",
+		"line": 42,
+		"column": 13,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "const",
+		"scopeId": 0,
+		"name": "xl_mod_std_math__e",
+		"typeName": "float",
+		"line": 43,
+		"column": 13,
+		"async": 0,
+		"generator": 0
+	}
+]
