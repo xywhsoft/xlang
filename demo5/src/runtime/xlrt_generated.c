@@ -7,6 +7,28 @@ static size_t __xlTextLen(const char* sText)
 	return (sText != NULL) ? strlen(sText) : 0u;
 }
 
+static const char* __xlHexLowerBytes(const unsigned char* pBytes, size_t iCount);
+static int __xlTextBufAppend(char** psBuf, size_t* piLen, size_t* piCap, const char* sText, size_t iTextLen);
+static xregex* __xlRegexCreateOrRaise(const char* sPattern);
+static const char* __xlRegexSliceText(const char* sText, size_t iTextLen, xregexspan tSpan);
+static const char* __xlRegexReplaceInternal(const char* sPattern, const char* sText, const char* sValue, int bReplaceAll);
+static int __xlAppendListText(xvalue value, const char* sText, size_t iLen);
+static int __xlJsonEncodeValue(char** psBuf, size_t* piLen, size_t* piCap, xvalue value);
+
+typedef struct XL_JsonParseCtx {
+	const char* sText;
+	size_t iPos;
+	size_t iLen;
+	const char* sError;
+} XL_JsonParseCtx;
+
+static void __xlJsonSkipSpace(XL_JsonParseCtx* pCtx);
+static xvalue __xlJsonParseValue(XL_JsonParseCtx* pCtx);
+static xvalue __xlJsonParseObject(XL_JsonParseCtx* pCtx);
+static xvalue __xlJsonParseArray(XL_JsonParseCtx* pCtx);
+static xvalue __xlJsonParseStringValue(XL_JsonParseCtx* pCtx);
+static xvalue __xlJsonParseNumberValue(XL_JsonParseCtx* pCtx);
+
 static void __xlRaiseNativeError(const char* sKind, const char* sMessage, int iCode, const char* sData)
 {
 	xlrt_native_error_raise(sKind, sMessage, iCode, sData);
@@ -15,6 +37,11 @@ static void __xlRaiseNativeError(const char* sKind, const char* sMessage, int iC
 static void __xlWriteText(const char* sText)
 {
 	fputs((sText != NULL) ? sText : "", stdout);
+}
+
+static void __xlWriteErrorText(const char* sText)
+{
+	fputs((sText != NULL) ? sText : "", stderr);
 }
 
 static xvalue __xlValueCloneAsyncState(xvalue value);
@@ -175,6 +202,210 @@ xvalue xl_value_clone_async_state(xvalue value)
 	return __xlValueCloneAsyncState(value);
 }
 
+const char* xl_debug_text(xvalue value)
+{
+	return xl_value_to_string(value);
+}
+
+void xl_debug_print(xvalue value)
+{
+	__xlWriteText(xl_value_to_string(value));
+}
+
+void xl_debug_println(xvalue value)
+{
+	__xlWriteText(xl_value_to_string(value));
+	__xlWriteText("\n");
+}
+
+void xl_log_debug(const char* sText)
+{
+	__xlWriteText("[debug] ");
+	__xlWriteText((sText != NULL) ? sText : "");
+	__xlWriteText("\n");
+}
+
+void xl_log_info(const char* sText)
+{
+	__xlWriteText("[info] ");
+	__xlWriteText((sText != NULL) ? sText : "");
+	__xlWriteText("\n");
+}
+
+void xl_log_warn(const char* sText)
+{
+	__xlWriteText("[warn] ");
+	__xlWriteText((sText != NULL) ? sText : "");
+	__xlWriteText("\n");
+}
+
+void xl_log_error(const char* sText)
+{
+	__xlWriteText("[error] ");
+	__xlWriteText((sText != NULL) ? sText : "");
+	__xlWriteText("\n");
+}
+
+void xl_trace_write(const char* sText)
+{
+	__xlWriteText("[trace] ");
+	__xlWriteText((sText != NULL) ? sText : "");
+	__xlWriteText("\n");
+}
+
+int xl_regex_is_match(const char* sPattern, const char* sText)
+{
+	xregex* pRegex;
+	int iRc;
+
+	if ( sText == NULL ) {
+		sText = "";
+	}
+	pRegex = __xlRegexCreateOrRaise(sPattern);
+	if ( pRegex == NULL ) {
+		return 0;
+	}
+	iRc = xrtRegexIsMatch(pRegex, sText, __xlTextLen(sText));
+	xrtRegexDestroy(pRegex);
+	return (iRc > 0) ? 1 : 0;
+}
+
+const char* xl_regex_find(const char* sPattern, const char* sText)
+{
+	xregex* pRegex;
+	xregexspan tSpan;
+	size_t iTextLen;
+	int iRc;
+
+	if ( sText == NULL ) {
+		sText = "";
+	}
+	pRegex = __xlRegexCreateOrRaise(sPattern);
+	if ( pRegex == NULL ) {
+		return "";
+	}
+	iTextLen = __xlTextLen(sText);
+	iRc = xrtRegexFind(pRegex, sText, iTextLen, &tSpan);
+	xrtRegexDestroy(pRegex);
+	if ( iRc <= 0 ) {
+		return "";
+	}
+	return __xlRegexSliceText(sText, iTextLen, tSpan);
+}
+
+xvalue xl_regex_captures(const char* sPattern, const char* sText)
+{
+	xregex* pRegex;
+	xvalue value;
+	uint32 iCaptureCount;
+	xregexspan* arrCaptures;
+	uint32 i;
+	size_t iTextLen;
+	int iRc;
+
+	if ( sText == NULL ) {
+		sText = "";
+	}
+	value = xvoCreateList();
+	if ( value == NULL ) {
+		return NULL;
+	}
+	pRegex = __xlRegexCreateOrRaise(sPattern);
+	if ( pRegex == NULL ) {
+		return value;
+	}
+	iCaptureCount = xrtRegexCaptureCount(pRegex);
+	if ( iCaptureCount == 0u ) {
+		iCaptureCount = 1u;
+	}
+	arrCaptures = (xregexspan*)xrtMalloc(sizeof(xregexspan) * (size_t)iCaptureCount);
+	if ( arrCaptures == NULL ) {
+		xrtRegexDestroy(pRegex);
+		__xlRaiseNativeError("RegexError", "regex captures alloc failed", 0, sPattern);
+		return value;
+	}
+	iTextLen = __xlTextLen(sText);
+	iRc = xrtRegexCaptures(pRegex, sText, iTextLen, arrCaptures, iCaptureCount);
+	if ( iRc > 0 ) {
+		for ( i = 0u; i < iCaptureCount; ++i ) {
+			const char* sItem = __xlRegexSliceText(sText, iTextLen, arrCaptures[i]);
+			(void)__xlAppendListText(value, sItem, __xlTextLen(sItem));
+		}
+	}
+	xrtFree(arrCaptures);
+	xrtRegexDestroy(pRegex);
+	return value;
+}
+
+int xl_regex_capture_count(const char* sPattern)
+{
+	xregex* pRegex;
+	int iCount;
+
+	pRegex = __xlRegexCreateOrRaise(sPattern);
+	if ( pRegex == NULL ) {
+		return 0;
+	}
+	iCount = (int)xrtRegexCaptureCount(pRegex);
+	if ( iCount > 0 ) {
+		iCount -= 1;
+	}
+	xrtRegexDestroy(pRegex);
+	return iCount;
+}
+
+const char* xl_regex_replace_first(const char* sPattern, const char* sText, const char* sValue)
+{
+	return __xlRegexReplaceInternal(sPattern, sText, sValue, 0);
+}
+
+const char* xl_regex_replace_all(const char* sPattern, const char* sText, const char* sValue)
+{
+	return __xlRegexReplaceInternal(sPattern, sText, sValue, 1);
+}
+
+const char* xl_json_encode(xvalue value)
+{
+	char* sBuf;
+	size_t iLen;
+	size_t iCap;
+
+	sBuf = NULL;
+	iLen = 0u;
+	iCap = 0u;
+	if ( !__xlJsonEncodeValue(&sBuf, &iLen, &iCap, value) ) {
+		free(sBuf);
+		__xlRaiseNativeError("JsonError", "json encode failed", 0, "");
+		return "";
+	}
+	return (sBuf != NULL) ? sBuf : "";
+}
+
+xvalue xl_json_decode(const char* sText)
+{
+	XL_JsonParseCtx ctx;
+	xvalue value;
+
+	if ( sText == NULL ) {
+		sText = "";
+	}
+	memset(&ctx, 0, sizeof(ctx));
+	ctx.sText = sText;
+	ctx.iLen = __xlTextLen(sText);
+	value = __xlJsonParseValue(&ctx);
+	if ( value == NULL ) {
+		__xlRaiseNativeError("JsonError", (ctx.sError != NULL) ? ctx.sError : "json decode failed", 0, sText);
+		return xvoCreateNull();
+	}
+	__xlJsonSkipSpace(&ctx);
+	if ( ctx.iPos != ctx.iLen ) {
+		xvoUnref(value);
+		__xlRaiseNativeError("JsonError", "trailing json characters", 0, sText);
+		return xvoCreateNull();
+	}
+	return value;
+}
+
 const char* xl_point_to_string(void* value)
 {
 	char sBuf[64];
@@ -275,6 +506,626 @@ static int __xlTextBufAppend(char** psBuf, size_t* piLen, size_t* piCap, const c
 	return 1;
 }
 
+static xregex* __xlRegexCreateOrRaise(const char* sPattern)
+{
+	xregex* pRegex;
+
+	if ( sPattern == NULL ) {
+		sPattern = "";
+	}
+	pRegex = xrtRegexCreate(sPattern);
+	if ( pRegex == NULL ) {
+		__xlRaiseNativeError("RegexError", (const char*)xrtGetError(), 0, sPattern);
+		return NULL;
+	}
+	return pRegex;
+}
+
+static const char* __xlRegexSliceText(const char* sText, size_t iTextLen, xregexspan tSpan)
+{
+	if ( sText == NULL ) {
+		sText = "";
+	}
+	if ( (tSpan.iEnd < tSpan.iBegin) || (tSpan.iBegin > iTextLen) || (tSpan.iEnd > iTextLen) ) {
+		return "";
+	}
+	return XLRT_CSTR(xrtCopyStr((str)(sText + tSpan.iBegin), tSpan.iEnd - tSpan.iBegin));
+}
+
+static int __xlTextBufAppendChar(char** psBuf, size_t* piLen, size_t* piCap, char ch)
+{
+	return __xlTextBufAppend(psBuf, piLen, piCap, &ch, 1u);
+}
+
+static int __xlJsonEncodeString(char** psBuf, size_t* piLen, size_t* piCap, const char* sText, size_t iTextLen)
+{
+	size_t i;
+	char sHex[7];
+
+	if ( !__xlTextBufAppendChar(psBuf, piLen, piCap, '"') ) {
+		return 0;
+	}
+	for ( i = 0; i < iTextLen; ++i ) {
+		unsigned char ch = (unsigned char)sText[i];
+
+		switch ( ch ) {
+			case '\\':
+				if ( !__xlTextBufAppend(psBuf, piLen, piCap, "\\\\", 2u) ) return 0;
+				break;
+			case '"':
+				if ( !__xlTextBufAppend(psBuf, piLen, piCap, "\\\"", 2u) ) return 0;
+				break;
+			case '\b':
+				if ( !__xlTextBufAppend(psBuf, piLen, piCap, "\\b", 2u) ) return 0;
+				break;
+			case '\f':
+				if ( !__xlTextBufAppend(psBuf, piLen, piCap, "\\f", 2u) ) return 0;
+				break;
+			case '\n':
+				if ( !__xlTextBufAppend(psBuf, piLen, piCap, "\\n", 2u) ) return 0;
+				break;
+			case '\r':
+				if ( !__xlTextBufAppend(psBuf, piLen, piCap, "\\r", 2u) ) return 0;
+				break;
+			case '\t':
+				if ( !__xlTextBufAppend(psBuf, piLen, piCap, "\\t", 2u) ) return 0;
+				break;
+			default:
+				if ( ch < 0x20u ) {
+					snprintf(sHex, sizeof(sHex), "\\u%04x", (unsigned int)ch);
+					if ( !__xlTextBufAppend(psBuf, piLen, piCap, sHex, 6u) ) return 0;
+				} else {
+					if ( !__xlTextBufAppendChar(psBuf, piLen, piCap, (char)ch) ) return 0;
+				}
+				break;
+		}
+	}
+	return __xlTextBufAppendChar(psBuf, piLen, piCap, '"');
+}
+
+static int __xlJsonEncodeDict(char** psBuf, size_t* piLen, size_t* piCap, xvalue value)
+{
+	xdict pTable;
+	Dict_Key* pKey;
+	int bFirst;
+
+	if ( !__xlTextBufAppendChar(psBuf, piLen, piCap, '{') ) {
+		return 0;
+	}
+	pTable = xvoGetTable(value);
+	bFirst = 1;
+	if ( pTable != NULL ) {
+		xrtAVLTB_IterBegin((xavltbase)pTable);
+		for ( pKey = (Dict_Key*)xrtAVLTB_IterNext((xavltbase)pTable); pKey != NULL; pKey = (Dict_Key*)xrtAVLTB_IterNext((xavltbase)pTable) ) {
+			xvalue itemValue = *(xvalue*)(&pKey[1]);
+
+			if ( !bFirst && !__xlTextBufAppendChar(psBuf, piLen, piCap, ',') ) {
+				xrtAVLTB_IterEnd((xavltbase)pTable);
+				return 0;
+			}
+			if ( !__xlJsonEncodeString(psBuf, piLen, piCap, pKey->Key, pKey->KeyLen) ||
+				!__xlTextBufAppendChar(psBuf, piLen, piCap, ':') ||
+				!__xlJsonEncodeValue(psBuf, piLen, piCap, itemValue) ) {
+				xrtAVLTB_IterEnd((xavltbase)pTable);
+				return 0;
+			}
+			bFirst = 0;
+		}
+		xrtAVLTB_IterEnd((xavltbase)pTable);
+	}
+	return __xlTextBufAppendChar(psBuf, piLen, piCap, '}');
+}
+
+static int __xlJsonEncodeSet(char** psBuf, size_t* piLen, size_t* piCap, xvalue value)
+{
+	xavltree pTree;
+	Coll_Key* pKey;
+	int bFirst;
+
+	if ( !__xlTextBufAppendChar(psBuf, piLen, piCap, '[') ) {
+		return 0;
+	}
+	pTree = xvoGetColl(value);
+	bFirst = 1;
+	if ( pTree != NULL ) {
+		xrtAVLTreeIterBegin(pTree);
+		for ( pKey = (Coll_Key*)xrtAVLTreeIterNext(pTree); pKey != NULL; pKey = (Coll_Key*)xrtAVLTreeIterNext(pTree) ) {
+			if ( !bFirst && !__xlTextBufAppendChar(psBuf, piLen, piCap, ',') ) {
+				xrtAVLTreeIterEnd(pTree);
+				return 0;
+			}
+			if ( !__xlJsonEncodeValue(psBuf, piLen, piCap, pKey->Value) ) {
+				xrtAVLTreeIterEnd(pTree);
+				return 0;
+			}
+			bFirst = 0;
+		}
+		xrtAVLTreeIterEnd(pTree);
+	}
+	return __xlTextBufAppendChar(psBuf, piLen, piCap, ']');
+}
+
+static int __xlJsonEncodeArrayLike(char** psBuf, size_t* piLen, size_t* piCap, xvalue value, int bList)
+{
+	size_t i;
+	size_t iCount;
+
+	if ( !__xlTextBufAppendChar(psBuf, piLen, piCap, '[') ) {
+		return 0;
+	}
+	iCount = bList ? (size_t)xvoListItemCount(value) : (size_t)xvoArrayItemCount(value);
+	for ( i = 0; i < iCount; ++i ) {
+		xvalue item = bList ? xvoListGetValue(value, (int64)i) : xvoArrayGetValue(value, (uint32)i);
+
+		if ( (i != 0u) && !__xlTextBufAppendChar(psBuf, piLen, piCap, ',') ) {
+			return 0;
+		}
+		if ( !__xlJsonEncodeValue(psBuf, piLen, piCap, item) ) {
+			return 0;
+		}
+	}
+	return __xlTextBufAppendChar(psBuf, piLen, piCap, ']');
+}
+
+static int __xlJsonEncodeValue(char** psBuf, size_t* piLen, size_t* piCap, xvalue value)
+{
+	char sBuf[64];
+	const char* sText;
+	int iLen;
+
+	if ( (value == NULL) || (value->Type == XVO_DT_NULL) ) {
+		return __xlTextBufAppend(psBuf, piLen, piCap, "null", 4u);
+	}
+
+	switch ( value->Type ) {
+		case XVO_DT_BOOL:
+			return __xlTextBufAppend(psBuf, piLen, piCap, xvoGetBool(value) ? "true" : "false", xvoGetBool(value) ? 4u : 5u);
+		case XVO_DT_INT:
+			iLen = xrtI64ToStr(xvoGetInt(value), sBuf);
+			return (iLen >= 0) ? __xlTextBufAppend(psBuf, piLen, piCap, sBuf, (size_t)iLen) : 0;
+		case XVO_DT_FLOAT:
+			iLen = xrtNumToStr(xvoGetFloat(value), sBuf);
+			return (iLen >= 0) ? __xlTextBufAppend(psBuf, piLen, piCap, sBuf, (size_t)iLen) : 0;
+		case XVO_DT_TEXT:
+			sText = (const char*)xvoGetText(value);
+			return __xlJsonEncodeString(psBuf, piLen, piCap, (sText != NULL) ? sText : "", (size_t)xvoGetSize(value));
+		case XVO_DT_ARRAY:
+			return __xlJsonEncodeArrayLike(psBuf, piLen, piCap, value, 0);
+		case XVO_DT_LIST:
+			return __xlJsonEncodeArrayLike(psBuf, piLen, piCap, value, 1);
+		case XVO_DT_COLL:
+			return __xlJsonEncodeSet(psBuf, piLen, piCap, value);
+		case XVO_DT_TABLE:
+			return __xlJsonEncodeDict(psBuf, piLen, piCap, value);
+		default:
+			sText = xl_value_to_string(value);
+			return __xlJsonEncodeString(psBuf, piLen, piCap, (sText != NULL) ? sText : "", __xlTextLen(sText));
+	}
+}
+
+static void __xlJsonSetError(XL_JsonParseCtx* pCtx, const char* sError)
+{
+	if ( (pCtx != NULL) && (pCtx->sError == NULL) ) {
+		pCtx->sError = sError;
+	}
+}
+
+static void __xlJsonSkipSpace(XL_JsonParseCtx* pCtx)
+{
+	while ( (pCtx != NULL) && (pCtx->iPos < pCtx->iLen) ) {
+		unsigned char ch = (unsigned char)pCtx->sText[pCtx->iPos];
+
+		if ( (ch != ' ') && (ch != '\t') && (ch != '\r') && (ch != '\n') ) {
+			break;
+		}
+		pCtx->iPos += 1u;
+	}
+}
+
+static int __xlJsonMatchLiteral(XL_JsonParseCtx* pCtx, const char* sText)
+{
+	size_t iLen;
+
+	if ( (pCtx == NULL) || (sText == NULL) ) {
+		return 0;
+	}
+	iLen = __xlTextLen(sText);
+	if ( ((pCtx->iPos + iLen) > pCtx->iLen) || (memcmp(pCtx->sText + pCtx->iPos, sText, iLen) != 0) ) {
+		return 0;
+	}
+	pCtx->iPos += iLen;
+	return 1;
+}
+
+static xvalue __xlJsonParseStringValue(XL_JsonParseCtx* pCtx)
+{
+	char* sBuf;
+	size_t iLen;
+	size_t iCap;
+
+	if ( (pCtx == NULL) || (pCtx->iPos >= pCtx->iLen) || (pCtx->sText[pCtx->iPos] != '"') ) {
+		__xlJsonSetError(pCtx, "expected string");
+		return NULL;
+	}
+
+	sBuf = NULL;
+	iLen = 0u;
+	iCap = 0u;
+	pCtx->iPos += 1u;
+	while ( pCtx->iPos < pCtx->iLen ) {
+		unsigned char ch = (unsigned char)pCtx->sText[pCtx->iPos++];
+
+		if ( ch == '"' ) {
+			xvalue value = xvoCreateText((str)((sBuf != NULL) ? sBuf : ""), iLen, FALSE);
+			free(sBuf);
+			return value;
+		}
+		if ( ch == '\\' ) {
+			unsigned char esc;
+
+			if ( pCtx->iPos >= pCtx->iLen ) {
+				free(sBuf);
+				__xlJsonSetError(pCtx, "invalid escape");
+				return NULL;
+			}
+			esc = (unsigned char)pCtx->sText[pCtx->iPos++];
+			switch ( esc ) {
+				case '"': ch = '"'; break;
+				case '\\': ch = '\\'; break;
+				case '/': ch = '/'; break;
+				case 'b': ch = '\b'; break;
+				case 'f': ch = '\f'; break;
+				case 'n': ch = '\n'; break;
+				case 'r': ch = '\r'; break;
+				case 't': ch = '\t'; break;
+				case 'u':
+				{
+					unsigned int iCode = 0u;
+					int i;
+
+					if ( (pCtx->iPos + 4u) > pCtx->iLen ) {
+						free(sBuf);
+						__xlJsonSetError(pCtx, "invalid unicode escape");
+						return NULL;
+					}
+					for ( i = 0; i < 4; ++i ) {
+						unsigned char hex = (unsigned char)pCtx->sText[pCtx->iPos++];
+
+						iCode <<= 4u;
+						if ( (hex >= '0') && (hex <= '9') ) iCode |= (unsigned int)(hex - '0');
+						else if ( (hex >= 'a') && (hex <= 'f') ) iCode |= (unsigned int)(hex - 'a' + 10u);
+						else if ( (hex >= 'A') && (hex <= 'F') ) iCode |= (unsigned int)(hex - 'A' + 10u);
+						else {
+							free(sBuf);
+							__xlJsonSetError(pCtx, "invalid unicode escape");
+							return NULL;
+						}
+					}
+					ch = (iCode <= 0x7Fu) ? (unsigned char)iCode : (unsigned char)'?';
+					break;
+				}
+				default:
+					free(sBuf);
+					__xlJsonSetError(pCtx, "invalid escape");
+					return NULL;
+			}
+		}
+		if ( !__xlTextBufAppendChar(&sBuf, &iLen, &iCap, (char)ch) ) {
+			free(sBuf);
+			__xlJsonSetError(pCtx, "out of memory");
+			return NULL;
+		}
+	}
+
+	free(sBuf);
+	__xlJsonSetError(pCtx, "unterminated string");
+	return NULL;
+}
+
+static xvalue __xlJsonParseNumberValue(XL_JsonParseCtx* pCtx)
+{
+	size_t iStart;
+	size_t iLen;
+	char* sTmp;
+	char* pEnd;
+	xvalue value;
+
+	iStart = (pCtx != NULL) ? pCtx->iPos : 0u;
+	if ( (pCtx == NULL) || (iStart >= pCtx->iLen) ) {
+		__xlJsonSetError(pCtx, "expected number");
+		return NULL;
+	}
+
+	if ( pCtx->sText[pCtx->iPos] == '-' ) {
+		pCtx->iPos += 1u;
+	}
+	while ( (pCtx->iPos < pCtx->iLen) && (pCtx->sText[pCtx->iPos] >= '0') && (pCtx->sText[pCtx->iPos] <= '9') ) {
+		pCtx->iPos += 1u;
+	}
+	if ( (pCtx->iPos < pCtx->iLen) && (pCtx->sText[pCtx->iPos] == '.') ) {
+		pCtx->iPos += 1u;
+		while ( (pCtx->iPos < pCtx->iLen) && (pCtx->sText[pCtx->iPos] >= '0') && (pCtx->sText[pCtx->iPos] <= '9') ) {
+			pCtx->iPos += 1u;
+		}
+	}
+	if ( (pCtx->iPos < pCtx->iLen) && ((pCtx->sText[pCtx->iPos] == 'e') || (pCtx->sText[pCtx->iPos] == 'E')) ) {
+		pCtx->iPos += 1u;
+		if ( (pCtx->iPos < pCtx->iLen) && ((pCtx->sText[pCtx->iPos] == '+') || (pCtx->sText[pCtx->iPos] == '-')) ) {
+			pCtx->iPos += 1u;
+		}
+		while ( (pCtx->iPos < pCtx->iLen) && (pCtx->sText[pCtx->iPos] >= '0') && (pCtx->sText[pCtx->iPos] <= '9') ) {
+			pCtx->iPos += 1u;
+		}
+	}
+
+	iLen = pCtx->iPos - iStart;
+	if ( iLen == 0u ) {
+		__xlJsonSetError(pCtx, "expected number");
+		return NULL;
+	}
+
+	sTmp = (char*)malloc(iLen + 1u);
+	if ( sTmp == NULL ) {
+		__xlJsonSetError(pCtx, "out of memory");
+		return NULL;
+	}
+	memcpy(sTmp, pCtx->sText + iStart, iLen);
+	sTmp[iLen] = '\0';
+
+	if ( (strchr(sTmp, '.') != NULL) || (strchr(sTmp, 'e') != NULL) || (strchr(sTmp, 'E') != NULL) ) {
+		double fValue = strtod(sTmp, &pEnd);
+		free(sTmp);
+		if ( (pEnd == NULL) || (*pEnd != '\0') ) {
+			__xlJsonSetError(pCtx, "invalid number");
+			return NULL;
+		}
+		value = xvoCreateFloat(fValue);
+	} else {
+		int64 iValue = (int64)strtoll(sTmp, &pEnd, 10);
+		free(sTmp);
+		if ( (pEnd == NULL) || (*pEnd != '\0') ) {
+			__xlJsonSetError(pCtx, "invalid number");
+			return NULL;
+		}
+		value = xvoCreateInt(iValue);
+	}
+	return value;
+}
+
+static xvalue __xlJsonParseArray(XL_JsonParseCtx* pCtx)
+{
+	xvalue value;
+
+	value = xvoCreateArray();
+	if ( value == NULL ) {
+		__xlJsonSetError(pCtx, "out of memory");
+		return NULL;
+	}
+	pCtx->iPos += 1u;
+	__xlJsonSkipSpace(pCtx);
+	if ( (pCtx->iPos < pCtx->iLen) && (pCtx->sText[pCtx->iPos] == ']') ) {
+		pCtx->iPos += 1u;
+		return value;
+	}
+	for (;;) {
+		xvalue item;
+
+		__xlJsonSkipSpace(pCtx);
+		item = __xlJsonParseValue(pCtx);
+		if ( item == NULL ) {
+			xvoUnref(value);
+			return NULL;
+		}
+		if ( !xvoArrayAppendValue(value, item, TRUE) ) {
+			xvoUnref(item);
+			xvoUnref(value);
+			__xlJsonSetError(pCtx, "out of memory");
+			return NULL;
+		}
+		__xlJsonSkipSpace(pCtx);
+		if ( pCtx->iPos >= pCtx->iLen ) {
+			xvoUnref(value);
+			__xlJsonSetError(pCtx, "unterminated array");
+			return NULL;
+		}
+		if ( pCtx->sText[pCtx->iPos] == ']' ) {
+			pCtx->iPos += 1u;
+			return value;
+		}
+		if ( pCtx->sText[pCtx->iPos] != ',' ) {
+			xvoUnref(value);
+			__xlJsonSetError(pCtx, "expected ','");
+			return NULL;
+		}
+		pCtx->iPos += 1u;
+	}
+}
+
+static xvalue __xlJsonParseObject(XL_JsonParseCtx* pCtx)
+{
+	xvalue value;
+
+	value = xvoCreateTable();
+	if ( value == NULL ) {
+		__xlJsonSetError(pCtx, "out of memory");
+		return NULL;
+	}
+	pCtx->iPos += 1u;
+	__xlJsonSkipSpace(pCtx);
+	if ( (pCtx->iPos < pCtx->iLen) && (pCtx->sText[pCtx->iPos] == '}') ) {
+		pCtx->iPos += 1u;
+		return value;
+	}
+	for (;;) {
+		xvalue keyValue;
+		const char* sKey;
+		size_t iKeyLen;
+		xvalue item;
+
+		__xlJsonSkipSpace(pCtx);
+		keyValue = __xlJsonParseStringValue(pCtx);
+		if ( keyValue == NULL ) {
+			xvoUnref(value);
+			return NULL;
+		}
+		sKey = (const char*)xvoGetText(keyValue);
+		iKeyLen = (size_t)xvoGetSize(keyValue);
+		__xlJsonSkipSpace(pCtx);
+		if ( (pCtx->iPos >= pCtx->iLen) || (pCtx->sText[pCtx->iPos] != ':') ) {
+			xvoUnref(keyValue);
+			xvoUnref(value);
+			__xlJsonSetError(pCtx, "expected ':'");
+			return NULL;
+		}
+		pCtx->iPos += 1u;
+		__xlJsonSkipSpace(pCtx);
+		item = __xlJsonParseValue(pCtx);
+		if ( item == NULL ) {
+			xvoUnref(keyValue);
+			xvoUnref(value);
+			return NULL;
+		}
+		if ( !xvoTableSetValue(value, (str)((sKey != NULL) ? sKey : ""), (uint32)iKeyLen, item, TRUE) ) {
+			xvoUnref(item);
+			xvoUnref(keyValue);
+			xvoUnref(value);
+			__xlJsonSetError(pCtx, "out of memory");
+			return NULL;
+		}
+		xvoUnref(keyValue);
+		__xlJsonSkipSpace(pCtx);
+		if ( pCtx->iPos >= pCtx->iLen ) {
+			xvoUnref(value);
+			__xlJsonSetError(pCtx, "unterminated object");
+			return NULL;
+		}
+		if ( pCtx->sText[pCtx->iPos] == '}' ) {
+			pCtx->iPos += 1u;
+			return value;
+		}
+		if ( pCtx->sText[pCtx->iPos] != ',' ) {
+			xvoUnref(value);
+			__xlJsonSetError(pCtx, "expected ','");
+			return NULL;
+		}
+		pCtx->iPos += 1u;
+	}
+}
+
+static xvalue __xlJsonParseValue(XL_JsonParseCtx* pCtx)
+{
+	__xlJsonSkipSpace(pCtx);
+	if ( (pCtx == NULL) || (pCtx->iPos >= pCtx->iLen) ) {
+		__xlJsonSetError(pCtx, "unexpected end of json");
+		return NULL;
+	}
+
+	switch ( pCtx->sText[pCtx->iPos] ) {
+		case '{':
+			return __xlJsonParseObject(pCtx);
+		case '[':
+			return __xlJsonParseArray(pCtx);
+		case '"':
+			return __xlJsonParseStringValue(pCtx);
+		case 't':
+			if ( __xlJsonMatchLiteral(pCtx, "true") ) return xvoCreateBool(TRUE);
+			break;
+		case 'f':
+			if ( __xlJsonMatchLiteral(pCtx, "false") ) return xvoCreateBool(FALSE);
+			break;
+		case 'n':
+			if ( __xlJsonMatchLiteral(pCtx, "null") ) return xvoCreateNull();
+			break;
+		default:
+			if ( (pCtx->sText[pCtx->iPos] == '-') || ((pCtx->sText[pCtx->iPos] >= '0') && (pCtx->sText[pCtx->iPos] <= '9')) ) {
+				return __xlJsonParseNumberValue(pCtx);
+			}
+			break;
+	}
+
+	__xlJsonSetError(pCtx, "invalid json value");
+	return NULL;
+}
+
+static const char* __xlRegexReplaceInternal(const char* sPattern, const char* sText, const char* sValue, int bReplaceAll)
+{
+	xregex* pRegex;
+	size_t iTextLen;
+	size_t iValueLen;
+	size_t iPos;
+	size_t iAppendPos;
+	char* sBuf;
+	size_t iLen;
+	size_t iCap;
+	xregexspan tSpan;
+	int iRc;
+
+	if ( sText == NULL ) {
+		sText = "";
+	}
+	if ( sValue == NULL ) {
+		sValue = "";
+	}
+	pRegex = __xlRegexCreateOrRaise(sPattern);
+	if ( pRegex == NULL ) {
+		return "";
+	}
+
+	iTextLen = __xlTextLen(sText);
+	iValueLen = __xlTextLen(sValue);
+	iPos = 0u;
+	iAppendPos = 0u;
+	sBuf = NULL;
+	iLen = 0u;
+	iCap = 0u;
+
+	for (;;) {
+		iRc = xrtRegexFindAt(pRegex, sText, iTextLen, iPos, &tSpan);
+		if ( iRc <= 0 ) {
+			break;
+		}
+		if ( tSpan.iBegin < iAppendPos ) {
+			break;
+		}
+		if ( !__xlTextBufAppend(&sBuf, &iLen, &iCap, sText + iAppendPos, tSpan.iBegin - iAppendPos) ) {
+			xrtRegexDestroy(pRegex);
+			return (sBuf != NULL) ? sBuf : "";
+		}
+		if ( !__xlTextBufAppend(&sBuf, &iLen, &iCap, sValue, iValueLen) ) {
+			xrtRegexDestroy(pRegex);
+			return (sBuf != NULL) ? sBuf : "";
+		}
+		iAppendPos = tSpan.iEnd;
+		if ( !bReplaceAll ) {
+			break;
+		}
+		if ( tSpan.iEnd == iPos ) {
+			if ( iPos >= iTextLen ) {
+				break;
+			}
+			if ( !__xlTextBufAppend(&sBuf, &iLen, &iCap, sText + iPos, 1u) ) {
+				xrtRegexDestroy(pRegex);
+				return (sBuf != NULL) ? sBuf : "";
+			}
+			iPos += 1u;
+			iAppendPos = iPos;
+		} else {
+			iPos = tSpan.iEnd;
+		}
+	}
+
+	xrtRegexDestroy(pRegex);
+	if ( sBuf == NULL ) {
+		return XLRT_CSTR(xrtCopyStr((str)sText, iTextLen));
+	}
+	if ( iAppendPos < iTextLen ) {
+		if ( !__xlTextBufAppend(&sBuf, &iLen, &iCap, sText + iAppendPos, iTextLen - iAppendPos) ) {
+			return sBuf;
+		}
+	}
+	return sBuf;
+}
+
 static const char* __xlJoinStrings(xvalue value, int bList, const char* sSep)
 {
 	char* sBuf;
@@ -323,6 +1174,56 @@ void xl_core_println_int(int value) { xl_core_print_int(value); xl_core_println_
 void xl_core_println_float(double value) { xl_core_print_float(value); xl_core_println_void(); }
 void xl_core_println_string(const char* value) { xl_core_print_string(value); xl_core_println_void(); }
 void xl_core_println_bool(int value) { xl_core_print_bool(value); xl_core_println_void(); }
+void xl_io_eprint_int(int value) { fprintf(stderr, "%d", value); }
+void xl_io_eprint_float(double value) { fprintf(stderr, "%g", value); }
+void xl_io_eprint_string(const char* value) { __xlWriteErrorText(value); }
+void xl_io_eprint_bool(int value) { __xlWriteErrorText(value ? "true" : "false"); }
+void xl_io_eprintln_void(void) { fputc('\n', stderr); }
+void xl_io_eprintln_int(int value) { xl_io_eprint_int(value); xl_io_eprintln_void(); }
+void xl_io_eprintln_float(double value) { xl_io_eprint_float(value); xl_io_eprintln_void(); }
+void xl_io_eprintln_string(const char* value) { xl_io_eprint_string(value); xl_io_eprintln_void(); }
+void xl_io_eprintln_bool(int value) { xl_io_eprint_bool(value); xl_io_eprintln_void(); }
+const char* xl_io_read_line(void)
+{
+	char sChunk[256];
+	char* sBuf;
+	size_t iLen;
+	size_t iCap;
+	size_t iChunkLen;
+	char* sNewBuf;
+
+	if ( fgets(sChunk, (int)sizeof(sChunk), stdin) == NULL ) {
+		return "";
+	}
+	iChunkLen = strlen(sChunk);
+	iCap = iChunkLen + 1u;
+	sBuf = (char*)malloc(iCap);
+	if ( sBuf == NULL ) {
+		return "";
+	}
+	memcpy(sBuf, sChunk, iChunkLen + 1u);
+	iLen = iChunkLen;
+	while ( (iLen != 0u) && (sBuf[iLen - 1u] != '\n') && !feof(stdin) ) {
+		if ( fgets(sChunk, (int)sizeof(sChunk), stdin) == NULL ) {
+			break;
+		}
+		iChunkLen = strlen(sChunk);
+		sNewBuf = (char*)realloc(sBuf, iLen + iChunkLen + 1u);
+		if ( sNewBuf == NULL ) {
+			free(sBuf);
+			return "";
+		}
+		sBuf = sNewBuf;
+		memcpy(sBuf + iLen, sChunk, iChunkLen + 1u);
+		iLen += iChunkLen;
+	}
+	while ( (iLen != 0u) && ((sBuf[iLen - 1u] == '\n') || (sBuf[iLen - 1u] == '\r')) ) {
+		--iLen;
+		sBuf[iLen] = '\0';
+	}
+	return sBuf;
+}
+void xl_io_flush(void) { fflush(stdout); fflush(stderr); }
 int xl_core_len_string(const char* value) { return (int)__xlTextLen(value); }
 int xl_core_len_array(xvalue value) { return (int)xvoArrayItemCount(value); }
 int xl_core_len_list(xvalue value) { return (int)xvoListItemCount(value); }
@@ -375,12 +1276,17 @@ const char* xl_time_date_text(void) { return XLRT_CSTR(xrtDateStr()); }
 const char* xl_time_time_text(void) { return XLRT_CSTR(xrtTimeStr()); }
 const char* xl_time_relative(xtime value, xtime base) { return XLRT_CSTR(xrtRelativeTime(value, base)); }
 xtime xl_time_parse(const char* sText) { return xrtStrToTime((str)sText, __xlTextLen(sText)); }
+const char* xl_time_format(xtime value, const char* sPattern) { return XLRT_CSTR(xrtTimeFormat(value, (str)sPattern)); }
+xtime xl_time_parse_format(const char* sText, const char* sPattern) { return xrtTimeParse((str)sText, (str)sPattern); }
+void xl_time_sleep(int iMs) { xrtSleep((uint32)((iMs > 0) ? iMs : 0)); }
+int xl_time_is_leap_year(int iYear) { return xrtIsLeapYear(iYear) ? 1 : 0; }
 
 const char* xl_path_join(const char* sLeft, const char* sRight) { return XLRT_CSTR(xrtPathJoin(2, sLeft, sRight)); }
 const char* xl_path_name_ext(const char* sPath) { return XLRT_CSTR(xrtPathGetNameExt((str)sPath, __xlTextLen(sPath))); }
 const char* xl_path_name(const char* sPath) { return XLRT_CSTR(xrtPathGetName((str)sPath, __xlTextLen(sPath))); }
 const char* xl_path_ext(const char* sPath) { return XLRT_CSTR(xrtPathGetExt((str)sPath, __xlTextLen(sPath))); }
 const char* xl_path_dir(const char* sPath) { return XLRT_CSTR(xrtPathGetDir((str)sPath, __xlTextLen(sPath))); }
+int xl_path_exists(const char* sPath) { return xrtPathExists((str)sPath) ? 1 : 0; }
 int xl_path_is_abs(const char* sPath) { return xrtPathIsAbs((str)sPath, __xlTextLen(sPath)) ? 1 : 0; }
 const char* xl_path_random(const char* sHead, const char* sFoot, int iLen)
 {
@@ -391,6 +1297,16 @@ int xl_fs_exists(const char* sPath) { return xrtFileExists((str)sPath) ? 1 : 0; 
 int xl_fs_is_file(const char* sPath) { return xrtFileExists((str)sPath) ? 1 : 0; }
 int xl_fs_is_dir(const char* sPath) { return xrtDirExists((str)sPath) ? 1 : 0; }
 int xl_fs_size(const char* sPath) { return (int)xrtFileGetSize((str)sPath); }
+int xl_fs_set_size(const char* sPath, int iSize)
+{
+	if ( (sPath == NULL) || (iSize < 0) || !xrtFileSetSize((str)sPath, (size_t)iSize) ) {
+		__xlRaiseNativeError("IOError", "fs.set_size failed", 0, sPath);
+		return 0;
+	}
+	return 1;
+}
+xtime xl_fs_access_time(const char* sPath) { return (xtime)xrtFileGetAccessTime((str)sPath); }
+xtime xl_fs_change_time(const char* sPath) { return (xtime)xrtFileGetChangeTime((str)sPath); }
 const char* xl_fs_read_all(const char* sPath)
 {
 	const char* sText = XLRT_CSTR(xrtFileReadAll((str)sPath, XRT_CP_UTF8, NULL));
@@ -468,6 +1384,14 @@ int xl_str_contains(const char* sText, const char* sPart)
 	if ( iPartLen == 0 ) return 1;
 	if ( sText == NULL ) return 0;
 	return (xrtFindStr((str)sText, __xlTextLen(sText), (str)sPart, iPartLen, FALSE) != NULL) ? 1 : 0;
+}
+int xl_str_empty(const char* sText)
+{
+	return ((sText == NULL) || (__xlTextLen(sText) == 0u)) ? 1 : 0;
+}
+int xl_str_byte_len(const char* sText)
+{
+	return (int)__xlTextLen((sText != NULL) ? sText : "");
 }
 int xl_str_index_of(const char* sText, const char* sPart)
 {
@@ -687,15 +1611,129 @@ const char* xl_str_replace(const char* sText, const char* sPart, const char* sVa
 {
 	return XLRT_CSTR(xrtReplace((str)sText, __xlTextLen(sText), (str)sPart, __xlTextLen(sPart), (str)sValue, __xlTextLen(sValue), NULL));
 }
+const char* xl_str_reverse(const char* sText)
+{
+	size_t iLen;
+	char* sBuf;
+	size_t i;
+
+	if ( sText == NULL ) {
+		return "";
+	}
+	iLen = __xlTextLen(sText);
+	sBuf = (char*)malloc(iLen + 1u);
+	if ( sBuf == NULL ) {
+		return "";
+	}
+	for ( i = 0u; i < iLen; ++i ) {
+		sBuf[i] = sText[iLen - i - 1u];
+	}
+	sBuf[iLen] = '\0';
+	return sBuf;
+}
+const char* xl_str_pad_left(const char* sText, int iWidth, const char* sFill)
+{
+	size_t iTextLen;
+	size_t iFillLen;
+	size_t iNeed;
+	char* sBuf;
+	size_t iPos;
+
+	if ( sText == NULL ) {
+		sText = "";
+	}
+	if ( sFill == NULL ) {
+		sFill = " ";
+	}
+	iTextLen = __xlTextLen(sText);
+	iFillLen = __xlTextLen(sFill);
+	if ( (iWidth <= 0) || ((size_t)iWidth <= iTextLen) ) {
+		return XLRT_CSTR(xrtCopyStr((str)sText, iTextLen));
+	}
+	if ( iFillLen == 0u ) {
+		sFill = " ";
+		iFillLen = 1u;
+	}
+	iNeed = (size_t)iWidth - iTextLen;
+	sBuf = (char*)malloc((size_t)iWidth + 1u);
+	if ( sBuf == NULL ) {
+		return "";
+	}
+	iPos = 0u;
+	while ( iPos < iNeed ) {
+		size_t iTake = iFillLen;
+		if ( iTake > (iNeed - iPos) ) {
+			iTake = iNeed - iPos;
+		}
+		memcpy(sBuf + iPos, sFill, iTake);
+		iPos += iTake;
+	}
+	memcpy(sBuf + iPos, sText, iTextLen);
+	sBuf[iPos + iTextLen] = '\0';
+	return sBuf;
+}
+const char* xl_str_pad_right(const char* sText, int iWidth, const char* sFill)
+{
+	size_t iTextLen;
+	size_t iFillLen;
+	size_t iNeed;
+	char* sBuf;
+	size_t iPos;
+
+	if ( sText == NULL ) {
+		sText = "";
+	}
+	if ( sFill == NULL ) {
+		sFill = " ";
+	}
+	iTextLen = __xlTextLen(sText);
+	iFillLen = __xlTextLen(sFill);
+	if ( (iWidth <= 0) || ((size_t)iWidth <= iTextLen) ) {
+		return XLRT_CSTR(xrtCopyStr((str)sText, iTextLen));
+	}
+	if ( iFillLen == 0u ) {
+		sFill = " ";
+		iFillLen = 1u;
+	}
+	iNeed = (size_t)iWidth - iTextLen;
+	sBuf = (char*)malloc((size_t)iWidth + 1u);
+	if ( sBuf == NULL ) {
+		return "";
+	}
+	memcpy(sBuf, sText, iTextLen);
+	iPos = iTextLen;
+	while ( iPos < (iTextLen + iNeed) ) {
+		size_t iTake = iFillLen;
+		if ( iTake > ((iTextLen + iNeed) - iPos) ) {
+			iTake = (iTextLen + iNeed) - iPos;
+		}
+		memcpy(sBuf + iPos, sFill, iTake);
+		iPos += iTake;
+	}
+	sBuf[iPos] = '\0';
+	return sBuf;
+}
 
 int xl_rand_int32(void) { return (int)xrtRand32(); }
+int xl_rand_bool(void) { return (xrtRand32() & 1u) ? 1 : 0; }
 int xl_rand_range(int iMin, int iMax) { return xrtRandRange(iMin, iMax); }
 const char* xl_rand_text(int iLen) { return XLRT_CSTR(xrtRandStr(NULL, 0u, (size_t)((iLen > 0) ? iLen : 0))); }
+const char* xl_rand_text_from(const char* sTemplate, int iLen)
+{
+	return XLRT_CSTR(xrtRandStr((str)sTemplate, __xlTextLen(sTemplate), (size_t)((iLen > 0) ? iLen : 0)));
+}
 const char* xl_host_name(void) { return xlrt_host_name(); }
 const char* xl_host_ip(void) { return xlrt_host_ip(); }
+const char* xl_host_user(void) { return xlrt_host_user(); }
+const char* xl_host_os(void) { return xlrt_host_os(); }
+const char* xl_host_arch(void) { return xlrt_host_arch(); }
+const char* xl_host_executable(void) { return xlrt_host_executable(); }
 const char* xl_env_get(const char* sName) { return xlrt_env_get(sName); }
 int xl_env_exists(const char* sName) { return xlrt_env_exists(sName); }
+int xl_env_set(const char* sName, const char* sValue) { return xlrt_env_set(sName, sValue); }
 const char* xl_env_cwd(void) { return xlrt_env_cwd(); }
+const char* xl_env_temp(void) { return xlrt_env_temp(); }
+const char* xl_env_home(void) { return xlrt_env_home(); }
 
 typedef struct XL_DirListBuffer {
 	char* sData;
@@ -760,12 +1798,245 @@ static const char* __xlDirCollect(const char* sPath, int bRecursive, int bWantFi
 	return (buf.sData != NULL) ? buf.sData : "";
 }
 
+int xl_dir_create(const char* sPath)
+{
+	if ( (sPath == NULL) || !xrtDirCreate((str)sPath) ) {
+		__xlRaiseNativeError("IOError", "dir.create failed", 0, sPath);
+		return 0;
+	}
+	return 1;
+}
 const char* xl_dir_list(const char* sPath) { return __xlDirCollect(sPath, 0, 1, 1); }
 const char* xl_dir_files(const char* sPath) { return __xlDirCollect(sPath, 0, 1, 0); }
 const char* xl_dir_dirs(const char* sPath) { return __xlDirCollect(sPath, 0, 0, 1); }
 const char* xl_dir_tree(const char* sPath) { return __xlDirCollect(sPath, 1, 1, 1); }
+int xl_dir_copy(const char* sSrc, const char* sDst)
+{
+	if ( (sSrc == NULL) || (sDst == NULL) || (xrtDirCopy((str)sSrc, (str)sDst, TRUE) < 0) ) {
+		__xlRaiseNativeError("IOError", "dir.copy failed", 0, sSrc);
+		return 0;
+	}
+	return 1;
+}
+int xl_dir_move(const char* sSrc, const char* sDst)
+{
+	if ( (sSrc == NULL) || (sDst == NULL) || (xrtDirMove((str)sSrc, (str)sDst, TRUE) < 0) ) {
+		__xlRaiseNativeError("IOError", "dir.move failed", 0, sSrc);
+		return 0;
+	}
+	return 1;
+}
+int xl_dir_delete(const char* sPath)
+{
+	if ( (sPath == NULL) || (xrtDirDelete((str)sPath) < 0) ) {
+		__xlRaiseNativeError("IOError", "dir.delete failed", 0, sPath);
+		return 0;
+	}
+	return 1;
+}
 const char* xl_fmt_int_text(int value, const char* sPattern) { return XLRT_CSTR(xrtIntFormat((int64)value, (str)sPattern)); }
 const char* xl_fmt_float_text(double value, const char* sPattern) { return XLRT_CSTR(xrtNumFormat(value, (str)sPattern)); }
+const char* xl_fmt_bool_text(int value) { return value ? "true" : "false"; }
+const char* xl_crypto_hmac_sha256(const char* sKey, const char* sText)
+{
+	unsigned char aDigest[32];
+
+	xrtHMAC_SHA256(
+		(const uint8*)sKey,
+		__xlTextLen(sKey),
+		(const uint8*)sText,
+		__xlTextLen(sText),
+		aDigest
+	);
+	return __xlHexLowerBytes(aDigest, sizeof(aDigest));
+}
+
+const char* xl_crypto_hmac_sha512(const char* sKey, const char* sText)
+{
+	unsigned char aDigest[64];
+
+	xrtHMAC_SHA512(
+		(const uint8*)sKey,
+		__xlTextLen(sKey),
+		(const uint8*)sText,
+		__xlTextLen(sText),
+		aDigest
+	);
+	return __xlHexLowerBytes(aDigest, sizeof(aDigest));
+}
+
+static const char* __xlBytesStage1Text(const unsigned char* pBytes, size_t iCount, const char* sErrorKind, const char* sErrorMessage)
+{
+	char* sBuf;
+	size_t i;
+
+	if ( pBytes == NULL ) {
+		return "";
+	}
+	for ( i = 0u; i < iCount; ++i ) {
+		if ( pBytes[i] == 0u ) {
+			__xlRaiseNativeError(sErrorKind, sErrorMessage, 0, NULL);
+			return "";
+		}
+	}
+	sBuf = (char*)malloc(iCount + 1u);
+	if ( sBuf == NULL ) {
+		__xlRaiseNativeError(sErrorKind, "native allocation failed", 0, NULL);
+		return "";
+	}
+	for ( i = 0u; i < iCount; ++i ) {
+		sBuf[i] = (char)pBytes[i];
+	}
+	sBuf[iCount] = '\0';
+	return sBuf;
+}
+
+static const char* __xlHexLowerBytes(const unsigned char* pBytes, size_t iCount)
+{
+	static const char sHex[] = "0123456789abcdef";
+	char* sBuf;
+	size_t i;
+
+	if ( pBytes == NULL ) {
+		return "";
+	}
+	sBuf = (char*)malloc((iCount * 2u) + 1u);
+	if ( sBuf == NULL ) {
+		__xlRaiseNativeError("HashError", "native allocation failed", 0, NULL);
+		return "";
+	}
+	for ( i = 0u; i < iCount; ++i ) {
+		sBuf[i * 2u] = sHex[(pBytes[i] >> 4) & 0x0f];
+		sBuf[(i * 2u) + 1u] = sHex[pBytes[i] & 0x0f];
+	}
+	sBuf[iCount * 2u] = '\0';
+	return sBuf;
+}
+
+static const char* __xlHexLowerU64(uint64 value)
+{
+	static const char sHex[] = "0123456789abcdef";
+	char sBuf[17];
+	int i;
+
+	for ( i = 15; i >= 0; --i ) {
+		sBuf[i] = sHex[(unsigned int)(value & 0x0f)];
+		value >>= 4;
+	}
+	sBuf[16] = '\0';
+	return XLRT_CSTR(xrtCopyStr((str)sBuf, 16u));
+}
+
+static size_t __xlBase64DecodedSize(const char* sText, size_t iLen)
+{
+	size_t iPad;
+
+	if ( (sText == NULL) || (iLen == 0u) ) {
+		return 0u;
+	}
+	if ( (iLen % 4u) != 0u ) {
+		return 0u;
+	}
+	iPad = 0u;
+	if ( sText[iLen - 1u] == '=' ) {
+		iPad += 1u;
+	}
+	if ( (iLen >= 2u) && (sText[iLen - 2u] == '=') ) {
+		iPad += 1u;
+	}
+	return ((iLen / 4u) * 3u) - iPad;
+}
+
+const char* xl_encode_hex_encode(const char* sText)
+{
+	return XLRT_CSTR(xrtHexEncode((ptr)sText, __xlTextLen(sText)));
+}
+
+const char* xl_encode_hex_decode(const char* sText)
+{
+	size_t iLen;
+	unsigned char* pData;
+	const char* sRet;
+
+	iLen = __xlTextLen(sText);
+	if ( (iLen == 0u) || ((iLen % 2u) != 0u) ) {
+		__xlRaiseNativeError("EncodeError", "hex decode requires even-length text", 0, NULL);
+		return "";
+	}
+	pData = (unsigned char*)xrtHexDecode((str)sText, iLen);
+	if ( pData == NULL ) {
+		__xlRaiseNativeError("EncodeError", "hex decode failed", 0, NULL);
+		return "";
+	}
+	sRet = __xlBytesStage1Text(pData, iLen / 2u, "EncodeError", "hex decode does not support NUL bytes in stage 1");
+	xrtFree(pData);
+	return sRet;
+}
+
+const char* xl_encode_base64_encode(const char* sText)
+{
+	return XLRT_CSTR(xrtBase64Encode((ptr)sText, __xlTextLen(sText), NULL));
+}
+
+const char* xl_encode_base64_decode(const char* sText)
+{
+	size_t iLen;
+	size_t iOutLen;
+	unsigned char* pData;
+	const char* sRet;
+
+	iLen = __xlTextLen(sText);
+	iOutLen = __xlBase64DecodedSize(sText, iLen);
+	if ( (iLen == 0u) || ((iOutLen == 0u) && (iLen != 0u)) ) {
+		__xlRaiseNativeError("EncodeError", "base64 decode failed", 0, NULL);
+		return "";
+	}
+	pData = (unsigned char*)xrtBase64Decode((str)sText, iLen, NULL);
+	if ( pData == NULL ) {
+		__xlRaiseNativeError("EncodeError", "base64 decode failed", 0, NULL);
+		return "";
+	}
+	sRet = __xlBytesStage1Text(pData, iOutLen, "EncodeError", "base64 decode does not support NUL bytes in stage 1");
+	xrtFree(pData);
+	return sRet;
+}
+
+int xl_hash_hash32(const char* sText)
+{
+	return (int)xrtHash32((ptr)sText, __xlTextLen(sText));
+}
+
+const char* xl_hash_hash64(const char* sText)
+{
+	return __xlHexLowerU64(xrtHash64((ptr)sText, __xlTextLen(sText)));
+}
+
+const char* xl_hash_hash64_micro(const char* sText)
+{
+	return __xlHexLowerU64(xrtHash64_Micro((ptr)sText, __xlTextLen(sText)));
+}
+
+const char* xl_hash_hash64_nano(const char* sText)
+{
+	return __xlHexLowerU64(xrtHash64_Nano((ptr)sText, __xlTextLen(sText)));
+}
+
+const char* xl_hash_sha256(const char* sText)
+{
+	unsigned char aDigest[32];
+
+	xrtSHA256((ptr)sText, __xlTextLen(sText), aDigest);
+	return __xlHexLowerBytes(aDigest, sizeof(aDigest));
+}
+
+const char* xl_hash_sha512(const char* sText)
+{
+	unsigned char aDigest[64];
+
+	xrtSHA512((ptr)sText, __xlTextLen(sText), aDigest);
+	return __xlHexLowerBytes(aDigest, sizeof(aDigest));
+}
+
 int xl_math_abs_int(int value) { return (value < 0) ? -value : value; }
 double xl_math_abs_float(double value) { return fabs(value); }
 int xl_math_min_int(int left, int right) { return (left < right) ? left : right; }
@@ -809,28 +2080,7 @@ double xl_math_log10(double value) { return log10(value); }
 
 static const char* __xlPackBytes(const unsigned char* pBytes, size_t iCount)
 {
-	char* sBuf;
-	size_t i;
-
-	if ( pBytes == NULL ) {
-		return "";
-	}
-	for ( i = 0; i < iCount; ++i ) {
-		if ( pBytes[i] == 0u ) {
-			__xlRaiseNativeError("PackError", "pack write does not support NUL bytes in stage 1", 0, NULL);
-			return "";
-		}
-	}
-	sBuf = (char*)malloc(iCount + 1u);
-	if ( sBuf == NULL ) {
-		__xlRaiseNativeError("PackError", "pack allocation failed", 0, NULL);
-		return "";
-	}
-	for ( i = 0; i < iCount; ++i ) {
-		sBuf[i] = (char)pBytes[i];
-	}
-	sBuf[iCount] = '\0';
-	return sBuf;
+	return __xlBytesStage1Text(pBytes, iCount, "PackError", "pack write does not support NUL bytes in stage 1");
 }
 
 static int __xlPackCanRead(const char* sData, int iOffset, size_t iNeed)
@@ -1029,3 +2279,4 @@ const char* xl_process_capture_in(const char* sCommand, const char* sWorkDir)
 	xrtProcessResultUnit(&result);
 	return (sCopy != NULL) ? sCopy : "";
 }
+int xl_process_terminal_supported(void) { return xrtProcessTerminalSupported() ? 1 : 0; }

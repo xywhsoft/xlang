@@ -1,0 +1,24 @@
+import std.json
+import std.str
+
+func main() as int
+	auto text = json.encode({"name": "xlang", "nums": [1, 2, 3], "flag": true})
+	auto text2 = json.encode(json.decode(text))
+
+	if str.contains(text, "\"name\":\"xlang\"") == false
+		return 1
+	end
+	if str.contains(text2, "\"name\":\"xlang\"") == false
+		return 2
+	end
+	if str.contains(text2, "\"flag\":true") == false
+		return 3
+	end
+	if str.contains(text2, "\"nums\":[1,2,3]") == false
+		return 4
+	end
+	if json.encode(json.decode("[1,2,3]")) != "[1,2,3]"
+		return 5
+	end
+	return 0
+end

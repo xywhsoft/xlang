@@ -3,7 +3,7 @@
 %token_type { XL_Token }
 %default_type { XL_AstNode* }
 %extra_argument { XL_ParseContext* pCtx }
-%fallback TOK_IDENT KW_VAR.
+%fallback TOK_IDENT KW_VAR KW_ASSERT.
 
 %include {
 #include "src/ast/xl_ast.h"

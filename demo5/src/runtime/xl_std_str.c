@@ -3,6 +3,10 @@
 const char* xlStdStrModuleSource(void)
 {
 	return
+		"func empty(string text) as bool\n"
+		"end\n"
+		"func byte_len(string text) as int\n"
+		"end\n"
 		"func contains(string text, string part) as bool\n"
 		"end\n"
 		"func index_of(string text, string part) as int\n"
@@ -33,7 +37,15 @@ const char* xlStdStrModuleSource(void)
 		"end\n"
 		"func replace(string text, string part, string value) as string\n"
 		"end\n"
+		"func reverse(string text) as string\n"
+		"end\n"
+		"func pad_left(string text, int width, string fill) as string\n"
+		"end\n"
+		"func pad_right(string text, int width, string fill) as string\n"
+		"end\n"
 		"\n"
+		"export empty\n"
+		"export byte_len\n"
 		"export contains\n"
 		"export index_of\n"
 		"export last_index_of\n"
@@ -48,5 +60,8 @@ const char* xlStdStrModuleSource(void)
 		"export trim_right\n"
 		"export lower\n"
 		"export upper\n"
-		"export replace\n";
+		"export replace\n"
+		"export reverse\n"
+		"export pad_left\n"
+		"export pad_right\n";
 }

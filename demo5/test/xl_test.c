@@ -1119,8 +1119,21 @@ static int __xlTestParseAssertMessage(XL_TestContext* pCtx) { return __xlRunPars
 static int __xlTestParseIfInlineBasic(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\full\\if_inline_basic.xl", 1, XL_AST_IF, "Assign"); }
 static int __xlTestParseIfInlineElseBasic(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\full\\if_inline_else_basic.xl", 1, XL_AST_IF, "text=\"42\" int=42"); }
 static int __xlTestParseImportAlias(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\native\\import_alias_basic.xl", 1, XL_AST_IMPORT, "text2=\"s\""); }
+static int __xlTestParseCryptoBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\native\\crypto_basic.xl", 1, XL_AST_CALL); }
 static int __xlTestParseImportMulti(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\native\\import_multi_basic.xl", 1, XL_AST_IMPORT); }
 static int __xlTestParseImportString(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\native\\import_string_basic.xl", 1, XL_AST_IMPORT, "text=\"\\\"std/str\\\"\""); }
+static int __xlTestParseIoPlusBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\native\\io_plus_basic.xl", 1, XL_AST_CALL); }
+static int __xlTestParseStrFmtPlusBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\native\\str_fmt_plus_basic.xl", 1, XL_AST_CALL); }
+static int __xlTestParseTimePlusBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\native\\time_plus_basic.xl", 1, XL_AST_CALL); }
+static int __xlTestParseRandPlusBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\native\\rand_plus_basic.xl", 1, XL_AST_CALL); }
+static int __xlTestParseRegexBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\native\\regex_basic.xl", 1, XL_AST_CALL); }
+static int __xlTestParseJsonBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\native\\json_basic.xl", 1, XL_AST_CALL); }
+static int __xlTestParseDiagBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\native\\diag_basic.xl", 1, XL_AST_CALL); }
+static int __xlTestParseHostBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\native\\host_basic.xl", 1, XL_AST_CALL); }
+static int __xlTestParseEnvBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\native\\env_basic.xl", 1, XL_AST_CALL); }
+static int __xlTestParseEncodeBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\native\\encode_basic.xl", 1, XL_AST_CALL); }
+static int __xlTestParseHashBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\native\\hash_basic.xl", 1, XL_AST_CALL); }
+static int __xlTestParseSystemPlusBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\native\\system_plus_basic.xl", 1, XL_AST_CALL); }
 static int __xlTestParseMathBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\native\\math_basic.xl", 1, XL_AST_CALL); }
 static int __xlTestParsePackBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\native\\pack_basic.xl", 1, XL_AST_CALL); }
 static int __xlTestParseExternAtoiBasic(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\native\\extern_atoi_basic.xl", 1, XL_AST_FUNC_DECL, "text2=\"atoi\""); }
@@ -1228,8 +1241,21 @@ static int __xlTestSemIfInlineBasic(XL_TestContext* pCtx) { return __xlRunSemCas
 static int __xlTestSemIfInlineElseBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\if_inline_else_basic.xl", 1, "int"); }
 static int __xlTestSemNativeErrorBridge(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\native_error_bridge.xl", 1, "error"); }
 static int __xlTestSemImportAlias(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\import_alias_basic.xl", 1, "int"); }
+static int __xlTestSemIoPlusBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\io_plus_basic.xl", 1, "int"); }
+static int __xlTestSemStrFmtPlusBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\str_fmt_plus_basic.xl", 1, "int"); }
+static int __xlTestSemTimePlusBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\time_plus_basic.xl", 1, "int"); }
+static int __xlTestSemRandPlusBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\rand_plus_basic.xl", 1, "int"); }
+static int __xlTestSemRegexBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\regex_basic.xl", 1, "int"); }
+static int __xlTestSemJsonBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\json_basic.xl", 1, "int"); }
+static int __xlTestSemDiagBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\diag_basic.xl", 1, "int"); }
+static int __xlTestSemHostBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\host_basic.xl", 1, "int"); }
+static int __xlTestSemEnvBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\env_basic.xl", 1, "int"); }
+static int __xlTestSemCryptoBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\crypto_basic.xl", 1, "int"); }
 static int __xlTestSemImportMulti(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\import_multi_basic.xl", 1, "int"); }
 static int __xlTestSemImportString(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\import_string_basic.xl", 1, "int"); }
+static int __xlTestSemEncodeBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\encode_basic.xl", 1, "int"); }
+static int __xlTestSemHashBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\hash_basic.xl", 1, "int"); }
+static int __xlTestSemSystemPlusBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\system_plus_basic.xl", 1, "int"); }
 static int __xlTestSemMathBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\math_basic.xl", 1, "int"); }
 static int __xlTestSemPackBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\pack_basic.xl", 1, "int"); }
 static int __xlTestSemExternAtoiBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\extern_atoi_basic.xl", 1, "int"); }
@@ -5065,6 +5091,85 @@ static int __xlTestCgenHelloWorld(XL_TestContext* pCtx)
 	return __xlRunCgenCaseAll(pCtx, "examples\\native\\hello_world.xl", aNeedles, XL_COUNTOF(aNeedles));
 }
 static int __xlTestCgenHelloWorldIo(XL_TestContext* pCtx) { return __xlRunCgenCase(pCtx, "examples\\native\\hello_world_io.xl", "xl_core_println_string(\"hello io\")"); }
+static int __xlTestCgenIoPlusBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"xl_io_eprint_string(",
+		"xl_io_eprintln_void()",
+		"xl_io_eprintln_string(",
+		"xl_io_flush()"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\native\\io_plus_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenStrFmtPlusBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"xl_str_empty(",
+		"xl_str_byte_len(",
+		"xl_str_reverse(",
+		"xl_str_pad_left(",
+		"xl_str_pad_right(",
+		"xl_fmt_bool_text("
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\native\\str_fmt_plus_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenTimePlusBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"xl_time_format(",
+		"xl_time_parse_format(",
+		"xl_time_sleep(",
+		"xl_time_is_leap_year("
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\native\\time_plus_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenRandPlusBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"xl_rand_bool()",
+		"xl_rand_text_from(",
+		"xl_str_byte_len(",
+		"xl_str_slice("
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\native\\rand_plus_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenRegexBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"xl_regex_is_match(",
+		"xl_regex_find(",
+		"xl_regex_captures(",
+		"xl_regex_capture_count(",
+		"xl_regex_replace_first(",
+		"xl_regex_replace_all("
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\native\\regex_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenJsonBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"xl_json_encode(",
+		"xl_json_decode("
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\native\\json_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenDiagBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"xl_debug_text(",
+		"xl_debug_println(",
+		"xl_log_info(",
+		"xl_trace_write("
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\native\\diag_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
 static int __xlTestCgenTimeBasic(XL_TestContext* pCtx) { return __xlRunCgenCase(pCtx, "examples\\native\\time_basic.xl", "xl_time_to_string(now)"); }
 static int __xlTestCgenPathBasic(XL_TestContext* pCtx) { return __xlRunCgenCase(pCtx, "examples\\native\\path_basic.xl", "xl_path_join(\"C:\\\\demo\", \"file.txt\")"); }
 static int __xlTestCgenFsBasic(XL_TestContext* pCtx) { return __xlRunCgenCase(pCtx, "examples\\native\\fs_basic.xl", "xl_fs_write_all("); }
@@ -5128,7 +5233,11 @@ static int __xlTestCgenHostBasic(XL_TestContext* pCtx)
 {
 	static const char* const aNeedles[] = {
 		"xl_host_name()",
-		"xl_host_ip()"
+		"xl_host_ip()",
+		"xl_host_user()",
+		"xl_host_os()",
+		"xl_host_arch()",
+		"xl_host_executable()"
 	};
 
 	return __xlRunCgenCaseAll(pCtx, "examples\\native\\host_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
@@ -5153,6 +5262,48 @@ static int __xlTestCgenMathBasic(XL_TestContext* pCtx)
 
 	return __xlRunCgenCaseAll(pCtx, "examples\\native\\math_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
 }
+static int __xlTestCgenEncodeBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"xl_encode_hex_encode(",
+		"xl_encode_hex_decode(",
+		"xl_encode_base64_encode(",
+		"xl_encode_base64_decode("
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\native\\encode_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenCryptoBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"xl_crypto_hmac_sha256(",
+		"xl_crypto_hmac_sha512("
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\native\\crypto_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenSystemPlusBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"xl_path_exists(",
+		"xl_fs_set_size(",
+		"xl_dir_copy(",
+		"xl_process_terminal_supported("
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\native\\system_plus_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenHashBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"xl_hash_hash32(",
+		"xl_hash_hash64(",
+		"xl_hash_sha256(",
+		"xl_hash_sha512("
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\native\\hash_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
 static int __xlTestCgenPackBasic(XL_TestContext* pCtx)
 {
 	static const char* const aNeedles[] = {
@@ -5169,7 +5320,10 @@ static int __xlTestCgenEnvBasic(XL_TestContext* pCtx)
 	static const char* const aNeedles[] = {
 		"xl_env_get(",
 		"xl_env_exists(",
-		"xl_env_cwd()"
+		"xl_env_set(",
+		"xl_env_cwd()",
+		"xl_env_temp()",
+		"xl_env_home()"
 	};
 
 	return __xlRunCgenCaseAll(pCtx, "examples\\native\\env_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
@@ -5201,7 +5355,9 @@ static int __xlTestCgenStdlibPipeline(XL_TestContext* pCtx)
 		"xl_fs_mkdir_all(",
 		"xl_fs_write_all(",
 		"xl_process_capture(",
-		"xl_str_contains("
+		"xl_str_contains(",
+		"xl_json_encode(",
+		"xl_json_decode("
 	};
 
 	return __xlRunCgenCaseAll(pCtx, "examples\\native\\stdlib_pipeline.xl", aNeedles, XL_COUNTOF(aNeedles));
@@ -6147,6 +6303,16 @@ static int __xlTestRunWhileBasic(XL_TestContext* pCtx) { return __xlRunProgramCa
 static int __xlTestRunDoWhileBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\do_while_basic.xl", 1, 7, NULL, NULL); }
 static int __xlTestRunHelloWorld(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\native\\hello_world.xl", 1, 0, NULL, NULL); }
 static int __xlTestRunHelloWorldIo(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\native\\hello_world_io.xl", 1, 0, NULL, NULL); }
+static int __xlTestRunIoPlusBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\native\\io_plus_basic.xl", 1, 0, NULL, NULL); }
+static int __xlTestRunStrFmtPlusBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\native\\str_fmt_plus_basic.xl", 1, 0, NULL, NULL); }
+static int __xlTestRunTimePlusBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\native\\time_plus_basic.xl", 1, 0, NULL, NULL); }
+static int __xlTestRunRandPlusBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\native\\rand_plus_basic.xl", 1, 0, NULL, NULL); }
+static int __xlTestRunRegexBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\native\\regex_basic.xl", 1, 0, NULL, NULL); }
+static int __xlTestRunJsonBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\native\\json_basic.xl", 1, 0, NULL, NULL); }
+static int __xlTestRunDiagBasic(XL_TestContext* pCtx)
+{
+	return __xlRunProgramCase(pCtx, "examples\\native\\diag_basic.xl", 1, 0, NULL, NULL);
+}
 static int __xlTestRunTimeBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\native\\time_basic.xl", 1, 0, NULL, NULL); }
 static int __xlTestRunPathBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\native\\path_basic.xl", 1, 0, NULL, NULL); }
 static int __xlTestRunFsBasic(XL_TestContext* pCtx)
@@ -6182,6 +6348,10 @@ static int __xlTestRunRandBasic(XL_TestContext* pCtx) { return __xlRunProgramCas
 static int __xlTestRunTimeText(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\native\\time_text.xl", 1, 0, NULL, NULL); }
 static int __xlTestRunHostBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\native\\host_basic.xl", 1, 0, NULL, NULL); }
 static int __xlTestRunFmtBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\native\\fmt_basic.xl", 1, 0, NULL, NULL); }
+static int __xlTestRunCryptoBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\native\\crypto_basic.xl", 1, 0, NULL, NULL); }
+static int __xlTestRunEncodeBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\native\\encode_basic.xl", 1, 0, NULL, NULL); }
+static int __xlTestRunSystemPlusBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\native\\system_plus_basic.xl", 1, 0, NULL, NULL); }
+static int __xlTestRunHashBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\native\\hash_basic.xl", 1, 0, NULL, NULL); }
 static int __xlTestRunMathBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\native\\math_basic.xl", 1, 0, NULL, NULL); }
 static int __xlTestRunPackBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\native\\pack_basic.xl", 1, 0, NULL, NULL); }
 static int __xlTestRunEnvBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\native\\env_basic.xl", 1, 0, NULL, NULL); }
@@ -10442,8 +10612,21 @@ static const XL_TestCase __gXLTests[] = {
 	{ "parser.if_inline_basic", "parser", __xlTestParseIfInlineBasic },
 	{ "parser.if_inline_else_basic", "parser", __xlTestParseIfInlineElseBasic },
 	{ "parser.import_alias", "parser", __xlTestParseImportAlias },
+	{ "parser.crypto_basic", "parser", __xlTestParseCryptoBasic },
 	{ "parser.import_multi", "parser", __xlTestParseImportMulti },
 	{ "parser.import_string", "parser", __xlTestParseImportString },
+	{ "parser.io_plus_basic", "parser", __xlTestParseIoPlusBasic },
+	{ "parser.str_fmt_plus_basic", "parser", __xlTestParseStrFmtPlusBasic },
+	{ "parser.time_plus_basic", "parser", __xlTestParseTimePlusBasic },
+	{ "parser.rand_plus_basic", "parser", __xlTestParseRandPlusBasic },
+	{ "parser.regex_basic", "parser", __xlTestParseRegexBasic },
+	{ "parser.json_basic", "parser", __xlTestParseJsonBasic },
+	{ "parser.diag_basic", "parser", __xlTestParseDiagBasic },
+	{ "parser.host_basic", "parser", __xlTestParseHostBasic },
+	{ "parser.env_basic", "parser", __xlTestParseEnvBasic },
+	{ "parser.encode_basic", "parser", __xlTestParseEncodeBasic },
+	{ "parser.hash_basic", "parser", __xlTestParseHashBasic },
+	{ "parser.system_plus_basic", "parser", __xlTestParseSystemPlusBasic },
 	{ "parser.math_basic", "parser", __xlTestParseMathBasic },
 	{ "parser.pack_basic", "parser", __xlTestParsePackBasic },
 	{ "parser.extern_atoi_basic", "parser", __xlTestParseExternAtoiBasic },
@@ -10551,8 +10734,21 @@ static const XL_TestCase __gXLTests[] = {
 	{ "sem.if_inline_else_basic", "sem", __xlTestSemIfInlineElseBasic },
 	{ "sem.native_error_bridge", "sem", __xlTestSemNativeErrorBridge },
 	{ "sem.import_alias", "sem", __xlTestSemImportAlias },
+	{ "sem.io_plus_basic", "sem", __xlTestSemIoPlusBasic },
+	{ "sem.str_fmt_plus_basic", "sem", __xlTestSemStrFmtPlusBasic },
+	{ "sem.time_plus_basic", "sem", __xlTestSemTimePlusBasic },
+	{ "sem.rand_plus_basic", "sem", __xlTestSemRandPlusBasic },
+	{ "sem.regex_basic", "sem", __xlTestSemRegexBasic },
+	{ "sem.json_basic", "sem", __xlTestSemJsonBasic },
+	{ "sem.diag_basic", "sem", __xlTestSemDiagBasic },
+	{ "sem.host_basic", "sem", __xlTestSemHostBasic },
+	{ "sem.env_basic", "sem", __xlTestSemEnvBasic },
+	{ "sem.crypto_basic", "sem", __xlTestSemCryptoBasic },
 	{ "sem.import_multi", "sem", __xlTestSemImportMulti },
 	{ "sem.import_string", "sem", __xlTestSemImportString },
+	{ "sem.encode_basic", "sem", __xlTestSemEncodeBasic },
+	{ "sem.hash_basic", "sem", __xlTestSemHashBasic },
+	{ "sem.system_plus_basic", "sem", __xlTestSemSystemPlusBasic },
 	{ "sem.math_basic", "sem", __xlTestSemMathBasic },
 	{ "sem.pack_basic", "sem", __xlTestSemPackBasic },
 	{ "sem.extern_atoi_basic", "sem", __xlTestSemExternAtoiBasic },
@@ -10975,6 +11171,13 @@ static const XL_TestCase __gXLTests[] = {
 	{ "cgen.xlp_native_funcs_float_params", "cgen", __xlTestCgenXlpNativeFuncsFloatParams },
 	{ "cgen.hello_world", "cgen", __xlTestCgenHelloWorld },
 	{ "cgen.hello_world_io", "cgen", __xlTestCgenHelloWorldIo },
+	{ "cgen.io_plus_basic", "cgen", __xlTestCgenIoPlusBasic },
+	{ "cgen.str_fmt_plus_basic", "cgen", __xlTestCgenStrFmtPlusBasic },
+	{ "cgen.time_plus_basic", "cgen", __xlTestCgenTimePlusBasic },
+	{ "cgen.rand_plus_basic", "cgen", __xlTestCgenRandPlusBasic },
+	{ "cgen.regex_basic", "cgen", __xlTestCgenRegexBasic },
+	{ "cgen.json_basic", "cgen", __xlTestCgenJsonBasic },
+	{ "cgen.diag_basic", "cgen", __xlTestCgenDiagBasic },
 	{ "cgen.time_basic", "cgen", __xlTestCgenTimeBasic },
 	{ "cgen.path_basic", "cgen", __xlTestCgenPathBasic },
 	{ "cgen.fs_basic", "cgen", __xlTestCgenFsBasic },
@@ -10987,6 +11190,10 @@ static const XL_TestCase __gXLTests[] = {
 	{ "cgen.time_text", "cgen", __xlTestCgenTimeText },
 	{ "cgen.host_basic", "cgen", __xlTestCgenHostBasic },
 	{ "cgen.fmt_basic", "cgen", __xlTestCgenFmtBasic },
+	{ "cgen.crypto_basic", "cgen", __xlTestCgenCryptoBasic },
+	{ "cgen.encode_basic", "cgen", __xlTestCgenEncodeBasic },
+	{ "cgen.hash_basic", "cgen", __xlTestCgenHashBasic },
+	{ "cgen.system_plus_basic", "cgen", __xlTestCgenSystemPlusBasic },
 	{ "cgen.math_basic", "cgen", __xlTestCgenMathBasic },
 	{ "cgen.pack_basic", "cgen", __xlTestCgenPackBasic },
 	{ "cgen.env_basic", "cgen", __xlTestCgenEnvBasic },
@@ -11135,6 +11342,13 @@ static const XL_TestCase __gXLTests[] = {
 	{ "runtime.do_while_basic", "runtime", __xlTestRunDoWhileBasic },
 	{ "runtime.hello_world", "runtime", __xlTestRunHelloWorld },
 	{ "runtime.hello_world_io", "runtime", __xlTestRunHelloWorldIo },
+	{ "runtime.io_plus_basic", "runtime", __xlTestRunIoPlusBasic },
+	{ "runtime.str_fmt_plus_basic", "runtime", __xlTestRunStrFmtPlusBasic },
+	{ "runtime.time_plus_basic", "runtime", __xlTestRunTimePlusBasic },
+	{ "runtime.rand_plus_basic", "runtime", __xlTestRunRandPlusBasic },
+	{ "runtime.regex_basic", "runtime", __xlTestRunRegexBasic },
+	{ "runtime.json_basic", "runtime", __xlTestRunJsonBasic },
+	{ "runtime.diag_basic", "runtime", __xlTestRunDiagBasic },
 	{ "runtime.time_basic", "runtime", __xlTestRunTimeBasic },
 	{ "runtime.path_basic", "runtime", __xlTestRunPathBasic },
 	{ "runtime.fs_basic", "runtime", __xlTestRunFsBasic },
@@ -11147,6 +11361,10 @@ static const XL_TestCase __gXLTests[] = {
 	{ "runtime.time_text", "runtime", __xlTestRunTimeText },
 	{ "runtime.host_basic", "runtime", __xlTestRunHostBasic },
 	{ "runtime.fmt_basic", "runtime", __xlTestRunFmtBasic },
+	{ "runtime.crypto_basic", "runtime", __xlTestRunCryptoBasic },
+	{ "runtime.encode_basic", "runtime", __xlTestRunEncodeBasic },
+	{ "runtime.hash_basic", "runtime", __xlTestRunHashBasic },
+	{ "runtime.system_plus_basic", "runtime", __xlTestRunSystemPlusBasic },
 	{ "runtime.math_basic", "runtime", __xlTestRunMathBasic },
 	{ "runtime.pack_basic", "runtime", __xlTestRunPackBasic },
 	{ "runtime.env_basic", "runtime", __xlTestRunEnvBasic },

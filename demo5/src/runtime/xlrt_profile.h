@@ -13,6 +13,5 @@
 #define XRT_NO_JSON
 #define XRT_NO_XSON
 #define XRT_NO_TEMPLATE
-#define XRT_NO_REGEX
 
 #endif

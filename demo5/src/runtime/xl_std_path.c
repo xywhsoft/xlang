@@ -13,6 +13,8 @@ const char* xlStdPathModuleSource(void)
 		"end\n"
 		"func dir(string value) as string\n"
 		"end\n"
+		"func exists(string value) as bool\n"
+		"end\n"
 		"func is_abs(string value) as bool\n"
 		"end\n"
 		"func random(string head, string foot, int len) as string\n"
@@ -23,6 +25,7 @@ const char* xlStdPathModuleSource(void)
 		"export name\n"
 		"export ext\n"
 		"export dir\n"
+		"export exists\n"
 		"export is_abs\n"
 		"export random\n";
 }

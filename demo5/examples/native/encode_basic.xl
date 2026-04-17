@@ -1,0 +1,17 @@
+import std.encode
+
+func main() as int
+	if encode.hex_encode("Hello") != "48656C6C6F"
+		return 1
+	end
+	if encode.hex_decode("48656C6C6F") != "Hello"
+		return 2
+	end
+	if encode.base64_encode("hello") != "aGVsbG8="
+		return 3
+	end
+	if encode.base64_decode("aGVsbG8=") != "hello"
+		return 4
+	end
+	return 0
+end
