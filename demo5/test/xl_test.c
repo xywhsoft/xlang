@@ -1128,6 +1128,20 @@ static int __xlTestParseTimePlusBasic(XL_TestContext* pCtx) { return __xlRunPars
 static int __xlTestParseRandPlusBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\native\\rand_plus_basic.xl", 1, XL_AST_CALL); }
 static int __xlTestParseRegexBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\native\\regex_basic.xl", 1, XL_AST_CALL); }
 static int __xlTestParseJsonBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\native\\json_basic.xl", 1, XL_AST_CALL); }
+static int __xlTestParseQueryBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\native\\query_basic.xl", 1, XL_AST_CALL); }
+static int __xlTestParseContainerModulesBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\native\\container_modules_basic.xl", 1, XL_AST_CALL); }
+static int __xlTestParseRangeBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\native\\range_basic.xl", 1, XL_AST_CALL); }
+static int __xlTestParseIterBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\native\\iter_basic.xl", 1, XL_AST_CALL); }
+static int __xlTestParseFutureModuleBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\native\\future_module_basic.xl", 1, XL_AST_CALL); }
+static int __xlTestParseChannelModuleBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\native\\channel_module_basic.xl", 1, XL_AST_CALL); }
+static int __xlTestParseTaskModuleBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\native\\task_module_basic.xl", 1, XL_AST_CALL); }
+static int __xlTestParseOsBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\native\\os_basic.xl", 1, XL_AST_CALL); }
+static int __xlTestParseClockBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\native\\clock_basic.xl", 1, XL_AST_CALL); }
+static int __xlTestParseSysEnvBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\native\\sys_env_basic.xl", 1, XL_AST_CALL); }
+static int __xlTestParseSysFileBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\native\\sys_file_basic.xl", 1, XL_AST_CALL); }
+static int __xlTestParseSysProcessBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\native\\sys_process_basic.xl", 1, XL_AST_CALL); }
+static int __xlTestParseSysWaitBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\native\\sys_wait_basic.xl", 1, XL_AST_CALL); }
+static int __xlTestParseTemplateRenderBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\native\\template_render_basic.xl", 1, XL_AST_CALL); }
 static int __xlTestParseDiagBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\native\\diag_basic.xl", 1, XL_AST_CALL); }
 static int __xlTestParseHostBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\native\\host_basic.xl", 1, XL_AST_CALL); }
 static int __xlTestParseEnvBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\native\\env_basic.xl", 1, XL_AST_CALL); }
@@ -1247,6 +1261,20 @@ static int __xlTestSemTimePlusBasic(XL_TestContext* pCtx) { return __xlRunSemCas
 static int __xlTestSemRandPlusBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\rand_plus_basic.xl", 1, "int"); }
 static int __xlTestSemRegexBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\regex_basic.xl", 1, "int"); }
 static int __xlTestSemJsonBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\json_basic.xl", 1, "int"); }
+static int __xlTestSemQueryBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\query_basic.xl", 1, "int"); }
+static int __xlTestSemContainerModulesBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\container_modules_basic.xl", 1, "int"); }
+static int __xlTestSemRangeBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\range_basic.xl", 1, "int"); }
+static int __xlTestSemIterBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\iter_basic.xl", 1, "int"); }
+static int __xlTestSemFutureModuleBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\future_module_basic.xl", 1, "future"); }
+static int __xlTestSemChannelModuleBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\channel_module_basic.xl", 1, "future"); }
+static int __xlTestSemTaskModuleBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\task_module_basic.xl", 1, "future"); }
+static int __xlTestSemOsBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\os_basic.xl", 1, "int"); }
+static int __xlTestSemClockBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\clock_basic.xl", 1, "int"); }
+static int __xlTestSemSysEnvBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\sys_env_basic.xl", 1, "int"); }
+static int __xlTestSemSysFileBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\sys_file_basic.xl", 1, "int"); }
+static int __xlTestSemSysProcessBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\sys_process_basic.xl", 1, "int"); }
+static int __xlTestSemSysWaitBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\sys_wait_basic.xl", 1, "future"); }
+static int __xlTestSemTemplateRenderBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\template_render_basic.xl", 1, "int"); }
 static int __xlTestSemDiagBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\diag_basic.xl", 1, "int"); }
 static int __xlTestSemHostBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\host_basic.xl", 1, "int"); }
 static int __xlTestSemEnvBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\env_basic.xl", 1, "int"); }
@@ -5159,6 +5187,167 @@ static int __xlTestCgenJsonBasic(XL_TestContext* pCtx)
 
 	return __xlRunCgenCaseAll(pCtx, "examples\\native\\json_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
 }
+static int __xlTestCgenQueryBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"xl_query_encode(",
+		"xl_query_decode("
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\native\\query_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenContainerModulesBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"xl_array_append(",
+		"xl_list_append(",
+		"xl_set_has(",
+		"xl_dict_has(",
+		"xl_array_join(",
+		"xl_list_join(",
+		"xl_array_remove(",
+		"xl_list_remove(",
+		"xl_set_remove(",
+		"xl_dict_remove(",
+		"xl_array_clear(",
+		"xl_list_clear(",
+		"xl_set_clear(",
+		"xl_dict_clear("
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\native\\container_modules_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenRangeBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"xl_range_collect1(",
+		"xl_range_collect2(",
+		"xl_range_collect3("
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\native\\range_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenIterBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"xl_iter_keys(",
+		"xl_iter_values(",
+		"xl_iter_items(",
+		"xl_core_len_dict("
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\native\\iter_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenFutureModuleBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"xl_future_int_ready(",
+		"xl_future_int_await("
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\native\\future_module_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenChannelModuleBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"xl_channel_create(",
+		"xl_channel_send(",
+		"xl_channel_close(",
+		"xl_channel_recv("
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\native\\channel_module_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenTaskModuleBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"xl_task_delay(",
+		"xl_task_spawn_int(",
+		"xl_task_all_int(",
+		"xl_task_race_int(",
+		"xl_task_cancel_int("
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\native\\task_module_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenOsBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"xl_host_os(",
+		"xl_host_arch(",
+		"xl_host_user(",
+		"xl_host_name(",
+		"xl_host_executable("
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\native\\os_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenClockBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"xl_time_now(",
+		"xl_time_now_text(",
+		"xl_time_date_text(",
+		"xl_time_time_text(",
+		"xl_time_sleep("
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\native\\clock_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenSysEnvBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"xl_env_cwd(",
+		"xl_env_temp(",
+		"xl_env_home(",
+		"xl_env_set(",
+		"xl_env_get("
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\native\\sys_env_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenSysFileBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"xl_fs_write_all(",
+		"xl_fs_exists(",
+		"xl_fs_is_file(",
+		"xl_fs_size(",
+		"xl_fs_append_all(",
+		"xl_fs_read_all(",
+		"xl_fs_delete("
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\native\\sys_file_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenSysProcessBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"xl_process_terminal_supported(",
+		"xl_process_capture(",
+		"xl_process_exec("
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\native\\sys_process_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenSysWaitBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"xl_time_sleep(",
+		"xl_future_int_await(",
+		"xl_future_int_ready("
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\native\\sys_wait_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenTemplateRenderBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"xl_template_render("
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\native\\template_render_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
 static int __xlTestCgenDiagBasic(XL_TestContext* pCtx)
 {
 	static const char* const aNeedles[] = {
@@ -6309,6 +6498,19 @@ static int __xlTestRunTimePlusBasic(XL_TestContext* pCtx) { return __xlRunProgra
 static int __xlTestRunRandPlusBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\native\\rand_plus_basic.xl", 1, 0, NULL, NULL); }
 static int __xlTestRunRegexBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\native\\regex_basic.xl", 1, 0, NULL, NULL); }
 static int __xlTestRunJsonBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\native\\json_basic.xl", 1, 0, NULL, NULL); }
+static int __xlTestRunQueryBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\native\\query_basic.xl", 1, 0, NULL, NULL); }
+static int __xlTestRunContainerModulesBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\native\\container_modules_basic.xl", 1, 0, NULL, NULL); }
+static int __xlTestRunRangeBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\native\\range_basic.xl", 1, 0, NULL, NULL); }
+static int __xlTestRunIterBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\native\\iter_basic.xl", 1, 0, NULL, NULL); }
+static int __xlTestRunFutureModuleBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\native\\future_module_basic.xl", 1, 12, NULL, NULL); }
+static int __xlTestRunTaskModuleBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\native\\task_module_basic.xl", 1, 15, NULL, NULL); }
+static int __xlTestRunOsBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\native\\os_basic.xl", 1, 0, NULL, NULL); }
+static int __xlTestRunClockBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\native\\clock_basic.xl", 1, 0, NULL, NULL); }
+static int __xlTestRunSysEnvBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\native\\sys_env_basic.xl", 1, 0, NULL, NULL); }
+static int __xlTestRunSysFileBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\native\\sys_file_basic.xl", 1, 0, NULL, NULL); }
+static int __xlTestRunSysProcessBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\native\\sys_process_basic.xl", 1, 0, NULL, NULL); }
+static int __xlTestRunSysWaitBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\native\\sys_wait_basic.xl", 1, 13, NULL, NULL); }
+static int __xlTestRunTemplateRenderBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\native\\template_render_basic.xl", 1, 0, NULL, NULL); }
 static int __xlTestRunDiagBasic(XL_TestContext* pCtx)
 {
 	return __xlRunProgramCase(pCtx, "examples\\native\\diag_basic.xl", 1, 0, NULL, NULL);
@@ -10621,6 +10823,20 @@ static const XL_TestCase __gXLTests[] = {
 	{ "parser.rand_plus_basic", "parser", __xlTestParseRandPlusBasic },
 	{ "parser.regex_basic", "parser", __xlTestParseRegexBasic },
 	{ "parser.json_basic", "parser", __xlTestParseJsonBasic },
+	{ "parser.query_basic", "parser", __xlTestParseQueryBasic },
+	{ "parser.container_modules_basic", "parser", __xlTestParseContainerModulesBasic },
+	{ "parser.range_basic", "parser", __xlTestParseRangeBasic },
+	{ "parser.iter_basic", "parser", __xlTestParseIterBasic },
+	{ "parser.future_module_basic", "parser", __xlTestParseFutureModuleBasic },
+	{ "parser.channel_module_basic", "parser", __xlTestParseChannelModuleBasic },
+	{ "parser.task_module_basic", "parser", __xlTestParseTaskModuleBasic },
+	{ "parser.os_basic", "parser", __xlTestParseOsBasic },
+	{ "parser.clock_basic", "parser", __xlTestParseClockBasic },
+	{ "parser.sys_env_basic", "parser", __xlTestParseSysEnvBasic },
+	{ "parser.sys_file_basic", "parser", __xlTestParseSysFileBasic },
+	{ "parser.sys_process_basic", "parser", __xlTestParseSysProcessBasic },
+	{ "parser.sys_wait_basic", "parser", __xlTestParseSysWaitBasic },
+	{ "parser.template_render_basic", "parser", __xlTestParseTemplateRenderBasic },
 	{ "parser.diag_basic", "parser", __xlTestParseDiagBasic },
 	{ "parser.host_basic", "parser", __xlTestParseHostBasic },
 	{ "parser.env_basic", "parser", __xlTestParseEnvBasic },
@@ -10740,6 +10956,20 @@ static const XL_TestCase __gXLTests[] = {
 	{ "sem.rand_plus_basic", "sem", __xlTestSemRandPlusBasic },
 	{ "sem.regex_basic", "sem", __xlTestSemRegexBasic },
 	{ "sem.json_basic", "sem", __xlTestSemJsonBasic },
+	{ "sem.query_basic", "sem", __xlTestSemQueryBasic },
+	{ "sem.container_modules_basic", "sem", __xlTestSemContainerModulesBasic },
+	{ "sem.range_basic", "sem", __xlTestSemRangeBasic },
+	{ "sem.iter_basic", "sem", __xlTestSemIterBasic },
+	{ "sem.future_module_basic", "sem", __xlTestSemFutureModuleBasic },
+	{ "sem.channel_module_basic", "sem", __xlTestSemChannelModuleBasic },
+	{ "sem.task_module_basic", "sem", __xlTestSemTaskModuleBasic },
+	{ "sem.os_basic", "sem", __xlTestSemOsBasic },
+	{ "sem.clock_basic", "sem", __xlTestSemClockBasic },
+	{ "sem.sys_env_basic", "sem", __xlTestSemSysEnvBasic },
+	{ "sem.sys_file_basic", "sem", __xlTestSemSysFileBasic },
+	{ "sem.sys_process_basic", "sem", __xlTestSemSysProcessBasic },
+	{ "sem.sys_wait_basic", "sem", __xlTestSemSysWaitBasic },
+	{ "sem.template_render_basic", "sem", __xlTestSemTemplateRenderBasic },
 	{ "sem.diag_basic", "sem", __xlTestSemDiagBasic },
 	{ "sem.host_basic", "sem", __xlTestSemHostBasic },
 	{ "sem.env_basic", "sem", __xlTestSemEnvBasic },
@@ -11177,6 +11407,20 @@ static const XL_TestCase __gXLTests[] = {
 	{ "cgen.rand_plus_basic", "cgen", __xlTestCgenRandPlusBasic },
 	{ "cgen.regex_basic", "cgen", __xlTestCgenRegexBasic },
 	{ "cgen.json_basic", "cgen", __xlTestCgenJsonBasic },
+	{ "cgen.query_basic", "cgen", __xlTestCgenQueryBasic },
+	{ "cgen.container_modules_basic", "cgen", __xlTestCgenContainerModulesBasic },
+	{ "cgen.range_basic", "cgen", __xlTestCgenRangeBasic },
+	{ "cgen.iter_basic", "cgen", __xlTestCgenIterBasic },
+	{ "cgen.future_module_basic", "cgen", __xlTestCgenFutureModuleBasic },
+	{ "cgen.channel_module_basic", "cgen", __xlTestCgenChannelModuleBasic },
+	{ "cgen.task_module_basic", "cgen", __xlTestCgenTaskModuleBasic },
+	{ "cgen.os_basic", "cgen", __xlTestCgenOsBasic },
+	{ "cgen.clock_basic", "cgen", __xlTestCgenClockBasic },
+	{ "cgen.sys_env_basic", "cgen", __xlTestCgenSysEnvBasic },
+	{ "cgen.sys_file_basic", "cgen", __xlTestCgenSysFileBasic },
+	{ "cgen.sys_process_basic", "cgen", __xlTestCgenSysProcessBasic },
+	{ "cgen.sys_wait_basic", "cgen", __xlTestCgenSysWaitBasic },
+	{ "cgen.template_render_basic", "cgen", __xlTestCgenTemplateRenderBasic },
 	{ "cgen.diag_basic", "cgen", __xlTestCgenDiagBasic },
 	{ "cgen.time_basic", "cgen", __xlTestCgenTimeBasic },
 	{ "cgen.path_basic", "cgen", __xlTestCgenPathBasic },
@@ -11348,6 +11592,19 @@ static const XL_TestCase __gXLTests[] = {
 	{ "runtime.rand_plus_basic", "runtime", __xlTestRunRandPlusBasic },
 	{ "runtime.regex_basic", "runtime", __xlTestRunRegexBasic },
 	{ "runtime.json_basic", "runtime", __xlTestRunJsonBasic },
+	{ "runtime.query_basic", "runtime", __xlTestRunQueryBasic },
+	{ "runtime.container_modules_basic", "runtime", __xlTestRunContainerModulesBasic },
+	{ "runtime.range_basic", "runtime", __xlTestRunRangeBasic },
+	{ "runtime.iter_basic", "runtime", __xlTestRunIterBasic },
+	{ "runtime.future_module_basic", "runtime", __xlTestRunFutureModuleBasic },
+	{ "runtime.task_module_basic", "runtime", __xlTestRunTaskModuleBasic },
+	{ "runtime.os_basic", "runtime", __xlTestRunOsBasic },
+	{ "runtime.clock_basic", "runtime", __xlTestRunClockBasic },
+	{ "runtime.sys_env_basic", "runtime", __xlTestRunSysEnvBasic },
+	{ "runtime.sys_file_basic", "runtime", __xlTestRunSysFileBasic },
+	{ "runtime.sys_process_basic", "runtime", __xlTestRunSysProcessBasic },
+	{ "runtime.sys_wait_basic", "runtime", __xlTestRunSysWaitBasic },
+	{ "runtime.template_render_basic", "runtime", __xlTestRunTemplateRenderBasic },
 	{ "runtime.diag_basic", "runtime", __xlTestRunDiagBasic },
 	{ "runtime.time_basic", "runtime", __xlTestRunTimeBasic },
 	{ "runtime.path_basic", "runtime", __xlTestRunPathBasic },

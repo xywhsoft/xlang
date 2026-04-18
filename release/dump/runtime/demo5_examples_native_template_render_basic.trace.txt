@@ -1,0 +1,51 @@
+ModuleLoadOrder
+- [0] std.template -> <native:std.template> native=1 binding=std.template
+- [1] <root> -> D:\Git\x-lang\demo5\examples\native\template_render_basic.xl native=0 binding=
+ModuleExports
+- module=std.template
+  abi init=xl_mod_std_template__init exports=xl_mod_std_template__exports descriptor=xl_mod_std_template__descriptor
+  export render -> xl_mod_std_template__render
+- module=<root>
+  abi init=xl_mod__root___init exports=xl_mod__root___exports descriptor=xl_mod__root___descriptor
+NativeRegistry
+- key=std.core binding=std.core path=<native:std.core>
+- key=std.crypto binding=std.crypto path=<native:std.crypto>
+- key=std.debug binding=std.debug path=<native:std.debug>
+- key=std.dir binding=std.dir path=<native:std.dir>
+- key=std.encode binding=std.encode path=<native:std.encode>
+- key=std.env binding=std.env path=<native:std.env>
+- key=std.error binding=std.error path=<native:std.error>
+- key=std.fmt binding=std.fmt path=<native:std.fmt>
+- key=std.fs binding=std.fs path=<native:std.fs>
+- key=std.hash binding=std.hash path=<native:std.hash>
+- key=std.host binding=std.host path=<native:std.host>
+- key=std.io binding=std.io path=<native:std.io>
+- key=std.json binding=std.json path=<native:std.json>
+- key=std.assert binding=std.assert path=<native:std.assert>
+- key=std.log binding=std.log path=<native:std.log>
+- key=std.math binding=std.math path=<native:std.math>
+- key=std.pack binding=std.pack path=<native:std.pack>
+- key=std.path binding=std.path path=<native:std.path>
+- key=std.rand binding=std.rand path=<native:std.rand>
+- key=std.regex binding=std.regex path=<native:std.regex>
+- key=std.process binding=std.process path=<native:std.process>
+- key=std.query binding=std.query path=<native:std.query>
+- key=std.str binding=std.str path=<native:std.str>
+- key=std.template binding=std.template path=<native:std.template>
+- key=std.trace binding=std.trace path=<native:std.trace>
+- key=std.time binding=std.time path=<native:std.time>
+- key=std.task binding=std.task path=<native:std.task>
+tcc_root=D:\Git\x-lang\demo5\release\tcc
+include=D:\Git\x-lang\demo5\release\tcc\include_win
+include=D:\Git\x-lang\demo5\release\tcc\include_win\winapi
+include=D:\Git\x-lang\demo5\src\runtime
+include=D:\Git\x-lang\demo5\lib\xrt
+lib=D:\Git\x-lang\demo5\release\tcc\lib
+compile_text=demo5\examples\native\template_render_basic.xl
+cwd.prev=D:\Git\x-lang
+cwd.exec=D:\Git\x-lang\demo5
+relocate
+resolve_symbol=xl_generated_entry
+execute
+exit_code=0
+cwd.restore=D:\Git\x-lang

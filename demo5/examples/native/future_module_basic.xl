@@ -1,0 +1,8 @@
+import std.future
+
+async func main() as int
+	auto a = future.ready(7)
+	auto b = future.ready(5)
+
+	return await future.wait(a) + await b
+end

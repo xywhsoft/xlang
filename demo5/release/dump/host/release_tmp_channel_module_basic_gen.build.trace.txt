@@ -1,0 +1,37 @@
+tcc_root=D:\Git\x-lang\demo5\release\tcc
+include=D:\Git\x-lang\demo5\release\tcc\include_win
+include=D:\Git\x-lang\demo5\release\tcc\include_win\winapi
+include=D:\Git\x-lang\demo5\src\runtime
+include=D:\Git\x-lang\demo5\lib\xrt
+lib=D:\Git\x-lang\demo5\release\tcc\lib
+compile_file=release\tmp\channel_module_basic_gen.c
+[tcc] release/tmp/channel_module_basic_gen.c:3378: warning: void function returns a value
+[tcc] release/tmp/channel_module_basic_gen.c:3382: warning: void function returns a value
+[tcc] release/tmp/channel_module_basic_gen.c:3389: warning: void function returns a value
+[tcc] release/tmp/channel_module_basic_gen.c:3393: warning: void function returns a value
+[tcc] release/tmp/channel_module_basic_gen.c:3396: warning: void function returns a value
+[tcc] release/tmp/channel_module_basic_gen.c:3401: warning: void function returns a value
+[tcc] release/tmp/channel_module_basic_gen.c:3405: warning: void function returns a value
+[tcc] release/tmp/channel_module_basic_gen.c:3412: warning: void function returns a value
+[tcc] release/tmp/channel_module_basic_gen.c:3416: warning: void function returns a value
+[tcc] release/tmp/channel_module_basic_gen.c:3419: warning: void function returns a value
+[tcc] release/tmp/channel_module_basic_gen.c:3424: warning: void function returns a value
+[tcc] release/tmp/channel_module_basic_gen.c:3428: warning: void function returns a value
+[tcc] release/tmp/channel_module_basic_gen.c:3435: warning: void function returns a value
+[tcc] release/tmp/channel_module_basic_gen.c:3439: warning: void function returns a value
+[tcc] release/tmp/channel_module_basic_gen.c:3442: warning: void function returns a value
+output=release\bin\channel_module_basic_gen.exe
+output_kind=exe
+support_source=D:\Git\x-lang\demo5\src\runtime\xlrt_host.c
+support_source=D:\Git\x-lang\demo5\src\runtime\xlrt_generated.c
+support_source=D:\Git\x-lang\demo5\src\host\xl_host_runtime.c
+link_lib=shell32
+link_lib=ws2_32
+link_lib=iphlpapi
+[tcc] tcc: error: undefined symbol 'xl_channel_create'
+[tcc] tcc: error: undefined symbol 'xl_channel_send'
+[tcc] tcc: error: undefined symbol 'xl_channel_close'
+[tcc] tcc: error: undefined symbol 'xl_channel_recv'
+[tcc] tcc: error: undefined symbol 'strtoll'
+[tcc] tcc: error: undefined symbol 'GetUserNameA'
+[tcc] tcc: error: undefined symbol 'main'

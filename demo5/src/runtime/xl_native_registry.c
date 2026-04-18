@@ -3,25 +3,41 @@
 const char* xlStdCoreModuleSource(void);
 const char* xlStdCryptoModuleSource(void);
 const char* xlStdDebugModuleSource(void);
+const char* xlStdChannelModuleSource(void);
+const char* xlStdClockModuleSource(void);
+const char* xlStdDictModuleSource(void);
 const char* xlStdDirModuleSource(void);
 const char* xlStdEncodeModuleSource(void);
 const char* xlStdEnvModuleSource(void);
 const char* xlStdErrorModuleSource(void);
 const char* xlStdFmtModuleSource(void);
 const char* xlStdFsModuleSource(void);
+const char* xlStdFutureModuleSource(void);
 const char* xlStdHashModuleSource(void);
 const char* xlStdHostModuleSource(void);
 const char* xlStdIoModuleSource(void);
+const char* xlStdIterModuleSource(void);
 const char* xlStdJsonModuleSource(void);
+const char* xlStdListModuleSource(void);
 const char* xlStdAssertModuleSource(void);
 const char* xlStdLogModuleSource(void);
 const char* xlStdMathModuleSource(void);
+const char* xlStdOsModuleSource(void);
 const char* xlStdPathModuleSource(void);
 const char* xlStdPackModuleSource(void);
 const char* xlStdRandModuleSource(void);
 const char* xlStdRegexModuleSource(void);
 const char* xlStdProcessModuleSource(void);
+const char* xlStdQueryModuleSource(void);
+const char* xlStdRangeModuleSource(void);
+const char* xlStdArrayModuleSource(void);
+const char* xlStdSetModuleSource(void);
 const char* xlStdStrModuleSource(void);
+const char* xlStdSysEnvModuleSource(void);
+const char* xlStdSysFileModuleSource(void);
+const char* xlStdSysProcessModuleSource(void);
+const char* xlStdSysWaitModuleSource(void);
+const char* xlStdTemplateModuleSource(void);
 const char* xlStdTraceModuleSource(void);
 const char* xlStdTimeModuleSource(void);
 const char* xlStdTaskModuleSource(void);
@@ -43,25 +59,41 @@ static const XL_NativeRegistryEntry g_arrNativeModules[] = {
 	{ "std.core", "std.core", "<native:std.core>", xlStdCoreModuleSource },
 	{ "std.crypto", "std.crypto", "<native:std.crypto>", xlStdCryptoModuleSource },
 	{ "std.debug", "std.debug", "<native:std.debug>", xlStdDebugModuleSource },
+	{ "std.channel", "std.channel", "<native:std.channel>", xlStdChannelModuleSource },
+	{ "std.clock", "std.clock", "<native:std.clock>", xlStdClockModuleSource },
+	{ "std.dict", "std.dict", "<native:std.dict>", xlStdDictModuleSource },
 	{ "std.dir", "std.dir", "<native:std.dir>", xlStdDirModuleSource },
 	{ "std.encode", "std.encode", "<native:std.encode>", xlStdEncodeModuleSource },
 	{ "std.env", "std.env", "<native:std.env>", xlStdEnvModuleSource },
 	{ "std.error", "std.error", "<native:std.error>", xlStdErrorModuleSource },
 	{ "std.fmt", "std.fmt", "<native:std.fmt>", xlStdFmtModuleSource },
 	{ "std.fs", "std.fs", "<native:std.fs>", xlStdFsModuleSource },
+	{ "std.future", "std.future", "<native:std.future>", xlStdFutureModuleSource },
 	{ "std.hash", "std.hash", "<native:std.hash>", xlStdHashModuleSource },
 	{ "std.host", "std.host", "<native:std.host>", xlStdHostModuleSource },
 	{ "std.io", "std.io", "<native:std.io>", xlStdIoModuleSource },
+	{ "std.iter", "std.iter", "<native:std.iter>", xlStdIterModuleSource },
 	{ "std.json", "std.json", "<native:std.json>", xlStdJsonModuleSource },
+	{ "std.list", "std.list", "<native:std.list>", xlStdListModuleSource },
 	{ "std.assert", "std.assert", "<native:std.assert>", xlStdAssertModuleSource },
 	{ "std.log", "std.log", "<native:std.log>", xlStdLogModuleSource },
 	{ "std.math", "std.math", "<native:std.math>", xlStdMathModuleSource },
+	{ "std.os", "std.os", "<native:std.os>", xlStdOsModuleSource },
 	{ "std.pack", "std.pack", "<native:std.pack>", xlStdPackModuleSource },
 	{ "std.path", "std.path", "<native:std.path>", xlStdPathModuleSource },
 	{ "std.rand", "std.rand", "<native:std.rand>", xlStdRandModuleSource },
 	{ "std.regex", "std.regex", "<native:std.regex>", xlStdRegexModuleSource },
 	{ "std.process", "std.process", "<native:std.process>", xlStdProcessModuleSource },
+	{ "std.query", "std.query", "<native:std.query>", xlStdQueryModuleSource },
+	{ "std.range", "std.range", "<native:std.range>", xlStdRangeModuleSource },
+	{ "std.array", "std.array", "<native:std.array>", xlStdArrayModuleSource },
+	{ "std.set", "std.set", "<native:std.set>", xlStdSetModuleSource },
 	{ "std.str", "std.str", "<native:std.str>", xlStdStrModuleSource },
+	{ "std.sys.env", "std.sys.env", "<native:std.sys.env>", xlStdSysEnvModuleSource },
+	{ "std.sys.file", "std.sys.file", "<native:std.sys.file>", xlStdSysFileModuleSource },
+	{ "std.sys.process", "std.sys.process", "<native:std.sys.process>", xlStdSysProcessModuleSource },
+	{ "std.sys.wait", "std.sys.wait", "<native:std.sys.wait>", xlStdSysWaitModuleSource },
+	{ "std.template", "std.template", "<native:std.template>", xlStdTemplateModuleSource },
 	{ "std.trace", "std.trace", "<native:std.trace>", xlStdTraceModuleSource },
 	{ "std.time", "std.time", "<native:std.time>", xlStdTimeModuleSource },
 	{ "std.task", "std.task", "<native:std.task>", xlStdTaskModuleSource }

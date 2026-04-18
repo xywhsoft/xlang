@@ -1,0 +1,225 @@
+{
+	"modules": [
+		{
+			"key": "std.channel",
+			"file": "<native:std.channel>",
+			"native": 1,
+			"binding": "std.channel",
+			"artifactKind": "",
+			"artifactPath": "",
+			"artifactFile": "",
+			"consumeMode": "",
+			"initSymbol": "xl_mod_std_channel__init",
+			"exportsSymbol": "xl_mod_std_channel__exports",
+			"descriptorSymbol": "xl_mod_std_channel__descriptor",
+			"exports": [
+				{
+					"name": "make",
+					"symbol": "xl_mod_std_channel__make"
+				},
+				{
+					"name": "send",
+					"symbol": "xl_mod_std_channel__send"
+				},
+				{
+					"name": "close",
+					"symbol": "xl_mod_std_channel__close"
+				}
+			]
+		},
+		{
+			"key": "<root>",
+			"file": "D:\\Git\\x-lang\\demo5\\examples\\native\\channel_module_basic.xl",
+			"native": 0,
+			"binding": "",
+			"artifactKind": "",
+			"artifactPath": "",
+			"artifactFile": "",
+			"consumeMode": "",
+			"initSymbol": "xl_mod__root___init",
+			"exportsSymbol": "xl_mod__root___exports",
+			"descriptorSymbol": "xl_mod__root___descriptor",
+			"exports": []
+		}
+	],
+	"registry": {
+	"nativeModules": [
+		{
+			"key": "std.core",
+			"binding": "std.core",
+			"path": "<native:std.core>"
+		},
+		{
+			"key": "std.crypto",
+			"binding": "std.crypto",
+			"path": "<native:std.crypto>"
+		},
+		{
+			"key": "std.debug",
+			"binding": "std.debug",
+			"path": "<native:std.debug>"
+		},
+		{
+			"key": "std.channel",
+			"binding": "std.channel",
+			"path": "<native:std.channel>"
+		},
+		{
+			"key": "std.dict",
+			"binding": "std.dict",
+			"path": "<native:std.dict>"
+		},
+		{
+			"key": "std.dir",
+			"binding": "std.dir",
+			"path": "<native:std.dir>"
+		},
+		{
+			"key": "std.encode",
+			"binding": "std.encode",
+			"path": "<native:std.encode>"
+		},
+		{
+			"key": "std.env",
+			"binding": "std.env",
+			"path": "<native:std.env>"
+		},
+		{
+			"key": "std.error",
+			"binding": "std.error",
+			"path": "<native:std.error>"
+		},
+		{
+			"key": "std.fmt",
+			"binding": "std.fmt",
+			"path": "<native:std.fmt>"
+		},
+		{
+			"key": "std.fs",
+			"binding": "std.fs",
+			"path": "<native:std.fs>"
+		},
+		{
+			"key": "std.future",
+			"binding": "std.future",
+			"path": "<native:std.future>"
+		},
+		{
+			"key": "std.hash",
+			"binding": "std.hash",
+			"path": "<native:std.hash>"
+		},
+		{
+			"key": "std.host",
+			"binding": "std.host",
+			"path": "<native:std.host>"
+		},
+		{
+			"key": "std.io",
+			"binding": "std.io",
+			"path": "<native:std.io>"
+		},
+		{
+			"key": "std.iter",
+			"binding": "std.iter",
+			"path": "<native:std.iter>"
+		},
+		{
+			"key": "std.json",
+			"binding": "std.json",
+			"path": "<native:std.json>"
+		},
+		{
+			"key": "std.list",
+			"binding": "std.list",
+			"path": "<native:std.list>"
+		},
+		{
+			"key": "std.assert",
+			"binding": "std.assert",
+			"path": "<native:std.assert>"
+		},
+		{
+			"key": "std.log",
+			"binding": "std.log",
+			"path": "<native:std.log>"
+		},
+		{
+			"key": "std.math",
+			"binding": "std.math",
+			"path": "<native:std.math>"
+		},
+		{
+			"key": "std.pack",
+			"binding": "std.pack",
+			"path": "<native:std.pack>"
+		},
+		{
+			"key": "std.path",
+			"binding": "std.path",
+			"path": "<native:std.path>"
+		},
+		{
+			"key": "std.rand",
+			"binding": "std.rand",
+			"path": "<native:std.rand>"
+		},
+		{
+			"key": "std.regex",
+			"binding": "std.regex",
+			"path": "<native:std.regex>"
+		},
+		{
+			"key": "std.process",
+			"binding": "std.process",
+			"path": "<native:std.process>"
+		},
+		{
+			"key": "std.query",
+			"binding": "std.query",
+			"path": "<native:std.query>"
+		},
+		{
+			"key": "std.range",
+			"binding": "std.range",
+			"path": "<native:std.range>"
+		},
+		{
+			"key": "std.array",
+			"binding": "std.array",
+			"path": "<native:std.array>"
+		},
+		{
+			"key": "std.set",
+			"binding": "std.set",
+			"path": "<native:std.set>"
+		},
+		{
+			"key": "std.str",
+			"binding": "std.str",
+			"path": "<native:std.str>"
+		},
+		{
+			"key": "std.template",
+			"binding": "std.template",
+			"path": "<native:std.template>"
+		},
+		{
+			"key": "std.trace",
+			"binding": "std.trace",
+			"path": "<native:std.trace>"
+		},
+		{
+			"key": "std.time",
+			"binding": "std.time",
+			"path": "<native:std.time>"
+		},
+		{
+			"key": "std.task",
+			"binding": "std.task",
+			"path": "<native:std.task>"
+		}
+	]
+}
+
+}
