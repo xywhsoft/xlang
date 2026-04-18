@@ -1,0 +1,25 @@
+import std.channel
+
+async func main() as int
+	auto ch = channel.make(2)
+	bool sent0 = channel.send(ch, 10)
+	bool sent1 = channel.send(ch, 20)
+	bool sent2 = channel.send(ch, 30)
+	auto ok0, first = await ch.recv()
+	bool sent3 = channel.send(ch, 30)
+	bool closed = channel.close(ch)
+	auto ok1, second = await ch.recv()
+	auto ok2, third = await ch.recv()
+	auto ok3, tail = await ch.recv()
+
+	if not sent0 or not sent1 or sent2 or not sent3 or not closed
+		return 1
+	end
+	if not ok0 or not ok1 or not ok2 or ok3
+		return 2
+	end
+	if tail != null
+		return 3
+	end
+	return int(first) + int(second) + int(third)
+end

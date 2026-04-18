@@ -21,12 +21,12 @@ xlang 第五版增强标准库支持覆盖率
 ----------------
 
 1. 基础与通用
-- ☐ std.core
+- ☑ std.core
 - ☐ std.types
 - ☑ std.math
 - ☑ std.rand
 - ☑ std.time
-- ☐ std.clock
+- ☑ std.clock
 - ☑ std.fmt
 - ☑ std.str
 - ☑ std.regex
@@ -37,12 +37,12 @@ xlang 第五版增强标准库支持覆盖率
 - ☑ std.debug
 
 2. 集合与迭代
-- ☐ std.iter
-- ◐ std.array
-- ◐ std.list
-- ◐ std.set
-- ◐ std.dict
-- ◐ std.range
+- ☑ std.iter
+- ☑ std.array
+- ☑ std.list
+- ☑ std.set
+- ☑ std.dict
+- ☑ std.range
 
 3. 错误、断言、日志与诊断
 - ☑ std.error
@@ -58,11 +58,11 @@ xlang 第五版增强标准库支持覆盖率
 - ☑ std.env
 - ☑ std.process
 - ☑ std.host
-- ☐ std.os
+- ☑ std.os
 
 5. 并发与异步
-- ◐ std.future
-- ◐ std.task
+- ☑ std.future
+- ☑ std.task
 - ◐ std.channel
 - ☐ std.sync
 - ☐ std.thread
@@ -85,15 +85,15 @@ xlang 第五版增强标准库支持覆盖率
 
 7. 数据格式
 - ☑ std.json
-- ☐ std.query
-- ☐ std.template
+- ☑ std.query
+- ☑ std.template
 
 8. 系统级模块
-- ☐ std.sys.file
-- ☐ std.sys.process
-- ☐ std.sys.env
+- ☑ std.sys.file
+- ☑ std.sys.process
+- ☑ std.sys.env
 - ☐ std.sys.net
-- ☐ std.sys.wait
+- ☑ std.sys.wait
 - ☐ std.sys.mem
 
 
@@ -148,43 +148,43 @@ xlang 第五版增强标准库支持覆盖率
 ----------------
 
 第一批：
-- ☐ std.core
-- ☐ std.io
-- ☐ std.str
-- ☐ std.fmt
-- ☐ std.math
+- ☑ std.core
+- ☑ std.io
+- ☑ std.str
+- ☑ std.fmt
+- ☑ std.math
 - ☑ std.rand
 - ☑ std.time
 - ☑ std.regex
-- ☐ std.path
-- ☐ std.fs
-- ☐ std.dir
-- ☐ std.env
-- ☐ std.process
-- ☐ std.host
-- ☐ std.future
-- ☐ std.task
-- ☐ std.channel
+- ☑ std.path
+- ☑ std.fs
+- ☑ std.dir
+- ☑ std.env
+- ☑ std.process
+- ☑ std.host
+- ☑ std.future
+- ☑ std.task
+- ◐ std.channel
 - ☐ std.net.url
 - ☐ std.net.http
-- ☐ std.json
+- ☑ std.json
 - ☑ std.hash
 - ☑ std.encode
-- ☐ std.pack
+- ☑ std.pack
 
 第二批：
-- ☐ std.iter
-- ☐ std.array
-- ☐ std.list
-- ☐ std.set
-- ☐ std.dict
+- ☑ std.iter
+- ☑ std.array
+- ☑ std.list
+- ☑ std.set
+- ☑ std.dict
 - ☑ std.log
 - ☑ std.debug
 - ☐ std.net.httpd
 - ☐ std.net.ws
 - ☐ std.net.tls
 - ☐ std.sync
-- ☐ std.sys.*
+- ◐ std.sys.*
 
 第三批：
 - ☐ 其余核心标准库

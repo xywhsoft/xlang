@@ -1,0 +1,37 @@
+#include "../common/xl_common.h"
+
+const char* xlStdSysWaitModuleSource(void)
+{
+	return
+		"import std.future\n"
+		"import std.task\n"
+		"import std.time\n"
+		"\n"
+		"func sleep(int ms) as void\n"
+		"\ttime.sleep(ms)\n"
+		"end\n"
+		"\n"
+		"async func delay(int ms) as int\n"
+		"\treturn await task.delay(ms)\n"
+		"end\n"
+		"\n"
+		"async func wait(future<int> value) as int\n"
+		"\treturn await future.wait(value)\n"
+		"end\n"
+		"async func wait(future<float> value) as float\n"
+		"\treturn await future.wait(value)\n"
+		"end\n"
+		"async func wait(future<string> value) as string\n"
+		"\treturn await future.wait(value)\n"
+		"end\n"
+		"async func wait(future<bool> value) as bool\n"
+		"\treturn await future.wait(value)\n"
+		"end\n"
+		"async func wait(future<error> value) as error\n"
+		"\treturn await future.wait(value)\n"
+		"end\n"
+		"\n"
+		"export sleep\n"
+		"export delay\n"
+		"export wait\n";
+}

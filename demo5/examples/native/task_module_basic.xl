@@ -1,0 +1,11 @@
+import std.task
+
+async func main() as int
+	auto delayed = task.delay(3)
+	auto spawned = task.spawn(delayed)
+	auto grouped = task.all(task.delay(4), task.delay(5))
+	auto raced = task.race(task.delay(6), task.delay(6))
+	int canceled = task.cancel(task.delay(8))
+
+	return await spawned + await grouped + await raced + canceled
+end

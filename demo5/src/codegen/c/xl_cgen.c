@@ -489,6 +489,57 @@ typedef enum XL_JsonHelperKind {
 	XL_JSON_HELPER_DECODE
 } XL_JsonHelperKind;
 
+typedef enum XL_QueryHelperKind {
+	XL_QUERY_HELPER_NONE = 0,
+	XL_QUERY_HELPER_ENCODE,
+	XL_QUERY_HELPER_DECODE
+} XL_QueryHelperKind;
+
+typedef enum XL_TemplateHelperKind {
+	XL_TEMPLATE_HELPER_NONE = 0,
+	XL_TEMPLATE_HELPER_RENDER
+} XL_TemplateHelperKind;
+
+typedef enum XL_ContainerModuleHelperKind {
+	XL_CONTAINER_MODULE_HELPER_NONE = 0,
+	XL_CONTAINER_MODULE_HELPER_ARRAY_LEN,
+	XL_CONTAINER_MODULE_HELPER_ARRAY_APPEND,
+	XL_CONTAINER_MODULE_HELPER_ARRAY_JOIN,
+	XL_CONTAINER_MODULE_HELPER_ARRAY_CLEAR,
+	XL_CONTAINER_MODULE_HELPER_ARRAY_REMOVE,
+	XL_CONTAINER_MODULE_HELPER_LIST_LEN,
+	XL_CONTAINER_MODULE_HELPER_LIST_APPEND,
+	XL_CONTAINER_MODULE_HELPER_LIST_JOIN,
+	XL_CONTAINER_MODULE_HELPER_LIST_CLEAR,
+	XL_CONTAINER_MODULE_HELPER_LIST_REMOVE,
+	XL_CONTAINER_MODULE_HELPER_SET_LEN,
+	XL_CONTAINER_MODULE_HELPER_SET_HAS,
+	XL_CONTAINER_MODULE_HELPER_SET_CLEAR,
+	XL_CONTAINER_MODULE_HELPER_SET_REMOVE,
+	XL_CONTAINER_MODULE_HELPER_DICT_LEN,
+	XL_CONTAINER_MODULE_HELPER_DICT_HAS,
+	XL_CONTAINER_MODULE_HELPER_DICT_CLEAR,
+	XL_CONTAINER_MODULE_HELPER_DICT_REMOVE
+} XL_ContainerModuleHelperKind;
+
+typedef enum XL_RangeModuleHelperKind {
+	XL_RANGE_MODULE_HELPER_NONE = 0,
+	XL_RANGE_MODULE_HELPER_COLLECT1,
+	XL_RANGE_MODULE_HELPER_COLLECT2,
+	XL_RANGE_MODULE_HELPER_COLLECT3
+} XL_RangeModuleHelperKind;
+
+typedef enum XL_IterModuleHelperKind {
+	XL_ITER_MODULE_HELPER_NONE = 0,
+	XL_ITER_MODULE_HELPER_COUNT_ARRAY,
+	XL_ITER_MODULE_HELPER_COUNT_LIST,
+	XL_ITER_MODULE_HELPER_COUNT_SET,
+	XL_ITER_MODULE_HELPER_COUNT_DICT,
+	XL_ITER_MODULE_HELPER_KEYS,
+	XL_ITER_MODULE_HELPER_VALUES,
+	XL_ITER_MODULE_HELPER_ITEMS
+} XL_IterModuleHelperKind;
+
 typedef enum XL_EnvHelperKind {
 	XL_ENV_HELPER_NONE = 0,
 	XL_ENV_HELPER_GET,
@@ -7458,6 +7509,89 @@ static XL_JsonHelperKind __xlJsonHelperKind(const char* sCalleeName)
 	return XL_JSON_HELPER_NONE;
 }
 
+static XL_QueryHelperKind __xlQueryHelperKind(const char* sCalleeName)
+{
+	if ( sCalleeName == NULL ) {
+		return XL_QUERY_HELPER_NONE;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_query__encode") == 0 ) {
+		return XL_QUERY_HELPER_ENCODE;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_query__decode") == 0 ) {
+		return XL_QUERY_HELPER_DECODE;
+	}
+	return XL_QUERY_HELPER_NONE;
+}
+
+static XL_TemplateHelperKind __xlTemplateHelperKind(const char* sCalleeName)
+{
+	if ( sCalleeName == NULL ) {
+		return XL_TEMPLATE_HELPER_NONE;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_template__render") == 0 ) {
+		return XL_TEMPLATE_HELPER_RENDER;
+	}
+	return XL_TEMPLATE_HELPER_NONE;
+}
+
+static XL_ContainerModuleHelperKind __xlContainerModuleHelperKind(const char* sCalleeName)
+{
+	if ( sCalleeName == NULL ) {
+		return XL_CONTAINER_MODULE_HELPER_NONE;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_array__len") == 0 ) return XL_CONTAINER_MODULE_HELPER_ARRAY_LEN;
+	if ( strcmp(sCalleeName, "xl_mod_std_array__append") == 0 ) return XL_CONTAINER_MODULE_HELPER_ARRAY_APPEND;
+	if ( strcmp(sCalleeName, "xl_mod_std_array__join") == 0 ) return XL_CONTAINER_MODULE_HELPER_ARRAY_JOIN;
+	if ( strcmp(sCalleeName, "xl_mod_std_array__clear") == 0 ) return XL_CONTAINER_MODULE_HELPER_ARRAY_CLEAR;
+	if ( strcmp(sCalleeName, "xl_mod_std_array__remove") == 0 ) return XL_CONTAINER_MODULE_HELPER_ARRAY_REMOVE;
+	if ( strcmp(sCalleeName, "xl_mod_std_list__len") == 0 ) return XL_CONTAINER_MODULE_HELPER_LIST_LEN;
+	if ( strcmp(sCalleeName, "xl_mod_std_list__append") == 0 ) return XL_CONTAINER_MODULE_HELPER_LIST_APPEND;
+	if ( strcmp(sCalleeName, "xl_mod_std_list__join") == 0 ) return XL_CONTAINER_MODULE_HELPER_LIST_JOIN;
+	if ( strcmp(sCalleeName, "xl_mod_std_list__clear") == 0 ) return XL_CONTAINER_MODULE_HELPER_LIST_CLEAR;
+	if ( strcmp(sCalleeName, "xl_mod_std_list__remove") == 0 ) return XL_CONTAINER_MODULE_HELPER_LIST_REMOVE;
+	if ( strcmp(sCalleeName, "xl_mod_std_set__len") == 0 ) return XL_CONTAINER_MODULE_HELPER_SET_LEN;
+	if ( strcmp(sCalleeName, "xl_mod_std_set__has") == 0 ) return XL_CONTAINER_MODULE_HELPER_SET_HAS;
+	if ( strcmp(sCalleeName, "xl_mod_std_set__clear") == 0 ) return XL_CONTAINER_MODULE_HELPER_SET_CLEAR;
+	if ( strcmp(sCalleeName, "xl_mod_std_set__remove") == 0 ) return XL_CONTAINER_MODULE_HELPER_SET_REMOVE;
+	if ( strcmp(sCalleeName, "xl_mod_std_dict__len") == 0 ) return XL_CONTAINER_MODULE_HELPER_DICT_LEN;
+	if ( strcmp(sCalleeName, "xl_mod_std_dict__has") == 0 ) return XL_CONTAINER_MODULE_HELPER_DICT_HAS;
+	if ( strcmp(sCalleeName, "xl_mod_std_dict__clear") == 0 ) return XL_CONTAINER_MODULE_HELPER_DICT_CLEAR;
+	if ( strcmp(sCalleeName, "xl_mod_std_dict__remove") == 0 ) return XL_CONTAINER_MODULE_HELPER_DICT_REMOVE;
+	return XL_CONTAINER_MODULE_HELPER_NONE;
+}
+
+static XL_RangeModuleHelperKind __xlRangeModuleHelperKind(const char* sCalleeName, size_t iParamCount)
+{
+	if ( sCalleeName == NULL ) {
+		return XL_RANGE_MODULE_HELPER_NONE;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_range__collect") != 0 ) {
+		return XL_RANGE_MODULE_HELPER_NONE;
+	}
+	if ( iParamCount == 1u ) return XL_RANGE_MODULE_HELPER_COLLECT1;
+	if ( iParamCount == 2u ) return XL_RANGE_MODULE_HELPER_COLLECT2;
+	if ( iParamCount == 3u ) return XL_RANGE_MODULE_HELPER_COLLECT3;
+	return XL_RANGE_MODULE_HELPER_NONE;
+}
+
+static XL_IterModuleHelperKind __xlIterModuleHelperKind(const char* sCalleeName, const char* sType0)
+{
+	if ( sCalleeName == NULL ) {
+		return XL_ITER_MODULE_HELPER_NONE;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_iter__count") == 0 ) {
+		if ( __xlTypeHasBaseName(sType0, "array") ) return XL_ITER_MODULE_HELPER_COUNT_ARRAY;
+		if ( __xlTypeHasBaseName(sType0, "list") ) return XL_ITER_MODULE_HELPER_COUNT_LIST;
+		if ( __xlTypeHasBaseName(sType0, "set") ) return XL_ITER_MODULE_HELPER_COUNT_SET;
+		if ( __xlTypeHasBaseName(sType0, "dict") ) return XL_ITER_MODULE_HELPER_COUNT_DICT;
+		return XL_ITER_MODULE_HELPER_NONE;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_iter__keys") == 0 ) return XL_ITER_MODULE_HELPER_KEYS;
+	if ( strcmp(sCalleeName, "xl_mod_std_iter__values") == 0 ) return XL_ITER_MODULE_HELPER_VALUES;
+	if ( strcmp(sCalleeName, "xl_mod_std_iter__items") == 0 ) return XL_ITER_MODULE_HELPER_ITEMS;
+	return XL_ITER_MODULE_HELPER_NONE;
+}
+
 static XL_EnvHelperKind __xlEnvHelperKind(const char* sCalleeName)
 {
 	if ( sCalleeName == NULL ) {
@@ -9974,6 +10108,11 @@ static int __xlCgenEmitBuiltinHelperFunc(
 	XL_MathHelperKind eMathKind;
 	XL_PackHelperKind ePackKind;
 	XL_JsonHelperKind eJsonKind;
+	XL_QueryHelperKind eQueryKind;
+	XL_TemplateHelperKind eTemplateKind;
+	XL_ContainerModuleHelperKind eContainerModuleKind;
+	XL_RangeModuleHelperKind eRangeModuleKind;
+	XL_IterModuleHelperKind eIterModuleKind;
 	XL_EnvHelperKind eEnvKind;
 	XL_DirHelperKind eDirKind;
 	XL_ProcessHelperKind eProcessKind;
@@ -10490,6 +10629,100 @@ static int __xlCgenEmitBuiltinHelperFunc(
 				break;
 			default:
 				break;
+		}
+		__xlCgenEmitHelperFuncClose(pCtx);
+		return 1;
+	}
+
+	eQueryKind = __xlQueryHelperKind(pFuncInfo->sName);
+	if ( eQueryKind != XL_QUERY_HELPER_NONE ) {
+		__xlCgenEmitHelperFuncOpen(pCtx, pFuncInfo, pParams);
+		__xlCgenAppendIndent(&pCtx->buf);
+		switch ( eQueryKind ) {
+			case XL_QUERY_HELPER_ENCODE:
+				__xlCgenAppendFormat(&pCtx->buf, "return xl_query_encode(%s);\n", sParam0);
+				break;
+			case XL_QUERY_HELPER_DECODE:
+				__xlCgenAppendFormat(&pCtx->buf, "return xl_query_decode(%s);\n", sParam0);
+				break;
+			default:
+				break;
+		}
+		__xlCgenEmitHelperFuncClose(pCtx);
+		return 1;
+	}
+
+	eTemplateKind = __xlTemplateHelperKind(pFuncInfo->sName);
+	if ( eTemplateKind != XL_TEMPLATE_HELPER_NONE ) {
+		__xlCgenEmitHelperFuncOpen(pCtx, pFuncInfo, pParams);
+		__xlCgenAppendIndent(&pCtx->buf);
+		switch ( eTemplateKind ) {
+			case XL_TEMPLATE_HELPER_RENDER:
+				__xlCgenAppendFormat(&pCtx->buf, "return xl_template_render(%s, %s);\n", sParam0, sParam1);
+				break;
+			default:
+				break;
+		}
+		__xlCgenEmitHelperFuncClose(pCtx);
+		return 1;
+	}
+
+	eIterModuleKind = __xlIterModuleHelperKind(pFuncInfo->sName, sType0);
+	if ( eIterModuleKind != XL_ITER_MODULE_HELPER_NONE ) {
+		__xlCgenEmitHelperFuncOpen(pCtx, pFuncInfo, pParams);
+		__xlCgenAppendIndent(&pCtx->buf);
+		switch ( eIterModuleKind ) {
+			case XL_ITER_MODULE_HELPER_COUNT_ARRAY: __xlCgenAppendFormat(&pCtx->buf, "return xl_core_len_array(%s);\n", sParam0); break;
+			case XL_ITER_MODULE_HELPER_COUNT_LIST: __xlCgenAppendFormat(&pCtx->buf, "return xl_core_len_list(%s);\n", sParam0); break;
+			case XL_ITER_MODULE_HELPER_COUNT_SET: __xlCgenAppendFormat(&pCtx->buf, "return xl_core_len_set(%s);\n", sParam0); break;
+			case XL_ITER_MODULE_HELPER_COUNT_DICT: __xlCgenAppendFormat(&pCtx->buf, "return xl_core_len_dict(%s);\n", sParam0); break;
+			case XL_ITER_MODULE_HELPER_KEYS: __xlCgenAppendFormat(&pCtx->buf, "return xl_iter_keys(%s);\n", sParam0); break;
+			case XL_ITER_MODULE_HELPER_VALUES: __xlCgenAppendFormat(&pCtx->buf, "return xl_iter_values(%s);\n", sParam0); break;
+			case XL_ITER_MODULE_HELPER_ITEMS: __xlCgenAppendFormat(&pCtx->buf, "return xl_iter_items(%s);\n", sParam0); break;
+			default: break;
+		}
+		__xlCgenEmitHelperFuncClose(pCtx);
+		return 1;
+	}
+
+	eContainerModuleKind = __xlContainerModuleHelperKind(pFuncInfo->sName);
+	if ( eContainerModuleKind != XL_CONTAINER_MODULE_HELPER_NONE ) {
+		__xlCgenEmitHelperFuncOpen(pCtx, pFuncInfo, pParams);
+		__xlCgenAppendIndent(&pCtx->buf);
+		switch ( eContainerModuleKind ) {
+			case XL_CONTAINER_MODULE_HELPER_ARRAY_LEN: __xlCgenAppendFormat(&pCtx->buf, "return xl_core_len_array(%s);\n", sParam0); break;
+			case XL_CONTAINER_MODULE_HELPER_ARRAY_APPEND: __xlCgenAppendFormat(&pCtx->buf, "xl_array_append(%s, %s);\n", sParam0, sParam1); break;
+			case XL_CONTAINER_MODULE_HELPER_ARRAY_JOIN: __xlCgenAppendFormat(&pCtx->buf, "return xl_array_join(%s, %s);\n", sParam0, sParam1); break;
+			case XL_CONTAINER_MODULE_HELPER_ARRAY_CLEAR: __xlCgenAppendFormat(&pCtx->buf, "xl_array_clear(%s);\n", sParam0); break;
+			case XL_CONTAINER_MODULE_HELPER_ARRAY_REMOVE: __xlCgenAppendFormat(&pCtx->buf, "return xl_array_remove(%s, %s);\n", sParam0, sParam1); break;
+			case XL_CONTAINER_MODULE_HELPER_LIST_LEN: __xlCgenAppendFormat(&pCtx->buf, "return xl_core_len_list(%s);\n", sParam0); break;
+			case XL_CONTAINER_MODULE_HELPER_LIST_APPEND: __xlCgenAppendFormat(&pCtx->buf, "xl_list_append(%s, %s);\n", sParam0, sParam1); break;
+			case XL_CONTAINER_MODULE_HELPER_LIST_JOIN: __xlCgenAppendFormat(&pCtx->buf, "return xl_list_join(%s, %s);\n", sParam0, sParam1); break;
+			case XL_CONTAINER_MODULE_HELPER_LIST_CLEAR: __xlCgenAppendFormat(&pCtx->buf, "xl_list_clear(%s);\n", sParam0); break;
+			case XL_CONTAINER_MODULE_HELPER_LIST_REMOVE: __xlCgenAppendFormat(&pCtx->buf, "return xl_list_remove(%s, %s);\n", sParam0, sParam1); break;
+			case XL_CONTAINER_MODULE_HELPER_SET_LEN: __xlCgenAppendFormat(&pCtx->buf, "return xl_core_len_set(%s);\n", sParam0); break;
+			case XL_CONTAINER_MODULE_HELPER_SET_HAS: __xlCgenAppendFormat(&pCtx->buf, "return xl_set_has(%s, %s);\n", sParam0, sParam1); break;
+			case XL_CONTAINER_MODULE_HELPER_SET_CLEAR: __xlCgenAppendFormat(&pCtx->buf, "xl_set_clear(%s);\n", sParam0); break;
+			case XL_CONTAINER_MODULE_HELPER_SET_REMOVE: __xlCgenAppendFormat(&pCtx->buf, "return xl_set_remove(%s, %s);\n", sParam0, sParam1); break;
+			case XL_CONTAINER_MODULE_HELPER_DICT_LEN: __xlCgenAppendFormat(&pCtx->buf, "return xl_core_len_dict(%s);\n", sParam0); break;
+			case XL_CONTAINER_MODULE_HELPER_DICT_HAS: __xlCgenAppendFormat(&pCtx->buf, "return xl_dict_has(%s, %s);\n", sParam0, sParam1); break;
+			case XL_CONTAINER_MODULE_HELPER_DICT_CLEAR: __xlCgenAppendFormat(&pCtx->buf, "xl_dict_clear(%s);\n", sParam0); break;
+			case XL_CONTAINER_MODULE_HELPER_DICT_REMOVE: __xlCgenAppendFormat(&pCtx->buf, "return xl_dict_remove(%s, %s);\n", sParam0, sParam1); break;
+			default: break;
+		}
+		__xlCgenEmitHelperFuncClose(pCtx);
+		return 1;
+	}
+
+	eRangeModuleKind = __xlRangeModuleHelperKind(pFuncInfo->sName, (pParams != NULL) ? pParams->iChildCount : 0u);
+	if ( eRangeModuleKind != XL_RANGE_MODULE_HELPER_NONE ) {
+		__xlCgenEmitHelperFuncOpen(pCtx, pFuncInfo, pParams);
+		__xlCgenAppendIndent(&pCtx->buf);
+		switch ( eRangeModuleKind ) {
+			case XL_RANGE_MODULE_HELPER_COLLECT1: __xlCgenAppendFormat(&pCtx->buf, "return xl_range_collect1(%s);\n", sParam0); break;
+			case XL_RANGE_MODULE_HELPER_COLLECT2: __xlCgenAppendFormat(&pCtx->buf, "return xl_range_collect2(%s, %s);\n", sParam0, sParam1); break;
+			case XL_RANGE_MODULE_HELPER_COLLECT3: __xlCgenAppendFormat(&pCtx->buf, "return xl_range_collect3(%s, %s, %s);\n", sParam0, sParam1, sParam2); break;
+			default: break;
 		}
 		__xlCgenEmitHelperFuncClose(pCtx);
 		return 1;

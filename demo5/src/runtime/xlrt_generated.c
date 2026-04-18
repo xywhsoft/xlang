@@ -9,11 +9,15 @@ static size_t __xlTextLen(const char* sText)
 
 static const char* __xlHexLowerBytes(const unsigned char* pBytes, size_t iCount);
 static int __xlTextBufAppend(char** psBuf, size_t* piLen, size_t* piCap, const char* sText, size_t iTextLen);
+static int __xlTextBufAppendChar(char** psBuf, size_t* piLen, size_t* piCap, char ch);
 static xregex* __xlRegexCreateOrRaise(const char* sPattern);
 static const char* __xlRegexSliceText(const char* sText, size_t iTextLen, xregexspan tSpan);
 static const char* __xlRegexReplaceInternal(const char* sPattern, const char* sText, const char* sValue, int bReplaceAll);
 static int __xlAppendListText(xvalue value, const char* sText, size_t iLen);
 static int __xlJsonEncodeValue(char** psBuf, size_t* piLen, size_t* piCap, xvalue value);
+static int __xlQueryEncodeText(char** psBuf, size_t* piLen, size_t* piCap, const char* sText, size_t iTextLen);
+static const char* __xlQueryDecodeText(const char* sText, size_t iTextLen);
+static const char* __xlTemplateTrimKey(const char* sText, size_t iTextLen, size_t* piOutLen);
 
 typedef struct XL_JsonParseCtx {
 	const char* sText;
@@ -404,6 +408,214 @@ xvalue xl_json_decode(const char* sText)
 		return xvoCreateNull();
 	}
 	return value;
+}
+
+const char* xl_query_encode(xvalue value)
+{
+	char* sBuf;
+	size_t iLen;
+	size_t iCap;
+	xdict pTable;
+	Dict_Key* pKey;
+	int bFirst;
+
+	sBuf = NULL;
+	iLen = 0u;
+	iCap = 0u;
+	if ( value == NULL ) {
+		return "";
+	}
+	pTable = xvoGetTable(value);
+	bFirst = 1;
+	if ( pTable != NULL ) {
+		xrtAVLTB_IterBegin((xavltbase)pTable);
+		for ( pKey = (Dict_Key*)xrtAVLTB_IterNext((xavltbase)pTable); pKey != NULL; pKey = (Dict_Key*)xrtAVLTB_IterNext((xavltbase)pTable) ) {
+			xvalue itemValue = *(xvalue*)(&pKey[1]);
+			const char* sValue = (const char*)xvoGetText(itemValue);
+			size_t iValueLen = (size_t)xvoGetSize(itemValue);
+
+			if ( !bFirst && !__xlTextBufAppendChar(&sBuf, &iLen, &iCap, '&') ) {
+				xrtAVLTB_IterEnd((xavltbase)pTable);
+				free(sBuf);
+				__xlRaiseNativeError("QueryError", "query encode failed", 0, "");
+				return "";
+			}
+			if ( !__xlQueryEncodeText(&sBuf, &iLen, &iCap, pKey->Key, pKey->KeyLen) ||
+				!__xlTextBufAppendChar(&sBuf, &iLen, &iCap, '=') ||
+				!__xlQueryEncodeText(&sBuf, &iLen, &iCap, (sValue != NULL) ? sValue : "", iValueLen) ) {
+				xrtAVLTB_IterEnd((xavltbase)pTable);
+				free(sBuf);
+				__xlRaiseNativeError("QueryError", "query encode failed", 0, "");
+				return "";
+			}
+			bFirst = 0;
+		}
+		xrtAVLTB_IterEnd((xavltbase)pTable);
+	}
+	return (sBuf != NULL) ? sBuf : "";
+}
+
+xvalue xl_query_decode(const char* sText)
+{
+	xvalue value;
+	const char* sCur;
+
+	if ( sText == NULL ) {
+		sText = "";
+	}
+	value = xvoCreateTable();
+	if ( value == NULL ) {
+		__xlRaiseNativeError("QueryError", "query decode failed", 0, sText);
+		return NULL;
+	}
+	sCur = sText;
+	while ( *sCur != '\0' ) {
+		const char* sPartEnd = strchr(sCur, '&');
+		const char* sEq;
+		size_t iPartLen;
+		size_t iKeyLen;
+		size_t iValueLen;
+		const char* sKeyDecoded;
+		const char* sValueDecoded;
+		xvalue itemValue;
+
+		iPartLen = (sPartEnd != NULL) ? (size_t)(sPartEnd - sCur) : __xlTextLen(sCur);
+		sEq = memchr(sCur, '=', iPartLen);
+		iKeyLen = (sEq != NULL) ? (size_t)(sEq - sCur) : iPartLen;
+		iValueLen = (sEq != NULL) ? (iPartLen - iKeyLen - 1u) : 0u;
+		sKeyDecoded = __xlQueryDecodeText(sCur, iKeyLen);
+		sValueDecoded = __xlQueryDecodeText((sEq != NULL) ? (sEq + 1) : "", iValueLen);
+		itemValue = xvoCreateText((str)sValueDecoded, __xlTextLen(sValueDecoded), FALSE);
+		if ( (itemValue == NULL) ||
+			!xvoTableSetValue(value, (str)sKeyDecoded, (uint32)__xlTextLen(sKeyDecoded), itemValue, TRUE) ) {
+			if ( itemValue != NULL ) {
+				xvoUnref(itemValue);
+			}
+			xvoUnref(value);
+			__xlRaiseNativeError("QueryError", "query decode failed", 0, sText);
+			return NULL;
+		}
+		if ( sPartEnd == NULL ) {
+			break;
+		}
+		sCur = sPartEnd + 1;
+	}
+	return value;
+}
+
+static xvalue __xlRangeCollectInternal(int start, int stop, int step)
+{
+	xvalue value;
+	int i;
+
+	if ( step == 0 ) {
+		__xlRaiseNativeError("RangeError", "range step cannot be zero", 0, NULL);
+		return NULL;
+	}
+	value = xvoCreateArray();
+	if ( value == NULL ) {
+		return NULL;
+	}
+	if ( step > 0 ) {
+		for ( i = start; i < stop; i += step ) {
+			if ( !xvoArrayAppendValue(value, xvoCreateInt((int64)i), TRUE) ) {
+				xvoUnref(value);
+				return NULL;
+			}
+		}
+	} else {
+		for ( i = start; i > stop; i += step ) {
+			if ( !xvoArrayAppendValue(value, xvoCreateInt((int64)i), TRUE) ) {
+				xvoUnref(value);
+				return NULL;
+			}
+		}
+	}
+	return value;
+}
+
+xvalue xl_range_collect1(int stop)
+{
+	return __xlRangeCollectInternal(0, stop, (stop >= 0) ? 1 : -1);
+}
+
+xvalue xl_range_collect2(int start, int stop)
+{
+	return __xlRangeCollectInternal(start, stop, (start <= stop) ? 1 : -1);
+}
+
+xvalue xl_range_collect3(int start, int stop, int step)
+{
+	return __xlRangeCollectInternal(start, stop, step);
+}
+
+const char* xl_template_render(const char* sTemplate, xvalue value)
+{
+	char* sBuf;
+	size_t iLen;
+	size_t iCap;
+	size_t iPos;
+	size_t iTextLen;
+
+	if ( sTemplate == NULL ) {
+		sTemplate = "";
+	}
+	sBuf = NULL;
+	iLen = 0u;
+	iCap = 0u;
+	iPos = 0u;
+	iTextLen = __xlTextLen(sTemplate);
+	while ( iPos < iTextLen ) {
+		const char* sOpen;
+		size_t iOpenPos;
+
+		sOpen = strstr(sTemplate + iPos, "{{");
+		if ( sOpen == NULL ) {
+			if ( !__xlTextBufAppend(&sBuf, &iLen, &iCap, sTemplate + iPos, iTextLen - iPos) ) {
+				free(sBuf);
+				__xlRaiseNativeError("TemplateError", "template render failed", 0, sTemplate);
+				return "";
+			}
+			break;
+		}
+		iOpenPos = (size_t)(sOpen - sTemplate);
+		if ( iOpenPos > iPos ) {
+			if ( !__xlTextBufAppend(&sBuf, &iLen, &iCap, sTemplate + iPos, iOpenPos - iPos) ) {
+				free(sBuf);
+				__xlRaiseNativeError("TemplateError", "template render failed", 0, sTemplate);
+				return "";
+			}
+		}
+		{
+			const char* sClose = strstr(sOpen + 2, "}}");
+			if ( sClose == NULL ) {
+				if ( !__xlTextBufAppend(&sBuf, &iLen, &iCap, sOpen, iTextLen - iOpenPos) ) {
+					free(sBuf);
+					__xlRaiseNativeError("TemplateError", "template render failed", 0, sTemplate);
+					return "";
+				}
+				break;
+			}
+			{
+				size_t iKeyLen = 0u;
+				const char* sKey = __xlTemplateTrimKey(sOpen + 2, (size_t)(sClose - (sOpen + 2)), &iKeyLen);
+				const char* sValue = "";
+				if ( (value != NULL) && (iKeyLen != 0u) ) {
+					sValue = (const char*)xvoTableGetText(value, (str)sKey, (uint32)iKeyLen);
+					if ( sValue == NULL ) {
+						sValue = "";
+					}
+				}
+				if ( !__xlTextBufAppend(&sBuf, &iLen, &iCap, sValue, __xlTextLen(sValue)) ) {
+					free(sBuf);
+					__xlRaiseNativeError("TemplateError", "template render failed", 0, sTemplate);
+					return "";
+				}
+			}
+			iPos = (size_t)((sClose - sTemplate) + 2u);
+		}
+	}
+	return (sBuf != NULL) ? sBuf : "";
 }
 
 const char* xl_point_to_string(void* value)
@@ -1047,6 +1259,120 @@ static xvalue __xlJsonParseValue(XL_JsonParseCtx* pCtx)
 	return NULL;
 }
 
+static int __xlQueryEncodeText(char** psBuf, size_t* piLen, size_t* piCap, const char* sText, size_t iTextLen)
+{
+	static const char sHex[] = "0123456789ABCDEF";
+	size_t i;
+
+	for ( i = 0; i < iTextLen; ++i ) {
+		unsigned char ch = (unsigned char)sText[i];
+		char sTmp[3];
+
+		if ( ((ch >= 'A') && (ch <= 'Z')) ||
+			((ch >= 'a') && (ch <= 'z')) ||
+			((ch >= '0') && (ch <= '9')) ||
+			(ch == '-') || (ch == '_') || (ch == '.') || (ch == '~') ) {
+			if ( !__xlTextBufAppendChar(psBuf, piLen, piCap, (char)ch) ) {
+				return 0;
+			}
+		} else if ( ch == ' ' ) {
+			if ( !__xlTextBufAppendChar(psBuf, piLen, piCap, '+') ) {
+				return 0;
+			}
+		} else {
+			sTmp[0] = '%';
+			sTmp[1] = sHex[(ch >> 4) & 0x0F];
+			sTmp[2] = sHex[ch & 0x0F];
+			if ( !__xlTextBufAppend(psBuf, piLen, piCap, sTmp, 3u) ) {
+				return 0;
+			}
+		}
+	}
+	return 1;
+}
+
+static const char* __xlQueryDecodeText(const char* sText, size_t iTextLen)
+{
+	char* sBuf;
+	size_t iLen;
+	size_t iCap;
+	size_t i;
+
+	sBuf = NULL;
+	iLen = 0u;
+	iCap = 0u;
+	if ( sText == NULL ) {
+		sText = "";
+		iTextLen = 0u;
+	}
+	for ( i = 0; i < iTextLen; ++i ) {
+		unsigned char ch = (unsigned char)sText[i];
+
+		if ( ch == '+' ) {
+			if ( !__xlTextBufAppendChar(&sBuf, &iLen, &iCap, ' ') ) {
+				free(sBuf);
+				return "";
+			}
+		} else if ( (ch == '%') && ((i + 2u) < iTextLen) ) {
+			unsigned char hi = (unsigned char)sText[i + 1u];
+			unsigned char lo = (unsigned char)sText[i + 2u];
+			unsigned int iValue = 0u;
+
+			if ( (hi >= '0') && (hi <= '9') ) iValue = (unsigned int)(hi - '0') << 4u;
+			else if ( (hi >= 'A') && (hi <= 'F') ) iValue = (unsigned int)(hi - 'A' + 10u) << 4u;
+			else if ( (hi >= 'a') && (hi <= 'f') ) iValue = (unsigned int)(hi - 'a' + 10u) << 4u;
+			else {
+				if ( !__xlTextBufAppendChar(&sBuf, &iLen, &iCap, '%') ) {
+					free(sBuf);
+					return "";
+				}
+				continue;
+			}
+
+			if ( (lo >= '0') && (lo <= '9') ) iValue |= (unsigned int)(lo - '0');
+			else if ( (lo >= 'A') && (lo <= 'F') ) iValue |= (unsigned int)(lo - 'A' + 10u);
+			else if ( (lo >= 'a') && (lo <= 'f') ) iValue |= (unsigned int)(lo - 'a' + 10u);
+			else {
+				if ( !__xlTextBufAppendChar(&sBuf, &iLen, &iCap, '%') ) {
+					free(sBuf);
+					return "";
+				}
+				continue;
+			}
+			if ( !__xlTextBufAppendChar(&sBuf, &iLen, &iCap, (char)iValue) ) {
+				free(sBuf);
+				return "";
+			}
+			i += 2u;
+		} else {
+			if ( !__xlTextBufAppendChar(&sBuf, &iLen, &iCap, (char)ch) ) {
+				free(sBuf);
+				return "";
+			}
+		}
+	}
+	return (sBuf != NULL) ? sBuf : "";
+}
+
+static const char* __xlTemplateTrimKey(const char* sText, size_t iTextLen, size_t* piOutLen)
+{
+	size_t iStart;
+	size_t iEnd;
+
+	iStart = 0u;
+	iEnd = iTextLen;
+	while ( (iStart < iEnd) && ((sText[iStart] == ' ') || (sText[iStart] == '\t') || (sText[iStart] == '\r') || (sText[iStart] == '\n')) ) {
+		iStart += 1u;
+	}
+	while ( (iEnd > iStart) && ((sText[iEnd - 1u] == ' ') || (sText[iEnd - 1u] == '\t') || (sText[iEnd - 1u] == '\r') || (sText[iEnd - 1u] == '\n')) ) {
+		iEnd -= 1u;
+	}
+	if ( piOutLen != NULL ) {
+		*piOutLen = iEnd - iStart;
+	}
+	return sText + iStart;
+}
+
 static const char* __xlRegexReplaceInternal(const char* sPattern, const char* sText, const char* sValue, int bReplaceAll)
 {
 	xregex* pRegex;
@@ -1267,6 +1593,98 @@ int xl_set_remove(xvalue value, xvalue item) { return xvoCollRemove(value, item)
 int xl_dict_remove(xvalue value, const char* key)
 {
 	return xvoTableRemove(value, (str)key, (uint32)__xlTextLen(key)) ? 1 : 0;
+}
+int xl_set_has(xvalue value, xvalue item) { return xvoCollExists(value, item) ? 1 : 0; }
+int xl_dict_has(xvalue value, const char* key)
+{
+	return xvoTableExists(value, (str)key, (uint32)__xlTextLen(key)) ? 1 : 0;
+}
+xvalue xl_iter_keys(xvalue value)
+{
+	xvalue result;
+	xdict pTable;
+	Dict_Key* pKey;
+
+	result = xvoCreateArray();
+	if ( result == NULL ) {
+		return NULL;
+	}
+	pTable = xvoGetTable(value);
+	if ( pTable == NULL ) {
+		return result;
+	}
+
+	xrtAVLTB_IterBegin((xavltbase)pTable);
+	for ( pKey = (Dict_Key*)xrtAVLTB_IterNext((xavltbase)pTable); pKey != NULL; pKey = (Dict_Key*)xrtAVLTB_IterNext((xavltbase)pTable) ) {
+		xvalue keyValue = xvoCreateText((str)pKey->Key, (uint32)pKey->KeyLen, FALSE);
+
+		if ( (keyValue == NULL) || !xvoArrayAppendValue(result, keyValue, TRUE) ) {
+			if ( keyValue != NULL ) {
+				xvoUnref(keyValue);
+			}
+			xrtAVLTB_IterEnd((xavltbase)pTable);
+			xvoUnref(result);
+			return NULL;
+		}
+	}
+	xrtAVLTB_IterEnd((xavltbase)pTable);
+	return result;
+}
+
+xvalue xl_iter_values(xvalue value)
+{
+	xvalue result;
+	xdict pTable;
+	Dict_Key* pKey;
+
+	result = xvoCreateArray();
+	if ( result == NULL ) {
+		return NULL;
+	}
+	pTable = xvoGetTable(value);
+	if ( pTable == NULL ) {
+		return result;
+	}
+
+	xrtAVLTB_IterBegin((xavltbase)pTable);
+	for ( pKey = (Dict_Key*)xrtAVLTB_IterNext((xavltbase)pTable); pKey != NULL; pKey = (Dict_Key*)xrtAVLTB_IterNext((xavltbase)pTable) ) {
+		xvalue itemValue = *(xvalue*)(&pKey[1]);
+
+		if ( !xvoArrayAppendValue(result, itemValue, TRUE) ) {
+			xrtAVLTB_IterEnd((xavltbase)pTable);
+			xvoUnref(result);
+			return NULL;
+		}
+	}
+	xrtAVLTB_IterEnd((xavltbase)pTable);
+	return result;
+}
+
+xvalue xl_iter_items(xvalue value)
+{
+	xvalue result;
+	xavltree pTree;
+	Coll_Key* pKey;
+
+	result = xvoCreateArray();
+	if ( result == NULL ) {
+		return NULL;
+	}
+	pTree = xvoGetColl(value);
+	if ( pTree == NULL ) {
+		return result;
+	}
+
+	xrtAVLTreeIterBegin(pTree);
+	for ( pKey = (Coll_Key*)xrtAVLTreeIterNext(pTree); pKey != NULL; pKey = (Coll_Key*)xrtAVLTreeIterNext(pTree) ) {
+		if ( !xvoArrayAppendValue(result, pKey->Value, TRUE) ) {
+			xrtAVLTreeIterEnd(pTree);
+			xvoUnref(result);
+			return NULL;
+		}
+	}
+	xrtAVLTreeIterEnd(pTree);
+	return result;
 }
 
 xtime xl_time_now(void) { return xrtNow(); }
