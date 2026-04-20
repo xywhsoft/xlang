@@ -52,6 +52,7 @@ const char* xlStdSetModuleSource(void);
 const char* xlStdStrModuleSource(void);
 const char* xlStdSysEnvModuleSource(void);
 const char* xlStdSysFileModuleSource(void);
+const char* xlStdSysLibModuleSource(void);
 const char* xlStdSysMemModuleSource(void);
 const char* xlStdSysNetModuleSource(void);
 const char* xlStdSysProcessModuleSource(void);
@@ -126,6 +127,7 @@ static const XL_NativeRegistryEntry g_arrNativeModules[] = {
 	{ "std.array", "std.array", "<native:std.array>", xlStdArrayModuleSource },
 	{ "std.set", "std.set", "<native:std.set>", xlStdSetModuleSource },
 	{ "std.str", "std.str", "<native:std.str>", xlStdStrModuleSource },
+	{ "std.sys.lib", "std.sys.lib", "<native:std.sys.lib>", xlStdSysLibModuleSource },
 	{ "std.sys.env", "std.sys.env", "<native:std.sys.env>", xlStdSysEnvModuleSource },
 	{ "std.sys.file", "std.sys.file", "<native:std.sys.file>", xlStdSysFileModuleSource },
 	{ "std.sys.mem", "std.sys.mem", "<native:std.sys.mem>", xlStdSysMemModuleSource },

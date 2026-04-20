@@ -113,6 +113,94 @@ static char* __xlConcatText(const char* sText1, const char* sText2)
 	return sOut;
 }
 
+static const XL_AstNode* __xlDriverAstChild(const XL_AstNode* pNode, size_t iIndex)
+{
+	if ( (pNode == NULL) || (iIndex >= pNode->iChildCount) ) {
+		return NULL;
+	}
+	return pNode->ppChildren[iIndex];
+}
+
+static const XL_AstNode* __xlDriverFuncReceiverNode(const XL_AstNode* pNode)
+{
+	if ( (pNode == NULL) || (pNode->eKind != XL_AST_FUNC_DECL) || (pNode->iChildCount <= 3) ) {
+		return NULL;
+	}
+	return pNode->ppChildren[3];
+}
+
+static const char* __xlDriverFuncExternName(const XL_AstNode* pNode)
+{
+	const XL_AstNode* pBody;
+
+	if ( (pNode == NULL) || (pNode->eKind != XL_AST_FUNC_DECL) ) {
+		return NULL;
+	}
+	if ( __xlDriverFuncReceiverNode(pNode) != NULL ) {
+		return NULL;
+	}
+	if ( (pNode->sText2 == NULL) || (pNode->sText2[0] == '\0') ) {
+		return NULL;
+	}
+	pBody = __xlDriverAstChild(pNode, 2);
+	if ( (pBody == NULL) || (pBody->eKind != XL_AST_BLOCK) || (pBody->iChildCount != 0) ) {
+		return NULL;
+	}
+	return pNode->sText2;
+}
+
+static const char* __xlDriverVarExternName(const XL_AstNode* pNode)
+{
+	const XL_AstNode* pTypeNode;
+	const XL_AstNode* pValueNode;
+
+	if ( (pNode == NULL) || (pNode->eKind != XL_AST_VAR_DECL) ) {
+		return NULL;
+	}
+	if ( (pNode->sText2 == NULL) || (pNode->sText2[0] == '\0') ) {
+		return NULL;
+	}
+	pTypeNode = __xlDriverAstChild(pNode, 0);
+	pValueNode = __xlDriverAstChild(pNode, 1);
+	if ( (pValueNode == NULL) && (pTypeNode != NULL) && (pTypeNode->eKind != XL_AST_TYPE_REF) ) {
+		pValueNode = pTypeNode;
+		pTypeNode = NULL;
+	}
+	if ( (pTypeNode == NULL) || (pValueNode != NULL) ) {
+		return NULL;
+	}
+	return pNode->sText2;
+}
+
+static int __xlAddRootExternSymbolsGeneric(
+	const XL_AstNode* pRoot,
+	int (*fnAddSymbol)(void* pCtx, const char* sName),
+	void* pCtx
+)
+{
+	size_t i;
+
+	if ( (pRoot == NULL) || (fnAddSymbol == NULL) ) {
+		return XL_RC_BAD_ARG;
+	}
+	for ( i = 0; i < pRoot->iChildCount; ++i ) {
+		const XL_AstNode* pStmt;
+		const char* sExternName;
+
+		pStmt = pRoot->ppChildren[i];
+		sExternName = __xlDriverFuncExternName(pStmt);
+		if ( sExternName == NULL ) {
+			sExternName = __xlDriverVarExternName(pStmt);
+		}
+		if ( (sExternName != NULL) && (sExternName[0] != '\0') ) {
+			if ( fnAddSymbol(pCtx, sExternName) != XL_RC_OK ) {
+				return XL_RC_FAIL;
+			}
+		}
+	}
+	return XL_RC_OK;
+}
+
 static char* __xlCommentText(const char* sText)
 {
 	size_t i;
@@ -320,6 +408,16 @@ static int __xlHostCtxAddExternSymbolAdapter(void* pCtx, const char* sName)
 	return xlHostContextAddExternSymbol((XL_HostContext*)pCtx, sName);
 }
 
+static int __xlAddRootExternSymbolsToExecCtx(XL_ExecCtx* pExecCtx, const XL_AstNode* pRoot)
+{
+	return __xlAddRootExternSymbolsGeneric(pRoot, __xlExecCtxAddExternSymbolAdapter, pExecCtx);
+}
+
+static int __xlAddRootExternSymbolsToHostCtx(XL_HostContext* pHostCtx, const XL_AstNode* pRoot)
+{
+	return __xlAddRootExternSymbolsGeneric(pRoot, __xlHostCtxAddExternSymbolAdapter, pHostCtx);
+}
+
 static int __xlAddModuleExternSymbolsToExecCtx(XL_ExecCtx* pExecCtx, const XL_ModuleLinkResult* pModuleResult)
 {
 	size_t i;
@@ -403,6 +501,120 @@ static int __xlAddModuleLinkLibrariesToHostCtx(XL_HostContext* pHostCtx, const X
 		}
 	}
 
+	return XL_RC_OK;
+}
+
+static int __xlAddModuleLibPathsToExecCtx(XL_ExecCtx* pExecCtx, const XL_ModuleLinkResult* pModuleResult)
+{
+	size_t i;
+	size_t j;
+
+	if ( (pExecCtx == NULL) || (pModuleResult == NULL) ) {
+		return XL_RC_BAD_ARG;
+	}
+	for ( i = 0; i < pModuleResult->iModuleCount; ++i ) {
+		const XL_ModuleSummary* pModule = &pModuleResult->pModules[i];
+		for ( j = 0; j < pModule->iLibPathCount; ++j ) {
+			if ( xlExecCtxAddLibraryPath(pExecCtx, pModule->arrLibPaths[j]) != XL_RC_OK ) {
+				return XL_RC_FAIL;
+			}
+		}
+	}
+	return XL_RC_OK;
+}
+
+static int __xlAddModuleLibPathsToHostCtx(XL_HostContext* pHostCtx, const XL_ModuleLinkResult* pModuleResult)
+{
+	size_t i;
+	size_t j;
+
+	if ( (pHostCtx == NULL) || (pModuleResult == NULL) ) {
+		return XL_RC_BAD_ARG;
+	}
+	for ( i = 0; i < pModuleResult->iModuleCount; ++i ) {
+		const XL_ModuleSummary* pModule = &pModuleResult->pModules[i];
+		for ( j = 0; j < pModule->iLibPathCount; ++j ) {
+			if ( xlHostContextAddLibraryPath(pHostCtx, pModule->arrLibPaths[j]) != XL_RC_OK ) {
+				return XL_RC_FAIL;
+			}
+		}
+	}
+	return XL_RC_OK;
+}
+
+static int __xlAddModuleIncPathsToExecCtx(XL_ExecCtx* pExecCtx, const XL_ModuleLinkResult* pModuleResult)
+{
+	size_t i;
+	size_t j;
+
+	if ( (pExecCtx == NULL) || (pModuleResult == NULL) ) {
+		return XL_RC_BAD_ARG;
+	}
+	for ( i = 0; i < pModuleResult->iModuleCount; ++i ) {
+		const XL_ModuleSummary* pModule = &pModuleResult->pModules[i];
+		for ( j = 0; j < pModule->iIncPathCount; ++j ) {
+			if ( xlExecCtxAddIncludePath(pExecCtx, pModule->arrIncPaths[j]) != XL_RC_OK ) {
+				return XL_RC_FAIL;
+			}
+		}
+	}
+	return XL_RC_OK;
+}
+
+static int __xlAddModuleIncPathsToHostCtx(XL_HostContext* pHostCtx, const XL_ModuleLinkResult* pModuleResult)
+{
+	size_t i;
+	size_t j;
+
+	if ( (pHostCtx == NULL) || (pModuleResult == NULL) ) {
+		return XL_RC_BAD_ARG;
+	}
+	for ( i = 0; i < pModuleResult->iModuleCount; ++i ) {
+		const XL_ModuleSummary* pModule = &pModuleResult->pModules[i];
+		for ( j = 0; j < pModule->iIncPathCount; ++j ) {
+			if ( xlHostContextAddIncludePath(pHostCtx, pModule->arrIncPaths[j]) != XL_RC_OK ) {
+				return XL_RC_FAIL;
+			}
+		}
+	}
+	return XL_RC_OK;
+}
+
+static int __xlAddModuleLoadLibsToExecCtx(XL_ExecCtx* pExecCtx, const XL_ModuleLinkResult* pModuleResult)
+{
+	size_t i;
+	size_t j;
+
+	if ( (pExecCtx == NULL) || (pModuleResult == NULL) ) {
+		return XL_RC_BAD_ARG;
+	}
+	for ( i = 0; i < pModuleResult->iModuleCount; ++i ) {
+		const XL_ModuleSummary* pModule = &pModuleResult->pModules[i];
+		for ( j = 0; j < pModule->iLoadLibCount; ++j ) {
+			if ( xlExecCtxAddLoadLibrary(pExecCtx, pModule->arrLoadLibs[j]) != XL_RC_OK ) {
+				return XL_RC_FAIL;
+			}
+		}
+	}
+	return XL_RC_OK;
+}
+
+static int __xlAddModuleLoadLibsToHostCtx(XL_HostContext* pHostCtx, const XL_ModuleLinkResult* pModuleResult)
+{
+	size_t i;
+	size_t j;
+
+	if ( (pHostCtx == NULL) || (pModuleResult == NULL) ) {
+		return XL_RC_BAD_ARG;
+	}
+	for ( i = 0; i < pModuleResult->iModuleCount; ++i ) {
+		const XL_ModuleSummary* pModule = &pModuleResult->pModules[i];
+		for ( j = 0; j < pModule->iLoadLibCount; ++j ) {
+			if ( xlHostContextAddLoadLibrary(pHostCtx, pModule->arrLoadLibs[j]) != XL_RC_OK ) {
+				return XL_RC_FAIL;
+			}
+		}
+	}
 	return XL_RC_OK;
 }
 
@@ -1037,8 +1249,28 @@ static int __xlDriverRunProgram(
 		iRc = XL_RC_FAIL;
 		goto cleanup;
 	}
+	if ( __xlAddRootExternSymbolsToExecCtx(&execCtx, moduleResult.pLinkedRoot) != XL_RC_OK ) {
+		XL_DIAG_ERROR(pDiag, "run", "failed to collect root extern symbols");
+		iRc = XL_RC_FAIL;
+		goto cleanup;
+	}
 	if ( __xlAddModuleLinkLibrariesToExecCtx(&execCtx, &moduleResult) != XL_RC_OK ) {
 		XL_DIAG_ERROR(pDiag, "run", "failed to collect module link libraries");
+		iRc = XL_RC_FAIL;
+		goto cleanup;
+	}
+	if ( __xlAddModuleLibPathsToExecCtx(&execCtx, &moduleResult) != XL_RC_OK ) {
+		XL_DIAG_ERROR(pDiag, "run", "failed to collect module library paths");
+		iRc = XL_RC_FAIL;
+		goto cleanup;
+	}
+	if ( __xlAddModuleIncPathsToExecCtx(&execCtx, &moduleResult) != XL_RC_OK ) {
+		XL_DIAG_ERROR(pDiag, "run", "failed to collect module include paths");
+		iRc = XL_RC_FAIL;
+		goto cleanup;
+	}
+	if ( __xlAddModuleLoadLibsToExecCtx(&execCtx, &moduleResult) != XL_RC_OK ) {
+		XL_DIAG_ERROR(pDiag, "run", "failed to collect module load libraries");
 		iRc = XL_RC_FAIL;
 		goto cleanup;
 	}
@@ -1205,8 +1437,28 @@ static int __xlDriverBuildProgram(
 		iRc = XL_RC_FAIL;
 		goto cleanup;
 	}
+	if ( __xlAddRootExternSymbolsToHostCtx(&hostCtx, moduleResult.pLinkedRoot) != XL_RC_OK ) {
+		XL_DIAG_ERROR(pDiag, "build", "failed to collect root extern symbols");
+		iRc = XL_RC_FAIL;
+		goto cleanup;
+	}
 	if ( __xlAddModuleLinkLibrariesToHostCtx(&hostCtx, &moduleResult) != XL_RC_OK ) {
 		XL_DIAG_ERROR(pDiag, "build", "failed to collect module link libraries");
+		iRc = XL_RC_FAIL;
+		goto cleanup;
+	}
+	if ( __xlAddModuleLibPathsToHostCtx(&hostCtx, &moduleResult) != XL_RC_OK ) {
+		XL_DIAG_ERROR(pDiag, "build", "failed to collect module library paths");
+		iRc = XL_RC_FAIL;
+		goto cleanup;
+	}
+	if ( __xlAddModuleIncPathsToHostCtx(&hostCtx, &moduleResult) != XL_RC_OK ) {
+		XL_DIAG_ERROR(pDiag, "build", "failed to collect module include paths");
+		iRc = XL_RC_FAIL;
+		goto cleanup;
+	}
+	if ( __xlAddModuleLoadLibsToHostCtx(&hostCtx, &moduleResult) != XL_RC_OK ) {
+		XL_DIAG_ERROR(pDiag, "build", "failed to collect module load libraries");
 		iRc = XL_RC_FAIL;
 		goto cleanup;
 	}

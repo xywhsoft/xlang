@@ -52,6 +52,15 @@ typedef struct XL_ModuleInfo {
 	char** arrLinkLibs;
 	size_t iLinkLibCount;
 	size_t iLinkLibCap;
+	char** arrLibPaths;
+	size_t iLibPathCount;
+	size_t iLibPathCap;
+	char** arrIncPaths;
+	size_t iIncPathCount;
+	size_t iIncPathCap;
+	char** arrLoadLibs;
+	size_t iLoadLibCount;
+	size_t iLoadLibCap;
 	XL_ModuleNameMap* arrNames;
 	size_t iNameCount;
 	size_t iNameCap;
@@ -84,6 +93,9 @@ typedef struct XL_ModuleLinkContext {
 	size_t iOrderCount;
 	size_t iOrderCap;
 } XL_ModuleLinkContext;
+
+static void __xlModuleNormalizePath(char* sOut, size_t iOutSize, const char* sPath);
+static void __xlModuleStripFileName(char* sPath);
 
 static int __xlModuleBufGrow(XL_ModuleTextBuffer* pBuf, size_t iNeed)
 {
@@ -244,6 +256,20 @@ static int __xlIsLinkIdentCont(int ch)
 	return __xlIsLinkIdentStart(ch) || ((ch >= '0') && (ch <= '9'));
 }
 
+static int __xlModulePathIsAbsolute(const char* sPath)
+{
+	if ( (sPath == NULL) || (sPath[0] == '\0') ) {
+		return 0;
+	}
+	if ( xlPathIsSep((unsigned char)sPath[0]) ) {
+		return 1;
+	}
+	if ( ((sPath[0] >= 'A') && (sPath[0] <= 'Z')) || ((sPath[0] >= 'a') && (sPath[0] <= 'z')) ) {
+		return (sPath[1] == ':') ? 1 : 0;
+	}
+	return 0;
+}
+
 static int __xlModuleInfoAddLinkLib(XL_ModuleInfo* pModule, const char* sLibName)
 {
 	char** arrNew;
@@ -278,8 +304,161 @@ static int __xlModuleInfoAddLinkLib(XL_ModuleInfo* pModule, const char* sLibName
 	return XL_RC_OK;
 }
 
-static int __xlExtractLinkDecls(
+static int __xlModuleInfoAddTextItem(char*** pArr, size_t* piCount, size_t* piCap, const char* sText)
+{
+	char** arrNew;
+	size_t i;
+	size_t iNewCap;
+
+	if ( (pArr == NULL) || (piCount == NULL) || (piCap == NULL) || (sText == NULL) || (sText[0] == '\0') ) {
+		return XL_RC_BAD_ARG;
+	}
+	for ( i = 0; i < *piCount; ++i ) {
+		if ( strcmp((*pArr)[i], sText) == 0 ) {
+			return XL_RC_OK;
+		}
+	}
+	if ( *piCount >= *piCap ) {
+		iNewCap = (*piCap == 0) ? 4 : (*piCap * 2);
+		arrNew = (char**)realloc(*pArr, sizeof(char*) * iNewCap);
+		if ( arrNew == NULL ) {
+			return XL_RC_IO_ERROR;
+		}
+		*pArr = arrNew;
+		*piCap = iNewCap;
+	}
+	(*pArr)[*piCount] = __xlModuleDupText(sText);
+	if ( (*pArr)[*piCount] == NULL ) {
+		return XL_RC_IO_ERROR;
+	}
+	*piCount += 1;
+	return XL_RC_OK;
+}
+
+static int __xlModuleInfoAddLibPath(XL_ModuleInfo* pModule, const char* sPath)
+{
+	if ( pModule == NULL ) {
+		return XL_RC_BAD_ARG;
+	}
+	return __xlModuleInfoAddTextItem(&pModule->arrLibPaths, &pModule->iLibPathCount, &pModule->iLibPathCap, sPath);
+}
+
+static int __xlModuleInfoAddIncPath(XL_ModuleInfo* pModule, const char* sPath)
+{
+	if ( pModule == NULL ) {
+		return XL_RC_BAD_ARG;
+	}
+	return __xlModuleInfoAddTextItem(&pModule->arrIncPaths, &pModule->iIncPathCount, &pModule->iIncPathCap, sPath);
+}
+
+static int __xlModuleInfoAddLoadLib(XL_ModuleInfo* pModule, const char* sFile)
+{
+	if ( pModule == NULL ) {
+		return XL_RC_BAD_ARG;
+	}
+	return __xlModuleInfoAddTextItem(&pModule->arrLoadLibs, &pModule->iLoadLibCount, &pModule->iLoadLibCap, sFile);
+}
+
+static int __xlExtractQuotedDirectiveValue(
+	const char* sText,
+	size_t iStart,
+	size_t iEnd,
+	char* sOut,
+	size_t iOutSize
+)
+{
+	size_t iPos;
+	size_t iOut;
+	char chQuote;
+
+	if ( (sText == NULL) || (sOut == NULL) || (iOutSize == 0) ) {
+		return XL_RC_BAD_ARG;
+	}
+	iPos = iStart;
+	while ( (iPos < iEnd) && __xlIsAsciiSpace((unsigned char)sText[iPos]) ) {
+		++iPos;
+	}
+	if ( (iPos >= iEnd) || ((sText[iPos] != '"') && (sText[iPos] != '\'')) ) {
+		return XL_RC_FAIL;
+	}
+	chQuote = sText[iPos++];
+	iOut = 0;
+	while ( iPos < iEnd ) {
+		char ch;
+
+		ch = sText[iPos++];
+		if ( ch == chQuote ) {
+			while ( (iPos < iEnd) && __xlIsAsciiSpace((unsigned char)sText[iPos]) ) {
+				++iPos;
+			}
+			if ( (iPos != iEnd) &&
+				!((sText[iPos] == '/') && ((iPos + 1) < iEnd) && (sText[iPos + 1] == '/')) ) {
+				return XL_RC_FAIL;
+			}
+			sOut[iOut] = '\0';
+			return XL_RC_OK;
+		}
+		if ( ch == '\\' ) {
+			if ( iPos >= iEnd ) {
+				return XL_RC_FAIL;
+			}
+			ch = sText[iPos++];
+		}
+		if ( (iOut + 1) >= iOutSize ) {
+			return XL_RC_FAIL;
+		}
+		sOut[iOut++] = ch;
+	}
+	return XL_RC_FAIL;
+}
+
+static int __xlNormalizeDirectivePath(const char* sModulePath, const char* sValue, char* sOut, size_t iOutSize)
+{
+	char sBaseDir[XL_PATH_MAX_LEN];
+	char sJoined[XL_PATH_MAX_LEN];
+
+	if ( (sValue == NULL) || (sOut == NULL) || (iOutSize == 0) ) {
+		return XL_RC_BAD_ARG;
+	}
+	if ( sValue[0] == '\0' ) {
+		sOut[0] = '\0';
+		return XL_RC_OK;
+	}
+	if ( __xlModulePathIsAbsolute(sValue) ) {
+		__xlModuleNormalizePath(sOut, iOutSize, sValue);
+		return XL_RC_OK;
+	}
+	snprintf(sBaseDir, sizeof(sBaseDir), "%s", (sModulePath != NULL) ? sModulePath : "");
+	__xlModuleStripFileName(sBaseDir);
+	xlPathJoin(sJoined, sizeof(sJoined), sBaseDir, sValue);
+	__xlModuleNormalizePath(sOut, iOutSize, sJoined);
+	return XL_RC_OK;
+}
+
+static int __xlDirectiveNeedsRelativePathResolution(const char* sValue)
+{
+	const char* pScan;
+
+	if ( (sValue == NULL) || (sValue[0] == '\0') ) {
+		return 0;
+	}
+	if ( __xlModulePathIsAbsolute(sValue) ) {
+		return 1;
+	}
+	if ( sValue[0] == '.' ) {
+		return 1;
+	}
+	for ( pScan = sValue; *pScan != '\0'; ++pScan ) {
+		if ( xlPathIsSep((unsigned char)(*pScan)) ) {
+			return 1;
+		}
+	}
+	return 0;
+}
+
+static int __xlExtractDirectiveDecls(
 	const char* sSourceText,
+	const char* sModulePath,
 	XL_ModuleInfo* pModule,
 	char** psSanitizedText
 )
@@ -300,6 +479,7 @@ static int __xlExtractLinkDecls(
 		size_t iNewlineLen;
 		size_t iLibStart;
 		size_t iLibEnd;
+		int bHandledDirective;
 
 		iLineStart = iPos;
 		iCursor = iPos;
@@ -321,7 +501,114 @@ static int __xlExtractLinkDecls(
 			iNewlineLen = 1;
 		}
 
-		if ( (strncmp(sSourceText + iCursor, "link", 4) == 0) &&
+		bHandledDirective = 0;
+		if ( (iCursor < iLineEnd) && (sSourceText[iCursor] == '#') ) {
+			char sValue[XL_PATH_MAX_LEN];
+			char sNormPath[XL_PATH_MAX_LEN];
+			const char* sDirective;
+			size_t iDirectiveStart;
+			size_t iDirectiveLen;
+			int iRc;
+
+			iDirectiveStart = iCursor + 1;
+			while ( (iDirectiveStart < iLineEnd) && __xlIsAsciiSpace((unsigned char)sSourceText[iDirectiveStart]) ) {
+				++iDirectiveStart;
+			}
+			iDirectiveLen = 0;
+			while ( ((iDirectiveStart + iDirectiveLen) < iLineEnd) &&
+				__xlIsLinkIdentCont((unsigned char)sSourceText[iDirectiveStart + iDirectiveLen]) ) {
+				++iDirectiveLen;
+			}
+			sDirective = sSourceText + iDirectiveStart;
+			if ( (iDirectiveLen == 4) && (memcmp(sDirective, "link", 4) == 0) ) {
+				iLibStart = iDirectiveStart + iDirectiveLen;
+				while ( (iLibStart < iLineEnd) && __xlIsAsciiSpace((unsigned char)sSourceText[iLibStart]) ) {
+					++iLibStart;
+				}
+				iLibEnd = iLibStart;
+				if ( (iLibStart < iLineEnd) && __xlIsLinkIdentStart((unsigned char)sSourceText[iLibStart]) ) {
+					while ( (iLibEnd < iLineEnd) && __xlIsLinkIdentCont((unsigned char)sSourceText[iLibEnd]) ) {
+						++iLibEnd;
+					}
+					while ( (iLibEnd < iLineEnd) && __xlIsAsciiSpace((unsigned char)sSourceText[iLibEnd]) ) {
+						++iLibEnd;
+					}
+					if ( (iLibEnd == iLineEnd) ||
+						((sSourceText[iLibEnd] == '/') && ((iLibEnd + 1) < iLineEnd) && (sSourceText[iLibEnd + 1] == '/')) ) {
+						size_t iLibLen;
+						char sLibName[128];
+
+						iLibLen = iLibEnd - iLibStart;
+						while ( (iLibLen > 0) && __xlIsAsciiSpace((unsigned char)sSourceText[iLibStart + iLibLen - 1]) ) {
+							--iLibLen;
+						}
+						if ( iLibLen >= sizeof(sLibName) ) {
+							iLibLen = sizeof(sLibName) - 1;
+						}
+						memcpy(sLibName, sSourceText + iLibStart, iLibLen);
+						sLibName[iLibLen] = '\0';
+						iRc = __xlModuleInfoAddLinkLib(pModule, sLibName);
+						if ( iRc != XL_RC_OK ) {
+							free(out.sData);
+							return iRc;
+						}
+						bHandledDirective = 1;
+					}
+				}
+			} else if ( (iDirectiveLen == 7) && (memcmp(sDirective, "libpath", 7) == 0) ) {
+				iRc = __xlExtractQuotedDirectiveValue(sSourceText, iDirectiveStart + iDirectiveLen, iLineEnd, sValue, sizeof(sValue));
+				if ( iRc == XL_RC_OK ) {
+					iRc = __xlNormalizeDirectivePath(sModulePath, sValue, sNormPath, sizeof(sNormPath));
+				}
+				if ( iRc == XL_RC_OK ) {
+					iRc = __xlModuleInfoAddLibPath(pModule, sNormPath);
+				}
+				if ( iRc != XL_RC_FAIL ) {
+					if ( iRc != XL_RC_OK ) {
+						free(out.sData);
+						return iRc;
+					}
+					bHandledDirective = 1;
+				}
+			} else if ( (iDirectiveLen == 7) && (memcmp(sDirective, "incpath", 7) == 0) ) {
+				iRc = __xlExtractQuotedDirectiveValue(sSourceText, iDirectiveStart + iDirectiveLen, iLineEnd, sValue, sizeof(sValue));
+				if ( iRc == XL_RC_OK ) {
+					iRc = __xlNormalizeDirectivePath(sModulePath, sValue, sNormPath, sizeof(sNormPath));
+				}
+				if ( iRc == XL_RC_OK ) {
+					iRc = __xlModuleInfoAddIncPath(pModule, sNormPath);
+				}
+				if ( iRc != XL_RC_FAIL ) {
+					if ( iRc != XL_RC_OK ) {
+						free(out.sData);
+						return iRc;
+					}
+					bHandledDirective = 1;
+				}
+			} else if ( (iDirectiveLen == 7) && (memcmp(sDirective, "loadlib", 7) == 0) ) {
+				iRc = __xlExtractQuotedDirectiveValue(sSourceText, iDirectiveStart + iDirectiveLen, iLineEnd, sValue, sizeof(sValue));
+				if ( iRc == XL_RC_OK ) {
+					if ( __xlDirectiveNeedsRelativePathResolution(sValue) ) {
+						iRc = __xlNormalizeDirectivePath(sModulePath, sValue, sNormPath, sizeof(sNormPath));
+					} else {
+						snprintf(sNormPath, sizeof(sNormPath), "%s", sValue);
+					}
+				}
+				if ( iRc == XL_RC_OK ) {
+					iRc = __xlModuleInfoAddLoadLib(pModule, sNormPath);
+				}
+				if ( iRc != XL_RC_FAIL ) {
+					if ( iRc != XL_RC_OK ) {
+						free(out.sData);
+						return iRc;
+					}
+					bHandledDirective = 1;
+				}
+			}
+		}
+
+		if ( !bHandledDirective &&
+			(strncmp(sSourceText + iCursor, "link", 4) == 0) &&
 			((sSourceText[iCursor + 4] == '\0') || __xlIsAsciiSpace((unsigned char)sSourceText[iCursor + 4])) ) {
 			iLibStart = iCursor + 4;
 			while ( __xlIsAsciiSpace((unsigned char)sSourceText[iLibStart]) ) {
@@ -363,6 +650,14 @@ static int __xlExtractLinkDecls(
 					continue;
 				}
 			}
+		}
+		if ( bHandledDirective ) {
+			if ( __xlModuleBufAppendN(&out, sSourceText + iLineEnd, iNewlineLen) != XL_RC_OK ) {
+				free(out.sData);
+				return XL_RC_IO_ERROR;
+			}
+			iPos = iLineEnd + iNewlineLen;
+			continue;
 		}
 
 		if ( __xlModuleBufAppendN(&out, sSourceText + iLineStart, (iLineEnd - iLineStart) + iNewlineLen) != XL_RC_OK ) {
@@ -882,6 +1177,18 @@ static void __xlModuleInfoFree(XL_ModuleInfo* pModule)
 		free(pModule->arrLinkLibs[i]);
 	}
 	free(pModule->arrLinkLibs);
+	for ( i = 0; i < pModule->iLibPathCount; ++i ) {
+		free(pModule->arrLibPaths[i]);
+	}
+	free(pModule->arrLibPaths);
+	for ( i = 0; i < pModule->iIncPathCount; ++i ) {
+		free(pModule->arrIncPaths[i]);
+	}
+	free(pModule->arrIncPaths);
+	for ( i = 0; i < pModule->iLoadLibCount; ++i ) {
+		free(pModule->arrLoadLibs[i]);
+	}
+	free(pModule->arrLoadLibs);
 
 	for ( i = 0; i < pModule->iNameCount; ++i ) {
 		free(pModule->arrNames[i].sOriginalName);
@@ -1267,13 +1574,28 @@ static void __xlRewriteSequentialChildren(XL_ModuleLinkContext* pCtx, XL_ModuleI
 	}
 }
 
-static void __xlRewriteMemberImportRef(XL_ModuleLinkContext* pCtx, XL_ModuleInfo* pModule, XL_AstNode* pNode)
+static const char* __xlMemberRootName(const XL_AstNode* pNode)
+{
+	const XL_AstNode* pScan;
+
+	pScan = pNode;
+	while ( (pScan != NULL) && (pScan->eKind == XL_AST_MEMBER) ) {
+		pScan = __xlAstChild(pScan, 0);
+	}
+	if ( (pScan == NULL) || (pScan->eKind != XL_AST_IDENT) ) {
+		return NULL;
+	}
+	return pScan->sText;
+}
+
+static void __xlRewriteMemberImportRef(XL_ModuleLinkContext* pCtx, XL_ModuleInfo* pModule, XL_AstNode* pNode, XL_ModuleScope* pScope)
 {
 	char* sChain;
 	char* sDot;
 	char* sImportKey;
 	XL_ModuleInfo* pImported;
 	const char* sMangledName;
+	const char* sRootName;
 	size_t i;
 
 	if ( (pModule == NULL) || (pNode == NULL) ) {
@@ -1295,6 +1617,12 @@ static void __xlRewriteMemberImportRef(XL_ModuleLinkContext* pCtx, XL_ModuleInfo
 	sImportKey = sChain;
 	if ( !__xlModuleHasImportKey(pModule, sImportKey) ) {
 		const char* sAliasedImportKey;
+
+		sRootName = __xlMemberRootName(pNode);
+		if ( (sRootName != NULL) && __xlModuleScopeHas(pScope, sRootName) ) {
+			free(sChain);
+			return;
+		}
 
 		sAliasedImportKey = __xlFindImportKeyByAlias(pModule, sImportKey);
 		if ( sAliasedImportKey != NULL ) {
@@ -1341,7 +1669,7 @@ static void __xlRewriteModuleNode(XL_ModuleLinkContext* pCtx, XL_ModuleInfo* pMo
 
 	switch ( pNode->eKind ) {
 		case XL_AST_MEMBER:
-			__xlRewriteMemberImportRef(pCtx, pModule, pNode);
+			__xlRewriteMemberImportRef(pCtx, pModule, pNode, pScope);
 			if ( pNode->eKind == XL_AST_IDENT ) {
 				return;
 			}
@@ -1499,7 +1827,7 @@ static int __xlParseModuleSourceText(
 	}
 
 	sSanitized = NULL;
-	iRc = __xlExtractLinkDecls(sSourceText, pModule, &sSanitized);
+	iRc = __xlExtractDirectiveDecls(sSourceText, sVirtualPath, pModule, &sSanitized);
 	if ( iRc != XL_RC_OK ) {
 		return iRc;
 	}
@@ -2145,6 +2473,15 @@ static void __xlBuildModuleTextDump(const XL_ModuleLinkContext* pCtx, char** psT
 		for ( j = 0; j < pModule->iLinkLibCount; ++j ) {
 			__xlModuleBufAppendFormat(&buf, "  link %s\n", pModule->arrLinkLibs[j]);
 		}
+		for ( j = 0; j < pModule->iLibPathCount; ++j ) {
+			__xlModuleBufAppendFormat(&buf, "  libpath %s\n", pModule->arrLibPaths[j]);
+		}
+		for ( j = 0; j < pModule->iIncPathCount; ++j ) {
+			__xlModuleBufAppendFormat(&buf, "  incpath %s\n", pModule->arrIncPaths[j]);
+		}
+		for ( j = 0; j < pModule->iLoadLibCount; ++j ) {
+			__xlModuleBufAppendFormat(&buf, "  loadlib %s\n", pModule->arrLoadLibs[j]);
+		}
 		for ( j = 0; j < pModule->iExportCount; ++j ) {
 			__xlModuleBufAppendFormat(&buf, "  export %s -> %s\n", pModule->arrExports[j].sName, pModule->arrExports[j].sMangledName);
 		}
@@ -2212,6 +2549,54 @@ static void __xlBuildModuleJsonDump(const XL_ModuleLinkContext* pCtx, char** psJ
 			__xlModuleBufAppend(&buf, "\n");
 		}
 		if ( pModule->iLinkLibCount != 0 ) {
+			__xlModuleBufAppend(&buf, "\t\t\t");
+		}
+		__xlModuleBufAppend(&buf, "],\n\t\t\t\"libPaths\": [");
+		if ( pModule->iLibPathCount != 0 ) {
+			__xlModuleBufAppend(&buf, "\n");
+		}
+		for ( j = 0; j < pModule->iLibPathCount; ++j ) {
+			__xlModuleBufAppend(&buf, "\t\t\t\t\"");
+			__xlModuleBufAppendEscaped(&buf, pModule->arrLibPaths[j]);
+			__xlModuleBufAppend(&buf, "\"");
+			if ( (j + 1) != pModule->iLibPathCount ) {
+				__xlModuleBufAppend(&buf, ",");
+			}
+			__xlModuleBufAppend(&buf, "\n");
+		}
+		if ( pModule->iLibPathCount != 0 ) {
+			__xlModuleBufAppend(&buf, "\t\t\t");
+		}
+		__xlModuleBufAppend(&buf, "],\n\t\t\t\"incPaths\": [");
+		if ( pModule->iIncPathCount != 0 ) {
+			__xlModuleBufAppend(&buf, "\n");
+		}
+		for ( j = 0; j < pModule->iIncPathCount; ++j ) {
+			__xlModuleBufAppend(&buf, "\t\t\t\t\"");
+			__xlModuleBufAppendEscaped(&buf, pModule->arrIncPaths[j]);
+			__xlModuleBufAppend(&buf, "\"");
+			if ( (j + 1) != pModule->iIncPathCount ) {
+				__xlModuleBufAppend(&buf, ",");
+			}
+			__xlModuleBufAppend(&buf, "\n");
+		}
+		if ( pModule->iIncPathCount != 0 ) {
+			__xlModuleBufAppend(&buf, "\t\t\t");
+		}
+		__xlModuleBufAppend(&buf, "],\n\t\t\t\"loadLibs\": [");
+		if ( pModule->iLoadLibCount != 0 ) {
+			__xlModuleBufAppend(&buf, "\n");
+		}
+		for ( j = 0; j < pModule->iLoadLibCount; ++j ) {
+			__xlModuleBufAppend(&buf, "\t\t\t\t\"");
+			__xlModuleBufAppendEscaped(&buf, pModule->arrLoadLibs[j]);
+			__xlModuleBufAppend(&buf, "\"");
+			if ( (j + 1) != pModule->iLoadLibCount ) {
+				__xlModuleBufAppend(&buf, ",");
+			}
+			__xlModuleBufAppend(&buf, "\n");
+		}
+		if ( pModule->iLoadLibCount != 0 ) {
 			__xlModuleBufAppend(&buf, "\t\t\t");
 		}
 		__xlModuleBufAppend(&buf, "],\n\t\t\t\"exports\": [");
@@ -2295,6 +2680,9 @@ static int __xlCopyModuleSummaries(const XL_ModuleLinkContext* pCtx, XL_ModuleLi
 		pSummary->bIsNative = (pModule != NULL) ? pModule->bIsNative : 0;
 		pSummary->iImportCount = (pModule != NULL) ? pModule->iImportCount : 0;
 		pSummary->iLinkLibCount = (pModule != NULL) ? pModule->iLinkLibCount : 0;
+		pSummary->iLibPathCount = (pModule != NULL) ? pModule->iLibPathCount : 0;
+		pSummary->iIncPathCount = (pModule != NULL) ? pModule->iIncPathCount : 0;
+		pSummary->iLoadLibCount = (pModule != NULL) ? pModule->iLoadLibCount : 0;
 		pSummary->iExportCount = (pModule != NULL) ? pModule->iExportCount : 0;
 		if ( (pSummary->sKey == NULL) || (pSummary->sFilePath == NULL) || (pSummary->sBindingName == NULL) ||
 			(pSummary->sInitSymbol == NULL) || (pSummary->sExportsSymbol == NULL) || (pSummary->sDescriptorSymbol == NULL) ||
@@ -2329,6 +2717,42 @@ static int __xlCopyModuleSummaries(const XL_ModuleLinkContext* pCtx, XL_ModuleLi
 			for ( j = 0; j < pSummary->iLinkLibCount; ++j ) {
 				pSummary->arrLinkLibs[j] = __xlModuleDupText(pModule->arrLinkLibs[j]);
 				if ( pSummary->arrLinkLibs[j] == NULL ) {
+					return XL_RC_IO_ERROR;
+				}
+			}
+		}
+		if ( pSummary->iLibPathCount != 0 ) {
+			pSummary->arrLibPaths = (char**)calloc(pSummary->iLibPathCount, sizeof(*pSummary->arrLibPaths));
+			if ( pSummary->arrLibPaths == NULL ) {
+				return XL_RC_IO_ERROR;
+			}
+			for ( j = 0; j < pSummary->iLibPathCount; ++j ) {
+				pSummary->arrLibPaths[j] = __xlModuleDupText(pModule->arrLibPaths[j]);
+				if ( pSummary->arrLibPaths[j] == NULL ) {
+					return XL_RC_IO_ERROR;
+				}
+			}
+		}
+		if ( pSummary->iIncPathCount != 0 ) {
+			pSummary->arrIncPaths = (char**)calloc(pSummary->iIncPathCount, sizeof(*pSummary->arrIncPaths));
+			if ( pSummary->arrIncPaths == NULL ) {
+				return XL_RC_IO_ERROR;
+			}
+			for ( j = 0; j < pSummary->iIncPathCount; ++j ) {
+				pSummary->arrIncPaths[j] = __xlModuleDupText(pModule->arrIncPaths[j]);
+				if ( pSummary->arrIncPaths[j] == NULL ) {
+					return XL_RC_IO_ERROR;
+				}
+			}
+		}
+		if ( pSummary->iLoadLibCount != 0 ) {
+			pSummary->arrLoadLibs = (char**)calloc(pSummary->iLoadLibCount, sizeof(*pSummary->arrLoadLibs));
+			if ( pSummary->arrLoadLibs == NULL ) {
+				return XL_RC_IO_ERROR;
+			}
+			for ( j = 0; j < pSummary->iLoadLibCount; ++j ) {
+				pSummary->arrLoadLibs[j] = __xlModuleDupText(pModule->arrLoadLibs[j]);
+				if ( pSummary->arrLoadLibs[j] == NULL ) {
 					return XL_RC_IO_ERROR;
 				}
 			}
@@ -2386,6 +2810,18 @@ void xlModuleLinkResultFree(XL_ModuleLinkResult* pResult)
 			free(pResult->pModules[i].arrLinkLibs[j]);
 		}
 		free(pResult->pModules[i].arrLinkLibs);
+		for ( j = 0; j < pResult->pModules[i].iLibPathCount; ++j ) {
+			free(pResult->pModules[i].arrLibPaths[j]);
+		}
+		free(pResult->pModules[i].arrLibPaths);
+		for ( j = 0; j < pResult->pModules[i].iIncPathCount; ++j ) {
+			free(pResult->pModules[i].arrIncPaths[j]);
+		}
+		free(pResult->pModules[i].arrIncPaths);
+		for ( j = 0; j < pResult->pModules[i].iLoadLibCount; ++j ) {
+			free(pResult->pModules[i].arrLoadLibs[j]);
+		}
+		free(pResult->pModules[i].arrLoadLibs);
 		for ( j = 0; j < pResult->pModules[i].iExportCount; ++j ) {
 			free(pResult->pModules[i].pExports[j].sName);
 			free(pResult->pModules[i].pExports[j].sSymbol);

@@ -844,6 +844,51 @@ extern_decl(A) ::= KW_EXTERN(E) extern_symbol_opt(S) KW_FUNC TOK_IDENT(N) TK_LPA
 	A = xlAstCreateFuncDecl(&N, 0, P, R, xlAstCreateBlock(&E));
 	xlPAttachExternSymbol(A, &N, (S.eKind != 0) ? &S : NULL);
 }
+extern_decl(A) ::= KW_EXTERN extern_symbol_opt(S) TOK_IDENT(V) TOK_IDENT(N) KW_AS type_name(T). {
+	if ( !xlPTokenEquals(&V, "var") ) {
+		A = NULL;
+	} else {
+		A = xlAstCreateVarDecl(&N, xlAstCreateTypeRef(&T), NULL);
+		xlPAttachExternSymbol(A, &N, (S.eKind != 0) ? &S : NULL);
+	}
+}
+extern_decl(A) ::= KW_EXTERN extern_symbol_opt(S) TOK_IDENT(V) TOK_IDENT(N) KW_AS generic_type_ref(T). {
+	if ( !xlPTokenEquals(&V, "var") ) {
+		A = NULL;
+	} else {
+		A = xlAstCreateVarDecl(&N, T, NULL);
+		xlPAttachExternSymbol(A, &N, (S.eKind != 0) ? &S : NULL);
+	}
+}
+extern_decl(A) ::= KW_EXTERN extern_symbol_opt(S) TOK_IDENT(V) TOK_IDENT(N) KW_AS function_type_ref(T). {
+	if ( !xlPTokenEquals(&V, "var") ) {
+		A = NULL;
+	} else {
+		A = xlAstCreateVarDecl(&N, T, NULL);
+		xlPAttachExternSymbol(A, &N, (S.eKind != 0) ? &S : NULL);
+	}
+}
+extern_decl(A) ::= KW_EXTERN extern_symbol_opt(S) TOK_IDENT(V) TOK_IDENT(N) OP_ASSIGN type_name(T). {
+	if ( (S.eKind != 0) || !xlPTokenEquals(&V, "type") ) {
+		A = NULL;
+	} else {
+		A = xlAstCreateTypeDef(&N, xlAstCreateTypeRef(&T));
+	}
+}
+extern_decl(A) ::= KW_EXTERN extern_symbol_opt(S) TOK_IDENT(V) TOK_IDENT(N) OP_ASSIGN generic_type_ref(T). {
+	if ( (S.eKind != 0) || !xlPTokenEquals(&V, "type") ) {
+		A = NULL;
+	} else {
+		A = xlAstCreateTypeDef(&N, T);
+	}
+}
+extern_decl(A) ::= KW_EXTERN extern_symbol_opt(S) TOK_IDENT(V) TOK_IDENT(N) OP_ASSIGN function_type_ref(T). {
+	if ( (S.eKind != 0) || !xlPTokenEquals(&V, "type") ) {
+		A = NULL;
+	} else {
+		A = xlAstCreateTypeDef(&N, T);
+	}
+}
 
 typedef_decl(A) ::= KW_TYPEDEF TOK_IDENT(N) OP_ASSIGN type_name(T). {
 	A = xlAstCreateTypeDef(&N, xlAstCreateTypeRef(&T));
@@ -1494,6 +1539,12 @@ unary_expr(A) ::= KW_AWAIT(T) unary_expr(E). {
 
 postfix_expr(A) ::= primary_expr(E). {
 	A = E;
+}
+postfix_expr(A) ::= generic_type_ref(T) TK_LPAREN arg_list(ARGS) TK_RPAREN(RP). {
+	A = xlAstCreateCall(T, ARGS, &RP);
+}
+postfix_expr(A) ::= function_type_ref(T) TK_LPAREN arg_list(ARGS) TK_RPAREN(RP). {
+	A = xlAstCreateCall(T, ARGS, &RP);
 }
 postfix_expr(A) ::= postfix_expr(C) TK_LPAREN arg_list(ARGS) TK_RPAREN(T). {
 	A = xlAstCreateCall(C, ARGS, &T);

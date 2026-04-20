@@ -1,0 +1,10 @@
+import std.core
+
+#loadlib "msvcrt.dll"
+
+extern "_fmode" var fmode as int
+
+func main() as int
+	std.core.println(fmode >= 0)
+	return 0
+end

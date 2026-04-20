@@ -764,6 +764,9 @@ static XL_HirNode* __xlLowerStmtToHir(const XL_AstNode* pNode, const XL_SemResul
 
 			pHir = xlHirCreateNode((pNode->eKind == XL_AST_CONST_DECL) ? XL_HIR_CONST : XL_HIR_VAR, pNode);
 			xlHirSetText(pHir, pNode->sText);
+			if ( (pNode->sText2 != NULL) && (pNode->sText2[0] != '\0') ) {
+				xlHirSetExternName(pHir, pNode->sText2);
+			}
 			__xlApplySemNodeInfo(pHir, pSem, pNode);
 			pTypeNode = __xlAstChild(pNode, 0);
 			pValueNode = __xlAstChild(pNode, 1);

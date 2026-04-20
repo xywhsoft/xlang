@@ -32,6 +32,12 @@ typedef struct XL_ModuleSummary {
 	size_t iImportCount;
 	char** arrLinkLibs;
 	size_t iLinkLibCount;
+	char** arrLibPaths;
+	size_t iLibPathCount;
+	char** arrIncPaths;
+	size_t iIncPathCount;
+	char** arrLoadLibs;
+	size_t iLoadLibCount;
 	XL_ModuleExportSummary* pExports;
 	size_t iExportCount;
 	int bIsRoot;

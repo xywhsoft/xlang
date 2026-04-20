@@ -198,22 +198,22 @@ static int __xlReadAllBytes(const char* sFilePath, char** ppData, size_t* piLen)
 	return XL_RC_OK;
 }
 
-static int __xlIsLinkSpace(int ch)
+static int __xlIsDirectiveSpace(int ch)
 {
 	return (ch == ' ') || (ch == '\t') || (ch == '\v') || (ch == '\f');
 }
 
-static int __xlIsLinkIdentStart(int ch)
+static int __xlIsDirectiveIdentStart(int ch)
 {
 	return ((ch >= 'A') && (ch <= 'Z')) || ((ch >= 'a') && (ch <= 'z')) || (ch == '_');
 }
 
-static int __xlIsLinkIdentCont(int ch)
+static int __xlIsDirectiveIdentCont(int ch)
 {
-	return __xlIsLinkIdentStart(ch) || ((ch >= '0') && (ch <= '9'));
+	return __xlIsDirectiveIdentStart(ch) || ((ch >= '0') && (ch <= '9'));
 }
 
-static char* __xlStripLinkLines(const char* sSource, size_t iLen, size_t* piOutLen)
+static char* __xlStripDirectiveLines(const char* sSource, size_t iLen, size_t* piOutLen)
 {
 	XL_TextBuffer buf;
 	size_t iPos;
@@ -234,7 +234,7 @@ static char* __xlStripLinkLines(const char* sSource, size_t iLen, size_t* piOutL
 
 		iLineStart = iPos;
 		iCursor = iPos;
-		while ( (iCursor < iLen) && __xlIsLinkSpace((unsigned char)sSource[iCursor]) ) {
+		while ( (iCursor < iLen) && __xlIsDirectiveSpace((unsigned char)sSource[iCursor]) ) {
 			++iCursor;
 		}
 		iLineEnd = iCursor;
@@ -252,19 +252,34 @@ static char* __xlStripLinkLines(const char* sSource, size_t iLen, size_t* piOutL
 			iNewlineLen = 1;
 		}
 
+		if ( (iCursor < iLineEnd) && (sSource[iCursor] == '#') ) {
+			iLibStart = iCursor + 1;
+			while ( (iLibStart < iLineEnd) && __xlIsDirectiveSpace((unsigned char)sSource[iLibStart]) ) {
+				++iLibStart;
+			}
+			if ( (iLibStart < iLineEnd) && __xlIsDirectiveIdentStart((unsigned char)sSource[iLibStart]) ) {
+				if ( __xlTextBufferAppendN(&buf, sSource + iLineEnd, iNewlineLen) != XL_RC_OK ) {
+					free(buf.sData);
+					return NULL;
+				}
+				iPos = iLineEnd + iNewlineLen;
+				continue;
+			}
+		}
+
 		if ( ((iCursor + 4) <= iLen) &&
 			(memcmp(sSource + iCursor, "link", 4) == 0) &&
-			(((iCursor + 4) == iLen) || __xlIsLinkSpace((unsigned char)sSource[iCursor + 4])) ) {
+			(((iCursor + 4) == iLen) || __xlIsDirectiveSpace((unsigned char)sSource[iCursor + 4])) ) {
 			iLibStart = iCursor + 4;
-			while ( (iLibStart < iLineEnd) && __xlIsLinkSpace((unsigned char)sSource[iLibStart]) ) {
+			while ( (iLibStart < iLineEnd) && __xlIsDirectiveSpace((unsigned char)sSource[iLibStart]) ) {
 				++iLibStart;
 			}
 			iLibEnd = iLibStart;
-			if ( (iLibStart < iLineEnd) && __xlIsLinkIdentStart((unsigned char)sSource[iLibStart]) ) {
-				while ( (iLibEnd < iLineEnd) && __xlIsLinkIdentCont((unsigned char)sSource[iLibEnd]) ) {
+			if ( (iLibStart < iLineEnd) && __xlIsDirectiveIdentStart((unsigned char)sSource[iLibStart]) ) {
+				while ( (iLibEnd < iLineEnd) && __xlIsDirectiveIdentCont((unsigned char)sSource[iLibEnd]) ) {
 					++iLibEnd;
 				}
-				while ( (iLibEnd < iLineEnd) && __xlIsLinkSpace((unsigned char)sSource[iLibEnd]) ) {
+				while ( (iLibEnd < iLineEnd) && __xlIsDirectiveSpace((unsigned char)sSource[iLibEnd]) ) {
 					++iLibEnd;
 				}
 				if ( (iLibEnd == iLineEnd) ||
@@ -346,7 +361,7 @@ XL_Lexer* xlLexerCreateFromString(const char* sSource, size_t iLen, const char* 
 		return NULL;
 	}
 
-	sSanitized = __xlStripLinkLines(sSource, iLen, &iSanitizedLen);
+	sSanitized = __xlStripDirectiveLines(sSource, iLen, &iSanitizedLen);
 	if ( sSanitized == NULL ) {
 		free(pLexer);
 		return NULL;
@@ -372,7 +387,7 @@ XL_Lexer* xlLexerCreateFromString(const char* sSource, size_t iLen, const char* 
 		return NULL;
 	}
 
-	pLexer->hBuffer = xl_scan_buffer(pLexer->sSource, iLen + 2, pLexer->scanner);
+	pLexer->hBuffer = xl_scan_buffer(pLexer->sSource, iSanitizedLen + 2, pLexer->scanner);
 	if ( pLexer->hBuffer == NULL ) {
 		xllex_destroy(pLexer->scanner);
 		free(pLexer->sSource);

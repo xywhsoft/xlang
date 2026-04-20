@@ -211,6 +211,59 @@ static int __xlFileExists(const char* sFilePath)
 	return 1;
 }
 
+static int __xlLoadLibraryNeedsFileProbe(const char* sFilePath)
+{
+	if ( (sFilePath == NULL) || (sFilePath[0] == '\0') ) {
+		return 0;
+	}
+	if ( strchr(sFilePath, '\\') != NULL ) {
+		return 1;
+	}
+	if ( strchr(sFilePath, '/') != NULL ) {
+		return 1;
+	}
+#if defined(_WIN32) || defined(_WIN64)
+	if ( (strlen(sFilePath) >= 2u) && (sFilePath[1] == ':') ) {
+		return 1;
+	}
+#endif
+	return 0;
+}
+
+static void __xlBuildLinkLibraryLoadName(char* sOut, size_t iOutSize, const char* sLibName)
+{
+	const char* sDot;
+
+	if ( (sOut == NULL) || (iOutSize == 0u) ) {
+		return;
+	}
+	sOut[0] = '\0';
+	if ( (sLibName == NULL) || (sLibName[0] == '\0') ) {
+		return;
+	}
+	if ( (strchr(sLibName, '\\') != NULL) || (strchr(sLibName, '/') != NULL) ) {
+		snprintf(sOut, iOutSize, "%s", sLibName);
+		return;
+	}
+
+	sDot = strrchr(sLibName, '.');
+#if defined(_WIN32) || defined(_WIN64)
+	if ( sDot != NULL ) {
+		snprintf(sOut, iOutSize, "%s", sLibName);
+	} else {
+		snprintf(sOut, iOutSize, "%s.dll", sLibName);
+	}
+#else
+	if ( sDot != NULL ) {
+		snprintf(sOut, iOutSize, "%s", sLibName);
+	} else if ( strncmp(sLibName, "lib", 3u) == 0 ) {
+		snprintf(sOut, iOutSize, "%s.so", sLibName);
+	} else {
+		snprintf(sOut, iOutSize, "lib%s.so", sLibName);
+	}
+#endif
+}
+
 static int __xlReadBinaryFile(const char* sFilePath, unsigned char** ppData, size_t* piSize)
 {
 	FILE* pFile;
@@ -649,6 +702,86 @@ static int __xlLoadSharedArtifacts(
 		*piHandleCount += 1;
 	}
 
+	for ( i = 0; i < pCtx->iLoadLibraryCount; ++i ) {
+		const XL_HostLoadLibrary* pLib;
+		XL_SharedArtifactHandle* pHandle;
+
+		pLib = &pCtx->arrLoadLibraries[i];
+		if ( pLib->sFile[0] == '\0' ) {
+			continue;
+		}
+		if ( *piHandleCount >= iHandleCap ) {
+			return XL_RC_FAIL;
+		}
+		__xlRunTraceAppendFormat(pTrace, "loadlib.load=%s\n", pLib->sFile);
+		if ( __xlLoadLibraryNeedsFileProbe(pLib->sFile) && !__xlFileExists(pLib->sFile) ) {
+			__xlRunTraceAppendFormat(pTrace, "loadlib.missing=%s\n", pLib->sFile);
+			return XL_RC_FAIL;
+		}
+
+		pHandle = &arrHandles[*piHandleCount];
+		memset(pHandle, 0, sizeof(*pHandle));
+		snprintf(pHandle->sFile, sizeof(pHandle->sFile), "%s", pLib->sFile);
+#if defined(_WIN32) || defined(_WIN64)
+		pHandle->hModule = LoadLibraryA(pLib->sFile);
+		if ( pHandle->hModule == NULL ) {
+			__xlRunTraceAppendFormat(pTrace, "loadlib.load_failed=%s\n", pLib->sFile);
+			return XL_RC_FAIL;
+		}
+#else
+		pHandle->pHandle = dlopen(pLib->sFile, RTLD_NOW | RTLD_LOCAL);
+		if ( pHandle->pHandle == NULL ) {
+			__xlRunTraceAppendFormat(pTrace, "loadlib.load_failed=%s\n", pLib->sFile);
+			return XL_RC_FAIL;
+		}
+#endif
+		__xlRunTraceAppendFormat(pTrace, "loadlib.ready=%s\n", pLib->sFile);
+		*piHandleCount += 1;
+	}
+
+	for ( i = 0; i < pCtx->iLinkLibraryCount; ++i ) {
+		const XL_HostLinkLibrary* pLib;
+		XL_SharedArtifactHandle* pHandle;
+		char sLoadName[XL_PATH_MAX_LEN];
+
+		pLib = &pCtx->arrLinkLibraries[i];
+		if ( pLib->sName[0] == '\0' ) {
+			continue;
+		}
+		if ( *piHandleCount >= iHandleCap ) {
+			return XL_RC_FAIL;
+		}
+
+		__xlBuildLinkLibraryLoadName(sLoadName, sizeof(sLoadName), pLib->sName);
+		if ( sLoadName[0] == '\0' ) {
+			continue;
+		}
+		__xlRunTraceAppendFormat(pTrace, "linklib.load=%s\n", sLoadName);
+		if ( __xlLoadLibraryNeedsFileProbe(sLoadName) && !__xlFileExists(sLoadName) ) {
+			__xlRunTraceAppendFormat(pTrace, "linklib.missing=%s\n", sLoadName);
+			return XL_RC_FAIL;
+		}
+
+		pHandle = &arrHandles[*piHandleCount];
+		memset(pHandle, 0, sizeof(*pHandle));
+		snprintf(pHandle->sFile, sizeof(pHandle->sFile), "%s", sLoadName);
+#if defined(_WIN32) || defined(_WIN64)
+		pHandle->hModule = LoadLibraryA(sLoadName);
+		if ( pHandle->hModule == NULL ) {
+			__xlRunTraceAppendFormat(pTrace, "linklib.load_failed=%s\n", sLoadName);
+			return XL_RC_FAIL;
+		}
+#else
+		pHandle->pHandle = dlopen(sLoadName, RTLD_NOW | RTLD_LOCAL);
+		if ( pHandle->pHandle == NULL ) {
+			__xlRunTraceAppendFormat(pTrace, "linklib.load_failed=%s\n", sLoadName);
+			return XL_RC_FAIL;
+		}
+#endif
+		__xlRunTraceAppendFormat(pTrace, "linklib.ready=%s\n", sLoadName);
+		*piHandleCount += 1;
+	}
+
 	return XL_RC_OK;
 }
 
@@ -838,6 +971,31 @@ static int __xlConfigureTcc(
 	if ( tcc_add_include_path(pTcc, sProjectXrtInc) < 0 ) return XL_RC_FAIL;
 	if ( tcc_add_sysinclude_path(pTcc, sIncludeWin) < 0 ) return XL_RC_FAIL;
 	if ( tcc_add_library_path(pTcc, sLibDir) < 0 ) return XL_RC_FAIL;
+	{
+		size_t i;
+
+		for ( i = 0; i < pCtx->iIncludePathCount; ++i ) {
+			const char* sPath;
+
+			sPath = pCtx->arrIncludePaths[i].sPath;
+			if ( sPath[0] == '\0' ) {
+				continue;
+			}
+			__xlRunTraceAppendFormat(pTrace, "include=%s\n", sPath);
+			if ( tcc_add_include_path(pTcc, sPath) < 0 ) return XL_RC_FAIL;
+			if ( tcc_add_sysinclude_path(pTcc, sPath) < 0 ) return XL_RC_FAIL;
+		}
+		for ( i = 0; i < pCtx->iLibraryPathCount; ++i ) {
+			const char* sPath;
+
+			sPath = pCtx->arrLibraryPaths[i].sPath;
+			if ( sPath[0] == '\0' ) {
+				continue;
+			}
+			__xlRunTraceAppendFormat(pTrace, "lib=%s\n", sPath);
+			if ( tcc_add_library_path(pTcc, sPath) < 0 ) return XL_RC_FAIL;
+		}
+	}
 	if ( bRegisterSymbols && (xlHostRegisterSymbols(pTcc) != XL_RC_OK) ) return XL_RC_FAIL;
 
 	return XL_RC_OK;
@@ -980,11 +1138,14 @@ static int __xlAddBuildLibraries(const XL_HostContext* pCtx, TCCState* pTcc, XL_
 static int __xlAddBuildSupportSources(const XL_HostContext* pCtx, TCCState* pTcc, XL_RunTraceBuffer* pTrace)
 {
 	char sRuntimeImpl[XL_PATH_MAX_LEN];
+	char sSysLibRuntimeImpl[XL_PATH_MAX_LEN];
 	char sGeneratedImpl[XL_PATH_MAX_LEN];
 	char sHostRuntimeImpl[XL_PATH_MAX_LEN];
 
 	__xlBuildPath3(sRuntimeImpl, sizeof(sRuntimeImpl), pCtx->sProjectRoot, "src", "runtime");
 	xlPathJoin(sRuntimeImpl, sizeof(sRuntimeImpl), sRuntimeImpl, "xlrt_host.c");
+	__xlBuildPath3(sSysLibRuntimeImpl, sizeof(sSysLibRuntimeImpl), pCtx->sProjectRoot, "src", "runtime");
+	xlPathJoin(sSysLibRuntimeImpl, sizeof(sSysLibRuntimeImpl), sSysLibRuntimeImpl, "xl_sys_lib_runtime.c");
 	__xlBuildPath3(sGeneratedImpl, sizeof(sGeneratedImpl), pCtx->sProjectRoot, "src", "runtime");
 	xlPathJoin(sGeneratedImpl, sizeof(sGeneratedImpl), sGeneratedImpl, "xlrt_generated.c");
 	__xlBuildPath3(sHostRuntimeImpl, sizeof(sHostRuntimeImpl), pCtx->sProjectRoot, "src", "host");
@@ -992,6 +1153,8 @@ static int __xlAddBuildSupportSources(const XL_HostContext* pCtx, TCCState* pTcc
 
 	__xlRunTraceAppendFormat(pTrace, "support_source=%s\n", sRuntimeImpl);
 	if ( tcc_add_file(pTcc, sRuntimeImpl) < 0 ) return XL_RC_FAIL;
+	__xlRunTraceAppendFormat(pTrace, "support_source=%s\n", sSysLibRuntimeImpl);
+	if ( tcc_add_file(pTcc, sSysLibRuntimeImpl) < 0 ) return XL_RC_FAIL;
 	__xlRunTraceAppendFormat(pTrace, "support_source=%s\n", sGeneratedImpl);
 	if ( tcc_add_file(pTcc, sGeneratedImpl) < 0 ) return XL_RC_FAIL;
 	__xlRunTraceAppendFormat(pTrace, "support_source=%s\n", sHostRuntimeImpl);
@@ -1012,7 +1175,7 @@ int xlHostTccRunText(
 {
 	XL_RunTraceBuffer trace;
 	XL_CwdScope cwdScope;
-	XL_SharedArtifactHandle arrSharedHandles[XL_HOST_ARTIFACT_MAX];
+	XL_SharedArtifactHandle arrSharedHandles[XL_HOST_RUNTIME_LIBRARY_HANDLE_MAX];
 	XL_StaticExtractedFile arrStaticExtracted[XL_HOST_STATIC_EXTRACT_MAX];
 	size_t iStaticExtractedCount;
 	size_t iSharedHandleCount;
@@ -1180,7 +1343,7 @@ int xlHostTccRunFile(
 {
 	XL_RunTraceBuffer trace;
 	XL_CwdScope cwdScope;
-	XL_SharedArtifactHandle arrSharedHandles[XL_HOST_ARTIFACT_MAX];
+	XL_SharedArtifactHandle arrSharedHandles[XL_HOST_RUNTIME_LIBRARY_HANDLE_MAX];
 	XL_StaticExtractedFile arrStaticExtracted[XL_HOST_STATIC_EXTRACT_MAX];
 	size_t iStaticExtractedCount;
 	size_t iSharedHandleCount;

@@ -1274,27 +1274,108 @@ native 绑定要支持：
 	- 后续用户扩展模块
 
 
-16.3 extern
+16.3 模块级编译指令
+--------------------
+第五版将影响当前编译结果的 native 配置统一收敛为模块级编译指令。
+
+标准形式：
+	#link user32
+	#libpath "c:\\sdk\\lib"
+	#incpath "c:\\sdk\\include"
+	#loadlib "user32.dll"
+
+设计原则：
+	- 这类能力不是运行时代码，而是编译前元信息
+	- 编译指令在 lexer / parser 主流程前扫描并提取
+	- 编译指令不占用普通关键字，避免污染变量名空间
+	- 编译指令只允许出现在模块顶层
+	- 编译指令对当前模块及其依赖图生效，不依赖顶层语句执行顺序
+
+各指令职责：
+	- `#link <ident>`
+		- 声明当前模块依赖一个原生链接库名
+		- module-link 汇总全依赖图中的 `#link`，去重后透传给 host / toolchain
+	- `#libpath "<path>"`
+		- 追加原生链接库搜索路径
+		- 相对路径按声明该指令的模块文件目录解释
+	- `#incpath "<path>"`
+		- 追加 native 头文件搜索路径
+		- 首版主要为后续 native include / binding 生成链路预留
+	- `#loadlib "<file>"`
+		- 声明程序运行前应预加载一个动态库
+		- 它不参与静态链接，而是作为运行时符号来源
+
+分层规则：
+	- `#link` / `#libpath` / `#incpath` 属于静态编译配置
+	- `#loadlib` 属于静态声明的运行前装载配置
+	- 这几类能力都不通过顶层代码执行来生效
+
+兼容说明：
+	- demo5 当前已存在源码级 `link foo` 过渡实现
+	- 第五版定稿标准以 `#link` 为准
+	- `link foo` 只作为阶段性兼容写法，后续应逐步迁移到 `#link`
+
+
+16.4 extern
 -----------
-第五版保留 `extern`，并给出最小可用标准。
+第五版保留 `extern`，并将其定位为静态 native 绑定声明。
 
 标准形式：
 	extern func foo(int a) as int
 	extern "native_symbol" func foo(int a) as int
+	extern var errno as int
+	extern "native_global" var flag as int
+	extern type HWND = point
+	extern type DWORD = u32
+
+分工：
+	- `extern func`：静态声明 native 函数符号
+	- `extern var`：静态声明 native 全局变量符号
+	- `extern type`：静态声明 native ABI 对齐的类型别名
 
 规则：
 	- `extern` 只能出现在顶层
-	- 允许顶层独立函数声明，不要求一切经由模块包装
-	- C 符号名既可默认按 ABI 推导，也可显式绑定
-	- 第五版首版语法支持：
-		- `extern func foo(int a) as int`
-		- `extern "native_symbol" func foo(int a) as int`
+	- 允许顶层独立声明，不要求一切经由模块包装
+	- native 符号名既可默认按 ABI 推导，也可显式绑定
 	- 第五版首版暂不支持 `extern async func`
 	- 第五版首版暂不支持类型方法形式的 `extern`
+	- 第五版首版的 `extern type` 先收敛为 native 类型别名；结构体布局另行扩展
 	- 第五版首版固定最小 ABI 版本：
 		- 语言层 ABI：`xlang@v1`
 		- native C ABI：`c@v1`
-	- 每个导出函数都应同时拥有语言层签名标识与具体 native 符号名
+	- 每个 native 绑定函数都应同时拥有语言层签名标识与具体 native 符号名
+
+
+16.5 动态装载与运行时绑定
+--------------------------
+第五版同时提供与 `extern` 正交的运行时动态绑定能力。
+
+静态声明形式：
+	#loadlib "user32.dll"
+
+运行时 API 方向：
+	auto lib = sys.loadlib("user32.dll")
+	auto msgbox = lib.proc("MessageBoxA") as function<int(point, string, string, u32)>
+
+职责划分：
+	- `#loadlib`
+		- 在程序启动前由 host / runtime 预加载动态库
+		- 预加载的库自动进入 `extern` 的符号搜索域
+		- 这是静态声明，不要求 import library，不依赖 `.def` / `.lib` / `.a`
+	- `sys.loadlib(path)`
+		- 运行时动态加载库并返回库对象
+	- `lib.proc(name)`
+		- 返回运行时符号句柄或可转换的符号值
+	- `as function<...>`
+		- 由调用端显式提供签名，将动态符号绑定为函数值
+
+设计原则：
+	- `#loadlib` 不等于 `#link`
+	- `#link` 走静态链接链路
+	- `#loadlib` 走 `LoadLibrary/GetProcAddress` 或 `dlopen/dlsym` 链路
+	- `extern` 属于静态绑定模型
+	- `sys.loadlib()/lib.proc()` 属于动态绑定模型
+	- 两者可以并存，分别适用于稳定系统库与可选插件依赖
 
 
 

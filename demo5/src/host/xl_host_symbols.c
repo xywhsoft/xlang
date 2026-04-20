@@ -5,6 +5,12 @@
 #include "../runtime/xlrt_profile.h"
 #include "../../lib/xrt/xrt.h"
 
+extern xvalue xl_sys_loadlib(const char* sPath);
+extern void* xl_sys_lib_proc(xvalue value, const char* sName);
+extern int xl_sys_lib_close(xvalue value);
+extern const char* xl_sys_lib_path(xvalue value);
+extern int xl_sys_lib_loaded(xvalue value);
+
 typedef struct XL_HostSymbolEntry {
 	const char* sName;
 	const void* pValue;
@@ -231,6 +237,11 @@ static const XL_HostSymbolEntry __gXLHostSymbols[] = {
 	{ "xlrt_native_error_message", xlrt_native_error_message },
 	{ "xlrt_native_error_code", xlrt_native_error_code },
 	{ "xlrt_native_error_data", xlrt_native_error_data },
+	{ "xl_sys_loadlib", xl_sys_loadlib },
+	{ "xl_sys_lib_proc", xl_sys_lib_proc },
+	{ "xl_sys_lib_close", xl_sys_lib_close },
+	{ "xl_sys_lib_path", xl_sys_lib_path },
+	{ "xl_sys_lib_loaded", xl_sys_lib_loaded },
 	{ "xl_core_print_int", xl_core_print_int },
 	{ "xl_core_print_float", xl_core_print_float },
 	{ "xl_core_print_string", xl_core_print_string },

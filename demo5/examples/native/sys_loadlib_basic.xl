@@ -1,0 +1,17 @@
+import std.sys.lib as sys
+
+func main() as int
+	auto lib = sys.loadlib("kernel32.dll")
+	if lib.loaded() == false then
+		return 1
+	end
+	if lib.path() != "kernel32.dll" then
+		return 2
+	end
+	auto p = lib.proc("GetModuleHandleA")
+	auto ok = lib.close()
+	if p != null and ok and lib.loaded() == false then
+		return 42
+	end
+	return 0
+end
