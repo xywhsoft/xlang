@@ -186,6 +186,30 @@ static const char* __xlFuncExternName(const XL_AstNode* pNode)
 	return pNode->sText2;
 }
 
+static const char* __xlVarExternName(const XL_AstNode* pNode)
+{
+	const XL_AstNode* pTypeNode;
+	const XL_AstNode* pValueNode;
+
+	if ( (pNode == NULL) || (pNode->eKind != XL_AST_VAR_DECL) ) {
+		return NULL;
+	}
+	if ( (pNode->sText2 == NULL) || (pNode->sText2[0] == '\0') ) {
+		return NULL;
+	}
+
+	pTypeNode = __xlAstChild(pNode, 0);
+	pValueNode = __xlAstChild(pNode, 1);
+	if ( (pValueNode == NULL) && (pTypeNode != NULL) && (pTypeNode->eKind != XL_AST_TYPE_REF) ) {
+		pValueNode = pTypeNode;
+		pTypeNode = NULL;
+	}
+	if ( (pTypeNode == NULL) || (pValueNode != NULL) ) {
+		return NULL;
+	}
+	return pNode->sText2;
+}
+
 static int __xlIsStaticDefaultExpr(const XL_AstNode* pNode)
 {
 	size_t i;
@@ -2620,6 +2644,11 @@ static int __xlCanTypeConstruct(const char* sTargetType, const char* sSourceType
 			__xlIsVarTypeName(sSourceType) ||
 			__xlIsNullTypeName(sSourceType);
 	}
+	if ( __xlIsFunctionTypeName(sTargetType) ) {
+		return __xlIsFunctionTypeName(sSourceType) ||
+			__xlIsPointTypeName(sSourceType) ||
+			__xlIsVarTypeName(sSourceType);
+	}
 	if ( __xlIsTimeTypeName(sTargetType) ) {
 		return __xlIsStringTypeName(sSourceType) ||
 			__xlIsTimeTypeName(sSourceType) ||
@@ -4721,10 +4750,12 @@ static int __xlResolveConstDecl(XL_ResolveContext* pCtx, const XL_AstNode* pNode
 	const char* sValueType;
 	const char* sFinalType;
 	const char* sStoredValueType;
+	const char* sExternName;
 	int iRc;
 
 	pTypeNode = __xlAstChild(pNode, 0);
 	pValueNode = __xlAstChild(pNode, 1);
+	sExternName = (eKind == XL_SYMBOL_VAR) ? __xlVarExternName(pNode) : NULL;
 	if ( (pValueNode == NULL) && (pTypeNode != NULL) && (pTypeNode->eKind != XL_AST_TYPE_REF) ) {
 		pValueNode = pTypeNode;
 		pTypeNode = NULL;
@@ -4746,6 +4777,14 @@ static int __xlResolveConstDecl(XL_ResolveContext* pCtx, const XL_AstNode* pNode
 		(pNode->sText != NULL) && (strcmp(pNode->sText, "arg") == 0) ) {
 		return __xlSemAddDiag(pCtx, XL_SEM_DIAG_ERROR, pNode, "'arg' is reserved inside variadic functions");
 	}
+	if ( sExternName != NULL ) {
+		if ( pCtx->iCurrentScopeId != 0 ) {
+			return __xlSemAddDiag(pCtx, XL_SEM_DIAG_ERROR, pNode, "extern var is only allowed at module scope");
+		}
+		if ( pTypeNode == NULL ) {
+			return __xlSemAddDiag(pCtx, XL_SEM_DIAG_ERROR, pNode, "extern var requires an explicit type");
+		}
+	}
 
 	iRc = __xlDeclareSymbol(
 		pCtx,
@@ -4764,6 +4803,18 @@ static int __xlResolveConstDecl(XL_ResolveContext* pCtx, const XL_AstNode* pNode
 	}
 
 	__xlSemTrace(pCtx, pNode, "declared %s '%s'", xlSymbolKindName(eKind), pNode->sText);
+	if ( sExternName != NULL ) {
+		__xlSemNodeSetScope(pCtx->pResult, pNode, pCtx->iCurrentScopeId);
+		if ( (sResolvedDeclaredType != NULL) && (sResolvedDeclaredType[0] != '\0') ) {
+			__xlSemNodeSetType(pCtx->pResult, pNode, sResolvedDeclaredType);
+			pInfo = xlSemNodeInfoFind(pCtx->pResult, pNode);
+			if ( pInfo != NULL ) {
+				__xlSemSymbolSetType(pCtx->pResult, pInfo->iSymbolIndex, sResolvedDeclaredType);
+				__xlSemSymbolSetValueType(pCtx->pResult, pInfo->iSymbolIndex, sResolvedDeclaredType);
+			}
+		}
+		return XL_RC_OK;
+	}
 	if ( (pValueNode != NULL) && (pValueNode->eKind == XL_AST_IDENT) && __xlIsFunctionTypeName(sResolvedDeclaredType) ) {
 		iRc = __xlResolveFunctionValueNode(pCtx, pValueNode, sResolvedDeclaredType, 1);
 	} else {

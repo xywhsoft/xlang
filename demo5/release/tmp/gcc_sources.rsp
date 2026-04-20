@@ -95,6 +95,7 @@ D:/git/x-lang/demo5/src/runtime/xl_std_regex.c
 D:/git/x-lang/demo5/src/runtime/xl_std_set.c
 D:/git/x-lang/demo5/src/runtime/xl_std_str.c
 D:/git/x-lang/demo5/src/runtime/xl_std_sync.c
+D:/git/x-lang/demo5/src/runtime/xl_std_sys.c
 D:/git/x-lang/demo5/src/runtime/xl_std_sys_env.c
 D:/git/x-lang/demo5/src/runtime/xl_std_sys_file.c
 D:/git/x-lang/demo5/src/runtime/xl_std_sys_mem.c
@@ -107,6 +108,7 @@ D:/git/x-lang/demo5/src/runtime/xl_std_thread.c
 D:/git/x-lang/demo5/src/runtime/xl_std_time.c
 D:/git/x-lang/demo5/src/runtime/xl_std_trace.c
 D:/git/x-lang/demo5/src/runtime/xl_std_types.c
+D:/git/x-lang/demo5/src/runtime/xl_sys_lib_runtime.c
 D:/git/x-lang/demo5/src/runtime/xl_url_runtime.c
 D:/git/x-lang/demo5/src/sem/xl_check.c
 D:/git/x-lang/demo5/src/sem/xl_func.c

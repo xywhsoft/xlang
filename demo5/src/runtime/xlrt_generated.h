@@ -125,6 +125,11 @@ extern int xl_atomic_add(void* pHandle, int iDelta);
 extern int xl_thread_current_id(void);
 extern void xl_thread_sleep(int iMs);
 extern void xl_thread_yield_now(void);
+extern xvalue xl_sys_loadlib(const char* sPath);
+extern void* xl_sys_lib_proc(xvalue value, const char* sName);
+extern int xl_sys_lib_close(xvalue value);
+extern const char* xl_sys_lib_path(xvalue value);
+extern int xl_sys_lib_loaded(xvalue value);
 
 extern xtime xl_time_now(void);
 extern const char* xl_time_to_string(xtime value);

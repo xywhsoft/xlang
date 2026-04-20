@@ -201,7 +201,14 @@ xlang 第五版语言标准支持覆盖率
 - ☑ Generator 协议注册
 - ☑ native 标准库模块绑定
 - ☑ extern（首版：支持 `extern func` / `extern "symbol" func` 顶层声明）
-- ☑ link（首版：支持模块级 `link shell32` 原生链接库声明；module-link 会汇总全依赖图并透传到 host/TCC）
+- ☑ 模块级编译指令（标准定稿：`#link` / `#libpath` / `#incpath` / `#loadlib`；demo5 已打通指令收集、模块链接汇总、host/TCC 透传与运行时回归）
+- ☑ `extern var`
+- ☑ `extern type`（首版先做 native 类型别名）
+- ☑ `#libpath`
+- ☑ `#incpath`
+- ☑ `#loadlib`
+- ☑ `sys.loadlib()` / `lib.proc()` 动态绑定 API（首版：`std.sys.lib.loadlib()` / `lib.proc()` / `lib.close()` 已接通 parser/sem/cgen/runtime，并固定到回归测试）
+update 2026-04-21: `lib.path()` / `lib.loaded()` 已接通 runtime，`#link + #libpath + #incpath` 指令链路补齐回归用例。
 update 2026-04-14: async try const-else wrapped nested_full_chain / triple_nested inner-catch and outer-catch await flows verified in cgen/runtime.
 update 2026-04-14: async try const-else wrapped top-level if / while / prelude / do-while await variants verified in cgen/runtime.
 update 2026-04-15: async generator const-else wrapped try/catch, try/finally, and nested-try await/yield flows verified across parser/sem/lower/cgen/runtime.

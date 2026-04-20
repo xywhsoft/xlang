@@ -1,0 +1,7 @@
+#link shell32
+#libpath "./probe_lib"
+#incpath "./probe_inc"
+
+func main() as int
+	return 0
+end

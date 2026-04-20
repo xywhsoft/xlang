@@ -1,6 +1,6 @@
 import std.core
 
-link shell32
+#link shell32
 
 extern "ExtractIconA" func extract_icon(point hinst, string file, int index) as point
 

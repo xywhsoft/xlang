@@ -1,0 +1,44 @@
+Program @ 0:0-0:0
+	FuncDecl @ 1:6-1:10 text="main"
+		List @ 0:0-0:0
+		List @ 0:0-0:0
+			TypeRef @ 1:16-1:19 text="int"
+		Block @ 0:0-0:0
+			VarDecl @ 2:7-2:8 text="a"
+				TypeRef @ 2:2-2:6 text="type"
+				Ident @ 2:11-2:14 text="int"
+			VarDecl @ 3:7-3:8 text="b"
+				TypeRef @ 3:2-3:6 text="type"
+				Call @ 3:23-3:24
+					Ident @ 3:11-3:15 text="Type"
+					List @ 0:0-0:0
+						String @ 3:16-3:23 text="\"hello\""
+			VarDecl @ 4:6-4:7 text="c"
+				Int @ 4:10-4:11 text="7" int=7
+			VarDecl @ 5:7-5:8 text="d"
+				TypeRef @ 5:2-5:6 text="type"
+				Call @ 5:17-5:18
+					Ident @ 5:11-5:15 text="Type"
+					List @ 0:0-0:0
+						Ident @ 5:16-5:17 text="c"
+			If @ 7:2-7:4
+				Binary @ 7:37-7:40 text="and"
+					Binary @ 7:21-7:24 text="and"
+						Binary @ 7:12-7:14 text="=="
+							Member @ 7:6-7:7 text="name"
+								Ident @ 7:5-7:6 text="a"
+							String @ 7:15-7:20 text="\"int\""
+						Binary @ 7:27-7:29 text="=="
+							Ident @ 7:25-7:26 text="b"
+							Ident @ 7:30-7:36 text="string"
+					Binary @ 7:43-7:45 text="=="
+						Ident @ 7:41-7:42 text="d"
+						Ident @ 7:46-7:49 text="int"
+				Block @ 0:0-0:0
+					Return @ 8:3-8:9
+						List @ 0:0-0:0
+							Int @ 8:10-8:12 text="42" int=42
+				List @ 0:0-0:0
+			Return @ 10:2-10:8
+				List @ 0:0-0:0
+					Int @ 10:9-10:10 text="0"

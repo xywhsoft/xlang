@@ -394,4 +394,7 @@ xlang 第五版语言标准总表
 - 标准库模块绑定
 - xrt 功能映射
 - 用户扩展模块
-- extern 首版已支持最小可用标准：`extern func` / `extern "symbol" func` 顶层声明
+- 模块级编译指令：`#link` / `#libpath` / `#incpath` / `#loadlib`
+- 静态绑定声明：`extern func` / `extern var` / `extern type`
+- 动态绑定能力：`sys.loadlib()` / `lib.proc()` / `as function<...>`
+- demo5 当前已落地 `link foo` 过渡实现，并已验证静态链接库汇总与 host/TCC 透传；正式标准以后续 `#link` 指令为准

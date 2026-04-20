@@ -1,0 +1,10 @@
+import std.core
+
+#loadlib "../xlp_native/packages/pkg.probe/bin/pkg_probe.dll"
+
+extern "pkg_clock_artifact_probe" func probe() as int
+
+func main() as int
+	std.core.println(probe() == 123)
+	return 0
+end

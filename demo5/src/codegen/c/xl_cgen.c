@@ -714,6 +714,15 @@ typedef enum XL_SysMemHelperKind {
 	XL_SYS_MEM_HELPER_READ_STRING
 } XL_SysMemHelperKind;
 
+typedef enum XL_SysHelperKind {
+	XL_SYS_HELPER_NONE = 0,
+	XL_SYS_HELPER_LOADLIB,
+	XL_SYS_HELPER_PROC,
+	XL_SYS_HELPER_CLOSE,
+	XL_SYS_HELPER_PATH,
+	XL_SYS_HELPER_LOADED
+} XL_SysHelperKind;
+
 typedef enum XL_AtomicHelperKind {
 	XL_ATOMIC_HELPER_NONE = 0,
 	XL_ATOMIC_HELPER_MAKE,
@@ -4536,6 +4545,15 @@ static void __xlCgenTopLevelBindDecl(XL_CgenContext* pCtx, const XL_MirNode* pNo
 
 	sTypeName = ((pNode->sTypeName != NULL) && (pNode->sTypeName[0] != '\0')) ? pNode->sTypeName : "int";
 	pGeneratorFunc = NULL;
+	if ( (pNode->sExternName != NULL) && (pNode->sExternName[0] != '\0') ) {
+		__xlCgenAppendFormat(
+			&pCtx->buf,
+			"extern %s %s;\n",
+			__xlCTypeName(sTypeName),
+			pNode->sExternName
+		);
+		return;
+	}
 	if ( (strcmp(sTypeName, "generator") == 0) &&
 		__xlResolveGeneratorSourceInfo(pCtx, (pNode->iChildCount != 0) ? pNode->ppChildren[0] : NULL, &pGeneratorFunc, NULL, NULL, 0) ) {
 		__xlCgenGeneratorTypeNameForFunc(sGeneratorTypeName, sizeof(sGeneratorTypeName), pGeneratorFunc);
@@ -4564,6 +4582,9 @@ static void __xlCgenTopLevelBindDecl(XL_CgenContext* pCtx, const XL_MirNode* pNo
 static void __xlCgenTopLevelInitBind(XL_CgenContext* pCtx, const XL_MirNode* pNode, const XL_CgenFuncInfo* pFuncInfo)
 {
 	if ( (pCtx == NULL) || (pNode == NULL) || (pNode->eKind != XL_MIR_BIND) ) {
+		return;
+	}
+	if ( (pNode->sExternName != NULL) && (pNode->sExternName[0] != '\0') ) {
 		return;
 	}
 
@@ -5479,6 +5500,12 @@ static void __xlCgenRuntimeSupport(XL_CgenBuffer* pBuf)
 	__xlCgenAppend(pBuf, "\tsKind[iLen] = '\\0';\n");
 	__xlCgenAppend(pBuf, "\treturn xl_generated_error_make(sKind, sSep + 2, 0, \"\", \"\");\n");
 	__xlCgenAppend(pBuf, "}\n\n");
+	__xlCgenAppend(pBuf, "static xfunction xl_generated_value_to_func(xvalue value)\n{\n");
+	__xlCgenAppend(pBuf, "\tif ( value == NULL ) {\n\t\treturn NULL;\n\t}\n");
+	__xlCgenAppend(pBuf, "\tif ( value->Type == XVO_DT_FUNC ) {\n\t\treturn xvoGetFunc(value);\n\t}\n");
+	__xlCgenAppend(pBuf, "\tif ( value->Type == XVO_DT_POINT ) {\n\t\treturn (xfunction)xvoGetPoint(value);\n\t}\n");
+	__xlCgenAppend(pBuf, "\treturn NULL;\n");
+	__xlCgenAppend(pBuf, "}\n\n");
 
 	__xlCgenAppend(pBuf, "static const char* xl_generated_exception_value_text(int kind, const char* text, long long intValue, double floatValue)\n{\n");
 	__xlCgenAppend(pBuf, "\tstatic char sBuffer[128];\n");
@@ -6023,6 +6050,21 @@ static const XL_MirNode* __xlFindMirBindDeclNode(const XL_MirNode* pNode, int iS
 		}
 	}
 	return NULL;
+}
+
+static const char* __xlResolveMirExternRefName(const XL_CgenContext* pCtx, const XL_MirNode* pNode)
+{
+	const XL_MirNode* pDecl;
+
+	if ( (pCtx == NULL) || (pNode == NULL) || (pCtx->pRoot == NULL) || (pNode->iSymbolIndex < 0) ) {
+		return NULL;
+	}
+
+	pDecl = __xlFindMirBindDeclNode(pCtx->pRoot, pNode->iSymbolIndex);
+	if ( (pDecl == NULL) || (pDecl->sExternName == NULL) || (pDecl->sExternName[0] == '\0') ) {
+		return NULL;
+	}
+	return pDecl->sExternName;
 }
 
 static int __xlCollectGeneratorReturnSourceInfo(
@@ -8255,6 +8297,19 @@ static XL_SysMemHelperKind __xlSysMemHelperKind(const char* sCalleeName)
 	return XL_SYS_MEM_HELPER_NONE;
 }
 
+static XL_SysHelperKind __xlSysHelperKind(const char* sCalleeName)
+{
+	if ( sCalleeName == NULL ) {
+		return XL_SYS_HELPER_NONE;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_sys_lib__loadlib") == 0 ) return XL_SYS_HELPER_LOADLIB;
+	if ( strcmp(sCalleeName, "xl_mod_std_sys_lib__proc") == 0 ) return XL_SYS_HELPER_PROC;
+	if ( strcmp(sCalleeName, "xl_mod_std_sys_lib__close") == 0 ) return XL_SYS_HELPER_CLOSE;
+	if ( strcmp(sCalleeName, "xl_mod_std_sys_lib__path") == 0 ) return XL_SYS_HELPER_PATH;
+	if ( strcmp(sCalleeName, "xl_mod_std_sys_lib__loaded") == 0 ) return XL_SYS_HELPER_LOADED;
+	return XL_SYS_HELPER_NONE;
+}
+
 static XL_AtomicHelperKind __xlAtomicHelperKind(const char* sCalleeName)
 {
 	if ( sCalleeName == NULL ) {
@@ -9166,15 +9221,21 @@ static void __xlCgenExprAsType(XL_CgenContext* pCtx, const XL_MirNode* pNode, co
 	if ( __xlIsFunctionTypeName(sExpectedTypeName) &&
 		__xlIsFunctionTypeName(sActualTypeName) &&
 		__xlIsContainerIndexExpr(pCtx, pNode) ) {
-		__xlCgenAppend(&pCtx->buf, "((xfunction)xvoGetFunc((xvalue)(");
+		__xlCgenAppend(&pCtx->buf, "xl_generated_value_to_func((xvalue)(");
 		__xlCgenExpr(pCtx, pNode);
-		__xlCgenAppend(&pCtx->buf, ")))");
+		__xlCgenAppend(&pCtx->buf, "))");
 		return;
 	}
 	if ( __xlIsFunctionTypeName(sExpectedTypeName) && __xlIsVarTypeName(sStorageTypeName) ) {
-		__xlCgenAppend(&pCtx->buf, "((xfunction)xvoGetFunc((xvalue)(");
+		__xlCgenAppend(&pCtx->buf, "xl_generated_value_to_func((xvalue)(");
 		__xlCgenExpr(pCtx, pNode);
-		__xlCgenAppend(&pCtx->buf, ")))");
+		__xlCgenAppend(&pCtx->buf, "))");
+		return;
+	}
+	if ( __xlIsFunctionTypeName(sExpectedTypeName) && __xlIsPointTypeName(sActualTypeName) ) {
+		__xlCgenAppend(&pCtx->buf, "((xfunction)(");
+		__xlCgenExpr(pCtx, pNode);
+		__xlCgenAppend(&pCtx->buf, "))");
 		return;
 	}
 	if ( __xlIsVarTypeName(sStorageTypeName) && !__xlIsVarTypeName(sActualTypeName) ) {
@@ -9217,9 +9278,9 @@ static void __xlCgenExprAsType(XL_CgenContext* pCtx, const XL_MirNode* pNode, co
 	}
 	if ( __xlIsVarTypeName(sActualTypeName) ) {
 		if ( __xlIsFunctionTypeName(sExpectedTypeName) ) {
-			__xlCgenAppend(&pCtx->buf, "((xfunction)xvoGetFunc((xvalue)(");
+			__xlCgenAppend(&pCtx->buf, "xl_generated_value_to_func((xvalue)(");
 			__xlCgenExpr(pCtx, pNode);
-			__xlCgenAppend(&pCtx->buf, ")))");
+			__xlCgenAppend(&pCtx->buf, "))");
 			return;
 		}
 		if ( __xlIsIntegerTypeName(sExpectedTypeName) ) {
@@ -9308,7 +9369,7 @@ static void __xlCgenValueExprAsType(XL_CgenContext* pCtx, const char* sValueExpr
 		return;
 	}
 	if ( __xlIsFunctionTypeName(sExpectedTypeName) ) {
-		__xlCgenAppendFormat(&pCtx->buf, "((xfunction)xvoGetFunc((xvalue)(%s)))", (sValueExpr != NULL) ? sValueExpr : "NULL");
+		__xlCgenAppendFormat(&pCtx->buf, "xl_generated_value_to_func((xvalue)(%s))", (sValueExpr != NULL) ? sValueExpr : "NULL");
 		return;
 	}
 	if ( __xlIsFloatTypeName(sExpectedTypeName) ) {
@@ -12117,6 +12178,22 @@ static int __xlCgenEmitBuiltinHelperFunc(
 		return 1;
 	}
 
+	if ( __xlSysHelperKind(pFuncInfo->sName) != XL_SYS_HELPER_NONE ) {
+		XL_SysHelperKind eSysKind = __xlSysHelperKind(pFuncInfo->sName);
+		__xlCgenEmitHelperFuncOpen(pCtx, pFuncInfo, pParams);
+		__xlCgenAppendIndent(&pCtx->buf);
+		switch ( eSysKind ) {
+			case XL_SYS_HELPER_LOADLIB: __xlCgenAppendFormat(&pCtx->buf, "return xl_sys_loadlib(%s);\n", sParam0); break;
+			case XL_SYS_HELPER_PROC: __xlCgenAppendFormat(&pCtx->buf, "return xl_sys_lib_proc(%s, %s);\n", sParam0, sParam1); break;
+			case XL_SYS_HELPER_CLOSE: __xlCgenAppendFormat(&pCtx->buf, "return xl_sys_lib_close(%s);\n", sParam0); break;
+			case XL_SYS_HELPER_PATH: __xlCgenAppendFormat(&pCtx->buf, "return xl_sys_lib_path(%s);\n", sParam0); break;
+			case XL_SYS_HELPER_LOADED: __xlCgenAppendFormat(&pCtx->buf, "return xl_sys_lib_loaded(%s);\n", sParam0); break;
+			default: break;
+		}
+		__xlCgenEmitHelperFuncClose(pCtx);
+		return 1;
+	}
+
 	eAtomicKind = __xlAtomicHelperKind(pFuncInfo->sName);
 	if ( eAtomicKind != XL_ATOMIC_HELPER_NONE ) {
 		__xlCgenEmitHelperFuncOpen(pCtx, pFuncInfo, pParams);
@@ -12766,7 +12843,10 @@ static void __xlCgenExpr(XL_CgenContext* pCtx, const XL_MirNode* pNode)
 	}
 
 	if ( (pNode->sText != NULL) && (pNode->sText[0] != '\0') ) {
-		__xlCgenAppend(&pCtx->buf, pNode->sText);
+		const char* sExternName;
+
+		sExternName = __xlResolveMirExternRefName(pCtx, pNode);
+		__xlCgenAppend(&pCtx->buf, ((sExternName != NULL) && (sExternName[0] != '\0')) ? sExternName : pNode->sText);
 		return;
 	}
 

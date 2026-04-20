@@ -1,0 +1,608 @@
+{
+	"format": "xlp-0",
+	"package": {
+		"name": "extern_loadlib_msvcrt_fmode_basic",
+		"version": "0.0.0",
+		"abiVersion": "1",
+		"xlangAbi": "1",
+		"abiId": "extern_loadlib_msvcrt_fmode_basic@0.0.0#abi1"
+	},
+	"dependencies": [
+		{
+			"name": "std.core",
+			"kind": "native",
+			"version": "0.0.0",
+			"abiVersion": "1",
+			"abiId": "std.core@0.0.0#abi1",
+			"manifest": "",
+			"binding": "std.core",
+			"artifactKind": "",
+			"artifactPath": "",
+			"artifactFile": "",
+			"consumeMode": "",
+			"usedBy": ["<root>"],
+			"dependsOn": [],
+			"dependsOnAbi": []
+		}
+	],
+	"modules": [
+		{
+			"key": "std.core",
+			"packageName": "std.core",
+			"packageVersion": "0.0.0",
+			"packageAbiVersion": "1",
+			"abiId": "std.core@0.0.0#abi1::std.core",
+			"manifest": "",
+			"file": "<native:std.core>",
+			"root": 0,
+			"native": 1,
+			"binding": "std.core",
+			"artifactKind": "",
+			"artifactPath": "",
+			"artifactFile": "",
+			"consumeMode": "",
+			"initSymbol": "xl_mod_std_core__init",
+			"exportsSymbol": "xl_mod_std_core__exports",
+			"descriptorSymbol": "xl_mod_std_core__descriptor",
+			"imports": [],
+			"exports": [
+				{
+					"name": "identity",
+					"symbol": "xl_mod_std_core__identity",
+					"abiId": "std.core@0.0.0#abi1::std.core::identity",
+					"versionedSymbol": "std.core@0.0.0#abi1::std.core::xl_mod_std_core__identity",
+					"kind": "function",
+					"overloadCount": 1
+				},
+				{
+					"name": "len",
+					"symbol": "xl_mod_std_core__len",
+					"abiId": "std.core@0.0.0#abi1::std.core::len",
+					"versionedSymbol": "std.core@0.0.0#abi1::std.core::xl_mod_std_core__len",
+					"kind": "function",
+					"overloadCount": 10
+				},
+				{
+					"name": "print",
+					"symbol": "xl_mod_std_core__print",
+					"abiId": "std.core@0.0.0#abi1::std.core::print",
+					"versionedSymbol": "std.core@0.0.0#abi1::std.core::xl_mod_std_core__print",
+					"kind": "function",
+					"overloadCount": 4
+				},
+				{
+					"name": "println",
+					"symbol": "xl_mod_std_core__println",
+					"abiId": "std.core@0.0.0#abi1::std.core::println",
+					"versionedSymbol": "std.core@0.0.0#abi1::std.core::xl_mod_std_core__println",
+					"kind": "function",
+					"overloadCount": 5
+				},
+				{
+					"name": "version",
+					"symbol": "xl_mod_std_core__version",
+					"abiId": "std.core@0.0.0#abi1::std.core::version",
+					"versionedSymbol": "std.core@0.0.0#abi1::std.core::xl_mod_std_core__version",
+					"kind": "value",
+					"overloadCount": 0
+				}
+			]
+		},
+		{
+			"key": "<root>",
+			"packageName": "extern_loadlib_msvcrt_fmode_basic",
+			"packageVersion": "0.0.0",
+			"packageAbiVersion": "1",
+			"abiId": "extern_loadlib_msvcrt_fmode_basic@0.0.0#abi1::<root>",
+			"manifest": "",
+			"file": "D:\\Git\\x-lang\\demo5\\examples\\native\\extern_loadlib_msvcrt_fmode_basic.xl",
+			"root": 1,
+			"native": 0,
+			"binding": "",
+			"artifactKind": "",
+			"artifactPath": "",
+			"artifactFile": "",
+			"consumeMode": "",
+			"initSymbol": "xl_mod__root___init",
+			"exportsSymbol": "xl_mod__root___exports",
+			"descriptorSymbol": "xl_mod__root___descriptor",
+			"imports": ["std.core"],
+			"exports": []
+		}
+	],
+	"functions": [
+		{
+			"module": "std.core",
+			"moduleAbiId": "std.core@0.0.0#abi1::std.core",
+			"exportName": "identity",
+			"symbol": "xl_mod_std_core__identity",
+			"overloadGroup": "global::xl_mod_std_core__identity",
+			"signatureId": "xl_mod_std_core__identity(int)",
+			"dispatchKey": "xl_mod_std_core__identity$arity1|x:int",
+			"languageAbi": "xlang@v1",
+			"nativeAbi": "c@v1",
+			"languageAbiId": "std.core@0.0.0#abi1::std.core::xl_mod_std_core__identity(int)#xlang@v1",
+			"nativeAbiId": "std.core@0.0.0#abi1::std.core::xl__xl_mod_std_core__identity__arity1__x__int__ret__int#c@v1",
+			"abiSymbol": "xl__xl_mod_std_core__identity__arity1__x__int__ret__int",
+			"returnType": "int",
+			"async": 0,
+			"generator": 0,
+			"params": [
+				{
+					"name": "x",
+					"label": "x",
+					"type": "int",
+					"hasDefault": 0
+				}
+			]
+		},
+		{
+			"module": "std.core",
+			"moduleAbiId": "std.core@0.0.0#abi1::std.core",
+			"exportName": "len",
+			"symbol": "xl_mod_std_core__len",
+			"overloadGroup": "global::xl_mod_std_core__len",
+			"signatureId": "xl_mod_std_core__len(string)",
+			"dispatchKey": "xl_mod_std_core__len$arity1|self:string",
+			"languageAbi": "xlang@v1",
+			"nativeAbi": "c@v1",
+			"languageAbiId": "std.core@0.0.0#abi1::std.core::xl_mod_std_core__len(string)#xlang@v1",
+			"nativeAbiId": "std.core@0.0.0#abi1::std.core::xl__xl_mod_std_core__len__arity1__self__string__ret__int#c@v1",
+			"abiSymbol": "xl__xl_mod_std_core__len__arity1__self__string__ret__int",
+			"returnType": "int",
+			"async": 0,
+			"generator": 0,
+			"params": [
+				{
+					"name": "self",
+					"label": "self",
+					"type": "string",
+					"hasDefault": 0
+				}
+			]
+		},
+		{
+			"module": "std.core",
+			"moduleAbiId": "std.core@0.0.0#abi1::std.core",
+			"exportName": "len",
+			"symbol": "xl_mod_std_core__len",
+			"overloadGroup": "global::xl_mod_std_core__len",
+			"signatureId": "xl_mod_std_core__len(array)",
+			"dispatchKey": "xl_mod_std_core__len$arity1|self:array",
+			"languageAbi": "xlang@v1",
+			"nativeAbi": "c@v1",
+			"languageAbiId": "std.core@0.0.0#abi1::std.core::xl_mod_std_core__len(array)#xlang@v1",
+			"nativeAbiId": "std.core@0.0.0#abi1::std.core::xl__xl_mod_std_core__len__arity1__self__array__ret__int#c@v1",
+			"abiSymbol": "xl__xl_mod_std_core__len__arity1__self__array__ret__int",
+			"returnType": "int",
+			"async": 0,
+			"generator": 0,
+			"params": [
+				{
+					"name": "self",
+					"label": "self",
+					"type": "array",
+					"hasDefault": 0
+				}
+			]
+		},
+		{
+			"module": "std.core",
+			"moduleAbiId": "std.core@0.0.0#abi1::std.core",
+			"exportName": "len",
+			"symbol": "xl_mod_std_core__len",
+			"overloadGroup": "global::xl_mod_std_core__len",
+			"signatureId": "xl_mod_std_core__len(list)",
+			"dispatchKey": "xl_mod_std_core__len$arity1|self:list",
+			"languageAbi": "xlang@v1",
+			"nativeAbi": "c@v1",
+			"languageAbiId": "std.core@0.0.0#abi1::std.core::xl_mod_std_core__len(list)#xlang@v1",
+			"nativeAbiId": "std.core@0.0.0#abi1::std.core::xl__xl_mod_std_core__len__arity1__self__list__ret__int#c@v1",
+			"abiSymbol": "xl__xl_mod_std_core__len__arity1__self__list__ret__int",
+			"returnType": "int",
+			"async": 0,
+			"generator": 0,
+			"params": [
+				{
+					"name": "self",
+					"label": "self",
+					"type": "list",
+					"hasDefault": 0
+				}
+			]
+		},
+		{
+			"module": "std.core",
+			"moduleAbiId": "std.core@0.0.0#abi1::std.core",
+			"exportName": "len",
+			"symbol": "xl_mod_std_core__len",
+			"overloadGroup": "global::xl_mod_std_core__len",
+			"signatureId": "xl_mod_std_core__len(set)",
+			"dispatchKey": "xl_mod_std_core__len$arity1|self:set",
+			"languageAbi": "xlang@v1",
+			"nativeAbi": "c@v1",
+			"languageAbiId": "std.core@0.0.0#abi1::std.core::xl_mod_std_core__len(set)#xlang@v1",
+			"nativeAbiId": "std.core@0.0.0#abi1::std.core::xl__xl_mod_std_core__len__arity1__self__set__ret__int#c@v1",
+			"abiSymbol": "xl__xl_mod_std_core__len__arity1__self__set__ret__int",
+			"returnType": "int",
+			"async": 0,
+			"generator": 0,
+			"params": [
+				{
+					"name": "self",
+					"label": "self",
+					"type": "set",
+					"hasDefault": 0
+				}
+			]
+		},
+		{
+			"module": "std.core",
+			"moduleAbiId": "std.core@0.0.0#abi1::std.core",
+			"exportName": "len",
+			"symbol": "xl_mod_std_core__len",
+			"overloadGroup": "global::xl_mod_std_core__len",
+			"signatureId": "xl_mod_std_core__len(dict)",
+			"dispatchKey": "xl_mod_std_core__len$arity1|self:dict",
+			"languageAbi": "xlang@v1",
+			"nativeAbi": "c@v1",
+			"languageAbiId": "std.core@0.0.0#abi1::std.core::xl_mod_std_core__len(dict)#xlang@v1",
+			"nativeAbiId": "std.core@0.0.0#abi1::std.core::xl__xl_mod_std_core__len__arity1__self__dict__ret__int#c@v1",
+			"abiSymbol": "xl__xl_mod_std_core__len__arity1__self__dict__ret__int",
+			"returnType": "int",
+			"async": 0,
+			"generator": 0,
+			"params": [
+				{
+					"name": "self",
+					"label": "self",
+					"type": "dict",
+					"hasDefault": 0
+				}
+			]
+		},
+		{
+			"module": "std.core",
+			"moduleAbiId": "std.core@0.0.0#abi1::std.core",
+			"exportName": "len",
+			"symbol": "xl_mod_std_core__len",
+			"overloadGroup": "global::xl_mod_std_core__len",
+			"signatureId": "xl_mod_std_core__len(string)",
+			"dispatchKey": "xl_mod_std_core__len$arity1|x:string",
+			"languageAbi": "xlang@v1",
+			"nativeAbi": "c@v1",
+			"languageAbiId": "std.core@0.0.0#abi1::std.core::xl_mod_std_core__len(string)#xlang@v1",
+			"nativeAbiId": "std.core@0.0.0#abi1::std.core::xl__xl_mod_std_core__len__arity1__x__string__ret__int#c@v1",
+			"abiSymbol": "xl__xl_mod_std_core__len__arity1__x__string__ret__int",
+			"returnType": "int",
+			"async": 0,
+			"generator": 0,
+			"params": [
+				{
+					"name": "x",
+					"label": "x",
+					"type": "string",
+					"hasDefault": 0
+				}
+			]
+		},
+		{
+			"module": "std.core",
+			"moduleAbiId": "std.core@0.0.0#abi1::std.core",
+			"exportName": "len",
+			"symbol": "xl_mod_std_core__len",
+			"overloadGroup": "global::xl_mod_std_core__len",
+			"signatureId": "xl_mod_std_core__len(array)",
+			"dispatchKey": "xl_mod_std_core__len$arity1|x:array",
+			"languageAbi": "xlang@v1",
+			"nativeAbi": "c@v1",
+			"languageAbiId": "std.core@0.0.0#abi1::std.core::xl_mod_std_core__len(array)#xlang@v1",
+			"nativeAbiId": "std.core@0.0.0#abi1::std.core::xl__xl_mod_std_core__len__arity1__x__array__ret__int#c@v1",
+			"abiSymbol": "xl__xl_mod_std_core__len__arity1__x__array__ret__int",
+			"returnType": "int",
+			"async": 0,
+			"generator": 0,
+			"params": [
+				{
+					"name": "x",
+					"label": "x",
+					"type": "array",
+					"hasDefault": 0
+				}
+			]
+		},
+		{
+			"module": "std.core",
+			"moduleAbiId": "std.core@0.0.0#abi1::std.core",
+			"exportName": "len",
+			"symbol": "xl_mod_std_core__len",
+			"overloadGroup": "global::xl_mod_std_core__len",
+			"signatureId": "xl_mod_std_core__len(list)",
+			"dispatchKey": "xl_mod_std_core__len$arity1|x:list",
+			"languageAbi": "xlang@v1",
+			"nativeAbi": "c@v1",
+			"languageAbiId": "std.core@0.0.0#abi1::std.core::xl_mod_std_core__len(list)#xlang@v1",
+			"nativeAbiId": "std.core@0.0.0#abi1::std.core::xl__xl_mod_std_core__len__arity1__x__list__ret__int#c@v1",
+			"abiSymbol": "xl__xl_mod_std_core__len__arity1__x__list__ret__int",
+			"returnType": "int",
+			"async": 0,
+			"generator": 0,
+			"params": [
+				{
+					"name": "x",
+					"label": "x",
+					"type": "list",
+					"hasDefault": 0
+				}
+			]
+		},
+		{
+			"module": "std.core",
+			"moduleAbiId": "std.core@0.0.0#abi1::std.core",
+			"exportName": "len",
+			"symbol": "xl_mod_std_core__len",
+			"overloadGroup": "global::xl_mod_std_core__len",
+			"signatureId": "xl_mod_std_core__len(set)",
+			"dispatchKey": "xl_mod_std_core__len$arity1|x:set",
+			"languageAbi": "xlang@v1",
+			"nativeAbi": "c@v1",
+			"languageAbiId": "std.core@0.0.0#abi1::std.core::xl_mod_std_core__len(set)#xlang@v1",
+			"nativeAbiId": "std.core@0.0.0#abi1::std.core::xl__xl_mod_std_core__len__arity1__x__set__ret__int#c@v1",
+			"abiSymbol": "xl__xl_mod_std_core__len__arity1__x__set__ret__int",
+			"returnType": "int",
+			"async": 0,
+			"generator": 0,
+			"params": [
+				{
+					"name": "x",
+					"label": "x",
+					"type": "set",
+					"hasDefault": 0
+				}
+			]
+		},
+		{
+			"module": "std.core",
+			"moduleAbiId": "std.core@0.0.0#abi1::std.core",
+			"exportName": "len",
+			"symbol": "xl_mod_std_core__len",
+			"overloadGroup": "global::xl_mod_std_core__len",
+			"signatureId": "xl_mod_std_core__len(dict)",
+			"dispatchKey": "xl_mod_std_core__len$arity1|x:dict",
+			"languageAbi": "xlang@v1",
+			"nativeAbi": "c@v1",
+			"languageAbiId": "std.core@0.0.0#abi1::std.core::xl_mod_std_core__len(dict)#xlang@v1",
+			"nativeAbiId": "std.core@0.0.0#abi1::std.core::xl__xl_mod_std_core__len__arity1__x__dict__ret__int#c@v1",
+			"abiSymbol": "xl__xl_mod_std_core__len__arity1__x__dict__ret__int",
+			"returnType": "int",
+			"async": 0,
+			"generator": 0,
+			"params": [
+				{
+					"name": "x",
+					"label": "x",
+					"type": "dict",
+					"hasDefault": 0
+				}
+			]
+		},
+		{
+			"module": "std.core",
+			"moduleAbiId": "std.core@0.0.0#abi1::std.core",
+			"exportName": "print",
+			"symbol": "xl_mod_std_core__print",
+			"overloadGroup": "global::xl_mod_std_core__print",
+			"signatureId": "xl_mod_std_core__print(int)",
+			"dispatchKey": "xl_mod_std_core__print$arity1|x:int",
+			"languageAbi": "xlang@v1",
+			"nativeAbi": "c@v1",
+			"languageAbiId": "std.core@0.0.0#abi1::std.core::xl_mod_std_core__print(int)#xlang@v1",
+			"nativeAbiId": "std.core@0.0.0#abi1::std.core::xl__xl_mod_std_core__print__arity1__x__int__ret__void#c@v1",
+			"abiSymbol": "xl__xl_mod_std_core__print__arity1__x__int__ret__void",
+			"returnType": "void",
+			"async": 0,
+			"generator": 0,
+			"params": [
+				{
+					"name": "x",
+					"label": "x",
+					"type": "int",
+					"hasDefault": 0
+				}
+			]
+		},
+		{
+			"module": "std.core",
+			"moduleAbiId": "std.core@0.0.0#abi1::std.core",
+			"exportName": "print",
+			"symbol": "xl_mod_std_core__print",
+			"overloadGroup": "global::xl_mod_std_core__print",
+			"signatureId": "xl_mod_std_core__print(float)",
+			"dispatchKey": "xl_mod_std_core__print$arity1|x:float",
+			"languageAbi": "xlang@v1",
+			"nativeAbi": "c@v1",
+			"languageAbiId": "std.core@0.0.0#abi1::std.core::xl_mod_std_core__print(float)#xlang@v1",
+			"nativeAbiId": "std.core@0.0.0#abi1::std.core::xl__xl_mod_std_core__print__arity1__x__float__ret__void#c@v1",
+			"abiSymbol": "xl__xl_mod_std_core__print__arity1__x__float__ret__void",
+			"returnType": "void",
+			"async": 0,
+			"generator": 0,
+			"params": [
+				{
+					"name": "x",
+					"label": "x",
+					"type": "float",
+					"hasDefault": 0
+				}
+			]
+		},
+		{
+			"module": "std.core",
+			"moduleAbiId": "std.core@0.0.0#abi1::std.core",
+			"exportName": "print",
+			"symbol": "xl_mod_std_core__print",
+			"overloadGroup": "global::xl_mod_std_core__print",
+			"signatureId": "xl_mod_std_core__print(string)",
+			"dispatchKey": "xl_mod_std_core__print$arity1|x:string",
+			"languageAbi": "xlang@v1",
+			"nativeAbi": "c@v1",
+			"languageAbiId": "std.core@0.0.0#abi1::std.core::xl_mod_std_core__print(string)#xlang@v1",
+			"nativeAbiId": "std.core@0.0.0#abi1::std.core::xl__xl_mod_std_core__print__arity1__x__string__ret__void#c@v1",
+			"abiSymbol": "xl__xl_mod_std_core__print__arity1__x__string__ret__void",
+			"returnType": "void",
+			"async": 0,
+			"generator": 0,
+			"params": [
+				{
+					"name": "x",
+					"label": "x",
+					"type": "string",
+					"hasDefault": 0
+				}
+			]
+		},
+		{
+			"module": "std.core",
+			"moduleAbiId": "std.core@0.0.0#abi1::std.core",
+			"exportName": "print",
+			"symbol": "xl_mod_std_core__print",
+			"overloadGroup": "global::xl_mod_std_core__print",
+			"signatureId": "xl_mod_std_core__print(bool)",
+			"dispatchKey": "xl_mod_std_core__print$arity1|x:bool",
+			"languageAbi": "xlang@v1",
+			"nativeAbi": "c@v1",
+			"languageAbiId": "std.core@0.0.0#abi1::std.core::xl_mod_std_core__print(bool)#xlang@v1",
+			"nativeAbiId": "std.core@0.0.0#abi1::std.core::xl__xl_mod_std_core__print__arity1__x__bool__ret__void#c@v1",
+			"abiSymbol": "xl__xl_mod_std_core__print__arity1__x__bool__ret__void",
+			"returnType": "void",
+			"async": 0,
+			"generator": 0,
+			"params": [
+				{
+					"name": "x",
+					"label": "x",
+					"type": "bool",
+					"hasDefault": 0
+				}
+			]
+		},
+		{
+			"module": "std.core",
+			"moduleAbiId": "std.core@0.0.0#abi1::std.core",
+			"exportName": "println",
+			"symbol": "xl_mod_std_core__println",
+			"overloadGroup": "global::xl_mod_std_core__println",
+			"signatureId": "xl_mod_std_core__println()",
+			"dispatchKey": "xl_mod_std_core__println$arity0",
+			"languageAbi": "xlang@v1",
+			"nativeAbi": "c@v1",
+			"languageAbiId": "std.core@0.0.0#abi1::std.core::xl_mod_std_core__println()#xlang@v1",
+			"nativeAbiId": "std.core@0.0.0#abi1::std.core::xl__xl_mod_std_core__println__arity0__ret__void#c@v1",
+			"abiSymbol": "xl__xl_mod_std_core__println__arity0__ret__void",
+			"returnType": "void",
+			"async": 0,
+			"generator": 0,
+			"params": []
+		},
+		{
+			"module": "std.core",
+			"moduleAbiId": "std.core@0.0.0#abi1::std.core",
+			"exportName": "println",
+			"symbol": "xl_mod_std_core__println",
+			"overloadGroup": "global::xl_mod_std_core__println",
+			"signatureId": "xl_mod_std_core__println(int)",
+			"dispatchKey": "xl_mod_std_core__println$arity1|x:int",
+			"languageAbi": "xlang@v1",
+			"nativeAbi": "c@v1",
+			"languageAbiId": "std.core@0.0.0#abi1::std.core::xl_mod_std_core__println(int)#xlang@v1",
+			"nativeAbiId": "std.core@0.0.0#abi1::std.core::xl__xl_mod_std_core__println__arity1__x__int__ret__void#c@v1",
+			"abiSymbol": "xl__xl_mod_std_core__println__arity1__x__int__ret__void",
+			"returnType": "void",
+			"async": 0,
+			"generator": 0,
+			"params": [
+				{
+					"name": "x",
+					"label": "x",
+					"type": "int",
+					"hasDefault": 0
+				}
+			]
+		},
+		{
+			"module": "std.core",
+			"moduleAbiId": "std.core@0.0.0#abi1::std.core",
+			"exportName": "println",
+			"symbol": "xl_mod_std_core__println",
+			"overloadGroup": "global::xl_mod_std_core__println",
+			"signatureId": "xl_mod_std_core__println(float)",
+			"dispatchKey": "xl_mod_std_core__println$arity1|x:float",
+			"languageAbi": "xlang@v1",
+			"nativeAbi": "c@v1",
+			"languageAbiId": "std.core@0.0.0#abi1::std.core::xl_mod_std_core__println(float)#xlang@v1",
+			"nativeAbiId": "std.core@0.0.0#abi1::std.core::xl__xl_mod_std_core__println__arity1__x__float__ret__void#c@v1",
+			"abiSymbol": "xl__xl_mod_std_core__println__arity1__x__float__ret__void",
+			"returnType": "void",
+			"async": 0,
+			"generator": 0,
+			"params": [
+				{
+					"name": "x",
+					"label": "x",
+					"type": "float",
+					"hasDefault": 0
+				}
+			]
+		},
+		{
+			"module": "std.core",
+			"moduleAbiId": "std.core@0.0.0#abi1::std.core",
+			"exportName": "println",
+			"symbol": "xl_mod_std_core__println",
+			"overloadGroup": "global::xl_mod_std_core__println",
+			"signatureId": "xl_mod_std_core__println(string)",
+			"dispatchKey": "xl_mod_std_core__println$arity1|x:string",
+			"languageAbi": "xlang@v1",
+			"nativeAbi": "c@v1",
+			"languageAbiId": "std.core@0.0.0#abi1::std.core::xl_mod_std_core__println(string)#xlang@v1",
+			"nativeAbiId": "std.core@0.0.0#abi1::std.core::xl__xl_mod_std_core__println__arity1__x__string__ret__void#c@v1",
+			"abiSymbol": "xl__xl_mod_std_core__println__arity1__x__string__ret__void",
+			"returnType": "void",
+			"async": 0,
+			"generator": 0,
+			"params": [
+				{
+					"name": "x",
+					"label": "x",
+					"type": "string",
+					"hasDefault": 0
+				}
+			]
+		},
+		{
+			"module": "std.core",
+			"moduleAbiId": "std.core@0.0.0#abi1::std.core",
+			"exportName": "println",
+			"symbol": "xl_mod_std_core__println",
+			"overloadGroup": "global::xl_mod_std_core__println",
+			"signatureId": "xl_mod_std_core__println(bool)",
+			"dispatchKey": "xl_mod_std_core__println$arity1|x:bool",
+			"languageAbi": "xlang@v1",
+			"nativeAbi": "c@v1",
+			"languageAbiId": "std.core@0.0.0#abi1::std.core::xl_mod_std_core__println(bool)#xlang@v1",
+			"nativeAbiId": "std.core@0.0.0#abi1::std.core::xl__xl_mod_std_core__println__arity1__x__bool__ret__void#c@v1",
+			"abiSymbol": "xl__xl_mod_std_core__println__arity1__x__bool__ret__void",
+			"returnType": "void",
+			"async": 0,
+			"generator": 0,
+			"params": [
+				{
+					"name": "x",
+					"label": "x",
+					"type": "bool",
+					"hasDefault": 0
+				}
+			]
+		}
+	]
+}

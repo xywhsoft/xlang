@@ -43,10 +43,10 @@
 #define XLPG_KW_END                          43
 #define XLPG_STRING                          44
 #define XLPG_KW_EXTERN                       45
-#define XLPG_KW_TYPEDEF                      46
+#define XLPG_KW_AS                           46
 #define XLPG_OP_ASSIGN                       47
-#define XLPG_OP_ELLIPSIS                     48
-#define XLPG_KW_AS                           49
+#define XLPG_KW_TYPEDEF                      48
+#define XLPG_OP_ELLIPSIS                     49
 #define XLPG_KW_TYPE                         50
 #define XLPG_KW_FUNCTION                     51
 #define XLPG_KW_CONST                        52

@@ -16,6 +16,12 @@ typedef struct XL_ExecCtx {
 	size_t iExternSymbolCount;
 	XL_HostLinkLibrary arrLinkLibraries[XL_HOST_LINK_LIBRARY_MAX];
 	size_t iLinkLibraryCount;
+	XL_HostLibraryPath arrLibraryPaths[XL_HOST_LIBRARY_PATH_MAX];
+	size_t iLibraryPathCount;
+	XL_HostIncludePath arrIncludePaths[XL_HOST_INCLUDE_PATH_MAX];
+	size_t iIncludePathCount;
+	XL_HostLoadLibrary arrLoadLibraries[XL_HOST_LOAD_LIBRARY_MAX];
+	size_t iLoadLibraryCount;
 	char sEntrySymbol[64];
 	int iExitCode;
 	int bHadRuntimeError;
@@ -30,6 +36,9 @@ void xlExecCtxInit(XL_ExecCtx* pCtx, const char* sInputFile, const char* sReleas
 int xlExecCtxAddArtifact(XL_ExecCtx* pCtx, const char* sKind, const char* sFile);
 int xlExecCtxAddExternSymbol(XL_ExecCtx* pCtx, const char* sName);
 int xlExecCtxAddLinkLibrary(XL_ExecCtx* pCtx, const char* sName);
+int xlExecCtxAddLibraryPath(XL_ExecCtx* pCtx, const char* sPath);
+int xlExecCtxAddIncludePath(XL_ExecCtx* pCtx, const char* sPath);
+int xlExecCtxAddLoadLibrary(XL_ExecCtx* pCtx, const char* sFile);
 int xlExecRunCode(XL_ExecCtx* pCtx, XL_DiagContext* pDiag, const char* sCode, char** psTraceText);
 
 #endif

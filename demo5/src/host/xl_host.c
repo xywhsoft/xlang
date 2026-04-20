@@ -229,6 +229,66 @@ int xlHostContextAddLinkLibrary(XL_HostContext* pCtx, const char* sName)
 	return XL_RC_OK;
 }
 
+int xlHostContextAddLibraryPath(XL_HostContext* pCtx, const char* sPath)
+{
+	size_t i;
+
+	if ( (pCtx == NULL) || (sPath == NULL) || (sPath[0] == '\0') ) {
+		return XL_RC_BAD_ARG;
+	}
+	for ( i = 0; i < pCtx->iLibraryPathCount; ++i ) {
+		if ( strcmp(pCtx->arrLibraryPaths[i].sPath, sPath) == 0 ) {
+			return XL_RC_OK;
+		}
+	}
+	if ( pCtx->iLibraryPathCount >= XL_HOST_LIBRARY_PATH_MAX ) {
+		return XL_RC_FAIL;
+	}
+	__xlCopyText(pCtx->arrLibraryPaths[pCtx->iLibraryPathCount].sPath, sizeof(pCtx->arrLibraryPaths[pCtx->iLibraryPathCount].sPath), sPath);
+	pCtx->iLibraryPathCount += 1;
+	return XL_RC_OK;
+}
+
+int xlHostContextAddIncludePath(XL_HostContext* pCtx, const char* sPath)
+{
+	size_t i;
+
+	if ( (pCtx == NULL) || (sPath == NULL) || (sPath[0] == '\0') ) {
+		return XL_RC_BAD_ARG;
+	}
+	for ( i = 0; i < pCtx->iIncludePathCount; ++i ) {
+		if ( strcmp(pCtx->arrIncludePaths[i].sPath, sPath) == 0 ) {
+			return XL_RC_OK;
+		}
+	}
+	if ( pCtx->iIncludePathCount >= XL_HOST_INCLUDE_PATH_MAX ) {
+		return XL_RC_FAIL;
+	}
+	__xlCopyText(pCtx->arrIncludePaths[pCtx->iIncludePathCount].sPath, sizeof(pCtx->arrIncludePaths[pCtx->iIncludePathCount].sPath), sPath);
+	pCtx->iIncludePathCount += 1;
+	return XL_RC_OK;
+}
+
+int xlHostContextAddLoadLibrary(XL_HostContext* pCtx, const char* sFile)
+{
+	size_t i;
+
+	if ( (pCtx == NULL) || (sFile == NULL) || (sFile[0] == '\0') ) {
+		return XL_RC_BAD_ARG;
+	}
+	for ( i = 0; i < pCtx->iLoadLibraryCount; ++i ) {
+		if ( strcmp(pCtx->arrLoadLibraries[i].sFile, sFile) == 0 ) {
+			return XL_RC_OK;
+		}
+	}
+	if ( pCtx->iLoadLibraryCount >= XL_HOST_LOAD_LIBRARY_MAX ) {
+		return XL_RC_FAIL;
+	}
+	__xlCopyText(pCtx->arrLoadLibraries[pCtx->iLoadLibraryCount].sFile, sizeof(pCtx->arrLoadLibraries[pCtx->iLoadLibraryCount].sFile), sFile);
+	pCtx->iLoadLibraryCount += 1;
+	return XL_RC_OK;
+}
+
 int xlHostRunCText(
 	const XL_HostContext* pCtx,
 	XL_DiagContext* pDiag,
