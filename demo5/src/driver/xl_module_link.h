@@ -27,8 +27,11 @@ typedef struct XL_ModuleSummary {
 	char* sArtifactFile;
 	char* sConsumeMode;
 	char** arrImports;
+	char** arrImportAliases;
 	char** arrResolvedImports;
 	size_t iImportCount;
+	char** arrLinkLibs;
+	size_t iLinkLibCount;
 	XL_ModuleExportSummary* pExports;
 	size_t iExportCount;
 	int bIsRoot;

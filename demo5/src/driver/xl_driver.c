@@ -360,6 +360,52 @@ static int __xlAddModuleExternSymbolsToHostCtx(XL_HostContext* pHostCtx, const X
 	return XL_RC_OK;
 }
 
+static int __xlAddModuleLinkLibrariesToExecCtx(XL_ExecCtx* pExecCtx, const XL_ModuleLinkResult* pModuleResult)
+{
+	size_t i;
+	size_t j;
+
+	if ( (pExecCtx == NULL) || (pModuleResult == NULL) ) {
+		return XL_RC_BAD_ARG;
+	}
+
+	for ( i = 0; i < pModuleResult->iModuleCount; ++i ) {
+		const XL_ModuleSummary* pModule;
+
+		pModule = &pModuleResult->pModules[i];
+		for ( j = 0; j < pModule->iLinkLibCount; ++j ) {
+			if ( xlExecCtxAddLinkLibrary(pExecCtx, pModule->arrLinkLibs[j]) != XL_RC_OK ) {
+				return XL_RC_FAIL;
+			}
+		}
+	}
+
+	return XL_RC_OK;
+}
+
+static int __xlAddModuleLinkLibrariesToHostCtx(XL_HostContext* pHostCtx, const XL_ModuleLinkResult* pModuleResult)
+{
+	size_t i;
+	size_t j;
+
+	if ( (pHostCtx == NULL) || (pModuleResult == NULL) ) {
+		return XL_RC_BAD_ARG;
+	}
+
+	for ( i = 0; i < pModuleResult->iModuleCount; ++i ) {
+		const XL_ModuleSummary* pModule;
+
+		pModule = &pModuleResult->pModules[i];
+		for ( j = 0; j < pModule->iLinkLibCount; ++j ) {
+			if ( xlHostContextAddLinkLibrary(pHostCtx, pModule->arrLinkLibs[j]) != XL_RC_OK ) {
+				return XL_RC_FAIL;
+			}
+		}
+	}
+
+	return XL_RC_OK;
+}
+
 static void __xlBuildDefaultOutputPath(
 	char* sOut,
 	size_t iOutSize,
@@ -991,6 +1037,11 @@ static int __xlDriverRunProgram(
 		iRc = XL_RC_FAIL;
 		goto cleanup;
 	}
+	if ( __xlAddModuleLinkLibrariesToExecCtx(&execCtx, &moduleResult) != XL_RC_OK ) {
+		XL_DIAG_ERROR(pDiag, "run", "failed to collect module link libraries");
+		iRc = XL_RC_FAIL;
+		goto cleanup;
+	}
 
 	__xlBuildDumpPath(sCodePath, sizeof(sCodePath), "cgen", pOpts->sInputFile, ".run.c");
 	if ( xlDumpWriteText(pDump, sCodePath, sCode) != XL_RC_OK ) {
@@ -1151,6 +1202,11 @@ static int __xlDriverBuildProgram(
 	}
 	if ( __xlAddModuleExternSymbolsToHostCtx(&hostCtx, &moduleResult) != XL_RC_OK ) {
 		XL_DIAG_ERROR(pDiag, "build", "failed to collect module extern symbols");
+		iRc = XL_RC_FAIL;
+		goto cleanup;
+	}
+	if ( __xlAddModuleLinkLibrariesToHostCtx(&hostCtx, &moduleResult) != XL_RC_OK ) {
+		XL_DIAG_ERROR(pDiag, "build", "failed to collect module link libraries");
 		iRc = XL_RC_FAIL;
 		goto cleanup;
 	}

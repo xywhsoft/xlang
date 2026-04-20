@@ -1,0 +1,55 @@
+import std.net.ip as ip
+import std.net.dns as dns
+
+func main() as int
+	auto parsed4 = ip.parse("127.0.0.1:8080")
+	auto parsed6 = ip.parse("[::1]:9090")
+	auto built4 = ip.build({"host": "127.0.0.1", "port": "8080"})
+	auto built6 = ip.build({"host": "::1", "port": "9090"})
+	auto normalized = ip.normalize("[::1]:9090")
+	auto first = dns.resolve("127.0.0.1")
+	auto all = dns.resolve_all("127.0.0.1")
+	auto reverse = dns.reverse("127.0.0.1")
+
+	if ip.is_ip("127.0.0.1") == false
+		return 1
+	end
+	if ip.is_ipv4("127.0.0.1:8080") == false
+		return 2
+	end
+	if ip.is_ipv6("[::1]:9090") == false
+		return 3
+	end
+	if parsed4["family"] != "ipv4"
+		return 4
+	end
+	if parsed4["host"] != "127.0.0.1"
+		return 5
+	end
+	if parsed4["port"] != "8080"
+		return 6
+	end
+	if parsed6["family"] != "ipv6"
+		return 7
+	end
+	if built4 != "127.0.0.1:8080"
+		return 8
+	end
+	if built6.contains("[::1]:9090") == false
+		return 9
+	end
+	if normalized.contains("::1") == false
+		return 10
+	end
+	if first != "127.0.0.1"
+		return 11
+	end
+	if all.length == 0
+		return 12
+	end
+	if reverse != "localhost"
+		return 13
+	end
+
+	return 68
+end

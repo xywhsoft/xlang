@@ -1,0 +1,48 @@
+import std.net.http as http
+import std.net.httpd as httpd
+import std.net.url as url
+
+func main() as int
+	auto req = httpd.request("POST /users/42?tab=profile HTTP/1.1\r\nHost: example.com\r\nContent-Type: text/plain\r\n\r\nhello")
+	auto headers = http.parse_headers(req["headers_text"])
+	auto params = httpd.match("/users/:id", req["path"])
+	auto query = url.decode_query(req["query"])
+	auto resp = httpd.response(201, {"Content-Type": "application/json"}, "{\"ok\":true}")
+	auto text_resp = httpd.text(404, "missing")
+
+	if req["method"] != "POST"
+		return 1
+	end
+	if req["path"] != "/users/42"
+		return 2
+	end
+	if req["query"] != "tab=profile"
+		return 3
+	end
+	if req["body"] != "hello"
+		return 4
+	end
+	if headers["Host"] != "example.com"
+		return 5
+	end
+	if params["id"] != "42"
+		return 6
+	end
+	if query["tab"] != "profile"
+		return 7
+	end
+	if resp.contains("HTTP/1.1 201 Created") == false
+		return 8
+	end
+	if resp.contains("Content-Type: application/json") == false
+		return 9
+	end
+	if text_resp.contains("HTTP/1.1 404 Not Found") == false
+		return 10
+	end
+	if text_resp.contains("Content-Type: text/plain; charset=utf-8") == false
+		return 11
+	end
+
+	return 67
+end

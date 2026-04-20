@@ -926,14 +926,50 @@ static XL_HostOutputType __xlDetectOutputType(const char* sOutputFile, const cha
 	return XL_HOST_OUTPUT_EXE;
 }
 
-static int __xlAddBuildLibraries(TCCState* pTcc, XL_RunTraceBuffer* pTrace)
+static int __xlAddLinkLibrary(TCCState* pTcc, XL_RunTraceBuffer* pTrace, const char* sLibName)
+{
+	if ( (pTcc == NULL) || (sLibName == NULL) || (sLibName[0] == '\0') ) {
+		return XL_RC_BAD_ARG;
+	}
+
+	__xlRunTraceAppendFormat(pTrace, "link_lib=%s\n", sLibName);
+	if ( tcc_add_library(pTcc, sLibName) < 0 ) {
+		return XL_RC_FAIL;
+	}
+	return XL_RC_OK;
+}
+
+static int __xlHasLinkLibrary(const XL_HostContext* pCtx, const char* sLibName)
+{
+	size_t i;
+
+	if ( (pCtx == NULL) || (sLibName == NULL) || (sLibName[0] == '\0') ) {
+		return 0;
+	}
+
+	for ( i = 0; i < pCtx->iLinkLibraryCount; ++i ) {
+		if ( strcmp(pCtx->arrLinkLibraries[i].sName, sLibName) == 0 ) {
+			return 1;
+		}
+	}
+	return 0;
+}
+
+static int __xlAddBuildLibraries(const XL_HostContext* pCtx, TCCState* pTcc, XL_RunTraceBuffer* pTrace)
 {
 	static const char* arrLibs[] = { "shell32", "ws2_32", "iphlpapi" };
 	size_t i;
 
 	for ( i = 0; i < XL_COUNTOF(arrLibs); ++i ) {
-		__xlRunTraceAppendFormat(pTrace, "link_lib=%s\n", arrLibs[i]);
-		if ( tcc_add_library(pTcc, arrLibs[i]) < 0 ) {
+		if ( __xlHasLinkLibrary(pCtx, arrLibs[i]) ) {
+			continue;
+		}
+		if ( __xlAddLinkLibrary(pTcc, pTrace, arrLibs[i]) != XL_RC_OK ) {
+			return XL_RC_FAIL;
+		}
+	}
+	for ( i = 0; (pCtx != NULL) && (i < pCtx->iLinkLibraryCount); ++i ) {
+		if ( __xlAddLinkLibrary(pTcc, pTrace, pCtx->arrLinkLibraries[i].sName) != XL_RC_OK ) {
 			return XL_RC_FAIL;
 		}
 	}
@@ -1012,6 +1048,12 @@ int xlHostTccRunText(
 	}
 	if ( __xlConfigureTcc(pCtx, pTcc, &trace, 1) != XL_RC_OK ) {
 		XL_DIAG_ERROR(pDiag, "host.tcc", "failed to configure TCC");
+		tcc_delete(pTcc);
+		*psTraceText = trace.sData;
+		return XL_RC_FAIL;
+	}
+	if ( __xlAddBuildLibraries(pCtx, pTcc, &trace) != XL_RC_OK ) {
+		XL_DIAG_ERROR(pDiag, "host.tcc", "failed to add system libraries");
 		tcc_delete(pTcc);
 		*psTraceText = trace.sData;
 		return XL_RC_FAIL;
@@ -1174,6 +1216,12 @@ int xlHostTccRunFile(
 		*psTraceText = trace.sData;
 		return XL_RC_FAIL;
 	}
+	if ( __xlAddBuildLibraries(pCtx, pTcc, &trace) != XL_RC_OK ) {
+		XL_DIAG_ERROR(pDiag, "host.tcc", "failed to add system libraries");
+		tcc_delete(pTcc);
+		*psTraceText = trace.sData;
+		return XL_RC_FAIL;
+	}
 
 	__xlRunTraceAppendFormat(&trace, "compile_file=%s\n", sSourceFile);
 	if ( tcc_add_file(pTcc, sSourceFile) < 0 ) {
@@ -1273,7 +1321,7 @@ static int __xlHostTccBuildCommon(
 			pResult->bHadBuildError = 1;
 			return XL_RC_FAIL;
 		}
-		if ( __xlAddBuildLibraries(pTcc, pTrace) != XL_RC_OK ) {
+		if ( __xlAddBuildLibraries(pCtx, pTcc, pTrace) != XL_RC_OK ) {
 			XL_DIAG_ERROR(pDiag, "host.tcc", "failed to add system libraries");
 			pResult->bHadBuildError = 1;
 			return XL_RC_FAIL;

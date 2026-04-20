@@ -1,0 +1,111 @@
+Program @ 0:0-0:0
+	Import @ 1:11-1:12 text2="core"
+		Member @ 1:11-1:12 text="core"
+			Ident @ 1:8-1:11 text="std"
+	Import @ 2:11-2:12 text2="mod"
+		Member @ 2:11-2:12 text="module"
+			Ident @ 2:8-2:11 text="std"
+	FuncDecl @ 4:6-4:10 text="main"
+		List @ 0:0-0:0
+		List @ 0:0-0:0
+			TypeRef @ 4:16-4:19 text="int"
+		Block @ 0:0-0:0
+			If @ 5:2-5:4
+				Binary @ 5:19-5:21 text="!="
+					Call @ 5:17-5:18
+						Member @ 5:8-5:9 text="key"
+							Ident @ 5:5-5:8 text="mod"
+						List @ 0:0-0:0
+							Ident @ 5:13-5:17 text="core"
+					String @ 5:22-5:32 text="\"std.core\""
+				Block @ 0:0-0:0
+					Return @ 6:3-6:9
+						List @ 0:0-0:0
+							Int @ 6:10-6:11 text="1" int=1
+				List @ 0:0-0:0
+			If @ 8:2-8:4
+				Binary @ 8:28-8:29 text="<"
+					Call @ 8:26-8:27
+						Member @ 8:8-8:9 text="export_count"
+							Ident @ 8:5-8:8 text="mod"
+						List @ 0:0-0:0
+							Ident @ 8:22-8:26 text="core"
+					Int @ 8:30-8:31 text="1" int=1
+				Block @ 0:0-0:0
+					Return @ 9:3-9:9
+						List @ 0:0-0:0
+							Int @ 9:10-9:11 text="2" int=2
+				List @ 0:0-0:0
+			If @ 11:2-11:4
+				Unary @ 11:5-11:8 text="not"
+					Call @ 11:39-11:40
+						Member @ 11:12-11:13 text="has_export"
+							Ident @ 11:9-11:12 text="mod"
+						List @ 0:0-0:0
+							Ident @ 11:24-11:28 text="core"
+							String @ 11:30-11:39 text="\"println\""
+				Block @ 0:0-0:0
+					Return @ 12:3-12:9
+						List @ 0:0-0:0
+							Int @ 12:10-12:11 text="3" int=3
+				List @ 0:0-0:0
+			If @ 14:2-14:4
+				Binary @ 14:40-14:42 text="=="
+					Call @ 14:38-14:39
+						Member @ 14:8-14:9 text="export_symbol"
+							Ident @ 14:5-14:8 text="mod"
+						List @ 0:0-0:0
+							Ident @ 14:23-14:27 text="core"
+							String @ 14:29-14:38 text="\"println\""
+					String @ 14:43-14:45 text="\"\""
+				Block @ 0:0-0:0
+					Return @ 15:3-15:9
+						List @ 0:0-0:0
+							Int @ 15:10-15:11 text="4" int=4
+				List @ 0:0-0:0
+			VarDecl @ 17:7-17:12 text="names"
+				TypeRef @ 17:2-17:6 text="auto"
+				Call @ 17:31-17:32
+					Member @ 17:18-17:19 text="exports"
+						Ident @ 17:15-17:18 text="mod"
+					List @ 0:0-0:0
+						Ident @ 17:27-17:31 text="core"
+			If @ 18:2-18:4
+				Binary @ 18:18-18:19 text="<"
+					Member @ 18:10-18:11 text="length"
+						Ident @ 18:5-18:10 text="names"
+					Int @ 18:20-18:21 text="1" int=1
+				Block @ 0:0-0:0
+					Return @ 19:3-19:9
+						List @ 0:0-0:0
+							Int @ 19:10-19:11 text="5" int=5
+				List @ 0:0-0:0
+			If @ 21:2-21:4
+				Binary @ 21:22-21:24 text="=="
+					Call @ 21:20-21:21
+						Member @ 21:8-21:9 text="abi_id"
+							Ident @ 21:5-21:8 text="mod"
+						List @ 0:0-0:0
+							Ident @ 21:16-21:20 text="core"
+					String @ 21:25-21:27 text="\"\""
+				Block @ 0:0-0:0
+					Return @ 22:3-22:9
+						List @ 0:0-0:0
+							Int @ 22:10-22:11 text="6" int=6
+				List @ 0:0-0:0
+			If @ 24:2-24:4
+				Binary @ 24:33-24:35 text="=="
+					Call @ 24:31-24:32
+						Member @ 24:8-24:9 text="descriptor_symbol"
+							Ident @ 24:5-24:8 text="mod"
+						List @ 0:0-0:0
+							Ident @ 24:27-24:31 text="core"
+					String @ 24:36-24:38 text="\"\""
+				Block @ 0:0-0:0
+					Return @ 25:3-25:9
+						List @ 0:0-0:0
+							Int @ 25:10-25:11 text="7" int=7
+				List @ 0:0-0:0
+			Return @ 27:2-27:8
+				List @ 0:0-0:0
+					Int @ 27:9-27:11 text="74" int=74

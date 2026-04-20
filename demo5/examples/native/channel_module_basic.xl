@@ -2,32 +2,35 @@ import std.channel as chm
 
 async func main() as int
 	auto ch = chm.make(2)
+	if chm.capacity(ch) != 2 or chm.len(ch) != 0 or chm.closed(ch)
+		return 9
+	end
+
 	bool sent0 = chm.send(ch, 10)
 	bool sent1 = chm.send(ch, 20)
 	bool sent2 = chm.send(ch, 30)
-	auto pair0 = await chm.recv(ch)
-	bool ok0 = bool(pair0[0])
-	auto first = pair0[1]
+	if chm.len(ch) != 2
+		return 10
+	end
+
+	auto ok0, first = await ch.recv()
 	bool sent3 = chm.send(ch, 30)
+	auto secondRecv = chm.recv(ch)
 	bool closed = chm.close(ch)
-	auto pair1 = await chm.recv(ch)
-	bool ok1 = bool(pair1[0])
-	auto second = pair1[1]
-	auto pair2 = await chm.recv(ch)
-	bool ok2 = bool(pair2[0])
-	auto third = pair2[1]
-	auto pair3 = await chm.recv(ch)
-	bool ok3 = bool(pair3[0])
-	auto tail = pair3[1]
+	auto ok2, third = await ch.recv()
+	auto emptyRecv = chm.recv(ch)
 
 	if not sent0 or not sent1 or sent2 or not sent3 or not closed
 		return 1
 	end
-	if not ok0 or not ok1 or not ok2 or ok3
+	if not chm.closed(ch)
+		return 4
+	end
+	if not ok0 or secondRecv[0] != true or not ok2 or emptyRecv[0] != false
 		return 2
 	end
-	if tail != null
+	if emptyRecv[1] != null
 		return 3
 	end
-	return int(first) + int(second) + int(third)
+	return int(first) + int(secondRecv[1]) + int(third)
 end

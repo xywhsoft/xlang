@@ -1,0 +1,58 @@
+import std.net.http as http
+import std.net.multipart as multipart
+
+func main() as int
+	auto boundary = "xlang-boundary"
+	auto part1 = {"name": "title", "body": "hello", "type": "text/plain"}
+	auto part2 = {"name": "file", "filename": "a.txt", "body": "abc123", "headers": {"X-Trace": "demo"}}
+	auto built_parts = [part1, part2]
+	auto body = multipart.build(built_parts, boundary)
+	auto parts = multipart.parse(body, boundary)
+	auto first = parts[0]
+	auto second = parts[1]
+	auto second_headers = http.parse_headers(second["headers_text"])
+	string first_name = first["name"]
+	string first_body = first["body"]
+	string first_type = first["type"]
+	string second_name = second["name"]
+	string second_filename = second["filename"]
+	string second_body = second["body"]
+	string second_trace = second_headers["X-Trace"]
+	auto ct = "multipart/form-data; boundary=" + boundary
+
+	if multipart.boundary(ct) != boundary
+		return 1
+	end
+	if parts.length != 2
+		return 2
+	end
+	if first_name != "title"
+		return 3
+	end
+	if first_body != "hello"
+		return 4
+	end
+	if first_type != "text/plain"
+		return 5
+	end
+	if second_name != "file"
+		return 6
+	end
+	if second_filename != "a.txt"
+		return 7
+	end
+	if second_body != "abc123"
+		return 8
+	end
+	if second_trace != "demo"
+		return 9
+	end
+	if body.contains("Content-Disposition: form-data; name=\"title\"") == false
+		return 10
+	end
+	if body.contains("filename=\"a.txt\"") == false
+		return 11
+	end
+
+	return 66
+end
