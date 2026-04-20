@@ -1,0 +1,36 @@
+tcc_root=D:\Git\x-lang\demo5\release\tcc
+include=D:\Git\x-lang\demo5\release\tcc\include_win
+include=D:\Git\x-lang\demo5\release\tcc\include_win\winapi
+include=D:\Git\x-lang\demo5\src\runtime
+include=D:\Git\x-lang\demo5\lib\xrt
+lib=D:\Git\x-lang\demo5\release\tcc\lib
+compile_text=examples/async/channel_basic.xl
+[tcc] examples/async/channel_basic.xl:3096: warning: void function returns a value
+[tcc] examples/async/channel_basic.xl:3100: warning: void function returns a value
+[tcc] examples/async/channel_basic.xl:3107: warning: void function returns a value
+[tcc] examples/async/channel_basic.xl:3111: warning: void function returns a value
+[tcc] examples/async/channel_basic.xl:3114: warning: void function returns a value
+[tcc] examples/async/channel_basic.xl:3119: warning: void function returns a value
+[tcc] examples/async/channel_basic.xl:3123: warning: void function returns a value
+[tcc] examples/async/channel_basic.xl:3130: warning: void function returns a value
+[tcc] examples/async/channel_basic.xl:3134: warning: void function returns a value
+[tcc] examples/async/channel_basic.xl:3137: warning: void function returns a value
+[tcc] examples/async/channel_basic.xl:3142: warning: void function returns a value
+[tcc] examples/async/channel_basic.xl:3146: warning: void function returns a value
+[tcc] examples/async/channel_basic.xl:3153: warning: void function returns a value
+[tcc] examples/async/channel_basic.xl:3157: warning: void function returns a value
+[tcc] examples/async/channel_basic.xl:3160: warning: void function returns a value
+output=release\bin\channel_basic.exe
+output_kind=exe
+support_source=D:\Git\x-lang\demo5\src\runtime\xlrt_host.c
+support_source=D:\Git\x-lang\demo5\src\runtime\xlrt_generated.c
+support_source=D:\Git\x-lang\demo5\src\host\xl_host_runtime.c
+link_lib=shell32
+link_lib=ws2_32
+link_lib=iphlpapi
+[tcc] tcc: error: undefined symbol 'xl_channel_send'
+[tcc] tcc: error: undefined symbol 'xl_channel_recv'
+[tcc] tcc: error: undefined symbol 'xl_channel_close'
+[tcc] tcc: error: undefined symbol 'xl_channel_create'
+[tcc] tcc: error: undefined symbol 'strtoll'
+[tcc] tcc: error: undefined symbol 'GetUserNameA'

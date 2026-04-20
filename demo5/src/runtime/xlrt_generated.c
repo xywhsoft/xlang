@@ -1687,6 +1687,270 @@ xvalue xl_iter_items(xvalue value)
 	return result;
 }
 
+typedef struct XL_AtomicBox {
+	volatile int64 iValue;
+} XL_AtomicBox;
+
+void* xl_sync_mutex(void)
+{
+	return xrtMutexCreate();
+}
+
+int xl_sync_mutex_free(void* pHandle)
+{
+	if ( pHandle == NULL ) {
+		return 0;
+	}
+	xrtMutexDestroy((xmutex)pHandle);
+	return 1;
+}
+
+int xl_sync_mutex_lock(void* pHandle)
+{
+	if ( pHandle == NULL ) {
+		return 0;
+	}
+	xrtMutexLock((xmutex)pHandle);
+	return 1;
+}
+
+int xl_sync_mutex_try_lock(void* pHandle)
+{
+	if ( pHandle == NULL ) {
+		return 0;
+	}
+	return xrtMutexTryLock((xmutex)pHandle) ? 1 : 0;
+}
+
+int xl_sync_mutex_unlock(void* pHandle)
+{
+	if ( pHandle == NULL ) {
+		return 0;
+	}
+	xrtMutexUnlock((xmutex)pHandle);
+	return 1;
+}
+
+void* xl_sync_cond(void)
+{
+	return xrtCondCreate();
+}
+
+int xl_sync_cond_free(void* pHandle)
+{
+	if ( pHandle == NULL ) {
+		return 0;
+	}
+	xrtCondDestroy((xcond)pHandle);
+	return 1;
+}
+
+int xl_sync_cond_wait(void* pHandle, void* pMutex)
+{
+	if ( (pHandle == NULL) || (pMutex == NULL) ) {
+		return 0;
+	}
+	xrtCondWait((xcond)pHandle, (xmutex)pMutex);
+	return 1;
+}
+
+int xl_sync_cond_wait_timeout(void* pHandle, void* pMutex, int iTimeoutMs)
+{
+	int iResult;
+
+	if ( (pHandle == NULL) || (pMutex == NULL) ) {
+		return 0;
+	}
+	if ( iTimeoutMs < 0 ) {
+		iTimeoutMs = 0;
+	}
+	iResult = xrtCondWaitTimeout((xcond)pHandle, (xmutex)pMutex, (uint32)iTimeoutMs);
+	return (iResult == XRT_WAIT_OK) ? 1 : 0;
+}
+
+int xl_sync_cond_signal(void* pHandle)
+{
+	if ( pHandle == NULL ) {
+		return 0;
+	}
+	xrtCondSignal((xcond)pHandle);
+	return 1;
+}
+
+int xl_sync_cond_broadcast(void* pHandle)
+{
+	if ( pHandle == NULL ) {
+		return 0;
+	}
+	xrtCondBroadcast((xcond)pHandle);
+	return 1;
+}
+
+void* xl_sync_rwlock(void)
+{
+	return xrtRWLockCreate();
+}
+
+int xl_sync_rwlock_free(void* pHandle)
+{
+	if ( pHandle == NULL ) {
+		return 0;
+	}
+	xrtRWLockDestroy((xrwlock)pHandle);
+	return 1;
+}
+
+int xl_sync_rwlock_read_lock(void* pHandle)
+{
+	if ( pHandle == NULL ) {
+		return 0;
+	}
+	xrtRWLockReadLock((xrwlock)pHandle);
+	return 1;
+}
+
+int xl_sync_rwlock_try_read_lock(void* pHandle)
+{
+	if ( pHandle == NULL ) {
+		return 0;
+	}
+	return xrtRWLockTryReadLock((xrwlock)pHandle) ? 1 : 0;
+}
+
+int xl_sync_rwlock_read_unlock(void* pHandle)
+{
+	if ( pHandle == NULL ) {
+		return 0;
+	}
+	xrtRWLockReadUnlock((xrwlock)pHandle);
+	return 1;
+}
+
+int xl_sync_rwlock_write_lock(void* pHandle)
+{
+	if ( pHandle == NULL ) {
+		return 0;
+	}
+	xrtRWLockWriteLock((xrwlock)pHandle);
+	return 1;
+}
+
+int xl_sync_rwlock_try_write_lock(void* pHandle)
+{
+	if ( pHandle == NULL ) {
+		return 0;
+	}
+	return xrtRWLockTryWriteLock((xrwlock)pHandle) ? 1 : 0;
+}
+
+int xl_sync_rwlock_write_unlock(void* pHandle)
+{
+	if ( pHandle == NULL ) {
+		return 0;
+	}
+	xrtRWLockWriteUnlock((xrwlock)pHandle);
+	return 1;
+}
+
+int xl_sync_rwlock_downgrade(void* pHandle)
+{
+	if ( pHandle == NULL ) {
+		return 0;
+	}
+	xrtRWLockDowngrade((xrwlock)pHandle);
+	return 1;
+}
+
+int xl_sync_rwlock_upgrade(void* pHandle)
+{
+	if ( pHandle == NULL ) {
+		return 0;
+	}
+	return xrtRWLockUpgrade((xrwlock)pHandle) ? 1 : 0;
+}
+
+void* xl_atomic_make(int iValue)
+{
+	XL_AtomicBox* pBox = (XL_AtomicBox*)xrtMalloc(sizeof(*pBox));
+	if ( pBox == NULL ) {
+		return NULL;
+	}
+	pBox->iValue = (int64)iValue;
+	return pBox;
+}
+
+int xl_atomic_free(void* pHandle)
+{
+	if ( pHandle == NULL ) {
+		return 0;
+	}
+	xrtFree(pHandle);
+	return 1;
+}
+
+int xl_atomic_load(void* pHandle)
+{
+	if ( pHandle == NULL ) {
+		return 0;
+	}
+	return (int)__xrtAtomicLoad64(&((XL_AtomicBox*)pHandle)->iValue);
+}
+
+int xl_atomic_store(void* pHandle, int iValue)
+{
+	if ( pHandle == NULL ) {
+		return 0;
+	}
+	__xrtAtomicStore64(&((XL_AtomicBox*)pHandle)->iValue, (int64)iValue);
+	return iValue;
+}
+
+int xl_atomic_exchange(void* pHandle, int iValue)
+{
+	int64 iPrev;
+	volatile int64* pValue;
+
+	if ( pHandle == NULL ) {
+		return 0;
+	}
+	pValue = &((XL_AtomicBox*)pHandle)->iValue;
+	do {
+		iPrev = __xrtAtomicLoad64(pValue);
+	} while ( __xrtAtomicCompareExchange64(pValue, (int64)iValue, iPrev) != iPrev );
+	return (int)iPrev;
+}
+
+int xl_atomic_compare_exchange(void* pHandle, int iExpected, int iDesired)
+{
+	if ( pHandle == NULL ) {
+		return 0;
+	}
+	return (int)__xrtAtomicCompareExchange64(&((XL_AtomicBox*)pHandle)->iValue, (int64)iDesired, (int64)iExpected);
+}
+
+int xl_atomic_add(void* pHandle, int iDelta)
+{
+	if ( pHandle == NULL ) {
+		return 0;
+	}
+	return (int)__xrtAtomicAddFetch64(&((XL_AtomicBox*)pHandle)->iValue, (int64)iDelta);
+}
+
+int xl_thread_current_id(void)
+{
+	return (int)xrtThreadGetCurrentId();
+}
+
+void xl_thread_sleep(int iMs)
+{
+	xrtSleep((uint32)((iMs > 0) ? iMs : 0));
+}
+
+void xl_thread_yield_now(void)
+{
+	xrtSleep(0u);
+}
+
 xtime xl_time_now(void) { return xrtNow(); }
 const char* xl_time_to_string(xtime value) { return XLRT_CSTR(xrtTimeToStr(value, XRT_TIME_FORMAT_DATETIME)); }
 const char* xl_time_now_text(void) { return XLRT_CSTR(xrtNowStr()); }
@@ -2698,3 +2962,134 @@ const char* xl_process_capture_in(const char* sCommand, const char* sWorkDir)
 	return (sCopy != NULL) ? sCopy : "";
 }
 int xl_process_terminal_supported(void) { return xrtProcessTerminalSupported() ? 1 : 0; }
+static int __xlNetLooksLikeLiteralHost(const char* sHost)
+{
+	int bHasDot;
+	int bHasColon;
+
+	if ( (sHost == NULL) || (sHost[0] == '\0') ) {
+		return 0;
+	}
+	bHasDot = 0;
+	bHasColon = 0;
+	while ( *sHost != '\0' ) {
+		const unsigned char ch = (unsigned char)*sHost;
+		if ( (ch >= '0') && (ch <= '9') ) {
+			++sHost;
+			continue;
+		}
+		if ( ch == '.' ) {
+			bHasDot = 1;
+			++sHost;
+			continue;
+		}
+		if ( ch == ':' ) {
+			bHasColon = 1;
+			++sHost;
+			continue;
+		}
+		if ( (ch >= 'a') && (ch <= 'f') ) {
+			++sHost;
+			continue;
+		}
+		if ( (ch >= 'A') && (ch <= 'F') ) {
+			++sHost;
+			continue;
+		}
+		if ( ch == '[' || ch == ']' ) {
+			++sHost;
+			continue;
+		}
+		return 0;
+	}
+	return bHasDot || bHasColon;
+}
+
+const char* xl_net_resolve(const char* sHost)
+{
+	xnetaddr addr;
+	const char* sText;
+	const char* sCopy;
+
+	if ( (sHost == NULL) || (sHost[0] == '\0') ) {
+		return "";
+	}
+	if ( __xlNetLooksLikeLiteralHost(sHost) ) {
+		return XLRT_CSTR(xrtCopyStr((str)sHost, __xlTextLen(sHost)));
+	}
+	xrtNetAddrInitAny(&addr, AF_INET, 0);
+	if ( (xrtNetAddrParse(&addr, sHost, 0u) != XRT_NET_OK) &&
+		(xrtNetResolve(sHost, &addr) != XRT_NET_OK) ) {
+		return "";
+	}
+	sText = xrtNetAddrToStr(&addr);
+	if ( sText == NULL ) {
+		return "";
+	}
+	sCopy = XLRT_CSTR(xrtCopyStr((str)sText, __xlTextLen(sText)));
+	xrtFree((ptr)sText);
+	return sCopy;
+}
+void* xl_mem_alloc(int iSize)
+{
+	size_t iAllocSize = (size_t)((iSize > 0) ? iSize : 0);
+	ptr pMem = xrtMalloc(iAllocSize + 1u);
+
+	if ( pMem == NULL ) {
+		return NULL;
+	}
+	memset(pMem, 0, iAllocSize + 1u);
+	return pMem;
+}
+
+int xl_mem_free(void* pMem)
+{
+	if ( pMem == NULL ) {
+		return 0;
+	}
+	xrtFree((ptr)pMem);
+	return 1;
+}
+
+int xl_mem_is_null(void* pMem) { return (pMem == NULL) ? 1 : 0; }
+
+int xl_mem_fill(void* pMem, int iByteValue, int iSize)
+{
+	if ( (pMem == NULL) || (iSize < 0) ) {
+		return 0;
+	}
+	memset(pMem, iByteValue & 0xFF, (size_t)iSize);
+	return 1;
+}
+
+int xl_mem_copy(void* pDst, void* pSrc, int iSize)
+{
+	if ( (pDst == NULL) || (pSrc == NULL) || (iSize < 0) ) {
+		return 0;
+	}
+	memmove(pDst, pSrc, (size_t)iSize);
+	return 1;
+}
+
+int xl_mem_write_string(void* pMem, const char* sText)
+{
+	size_t iLen;
+
+	if ( pMem == NULL ) {
+		return -1;
+	}
+	iLen = __xlTextLen(sText);
+	if ( iLen != 0u ) {
+		memcpy(pMem, sText, iLen);
+	}
+	((char*)pMem)[iLen] = '\0';
+	return (int)iLen;
+}
+
+const char* xl_mem_read_string(void* pMem, int iSize)
+{
+	if ( (pMem == NULL) || (iSize <= 0) ) {
+		return "";
+	}
+	return XLRT_CSTR(xrtCopyStr((str)pMem, (size_t)iSize));
+}

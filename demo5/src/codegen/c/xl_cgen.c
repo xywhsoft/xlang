@@ -571,6 +571,65 @@ typedef enum XL_ProcessHelperKind {
 	XL_PROCESS_HELPER_TERMINAL_SUPPORTED
 } XL_ProcessHelperKind;
 
+typedef enum XL_SysNetHelperKind {
+	XL_SYS_NET_HELPER_NONE = 0,
+	XL_SYS_NET_HELPER_RESOLVE
+} XL_SysNetHelperKind;
+
+typedef enum XL_SysMemHelperKind {
+	XL_SYS_MEM_HELPER_NONE = 0,
+	XL_SYS_MEM_HELPER_ALLOC,
+	XL_SYS_MEM_HELPER_FREE,
+	XL_SYS_MEM_HELPER_IS_NULL,
+	XL_SYS_MEM_HELPER_FILL,
+	XL_SYS_MEM_HELPER_COPY,
+	XL_SYS_MEM_HELPER_WRITE_STRING,
+	XL_SYS_MEM_HELPER_READ_STRING
+} XL_SysMemHelperKind;
+
+typedef enum XL_AtomicHelperKind {
+	XL_ATOMIC_HELPER_NONE = 0,
+	XL_ATOMIC_HELPER_MAKE,
+	XL_ATOMIC_HELPER_FREE,
+	XL_ATOMIC_HELPER_LOAD,
+	XL_ATOMIC_HELPER_STORE,
+	XL_ATOMIC_HELPER_EXCHANGE,
+	XL_ATOMIC_HELPER_COMPARE_EXCHANGE,
+	XL_ATOMIC_HELPER_ADD
+} XL_AtomicHelperKind;
+
+typedef enum XL_SyncHelperKind {
+	XL_SYNC_HELPER_NONE = 0,
+	XL_SYNC_HELPER_MUTEX,
+	XL_SYNC_HELPER_MUTEX_FREE,
+	XL_SYNC_HELPER_MUTEX_LOCK,
+	XL_SYNC_HELPER_MUTEX_TRY_LOCK,
+	XL_SYNC_HELPER_MUTEX_UNLOCK,
+	XL_SYNC_HELPER_COND,
+	XL_SYNC_HELPER_COND_FREE,
+	XL_SYNC_HELPER_COND_WAIT,
+	XL_SYNC_HELPER_COND_WAIT_TIMEOUT,
+	XL_SYNC_HELPER_COND_SIGNAL,
+	XL_SYNC_HELPER_COND_BROADCAST,
+	XL_SYNC_HELPER_RWLOCK,
+	XL_SYNC_HELPER_RWLOCK_FREE,
+	XL_SYNC_HELPER_RWLOCK_READ_LOCK,
+	XL_SYNC_HELPER_RWLOCK_TRY_READ_LOCK,
+	XL_SYNC_HELPER_RWLOCK_READ_UNLOCK,
+	XL_SYNC_HELPER_RWLOCK_WRITE_LOCK,
+	XL_SYNC_HELPER_RWLOCK_TRY_WRITE_LOCK,
+	XL_SYNC_HELPER_RWLOCK_WRITE_UNLOCK,
+	XL_SYNC_HELPER_RWLOCK_DOWNGRADE,
+	XL_SYNC_HELPER_RWLOCK_UPGRADE
+} XL_SyncHelperKind;
+
+typedef enum XL_ThreadHelperKind {
+	XL_THREAD_HELPER_NONE = 0,
+	XL_THREAD_HELPER_CURRENT_ID,
+	XL_THREAD_HELPER_SLEEP,
+	XL_THREAD_HELPER_YIELD_NOW
+} XL_ThreadHelperKind;
+
 static int __xlCgenBufGrow(XL_CgenBuffer* pBuf, size_t iNeed)
 {
 	char* sNewData;
@@ -5348,6 +5407,11 @@ static void __xlCgenRuntimeSupport(XL_CgenBuffer* pBuf)
 	__xlCgenAppend(pBuf, "\t\txPromiseDestroy(pCtx->pPromise);\n\t}\n");
 	__xlCgenAppend(pBuf, "\txrtFree(pCtx);\n");
 	__xlCgenAppend(pBuf, "}\n\n");
+	__xlCgenAppend(pBuf, "static xfuture* xl_generated_future_finally_auto(xfuture* pFuture, xfuture_finally_fn pfnCont, ptr pArg)\n{\n");
+	__xlCgenAppend(pBuf, "\tif ( pFuture == NULL ) {\n\t\treturn NULL;\n\t}\n");
+	__xlCgenAppend(pBuf, "\tif ( xFutureState(pFuture) != XFUTURE_PENDING ) {\n\t\treturn xFutureFinallyInline(pFuture, pfnCont, pArg);\n\t}\n");
+	__xlCgenAppend(pBuf, "\treturn xFutureFinallyEngine(pFuture, NULL, 0u, pfnCont, pArg);\n");
+	__xlCgenAppend(pBuf, "}\n\n");
 	__xlCgenAppend(pBuf, "static xfuture* xl_generated_future_forward_state(const char* sName, xfuture* pFuture, const char* sFunc, int iAwaitStateId, int iResumeStateId, const char* sDebugName)\n{\n");
 	__xlCgenAppend(pBuf, "\txfuture* pOut;\n\txpromise* pPromise;\n\txfuture* pHook;\n\tXL_GeneratedAsyncForwardStateCtx* pCtx;\n");
 	__xlCgenAppend(pBuf, "\tif ( iAwaitStateId >= 0 ) {\n\t\txl_generated_async_trace_state_event(sFunc, iAwaitStateId);\n\t}\n");
@@ -5358,7 +5422,7 @@ static void __xlCgenRuntimeSupport(XL_CgenBuffer* pBuf)
 	__xlCgenAppend(pBuf, "\tpPromise = xPromiseCreate(pOut);\n\tif ( pPromise == NULL ) {\n\t\txFutureRelease(pOut);\n\t\treturn xl_generated_future_create_error(xl_generated_error_make(\"Error\", \"async await forward promise failed\", 0, \"\", \"\"), sDebugName);\n\t}\n");
 	__xlCgenAppend(pBuf, "\tpCtx = (XL_GeneratedAsyncForwardStateCtx*)xrtMalloc(sizeof(*pCtx));\n\tif ( pCtx == NULL ) {\n\t\txPromiseDestroy(pPromise);\n\t\txFutureRelease(pOut);\n\t\treturn xl_generated_future_create_error(xl_generated_error_make(\"Error\", \"async await forward context failed\", 0, \"\", \"\"), sDebugName);\n\t}\n");
 	__xlCgenAppend(pBuf, "\tpCtx->pPromise = pPromise;\n\tpCtx->sAwaitName = sName;\n\tpCtx->sFuncName = sFunc;\n\tpCtx->iResumeStateId = iResumeStateId;\n");
-	__xlCgenAppend(pBuf, "\tpHook = xFutureFinallyEngine(pFuture, NULL, 0u, xl_generated_async_forward_state_finally, pCtx);\n");
+	__xlCgenAppend(pBuf, "\tpHook = xl_generated_future_finally_auto(pFuture, xl_generated_async_forward_state_finally, pCtx);\n");
 	__xlCgenAppend(pBuf, "\tif ( pHook == NULL ) {\n\t\txrtFree(pCtx);\n\t\txPromiseDestroy(pPromise);\n\t\txFutureRelease(pOut);\n\t\treturn xl_generated_future_create_error(xl_generated_error_make(\"Error\", \"async await forward hook failed\", 0, \"\", \"\"), sDebugName);\n\t}\n");
 	__xlCgenAppend(pBuf, "\txFutureRelease(pHook);\n");
 	__xlCgenAppend(pBuf, "\treturn pOut;\n");
@@ -7673,6 +7737,118 @@ static XL_ProcessHelperKind __xlProcessHelperKind(const char* sCalleeName)
 	return XL_PROCESS_HELPER_NONE;
 }
 
+static XL_SysNetHelperKind __xlSysNetHelperKind(const char* sCalleeName)
+{
+	if ( sCalleeName == NULL ) {
+		return XL_SYS_NET_HELPER_NONE;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_sys_net__resolve") == 0 ) {
+		return XL_SYS_NET_HELPER_RESOLVE;
+	}
+	return XL_SYS_NET_HELPER_NONE;
+}
+
+static XL_SysMemHelperKind __xlSysMemHelperKind(const char* sCalleeName)
+{
+	if ( sCalleeName == NULL ) {
+		return XL_SYS_MEM_HELPER_NONE;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_sys_mem__alloc") == 0 ) return XL_SYS_MEM_HELPER_ALLOC;
+	if ( strcmp(sCalleeName, "xl_mod_std_sys_mem__free") == 0 ) return XL_SYS_MEM_HELPER_FREE;
+	if ( strcmp(sCalleeName, "xl_mod_std_sys_mem__is_null") == 0 ) return XL_SYS_MEM_HELPER_IS_NULL;
+	if ( strcmp(sCalleeName, "xl_mod_std_sys_mem__fill") == 0 ) return XL_SYS_MEM_HELPER_FILL;
+	if ( strcmp(sCalleeName, "xl_mod_std_sys_mem__copy") == 0 ) return XL_SYS_MEM_HELPER_COPY;
+	if ( strcmp(sCalleeName, "xl_mod_std_sys_mem__write_string") == 0 ) return XL_SYS_MEM_HELPER_WRITE_STRING;
+	if ( strcmp(sCalleeName, "xl_mod_std_sys_mem__read_string") == 0 ) return XL_SYS_MEM_HELPER_READ_STRING;
+	return XL_SYS_MEM_HELPER_NONE;
+}
+
+static XL_AtomicHelperKind __xlAtomicHelperKind(const char* sCalleeName)
+{
+	if ( sCalleeName == NULL ) {
+		return XL_ATOMIC_HELPER_NONE;
+	}
+	if ( strncmp(sCalleeName, "xl_mod_std_atomic__make", strlen("xl_mod_std_atomic__make")) == 0 ) return XL_ATOMIC_HELPER_MAKE;
+	if ( strncmp(sCalleeName, "xl_mod_std_atomic__free", strlen("xl_mod_std_atomic__free")) == 0 ) return XL_ATOMIC_HELPER_FREE;
+	if ( strncmp(sCalleeName, "xl_mod_std_atomic__load", strlen("xl_mod_std_atomic__load")) == 0 ) return XL_ATOMIC_HELPER_LOAD;
+	if ( strncmp(sCalleeName, "xl_mod_std_atomic__store", strlen("xl_mod_std_atomic__store")) == 0 ) return XL_ATOMIC_HELPER_STORE;
+	if ( strncmp(sCalleeName, "xl_mod_std_atomic__exchange", strlen("xl_mod_std_atomic__exchange")) == 0 ) return XL_ATOMIC_HELPER_EXCHANGE;
+	if ( strncmp(sCalleeName, "xl_mod_std_atomic__compare_exchange", strlen("xl_mod_std_atomic__compare_exchange")) == 0 ) return XL_ATOMIC_HELPER_COMPARE_EXCHANGE;
+	if ( strncmp(sCalleeName, "xl_mod_std_atomic__add", strlen("xl_mod_std_atomic__add")) == 0 ) return XL_ATOMIC_HELPER_ADD;
+	if ( strncmp(sCalleeName, "xl__xl_mod_std_atomic__make", strlen("xl__xl_mod_std_atomic__make")) == 0 ) return XL_ATOMIC_HELPER_MAKE;
+	if ( strncmp(sCalleeName, "xl__xl_mod_std_atomic__free", strlen("xl__xl_mod_std_atomic__free")) == 0 ) return XL_ATOMIC_HELPER_FREE;
+	if ( strncmp(sCalleeName, "xl__xl_mod_std_atomic__load", strlen("xl__xl_mod_std_atomic__load")) == 0 ) return XL_ATOMIC_HELPER_LOAD;
+	if ( strncmp(sCalleeName, "xl__xl_mod_std_atomic__store", strlen("xl__xl_mod_std_atomic__store")) == 0 ) return XL_ATOMIC_HELPER_STORE;
+	if ( strncmp(sCalleeName, "xl__xl_mod_std_atomic__exchange", strlen("xl__xl_mod_std_atomic__exchange")) == 0 ) return XL_ATOMIC_HELPER_EXCHANGE;
+	if ( strncmp(sCalleeName, "xl__xl_mod_std_atomic__compare_exchange", strlen("xl__xl_mod_std_atomic__compare_exchange")) == 0 ) return XL_ATOMIC_HELPER_COMPARE_EXCHANGE;
+	if ( strncmp(sCalleeName, "xl__xl_mod_std_atomic__add", strlen("xl__xl_mod_std_atomic__add")) == 0 ) return XL_ATOMIC_HELPER_ADD;
+	return XL_ATOMIC_HELPER_NONE;
+}
+
+static XL_SyncHelperKind __xlSyncHelperKind(const char* sCalleeName)
+{
+	if ( sCalleeName == NULL ) {
+		return XL_SYNC_HELPER_NONE;
+	}
+	if ( strncmp(sCalleeName, "xl_mod_std_sync__mutex_free", strlen("xl_mod_std_sync__mutex_free")) == 0 ) return XL_SYNC_HELPER_MUTEX_FREE;
+	if ( strncmp(sCalleeName, "xl_mod_std_sync__mutex_lock", strlen("xl_mod_std_sync__mutex_lock")) == 0 ) return XL_SYNC_HELPER_MUTEX_LOCK;
+	if ( strncmp(sCalleeName, "xl_mod_std_sync__mutex_try_lock", strlen("xl_mod_std_sync__mutex_try_lock")) == 0 ) return XL_SYNC_HELPER_MUTEX_TRY_LOCK;
+	if ( strncmp(sCalleeName, "xl_mod_std_sync__mutex_unlock", strlen("xl_mod_std_sync__mutex_unlock")) == 0 ) return XL_SYNC_HELPER_MUTEX_UNLOCK;
+	if ( strncmp(sCalleeName, "xl_mod_std_sync__cond_free", strlen("xl_mod_std_sync__cond_free")) == 0 ) return XL_SYNC_HELPER_COND_FREE;
+	if ( strncmp(sCalleeName, "xl_mod_std_sync__cond_wait_timeout", strlen("xl_mod_std_sync__cond_wait_timeout")) == 0 ) return XL_SYNC_HELPER_COND_WAIT_TIMEOUT;
+	if ( strncmp(sCalleeName, "xl_mod_std_sync__cond_wait", strlen("xl_mod_std_sync__cond_wait")) == 0 ) return XL_SYNC_HELPER_COND_WAIT;
+	if ( strncmp(sCalleeName, "xl_mod_std_sync__cond_signal", strlen("xl_mod_std_sync__cond_signal")) == 0 ) return XL_SYNC_HELPER_COND_SIGNAL;
+	if ( strncmp(sCalleeName, "xl_mod_std_sync__cond_broadcast", strlen("xl_mod_std_sync__cond_broadcast")) == 0 ) return XL_SYNC_HELPER_COND_BROADCAST;
+	if ( strncmp(sCalleeName, "xl_mod_std_sync__rwlock_free", strlen("xl_mod_std_sync__rwlock_free")) == 0 ) return XL_SYNC_HELPER_RWLOCK_FREE;
+	if ( strncmp(sCalleeName, "xl_mod_std_sync__rwlock_read_lock", strlen("xl_mod_std_sync__rwlock_read_lock")) == 0 ) return XL_SYNC_HELPER_RWLOCK_READ_LOCK;
+	if ( strncmp(sCalleeName, "xl_mod_std_sync__rwlock_try_read_lock", strlen("xl_mod_std_sync__rwlock_try_read_lock")) == 0 ) return XL_SYNC_HELPER_RWLOCK_TRY_READ_LOCK;
+	if ( strncmp(sCalleeName, "xl_mod_std_sync__rwlock_read_unlock", strlen("xl_mod_std_sync__rwlock_read_unlock")) == 0 ) return XL_SYNC_HELPER_RWLOCK_READ_UNLOCK;
+	if ( strncmp(sCalleeName, "xl_mod_std_sync__rwlock_write_lock", strlen("xl_mod_std_sync__rwlock_write_lock")) == 0 ) return XL_SYNC_HELPER_RWLOCK_WRITE_LOCK;
+	if ( strncmp(sCalleeName, "xl_mod_std_sync__rwlock_try_write_lock", strlen("xl_mod_std_sync__rwlock_try_write_lock")) == 0 ) return XL_SYNC_HELPER_RWLOCK_TRY_WRITE_LOCK;
+	if ( strncmp(sCalleeName, "xl_mod_std_sync__rwlock_write_unlock", strlen("xl_mod_std_sync__rwlock_write_unlock")) == 0 ) return XL_SYNC_HELPER_RWLOCK_WRITE_UNLOCK;
+	if ( strncmp(sCalleeName, "xl_mod_std_sync__rwlock_downgrade", strlen("xl_mod_std_sync__rwlock_downgrade")) == 0 ) return XL_SYNC_HELPER_RWLOCK_DOWNGRADE;
+	if ( strncmp(sCalleeName, "xl_mod_std_sync__rwlock_upgrade", strlen("xl_mod_std_sync__rwlock_upgrade")) == 0 ) return XL_SYNC_HELPER_RWLOCK_UPGRADE;
+	if ( strncmp(sCalleeName, "xl_mod_std_sync__mutex", strlen("xl_mod_std_sync__mutex")) == 0 ) return XL_SYNC_HELPER_MUTEX;
+	if ( strncmp(sCalleeName, "xl_mod_std_sync__cond", strlen("xl_mod_std_sync__cond")) == 0 ) return XL_SYNC_HELPER_COND;
+	if ( strncmp(sCalleeName, "xl_mod_std_sync__rwlock", strlen("xl_mod_std_sync__rwlock")) == 0 ) return XL_SYNC_HELPER_RWLOCK;
+	if ( strncmp(sCalleeName, "xl__xl_mod_std_sync__mutex_free", strlen("xl__xl_mod_std_sync__mutex_free")) == 0 ) return XL_SYNC_HELPER_MUTEX_FREE;
+	if ( strncmp(sCalleeName, "xl__xl_mod_std_sync__mutex_lock", strlen("xl__xl_mod_std_sync__mutex_lock")) == 0 ) return XL_SYNC_HELPER_MUTEX_LOCK;
+	if ( strncmp(sCalleeName, "xl__xl_mod_std_sync__mutex_try_lock", strlen("xl__xl_mod_std_sync__mutex_try_lock")) == 0 ) return XL_SYNC_HELPER_MUTEX_TRY_LOCK;
+	if ( strncmp(sCalleeName, "xl__xl_mod_std_sync__mutex_unlock", strlen("xl__xl_mod_std_sync__mutex_unlock")) == 0 ) return XL_SYNC_HELPER_MUTEX_UNLOCK;
+	if ( strncmp(sCalleeName, "xl__xl_mod_std_sync__cond_free", strlen("xl__xl_mod_std_sync__cond_free")) == 0 ) return XL_SYNC_HELPER_COND_FREE;
+	if ( strncmp(sCalleeName, "xl__xl_mod_std_sync__cond_wait_timeout", strlen("xl__xl_mod_std_sync__cond_wait_timeout")) == 0 ) return XL_SYNC_HELPER_COND_WAIT_TIMEOUT;
+	if ( strncmp(sCalleeName, "xl__xl_mod_std_sync__cond_wait", strlen("xl__xl_mod_std_sync__cond_wait")) == 0 ) return XL_SYNC_HELPER_COND_WAIT;
+	if ( strncmp(sCalleeName, "xl__xl_mod_std_sync__cond_signal", strlen("xl__xl_mod_std_sync__cond_signal")) == 0 ) return XL_SYNC_HELPER_COND_SIGNAL;
+	if ( strncmp(sCalleeName, "xl__xl_mod_std_sync__cond_broadcast", strlen("xl__xl_mod_std_sync__cond_broadcast")) == 0 ) return XL_SYNC_HELPER_COND_BROADCAST;
+	if ( strncmp(sCalleeName, "xl__xl_mod_std_sync__rwlock_free", strlen("xl__xl_mod_std_sync__rwlock_free")) == 0 ) return XL_SYNC_HELPER_RWLOCK_FREE;
+	if ( strncmp(sCalleeName, "xl__xl_mod_std_sync__rwlock_read_lock", strlen("xl__xl_mod_std_sync__rwlock_read_lock")) == 0 ) return XL_SYNC_HELPER_RWLOCK_READ_LOCK;
+	if ( strncmp(sCalleeName, "xl__xl_mod_std_sync__rwlock_try_read_lock", strlen("xl__xl_mod_std_sync__rwlock_try_read_lock")) == 0 ) return XL_SYNC_HELPER_RWLOCK_TRY_READ_LOCK;
+	if ( strncmp(sCalleeName, "xl__xl_mod_std_sync__rwlock_read_unlock", strlen("xl__xl_mod_std_sync__rwlock_read_unlock")) == 0 ) return XL_SYNC_HELPER_RWLOCK_READ_UNLOCK;
+	if ( strncmp(sCalleeName, "xl__xl_mod_std_sync__rwlock_write_lock", strlen("xl__xl_mod_std_sync__rwlock_write_lock")) == 0 ) return XL_SYNC_HELPER_RWLOCK_WRITE_LOCK;
+	if ( strncmp(sCalleeName, "xl__xl_mod_std_sync__rwlock_try_write_lock", strlen("xl__xl_mod_std_sync__rwlock_try_write_lock")) == 0 ) return XL_SYNC_HELPER_RWLOCK_TRY_WRITE_LOCK;
+	if ( strncmp(sCalleeName, "xl__xl_mod_std_sync__rwlock_write_unlock", strlen("xl__xl_mod_std_sync__rwlock_write_unlock")) == 0 ) return XL_SYNC_HELPER_RWLOCK_WRITE_UNLOCK;
+	if ( strncmp(sCalleeName, "xl__xl_mod_std_sync__rwlock_downgrade", strlen("xl__xl_mod_std_sync__rwlock_downgrade")) == 0 ) return XL_SYNC_HELPER_RWLOCK_DOWNGRADE;
+	if ( strncmp(sCalleeName, "xl__xl_mod_std_sync__rwlock_upgrade", strlen("xl__xl_mod_std_sync__rwlock_upgrade")) == 0 ) return XL_SYNC_HELPER_RWLOCK_UPGRADE;
+	if ( strncmp(sCalleeName, "xl__xl_mod_std_sync__mutex", strlen("xl__xl_mod_std_sync__mutex")) == 0 ) return XL_SYNC_HELPER_MUTEX;
+	if ( strncmp(sCalleeName, "xl__xl_mod_std_sync__cond", strlen("xl__xl_mod_std_sync__cond")) == 0 ) return XL_SYNC_HELPER_COND;
+	if ( strncmp(sCalleeName, "xl__xl_mod_std_sync__rwlock", strlen("xl__xl_mod_std_sync__rwlock")) == 0 ) return XL_SYNC_HELPER_RWLOCK;
+	return XL_SYNC_HELPER_NONE;
+}
+
+static XL_ThreadHelperKind __xlThreadHelperKind(const char* sCalleeName)
+{
+	if ( sCalleeName == NULL ) {
+		return XL_THREAD_HELPER_NONE;
+	}
+	if ( strncmp(sCalleeName, "xl_mod_std_thread__current_id", strlen("xl_mod_std_thread__current_id")) == 0 ) return XL_THREAD_HELPER_CURRENT_ID;
+	if ( strncmp(sCalleeName, "xl_mod_std_thread__sleep", strlen("xl_mod_std_thread__sleep")) == 0 ) return XL_THREAD_HELPER_SLEEP;
+	if ( strncmp(sCalleeName, "xl_mod_std_thread__yield_now", strlen("xl_mod_std_thread__yield_now")) == 0 ) return XL_THREAD_HELPER_YIELD_NOW;
+	if ( strncmp(sCalleeName, "xl__xl_mod_std_thread__current_id", strlen("xl__xl_mod_std_thread__current_id")) == 0 ) return XL_THREAD_HELPER_CURRENT_ID;
+	if ( strncmp(sCalleeName, "xl__xl_mod_std_thread__sleep", strlen("xl__xl_mod_std_thread__sleep")) == 0 ) return XL_THREAD_HELPER_SLEEP;
+	if ( strncmp(sCalleeName, "xl__xl_mod_std_thread__yield_now", strlen("xl__xl_mod_std_thread__yield_now")) == 0 ) return XL_THREAD_HELPER_YIELD_NOW;
+	return XL_THREAD_HELPER_NONE;
+}
+
 static const char* __xlInferExprTypeName(const XL_CgenContext* pCtx, const XL_MirNode* pNode)
 {
 	const XL_MirNode* pArgs;
@@ -9247,6 +9423,217 @@ static void __xlCgenTimeCall(XL_CgenContext* pCtx, const XL_MirNode* pNode)
 	}
 }
 
+static void __xlCgenAtomicCall(XL_CgenContext* pCtx, const XL_MirNode* pNode)
+{
+	const XL_MirNode* pArgs;
+	const XL_MirNode* pArg0;
+	const XL_MirNode* pArg1;
+	const XL_MirNode* pArg2;
+	XL_AtomicHelperKind eKind;
+
+	eKind = __xlAtomicHelperKind(__xlCallCalleeName(pNode));
+	pArgs = (pNode->iChildCount > 1) ? pNode->ppChildren[1] : NULL;
+	pArg0 = ((pArgs != NULL) && (pArgs->iChildCount != 0)) ? pArgs->ppChildren[0] : NULL;
+	pArg1 = ((pArgs != NULL) && (pArgs->iChildCount > 1)) ? pArgs->ppChildren[1] : NULL;
+	pArg2 = ((pArgs != NULL) && (pArgs->iChildCount > 2)) ? pArgs->ppChildren[2] : NULL;
+
+	switch ( eKind ) {
+		case XL_ATOMIC_HELPER_MAKE:
+			__xlCgenAppend(&pCtx->buf, "xl_atomic_make(");
+			__xlCgenExpr(pCtx, pArg0);
+			__xlCgenAppend(&pCtx->buf, ")");
+			return;
+		case XL_ATOMIC_HELPER_FREE:
+			__xlCgenAppend(&pCtx->buf, "xl_atomic_free(");
+			__xlCgenExpr(pCtx, pArg0);
+			__xlCgenAppend(&pCtx->buf, ")");
+			return;
+		case XL_ATOMIC_HELPER_LOAD:
+			__xlCgenAppend(&pCtx->buf, "xl_atomic_load(");
+			__xlCgenExpr(pCtx, pArg0);
+			__xlCgenAppend(&pCtx->buf, ")");
+			return;
+		case XL_ATOMIC_HELPER_STORE:
+			__xlCgenAppend(&pCtx->buf, "xl_atomic_store(");
+			__xlCgenExpr(pCtx, pArg0);
+			__xlCgenAppend(&pCtx->buf, ", ");
+			__xlCgenExpr(pCtx, pArg1);
+			__xlCgenAppend(&pCtx->buf, ")");
+			return;
+		case XL_ATOMIC_HELPER_EXCHANGE:
+			__xlCgenAppend(&pCtx->buf, "xl_atomic_exchange(");
+			__xlCgenExpr(pCtx, pArg0);
+			__xlCgenAppend(&pCtx->buf, ", ");
+			__xlCgenExpr(pCtx, pArg1);
+			__xlCgenAppend(&pCtx->buf, ")");
+			return;
+		case XL_ATOMIC_HELPER_COMPARE_EXCHANGE:
+			__xlCgenAppend(&pCtx->buf, "xl_atomic_compare_exchange(");
+			__xlCgenExpr(pCtx, pArg0);
+			__xlCgenAppend(&pCtx->buf, ", ");
+			__xlCgenExpr(pCtx, pArg1);
+			__xlCgenAppend(&pCtx->buf, ", ");
+			__xlCgenExpr(pCtx, pArg2);
+			__xlCgenAppend(&pCtx->buf, ")");
+			return;
+		case XL_ATOMIC_HELPER_ADD:
+			__xlCgenAppend(&pCtx->buf, "xl_atomic_add(");
+			__xlCgenExpr(pCtx, pArg0);
+			__xlCgenAppend(&pCtx->buf, ", ");
+			__xlCgenExpr(pCtx, pArg1);
+			__xlCgenAppend(&pCtx->buf, ")");
+			return;
+		default:
+			return;
+	}
+}
+
+static void __xlCgenSyncCall(XL_CgenContext* pCtx, const XL_MirNode* pNode)
+{
+	const XL_MirNode* pArgs;
+	const XL_MirNode* pArg0;
+	const XL_MirNode* pArg1;
+	const XL_MirNode* pArg2;
+	XL_SyncHelperKind eKind;
+
+	eKind = __xlSyncHelperKind(__xlCallCalleeName(pNode));
+	pArgs = (pNode->iChildCount > 1) ? pNode->ppChildren[1] : NULL;
+	pArg0 = ((pArgs != NULL) && (pArgs->iChildCount != 0)) ? pArgs->ppChildren[0] : NULL;
+	pArg1 = ((pArgs != NULL) && (pArgs->iChildCount > 1)) ? pArgs->ppChildren[1] : NULL;
+	pArg2 = ((pArgs != NULL) && (pArgs->iChildCount > 2)) ? pArgs->ppChildren[2] : NULL;
+
+	switch ( eKind ) {
+		case XL_SYNC_HELPER_MUTEX: __xlCgenAppend(&pCtx->buf, "xl_sync_mutex()"); return;
+		case XL_SYNC_HELPER_MUTEX_FREE:
+			__xlCgenAppend(&pCtx->buf, "xl_sync_mutex_free(");
+			__xlCgenExpr(pCtx, pArg0);
+			__xlCgenAppend(&pCtx->buf, ")");
+			return;
+		case XL_SYNC_HELPER_MUTEX_LOCK:
+			__xlCgenAppend(&pCtx->buf, "xl_sync_mutex_lock(");
+			__xlCgenExpr(pCtx, pArg0);
+			__xlCgenAppend(&pCtx->buf, ")");
+			return;
+		case XL_SYNC_HELPER_MUTEX_TRY_LOCK:
+			__xlCgenAppend(&pCtx->buf, "xl_sync_mutex_try_lock(");
+			__xlCgenExpr(pCtx, pArg0);
+			__xlCgenAppend(&pCtx->buf, ")");
+			return;
+		case XL_SYNC_HELPER_MUTEX_UNLOCK:
+			__xlCgenAppend(&pCtx->buf, "xl_sync_mutex_unlock(");
+			__xlCgenExpr(pCtx, pArg0);
+			__xlCgenAppend(&pCtx->buf, ")");
+			return;
+		case XL_SYNC_HELPER_COND: __xlCgenAppend(&pCtx->buf, "xl_sync_cond()"); return;
+		case XL_SYNC_HELPER_COND_FREE:
+			__xlCgenAppend(&pCtx->buf, "xl_sync_cond_free(");
+			__xlCgenExpr(pCtx, pArg0);
+			__xlCgenAppend(&pCtx->buf, ")");
+			return;
+		case XL_SYNC_HELPER_COND_WAIT:
+			__xlCgenAppend(&pCtx->buf, "xl_sync_cond_wait(");
+			__xlCgenExpr(pCtx, pArg0);
+			__xlCgenAppend(&pCtx->buf, ", ");
+			__xlCgenExpr(pCtx, pArg1);
+			__xlCgenAppend(&pCtx->buf, ")");
+			return;
+		case XL_SYNC_HELPER_COND_WAIT_TIMEOUT:
+			__xlCgenAppend(&pCtx->buf, "xl_sync_cond_wait_timeout(");
+			__xlCgenExpr(pCtx, pArg0);
+			__xlCgenAppend(&pCtx->buf, ", ");
+			__xlCgenExpr(pCtx, pArg1);
+			__xlCgenAppend(&pCtx->buf, ", ");
+			__xlCgenExpr(pCtx, pArg2);
+			__xlCgenAppend(&pCtx->buf, ")");
+			return;
+		case XL_SYNC_HELPER_COND_SIGNAL:
+			__xlCgenAppend(&pCtx->buf, "xl_sync_cond_signal(");
+			__xlCgenExpr(pCtx, pArg0);
+			__xlCgenAppend(&pCtx->buf, ")");
+			return;
+		case XL_SYNC_HELPER_COND_BROADCAST:
+			__xlCgenAppend(&pCtx->buf, "xl_sync_cond_broadcast(");
+			__xlCgenExpr(pCtx, pArg0);
+			__xlCgenAppend(&pCtx->buf, ")");
+			return;
+		case XL_SYNC_HELPER_RWLOCK: __xlCgenAppend(&pCtx->buf, "xl_sync_rwlock()"); return;
+		case XL_SYNC_HELPER_RWLOCK_FREE:
+			__xlCgenAppend(&pCtx->buf, "xl_sync_rwlock_free(");
+			__xlCgenExpr(pCtx, pArg0);
+			__xlCgenAppend(&pCtx->buf, ")");
+			return;
+		case XL_SYNC_HELPER_RWLOCK_READ_LOCK:
+			__xlCgenAppend(&pCtx->buf, "xl_sync_rwlock_read_lock(");
+			__xlCgenExpr(pCtx, pArg0);
+			__xlCgenAppend(&pCtx->buf, ")");
+			return;
+		case XL_SYNC_HELPER_RWLOCK_TRY_READ_LOCK:
+			__xlCgenAppend(&pCtx->buf, "xl_sync_rwlock_try_read_lock(");
+			__xlCgenExpr(pCtx, pArg0);
+			__xlCgenAppend(&pCtx->buf, ")");
+			return;
+		case XL_SYNC_HELPER_RWLOCK_READ_UNLOCK:
+			__xlCgenAppend(&pCtx->buf, "xl_sync_rwlock_read_unlock(");
+			__xlCgenExpr(pCtx, pArg0);
+			__xlCgenAppend(&pCtx->buf, ")");
+			return;
+		case XL_SYNC_HELPER_RWLOCK_WRITE_LOCK:
+			__xlCgenAppend(&pCtx->buf, "xl_sync_rwlock_write_lock(");
+			__xlCgenExpr(pCtx, pArg0);
+			__xlCgenAppend(&pCtx->buf, ")");
+			return;
+		case XL_SYNC_HELPER_RWLOCK_TRY_WRITE_LOCK:
+			__xlCgenAppend(&pCtx->buf, "xl_sync_rwlock_try_write_lock(");
+			__xlCgenExpr(pCtx, pArg0);
+			__xlCgenAppend(&pCtx->buf, ")");
+			return;
+		case XL_SYNC_HELPER_RWLOCK_WRITE_UNLOCK:
+			__xlCgenAppend(&pCtx->buf, "xl_sync_rwlock_write_unlock(");
+			__xlCgenExpr(pCtx, pArg0);
+			__xlCgenAppend(&pCtx->buf, ")");
+			return;
+		case XL_SYNC_HELPER_RWLOCK_DOWNGRADE:
+			__xlCgenAppend(&pCtx->buf, "xl_sync_rwlock_downgrade(");
+			__xlCgenExpr(pCtx, pArg0);
+			__xlCgenAppend(&pCtx->buf, ")");
+			return;
+		case XL_SYNC_HELPER_RWLOCK_UPGRADE:
+			__xlCgenAppend(&pCtx->buf, "xl_sync_rwlock_upgrade(");
+			__xlCgenExpr(pCtx, pArg0);
+			__xlCgenAppend(&pCtx->buf, ")");
+			return;
+		default:
+			return;
+	}
+}
+
+static void __xlCgenThreadCall(XL_CgenContext* pCtx, const XL_MirNode* pNode)
+{
+	const XL_MirNode* pArgs;
+	const XL_MirNode* pArg0;
+	XL_ThreadHelperKind eKind;
+
+	eKind = __xlThreadHelperKind(__xlCallCalleeName(pNode));
+	pArgs = (pNode->iChildCount > 1) ? pNode->ppChildren[1] : NULL;
+	pArg0 = ((pArgs != NULL) && (pArgs->iChildCount != 0)) ? pArgs->ppChildren[0] : NULL;
+
+	switch ( eKind ) {
+		case XL_THREAD_HELPER_CURRENT_ID:
+			__xlCgenAppend(&pCtx->buf, "xl_thread_current_id()");
+			return;
+		case XL_THREAD_HELPER_SLEEP:
+			__xlCgenAppend(&pCtx->buf, "xl_thread_sleep(");
+			__xlCgenExpr(pCtx, pArg0);
+			__xlCgenAppend(&pCtx->buf, ")");
+			return;
+		case XL_THREAD_HELPER_YIELD_NOW:
+			__xlCgenAppend(&pCtx->buf, "xl_thread_yield_now()");
+			return;
+		default:
+			return;
+	}
+}
+
 static void __xlCgenPathCall(XL_CgenContext* pCtx, const XL_MirNode* pNode)
 {
 	const XL_MirNode* pArgs;
@@ -10006,6 +10393,94 @@ static void __xlCgenProcessCall(XL_CgenContext* pCtx, const XL_MirNode* pNode)
 	}
 }
 
+static void __xlCgenSysNetCall(XL_CgenContext* pCtx, const XL_MirNode* pNode)
+{
+	const XL_MirNode* pArgs;
+	const XL_MirNode* pArg0;
+	XL_SysNetHelperKind eKind;
+
+	eKind = __xlSysNetHelperKind(__xlCallCalleeName(pNode));
+	pArgs = (pNode->iChildCount > 1) ? pNode->ppChildren[1] : NULL;
+	pArg0 = ((pArgs != NULL) && (pArgs->iChildCount != 0)) ? pArgs->ppChildren[0] : NULL;
+
+	switch ( eKind ) {
+		case XL_SYS_NET_HELPER_RESOLVE:
+			__xlCgenAppend(&pCtx->buf, "xl_net_resolve(");
+			__xlCgenExpr(pCtx, pArg0);
+			__xlCgenAppend(&pCtx->buf, ")");
+			return;
+		default:
+			return;
+	}
+}
+
+static void __xlCgenSysMemCall(XL_CgenContext* pCtx, const XL_MirNode* pNode)
+{
+	const XL_MirNode* pArgs;
+	const XL_MirNode* pArg0;
+	const XL_MirNode* pArg1;
+	const XL_MirNode* pArg2;
+	XL_SysMemHelperKind eKind;
+
+	eKind = __xlSysMemHelperKind(__xlCallCalleeName(pNode));
+	pArgs = (pNode->iChildCount > 1) ? pNode->ppChildren[1] : NULL;
+	pArg0 = ((pArgs != NULL) && (pArgs->iChildCount > 0)) ? pArgs->ppChildren[0] : NULL;
+	pArg1 = ((pArgs != NULL) && (pArgs->iChildCount > 1)) ? pArgs->ppChildren[1] : NULL;
+	pArg2 = ((pArgs != NULL) && (pArgs->iChildCount > 2)) ? pArgs->ppChildren[2] : NULL;
+
+	switch ( eKind ) {
+		case XL_SYS_MEM_HELPER_ALLOC:
+			__xlCgenAppend(&pCtx->buf, "xl_mem_alloc(");
+			__xlCgenExpr(pCtx, pArg0);
+			__xlCgenAppend(&pCtx->buf, ")");
+			return;
+		case XL_SYS_MEM_HELPER_FREE:
+			__xlCgenAppend(&pCtx->buf, "xl_mem_free(");
+			__xlCgenExpr(pCtx, pArg0);
+			__xlCgenAppend(&pCtx->buf, ")");
+			return;
+		case XL_SYS_MEM_HELPER_IS_NULL:
+			__xlCgenAppend(&pCtx->buf, "xl_mem_is_null(");
+			__xlCgenExpr(pCtx, pArg0);
+			__xlCgenAppend(&pCtx->buf, ")");
+			return;
+		case XL_SYS_MEM_HELPER_FILL:
+			__xlCgenAppend(&pCtx->buf, "xl_mem_fill(");
+			__xlCgenExpr(pCtx, pArg0);
+			__xlCgenAppend(&pCtx->buf, ", ");
+			__xlCgenExpr(pCtx, pArg1);
+			__xlCgenAppend(&pCtx->buf, ", ");
+			__xlCgenExpr(pCtx, pArg2);
+			__xlCgenAppend(&pCtx->buf, ")");
+			return;
+		case XL_SYS_MEM_HELPER_COPY:
+			__xlCgenAppend(&pCtx->buf, "xl_mem_copy(");
+			__xlCgenExpr(pCtx, pArg0);
+			__xlCgenAppend(&pCtx->buf, ", ");
+			__xlCgenExpr(pCtx, pArg1);
+			__xlCgenAppend(&pCtx->buf, ", ");
+			__xlCgenExpr(pCtx, pArg2);
+			__xlCgenAppend(&pCtx->buf, ")");
+			return;
+		case XL_SYS_MEM_HELPER_WRITE_STRING:
+			__xlCgenAppend(&pCtx->buf, "xl_mem_write_string(");
+			__xlCgenExpr(pCtx, pArg0);
+			__xlCgenAppend(&pCtx->buf, ", ");
+			__xlCgenExpr(pCtx, pArg1);
+			__xlCgenAppend(&pCtx->buf, ")");
+			return;
+		case XL_SYS_MEM_HELPER_READ_STRING:
+			__xlCgenAppend(&pCtx->buf, "xl_mem_read_string(");
+			__xlCgenExpr(pCtx, pArg0);
+			__xlCgenAppend(&pCtx->buf, ", ");
+			__xlCgenExpr(pCtx, pArg1);
+			__xlCgenAppend(&pCtx->buf, ")");
+			return;
+		default:
+			return;
+	}
+}
+
 static const XL_MirNode* __xlCgenParamNode(const XL_MirNode* pParams, size_t iIndex)
 {
 	if ( (pParams == NULL) || (iIndex >= pParams->iChildCount) ) {
@@ -10116,6 +10591,9 @@ static int __xlCgenEmitBuiltinHelperFunc(
 	XL_EnvHelperKind eEnvKind;
 	XL_DirHelperKind eDirKind;
 	XL_ProcessHelperKind eProcessKind;
+	XL_AtomicHelperKind eAtomicKind;
+	XL_SyncHelperKind eSyncKind;
+	XL_ThreadHelperKind eThreadKind;
 
 	if ( (pCtx == NULL) || (pNode == NULL) || (pFuncInfo == NULL) ) {
 		return 0;
@@ -10780,6 +11258,96 @@ static int __xlCgenEmitBuiltinHelperFunc(
 		return 1;
 	}
 
+	if ( __xlSysNetHelperKind(pFuncInfo->sName) != XL_SYS_NET_HELPER_NONE ) {
+		__xlCgenEmitHelperFuncOpen(pCtx, pFuncInfo, pParams);
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppendFormat(&pCtx->buf, "return xl_net_resolve(%s);\n", sParam0);
+		__xlCgenEmitHelperFuncClose(pCtx);
+		return 1;
+	}
+
+	if ( __xlSysMemHelperKind(pFuncInfo->sName) != XL_SYS_MEM_HELPER_NONE ) {
+		XL_SysMemHelperKind eMemKind = __xlSysMemHelperKind(pFuncInfo->sName);
+		__xlCgenEmitHelperFuncOpen(pCtx, pFuncInfo, pParams);
+		__xlCgenAppendIndent(&pCtx->buf);
+		switch ( eMemKind ) {
+			case XL_SYS_MEM_HELPER_ALLOC: __xlCgenAppendFormat(&pCtx->buf, "return xl_mem_alloc(%s);\n", sParam0); break;
+			case XL_SYS_MEM_HELPER_FREE: __xlCgenAppendFormat(&pCtx->buf, "return xl_mem_free(%s);\n", sParam0); break;
+			case XL_SYS_MEM_HELPER_IS_NULL: __xlCgenAppendFormat(&pCtx->buf, "return xl_mem_is_null(%s);\n", sParam0); break;
+			case XL_SYS_MEM_HELPER_FILL: __xlCgenAppendFormat(&pCtx->buf, "return xl_mem_fill(%s, %s, %s);\n", sParam0, sParam1, sParam2); break;
+			case XL_SYS_MEM_HELPER_COPY: __xlCgenAppendFormat(&pCtx->buf, "return xl_mem_copy(%s, %s, %s);\n", sParam0, sParam1, sParam2); break;
+			case XL_SYS_MEM_HELPER_WRITE_STRING: __xlCgenAppendFormat(&pCtx->buf, "return xl_mem_write_string(%s, %s);\n", sParam0, sParam1); break;
+			case XL_SYS_MEM_HELPER_READ_STRING: __xlCgenAppendFormat(&pCtx->buf, "return xl_mem_read_string(%s, %s);\n", sParam0, sParam1); break;
+			default: break;
+		}
+		__xlCgenEmitHelperFuncClose(pCtx);
+		return 1;
+	}
+
+	eAtomicKind = __xlAtomicHelperKind(pFuncInfo->sName);
+	if ( eAtomicKind != XL_ATOMIC_HELPER_NONE ) {
+		__xlCgenEmitHelperFuncOpen(pCtx, pFuncInfo, pParams);
+		__xlCgenAppendIndent(&pCtx->buf);
+		switch ( eAtomicKind ) {
+			case XL_ATOMIC_HELPER_MAKE: __xlCgenAppendFormat(&pCtx->buf, "return xl_atomic_make(%s);\n", sParam0); break;
+			case XL_ATOMIC_HELPER_FREE: __xlCgenAppendFormat(&pCtx->buf, "return xl_atomic_free(%s);\n", sParam0); break;
+			case XL_ATOMIC_HELPER_LOAD: __xlCgenAppendFormat(&pCtx->buf, "return xl_atomic_load(%s);\n", sParam0); break;
+			case XL_ATOMIC_HELPER_STORE: __xlCgenAppendFormat(&pCtx->buf, "return xl_atomic_store(%s, %s);\n", sParam0, sParam1); break;
+			case XL_ATOMIC_HELPER_EXCHANGE: __xlCgenAppendFormat(&pCtx->buf, "return xl_atomic_exchange(%s, %s);\n", sParam0, sParam1); break;
+			case XL_ATOMIC_HELPER_COMPARE_EXCHANGE: __xlCgenAppendFormat(&pCtx->buf, "return xl_atomic_compare_exchange(%s, %s, %s);\n", sParam0, sParam1, sParam2); break;
+			case XL_ATOMIC_HELPER_ADD: __xlCgenAppendFormat(&pCtx->buf, "return xl_atomic_add(%s, %s);\n", sParam0, sParam1); break;
+			default: break;
+		}
+		__xlCgenEmitHelperFuncClose(pCtx);
+		return 1;
+	}
+
+	eSyncKind = __xlSyncHelperKind(pFuncInfo->sName);
+	if ( eSyncKind != XL_SYNC_HELPER_NONE ) {
+		__xlCgenEmitHelperFuncOpen(pCtx, pFuncInfo, pParams);
+		__xlCgenAppendIndent(&pCtx->buf);
+		switch ( eSyncKind ) {
+			case XL_SYNC_HELPER_MUTEX: __xlCgenAppend(&pCtx->buf, "return xl_sync_mutex();\n"); break;
+			case XL_SYNC_HELPER_MUTEX_FREE: __xlCgenAppendFormat(&pCtx->buf, "return xl_sync_mutex_free(%s);\n", sParam0); break;
+			case XL_SYNC_HELPER_MUTEX_LOCK: __xlCgenAppendFormat(&pCtx->buf, "return xl_sync_mutex_lock(%s);\n", sParam0); break;
+			case XL_SYNC_HELPER_MUTEX_TRY_LOCK: __xlCgenAppendFormat(&pCtx->buf, "return xl_sync_mutex_try_lock(%s);\n", sParam0); break;
+			case XL_SYNC_HELPER_MUTEX_UNLOCK: __xlCgenAppendFormat(&pCtx->buf, "return xl_sync_mutex_unlock(%s);\n", sParam0); break;
+			case XL_SYNC_HELPER_COND: __xlCgenAppend(&pCtx->buf, "return xl_sync_cond();\n"); break;
+			case XL_SYNC_HELPER_COND_FREE: __xlCgenAppendFormat(&pCtx->buf, "return xl_sync_cond_free(%s);\n", sParam0); break;
+			case XL_SYNC_HELPER_COND_WAIT: __xlCgenAppendFormat(&pCtx->buf, "return xl_sync_cond_wait(%s, %s);\n", sParam0, sParam1); break;
+			case XL_SYNC_HELPER_COND_WAIT_TIMEOUT: __xlCgenAppendFormat(&pCtx->buf, "return xl_sync_cond_wait_timeout(%s, %s, %s);\n", sParam0, sParam1, sParam2); break;
+			case XL_SYNC_HELPER_COND_SIGNAL: __xlCgenAppendFormat(&pCtx->buf, "return xl_sync_cond_signal(%s);\n", sParam0); break;
+			case XL_SYNC_HELPER_COND_BROADCAST: __xlCgenAppendFormat(&pCtx->buf, "return xl_sync_cond_broadcast(%s);\n", sParam0); break;
+			case XL_SYNC_HELPER_RWLOCK: __xlCgenAppend(&pCtx->buf, "return xl_sync_rwlock();\n"); break;
+			case XL_SYNC_HELPER_RWLOCK_FREE: __xlCgenAppendFormat(&pCtx->buf, "return xl_sync_rwlock_free(%s);\n", sParam0); break;
+			case XL_SYNC_HELPER_RWLOCK_READ_LOCK: __xlCgenAppendFormat(&pCtx->buf, "return xl_sync_rwlock_read_lock(%s);\n", sParam0); break;
+			case XL_SYNC_HELPER_RWLOCK_TRY_READ_LOCK: __xlCgenAppendFormat(&pCtx->buf, "return xl_sync_rwlock_try_read_lock(%s);\n", sParam0); break;
+			case XL_SYNC_HELPER_RWLOCK_READ_UNLOCK: __xlCgenAppendFormat(&pCtx->buf, "return xl_sync_rwlock_read_unlock(%s);\n", sParam0); break;
+			case XL_SYNC_HELPER_RWLOCK_WRITE_LOCK: __xlCgenAppendFormat(&pCtx->buf, "return xl_sync_rwlock_write_lock(%s);\n", sParam0); break;
+			case XL_SYNC_HELPER_RWLOCK_TRY_WRITE_LOCK: __xlCgenAppendFormat(&pCtx->buf, "return xl_sync_rwlock_try_write_lock(%s);\n", sParam0); break;
+			case XL_SYNC_HELPER_RWLOCK_WRITE_UNLOCK: __xlCgenAppendFormat(&pCtx->buf, "return xl_sync_rwlock_write_unlock(%s);\n", sParam0); break;
+			case XL_SYNC_HELPER_RWLOCK_DOWNGRADE: __xlCgenAppendFormat(&pCtx->buf, "return xl_sync_rwlock_downgrade(%s);\n", sParam0); break;
+			case XL_SYNC_HELPER_RWLOCK_UPGRADE: __xlCgenAppendFormat(&pCtx->buf, "return xl_sync_rwlock_upgrade(%s);\n", sParam0); break;
+			default: break;
+		}
+		__xlCgenEmitHelperFuncClose(pCtx);
+		return 1;
+	}
+
+	eThreadKind = __xlThreadHelperKind(pFuncInfo->sName);
+	if ( eThreadKind != XL_THREAD_HELPER_NONE ) {
+		__xlCgenEmitHelperFuncOpen(pCtx, pFuncInfo, pParams);
+		__xlCgenAppendIndent(&pCtx->buf);
+		switch ( eThreadKind ) {
+			case XL_THREAD_HELPER_CURRENT_ID: __xlCgenAppend(&pCtx->buf, "return xl_thread_current_id();\n"); break;
+			case XL_THREAD_HELPER_SLEEP: __xlCgenAppendFormat(&pCtx->buf, "xl_thread_sleep(%s);\n", sParam0); __xlCgenAppendIndent(&pCtx->buf); __xlCgenAppend(&pCtx->buf, "return;\n"); break;
+			case XL_THREAD_HELPER_YIELD_NOW: __xlCgenAppend(&pCtx->buf, "xl_thread_yield_now();\n"); __xlCgenAppendIndent(&pCtx->buf); __xlCgenAppend(&pCtx->buf, "return;\n"); break;
+			default: break;
+		}
+		__xlCgenEmitHelperFuncClose(pCtx);
+		return 1;
+	}
+
 	return 0;
 }
 
@@ -11112,6 +11680,26 @@ static void __xlCgenExpr(XL_CgenContext* pCtx, const XL_MirNode* pNode)
 	}
 	if ( (pNode->eKind == XL_MIR_CALL) && (__xlProcessHelperKind(__xlCallCalleeName(pNode)) != XL_PROCESS_HELPER_NONE) ) {
 		__xlCgenProcessCall(pCtx, pNode);
+		return;
+	}
+	if ( (pNode->eKind == XL_MIR_CALL) && (__xlSysNetHelperKind(__xlCallCalleeName(pNode)) != XL_SYS_NET_HELPER_NONE) ) {
+		__xlCgenSysNetCall(pCtx, pNode);
+		return;
+	}
+	if ( (pNode->eKind == XL_MIR_CALL) && (__xlSysMemHelperKind(__xlCallCalleeName(pNode)) != XL_SYS_MEM_HELPER_NONE) ) {
+		__xlCgenSysMemCall(pCtx, pNode);
+		return;
+	}
+	if ( (pNode->eKind == XL_MIR_CALL) && (__xlAtomicHelperKind(__xlCallCalleeName(pNode)) != XL_ATOMIC_HELPER_NONE) ) {
+		__xlCgenAtomicCall(pCtx, pNode);
+		return;
+	}
+	if ( (pNode->eKind == XL_MIR_CALL) && (__xlSyncHelperKind(__xlCallCalleeName(pNode)) != XL_SYNC_HELPER_NONE) ) {
+		__xlCgenSyncCall(pCtx, pNode);
+		return;
+	}
+	if ( (pNode->eKind == XL_MIR_CALL) && (__xlThreadHelperKind(__xlCallCalleeName(pNode)) != XL_THREAD_HELPER_NONE) ) {
+		__xlCgenThreadCall(pCtx, pNode);
 		return;
 	}
 	if ( pNode->eKind == XL_MIR_MEMBER ) {
@@ -14822,7 +15410,7 @@ static void __xlCgenAsyncLinearStmtResolve(
 		}
 		__xlCgenTraceEventStmt(pCtx, "await", sAwaitTraceName);
 		__xlCgenAppendIndent(&pCtx->buf);
-		__xlCgenAppendFormat(&pCtx->buf, "xfuture* %s = xFutureFinallyEngine(%s.handle, NULL, 0u, %s, pState);\n", sHookName, sFutureValueName, (sResumeCallbackName != NULL) ? sResumeCallbackName : "NULL");
+		__xlCgenAppendFormat(&pCtx->buf, "xfuture* %s = xl_generated_future_finally_auto(%s.handle, %s, pState);\n", sHookName, sFutureValueName, (sResumeCallbackName != NULL) ? sResumeCallbackName : "NULL");
 		__xlCgenAppendIndent(&pCtx->buf);
 		__xlCgenAppendFormat(&pCtx->buf, "if ( %s == NULL ) {\n", sHookName);
 		pCtx->buf.iIndent += 1;
@@ -15355,7 +15943,7 @@ static void __xlCgenEmitAsyncLinearResumeHelper(
 				__xlCgenTraceEventStmt(pCtx, "await", sNextAwaitTraceName);
 			}
 			__xlCgenAppendIndent(&pCtx->buf);
-			__xlCgenAppendFormat(&pCtx->buf, "xfuture* %s = xFutureFinallyEngine(%s.handle, NULL, 0u, %s, pState);\n", sHookName, sFutureValueName, sNextResumeCallbackName);
+			__xlCgenAppendFormat(&pCtx->buf, "xfuture* %s = xl_generated_future_finally_auto(%s.handle, %s, pState);\n", sHookName, sFutureValueName, sNextResumeCallbackName);
 			__xlCgenAppendIndent(&pCtx->buf);
 			__xlCgenAppendFormat(&pCtx->buf, "if ( %s == NULL ) {\n", sHookName);
 			pCtx->buf.iIndent += 1;
@@ -15658,7 +16246,7 @@ static int __xlCgenEmitAsyncLinearResumeFunc(
 		}
 		__xlCgenTraceEventStmt(pCtx, "await", sAwaitTraceName);
 		__xlCgenAppendIndent(&pCtx->buf);
-		__xlCgenAppendFormat(&pCtx->buf, "%s = xFutureFinallyEngine(%s.handle, NULL, 0u, %s, %s);\n", sHookName, sFutureValueName, sResumeFuncName, sStateName);
+		__xlCgenAppendFormat(&pCtx->buf, "%s = xl_generated_future_finally_auto(%s.handle, %s, %s);\n", sHookName, sFutureValueName, sResumeFuncName, sStateName);
 		__xlCgenAppendIndent(&pCtx->buf);
 		__xlCgenAppendFormat(&pCtx->buf, "if ( %s == NULL ) {\n", sHookName);
 		pCtx->buf.iIndent += 1;
@@ -15847,7 +16435,7 @@ static int __xlCgenEmitAsyncLinearResumeFunc(
 		__xlCgenAsyncLinearStateFieldStore(pCtx, candidate.arrPreBinds[i], sStateName);
 	}
 	__xlCgenAppendIndent(&pCtx->buf);
-	__xlCgenAppendFormat(&pCtx->buf, "%s = xFutureFinallyEngine(%s.handle, NULL, 0u, %s, %s);\n", sHookName, sFutureValueName, sResumeFuncName, sStateName);
+	__xlCgenAppendFormat(&pCtx->buf, "%s = xl_generated_future_finally_auto(%s.handle, %s, %s);\n", sHookName, sFutureValueName, sResumeFuncName, sStateName);
 	__xlCgenAppendIndent(&pCtx->buf);
 	__xlCgenAppendFormat(&pCtx->buf, "if ( %s == NULL ) {\n", sHookName);
 	pCtx->buf.iIndent += 1;

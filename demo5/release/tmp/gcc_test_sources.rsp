@@ -37,6 +37,7 @@ D:/git/x-lang/demo5/src/runtime/xl_exec_ctx.c
 D:/git/x-lang/demo5/src/runtime/xl_native_registry.c
 D:/git/x-lang/demo5/src/runtime/xl_std_array.c
 D:/git/x-lang/demo5/src/runtime/xl_std_assert.c
+D:/git/x-lang/demo5/src/runtime/xl_std_atomic.c
 D:/git/x-lang/demo5/src/runtime/xl_std_channel.c
 D:/git/x-lang/demo5/src/runtime/xl_std_clock.c
 D:/git/x-lang/demo5/src/runtime/xl_std_core.c
@@ -68,14 +69,19 @@ D:/git/x-lang/demo5/src/runtime/xl_std_range.c
 D:/git/x-lang/demo5/src/runtime/xl_std_regex.c
 D:/git/x-lang/demo5/src/runtime/xl_std_set.c
 D:/git/x-lang/demo5/src/runtime/xl_std_str.c
+D:/git/x-lang/demo5/src/runtime/xl_std_sync.c
 D:/git/x-lang/demo5/src/runtime/xl_std_sys_env.c
 D:/git/x-lang/demo5/src/runtime/xl_std_sys_file.c
+D:/git/x-lang/demo5/src/runtime/xl_std_sys_mem.c
+D:/git/x-lang/demo5/src/runtime/xl_std_sys_net.c
 D:/git/x-lang/demo5/src/runtime/xl_std_sys_process.c
 D:/git/x-lang/demo5/src/runtime/xl_std_sys_wait.c
 D:/git/x-lang/demo5/src/runtime/xl_std_task.c
 D:/git/x-lang/demo5/src/runtime/xl_std_template.c
+D:/git/x-lang/demo5/src/runtime/xl_std_thread.c
 D:/git/x-lang/demo5/src/runtime/xl_std_time.c
 D:/git/x-lang/demo5/src/runtime/xl_std_trace.c
+D:/git/x-lang/demo5/src/runtime/xl_std_types.c
 D:/git/x-lang/demo5/src/sem/xl_check.c
 D:/git/x-lang/demo5/src/sem/xl_func.c
 D:/git/x-lang/demo5/src/sem/xl_resolve.c

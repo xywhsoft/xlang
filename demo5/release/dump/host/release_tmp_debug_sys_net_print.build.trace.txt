@@ -1,0 +1,8 @@
+tcc_root=D:\Git\x-lang\demo5\release\tcc
+include=D:\Git\x-lang\demo5\release\tcc\include_win
+include=D:\Git\x-lang\demo5\release\tcc\include_win\winapi
+include=D:\Git\x-lang\demo5\src\runtime
+include=D:\Git\x-lang\demo5\lib\xrt
+lib=D:\Git\x-lang\demo5\release\tcc\lib
+compile_file=release\tmp\debug_sys_net_print.xl
+[tcc] release\tmp\debug_sys_net_print.xl: error: release\tmp\debug_sys_net_print.xl: unrecognized file type

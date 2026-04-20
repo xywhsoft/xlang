@@ -6,6 +6,7 @@ ModuleExports
   abi init=xl_mod_std_channel__init exports=xl_mod_std_channel__exports descriptor=xl_mod_std_channel__descriptor
   export make -> xl_mod_std_channel__make
   export send -> xl_mod_std_channel__send
+  export recv -> xl_mod_std_channel__recv
   export close -> xl_mod_std_channel__close
 - module=<root>
   abi init=xl_mod__root___init exports=xl_mod__root___exports descriptor=xl_mod__root___descriptor
@@ -14,6 +15,7 @@ NativeRegistry
 - key=std.crypto binding=std.crypto path=<native:std.crypto>
 - key=std.debug binding=std.debug path=<native:std.debug>
 - key=std.channel binding=std.channel path=<native:std.channel>
+- key=std.clock binding=std.clock path=<native:std.clock>
 - key=std.dict binding=std.dict path=<native:std.dict>
 - key=std.dir binding=std.dir path=<native:std.dir>
 - key=std.encode binding=std.encode path=<native:std.encode>
@@ -29,8 +31,10 @@ NativeRegistry
 - key=std.json binding=std.json path=<native:std.json>
 - key=std.list binding=std.list path=<native:std.list>
 - key=std.assert binding=std.assert path=<native:std.assert>
+- key=std.atomic binding=std.atomic path=<native:std.atomic>
 - key=std.log binding=std.log path=<native:std.log>
 - key=std.math binding=std.math path=<native:std.math>
+- key=std.os binding=std.os path=<native:std.os>
 - key=std.pack binding=std.pack path=<native:std.pack>
 - key=std.path binding=std.path path=<native:std.path>
 - key=std.rand binding=std.rand path=<native:std.rand>
@@ -41,41 +45,27 @@ NativeRegistry
 - key=std.array binding=std.array path=<native:std.array>
 - key=std.set binding=std.set path=<native:std.set>
 - key=std.str binding=std.str path=<native:std.str>
+- key=std.sys.env binding=std.sys.env path=<native:std.sys.env>
+- key=std.sys.file binding=std.sys.file path=<native:std.sys.file>
+- key=std.sys.mem binding=std.sys.mem path=<native:std.sys.mem>
+- key=std.sys.net binding=std.sys.net path=<native:std.sys.net>
+- key=std.sys.process binding=std.sys.process path=<native:std.sys.process>
+- key=std.sys.wait binding=std.sys.wait path=<native:std.sys.wait>
+- key=std.sync binding=std.sync path=<native:std.sync>
 - key=std.template binding=std.template path=<native:std.template>
+- key=std.thread binding=std.thread path=<native:std.thread>
 - key=std.trace binding=std.trace path=<native:std.trace>
 - key=std.time binding=std.time path=<native:std.time>
 - key=std.task binding=std.task path=<native:std.task>
+- key=std.types binding=std.types path=<native:std.types>
 tcc_root=D:\Git\x-lang\demo5\release\tcc
 include=D:\Git\x-lang\demo5\release\tcc\include_win
 include=D:\Git\x-lang\demo5\release\tcc\include_win\winapi
 include=D:\Git\x-lang\demo5\src\runtime
 include=D:\Git\x-lang\demo5\lib\xrt
 lib=D:\Git\x-lang\demo5\release\tcc\lib
-compile_text=examples\native\channel_module_basic.xl
-[tcc] examples/native/channel_module_basic.xl:2475: warning: assignment makes pointer from integer without a cast
-[tcc] examples/native/channel_module_basic.xl:3221: warning: void function returns a value
-[tcc] examples/native/channel_module_basic.xl:3225: warning: void function returns a value
-[tcc] examples/native/channel_module_basic.xl:3232: warning: void function returns a value
-[tcc] examples/native/channel_module_basic.xl:3236: warning: void function returns a value
-[tcc] examples/native/channel_module_basic.xl:3239: warning: void function returns a value
-[tcc] examples/native/channel_module_basic.xl:3244: warning: void function returns a value
-[tcc] examples/native/channel_module_basic.xl:3248: warning: void function returns a value
-[tcc] examples/native/channel_module_basic.xl:3255: warning: void function returns a value
-[tcc] examples/native/channel_module_basic.xl:3259: warning: void function returns a value
-[tcc] examples/native/channel_module_basic.xl:3262: warning: void function returns a value
-[tcc] examples/native/channel_module_basic.xl:3267: warning: void function returns a value
-[tcc] examples/native/channel_module_basic.xl:3271: warning: void function returns a value
-[tcc] examples/native/channel_module_basic.xl:3278: warning: void function returns a value
-[tcc] examples/native/channel_module_basic.xl:3282: warning: void function returns a value
-[tcc] examples/native/channel_module_basic.xl:3285: warning: void function returns a value
-[tcc] examples/native/channel_module_basic.xl:3359: warning: assignment makes pointer from integer without a cast
-[tcc] examples/native/channel_module_basic.xl:3368: warning: assignment makes pointer from integer without a cast
-[tcc] examples/native/channel_module_basic.xl:3377: warning: assignment makes pointer from integer without a cast
-cwd.prev=D:\Git\x-lang\demo5
-cwd.exec=D:\Git\x-lang\demo5
-relocate
-[tcc] tcc: error: undefined symbol 'xl_value_clone_async_state'
-cwd.restore=D:\Git\x-lang\demo5
+compile_text=examples/native/channel_module_basic.xl
+[tcc] examples/native/channel_module_basic.xl:2683: error: '{' expected (got ";")
 
 [fallback.build]
 tcc_root=D:\Git\x-lang\demo5\release\tcc
@@ -84,37 +74,5 @@ include=D:\Git\x-lang\demo5\release\tcc\include_win\winapi
 include=D:\Git\x-lang\demo5\src\runtime
 include=D:\Git\x-lang\demo5\lib\xrt
 lib=D:\Git\x-lang\demo5\release\tcc\lib
-compile_text=examples\native\channel_module_basic.xl
-[tcc] examples/native/channel_module_basic.xl:2475: warning: assignment makes pointer from integer without a cast
-[tcc] examples/native/channel_module_basic.xl:3221: warning: void function returns a value
-[tcc] examples/native/channel_module_basic.xl:3225: warning: void function returns a value
-[tcc] examples/native/channel_module_basic.xl:3232: warning: void function returns a value
-[tcc] examples/native/channel_module_basic.xl:3236: warning: void function returns a value
-[tcc] examples/native/channel_module_basic.xl:3239: warning: void function returns a value
-[tcc] examples/native/channel_module_basic.xl:3244: warning: void function returns a value
-[tcc] examples/native/channel_module_basic.xl:3248: warning: void function returns a value
-[tcc] examples/native/channel_module_basic.xl:3255: warning: void function returns a value
-[tcc] examples/native/channel_module_basic.xl:3259: warning: void function returns a value
-[tcc] examples/native/channel_module_basic.xl:3262: warning: void function returns a value
-[tcc] examples/native/channel_module_basic.xl:3267: warning: void function returns a value
-[tcc] examples/native/channel_module_basic.xl:3271: warning: void function returns a value
-[tcc] examples/native/channel_module_basic.xl:3278: warning: void function returns a value
-[tcc] examples/native/channel_module_basic.xl:3282: warning: void function returns a value
-[tcc] examples/native/channel_module_basic.xl:3285: warning: void function returns a value
-[tcc] examples/native/channel_module_basic.xl:3359: warning: assignment makes pointer from integer without a cast
-[tcc] examples/native/channel_module_basic.xl:3368: warning: assignment makes pointer from integer without a cast
-[tcc] examples/native/channel_module_basic.xl:3377: warning: assignment makes pointer from integer without a cast
-output=D:\Git\x-lang\demo5\release\tmp\channel_module_basic.0023dcaa_00000dcc_0001.fallback.exe
-output_kind=exe
-support_source=D:\Git\x-lang\demo5\src\runtime\xlrt_host.c
-support_source=D:\Git\x-lang\demo5\src\runtime\xlrt_generated.c
-support_source=D:\Git\x-lang\demo5\src\host\xl_host_runtime.c
-link_lib=shell32
-link_lib=ws2_32
-link_lib=iphlpapi
-[tcc] tcc: error: undefined symbol 'xl_channel_create'
-[tcc] tcc: error: undefined symbol 'xl_channel_send'
-[tcc] tcc: error: undefined symbol 'xl_channel_close'
-[tcc] tcc: error: undefined symbol 'xl_channel_recv'
-[tcc] tcc: error: undefined symbol 'strtoll'
-[tcc] tcc: error: undefined symbol 'GetUserNameA'
+compile_text=examples/native/channel_module_basic.xl
+[tcc] examples/native/channel_module_basic.xl:2683: error: '{' expected (got ";")

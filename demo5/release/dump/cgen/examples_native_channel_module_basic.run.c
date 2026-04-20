@@ -746,6 +746,17 @@ static void xl_generated_async_forward_state_finally(const xfuture_result* pIn, 
 	xrtFree(pCtx);
 }
 
+static xfuture* xl_generated_future_finally_auto(xfuture* pFuture, xfuture_finally_fn pfnCont, ptr pArg)
+{
+	if ( pFuture == NULL ) {
+		return NULL;
+	}
+	if ( xFutureState(pFuture) != XFUTURE_PENDING ) {
+		return xFutureFinallyInline(pFuture, pfnCont, pArg);
+	}
+	return xFutureFinallyEngine(pFuture, NULL, 0u, pfnCont, pArg);
+}
+
 static xfuture* xl_generated_future_forward_state(const char* sName, xfuture* pFuture, const char* sFunc, int iAwaitStateId, int iResumeStateId, const char* sDebugName)
 {
 	xfuture* pOut;
@@ -785,7 +796,7 @@ static xfuture* xl_generated_future_forward_state(const char* sName, xfuture* pF
 	pCtx->sAwaitName = sName;
 	pCtx->sFuncName = sFunc;
 	pCtx->iResumeStateId = iResumeStateId;
-	pHook = xFutureFinallyEngine(pFuture, NULL, 0u, xl_generated_async_forward_state_finally, pCtx);
+	pHook = xl_generated_future_finally_auto(pFuture, xl_generated_async_forward_state_finally, pCtx);
 	if ( pHook == NULL ) {
 		xrtFree(pCtx);
 		xPromiseDestroy(pPromise);
@@ -2226,6 +2237,7 @@ static void xl_generated_module_init(void)
 const XL_GeneratedModuleExport xl_mod_std_channel__exports[] = {
 	{ "make", "xl_mod_std_channel__make" },
 	{ "send", "xl_mod_std_channel__send" },
+	{ "recv", "xl_mod_std_channel__recv" },
 	{ "close", "xl_mod_std_channel__close" }
 };
 void xl_mod_std_channel__init(void)
@@ -2238,7 +2250,7 @@ const XL_GeneratedModuleDescriptor xl_mod_std_channel__descriptor = {
 	"xl_mod_std_channel__init",
 	"xl_mod_std_channel__exports",
 	"xl_mod_std_channel__descriptor",
-	3,
+	4,
 	xl_mod_std_channel__exports
 };
 
@@ -2261,7 +2273,12 @@ const XL_GeneratedModuleDescriptor xl_mod__root___descriptor = {
 
 static xvalue xl__xl_mod_std_channel__make__arity0__ret__channel__boxed(xvalue varENV, xvalue arrParam);
 static xvalue xl__xl_mod_std_channel__make__arity1__capacity__int__ret__channel__boxed(xvalue varENV, xvalue arrParam);
-static xvalue xl__xl_mod_std_channel__send__arity2__value__channel__item__any__ret__bool__boxed(xvalue varENV, xvalue arrParam);
+static xvalue xl__xl_mod_std_channel__send__arity2__value__channel__item__int__ret__bool__boxed(xvalue varENV, xvalue arrParam);
+static xvalue xl__xl_mod_std_channel__send__arity2__value__channel__item__float__ret__bool__boxed(xvalue varENV, xvalue arrParam);
+static xvalue xl__xl_mod_std_channel__send__arity2__value__channel__item__string__ret__bool__boxed(xvalue varENV, xvalue arrParam);
+static xvalue xl__xl_mod_std_channel__send__arity2__value__channel__item__bool__ret__bool__boxed(xvalue varENV, xvalue arrParam);
+static xvalue xl__xl_mod_std_channel__send__arity2__value__channel__item__error__ret__bool__boxed(xvalue varENV, xvalue arrParam);
+static xvalue xl__xl_mod_std_channel__send__arity2__value__channel__item__var__ret__bool__boxed(xvalue varENV, xvalue arrParam);
 static xvalue xl__xl_mod_std_channel__close__arity1__value__channel__ret__bool__boxed(xvalue varENV, xvalue arrParam);
 
 static xvalue xl__xl_mod_std_channel__make__arity0__ret__channel()
@@ -2313,12 +2330,12 @@ static xvalue xl__xl_mod_std_channel__make__arity1__capacity__int__ret__channel_
 	return xvoCopy((xvalue)(xl_func_result_51));
 }
 
-static int xl__xl_mod_std_channel__send__arity2__value__channel__item__any__ret__bool(xvalue value, void* item)
+static int xl__xl_mod_std_channel__send__arity2__value__channel__item__int__ret__bool(xvalue value, int item)
 {
 	int xl_escape_kind_7_6 = 0;
 	int xl_escape_level_7_6 = 0;
 	int xl_escape_value_7_6 = 0;
- 	int xl_ret_8_2 = xl_channel_send((xvalue)(value), xvoCreateNull());
+ 	int xl_ret_8_2 = xl_channel_send((xvalue)(value), xvoCreateInt((int64)(item)));
 	if ( xl_generated_had_exception )
 	{
 				return 0;
@@ -2330,21 +2347,21 @@ static int xl__xl_mod_std_channel__send__arity2__value__channel__item__any__ret_
 	return xl_ret_8_2;
 }
 
-static xvalue xl__xl_mod_std_channel__send__arity2__value__channel__item__any__ret__bool__boxed(xvalue varENV, xvalue arrParam)
+static xvalue xl__xl_mod_std_channel__send__arity2__value__channel__item__int__ret__bool__boxed(xvalue varENV, xvalue arrParam)
 {
 	(void)varENV;
 	xvalue value = xvoCopy((xvalue)(xvoArrayGetValue((xvalue)(arrParam), (uint32)(0))));
-	void* item = xvoArrayGetValue((xvalue)(arrParam), (uint32)(1));
-	int xl_func_result_52 = xl__xl_mod_std_channel__send__arity2__value__channel__item__any__ret__bool(value, item);
+	int item = ((int)xvoGetInt((xvalue)(xvoArrayGetValue((xvalue)(arrParam), (uint32)(1)))));
+	int xl_func_result_52 = xl__xl_mod_std_channel__send__arity2__value__channel__item__int__ret__bool(value, item);
 	return xvoCreateBool((xl_func_result_52) ? TRUE : FALSE);
 }
 
-static int xl__xl_mod_std_channel__close__arity1__value__channel__ret__bool(xvalue value)
+static int xl__xl_mod_std_channel__send__arity2__value__channel__item__float__ret__bool(xvalue value, double item)
 {
 	int xl_escape_kind_10_6 = 0;
 	int xl_escape_level_10_6 = 0;
 	int xl_escape_value_10_6 = 0;
- 	int xl_ret_11_2 = xl_channel_close((xvalue)(value));
+ 	int xl_ret_11_2 = xl_channel_send((xvalue)(value), xvoCreateFloat((double)(item)));
 	if ( xl_generated_had_exception )
 	{
 				return 0;
@@ -2356,12 +2373,152 @@ static int xl__xl_mod_std_channel__close__arity1__value__channel__ret__bool(xval
 	return xl_ret_11_2;
 }
 
+static xvalue xl__xl_mod_std_channel__send__arity2__value__channel__item__float__ret__bool__boxed(xvalue varENV, xvalue arrParam)
+{
+	(void)varENV;
+	xvalue value = xvoCopy((xvalue)(xvoArrayGetValue((xvalue)(arrParam), (uint32)(0))));
+	double item = ((double)xvoGetFloat((xvalue)(xvoArrayGetValue((xvalue)(arrParam), (uint32)(1)))));
+	int xl_func_result_53 = xl__xl_mod_std_channel__send__arity2__value__channel__item__float__ret__bool(value, item);
+	return xvoCreateBool((xl_func_result_53) ? TRUE : FALSE);
+}
+
+static int xl__xl_mod_std_channel__send__arity2__value__channel__item__string__ret__bool(xvalue value, const char* item)
+{
+	int xl_escape_kind_13_6 = 0;
+	int xl_escape_level_13_6 = 0;
+	int xl_escape_value_13_6 = 0;
+ 	int xl_ret_14_2 = xl_channel_send((xvalue)(value), ({ const char* xl_text_value = item; xvoCreateText((ptr)xl_text_value, (uint32)strlen((xl_text_value != NULL) ? xl_text_value : ""), FALSE); }));
+	if ( xl_generated_had_exception )
+	{
+				return 0;
+	}
+	if ( xl_generated_capture_native_error() )
+	{
+				return 0;
+	}
+	return xl_ret_14_2;
+}
+
+static xvalue xl__xl_mod_std_channel__send__arity2__value__channel__item__string__ret__bool__boxed(xvalue varENV, xvalue arrParam)
+{
+	(void)varENV;
+	xvalue value = xvoCopy((xvalue)(xvoArrayGetValue((xvalue)(arrParam), (uint32)(0))));
+	const char* item = xl_generated_copy_text(xl_value_to_string((xvalue)(xvoArrayGetValue((xvalue)(arrParam), (uint32)(1)))));
+	int xl_func_result_54 = xl__xl_mod_std_channel__send__arity2__value__channel__item__string__ret__bool(value, item);
+	return xvoCreateBool((xl_func_result_54) ? TRUE : FALSE);
+}
+
+static int xl__xl_mod_std_channel__send__arity2__value__channel__item__bool__ret__bool(xvalue value, int item)
+{
+	int xl_escape_kind_16_6 = 0;
+	int xl_escape_level_16_6 = 0;
+	int xl_escape_value_16_6 = 0;
+ 	int xl_ret_17_2 = xl_channel_send((xvalue)(value), xvoCreateBool((item) ? TRUE : FALSE));
+	if ( xl_generated_had_exception )
+	{
+				return 0;
+	}
+	if ( xl_generated_capture_native_error() )
+	{
+				return 0;
+	}
+	return xl_ret_17_2;
+}
+
+static xvalue xl__xl_mod_std_channel__send__arity2__value__channel__item__bool__ret__bool__boxed(xvalue varENV, xvalue arrParam)
+{
+	(void)varENV;
+	xvalue value = xvoCopy((xvalue)(xvoArrayGetValue((xvalue)(arrParam), (uint32)(0))));
+	int item = (xvoGetBool((xvalue)(xvoArrayGetValue((xvalue)(arrParam), (uint32)(1)))) ? 1 : 0);
+	int xl_func_result_55 = xl__xl_mod_std_channel__send__arity2__value__channel__item__bool__ret__bool(value, item);
+	return xvoCreateBool((xl_func_result_55) ? TRUE : FALSE);
+}
+
+static int xl__xl_mod_std_channel__send__arity2__value__channel__item__error__ret__bool(xvalue value, XL_GeneratedError* item)
+{
+	int xl_escape_kind_19_6 = 0;
+	int xl_escape_level_19_6 = 0;
+	int xl_escape_value_19_6 = 0;
+ 	int xl_ret_20_2 = xl_channel_send((xvalue)(value), xvoCreateNull());
+	if ( xl_generated_had_exception )
+	{
+				return 0;
+	}
+	if ( xl_generated_capture_native_error() )
+	{
+				return 0;
+	}
+	return xl_ret_20_2;
+}
+
+static xvalue xl__xl_mod_std_channel__send__arity2__value__channel__item__error__ret__bool__boxed(xvalue varENV, xvalue arrParam)
+{
+	(void)varENV;
+	xvalue value = xvoCopy((xvalue)(xvoArrayGetValue((xvalue)(arrParam), (uint32)(0))));
+	XL_GeneratedError* item = xl_generated_error_from_text(xl_value_to_string((xvalue)(xvoArrayGetValue((xvalue)(arrParam), (uint32)(1)))));
+	int xl_func_result_56 = xl__xl_mod_std_channel__send__arity2__value__channel__item__error__ret__bool(value, item);
+	return xvoCreateBool((xl_func_result_56) ? TRUE : FALSE);
+}
+
+static int xl__xl_mod_std_channel__send__arity2__value__channel__item__var__ret__bool(xvalue value, xvalue item)
+{
+	int xl_escape_kind_22_6 = 0;
+	int xl_escape_level_22_6 = 0;
+	int xl_escape_value_22_6 = 0;
+ 	int xl_ret_23_2 = xl_channel_send((xvalue)(value), xvoCopy((xvalue)(item)));
+	if ( xl_generated_had_exception )
+	{
+				return 0;
+	}
+	if ( xl_generated_capture_native_error() )
+	{
+				return 0;
+	}
+	return xl_ret_23_2;
+}
+
+static xvalue xl__xl_mod_std_channel__send__arity2__value__channel__item__var__ret__bool__boxed(xvalue varENV, xvalue arrParam)
+{
+	(void)varENV;
+	xvalue value = xvoCopy((xvalue)(xvoArrayGetValue((xvalue)(arrParam), (uint32)(0))));
+	xvalue item = xvoCopy((xvalue)(xvoArrayGetValue((xvalue)(arrParam), (uint32)(1))));
+	int xl_func_result_57 = xl__xl_mod_std_channel__send__arity2__value__channel__item__var__ret__bool(value, item);
+	return xvoCreateBool((xl_func_result_57) ? TRUE : FALSE);
+}
+
+static XL_FutureVoid xl__xl_mod_std_channel__recv__arity1__value__channel__ret__future_x3Carray_x3Cvar_x3E_x3E(xvalue value)
+{
+	xl_generated_async_trace_event("enter", "xl_mod_std_channel__recv");
+	int xl_escape_kind_25_12 = 0;
+	int xl_escape_level_25_12 = 0;
+	xl_generated_async_trace_event("return", "xl_mod_std_channel__recv");
+	return xl_future_void_ready();
+	return xl_future_void_ready();
+}
+
+static int xl__xl_mod_std_channel__close__arity1__value__channel__ret__bool(xvalue value)
+{
+	int xl_escape_kind_28_6 = 0;
+	int xl_escape_level_28_6 = 0;
+	int xl_escape_value_28_6 = 0;
+ 	int xl_ret_29_2 = xl_channel_close((xvalue)(value));
+	if ( xl_generated_had_exception )
+	{
+				return 0;
+	}
+	if ( xl_generated_capture_native_error() )
+	{
+				return 0;
+	}
+	return xl_ret_29_2;
+}
+
 static xvalue xl__xl_mod_std_channel__close__arity1__value__channel__ret__bool__boxed(xvalue varENV, xvalue arrParam)
 {
 	(void)varENV;
 	xvalue value = xvoCopy((xvalue)(xvoArrayGetValue((xvalue)(arrParam), (uint32)(0))));
-	int xl_func_result_53 = xl__xl_mod_std_channel__close__arity1__value__channel__ret__bool(value);
-	return xvoCreateBool((xl_func_result_53) ? TRUE : FALSE);
+	int xl_func_result_59 = xl__xl_mod_std_channel__close__arity1__value__channel__ret__bool(value);
+	return xvoCreateBool((xl_func_result_59) ? TRUE : FALSE);
 }
 
 typedef struct xl__main__arity0__ret__future_x3Cint_x3E__async_linear_state {
@@ -2399,7 +2556,7 @@ static void xl__main__arity0__ret__future_x3Cint_x3E__async_linear_resume(const 
 		return;
 	}
 	pState->iStep = 0;
-	xl_generated_async_trace_event("resume", "__xl_method_channel_recv");
+	xl_generated_async_trace_event("resume", "xl_mod_std_channel__recv");
 	xl_generated_async_trace_state_event("main", 6);
 	if ( (pIn == NULL) || (pIn->iStatus != XRT_NET_OK) ) {
 		(void)xl_generated_promise_reject_result(pState->pPromise, pIn, "await failed");
@@ -2472,7 +2629,7 @@ static void xl__main__arity0__ret__future_x3Cint_x3E__async_linear_resume(const 
 		xrtFree(pState);
 		return;
 	}
-	int sent3 = xl__xl_mod_std_channel__send__arity2__value__channel__item__any__ret__bool(ch, 30);
+	int sent3 = xl__xl_mod_std_channel__send__arity2__value__channel__item__int__ret__bool(ch, 30);
 	if ( xl_generated_async_has_pending_error() )
 	{
 		(void)xl_generated_promise_reject_current(pState->pPromise, "async linear bind failed");
@@ -2523,7 +2680,7 @@ static void xl__main__arity0__ret__future_x3Cint_x3E__async_linear_resume(const 
 	}
 	pState->sent3 = sent3;
 	pState->closed = closed;
-	XL_FuturePtr xl_async_future_9 = xl_future_ptr_ready(xl_channel_recv((xvalue)(ch)));
+	XL_FuturePtr xl_async_future_9 = xl__xl_mod_std_channel__recv__arity1__value__channel__ret__future_x3Carray_x3Cvar_x3E_x3E(ch);
 	if ( xl_generated_async_has_pending_error() )
 	{
 		(void)xl_generated_promise_reject_current(pState->pPromise, "async linear await failed");
@@ -2578,8 +2735,8 @@ static void xl__main__arity0__ret__future_x3Cint_x3E__async_linear_resume(const 
 		return;
 	}
 	xl_generated_async_trace_state_event("main", 11);
-	xl_generated_async_trace_event("await", "__xl_method_channel_recv");
-	xfuture* xl_async_hook_9 = xFutureFinallyEngine(xl_async_future_9.handle, NULL, 0u, xl__main__arity0__ret__future_x3Cint_x3E__async_linear_resume_1, pState);
+	xl_generated_async_trace_event("await", "xl_mod_std_channel__recv");
+	xfuture* xl_async_hook_9 = xl_generated_future_finally_auto(xl_async_future_9.handle, xl__main__arity0__ret__future_x3Cint_x3E__async_linear_resume_1, pState);
 	if ( xl_async_hook_9 == NULL ) {
 		(void)xl_generated_promise_reject_text(pState->pPromise, XRT_NET_ERROR, "async linear hook failed");
 		if ( pState->pPromise != NULL ) {
@@ -2635,7 +2792,7 @@ static void xl__main__arity0__ret__future_x3Cint_x3E__async_linear_resume_1(cons
 		return;
 	}
 	pState->iStep = 1;
-	xl_generated_async_trace_event("resume", "__xl_method_channel_recv");
+	xl_generated_async_trace_event("resume", "xl_mod_std_channel__recv");
 	xl_generated_async_trace_state_event("main", 12);
 	if ( (pIn == NULL) || (pIn->iStatus != XRT_NET_OK) ) {
 		(void)xl_generated_promise_reject_result(pState->pPromise, pIn, "await failed");
@@ -2761,7 +2918,7 @@ static void xl__main__arity0__ret__future_x3Cint_x3E__async_linear_resume_1(cons
 		}
 		pState->second = xl_async_store_second;
 	}
-	XL_FuturePtr xl_async_future_12 = xl_future_ptr_ready(xl_channel_recv((xvalue)(ch)));
+	XL_FuturePtr xl_async_future_12 = xl__xl_mod_std_channel__recv__arity1__value__channel__ret__future_x3Carray_x3Cvar_x3E_x3E(ch);
 	if ( xl_generated_async_has_pending_error() )
 	{
 		(void)xl_generated_promise_reject_current(pState->pPromise, "async linear await failed");
@@ -2816,8 +2973,8 @@ static void xl__main__arity0__ret__future_x3Cint_x3E__async_linear_resume_1(cons
 		return;
 	}
 	xl_generated_async_trace_state_event("main", 15);
-	xl_generated_async_trace_event("await", "__xl_method_channel_recv");
-	xfuture* xl_async_hook_12 = xFutureFinallyEngine(xl_async_future_12.handle, NULL, 0u, xl__main__arity0__ret__future_x3Cint_x3E__async_linear_resume_2, pState);
+	xl_generated_async_trace_event("await", "xl_mod_std_channel__recv");
+	xfuture* xl_async_hook_12 = xl_generated_future_finally_auto(xl_async_future_12.handle, xl__main__arity0__ret__future_x3Cint_x3E__async_linear_resume_2, pState);
 	if ( xl_async_hook_12 == NULL ) {
 		(void)xl_generated_promise_reject_text(pState->pPromise, XRT_NET_ERROR, "async linear hook failed");
 		if ( pState->pPromise != NULL ) {
@@ -2873,7 +3030,7 @@ static void xl__main__arity0__ret__future_x3Cint_x3E__async_linear_resume_2(cons
 		return;
 	}
 	pState->iStep = 2;
-	xl_generated_async_trace_event("resume", "__xl_method_channel_recv");
+	xl_generated_async_trace_event("resume", "xl_mod_std_channel__recv");
 	xl_generated_async_trace_state_event("main", 16);
 	if ( (pIn == NULL) || (pIn->iStatus != XRT_NET_OK) ) {
 		(void)xl_generated_promise_reject_result(pState->pPromise, pIn, "await failed");
@@ -3019,7 +3176,7 @@ static void xl__main__arity0__ret__future_x3Cint_x3E__async_linear_resume_2(cons
 		}
 		pState->third = xl_async_store_third;
 	}
-	XL_FuturePtr xl_async_future_15 = xl_future_ptr_ready(xl_channel_recv((xvalue)(ch)));
+	XL_FuturePtr xl_async_future_15 = xl__xl_mod_std_channel__recv__arity1__value__channel__ret__future_x3Carray_x3Cvar_x3E_x3E(ch);
 	if ( xl_generated_async_has_pending_error() )
 	{
 		(void)xl_generated_promise_reject_current(pState->pPromise, "async linear await failed");
@@ -3074,8 +3231,8 @@ static void xl__main__arity0__ret__future_x3Cint_x3E__async_linear_resume_2(cons
 		return;
 	}
 	xl_generated_async_trace_state_event("main", 19);
-	xl_generated_async_trace_event("await", "__xl_method_channel_recv");
-	xfuture* xl_async_hook_15 = xFutureFinallyEngine(xl_async_future_15.handle, NULL, 0u, xl__main__arity0__ret__future_x3Cint_x3E__async_linear_resume_3, pState);
+	xl_generated_async_trace_event("await", "xl_mod_std_channel__recv");
+	xfuture* xl_async_hook_15 = xl_generated_future_finally_auto(xl_async_future_15.handle, xl__main__arity0__ret__future_x3Cint_x3E__async_linear_resume_3, pState);
 	if ( xl_async_hook_15 == NULL ) {
 		(void)xl_generated_promise_reject_text(pState->pPromise, XRT_NET_ERROR, "async linear hook failed");
 		if ( pState->pPromise != NULL ) {
@@ -3131,7 +3288,7 @@ static void xl__main__arity0__ret__future_x3Cint_x3E__async_linear_resume_3(cons
 		return;
 	}
 	pState->iStep = 3;
-	xl_generated_async_trace_event("resume", "__xl_method_channel_recv");
+	xl_generated_async_trace_event("resume", "xl_mod_std_channel__recv");
 	xl_generated_async_trace_state_event("main", 20);
 	if ( (pIn == NULL) || (pIn->iStatus != XRT_NET_OK) ) {
 		(void)xl_generated_promise_reject_result(pState->pPromise, pIn, "await failed");
@@ -3356,7 +3513,7 @@ static XL_FutureInt xl__main__arity0__ret__future_x3Cint_x3E()
 	{
 				return xl_future_int_error(xl_generated_capture_exception_error());
 	}
-	int sent0 = xl__xl_mod_std_channel__send__arity2__value__channel__item__any__ret__bool(ch, 10);
+	int sent0 = xl__xl_mod_std_channel__send__arity2__value__channel__item__int__ret__bool(ch, 10);
 	if ( xl_generated_had_exception )
 	{
 				return xl_future_int_error(xl_generated_capture_exception_error());
@@ -3365,7 +3522,7 @@ static XL_FutureInt xl__main__arity0__ret__future_x3Cint_x3E()
 	{
 				return xl_future_int_error(xl_generated_capture_exception_error());
 	}
-	int sent1 = xl__xl_mod_std_channel__send__arity2__value__channel__item__any__ret__bool(ch, 20);
+	int sent1 = xl__xl_mod_std_channel__send__arity2__value__channel__item__int__ret__bool(ch, 20);
 	if ( xl_generated_had_exception )
 	{
 				return xl_future_int_error(xl_generated_capture_exception_error());
@@ -3374,7 +3531,7 @@ static XL_FutureInt xl__main__arity0__ret__future_x3Cint_x3E()
 	{
 				return xl_future_int_error(xl_generated_capture_exception_error());
 	}
-	int sent2 = xl__xl_mod_std_channel__send__arity2__value__channel__item__any__ret__bool(ch, 30);
+	int sent2 = xl__xl_mod_std_channel__send__arity2__value__channel__item__int__ret__bool(ch, 30);
 	if ( xl_generated_had_exception )
 	{
 				return xl_future_int_error(xl_generated_capture_exception_error());
@@ -3383,7 +3540,7 @@ static XL_FutureInt xl__main__arity0__ret__future_x3Cint_x3E()
 	{
 				return xl_future_int_error(xl_generated_capture_exception_error());
 	}
-	XL_FuturePtr xl_async_future_4 = xl_future_ptr_ready(xl_channel_recv((xvalue)(ch)));
+	XL_FuturePtr xl_async_future_4 = xl__xl_mod_std_channel__recv__arity1__value__channel__ret__future_x3Carray_x3Cvar_x3E_x3E(ch);
 	if ( xl_generated_had_exception )
 	{
 				return xl_future_int_error(xl_generated_capture_exception_error());
@@ -3396,7 +3553,7 @@ static XL_FutureInt xl__main__arity0__ret__future_x3Cint_x3E()
 		return xl_future_int_error(xl_generated_error_make("Error", "async await future missing", 0, "", ""));
 	}
 	xl_generated_async_trace_state_event("main", 5);
-	xl_generated_async_trace_event("await", "__xl_method_channel_recv");
+	xl_generated_async_trace_event("await", "xl_mod_std_channel__recv");
 	xfuture* xl_async_out_4 = xFutureCreate();
 	xpromise* xl_async_promise_4;
 	xl__main__arity0__ret__future_x3Cint_x3E__async_linear_state* xl_async_state_4;
@@ -3431,7 +3588,7 @@ static XL_FutureInt xl__main__arity0__ret__future_x3Cint_x3E()
 	xl_async_state_4->sent0 = sent0;
 	xl_async_state_4->sent1 = sent1;
 	xl_async_state_4->sent2 = sent2;
-	xl_async_hook_4 = xFutureFinallyEngine(xl_async_future_4.handle, NULL, 0u, xl__main__arity0__ret__future_x3Cint_x3E__async_linear_resume, xl_async_state_4);
+	xl_async_hook_4 = xl_generated_future_finally_auto(xl_async_future_4.handle, xl__main__arity0__ret__future_x3Cint_x3E__async_linear_resume, xl_async_state_4);
 	if ( xl_async_hook_4 == NULL ) {
 				if ( xl_async_state_4->ch != NULL ) {
 			xvoUnref(xl_async_state_4->ch);
