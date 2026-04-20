@@ -4770,15 +4770,27 @@ static int __xlResolveConstDecl(XL_ResolveContext* pCtx, const XL_AstNode* pNode
 		iRc = __xlResolveExpr(pCtx, pValueNode);
 	}
 	if ( iRc == XL_RC_OK ) {
+		const XL_FuncInfo* pMultiFunc;
+
+		pMultiFunc = __xlExprMultiReturnFunc(pCtx, pValueNode);
 		if ( __xlExprValueCount(pCtx, pValueNode) > 1 ) {
-			return __xlSemAddDiag(
-				pCtx,
-				XL_SEM_DIAG_ERROR,
-				pValueNode,
-				"multiple return values require destructuring with 'auto a, b = ...'"
-			);
+			const char* sStorageType;
+
+			sStorageType = (pMultiFunc != NULL) ? __xlFuncStorageReturnTypeName(pMultiFunc) : NULL;
+			if ( (sResolvedDeclaredType == NULL) || (sResolvedDeclaredType[0] == '\0') ||
+				(sStorageType == NULL) || (sStorageType[0] == '\0') ||
+				!__xlTypeMatches(sResolvedDeclaredType, sStorageType) ) {
+				return __xlSemAddDiag(
+					pCtx,
+					XL_SEM_DIAG_ERROR,
+					pValueNode,
+					"multiple return values require destructuring with 'auto a, b = ...'"
+				);
+			}
+			sValueType = sStorageType;
+		} else {
+			sValueType = __xlInferExprType(pCtx, pValueNode);
 		}
-		sValueType = __xlInferExprType(pCtx, pValueNode);
 		if ( __xlIsVarTypeName(sResolvedDeclaredType) && !__xlIsVarCompatibleTypeName(sValueType) ) {
 			return __xlSemAddDiag(
 				pCtx,

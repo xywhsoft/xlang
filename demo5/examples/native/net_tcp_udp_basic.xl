@@ -1,0 +1,48 @@
+import std.net.tcp as tcp
+import std.net.udp as udp
+
+func main() as int
+	auto listener = tcp.listen("127.0.0.1", 0)
+	auto port = tcp.local_port(listener)
+	auto client = tcp.connect("127.0.0.1", port)
+	auto server = tcp.accept(listener, 1000)
+	auto u = udp.bind("127.0.0.1", 0)
+	auto uport = udp.local_port(u)
+
+	if listener == null or client == null or server == null
+		return 1
+	end
+	if tcp.send(client, "ping") != 4
+		return 2
+	end
+	if tcp.recv(server, 32, 1000) != "ping"
+		return 3
+	end
+	if tcp.send(server, "pong") != 4
+		return 4
+	end
+	if tcp.recv(client, 32, 1000) != "pong"
+		return 5
+	end
+	if udp.send_to(u, "127.0.0.1", uport, "echo") != 4
+		return 6
+	end
+	auto packet = udp.recv_from(u, 32, 1000)
+	if packet["text"] != "echo"
+		return 7
+	end
+	if tcp.close(client) == false
+		return 8
+	end
+	if tcp.close(server) == false
+		return 9
+	end
+	if tcp.close(listener) == false
+		return 10
+	end
+	if udp.close(u) == false
+		return 11
+	end
+
+	return 69
+end

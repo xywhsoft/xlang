@@ -198,6 +198,105 @@ static int __xlReadAllBytes(const char* sFilePath, char** ppData, size_t* piLen)
 	return XL_RC_OK;
 }
 
+static int __xlIsLinkSpace(int ch)
+{
+	return (ch == ' ') || (ch == '\t') || (ch == '\v') || (ch == '\f');
+}
+
+static int __xlIsLinkIdentStart(int ch)
+{
+	return ((ch >= 'A') && (ch <= 'Z')) || ((ch >= 'a') && (ch <= 'z')) || (ch == '_');
+}
+
+static int __xlIsLinkIdentCont(int ch)
+{
+	return __xlIsLinkIdentStart(ch) || ((ch >= '0') && (ch <= '9'));
+}
+
+static char* __xlStripLinkLines(const char* sSource, size_t iLen, size_t* piOutLen)
+{
+	XL_TextBuffer buf;
+	size_t iPos;
+
+	if ( (sSource == NULL) || (piOutLen == NULL) ) {
+		return NULL;
+	}
+
+	memset(&buf, 0, sizeof(buf));
+	iPos = 0;
+	while ( iPos < iLen ) {
+		size_t iLineStart;
+		size_t iCursor;
+		size_t iLineEnd;
+		size_t iNewlineLen;
+		size_t iLibStart;
+		size_t iLibEnd;
+
+		iLineStart = iPos;
+		iCursor = iPos;
+		while ( (iCursor < iLen) && __xlIsLinkSpace((unsigned char)sSource[iCursor]) ) {
+			++iCursor;
+		}
+		iLineEnd = iCursor;
+		while ( (iLineEnd < iLen) && (sSource[iLineEnd] != '\r') && (sSource[iLineEnd] != '\n') ) {
+			++iLineEnd;
+		}
+
+		iNewlineLen = 0;
+		if ( (iLineEnd < iLen) && (sSource[iLineEnd] == '\r') ) {
+			iNewlineLen = 1;
+			if ( ((iLineEnd + 1) < iLen) && (sSource[iLineEnd + 1] == '\n') ) {
+				iNewlineLen = 2;
+			}
+		} else if ( (iLineEnd < iLen) && (sSource[iLineEnd] == '\n') ) {
+			iNewlineLen = 1;
+		}
+
+		if ( ((iCursor + 4) <= iLen) &&
+			(memcmp(sSource + iCursor, "link", 4) == 0) &&
+			(((iCursor + 4) == iLen) || __xlIsLinkSpace((unsigned char)sSource[iCursor + 4])) ) {
+			iLibStart = iCursor + 4;
+			while ( (iLibStart < iLineEnd) && __xlIsLinkSpace((unsigned char)sSource[iLibStart]) ) {
+				++iLibStart;
+			}
+			iLibEnd = iLibStart;
+			if ( (iLibStart < iLineEnd) && __xlIsLinkIdentStart((unsigned char)sSource[iLibStart]) ) {
+				while ( (iLibEnd < iLineEnd) && __xlIsLinkIdentCont((unsigned char)sSource[iLibEnd]) ) {
+					++iLibEnd;
+				}
+				while ( (iLibEnd < iLineEnd) && __xlIsLinkSpace((unsigned char)sSource[iLibEnd]) ) {
+					++iLibEnd;
+				}
+				if ( (iLibEnd == iLineEnd) ||
+					((sSource[iLibEnd] == '/') && ((iLibEnd + 1) < iLineEnd) && (sSource[iLibEnd + 1] == '/')) ) {
+					if ( __xlTextBufferAppendN(&buf, sSource + iLineEnd, iNewlineLen) != XL_RC_OK ) {
+						free(buf.sData);
+						return NULL;
+					}
+					iPos = iLineEnd + iNewlineLen;
+					continue;
+				}
+			}
+		}
+
+		if ( __xlTextBufferAppendN(&buf, sSource + iLineStart, (iLineEnd - iLineStart) + iNewlineLen) != XL_RC_OK ) {
+			free(buf.sData);
+			return NULL;
+		}
+		iPos = iLineEnd + iNewlineLen;
+	}
+
+	if ( buf.sData == NULL ) {
+		buf.sData = (char*)malloc(1);
+		if ( buf.sData == NULL ) {
+			return NULL;
+		}
+		buf.sData[0] = '\0';
+	}
+	*piOutLen = buf.iLen;
+	return buf.sData;
+}
+
 static void __xlAppendEscapedText(XL_TextBuffer* pBuf, const char* sText, size_t iLen)
 {
 	size_t i;
@@ -234,6 +333,9 @@ static void __xlAppendEscapedText(XL_TextBuffer* pBuf, const char* sText, size_t
 XL_Lexer* xlLexerCreateFromString(const char* sSource, size_t iLen, const char* sFileName)
 {
 	XL_Lexer* pLexer;
+	char* sSanitized;
+	char* sOwnedSource;
+	size_t iSanitizedLen;
 
 	if ( sSource == NULL ) {
 		return NULL;
@@ -244,16 +346,21 @@ XL_Lexer* xlLexerCreateFromString(const char* sSource, size_t iLen, const char* 
 		return NULL;
 	}
 
-	pLexer->sSource = (char*)malloc(iLen + 2);
-	if ( pLexer->sSource == NULL ) {
+	sSanitized = __xlStripLinkLines(sSource, iLen, &iSanitizedLen);
+	if ( sSanitized == NULL ) {
 		free(pLexer);
 		return NULL;
 	}
-
-	memcpy(pLexer->sSource, sSource, iLen);
-	pLexer->sSource[iLen] = '\0';
-	pLexer->sSource[iLen + 1] = '\0';
-	pLexer->iSourceLen = iLen;
+	sOwnedSource = (char*)realloc(sSanitized, iSanitizedLen + 2);
+	if ( sOwnedSource == NULL ) {
+		free(sSanitized);
+		free(pLexer);
+		return NULL;
+	}
+	pLexer->sSource = sOwnedSource;
+	pLexer->sSource[iSanitizedLen] = '\0';
+	pLexer->sSource[iSanitizedLen + 1] = '\0';
+	pLexer->iSourceLen = iSanitizedLen;
 	pLexer->bOwnsSource = 1;
 	pLexer->extra.sFileName = (sFileName != NULL) ? sFileName : "<memory>";
 	pLexer->extra.iLine = 1;

@@ -495,6 +495,110 @@ typedef enum XL_QueryHelperKind {
 	XL_QUERY_HELPER_DECODE
 } XL_QueryHelperKind;
 
+typedef enum XL_UrlHelperKind {
+	XL_URL_HELPER_NONE = 0,
+	XL_URL_HELPER_PARSE,
+	XL_URL_HELPER_BUILD
+} XL_UrlHelperKind;
+
+typedef enum XL_HttpHelperKind {
+	XL_HTTP_HELPER_NONE = 0,
+	XL_HTTP_HELPER_HEADERS,
+	XL_HTTP_HELPER_REQUEST,
+	XL_HTTP_HELPER_RESPONSE,
+	XL_HTTP_HELPER_PARSE_HEADERS
+} XL_HttpHelperKind;
+
+typedef enum XL_MimeHelperKind {
+	XL_MIME_HELPER_NONE = 0,
+	XL_MIME_HELPER_BY_EXT,
+	XL_MIME_HELPER_BY_PATH,
+	XL_MIME_HELPER_IS_TEXT,
+	XL_MIME_HELPER_PARSE,
+	XL_MIME_HELPER_BUILD
+} XL_MimeHelperKind;
+
+typedef enum XL_MultipartHelperKind {
+	XL_MULTIPART_HELPER_NONE = 0,
+	XL_MULTIPART_HELPER_BOUNDARY,
+	XL_MULTIPART_HELPER_PARSE,
+	XL_MULTIPART_HELPER_BUILD
+} XL_MultipartHelperKind;
+
+typedef enum XL_HttpdHelperKind {
+	XL_HTTPD_HELPER_NONE = 0,
+	XL_HTTPD_HELPER_REQUEST,
+	XL_HTTPD_HELPER_MATCH,
+	XL_HTTPD_HELPER_RESPONSE,
+	XL_HTTPD_HELPER_TEXT
+} XL_HttpdHelperKind;
+
+typedef enum XL_NetIpHelperKind {
+	XL_NET_IP_HELPER_NONE = 0,
+	XL_NET_IP_HELPER_PARSE,
+	XL_NET_IP_HELPER_BUILD,
+	XL_NET_IP_HELPER_NORMALIZE,
+	XL_NET_IP_HELPER_IS_IP,
+	XL_NET_IP_HELPER_IS_IPV4,
+	XL_NET_IP_HELPER_IS_IPV6
+} XL_NetIpHelperKind;
+
+typedef enum XL_NetDnsHelperKind {
+	XL_NET_DNS_HELPER_NONE = 0,
+	XL_NET_DNS_HELPER_RESOLVE,
+	XL_NET_DNS_HELPER_RESOLVE_ALL,
+	XL_NET_DNS_HELPER_REVERSE
+} XL_NetDnsHelperKind;
+
+typedef enum XL_NetTcpHelperKind {
+	XL_NET_TCP_HELPER_NONE = 0,
+	XL_NET_TCP_HELPER_LISTEN,
+	XL_NET_TCP_HELPER_ACCEPT,
+	XL_NET_TCP_HELPER_CONNECT,
+	XL_NET_TCP_HELPER_SEND,
+	XL_NET_TCP_HELPER_RECV,
+	XL_NET_TCP_HELPER_LOCAL_PORT,
+	XL_NET_TCP_HELPER_CLOSE
+} XL_NetTcpHelperKind;
+
+typedef enum XL_NetUdpHelperKind {
+	XL_NET_UDP_HELPER_NONE = 0,
+	XL_NET_UDP_HELPER_BIND,
+	XL_NET_UDP_HELPER_SEND_TO,
+	XL_NET_UDP_HELPER_RECV_FROM,
+	XL_NET_UDP_HELPER_LOCAL_PORT,
+	XL_NET_UDP_HELPER_CLOSE
+} XL_NetUdpHelperKind;
+
+typedef enum XL_NetWsHelperKind {
+	XL_NET_WS_HELPER_NONE = 0,
+	XL_NET_WS_HELPER_KEY,
+	XL_NET_WS_HELPER_ACCEPT,
+	XL_NET_WS_HELPER_REQUEST,
+	XL_NET_WS_HELPER_RESPONSE,
+	XL_NET_WS_HELPER_FRAME_TEXT,
+	XL_NET_WS_HELPER_UNFRAME
+} XL_NetWsHelperKind;
+
+typedef enum XL_NetProxyHelperKind {
+	XL_NET_PROXY_HELPER_NONE = 0,
+	XL_NET_PROXY_HELPER_PARSE,
+	XL_NET_PROXY_HELPER_BASIC_AUTH,
+	XL_NET_PROXY_HELPER_HTTP_CONNECT,
+	XL_NET_PROXY_HELPER_SOCKS5_GREETING_HEX,
+	XL_NET_PROXY_HELPER_SOCKS5_CONNECT_HEX
+} XL_NetProxyHelperKind;
+
+typedef enum XL_NetTlsHelperKind {
+	XL_NET_TLS_HELPER_NONE = 0,
+	XL_NET_TLS_HELPER_VERSIONS,
+	XL_NET_TLS_HELPER_IS_TLS_URL,
+	XL_NET_TLS_HELPER_DEFAULT_PORT,
+	XL_NET_TLS_HELPER_SNI_HOST,
+	XL_NET_TLS_HELPER_FINGERPRINT_SHA256,
+	XL_NET_TLS_HELPER_CLIENT_CONFIG
+} XL_NetTlsHelperKind;
+
 typedef enum XL_TemplateHelperKind {
 	XL_TEMPLATE_HELPER_NONE = 0,
 	XL_TEMPLATE_HELPER_RENDER
@@ -521,6 +625,29 @@ typedef enum XL_ContainerModuleHelperKind {
 	XL_CONTAINER_MODULE_HELPER_DICT_CLEAR,
 	XL_CONTAINER_MODULE_HELPER_DICT_REMOVE
 } XL_ContainerModuleHelperKind;
+
+typedef enum XL_ChannelModuleHelperKind {
+	XL_CHANNEL_MODULE_HELPER_NONE = 0,
+	XL_CHANNEL_MODULE_HELPER_SEND,
+	XL_CHANNEL_MODULE_HELPER_RECV,
+	XL_CHANNEL_MODULE_HELPER_LEN,
+	XL_CHANNEL_MODULE_HELPER_CAPACITY,
+	XL_CHANNEL_MODULE_HELPER_CLOSED,
+	XL_CHANNEL_MODULE_HELPER_CLOSE
+} XL_ChannelModuleHelperKind;
+
+typedef enum XL_ModuleModuleHelperKind {
+	XL_MODULE_MODULE_HELPER_NONE = 0,
+	XL_MODULE_MODULE_HELPER_KEY,
+	XL_MODULE_MODULE_HELPER_ABI_ID,
+	XL_MODULE_MODULE_HELPER_INIT_SYMBOL,
+	XL_MODULE_MODULE_HELPER_EXPORTS_SYMBOL,
+	XL_MODULE_MODULE_HELPER_DESCRIPTOR_SYMBOL,
+	XL_MODULE_MODULE_HELPER_EXPORT_COUNT,
+	XL_MODULE_MODULE_HELPER_EXPORTS,
+	XL_MODULE_MODULE_HELPER_HAS_EXPORT,
+	XL_MODULE_MODULE_HELPER_EXPORT_SYMBOL
+} XL_ModuleModuleHelperKind;
 
 typedef enum XL_RangeModuleHelperKind {
 	XL_RANGE_MODULE_HELPER_NONE = 0,
@@ -1216,6 +1343,70 @@ static void __xlCgenBuildModuleAbiId(const XL_ModuleSummary* pModule, char* sOut
 	}
 	sModuleKey = ((pModule != NULL) && (pModule->sKey != NULL) && (pModule->sKey[0] != '\0')) ? pModule->sKey : "<root>";
 	snprintf(sOut, iOutSize, "%s::%s", sPackageAbiIdText, sModuleKey);
+}
+
+static const XL_ModuleSummary* __xlCgenFindModuleByBindingName(const XL_CgenContext* pCtx, const char* sBindingName)
+{
+	size_t i;
+	size_t j;
+
+	if ( (pCtx == NULL) || (pCtx->pModules == NULL) || (pCtx->pModules->pModules == NULL) ||
+		(sBindingName == NULL) || (sBindingName[0] == '\0') ) {
+		return NULL;
+	}
+
+	for ( i = 0; i < pCtx->pModules->iModuleCount; ++i ) {
+		const XL_ModuleSummary* pModule = &pCtx->pModules->pModules[i];
+
+		if ( (pModule->sBindingName != NULL) && (strcmp(pModule->sBindingName, sBindingName) == 0) ) {
+			return pModule;
+		}
+		if ( (pModule->sKey != NULL) && (strcmp(pModule->sKey, sBindingName) == 0) ) {
+			return pModule;
+		}
+	}
+	for ( i = 0; i < pCtx->pModules->iModuleCount; ++i ) {
+		const XL_ModuleSummary* pRoot = &pCtx->pModules->pModules[i];
+
+		if ( !pRoot->bIsRoot || (pRoot->arrImportAliases == NULL) || (pRoot->arrImports == NULL) ) {
+			continue;
+		}
+		for ( j = 0; j < pRoot->iImportCount; ++j ) {
+			if ( (pRoot->arrImportAliases[j] != NULL) && (strcmp(pRoot->arrImportAliases[j], sBindingName) == 0) ) {
+				return __xlCgenFindModuleByBindingName(pCtx, pRoot->arrImports[j]);
+			}
+		}
+	}
+	return NULL;
+}
+
+static int __xlCgenModuleDescriptorSymbolForBinding(
+	const XL_CgenContext* pCtx,
+	const char* sBindingName,
+	char* sOut,
+	size_t iOutSize
+)
+{
+	const XL_ModuleSummary* pModule;
+
+	if ( (sOut == NULL) || (iOutSize == 0) ) {
+		return 0;
+	}
+	sOut[0] = '\0';
+	pModule = __xlCgenFindModuleByBindingName(pCtx, sBindingName);
+	if ( pModule == NULL ) {
+		return 0;
+	}
+	if ( __xlCgenModuleKeyHasCollision(pCtx->pModules, pModule) ) {
+		__xlCgenBuildUniqueModuleSymbol(pModule, "descriptor", sOut, iOutSize);
+		return 1;
+	}
+	if ( (pModule->sDescriptorSymbol != NULL) && (pModule->sDescriptorSymbol[0] != '\0') ) {
+		snprintf(sOut, iOutSize, "%s", pModule->sDescriptorSymbol);
+		return 1;
+	}
+	__xlCgenBuildModuleSymbol(pModule->sKey, "descriptor", sOut, iOutSize);
+	return 1;
 }
 
 static void __xlCgenPushLoopFrame(XL_CgenContext* pCtx, const char* sBreakLabel, const char* sContinueLabel)
@@ -7581,10 +7772,280 @@ static XL_QueryHelperKind __xlQueryHelperKind(const char* sCalleeName)
 	if ( strcmp(sCalleeName, "xl_mod_std_query__encode") == 0 ) {
 		return XL_QUERY_HELPER_ENCODE;
 	}
+	if ( strcmp(sCalleeName, "xl_mod_std_net_url__encode_query") == 0 ) {
+		return XL_QUERY_HELPER_ENCODE;
+	}
 	if ( strcmp(sCalleeName, "xl_mod_std_query__decode") == 0 ) {
 		return XL_QUERY_HELPER_DECODE;
 	}
+	if ( strcmp(sCalleeName, "xl_mod_std_net_url__decode_query") == 0 ) {
+		return XL_QUERY_HELPER_DECODE;
+	}
 	return XL_QUERY_HELPER_NONE;
+}
+
+static XL_UrlHelperKind __xlUrlHelperKind(const char* sCalleeName)
+{
+	if ( sCalleeName == NULL ) {
+		return XL_URL_HELPER_NONE;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_net_url__parse") == 0 ) {
+		return XL_URL_HELPER_PARSE;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_net_url__build") == 0 ) {
+		return XL_URL_HELPER_BUILD;
+	}
+	return XL_URL_HELPER_NONE;
+}
+
+static XL_HttpHelperKind __xlHttpHelperKind(const char* sCalleeName)
+{
+	if ( sCalleeName == NULL ) {
+		return XL_HTTP_HELPER_NONE;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_net_http__headers") == 0 ) {
+		return XL_HTTP_HELPER_HEADERS;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_net_http__request") == 0 ) {
+		return XL_HTTP_HELPER_REQUEST;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_net_http__response") == 0 ) {
+		return XL_HTTP_HELPER_RESPONSE;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_net_http__parse_headers") == 0 ) {
+		return XL_HTTP_HELPER_PARSE_HEADERS;
+	}
+	return XL_HTTP_HELPER_NONE;
+}
+
+static XL_MimeHelperKind __xlMimeHelperKind(const char* sCalleeName)
+{
+	if ( sCalleeName == NULL ) {
+		return XL_MIME_HELPER_NONE;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_net_mime__by_ext") == 0 ) {
+		return XL_MIME_HELPER_BY_EXT;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_net_mime__by_path") == 0 ) {
+		return XL_MIME_HELPER_BY_PATH;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_net_mime__is_text") == 0 ) {
+		return XL_MIME_HELPER_IS_TEXT;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_net_mime__parse") == 0 ) {
+		return XL_MIME_HELPER_PARSE;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_net_mime__build") == 0 ) {
+		return XL_MIME_HELPER_BUILD;
+	}
+	return XL_MIME_HELPER_NONE;
+}
+
+static XL_MultipartHelperKind __xlMultipartHelperKind(const char* sCalleeName)
+{
+	if ( sCalleeName == NULL ) {
+		return XL_MULTIPART_HELPER_NONE;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_net_multipart__boundary") == 0 ) {
+		return XL_MULTIPART_HELPER_BOUNDARY;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_net_multipart__parse") == 0 ) {
+		return XL_MULTIPART_HELPER_PARSE;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_net_multipart__build") == 0 ) {
+		return XL_MULTIPART_HELPER_BUILD;
+	}
+	return XL_MULTIPART_HELPER_NONE;
+}
+
+static XL_HttpdHelperKind __xlHttpdHelperKind(const char* sCalleeName)
+{
+	if ( sCalleeName == NULL ) {
+		return XL_HTTPD_HELPER_NONE;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_net_httpd__request") == 0 ) {
+		return XL_HTTPD_HELPER_REQUEST;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_net_httpd__match") == 0 ) {
+		return XL_HTTPD_HELPER_MATCH;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_net_httpd__response") == 0 ) {
+		return XL_HTTPD_HELPER_RESPONSE;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_net_httpd__text") == 0 ) {
+		return XL_HTTPD_HELPER_TEXT;
+	}
+	return XL_HTTPD_HELPER_NONE;
+}
+
+static XL_NetIpHelperKind __xlNetIpHelperKind(const char* sCalleeName)
+{
+	if ( sCalleeName == NULL ) {
+		return XL_NET_IP_HELPER_NONE;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_net_ip__parse") == 0 ) {
+		return XL_NET_IP_HELPER_PARSE;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_net_ip__build") == 0 ) {
+		return XL_NET_IP_HELPER_BUILD;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_net_ip__normalize") == 0 ) {
+		return XL_NET_IP_HELPER_NORMALIZE;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_net_ip__is_ip") == 0 ) {
+		return XL_NET_IP_HELPER_IS_IP;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_net_ip__is_ipv4") == 0 ) {
+		return XL_NET_IP_HELPER_IS_IPV4;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_net_ip__is_ipv6") == 0 ) {
+		return XL_NET_IP_HELPER_IS_IPV6;
+	}
+	return XL_NET_IP_HELPER_NONE;
+}
+
+static XL_NetDnsHelperKind __xlNetDnsHelperKind(const char* sCalleeName)
+{
+	if ( sCalleeName == NULL ) {
+		return XL_NET_DNS_HELPER_NONE;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_net_dns__resolve") == 0 ) {
+		return XL_NET_DNS_HELPER_RESOLVE;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_net_dns__resolve_all") == 0 ) {
+		return XL_NET_DNS_HELPER_RESOLVE_ALL;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_net_dns__reverse") == 0 ) {
+		return XL_NET_DNS_HELPER_REVERSE;
+	}
+	return XL_NET_DNS_HELPER_NONE;
+}
+
+static XL_NetTcpHelperKind __xlNetTcpHelperKind(const char* sCalleeName)
+{
+	if ( sCalleeName == NULL ) {
+		return XL_NET_TCP_HELPER_NONE;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_net_tcp__listen") == 0 ) {
+		return XL_NET_TCP_HELPER_LISTEN;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_net_tcp__accept") == 0 ) {
+		return XL_NET_TCP_HELPER_ACCEPT;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_net_tcp__connect") == 0 ) {
+		return XL_NET_TCP_HELPER_CONNECT;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_net_tcp__send") == 0 ) {
+		return XL_NET_TCP_HELPER_SEND;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_net_tcp__recv") == 0 ) {
+		return XL_NET_TCP_HELPER_RECV;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_net_tcp__local_port") == 0 ) {
+		return XL_NET_TCP_HELPER_LOCAL_PORT;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_net_tcp__close") == 0 ) {
+		return XL_NET_TCP_HELPER_CLOSE;
+	}
+	return XL_NET_TCP_HELPER_NONE;
+}
+
+static XL_NetUdpHelperKind __xlNetUdpHelperKind(const char* sCalleeName)
+{
+	if ( sCalleeName == NULL ) {
+		return XL_NET_UDP_HELPER_NONE;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_net_udp__bind") == 0 ) {
+		return XL_NET_UDP_HELPER_BIND;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_net_udp__send_to") == 0 ) {
+		return XL_NET_UDP_HELPER_SEND_TO;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_net_udp__recv_from") == 0 ) {
+		return XL_NET_UDP_HELPER_RECV_FROM;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_net_udp__local_port") == 0 ) {
+		return XL_NET_UDP_HELPER_LOCAL_PORT;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_net_udp__close") == 0 ) {
+		return XL_NET_UDP_HELPER_CLOSE;
+	}
+	return XL_NET_UDP_HELPER_NONE;
+}
+
+static XL_NetWsHelperKind __xlNetWsHelperKind(const char* sCalleeName)
+{
+	if ( sCalleeName == NULL ) {
+		return XL_NET_WS_HELPER_NONE;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_net_ws__key") == 0 ) {
+		return XL_NET_WS_HELPER_KEY;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_net_ws__accept") == 0 ) {
+		return XL_NET_WS_HELPER_ACCEPT;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_net_ws__request") == 0 ) {
+		return XL_NET_WS_HELPER_REQUEST;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_net_ws__response") == 0 ) {
+		return XL_NET_WS_HELPER_RESPONSE;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_net_ws__frame_text") == 0 ) {
+		return XL_NET_WS_HELPER_FRAME_TEXT;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_net_ws__unframe") == 0 ) {
+		return XL_NET_WS_HELPER_UNFRAME;
+	}
+	return XL_NET_WS_HELPER_NONE;
+}
+
+static XL_NetProxyHelperKind __xlNetProxyHelperKind(const char* sCalleeName)
+{
+	if ( sCalleeName == NULL ) {
+		return XL_NET_PROXY_HELPER_NONE;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_net_proxy__parse") == 0 ) {
+		return XL_NET_PROXY_HELPER_PARSE;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_net_proxy__basic_auth") == 0 ) {
+		return XL_NET_PROXY_HELPER_BASIC_AUTH;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_net_proxy__http_connect") == 0 ) {
+		return XL_NET_PROXY_HELPER_HTTP_CONNECT;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_net_proxy__socks5_greeting_hex") == 0 ) {
+		return XL_NET_PROXY_HELPER_SOCKS5_GREETING_HEX;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_net_proxy__socks5_connect_hex") == 0 ) {
+		return XL_NET_PROXY_HELPER_SOCKS5_CONNECT_HEX;
+	}
+	return XL_NET_PROXY_HELPER_NONE;
+}
+
+static XL_NetTlsHelperKind __xlNetTlsHelperKind(const char* sCalleeName)
+{
+	if ( sCalleeName == NULL ) {
+		return XL_NET_TLS_HELPER_NONE;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_net_tls__versions") == 0 ) {
+		return XL_NET_TLS_HELPER_VERSIONS;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_net_tls__is_tls_url") == 0 ) {
+		return XL_NET_TLS_HELPER_IS_TLS_URL;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_net_tls__default_port") == 0 ) {
+		return XL_NET_TLS_HELPER_DEFAULT_PORT;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_net_tls__sni_host") == 0 ) {
+		return XL_NET_TLS_HELPER_SNI_HOST;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_net_tls__fingerprint_sha256") == 0 ) {
+		return XL_NET_TLS_HELPER_FINGERPRINT_SHA256;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_net_tls__client_config") == 0 ) {
+		return XL_NET_TLS_HELPER_CLIENT_CONFIG;
+	}
+	return XL_NET_TLS_HELPER_NONE;
 }
 
 static XL_TemplateHelperKind __xlTemplateHelperKind(const char* sCalleeName)
@@ -7622,6 +8083,37 @@ static XL_ContainerModuleHelperKind __xlContainerModuleHelperKind(const char* sC
 	if ( strcmp(sCalleeName, "xl_mod_std_dict__clear") == 0 ) return XL_CONTAINER_MODULE_HELPER_DICT_CLEAR;
 	if ( strcmp(sCalleeName, "xl_mod_std_dict__remove") == 0 ) return XL_CONTAINER_MODULE_HELPER_DICT_REMOVE;
 	return XL_CONTAINER_MODULE_HELPER_NONE;
+}
+
+static XL_ChannelModuleHelperKind __xlChannelModuleHelperKind(const char* sCalleeName)
+{
+	if ( sCalleeName == NULL ) {
+		return XL_CHANNEL_MODULE_HELPER_NONE;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_channel__send") == 0 ) return XL_CHANNEL_MODULE_HELPER_SEND;
+	if ( strcmp(sCalleeName, "xl_mod_std_channel__recv") == 0 ) return XL_CHANNEL_MODULE_HELPER_RECV;
+	if ( strcmp(sCalleeName, "xl_mod_std_channel__len") == 0 ) return XL_CHANNEL_MODULE_HELPER_LEN;
+	if ( strcmp(sCalleeName, "xl_mod_std_channel__capacity") == 0 ) return XL_CHANNEL_MODULE_HELPER_CAPACITY;
+	if ( strcmp(sCalleeName, "xl_mod_std_channel__closed") == 0 ) return XL_CHANNEL_MODULE_HELPER_CLOSED;
+	if ( strcmp(sCalleeName, "xl_mod_std_channel__close") == 0 ) return XL_CHANNEL_MODULE_HELPER_CLOSE;
+	return XL_CHANNEL_MODULE_HELPER_NONE;
+}
+
+static XL_ModuleModuleHelperKind __xlModuleModuleHelperKind(const char* sCalleeName)
+{
+	if ( sCalleeName == NULL ) {
+		return XL_MODULE_MODULE_HELPER_NONE;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_module__key") == 0 ) return XL_MODULE_MODULE_HELPER_KEY;
+	if ( strcmp(sCalleeName, "xl_mod_std_module__abi_id") == 0 ) return XL_MODULE_MODULE_HELPER_ABI_ID;
+	if ( strcmp(sCalleeName, "xl_mod_std_module__init_symbol") == 0 ) return XL_MODULE_MODULE_HELPER_INIT_SYMBOL;
+	if ( strcmp(sCalleeName, "xl_mod_std_module__exports_symbol") == 0 ) return XL_MODULE_MODULE_HELPER_EXPORTS_SYMBOL;
+	if ( strcmp(sCalleeName, "xl_mod_std_module__descriptor_symbol") == 0 ) return XL_MODULE_MODULE_HELPER_DESCRIPTOR_SYMBOL;
+	if ( strcmp(sCalleeName, "xl_mod_std_module__export_count") == 0 ) return XL_MODULE_MODULE_HELPER_EXPORT_COUNT;
+	if ( strcmp(sCalleeName, "xl_mod_std_module__exports") == 0 ) return XL_MODULE_MODULE_HELPER_EXPORTS;
+	if ( strcmp(sCalleeName, "xl_mod_std_module__has_export") == 0 ) return XL_MODULE_MODULE_HELPER_HAS_EXPORT;
+	if ( strcmp(sCalleeName, "xl_mod_std_module__export_symbol") == 0 ) return XL_MODULE_MODULE_HELPER_EXPORT_SYMBOL;
+	return XL_MODULE_MODULE_HELPER_NONE;
 }
 
 static XL_RangeModuleHelperKind __xlRangeModuleHelperKind(const char* sCalleeName, size_t iParamCount)
@@ -10558,9 +11050,11 @@ static int __xlCgenEmitBuiltinHelperFunc(
 	const XL_MirNode* pParam0;
 	const XL_MirNode* pParam1;
 	const XL_MirNode* pParam2;
+	const XL_MirNode* pParam3;
 	const char* sParam0;
 	const char* sParam1;
 	const char* sParam2;
+	const char* sParam3;
 	const char* sType0;
 	const char* sSuffix;
 	XL_CorePrintHelperKind eCorePrintKind;
@@ -10584,8 +11078,22 @@ static int __xlCgenEmitBuiltinHelperFunc(
 	XL_PackHelperKind ePackKind;
 	XL_JsonHelperKind eJsonKind;
 	XL_QueryHelperKind eQueryKind;
+	XL_UrlHelperKind eUrlKind;
+	XL_HttpHelperKind eHttpKind;
+	XL_MimeHelperKind eMimeKind;
+	XL_MultipartHelperKind eMultipartKind;
+	XL_HttpdHelperKind eHttpdKind;
+	XL_NetIpHelperKind eNetIpKind;
+	XL_NetDnsHelperKind eNetDnsKind;
+	XL_NetTcpHelperKind eNetTcpKind;
+	XL_NetUdpHelperKind eNetUdpKind;
+	XL_NetWsHelperKind eNetWsKind;
+	XL_NetProxyHelperKind eNetProxyKind;
+	XL_NetTlsHelperKind eNetTlsKind;
 	XL_TemplateHelperKind eTemplateKind;
 	XL_ContainerModuleHelperKind eContainerModuleKind;
+	XL_ChannelModuleHelperKind eChannelModuleKind;
+	XL_ModuleModuleHelperKind eModuleModuleKind;
 	XL_RangeModuleHelperKind eRangeModuleKind;
 	XL_IterModuleHelperKind eIterModuleKind;
 	XL_EnvHelperKind eEnvKind;
@@ -10603,9 +11111,11 @@ static int __xlCgenEmitBuiltinHelperFunc(
 	pParam0 = __xlCgenParamNode(pParams, 0);
 	pParam1 = __xlCgenParamNode(pParams, 1);
 	pParam2 = __xlCgenParamNode(pParams, 2);
+	pParam3 = __xlCgenParamNode(pParams, 3);
 	sParam0 = __xlCgenParamName(pParam0);
 	sParam1 = __xlCgenParamName(pParam1);
 	sParam2 = __xlCgenParamName(pParam2);
+	sParam3 = __xlCgenParamName(pParam3);
 	sType0 = __xlCgenParamTypeName(pParam0);
 
 	eCorePrintKind = __xlCorePrintHelperKind(pFuncInfo->sName);
@@ -11130,6 +11640,255 @@ static int __xlCgenEmitBuiltinHelperFunc(
 		return 1;
 	}
 
+	eUrlKind = __xlUrlHelperKind(pFuncInfo->sName);
+	if ( eUrlKind != XL_URL_HELPER_NONE ) {
+		__xlCgenEmitHelperFuncOpen(pCtx, pFuncInfo, pParams);
+		__xlCgenAppendIndent(&pCtx->buf);
+		switch ( eUrlKind ) {
+			case XL_URL_HELPER_PARSE:
+				__xlCgenAppendFormat(&pCtx->buf, "return xl_url_parse(%s);\n", sParam0);
+				break;
+			case XL_URL_HELPER_BUILD:
+				__xlCgenAppendFormat(&pCtx->buf, "return xl_url_build(%s);\n", sParam0);
+				break;
+			default:
+				break;
+		}
+		__xlCgenEmitHelperFuncClose(pCtx);
+		return 1;
+	}
+
+	eHttpKind = __xlHttpHelperKind(pFuncInfo->sName);
+	if ( eHttpKind != XL_HTTP_HELPER_NONE ) {
+		__xlCgenEmitHelperFuncOpen(pCtx, pFuncInfo, pParams);
+		__xlCgenAppendIndent(&pCtx->buf);
+		switch ( eHttpKind ) {
+			case XL_HTTP_HELPER_HEADERS:
+				__xlCgenAppendFormat(&pCtx->buf, "return xl_http_headers(%s);\n", sParam0);
+				break;
+			case XL_HTTP_HELPER_REQUEST:
+				__xlCgenAppendFormat(&pCtx->buf, "return xl_http_request(%s, %s, %s, %s);\n", sParam0, sParam1, sParam2, sParam3);
+				break;
+			case XL_HTTP_HELPER_RESPONSE:
+				__xlCgenAppendFormat(&pCtx->buf, "return xl_http_response(%s, %s, %s, %s);\n", sParam0, sParam1, sParam2, sParam3);
+				break;
+			case XL_HTTP_HELPER_PARSE_HEADERS:
+				__xlCgenAppendFormat(&pCtx->buf, "return xl_http_parse_headers(%s);\n", sParam0);
+				break;
+			default:
+				break;
+		}
+		__xlCgenEmitHelperFuncClose(pCtx);
+		return 1;
+	}
+
+	eMimeKind = __xlMimeHelperKind(pFuncInfo->sName);
+	if ( eMimeKind != XL_MIME_HELPER_NONE ) {
+		__xlCgenEmitHelperFuncOpen(pCtx, pFuncInfo, pParams);
+		__xlCgenAppendIndent(&pCtx->buf);
+		switch ( eMimeKind ) {
+			case XL_MIME_HELPER_BY_EXT:
+				__xlCgenAppendFormat(&pCtx->buf, "return xl_mime_by_ext(%s);\n", sParam0);
+				break;
+			case XL_MIME_HELPER_BY_PATH:
+				__xlCgenAppendFormat(&pCtx->buf, "return xl_mime_by_path(%s);\n", sParam0);
+				break;
+			case XL_MIME_HELPER_IS_TEXT:
+				__xlCgenAppendFormat(&pCtx->buf, "return xl_mime_is_text(%s);\n", sParam0);
+				break;
+			case XL_MIME_HELPER_PARSE:
+				__xlCgenAppendFormat(&pCtx->buf, "return xl_mime_parse(%s);\n", sParam0);
+				break;
+			case XL_MIME_HELPER_BUILD:
+				__xlCgenAppendFormat(&pCtx->buf, "return xl_mime_build(%s);\n", sParam0);
+				break;
+			default:
+				break;
+		}
+		__xlCgenEmitHelperFuncClose(pCtx);
+		return 1;
+	}
+
+	eMultipartKind = __xlMultipartHelperKind(pFuncInfo->sName);
+	if ( eMultipartKind != XL_MULTIPART_HELPER_NONE ) {
+		__xlCgenEmitHelperFuncOpen(pCtx, pFuncInfo, pParams);
+		__xlCgenAppendIndent(&pCtx->buf);
+		switch ( eMultipartKind ) {
+			case XL_MULTIPART_HELPER_BOUNDARY:
+				__xlCgenAppendFormat(&pCtx->buf, "return xl_multipart_boundary(%s);\n", sParam0);
+				break;
+			case XL_MULTIPART_HELPER_PARSE:
+				__xlCgenAppendFormat(&pCtx->buf, "return xl_multipart_parse(%s, %s);\n", sParam0, sParam1);
+				break;
+			case XL_MULTIPART_HELPER_BUILD:
+				__xlCgenAppendFormat(&pCtx->buf, "return xl_multipart_build(%s, %s);\n", sParam0, sParam1);
+				break;
+			default:
+				break;
+		}
+		__xlCgenEmitHelperFuncClose(pCtx);
+		return 1;
+	}
+
+	eHttpdKind = __xlHttpdHelperKind(pFuncInfo->sName);
+	if ( eHttpdKind != XL_HTTPD_HELPER_NONE ) {
+		__xlCgenEmitHelperFuncOpen(pCtx, pFuncInfo, pParams);
+		__xlCgenAppendIndent(&pCtx->buf);
+		switch ( eHttpdKind ) {
+			case XL_HTTPD_HELPER_REQUEST:
+				__xlCgenAppendFormat(&pCtx->buf, "return xl_httpd_request(%s);\n", sParam0);
+				break;
+			case XL_HTTPD_HELPER_MATCH:
+				__xlCgenAppendFormat(&pCtx->buf, "return xl_httpd_match(%s, %s);\n", sParam0, sParam1);
+				break;
+			case XL_HTTPD_HELPER_RESPONSE:
+				__xlCgenAppendFormat(&pCtx->buf, "return xl_httpd_response(%s, %s, %s);\n", sParam0, sParam1, sParam2);
+				break;
+			case XL_HTTPD_HELPER_TEXT:
+				__xlCgenAppendFormat(&pCtx->buf, "return xl_httpd_text(%s, %s);\n", sParam0, sParam1);
+				break;
+			default:
+				break;
+		}
+		__xlCgenEmitHelperFuncClose(pCtx);
+		return 1;
+	}
+
+	eNetIpKind = __xlNetIpHelperKind(pFuncInfo->sName);
+	if ( eNetIpKind != XL_NET_IP_HELPER_NONE ) {
+		__xlCgenEmitHelperFuncOpen(pCtx, pFuncInfo, pParams);
+		__xlCgenAppendIndent(&pCtx->buf);
+		switch ( eNetIpKind ) {
+			case XL_NET_IP_HELPER_PARSE:
+				__xlCgenAppendFormat(&pCtx->buf, "return xl_net_ip_parse(%s);\n", sParam0);
+				break;
+			case XL_NET_IP_HELPER_BUILD:
+				__xlCgenAppendFormat(&pCtx->buf, "return xl_net_ip_build(%s);\n", sParam0);
+				break;
+			case XL_NET_IP_HELPER_NORMALIZE:
+				__xlCgenAppendFormat(&pCtx->buf, "return xl_net_ip_normalize(%s);\n", sParam0);
+				break;
+			case XL_NET_IP_HELPER_IS_IP:
+				__xlCgenAppendFormat(&pCtx->buf, "return xl_net_ip_is_ip(%s);\n", sParam0);
+				break;
+			case XL_NET_IP_HELPER_IS_IPV4:
+				__xlCgenAppendFormat(&pCtx->buf, "return xl_net_ip_is_ipv4(%s);\n", sParam0);
+				break;
+			case XL_NET_IP_HELPER_IS_IPV6:
+				__xlCgenAppendFormat(&pCtx->buf, "return xl_net_ip_is_ipv6(%s);\n", sParam0);
+				break;
+			default:
+				break;
+		}
+		__xlCgenEmitHelperFuncClose(pCtx);
+		return 1;
+	}
+
+	eNetDnsKind = __xlNetDnsHelperKind(pFuncInfo->sName);
+	if ( eNetDnsKind != XL_NET_DNS_HELPER_NONE ) {
+		__xlCgenEmitHelperFuncOpen(pCtx, pFuncInfo, pParams);
+		__xlCgenAppendIndent(&pCtx->buf);
+		switch ( eNetDnsKind ) {
+			case XL_NET_DNS_HELPER_RESOLVE:
+				__xlCgenAppendFormat(&pCtx->buf, "return xl_net_dns_resolve(%s);\n", sParam0);
+				break;
+			case XL_NET_DNS_HELPER_RESOLVE_ALL:
+				__xlCgenAppendFormat(&pCtx->buf, "return xl_net_dns_resolve_all(%s);\n", sParam0);
+				break;
+			case XL_NET_DNS_HELPER_REVERSE:
+				__xlCgenAppendFormat(&pCtx->buf, "return xl_net_dns_reverse(%s);\n", sParam0);
+				break;
+			default:
+				break;
+		}
+		__xlCgenEmitHelperFuncClose(pCtx);
+		return 1;
+	}
+
+	eNetTcpKind = __xlNetTcpHelperKind(pFuncInfo->sName);
+	if ( eNetTcpKind != XL_NET_TCP_HELPER_NONE ) {
+		__xlCgenEmitHelperFuncOpen(pCtx, pFuncInfo, pParams);
+		__xlCgenAppendIndent(&pCtx->buf);
+		switch ( eNetTcpKind ) {
+			case XL_NET_TCP_HELPER_LISTEN: __xlCgenAppendFormat(&pCtx->buf, "return xl_net_tcp_listen(%s, %s);\n", sParam0, sParam1); break;
+			case XL_NET_TCP_HELPER_ACCEPT: __xlCgenAppendFormat(&pCtx->buf, "return xl_net_tcp_accept(%s, %s);\n", sParam0, sParam1); break;
+			case XL_NET_TCP_HELPER_CONNECT: __xlCgenAppendFormat(&pCtx->buf, "return xl_net_tcp_connect(%s, %s);\n", sParam0, sParam1); break;
+			case XL_NET_TCP_HELPER_SEND: __xlCgenAppendFormat(&pCtx->buf, "return xl_net_tcp_send(%s, %s);\n", sParam0, sParam1); break;
+			case XL_NET_TCP_HELPER_RECV: __xlCgenAppendFormat(&pCtx->buf, "return xl_net_tcp_recv(%s, %s, %s);\n", sParam0, sParam1, sParam2); break;
+			case XL_NET_TCP_HELPER_LOCAL_PORT: __xlCgenAppendFormat(&pCtx->buf, "return xl_net_tcp_local_port(%s);\n", sParam0); break;
+			case XL_NET_TCP_HELPER_CLOSE: __xlCgenAppendFormat(&pCtx->buf, "return xl_net_tcp_close(%s);\n", sParam0); break;
+			default: break;
+		}
+		__xlCgenEmitHelperFuncClose(pCtx);
+		return 1;
+	}
+
+	eNetUdpKind = __xlNetUdpHelperKind(pFuncInfo->sName);
+	if ( eNetUdpKind != XL_NET_UDP_HELPER_NONE ) {
+		__xlCgenEmitHelperFuncOpen(pCtx, pFuncInfo, pParams);
+		__xlCgenAppendIndent(&pCtx->buf);
+		switch ( eNetUdpKind ) {
+			case XL_NET_UDP_HELPER_BIND: __xlCgenAppendFormat(&pCtx->buf, "return xl_net_udp_bind(%s, %s);\n", sParam0, sParam1); break;
+			case XL_NET_UDP_HELPER_SEND_TO: __xlCgenAppendFormat(&pCtx->buf, "return xl_net_udp_send_to(%s, %s, %s, %s);\n", sParam0, sParam1, sParam2, sParam3); break;
+			case XL_NET_UDP_HELPER_RECV_FROM: __xlCgenAppendFormat(&pCtx->buf, "return xl_net_udp_recv_from(%s, %s, %s);\n", sParam0, sParam1, sParam2); break;
+			case XL_NET_UDP_HELPER_LOCAL_PORT: __xlCgenAppendFormat(&pCtx->buf, "return xl_net_udp_local_port(%s);\n", sParam0); break;
+			case XL_NET_UDP_HELPER_CLOSE: __xlCgenAppendFormat(&pCtx->buf, "return xl_net_udp_close(%s);\n", sParam0); break;
+			default: break;
+		}
+		__xlCgenEmitHelperFuncClose(pCtx);
+		return 1;
+	}
+
+	eNetWsKind = __xlNetWsHelperKind(pFuncInfo->sName);
+	if ( eNetWsKind != XL_NET_WS_HELPER_NONE ) {
+		__xlCgenEmitHelperFuncOpen(pCtx, pFuncInfo, pParams);
+		__xlCgenAppendIndent(&pCtx->buf);
+		switch ( eNetWsKind ) {
+			case XL_NET_WS_HELPER_KEY: __xlCgenAppend(&pCtx->buf, "return xl_net_ws_key();\n"); break;
+			case XL_NET_WS_HELPER_ACCEPT: __xlCgenAppendFormat(&pCtx->buf, "return xl_net_ws_accept(%s);\n", sParam0); break;
+			case XL_NET_WS_HELPER_REQUEST: __xlCgenAppendFormat(&pCtx->buf, "return xl_net_ws_request(%s, %s, %s);\n", sParam0, sParam1, sParam2); break;
+			case XL_NET_WS_HELPER_RESPONSE: __xlCgenAppendFormat(&pCtx->buf, "return xl_net_ws_response(%s);\n", sParam0); break;
+			case XL_NET_WS_HELPER_FRAME_TEXT: __xlCgenAppendFormat(&pCtx->buf, "return xl_net_ws_frame_text(%s, %s);\n", sParam0, sParam1); break;
+			case XL_NET_WS_HELPER_UNFRAME: __xlCgenAppendFormat(&pCtx->buf, "return xl_net_ws_unframe(%s);\n", sParam0); break;
+			default: break;
+		}
+		__xlCgenEmitHelperFuncClose(pCtx);
+		return 1;
+	}
+
+	eNetProxyKind = __xlNetProxyHelperKind(pFuncInfo->sName);
+	if ( eNetProxyKind != XL_NET_PROXY_HELPER_NONE ) {
+		__xlCgenEmitHelperFuncOpen(pCtx, pFuncInfo, pParams);
+		__xlCgenAppendIndent(&pCtx->buf);
+		switch ( eNetProxyKind ) {
+			case XL_NET_PROXY_HELPER_PARSE: __xlCgenAppendFormat(&pCtx->buf, "return xl_net_proxy_parse(%s);\n", sParam0); break;
+			case XL_NET_PROXY_HELPER_BASIC_AUTH: __xlCgenAppendFormat(&pCtx->buf, "return xl_net_proxy_basic_auth(%s, %s);\n", sParam0, sParam1); break;
+			case XL_NET_PROXY_HELPER_HTTP_CONNECT: __xlCgenAppendFormat(&pCtx->buf, "return xl_net_proxy_http_connect(%s, %s, %s);\n", sParam0, sParam1, sParam2); break;
+			case XL_NET_PROXY_HELPER_SOCKS5_GREETING_HEX: __xlCgenAppendFormat(&pCtx->buf, "return xl_net_proxy_socks5_greeting_hex(%s);\n", sParam0); break;
+			case XL_NET_PROXY_HELPER_SOCKS5_CONNECT_HEX: __xlCgenAppendFormat(&pCtx->buf, "return xl_net_proxy_socks5_connect_hex(%s, %s);\n", sParam0, sParam1); break;
+			default: break;
+		}
+		__xlCgenEmitHelperFuncClose(pCtx);
+		return 1;
+	}
+
+	eNetTlsKind = __xlNetTlsHelperKind(pFuncInfo->sName);
+	if ( eNetTlsKind != XL_NET_TLS_HELPER_NONE ) {
+		__xlCgenEmitHelperFuncOpen(pCtx, pFuncInfo, pParams);
+		__xlCgenAppendIndent(&pCtx->buf);
+		switch ( eNetTlsKind ) {
+			case XL_NET_TLS_HELPER_VERSIONS: __xlCgenAppend(&pCtx->buf, "return xl_net_tls_versions();\n"); break;
+			case XL_NET_TLS_HELPER_IS_TLS_URL: __xlCgenAppendFormat(&pCtx->buf, "return xl_net_tls_is_tls_url(%s);\n", sParam0); break;
+			case XL_NET_TLS_HELPER_DEFAULT_PORT: __xlCgenAppendFormat(&pCtx->buf, "return xl_net_tls_default_port(%s);\n", sParam0); break;
+			case XL_NET_TLS_HELPER_SNI_HOST: __xlCgenAppendFormat(&pCtx->buf, "return xl_net_tls_sni_host(%s);\n", sParam0); break;
+			case XL_NET_TLS_HELPER_FINGERPRINT_SHA256: __xlCgenAppendFormat(&pCtx->buf, "return xl_net_tls_fingerprint_sha256(%s);\n", sParam0); break;
+			case XL_NET_TLS_HELPER_CLIENT_CONFIG: __xlCgenAppendFormat(&pCtx->buf, "return xl_net_tls_client_config(%s, %s);\n", sParam0, sParam1); break;
+			default: break;
+		}
+		__xlCgenEmitHelperFuncClose(pCtx);
+		return 1;
+	}
+
 	eTemplateKind = __xlTemplateHelperKind(pFuncInfo->sName);
 	if ( eTemplateKind != XL_TEMPLATE_HELPER_NONE ) {
 		__xlCgenEmitHelperFuncOpen(pCtx, pFuncInfo, pParams);
@@ -11187,6 +11946,80 @@ static int __xlCgenEmitBuiltinHelperFunc(
 			case XL_CONTAINER_MODULE_HELPER_DICT_CLEAR: __xlCgenAppendFormat(&pCtx->buf, "xl_dict_clear(%s);\n", sParam0); break;
 			case XL_CONTAINER_MODULE_HELPER_DICT_REMOVE: __xlCgenAppendFormat(&pCtx->buf, "return xl_dict_remove(%s, %s);\n", sParam0, sParam1); break;
 			default: break;
+		}
+		__xlCgenEmitHelperFuncClose(pCtx);
+		return 1;
+	}
+
+	eChannelModuleKind = __xlChannelModuleHelperKind(pFuncInfo->sName);
+	if ( eChannelModuleKind != XL_CHANNEL_MODULE_HELPER_NONE ) {
+		__xlCgenEmitHelperFuncOpen(pCtx, pFuncInfo, pParams);
+		__xlCgenAppendIndent(&pCtx->buf);
+		switch ( eChannelModuleKind ) {
+			case XL_CHANNEL_MODULE_HELPER_SEND:
+				__xlCgenAppendFormat(&pCtx->buf, "return xl_channel_send((xvalue)(%s), ", sParam0);
+				__xlCgenBoxTypedCExpr(pCtx, __xlCgenParamTypeName(pParam1), sParam1);
+				__xlCgenAppend(&pCtx->buf, ");\n");
+				break;
+			case XL_CHANNEL_MODULE_HELPER_RECV:
+				__xlCgenAppendFormat(&pCtx->buf, "return xl_channel_recv((xvalue)(%s));\n", sParam0);
+				break;
+			case XL_CHANNEL_MODULE_HELPER_LEN:
+				__xlCgenAppendFormat(&pCtx->buf, "return xl_channel_len((xvalue)(%s));\n", sParam0);
+				break;
+			case XL_CHANNEL_MODULE_HELPER_CAPACITY:
+				__xlCgenAppendFormat(&pCtx->buf, "return xl_channel_capacity((xvalue)(%s));\n", sParam0);
+				break;
+			case XL_CHANNEL_MODULE_HELPER_CLOSED:
+				__xlCgenAppendFormat(&pCtx->buf, "return xl_channel_closed((xvalue)(%s));\n", sParam0);
+				break;
+			case XL_CHANNEL_MODULE_HELPER_CLOSE:
+				__xlCgenAppendFormat(&pCtx->buf, "return xl_channel_close((xvalue)(%s));\n", sParam0);
+				break;
+			default:
+				break;
+		}
+		__xlCgenEmitHelperFuncClose(pCtx);
+		return 1;
+	}
+
+	eModuleModuleKind = __xlModuleModuleHelperKind(pFuncInfo->sName);
+	if ( eModuleModuleKind != XL_MODULE_MODULE_HELPER_NONE ) {
+		__xlCgenEmitHelperFuncOpen(pCtx, pFuncInfo, pParams);
+		__xlCgenAppendIndent(&pCtx->buf);
+		__xlCgenAppendFormat(&pCtx->buf, "const XL_GeneratedModuleDescriptor* xl_mod_desc = (const XL_GeneratedModuleDescriptor*)(%s);\n", sParam0);
+		__xlCgenAppendIndent(&pCtx->buf);
+		switch ( eModuleModuleKind ) {
+			case XL_MODULE_MODULE_HELPER_KEY:
+				__xlCgenAppend(&pCtx->buf, "return (xl_mod_desc != NULL && xl_mod_desc->key != NULL) ? xl_mod_desc->key : \"\";\n");
+				break;
+			case XL_MODULE_MODULE_HELPER_ABI_ID:
+				__xlCgenAppend(&pCtx->buf, "return (xl_mod_desc != NULL && xl_mod_desc->abiId != NULL) ? xl_mod_desc->abiId : \"\";\n");
+				break;
+			case XL_MODULE_MODULE_HELPER_INIT_SYMBOL:
+				__xlCgenAppend(&pCtx->buf, "return (xl_mod_desc != NULL && xl_mod_desc->initSymbol != NULL) ? xl_mod_desc->initSymbol : \"\";\n");
+				break;
+			case XL_MODULE_MODULE_HELPER_EXPORTS_SYMBOL:
+				__xlCgenAppend(&pCtx->buf, "return (xl_mod_desc != NULL && xl_mod_desc->exportsSymbol != NULL) ? xl_mod_desc->exportsSymbol : \"\";\n");
+				break;
+			case XL_MODULE_MODULE_HELPER_DESCRIPTOR_SYMBOL:
+				__xlCgenAppend(&pCtx->buf, "return (xl_mod_desc != NULL && xl_mod_desc->descriptorSymbol != NULL) ? xl_mod_desc->descriptorSymbol : \"\";\n");
+				break;
+			case XL_MODULE_MODULE_HELPER_EXPORT_COUNT:
+				__xlCgenAppend(&pCtx->buf, "return (xl_mod_desc != NULL) ? (int)xl_mod_desc->exportCount : 0;\n");
+				break;
+			case XL_MODULE_MODULE_HELPER_EXPORTS:
+				__xlCgenAppend(&pCtx->buf, "{ xvalue xl_exports = xvoCreateArray(); size_t xl_i; if ( xl_exports == NULL ) return NULL; if ( xl_mod_desc != NULL && xl_mod_desc->exports != NULL ) { for ( xl_i = 0; xl_i < xl_mod_desc->exportCount; ++xl_i ) { const char* xl_name = (xl_mod_desc->exports[xl_i].name != NULL) ? xl_mod_desc->exports[xl_i].name : \"\"; (void)xvoArrayAppendValue(xl_exports, xvoCreateText((ptr)xl_name, (uint32)strlen(xl_name), FALSE), TRUE); } } return xl_exports; }\n");
+				break;
+			case XL_MODULE_MODULE_HELPER_HAS_EXPORT:
+				__xlCgenAppendFormat(&pCtx->buf, "{ size_t xl_i; const char* xl_name_arg = (%s != NULL) ? %s : \"\"; if ( xl_mod_desc == NULL || xl_mod_desc->exports == NULL ) return 0; for ( xl_i = 0; xl_i < xl_mod_desc->exportCount; ++xl_i ) { if ( xl_mod_desc->exports[xl_i].name != NULL && strcmp(xl_mod_desc->exports[xl_i].name, xl_name_arg) == 0 ) return 1; } return 0; }\n", sParam1, sParam1);
+				break;
+			case XL_MODULE_MODULE_HELPER_EXPORT_SYMBOL:
+				__xlCgenAppendFormat(&pCtx->buf, "{ size_t xl_i; const char* xl_name_arg = (%s != NULL) ? %s : \"\"; if ( xl_mod_desc == NULL || xl_mod_desc->exports == NULL ) return \"\"; for ( xl_i = 0; xl_i < xl_mod_desc->exportCount; ++xl_i ) { if ( xl_mod_desc->exports[xl_i].name != NULL && strcmp(xl_mod_desc->exports[xl_i].name, xl_name_arg) == 0 ) return (xl_mod_desc->exports[xl_i].symbol != NULL) ? xl_mod_desc->exports[xl_i].symbol : \"\"; } return \"\"; }\n", sParam1, sParam1);
+				break;
+			default:
+				__xlCgenAppend(&pCtx->buf, "return 0;\n");
+				break;
 		}
 		__xlCgenEmitHelperFuncClose(pCtx);
 		return 1;
@@ -11921,6 +12754,15 @@ static void __xlCgenExpr(XL_CgenContext* pCtx, const XL_MirNode* pNode)
 		(pNode->iSymbolIndex < 0) && (pNode->sText != NULL) && (pNode->sText[0] != '\0') ) {
 		__xlCgenAppendCString(&pCtx->buf, pNode->sText);
 		return;
+	}
+	if ( (pNode->iChildCount == 0) && (pNode->sTypeName != NULL) && (strcmp(pNode->sTypeName, "module") == 0) &&
+		(pNode->sText != NULL) && (pNode->sText[0] != '\0') ) {
+		char sDescriptorSymbol[XL_PATH_MAX_LEN];
+
+		if ( __xlCgenModuleDescriptorSymbolForBinding(pCtx, pNode->sText, sDescriptorSymbol, sizeof(sDescriptorSymbol)) ) {
+			__xlCgenAppendFormat(&pCtx->buf, "(void*)&%s", sDescriptorSymbol);
+			return;
+		}
 	}
 
 	if ( (pNode->sText != NULL) && (pNode->sText[0] != '\0') ) {

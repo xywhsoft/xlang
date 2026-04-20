@@ -7,6 +7,7 @@
 
 #define XL_HOST_ARTIFACT_MAX 32
 #define XL_HOST_EXTERN_SYMBOL_MAX 128
+#define XL_HOST_LINK_LIBRARY_MAX 64
 
 typedef struct XL_HostArtifact {
 	char sKind[32];
@@ -17,6 +18,10 @@ typedef struct XL_HostExternSymbol {
 	char sName[128];
 } XL_HostExternSymbol;
 
+typedef struct XL_HostLinkLibrary {
+	char sName[128];
+} XL_HostLinkLibrary;
+
 typedef struct XL_HostContext {
 	char sInputFile[XL_PATH_MAX_LEN];
 	char sReleaseRoot[XL_PATH_MAX_LEN];
@@ -26,6 +31,8 @@ typedef struct XL_HostContext {
 	size_t iArtifactCount;
 	XL_HostExternSymbol arrExternSymbols[XL_HOST_EXTERN_SYMBOL_MAX];
 	size_t iExternSymbolCount;
+	XL_HostLinkLibrary arrLinkLibraries[XL_HOST_LINK_LIBRARY_MAX];
+	size_t iLinkLibraryCount;
 } XL_HostContext;
 
 typedef struct XL_HostRunResult {
@@ -49,6 +56,7 @@ typedef struct XL_HostBuildResult {
 void xlHostContextInit(XL_HostContext* pCtx, const char* sInputFile, const char* sReleaseRoot);
 int xlHostContextAddArtifact(XL_HostContext* pCtx, const char* sKind, const char* sFile);
 int xlHostContextAddExternSymbol(XL_HostContext* pCtx, const char* sName);
+int xlHostContextAddLinkLibrary(XL_HostContext* pCtx, const char* sName);
 int xlHostRunCText(
 	const XL_HostContext* pCtx,
 	XL_DiagContext* pDiag,

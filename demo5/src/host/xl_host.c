@@ -202,6 +202,33 @@ int xlHostContextAddExternSymbol(XL_HostContext* pCtx, const char* sName)
 	return XL_RC_OK;
 }
 
+int xlHostContextAddLinkLibrary(XL_HostContext* pCtx, const char* sName)
+{
+	size_t i;
+
+	if ( (pCtx == NULL) || (sName == NULL) || (sName[0] == '\0') ) {
+		return XL_RC_BAD_ARG;
+	}
+
+	for ( i = 0; i < pCtx->iLinkLibraryCount; ++i ) {
+		if ( strcmp(pCtx->arrLinkLibraries[i].sName, sName) == 0 ) {
+			return XL_RC_OK;
+		}
+	}
+
+	if ( pCtx->iLinkLibraryCount >= XL_HOST_LINK_LIBRARY_MAX ) {
+		return XL_RC_FAIL;
+	}
+
+	__xlCopyText(
+		pCtx->arrLinkLibraries[pCtx->iLinkLibraryCount].sName,
+		sizeof(pCtx->arrLinkLibraries[pCtx->iLinkLibraryCount].sName),
+		sName
+	);
+	pCtx->iLinkLibraryCount += 1;
+	return XL_RC_OK;
+}
+
 int xlHostRunCText(
 	const XL_HostContext* pCtx,
 	XL_DiagContext* pDiag,

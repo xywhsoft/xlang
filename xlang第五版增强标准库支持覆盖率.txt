@@ -14,7 +14,7 @@ xlang 第五版增强标准库支持覆盖率
 - ☑ future / task / channel 语言地位
 - ☑ generator 基础运行时能力
 - ☑ type / function 语言类型
-- ◐ error / module 标准库配套 API
+- ☑ error / module 标准库配套 API
 
 
 二、核心标准库总览
@@ -63,25 +63,25 @@ xlang 第五版增强标准库支持覆盖率
 5. 并发与异步
 - ☑ std.future
 - ☑ std.task
-- ◐ std.channel
+- ☑ std.channel
 - ☑ std.sync
 - ☑ std.thread
 - ☑ std.atomic
 
 6. 网络与协议
-- ☐ std.net
-- ☐ std.net.ip
-- ☐ std.net.tcp
-- ☐ std.net.udp
-- ☐ std.net.dns
-- ☐ std.net.url
-- ☐ std.net.http
-- ☐ std.net.httpd
-- ☐ std.net.ws
-- ☐ std.net.mime
-- ☐ std.net.multipart
-- ☐ std.net.proxy
-- ☐ std.net.tls
+- ☑ std.net
+- ☑ std.net.ip
+- ☑ std.net.tcp
+- ☑ std.net.udp
+- ☑ std.net.dns
+- ☑ std.net.url
+- ☑ std.net.http
+- ☑ std.net.httpd
+- ☑ std.net.ws
+- ☑ std.net.mime
+- ☑ std.net.multipart
+- ☑ std.net.proxy
+- ☑ std.net.tls
 
 7. 数据格式
 - ☑ std.json
@@ -164,9 +164,9 @@ xlang 第五版增强标准库支持覆盖率
 - ☑ std.host
 - ☑ std.future
 - ☑ std.task
-- ◐ std.channel
-- ☐ std.net.url
-- ☐ std.net.http
+- ☑ std.channel
+- ☑ std.net.url
+- ☑ std.net.http
 - ☑ std.json
 - ☑ std.hash
 - ☑ std.encode
@@ -180,9 +180,9 @@ xlang 第五版增强标准库支持覆盖率
 - ☑ std.dict
 - ☑ std.log
 - ☑ std.debug
-- ☐ std.net.httpd
-- ☐ std.net.ws
-- ☐ std.net.tls
+- ☑ std.net.httpd
+- ☑ std.net.ws
+- ☑ std.net.tls
 - ☑ std.sync
 - ☑ std.thread
 - ☑ std.atomic

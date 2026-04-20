@@ -1,0 +1,39 @@
+import std.net.http as http
+
+func main() as int
+	auto headers = {"Host": "example.com", "Content-Type": "application/json"}
+	auto header_text = http.headers(headers)
+	auto req = http.request("POST", "/api/items", headers, "{\"ok\":true}")
+	auto resp = http.response(200, "OK", {"Content-Type": "text/plain"}, "done")
+	auto parsed = http.parse_headers("Host: example.com\r\nContent-Type: application/json\r\nX-Trace: abc\r\n")
+
+	if header_text.contains("Host: example.com") == false
+		return 1
+	end
+	if header_text.contains("Content-Type: application/json") == false
+		return 2
+	end
+	if req.contains("POST /api/items HTTP/1.1") == false
+		return 3
+	end
+	if req.contains("\r\n\r\n{\"ok\":true}") == false
+		return 4
+	end
+	if resp.contains("HTTP/1.1 200 OK") == false
+		return 5
+	end
+	if resp.contains("Content-Type: text/plain") == false
+		return 6
+	end
+	if parsed["Host"] != "example.com"
+		return 7
+	end
+	if parsed["Content-Type"] != "application/json"
+		return 8
+	end
+	if parsed["X-Trace"] != "abc"
+		return 9
+	end
+
+	return 64
+end

@@ -1,0 +1,53 @@
+import std.net.url as url
+
+func main() as int
+	auto parsed = url.parse("https://user@example.com:8080/api/v1?a=1&b=x+y#frag")
+	auto built = url.build(parsed)
+	auto values = url.decode_query(parsed["query"])
+	auto encoded = url.encode_query({"name": "x lang", "mode": "test"})
+	auto parsed2 = url.parse("http://127.0.0.1:80/ping?ok=yes")
+
+	if parsed["scheme"] != "https"
+		return 1
+	end
+	if parsed["userinfo"] != "user"
+		return 2
+	end
+	if parsed["host"] != "example.com"
+		return 3
+	end
+	if parsed["port"] != "8080"
+		return 4
+	end
+	if parsed["path"] != "/api/v1"
+		return 5
+	end
+	if parsed["query"] != "a=1&b=x+y"
+		return 6
+	end
+	if parsed["fragment"] != "frag"
+		return 7
+	end
+	if values["a"] != "1"
+		return 8
+	end
+	if values["b"] != "x y"
+		return 9
+	end
+	if built != "https://user@example.com:8080/api/v1?a=1&b=x+y#frag"
+		return 10
+	end
+	if encoded.contains("name=x+lang") == false
+		return 11
+	end
+	if encoded.contains("mode=test") == false
+		return 12
+	end
+	if parsed2["host"] != "127.0.0.1"
+		return 13
+	end
+	if parsed2["port"] != "80"
+		return 14
+	end
+	return 62
+end

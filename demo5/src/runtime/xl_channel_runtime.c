@@ -115,6 +115,32 @@ xvalue xl_channel_recv(xvalue value)
 	return __xlChannelMakeRecvResult(0, NULL);
 }
 
+int xl_channel_len(xvalue value)
+{
+	xvalue queue;
+
+	if ( (value == NULL) || (queue = __xlChannelGetQueue(value)) == NULL ) {
+		return 0;
+	}
+	return (int)xvoArrayItemCount(queue);
+}
+
+int xl_channel_capacity(xvalue value)
+{
+	if ( value == NULL ) {
+		return 0;
+	}
+	return __xlChannelCapacity(value);
+}
+
+int xl_channel_closed(xvalue value)
+{
+	if ( value == NULL ) {
+		return 0;
+	}
+	return __xlChannelIsClosed(value);
+}
+
 int xl_channel_close(xvalue value)
 {
 	if ( value == NULL ) {

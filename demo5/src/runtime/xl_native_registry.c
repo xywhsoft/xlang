@@ -15,6 +15,16 @@ const char* xlStdFsModuleSource(void);
 const char* xlStdFutureModuleSource(void);
 const char* xlStdHashModuleSource(void);
 const char* xlStdHostModuleSource(void);
+const char* xlStdNetHttpModuleSource(void);
+const char* xlStdNetHttpdModuleSource(void);
+const char* xlStdNetIpModuleSource(void);
+const char* xlStdNetDnsModuleSource(void);
+const char* xlStdNetTcpModuleSource(void);
+const char* xlStdNetUdpModuleSource(void);
+const char* xlStdNetWsModuleSource(void);
+const char* xlStdNetProxyModuleSource(void);
+const char* xlStdNetTlsModuleSource(void);
+const char* xlStdNetMultipartModuleSource(void);
 const char* xlStdIoModuleSource(void);
 const char* xlStdIterModuleSource(void);
 const char* xlStdJsonModuleSource(void);
@@ -23,6 +33,12 @@ const char* xlStdAssertModuleSource(void);
 const char* xlStdAtomicModuleSource(void);
 const char* xlStdLogModuleSource(void);
 const char* xlStdMathModuleSource(void);
+const char* xlStdModuleModuleSource(void);
+const char* xlStdNetModuleSource(void);
+const char* xlStdNetDnsModuleSource(void);
+const char* xlStdNetIpModuleSource(void);
+const char* xlStdNetMimeModuleSource(void);
+const char* xlStdNetUrlModuleSource(void);
 const char* xlStdOsModuleSource(void);
 const char* xlStdPathModuleSource(void);
 const char* xlStdPackModuleSource(void);
@@ -77,6 +93,14 @@ static const XL_NativeRegistryEntry g_arrNativeModules[] = {
 	{ "std.future", "std.future", "<native:std.future>", xlStdFutureModuleSource },
 	{ "std.hash", "std.hash", "<native:std.hash>", xlStdHashModuleSource },
 	{ "std.host", "std.host", "<native:std.host>", xlStdHostModuleSource },
+	{ "std.net.http", "std.net.http", "<native:std.net.http>", xlStdNetHttpModuleSource },
+	{ "std.net.httpd", "std.net.httpd", "<native:std.net.httpd>", xlStdNetHttpdModuleSource },
+	{ "std.net.dns", "std.net.dns", "<native:std.net.dns>", xlStdNetDnsModuleSource },
+	{ "std.net.tcp", "std.net.tcp", "<native:std.net.tcp>", xlStdNetTcpModuleSource },
+	{ "std.net.udp", "std.net.udp", "<native:std.net.udp>", xlStdNetUdpModuleSource },
+	{ "std.net.ws", "std.net.ws", "<native:std.net.ws>", xlStdNetWsModuleSource },
+	{ "std.net.proxy", "std.net.proxy", "<native:std.net.proxy>", xlStdNetProxyModuleSource },
+	{ "std.net.tls", "std.net.tls", "<native:std.net.tls>", xlStdNetTlsModuleSource },
 	{ "std.io", "std.io", "<native:std.io>", xlStdIoModuleSource },
 	{ "std.iter", "std.iter", "<native:std.iter>", xlStdIterModuleSource },
 	{ "std.json", "std.json", "<native:std.json>", xlStdJsonModuleSource },
@@ -85,6 +109,12 @@ static const XL_NativeRegistryEntry g_arrNativeModules[] = {
 	{ "std.atomic", "std.atomic", "<native:std.atomic>", xlStdAtomicModuleSource },
 	{ "std.log", "std.log", "<native:std.log>", xlStdLogModuleSource },
 	{ "std.math", "std.math", "<native:std.math>", xlStdMathModuleSource },
+	{ "std.module", "std.module", "<native:std.module>", xlStdModuleModuleSource },
+	{ "std.net", "std.net", "<native:std.net>", xlStdNetModuleSource },
+	{ "std.net.ip", "std.net.ip", "<native:std.net.ip>", xlStdNetIpModuleSource },
+	{ "std.net.mime", "std.net.mime", "<native:std.net.mime>", xlStdNetMimeModuleSource },
+	{ "std.net.multipart", "std.net.multipart", "<native:std.net.multipart>", xlStdNetMultipartModuleSource },
+	{ "std.net.url", "std.net.url", "<native:std.net.url>", xlStdNetUrlModuleSource },
 	{ "std.os", "std.os", "<native:std.os>", xlStdOsModuleSource },
 	{ "std.pack", "std.pack", "<native:std.pack>", xlStdPackModuleSource },
 	{ "std.path", "std.path", "<native:std.path>", xlStdPathModuleSource },
