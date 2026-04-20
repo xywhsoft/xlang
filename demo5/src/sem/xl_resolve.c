@@ -758,6 +758,9 @@ static int __xlTypeMatches(const char* sExpectedType, const char* sActualType)
 	if ( strcmp(sExpectedType, sActualType) == 0 ) {
 		return 1;
 	}
+	if ( strcmp(sExpectedType, "any") == 0 ) {
+		return 1;
+	}
 	if ( __xlIsTaskTypeName(sExpectedType) && (__xlIsFutureTypeName(sActualType) || __xlIsTaskTypeName(sActualType)) ) {
 		return 1;
 	}
@@ -786,9 +789,6 @@ static int __xlTypeMatches(const char* sExpectedType, const char* sActualType)
 			return 0;
 		}
 		return __xlTypeMatches(sExpectedValueType, sActualValueType);
-	}
-	if ( strcmp(sExpectedType, "any") == 0 ) {
-		return 1;
 	}
 	if ( __xlIsIntegerTypeName(sExpectedType) && __xlIsIntegerTypeName(sActualType) &&
 		((strcmp(sExpectedType, "int") == 0) || (strcmp(sActualType, "int") == 0)) ) {
@@ -5361,8 +5361,11 @@ static int __xlResolveStmt(XL_ResolveContext* pCtx, const XL_AstNode* pNode)
 		case XL_AST_RETURN:
 		{
 			const XL_AstNode* pValues;
+			const XL_AstNode* pExpandedValue;
+			const XL_FuncInfo* pExpandedFunc;
 			size_t iValueCount;
 			size_t iValueIndex;
+			int bExpandedReturn;
 
 			if ( pCtx->pCurrentFunc == NULL ) {
 				return __xlSemAddDiag(pCtx, XL_SEM_DIAG_ERROR, pNode, "return is not inside a function");
@@ -5370,7 +5373,19 @@ static int __xlResolveStmt(XL_ResolveContext* pCtx, const XL_AstNode* pNode)
 
 			pValues = __xlReturnValueListNode(pNode);
 			iValueCount = (pValues != NULL) ? pValues->iChildCount : 0;
-			if ( iValueCount != pCtx->pCurrentFunc->iReturnCount ) {
+			pExpandedValue = ((pValues != NULL) && (pValues->iChildCount == 1)) ? pValues->ppChildren[0] : NULL;
+			if ( pExpandedValue != NULL ) {
+				iRc = __xlResolveExpr(pCtx, pExpandedValue);
+				if ( iRc != XL_RC_OK ) {
+					return iRc;
+				}
+			}
+			pExpandedFunc = __xlExprMultiReturnFunc(pCtx, pExpandedValue);
+			bExpandedReturn = ((iValueCount == 1) &&
+				(pExpandedFunc != NULL) &&
+				(pExpandedFunc->iReturnCount == pCtx->pCurrentFunc->iReturnCount) &&
+				(pCtx->pCurrentFunc->iReturnCount > 1));
+			if ( (iValueCount != pCtx->pCurrentFunc->iReturnCount) && !bExpandedReturn ) {
 				return __xlSemAddDiag(
 					pCtx,
 					XL_SEM_DIAG_ERROR,
@@ -5379,6 +5394,32 @@ static int __xlResolveStmt(XL_ResolveContext* pCtx, const XL_AstNode* pNode)
 					(unsigned long long)pCtx->pCurrentFunc->iReturnCount,
 					(unsigned long long)iValueCount
 				);
+			}
+
+			if ( bExpandedReturn ) {
+				for ( iValueIndex = 0; iValueIndex < pCtx->pCurrentFunc->iReturnCount; ++iValueIndex ) {
+					const char* sValueType;
+					const char* sExpectedType;
+
+					sValueType = ((pExpandedFunc->arrReturnTypeNames != NULL) && (iValueIndex < pExpandedFunc->iReturnCount)) ?
+						pExpandedFunc->arrReturnTypeNames[iValueIndex] : "";
+					sExpectedType = ((pCtx->pCurrentFunc->arrReturnTypeNames != NULL) && (iValueIndex < pCtx->pCurrentFunc->iReturnCount)) ?
+						pCtx->pCurrentFunc->arrReturnTypeNames[iValueIndex] : "";
+					if ( (sExpectedType != NULL) && (sExpectedType[0] != '\0') &&
+						(sValueType != NULL) && (sValueType[0] != '\0') &&
+						!__xlTypeMatches(sExpectedType, sValueType) ) {
+						return __xlSemAddDiag(
+							pCtx,
+							XL_SEM_DIAG_ERROR,
+							pExpandedValue,
+							"return value %llu has type '%s', expected '%s'",
+							(unsigned long long)(iValueIndex + 1),
+							sValueType,
+							sExpectedType
+						);
+					}
+				}
+				return XL_RC_OK;
 			}
 
 			for ( iValueIndex = 0; (pValues != NULL) && (iValueIndex < pValues->iChildCount); ++iValueIndex ) {

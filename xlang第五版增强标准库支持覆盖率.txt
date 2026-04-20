@@ -22,7 +22,7 @@ xlang 第五版增强标准库支持覆盖率
 
 1. 基础与通用
 - ☑ std.core
-- ☐ std.types
+- ☑ std.types
 - ☑ std.math
 - ☑ std.rand
 - ☑ std.time
@@ -64,9 +64,9 @@ xlang 第五版增强标准库支持覆盖率
 - ☑ std.future
 - ☑ std.task
 - ◐ std.channel
-- ☐ std.sync
-- ☐ std.thread
-- ☐ std.atomic
+- ☑ std.sync
+- ☑ std.thread
+- ☑ std.atomic
 
 6. 网络与协议
 - ☐ std.net
@@ -92,9 +92,9 @@ xlang 第五版增强标准库支持覆盖率
 - ☑ std.sys.file
 - ☑ std.sys.process
 - ☑ std.sys.env
-- ☐ std.sys.net
+- ☑ std.sys.net
 - ☑ std.sys.wait
-- ☐ std.sys.mem
+- ☑ std.sys.mem
 
 
 三、已明确废弃或迁移的设计项
@@ -183,8 +183,10 @@ xlang 第五版增强标准库支持覆盖率
 - ☐ std.net.httpd
 - ☐ std.net.ws
 - ☐ std.net.tls
-- ☐ std.sync
-- ◐ std.sys.*
+- ☑ std.sync
+- ☑ std.thread
+- ☑ std.atomic
+- ☑ std.sys.*
 
 第三批：
 - ☐ 其余核心标准库

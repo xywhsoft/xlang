@@ -1,0 +1,15 @@
+import std.str
+import std.sys.net
+
+func main() as int
+	const string loopback = net.resolve("127.0.0.1")
+	const string public_dns = net.resolve("8.8.8.8")
+
+	if str.contains(loopback, "127.0.0.1") == false
+		return 1
+	end
+	if str.contains(public_dns, "8.8.8.8") == false
+		return 2
+	end
+	return 0
+end

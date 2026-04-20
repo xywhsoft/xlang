@@ -20,6 +20,7 @@ const char* xlStdIterModuleSource(void);
 const char* xlStdJsonModuleSource(void);
 const char* xlStdListModuleSource(void);
 const char* xlStdAssertModuleSource(void);
+const char* xlStdAtomicModuleSource(void);
 const char* xlStdLogModuleSource(void);
 const char* xlStdMathModuleSource(void);
 const char* xlStdOsModuleSource(void);
@@ -35,12 +36,17 @@ const char* xlStdSetModuleSource(void);
 const char* xlStdStrModuleSource(void);
 const char* xlStdSysEnvModuleSource(void);
 const char* xlStdSysFileModuleSource(void);
+const char* xlStdSysMemModuleSource(void);
+const char* xlStdSysNetModuleSource(void);
 const char* xlStdSysProcessModuleSource(void);
 const char* xlStdSysWaitModuleSource(void);
 const char* xlStdTemplateModuleSource(void);
+const char* xlStdThreadModuleSource(void);
 const char* xlStdTraceModuleSource(void);
 const char* xlStdTimeModuleSource(void);
 const char* xlStdTaskModuleSource(void);
+const char* xlStdSyncModuleSource(void);
+const char* xlStdTypesModuleSource(void);
 
 typedef struct XL_NativeRegistryEntry {
 	const char* sModuleKey;
@@ -76,6 +82,7 @@ static const XL_NativeRegistryEntry g_arrNativeModules[] = {
 	{ "std.json", "std.json", "<native:std.json>", xlStdJsonModuleSource },
 	{ "std.list", "std.list", "<native:std.list>", xlStdListModuleSource },
 	{ "std.assert", "std.assert", "<native:std.assert>", xlStdAssertModuleSource },
+	{ "std.atomic", "std.atomic", "<native:std.atomic>", xlStdAtomicModuleSource },
 	{ "std.log", "std.log", "<native:std.log>", xlStdLogModuleSource },
 	{ "std.math", "std.math", "<native:std.math>", xlStdMathModuleSource },
 	{ "std.os", "std.os", "<native:std.os>", xlStdOsModuleSource },
@@ -91,12 +98,17 @@ static const XL_NativeRegistryEntry g_arrNativeModules[] = {
 	{ "std.str", "std.str", "<native:std.str>", xlStdStrModuleSource },
 	{ "std.sys.env", "std.sys.env", "<native:std.sys.env>", xlStdSysEnvModuleSource },
 	{ "std.sys.file", "std.sys.file", "<native:std.sys.file>", xlStdSysFileModuleSource },
+	{ "std.sys.mem", "std.sys.mem", "<native:std.sys.mem>", xlStdSysMemModuleSource },
+	{ "std.sys.net", "std.sys.net", "<native:std.sys.net>", xlStdSysNetModuleSource },
 	{ "std.sys.process", "std.sys.process", "<native:std.sys.process>", xlStdSysProcessModuleSource },
 	{ "std.sys.wait", "std.sys.wait", "<native:std.sys.wait>", xlStdSysWaitModuleSource },
+	{ "std.sync", "std.sync", "<native:std.sync>", xlStdSyncModuleSource },
 	{ "std.template", "std.template", "<native:std.template>", xlStdTemplateModuleSource },
+	{ "std.thread", "std.thread", "<native:std.thread>", xlStdThreadModuleSource },
 	{ "std.trace", "std.trace", "<native:std.trace>", xlStdTraceModuleSource },
 	{ "std.time", "std.time", "<native:std.time>", xlStdTimeModuleSource },
-	{ "std.task", "std.task", "<native:std.task>", xlStdTaskModuleSource }
+	{ "std.task", "std.task", "<native:std.task>", xlStdTaskModuleSource },
+	{ "std.types", "std.types", "<native:std.types>", xlStdTypesModuleSource }
 };
 
 static int __xlNativeBufGrow(XL_NativeTextBuffer* pBuf, size_t iNeed)
