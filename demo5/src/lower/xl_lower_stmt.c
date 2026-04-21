@@ -66,7 +66,7 @@ static const XL_AstNode* __xlFuncReceiverNode(const XL_AstNode* pNode)
 		return NULL;
 	}
 
-	return pNode->ppChildren[3];
+	return (pNode->ppChildren[3]->eKind == XL_AST_TYPE_REF) ? pNode->ppChildren[3] : NULL;
 }
 
 static const XL_FuncInfo* __xlResolvedFuncInfo(const XL_SemResult* pSem, const XL_AstNode* pNode)

@@ -1,0 +1,38 @@
+var int copies = 0
+var int destroys = 0
+
+class ClearBox extends object
+	var value as int
+
+	create(int value)
+		self.value = value
+	end
+
+	destroy()
+		destroys = destroys + 1
+	end
+
+	func copy() as ClearBox
+		copies = copies + 1
+		return ClearBox(self.value)
+	end
+end
+
+func main() as int
+	auto a = ClearBox(10)
+	auto items = [a]
+	auto sparse = list{a}
+	auto lookup = {"x": a}
+
+	items.clear()
+	sparse.clear()
+	lookup.clear()
+
+	if copies != 3 then
+		return 1
+	end
+	if destroys != 3 then
+		return 2
+	end
+	return copies * 10 + destroys + items.len() + sparse.len() + lookup.len()
+end

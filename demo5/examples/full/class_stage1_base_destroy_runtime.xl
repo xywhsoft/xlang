@@ -1,0 +1,36 @@
+var int total = 0
+
+class BaseBox extends object
+	var baseValue as int
+
+	create(int value)
+		self.baseValue = value
+	end
+
+	destroy()
+		total = total + self.baseValue
+	end
+end
+
+class ChildBox extends BaseBox
+	var childValue as int
+
+	create(int baseValue, int childValue)
+		self.baseValue = baseValue
+		self.childValue = childValue
+	end
+
+	destroy()
+		total = total + self.childValue
+	end
+end
+
+func make() as int
+	auto value = ChildBox(17, 25)
+	return 0
+end
+
+func main() as int
+	make()
+	return total
+end

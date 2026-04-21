@@ -1,0 +1,29 @@
+var int copies = 0
+
+class CopyBox extends object
+	var value as int
+
+	create(int value)
+		self.value = value
+	end
+
+	func copy() as CopyBox
+		copies = copies + 1
+		return CopyBox(self.value)
+	end
+end
+
+func clone(CopyBox box) as CopyBox
+	return box
+end
+
+func take(CopyBox box) as int
+	return box.value
+end
+
+func main() as int
+	auto a = CopyBox(20)
+	auto b = clone(a)
+	auto got = take(b)
+	return got + copies
+end

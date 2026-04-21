@@ -1,0 +1,14 @@
+func main() as int
+	var array<int> values = []
+	var list<string> names = list{}
+	var dict<string> pairs = {}
+
+	values.append(40)
+	names.append("xl")
+	pairs["name"] = "ang"
+
+	if values[0] == 40 and names[0] == "xl" and pairs["name"] == "ang"
+		return 42
+	end
+	return 0
+end

@@ -1,0 +1,35 @@
+var int copies = 0
+var int destroys = 0
+
+class SetRemoveBox extends object
+	var value as int
+
+	create(int value)
+		self.value = value
+	end
+
+	destroy()
+		destroys = destroys + 1
+	end
+
+	func copy() as SetRemoveBox
+		copies = copies + 1
+		return SetRemoveBox(self.value)
+	end
+end
+
+func main() as int
+	auto a = SetRemoveBox(10)
+	auto values = set{a}
+
+	if not values.remove(a) then
+		return 1
+	end
+	if copies != 2 then
+		return 2
+	end
+	if destroys != 1 then
+		return 3
+	end
+	return copies * 10 + destroys + values.len()
+end

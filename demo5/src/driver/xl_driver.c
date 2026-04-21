@@ -2,7 +2,6 @@
 #include "xl_xlp_load.h"
 
 #include "../host/xl_host_symbols.h"
-#include "../../test/xl_test.h"
 
 static int __xlWriteTextFile(const char* sFilePath, const char* sText)
 {
@@ -1557,21 +1556,6 @@ static int __xlDriverBuildCProgram(
 	return iRc;
 }
 
-static int __xlDriverRunTests(
-	const XL_CliOptions* pOpts,
-	XL_DiagContext* pDiag,
-	XL_DumpContext* pDump
-)
-{
-	int iRc;
-
-	XL_UNUSED(pDiag);
-	XL_UNUSED(pDump);
-
-	iRc = xlTestRunSelector(pOpts->sInputFile);
-	return (iRc == 0) ? XL_RC_OK : XL_RC_FAIL;
-}
-
 int xlDriverRun(const XL_CliOptions* pOpts, XL_DiagContext* pDiag, XL_DumpContext* pDump)
 {
 	int iRc;
@@ -1612,9 +1596,6 @@ int xlDriverRun(const XL_CliOptions* pOpts, XL_DiagContext* pDiag, XL_DumpContex
 	}
 	if ( pOpts->eCommand == XL_CMD_RUN_C ) {
 		return __xlDriverRunCProgram(pOpts, pDiag, pDump);
-	}
-	if ( pOpts->eCommand == XL_CMD_TEST ) {
-		return __xlDriverRunTests(pOpts, pDiag, pDump);
 	}
 
 	iRc = __xlDriverWriteStubDump(pOpts, pDiag, pDump);

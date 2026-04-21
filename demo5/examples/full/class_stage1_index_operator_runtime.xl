@@ -1,0 +1,26 @@
+class PairBox extends object
+	var left as int
+	var right as int
+
+	create(int left, int right)
+		self.left = left
+		self.right = right
+	end
+
+	func op_index(int index) as int
+		if index == 0
+			return self.left
+		end
+		return self.right
+	end
+
+	func op_index_set(int index, int value) as int
+		return value + index
+	end
+end
+
+func main() as int
+	auto pair = PairBox(10, 31)
+	pair[1] = 0
+	return pair[0] + pair[1] + 1
+end

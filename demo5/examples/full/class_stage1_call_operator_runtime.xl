@@ -1,0 +1,16 @@
+class Multiplier extends object
+	var factor as int
+
+	create(int factor)
+		self.factor = factor
+	end
+
+	func op_call(int value) as int
+		return self.factor * value
+	end
+end
+
+func main() as int
+	auto mul = Multiplier(7)
+	return mul(6)
+end

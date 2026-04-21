@@ -1559,6 +1559,7 @@ static int __xlTestParseExportValues(XL_TestContext* pCtx) { return __xlRunParse
 static int __xlTestParseTypedDecl(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\full\\typed_decl_basic.xl", 1, XL_AST_VAR_DECL, "text=\"0\""); }
 static int __xlTestParseExactNumericTypes(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\full\\exact_numeric_types_basic.xl", 1, XL_AST_TYPE_REF, "text=\"int32\""); }
 static int __xlTestParseAutoDecl(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\full\\auto_decl_basic.xl", 1, XL_AST_VAR_DECL); }
+static int __xlTestParseGenericFunctionBasic(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\full\\generic_function_basic.xl", 1, XL_AST_FUNC_DECL, "$typeparams"); }
 static int __xlTestParseTypeDefBasic(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\full\\typedef_basic.xl", 1, XL_AST_TYPEDEF, "text=\"Text\""); }
 static int __xlTestParsePointBasic(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\full\\point_basic.xl", 1, XL_AST_TYPE_REF, "text=\"point\""); }
 static int __xlTestParseAsyncBoolMain(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\async\\run_bool_main.xl", 1, XL_AST_TYPE_REF, "text=\"bool\""); }
@@ -1674,6 +1675,7 @@ static int __xlTestParseSyntaxError(XL_TestContext* pCtx) { return __xlRunParseC
 static int __xlTestParseGeneratorResumeBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\full\\generator_resume_basic.xl", 1, XL_AST_YIELD); }
 static int __xlTestSemOverload(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\sem\\overload.xl", 1, "int"); }
 static int __xlTestSemUnresolved(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\sem\\unresolved.xl", 0, NULL); }
+static int __xlTestSemLegacyLinkError(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\sem\\legacy_link_error.xl", 0, NULL); }
 static int __xlTestSemNoOverload(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\sem\\no_overload.xl", 0, NULL); }
 static int __xlTestSemForInGenerator(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\sem\\for_in_generator.xl", 1, "generator"); }
 static int __xlTestSemGeneratorVarForInBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\generator_var_for_in_basic.xl", 1, "int"); }
@@ -1825,6 +1827,7 @@ static int __xlTestSemExportValues(XL_TestContext* pCtx) { return __xlRunSemCase
 static int __xlTestSemTypedDecl(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\typed_decl_basic.xl", 1, "int"); }
 static int __xlTestSemExactNumericTypes(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\exact_numeric_types_basic.xl", 1, "int"); }
 static int __xlTestSemAutoDecl(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\auto_decl_basic.xl", 1, "int"); }
+static int __xlTestSemGenericFunctionBasic(XL_TestContext* pCtx) { return __xlRunSemDumpCase(pCtx, "examples\\full\\generic_function_basic.xl", 1, "param value scope="); }
 static int __xlTestSemTypeDefBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\typedef_basic.xl", 1, "Text"); }
 static int __xlTestSemTypeCtorBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\type_ctor_basic.xl", 1, "float64"); }
 static int __xlTestSemPointBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\point_basic.xl", 1, "point"); }
@@ -7955,6 +7958,7 @@ static int __xlTestRunModule(XL_TestContext* pCtx) { return __xlRunProgramCase(p
 static int __xlTestRunFunctionForwardCallBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\function_forward_call_basic.xl", 1, 42, NULL, NULL); }
 static int __xlTestRunExportTypeMethod(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\module\\use_text_ext_method.xl", 1, 77, NULL, NULL); }
 static int __xlTestRunExportGenericTypeMethod(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\module\\use_list_string_ext_method.xl", 1, 79, NULL, NULL); }
+static int __xlTestRunGenericFunctionBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\generic_function_basic.xl", 1, 123, NULL, NULL); }
 static int __xlTestRunModuleInitThrow(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\module\\use_init_throw_dep.xl", 0, 0, NULL, "exception.text=module init boom"); }
 static int __xlTestRunXlpImport(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\xlp\\use_pkg_math.xl", 1, 42, NULL, NULL); }
 static int __xlTestRunXlpNative(XL_TestContext* pCtx) { return __xlRunProgramCaseNoFallback(pCtx, "examples\\xlp_native\\use_pkg_clock.xl", 1, 86, "artifact.shared.", NULL); }
@@ -12820,6 +12824,7 @@ static const XL_TestCase __gXLTests[] = {
 	{ "parser.typed_decl", "parser", __xlTestParseTypedDecl },
 	{ "parser.exact_numeric_types", "parser", __xlTestParseExactNumericTypes },
 	{ "parser.auto_decl", "parser", __xlTestParseAutoDecl },
+	{ "parser.generic_function_basic", "parser", __xlTestParseGenericFunctionBasic },
 	{ "parser.typedef_basic", "parser", __xlTestParseTypeDefBasic },
 	{ "parser.point_basic", "parser", __xlTestParsePointBasic },
 	{ "parser.async_bool_main", "parser", __xlTestParseAsyncBoolMain },
@@ -12911,6 +12916,7 @@ static const XL_TestCase __gXLTests[] = {
 	{ "parser.generator_resume_basic", "parser", __xlTestParseGeneratorResumeBasic },
 	{ "sem.overload", "sem", __xlTestSemOverload },
 	{ "sem.unresolved", "sem", __xlTestSemUnresolved },
+	{ "sem.legacy_link_error", "sem", __xlTestSemLegacyLinkError },
 	{ "sem.no_overload", "sem", __xlTestSemNoOverload },
 	{ "sem.for_in_generator", "sem", __xlTestSemForInGenerator },
 	{ "sem.generator_var_for_in_basic", "sem", __xlTestSemGeneratorVarForInBasic },
@@ -13062,6 +13068,7 @@ static const XL_TestCase __gXLTests[] = {
 	{ "sem.typed_decl", "sem", __xlTestSemTypedDecl },
 	{ "sem.exact_numeric_types", "sem", __xlTestSemExactNumericTypes },
 	{ "sem.auto_decl", "sem", __xlTestSemAutoDecl },
+	{ "sem.generic_function_basic", "sem", __xlTestSemGenericFunctionBasic },
 	{ "sem.typedef_basic", "sem", __xlTestSemTypeDefBasic },
 	{ "sem.type_ctor_basic", "sem", __xlTestSemTypeCtorBasic },
 	{ "sem.point_basic", "sem", __xlTestSemPointBasic },
@@ -13713,6 +13720,7 @@ static const XL_TestCase __gXLTests[] = {
 	{ "runtime.module_use_math", "runtime", __xlTestRunModule },
 	{ "runtime.export_type_method", "runtime", __xlTestRunExportTypeMethod },
 	{ "runtime.export_generic_type_method", "runtime", __xlTestRunExportGenericTypeMethod },
+	{ "runtime.generic_function_basic", "runtime", __xlTestRunGenericFunctionBasic },
 	{ "runtime.module_init_throw", "runtime", __xlTestRunModuleInitThrow },
 	{ "runtime.function_forward_call_basic", "runtime", __xlTestRunFunctionForwardCallBasic },
 	{ "runtime.xlp_import", "runtime", __xlTestRunXlpImport },

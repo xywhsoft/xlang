@@ -12,6 +12,7 @@ typedef struct XL_ResolveContext {
 	int iCurrentFuncIndex;
 	int bCurrentFuncIsExpr;
 	const XL_FuncInfo* pCurrentFunc;
+	const XL_AstNode* pActiveTypeParams;
 	const char* sCurrentClassTypeName;
 	int iCurrentClassScopeId;
 	int bCurrentClassCreate;
@@ -179,7 +180,72 @@ static const XL_AstNode* __xlFuncReceiverNode(const XL_AstNode* pNode)
 		return NULL;
 	}
 
-	return pNode->ppChildren[3];
+	return (pNode->ppChildren[3]->eKind == XL_AST_TYPE_REF) ? pNode->ppChildren[3] : NULL;
+}
+
+static const XL_AstNode* __xlFuncTypeParamListNode(const XL_AstNode* pNode)
+{
+	const XL_AstNode* pChild;
+	size_t i;
+
+	if ( (pNode == NULL) || (pNode->eKind != XL_AST_FUNC_DECL) ) {
+		return NULL;
+	}
+	for ( i = 3; i < pNode->iChildCount; ++i ) {
+		pChild = pNode->ppChildren[i];
+		if ( (pChild != NULL) && (pChild->eKind == XL_AST_LIST) &&
+			(pChild->sText != NULL) && (strcmp(pChild->sText, "$typeparams") == 0) ) {
+			return pChild;
+		}
+	}
+	return NULL;
+}
+
+static int __xlTypeParamListHasName(const XL_AstNode* pTypeParams, const char* sName)
+{
+	size_t i;
+
+	if ( (pTypeParams == NULL) || (sName == NULL) || (sName[0] == '\0') ) {
+		return 0;
+	}
+	for ( i = 0; i < pTypeParams->iChildCount; ++i ) {
+		const XL_AstNode* pItem = pTypeParams->ppChildren[i];
+		if ( (pItem != NULL) && (pItem->sText != NULL) && (strcmp(pItem->sText, sName) == 0) ) {
+			return 1;
+		}
+	}
+	return 0;
+}
+
+static int __xlFuncHasTypeParamName(const XL_FuncInfo* pFunc, const char* sName)
+{
+	size_t i;
+
+	if ( (pFunc == NULL) || (sName == NULL) || (sName[0] == '\0') ) {
+		return 0;
+	}
+	for ( i = 0; i < pFunc->iTypeParamCount; ++i ) {
+		if ( (pFunc->arrTypeParamNames != NULL) && (pFunc->arrTypeParamNames[i] != NULL) &&
+			(strcmp(pFunc->arrTypeParamNames[i], sName) == 0) ) {
+			return 1;
+		}
+	}
+	return 0;
+}
+
+static int __xlIsGenericPlaceholderName(const char* sTypeName)
+{
+	return (sTypeName != NULL) &&
+		(sTypeName[0] >= 'A') && (sTypeName[0] <= 'Z') &&
+		(sTypeName[1] == '\0');
+}
+
+static const char* __xlEraseGenericTypeName(const XL_AstNode* pTypeParams, const char* sTypeName)
+{
+	if ( __xlTypeParamListHasName(pTypeParams, sTypeName) ) {
+		return "var";
+	}
+	return sTypeName;
 }
 
 static const char* __xlFuncMethodName(const XL_AstNode* pNode)
@@ -937,6 +1003,9 @@ static int __xlTypeMatches(const char* sExpectedType, const char* sActualType)
 		return 1;
 	}
 	if ( strcmp(sExpectedType, sActualType) == 0 ) {
+		return 1;
+	}
+	if ( __xlIsGenericPlaceholderName(sExpectedType) || __xlIsGenericPlaceholderName(sActualType) ) {
 		return 1;
 	}
 	if ( strcmp(sExpectedType, "any") == 0 ) {
@@ -1808,6 +1877,10 @@ static const char* __xlResolveTypeName(XL_ResolveContext* pCtx, const XL_AstNode
 	if ( strcmp(sTypeName, "auto") == 0 ) {
 		return sTypeName;
 	}
+	if ( __xlTypeParamListHasName(pCtx->pActiveTypeParams, sTypeName) ||
+		__xlFuncHasTypeParamName(pCtx->pCurrentFunc, sTypeName) ) {
+		return sTypeName;
+	}
 	if ( __xlIsFunctionTypeName(sTypeName) ) {
 		char** arrReturnTypes;
 		size_t iReturnCount;
@@ -2671,9 +2744,14 @@ static int __xlCollectFuncInfo(XL_ResolveContext* pCtx, const XL_AstNode* pNode,
 	const XL_AstNode* pParamDefault;
 	const XL_AstNode* pReceiverType;
 	const XL_AstNode* pSelfParam;
+	const XL_AstNode* pTypeParams;
+	const XL_AstNode* pPrevActiveTypeParams;
 	const char** arrParamNames;
 	const char** arrParamTypes;
 	const char** arrReturnTypes;
+	const char** arrGenericParamTypes;
+	const char** arrGenericReturnTypes;
+	const char** arrTypeParamNames;
 	const char* sResolvedReceiverType;
 	const char* sResolvedParamType;
 	const char* sResolvedReturnType;
@@ -2693,9 +2771,14 @@ static int __xlCollectFuncInfo(XL_ResolveContext* pCtx, const XL_AstNode* pNode,
 
 	pParams = __xlAstChild(pNode, 0);
 	pRetList = __xlFuncReturnListNode(pNode);
+	pTypeParams = __xlFuncTypeParamListNode(pNode);
+	pPrevActiveTypeParams = pCtx->pActiveTypeParams;
 	arrParamNames = NULL;
 	arrParamTypes = NULL;
 	arrReturnTypes = NULL;
+	arrGenericParamTypes = NULL;
+	arrGenericReturnTypes = NULL;
+	arrTypeParamNames = NULL;
 	arrParamDefaults = NULL;
 	arrParamHasDefault = NULL;
 	sResolvedReceiverType = "";
@@ -2710,6 +2793,26 @@ static int __xlCollectFuncInfo(XL_ResolveContext* pCtx, const XL_AstNode* pNode,
 
 	if ( (pNode == NULL) || (pNode->sText == NULL) ) {
 		return XL_RC_BAD_ARG;
+	}
+
+	if ( (pTypeParams != NULL) && (pTypeParams->iChildCount != 0) ) {
+		arrTypeParamNames = (const char**)calloc(pTypeParams->iChildCount, sizeof(const char*));
+		if ( arrTypeParamNames == NULL ) {
+			return XL_RC_IO_ERROR;
+		}
+		for ( i = 0; i < pTypeParams->iChildCount; ++i ) {
+			const XL_AstNode* pTypeParam = pTypeParams->ppChildren[i];
+			if ( (pTypeParam == NULL) || (pTypeParam->sText == NULL) || (pTypeParam->sText[0] == '\0') ) {
+				free(arrTypeParamNames);
+				return __xlSemAddDiag(pCtx, XL_SEM_DIAG_ERROR, pTypeParam, "empty generic type parameter");
+			}
+			if ( !__xlIsGenericPlaceholderName(pTypeParam->sText) ) {
+				free(arrTypeParamNames);
+				return __xlSemAddDiag(pCtx, XL_SEM_DIAG_ERROR, pTypeParam, "generic type parameter '%s' must be a single uppercase identifier in stage 1", pTypeParam->sText);
+			}
+			arrTypeParamNames[i] = pTypeParam->sText;
+		}
+		pCtx->pActiveTypeParams = pTypeParams;
 	}
 
 	pReceiverType = __xlFuncReceiverNode(pNode);
@@ -2768,7 +2871,12 @@ static int __xlCollectFuncInfo(XL_ResolveContext* pCtx, const XL_AstNode* pNode,
 
 	if ( (pRetList != NULL) && (pRetList->iChildCount != 0) ) {
 		arrReturnTypes = (const char**)calloc(pRetList->iChildCount, sizeof(const char*));
-		if ( arrReturnTypes == NULL ) {
+		arrGenericReturnTypes = (const char**)calloc(pRetList->iChildCount, sizeof(const char*));
+		if ( (arrReturnTypes == NULL) || (arrGenericReturnTypes == NULL) ) {
+			free(arrReturnTypes);
+			free(arrGenericReturnTypes);
+			free(arrTypeParamNames);
+			pCtx->pActiveTypeParams = pPrevActiveTypeParams;
 			return XL_RC_IO_ERROR;
 		}
 		for ( i = 0; i < pRetList->iChildCount; ++i ) {
@@ -2779,14 +2887,18 @@ static int __xlCollectFuncInfo(XL_ResolveContext* pCtx, const XL_AstNode* pNode,
 				free(arrParamNames);
 				free(arrParamTypes);
 				free(arrReturnTypes);
+				free(arrGenericReturnTypes);
+				free(arrTypeParamNames);
 				free(arrParamDefaults);
 				free(arrParamHasDefault);
+				pCtx->pActiveTypeParams = pPrevActiveTypeParams;
 				return XL_RC_FAIL;
 			}
-			arrReturnTypes[i] = sResolvedReturnType;
+			arrGenericReturnTypes[i] = sResolvedReturnType;
+			arrReturnTypes[i] = __xlEraseGenericTypeName(pTypeParams, sResolvedReturnType);
 		}
 		if ( pRetList->iChildCount == 1 ) {
-			sResolvedReturnType = arrReturnTypes[0];
+			sResolvedReturnType = arrGenericReturnTypes[0];
 			sStorageReturnType = arrReturnTypes[0];
 		} else if ( pRetList->iChildCount > 1 ) {
 			sResolvedReturnType = "";
@@ -2798,8 +2910,11 @@ static int __xlCollectFuncInfo(XL_ResolveContext* pCtx, const XL_AstNode* pNode,
 			free(arrParamNames);
 			free(arrParamTypes);
 			free(arrReturnTypes);
+			free(arrGenericReturnTypes);
+			free(arrTypeParamNames);
 			free(arrParamDefaults);
 			free(arrParamHasDefault);
+			pCtx->pActiveTypeParams = pPrevActiveTypeParams;
 			return XL_RC_IO_ERROR;
 		}
 		sStorageReturnType = sAsyncStorageReturnType;
@@ -2810,19 +2925,25 @@ static int __xlCollectFuncInfo(XL_ResolveContext* pCtx, const XL_AstNode* pNode,
 
 		arrParamNames = (const char**)calloc(iTotalParamCount, sizeof(const char*));
 		arrParamTypes = (const char**)calloc(iTotalParamCount, sizeof(const char*));
+		arrGenericParamTypes = (const char**)calloc(iTotalParamCount, sizeof(const char*));
 		arrParamDefaults = (const XL_AstNode**)calloc(iTotalParamCount, sizeof(XL_AstNode*));
 		arrParamHasDefault = (unsigned char*)calloc(iTotalParamCount, sizeof(unsigned char));
-		if ( (arrParamNames == NULL) || (arrParamTypes == NULL) ||
+		if ( (arrParamNames == NULL) || (arrParamTypes == NULL) || (arrGenericParamTypes == NULL) ||
 			(arrParamDefaults == NULL) || (arrParamHasDefault == NULL) ) {
 			free(arrParamNames);
 			free(arrParamTypes);
+			free(arrGenericParamTypes);
+			free(arrGenericReturnTypes);
+			free(arrTypeParamNames);
 			free(arrParamDefaults);
 			free(arrParamHasDefault);
+			pCtx->pActiveTypeParams = pPrevActiveTypeParams;
 			return XL_RC_IO_ERROR;
 		}
 		if ( bImplicitClassMethod ) {
 			arrParamNames[0] = "self";
 			arrParamTypes[0] = sResolvedReceiverType;
+			arrGenericParamTypes[0] = sResolvedReceiverType;
 			arrParamDefaults[0] = NULL;
 			arrParamHasDefault[0] = 0;
 		}
@@ -2835,23 +2956,35 @@ static int __xlCollectFuncInfo(XL_ResolveContext* pCtx, const XL_AstNode* pNode,
 				if ( i != (pParams->iChildCount - 1) ) {
 					free(arrParamNames);
 					free(arrParamTypes);
+					free(arrGenericParamTypes);
+					free(arrGenericReturnTypes);
+					free(arrTypeParamNames);
 					free(arrParamDefaults);
 					free(arrParamHasDefault);
+					pCtx->pActiveTypeParams = pPrevActiveTypeParams;
 					return __xlSemAddDiag(pCtx, XL_SEM_DIAG_ERROR, pParam, "variadic parameter must be the last parameter");
 				}
 				if ( eVarArgKind != XL_FUNC_VARARG_NONE ) {
 					free(arrParamNames);
 					free(arrParamTypes);
+					free(arrGenericParamTypes);
+					free(arrGenericReturnTypes);
+					free(arrTypeParamNames);
 					free(arrParamDefaults);
 					free(arrParamHasDefault);
+					pCtx->pActiveTypeParams = pPrevActiveTypeParams;
 					return __xlSemAddDiag(pCtx, XL_SEM_DIAG_ERROR, pParam, "only one variadic parameter is allowed");
 				}
 				eVarArgKind = (__xlParamVarArgKind(pParam) == XL_PARAM_VARIADIC_DICT) ? XL_FUNC_VARARG_DICT : XL_FUNC_VARARG_ARRAY;
 				if ( pParamDefault != NULL ) {
 					free(arrParamNames);
 					free(arrParamTypes);
+					free(arrGenericParamTypes);
+					free(arrGenericReturnTypes);
+					free(arrTypeParamNames);
 					free(arrParamDefaults);
 					free(arrParamHasDefault);
+					pCtx->pActiveTypeParams = pPrevActiveTypeParams;
 					return __xlSemAddDiag(pCtx, XL_SEM_DIAG_ERROR, pParamDefault, "variadic parameter '%s' cannot have a default value", pParam->sText);
 				}
 			}
@@ -2861,11 +2994,16 @@ static int __xlCollectFuncInfo(XL_ResolveContext* pCtx, const XL_AstNode* pNode,
 			if ( ((pParamType != NULL) && (pParamType->sText != NULL)) && (sResolvedParamType == NULL) ) {
 				free(arrParamNames);
 				free(arrParamTypes);
+				free(arrGenericParamTypes);
+				free(arrGenericReturnTypes);
+				free(arrTypeParamNames);
 				free(arrParamDefaults);
 				free(arrParamHasDefault);
+				pCtx->pActiveTypeParams = pPrevActiveTypeParams;
 				return XL_RC_FAIL;
 			}
-			arrParamTypes[i + iParamOffset] = sResolvedParamType;
+			arrGenericParamTypes[i + iParamOffset] = sResolvedParamType;
+			arrParamTypes[i + iParamOffset] = __xlEraseGenericTypeName(pTypeParams, sResolvedParamType);
 			arrParamDefaults[i + iParamOffset] = pParamDefault;
 			arrParamHasDefault[i + iParamOffset] = (pParamDefault != NULL) ? 1u : 0u;
 			if ( pParamDefault != NULL ) {
@@ -2873,8 +3011,12 @@ static int __xlCollectFuncInfo(XL_ResolveContext* pCtx, const XL_AstNode* pNode,
 			} else if ( bSeenDefault && (__xlParamVarArgKind(pParam) == XL_PARAM_VARIADIC_NONE) ) {
 				free(arrParamNames);
 				free(arrParamTypes);
+				free(arrGenericParamTypes);
+				free(arrGenericReturnTypes);
+				free(arrTypeParamNames);
 				free(arrParamDefaults);
 				free(arrParamHasDefault);
+				pCtx->pActiveTypeParams = pPrevActiveTypeParams;
 				return __xlSemAddDiag(
 					pCtx,
 					XL_SEM_DIAG_ERROR,
@@ -2911,11 +3053,28 @@ static int __xlCollectFuncInfo(XL_ResolveContext* pCtx, const XL_AstNode* pNode,
 		eVarArgKind
 	);
 
+	if ( (iRc == XL_RC_OK) && (pTypeParams != NULL) && (pTypeParams->iChildCount != 0) ) {
+		XL_FuncInfo* pMutableFunc = xlFuncTableGetMutable(&pCtx->pResult->funcs, iPrevCount);
+		iRc = xlFuncInfoSetGenerics(
+			pMutableFunc,
+			arrTypeParamNames,
+			pTypeParams->iChildCount,
+			arrGenericParamTypes,
+			((pParams != NULL) ? pParams->iChildCount : 0u) + iImplicitParamCount,
+			arrGenericReturnTypes,
+			(pRetList != NULL) ? pRetList->iChildCount : 0
+		);
+	}
+
 	free(arrParamNames);
 	free(arrParamTypes);
 	free(arrReturnTypes);
+	free(arrGenericParamTypes);
+	free(arrGenericReturnTypes);
+	free(arrTypeParamNames);
 	free(arrParamDefaults);
 	free(arrParamHasDefault);
+	pCtx->pActiveTypeParams = pPrevActiveTypeParams;
 	if ( iRc == XL_RC_OK ) {
 		const char* sFuncNodeType;
 
@@ -2949,6 +3108,7 @@ static const XL_FuncInfo* __xlExprGeneratorFunc(XL_ResolveContext* pCtx, const X
 static const char* __xlGeneratorValueTypeFromExpr(XL_ResolveContext* pCtx, const XL_AstNode* pNode);
 static int __xlResolveIndexExpr(XL_ResolveContext* pCtx, const XL_AstNode* pNode);
 static const char* __xlInferExprType(XL_ResolveContext* pCtx, const XL_AstNode* pNode);
+static const char* __xlInferGenericCallReturnType(XL_ResolveContext* pCtx, const XL_FuncInfo* pFunc, const XL_AstNode* pArgs);
 static int __xlIsNumericTypeName(const char* sTypeName);
 static int __xlResolveFunctionValueNode(XL_ResolveContext* pCtx, const XL_AstNode* pNode, const char* sExpectedType, int bDiagOnMiss);
 static int __xlResolveCallByFunctionType(XL_ResolveContext* pCtx, const char* sFunctionType, const XL_AstNode* pCallNode, const XL_AstNode* pArgs);
@@ -3193,7 +3353,7 @@ static int __xlResolveMethodCall(
 		__xlSemNodeSetType(
 			pCtx->pResult,
 			pCallNode,
-			pFunc->bGenerator ? "generator" : __xlFuncStorageReturnTypeName(pFunc)
+			pFunc->bGenerator ? "generator" : __xlInferGenericCallReturnType(pCtx, pFunc, pArgs)
 		);
 		__xlSemTrace(
 			pCtx,
@@ -4866,6 +5026,63 @@ static int __xlMatchCallToFunc(
 	return __xlMatchCallToFuncEx(pCtx, pFunc, pArgs, NULL, 0, piScore);
 }
 
+static const char* __xlInferGenericCallReturnType(
+	XL_ResolveContext* pCtx,
+	const XL_FuncInfo* pFunc,
+	const XL_AstNode* pArgs
+)
+{
+	const char* arrNames[16];
+	const char* arrTypes[16];
+	const char* sReturnType;
+	size_t iNameCount;
+	size_t i;
+	size_t iArgPos;
+
+	if ( (pCtx == NULL) || (pFunc == NULL) || (pFunc->iTypeParamCount == 0) ) {
+		return (pFunc != NULL) ? __xlFuncStorageReturnTypeName(pFunc) : "";
+	}
+	if ( pFunc->iTypeParamCount > XL_COUNTOF(arrNames) ) {
+		return __xlFuncStorageReturnTypeName(pFunc);
+	}
+	iNameCount = pFunc->iTypeParamCount;
+	for ( i = 0; i < iNameCount; ++i ) {
+		arrNames[i] = (pFunc->arrTypeParamNames != NULL) ? pFunc->arrTypeParamNames[i] : "";
+		arrTypes[i] = NULL;
+	}
+
+	iArgPos = 0;
+	for ( i = 0; (pArgs != NULL) && (i < pArgs->iChildCount) && (iArgPos < pFunc->iParamCount); ++i ) {
+		const XL_AstNode* pArg = pArgs->ppChildren[i];
+		const XL_AstNode* pValue = __xlArgValue(pArg);
+		const char* sGenericParamType;
+		const char* sArgType;
+		size_t j;
+
+		if ( __xlArgName(pArg) != NULL ) {
+			continue;
+		}
+		sGenericParamType = ((pFunc->arrGenericParamTypes != NULL) && (iArgPos < pFunc->iParamCount)) ?
+			pFunc->arrGenericParamTypes[iArgPos] : "";
+		sArgType = __xlInferExprType(pCtx, pValue);
+		for ( j = 0; j < iNameCount; ++j ) {
+			if ( (sGenericParamType != NULL) && (strcmp(sGenericParamType, arrNames[j]) == 0) && (sArgType != NULL) && (sArgType[0] != '\0') ) {
+				arrTypes[j] = sArgType;
+			}
+		}
+		++iArgPos;
+	}
+
+	sReturnType = ((pFunc->arrGenericReturnTypeNames != NULL) && (pFunc->iReturnCount == 1)) ?
+		pFunc->arrGenericReturnTypeNames[0] : __xlFuncStorageReturnTypeName(pFunc);
+	for ( i = 0; i < iNameCount; ++i ) {
+		if ( (sReturnType != NULL) && (strcmp(sReturnType, arrNames[i]) == 0) ) {
+			return (arrTypes[i] != NULL) ? arrTypes[i] : __xlFuncStorageReturnTypeName(pFunc);
+		}
+	}
+	return __xlFuncStorageReturnTypeName(pFunc);
+}
+
 static int __xlFindFunctionValueByType(
 	XL_ResolveContext* pCtx,
 	const char* sName,
@@ -5238,7 +5455,7 @@ static int __xlResolveCallByName(
 		__xlSemNodeSetType(
 			pCtx->pResult,
 			pCallNode,
-			pFunc->bGenerator ? "generator" : __xlFuncStorageReturnTypeName(pFunc)
+			pFunc->bGenerator ? "generator" : __xlInferGenericCallReturnType(pCtx, pFunc, pArgs)
 		);
 		__xlSemTrace(
 			pCtx,
@@ -7234,6 +7451,8 @@ static int __xlResolveFuncDecl(XL_ResolveContext* pCtx, const XL_AstNode* pNode)
 	const XL_AstNode* pParamNode;
 	const XL_AstNode* pParamType;
 	const XL_AstNode* pParamDefault;
+	const XL_AstNode* pTypeParams;
+	const XL_AstNode* pPrevActiveTypeParams;
 	const char* sDefaultType;
 	const char* sResolvedParamType;
 	const XL_SemNodeInfo* pFuncInfoNode;
@@ -7253,7 +7472,10 @@ static int __xlResolveFuncDecl(XL_ResolveContext* pCtx, const XL_AstNode* pNode)
 	pParams = __xlAstChild(pNode, 0);
 	pRetList = __xlFuncReturnListNode(pNode);
 	pBody = __xlAstChild(pNode, 2);
+	pTypeParams = __xlFuncTypeParamListNode(pNode);
 	sExternName = __xlFuncExternName(pNode);
+	pPrevActiveTypeParams = pCtx->pActiveTypeParams;
+	pCtx->pActiveTypeParams = pTypeParams;
 
 	if ( sExternName != NULL ) {
 		if ( pCtx->iCurrentScopeId != 0 ) {
@@ -7409,7 +7631,7 @@ static int __xlResolveFuncDecl(XL_ResolveContext* pCtx, const XL_AstNode* pNode)
 				XL_SYMBOL_PARAM,
 				pCtx->iCurrentScopeId,
 				pParamNode->sText,
-				sResolvedParamType,
+				__xlEraseGenericTypeName(pTypeParams, sResolvedParamType),
 				pParamNode->iLine,
 				pParamNode->iColumn,
 				0,
@@ -7478,6 +7700,7 @@ static int __xlResolveFuncDecl(XL_ResolveContext* pCtx, const XL_AstNode* pNode)
 	pCtx->iCurrentFuncScopeId = iPrevFuncScopeId;
 	pCtx->bCurrentFuncIsExpr = bPrevFuncIsExpr;
 	pCtx->pCurrentFunc = pPrevFunc;
+	pCtx->pActiveTypeParams = pPrevActiveTypeParams;
 	return iRc;
 }
 
@@ -7488,6 +7711,7 @@ static int __xlResolveClassCallableDecl(XL_ResolveContext* pCtx, const XL_AstNod
 	const XL_AstNode* pParamNode;
 	const XL_AstNode* pParamType;
 	const XL_AstNode* pParamDefault;
+	const XL_AstNode* pTypeParams;
 	const char* sResolvedParamType;
 	const char* sDefaultType;
 	int iCallableScopeId;
@@ -7498,6 +7722,7 @@ static int __xlResolveClassCallableDecl(XL_ResolveContext* pCtx, const XL_AstNod
 	int iRc;
 	size_t i;
 
+	pTypeParams = NULL;
 	if ( (pCtx->sCurrentClassTypeName == NULL) || (pCtx->sCurrentClassTypeName[0] == '\0') ||
 		(pCtx->iCurrentScopeId != pCtx->iCurrentClassScopeId) ) {
 		return __xlSemAddDiag(pCtx, XL_SEM_DIAG_ERROR, pNode, "%s is only allowed directly inside class", pNode->sText);
@@ -7584,7 +7809,7 @@ static int __xlResolveClassCallableDecl(XL_ResolveContext* pCtx, const XL_AstNod
 				XL_SYMBOL_PARAM,
 				pCtx->iCurrentScopeId,
 				pParamNode->sText,
-				sResolvedParamType,
+				__xlEraseGenericTypeName(pTypeParams, sResolvedParamType),
 				pParamNode->iLine,
 				pParamNode->iColumn,
 				0,

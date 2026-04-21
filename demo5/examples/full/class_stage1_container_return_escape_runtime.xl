@@ -1,0 +1,46 @@
+var int copies = 0
+var int destroys = 0
+
+class ReturnBox extends object
+	var value as int
+
+	create(int value)
+		self.value = value
+	end
+
+	destroy()
+		destroys = destroys + 1
+	end
+
+	func copy() as ReturnBox
+		copies = copies + 1
+		return ReturnBox(self.value)
+	end
+end
+
+func make_values() as array<ReturnBox>
+	auto a = ReturnBox(9)
+	auto values = [a]
+	return values
+end
+
+func main() as int
+	auto values = make_values()
+	if copies != 1 then
+		return 1
+	end
+	if destroys != 1 then
+		return 2
+	end
+	auto got = values[0]
+	if got.value != 9 then
+		return 3
+	end
+	if copies != 2 then
+		return 5
+	end
+	if destroys != 1 then
+		return 4
+	end
+	return copies * 10 + destroys + got.value
+end

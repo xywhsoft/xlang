@@ -14,8 +14,7 @@ static const XL_CommandEntry __gXLCommands[] = {
 	{"build", XL_CMD_BUILD},
 	{"run", XL_CMD_RUN},
 	{"build-c", XL_CMD_BUILD_C},
-	{"run-c", XL_CMD_RUN_C},
-	{"test", XL_CMD_TEST}
+	{"run-c", XL_CMD_RUN_C}
 };
 
 static XL_Command __xlCliParseCommand(const char* sName)
@@ -37,7 +36,7 @@ static XL_Command __xlCliParseCommand(const char* sName)
 
 static bool __xlCliNeedInput(XL_Command eCommand)
 {
-	return eCommand != XL_CMD_TEST;
+	return eCommand != XL_CMD_NONE;
 }
 
 void xlCliInit(XL_CliOptions* pOpts)
@@ -191,8 +190,7 @@ void xlCliPrintHelp(const char* sProgName)
 
 	printf("xlang demo5 compiler driver\n\n");
 	printf("Usage:\n");
-	printf("  %s <command> <file> [options]\n", sProgName);
-	printf("  %s test [selector] [options]\n\n", sProgName);
+	printf("  %s <command> <file> [options]\n\n", sProgName);
 	printf("Commands:\n");
 	printf("  lex      tokenize source and dump tokens\n");
 	printf("  parse    build AST from source\n");
@@ -202,10 +200,7 @@ void xlCliPrintHelp(const char* sProgName)
 	printf("  build    build source into an output artifact\n");
 	printf("  run      run program through compiler pipeline\n");
 	printf("  build-c  build a C source file through embedded TCC\n");
-	printf("  run-c    run a C source file through embedded TCC\n");
-	printf("  test     run unified test entry\n\n");
-	printf("Test Selector:\n");
-	printf("  selector may match a test name or group, e.g. runtime or parser.for_in\n\n");
+	printf("  run-c    run a C source file through embedded TCC\n\n");
 	printf("Options:\n");
 	printf("  --dump-token      dump token stream\n");
 	printf("  --dump-ast        dump AST\n");

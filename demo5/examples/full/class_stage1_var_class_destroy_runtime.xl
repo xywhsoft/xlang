@@ -1,0 +1,23 @@
+var int total = 0
+
+class VarBox extends object
+	var n as int
+
+	create(int value)
+		self.n = value
+	end
+
+	destroy()
+		total = total + self.n
+	end
+end
+
+func drop_one() as int
+	var item = VarBox(17)
+	return 5
+end
+
+func main() as int
+	auto value = drop_one()
+	return total + value
+end

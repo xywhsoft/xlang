@@ -401,6 +401,31 @@ static XL_AstNode* xlPCreateMethodFuncDecl(
 	return pDecl;
 }
 
+static XL_AstNode* xlPCreateTypeParamList(void)
+{
+	XL_AstNode* pList;
+
+	pList = xlPList();
+	if ( pList != NULL ) {
+		xlAstSetText(pList, "$typeparams", 11);
+	}
+	return pList;
+}
+
+static XL_AstNode* xlPAttachTypeParams(XL_AstNode* pDecl, XL_AstNode* pTypeParams)
+{
+	if ( pDecl == NULL ) {
+		xlAstFree(pTypeParams);
+		return NULL;
+	}
+	if ( (pTypeParams != NULL) && (pTypeParams->iChildCount != 0) ) {
+		xlAstAppendChild(pDecl, pTypeParams);
+	} else {
+		xlAstFree(pTypeParams);
+	}
+	return pDecl;
+}
+
 static void xlPAttachExternSymbol(XL_AstNode* pDecl, const XL_Token* pNameToken, const XL_Token* pSymbolToken)
 {
 	const char* sText;
@@ -865,21 +890,39 @@ func_intro(A) ::= KW_ASYNC KW_FUNC(T). {
 	A.token = T;
 }
 
-func_name(A) ::= TOK_IDENT(N). { A = N; }
+func_name(A) ::= TOK_IDENT(N). [OP_LT] { A = N; }
 func_name(A) ::= KW_CREATE(N). { A = N; }
 func_name(A) ::= KW_DESTROY(N). { A = N; }
 
-func_decl(A) ::= func_intro(B) func_name(N) TK_LPAREN param_list(P) TK_RPAREN ret_type(R) opt_stmt_sep block(BODY) KW_END. {
-	A = xlAstCreateFuncDecl(&N, B.bAsync, P, R, BODY);
+func_decl(A) ::= func_intro(B) func_name(N) type_param_decl_opt(TP) TK_LPAREN param_list(P) TK_RPAREN ret_type(R) opt_stmt_sep block(BODY) KW_END. {
+	A = xlPAttachTypeParams(xlAstCreateFuncDecl(&N, B.bAsync, P, R, BODY), TP);
 }
-func_decl(A) ::= func_intro(B) type_name(TY) OP_DOT func_name(N) TK_LPAREN param_list(P) TK_RPAREN ret_type(R) opt_stmt_sep block(BODY) KW_END. {
-	A = xlPCreateMethodFuncDecl(xlAstCreateTypeRef(&TY), &N, B.bAsync, P, R, BODY);
+func_decl(A) ::= func_intro(B) TOK_IDENT(TY) OP_LT type_param_list(TA) OP_GT OP_DOT func_name(N) type_param_decl_opt(TP) TK_LPAREN param_list(P) TK_RPAREN ret_type(R) opt_stmt_sep block(BODY) KW_END. {
+	A = xlPAttachTypeParams(xlPCreateMethodFuncDecl(xlPCreateGenericTypeRef(xlAstCreateTypeRef(&TY), TA), &N, B.bAsync, P, R, BODY), TP);
 }
-func_decl(A) ::= func_intro(B) generic_type_ref(TY) OP_DOT func_name(N) TK_LPAREN param_list(P) TK_RPAREN ret_type(R) opt_stmt_sep block(BODY) KW_END. {
-	A = xlPCreateMethodFuncDecl(TY, &N, B.bAsync, P, R, BODY);
+func_decl(A) ::= func_intro(B) TOK_IDENT(N) OP_LT type_param_list(TP) OP_GT TK_LPAREN param_list(P) TK_RPAREN ret_type(R) opt_stmt_sep block(BODY) KW_END. {
+	A = xlPAttachTypeParams(xlAstCreateFuncDecl(&N, B.bAsync, P, R, BODY), TP);
 }
-func_decl(A) ::= func_intro(B) function_type_ref(TY) OP_DOT func_name(N) TK_LPAREN param_list(P) TK_RPAREN ret_type(R) opt_stmt_sep block(BODY) KW_END. {
-	A = xlPCreateMethodFuncDecl(TY, &N, B.bAsync, P, R, BODY);
+func_decl(A) ::= func_intro(B) type_name(TY) OP_DOT func_name(N) type_param_decl_opt(TP) TK_LPAREN param_list(P) TK_RPAREN ret_type(R) opt_stmt_sep block(BODY) KW_END. {
+	A = xlPAttachTypeParams(xlPCreateMethodFuncDecl(xlAstCreateTypeRef(&TY), &N, B.bAsync, P, R, BODY), TP);
+}
+func_decl(A) ::= func_intro(B) generic_type_ref(TY) OP_DOT func_name(N) type_param_decl_opt(TP) TK_LPAREN param_list(P) TK_RPAREN ret_type(R) opt_stmt_sep block(BODY) KW_END. {
+	A = xlPAttachTypeParams(xlPCreateMethodFuncDecl(TY, &N, B.bAsync, P, R, BODY), TP);
+}
+func_decl(A) ::= func_intro(B) function_type_ref(TY) OP_DOT func_name(N) type_param_decl_opt(TP) TK_LPAREN param_list(P) TK_RPAREN ret_type(R) opt_stmt_sep block(BODY) KW_END. {
+	A = xlPAttachTypeParams(xlPCreateMethodFuncDecl(TY, &N, B.bAsync, P, R, BODY), TP);
+}
+
+type_param_decl_opt(A) ::= . { A = NULL; }
+type_param_decl_opt(A) ::= OP_LT type_param_list(L) OP_GT. { A = L; }
+
+type_param_list(A) ::= TOK_IDENT(N). {
+	A = xlPCreateTypeParamList();
+	xlAstAppendChild(A, xlAstCreateTypeRef(&N));
+}
+type_param_list(A) ::= type_param_list(L) TK_COMMA TOK_IDENT(N). {
+	A = L;
+	xlAstAppendChild(A, xlAstCreateTypeRef(&N));
 }
 
 func_expr(A) ::= func_intro(B) TK_LPAREN param_list(P) TK_RPAREN ret_type(R) opt_stmt_sep block(BODY) KW_END. {
@@ -894,7 +937,6 @@ class_decl(A) ::= KW_CLASS TOK_IDENT(N) class_extends_opt(BASE) opt_stmt_sep cla
 }
 
 class_extends_opt(A) ::= . { A = NULL; }
-class_extends_opt(A) ::= KW_EXTENDS TOK_IDENT(N). { A = xlAstCreateTypeRef(&N); }
 class_extends_opt(A) ::= KW_EXTENDS type_name(T). { A = xlAstCreateTypeRef(&T); }
 
 class_member_body(A) ::= . {
@@ -1472,6 +1514,9 @@ export_func_decl(A) ::= func_intro(B) func_name(N) TK_LPAREN param_list(P) TK_RP
 }
 export_func_decl(A) ::= func_intro(B) type_name(TY) OP_DOT func_name(N) TK_LPAREN param_list(P) TK_RPAREN ret_type(R) opt_stmt_sep block(BODY) KW_END. {
 	A = xlPCreateExportedDeclList(&N, xlPCreateMethodFuncDecl(xlAstCreateTypeRef(&TY), &N, B.bAsync, P, R, BODY), &N);
+}
+export_func_decl(A) ::= func_intro(B) TOK_IDENT(TY) OP_LT type_param_list(TA) OP_GT OP_DOT func_name(N) TK_LPAREN param_list(P) TK_RPAREN ret_type(R) opt_stmt_sep block(BODY) KW_END. {
+	A = xlPCreateExportedDeclList(&N, xlPCreateMethodFuncDecl(xlPCreateGenericTypeRef(xlAstCreateTypeRef(&TY), TA), &N, B.bAsync, P, R, BODY), &N);
 }
 export_func_decl(A) ::= func_intro(B) generic_type_ref(TY) OP_DOT func_name(N) TK_LPAREN param_list(P) TK_RPAREN ret_type(R) opt_stmt_sep block(BODY) KW_END. {
 	A = xlPCreateExportedDeclList(&N, xlPCreateMethodFuncDecl(TY, &N, B.bAsync, P, R, BODY), &N);

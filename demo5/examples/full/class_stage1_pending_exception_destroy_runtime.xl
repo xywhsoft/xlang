@@ -1,0 +1,30 @@
+var int total = 0
+
+class PendingBox extends object
+	var value as int
+
+	create(int value)
+		self.value = value
+	end
+
+	destroy()
+		total = total + self.value
+	end
+end
+
+func fail() as int
+	throw Error("boom")
+	return 1
+end
+
+func main() as int
+	try
+		auto a = PendingBox(10)
+		auto value = fail()
+		return value
+	catch e
+		return total
+	end
+
+	return 999
+end

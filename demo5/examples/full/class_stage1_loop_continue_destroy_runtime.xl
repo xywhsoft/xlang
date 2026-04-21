@@ -1,0 +1,29 @@
+var int total = 0
+
+class Box extends object
+	var value as int
+
+	create(int value)
+		self.value = value
+	end
+
+	destroy()
+		total = total + self.value
+	end
+end
+
+func main() as int
+	auto i = 0
+
+	while i < 2 do
+		i = i + 1
+		auto a = Box(10)
+		if i == 1 then
+			auto b = Box(30)
+			continue
+		end
+		auto c = Box(2)
+	end
+
+	return total
+end

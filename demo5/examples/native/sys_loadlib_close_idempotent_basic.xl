@@ -1,0 +1,20 @@
+import std.sys.lib as sys
+
+func main() as int
+	auto lib = sys.loadlib("msvcrt.dll")
+	function<int(string)> atoi = function<int(string)>(lib.proc("atoi"))
+
+	if lib.close() == false then
+		return 1
+	end
+	if lib.loaded() then
+		return 2
+	end
+	if lib.close() then
+		return 3
+	end
+	if atoi("88") != 88 then
+		return 4
+	end
+	return 42
+end

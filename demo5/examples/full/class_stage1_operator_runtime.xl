@@ -1,0 +1,38 @@
+class Vec2 extends object
+	var x as int
+	var y as int
+
+	create(int x, int y)
+		self.x = x
+		self.y = y
+	end
+
+	func op_add(Vec2 rhs) as Vec2
+		return Vec2(self.x + rhs.x, self.y + rhs.y)
+	end
+
+	func op_eq(Vec2 rhs) as bool
+		return (self.x == rhs.x) and (self.y == rhs.y)
+	end
+
+	func op_neg() as Vec2
+		return Vec2(0 - self.x, 0 - self.y)
+	end
+
+	func sum() as int
+		return self.x + self.y
+	end
+end
+
+func main() as int
+	auto a = Vec2(10, 20)
+	auto b = Vec2(1, 11)
+	auto c = a + b
+	if c == Vec2(11, 31)
+		auto d = -c
+		if d == Vec2(-11, -31)
+			return c.sum()
+		end
+	end
+	return 0
+end

@@ -1,0 +1,5 @@
+link shell32
+
+func main() as int
+	return 0
+end

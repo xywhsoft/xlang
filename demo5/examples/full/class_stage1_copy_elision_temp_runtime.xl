@@ -1,0 +1,42 @@
+var int copies = 0
+
+class TempBox extends object
+	var value as int
+
+	create(int value)
+		self.value = value
+	end
+
+	func copy() as TempBox
+		copies = copies + 1
+		return TempBox(self.value)
+	end
+end
+
+func make_temp() as TempBox
+	return TempBox(21)
+end
+
+func take(TempBox box) as int
+	return box.value
+end
+
+func main() as int
+	auto a = make_temp()
+	if copies != 0 then
+		return 1
+	end
+	if a.value != 21 then
+		return 2
+	end
+
+	auto got = take(TempBox(4))
+	if got != 4 then
+		return 3
+	end
+	if copies != 0 then
+		return 4
+	end
+
+	return a.value + got
+end

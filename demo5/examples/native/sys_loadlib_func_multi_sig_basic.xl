@@ -1,0 +1,16 @@
+import std.sys.lib as sys
+
+func main() as int
+	auto crt = sys.loadlib("msvcrt.dll")
+	auto k32 = sys.loadlib("kernel32.dll")
+	function<int(string)> atoi = function<int(string)>(crt.proc("atoi"))
+	function<int()> pid = function<int()>(k32.proc("GetCurrentProcessId"))
+
+	if atoi("39") != 39 then
+		return 1
+	end
+	if pid() <= 0 then
+		return 2
+	end
+	return 42
+end

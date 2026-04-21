@@ -23,7 +23,10 @@ set XL5_TEST_BUILD_EXE=release\tmp\xl5_test.build.exe
 set BUILD_STAMP_HEADER=release\tmp\xl_test_build_stamp.h
 set XL5_SMOKE_LOG=release\tmp\xl5_smoke.log
 set XL5_TEST_SMOKE_LOG=release\tmp\xl5_test_smoke.log
+set XL5_SMOKE_FILE=examples\full\for_in_range.xl
 set SMOKE_SELECTOR=lower.async_generator_loop_control_hybrid_groups_json
+set GCC_COMMON_FLAGS=-std=c11 -O2 -ffunction-sections -fdata-sections -Wall -Wextra -Werror -Wno-unused-parameter -Wno-unused-variable -Wno-unused-function -Wno-format-truncation -Wno-restrict -Wno-maybe-uninitialized -D_CRT_SECURE_NO_WARNINGS -I. -Ilib\xrt -Ilib\tcc
+set GCC_LINK_FLAGS=-Wl,--gc-sections -s -lshell32 -lws2_32 -liphlpapi
 
 for /f "delims=" %%i in ('powershell -NoProfile -Command "(Get-Date).ToString('yyyy-MM-dd HH:mm:ss.fff')"') do set BUILD_ID=%%i
 set BUILD_ID=%BUILD_ID% run-%RANDOM%-%RANDOM%
@@ -57,7 +60,6 @@ if not "%LEMON_RC%"=="0" (
 setlocal EnableDelayedExpansion
 > "%SRC_LIST%" (
 	echo main.c
-	echo test/xl_test.c
 	for /r src %%f in (*.c) do (
 		set "SRC_FILE=%%f"
 		set "SRC_FILE=!SRC_FILE:\=/!"
@@ -77,7 +79,7 @@ setlocal EnableDelayedExpansion
 
 echo Building demo5 with GCC...
 echo Building embedded TCC object...
-gcc -std=c11 -w -D_CRT_SECURE_NO_WARNINGS -Ilib\tcc -c lib\tcc\libtcc.c -o "%TCC_OBJ%"
+gcc -std=c11 -O2 -ffunction-sections -fdata-sections -w -D_CRT_SECURE_NO_WARNINGS -Ilib\tcc -c lib\tcc\libtcc.c -o "%TCC_OBJ%"
 
 if errorlevel 1 (
 	echo Embedded TCC build failed.
@@ -85,7 +87,7 @@ if errorlevel 1 (
 )
 
 echo Building demo5 with GCC...
-gcc -std=c11 -Wall -Wextra -Werror -Wno-unused-parameter -Wno-unused-variable -Wno-unused-function -D_CRT_SECURE_NO_WARNINGS -I. -Ilib\xrt -Ilib\tcc @"%SRC_LIST%" "%TCC_OBJ%" -o "%XL5_BUILD_EXE%" -lshell32 -lws2_32 -liphlpapi
+gcc %GCC_COMMON_FLAGS% @"%SRC_LIST%" "%TCC_OBJ%" -o "%XL5_BUILD_EXE%" %GCC_LINK_FLAGS%
 
 if errorlevel 1 (
 	echo Build failed.
@@ -93,7 +95,7 @@ if errorlevel 1 (
 )
 
 echo Building demo5 test runner with GCC...
-gcc -std=c11 -Wall -Wextra -Werror -Wno-unused-parameter -Wno-unused-variable -Wno-unused-function -D_CRT_SECURE_NO_WARNINGS -I. -Ilib\xrt -Ilib\tcc @"%TEST_SRC_LIST%" "%TCC_OBJ%" -o "%XL5_TEST_BUILD_EXE%" -lshell32 -lws2_32 -liphlpapi
+gcc %GCC_COMMON_FLAGS% @"%TEST_SRC_LIST%" "%TCC_OBJ%" -o "%XL5_TEST_BUILD_EXE%" %GCC_LINK_FLAGS%
 
 if errorlevel 1 (
 	echo Test runner build failed.
@@ -190,10 +192,10 @@ if errorlevel 1 (
 if exist "%XL5_SMOKE_LOG%" del /f /q "%XL5_SMOKE_LOG%" >nul
 if exist "%XL5_TEST_SMOKE_LOG%" del /f /q "%XL5_TEST_SMOKE_LOG%" >nul
 
-release\bin\xl5.exe test %SMOKE_SELECTOR% > "%XL5_SMOKE_LOG%" 2>&1
+release\bin\xl5.exe sem "%XL5_SMOKE_FILE%" > "%XL5_SMOKE_LOG%" 2>&1
 
 if errorlevel 1 (
-	echo xl5.exe smoke test failed for %SMOKE_SELECTOR%.
+	echo xl5.exe smoke test failed for %XL5_SMOKE_FILE%.
 	type "%BUILD_STAMP_HEADER%"
 	type "%XL5_SMOKE_LOG%"
 	exit /b 1

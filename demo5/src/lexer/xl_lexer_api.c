@@ -267,33 +267,6 @@ static char* __xlStripDirectiveLines(const char* sSource, size_t iLen, size_t* p
 			}
 		}
 
-		if ( ((iCursor + 4) <= iLen) &&
-			(memcmp(sSource + iCursor, "link", 4) == 0) &&
-			(((iCursor + 4) == iLen) || __xlIsDirectiveSpace((unsigned char)sSource[iCursor + 4])) ) {
-			iLibStart = iCursor + 4;
-			while ( (iLibStart < iLineEnd) && __xlIsDirectiveSpace((unsigned char)sSource[iLibStart]) ) {
-				++iLibStart;
-			}
-			iLibEnd = iLibStart;
-			if ( (iLibStart < iLineEnd) && __xlIsDirectiveIdentStart((unsigned char)sSource[iLibStart]) ) {
-				while ( (iLibEnd < iLineEnd) && __xlIsDirectiveIdentCont((unsigned char)sSource[iLibEnd]) ) {
-					++iLibEnd;
-				}
-				while ( (iLibEnd < iLineEnd) && __xlIsDirectiveSpace((unsigned char)sSource[iLibEnd]) ) {
-					++iLibEnd;
-				}
-				if ( (iLibEnd == iLineEnd) ||
-					((sSource[iLibEnd] == '/') && ((iLibEnd + 1) < iLineEnd) && (sSource[iLibEnd + 1] == '/')) ) {
-					if ( __xlTextBufferAppendN(&buf, sSource + iLineEnd, iNewlineLen) != XL_RC_OK ) {
-						free(buf.sData);
-						return NULL;
-					}
-					iPos = iLineEnd + iNewlineLen;
-					continue;
-				}
-			}
-		}
-
 		if ( __xlTextBufferAppendN(&buf, sSource + iLineStart, (iLineEnd - iLineStart) + iNewlineLen) != XL_RC_OK ) {
 			free(buf.sData);
 			return NULL;

@@ -1,0 +1,23 @@
+import x.yaml
+
+func main() as int
+	auto text = "name: xlang\nport: 8080\n# skip\nhost: localhost"
+	auto values = x.yaml.parse_map(text)
+
+	if values.length != 3
+		return 1
+	end
+	if values["name"] != "xlang"
+		return 2
+	end
+	if x.yaml.get(text, "host", "") != "localhost"
+		return 3
+	end
+	if x.yaml.get(text, "missing", "fallback") != "fallback"
+		return 4
+	end
+	if x.yaml.has_key(text, "port") == false
+		return 5
+	end
+	return values.length + x.yaml.version
+end

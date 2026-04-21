@@ -1,0 +1,21 @@
+class InnerParam extends object
+	var value as int
+
+	create(int value)
+		self.value = value
+	end
+end
+
+class OuterParam extends object
+	var inner as InnerParam = InnerParam(31)
+	var value as int = 10
+
+	create()
+		self.value = self.value + 1
+	end
+end
+
+func main() as int
+	auto outer = OuterParam()
+	return outer.inner.value + outer.value
+end

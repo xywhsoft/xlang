@@ -1,0 +1,35 @@
+func escape_text(string text) as string
+	return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+end
+
+func unescape_text(string text) as string
+	return text.replace("&lt;", "<").replace("&gt;", ">").replace("&amp;", "&")
+end
+
+func tag(string name, string text) as string
+	return "<" + name + ">" + escape_text(text) + "</" + name + ">"
+end
+
+func text_of(string doc, string name) as string
+	auto open_tag = "<" + name + ">"
+	auto close_tag = "</" + name + ">"
+	auto start = doc.index_of(open_tag)
+	auto finish = doc.index_of(close_tag)
+
+	if start < 0 or finish < 0
+		return ""
+	end
+	start = start + open_tag.length
+	if finish < start
+		return ""
+	end
+	return unescape_text(doc.slice(start, finish - start))
+end
+
+const int version = 1
+
+export escape_text
+export unescape_text
+export tag
+export text_of
+export version
