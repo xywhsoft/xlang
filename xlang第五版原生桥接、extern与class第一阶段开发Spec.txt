@@ -1,0 +1,416 @@
+xlang 第五版原生桥接、extern 与 class 第一阶段开发 Spec
+
+说明
+- `☑` 已实现并通过验证
+- `◐` 已部分实现，或设计已定版但尚未全部收口
+- `☐` 尚未实现
+
+目标
+- 完成 `sys.loadlib() / lib.proc() / function<...>` 的 runtime 原生函数桥接
+- 补齐 `extern func / extern var / extern type` 体系
+- 完成 `class` 第一阶段能力：带构造、析构、重载、继承、内嵌 union 的“增强结构体模型”
+- 本阶段不包含运行时对象类系统，不包含动态 class/custom 元对象设计
+
+--------------------------------
+一、总体范围
+--------------------------------
+
+1.1 本阶段包含
+- 原生动态库加载与符号提取
+- `point -> function<...>` runtime 桥接
+- `extern func`
+- `extern var`
+- `extern type`
+- `class`
+- `class extends`
+- `class` 内部 `union`
+- `create(...)`
+- `destroy()`
+- class 方法
+- class 运算符重载
+- class 单继承
+
+1.2 本阶段不包含
+- 运行时 class 对象系统
+- 元类 / 反射驱动类系统
+- class/custom 的协议开放注册模型
+- 虚函数表 / 动态派发
+- 多继承
+- `new/delete`
+- 垃圾回收对象图
+- 闭包 class / runtime dynamic class
+
+--------------------------------
+二、原生桥接
+--------------------------------
+
+2.1 已有状态
+- ☑ `sys.loadlib(path)` 已有 parser / sem / cgen / runtime
+- ☑ `lib.proc(name)` 已返回 `point`
+- ☑ `lib.close()` / `lib.path()` / `lib.loaded()` 已可用
+- ☑ `function<...>(lib.proc(...))` 已打通 parser / sem / cgen
+- ☐ `function<...>(point)` 的 runtime 可调用桥接尚未完成
+
+2.2 定版语义
+- `sys.loadlib(string path)` 返回动态库句柄对象
+- `lib.proc(string name)` 返回 `point`
+- `function<sig>(pointValue)` 构造一个原生桥接函数值
+- 该函数值在语言层表现为普通 `function<sig>`
+- 该函数值可：
+  - 直接调用
+  - 赋值给 `function<...>`
+  - 赋值给 `var`
+  - 作为参数传递
+  - 作为返回值传递
+
+2.3 runtime 桥接模型
+- 运行时为 `function<sig>(pointValue)` 生成 native thunk
+- thunk 内部保存：
+  - 原始函数地址
+  - 目标签名
+  - 调用约定信息
+  - 返回值/参数拆装箱策略
+- 调用该 thunk 时：
+  - 从 xlang 参数解包
+  - 转为 native ABI 参数
+  - 调用原始地址
+  - 将结果重新装箱回 xlang
+
+2.4 第一阶段 ABI 范围
+- 平台：Windows x64
+- 后端：TCC / GCC 路径都必须支持
+- 调用约定：首版按 Windows x64 默认约定
+- 首版支持的参数/返回类型：
+  - `bool`
+  - `int`
+  - `int32`
+  - `uint32`
+  - `int64`
+  - `uint64`
+  - `float`
+  - `float32`
+  - `float64`
+  - `string`
+  - `point`
+  - `void`
+
+2.5 第一阶段桥接签名白名单
+- `function<int()>`
+- `function<int(int)>`
+- `function<int(string)>`
+- `function<bool()>`
+- `function<bool(int)>`
+- `function<bool(string)>`
+- `function<string()>`
+- `function<string(string)>`
+- `function<void()>`
+- `function<void(int)>`
+- `function<void(string)>`
+- `function<point()>`
+- `function<point(point)>`
+
+2.6 `var` 交互
+- 桥接后的原生函数值可赋给 `var`
+- `var` 中的桥接函数值可动态调用
+- 行为应与普通 `function` 在调用层保持一致
+
+2.7 `lib.close()` 规则
+- 首版规则定为：
+  - `lib.close()` 只关闭库句柄对象本身
+  - 已通过 `lib.proc()` 取得并成功桥接出的函数值是否仍可调用，行为定义为“未保证”
+  - 标准运行时应尽量让已桥接函数在调用前检测失效并给出明确错误
+- 若实现成本过高，首版可采用更严格规则：
+  - `lib.close()` 后，来源于该库的后续桥接函数调用统一报错
+- 必须避免 silent crash
+
+2.8 验收样例
+- ☐ `runtime.sys_loadlib_func_basic`
+- ☐ `runtime.sys_loadlib_func_var_basic`
+- ☐ `runtime.sys_loadlib_func_multi_sig_basic`
+- ☐ `runtime.sys_loadlib_close_after_proc_basic`
+- ☐ `msvcrt.dll -> atoi`
+- ☐ `kernel32.dll -> GetTickCount` 或同类无参整型返回 API
+- ☐ 至少一个 `bool` 返回 API
+- ☐ 至少一个 `string/point` 返回 smoke case
+
+--------------------------------
+三、extern 体系
+--------------------------------
+
+3.1 设计目标
+- 让 `extern` 成为语言层正式 native 互操作入口
+- 与 `#link / #libpath / #incpath / #loadlib` 协同
+- 与 `sys.loadlib()` 动态桥接形成互补
+
+3.2 extern func
+- 语法：
+  - `extern func foo(...) as int`
+  - `extern "symbol" func foo(...) as int`
+- 首版仅允许模块级声明
+- 按 native ABI 解析
+- 可用于直接绑定已知外部符号
+
+3.3 extern var
+- 语法：
+  - `extern var errno as int`
+  - `extern "symbol" var errno as int`
+- 首版仅允许模块级声明
+- 首版支持：
+  - 读取
+  - 写入
+  - 基础标量类型
+  - `point`
+- 是否支持 `string` / class ABI，首版可暂缓到第二批
+
+3.4 extern type
+- 语法：
+  - `extern type DWORD = uint32`
+  - `extern type HANDLE = point`
+- 首版语义：
+  - native 类型别名
+  - 作为 ABI 对齐与可读性增强入口
+- 首版不做完整 native 结构体导入系统
+
+3.5 与指令系统的关系
+- `#link`
+- `#libpath`
+- `#incpath`
+- `#loadlib`
+
+这些指令在本阶段视为已定版基础设施，需与 extern / runtime 桥接统一协作。
+
+3.6 extern 阶段目标
+- ☑ `extern func` 首版已可用
+- ◐ `extern type` 首版 alias 已可用
+- ☐ `extern var` 完整可用
+- ☐ extern 与 runtime 桥接统一验收
+
+--------------------------------
+四、class 第一阶段
+--------------------------------
+
+4.1 定位
+- `class` 第一阶段是“增强结构体模型”
+- 编译期确定布局
+- 默认值语义
+- 支持字段、方法、构造、析构、运算符重载、单继承、内嵌 union
+- 不做虚表
+- 不做运行时类对象
+- 不做动态派发
+
+4.2 语法定版
+```xl
+class Name extends Base
+    union Data
+        // 共用体成员
+    end
+
+    create(param)
+        // 构造
+    end
+
+    destroy()
+        // 析构
+    end
+
+    // 字段 / 方法 / 运算符重载
+end
+```
+
+4.3 extends
+- 使用 `extends` 表示继承
+- 不使用 `:`
+- 首版只支持单继承
+- 未写 `extends` 则无基类
+- `extends object` 是否作为语法糖保留，由实现决定；语义上首版不要求内建根对象模型
+
+4.4 union
+- `union` 只允许出现在 `class` 内部
+- `union` 成员共享同一段内存
+- `union Name` 的名字用于语义标识和调试
+- 首版不单独形成独立类型系统
+- 成员默认直接并入当前 class 成员域访问
+
+示例：
+```xl
+class Value
+    var kind as int
+
+    union Data
+        var i as int
+        var f as float
+        var p as point
+    end
+end
+```
+
+访问：
+```xl
+v.i = 1
+v.f = 3.14
+```
+
+4.5 字段布局
+- 字段声明顺序即布局顺序
+- 基类子对象布局在最前面
+- `union` 占用其最大成员大小
+- 不做字段重排
+- 不注入隐藏 vtable 指针
+- 第一阶段要求布局可稳定映射 native ABI
+
+4.6 对象语义
+- 默认值语义
+- 赋值为整体复制
+- 传参默认复制
+- 返回值默认复制
+- 首版不做隐式堆分配
+
+4.7 create
+- `create(...)` 为构造函数固定名
+- 支持重载
+- 支持默认参数
+- `TypeName(...)` 绑定到 `create(...)`
+- 若类中未声明任何 `create`，编译器生成默认零值构造
+- 若类中声明了任意 `create`，则不再自动生成默认构造
+
+4.8 destroy
+- `destroy()` 为析构函数固定名
+- 不可重载
+- 不带参数
+- 局部对象离开作用域自动调用
+- 成员对象自动逆序析构
+- 继承下先析构子类，再析构基类
+
+4.9 方法
+- 类方法内允许使用隐式 `self`
+- `obj.method(...)` 本质 lower 为对应静态方法调用
+- 首版不做虚派发
+- 子类同签名方法可静态覆盖父类方法
+
+4.10 运算符重载
+- 首版只支持固定函数名映射
+- 建议映射：
+  - `+` -> `op_add`
+  - `-` -> `op_sub`
+  - `*` -> `op_mul`
+  - `/` -> `op_div`
+  - `%` -> `op_mod`
+  - `==` -> `op_eq`
+  - `<` -> `op_lt`
+  - `<=` -> `op_le`
+  - 一元 `-` -> `op_neg`
+  - `[]` -> `op_index`
+  - `[]=` -> `op_index_set`
+  - `()` -> `op_call`
+  - 文本化 -> `op_string`
+
+4.11 继承规则
+- 单继承
+- 子类继承基类字段与方法
+- 构造顺序：
+  - 先基类
+  - 再本类
+- 析构顺序：
+  - 先本类
+  - 再基类
+- 首版不做基类引用指向子类后的动态派发
+
+4.12 与 `var`
+- 首版允许 `var` 持有 class 值
+- 首版保证：
+  - 可存储
+  - 可赋值
+  - 可传参
+  - 可返回
+- 首版不承诺 `var` 上完整 class 方法派发体系
+- 完整 runtime 对象方法系统留待第二阶段
+
+4.13 与容器
+- 首版目标：允许 class 值进入 `array/list/dict/set`
+- 容器中的 class 值按值存储
+- 若实现复杂度过高，可临时限制为：
+  - 仅平凡析构 class 可直接进入容器
+- 最终以实现可控为准，但标准目标仍为“允许进入容器”
+
+--------------------------------
+五、class 第一阶段验收项
+--------------------------------
+
+5.1 parser
+- ☐ `class` 声明
+- ☐ `extends`
+- ☐ `union`
+- ☐ `create(...)`
+- ☐ `destroy()`
+- ☐ 类字段
+- ☐ 类方法
+- ☐ 运算符重载声明
+
+5.2 sem
+- ☐ class 符号表与类型表
+- ☐ 布局计算
+- ☐ `extends` 继承链检查
+- ☐ `union` 成员重叠布局检查
+- ☐ `create` 重载决议
+- ☐ `destroy` 唯一性检查
+- ☐ `self` 绑定
+- ☐ 运算符重载匹配
+
+5.3 lower / cgen
+- ☐ class lowering 为静态布局对象
+- ☐ 自动构造插入
+- ☐ 自动析构插入
+- ☐ 成员对象构造/析构链
+- ☐ 基类构造/析构链
+- ☐ union 布局 codegen
+- ☐ 运算符重载 lowering
+
+5.4 runtime
+- ☐ 值对象复制
+- ☐ 作用域退出析构
+- ☐ 容器中 class 值生命周期
+
+--------------------------------
+六、与原生互操作的结合
+--------------------------------
+
+6.1 class 与 ABI
+- 第一阶段 class 布局应尽量可用于 native ABI 对齐
+- 但首批 runtime 原生桥接优先只做基础类型 / `string` / `point`
+- class ABI 直通可作为第二批扩展
+
+6.2 extern type 与 class
+- 后续可允许：
+  - `extern type POINT = class ...`
+- 但这不是本阶段首批必做项
+
+--------------------------------
+七、当前优先级
+--------------------------------
+
+第一优先级
+- `point -> function<...>` runtime 桥接
+- `runtime.sys_loadlib_func_*` 系列验收
+
+第二优先级
+- `extern var`
+- extern/runtime 统一回归
+
+第三优先级
+- class parser + sem 骨架
+- class 布局 / create / destroy / extends / union
+
+第四优先级
+- class lowering / cgen / runtime 生命周期
+
+第五优先级
+- parser conflict 回收
+- 总覆盖率文档同步
+
+--------------------------------
+八、当前结论
+--------------------------------
+
+- 原生桥接、extern 补齐、class 第一阶段可以并入同一主线 spec
+- 其中最先落地的仍应是 runtime 原生桥接
+- class 第一阶段已经完成语义定版，可直接进入实现
