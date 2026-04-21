@@ -1,0 +1,6 @@
+func main() as int
+	auto add = func(int a, int b) as int
+		return a + b
+	end
+	return add(20, 22)
+end

@@ -1,0 +1,49 @@
+HIR
+Program @ 0:0 scope=0
+	Func @ 1:6 text="main" abi="xl__main__arity0__ret__int" type="int" scope=1 symbol=0 func=50
+		Block @ 1:6 text="params"
+		Block @ 0:0 scope=2
+			Var @ 2:7 text="add" type="function<int(int,int)>" scope=2 symbol=1
+				Name @ 2:13 text="__lambda_2_13" abi="xl____lambda_2_13__arity2__a__int__b__int__ret__int" type="function<int(int,int)>" scope=3 symbol=2 func=51
+			Return @ 5:2
+				Call @ 5:19 text="" type="int" scope=2
+					Name @ 5:9 text="add" type="function<int(int,int)>" scope=2 symbol=1
+					Block @ 5:19 text="args"
+						Literal @ 5:13 text="20" type="int" scope=2 int=20
+						Literal @ 5:17 text="22" type="int" scope=2 int=22
+	Func @ 2:13 text="__lambda_2_13" abi="xl____lambda_2_13__arity2__a__int__b__int__ret__int" type="int" scope=3 symbol=2 func=51
+		Block @ 2:13 text="params"
+			Param @ 2:22 text="a" type="int" scope=3 symbol=3
+			Param @ 2:29 text="b" type="int" scope=3 symbol=4
+		Block @ 0:0 scope=4
+			Return @ 3:3
+				Binary @ 3:12 text="+" type="int" scope=4
+					Name @ 3:10 text="a" type="int" scope=4 symbol=3
+					Name @ 3:14 text="b" type="int" scope=4 symbol=4
+MIR
+Program @ 0:0 text="" scope=0
+	Func @ 1:6 text="main" abi="xl__main__arity0__ret__int" type="int" scope=1 symbol=0 func=50
+		Block @ 1:6 text="params"
+		Block @ 0:0 text="" scope=2
+			Bind @ 2:7 text="add" type="function<int(int,int)>" scope=2 symbol=1
+				Value @ 2:13 text="__lambda_2_13" abi="xl____lambda_2_13__arity2__a__int__b__int__ret__int" type="function<int(int,int)>" scope=3 symbol=2 func=51
+			Return @ 5:2 text=""
+				Call @ 5:19 text="" type="int" scope=2
+					Value @ 5:9 text="add" type="function<int(int,int)>" scope=2 symbol=1
+					Block @ 5:19 text="args"
+						Value @ 5:13 text="20" type="int" scope=2
+						Value @ 5:17 text="22" type="int" scope=2
+	Func @ 2:13 text="__lambda_2_13" abi="xl____lambda_2_13__arity2__a__int__b__int__ret__int" type="int" scope=3 symbol=2 func=51
+		Block @ 2:13 text="params"
+			Value @ 2:22 text="a" type="int" scope=3 symbol=3
+			Value @ 2:29 text="b" type="int" scope=3 symbol=4
+		Block @ 0:0 text="" scope=4
+			Return @ 3:3 text=""
+				Value @ 3:12 text="+" type="int" scope=4
+					Value @ 3:10 text="a" type="int" scope=4 symbol=3
+					Value @ 3:14 text="b" type="int" scope=4 symbol=4
+AsyncStateMachine
+	<none>
+GeneratorStateMachine
+	<none>
+HybridStateMachine

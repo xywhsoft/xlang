@@ -226,6 +226,7 @@ IDENT		{IDENT_START}{IDENT_CONT}*
 <COMMENT><<EOF>>			{ __xlSetErrorToken(yyscanner, "unterminated block comment"); BEGIN(INITIAL); return XL_TK_ERROR; }
 
 "**="					{ __xlSetTokenCommon(yyscanner, XL_OP_POWER_ASSIGN); return XL_OP_POWER_ASSIGN; }
+"=>"					{ __xlSetTokenCommon(yyscanner, XL_OP_FAT_ARROW); return XL_OP_FAT_ARROW; }
 "**"					{ __xlSetTokenCommon(yyscanner, XL_OP_POWER); return XL_OP_POWER; }
 "..."					{ __xlSetTokenCommon(yyscanner, XL_OP_ELLIPSIS); return XL_OP_ELLIPSIS; }
 ".."					{ __xlSetTokenCommon(yyscanner, XL_OP_RANGE); return XL_OP_RANGE; }

@@ -1,0 +1,264 @@
+{
+	"kind": "Program",
+	"line": 0,
+	"column": 0,
+	"text": null,
+	"abiSymbol": null,
+	"type": null,
+	"scopeId": 0,
+	"symbolIndex": -1,
+	"funcIndex": -1,
+	"children": [
+		{
+			"kind": "Func",
+			"line": 1,
+			"column": 6,
+			"text": "main",
+			"abiSymbol": "xl__main__arity0__ret__int",
+			"type": "int",
+			"scopeId": 1,
+			"symbolIndex": 0,
+			"funcIndex": 50,
+			"children": [
+				{
+					"kind": "Block",
+					"line": 1,
+					"column": 6,
+					"text": "params",
+					"abiSymbol": null,
+					"type": null,
+					"scopeId": -1,
+					"symbolIndex": -1,
+					"funcIndex": -1,
+					"children": []
+				},
+				{
+					"kind": "Block",
+					"line": 0,
+					"column": 0,
+					"text": null,
+					"abiSymbol": null,
+					"type": null,
+					"scopeId": 2,
+					"symbolIndex": -1,
+					"funcIndex": -1,
+					"children": [
+						{
+							"kind": "Var",
+							"line": 2,
+							"column": 7,
+							"text": "add",
+							"abiSymbol": null,
+							"type": "function<int(int,int)>",
+							"scopeId": 2,
+							"symbolIndex": 1,
+							"funcIndex": -1,
+							"children": [
+								{
+									"kind": "Name",
+									"line": 2,
+									"column": 13,
+									"text": "__lambda_2_13",
+									"abiSymbol": "xl____lambda_2_13__arity2__a__int__b__int__ret__int",
+									"type": "function<int(int,int)>",
+									"scopeId": 3,
+									"symbolIndex": 2,
+									"funcIndex": 51,
+									"children": []
+								}
+							]
+						},
+						{
+							"kind": "Return",
+							"line": 5,
+							"column": 2,
+							"text": null,
+							"abiSymbol": null,
+							"type": null,
+							"scopeId": -1,
+							"symbolIndex": -1,
+							"funcIndex": -1,
+							"children": [
+								{
+									"kind": "Call",
+									"line": 5,
+									"column": 19,
+									"text": "",
+									"abiSymbol": null,
+									"type": "int",
+									"scopeId": 2,
+									"symbolIndex": -1,
+									"funcIndex": -1,
+									"children": [
+										{
+											"kind": "Name",
+											"line": 5,
+											"column": 9,
+											"text": "add",
+											"abiSymbol": null,
+											"type": "function<int(int,int)>",
+											"scopeId": 2,
+											"symbolIndex": 1,
+											"funcIndex": -1,
+											"children": []
+										},
+										{
+											"kind": "Block",
+											"line": 5,
+											"column": 19,
+											"text": "args",
+											"abiSymbol": null,
+											"type": null,
+											"scopeId": -1,
+											"symbolIndex": -1,
+											"funcIndex": -1,
+											"children": [
+												{
+													"kind": "Literal",
+													"line": 5,
+													"column": 13,
+													"text": "20",
+													"abiSymbol": null,
+													"type": "int",
+													"scopeId": 2,
+													"symbolIndex": -1,
+													"funcIndex": -1,
+													"children": []
+												},
+												{
+													"kind": "Literal",
+													"line": 5,
+													"column": 17,
+													"text": "22",
+													"abiSymbol": null,
+													"type": "int",
+													"scopeId": 2,
+													"symbolIndex": -1,
+													"funcIndex": -1,
+													"children": []
+												}
+											]
+										}
+									]
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"kind": "Func",
+			"line": 2,
+			"column": 13,
+			"text": "__lambda_2_13",
+			"abiSymbol": "xl____lambda_2_13__arity2__a__int__b__int__ret__int",
+			"type": "int",
+			"scopeId": 3,
+			"symbolIndex": 2,
+			"funcIndex": 51,
+			"children": [
+				{
+					"kind": "Block",
+					"line": 2,
+					"column": 13,
+					"text": "params",
+					"abiSymbol": null,
+					"type": null,
+					"scopeId": -1,
+					"symbolIndex": -1,
+					"funcIndex": -1,
+					"children": [
+						{
+							"kind": "Param",
+							"line": 2,
+							"column": 22,
+							"text": "a",
+							"abiSymbol": null,
+							"type": "int",
+							"scopeId": 3,
+							"symbolIndex": 3,
+							"funcIndex": -1,
+							"children": []
+						},
+						{
+							"kind": "Param",
+							"line": 2,
+							"column": 29,
+							"text": "b",
+							"abiSymbol": null,
+							"type": "int",
+							"scopeId": 3,
+							"symbolIndex": 4,
+							"funcIndex": -1,
+							"children": []
+						}
+					]
+				},
+				{
+					"kind": "Block",
+					"line": 0,
+					"column": 0,
+					"text": null,
+					"abiSymbol": null,
+					"type": null,
+					"scopeId": 4,
+					"symbolIndex": -1,
+					"funcIndex": -1,
+					"children": [
+						{
+							"kind": "Return",
+							"line": 3,
+							"column": 3,
+							"text": null,
+							"abiSymbol": null,
+							"type": null,
+							"scopeId": -1,
+							"symbolIndex": -1,
+							"funcIndex": -1,
+							"children": [
+								{
+									"kind": "Binary",
+									"line": 3,
+									"column": 12,
+									"text": "+",
+									"abiSymbol": null,
+									"type": "int",
+									"scopeId": 4,
+									"symbolIndex": -1,
+									"funcIndex": -1,
+									"children": [
+										{
+											"kind": "Name",
+											"line": 3,
+											"column": 10,
+											"text": "a",
+											"abiSymbol": null,
+											"type": "int",
+											"scopeId": 4,
+											"symbolIndex": 3,
+											"funcIndex": -1,
+											"children": []
+										},
+										{
+											"kind": "Name",
+											"line": 3,
+											"column": 14,
+											"text": "b",
+											"abiSymbol": null,
+											"type": "int",
+											"scopeId": 4,
+											"symbolIndex": 4,
+											"funcIndex": -1,
+											"children": []
+										}
+									]
+								}
+							]
+						}
+					]
+				}
+			]
+		}
+	]
+}

@@ -1,0 +1,8 @@
+func main() as int
+	auto value = 1
+	auto read = func() as int
+		return value
+	end
+	value = 42
+	return read()
+end

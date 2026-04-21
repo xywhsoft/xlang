@@ -1,0 +1,29 @@
+Program @ 0:0-0:0
+	FuncDecl @ 1:6-1:10 text="main"
+		List @ 0:0-0:0
+		List @ 0:0-0:0
+			TypeRef @ 1:16-1:19 text="int"
+		Block @ 0:0-0:0
+			VarDecl @ 2:7-2:10 text="add"
+				TypeRef @ 2:2-2:6 text="auto"
+				FuncExpr @ 2:13-2:17
+					List @ 0:0-0:0
+						Param @ 2:22-2:23 text="a"
+							TypeRef @ 2:18-2:21 text="int"
+						Param @ 2:29-2:30 text="b"
+							TypeRef @ 2:25-2:28 text="int"
+					List @ 0:0-0:0
+						TypeRef @ 2:35-2:38 text="int"
+					Block @ 0:0-0:0
+						Return @ 3:3-3:9
+							List @ 0:0-0:0
+								Binary @ 3:12-3:13 text="+"
+									Ident @ 3:10-3:11 text="a"
+									Ident @ 3:14-3:15 text="b"
+			Return @ 5:2-5:8
+				List @ 0:0-0:0
+					Call @ 5:19-5:20
+						Ident @ 5:9-5:12 text="add"
+						List @ 0:0-0:0
+							Int @ 5:13-5:15 text="20" int=20
+							Int @ 5:17-5:19 text="22" int=22

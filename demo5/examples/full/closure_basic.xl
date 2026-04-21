@@ -1,0 +1,5 @@
+func main() as int
+	auto base = 40
+	auto add = func(int x) as int => base + x
+	return add(2)
+end

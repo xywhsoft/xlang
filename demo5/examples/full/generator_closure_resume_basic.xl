@@ -1,0 +1,29 @@
+func make_funcs() as function<int()>
+	auto value = 10
+	auto next = func() as int
+		value = value + 1
+		return value
+	end
+
+	yield next
+	value = int((yield next))
+	yield next
+end
+
+func take(generator g) as int
+	auto sum = 0
+	auto ok1, fn1 = g.next()
+	auto ok2, fn2 = g.next()
+	auto ok3, fn3 = g.resume(29)
+	if (not ok1) or (not ok2) or (not ok3)
+		return -1
+	end
+	sum += function<int()>(fn1)()
+	sum += function<int()>(fn2)()
+	sum += function<int()>(fn3)()
+	return sum
+end
+
+func main() as int
+	return take(make_funcs())
+end

@@ -1,0 +1,85 @@
+ModuleLoadOrder
+- [0] <root> -> D:\Git\x-lang\demo5\examples\full\closure_return_basic.xl native=0 binding=
+ModuleExports
+- module=<root>
+  abi init=xl_mod__root___init exports=xl_mod__root___exports descriptor=xl_mod__root___descriptor
+NativeRegistry
+- key=std.core binding=std.core path=<native:std.core>
+- key=std.crypto binding=std.crypto path=<native:std.crypto>
+- key=std.debug binding=std.debug path=<native:std.debug>
+- key=std.channel binding=std.channel path=<native:std.channel>
+- key=std.clock binding=std.clock path=<native:std.clock>
+- key=std.dict binding=std.dict path=<native:std.dict>
+- key=std.dir binding=std.dir path=<native:std.dir>
+- key=std.encode binding=std.encode path=<native:std.encode>
+- key=std.env binding=std.env path=<native:std.env>
+- key=std.error binding=std.error path=<native:std.error>
+- key=std.fmt binding=std.fmt path=<native:std.fmt>
+- key=std.fs binding=std.fs path=<native:std.fs>
+- key=std.future binding=std.future path=<native:std.future>
+- key=std.hash binding=std.hash path=<native:std.hash>
+- key=std.host binding=std.host path=<native:std.host>
+- key=std.net.http binding=std.net.http path=<native:std.net.http>
+- key=std.net.httpd binding=std.net.httpd path=<native:std.net.httpd>
+- key=std.net.dns binding=std.net.dns path=<native:std.net.dns>
+- key=std.net.tcp binding=std.net.tcp path=<native:std.net.tcp>
+- key=std.net.udp binding=std.net.udp path=<native:std.net.udp>
+- key=std.net.ws binding=std.net.ws path=<native:std.net.ws>
+- key=std.net.proxy binding=std.net.proxy path=<native:std.net.proxy>
+- key=std.net.tls binding=std.net.tls path=<native:std.net.tls>
+- key=std.io binding=std.io path=<native:std.io>
+- key=std.iter binding=std.iter path=<native:std.iter>
+- key=std.json binding=std.json path=<native:std.json>
+- key=std.list binding=std.list path=<native:std.list>
+- key=std.assert binding=std.assert path=<native:std.assert>
+- key=std.atomic binding=std.atomic path=<native:std.atomic>
+- key=std.log binding=std.log path=<native:std.log>
+- key=std.math binding=std.math path=<native:std.math>
+- key=std.module binding=std.module path=<native:std.module>
+- key=std.net binding=std.net path=<native:std.net>
+- key=std.net.ip binding=std.net.ip path=<native:std.net.ip>
+- key=std.net.mime binding=std.net.mime path=<native:std.net.mime>
+- key=std.net.multipart binding=std.net.multipart path=<native:std.net.multipart>
+- key=std.net.url binding=std.net.url path=<native:std.net.url>
+- key=std.os binding=std.os path=<native:std.os>
+- key=std.pack binding=std.pack path=<native:std.pack>
+- key=std.path binding=std.path path=<native:std.path>
+- key=std.rand binding=std.rand path=<native:std.rand>
+- key=std.regex binding=std.regex path=<native:std.regex>
+- key=std.process binding=std.process path=<native:std.process>
+- key=std.query binding=std.query path=<native:std.query>
+- key=std.range binding=std.range path=<native:std.range>
+- key=std.array binding=std.array path=<native:std.array>
+- key=std.set binding=std.set path=<native:std.set>
+- key=std.str binding=std.str path=<native:std.str>
+- key=std.sys.lib binding=std.sys.lib path=<native:std.sys.lib>
+- key=std.sys.env binding=std.sys.env path=<native:std.sys.env>
+- key=std.sys.file binding=std.sys.file path=<native:std.sys.file>
+- key=std.sys.mem binding=std.sys.mem path=<native:std.sys.mem>
+- key=std.sys.net binding=std.sys.net path=<native:std.sys.net>
+- key=std.sys.process binding=std.sys.process path=<native:std.sys.process>
+- key=std.sys.wait binding=std.sys.wait path=<native:std.sys.wait>
+- key=std.sync binding=std.sync path=<native:std.sync>
+- key=std.template binding=std.template path=<native:std.template>
+- key=std.thread binding=std.thread path=<native:std.thread>
+- key=std.trace binding=std.trace path=<native:std.trace>
+- key=std.time binding=std.time path=<native:std.time>
+- key=std.task binding=std.task path=<native:std.task>
+- key=std.types binding=std.types path=<native:std.types>
+tcc_root=D:\Git\x-lang\demo5\release\tcc
+include=D:\Git\x-lang\demo5\release\tcc\include_win
+include=D:\Git\x-lang\demo5\release\tcc\include_win\winapi
+include=D:\Git\x-lang\demo5\src\runtime
+include=D:\Git\x-lang\demo5\lib\xrt
+lib=D:\Git\x-lang\demo5\release\tcc\lib
+link_lib=shell32
+link_lib=ws2_32
+link_lib=iphlpapi
+compile_text=demo5\examples\full\closure_return_basic.xl
+cwd.prev=D:\Git\x-lang
+cwd.exec=D:\Git\x-lang\demo5
+relocate
+resolve_symbol=xl_generated_entry
+execute
+exit_code=42
+cwd.restore=D:\Git\x-lang

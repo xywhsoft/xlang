@@ -1,0 +1,1094 @@
+{
+	"kind": "Program",
+	"line": 0,
+	"column": 0,
+	"text": "",
+	"abiSymbol": null,
+	"type": null,
+	"scopeId": 0,
+	"symbolIndex": -1,
+	"funcIndex": -1,
+	"children": [
+		{
+			"kind": "Func",
+			"line": 1,
+			"column": 6,
+			"text": "xl_mod_std_sys_lib__loadlib",
+			"abiSymbol": "xl__xl_mod_std_sys_lib__loadlib__arity1__path__string__ret__var",
+			"type": "var",
+			"scopeId": 1,
+			"symbolIndex": 0,
+			"funcIndex": 50,
+			"children": [
+				{
+					"kind": "Block",
+					"line": 1,
+					"column": 6,
+					"text": "params",
+					"abiSymbol": null,
+					"type": null,
+					"scopeId": -1,
+					"symbolIndex": -1,
+					"funcIndex": -1,
+					"children": [
+						{
+							"kind": "Value",
+							"line": 1,
+							"column": 21,
+							"text": "path",
+							"abiSymbol": null,
+							"type": "string",
+							"scopeId": 1,
+							"symbolIndex": 6,
+							"funcIndex": -1,
+							"children": []
+						}
+					]
+				},
+				{
+					"kind": "Block",
+					"line": 0,
+					"column": 0,
+					"text": "",
+					"abiSymbol": null,
+					"type": null,
+					"scopeId": 2,
+					"symbolIndex": -1,
+					"funcIndex": -1,
+					"children": []
+				}
+			]
+		},
+		{
+			"kind": "Func",
+			"line": 3,
+			"column": 10,
+			"text": "xl_mod_std_sys_lib__proc",
+			"abiSymbol": "xl__xl_mod_std_sys_lib__proc__arity2__self__var__name__string__ret__point",
+			"type": "point",
+			"scopeId": 3,
+			"symbolIndex": 1,
+			"funcIndex": 51,
+			"children": [
+				{
+					"kind": "Block",
+					"line": 3,
+					"column": 10,
+					"text": "params",
+					"abiSymbol": null,
+					"type": null,
+					"scopeId": -1,
+					"symbolIndex": -1,
+					"funcIndex": -1,
+					"children": [
+						{
+							"kind": "Value",
+							"line": 3,
+							"column": 19,
+							"text": "self",
+							"abiSymbol": null,
+							"type": "var",
+							"scopeId": 3,
+							"symbolIndex": 7,
+							"funcIndex": -1,
+							"children": []
+						},
+						{
+							"kind": "Value",
+							"line": 3,
+							"column": 32,
+							"text": "name",
+							"abiSymbol": null,
+							"type": "string",
+							"scopeId": 3,
+							"symbolIndex": 8,
+							"funcIndex": -1,
+							"children": []
+						}
+					]
+				},
+				{
+					"kind": "Block",
+					"line": 0,
+					"column": 0,
+					"text": "",
+					"abiSymbol": null,
+					"type": null,
+					"scopeId": 4,
+					"symbolIndex": -1,
+					"funcIndex": -1,
+					"children": []
+				}
+			]
+		},
+		{
+			"kind": "Func",
+			"line": 5,
+			"column": 10,
+			"text": "xl_mod_std_sys_lib__close",
+			"abiSymbol": "xl__xl_mod_std_sys_lib__close__arity1__self__var__ret__bool",
+			"type": "bool",
+			"scopeId": 5,
+			"symbolIndex": 2,
+			"funcIndex": 52,
+			"children": [
+				{
+					"kind": "Block",
+					"line": 5,
+					"column": 10,
+					"text": "params",
+					"abiSymbol": null,
+					"type": null,
+					"scopeId": -1,
+					"symbolIndex": -1,
+					"funcIndex": -1,
+					"children": [
+						{
+							"kind": "Value",
+							"line": 5,
+							"column": 20,
+							"text": "self",
+							"abiSymbol": null,
+							"type": "var",
+							"scopeId": 5,
+							"symbolIndex": 9,
+							"funcIndex": -1,
+							"children": []
+						}
+					]
+				},
+				{
+					"kind": "Block",
+					"line": 0,
+					"column": 0,
+					"text": "",
+					"abiSymbol": null,
+					"type": null,
+					"scopeId": 6,
+					"symbolIndex": -1,
+					"funcIndex": -1,
+					"children": []
+				}
+			]
+		},
+		{
+			"kind": "Func",
+			"line": 7,
+			"column": 10,
+			"text": "xl_mod_std_sys_lib__path",
+			"abiSymbol": "xl__xl_mod_std_sys_lib__path__arity1__self__var__ret__string",
+			"type": "string",
+			"scopeId": 7,
+			"symbolIndex": 3,
+			"funcIndex": 53,
+			"children": [
+				{
+					"kind": "Block",
+					"line": 7,
+					"column": 10,
+					"text": "params",
+					"abiSymbol": null,
+					"type": null,
+					"scopeId": -1,
+					"symbolIndex": -1,
+					"funcIndex": -1,
+					"children": [
+						{
+							"kind": "Value",
+							"line": 7,
+							"column": 19,
+							"text": "self",
+							"abiSymbol": null,
+							"type": "var",
+							"scopeId": 7,
+							"symbolIndex": 10,
+							"funcIndex": -1,
+							"children": []
+						}
+					]
+				},
+				{
+					"kind": "Block",
+					"line": 0,
+					"column": 0,
+					"text": "",
+					"abiSymbol": null,
+					"type": null,
+					"scopeId": 8,
+					"symbolIndex": -1,
+					"funcIndex": -1,
+					"children": []
+				}
+			]
+		},
+		{
+			"kind": "Func",
+			"line": 9,
+			"column": 10,
+			"text": "xl_mod_std_sys_lib__loaded",
+			"abiSymbol": "xl__xl_mod_std_sys_lib__loaded__arity1__self__var__ret__bool",
+			"type": "bool",
+			"scopeId": 9,
+			"symbolIndex": 4,
+			"funcIndex": 54,
+			"children": [
+				{
+					"kind": "Block",
+					"line": 9,
+					"column": 10,
+					"text": "params",
+					"abiSymbol": null,
+					"type": null,
+					"scopeId": -1,
+					"symbolIndex": -1,
+					"funcIndex": -1,
+					"children": [
+						{
+							"kind": "Value",
+							"line": 9,
+							"column": 21,
+							"text": "self",
+							"abiSymbol": null,
+							"type": "var",
+							"scopeId": 9,
+							"symbolIndex": 11,
+							"funcIndex": -1,
+							"children": []
+						}
+					]
+				},
+				{
+					"kind": "Block",
+					"line": 0,
+					"column": 0,
+					"text": "",
+					"abiSymbol": null,
+					"type": null,
+					"scopeId": 10,
+					"symbolIndex": -1,
+					"funcIndex": -1,
+					"children": []
+				}
+			]
+		},
+		{
+			"kind": "Import",
+			"line": 1,
+			"column": 15,
+			"text": "",
+			"abiSymbol": null,
+			"type": "module",
+			"scopeId": 0,
+			"symbolIndex": 12,
+			"funcIndex": -1,
+			"children": [
+				{
+					"kind": "Member",
+					"line": 1,
+					"column": 15,
+					"text": "lib",
+					"abiSymbol": null,
+					"type": null,
+					"scopeId": -1,
+					"symbolIndex": -1,
+					"funcIndex": -1,
+					"children": [
+						{
+							"kind": "Member",
+							"line": 1,
+							"column": 11,
+							"text": "sys",
+							"abiSymbol": null,
+							"type": null,
+							"scopeId": -1,
+							"symbolIndex": -1,
+							"funcIndex": -1,
+							"children": [
+								{
+									"kind": "Value",
+									"line": 1,
+									"column": 8,
+									"text": "std",
+									"abiSymbol": null,
+									"type": null,
+									"scopeId": -1,
+									"symbolIndex": -1,
+									"funcIndex": -1,
+									"children": []
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"kind": "Func",
+			"line": 3,
+			"column": 6,
+			"text": "main",
+			"abiSymbol": "xl__main__arity0__ret__int",
+			"type": "int",
+			"scopeId": 11,
+			"symbolIndex": 5,
+			"funcIndex": 55,
+			"children": [
+				{
+					"kind": "Block",
+					"line": 3,
+					"column": 6,
+					"text": "params",
+					"abiSymbol": null,
+					"type": null,
+					"scopeId": -1,
+					"symbolIndex": -1,
+					"funcIndex": -1,
+					"children": []
+				},
+				{
+					"kind": "Block",
+					"line": 0,
+					"column": 0,
+					"text": "",
+					"abiSymbol": null,
+					"type": null,
+					"scopeId": 12,
+					"symbolIndex": -1,
+					"funcIndex": -1,
+					"children": [
+						{
+							"kind": "Bind",
+							"line": 4,
+							"column": 7,
+							"text": "lib",
+							"abiSymbol": null,
+							"type": "var",
+							"scopeId": 12,
+							"symbolIndex": 13,
+							"funcIndex": -1,
+							"children": [
+								{
+									"kind": "Call",
+									"line": 4,
+									"column": 37,
+									"text": "",
+									"abiSymbol": "xl__xl_mod_std_sys_lib__loadlib__arity1__path__string__ret__var",
+									"type": "var",
+									"scopeId": 12,
+									"symbolIndex": -1,
+									"funcIndex": 50,
+									"children": [
+										{
+											"kind": "Value",
+											"line": 4,
+											"column": 16,
+											"text": "xl_mod_std_sys_lib__loadlib",
+											"abiSymbol": null,
+											"type": null,
+											"scopeId": -1,
+											"symbolIndex": -1,
+											"funcIndex": -1,
+											"children": []
+										},
+										{
+											"kind": "Block",
+											"line": 4,
+											"column": 37,
+											"text": "args",
+											"abiSymbol": null,
+											"type": null,
+											"scopeId": -1,
+											"symbolIndex": -1,
+											"funcIndex": -1,
+											"children": [
+												{
+													"kind": "Value",
+													"line": 4,
+													"column": 25,
+													"text": "\"msvcrt.dll\"",
+													"abiSymbol": null,
+													"type": "string",
+													"scopeId": 12,
+													"symbolIndex": -1,
+													"funcIndex": -1,
+													"children": []
+												}
+											]
+										}
+									]
+								}
+							]
+						},
+						{
+							"kind": "Bind",
+							"line": 5,
+							"column": 24,
+							"text": "atoi",
+							"abiSymbol": null,
+							"type": "function<int(string)>",
+							"scopeId": 12,
+							"symbolIndex": 14,
+							"funcIndex": -1,
+							"children": [
+								{
+									"kind": "Call",
+									"line": 5,
+									"column": 69,
+									"text": "",
+									"abiSymbol": null,
+									"type": "function<int(string)>",
+									"scopeId": 12,
+									"symbolIndex": -1,
+									"funcIndex": -1,
+									"children": [
+										{
+											"kind": "Value",
+											"line": 5,
+											"column": 31,
+											"text": "function<int(string)>",
+											"abiSymbol": null,
+											"type": "function<int(string)>",
+											"scopeId": 12,
+											"symbolIndex": -1,
+											"funcIndex": -1,
+											"children": []
+										},
+										{
+											"kind": "Block",
+											"line": 5,
+											"column": 69,
+											"text": "args",
+											"abiSymbol": null,
+											"type": null,
+											"scopeId": -1,
+											"symbolIndex": -1,
+											"funcIndex": -1,
+											"children": [
+												{
+													"kind": "Call",
+													"line": 5,
+													"column": 68,
+													"text": "",
+													"abiSymbol": "xl__xl_mod_std_sys_lib__proc__arity2__self__var__name__string__ret__point",
+													"type": "point",
+													"scopeId": 12,
+													"symbolIndex": -1,
+													"funcIndex": 51,
+													"children": [
+														{
+															"kind": "Value",
+															"line": 5,
+															"column": 56,
+															"text": "xl_mod_std_sys_lib__proc",
+															"abiSymbol": "xl__xl_mod_std_sys_lib__proc__arity2__self__var__name__string__ret__point",
+															"type": null,
+															"scopeId": -1,
+															"symbolIndex": -1,
+															"funcIndex": 51,
+															"children": []
+														},
+														{
+															"kind": "Block",
+															"line": 5,
+															"column": 68,
+															"text": "args",
+															"abiSymbol": null,
+															"type": null,
+															"scopeId": -1,
+															"symbolIndex": -1,
+															"funcIndex": -1,
+															"children": [
+																{
+																	"kind": "Value",
+																	"line": 5,
+																	"column": 53,
+																	"text": "lib",
+																	"abiSymbol": null,
+																	"type": "var",
+																	"scopeId": 12,
+																	"symbolIndex": 13,
+																	"funcIndex": -1,
+																	"children": []
+																},
+																{
+																	"kind": "Value",
+																	"line": 5,
+																	"column": 62,
+																	"text": "\"atoi\"",
+																	"abiSymbol": null,
+																	"type": "string",
+																	"scopeId": 12,
+																	"symbolIndex": -1,
+																	"funcIndex": -1,
+																	"children": []
+																}
+															]
+														}
+													]
+												}
+											]
+										}
+									]
+								}
+							]
+						},
+						{
+							"kind": "Bind",
+							"line": 6,
+							"column": 6,
+							"text": "dyn",
+							"abiSymbol": null,
+							"type": "var",
+							"scopeId": 12,
+							"symbolIndex": 15,
+							"funcIndex": -1,
+							"children": [
+								{
+									"kind": "Value",
+									"line": 6,
+									"column": 12,
+									"text": "atoi",
+									"abiSymbol": null,
+									"type": "function<int(string)>",
+									"scopeId": 12,
+									"symbolIndex": 14,
+									"funcIndex": -1,
+									"children": []
+								}
+							]
+						},
+						{
+							"kind": "Bind",
+							"line": 7,
+							"column": 7,
+							"text": "ok",
+							"abiSymbol": null,
+							"type": "bool",
+							"scopeId": 12,
+							"symbolIndex": 16,
+							"funcIndex": -1,
+							"children": [
+								{
+									"kind": "Call",
+									"line": 7,
+									"column": 22,
+									"text": "",
+									"abiSymbol": "xl__xl_mod_std_sys_lib__close__arity1__self__var__ret__bool",
+									"type": "bool",
+									"scopeId": 12,
+									"symbolIndex": -1,
+									"funcIndex": 52,
+									"children": [
+										{
+											"kind": "Value",
+											"line": 7,
+											"column": 15,
+											"text": "xl_mod_std_sys_lib__close",
+											"abiSymbol": "xl__xl_mod_std_sys_lib__close__arity1__self__var__ret__bool",
+											"type": null,
+											"scopeId": -1,
+											"symbolIndex": -1,
+											"funcIndex": 52,
+											"children": []
+										},
+										{
+											"kind": "Block",
+											"line": 7,
+											"column": 22,
+											"text": "args",
+											"abiSymbol": null,
+											"type": null,
+											"scopeId": -1,
+											"symbolIndex": -1,
+											"funcIndex": -1,
+											"children": [
+												{
+													"kind": "Value",
+													"line": 7,
+													"column": 12,
+													"text": "lib",
+													"abiSymbol": null,
+													"type": "var",
+													"scopeId": 12,
+													"symbolIndex": 13,
+													"funcIndex": -1,
+													"children": []
+												}
+											]
+										}
+									]
+								}
+							]
+						},
+						{
+							"kind": "Branch",
+							"line": 9,
+							"column": 2,
+							"text": "",
+							"abiSymbol": null,
+							"type": null,
+							"scopeId": -1,
+							"symbolIndex": -1,
+							"funcIndex": -1,
+							"children": [
+								{
+									"kind": "Value",
+									"line": 9,
+									"column": 17,
+									"text": "!=",
+									"abiSymbol": null,
+									"type": "bool",
+									"scopeId": 12,
+									"symbolIndex": -1,
+									"funcIndex": -1,
+									"children": [
+										{
+											"kind": "Call",
+											"line": 9,
+											"column": 15,
+											"text": "",
+											"abiSymbol": null,
+											"type": "int",
+											"scopeId": 12,
+											"symbolIndex": -1,
+											"funcIndex": -1,
+											"children": [
+												{
+													"kind": "Value",
+													"line": 9,
+													"column": 5,
+													"text": "atoi",
+													"abiSymbol": null,
+													"type": "function<int(string)>",
+													"scopeId": 12,
+													"symbolIndex": 14,
+													"funcIndex": -1,
+													"children": []
+												},
+												{
+													"kind": "Block",
+													"line": 9,
+													"column": 15,
+													"text": "args",
+													"abiSymbol": null,
+													"type": null,
+													"scopeId": -1,
+													"symbolIndex": -1,
+													"funcIndex": -1,
+													"children": [
+														{
+															"kind": "Value",
+															"line": 9,
+															"column": 10,
+															"text": "\"123\"",
+															"abiSymbol": null,
+															"type": "string",
+															"scopeId": 12,
+															"symbolIndex": -1,
+															"funcIndex": -1,
+															"children": []
+														}
+													]
+												}
+											]
+										},
+										{
+											"kind": "Value",
+											"line": 9,
+											"column": 20,
+											"text": "123",
+											"abiSymbol": null,
+											"type": "int",
+											"scopeId": 12,
+											"symbolIndex": -1,
+											"funcIndex": -1,
+											"children": []
+										}
+									]
+								},
+								{
+									"kind": "Block",
+									"line": 0,
+									"column": 0,
+									"text": "",
+									"abiSymbol": null,
+									"type": null,
+									"scopeId": 13,
+									"symbolIndex": -1,
+									"funcIndex": -1,
+									"children": [
+										{
+											"kind": "Return",
+											"line": 10,
+											"column": 3,
+											"text": "",
+											"abiSymbol": null,
+											"type": null,
+											"scopeId": -1,
+											"symbolIndex": -1,
+											"funcIndex": -1,
+											"children": [
+												{
+													"kind": "Value",
+													"line": 10,
+													"column": 10,
+													"text": "1",
+													"abiSymbol": null,
+													"type": "int",
+													"scopeId": 13,
+													"symbolIndex": -1,
+													"funcIndex": -1,
+													"children": []
+												}
+											]
+										}
+									]
+								}
+							]
+						},
+						{
+							"kind": "Branch",
+							"line": 12,
+							"column": 2,
+							"text": "",
+							"abiSymbol": null,
+							"type": null,
+							"scopeId": -1,
+							"symbolIndex": -1,
+							"funcIndex": -1,
+							"children": [
+								{
+									"kind": "Value",
+									"line": 12,
+									"column": 15,
+									"text": "!=",
+									"abiSymbol": null,
+									"type": "bool",
+									"scopeId": 12,
+									"symbolIndex": -1,
+									"funcIndex": -1,
+									"children": [
+										{
+											"kind": "Call",
+											"line": 12,
+											"column": 13,
+											"text": "",
+											"abiSymbol": null,
+											"type": "int",
+											"scopeId": 12,
+											"symbolIndex": -1,
+											"funcIndex": -1,
+											"children": [
+												{
+													"kind": "Value",
+													"line": 12,
+													"column": 5,
+													"text": "dyn",
+													"abiSymbol": null,
+													"type": "function<int(string)>",
+													"scopeId": 12,
+													"symbolIndex": 15,
+													"funcIndex": -1,
+													"children": []
+												},
+												{
+													"kind": "Block",
+													"line": 12,
+													"column": 13,
+													"text": "args",
+													"abiSymbol": null,
+													"type": null,
+													"scopeId": -1,
+													"symbolIndex": -1,
+													"funcIndex": -1,
+													"children": [
+														{
+															"kind": "Value",
+															"line": 12,
+															"column": 9,
+															"text": "\"19\"",
+															"abiSymbol": null,
+															"type": "string",
+															"scopeId": 12,
+															"symbolIndex": -1,
+															"funcIndex": -1,
+															"children": []
+														}
+													]
+												}
+											]
+										},
+										{
+											"kind": "Value",
+											"line": 12,
+											"column": 18,
+											"text": "19",
+											"abiSymbol": null,
+											"type": "int",
+											"scopeId": 12,
+											"symbolIndex": -1,
+											"funcIndex": -1,
+											"children": []
+										}
+									]
+								},
+								{
+									"kind": "Block",
+									"line": 0,
+									"column": 0,
+									"text": "",
+									"abiSymbol": null,
+									"type": null,
+									"scopeId": 14,
+									"symbolIndex": -1,
+									"funcIndex": -1,
+									"children": [
+										{
+											"kind": "Return",
+											"line": 13,
+											"column": 3,
+											"text": "",
+											"abiSymbol": null,
+											"type": null,
+											"scopeId": -1,
+											"symbolIndex": -1,
+											"funcIndex": -1,
+											"children": [
+												{
+													"kind": "Value",
+													"line": 13,
+													"column": 10,
+													"text": "2",
+													"abiSymbol": null,
+													"type": "int",
+													"scopeId": 14,
+													"symbolIndex": -1,
+													"funcIndex": -1,
+													"children": []
+												}
+											]
+										}
+									]
+								}
+							]
+						},
+						{
+							"kind": "Branch",
+							"line": 15,
+							"column": 2,
+							"text": "",
+							"abiSymbol": null,
+							"type": null,
+							"scopeId": -1,
+							"symbolIndex": -1,
+							"funcIndex": -1,
+							"children": [
+								{
+									"kind": "Value",
+									"line": 15,
+									"column": 8,
+									"text": "==",
+									"abiSymbol": null,
+									"type": "bool",
+									"scopeId": 12,
+									"symbolIndex": -1,
+									"funcIndex": -1,
+									"children": [
+										{
+											"kind": "Value",
+											"line": 15,
+											"column": 5,
+											"text": "ok",
+											"abiSymbol": null,
+											"type": "bool",
+											"scopeId": 12,
+											"symbolIndex": 16,
+											"funcIndex": -1,
+											"children": []
+										},
+										{
+											"kind": "Value",
+											"line": 15,
+											"column": 11,
+											"text": "false",
+											"abiSymbol": null,
+											"type": "bool",
+											"scopeId": 12,
+											"symbolIndex": -1,
+											"funcIndex": -1,
+											"children": []
+										}
+									]
+								},
+								{
+									"kind": "Block",
+									"line": 0,
+									"column": 0,
+									"text": "",
+									"abiSymbol": null,
+									"type": null,
+									"scopeId": 15,
+									"symbolIndex": -1,
+									"funcIndex": -1,
+									"children": [
+										{
+											"kind": "Return",
+											"line": 16,
+											"column": 3,
+											"text": "",
+											"abiSymbol": null,
+											"type": null,
+											"scopeId": -1,
+											"symbolIndex": -1,
+											"funcIndex": -1,
+											"children": [
+												{
+													"kind": "Value",
+													"line": 16,
+													"column": 10,
+													"text": "3",
+													"abiSymbol": null,
+													"type": "int",
+													"scopeId": 15,
+													"symbolIndex": -1,
+													"funcIndex": -1,
+													"children": []
+												}
+											]
+										}
+									]
+								}
+							]
+						},
+						{
+							"kind": "Branch",
+							"line": 18,
+							"column": 2,
+							"text": "",
+							"abiSymbol": null,
+							"type": null,
+							"scopeId": -1,
+							"symbolIndex": -1,
+							"funcIndex": -1,
+							"children": [
+								{
+									"kind": "Call",
+									"line": 18,
+									"column": 16,
+									"text": "",
+									"abiSymbol": "xl__xl_mod_std_sys_lib__loaded__arity1__self__var__ret__bool",
+									"type": "bool",
+									"scopeId": 12,
+									"symbolIndex": -1,
+									"funcIndex": 54,
+									"children": [
+										{
+											"kind": "Value",
+											"line": 18,
+											"column": 8,
+											"text": "xl_mod_std_sys_lib__loaded",
+											"abiSymbol": "xl__xl_mod_std_sys_lib__loaded__arity1__self__var__ret__bool",
+											"type": null,
+											"scopeId": -1,
+											"symbolIndex": -1,
+											"funcIndex": 54,
+											"children": []
+										},
+										{
+											"kind": "Block",
+											"line": 18,
+											"column": 16,
+											"text": "args",
+											"abiSymbol": null,
+											"type": null,
+											"scopeId": -1,
+											"symbolIndex": -1,
+											"funcIndex": -1,
+											"children": [
+												{
+													"kind": "Value",
+													"line": 18,
+													"column": 5,
+													"text": "lib",
+													"abiSymbol": null,
+													"type": "var",
+													"scopeId": 12,
+													"symbolIndex": 13,
+													"funcIndex": -1,
+													"children": []
+												}
+											]
+										}
+									]
+								},
+								{
+									"kind": "Block",
+									"line": 0,
+									"column": 0,
+									"text": "",
+									"abiSymbol": null,
+									"type": null,
+									"scopeId": 16,
+									"symbolIndex": -1,
+									"funcIndex": -1,
+									"children": [
+										{
+											"kind": "Return",
+											"line": 19,
+											"column": 3,
+											"text": "",
+											"abiSymbol": null,
+											"type": null,
+											"scopeId": -1,
+											"symbolIndex": -1,
+											"funcIndex": -1,
+											"children": [
+												{
+													"kind": "Value",
+													"line": 19,
+													"column": 10,
+													"text": "4",
+													"abiSymbol": null,
+													"type": "int",
+													"scopeId": 16,
+													"symbolIndex": -1,
+													"funcIndex": -1,
+													"children": []
+												}
+											]
+										}
+									]
+								}
+							]
+						},
+						{
+							"kind": "Return",
+							"line": 21,
+							"column": 2,
+							"text": "",
+							"abiSymbol": null,
+							"type": null,
+							"scopeId": -1,
+							"symbolIndex": -1,
+							"funcIndex": -1,
+							"children": [
+								{
+									"kind": "Value",
+									"line": 21,
+									"column": 9,
+									"text": "42",
+									"abiSymbol": null,
+									"type": "int",
+									"scopeId": 12,
+									"symbolIndex": -1,
+									"funcIndex": -1,
+									"children": []
+								}
+							]
+						}
+					]
+				}
+			]
+		}
+	]
+}

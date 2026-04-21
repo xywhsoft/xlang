@@ -79,6 +79,7 @@ typedef enum XL_TokenKind {
 	XL_OP_SLASH_ASSIGN,
 	XL_OP_PERCENT_ASSIGN,
 	XL_OP_POWER_ASSIGN,
+	XL_OP_FAT_ARROW,
 	XL_OP_QUESTION,
 	XL_OP_COLON,
 	XL_OP_NULL_COALESCE,
@@ -150,7 +151,7 @@ static inline const char* xlTokenKindName(XL_TokenKind eKind)
 		"async", "await", "yield", "try", "catch", "finally", "throw", "assert", "import", "export", "extern", "include",
 		"and", "or", "not",
 		">", "<", ">=", "<=", "!=", "==", "~=", "+", "-", "*", "/", "%", "**",
-		"&", "|", "!", "^", ">>", "<<", "=", "+=", "-=", "*=", "/=", "%=", "**=",
+		"&", "|", "!", "^", ">>", "<<", "=", "+=", "-=", "*=", "/=", "%=", "**=", "=>",
 		"?", ":", "??", "?=", ".", "?.", "?[", "..", "...",
 		"(", ")", "[", "]", "{", "}", ",", ";"
 	};

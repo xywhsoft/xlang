@@ -27,10 +27,14 @@ typedef struct XL_FuncInfo {
 	char** arrParamNames;
 	char** arrParamTypes;
 	char** arrReturnTypeNames;
+	char** arrCaptureNames;
+	char** arrCaptureTypeNames;
+	int* arrCaptureSymbolIndexes;
 	unsigned char* arrParamHasDefault;
 	const XL_AstNode** arrParamDefaultValues;
 	size_t iParamCount;
 	size_t iReturnCount;
+	size_t iCaptureCount;
 	int iScopeId;
 	int iLine;
 	int iColumn;
@@ -87,5 +91,7 @@ int xlFuncTableAddEx(
 	int eVarArgKind
 );
 const XL_FuncInfo* xlFuncTableGet(const XL_FuncTable* pTable, size_t iIndex);
+XL_FuncInfo* xlFuncTableGetMutable(XL_FuncTable* pTable, size_t iIndex);
+int xlFuncInfoAddCapture(XL_FuncInfo* pInfo, const char* sName, const char* sTypeName, int iSymbolIndex);
 
 #endif

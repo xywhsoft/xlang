@@ -1,0 +1,21 @@
+import std.task
+
+async func make_funcs() as function<int()>
+	auto value = 19
+	auto next = func() as int
+		value = value + 1
+		return value
+	end
+
+	yield next
+	await task.delay(1)
+	yield next
+end
+
+func main() as int
+	auto sum = 0
+	for fn in make_funcs()
+		sum += fn()
+	end
+	return sum + 1
+end

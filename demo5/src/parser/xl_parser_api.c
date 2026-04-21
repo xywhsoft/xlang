@@ -168,6 +168,8 @@ static int __xlParserMapToken(XL_TokenKind eKind)
 			return XLPG_OP_NULL_COALESCE;
 		case XL_OP_NULL_ASSIGN:
 			return XLPG_OP_NULL_ASSIGN;
+		case XL_OP_FAT_ARROW:
+			return XLPG_XL_OP_FAT_ARROW;
 		case XL_OP_QUESTION:
 			return XLPG_OP_QUESTION;
 		case XL_OP_COLON:

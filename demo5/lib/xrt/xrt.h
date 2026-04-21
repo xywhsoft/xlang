@@ -6553,6 +6553,8 @@
 	XXAPI xvalue xvoCreatePoint(ptr point);
 	// 创建函数值
 	XXAPI xvalue xvoCreateFunc(xfunction pFunc);
+	// 创建带环境的函数值
+	XXAPI xvalue xvoCreateFuncEx(xfunction pFunc, xvalue pEnv);
 	// 创建数组
 	XXAPI xvalue xvoCreateArray();
 	// 创建数组扩展
@@ -6588,6 +6590,7 @@
 	XXAPI ptr xvoGetPoint(xvalue pVal);
 	// 获取函数值
 	XXAPI xfunction xvoGetFunc(xvalue pVal);
+	XXAPI xvalue xvoGetFuncEnv(xvalue pVal);
 	// 获取数组
 	XXAPI xparray xvoGetArray(xvalue pVal);
 	// 获取列表
@@ -71521,6 +71524,13 @@ static void __xvoDestroyValue(xvalue pVal)
 		xrtDictWalk(pVal->vTable, (ptr)xvoTableClear_FreeProc, pVal->vTable);
 		// 销毁字典容器
 		(xrtDictDestroy)(pVal->vTable);
+	} else if ( pVal->Type == XVO_DT_FUNC ) {
+		if ( pVal->Size >= (sizeof(ptr) + sizeof(xvalue)) ) {
+			xvalue* ppEnv = (xvalue*)(((char*)pVal) + sizeof(xvalue_struct));
+			if ( *ppEnv != NULL ) {
+				xvoUnref(*ppEnv);
+			}
+		}
 	} else if ( pVal->Type == XVO_DT_CLASS ) {
 		// 释放类数据块
 		xrtFree(pVal->vStruct);
@@ -71699,11 +71709,21 @@ XXAPI xvalue xvoCreatePoint(ptr point)
 // xvoCreateFunc 相关处理
 XXAPI xvalue xvoCreateFunc(xfunction pFunc)
 {
-	xvalue pVal = xrtMalloc(sizeof(xvalue_struct));
+	return xvoCreateFuncEx(pFunc, NULL);
+}
+
+XXAPI xvalue xvoCreateFuncEx(xfunction pFunc, xvalue pEnv)
+{
+	xvalue pVal = xrtMalloc(sizeof(xvalue_struct) + sizeof(xvalue));
 	if ( pVal ) {
+		xvalue* ppEnv = (xvalue*)(((char*)pVal) + sizeof(xvalue_struct));
 		xvoInitOwnedHeader_Inline(pVal, XVO_DT_FUNC, XRT_OBJMODE_LOCAL);
-		pVal->Size = sizeof(ptr);
+		pVal->Size = sizeof(ptr) + sizeof(xvalue);
 		pVal->vFunc = pFunc;
+	*ppEnv = pEnv;
+	if ( *ppEnv != NULL ) {
+		xvoAddRef_Inline(*ppEnv);
+	}
 	}
 	return pVal;
 }
@@ -71974,6 +71994,14 @@ XXAPI xfunction xvoGetFunc(xvalue pVal)
 	} else {
 		return NULL;
 	}
+}
+
+XXAPI xvalue xvoGetFuncEnv(xvalue pVal)
+{
+	if ( (pVal == NULL) || (pVal->Type != XVO_DT_FUNC) || (pVal->Size < (sizeof(ptr) + sizeof(xvalue))) ) {
+		return NULL;
+	}
+	return *((xvalue*)(((char*)pVal) + sizeof(xvalue_struct)));
 }
 // 获取数组
 XXAPI xparray xvoGetArray(xvalue pVal)
@@ -73197,6 +73225,8 @@ XXAPI xvalue xvoCopy(xvalue pVal)
 		xvalue tblRet = xvoCreateTable();
 		xrtDictWalk(pVal->vTable, (ptr)xvoCopy_TableProc, tblRet->vTable);
 		return tblRet;
+	} else if ( pVal->Type == XVO_DT_FUNC ) {
+		return xvoCreateFuncEx(pVal->vFunc, xvoGetFuncEnv(pVal));
 	} else if ( pVal->Type == XVO_DT_CLASS ) {
 		return NULL;
 	} else if ( pVal->Type == XVO_DT_CUSTOM ) {

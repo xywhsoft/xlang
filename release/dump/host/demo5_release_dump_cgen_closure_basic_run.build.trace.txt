@@ -1,0 +1,12 @@
+tcc_root=D:\Git\x-lang\demo5\release\tcc
+include=D:\Git\x-lang\demo5\release\tcc\include_win
+include=D:\Git\x-lang\demo5\release\tcc\include_win\winapi
+include=D:\Git\x-lang\demo5\src\runtime
+include=D:\Git\x-lang\demo5\lib\xrt
+lib=D:\Git\x-lang\demo5\release\tcc\lib
+compile_file=demo5\release\dump\cgen\closure_basic.run.c
+output=release\bin\closure_basic.run.exe
+output_kind=exe
+support_source=D:\Git\x-lang\demo5\src\runtime\xlrt_host.c
+[tcc] In file included from D:/Git/x-lang/demo5/src/runtime/xlrt_host.c:3:
+D:/Git/x-lang/demo5/src/runtime/../../lib/xrt/xrt.h:71529: error: 'byte' undeclared
