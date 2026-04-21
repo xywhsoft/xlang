@@ -43,12 +43,52 @@ typedef struct XL_SemNodeTable {
 	size_t iCapacity;
 } XL_SemNodeTable;
 
+typedef struct XL_ClassFieldInfo {
+	char* sName;
+	char* sTypeName;
+	char* sUnionName;
+	int iOffset;
+	int iSize;
+	int iAlign;
+	int bUnionMember;
+} XL_ClassFieldInfo;
+
+typedef struct XL_ClassCreateInfo {
+	char** arrParamTypes;
+	unsigned char* arrParamHasDefault;
+	size_t iParamCount;
+	int iLine;
+	int iColumn;
+} XL_ClassCreateInfo;
+
+typedef struct XL_ClassInfo {
+	char* sName;
+	char* sBaseName;
+	XL_ClassFieldInfo* pFields;
+	size_t iFieldCount;
+	size_t iFieldCapacity;
+	XL_ClassCreateInfo* pCreates;
+	size_t iCreateCount;
+	size_t iCreateCapacity;
+	int iSize;
+	int iAlign;
+	int bHasCreate;
+	int bHasDestroy;
+} XL_ClassInfo;
+
+typedef struct XL_ClassTable {
+	XL_ClassInfo* pItems;
+	size_t iCount;
+	size_t iCapacity;
+} XL_ClassTable;
+
 typedef struct XL_SemResult {
 	XL_ScopeTable scopes;
 	XL_SymbolTable symbols;
 	XL_TypeTable types;
 	XL_ProtocolTable protocols;
 	XL_FuncTable funcs;
+	XL_ClassTable classes;
 	XL_SemDiagList diags;
 	XL_SemNodeTable nodes;
 	int bHadError;

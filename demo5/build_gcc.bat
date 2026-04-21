@@ -8,6 +8,10 @@ if exist release\tmp\*.fallback.exe del /f /q release\tmp\*.fallback.exe >nul 2>
 if exist release\tmp\*.trace.txt del /f /q release\tmp\*.trace.txt >nul 2>nul
 if not exist examples\xlp_native\packages\pkg.clock\bin mkdir examples\xlp_native\packages\pkg.clock\bin
 if not exist examples\xlp_native\packages\pkg.probe\bin mkdir examples\xlp_native\packages\pkg.probe\bin
+if not exist examples\xlp_official_native\packages\x.image.bmp\bin mkdir examples\xlp_official_native\packages\x.image.bmp\bin
+if not exist examples\xlp_official_native\packages\x.archive.tar\bin mkdir examples\xlp_official_native\packages\x.archive.tar\bin
+if not exist examples\xlp_official_native\packages\x.archive.zip\bin mkdir examples\xlp_official_native\packages\x.archive.zip\bin
+if not exist examples\xlp_official_native\packages\x.compress.gzip\bin mkdir examples\xlp_official_native\packages\x.compress.gzip\bin
 if not exist examples\xlp_static\packages\pkg.clock\lib mkdir examples\xlp_static\packages\pkg.clock\lib
 if not exist examples\xlp_static\packages\pkg.probe\lib mkdir examples\xlp_static\packages\pkg.probe\lib
 
@@ -108,6 +112,34 @@ gcc -std=c11 -shared -o examples\xlp_native\packages\pkg.probe\bin\pkg_probe.dll
 
 if errorlevel 1 (
 	echo Shared xlp probe artifact build failed.
+	exit /b 1
+)
+
+gcc -std=c11 -shared -o examples\xlp_official_native\packages\x.image.bmp\bin\x_image_bmp.dll examples\xlp_artifacts\x_image_bmp_artifact.c
+
+if errorlevel 1 (
+	echo Official xlp image bmp artifact build failed.
+	exit /b 1
+)
+
+gcc -std=c11 -shared -o examples\xlp_official_native\packages\x.archive.tar\bin\x_archive_tar.dll examples\xlp_artifacts\x_archive_tar_artifact.c
+
+if errorlevel 1 (
+	echo Official xlp archive tar artifact build failed.
+	exit /b 1
+)
+
+gcc -std=c11 -shared -o examples\xlp_official_native\packages\x.archive.zip\bin\x_archive_zip.dll examples\xlp_artifacts\x_archive_zip_artifact.c
+
+if errorlevel 1 (
+	echo Official xlp archive zip artifact build failed.
+	exit /b 1
+)
+
+gcc -std=c11 -shared -o examples\xlp_official_native\packages\x.compress.gzip\bin\x_compress_gzip.dll examples\xlp_artifacts\x_compress_gzip_artifact.c
+
+if errorlevel 1 (
+	echo Official xlp compress gzip artifact build failed.
 	exit /b 1
 )
 

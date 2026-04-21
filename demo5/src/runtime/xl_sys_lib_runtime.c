@@ -16,6 +16,8 @@
 typedef struct XL_SysLibState {
 	int64 id;
 	void* handle;
+	int loaded;
+	int procCount;
 	struct XL_SysLibState* next;
 } XL_SysLibState;
 
@@ -71,19 +73,30 @@ static XL_SysLibState* __xlSysLibStateCreate(void* pHandle)
 	}
 	pState->id = g_xlSysLibNextId++;
 	pState->handle = pHandle;
+	pState->loaded = (pHandle != NULL) ? 1 : 0;
+	pState->procCount = 0;
 	pState->next = g_xlSysLibStateHead;
 	g_xlSysLibStateHead = pState;
 	return pState;
 }
 
-static void* __xlSysLibHandle(xvalue value)
+static XL_SysLibState* __xlSysLibStateFromValue(xvalue value)
 {
-	XL_SysLibState* pState;
 	int64 id;
 
 	id = __xlSysLibId(value);
-	pState = __xlSysLibStateFind(id);
-	return (pState != NULL) ? pState->handle : NULL;
+	return __xlSysLibStateFind(id);
+}
+
+static void* __xlSysLibHandle(xvalue value)
+{
+	XL_SysLibState* pState;
+
+	pState = __xlSysLibStateFromValue(value);
+	if ( (pState == NULL) || !pState->loaded ) {
+		return NULL;
+	}
+	return pState->handle;
 }
 
 static const char* __xlSysLibPath(xvalue value)
@@ -113,6 +126,7 @@ static void __xlSysLibSetHandle(xvalue value, void* pHandle)
 	pState = __xlSysLibStateFind(id);
 	if ( pState != NULL ) {
 		pState->handle = pHandle;
+		pState->loaded = (pHandle != NULL) ? 1 : 0;
 	}
 
 	if ( !__xlSysLibIsHandleValue(value) ) {
@@ -190,6 +204,7 @@ xvalue xl_sys_loadlib(const char* sPath)
 
 void* xl_sys_lib_proc(xvalue value, const char* sName)
 {
+	XL_SysLibState* pState;
 	void* pHandle;
 	void* pSymbol;
 
@@ -198,11 +213,12 @@ void* xl_sys_lib_proc(xvalue value, const char* sName)
 		return NULL;
 	}
 
-	pHandle = __xlSysLibHandle(value);
-	if ( pHandle == NULL ) {
+	pState = __xlSysLibStateFromValue(value);
+	if ( (pState == NULL) || !pState->loaded || (pState->handle == NULL) ) {
 		xlrt_native_error_raise("NativeError", "lib.proc expects a loadlib handle", 0, sName);
 		return NULL;
 	}
+	pHandle = pState->handle;
 
 #if defined(_WIN32) || defined(_WIN64)
 	pSymbol = (void*)GetProcAddress((HMODULE)pHandle, sName);
@@ -214,18 +230,29 @@ void* xl_sys_lib_proc(xvalue value, const char* sName)
 		return NULL;
 	}
 
+	++pState->procCount;
 	return pSymbol;
 }
 
 int xl_sys_lib_close(xvalue value)
 {
+	XL_SysLibState* pState;
 	void* pHandle;
 	int bOk;
 
-	pHandle = __xlSysLibHandle(value);
-	if ( pHandle == NULL ) {
+	pState = __xlSysLibStateFromValue(value);
+	if ( (pState == NULL) || (pState->handle == NULL) ) {
 		xlrt_native_error_raise("NativeError", "lib.close expects a loadlib handle", 0, "");
 		return 0;
+	}
+	if ( !pState->loaded ) {
+		return 0;
+	}
+	pHandle = pState->handle;
+
+	if ( pState->procCount > 0 ) {
+		pState->loaded = 0;
+		return 1;
 	}
 
 #if defined(_WIN32) || defined(_WIN64)
@@ -257,5 +284,8 @@ const char* xl_sys_lib_path(xvalue value)
 
 int xl_sys_lib_loaded(xvalue value)
 {
-	return (__xlSysLibHandle(value) != NULL) ? 1 : 0;
+	XL_SysLibState* pState;
+
+	pState = __xlSysLibStateFromValue(value);
+	return ((pState != NULL) && pState->loaded && (pState->handle != NULL)) ? 1 : 0;
 }

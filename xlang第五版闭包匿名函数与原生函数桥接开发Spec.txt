@@ -16,8 +16,8 @@ xlang 第五版闭包、匿名函数与原生函数桥接开发 Spec
 - ☑ 多返回值函数值主链路已完成
 - ☑ 匿名函数进入 `array / dict / var` 并动态调用已完成
 - ☑ 多行容器字面量中放置匿名函数已可用
-- ◐ `point -> function<...>` 的 parser / sem / cgen 已完成，runtime ABI 桥接未完成
-- ◐ parser 为支持多行容器字面量做了扩展，但 Lemon conflict 从 `28` 升到 `103`，功能可用，语法冲突仍需整理
+- ☑ `point -> function<...>` 的 parser / sem / cgen / runtime ABI 桥接已完成
+- ◐ parser 为支持多行容器字面量做了扩展；当前 parser conflict 已从 `115` 回收到 `12`，并已收敛 lambda 表达式优先级、容器 item 重复规则与 `func_intro` 入口；功能可用，剩余顶层/block 空规则冲突转入后续 parser hygiene 任务
 
 二、已完成能力
 
@@ -83,35 +83,30 @@ xlang 第五版闭包、匿名函数与原生函数桥接开发 Spec
 四、剩余未完成任务
 
 4.1 原生函数桥接 runtime
-- ☐ `point -> function<...>` 真正桥接到运行时可调用函数值
-- ☐ 桥接后的函数值像普通 `function` 一样调用
-- ☐ 桥接后的函数值可赋给 `var`
-- ☐ `var` 中桥接后的函数值可动态调用
-- ☐ `lib.close()` 后已提取 proc function 的行为规则落地
-- ☐ 原生桥接失败时的稳定错误处理
+- ☑ `point -> function<...>` 真正桥接到运行时可调用函数值
+- ☑ 桥接后的函数值像普通 `function` 一样调用
+- ☑ 桥接后的函数值可赋给 `var`
+- ☑ `var` 中桥接后的函数值可动态调用
+- ☑ `lib.close()` 后已提取 proc function 的行为规则落地：已取出的 proc 会 pin 底层库到进程结束，避免 silent crash
+- ☑ 原生桥接失败时的稳定错误处理
 
 4.2 原生函数桥接验收样例
-- ☐ `runtime.sys_loadlib_func_basic`
-- ☐ `runtime.sys_loadlib_func_var_basic`
-- ☐ `runtime.sys_loadlib_func_multi_sig_basic`
-- ☐ `runtime.sys_loadlib_close_after_proc_basic`
-- ☐ `msvcrt.dll -> atoi`
-- ☐ `kernel32.dll -> GetTickCount` 或同类无参整型返回 API
-- ☐ 至少一个 `bool` 返回 API
-- ☐ 至少一个 `string` 或 `point` 返回 smoke case
+- ☑ `runtime.sys_loadlib_func_basic`
+- ☑ `runtime.sys_loadlib_func_var_basic`（由 `sys_loadlib_func_basic` 的 var 桥接路径覆盖）
+- ☑ `runtime.sys_loadlib_func_multi_sig_basic`
+- ☑ `runtime.sys_loadlib_close_after_proc_basic`
+- ☑ `msvcrt.dll -> atoi`
+- ☑ `kernel32.dll -> GetCurrentProcessId` 等同类无参整型返回 API
+- ☑ 至少一个 `bool` 返回 API
+- ☑ 至少一个 `string` 或 `point` 返回 smoke case（当前已验证 `point` 返回）
 
 4.3 语法/工程收尾
-- ◐ 降低 parser conflict 数量，尽量从 `103` 回收
-- ☐ 将闭包 / 匿名函数 / 原生桥接状态同步回总覆盖率文档
-- ☐ 在语言标准总表中补入闭包与匿名函数标准
-- ☐ 明确 `function` 现已支持携带 env 的闭包模型
-- ☐ 明确 `point -> function<...>` 的 ABI 边界与限制
+- ◐ 降低 parser conflict 数量，当前已从 `115` 降到 `12`；剩余冲突集中在顶层/block 空规则，转入后续 parser grammar 重构任务
+- ☑ 将闭包 / 匿名函数 / 原生桥接状态同步回总覆盖率文档
+- ☑ 在语言标准总表中补入闭包与匿名函数标准
+- ☑ 明确 `function` 现已支持携带 env 的闭包模型
+- ☑ 明确 `point -> function<...>` 的 ABI 边界与限制
 
 五、当前结论
-- 闭包与匿名函数主线已经基本完成，可以认为“语言能力主链路已通”
-- 当前最大未完成块，不在匿名函数/闭包，而在“原生函数 runtime ABI 桥接”
-- 如果下一步继续开发，优先级建议：
-  1. `point -> function<...>` runtime 桥接
-  2. 原生桥接样例与回归
-  3. parser conflict 回收
-  4. 文档总表同步
+- 闭包、匿名函数与原生函数 runtime ABI 桥接主线已经完成，可以认为本 spec 的功能性任务已阶段性收口。
+- 剩余 parser conflict 回收属于后续 parser hygiene / grammar cleanup，不再阻塞闭包、匿名函数与原生桥接能力继续向上开发。

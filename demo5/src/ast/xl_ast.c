@@ -110,7 +110,7 @@ static void __xlAstAdoptNodeRange(XL_AstNode* pNode, const XL_AstNode* pSource)
 const char* xlAstKindName(XL_AstKind eKind)
 {
 	static const char* arrNames[] = {
-		"List", "Program", "Block", "FuncDecl", "FuncExpr", "Param", "TypeRef", "TypeDef", "ConstDecl", "VarDecl", "UnpackDecl",
+		"List", "Program", "Block", "FuncDecl", "FuncExpr", "ClassDecl", "UnionDecl", "CreateDecl", "DestroyDecl", "Param", "TypeRef", "TypeDef", "ConstDecl", "VarDecl", "UnpackDecl",
 		"If", "ElseIf", "While", "ForIn", "Import", "Export", "Try", "Return", "Break", "Continue", "Throw", "Assert", "Yield",
 		"ExprStmt", "NamedArg", "Assign", "Ternary", "Binary", "Unary", "Call", "Member", "Index", "Ident", "Int", "Float",
 		"String", "Template", "Bool", "Null", "Time"
@@ -301,6 +301,59 @@ XL_AstNode* xlAstCreateFuncExpr(const XL_Token* pToken, int bAsync, XL_AstNode* 
 		xlAstAppendChild(pNode, pSafeParams);
 		xlAstAppendChild(pNode, pSafeRetTypes);
 		xlAstAppendChild(pNode, pSafeBody);
+	}
+	return pNode;
+}
+
+XL_AstNode* xlAstCreateClassDecl(const XL_Token* pName, XL_AstNode* pBaseType, XL_AstNode* pMembers)
+{
+	XL_AstNode* pNode;
+
+	pNode = xlAstCreateNode(XL_AST_CLASS_DECL, pName);
+	if ( (pNode != NULL) && (pName != NULL) ) {
+		xlAstSetText(pNode, pName->sText, pName->iTextLen);
+		xlAstAppendChild(pNode, pBaseType);
+		xlAstAppendChild(pNode, (pMembers != NULL) ? pMembers : xlAstCreateList());
+	}
+	return pNode;
+}
+
+XL_AstNode* xlAstCreateUnionDecl(const XL_Token* pName, XL_AstNode* pMembers)
+{
+	XL_AstNode* pNode;
+
+	pNode = xlAstCreateNode(XL_AST_UNION_DECL, pName);
+	if ( (pNode != NULL) && (pName != NULL) ) {
+		xlAstSetText(pNode, pName->sText, pName->iTextLen);
+		xlAstAppendChild(pNode, (pMembers != NULL) ? pMembers : xlAstCreateList());
+	}
+	return pNode;
+}
+
+XL_AstNode* xlAstCreateCreateDecl(const XL_Token* pToken, XL_AstNode* pParams, XL_AstNode* pBody)
+{
+	XL_AstNode* pNode;
+
+	pNode = xlAstCreateNode(XL_AST_CREATE_DECL, pToken);
+	if ( pNode != NULL ) {
+		xlAstSetText(pNode, "create", 6);
+		xlAstAppendChild(pNode, (pParams != NULL) ? pParams : xlAstCreateList());
+		xlAstAppendChild(pNode, xlAstCreateList());
+		xlAstAppendChild(pNode, (pBody != NULL) ? pBody : xlAstCreateBlock(NULL));
+	}
+	return pNode;
+}
+
+XL_AstNode* xlAstCreateDestroyDecl(const XL_Token* pToken, XL_AstNode* pBody)
+{
+	XL_AstNode* pNode;
+
+	pNode = xlAstCreateNode(XL_AST_DESTROY_DECL, pToken);
+	if ( pNode != NULL ) {
+		xlAstSetText(pNode, "destroy", 7);
+		xlAstAppendChild(pNode, xlAstCreateList());
+		xlAstAppendChild(pNode, xlAstCreateList());
+		xlAstAppendChild(pNode, (pBody != NULL) ? pBody : xlAstCreateBlock(NULL));
 	}
 	return pNode;
 }

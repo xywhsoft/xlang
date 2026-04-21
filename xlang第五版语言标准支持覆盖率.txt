@@ -49,6 +49,7 @@ xlang 第五版语言标准支持覆盖率
 - ☑ task（首版：`task` 声明可接 async / std.task 结果，内部收敛为具体 `future<T>`）
 - ☑ channel（首版：支持 `channel()` / `channel(int)`、`send/recv/close`、`await ch.recv()` 多返回值 `bool, var`）
 - ☑ generator
+- ☑ class（第一阶段：静态布局结构体语义，支持字段、方法、`create/destroy`、继承、union、运算符重载、值复制与作用域析构）
 - ☑ 类型构造 Type(expr)
 - ☑ typedef
 
@@ -112,7 +113,10 @@ xlang 第五版语言标准支持覆盖率
 - ☑ 语言层 ABI + C 层 ABI 双层模型（首版：函数元信息显式输出 `languageAbi=xlang@v1` / `nativeAbi=c@v1`）
 - ☑ 版本绑定 ABI（首版：xlp 函数元信息显式输出 `languageAbiId` / `nativeAbiId`，绑定 `moduleAbiId + version + abi`）
 - ☑ 模块导出表 ABI（首版：`modules.exports[]` 显式输出 `abiId` / `versionedSymbol`）
-- ☑ function 动态函数值（首版：无捕获、按目标签名消歧，已覆盖局部绑定、参数传递、返回值流转、typed array/dict 与 var array/dict 容器取值调用，以及 `var` 桥接）
+- ☑ function 动态函数值（支持签名化 `function<...>`、按目标签名消歧、局部绑定、参数传递、返回值流转、typed array/dict 与 var array/dict 容器取值调用，以及 `var` 桥接）
+- ☑ 匿名函数（支持块体与 `=>` 表达式体，可赋给 `auto` / `function<...>` / `var`，可作为参数、返回值、容器元素并动态调用）
+- ☑ 闭包（`function` 值可携带 env，支持捕获外层局部变量与参数、共享 captured cell、外层返回后继续存活、闭包修改捕获值、嵌套闭包共享状态、闭包进入容器并经 `var` 调用）
+- ☑ 多返回值函数值（支持匿名函数多返回值、`function<int,string()>` 显式类型、作为参数/返回值传递、存入 `var` 后动态调用）
 - ☑ var 持有基础/容器值时的方法调用与 length 属性（首版：已覆盖 string/array/list/set/dict 的内建 `obj.method(...)`、`obj.length`，以及基础类型与容器泛型类型自定义 type-method 的 `var` 调用）
 
 六、流程控制
@@ -207,8 +211,10 @@ xlang 第五版语言标准支持覆盖率
 - ☑ `#libpath`
 - ☑ `#incpath`
 - ☑ `#loadlib`
-- ☑ `sys.loadlib()` / `lib.proc()` 动态绑定 API（首版：`std.sys.lib.loadlib()` / `lib.proc()` / `lib.close()` 已接通 parser/sem/cgen/runtime，并固定到回归测试）
+- ☑ `sys.loadlib()` / `lib.proc()` 动态绑定 API（首版：`std.sys.lib.loadlib()` / `lib.proc()` / `lib.close()` / `lib.path()` / `lib.loaded()` 已接通 parser/sem/cgen/runtime，并固定到回归测试）
+- ☑ `point -> function<...>` runtime ABI 桥接（已覆盖 int/bool/point 返回、多签名、var 交互、`msvcrt.dll -> atoi`、`kernel32.dll` 无参整型 API、以及 close-after-proc pin 语义）
 update 2026-04-21: `lib.path()` / `lib.loaded()` 已接通 runtime，`#link + #libpath + #incpath` 指令链路补齐回归用例。
+update 2026-04-21: 闭包、匿名函数、原生函数 `point -> function<...>` runtime 桥接与 class 第一阶段状态已同步回总覆盖率；parser conflict 已从 115 回收到 12，剩余顶层/block 空规则冲突转入后续 parser hygiene。
 update 2026-04-14: async try const-else wrapped nested_full_chain / triple_nested inner-catch and outer-catch await flows verified in cgen/runtime.
 update 2026-04-14: async try const-else wrapped top-level if / while / prelude / do-while await variants verified in cgen/runtime.
 update 2026-04-15: async generator const-else wrapped try/catch, try/finally, and nested-try await/yield flows verified across parser/sem/lower/cgen/runtime.

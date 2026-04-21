@@ -1,3 +1,5 @@
+#loadlib "msvcrt.dll"
+
 extern func atoi(string text) as int
 
 func main() as int

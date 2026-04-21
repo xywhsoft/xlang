@@ -104,6 +104,16 @@ static int __xlParserMapToken(XL_TokenKind eKind)
 			return XLPG_KW_EXPORT;
 		case XL_KW_EXTERN:
 			return XLPG_KW_EXTERN;
+		case XL_KW_CLASS:
+			return XLPG_KW_CLASS;
+		case XL_KW_EXTENDS:
+			return XLPG_KW_EXTENDS;
+		case XL_KW_UNION:
+			return XLPG_KW_UNION;
+		case XL_KW_CREATE:
+			return XLPG_KW_CREATE;
+		case XL_KW_DESTROY:
+			return XLPG_KW_DESTROY;
 		case XL_KW_AND:
 			return XLPG_KW_AND;
 		case XL_KW_OR:

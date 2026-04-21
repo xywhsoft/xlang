@@ -17,6 +17,11 @@ typedef struct XL_ParseContext {
 	int iErrorCount;
 } XL_ParseContext;
 
+typedef struct XL_FuncIntro {
+	int bAsync;
+	XL_Token token;
+} XL_FuncIntro;
+
 static XL_AstNode* xlPList(void)
 {
 	return xlAstCreateList();
@@ -159,30 +164,6 @@ static XL_AstNode* xlPCreateTypedVarDecl(XL_ParseContext* pCtx, XL_AstNode* pTyp
 			xlAstFree(pValue);
 		}
 		return pDecl;
-	}
-
-	if ( pValue == NULL ) {
-		if ( pCtx != NULL ) {
-			pCtx->bHadError = 1;
-			pCtx->iErrorCount += 1;
-			if ( pCtx->pDiag != NULL ) {
-				xlDiagEmitSource(
-					pCtx->pDiag,
-						XL_DIAG_LEVEL_ERROR,
-						"parser",
-						__FILE__,
-						__LINE__,
-						pCtx->sSourceFile,
-						pTypeNode->iLine,
-						pTypeNode->iColumn,
-						"type %.*s requires an initializer",
-						(int)strlen(pTypeNode->sText),
-						pTypeNode->sText
-					);
-				}
-			}
-		xlAstFree(pTypeNode);
-		return NULL;
 	}
 
 	pDecl = xlAstCreateVarDecl(pNameToken, pTypeNode, pValue);
@@ -747,7 +728,7 @@ static void xlPAppendStmt(XL_AstNode* pList, XL_AstNode* pStmt)
 	}
 }
 
-%type async_opt { int }
+%type func_intro { XL_FuncIntro }
 %type then_opt { int }
 %type for_bindings { XL_AstNode* }
 %type import_items { XL_AstNode* }
@@ -765,6 +746,19 @@ static void xlPAppendStmt(XL_AstNode* pList, XL_AstNode* pStmt)
 %type export_func_decl { XL_AstNode* }
 %type extern_decl { XL_AstNode* }
 %type extern_symbol_opt { XL_Token }
+%type class_decl { XL_AstNode* }
+%type class_extends_opt { XL_AstNode* }
+%type class_member_body { XL_AstNode* }
+%type class_member_items { XL_AstNode* }
+%type class_member { XL_AstNode* }
+%type class_method_decl { XL_AstNode* }
+%type create_decl { XL_AstNode* }
+%type destroy_decl { XL_AstNode* }
+%type union_decl { XL_AstNode* }
+%type union_member_body { XL_AstNode* }
+%type union_member_items { XL_AstNode* }
+%type union_member { XL_AstNode* }
+%type class_field_decl { XL_AstNode* }
 %type typed_var_decl { XL_AstNode* }
 %type typedef_decl { XL_AstNode* }
 %type assign_stmt { XL_AstNode* }
@@ -776,6 +770,8 @@ static void xlPAppendStmt(XL_AstNode* pList, XL_AstNode* pStmt)
 %type inline_stmt { XL_AstNode* }
 %type bare_brace_literal { XL_AstNode* }
 %type bare_bracket_literal { XL_AstNode* }
+%type func_name { XL_Token }
+%type member_name { XL_Token }
 %type dict_items { XL_AstNode* }
 %type dict_item { XL_AstNode* }
 %type indexed_items { XL_AstNode* }
@@ -784,6 +780,13 @@ static void xlPAppendStmt(XL_AstNode* pList, XL_AstNode* pStmt)
 %type func_expr { XL_AstNode* }
 
 %right XL_OP_FAT_ARROW.
+%right OP_NULL_COALESCE.
+%right OP_QUESTION.
+%left KW_OR.
+%left KW_AND.
+%left OP_PIPE.
+%left OP_CARET.
+%left OP_AMP.
 %right OP_LT OP_GT OP_LE OP_GE OP_EQ OP_NE OP_APPROX KW_IN.
 %left OP_SHL OP_SHR.
 %left OP_PLUS OP_MINUS.
@@ -826,6 +829,7 @@ stmt(A) ::= error. {
 	A = NULL;
 }
 stmt(A) ::= func_decl(F). { A = F; }
+stmt(A) ::= class_decl(C). { A = C; }
 stmt(A) ::= extern_decl(E). { A = E; }
 stmt(A) ::= typedef_decl(T). { A = T; }
 stmt(A) ::= const_decl(C). { A = C; }
@@ -852,35 +856,134 @@ stmt(A) ::= expr(E). { A = xlAstCreateExprStmt(E); }
 assert_message(A) ::= TK_COMMA expr(E). { A = E; }
 assert_message(A) ::= . { A = NULL; }
 
-async_opt(A) ::= KW_ASYNC. { A = 1; }
-async_opt(A) ::= . { A = 0; }
-
-func_decl(A) ::= async_opt(B) KW_FUNC TOK_IDENT(N) TK_LPAREN param_list(P) TK_RPAREN ret_type(R) opt_stmt_sep block(BODY) KW_END. {
-	A = xlAstCreateFuncDecl(&N, B, P, R, BODY);
+func_intro(A) ::= KW_FUNC(T). {
+	A.bAsync = 0;
+	A.token = T;
 }
-func_decl(A) ::= async_opt(B) KW_FUNC type_name(TY) OP_DOT TOK_IDENT(N) TK_LPAREN param_list(P) TK_RPAREN ret_type(R) opt_stmt_sep block(BODY) KW_END. {
-	A = xlPCreateMethodFuncDecl(xlAstCreateTypeRef(&TY), &N, B, P, R, BODY);
-}
-func_decl(A) ::= async_opt(B) KW_FUNC generic_type_ref(TY) OP_DOT TOK_IDENT(N) TK_LPAREN param_list(P) TK_RPAREN ret_type(R) opt_stmt_sep block(BODY) KW_END. {
-	A = xlPCreateMethodFuncDecl(TY, &N, B, P, R, BODY);
-}
-func_decl(A) ::= async_opt(B) KW_FUNC function_type_ref(TY) OP_DOT TOK_IDENT(N) TK_LPAREN param_list(P) TK_RPAREN ret_type(R) opt_stmt_sep block(BODY) KW_END. {
-	A = xlPCreateMethodFuncDecl(TY, &N, B, P, R, BODY);
+func_intro(A) ::= KW_ASYNC KW_FUNC(T). {
+	A.bAsync = 1;
+	A.token = T;
 }
 
-func_expr(A) ::= async_opt(B) KW_FUNC(T) TK_LPAREN param_list(P) TK_RPAREN ret_type(R) opt_stmt_sep block(BODY) KW_END. {
-	A = xlAstCreateFuncExpr(&T, B, P, R, BODY);
+func_name(A) ::= TOK_IDENT(N). { A = N; }
+func_name(A) ::= KW_CREATE(N). { A = N; }
+func_name(A) ::= KW_DESTROY(N). { A = N; }
+
+func_decl(A) ::= func_intro(B) func_name(N) TK_LPAREN param_list(P) TK_RPAREN ret_type(R) opt_stmt_sep block(BODY) KW_END. {
+	A = xlAstCreateFuncDecl(&N, B.bAsync, P, R, BODY);
 }
-func_expr(A) ::= async_opt(B) KW_FUNC(T) TK_LPAREN param_list(P) TK_RPAREN ret_type(R) XL_OP_FAT_ARROW lambda_expr(E). [XL_OP_FAT_ARROW] {
-	A = xlAstCreateFuncExpr(&T, B, P, R, xlPCreateReturnBlock(&T, E));
+func_decl(A) ::= func_intro(B) type_name(TY) OP_DOT func_name(N) TK_LPAREN param_list(P) TK_RPAREN ret_type(R) opt_stmt_sep block(BODY) KW_END. {
+	A = xlPCreateMethodFuncDecl(xlAstCreateTypeRef(&TY), &N, B.bAsync, P, R, BODY);
 }
+func_decl(A) ::= func_intro(B) generic_type_ref(TY) OP_DOT func_name(N) TK_LPAREN param_list(P) TK_RPAREN ret_type(R) opt_stmt_sep block(BODY) KW_END. {
+	A = xlPCreateMethodFuncDecl(TY, &N, B.bAsync, P, R, BODY);
+}
+func_decl(A) ::= func_intro(B) function_type_ref(TY) OP_DOT func_name(N) TK_LPAREN param_list(P) TK_RPAREN ret_type(R) opt_stmt_sep block(BODY) KW_END. {
+	A = xlPCreateMethodFuncDecl(TY, &N, B.bAsync, P, R, BODY);
+}
+
+func_expr(A) ::= func_intro(B) TK_LPAREN param_list(P) TK_RPAREN ret_type(R) opt_stmt_sep block(BODY) KW_END. {
+	A = xlAstCreateFuncExpr(&B.token, B.bAsync, P, R, BODY);
+}
+func_expr(A) ::= func_intro(B) TK_LPAREN param_list(P) TK_RPAREN ret_type(R) XL_OP_FAT_ARROW lambda_expr(E). [XL_OP_FAT_ARROW] {
+	A = xlAstCreateFuncExpr(&B.token, B.bAsync, P, R, xlPCreateReturnBlock(&B.token, E));
+}
+
+class_decl(A) ::= KW_CLASS TOK_IDENT(N) class_extends_opt(BASE) opt_stmt_sep class_member_body(BODY) KW_END. {
+	A = xlAstCreateClassDecl(&N, BASE, BODY);
+}
+
+class_extends_opt(A) ::= . { A = NULL; }
+class_extends_opt(A) ::= KW_EXTENDS TOK_IDENT(N). { A = xlAstCreateTypeRef(&N); }
+class_extends_opt(A) ::= KW_EXTENDS type_name(T). { A = xlAstCreateTypeRef(&T); }
+
+class_member_body(A) ::= . {
+	A = xlPList();
+}
+class_member_body(A) ::= class_member_items(L) opt_stmt_sep. {
+	A = L;
+}
+
+class_member_items(A) ::= class_member(S). {
+	A = xlPList();
+	xlPAppendStmt(A, S);
+}
+class_member_items(A) ::= class_member_items(L) stmt_sep class_member(S). {
+	A = L;
+	xlPAppendStmt(A, S);
+}
+
+class_member(A) ::= class_field_decl(V). { A = V; }
+class_member(A) ::= var_decl(V). { A = V; }
+class_member(A) ::= typed_var_decl(V). { A = V; }
+class_member(A) ::= const_decl(C). { A = C; }
+class_member(A) ::= class_method_decl(F). { A = F; }
+class_member(A) ::= create_decl(C). { A = C; }
+class_member(A) ::= destroy_decl(D). { A = D; }
+class_member(A) ::= union_decl(U). { A = U; }
+
+class_field_decl(A) ::= KW_VAR TOK_IDENT(N) KW_AS type_name(T). {
+	A = xlAstCreateVarDecl(&N, xlAstCreateTypeRef(&T), NULL);
+}
+class_field_decl(A) ::= KW_VAR TOK_IDENT(N) KW_AS type_name(T) OP_ASSIGN expr(E). {
+	A = xlAstCreateVarDecl(&N, xlAstCreateTypeRef(&T), E);
+}
+class_field_decl(A) ::= KW_VAR TOK_IDENT(N) KW_AS generic_type_ref(T). {
+	A = xlAstCreateVarDecl(&N, T, NULL);
+}
+class_field_decl(A) ::= KW_VAR TOK_IDENT(N) KW_AS generic_type_ref(T) OP_ASSIGN expr(E). {
+	A = xlAstCreateVarDecl(&N, T, E);
+}
+class_field_decl(A) ::= KW_VAR TOK_IDENT(N) KW_AS function_type_ref(T). {
+	A = xlAstCreateVarDecl(&N, T, NULL);
+}
+class_field_decl(A) ::= KW_VAR TOK_IDENT(N) KW_AS function_type_ref(T) OP_ASSIGN expr(E). {
+	A = xlAstCreateVarDecl(&N, T, E);
+}
+
+class_method_decl(A) ::= func_intro(B) func_name(N) TK_LPAREN param_list(P) TK_RPAREN ret_type(R) opt_stmt_sep block(BODY) KW_END. {
+	A = xlAstCreateFuncDecl(&N, B.bAsync, P, R, BODY);
+}
+
+create_decl(A) ::= KW_CREATE(T) TK_LPAREN param_list(P) TK_RPAREN opt_stmt_sep block(BODY) KW_END. {
+	A = xlAstCreateCreateDecl(&T, P, BODY);
+}
+
+destroy_decl(A) ::= KW_DESTROY(T) TK_LPAREN TK_RPAREN opt_stmt_sep block(BODY) KW_END. {
+	A = xlAstCreateDestroyDecl(&T, BODY);
+}
+
+union_decl(A) ::= KW_UNION TOK_IDENT(N) opt_stmt_sep union_member_body(BODY) KW_END. {
+	A = xlAstCreateUnionDecl(&N, BODY);
+}
+
+union_member_body(A) ::= . {
+	A = xlPList();
+}
+union_member_body(A) ::= union_member_items(L) opt_stmt_sep. {
+	A = L;
+}
+
+union_member_items(A) ::= union_member(S). {
+	A = xlPList();
+	xlPAppendStmt(A, S);
+}
+union_member_items(A) ::= union_member_items(L) stmt_sep union_member(S). {
+	A = L;
+	xlPAppendStmt(A, S);
+}
+
+union_member(A) ::= class_field_decl(V). { A = V; }
+union_member(A) ::= var_decl(V). { A = V; }
+union_member(A) ::= typed_var_decl(V). { A = V; }
+union_member(A) ::= const_decl(C). { A = C; }
 
 extern_symbol_opt(A) ::= STRING(S). { A = S; }
 extern_symbol_opt(A) ::= . {
 	memset(&A, 0, sizeof(A));
 }
 
-extern_decl(A) ::= KW_EXTERN(E) extern_symbol_opt(S) KW_FUNC TOK_IDENT(N) TK_LPAREN param_list(P) TK_RPAREN ret_type(R). {
+extern_decl(A) ::= KW_EXTERN(E) extern_symbol_opt(S) KW_FUNC func_name(N) TK_LPAREN param_list(P) TK_RPAREN ret_type(R). {
 	A = xlAstCreateFuncDecl(&N, 0, P, R, xlAstCreateBlock(&E));
 	xlPAttachExternSymbol(A, &N, (S.eKind != 0) ? &S : NULL);
 }
@@ -1364,17 +1467,17 @@ export_stmt(A) ::= KW_EXPORT(T) var_decl(V). {
 	A = xlPCreateExportedDeclListFromDecl(&T, V);
 }
 
-export_func_decl(A) ::= async_opt(B) KW_FUNC TOK_IDENT(N) TK_LPAREN param_list(P) TK_RPAREN ret_type(R) opt_stmt_sep block(BODY) KW_END. {
-	A = xlPCreateExportedDeclList(&N, xlAstCreateFuncDecl(&N, B, P, R, BODY), &N);
+export_func_decl(A) ::= func_intro(B) func_name(N) TK_LPAREN param_list(P) TK_RPAREN ret_type(R) opt_stmt_sep block(BODY) KW_END. {
+	A = xlPCreateExportedDeclList(&N, xlAstCreateFuncDecl(&N, B.bAsync, P, R, BODY), &N);
 }
-export_func_decl(A) ::= async_opt(B) KW_FUNC type_name(TY) OP_DOT TOK_IDENT(N) TK_LPAREN param_list(P) TK_RPAREN ret_type(R) opt_stmt_sep block(BODY) KW_END. {
-	A = xlPCreateExportedDeclList(&N, xlPCreateMethodFuncDecl(xlAstCreateTypeRef(&TY), &N, B, P, R, BODY), &N);
+export_func_decl(A) ::= func_intro(B) type_name(TY) OP_DOT func_name(N) TK_LPAREN param_list(P) TK_RPAREN ret_type(R) opt_stmt_sep block(BODY) KW_END. {
+	A = xlPCreateExportedDeclList(&N, xlPCreateMethodFuncDecl(xlAstCreateTypeRef(&TY), &N, B.bAsync, P, R, BODY), &N);
 }
-export_func_decl(A) ::= async_opt(B) KW_FUNC generic_type_ref(TY) OP_DOT TOK_IDENT(N) TK_LPAREN param_list(P) TK_RPAREN ret_type(R) opt_stmt_sep block(BODY) KW_END. {
-	A = xlPCreateExportedDeclList(&N, xlPCreateMethodFuncDecl(TY, &N, B, P, R, BODY), &N);
+export_func_decl(A) ::= func_intro(B) generic_type_ref(TY) OP_DOT func_name(N) TK_LPAREN param_list(P) TK_RPAREN ret_type(R) opt_stmt_sep block(BODY) KW_END. {
+	A = xlPCreateExportedDeclList(&N, xlPCreateMethodFuncDecl(TY, &N, B.bAsync, P, R, BODY), &N);
 }
-export_func_decl(A) ::= async_opt(B) KW_FUNC function_type_ref(TY) OP_DOT TOK_IDENT(N) TK_LPAREN param_list(P) TK_RPAREN ret_type(R) opt_stmt_sep block(BODY) KW_END. {
-	A = xlPCreateExportedDeclList(&N, xlPCreateMethodFuncDecl(TY, &N, B, P, R, BODY), &N);
+export_func_decl(A) ::= func_intro(B) function_type_ref(TY) OP_DOT func_name(N) TK_LPAREN param_list(P) TK_RPAREN ret_type(R) opt_stmt_sep block(BODY) KW_END. {
+	A = xlPCreateExportedDeclList(&N, xlPCreateMethodFuncDecl(TY, &N, B.bAsync, P, R, BODY), &N);
 }
 
 expr_opt(A) ::= . { A = NULL; }
@@ -1420,10 +1523,6 @@ expr_items(A) ::= expr(E). {
 	A = xlPList();
 	xlAstAppendChild(A, E);
 }
-expr_items(A) ::= expr_items(L) TK_COMMA expr(E). {
-	A = L;
-	xlAstAppendChild(A, E);
-}
 expr_items(A) ::= expr_items(L) TK_COMMA opt_stmt_sep expr(E). {
 	A = L;
 	xlAstAppendChild(A, E);
@@ -1431,10 +1530,6 @@ expr_items(A) ::= expr_items(L) TK_COMMA opt_stmt_sep expr(E). {
 
 dict_items(A) ::= dict_item(I). {
 	A = I;
-}
-dict_items(A) ::= dict_items(L) TK_COMMA dict_item(I). {
-	A = L;
-	xlAstAppendChildren(A, I);
 }
 dict_items(A) ::= dict_items(L) TK_COMMA opt_stmt_sep dict_item(I). {
 	A = L;
@@ -1447,10 +1542,6 @@ dict_item(A) ::= expr(K) OP_COLON expr(V). {
 
 indexed_items(A) ::= indexed_item(I). {
 	A = I;
-}
-indexed_items(A) ::= indexed_items(L) TK_COMMA indexed_item(I). {
-	A = L;
-	xlAstAppendChildren(A, I);
 }
 indexed_items(A) ::= indexed_items(L) TK_COMMA opt_stmt_sep indexed_item(I). {
 	A = L;
@@ -1469,56 +1560,56 @@ lambda_expr(A) ::= lambda_null_expr(E). {
 	A = E;
 }
 
-lambda_null_expr(A) ::= lambda_conditional_expr(E). {
+lambda_null_expr(A) ::= lambda_conditional_expr(E). [OP_NULL_COALESCE] {
 	A = E;
 }
 lambda_null_expr(A) ::= lambda_conditional_expr(L) OP_NULL_COALESCE(T) lambda_null_expr(R). {
 	A = xlAstCreateBinary(&T, "??", L, R);
 }
 
-lambda_conditional_expr(A) ::= lambda_logical_or_expr(E). {
+lambda_conditional_expr(A) ::= lambda_logical_or_expr(E). [OP_QUESTION] {
 	A = E;
 }
 lambda_conditional_expr(A) ::= lambda_logical_or_expr(C) OP_QUESTION(T) expr(TE) OP_COLON lambda_conditional_expr(EE). {
 	A = xlAstCreateTernary(&T, C, TE, EE);
 }
 
-lambda_logical_or_expr(A) ::= lambda_logical_and_expr(E). {
+lambda_logical_or_expr(A) ::= lambda_logical_and_expr(E). [KW_OR] {
 	A = E;
 }
 lambda_logical_or_expr(A) ::= lambda_logical_or_expr(L) KW_OR(T) lambda_logical_and_expr(R). {
 	A = xlAstCreateBinary(&T, "or", L, R);
 }
 
-lambda_logical_and_expr(A) ::= lambda_bit_or_expr(E). {
+lambda_logical_and_expr(A) ::= lambda_bit_or_expr(E). [KW_AND] {
 	A = E;
 }
 lambda_logical_and_expr(A) ::= lambda_logical_and_expr(L) KW_AND(T) lambda_bit_or_expr(R). {
 	A = xlAstCreateBinary(&T, "and", L, R);
 }
 
-lambda_bit_or_expr(A) ::= lambda_bit_xor_expr(E). {
+lambda_bit_or_expr(A) ::= lambda_bit_xor_expr(E). [OP_PIPE] {
 	A = E;
 }
 lambda_bit_or_expr(A) ::= lambda_bit_or_expr(L) OP_PIPE(T) lambda_bit_xor_expr(R). {
 	A = xlAstCreateBinary(&T, "|", L, R);
 }
 
-lambda_bit_xor_expr(A) ::= lambda_bit_and_expr(E). {
+lambda_bit_xor_expr(A) ::= lambda_bit_and_expr(E). [OP_CARET] {
 	A = E;
 }
 lambda_bit_xor_expr(A) ::= lambda_bit_xor_expr(L) OP_CARET(T) lambda_bit_and_expr(R). {
 	A = xlAstCreateBinary(&T, "^", L, R);
 }
 
-lambda_bit_and_expr(A) ::= lambda_equality_expr(E). {
+lambda_bit_and_expr(A) ::= lambda_equality_expr(E). [OP_AMP] {
 	A = E;
 }
 lambda_bit_and_expr(A) ::= lambda_bit_and_expr(L) OP_AMP(T) lambda_equality_expr(R). {
 	A = xlAstCreateBinary(&T, "&", L, R);
 }
 
-lambda_equality_expr(A) ::= lambda_compare_expr(E). {
+lambda_equality_expr(A) ::= lambda_compare_expr(E). [OP_EQ] {
 	A = E;
 }
 lambda_equality_expr(A) ::= lambda_equality_expr(L) OP_EQ(T) lambda_compare_expr(R). {
@@ -1531,7 +1622,7 @@ lambda_equality_expr(A) ::= lambda_equality_expr(L) OP_APPROX(T) lambda_compare_
 	A = xlAstCreateBinary(&T, "~=", L, R);
 }
 
-lambda_compare_expr(A) ::= lambda_shift_expr(E). {
+lambda_compare_expr(A) ::= lambda_shift_expr(E). [OP_LT] {
 	A = E;
 }
 lambda_compare_expr(A) ::= lambda_compare_expr(L) OP_LT(T) lambda_shift_expr(R). {
@@ -1560,7 +1651,7 @@ lambda_shift_expr(A) ::= lambda_shift_expr(L) OP_SHR(T) lambda_add_expr(R). {
 	A = xlAstCreateBinary(&T, ">>", L, R);
 }
 
-lambda_add_expr(A) ::= lambda_mul_expr(E). {
+lambda_add_expr(A) ::= lambda_mul_expr(E). [OP_PLUS] {
 	A = E;
 }
 lambda_add_expr(A) ::= lambda_add_expr(L) OP_PLUS(T) lambda_mul_expr(R). {
@@ -1570,7 +1661,7 @@ lambda_add_expr(A) ::= lambda_add_expr(L) OP_MINUS(T) lambda_mul_expr(R). {
 	A = xlAstCreateBinary(&T, "-", L, R);
 }
 
-lambda_mul_expr(A) ::= lambda_power_expr(E). {
+lambda_mul_expr(A) ::= lambda_power_expr(E). [OP_STAR] {
 	A = E;
 }
 lambda_mul_expr(A) ::= lambda_mul_expr(L) OP_STAR(T) lambda_power_expr(R). {
@@ -1583,7 +1674,7 @@ lambda_mul_expr(A) ::= lambda_mul_expr(L) OP_PERCENT(T) lambda_power_expr(R). {
 	A = xlAstCreateBinary(&T, "%", L, R);
 }
 
-lambda_power_expr(A) ::= lambda_unary_expr(E). {
+lambda_power_expr(A) ::= lambda_unary_expr(E). [OP_POWER] {
 	A = E;
 }
 lambda_power_expr(A) ::= lambda_unary_expr(L) OP_POWER(T) lambda_power_expr(R). {
@@ -1618,10 +1709,14 @@ lambda_postfix_expr(A) ::= function_type_ref(T) TK_LPAREN arg_list(ARGS) TK_RPAR
 lambda_postfix_expr(A) ::= lambda_postfix_expr(C) TK_LPAREN arg_list(ARGS) TK_RPAREN(T). {
 	A = xlAstCreateCall(C, ARGS, &T);
 }
-lambda_postfix_expr(A) ::= lambda_postfix_expr(B) OP_DOT(T) TOK_IDENT(N). {
+member_name(A) ::= TOK_IDENT(N). { A = N; }
+member_name(A) ::= KW_CREATE(N). { A = N; }
+member_name(A) ::= KW_DESTROY(N). { A = N; }
+
+lambda_postfix_expr(A) ::= lambda_postfix_expr(B) OP_DOT(T) member_name(N). {
 	A = xlAstCreateMember(B, &N, 0, &T);
 }
-lambda_postfix_expr(A) ::= lambda_postfix_expr(B) OP_SAFE_DOT(T) TOK_IDENT(N). {
+lambda_postfix_expr(A) ::= lambda_postfix_expr(B) OP_SAFE_DOT(T) member_name(N). {
 	A = xlAstCreateMember(B, &N, 1, &T);
 }
 lambda_postfix_expr(A) ::= lambda_postfix_expr(B) TK_LBRACKET(T) expr(E) TK_RBRACKET. {
@@ -1638,6 +1733,12 @@ lambda_primary_expr(A) ::= KW_VAR(N). [TK_LBRACE] {
 	A = xlAstCreateIdent(&N);
 }
 lambda_primary_expr(A) ::= TOK_IDENT(N). [TK_LBRACE] {
+	A = xlAstCreateIdent(&N);
+}
+lambda_primary_expr(A) ::= KW_CREATE(N). {
+	A = xlAstCreateIdent(&N);
+}
+lambda_primary_expr(A) ::= KW_DESTROY(N). {
 	A = xlAstCreateIdent(&N);
 }
 lambda_primary_expr(A) ::= TK_LPAREN expr(E) TK_RPAREN. {
@@ -1815,10 +1916,10 @@ postfix_expr(A) ::= function_type_ref(T) TK_LPAREN arg_list(ARGS) TK_RPAREN(RP).
 postfix_expr(A) ::= postfix_expr(C) TK_LPAREN arg_list(ARGS) TK_RPAREN(T). {
 	A = xlAstCreateCall(C, ARGS, &T);
 }
-postfix_expr(A) ::= postfix_expr(B) OP_DOT(T) TOK_IDENT(N). {
+postfix_expr(A) ::= postfix_expr(B) OP_DOT(T) member_name(N). {
 	A = xlAstCreateMember(B, &N, 0, &T);
 }
-postfix_expr(A) ::= postfix_expr(B) OP_SAFE_DOT(T) TOK_IDENT(N). {
+postfix_expr(A) ::= postfix_expr(B) OP_SAFE_DOT(T) member_name(N). {
 	A = xlAstCreateMember(B, &N, 1, &T);
 }
 postfix_expr(A) ::= postfix_expr(B) TK_LBRACKET(T) expr(E) TK_RBRACKET. {
@@ -1838,6 +1939,12 @@ primary_expr(A) ::= KW_VAR(N). [TK_LBRACE] {
 	A = xlAstCreateIdent(&N);
 }
 primary_expr(A) ::= TOK_IDENT(N). [TK_LBRACE] {
+	A = xlAstCreateIdent(&N);
+}
+primary_expr(A) ::= KW_CREATE(N). {
+	A = xlAstCreateIdent(&N);
+}
+primary_expr(A) ::= KW_DESTROY(N). {
 	A = xlAstCreateIdent(&N);
 }
 primary_expr(A) ::= TK_LPAREN expr(E) TK_RPAREN. {

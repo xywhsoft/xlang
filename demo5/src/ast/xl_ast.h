@@ -10,6 +10,10 @@ typedef enum XL_AstKind {
 	XL_AST_BLOCK,
 	XL_AST_FUNC_DECL,
 	XL_AST_FUNC_EXPR,
+	XL_AST_CLASS_DECL,
+	XL_AST_UNION_DECL,
+	XL_AST_CREATE_DECL,
+	XL_AST_DESTROY_DECL,
 	XL_AST_PARAM,
 	XL_AST_TYPE_REF,
 	XL_AST_TYPEDEF,
@@ -80,6 +84,10 @@ XL_AstNode* xlAstCreateLiteralFromToken(const XL_Token* pToken);
 
 XL_AstNode* xlAstCreateFuncDecl(const XL_Token* pName, int bAsync, XL_AstNode* pParams, XL_AstNode* pRetTypes, XL_AstNode* pBody);
 XL_AstNode* xlAstCreateFuncExpr(const XL_Token* pToken, int bAsync, XL_AstNode* pParams, XL_AstNode* pRetTypes, XL_AstNode* pBody);
+XL_AstNode* xlAstCreateClassDecl(const XL_Token* pName, XL_AstNode* pBaseType, XL_AstNode* pMembers);
+XL_AstNode* xlAstCreateUnionDecl(const XL_Token* pName, XL_AstNode* pMembers);
+XL_AstNode* xlAstCreateCreateDecl(const XL_Token* pToken, XL_AstNode* pParams, XL_AstNode* pBody);
+XL_AstNode* xlAstCreateDestroyDecl(const XL_Token* pToken, XL_AstNode* pBody);
 XL_AstNode* xlAstCreateParam(const XL_Token* pName, XL_AstNode* pType, XL_AstNode* pDefaultValue);
 XL_AstNode* xlAstCreateConstDecl(const XL_Token* pName, XL_AstNode* pType, XL_AstNode* pValue);
 XL_AstNode* xlAstCreateVarDecl(const XL_Token* pName, XL_AstNode* pType, XL_AstNode* pValue);
