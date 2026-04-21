@@ -303,6 +303,11 @@
 			"path": "<native:std.str>"
 		},
 		{
+			"key": "std.sys.lib",
+			"binding": "std.sys.lib",
+			"path": "<native:std.sys.lib>"
+		},
+		{
 			"key": "std.sys.env",
 			"binding": "std.sys.env",
 			"path": "<native:std.sys.env>"

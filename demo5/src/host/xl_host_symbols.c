@@ -40,6 +40,16 @@ static xvalue __xlHostXvoCreateFuncEx(xfunction pFunc, xvalue pEnv)
 	return xvoCreateFuncEx(pFunc, pEnv);
 }
 
+static xvalue __xlHostXvoCreateClass(uint32 iSize)
+{
+	return xvoCreateClass(iSize);
+}
+
+static ptr __xlHostXvoGetClass(xvalue value)
+{
+	return xvoGetClass(value);
+}
+
 static xfunction __xlHostXvoGetFunc(xvalue value)
 {
 	return xvoGetFunc(value);
@@ -186,6 +196,7 @@ static const XL_HostSymbolEntry __gXLHostSymbols[] = {
 	{ "xvoCreatePoint", __xlHostXvoCreatePoint },
 	{ "xvoCreateFunc", __xlHostXvoCreateFunc },
 	{ "xvoCreateFuncEx", __xlHostXvoCreateFuncEx },
+	{ "xvoCreateClass", __xlHostXvoCreateClass },
 	{ "xvoCopy", xvoCopy },
 	{ "xvoUnref", xvoUnref },
 	{ "xvoGetBool", xvoGetBool },
@@ -196,6 +207,7 @@ static const XL_HostSymbolEntry __gXLHostSymbols[] = {
 	{ "xvoGetPoint", __xlHostXvoGetPoint },
 	{ "xvoGetFunc", __xlHostXvoGetFunc },
 	{ "xvoGetFuncEnv", __xlHostXvoGetFuncEnv },
+	{ "xvoGetClass", __xlHostXvoGetClass },
 	{ "xvoGetColl", xvoGetColl },
 	{ "xvoGetTable", xvoGetTable },
 	{ "xvoGetSize", xvoGetSize },

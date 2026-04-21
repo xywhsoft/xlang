@@ -61,6 +61,7 @@ NativeRegistry
 - key=std.array binding=std.array path=<native:std.array>
 - key=std.set binding=std.set path=<native:std.set>
 - key=std.str binding=std.str path=<native:std.str>
+- key=std.sys.lib binding=std.sys.lib path=<native:std.sys.lib>
 - key=std.sys.env binding=std.sys.env path=<native:std.sys.env>
 - key=std.sys.file binding=std.sys.file path=<native:std.sys.file>
 - key=std.sys.mem binding=std.sys.mem path=<native:std.sys.mem>
@@ -87,24 +88,11 @@ compile_text=D:\Git\x-lang\demo5\examples\native\extern_loadlib_msvcrt_fmode_bas
 cwd.prev=D:\Git\x-lang
 cwd.exec=D:\Git\x-lang\demo5
 loadlib.load=msvcrt.dll
-loadlib.missing=msvcrt.dll
+loadlib.ready=msvcrt.dll
+artifact.shared.symbol=_fmode
+relocate
+resolve_symbol=xl_generated_entry
+execute
+exit_code=0
+artifact.shared.unload=msvcrt.dll
 cwd.restore=D:\Git\x-lang
-
-[fallback.build]
-tcc_root=D:\Git\x-lang\demo5\release\tcc
-include=D:\Git\x-lang\demo5\release\tcc\include_win
-include=D:\Git\x-lang\demo5\release\tcc\include_win\winapi
-include=D:\Git\x-lang\demo5\src\runtime
-include=D:\Git\x-lang\demo5\lib\xrt
-lib=D:\Git\x-lang\demo5\release\tcc\lib
-compile_text=D:\Git\x-lang\demo5\examples\native\extern_loadlib_msvcrt_fmode_basic.xl
-output=D:\Git\x-lang\demo5\release\tmp\extern_loadlib_msvcrt_fmode_basic.06732d7a_00002a1c_0001.fallback.exe
-output_kind=exe
-support_source=D:\Git\x-lang\demo5\src\runtime\xlrt_host.c
-support_source=D:\Git\x-lang\demo5\src\runtime\xlrt_generated.c
-support_source=D:\Git\x-lang\demo5\src\host\xl_host_runtime.c
-link_lib=shell32
-link_lib=ws2_32
-link_lib=iphlpapi
-[tcc] tcc: error: undefined symbol 'strtoll'
-[tcc] tcc: error: undefined symbol 'GetUserNameA'

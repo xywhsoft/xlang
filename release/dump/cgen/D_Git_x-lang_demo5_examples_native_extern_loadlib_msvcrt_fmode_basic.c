@@ -62,6 +62,7 @@ NativeRegistry
 - key=std.array binding=std.array path=<native:std.array>
 - key=std.set binding=std.set path=<native:std.set>
 - key=std.str binding=std.str path=<native:std.str>
+- key=std.sys.lib binding=std.sys.lib path=<native:std.sys.lib>
 - key=std.sys.env binding=std.sys.env path=<native:std.sys.env>
 - key=std.sys.file binding=std.sys.file path=<native:std.sys.file>
 - key=std.sys.mem binding=std.sys.mem path=<native:std.sys.mem>

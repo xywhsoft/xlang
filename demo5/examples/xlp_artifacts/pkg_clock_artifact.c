@@ -11,6 +11,25 @@ XL_EXPORT int pkg_clock_artifact_probe(void)
 	return 123;
 }
 
+static int g_pkg_clock_artifact_point_sentinel = 77;
+
+XL_EXPORT void* pkg_clock_artifact_point_slot = &g_pkg_clock_artifact_point_sentinel;
+
+XL_EXPORT void* pkg_clock_artifact_point_sentinel(void)
+{
+	return &g_pkg_clock_artifact_point_sentinel;
+}
+
+XL_EXPORT int pkg_clock_artifact_point_is_sentinel(void)
+{
+	return pkg_clock_artifact_point_slot == &g_pkg_clock_artifact_point_sentinel;
+}
+
+XL_EXPORT int pkg_clock_artifact_point_is_null(void)
+{
+	return pkg_clock_artifact_point_slot == NULL;
+}
+
 XL_EXPORT int pkg_clock_artifact_add_one(int value)
 {
 	return value + 1;

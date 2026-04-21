@@ -389,6 +389,9 @@ static void __xlLowerCallArgsResolved(
 		pCallee = __xlAstChild(pCallNode, 0);
 		pSelfValue = ((pCallee != NULL) && (pCallee->eKind == XL_AST_MEMBER)) ? __xlAstChild(pCallee, 0) : NULL;
 		if ( pSelfValue == NULL ) {
+			pSelfValue = pCallee;
+		}
+		if ( pSelfValue == NULL ) {
 			free(arrBound);
 			free(arrVarArgValues);
 			free(arrVarArgNames);

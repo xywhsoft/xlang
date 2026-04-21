@@ -1054,6 +1054,7 @@ static XL_TokenKind __xlLookupKeyword(const char* sText, int iLen)
 		{"try", XL_KW_TRY}, {"catch", XL_KW_CATCH}, {"finally", XL_KW_FINALLY},
 		{"throw", XL_KW_THROW}, {"assert", XL_KW_ASSERT},
 		{"import", XL_KW_IMPORT}, {"export", XL_KW_EXPORT}, {"extern", XL_KW_EXTERN}, {"include", XL_KW_INCLUDE},
+		{"class", XL_KW_CLASS}, {"extends", XL_KW_EXTENDS}, {"union", XL_KW_UNION}, {"create", XL_KW_CREATE}, {"destroy", XL_KW_DESTROY},
 		{"and", XL_KW_AND}, {"or", XL_KW_OR}, {"not", XL_KW_NOT}
 	};
 	size_t i;

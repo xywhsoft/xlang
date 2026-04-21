@@ -512,6 +512,7 @@ char* xlSemDumpText(const XL_SemResult* pResult)
 	XL_SemTextBuffer buf;
 	size_t i;
 	const XL_TypeInfo* pType;
+	const XL_ClassInfo* pClass;
 	const XL_ScopeInfo* pScope;
 	const XL_SymbolInfo* pSymbol;
 	const XL_SemDiagItem* pDiag;
@@ -523,6 +524,37 @@ char* xlSemDumpText(const XL_SemResult* pResult)
 	for ( i = 0; (pResult != NULL) && (i < pResult->types.iCount); ++i ) {
 		pType = xlTypeTableGet(&pResult->types, i);
 		__xlSemBufAppendFormat(&buf, "\t- %s builtin=%d @ %d:%d\n", pType->sName, pType->bBuiltin, pType->iLine, pType->iColumn);
+	}
+
+	__xlSemBufAppendFormat(&buf, "Classes (%llu)\n", (unsigned long long)((pResult != NULL) ? pResult->classes.iCount : 0));
+	for ( i = 0; (pResult != NULL) && (i < pResult->classes.iCount); ++i ) {
+		size_t j;
+
+		pClass = &pResult->classes.pItems[i];
+		__xlSemBufAppendFormat(
+			&buf,
+			"\t- %s extends=%s size=%d align=%d create=%d destroy=%d fields=%llu creates=%llu\n",
+			pClass->sName,
+			(pClass->sBaseName != NULL) ? pClass->sBaseName : "",
+			pClass->iSize,
+			pClass->iAlign,
+			pClass->bHasCreate,
+			pClass->bHasDestroy,
+			(unsigned long long)pClass->iFieldCount,
+			(unsigned long long)pClass->iCreateCount
+		);
+		for ( j = 0; j < pClass->iFieldCount; ++j ) {
+			__xlSemBufAppendFormat(
+				&buf,
+				"\t\t- %s type=%s offset=%d size=%d align=%d union=%s\n",
+				pClass->pFields[j].sName,
+				pClass->pFields[j].sTypeName,
+				pClass->pFields[j].iOffset,
+				pClass->pFields[j].iSize,
+				pClass->pFields[j].iAlign,
+				(pClass->pFields[j].sUnionName != NULL) ? pClass->pFields[j].sUnionName : ""
+			);
+		}
 	}
 
 	__xlSemBufAppendFormat(&buf, "Functions (%llu)\n", (unsigned long long)((pResult != NULL) ? pResult->funcs.iCount : 0));

@@ -110,10 +110,10 @@ xlang 第五版增强标准库支持覆盖率
 --------------
 
 1. 文本格式扩展
-- ☐ x.xml
-- ☐ x.yaml
-- ☐ x.ini
-- ☐ x.csv
+- ◐ x.xml（已接入官方 XLP source 包骨架；已验证 escape_text / unescape_text / tag / text_of 最小 API）
+- ◐ x.yaml（已接入官方 XLP source 包骨架；已验证 parse_map / get / has_key 最小 API）
+- ◐ x.ini（已接入官方 XLP source 包骨架；已验证 parse / get / has_key / is_value 最小 API）
+- ◐ x.csv（已接入官方 XLP source 包骨架；已验证 parse_line / format_line / count_columns 最小 API）
 
 2. 数据库与缓存
 - ☐ x.db.sqlite
@@ -122,17 +122,17 @@ xlang 第五版增强标准库支持覆盖率
 - ☐ x.cache.redis
 
 3. 压缩、归档与资源
-- ☐ x.archive.zip
-- ☐ x.archive.tar
+- ◐ x.archive.zip（已接入官方 XLP native 包；已验证 store-only write_test_zip / count / first_name 最小 API）
+- ◐ x.archive.tar（已接入官方 XLP native 包；已验证 write_test_tar / count / first_name 最小 API）
 - ☐ x.compress.zlib
-- ☐ x.compress.gzip
-- ☐ x.resource
+- ◐ x.compress.gzip（已接入官方 XLP native 包；已验证 stored-block write_test_gzip / is_gzip / uncompressed_size 最小 API）
+- ◐ x.resource（已接入官方 XLP source 包骨架；已验证 dict<string> 资源表 exists / count / size / read_text / read_text_or 最小 API）
 
 4. 媒体与图像
-- ☐ x.image
+- ◐ x.image（官方 native 扩展包路线已由 x.image.bmp 验证；统一图像门面 API 待补齐）
 - ☐ x.image.png
 - ☐ x.image.jpeg
-- ☐ x.image.bmp
+- ◐ x.image.bmp（已接入官方 XLP native 包；已验证 is_bmp / width / height / write_test_bmp 最小 API）
 
 
 五、当前最小已落地能力映射
@@ -142,6 +142,10 @@ xlang 第五版增强标准库支持覆盖率
 - ☑ std.future / std.task / std.channel 最小语义已由语言与 runtime 覆盖
 - ☑ protocol 注册矩阵已覆盖 Callable / Indexable / Iterable / Iterator / Awaitable 的 builtin 注册
 - ☑ extern / xlp / runtime 主链路已具备后续标准库接入基础
+- ◐ 官方扩展库 source 包骨架已验证（examples/xlp_official/packages/x.csv）
+- ◐ 官方扩展库 native 包骨架已验证（examples/xlp_official_native/packages/x.image.bmp）
+- ☑ 显式泛型空容器声明可保留声明类型（array/list/dict），用于标准库源码包内部 typed state
+- ☑ C 后端已生成普通函数 raw 前置声明，source 包内部函数可先调用后定义
 
 
 六、建议推进顺序
@@ -190,4 +194,4 @@ xlang 第五版增强标准库支持覆盖率
 
 第三批：
 - ☐ 其余核心标准库
-- ☐ 官方扩展库体系
+- ◐ 官方扩展库体系（source 包样板已落地；native/static 官方包模板和批量包清单仍待补齐）
