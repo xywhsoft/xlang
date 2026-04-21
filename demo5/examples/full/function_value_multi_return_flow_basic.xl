@@ -1,0 +1,20 @@
+func pair() as int, string
+	return 42, "ok"
+end
+
+func choose() as function<int,string()>
+	return pair
+end
+
+func apply(function<int,string()> op) as int
+	auto number, text = op()
+	if text != "ok"
+		return 1
+	end
+	return number
+end
+
+func main() as int
+	auto picked = choose()
+	return apply(pair) + apply(picked)
+end

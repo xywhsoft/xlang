@@ -35,9 +35,19 @@ static xvalue __xlHostXvoCreateFunc(xfunction pFunc)
 	return xvoCreateFunc(pFunc);
 }
 
+static xvalue __xlHostXvoCreateFuncEx(xfunction pFunc, xvalue pEnv)
+{
+	return xvoCreateFuncEx(pFunc, pEnv);
+}
+
 static xfunction __xlHostXvoGetFunc(xvalue value)
 {
 	return xvoGetFunc(value);
+}
+
+static xvalue __xlHostXvoGetFuncEnv(xvalue value)
+{
+	return xvoGetFuncEnv(value);
 }
 
 static int __xlAddSymbol(TCCState* pTcc, const char* sName, const void* pValue)
@@ -175,6 +185,7 @@ static const XL_HostSymbolEntry __gXLHostSymbols[] = {
 	{ "xvoCreateTime", xvoCreateTime },
 	{ "xvoCreatePoint", __xlHostXvoCreatePoint },
 	{ "xvoCreateFunc", __xlHostXvoCreateFunc },
+	{ "xvoCreateFuncEx", __xlHostXvoCreateFuncEx },
 	{ "xvoCopy", xvoCopy },
 	{ "xvoUnref", xvoUnref },
 	{ "xvoGetBool", xvoGetBool },
@@ -184,6 +195,7 @@ static const XL_HostSymbolEntry __gXLHostSymbols[] = {
 	{ "xvoGetTime", xvoGetTime },
 	{ "xvoGetPoint", __xlHostXvoGetPoint },
 	{ "xvoGetFunc", __xlHostXvoGetFunc },
+	{ "xvoGetFuncEnv", __xlHostXvoGetFuncEnv },
 	{ "xvoGetColl", xvoGetColl },
 	{ "xvoGetTable", xvoGetTable },
 	{ "xvoGetSize", xvoGetSize },

@@ -346,9 +346,16 @@ static void __xlFuncInfoFree(XL_FuncInfo* pInfo)
 	for ( i = 0; i < pInfo->iReturnCount; ++i ) {
 		free(pInfo->arrReturnTypeNames[i]);
 	}
+	for ( i = 0; i < pInfo->iCaptureCount; ++i ) {
+		free(pInfo->arrCaptureNames[i]);
+		free(pInfo->arrCaptureTypeNames[i]);
+	}
 	free(pInfo->arrParamNames);
 	free(pInfo->arrParamTypes);
 	free(pInfo->arrReturnTypeNames);
+	free(pInfo->arrCaptureNames);
+	free(pInfo->arrCaptureTypeNames);
+	free(pInfo->arrCaptureSymbolIndexes);
 	free(pInfo->arrParamHasDefault);
 	free((void*)pInfo->arrParamDefaultValues);
 	memset(pInfo, 0, sizeof(*pInfo));
@@ -538,4 +545,63 @@ const XL_FuncInfo* xlFuncTableGet(const XL_FuncTable* pTable, size_t iIndex)
 	}
 
 	return &pTable->pItems[iIndex];
+}
+
+XL_FuncInfo* xlFuncTableGetMutable(XL_FuncTable* pTable, size_t iIndex)
+{
+	if ( (pTable == NULL) || (iIndex >= pTable->iCount) ) {
+		return NULL;
+	}
+
+	return &pTable->pItems[iIndex];
+}
+
+int xlFuncInfoAddCapture(XL_FuncInfo* pInfo, const char* sName, const char* sTypeName, int iSymbolIndex)
+{
+	char** arrCaptureNames;
+	char** arrCaptureTypes;
+	int* arrCaptureSymbols;
+	size_t i;
+
+	if ( (pInfo == NULL) || (sName == NULL) || (sName[0] == '\0') ) {
+		return XL_RC_BAD_ARG;
+	}
+
+	for ( i = 0; i < pInfo->iCaptureCount; ++i ) {
+		if ( (pInfo->arrCaptureNames[i] != NULL) && (strcmp(pInfo->arrCaptureNames[i], sName) == 0) ) {
+			return XL_RC_OK;
+		}
+	}
+
+	arrCaptureNames = (char**)realloc(pInfo->arrCaptureNames, sizeof(char*) * (pInfo->iCaptureCount + 1u));
+	if ( arrCaptureNames == NULL ) {
+		return XL_RC_IO_ERROR;
+	}
+	pInfo->arrCaptureNames = arrCaptureNames;
+
+	arrCaptureTypes = (char**)realloc(pInfo->arrCaptureTypeNames, sizeof(char*) * (pInfo->iCaptureCount + 1u));
+	if ( arrCaptureTypes == NULL ) {
+		return XL_RC_IO_ERROR;
+	}
+	pInfo->arrCaptureTypeNames = arrCaptureTypes;
+
+	arrCaptureSymbols = (int*)realloc(pInfo->arrCaptureSymbolIndexes, sizeof(int) * (pInfo->iCaptureCount + 1u));
+	if ( arrCaptureSymbols == NULL ) {
+		return XL_RC_IO_ERROR;
+	}
+	pInfo->arrCaptureSymbolIndexes = arrCaptureSymbols;
+
+	pInfo->arrCaptureNames[pInfo->iCaptureCount] = __xlFuncDupText(sName);
+	pInfo->arrCaptureTypeNames[pInfo->iCaptureCount] = __xlFuncDupText((sTypeName != NULL) ? sTypeName : "var");
+	pInfo->arrCaptureSymbolIndexes[pInfo->iCaptureCount] = iSymbolIndex;
+	if ( (pInfo->arrCaptureNames[pInfo->iCaptureCount] == NULL) || (pInfo->arrCaptureTypeNames[pInfo->iCaptureCount] == NULL) ) {
+		free(pInfo->arrCaptureNames[pInfo->iCaptureCount]);
+		free(pInfo->arrCaptureTypeNames[pInfo->iCaptureCount]);
+		pInfo->arrCaptureNames[pInfo->iCaptureCount] = NULL;
+		pInfo->arrCaptureTypeNames[pInfo->iCaptureCount] = NULL;
+		return XL_RC_IO_ERROR;
+	}
+
+	pInfo->iCaptureCount += 1u;
+	return XL_RC_OK;
 }

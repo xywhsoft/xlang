@@ -543,6 +543,7 @@ static void __xlLowerTrace(XL_DiagContext* pDiag, int bTraceLower, const XL_AstN
 }
 
 static XL_HirNode* __xlLowerStmtToHir(const XL_AstNode* pNode, const XL_SemResult* pSem, XL_DiagContext* pDiag, int bTraceLower);
+static void __xlCollectFuncExprsToHir(XL_HirNode* pRoot, const XL_AstNode* pNode, const XL_SemResult* pSem, XL_DiagContext* pDiag, int bTraceLower);
 
 static XL_HirNode* __xlLowerBlockToHir(const XL_AstNode* pNode, const XL_SemResult* pSem, XL_DiagContext* pDiag, int bTraceLower)
 {
@@ -597,7 +598,7 @@ static XL_HirNode* __xlLowerFuncToHir(const XL_AstNode* pNode, const XL_SemResul
 	}
 	__xlApplySemNodeInfo(pFunc, pSem, pNode);
 	pFuncInfo = __xlResolvedFuncInfo(pSem, pNode);
-	if ( ((pFunc->sTypeName == NULL) || (pFunc->sTypeName[0] == '\0')) && (pFuncInfo != NULL) ) {
+	if ( (pFuncInfo != NULL) && (pFuncInfo->sStorageReturnTypeName != NULL) && (pFuncInfo->sStorageReturnTypeName[0] != '\0') ) {
 		xlHirSetTypeName(pFunc, pFuncInfo->sStorageReturnTypeName);
 	}
 	pFunc->bFlag = pNode->bFlag;
@@ -625,6 +626,23 @@ static XL_HirNode* __xlLowerFuncToHir(const XL_AstNode* pNode, const XL_SemResul
 	xlHirAppendChild(pFunc, pParams);
 	xlHirAppendChild(pFunc, __xlLowerBlockToHir(__xlAstChild(pNode, 2), pSem, pDiag, bTraceLower));
 	return pFunc;
+}
+
+static void __xlCollectFuncExprsToHir(XL_HirNode* pRoot, const XL_AstNode* pNode, const XL_SemResult* pSem, XL_DiagContext* pDiag, int bTraceLower)
+{
+	size_t i;
+
+	if ( (pRoot == NULL) || (pNode == NULL) ) {
+		return;
+	}
+
+	if ( pNode->eKind == XL_AST_FUNC_EXPR ) {
+		xlHirAppendChild(pRoot, __xlLowerFuncToHir(pNode, pSem, pDiag, bTraceLower));
+	}
+
+	for ( i = 0; i < pNode->iChildCount; ++i ) {
+		__xlCollectFuncExprsToHir(pRoot, pNode->ppChildren[i], pSem, pDiag, bTraceLower);
+	}
 }
 
 static XL_HirNode* __xlLowerIfToHir(const XL_AstNode* pNode, const XL_SemResult* pSem, XL_DiagContext* pDiag, int bTraceLower)
@@ -1026,10 +1044,14 @@ int xlLowerAst(
 	if ( pResult->pHirRoot == NULL ) {
 		return XL_RC_IO_ERROR;
 	}
+	pResult->pSemResult = pSem;
 	__xlApplySemNodeInfo(pResult->pHirRoot, pSem, pRoot);
 
 	for ( i = 0; i < pRoot->iChildCount; ++i ) {
 		xlHirAppendChild(pResult->pHirRoot, __xlLowerStmtToHir(pRoot->ppChildren[i], pSem, pDiag, bTraceLower));
+	}
+	for ( i = 0; i < pRoot->iChildCount; ++i ) {
+		__xlCollectFuncExprsToHir(pResult->pHirRoot, pRoot->ppChildren[i], pSem, pDiag, bTraceLower);
 	}
 
 	pResult->pMirRoot = __xlLowerHirToMir(pResult->pHirRoot);

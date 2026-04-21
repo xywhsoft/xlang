@@ -5,10 +5,12 @@ typedef struct XL_ResolveContext {
 	XL_SemResult* pResult;
 	int bTraceSem;
 	int iCurrentScopeId;
+	int iCurrentFuncScopeId;
 	int iLoopDepth;
 	int iAsyncDepth;
 	int iCurrentVarArgKind;
 	int iCurrentFuncIndex;
+	int bCurrentFuncIsExpr;
 	const XL_FuncInfo* pCurrentFunc;
 } XL_ResolveContext;
 
@@ -353,6 +355,79 @@ static void __xlFreeTypeNameList(char** arrTypes, size_t iCount)
 	free(arrTypes);
 }
 
+static int __xlSplitTypeNameList(const char* sText, char*** parrTypes, size_t* piCount)
+{
+	const char* sScan;
+	char** arrTypes;
+	size_t iAngleDepth;
+	size_t iCount;
+
+	if ( parrTypes != NULL ) {
+		*parrTypes = NULL;
+	}
+	if ( piCount != NULL ) {
+		*piCount = 0;
+	}
+	if ( (sText == NULL) || (sText[0] == '\0') ) {
+		return 0;
+	}
+
+	iCount = 1;
+	sScan = sText;
+	iAngleDepth = 0;
+	while ( *sScan != '\0' ) {
+		if ( *sScan == '<' ) {
+			++iAngleDepth;
+		} else if ( (*sScan == '>') && (iAngleDepth != 0) ) {
+			--iAngleDepth;
+		} else if ( (*sScan == ',') && (iAngleDepth == 0) ) {
+			++iCount;
+		}
+		++sScan;
+	}
+
+	arrTypes = (char**)calloc(iCount, sizeof(char*));
+	if ( arrTypes == NULL ) {
+		return 0;
+	}
+
+	iCount = 0;
+	sScan = sText;
+	{
+		const char* sPartStart = sScan;
+		iAngleDepth = 0;
+		while ( 1 ) {
+			if ( (*sScan == '\0') || ((*sScan == ',') && (iAngleDepth == 0)) ) {
+				arrTypes[iCount] = __xlSemDupTextRange(sPartStart, (size_t)(sScan - sPartStart));
+				if ( arrTypes[iCount] == NULL ) {
+					__xlFreeTypeNameList(arrTypes, iCount);
+					return 0;
+				}
+				++iCount;
+				if ( *sScan == '\0' ) {
+					break;
+				}
+				sPartStart = sScan + 1;
+			} else if ( *sScan == '<' ) {
+				++iAngleDepth;
+			} else if ( (*sScan == '>') && (iAngleDepth != 0) ) {
+				--iAngleDepth;
+			}
+			++sScan;
+		}
+	}
+
+	if ( parrTypes != NULL ) {
+		*parrTypes = arrTypes;
+	} else {
+		__xlFreeTypeNameList(arrTypes, iCount);
+	}
+	if ( piCount != NULL ) {
+		*piCount = iCount;
+	}
+	return 1;
+}
+
 static int __xlParseFunctionTypeName(
 	const char* sTypeName,
 	char** psReturnType,
@@ -500,17 +575,59 @@ static int __xlParseFunctionTypeName(
 	return 1;
 }
 
+static int __xlParseFunctionTypeReturnTypes(
+	const char* sTypeName,
+	char*** parrReturnTypes,
+	size_t* piReturnCount
+)
+{
+	char* sReturnType;
+	int bOk;
+
+	sReturnType = NULL;
+	if ( parrReturnTypes != NULL ) {
+		*parrReturnTypes = NULL;
+	}
+	if ( piReturnCount != NULL ) {
+		*piReturnCount = 0;
+	}
+	if ( !__xlParseFunctionTypeName(sTypeName, &sReturnType, NULL, NULL) ) {
+		return 0;
+	}
+
+	bOk = __xlSplitTypeNameList(sReturnType, parrReturnTypes, piReturnCount);
+	free(sReturnType);
+	return bOk;
+}
+
+static const char* __xlFunctionStorageReturnTypeName(size_t iReturnCount)
+{
+	if ( iReturnCount == 0 ) {
+		return "void";
+	}
+	if ( iReturnCount == 1 ) {
+		return NULL;
+	}
+	return "array<var>";
+}
+
 static char* __xlBuildFunctionValueTypeFromFunc(const XL_FuncInfo* pFunc)
 {
 	char* sOut;
 	size_t iLen;
 	size_t i;
 
-	if ( (pFunc == NULL) || pFunc->bAsync || pFunc->bGenerator || (pFunc->iReturnCount != 1) ) {
+	if ( (pFunc == NULL) || pFunc->bAsync || pFunc->bGenerator || (pFunc->iReturnCount == 0) ) {
 		return NULL;
 	}
 
-	iLen = strlen("function<") + strlen((pFunc->arrReturnTypeNames != NULL) ? pFunc->arrReturnTypeNames[0] : pFunc->sReturnTypeName) + strlen("()>");
+	iLen = strlen("function<") + strlen("()>");
+	for ( i = 0; i < pFunc->iReturnCount; ++i ) {
+		iLen += strlen((pFunc->arrReturnTypeNames != NULL) ? pFunc->arrReturnTypeNames[i] : "");
+		if ( i != 0 ) {
+			iLen += 1;
+		}
+	}
 	for ( i = 0; i < pFunc->iParamCount; ++i ) {
 		iLen += strlen((pFunc->arrParamTypes != NULL) ? pFunc->arrParamTypes[i] : "");
 		if ( i != 0 ) {
@@ -526,9 +643,15 @@ static char* __xlBuildFunctionValueTypeFromFunc(const XL_FuncInfo* pFunc)
 	snprintf(
 		sOut,
 		iLen + 1,
-		"function<%s(",
-		(pFunc->arrReturnTypeNames != NULL) ? pFunc->arrReturnTypeNames[0] : pFunc->sReturnTypeName
+		"function<"
 	);
+	for ( i = 0; i < pFunc->iReturnCount; ++i ) {
+		if ( i != 0 ) {
+			strcat(sOut, ",");
+		}
+		strcat(sOut, (pFunc->arrReturnTypeNames != NULL) ? pFunc->arrReturnTypeNames[i] : "");
+	}
+	strcat(sOut, "(");
 	for ( i = 0; i < pFunc->iParamCount; ++i ) {
 		if ( i != 0 ) {
 			strcat(sOut, ",");
@@ -887,7 +1010,7 @@ static int __xlNodeHasYield(const XL_AstNode* pNode)
 	if ( pNode->eKind == XL_AST_YIELD ) {
 		return 1;
 	}
-	if ( pNode->eKind == XL_AST_FUNC_DECL ) {
+	if ( (pNode->eKind == XL_AST_FUNC_DECL) || (pNode->eKind == XL_AST_FUNC_EXPR) ) {
 		return 0;
 	}
 
@@ -1413,31 +1536,39 @@ static const char* __xlResolveTypeName(XL_ResolveContext* pCtx, const XL_AstNode
 		return sTypeName;
 	}
 	if ( __xlIsFunctionTypeName(sTypeName) ) {
-		char* sReturnType;
+		char** arrReturnTypes;
+		size_t iReturnCount;
 		char** arrParamTypes;
 		size_t iParamCount;
 		size_t i;
 
-		sReturnType = NULL;
+		arrReturnTypes = NULL;
+		iReturnCount = 0;
 		arrParamTypes = NULL;
 		iParamCount = 0;
-		if ( !__xlParseFunctionTypeName(sTypeName, &sReturnType, &arrParamTypes, &iParamCount) ) {
+		if ( !__xlParseFunctionTypeReturnTypes(sTypeName, &arrReturnTypes, &iReturnCount) ||
+			!__xlParseFunctionTypeName(sTypeName, NULL, &arrParamTypes, &iParamCount) ) {
 			__xlSemAddDiag(pCtx, XL_SEM_DIAG_ERROR, pNode, "invalid function type '%s'", sTypeName);
 			return NULL;
 		}
-		if ( __xlResolveTypeName(pCtx, pNode, sReturnType) == NULL ) {
-			free(sReturnType);
-			__xlFreeTypeNameList(arrParamTypes, iParamCount);
-			return NULL;
-		}
-		for ( i = 0; i < iParamCount; ++i ) {
-			if ( __xlResolveTypeName(pCtx, pNode, arrParamTypes[i]) == NULL ) {
-				free(sReturnType);
+		for ( i = 0; i < iReturnCount; ++i ) {
+			if ( __xlResolveTypeName(pCtx, pNode, arrReturnTypes[i]) == NULL ) {
+				__xlFreeTypeNameList(arrReturnTypes, iReturnCount);
 				__xlFreeTypeNameList(arrParamTypes, iParamCount);
 				return NULL;
 			}
 		}
-		free(sReturnType);
+		if ( iReturnCount == 0 ) {
+			__xlFreeTypeNameList(arrParamTypes, iParamCount);
+			__xlFreeTypeNameList(arrReturnTypes, iReturnCount);
+			return NULL;
+		}
+		for ( i = 0; i < iParamCount; ++i ) {
+			if ( __xlResolveTypeName(pCtx, pNode, arrParamTypes[i]) == NULL ) {
+				return NULL;
+			}
+		}
+		__xlFreeTypeNameList(arrReturnTypes, iReturnCount);
 		__xlFreeTypeNameList(arrParamTypes, iParamCount);
 		return sTypeName;
 	}
@@ -1610,6 +1741,21 @@ static int __xlIsImportLikeExpr(XL_ResolveContext* pCtx, const XL_AstNode* pNode
 	}
 
 	return 0;
+}
+
+static void __xlEnsureFuncExprName(XL_AstNode* pNode)
+{
+	char sName[64];
+
+	if ( (pNode == NULL) || (pNode->eKind != XL_AST_FUNC_EXPR) ) {
+		return;
+	}
+	if ( (pNode->sText != NULL) && (pNode->sText[0] != '\0') ) {
+		return;
+	}
+
+	snprintf(sName, sizeof(sName), "__lambda_%d_%d", pNode->iLine, pNode->iColumn);
+	xlAstSetText(pNode, sName, strlen(sName));
 }
 
 static int __xlCollectFuncInfo(XL_ResolveContext* pCtx, const XL_AstNode* pNode, int iScopeId)
@@ -1864,6 +2010,7 @@ static int __xlCollectFuncInfo(XL_ResolveContext* pCtx, const XL_AstNode* pNode,
 }
 
 static const char* __xlInferExprType(XL_ResolveContext* pCtx, const XL_AstNode* pNode);
+static int __xlResolveFuncDecl(XL_ResolveContext* pCtx, const XL_AstNode* pNode);
 static int __xlResolveExpr(XL_ResolveContext* pCtx, const XL_AstNode* pNode);
 static int __xlResolveStmt(XL_ResolveContext* pCtx, const XL_AstNode* pNode);
 static int __xlResolveForIn(XL_ResolveContext* pCtx, const XL_AstNode* pNode);
@@ -1871,7 +2018,9 @@ static int __xlResolveWhile(XL_ResolveContext* pCtx, const XL_AstNode* pNode);
 static int __xlResolveTry(XL_ResolveContext* pCtx, const XL_AstNode* pNode);
 static int __xlResolveAssign(XL_ResolveContext* pCtx, const XL_AstNode* pNode);
 static int __xlResolveYieldStmt(XL_ResolveContext* pCtx, const XL_AstNode* pNode);
+static int __xlMaybeCaptureSymbol(XL_ResolveContext* pCtx, const XL_SymbolInfo* pSymbol, int iSymbolIndex);
 static const XL_FuncInfo* __xlExprMultiReturnFunc(XL_ResolveContext* pCtx, const XL_AstNode* pNode);
+static int __xlExprMultiReturnTypeList(XL_ResolveContext* pCtx, const XL_AstNode* pNode, char*** parrTypes, size_t* piCount);
 static const XL_FuncInfo* __xlExprGeneratorFunc(XL_ResolveContext* pCtx, const XL_AstNode* pNode);
 static const char* __xlGeneratorValueTypeFromExpr(XL_ResolveContext* pCtx, const XL_AstNode* pNode);
 static int __xlResolveIndexExpr(XL_ResolveContext* pCtx, const XL_AstNode* pNode);
@@ -2602,6 +2751,7 @@ static int __xlIsTypeCtorTargetName(const char* sTypeName)
 		__xlIsBoolTypeName(sTypeName) ||
 		__xlIsStringTypeName(sTypeName) ||
 		__xlIsPointTypeName(sTypeName) ||
+		__xlIsFunctionTypeName(sTypeName) ||
 		__xlIsTimeTypeName(sTypeName) ||
 		__xlIsVarTypeName(sTypeName);
 }
@@ -3302,17 +3452,20 @@ static int __xlMatchCallToFunctionType(
 	const XL_AstNode* pArgs
 )
 {
-	char* sReturnType;
+	char** arrReturnTypes;
+	size_t iReturnCount;
 	char** arrParamTypes;
 	size_t iParamCount;
 	size_t iArgIndex;
 	size_t iParamIndex;
 	int iRc;
 
-	sReturnType = NULL;
+	arrReturnTypes = NULL;
+	iReturnCount = 0;
 	arrParamTypes = NULL;
 	iParamCount = 0;
-	if ( !__xlParseFunctionTypeName(sFunctionType, &sReturnType, &arrParamTypes, &iParamCount) ) {
+	if ( !__xlParseFunctionTypeReturnTypes(sFunctionType, &arrReturnTypes, &iReturnCount) ||
+		!__xlParseFunctionTypeName(sFunctionType, NULL, &arrParamTypes, &iParamCount) ) {
 		return __xlSemAddDiag(pCtx, XL_SEM_DIAG_ERROR, pCallNode, "invalid function type '%s'", sFunctionType);
 	}
 
@@ -3320,31 +3473,35 @@ static int __xlMatchCallToFunctionType(
 	for ( iArgIndex = 0; (pArgs != NULL) && (iArgIndex < pArgs->iChildCount); ++iArgIndex ) {
 		const XL_AstNode* pArg;
 		const XL_AstNode* pValue;
-		const XL_FuncInfo* pExpandedFunc;
+		char** arrExpandedTypes;
+		size_t iExpandedCount;
 		const char* sArgType;
 
 		pArg = pArgs->ppChildren[iArgIndex];
 		if ( __xlArgName(pArg) != NULL ) {
 			__xlFreeTypeNameList(arrParamTypes, iParamCount);
-			free(sReturnType);
+			__xlFreeTypeNameList(arrReturnTypes, iReturnCount);
 			return __xlSemAddDiag(pCtx, XL_SEM_DIAG_ERROR, pCallNode, "function values currently only support positional calls");
 		}
 
 		pValue = __xlArgValue(pArg);
-		pExpandedFunc = __xlExprMultiReturnFunc(pCtx, pValue);
-		if ( pExpandedFunc != NULL ) {
+		arrExpandedTypes = NULL;
+		iExpandedCount = 0;
+		if ( __xlExprMultiReturnTypeList(pCtx, pValue, &arrExpandedTypes, &iExpandedCount) ) {
 			size_t j;
 
-			for ( j = 0; j < pExpandedFunc->iReturnCount; ++j ) {
+			for ( j = 0; j < iExpandedCount; ++j ) {
 				if ( iParamIndex >= iParamCount ) {
+					__xlFreeTypeNameList(arrExpandedTypes, iExpandedCount);
 					__xlFreeTypeNameList(arrParamTypes, iParamCount);
-					free(sReturnType);
+					__xlFreeTypeNameList(arrReturnTypes, iReturnCount);
 					return __xlSemAddDiag(pCtx, XL_SEM_DIAG_ERROR, pCallNode, "function value call expects %llu arguments, got more", (unsigned long long)iParamCount);
 				}
-				sArgType = ((pExpandedFunc->arrReturnTypeNames != NULL) && (j < pExpandedFunc->iReturnCount)) ? pExpandedFunc->arrReturnTypeNames[j] : "";
+				sArgType = arrExpandedTypes[j];
 				if ( !__xlTypeMatches(arrParamTypes[iParamIndex], sArgType) ) {
+					__xlFreeTypeNameList(arrExpandedTypes, iExpandedCount);
 					__xlFreeTypeNameList(arrParamTypes, iParamCount);
-					free(sReturnType);
+					__xlFreeTypeNameList(arrReturnTypes, iReturnCount);
 					return __xlSemAddDiag(
 						pCtx,
 						XL_SEM_DIAG_ERROR,
@@ -3357,12 +3514,13 @@ static int __xlMatchCallToFunctionType(
 				}
 				++iParamIndex;
 			}
+			__xlFreeTypeNameList(arrExpandedTypes, iExpandedCount);
 			continue;
 		}
 
 		if ( iParamIndex >= iParamCount ) {
 			__xlFreeTypeNameList(arrParamTypes, iParamCount);
-			free(sReturnType);
+			__xlFreeTypeNameList(arrReturnTypes, iReturnCount);
 			return __xlSemAddDiag(pCtx, XL_SEM_DIAG_ERROR, pCallNode, "function value call expects %llu arguments, got more", (unsigned long long)iParamCount);
 		}
 
@@ -3379,7 +3537,7 @@ static int __xlMatchCallToFunctionType(
 
 		if ( !__xlTypeMatches(arrParamTypes[iParamIndex], sArgType) ) {
 			__xlFreeTypeNameList(arrParamTypes, iParamCount);
-			free(sReturnType);
+			__xlFreeTypeNameList(arrReturnTypes, iReturnCount);
 			return __xlSemAddDiag(
 				pCtx,
 				XL_SEM_DIAG_ERROR,
@@ -3395,7 +3553,7 @@ static int __xlMatchCallToFunctionType(
 
 	if ( iParamIndex != iParamCount ) {
 		__xlFreeTypeNameList(arrParamTypes, iParamCount);
-		free(sReturnType);
+		__xlFreeTypeNameList(arrReturnTypes, iReturnCount);
 		return __xlSemAddDiag(
 			pCtx,
 			XL_SEM_DIAG_ERROR,
@@ -3406,9 +3564,13 @@ static int __xlMatchCallToFunctionType(
 		);
 	}
 
-	__xlSemNodeSetType(pCtx->pResult, pCallNode, sReturnType);
+	__xlSemNodeSetType(
+		pCtx->pResult,
+		pCallNode,
+		(iReturnCount > 1) ? __xlFunctionStorageReturnTypeName(iReturnCount) : arrReturnTypes[0]
+	);
 	__xlFreeTypeNameList(arrParamTypes, iParamCount);
-	free(sReturnType);
+	__xlFreeTypeNameList(arrReturnTypes, iReturnCount);
 	return XL_RC_OK;
 }
 
@@ -3646,6 +3808,64 @@ static int __xlResolveCallExpr(XL_ResolveContext* pCtx, const XL_AstNode* pNode)
 		return XL_RC_OK;
 	}
 
+	if ( (pCallee != NULL) && (pCallee->eKind == XL_AST_TYPE_REF) && (pCallee->sText != NULL) ) {
+		const char* sCtorTypeName;
+		const XL_AstNode* pArgNode;
+		const XL_AstNode* pArgValue;
+		const char* sArgType;
+
+		iRc = __xlResolveTypeRef(pCtx, pCallee);
+		if ( iRc != XL_RC_OK ) {
+			return iRc;
+		}
+
+		sCtorTypeName = __xlInferExprType(pCtx, pCallee);
+		if ( (sCtorTypeName == NULL) || (sCtorTypeName[0] == '\0') || !__xlIsTypeCtorTargetName(sCtorTypeName) ) {
+			return __xlSemAddDiag(
+				pCtx,
+				XL_SEM_DIAG_ERROR,
+				pNode,
+				"type '%s' is not constructible in stage 1",
+				(pCallee->sText != NULL) ? pCallee->sText : "?"
+			);
+		}
+		if ( (pArgs == NULL) || (pArgs->iChildCount != 1) ) {
+			return __xlSemAddDiag(
+				pCtx,
+				XL_SEM_DIAG_ERROR,
+				pNode,
+				"type constructor '%s' expects exactly 1 argument",
+				pCallee->sText
+			);
+		}
+		pArgNode = pArgs->ppChildren[0];
+		if ( __xlArgName(pArgNode) != NULL ) {
+			return __xlSemAddDiag(
+				pCtx,
+				XL_SEM_DIAG_ERROR,
+				pArgNode,
+				"type constructor '%s' does not support named arguments",
+				pCallee->sText
+			);
+		}
+		pArgValue = __xlArgValue(pArgNode);
+		sArgType = __xlInferExprType(pCtx, pArgValue);
+		if ( !__xlCanTypeConstruct(sCtorTypeName, sArgType) ) {
+			return __xlSemAddDiag(
+				pCtx,
+				XL_SEM_DIAG_ERROR,
+				pNode,
+				"type constructor '%s' cannot convert from '%s'",
+				pCallee->sText,
+				((sArgType != NULL) && (sArgType[0] != '\0')) ? sArgType : "?"
+			);
+		}
+
+		__xlSemNodeSetScope(pCtx->pResult, pNode, pCtx->iCurrentScopeId);
+		__xlSemNodeSetType(pCtx->pResult, pNode, sCtorTypeName);
+		return XL_RC_OK;
+	}
+
 	if ( (pCallee != NULL) && (pCallee->eKind == XL_AST_IDENT) && (pCallee->sText != NULL) ) {
 		const char* sCtorTypeName;
 		const XL_SymbolInfo* pCalleeSymbol;
@@ -3770,6 +3990,12 @@ static const char* __xlInferExprType(XL_ResolveContext* pCtx, const XL_AstNode* 
 	}
 
 	switch ( pNode->eKind ) {
+		case XL_AST_FUNC_EXPR:
+			pInfo = xlSemNodeInfoFind(pCtx->pResult, pNode);
+			if ( (pInfo != NULL) && (pInfo->sTypeName != NULL) && (pInfo->sTypeName[0] != '\0') ) {
+				return pInfo->sTypeName;
+			}
+			return "";
 		case XL_AST_INT:
 			return "int";
 		case XL_AST_FLOAT:
@@ -4033,6 +4259,84 @@ static const XL_FuncInfo* __xlExprMultiReturnFunc(XL_ResolveContext* pCtx, const
 	return ((pFunc != NULL) && (pFunc->iReturnCount > 1)) ? pFunc : NULL;
 }
 
+static int __xlExprMultiReturnTypeList(
+	XL_ResolveContext* pCtx,
+	const XL_AstNode* pNode,
+	char*** parrTypes,
+	size_t* piCount
+)
+{
+	const XL_FuncInfo* pFunc;
+	const XL_AstNode* pTargetNode;
+	char** arrTypes;
+	size_t i;
+
+	if ( parrTypes != NULL ) {
+		*parrTypes = NULL;
+	}
+	if ( piCount != NULL ) {
+		*piCount = 0;
+	}
+	if ( (pCtx == NULL) || (pNode == NULL) ) {
+		return 0;
+	}
+
+	pFunc = __xlExprMultiReturnFunc(pCtx, pNode);
+	if ( pFunc != NULL ) {
+		arrTypes = (char**)calloc(pFunc->iReturnCount, sizeof(char*));
+		if ( arrTypes == NULL ) {
+			return 0;
+		}
+		for ( i = 0; i < pFunc->iReturnCount; ++i ) {
+			arrTypes[i] = __xlSemDupText((pFunc->arrReturnTypeNames != NULL) ? pFunc->arrReturnTypeNames[i] : "");
+			if ( arrTypes[i] == NULL ) {
+				__xlFreeTypeNameList(arrTypes, i);
+				return 0;
+			}
+		}
+		if ( parrTypes != NULL ) {
+			*parrTypes = arrTypes;
+		} else {
+			__xlFreeTypeNameList(arrTypes, pFunc->iReturnCount);
+		}
+		if ( piCount != NULL ) {
+			*piCount = pFunc->iReturnCount;
+		}
+		return 1;
+	}
+
+	pTargetNode = pNode;
+	if ( (pNode->eKind == XL_AST_UNARY) && (pNode->sText != NULL) && (strcmp(pNode->sText, "await") == 0) ) {
+		pTargetNode = __xlAstChild(pNode, 0);
+	}
+	if ( (pTargetNode != NULL) && (pTargetNode->eKind == XL_AST_CALL) ) {
+		const XL_SemNodeInfo* pCallInfo;
+		const char* sCalleeType;
+		const XL_AstNode* pCallee;
+
+		pCallInfo = xlSemNodeInfoFind(pCtx->pResult, pTargetNode);
+		if ( (pCallInfo != NULL) && (pCallInfo->iFuncIndex >= 0) ) {
+			return 0;
+		}
+		pCallee = __xlAstChild(pTargetNode, 0);
+		sCalleeType = __xlInferExprType(pCtx, pCallee);
+		if ( __xlIsFunctionTypeName(sCalleeType) && __xlParseFunctionTypeReturnTypes(sCalleeType, parrTypes, piCount) ) {
+			if ( (piCount != NULL) && (*piCount > 1) ) {
+				return 1;
+			}
+			__xlFreeTypeNameList((parrTypes != NULL) ? *parrTypes : NULL, (piCount != NULL) ? *piCount : 0);
+			if ( parrTypes != NULL ) {
+				*parrTypes = NULL;
+			}
+			if ( piCount != NULL ) {
+				*piCount = 0;
+			}
+		}
+	}
+
+	return 0;
+}
+
 static const XL_FuncInfo* __xlExprGeneratorFunc(XL_ResolveContext* pCtx, const XL_AstNode* pNode)
 {
 	const XL_SemNodeInfo* pInfo;
@@ -4101,16 +4405,66 @@ static const char* __xlGeneratorValueTypeFromExpr(XL_ResolveContext* pCtx, const
 	return NULL;
 }
 
+static int __xlMaybeCaptureSymbol(XL_ResolveContext* pCtx, const XL_SymbolInfo* pSymbol, int iSymbolIndex)
+{
+	XL_FuncInfo* pFunc;
+
+	if ( (pCtx == NULL) || (pSymbol == NULL) || !pCtx->bCurrentFuncIsExpr || (pCtx->iCurrentFuncIndex < 0) ) {
+		return XL_RC_OK;
+	}
+	if ( pSymbol->iScopeId <= 0 ) {
+		return XL_RC_OK;
+	}
+	if ( (pSymbol->eKind != XL_SYMBOL_PARAM) && (pSymbol->eKind != XL_SYMBOL_VAR) && (pSymbol->eKind != XL_SYMBOL_CONST) ) {
+		return XL_RC_OK;
+	}
+	if ( __xlScopeContains(&pCtx->pResult->scopes, pSymbol->iScopeId, pCtx->iCurrentFuncScopeId) ) {
+		return XL_RC_OK;
+	}
+
+	pFunc = xlFuncTableGetMutable(&pCtx->pResult->funcs, (size_t)pCtx->iCurrentFuncIndex);
+	if ( pFunc == NULL ) {
+		return XL_RC_OK;
+	}
+
+	{
+		int iRc = xlFuncInfoAddCapture(
+			pFunc,
+			pSymbol->sName,
+			__xlSymbolResolvedTypeName(pSymbol),
+			iSymbolIndex
+		);
+		if ( iRc == XL_RC_OK ) {
+			__xlSemTrace(
+				pCtx,
+				NULL,
+				"capture func='%s' name='%s' type='%s' symbol=%d",
+				(pFunc->sName != NULL) ? pFunc->sName : "",
+				(pSymbol->sName != NULL) ? pSymbol->sName : "",
+				__xlSymbolResolvedTypeName(pSymbol),
+				iSymbolIndex
+			);
+		}
+		return iRc;
+	}
+}
+
 static size_t __xlExprValueCount(XL_ResolveContext* pCtx, const XL_AstNode* pNode)
 {
-	const XL_FuncInfo* pFunc;
+	char** arrTypes;
+	size_t iCount;
 
 	if ( pNode == NULL ) {
 		return 0;
 	}
 
-	pFunc = __xlExprMultiReturnFunc(pCtx, pNode);
-	return (pFunc != NULL) ? pFunc->iReturnCount : 1;
+	arrTypes = NULL;
+	iCount = 0;
+	if ( __xlExprMultiReturnTypeList(pCtx, pNode, &arrTypes, &iCount) ) {
+		__xlFreeTypeNameList(arrTypes, iCount);
+		return iCount;
+	}
+	return 1;
 }
 
 static int __xlResolveForIn(XL_ResolveContext* pCtx, const XL_AstNode* pNode)
@@ -4603,6 +4957,8 @@ static int __xlResolveTernaryExpr(XL_ResolveContext* pCtx, const XL_AstNode* pNo
 static int __xlResolveExpr(XL_ResolveContext* pCtx, const XL_AstNode* pNode)
 {
 	const XL_SymbolInfo* pSymbol;
+	const XL_SemNodeInfo* pInfo;
+	const XL_FuncInfo* pFunc;
 	const char* sBaseTypeName;
 	const char* sTypeName;
 	size_t i;
@@ -4613,6 +4969,34 @@ static int __xlResolveExpr(XL_ResolveContext* pCtx, const XL_AstNode* pNode)
 	}
 
 	switch ( pNode->eKind ) {
+		case XL_AST_FUNC_EXPR:
+		{
+			char* sFunctionType;
+
+			__xlEnsureFuncExprName((XL_AstNode*)pNode);
+			iRc = __xlResolveFuncDecl(pCtx, pNode);
+			if ( iRc != XL_RC_OK ) {
+				return iRc;
+			}
+			pInfo = xlSemNodeInfoFind(pCtx->pResult, pNode);
+			pFunc = ((pInfo != NULL) && (pInfo->iFuncIndex >= 0)) ?
+				xlFuncTableGet(&pCtx->pResult->funcs, (size_t)pInfo->iFuncIndex) : NULL;
+			sFunctionType = __xlBuildFunctionValueTypeFromFunc(pFunc);
+			if ( (pFunc != NULL) && (sFunctionType == NULL) && (pFunc->iReturnCount != 0) ) {
+				return __xlSemAddDiag(
+					pCtx,
+					XL_SEM_DIAG_ERROR,
+					pNode,
+					"anonymous function currently requires a non-async, non-generator return signature"
+				);
+			}
+			__xlSemNodeSetScope(pCtx->pResult, pNode, (pInfo != NULL) ? pInfo->iScopeId : pCtx->iCurrentScopeId);
+			if ( sFunctionType != NULL ) {
+				__xlSemNodeSetType(pCtx->pResult, pNode, sFunctionType);
+				free(sFunctionType);
+			}
+			return XL_RC_OK;
+		}
 		case XL_AST_IDENT:
 			pSymbol = xlSymbolTableFindVisible(&pCtx->pResult->symbols, &pCtx->pResult->scopes, pCtx->iCurrentScopeId, pNode->sText);
 			if ( pSymbol == NULL ) {
@@ -4626,6 +5010,10 @@ static int __xlResolveExpr(XL_ResolveContext* pCtx, const XL_AstNode* pNode)
 			}
 			if ( pSymbol->eKind == XL_SYMBOL_FUNC ) {
 				return __xlResolveFunctionValueNode(pCtx, pNode, NULL, 1);
+			}
+			iRc = __xlMaybeCaptureSymbol(pCtx, pSymbol, (int)(pSymbol - pCtx->pResult->symbols.pItems));
+			if ( iRc != XL_RC_OK ) {
+				return iRc;
 			}
 			__xlSemNodeSetSymbol(pCtx->pResult, pNode, (int)(pSymbol - pCtx->pResult->symbols.pItems));
 			__xlSemNodeSetScope(pCtx->pResult, pNode, pCtx->iCurrentScopeId);
@@ -4877,7 +5265,8 @@ static int __xlResolveUnpackDecl(XL_ResolveContext* pCtx, const XL_AstNode* pNod
 {
 	const XL_AstNode* pTargets;
 	const XL_AstNode* pValueNode;
-	const XL_FuncInfo* pFunc;
+	char** arrReturnTypes;
+	size_t iReturnCount;
 	size_t i;
 	int iRc;
 
@@ -4892,17 +5281,19 @@ static int __xlResolveUnpackDecl(XL_ResolveContext* pCtx, const XL_AstNode* pNod
 		return iRc;
 	}
 
-	pFunc = __xlExprMultiReturnFunc(pCtx, pValueNode);
-	if ( pFunc == NULL ) {
+	arrReturnTypes = NULL;
+	iReturnCount = 0;
+	if ( !__xlExprMultiReturnTypeList(pCtx, pValueNode, &arrReturnTypes, &iReturnCount) ) {
 		return __xlSemAddDiag(pCtx, XL_SEM_DIAG_ERROR, pValueNode, "destructuring requires a multi-return call");
 	}
-	if ( (pTargets == NULL) || (pTargets->iChildCount != pFunc->iReturnCount) ) {
+	if ( (pTargets == NULL) || (pTargets->iChildCount != iReturnCount) ) {
+		__xlFreeTypeNameList(arrReturnTypes, iReturnCount);
 		return __xlSemAddDiag(
 			pCtx,
 			XL_SEM_DIAG_ERROR,
 			pNode,
 			"destructuring expects %llu targets, got %llu",
-			(unsigned long long)pFunc->iReturnCount,
+			(unsigned long long)iReturnCount,
 			(unsigned long long)((pTargets != NULL) ? pTargets->iChildCount : 0)
 		);
 	}
@@ -4918,7 +5309,7 @@ static int __xlResolveUnpackDecl(XL_ResolveContext* pCtx, const XL_AstNode* pNod
 		if ( strcmp(pTarget->sText, "_") == 0 ) {
 			continue;
 		}
-		sTargetType = ((pFunc->arrReturnTypeNames != NULL) && (i < pFunc->iReturnCount)) ? pFunc->arrReturnTypeNames[i] : "var";
+		sTargetType = (i < iReturnCount) ? arrReturnTypes[i] : "var";
 		iRc = __xlDeclareSymbol(
 			pCtx,
 			XL_SYMBOL_VAR,
@@ -4932,11 +5323,13 @@ static int __xlResolveUnpackDecl(XL_ResolveContext* pCtx, const XL_AstNode* pNod
 			pTarget
 		);
 		if ( iRc != XL_RC_OK ) {
+			__xlFreeTypeNameList(arrReturnTypes, iReturnCount);
 			return iRc;
 		}
 	}
 
 	__xlSemNodeSetScope(pCtx->pResult, pNode, pCtx->iCurrentScopeId);
+	__xlFreeTypeNameList(arrReturnTypes, iReturnCount);
 	return XL_RC_OK;
 }
 
@@ -5156,6 +5549,8 @@ static int __xlResolveFuncDecl(XL_ResolveContext* pCtx, const XL_AstNode* pNode)
 	int iPrevAsyncDepth;
 	int iPrevVarArgKind;
 	int iPrevFuncIndex;
+	int iPrevFuncScopeId;
+	int bPrevFuncIsExpr;
 	int iRc;
 	size_t i;
 	const char* sExternName;
@@ -5231,8 +5626,11 @@ static int __xlResolveFuncDecl(XL_ResolveContext* pCtx, const XL_AstNode* pNode)
 	iPrevScopeId = pCtx->iCurrentScopeId;
 	iPrevAsyncDepth = pCtx->iAsyncDepth;
 	iPrevFuncIndex = pCtx->iCurrentFuncIndex;
+	iPrevFuncScopeId = pCtx->iCurrentFuncScopeId;
+	bPrevFuncIsExpr = pCtx->bCurrentFuncIsExpr;
 	pPrevFunc = pCtx->pCurrentFunc;
 	pCtx->iCurrentScopeId = iFuncScopeId;
+	pCtx->iCurrentFuncScopeId = iFuncScopeId;
 	if ( pNode->bFlag ) {
 		pCtx->iAsyncDepth += 1;
 	}
@@ -5240,6 +5638,7 @@ static int __xlResolveFuncDecl(XL_ResolveContext* pCtx, const XL_AstNode* pNode)
 	pCurrentFunc = ((pFuncInfoNode != NULL) && (pFuncInfoNode->iFuncIndex >= 0)) ?
 		xlFuncTableGet(&pCtx->pResult->funcs, (size_t)pFuncInfoNode->iFuncIndex) : NULL;
 	pCtx->iCurrentFuncIndex = ((pFuncInfoNode != NULL) && (pFuncInfoNode->iFuncIndex >= 0)) ? pFuncInfoNode->iFuncIndex : -1;
+	pCtx->bCurrentFuncIsExpr = (pNode->eKind == XL_AST_FUNC_EXPR) ? 1 : 0;
 	pCtx->pCurrentFunc = pCurrentFunc;
 	__xlSemTrace(pCtx, pNode, "enter func '%s'", pNode->sText);
 
@@ -5366,6 +5765,8 @@ static int __xlResolveFuncDecl(XL_ResolveContext* pCtx, const XL_AstNode* pNode)
 	pCtx->iAsyncDepth = iPrevAsyncDepth;
 	pCtx->iCurrentVarArgKind = iPrevVarArgKind;
 	pCtx->iCurrentFuncIndex = iPrevFuncIndex;
+	pCtx->iCurrentFuncScopeId = iPrevFuncScopeId;
+	pCtx->bCurrentFuncIsExpr = bPrevFuncIsExpr;
 	pCtx->pCurrentFunc = pPrevFunc;
 	return iRc;
 }
@@ -5425,7 +5826,8 @@ static int __xlResolveStmt(XL_ResolveContext* pCtx, const XL_AstNode* pNode)
 		{
 			const XL_AstNode* pValues;
 			const XL_AstNode* pExpandedValue;
-			const XL_FuncInfo* pExpandedFunc;
+			char** arrExpandedTypes;
+			size_t iExpandedCount;
 			size_t iValueCount;
 			size_t iValueIndex;
 			int bExpandedReturn;
@@ -5443,12 +5845,15 @@ static int __xlResolveStmt(XL_ResolveContext* pCtx, const XL_AstNode* pNode)
 					return iRc;
 				}
 			}
-			pExpandedFunc = __xlExprMultiReturnFunc(pCtx, pExpandedValue);
+			arrExpandedTypes = NULL;
+			iExpandedCount = 0;
+			(void)__xlExprMultiReturnTypeList(pCtx, pExpandedValue, &arrExpandedTypes, &iExpandedCount);
 			bExpandedReturn = ((iValueCount == 1) &&
-				(pExpandedFunc != NULL) &&
-				(pExpandedFunc->iReturnCount == pCtx->pCurrentFunc->iReturnCount) &&
+				(iExpandedCount > 1) &&
+				(iExpandedCount == pCtx->pCurrentFunc->iReturnCount) &&
 				(pCtx->pCurrentFunc->iReturnCount > 1));
 			if ( (iValueCount != pCtx->pCurrentFunc->iReturnCount) && !bExpandedReturn ) {
+				__xlFreeTypeNameList(arrExpandedTypes, iExpandedCount);
 				return __xlSemAddDiag(
 					pCtx,
 					XL_SEM_DIAG_ERROR,
@@ -5464,8 +5869,7 @@ static int __xlResolveStmt(XL_ResolveContext* pCtx, const XL_AstNode* pNode)
 					const char* sValueType;
 					const char* sExpectedType;
 
-					sValueType = ((pExpandedFunc->arrReturnTypeNames != NULL) && (iValueIndex < pExpandedFunc->iReturnCount)) ?
-						pExpandedFunc->arrReturnTypeNames[iValueIndex] : "";
+					sValueType = (iValueIndex < iExpandedCount) ? arrExpandedTypes[iValueIndex] : "";
 					sExpectedType = ((pCtx->pCurrentFunc->arrReturnTypeNames != NULL) && (iValueIndex < pCtx->pCurrentFunc->iReturnCount)) ?
 						pCtx->pCurrentFunc->arrReturnTypeNames[iValueIndex] : "";
 					if ( (sExpectedType != NULL) && (sExpectedType[0] != '\0') &&
@@ -5482,8 +5886,10 @@ static int __xlResolveStmt(XL_ResolveContext* pCtx, const XL_AstNode* pNode)
 						);
 					}
 				}
+				__xlFreeTypeNameList(arrExpandedTypes, iExpandedCount);
 				return XL_RC_OK;
 			}
+			__xlFreeTypeNameList(arrExpandedTypes, iExpandedCount);
 
 			for ( iValueIndex = 0; (pValues != NULL) && (iValueIndex < pValues->iChildCount); ++iValueIndex ) {
 				const char* sValueType;
@@ -6004,7 +6410,9 @@ int xlSemAnalyzeAst(const XL_AstNode* pRoot, XL_DiagContext* pDiag, int bTraceSe
 	ctx.pResult = pResult;
 	ctx.bTraceSem = bTraceSem;
 	ctx.iCurrentScopeId = -1;
+	ctx.iCurrentFuncScopeId = -1;
 	ctx.iCurrentFuncIndex = -1;
+	ctx.bCurrentFuncIsExpr = 0;
 
 	iRc = xlScopeTableAdd(&pResult->scopes, XL_SCOPE_MODULE, -1, "<module>", pRoot->iLine, pRoot->iColumn, &ctx.iCurrentScopeId);
 	if ( iRc != XL_RC_OK ) {

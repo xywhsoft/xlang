@@ -7,6 +7,8 @@ static XL_HirKind __xlExprKind(const XL_AstNode* pNode)
 	switch ( pNode->eKind ) {
 		case XL_AST_CALL:
 			return XL_HIR_CALL;
+		case XL_AST_FUNC_EXPR:
+			return XL_HIR_NAME;
 		case XL_AST_MEMBER:
 			return XL_HIR_MEMBER;
 		case XL_AST_INDEX:
@@ -84,6 +86,42 @@ static const XL_AstNode* __xlArgValue(const XL_AstNode* pNode)
 	return pNode;
 }
 
+static int __xlIsFunctionTypeName(const char* sTypeName)
+{
+	return (sTypeName != NULL) && (strncmp(sTypeName, "function<", 9) == 0);
+}
+
+static size_t __xlFunctionTypeReturnCount(const char* sTypeName)
+{
+	const char* sScan;
+	const char* sReturnStart;
+	size_t iAngleDepth;
+	size_t iCount;
+
+	if ( !__xlIsFunctionTypeName(sTypeName) ) {
+		return 0;
+	}
+
+	sReturnStart = sTypeName + 9;
+	sScan = sReturnStart;
+	iAngleDepth = 0;
+	iCount = 1;
+	while ( *sScan != '\0' ) {
+		if ( *sScan == '<' ) {
+			++iAngleDepth;
+		} else if ( (*sScan == '>') && (iAngleDepth != 0) ) {
+			--iAngleDepth;
+		} else if ( (*sScan == '(') && (iAngleDepth == 0) ) {
+			break;
+		} else if ( (*sScan == ',') && (iAngleDepth == 0) ) {
+			++iCount;
+		}
+		++sScan;
+	}
+
+	return ((*sScan == '(') && (sScan > sReturnStart)) ? iCount : 0;
+}
+
 static const XL_FuncInfo* __xlResolvedFuncInfo(const XL_SemResult* pSem, const XL_AstNode* pNode)
 {
 	const XL_SemNodeInfo* pInfo;
@@ -119,6 +157,40 @@ static const XL_FuncInfo* __xlExprMultiReturnFunc(const XL_SemResult* pSem, cons
 
 	pFunc = __xlResolvedFuncInfo(pSem, pTargetNode);
 	return ((pFunc != NULL) && (pFunc->iReturnCount > 1)) ? pFunc : NULL;
+}
+
+static size_t __xlExprMultiReturnCount(const XL_SemResult* pSem, const XL_AstNode* pNode)
+{
+	const XL_FuncInfo* pFunc;
+	const XL_AstNode* pTargetNode;
+	const XL_AstNode* pCallee;
+	const XL_SemNodeInfo* pInfo;
+	const XL_SemNodeInfo* pCallInfo;
+
+	pFunc = __xlExprMultiReturnFunc(pSem, pNode);
+	if ( pFunc != NULL ) {
+		return pFunc->iReturnCount;
+	}
+
+	pTargetNode = pNode;
+	if ( (pNode != NULL) && (pNode->eKind == XL_AST_UNARY) && (pNode->sText != NULL) && (strcmp(pNode->sText, "await") == 0) ) {
+		pTargetNode = __xlAstChild(pNode, 0);
+	}
+	if ( (pTargetNode == NULL) || (pTargetNode->eKind != XL_AST_CALL) ) {
+		return 0;
+	}
+
+	pCallInfo = (pSem != NULL) ? xlSemNodeInfoFind(pSem, pTargetNode) : NULL;
+	if ( (pCallInfo != NULL) && (pCallInfo->iFuncIndex >= 0) ) {
+		return 0;
+	}
+
+	pCallee = __xlAstChild(pTargetNode, 0);
+	pInfo = (pSem != NULL) ? xlSemNodeInfoFind(pSem, pCallee) : NULL;
+	if ( (pInfo == NULL) || (pInfo->sTypeName == NULL) ) {
+		return 0;
+	}
+	return __xlFunctionTypeReturnCount(pInfo->sTypeName);
 }
 
 static int __xlFindParamIndexByNameFrom(const XL_FuncInfo* pFunc, const char* sName, size_t iStartIndex)
@@ -335,12 +407,14 @@ static void __xlLowerCallArgsResolved(
 			pPackedArgValue = pValue;
 			continue;
 		}
-		if ( (__xlArgName(pArg) == NULL) && (__xlExprMultiReturnFunc(pSem, pValue) != NULL) ) {
+		if ( (__xlArgName(pArg) == NULL) && (__xlExprMultiReturnCount(pSem, pValue) > 1) ) {
 			const XL_FuncInfo* pExpandedFunc;
+			size_t iExpandedCount;
 			size_t j;
 
 			pExpandedFunc = __xlExprMultiReturnFunc(pSem, pValue);
-			for ( j = 0; (pExpandedFunc != NULL) && (j < pExpandedFunc->iReturnCount); ++j ) {
+			iExpandedCount = (pExpandedFunc != NULL) ? pExpandedFunc->iReturnCount : __xlExprMultiReturnCount(pSem, pValue);
+			for ( j = 0; j < iExpandedCount; ++j ) {
 				while ( (iNextPos < iFixedParamCount) && (arrBound[iNextPos] != NULL) ) {
 					++iNextPos;
 				}
@@ -533,6 +607,16 @@ XL_HirNode* xlLowerExprToHir(const XL_AstNode* pNode, const XL_SemResult* pSem, 
 			__xlApplySemNodeInfo(pArgs, pSem, pNode->ppChildren[1]);
 			__xlLowerCallArgsResolved(pArgs, pNode, pSem, pDiag, bTraceLower);
 			xlHirAppendChild(pHir, pArgs);
+		}
+		return pHir;
+	}
+
+	if ( pNode->eKind == XL_AST_FUNC_EXPR ) {
+		const XL_FuncInfo* pFuncInfo;
+
+		pFuncInfo = __xlResolvedFuncInfo(pSem, pNode);
+		if ( (pFuncInfo != NULL) && (pFuncInfo->sName != NULL) && (pFuncInfo->sName[0] != '\0') ) {
+			xlHirSetText(pHir, pFuncInfo->sName);
 		}
 		return pHir;
 	}

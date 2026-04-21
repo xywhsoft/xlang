@@ -1,0 +1,117 @@
+xlang 第五版闭包、匿名函数与原生函数桥接开发 Spec
+
+说明
+- `☑` 已实现并通过 parser / sem / cgen / runtime 验证
+- `◐` 已部分实现，或主链路已通但仍有收尾项
+- `☐` 尚未实现
+
+目标
+- 一次性做完整匿名函数 + 闭包能力
+- 打通 `function / var / auto / async / generator` 与闭包模型
+- 打通 `sys.loadlib() / lib.proc() / function<...>` 原生函数桥接
+
+一、当前总体状态
+- ☑ 匿名函数基础能力已完成
+- ☑ 闭包基础能力已完成
+- ☑ 多返回值函数值主链路已完成
+- ☑ 匿名函数进入 `array / dict / var` 并动态调用已完成
+- ☑ 多行容器字面量中放置匿名函数已可用
+- ◐ `point -> function<...>` 的 parser / sem / cgen 已完成，runtime ABI 桥接未完成
+- ◐ parser 为支持多行容器字面量做了扩展，但 Lemon conflict 从 `28` 升到 `103`，功能可用，语法冲突仍需整理
+
+二、已完成能力
+
+2.1 匿名函数
+- ☑ `func(...) as Ret ... end`
+- ☑ `func(...) as Ret => expr`
+- ☑ 匿名函数赋值给 `auto`
+- ☑ 匿名函数赋值给 `function<...>`
+- ☑ 匿名函数赋值给 `var`
+- ☑ 匿名函数作为参数传递
+- ☑ 匿名函数作为返回值传递
+- ☑ 匿名函数放入 `array`
+- ☑ 匿名函数放入 `dict`
+- ☑ 从容器取出匿名函数后调用
+- ☑ 匿名函数通过 `var` 动态调用
+
+2.2 闭包
+- ☑ 捕获外层局部变量
+- ☑ 捕获外层参数
+- ☑ 闭包共享同一个 captured cell
+- ☑ 外层返回后闭包继续存活
+- ☑ 闭包修改 captured 值
+- ☑ 嵌套闭包共享状态
+- ☑ 闭包进入容器并经 `var` 调用
+
+2.3 多返回值函数值
+- ☑ 匿名函数 `as int, string`
+- ☑ 匿名函数 `return a, b`
+- ☑ `auto a, b = fn()`
+- ☑ `auto a, _ = fn()`
+- ☑ `function<int,string()>` 显式函数值类型
+- ☑ 多返回值函数值作为参数传递
+- ☑ 多返回值函数值作为返回值传递
+- ☑ 多返回值函数值存入 `var` 后动态调用
+
+2.4 generator / async generator 与闭包
+- ☑ generator 闭包捕获
+- ☑ generator `resume(value)` 与 closure cell 协同
+- ☑ async generator 闭包捕获
+- ☑ async generator `resume(value)` 与 closure cell 协同
+
+三、已完成测试样例
+- ☑ `anonymous_function_basic`
+- ☑ `anonymous_function_arrow_basic`
+- ☑ `anonymous_function_arg_basic`
+- ☑ `anonymous_function_multi_return_basic`
+- ☑ `anonymous_function_var_basic`
+- ☑ `anonymous_function_container_var_basic`
+- ☑ `closure_basic`
+- ☑ `closure_return_basic`
+- ☑ `closure_mutation_basic`
+- ☑ `closure_state_basic`
+- ☑ `closure_nested_state_basic`
+- ☑ `closure_shared_pair_basic`
+- ☑ `closure_container_var_basic`
+- ☑ `generator_closure_yield_basic`
+- ☑ `generator_closure_resume_basic`
+- ☑ `async_generator_closure_resume_basic`
+- ☑ `function_value_multi_return_basic`
+- ☑ `function_value_multi_return_flow_basic`
+- ☑ `function_value_multi_return_var_basic`
+
+四、剩余未完成任务
+
+4.1 原生函数桥接 runtime
+- ☐ `point -> function<...>` 真正桥接到运行时可调用函数值
+- ☐ 桥接后的函数值像普通 `function` 一样调用
+- ☐ 桥接后的函数值可赋给 `var`
+- ☐ `var` 中桥接后的函数值可动态调用
+- ☐ `lib.close()` 后已提取 proc function 的行为规则落地
+- ☐ 原生桥接失败时的稳定错误处理
+
+4.2 原生函数桥接验收样例
+- ☐ `runtime.sys_loadlib_func_basic`
+- ☐ `runtime.sys_loadlib_func_var_basic`
+- ☐ `runtime.sys_loadlib_func_multi_sig_basic`
+- ☐ `runtime.sys_loadlib_close_after_proc_basic`
+- ☐ `msvcrt.dll -> atoi`
+- ☐ `kernel32.dll -> GetTickCount` 或同类无参整型返回 API
+- ☐ 至少一个 `bool` 返回 API
+- ☐ 至少一个 `string` 或 `point` 返回 smoke case
+
+4.3 语法/工程收尾
+- ◐ 降低 parser conflict 数量，尽量从 `103` 回收
+- ☐ 将闭包 / 匿名函数 / 原生桥接状态同步回总覆盖率文档
+- ☐ 在语言标准总表中补入闭包与匿名函数标准
+- ☐ 明确 `function` 现已支持携带 env 的闭包模型
+- ☐ 明确 `point -> function<...>` 的 ABI 边界与限制
+
+五、当前结论
+- 闭包与匿名函数主线已经基本完成，可以认为“语言能力主链路已通”
+- 当前最大未完成块，不在匿名函数/闭包，而在“原生函数 runtime ABI 桥接”
+- 如果下一步继续开发，优先级建议：
+  1. `point -> function<...>` runtime 桥接
+  2. 原生桥接样例与回归
+  3. parser conflict 回收
+  4. 文档总表同步

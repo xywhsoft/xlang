@@ -1523,6 +1523,8 @@ static int __xlTestParseAsyncGeneratorTryFinallyBasic(XL_TestContext* pCtx) { re
 static int __xlTestParseAsyncGeneratorTryFinallyConstElseBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\async\\async_generator_try_finally_const_else_basic.xl", 1, XL_AST_TRY); }
 static int __xlTestParseAsyncGeneratorNestedTryFlowBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\async\\async_generator_nested_try_flow_basic.xl", 1, XL_AST_TRY); }
 static int __xlTestParseAsyncGeneratorNestedTryFlowConstElseBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\async\\async_generator_nested_try_flow_const_else_basic.xl", 1, XL_AST_TRY); }
+static int __xlTestParseAsyncGeneratorClosureBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\async\\async_generator_closure_basic.xl", 1, XL_AST_YIELD); }
+static int __xlTestParseAsyncGeneratorClosureResumeBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\async\\async_generator_closure_resume_basic.xl", 1, XL_AST_YIELD); }
 static int __xlTestParseTypeValueBasic(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\full\\type_value_basic.xl", 1, XL_AST_VAR_DECL, "text=\"a\""); }
 static int __xlTestParsePublicTypesBasic(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\full\\public_types_basic.xl", 1, XL_AST_IDENT, "text=\"future\""); }
 static int __xlTestParseTaskValueBasic(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\task\\task_value_basic.xl", 1, XL_AST_TYPE_REF, "text=\"task\""); }
@@ -1553,7 +1555,42 @@ static int __xlTestParseVarArgArrayBasic(XL_TestContext* pCtx) { return __xlRunP
 static int __xlTestParseVarArgDictBasic(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\full\\vararg_dict_basic.xl", 1, XL_AST_PARAM, "text=\"arg\" flag=2"); }
 static int __xlTestParseMultiReturnBasic(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\full\\multi_return_basic.xl", 1, XL_AST_UNPACK_DECL, "text=\"auto\""); }
 static int __xlTestParseMultiReturnCallExpandBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\full\\multi_return_call_expand_basic.xl", 1, XL_AST_CALL); }
+static int __xlTestParseAnonymousFunctionBasic(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\full\\anonymous_function_basic.xl", 1, XL_AST_FUNC_EXPR, "FuncExpr"); }
+static int __xlTestParseAnonymousFunctionArrowBasic(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\full\\anonymous_function_arrow_basic.xl", 1, XL_AST_FUNC_EXPR, "FuncExpr"); }
+static int __xlTestParseAnonymousFunctionArgBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\full\\anonymous_function_arg_basic.xl", 1, XL_AST_CALL); }
+static int __xlTestParseAnonymousFunctionMultiReturnBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\full\\anonymous_function_multi_return_basic.xl", 1, XL_AST_FUNC_EXPR); }
+static int __xlTestParseAnonymousFunctionVarBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\full\\anonymous_function_var_basic.xl", 1, XL_AST_FUNC_EXPR); }
+static int __xlTestParseAnonymousFunctionContainerVarBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\full\\anonymous_function_container_var_basic.xl", 3, XL_AST_FUNC_EXPR); }
+static int __xlTestParseClosureBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\full\\closure_basic.xl", 1, XL_AST_FUNC_DECL); }
+static int __xlTestParseClosureReturnBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\full\\closure_return_basic.xl", 1, XL_AST_FUNC_DECL); }
+static int __xlTestParseClosureMutationBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\full\\closure_mutation_basic.xl", 1, XL_AST_FUNC_DECL); }
+static int __xlTestParseClosureStateBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\full\\closure_state_basic.xl", 1, XL_AST_FUNC_DECL); }
+static int __xlTestParseClosureNestedStateBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\full\\closure_nested_state_basic.xl", 1, XL_AST_FUNC_DECL); }
+static int __xlTestParseClosureSharedPairBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\full\\closure_shared_pair_basic.xl", 1, XL_AST_FUNC_DECL); }
+static int __xlTestParseClosureContainerVarBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\full\\closure_container_var_basic.xl", 1, XL_AST_CALL); }
+static int __xlTestParseGeneratorClosureYieldBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\full\\generator_closure_yield_basic.xl", 1, XL_AST_YIELD); }
+static int __xlTestParseGeneratorClosureResumeBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\full\\generator_closure_resume_basic.xl", 1, XL_AST_YIELD); }
+static int __xlTestParseAsyncClosureStateBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\async\\async_closure_state_basic.xl", 1, XL_AST_FUNC_DECL); }
+static int __xlTestSemAnonymousFunctionBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\anonymous_function_basic.xl", 1, NULL); }
+static int __xlTestSemAnonymousFunctionArrowBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\anonymous_function_arrow_basic.xl", 1, NULL); }
+static int __xlTestSemAnonymousFunctionArgBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\anonymous_function_arg_basic.xl", 1, "int"); }
+static int __xlTestSemAnonymousFunctionMultiReturnBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\anonymous_function_multi_return_basic.xl", 1, "int"); }
+static int __xlTestSemAnonymousFunctionVarBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\anonymous_function_var_basic.xl", 1, "int"); }
+static int __xlTestSemAnonymousFunctionContainerVarBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\anonymous_function_container_var_basic.xl", 1, "int"); }
+static int __xlTestSemClosureBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\closure_basic.xl", 1, "int"); }
+static int __xlTestSemClosureReturnBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\closure_return_basic.xl", 1, "int"); }
+static int __xlTestSemClosureMutationBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\closure_mutation_basic.xl", 1, "int"); }
+static int __xlTestSemClosureStateBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\closure_state_basic.xl", 1, "int"); }
+static int __xlTestSemClosureNestedStateBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\closure_nested_state_basic.xl", 1, "int"); }
+static int __xlTestSemClosureSharedPairBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\closure_shared_pair_basic.xl", 1, "int"); }
+static int __xlTestSemClosureContainerVarBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\closure_container_var_basic.xl", 1, "int"); }
+static int __xlTestSemGeneratorClosureYieldBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\generator_closure_yield_basic.xl", 1, "int"); }
+static int __xlTestSemGeneratorClosureResumeBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\generator_closure_resume_basic.xl", 1, "int"); }
+static int __xlTestSemAsyncClosureStateBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\async\\async_closure_state_basic.xl", 1, "int"); }
 static int __xlTestParseFunctionValueBasic(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\full\\function_value_basic.xl", 1, XL_AST_TYPE_REF, "text=\"function<int(int,int)>\""); }
+static int __xlTestParseFunctionValueMultiReturnBasic(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\full\\function_value_multi_return_basic.xl", 1, XL_AST_TYPE_REF, "text=\"function<int,string()>\""); }
+static int __xlTestParseFunctionValueMultiReturnFlowBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\full\\function_value_multi_return_flow_basic.xl", 1, XL_AST_FUNC_DECL); }
+static int __xlTestParseFunctionValueMultiReturnVarBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\full\\function_value_multi_return_var_basic.xl", 1, XL_AST_CALL); }
 static int __xlTestParseFunctionValueFlowBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\full\\function_value_flow_basic.xl", 1, XL_AST_FUNC_DECL); }
 static int __xlTestParseFunctionValueContainerBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\full\\function_value_container_basic.xl", 1, XL_AST_CALL); }
 static int __xlTestParseFunctionValueParenCallBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\full\\function_value_paren_call_basic.xl", 1, XL_AST_CALL); }
@@ -1681,6 +1718,8 @@ static int __xlTestSemAsyncGeneratorTryFinallyBasic(XL_TestContext* pCtx) { retu
 static int __xlTestSemAsyncGeneratorTryFinallyConstElseBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\async\\async_generator_try_finally_const_else_basic.xl", 1, "generator"); }
 static int __xlTestSemAsyncGeneratorNestedTryFlowBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\async\\async_generator_nested_try_flow_basic.xl", 1, "generator"); }
 static int __xlTestSemAsyncGeneratorNestedTryFlowConstElseBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\async\\async_generator_nested_try_flow_const_else_basic.xl", 1, "generator"); }
+static int __xlTestSemAsyncGeneratorClosureBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\async\\async_generator_closure_basic.xl", 1, "int"); }
+static int __xlTestSemAsyncGeneratorClosureResumeBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\async\\async_generator_closure_resume_basic.xl", 1, "int"); }
 static int __xlTestSemTypeValueBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\type_value_basic.xl", 1, "type"); }
 static int __xlTestSemPublicTypesBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\public_types_basic.xl", 1, "type"); }
 static int __xlTestSemTaskValueBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\task\\task_value_basic.xl", 1, "task"); }
@@ -2314,6 +2353,9 @@ static int __xlTestSemMultiReturnBasic(XL_TestContext* pCtx) { return __xlRunSem
 static int __xlTestSemMultiReturnCallExpandBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\multi_return_call_expand_basic.xl", 1, "int"); }
 static int __xlTestSemMultiReturnSingleBindError(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\sem\\multi_return_single_bind_error.xl", 0, NULL); }
 static int __xlTestSemFunctionValueBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\function_value_basic.xl", 1, "int"); }
+static int __xlTestSemFunctionValueMultiReturnBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\function_value_multi_return_basic.xl", 1, "int"); }
+static int __xlTestSemFunctionValueMultiReturnFlowBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\function_value_multi_return_flow_basic.xl", 1, "int"); }
+static int __xlTestSemFunctionValueMultiReturnVarBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\function_value_multi_return_var_basic.xl", 1, "int"); }
 static int __xlTestSemFunctionValueFlowBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\function_value_flow_basic.xl", 1, "int"); }
 static int __xlTestSemFunctionValueContainerBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\function_value_container_basic.xl", 1, "int"); }
 static int __xlTestSemFunctionValueParenCallBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\function_value_paren_call_basic.xl", 1, "int"); }
@@ -3041,12 +3083,14 @@ static int __xlTestLowerBasic(XL_TestContext* pCtx) { return __xlRunLowerCase(pC
 static int __xlTestLowerAsync(XL_TestContext* pCtx) { return __xlRunLowerCase(pCtx, "examples\\async\\basic.xl", 1, -1, 1, 0); }
 static int __xlTestLowerGenerator(XL_TestContext* pCtx) { return __xlRunLowerCase(pCtx, "examples\\generator\\basic.xl", 1, -1, 0, 1); }
 static int __xlTestLowerGeneratorResumeBasic(XL_TestContext* pCtx) { return __xlRunLowerCase(pCtx, "examples\\full\\generator_resume_basic.xl", 1, XL_AST_YIELD, 0, 1); }
+static int __xlTestLowerGeneratorClosureResumeBasic(XL_TestContext* pCtx) { return __xlRunLowerCase(pCtx, "examples\\full\\generator_closure_resume_basic.xl", 1, XL_AST_YIELD, 0, 1); }
 static int __xlTestLowerGeneratorResumeAbiJson(XL_TestContext* pCtx) { return __xlRunLowerJsonCase(pCtx, "examples\\full\\generator_resume_basic.xl", 1, "\"abiSymbol\": \"xl__make_values__arity0__ret__int\""); }
 static int __xlTestLowerAsyncGeneratorBasic(XL_TestContext* pCtx) { return __xlRunLowerCase(pCtx, "examples\\async\\async_generator_basic.xl", 1, XL_AST_YIELD, 1, 1); }
 static int __xlTestLowerAsyncGeneratorForInBasic(XL_TestContext* pCtx) { return __xlRunLowerCase(pCtx, "examples\\async\\async_generator_for_in_basic.xl", 1, XL_AST_FORIN, 1, 1); }
 static int __xlTestLowerAsyncGeneratorWhileBasic(XL_TestContext* pCtx) { return __xlRunLowerCase(pCtx, "examples\\async\\async_generator_while_basic.xl", 1, XL_AST_WHILE, 1, 1); }
 static int __xlTestLowerAsyncGeneratorLoopControlBasic(XL_TestContext* pCtx) { return __xlRunLowerCase(pCtx, "examples\\async\\async_generator_loop_control_basic.xl", 1, XL_AST_WHILE, 1, 1); }
 static int __xlTestLowerAsyncGeneratorResumeBasic(XL_TestContext* pCtx) { return __xlRunLowerCase(pCtx, "examples\\async\\async_generator_resume_basic.xl", 1, XL_AST_YIELD, 1, 1); }
+static int __xlTestLowerAsyncGeneratorClosureResumeBasic(XL_TestContext* pCtx) { return __xlRunLowerCase(pCtx, "examples\\async\\async_generator_closure_resume_basic.xl", 1, XL_AST_YIELD, 1, 1); }
 static int __xlTestLowerAsyncGeneratorMultiAwaitGroupBasic(XL_TestContext* pCtx) { return __xlRunLowerCase(pCtx, "examples\\async\\async_generator_multi_await_group_basic.xl", 1, XL_AST_YIELD, 1, 1); }
 static int __xlTestLowerAsyncGeneratorTryCatchBasic(XL_TestContext* pCtx) { return __xlRunLowerCase(pCtx, "examples\\async\\async_generator_try_catch_basic.xl", 1, XL_AST_TRY, 1, 1); }
 static int __xlTestLowerAsyncGeneratorTryCatchConstElseBasic(XL_TestContext* pCtx) { return __xlRunLowerCase(pCtx, "examples\\async\\async_generator_try_catch_const_else_basic.xl", 1, XL_AST_TRY, 1, 1); }
@@ -3405,23 +3449,223 @@ static int __xlTestCgenFunctionValueBasic(XL_TestContext* pCtx)
 {
 	static const char* const aNeedles[] = {
 		"xl__add__arity2__a__int__b__int__ret__int__boxed",
-		"xfunction op = ((xfunction)xl__add__arity2__a__int__b__int__ret__int__boxed);",
-		"xfunction also = ((xfunction)xl__add__arity2__a__int__b__int__ret__int__boxed);",
-		"xvalue dyn = xvoCreateFunc((xfunction)(((xfunction)xl__add__arity2__a__int__b__int__ret__int__boxed)))",
-		"((xfunction)(((xfunction)xvoGetFunc((xvalue)(dyn)))))"
+		"xvalue op = xvoCreateFunc((xfunction)xl__add__arity2__a__int__b__int__ret__int__boxed);",
+		"xvalue also = xvoCreateFunc((xfunction)xl__add__arity2__a__int__b__int__ret__int__boxed);",
+		"xvalue dyn = xvoCopy((xvalue)(xvoCreateFunc((xfunction)xl__add__arity2__a__int__b__int__ret__int__boxed)))",
+		"xvalue xl_call_callee = xvoCopy((xvalue)(dyn));",
+		"xvoGetFunc(xl_call_callee)(NULL, xl_call_args)"
 	};
 
 	return __xlRunCgenCaseAll(pCtx, "examples\\full\\function_value_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenFunctionValueMultiReturnBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"xvalue op = xvoCreateFunc((xfunction)xl__pair__arity0__ret__array_x3Cvar_x3E__boxed);",
+		"xvalue xl_unpack_7_2 = ({ xvalue xl_call_args = xvoCreateArray();",
+		"int number = xvoArrayGetInt((xvalue)(xl_unpack_7_2), (uint32)(0));",
+		"const char* text = xvoArrayGetText((xvalue)(xl_unpack_7_2), (uint32)(1));"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\full\\function_value_multi_return_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenFunctionValueMultiReturnFlowBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"xvalue picked = xl__choose__arity0__ret__function_x3Cint_x2Cstring_x28_x29_x3E();",
+		"int xl_ret_19_2 = (xl__apply__arity1__op__function_x3Cint_x2Cstring_x28_x29_x3E__ret__int(xvoCreateFunc((xfunction)xl__pair__arity0__ret__array_x3Cvar_x3E__boxed)) + xl__apply__arity1__op__function_x3Cint_x2Cstring_x28_x29_x3E__ret__int(xvoCopy((xvalue)(picked))));",
+		"xvalue xl_unpack_10_2 = ({ xvalue xl_call_args = xvoCreateArray();"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\full\\function_value_multi_return_flow_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenFunctionValueMultiReturnVarBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"xvalue dyn = xvoCopy((xvalue)(xvoCreateFunc((xfunction)xl__pair__arity0__ret__array_x3Cvar_x3E__boxed)));",
+		"xvalue xl_unpack_7_2 = ({ xvalue xl_call_args = xvoCreateArray(); xvalue xl_call_callee = xvoCopy((xvalue)(xvoCopy((xvalue)(dyn))));",
+		"const char* text = xvoArrayGetText((xvalue)(xl_unpack_7_2), (uint32)(1));"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\full\\function_value_multi_return_var_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenAnonymousFunctionBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"xl____lambda_2_13__arity2__a__int__b__int__ret__int__boxed",
+		"xvalue add = xvoCreateFunc((xfunction)xl____lambda_2_13__arity2__a__int__b__int__ret__int__boxed);",
+		"static int xl____lambda_2_13__arity2__a__int__b__int__ret__int(int a, int b)"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\full\\anonymous_function_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenAnonymousFunctionArrowBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"xl____lambda_2_13__arity2__a__int__b__int__ret__int__boxed",
+		"xvalue add = xvoCreateFunc((xfunction)xl____lambda_2_13__arity2__a__int__b__int__ret__int__boxed);",
+		"int xl_ret_2_13 = (a + b);"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\full\\anonymous_function_arrow_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenAnonymousFunctionArgBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"xvalue xl_call_callee = xvoCopy((xvalue)(op));",
+		"int xl_ret_6_2 = xl__apply__arity2__op__function_x3Cint_x28int_x29_x3E__value__int__ret__int(xvoCreateFunc((xfunction)xl____lambda_6_15__arity1__x__int__ret__int__boxed), 40);",
+		"static int xl____lambda_6_15__arity1__x__int__ret__int(int x)"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\full\\anonymous_function_arg_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenAnonymousFunctionMultiReturnBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"xvalue pair = xvoCreateFunc((xfunction)xl____lambda_2_14__arity0__ret__array_x3Cvar_x3E__boxed);",
+		"xvalue xl_unpack_5_2 = ({ xvalue xl_call_args = xvoCreateArray();",
+		"int number = xvoArrayGetInt((xvalue)(xl_unpack_5_2), (uint32)(0));",
+		"const char* text = xvoArrayGetText((xvalue)(xl_unpack_5_2), (uint32)(1));"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\full\\anonymous_function_multi_return_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenAnonymousFunctionContainerVarBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"xvalue funcs = ({ xvalue xl_arr_literal = xvoCreateArray(); (void)xvoArrayAppendValue(xl_arr_literal, xvoCopy((xvalue)(xvoCreateFunc((xfunction)xl____lambda_3_4__arity1__x__int__ret__int__boxed))), TRUE);",
+		"xvalue named = ({ xvalue xl_dict_ctor = xvoCreateTable(); ({ const char* xl_dict_key = \"inc\"; (void)xvoTableSetValue(xl_dict_ctor, (const void*)xl_dict_key, (uint32)strlen((xl_dict_key != NULL) ? xl_dict_key : \"\"), xvoCopy((xvalue)(xvoCreateFunc((xfunction)xl____lambda_7_11__arity1__x__int__ret__int__boxed))), TRUE); }); xl_dict_ctor; });",
+		"xvalue xl_call_callee = xvoCopy((xvalue)(xvoCopy((xvalue)(dyn))));"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\full\\anonymous_function_container_var_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenAnonymousFunctionVarBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"xvalue dyn = xvoCopy((xvalue)(xvoCreateFunc((xfunction)xl____lambda_2_12__arity1__x__int__ret__int__boxed)));",
+		"xvalue xl_call_callee = xvoCopy((xvalue)(xvoCopy((xvalue)(dyn))));",
+		"static int xl____lambda_2_12__arity1__x__int__ret__int(int x)"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\full\\anonymous_function_var_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenClosureBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"xvoCreateFuncEx((xfunction)xl____lambda_3_13__arity1__x__int__ret__int__boxed, xl_closure_env)",
+		"static int xl____lambda_3_13__arity1__x__int__ret__int(xvalue varENV, int x)",
+		"xvoGetFuncEnv(xl_call_callee)"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\full\\closure_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenClosureReturnBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"xvoCreateFuncEx((xfunction)xl____lambda_2_9__arity1__x__int__ret__int__boxed, xl_closure_env)",
+		"static int xl____lambda_2_9__arity1__x__int__ret__int(xvalue varENV, int x)"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\full\\closure_return_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenClosureMutationBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"xvalue xl_closure_cell_",
+		"xvoArraySetValue(",
+		"xvoArrayGetValue(xl_closure_cell_"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\full\\closure_mutation_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenClosureStateBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"xvalue xl_closure_cell_",
+		"xvoArraySetValue(",
+		"xvoCreateFuncEx((xfunction)xl____lambda_3_13__arity0__ret__int__boxed, xl_closure_env)"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\full\\closure_state_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenClosureNestedStateBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"xvalue xl_closure_cell_2",
+		"xvalue xl_closure_cell_5",
+		"xvoCreateFuncEx((xfunction)xl____lambda_3_15__arity0__ret__function_x3Cint_x28_x29_x3E__boxed, xl_closure_env)",
+		"xvoCreateFuncEx((xfunction)xl____lambda_5_16__arity0__ret__int__boxed, xl_closure_env)"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\full\\closure_nested_state_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenClosureSharedPairBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"xvalue xl_closure_cell_",
+		"xvoCreateFuncEx((xfunction)xl____lambda_3_13__arity0__ret__int__boxed, xl_closure_env)",
+		"xvoCreateFuncEx((xfunction)xl____lambda_7_14__arity0__ret__int__boxed, xl_closure_env)",
+		"xvoArraySetValue(",
+		"xvoArrayGetValue(xl_closure_cell_"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\full\\closure_shared_pair_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenClosureContainerVarBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"xvalue xl_closure_cell_",
+		"xvoCreateFuncEx((xfunction)xl____lambda_3_13__arity0__ret__int__boxed, xl_closure_env)",
+		"xvalue holders = ({ xvalue xl_arr_literal = xvoCreateArray();",
+		"xvoArrayAppendValue(xl_arr_literal,",
+		"xvalue dyn = xvoCopy((xvalue)(xvoCopy((xvalue)(xvoArrayGetValue((xvalue)(holders), (uint32)(0))))));",
+		"xvoGetFuncEnv(xl_call_callee)"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\full\\closure_container_var_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenGeneratorClosureYieldBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"XL_GENERATED_GENERATOR_KIND_VAR",
+		"xvalue next;",
+		"xvalue xl_gen_value_14_2;",
+		"xvalue fn = xl_gen_value_14_2;"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\full\\generator_closure_yield_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenGeneratorClosureResumeBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"XL_GENERATED_GENERATOR_KIND_VAR",
+		"xl_gen_resume_value",
+		"xvalue xl_closure_cell_",
+		"xvalue fn3 = "
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\full\\generator_closure_resume_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenAsyncClosureStateBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"xvalue xl_closure_cell_2;",
+		"xl_async_state_2->xl_closure_cell_2 = xl_async_store_xl_closure_cell_2;",
+		"xvalue xl_closure_cell_2 = pState->xl_closure_cell_2;"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\async\\async_closure_state_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
 }
 static int __xlTestCgenFunctionValueContainerBasic(XL_TestContext* pCtx)
 {
 	static const char* const aNeedles[] = {
 		"xvoArrayGetValue((xvalue)(arr), (uint32)(0))",
-		"((xfunction)xvoGetFunc((xvalue)(xvoArrayGetValue((xvalue)(arr), (uint32)(0)))))",
+		"xvalue xl_call_callee = xvoCopy((xvalue)(xvoArrayGetValue((xvalue)(arr), (uint32)(0))));",
 		"xvoArrayGetValue((xvalue)(dyn_arr), (uint32)(0))",
 		"xvoTableGetValue((xvalue)(named)",
 		"xvoTableGetValue((xvalue)(dyn_dict)",
-		"((xfunction)xvoGetFunc((xvalue)(({ const char* xl_dict_key = \"sum\"; xvoTableGetValue((xvalue)(named)"
+		"xvalue xl_call_callee = xvoCopy((xvalue)(({ const char* xl_dict_key = \"sum\"; xvoTableGetValue((xvalue)(named)"
 	};
 
 	return __xlRunCgenCaseAll(pCtx, "examples\\full\\function_value_container_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
@@ -5995,9 +6239,11 @@ static int __xlTestCgenSysLoadlibFuncBasic(XL_TestContext* pCtx)
 {
 	static const char* const aNeedles[] = {
 		"xl_sys_lib_proc(",
-		"xl_generated_value_to_func((xvalue)(xl_type_ctor_value))",
-		"xvoCreateFunc((xfunction)(atoi))",
-		"xl_generated_value_to_func((xvalue)(dyn))"
+		"xvalue atoi = ({ xvalue xl_type_ctor_value = xvoCreatePoint(",
+		"xvalue dyn = xvoCopy((xvalue)(atoi));",
+		"xvalue xl_call_callee = atoi;",
+		"xvalue xl_call_callee = xvoCopy((xvalue)(dyn));",
+		"xvoGetPoint(xl_call_callee)"
 	};
 
 	return __xlRunCgenCaseAll(pCtx, "examples\\native\\sys_loadlib_func_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
@@ -6594,6 +6840,28 @@ static int __xlTestCgenAsyncGeneratorNestedTryFlowConstElseBasic(XL_TestContext*
 		0u
 	);
 }
+static int __xlTestCgenAsyncGeneratorClosureBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"XL_GENERATED_GENERATOR_KIND_VAR",
+		"xvalue xl_closure_cell_",
+		"xvalue xl_gen_value_17_2;",
+		"xvalue fn = xl_gen_value_17_2;"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\async\\async_generator_closure_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenAsyncGeneratorClosureResumeBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"XL_GENERATED_GENERATOR_KIND_VAR",
+		"xl_gen_resume_value",
+		"xvalue xl_closure_cell_",
+		"xvalue fn3 = "
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\async\\async_generator_closure_resume_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
 static int __xlTestCgenGeneratorResumeBasic(XL_TestContext* pCtx)
 {
 	static const char* const aNeedles[] = {
@@ -7057,6 +7325,22 @@ static int __xlTestRunVarArgDictBasic(XL_TestContext* pCtx) { return __xlRunProg
 static int __xlTestRunMultiReturnBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\multi_return_basic.xl", 1, 42, NULL, NULL); }
 static int __xlTestRunMultiReturnCallExpandBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\multi_return_call_expand_basic.xl", 1, 42, NULL, NULL); }
 static int __xlTestRunFunctionValueBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\function_value_basic.xl", 1, 42, "execute", NULL); }
+static int __xlTestRunFunctionValueMultiReturnBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\function_value_multi_return_basic.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunFunctionValueMultiReturnFlowBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\function_value_multi_return_flow_basic.xl", 1, 84, NULL, NULL); }
+static int __xlTestRunFunctionValueMultiReturnVarBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\function_value_multi_return_var_basic.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunAnonymousFunctionBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\anonymous_function_basic.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunAnonymousFunctionArrowBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\anonymous_function_arrow_basic.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunAnonymousFunctionArgBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\anonymous_function_arg_basic.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunAnonymousFunctionMultiReturnBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\anonymous_function_multi_return_basic.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunAnonymousFunctionVarBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\anonymous_function_var_basic.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunAnonymousFunctionContainerVarBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\anonymous_function_container_var_basic.xl", 1, 43, NULL, NULL); }
+static int __xlTestRunClosureBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\closure_basic.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunClosureReturnBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\closure_return_basic.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunClosureMutationBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\closure_mutation_basic.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunClosureStateBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\closure_state_basic.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunClosureNestedStateBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\closure_nested_state_basic.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunClosureSharedPairBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\closure_shared_pair_basic.xl", 1, 41, NULL, NULL); }
+static int __xlTestRunClosureContainerVarBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\closure_container_var_basic.xl", 1, 41, NULL, NULL); }
 static int __xlTestRunFunctionValueFlowBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\function_value_flow_basic.xl", 1, 42, "execute", NULL); }
 static int __xlTestRunFunctionValueContainerBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\function_value_container_basic.xl", 1, 42, "execute", NULL); }
 static int __xlTestRunFunctionValueParenCallBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\function_value_paren_call_basic.xl", 1, 42, NULL, NULL); }
@@ -10988,6 +11272,7 @@ static int __xlTestRunAsyncMultiAwait(XL_TestContext* pCtx)
 static int __xlTestRunAsyncThrowMain(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\async\\run_throw_main.xl", 0, 0, NULL, "exception.text=async boom"); }
 static int __xlTestRunAsyncTryCatchThrow(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\async\\run_try_catch_throw.xl", 1, 17, "async.await=fail", NULL); }
 static int __xlTestRunAsyncBoolMain(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\async\\run_bool_main.xl", 1, 7, "async.await=get_flag", NULL); }
+static int __xlTestRunAsyncClosureStateBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\async\\async_closure_state_basic.xl", 1, 42, "async.await=get_value", NULL); }
 static int __xlTestRunFutureValueBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\async\\future_value_basic.xl", 1, 14, "async.await=pending", NULL); }
 static int __xlTestRunChannelBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\async\\channel_basic.xl", 1, 60, NULL, NULL); }
 static int __xlTestRunChannelRecvUnpackBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\async\\channel_recv_unpack_basic.xl", 1, 30, NULL, NULL); }
@@ -11400,7 +11685,80 @@ static int __xlTestRunAsyncGeneratorNestedTryFlowConstElseBasic(XL_TestContext* 
 		NULL
 	);
 }
+static int __xlTestRunAsyncGeneratorClosureBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"generator.group_0=make_funcs",
+		"generator.resume_group_0=make_funcs",
+		"generator.group_1=make_funcs",
+		"generator.resume_group_1=make_funcs"
+	};
+	static const XL_TraceCountExpectation aCounts[] = {
+		{ "generator.group_0=make_funcs", 1u },
+		{ "generator.resume_group_0=make_funcs", 1u },
+		{ "generator.group_1=make_funcs", 1u },
+		{ "generator.resume_group_1=make_funcs", 1u }
+	};
+	static const char* const aOrder[] = {
+		"generator.group_0=make_funcs",
+		"generator.resume_group_0=make_funcs",
+		"generator.group_1=make_funcs",
+		"generator.resume_group_1=make_funcs"
+	};
+
+	return __xlRunProgramCaseAllCountsNoFallback(
+		pCtx,
+		"examples\\async\\async_generator_closure_basic.xl",
+		1,
+		42,
+		aNeedles,
+		XL_COUNTOF(aNeedles),
+		aCounts,
+		XL_COUNTOF(aCounts),
+		aOrder,
+		XL_COUNTOF(aOrder),
+		NULL
+	);
+}
+static int __xlTestRunAsyncGeneratorClosureResumeBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"generator.group_0=make_funcs",
+		"generator.resume_group_0=make_funcs",
+		"generator.group_1=make_funcs",
+		"generator.resume_group_1=make_funcs"
+	};
+	static const XL_TraceCountExpectation aCounts[] = {
+		{ "generator.group_0=make_funcs", 1u },
+		{ "generator.resume_group_0=make_funcs", 1u },
+		{ "generator.group_1=make_funcs", 1u },
+		{ "generator.resume_group_1=make_funcs", 1u }
+	};
+	static const char* const aOrder[] = {
+		"generator.group_1=make_funcs",
+		"generator.resume_group_1=make_funcs",
+		"generator.group_0=make_funcs",
+		"generator.resume_group_0=make_funcs",
+		"generator.group_2=make_funcs"
+	};
+
+	return __xlRunProgramCaseAllCountsNoFallback(
+		pCtx,
+		"examples\\async\\async_generator_closure_resume_basic.xl",
+		1,
+		93,
+		aNeedles,
+		XL_COUNTOF(aNeedles),
+		aCounts,
+		XL_COUNTOF(aCounts),
+		aOrder,
+		XL_COUNTOF(aOrder),
+		NULL
+	);
+}
 static int __xlTestRunGeneratorResumeBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\generator_resume_basic.xl", 1, 9, NULL, NULL); }
+static int __xlTestRunGeneratorClosureYieldBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\generator_closure_yield_basic.xl", 1, 42, "generator.next=make_funcs", NULL); }
+static int __xlTestRunGeneratorClosureResumeBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\generator_closure_resume_basic.xl", 1, 93, "generator.next=make_funcs", NULL); }
 static int __xlTestRunTypeValueBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\type_value_basic.xl", 1, 42, NULL, NULL); }
 static int __xlTestRunPublicTypesBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\public_types_basic.xl", 1, 77, NULL, NULL); }
 static int __xlTestRunExternAtoiBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\native\\extern_atoi_basic.xl", 1, 42, NULL, NULL); }
@@ -11513,6 +11871,8 @@ static const XL_TestCase __gXLTests[] = {
 	{ "parser.async_generator_try_finally_const_else_basic", "parser", __xlTestParseAsyncGeneratorTryFinallyConstElseBasic },
 	{ "parser.async_generator_nested_try_flow_basic", "parser", __xlTestParseAsyncGeneratorNestedTryFlowBasic },
 	{ "parser.async_generator_nested_try_flow_const_else_basic", "parser", __xlTestParseAsyncGeneratorNestedTryFlowConstElseBasic },
+	{ "parser.async_generator_closure_basic", "parser", __xlTestParseAsyncGeneratorClosureBasic },
+	{ "parser.async_generator_closure_resume_basic", "parser", __xlTestParseAsyncGeneratorClosureResumeBasic },
 	{ "parser.type_value_basic", "parser", __xlTestParseTypeValueBasic },
 	{ "parser.public_types_basic", "parser", __xlTestParsePublicTypesBasic },
 	{ "parser.task_value_basic", "parser", __xlTestParseTaskValueBasic },
@@ -11543,6 +11903,25 @@ static const XL_TestCase __gXLTests[] = {
 	{ "parser.vararg_dict_basic", "parser", __xlTestParseVarArgDictBasic },
 	{ "parser.multi_return_basic", "parser", __xlTestParseMultiReturnBasic },
 	{ "parser.multi_return_call_expand_basic", "parser", __xlTestParseMultiReturnCallExpandBasic },
+	{ "parser.anonymous_function_basic", "parser", __xlTestParseAnonymousFunctionBasic },
+	{ "parser.anonymous_function_arrow_basic", "parser", __xlTestParseAnonymousFunctionArrowBasic },
+	{ "parser.anonymous_function_arg_basic", "parser", __xlTestParseAnonymousFunctionArgBasic },
+	{ "parser.anonymous_function_multi_return_basic", "parser", __xlTestParseAnonymousFunctionMultiReturnBasic },
+	{ "parser.anonymous_function_var_basic", "parser", __xlTestParseAnonymousFunctionVarBasic },
+	{ "parser.anonymous_function_container_var_basic", "parser", __xlTestParseAnonymousFunctionContainerVarBasic },
+	{ "parser.function_value_multi_return_basic", "parser", __xlTestParseFunctionValueMultiReturnBasic },
+	{ "parser.function_value_multi_return_flow_basic", "parser", __xlTestParseFunctionValueMultiReturnFlowBasic },
+	{ "parser.function_value_multi_return_var_basic", "parser", __xlTestParseFunctionValueMultiReturnVarBasic },
+	{ "parser.closure_basic", "parser", __xlTestParseClosureBasic },
+	{ "parser.closure_return_basic", "parser", __xlTestParseClosureReturnBasic },
+	{ "parser.closure_mutation_basic", "parser", __xlTestParseClosureMutationBasic },
+	{ "parser.closure_state_basic", "parser", __xlTestParseClosureStateBasic },
+	{ "parser.closure_nested_state_basic", "parser", __xlTestParseClosureNestedStateBasic },
+	{ "parser.closure_shared_pair_basic", "parser", __xlTestParseClosureSharedPairBasic },
+	{ "parser.closure_container_var_basic", "parser", __xlTestParseClosureContainerVarBasic },
+	{ "parser.generator_closure_yield_basic", "parser", __xlTestParseGeneratorClosureYieldBasic },
+	{ "parser.generator_closure_resume_basic", "parser", __xlTestParseGeneratorClosureResumeBasic },
+	{ "parser.async_closure_state_basic", "parser", __xlTestParseAsyncClosureStateBasic },
 	{ "parser.function_value_basic", "parser", __xlTestParseFunctionValueBasic },
 	{ "parser.function_value_flow_basic", "parser", __xlTestParseFunctionValueFlowBasic },
 	{ "parser.function_value_container_basic", "parser", __xlTestParseFunctionValueContainerBasic },
@@ -11671,6 +12050,8 @@ static const XL_TestCase __gXLTests[] = {
 	{ "sem.async_generator_try_finally_const_else_basic", "sem", __xlTestSemAsyncGeneratorTryFinallyConstElseBasic },
 	{ "sem.async_generator_nested_try_flow_basic", "sem", __xlTestSemAsyncGeneratorNestedTryFlowBasic },
 	{ "sem.async_generator_nested_try_flow_const_else_basic", "sem", __xlTestSemAsyncGeneratorNestedTryFlowConstElseBasic },
+	{ "sem.async_generator_closure_basic", "sem", __xlTestSemAsyncGeneratorClosureBasic },
+	{ "sem.async_generator_closure_resume_basic", "sem", __xlTestSemAsyncGeneratorClosureResumeBasic },
 	{ "sem.type_value_basic", "sem", __xlTestSemTypeValueBasic },
 	{ "sem.public_types_basic", "sem", __xlTestSemPublicTypesBasic },
 	{ "sem.task_value_basic", "sem", __xlTestSemTaskValueBasic },
@@ -11681,6 +12062,26 @@ static const XL_TestCase __gXLTests[] = {
 	{ "sem.multi_return_call_expand_basic", "sem", __xlTestSemMultiReturnCallExpandBasic },
 	{ "sem.multi_return_single_bind_error", "sem", __xlTestSemMultiReturnSingleBindError },
 	{ "sem.function_value_basic", "sem", __xlTestSemFunctionValueBasic },
+	{ "sem.function_value_multi_return_basic", "sem", __xlTestSemFunctionValueMultiReturnBasic },
+	{ "sem.function_value_multi_return_flow_basic", "sem", __xlTestSemFunctionValueMultiReturnFlowBasic },
+	{ "sem.function_value_multi_return_var_basic", "sem", __xlTestSemFunctionValueMultiReturnVarBasic },
+	{ "sem.anonymous_function_basic", "sem", __xlTestSemAnonymousFunctionBasic },
+	{ "sem.anonymous_function_arrow_basic", "sem", __xlTestSemAnonymousFunctionArrowBasic },
+	{ "sem.anonymous_function_arg_basic", "sem", __xlTestSemAnonymousFunctionArgBasic },
+	{ "sem.anonymous_function_multi_return_basic", "sem", __xlTestSemAnonymousFunctionMultiReturnBasic },
+	{ "sem.anonymous_function_var_basic", "sem", __xlTestSemAnonymousFunctionVarBasic },
+	{ "sem.anonymous_function_container_var_basic", "sem", __xlTestSemAnonymousFunctionContainerVarBasic },
+	{ "sem.function_value_multi_return_basic", "sem", __xlTestSemFunctionValueMultiReturnBasic },
+	{ "sem.closure_basic", "sem", __xlTestSemClosureBasic },
+	{ "sem.closure_return_basic", "sem", __xlTestSemClosureReturnBasic },
+	{ "sem.closure_mutation_basic", "sem", __xlTestSemClosureMutationBasic },
+	{ "sem.closure_state_basic", "sem", __xlTestSemClosureStateBasic },
+	{ "sem.closure_nested_state_basic", "sem", __xlTestSemClosureNestedStateBasic },
+	{ "sem.closure_shared_pair_basic", "sem", __xlTestSemClosureSharedPairBasic },
+	{ "sem.closure_container_var_basic", "sem", __xlTestSemClosureContainerVarBasic },
+	{ "sem.generator_closure_yield_basic", "sem", __xlTestSemGeneratorClosureYieldBasic },
+	{ "sem.generator_closure_resume_basic", "sem", __xlTestSemGeneratorClosureResumeBasic },
+	{ "sem.async_closure_state_basic", "sem", __xlTestSemAsyncClosureStateBasic },
 	{ "sem.function_value_flow_basic", "sem", __xlTestSemFunctionValueFlowBasic },
 	{ "sem.function_value_container_basic", "sem", __xlTestSemFunctionValueContainerBasic },
 	{ "sem.function_value_paren_call_basic", "sem", __xlTestSemFunctionValueParenCallBasic },
@@ -11800,12 +12201,14 @@ static const XL_TestCase __gXLTests[] = {
 	{ "lower.async_basic", "lower", __xlTestLowerAsync },
 	{ "lower.generator_basic", "lower", __xlTestLowerGenerator },
 	{ "lower.generator_resume_basic", "lower", __xlTestLowerGeneratorResumeBasic },
+	{ "lower.generator_closure_resume_basic", "lower", __xlTestLowerGeneratorClosureResumeBasic },
 	{ "lower.generator_resume_abi_json", "lower", __xlTestLowerGeneratorResumeAbiJson },
 	{ "lower.async_generator_basic", "lower", __xlTestLowerAsyncGeneratorBasic },
 	{ "lower.async_generator_for_in_basic", "lower", __xlTestLowerAsyncGeneratorForInBasic },
 	{ "lower.async_generator_while_basic", "lower", __xlTestLowerAsyncGeneratorWhileBasic },
 	{ "lower.async_generator_loop_control_basic", "lower", __xlTestLowerAsyncGeneratorLoopControlBasic },
 	{ "lower.async_generator_resume_basic", "lower", __xlTestLowerAsyncGeneratorResumeBasic },
+	{ "lower.async_generator_closure_resume_basic", "lower", __xlTestLowerAsyncGeneratorClosureResumeBasic },
 	{ "lower.async_generator_multi_await_group_basic", "lower", __xlTestLowerAsyncGeneratorMultiAwaitGroupBasic },
 	{ "lower.async_generator_try_catch_basic", "lower", __xlTestLowerAsyncGeneratorTryCatchBasic },
 	{ "lower.async_generator_try_catch_const_else_basic", "lower", __xlTestLowerAsyncGeneratorTryCatchConstElseBasic },
@@ -11893,6 +12296,25 @@ static const XL_TestCase __gXLTests[] = {
 	{ "cgen.multi_return_basic", "cgen", __xlTestCgenMultiReturnBasic },
 	{ "cgen.multi_return_call_expand_basic", "cgen", __xlTestCgenMultiReturnCallExpandBasic },
 	{ "cgen.function_value_basic", "cgen", __xlTestCgenFunctionValueBasic },
+	{ "cgen.anonymous_function_basic", "cgen", __xlTestCgenAnonymousFunctionBasic },
+	{ "cgen.anonymous_function_arrow_basic", "cgen", __xlTestCgenAnonymousFunctionArrowBasic },
+	{ "cgen.anonymous_function_arg_basic", "cgen", __xlTestCgenAnonymousFunctionArgBasic },
+	{ "cgen.anonymous_function_multi_return_basic", "cgen", __xlTestCgenAnonymousFunctionMultiReturnBasic },
+	{ "cgen.anonymous_function_var_basic", "cgen", __xlTestCgenAnonymousFunctionVarBasic },
+	{ "cgen.anonymous_function_container_var_basic", "cgen", __xlTestCgenAnonymousFunctionContainerVarBasic },
+	{ "cgen.function_value_multi_return_basic", "cgen", __xlTestCgenFunctionValueMultiReturnBasic },
+	{ "cgen.function_value_multi_return_flow_basic", "cgen", __xlTestCgenFunctionValueMultiReturnFlowBasic },
+	{ "cgen.function_value_multi_return_var_basic", "cgen", __xlTestCgenFunctionValueMultiReturnVarBasic },
+	{ "cgen.closure_basic", "cgen", __xlTestCgenClosureBasic },
+	{ "cgen.closure_return_basic", "cgen", __xlTestCgenClosureReturnBasic },
+	{ "cgen.closure_mutation_basic", "cgen", __xlTestCgenClosureMutationBasic },
+	{ "cgen.closure_state_basic", "cgen", __xlTestCgenClosureStateBasic },
+	{ "cgen.closure_nested_state_basic", "cgen", __xlTestCgenClosureNestedStateBasic },
+	{ "cgen.closure_shared_pair_basic", "cgen", __xlTestCgenClosureSharedPairBasic },
+	{ "cgen.closure_container_var_basic", "cgen", __xlTestCgenClosureContainerVarBasic },
+	{ "cgen.generator_closure_yield_basic", "cgen", __xlTestCgenGeneratorClosureYieldBasic },
+	{ "cgen.generator_closure_resume_basic", "cgen", __xlTestCgenGeneratorClosureResumeBasic },
+	{ "cgen.async_closure_state_basic", "cgen", __xlTestCgenAsyncClosureStateBasic },
 	{ "cgen.function_value_container_basic", "cgen", __xlTestCgenFunctionValueContainerBasic },
 	{ "cgen.module_abi_symbols", "cgen", __xlTestCgenModuleAbiSymbols },
 	{ "cgen.index_assign_basic", "cgen", __xlTestCgenIndexAssignBasic },
@@ -12144,6 +12566,8 @@ static const XL_TestCase __gXLTests[] = {
 	{ "cgen.async_generator_try_finally_const_else_basic", "cgen", __xlTestCgenAsyncGeneratorTryFinallyConstElseBasic },
 	{ "cgen.async_generator_nested_try_flow_basic", "cgen", __xlTestCgenAsyncGeneratorNestedTryFlowBasic },
 	{ "cgen.async_generator_nested_try_flow_const_else_basic", "cgen", __xlTestCgenAsyncGeneratorNestedTryFlowConstElseBasic },
+	{ "cgen.async_generator_closure_basic", "cgen", __xlTestCgenAsyncGeneratorClosureBasic },
+	{ "cgen.async_generator_closure_resume_basic", "cgen", __xlTestCgenAsyncGeneratorClosureResumeBasic },
 	{ "cgen.generator_resume_basic", "cgen", __xlTestCgenGeneratorResumeBasic },
 	{ "cgen.generator_run", "cgen", __xlTestCgenGeneratorRun },
 	{ "cgen.generator_lazy_throw", "cgen", __xlTestCgenGeneratorLazyThrow },
@@ -12217,6 +12641,24 @@ static const XL_TestCase __gXLTests[] = {
 	{ "runtime.multi_return_basic", "runtime", __xlTestRunMultiReturnBasic },
 	{ "runtime.multi_return_call_expand_basic", "runtime", __xlTestRunMultiReturnCallExpandBasic },
 	{ "runtime.function_value_basic", "runtime", __xlTestRunFunctionValueBasic },
+	{ "runtime.function_value_multi_return_basic", "runtime", __xlTestRunFunctionValueMultiReturnBasic },
+	{ "runtime.function_value_multi_return_flow_basic", "runtime", __xlTestRunFunctionValueMultiReturnFlowBasic },
+	{ "runtime.function_value_multi_return_var_basic", "runtime", __xlTestRunFunctionValueMultiReturnVarBasic },
+	{ "runtime.anonymous_function_basic", "runtime", __xlTestRunAnonymousFunctionBasic },
+	{ "runtime.anonymous_function_arrow_basic", "runtime", __xlTestRunAnonymousFunctionArrowBasic },
+	{ "runtime.anonymous_function_arg_basic", "runtime", __xlTestRunAnonymousFunctionArgBasic },
+	{ "runtime.anonymous_function_multi_return_basic", "runtime", __xlTestRunAnonymousFunctionMultiReturnBasic },
+	{ "runtime.anonymous_function_var_basic", "runtime", __xlTestRunAnonymousFunctionVarBasic },
+	{ "runtime.anonymous_function_container_var_basic", "runtime", __xlTestRunAnonymousFunctionContainerVarBasic },
+	{ "runtime.closure_basic", "runtime", __xlTestRunClosureBasic },
+	{ "runtime.closure_return_basic", "runtime", __xlTestRunClosureReturnBasic },
+	{ "runtime.closure_mutation_basic", "runtime", __xlTestRunClosureMutationBasic },
+	{ "runtime.closure_state_basic", "runtime", __xlTestRunClosureStateBasic },
+	{ "runtime.closure_nested_state_basic", "runtime", __xlTestRunClosureNestedStateBasic },
+	{ "runtime.closure_shared_pair_basic", "runtime", __xlTestRunClosureSharedPairBasic },
+	{ "runtime.closure_container_var_basic", "runtime", __xlTestRunClosureContainerVarBasic },
+	{ "runtime.generator_closure_yield_basic", "runtime", __xlTestRunGeneratorClosureYieldBasic },
+	{ "runtime.generator_closure_resume_basic", "runtime", __xlTestRunGeneratorClosureResumeBasic },
 	{ "runtime.function_value_flow_basic", "runtime", __xlTestRunFunctionValueFlowBasic },
 	{ "runtime.function_value_container_basic", "runtime", __xlTestRunFunctionValueContainerBasic },
 	{ "runtime.function_value_paren_call_basic", "runtime", __xlTestRunFunctionValueParenCallBasic },
@@ -12467,6 +12909,7 @@ static const XL_TestCase __gXLTests[] = {
 	{ "runtime.async_throw_main", "runtime", __xlTestRunAsyncThrowMain },
 	{ "runtime.async_try_catch_throw", "runtime", __xlTestRunAsyncTryCatchThrow },
 	{ "runtime.async_bool_main", "runtime", __xlTestRunAsyncBoolMain },
+	{ "runtime.async_closure_state_basic", "runtime", __xlTestRunAsyncClosureStateBasic },
 	{ "runtime.async_generator_basic", "runtime", __xlTestRunAsyncGeneratorBasic },
 	{ "runtime.async_generator_while_basic", "runtime", __xlTestRunAsyncGeneratorWhileBasic },
 	{ "runtime.async_generator_loop_control_basic", "runtime", __xlTestRunAsyncGeneratorLoopControlBasic },
@@ -12478,6 +12921,8 @@ static const XL_TestCase __gXLTests[] = {
 	{ "runtime.async_generator_try_finally_const_else_basic", "runtime", __xlTestRunAsyncGeneratorTryFinallyConstElseBasic },
 	{ "runtime.async_generator_nested_try_flow_basic", "runtime", __xlTestRunAsyncGeneratorNestedTryFlowBasic },
 	{ "runtime.async_generator_nested_try_flow_const_else_basic", "runtime", __xlTestRunAsyncGeneratorNestedTryFlowConstElseBasic },
+	{ "runtime.async_generator_closure_basic", "runtime", __xlTestRunAsyncGeneratorClosureBasic },
+	{ "runtime.async_generator_closure_resume_basic", "runtime", __xlTestRunAsyncGeneratorClosureResumeBasic },
 	{ "runtime.generator_resume_basic", "runtime", __xlTestRunGeneratorResumeBasic },
 	{ "runtime.future_value_basic", "runtime", __xlTestRunFutureValueBasic },
 	{ "runtime.channel_basic", "runtime", __xlTestRunChannelBasic },

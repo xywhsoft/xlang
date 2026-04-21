@@ -96,6 +96,7 @@ typedef struct XL_HybridSm {
 typedef struct XL_LowerResult {
 	XL_HirNode* pHirRoot;
 	XL_MirNode* pMirRoot;
+	const XL_SemResult* pSemResult;
 	XL_AsyncSm asyncSm;
 	XL_GeneratorSm generatorSm;
 	XL_HybridSm hybridSm;

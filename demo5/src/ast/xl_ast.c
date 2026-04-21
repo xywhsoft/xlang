@@ -110,7 +110,7 @@ static void __xlAstAdoptNodeRange(XL_AstNode* pNode, const XL_AstNode* pSource)
 const char* xlAstKindName(XL_AstKind eKind)
 {
 	static const char* arrNames[] = {
-		"List", "Program", "Block", "FuncDecl", "Param", "TypeRef", "TypeDef", "ConstDecl", "VarDecl", "UnpackDecl",
+		"List", "Program", "Block", "FuncDecl", "FuncExpr", "Param", "TypeRef", "TypeDef", "ConstDecl", "VarDecl", "UnpackDecl",
 		"If", "ElseIf", "While", "ForIn", "Import", "Export", "Try", "Return", "Break", "Continue", "Throw", "Assert", "Yield",
 		"ExprStmt", "NamedArg", "Assign", "Ternary", "Binary", "Unary", "Call", "Member", "Index", "Ident", "Int", "Float",
 		"String", "Template", "Bool", "Null", "Time"
@@ -275,6 +275,26 @@ XL_AstNode* xlAstCreateFuncDecl(const XL_Token* pName, int bAsync, XL_AstNode* p
 	if ( (pNode != NULL) && (pName != NULL) ) {
 		pNode->bFlag = bAsync;
 		xlAstSetText(pNode, pName->sText, pName->iTextLen);
+		pSafeParams = (pParams != NULL) ? pParams : xlAstCreateList();
+		pSafeRetTypes = (pRetTypes != NULL) ? pRetTypes : xlAstCreateList();
+		pSafeBody = (pBody != NULL) ? pBody : xlAstCreateBlock(NULL);
+		xlAstAppendChild(pNode, pSafeParams);
+		xlAstAppendChild(pNode, pSafeRetTypes);
+		xlAstAppendChild(pNode, pSafeBody);
+	}
+	return pNode;
+}
+
+XL_AstNode* xlAstCreateFuncExpr(const XL_Token* pToken, int bAsync, XL_AstNode* pParams, XL_AstNode* pRetTypes, XL_AstNode* pBody)
+{
+	XL_AstNode* pNode;
+	XL_AstNode* pSafeParams;
+	XL_AstNode* pSafeRetTypes;
+	XL_AstNode* pSafeBody;
+
+	pNode = xlAstCreateNode(XL_AST_FUNC_EXPR, pToken);
+	if ( pNode != NULL ) {
+		pNode->bFlag = bAsync;
 		pSafeParams = (pParams != NULL) ? pParams : xlAstCreateList();
 		pSafeRetTypes = (pRetTypes != NULL) ? pRetTypes : xlAstCreateList();
 		pSafeBody = (pBody != NULL) ? pBody : xlAstCreateBlock(NULL);

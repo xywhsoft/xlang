@@ -1,0 +1,16 @@
+async func get_value() as int
+	return 1
+end
+
+async func main() as int
+	auto value = 40
+	auto next = func() as int
+		value = value + 1
+		return value
+	end
+
+	await get_value()
+	next()
+	await get_value()
+	return next()
+end

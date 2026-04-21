@@ -365,6 +365,31 @@ static XL_AstNode* xlPCreateBlockFromStmt(XL_AstNode* pStmt)
 	return pBlock;
 }
 
+static XL_AstNode* xlPCreateReturnBlock(const XL_Token* pToken, XL_AstNode* pExpr)
+{
+	XL_AstNode* pValues;
+	XL_AstNode* pReturn;
+
+	if ( pExpr == NULL ) {
+		return NULL;
+	}
+
+	pValues = xlPList();
+	if ( pValues == NULL ) {
+		xlAstFree(pExpr);
+		return NULL;
+	}
+
+	xlAstAppendChild(pValues, pExpr);
+	pReturn = xlAstCreateReturn(pToken, pValues);
+	if ( pReturn == NULL ) {
+		xlAstFree(pValues);
+		return NULL;
+	}
+
+	return xlPCreateBlockFromStmt(pReturn);
+}
+
 static XL_AstNode* xlPCreateMethodFuncDecl(
 	XL_AstNode* pReceiverType,
 	const XL_Token* pNameToken,
@@ -496,7 +521,7 @@ static XL_AstNode* xlPCreateGenericTypeRef(XL_AstNode* pBaseType, XL_AstNode* pT
 	return pNode;
 }
 
-static XL_AstNode* xlPCreateFunctionTypeRef(const XL_Token* pNameToken, XL_AstNode* pReturnType, XL_AstNode* pParamTypes)
+static XL_AstNode* xlPCreateFunctionTypeRef(const XL_Token* pNameToken, XL_AstNode* pReturnTypes, XL_AstNode* pParamTypes)
 {
 	XL_AstNode* pNode;
 	char* sBuf;
@@ -504,8 +529,8 @@ static XL_AstNode* xlPCreateFunctionTypeRef(const XL_Token* pNameToken, XL_AstNo
 	size_t iCap;
 	size_t i;
 
-	if ( (pNameToken == NULL) || !xlPTokenEquals(pNameToken, "function") || (pReturnType == NULL) || (pParamTypes == NULL) ) {
-		xlAstFree(pReturnType);
+	if ( (pNameToken == NULL) || !xlPTokenEquals(pNameToken, "function") || (pReturnTypes == NULL) || (pParamTypes == NULL) ) {
+		xlAstFree(pReturnTypes);
 		xlAstFree(pParamTypes);
 		return NULL;
 	}
@@ -514,7 +539,12 @@ static XL_AstNode* xlPCreateFunctionTypeRef(const XL_Token* pNameToken, XL_AstNo
 	iLen = 0;
 	iCap = 0;
 	xlPAppendTypeText(&sBuf, &iLen, &iCap, "function<");
-	xlPAppendTypeText(&sBuf, &iLen, &iCap, pReturnType->sText);
+	for ( i = 0; i < pReturnTypes->iChildCount; ++i ) {
+		if ( i != 0 ) {
+			xlPAppendTypeText(&sBuf, &iLen, &iCap, ",");
+		}
+		xlPAppendTypeText(&sBuf, &iLen, &iCap, pReturnTypes->ppChildren[i]->sText);
+	}
 	xlPAppendTypeText(&sBuf, &iLen, &iCap, "(");
 	for ( i = 0; i < pParamTypes->iChildCount; ++i ) {
 		if ( i != 0 ) {
@@ -530,7 +560,7 @@ static XL_AstNode* xlPCreateFunctionTypeRef(const XL_Token* pNameToken, XL_AstNo
 	}
 
 	free(sBuf);
-	xlAstFree(pReturnType);
+	xlAstFree(pReturnTypes);
 	xlAstFree(pParamTypes);
 	return pNode;
 }
@@ -729,6 +759,7 @@ static void xlPAppendStmt(XL_AstNode* pList, XL_AstNode* pStmt)
 %type generic_type_args { XL_AstNode* }
 %type func_decl_type { XL_AstNode* }
 %type function_type_ref { XL_AstNode* }
+%type func_type_return_list { XL_AstNode* }
 %type func_type_param_list { XL_AstNode* }
 %type func_type_params { XL_AstNode* }
 %type export_func_decl { XL_AstNode* }
@@ -750,7 +781,9 @@ static void xlPAppendStmt(XL_AstNode* pList, XL_AstNode* pStmt)
 %type indexed_items { XL_AstNode* }
 %type indexed_item { XL_AstNode* }
 %type yield_expr { XL_AstNode* }
+%type func_expr { XL_AstNode* }
 
+%right XL_OP_FAT_ARROW.
 %right OP_LT OP_GT OP_LE OP_GE OP_EQ OP_NE OP_APPROX KW_IN.
 %left OP_SHL OP_SHR.
 %left OP_PLUS OP_MINUS.
@@ -833,6 +866,13 @@ func_decl(A) ::= async_opt(B) KW_FUNC generic_type_ref(TY) OP_DOT TOK_IDENT(N) T
 }
 func_decl(A) ::= async_opt(B) KW_FUNC function_type_ref(TY) OP_DOT TOK_IDENT(N) TK_LPAREN param_list(P) TK_RPAREN ret_type(R) opt_stmt_sep block(BODY) KW_END. {
 	A = xlPCreateMethodFuncDecl(TY, &N, B, P, R, BODY);
+}
+
+func_expr(A) ::= async_opt(B) KW_FUNC(T) TK_LPAREN param_list(P) TK_RPAREN ret_type(R) opt_stmt_sep block(BODY) KW_END. {
+	A = xlAstCreateFuncExpr(&T, B, P, R, BODY);
+}
+func_expr(A) ::= async_opt(B) KW_FUNC(T) TK_LPAREN param_list(P) TK_RPAREN ret_type(R) XL_OP_FAT_ARROW lambda_expr(E). [XL_OP_FAT_ARROW] {
+	A = xlAstCreateFuncExpr(&T, B, P, R, xlPCreateReturnBlock(&T, E));
 }
 
 extern_symbol_opt(A) ::= STRING(S). { A = S; }
@@ -1029,7 +1069,24 @@ func_decl_type(A) ::= function_type_ref(T). {
 }
 
 function_type_ref(A) ::= KW_FUNCTION(T) OP_LT func_decl_type(R) TK_LPAREN func_type_param_list(P) TK_RPAREN OP_GT. {
+	XL_AstNode* pReturns = xlPList();
+	if ( pReturns != NULL ) {
+		xlAstAppendChild(pReturns, R);
+	}
+	A = xlPCreateFunctionTypeRef(&T, pReturns, P);
+}
+function_type_ref(A) ::= KW_FUNCTION(T) OP_LT func_type_return_list(R) TK_LPAREN func_type_param_list(P) TK_RPAREN OP_GT. {
 	A = xlPCreateFunctionTypeRef(&T, R, P);
+}
+
+func_type_return_list(A) ::= func_decl_type(R) TK_COMMA func_decl_type(T). {
+	A = xlPList();
+	xlAstAppendChild(A, R);
+	xlAstAppendChild(A, T);
+}
+func_type_return_list(A) ::= func_type_return_list(L) TK_COMMA func_decl_type(T). {
+	A = L;
+	xlAstAppendChild(A, T);
 }
 
 func_type_param_list(A) ::= . {
@@ -1367,11 +1424,19 @@ expr_items(A) ::= expr_items(L) TK_COMMA expr(E). {
 	A = L;
 	xlAstAppendChild(A, E);
 }
+expr_items(A) ::= expr_items(L) TK_COMMA opt_stmt_sep expr(E). {
+	A = L;
+	xlAstAppendChild(A, E);
+}
 
 dict_items(A) ::= dict_item(I). {
 	A = I;
 }
 dict_items(A) ::= dict_items(L) TK_COMMA dict_item(I). {
+	A = L;
+	xlAstAppendChildren(A, I);
+}
+dict_items(A) ::= dict_items(L) TK_COMMA opt_stmt_sep dict_item(I). {
 	A = L;
 	xlAstAppendChildren(A, I);
 }
@@ -1387,6 +1452,10 @@ indexed_items(A) ::= indexed_items(L) TK_COMMA indexed_item(I). {
 	A = L;
 	xlAstAppendChildren(A, I);
 }
+indexed_items(A) ::= indexed_items(L) TK_COMMA opt_stmt_sep indexed_item(I). {
+	A = L;
+	xlAstAppendChildren(A, I);
+}
 
 indexed_item(A) ::= expr(K) OP_COLON expr(V). {
 	A = xlPCreateDictLiteralItems(K, V);
@@ -1394,6 +1463,203 @@ indexed_item(A) ::= expr(K) OP_COLON expr(V). {
 
 expr(A) ::= null_expr(E). {
 	A = E;
+}
+
+lambda_expr(A) ::= lambda_null_expr(E). {
+	A = E;
+}
+
+lambda_null_expr(A) ::= lambda_conditional_expr(E). {
+	A = E;
+}
+lambda_null_expr(A) ::= lambda_conditional_expr(L) OP_NULL_COALESCE(T) lambda_null_expr(R). {
+	A = xlAstCreateBinary(&T, "??", L, R);
+}
+
+lambda_conditional_expr(A) ::= lambda_logical_or_expr(E). {
+	A = E;
+}
+lambda_conditional_expr(A) ::= lambda_logical_or_expr(C) OP_QUESTION(T) expr(TE) OP_COLON lambda_conditional_expr(EE). {
+	A = xlAstCreateTernary(&T, C, TE, EE);
+}
+
+lambda_logical_or_expr(A) ::= lambda_logical_and_expr(E). {
+	A = E;
+}
+lambda_logical_or_expr(A) ::= lambda_logical_or_expr(L) KW_OR(T) lambda_logical_and_expr(R). {
+	A = xlAstCreateBinary(&T, "or", L, R);
+}
+
+lambda_logical_and_expr(A) ::= lambda_bit_or_expr(E). {
+	A = E;
+}
+lambda_logical_and_expr(A) ::= lambda_logical_and_expr(L) KW_AND(T) lambda_bit_or_expr(R). {
+	A = xlAstCreateBinary(&T, "and", L, R);
+}
+
+lambda_bit_or_expr(A) ::= lambda_bit_xor_expr(E). {
+	A = E;
+}
+lambda_bit_or_expr(A) ::= lambda_bit_or_expr(L) OP_PIPE(T) lambda_bit_xor_expr(R). {
+	A = xlAstCreateBinary(&T, "|", L, R);
+}
+
+lambda_bit_xor_expr(A) ::= lambda_bit_and_expr(E). {
+	A = E;
+}
+lambda_bit_xor_expr(A) ::= lambda_bit_xor_expr(L) OP_CARET(T) lambda_bit_and_expr(R). {
+	A = xlAstCreateBinary(&T, "^", L, R);
+}
+
+lambda_bit_and_expr(A) ::= lambda_equality_expr(E). {
+	A = E;
+}
+lambda_bit_and_expr(A) ::= lambda_bit_and_expr(L) OP_AMP(T) lambda_equality_expr(R). {
+	A = xlAstCreateBinary(&T, "&", L, R);
+}
+
+lambda_equality_expr(A) ::= lambda_compare_expr(E). {
+	A = E;
+}
+lambda_equality_expr(A) ::= lambda_equality_expr(L) OP_EQ(T) lambda_compare_expr(R). {
+	A = xlAstCreateBinary(&T, "==", L, R);
+}
+lambda_equality_expr(A) ::= lambda_equality_expr(L) OP_NE(T) lambda_compare_expr(R). {
+	A = xlAstCreateBinary(&T, "!=", L, R);
+}
+lambda_equality_expr(A) ::= lambda_equality_expr(L) OP_APPROX(T) lambda_compare_expr(R). {
+	A = xlAstCreateBinary(&T, "~=", L, R);
+}
+
+lambda_compare_expr(A) ::= lambda_shift_expr(E). {
+	A = E;
+}
+lambda_compare_expr(A) ::= lambda_compare_expr(L) OP_LT(T) lambda_shift_expr(R). {
+	A = xlAstCreateBinary(&T, "<", L, R);
+}
+lambda_compare_expr(A) ::= lambda_compare_expr(L) OP_LE(T) lambda_shift_expr(R). {
+	A = xlAstCreateBinary(&T, "<=", L, R);
+}
+lambda_compare_expr(A) ::= lambda_compare_expr(L) OP_GT(T) lambda_shift_expr(R). {
+	A = xlAstCreateBinary(&T, ">", L, R);
+}
+lambda_compare_expr(A) ::= lambda_compare_expr(L) OP_GE(T) lambda_shift_expr(R). {
+	A = xlAstCreateBinary(&T, ">=", L, R);
+}
+lambda_compare_expr(A) ::= lambda_compare_expr(L) KW_IN(T) lambda_shift_expr(R). {
+	A = xlAstCreateBinary(&T, "in", L, R);
+}
+
+lambda_shift_expr(A) ::= lambda_add_expr(E). [OP_SHL] {
+	A = E;
+}
+lambda_shift_expr(A) ::= lambda_shift_expr(L) OP_SHL(T) lambda_add_expr(R). {
+	A = xlAstCreateBinary(&T, "<<", L, R);
+}
+lambda_shift_expr(A) ::= lambda_shift_expr(L) OP_SHR(T) lambda_add_expr(R). {
+	A = xlAstCreateBinary(&T, ">>", L, R);
+}
+
+lambda_add_expr(A) ::= lambda_mul_expr(E). {
+	A = E;
+}
+lambda_add_expr(A) ::= lambda_add_expr(L) OP_PLUS(T) lambda_mul_expr(R). {
+	A = xlAstCreateBinary(&T, "+", L, R);
+}
+lambda_add_expr(A) ::= lambda_add_expr(L) OP_MINUS(T) lambda_mul_expr(R). {
+	A = xlAstCreateBinary(&T, "-", L, R);
+}
+
+lambda_mul_expr(A) ::= lambda_power_expr(E). {
+	A = E;
+}
+lambda_mul_expr(A) ::= lambda_mul_expr(L) OP_STAR(T) lambda_power_expr(R). {
+	A = xlAstCreateBinary(&T, "*", L, R);
+}
+lambda_mul_expr(A) ::= lambda_mul_expr(L) OP_SLASH(T) lambda_power_expr(R). {
+	A = xlAstCreateBinary(&T, "/", L, R);
+}
+lambda_mul_expr(A) ::= lambda_mul_expr(L) OP_PERCENT(T) lambda_power_expr(R). {
+	A = xlAstCreateBinary(&T, "%", L, R);
+}
+
+lambda_power_expr(A) ::= lambda_unary_expr(E). {
+	A = E;
+}
+lambda_power_expr(A) ::= lambda_unary_expr(L) OP_POWER(T) lambda_power_expr(R). {
+	A = xlAstCreateBinary(&T, "**", L, R);
+}
+
+lambda_unary_expr(A) ::= lambda_postfix_expr(E). [KW_AWAIT] {
+	A = E;
+}
+lambda_unary_expr(A) ::= OP_MINUS(T) lambda_unary_expr(E). {
+	A = xlAstCreateUnary(&T, "-", E);
+}
+lambda_unary_expr(A) ::= KW_NOT(T) lambda_unary_expr(E). {
+	A = xlAstCreateUnary(&T, "not", E);
+}
+lambda_unary_expr(A) ::= OP_BANG(T) lambda_unary_expr(E). {
+	A = xlAstCreateUnary(&T, "!", E);
+}
+lambda_unary_expr(A) ::= KW_AWAIT(T) lambda_unary_expr(E). {
+	A = xlAstCreateUnary(&T, "await", E);
+}
+
+lambda_postfix_expr(A) ::= lambda_primary_expr(E). {
+	A = E;
+}
+lambda_postfix_expr(A) ::= generic_type_ref(T) TK_LPAREN arg_list(ARGS) TK_RPAREN(RP). {
+	A = xlAstCreateCall(T, ARGS, &RP);
+}
+lambda_postfix_expr(A) ::= function_type_ref(T) TK_LPAREN arg_list(ARGS) TK_RPAREN(RP). {
+	A = xlAstCreateCall(T, ARGS, &RP);
+}
+lambda_postfix_expr(A) ::= lambda_postfix_expr(C) TK_LPAREN arg_list(ARGS) TK_RPAREN(T). {
+	A = xlAstCreateCall(C, ARGS, &T);
+}
+lambda_postfix_expr(A) ::= lambda_postfix_expr(B) OP_DOT(T) TOK_IDENT(N). {
+	A = xlAstCreateMember(B, &N, 0, &T);
+}
+lambda_postfix_expr(A) ::= lambda_postfix_expr(B) OP_SAFE_DOT(T) TOK_IDENT(N). {
+	A = xlAstCreateMember(B, &N, 1, &T);
+}
+lambda_postfix_expr(A) ::= lambda_postfix_expr(B) TK_LBRACKET(T) expr(E) TK_RBRACKET. {
+	A = xlAstCreateIndex(B, E, 0, &T);
+}
+lambda_postfix_expr(A) ::= lambda_postfix_expr(B) OP_SAFE_LBRACKET(T) expr(E) TK_RBRACKET. {
+	A = xlAstCreateIndex(B, E, 1, &T);
+}
+
+lambda_primary_expr(A) ::= literal(L). {
+	A = L;
+}
+lambda_primary_expr(A) ::= KW_VAR(N). [TK_LBRACE] {
+	A = xlAstCreateIdent(&N);
+}
+lambda_primary_expr(A) ::= TOK_IDENT(N). [TK_LBRACE] {
+	A = xlAstCreateIdent(&N);
+}
+lambda_primary_expr(A) ::= TK_LPAREN expr(E) TK_RPAREN. {
+	A = E;
+}
+lambda_primary_expr(A) ::= TK_LPAREN yield_expr(E) TK_RPAREN. {
+	A = E;
+}
+lambda_primary_expr(A) ::= bare_bracket_literal(L). {
+	A = L;
+}
+lambda_primary_expr(A) ::= bare_brace_literal(L). {
+	A = L;
+}
+lambda_primary_expr(A) ::= TOK_IDENT(N) TK_LBRACE opt_stmt_sep TK_RBRACE. {
+	A = xlPCreateBracedValueLiteral(pCtx, &N, xlPList());
+}
+lambda_primary_expr(A) ::= TOK_IDENT(N) TK_LBRACE opt_stmt_sep expr_items(ITEMS) opt_stmt_sep TK_RBRACE. {
+	A = xlPCreateBracedValueLiteral(pCtx, &N, ITEMS);
+}
+lambda_primary_expr(A) ::= TOK_IDENT(N) TK_LBRACE opt_stmt_sep dict_items(ITEMS) opt_stmt_sep TK_RBRACE. {
+	A = xlPCreateBracedDictLiteral(pCtx, &N, ITEMS);
 }
 
 null_expr(A) ::= conditional_expr(E). {
@@ -1565,6 +1831,9 @@ postfix_expr(A) ::= postfix_expr(B) OP_SAFE_LBRACKET(T) expr(E) TK_RBRACKET. {
 primary_expr(A) ::= literal(L). {
 	A = L;
 }
+primary_expr(A) ::= func_expr(F). {
+	A = F;
+}
 primary_expr(A) ::= KW_VAR(N). [TK_LBRACE] {
 	A = xlAstCreateIdent(&N);
 }
@@ -1583,33 +1852,33 @@ primary_expr(A) ::= bare_bracket_literal(L). {
 primary_expr(A) ::= bare_brace_literal(L). {
 	A = L;
 }
-primary_expr(A) ::= TOK_IDENT(N) TK_LBRACE TK_RBRACE. {
+primary_expr(A) ::= TOK_IDENT(N) TK_LBRACE opt_stmt_sep TK_RBRACE. {
 	A = xlPCreateBracedValueLiteral(pCtx, &N, xlPList());
 }
-primary_expr(A) ::= TOK_IDENT(N) TK_LBRACE expr_items(ITEMS) TK_RBRACE. {
+primary_expr(A) ::= TOK_IDENT(N) TK_LBRACE opt_stmt_sep expr_items(ITEMS) opt_stmt_sep TK_RBRACE. {
 	A = xlPCreateBracedValueLiteral(pCtx, &N, ITEMS);
 }
-primary_expr(A) ::= TOK_IDENT(N) TK_LBRACE dict_items(ITEMS) TK_RBRACE. {
+primary_expr(A) ::= TOK_IDENT(N) TK_LBRACE opt_stmt_sep dict_items(ITEMS) opt_stmt_sep TK_RBRACE. {
 	A = xlPCreateBracedDictLiteral(pCtx, &N, ITEMS);
 }
 
-bare_bracket_literal(A) ::= TK_LBRACKET(T) TK_RBRACKET. {
+bare_bracket_literal(A) ::= TK_LBRACKET(T) opt_stmt_sep TK_RBRACKET. {
 	A = xlPCreateHiddenCall("__array_literal", xlPList(), &T);
 }
-bare_bracket_literal(A) ::= TK_LBRACKET(T) expr_items(ITEMS) TK_RBRACKET. {
+bare_bracket_literal(A) ::= TK_LBRACKET(T) opt_stmt_sep expr_items(ITEMS) opt_stmt_sep TK_RBRACKET. {
 	A = xlPCreateHiddenCall("__array_literal", ITEMS, &T);
 }
-bare_bracket_literal(A) ::= TK_LBRACKET(T) indexed_items(ITEMS) TK_RBRACKET. {
+bare_bracket_literal(A) ::= TK_LBRACKET(T) opt_stmt_sep indexed_items(ITEMS) opt_stmt_sep TK_RBRACKET. {
 	A = xlPCreateBareBracketLiteral(ITEMS, 1, &T);
 }
 
-bare_brace_literal(A) ::= TK_LBRACE(T) TK_RBRACE. {
+bare_brace_literal(A) ::= TK_LBRACE(T) opt_stmt_sep TK_RBRACE. {
 	A = xlPCreateBareBraceLiteral(xlPList(), 1, &T);
 }
-bare_brace_literal(A) ::= TK_LBRACE(T) expr_items(ITEMS) TK_RBRACE. {
+bare_brace_literal(A) ::= TK_LBRACE(T) opt_stmt_sep expr_items(ITEMS) opt_stmt_sep TK_RBRACE. {
 	A = xlPCreateBareBraceLiteral(ITEMS, 0, &T);
 }
-bare_brace_literal(A) ::= TK_LBRACE(T) dict_items(ITEMS) TK_RBRACE. {
+bare_brace_literal(A) ::= TK_LBRACE(T) opt_stmt_sep dict_items(ITEMS) opt_stmt_sep TK_RBRACE. {
 	A = xlPCreateBareBraceLiteral(ITEMS, 1, &T);
 }
 

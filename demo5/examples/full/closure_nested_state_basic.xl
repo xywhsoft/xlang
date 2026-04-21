@@ -1,0 +1,18 @@
+func make() as function<int()>
+	auto seed = 40
+	auto outer = func() as function<int()>
+		auto local = seed
+		auto inner = func() as int
+			local = local + 1
+			return local
+		end
+		return inner
+	end
+	return outer()
+end
+
+func main() as int
+	auto next = make()
+	next()
+	return next()
+end
