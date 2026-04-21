@@ -1,0 +1,32 @@
+var int total = 0
+
+class FinallyBox extends object
+	var value as int
+
+	create(int value)
+		self.value = value
+	end
+
+	destroy()
+		total = total + self.value
+	end
+end
+
+func make_return() as int
+	try
+		auto a = FinallyBox(10)
+		return 1
+	finally
+		total = total + 100
+	end
+
+	return 9
+end
+
+func main() as int
+	auto rc = make_return()
+	if rc != 1 then
+		return rc
+	end
+	return total
+end

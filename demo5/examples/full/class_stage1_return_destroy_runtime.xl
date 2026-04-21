@@ -1,0 +1,29 @@
+var int total = 0
+
+class Box extends object
+	var value as int
+
+	create(int value)
+		self.value = value
+	end
+
+	destroy()
+		total = total + self.value
+	end
+end
+
+func make() as int
+	auto outer = Box(1)
+	if 1
+		auto a = Box(40)
+		auto b = Box(2)
+		return 0
+	end
+	auto later = Box(100)
+	return 0
+end
+
+func main() as int
+	make()
+	return total
+end

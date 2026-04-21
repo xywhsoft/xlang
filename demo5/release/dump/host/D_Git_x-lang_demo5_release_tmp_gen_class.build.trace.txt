@@ -1,0 +1,8 @@
+tcc_root=D:\Git\x-lang\demo5\release\tcc
+include=D:\Git\x-lang\demo5\release\tcc\include_win
+include=D:\Git\x-lang\demo5\release\tcc\include_win\winapi
+include=D:\Git\x-lang\demo5\src\runtime
+include=D:\Git\x-lang\demo5\lib\xrt
+lib=D:\Git\x-lang\demo5\release\tcc\lib
+compile_file=D:\Git\x-lang\demo5\release\tmp_gen_class.c
+[tcc] D:/Git/x-lang/demo5/release/tmp_gen_class.c:2438: error: field name expected

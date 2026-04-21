@@ -1,0 +1,10 @@
+extern "_fmode" var fmode as int
+
+#loadlib "msvcrt.dll"
+
+func main() as int
+	if fmode == fmode then
+		return 42
+	end
+	return 0
+end

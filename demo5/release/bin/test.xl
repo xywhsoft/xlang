@@ -3,6 +3,8 @@
 
 import std.core
 
+#link shell32
+
 extern "ShellAboutA" func shell_about(point hwnd, string app, string other, point icon) as int
 extern "ShellExecuteA" func shell_exec(point hwnd, string op, string file, string params, string dir, int show) as int
 
@@ -11,8 +13,8 @@ extern "ShellExecuteA" func shell_exec(point hwnd, string op, string file, strin
 func main() as int
 	auto a = {"b": "hello", "c": " world"}
 	std.core.println(a["b"] + a["c"])
-	// shell_about(null, "xlang Test", "Hello from extern!", null)
-	shell_exec(null, "open", "notepad.exe", null, null, 1)
+	shell_about(null, "xlang Test", "Hello from extern!", null)
+	shell_exec(null, "open", "notepad.exe", "", "", 1)
 	return 1234
 end
 

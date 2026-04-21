@@ -607,50 +607,6 @@ static int __xlExtractDirectiveDecls(
 			}
 		}
 
-		if ( !bHandledDirective &&
-			(strncmp(sSourceText + iCursor, "link", 4) == 0) &&
-			((sSourceText[iCursor + 4] == '\0') || __xlIsAsciiSpace((unsigned char)sSourceText[iCursor + 4])) ) {
-			iLibStart = iCursor + 4;
-			while ( __xlIsAsciiSpace((unsigned char)sSourceText[iLibStart]) ) {
-				++iLibStart;
-			}
-			iLibEnd = iLibStart;
-			if ( __xlIsLinkIdentStart((unsigned char)sSourceText[iLibStart]) ) {
-				while ( __xlIsLinkIdentCont((unsigned char)sSourceText[iLibEnd]) ) {
-					++iLibEnd;
-				}
-				while ( __xlIsAsciiSpace((unsigned char)sSourceText[iLibEnd]) ) {
-					++iLibEnd;
-				}
-				if ( (iLibEnd == iLineEnd) ||
-					((sSourceText[iLibEnd] == '/') && ((iLibEnd + 1) < iLineEnd) && (sSourceText[iLibEnd + 1] == '/')) ) {
-					char sLibName[128];
-					size_t iLibLen;
-					int iRc;
-
-					iLibLen = iLibEnd - iLibStart;
-					while ( (iLibLen > 0) && __xlIsAsciiSpace((unsigned char)sSourceText[iLibStart + iLibLen - 1]) ) {
-						--iLibLen;
-					}
-					if ( iLibLen >= sizeof(sLibName) ) {
-						iLibLen = sizeof(sLibName) - 1;
-					}
-					memcpy(sLibName, sSourceText + iLibStart, iLibLen);
-					sLibName[iLibLen] = '\0';
-					iRc = __xlModuleInfoAddLinkLib(pModule, sLibName);
-					if ( iRc != XL_RC_OK ) {
-						free(out.sData);
-						return iRc;
-					}
-					if ( __xlModuleBufAppendN(&out, sSourceText + iLineEnd, iNewlineLen) != XL_RC_OK ) {
-						free(out.sData);
-						return XL_RC_IO_ERROR;
-					}
-					iPos = iLineEnd + iNewlineLen;
-					continue;
-				}
-			}
-		}
 		if ( bHandledDirective ) {
 			if ( __xlModuleBufAppendN(&out, sSourceText + iLineEnd, iNewlineLen) != XL_RC_OK ) {
 				free(out.sData);

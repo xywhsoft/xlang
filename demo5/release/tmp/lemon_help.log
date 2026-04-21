@@ -1,0 +1,23 @@
+Command line syntax error: undefined option.
+tools\lemon.exe -?
+                 ^-- here
+Valid command line options for "tools\lemon.exe" are:
+  -b           Print only the basis in report.
+  -c           Don't compress the action table.
+  -d<string>   Output directory.  Default '.'
+  -D<string>   Define an %ifdef macro.
+  -E           Print input file after preprocessing.
+  -f<string>   Ignored.  (Placeholder for -f compiler options.)
+  -g           Print grammar without actions.
+  -I<string>   Ignored.  (Placeholder for '-I' compiler options.)
+  -m           Output a makeheaders compatible file.
+  -l           Do not print #line statements.
+  -O<string>   Ignored.  (Placeholder for '-O' compiler options.)
+  -p           Show conflicts resolved by precedence rules
+  -q           (Quiet) Don't print the report file.
+  -r           Do not sort or renumber states
+  -s           Print parser stats to standard output.
+  -S           Generate the *.sql file describing the parser tables.
+  -x           Print the version number.
+  -T<string>   Specify a template file.
+  -W<string>   Ignored.  (Placeholder for '-W' compiler options.)

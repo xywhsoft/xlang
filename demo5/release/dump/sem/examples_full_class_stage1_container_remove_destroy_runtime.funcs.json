@@ -1,0 +1,1539 @@
+[
+	{
+		"name": "range",
+		"overloadGroup": "global::range",
+		"signatureId": "range(int)",
+		"dispatchKey": "range$arity1|stop:int",
+		"abiSymbol": "xl__range__arity1__stop__int__ret__range",
+		"languageAbi": "xlang@v1",
+		"nativeAbi": "c@v1",
+		"returnType": "range",
+		"scopeId": 0,
+		"async": 0,
+		"generator": 0,
+		"line": 0,
+		"column": 0,
+		"params": [
+			{
+				"name": "stop",
+				"label": "stop",
+				"type": "int",
+				"hasDefault": 0
+			}
+		]
+	},
+	{
+		"name": "range",
+		"overloadGroup": "global::range",
+		"signatureId": "range(int,int)",
+		"dispatchKey": "range$arity2|start:int|stop:int",
+		"abiSymbol": "xl__range__arity2__start__int__stop__int__ret__range",
+		"languageAbi": "xlang@v1",
+		"nativeAbi": "c@v1",
+		"returnType": "range",
+		"scopeId": 0,
+		"async": 0,
+		"generator": 0,
+		"line": 0,
+		"column": 0,
+		"params": [
+			{
+				"name": "start",
+				"label": "start",
+				"type": "int",
+				"hasDefault": 0
+			},
+			{
+				"name": "stop",
+				"label": "stop",
+				"type": "int",
+				"hasDefault": 0
+			}
+		]
+	},
+	{
+		"name": "range",
+		"overloadGroup": "global::range",
+		"signatureId": "range(int,int,int)",
+		"dispatchKey": "range$arity3|start:int|stop:int|step:int",
+		"abiSymbol": "xl__range__arity3__start__int__stop__int__step__int__ret__range",
+		"languageAbi": "xlang@v1",
+		"nativeAbi": "c@v1",
+		"returnType": "range",
+		"scopeId": 0,
+		"async": 0,
+		"generator": 0,
+		"line": 0,
+		"column": 0,
+		"params": [
+			{
+				"name": "start",
+				"label": "start",
+				"type": "int",
+				"hasDefault": 0
+			},
+			{
+				"name": "stop",
+				"label": "stop",
+				"type": "int",
+				"hasDefault": 0
+			},
+			{
+				"name": "step",
+				"label": "step",
+				"type": "int",
+				"hasDefault": 0
+			}
+		]
+	},
+	{
+		"name": "Error",
+		"overloadGroup": "global::Error",
+		"signatureId": "Error(string,int,string,string,error)",
+		"dispatchKey": "Error$arity5|message:string|code:int|data:string|stack:string|cause:error",
+		"abiSymbol": "xl__Error__arity5__message__string__code__int__data__string__stack__string__cause__error__ret__error",
+		"languageAbi": "xlang@v1",
+		"nativeAbi": "c@v1",
+		"returnType": "error",
+		"scopeId": 0,
+		"async": 0,
+		"generator": 0,
+		"line": 0,
+		"column": 0,
+		"params": [
+			{
+				"name": "message",
+				"label": "message",
+				"type": "string",
+				"hasDefault": 0
+			},
+			{
+				"name": "code",
+				"label": "code",
+				"type": "int",
+				"hasDefault": 1
+			},
+			{
+				"name": "data",
+				"label": "data",
+				"type": "string",
+				"hasDefault": 1
+			},
+			{
+				"name": "stack",
+				"label": "stack",
+				"type": "string",
+				"hasDefault": 1
+			},
+			{
+				"name": "cause",
+				"label": "cause",
+				"type": "error",
+				"hasDefault": 1
+			}
+		]
+	},
+	{
+		"name": "TypeError",
+		"overloadGroup": "global::TypeError",
+		"signatureId": "TypeError(string,int,string,string,error)",
+		"dispatchKey": "TypeError$arity5|message:string|code:int|data:string|stack:string|cause:error",
+		"abiSymbol": "xl__TypeError__arity5__message__string__code__int__data__string__stack__string__cause__error__ret__error",
+		"languageAbi": "xlang@v1",
+		"nativeAbi": "c@v1",
+		"returnType": "error",
+		"scopeId": 0,
+		"async": 0,
+		"generator": 0,
+		"line": 0,
+		"column": 0,
+		"params": [
+			{
+				"name": "message",
+				"label": "message",
+				"type": "string",
+				"hasDefault": 0
+			},
+			{
+				"name": "code",
+				"label": "code",
+				"type": "int",
+				"hasDefault": 1
+			},
+			{
+				"name": "data",
+				"label": "data",
+				"type": "string",
+				"hasDefault": 1
+			},
+			{
+				"name": "stack",
+				"label": "stack",
+				"type": "string",
+				"hasDefault": 1
+			},
+			{
+				"name": "cause",
+				"label": "cause",
+				"type": "error",
+				"hasDefault": 1
+			}
+		]
+	},
+	{
+		"name": "ValueError",
+		"overloadGroup": "global::ValueError",
+		"signatureId": "ValueError(string,int,string,string,error)",
+		"dispatchKey": "ValueError$arity5|message:string|code:int|data:string|stack:string|cause:error",
+		"abiSymbol": "xl__ValueError__arity5__message__string__code__int__data__string__stack__string__cause__error__ret__error",
+		"languageAbi": "xlang@v1",
+		"nativeAbi": "c@v1",
+		"returnType": "error",
+		"scopeId": 0,
+		"async": 0,
+		"generator": 0,
+		"line": 0,
+		"column": 0,
+		"params": [
+			{
+				"name": "message",
+				"label": "message",
+				"type": "string",
+				"hasDefault": 0
+			},
+			{
+				"name": "code",
+				"label": "code",
+				"type": "int",
+				"hasDefault": 1
+			},
+			{
+				"name": "data",
+				"label": "data",
+				"type": "string",
+				"hasDefault": 1
+			},
+			{
+				"name": "stack",
+				"label": "stack",
+				"type": "string",
+				"hasDefault": 1
+			},
+			{
+				"name": "cause",
+				"label": "cause",
+				"type": "error",
+				"hasDefault": 1
+			}
+		]
+	},
+	{
+		"name": "IOError",
+		"overloadGroup": "global::IOError",
+		"signatureId": "IOError(string,int,string,string,error)",
+		"dispatchKey": "IOError$arity5|message:string|code:int|data:string|stack:string|cause:error",
+		"abiSymbol": "xl__IOError__arity5__message__string__code__int__data__string__stack__string__cause__error__ret__error",
+		"languageAbi": "xlang@v1",
+		"nativeAbi": "c@v1",
+		"returnType": "error",
+		"scopeId": 0,
+		"async": 0,
+		"generator": 0,
+		"line": 0,
+		"column": 0,
+		"params": [
+			{
+				"name": "message",
+				"label": "message",
+				"type": "string",
+				"hasDefault": 0
+			},
+			{
+				"name": "code",
+				"label": "code",
+				"type": "int",
+				"hasDefault": 1
+			},
+			{
+				"name": "data",
+				"label": "data",
+				"type": "string",
+				"hasDefault": 1
+			},
+			{
+				"name": "stack",
+				"label": "stack",
+				"type": "string",
+				"hasDefault": 1
+			},
+			{
+				"name": "cause",
+				"label": "cause",
+				"type": "error",
+				"hasDefault": 1
+			}
+		]
+	},
+	{
+		"name": "TimeoutError",
+		"overloadGroup": "global::TimeoutError",
+		"signatureId": "TimeoutError(string,int,string,string,error)",
+		"dispatchKey": "TimeoutError$arity5|message:string|code:int|data:string|stack:string|cause:error",
+		"abiSymbol": "xl__TimeoutError__arity5__message__string__code__int__data__string__stack__string__cause__error__ret__error",
+		"languageAbi": "xlang@v1",
+		"nativeAbi": "c@v1",
+		"returnType": "error",
+		"scopeId": 0,
+		"async": 0,
+		"generator": 0,
+		"line": 0,
+		"column": 0,
+		"params": [
+			{
+				"name": "message",
+				"label": "message",
+				"type": "string",
+				"hasDefault": 0
+			},
+			{
+				"name": "code",
+				"label": "code",
+				"type": "int",
+				"hasDefault": 1
+			},
+			{
+				"name": "data",
+				"label": "data",
+				"type": "string",
+				"hasDefault": 1
+			},
+			{
+				"name": "stack",
+				"label": "stack",
+				"type": "string",
+				"hasDefault": 1
+			},
+			{
+				"name": "cause",
+				"label": "cause",
+				"type": "error",
+				"hasDefault": 1
+			}
+		]
+	},
+	{
+		"name": "CancelledError",
+		"overloadGroup": "global::CancelledError",
+		"signatureId": "CancelledError(string,int,string,string,error)",
+		"dispatchKey": "CancelledError$arity5|message:string|code:int|data:string|stack:string|cause:error",
+		"abiSymbol": "xl__CancelledError__arity5__message__string__code__int__data__string__stack__string__cause__error__ret__error",
+		"languageAbi": "xlang@v1",
+		"nativeAbi": "c@v1",
+		"returnType": "error",
+		"scopeId": 0,
+		"async": 0,
+		"generator": 0,
+		"line": 0,
+		"column": 0,
+		"params": [
+			{
+				"name": "message",
+				"label": "message",
+				"type": "string",
+				"hasDefault": 0
+			},
+			{
+				"name": "code",
+				"label": "code",
+				"type": "int",
+				"hasDefault": 1
+			},
+			{
+				"name": "data",
+				"label": "data",
+				"type": "string",
+				"hasDefault": 1
+			},
+			{
+				"name": "stack",
+				"label": "stack",
+				"type": "string",
+				"hasDefault": 1
+			},
+			{
+				"name": "cause",
+				"label": "cause",
+				"type": "error",
+				"hasDefault": 1
+			}
+		]
+	},
+	{
+		"name": "NotImplementedError",
+		"overloadGroup": "global::NotImplementedError",
+		"signatureId": "NotImplementedError(string,int,string,string,error)",
+		"dispatchKey": "NotImplementedError$arity5|message:string|code:int|data:string|stack:string|cause:error",
+		"abiSymbol": "xl__NotImplementedError__arity5__message__string__code__int__data__string__stack__string__cause__error__ret__error",
+		"languageAbi": "xlang@v1",
+		"nativeAbi": "c@v1",
+		"returnType": "error",
+		"scopeId": 0,
+		"async": 0,
+		"generator": 0,
+		"line": 0,
+		"column": 0,
+		"params": [
+			{
+				"name": "message",
+				"label": "message",
+				"type": "string",
+				"hasDefault": 0
+			},
+			{
+				"name": "code",
+				"label": "code",
+				"type": "int",
+				"hasDefault": 1
+			},
+			{
+				"name": "data",
+				"label": "data",
+				"type": "string",
+				"hasDefault": 1
+			},
+			{
+				"name": "stack",
+				"label": "stack",
+				"type": "string",
+				"hasDefault": 1
+			},
+			{
+				"name": "cause",
+				"label": "cause",
+				"type": "error",
+				"hasDefault": 1
+			}
+		]
+	},
+	{
+		"name": "NativeError",
+		"overloadGroup": "global::NativeError",
+		"signatureId": "NativeError(string,int,string,string,error)",
+		"dispatchKey": "NativeError$arity5|message:string|code:int|data:string|stack:string|cause:error",
+		"abiSymbol": "xl__NativeError__arity5__message__string__code__int__data__string__stack__string__cause__error__ret__error",
+		"languageAbi": "xlang@v1",
+		"nativeAbi": "c@v1",
+		"returnType": "error",
+		"scopeId": 0,
+		"async": 0,
+		"generator": 0,
+		"line": 0,
+		"column": 0,
+		"params": [
+			{
+				"name": "message",
+				"label": "message",
+				"type": "string",
+				"hasDefault": 0
+			},
+			{
+				"name": "code",
+				"label": "code",
+				"type": "int",
+				"hasDefault": 1
+			},
+			{
+				"name": "data",
+				"label": "data",
+				"type": "string",
+				"hasDefault": 1
+			},
+			{
+				"name": "stack",
+				"label": "stack",
+				"type": "string",
+				"hasDefault": 1
+			},
+			{
+				"name": "cause",
+				"label": "cause",
+				"type": "error",
+				"hasDefault": 1
+			}
+		]
+	},
+	{
+		"name": "xl_mod_std_core__len",
+		"overloadGroup": "global::xl_mod_std_core__len",
+		"signatureId": "xl_mod_std_core__len(string)",
+		"dispatchKey": "xl_mod_std_core__len$arity1|self:string",
+		"abiSymbol": "xl__xl_mod_std_core__len__arity1__self__string__ret__int",
+		"languageAbi": "xlang@v1",
+		"nativeAbi": "c@v1",
+		"returnType": "int",
+		"scopeId": 0,
+		"async": 0,
+		"generator": 0,
+		"line": 0,
+		"column": 0,
+		"params": [
+			{
+				"name": "self",
+				"label": "self",
+				"type": "string",
+				"hasDefault": 0
+			}
+		]
+	},
+	{
+		"name": "xl_mod_std_core__len",
+		"overloadGroup": "global::xl_mod_std_core__len",
+		"signatureId": "xl_mod_std_core__len(array)",
+		"dispatchKey": "xl_mod_std_core__len$arity1|self:array",
+		"abiSymbol": "xl__xl_mod_std_core__len__arity1__self__array__ret__int",
+		"languageAbi": "xlang@v1",
+		"nativeAbi": "c@v1",
+		"returnType": "int",
+		"scopeId": 0,
+		"async": 0,
+		"generator": 0,
+		"line": 0,
+		"column": 0,
+		"params": [
+			{
+				"name": "self",
+				"label": "self",
+				"type": "array",
+				"hasDefault": 0
+			}
+		]
+	},
+	{
+		"name": "xl_mod_std_core__len",
+		"overloadGroup": "global::xl_mod_std_core__len",
+		"signatureId": "xl_mod_std_core__len(list)",
+		"dispatchKey": "xl_mod_std_core__len$arity1|self:list",
+		"abiSymbol": "xl__xl_mod_std_core__len__arity1__self__list__ret__int",
+		"languageAbi": "xlang@v1",
+		"nativeAbi": "c@v1",
+		"returnType": "int",
+		"scopeId": 0,
+		"async": 0,
+		"generator": 0,
+		"line": 0,
+		"column": 0,
+		"params": [
+			{
+				"name": "self",
+				"label": "self",
+				"type": "list",
+				"hasDefault": 0
+			}
+		]
+	},
+	{
+		"name": "xl_mod_std_core__len",
+		"overloadGroup": "global::xl_mod_std_core__len",
+		"signatureId": "xl_mod_std_core__len(set)",
+		"dispatchKey": "xl_mod_std_core__len$arity1|self:set",
+		"abiSymbol": "xl__xl_mod_std_core__len__arity1__self__set__ret__int",
+		"languageAbi": "xlang@v1",
+		"nativeAbi": "c@v1",
+		"returnType": "int",
+		"scopeId": 0,
+		"async": 0,
+		"generator": 0,
+		"line": 0,
+		"column": 0,
+		"params": [
+			{
+				"name": "self",
+				"label": "self",
+				"type": "set",
+				"hasDefault": 0
+			}
+		]
+	},
+	{
+		"name": "xl_mod_std_core__len",
+		"overloadGroup": "global::xl_mod_std_core__len",
+		"signatureId": "xl_mod_std_core__len(dict)",
+		"dispatchKey": "xl_mod_std_core__len$arity1|self:dict",
+		"abiSymbol": "xl__xl_mod_std_core__len__arity1__self__dict__ret__int",
+		"languageAbi": "xlang@v1",
+		"nativeAbi": "c@v1",
+		"returnType": "int",
+		"scopeId": 0,
+		"async": 0,
+		"generator": 0,
+		"line": 0,
+		"column": 0,
+		"params": [
+			{
+				"name": "self",
+				"label": "self",
+				"type": "dict",
+				"hasDefault": 0
+			}
+		]
+	},
+	{
+		"name": "xl_mod_std_str__contains",
+		"overloadGroup": "global::xl_mod_std_str__contains",
+		"signatureId": "xl_mod_std_str__contains(string,string)",
+		"dispatchKey": "xl_mod_std_str__contains$arity2|self:string|part:string",
+		"abiSymbol": "xl__xl_mod_std_str__contains__arity2__self__string__part__string__ret__bool",
+		"languageAbi": "xlang@v1",
+		"nativeAbi": "c@v1",
+		"returnType": "bool",
+		"scopeId": 0,
+		"async": 0,
+		"generator": 0,
+		"line": 0,
+		"column": 0,
+		"params": [
+			{
+				"name": "self",
+				"label": "self",
+				"type": "string",
+				"hasDefault": 0
+			},
+			{
+				"name": "part",
+				"label": "part",
+				"type": "string",
+				"hasDefault": 0
+			}
+		]
+	},
+	{
+		"name": "xl_mod_std_str__index_of",
+		"overloadGroup": "global::xl_mod_std_str__index_of",
+		"signatureId": "xl_mod_std_str__index_of(string,string)",
+		"dispatchKey": "xl_mod_std_str__index_of$arity2|self:string|part:string",
+		"abiSymbol": "xl__xl_mod_std_str__index_of__arity2__self__string__part__string__ret__int",
+		"languageAbi": "xlang@v1",
+		"nativeAbi": "c@v1",
+		"returnType": "int",
+		"scopeId": 0,
+		"async": 0,
+		"generator": 0,
+		"line": 0,
+		"column": 0,
+		"params": [
+			{
+				"name": "self",
+				"label": "self",
+				"type": "string",
+				"hasDefault": 0
+			},
+			{
+				"name": "part",
+				"label": "part",
+				"type": "string",
+				"hasDefault": 0
+			}
+		]
+	},
+	{
+		"name": "xl_mod_std_str__last_index_of",
+		"overloadGroup": "global::xl_mod_std_str__last_index_of",
+		"signatureId": "xl_mod_std_str__last_index_of(string,string)",
+		"dispatchKey": "xl_mod_std_str__last_index_of$arity2|self:string|part:string",
+		"abiSymbol": "xl__xl_mod_std_str__last_index_of__arity2__self__string__part__string__ret__int",
+		"languageAbi": "xlang@v1",
+		"nativeAbi": "c@v1",
+		"returnType": "int",
+		"scopeId": 0,
+		"async": 0,
+		"generator": 0,
+		"line": 0,
+		"column": 0,
+		"params": [
+			{
+				"name": "self",
+				"label": "self",
+				"type": "string",
+				"hasDefault": 0
+			},
+			{
+				"name": "part",
+				"label": "part",
+				"type": "string",
+				"hasDefault": 0
+			}
+		]
+	},
+	{
+		"name": "xl_mod_std_str__slice",
+		"overloadGroup": "global::xl_mod_std_str__slice",
+		"signatureId": "xl_mod_std_str__slice(string,int,int)",
+		"dispatchKey": "xl_mod_std_str__slice$arity3|self:string|start:int|count:int",
+		"abiSymbol": "xl__xl_mod_std_str__slice__arity3__self__string__start__int__count__int__ret__string",
+		"languageAbi": "xlang@v1",
+		"nativeAbi": "c@v1",
+		"returnType": "string",
+		"scopeId": 0,
+		"async": 0,
+		"generator": 0,
+		"line": 0,
+		"column": 0,
+		"params": [
+			{
+				"name": "self",
+				"label": "self",
+				"type": "string",
+				"hasDefault": 0
+			},
+			{
+				"name": "start",
+				"label": "start",
+				"type": "int",
+				"hasDefault": 0
+			},
+			{
+				"name": "count",
+				"label": "count",
+				"type": "int",
+				"hasDefault": 0
+			}
+		]
+	},
+	{
+		"name": "xl_mod_std_str__repeat",
+		"overloadGroup": "global::xl_mod_std_str__repeat",
+		"signatureId": "xl_mod_std_str__repeat(string,int)",
+		"dispatchKey": "xl_mod_std_str__repeat$arity2|self:string|count:int",
+		"abiSymbol": "xl__xl_mod_std_str__repeat__arity2__self__string__count__int__ret__string",
+		"languageAbi": "xlang@v1",
+		"nativeAbi": "c@v1",
+		"returnType": "string",
+		"scopeId": 0,
+		"async": 0,
+		"generator": 0,
+		"line": 0,
+		"column": 0,
+		"params": [
+			{
+				"name": "self",
+				"label": "self",
+				"type": "string",
+				"hasDefault": 0
+			},
+			{
+				"name": "count",
+				"label": "count",
+				"type": "int",
+				"hasDefault": 0
+			}
+		]
+	},
+	{
+		"name": "xl_mod_std_str__split",
+		"overloadGroup": "global::xl_mod_std_str__split",
+		"signatureId": "xl_mod_std_str__split(string,string)",
+		"dispatchKey": "xl_mod_std_str__split$arity2|self:string|part:string",
+		"abiSymbol": "xl__xl_mod_std_str__split__arity2__self__string__part__string__ret__list_x3Cstring_x3E",
+		"languageAbi": "xlang@v1",
+		"nativeAbi": "c@v1",
+		"returnType": "list<string>",
+		"scopeId": 0,
+		"async": 0,
+		"generator": 0,
+		"line": 0,
+		"column": 0,
+		"params": [
+			{
+				"name": "self",
+				"label": "self",
+				"type": "string",
+				"hasDefault": 0
+			},
+			{
+				"name": "part",
+				"label": "part",
+				"type": "string",
+				"hasDefault": 0
+			}
+		]
+	},
+	{
+		"name": "xl_mod_std_str__split_lines",
+		"overloadGroup": "global::xl_mod_std_str__split_lines",
+		"signatureId": "xl_mod_std_str__split_lines(string)",
+		"dispatchKey": "xl_mod_std_str__split_lines$arity1|self:string",
+		"abiSymbol": "xl__xl_mod_std_str__split_lines__arity1__self__string__ret__list_x3Cstring_x3E",
+		"languageAbi": "xlang@v1",
+		"nativeAbi": "c@v1",
+		"returnType": "list<string>",
+		"scopeId": 0,
+		"async": 0,
+		"generator": 0,
+		"line": 0,
+		"column": 0,
+		"params": [
+			{
+				"name": "self",
+				"label": "self",
+				"type": "string",
+				"hasDefault": 0
+			}
+		]
+	},
+	{
+		"name": "xl_mod_std_str__starts_with",
+		"overloadGroup": "global::xl_mod_std_str__starts_with",
+		"signatureId": "xl_mod_std_str__starts_with(string,string)",
+		"dispatchKey": "xl_mod_std_str__starts_with$arity2|self:string|part:string",
+		"abiSymbol": "xl__xl_mod_std_str__starts_with__arity2__self__string__part__string__ret__bool",
+		"languageAbi": "xlang@v1",
+		"nativeAbi": "c@v1",
+		"returnType": "bool",
+		"scopeId": 0,
+		"async": 0,
+		"generator": 0,
+		"line": 0,
+		"column": 0,
+		"params": [
+			{
+				"name": "self",
+				"label": "self",
+				"type": "string",
+				"hasDefault": 0
+			},
+			{
+				"name": "part",
+				"label": "part",
+				"type": "string",
+				"hasDefault": 0
+			}
+		]
+	},
+	{
+		"name": "xl_mod_std_str__ends_with",
+		"overloadGroup": "global::xl_mod_std_str__ends_with",
+		"signatureId": "xl_mod_std_str__ends_with(string,string)",
+		"dispatchKey": "xl_mod_std_str__ends_with$arity2|self:string|part:string",
+		"abiSymbol": "xl__xl_mod_std_str__ends_with__arity2__self__string__part__string__ret__bool",
+		"languageAbi": "xlang@v1",
+		"nativeAbi": "c@v1",
+		"returnType": "bool",
+		"scopeId": 0,
+		"async": 0,
+		"generator": 0,
+		"line": 0,
+		"column": 0,
+		"params": [
+			{
+				"name": "self",
+				"label": "self",
+				"type": "string",
+				"hasDefault": 0
+			},
+			{
+				"name": "part",
+				"label": "part",
+				"type": "string",
+				"hasDefault": 0
+			}
+		]
+	},
+	{
+		"name": "xl_mod_std_str__trim",
+		"overloadGroup": "global::xl_mod_std_str__trim",
+		"signatureId": "xl_mod_std_str__trim(string)",
+		"dispatchKey": "xl_mod_std_str__trim$arity1|self:string",
+		"abiSymbol": "xl__xl_mod_std_str__trim__arity1__self__string__ret__string",
+		"languageAbi": "xlang@v1",
+		"nativeAbi": "c@v1",
+		"returnType": "string",
+		"scopeId": 0,
+		"async": 0,
+		"generator": 0,
+		"line": 0,
+		"column": 0,
+		"params": [
+			{
+				"name": "self",
+				"label": "self",
+				"type": "string",
+				"hasDefault": 0
+			}
+		]
+	},
+	{
+		"name": "xl_mod_std_str__trim_left",
+		"overloadGroup": "global::xl_mod_std_str__trim_left",
+		"signatureId": "xl_mod_std_str__trim_left(string)",
+		"dispatchKey": "xl_mod_std_str__trim_left$arity1|self:string",
+		"abiSymbol": "xl__xl_mod_std_str__trim_left__arity1__self__string__ret__string",
+		"languageAbi": "xlang@v1",
+		"nativeAbi": "c@v1",
+		"returnType": "string",
+		"scopeId": 0,
+		"async": 0,
+		"generator": 0,
+		"line": 0,
+		"column": 0,
+		"params": [
+			{
+				"name": "self",
+				"label": "self",
+				"type": "string",
+				"hasDefault": 0
+			}
+		]
+	},
+	{
+		"name": "xl_mod_std_str__trim_right",
+		"overloadGroup": "global::xl_mod_std_str__trim_right",
+		"signatureId": "xl_mod_std_str__trim_right(string)",
+		"dispatchKey": "xl_mod_std_str__trim_right$arity1|self:string",
+		"abiSymbol": "xl__xl_mod_std_str__trim_right__arity1__self__string__ret__string",
+		"languageAbi": "xlang@v1",
+		"nativeAbi": "c@v1",
+		"returnType": "string",
+		"scopeId": 0,
+		"async": 0,
+		"generator": 0,
+		"line": 0,
+		"column": 0,
+		"params": [
+			{
+				"name": "self",
+				"label": "self",
+				"type": "string",
+				"hasDefault": 0
+			}
+		]
+	},
+	{
+		"name": "xl_mod_std_str__lower",
+		"overloadGroup": "global::xl_mod_std_str__lower",
+		"signatureId": "xl_mod_std_str__lower(string)",
+		"dispatchKey": "xl_mod_std_str__lower$arity1|self:string",
+		"abiSymbol": "xl__xl_mod_std_str__lower__arity1__self__string__ret__string",
+		"languageAbi": "xlang@v1",
+		"nativeAbi": "c@v1",
+		"returnType": "string",
+		"scopeId": 0,
+		"async": 0,
+		"generator": 0,
+		"line": 0,
+		"column": 0,
+		"params": [
+			{
+				"name": "self",
+				"label": "self",
+				"type": "string",
+				"hasDefault": 0
+			}
+		]
+	},
+	{
+		"name": "xl_mod_std_str__upper",
+		"overloadGroup": "global::xl_mod_std_str__upper",
+		"signatureId": "xl_mod_std_str__upper(string)",
+		"dispatchKey": "xl_mod_std_str__upper$arity1|self:string",
+		"abiSymbol": "xl__xl_mod_std_str__upper__arity1__self__string__ret__string",
+		"languageAbi": "xlang@v1",
+		"nativeAbi": "c@v1",
+		"returnType": "string",
+		"scopeId": 0,
+		"async": 0,
+		"generator": 0,
+		"line": 0,
+		"column": 0,
+		"params": [
+			{
+				"name": "self",
+				"label": "self",
+				"type": "string",
+				"hasDefault": 0
+			}
+		]
+	},
+	{
+		"name": "xl_mod_std_str__replace",
+		"overloadGroup": "global::xl_mod_std_str__replace",
+		"signatureId": "xl_mod_std_str__replace(string,string,string)",
+		"dispatchKey": "xl_mod_std_str__replace$arity3|self:string|part:string|value:string",
+		"abiSymbol": "xl__xl_mod_std_str__replace__arity3__self__string__part__string__value__string__ret__string",
+		"languageAbi": "xlang@v1",
+		"nativeAbi": "c@v1",
+		"returnType": "string",
+		"scopeId": 0,
+		"async": 0,
+		"generator": 0,
+		"line": 0,
+		"column": 0,
+		"params": [
+			{
+				"name": "self",
+				"label": "self",
+				"type": "string",
+				"hasDefault": 0
+			},
+			{
+				"name": "part",
+				"label": "part",
+				"type": "string",
+				"hasDefault": 0
+			},
+			{
+				"name": "value",
+				"label": "value",
+				"type": "string",
+				"hasDefault": 0
+			}
+		]
+	},
+	{
+		"name": "__xl_method_append",
+		"overloadGroup": "global::__xl_method_append",
+		"signatureId": "__xl_method_append(array,any)",
+		"dispatchKey": "__xl_method_append$arity2|self:array|value:any",
+		"abiSymbol": "xl____xl_method_append__arity2__self__array__value__any__ret__void",
+		"languageAbi": "xlang@v1",
+		"nativeAbi": "c@v1",
+		"returnType": "",
+		"scopeId": 0,
+		"async": 0,
+		"generator": 0,
+		"line": 0,
+		"column": 0,
+		"params": [
+			{
+				"name": "self",
+				"label": "self",
+				"type": "array",
+				"hasDefault": 0
+			},
+			{
+				"name": "value",
+				"label": "value",
+				"type": "any",
+				"hasDefault": 0
+			}
+		]
+	},
+	{
+		"name": "__xl_method_append",
+		"overloadGroup": "global::__xl_method_append",
+		"signatureId": "__xl_method_append(list,any)",
+		"dispatchKey": "__xl_method_append$arity2|self:list|value:any",
+		"abiSymbol": "xl____xl_method_append__arity2__self__list__value__any__ret__void",
+		"languageAbi": "xlang@v1",
+		"nativeAbi": "c@v1",
+		"returnType": "",
+		"scopeId": 0,
+		"async": 0,
+		"generator": 0,
+		"line": 0,
+		"column": 0,
+		"params": [
+			{
+				"name": "self",
+				"label": "self",
+				"type": "list",
+				"hasDefault": 0
+			},
+			{
+				"name": "value",
+				"label": "value",
+				"type": "any",
+				"hasDefault": 0
+			}
+		]
+	},
+	{
+		"name": "__xl_method_join",
+		"overloadGroup": "global::__xl_method_join",
+		"signatureId": "__xl_method_join(array<string>,string)",
+		"dispatchKey": "__xl_method_join$arity2|self:array<string>|sep:string",
+		"abiSymbol": "xl____xl_method_join__arity2__self__array_x3Cstring_x3E__sep__string__ret__string",
+		"languageAbi": "xlang@v1",
+		"nativeAbi": "c@v1",
+		"returnType": "string",
+		"scopeId": 0,
+		"async": 0,
+		"generator": 0,
+		"line": 0,
+		"column": 0,
+		"params": [
+			{
+				"name": "self",
+				"label": "self",
+				"type": "array<string>",
+				"hasDefault": 0
+			},
+			{
+				"name": "sep",
+				"label": "sep",
+				"type": "string",
+				"hasDefault": 0
+			}
+		]
+	},
+	{
+		"name": "__xl_method_join",
+		"overloadGroup": "global::__xl_method_join",
+		"signatureId": "__xl_method_join(list<string>,string)",
+		"dispatchKey": "__xl_method_join$arity2|self:list<string>|sep:string",
+		"abiSymbol": "xl____xl_method_join__arity2__self__list_x3Cstring_x3E__sep__string__ret__string",
+		"languageAbi": "xlang@v1",
+		"nativeAbi": "c@v1",
+		"returnType": "string",
+		"scopeId": 0,
+		"async": 0,
+		"generator": 0,
+		"line": 0,
+		"column": 0,
+		"params": [
+			{
+				"name": "self",
+				"label": "self",
+				"type": "list<string>",
+				"hasDefault": 0
+			},
+			{
+				"name": "sep",
+				"label": "sep",
+				"type": "string",
+				"hasDefault": 0
+			}
+		]
+	},
+	{
+		"name": "__xl_method_has",
+		"overloadGroup": "global::__xl_method_has",
+		"signatureId": "__xl_method_has(set,any)",
+		"dispatchKey": "__xl_method_has$arity2|self:set|value:any",
+		"abiSymbol": "xl____xl_method_has__arity2__self__set__value__any__ret__bool",
+		"languageAbi": "xlang@v1",
+		"nativeAbi": "c@v1",
+		"returnType": "bool",
+		"scopeId": 0,
+		"async": 0,
+		"generator": 0,
+		"line": 0,
+		"column": 0,
+		"params": [
+			{
+				"name": "self",
+				"label": "self",
+				"type": "set",
+				"hasDefault": 0
+			},
+			{
+				"name": "value",
+				"label": "value",
+				"type": "any",
+				"hasDefault": 0
+			}
+		]
+	},
+	{
+		"name": "__xl_method_has",
+		"overloadGroup": "global::__xl_method_has",
+		"signatureId": "__xl_method_has(dict,string)",
+		"dispatchKey": "__xl_method_has$arity2|self:dict|key:string",
+		"abiSymbol": "xl____xl_method_has__arity2__self__dict__key__string__ret__bool",
+		"languageAbi": "xlang@v1",
+		"nativeAbi": "c@v1",
+		"returnType": "bool",
+		"scopeId": 0,
+		"async": 0,
+		"generator": 0,
+		"line": 0,
+		"column": 0,
+		"params": [
+			{
+				"name": "self",
+				"label": "self",
+				"type": "dict",
+				"hasDefault": 0
+			},
+			{
+				"name": "key",
+				"label": "key",
+				"type": "string",
+				"hasDefault": 0
+			}
+		]
+	},
+	{
+		"name": "__xl_method_clear",
+		"overloadGroup": "global::__xl_method_clear",
+		"signatureId": "__xl_method_clear(array)",
+		"dispatchKey": "__xl_method_clear$arity1|self:array",
+		"abiSymbol": "xl____xl_method_clear__arity1__self__array__ret__void",
+		"languageAbi": "xlang@v1",
+		"nativeAbi": "c@v1",
+		"returnType": "",
+		"scopeId": 0,
+		"async": 0,
+		"generator": 0,
+		"line": 0,
+		"column": 0,
+		"params": [
+			{
+				"name": "self",
+				"label": "self",
+				"type": "array",
+				"hasDefault": 0
+			}
+		]
+	},
+	{
+		"name": "__xl_method_clear",
+		"overloadGroup": "global::__xl_method_clear",
+		"signatureId": "__xl_method_clear(list)",
+		"dispatchKey": "__xl_method_clear$arity1|self:list",
+		"abiSymbol": "xl____xl_method_clear__arity1__self__list__ret__void",
+		"languageAbi": "xlang@v1",
+		"nativeAbi": "c@v1",
+		"returnType": "",
+		"scopeId": 0,
+		"async": 0,
+		"generator": 0,
+		"line": 0,
+		"column": 0,
+		"params": [
+			{
+				"name": "self",
+				"label": "self",
+				"type": "list",
+				"hasDefault": 0
+			}
+		]
+	},
+	{
+		"name": "__xl_method_clear",
+		"overloadGroup": "global::__xl_method_clear",
+		"signatureId": "__xl_method_clear(set)",
+		"dispatchKey": "__xl_method_clear$arity1|self:set",
+		"abiSymbol": "xl____xl_method_clear__arity1__self__set__ret__void",
+		"languageAbi": "xlang@v1",
+		"nativeAbi": "c@v1",
+		"returnType": "",
+		"scopeId": 0,
+		"async": 0,
+		"generator": 0,
+		"line": 0,
+		"column": 0,
+		"params": [
+			{
+				"name": "self",
+				"label": "self",
+				"type": "set",
+				"hasDefault": 0
+			}
+		]
+	},
+	{
+		"name": "__xl_method_clear",
+		"overloadGroup": "global::__xl_method_clear",
+		"signatureId": "__xl_method_clear(dict)",
+		"dispatchKey": "__xl_method_clear$arity1|self:dict",
+		"abiSymbol": "xl____xl_method_clear__arity1__self__dict__ret__void",
+		"languageAbi": "xlang@v1",
+		"nativeAbi": "c@v1",
+		"returnType": "",
+		"scopeId": 0,
+		"async": 0,
+		"generator": 0,
+		"line": 0,
+		"column": 0,
+		"params": [
+			{
+				"name": "self",
+				"label": "self",
+				"type": "dict",
+				"hasDefault": 0
+			}
+		]
+	},
+	{
+		"name": "__xl_method_remove",
+		"overloadGroup": "global::__xl_method_remove",
+		"signatureId": "__xl_method_remove(array,int)",
+		"dispatchKey": "__xl_method_remove$arity2|self:array|key:int",
+		"abiSymbol": "xl____xl_method_remove__arity2__self__array__key__int__ret__bool",
+		"languageAbi": "xlang@v1",
+		"nativeAbi": "c@v1",
+		"returnType": "bool",
+		"scopeId": 0,
+		"async": 0,
+		"generator": 0,
+		"line": 0,
+		"column": 0,
+		"params": [
+			{
+				"name": "self",
+				"label": "self",
+				"type": "array",
+				"hasDefault": 0
+			},
+			{
+				"name": "key",
+				"label": "key",
+				"type": "int",
+				"hasDefault": 0
+			}
+		]
+	},
+	{
+		"name": "__xl_method_remove",
+		"overloadGroup": "global::__xl_method_remove",
+		"signatureId": "__xl_method_remove(list,int)",
+		"dispatchKey": "__xl_method_remove$arity2|self:list|key:int",
+		"abiSymbol": "xl____xl_method_remove__arity2__self__list__key__int__ret__bool",
+		"languageAbi": "xlang@v1",
+		"nativeAbi": "c@v1",
+		"returnType": "bool",
+		"scopeId": 0,
+		"async": 0,
+		"generator": 0,
+		"line": 0,
+		"column": 0,
+		"params": [
+			{
+				"name": "self",
+				"label": "self",
+				"type": "list",
+				"hasDefault": 0
+			},
+			{
+				"name": "key",
+				"label": "key",
+				"type": "int",
+				"hasDefault": 0
+			}
+		]
+	},
+	{
+		"name": "__xl_method_remove",
+		"overloadGroup": "global::__xl_method_remove",
+		"signatureId": "__xl_method_remove(set,any)",
+		"dispatchKey": "__xl_method_remove$arity2|self:set|value:any",
+		"abiSymbol": "xl____xl_method_remove__arity2__self__set__value__any__ret__bool",
+		"languageAbi": "xlang@v1",
+		"nativeAbi": "c@v1",
+		"returnType": "bool",
+		"scopeId": 0,
+		"async": 0,
+		"generator": 0,
+		"line": 0,
+		"column": 0,
+		"params": [
+			{
+				"name": "self",
+				"label": "self",
+				"type": "set",
+				"hasDefault": 0
+			},
+			{
+				"name": "value",
+				"label": "value",
+				"type": "any",
+				"hasDefault": 0
+			}
+		]
+	},
+	{
+		"name": "__xl_method_remove",
+		"overloadGroup": "global::__xl_method_remove",
+		"signatureId": "__xl_method_remove(dict,string)",
+		"dispatchKey": "__xl_method_remove$arity2|self:dict|key:string",
+		"abiSymbol": "xl____xl_method_remove__arity2__self__dict__key__string__ret__bool",
+		"languageAbi": "xlang@v1",
+		"nativeAbi": "c@v1",
+		"returnType": "bool",
+		"scopeId": 0,
+		"async": 0,
+		"generator": 0,
+		"line": 0,
+		"column": 0,
+		"params": [
+			{
+				"name": "self",
+				"label": "self",
+				"type": "dict",
+				"hasDefault": 0
+			},
+			{
+				"name": "key",
+				"label": "key",
+				"type": "string",
+				"hasDefault": 0
+			}
+		]
+	},
+	{
+		"name": "__xl_method_channel_send",
+		"overloadGroup": "global::__xl_method_channel_send",
+		"signatureId": "__xl_method_channel_send(channel,any)",
+		"dispatchKey": "__xl_method_channel_send$arity2|self:channel|value:any",
+		"abiSymbol": "xl____xl_method_channel_send__arity2__self__channel__value__any__ret__bool",
+		"languageAbi": "xlang@v1",
+		"nativeAbi": "c@v1",
+		"returnType": "bool",
+		"scopeId": 0,
+		"async": 0,
+		"generator": 0,
+		"line": 0,
+		"column": 0,
+		"params": [
+			{
+				"name": "self",
+				"label": "self",
+				"type": "channel",
+				"hasDefault": 0
+			},
+			{
+				"name": "value",
+				"label": "value",
+				"type": "any",
+				"hasDefault": 0
+			}
+		]
+	},
+	{
+		"name": "__xl_method_channel_close",
+		"overloadGroup": "global::__xl_method_channel_close",
+		"signatureId": "__xl_method_channel_close(channel)",
+		"dispatchKey": "__xl_method_channel_close$arity1|self:channel",
+		"abiSymbol": "xl____xl_method_channel_close__arity1__self__channel__ret__bool",
+		"languageAbi": "xlang@v1",
+		"nativeAbi": "c@v1",
+		"returnType": "bool",
+		"scopeId": 0,
+		"async": 0,
+		"generator": 0,
+		"line": 0,
+		"column": 0,
+		"params": [
+			{
+				"name": "self",
+				"label": "self",
+				"type": "channel",
+				"hasDefault": 0
+			}
+		]
+	},
+	{
+		"name": "__xl_method_channel_recv",
+		"overloadGroup": "global::__xl_method_channel_recv",
+		"signatureId": "__xl_method_channel_recv(channel)",
+		"dispatchKey": "__xl_method_channel_recv$arity1|self:channel",
+		"abiSymbol": "xl____xl_method_channel_recv__arity1__self__channel__ret__future_x3Carray_x3Cvar_x3E_x3E",
+		"languageAbi": "xlang@v1",
+		"nativeAbi": "c@v1",
+		"returnType": "",
+		"scopeId": 0,
+		"async": 1,
+		"generator": 0,
+		"line": 0,
+		"column": 0,
+		"params": [
+			{
+				"name": "self",
+				"label": "self",
+				"type": "channel",
+				"hasDefault": 0
+			}
+		]
+	},
+	{
+		"name": "__xl_method_generator_next",
+		"overloadGroup": "global::__xl_method_generator_next",
+		"signatureId": "__xl_method_generator_next(generator)",
+		"dispatchKey": "__xl_method_generator_next$arity1|self:generator",
+		"abiSymbol": "xl____xl_method_generator_next__arity1__self__generator__ret__array_x3Cvar_x3E",
+		"languageAbi": "xlang@v1",
+		"nativeAbi": "c@v1",
+		"returnType": "",
+		"scopeId": 0,
+		"async": 0,
+		"generator": 0,
+		"line": 0,
+		"column": 0,
+		"params": [
+			{
+				"name": "self",
+				"label": "self",
+				"type": "generator",
+				"hasDefault": 0
+			}
+		]
+	},
+	{
+		"name": "__xl_method_generator_resume",
+		"overloadGroup": "global::__xl_method_generator_resume",
+		"signatureId": "__xl_method_generator_resume(generator,var)",
+		"dispatchKey": "__xl_method_generator_resume$arity2|self:generator|value:var",
+		"abiSymbol": "xl____xl_method_generator_resume__arity2__self__generator__value__var__ret__array_x3Cvar_x3E",
+		"languageAbi": "xlang@v1",
+		"nativeAbi": "c@v1",
+		"returnType": "",
+		"scopeId": 0,
+		"async": 0,
+		"generator": 0,
+		"line": 0,
+		"column": 0,
+		"params": [
+			{
+				"name": "self",
+				"label": "self",
+				"type": "generator",
+				"hasDefault": 0
+			},
+			{
+				"name": "value",
+				"label": "value",
+				"type": "var",
+				"hasDefault": 0
+			}
+		]
+	},
+	{
+		"name": "main",
+		"overloadGroup": "global::main",
+		"signatureId": "main()",
+		"dispatchKey": "main$arity0",
+		"abiSymbol": "xl__main__arity0__ret__int",
+		"languageAbi": "xlang@v1",
+		"nativeAbi": "c@v1",
+		"returnType": "int",
+		"scopeId": 0,
+		"async": 0,
+		"generator": 0,
+		"line": 21,
+		"column": 6,
+		"params": []
+	},
+	{
+		"name": "copy",
+		"overloadGroup": "global::copy",
+		"signatureId": "copy(RemBox)",
+		"dispatchKey": "copy$arity1|self:RemBox",
+		"abiSymbol": "xl__copy__arity1__self__RemBox__ret__RemBox",
+		"languageAbi": "xlang@v1",
+		"nativeAbi": "c@v1",
+		"returnType": "RemBox",
+		"scopeId": 1,
+		"async": 0,
+		"generator": 0,
+		"line": 15,
+		"column": 7,
+		"params": [
+			{
+				"name": "self",
+				"label": "self",
+				"type": "RemBox",
+				"hasDefault": 0
+			}
+		]
+	}
+]

@@ -1,0 +1,30 @@
+Program @ 0:0-0:0
+	FuncDecl @ 5:6-5:10 text="main"
+		List @ 0:0-0:0
+		List @ 0:0-0:0
+			TypeRef @ 5:16-5:19 text="int"
+		Block @ 0:0-0:0
+			VarDecl @ 6:6-6:12 text="labels"
+				Call @ 6:15-6:19
+					Ident @ 0:0-0:0 text="__list_literal"
+					List @ 0:0-0:0
+						String @ 6:20-6:23 text="\"A\""
+						String @ 6:25-6:28 text="\"B\""
+			If @ 7:2-7:4
+				Binary @ 7:37-7:39 text="=="
+					Call @ 7:35-7:36
+						Member @ 7:11-7:12 text="wrap_join"
+							Ident @ 7:5-7:11 text="labels"
+						List @ 0:0-0:0
+							String @ 7:22-7:25 text="\"[\""
+							String @ 7:27-7:30 text="\"|\""
+							String @ 7:32-7:35 text="\"]\""
+					String @ 7:40-7:47 text="\"[A|B]\""
+				Block @ 0:0-0:0
+					Return @ 8:3-8:9
+						List @ 0:0-0:0
+							Int @ 8:10-8:12 text="42" int=42
+				List @ 0:0-0:0
+			Return @ 10:2-10:8
+				List @ 0:0-0:0
+					Int @ 10:9-10:10 text="0"

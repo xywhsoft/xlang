@@ -1,0 +1,49 @@
+var int copies = 0
+var int destroys = 0
+
+class ReleaseBox extends object
+	var value as int
+
+	create(int value)
+		self.value = value
+	end
+
+	destroy()
+		destroys = destroys + 1
+	end
+
+	func copy() as ReleaseBox
+		copies = copies + 1
+		return ReleaseBox(self.value)
+	end
+end
+
+func make_and_drop() as int
+	auto a = ReleaseBox(10)
+	auto items = [a]
+	auto sparse = list{a}
+	auto lookup = {"x": a}
+	auto flags = set{a}
+
+	if copies != 4 then
+		return 1
+	end
+	if destroys != 0 then
+		return 2
+	end
+	return 0
+end
+
+func main() as int
+	auto rc = make_and_drop()
+	if rc != 0 then
+		return rc
+	end
+	if copies != 4 then
+		return 3
+	end
+	if destroys != 5 then
+		return 4
+	end
+	return copies * 10 + destroys
+end

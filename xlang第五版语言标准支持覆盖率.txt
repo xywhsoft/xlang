@@ -214,6 +214,7 @@ xlang 第五版语言标准支持覆盖率
 - ☑ `sys.loadlib()` / `lib.proc()` 动态绑定 API（首版：`std.sys.lib.loadlib()` / `lib.proc()` / `lib.close()` / `lib.path()` / `lib.loaded()` 已接通 parser/sem/cgen/runtime，并固定到回归测试）
 - ☑ `point -> function<...>` runtime ABI 桥接（已覆盖 int/bool/point 返回、多签名、var 交互、`msvcrt.dll -> atoi`、`kernel32.dll` 无参整型 API、以及 close-after-proc pin 语义）
 update 2026-04-21: `lib.path()` / `lib.loaded()` 已接通 runtime，`#link + #libpath + #incpath` 指令链路补齐回归用例。
+update 2026-04-21: 旧裸 `link foo` 兼容写法已迁移完成；demo5 仅将 `#link foo` 作为标准静态链接指令，裸 `link foo` 固定为语义失败用例。
 update 2026-04-21: 闭包、匿名函数、原生函数 `point -> function<...>` runtime 桥接与 class 第一阶段状态已同步回总覆盖率；parser conflict 已从 115 回收到 12，剩余顶层/block 空规则冲突转入后续 parser hygiene。
 update 2026-04-14: async try const-else wrapped nested_full_chain / triple_nested inner-catch and outer-catch await flows verified in cgen/runtime.
 update 2026-04-14: async try const-else wrapped top-level if / while / prelude / do-while await variants verified in cgen/runtime.

@@ -1,5 +1,4 @@
 main.c
-test/xl_test.c
 D:/git/x-lang/demo5/src/ast/xl_ast.c
 D:/git/x-lang/demo5/src/ast/xl_ast_dump.c
 D:/git/x-lang/demo5/src/codegen/c/xl_cgen.c

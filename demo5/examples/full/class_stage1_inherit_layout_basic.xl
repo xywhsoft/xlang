@@ -1,0 +1,12 @@
+class PointBase extends object
+	var x as int
+end
+
+class Point3 extends PointBase
+	var y as int
+	var z as int
+
+	func sum() as int
+		return self.x + self.y + self.z
+	end
+end

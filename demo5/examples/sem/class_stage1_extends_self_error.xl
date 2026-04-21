@@ -1,0 +1,7 @@
+class Loop extends Loop
+	var value as int
+end
+
+func main() as int
+	return 0
+end

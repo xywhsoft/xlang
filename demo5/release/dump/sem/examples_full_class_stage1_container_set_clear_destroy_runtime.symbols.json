@@ -1,0 +1,112 @@
+[
+	{
+		"kind": "func",
+		"scopeId": 0,
+		"name": "main",
+		"typeName": "int",
+		"line": 21,
+		"column": 6,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "var",
+		"scopeId": 0,
+		"name": "copies",
+		"typeName": "int",
+		"line": 1,
+		"column": 9,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "var",
+		"scopeId": 0,
+		"name": "destroys",
+		"typeName": "int",
+		"line": 2,
+		"column": 9,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "var",
+		"scopeId": 1,
+		"name": "value",
+		"typeName": "int",
+		"line": 5,
+		"column": 6,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "param",
+		"scopeId": 2,
+		"name": "self",
+		"typeName": "SetClearBox",
+		"line": 7,
+		"column": 2,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "param",
+		"scopeId": 2,
+		"name": "value",
+		"typeName": "int",
+		"line": 7,
+		"column": 13,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "param",
+		"scopeId": 4,
+		"name": "self",
+		"typeName": "SetClearBox",
+		"line": 11,
+		"column": 2,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "func",
+		"scopeId": 1,
+		"name": "copy",
+		"typeName": "",
+		"line": 15,
+		"column": 7,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "param",
+		"scopeId": 6,
+		"name": "self",
+		"typeName": "SetClearBox",
+		"line": 15,
+		"column": 7,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "var",
+		"scopeId": 9,
+		"name": "a",
+		"typeName": "SetClearBox",
+		"line": 22,
+		"column": 7,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "var",
+		"scopeId": 9,
+		"name": "values",
+		"typeName": "set<SetClearBox>",
+		"line": 23,
+		"column": 7,
+		"async": 0,
+		"generator": 0
+	}
+]

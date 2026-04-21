@@ -1,0 +1,8 @@
+﻿func id <T>(v as T) as T
+    return v
+end
+
+func main() as int
+    auto a = id(123)
+    return a
+end

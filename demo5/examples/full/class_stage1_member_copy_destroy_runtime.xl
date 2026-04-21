@@ -1,0 +1,52 @@
+var int copies = 0
+var int destroys = 0
+
+class CopyPart extends object
+	var value as int
+
+	create(int value)
+		self.value = value
+	end
+
+	destroy()
+		destroys = destroys + 1
+	end
+
+	func copy() as CopyPart
+		copies = copies + 1
+		return CopyPart(self.value)
+	end
+end
+
+class CopyHolder extends object
+	var part as CopyPart
+
+	create(int value)
+		self.part = CopyPart(value)
+	end
+
+	destroy()
+	end
+end
+
+func main() as int
+	auto holder = CopyHolder(10)
+	auto replacement = CopyPart(20)
+	holder.part = replacement
+	auto items = [holder.part]
+	CopyPart got = items[0]
+
+	if holder.part.value != 20 then
+		return 1
+	end
+	if got.value != 20 then
+		return 2
+	end
+	if copies != 3 then
+		return 3
+	end
+	if destroys != 1 then
+		return 4
+	end
+	return got.value + copies * 10 + destroys
+end

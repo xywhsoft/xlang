@@ -14318,11 +14318,25 @@ static void __xlCgenExpr(XL_CgenContext* pCtx, const XL_MirNode* pNode)
 		const XL_MirNode* pCallee;
 		const char* sCalleeType;
 		const char* sFuncSymbol;
+		const char* sCallType;
+		const char* sFuncReturnType;
+		int bWrapGenericValueResult;
+		char sGenericResultName[80];
 
 		pFunc = __xlResolveCallFuncNode(pCtx, pNode);
 		pCallee = (pNode->iChildCount != 0) ? pNode->ppChildren[0] : NULL;
 		sCalleeType = __xlInferExprTypeName(pCtx, pCallee);
 		sFuncSymbol = __xlMirFuncSymbolName(pFunc);
+		sCallType = ((pNode->sTypeName != NULL) && (pNode->sTypeName[0] != '\0')) ? pNode->sTypeName : NULL;
+		sFuncReturnType = ((pFunc != NULL) && (pFunc->sTypeName != NULL) && (pFunc->sTypeName[0] != '\0')) ? pFunc->sTypeName : NULL;
+		bWrapGenericValueResult = __xlIsVarTypeName(sFuncReturnType) &&
+			(sCallType != NULL) &&
+			!__xlIsVarTypeName(sCallType) &&
+			(strcmp(sCallType, "void") != 0);
+		if ( bWrapGenericValueResult ) {
+			snprintf(sGenericResultName, sizeof(sGenericResultName), "xl_generic_result_%d_%d", pNode->iLine, pNode->iColumn);
+			__xlCgenAppendFormat(&pCtx->buf, "({ xvalue %s = ", sGenericResultName);
+		}
 		if ( (pFunc != NULL) && (sFuncSymbol != NULL) && (sFuncSymbol[0] != '\0') ) {
 			__xlCgenAppend(&pCtx->buf, sFuncSymbol);
 		} else if ( __xlIsFunctionTypeName(sCalleeType) ) {
@@ -14334,6 +14348,11 @@ static void __xlCgenExpr(XL_CgenContext* pCtx, const XL_MirNode* pNode)
 		__xlCgenAppend(&pCtx->buf, "(");
 		__xlCgenCallArgs(pCtx, pNode);
 		__xlCgenAppend(&pCtx->buf, ")");
+		if ( bWrapGenericValueResult ) {
+			__xlCgenAppend(&pCtx->buf, "; ");
+			__xlCgenValueExprAsType(pCtx, sGenericResultName, sCallType);
+			__xlCgenAppend(&pCtx->buf, "; })");
+		}
 		return;
 	}
 

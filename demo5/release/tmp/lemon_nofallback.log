@@ -1,0 +1,11 @@
+Parser statistics:
+  terminal symbols...................    99
+  non-terminal symbols...............   117
+  total symbols......................   216
+  rules..............................   405
+  states.............................   523
+  conflicts..........................    12
+  action table entries............... 11343
+  lookahead table entries............ 11343
+  total table size (bytes)........... 36697
+12 parsing conflicts.

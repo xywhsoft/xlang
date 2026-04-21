@@ -1,0 +1,24 @@
+import x.archive.tar
+import std.fs
+
+func main() as int
+	auto dir = "release\\tmp\\x_archive_tar"
+	auto path = dir + "\\one.tar"
+
+	if fs.mkdir_all(dir) == false
+		return 1
+	end
+	if x.archive.tar.write_test_tar(path, "note.txt", "hello tar") == false
+		return 2
+	end
+	if x.archive.tar.count(path) != 1
+		return 3
+	end
+	if x.archive.tar.first_name(path) != "note.txt"
+		return 4
+	end
+	if x.archive.tar.count(path + ".missing") != 0
+		return 5
+	end
+	return x.archive.tar.count(path) * 40 + x.archive.tar.first_name(path).length
+end

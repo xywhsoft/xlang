@@ -14,6 +14,14 @@
 #define xvoTypeName(kind) ((str)(((kind) == XVO_DT_NULL) ? "null" : ((kind) == XVO_DT_BOOL) ? "bool" : ((kind) == XVO_DT_INT) ? "int" : ((kind) == XVO_DT_FLOAT) ? "float" : ((kind) == XVO_DT_TEXT) ? "string" : ((kind) == XVO_DT_TIME) ? "time" : ((kind) == XVO_DT_POINT) ? "point" : ((kind) == XVO_DT_FUNC) ? "function" : ((kind) == XVO_DT_ARRAY) ? "array" : ((kind) == XVO_DT_LIST) ? "list" : ((kind) == XVO_DT_COLL) ? "set" : ((kind) == XVO_DT_TABLE) ? "dict" : ((kind) == XVO_DT_CLASS) ? "class" : ((kind) == XVO_DT_CUSTOM) ? "custom" : "unknown"))
 #endif
 
+#ifndef XL_EXTERN_VAR
+#ifdef _WIN32
+#define XL_EXTERN_VAR __declspec(dllimport) extern
+#else
+#define XL_EXTERN_VAR extern
+#endif
+#endif
+
 typedef struct XL_GeneratedError XL_GeneratedError;
 struct XL_GeneratedError {
 	const char* type;
@@ -746,6 +754,17 @@ static void xl_generated_async_forward_state_finally(const xfuture_result* pIn, 
 	xrtFree(pCtx);
 }
 
+static xfuture* xl_generated_future_finally_auto(xfuture* pFuture, xfuture_finally_fn pfnCont, ptr pArg)
+{
+	if ( pFuture == NULL ) {
+		return NULL;
+	}
+	if ( xFutureState(pFuture) != XFUTURE_PENDING ) {
+		return xFutureFinallyInline(pFuture, pfnCont, pArg);
+	}
+	return xFutureFinallyEngine(pFuture, NULL, 0u, pfnCont, pArg);
+}
+
 static xfuture* xl_generated_future_forward_state(const char* sName, xfuture* pFuture, const char* sFunc, int iAwaitStateId, int iResumeStateId, const char* sDebugName)
 {
 	xfuture* pOut;
@@ -785,7 +804,7 @@ static xfuture* xl_generated_future_forward_state(const char* sName, xfuture* pF
 	pCtx->sAwaitName = sName;
 	pCtx->sFuncName = sFunc;
 	pCtx->iResumeStateId = iResumeStateId;
-	pHook = xFutureFinallyEngine(pFuture, NULL, 0u, xl_generated_async_forward_state_finally, pCtx);
+	pHook = xl_generated_future_finally_auto(pFuture, xl_generated_async_forward_state_finally, pCtx);
 	if ( pHook == NULL ) {
 		xrtFree(pCtx);
 		xPromiseDestroy(pPromise);
@@ -2272,23 +2291,41 @@ const XL_GeneratedModuleDescriptor xl_mod__root___descriptor = {
 	xl_mod__root___exports
 };
 
+static int xl__xl_mod_std_core__identity__arity1__x__int__ret__int(int x);
 static xvalue xl__xl_mod_std_core__identity__arity1__x__int__ret__int__boxed(xvalue varENV, xvalue arrParam);
+static void xl__xl_mod_std_core__print__arity1__x__int__ret__void(int x);
 static xvalue xl__xl_mod_std_core__print__arity1__x__int__ret__void__boxed(xvalue varENV, xvalue arrParam);
+static void xl__xl_mod_std_core__print__arity1__x__float__ret__void(double x);
 static xvalue xl__xl_mod_std_core__print__arity1__x__float__ret__void__boxed(xvalue varENV, xvalue arrParam);
+static void xl__xl_mod_std_core__print__arity1__x__string__ret__void(const char* x);
 static xvalue xl__xl_mod_std_core__print__arity1__x__string__ret__void__boxed(xvalue varENV, xvalue arrParam);
+static void xl__xl_mod_std_core__print__arity1__x__bool__ret__void(int x);
 static xvalue xl__xl_mod_std_core__print__arity1__x__bool__ret__void__boxed(xvalue varENV, xvalue arrParam);
+static void xl__xl_mod_std_core__println__arity0__ret__void();
 static xvalue xl__xl_mod_std_core__println__arity0__ret__void__boxed(xvalue varENV, xvalue arrParam);
+static void xl__xl_mod_std_core__println__arity1__x__int__ret__void(int x);
 static xvalue xl__xl_mod_std_core__println__arity1__x__int__ret__void__boxed(xvalue varENV, xvalue arrParam);
+static void xl__xl_mod_std_core__println__arity1__x__float__ret__void(double x);
 static xvalue xl__xl_mod_std_core__println__arity1__x__float__ret__void__boxed(xvalue varENV, xvalue arrParam);
+static void xl__xl_mod_std_core__println__arity1__x__string__ret__void(const char* x);
 static xvalue xl__xl_mod_std_core__println__arity1__x__string__ret__void__boxed(xvalue varENV, xvalue arrParam);
+static void xl__xl_mod_std_core__println__arity1__x__bool__ret__void(int x);
 static xvalue xl__xl_mod_std_core__println__arity1__x__bool__ret__void__boxed(xvalue varENV, xvalue arrParam);
+static int xl__xl_mod_std_core__len__arity1__x__string__ret__int(const char* x);
 static xvalue xl__xl_mod_std_core__len__arity1__x__string__ret__int__boxed(xvalue varENV, xvalue arrParam);
+static int xl__xl_mod_std_core__len__arity1__x__array__ret__int(xvalue x);
 static xvalue xl__xl_mod_std_core__len__arity1__x__array__ret__int__boxed(xvalue varENV, xvalue arrParam);
+static int xl__xl_mod_std_core__len__arity1__x__list__ret__int(xvalue x);
 static xvalue xl__xl_mod_std_core__len__arity1__x__list__ret__int__boxed(xvalue varENV, xvalue arrParam);
+static int xl__xl_mod_std_core__len__arity1__x__set__ret__int(xvalue x);
 static xvalue xl__xl_mod_std_core__len__arity1__x__set__ret__int__boxed(xvalue varENV, xvalue arrParam);
+static int xl__xl_mod_std_core__len__arity1__x__dict__ret__int(xvalue x);
 static xvalue xl__xl_mod_std_core__len__arity1__x__dict__ret__int__boxed(xvalue varENV, xvalue arrParam);
+static int xl__shell_about__arity4__hwnd__point__app__string__other__string__icon__point__ret__int(void* hwnd, const char* app, const char* other, void* icon);
 static xvalue xl__shell_about__arity4__hwnd__point__app__string__other__string__icon__point__ret__int__boxed(xvalue varENV, xvalue arrParam);
+static int xl__shell_exec__arity6__hwnd__point__op__string__file__string__params__string__dir__string__show__int__ret__int(void* hwnd, const char* op, const char* file, const char* params, const char* dir, int show);
 static xvalue xl__shell_exec__arity6__hwnd__point__op__string__file__string__params__string__dir__string__show__int__ret__int__boxed(xvalue varENV, xvalue arrParam);
+static int xl__main__arity0__ret__int();
 static xvalue xl__main__arity0__ret__int__boxed(xvalue varENV, xvalue arrParam);
 
 static int xl__xl_mod_std_core__identity__arity1__x__int__ret__int(int x)
@@ -2544,9 +2581,9 @@ static xvalue xl__shell_exec__arity6__hwnd__point__op__string__file__string__par
 
 static int xl__main__arity0__ret__int()
 {
-	int xl_escape_kind_11_6 = 0;
-	int xl_escape_level_11_6 = 0;
-	int xl_escape_value_11_6 = 0;
+	int xl_escape_kind_13_6 = 0;
+	int xl_escape_level_13_6 = 0;
+	int xl_escape_value_13_6 = 0;
 	xvalue a = ({ xvalue xl_dict_ctor = xvoCreateTable(); ({ const char* xl_dict_key = "b"; (void)xvoTableSetValue(xl_dict_ctor, (const void*)xl_dict_key, (uint32)strlen((xl_dict_key != NULL) ? xl_dict_key : ""), ({ const char* xl_text_value = "hello"; xvoCreateText((ptr)xl_text_value, (uint32)strlen((xl_text_value != NULL) ? xl_text_value : ""), FALSE); }), TRUE); }); ({ const char* xl_dict_key = "c"; (void)xvoTableSetValue(xl_dict_ctor, (const void*)xl_dict_key, (uint32)strlen((xl_dict_key != NULL) ? xl_dict_key : ""), ({ const char* xl_text_value = " world"; xvoCreateText((ptr)xl_text_value, (uint32)strlen((xl_text_value != NULL) ? xl_text_value : ""), FALSE); }), TRUE); }); xl_dict_ctor; });
 	if ( xl_generated_had_exception )
 	{
@@ -2565,7 +2602,7 @@ static int xl__main__arity0__ret__int()
 	{
 				return 0;
 	}
-	xl__shell_exec__arity6__hwnd__point__op__string__file__string__params__string__dir__string__show__int__ret__int(NULL, "open", "notepad.exe", NULL, NULL, 1);
+	xl__shell_about__arity4__hwnd__point__app__string__other__string__icon__point__ret__int(NULL, "xlang Test", "Hello from extern!", NULL);
 	if ( xl_generated_had_exception )
 	{
 				return 0;
@@ -2574,7 +2611,7 @@ static int xl__main__arity0__ret__int()
 	{
 				return 0;
 	}
- 	int xl_ret_16_2 = 1234;
+	xl__shell_exec__arity6__hwnd__point__op__string__file__string__params__string__dir__string__show__int__ret__int(NULL, "open", "notepad.exe", "", "", 1);
 	if ( xl_generated_had_exception )
 	{
 				return 0;
@@ -2583,7 +2620,16 @@ static int xl__main__arity0__ret__int()
 	{
 				return 0;
 	}
-	return xl_ret_16_2;
+ 	int xl_ret_18_2 = 1234;
+	if ( xl_generated_had_exception )
+	{
+				return 0;
+	}
+	if ( xl_generated_capture_native_error() )
+	{
+				return 0;
+	}
+	return xl_ret_18_2;
 }
 
 static xvalue xl__main__arity0__ret__int__boxed(xvalue varENV, xvalue arrParam)

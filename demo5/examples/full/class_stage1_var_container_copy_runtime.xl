@@ -1,0 +1,34 @@
+var int copies = 0
+var int destroys = 0
+
+class VarContainerCopyBox extends object
+	var value as int
+
+	create(int value)
+		self.value = value
+	end
+
+	destroy()
+		destroys = destroys + 1
+	end
+
+	func copy() as VarContainerCopyBox
+		copies = copies + 1
+		return VarContainerCopyBox(self.value)
+	end
+end
+
+func main() as int
+	var values = [VarContainerCopyBox(13)]
+	VarContainerCopyBox got = values[0]
+	if got.value != 13 then
+		return 1
+	end
+	if copies != 1 then
+		return 2
+	end
+	if destroys != 0 then
+		return 3
+	end
+	return got.value + copies * 10 + destroys
+end

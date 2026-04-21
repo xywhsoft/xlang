@@ -1,0 +1,42 @@
+var int copies = 0
+var int destroys = 0
+
+class SlotBox extends object
+	var value as int
+
+	create(int value)
+		self.value = value
+	end
+
+	destroy()
+		destroys = destroys + 1
+	end
+
+	func copy() as SlotBox
+		copies = copies + 1
+		return SlotBox(self.value)
+	end
+end
+
+func main() as int
+	auto a = SlotBox(10)
+	auto b = SlotBox(20)
+	auto items = [a]
+	auto sparse = list{a}
+	auto lookup = {"x": a}
+
+	items[0] = b
+	sparse[0] = b
+	lookup["x"] = b
+	SlotBox got = items[0]
+	SlotBox got_sparse = sparse[0]
+	SlotBox got_lookup = lookup["x"]
+
+	if copies != 9 then
+		return 1
+	end
+	if destroys != 3 then
+		return 2
+	end
+	return got.value + got_sparse.value + got_lookup.value + copies * 10 + destroys
+end

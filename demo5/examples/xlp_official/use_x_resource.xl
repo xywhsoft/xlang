@@ -1,0 +1,29 @@
+import x.resource
+
+func main() as int
+	auto bundle = {
+		"note.txt": "hello resource",
+		"config/name": "xlang"
+	}
+
+	if x.resource.exists(bundle, "note.txt") == false
+		return 1
+	end
+	if x.resource.exists(bundle, "missing")
+		return 2
+	end
+	if x.resource.read_text(bundle, "note.txt") != "hello resource"
+		return 3
+	end
+	if x.resource.read_text_or(bundle, "missing", "fallback") != "fallback"
+		return 4
+	end
+	if x.resource.size(bundle, "note.txt") != 14
+		return 5
+	end
+	if x.resource.count(bundle) != 2
+		return 6
+	end
+
+	return x.resource.version + x.resource.size(bundle, "note.txt")
+end

@@ -1,0 +1,79 @@
+func parse(string text) as dict<string>
+	var dict<string> values = {}
+
+	for raw in text.split_lines()
+		auto line = raw.trim()
+		if line.length == 0
+			continue
+		end
+		if line.starts_with("#") or line.starts_with(";")
+			continue
+		end
+
+		auto pos = line.index_of("=")
+		if pos >= 0
+			auto key = line.slice(0, pos).trim()
+			auto value = line.slice(pos + 1, line.length - pos - 1).trim()
+			values[key] = value
+		end
+	end
+
+	return values
+end
+
+func get(string text, string key, string fallback) as string
+	auto values = parse(text)
+	if values.has(key)
+		return values[key]
+	end
+	return fallback
+end
+
+func has_key(string text, string key) as bool
+	for raw in text.split_lines()
+		auto line = raw.trim()
+		if line.length == 0
+			continue
+		end
+		if line.starts_with("#") or line.starts_with(";")
+			continue
+		end
+		auto pos = line.index_of("=")
+		if pos >= 0
+			auto item_key = line.slice(0, pos).trim()
+			if item_key == key
+				return true
+			end
+		end
+	end
+	return false
+end
+
+func is_value(string text, string key, string expected) as bool
+	for raw in text.split_lines()
+		auto line = raw.trim()
+		if line.length == 0
+			continue
+		end
+		if line.starts_with("#") or line.starts_with(";")
+			continue
+		end
+		auto pos = line.index_of("=")
+		if pos >= 0
+			auto item_key = line.slice(0, pos).trim()
+			auto item_value = line.slice(pos + 1, line.length - pos - 1).trim()
+			if item_key == key
+				return item_value == expected
+			end
+		end
+	end
+	return false
+end
+
+const int version = 1
+
+export parse
+export get
+export has_key
+export is_value
+export version

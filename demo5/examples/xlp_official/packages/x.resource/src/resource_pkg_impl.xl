@@ -1,0 +1,31 @@
+func exists(dict<string> bundle, string name) as bool
+	return bundle.has(name)
+end
+
+func count(dict<string> bundle) as int
+	return bundle.length
+end
+
+func size(dict<string> bundle, string name) as int
+	return read_text_or(bundle, name, "").length
+end
+
+func read_text(dict<string> bundle, string name) as string
+	return bundle[name]
+end
+
+func read_text_or(dict<string> bundle, string name, string fallback) as string
+	if bundle.has(name)
+		return bundle[name]
+	end
+	return fallback
+end
+
+const int version = 1
+
+export exists
+export count
+export size
+export read_text
+export read_text_or
+export version

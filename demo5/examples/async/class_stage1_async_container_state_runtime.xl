@@ -1,0 +1,36 @@
+var int copies = 0
+var int destroys = 0
+
+class AsyncItem extends object
+	var value as int
+
+	create(int value)
+		self.value = value
+	end
+
+	destroy()
+		destroys = destroys + 1
+	end
+
+	func copy() as AsyncItem
+		copies = copies + 1
+		return AsyncItem(self.value)
+	end
+end
+
+async func get_value() as int
+	return 1
+end
+
+async func main() as int
+	auto item = AsyncItem(10)
+	auto values = [item]
+	await get_value()
+	if copies != 1 then
+		return -1
+	end
+	if destroys != 0 then
+		return -2
+	end
+	return item.value + copies * 10
+end

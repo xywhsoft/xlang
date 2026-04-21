@@ -1,0 +1,92 @@
+[
+	{
+		"kind": "func",
+		"scopeId": 0,
+		"name": "make",
+		"typeName": "int",
+		"line": 15,
+		"column": 6,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "func",
+		"scopeId": 0,
+		"name": "main",
+		"typeName": "int",
+		"line": 21,
+		"column": 6,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "var",
+		"scopeId": 0,
+		"name": "total",
+		"typeName": "int",
+		"line": 1,
+		"column": 9,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "var",
+		"scopeId": 1,
+		"name": "value",
+		"typeName": "int",
+		"line": 4,
+		"column": 6,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "param",
+		"scopeId": 2,
+		"name": "self",
+		"typeName": "Box",
+		"line": 6,
+		"column": 2,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "param",
+		"scopeId": 2,
+		"name": "value",
+		"typeName": "int",
+		"line": 6,
+		"column": 13,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "param",
+		"scopeId": 4,
+		"name": "self",
+		"typeName": "Box",
+		"line": 10,
+		"column": 2,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "var",
+		"scopeId": 7,
+		"name": "a",
+		"typeName": "Box",
+		"line": 16,
+		"column": 7,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "var",
+		"scopeId": 7,
+		"name": "b",
+		"typeName": "Box",
+		"line": 17,
+		"column": 7,
+		"async": 0,
+		"generator": 0
+	}
+]

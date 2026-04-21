@@ -1,0 +1,23 @@
+var int total = 0
+
+class VarContainerBox extends object
+	var n as int
+
+	create(int value)
+		self.n = value
+	end
+
+	destroy()
+		total = total + self.n
+	end
+end
+
+func drop_values() as int
+	var values = [VarContainerBox(10), VarContainerBox(20)]
+	return 3
+end
+
+func main() as int
+	auto value = drop_values()
+	return total + value
+end

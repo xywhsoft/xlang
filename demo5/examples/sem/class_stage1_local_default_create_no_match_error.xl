@@ -1,0 +1,12 @@
+class NeedsArgBox extends object
+	var value as int
+
+	create(int value)
+		self.value = value
+	end
+end
+
+func main() as int
+	NeedsArgBox box
+	return box.value
+end

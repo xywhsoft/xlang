@@ -1,0 +1,29 @@
+var int total = 0
+
+class GenBox
+	var value as int
+
+	create(int value)
+		self.value = value
+	end
+
+	destroy()
+		total = total + self.value
+	end
+end
+
+func make_values() as int
+	auto box = GenBox(40)
+	yield box.value
+	return 0
+end
+
+func main() as int
+	auto gen = make_values()
+	auto ok1, value1 = gen.next()
+	auto ok2, value2 = gen.next()
+	if (not ok1) or ok2
+		return -1
+	end
+	return int(value1) + total + 2
+end

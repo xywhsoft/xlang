@@ -1,0 +1,12 @@
+import std.sys.lib as sys
+
+func main() as int
+	auto k32 = sys.loadlib("kernel32.dll")
+	function<point(string)> get_module_handle = function<point(string)>(k32.proc("GetModuleHandleA"))
+	auto handle = get_module_handle("kernel32.dll")
+
+	if handle != null then
+		return 42
+	end
+	return 0
+end

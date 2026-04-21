@@ -342,9 +342,18 @@ static void __xlFuncInfoFree(XL_FuncInfo* pInfo)
 	for ( i = 0; i < pInfo->iParamCount; ++i ) {
 		free(pInfo->arrParamNames[i]);
 		free(pInfo->arrParamTypes[i]);
+		if ( pInfo->arrGenericParamTypes != NULL ) {
+			free(pInfo->arrGenericParamTypes[i]);
+		}
 	}
 	for ( i = 0; i < pInfo->iReturnCount; ++i ) {
 		free(pInfo->arrReturnTypeNames[i]);
+		if ( pInfo->arrGenericReturnTypeNames != NULL ) {
+			free(pInfo->arrGenericReturnTypeNames[i]);
+		}
+	}
+	for ( i = 0; i < pInfo->iTypeParamCount; ++i ) {
+		free(pInfo->arrTypeParamNames[i]);
 	}
 	for ( i = 0; i < pInfo->iCaptureCount; ++i ) {
 		free(pInfo->arrCaptureNames[i]);
@@ -353,6 +362,9 @@ static void __xlFuncInfoFree(XL_FuncInfo* pInfo)
 	free(pInfo->arrParamNames);
 	free(pInfo->arrParamTypes);
 	free(pInfo->arrReturnTypeNames);
+	free(pInfo->arrTypeParamNames);
+	free(pInfo->arrGenericParamTypes);
+	free(pInfo->arrGenericReturnTypeNames);
 	free(pInfo->arrCaptureNames);
 	free(pInfo->arrCaptureTypeNames);
 	free(pInfo->arrCaptureSymbolIndexes);
@@ -603,5 +615,60 @@ int xlFuncInfoAddCapture(XL_FuncInfo* pInfo, const char* sName, const char* sTyp
 	}
 
 	pInfo->iCaptureCount += 1u;
+	return XL_RC_OK;
+}
+
+int xlFuncInfoSetGenerics(
+	XL_FuncInfo* pInfo,
+	const char* const* arrTypeParamNames,
+	size_t iTypeParamCount,
+	const char* const* arrGenericParamTypes,
+	size_t iGenericParamCount,
+	const char* const* arrGenericReturnTypeNames,
+	size_t iGenericReturnCount
+)
+{
+	size_t i;
+
+	if ( pInfo == NULL ) {
+		return XL_RC_BAD_ARG;
+	}
+	if ( iTypeParamCount == 0 ) {
+		return XL_RC_OK;
+	}
+	if ( iGenericParamCount != pInfo->iParamCount || iGenericReturnCount != pInfo->iReturnCount ) {
+		return XL_RC_BAD_ARG;
+	}
+
+	pInfo->arrTypeParamNames = (char**)calloc(iTypeParamCount, sizeof(char*));
+	pInfo->arrGenericParamTypes = (char**)calloc((iGenericParamCount != 0) ? iGenericParamCount : 1, sizeof(char*));
+	pInfo->arrGenericReturnTypeNames = (char**)calloc((iGenericReturnCount != 0) ? iGenericReturnCount : 1, sizeof(char*));
+	if ( (pInfo->arrTypeParamNames == NULL) || (pInfo->arrGenericParamTypes == NULL) || (pInfo->arrGenericReturnTypeNames == NULL) ) {
+		__xlFuncInfoFree(pInfo);
+		return XL_RC_IO_ERROR;
+	}
+
+	for ( i = 0; i < iTypeParamCount; ++i ) {
+		pInfo->arrTypeParamNames[i] = __xlFuncDupText((arrTypeParamNames != NULL) ? arrTypeParamNames[i] : "");
+		if ( pInfo->arrTypeParamNames[i] == NULL ) {
+			__xlFuncInfoFree(pInfo);
+			return XL_RC_IO_ERROR;
+		}
+	}
+	for ( i = 0; i < iGenericParamCount; ++i ) {
+		pInfo->arrGenericParamTypes[i] = __xlFuncDupText((arrGenericParamTypes != NULL) ? arrGenericParamTypes[i] : "");
+		if ( pInfo->arrGenericParamTypes[i] == NULL ) {
+			__xlFuncInfoFree(pInfo);
+			return XL_RC_IO_ERROR;
+		}
+	}
+	for ( i = 0; i < iGenericReturnCount; ++i ) {
+		pInfo->arrGenericReturnTypeNames[i] = __xlFuncDupText((arrGenericReturnTypeNames != NULL) ? arrGenericReturnTypeNames[i] : "");
+		if ( pInfo->arrGenericReturnTypeNames[i] == NULL ) {
+			__xlFuncInfoFree(pInfo);
+			return XL_RC_IO_ERROR;
+		}
+	}
+	pInfo->iTypeParamCount = iTypeParamCount;
 	return XL_RC_OK;
 }

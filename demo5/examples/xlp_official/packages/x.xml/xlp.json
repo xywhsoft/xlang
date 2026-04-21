@@ -1,0 +1,59 @@
+{
+	"format": "xlp-0",
+	"package": {
+		"name": "x.xml",
+		"version": "1.0.0",
+		"abiVersion": "1",
+		"xlangAbi": "1",
+		"abiId": "x.xml@1.0.0#abi1"
+	},
+	"artifact": {
+		"kind": "source",
+		"path": "src\\xml_pkg_impl.xl"
+	},
+	"dependencies": [],
+	"modules": [
+		{
+			"key": "x.xml",
+			"abiId": "x.xml@1.0.0#abi1::x.xml",
+			"file": "src\\xml_pkg_impl.xl",
+			"root": 0,
+			"native": 0,
+			"binding": "",
+			"imports": [],
+			"exports": [
+				{
+					"name": "escape_text",
+					"symbol": "escape_text",
+					"kind": "function",
+					"overloadCount": 1
+				},
+				{
+					"name": "unescape_text",
+					"symbol": "unescape_text",
+					"kind": "function",
+					"overloadCount": 1
+				},
+				{
+					"name": "tag",
+					"symbol": "tag",
+					"kind": "function",
+					"overloadCount": 1
+				},
+				{
+					"name": "text_of",
+					"symbol": "text_of",
+					"kind": "function",
+					"overloadCount": 1
+				},
+				{
+					"name": "version",
+					"symbol": "version",
+					"kind": "value",
+					"overloadCount": 0
+				}
+			]
+		}
+	],
+	"functions": []
+}
