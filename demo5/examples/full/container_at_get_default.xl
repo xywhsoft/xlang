@@ -1,0 +1,7 @@
+func main() as int
+	var array<int> values = [1]
+	var list<int> items = list{40}
+	var dict<int> scores = {"a": 1}
+
+	return values.at(0, 0) + values.at(9, 0) + items.at(0, 0) + items.at(9, 0) + scores.get("a", 0) + scores.get("missing", 0)
+end

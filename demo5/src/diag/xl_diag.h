@@ -9,14 +9,23 @@ typedef enum XL_DiagLevel {
 	XL_DIAG_LEVEL_ERROR = 2
 } XL_DiagLevel;
 
+typedef enum XL_DiagFormat {
+	XL_DIAG_FORMAT_TEXT = 0,
+	XL_DIAG_FORMAT_JSON = 1
+} XL_DiagFormat;
+
 typedef struct XL_DiagContext {
 	FILE* pOut;
 	FILE* pErr;
+	const char* sDefaultSourceFile;
+	XL_DiagFormat eFormat;
 	int iWarnCount;
 	int iErrorCount;
 } XL_DiagContext;
 
 void xlDiagInit(XL_DiagContext* pDiag, FILE* pOut, FILE* pErr);
+void xlDiagSetFormat(XL_DiagContext* pDiag, XL_DiagFormat eFormat);
+void xlDiagSetDefaultSourceFile(XL_DiagContext* pDiag, const char* sSourceFile);
 void xlDiagEmit(
 	XL_DiagContext* pDiag,
 	XL_DiagLevel eLevel,

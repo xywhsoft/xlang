@@ -1,0 +1,8 @@
+{
+	"name": "project.pkgapp",
+	"version": "0.1.0",
+	"type": "app",
+	"main": "src/main.xl",
+	"source": ["src"],
+	"packages": ["../../xlp/packages"]
+}

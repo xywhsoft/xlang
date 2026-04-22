@@ -527,6 +527,27 @@ static XL_AstNode* xlPCreateGenericTypeRef(XL_AstNode* pBaseType, XL_AstNode* pT
 	return pNode;
 }
 
+static XL_AstNode* xlPCreateGenericIdent(const XL_Token* pBaseToken, XL_AstNode* pTypeArgs)
+{
+	XL_AstNode* pTypeRef;
+	XL_AstNode* pIdent;
+
+	pTypeRef = xlPCreateGenericTypeRef(xlAstCreateTypeRef(pBaseToken), pTypeArgs);
+	if ( (pTypeRef == NULL) || (pTypeRef->sText == NULL) ) {
+		xlAstFree(pTypeRef);
+		return NULL;
+	}
+	pIdent = xlAstCreateIdentText(pTypeRef->sText);
+	if ( pIdent != NULL ) {
+		pIdent->iLine = pTypeRef->iLine;
+		pIdent->iColumn = pTypeRef->iColumn;
+		pIdent->iEndLine = pTypeRef->iEndLine;
+		pIdent->iEndColumn = pTypeRef->iEndColumn;
+	}
+	xlAstFree(pTypeRef);
+	return pIdent;
+}
+
 static XL_AstNode* xlPCreateFunctionTypeRef(const XL_Token* pNameToken, XL_AstNode* pReturnTypes, XL_AstNode* pParamTypes)
 {
 	XL_AstNode* pNode;
@@ -812,7 +833,7 @@ static void xlPAppendStmt(XL_AstNode* pList, XL_AstNode* pStmt)
 %left OP_PIPE.
 %left OP_CARET.
 %left OP_AMP.
-%right OP_LT OP_GT OP_LE OP_GE OP_EQ OP_NE OP_APPROX KW_IN.
+%right OP_LT OP_GENERIC_LT OP_GT OP_LE OP_GE OP_EQ OP_NE OP_APPROX KW_IN.
 %left OP_SHL OP_SHR.
 %left OP_PLUS OP_MINUS.
 %left OP_STAR OP_SLASH OP_PERCENT.
@@ -962,6 +983,7 @@ class_member(A) ::= const_decl(C). { A = C; }
 class_member(A) ::= class_method_decl(F). { A = F; }
 class_member(A) ::= create_decl(C). { A = C; }
 class_member(A) ::= destroy_decl(D). { A = D; }
+class_member(A) ::= KW_NOCOPY(T). { A = xlAstCreateNoCopyDecl(&T); }
 class_member(A) ::= union_decl(U). { A = U; }
 
 class_field_decl(A) ::= KW_VAR TOK_IDENT(N) KW_AS type_name(T). {
@@ -1780,6 +1802,9 @@ lambda_primary_expr(A) ::= KW_VAR(N). [TK_LBRACE] {
 lambda_primary_expr(A) ::= TOK_IDENT(N). [TK_LBRACE] {
 	A = xlAstCreateIdent(&N);
 }
+lambda_primary_expr(A) ::= TOK_IDENT(N) OP_GENERIC_LT generic_type_args(TA) OP_GT TK_LPAREN arg_list(ARGS) TK_RPAREN(RP). {
+	A = xlAstCreateCall(xlPCreateGenericIdent(&N, TA), ARGS, &RP);
+}
 lambda_primary_expr(A) ::= KW_CREATE(N). {
 	A = xlAstCreateIdent(&N);
 }
@@ -1985,6 +2010,9 @@ primary_expr(A) ::= KW_VAR(N). [TK_LBRACE] {
 }
 primary_expr(A) ::= TOK_IDENT(N). [TK_LBRACE] {
 	A = xlAstCreateIdent(&N);
+}
+primary_expr(A) ::= TOK_IDENT(N) OP_GENERIC_LT generic_type_args(TA) OP_GT TK_LPAREN arg_list(ARGS) TK_RPAREN(RP). {
+	A = xlAstCreateCall(xlPCreateGenericIdent(&N, TA), ARGS, &RP);
 }
 primary_expr(A) ::= KW_CREATE(N). {
 	A = xlAstCreateIdent(&N);

@@ -1,0 +1,1 @@
+error @ 6:22 generic type inference failed for function 'same': type parameter 'T' was inferred as 'int' but argument requires 'string'

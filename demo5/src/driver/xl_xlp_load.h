@@ -75,6 +75,13 @@ int xlXlpFindModuleSource(
 	const char* sImportKey,
 	XL_XlpResolveInfo* pInfo
 );
+int xlXlpFindModuleSourceInRoots(
+	const char** ppSearchRoots,
+	size_t iSearchRootCount,
+	const char* sCurrentManifestPath,
+	const char* sImportKey,
+	XL_XlpResolveInfo* pInfo
+);
 
 int xlXlpFindDependencyVersion(
 	const char* sManifestPath,

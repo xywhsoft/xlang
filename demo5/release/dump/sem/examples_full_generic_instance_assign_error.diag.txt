@@ -1,0 +1,1 @@
+error @ 3:10 generic instance 'bad_assign' assignment has type 'string', expected 'int'

@@ -1,0 +1,32 @@
+[
+	{
+		"kind": "func",
+		"scopeId": 0,
+		"name": "zero",
+		"typeName": "T",
+		"line": 1,
+		"column": 6,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "func",
+		"scopeId": 0,
+		"name": "main",
+		"typeName": "int",
+		"line": 5,
+		"column": 6,
+		"async": 0,
+		"generator": 0
+	},
+	{
+		"kind": "var",
+		"scopeId": 4,
+		"name": "value",
+		"typeName": "var",
+		"line": 6,
+		"column": 7,
+		"async": 0,
+		"generator": 0
+	}
+]

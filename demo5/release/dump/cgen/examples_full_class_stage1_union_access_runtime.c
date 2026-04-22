@@ -84,6 +84,14 @@ NativeRegistry
 #define xvoTypeName(kind) ((str)(((kind) == XVO_DT_NULL) ? "null" : ((kind) == XVO_DT_BOOL) ? "bool" : ((kind) == XVO_DT_INT) ? "int" : ((kind) == XVO_DT_FLOAT) ? "float" : ((kind) == XVO_DT_TEXT) ? "string" : ((kind) == XVO_DT_TIME) ? "time" : ((kind) == XVO_DT_POINT) ? "point" : ((kind) == XVO_DT_FUNC) ? "function" : ((kind) == XVO_DT_ARRAY) ? "array" : ((kind) == XVO_DT_LIST) ? "list" : ((kind) == XVO_DT_COLL) ? "set" : ((kind) == XVO_DT_TABLE) ? "dict" : ((kind) == XVO_DT_CLASS) ? "class" : ((kind) == XVO_DT_CUSTOM) ? "custom" : "unknown"))
 #endif
 
+#ifndef XL_EXTERN_VAR
+#ifdef _WIN32
+#define XL_EXTERN_VAR __declspec(dllimport) extern
+#else
+#define XL_EXTERN_VAR extern
+#endif
+#endif
+
 typedef struct XL_GeneratedError XL_GeneratedError;
 struct XL_GeneratedError {
 	const char* type;
@@ -102,6 +110,9 @@ typedef struct XL_GeneratedExceptionFrame {
 	int kind;
 	const char* text;
 	XL_GeneratedError* error;
+	const char* file;
+	int line;
+	int column;
 	long long int_value;
 	double float_value;
 } XL_GeneratedExceptionFrame;
@@ -117,6 +128,9 @@ int xl_generated_had_exception = 0;
 int xl_generated_exception_kind = 0;
 const char* xl_generated_exception_text = NULL;
 XL_GeneratedError* xl_generated_exception_error = NULL;
+const char* xl_generated_exception_file = NULL;
+int xl_generated_exception_line = 0;
+int xl_generated_exception_column = 0;
 long long xl_generated_exception_int = 0;
 double xl_generated_exception_float = 0.0;
 char xl_generated_async_trace[8192];
@@ -411,6 +425,9 @@ static void xl_generated_runtime_reset(void)
 	xl_generated_exception_kind = 0;
 	xl_generated_exception_text = NULL;
 	xl_generated_exception_error = NULL;
+	xl_generated_exception_file = NULL;
+	xl_generated_exception_line = 0;
+	xl_generated_exception_column = 0;
 	xl_generated_exception_int = 0;
 	xl_generated_exception_float = 0.0;
 	xl_generated_async_trace_len = 0;
@@ -425,16 +442,29 @@ static void xl_generated_clear_exception(void)
 	xl_generated_exception_kind = 0;
 	xl_generated_exception_text = NULL;
 	xl_generated_exception_error = NULL;
+	xl_generated_exception_file = NULL;
+	xl_generated_exception_line = 0;
+	xl_generated_exception_column = 0;
 	xl_generated_exception_int = 0;
 	xl_generated_exception_float = 0.0;
 }
 
-static void xl_generated_restore_exception(int kind, const char* text, XL_GeneratedError* errorValue, long long intValue, double floatValue)
+static void xl_generated_exception_set_source(const char* file, int line, int column)
+{
+	xl_generated_exception_file = file;
+	xl_generated_exception_line = line;
+	xl_generated_exception_column = column;
+}
+
+static void xl_generated_restore_exception(int kind, const char* text, XL_GeneratedError* errorValue, const char* file, int line, int column, long long intValue, double floatValue)
 {
 	xl_generated_had_exception = (kind != 0);
 	xl_generated_exception_kind = kind;
 	xl_generated_exception_text = text;
 	xl_generated_exception_error = errorValue;
+	xl_generated_exception_file = file;
+	xl_generated_exception_line = line;
+	xl_generated_exception_column = column;
 	xl_generated_exception_int = intValue;
 	xl_generated_exception_float = floatValue;
 }
@@ -467,6 +497,9 @@ static int xl_generated_exception_frame_capture(XL_GeneratedExceptionFrame* pFra
 	pFrame->kind = xl_generated_exception_kind;
 	pFrame->text = xl_generated_exception_text;
 	pFrame->error = xl_generated_exception_error;
+	pFrame->file = xl_generated_exception_file;
+	pFrame->line = xl_generated_exception_line;
+	pFrame->column = xl_generated_exception_column;
 	pFrame->int_value = xl_generated_exception_int;
 	pFrame->float_value = xl_generated_exception_float;
 	xl_generated_clear_exception();
@@ -478,7 +511,7 @@ static void xl_generated_exception_frame_restore(const XL_GeneratedExceptionFram
 	if ( (pFrame == NULL) || !pFrame->has_exception ) {
 		return;
 	}
-	xl_generated_restore_exception(pFrame->kind, pFrame->text, pFrame->error, pFrame->int_value, pFrame->float_value);
+	xl_generated_restore_exception(pFrame->kind, pFrame->text, pFrame->error, pFrame->file, pFrame->line, pFrame->column, pFrame->int_value, pFrame->float_value);
 }
 
 static XL_GeneratedError* xl_generated_error_alloc(void)
@@ -1003,6 +1036,9 @@ static void xl_generated_raise_int(long long value)
 	xl_generated_had_exception = 1;
 	xl_generated_exception_kind = 1;
 	xl_generated_exception_error = NULL;
+	xl_generated_exception_file = NULL;
+	xl_generated_exception_line = 0;
+	xl_generated_exception_column = 0;
 	xl_generated_exception_int = value;
 	xl_generated_exception_text = NULL;
 }
@@ -1012,6 +1048,9 @@ static void xl_generated_raise_float(double value)
 	xl_generated_had_exception = 1;
 	xl_generated_exception_kind = 2;
 	xl_generated_exception_error = NULL;
+	xl_generated_exception_file = NULL;
+	xl_generated_exception_line = 0;
+	xl_generated_exception_column = 0;
 	xl_generated_exception_float = value;
 	xl_generated_exception_text = NULL;
 }
@@ -1021,6 +1060,9 @@ static void xl_generated_raise_string(const char* value)
 	xl_generated_had_exception = 1;
 	xl_generated_exception_kind = 3;
 	xl_generated_exception_error = NULL;
+	xl_generated_exception_file = NULL;
+	xl_generated_exception_line = 0;
+	xl_generated_exception_column = 0;
 	xl_generated_exception_text = value;
 }
 
@@ -1029,6 +1071,9 @@ static void xl_generated_raise_text(const char* value)
 	xl_generated_had_exception = 1;
 	xl_generated_exception_kind = 3;
 	xl_generated_exception_error = NULL;
+	xl_generated_exception_file = NULL;
+	xl_generated_exception_line = 0;
+	xl_generated_exception_column = 0;
 	xl_generated_exception_text = value;
 }
 
@@ -1037,6 +1082,9 @@ static void xl_generated_raise_error(XL_GeneratedError* value)
 	xl_generated_had_exception = 1;
 	xl_generated_exception_kind = 4;
 	xl_generated_exception_error = value;
+	xl_generated_exception_file = NULL;
+	xl_generated_exception_line = 0;
+	xl_generated_exception_column = 0;
 	xl_generated_exception_text = xl_generated_error_text(value);
 	xl_generated_exception_int = 0;
 	xl_generated_exception_float = 0.0;
@@ -2299,6 +2347,7 @@ typedef struct XL_Class_UnionScalar {
 		int left;
 		int right;
 	} Data;
+	int xl_union_tag_Data;
 } XL_Class_UnionScalar;
 
 static int xl_generated_module_init_done = 0;
@@ -2328,6 +2377,10 @@ const XL_GeneratedModuleDescriptor xl_mod__root___descriptor = {
 	xl_mod__root___exports
 };
 
+static XL_Class_UnionScalar xl_class_UnionScalar__create__7_2(XL_Class_UnionScalar self, int value);
+static int xl__get_left__arity1__self__UnionScalar__ret__int(XL_Class_UnionScalar self);
+static int xl__get_right__arity1__self__UnionScalar__ret__int(XL_Class_UnionScalar self);
+static int xl__main__arity0__ret__int();
 static xvalue xl__main__arity0__ret__int__boxed(xvalue varENV, xvalue arrParam);
 
 static XL_Class_UnionScalar xl_class_UnionScalar__create__7_2(XL_Class_UnionScalar self, int value)
@@ -2335,7 +2388,7 @@ static XL_Class_UnionScalar xl_class_UnionScalar__create__7_2(XL_Class_UnionScal
 	int xl_escape_kind_7_2 = 0;
 	int xl_escape_level_7_2 = 0;
 	XL_Class_UnionScalar xl_escape_value_7_2 = ((XL_Class_UnionScalar){0});
-	(self.Data.left = value);
+	({ int xl_union_assign_8_7 = value; if ( self.xl_union_tag_Data != 1 ) { switch ( self.xl_union_tag_Data ) { } } self.Data.left = xl_union_assign_8_7; self.xl_union_tag_Data = 1; self.Data.left; });
 	if ( xl_generated_had_exception )
 	{
 				return ((XL_Class_UnionScalar){0});
@@ -2361,7 +2414,7 @@ static int xl__get_left__arity1__self__UnionScalar__ret__int(XL_Class_UnionScala
 	int xl_escape_kind_11_7 = 0;
 	int xl_escape_level_11_7 = 0;
 	int xl_escape_value_11_7 = 0;
- 	int xl_ret_12_3 = self.Data.left;
+ 	int xl_ret_12_3 = ({ if ( self.xl_union_tag_Data != 1 ) { xl_generated_raise_error(xl_generated_error_make("Error", "inactive union member", 0, "", "")); } self.Data.left; });
 	if ( xl_generated_had_exception )
 	{
 				return 0;
@@ -2378,7 +2431,7 @@ static int xl__get_right__arity1__self__UnionScalar__ret__int(XL_Class_UnionScal
 	int xl_escape_kind_15_7 = 0;
 	int xl_escape_level_15_7 = 0;
 	int xl_escape_value_15_7 = 0;
- 	int xl_ret_16_3 = self.Data.right;
+ 	int xl_ret_16_3 = ({ if ( self.xl_union_tag_Data != 2 ) { xl_generated_raise_error(xl_generated_error_make("Error", "inactive union member", 0, "", "")); } self.Data.right; });
 	if ( xl_generated_had_exception )
 	{
 				return 0;
@@ -2404,7 +2457,7 @@ static int xl__main__arity0__ret__int()
 	{
 				return 0;
 	}
-	int xl_if_cond_22_2 = (item.Data.left != 7);
+	int xl_if_cond_22_2 = (({ if ( item.xl_union_tag_Data != 1 ) { xl_generated_raise_error(xl_generated_error_make("Error", "inactive union member", 0, "", "")); } item.Data.left; }) != 7);
 	if ( xl_generated_had_exception )
 	{
 				return 0;
@@ -2426,7 +2479,7 @@ static int xl__main__arity0__ret__int()
 		}
 		return xl_ret_23_3;
 	}
-	(item.Data.right = 12);
+	({ int xl_union_assign_25_6 = 12; if ( item.xl_union_tag_Data != 2 ) { switch ( item.xl_union_tag_Data ) { } } item.Data.right = xl_union_assign_25_6; item.xl_union_tag_Data = 2; item.Data.right; });
 	if ( xl_generated_had_exception )
 	{
 				return 0;
@@ -2435,7 +2488,7 @@ static int xl__main__arity0__ret__int()
 	{
 				return 0;
 	}
-	int xl_if_cond_26_2 = (item.Data.left != 12);
+	int xl_if_cond_26_2 = (({ if ( item.xl_union_tag_Data != 2 ) { xl_generated_raise_error(xl_generated_error_make("Error", "inactive union member", 0, "", "")); } item.Data.right; }) != 12);
 	if ( xl_generated_had_exception )
 	{
 				return 0;
@@ -2457,7 +2510,7 @@ static int xl__main__arity0__ret__int()
 		}
 		return xl_ret_27_3;
 	}
- 	int xl_ret_29_2 = (xl__get_left__arity1__self__UnionScalar__ret__int(item) + xl__get_right__arity1__self__UnionScalar__ret__int(item));
+ 	int xl_ret_29_2 = (xl__get_right__arity1__self__UnionScalar__ret__int(item) + ({ if ( item.xl_union_tag_Data != 2 ) { xl_generated_raise_error(xl_generated_error_make("Error", "inactive union member", 0, "", "")); } item.Data.right; }));
 	if ( xl_generated_had_exception )
 	{
 				return 0;
@@ -2472,8 +2525,8 @@ static int xl__main__arity0__ret__int()
 static xvalue xl__main__arity0__ret__int__boxed(xvalue varENV, xvalue arrParam)
 {
 	(void)varENV;
-	int xl_func_result_50 = xl__main__arity0__ret__int();
-	return xvoCreateInt((int64)(xl_func_result_50));
+	int xl_func_result_60 = xl__main__arity0__ret__int();
+	return xvoCreateInt((int64)(xl_func_result_60));
 }
 
 int xl_generated_entry(void)

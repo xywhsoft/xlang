@@ -1,0 +1,38 @@
+var int destroyed = 0
+
+class UnionDropItem extends object
+	var value as int
+
+	create(int value)
+		self.value = value
+	end
+
+	destroy()
+		destroyed = destroyed + self.value
+	end
+end
+
+class UnionDropHolder extends object
+	union Data
+		var left as UnionDropItem
+		var right as UnionDropItem
+	end
+
+	destroy()
+	end
+end
+
+func make_holder() as int
+	auto holder = UnionDropHolder()
+	holder.left = UnionDropItem(1)
+	holder.right = UnionDropItem(10)
+	return 0
+end
+
+func main() as int
+	auto rc = make_holder()
+	if rc != 0 then
+		return rc
+	end
+	return destroyed
+end

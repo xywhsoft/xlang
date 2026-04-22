@@ -1,0 +1,505 @@
+xlang 第五版发布候选版收口开发 Spec
+
+说明
+- [x] 已实现并通过验证
+- [~] 已部分实现，或主链路已通但仍需发布级收口
+- [ ] 尚未实现
+
+目标
+- 将 demo5 从验证版推进为 xlang 发布候选版。
+- demo5 必须验证正式 xlang 的全链路设想：语言核心、标准库、C 混编、模块/package/xlp、诊断、class 第一阶段。
+- 本 spec 只收口高价值、低扩散的发布候选能力；暂缓项不重新拉回实验期。
+
+总原则
+- 优先完成能显著改善开发体验、工程化能力、性能和发布稳定性的任务。
+- 不引入 namespace/using、include、宏系统、元编程、runtime dynamic class、GC、虚表、channel select 等暂缓项。
+- 每个大项完成后必须补齐 parser / sem / lower / cgen / runtime 覆盖测试中适用的层级。
+- 文档状态以本 spec、xlang第五版语言标准支持覆盖率.txt、xlang第五版原生桥接、extern与class第一阶段开发Spec.txt 为准。
+
+--------------------------------
+一、优先做内容
+--------------------------------
+
+1. 泛型静态单态化
+
+1.1 目标
+- [x] 将当前基于 var 擦除的泛型函数升级为静态单态化泛型。
+- [x] 每个实际类型组合生成独立函数实例。
+- [x] 调用点调用具体实例，不再通过 xvalue/var 泛型返回包装完成类型恢复。
+- [x] 生成稳定 ABI 符号名，服务 package/xlp/调试/缓存。
+
+1.2 定版语法与语义
+- [x] 支持泛型函数：`func id<T>(T value) as T ... end`
+- [x] 支持多个类型参数：`func pair<T, U>(T a, U b) as ...`
+- [x] 支持显式调用类型参数：`id<int>(123)`
+- [x] 支持自动类型推导：`id(123)` 推导为 `id<int>`
+- [x] 支持泛型类型方法：`func list<T>.first(list<T> self) as T`
+- [x] 泛型实例 ABI 名按完整类型签名稳定生成，不能使用临时编号作为 ABI。
+
+1.3 类型推导范围
+- [x] 直接占位符推导：`T`
+- [x] 嵌套泛型推导：`array<T>` / `list<T>` / `set<T>` / `dict<T>`，并覆盖 `array<array<T>>`。
+- [x] function 类型推导：`function<T(int)>`、`function<int(T)>`
+- [x] 多参数一致性检查：`func same<T>(T a, T b)` 中 `T` 必须一致。
+- [x] 返回类型替换：`array<T>`、`list<T>`、`dict<T>` 等返回类型按实例替换。
+- [x] 无法推导时允许显式类型参数补足，例如 `zero<int>()`。
+
+1.4 实现任务
+- [x] 建立语义层泛型类型树/替换模型，不能只依赖字符串相等。当前使用通用泛型类型 splitter + 递归实参绑定模型。
+- [x] 建立泛型函数原型表，保存原始 AST、类型参数、参数类型、返回类型。
+- [x] 建立泛型实例表，按 `原型 + 类型实参` 缓存实例。
+- [x] 调用解析阶段完成类型推导和实例选择。
+- [x] 实例化时在具体类型环境下重新检查函数体。当前已覆盖实例返回值、局部声明、赋值、二元/一元/三元表达式、调用参数复查、嵌套索引链。
+- [x] Lower/MIR 为每个泛型实例生成独立函数。
+- [x] C codegen 输出静态 C 函数签名。
+- [x] 调用点改为调用具体实例 ABI。
+- [x] 保留 var fallback 仅用于明确 var 类型路径，不作为泛型主实现。
+
+1.5 验收样例
+- [x] `generic_id_static`
+- [x] `generic_same_type`
+- [x] `generic_array_first`
+- [x] `generic_nested_container`
+- [x] `generic_wrap_array`
+- [x] `generic_explicit_type_arg`
+- [x] `generic_multi_type_args`
+- [x] `generic_list_type_method`
+- [x] `generic_function_value`
+- [x] `generic_infer_conflict_error`
+- [x] `generic_infer_missing_error`
+- [x] `generic_instance_return_error`
+- [x] `generic_instance_local_decl_error`
+- [x] `generic_instance_assign_error`
+- [x] `generic_instance_binary_error`
+- [x] `generic_instance_unary_error`
+- [x] `generic_instance_ternary_error`
+
+--------------------------------
+
+2. 错误诊断系统发布级增强
+
+2.1 目标
+- [x] 报错必须足够支撑真实项目开发。
+- [x] 所有主要阶段统一输出文件名、行号、列号、错误信息。
+- [x] 默认输出人类可读格式。
+- [x] `--diag-json` 输出机器可读 JSON Lines 诊断格式；`--dump-json` 保留为阶段 dump JSON。
+
+2.2 定版规则
+- [x] 发布级失败诊断首版只有 error，不做 warning/note；内部 trace/info 与标准库 `std.diag` 不属于编译失败诊断模型。
+- [x] 遇错即停，不做多错误恢复。
+- [x] 错误格式包含：phase、file、line、column、message。
+- [x] 人类格式尽量包含源码片段和 `^` 指针。
+- [x] JSON 格式稳定，方便 IDE/工具接入。
+
+2.3 覆盖阶段
+- [x] lexer
+- [x] parser
+- [x] sem
+- [x] lower
+- [x] cgen
+- [x] host.tcc
+- [x] runtime
+- [x] xlp/package
+
+2.4 重点诊断内容
+- [x] 类型错误显示 expected / actual。
+- [x] 重载失败显示调用签名和候选函数摘要。
+- [x] 泛型推导失败显示调用点和泛型定义点。
+- [x] extern/link 失败显示库名、符号名、搜索路径。
+- [x] package/import 失败显示搜索路径。
+- [x] runtime exception 显示 xlang 源位置。
+
+2.5 验收样例
+- [x] `diag_parser_source_line`
+- [x] `diag_parser_stops_at_first_error`
+- [x] `diag_lexer_source_line`
+- [x] `diag_lower_source_line`
+- [x] `diag_sem_type_expected_actual`
+- [x] `diag_overload_candidates`
+- [x] `diag_generic_infer_error`
+- [x] `diag_extern_unresolved`
+- [x] `diag_import_search_paths`
+- [x] `diag_runtime_exception_source`
+- [x] `diag_json_output`
+
+--------------------------------
+
+3. module / package / xlp 工程化闭环
+
+3.1 目标
+- [x] 让 xlang 可以表达真实项目结构。
+- [x] `xl5 build` 能基于项目入口构建应用或包。
+- [x] package/xlp 的元信息、导出、版本、搜索路径形成稳定首版。
+
+3.2 项目文件
+- [x] 引入 `xlang.json` 作为项目/包描述文件。
+- [x] 当前不引入 TOML。
+- [x] `xlang.json` 允许描述 app/package 两类项目。
+
+3.3 建议 app 配置
+```json
+{
+  "name": "hello",
+  "version": "0.1.0",
+  "type": "app",
+  "main": "src/main.xl",
+  "source": ["src"],
+  "packages": ["packages"],
+  "links": ["shell32"],
+  "libpath": ["lib"],
+  "incpath": ["include"]
+}
+```
+
+3.4 建议 package 配置
+```json
+{
+  "name": "pkg.math",
+  "version": "0.1.0",
+  "type": "package",
+  "source": ["src"],
+  "exports": ["math"]
+}
+```
+
+3.5 模块映射规则
+- [x] `import foo.bar` 映射到 `foo/bar.xl`。
+- [x] 当前文件所在目录优先用于相对模块。
+- [x] 项目 `source` 路径参与搜索。
+- [x] 项目 `packages` 路径参与搜索。
+- [ ] 用户级包目录参与搜索。
+- [ ] xlang 安装目录官方扩展库参与搜索。
+- [x] `std.*` 固定优先内置标准库，不允许用户包覆盖。
+- [~] 字符串 import 保留路径直连能力：`import "local/file.xl"`。
+
+3.6 暂不纳入
+- [ ] peer dependency
+- [ ] 热升级
+- [ ] ABI 自动兼容推断
+- [ ] 复杂依赖解析策略
+
+3.7 验收样例
+- [x] `project_app_build_basic`
+- [x] `project_package_import_basic`
+- [x] `project_std_priority`
+- [x] `project_link_from_json`
+- [x] `project_import_error_paths`
+- [x] `xlp_package_project_build`
+
+--------------------------------
+
+4. 标准库一致性与类型方法补全
+
+4.1 目标
+- [x] 稳定“基础类型即类”的使用体验。
+- [x] 将类型方法、属性、标准库函数之间的关系定稿。
+- [x] 优先保证一致性，而不是堆数量。
+
+4.2 定版规则
+- [x] 容器和字符串长度使用 `.length` 属性。
+- [x] 修改型方法统一返回 `self`，支持链式调用。
+- [x] 失败场景默认抛 error。
+- [x] 支持通过默认值参数改变失败行为。
+
+4.3 典型行为
+```xl
+auto a = []
+a.append(1).append(2).clear()
+
+auto name = dict.get("name", "unknown")
+auto item = list.at(10, null)
+```
+
+4.4 类型方法范围
+- [x] string
+- [x] array
+- [x] list
+- [x] set
+- [x] dict
+- [ ] time
+- [ ] error
+- [ ] module
+- [ ] future
+- [ ] task
+- [ ] channel
+
+4.5 需要统一的命名
+- [x] `.length`
+- [x] `.append(...)`
+- [x] `.remove(...)`
+- [x] `.clear()`
+- [x] `.has(...)`
+- [x] `.get(key[, default])`
+- [x] `.at(index[, default])`
+- [x] `.join(sep)`
+- [x] `.keys()`
+- [x] `.values()`
+- [x] `.items()`
+
+4.6 验收样例
+- [x] `property_length_standard`
+- [x] `container_chain_append_clear`
+- [x] `dict_get_default`
+- [x] `dict_get_throw`
+- [x] `list_at_default`
+- [x] `list_at_throw`
+- [x] `string_length_property`
+
+--------------------------------
+
+5. C 混编体验打磨
+
+5.1 目标
+- [x] 让 C ABI 互操作从“能跑”进入“好用”。
+- [x] 提升 #link / extern / 动态库加载的稳定性和诊断。
+
+5.2 定版规则
+- [x] `#link shell32` 允许自动补平台扩展名。
+- [x] Windows 下 `shell32` 可解析到 shell32/lib/dll 相关策略。
+- [x] Linux 下 `foo` 可解析为 `-lfoo` / `libfoo.so` 相关策略。
+- [x] extern 失败只输出明确原因，不额外提供建议。
+
+5.3 动态库 API 命名
+- [x] 标准 API 定为 `sys.dlopen`
+- [x] 标准 API 定为 `sys.dlsym`
+- [x] 标准 API 定为 `sys.dlclose`
+- [x] 旧 `sys.loadlib/getproc` 如已存在，可作为阶段性兼容别名，后续降级或移除。
+
+5.4 示例
+```xl
+auto lib = sys.dlopen("shell32")
+auto fn = sys.dlsym<function<int(point, string, string, string, string, int)>>(lib, "ShellExecuteA")
+fn(null, "open", "notepad.exe", "", "", 1)
+sys.dlclose(lib)
+```
+
+5.5 暂不纳入
+- [ ] 从 .h 自动生成 binding
+- [ ] extern async func
+- [ ] 类型方法形式 extern
+- [ ] 完整 class ABI 直通
+
+5.6 验收样例
+- [x] `link_auto_platform_suffix`
+- [x] `extern_shell32_without_lib_suffix`
+- [x] `sys_dlopen_basic`
+- [x] `sys_dlsym_function_basic`
+- [x] `sys_dlclose_basic`
+- [x] `extern_unresolved_clear_error`
+
+--------------------------------
+
+6. class 第一阶段发布级收口
+
+6.1 目标
+- [x] 将当前 class 第一阶段定义为“静态布局增强结构体”并发布级稳定。
+- [x] 不做 runtime object/class 元对象体系。
+
+6.2 定版规则
+- [x] class 默认值语义。
+- [x] 支持 `nocopy`，用于禁止复制资源型 class。
+- [x] union 发布前补 active tag。
+- [x] 普通 union 默认安全，记录当前活动成员。当前 codegen 已生成 hidden active tag。
+- [x] 未来如需 C ABI 无 tag union，另行设计 `raw union` 或 `extern union`。
+
+6.3 class 范围
+- [x] 字段
+- [x] 方法
+- [x] create
+- [x] destroy
+- [x] extends
+- [x] operator overload
+- [x] index operator
+- [x] call operator
+- [x] union
+- [x] copy / nocopy
+- [x] 容器生命周期
+- [x] async/generator 生命周期
+
+6.4 nocopy 建议语法
+```xl
+class File
+    nocopy
+    point handle
+
+    destroy()
+        // close handle
+    end
+end
+```
+
+6.5 union active tag 语义
+- [x] 写入 union 成员时更新 active tag。
+- [x] 切换成员时析构旧 active 成员。
+- [x] 析构宿主 class 时只析构当前 active 成员。
+- [x] 读取非 active 成员首版报 runtime error。
+
+6.6 暂不纳入
+- [ ] runtime class 对象系统
+- [ ] custom/object 完整模型
+- [ ] 元类 / runtime dynamic class
+- [ ] 虚函数 / 动态派发
+- [ ] new/delete
+- [ ] 隐式堆分配
+- [ ] GC 对象图
+- [ ] 基类引用指向子类后的动态派发
+
+6.7 验收样例
+- [x] `class_nocopy_decl`
+- [x] `class_nocopy_assign_error`
+- [x] `class_nocopy_return_error`
+- [x] `class_union_active_tag_basic`
+- [x] `class_union_switch_destroy`
+- [x] `class_union_read_inactive_error`
+- [x] `class_value_semantics_copy`
+
+--------------------------------
+二、后置但高价值内容
+--------------------------------
+
+7. extern var string / class ABI
+
+7.1 价值
+- [ ] 增强 C 全局变量互操作。
+
+7.2 建议时机
+- [ ] string ABI 和 class ABI 稳定后再做。
+
+7.3 范围
+- [ ] `extern var name as string`
+- [ ] class/struct data symbol 映射
+- [ ] 读写规则
+- [ ] 生命周期规则
+
+7.4 风险
+- [ ] string 所有权边界复杂。
+- [ ] class 析构/拷贝和 C 数据区不天然匹配。
+
+--------------------------------
+
+8. class ABI 直通
+
+8.1 价值
+- [ ] 让 xlang class 与 C struct 深度互通。
+
+8.2 建议时机
+- [ ] class 第一阶段完全稳定后。
+
+8.3 范围
+- [ ] class 布局按 C ABI 导出。
+- [ ] extern type struct/class 导入增强。
+- [ ] 函数参数/返回 class 的 ABI 传递。
+
+8.4 风险
+- [ ] Windows/Linux ABI 差异。
+- [ ] 对齐、padding、结构体返回规则复杂。
+
+--------------------------------
+
+9. 更完整 native function signature thunk
+
+9.1 价值
+- [ ] 减少 extern/sys.dlsym 限制，让 C 生态接入更自然。
+
+9.2 范围
+- [ ] 覆盖更多基础参数/返回组合。
+- [ ] function pointer 更完整桥接。
+- [ ] var 与基础类型之间 thunk 更丰富。
+
+9.3 风险
+- [ ] 无限签名自动支持容易失控。
+- [ ] 建议按标准库和真实用例逐步扩展。
+
+--------------------------------
+
+10. 显式 move / 所有权转移
+
+10.1 价值
+- [ ] 让带析构 class 的性能和资源管理更完整。
+
+10.2 范围
+- [ ] `move value` 或等价设计。
+- [ ] move 后对象进入不可用状态。
+- [ ] 容器 push/return/assign 支持 move。
+
+10.3 风险
+- [ ] 语言复杂度明显上升。
+- [ ] 诊断必须非常清晰。
+
+--------------------------------
+
+11. 版本 ABI 压进真实 C 符号名
+
+11.1 价值
+- [ ] 包生态和 ABI 共存更稳。
+
+11.2 范围
+- [ ] 当前元信息 id 层稳定后，再将版本 ABI 参与真实导出符号。
+- [ ] 支持同模块多 ABI 共存的可能性。
+
+11.3 风险
+- [ ] 会影响现有导出/导入规则。
+- [ ] 必须和 xlp/package 版本策略一起设计。
+
+--------------------------------
+三、明确暂缓内容
+--------------------------------
+
+- [ ] namespace / using
+- [ ] include
+- [ ] 宏系统
+- [ ] 元编程
+- [ ] channel select
+- [ ] 调用点展开已有 array/dict：`...arr` / `***map`
+- [ ] extern async func
+- [ ] 类型方法形式 extern
+- [ ] native include / binding 自动生成链路
+- [ ] runtime class 对象系统
+- [ ] custom / object 完整模型
+- [ ] 元类 / runtime dynamic class
+- [ ] 虚表 / 虚函数 / 动态派发
+- [ ] new/delete
+- [ ] 隐式堆分配
+- [ ] GC 对象图
+- [ ] var 上完整 class 方法派发
+- [ ] 基类引用指向子类后的动态派发
+- [ ] peer dependency / 热升级 / ABI 自动兼容推断
+
+--------------------------------
+四、建议实施顺序
+--------------------------------
+
+阶段 1：泛型静态单态化
+- [x] 先完成泛型函数和泛型类型方法。
+- [x] 建立实例表、静态 ABI、静态 C 输出。
+- [x] 补齐泛型错误诊断的最小版本。
+
+阶段 2：错误诊断系统发布级增强
+- [x] 统一错误格式。
+- [x] 源码片段和 JSON 输出。
+- [x] 覆盖 lexer/parser/sem/lower/cgen/host/import/generic/runtime/xlp。
+
+阶段 3：module / package / xlp 工程化闭环
+- [x] `xlang.json`
+- [x] 模块搜索路径
+- [x] 项目构建
+- [x] package/xlp 首版闭环
+
+阶段 4：标准库一致性与类型方法补全
+- [x] `.length`
+- [x] 链式修改方法
+- [x] 默认 throw + 默认值参数
+
+阶段 5：C 混编体验打磨
+- [x] #link 平台后缀
+- [x] sys.dlopen/dlsym/dlclose
+- [x] extern/link 错误清晰化
+
+阶段 6：class 第一阶段发布级收口
+- [x] nocopy
+- [x] union active tag
+- [x] class 文档与测试补齐
+
+当前结论
+- 本 spec 作为 demo5 发布候选版收口主跟踪文档。
+- 下一步建议进入“阶段 2：错误诊断系统发布级增强”，统一 parser/sem/host/import/generic 等主要阶段的错误格式与源码定位。

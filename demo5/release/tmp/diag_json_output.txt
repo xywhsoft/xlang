@@ -1,0 +1,1 @@
+{"level":"error","phase":"sem","file":"D:\\Git\\x-lang\\demo5\\examples\\full\\generic_infer_conflict_error.xl","line":6,"column":22,"message":"generic type inference failed"}

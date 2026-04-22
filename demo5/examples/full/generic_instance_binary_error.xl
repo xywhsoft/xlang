@@ -1,0 +1,8 @@
+func bad_binary<T>(T value) as T
+	T local = value + "bad"
+	return local
+end
+
+func main() as int
+	return bad_binary<int>(12)
+end

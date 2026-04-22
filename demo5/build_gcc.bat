@@ -44,7 +44,7 @@ if errorlevel 1 (
 
 echo Generating parser with Lemon...
 pushd src\parser
-..\..\tools\lemon.exe -q -T..\..\tools\lempar.c xl_parser.y
+..\..\tools\lemon.exe -q xl_parser.y
 set LEMON_RC=%errorlevel%
 popd
 

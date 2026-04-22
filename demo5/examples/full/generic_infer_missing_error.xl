@@ -1,0 +1,8 @@
+func zero<T>() as T
+	return 0
+end
+
+func main() as int
+	auto value = zero()
+	return value
+end

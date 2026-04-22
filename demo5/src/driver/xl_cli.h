@@ -30,6 +30,7 @@ typedef struct XL_CliOptions {
 	bool bDumpMir;
 	bool bDumpC;
 	bool bDumpJson;
+	bool bDiagJson;
 	bool bTraceParser;
 	bool bTraceSem;
 	bool bTraceLower;

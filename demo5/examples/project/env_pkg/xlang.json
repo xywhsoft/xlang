@@ -1,0 +1,7 @@
+{
+	"name": "env.pkg.app",
+	"version": "0.1.0",
+	"type": "app",
+	"main": "src/main.xl",
+	"source": ["src"]
+}

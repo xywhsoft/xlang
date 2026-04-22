@@ -1,0 +1,8 @@
+{
+	"name": "project.std_priority",
+	"version": "0.1.0",
+	"type": "app",
+	"main": "src/main.xl",
+	"source": ["src"],
+	"packages": ["packages"]
+}

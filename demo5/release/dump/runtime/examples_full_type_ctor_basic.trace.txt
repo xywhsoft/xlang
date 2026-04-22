@@ -96,7 +96,7 @@ compile_text=examples\full\type_ctor_basic.xl
 [tcc] examples/full/type_ctor_basic.xl:2297: warning: implicit declaration of function 'Text'
 [tcc] examples/full/type_ctor_basic.xl:2297: warning: assignment makes pointer from integer without a cast
 [tcc] examples/full/type_ctor_basic.xl:2297: warning: cast between pointer and integer of different size
-output=D:\Git\x-lang\demo5\release\tmp\type_ctor_basic.0b67aed7_00000904_0001.fallback.exe
+output=D:\Git\x-lang\demo5\release\tmp\type_ctor_basic.0c0ac370_000029f0_0001.fallback.exe
 output_kind=exe
 support_source=D:\Git\x-lang\demo5\src\runtime\xlrt_host.c
 support_source=D:\Git\x-lang\demo5\src\runtime\xl_sys_lib_runtime.c

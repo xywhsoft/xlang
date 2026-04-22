@@ -1,0 +1,7 @@
+func bad<T>(T value) as T
+	return "bad"
+end
+
+func main() as int
+	return bad<int>(12)
+end

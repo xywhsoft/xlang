@@ -1,0 +1,7 @@
+{
+	"name": "project.math",
+	"version": "0.1.0",
+	"type": "package",
+	"source": ["src"],
+	"exports": ["math"]
+}

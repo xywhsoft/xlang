@@ -14,6 +14,7 @@ typedef enum XL_AstKind {
 	XL_AST_UNION_DECL,
 	XL_AST_CREATE_DECL,
 	XL_AST_DESTROY_DECL,
+	XL_AST_NOCOPY_DECL,
 	XL_AST_PARAM,
 	XL_AST_TYPE_REF,
 	XL_AST_TYPEDEF,
@@ -88,6 +89,7 @@ XL_AstNode* xlAstCreateClassDecl(const XL_Token* pName, XL_AstNode* pBaseType, X
 XL_AstNode* xlAstCreateUnionDecl(const XL_Token* pName, XL_AstNode* pMembers);
 XL_AstNode* xlAstCreateCreateDecl(const XL_Token* pToken, XL_AstNode* pParams, XL_AstNode* pBody);
 XL_AstNode* xlAstCreateDestroyDecl(const XL_Token* pToken, XL_AstNode* pBody);
+XL_AstNode* xlAstCreateNoCopyDecl(const XL_Token* pToken);
 XL_AstNode* xlAstCreateParam(const XL_Token* pName, XL_AstNode* pType, XL_AstNode* pDefaultValue);
 XL_AstNode* xlAstCreateConstDecl(const XL_Token* pName, XL_AstNode* pType, XL_AstNode* pValue);
 XL_AstNode* xlAstCreateVarDecl(const XL_Token* pName, XL_AstNode* pType, XL_AstNode* pValue);

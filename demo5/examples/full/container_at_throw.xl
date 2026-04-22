@@ -1,0 +1,4 @@
+func main() as int
+	var array<int> values = [1]
+	return values.at(1)
+end

@@ -1,0 +1,3 @@
+[error][host.tcc] D:\Git\x-lang\demo5\examples\full\throw_basic.xl:2:2: uncaught exception: boom
+  	throw Error("boom")
+  	^

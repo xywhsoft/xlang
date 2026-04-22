@@ -51,6 +51,7 @@ typedef struct XL_ClassFieldInfo {
 	int iSize;
 	int iAlign;
 	int bUnionMember;
+	int iUnionIndex;
 } XL_ClassFieldInfo;
 
 typedef struct XL_ClassCreateInfo {
@@ -74,6 +75,7 @@ typedef struct XL_ClassInfo {
 	int iAlign;
 	int bHasCreate;
 	int bHasDestroy;
+	int bNoCopy;
 } XL_ClassInfo;
 
 typedef struct XL_ClassTable {

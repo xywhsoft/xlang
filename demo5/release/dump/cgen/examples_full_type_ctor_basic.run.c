@@ -2267,7 +2267,7 @@ static int xl__main__arity0__ret__int()
 	int xl_escape_kind_3_6 = 0;
 	int xl_escape_level_3_6 = 0;
 	int xl_escape_value_3_6 = 0;
-	int count = ({ xvalue xl_type_ctor_value = xvoCreateFloat((double)(3.14)); ((int)xvoGetInt((xvalue)(xl_type_ctor_value))); });
+	int count = ((int)(3.14));
 	if ( xl_generated_had_exception )
 	{
 				return 0;
@@ -2276,7 +2276,7 @@ static int xl__main__arity0__ret__int()
 	{
 				return 0;
 	}
-	double ratio = ({ xvalue xl_type_ctor_value = ({ const char* xl_text_value = "2.5"; xvoCreateText((ptr)xl_text_value, (uint32)strlen((xl_text_value != NULL) ? xl_text_value : ""), FALSE); }); ((double)xvoGetFloat((xvalue)(xl_type_ctor_value))); });
+	double ratio = ((double)atof("2.5"));
 	if ( xl_generated_had_exception )
 	{
 				return 0;
@@ -2285,7 +2285,7 @@ static int xl__main__arity0__ret__int()
 	{
 				return 0;
 	}
-	int ready = ({ xvalue xl_type_ctor_value = ({ const char* xl_text_value = "ok"; xvoCreateText((ptr)xl_text_value, (uint32)strlen((xl_text_value != NULL) ? xl_text_value : ""), FALSE); }); (xvoGetBool((xvalue)(xl_type_ctor_value)) ? 1 : 0); });
+	int ready = ({ const char* xl_bool_text = "ok"; ((xl_bool_text != NULL) && (xl_bool_text[0] != '\0') && (strcmp(xl_bool_text, "0") != 0) && (strcmp(xl_bool_text, "false") != 0)) ? 1 : 0; });
 	if ( xl_generated_had_exception )
 	{
 				return 0;

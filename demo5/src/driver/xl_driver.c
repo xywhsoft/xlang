@@ -1569,6 +1569,9 @@ int xlDriverRun(const XL_CliOptions* pOpts, XL_DiagContext* pDiag, XL_DumpContex
 		XL_DIAG_ERROR(pDiag, "driver", "failed to create release layout");
 		return iRc;
 	}
+	if ( pOpts->sInputFile != NULL ) {
+		xlDiagSetDefaultSourceFile(pDiag, pOpts->sInputFile);
+	}
 
 	if ( pOpts->eCommand == XL_CMD_LEX ) {
 		return __xlDriverRunLex(pOpts, pDiag, pDump);

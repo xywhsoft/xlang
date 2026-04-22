@@ -1,0 +1,5 @@
+import math.extra
+
+func main() as int
+	return math.extra.answer() + 10
+end

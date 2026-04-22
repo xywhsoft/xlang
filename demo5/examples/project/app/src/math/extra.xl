@@ -1,0 +1,5 @@
+func answer() as int
+	return 42
+end
+
+export answer

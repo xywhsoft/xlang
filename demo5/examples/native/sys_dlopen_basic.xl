@@ -1,0 +1,15 @@
+import std.sys.lib as sys
+
+func main() as int
+	auto lib = sys.dlopen("msvcrt.dll")
+	auto path = lib.path()
+	auto ok = sys.dlclose(lib)
+
+	if path == "" then
+		return 1
+	end
+	if ok == false then
+		return 2
+	end
+	return 42
+end

@@ -712,6 +712,9 @@ int xlExecRunCode(XL_ExecCtx* pCtx, XL_DiagContext* pDiag, const char* sCode, ch
 	pCtx->bHadException = result.bHadException;
 	pCtx->iExceptionKind = result.iExceptionKind;
 	__xlCopyText(pCtx->sExceptionText, sizeof(pCtx->sExceptionText), result.sExceptionText);
+	__xlCopyText(pCtx->sExceptionFile, sizeof(pCtx->sExceptionFile), result.sExceptionFile);
+	pCtx->iExceptionLine = result.iExceptionLine;
+	pCtx->iExceptionColumn = result.iExceptionColumn;
 	pCtx->iExceptionInt = result.iExceptionInt;
 	pCtx->fExceptionFloat = result.fExceptionFloat;
 	if ( result.sEntrySymbol[0] != '\0' ) {
