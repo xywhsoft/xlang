@@ -151,6 +151,47 @@ static int __xlTokenListPush(XL_TokenList* pList, const XL_Token* pToken)
 	return XL_RC_OK;
 }
 
+static void __xlMarkExplicitGenericCallTokens(XL_TokenList* pList)
+{
+	size_t i;
+
+	if ( pList == NULL ) {
+		return;
+	}
+	for ( i = 1; i + 2 < pList->iCount; ++i ) {
+		size_t j;
+		int iDepth;
+
+		if ( (pList->pItems[i].eKind != XL_OP_LT) || (pList->pItems[i - 1].eKind != XL_TK_IDENT) ) {
+			continue;
+		}
+		if ( (i >= 2) && (pList->pItems[i - 2].eKind == XL_KW_FUNC) ) {
+			continue;
+		}
+		iDepth = 1;
+		for ( j = i + 1; j < pList->iCount; ++j ) {
+			XL_TokenKind eKind = pList->pItems[j].eKind;
+			if ( (eKind == XL_TK_NEWLINE) || (eKind == XL_TK_SEMICOLON) || (eKind == XL_TK_EOF) ) {
+				break;
+			}
+			if ( eKind == XL_OP_LT ) {
+				iDepth += 1;
+				continue;
+			}
+			if ( eKind != XL_OP_GT ) {
+				continue;
+			}
+			iDepth -= 1;
+			if ( iDepth == 0 ) {
+				if ( (j + 1 < pList->iCount) && (pList->pItems[j + 1].eKind == XL_TK_LPAREN) ) {
+					pList->pItems[i].eKind = XL_OP_GENERIC_LT;
+				}
+				break;
+			}
+		}
+	}
+}
+
 static int __xlReadAllBytes(const char* sFilePath, char** ppData, size_t* piLen)
 {
 	FILE* pFile;
@@ -430,6 +471,7 @@ int xlLexerTokenizeAll(XL_Lexer* pLexer, XL_TokenList* pList)
 			break;
 		}
 	}
+	__xlMarkExplicitGenericCallTokens(pList);
 
 	return pLexer->extra.bHadError ? XL_RC_FAIL : XL_RC_OK;
 }

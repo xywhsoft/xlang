@@ -1,0 +1,5 @@
+import missing.project.module
+
+func main() as int
+	return 0
+end

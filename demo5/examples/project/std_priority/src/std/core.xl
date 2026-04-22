@@ -1,0 +1,5 @@
+func shadow() as int
+	return 99
+end
+
+export shadow

@@ -1,0 +1,9 @@
+import std.sys.lib as sys
+
+func main() as int
+	auto lib = sys.dlopen("msvcrt.dll")
+	if sys.dlclose(lib) == false then
+		return 1
+	end
+	return 42
+end

@@ -28,6 +28,9 @@ typedef struct XL_ExecCtx {
 	int bHadException;
 	int iExceptionKind;
 	char sExceptionText[XL_DIAG_TEXT_MAX];
+	char sExceptionFile[XL_PATH_MAX_LEN];
+	int iExceptionLine;
+	int iExceptionColumn;
 	int64_t iExceptionInt;
 	double fExceptionFloat;
 } XL_ExecCtx;

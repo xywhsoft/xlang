@@ -306,9 +306,15 @@ static int __xlHybridAssignProjectionGroups(XL_HybridSmFunc* pFunc, XL_DiagConte
 		if ( pPoint->iProjectionGroupId >= 0 ) {
 			continue;
 		}
-		XL_DIAG_ERROR(
+		xlDiagEmitSource(
 			pDiag,
+			XL_DIAG_LEVEL_ERROR,
 			"lower",
+			__FILE__,
+			__LINE__,
+			NULL,
+			pPoint->iLine,
+			pPoint->iColumn,
 			"async suspend point in %s at %d:%d could not be projected onto a later generator suspend point",
 			(pFunc->sFuncName != NULL) ? pFunc->sFuncName : "<anonymous>",
 			pPoint->iLine,
@@ -420,9 +426,15 @@ static int __xlValidateHybridStateMachines(const XL_LowerResult* pResult, XL_Dia
 			if ( pHybridFunc->pPoints[j].bAwait ) {
 				iAwaitCount += 1;
 				if ( pHybridFunc->pPoints[j].iProjectedGeneratorStateId <= 0 ) {
-					XL_DIAG_ERROR(
+					xlDiagEmitSource(
 						pDiag,
+						XL_DIAG_LEVEL_ERROR,
 						"lower",
+						__FILE__,
+						__LINE__,
+						NULL,
+						pHybridFunc->pPoints[j].iLine,
+						pHybridFunc->pPoints[j].iColumn,
 						"async suspend point in %s at %d:%d is missing projected generator state",
 						(pHybridFunc->sFuncName != NULL) ? pHybridFunc->sFuncName : "<anonymous>",
 						pHybridFunc->pPoints[j].iLine,
@@ -436,9 +448,15 @@ static int __xlValidateHybridStateMachines(const XL_LowerResult* pResult, XL_Dia
 			}
 		}
 		if ( iAwaitCount > iYieldCount ) {
-			XL_DIAG_ERROR(
+			xlDiagEmitSource(
 				pDiag,
+				XL_DIAG_LEVEL_ERROR,
 				"lower",
+				__FILE__,
+				__LINE__,
+				NULL,
+				pHybridFunc->iLine,
+				pHybridFunc->iColumn,
 				"async/generator suspend count mismatch in %s at %d:%d (async=%zu generator=%zu)",
 				(pHybridFunc->sFuncName != NULL) ? pHybridFunc->sFuncName : "<anonymous>",
 				pHybridFunc->iLine,
@@ -449,9 +467,15 @@ static int __xlValidateHybridStateMachines(const XL_LowerResult* pResult, XL_Dia
 			return XL_RC_FAIL;
 		}
 		if ( pHybridFunc->iAsyncFinalCount != pHybridFunc->iGeneratorFinalCount ) {
-			XL_DIAG_ERROR(
+			xlDiagEmitSource(
 				pDiag,
+				XL_DIAG_LEVEL_ERROR,
 				"lower",
+				__FILE__,
+				__LINE__,
+				NULL,
+				pHybridFunc->iLine,
+				pHybridFunc->iColumn,
 				"async/generator final-state count mismatch in %s at %d:%d (async=%zu generator=%zu)",
 				(pHybridFunc->sFuncName != NULL) ? pHybridFunc->sFuncName : "<anonymous>",
 				pHybridFunc->iLine,

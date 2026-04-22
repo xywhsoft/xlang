@@ -23,8 +23,8 @@ func main() as int
 		return 1
 	end
 	item.right = 12
-	if item.left != 12 then
+	if item.right != 12 then
 		return 2
 	end
-	return item.get_left() + item.get_right()
+	return item.get_right() + item.right
 end

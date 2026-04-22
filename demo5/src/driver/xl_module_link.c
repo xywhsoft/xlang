@@ -10,6 +10,8 @@
 	#include <windows.h>
 #endif
 
+#define XL_PROJECT_PATH_MAX 32
+
 typedef struct XL_ModuleTextBuffer {
 	char* sData;
 	size_t iLen;
@@ -82,6 +84,23 @@ typedef struct XL_ModuleScope {
 typedef struct XL_ModuleLinkContext {
 	XL_DiagContext* pDiag;
 	int bTraceParser;
+	int bHasProject;
+	char sProjectFile[XL_PATH_MAX_LEN];
+	char sProjectRoot[XL_PATH_MAX_LEN];
+	char sProjectMain[XL_PATH_MAX_LEN];
+	char sProjectType[32];
+	char arrSourceRoots[XL_PROJECT_PATH_MAX][XL_PATH_MAX_LEN];
+	size_t iSourceRootCount;
+	char arrPackageRoots[XL_PROJECT_PATH_MAX][XL_PATH_MAX_LEN];
+	size_t iPackageRootCount;
+	char arrProjectLinks[XL_PROJECT_PATH_MAX][128];
+	size_t iProjectLinkCount;
+	char arrProjectExports[XL_PROJECT_PATH_MAX][XL_PATH_MAX_LEN];
+	size_t iProjectExportCount;
+	char arrProjectLibPaths[XL_PROJECT_PATH_MAX][XL_PATH_MAX_LEN];
+	size_t iProjectLibPathCount;
+	char arrProjectIncPaths[XL_PROJECT_PATH_MAX][XL_PATH_MAX_LEN];
+	size_t iProjectIncPathCount;
 	char sLocalPackageName[XL_PATH_MAX_LEN];
 	char sLocalPackageVersion[32];
 	char sLocalPackageAbiVersion[32];
@@ -254,6 +273,11 @@ static int __xlIsLinkIdentStart(int ch)
 static int __xlIsLinkIdentCont(int ch)
 {
 	return __xlIsLinkIdentStart(ch) || ((ch >= '0') && (ch <= '9'));
+}
+
+static int __xlIsLinkLibNameCont(int ch)
+{
+	return __xlIsLinkIdentCont(ch) || (ch == '.') || (ch == '-');
 }
 
 static int __xlModulePathIsAbsolute(const char* sPath)
@@ -527,7 +551,7 @@ static int __xlExtractDirectiveDecls(
 				}
 				iLibEnd = iLibStart;
 				if ( (iLibStart < iLineEnd) && __xlIsLinkIdentStart((unsigned char)sSourceText[iLibStart]) ) {
-					while ( (iLibEnd < iLineEnd) && __xlIsLinkIdentCont((unsigned char)sSourceText[iLibEnd]) ) {
+					while ( (iLibEnd < iLineEnd) && __xlIsLinkLibNameCont((unsigned char)sSourceText[iLibEnd]) ) {
 						++iLibEnd;
 					}
 					while ( (iLibEnd < iLineEnd) && __xlIsAsciiSpace((unsigned char)sSourceText[iLibEnd]) ) {
@@ -959,6 +983,53 @@ static int __xlResolveImportFile(char* sOut, size_t iOutSize, const char* sCurre
 
 	xlPathJoin(sJoined, sizeof(sJoined), sBaseDir, sImportRel);
 	__xlModuleNormalizePath(sOut, iOutSize, sJoined);
+	return XL_RC_OK;
+}
+
+static void __xlBuildImportRelPath(char* sOut, size_t iOutSize, const char* sImportKey)
+{
+	size_t i;
+
+	if ( (sOut == NULL) || (iOutSize == 0) ) {
+		return;
+	}
+	snprintf(sOut, iOutSize, "%s", (sImportKey != NULL) ? sImportKey : "");
+	for ( i = 0; sOut[i] != '\0'; ++i ) {
+		if ( sOut[i] == '.' ) {
+			sOut[i] = '\\';
+		}
+	}
+	if ( strlen(sOut) + 4 < iOutSize ) {
+		strcat(sOut, ".xl");
+	}
+}
+
+static int __xlResolveImportFileWithProject(
+	const XL_ModuleLinkContext* pCtx,
+	char* sOut,
+	size_t iOutSize,
+	const char* sCurrentFile,
+	const char* sImportKey
+)
+{
+	char sImportRel[XL_PATH_MAX_LEN];
+	char sJoined[XL_PATH_MAX_LEN];
+	size_t i;
+	int iRc;
+
+	iRc = __xlResolveImportFile(sOut, iOutSize, sCurrentFile, sImportKey);
+	if ( (iRc != XL_RC_OK) || __xlFileExists(sOut) || (pCtx == NULL) || !pCtx->bHasProject ) {
+		return iRc;
+	}
+
+	__xlBuildImportRelPath(sImportRel, sizeof(sImportRel), sImportKey);
+	for ( i = 0; i < pCtx->iSourceRootCount; ++i ) {
+		xlPathJoin(sJoined, sizeof(sJoined), pCtx->arrSourceRoots[i], sImportRel);
+		__xlModuleNormalizePath(sOut, iOutSize, sJoined);
+		if ( __xlFileExists(sOut) ) {
+			return XL_RC_OK;
+		}
+	}
 	return XL_RC_OK;
 }
 
@@ -1935,13 +2006,21 @@ static void __xlGetEffectiveModuleAbiSymbol(
 	snprintf(sOut, iOutSize, "%s", sDefaultSymbol);
 }
 
-static void __xlBuildPackageAbiId(const char* sPackageName, char* sOut, size_t iOutSize)
+static void __xlBuildPackageAbiId(
+	const char* sPackageName,
+	const char* sPackageVersion,
+	const char* sPackageAbiVersion,
+	char* sOut,
+	size_t iOutSize
+)
 {
 	snprintf(
 		sOut,
 		iOutSize,
-		"%s@0.0.0#abi1",
-		((sPackageName != NULL) && (sPackageName[0] != '\0')) ? sPackageName : "package"
+		"%s@%s#abi%s",
+		((sPackageName != NULL) && (sPackageName[0] != '\0')) ? sPackageName : "package",
+		((sPackageVersion != NULL) && (sPackageVersion[0] != '\0')) ? sPackageVersion : "0.0.0",
+		((sPackageAbiVersion != NULL) && (sPackageAbiVersion[0] != '\0')) ? sPackageAbiVersion : "1"
 	);
 }
 
@@ -1951,10 +2030,474 @@ static int __xlInitLocalSourcePackageIdentity(XL_ModuleLinkContext* pCtx, const 
 		return XL_RC_BAD_ARG;
 	}
 
-	__xlModuleFileStem(sInputFile, pCtx->sLocalPackageName, sizeof(pCtx->sLocalPackageName));
-	snprintf(pCtx->sLocalPackageVersion, sizeof(pCtx->sLocalPackageVersion), "0.0.0");
-	snprintf(pCtx->sLocalPackageAbiVersion, sizeof(pCtx->sLocalPackageAbiVersion), "1");
-	__xlBuildPackageAbiId(pCtx->sLocalPackageName, pCtx->sLocalPackageAbiId, sizeof(pCtx->sLocalPackageAbiId));
+	if ( pCtx->bHasProject && (pCtx->sLocalPackageName[0] != '\0') ) {
+		/* Project identity was already loaded from xlang.json. */
+	} else {
+		__xlModuleFileStem(sInputFile, pCtx->sLocalPackageName, sizeof(pCtx->sLocalPackageName));
+	}
+	if ( pCtx->sLocalPackageVersion[0] == '\0' ) {
+		snprintf(pCtx->sLocalPackageVersion, sizeof(pCtx->sLocalPackageVersion), "0.0.0");
+	}
+	if ( pCtx->sLocalPackageAbiVersion[0] == '\0' ) {
+		snprintf(pCtx->sLocalPackageAbiVersion, sizeof(pCtx->sLocalPackageAbiVersion), "1");
+	}
+	__xlBuildPackageAbiId(
+		pCtx->sLocalPackageName,
+		pCtx->sLocalPackageVersion,
+		pCtx->sLocalPackageAbiVersion,
+		pCtx->sLocalPackageAbiId,
+		sizeof(pCtx->sLocalPackageAbiId)
+	);
+	return XL_RC_OK;
+}
+
+static const char* __xlJsonFindKey(const char* sJson, const char* sKey)
+{
+	char sPattern[128];
+
+	if ( (sJson == NULL) || (sKey == NULL) || (strlen(sKey) + 4 >= sizeof(sPattern)) ) {
+		return NULL;
+	}
+	snprintf(sPattern, sizeof(sPattern), "\"%s\"", sKey);
+	return strstr(sJson, sPattern);
+}
+
+static const char* __xlJsonSkipWs(const char* sCur)
+{
+	while ( (sCur != NULL) && ((*sCur == ' ') || (*sCur == '\t') || (*sCur == '\r') || (*sCur == '\n')) ) {
+		++sCur;
+	}
+	return sCur;
+}
+
+static int __xlJsonReadStringValue(const char* sJson, const char* sKey, char* sOut, size_t iOutSize)
+{
+	const char* sCur;
+	size_t iOut;
+
+	if ( (sOut == NULL) || (iOutSize == 0) ) {
+		return XL_RC_BAD_ARG;
+	}
+	sOut[0] = '\0';
+	sCur = __xlJsonFindKey(sJson, sKey);
+	if ( sCur == NULL ) {
+		return XL_RC_FAIL;
+	}
+	sCur = strchr(sCur, ':');
+	if ( sCur == NULL ) {
+		return XL_RC_FAIL;
+	}
+	sCur = __xlJsonSkipWs(sCur + 1);
+	if ( (sCur == NULL) || (*sCur != '"') ) {
+		return XL_RC_FAIL;
+	}
+	++sCur;
+	iOut = 0;
+	while ( (*sCur != '\0') && (*sCur != '"') ) {
+		char ch = *sCur++;
+		if ( ch == '\\' && (*sCur != '\0') ) {
+			ch = *sCur++;
+		}
+		if ( iOut + 1 < iOutSize ) {
+			sOut[iOut++] = ch;
+		}
+	}
+	sOut[iOut] = '\0';
+	return (sOut[0] != '\0') ? XL_RC_OK : XL_RC_FAIL;
+}
+
+static int __xlProjectAddPath(char arrItems[XL_PROJECT_PATH_MAX][XL_PATH_MAX_LEN], size_t* piCount, const char* sRoot, const char* sValue)
+{
+	char sJoined[XL_PATH_MAX_LEN];
+	char sNormalized[XL_PATH_MAX_LEN];
+	size_t i;
+
+	if ( (arrItems == NULL) || (piCount == NULL) || (sValue == NULL) || (sValue[0] == '\0') ) {
+		return XL_RC_OK;
+	}
+	if ( *piCount >= XL_PROJECT_PATH_MAX ) {
+		return XL_RC_OK;
+	}
+	if ( ((sValue[0] >= 'A') && (sValue[0] <= 'Z') && (sValue[1] == ':')) ||
+		((sValue[0] >= 'a') && (sValue[0] <= 'z') && (sValue[1] == ':')) ||
+		(sValue[0] == '/') ||
+		(sValue[0] == '\\') ) {
+		__xlModuleNormalizePath(sNormalized, sizeof(sNormalized), sValue);
+	} else {
+		xlPathJoin(sJoined, sizeof(sJoined), (sRoot != NULL) ? sRoot : "", sValue);
+		__xlModuleNormalizePath(sNormalized, sizeof(sNormalized), sJoined);
+	}
+	for ( i = 0; i < *piCount; ++i ) {
+		if ( strcmp(arrItems[i], sNormalized) == 0 ) {
+			return XL_RC_OK;
+		}
+	}
+	snprintf(arrItems[*piCount], XL_PATH_MAX_LEN, "%s", sNormalized);
+	*piCount += 1;
+	return XL_RC_OK;
+}
+
+static int __xlProjectAddPathList(
+	char arrItems[XL_PROJECT_PATH_MAX][XL_PATH_MAX_LEN],
+	size_t* piCount,
+	const char* sPathList
+)
+{
+	const char* pStart;
+	const char* p;
+
+	if ( (arrItems == NULL) || (piCount == NULL) || (sPathList == NULL) || (sPathList[0] == '\0') ) {
+		return XL_RC_OK;
+	}
+	pStart = sPathList;
+	for ( p = sPathList; ; ++p ) {
+		int bEnd;
+		int bSep;
+
+		bEnd = (*p == '\0');
+#if defined(_WIN32) || defined(_WIN64)
+		bSep = (*p == ';');
+#else
+		bSep = (*p == ':');
+#endif
+		if ( bEnd || bSep ) {
+			char sItem[XL_PATH_MAX_LEN];
+			size_t iLen;
+
+			iLen = (size_t)(p - pStart);
+			while ( (iLen != 0) && ((*pStart == ' ') || (*pStart == '\t')) ) {
+				++pStart;
+				--iLen;
+			}
+			while ( (iLen != 0) && ((pStart[iLen - 1] == ' ') || (pStart[iLen - 1] == '\t')) ) {
+				--iLen;
+			}
+			if ( iLen >= sizeof(sItem) ) {
+				iLen = sizeof(sItem) - 1;
+			}
+			if ( iLen != 0 ) {
+				memcpy(sItem, pStart, iLen);
+				sItem[iLen] = '\0';
+				(void)__xlProjectAddPath(arrItems, piCount, "", sItem);
+			}
+			if ( bEnd ) {
+				break;
+			}
+			pStart = p + 1;
+		}
+	}
+	return XL_RC_OK;
+}
+
+static void __xlProjectAddDefaultPackageRoots(XL_ModuleLinkContext* pCtx)
+{
+	const char* sEnv;
+	const char* sHome;
+	char sJoined[XL_PATH_MAX_LEN];
+
+	if ( pCtx == NULL ) {
+		return;
+	}
+	sEnv = getenv("XLANG_PACKAGE_PATH");
+	(void)__xlProjectAddPathList(pCtx->arrPackageRoots, &pCtx->iPackageRootCount, sEnv);
+
+#if defined(_WIN32) || defined(_WIN64)
+	sHome = getenv("USERPROFILE");
+#else
+	sHome = getenv("HOME");
+#endif
+	if ( (sHome != NULL) && (sHome[0] != '\0') ) {
+		xlPathJoin(sJoined, sizeof(sJoined), sHome, ".xlang");
+		xlPathJoin(sJoined, sizeof(sJoined), sJoined, "packages");
+		(void)__xlProjectAddPath(pCtx->arrPackageRoots, &pCtx->iPackageRootCount, "", sJoined);
+	}
+
+	sEnv = getenv("XLANG_HOME");
+	if ( (sEnv != NULL) && (sEnv[0] != '\0') ) {
+		xlPathJoin(sJoined, sizeof(sJoined), sEnv, "packages");
+		(void)__xlProjectAddPath(pCtx->arrPackageRoots, &pCtx->iPackageRootCount, "", sJoined);
+		xlPathJoin(sJoined, sizeof(sJoined), sEnv, "lib");
+		xlPathJoin(sJoined, sizeof(sJoined), sJoined, "xlang");
+		xlPathJoin(sJoined, sizeof(sJoined), sJoined, "packages");
+		(void)__xlProjectAddPath(pCtx->arrPackageRoots, &pCtx->iPackageRootCount, "", sJoined);
+	}
+
+#if defined(_WIN32) || defined(_WIN64)
+	{
+		char sExePath[XL_PATH_MAX_LEN];
+		char sReleaseRoot[XL_PATH_MAX_LEN];
+
+		if ( GetModuleFileNameA(NULL, sExePath, sizeof(sExePath)) != 0 ) {
+			__xlModuleNormalizePath(sExePath, sizeof(sExePath), sExePath);
+			snprintf(sReleaseRoot, sizeof(sReleaseRoot), "%s", sExePath);
+			__xlModuleStripFileName(sReleaseRoot);
+			__xlModuleStripFileName(sReleaseRoot);
+			xlPathJoin(sJoined, sizeof(sJoined), sReleaseRoot, "packages");
+			(void)__xlProjectAddPath(pCtx->arrPackageRoots, &pCtx->iPackageRootCount, "", sJoined);
+			xlPathJoin(sJoined, sizeof(sJoined), sReleaseRoot, "lib");
+			xlPathJoin(sJoined, sizeof(sJoined), sJoined, "xlang");
+			xlPathJoin(sJoined, sizeof(sJoined), sJoined, "packages");
+			(void)__xlProjectAddPath(pCtx->arrPackageRoots, &pCtx->iPackageRootCount, "", sJoined);
+		}
+	}
+#endif
+}
+
+static int __xlProjectAddText(char arrItems[XL_PROJECT_PATH_MAX][128], size_t* piCount, const char* sValue)
+{
+	if ( (arrItems == NULL) || (piCount == NULL) || (sValue == NULL) || (sValue[0] == '\0') || (*piCount >= XL_PROJECT_PATH_MAX) ) {
+		return XL_RC_OK;
+	}
+	snprintf(arrItems[*piCount], 128, "%s", sValue);
+	*piCount += 1;
+	return XL_RC_OK;
+}
+
+static void __xlJsonReadStringArray(
+	const char* sJson,
+	const char* sKey,
+	int (*fnAdd)(void* pCtx, const char* sValue),
+	void* pAddCtx
+)
+{
+	const char* sCur;
+
+	if ( (sJson == NULL) || (sKey == NULL) || (fnAdd == NULL) ) {
+		return;
+	}
+	sCur = __xlJsonFindKey(sJson, sKey);
+	if ( sCur == NULL ) {
+		return;
+	}
+	sCur = strchr(sCur, ':');
+	if ( sCur == NULL ) {
+		return;
+	}
+	sCur = __xlJsonSkipWs(sCur + 1);
+	if ( (sCur == NULL) || (*sCur != '[') ) {
+		return;
+	}
+	++sCur;
+	while ( *sCur != '\0' ) {
+		char sValue[XL_PATH_MAX_LEN];
+		size_t iOut;
+
+		sCur = __xlJsonSkipWs(sCur);
+		if ( *sCur == ']' ) {
+			return;
+		}
+		if ( *sCur != '"' ) {
+			return;
+		}
+		++sCur;
+		iOut = 0;
+		while ( (*sCur != '\0') && (*sCur != '"') ) {
+			char ch = *sCur++;
+			if ( ch == '\\' && (*sCur != '\0') ) {
+				ch = *sCur++;
+			}
+			if ( iOut + 1 < sizeof(sValue) ) {
+				sValue[iOut++] = ch;
+			}
+		}
+		sValue[iOut] = '\0';
+		if ( *sCur == '"' ) {
+			++sCur;
+		}
+		(void)fnAdd(pAddCtx, sValue);
+		sCur = __xlJsonSkipWs(sCur);
+		if ( *sCur == ',' ) {
+			++sCur;
+			continue;
+		}
+		if ( *sCur == ']' ) {
+			return;
+		}
+	}
+}
+
+typedef struct XL_ProjectPathAddCtx {
+	XL_ModuleLinkContext* pCtx;
+	char (*arrItems)[XL_PATH_MAX_LEN];
+	size_t* piCount;
+} XL_ProjectPathAddCtx;
+
+static int __xlProjectAddPathFromJson(void* pOpaque, const char* sValue)
+{
+	XL_ProjectPathAddCtx* pAdd = (XL_ProjectPathAddCtx*)pOpaque;
+
+	return __xlProjectAddPath(pAdd->arrItems, pAdd->piCount, pAdd->pCtx->sProjectRoot, sValue);
+}
+
+typedef struct XL_ProjectTextAddCtx {
+	char (*arrItems)[128];
+	size_t* piCount;
+} XL_ProjectTextAddCtx;
+
+static int __xlProjectAddTextFromJson(void* pOpaque, const char* sValue)
+{
+	XL_ProjectTextAddCtx* pAdd = (XL_ProjectTextAddCtx*)pOpaque;
+
+	return __xlProjectAddText(pAdd->arrItems, pAdd->piCount, sValue);
+}
+
+typedef struct XL_ProjectExportAddCtx {
+	XL_ModuleLinkContext* pCtx;
+} XL_ProjectExportAddCtx;
+
+static int __xlProjectAddExportFromJson(void* pOpaque, const char* sValue)
+{
+	XL_ProjectExportAddCtx* pAdd = (XL_ProjectExportAddCtx*)pOpaque;
+
+	if ( (pAdd == NULL) || (pAdd->pCtx == NULL) || (sValue == NULL) || (sValue[0] == '\0') ||
+		(pAdd->pCtx->iProjectExportCount >= XL_PROJECT_PATH_MAX) ) {
+		return XL_RC_OK;
+	}
+	snprintf(
+		pAdd->pCtx->arrProjectExports[pAdd->pCtx->iProjectExportCount],
+		XL_PATH_MAX_LEN,
+		"%s",
+		sValue
+	);
+	pAdd->pCtx->iProjectExportCount += 1;
+	return XL_RC_OK;
+}
+
+static int __xlFindProjectFileForInput(const char* sInputFile, char* sOut, size_t iOutSize)
+{
+	char sDir[XL_PATH_MAX_LEN];
+
+	if ( (sInputFile == NULL) || (sOut == NULL) || (iOutSize == 0) ) {
+		return XL_RC_BAD_ARG;
+	}
+	sOut[0] = '\0';
+	snprintf(sDir, sizeof(sDir), "%s", sInputFile);
+	if ( strstr(sDir, "xlang.json") == (sDir + strlen(sDir) - strlen("xlang.json")) ) {
+		__xlModuleNormalizePath(sOut, iOutSize, sDir);
+		return __xlFileExists(sOut) ? XL_RC_OK : XL_RC_FAIL;
+	}
+	__xlModuleStripFileName(sDir);
+	while ( sDir[0] != '\0' ) {
+		char sCandidate[XL_PATH_MAX_LEN];
+		char sPrev[XL_PATH_MAX_LEN];
+
+		xlPathJoin(sCandidate, sizeof(sCandidate), sDir, "xlang.json");
+		__xlModuleNormalizePath(sCandidate, sizeof(sCandidate), sCandidate);
+		if ( __xlFileExists(sCandidate) ) {
+			snprintf(sOut, iOutSize, "%s", sCandidate);
+			return XL_RC_OK;
+		}
+		snprintf(sPrev, sizeof(sPrev), "%s", sDir);
+		__xlModuleStripFileName(sDir);
+		if ( strcmp(sPrev, sDir) == 0 ) {
+			break;
+		}
+	}
+	return XL_RC_FAIL;
+}
+
+static int __xlLoadProjectFile(XL_ModuleLinkContext* pCtx, const char* sProjectFile, char* sRootInputFile, size_t iRootInputFileSize)
+{
+	char* sJson;
+	char sValue[XL_PATH_MAX_LEN];
+	char sJoined[XL_PATH_MAX_LEN];
+	XL_ProjectPathAddCtx pathAdd;
+	XL_ProjectTextAddCtx textAdd;
+	XL_ProjectExportAddCtx exportAdd;
+	int iRc;
+
+	if ( (pCtx == NULL) || (sProjectFile == NULL) ) {
+		return XL_RC_BAD_ARG;
+	}
+
+	sJson = NULL;
+	iRc = __xlReadModuleFileText(sProjectFile, &sJson);
+	if ( iRc != XL_RC_OK ) {
+		return iRc;
+	}
+	pCtx->bHasProject = 1;
+	__xlModuleNormalizePath(pCtx->sProjectFile, sizeof(pCtx->sProjectFile), sProjectFile);
+	snprintf(pCtx->sProjectRoot, sizeof(pCtx->sProjectRoot), "%s", pCtx->sProjectFile);
+	__xlModuleStripFileName(pCtx->sProjectRoot);
+	if ( __xlJsonReadStringValue(sJson, "name", sValue, sizeof(sValue)) == XL_RC_OK ) {
+		snprintf(pCtx->sLocalPackageName, sizeof(pCtx->sLocalPackageName), "%s", sValue);
+	}
+	if ( __xlJsonReadStringValue(sJson, "version", sValue, sizeof(sValue)) == XL_RC_OK ) {
+		snprintf(pCtx->sLocalPackageVersion, sizeof(pCtx->sLocalPackageVersion), "%s", sValue);
+	}
+	if ( __xlJsonReadStringValue(sJson, "type", sValue, sizeof(sValue)) == XL_RC_OK ) {
+		snprintf(pCtx->sProjectType, sizeof(pCtx->sProjectType), "%s", sValue);
+	}
+	if ( __xlJsonReadStringValue(sJson, "main", sValue, sizeof(sValue)) == XL_RC_OK ) {
+		xlPathJoin(sJoined, sizeof(sJoined), pCtx->sProjectRoot, sValue);
+		__xlModuleNormalizePath(pCtx->sProjectMain, sizeof(pCtx->sProjectMain), sJoined);
+		if ( (sRootInputFile != NULL) && (iRootInputFileSize != 0) ) {
+			snprintf(sRootInputFile, iRootInputFileSize, "%s", pCtx->sProjectMain);
+		}
+	}
+
+	pathAdd.pCtx = pCtx;
+	pathAdd.arrItems = pCtx->arrSourceRoots;
+	pathAdd.piCount = &pCtx->iSourceRootCount;
+	__xlJsonReadStringArray(sJson, "source", __xlProjectAddPathFromJson, &pathAdd);
+	pathAdd.arrItems = pCtx->arrPackageRoots;
+	pathAdd.piCount = &pCtx->iPackageRootCount;
+	__xlJsonReadStringArray(sJson, "packages", __xlProjectAddPathFromJson, &pathAdd);
+	pathAdd.arrItems = pCtx->arrProjectLibPaths;
+	pathAdd.piCount = &pCtx->iProjectLibPathCount;
+	__xlJsonReadStringArray(sJson, "libpath", __xlProjectAddPathFromJson, &pathAdd);
+	pathAdd.arrItems = pCtx->arrProjectIncPaths;
+	pathAdd.piCount = &pCtx->iProjectIncPathCount;
+	__xlJsonReadStringArray(sJson, "incpath", __xlProjectAddPathFromJson, &pathAdd);
+	textAdd.arrItems = pCtx->arrProjectLinks;
+	textAdd.piCount = &pCtx->iProjectLinkCount;
+	__xlJsonReadStringArray(sJson, "links", __xlProjectAddTextFromJson, &textAdd);
+	exportAdd.pCtx = pCtx;
+	__xlJsonReadStringArray(sJson, "exports", __xlProjectAddExportFromJson, &exportAdd);
+
+	if ( pCtx->iSourceRootCount == 0 ) {
+		(void)__xlProjectAddPath(pCtx->arrSourceRoots, &pCtx->iSourceRootCount, pCtx->sProjectRoot, "src");
+	}
+	if ( pCtx->iPackageRootCount == 0 ) {
+		(void)__xlProjectAddPath(pCtx->arrPackageRoots, &pCtx->iPackageRootCount, pCtx->sProjectRoot, ".");
+	}
+	if ( (pCtx->sProjectMain[0] == '\0') &&
+		(strcmp(pCtx->sProjectType, "package") == 0) &&
+		(pCtx->iProjectExportCount != 0) &&
+		(pCtx->iSourceRootCount != 0) ) {
+		char sExportRel[XL_PATH_MAX_LEN];
+
+		__xlBuildImportRelPath(sExportRel, sizeof(sExportRel), pCtx->arrProjectExports[0]);
+		xlPathJoin(pCtx->sProjectMain, sizeof(pCtx->sProjectMain), pCtx->arrSourceRoots[0], sExportRel);
+		__xlModuleNormalizePath(pCtx->sProjectMain, sizeof(pCtx->sProjectMain), pCtx->sProjectMain);
+		if ( (sRootInputFile != NULL) && (iRootInputFileSize != 0) ) {
+			snprintf(sRootInputFile, iRootInputFileSize, "%s", pCtx->sProjectMain);
+		}
+	}
+	free(sJson);
+	return XL_RC_OK;
+}
+
+static int __xlApplyProjectDirectivesToRoot(XL_ModuleLinkContext* pCtx, XL_ModuleInfo* pModule)
+{
+	size_t i;
+	int iRc;
+
+	if ( (pCtx == NULL) || (pModule == NULL) || !pModule->bIsRoot || !pCtx->bHasProject ) {
+		return XL_RC_OK;
+	}
+	for ( i = 0; i < pCtx->iProjectLinkCount; ++i ) {
+		iRc = __xlModuleInfoAddLinkLib(pModule, pCtx->arrProjectLinks[i]);
+		if ( iRc != XL_RC_OK ) return iRc;
+	}
+	for ( i = 0; i < pCtx->iProjectLibPathCount; ++i ) {
+		iRc = __xlModuleInfoAddLibPath(pModule, pCtx->arrProjectLibPaths[i]);
+		if ( iRc != XL_RC_OK ) return iRc;
+	}
+	for ( i = 0; i < pCtx->iProjectIncPathCount; ++i ) {
+		iRc = __xlModuleInfoAddIncPath(pModule, pCtx->arrProjectIncPaths[i]);
+		if ( iRc != XL_RC_OK ) return iRc;
+	}
 	return XL_RC_OK;
 }
 
@@ -2128,6 +2671,112 @@ static void __xlAnnotateXlpNativeExterns(XL_AstNode* pRoot, const char* sModuleK
 	}
 }
 
+static void __xlAppendImportSearchPath(XL_ModuleTextBuffer* pBuf, const char* sPath)
+{
+	if ( (pBuf == NULL) || (sPath == NULL) || (sPath[0] == '\0') ) {
+		return;
+	}
+	if ( pBuf->iLen != 0 ) {
+		__xlModuleBufAppend(pBuf, ", ");
+	}
+	__xlModuleBufAppend(pBuf, sPath);
+}
+
+static void __xlAppendXlpPackageSearchRoots(XL_ModuleTextBuffer* pBuf, const char* sSearchStart)
+{
+	char sSearchDir[XL_PATH_MAX_LEN];
+
+	if ( (pBuf == NULL) || (sSearchStart == NULL) || (sSearchStart[0] == '\0') ) {
+		return;
+	}
+
+	snprintf(sSearchDir, sizeof(sSearchDir), "%s", sSearchStart);
+	__xlModuleStripFileName(sSearchDir);
+	while ( sSearchDir[0] != '\0' ) {
+		char sPackageDir[XL_PATH_MAX_LEN];
+		char sPrevDir[XL_PATH_MAX_LEN];
+
+		snprintf(sPrevDir, sizeof(sPrevDir), "%s", sSearchDir);
+		xlPathJoin(sPackageDir, sizeof(sPackageDir), sSearchDir, "packages");
+		__xlAppendImportSearchPath(pBuf, sPackageDir);
+		__xlModuleStripFileName(sSearchDir);
+		if ( strcmp(sPrevDir, sSearchDir) == 0 ) {
+			break;
+		}
+	}
+}
+
+static void __xlEmitImportNotFoundDiag(
+	XL_ModuleLinkContext* pCtx,
+	const char* sImportKey,
+	const char* sLocalCandidateFile,
+	const char* sImporterManifestPath
+)
+{
+	XL_ModuleTextBuffer paths;
+	size_t i;
+
+	if ( (pCtx == NULL) || (pCtx->pDiag == NULL) ) {
+		return;
+	}
+
+	memset(&paths, 0, sizeof(paths));
+	__xlAppendImportSearchPath(&paths, sLocalCandidateFile);
+	if ( pCtx->bHasProject ) {
+		for ( i = 0; i < pCtx->iSourceRootCount; ++i ) {
+			__xlAppendImportSearchPath(&paths, pCtx->arrSourceRoots[i]);
+		}
+	}
+	for ( i = 0; i < pCtx->iPackageRootCount; ++i ) {
+		__xlAppendImportSearchPath(&paths, pCtx->arrPackageRoots[i]);
+	}
+	if ( (sImporterManifestPath != NULL) && (sImporterManifestPath[0] != '\0') ) {
+		__xlAppendXlpPackageSearchRoots(&paths, sImporterManifestPath);
+	}
+	__xlAppendXlpPackageSearchRoots(&paths, sLocalCandidateFile);
+	__xlAppendImportSearchPath(&paths, "native registry");
+
+	XL_DIAG_ERROR(
+		pCtx->pDiag,
+		"module",
+		"import not found: import='%s'; local candidate='%s'; importer manifest='%s'; search paths=[%s]",
+		((sImportKey != NULL) && (sImportKey[0] != '\0')) ? sImportKey : "?",
+		((sLocalCandidateFile != NULL) && (sLocalCandidateFile[0] != '\0')) ? sLocalCandidateFile : "?",
+		((sImporterManifestPath != NULL) && (sImporterManifestPath[0] != '\0')) ? sImporterManifestPath : "none",
+		(paths.sData != NULL) ? paths.sData : "none"
+	);
+	free(paths.sData);
+}
+
+static int __xlFindXlpModuleForImport(
+	XL_ModuleLinkContext* pCtx,
+	const char* sLocalCandidateFile,
+	const char* sImporterManifestPath,
+	const char* sImportKey,
+	XL_XlpResolveInfo* pInfo
+)
+{
+	const char* arrRoots[XL_PROJECT_PATH_MAX];
+	size_t i;
+
+	if ( (pCtx != NULL) && (pCtx->iPackageRootCount != 0) ) {
+		for ( i = 0; i < pCtx->iPackageRootCount; ++i ) {
+			arrRoots[i] = pCtx->arrPackageRoots[i];
+		}
+		if ( xlXlpFindModuleSourceInRoots(arrRoots, pCtx->iPackageRootCount, sImporterManifestPath, sImportKey, pInfo) == XL_RC_OK ) {
+			return XL_RC_OK;
+		}
+	}
+	return xlXlpFindModuleSource(sLocalCandidateFile, sImporterManifestPath, sImportKey, pInfo);
+}
+
+static int __xlIsStdModuleKey(const char* sModuleKey)
+{
+	return (sModuleKey != NULL) &&
+		(strncmp(sModuleKey, "std.", 4) == 0) &&
+		(sModuleKey[4] != '\0');
+}
+
 static int __xlLoadModule(
 	XL_ModuleLinkContext* pCtx,
 	const char* sFilePath,
@@ -2153,7 +2802,7 @@ static int __xlLoadModule(
 	pModule = __xlFindModuleByFile(pCtx, sFilePath);
 	if ( (pModule == NULL) && !bIsRoot && (sModuleKey != NULL) && !__xlFileExists(sFilePath) ) {
 		xlXlpResolveInfoInit(&xlpInfo);
-		if ( xlXlpFindModuleSource(sFilePath, sImporterManifestPath, sModuleKey, &xlpInfo) == XL_RC_OK ) {
+		if ( __xlFindXlpModuleForImport(pCtx, sFilePath, sImporterManifestPath, sModuleKey, &xlpInfo) == XL_RC_OK ) {
 			if ( xlpInfo.bIsNative ) {
 				pXlpFuncs = NULL;
 				iXlpFuncCount = 0;
@@ -2203,7 +2852,12 @@ static int __xlLoadModule(
 	xlXlpResolveInfoInit(&xlpInfo);
 	pXlpFuncs = NULL;
 	iXlpFuncCount = 0;
-	if ( bIsRoot || __xlFileExists(sFilePath) ) {
+	if ( (!bIsRoot) && __xlIsStdModuleKey(sModuleKey) && (xlNativeRegistryFind(sModuleKey, &nativeInfo) == XL_RC_OK) ) {
+		pModule->bIsNative = 1;
+		pModule->sFilePath = __xlModuleDupText(nativeInfo.sVirtualPath);
+		pModule->sBindingName = __xlModuleDupText(nativeInfo.sBindingName);
+		iRc = __xlParseModuleSourceText(nativeInfo.sSourceText, nativeInfo.sVirtualPath, pModule, pCtx->pDiag, pCtx->bTraceParser, &pModule->pRoot);
+	} else if ( bIsRoot || __xlFileExists(sFilePath) ) {
 		pModule->sFilePath = __xlModuleDupText(sFilePath);
 		iRc = __xlParseModuleFileToAst(sFilePath, pModule, pCtx->pDiag, pCtx->bTraceParser, &pModule->pRoot);
 		if ( iRc == XL_RC_OK ) {
@@ -2212,8 +2866,11 @@ static int __xlLoadModule(
 		if ( iRc == XL_RC_OK ) {
 			iRc = __xlAssignModuleAbiSymbols(pModule, NULL);
 		}
+		if ( iRc == XL_RC_OK ) {
+			iRc = __xlApplyProjectDirectivesToRoot(pCtx, pModule);
+		}
 	} else if ( (sModuleKey != NULL) &&
-		(xlXlpFindModuleSource(sFilePath, sImporterManifestPath, sModuleKey, &xlpInfo) == XL_RC_OK) ) {
+		(__xlFindXlpModuleForImport(pCtx, sFilePath, sImporterManifestPath, sModuleKey, &xlpInfo) == XL_RC_OK) ) {
 		pModule->sManifestPath = __xlModuleDupText(xlpInfo.sManifestPath);
 		pModule->sPackageName = __xlModuleDupText(xlpInfo.sPackageName);
 		pModule->sPackageVersion = __xlModuleDupText(xlpInfo.sPackageVersion);
@@ -2284,7 +2941,7 @@ static int __xlLoadModule(
 		pModule->sBindingName = __xlModuleDupText(nativeInfo.sBindingName);
 		iRc = __xlParseModuleSourceText(nativeInfo.sSourceText, nativeInfo.sVirtualPath, pModule, pCtx->pDiag, pCtx->bTraceParser, &pModule->pRoot);
 	} else {
-		XL_DIAG_ERROR(pCtx->pDiag, "module", "module not found: %s", (sModuleKey != NULL) ? sModuleKey : sFilePath);
+		__xlEmitImportNotFoundDiag(pCtx, sModuleKey, sFilePath, sImporterManifestPath);
 		return XL_RC_IO_ERROR;
 	}
 	if ( iRc != XL_RC_OK ) {
@@ -2311,7 +2968,7 @@ static int __xlLoadModule(
 
 	for ( i = 0; i < pModule->iImportCount; ++i ) {
 		sImportKey = pModule->arrImportKeys[i];
-		iRc = __xlResolveImportFile(sImportFile, sizeof(sImportFile), pModule->sFilePath, sImportKey);
+		iRc = __xlResolveImportFileWithProject(pCtx, sImportFile, sizeof(sImportFile), pModule->sFilePath, sImportKey);
 		if ( iRc != XL_RC_OK ) {
 			return iRc;
 		}
@@ -2808,6 +3465,8 @@ int xlModuleLinkFromFile(const char* sInputFile, XL_DiagContext* pDiag, int bTra
 	XL_ModuleLinkContext ctx;
 	XL_ModuleInfo* pRootModule;
 	char sFullPath[XL_PATH_MAX_LEN];
+	char sRootInputFile[XL_PATH_MAX_LEN];
+	char sProjectFile[XL_PATH_MAX_LEN];
 	size_t i;
 	int iRc;
 
@@ -2821,11 +3480,26 @@ int xlModuleLinkFromFile(const char* sInputFile, XL_DiagContext* pDiag, int bTra
 	ctx.bTraceParser = bTraceParser;
 
 	__xlModuleNormalizePath(sFullPath, sizeof(sFullPath), sInputFile);
-	iRc = __xlInitLocalSourcePackageIdentity(&ctx, sFullPath);
+	snprintf(sRootInputFile, sizeof(sRootInputFile), "%s", sFullPath);
+	if ( __xlFindProjectFileForInput(sFullPath, sProjectFile, sizeof(sProjectFile)) == XL_RC_OK ) {
+		iRc = __xlLoadProjectFile(&ctx, sProjectFile, sRootInputFile, sizeof(sRootInputFile));
+		if ( iRc != XL_RC_OK ) {
+			goto cleanup;
+		}
+		if ( (strlen(sFullPath) >= strlen("xlang.json")) &&
+			(strstr(sFullPath, "xlang.json") == (sFullPath + strlen(sFullPath) - strlen("xlang.json"))) &&
+			(ctx.sProjectMain[0] == '\0') ) {
+			XL_DIAG_ERROR(pDiag, "module", "xlang.json missing main field: %s", sProjectFile);
+			iRc = XL_RC_FAIL;
+			goto cleanup;
+		}
+	}
+	__xlProjectAddDefaultPackageRoots(&ctx);
+	iRc = __xlInitLocalSourcePackageIdentity(&ctx, sRootInputFile);
 	if ( iRc != XL_RC_OK ) {
 		goto cleanup;
 	}
-	iRc = __xlLoadModule(&ctx, sFullPath, "<root>", 1, NULL, &pRootModule);
+	iRc = __xlLoadModule(&ctx, sRootInputFile, "<root>", 1, NULL, &pRootModule);
 	if ( iRc != XL_RC_OK ) {
 		goto cleanup;
 	}

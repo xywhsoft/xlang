@@ -1,0 +1,13 @@
+class UnionReadGuard extends object
+	union Data
+		var left as int
+		var right as int
+	end
+end
+
+func main() as int
+	auto item = UnionReadGuard()
+	item.left = 7
+	item.right = 12
+	return item.left
+end

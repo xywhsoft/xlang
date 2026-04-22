@@ -122,6 +122,130 @@ static void __xlTccErrorThunk(void* pOpaque, const char* sMsg)
 	}
 }
 
+static void __xlBuildPath2(char* sOut, size_t iOutSize, const char* sBase, const char* sPart1);
+
+static void __xlAppendHostList(char* sOut, size_t iOutSize, size_t* piUsed, const char* sText)
+{
+	int iNeed;
+	size_t iUsed;
+
+	if ( (sOut == NULL) || (iOutSize == 0) || (piUsed == NULL) || (sText == NULL) || (sText[0] == '\0') ) {
+		return;
+	}
+
+	iUsed = *piUsed;
+	if ( iUsed >= iOutSize ) {
+		iUsed = iOutSize - 1;
+	}
+	iNeed = snprintf(sOut + iUsed, iOutSize - iUsed, "%s%s", (iUsed == 0) ? "" : ", ", sText);
+	if ( iNeed < 0 ) {
+		sOut[iUsed] = '\0';
+		*piUsed = iUsed;
+		return;
+	}
+	iUsed += (size_t)iNeed;
+	if ( iUsed >= iOutSize ) {
+		iUsed = iOutSize - 1;
+		sOut[iUsed] = '\0';
+	}
+	*piUsed = iUsed;
+}
+
+static void __xlFormatHostLinkLibraries(const XL_HostContext* pCtx, char* sOut, size_t iOutSize)
+{
+	static const char* arrDefaultLibs[] = { "shell32", "ws2_32", "iphlpapi", "advapi32" };
+	size_t i;
+	size_t iUsed;
+
+	if ( (sOut == NULL) || (iOutSize == 0) ) {
+		return;
+	}
+	sOut[0] = '\0';
+	iUsed = 0;
+	for ( i = 0; i < XL_COUNTOF(arrDefaultLibs); ++i ) {
+		__xlAppendHostList(sOut, iOutSize, &iUsed, arrDefaultLibs[i]);
+	}
+	for ( i = 0; (pCtx != NULL) && (i < pCtx->iLinkLibraryCount); ++i ) {
+		__xlAppendHostList(sOut, iOutSize, &iUsed, pCtx->arrLinkLibraries[i].sName);
+	}
+	if ( sOut[0] == '\0' ) {
+		snprintf(sOut, iOutSize, "%s", "none");
+	}
+}
+
+static void __xlFormatHostExternSymbols(const XL_HostContext* pCtx, char* sOut, size_t iOutSize)
+{
+	size_t i;
+	size_t iUsed;
+
+	if ( (sOut == NULL) || (iOutSize == 0) ) {
+		return;
+	}
+	sOut[0] = '\0';
+	iUsed = 0;
+	for ( i = 0; (pCtx != NULL) && (i < pCtx->iExternSymbolCount); ++i ) {
+		__xlAppendHostList(sOut, iOutSize, &iUsed, pCtx->arrExternSymbols[i].sName);
+	}
+	if ( sOut[0] == '\0' ) {
+		snprintf(sOut, iOutSize, "%s", "none");
+	}
+}
+
+static void __xlFormatHostLibraryPaths(const XL_HostContext* pCtx, char* sOut, size_t iOutSize)
+{
+	char sDefaultLibPath[XL_PATH_MAX_LEN];
+	size_t i;
+	size_t iUsed;
+
+	if ( (sOut == NULL) || (iOutSize == 0) ) {
+		return;
+	}
+	sOut[0] = '\0';
+	iUsed = 0;
+	if ( (pCtx != NULL) && (pCtx->sTccRoot[0] != '\0') ) {
+		__xlBuildPath2(sDefaultLibPath, sizeof(sDefaultLibPath), pCtx->sTccRoot, "lib");
+		__xlAppendHostList(sOut, iOutSize, &iUsed, sDefaultLibPath);
+	}
+	for ( i = 0; (pCtx != NULL) && (i < pCtx->iLibraryPathCount); ++i ) {
+		__xlAppendHostList(sOut, iOutSize, &iUsed, pCtx->arrLibraryPaths[i].sPath);
+	}
+	if ( sOut[0] == '\0' ) {
+		snprintf(sOut, iOutSize, "%s", "none");
+	}
+}
+
+static void __xlEmitHostExternLinkDiag(
+	XL_DiagContext* pDiag,
+	const XL_HostContext* pCtx,
+	const char* sAction,
+	const char* sLibraryName,
+	const char* sSymbolName
+)
+{
+	char sLibs[XL_DIAG_TEXT_MAX];
+	char sSymbols[XL_DIAG_TEXT_MAX];
+	char sPaths[XL_DIAG_TEXT_MAX];
+
+	if ( pDiag == NULL ) {
+		return;
+	}
+
+	__xlFormatHostLinkLibraries(pCtx, sLibs, sizeof(sLibs));
+	__xlFormatHostExternSymbols(pCtx, sSymbols, sizeof(sSymbols));
+	__xlFormatHostLibraryPaths(pCtx, sPaths, sizeof(sPaths));
+	XL_DIAG_ERROR(
+		pDiag,
+		"host.tcc",
+		"extern/link failure: %s; library='%s'; symbol='%s'; link libraries=[%s]; extern symbols=[%s]; library search paths=[%s]",
+		((sAction != NULL) && (sAction[0] != '\0')) ? sAction : "unknown",
+		((sLibraryName != NULL) && (sLibraryName[0] != '\0')) ? sLibraryName : "?",
+		((sSymbolName != NULL) && (sSymbolName[0] != '\0')) ? sSymbolName : "?",
+		sLibs,
+		sSymbols,
+		sPaths
+	);
+}
+
 static int __xlPushProjectCwd(const XL_HostContext* pCtx, XL_RunTraceBuffer* pTrace, XL_CwdScope* pScope)
 {
 	if ( pScope == NULL ) {
@@ -262,6 +386,74 @@ static void __xlBuildLinkLibraryLoadName(char* sOut, size_t iOutSize, const char
 		snprintf(sOut, iOutSize, "lib%s.so", sLibName);
 	}
 #endif
+}
+
+static int __xlAsciiStrEqIgnoreCase(const char* a, const char* b)
+{
+	unsigned char ca;
+	unsigned char cb;
+
+	if ( (a == NULL) || (b == NULL) ) {
+		return a == b;
+	}
+	while ( (*a != '\0') && (*b != '\0') ) {
+		ca = (unsigned char)*a;
+		cb = (unsigned char)*b;
+		if ( (ca >= 'A') && (ca <= 'Z') ) ca = (unsigned char)(ca - 'A' + 'a');
+		if ( (cb >= 'A') && (cb <= 'Z') ) cb = (unsigned char)(cb - 'A' + 'a');
+		if ( ca != cb ) {
+			return 0;
+		}
+		++a;
+		++b;
+	}
+	return (*a == '\0') && (*b == '\0');
+}
+
+static int __xlAsciiExtEq(const char* sExt, const char* sWant)
+{
+	return (sExt != NULL) && __xlAsciiStrEqIgnoreCase(sExt, sWant);
+}
+
+static void __xlBuildTccLinkLibraryName(char* sOut, size_t iOutSize, const char* sLibName)
+{
+	const char* sNameStart;
+	const char* sDot;
+	size_t iLen;
+
+	if ( (sOut == NULL) || (iOutSize == 0u) ) {
+		return;
+	}
+	sOut[0] = '\0';
+	if ( (sLibName == NULL) || (sLibName[0] == '\0') ) {
+		return;
+	}
+	if ( (strchr(sLibName, '\\') != NULL) || (strchr(sLibName, '/') != NULL) ) {
+		snprintf(sOut, iOutSize, "%s", sLibName);
+		return;
+	}
+
+	sNameStart = sLibName;
+	sDot = strrchr(sLibName, '.');
+	iLen = strlen(sLibName);
+#if defined(_WIN32) || defined(_WIN64)
+	if ( __xlAsciiExtEq(sDot, ".dll") || __xlAsciiExtEq(sDot, ".lib") || __xlAsciiExtEq(sDot, ".a") ) {
+		iLen = (size_t)(sDot - sLibName);
+	}
+#else
+	if ( strncmp(sNameStart, "lib", 3u) == 0 ) {
+		sNameStart += 3;
+		iLen -= 3u;
+	}
+	if ( __xlAsciiExtEq(sDot, ".so") || __xlAsciiExtEq(sDot, ".a") ) {
+		iLen = (size_t)(sDot - sNameStart);
+	}
+#endif
+	if ( iLen >= iOutSize ) {
+		iLen = iOutSize - 1u;
+	}
+	memcpy(sOut, sNameStart, iLen);
+	sOut[iLen] = '\0';
 }
 
 static int __xlReadBinaryFile(const char* sFilePath, unsigned char** ppData, size_t* piSize)
@@ -650,6 +842,7 @@ static int __xlApplySharedArtifacts(
 
 static int __xlLoadSharedArtifacts(
 	const XL_HostContext* pCtx,
+	XL_DiagContext* pDiag,
 	XL_RunTraceBuffer* pTrace,
 	XL_SharedArtifactHandle* arrHandles,
 	size_t iHandleCap,
@@ -679,6 +872,7 @@ static int __xlLoadSharedArtifacts(
 		__xlRunTraceAppendFormat(pTrace, "artifact.shared.load=%s\n", pArtifact->sFile);
 		if ( !__xlFileExists(pArtifact->sFile) ) {
 			__xlRunTraceAppendFormat(pTrace, "artifact.shared.missing=%s\n", pArtifact->sFile);
+			__xlEmitHostExternLinkDiag(pDiag, pCtx, "shared artifact file was not found", pArtifact->sFile, NULL);
 			return XL_RC_FAIL;
 		}
 
@@ -689,12 +883,14 @@ static int __xlLoadSharedArtifacts(
 		pHandle->hModule = LoadLibraryA(pArtifact->sFile);
 		if ( pHandle->hModule == NULL ) {
 			__xlRunTraceAppendFormat(pTrace, "artifact.shared.load_failed=%s\n", pArtifact->sFile);
+			__xlEmitHostExternLinkDiag(pDiag, pCtx, "failed to load shared artifact", pArtifact->sFile, NULL);
 			return XL_RC_FAIL;
 		}
 #else
 		pHandle->pHandle = dlopen(pArtifact->sFile, RTLD_NOW | RTLD_LOCAL);
 		if ( pHandle->pHandle == NULL ) {
 			__xlRunTraceAppendFormat(pTrace, "artifact.shared.load_failed=%s\n", pArtifact->sFile);
+			__xlEmitHostExternLinkDiag(pDiag, pCtx, "failed to load shared artifact", pArtifact->sFile, NULL);
 			return XL_RC_FAIL;
 		}
 #endif
@@ -716,6 +912,7 @@ static int __xlLoadSharedArtifacts(
 		__xlRunTraceAppendFormat(pTrace, "loadlib.load=%s\n", pLib->sFile);
 		if ( __xlLoadLibraryNeedsFileProbe(pLib->sFile) && !__xlFileExists(pLib->sFile) ) {
 			__xlRunTraceAppendFormat(pTrace, "loadlib.missing=%s\n", pLib->sFile);
+			__xlEmitHostExternLinkDiag(pDiag, pCtx, "dynamic library file was not found", pLib->sFile, NULL);
 			return XL_RC_FAIL;
 		}
 
@@ -726,12 +923,14 @@ static int __xlLoadSharedArtifacts(
 		pHandle->hModule = LoadLibraryA(pLib->sFile);
 		if ( pHandle->hModule == NULL ) {
 			__xlRunTraceAppendFormat(pTrace, "loadlib.load_failed=%s\n", pLib->sFile);
+			__xlEmitHostExternLinkDiag(pDiag, pCtx, "failed to load dynamic library", pLib->sFile, NULL);
 			return XL_RC_FAIL;
 		}
 #else
 		pHandle->pHandle = dlopen(pLib->sFile, RTLD_NOW | RTLD_LOCAL);
 		if ( pHandle->pHandle == NULL ) {
 			__xlRunTraceAppendFormat(pTrace, "loadlib.load_failed=%s\n", pLib->sFile);
+			__xlEmitHostExternLinkDiag(pDiag, pCtx, "failed to load dynamic library", pLib->sFile, NULL);
 			return XL_RC_FAIL;
 		}
 #endif
@@ -759,6 +958,7 @@ static int __xlLoadSharedArtifacts(
 		__xlRunTraceAppendFormat(pTrace, "linklib.load=%s\n", sLoadName);
 		if ( __xlLoadLibraryNeedsFileProbe(sLoadName) && !__xlFileExists(sLoadName) ) {
 			__xlRunTraceAppendFormat(pTrace, "linklib.missing=%s\n", sLoadName);
+			__xlEmitHostExternLinkDiag(pDiag, pCtx, "linked library file was not found", sLoadName, NULL);
 			return XL_RC_FAIL;
 		}
 
@@ -769,12 +969,14 @@ static int __xlLoadSharedArtifacts(
 		pHandle->hModule = LoadLibraryA(sLoadName);
 		if ( pHandle->hModule == NULL ) {
 			__xlRunTraceAppendFormat(pTrace, "linklib.load_failed=%s\n", sLoadName);
+			__xlEmitHostExternLinkDiag(pDiag, pCtx, "failed to load linked library", sLoadName, NULL);
 			return XL_RC_FAIL;
 		}
 #else
 		pHandle->pHandle = dlopen(sLoadName, RTLD_NOW | RTLD_LOCAL);
 		if ( pHandle->pHandle == NULL ) {
 			__xlRunTraceAppendFormat(pTrace, "linklib.load_failed=%s\n", sLoadName);
+			__xlEmitHostExternLinkDiag(pDiag, pCtx, "failed to load linked library", sLoadName, NULL);
 			return XL_RC_FAIL;
 		}
 #endif
@@ -813,6 +1015,7 @@ static void __xlUnloadSharedArtifacts(XL_RunTraceBuffer* pTrace, XL_SharedArtifa
 
 static int __xlRegisterSharedArtifactSymbols(
 	const XL_HostContext* pCtx,
+	XL_DiagContext* pDiag,
 	TCCState* pTcc,
 	XL_RunTraceBuffer* pTrace,
 	XL_SharedArtifactHandle* arrHandles,
@@ -842,11 +1045,13 @@ static int __xlRegisterSharedArtifactSymbols(
 		}
 		if ( pSymbol == NULL ) {
 			__xlRunTraceAppendFormat(pTrace, "artifact.shared.symbol_missing=%s\n", pCtx->arrExternSymbols[i].sName);
+			__xlEmitHostExternLinkDiag(pDiag, pCtx, "external symbol was not found in loaded shared libraries", NULL, pCtx->arrExternSymbols[i].sName);
 			return XL_RC_FAIL;
 		}
 		__xlRunTraceAppendFormat(pTrace, "artifact.shared.symbol=%s\n", pCtx->arrExternSymbols[i].sName);
 		if ( tcc_add_symbol(pTcc, pCtx->arrExternSymbols[i].sName, pSymbol) < 0 ) {
 			__xlRunTraceAppendFormat(pTrace, "artifact.shared.symbol_register_failed=%s\n", pCtx->arrExternSymbols[i].sName);
+			__xlEmitHostExternLinkDiag(pDiag, pCtx, "failed to register external symbol with TCC", NULL, pCtx->arrExternSymbols[i].sName);
 			return XL_RC_FAIL;
 		}
 #if defined(_WIN32) || defined(_WIN64)
@@ -1028,6 +1233,9 @@ static void __xlFillExceptionInfo(TCCState* pTcc, XL_RunTraceBuffer* pTrace, XL_
 	int* piHadException;
 	int* piExceptionKind;
 	const char** psExceptionText;
+	const char** psExceptionFile;
+	int* piExceptionLine;
+	int* piExceptionColumn;
 	int64_t* piExceptionInt;
 	double* pfExceptionFloat;
 
@@ -1038,6 +1246,9 @@ static void __xlFillExceptionInfo(TCCState* pTcc, XL_RunTraceBuffer* pTrace, XL_
 	piHadException = (int*)tcc_get_symbol(pTcc, "xl_generated_had_exception");
 	piExceptionKind = (int*)tcc_get_symbol(pTcc, "xl_generated_exception_kind");
 	psExceptionText = (const char**)tcc_get_symbol(pTcc, "xl_generated_exception_text");
+	psExceptionFile = (const char**)tcc_get_symbol(pTcc, "xl_generated_exception_file");
+	piExceptionLine = (int*)tcc_get_symbol(pTcc, "xl_generated_exception_line");
+	piExceptionColumn = (int*)tcc_get_symbol(pTcc, "xl_generated_exception_column");
 	piExceptionInt = (int64_t*)tcc_get_symbol(pTcc, "xl_generated_exception_int");
 	pfExceptionFloat = (double*)tcc_get_symbol(pTcc, "xl_generated_exception_float");
 	if ( (piHadException == NULL) || (*piHadException == 0) ) {
@@ -1054,8 +1265,25 @@ static void __xlFillExceptionInfo(TCCState* pTcc, XL_RunTraceBuffer* pTrace, XL_
 		"%s",
 		((psExceptionText != NULL) && (*psExceptionText != NULL)) ? *psExceptionText : "throw"
 	);
+	snprintf(
+		pResult->sExceptionFile,
+		sizeof(pResult->sExceptionFile),
+		"%s",
+		((psExceptionFile != NULL) && (*psExceptionFile != NULL)) ? *psExceptionFile : ""
+	);
+	pResult->iExceptionLine = (piExceptionLine != NULL) ? *piExceptionLine : 0;
+	pResult->iExceptionColumn = (piExceptionColumn != NULL) ? *piExceptionColumn : 0;
 	__xlRunTraceAppendFormat(pTrace, "exception.kind=%d\n", pResult->iExceptionKind);
 	__xlRunTraceAppendFormat(pTrace, "exception.text=%s\n", pResult->sExceptionText);
+	if ( pResult->iExceptionLine > 0 ) {
+		__xlRunTraceAppendFormat(
+			pTrace,
+			"exception.source=%s:%d:%d\n",
+			(pResult->sExceptionFile[0] != '\0') ? pResult->sExceptionFile : "<source>",
+			pResult->iExceptionLine,
+			pResult->iExceptionColumn
+		);
+	}
 }
 
 static XL_HostOutputType __xlDetectOutputType(const char* sOutputFile, const char** psKindText)
@@ -1086,12 +1314,21 @@ static XL_HostOutputType __xlDetectOutputType(const char* sOutputFile, const cha
 
 static int __xlAddLinkLibrary(TCCState* pTcc, XL_RunTraceBuffer* pTrace, const char* sLibName)
 {
+	char sTccLibName[XL_PATH_MAX_LEN];
+
 	if ( (pTcc == NULL) || (sLibName == NULL) || (sLibName[0] == '\0') ) {
 		return XL_RC_BAD_ARG;
 	}
 
-	__xlRunTraceAppendFormat(pTrace, "link_lib=%s\n", sLibName);
-	if ( tcc_add_library(pTcc, sLibName) < 0 ) {
+	__xlBuildTccLinkLibraryName(sTccLibName, sizeof(sTccLibName), sLibName);
+	if ( sTccLibName[0] == '\0' ) {
+		return XL_RC_BAD_ARG;
+	}
+	if ( strcmp(sTccLibName, sLibName) != 0 ) {
+		__xlRunTraceAppendFormat(pTrace, "link_lib_source=%s\n", sLibName);
+	}
+	__xlRunTraceAppendFormat(pTrace, "link_lib=%s\n", sTccLibName);
+	if ( tcc_add_library(pTcc, sTccLibName) < 0 ) {
 		return XL_RC_FAIL;
 	}
 	return XL_RC_OK;
@@ -1100,22 +1337,26 @@ static int __xlAddLinkLibrary(TCCState* pTcc, XL_RunTraceBuffer* pTrace, const c
 static int __xlHasLinkLibrary(const XL_HostContext* pCtx, const char* sLibName)
 {
 	size_t i;
+	char sWant[XL_PATH_MAX_LEN];
+	char sHave[XL_PATH_MAX_LEN];
 
 	if ( (pCtx == NULL) || (sLibName == NULL) || (sLibName[0] == '\0') ) {
 		return 0;
 	}
 
+	__xlBuildTccLinkLibraryName(sWant, sizeof(sWant), sLibName);
 	for ( i = 0; i < pCtx->iLinkLibraryCount; ++i ) {
-		if ( strcmp(pCtx->arrLinkLibraries[i].sName, sLibName) == 0 ) {
+		__xlBuildTccLinkLibraryName(sHave, sizeof(sHave), pCtx->arrLinkLibraries[i].sName);
+		if ( strcmp(sHave, sWant) == 0 ) {
 			return 1;
 		}
 	}
 	return 0;
 }
 
-static int __xlAddBuildLibraries(const XL_HostContext* pCtx, TCCState* pTcc, XL_RunTraceBuffer* pTrace)
+static int __xlAddBuildLibraries(const XL_HostContext* pCtx, XL_DiagContext* pDiag, TCCState* pTcc, XL_RunTraceBuffer* pTrace)
 {
-	static const char* arrLibs[] = { "shell32", "ws2_32", "iphlpapi" };
+	static const char* arrLibs[] = { "shell32", "ws2_32", "iphlpapi", "advapi32" };
 	size_t i;
 
 	for ( i = 0; i < XL_COUNTOF(arrLibs); ++i ) {
@@ -1123,11 +1364,13 @@ static int __xlAddBuildLibraries(const XL_HostContext* pCtx, TCCState* pTcc, XL_
 			continue;
 		}
 		if ( __xlAddLinkLibrary(pTcc, pTrace, arrLibs[i]) != XL_RC_OK ) {
+			__xlEmitHostExternLinkDiag(pDiag, pCtx, "failed to add default link library", arrLibs[i], NULL);
 			return XL_RC_FAIL;
 		}
 	}
 	for ( i = 0; (pCtx != NULL) && (i < pCtx->iLinkLibraryCount); ++i ) {
 		if ( __xlAddLinkLibrary(pTcc, pTrace, pCtx->arrLinkLibraries[i].sName) != XL_RC_OK ) {
+			__xlEmitHostExternLinkDiag(pDiag, pCtx, "failed to add requested link library", pCtx->arrLinkLibraries[i].sName, NULL);
 			return XL_RC_FAIL;
 		}
 	}
@@ -1215,8 +1458,7 @@ int xlHostTccRunText(
 		*psTraceText = trace.sData;
 		return XL_RC_FAIL;
 	}
-	if ( __xlAddBuildLibraries(pCtx, pTcc, &trace) != XL_RC_OK ) {
-		XL_DIAG_ERROR(pDiag, "host.tcc", "failed to add system libraries");
+	if ( __xlAddBuildLibraries(pCtx, pDiag, pTcc, &trace) != XL_RC_OK ) {
 		tcc_delete(pTcc);
 		*psTraceText = trace.sData;
 		return XL_RC_FAIL;
@@ -1262,8 +1504,7 @@ int xlHostTccRunText(
 		*psTraceText = trace.sData;
 		return XL_RC_FAIL;
 	}
-	if ( __xlLoadSharedArtifacts(pCtx, &trace, arrSharedHandles, XL_COUNTOF(arrSharedHandles), &iSharedHandleCount) != XL_RC_OK ) {
-		XL_DIAG_ERROR(pDiag, "host.tcc", "failed to load shared xlp artifacts");
+	if ( __xlLoadSharedArtifacts(pCtx, pDiag, &trace, arrSharedHandles, XL_COUNTOF(arrSharedHandles), &iSharedHandleCount) != XL_RC_OK ) {
 		__xlPopProjectCwd(&trace, &cwdScope);
 		__xlCleanupStaticExtractedFiles(arrStaticExtracted, iStaticExtractedCount);
 		tcc_delete(pTcc);
@@ -1271,8 +1512,7 @@ int xlHostTccRunText(
 		*psTraceText = trace.sData;
 		return XL_RC_FAIL;
 	}
-	if ( __xlRegisterSharedArtifactSymbols(pCtx, pTcc, &trace, arrSharedHandles, iSharedHandleCount) != XL_RC_OK ) {
-		XL_DIAG_ERROR(pDiag, "host.tcc", "failed to register shared xlp symbols");
+	if ( __xlRegisterSharedArtifactSymbols(pCtx, pDiag, pTcc, &trace, arrSharedHandles, iSharedHandleCount) != XL_RC_OK ) {
 		__xlUnloadSharedArtifacts(&trace, arrSharedHandles, iSharedHandleCount);
 		__xlPopProjectCwd(&trace, &cwdScope);
 		__xlCleanupStaticExtractedFiles(arrStaticExtracted, iStaticExtractedCount);
@@ -1324,7 +1564,22 @@ int xlHostTccRunText(
 	iRc = (pResult->bHadException != 0) ? XL_RC_FAIL : XL_RC_OK;
 	if ( pResult->bHadException ) {
 		pResult->bHadRuntimeError = 1;
-		XL_DIAG_ERROR(pDiag, "host.tcc", "uncaught exception: %s", pResult->sExceptionText);
+		if ( pResult->iExceptionLine > 0 ) {
+			xlDiagEmitSource(
+				pDiag,
+				XL_DIAG_LEVEL_ERROR,
+				"host.tcc",
+				__FILE__,
+				__LINE__,
+				(pResult->sExceptionFile[0] != '\0') ? pResult->sExceptionFile : NULL,
+				pResult->iExceptionLine,
+				pResult->iExceptionColumn,
+				"uncaught exception: %s",
+				pResult->sExceptionText
+			);
+		} else {
+			XL_DIAG_ERROR(pDiag, "host.tcc", "uncaught exception: %s", pResult->sExceptionText);
+		}
 	}
 
 	xrtNetSyncShutdownHiddenEngine();
@@ -1379,8 +1634,7 @@ int xlHostTccRunFile(
 		*psTraceText = trace.sData;
 		return XL_RC_FAIL;
 	}
-	if ( __xlAddBuildLibraries(pCtx, pTcc, &trace) != XL_RC_OK ) {
-		XL_DIAG_ERROR(pDiag, "host.tcc", "failed to add system libraries");
+	if ( __xlAddBuildLibraries(pCtx, pDiag, pTcc, &trace) != XL_RC_OK ) {
 		tcc_delete(pTcc);
 		*psTraceText = trace.sData;
 		return XL_RC_FAIL;
@@ -1420,8 +1674,7 @@ int xlHostTccRunFile(
 		*psTraceText = trace.sData;
 		return XL_RC_FAIL;
 	}
-	if ( __xlLoadSharedArtifacts(pCtx, &trace, arrSharedHandles, XL_COUNTOF(arrSharedHandles), &iSharedHandleCount) != XL_RC_OK ) {
-		XL_DIAG_ERROR(pDiag, "host.tcc", "failed to load shared xlp artifacts");
+	if ( __xlLoadSharedArtifacts(pCtx, pDiag, &trace, arrSharedHandles, XL_COUNTOF(arrSharedHandles), &iSharedHandleCount) != XL_RC_OK ) {
 		__xlPopProjectCwd(&trace, &cwdScope);
 		__xlCleanupStaticExtractedFiles(arrStaticExtracted, iStaticExtractedCount);
 		tcc_delete(pTcc);
@@ -1429,8 +1682,7 @@ int xlHostTccRunFile(
 		*psTraceText = trace.sData;
 		return XL_RC_FAIL;
 	}
-	if ( __xlRegisterSharedArtifactSymbols(pCtx, pTcc, &trace, arrSharedHandles, iSharedHandleCount) != XL_RC_OK ) {
-		XL_DIAG_ERROR(pDiag, "host.tcc", "failed to register shared xlp symbols");
+	if ( __xlRegisterSharedArtifactSymbols(pCtx, pDiag, pTcc, &trace, arrSharedHandles, iSharedHandleCount) != XL_RC_OK ) {
 		__xlUnloadSharedArtifacts(&trace, arrSharedHandles, iSharedHandleCount);
 		__xlPopProjectCwd(&trace, &cwdScope);
 		__xlCleanupStaticExtractedFiles(arrStaticExtracted, iStaticExtractedCount);
@@ -1484,8 +1736,7 @@ static int __xlHostTccBuildCommon(
 			pResult->bHadBuildError = 1;
 			return XL_RC_FAIL;
 		}
-		if ( __xlAddBuildLibraries(pCtx, pTcc, pTrace) != XL_RC_OK ) {
-			XL_DIAG_ERROR(pDiag, "host.tcc", "failed to add system libraries");
+		if ( __xlAddBuildLibraries(pCtx, pDiag, pTcc, pTrace) != XL_RC_OK ) {
 			pResult->bHadBuildError = 1;
 			return XL_RC_FAIL;
 		}

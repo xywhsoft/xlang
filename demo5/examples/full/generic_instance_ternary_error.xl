@@ -1,0 +1,7 @@
+func bad_ternary<T>(T value) as T
+	return true ? value : "bad"
+end
+
+func main() as int
+	return bad_ternary<int>(12)
+end

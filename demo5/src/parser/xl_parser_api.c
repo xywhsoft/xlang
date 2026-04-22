@@ -114,6 +114,8 @@ static int __xlParserMapToken(XL_TokenKind eKind)
 			return XLPG_KW_CREATE;
 		case XL_KW_DESTROY:
 			return XLPG_KW_DESTROY;
+		case XL_KW_NOCOPY:
+			return XLPG_KW_NOCOPY;
 		case XL_KW_AND:
 			return XLPG_KW_AND;
 		case XL_KW_OR:
@@ -124,6 +126,8 @@ static int __xlParserMapToken(XL_TokenKind eKind)
 			return XLPG_OP_GT;
 		case XL_OP_LT:
 			return XLPG_OP_LT;
+		case XL_OP_GENERIC_LT:
+			return XLPG_OP_GENERIC_LT;
 		case XL_OP_GE:
 			return XLPG_OP_GE;
 		case XL_OP_LE:
@@ -283,7 +287,7 @@ int xlParserParseLexer(XL_Lexer* pLexer, XL_DiagContext* pDiag, int bTraceParser
 					token.sMessage
 				);
 			}
-			continue;
+			break;
 		}
 		if ( token.eKind == XL_TK_EOF ) {
 			xlParse(pEngine, 0, token, &ctx);
@@ -308,10 +312,13 @@ int xlParserParseLexer(XL_Lexer* pLexer, XL_DiagContext* pDiag, int bTraceParser
 					xlTokenKindName(token.eKind)
 				);
 			}
-			continue;
+			break;
 		}
 
 		xlParse(pEngine, iParseType, token, &ctx);
+		if ( ctx.bHadError ) {
+			break;
+		}
 	}
 
 	xlParseFree(pEngine, free);

@@ -147,9 +147,22 @@ static const char* __xlXlpFileStem(const char* sInputFile, char* sOut, size_t iO
 	return sOut;
 }
 
-static void __xlXlpBuildPackageAbiId(const char* sPackageName, char* sOut, size_t iOutSize)
+static void __xlXlpBuildPackageAbiId(
+	const char* sPackageName,
+	const char* sPackageVersion,
+	const char* sPackageAbiVersion,
+	char* sOut,
+	size_t iOutSize
+)
 {
-	snprintf(sOut, iOutSize, "%s@0.0.0#abi1", (sPackageName != NULL) ? sPackageName : "package");
+	snprintf(
+		sOut,
+		iOutSize,
+		"%s@%s#abi%s",
+		((sPackageName != NULL) && (sPackageName[0] != '\0')) ? sPackageName : "package",
+		((sPackageVersion != NULL) && (sPackageVersion[0] != '\0')) ? sPackageVersion : "0.0.0",
+		((sPackageAbiVersion != NULL) && (sPackageAbiVersion[0] != '\0')) ? sPackageAbiVersion : "1"
+	);
 }
 
 static void __xlXlpBuildDependencyAbiId(const XL_XlpDependencyInfo* pDep, char* sOut, size_t iOutSize)
@@ -393,8 +406,29 @@ static const char* __xlXlpModulePackageAbiId(const XL_ModuleSummary* pModule, ch
 	if ( (pModule != NULL) && (pModule->sPackageAbiId != NULL) && (pModule->sPackageAbiId[0] != '\0') ) {
 		return pModule->sPackageAbiId;
 	}
-	__xlXlpBuildPackageAbiId(__xlXlpModulePackageName(pModule), sFallback, iFallbackSize);
+	__xlXlpBuildPackageAbiId(
+		__xlXlpModulePackageName(pModule),
+		__xlXlpModulePackageVersion(pModule),
+		__xlXlpModulePackageAbiVersion(pModule),
+		sFallback,
+		iFallbackSize
+	);
 	return sFallback;
+}
+
+static const XL_ModuleSummary* __xlXlpFindRootModule(const XL_ModuleLinkResult* pModuleResult)
+{
+	size_t i;
+
+	if ( pModuleResult == NULL ) {
+		return NULL;
+	}
+	for ( i = 0; i < pModuleResult->iModuleCount; ++i ) {
+		if ( pModuleResult->pModules[i].bIsRoot ) {
+			return &pModuleResult->pModules[i];
+		}
+	}
+	return (pModuleResult->iModuleCount != 0) ? &pModuleResult->pModules[0] : NULL;
 }
 
 static int __xlXlpIsSameDependency(const XL_ModuleSummary* pLeft, const XL_ModuleSummary* pRight)
@@ -588,14 +622,27 @@ char* xlXlpDumpPackageJson(const XL_ModuleLinkResult* pModuleResult, const XL_Se
 {
 	XL_XlpTextBuffer buf;
 	char sPackageName[XL_PATH_MAX_LEN];
+	char sPackageVersion[32];
+	char sPackageAbiVersion[32];
 	char sPackageAbiId[XL_PATH_MAX_LEN];
+	const XL_ModuleSummary* pRootModule;
 	size_t i;
 	size_t j;
 	size_t k;
 
 	memset(&buf, 0, sizeof(buf));
 	__xlXlpFileStem(sInputFile, sPackageName, sizeof(sPackageName));
-	__xlXlpBuildPackageAbiId(sPackageName, sPackageAbiId, sizeof(sPackageAbiId));
+	pRootModule = __xlXlpFindRootModule(pModuleResult);
+	if ( (pRootModule != NULL) && (pRootModule->sPackageName != NULL) && (pRootModule->sPackageName[0] != '\0') ) {
+		snprintf(sPackageName, sizeof(sPackageName), "%s", pRootModule->sPackageName);
+	}
+	snprintf(sPackageVersion, sizeof(sPackageVersion), "%s", __xlXlpModulePackageVersion(pRootModule));
+	snprintf(sPackageAbiVersion, sizeof(sPackageAbiVersion), "%s", __xlXlpModulePackageAbiVersion(pRootModule));
+	if ( (pRootModule != NULL) && (pRootModule->sPackageAbiId != NULL) && (pRootModule->sPackageAbiId[0] != '\0') ) {
+		snprintf(sPackageAbiId, sizeof(sPackageAbiId), "%s", pRootModule->sPackageAbiId);
+	} else {
+		__xlXlpBuildPackageAbiId(sPackageName, sPackageVersion, sPackageAbiVersion, sPackageAbiId, sizeof(sPackageAbiId));
+	}
 
 	__xlXlpBufAppend(&buf, "{\n");
 	__xlXlpBufAppend(&buf, "\t\"format\": \"xlp-0\",\n");
@@ -603,8 +650,12 @@ char* xlXlpDumpPackageJson(const XL_ModuleLinkResult* pModuleResult, const XL_Se
 	__xlXlpBufAppend(&buf, "\t\t\"name\": \"");
 	__xlXlpAppendEscaped(&buf, sPackageName);
 	__xlXlpBufAppend(&buf, "\",\n");
-	__xlXlpBufAppend(&buf, "\t\t\"version\": \"0.0.0\",\n");
-	__xlXlpBufAppend(&buf, "\t\t\"abiVersion\": \"1\",\n");
+	__xlXlpBufAppend(&buf, "\t\t\"version\": \"");
+	__xlXlpAppendEscaped(&buf, sPackageVersion);
+	__xlXlpBufAppend(&buf, "\",\n");
+	__xlXlpBufAppend(&buf, "\t\t\"abiVersion\": \"");
+	__xlXlpAppendEscaped(&buf, sPackageAbiVersion);
+	__xlXlpBufAppend(&buf, "\",\n");
 	__xlXlpBufAppend(&buf, "\t\t\"xlangAbi\": \"1\",\n");
 	__xlXlpBufAppend(&buf, "\t\t\"abiId\": \"");
 	__xlXlpAppendEscaped(&buf, sPackageAbiId);
@@ -738,10 +789,10 @@ char* xlXlpDumpPackageJson(const XL_ModuleLinkResult* pModuleResult, const XL_Se
 
 		pModule = &pModuleResult->pModules[i];
 		if ( pModule->bIsRoot ) {
-			sModulePackageName = sPackageName;
-			sModulePackageVersion = "0.0.0";
-			sModulePackageAbiVersion = "1";
-			sModulePackageAbiIdText = sPackageAbiId;
+			sModulePackageName = __xlXlpModulePackageName(pModule);
+			sModulePackageVersion = __xlXlpModulePackageVersion(pModule);
+			sModulePackageAbiVersion = __xlXlpModulePackageAbiVersion(pModule);
+			sModulePackageAbiIdText = __xlXlpModulePackageAbiId(pModule, sModulePackageAbiFallback, sizeof(sModulePackageAbiFallback));
 		} else {
 			sModulePackageName = ((pModule->sPackageName != NULL) && (pModule->sPackageName[0] != '\0')) ? pModule->sPackageName :
 				(pModule->bIsNative ? pModule->sKey : sPackageName);
@@ -750,7 +801,7 @@ char* xlXlpDumpPackageJson(const XL_ModuleLinkResult* pModuleResult, const XL_Se
 			if ( (pModule->sPackageAbiId != NULL) && (pModule->sPackageAbiId[0] != '\0') ) {
 				sModulePackageAbiIdText = pModule->sPackageAbiId;
 			} else if ( pModule->bIsNative ) {
-				__xlXlpBuildPackageAbiId(pModule->sKey, sModulePackageAbiFallback, sizeof(sModulePackageAbiFallback));
+				__xlXlpBuildPackageAbiId(pModule->sKey, "0.0.0", "1", sModulePackageAbiFallback, sizeof(sModulePackageAbiFallback));
 				sModulePackageAbiIdText = sModulePackageAbiFallback;
 			} else {
 				sModulePackageAbiIdText = sPackageAbiId;
@@ -889,7 +940,7 @@ char* xlXlpDumpPackageJson(const XL_ModuleLinkResult* pModuleResult, const XL_Se
 				if ( (pModule->sPackageAbiId != NULL) && (pModule->sPackageAbiId[0] != '\0') ) {
 					sModulePackageAbiIdText = pModule->sPackageAbiId;
 				} else if ( pModule->bIsNative ) {
-					__xlXlpBuildPackageAbiId(pModule->sKey, sModulePackageAbiFallback, sizeof(sModulePackageAbiFallback));
+					__xlXlpBuildPackageAbiId(pModule->sKey, "0.0.0", "1", sModulePackageAbiFallback, sizeof(sModulePackageAbiFallback));
 					sModulePackageAbiIdText = sModulePackageAbiFallback;
 				} else {
 					sModulePackageAbiIdText = sPackageAbiId;

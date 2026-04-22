@@ -950,6 +950,51 @@ static int __xlXlpTryResolveFromSearchRoot(const char* sSearchRoot, const char* 
 	return XL_RC_FAIL;
 }
 
+static int __xlXlpTryResolveFromPackageDir(const char* sPackageDir, const char* sImportKey, const char* sVersion, XL_XlpResolveInfo* pInfo)
+{
+	char sCandidateDir[XL_PATH_MAX_LEN];
+	char sCandidateFile[XL_PATH_MAX_LEN];
+
+	if ( (sPackageDir == NULL) || (sImportKey == NULL) || (pInfo == NULL) ) {
+		return XL_RC_BAD_ARG;
+	}
+
+	if ( (sVersion != NULL) && (sVersion[0] != '\0') ) {
+		snprintf(sCandidateDir, sizeof(sCandidateDir), "%s@%s", sImportKey, sVersion);
+		xlPathJoin(sCandidateFile, sizeof(sCandidateFile), sPackageDir, sCandidateDir);
+		xlPathJoin(sCandidateDir, sizeof(sCandidateDir), sCandidateFile, "xlp.json");
+		if ( __xlXlpFileExists(sCandidateDir) ) {
+			return __xlXlpResolveModuleFromManifest(sCandidateDir, sImportKey, pInfo);
+		}
+
+		xlPathJoin(sCandidateFile, sizeof(sCandidateFile), sPackageDir, sImportKey);
+		snprintf(sCandidateDir, sizeof(sCandidateDir), "%s", sCandidateFile);
+		if ( strlen(sCandidateDir) < (sizeof(sCandidateDir) - 1) ) {
+			strncat(sCandidateDir, "@", sizeof(sCandidateDir) - strlen(sCandidateDir) - 1);
+		}
+		strncat(sCandidateDir, sVersion, sizeof(sCandidateDir) - strlen(sCandidateDir) - 1);
+		strncat(sCandidateDir, ".xlp.json", sizeof(sCandidateDir) - strlen(sCandidateDir) - 1);
+		if ( __xlXlpFileExists(sCandidateDir) ) {
+			return __xlXlpResolveModuleFromManifest(sCandidateDir, sImportKey, pInfo);
+		}
+	}
+
+	xlPathJoin(sCandidateDir, sizeof(sCandidateDir), sPackageDir, sImportKey);
+	xlPathJoin(sCandidateFile, sizeof(sCandidateFile), sCandidateDir, "xlp.json");
+	if ( __xlXlpFileExists(sCandidateFile) ) {
+		return __xlXlpResolveModuleFromManifest(sCandidateFile, sImportKey, pInfo);
+	}
+
+	xlPathJoin(sCandidateFile, sizeof(sCandidateFile), sPackageDir, sImportKey);
+	snprintf(sCandidateDir, sizeof(sCandidateDir), "%s", sCandidateFile);
+	strncat(sCandidateDir, ".xlp.json", sizeof(sCandidateDir) - strlen(sCandidateDir) - 1);
+	if ( __xlXlpFileExists(sCandidateDir) ) {
+		return __xlXlpResolveModuleFromManifest(sCandidateDir, sImportKey, pInfo);
+	}
+
+	return XL_RC_FAIL;
+}
+
 static int __xlXlpResolveModuleFromManifest(
 	const char* sManifestPath,
 	const char* sImportKey,
@@ -1271,6 +1316,37 @@ int xlXlpFindModuleSource(
 	snprintf(sSearchDir, sizeof(sSearchDir), "%s", sCurrentFile);
 	__xlXlpStripFileName(sSearchDir);
 	return __xlXlpTryResolveFromSearchRoot(sSearchDir, sImportKey, NULL, pInfo);
+}
+
+int xlXlpFindModuleSourceInRoots(
+	const char** ppSearchRoots,
+	size_t iSearchRootCount,
+	const char* sCurrentManifestPath,
+	const char* sImportKey,
+	XL_XlpResolveInfo* pInfo
+)
+{
+	char sVersion[64];
+	size_t i;
+
+	if ( (ppSearchRoots == NULL) || (iSearchRootCount == 0) || (sImportKey == NULL) || (pInfo == NULL) ) {
+		return XL_RC_BAD_ARG;
+	}
+
+	xlXlpResolveInfoInit(pInfo);
+	sVersion[0] = '\0';
+	if ( (sCurrentManifestPath != NULL) && (sCurrentManifestPath[0] != '\0') ) {
+		(void)__xlXlpFindDependencyVersion(sCurrentManifestPath, sImportKey, sVersion, sizeof(sVersion));
+	}
+	for ( i = 0; i < iSearchRootCount; ++i ) {
+		if ( (ppSearchRoots[i] == NULL) || (ppSearchRoots[i][0] == '\0') ) {
+			continue;
+		}
+		if ( __xlXlpTryResolveFromPackageDir(ppSearchRoots[i], sImportKey, sVersion, pInfo) == XL_RC_OK ) {
+			return XL_RC_OK;
+		}
+	}
+	return XL_RC_FAIL;
 }
 
 int xlXlpFindDependencyVersion(

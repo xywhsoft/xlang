@@ -1093,7 +1093,11 @@ static xvalue __xlJsonParseNumberValue(XL_JsonParseCtx* pCtx)
 		}
 		value = xvoCreateFloat(fValue);
 	} else {
+		#ifdef _WIN32
+		int64 iValue = (int64)_strtoi64(sTmp, &pEnd, 10);
+		#else
 		int64 iValue = (int64)strtoll(sTmp, &pEnd, 10);
+		#endif
 		free(sTmp);
 		if ( (pEnd == NULL) || (*pEnd != '\0') ) {
 			__xlJsonSetError(pCtx, "invalid number");
@@ -1663,6 +1667,8 @@ xvalue xl_iter_values(xvalue value)
 xvalue xl_iter_items(xvalue value)
 {
 	xvalue result;
+	xdict pTable;
+	Dict_Key* pDictKey;
 	xavltree pTree;
 	Coll_Key* pKey;
 
@@ -1670,6 +1676,34 @@ xvalue xl_iter_items(xvalue value)
 	if ( result == NULL ) {
 		return NULL;
 	}
+
+	pTable = xvoGetTable(value);
+	if ( pTable != NULL ) {
+		xrtAVLTB_IterBegin((xavltbase)pTable);
+		for ( pDictKey = (Dict_Key*)xrtAVLTB_IterNext((xavltbase)pTable); pDictKey != NULL; pDictKey = (Dict_Key*)xrtAVLTB_IterNext((xavltbase)pTable) ) {
+			xvalue pairValue = xvoCreateArray();
+			xvalue keyValue = xvoCreateText((str)pDictKey->Key, (uint32)pDictKey->KeyLen, FALSE);
+			xvalue itemValue = *(xvalue*)(&pDictKey[1]);
+
+			if ( (pairValue == NULL) || (keyValue == NULL) ||
+				!xvoArrayAppendValue(pairValue, keyValue, TRUE) ||
+				!xvoArrayAppendValue(pairValue, itemValue, TRUE) ||
+				!xvoArrayAppendValue(result, pairValue, TRUE) ) {
+				if ( keyValue != NULL ) {
+					xvoUnref(keyValue);
+				}
+				if ( pairValue != NULL ) {
+					xvoUnref(pairValue);
+				}
+				xrtAVLTB_IterEnd((xavltbase)pTable);
+				xvoUnref(result);
+				return NULL;
+			}
+		}
+		xrtAVLTB_IterEnd((xavltbase)pTable);
+		return result;
+	}
+
 	pTree = xvoGetColl(value);
 	if ( pTree == NULL ) {
 		return result;

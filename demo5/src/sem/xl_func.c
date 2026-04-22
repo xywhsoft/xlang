@@ -355,6 +355,9 @@ static void __xlFuncInfoFree(XL_FuncInfo* pInfo)
 	for ( i = 0; i < pInfo->iTypeParamCount; ++i ) {
 		free(pInfo->arrTypeParamNames[i]);
 	}
+	for ( i = 0; i < pInfo->iGenericInstanceTypeArgCount; ++i ) {
+		free(pInfo->arrGenericInstanceTypeArgs[i]);
+	}
 	for ( i = 0; i < pInfo->iCaptureCount; ++i ) {
 		free(pInfo->arrCaptureNames[i]);
 		free(pInfo->arrCaptureTypeNames[i]);
@@ -365,6 +368,7 @@ static void __xlFuncInfoFree(XL_FuncInfo* pInfo)
 	free(pInfo->arrTypeParamNames);
 	free(pInfo->arrGenericParamTypes);
 	free(pInfo->arrGenericReturnTypeNames);
+	free(pInfo->arrGenericInstanceTypeArgs);
 	free(pInfo->arrCaptureNames);
 	free(pInfo->arrCaptureTypeNames);
 	free(pInfo->arrCaptureSymbolIndexes);
@@ -448,6 +452,7 @@ int xlFuncTableAddEx(
 	pInfo->bAsync = bAsync;
 	pInfo->bGenerator = bGenerator;
 	pInfo->eVarArgKind = eVarArgKind;
+	pInfo->iGenericBaseFuncIndex = -1;
 	pInfo->iParamCount = iParamCount;
 	pInfo->iReturnCount = iReturnCount;
 
@@ -670,5 +675,46 @@ int xlFuncInfoSetGenerics(
 		}
 	}
 	pInfo->iTypeParamCount = iTypeParamCount;
+	return XL_RC_OK;
+}
+
+int xlFuncInfoSetGenericInstance(
+	XL_FuncInfo* pInfo,
+	int iGenericBaseFuncIndex,
+	const char* const* arrTypeArgs,
+	size_t iTypeArgCount
+)
+{
+	size_t i;
+
+	if ( pInfo == NULL ) {
+		return XL_RC_BAD_ARG;
+	}
+
+	for ( i = 0; i < pInfo->iGenericInstanceTypeArgCount; ++i ) {
+		free(pInfo->arrGenericInstanceTypeArgs[i]);
+	}
+	free(pInfo->arrGenericInstanceTypeArgs);
+	pInfo->arrGenericInstanceTypeArgs = NULL;
+	pInfo->iGenericInstanceTypeArgCount = 0;
+	pInfo->iGenericBaseFuncIndex = iGenericBaseFuncIndex;
+
+	if ( iTypeArgCount == 0 ) {
+		return XL_RC_OK;
+	}
+
+	pInfo->arrGenericInstanceTypeArgs = (char**)calloc(iTypeArgCount, sizeof(char*));
+	if ( pInfo->arrGenericInstanceTypeArgs == NULL ) {
+		return XL_RC_IO_ERROR;
+	}
+
+	for ( i = 0; i < iTypeArgCount; ++i ) {
+		pInfo->arrGenericInstanceTypeArgs[i] = __xlFuncDupText((arrTypeArgs != NULL) ? arrTypeArgs[i] : "");
+		if ( pInfo->arrGenericInstanceTypeArgs[i] == NULL ) {
+			return XL_RC_IO_ERROR;
+		}
+	}
+
+	pInfo->iGenericInstanceTypeArgCount = iTypeArgCount;
 	return XL_RC_OK;
 }

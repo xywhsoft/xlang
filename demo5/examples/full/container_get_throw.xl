@@ -1,0 +1,4 @@
+func main() as int
+	var dict<int> scores = {"a": 1}
+	return scores.get("missing")
+end

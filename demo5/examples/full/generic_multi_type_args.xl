@@ -1,0 +1,10 @@
+import std.core
+
+func pick<T, U>(T left, U right) as U
+	return right
+end
+
+func main() as int
+	std.core.println(pick(10, "right"))
+	return pick("left", 73)
+end

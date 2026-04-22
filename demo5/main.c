@@ -28,5 +28,10 @@ int main(int argc, char** argv)
 		return XL_RC_OK;
 	}
 
+	if ( opts.bDiagJson ) {
+		xlDiagSetFormat(&diag, XL_DIAG_FORMAT_JSON);
+	}
+	xlDiagSetDefaultSourceFile(&diag, opts.sInputFile);
+
 	return xlDriverRun(&opts, &diag, &dump);
 }

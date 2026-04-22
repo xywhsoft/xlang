@@ -30,15 +30,19 @@ typedef struct XL_FuncInfo {
 	char** arrTypeParamNames;
 	char** arrGenericParamTypes;
 	char** arrGenericReturnTypeNames;
+	char** arrGenericInstanceTypeArgs;
 	char** arrCaptureNames;
 	char** arrCaptureTypeNames;
 	int* arrCaptureSymbolIndexes;
 	unsigned char* arrParamHasDefault;
 	const XL_AstNode** arrParamDefaultValues;
+	const XL_AstNode* pDeclNode;
 	size_t iParamCount;
 	size_t iReturnCount;
 	size_t iTypeParamCount;
+	size_t iGenericInstanceTypeArgCount;
 	size_t iCaptureCount;
+	int iGenericBaseFuncIndex;
 	int iScopeId;
 	int iLine;
 	int iColumn;
@@ -105,6 +109,12 @@ int xlFuncInfoSetGenerics(
 	size_t iGenericParamCount,
 	const char* const* arrGenericReturnTypeNames,
 	size_t iGenericReturnCount
+);
+int xlFuncInfoSetGenericInstance(
+	XL_FuncInfo* pInfo,
+	int iGenericBaseFuncIndex,
+	const char* const* arrTypeArgs,
+	size_t iTypeArgCount
 );
 
 #endif

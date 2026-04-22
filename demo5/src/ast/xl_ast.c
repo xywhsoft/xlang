@@ -110,7 +110,7 @@ static void __xlAstAdoptNodeRange(XL_AstNode* pNode, const XL_AstNode* pSource)
 const char* xlAstKindName(XL_AstKind eKind)
 {
 	static const char* arrNames[] = {
-		"List", "Program", "Block", "FuncDecl", "FuncExpr", "ClassDecl", "UnionDecl", "CreateDecl", "DestroyDecl", "Param", "TypeRef", "TypeDef", "ConstDecl", "VarDecl", "UnpackDecl",
+		"List", "Program", "Block", "FuncDecl", "FuncExpr", "ClassDecl", "UnionDecl", "CreateDecl", "DestroyDecl", "NoCopyDecl", "Param", "TypeRef", "TypeDef", "ConstDecl", "VarDecl", "UnpackDecl",
 		"If", "ElseIf", "While", "ForIn", "Import", "Export", "Try", "Return", "Break", "Continue", "Throw", "Assert", "Yield",
 		"ExprStmt", "NamedArg", "Assign", "Ternary", "Binary", "Unary", "Call", "Member", "Index", "Ident", "Int", "Float",
 		"String", "Template", "Bool", "Null", "Time"
@@ -354,6 +354,17 @@ XL_AstNode* xlAstCreateDestroyDecl(const XL_Token* pToken, XL_AstNode* pBody)
 		xlAstAppendChild(pNode, xlAstCreateList());
 		xlAstAppendChild(pNode, xlAstCreateList());
 		xlAstAppendChild(pNode, (pBody != NULL) ? pBody : xlAstCreateBlock(NULL));
+	}
+	return pNode;
+}
+
+XL_AstNode* xlAstCreateNoCopyDecl(const XL_Token* pToken)
+{
+	XL_AstNode* pNode;
+
+	pNode = xlAstCreateNode(XL_AST_NOCOPY_DECL, pToken);
+	if ( pNode != NULL ) {
+		xlAstSetText(pNode, "nocopy", 6);
 	}
 	return pNode;
 }

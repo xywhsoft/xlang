@@ -108,6 +108,11 @@ int xlCliParse(int argc, char** argv, XL_CliOptions* pOpts, XL_DiagContext* pDia
 			pOpts->bDumpJson = true;
 			continue;
 		}
+		if ( strcmp(sArg, "--diag-json") == 0 ) {
+			pOpts->bDiagJson = true;
+			xlDiagSetFormat(pDiag, XL_DIAG_FORMAT_JSON);
+			continue;
+		}
 		if ( strcmp(sArg, "--trace-parser") == 0 ) {
 			pOpts->bTraceParser = true;
 			continue;
@@ -209,6 +214,7 @@ void xlCliPrintHelp(const char* sProgName)
 	printf("  --dump-mir        dump MIR\n");
 	printf("  --dump-c          dump generated C\n");
 	printf("  --dump-json       emit machine-readable dump when available\n");
+	printf("  --diag-json       emit diagnostics as JSON lines\n");
 	printf("  --trace-parser    enable parser trace\n");
 	printf("  --trace-sem       enable semantic trace\n");
 	printf("  --trace-lower     enable lowering trace\n");

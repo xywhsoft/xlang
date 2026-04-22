@@ -1,0 +1,11 @@
+{
+	"name": "project.app",
+	"version": "0.1.0",
+	"type": "app",
+	"main": "app/main.xl",
+	"source": ["src"],
+	"packages": ["packages"],
+	"links": ["shell32"],
+	"libpath": ["lib"],
+	"incpath": ["include"]
+}
