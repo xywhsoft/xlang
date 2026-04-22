@@ -1,0 +1,39 @@
+import std.sys.lib as sys
+
+func main() as int
+	auto lib = sys.dlopen("examples/xlp_native/packages/pkg.probe/bin/pkg_probe.dll")
+
+	function<int()> probe = function<int()>(sys.dlsym(lib, "pkg_clock_artifact_probe"))
+	function<string()> text = function<string()>(sys.dlsym(lib, "pkg_clock_artifact_text"))
+	function<int(string)> text_len = function<int(string)>(sys.dlsym(lib, "pkg_clock_artifact_text_len"))
+	function<int(bool)> bool_score = function<int(bool)>(sys.dlsym(lib, "pkg_clock_artifact_bool_score"))
+	function<float()> float_value = function<float()>(sys.dlsym(lib, "pkg_clock_artifact_float_value"))
+	function<float(float)> add_half = function<float(float)>(sys.dlsym(lib, "pkg_clock_artifact_add_half"))
+	function<void()> touch = function<void()>(sys.dlsym(lib, "pkg_clock_artifact_touch"))
+
+	if probe() != 123 then
+		return 1
+	end
+	if text() != "probe-text" then
+		return 2
+	end
+	if text_len("hello") != 5 then
+		return 3
+	end
+	if bool_score(true) != 7 then
+		return 4
+	end
+	if bool_score(false) != 3 then
+		return 5
+	end
+	if float_value() != 3.5 then
+		return 6
+	end
+	if add_half(4.5) != 5.0 then
+		return 7
+	end
+
+	touch()
+	sys.dlclose(lib)
+	return 42
+end

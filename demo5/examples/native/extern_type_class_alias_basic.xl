@@ -1,0 +1,37 @@
+#loadlib "../xlp_native/packages/pkg.probe/bin/pkg_probe.dll"
+
+class NativePair extends object
+	var x as int
+	var y as int
+
+	create(int x, int y)
+		self.x = x
+		self.y = y
+	end
+end
+
+extern type NativePairAbi = NativePair
+
+extern "pkg_clock_artifact_pair_slot" var pair_slot as NativePairAbi
+extern "pkg_clock_artifact_pair_make" func pair_make(int x, int y) as NativePairAbi
+extern "pkg_clock_artifact_pair_value_sum" func pair_value_sum(NativePairAbi pair) as int
+extern "pkg_clock_artifact_pair_add" func pair_add(NativePairAbi pair, int delta) as NativePairAbi
+
+func main() as int
+	auto saved = pair_slot
+	pair_slot = pair_make(20, 22)
+	if pair_value_sum(pair_slot) != 42 then
+		pair_slot = saved
+		return 1
+	end
+
+	auto next = pair_add(pair_slot, 1)
+	pair_slot = saved
+	if next.x != 21 then
+		return 2
+	end
+	if next.y != 23 then
+		return 3
+	end
+	return 42
+end

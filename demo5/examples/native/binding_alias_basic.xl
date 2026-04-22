@@ -1,0 +1,15 @@
+#loadlib "../xlp_native/packages/pkg.probe/bin/pkg_probe.dll"
+#binding "binding_alias_probe.h"
+
+func main() as int
+	if pkg_clock_artifact_add_one(41) != 42 then
+		return 1
+	end
+	if pkg_clock_artifact_text_len("hello") != 5 then
+		return 2
+	end
+	if pkg_clock_artifact_point_sentinel() == null then
+		return 3
+	end
+	return 42
+end

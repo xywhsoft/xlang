@@ -1,0 +1,9 @@
+#loadlib "../xlp_native/packages/pkg.probe/bin/pkg_probe.dll"
+#binding "binding_extern_c_probe.h"
+
+func main() as int
+	if pkg_clock_artifact_add_one(41) != 42 then
+		return 1
+	end
+	return pkg_clock_artifact_bool_score(1) + 35
+end

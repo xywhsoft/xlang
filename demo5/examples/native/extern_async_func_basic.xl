@@ -1,0 +1,7 @@
+#loadlib "../xlp_native/packages/pkg.probe/bin/pkg_probe.dll"
+
+extern "pkg_clock_artifact_add_one" async func async_add_one(int value) as int
+
+async func main() as int
+	return await async_add_one(41)
+end

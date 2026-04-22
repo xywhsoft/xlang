@@ -1,0 +1,65 @@
+[info][binding] D:/git/x-lang/demo5/src/driver/xl_module_link.c:1309: begin header='D:\Git\x-lang\demo5\examples\native\binding_define_probe.h'
+[info][binding] D:/git/x-lang/demo5/src/driver/xl_module_link.c:1309: typedef alias='PROBE_ALIAS_INT' type='int'
+[info][binding] D:/git/x-lang/demo5/src/driver/xl_module_link.c:1309: define name='PROBE_ANSWER' type='int'
+[info][binding] D:/git/x-lang/demo5/src/driver/xl_module_link.c:1309: define name='PROBE_ANSWER_ALIAS' type='int' alias='PROBE_ANSWER'
+[info][binding] D:/git/x-lang/demo5/src/driver/xl_module_link.c:1309: define name='PROBE_ANSWER_ALIAS_2' type='int' alias='PROBE_ANSWER_ALIAS'
+[info][binding] D:/git/x-lang/demo5/src/driver/xl_module_link.c:1309: define name='PROBE_HEX_VALUE' type='uint64'
+[info][binding] D:/git/x-lang/demo5/src/driver/xl_module_link.c:1309: define name='PROBE_BIN_VALUE' type='uint64'
+[info][binding] D:/git/x-lang/demo5/src/driver/xl_module_link.c:1309: define name='PROBE_SEP_VALUE' type='int'
+[info][binding] D:/git/x-lang/demo5/src/driver/xl_module_link.c:1309: define name='PROBE_OCT_VALUE' type='int'
+[info][binding] D:/git/x-lang/demo5/src/driver/xl_module_link.c:1309: define name='PROBE_RATIO' type='float64'
+[info][binding] D:/git/x-lang/demo5/src/driver/xl_module_link.c:1309: define name='PROBE_RATIO_ALIAS' type='float64' alias='PROBE_RATIO'
+[info][binding] D:/git/x-lang/demo5/src/driver/xl_module_link.c:1309: define name='PROBE_RATIO_ALIAS_2' type='float64' alias='PROBE_RATIO_ALIAS'
+[info][binding] D:/git/x-lang/demo5/src/driver/xl_module_link.c:1309: define name='PROBE_TEXT' type='string'
+[info][binding] D:/git/x-lang/demo5/src/driver/xl_module_link.c:1309: define name='PROBE_TEXT_JOIN' type='string'
+[info][binding] D:/git/x-lang/demo5/src/driver/xl_module_link.c:1309: define name='PROBE_TEXT_PAREN' type='string'
+[info][binding] D:/git/x-lang/demo5/src/driver/xl_module_link.c:1309: define name='PROBE_TEXT_U8' type='string'
+[info][binding] D:/git/x-lang/demo5/src/driver/xl_module_link.c:1309: define name='PROBE_TEXT_ALIAS' type='string' alias='PROBE_TEXT_JOIN'
+[info][binding] D:/git/x-lang/demo5/src/driver/xl_module_link.c:1309: define name='PROBE_CHAR' type='int'
+[info][binding] D:/git/x-lang/demo5/src/driver/xl_module_link.c:1309: define name='PROBE_CHAR_NEWLINE' type='int'
+[info][binding] D:/git/x-lang/demo5/src/driver/xl_module_link.c:1309: define name='PROBE_CHAR_HEX' type='int'
+[info][binding] D:/git/x-lang/demo5/src/driver/xl_module_link.c:1309: define name='PROBE_CHAR_OCT' type='int'
+[info][binding] D:/git/x-lang/demo5/src/driver/xl_module_link.c:1309: define name='PROBE_CHAR_WIDE' type='int'
+[info][binding] D:/git/x-lang/demo5/src/driver/xl_module_link.c:1309: define name='PROBE_CHAR_U' type='int'
+[info][binding] D:/git/x-lang/demo5/src/driver/xl_module_link.c:1309: define name='PROBE_CHAR_U8' type='int'
+[info][binding] D:/git/x-lang/demo5/src/driver/xl_module_link.c:1309: define name='PROBE_VOID_NULL' type='point' null='1'
+[info][binding] D:/git/x-lang/demo5/src/driver/xl_module_link.c:1309: define name='PROBE_HANDLE_NULL' type='point' null='1'
+[info][binding] D:/git/x-lang/demo5/src/driver/xl_module_link.c:1309: define name='PROBE_LPVOID_NULL' type='point' null='1'
+[info][binding] D:/git/x-lang/demo5/src/driver/xl_module_link.c:1309: define name='PROBE_NULL' type='int' expr='0'
+[info][binding] D:/git/x-lang/demo5/src/driver/xl_module_link.c:1309: define name='PROBE_TRUE_VALUE' type='int' expr='1'
+[info][binding] D:/git/x-lang/demo5/src/driver/xl_module_link.c:1309: define name='PROBE_FALSE_VALUE' type='int' expr='0'
+[info][binding] D:/git/x-lang/demo5/src/driver/xl_module_link.c:1309: define name='PROBE_SHIFT' type='int' expr='8'
+[info][binding] D:/git/x-lang/demo5/src/driver/xl_module_link.c:1309: define name='PROBE_MASK' type='int' expr='10'
+[info][binding] D:/git/x-lang/demo5/src/driver/xl_module_link.c:1309: define name='PROBE_BIN_EXPR' type='int' expr='42'
+[info][binding] D:/git/x-lang/demo5/src/driver/xl_module_link.c:1309: define name='PROBE_SEP_EXPR' type='int' expr='1024'
+[info][binding] D:/git/x-lang/demo5/src/driver/xl_module_link.c:1309: define name='PROBE_OCT_EXPR' type='int' expr='42'
+[info][binding] D:/git/x-lang/demo5/src/driver/xl_module_link.c:1309: define name='PROBE_CHAR_PREFIX_EXPR' type='int' expr='42'
+[info][binding] D:/git/x-lang/demo5/src/driver/xl_module_link.c:1309: define name='PROBE_MATH' type='int' expr='30'
+[info][binding] D:/git/x-lang/demo5/src/driver/xl_module_link.c:1309: define name='PROBE_CAST' type='int' expr='11'
+[info][binding] D:/git/x-lang/demo5/src/driver/xl_module_link.c:1309: define name='PROBE_EQ' type='int' expr='1'
+[info][binding] D:/git/x-lang/demo5/src/driver/xl_module_link.c:1309: define name='PROBE_NE' type='int' expr='1'
+[info][binding] D:/git/x-lang/demo5/src/driver/xl_module_link.c:1309: define name='PROBE_CMP' type='int' expr='1'
+[info][binding] D:/git/x-lang/demo5/src/driver/xl_module_link.c:1309: define name='PROBE_LOGIC' type='int' expr='1'
+[info][binding] D:/git/x-lang/demo5/src/driver/xl_module_link.c:1309: define name='PROBE_CONST_TERNARY' type='int' expr='42'
+[info][binding] D:/git/x-lang/demo5/src/driver/xl_module_link.c:1309: define name='PROBE_CONST_TERNARY_NAKED' type='int' expr='42'
+[info][binding] D:/git/x-lang/demo5/src/driver/xl_module_link.c:1309: define name='PROBE_CONST_TERNARY_FALSE' type='int' expr='42'
+[info][binding] D:/git/x-lang/demo5/src/driver/xl_module_link.c:1309: define name='PROBE_SIZE_INT' type='int' expr='4'
+[info][binding] D:/git/x-lang/demo5/src/driver/xl_module_link.c:1309: define name='PROBE_SIZE_PTR' type='int' expr='8'
+[info][binding] D:/git/x-lang/demo5/src/driver/xl_module_link.c:1309: define name='PROBE_SIZE_CONST_CHAR_PTR' type='int' expr='8'
+[info][binding] D:/git/x-lang/demo5/src/driver/xl_module_link.c:1309: define function_macro='PROBE_SKIP_FUNC' params=1
+[info][binding] D:/git/x-lang/demo5/src/driver/xl_module_link.c:1309: define function_macro='PROBE_ADD' params=2
+[info][binding] D:/git/x-lang/demo5/src/driver/xl_module_link.c:1309: define function_macro='PROBE_MIX' params=2
+[info][binding] D:/git/x-lang/demo5/src/driver/xl_module_link.c:1309: define function_macro='PROBE_WITH_CONST' params=1
+[info][binding] D:/git/x-lang/demo5/src/driver/xl_module_link.c:1309: define function_macro='PROBE_SIZE_ADD' params=1
+[info][binding] D:/git/x-lang/demo5/src/driver/xl_module_link.c:1309: define function_macro='PROBE_BOOL_MATH' params=1
+[info][binding] D:/git/x-lang/demo5/src/driver/xl_module_link.c:1309: define function_macro='PROBE_IS_ANSWER' params=1
+[info][binding] D:/git/x-lang/demo5/src/driver/xl_module_link.c:1309: define function_macro='PROBE_RANGE_OK' params=1
+[info][binding] D:/git/x-lang/demo5/src/driver/xl_module_link.c:1309: define function_macro='PROBE_NOT_ZERO' params=1
+[info][binding] D:/git/x-lang/demo5/src/driver/xl_module_link.c:1309: define function_macro='PROBE_MIN' params=2
+[info][binding] D:/git/x-lang/demo5/src/driver/xl_module_link.c:1309: define function_macro='PROBE_MAX' params=2
+[info][binding] D:/git/x-lang/demo5/src/driver/xl_module_link.c:1309: define function_macro='PROBE_PICK_OR_ANSWER' params=1
+[info][binding] D:/git/x-lang/demo5/src/driver/xl_module_link.c:1309: define function_macro='PROBE_BOOL_TERNARY' params=1
+[info][binding] D:/git/x-lang/demo5/src/driver/xl_module_link.c:1309: define function_macro='PROBE_CAST_ALIAS' params=1
+[info][binding] D:/git/x-lang/demo5/src/driver/xl_module_link.c:1309: define function_macro='PROBE_GET_ANSWER' params=0
+[info][binding] D:/git/x-lang/demo5/src/driver/xl_module_link.c:1309: define function_macro='PROBE_MULTILINE' params=1
+[info][binding] D:/git/x-lang/demo5/src/driver/xl_module_link.c:1309: summary header='D:\Git\x-lang\demo5\examples\native\binding_define_probe.h' functions=0 vars=0 types=1 defines=62 enums=0 skipped=0

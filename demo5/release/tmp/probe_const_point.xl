@@ -1,0 +1,5 @@
+const point P = point(null)
+func main() as int
+	point q = P
+	return 0
+end

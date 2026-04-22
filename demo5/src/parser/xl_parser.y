@@ -434,6 +434,7 @@ static void xlPAttachExternSymbol(XL_AstNode* pDecl, const XL_Token* pNameToken,
 	if ( pDecl == NULL ) {
 		return;
 	}
+	pDecl->iIntValue = 1;
 
 	if ( (pSymbolToken == NULL) || (pSymbolToken->sText == NULL) ) {
 		if ( (pNameToken != NULL) && (pNameToken->sText != NULL) ) {
@@ -617,6 +618,20 @@ static XL_AstNode* xlPCreateHiddenCall(const char* sName, XL_AstNode* pArgs, con
 		xlAstFree(pArgs);
 	}
 	return pCall;
+}
+
+static XL_AstNode* xlPCreateSpreadArg(const XL_Token* pToken, XL_AstNode* pValue)
+{
+	XL_AstNode* pArg;
+
+	pArg = xlAstCreateNode(XL_AST_NAMED_ARG, pToken);
+	if ( pArg == NULL ) {
+		xlAstFree(pValue);
+		return NULL;
+	}
+	xlAstSetText(pArg, "arg", 3);
+	xlAstAppendChild(pArg, pValue);
+	return pArg;
 }
 
 static XL_AstNode* xlPCreateDictLiteralItems(XL_AstNode* pKey, XL_AstNode* pValue)
@@ -1050,6 +1065,22 @@ extern_symbol_opt(A) ::= . {
 extern_decl(A) ::= KW_EXTERN(E) extern_symbol_opt(S) KW_FUNC func_name(N) TK_LPAREN param_list(P) TK_RPAREN ret_type(R). {
 	A = xlAstCreateFuncDecl(&N, 0, P, R, xlAstCreateBlock(&E));
 	xlPAttachExternSymbol(A, &N, (S.eKind != 0) ? &S : NULL);
+}
+extern_decl(A) ::= KW_EXTERN(E) extern_symbol_opt(S) KW_ASYNC KW_FUNC func_name(N) TK_LPAREN param_list(P) TK_RPAREN ret_type(R). {
+	A = xlAstCreateFuncDecl(&N, 1, P, R, xlAstCreateBlock(&E));
+	xlPAttachExternSymbol(A, &N, (S.eKind != 0) ? &S : NULL);
+}
+extern_decl(A) ::= KW_EXTERN(E) KW_FUNC type_name(TY) OP_DOT func_name(N) TK_LPAREN param_list(P) TK_RPAREN ret_type(R). {
+	A = xlPCreateMethodFuncDecl(xlAstCreateTypeRef(&TY), &N, 0, P, R, xlAstCreateBlock(&E));
+	xlPAttachExternSymbol(A, &N, NULL);
+}
+extern_decl(A) ::= KW_EXTERN(E) KW_FUNC generic_type_ref(TY) OP_DOT func_name(N) TK_LPAREN param_list(P) TK_RPAREN ret_type(R). {
+	A = xlPCreateMethodFuncDecl(TY, &N, 0, P, R, xlAstCreateBlock(&E));
+	xlPAttachExternSymbol(A, &N, NULL);
+}
+extern_decl(A) ::= KW_EXTERN(E) KW_FUNC function_type_ref(TY) OP_DOT func_name(N) TK_LPAREN param_list(P) TK_RPAREN ret_type(R). {
+	A = xlPCreateMethodFuncDecl(TY, &N, 0, P, R, xlAstCreateBlock(&E));
+	xlPAttachExternSymbol(A, &N, NULL);
 }
 extern_decl(A) ::= KW_EXTERN extern_symbol_opt(S) TOK_IDENT(V) TOK_IDENT(N) KW_AS type_name(T). {
 	if ( !xlPTokenEquals(&V, "var") ) {
@@ -1576,6 +1607,22 @@ args(A) ::= expr(E). {
 args(A) ::= args(L) TK_COMMA expr(E). {
 	A = L;
 	xlAstAppendChild(A, E);
+}
+args(A) ::= OP_ELLIPSIS(T) expr(E). {
+	A = xlPList();
+	xlAstAppendChild(A, xlPCreateSpreadArg(&T, E));
+}
+args(A) ::= args(L) TK_COMMA OP_ELLIPSIS(T) expr(E). {
+	A = L;
+	xlAstAppendChild(A, xlPCreateSpreadArg(&T, E));
+}
+args(A) ::= OP_POWER(T) OP_STAR expr(E). {
+	A = xlPList();
+	xlAstAppendChild(A, xlPCreateSpreadArg(&T, E));
+}
+args(A) ::= args(L) TK_COMMA OP_POWER(T) OP_STAR expr(E). {
+	A = L;
+	xlAstAppendChild(A, xlPCreateSpreadArg(&T, E));
 }
 args(A) ::= TOK_IDENT(N) OP_ASSIGN expr(E). {
 	A = xlPList();

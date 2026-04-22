@@ -1,0 +1,30 @@
+var int total = 0
+
+class Handle extends object
+	nocopy
+	var value as int
+
+	create(int value)
+		self.value = value
+	end
+
+	destroy()
+		total = total + self.value
+	end
+end
+
+func main() as int
+	auto a = Handle(5)
+	auto b = Handle(7)
+	auto c = Handle(11)
+	auto d = Handle(13)
+	auto e = Handle(17)
+	auto items = [move(a)]
+	auto sparse = list{move(b)}
+	auto lookup = {"x": move(c)}
+
+	items.append(move(d))
+	items[0] = move(e)
+
+	return total + items[0].value + items[1].value + sparse[0].value + lookup["x"].value
+end

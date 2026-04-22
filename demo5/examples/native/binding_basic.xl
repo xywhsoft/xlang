@@ -1,0 +1,10 @@
+#loadlib "msvcrt.dll"
+#binding "binding_probe.h"
+
+func main() as int
+	auto value = atoi("42")
+	if _fmode == _fmode then
+		return value
+	end
+	return 0
+end

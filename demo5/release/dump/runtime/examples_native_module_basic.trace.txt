@@ -72,6 +72,7 @@ NativeRegistry
 - key=std.array binding=std.array path=<native:std.array>
 - key=std.set binding=std.set path=<native:std.set>
 - key=std.str binding=std.str path=<native:std.str>
+- key=std.sys.lib binding=std.sys.lib path=<native:std.sys.lib>
 - key=std.sys.env binding=std.sys.env path=<native:std.sys.env>
 - key=std.sys.file binding=std.sys.file path=<native:std.sys.file>
 - key=std.sys.mem binding=std.sys.mem path=<native:std.sys.mem>
@@ -91,11 +92,19 @@ include=D:\Git\x-lang\demo5\release\tcc\include_win\winapi
 include=D:\Git\x-lang\demo5\src\runtime
 include=D:\Git\x-lang\demo5\lib\xrt
 lib=D:\Git\x-lang\demo5\release\tcc\lib
+link_lib=shell32
+link_lib=ws2_32
+link_lib=iphlpapi
+link_lib=advapi32
 compile_text=examples\native\module_basic.xl
-cwd.prev=D:\Git\x-lang\demo5
-cwd.exec=D:\Git\x-lang\demo5
-relocate
-resolve_symbol=xl_generated_entry
-execute
-exit_code=74
-cwd.restore=D:\Git\x-lang\demo5
+[tcc] examples/native/module_basic.xl:2392: error: redefinition of 'xl_mod_std_module__exports'
+
+[fallback.build]
+tcc_root=D:\Git\x-lang\demo5\release\tcc
+include=D:\Git\x-lang\demo5\release\tcc\include_win
+include=D:\Git\x-lang\demo5\release\tcc\include_win\winapi
+include=D:\Git\x-lang\demo5\src\runtime
+include=D:\Git\x-lang\demo5\lib\xrt
+lib=D:\Git\x-lang\demo5\release\tcc\lib
+compile_text=examples\native\module_basic.xl
+[tcc] examples/native/module_basic.xl:2392: error: redefinition of 'xl_mod_std_module__exports'

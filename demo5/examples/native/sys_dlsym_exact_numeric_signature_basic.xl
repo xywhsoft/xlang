@@ -1,0 +1,50 @@
+import std.sys.lib as sys
+
+func main() as int
+	auto lib = sys.dlopen("examples/xlp_native/packages/pkg.probe/bin/pkg_probe.dll")
+
+	function<int8(int8, int8)> i8_add = function<int8(int8, int8)>(sys.dlsym(lib, "pkg_clock_artifact_i8_add"))
+	function<uint8(uint8, uint8)> u8_add = function<uint8(uint8, uint8)>(sys.dlsym(lib, "pkg_clock_artifact_u8_add"))
+	function<int16(int16, int16)> i16_add = function<int16(int16, int16)>(sys.dlsym(lib, "pkg_clock_artifact_i16_add"))
+	function<uint16(uint16, uint16)> u16_add = function<uint16(uint16, uint16)>(sys.dlsym(lib, "pkg_clock_artifact_u16_add"))
+	function<int32(int32, int32)> i32_add = function<int32(int32, int32)>(sys.dlsym(lib, "pkg_clock_artifact_i32_add"))
+	function<uint32(uint32, uint32)> u32_add = function<uint32(uint32, uint32)>(sys.dlsym(lib, "pkg_clock_artifact_u32_add"))
+	function<int64(int64, int64)> i64_add = function<int64(int64, int64)>(sys.dlsym(lib, "pkg_clock_artifact_i64_add"))
+	function<uint64(uint64, uint64)> u64_add = function<uint64(uint64, uint64)>(sys.dlsym(lib, "pkg_clock_artifact_u64_add"))
+	function<float32(float32, float32)> f32_add = function<float32(float32, float32)>(sys.dlsym(lib, "pkg_clock_artifact_f32_add"))
+	function<float64(float64, float64)> f64_add = function<float64(float64, float64)>(sys.dlsym(lib, "pkg_clock_artifact_f64_add"))
+
+	if i8_add(12, 5) != 17 then
+		return 11
+	end
+	if u8_add(20, 7) != 27 then
+		return 12
+	end
+	if i16_add(300, 45) != 345 then
+		return 13
+	end
+	if u16_add(400, 56) != 456 then
+		return 14
+	end
+	if i32_add(1200, 34) != 1234 then
+		return 1
+	end
+	if u32_add(120000, 34) != 120034 then
+		return 17
+	end
+	if i64_add(42000000000, -1) != 41999999999 then
+		return 18
+	end
+	if u64_add(42000000000, 42) != 42000000042 then
+		return 2
+	end
+	if f32_add(1.25, 2.25) != 3.5 then
+		return 15
+	end
+	if f64_add(2.5, 7.25) != 9.75 then
+		return 16
+	end
+
+	sys.dlclose(lib)
+	return 42
+end

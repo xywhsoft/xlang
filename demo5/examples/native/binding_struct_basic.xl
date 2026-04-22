@@ -1,0 +1,26 @@
+#loadlib "../xlp_native/packages/pkg.probe/bin/pkg_probe.dll"
+#binding "binding_struct_probe.h"
+
+func main() as int
+	auto pair = pkg_clock_artifact_pair_make(12, 30)
+	if pair.x + pair.y != 42 then
+		return 1
+	end
+	if pkg_clock_artifact_pair_value_sum(pair) != 42 then
+		return 2
+	end
+	if pkg_clock_artifact_pair_slot.x + pkg_clock_artifact_pair_slot.y != 42 then
+		return 3
+	end
+	auto saved = pkg_clock_artifact_pair_slot
+	pkg_clock_artifact_pair_slot = pkg_clock_artifact_pair_make(20, 22)
+	if pkg_clock_artifact_pair_slot_is_updated() != 1 then
+		pkg_clock_artifact_pair_slot = saved
+		return 4
+	end
+	pkg_clock_artifact_pair_slot = saved
+	if pkg_clock_artifact_pair_slot_sum() == 42 then
+		return 42
+	end
+	return 5
+end

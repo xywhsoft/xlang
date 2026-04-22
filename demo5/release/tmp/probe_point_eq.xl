@@ -1,0 +1,7 @@
+const point P = point(null)
+func main() as int
+	if P != point(null) then
+		return 1
+	end
+	return 0
+end

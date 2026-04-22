@@ -1445,6 +1445,147 @@ static int __xlTestDiagRuntimeExceptionSource(XL_TestContext* pCtx)
 	return XL_RC_OK;
 }
 
+static int __xlTestDiagBindingTrace(XL_TestContext* pCtx)
+{
+	char sSourcePath[XL_PATH_MAX_LEN];
+	char sDiagPath[XL_PATH_MAX_LEN];
+	char* sText;
+	FILE* pFile;
+	XL_DiagContext diag;
+	XL_ModuleLinkResult moduleResult;
+	int iRc;
+
+	__xlBuildProjectPath(pCtx, sSourcePath, sizeof(sSourcePath), "examples\\native\\binding_define_basic.xl");
+	__xlBuildProjectPath(pCtx, sDiagPath, sizeof(sDiagPath), "release\\tmp\\diag_binding_trace.txt");
+	xlPathEnsureParentDir(sDiagPath);
+	remove(sDiagPath);
+
+	pFile = fopen(sDiagPath, "wb");
+	if ( pFile == NULL ) {
+		return XL_RC_FAIL;
+	}
+	xlDiagInit(&diag, pFile, pFile);
+	xlModuleLinkResultInit(&moduleResult);
+#if defined(_WIN32) || defined(_WIN64)
+	_putenv_s("XL_BINDING_TRACE", "1");
+#else
+	setenv("XL_BINDING_TRACE", "1", 1);
+#endif
+	iRc = xlModuleLinkFromFile(sSourcePath, &diag, 0, &moduleResult);
+#if defined(_WIN32) || defined(_WIN64)
+	_putenv_s("XL_BINDING_TRACE", "");
+#else
+	unsetenv("XL_BINDING_TRACE");
+#endif
+	fclose(pFile);
+	xlModuleLinkResultFree(&moduleResult);
+	if ( iRc != XL_RC_OK ) {
+		return iRc;
+	}
+
+	sText = NULL;
+	iRc = __xlReadFileText(sDiagPath, &sText);
+	if ( iRc != XL_RC_OK ) {
+		return iRc;
+	}
+	if ( (strstr(sText, "[info][binding]") == NULL) ||
+		(strstr(sText, "summary header") == NULL) ||
+		(strstr(sText, "defines=62") == NULL) ||
+		(strstr(sText, "skipped=0") == NULL) ||
+		(strstr(sText, "function_macro='PROBE_ADD'") == NULL) ) {
+		free(sText);
+		return XL_RC_FAIL;
+	}
+	free(sText);
+	return XL_RC_OK;
+}
+
+static int __xlTestDiagBindingErrorDirective(XL_TestContext* pCtx)
+{
+	char sSourcePath[XL_PATH_MAX_LEN];
+	char sDiagPath[XL_PATH_MAX_LEN];
+	char* sText;
+	FILE* pFile;
+	XL_DiagContext diag;
+	XL_ModuleLinkResult moduleResult;
+	int iRc;
+
+	__xlBuildProjectPath(pCtx, sSourcePath, sizeof(sSourcePath), "examples\\native\\binding_error_directive_basic.xl");
+	__xlBuildProjectPath(pCtx, sDiagPath, sizeof(sDiagPath), "release\\tmp\\diag_binding_error_directive.txt");
+	xlPathEnsureParentDir(sDiagPath);
+	remove(sDiagPath);
+
+	pFile = fopen(sDiagPath, "wb");
+	if ( pFile == NULL ) {
+		return XL_RC_FAIL;
+	}
+	xlDiagInit(&diag, pFile, pFile);
+	xlModuleLinkResultInit(&moduleResult);
+	iRc = xlModuleLinkFromFile(sSourcePath, &diag, 0, &moduleResult);
+	fclose(pFile);
+	xlModuleLinkResultFree(&moduleResult);
+	if ( iRc == XL_RC_OK ) {
+		return XL_RC_FAIL;
+	}
+
+	sText = NULL;
+	iRc = __xlReadFileText(sDiagPath, &sText);
+	if ( iRc != XL_RC_OK ) {
+		return iRc;
+	}
+	if ( (strstr(sText, "[error][binding]") == NULL) ||
+		(strstr(sText, "binding_error_directive_probe.h") == NULL) ||
+		(strstr(sText, "binding probe forced failure") == NULL) ) {
+		free(sText);
+		return XL_RC_FAIL;
+	}
+	free(sText);
+	return XL_RC_OK;
+}
+
+static int __xlTestDiagBindingMissingHeader(XL_TestContext* pCtx)
+{
+	char sSourcePath[XL_PATH_MAX_LEN];
+	char sDiagPath[XL_PATH_MAX_LEN];
+	char* sText;
+	FILE* pFile;
+	XL_DiagContext diag;
+	XL_ModuleLinkResult moduleResult;
+	int iRc;
+
+	__xlBuildProjectPath(pCtx, sSourcePath, sizeof(sSourcePath), "examples\\native\\binding_missing_header_basic.xl");
+	__xlBuildProjectPath(pCtx, sDiagPath, sizeof(sDiagPath), "release\\tmp\\diag_binding_missing_header.txt");
+	xlPathEnsureParentDir(sDiagPath);
+	remove(sDiagPath);
+
+	pFile = fopen(sDiagPath, "wb");
+	if ( pFile == NULL ) {
+		return XL_RC_FAIL;
+	}
+	xlDiagInit(&diag, pFile, pFile);
+	xlModuleLinkResultInit(&moduleResult);
+	iRc = xlModuleLinkFromFile(sSourcePath, &diag, 0, &moduleResult);
+	fclose(pFile);
+	xlModuleLinkResultFree(&moduleResult);
+	if ( iRc == XL_RC_OK ) {
+		return XL_RC_FAIL;
+	}
+
+	sText = NULL;
+	iRc = __xlReadFileText(sDiagPath, &sText);
+	if ( iRc != XL_RC_OK ) {
+		return iRc;
+	}
+	if ( (strstr(sText, "[error][binding]") == NULL) ||
+		(strstr(sText, "binding header not found") == NULL) ||
+		(strstr(sText, "binding_missing_header_probe.h") == NULL) ) {
+		free(sText);
+		return XL_RC_FAIL;
+	}
+	free(sText);
+	return XL_RC_OK;
+}
+
 static int __xlRunLowerCase(
 	XL_TestContext* pCtx,
 	const char* sRelativePath,
@@ -1957,6 +2098,7 @@ static int __xlTestParseChannelModuleBasic(XL_TestContext* pCtx) { return __xlRu
 static int __xlTestParseErrorModuleBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\native\\error_module_basic.xl", 1, XL_AST_CALL); }
 static int __xlTestParseModuleBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\native\\module_basic.xl", 1, XL_AST_CALL); }
 static int __xlTestParseTaskModuleBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\native\\task_module_basic.xl", 1, XL_AST_CALL); }
+static int __xlTestParseTypeMethodStdApiBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\native\\type_method_std_api_basic.xl", 1, XL_AST_MEMBER); }
 static int __xlTestParseOsBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\native\\os_basic.xl", 1, XL_AST_CALL); }
 static int __xlTestParseClockBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\native\\clock_basic.xl", 1, XL_AST_CALL); }
 static int __xlTestParseSysEnvBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\native\\sys_env_basic.xl", 1, XL_AST_CALL); }
@@ -1990,11 +2132,38 @@ static int __xlTestParsePackBasic(XL_TestContext* pCtx) { return __xlRunParseCas
 static int __xlTestParseClassStage1ParserBasic(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\full\\class_stage1_parser_basic.xl", 1, XL_AST_CLASS_DECL, "CreateDecl"); }
 static int __xlTestParseClassNoCopyDecl(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\full\\class_nocopy_decl.xl", 1, XL_AST_NOCOPY_DECL, "NoCopyDecl"); }
 static int __xlTestParseExternAtoiBasic(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\native\\extern_atoi_basic.xl", 1, XL_AST_FUNC_DECL, "text2=\"atoi\""); }
+static int __xlTestParseExternAsyncFuncBasic(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\native\\extern_async_func_basic.xl", 1, XL_AST_FUNC_DECL, "text2=\"pkg_clock_artifact_add_one\""); }
+static int __xlTestParseExternTypeMethodBasic(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\native\\extern_type_method_basic.xl", 1, XL_AST_FUNC_DECL, "text2=\"pkg_clock_artifact_add_one\""); }
+static int __xlTestParseBindingBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\native\\binding_basic.xl", 1, XL_AST_FUNC_DECL); }
+static int __xlTestParseBindingTypedefBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\native\\binding_typedef_basic.xl", 1, XL_AST_FUNC_DECL); }
+static int __xlTestParseBindingStructBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\native\\binding_struct_basic.xl", 1, XL_AST_FUNC_DECL); }
+static int __xlTestParseBindingMultilineBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\native\\binding_multiline_basic.xl", 1, XL_AST_FUNC_DECL); }
+static int __xlTestParseBindingDefineBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\native\\binding_define_basic.xl", 1, XL_AST_FUNC_DECL); }
+static int __xlTestParseBindingIncludeBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\native\\binding_include_basic.xl", 1, XL_AST_FUNC_DECL); }
+static int __xlTestParseBindingExternCBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\native\\binding_extern_c_basic.xl", 1, XL_AST_FUNC_DECL); }
+static int __xlTestParseBindingForwardBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\native\\binding_forward_basic.xl", 1, XL_AST_FUNC_DECL); }
+static int __xlTestParseBindingAttrBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\native\\binding_attr_basic.xl", 1, XL_AST_FUNC_DECL); }
+static int __xlTestParseBindingCondBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\native\\binding_cond_basic.xl", 1, XL_AST_FUNC_DECL); }
+static int __xlTestParseBindingStructDeclBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\native\\binding_struct_decl_basic.xl", 1, XL_AST_FUNC_DECL); }
+static int __xlTestParseBindingEnumBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\native\\binding_enum_basic.xl", 1, XL_AST_FUNC_DECL); }
+static int __xlTestParseBindingOpaqueBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\native\\binding_opaque_basic.xl", 1, XL_AST_FUNC_DECL); }
+static int __xlTestParseBindingUnionOpaqueBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\native\\binding_union_opaque_basic.xl", 1, XL_AST_FUNC_DECL); }
+static int __xlTestParseBindingCommentsBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\native\\binding_comments_basic.xl", 1, XL_AST_FUNC_DECL); }
+static int __xlTestParseBindingAliasBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\native\\binding_alias_basic.xl", 1, XL_AST_FUNC_DECL); }
+static int __xlTestParseBindingCallbackBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\native\\binding_callback_basic.xl", 1, XL_AST_FUNC_DECL); }
 static int __xlTestParseExternSameNameBasic(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\native\\extern_same_name_basic.xl", 1, XL_AST_FUNC_DECL, "text2=\"atoi\""); }
 static int __xlTestParseExternTypeBasic(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\native\\extern_type_basic.xl", 1, XL_AST_TYPEDEF, "text=\"Count\""); }
 static int __xlTestParseExternTypeFunctionContainerBasic(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\native\\extern_type_function_container_basic.xl", 3, XL_AST_TYPEDEF, "text=\"Fn\""); }
+static int __xlTestParseExternTypeClassAliasBasic(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\native\\extern_type_class_alias_basic.xl", 1, XL_AST_TYPEDEF, "text=\"NativePairAbi\""); }
 static int __xlTestParseExternVarBasic(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\native\\extern_var_basic.xl", 1, XL_AST_VAR_DECL, "text2=\"_fmode\""); }
 static int __xlTestParseExternVarPointBasic(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\native\\extern_var_point_basic.xl", 1, XL_AST_VAR_DECL, "text2=\"pkg_clock_artifact_point_slot\""); }
+static int __xlTestParseExternVarStringBasic(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\native\\extern_var_string_basic.xl", 1, XL_AST_VAR_DECL, "text2=\"pkg_clock_artifact_text_slot\""); }
+static int __xlTestParseExternVarBoolFloatBasic(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\native\\extern_var_bool_float_basic.xl", 1, XL_AST_VAR_DECL, "text2=\"pkg_clock_artifact_bool_slot\""); }
+static int __xlTestParseExternVarExactNumericBasic(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\native\\extern_var_exact_numeric_basic.xl", 1, XL_AST_VAR_DECL, "text2=\"pkg_clock_artifact_i32_slot\""); }
+static int __xlTestParseExternVarClassBasic(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\native\\extern_var_class_basic.xl", 1, XL_AST_VAR_DECL, "text2=\"pkg_clock_artifact_pair_slot\""); }
+static int __xlTestParseExternFuncClassAbiBasic(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\native\\extern_func_class_abi_basic.xl", 1, XL_AST_FUNC_DECL, "text2=\"pkg_clock_artifact_pair_make\""); }
+static int __xlTestParseExternFuncClassAbiLayoutBasic(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\native\\extern_func_class_abi_layout_basic.xl", 1, XL_AST_FUNC_DECL, "text2=\"pkg_clock_artifact_layout_make\""); }
+static int __xlTestParseExternFuncClassAbiNestedBasic(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\native\\extern_func_class_abi_nested_basic.xl", 1, XL_AST_FUNC_DECL, "text2=\"pkg_clock_artifact_outer_make\""); }
 static int __xlTestParseDirectivePathsBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\native\\directive_paths_basic.xl", 1, XL_AST_FUNC_DECL); }
 static int __xlTestParseLinkAutoPlatformSuffix(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\native\\link_auto_platform_suffix.xl", 1, XL_AST_FUNC_DECL); }
 static int __xlTestParseSysLoadlibBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\native\\sys_loadlib_basic.xl", 1, XL_AST_CALL); }
@@ -2006,6 +2175,10 @@ static int __xlTestParseSysLoadlibFuncPointBasic(XL_TestContext* pCtx) { return 
 static int __xlTestParseSysLoadlibFuncMultiSigBasic(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\native\\sys_loadlib_func_multi_sig_basic.xl", 1, XL_AST_TYPE_REF, "text=\"function<int()>\""); }
 static int __xlTestParseSysDlopenBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\native\\sys_dlopen_basic.xl", 1, XL_AST_CALL); }
 static int __xlTestParseSysDlsymFunctionBasic(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\native\\sys_dlsym_function_basic.xl", 1, XL_AST_TYPE_REF, "text=\"function<int(string)>\""); }
+static int __xlTestParseSysDlsymNativeSignatureMatrix(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\native\\sys_dlsym_native_signature_matrix.xl", 1, XL_AST_TYPE_REF, "text=\"function<float(float)>\""); }
+static int __xlTestParseSysDlsymExactNumericSignatureBasic(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\native\\sys_dlsym_exact_numeric_signature_basic.xl", 1, XL_AST_TYPE_REF, "text=\"function<uint64(uint64,uint64)>\""); }
+static int __xlTestParseSysDlsymClassAbiBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\native\\sys_dlsym_class_abi_basic.xl", 1, XL_AST_TYPE_REF); }
+static int __xlTestParseSysDlsymVarSignatureBridge(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\native\\sys_dlsym_var_signature_bridge.xl", 1, XL_AST_TYPE_REF); }
 static int __xlTestParseSysDlcloseBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\native\\sys_dlclose_basic.xl", 1, XL_AST_CALL); }
 static int __xlTestParseExportFunc(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\module\\math_export_func.xl", 1, XL_AST_EXPORT, "FuncDecl"); }
 static int __xlTestParseExportTypeMethod(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\module\\text_ext_method.xl", 1, XL_AST_EXPORT, "text=\"wrap\""); }
@@ -2069,6 +2242,8 @@ static int __xlTestParseDictBasic(XL_TestContext* pCtx) { return __xlRunParseDum
 static int __xlTestParseBareContainerLiterals(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\full\\bare_container_literals_basic.xl", 1, XL_AST_CALL, "text=\"__dict_literal\""); }
 static int __xlTestParseVarArgArrayBasic(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\full\\vararg_array_basic.xl", 1, XL_AST_PARAM, "text=\"arg\" flag=1"); }
 static int __xlTestParseVarArgDictBasic(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\full\\vararg_dict_basic.xl", 1, XL_AST_PARAM, "text=\"arg\" flag=2"); }
+static int __xlTestParseVarArgArraySpreadBasic(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\full\\vararg_array_spread_basic.xl", 1, XL_AST_NAMED_ARG, "text=\"arg\""); }
+static int __xlTestParseVarArgDictSpreadBasic(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\full\\vararg_dict_spread_basic.xl", 1, XL_AST_NAMED_ARG, "text=\"arg\""); }
 static int __xlTestParseMultiReturnBasic(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\full\\multi_return_basic.xl", 1, XL_AST_UNPACK_DECL, "text=\"auto\""); }
 static int __xlTestParseMultiReturnCallExpandBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\full\\multi_return_call_expand_basic.xl", 1, XL_AST_CALL); }
 static int __xlTestParseAnonymousFunctionBasic(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\full\\anonymous_function_basic.xl", 1, XL_AST_FUNC_EXPR, "FuncExpr"); }
@@ -2127,6 +2302,7 @@ static int __xlTestParseContainerChainAppendClear(XL_TestContext* pCtx) { return
 static int __xlTestParseContainerAtGetDefault(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\full\\container_at_get_default.xl", 1, XL_AST_CALL); }
 static int __xlTestParseContainerKeysValuesItems(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\full\\container_keys_values_items.xl", 1, XL_AST_CALL); }
 static int __xlTestParseContainerRemoveBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\full\\container_remove_basic.xl", 1, XL_AST_CALL); }
+static int __xlTestParseContainerTakeRuntime(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\full\\container_take_runtime.xl", 1, XL_AST_CALL); }
 static int __xlTestParseCoreLenBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\native\\core_len_basic.xl", 1, XL_AST_CALL); }
 static int __xlTestParseTypeMethodsBasic(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\full\\type_methods_basic.xl", 1, XL_AST_FUNC_DECL, "text2=\"wrap\""); }
 static int __xlTestParseVarMethodsBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\full\\var_methods_basic.xl", 1, XL_AST_CALL); }
@@ -2183,6 +2359,7 @@ static int __xlTestSemChannelModuleBasic(XL_TestContext* pCtx) { return __xlRunS
 static int __xlTestSemErrorModuleBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\error_module_basic.xl", 1, "error"); }
 static int __xlTestSemModuleBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\module_basic.xl", 1, "module"); }
 static int __xlTestSemTaskModuleBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\task_module_basic.xl", 1, "future"); }
+static int __xlTestSemTypeMethodStdApiBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\type_method_std_api_basic.xl", 1, "future"); }
 static int __xlTestSemOsBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\os_basic.xl", 1, "int"); }
 static int __xlTestSemClockBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\clock_basic.xl", 1, "int"); }
 static int __xlTestSemSysEnvBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\sys_env_basic.xl", 1, "int"); }
@@ -2217,11 +2394,38 @@ static int __xlTestSemSystemPlusBasic(XL_TestContext* pCtx) { return __xlRunSemC
 static int __xlTestSemMathBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\math_basic.xl", 1, "int"); }
 static int __xlTestSemPackBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\pack_basic.xl", 1, "int"); }
 static int __xlTestSemExternAtoiBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\extern_atoi_basic.xl", 1, "int"); }
+static int __xlTestSemExternAsyncFuncBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\extern_async_func_basic.xl", 1, "future"); }
+static int __xlTestSemExternTypeMethodBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\extern_type_method_basic.xl", 1, "int"); }
+static int __xlTestSemBindingBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\binding_basic.xl", 1, "int"); }
+static int __xlTestSemBindingTypedefBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\binding_typedef_basic.xl", 1, "int"); }
+static int __xlTestSemBindingStructBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\binding_struct_basic.xl", 1, "int"); }
+static int __xlTestSemBindingMultilineBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\binding_multiline_basic.xl", 1, "int"); }
+static int __xlTestSemBindingDefineBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\binding_define_basic.xl", 1, "string"); }
+static int __xlTestSemBindingIncludeBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\binding_include_basic.xl", 1, "int"); }
+static int __xlTestSemBindingExternCBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\binding_extern_c_basic.xl", 1, "int"); }
+static int __xlTestSemBindingForwardBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\binding_forward_basic.xl", 1, "int"); }
+static int __xlTestSemBindingAttrBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\binding_attr_basic.xl", 1, "int"); }
+static int __xlTestSemBindingCondBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\binding_cond_basic.xl", 1, "int"); }
+static int __xlTestSemBindingStructDeclBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\binding_struct_decl_basic.xl", 1, "BindingAlias"); }
+static int __xlTestSemBindingEnumBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\binding_enum_basic.xl", 1, "int"); }
+static int __xlTestSemBindingOpaqueBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\binding_opaque_basic.xl", 1, "point"); }
+static int __xlTestSemBindingUnionOpaqueBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\binding_union_opaque_basic.xl", 1, "point"); }
+static int __xlTestSemBindingCommentsBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\binding_comments_basic.xl", 1, "int"); }
+static int __xlTestSemBindingAliasBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\binding_alias_basic.xl", 1, "int"); }
+static int __xlTestSemBindingCallbackBasic(XL_TestContext* pCtx) { return __xlRunSemDumpCase(pCtx, "examples\\native\\binding_callback_basic.xl", 1, "function<int(int,string)>"); }
 static int __xlTestSemExternSameNameBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\extern_same_name_basic.xl", 1, "int"); }
 static int __xlTestSemExternTypeBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\extern_type_basic.xl", 1, "Count"); }
 static int __xlTestSemExternTypeFunctionContainerBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\extern_type_function_container_basic.xl", 1, "Fn"); }
+static int __xlTestSemExternTypeClassAliasBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\extern_type_class_alias_basic.xl", 1, "NativePair"); }
 static int __xlTestSemExternVarBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\extern_var_basic.xl", 1, "int"); }
 static int __xlTestSemExternVarPointBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\extern_var_point_basic.xl", 1, "point"); }
+static int __xlTestSemExternVarStringBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\extern_var_string_basic.xl", 1, "string"); }
+static int __xlTestSemExternVarBoolFloatBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\extern_var_bool_float_basic.xl", 1, "float64"); }
+static int __xlTestSemExternVarExactNumericBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\extern_var_exact_numeric_basic.xl", 1, "uint64"); }
+static int __xlTestSemExternVarClassBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\extern_var_class_basic.xl", 1, "NativePair"); }
+static int __xlTestSemExternFuncClassAbiBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\extern_func_class_abi_basic.xl", 1, "NativePair"); }
+static int __xlTestSemExternFuncClassAbiLayoutBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\extern_func_class_abi_layout_basic.xl", 1, "NativeLayout"); }
+static int __xlTestSemExternFuncClassAbiNestedBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\extern_func_class_abi_nested_basic.xl", 1, "NativeOuter"); }
 static int __xlTestSemClassStage1ParserBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\class_stage1_parser_basic.xl", 1, "Vec2"); }
 static int __xlTestSemClassStage1LayoutBasic(XL_TestContext* pCtx) { return __xlRunSemDumpCase(pCtx, "examples\\full\\class_stage1_parser_basic.xl", 1, "Vec2 extends=object size=24 align=8 create=1 destroy=1 fields=4"); }
 static int __xlTestSemClassStage1InheritLayoutBasic(XL_TestContext* pCtx) { return __xlRunSemDumpCase(pCtx, "examples\\full\\class_stage1_inherit_layout_basic.xl", 1, "Point3 extends=PointBase size=12 align=4 create=0 destroy=0 fields=3"); }
@@ -2284,6 +2488,12 @@ static int __xlTestSemClassStage1CallOperatorRuntime(XL_TestContext* pCtx) { ret
 static int __xlTestSemClassNoCopyDecl(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\class_nocopy_decl.xl", 1, "Handle"); }
 static int __xlTestSemClassNoCopyAssignError(XL_TestContext* pCtx) { return __xlRunSemDumpCase(pCtx, "examples\\sem\\class_nocopy_assign_error.xl", 0, "nocopy"); }
 static int __xlTestSemClassNoCopyReturnError(XL_TestContext* pCtx) { return __xlRunSemDumpCase(pCtx, "examples\\sem\\class_nocopy_return_error.xl", 0, "nocopy"); }
+static int __xlTestSemClassMoveAssignRuntime(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\class_move_assign_runtime.xl", 1, "Handle"); }
+static int __xlTestSemClassMoveReturnRuntime(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\class_move_return_runtime.xl", 1, "Handle"); }
+static int __xlTestSemClassMoveContainerRuntime(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\class_move_container_runtime.xl", 1, "Handle"); }
+static int __xlTestSemClassMoveTakeRuntime(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\class_move_take_runtime.xl", 1, "Handle"); }
+static int __xlTestSemClassMoveReassignRuntime(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\class_move_reassign_runtime.xl", 1, "Handle"); }
+static int __xlTestSemClassMoveUseAfterError(XL_TestContext* pCtx) { return __xlRunSemDumpCase(pCtx, "examples\\sem\\class_move_use_after_error.xl", 0, "use of moved value"); }
 static int __xlTestSemDirectivePathsBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\directive_paths_basic.xl", 1, "int"); }
 static int __xlTestSemLinkAutoPlatformSuffix(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\link_auto_platform_suffix.xl", 1, "int"); }
 static int __xlTestSemSysLoadlibBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\sys_loadlib_basic.xl", 1, "int"); }
@@ -2295,6 +2505,10 @@ static int __xlTestSemSysLoadlibFuncPointBasic(XL_TestContext* pCtx) { return __
 static int __xlTestSemSysLoadlibFuncMultiSigBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\sys_loadlib_func_multi_sig_basic.xl", 1, "int"); }
 static int __xlTestSemSysDlopenBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\sys_dlopen_basic.xl", 1, "int"); }
 static int __xlTestSemSysDlsymFunctionBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\sys_dlsym_function_basic.xl", 1, "int"); }
+static int __xlTestSemSysDlsymNativeSignatureMatrix(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\sys_dlsym_native_signature_matrix.xl", 1, "int"); }
+static int __xlTestSemSysDlsymExactNumericSignatureBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\sys_dlsym_exact_numeric_signature_basic.xl", 1, "int"); }
+static int __xlTestSemSysDlsymClassAbiBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\sys_dlsym_class_abi_basic.xl", 1, "NativePair"); }
+static int __xlTestSemSysDlsymVarSignatureBridge(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\sys_dlsym_var_signature_bridge.xl", 1, "int"); }
 static int __xlTestSemSysDlcloseBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\sys_dlclose_basic.xl", 1, "int"); }
 static int __xlTestSemExportFunc(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\module\\use_math_export_func.xl", 1, "int"); }
 static int __xlTestSemExportTypeMethod(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\module\\use_text_ext_method.xl", 1, "int"); }
@@ -3023,6 +3237,8 @@ static int __xlTestSemDictBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pC
 static int __xlTestSemBareContainerLiterals(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\bare_container_literals_basic.xl", 1, "int"); }
 static int __xlTestSemVarArgArrayBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\vararg_array_basic.xl", 1, "int"); }
 static int __xlTestSemVarArgDictBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\vararg_dict_basic.xl", 1, "int"); }
+static int __xlTestSemVarArgArraySpreadBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\vararg_array_spread_basic.xl", 1, "int"); }
+static int __xlTestSemVarArgDictSpreadBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\vararg_dict_spread_basic.xl", 1, "int"); }
 static int __xlTestSemVarArgMixedPackError(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\sem\\vararg_mixed_pack_error.xl", 0, NULL); }
 static int __xlTestSemVarArgReservedArgError(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\sem\\vararg_reserved_arg_error.xl", 0, NULL); }
 static int __xlTestSemBareIndexedListError(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\sem\\bare_indexed_list_error.xl", 0, NULL); }
@@ -3040,6 +3256,7 @@ static int __xlTestSemContainerAtGetDefault(XL_TestContext* pCtx) { return __xlR
 static int __xlTestSemContainerKeysValuesItems(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\container_keys_values_items.xl", 1, "int"); }
 static int __xlTestSemContainerClearError(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\sem\\container_clear_error.xl", 0, NULL); }
 static int __xlTestSemContainerRemoveBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\container_remove_basic.xl", 1, "int"); }
+static int __xlTestSemContainerTakeRuntime(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\container_take_runtime.xl", 1, "int"); }
 static int __xlTestSemContainerRemoveError(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\sem\\container_remove_error.xl", 0, NULL); }
 static int __xlTestSemCoreLenBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\core_len_basic.xl", 1, "int"); }
 static int __xlTestSemTypeMethodsBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\type_methods_basic.xl", 1, "int"); }
@@ -4059,6 +4276,8 @@ static int __xlTestCgenDictBasic(XL_TestContext* pCtx)
 }
 static int __xlTestCgenVarArgArrayBasic(XL_TestContext* pCtx) { return __xlRunCgenCase(pCtx, "examples\\full\\vararg_array_basic.xl", "xvoCreateArray()"); }
 static int __xlTestCgenVarArgDictBasic(XL_TestContext* pCtx) { return __xlRunCgenCase(pCtx, "examples\\full\\vararg_dict_basic.xl", "xvoCreateTable()"); }
+static int __xlTestCgenVarArgArraySpreadBasic(XL_TestContext* pCtx) { return __xlRunCgenCase(pCtx, "examples\\full\\vararg_array_spread_basic.xl", "packed"); }
+static int __xlTestCgenVarArgDictSpreadBasic(XL_TestContext* pCtx) { return __xlRunCgenCase(pCtx, "examples\\full\\vararg_dict_spread_basic.xl", "packed"); }
 static int __xlTestCgenMultiReturnBasic(XL_TestContext* pCtx)
 {
 	static const char* const aNeedles[] = {
@@ -4518,6 +4737,17 @@ static int __xlTestCgenContainerRemoveBasic(XL_TestContext* pCtx)
 	};
 
 	return __xlRunCgenCaseAll(pCtx, "examples\\full\\container_remove_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenContainerTakeRuntime(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"xl_array_take((xvalue)(",
+		"xl_array_pop((xvalue)(",
+		"xl_list_take((xvalue)(",
+		"xl_dict_take((xvalue)("
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\full\\container_take_runtime.xl", aNeedles, XL_COUNTOF(aNeedles));
 }
 static int __xlTestCgenCoreLenBasic(XL_TestContext* pCtx)
 {
@@ -6314,6 +6544,287 @@ static int __xlTestCgenExternAtoiBasic(XL_TestContext* pCtx)
 
 	return __xlRunCgenCaseAll(pCtx, "examples\\native\\extern_atoi_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
 }
+static int __xlTestCgenExternAsyncFuncBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"extern int pkg_clock_artifact_add_one(int value);",
+		"static XL_FutureInt xl__async_add_one__arity1__value__int__ret__future_x3Cint_x3E(",
+		"return xl_future_int_ready(pkg_clock_artifact_add_one(value));"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\native\\extern_async_func_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenExternTypeMethodBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"extern int pkg_clock_artifact_add_one(int self);",
+		"static int xl__pkg_clock_artifact_add_one__arity1__self__int__ret__int(",
+		"return pkg_clock_artifact_add_one(self);"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\native\\extern_type_method_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenBindingBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"extern int atoi(const char* p0);",
+		"extern int _fmode;",
+		"static int xl__atoi__arity1__p0__string__ret__int(",
+		"return atoi(p0);"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\native\\binding_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenBindingTypedefBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"extern int atoi(const char* p0);",
+		"extern int pkg_clock_artifact_add_one(int p0);",
+		"extern int pkg_clock_artifact_point_is_null(void* p0);",
+		"return atoi(p0);"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\native\\binding_typedef_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenBindingStructBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"typedef struct XL_Class_NativePair {",
+		"XL_EXTERN_VAR XL_Class_NativePair pkg_clock_artifact_pair_slot;",
+		"extern XL_Class_NativePair pkg_clock_artifact_pair_make(int p0, int p1);",
+		"extern int pkg_clock_artifact_pair_value_sum(XL_Class_NativePair p0);",
+		"extern int pkg_clock_artifact_pair_slot_sum();",
+		"pkg_clock_artifact_pair_slot = xl__pkg_clock_artifact_pair_make__arity2",
+		"(pair.x + pair.y)"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\native\\binding_struct_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenBindingMultilineBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"typedef struct XL_Class_NativePair2 {",
+		"extern XL_Class_NativePair2 pkg_clock_artifact_pair_make(int p0, int p1);",
+		"extern int pkg_clock_artifact_pair_value_sum(XL_Class_NativePair2 p0);",
+		"(pair.x + pair.y)"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\native\\binding_multiline_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenBindingDefineBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"static int PROBE_ANSWER = 0;",
+		"PROBE_ANSWER_ALIAS = PROBE_ANSWER;",
+		"PROBE_ANSWER_ALIAS_2 = PROBE_ANSWER_ALIAS;",
+		"static uint64_t PROBE_HEX_VALUE = 0;",
+		"PROBE_BIN_VALUE = 42;",
+		"PROBE_SEP_VALUE = 1000;",
+		"PROBE_OCT_VALUE = 42;",
+		"static double PROBE_RATIO = 0.0;",
+		"static double PROBE_RATIO_ALIAS = 0.0;",
+		"PROBE_RATIO_ALIAS = PROBE_RATIO;",
+		"PROBE_RATIO_ALIAS_2 = PROBE_RATIO_ALIAS;",
+		"static const char* PROBE_TEXT = NULL;",
+		"static const char* PROBE_TEXT_JOIN = NULL;",
+		"PROBE_TEXT_JOIN = \"hello world\";",
+		"PROBE_TEXT_PAREN = \"wrapped\";",
+		"PROBE_TEXT_U8 = \"utf8\";",
+		"static const char* PROBE_TEXT_ALIAS = NULL;",
+		"PROBE_TEXT_ALIAS = PROBE_TEXT_JOIN;",
+		"PROBE_CHAR = 65;",
+		"PROBE_CHAR_NEWLINE = 10;",
+		"PROBE_CHAR_HEX = 42;",
+		"PROBE_CHAR_OCT = 42;",
+		"PROBE_CHAR_WIDE = 42;",
+		"PROBE_CHAR_U = 42;",
+		"PROBE_CHAR_U8 = 10;",
+		"PROBE_SHIFT = 8;",
+		"PROBE_MASK = 10;",
+		"PROBE_BIN_EXPR = 42;",
+		"PROBE_SEP_EXPR = 1024;",
+		"PROBE_OCT_EXPR = 42;",
+		"PROBE_CHAR_PREFIX_EXPR = 42;",
+		"PROBE_MATH = 30;",
+		"PROBE_CAST = 11;",
+		"PROBE_EQ = 1;",
+		"PROBE_LOGIC = 1;",
+		"PROBE_CONST_TERNARY = 42;",
+		"PROBE_CONST_TERNARY_NAKED = 42;",
+		"PROBE_CONST_TERNARY_FALSE = 42;",
+		"PROBE_SIZE_INT = 4;",
+		"PROBE_SIZE_PTR = 8;",
+		"PROBE_MIN",
+		"PROBE_MAX",
+		"PROBE_PICK_OR_ANSWER",
+		"PROBE_BOOL_TERNARY",
+		"PROBE_CAST_ALIAS",
+		"PROBE_GET_ANSWER",
+		"PROBE_SIZE_ADD",
+		"PROBE_ANSWER = 42;"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\native\\binding_define_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenBindingIncludeBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"BINDING_INCLUDE_BASE = 41;",
+		"xl__BINDING_INCLUDE_ANSWER__arity1__x__int__ret__int",
+		"int xl_ret_7_2 = (x + BINDING_INCLUDE_BASE);",
+		"extern int pkg_clock_artifact_add_one(int p0);"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\native\\binding_include_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenBindingExternCBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"extern int pkg_clock_artifact_add_one(int p0);",
+		"extern int pkg_clock_artifact_bool_score(int p0);",
+		"return pkg_clock_artifact_bool_score(p0);"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\native\\binding_extern_c_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenBindingForwardBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"extern int pkg_clock_artifact_bool_score(void* p0);",
+		"extern int pkg_clock_artifact_add_one(int p0);"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\native\\binding_forward_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenBindingAttrBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"extern int pkg_clock_artifact_add_one(int p0);",
+		"extern int pkg_clock_artifact_bool_score(int p0);",
+		"extern int pkg_clock_artifact_text_len(const char* p0);"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\native\\binding_attr_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenBindingCondBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"static int BINDING_COND_ENABLED = 0;",
+		"BINDING_COND_ENABLED = 40;",
+		"extern int pkg_clock_artifact_add_one(int p0);"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\native\\binding_cond_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenBindingStructDeclBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"typedef struct XL_Class_BindingPlain {",
+		"int x;",
+		"typedef struct XL_Class_BindingMulti {",
+		"int a;",
+		"int b;",
+		"const char* name;",
+		"const char* label;",
+		"typedef struct XL_Class_BindingAlias {",
+		"typedef struct XL_Class_BindingAliasOne {",
+		"XL_Class_BindingAliasOne aliasTwo",
+		"void* aliasPtr =",
+		"extern XL_Class_BindingAlias pkg_clock_artifact_pair_make(int p0, int p1);",
+		"extern int pkg_clock_artifact_pair_value_sum(XL_Class_BindingAlias p0);",
+		"typedef struct XL_Class_BindingLateTag {",
+		"extern XL_Class_BindingLateTag pkg_clock_artifact_pair_add(XL_Class_BindingLateTag p0, int p1);",
+		"XL_Class_BindingLateTag late",
+		"typedef struct XL_Class_BindingInner {",
+		"typedef struct XL_Class_BindingOuter {",
+		"XL_Class_BindingInner inner;",
+		"extern int pkg_clock_artifact_outer_score(XL_Class_BindingOuter p0);",
+		"typedef struct XL_Class_BindingEnumFields {",
+		"extern int pkg_clock_artifact_enum_fields_score(XL_Class_BindingEnumFields p0);",
+		"void* packed =",
+		"void* packedPtr =",
+		"void* inlineArray ="
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\native\\binding_struct_decl_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenBindingEnumBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"static int PROBE_MODE_HEX = 0;",
+		"PROBE_MODE_HEX = 42;",
+		"PROBE_MODE_SHIFT = 32;",
+		"PROBE_MODE_EXPR = 42;",
+		"PROBE_PLAIN_A = (-1);",
+		"extern int pkg_clock_artifact_bool_score(int p0);",
+		"extern int pkg_clock_artifact_enum_alias_score(int p0);"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\native\\binding_enum_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenBindingOpaqueBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"extern void* pkg_clock_artifact_point_sentinel();",
+		"extern int pkg_clock_artifact_bool_score(void* p0);",
+		"void* handle = xl__pkg_clock_artifact_point_sentinel__arity0__ret__point();"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\native\\binding_opaque_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenBindingUnionOpaqueBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"extern void* binding_opaque_union_identity(void* p0);",
+		"extern void* binding_forward_union_identity(void* p0);",
+		"extern int binding_unnamed_exact_params(uint32_t p0, int8_t p1, uint64_t p2);",
+		"extern int binding_array_param_probe(const char* p0, void* p1, const char* p2);",
+		"extern int binding_char_pointer_depth_probe(const char* p0, void* p1, void* p2);",
+		"extern int64_t binding_alias_signed_pointer_width(int64_t p0, int64_t p1, int64_t p2);",
+		"extern uint64_t binding_alias_unsigned_pointer_width(uint64_t p0, uint64_t p1, uint64_t p2);",
+		"extern int binding_qualifier_param_probe(const char* p0, uint32_t p1, uint32_t p2);",
+		"extern uint32_t binding_qualifier_typedef_probe(uint32_t p0);",
+		"typedef struct XL_Class_BindingPtrAlias {",
+		"extern void* binding_struct_ptr_alias_identity(void* p0);",
+		"extern XL_Class_BindingPtrAlias binding_struct_ptr_alias_make();",
+		"void* payload =",
+		"void* payloadAlias =",
+		"void* payloadPtr =",
+		"void* namedPayload ="
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\native\\binding_union_opaque_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenBindingCommentsBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"PROBE_URL = \"http://example.test/a//b\";",
+		"PROBE_BLOCK_VALUE = 42;",
+		"extern int pkg_clock_artifact_add_one(int p0);"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\native\\binding_comments_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenBindingAliasBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"extern uint32_t pkg_clock_artifact_add_one(uint32_t p0);",
+		"extern int pkg_clock_artifact_text_len(const char* p0);",
+		"extern void* pkg_clock_artifact_point_sentinel();"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\native\\binding_alias_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenBindingCallbackBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"extern int pkg_clock_artifact_callback_accept(xvalue p0);",
+		"extern xvalue pkg_clock_artifact_callback_identity(xvalue p0);",
+		"extern void pkg_clock_artifact_callback_void(xvalue p0);"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\native\\binding_callback_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
 static int __xlTestCgenExternSameNameBasic(XL_TestContext* pCtx)
 {
 	static const char* const aNeedles[] = {
@@ -6347,6 +6858,116 @@ static int __xlTestCgenExternVarPointBasic(XL_TestContext* pCtx)
 	};
 
 	return __xlRunCgenCaseAll(pCtx, "examples\\native\\extern_var_point_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenExternVarStringBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"XL_EXTERN_VAR const char* pkg_clock_artifact_text_slot;",
+		"const char* saved = pkg_clock_artifact_text_slot;",
+		"pkg_clock_artifact_text_slot = \"updated-text\")",
+		"pkg_clock_artifact_text_slot = saved)"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\native\\extern_var_string_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenExternVarBoolFloatBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"XL_EXTERN_VAR int pkg_clock_artifact_bool_slot;",
+		"XL_EXTERN_VAR double pkg_clock_artifact_float_slot;",
+		"int saved_bool = pkg_clock_artifact_bool_slot;",
+		"double saved_float = pkg_clock_artifact_float_slot;",
+		"pkg_clock_artifact_bool_slot = false)",
+		"pkg_clock_artifact_float_slot = 4.2)"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\native\\extern_var_bool_float_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenExternVarExactNumericBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"XL_EXTERN_VAR int32_t pkg_clock_artifact_i32_slot;",
+		"XL_EXTERN_VAR uint64_t pkg_clock_artifact_u64_slot;",
+		"int32_t saved_i32 = pkg_clock_artifact_i32_slot;",
+		"uint64_t saved_u64 = pkg_clock_artifact_u64_slot;",
+		"pkg_clock_artifact_i32_slot = 4200)",
+		"pkg_clock_artifact_u64_slot = 42000000000)"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\native\\extern_var_exact_numeric_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenExternVarClassBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"typedef struct XL_Class_NativePair {",
+		"XL_EXTERN_VAR XL_Class_NativePair pkg_clock_artifact_pair_slot;",
+		"XL_Class_NativePair saved = pkg_clock_artifact_pair_slot;",
+		"pkg_clock_artifact_pair_slot = xl_class_NativePair__create__",
+		"pkg_clock_artifact_pair_slot = saved)"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\native\\extern_var_class_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenExternFuncClassAbiBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"typedef struct XL_Class_NativePair {",
+		"extern XL_Class_NativePair pkg_clock_artifact_pair_make(int x, int y);",
+		"extern int pkg_clock_artifact_pair_value_sum(XL_Class_NativePair pair);",
+		"extern XL_Class_NativePair pkg_clock_artifact_pair_add(XL_Class_NativePair pair, int delta);",
+		"return pkg_clock_artifact_pair_make(x, y);",
+		"return pkg_clock_artifact_pair_value_sum(pair);",
+		"return pkg_clock_artifact_pair_add(pair, delta);"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\native\\extern_func_class_abi_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenExternFuncClassAbiLayoutBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"typedef struct XL_Class_NativeLayout {",
+		"int8_t tag;",
+		"int32_t count;",
+		"double weight;",
+		"XL_EXTERN_VAR XL_Class_NativeLayout pkg_clock_artifact_layout_slot;",
+		"extern XL_Class_NativeLayout pkg_clock_artifact_layout_make(int8_t tag, int32_t count, double weight);",
+		"extern int pkg_clock_artifact_layout_score(XL_Class_NativeLayout layout);",
+		"return pkg_clock_artifact_layout_add(layout, delta);"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\native\\extern_func_class_abi_layout_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenExternFuncClassAbiNestedBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"typedef struct XL_Class_NativeInner {",
+		"typedef struct XL_Class_NativeOuter {",
+		"XL_Class_NativeInner inner;",
+		"typedef struct XL_Class_NativeLarge {",
+		"int64_t a;",
+		"XL_EXTERN_VAR XL_Class_NativeOuter pkg_clock_artifact_outer_slot;",
+		"extern XL_Class_NativeOuter pkg_clock_artifact_outer_make(int32_t x, int32_t y, int32_t z, double scale);",
+		"extern int pkg_clock_artifact_outer_score(XL_Class_NativeOuter outer);",
+		"extern XL_Class_NativeLarge pkg_clock_artifact_large_make(int64_t a, int64_t b, int64_t c, int64_t d, double weight, double bias);",
+		"extern int pkg_clock_artifact_large_score(XL_Class_NativeLarge large);",
+		"return pkg_clock_artifact_large_add(large, delta);",
+		"return pkg_clock_artifact_outer_add(outer, delta);",
+		"pkg_clock_artifact_outer_slot = xl_class_NativeOuter__create__18_2(((XL_Class_NativeOuter){0}), xl_class_NativeInner__create__7_2"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\native\\extern_func_class_abi_nested_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenExternTypeClassAliasBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"typedef struct XL_Class_NativePair {",
+		"XL_EXTERN_VAR XL_Class_NativePair pkg_clock_artifact_pair_slot;",
+		"extern XL_Class_NativePair pkg_clock_artifact_pair_make(int x, int y);",
+		"extern int pkg_clock_artifact_pair_value_sum(XL_Class_NativePair pair);",
+		"return pkg_clock_artifact_pair_add(pair, delta);"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\native\\extern_type_class_alias_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
 }
 static int __xlTestCgenClassStage1StructBasic(XL_TestContext* pCtx)
 {
@@ -6663,6 +7284,59 @@ static int __xlTestCgenClassStage1CopyRuntime(XL_TestContext* pCtx)
 	};
 
 	return __xlRunCgenCaseAll(pCtx, "examples\\full\\class_stage1_copy_runtime.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenClassMoveAssignRuntime(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"xl_move_value_",
+		"memset(&(a), 0, sizeof(a));",
+		"xl_class_Handle__destroy"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\full\\class_move_assign_runtime.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenClassMoveReturnRuntime(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"xl_move_value_",
+		"memset(&(h), 0, sizeof(h));",
+		"return xl_ret_"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\full\\class_move_return_runtime.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenClassMoveContainerRuntime(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"memset(&(a), 0, sizeof(a));",
+		"memset(&(e), 0, sizeof(e));",
+		"xl_array_append(xl_chain_self",
+		"xvoArraySetValue((xvalue)(xl_assign_base_",
+		"(*((XL_Class_Handle*)xvoGetClass((xvalue)(xvoArrayGetValue"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\full\\class_move_container_runtime.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenClassMoveTakeRuntime(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"xl_array_take((xvalue)(",
+		"xl_array_pop((xvalue)(",
+		"xl_dict_take((xvalue)(",
+		"XL_Class_Handle xl_take_result"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\full\\class_move_take_runtime.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenClassMoveReassignRuntime(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"memset(&(a), 0, sizeof(a));",
+		"a = xl_class_Handle__create__",
+		"return xl_ret_"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\full\\class_move_reassign_runtime.xl", aNeedles, XL_COUNTOF(aNeedles));
 }
 static int __xlTestCgenClassStage1CopyElisionTempRuntime(XL_TestContext* pCtx)
 {
@@ -7259,6 +7933,18 @@ static int __xlTestCgenTaskModuleBasic(XL_TestContext* pCtx)
 
 	return __xlRunCgenCaseAll(pCtx, "examples\\native\\task_module_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
 }
+static int __xlTestCgenTypeMethodStdApiBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"xl_time_format(",
+		"xl_generated_error_type(",
+		"__xl_method_module_key(",
+		"xl_future_int_await_state(",
+		"xl_task_cancel_int("
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\native\\type_method_std_api_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
 static int __xlTestCgenOsBasic(XL_TestContext* pCtx)
 {
 	static const char* const aNeedles[] = {
@@ -7657,6 +8343,70 @@ static int __xlTestCgenSysLoadlibFuncMultiSigBasic(XL_TestContext* pCtx)
 	};
 
 	return __xlRunCgenCaseAll(pCtx, "examples\\native\\sys_loadlib_func_multi_sig_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenSysDlsymNativeSignatureMatrix(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"pkg_clock_artifact_add_half",
+		"((double (*)(double))xvoGetPoint",
+		"((int (*)(int))xvoGetPoint",
+		"((const char* (*)())xvoGetPoint",
+		"((void (*)())xvoGetPoint"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\native\\sys_dlsym_native_signature_matrix.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenSysDlsymExactNumericSignatureBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"pkg_clock_artifact_i8_add",
+		"pkg_clock_artifact_u8_add",
+		"pkg_clock_artifact_i16_add",
+		"pkg_clock_artifact_u16_add",
+		"pkg_clock_artifact_i32_add",
+		"pkg_clock_artifact_u32_add",
+		"pkg_clock_artifact_i64_add",
+		"pkg_clock_artifact_u64_add",
+		"pkg_clock_artifact_f32_add",
+		"pkg_clock_artifact_f64_add",
+		"((int8_t (*)(int8_t, int8_t))xvoGetPoint",
+		"((uint8_t (*)(uint8_t, uint8_t))xvoGetPoint",
+		"((int16_t (*)(int16_t, int16_t))xvoGetPoint",
+		"((uint16_t (*)(uint16_t, uint16_t))xvoGetPoint",
+		"((int32_t (*)(int32_t, int32_t))xvoGetPoint",
+		"((uint32_t (*)(uint32_t, uint32_t))xvoGetPoint",
+		"((int64_t (*)(int64_t, int64_t))xvoGetPoint",
+		"((uint64_t (*)(uint64_t, uint64_t))xvoGetPoint",
+		"((float (*)(float, float))xvoGetPoint",
+		"((double (*)(double, double))xvoGetPoint"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\native\\sys_dlsym_exact_numeric_signature_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenSysDlsymClassAbiBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"typedef struct XL_Class_NativePair {",
+		"((XL_Class_NativePair (*)(int, int))xvoGetPoint",
+		"((int (*)(XL_Class_NativePair))xvoGetPoint",
+		"((XL_Class_NativePair (*)(XL_Class_NativePair, int))xvoGetPoint",
+		"xvoCreateClass((uint32)sizeof(XL_Class_NativePair))"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\native\\sys_dlsym_class_abi_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenSysDlsymVarSignatureBridge(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"pkg_clock_artifact_var_int_plus",
+		"((int (*)(xvalue, int))xvoGetPoint",
+		"((int (*)(xvalue))xvoGetPoint",
+		"xvoCopy((xvalue)(xvoArrayGetValue",
+		"((int (*)(int))xvoGetPoint",
+		"((int (*)(const char*))xvoGetPoint"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\native\\sys_dlsym_var_signature_bridge.xl", aNeedles, XL_COUNTOF(aNeedles));
 }
 static int __xlTestCgenSysDlopenBasic(XL_TestContext* pCtx)
 {
@@ -8539,6 +9289,7 @@ static int __xlTestRunGenericFunctionValue(XL_TestContext* pCtx) { return __xlRu
 static int __xlTestRunGenericListTypeMethod(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\generic_list_type_method.xl", 1, 81, NULL, NULL); }
 static int __xlTestRunGenericExplicitTypeArg(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\generic_explicit_type_arg.xl", 1, 42, NULL, NULL); }
 static int __xlTestProjectAppBuildBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\project\\app\\xlang.json", 1, 52, NULL, NULL); }
+static int __xlTestProjectBindingIncpath(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\project\\binding_incpath\\xlang.json", 1, 42, NULL, NULL); }
 static int __xlTestProjectPackageImportBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\project\\pkgapp\\xlang.json", 1, 42, NULL, NULL); }
 static int __xlRunProjectWithEnvPath(
 	XL_TestContext* pCtx,
@@ -8555,22 +9306,22 @@ static int __xlRunProjectWithEnvPath(
 #if defined(_WIN32) || defined(_WIN64)
 	{
 		char sOldValue[XL_PATH_MAX_LEN * 2];
-		DWORD iOldLen;
+		const char* sOldEnv;
 		int bHadOldValue;
 
-		iOldLen = GetEnvironmentVariableA(sEnvName, sOldValue, (DWORD)sizeof(sOldValue));
-		if ( iOldLen >= sizeof(sOldValue) ) {
-			return XL_RC_FAIL;
+		sOldEnv = getenv(sEnvName);
+		bHadOldValue = (sOldEnv != NULL);
+		if ( bHadOldValue ) {
+			snprintf(sOldValue, sizeof(sOldValue), "%s", sOldEnv);
 		}
-		bHadOldValue = (iOldLen != 0);
-		if ( !SetEnvironmentVariableA(sEnvName, sEnvPath) ) {
+		if ( _putenv_s(sEnvName, sEnvPath) != 0 ) {
 			return XL_RC_FAIL;
 		}
 		iRc = __xlRunProgramCase(pCtx, sProjectRel, 1, iExpectedExitCode, NULL, NULL);
 		if ( bHadOldValue ) {
-			SetEnvironmentVariableA(sEnvName, sOldValue);
+			_putenv_s(sEnvName, sOldValue);
 		} else {
-			SetEnvironmentVariableA(sEnvName, NULL);
+			_putenv_s(sEnvName, "");
 		}
 	}
 #else
@@ -9009,6 +9760,11 @@ static int __xlTestRunClassStage1OperatorRuntime(XL_TestContext* pCtx) { return 
 static int __xlTestRunClassStage1IndexOperatorRuntime(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\class_stage1_index_operator_runtime.xl", 1, 42, NULL, NULL); }
 static int __xlTestRunClassStage1CallOperatorRuntime(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\class_stage1_call_operator_runtime.xl", 1, 42, NULL, NULL); }
 static int __xlTestRunClassNoCopyDecl(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\class_nocopy_decl.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunClassMoveAssignRuntime(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\class_move_assign_runtime.xl", 1, 14, NULL, NULL); }
+static int __xlTestRunClassMoveReturnRuntime(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\class_move_return_runtime.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunClassMoveContainerRuntime(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\class_move_container_runtime.xl", 1, 53, NULL, NULL); }
+static int __xlTestRunClassMoveTakeRuntime(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\class_move_take_runtime.xl", 1, 41, NULL, NULL); }
+static int __xlTestRunClassMoveReassignRuntime(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\class_move_reassign_runtime.xl", 1, 14, NULL, NULL); }
 static int __xlTestRunNative(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\native\\use_std_core.xl", 1, 5, NULL, NULL); }
 static int __xlTestRunCoreLenBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\native\\core_len_basic.xl", 1, 14, NULL, NULL); }
 static int __xlTestRunImportAlias(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\native\\import_alias_basic.xl", 1, 0, NULL, NULL); }
@@ -9061,8 +9817,11 @@ static int __xlTestRunContainerAtThrow(XL_TestContext* pCtx) { return __xlRunPro
 static int __xlTestRunContainerGetThrow(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\container_get_throw.xl", 0, 0, NULL, "dict key not found"); }
 static int __xlTestRunContainerKeysValuesItems(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\container_keys_values_items.xl", 1, 8, NULL, NULL); }
 static int __xlTestRunContainerRemoveBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\container_remove_basic.xl", 1, 113, NULL, NULL); }
+static int __xlTestRunContainerTakeRuntime(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\container_take_runtime.xl", 1, 261, NULL, NULL); }
 static int __xlTestRunVarArgArrayBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\vararg_array_basic.xl", 1, 35, NULL, NULL); }
 static int __xlTestRunVarArgDictBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\vararg_dict_basic.xl", 1, 35, NULL, NULL); }
+static int __xlTestRunVarArgArraySpreadBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\vararg_array_spread_basic.xl", 1, 39, NULL, NULL); }
+static int __xlTestRunVarArgDictSpreadBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\vararg_dict_spread_basic.xl", 1, 39, NULL, NULL); }
 static int __xlTestRunMultiReturnBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\multi_return_basic.xl", 1, 42, NULL, NULL); }
 static int __xlTestRunMultiReturnCallExpandBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\multi_return_call_expand_basic.xl", 1, 42, NULL, NULL); }
 static int __xlTestRunFunctionValueBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\function_value_basic.xl", 1, 42, "execute", NULL); }
@@ -9122,10 +9881,39 @@ static int __xlTestRunLinkAutoPlatformSuffix(XL_TestContext* pCtx) {
 }
 static int __xlTestRunExternTypeBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\native\\extern_type_basic.xl", 1, 42, NULL, NULL); }
 static int __xlTestRunExternTypeFunctionContainerBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\native\\extern_type_function_container_basic.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunExternTypeClassAliasBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\native\\extern_type_class_alias_basic.xl", 1, 42, NULL, NULL); }
 static int __xlTestRunExternVarBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\native\\extern_var_basic.xl", 1, 42, NULL, NULL); }
 static int __xlTestRunExternVarPointBasic(XL_TestContext* pCtx) {
 	static const char* aNeedles[] = { "loadlib.load=", "pkg_probe.dll", "loadlib.ready=", "artifact.shared.symbol=pkg_clock_artifact_point_slot" };
 	return __xlRunProgramCaseAll(pCtx, "examples\\native\\extern_var_point_basic.xl", 1, 42, aNeedles, XL_COUNTOF(aNeedles), NULL);
+}
+static int __xlTestRunExternVarStringBasic(XL_TestContext* pCtx) {
+	static const char* aNeedles[] = { "loadlib.load=", "pkg_probe.dll", "loadlib.ready=", "artifact.shared.symbol=pkg_clock_artifact_text_slot" };
+	return __xlRunProgramCaseAll(pCtx, "examples\\native\\extern_var_string_basic.xl", 1, 42, aNeedles, XL_COUNTOF(aNeedles), NULL);
+}
+static int __xlTestRunExternVarBoolFloatBasic(XL_TestContext* pCtx) {
+	static const char* aNeedles[] = { "loadlib.load=", "pkg_probe.dll", "loadlib.ready=", "artifact.shared.symbol=pkg_clock_artifact_bool_slot", "artifact.shared.symbol=pkg_clock_artifact_float_slot" };
+	return __xlRunProgramCaseAll(pCtx, "examples\\native\\extern_var_bool_float_basic.xl", 1, 42, aNeedles, XL_COUNTOF(aNeedles), NULL);
+}
+static int __xlTestRunExternVarExactNumericBasic(XL_TestContext* pCtx) {
+	static const char* aNeedles[] = { "loadlib.load=", "pkg_probe.dll", "loadlib.ready=", "artifact.shared.symbol=pkg_clock_artifact_i32_slot", "artifact.shared.symbol=pkg_clock_artifact_u64_slot" };
+	return __xlRunProgramCaseAll(pCtx, "examples\\native\\extern_var_exact_numeric_basic.xl", 1, 42, aNeedles, XL_COUNTOF(aNeedles), NULL);
+}
+static int __xlTestRunExternVarClassBasic(XL_TestContext* pCtx) {
+	static const char* aNeedles[] = { "loadlib.load=", "pkg_probe.dll", "loadlib.ready=", "artifact.shared.symbol=pkg_clock_artifact_pair_slot" };
+	return __xlRunProgramCaseAll(pCtx, "examples\\native\\extern_var_class_basic.xl", 1, 42, aNeedles, XL_COUNTOF(aNeedles), NULL);
+}
+static int __xlTestRunExternFuncClassAbiBasic(XL_TestContext* pCtx) {
+	static const char* aNeedles[] = { "loadlib.load=", "pkg_probe.dll", "loadlib.ready=", "artifact.shared.symbol=pkg_clock_artifact_pair_make" };
+	return __xlRunProgramCaseAll(pCtx, "examples\\native\\extern_func_class_abi_basic.xl", 1, 42, aNeedles, XL_COUNTOF(aNeedles), NULL);
+}
+static int __xlTestRunExternFuncClassAbiLayoutBasic(XL_TestContext* pCtx) {
+	static const char* aNeedles[] = { "loadlib.load=", "pkg_probe.dll", "loadlib.ready=", "artifact.shared.symbol=pkg_clock_artifact_layout_make" };
+	return __xlRunProgramCaseAll(pCtx, "examples\\native\\extern_func_class_abi_layout_basic.xl", 1, 42, aNeedles, XL_COUNTOF(aNeedles), NULL);
+}
+static int __xlTestRunExternFuncClassAbiNestedBasic(XL_TestContext* pCtx) {
+	static const char* aNeedles[] = { "loadlib.load=", "pkg_probe.dll", "loadlib.ready=", "artifact.shared.symbol=pkg_clock_artifact_outer_make" };
+	return __xlRunProgramCaseAll(pCtx, "examples\\native\\extern_func_class_abi_nested_basic.xl", 1, 42, aNeedles, XL_COUNTOF(aNeedles), NULL);
 }
 static int __xlTestRunExternLoadlibPkgProbeBasic(XL_TestContext* pCtx) {
 	static const char* aNeedles[] = { "loadlib.load=", "pkg_probe.dll", "loadlib.ready=", "artifact.shared.symbol=pkg_clock_artifact_probe" };
@@ -9160,6 +9948,18 @@ static int __xlTestRunSysLoadlibFuncPointBasic(XL_TestContext* pCtx) {
 static int __xlTestRunSysLoadlibFuncMultiSigBasic(XL_TestContext* pCtx) {
 	return __xlRunProgramCaseAll(pCtx, "examples\\native\\sys_loadlib_func_multi_sig_basic.xl", 1, 42, NULL, 0, NULL);
 }
+static int __xlTestRunSysDlsymNativeSignatureMatrix(XL_TestContext* pCtx) {
+	return __xlRunProgramCaseAll(pCtx, "examples\\native\\sys_dlsym_native_signature_matrix.xl", 1, 42, NULL, 0, NULL);
+}
+static int __xlTestRunSysDlsymExactNumericSignatureBasic(XL_TestContext* pCtx) {
+	return __xlRunProgramCaseAll(pCtx, "examples\\native\\sys_dlsym_exact_numeric_signature_basic.xl", 1, 42, NULL, 0, NULL);
+}
+static int __xlTestRunSysDlsymClassAbiBasic(XL_TestContext* pCtx) {
+	return __xlRunProgramCaseAll(pCtx, "examples\\native\\sys_dlsym_class_abi_basic.xl", 1, 42, NULL, 0, NULL);
+}
+static int __xlTestRunSysDlsymVarSignatureBridge(XL_TestContext* pCtx) {
+	return __xlRunProgramCaseAll(pCtx, "examples\\native\\sys_dlsym_var_signature_bridge.xl", 1, 42, NULL, 0, NULL);
+}
 static int __xlTestRunSysDlopenBasic(XL_TestContext* pCtx) {
 	return __xlRunProgramCaseAll(pCtx, "examples\\native\\sys_dlopen_basic.xl", 1, 42, NULL, 0, NULL);
 }
@@ -9170,6 +9970,7 @@ static int __xlTestRunSysDlcloseBasic(XL_TestContext* pCtx) {
 	return __xlRunProgramCaseAll(pCtx, "examples\\native\\sys_dlclose_basic.xl", 1, 42, NULL, 0, NULL);
 }
 static int __xlTestRunTaskModuleBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\native\\task_module_basic.xl", 1, 15, NULL, NULL); }
+static int __xlTestRunTypeMethodStdApiBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\native\\type_method_std_api_basic.xl", 1, 42, NULL, NULL); }
 static int __xlTestRunOsBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\native\\os_basic.xl", 1, 0, NULL, NULL); }
 static int __xlTestRunClockBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\native\\clock_basic.xl", 1, 0, NULL, NULL); }
 static int __xlTestRunSysEnvBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\native\\sys_env_basic.xl", 1, 0, NULL, NULL); }
@@ -13546,6 +14347,23 @@ static int __xlTestRunGeneratorClosureResumeBasic(XL_TestContext* pCtx) { return
 static int __xlTestRunTypeValueBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\type_value_basic.xl", 1, 42, NULL, NULL); }
 static int __xlTestRunPublicTypesBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\public_types_basic.xl", 1, 77, NULL, NULL); }
 static int __xlTestRunExternAtoiBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\native\\extern_atoi_basic.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunExternAsyncFuncBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\native\\extern_async_func_basic.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunExternTypeMethodBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\native\\extern_type_method_basic.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunBindingBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\native\\binding_basic.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunBindingTypedefBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\native\\binding_typedef_basic.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunBindingStructBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\native\\binding_struct_basic.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunBindingMultilineBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\native\\binding_multiline_basic.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunBindingDefineBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\native\\binding_define_basic.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunBindingIncludeBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\native\\binding_include_basic.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunBindingExternCBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\native\\binding_extern_c_basic.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunBindingForwardBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\native\\binding_forward_basic.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunBindingAttrBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\native\\binding_attr_basic.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunBindingCondBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\native\\binding_cond_basic.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunBindingStructDeclBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\native\\binding_struct_decl_basic.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunBindingEnumBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\native\\binding_enum_basic.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunBindingOpaqueBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\native\\binding_opaque_basic.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunBindingCommentsBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\native\\binding_comments_basic.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunBindingAliasBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\native\\binding_alias_basic.xl", 1, 42, NULL, NULL); }
 static int __xlTestRunExternSameNameBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\native\\extern_same_name_basic.xl", 1, 42, NULL, NULL); }
 static int __xlTestRunGeneratorRun(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\generator_run.xl", 1, 20, "generator.next=make_values", NULL); }
 static int __xlTestRunGeneratorLazyThrow(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\generator_lazy_throw_basic.xl", 1, 1, "generator.next=make_values", NULL); }
@@ -13580,6 +14398,9 @@ static const XL_TestCase __gXLTests[] = {
 	{ "diag.extern_unresolved", "diag", __xlTestDiagExternUnresolved },
 	{ "diag.import_search_paths", "diag", __xlTestDiagImportSearchPaths },
 	{ "diag.runtime_exception_source", "diag", __xlTestDiagRuntimeExceptionSource },
+	{ "diag.binding_trace", "diag", __xlTestDiagBindingTrace },
+	{ "diag.binding_error_directive", "diag", __xlTestDiagBindingErrorDirective },
+	{ "diag.binding_missing_header", "diag", __xlTestDiagBindingMissingHeader },
 	{ "lexer.minimal", "lexer", __xlTestLexMinimal },
 	{ "lexer.keywords", "lexer", __xlTestLexKeywords },
 	{ "parser.for_in", "parser", __xlTestParseForIn },
@@ -13607,6 +14428,7 @@ static const XL_TestCase __gXLTests[] = {
 	{ "parser.error_module_basic", "parser", __xlTestParseErrorModuleBasic },
 	{ "parser.module_basic", "parser", __xlTestParseModuleBasic },
 	{ "parser.task_module_basic", "parser", __xlTestParseTaskModuleBasic },
+	{ "parser.type_method_std_api_basic", "parser", __xlTestParseTypeMethodStdApiBasic },
 	{ "parser.os_basic", "parser", __xlTestParseOsBasic },
 	{ "parser.clock_basic", "parser", __xlTestParseClockBasic },
 	{ "parser.sys_env_basic", "parser", __xlTestParseSysEnvBasic },
@@ -13640,11 +14462,38 @@ static const XL_TestCase __gXLTests[] = {
 	{ "parser.class_stage1_parser_basic", "parser", __xlTestParseClassStage1ParserBasic },
 	{ "parser.class_nocopy_decl", "parser", __xlTestParseClassNoCopyDecl },
 	{ "parser.extern_atoi_basic", "parser", __xlTestParseExternAtoiBasic },
+	{ "parser.extern_async_func_basic", "parser", __xlTestParseExternAsyncFuncBasic },
+	{ "parser.extern_type_method_basic", "parser", __xlTestParseExternTypeMethodBasic },
+	{ "parser.binding_basic", "parser", __xlTestParseBindingBasic },
+	{ "parser.binding_typedef_basic", "parser", __xlTestParseBindingTypedefBasic },
+	{ "parser.binding_struct_basic", "parser", __xlTestParseBindingStructBasic },
+	{ "parser.binding_multiline_basic", "parser", __xlTestParseBindingMultilineBasic },
+	{ "parser.binding_define_basic", "parser", __xlTestParseBindingDefineBasic },
+	{ "parser.binding_include_basic", "parser", __xlTestParseBindingIncludeBasic },
+	{ "parser.binding_extern_c_basic", "parser", __xlTestParseBindingExternCBasic },
+	{ "parser.binding_forward_basic", "parser", __xlTestParseBindingForwardBasic },
+	{ "parser.binding_attr_basic", "parser", __xlTestParseBindingAttrBasic },
+	{ "parser.binding_cond_basic", "parser", __xlTestParseBindingCondBasic },
+	{ "parser.binding_struct_decl_basic", "parser", __xlTestParseBindingStructDeclBasic },
+	{ "parser.binding_enum_basic", "parser", __xlTestParseBindingEnumBasic },
+	{ "parser.binding_opaque_basic", "parser", __xlTestParseBindingOpaqueBasic },
+	{ "parser.binding_union_opaque_basic", "parser", __xlTestParseBindingUnionOpaqueBasic },
+	{ "parser.binding_comments_basic", "parser", __xlTestParseBindingCommentsBasic },
+	{ "parser.binding_alias_basic", "parser", __xlTestParseBindingAliasBasic },
+	{ "parser.binding_callback_basic", "parser", __xlTestParseBindingCallbackBasic },
 	{ "parser.extern_same_name_basic", "parser", __xlTestParseExternSameNameBasic },
 	{ "parser.extern_type_basic", "parser", __xlTestParseExternTypeBasic },
 	{ "parser.extern_type_function_container_basic", "parser", __xlTestParseExternTypeFunctionContainerBasic },
+	{ "parser.extern_type_class_alias_basic", "parser", __xlTestParseExternTypeClassAliasBasic },
 	{ "parser.extern_var_basic", "parser", __xlTestParseExternVarBasic },
 	{ "parser.extern_var_point_basic", "parser", __xlTestParseExternVarPointBasic },
+	{ "parser.extern_var_string_basic", "parser", __xlTestParseExternVarStringBasic },
+	{ "parser.extern_var_bool_float_basic", "parser", __xlTestParseExternVarBoolFloatBasic },
+	{ "parser.extern_var_exact_numeric_basic", "parser", __xlTestParseExternVarExactNumericBasic },
+	{ "parser.extern_var_class_basic", "parser", __xlTestParseExternVarClassBasic },
+	{ "parser.extern_func_class_abi_basic", "parser", __xlTestParseExternFuncClassAbiBasic },
+	{ "parser.extern_func_class_abi_layout_basic", "parser", __xlTestParseExternFuncClassAbiLayoutBasic },
+	{ "parser.extern_func_class_abi_nested_basic", "parser", __xlTestParseExternFuncClassAbiNestedBasic },
 	{ "parser.directive_paths_basic", "parser", __xlTestParseDirectivePathsBasic },
 	{ "parser.link_auto_platform_suffix", "parser", __xlTestParseLinkAutoPlatformSuffix },
 	{ "parser.sys_loadlib_basic", "parser", __xlTestParseSysLoadlibBasic },
@@ -13656,6 +14505,10 @@ static const XL_TestCase __gXLTests[] = {
 	{ "parser.sys_loadlib_func_multi_sig_basic", "parser", __xlTestParseSysLoadlibFuncMultiSigBasic },
 	{ "parser.sys_dlopen_basic", "parser", __xlTestParseSysDlopenBasic },
 	{ "parser.sys_dlsym_function_basic", "parser", __xlTestParseSysDlsymFunctionBasic },
+	{ "parser.sys_dlsym_native_signature_matrix", "parser", __xlTestParseSysDlsymNativeSignatureMatrix },
+	{ "parser.sys_dlsym_exact_numeric_signature_basic", "parser", __xlTestParseSysDlsymExactNumericSignatureBasic },
+	{ "parser.sys_dlsym_class_abi_basic", "parser", __xlTestParseSysDlsymClassAbiBasic },
+	{ "parser.sys_dlsym_var_signature_bridge", "parser", __xlTestParseSysDlsymVarSignatureBridge },
 	{ "parser.sys_dlclose_basic", "parser", __xlTestParseSysDlcloseBasic },
 	{ "parser.export_func", "parser", __xlTestParseExportFunc },
 	{ "parser.export_type_method", "parser", __xlTestParseExportTypeMethod },
@@ -13719,6 +14572,8 @@ static const XL_TestCase __gXLTests[] = {
 	{ "parser.bare_container_literals", "parser", __xlTestParseBareContainerLiterals },
 	{ "parser.vararg_array_basic", "parser", __xlTestParseVarArgArrayBasic },
 	{ "parser.vararg_dict_basic", "parser", __xlTestParseVarArgDictBasic },
+	{ "parser.vararg_array_spread_basic", "parser", __xlTestParseVarArgArraySpreadBasic },
+	{ "parser.vararg_dict_spread_basic", "parser", __xlTestParseVarArgDictSpreadBasic },
 	{ "parser.multi_return_basic", "parser", __xlTestParseMultiReturnBasic },
 	{ "parser.multi_return_call_expand_basic", "parser", __xlTestParseMultiReturnCallExpandBasic },
 	{ "parser.anonymous_function_basic", "parser", __xlTestParseAnonymousFunctionBasic },
@@ -13753,6 +14608,7 @@ static const XL_TestCase __gXLTests[] = {
 	{ "parser.container_at_get_default", "parser", __xlTestParseContainerAtGetDefault },
 	{ "parser.container_keys_values_items", "parser", __xlTestParseContainerKeysValuesItems },
 	{ "parser.container_remove_basic", "parser", __xlTestParseContainerRemoveBasic },
+	{ "parser.container_take_runtime", "parser", __xlTestParseContainerTakeRuntime },
 	{ "parser.core_len_basic", "parser", __xlTestParseCoreLenBasic },
 	{ "parser.type_methods_basic", "parser", __xlTestParseTypeMethodsBasic },
 	{ "parser.var_methods_basic", "parser", __xlTestParseVarMethodsBasic },
@@ -13809,6 +14665,7 @@ static const XL_TestCase __gXLTests[] = {
 	{ "sem.error_module_basic", "sem", __xlTestSemErrorModuleBasic },
 	{ "sem.module_basic", "sem", __xlTestSemModuleBasic },
 	{ "sem.task_module_basic", "sem", __xlTestSemTaskModuleBasic },
+	{ "sem.type_method_std_api_basic", "sem", __xlTestSemTypeMethodStdApiBasic },
 	{ "sem.os_basic", "sem", __xlTestSemOsBasic },
 	{ "sem.clock_basic", "sem", __xlTestSemClockBasic },
 	{ "sem.sys_env_basic", "sem", __xlTestSemSysEnvBasic },
@@ -13843,11 +14700,38 @@ static const XL_TestCase __gXLTests[] = {
 	{ "sem.math_basic", "sem", __xlTestSemMathBasic },
 	{ "sem.pack_basic", "sem", __xlTestSemPackBasic },
 	{ "sem.extern_atoi_basic", "sem", __xlTestSemExternAtoiBasic },
+	{ "sem.extern_async_func_basic", "sem", __xlTestSemExternAsyncFuncBasic },
+	{ "sem.extern_type_method_basic", "sem", __xlTestSemExternTypeMethodBasic },
+	{ "sem.binding_basic", "sem", __xlTestSemBindingBasic },
+	{ "sem.binding_typedef_basic", "sem", __xlTestSemBindingTypedefBasic },
+	{ "sem.binding_struct_basic", "sem", __xlTestSemBindingStructBasic },
+	{ "sem.binding_multiline_basic", "sem", __xlTestSemBindingMultilineBasic },
+	{ "sem.binding_define_basic", "sem", __xlTestSemBindingDefineBasic },
+	{ "sem.binding_include_basic", "sem", __xlTestSemBindingIncludeBasic },
+	{ "sem.binding_extern_c_basic", "sem", __xlTestSemBindingExternCBasic },
+	{ "sem.binding_forward_basic", "sem", __xlTestSemBindingForwardBasic },
+	{ "sem.binding_attr_basic", "sem", __xlTestSemBindingAttrBasic },
+	{ "sem.binding_cond_basic", "sem", __xlTestSemBindingCondBasic },
+	{ "sem.binding_struct_decl_basic", "sem", __xlTestSemBindingStructDeclBasic },
+	{ "sem.binding_enum_basic", "sem", __xlTestSemBindingEnumBasic },
+	{ "sem.binding_opaque_basic", "sem", __xlTestSemBindingOpaqueBasic },
+	{ "sem.binding_union_opaque_basic", "sem", __xlTestSemBindingUnionOpaqueBasic },
+	{ "sem.binding_comments_basic", "sem", __xlTestSemBindingCommentsBasic },
+	{ "sem.binding_alias_basic", "sem", __xlTestSemBindingAliasBasic },
+	{ "sem.binding_callback_basic", "sem", __xlTestSemBindingCallbackBasic },
 	{ "sem.extern_same_name_basic", "sem", __xlTestSemExternSameNameBasic },
 	{ "sem.extern_type_basic", "sem", __xlTestSemExternTypeBasic },
 	{ "sem.extern_type_function_container_basic", "sem", __xlTestSemExternTypeFunctionContainerBasic },
+	{ "sem.extern_type_class_alias_basic", "sem", __xlTestSemExternTypeClassAliasBasic },
 	{ "sem.extern_var_basic", "sem", __xlTestSemExternVarBasic },
 	{ "sem.extern_var_point_basic", "sem", __xlTestSemExternVarPointBasic },
+	{ "sem.extern_var_string_basic", "sem", __xlTestSemExternVarStringBasic },
+	{ "sem.extern_var_bool_float_basic", "sem", __xlTestSemExternVarBoolFloatBasic },
+	{ "sem.extern_var_exact_numeric_basic", "sem", __xlTestSemExternVarExactNumericBasic },
+	{ "sem.extern_var_class_basic", "sem", __xlTestSemExternVarClassBasic },
+	{ "sem.extern_func_class_abi_basic", "sem", __xlTestSemExternFuncClassAbiBasic },
+	{ "sem.extern_func_class_abi_layout_basic", "sem", __xlTestSemExternFuncClassAbiLayoutBasic },
+	{ "sem.extern_func_class_abi_nested_basic", "sem", __xlTestSemExternFuncClassAbiNestedBasic },
 	{ "sem.class_stage1_parser_basic", "sem", __xlTestSemClassStage1ParserBasic },
 	{ "sem.class_stage1_layout_basic", "sem", __xlTestSemClassStage1LayoutBasic },
 	{ "sem.class_stage1_inherit_layout_basic", "sem", __xlTestSemClassStage1InheritLayoutBasic },
@@ -13910,6 +14794,12 @@ static const XL_TestCase __gXLTests[] = {
 	{ "sem.class_nocopy_decl", "sem", __xlTestSemClassNoCopyDecl },
 	{ "sem.class_nocopy_assign_error", "sem", __xlTestSemClassNoCopyAssignError },
 	{ "sem.class_nocopy_return_error", "sem", __xlTestSemClassNoCopyReturnError },
+	{ "sem.class_move_assign_runtime", "sem", __xlTestSemClassMoveAssignRuntime },
+	{ "sem.class_move_return_runtime", "sem", __xlTestSemClassMoveReturnRuntime },
+	{ "sem.class_move_container_runtime", "sem", __xlTestSemClassMoveContainerRuntime },
+	{ "sem.class_move_take_runtime", "sem", __xlTestSemClassMoveTakeRuntime },
+	{ "sem.class_move_reassign_runtime", "sem", __xlTestSemClassMoveReassignRuntime },
+	{ "sem.class_move_use_after_error", "sem", __xlTestSemClassMoveUseAfterError },
 	{ "sem.directive_paths_basic", "sem", __xlTestSemDirectivePathsBasic },
 	{ "sem.link_auto_platform_suffix", "sem", __xlTestSemLinkAutoPlatformSuffix },
 	{ "sem.sys_loadlib_basic", "sem", __xlTestSemSysLoadlibBasic },
@@ -13921,6 +14811,10 @@ static const XL_TestCase __gXLTests[] = {
 	{ "sem.sys_loadlib_func_multi_sig_basic", "sem", __xlTestSemSysLoadlibFuncMultiSigBasic },
 	{ "sem.sys_dlopen_basic", "sem", __xlTestSemSysDlopenBasic },
 	{ "sem.sys_dlsym_function_basic", "sem", __xlTestSemSysDlsymFunctionBasic },
+	{ "sem.sys_dlsym_native_signature_matrix", "sem", __xlTestSemSysDlsymNativeSignatureMatrix },
+	{ "sem.sys_dlsym_exact_numeric_signature_basic", "sem", __xlTestSemSysDlsymExactNumericSignatureBasic },
+	{ "sem.sys_dlsym_class_abi_basic", "sem", __xlTestSemSysDlsymClassAbiBasic },
+	{ "sem.sys_dlsym_var_signature_bridge", "sem", __xlTestSemSysDlsymVarSignatureBridge },
 	{ "sem.sys_dlclose_basic", "sem", __xlTestSemSysDlcloseBasic },
 	{ "sem.export_func", "sem", __xlTestSemExportFunc },
 	{ "sem.export_type_method", "sem", __xlTestSemExportTypeMethod },
@@ -14051,6 +14945,8 @@ static const XL_TestCase __gXLTests[] = {
 	{ "sem.bare_container_literals", "sem", __xlTestSemBareContainerLiterals },
 	{ "sem.vararg_array_basic", "sem", __xlTestSemVarArgArrayBasic },
 	{ "sem.vararg_dict_basic", "sem", __xlTestSemVarArgDictBasic },
+	{ "sem.vararg_array_spread_basic", "sem", __xlTestSemVarArgArraySpreadBasic },
+	{ "sem.vararg_dict_spread_basic", "sem", __xlTestSemVarArgDictSpreadBasic },
 	{ "sem.vararg_mixed_pack_error", "sem", __xlTestSemVarArgMixedPackError },
 	{ "sem.vararg_reserved_arg_error", "sem", __xlTestSemVarArgReservedArgError },
 	{ "sem.bare_indexed_list_error", "sem", __xlTestSemBareIndexedListError },
@@ -14068,6 +14964,7 @@ static const XL_TestCase __gXLTests[] = {
 	{ "sem.container_keys_values_items", "sem", __xlTestSemContainerKeysValuesItems },
 	{ "sem.container_clear_error", "sem", __xlTestSemContainerClearError },
 	{ "sem.container_remove_basic", "sem", __xlTestSemContainerRemoveBasic },
+	{ "sem.container_take_runtime", "sem", __xlTestSemContainerTakeRuntime },
 	{ "sem.container_remove_error", "sem", __xlTestSemContainerRemoveError },
 	{ "sem.core_len_basic", "sem", __xlTestSemCoreLenBasic },
 	{ "sem.type_methods_basic", "sem", __xlTestSemTypeMethodsBasic },
@@ -14228,6 +15125,8 @@ static const XL_TestCase __gXLTests[] = {
 	{ "cgen.dict_basic", "cgen", __xlTestCgenDictBasic },
 	{ "cgen.vararg_array_basic", "cgen", __xlTestCgenVarArgArrayBasic },
 	{ "cgen.vararg_dict_basic", "cgen", __xlTestCgenVarArgDictBasic },
+	{ "cgen.vararg_array_spread_basic", "cgen", __xlTestCgenVarArgArraySpreadBasic },
+	{ "cgen.vararg_dict_spread_basic", "cgen", __xlTestCgenVarArgDictSpreadBasic },
 	{ "cgen.multi_return_basic", "cgen", __xlTestCgenMultiReturnBasic },
 	{ "cgen.multi_return_call_expand_basic", "cgen", __xlTestCgenMultiReturnCallExpandBasic },
 	{ "cgen.function_value_basic", "cgen", __xlTestCgenFunctionValueBasic },
@@ -14269,6 +15168,7 @@ static const XL_TestCase __gXLTests[] = {
 	{ "cgen.container_at_get_default", "cgen", __xlTestCgenContainerAtGetDefault },
 	{ "cgen.container_keys_values_items", "cgen", __xlTestCgenContainerKeysValuesItems },
 	{ "cgen.container_remove_basic", "cgen", __xlTestCgenContainerRemoveBasic },
+	{ "cgen.container_take_runtime", "cgen", __xlTestCgenContainerTakeRuntime },
 	{ "cgen.bare_container_literals", "cgen", __xlTestCgenBareContainerLiterals },
 	{ "cgen.core_len_basic", "cgen", __xlTestCgenCoreLenBasic },
 	{ "cgen.type_methods_basic", "cgen", __xlTestCgenTypeMethodsBasic },
@@ -14307,9 +15207,36 @@ static const XL_TestCase __gXLTests[] = {
 	{ "cgen.async_container_set_remove_arg_await_basic", "cgen", __xlTestCgenAsyncContainerSetRemoveArgAwaitBasic },
 	{ "cgen.async_multi_await_state", "cgen", __xlTestCgenAsyncMultiAwaitState },
 	{ "cgen.extern_atoi_basic", "cgen", __xlTestCgenExternAtoiBasic },
+	{ "cgen.extern_async_func_basic", "cgen", __xlTestCgenExternAsyncFuncBasic },
+	{ "cgen.extern_type_method_basic", "cgen", __xlTestCgenExternTypeMethodBasic },
+	{ "cgen.binding_basic", "cgen", __xlTestCgenBindingBasic },
+	{ "cgen.binding_typedef_basic", "cgen", __xlTestCgenBindingTypedefBasic },
+	{ "cgen.binding_struct_basic", "cgen", __xlTestCgenBindingStructBasic },
+	{ "cgen.binding_multiline_basic", "cgen", __xlTestCgenBindingMultilineBasic },
+	{ "cgen.binding_define_basic", "cgen", __xlTestCgenBindingDefineBasic },
+	{ "cgen.binding_include_basic", "cgen", __xlTestCgenBindingIncludeBasic },
+	{ "cgen.binding_extern_c_basic", "cgen", __xlTestCgenBindingExternCBasic },
+	{ "cgen.binding_forward_basic", "cgen", __xlTestCgenBindingForwardBasic },
+	{ "cgen.binding_attr_basic", "cgen", __xlTestCgenBindingAttrBasic },
+	{ "cgen.binding_cond_basic", "cgen", __xlTestCgenBindingCondBasic },
+	{ "cgen.binding_struct_decl_basic", "cgen", __xlTestCgenBindingStructDeclBasic },
+	{ "cgen.binding_enum_basic", "cgen", __xlTestCgenBindingEnumBasic },
+	{ "cgen.binding_opaque_basic", "cgen", __xlTestCgenBindingOpaqueBasic },
+	{ "cgen.binding_union_opaque_basic", "cgen", __xlTestCgenBindingUnionOpaqueBasic },
+	{ "cgen.binding_comments_basic", "cgen", __xlTestCgenBindingCommentsBasic },
+	{ "cgen.binding_alias_basic", "cgen", __xlTestCgenBindingAliasBasic },
+	{ "cgen.binding_callback_basic", "cgen", __xlTestCgenBindingCallbackBasic },
 	{ "cgen.extern_same_name_basic", "cgen", __xlTestCgenExternSameNameBasic },
 	{ "cgen.extern_var_basic", "cgen", __xlTestCgenExternVarBasic },
 	{ "cgen.extern_var_point_basic", "cgen", __xlTestCgenExternVarPointBasic },
+	{ "cgen.extern_var_string_basic", "cgen", __xlTestCgenExternVarStringBasic },
+	{ "cgen.extern_var_bool_float_basic", "cgen", __xlTestCgenExternVarBoolFloatBasic },
+	{ "cgen.extern_var_exact_numeric_basic", "cgen", __xlTestCgenExternVarExactNumericBasic },
+	{ "cgen.extern_var_class_basic", "cgen", __xlTestCgenExternVarClassBasic },
+	{ "cgen.extern_func_class_abi_basic", "cgen", __xlTestCgenExternFuncClassAbiBasic },
+	{ "cgen.extern_func_class_abi_layout_basic", "cgen", __xlTestCgenExternFuncClassAbiLayoutBasic },
+	{ "cgen.extern_func_class_abi_nested_basic", "cgen", __xlTestCgenExternFuncClassAbiNestedBasic },
+	{ "cgen.extern_type_class_alias_basic", "cgen", __xlTestCgenExternTypeClassAliasBasic },
 	{ "cgen.class_stage1_struct_basic", "cgen", __xlTestCgenClassStage1StructBasic },
 	{ "cgen.class_stage1_implicit_object_runtime", "cgen", __xlTestCgenClassStage1ImplicitObjectRuntime },
 	{ "cgen.class_stage1_runtime_basic", "cgen", __xlTestCgenClassStage1RuntimeBasic },
@@ -14337,6 +15264,11 @@ static const XL_TestCase __gXLTests[] = {
 	{ "cgen.class_stage1_union_access_runtime", "cgen", __xlTestCgenClassStage1UnionAccessRuntime },
 	{ "cgen.class_stage1_union_active_destroy_runtime", "cgen", __xlTestCgenClassStage1UnionActiveDestroyRuntime },
 	{ "cgen.class_stage1_copy_runtime", "cgen", __xlTestCgenClassStage1CopyRuntime },
+	{ "cgen.class_move_assign_runtime", "cgen", __xlTestCgenClassMoveAssignRuntime },
+	{ "cgen.class_move_return_runtime", "cgen", __xlTestCgenClassMoveReturnRuntime },
+	{ "cgen.class_move_container_runtime", "cgen", __xlTestCgenClassMoveContainerRuntime },
+	{ "cgen.class_move_take_runtime", "cgen", __xlTestCgenClassMoveTakeRuntime },
+	{ "cgen.class_move_reassign_runtime", "cgen", __xlTestCgenClassMoveReassignRuntime },
 	{ "cgen.class_stage1_copy_elision_temp_runtime", "cgen", __xlTestCgenClassStage1CopyElisionTempRuntime },
 	{ "cgen.class_stage1_member_copy_destroy_runtime", "cgen", __xlTestCgenClassStage1MemberCopyDestroyRuntime },
 	{ "cgen.class_stage1_container_copy_runtime", "cgen", __xlTestCgenClassStage1ContainerCopyRuntime },
@@ -14501,6 +15433,7 @@ static const XL_TestCase __gXLTests[] = {
 	{ "cgen.error_module_basic", "cgen", __xlTestCgenErrorModuleBasic },
 	{ "cgen.module_basic", "cgen", __xlTestCgenModuleBasic },
 	{ "cgen.task_module_basic", "cgen", __xlTestCgenTaskModuleBasic },
+	{ "cgen.type_method_std_api_basic", "cgen", __xlTestCgenTypeMethodStdApiBasic },
 	{ "cgen.os_basic", "cgen", __xlTestCgenOsBasic },
 	{ "cgen.clock_basic", "cgen", __xlTestCgenClockBasic },
 	{ "cgen.sys_env_basic", "cgen", __xlTestCgenSysEnvBasic },
@@ -14544,6 +15477,10 @@ static const XL_TestCase __gXLTests[] = {
 	{ "cgen.sys_loadlib_func_multi_sig_basic", "cgen", __xlTestCgenSysLoadlibFuncMultiSigBasic },
 	{ "cgen.sys_dlopen_basic", "cgen", __xlTestCgenSysDlopenBasic },
 	{ "cgen.sys_dlsym_function_basic", "cgen", __xlTestCgenSysDlsymFunctionBasic },
+	{ "cgen.sys_dlsym_native_signature_matrix", "cgen", __xlTestCgenSysDlsymNativeSignatureMatrix },
+	{ "cgen.sys_dlsym_exact_numeric_signature_basic", "cgen", __xlTestCgenSysDlsymExactNumericSignatureBasic },
+	{ "cgen.sys_dlsym_class_abi_basic", "cgen", __xlTestCgenSysDlsymClassAbiBasic },
+	{ "cgen.sys_dlsym_var_signature_bridge", "cgen", __xlTestCgenSysDlsymVarSignatureBridge },
 	{ "cgen.sys_dlclose_basic", "cgen", __xlTestCgenSysDlcloseBasic },
 	{ "cgen.fmt_basic", "cgen", __xlTestCgenFmtBasic },
 	{ "cgen.crypto_basic", "cgen", __xlTestCgenCryptoBasic },
@@ -14617,6 +15554,7 @@ static const XL_TestCase __gXLTests[] = {
 	{ "runtime.generic_list_type_method", "runtime", __xlTestRunGenericListTypeMethod },
 	{ "runtime.generic_explicit_type_arg", "runtime", __xlTestRunGenericExplicitTypeArg },
 	{ "project.app_build_basic", "project", __xlTestProjectAppBuildBasic },
+	{ "project.binding_incpath", "project", __xlTestProjectBindingIncpath },
 	{ "project.package_import_basic", "project", __xlTestProjectPackageImportBasic },
 	{ "project.user_package_path", "project", __xlTestProjectUserPackagePath },
 	{ "project.xlang_home_package_path", "project", __xlTestProjectXlangHomePackagePath },
@@ -14716,6 +15654,11 @@ static const XL_TestCase __gXLTests[] = {
 	{ "runtime.class_stage1_index_operator_runtime", "runtime", __xlTestRunClassStage1IndexOperatorRuntime },
 	{ "runtime.class_stage1_call_operator_runtime", "runtime", __xlTestRunClassStage1CallOperatorRuntime },
 	{ "runtime.class_nocopy_decl", "runtime", __xlTestRunClassNoCopyDecl },
+	{ "runtime.class_move_assign_runtime", "runtime", __xlTestRunClassMoveAssignRuntime },
+	{ "runtime.class_move_return_runtime", "runtime", __xlTestRunClassMoveReturnRuntime },
+	{ "runtime.class_move_container_runtime", "runtime", __xlTestRunClassMoveContainerRuntime },
+	{ "runtime.class_move_take_runtime", "runtime", __xlTestRunClassMoveTakeRuntime },
+	{ "runtime.class_move_reassign_runtime", "runtime", __xlTestRunClassMoveReassignRuntime },
 	{ "runtime.native_std_core", "runtime", __xlTestRunNative },
 	{ "runtime.container_methods_basic", "runtime", __xlTestRunContainerMethodsBasic },
 	{ "runtime.container_append_basic", "runtime", __xlTestRunContainerAppendBasic },
@@ -14727,8 +15670,11 @@ static const XL_TestCase __gXLTests[] = {
 	{ "runtime.container_get_throw", "runtime", __xlTestRunContainerGetThrow },
 	{ "runtime.container_keys_values_items", "runtime", __xlTestRunContainerKeysValuesItems },
 	{ "runtime.container_remove_basic", "runtime", __xlTestRunContainerRemoveBasic },
+	{ "runtime.container_take_runtime", "runtime", __xlTestRunContainerTakeRuntime },
 	{ "runtime.vararg_array_basic", "runtime", __xlTestRunVarArgArrayBasic },
 	{ "runtime.vararg_dict_basic", "runtime", __xlTestRunVarArgDictBasic },
+	{ "runtime.vararg_array_spread_basic", "runtime", __xlTestRunVarArgArraySpreadBasic },
+	{ "runtime.vararg_dict_spread_basic", "runtime", __xlTestRunVarArgDictSpreadBasic },
 	{ "runtime.multi_return_basic", "runtime", __xlTestRunMultiReturnBasic },
 	{ "runtime.multi_return_call_expand_basic", "runtime", __xlTestRunMultiReturnCallExpandBasic },
 	{ "runtime.function_value_basic", "runtime", __xlTestRunFunctionValueBasic },
@@ -14821,8 +15767,16 @@ static const XL_TestCase __gXLTests[] = {
 	{ "runtime.link_auto_platform_suffix", "runtime", __xlTestRunLinkAutoPlatformSuffix },
 	{ "runtime.extern_type_basic", "runtime", __xlTestRunExternTypeBasic },
 	{ "runtime.extern_type_function_container_basic", "runtime", __xlTestRunExternTypeFunctionContainerBasic },
+	{ "runtime.extern_type_class_alias_basic", "runtime", __xlTestRunExternTypeClassAliasBasic },
 	{ "runtime.extern_var_basic", "runtime", __xlTestRunExternVarBasic },
 	{ "runtime.extern_var_point_basic", "runtime", __xlTestRunExternVarPointBasic },
+	{ "runtime.extern_var_string_basic", "runtime", __xlTestRunExternVarStringBasic },
+	{ "runtime.extern_var_bool_float_basic", "runtime", __xlTestRunExternVarBoolFloatBasic },
+	{ "runtime.extern_var_exact_numeric_basic", "runtime", __xlTestRunExternVarExactNumericBasic },
+	{ "runtime.extern_var_class_basic", "runtime", __xlTestRunExternVarClassBasic },
+	{ "runtime.extern_func_class_abi_basic", "runtime", __xlTestRunExternFuncClassAbiBasic },
+	{ "runtime.extern_func_class_abi_layout_basic", "runtime", __xlTestRunExternFuncClassAbiLayoutBasic },
+	{ "runtime.extern_func_class_abi_nested_basic", "runtime", __xlTestRunExternFuncClassAbiNestedBasic },
 	{ "runtime.extern_loadlib_pkg_probe_basic", "runtime", __xlTestRunExternLoadlibPkgProbeBasic },
 	{ "runtime.extern_loadlib_msvcrt_fmode_basic", "runtime", __xlTestRunExternLoadlibMsvcrtFmodeBasic },
 	{ "runtime.directive_paths_basic", "runtime", __xlTestRunDirectivePathsBasic },
@@ -14833,10 +15787,15 @@ static const XL_TestCase __gXLTests[] = {
 	{ "runtime.sys_loadlib_func_bool_basic", "runtime", __xlTestRunSysLoadlibFuncBoolBasic },
 	{ "runtime.sys_loadlib_func_point_basic", "runtime", __xlTestRunSysLoadlibFuncPointBasic },
 	{ "runtime.sys_loadlib_func_multi_sig_basic", "runtime", __xlTestRunSysLoadlibFuncMultiSigBasic },
+	{ "runtime.sys_dlsym_native_signature_matrix", "runtime", __xlTestRunSysDlsymNativeSignatureMatrix },
+	{ "runtime.sys_dlsym_exact_numeric_signature_basic", "runtime", __xlTestRunSysDlsymExactNumericSignatureBasic },
+	{ "runtime.sys_dlsym_class_abi_basic", "runtime", __xlTestRunSysDlsymClassAbiBasic },
+	{ "runtime.sys_dlsym_var_signature_bridge", "runtime", __xlTestRunSysDlsymVarSignatureBridge },
 	{ "runtime.sys_dlopen_basic", "runtime", __xlTestRunSysDlopenBasic },
 	{ "runtime.sys_dlsym_function_basic", "runtime", __xlTestRunSysDlsymFunctionBasic },
 	{ "runtime.sys_dlclose_basic", "runtime", __xlTestRunSysDlcloseBasic },
 	{ "runtime.task_module_basic", "runtime", __xlTestRunTaskModuleBasic },
+	{ "runtime.type_method_std_api_basic", "runtime", __xlTestRunTypeMethodStdApiBasic },
 	{ "runtime.os_basic", "runtime", __xlTestRunOsBasic },
 	{ "runtime.clock_basic", "runtime", __xlTestRunClockBasic },
 	{ "runtime.sys_env_basic", "runtime", __xlTestRunSysEnvBasic },
@@ -15042,6 +16001,23 @@ static const XL_TestCase __gXLTests[] = {
 	{ "runtime.type_value_basic", "runtime", __xlTestRunTypeValueBasic },
 	{ "runtime.public_types_basic", "runtime", __xlTestRunPublicTypesBasic },
 	{ "runtime.extern_atoi_basic", "runtime", __xlTestRunExternAtoiBasic },
+	{ "runtime.extern_async_func_basic", "runtime", __xlTestRunExternAsyncFuncBasic },
+	{ "runtime.extern_type_method_basic", "runtime", __xlTestRunExternTypeMethodBasic },
+	{ "runtime.binding_basic", "runtime", __xlTestRunBindingBasic },
+	{ "runtime.binding_typedef_basic", "runtime", __xlTestRunBindingTypedefBasic },
+	{ "runtime.binding_struct_basic", "runtime", __xlTestRunBindingStructBasic },
+	{ "runtime.binding_multiline_basic", "runtime", __xlTestRunBindingMultilineBasic },
+	{ "runtime.binding_define_basic", "runtime", __xlTestRunBindingDefineBasic },
+	{ "runtime.binding_include_basic", "runtime", __xlTestRunBindingIncludeBasic },
+	{ "runtime.binding_extern_c_basic", "runtime", __xlTestRunBindingExternCBasic },
+	{ "runtime.binding_forward_basic", "runtime", __xlTestRunBindingForwardBasic },
+	{ "runtime.binding_attr_basic", "runtime", __xlTestRunBindingAttrBasic },
+	{ "runtime.binding_cond_basic", "runtime", __xlTestRunBindingCondBasic },
+	{ "runtime.binding_struct_decl_basic", "runtime", __xlTestRunBindingStructDeclBasic },
+	{ "runtime.binding_enum_basic", "runtime", __xlTestRunBindingEnumBasic },
+	{ "runtime.binding_opaque_basic", "runtime", __xlTestRunBindingOpaqueBasic },
+	{ "runtime.binding_comments_basic", "runtime", __xlTestRunBindingCommentsBasic },
+	{ "runtime.binding_alias_basic", "runtime", __xlTestRunBindingAliasBasic },
 	{ "runtime.extern_same_name_basic", "runtime", __xlTestRunExternSameNameBasic },
 	{ "runtime.generator_run", "runtime", __xlTestRunGeneratorRun },
 	{ "runtime.generator_lazy_throw", "runtime", __xlTestRunGeneratorLazyThrow },

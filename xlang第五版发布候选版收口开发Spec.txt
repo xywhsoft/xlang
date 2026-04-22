@@ -167,10 +167,10 @@ xlang 第五版发布候选版收口开发 Spec
 - [x] 当前文件所在目录优先用于相对模块。
 - [x] 项目 `source` 路径参与搜索。
 - [x] 项目 `packages` 路径参与搜索。
-- [ ] 用户级包目录参与搜索。
-- [ ] xlang 安装目录官方扩展库参与搜索。
+- [x] 用户级包目录参与搜索：支持 `XLANG_PACKAGE_PATH` 与用户目录 `.xlang/packages`。
+- [x] xlang 安装目录官方扩展库参与搜索：支持 `XLANG_HOME/packages`、`XLANG_HOME/lib/xlang/packages` 与 release 安装根 package 目录。
 - [x] `std.*` 固定优先内置标准库，不允许用户包覆盖。
-- [~] 字符串 import 保留路径直连能力：`import "local/file.xl"`。
+- [x] 字符串 import 保留路径直连能力：`import "local/file.xl"`。
 
 3.6 暂不纳入
 - [ ] peer dependency
@@ -181,6 +181,8 @@ xlang 第五版发布候选版收口开发 Spec
 3.7 验收样例
 - [x] `project_app_build_basic`
 - [x] `project_package_import_basic`
+- [x] `project_user_package_path`
+- [x] `project_xlang_home_package_path`
 - [x] `project_std_priority`
 - [x] `project_link_from_json`
 - [x] `project_import_error_paths`
@@ -216,12 +218,12 @@ auto item = list.at(10, null)
 - [x] list
 - [x] set
 - [x] dict
-- [ ] time
-- [ ] error
-- [ ] module
-- [ ] future
-- [ ] task
-- [ ] channel
+- [x] time
+- [x] error
+- [x] module
+- [x] future
+- [x] task
+- [x] channel
 
 4.5 需要统一的命名
 - [x] `.length`
@@ -235,6 +237,7 @@ auto item = list.at(10, null)
 - [x] `.keys()`
 - [x] `.values()`
 - [x] `.items()`
+- [x] `time/error/module/future/task/channel` 类型方法覆盖
 
 4.6 验收样例
 - [x] `property_length_standard`
@@ -244,6 +247,7 @@ auto item = list.at(10, null)
 - [x] `list_at_default`
 - [x] `list_at_throw`
 - [x] `string_length_property`
+- [x] `type_method_std_api_basic`
 
 --------------------------------
 
@@ -274,7 +278,38 @@ sys.dlclose(lib)
 ```
 
 5.5 暂不纳入
-- [ ] 从 .h 自动生成 binding
+- [~] 从 .h 自动生成 binding：首版支持 `#binding "header.h"`，可从简单 C 函数原型和 `extern` 全局变量生成 xlang `extern func/var`；支持当前文件相对路径、`#incpath` 与 `xlang.json` 的 `incpath` 搜索；支持找不到 header 时输出明确 binding error 并中止编译；支持 binding header 内递归 `#include "file.h"` / `#include <file.h>`，并复用同一 typedef/const/type 上下文，避免父 header 无法识别子 header 类型；支持 C++ 头文件常见的 `extern "C"` 单声明与 `extern "C" { ... }` 包裹块清洗；支持轻量条件编译与 include guard（`#if 0/1`、`#ifdef`、`#ifndef`、`#elif`、`#else`、`#endif`、`defined(NAME)`、空宏登记、`#undef`、未知宏按 0、比较/逻辑表达式）；支持 `#pragma` 安全忽略、active `#warning` 非致命跳过、active `#error` 转为 binding error 并中止编译，inactive `#error` 被条件编译跳过；支持简单 typedef 别名、typedef 多别名/指针别名展开（如 `typedef int A, *PA;`）、函数指针 typedef 到 `function<...>` 的类型映射、单行与多行 `typedef struct { ... } Name;` -> xlang class 映射；支持 `struct Name { ... };` 映射；支持 `struct Foo;` 前置声明作为 opaque `point`，支持 `enum Foo;` 前置声明作为 `int`；支持 struct 字段中的简单多 declarator 展开（如 `int x, y;`、`const char *name, *label;`）；支持 struct 字段中的单个函数指针 declarator 映射为 `function<...>` 字段（如 `int (*cb)(int, const char*)`、`void (CALLBACK *done)(void)`）；支持 `typedef struct Tag { ... } Alias;` 的 tag/alias 类型映射；支持 `typedef struct Foo Foo;` 这类 opaque struct 前置声明映射为 `point`，用于 `Foo*` handle API；支持 `typedef enum` 与普通 `enum` 常量导入为 xlang `const int`，enum 类型在函数签名中映射为 `int`；支持多行函数原型合并；支持反斜杠续行的多行 `#define` 拼接；支持简单对象式 `#define` 常量导入为 xlang `const`；支持整数表达式宏求值（`+ - * / % << >> & | ^ ~ ! == != < <= > >= && ||`、括号、字符常量、C cast、前序宏/enum 常量引用、`NULL`/`TRUE`/`FALSE`）；支持函数式 int 表达式宏生成 xlang `func`（参数和返回值固定为 `int`，覆盖算术/位运算/比较/逻辑/单层三元 `?:`/前序常量引用、`NULL`/`TRUE`/`FALSE`，并将 C `!expr` 按整数语义转换为 `expr == 0`；三元条件需是比较/逻辑表达式，不承诺 C 裸 int 条件语义）；支持 C 行注释与块注释清洗，且不会误删字符串/字符字面量中的 `//` 或 `/* */`；支持常见调用约定/声明修饰词/参数注解清洗（`__cdecl`、`__stdcall`、`__fastcall`、`WINAPI`、`CALLBACK`、`APIENTRY`、`PASCAL`、`NTAPI`、`inline`、`restrict`、`__declspec(...)`、`__attribute__((...))`、`DECLSPEC_IMPORT`、`DECLSPEC_EXPORT`、`_In_`/`_Out_` 等 SAL 注解）；支持常见 C/Windows 类型别名兜底映射（如 `DWORD`/`UINT`、`WORD`/`BYTE`、`HANDLE`/`HWND`、`PCSTR`/`LPCSTR`）；支持 `XL_BINDING_TRACE=1` 输出 binding 导入统计与跳过原因；native callback ABI 调用、完整 C 预处理表达式、复杂函数式宏、bitfield/inline array 字段、复杂嵌套 struct 后续扩展。
+- [x] `#binding` opaque union 安全首版：支持 `union Foo;` 前置声明和 `typedef union Foo Foo;` 映射为 `point`，可用于 `Foo*` handle API；完整 C union layout / active member 语义仍后续扩展。
+- [x] `#binding` 无名多词参数兼容：支持 `unsigned int`、`signed char`、`unsigned long long` 等省略参数名的 C 原型，不再把末尾基础类型词误删为参数名。
+- [x] `#binding` 函数参数数组退化：支持 C 原型参数中的 `T name[N]` / `T name[]` 按 C ABI 衰减为指针形态导入；`char[]`/`unsigned char[]` 映射为 `string`，其它数组参数映射为 `point`；struct 字段 inline array 仍暂缓。
+- [x] `#binding` 指针宽度整数别名：支持 `intptr_t` / `uintptr_t` / `ptrdiff_t` / `SSIZE_T` / `INT_PTR` / `UINT_PTR` / `DWORD_PTR` 等常见 C/Windows 头文件别名映射到 `int64` / `uint64`。
+- [x] `#binding` typedef struct 多 alias：支持 `typedef struct Tag { ... } Name, *PName;`，第一个非指针 alias 生成 xlang class，`*PName` 等指针 alias 映射为 `point`，可用于后续函数签名。
+- [x] `#binding` typedef struct/union 多 value alias：支持 `typedef struct Tag { ... } A, B, *PB;` 中后续非指针 alias `B` 映射为 `A` 的 xlang 类型别名；`typedef union ... A, B, *PB;` 中所有 value/pointer alias 均安全映射为 opaque `point`。
+- [x] `#binding` typedef enum 多 alias：支持 `typedef enum Tag { ... } A, B, *PB;` 中多个 enum value alias 映射为 `int`，enum pointer alias 映射为 `point`，可用于后续 C 函数原型导入。
+- [x] `#binding` 类型限定符位置兼容：支持 `char const *`、`unsigned int const`、`volatile DWORD` 等前置/中置/后置 `const` / `volatile` 类型写法，按 ABI 等价基础类型导入。
+- [x] `#binding` opaque typedef 后续完整定义升级：支持 `typedef struct Tag Alias;` 先作为 `point` 前置可用，后续遇到 `struct Tag { ... };` 时自动将 `Alias` 升级为生成的 plain class，可参与按值 extern func ABI。
+- [x] `#binding` 嵌套 plain struct 字段：支持已定义 `struct Inner` 作为后续 `struct Outer { struct Inner inner; ... }` 字段类型导入，并可参与按值 extern func ABI。
+- [x] `#binding` sizeof 宏常量求值：支持对象式与函数式宏中的 `sizeof(基础 C 类型/指针类型)` 预折叠，覆盖 `sizeof(int)`、`sizeof(void*)`、`sizeof(char const *)` 等常见 SDK 宏写法。
+- [x] `#binding` 函数式宏三元整数条件兼容：支持 `((x) ? a : b)` 这类 C 裸 int 条件三元宏，导入时转换为 xlang 可类型检查的 `(x != 0) ? a : b`；已有比较/逻辑条件保持原样。
+- [x] `#binding` 对象式宏三元常量求值：支持 `#define X (COND ? A : B)` 这类 C 整数常量表达式，条件按非 0 为真求值，可复用前序宏/enum 常量和 `sizeof(...)` 结果。
+- [x] `#binding` struct unsupported layout 安全降级：遇到 bitfield 或 inline array 字段时不再生成缺字段 class，改将该 struct/typedef 映射为 opaque `point`，保证 handle/pointer API 可用但不承诺按值布局 ABI。
+- [x] `#binding` typedef union layout 安全导入：遇到 `typedef union Tag { ... } Alias, *PAlias;` 时不解析 union 字段布局，统一映射为 opaque `point`，保证 value alias / pointer alias / `union Tag` 可用于 handle API；完整 C union ABI 仍后置。
+- [x] `#binding` named union layout 安全导入：遇到 `union Name { ... };` 时不解析 union 字段布局，导入 `Name` / `union Name` 为 opaque `point`，避免后续 handle API 因类型未知被跳过。
+- [x] `#binding` 字符串宏兼容增强：支持对象式 `#define` 中的括号包裹字符串、相邻 C 字符串字面量拼接，以及 `u8"..."` / `L"..."` / `u"..."` / `U"..."` 前缀字符串按 xlang `string` 常量导入。
+- [x] `#binding` 字符串宏别名：支持 `#define B A` 且 `A` 是前序 string define 时导入为 xlang `const string B = A`，覆盖 SDK/项目头文件中的字符串常量别名。
+- [x] `#binding` 浮点宏别名：支持 `#define B A` 且 `A` 是前序 float define 时导入为 xlang `const float64 B = A`，覆盖 SDK/项目头文件中的浮点常量别名链。
+- [x] `#binding` 整数宏别名：支持 `#define B A` 且 `A` 是前序 int/uint define 时导入为 xlang `const int/uint64 B = A`，覆盖 SDK/项目头文件中的整数常量别名链；`NULL`/`TRUE`/`FALSE` 仍折叠为数字常量。
+- [x] `#binding` 指针空值宏：支持 `#define X ((void*)0)`、`#define X ((HANDLE)NULL)`、`#define X ((LPVOID)0)` 这类明确 cast 为 pointer/handle 且值为 0/NULL 的对象式宏导入为 xlang `const point X = point(null)`；非空哨兵指针仍不自动承诺。
+- [x] `#binding` 字符常量宏兼容增强：支持对象式 `#define` 和整数常量表达式中的常见 C 转义字符（如 `'\n'`、`'\x2a'`、`'\052'`），导入时统一折叠为 xlang `int` 常量。
+- [x] `#binding` 带前缀字符常量宏兼容：支持 `L'...'` / `u'...'` / `U'...'` / `u8'...'` 字符常量及其在整数常量表达式中的使用，按首版单字符整数语义导入。
+- [x] `#binding` 数值宏兼容增强：支持对象式 `#define` 和整数常量表达式中的二进制整数 `0b...` / `0B...`，以及数字分隔符 `'`，导入时统一折叠为十进制 xlang 常量。
+- [x] `#binding` 八进制数值宏兼容：支持对象式 `#define` 和整数常量表达式中的 C 八进制整数字面量（如 `052`、`040 | 012`），导入时统一折叠为十进制 xlang 常量。
+- [x] `#binding` char 指针层级 ABI 修正：单层 `char*` / `const char*` 仍映射为 `string`，二级及以上 `char**` / `const char**` 等输出参数或字符串数组统一映射为 opaque `point`，避免误当普通字符串传递。
+- [x] `#binding` typedef 多 declarator 指针归属修正：支持 `typedef int *P, I;` 这类 C 声明中 `*` 只绑定当前 declarator，避免后续 alias 被误解析为指针类型；与 struct 字段多 declarator 语义保持一致。
+- [x] `#binding` Windows SAL 注解增强清理：支持 `_In_range_(...)`、`_In_reads_(...)`、`_Out_writes_(...)`、`_Outptr_result_maybenull_` 等常见带参/扩展 SAL 注解按 ABI 无关信息移除，提升 Windows SDK 头文件导入兼容性。
+- [x] `#binding` 声明修饰宏清理：支持 `#define API __declspec(dllexport)`、`#define API extern`、`#define API` 后续用于 `API int foo(...)` 这类函数/变量声明前缀时按 ABI 无关修饰清除；也支持 `#define API2 API` 这类声明修饰宏别名链，提升 SDK/项目导出宏兼容性。
+- [x] `#binding` 函数式宏 typedef 整数 cast：支持 `typedef int MYINT; #define F(x) ((MYINT)(x))` 这类 SDK/项目头文件常见写法，导入函数式 int 宏时按 binding 类型表识别并剥离整数/布尔 C cast；指针/string/class cast 不自动剥离。
+- [x] `#binding` 零参数函数式宏：支持 `#define FOO() 42` 这类无参数 C 函数式宏导入为 xlang `func FOO() as int`。
 - [ ] extern async func
 - [ ] 类型方法形式 extern
 - [ ] 完整 class ABI 直通
@@ -286,6 +321,26 @@ sys.dlclose(lib)
 - [x] `sys_dlsym_function_basic`
 - [x] `sys_dlclose_basic`
 - [x] `extern_unresolved_clear_error`
+- [x] `binding_basic`
+- [x] `project.binding_incpath`
+- [x] `binding_typedef_basic`
+- [x] `binding_struct_basic`
+- [x] `binding_multiline_basic`
+- [x] `binding_define_basic`
+- [x] `binding_include_basic`
+- [x] `binding_extern_c_basic`
+- [x] `binding_forward_basic`
+- [x] `binding_attr_basic`
+- [x] `binding_cond_basic`
+- [x] `binding_struct_decl_basic`
+- [x] `diag.binding_trace`
+- [x] `diag.binding_error_directive`
+- [x] `diag.binding_missing_header`
+- [x] `binding_enum_basic`
+- [x] `binding_opaque_basic`
+- [x] `binding_comments_basic`
+- [x] `binding_alias_basic`
+- [x] `binding_callback_basic`
 
 --------------------------------
 
@@ -360,51 +415,65 @@ end
 7. extern var string / class ABI
 
 7.1 价值
-- [ ] 增强 C 全局变量互操作。
+- [x] 增强 C 全局变量互操作。
 
 7.2 建议时机
-- [ ] string ABI 和 class ABI 稳定后再做。
+- [x] string ABI 首版已稳定为 `const char*` 数据符号互操作。
+- [x] class/struct data symbol 首版已支持“无析构、无 union、C 布局兼容 class”的 `extern var` 映射。
 
 7.3 范围
-- [ ] `extern var name as string`
-- [ ] class/struct data symbol 映射
-- [ ] 读写规则
-- [ ] 生命周期规则
+- [x] `extern var name as string`
+- [x] `extern var name as bool` / `extern var name as float64`
+- [x] `extern var name as int32` / `extern var name as uint64` 等精确数值类型 data symbol 读写。
+- [x] class/struct data symbol 映射：首版支持 plain class 与 C struct 同布局的全局数据符号读写。
+- [x] 读写规则：按 C ABI 指针值读写，xlang 读取得到 string，赋值会把 `const char*` 指针写回数据符号。
+- [x] 生命周期规则：不发生所有权转移；C 侧和 xlang 侧都不自动释放对方内存，首版推荐写入字符串字面量或 native 侧稳定持有的缓冲区。
 
 7.4 风险
-- [ ] string 所有权边界复杂。
-- [ ] class 析构/拷贝和 C 数据区不天然匹配。
+- [x] string 所有权边界复杂：首版通过“指针值互操作、无所有权转移”收口。
+- [x] class 析构/拷贝和 C 数据区不天然匹配：首版仅承诺 plain class data symbol，带 destroy/union active tag/复杂生命周期的 class ABI 继续后置。
 
 --------------------------------
 
 8. class ABI 直通
 
 8.1 价值
-- [ ] 让 xlang class 与 C struct 深度互通。
+- [x] 让 xlang class 与 C struct 深度互通。
 
 8.2 建议时机
 - [ ] class 第一阶段完全稳定后。
 
 8.3 范围
-- [ ] class 布局按 C ABI 导出。
-- [ ] extern type struct/class 导入增强。
-- [ ] 函数参数/返回 class 的 ABI 传递。
+- [x] plain class 布局按 C ABI 导出。
+- [x] extern var plain class/struct data symbol 导入增强。
+- [x] extern type plain class ABI 别名：`extern type NativeAlias = NativeClass` 可用于 extern var/func 参数和返回。
+- [x] extern type 从 C 头文件/struct 声明自动导入增强：`#binding` 生成的 plain struct class 可直接参与 extern func 参数/返回与 extern var data symbol 读写。
+- [x] 函数参数/返回 plain class 的 ABI 传递：首版支持与 C struct 同布局的小型 plain class 按值传参/返回。
+- [x] mixed-field plain class ABI 验收：覆盖 `int8 + int32 + float64` 的 padding/对齐、函数按值传参/返回和全局 data symbol 读写。
+- [x] nested plain class ABI 验收：覆盖 C struct 内嵌 struct / xlang class 字段嵌套的 extern func/var 按值互操作。
+- [x] large plain class ABI 验收：覆盖 64-bit 整数与 float64 混合的大结构体按值传参/返回，当前 Windows x64 / GCC + TCC 链路通过。
 
 8.4 风险
-- [ ] Windows/Linux ABI 差异。
-- [ ] 对齐、padding、结构体返回规则复杂。
+- [x] 当前 Windows x64 / GCC + TCC 链路已覆盖混合字段 padding/对齐验收。
+- [ ] Linux ABI 差异仍需后续跨平台 CI 验证。
+- [x] 当前 Windows x64 / GCC + TCC 链路已覆盖嵌套 plain struct/class 的基础按值传参/返回验收。
+- [x] 当前 Windows x64 / GCC + TCC 链路已覆盖大 plain class 按值传参/返回验收。
+- [ ] 非常规对齐/复杂嵌套生命周期规则仍暂缓。
 
 --------------------------------
 
 9. 更完整 native function signature thunk
 
 9.1 价值
-- [ ] 减少 extern/sys.dlsym 限制，让 C 生态接入更自然。
+- [x] 减少 extern/sys.dlsym 限制，让 C 生态接入更自然。
 
 9.2 范围
-- [ ] 覆盖更多基础参数/返回组合。
-- [ ] function pointer 更完整桥接。
-- [ ] var 与基础类型之间 thunk 更丰富。
+- [x] 覆盖更多基础参数/返回组合：`int/string/bool/float/void/point` 动态函数指针矩阵已有验收。
+- [x] 精确数值 native function pointer 验收：覆盖 `int8` / `uint8` / `int16` / `uint16` / `int32` / `uint64` / `float32` / `float64` 参数与返回的 `sys.dlsym` 动态调用。
+- [x] 精确数值 native function pointer 补充验收：补齐 `uint32` / `int64` 参数与返回的 `sys.dlsym` 动态调用。
+- [x] function pointer 更完整桥接：`sys.dlsym` / `lib.proc` 返回 point 后可按 `function<...>` 签名调用。
+- [x] plain class 动态 ABI 桥接：`sys.dlsym` 返回的 point 可按 `function<PlainClass(...)>` / `function<int(PlainClass)>` 调用，首版按值拷贝装箱/拆箱，仅承诺 plain class。
+- [x] var 与基础类型之间 thunk 更丰富：动态 native 函数支持 `function<int(var, int)>` 等 `xvalue` 参数桥接，也覆盖 `var` 调用 native `int/string` 参数的拆箱路径。
 
 9.3 风险
 - [ ] 无限签名自动支持容易失控。
@@ -415,31 +484,34 @@ end
 10. 显式 move / 所有权转移
 
 10.1 价值
-- [ ] 让带析构 class 的性能和资源管理更完整。
+- [x] 让带析构 class 的性能和资源管理更完整。
 
 10.2 范围
-- [ ] `move value` 或等价设计。
-- [ ] move 后对象进入不可用状态。
-- [ ] 容器 push/return/assign 支持 move。
+- [x] `move(value)` 内建表达式：不新增关键字，作为发布候选版首版显式转移入口。
+- [x] move 后简单局部 class 源对象降为零状态，避免首版资源值二次析构。
+- [x] return/assign 支持 move。
+- [x] 容器字面量 / append / index assign 支持 move，容器内 boxed class 成员访问可正确解包。
+- [x] 容器 take/pop 取出并转移所有权：xrt 增加 detach API，xlang 支持 array/list/dict.take(...) 与 array.pop()，class 元素按值转移。
 
 10.3 风险
-- [ ] 语言复杂度明显上升。
-- [ ] 诊断必须非常清晰。
+- [x] 语言复杂度明显上升：首版采用函数式内建 `move(value)`，避免新增关键字和语法分支。
+- [x] 诊断必须非常清晰：首版支持简单局部 class 变量跨语句 use-after-move 编译期报错；同语句内部复杂流分析和分支敏感分析后置。
+- [x] set 的 take/pop 暂不纳入首版：set 的“按值取出”需要先确定等值匹配和返回值语义，当前保留 remove 语义。
 
 --------------------------------
 
 11. 版本 ABI 压进真实 C 符号名
 
 11.1 价值
-- [ ] 包生态和 ABI 共存更稳。
+- [x] 包生态和 ABI 共存更稳。
 
 11.2 范围
-- [ ] 当前元信息 id 层稳定后，再将版本 ABI 参与真实导出符号。
-- [ ] 支持同模块多 ABI 共存的可能性。
+- [x] 当前元信息 id 层稳定后，再将版本 ABI 参与真实导出符号：XLP/package 模块的 init/exports/descriptor symbol 已支持 packageAbiId 参与消歧。
+- [x] 支持同模块多 ABI 共存的可能性：已覆盖同名 `pkg.math` 多版本包生成不同真实 C ABI 符号。
 
 11.3 风险
-- [ ] 会影响现有导出/导入规则。
-- [ ] 必须和 xlp/package 版本策略一起设计。
+- [x] 会影响现有导出/导入规则：当前限定在 XLP/package ABI 符号和模块描述符链路，不改变源代码级 import/export 名称。
+- [x] 必须和 xlp/package 版本策略一起设计：当前以 package name + version + abiVersion 组成 packageAbiId，并在 xlp manifest/package dump 中稳定输出。
 
 --------------------------------
 三、明确暂缓内容
@@ -502,4 +574,17 @@ end
 
 当前结论
 - 本 spec 作为 demo5 发布候选版收口主跟踪文档。
-- 下一步建议进入“阶段 2：错误诊断系统发布级增强”，统一 parser/sem/host/import/generic 等主要阶段的错误格式与源码定位。
+- 发布候选版前置阶段已完成，当前进入“后置但高价值内容”的增量验证阶段。
+- 下一步建议继续扩展 native binding：优先补更多 struct/typedef 边界、复杂函数式宏/表达式宏的更完整策略。
+
+--------------------------------
+五、后置高价值项增量验收状态
+--------------------------------
+
+- [x] #binding struct/typedef 边界增强：覆盖 typedef enum 字段、enum tag 字段、typedef 基础类型字段与 generated plain class 传入 extern func。
+- [x] #binding 宏表达式增强：覆盖整数宏别名链、浮点宏别名链、字符串宏别名、NULL 指针宏、常量表达式、逻辑/比较/三元、sizeof、函数式宏与多行宏。
+- [x] native binding 自动生成链路增强：#binding 生成的 plain struct/class、常量、函数声明可直接参与语义分析、C 输出与 runtime 调用验证。
+- [x] native function signature 更广覆盖：补齐 sys.dlsym point -> function<...> 的 uint32 / int64 精确数值签名验收；仍保持白名单式扩展，不做无限签名自动支持。
+- [x] 大结构体 ABI 规则：覆盖 64-bit 整数与 float64 混合的大 plain class 按值传参、按值返回和二次传递。
+- [ ] Linux ABI 差异跨平台 CI：当前仓库 demo5 构建脚本仍是 Windows GCC/TCC 链路，尚无可直接运行的 Linux build/CI 脚本；需要后续在真实 Linux runner 上建立构建链后再标记完成。
+- [ ] 非常规对齐、复杂嵌套生命周期 ABI：当前发布候选版只承诺 plain class / plain struct ABI；带 destroy、union active tag、显式 pack/alignment、非平凡生命周期跨 C ABI 仍后置。

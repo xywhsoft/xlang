@@ -1,0 +1,8 @@
+func count_named(int seed, ***) as int
+	return seed + arg.length + arg["left"] + arg["right"]
+end
+
+func main() as int
+	auto packed = {"left": 9, "right": 8}
+	return count_named(20, ***packed)
+end

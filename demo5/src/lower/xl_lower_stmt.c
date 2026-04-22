@@ -988,8 +988,8 @@ static XL_HirNode* __xlLowerFuncToHir(const XL_AstNode* pNode, const XL_SemResul
 	}
 
 	xlHirSetText(pFunc, pNode->sText);
-	if ( (__xlFuncReceiverNode(pNode) == NULL) && (pNode->sText2 != NULL) && (pNode->sText2[0] != '\0') ) {
-		xlHirSetExternName(pFunc, pNode->sText2);
+	if ( (pNode->iIntValue != 0) && (pNode->sText != NULL) && (pNode->sText[0] != '\0') ) {
+		xlHirSetExternName(pFunc, (__xlFuncReceiverNode(pNode) != NULL) ? pNode->sText : pNode->sText2);
 	}
 	__xlApplySemNodeInfo(pFunc, pSem, pNode);
 	pFuncInfo = __xlResolvedFuncInfo(pSem, pNode);
