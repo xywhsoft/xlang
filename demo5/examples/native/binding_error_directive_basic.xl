@@ -1,0 +1,5 @@
+#binding "binding_error_directive_probe.h"
+
+func main() as int
+	return 0
+end

@@ -1,0 +1,31 @@
+#binding "binding_union_opaque_probe.h"
+
+func main() as int
+	point p = binding_opaque_union_identity(null)
+	if p != null then
+		return 1
+	end
+	if binding_unnamed_exact_params(1, 2, 3) != 0 then
+		return 2
+	end
+	if binding_array_param_probe("abc", null, "xyz") != 0 then
+		return 3
+	end
+	BindingPayload payload = point(null)
+	BindingPayloadAlias payloadAlias = point(null)
+	BindingPayloadPtr payloadPtr = point(null)
+	if string(payload).length == 0 then
+		return 4
+	end
+	if string(payloadAlias).length == 0 then
+		return 7
+	end
+	if string(payloadPtr).length == 0 then
+		return 5
+	end
+	BindingNamedPayload namedPayload = point(null)
+	if string(namedPayload).length == 0 then
+		return 6
+	end
+	return 42
+end

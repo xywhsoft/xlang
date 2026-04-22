@@ -1,0 +1,15 @@
+class Handle extends object
+	nocopy
+	var value as int
+
+	create(int value)
+		self.value = value
+	end
+end
+
+func main() as int
+	auto a = Handle(9)
+	auto b = move(a)
+	a = Handle(5)
+	return a.value + b.value
+end

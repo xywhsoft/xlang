@@ -1,0 +1,12 @@
+#loadlib "../xlp_native/packages/pkg.probe/bin/pkg_probe.dll"
+#binding "binding_include_parent.h"
+
+func main() as int
+	if BINDING_INCLUDE_BASE != 41 then
+		return 1
+	end
+	if BINDING_INCLUDE_ANSWER(1) != 42 then
+		return 2
+	end
+	return pkg_clock_artifact_add_one(BINDING_INCLUDE_BASE)
+end

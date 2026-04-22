@@ -1,0 +1,10 @@
+#loadlib "../xlp_native/packages/pkg.probe/bin/pkg_probe.dll"
+#binding "binding_opaque_probe.h"
+
+func main() as int
+	point handle = pkg_clock_artifact_point_sentinel()
+	if handle == null then
+		return 1
+	end
+	return pkg_clock_artifact_bool_score(handle) + 35
+end

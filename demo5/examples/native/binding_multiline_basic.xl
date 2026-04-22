@@ -1,0 +1,10 @@
+#loadlib "../xlp_native/packages/pkg.probe/bin/pkg_probe.dll"
+#binding "binding_multiline_probe.h"
+
+func main() as int
+	auto pair = pkg_clock_artifact_pair_make(12, 30)
+	if pair.x + pair.y != 42 then
+		return 1
+	end
+	return pkg_clock_artifact_pair_value_sum(pair)
+end

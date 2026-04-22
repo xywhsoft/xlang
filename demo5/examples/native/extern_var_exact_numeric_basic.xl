@@ -1,0 +1,36 @@
+#loadlib "../xlp_native/packages/pkg.probe/bin/pkg_probe.dll"
+
+extern "pkg_clock_artifact_i32_slot" var probe_i32 as int32
+extern "pkg_clock_artifact_u64_slot" var probe_u64 as uint64
+extern "pkg_clock_artifact_i32_slot_score" func i32_score() as int
+extern "pkg_clock_artifact_u64_slot_score" func u64_score() as int
+
+func main() as int
+	if probe_i32 != 1200 then
+		return 1
+	end
+	if i32_score() != 12 then
+		return 2
+	end
+	if u64_score() != 9 then
+		return 3
+	end
+
+	int32 saved_i32 = probe_i32
+	uint64 saved_u64 = probe_u64
+	probe_i32 = 4200
+	if i32_score() != 42 then
+		return 4
+	end
+	probe_u64 = 42000000000
+	if u64_score() != 42 then
+		return 5
+	end
+
+	probe_i32 = saved_i32
+	probe_u64 = saved_u64
+	if i32_score() == 12 then
+		return 42
+	end
+	return 6
+end

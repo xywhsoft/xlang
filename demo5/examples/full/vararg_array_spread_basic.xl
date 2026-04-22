@@ -1,0 +1,8 @@
+func count_more(int seed, ...) as int
+	return seed + arg.length + arg[0] + arg[1]
+end
+
+func main() as int
+	auto packed = [9, 8]
+	return count_more(20, ...packed)
+end

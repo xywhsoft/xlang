@@ -1,0 +1,46 @@
+import std.core as core
+import std.error as err
+import std.future as future
+import std.str
+import std.task as task
+import std.time
+
+async func main() as int
+	auto parsed = time.parse_format("2024-02-29", "yyyy-mm-dd")
+	auto text = parsed.to_string()
+	auto fmt = parsed.format("yyyy-mm-dd")
+	auto rel = parsed.relative(parsed)
+	error e = err.make("boom", 7, "payload")
+	auto ready = future.ready(40)
+	auto delayed = task.delay(1)
+
+	if str.contains(text, "2024") == false
+		return 1
+	end
+	if fmt != "2024-02-29"
+		return 2
+	end
+	if rel == ""
+		return 3
+	end
+	if e.kind() != "Error"
+		return 4
+	end
+	if e.message() != "boom" or e.code() != 7 or e.data() != "payload"
+		return 5
+	end
+	if e.text() != "boom" or not e.is_type("Error") or e.is_native()
+		return 6
+	end
+	if core.key() != "std.core" or core.export_count() < 1
+		return 7
+	end
+	if not core.has_export("println") or core.export_symbol("println") == ""
+		return 8
+	end
+	if core.abi_id() == "" or core.descriptor_symbol() == ""
+		return 9
+	end
+
+	return await ready.wait() + delayed.cancel() + 1
+end

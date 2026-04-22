@@ -1,0 +1,7 @@
+#loadlib "../xlp_native/packages/pkg.probe/bin/pkg_probe.dll"
+
+extern func int.pkg_clock_artifact_add_one(int self) as int
+
+func main() as int
+	return 41.pkg_clock_artifact_add_one()
+end

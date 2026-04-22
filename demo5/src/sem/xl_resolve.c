@@ -16,6 +16,11 @@ typedef struct XL_ResolveContext {
 	const char* sCurrentClassTypeName;
 	int iCurrentClassScopeId;
 	int bCurrentClassCreate;
+	int bSuppressMovedUseCheck;
+	int arrMovedSymbolIndices[1024];
+	size_t iMovedSymbolCount;
+	int arrPendingMovedSymbolIndices[1024];
+	size_t iPendingMovedSymbolCount;
 } XL_ResolveContext;
 
 static const XL_AstNode* __xlAstChild(const XL_AstNode* pNode, size_t iIndex)
@@ -357,8 +362,11 @@ static const char* __xlFuncExternName(const XL_AstNode* pNode)
 	if ( (pNode == NULL) || (pNode->eKind != XL_AST_FUNC_DECL) ) {
 		return NULL;
 	}
-	if ( __xlFuncReceiverNode(pNode) != NULL ) {
+	if ( pNode->iIntValue == 0 ) {
 		return NULL;
+	}
+	if ( __xlFuncReceiverNode(pNode) != NULL ) {
+		return ((pNode->sText != NULL) && (pNode->sText[0] != '\0')) ? pNode->sText : NULL;
 	}
 	if ( (pNode->sText2 == NULL) || (pNode->sText2[0] == '\0') ) {
 		return NULL;
@@ -1538,6 +1546,122 @@ static const char* __xlSymbolResolvedTypeName(const XL_SymbolInfo* pSymbol)
 	return (pSymbol->sTypeName != NULL) ? pSymbol->sTypeName : "";
 }
 
+static int __xlMovedSymbolIndex(const XL_ResolveContext* pCtx, int iSymbolIndex)
+{
+	size_t i;
+
+	if ( (pCtx == NULL) || (iSymbolIndex < 0) ) {
+		return -1;
+	}
+	for ( i = 0; i < pCtx->iMovedSymbolCount; ++i ) {
+		if ( pCtx->arrMovedSymbolIndices[i] == iSymbolIndex ) {
+			return (int)i;
+		}
+	}
+	return -1;
+}
+
+static int __xlMovedSymbolIsTracked(const XL_ResolveContext* pCtx, int iSymbolIndex)
+{
+	return __xlMovedSymbolIndex(pCtx, iSymbolIndex) >= 0;
+}
+
+static void __xlMovedSymbolMark(XL_ResolveContext* pCtx, int iSymbolIndex)
+{
+	if ( (pCtx == NULL) || (iSymbolIndex < 0) || __xlMovedSymbolIsTracked(pCtx, iSymbolIndex) ) {
+		return;
+	}
+	if ( pCtx->iMovedSymbolCount >= XL_COUNTOF(pCtx->arrMovedSymbolIndices) ) {
+		return;
+	}
+	pCtx->arrMovedSymbolIndices[pCtx->iMovedSymbolCount++] = iSymbolIndex;
+}
+
+static int __xlPendingMovedSymbolIsTracked(const XL_ResolveContext* pCtx, int iSymbolIndex)
+{
+	size_t i;
+
+	if ( (pCtx == NULL) || (iSymbolIndex < 0) ) {
+		return 0;
+	}
+	for ( i = 0; i < pCtx->iPendingMovedSymbolCount; ++i ) {
+		if ( pCtx->arrPendingMovedSymbolIndices[i] == iSymbolIndex ) {
+			return 1;
+		}
+	}
+	return 0;
+}
+
+static void __xlPendingMovedSymbolMark(XL_ResolveContext* pCtx, int iSymbolIndex)
+{
+	if ( (pCtx == NULL) || (iSymbolIndex < 0) ||
+		__xlMovedSymbolIsTracked(pCtx, iSymbolIndex) ||
+		__xlPendingMovedSymbolIsTracked(pCtx, iSymbolIndex) ) {
+		return;
+	}
+	if ( pCtx->iPendingMovedSymbolCount >= XL_COUNTOF(pCtx->arrPendingMovedSymbolIndices) ) {
+		return;
+	}
+	pCtx->arrPendingMovedSymbolIndices[pCtx->iPendingMovedSymbolCount++] = iSymbolIndex;
+}
+
+static void __xlPendingMovedSymbolsCommit(XL_ResolveContext* pCtx)
+{
+	size_t i;
+
+	if ( pCtx == NULL ) {
+		return;
+	}
+	for ( i = 0; i < pCtx->iPendingMovedSymbolCount; ++i ) {
+		__xlMovedSymbolMark(pCtx, pCtx->arrPendingMovedSymbolIndices[i]);
+	}
+	pCtx->iPendingMovedSymbolCount = 0;
+}
+
+static void __xlMovedSymbolClear(XL_ResolveContext* pCtx, int iSymbolIndex)
+{
+	int iIndex;
+	size_t i;
+
+	if ( (pCtx == NULL) || (iSymbolIndex < 0) ) {
+		return;
+	}
+	for ( i = 0; i < pCtx->iPendingMovedSymbolCount; ) {
+		if ( pCtx->arrPendingMovedSymbolIndices[i] == iSymbolIndex ) {
+			if ( (i + 1u) < pCtx->iPendingMovedSymbolCount ) {
+				memmove(
+					&pCtx->arrPendingMovedSymbolIndices[i],
+					&pCtx->arrPendingMovedSymbolIndices[i + 1],
+					(pCtx->iPendingMovedSymbolCount - i - 1u) * sizeof(pCtx->arrPendingMovedSymbolIndices[0])
+				);
+			}
+			--pCtx->iPendingMovedSymbolCount;
+			continue;
+		}
+		++i;
+	}
+	iIndex = __xlMovedSymbolIndex(pCtx, iSymbolIndex);
+	if ( iIndex < 0 ) {
+		return;
+	}
+	if ( ((size_t)iIndex + 1u) < pCtx->iMovedSymbolCount ) {
+		memmove(
+			&pCtx->arrMovedSymbolIndices[iIndex],
+			&pCtx->arrMovedSymbolIndices[iIndex + 1],
+			(pCtx->iMovedSymbolCount - (size_t)iIndex - 1u) * sizeof(pCtx->arrMovedSymbolIndices[0])
+		);
+	}
+	--pCtx->iMovedSymbolCount;
+}
+
+static int __xlMovedSymbolCanTrack(const XL_ResolveContext* pCtx, const XL_SymbolInfo* pSymbol)
+{
+	if ( (pCtx == NULL) || (pSymbol == NULL) || (pCtx->iCurrentFuncIndex < 0) ) {
+		return 0;
+	}
+	return (pSymbol->eKind == XL_SYMBOL_VAR) || (pSymbol->eKind == XL_SYMBOL_PARAM);
+}
+
 static const char* __xlResolvedBaseValueTypeName(XL_ResolveContext* pCtx, const XL_AstNode* pNode)
 {
 	const XL_SymbolInfo* pSymbol;
@@ -2312,12 +2436,69 @@ static int __xlClassIsNoCopyType(XL_ResolveContext* pCtx, const char* sTypeName)
 	return (pClass != NULL) && (pClass->bNoCopy != 0);
 }
 
+static int __xlIsMoveIntrinsicCall(const XL_AstNode* pNode);
+
 static int __xlIsClassCopySourceExpr(const XL_AstNode* pNode)
 {
 	if ( pNode == NULL ) {
 		return 0;
 	}
+	if ( __xlIsMoveIntrinsicCall(pNode) ) {
+		return 0;
+	}
 	return (pNode->eKind == XL_AST_IDENT) || (pNode->eKind == XL_AST_MEMBER) || (pNode->eKind == XL_AST_INDEX);
+}
+
+static int __xlIsMoveIntrinsicCall(const XL_AstNode* pNode)
+{
+	const XL_AstNode* pCallee;
+
+	if ( (pNode == NULL) || (pNode->eKind != XL_AST_CALL) || (pNode->iChildCount == 0) ) {
+		return 0;
+	}
+	pCallee = __xlAstChild(pNode, 0);
+	return (pCallee != NULL) &&
+		(pCallee->eKind == XL_AST_IDENT) &&
+		(pCallee->sText != NULL) &&
+		(strcmp(pCallee->sText, "move") == 0);
+}
+
+static int __xlValidateMoveIntrinsicCall(XL_ResolveContext* pCtx, const XL_AstNode* pNode)
+{
+	const XL_AstNode* pArgs;
+	const XL_AstNode* pArg;
+	const XL_AstNode* pValue;
+	const XL_SymbolInfo* pSymbol;
+	const char* sValueType;
+	int iSymbolIndex;
+
+	if ( (pCtx == NULL) || (pNode == NULL) ) {
+		return XL_RC_FAIL;
+	}
+	pArgs = __xlAstChild(pNode, 1);
+	if ( (pArgs == NULL) || (pArgs->iChildCount != 1) ) {
+		return __xlSemAddDiag(pCtx, XL_SEM_DIAG_ERROR, pNode, "move() expects exactly 1 argument");
+	}
+	pArg = pArgs->ppChildren[0];
+	if ( __xlArgName(pArg) != NULL ) {
+		return __xlSemAddDiag(pCtx, XL_SEM_DIAG_ERROR, pArg, "move() does not support named arguments");
+	}
+	pValue = __xlArgValue(pArg);
+	sValueType = __xlInferExprType(pCtx, pValue);
+	if ( (sValueType == NULL) || (sValueType[0] == '\0') ) {
+		return __xlSemAddDiag(pCtx, XL_SEM_DIAG_ERROR, pNode, "move() cannot infer source type");
+	}
+	if ( __xlClassTableFind(&pCtx->pResult->classes, sValueType) != NULL &&
+		(pValue != NULL) && (pValue->eKind == XL_AST_IDENT) && (pValue->sText != NULL) ) {
+		pSymbol = xlSymbolTableFindVisible(&pCtx->pResult->symbols, &pCtx->pResult->scopes, pCtx->iCurrentScopeId, pValue->sText);
+		if ( __xlMovedSymbolCanTrack(pCtx, pSymbol) ) {
+			iSymbolIndex = (int)(pSymbol - pCtx->pResult->symbols.pItems);
+			__xlPendingMovedSymbolMark(pCtx, iSymbolIndex);
+		}
+	}
+	__xlSemNodeSetScope(pCtx->pResult, pNode, pCtx->iCurrentScopeId);
+	__xlSemNodeSetType(pCtx->pResult, pNode, sValueType);
+	return XL_RC_OK;
 }
 
 static XL_ClassInfo* __xlClassTableAdd(XL_ClassTable* pTable, const char* sName, const char* sBaseName)
@@ -3394,6 +3575,8 @@ static const char* __xlBuiltinMethodTargetName(const char* sBaseType, const char
 		if ( strcmp(sMethodName, "join") == 0 ) return "__xl_method_join";
 		if ( strcmp(sMethodName, "clear") == 0 ) return "__xl_method_clear";
 		if ( strcmp(sMethodName, "remove") == 0 ) return "__xl_method_remove";
+		if ( strcmp(sMethodName, "take") == 0 ) return "__xl_method_take";
+		if ( strcmp(sMethodName, "pop") == 0 ) return "__xl_method_pop";
 	}
 	if ( __xlTypeHasBaseName(sBaseType, "list") ) {
 		if ( strcmp(sMethodName, "len") == 0 ) return "xl_mod_std_core__len";
@@ -3402,6 +3585,7 @@ static const char* __xlBuiltinMethodTargetName(const char* sBaseType, const char
 		if ( strcmp(sMethodName, "join") == 0 ) return "__xl_method_join";
 		if ( strcmp(sMethodName, "clear") == 0 ) return "__xl_method_clear";
 		if ( strcmp(sMethodName, "remove") == 0 ) return "__xl_method_remove";
+		if ( strcmp(sMethodName, "take") == 0 ) return "__xl_method_take";
 	}
 	if ( __xlTypeHasBaseName(sBaseType, "set") ) {
 		if ( strcmp(sMethodName, "len") == 0 ) return "xl_mod_std_core__len";
@@ -3409,6 +3593,7 @@ static const char* __xlBuiltinMethodTargetName(const char* sBaseType, const char
 		if ( strcmp(sMethodName, "items") == 0 ) return "__xl_method_items";
 		if ( strcmp(sMethodName, "clear") == 0 ) return "__xl_method_clear";
 		if ( strcmp(sMethodName, "remove") == 0 ) return "__xl_method_remove";
+		if ( strcmp(sMethodName, "take") == 0 ) return "__xl_method_take";
 	}
 	if ( __xlTypeHasBaseName(sBaseType, "dict") ) {
 		if ( strcmp(sMethodName, "len") == 0 ) return "xl_mod_std_core__len";
@@ -3424,6 +3609,39 @@ static const char* __xlBuiltinMethodTargetName(const char* sBaseType, const char
 		if ( strcmp(sMethodName, "send") == 0 ) return "__xl_method_channel_send";
 		if ( strcmp(sMethodName, "recv") == 0 ) return "__xl_method_channel_recv";
 		if ( strcmp(sMethodName, "close") == 0 ) return "__xl_method_channel_close";
+	}
+	if ( strcmp(sBaseType, "time") == 0 ) {
+		if ( strcmp(sMethodName, "to_string") == 0 ) return "xl_mod_std_time__to_string";
+		if ( strcmp(sMethodName, "relative") == 0 ) return "xl_mod_std_time__relative";
+		if ( strcmp(sMethodName, "format") == 0 ) return "xl_mod_std_time__format";
+	}
+	if ( strcmp(sBaseType, "error") == 0 ) {
+		if ( strcmp(sMethodName, "is_null") == 0 ) return "xl_mod_std_error__is_null";
+		if ( strcmp(sMethodName, "kind") == 0 ) return "xl_mod_std_error__kind";
+		if ( strcmp(sMethodName, "message") == 0 ) return "xl_mod_std_error__message";
+		if ( strcmp(sMethodName, "code") == 0 ) return "xl_mod_std_error__code";
+		if ( strcmp(sMethodName, "data") == 0 ) return "xl_mod_std_error__data";
+		if ( strcmp(sMethodName, "stack") == 0 ) return "xl_mod_std_error__stack";
+		if ( strcmp(sMethodName, "cause") == 0 ) return "xl_mod_std_error__cause";
+		if ( strcmp(sMethodName, "text") == 0 ) return "xl_mod_std_error__text";
+		if ( strcmp(sMethodName, "is_type") == 0 ) return "xl_mod_std_error__is_type";
+		if ( strcmp(sMethodName, "is_native") == 0 ) return "xl_mod_std_error__is_native";
+	}
+	if ( strcmp(sBaseType, "module") == 0 ) {
+		if ( strcmp(sMethodName, "key") == 0 ) return "__xl_method_module_key";
+		if ( strcmp(sMethodName, "abi_id") == 0 ) return "__xl_method_module_abi_id";
+		if ( strcmp(sMethodName, "init_symbol") == 0 ) return "__xl_method_module_init_symbol";
+		if ( strcmp(sMethodName, "exports_symbol") == 0 ) return "__xl_method_module_exports_symbol";
+		if ( strcmp(sMethodName, "descriptor_symbol") == 0 ) return "__xl_method_module_descriptor_symbol";
+		if ( strcmp(sMethodName, "export_count") == 0 ) return "__xl_method_module_export_count";
+		if ( strcmp(sMethodName, "exports") == 0 ) return "__xl_method_module_exports";
+		if ( strcmp(sMethodName, "has_export") == 0 ) return "__xl_method_module_has_export";
+		if ( strcmp(sMethodName, "export_symbol") == 0 ) return "__xl_method_module_export_symbol";
+	}
+	if ( __xlTypeHasBaseName(sBaseType, "future") || (strcmp(sBaseType, "task") == 0) ) {
+		if ( strcmp(sMethodName, "wait") == 0 ) return "xl_mod_std_future__wait";
+		if ( strcmp(sMethodName, "spawn") == 0 ) return "xl_mod_std_task__spawn";
+		if ( strcmp(sMethodName, "cancel") == 0 ) return "xl_mod_std_task__cancel";
 	}
 	if ( strcmp(sBaseType, "generator") == 0 ) {
 		if ( strcmp(sMethodName, "next") == 0 ) return "__xl_method_generator_next";
@@ -7529,6 +7747,10 @@ static int __xlResolveCallExpr(XL_ResolveContext* pCtx, const XL_AstNode* pNode)
 		return __xlResolveBaseCtorCall(pCtx, pNode, pArgs);
 	}
 
+	if ( __xlIsMoveIntrinsicCall(pNode) ) {
+		return __xlValidateMoveIntrinsicCall(pCtx, pNode);
+	}
+
 	if ( (pCallee != NULL) && (pCallee->eKind == XL_AST_TYPE_REF) && (pCallee->sText != NULL) ) {
 		const char* sCtorTypeName;
 		const XL_AstNode* pArgNode;
@@ -7834,6 +8056,9 @@ static const char* __xlInferExprType(XL_ResolveContext* pCtx, const XL_AstNode* 
 				}
 				return __xlFuncStorageReturnTypeName(pFunc);
 			}
+			if ( __xlIsMoveIntrinsicCall(pNode) ) {
+				return __xlInferExprType(pCtx, __xlArgValue((__xlAstChild(pNode, 1) != NULL && __xlAstChild(pNode, 1)->iChildCount != 0) ? __xlAstChild(pNode, 1)->ppChildren[0] : NULL));
+			}
 
 			pCallee = __xlAstChild(pNode, 0);
 			if ( (pCallee == NULL) || (pCallee->eKind != XL_AST_IDENT) || (pCallee->sText == NULL) ) {
@@ -7897,7 +8122,10 @@ static const char* __xlInferContainerAccessMethodType(
 	const char* sBaseType;
 
 	if ( (pCtx == NULL) || (pCallNode == NULL) || (pFunc == NULL) || (pFunc->sName == NULL) ||
-		((strcmp(pFunc->sName, "__xl_method_at") != 0) && (strcmp(pFunc->sName, "__xl_method_get") != 0)) ) {
+		((strcmp(pFunc->sName, "__xl_method_at") != 0) &&
+		(strcmp(pFunc->sName, "__xl_method_get") != 0) &&
+		(strcmp(pFunc->sName, "__xl_method_take") != 0) &&
+		(strcmp(pFunc->sName, "__xl_method_pop") != 0)) ) {
 		return NULL;
 	}
 
@@ -7925,6 +8153,16 @@ static const char* __xlInferContainerAccessMethodType(
 	}
 	if ( (strcmp(pFunc->sName, "__xl_method_get") == 0) &&
 		__xlExtractContainerValueType(sBaseType, "dict", sValueType, sizeof(sValueType)) ) {
+		return sValueType;
+	}
+	if ( (strcmp(pFunc->sName, "__xl_method_take") == 0) &&
+		(__xlExtractContainerValueType(sBaseType, "array", sValueType, sizeof(sValueType)) ||
+		__xlExtractContainerValueType(sBaseType, "list", sValueType, sizeof(sValueType)) ||
+		__xlExtractContainerValueType(sBaseType, "dict", sValueType, sizeof(sValueType))) ) {
+		return sValueType;
+	}
+	if ( (strcmp(pFunc->sName, "__xl_method_pop") == 0) &&
+		__xlExtractContainerValueType(sBaseType, "array", sValueType, sizeof(sValueType)) ) {
 		return sValueType;
 	}
 
@@ -8486,7 +8724,14 @@ static int __xlResolveAssign(XL_ResolveContext* pCtx, const XL_AstNode* pNode)
 		return __xlSemAddDiag(pCtx, XL_SEM_DIAG_ERROR, pLeft, "left side of assignment is not assignable");
 	}
 
-	iRc = __xlResolveExpr(pCtx, pLeft);
+	if ( pLeft->eKind == XL_AST_IDENT ) {
+		int bPrevSuppressMovedUseCheck = pCtx->bSuppressMovedUseCheck;
+		pCtx->bSuppressMovedUseCheck = 1;
+		iRc = __xlResolveExpr(pCtx, pLeft);
+		pCtx->bSuppressMovedUseCheck = bPrevSuppressMovedUseCheck;
+	} else {
+		iRc = __xlResolveExpr(pCtx, pLeft);
+	}
 	if ( iRc != XL_RC_OK ) {
 		return iRc;
 	}
@@ -8579,6 +8824,9 @@ static int __xlResolveAssign(XL_ResolveContext* pCtx, const XL_AstNode* pNode)
 			(int)(pSymbol - pCtx->pResult->symbols.pItems),
 			__xlIsVarCompatibleResolvedTypeName(pCtx, sRightType) ? sRightType : ""
 		);
+	}
+	if ( (pLeft->eKind == XL_AST_IDENT) && (pSymbol != NULL) ) {
+		__xlMovedSymbolClear(pCtx, (int)(pSymbol - pCtx->pResult->symbols.pItems));
 	}
 	return XL_RC_OK;
 }
@@ -8863,6 +9111,17 @@ static int __xlResolveExpr(XL_ResolveContext* pCtx, const XL_AstNode* pNode)
 			}
 			if ( pSymbol->eKind == XL_SYMBOL_FUNC ) {
 				return __xlResolveFunctionValueNode(pCtx, pNode, NULL, 1);
+			}
+			if ( !pCtx->bSuppressMovedUseCheck &&
+				__xlMovedSymbolCanTrack(pCtx, pSymbol) &&
+				__xlMovedSymbolIsTracked(pCtx, (int)(pSymbol - pCtx->pResult->symbols.pItems)) ) {
+				return __xlSemAddDiag(
+					pCtx,
+					XL_SEM_DIAG_ERROR,
+					pNode,
+					"use of moved value '%s'",
+					(pNode->sText != NULL) ? pNode->sText : ""
+				);
 			}
 			iRc = __xlMaybeCaptureSymbol(pCtx, pSymbol, (int)(pSymbol - pCtx->pResult->symbols.pItems));
 			if ( iRc != XL_RC_OK ) {
@@ -9502,11 +9761,8 @@ static int __xlResolveFuncDecl(XL_ResolveContext* pCtx, const XL_AstNode* pNode)
 		if ( pCtx->iCurrentScopeId != 0 ) {
 			return __xlSemAddDiag(pCtx, XL_SEM_DIAG_ERROR, pNode, "extern func is only allowed at module scope");
 		}
-		if ( pNode->bFlag ) {
-			return __xlSemAddDiag(pCtx, XL_SEM_DIAG_ERROR, pNode, "extern func does not support async in stage 1");
-		}
-		if ( (__xlFuncReceiverNode(pNode) != NULL) || (pNode->sText == NULL) || (pNode->sText[0] == '\0') ) {
-			return __xlSemAddDiag(pCtx, XL_SEM_DIAG_ERROR, pNode, "extern func only supports top-level function declarations in stage 1");
+		if ( (pNode->sText == NULL) || (pNode->sText[0] == '\0') ) {
+			return __xlSemAddDiag(pCtx, XL_SEM_DIAG_ERROR, pNode, "extern func requires a function name");
 		}
 	}
 
@@ -10002,6 +10258,7 @@ static int __xlResolveStmt(XL_ResolveContext* pCtx, const XL_AstNode* pNode)
 	if ( pNode == NULL ) {
 		return XL_RC_OK;
 	}
+	__xlPendingMovedSymbolsCommit(pCtx);
 
 	switch ( pNode->eKind ) {
 		case XL_AST_CLASS_DECL:
@@ -10368,10 +10625,22 @@ static int __xlRegisterBuiltinFuncs(XL_SemResult* pResult)
 	static const char* arrSelfDict[] = { "dict" };
 	static const char* arrSelfChannel[] = { "channel" };
 	static const char* arrSelfGenerator[] = { "generator" };
+	static const char* arrSelfTime[] = { "time" };
+	static const char* arrSelfError[] = { "error" };
+	static const char* arrSelfModule[] = { "module" };
 	static const char* arrStringString[] = { "string", "string" };
 	static const char* arrStringStringString[] = { "string", "string", "string" };
 	static const char* arrStringInt[] = { "string", "int" };
 	static const char* arrStringIntInt[] = { "string", "int", "int" };
+	static const char* arrTimeTime[] = { "time", "time" };
+	static const char* arrTimeString[] = { "time", "string" };
+	static const char* arrErrorString[] = { "error", "string" };
+	static const char* arrModuleString[] = { "module", "string" };
+	static const char* arrFutureInt[] = { "future<int>" };
+	static const char* arrFutureFloat[] = { "future<float>" };
+	static const char* arrFutureString[] = { "future<string>" };
+	static const char* arrFutureBool[] = { "future<bool>" };
+	static const char* arrFutureError[] = { "future<error>" };
 	static const char* arrArrayAny[] = { "array", "any" };
 	static const char* arrArrayString[] = { "array<string>", "string" };
 	static const char* arrListAny[] = { "list", "any" };
@@ -10386,6 +10655,11 @@ static int __xlRegisterBuiltinFuncs(XL_SemResult* pResult)
 	static const char* arrChannelAny[] = { "channel", "any" };
 	static const char* arrChannelRecvReturns[] = { "bool", "var" };
 	static const char* sChannelRecvStorage = "future<array<var>>";
+	static const char* arrFutureIntReturns[] = { "int" };
+	static const char* arrFutureFloatReturns[] = { "float" };
+	static const char* arrFutureStringReturns[] = { "string" };
+	static const char* arrFutureBoolReturns[] = { "bool" };
+	static const char* arrFutureErrorReturns[] = { "error" };
 	static const char* arrGeneratorAny[] = { "generator", "var" };
 	static const char* arrGeneratorStepReturns[] = { "bool", "var" };
 	static const char* sGeneratorStepStorage = "array<var>";
@@ -10495,8 +10769,53 @@ static int __xlRegisterBuiltinFuncs(XL_SemResult* pResult)
 	XL_ADD_BUILTIN_METHOD("remove", "list", "__xl_method_remove", "bool", arrMethodKey, arrListInt, 2);
 	XL_ADD_BUILTIN_METHOD("remove", "set", "__xl_method_remove", "bool", arrMethodValue, arrSetAny, 2);
 	XL_ADD_BUILTIN_METHOD("remove", "dict", "__xl_method_remove", "bool", arrMethodKey, arrDictString, 2);
+	XL_ADD_BUILTIN_METHOD("take", "array", "__xl_method_take", "var", arrMethodIndex, arrArrayInt, 2);
+	XL_ADD_BUILTIN_METHOD("take", "list", "__xl_method_take", "var", arrMethodIndex, arrListInt, 2);
+	XL_ADD_BUILTIN_METHOD("take", "dict", "__xl_method_take", "var", arrMethodKey, arrDictString, 2);
+	XL_ADD_BUILTIN_METHOD("pop", "array", "__xl_method_pop", "var", arrMethodSelf, arrSelfArray, 1);
 	XL_ADD_BUILTIN_METHOD("send", "channel", "__xl_method_channel_send", "bool", arrMethodValue, arrChannelAny, 2);
 	XL_ADD_BUILTIN_METHOD("close", "channel", "__xl_method_channel_close", "bool", arrMethodSelf, arrSelfChannel, 1);
+	XL_ADD_BUILTIN_METHOD("to_string", "time", "xl_mod_std_time__to_string", "string", arrMethodSelf, arrSelfTime, 1);
+	XL_ADD_BUILTIN_METHOD("relative", "time", "xl_mod_std_time__relative", "string", arrMethodSelfPart, arrTimeTime, 2);
+	XL_ADD_BUILTIN_METHOD("format", "time", "xl_mod_std_time__format", "string", arrMethodSelfPart, arrTimeString, 2);
+	XL_ADD_BUILTIN_METHOD("is_null", "error", "xl_mod_std_error__is_null", "bool", arrMethodSelf, arrSelfError, 1);
+	XL_ADD_BUILTIN_METHOD("kind", "error", "xl_mod_std_error__kind", "string", arrMethodSelf, arrSelfError, 1);
+	XL_ADD_BUILTIN_METHOD("message", "error", "xl_mod_std_error__message", "string", arrMethodSelf, arrSelfError, 1);
+	XL_ADD_BUILTIN_METHOD("code", "error", "xl_mod_std_error__code", "int", arrMethodSelf, arrSelfError, 1);
+	XL_ADD_BUILTIN_METHOD("data", "error", "xl_mod_std_error__data", "string", arrMethodSelf, arrSelfError, 1);
+	XL_ADD_BUILTIN_METHOD("stack", "error", "xl_mod_std_error__stack", "string", arrMethodSelf, arrSelfError, 1);
+	XL_ADD_BUILTIN_METHOD("cause", "error", "xl_mod_std_error__cause", "error", arrMethodSelf, arrSelfError, 1);
+	XL_ADD_BUILTIN_METHOD("text", "error", "xl_mod_std_error__text", "string", arrMethodSelf, arrSelfError, 1);
+	XL_ADD_BUILTIN_METHOD("is_type", "error", "xl_mod_std_error__is_type", "bool", arrMethodSelfPart, arrErrorString, 2);
+	XL_ADD_BUILTIN_METHOD("is_native", "error", "xl_mod_std_error__is_native", "bool", arrMethodSelf, arrSelfError, 1);
+	XL_ADD_BUILTIN_METHOD("key", "module", "__xl_method_module_key", "string", arrMethodSelf, arrSelfModule, 1);
+	XL_ADD_BUILTIN_METHOD("abi_id", "module", "__xl_method_module_abi_id", "string", arrMethodSelf, arrSelfModule, 1);
+	XL_ADD_BUILTIN_METHOD("init_symbol", "module", "__xl_method_module_init_symbol", "string", arrMethodSelf, arrSelfModule, 1);
+	XL_ADD_BUILTIN_METHOD("exports_symbol", "module", "__xl_method_module_exports_symbol", "string", arrMethodSelf, arrSelfModule, 1);
+	XL_ADD_BUILTIN_METHOD("descriptor_symbol", "module", "__xl_method_module_descriptor_symbol", "string", arrMethodSelf, arrSelfModule, 1);
+	XL_ADD_BUILTIN_METHOD("export_count", "module", "__xl_method_module_export_count", "int", arrMethodSelf, arrSelfModule, 1);
+	XL_ADD_BUILTIN_METHOD("exports", "module", "__xl_method_module_exports", "array<var>", arrMethodSelf, arrSelfModule, 1);
+	XL_ADD_BUILTIN_METHOD("has_export", "module", "__xl_method_module_has_export", "bool", arrMethodSelfPart, arrModuleString, 2);
+	XL_ADD_BUILTIN_METHOD("export_symbol", "module", "__xl_method_module_export_symbol", "string", arrMethodSelfPart, arrModuleString, 2);
+	XL_ADD_BUILTIN_METHOD("cancel", "future<int>", "xl_mod_std_task__cancel", "int", arrMethodSelf, arrFutureInt, 1);
+	XL_ADD_BUILTIN_METHOD("cancel", "future<float>", "xl_mod_std_task__cancel", "int", arrMethodSelf, arrFutureFloat, 1);
+	XL_ADD_BUILTIN_METHOD("cancel", "future<string>", "xl_mod_std_task__cancel", "int", arrMethodSelf, arrFutureString, 1);
+	XL_ADD_BUILTIN_METHOD("cancel", "future<bool>", "xl_mod_std_task__cancel", "int", arrMethodSelf, arrFutureBool, 1);
+	XL_ADD_BUILTIN_METHOD("cancel", "future<error>", "xl_mod_std_task__cancel", "int", arrMethodSelf, arrFutureError, 1);
+
+#define XL_ADD_ASYNC_BUILTIN_METHOD(name, receiver, target, ret, storage_ret, return_types, return_count, param_names, param_types, param_count) \
+	do { \
+		iRc = xlFuncTableAddEx(&pResult->funcs, (target), (receiver), (name), (ret), (storage_ret), (return_types), (return_count), (param_names), (param_types), (param_count), NULL, NULL, 0, 0, 0, 1, 0, 0); \
+		if ( iRc != XL_RC_OK ) { \
+			return iRc; \
+		} \
+	} while (0)
+
+	XL_ADD_ASYNC_BUILTIN_METHOD("wait", "future<int>", "xl_mod_std_future__wait", "int", "future<int>", arrFutureIntReturns, 1, arrMethodSelf, arrFutureInt, 1);
+	XL_ADD_ASYNC_BUILTIN_METHOD("wait", "future<float>", "xl_mod_std_future__wait", "float", "future<float>", arrFutureFloatReturns, 1, arrMethodSelf, arrFutureFloat, 1);
+	XL_ADD_ASYNC_BUILTIN_METHOD("wait", "future<string>", "xl_mod_std_future__wait", "string", "future<string>", arrFutureStringReturns, 1, arrMethodSelf, arrFutureString, 1);
+	XL_ADD_ASYNC_BUILTIN_METHOD("wait", "future<bool>", "xl_mod_std_future__wait", "bool", "future<bool>", arrFutureBoolReturns, 1, arrMethodSelf, arrFutureBool, 1);
+	XL_ADD_ASYNC_BUILTIN_METHOD("wait", "future<error>", "xl_mod_std_future__wait", "error", "future<error>", arrFutureErrorReturns, 1, arrMethodSelf, arrFutureError, 1);
 
 	iRc = xlFuncTableAddEx(
 		&pResult->funcs,
@@ -10574,6 +10893,7 @@ static int __xlRegisterBuiltinFuncs(XL_SemResult* pResult)
 	}
 
 #undef XL_ADD_BUILTIN_METHOD
+#undef XL_ADD_ASYNC_BUILTIN_METHOD
 	return XL_RC_OK;
 }
 
@@ -10727,7 +11047,12 @@ int xlSemAnalyzeAst(const XL_AstNode* pRoot, XL_DiagContext* pDiag, int bTraceSe
 		return iRc;
 	}
 
-	iRc = __xlRegisterTopLevelTypeDefs(&ctx, pRoot);
+	/*
+	 * Register class names before typedef aliases so native aliases such as
+	 * `extern type CPoint = Point` can target a top-level class declared in
+	 * the same module.
+	 */
+	iRc = __xlRegisterTopLevelClasses(&ctx, pRoot);
 	if ( iRc != XL_RC_OK ) {
 		if ( iRc == XL_RC_IO_ERROR ) {
 			xlSemResultFree(pResult);
@@ -10736,7 +11061,7 @@ int xlSemAnalyzeAst(const XL_AstNode* pRoot, XL_DiagContext* pDiag, int bTraceSe
 		return XL_RC_FAIL;
 	}
 
-	iRc = __xlRegisterTopLevelClasses(&ctx, pRoot);
+	iRc = __xlRegisterTopLevelTypeDefs(&ctx, pRoot);
 	if ( iRc != XL_RC_OK ) {
 		if ( iRc == XL_RC_IO_ERROR ) {
 			xlSemResultFree(pResult);

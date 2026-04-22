@@ -1,0 +1,21 @@
+var int total = 0
+
+class Handle extends object
+	nocopy
+	var value as int
+
+	create(int value)
+		self.value = value
+	end
+
+	destroy()
+		total = total + self.value
+	end
+end
+
+func main() as int
+	auto a = Handle(11)
+	auto b = Handle(3)
+	b = move(a)
+	return total + b.value
+end

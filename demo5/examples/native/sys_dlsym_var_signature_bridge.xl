@@ -1,0 +1,35 @@
+import std.sys.lib as sys
+
+func main() as int
+	auto lib = sys.dlopen("examples/xlp_native/packages/pkg.probe/bin/pkg_probe.dll")
+
+	function<int(var, int)> var_int_plus = function<int(var, int)>(sys.dlsym(lib, "pkg_clock_artifact_var_int_plus"))
+	function<int(var)> var_text_len = function<int(var)>(sys.dlsym(lib, "pkg_clock_artifact_var_text_len"))
+	function<int(int)> add_one = function<int(int)>(sys.dlsym(lib, "pkg_clock_artifact_add_one"))
+	function<int(string)> text_len = function<int(string)>(sys.dlsym(lib, "pkg_clock_artifact_text_len"))
+
+	var dyn_int = 40
+	var dyn_text = "hello"
+
+	if var_int_plus(40, 2) != 42 then
+		return 1
+	end
+	if var_int_plus(dyn_int, 2) != 42 then
+		return 2
+	end
+	if var_text_len("hello") != 5 then
+		return 3
+	end
+	if var_text_len(dyn_text) != 5 then
+		return 4
+	end
+	if add_one(dyn_int) != 41 then
+		return 5
+	end
+	if text_len(dyn_text) != 5 then
+		return 6
+	end
+
+	sys.dlclose(lib)
+	return 42
+end

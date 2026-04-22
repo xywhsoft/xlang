@@ -1,0 +1,5 @@
+#binding "binding_callback_probe.h"
+
+func main() as int
+	return 42
+end

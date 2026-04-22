@@ -126,6 +126,7 @@ typedef enum XL_TaskHelperKind {
 static const char* __xlInferExprTypeName(const XL_CgenContext* pCtx, const XL_MirNode* pNode);
 static void __xlCgenExpr(XL_CgenContext* pCtx, const XL_MirNode* pNode);
 static void __xlCgenExprAsType(XL_CgenContext* pCtx, const XL_MirNode* pNode, const char* sExpectedTypeName);
+static int __xlIsMoveIntrinsicCall(const XL_MirNode* pNode);
 static int __xlIsTextLikeType(const char* sTypeName);
 static int __xlSymbolUsesClosureCell(const XL_CgenContext* pCtx, int iSymbolIndex);
 static void __xlCgenClosureCellName(char* sOut, size_t iOutSize, int iSymbolIndex);
@@ -1941,6 +1942,7 @@ static void __xlCgenClassDestroyContainerElements(XL_CgenContext* pCtx, const ch
 {
 	char sValueTypeName[128];
 	char sClassType[160];
+	char sResultCTypeName[160];
 	char sDestroyName[256];
 
 	if ( (pCtx == NULL) || (sTypeName == NULL) || (sVarName == NULL) ||
@@ -2325,12 +2327,17 @@ static void __xlCgenClassMemberExpr(XL_CgenContext* pCtx, const XL_MirNode* pNod
 	const XL_MirNode* pBase;
 	const XL_ClassFieldInfo* pField;
 	const char* sBaseTypeName;
+	const char* sStorageTypeName;
 	char sSafeField[128];
 	char sSafeUnion[128];
 	char sTagName[160];
+	char sClassType[160];
+	char sSelfName[96];
+	int bBoxedBase;
 
 	pBase = (pNode != NULL && pNode->iChildCount != 0) ? pNode->ppChildren[0] : NULL;
 	sBaseTypeName = __xlInferExprTypeName(pCtx, pBase);
+	sStorageTypeName = __xlStorageTypeName(pCtx, pBase);
 	pField = __xlCgenFindClassFieldInfo(pCtx, sBaseTypeName, (pNode != NULL) ? pNode->sText : NULL);
 	if ( pField == NULL ) {
 		__xlCgenExpr(pCtx, pBase);
@@ -2338,6 +2345,31 @@ static void __xlCgenClassMemberExpr(XL_CgenContext* pCtx, const XL_MirNode* pNod
 		return;
 	}
 	__xlCgenSanitizeIdentPart(sSafeField, sizeof(sSafeField), pField->sName);
+	bBoxedBase = __xlIsContainerIndexExpr(pCtx, pBase) || __xlIsVarTypeName(sBaseTypeName) || __xlIsVarTypeName(sStorageTypeName);
+	if ( bBoxedBase ) {
+		__xlCgenClassTypeName(sClassType, sizeof(sClassType), sBaseTypeName);
+		snprintf(sSelfName, sizeof(sSelfName), "xl_member_self_%d_%d", (pNode != NULL) ? pNode->iLine : 0, (pNode != NULL) ? pNode->iColumn : 0);
+		if ( (pField->bUnionMember != 0) && (pField->sUnionName != NULL) && (pField->sUnionName[0] != '\0') ) {
+			__xlCgenSanitizeIdentPart(sSafeUnion, sizeof(sSafeUnion), pField->sUnionName);
+			__xlCgenClassUnionTagName(sTagName, sizeof(sTagName), pField->sUnionName);
+			__xlCgenAppendFormat(&pCtx->buf, "({ %s* %s = (%s*)xvoGetClass((xvalue)(", sClassType, sSelfName, sClassType);
+			__xlCgenExpr(pCtx, pBase);
+			__xlCgenAppendFormat(&pCtx->buf, ")); if ( (%s == NULL) || (%s->%s != %d) ) { xl_generated_raise_error(xl_generated_error_make(\"Error\", \"inactive union member\", 0, \"\", \"\")); } %s->%s.%s; })",
+				sSelfName,
+				sSelfName,
+				sTagName,
+				pField->iUnionIndex,
+				sSelfName,
+				sSafeUnion,
+				sSafeField
+			);
+			return;
+		}
+		__xlCgenAppendFormat(&pCtx->buf, "(*((%s*)xvoGetClass((xvalue)(", sClassType);
+		__xlCgenExpr(pCtx, pBase);
+		__xlCgenAppendFormat(&pCtx->buf, ")))).%s", sSafeField);
+		return;
+	}
 	if ( (pField->bUnionMember != 0) && (pField->sUnionName != NULL) && (pField->sUnionName[0] != '\0') ) {
 		__xlCgenSanitizeIdentPart(sSafeUnion, sizeof(sSafeUnion), pField->sUnionName);
 		__xlCgenClassUnionTagName(sTagName, sizeof(sTagName), pField->sUnionName);
@@ -2459,7 +2491,9 @@ static const XL_ClassCreateInfo* __xlCgenFindClassCreateForCall(XL_CgenContext* 
 			const char* sArgType = __xlInferExprTypeName(pCtx, pArgs->ppChildren[j]);
 			const char* sParamType = (pCreate->arrParamTypes != NULL) ? pCreate->arrParamTypes[j] : NULL;
 
-			if ( (sArgType == NULL) || (sParamType == NULL) || (strcmp(sArgType, sParamType) != 0) ) {
+			if ( (sArgType == NULL) || (sParamType == NULL) ||
+				((strcmp(sArgType, sParamType) != 0) &&
+				!(__xlIsNumericTypeName(sArgType) && __xlIsNumericTypeName(sParamType))) ) {
 				break;
 			}
 		}
@@ -7209,6 +7243,15 @@ static void __xlCgenRuntimeSupport(XL_CgenBuffer* pBuf)
 	__xlCgenAppend(pBuf, "static XL_FutureVoid xl_future_void_forward_state(const char* sName, XL_FutureVoid future, const char* sFunc, int iAwaitStateId, int iResumeStateId)\n{\n\tXL_FutureVoid out;\n\tout.handle = xl_generated_future_forward_state(sName, future.handle, sFunc, iAwaitStateId, iResumeStateId, \"future<void>\");\n\treturn out;\n}\n\n");
 	__xlCgenAppend(pBuf, "typedef struct XL_GeneratedModuleExport {\n\tconst char* name;\n\tconst char* symbol;\n} XL_GeneratedModuleExport;\n\n");
 	__xlCgenAppend(pBuf, "typedef struct XL_GeneratedModuleDescriptor {\n\tconst char* key;\n\tconst char* abiId;\n\tconst char* initSymbol;\n\tconst char* exportsSymbol;\n\tconst char* descriptorSymbol;\n\tsize_t exportCount;\n\tconst XL_GeneratedModuleExport* exports;\n} XL_GeneratedModuleDescriptor;\n\n");
+	__xlCgenAppend(pBuf, "static const char* __xl_method_module_key(void* value)\n{\n\tconst XL_GeneratedModuleDescriptor* d = (const XL_GeneratedModuleDescriptor*)value;\n\treturn (d != NULL && d->key != NULL) ? d->key : \"\";\n}\n\n");
+	__xlCgenAppend(pBuf, "static const char* __xl_method_module_abi_id(void* value)\n{\n\tconst XL_GeneratedModuleDescriptor* d = (const XL_GeneratedModuleDescriptor*)value;\n\treturn (d != NULL && d->abiId != NULL) ? d->abiId : \"\";\n}\n\n");
+	__xlCgenAppend(pBuf, "static const char* __xl_method_module_init_symbol(void* value)\n{\n\tconst XL_GeneratedModuleDescriptor* d = (const XL_GeneratedModuleDescriptor*)value;\n\treturn (d != NULL && d->initSymbol != NULL) ? d->initSymbol : \"\";\n}\n\n");
+	__xlCgenAppend(pBuf, "static const char* __xl_method_module_exports_symbol(void* value)\n{\n\tconst XL_GeneratedModuleDescriptor* d = (const XL_GeneratedModuleDescriptor*)value;\n\treturn (d != NULL && d->exportsSymbol != NULL) ? d->exportsSymbol : \"\";\n}\n\n");
+	__xlCgenAppend(pBuf, "static const char* __xl_method_module_descriptor_symbol(void* value)\n{\n\tconst XL_GeneratedModuleDescriptor* d = (const XL_GeneratedModuleDescriptor*)value;\n\treturn (d != NULL && d->descriptorSymbol != NULL) ? d->descriptorSymbol : \"\";\n}\n\n");
+	__xlCgenAppend(pBuf, "static int __xl_method_module_export_count(void* value)\n{\n\tconst XL_GeneratedModuleDescriptor* d = (const XL_GeneratedModuleDescriptor*)value;\n\treturn (d != NULL) ? (int)d->exportCount : 0;\n}\n\n");
+	__xlCgenAppend(pBuf, "static xvalue __xl_method_module_exports(void* value)\n{\n\tconst XL_GeneratedModuleDescriptor* d = (const XL_GeneratedModuleDescriptor*)value;\n\txvalue out = xvoCreateArray();\n\tsize_t i;\n\tif ( out == NULL ) return NULL;\n\tif ( d != NULL && d->exports != NULL ) {\n\t\tfor ( i = 0; i < d->exportCount; ++i ) {\n\t\t\tconst char* name = (d->exports[i].name != NULL) ? d->exports[i].name : \"\";\n\t\t\t(void)xvoArrayAppendValue(out, xvoCreateText((ptr)name, (uint32)strlen(name), FALSE), TRUE);\n\t\t}\n\t}\n\treturn out;\n}\n\n");
+	__xlCgenAppend(pBuf, "static int __xl_method_module_has_export(void* value, const char* name)\n{\n\tconst XL_GeneratedModuleDescriptor* d = (const XL_GeneratedModuleDescriptor*)value;\n\tsize_t i;\n\tconst char* target = (name != NULL) ? name : \"\";\n\tif ( d == NULL || d->exports == NULL ) return 0;\n\tfor ( i = 0; i < d->exportCount; ++i ) {\n\t\tif ( d->exports[i].name != NULL && strcmp(d->exports[i].name, target) == 0 ) return 1;\n\t}\n\treturn 0;\n}\n\n");
+	__xlCgenAppend(pBuf, "static const char* __xl_method_module_export_symbol(void* value, const char* name)\n{\n\tconst XL_GeneratedModuleDescriptor* d = (const XL_GeneratedModuleDescriptor*)value;\n\tsize_t i;\n\tconst char* target = (name != NULL) ? name : \"\";\n\tif ( d == NULL || d->exports == NULL ) return \"\";\n\tfor ( i = 0; i < d->exportCount; ++i ) {\n\t\tif ( d->exports[i].name != NULL && strcmp(d->exports[i].name, target) == 0 ) return (d->exports[i].symbol != NULL) ? d->exports[i].symbol : \"\";\n\t}\n\treturn \"\";\n}\n\n");
 }
 
 static void __xlCgenThrowRaise(XL_CgenContext* pCtx, const XL_MirNode* pValue)
@@ -7801,6 +7844,20 @@ static void __xlCgenBoxTypedCExpr(XL_CgenContext* pCtx, const char* sTypeName, c
 		__xlCgenAppendFormat(&pCtx->buf, "xvoCreateTime(%s)", (sExpr != NULL) ? sExpr : "0");
 		return;
 	}
+	if ( __xlCgenIsClassTypeName(pCtx, sTypeName) ) {
+		char sClassType[160];
+
+		__xlCgenClassTypeName(sClassType, sizeof(sClassType), sTypeName);
+		__xlCgenAppendFormat(
+			&pCtx->buf,
+			"({ %s xl_class_box_value = (%s); xvalue xl_class_box = xvoCreateClass((uint32)sizeof(%s)); if ( (xl_class_box != NULL) && (xvoGetClass(xl_class_box) != NULL) ) memcpy(xvoGetClass(xl_class_box), &xl_class_box_value, sizeof(%s)); xl_class_box; })",
+			sClassType,
+			(sExpr != NULL) ? sExpr : __xlCDefaultReturnValue(sTypeName),
+			sClassType,
+			sClassType
+		);
+		return;
+	}
 	if ( __xlIsValueBackedTypeName(sTypeName) ) {
 		__xlCgenAppendFormat(&pCtx->buf, "xvoCopy((xvalue)(%s))", (sExpr != NULL) ? sExpr : "NULL");
 		return;
@@ -7933,6 +7990,7 @@ static void __xlCgenYieldExpr(XL_CgenContext* pCtx, const XL_MirNode* pNode)
 }
 
 static void __xlCgenAppendNativeFuncPointerCast(
+	XL_CgenContext* pCtx,
 	XL_CgenBuffer* pBuf,
 	const char* sReturnType,
 	char** arrParamTypes,
@@ -7945,13 +8003,17 @@ static void __xlCgenAppendNativeFuncPointerCast(
 	if ( strcmp(sReturnType, "void") == 0 ) {
 		__xlCgenAppend(pBuf, "((void (*)(");
 	} else {
-		__xlCgenAppendFormat(pBuf, "((%s (*)(", __xlCTypeName(sReturnType));
+		char sReturnCTypeName[160];
+
+		__xlCgenAppendFormat(pBuf, "((%s (*)(", __xlCgenStorageCTypeName(pCtx, sReturnType, sReturnCTypeName, sizeof(sReturnCTypeName)));
 	}
 	for ( i = 0; i < iParamCount; ++i ) {
+		char sParamCTypeName[160];
+
 		if ( i != 0 ) {
 			__xlCgenAppend(pBuf, ", ");
 		}
-		__xlCgenAppend(pBuf, __xlCTypeName(arrParamTypes[i]));
+		__xlCgenAppend(pBuf, __xlCgenStorageCTypeName(pCtx, arrParamTypes[i], sParamCTypeName, sizeof(sParamCTypeName)));
 	}
 	__xlCgenAppendFormat(pBuf, "))%s)", (sPointExpr != NULL) ? sPointExpr : "NULL");
 }
@@ -7995,16 +8057,17 @@ static void __xlCgenAppendFunctionValueNativeDispatch(
 		char sPointExpr[96];
 
 		snprintf(sPointExpr, sizeof(sPointExpr), "xvoGetPoint(%s)", sCalleeName);
-		__xlCgenAppendNativeFuncPointerCast(&pCtx->buf, sReturnType, arrParamTypes, iParamCount, sPointExpr);
+		__xlCgenAppendNativeFuncPointerCast(pCtx, &pCtx->buf, sReturnType, arrParamTypes, iParamCount, sPointExpr);
 		__xlCgenAppend(&pCtx->buf, "(");
 		__xlCgenAppendNativeCallArgs(pCtx, sArgsName, arrParamTypes, iParamCount);
 		__xlCgenAppendFormat(&pCtx->buf, "); %s = xvoCreateNull(); ", sResultName);
 	} else {
 		char sPointExpr[96];
+		char sReturnCTypeName[160];
 
 		snprintf(sPointExpr, sizeof(sPointExpr), "xvoGetPoint(%s)", sCalleeName);
-		__xlCgenAppendFormat(&pCtx->buf, "%s xl_native_result = ", __xlCTypeName(sReturnType));
-		__xlCgenAppendNativeFuncPointerCast(&pCtx->buf, sReturnType, arrParamTypes, iParamCount, sPointExpr);
+		__xlCgenAppendFormat(&pCtx->buf, "%s xl_native_result = ", __xlCgenStorageCTypeName(pCtx, sReturnType, sReturnCTypeName, sizeof(sReturnCTypeName)));
+		__xlCgenAppendNativeFuncPointerCast(pCtx, &pCtx->buf, sReturnType, arrParamTypes, iParamCount, sPointExpr);
 		__xlCgenAppend(&pCtx->buf, "(");
 		__xlCgenAppendNativeCallArgs(pCtx, sArgsName, arrParamTypes, iParamCount);
 		__xlCgenAppend(&pCtx->buf, "); ");
@@ -8060,7 +8123,11 @@ static void __xlCgenFunctionValueCallExpr(XL_CgenContext* pCtx, const XL_MirNode
 		return;
 	}
 
-	__xlCgenAppendFormat(&pCtx->buf, "%s xl_call_result = ", __xlCTypeName(sResultType));
+	{
+		char sResultCTypeName[160];
+
+		__xlCgenAppendFormat(&pCtx->buf, "%s xl_call_result = ", __xlCgenStorageCTypeName(pCtx, sResultType, sResultCTypeName, sizeof(sResultCTypeName)));
+	}
 	__xlCgenValueExprAsType(pCtx, "xl_call_result_value", sResultType);
 	__xlCgenAppend(&pCtx->buf, "; if ( xl_call_result_value != NULL ) xvoUnref(xl_call_result_value); xl_call_result; })");
 	free(sNativeReturnType);
@@ -8480,7 +8547,9 @@ static const XL_MirNode* __xlContainerMethodBase(const XL_MirNode* pCallNode)
 		(strcmp(sCalleeName, "__xl_method_append") != 0) &&
 		(strcmp(sCalleeName, "__xl_method_join") != 0) &&
 		(strcmp(sCalleeName, "__xl_method_clear") != 0) &&
-		(strcmp(sCalleeName, "__xl_method_remove") != 0)) ) {
+		(strcmp(sCalleeName, "__xl_method_remove") != 0) &&
+		(strcmp(sCalleeName, "__xl_method_take") != 0) &&
+		(strcmp(sCalleeName, "__xl_method_pop") != 0)) ) {
 		return NULL;
 	}
 
@@ -8568,6 +8637,12 @@ static const char* __xlContainerMethodName(const XL_MirNode* pCallNode)
 	}
 	if ( strcmp(sCalleeName, "__xl_method_remove") == 0 ) {
 		return "remove";
+	}
+	if ( strcmp(sCalleeName, "__xl_method_take") == 0 ) {
+		return "take";
+	}
+	if ( strcmp(sCalleeName, "__xl_method_pop") == 0 ) {
+		return "pop";
 	}
 	return NULL;
 }
@@ -9907,6 +9982,13 @@ static const char* __xlInferExprTypeName(const XL_CgenContext* pCtx, const XL_Mi
 	}
 	if ( pNode->eKind == XL_MIR_CALL ) {
 		sCalleeName = __xlCallCalleeName(pNode);
+		if ( __xlIsMoveIntrinsicCall(pNode) ) {
+			pArgs = (pNode->iChildCount > 1) ? pNode->ppChildren[1] : NULL;
+			return ((pArgs != NULL) && (pArgs->iChildCount != 0)) ? __xlInferExprTypeName(pCtx, pArgs->ppChildren[0]) : NULL;
+		}
+		if ( (sCalleeName != NULL) && (__xlCgenFindClassInfo(pCtx, sCalleeName) != NULL) ) {
+			return sCalleeName;
+		}
 		pFunc = __xlResolveCallFuncNode(pCtx, pNode);
 		if ( (pFunc != NULL) && (pFunc->bFlag != 0) ) {
 			return ((pFunc->sTypeName != NULL) && (pFunc->sTypeName[0] != '\0')) ? pFunc->sTypeName : "future<void>";
@@ -10117,6 +10199,25 @@ static int __xlIsArrayLiteralCall(const XL_MirNode* pNode)
 		(pNode->eKind == XL_MIR_CALL) &&
 		(__xlCallCalleeName(pNode) != NULL) &&
 		(strcmp(__xlCallCalleeName(pNode), "__array_literal") == 0);
+}
+
+static int __xlIsMoveIntrinsicCall(const XL_MirNode* pNode)
+{
+	return (pNode != NULL) &&
+		(pNode->eKind == XL_MIR_CALL) &&
+		(__xlCallCalleeName(pNode) != NULL) &&
+		(strcmp(__xlCallCalleeName(pNode), "move") == 0);
+}
+
+static const XL_MirNode* __xlMoveIntrinsicArg(const XL_MirNode* pNode)
+{
+	const XL_MirNode* pArgs;
+
+	if ( !__xlIsMoveIntrinsicCall(pNode) ) {
+		return NULL;
+	}
+	pArgs = (pNode->iChildCount > 1) ? pNode->ppChildren[1] : NULL;
+	return ((pArgs != NULL) && (pArgs->iChildCount != 0)) ? pArgs->ppChildren[0] : NULL;
 }
 
 static int __xlIsHiddenCallNamed(const XL_MirNode* pNode, const char* sName)
@@ -11505,6 +11606,7 @@ static void __xlCgenContainerMethodCall(XL_CgenContext* pCtx, const XL_MirNode* 
 	const char* sResultTypeName;
 	char sValueTypeName[128];
 	char sClassType[160];
+	char sResultCTypeName[160];
 	char sDestroyName[256];
 	char sBaseName[64];
 	char sIndexName[64];
@@ -11524,7 +11626,9 @@ static void __xlCgenContainerMethodCall(XL_CgenContext* pCtx, const XL_MirNode* 
 		(strcmp(sCalleeName, "__xl_method_items") == 0) ||
 		(strcmp(sCalleeName, "__xl_method_append") == 0) ||
 		(strcmp(sCalleeName, "__xl_method_join") == 0) ||
-		(strcmp(sCalleeName, "__xl_method_remove") == 0)) ) {
+		(strcmp(sCalleeName, "__xl_method_remove") == 0) ||
+		(strcmp(sCalleeName, "__xl_method_take") == 0) ||
+		(strcmp(sCalleeName, "__xl_method_pop") == 0)) ) {
 		pArg0 = ((pArgs != NULL) && (pArgs->iChildCount > 1)) ? pArgs->ppChildren[1] : NULL;
 		pArg1 = ((pArgs != NULL) && (pArgs->iChildCount > 2)) ? pArgs->ppChildren[2] : NULL;
 	} else {
@@ -11859,6 +11963,46 @@ static void __xlCgenContainerMethodCall(XL_CgenContext* pCtx, const XL_MirNode* 
 		__xlCgenAppend(&pCtx->buf, "({ xvalue xl_chain_self = (xvalue)(");
 		__xlCgenExpr(pCtx, pBase);
 		__xlCgenAppend(&pCtx->buf, "); xl_dict_clear(xl_chain_self); xl_chain_self; })");
+		return;
+	}
+
+	if ( (sMethodName != NULL) && (strcmp(sMethodName, "take") == 0) &&
+		(__xlTypeHasBaseName(sBaseTypeName, "array") || __xlTypeHasBaseName(sBaseTypeName, "list")) ) {
+		const int bList = __xlTypeHasBaseName(sBaseTypeName, "list");
+		__xlCgenAppend(&pCtx->buf, "({ xvalue xl_take_value = ");
+		__xlCgenAppend(&pCtx->buf, bList ? "xl_list_take((xvalue)(" : "xl_array_take((xvalue)(");
+		__xlCgenExpr(pCtx, pBase);
+		__xlCgenAppend(&pCtx->buf, "), ");
+		__xlCgenExprAsType(pCtx, pArg0, "int");
+		__xlCgenAppend(&pCtx->buf, "); ");
+		__xlCgenAppend(&pCtx->buf, __xlCgenStorageCTypeName(pCtx, (sResultTypeName != NULL) ? sResultTypeName : "var", sResultCTypeName, sizeof(sResultCTypeName)));
+		__xlCgenAppend(&pCtx->buf, " xl_take_result = ");
+		__xlCgenValueExprAsType(pCtx, "xl_take_value", (sResultTypeName != NULL) ? sResultTypeName : "var");
+		__xlCgenAppend(&pCtx->buf, "; if ( (xl_take_value != NULL) && !xl_take_value->IsStatic ) xvoUnref(xl_take_value); xl_take_result; })");
+		return;
+	}
+
+	if ( (sMethodName != NULL) && (strcmp(sMethodName, "pop") == 0) && __xlTypeHasBaseName(sBaseTypeName, "array") ) {
+		__xlCgenAppend(&pCtx->buf, "({ xvalue xl_take_value = xl_array_pop((xvalue)(");
+		__xlCgenExpr(pCtx, pBase);
+		__xlCgenAppend(&pCtx->buf, ")); ");
+		__xlCgenAppend(&pCtx->buf, __xlCgenStorageCTypeName(pCtx, (sResultTypeName != NULL) ? sResultTypeName : "var", sResultCTypeName, sizeof(sResultCTypeName)));
+		__xlCgenAppend(&pCtx->buf, " xl_take_result = ");
+		__xlCgenValueExprAsType(pCtx, "xl_take_value", (sResultTypeName != NULL) ? sResultTypeName : "var");
+		__xlCgenAppend(&pCtx->buf, "; if ( (xl_take_value != NULL) && !xl_take_value->IsStatic ) xvoUnref(xl_take_value); xl_take_result; })");
+		return;
+	}
+
+	if ( (sMethodName != NULL) && (strcmp(sMethodName, "take") == 0) && __xlTypeHasBaseName(sBaseTypeName, "dict") ) {
+		__xlCgenAppend(&pCtx->buf, "({ const char* xl_take_key = ");
+		__xlCgenExprAsType(pCtx, pArg0, "string");
+		__xlCgenAppend(&pCtx->buf, "; xvalue xl_take_value = xl_dict_take((xvalue)(");
+		__xlCgenExpr(pCtx, pBase);
+		__xlCgenAppend(&pCtx->buf, "), xl_take_key); ");
+		__xlCgenAppend(&pCtx->buf, __xlCgenStorageCTypeName(pCtx, (sResultTypeName != NULL) ? sResultTypeName : "var", sResultCTypeName, sizeof(sResultCTypeName)));
+		__xlCgenAppend(&pCtx->buf, " xl_take_result = ");
+		__xlCgenValueExprAsType(pCtx, "xl_take_value", (sResultTypeName != NULL) ? sResultTypeName : "var");
+		__xlCgenAppend(&pCtx->buf, "; if ( (xl_take_value != NULL) && !xl_take_value->IsStatic ) xvoUnref(xl_take_value); xl_take_result; })");
 		return;
 	}
 
@@ -14650,10 +14794,46 @@ static void __xlCgenErrorMemberExpr(XL_CgenContext* pCtx, const XL_MirNode* pNod
 	__xlCgenAppend(&pCtx->buf, "NULL");
 }
 
+static int __xlCgenEmitMoveIntrinsicExpr(XL_CgenContext* pCtx, const XL_MirNode* pNode)
+{
+	const XL_MirNode* pArg;
+	const char* sTypeName;
+	char sCTypeName[160];
+	char sTempName[80];
+
+	if ( (pCtx == NULL) || !__xlIsMoveIntrinsicCall(pNode) ) {
+		return 0;
+	}
+	pArg = __xlMoveIntrinsicArg(pNode);
+	if ( pArg == NULL ) {
+		__xlCgenAppend(&pCtx->buf, "0");
+		return 1;
+	}
+	sTypeName = __xlInferExprTypeName(pCtx, pArg);
+	if ( !__xlCgenIsClassTypeName(pCtx, sTypeName) ) {
+		__xlCgenExpr(pCtx, pArg);
+		return 1;
+	}
+	__xlCgenStorageCTypeName(pCtx, sTypeName, sCTypeName, sizeof(sCTypeName));
+	snprintf(sTempName, sizeof(sTempName), "xl_move_value_%d_%d", pNode->iLine, pNode->iColumn);
+	__xlCgenAppendFormat(&pCtx->buf, "({ %s %s = ", sCTypeName, sTempName);
+	__xlCgenExpr(pCtx, pArg);
+	__xlCgenAppend(&pCtx->buf, "; ");
+	if ( (pArg->iSymbolIndex >= 0) && (pArg->iChildCount == 0) && (pArg->sText != NULL) && (pArg->sText[0] != '\0') ) {
+		__xlCgenAppendFormat(&pCtx->buf, "memset(&(%s), 0, sizeof(%s)); ", pArg->sText, pArg->sText);
+	}
+	__xlCgenAppend(&pCtx->buf, sTempName);
+	__xlCgenAppend(&pCtx->buf, "; })");
+	return 1;
+}
+
 static void __xlCgenExpr(XL_CgenContext* pCtx, const XL_MirNode* pNode)
 {
 	if ( pNode == NULL ) {
 		__xlCgenAppend(&pCtx->buf, "0");
+		return;
+	}
+	if ( __xlCgenEmitMoveIntrinsicExpr(pCtx, pNode) ) {
 		return;
 	}
 
@@ -18334,7 +18514,11 @@ static int __xlCgenFunctionValueCallExprReplacingAwait(
 		return 1;
 	}
 
-	__xlCgenAppendFormat(&pCtx->buf, "%s xl_call_result = ", __xlCTypeName(sResultType));
+	{
+		char sResultCTypeName[160];
+
+		__xlCgenAppendFormat(&pCtx->buf, "%s xl_call_result = ", __xlCgenStorageCTypeName(pCtx, sResultType, sResultCTypeName, sizeof(sResultCTypeName)));
+	}
 	__xlCgenValueExprAsType(pCtx, "xl_call_result_value", sResultType);
 	__xlCgenAppend(&pCtx->buf, "; if ( xl_call_result_value != NULL ) xvoUnref(xl_call_result_value); xl_call_result; })");
 	free(sNativeReturnType);
@@ -18514,6 +18698,7 @@ static int __xlCgenContainerMethodCallReplacingAwait(
 	const char* sResultTypeName;
 	char sValueTypeName[128];
 	char sClassType[160];
+	char sResultCTypeName[160];
 	char sDestroyName[256];
 	char sBaseName[64];
 	char sIndexName[64];
@@ -18533,7 +18718,9 @@ static int __xlCgenContainerMethodCallReplacingAwait(
 		(strcmp(sCalleeName, "__xl_method_items") == 0) ||
 		(strcmp(sCalleeName, "__xl_method_append") == 0) ||
 		(strcmp(sCalleeName, "__xl_method_join") == 0) ||
-		(strcmp(sCalleeName, "__xl_method_remove") == 0)) ) {
+		(strcmp(sCalleeName, "__xl_method_remove") == 0) ||
+		(strcmp(sCalleeName, "__xl_method_take") == 0) ||
+		(strcmp(sCalleeName, "__xl_method_pop") == 0)) ) {
 		pArg0 = ((pArgs != NULL) && (pArgs->iChildCount > 1)) ? pArgs->ppChildren[1] : NULL;
 		pArg1 = ((pArgs != NULL) && (pArgs->iChildCount > 2)) ? pArgs->ppChildren[2] : NULL;
 	} else {
@@ -18868,6 +19055,46 @@ static int __xlCgenContainerMethodCallReplacingAwait(
 		__xlCgenAppend(&pCtx->buf, "({ xvalue xl_chain_self = (xvalue)(");
 		__xlCgenExpr(pCtx, pBase);
 		__xlCgenAppend(&pCtx->buf, "); xl_dict_clear(xl_chain_self); xl_chain_self; })");
+		return 1;
+	}
+
+	if ( (sMethodName != NULL) && (strcmp(sMethodName, "take") == 0) &&
+		(__xlTypeHasBaseName(sBaseTypeName, "array") || __xlTypeHasBaseName(sBaseTypeName, "list")) ) {
+		const int bList = __xlTypeHasBaseName(sBaseTypeName, "list");
+		__xlCgenAppend(&pCtx->buf, "({ xvalue xl_take_value = ");
+		__xlCgenAppend(&pCtx->buf, bList ? "xl_list_take((xvalue)(" : "xl_array_take((xvalue)(");
+		__xlCgenExpr(pCtx, pBase);
+		__xlCgenAppend(&pCtx->buf, "), ");
+		if ( !__xlCgenExprAsTypeReplacingAwait(pCtx, pArg0, "int", pAwaitNode, sReplacementName) ) return 0;
+		__xlCgenAppend(&pCtx->buf, "); ");
+		__xlCgenAppend(&pCtx->buf, __xlCgenStorageCTypeName(pCtx, (sResultTypeName != NULL) ? sResultTypeName : "var", sResultCTypeName, sizeof(sResultCTypeName)));
+		__xlCgenAppend(&pCtx->buf, " xl_take_result = ");
+		__xlCgenValueExprAsType(pCtx, "xl_take_value", (sResultTypeName != NULL) ? sResultTypeName : "var");
+		__xlCgenAppend(&pCtx->buf, "; if ( (xl_take_value != NULL) && !xl_take_value->IsStatic ) xvoUnref(xl_take_value); xl_take_result; })");
+		return 1;
+	}
+
+	if ( (sMethodName != NULL) && (strcmp(sMethodName, "pop") == 0) && __xlTypeHasBaseName(sBaseTypeName, "array") ) {
+		__xlCgenAppend(&pCtx->buf, "({ xvalue xl_take_value = xl_array_pop((xvalue)(");
+		__xlCgenExpr(pCtx, pBase);
+		__xlCgenAppend(&pCtx->buf, ")); ");
+		__xlCgenAppend(&pCtx->buf, __xlCgenStorageCTypeName(pCtx, (sResultTypeName != NULL) ? sResultTypeName : "var", sResultCTypeName, sizeof(sResultCTypeName)));
+		__xlCgenAppend(&pCtx->buf, " xl_take_result = ");
+		__xlCgenValueExprAsType(pCtx, "xl_take_value", (sResultTypeName != NULL) ? sResultTypeName : "var");
+		__xlCgenAppend(&pCtx->buf, "; if ( (xl_take_value != NULL) && !xl_take_value->IsStatic ) xvoUnref(xl_take_value); xl_take_result; })");
+		return 1;
+	}
+
+	if ( (sMethodName != NULL) && (strcmp(sMethodName, "take") == 0) && __xlTypeHasBaseName(sBaseTypeName, "dict") ) {
+		__xlCgenAppend(&pCtx->buf, "({ const char* xl_take_key = ");
+		if ( !__xlCgenExprAsTypeReplacingAwait(pCtx, pArg0, "string", pAwaitNode, sReplacementName) ) return 0;
+		__xlCgenAppend(&pCtx->buf, "; xvalue xl_take_value = xl_dict_take((xvalue)(");
+		__xlCgenExpr(pCtx, pBase);
+		__xlCgenAppend(&pCtx->buf, "), xl_take_key); ");
+		__xlCgenAppend(&pCtx->buf, __xlCgenStorageCTypeName(pCtx, (sResultTypeName != NULL) ? sResultTypeName : "var", sResultCTypeName, sizeof(sResultCTypeName)));
+		__xlCgenAppend(&pCtx->buf, " xl_take_result = ");
+		__xlCgenValueExprAsType(pCtx, "xl_take_value", (sResultTypeName != NULL) ? sResultTypeName : "var");
+		__xlCgenAppend(&pCtx->buf, "; if ( (xl_take_value != NULL) && !xl_take_value->IsStatic ) xvoUnref(xl_take_value); xl_take_result; })");
 		return 1;
 	}
 
@@ -20632,6 +20859,7 @@ static void __xlCgenFunc(XL_CgenContext* pCtx, const XL_MirNode* pNode)
 	char sEscapeLevelName[64];
 	char sEscapeValueName[64];
 	char sReturnCTypeName[256];
+	char sParamCTypeName[256];
 	char sReturnDefaultValue[320];
 	const XL_MirNode* pWrapperGeneratorFunc;
 	char sWrapperGeneratorTypeName[256];
@@ -20652,6 +20880,8 @@ static void __xlCgenFunc(XL_CgenContext* pCtx, const XL_MirNode* pNode)
 	pSemFuncInfo = (pCtx->pGenericInstanceOverride != NULL) ? pCtx->pGenericInstanceOverride :
 		(((pCtx != NULL) && (pCtx->pLowerResult != NULL) && (pCtx->pLowerResult->pSemResult != NULL) && (pNode->iFuncIndex >= 0)) ?
 			xlFuncTableGet(&pCtx->pLowerResult->pSemResult->funcs, (size_t)pNode->iFuncIndex) : NULL);
+	pParams = (pNode->iChildCount != 0) ? pNode->ppChildren[0] : NULL;
+	pBody = (pNode->iChildCount > 1) ? pNode->ppChildren[1] : NULL;
 	funcInfo.sSymbolName = ((pCtx->pGenericInstanceOverride != NULL) &&
 		(pCtx->pGenericInstanceOverride->sAbiSymbol != NULL) &&
 		(pCtx->pGenericInstanceOverride->sAbiSymbol[0] != '\0')) ?
@@ -20662,6 +20892,13 @@ static void __xlCgenFunc(XL_CgenContext* pCtx, const XL_MirNode* pNode)
 		(pCtx->pGenericInstanceOverride->sStorageReturnTypeName[0] != '\0')) ?
 		pCtx->pGenericInstanceOverride->sStorageReturnTypeName :
 		(((pNode->sTypeName != NULL) && (pNode->sTypeName[0] != '\0')) ? pNode->sTypeName : "void");
+	if ( (funcInfo.sName != NULL) && (strcmp(funcInfo.sName, "__class_create") == 0) &&
+		(pParams != NULL) && (pParams->iChildCount != 0) &&
+		(pParams->ppChildren[0] != NULL) &&
+		(pParams->ppChildren[0]->sTypeName != NULL) &&
+		(pParams->ppChildren[0]->sTypeName[0] != '\0') ) {
+		funcInfo.sTypeName = pParams->ppChildren[0]->sTypeName;
+	}
 	sAsyncReturnValueTypeName[0] = '\0';
 	if ( pNode->bFlag ) {
 		const char* sAsyncReturnValueType = __xlFutureValueTypeName(funcInfo.sTypeName);
@@ -20709,8 +20946,6 @@ static void __xlCgenFunc(XL_CgenContext* pCtx, const XL_MirNode* pNode)
 	}
 	funcInfo.pGeneratorSuspendIndex = &iGeneratorSuspendIndex;
 
-	pParams = (pNode->iChildCount != 0) ? pNode->ppChildren[0] : NULL;
-	pBody = (pNode->iChildCount > 1) ? pNode->ppChildren[1] : NULL;
 	funcInfo.pBody = pBody;
 	memset(&asyncLinearCandidate, 0, sizeof(asyncLinearCandidate));
 	sAsyncLinearStateTypeName[0] = '\0';
@@ -20763,7 +20998,7 @@ static void __xlCgenFunc(XL_CgenContext* pCtx, const XL_MirNode* pNode)
 				__xlCgenAppendFormat(
 					&pCtx->buf,
 					"%s %s",
-					__xlCgenStorageCTypeName(pCtx, ((pParam->sTypeName != NULL) && (pParam->sTypeName[0] != '\0')) ? pParam->sTypeName : "int", sReturnCTypeName, sizeof(sReturnCTypeName)),
+					__xlCgenStorageCTypeName(pCtx, ((pParam->sTypeName != NULL) && (pParam->sTypeName[0] != '\0')) ? pParam->sTypeName : "int", sParamCTypeName, sizeof(sParamCTypeName)),
 					(pParam->sText != NULL) ? pParam->sText : "arg"
 				);
 		}
@@ -20771,7 +21006,7 @@ static void __xlCgenFunc(XL_CgenContext* pCtx, const XL_MirNode* pNode)
 		__xlCgenAppendFormat(
 			&pCtx->buf,
 			"static %s %s(",
-			__xlCgenFuncReturnCTypeName(&funcInfo),
+			(funcInfo.bAsync && !funcInfo.bGenerator) ? __xlFutureTypeName(funcInfo.sTypeName) : __xlCgenFuncReturnCTypeName(&funcInfo),
 			funcInfo.sSymbolName
 		);
 		for ( i = 0; (pParams != NULL) && (i < pParams->iChildCount); ++i ) {
@@ -20782,14 +21017,20 @@ static void __xlCgenFunc(XL_CgenContext* pCtx, const XL_MirNode* pNode)
 			__xlCgenAppendFormat(
 				&pCtx->buf,
 				"%s %s",
-				__xlCTypeName(((pParam->sTypeName != NULL) && (pParam->sTypeName[0] != '\0')) ? pParam->sTypeName : "int"),
+				__xlCgenStorageCTypeName(pCtx, ((pParam->sTypeName != NULL) && (pParam->sTypeName[0] != '\0')) ? pParam->sTypeName : "int", sParamCTypeName, sizeof(sParamCTypeName)),
 				(pParam->sText != NULL) ? pParam->sText : "arg"
 			);
 		}
 		__xlCgenAppend(&pCtx->buf, ")\n{\n");
 		pCtx->buf.iIndent += 1;
 		__xlCgenAppendIndent(&pCtx->buf);
-		if ( (funcInfo.sTypeName == NULL) || (strcmp(funcInfo.sTypeName, "void") == 0) ) {
+		if ( funcInfo.bAsync && !funcInfo.bGenerator ) {
+			if ( (funcInfo.sTypeName == NULL) || (strcmp(funcInfo.sTypeName, "void") == 0) ) {
+				__xlCgenAppendFormat(&pCtx->buf, "%s(", pNode->sExternName);
+			} else {
+				__xlCgenAppendFormat(&pCtx->buf, "return %s(%s(", __xlFutureReadyFunc(funcInfo.sTypeName), pNode->sExternName);
+			}
+		} else if ( (funcInfo.sTypeName == NULL) || (strcmp(funcInfo.sTypeName, "void") == 0) ) {
 			__xlCgenAppendFormat(&pCtx->buf, "%s(", pNode->sExternName);
 		} else {
 			__xlCgenAppendFormat(&pCtx->buf, "return %s(", pNode->sExternName);
@@ -20801,8 +21042,16 @@ static void __xlCgenFunc(XL_CgenContext* pCtx, const XL_MirNode* pNode)
 			}
 			__xlCgenAppend(&pCtx->buf, (pParam->sText != NULL) ? pParam->sText : "arg");
 		}
-		__xlCgenAppend(&pCtx->buf, ");\n");
-		if ( (funcInfo.sTypeName == NULL) || (strcmp(funcInfo.sTypeName, "void") == 0) ) {
+		if ( funcInfo.bAsync && !funcInfo.bGenerator && (funcInfo.sTypeName != NULL) && (strcmp(funcInfo.sTypeName, "void") != 0) ) {
+			__xlCgenAppend(&pCtx->buf, "));\n");
+		} else {
+			__xlCgenAppend(&pCtx->buf, ");\n");
+		}
+		if ( funcInfo.bAsync && !funcInfo.bGenerator &&
+			((funcInfo.sTypeName == NULL) || (strcmp(funcInfo.sTypeName, "void") == 0)) ) {
+			__xlCgenAppendIndent(&pCtx->buf);
+			__xlCgenAppendFormat(&pCtx->buf, "return %s();\n", __xlFutureReadyFunc("void"));
+		} else if ( !funcInfo.bAsync && ((funcInfo.sTypeName == NULL) || (strcmp(funcInfo.sTypeName, "void") == 0)) ) {
 			__xlCgenAppendIndent(&pCtx->buf);
 			__xlCgenAppend(&pCtx->buf, "return;\n");
 		}
@@ -20956,7 +21205,7 @@ static void __xlCgenFunc(XL_CgenContext* pCtx, const XL_MirNode* pNode)
 			__xlCgenAppendFormat(
 				&pCtx->buf,
 				"%s %s",
-				__xlCgenStorageCTypeName(pCtx, ((pParam->sTypeName != NULL) && (pParam->sTypeName[0] != '\0')) ? pParam->sTypeName : "int", sReturnCTypeName, sizeof(sReturnCTypeName)),
+				__xlCgenStorageCTypeName(pCtx, ((pParam->sTypeName != NULL) && (pParam->sTypeName[0] != '\0')) ? pParam->sTypeName : "int", sParamCTypeName, sizeof(sParamCTypeName)),
 				(pParam->sText != NULL) ? pParam->sText : "arg"
 			);
 		}
@@ -21019,8 +21268,8 @@ static void __xlCgenFunc(XL_CgenContext* pCtx, const XL_MirNode* pNode)
 				((pSemFuncInfo != NULL) && (pSemFuncInfo->arrParamTypes != NULL) && (i < pSemFuncInfo->iParamCount) &&
 					(pSemFuncInfo->arrParamTypes[i] != NULL) && (pSemFuncInfo->arrParamTypes[i][0] != '\0')) ?
 					pSemFuncInfo->arrParamTypes[i] : (((pParam->sTypeName != NULL) && (pParam->sTypeName[0] != '\0')) ? pParam->sTypeName : "int"),
-				sReturnCTypeName,
-				sizeof(sReturnCTypeName)
+				sParamCTypeName,
+				sizeof(sParamCTypeName)
 			),
 			(pParam->sText != NULL) ? pParam->sText : "arg"
 		);
@@ -21151,11 +21400,18 @@ static void __xlCgenFuncPrototype(XL_CgenContext* pCtx, const XL_MirNode* pNode)
 		return;
 	}
 	sTypeName = ((pNode->sTypeName != NULL) && (pNode->sTypeName[0] != '\0')) ? pNode->sTypeName : "void";
+	pParams = (pNode->iChildCount != 0) ? pNode->ppChildren[0] : NULL;
+	if ( (pNode->sText != NULL) && (strcmp(pNode->sText, "__class_create") == 0) &&
+		(pParams != NULL) && (pParams->iChildCount != 0) &&
+		(pParams->ppChildren[0] != NULL) &&
+		(pParams->ppChildren[0]->sTypeName != NULL) &&
+		(pParams->ppChildren[0]->sTypeName[0] != '\0') ) {
+		sTypeName = pParams->ppChildren[0]->sTypeName;
+	}
 	if ( strcmp(sTypeName, "generator") == 0 ) {
 		return;
 	}
 
-	pParams = (pNode->iChildCount != 0) ? pNode->ppChildren[0] : NULL;
 	pSemFuncInfo = (pCtx->pGenericInstanceOverride != NULL) ? pCtx->pGenericInstanceOverride :
 		(((pCtx->pLowerResult != NULL) && (pCtx->pLowerResult->pSemResult != NULL) && (pNode->iFuncIndex >= 0)) ?
 			xlFuncTableGet(&pCtx->pLowerResult->pSemResult->funcs, (size_t)pNode->iFuncIndex) : NULL);

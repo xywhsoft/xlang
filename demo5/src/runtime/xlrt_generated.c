@@ -1598,6 +1598,37 @@ int xl_dict_remove(xvalue value, const char* key)
 {
 	return xvoTableRemove(value, (str)key, (uint32)__xlTextLen(key)) ? 1 : 0;
 }
+xvalue xl_array_take(xvalue value, int index)
+{
+	if ( index < 0 ) {
+		return xvoCreateNull();
+	}
+	return xvoArrayTakeValue(value, (uint32)index);
+}
+xvalue xl_array_pop(xvalue value)
+{
+	return xvoArrayPopValue(value);
+}
+xvalue xl_list_take(xvalue value, int index)
+{
+	uint32 iCount;
+	uint32 i;
+	if ( index < 0 ) {
+		return xvoCreateNull();
+	}
+	iCount = xvoListItemCount(value);
+	i = 0u;
+	for ( i = 0u; i < iCount; ++i ) {
+		if ( (int)i == index ) {
+			return xvoListTakeValue(value, (int64)index);
+		}
+	}
+	return xvoCreateNull();
+}
+xvalue xl_dict_take(xvalue value, const char* key)
+{
+	return xvoTableTakeValue(value, (str)key, (uint32)__xlTextLen(key));
+}
 int xl_set_has(xvalue value, xvalue item) { return xvoCollExists(value, item) ? 1 : 0; }
 int xl_dict_has(xvalue value, const char* key)
 {
