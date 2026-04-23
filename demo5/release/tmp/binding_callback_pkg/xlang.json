@@ -1,0 +1,8 @@
+{
+	"name": "binding.binding_callback_probe",
+	"version": "0.1.0",
+	"type": "package",
+	"source": ["src"],
+	"exports": ["binding_callback_probe"],
+	"incpath": ["include"]
+}

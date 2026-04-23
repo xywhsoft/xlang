@@ -1,1 +1,1 @@
-[error][binding] D:/git/x-lang/demo5/src/driver/xl_module_link.c:4998: #error in binding header 'D:\Git\x-lang\demo5\examples\native\binding_error_directive_probe.h': binding probe forced failure
+[error][binding] D:/git/x-lang/demo5/src/driver/xl_module_link.c:5041: #error in binding header 'D:\Git\x-lang\demo5\examples\native\binding_error_directive_probe.h': binding probe forced failure

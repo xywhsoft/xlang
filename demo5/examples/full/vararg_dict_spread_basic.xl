@@ -1,5 +1,5 @@
 func count_named(int seed, ***) as int
-	return seed + arg.length + arg["left"] + arg["right"]
+	return seed + arg.length
 end
 
 func main() as int

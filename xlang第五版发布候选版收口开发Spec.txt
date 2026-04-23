@@ -310,8 +310,8 @@ sys.dlclose(lib)
 - [x] `#binding` 声明修饰宏清理：支持 `#define API __declspec(dllexport)`、`#define API extern`、`#define API` 后续用于 `API int foo(...)` 这类函数/变量声明前缀时按 ABI 无关修饰清除；也支持 `#define API2 API` 这类声明修饰宏别名链，提升 SDK/项目导出宏兼容性。
 - [x] `#binding` 函数式宏 typedef 整数 cast：支持 `typedef int MYINT; #define F(x) ((MYINT)(x))` 这类 SDK/项目头文件常见写法，导入函数式 int 宏时按 binding 类型表识别并剥离整数/布尔 C cast；指针/string/class cast 不自动剥离。
 - [x] `#binding` 零参数函数式宏：支持 `#define FOO() 42` 这类无参数 C 函数式宏导入为 xlang `func FOO() as int`。
-- [ ] extern async func
-- [ ] 类型方法形式 extern
+- [x] extern async func：支持 `extern "symbol" async func f(...) as T`，语义返回 `future<T>`，运行时由 native 返回值包装为 ready future。
+- [x] 类型方法形式 extern：支持 `extern func int.name(int self) as int` 与 `extern "c_symbol" func int.name(int self) as int`，方法名与 C 符号名分离。
 - [ ] 完整 class ABI 直通
 
 5.6 验收样例
@@ -455,7 +455,7 @@ end
 
 8.4 风险
 - [x] 当前 Windows x64 / GCC + TCC 链路已覆盖混合字段 padding/对齐验收。
-- [ ] Linux ABI 差异仍需后续跨平台 CI 验证。
+- [x] Linux ABI 差异跨平台 CI 入口：已新增 `demo5/build_gcc.sh` 与 `.github/workflows/demo5-linux-abi.yml`，用于 Ubuntu GCC 构建和 ABI smoke；本地 Windows 环境只完成脚本语法检查，真实 Linux runner 结果以后续 CI 为准。
 - [x] 当前 Windows x64 / GCC + TCC 链路已覆盖嵌套 plain struct/class 的基础按值传参/返回验收。
 - [x] 当前 Windows x64 / GCC + TCC 链路已覆盖大 plain class 按值传参/返回验收。
 - [ ] 非常规对齐/复杂嵌套生命周期规则仍暂缓。
@@ -522,10 +522,10 @@ end
 - [ ] 宏系统
 - [ ] 元编程
 - [ ] channel select
-- [ ] 调用点展开已有 array/dict：`...arr` / `***map`
-- [ ] extern async func
-- [ ] 类型方法形式 extern
-- [ ] native include / binding 自动生成链路
+- [x] 调用点展开已有 array/dict：`...arr` / `***map`
+- [x] extern async func
+- [x] 类型方法形式 extern
+- [~] native include / binding 自动生成链路：`#binding` 已覆盖常见 C 头声明、typedef/struct/enum/宏边界和链接集成；从任意 `.h` 自动生成完整 binding package 的工程化封装仍作为后续增强。
 - [ ] runtime class 对象系统
 - [ ] custom / object 完整模型
 - [ ] 元类 / runtime dynamic class
@@ -586,5 +586,9 @@ end
 - [x] native binding 自动生成链路增强：#binding 生成的 plain struct/class、常量、函数声明可直接参与语义分析、C 输出与 runtime 调用验证。
 - [x] native function signature 更广覆盖：补齐 sys.dlsym point -> function<...> 的 uint32 / int64 精确数值签名验收；仍保持白名单式扩展，不做无限签名自动支持。
 - [x] 大结构体 ABI 规则：覆盖 64-bit 整数与 float64 混合的大 plain class 按值传参、按值返回和二次传递。
-- [ ] Linux ABI 差异跨平台 CI：当前仓库 demo5 构建脚本仍是 Windows GCC/TCC 链路，尚无可直接运行的 Linux build/CI 脚本；需要后续在真实 Linux runner 上建立构建链后再标记完成。
+- [x] Linux ABI 差异跨平台 CI：新增 Linux GCC 构建脚本与 GitHub Actions workflow，覆盖 parser 生成、编译、native artifact、调用点展开、extern async、类型方法 extern smoke；本地未运行真实 Linux runner。
+- [x] #binding bitfield / inline array 字段安全导入：bitfield 字段按其基础整数类型导入 plain class 字段，char/uint8/int8 inline array 字段导入为 string，其他 inline array 字段导入为 point，避免缺字段 class 与不可用 handle API。
+- [x] native callback ABI 首版 runtime 闭环：支持 `function<int(int,string)>` 与 `function<void()>` 作为 C 函数指针参数导出，#binding 函数指针 typedef/字段/参数可生成 native callback C 原型，runtime 已覆盖 C 调 xlang 回调。
+- [x] binding package 工程化入口首版：新增 `xl5 bind <header.h> --emit <outdir>`，可生成 include/header 拷贝、binding 源文件与 `xlang.json` package 骨架；首版作为工程链入口，不承诺任意复杂头文件完全零人工修补。
 - [ ] 非常规对齐、复杂嵌套生命周期 ABI：当前发布候选版只承诺 plain class / plain struct ABI；带 destroy、union active tag、显式 pack/alignment、非平凡生命周期跨 C ABI 仍后置。
+- [ ] XLP 复杂依赖策略：当前已覆盖 dependencies、版本目录/manifest、ABI id 元信息与多版本共存；peer dependency、热升级、自动 ABI 兼容推断、复杂解析策略仍不建议塞进 demo5 首发闭环。

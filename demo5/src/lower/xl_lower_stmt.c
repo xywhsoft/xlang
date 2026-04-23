@@ -989,7 +989,11 @@ static XL_HirNode* __xlLowerFuncToHir(const XL_AstNode* pNode, const XL_SemResul
 
 	xlHirSetText(pFunc, pNode->sText);
 	if ( (pNode->iIntValue != 0) && (pNode->sText != NULL) && (pNode->sText[0] != '\0') ) {
-		xlHirSetExternName(pFunc, (__xlFuncReceiverNode(pNode) != NULL) ? pNode->sText : pNode->sText2);
+		const char* sExternName = pNode->sText2;
+		if ( (__xlFuncReceiverNode(pNode) != NULL) && ((sExternName == NULL) || (sExternName[0] == '\0')) ) {
+			sExternName = pNode->sText;
+		}
+		xlHirSetExternName(pFunc, sExternName);
 	}
 	__xlApplySemNodeInfo(pFunc, pSem, pNode);
 	pFuncInfo = __xlResolvedFuncInfo(pSem, pNode);

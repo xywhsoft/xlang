@@ -1070,17 +1070,17 @@ extern_decl(A) ::= KW_EXTERN(E) extern_symbol_opt(S) KW_ASYNC KW_FUNC func_name(
 	A = xlAstCreateFuncDecl(&N, 1, P, R, xlAstCreateBlock(&E));
 	xlPAttachExternSymbol(A, &N, (S.eKind != 0) ? &S : NULL);
 }
-extern_decl(A) ::= KW_EXTERN(E) KW_FUNC type_name(TY) OP_DOT func_name(N) TK_LPAREN param_list(P) TK_RPAREN ret_type(R). {
+extern_decl(A) ::= KW_EXTERN(E) extern_symbol_opt(S) KW_FUNC type_name(TY) OP_DOT func_name(N) TK_LPAREN param_list(P) TK_RPAREN ret_type(R). {
 	A = xlPCreateMethodFuncDecl(xlAstCreateTypeRef(&TY), &N, 0, P, R, xlAstCreateBlock(&E));
-	xlPAttachExternSymbol(A, &N, NULL);
+	xlPAttachExternSymbol(A, &N, (S.eKind != 0) ? &S : NULL);
 }
-extern_decl(A) ::= KW_EXTERN(E) KW_FUNC generic_type_ref(TY) OP_DOT func_name(N) TK_LPAREN param_list(P) TK_RPAREN ret_type(R). {
+extern_decl(A) ::= KW_EXTERN(E) extern_symbol_opt(S) KW_FUNC generic_type_ref(TY) OP_DOT func_name(N) TK_LPAREN param_list(P) TK_RPAREN ret_type(R). {
 	A = xlPCreateMethodFuncDecl(TY, &N, 0, P, R, xlAstCreateBlock(&E));
-	xlPAttachExternSymbol(A, &N, NULL);
+	xlPAttachExternSymbol(A, &N, (S.eKind != 0) ? &S : NULL);
 }
-extern_decl(A) ::= KW_EXTERN(E) KW_FUNC function_type_ref(TY) OP_DOT func_name(N) TK_LPAREN param_list(P) TK_RPAREN ret_type(R). {
+extern_decl(A) ::= KW_EXTERN(E) extern_symbol_opt(S) KW_FUNC function_type_ref(TY) OP_DOT func_name(N) TK_LPAREN param_list(P) TK_RPAREN ret_type(R). {
 	A = xlPCreateMethodFuncDecl(TY, &N, 0, P, R, xlAstCreateBlock(&E));
-	xlPAttachExternSymbol(A, &N, NULL);
+	xlPAttachExternSymbol(A, &N, (S.eKind != 0) ? &S : NULL);
 }
 extern_decl(A) ::= KW_EXTERN extern_symbol_opt(S) TOK_IDENT(V) TOK_IDENT(N) KW_AS type_name(T). {
 	if ( !xlPTokenEquals(&V, "var") ) {

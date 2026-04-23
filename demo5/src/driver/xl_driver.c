@@ -24,6 +24,45 @@ static int __xlWriteTextFile(const char* sFilePath, const char* sText)
 	return XL_RC_OK;
 }
 
+static int __xlCopyFileBytes(const char* sSrcPath, const char* sDstPath)
+{
+	FILE* pSrc;
+	FILE* pDst;
+	char arrBuf[8192];
+	size_t iRead;
+
+	if ( (sSrcPath == NULL) || (sDstPath == NULL) ) {
+		return XL_RC_BAD_ARG;
+	}
+	if ( xlPathEnsureParentDir(sDstPath) != XL_RC_OK ) {
+		return XL_RC_IO_ERROR;
+	}
+	pSrc = fopen(sSrcPath, "rb");
+	if ( pSrc == NULL ) {
+		return XL_RC_IO_ERROR;
+	}
+	pDst = fopen(sDstPath, "wb");
+	if ( pDst == NULL ) {
+		fclose(pSrc);
+		return XL_RC_IO_ERROR;
+	}
+	while ( (iRead = fread(arrBuf, 1, sizeof(arrBuf), pSrc)) != 0 ) {
+		if ( fwrite(arrBuf, 1, iRead, pDst) != iRead ) {
+			fclose(pSrc);
+			fclose(pDst);
+			return XL_RC_IO_ERROR;
+		}
+	}
+	if ( ferror(pSrc) ) {
+		fclose(pSrc);
+		fclose(pDst);
+		return XL_RC_IO_ERROR;
+	}
+	fclose(pSrc);
+	fclose(pDst);
+	return XL_RC_OK;
+}
+
 static char* __xlWrapJsonText(const char* sKey, const char* sText)
 {
 	size_t i;
@@ -131,21 +170,32 @@ static const XL_AstNode* __xlDriverFuncReceiverNode(const XL_AstNode* pNode)
 static const char* __xlDriverFuncExternName(const XL_AstNode* pNode)
 {
 	const XL_AstNode* pBody;
+	const XL_AstNode* pReceiver;
+	const char* sExternName;
 
 	if ( (pNode == NULL) || (pNode->eKind != XL_AST_FUNC_DECL) ) {
 		return NULL;
 	}
-	if ( __xlDriverFuncReceiverNode(pNode) != NULL ) {
+	if ( pNode->iIntValue == 0 ) {
 		return NULL;
 	}
-	if ( (pNode->sText2 == NULL) || (pNode->sText2[0] == '\0') ) {
+	pReceiver = __xlDriverFuncReceiverNode(pNode);
+	sExternName = pNode->sText2;
+	if ( pReceiver != NULL ) {
+		if ( (sExternName == NULL) || (sExternName[0] == '\0') ) {
+			sExternName = pNode->sText;
+		}
+		if ( (sExternName == NULL) || (sExternName[0] == '\0') ) {
+			return NULL;
+		}
+	} else if ( (sExternName == NULL) || (sExternName[0] == '\0') ) {
 		return NULL;
 	}
 	pBody = __xlDriverAstChild(pNode, 2);
 	if ( (pBody == NULL) || (pBody->eKind != XL_AST_BLOCK) || (pBody->iChildCount != 0) ) {
 		return NULL;
 	}
-	return pNode->sText2;
+	return sExternName;
 }
 
 static const char* __xlDriverVarExternName(const XL_AstNode* pNode)
@@ -1556,6 +1606,136 @@ static int __xlDriverBuildCProgram(
 	return iRc;
 }
 
+static void __xlDriverFileStem(const char* sPath, char* sOut, size_t iOutSize)
+{
+	const char* sName;
+	const char* sScan;
+	const char* sDot;
+	size_t iLen;
+
+	if ( (sOut == NULL) || (iOutSize == 0) ) {
+		return;
+	}
+	sName = (sPath != NULL) ? sPath : "binding";
+	sScan = sName;
+	while ( *sScan != '\0' ) {
+		if ( xlPathIsSep((unsigned char)*sScan) ) {
+			sName = sScan + 1;
+		}
+		++sScan;
+	}
+	sDot = strrchr(sName, '.');
+	iLen = (sDot != NULL) ? (size_t)(sDot - sName) : strlen(sName);
+	if ( iLen >= iOutSize ) {
+		iLen = iOutSize - 1;
+	}
+	memcpy(sOut, sName, iLen);
+	sOut[iLen] = '\0';
+}
+
+static void __xlDriverSanitizeModuleName(char* sText)
+{
+	size_t i;
+
+	if ( sText == NULL ) {
+		return;
+	}
+	for ( i = 0; sText[i] != '\0'; ++i ) {
+		unsigned char ch = (unsigned char)sText[i];
+		if ( ((ch >= 'a') && (ch <= 'z')) || ((ch >= 'A') && (ch <= 'Z')) ||
+			((ch >= '0') && (ch <= '9')) || (ch == '_') ) {
+			continue;
+		}
+		sText[i] = '_';
+	}
+	if ( (sText[0] >= '0') && (sText[0] <= '9') ) {
+		size_t iLen = strlen(sText);
+		if ( (iLen + 2) < XL_PATH_MAX_LEN ) {
+			memmove(sText + 2, sText, iLen + 1);
+			sText[0] = 'b';
+			sText[1] = '_';
+		}
+	}
+	if ( sText[0] == '\0' ) {
+		snprintf(sText, XL_PATH_MAX_LEN, "binding");
+	}
+}
+
+static int __xlDriverGenerateBindingPackage(
+	const XL_CliOptions* pOpts,
+	XL_DiagContext* pDiag,
+	XL_DumpContext* pDump
+)
+{
+	char sStem[XL_PATH_MAX_LEN];
+	char sOutRoot[XL_PATH_MAX_LEN];
+	char sIncludeDir[XL_PATH_MAX_LEN];
+	char sHeaderName[XL_PATH_MAX_LEN];
+	char sHeaderDst[XL_PATH_MAX_LEN];
+	char sSrcPath[XL_PATH_MAX_LEN];
+	char sProjectPath[XL_PATH_MAX_LEN];
+	char sJson[XL_DIAG_TEXT_MAX];
+	char sModule[XL_DIAG_TEXT_MAX];
+	const char* sEmit;
+	int iRc;
+
+	if ( (pOpts == NULL) || (pOpts->sInputFile == NULL) ) {
+		return XL_RC_BAD_ARG;
+	}
+	(void)pDump;
+	__xlDriverFileStem(pOpts->sInputFile, sStem, sizeof(sStem));
+	__xlDriverSanitizeModuleName(sStem);
+	sEmit = pOpts->sEmitPath;
+	if ( sEmit != NULL ) {
+		snprintf(sOutRoot, sizeof(sOutRoot), "%s", sEmit);
+	} else {
+		xlPathJoin(sOutRoot, sizeof(sOutRoot), "release", "binding");
+		xlPathJoin(sOutRoot, sizeof(sOutRoot), sOutRoot, sStem);
+	}
+	xlPathJoin(sIncludeDir, sizeof(sIncludeDir), sOutRoot, "include");
+	__xlDriverFileStem(pOpts->sInputFile, sHeaderName, sizeof(sHeaderName));
+	{
+		const char* sDot = strrchr(pOpts->sInputFile, '.');
+		strncat(sHeaderName, (sDot != NULL) ? sDot : ".h", sizeof(sHeaderName) - strlen(sHeaderName) - 1);
+	}
+	xlPathJoin(sHeaderDst, sizeof(sHeaderDst), sIncludeDir, sHeaderName);
+	xlPathJoin(sSrcPath, sizeof(sSrcPath), sOutRoot, "src");
+	xlPathJoin(sSrcPath, sizeof(sSrcPath), sSrcPath, sStem);
+	strncat(sSrcPath, ".xl", sizeof(sSrcPath) - strlen(sSrcPath) - 1);
+	xlPathJoin(sProjectPath, sizeof(sProjectPath), sOutRoot, "xlang.json");
+
+	iRc = __xlCopyFileBytes(pOpts->sInputFile, sHeaderDst);
+	if ( iRc != XL_RC_OK ) {
+		XL_DIAG_ERROR(pDiag, "bind", "failed to copy header: %s", pOpts->sInputFile);
+		return iRc;
+	}
+	snprintf(
+		sModule,
+		sizeof(sModule),
+		"#incpath \"../include\"\n#binding \"../include/%s\"\n\n",
+		sHeaderName
+	);
+	iRc = __xlWriteTextFile(sSrcPath, sModule);
+	if ( iRc != XL_RC_OK ) {
+		XL_DIAG_ERROR(pDiag, "bind", "failed to write binding module: %s", sSrcPath);
+		return iRc;
+	}
+	snprintf(
+		sJson,
+		sizeof(sJson),
+		"{\n\t\"name\": \"binding.%s\",\n\t\"version\": \"0.1.0\",\n\t\"type\": \"package\",\n\t\"source\": [\"src\"],\n\t\"exports\": [\"%s\"],\n\t\"incpath\": [\"include\"]\n}\n",
+		sStem,
+		sStem
+	);
+	iRc = __xlWriteTextFile(sProjectPath, sJson);
+	if ( iRc != XL_RC_OK ) {
+		XL_DIAG_ERROR(pDiag, "bind", "failed to write package file: %s", sProjectPath);
+		return iRc;
+	}
+	printf("BindingPackage path=%s module=%s\n", sOutRoot, sStem);
+	return XL_RC_OK;
+}
+
 int xlDriverRun(const XL_CliOptions* pOpts, XL_DiagContext* pDiag, XL_DumpContext* pDump)
 {
 	int iRc;
@@ -1599,6 +1779,9 @@ int xlDriverRun(const XL_CliOptions* pOpts, XL_DiagContext* pDiag, XL_DumpContex
 	}
 	if ( pOpts->eCommand == XL_CMD_RUN_C ) {
 		return __xlDriverRunCProgram(pOpts, pDiag, pDump);
+	}
+	if ( pOpts->eCommand == XL_CMD_BIND ) {
+		return __xlDriverGenerateBindingPackage(pOpts, pDiag, pDump);
 	}
 
 	iRc = __xlDriverWriteStubDump(pOpts, pDiag, pDump);

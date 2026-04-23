@@ -1,0 +1,351 @@
+{
+	"format": "xlp-0",
+	"package": {
+		"name": "sys_loadlib_basic",
+		"version": "0.0.0",
+		"abiVersion": "1",
+		"xlangAbi": "1",
+		"abiId": "sys_loadlib_basic@0.0.0#abi1"
+	},
+	"dependencies": [
+		{
+			"name": "std.sys.lib",
+			"kind": "native",
+			"version": "0.0.0",
+			"abiVersion": "1",
+			"abiId": "std.sys.lib@0.0.0#abi1",
+			"manifest": "",
+			"binding": "std.sys.lib",
+			"artifactKind": "",
+			"artifactPath": "",
+			"artifactFile": "",
+			"consumeMode": "",
+			"usedBy": ["<root>"],
+			"dependsOn": [],
+			"dependsOnAbi": []
+		}
+	],
+	"modules": [
+		{
+			"key": "std.sys.lib",
+			"packageName": "std.sys.lib",
+			"packageVersion": "0.0.0",
+			"packageAbiVersion": "1",
+			"abiId": "std.sys.lib@0.0.0#abi1::std.sys.lib",
+			"manifest": "",
+			"file": "<native:std.sys.lib>",
+			"root": 0,
+			"native": 1,
+			"binding": "std.sys.lib",
+			"artifactKind": "",
+			"artifactPath": "",
+			"artifactFile": "",
+			"consumeMode": "",
+			"initSymbol": "xl_mod_std_sys_lib__init",
+			"exportsSymbol": "xl_mod_std_sys_lib__exports",
+			"descriptorSymbol": "xl_mod_std_sys_lib__descriptor",
+			"imports": [],
+			"exports": [
+				{
+					"name": "loadlib",
+					"symbol": "xl_mod_std_sys_lib__loadlib",
+					"abiId": "std.sys.lib@0.0.0#abi1::std.sys.lib::loadlib",
+					"versionedSymbol": "std.sys.lib@0.0.0#abi1::std.sys.lib::xl_mod_std_sys_lib__loadlib",
+					"kind": "function",
+					"overloadCount": 1
+				},
+				{
+					"name": "dlopen",
+					"symbol": "xl_mod_std_sys_lib__dlopen",
+					"abiId": "std.sys.lib@0.0.0#abi1::std.sys.lib::dlopen",
+					"versionedSymbol": "std.sys.lib@0.0.0#abi1::std.sys.lib::xl_mod_std_sys_lib__dlopen",
+					"kind": "function",
+					"overloadCount": 1
+				},
+				{
+					"name": "dlsym",
+					"symbol": "xl_mod_std_sys_lib__dlsym",
+					"abiId": "std.sys.lib@0.0.0#abi1::std.sys.lib::dlsym",
+					"versionedSymbol": "std.sys.lib@0.0.0#abi1::std.sys.lib::xl_mod_std_sys_lib__dlsym",
+					"kind": "function",
+					"overloadCount": 1
+				},
+				{
+					"name": "dlclose",
+					"symbol": "xl_mod_std_sys_lib__dlclose",
+					"abiId": "std.sys.lib@0.0.0#abi1::std.sys.lib::dlclose",
+					"versionedSymbol": "std.sys.lib@0.0.0#abi1::std.sys.lib::xl_mod_std_sys_lib__dlclose",
+					"kind": "function",
+					"overloadCount": 1
+				},
+				{
+					"name": "proc",
+					"symbol": "xl_mod_std_sys_lib__proc",
+					"abiId": "std.sys.lib@0.0.0#abi1::std.sys.lib::proc",
+					"versionedSymbol": "std.sys.lib@0.0.0#abi1::std.sys.lib::xl_mod_std_sys_lib__proc",
+					"kind": "function",
+					"overloadCount": 1
+				},
+				{
+					"name": "close",
+					"symbol": "xl_mod_std_sys_lib__close",
+					"abiId": "std.sys.lib@0.0.0#abi1::std.sys.lib::close",
+					"versionedSymbol": "std.sys.lib@0.0.0#abi1::std.sys.lib::xl_mod_std_sys_lib__close",
+					"kind": "function",
+					"overloadCount": 1
+				},
+				{
+					"name": "path",
+					"symbol": "xl_mod_std_sys_lib__path",
+					"abiId": "std.sys.lib@0.0.0#abi1::std.sys.lib::path",
+					"versionedSymbol": "std.sys.lib@0.0.0#abi1::std.sys.lib::xl_mod_std_sys_lib__path",
+					"kind": "function",
+					"overloadCount": 1
+				},
+				{
+					"name": "loaded",
+					"symbol": "xl_mod_std_sys_lib__loaded",
+					"abiId": "std.sys.lib@0.0.0#abi1::std.sys.lib::loaded",
+					"versionedSymbol": "std.sys.lib@0.0.0#abi1::std.sys.lib::xl_mod_std_sys_lib__loaded",
+					"kind": "function",
+					"overloadCount": 1
+				}
+			]
+		},
+		{
+			"key": "<root>",
+			"packageName": "sys_loadlib_basic",
+			"packageVersion": "0.0.0",
+			"packageAbiVersion": "1",
+			"abiId": "sys_loadlib_basic@0.0.0#abi1::<root>",
+			"manifest": "",
+			"file": "D:\\Git\\x-lang\\demo5\\examples\\native\\sys_loadlib_basic.xl",
+			"root": 1,
+			"native": 0,
+			"binding": "",
+			"artifactKind": "",
+			"artifactPath": "",
+			"artifactFile": "",
+			"consumeMode": "",
+			"initSymbol": "xl_mod__root___init",
+			"exportsSymbol": "xl_mod__root___exports",
+			"descriptorSymbol": "xl_mod__root___descriptor",
+			"imports": ["std.sys.lib"],
+			"exports": []
+		}
+	],
+	"functions": [
+		{
+			"module": "std.sys.lib",
+			"moduleAbiId": "std.sys.lib@0.0.0#abi1::std.sys.lib",
+			"exportName": "loadlib",
+			"symbol": "xl_mod_std_sys_lib__loadlib",
+			"overloadGroup": "global::xl_mod_std_sys_lib__loadlib",
+			"signatureId": "xl_mod_std_sys_lib__loadlib(string)",
+			"dispatchKey": "xl_mod_std_sys_lib__loadlib$arity1|path:string",
+			"languageAbi": "xlang@v1",
+			"nativeAbi": "c@v1",
+			"languageAbiId": "std.sys.lib@0.0.0#abi1::std.sys.lib::xl_mod_std_sys_lib__loadlib(string)#xlang@v1",
+			"nativeAbiId": "std.sys.lib@0.0.0#abi1::std.sys.lib::xl__xl_mod_std_sys_lib__loadlib__arity1__path__string__ret__var#c@v1",
+			"abiSymbol": "xl__xl_mod_std_sys_lib__loadlib__arity1__path__string__ret__var",
+			"returnType": "var",
+			"async": 0,
+			"generator": 0,
+			"params": [
+				{
+					"name": "path",
+					"label": "path",
+					"type": "string",
+					"hasDefault": 0
+				}
+			]
+		},
+		{
+			"module": "std.sys.lib",
+			"moduleAbiId": "std.sys.lib@0.0.0#abi1::std.sys.lib",
+			"exportName": "dlopen",
+			"symbol": "xl_mod_std_sys_lib__dlopen",
+			"overloadGroup": "global::xl_mod_std_sys_lib__dlopen",
+			"signatureId": "xl_mod_std_sys_lib__dlopen(string)",
+			"dispatchKey": "xl_mod_std_sys_lib__dlopen$arity1|path:string",
+			"languageAbi": "xlang@v1",
+			"nativeAbi": "c@v1",
+			"languageAbiId": "std.sys.lib@0.0.0#abi1::std.sys.lib::xl_mod_std_sys_lib__dlopen(string)#xlang@v1",
+			"nativeAbiId": "std.sys.lib@0.0.0#abi1::std.sys.lib::xl__xl_mod_std_sys_lib__dlopen__arity1__path__string__ret__var#c@v1",
+			"abiSymbol": "xl__xl_mod_std_sys_lib__dlopen__arity1__path__string__ret__var",
+			"returnType": "var",
+			"async": 0,
+			"generator": 0,
+			"params": [
+				{
+					"name": "path",
+					"label": "path",
+					"type": "string",
+					"hasDefault": 0
+				}
+			]
+		},
+		{
+			"module": "std.sys.lib",
+			"moduleAbiId": "std.sys.lib@0.0.0#abi1::std.sys.lib",
+			"exportName": "dlsym",
+			"symbol": "xl_mod_std_sys_lib__dlsym",
+			"overloadGroup": "global::xl_mod_std_sys_lib__dlsym",
+			"signatureId": "xl_mod_std_sys_lib__dlsym(var,string)",
+			"dispatchKey": "xl_mod_std_sys_lib__dlsym$arity2|self:var|name:string",
+			"languageAbi": "xlang@v1",
+			"nativeAbi": "c@v1",
+			"languageAbiId": "std.sys.lib@0.0.0#abi1::std.sys.lib::xl_mod_std_sys_lib__dlsym(var,string)#xlang@v1",
+			"nativeAbiId": "std.sys.lib@0.0.0#abi1::std.sys.lib::xl__xl_mod_std_sys_lib__dlsym__arity2__self__var__name__string__ret__point#c@v1",
+			"abiSymbol": "xl__xl_mod_std_sys_lib__dlsym__arity2__self__var__name__string__ret__point",
+			"returnType": "point",
+			"async": 0,
+			"generator": 0,
+			"params": [
+				{
+					"name": "self",
+					"label": "self",
+					"type": "var",
+					"hasDefault": 0
+				},
+				{
+					"name": "name",
+					"label": "name",
+					"type": "string",
+					"hasDefault": 0
+				}
+			]
+		},
+		{
+			"module": "std.sys.lib",
+			"moduleAbiId": "std.sys.lib@0.0.0#abi1::std.sys.lib",
+			"exportName": "dlclose",
+			"symbol": "xl_mod_std_sys_lib__dlclose",
+			"overloadGroup": "global::xl_mod_std_sys_lib__dlclose",
+			"signatureId": "xl_mod_std_sys_lib__dlclose(var)",
+			"dispatchKey": "xl_mod_std_sys_lib__dlclose$arity1|self:var",
+			"languageAbi": "xlang@v1",
+			"nativeAbi": "c@v1",
+			"languageAbiId": "std.sys.lib@0.0.0#abi1::std.sys.lib::xl_mod_std_sys_lib__dlclose(var)#xlang@v1",
+			"nativeAbiId": "std.sys.lib@0.0.0#abi1::std.sys.lib::xl__xl_mod_std_sys_lib__dlclose__arity1__self__var__ret__bool#c@v1",
+			"abiSymbol": "xl__xl_mod_std_sys_lib__dlclose__arity1__self__var__ret__bool",
+			"returnType": "bool",
+			"async": 0,
+			"generator": 0,
+			"params": [
+				{
+					"name": "self",
+					"label": "self",
+					"type": "var",
+					"hasDefault": 0
+				}
+			]
+		},
+		{
+			"module": "std.sys.lib",
+			"moduleAbiId": "std.sys.lib@0.0.0#abi1::std.sys.lib",
+			"exportName": "proc",
+			"symbol": "xl_mod_std_sys_lib__proc",
+			"overloadGroup": "global::xl_mod_std_sys_lib__proc",
+			"signatureId": "xl_mod_std_sys_lib__proc(var,string)",
+			"dispatchKey": "xl_mod_std_sys_lib__proc$arity2|self:var|name:string",
+			"languageAbi": "xlang@v1",
+			"nativeAbi": "c@v1",
+			"languageAbiId": "std.sys.lib@0.0.0#abi1::std.sys.lib::xl_mod_std_sys_lib__proc(var,string)#xlang@v1",
+			"nativeAbiId": "std.sys.lib@0.0.0#abi1::std.sys.lib::xl__xl_mod_std_sys_lib__proc__arity2__self__var__name__string__ret__point#c@v1",
+			"abiSymbol": "xl__xl_mod_std_sys_lib__proc__arity2__self__var__name__string__ret__point",
+			"returnType": "point",
+			"async": 0,
+			"generator": 0,
+			"params": [
+				{
+					"name": "self",
+					"label": "self",
+					"type": "var",
+					"hasDefault": 0
+				},
+				{
+					"name": "name",
+					"label": "name",
+					"type": "string",
+					"hasDefault": 0
+				}
+			]
+		},
+		{
+			"module": "std.sys.lib",
+			"moduleAbiId": "std.sys.lib@0.0.0#abi1::std.sys.lib",
+			"exportName": "close",
+			"symbol": "xl_mod_std_sys_lib__close",
+			"overloadGroup": "global::xl_mod_std_sys_lib__close",
+			"signatureId": "xl_mod_std_sys_lib__close(var)",
+			"dispatchKey": "xl_mod_std_sys_lib__close$arity1|self:var",
+			"languageAbi": "xlang@v1",
+			"nativeAbi": "c@v1",
+			"languageAbiId": "std.sys.lib@0.0.0#abi1::std.sys.lib::xl_mod_std_sys_lib__close(var)#xlang@v1",
+			"nativeAbiId": "std.sys.lib@0.0.0#abi1::std.sys.lib::xl__xl_mod_std_sys_lib__close__arity1__self__var__ret__bool#c@v1",
+			"abiSymbol": "xl__xl_mod_std_sys_lib__close__arity1__self__var__ret__bool",
+			"returnType": "bool",
+			"async": 0,
+			"generator": 0,
+			"params": [
+				{
+					"name": "self",
+					"label": "self",
+					"type": "var",
+					"hasDefault": 0
+				}
+			]
+		},
+		{
+			"module": "std.sys.lib",
+			"moduleAbiId": "std.sys.lib@0.0.0#abi1::std.sys.lib",
+			"exportName": "path",
+			"symbol": "xl_mod_std_sys_lib__path",
+			"overloadGroup": "global::xl_mod_std_sys_lib__path",
+			"signatureId": "xl_mod_std_sys_lib__path(var)",
+			"dispatchKey": "xl_mod_std_sys_lib__path$arity1|self:var",
+			"languageAbi": "xlang@v1",
+			"nativeAbi": "c@v1",
+			"languageAbiId": "std.sys.lib@0.0.0#abi1::std.sys.lib::xl_mod_std_sys_lib__path(var)#xlang@v1",
+			"nativeAbiId": "std.sys.lib@0.0.0#abi1::std.sys.lib::xl__xl_mod_std_sys_lib__path__arity1__self__var__ret__string#c@v1",
+			"abiSymbol": "xl__xl_mod_std_sys_lib__path__arity1__self__var__ret__string",
+			"returnType": "string",
+			"async": 0,
+			"generator": 0,
+			"params": [
+				{
+					"name": "self",
+					"label": "self",
+					"type": "var",
+					"hasDefault": 0
+				}
+			]
+		},
+		{
+			"module": "std.sys.lib",
+			"moduleAbiId": "std.sys.lib@0.0.0#abi1::std.sys.lib",
+			"exportName": "loaded",
+			"symbol": "xl_mod_std_sys_lib__loaded",
+			"overloadGroup": "global::xl_mod_std_sys_lib__loaded",
+			"signatureId": "xl_mod_std_sys_lib__loaded(var)",
+			"dispatchKey": "xl_mod_std_sys_lib__loaded$arity1|self:var",
+			"languageAbi": "xlang@v1",
+			"nativeAbi": "c@v1",
+			"languageAbiId": "std.sys.lib@0.0.0#abi1::std.sys.lib::xl_mod_std_sys_lib__loaded(var)#xlang@v1",
+			"nativeAbiId": "std.sys.lib@0.0.0#abi1::std.sys.lib::xl__xl_mod_std_sys_lib__loaded__arity1__self__var__ret__bool#c@v1",
+			"abiSymbol": "xl__xl_mod_std_sys_lib__loaded__arity1__self__var__ret__bool",
+			"returnType": "bool",
+			"async": 0,
+			"generator": 0,
+			"params": [
+				{
+					"name": "self",
+					"label": "self",
+					"type": "var",
+					"hasDefault": 0
+				}
+			]
+		}
+	]
+}

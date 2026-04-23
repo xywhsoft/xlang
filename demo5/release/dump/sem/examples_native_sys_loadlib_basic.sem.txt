@@ -1,0 +1,199 @@
+SemanticResult hadError=1
+Types (36)
+	- any builtin=1 @ 0:0
+	- array builtin=1 @ 0:0
+	- bool builtin=1 @ 0:0
+	- channel builtin=1 @ 0:0
+	- dict builtin=1 @ 0:0
+	- error builtin=1 @ 0:0
+	- float builtin=1 @ 0:0
+	- float32 builtin=1 @ 0:0
+	- float64 builtin=1 @ 0:0
+	- function builtin=1 @ 0:0
+	- future builtin=1 @ 0:0
+	- generator builtin=1 @ 0:0
+	- int builtin=1 @ 0:0
+	- int8 builtin=1 @ 0:0
+	- uint8 builtin=1 @ 0:0
+	- int16 builtin=1 @ 0:0
+	- uint16 builtin=1 @ 0:0
+	- int32 builtin=1 @ 0:0
+	- uint32 builtin=1 @ 0:0
+	- int64 builtin=1 @ 0:0
+	- uint64 builtin=1 @ 0:0
+	- iterable builtin=1 @ 0:0
+	- iterator builtin=1 @ 0:0
+	- list builtin=1 @ 0:0
+	- module builtin=1 @ 0:0
+	- null builtin=1 @ 0:0
+	- object builtin=1 @ 0:0
+	- point builtin=1 @ 0:0
+	- range builtin=1 @ 0:0
+	- set builtin=1 @ 0:0
+	- string builtin=1 @ 0:0
+	- type builtin=1 @ 0:0
+	- task builtin=1 @ 0:0
+	- time builtin=1 @ 0:0
+	- var builtin=1 @ 0:0
+	- void builtin=1 @ 0:0
+Classes (0)
+Functions (105)
+	- range(int stop) as range scope=0 async=0 generator=0 abi=xl__range__arity1__stop__int__ret__range sig=range(int) @ 0:0
+	- range(int start, int stop) as range scope=0 async=0 generator=0 abi=xl__range__arity2__start__int__stop__int__ret__range sig=range(int,int) @ 0:0
+	- range(int start, int stop, int step) as range scope=0 async=0 generator=0 abi=xl__range__arity3__start__int__stop__int__step__int__ret__range sig=range(int,int,int) @ 0:0
+	- Error(string message, int code, string data, string stack, error cause) as error scope=0 async=0 generator=0 abi=xl__Error__arity5__message__string__code__int__data__string__stack__string__cause__error__ret__error sig=Error(string,int,string,string,error) @ 0:0
+	- TypeError(string message, int code, string data, string stack, error cause) as error scope=0 async=0 generator=0 abi=xl__TypeError__arity5__message__string__code__int__data__string__stack__string__cause__error__ret__error sig=TypeError(string,int,string,string,error) @ 0:0
+	- ValueError(string message, int code, string data, string stack, error cause) as error scope=0 async=0 generator=0 abi=xl__ValueError__arity5__message__string__code__int__data__string__stack__string__cause__error__ret__error sig=ValueError(string,int,string,string,error) @ 0:0
+	- IOError(string message, int code, string data, string stack, error cause) as error scope=0 async=0 generator=0 abi=xl__IOError__arity5__message__string__code__int__data__string__stack__string__cause__error__ret__error sig=IOError(string,int,string,string,error) @ 0:0
+	- TimeoutError(string message, int code, string data, string stack, error cause) as error scope=0 async=0 generator=0 abi=xl__TimeoutError__arity5__message__string__code__int__data__string__stack__string__cause__error__ret__error sig=TimeoutError(string,int,string,string,error) @ 0:0
+	- CancelledError(string message, int code, string data, string stack, error cause) as error scope=0 async=0 generator=0 abi=xl__CancelledError__arity5__message__string__code__int__data__string__stack__string__cause__error__ret__error sig=CancelledError(string,int,string,string,error) @ 0:0
+	- NotImplementedError(string message, int code, string data, string stack, error cause) as error scope=0 async=0 generator=0 abi=xl__NotImplementedError__arity5__message__string__code__int__data__string__stack__string__cause__error__ret__error sig=NotImplementedError(string,int,string,string,error) @ 0:0
+	- NativeError(string message, int code, string data, string stack, error cause) as error scope=0 async=0 generator=0 abi=xl__NativeError__arity5__message__string__code__int__data__string__stack__string__cause__error__ret__error sig=NativeError(string,int,string,string,error) @ 0:0
+	- xl_mod_std_core__len(string self) as int scope=0 async=0 generator=0 abi=xl__xl_mod_std_core__len__arity1__self__string__ret__int sig=xl_mod_std_core__len(string) @ 0:0
+	- xl_mod_std_core__len(array self) as int scope=0 async=0 generator=0 abi=xl__xl_mod_std_core__len__arity1__self__array__ret__int sig=xl_mod_std_core__len(array) @ 0:0
+	- xl_mod_std_core__len(list self) as int scope=0 async=0 generator=0 abi=xl__xl_mod_std_core__len__arity1__self__list__ret__int sig=xl_mod_std_core__len(list) @ 0:0
+	- xl_mod_std_core__len(set self) as int scope=0 async=0 generator=0 abi=xl__xl_mod_std_core__len__arity1__self__set__ret__int sig=xl_mod_std_core__len(set) @ 0:0
+	- xl_mod_std_core__len(dict self) as int scope=0 async=0 generator=0 abi=xl__xl_mod_std_core__len__arity1__self__dict__ret__int sig=xl_mod_std_core__len(dict) @ 0:0
+	- xl_mod_std_str__contains(string self, string part) as bool scope=0 async=0 generator=0 abi=xl__xl_mod_std_str__contains__arity2__self__string__part__string__ret__bool sig=xl_mod_std_str__contains(string,string) @ 0:0
+	- xl_mod_std_str__index_of(string self, string part) as int scope=0 async=0 generator=0 abi=xl__xl_mod_std_str__index_of__arity2__self__string__part__string__ret__int sig=xl_mod_std_str__index_of(string,string) @ 0:0
+	- xl_mod_std_str__last_index_of(string self, string part) as int scope=0 async=0 generator=0 abi=xl__xl_mod_std_str__last_index_of__arity2__self__string__part__string__ret__int sig=xl_mod_std_str__last_index_of(string,string) @ 0:0
+	- xl_mod_std_str__slice(string self, int start, int count) as string scope=0 async=0 generator=0 abi=xl__xl_mod_std_str__slice__arity3__self__string__start__int__count__int__ret__string sig=xl_mod_std_str__slice(string,int,int) @ 0:0
+	- xl_mod_std_str__repeat(string self, int count) as string scope=0 async=0 generator=0 abi=xl__xl_mod_std_str__repeat__arity2__self__string__count__int__ret__string sig=xl_mod_std_str__repeat(string,int) @ 0:0
+	- xl_mod_std_str__split(string self, string part) as list<string> scope=0 async=0 generator=0 abi=xl__xl_mod_std_str__split__arity2__self__string__part__string__ret__list_x3Cstring_x3E sig=xl_mod_std_str__split(string,string) @ 0:0
+	- xl_mod_std_str__split_lines(string self) as list<string> scope=0 async=0 generator=0 abi=xl__xl_mod_std_str__split_lines__arity1__self__string__ret__list_x3Cstring_x3E sig=xl_mod_std_str__split_lines(string) @ 0:0
+	- xl_mod_std_str__starts_with(string self, string part) as bool scope=0 async=0 generator=0 abi=xl__xl_mod_std_str__starts_with__arity2__self__string__part__string__ret__bool sig=xl_mod_std_str__starts_with(string,string) @ 0:0
+	- xl_mod_std_str__ends_with(string self, string part) as bool scope=0 async=0 generator=0 abi=xl__xl_mod_std_str__ends_with__arity2__self__string__part__string__ret__bool sig=xl_mod_std_str__ends_with(string,string) @ 0:0
+	- xl_mod_std_str__trim(string self) as string scope=0 async=0 generator=0 abi=xl__xl_mod_std_str__trim__arity1__self__string__ret__string sig=xl_mod_std_str__trim(string) @ 0:0
+	- xl_mod_std_str__trim_left(string self) as string scope=0 async=0 generator=0 abi=xl__xl_mod_std_str__trim_left__arity1__self__string__ret__string sig=xl_mod_std_str__trim_left(string) @ 0:0
+	- xl_mod_std_str__trim_right(string self) as string scope=0 async=0 generator=0 abi=xl__xl_mod_std_str__trim_right__arity1__self__string__ret__string sig=xl_mod_std_str__trim_right(string) @ 0:0
+	- xl_mod_std_str__lower(string self) as string scope=0 async=0 generator=0 abi=xl__xl_mod_std_str__lower__arity1__self__string__ret__string sig=xl_mod_std_str__lower(string) @ 0:0
+	- xl_mod_std_str__upper(string self) as string scope=0 async=0 generator=0 abi=xl__xl_mod_std_str__upper__arity1__self__string__ret__string sig=xl_mod_std_str__upper(string) @ 0:0
+	- xl_mod_std_str__replace(string self, string part, string value) as string scope=0 async=0 generator=0 abi=xl__xl_mod_std_str__replace__arity3__self__string__part__string__value__string__ret__string sig=xl_mod_std_str__replace(string,string,string) @ 0:0
+	- __xl_method_append(array self, any value) as array scope=0 async=0 generator=0 abi=xl____xl_method_append__arity2__self__array__value__any__ret__array sig=__xl_method_append(array,any) @ 0:0
+	- __xl_method_append(list self, any value) as list scope=0 async=0 generator=0 abi=xl____xl_method_append__arity2__self__list__value__any__ret__list sig=__xl_method_append(list,any) @ 0:0
+	- __xl_method_at(array self, int index) as var scope=0 async=0 generator=0 abi=xl____xl_method_at__arity2__self__array__index__int__ret__var sig=__xl_method_at(array,int) @ 0:0
+	- __xl_method_at(array self, int index, any default) as var scope=0 async=0 generator=0 abi=xl____xl_method_at__arity3__self__array__index__int__default__any__ret__var sig=__xl_method_at(array,int,any) @ 0:0
+	- __xl_method_at(list self, int index) as var scope=0 async=0 generator=0 abi=xl____xl_method_at__arity2__self__list__index__int__ret__var sig=__xl_method_at(list,int) @ 0:0
+	- __xl_method_at(list self, int index, any default) as var scope=0 async=0 generator=0 abi=xl____xl_method_at__arity3__self__list__index__int__default__any__ret__var sig=__xl_method_at(list,int,any) @ 0:0
+	- __xl_method_join(array<string> self, string sep) as string scope=0 async=0 generator=0 abi=xl____xl_method_join__arity2__self__array_x3Cstring_x3E__sep__string__ret__string sig=__xl_method_join(array<string>,string) @ 0:0
+	- __xl_method_join(list<string> self, string sep) as string scope=0 async=0 generator=0 abi=xl____xl_method_join__arity2__self__list_x3Cstring_x3E__sep__string__ret__string sig=__xl_method_join(list<string>,string) @ 0:0
+	- __xl_method_has(set self, any value) as bool scope=0 async=0 generator=0 abi=xl____xl_method_has__arity2__self__set__value__any__ret__bool sig=__xl_method_has(set,any) @ 0:0
+	- __xl_method_has(dict self, string key) as bool scope=0 async=0 generator=0 abi=xl____xl_method_has__arity2__self__dict__key__string__ret__bool sig=__xl_method_has(dict,string) @ 0:0
+	- __xl_method_get(dict self, string key) as var scope=0 async=0 generator=0 abi=xl____xl_method_get__arity2__self__dict__key__string__ret__var sig=__xl_method_get(dict,string) @ 0:0
+	- __xl_method_get(dict self, string key, any default) as var scope=0 async=0 generator=0 abi=xl____xl_method_get__arity3__self__dict__key__string__default__any__ret__var sig=__xl_method_get(dict,string,any) @ 0:0
+	- __xl_method_keys(dict self) as array<string> scope=0 async=0 generator=0 abi=xl____xl_method_keys__arity1__self__dict__ret__array_x3Cstring_x3E sig=__xl_method_keys(dict) @ 0:0
+	- __xl_method_values(dict self) as array<var> scope=0 async=0 generator=0 abi=xl____xl_method_values__arity1__self__dict__ret__array_x3Cvar_x3E sig=__xl_method_values(dict) @ 0:0
+	- __xl_method_items(dict self) as array<var> scope=0 async=0 generator=0 abi=xl____xl_method_items__arity1__self__dict__ret__array_x3Cvar_x3E sig=__xl_method_items(dict) @ 0:0
+	- __xl_method_items(set self) as array<var> scope=0 async=0 generator=0 abi=xl____xl_method_items__arity1__self__set__ret__array_x3Cvar_x3E sig=__xl_method_items(set) @ 0:0
+	- __xl_method_clear(array self) as array scope=0 async=0 generator=0 abi=xl____xl_method_clear__arity1__self__array__ret__array sig=__xl_method_clear(array) @ 0:0
+	- __xl_method_clear(list self) as list scope=0 async=0 generator=0 abi=xl____xl_method_clear__arity1__self__list__ret__list sig=__xl_method_clear(list) @ 0:0
+	- __xl_method_clear(set self) as set scope=0 async=0 generator=0 abi=xl____xl_method_clear__arity1__self__set__ret__set sig=__xl_method_clear(set) @ 0:0
+	- __xl_method_clear(dict self) as dict scope=0 async=0 generator=0 abi=xl____xl_method_clear__arity1__self__dict__ret__dict sig=__xl_method_clear(dict) @ 0:0
+	- __xl_method_remove(array self, int key) as bool scope=0 async=0 generator=0 abi=xl____xl_method_remove__arity2__self__array__key__int__ret__bool sig=__xl_method_remove(array,int) @ 0:0
+	- __xl_method_remove(list self, int key) as bool scope=0 async=0 generator=0 abi=xl____xl_method_remove__arity2__self__list__key__int__ret__bool sig=__xl_method_remove(list,int) @ 0:0
+	- __xl_method_remove(set self, any value) as bool scope=0 async=0 generator=0 abi=xl____xl_method_remove__arity2__self__set__value__any__ret__bool sig=__xl_method_remove(set,any) @ 0:0
+	- __xl_method_remove(dict self, string key) as bool scope=0 async=0 generator=0 abi=xl____xl_method_remove__arity2__self__dict__key__string__ret__bool sig=__xl_method_remove(dict,string) @ 0:0
+	- __xl_method_take(array self, int index) as var scope=0 async=0 generator=0 abi=xl____xl_method_take__arity2__self__array__index__int__ret__var sig=__xl_method_take(array,int) @ 0:0
+	- __xl_method_take(list self, int index) as var scope=0 async=0 generator=0 abi=xl____xl_method_take__arity2__self__list__index__int__ret__var sig=__xl_method_take(list,int) @ 0:0
+	- __xl_method_take(dict self, string key) as var scope=0 async=0 generator=0 abi=xl____xl_method_take__arity2__self__dict__key__string__ret__var sig=__xl_method_take(dict,string) @ 0:0
+	- __xl_method_pop(array self) as var scope=0 async=0 generator=0 abi=xl____xl_method_pop__arity1__self__array__ret__var sig=__xl_method_pop(array) @ 0:0
+	- __xl_method_channel_send(channel self, any value) as bool scope=0 async=0 generator=0 abi=xl____xl_method_channel_send__arity2__self__channel__value__any__ret__bool sig=__xl_method_channel_send(channel,any) @ 0:0
+	- __xl_method_channel_close(channel self) as bool scope=0 async=0 generator=0 abi=xl____xl_method_channel_close__arity1__self__channel__ret__bool sig=__xl_method_channel_close(channel) @ 0:0
+	- xl_mod_std_time__to_string(time self) as string scope=0 async=0 generator=0 abi=xl__xl_mod_std_time__to_string__arity1__self__time__ret__string sig=xl_mod_std_time__to_string(time) @ 0:0
+	- xl_mod_std_time__relative(time self, time part) as string scope=0 async=0 generator=0 abi=xl__xl_mod_std_time__relative__arity2__self__time__part__time__ret__string sig=xl_mod_std_time__relative(time,time) @ 0:0
+	- xl_mod_std_time__format(time self, string part) as string scope=0 async=0 generator=0 abi=xl__xl_mod_std_time__format__arity2__self__time__part__string__ret__string sig=xl_mod_std_time__format(time,string) @ 0:0
+	- xl_mod_std_error__is_null(error self) as bool scope=0 async=0 generator=0 abi=xl__xl_mod_std_error__is_null__arity1__self__error__ret__bool sig=xl_mod_std_error__is_null(error) @ 0:0
+	- xl_mod_std_error__kind(error self) as string scope=0 async=0 generator=0 abi=xl__xl_mod_std_error__kind__arity1__self__error__ret__string sig=xl_mod_std_error__kind(error) @ 0:0
+	- xl_mod_std_error__message(error self) as string scope=0 async=0 generator=0 abi=xl__xl_mod_std_error__message__arity1__self__error__ret__string sig=xl_mod_std_error__message(error) @ 0:0
+	- xl_mod_std_error__code(error self) as int scope=0 async=0 generator=0 abi=xl__xl_mod_std_error__code__arity1__self__error__ret__int sig=xl_mod_std_error__code(error) @ 0:0
+	- xl_mod_std_error__data(error self) as string scope=0 async=0 generator=0 abi=xl__xl_mod_std_error__data__arity1__self__error__ret__string sig=xl_mod_std_error__data(error) @ 0:0
+	- xl_mod_std_error__stack(error self) as string scope=0 async=0 generator=0 abi=xl__xl_mod_std_error__stack__arity1__self__error__ret__string sig=xl_mod_std_error__stack(error) @ 0:0
+	- xl_mod_std_error__cause(error self) as error scope=0 async=0 generator=0 abi=xl__xl_mod_std_error__cause__arity1__self__error__ret__error sig=xl_mod_std_error__cause(error) @ 0:0
+	- xl_mod_std_error__text(error self) as string scope=0 async=0 generator=0 abi=xl__xl_mod_std_error__text__arity1__self__error__ret__string sig=xl_mod_std_error__text(error) @ 0:0
+	- xl_mod_std_error__is_type(error self, string part) as bool scope=0 async=0 generator=0 abi=xl__xl_mod_std_error__is_type__arity2__self__error__part__string__ret__bool sig=xl_mod_std_error__is_type(error,string) @ 0:0
+	- xl_mod_std_error__is_native(error self) as bool scope=0 async=0 generator=0 abi=xl__xl_mod_std_error__is_native__arity1__self__error__ret__bool sig=xl_mod_std_error__is_native(error) @ 0:0
+	- __xl_method_module_key(module self) as string scope=0 async=0 generator=0 abi=xl____xl_method_module_key__arity1__self__module__ret__string sig=__xl_method_module_key(module) @ 0:0
+	- __xl_method_module_abi_id(module self) as string scope=0 async=0 generator=0 abi=xl____xl_method_module_abi_id__arity1__self__module__ret__string sig=__xl_method_module_abi_id(module) @ 0:0
+	- __xl_method_module_init_symbol(module self) as string scope=0 async=0 generator=0 abi=xl____xl_method_module_init_symbol__arity1__self__module__ret__string sig=__xl_method_module_init_symbol(module) @ 0:0
+	- __xl_method_module_exports_symbol(module self) as string scope=0 async=0 generator=0 abi=xl____xl_method_module_exports_symbol__arity1__self__module__ret__string sig=__xl_method_module_exports_symbol(module) @ 0:0
+	- __xl_method_module_descriptor_symbol(module self) as string scope=0 async=0 generator=0 abi=xl____xl_method_module_descriptor_symbol__arity1__self__module__ret__string sig=__xl_method_module_descriptor_symbol(module) @ 0:0
+	- __xl_method_module_export_count(module self) as int scope=0 async=0 generator=0 abi=xl____xl_method_module_export_count__arity1__self__module__ret__int sig=__xl_method_module_export_count(module) @ 0:0
+	- __xl_method_module_exports(module self) as array<var> scope=0 async=0 generator=0 abi=xl____xl_method_module_exports__arity1__self__module__ret__array_x3Cvar_x3E sig=__xl_method_module_exports(module) @ 0:0
+	- __xl_method_module_has_export(module self, string part) as bool scope=0 async=0 generator=0 abi=xl____xl_method_module_has_export__arity2__self__module__part__string__ret__bool sig=__xl_method_module_has_export(module,string) @ 0:0
+	- __xl_method_module_export_symbol(module self, string part) as string scope=0 async=0 generator=0 abi=xl____xl_method_module_export_symbol__arity2__self__module__part__string__ret__string sig=__xl_method_module_export_symbol(module,string) @ 0:0
+	- xl_mod_std_task__cancel(future<int> self) as int scope=0 async=0 generator=0 abi=xl__xl_mod_std_task__cancel__arity1__self__future_x3Cint_x3E__ret__int sig=xl_mod_std_task__cancel(future<int>) @ 0:0
+	- xl_mod_std_task__cancel(future<float> self) as int scope=0 async=0 generator=0 abi=xl__xl_mod_std_task__cancel__arity1__self__future_x3Cfloat_x3E__ret__int sig=xl_mod_std_task__cancel(future<float>) @ 0:0
+	- xl_mod_std_task__cancel(future<string> self) as int scope=0 async=0 generator=0 abi=xl__xl_mod_std_task__cancel__arity1__self__future_x3Cstring_x3E__ret__int sig=xl_mod_std_task__cancel(future<string>) @ 0:0
+	- xl_mod_std_task__cancel(future<bool> self) as int scope=0 async=0 generator=0 abi=xl__xl_mod_std_task__cancel__arity1__self__future_x3Cbool_x3E__ret__int sig=xl_mod_std_task__cancel(future<bool>) @ 0:0
+	- xl_mod_std_task__cancel(future<error> self) as int scope=0 async=0 generator=0 abi=xl__xl_mod_std_task__cancel__arity1__self__future_x3Cerror_x3E__ret__int sig=xl_mod_std_task__cancel(future<error>) @ 0:0
+	- xl_mod_std_future__wait(future<int> self) as int scope=0 async=1 generator=0 abi=xl__xl_mod_std_future__wait__arity1__self__future_x3Cint_x3E__ret__future_x3Cint_x3E sig=xl_mod_std_future__wait(future<int>) @ 0:0
+	- xl_mod_std_future__wait(future<float> self) as float scope=0 async=1 generator=0 abi=xl__xl_mod_std_future__wait__arity1__self__future_x3Cfloat_x3E__ret__future_x3Cfloat_x3E sig=xl_mod_std_future__wait(future<float>) @ 0:0
+	- xl_mod_std_future__wait(future<string> self) as string scope=0 async=1 generator=0 abi=xl__xl_mod_std_future__wait__arity1__self__future_x3Cstring_x3E__ret__future_x3Cstring_x3E sig=xl_mod_std_future__wait(future<string>) @ 0:0
+	- xl_mod_std_future__wait(future<bool> self) as bool scope=0 async=1 generator=0 abi=xl__xl_mod_std_future__wait__arity1__self__future_x3Cbool_x3E__ret__future_x3Cbool_x3E sig=xl_mod_std_future__wait(future<bool>) @ 0:0
+	- xl_mod_std_future__wait(future<error> self) as error scope=0 async=1 generator=0 abi=xl__xl_mod_std_future__wait__arity1__self__future_x3Cerror_x3E__ret__future_x3Cerror_x3E sig=xl_mod_std_future__wait(future<error>) @ 0:0
+	- __xl_method_channel_recv(channel self) as  scope=0 async=1 generator=0 abi=xl____xl_method_channel_recv__arity1__self__channel__ret__future_x3Carray_x3Cvar_x3E_x3E sig=__xl_method_channel_recv(channel) @ 0:0
+	- __xl_method_generator_next(generator self) as  scope=0 async=0 generator=0 abi=xl____xl_method_generator_next__arity1__self__generator__ret__array_x3Cvar_x3E sig=__xl_method_generator_next(generator) @ 0:0
+	- __xl_method_generator_resume(generator self, var value) as  scope=0 async=0 generator=0 abi=xl____xl_method_generator_resume__arity2__self__generator__value__var__ret__array_x3Cvar_x3E sig=__xl_method_generator_resume(generator,var) @ 0:0
+	- xl_mod_std_sys_lib__loadlib(string path) as var scope=0 async=0 generator=0 abi=xl__xl_mod_std_sys_lib__loadlib__arity1__path__string__ret__var sig=xl_mod_std_sys_lib__loadlib(string) @ 1:6
+	- xl_mod_std_sys_lib__dlopen(string path) as var scope=0 async=0 generator=0 abi=xl__xl_mod_std_sys_lib__dlopen__arity1__path__string__ret__var sig=xl_mod_std_sys_lib__dlopen(string) @ 3:6
+	- xl_mod_std_sys_lib__dlsym(var self, string name) as point scope=0 async=0 generator=0 abi=xl__xl_mod_std_sys_lib__dlsym__arity2__self__var__name__string__ret__point sig=xl_mod_std_sys_lib__dlsym(var,string) @ 5:6
+	- xl_mod_std_sys_lib__dlclose(var self) as bool scope=0 async=0 generator=0 abi=xl__xl_mod_std_sys_lib__dlclose__arity1__self__var__ret__bool sig=xl_mod_std_sys_lib__dlclose(var) @ 7:6
+	- xl_mod_std_sys_lib__proc(var self, string name) as point scope=0 async=0 generator=0 abi=xl__xl_mod_std_sys_lib__proc__arity2__self__var__name__string__ret__point sig=xl_mod_std_sys_lib__proc(var,string) @ 9:10
+	- xl_mod_std_sys_lib__close(var self) as bool scope=0 async=0 generator=0 abi=xl__xl_mod_std_sys_lib__close__arity1__self__var__ret__bool sig=xl_mod_std_sys_lib__close(var) @ 11:10
+	- xl_mod_std_sys_lib__path(var self) as string scope=0 async=0 generator=0 abi=xl__xl_mod_std_sys_lib__path__arity1__self__var__ret__string sig=xl_mod_std_sys_lib__path(var) @ 13:10
+	- xl_mod_std_sys_lib__loaded(var self) as bool scope=0 async=0 generator=0 abi=xl__xl_mod_std_sys_lib__loaded__arity1__self__var__ret__bool sig=xl_mod_std_sys_lib__loaded(var) @ 15:10
+	- main() as int scope=0 async=0 generator=0 abi=xl__main__arity0__ret__int sig=main() @ 3:6
+Scopes (22)
+	- #0 module "<module>" parent=-1 depth=0 @ 0:0
+	- #1 func "xl_mod_std_sys_lib__loadlib" parent=0 depth=1 @ 1:6
+	- #2 block "func.body" parent=1 depth=2 @ 0:0
+	- #3 func "xl_mod_std_sys_lib__dlopen" parent=0 depth=1 @ 3:6
+	- #4 block "func.body" parent=3 depth=2 @ 0:0
+	- #5 func "xl_mod_std_sys_lib__dlsym" parent=0 depth=1 @ 5:6
+	- #6 block "func.body" parent=5 depth=2 @ 0:0
+	- #7 func "xl_mod_std_sys_lib__dlclose" parent=0 depth=1 @ 7:6
+	- #8 block "func.body" parent=7 depth=2 @ 0:0
+	- #9 func "xl_mod_std_sys_lib__proc" parent=0 depth=1 @ 9:10
+	- #10 block "func.body" parent=9 depth=2 @ 0:0
+	- #11 func "xl_mod_std_sys_lib__close" parent=0 depth=1 @ 11:10
+	- #12 block "func.body" parent=11 depth=2 @ 0:0
+	- #13 func "xl_mod_std_sys_lib__path" parent=0 depth=1 @ 13:10
+	- #14 block "func.body" parent=13 depth=2 @ 0:0
+	- #15 func "xl_mod_std_sys_lib__loaded" parent=0 depth=1 @ 15:10
+	- #16 block "func.body" parent=15 depth=2 @ 0:0
+	- #17 func "main" parent=0 depth=1 @ 3:6
+	- #18 block "func.body" parent=17 depth=2 @ 0:0
+	- #19 block "if.then" parent=18 depth=3 @ 0:0
+	- #20 block "if.then" parent=18 depth=3 @ 0:0
+	- #21 block "if.then" parent=18 depth=3 @ 0:0
+Symbols (23)
+	- func xl_mod_std_sys_lib__loadlib scope=0 type=var async=0 generator=0 @ 1:6
+	- func xl_mod_std_sys_lib__dlopen scope=0 type=var async=0 generator=0 @ 3:6
+	- func xl_mod_std_sys_lib__dlsym scope=0 type=point async=0 generator=0 @ 5:6
+	- func xl_mod_std_sys_lib__dlclose scope=0 type=bool async=0 generator=0 @ 7:6
+	- func xl_mod_std_sys_lib__proc scope=0 type=point async=0 generator=0 @ 9:10
+	- func xl_mod_std_sys_lib__close scope=0 type=bool async=0 generator=0 @ 11:10
+	- func xl_mod_std_sys_lib__path scope=0 type=string async=0 generator=0 @ 13:10
+	- func xl_mod_std_sys_lib__loaded scope=0 type=bool async=0 generator=0 @ 15:10
+	- func main scope=0 type=int async=0 generator=0 @ 3:6
+	- param path scope=1 type=string async=0 generator=0 @ 1:21
+	- param path scope=3 type=string async=0 generator=0 @ 3:20
+	- param self scope=5 type=var async=0 generator=0 @ 5:16
+	- param name scope=5 type=string async=0 generator=0 @ 5:29
+	- param self scope=7 type=var async=0 generator=0 @ 7:18
+	- param self scope=9 type=var async=0 generator=0 @ 9:19
+	- param name scope=9 type=string async=0 generator=0 @ 9:32
+	- param self scope=11 type=var async=0 generator=0 @ 11:20
+	- param self scope=13 type=var async=0 generator=0 @ 13:19
+	- param self scope=15 type=var async=0 generator=0 @ 15:21
+	- import sys scope=0 type=module async=0 generator=0 @ 1:15
+	- var lib scope=18 type=var async=0 generator=0 @ 4:7
+	- var p scope=18 type=auto async=0 generator=0 @ 11:7
+	- var ok scope=18 type=auto async=0 generator=0 @ 12:7
+Diagnostics (6)
+	- error @ 5:16 type 'var' has no method 'loaded'
+	- error @ 8:14 type 'var' has no method 'path'
+	- error @ 11:38 type 'var' has no method 'proc'
+	- error @ 12:22 type 'var' has no method 'close'
+	- error @ 13:15 operator 'and' requires bool operands
+	- error @ 13:37 type 'var' has no method 'loaded'
