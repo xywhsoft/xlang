@@ -30,16 +30,21 @@ func main() as int
 	if pkg_clock_artifact_pair_value_sum(pair) != 42 then
 		return 3
 	end
-	BindingBitfield packed = point(null)
+	BindingBitfield packed
+	packed.flags = 1
+	packed.mode = 3
+	packed.value = 38
 	BindingBitfieldPtr packedPtr = point(null)
-	BindingInlineArray inlineArray = point(null)
-	if string(packed).length == 0 then
+	BindingInlineArray inlineArray
+	inlineArray.count = 2
+	inlineArray.name = "xl"
+	if packed.flags + packed.mode + packed.value != 42 then
 		return 6
 	end
 	if string(packedPtr).length == 0 then
 		return 7
 	end
-	if string(inlineArray).length == 0 then
+	if inlineArray.count != 2 then
 		return 8
 	end
 	BindingEnumFields enumFields

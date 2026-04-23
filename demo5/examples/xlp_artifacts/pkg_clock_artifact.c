@@ -260,6 +260,29 @@ XL_EXPORT XL_PkgClockArtifactLarge pkg_clock_artifact_large_add(XL_PkgClockArtif
 	return large;
 }
 
+typedef int (*XL_PkgClockArtifactCallback)(int value, const char* text);
+typedef void (*XL_PkgClockArtifactVoidCallback)(void);
+
+XL_EXPORT int pkg_clock_artifact_callback_accept(XL_PkgClockArtifactCallback cb)
+{
+	if ( cb == NULL ) {
+		return -1;
+	}
+	return cb(37, "hello");
+}
+
+XL_EXPORT XL_PkgClockArtifactCallback pkg_clock_artifact_callback_identity(XL_PkgClockArtifactCallback cb)
+{
+	return cb;
+}
+
+XL_EXPORT void pkg_clock_artifact_callback_void(XL_PkgClockArtifactVoidCallback cb)
+{
+	if ( cb != NULL ) {
+		cb();
+	}
+}
+
 XL_EXPORT int pkg_clock_artifact_add_one(int value)
 {
 	return value + 1;

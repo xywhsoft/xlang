@@ -3970,12 +3970,10 @@ static int __xlBindingEmitStructFieldDecls(
 		return 1;
 	}
 	if ( strchr(sWork, ':') != NULL ) {
-		__xlBindingSkip(pBindingCtx, sSkipReason, sField);
-		return 0;
-	}
-	if ( strchr(sWork, '[') != NULL ) {
-		__xlBindingSkip(pBindingCtx, sSkipReason, sField);
-		return 0;
+		char* pColon = strchr(sWork, ':');
+		*pColon = '\0';
+		__xlBindingTrim(sWork);
+		__xlBindingTrace(pBindingCtx, "struct field bitfield='%s'", sWork);
 	}
 	sBaseType[0] = '\0';
 	bFirst = 1;
@@ -3992,7 +3990,32 @@ static int __xlBindingEmitStructFieldDecls(
 		if ( sDecl[0] != '\0' ) {
 			if ( bFirst ) {
 				snprintf(sFieldType, sizeof(sFieldType), "%s", sDecl);
-				if ( !__xlBindingSplitTrailingName(sFieldType, sFieldName, sizeof(sFieldName)) ) {
+				if ( strchr(sFieldType, '[') != NULL ) {
+					char* pBracket = strchr(sFieldType, '[');
+					char* pNameStart;
+					*pBracket = '\0';
+					__xlBindingTrim(sFieldType);
+					pNameStart = sFieldType + strlen(sFieldType);
+					while ( (pNameStart > sFieldType) && __xlIsAsciiSpace((unsigned char)pNameStart[-1]) ) {
+						*--pNameStart = '\0';
+					}
+					while ( (pNameStart > sFieldType) && __xlIsLinkIdentCont((unsigned char)pNameStart[-1]) ) {
+						--pNameStart;
+					}
+					snprintf(sFieldName, sizeof(sFieldName), "%s[]", pNameStart);
+					*pNameStart = '\0';
+					__xlBindingTrim(sFieldType);
+					if ( (sFieldType[0] == '\0') || !__xlBindingIsIdentText(sFieldName) ) {
+						if ( strlen(sFieldName) >= 2 ) {
+							sFieldName[strlen(sFieldName) - 2] = '\0';
+						}
+						if ( (sFieldType[0] == '\0') || !__xlBindingIsIdentText(sFieldName) ) {
+							__xlBindingSkip(pBindingCtx, sSkipReason, sField);
+							return 0;
+						}
+						strncat(sFieldName, "[]", sizeof(sFieldName) - strlen(sFieldName) - 1);
+					}
+				} else if ( !__xlBindingSplitTrailingName(sFieldType, sFieldName, sizeof(sFieldName)) ) {
 					__xlBindingSkip(pBindingCtx, sSkipReason, sField);
 					return 0;
 				}
@@ -4018,7 +4041,27 @@ static int __xlBindingEmitStructFieldDecls(
 					return 0;
 				}
 			}
-			if ( (strchr(sFieldName, '[') != NULL) || (strchr(sFieldType, '[') != NULL) ) {
+			if ( strchr(sFieldName, '[') != NULL ) {
+				char* pBracket = strchr(sFieldName, '[');
+				*pBracket = '\0';
+				__xlBindingTrim(sFieldName);
+				if ( !__xlBindingIsIdentText(sFieldName) ) {
+					__xlBindingSkip(pBindingCtx, sSkipReason, sField);
+					return 0;
+				}
+				if ( __xlBindingMapCType(pBindingCtx, sFieldType, sFieldXlType, sizeof(sFieldXlType)) &&
+					((strcmp(sFieldXlType, "int8") == 0) || (strcmp(sFieldXlType, "uint8") == 0)) ) {
+					__xlModuleBufAppendFormat(pOut, "\tvar %s as string\n", sFieldName);
+					__xlBindingTrace(pBindingCtx, "struct field inline_array='%s' type='string'", sFieldName);
+				} else {
+					__xlModuleBufAppendFormat(pOut, "\tvar %s as point\n", sFieldName);
+					__xlBindingTrace(pBindingCtx, "struct field inline_array='%s' type='point'", sFieldName);
+				}
+				bFirst = 0;
+				pTok = strtok_s(NULL, ",", &pCtx);
+				continue;
+			}
+			if ( strchr(sFieldType, '[') != NULL ) {
 				__xlBindingSkip(pBindingCtx, sSkipReason, sField);
 				return 0;
 			}
@@ -7470,6 +7513,7 @@ static void __xlAnnotateXlpNativeExterns(XL_AstNode* pRoot, const char* sModuleK
 			}
 			if ( strcmp(pStmt->sText, sHelperName) == 0 ) {
 				xlAstSetText2(pStmt, pFuncs[i].sSymbol, strlen(pFuncs[i].sSymbol));
+				pStmt->iIntValue = 1;
 				break;
 			}
 		}

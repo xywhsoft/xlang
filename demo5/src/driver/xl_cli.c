@@ -14,7 +14,8 @@ static const XL_CommandEntry __gXLCommands[] = {
 	{"build", XL_CMD_BUILD},
 	{"run", XL_CMD_RUN},
 	{"build-c", XL_CMD_BUILD_C},
-	{"run-c", XL_CMD_RUN_C}
+	{"run-c", XL_CMD_RUN_C},
+	{"bind", XL_CMD_BIND}
 };
 
 static XL_Command __xlCliParseCommand(const char* sName)
@@ -206,6 +207,7 @@ void xlCliPrintHelp(const char* sProgName)
 	printf("  run      run program through compiler pipeline\n");
 	printf("  build-c  build a C source file through embedded TCC\n");
 	printf("  run-c    run a C source file through embedded TCC\n\n");
+	printf("  bind     generate an xlang binding package skeleton from a C header\n\n");
 	printf("Options:\n");
 	printf("  --dump-token      dump token stream\n");
 	printf("  --dump-ast        dump AST\n");

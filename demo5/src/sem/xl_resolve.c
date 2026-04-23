@@ -349,8 +349,10 @@ static const char* __xlFuncMethodName(const XL_AstNode* pNode)
 	if ( __xlFuncReceiverNode(pNode) == NULL ) {
 		return NULL;
 	}
-	if ( (pNode->sText2 != NULL) && (pNode->sText2[0] != '\0') ) {
-		return pNode->sText2;
+	if ( pNode->iIntValue == 0 ) {
+		if ( (pNode->sText2 != NULL) && (pNode->sText2[0] != '\0') ) {
+			return pNode->sText2;
+		}
 	}
 	return pNode->sText;
 }
@@ -358,6 +360,8 @@ static const char* __xlFuncMethodName(const XL_AstNode* pNode)
 static const char* __xlFuncExternName(const XL_AstNode* pNode)
 {
 	const XL_AstNode* pBody;
+	const XL_AstNode* pReceiver;
+	const char* sExternName;
 
 	if ( (pNode == NULL) || (pNode->eKind != XL_AST_FUNC_DECL) ) {
 		return NULL;
@@ -365,10 +369,16 @@ static const char* __xlFuncExternName(const XL_AstNode* pNode)
 	if ( pNode->iIntValue == 0 ) {
 		return NULL;
 	}
-	if ( __xlFuncReceiverNode(pNode) != NULL ) {
-		return ((pNode->sText != NULL) && (pNode->sText[0] != '\0')) ? pNode->sText : NULL;
-	}
-	if ( (pNode->sText2 == NULL) || (pNode->sText2[0] == '\0') ) {
+	pReceiver = __xlFuncReceiverNode(pNode);
+	sExternName = pNode->sText2;
+	if ( pReceiver != NULL ) {
+		if ( (sExternName == NULL) || (sExternName[0] == '\0') ) {
+			sExternName = pNode->sText;
+		}
+		if ( (sExternName == NULL) || (sExternName[0] == '\0') ) {
+			return NULL;
+		}
+	} else if ( (sExternName == NULL) || (sExternName[0] == '\0') ) {
 		return NULL;
 	}
 
@@ -376,7 +386,7 @@ static const char* __xlFuncExternName(const XL_AstNode* pNode)
 	if ( (pBody == NULL) || (pBody->eKind != XL_AST_BLOCK) || (pBody->iChildCount != 0) ) {
 		return NULL;
 	}
-	return pNode->sText2;
+	return sExternName;
 }
 
 static const char* __xlVarExternName(const XL_AstNode* pNode)

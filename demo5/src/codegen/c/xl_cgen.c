@@ -1611,6 +1611,21 @@ static void __xlCgenSetCurrentFinallyBody(XL_CgenContext* pCtx, int bInFinally)
 
 static const char* __xlFutureTypeName(const char* sTypeName);
 static const char* __xlCgenAbstractGeneratorKindName(const char* sTypeName);
+static const char* __xlCgenStorageCTypeName(const XL_CgenContext* pCtx, const char* sTypeName, char* sBuf, size_t iBufSize);
+
+static const char* __xlCgenNativeCallbackTypeName(const char* sTypeName)
+{
+	if ( sTypeName == NULL ) {
+		return NULL;
+	}
+	if ( strcmp(sTypeName, "function<int(int,string)>") == 0 ) {
+		return "XL_NativeCallback_IntIntString";
+	}
+	if ( strcmp(sTypeName, "function<void()>") == 0 ) {
+		return "XL_NativeCallback_VoidVoid";
+	}
+	return NULL;
+}
 
 static const char* __xlCTypeName(const char* sTypeName)
 {
@@ -1683,6 +1698,35 @@ static const char* __xlCTypeName(const char* sTypeName)
 		return "void";
 	}
 	return "void*";
+}
+
+static const char* __xlCgenExternParamCTypeName(const XL_CgenContext* pCtx, const char* sTypeName, char* sBuf, size_t iBufSize)
+{
+	const char* sNativeCallbackType;
+
+	(void)pCtx;
+	if ( (sBuf != NULL) && (iBufSize != 0) ) {
+		sBuf[0] = '\0';
+	}
+	sNativeCallbackType = __xlCgenNativeCallbackTypeName(sTypeName);
+	if ( sNativeCallbackType != NULL ) {
+		return sNativeCallbackType;
+	}
+	return __xlCgenStorageCTypeName(pCtx, sTypeName, sBuf, iBufSize);
+}
+
+static const char* __xlCgenNativeCallbackAdapterName(const char* sTypeName)
+{
+	if ( sTypeName == NULL ) {
+		return NULL;
+	}
+	if ( strcmp(sTypeName, "function<int(int,string)>") == 0 ) {
+		return "xl_native_callback_int_int_string_adapt";
+	}
+	if ( strcmp(sTypeName, "function<void()>") == 0 ) {
+		return "xl_native_callback_void_void_adapt";
+	}
+	return NULL;
 }
 
 static const XL_ClassInfo* __xlCgenFindClassInfo(const XL_CgenContext* pCtx, const char* sTypeName)
@@ -6531,6 +6575,14 @@ static void __xlCgenRuntimeSupport(XL_CgenBuffer* pBuf)
 	__xlCgenAppend(pBuf, "#define XL_EXTERN_VAR extern\n");
 	__xlCgenAppend(pBuf, "#endif\n");
 	__xlCgenAppend(pBuf, "#endif\n\n");
+	__xlCgenAppend(pBuf, "typedef int (*XL_NativeCallback_IntIntString)(int, const char*);\n");
+	__xlCgenAppend(pBuf, "typedef void (*XL_NativeCallback_VoidVoid)(void);\n");
+	__xlCgenAppend(pBuf, "static xvalue xl_native_callback_int_int_string_value = NULL;\n");
+	__xlCgenAppend(pBuf, "static xvalue xl_native_callback_void_void_value = NULL;\n");
+	__xlCgenAppend(pBuf, "static int xl_native_callback_int_int_string_invoke(int value, const char* text)\n{\n\txvalue args = xvoCreateArray();\n\txvalue result;\n\tint out = 0;\n\tif ( (xl_native_callback_int_int_string_value == NULL) || (args == NULL) ) return 0;\n\t(void)xvoArrayAppendValue(args, xvoCreateInt((int64)value), TRUE);\n\t(void)xvoArrayAppendValue(args, xvoCreateText((ptr)((text != NULL) ? text : \"\"), (uint32)strlen((text != NULL) ? text : \"\"), FALSE), TRUE);\n\tresult = xvoGetFunc(xl_native_callback_int_int_string_value)(xvoGetFuncEnv(xl_native_callback_int_int_string_value), args);\n\tif ( result != NULL ) { out = (int)xvoGetInt(result); xvoUnref(result); }\n\txvoUnref(args);\n\treturn out;\n}\n");
+	__xlCgenAppend(pBuf, "static void xl_native_callback_void_void_invoke(void)\n{\n\txvalue args = xvoCreateArray();\n\txvalue result;\n\tif ( (xl_native_callback_void_void_value == NULL) || (args == NULL) ) return;\n\tresult = xvoGetFunc(xl_native_callback_void_void_value)(xvoGetFuncEnv(xl_native_callback_void_void_value), args);\n\tif ( result != NULL ) xvoUnref(result);\n\txvoUnref(args);\n}\n");
+	__xlCgenAppend(pBuf, "static XL_NativeCallback_IntIntString xl_native_callback_int_int_string_adapt(xvalue fn)\n{\n\tif ( xl_native_callback_int_int_string_value != NULL ) xvoUnref(xl_native_callback_int_int_string_value);\n\txl_native_callback_int_int_string_value = (fn != NULL) ? xvoCopy(fn) : NULL;\n\treturn xl_native_callback_int_int_string_invoke;\n}\n");
+	__xlCgenAppend(pBuf, "static XL_NativeCallback_VoidVoid xl_native_callback_void_void_adapt(xvalue fn)\n{\n\tif ( xl_native_callback_void_void_value != NULL ) xvoUnref(xl_native_callback_void_void_value);\n\txl_native_callback_void_void_value = (fn != NULL) ? xvoCopy(fn) : NULL;\n\treturn xl_native_callback_void_void_invoke;\n}\n\n");
 	__xlCgenAppend(pBuf, "typedef struct XL_GeneratedError XL_GeneratedError;\n");
 	__xlCgenAppend(pBuf, "struct XL_GeneratedError {\n");
 	__xlCgenAppend(pBuf, "\tconst char* type;\n");
@@ -20984,10 +21036,11 @@ static void __xlCgenFunc(XL_CgenContext* pCtx, const XL_MirNode* pNode)
 	}
 
 	if ( __xlMirFuncHasExternTarget(pNode) && (pBody != NULL) && (pBody->eKind == XL_MIR_BLOCK) && (pBody->iChildCount == 0) ) {
+		const char* sNativeReturnCallbackType = __xlCgenNativeCallbackTypeName(funcInfo.sTypeName);
 		__xlCgenAppendFormat(
 			&pCtx->buf,
 			"extern %s %s(",
-			__xlCgenFuncReturnCTypeName(&funcInfo),
+			(sNativeReturnCallbackType != NULL) ? sNativeReturnCallbackType : __xlCgenFuncReturnCTypeName(&funcInfo),
 			pNode->sExternName
 		);
 		for ( i = 0; (pParams != NULL) && (i < pParams->iChildCount); ++i ) {
@@ -20998,7 +21051,7 @@ static void __xlCgenFunc(XL_CgenContext* pCtx, const XL_MirNode* pNode)
 				__xlCgenAppendFormat(
 					&pCtx->buf,
 					"%s %s",
-					__xlCgenStorageCTypeName(pCtx, ((pParam->sTypeName != NULL) && (pParam->sTypeName[0] != '\0')) ? pParam->sTypeName : "int", sParamCTypeName, sizeof(sParamCTypeName)),
+					__xlCgenExternParamCTypeName(pCtx, ((pParam->sTypeName != NULL) && (pParam->sTypeName[0] != '\0')) ? pParam->sTypeName : "int", sParamCTypeName, sizeof(sParamCTypeName)),
 					(pParam->sText != NULL) ? pParam->sText : "arg"
 				);
 		}
@@ -21032,17 +21085,28 @@ static void __xlCgenFunc(XL_CgenContext* pCtx, const XL_MirNode* pNode)
 			}
 		} else if ( (funcInfo.sTypeName == NULL) || (strcmp(funcInfo.sTypeName, "void") == 0) ) {
 			__xlCgenAppendFormat(&pCtx->buf, "%s(", pNode->sExternName);
+		} else if ( sNativeReturnCallbackType != NULL ) {
+			__xlCgenAppendFormat(&pCtx->buf, "return xvoCreatePoint((ptr)%s(", pNode->sExternName);
 		} else {
 			__xlCgenAppendFormat(&pCtx->buf, "return %s(", pNode->sExternName);
 		}
 		for ( i = 0; (pParams != NULL) && (i < pParams->iChildCount); ++i ) {
 			pParam = pParams->ppChildren[i];
-			if ( i != 0 ) {
-				__xlCgenAppend(&pCtx->buf, ", ");
+			{
+				const char* sAdapter = __xlCgenNativeCallbackAdapterName(((pParam->sTypeName != NULL) && (pParam->sTypeName[0] != '\0')) ? pParam->sTypeName : "int");
+				if ( i != 0 ) {
+					__xlCgenAppend(&pCtx->buf, ", ");
+				}
+				if ( sAdapter != NULL ) {
+					__xlCgenAppendFormat(&pCtx->buf, "%s(%s)", sAdapter, (pParam->sText != NULL) ? pParam->sText : "arg");
+				} else {
+					__xlCgenAppend(&pCtx->buf, (pParam->sText != NULL) ? pParam->sText : "arg");
+				}
 			}
-			__xlCgenAppend(&pCtx->buf, (pParam->sText != NULL) ? pParam->sText : "arg");
 		}
-		if ( funcInfo.bAsync && !funcInfo.bGenerator && (funcInfo.sTypeName != NULL) && (strcmp(funcInfo.sTypeName, "void") != 0) ) {
+		if ( sNativeReturnCallbackType != NULL ) {
+			__xlCgenAppend(&pCtx->buf, "));\n");
+		} else if ( funcInfo.bAsync && !funcInfo.bGenerator && (funcInfo.sTypeName != NULL) && (strcmp(funcInfo.sTypeName, "void") != 0) ) {
 			__xlCgenAppend(&pCtx->buf, "));\n");
 		} else {
 			__xlCgenAppend(&pCtx->buf, ");\n");
