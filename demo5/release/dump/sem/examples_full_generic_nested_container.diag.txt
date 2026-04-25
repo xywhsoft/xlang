@@ -1,1 +1,0 @@
-error @ 13:21 indexing requires indexable value, got 'bool'

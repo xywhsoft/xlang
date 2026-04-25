@@ -573,6 +573,60 @@ XL_FuncInfo* xlFuncTableGetMutable(XL_FuncTable* pTable, size_t iIndex)
 	return &pTable->pItems[iIndex];
 }
 
+int xlFuncInfoRefreshDerivedNames(XL_FuncInfo* pInfo)
+{
+	char* sNewOverloadGroup;
+	char* sNewSignatureId;
+	char* sNewDispatchKey;
+	char* sNewAbiSymbol;
+	const char* sStorageReturnTypeName;
+
+	if ( pInfo == NULL ) {
+		return XL_RC_BAD_ARG;
+	}
+
+	sStorageReturnTypeName = ((pInfo->sStorageReturnTypeName != NULL) && (pInfo->sStorageReturnTypeName[0] != '\0')) ?
+		pInfo->sStorageReturnTypeName :
+		pInfo->sReturnTypeName;
+
+	sNewOverloadGroup = __xlFuncBuildOverloadGroup(pInfo->sName);
+	sNewSignatureId = __xlFuncBuildSignatureId(
+		pInfo->sName,
+		(const char* const*)pInfo->arrParamTypes,
+		pInfo->iParamCount
+	);
+	sNewDispatchKey = __xlFuncBuildDispatchKey(
+		pInfo->sName,
+		(const char* const*)pInfo->arrParamNames,
+		(const char* const*)pInfo->arrParamTypes,
+		pInfo->iParamCount
+	);
+	sNewAbiSymbol = __xlFuncBuildAbiSymbol(
+		pInfo->sName,
+		sStorageReturnTypeName,
+		(const char* const*)pInfo->arrParamNames,
+		(const char* const*)pInfo->arrParamTypes,
+		pInfo->iParamCount
+	);
+	if ( (sNewOverloadGroup == NULL) || (sNewSignatureId == NULL) || (sNewDispatchKey == NULL) || (sNewAbiSymbol == NULL) ) {
+		free(sNewOverloadGroup);
+		free(sNewSignatureId);
+		free(sNewDispatchKey);
+		free(sNewAbiSymbol);
+		return XL_RC_IO_ERROR;
+	}
+
+	free(pInfo->sOverloadGroup);
+	free(pInfo->sSignatureId);
+	free(pInfo->sDispatchKey);
+	free(pInfo->sAbiSymbol);
+	pInfo->sOverloadGroup = sNewOverloadGroup;
+	pInfo->sSignatureId = sNewSignatureId;
+	pInfo->sDispatchKey = sNewDispatchKey;
+	pInfo->sAbiSymbol = sNewAbiSymbol;
+	return XL_RC_OK;
+}
+
 int xlFuncInfoAddCapture(XL_FuncInfo* pInfo, const char* sName, const char* sTypeName, int iSymbolIndex)
 {
 	char** arrCaptureNames;

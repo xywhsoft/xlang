@@ -1,1 +1,0 @@
-error @ 2:12 generic instance 'bad_local' declaration 'local' has type 'string', expected 'int'

@@ -1,6 +1,0 @@
-error @ 5:16 type 'var' has no method 'loaded'
-error @ 8:14 type 'var' has no method 'path'
-error @ 11:38 type 'var' has no method 'proc'
-error @ 12:22 type 'var' has no method 'close'
-error @ 13:15 operator 'and' requires bool operands
-error @ 13:37 type 'var' has no method 'loaded'

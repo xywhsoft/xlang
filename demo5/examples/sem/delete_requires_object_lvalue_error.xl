@@ -1,0 +1,5 @@
+func main() as int
+	auto a = 1
+	delete a
+	return 0
+end

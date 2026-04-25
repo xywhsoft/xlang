@@ -56,6 +56,19 @@ static void __xlApplySemNodeInfo(XL_HirNode* pHir, const XL_SemResult* pSem, con
 	}
 	if ( (pSymbol != NULL) && (pSymbol->sTypeName != NULL) && (strcmp(pSymbol->sTypeName, "var") == 0) ) {
 		pHir->bFlag |= XL_HIR_FLAG_STORAGE_VAR;
+	} else if ( (pSem != NULL) && (pSymbol != NULL) &&
+		((pSymbol->eKind == XL_SYMBOL_CONST) || (pSymbol->eKind == XL_SYMBOL_VAR) || (pSymbol->eKind == XL_SYMBOL_IMPORT)) &&
+		(pSymbol->sTypeName != NULL) && (pSymbol->sTypeName[0] != '\0') ) {
+		size_t i;
+
+		for ( i = 0; i < pSem->classes.iCount; ++i ) {
+			const XL_ClassInfo* pClass = &pSem->classes.pItems[i];
+
+			if ( (pClass->sName != NULL) && (strcmp(pClass->sName, pSymbol->sTypeName) == 0) && (pClass->bIsObject != 0) ) {
+				pHir->bFlag |= XL_HIR_FLAG_STORAGE_VAR;
+				break;
+			}
+		}
 	}
 }
 

@@ -1,1 +1,0 @@
-[error][binding] D:/git/x-lang/demo5/src/driver/xl_module_link.c:5469: binding header not found: binding_missing_header_probe.h

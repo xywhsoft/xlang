@@ -1,9 +1,0 @@
-tcc_root=D:\git\x-lang\demo5\release\tcc
-include=D:\git\x-lang\demo5\release\tcc\include_win
-include=D:\git\x-lang\demo5\release\tcc\include_win\winapi
-include=D:\git\x-lang\demo5\src\runtime
-include=D:\git\x-lang\demo5\lib\xrt
-lib=D:\git\x-lang\demo5\release\tcc\lib
-compile_file=examples\xlp_artifacts\pkg_clock_artifact.c
-output=release\tmp\pkg_clock_artifact.obj
-output_kind=obj

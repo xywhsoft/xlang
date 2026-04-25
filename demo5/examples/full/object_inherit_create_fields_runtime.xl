@@ -1,0 +1,30 @@
+class Base extends object
+	var base as int
+
+	create(int value)
+		self.base = value
+	end
+end
+
+class Child extends Base
+	var child as int
+
+	create(int a, int b)
+		base(a)
+		self.child = b
+	end
+end
+
+func main() as int
+	var c = Child(10, 20)
+	if c.base != 10 then
+		return 1
+	end
+	if c["base"] != 10 then
+		return 2
+	end
+	if c.length != 2 then
+		return 3
+	end
+	return c.base + c.child
+end

@@ -1,8 +1,0 @@
-tcc_root=D:\Git\x-lang\demo5\release\tcc
-include=D:\Git\x-lang\demo5\release\tcc\include_win
-include=D:\Git\x-lang\demo5\release\tcc\include_win\winapi
-include=D:\Git\x-lang\demo5\src\runtime
-include=D:\Git\x-lang\demo5\lib\xrt
-lib=D:\Git\x-lang\demo5\release\tcc\lib
-compile_text=examples\full\class_stage1_container_set_remove_destroy_runtime.xl
-[tcc] examples/full/class_stage1_container_set_remove_destroy_runtime.xl:2371: error: ')' expected (got "if")

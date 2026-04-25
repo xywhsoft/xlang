@@ -4,6 +4,39 @@
 #include "xlrt_profile.h"
 #include "../../lib/xrt/xrt.h"
 
+#ifndef XL_OBJECT_TYPE_INFO_DEFINED
+#define XL_OBJECT_TYPE_INFO_DEFINED
+typedef struct XL_ObjectMethodEntry {
+	const char* sDispatchKey;
+	void* pFunc;
+} XL_ObjectMethodEntry;
+
+typedef struct XL_ObjectWeakRef XL_ObjectWeakRef;
+
+typedef struct XL_ObjectTypeInfo {
+	const char* sName;
+	const struct XL_ObjectTypeInfo* pBaseType;
+	void (*pDestroyFunc)(void* pBlob);
+	const XL_ObjectMethodEntry* pMethods;
+	size_t iMethodCount;
+} XL_ObjectTypeInfo;
+#endif
+
+#ifndef XL_OBJECT_HEADER_DEFINED
+#define XL_OBJECT_HEADER_DEFINED
+typedef struct XL_ObjectHeader {
+	uint32_t uMagic;
+	uint32_t uFlags;
+	const XL_ObjectTypeInfo* pTypeInfo;
+	void* pNativePayload;
+	xvalue dynamicFields;
+	XL_ObjectWeakRef* pWeakRefs;
+	xvalue pOwner;
+	struct XL_ObjectHeader* pTrackPrev;
+	struct XL_ObjectHeader* pTrackNext;
+} XL_ObjectHeader;
+#endif
+
 extern int xlrt_attach_generated_runtime(void);
 extern void xlrt_detach_generated_runtime(int bAttachedHere);
 extern const char* xlrt_host_name(void);
@@ -91,13 +124,49 @@ extern int xl_dict_has(xvalue value, const char* key);
 extern xvalue xl_iter_keys(xvalue value);
 extern xvalue xl_iter_values(xvalue value);
 extern xvalue xl_iter_items(xvalue value);
+extern xvalue xl_value_copy_preserve_refs(xvalue value);
 extern xvalue xl_channel_create(int iCapacity);
+extern int xl_channel_is_value(xvalue value);
 extern int xl_channel_send(xvalue value, xvalue item);
 extern xvalue xl_channel_recv(xvalue value);
 extern int xl_channel_len(xvalue value);
 extern int xl_channel_capacity(xvalue value);
 extern int xl_channel_closed(xvalue value);
 extern int xl_channel_close(xvalue value);
+extern int xl_object_header_ready(const void* pBlob);
+extern int xl_object_header_alive(const void* pBlob);
+extern int xl_object_header_destroying(const void* pBlob);
+extern int xl_object_header_destroyed(const void* pBlob);
+extern void xl_object_header_init(void* pBlob);
+extern void xl_object_header_bind(void* pBlob, const XL_ObjectTypeInfo* pTypeInfo);
+extern void xl_object_header_clone(void* pDstBlob, const void* pSrcBlob, const XL_ObjectTypeInfo* pFallbackTypeInfo);
+extern void xl_object_header_dispose(void* pBlob);
+extern const XL_ObjectTypeInfo* xl_object_type(const void* pBlob);
+extern void* xl_object_payload(const void* pBlob);
+extern int xl_object_payload_set(void* pBlob, void* pPayload);
+extern void* xl_object_payload_take(void* pBlob);
+extern void* xl_object_dispatch(void* pBlob, const char* sDispatchKey);
+extern int xl_object_delete_value(xvalue value);
+extern void xl_object_destroy_if_last(xvalue value);
+extern xvalue xl_object_bind_value(xvalue value);
+extern xvalue xl_object_retain(xvalue value);
+extern uint32_t xl_object_refcount(xvalue value);
+extern void xl_object_release(xvalue value);
+extern XL_ObjectWeakRef* xl_object_weak_new(xvalue value);
+extern void xl_object_weak_delete(XL_ObjectWeakRef* pWeakRef);
+extern int xl_object_weak_alive(const XL_ObjectWeakRef* pWeakRef);
+extern xvalue xl_object_weak_lock(XL_ObjectWeakRef* pWeakRef);
+extern xvalue xl_object_dynamic_fields(void* pBlob);
+extern int xl_object_length(void* pBlob, int iDeclaredFieldCount);
+extern int xl_object_exists(void* pBlob, const char* sKey);
+extern xvalue xl_object_get(void* pBlob, const char* sKey, xvalue defaultValue, int bHasDefault);
+extern int xl_object_set(void* pBlob, const char* sKey, xvalue value);
+extern int xl_object_remove(void* pBlob, const char* sKey);
+extern void xl_object_clear(void* pBlob);
+extern xvalue xl_object_keys(void* pBlob);
+extern xvalue xl_object_values(void* pBlob);
+extern xvalue xl_object_items(void* pBlob);
+extern int xl_object_collect_cycles(void);
 extern void* xl_sync_mutex(void);
 extern int xl_sync_mutex_free(void* pHandle);
 extern int xl_sync_mutex_lock(void* pHandle);

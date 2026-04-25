@@ -318,6 +318,85 @@ static void __xlSemDumpFuncsJsonTo(const XL_SemResult* pResult, XL_SemTextBuffer
 	__xlSemBufAppend(pBuf, "]");
 }
 
+static void __xlSemDumpClassesJsonTo(const XL_SemResult* pResult, XL_SemTextBuffer* pBuf, int iIndent)
+{
+	size_t i;
+	size_t j;
+	const XL_ClassInfo* pClass;
+
+	__xlSemBufAppend(pBuf, "[");
+	if ( (pResult != NULL) && (pResult->classes.iCount != 0) ) {
+		__xlSemBufAppend(pBuf, "\n");
+	}
+
+	for ( i = 0; (pResult != NULL) && (i < pResult->classes.iCount); ++i ) {
+		pClass = &pResult->classes.pItems[i];
+		for ( j = 0; j < (size_t)(iIndent + 1); ++j ) {
+			__xlSemBufAppend(pBuf, "\t");
+		}
+		__xlSemBufAppend(pBuf, "{\n");
+		for ( j = 0; j < (size_t)(iIndent + 2); ++j ) {
+			__xlSemBufAppend(pBuf, "\t");
+		}
+		__xlSemBufAppend(pBuf, "\"name\": \"");
+		__xlSemAppendEscaped(pBuf, pClass->sName);
+		__xlSemBufAppend(pBuf, "\",\n");
+		for ( j = 0; j < (size_t)(iIndent + 2); ++j ) {
+			__xlSemBufAppend(pBuf, "\t");
+		}
+		__xlSemBufAppend(pBuf, "\"baseName\": \"");
+		__xlSemAppendEscaped(pBuf, (pClass->sBaseName != NULL) ? pClass->sBaseName : "");
+		__xlSemBufAppend(pBuf, "\",\n");
+		for ( j = 0; j < (size_t)(iIndent + 2); ++j ) {
+			__xlSemBufAppend(pBuf, "\t");
+		}
+		__xlSemBufAppendFormat(pBuf, "\"isObject\": %d,\n", pClass->bIsObject ? 1 : 0);
+		for ( j = 0; j < (size_t)(iIndent + 2); ++j ) {
+			__xlSemBufAppend(pBuf, "\t");
+		}
+		__xlSemBufAppendFormat(pBuf, "\"isCustom\": %d,\n", pClass->bIsCustom ? 1 : 0);
+		for ( j = 0; j < (size_t)(iIndent + 2); ++j ) {
+			__xlSemBufAppend(pBuf, "\t");
+		}
+		__xlSemBufAppendFormat(pBuf, "\"size\": %d,\n", pClass->iSize);
+		for ( j = 0; j < (size_t)(iIndent + 2); ++j ) {
+			__xlSemBufAppend(pBuf, "\t");
+		}
+		__xlSemBufAppendFormat(pBuf, "\"align\": %d,\n", pClass->iAlign);
+		for ( j = 0; j < (size_t)(iIndent + 2); ++j ) {
+			__xlSemBufAppend(pBuf, "\t");
+		}
+		__xlSemBufAppendFormat(pBuf, "\"hasCreate\": %d,\n", pClass->bHasCreate ? 1 : 0);
+		for ( j = 0; j < (size_t)(iIndent + 2); ++j ) {
+			__xlSemBufAppend(pBuf, "\t");
+		}
+		__xlSemBufAppendFormat(pBuf, "\"hasDestroy\": %d,\n", pClass->bHasDestroy ? 1 : 0);
+		for ( j = 0; j < (size_t)(iIndent + 2); ++j ) {
+			__xlSemBufAppend(pBuf, "\t");
+		}
+		__xlSemBufAppendFormat(pBuf, "\"fieldCount\": %llu,\n", (unsigned long long)pClass->iFieldCount);
+		for ( j = 0; j < (size_t)(iIndent + 2); ++j ) {
+			__xlSemBufAppend(pBuf, "\t");
+		}
+		__xlSemBufAppendFormat(pBuf, "\"createCount\": %llu\n", (unsigned long long)pClass->iCreateCount);
+		for ( j = 0; j < (size_t)(iIndent + 1); ++j ) {
+			__xlSemBufAppend(pBuf, "\t");
+		}
+		__xlSemBufAppend(pBuf, "}");
+		if ( (i + 1) != pResult->classes.iCount ) {
+			__xlSemBufAppend(pBuf, ",");
+		}
+		__xlSemBufAppend(pBuf, "\n");
+	}
+
+	if ( (pResult != NULL) && (pResult->classes.iCount != 0) ) {
+		for ( i = 0; i < (size_t)iIndent; ++i ) {
+			__xlSemBufAppend(pBuf, "\t");
+		}
+	}
+	__xlSemBufAppend(pBuf, "]");
+}
+
 static void __xlSemDumpScopesJsonTo(const XL_SemResult* pResult, XL_SemTextBuffer* pBuf, int iIndent)
 {
 	size_t i;
@@ -533,8 +612,9 @@ char* xlSemDumpText(const XL_SemResult* pResult)
 		pClass = &pResult->classes.pItems[i];
 		__xlSemBufAppendFormat(
 			&buf,
-			"\t- %s extends=%s size=%d align=%d create=%d destroy=%d fields=%llu creates=%llu\n",
+			"\t- %s kind=%s extends=%s size=%d align=%d create=%d destroy=%d fields=%llu creates=%llu\n",
 			pClass->sName,
+			pClass->bIsCustom ? "custom" : (pClass->bIsObject ? "object" : "plain"),
 			(pClass->sBaseName != NULL) ? pClass->sBaseName : "",
 			pClass->iSize,
 			pClass->iAlign,
@@ -642,6 +722,9 @@ char* xlSemDumpJson(const XL_SemResult* pResult)
 	__xlSemBufAppendFormat(&buf, "\t\"hadError\": %d,\n", (pResult != NULL) ? pResult->bHadError : 0);
 	__xlSemBufAppend(&buf, "\t\"types\": ");
 	__xlSemDumpTypesJsonTo(pResult, &buf, 1);
+	__xlSemBufAppend(&buf, ",\n");
+	__xlSemBufAppend(&buf, "\t\"classes\": ");
+	__xlSemDumpClassesJsonTo(pResult, &buf, 1);
 	__xlSemBufAppend(&buf, ",\n");
 	__xlSemBufAppend(&buf, "\t\"funcs\": ");
 	__xlSemDumpFuncsJsonTo(pResult, &buf, 1);

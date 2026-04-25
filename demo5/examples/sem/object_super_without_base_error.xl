@@ -1,0 +1,9 @@
+class Bag extends object
+	func value() as int
+		return super.value()
+	end
+end
+
+func main() as int
+	return 0
+end

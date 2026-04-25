@@ -1,1 +1,0 @@
-error @ 6:27 type 'int' has no method 'native_add_one'

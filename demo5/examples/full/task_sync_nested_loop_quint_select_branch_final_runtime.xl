@@ -1,0 +1,66 @@
+import std.task
+
+func choose_nested_post(task left, task mid, task right, int outer_steps, int inner_steps, bool pick_right, bool keep_mid) as task
+	task result = left
+	int outer = 0
+	while outer < outer_steps do
+		outer = outer + 1
+		int inner = 0
+		while inner < inner_steps do
+			inner = inner + 1
+			if outer == 1 and inner == 1 then
+				continue
+			end
+			result = pick_right ? right : mid
+			if outer == outer_steps and inner == inner_steps then
+				break
+			end
+		end
+	end
+	result = keep_mid ? mid : result
+	return result
+end
+
+func relay_first(task value, bool use_mid) as task
+	task current = value
+	if use_mid then
+		current = task.delay(10)
+	end
+	return current
+end
+
+func relay_second(task value, bool use_fallback) as task
+	task current = value
+	if use_fallback then
+		current = task.delay(1)
+	end
+	return current
+end
+
+func relay_shared(task value, bool prefer_delay) as task
+	task current = value
+	if prefer_delay then
+		current = relay_second(current, false)
+	else
+		current = relay_first(current, false)
+	end
+	return current
+end
+
+func route_quint_select(task value, bool choose_left, bool choose_delayed, bool choose_shared_delay, bool choose_final_delay, bool choose_alternate_delay, bool choose_merge_shared, bool choose_branch_second) as task
+	task left_path = relay_first(value, false)
+	task right_path = relay_second(value, false)
+	task first_pick = choose_left ? left_path : right_path
+	task delayed_pick = choose_delayed ? task.delay(41) : first_pick
+	task shared_pick = relay_shared(delayed_pick, choose_shared_delay)
+	task final_pick = choose_final_delay ? relay_second(shared_pick, false) : relay_first(shared_pick, false)
+	task alternate_pick = choose_alternate_delay ? task.delay(41) : final_pick
+	task merged_pick = choose_merge_shared ? relay_shared(alternate_pick, false) : relay_first(alternate_pick, false)
+	task branch_pick = choose_branch_second ? relay_second(merged_pick, false) : relay_first(merged_pick, false)
+	return branch_pick
+end
+
+async func main() as int
+	task computed = choose_nested_post(task.delay(1), task.delay(10), task.delay(41), 2, 2, true, false)
+	return await route_quint_select(computed, true, false, false, false, false, true, true) + 1
+end

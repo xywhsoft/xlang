@@ -100,6 +100,7 @@ int xlFuncTableAddEx(
 );
 const XL_FuncInfo* xlFuncTableGet(const XL_FuncTable* pTable, size_t iIndex);
 XL_FuncInfo* xlFuncTableGetMutable(XL_FuncTable* pTable, size_t iIndex);
+int xlFuncInfoRefreshDerivedNames(XL_FuncInfo* pInfo);
 int xlFuncInfoAddCapture(XL_FuncInfo* pInfo, const char* sName, const char* sTypeName, int iSymbolIndex);
 int xlFuncInfoSetGenerics(
 	XL_FuncInfo* pInfo,

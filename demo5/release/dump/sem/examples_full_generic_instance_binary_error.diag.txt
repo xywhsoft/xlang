@@ -1,1 +1,0 @@
-error @ 2:18 generic instance 'bad_binary' operator '+' requires numeric operands or two strings, got 'int' and 'string'

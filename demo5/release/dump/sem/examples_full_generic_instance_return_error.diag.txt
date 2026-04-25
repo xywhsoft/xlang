@@ -1,1 +1,0 @@
-error @ 2:9 generic instance 'bad' return value 1 has type 'string', expected 'int'

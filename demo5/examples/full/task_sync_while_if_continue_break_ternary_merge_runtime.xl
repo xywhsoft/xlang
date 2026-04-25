@@ -1,0 +1,25 @@
+import std.task
+
+func choose_loop_if_continue_break(task left, task mid, task right, int steps, bool pick_right, bool stop_on_last) as task
+	task result = left
+	int i = 0
+	while i < steps do
+		i = i + 1
+		if i == 1 then
+			continue
+		end
+		if pick_right then
+			result = right
+		else
+			result = i == steps ? right : mid
+		end
+		if stop_on_last and i == steps then
+			break
+		end
+	end
+	return result
+end
+
+async func main() as int
+	return await choose_loop_if_continue_break(task.delay(1), task.delay(10), task.delay(41), 2, false, true) + 1
+end

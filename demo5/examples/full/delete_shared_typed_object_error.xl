@@ -1,0 +1,11 @@
+class Bag extends object
+	var n as int
+end
+
+func main() as int
+	Bag a = Bag()
+	Bag b = a
+	b.n = 9
+	delete a
+	return b.n
+end

@@ -1,0 +1,10 @@
+import std.task
+
+async func take_value(future<int> value) as int
+	return await value
+end
+
+async func main() as int
+	var pending = task.delay(41)
+	return await take_value(pending) + 1
+end

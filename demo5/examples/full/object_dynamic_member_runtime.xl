@@ -1,0 +1,20 @@
+class Entity extends object
+	var id as int
+end
+
+func main() as int
+	auto e = Entity()
+	e.id = 2
+	e.name = "neo"
+	e.hp = 40
+	if e.name != "neo" then
+		return 1
+	end
+	if e.hp != 40 then
+		return 2
+	end
+	if e.length != 3 then
+		return 3
+	end
+	return 42
+end

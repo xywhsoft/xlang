@@ -1,3 +1,0 @@
-[error][lower] D:\Git\x-lang\demo5\examples\lower\diag_hybrid_projection.xl:2:2: async suspend point in broken at 2:2 could not be projected onto a later generator suspend point
-  	await_only
-  	^

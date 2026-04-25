@@ -1,0 +1,30 @@
+class Bag extends object
+	var n as int
+end
+
+func touch(Bag x) as void
+	x.n = x.n + 1
+	x.set("k", 39)
+end
+
+func main() as int
+	auto a = Bag()
+	a.n = 1
+
+	auto b = a
+	b.n = b.n + 1
+	b.set("m", 1)
+
+	touch(a)
+
+	if a.n != 3 then
+		return 1
+	end
+	if a.get("m", 0) != 1 then
+		return 2
+	end
+	if a.get("k", 0) != 39 then
+		return 3
+	end
+	return 42
+end

@@ -18,6 +18,7 @@ static int __xlJsonEncodeValue(char** psBuf, size_t* piLen, size_t* piCap, xvalu
 static int __xlQueryEncodeText(char** psBuf, size_t* piLen, size_t* piCap, const char* sText, size_t iTextLen);
 static const char* __xlQueryDecodeText(const char* sText, size_t iTextLen);
 static const char* __xlTemplateTrimKey(const char* sText, size_t iTextLen, size_t* piOutLen);
+static xvalue __xlValueCopyPreserveRefs(xvalue value);
 
 typedef struct XL_JsonParseCtx {
 	const char* sText;
@@ -204,6 +205,142 @@ static xvalue __xlValueCloneAsyncState(xvalue value)
 xvalue xl_value_clone_async_state(xvalue value)
 {
 	return __xlValueCloneAsyncState(value);
+}
+
+static xvalue __xlValueCopyPreserveRefs(xvalue value)
+{
+	xvalue cloned;
+	uint32 i;
+
+	if ( value == NULL ) {
+		return NULL;
+	}
+	if ( xl_channel_is_value(value) ) {
+		return xvoCopy(value);
+	}
+	if ( value->Type == XVO_DT_CLASS ) {
+		return xl_object_retain(value);
+	}
+
+	switch ( value->Type ) {
+		case XVO_DT_ARRAY:
+			cloned = xvoCreateArrayEx(XRT_OBJMODE_SHARED);
+			if ( cloned == NULL ) {
+				return NULL;
+			}
+			for ( i = 0; i < xvoArrayItemCount(value); ++i ) {
+				xvalue item = __xlValueCopyPreserveRefs(xvoArrayGetValue(value, i));
+
+				if ( (xvoArrayGetValue(value, i) != NULL) && (item == NULL) ) {
+					xvoUnref(cloned);
+					return NULL;
+				}
+				if ( !xvoArrayAppendValue(cloned, item, TRUE) ) {
+					if ( item != NULL ) {
+						xvoUnref(item);
+					}
+					xvoUnref(cloned);
+					return NULL;
+				}
+			}
+			return cloned;
+		case XVO_DT_LIST:
+			cloned = xvoCreateListEx(XRT_OBJMODE_SHARED);
+			if ( cloned == NULL ) {
+				return NULL;
+			}
+			for ( i = 0; i < xvoListItemCount(value); ++i ) {
+				xvalue item = __xlValueCopyPreserveRefs(xvoListGetValue(value, (int64)i));
+
+				if ( (xvoListGetValue(value, (int64)i) != NULL) && (item == NULL) ) {
+					xvoUnref(cloned);
+					return NULL;
+				}
+				if ( !xvoListSetValue(cloned, (int64)i, item, TRUE) ) {
+					if ( item != NULL ) {
+						xvoUnref(item);
+					}
+					xvoUnref(cloned);
+					return NULL;
+				}
+			}
+			return cloned;
+		case XVO_DT_TABLE:
+		{
+			xdict pTable;
+			Dict_Key* pKey;
+
+			cloned = xvoCreateTableEx(XRT_OBJMODE_SHARED);
+			if ( cloned == NULL ) {
+				return NULL;
+			}
+			pTable = xvoGetTable(value);
+			if ( pTable == NULL ) {
+				return cloned;
+			}
+			xrtAVLTB_IterBegin((xavltbase)pTable);
+			for ( pKey = (Dict_Key*)xrtAVLTB_IterNext((xavltbase)pTable); pKey != NULL; pKey = (Dict_Key*)xrtAVLTB_IterNext((xavltbase)pTable) ) {
+				xvalue item = __xlValueCopyPreserveRefs(*(xvalue*)(&pKey[1]));
+
+				if ( (*(xvalue*)(&pKey[1]) != NULL) && (item == NULL) ) {
+					xrtAVLTB_IterEnd((xavltbase)pTable);
+					xvoUnref(cloned);
+					return NULL;
+				}
+				if ( !xvoTableSetValue(cloned, (str)pKey->Key, (uint32)pKey->KeyLen, item, TRUE) ) {
+					if ( item != NULL ) {
+						xvoUnref(item);
+					}
+					xrtAVLTB_IterEnd((xavltbase)pTable);
+					xvoUnref(cloned);
+					return NULL;
+				}
+			}
+			xrtAVLTB_IterEnd((xavltbase)pTable);
+			return cloned;
+		}
+		case XVO_DT_COLL:
+		{
+			xavltree pTree;
+			Coll_Key* pKey;
+
+			cloned = xvoCreateCollEx(XRT_OBJMODE_SHARED);
+			if ( cloned == NULL ) {
+				return NULL;
+			}
+			pTree = xvoGetColl(value);
+			if ( pTree == NULL ) {
+				return cloned;
+			}
+			xrtAVLTB_IterBegin((xavltbase)pTree);
+			for ( pKey = (Coll_Key*)xrtAVLTB_IterNext((xavltbase)pTree); pKey != NULL; pKey = (Coll_Key*)xrtAVLTB_IterNext((xavltbase)pTree) ) {
+				xvalue item = __xlValueCopyPreserveRefs(pKey->Value);
+
+				if ( (pKey->Value != NULL) && (item == NULL) ) {
+					xrtAVLTB_IterEnd((xavltbase)pTree);
+					xvoUnref(cloned);
+					return NULL;
+				}
+				if ( !xvoCollSetValue(cloned, item, TRUE) ) {
+					if ( item != NULL ) {
+						xvoUnref(item);
+					}
+					xrtAVLTB_IterEnd((xavltbase)pTree);
+					xvoUnref(cloned);
+					return NULL;
+				}
+			}
+			xrtAVLTB_IterEnd((xavltbase)pTree);
+			return cloned;
+		}
+		default:
+			return xvoCopy(value);
+	}
+}
+
+xvalue xl_value_copy_preserve_refs(xvalue value)
+{
+	return __xlValueCopyPreserveRefs(value);
 }
 
 const char* xl_debug_text(xvalue value)
@@ -1684,8 +1821,12 @@ xvalue xl_iter_values(xvalue value)
 	xrtAVLTB_IterBegin((xavltbase)pTable);
 	for ( pKey = (Dict_Key*)xrtAVLTB_IterNext((xavltbase)pTable); pKey != NULL; pKey = (Dict_Key*)xrtAVLTB_IterNext((xavltbase)pTable) ) {
 		xvalue itemValue = *(xvalue*)(&pKey[1]);
+		xvalue itemCopy = (itemValue != NULL) ? xl_value_copy_preserve_refs(itemValue) : xvoCreateNull();
 
-		if ( !xvoArrayAppendValue(result, itemValue, TRUE) ) {
+		if ( (itemCopy == NULL) || !xvoArrayAppendValue(result, itemCopy, TRUE) ) {
+			if ( itemCopy != NULL ) {
+				xvoUnref(itemCopy);
+			}
 			xrtAVLTB_IterEnd((xavltbase)pTable);
 			xvoUnref(result);
 			return NULL;
@@ -1715,13 +1856,17 @@ xvalue xl_iter_items(xvalue value)
 			xvalue pairValue = xvoCreateArray();
 			xvalue keyValue = xvoCreateText((str)pDictKey->Key, (uint32)pDictKey->KeyLen, FALSE);
 			xvalue itemValue = *(xvalue*)(&pDictKey[1]);
+			xvalue itemCopy = (itemValue != NULL) ? xl_value_copy_preserve_refs(itemValue) : xvoCreateNull();
 
-			if ( (pairValue == NULL) || (keyValue == NULL) ||
+			if ( (pairValue == NULL) || (keyValue == NULL) || (itemCopy == NULL) ||
 				!xvoArrayAppendValue(pairValue, keyValue, TRUE) ||
-				!xvoArrayAppendValue(pairValue, itemValue, TRUE) ||
+				!xvoArrayAppendValue(pairValue, itemCopy, TRUE) ||
 				!xvoArrayAppendValue(result, pairValue, TRUE) ) {
 				if ( keyValue != NULL ) {
 					xvoUnref(keyValue);
+				}
+				if ( itemCopy != NULL ) {
+					xvoUnref(itemCopy);
 				}
 				if ( pairValue != NULL ) {
 					xvoUnref(pairValue);
@@ -1742,7 +1887,11 @@ xvalue xl_iter_items(xvalue value)
 
 	xrtAVLTreeIterBegin(pTree);
 	for ( pKey = (Coll_Key*)xrtAVLTreeIterNext(pTree); pKey != NULL; pKey = (Coll_Key*)xrtAVLTreeIterNext(pTree) ) {
-		if ( !xvoArrayAppendValue(result, pKey->Value, TRUE) ) {
+		xvalue itemCopy = (pKey->Value != NULL) ? xl_value_copy_preserve_refs(pKey->Value) : xvoCreateNull();
+		if ( (itemCopy == NULL) || !xvoArrayAppendValue(result, itemCopy, TRUE) ) {
+			if ( itemCopy != NULL ) {
+				xvoUnref(itemCopy);
+			}
 			xrtAVLTreeIterEnd(pTree);
 			xvoUnref(result);
 			return NULL;

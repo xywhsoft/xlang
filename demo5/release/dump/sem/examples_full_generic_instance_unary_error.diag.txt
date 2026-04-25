@@ -1,3 +1,0 @@
-error @ 2:9 operator 'not' requires bool operand
-error @ 2:9 operator 'not' requires bool operand
-error @ 2:9 generic instance 'bad_unary' operator 'not' requires bool operand, got 'int'

@@ -1,0 +1,16 @@
+func make_values() as int
+	yield 41
+end
+
+func take_value(generator g) as int
+	auto ok, value = g.next()
+	if !ok
+		return 1
+	end
+	return value
+end
+
+func main() as int
+	var g = make_values()
+	return take_value(g) + 1
+end

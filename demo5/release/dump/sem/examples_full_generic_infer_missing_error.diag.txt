@@ -1,1 +1,0 @@
-error @ 6:20 generic type inference failed for function 'zero': type parameter 'T' could not be inferred; use explicit type arguments

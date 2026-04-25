@@ -1,9 +1,0 @@
-import std.core
-func id<T>(T v) as T
-    return v
-end
-
-func main() as int
-    std.core.println(id("ok"))
-    return id(123)
-end

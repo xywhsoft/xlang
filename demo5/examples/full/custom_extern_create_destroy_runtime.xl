@@ -1,0 +1,18 @@
+#loadlib "../xlp_native/packages/pkg.probe/bin/pkg_probe.dll"
+
+extern "pkg_clock_artifact_point_release_reset" func release_reset() as void
+extern "pkg_clock_artifact_point_release_count" func release_count() as int
+
+custom Token
+	extern "pkg_clock_artifact_point_create" create()
+	extern "pkg_clock_artifact_point_release" destroy()
+	extern "pkg_clock_artifact_point_score" func score() as int
+end
+
+func main() as int
+	release_reset()
+	auto token = Token()
+	auto score = token.score()
+	delete token
+	return score + release_count() + 34
+end

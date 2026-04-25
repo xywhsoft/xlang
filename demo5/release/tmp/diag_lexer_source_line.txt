@@ -1,4 +1,0 @@
-[error][lexer] D:\Git\x-lang\demo5\examples\lexer\unterminated_string.xl:1:1: lexer error near token ""unterminated
-": unterminated string literal
-  "unterminated
-  ^

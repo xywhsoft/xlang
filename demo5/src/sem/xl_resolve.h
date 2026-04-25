@@ -65,6 +65,8 @@ typedef struct XL_ClassCreateInfo {
 typedef struct XL_ClassInfo {
 	char* sName;
 	char* sBaseName;
+	int bIsObject;
+	int bIsCustom;
 	XL_ClassFieldInfo* pFields;
 	size_t iFieldCount;
 	size_t iFieldCapacity;

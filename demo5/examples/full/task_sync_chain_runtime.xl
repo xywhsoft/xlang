@@ -1,0 +1,13 @@
+import std.task
+
+func relay_inner(task value) as task
+	return value
+end
+
+func relay_outer(task value) as task
+	return relay_inner(value)
+end
+
+async func main() as int
+	return await relay_outer(task.delay(41)) + 1
+end

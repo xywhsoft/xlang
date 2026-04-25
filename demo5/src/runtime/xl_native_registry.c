@@ -34,6 +34,7 @@ const char* xlStdAtomicModuleSource(void);
 const char* xlStdLogModuleSource(void);
 const char* xlStdMathModuleSource(void);
 const char* xlStdModuleModuleSource(void);
+const char* xlStdObjectModuleSource(void);
 const char* xlStdNetModuleSource(void);
 const char* xlStdNetDnsModuleSource(void);
 const char* xlStdNetIpModuleSource(void);
@@ -111,6 +112,7 @@ static const XL_NativeRegistryEntry g_arrNativeModules[] = {
 	{ "std.log", "std.log", "<native:std.log>", xlStdLogModuleSource },
 	{ "std.math", "std.math", "<native:std.math>", xlStdMathModuleSource },
 	{ "std.module", "std.module", "<native:std.module>", xlStdModuleModuleSource },
+	{ "std.object", "std.object", "<native:std.object>", xlStdObjectModuleSource },
 	{ "std.net", "std.net", "<native:std.net>", xlStdNetModuleSource },
 	{ "std.net.ip", "std.net.ip", "<native:std.net.ip>", xlStdNetIpModuleSource },
 	{ "std.net.mime", "std.net.mime", "<native:std.net.mime>", xlStdNetMimeModuleSource },
