@@ -32,6 +32,19 @@ static void __xlApplySemNodeInfo(XL_HirNode* pHir, const XL_SemResult* pSem, con
 	}
 	if ( (pSymbol != NULL) && (pSymbol->sTypeName != NULL) && (strcmp(pSymbol->sTypeName, "var") == 0) ) {
 		pHir->bFlag |= XL_HIR_FLAG_STORAGE_VAR;
+	} else if ( (pSem != NULL) && (pSymbol != NULL) &&
+		((pSymbol->eKind == XL_SYMBOL_CONST) || (pSymbol->eKind == XL_SYMBOL_VAR) || (pSymbol->eKind == XL_SYMBOL_IMPORT)) &&
+		(pSymbol->sTypeName != NULL) && (pSymbol->sTypeName[0] != '\0') ) {
+		size_t i;
+
+		for ( i = 0; i < pSem->classes.iCount; ++i ) {
+			const XL_ClassInfo* pClass = &pSem->classes.pItems[i];
+
+			if ( (pClass->sName != NULL) && (strcmp(pClass->sName, pSymbol->sTypeName) == 0) && (pClass->bIsObject != 0) ) {
+				pHir->bFlag |= XL_HIR_FLAG_STORAGE_VAR;
+				break;
+			}
+		}
 	}
 }
 
@@ -790,6 +803,9 @@ static XL_HirNode* __xlLowerCreateToHir(
 	xlHirSetText(pFunc, "__class_create");
 	xlHirSetAbiName(pFunc, sSymbolName);
 	xlHirSetTypeName(pFunc, pClassNode->sText);
+	if ( (pCreateNode->sText2 != NULL) && (pCreateNode->sText2[0] != '\0') ) {
+		xlHirSetExternName(pFunc, pCreateNode->sText2);
+	}
 	__xlApplySemNodeInfo(pFunc, pSem, pCreateNode);
 	xlHirSetTypeName(pFunc, pClassNode->sText);
 
@@ -866,6 +882,9 @@ static XL_HirNode* __xlLowerDestroyToHir(
 	xlHirSetText(pFunc, "__class_destroy");
 	xlHirSetAbiName(pFunc, sSymbolName);
 	xlHirSetTypeName(pFunc, "void");
+	if ( (pDestroyNode->sText2 != NULL) && (pDestroyNode->sText2[0] != '\0') ) {
+		xlHirSetExternName(pFunc, pDestroyNode->sText2);
+	}
 	__xlApplySemNodeInfo(pFunc, pSem, pDestroyNode);
 	xlHirSetTypeName(pFunc, "void");
 
@@ -881,6 +900,43 @@ static XL_HirNode* __xlLowerDestroyToHir(
 	return pFunc;
 }
 
+static XL_HirNode* __xlLowerImplicitDestroyToHir(
+	const XL_AstNode* pClassNode,
+	const XL_SemResult* pSem
+)
+{
+	XL_HirNode* pFunc;
+	XL_HirNode* pParams;
+	XL_HirNode* pBody;
+	char sSymbolName[256];
+
+	if ( pClassNode == NULL ) {
+		return NULL;
+	}
+
+	pFunc = xlHirCreateNode(XL_HIR_FUNC, pClassNode);
+	pParams = xlHirCreateNode(XL_HIR_BLOCK, pClassNode);
+	pBody = xlHirCreateNode(XL_HIR_BLOCK, pClassNode);
+	if ( (pFunc == NULL) || (pParams == NULL) || (pBody == NULL) ) {
+		xlHirFree(pFunc);
+		xlHirFree(pParams);
+		xlHirFree(pBody);
+		return NULL;
+	}
+
+	__xlClassDestroySymbolName(sSymbolName, sizeof(sSymbolName), pClassNode->sText);
+	xlHirSetText(pFunc, "__class_destroy");
+	xlHirSetAbiName(pFunc, sSymbolName);
+	xlHirSetTypeName(pFunc, "void");
+	__xlApplySemNodeInfo(pFunc, pSem, pClassNode);
+	xlHirSetText(pParams, "params");
+	xlHirAppendChild(pParams, __xlCreateParamHir(pClassNode, "self", pClassNode->sText));
+
+	xlHirAppendChild(pFunc, pParams);
+	xlHirAppendChild(pFunc, pBody);
+	return pFunc;
+}
+
 static void __xlCollectClassCreatesToHir(
 	XL_HirNode* pRoot,
 	const XL_AstNode* pNode,
@@ -890,6 +946,8 @@ static void __xlCollectClassCreatesToHir(
 )
 {
 	const XL_AstNode* pMembers;
+	const XL_ClassInfo* pClass;
+	int bHasExplicitDestroy;
 	size_t i;
 
 	if ( (pRoot == NULL) || (pNode == NULL) || (pNode->eKind != XL_AST_CLASS_DECL) ) {
@@ -897,14 +955,26 @@ static void __xlCollectClassCreatesToHir(
 	}
 
 	pMembers = __xlClassMemberListNode(pNode);
+	pClass = NULL;
+	bHasExplicitDestroy = 0;
+	for ( i = 0; (pSem != NULL) && (i < pSem->classes.iCount); ++i ) {
+		if ( (pSem->classes.pItems[i].sName != NULL) && (strcmp(pSem->classes.pItems[i].sName, pNode->sText) == 0) ) {
+			pClass = &pSem->classes.pItems[i];
+			break;
+		}
+	}
 	for ( i = 0; (pMembers != NULL) && (i < pMembers->iChildCount); ++i ) {
 		if ( (pMembers->ppChildren[i] != NULL) && (pMembers->ppChildren[i]->eKind == XL_AST_CREATE_DECL) ) {
 			xlHirAppendChild(pRoot, __xlLowerCreateToHir(pNode, pMembers->ppChildren[i], pSem, pDiag, bTraceLower));
 		} else if ( (pMembers->ppChildren[i] != NULL) && (pMembers->ppChildren[i]->eKind == XL_AST_DESTROY_DECL) ) {
+			bHasExplicitDestroy = 1;
 			xlHirAppendChild(pRoot, __xlLowerDestroyToHir(pNode, pMembers->ppChildren[i], pSem, pDiag, bTraceLower));
 		} else if ( (pMembers->ppChildren[i] != NULL) && (pMembers->ppChildren[i]->eKind == XL_AST_FUNC_DECL) ) {
 			xlHirAppendChild(pRoot, __xlLowerFuncToHir(pMembers->ppChildren[i], pSem, pDiag, bTraceLower));
 		}
+	}
+	if ( !bHasExplicitDestroy && (pClass != NULL) && pClass->bIsObject ) {
+		xlHirAppendChild(pRoot, __xlLowerImplicitDestroyToHir(pNode, pSem));
 	}
 }
 

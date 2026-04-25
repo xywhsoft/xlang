@@ -1,0 +1,14 @@
+import std.task
+
+func choose_if_expr(task left, task mid, task right, bool pick_mid, bool pick_right) as task
+	task result = left
+	if pick_mid
+		result = mid
+	end
+	task final = pick_right ? right : result
+	return final
+end
+
+async func main() as int
+	return await choose_if_expr(task.delay(1), task.delay(10), task.delay(41), true, true) + 1
+end

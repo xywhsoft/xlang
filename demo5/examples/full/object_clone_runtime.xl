@@ -1,0 +1,27 @@
+class Entity extends object
+	var id as int
+end
+
+func main() as int
+	auto a = Entity()
+	a.id = 7
+	a.name = "neo"
+
+	auto b = a.clone()
+	b.id = 9
+	b.name = "trinity"
+
+	if a.id != 7 then
+		return 1
+	end
+	if a.name != "neo" then
+		return 2
+	end
+	if b.id != 9 then
+		return 3
+	end
+	if b.name != "trinity" then
+		return 4
+	end
+	return 42
+end

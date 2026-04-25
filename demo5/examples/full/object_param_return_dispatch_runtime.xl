@@ -1,0 +1,23 @@
+class Base extends object
+	func who() as int
+		return 1
+	end
+end
+
+class Child extends Base
+	func who() as int
+		return 2
+	end
+end
+
+func callBase(Base x) as int
+	return x.who()
+end
+
+func makeBase() as Base
+	return Child()
+end
+
+func main() as int
+	return callBase(Child()) * 10 + makeBase().who()
+end

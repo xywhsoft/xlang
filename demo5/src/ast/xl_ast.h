@@ -69,6 +69,9 @@ typedef struct XL_AstNode {
 	size_t iChildCapacity;
 } XL_AstNode;
 
+#define XL_CLASS_KIND_PLAIN 0
+#define XL_CLASS_KIND_CUSTOM 1
+
 #define XL_PARAM_VARIADIC_NONE 0
 #define XL_PARAM_VARIADIC_ARRAY 1
 #define XL_PARAM_VARIADIC_DICT 2

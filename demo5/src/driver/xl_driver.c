@@ -176,9 +176,6 @@ static const char* __xlDriverFuncExternName(const XL_AstNode* pNode)
 	if ( (pNode == NULL) || (pNode->eKind != XL_AST_FUNC_DECL) ) {
 		return NULL;
 	}
-	if ( pNode->iIntValue == 0 ) {
-		return NULL;
-	}
 	pReceiver = __xlDriverFuncReceiverNode(pNode);
 	sExternName = pNode->sText2;
 	if ( pReceiver != NULL ) {
@@ -222,29 +219,34 @@ static const char* __xlDriverVarExternName(const XL_AstNode* pNode)
 }
 
 static int __xlAddRootExternSymbolsGeneric(
-	const XL_AstNode* pRoot,
+	const XL_AstNode* pNode,
 	int (*fnAddSymbol)(void* pCtx, const char* sName),
 	void* pCtx
 )
 {
 	size_t i;
+	const char* sExternName;
 
-	if ( (pRoot == NULL) || (fnAddSymbol == NULL) ) {
+	if ( fnAddSymbol == NULL ) {
 		return XL_RC_BAD_ARG;
 	}
-	for ( i = 0; i < pRoot->iChildCount; ++i ) {
-		const XL_AstNode* pStmt;
-		const char* sExternName;
+	if ( pNode == NULL ) {
+		return XL_RC_OK;
+	}
 
-		pStmt = pRoot->ppChildren[i];
-		sExternName = __xlDriverFuncExternName(pStmt);
-		if ( sExternName == NULL ) {
-			sExternName = __xlDriverVarExternName(pStmt);
+	sExternName = __xlDriverFuncExternName(pNode);
+	if ( sExternName == NULL ) {
+		sExternName = __xlDriverVarExternName(pNode);
+	}
+	if ( (sExternName != NULL) && (sExternName[0] != '\0') ) {
+		if ( fnAddSymbol(pCtx, sExternName) != XL_RC_OK ) {
+			return XL_RC_FAIL;
 		}
-		if ( (sExternName != NULL) && (sExternName[0] != '\0') ) {
-			if ( fnAddSymbol(pCtx, sExternName) != XL_RC_OK ) {
-				return XL_RC_FAIL;
-			}
+	}
+
+	for ( i = 0; i < pNode->iChildCount; ++i ) {
+		if ( __xlAddRootExternSymbolsGeneric(pNode->ppChildren[i], fnAddSymbol, pCtx) != XL_RC_OK ) {
+			return XL_RC_FAIL;
 		}
 	}
 	return XL_RC_OK;
@@ -465,6 +467,43 @@ static int __xlAddRootExternSymbolsToExecCtx(XL_ExecCtx* pExecCtx, const XL_AstN
 static int __xlAddRootExternSymbolsToHostCtx(XL_HostContext* pHostCtx, const XL_AstNode* pRoot)
 {
 	return __xlAddRootExternSymbolsGeneric(pRoot, __xlHostCtxAddExternSymbolAdapter, pHostCtx);
+}
+
+static int __xlAddMirExternSymbolsGeneric(
+	const XL_MirNode* pNode,
+	int (*fnAddSymbol)(void* pCtx, const char* sName),
+	void* pCtx
+)
+{
+	size_t i;
+
+	if ( fnAddSymbol == NULL ) {
+		return XL_RC_BAD_ARG;
+	}
+	if ( pNode == NULL ) {
+		return XL_RC_OK;
+	}
+	if ( (pNode->sExternName != NULL) && (pNode->sExternName[0] != '\0') ) {
+		if ( fnAddSymbol(pCtx, pNode->sExternName) != XL_RC_OK ) {
+			return XL_RC_FAIL;
+		}
+	}
+	for ( i = 0; i < pNode->iChildCount; ++i ) {
+		if ( __xlAddMirExternSymbolsGeneric(pNode->ppChildren[i], fnAddSymbol, pCtx) != XL_RC_OK ) {
+			return XL_RC_FAIL;
+		}
+	}
+	return XL_RC_OK;
+}
+
+static int __xlAddMirExternSymbolsToExecCtx(XL_ExecCtx* pExecCtx, const XL_MirNode* pRoot)
+{
+	return __xlAddMirExternSymbolsGeneric(pRoot, __xlExecCtxAddExternSymbolAdapter, pExecCtx);
+}
+
+static int __xlAddMirExternSymbolsToHostCtx(XL_HostContext* pHostCtx, const XL_MirNode* pRoot)
+{
+	return __xlAddMirExternSymbolsGeneric(pRoot, __xlHostCtxAddExternSymbolAdapter, pHostCtx);
 }
 
 static int __xlAddModuleExternSymbolsToExecCtx(XL_ExecCtx* pExecCtx, const XL_ModuleLinkResult* pModuleResult)
@@ -1298,6 +1337,11 @@ static int __xlDriverRunProgram(
 		iRc = XL_RC_FAIL;
 		goto cleanup;
 	}
+	if ( __xlAddMirExternSymbolsToExecCtx(&execCtx, lowerResult.pMirRoot) != XL_RC_OK ) {
+		XL_DIAG_ERROR(pDiag, "run", "failed to collect lowered extern symbols");
+		iRc = XL_RC_FAIL;
+		goto cleanup;
+	}
 	if ( __xlAddRootExternSymbolsToExecCtx(&execCtx, moduleResult.pLinkedRoot) != XL_RC_OK ) {
 		XL_DIAG_ERROR(pDiag, "run", "failed to collect root extern symbols");
 		iRc = XL_RC_FAIL;
@@ -1483,6 +1527,11 @@ static int __xlDriverBuildProgram(
 	}
 	if ( __xlAddModuleExternSymbolsToHostCtx(&hostCtx, &moduleResult) != XL_RC_OK ) {
 		XL_DIAG_ERROR(pDiag, "build", "failed to collect module extern symbols");
+		iRc = XL_RC_FAIL;
+		goto cleanup;
+	}
+	if ( __xlAddMirExternSymbolsToHostCtx(&hostCtx, lowerResult.pMirRoot) != XL_RC_OK ) {
+		XL_DIAG_ERROR(pDiag, "build", "failed to collect lowered extern symbols");
 		iRc = XL_RC_FAIL;
 		goto cleanup;
 	}

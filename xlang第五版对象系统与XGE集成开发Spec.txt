@@ -1,0 +1,460 @@
+xlang 第五版对象系统与 XGE 集成开发 Spec
+
+说明
+- `☑` 已实现并通过验证
+- `◐` 已部分实现，或设计已定版但尚未全部收口
+- `☐` 尚未实现
+
+目标
+- 在 demo5 后续阶段补齐 xlang 的运行时对象系统，支撑 XGE 游戏开发。
+- 保持 `plain class` 的高性能静态布局能力，不把所有 class 都推入运行时对象模型。
+- 建立 `plain class / object class / custom` 三层统一标准，后续作为正式发布版的类系统基础。
+- 本 spec 明确推迟元编程，只先完成对象系统、动态派发、GC 图和 native 对象绑定。
+
+总原则
+- `plain class` 与 `object/custom` 必须是同一语言标准下的两种内存语义，而不是两套互不兼容的语言。
+- `plain class` 继续服务值类型、结构体、C ABI、数据组件、高性能数学类型。
+- `object` 服务动态字段、继承派发、脚本行为、场景节点、组件树等运行时对象。
+- `custom` 服务 XGE / xrt / 第三方 C 库对象包装，不要求为每个 native 类额外再写一层 xlang 包装。
+- 不在本阶段引入编译期元编程、运行时元类脚本系统、宏系统。
+
+--------------------------------
+一、总体模型
+--------------------------------
+
+1.1 三类类型的定版定位
+- ☑ `plain class`：值类型，静态布局，本质上是“带成员函数、重载、继承、构造析构的增强 C 结构体”。
+- ☑ `class X extends object`：对象类，引用类型，实例 = 对象头 + 静态字段区 + 动态字段表。
+- ☑ `custom X`：native-backed 对象类，实例 = 对象头 + native payload(point) + 绑定方法表，可选 sidecar 状态。
+
+1.2 语言层统一认知
+- ☑ 三者都属于“类系统”。
+- ☑ 三者都允许声明方法、构造、析构、继承关系。
+- ☑ 三者都能被 `type` 系统识别。
+- ☑ 三者都能被 `var` 存储。
+- ☑ 只有 `object/custom` 进入运行时对象图和动态派发体系。
+
+1.3 本阶段包含
+- ◐ `class extends object`
+- ◐ `custom`
+- ◐ 虚表 / 动态派发
+- ☑ `new/delete`
+- ☑ 隐式堆分配
+- ◐ `var` 上完整对象方法派发
+- ☑ 基类引用指向子类实例后的动态派发
+- ◐ 对象图 GC / cycle collect
+- ◐ object 自带 dict 能力
+- ☑ custom native 函数直接映射为对象方法
+
+1.4 本阶段不包含
+- ☑ class 元编程
+- ☑ object 元编程
+- ☑ 运行时动态定义 class 的脚本语法
+- ☑ 宏系统
+- ☑ 多继承
+- ☑ trait / mixin
+- ☑ 模板式 compile-time metaclass
+
+--------------------------------
+二、plain class 标准
+--------------------------------
+
+2.1 定位
+- ☑ `plain class` 继续是值类型。
+- ☑ `plain class` 默认静态分发。
+- ☑ 字段访问按固定偏移生成代码。
+- ☑ `plain class` 可继续直接参与 C ABI。
+
+2.2 正式支持能力
+- ☑ 成员字段
+- ☑ 成员函数
+- ☑ 函数重载
+- ☑ 单继承
+- ☑ `create(...)`
+- ☑ `destroy()`
+- ☑ `get / let`
+- ☑ 运算符重载
+- ☑ `union`
+- ☑ `static`
+- ☑ `self / super`
+- ☑ `nocopy / move`
+
+2.3 明确不做的能力
+- ☑ `plain class` 默认不进入虚表
+- ☑ `plain class` 不自动堆分配
+- ☑ `plain class` 不自动获得动态字段 dict
+- ☑ `plain class` 不参与 GC 对象图
+
+2.4 主要使用场景
+- ☑ `Vec2 / Vec3 / Vec4`
+- ☑ `Matrix / Quaternion`
+- ☑ `Color / Rect / AABB`
+- ☑ ECS 纯数据组件
+- ☑ native struct / packet / ABI layout
+
+--------------------------------
+三、object 标准
+--------------------------------
+
+3.1 进入条件
+- ☑ 只有 `class X extends object` 进入对象类体系。
+- ☑ 未继承 `object` 的 class 一律仍视为 `plain class`。
+
+3.2 核心语义
+- ☑ 对象类为引用类型。
+- ☑ 对象类实例默认堆分配。
+- ◐ 对象类方法默认动态派发。
+- ☑ 对象类同时拥有“静态字段区 + 动态字段 dict”。
+- ☑ 对象类支持基类引用绑定子类实例。
+
+3.3 对象实例布局
+- ☑ 对象头
+- ☑ 静态字段区
+- ☑ 动态字段表 `dict`
+
+3.4 对象头建议字段
+- ☐ `type*`
+- ☐ `vtable*`
+- ☐ `refCount`
+- ☐ `gcFlags`
+- ☐ `weakList*`
+- ☐ `destroyState`
+
+3.5 字段访问规则
+- ☑ 读 `obj.name`：
+- ☑ 1. 先查声明字段 / 属性 / 方法
+- ☑ 2. 找不到再查动态字段表
+- ☑ 3. 仍找不到则报错
+- ☑ 写 `obj.name = v`：
+- ☑ 1. 若命中声明字段 / let 属性，则写静态成员
+- ☑ 2. 否则写入动态字段表
+- ☑ 读写 `obj["name"]`：
+- ☑ 1. 先命中可见声明字段 / 属性
+- ☑ 2. 再命中动态字段表
+
+3.6 dict 继承语义
+- ☑ object 的动态字段表采用 xrt dict 继承模型。
+- ☑ 当前对象找不到动态字段时，可继续沿父对象动态表链查找。
+- ☑ 类继承链和动态字段表继承链应协同工作，但不能破坏声明字段优先级。
+
+3.7 object 自带标准函数
+- ☑ `set(string key, var value) as self`
+- ☑ `get(string key, var default = __throw__) as var`
+- ☑ `exists(string key) as bool`
+- ☑ `remove(string key) as bool`
+- ☑ `clear() as self`
+- ☑ `keys() as array<string>`
+- ☑ `values() as array<var>`
+- ☑ `items() as array`
+- ☑ `clone() as self`
+- ☑ `.length`
+
+3.8 object 自带函数语义
+- ☑ `.length` 统计对象可见数据成员数量，不含方法和静态成员。
+- ☑ `remove()` 只删除动态字段，不允许删除声明字段。
+- ☑ `clear()` 只清空动态字段，不影响声明字段。
+- ☑ `clone()` 首版为浅拷贝。
+- ☑ `for k, v in obj` 迭代声明实例字段 + 动态字段。
+- ☑ `for k in obj` 迭代 key。
+
+3.9 推荐使用场景
+- ☑ `Entity`
+- ☑ `Component`
+- ☑ `Node`
+- ☑ `Scene`
+- ☑ `Behaviour`
+- ☑ 编辑器对象
+- ☑ 数据驱动脚本对象
+
+--------------------------------
+四、custom 标准
+--------------------------------
+
+4.1 定位
+- ☑ `custom` 语义上属于对象类。
+- ☑ `custom` 的数据主体不是 xlang 静态字段块，而是 native payload。
+- ☑ `custom` 允许将一组 C 函数直接组合成一个 xlang 类。
+
+4.2 核心能力
+  - ☑ `custom` 支持构造
+  - ☑ `custom` 支持析构
+  - ☑ `custom` 支持普通成员函数
+  - ☐ `custom` 支持运算符重载
+  - ☑ `custom` 支持继承 `object`
+  - ☑ `custom` 支持进入 `var`
+  - ☑ `custom` 支持动态派发
+
+4.3 native payload 模型
+  - ☑ 每个 custom 实例至少保存一个隐藏 `point payload`
+  - ☑ `payload` 支持由 native create 直接返回并自动写入
+  - ☑ `destroy` 支持直接绑定 native payload 释放函数
+  - ☑ 绑定方法默认把 payload 作为 native 首参
+
+4.4 custom 绑定的目标
+- ☑ 目标不是“包装之后再包装”
+- ☑ 而是把 native C 函数组直接映射为对象方法调用
+
+4.5 典型例子
+- ☑ 假设有如下 native 函数：
+- ☑ `xrtDictCreate`
+- ☑ `xrtDictDestroy`
+- ☑ `xrtDictSet`
+- ☑ `xrtDictGet`
+- ☑ `xrtDictExists`
+- ☑ `xrtDictRemove`
+- ☑ 则可声明一个 `custom XDict`
+- ☑ `xrtDictCreate` 直接映射为构造
+- ☑ `xrtDictDestroy` 直接映射为析构
+- ☑ `xrtDictSet` 直接映射为 `obj.set`
+- ☑ `xrtDictGet` 直接映射为 `obj.get`
+- ☑ `xrtDictExists` 直接映射为 `obj.exists`
+- ☑ `xrtDictRemove` 直接映射为 `obj.remove`
+
+4.6 语义例子
+- ☑ `XDict a = XDict(32)` 构造一个 native dict 对象
+- ☑ `a.set("b", "c")` 直接生成 `xrtDictSet(a_payload, "b", "c")`
+- ☑ 不要求开发者额外再写一层 xlang wrapper 函数
+
+4.7 custom 与 plain class / object 的关系
+- ☑ `custom` 不是第四套类型系统
+- ☑ `custom` 是“native-backed object class”
+- ☑ `custom` 与 `object` 共用对象头、var 存储、GC 图、动态派发框架
+
+--------------------------------
+五、派发模型
+--------------------------------
+
+5.1 总规则
+- ☑ `plain class` 默认静态分发
+- ☑ `object/custom` 默认动态派发
+- ☑ 不引入 `virtual` 关键字
+- ☑ 是否覆盖由签名匹配和继承关系决定
+
+5.2 方法覆盖
+- ☑ 子类同签名方法覆盖父类槽位
+- ☑ `super.xxx()` 直接调用父类槽位
+- ☑ 基类引用绑定子类实例时，普通方法调用走子类实现
+
+5.3 属性与索引派发
+- ☐ `get / let` 在 object/custom 上也进入虚表槽位
+- ☐ 运算符元方法在 object/custom 上也进入虚表槽位
+- ☐ `obj[key]` / `obj[key] = value` 在 object/custom 上可参与动态派发
+
+5.4 `var` 上完整派发
+- ☐ `var` 若装的是 object/custom，则 `v.foo()` 走运行时类型分派
+- ☐ `var` 若装的是 plain class，则维持当前装箱语义，后续可桥接到运行时方法表
+- ☐ `var` 上字段访问、方法调用、索引访问、运算符优先走运行时类型能力表
+
+--------------------------------
+六、构造、分配与销毁
+--------------------------------
+
+6.1 构造语义
+- ☑ `PlainType(...)`：值构造
+- ☑ `ObjectType(...)`：对象构造，隐式堆分配
+- ☑ `CustomType(...)`：对象构造，隐式堆分配 + native create
+
+6.2 `new`
+- ☑ `new ObjectType(...)` 允许，语义等价于 `ObjectType(...)`
+- ☑ `new CustomType(...)` 允许，语义等价于 `CustomType(...)`
+- ☑ `new PlainType(...)` 可兼容，但等价于普通值构造，不引入新的引用语义
+
+6.3 `delete`
+- ☑ `delete` 只允许作用于 `object/custom`
+- ☑ `delete` 表示请求立即销毁对象
+- ☑ 若对象仍被其他强引用持有，则抛出删除失败错误
+- ☑ 若对象为唯一强引用，则立即执行析构链和释放
+
+6.4 销毁规则
+- ☐ 析构只执行一次
+- ☐ 对象进入 `destroying` 状态后禁止普通方法再次调用
+- ☐ 析构期间若再次触发 release，不允许二次销毁
+
+--------------------------------
+七、GC 与对象图
+--------------------------------
+
+7.1 GC 模型
+- ☑ 不采用纯 tracing-only GC
+- ☑ 首版采用“引用计数 + cycle collect”双层模型
+
+7.2 引用计数职责
+- ☑ 处理绝大多数对象生命周期
+- ☑ 保证常规对象析构及时执行
+
+7.3 cycle collector 职责
+- ◐ 回收 object/custom/container/closure/task 等形成的环
+- ☑ 修复仅靠引用计数时的循环泄漏问题
+
+7.4 对象图节点
+- ☑ object
+- ☑ custom
+- ◐ array
+- ◐ list
+- ◐ set
+- ◐ dict
+- ☑ 已覆盖 `object/custom -> dynamic field -> container -> object/custom` 的循环遍历与回收
+- ☑ closure env
+- ☐ generator
+- ☐ task / future
+- ☐ `var` 中装箱的运行时对象
+
+7.5 根集合
+- ☐ 全局变量
+- ☐ 栈帧局部变量
+- ☐ 闭包环境
+- ☐ task / generator 调度结构
+- ☐ native pinned handles
+
+7.6 弱引用
+- ☑ 引入弱引用支持
+- ☑ 场景树、父子节点、组件反向引用、缓存对象非常依赖弱引用
+
+7.7 首版不承诺
+- ☑ 不承诺 finalizer 顺序稳定
+- ☑ 不承诺析构期间允许任意重入
+- ☑ 不承诺并发 GC
+
+--------------------------------
+八、type 与运行时类型系统
+--------------------------------
+
+8.1 `type` 定位
+- ☑ `type` 继续表示运行时类型对象
+- ☑ `plain class / object / custom / builtin/container` 都应能映射为 `type`
+
+8.2 运行时类型对象最小能力
+- ☑ `t.name`
+- ☑ `t.base`
+- ☑ `t.isObject`
+- ☑ `t.isCustom`
+- ☑ `t.isPlainClass`
+- ☑ `t == SomeType`
+- ☑ `Type(v)`
+
+8.3 与对象系统的关系
+- ☑ `var` 派发依赖运行时类型表
+- ☑ 虚表槽位定义依赖运行时类型描述
+- ☑ custom 绑定也依赖运行时类型描述
+
+8.4 明确后置
+- ☑ class 元编程后置
+- ☑ object 元编程后置
+- ☑ runtime dynamic class 脚本语法后置
+
+--------------------------------
+九、与 XGE 集成的建议映射
+--------------------------------
+
+9.1 适合用 plain class 的类型
+- ☑ `Vec2`
+- ☑ `Vec3`
+- ☑ `Vec4`
+- ☑ `Quaternion`
+- ☑ `TransformLocal`
+- ☑ `Color`
+- ☑ `Rect`
+- ☑ `AABB`
+
+9.2 适合用 object 的类型
+- ☑ `Entity`
+- ☑ `Node`
+- ☑ `Scene`
+- ☑ `Component`
+- ☑ `Behaviour`
+- ☑ `ScriptObject`
+
+9.3 适合用 custom 的类型
+- ☑ `Window`
+- ☑ `Texture`
+- ☑ `Mesh`
+- ☑ `AudioClip`
+- ☑ `PhysicsBody`
+- ☑ `NativeHandle`
+
+--------------------------------
+十、建议实施顺序
+--------------------------------
+
+10.1 阶段 1：object 核心
+- ◐ `class extends object`
+- ☑ 对象头
+- ☑ 静态字段 + 动态 dict
+- ◐ 虚表
+- ☑ 基类引用动态派发
+- ☑ object 内建 dict API
+
+10.2 阶段 2：`var` 派发
+- ☑ `var` 上对象字段访问
+- ☑ `var` 上对象方法调用
+- ☑ `var` 上对象索引访问
+- ☑ `var` 上对象运算符桥接
+
+10.3 阶段 3：custom
+- ☑ native payload 模型
+  - ☑ create / destroy 绑定
+  - ☑ 成员函数直接映射
+  - ☐ XGE / xrt 资源类样例
+
+10.4 阶段 4：new / delete / RC
+- ☑ 隐式堆分配
+- ☑ `new`
+- ☑ `delete`
+- ☑ 基础引用计数模型
+
+10.5 阶段 5：cycle collect / weak
+- ◐ 对象图
+- ☑ 循环回收
+- ☑ 弱引用
+
+--------------------------------
+十一、验收样例规划
+--------------------------------
+
+11.1 object parser / sem
+- ☐ `object_class_basic`
+- ☐ `object_dynamic_field_basic`
+- ☐ `object_field_shadow_basic`
+- ☑ `object_super_call_basic`
+- ☑ `object_virtual_dispatch_basic`
+
+11.2 object runtime
+- ☐ `runtime.object_create_destroy_basic`
+- ☑ `runtime.object_dynamic_field_basic`
+- ☐ `runtime.object_dict_inherit_basic`
+- ☑ `runtime.object_method_override_basic`
+- ☑ `runtime.object_base_ref_dispatch_basic`
+- ☑ `runtime.var_object_dispatch_basic`
+- ☑ `runtime.object_keys_values_items_basic`
+- ☑ `runtime.object_remove_dynamic_field_basic`
+
+11.3 custom runtime
+- ☐ `runtime.custom_xrt_dict_basic`
+  - ☑ `runtime.custom_native_payload_basic`
+- ☑ `runtime.custom_destroy_basic`
+- ☑ `runtime.custom_extern_create_destroy_runtime`
+  - ☑ `runtime.custom_method_bind_basic`
+  - ☑ `runtime.custom_var_dispatch_basic`
+
+11.4 memory / gc
+- ☑ `runtime.object_refcount_basic`
+- ☑ `runtime.object_delete_basic`
+- ☑ `runtime.object_delete_shared_error`
+- ☑ `runtime.object_cycle_collect_basic`
+- ☑ `runtime.object_collect_container_cycles_basic`
+- ☑ `runtime.object_weak_ref_basic`
+- ☑ `runtime.object_collect_runtime`
+- ☑ `runtime.object_collect_container_runtime`
+- ☑ `runtime.object_collect_closure_runtime`
+- ☑ `runtime.object_collect_channel_cycles_basic`
+- ☑ `runtime.object_collect_channel_runtime`
+
+--------------------------------
+十二、当前结论
+--------------------------------
+
+- 本 spec 是 demo5 后续对象系统开发的主跟踪文档。
+- `plain class` 保持“增强结构体模型”不变。
+- `object` 定位为“class + dict + 虚表 + 引用语义”。
+- `custom` 定位为“native-backed object class”。
+- 元编程明确延后，避免污染对象系统首版落地。

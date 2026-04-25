@@ -1,0 +1,17 @@
+class Base extends object
+	func who() as int
+		return 1
+	end
+end
+
+class Child extends Base
+	func who() as int
+		return 2
+	end
+end
+
+func main() as int
+	Base x = Base()
+	x = Child()
+	return x.who()
+end

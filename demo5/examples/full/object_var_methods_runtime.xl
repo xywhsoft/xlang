@@ -1,0 +1,27 @@
+class Bag extends object
+	var fixed as int
+
+	func ping(int v) as int
+		return self.fixed + v
+	end
+end
+
+func main() as int
+	auto bag = Bag()
+	bag.fixed = 5
+
+	var v = bag
+	if v.length != 1 then
+		return 1
+	end
+	if v.fixed != 5 then
+		return 2
+	end
+	if v.get("fixed", 0) != 5 then
+		return 3
+	end
+	if v.ping(7) != 12 then
+		return 4
+	end
+	return 42
+end

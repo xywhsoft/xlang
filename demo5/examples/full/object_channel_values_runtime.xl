@@ -1,0 +1,31 @@
+class Bag extends object
+end
+
+async func main() as int
+	auto bag = Bag()
+	bag.pipe = channel(2)
+
+	auto values = bag.values()
+	var pipe = values[0]
+
+	bool sent0 = pipe.send(10)
+	bool sent1 = pipe.send(20)
+	bool sent2 = pipe.send(30)
+	auto ok0, first = await pipe.recv()
+	bool sent3 = pipe.send(30)
+	bool closed = pipe.close()
+	auto ok1, second = await pipe.recv()
+	auto ok2, third = await pipe.recv()
+	auto ok3, tail = await pipe.recv()
+
+	if not sent0 or not sent1 or sent2 or not sent3 or not closed
+		return 1
+	end
+	if not ok0 or not ok1 or not ok2 or ok3
+		return 2
+	end
+	if tail != null
+		return 3
+	end
+	return int(first) + int(second) + int(third)
+end

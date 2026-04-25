@@ -1050,11 +1050,11 @@ static XL_TokenKind __xlLookupKeyword(const char* sText, int iLen)
 		{"if", XL_KW_IF}, {"then", XL_KW_THEN}, {"else", XL_KW_ELSE}, {"elseif", XL_KW_ELSEIF}, {"end", XL_KW_END},
 		{"for", XL_KW_FOR}, {"in", XL_KW_IN}, {"while", XL_KW_WHILE}, {"do", XL_KW_DO},
 		{"break", XL_KW_BREAK}, {"continue", XL_KW_CONTINUE}, {"return", XL_KW_RETURN},
-		{"async", XL_KW_ASYNC}, {"await", XL_KW_AWAIT}, {"yield", XL_KW_YIELD},
+		{"async", XL_KW_ASYNC}, {"await", XL_KW_AWAIT}, {"new", XL_KW_NEW}, {"delete", XL_KW_DELETE}, {"yield", XL_KW_YIELD},
 		{"try", XL_KW_TRY}, {"catch", XL_KW_CATCH}, {"finally", XL_KW_FINALLY},
 		{"throw", XL_KW_THROW}, {"assert", XL_KW_ASSERT},
 		{"import", XL_KW_IMPORT}, {"export", XL_KW_EXPORT}, {"extern", XL_KW_EXTERN}, {"include", XL_KW_INCLUDE},
-		{"class", XL_KW_CLASS}, {"extends", XL_KW_EXTENDS}, {"union", XL_KW_UNION}, {"create", XL_KW_CREATE}, {"destroy", XL_KW_DESTROY}, {"nocopy", XL_KW_NOCOPY},
+		{"class", XL_KW_CLASS}, {"custom", XL_KW_CUSTOM}, {"extends", XL_KW_EXTENDS}, {"union", XL_KW_UNION}, {"create", XL_KW_CREATE}, {"destroy", XL_KW_DESTROY}, {"nocopy", XL_KW_NOCOPY},
 		{"and", XL_KW_AND}, {"or", XL_KW_OR}, {"not", XL_KW_NOT}
 	};
 	size_t i;

@@ -1,0 +1,15 @@
+int g = 0
+
+class Bag extends object
+	destroy()
+		g = g + 40
+	end
+end
+
+func main() as int
+	auto bag = Bag()
+	delete bag
+	bag = Bag()
+	bag.set("x", 1)
+	return g + bag.length + 1
+end

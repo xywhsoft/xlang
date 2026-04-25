@@ -1,0 +1,11 @@
+import std.task
+
+func relay_reassign(task first, task second) as task
+	task current = first
+	current = second
+	return current
+end
+
+async func main() as int
+	return await relay_reassign(task.delay(1), task.delay(41)) + 1
+end

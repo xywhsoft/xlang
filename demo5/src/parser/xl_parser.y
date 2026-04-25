@@ -972,6 +972,13 @@ class_decl(A) ::= KW_CLASS TOK_IDENT(N) class_extends_opt(BASE) opt_stmt_sep cla
 	A = xlAstCreateClassDecl(&N, BASE, BODY);
 }
 
+class_decl(A) ::= KW_CUSTOM TOK_IDENT(N) class_extends_opt(BASE) opt_stmt_sep class_member_body(BODY) KW_END. {
+	A = xlAstCreateClassDecl(&N, BASE, BODY);
+	if ( A != NULL ) {
+		A->bFlag = XL_CLASS_KIND_CUSTOM;
+	}
+}
+
 class_extends_opt(A) ::= . { A = NULL; }
 class_extends_opt(A) ::= KW_EXTENDS type_name(T). { A = xlAstCreateTypeRef(&T); }
 
@@ -996,6 +1003,7 @@ class_member(A) ::= var_decl(V). { A = V; }
 class_member(A) ::= typed_var_decl(V). { A = V; }
 class_member(A) ::= const_decl(C). { A = C; }
 class_member(A) ::= class_method_decl(F). { A = F; }
+class_member(A) ::= class_extern_method_decl(F). { A = F; }
 class_member(A) ::= create_decl(C). { A = C; }
 class_member(A) ::= destroy_decl(D). { A = D; }
 class_member(A) ::= KW_NOCOPY(T). { A = xlAstCreateNoCopyDecl(&T); }
@@ -1024,12 +1032,29 @@ class_method_decl(A) ::= func_intro(B) func_name(N) TK_LPAREN param_list(P) TK_R
 	A = xlAstCreateFuncDecl(&N, B.bAsync, P, R, BODY);
 }
 
+class_extern_method_decl(A) ::= KW_EXTERN(E) extern_symbol_opt(S) KW_FUNC TOK_IDENT(N) TK_LPAREN param_list(P) TK_RPAREN ret_type(R). {
+	A = xlAstCreateFuncDecl(&N, 0, P, R, xlAstCreateBlock(&E));
+	xlPAttachExternSymbol(A, &N, (S.eKind != 0) ? &S : NULL);
+}
+class_extern_method_decl(A) ::= KW_EXTERN(E) extern_symbol_opt(S) KW_ASYNC KW_FUNC TOK_IDENT(N) TK_LPAREN param_list(P) TK_RPAREN ret_type(R). {
+	A = xlAstCreateFuncDecl(&N, 1, P, R, xlAstCreateBlock(&E));
+	xlPAttachExternSymbol(A, &N, (S.eKind != 0) ? &S : NULL);
+}
+
 create_decl(A) ::= KW_CREATE(T) TK_LPAREN param_list(P) TK_RPAREN opt_stmt_sep block(BODY) KW_END. {
 	A = xlAstCreateCreateDecl(&T, P, BODY);
+}
+create_decl(A) ::= KW_EXTERN(E) extern_symbol_opt(S) KW_CREATE(T) TK_LPAREN param_list(P) TK_RPAREN. {
+	A = xlAstCreateCreateDecl(&T, P, xlAstCreateBlock(&E));
+	xlPAttachExternSymbol(A, &T, (S.eKind != 0) ? &S : NULL);
 }
 
 destroy_decl(A) ::= KW_DESTROY(T) TK_LPAREN TK_RPAREN opt_stmt_sep block(BODY) KW_END. {
 	A = xlAstCreateDestroyDecl(&T, BODY);
+}
+destroy_decl(A) ::= KW_EXTERN(E) extern_symbol_opt(S) KW_DESTROY(T) TK_LPAREN TK_RPAREN. {
+	A = xlAstCreateDestroyDecl(&T, xlAstCreateBlock(&E));
+	xlPAttachExternSymbol(A, &T, (S.eKind != 0) ? &S : NULL);
 }
 
 union_decl(A) ::= KW_UNION TOK_IDENT(N) opt_stmt_sep union_member_body(BODY) KW_END. {
@@ -1810,6 +1835,12 @@ lambda_unary_expr(A) ::= OP_BANG(T) lambda_unary_expr(E). {
 lambda_unary_expr(A) ::= KW_AWAIT(T) lambda_unary_expr(E). {
 	A = xlAstCreateUnary(&T, "await", E);
 }
+lambda_unary_expr(A) ::= KW_NEW(T) lambda_unary_expr(E). {
+	A = xlAstCreateUnary(&T, "new", E);
+}
+lambda_unary_expr(A) ::= KW_DELETE(T) lambda_unary_expr(E). {
+	A = xlAstCreateUnary(&T, "delete", E);
+}
 
 lambda_postfix_expr(A) ::= lambda_primary_expr(E). {
 	A = E;
@@ -2019,6 +2050,12 @@ unary_expr(A) ::= OP_BANG(T) unary_expr(E). {
 }
 unary_expr(A) ::= KW_AWAIT(T) unary_expr(E). {
 	A = xlAstCreateUnary(&T, "await", E);
+}
+unary_expr(A) ::= KW_NEW(T) unary_expr(E). {
+	A = xlAstCreateUnary(&T, "new", E);
+}
+unary_expr(A) ::= KW_DELETE(T) unary_expr(E). {
+	A = xlAstCreateUnary(&T, "delete", E);
 }
 
 postfix_expr(A) ::= primary_expr(E). {

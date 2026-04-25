@@ -41,6 +41,7 @@ XL_EXPORT int pkg_clock_artifact_probe(void)
 }
 
 static int g_pkg_clock_artifact_point_sentinel = 77;
+static int g_pkg_clock_artifact_point_release_count = 0;
 
 XL_EXPORT void* pkg_clock_artifact_point_slot = &g_pkg_clock_artifact_point_sentinel;
 
@@ -52,6 +53,33 @@ XL_EXPORT uint64_t pkg_clock_artifact_u64_slot = 9000000000ULL;
 XL_EXPORT void* pkg_clock_artifact_point_sentinel(void)
 {
 	return &g_pkg_clock_artifact_point_sentinel;
+}
+
+XL_EXPORT void* pkg_clock_artifact_point_create(void)
+{
+	return &g_pkg_clock_artifact_point_sentinel;
+}
+
+XL_EXPORT int pkg_clock_artifact_point_score(void* value)
+{
+	return (value == &g_pkg_clock_artifact_point_sentinel) ? 7 : 0;
+}
+
+XL_EXPORT void pkg_clock_artifact_point_release(void* value)
+{
+	if ( value == &g_pkg_clock_artifact_point_sentinel ) {
+		g_pkg_clock_artifact_point_release_count += 1;
+	}
+}
+
+XL_EXPORT void pkg_clock_artifact_point_release_reset(void)
+{
+	g_pkg_clock_artifact_point_release_count = 0;
+}
+
+XL_EXPORT int pkg_clock_artifact_point_release_count(void)
+{
+	return g_pkg_clock_artifact_point_release_count;
 }
 
 XL_EXPORT int pkg_clock_artifact_point_is_sentinel(void)

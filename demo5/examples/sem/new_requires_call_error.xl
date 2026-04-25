@@ -1,0 +1,5 @@
+func main() as int
+	auto a = 1
+	auto b = new a
+	return b
+end

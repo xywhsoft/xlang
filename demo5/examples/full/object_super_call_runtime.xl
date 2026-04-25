@@ -1,0 +1,26 @@
+class Base extends object
+	var seed as int
+
+	create()
+		self.seed = 7
+	end
+
+	func value() as int
+		return self.seed
+	end
+end
+
+class Child extends Base
+	create()
+		base()
+	end
+
+	func value() as int
+		return super.value() + 35
+	end
+end
+
+func main() as int
+	auto item = Child()
+	return item.value()
+end

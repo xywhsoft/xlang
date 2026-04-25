@@ -1,0 +1,23 @@
+class Bag extends object
+	var fixed as int
+end
+
+func main() as int
+	var a = Bag()
+	a.fixed = 9
+	a.extra = 33
+
+	if Type(a) != Bag then
+		return 1
+	end
+	if Type(a).name != "Bag" then
+		return 2
+	end
+	if a.fixed != 9 then
+		return 3
+	end
+	if a["extra"] != 33 then
+		return 4
+	end
+	return 42
+end

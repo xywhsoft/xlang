@@ -86,6 +86,10 @@ static int __xlParserMapToken(XL_TokenKind eKind)
 			return XLPG_KW_ASYNC;
 		case XL_KW_AWAIT:
 			return XLPG_KW_AWAIT;
+		case XL_KW_NEW:
+			return XLPG_KW_NEW;
+		case XL_KW_DELETE:
+			return XLPG_KW_DELETE;
 		case XL_KW_YIELD:
 			return XLPG_KW_YIELD;
 		case XL_KW_TRY:
@@ -106,6 +110,8 @@ static int __xlParserMapToken(XL_TokenKind eKind)
 			return XLPG_KW_EXTERN;
 		case XL_KW_CLASS:
 			return XLPG_KW_CLASS;
+		case XL_KW_CUSTOM:
+			return XLPG_KW_CUSTOM;
 		case XL_KW_EXTENDS:
 			return XLPG_KW_EXTENDS;
 		case XL_KW_UNION:

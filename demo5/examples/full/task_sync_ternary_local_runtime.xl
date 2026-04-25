@@ -1,0 +1,10 @@
+import std.task
+
+func choose_expr_local(task left, task right, bool pick_right) as task
+	task result = pick_right ? right : left
+	return result
+end
+
+async func main() as int
+	return await choose_expr_local(task.delay(1), task.delay(41), true) + 1
+end
