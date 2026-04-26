@@ -1,5 +1,20 @@
 #include "xl_driver.h"
+#include "../codegen/c/xl_cgen.h"
+#include "../common/xl_app_path.h"
+#include "../host/xl_host.h"
+#include "../lower/xl_lower.h"
+#include "../runtime/xl_exec_ctx.h"
+#include "xl_module_link.h"
 #include "xl_xlp_load.h"
+#if XLANG_DEBUGMODE_ENABLED
+#include "../ast/xl_ast_dump.h"
+#include "../diag/xl_dump.h"
+#include "../lexer/xl_lexer_api.h"
+#include "../parser/xl_parser_api.h"
+#include "../sem/xl_sem_dump.h"
+#include "xl_driver_debug.h"
+#include "xl_xlp_dump.h"
+#endif
 
 #include "../host/xl_host_symbols.h"
 
@@ -24,45 +39,7 @@ static int __xlWriteTextFile(const char* sFilePath, const char* sText)
 	return XL_RC_OK;
 }
 
-static int __xlCopyFileBytes(const char* sSrcPath, const char* sDstPath)
-{
-	FILE* pSrc;
-	FILE* pDst;
-	char arrBuf[8192];
-	size_t iRead;
-
-	if ( (sSrcPath == NULL) || (sDstPath == NULL) ) {
-		return XL_RC_BAD_ARG;
-	}
-	if ( xlPathEnsureParentDir(sDstPath) != XL_RC_OK ) {
-		return XL_RC_IO_ERROR;
-	}
-	pSrc = fopen(sSrcPath, "rb");
-	if ( pSrc == NULL ) {
-		return XL_RC_IO_ERROR;
-	}
-	pDst = fopen(sDstPath, "wb");
-	if ( pDst == NULL ) {
-		fclose(pSrc);
-		return XL_RC_IO_ERROR;
-	}
-	while ( (iRead = fread(arrBuf, 1, sizeof(arrBuf), pSrc)) != 0 ) {
-		if ( fwrite(arrBuf, 1, iRead, pDst) != iRead ) {
-			fclose(pSrc);
-			fclose(pDst);
-			return XL_RC_IO_ERROR;
-		}
-	}
-	if ( ferror(pSrc) ) {
-		fclose(pSrc);
-		fclose(pDst);
-		return XL_RC_IO_ERROR;
-	}
-	fclose(pSrc);
-	fclose(pDst);
-	return XL_RC_OK;
-}
-
+#if XLANG_DEBUGMODE_ENABLED
 static char* __xlWrapJsonText(const char* sKey, const char* sText)
 {
 	size_t i;
@@ -124,6 +101,7 @@ static char* __xlWrapJsonText(const char* sKey, const char* sText)
 	iOut += (size_t)snprintf(sOut + iOut, iCap - iOut, "\"\n}\n");
 	return sOut;
 }
+#endif
 
 static char* __xlConcatText(const char* sText1, const char* sText2)
 {
@@ -285,6 +263,7 @@ static char* __xlCommentText(const char* sText)
 	return sOut;
 }
 
+#if XLANG_DEBUGMODE_ENABLED
 static void __xlBuildDumpPath(
 	char* sOut,
 	size_t iOutSize,
@@ -338,6 +317,7 @@ static void __xlBuildDumpPath(
 
 	snprintf(sOut, iOutSize, "dump\\%s\\%s%s", (sGroup != NULL) ? sGroup : "misc", sStem, sSuffix);
 }
+#endif
 
 static int __xlAddModuleArtifactsToExecCtx(XL_ExecCtx* pExecCtx, const XL_ModuleLinkResult* pModuleResult)
 {
@@ -709,10 +689,31 @@ static int __xlAddModuleLoadLibsToHostCtx(XL_HostContext* pHostCtx, const XL_Mod
 	return XL_RC_OK;
 }
 
+static const char* __xlDriverRootPath(const XL_DumpContext* pDump, char* sFallback, size_t iFallbackSize)
+{
+#if XLANG_DEBUGMODE_ENABLED
+	if ( (pDump != NULL) && (pDump->sRoot[0] != '\0') ) {
+		return pDump->sRoot;
+	}
+#else
+	XL_UNUSED(pDump);
+#endif
+
+	if ( (sFallback != NULL) && (iFallbackSize > 0) ) {
+		if ( xlAppPathGetDirectory(sFallback, iFallbackSize) == XL_RC_OK ) {
+			return sFallback;
+		}
+		snprintf(sFallback, iFallbackSize, ".");
+		return sFallback;
+	}
+
+	return ".";
+}
+
 static void __xlBuildDefaultOutputPath(
 	char* sOut,
 	size_t iOutSize,
-	const XL_DumpContext* pDump,
+	const char* sRoot,
 	const char* sInputFile,
 	const char* sExt
 )
@@ -735,9 +736,10 @@ static void __xlBuildDefaultOutputPath(
 	sDot = strrchr(sName, '.');
 	iLen = (sDot != NULL) ? (size_t)(sDot - sName) : strlen(sName);
 	snprintf(sBaseName, sizeof(sBaseName), "%.*s%s", (int)iLen, sName, (sExt != NULL) ? sExt : ".exe");
-	xlPathJoin(sOut, iOutSize, (pDump != NULL) ? pDump->sRoot : ".", sBaseName);
+	xlPathJoin(sOut, iOutSize, (sRoot != NULL) ? sRoot : ".", sBaseName);
 }
 
+#if XLANG_DEBUGMODE_ENABLED
 static int __xlDriverWriteStubDump(
 	const XL_CliOptions* pOpts,
 	XL_DiagContext* pDiag,
@@ -775,512 +777,6 @@ static int __xlDriverWriteStubDump(
 
 	return XL_RC_OK;
 }
-
- #if XLANG_DEBUGMODE_ENABLED
-static int __xlDriverRunLex(
-	const XL_CliOptions* pOpts,
-	XL_DiagContext* pDiag,
-	XL_DumpContext* pDump
-)
-{
-	XL_Lexer* pLexer;
-	XL_TokenList list;
-	char* sTextDump;
-	char* sJsonDump;
-	char sDefaultPath[XL_PATH_MAX_LEN];
-	int iRc;
-
-	pLexer = xlLexerCreateFromFile(pOpts->sInputFile);
-	if ( pLexer == NULL ) {
-		XL_DIAG_ERROR(pDiag, "lexer", "failed to open input file: %s", pOpts->sInputFile);
-		return XL_RC_IO_ERROR;
-	}
-
-	xlTokenListInit(&list);
-	sTextDump = NULL;
-	sJsonDump = NULL;
-
-	iRc = xlLexerTokenizeAll(pLexer, &list);
-	sTextDump = xlLexerTokensToText(&list);
-	sJsonDump = xlLexerTokensToJson(&list);
-	if ( (sTextDump == NULL) || (sJsonDump == NULL) ) {
-		XL_DIAG_ERROR(pDiag, "lexer", "failed to build token dump output");
-		iRc = XL_RC_IO_ERROR;
-		goto cleanup;
-	}
-
-	if ( pOpts->bDumpJson ) {
-		fputs(sJsonDump, stdout);
-	} else {
-		fputs(sTextDump, stdout);
-	}
-
-	if ( pOpts->sEmitPath != NULL ) {
-		if ( __xlWriteTextFile(pOpts->sEmitPath, pOpts->bDumpJson ? sJsonDump : sTextDump) != XL_RC_OK ) {
-			XL_DIAG_ERROR(pDiag, "lexer", "failed to write emit file: %s", pOpts->sEmitPath);
-			iRc = XL_RC_IO_ERROR;
-			goto cleanup;
-		}
-	}
-
-	if ( pOpts->bDumpToken || pOpts->bDumpJson ) {
-		__xlBuildDumpPath(
-			sDefaultPath,
-			sizeof(sDefaultPath),
-			"lexer",
-			pOpts->sInputFile,
-			pOpts->bDumpJson ? ".tokens.json" : ".tokens.txt"
-		);
-		if ( xlDumpWriteText(pDump, sDefaultPath, pOpts->bDumpJson ? sJsonDump : sTextDump) != XL_RC_OK ) {
-			XL_DIAG_WARN(pDiag, "lexer", "failed to write default dump: %s", sDefaultPath);
-		}
-	}
-
-	if ( xlLexerHadError(pLexer) ) {
-		XL_DIAG_WARN(pDiag, "lexer", "tokenized with lexer errors: %s", xlLexerGetError(pLexer));
-		if ( iRc == XL_RC_OK ) {
-			iRc = XL_RC_FAIL;
-		}
-	}
-
-cleanup:
-	free(sTextDump);
-	free(sJsonDump);
-	xlTokenListFree(&list);
-	xlLexerDestroy(pLexer);
-	return iRc;
-}
-
-static int __xlDriverRunParse(
-	const XL_CliOptions* pOpts,
-	XL_DiagContext* pDiag,
-	XL_DumpContext* pDump
-)
-{
-	XL_Lexer* pLexer;
-	XL_ParseResult result;
-	char* sTextDump;
-	char* sJsonDump;
-	char sDefaultPath[XL_PATH_MAX_LEN];
-	int iRc;
-
-	pLexer = xlLexerCreateFromFile(pOpts->sInputFile);
-	if ( pLexer == NULL ) {
-		XL_DIAG_ERROR(pDiag, "parser", "failed to open input file: %s", pOpts->sInputFile);
-		return XL_RC_IO_ERROR;
-	}
-
-	xlParseResultInit(&result);
-	sTextDump = NULL;
-	sJsonDump = NULL;
-
-	iRc = xlParserParseLexer(pLexer, pDiag, pOpts->bTraceParser ? 1 : 0, &result);
-	if ( result.pRoot == NULL ) {
-		xlLexerDestroy(pLexer);
-		xlParseResultFree(&result);
-		return (iRc == XL_RC_OK) ? XL_RC_FAIL : iRc;
-	}
-
-	sTextDump = xlAstDumpText(result.pRoot);
-	sJsonDump = xlAstDumpJson(result.pRoot);
-	if ( (sTextDump == NULL) || (sJsonDump == NULL) ) {
-		XL_DIAG_ERROR(pDiag, "parser", "failed to build AST dump output");
-		iRc = XL_RC_IO_ERROR;
-		goto cleanup;
-	}
-
-	if ( pOpts->bDumpJson ) {
-		fputs(sJsonDump, stdout);
-	} else {
-		fputs(sTextDump, stdout);
-	}
-
-	if ( pOpts->sEmitPath != NULL ) {
-		if ( __xlWriteTextFile(pOpts->sEmitPath, pOpts->bDumpJson ? sJsonDump : sTextDump) != XL_RC_OK ) {
-			XL_DIAG_ERROR(pDiag, "parser", "failed to write emit file: %s", pOpts->sEmitPath);
-			iRc = XL_RC_IO_ERROR;
-			goto cleanup;
-		}
-	}
-
-	if ( pOpts->bDumpAst || pOpts->bDumpJson ) {
-		__xlBuildDumpPath(
-			sDefaultPath,
-			sizeof(sDefaultPath),
-			"parser",
-			pOpts->sInputFile,
-			pOpts->bDumpJson ? ".ast.json" : ".ast.txt"
-		);
-		if ( xlDumpWriteText(pDump, sDefaultPath, pOpts->bDumpJson ? sJsonDump : sTextDump) != XL_RC_OK ) {
-			XL_DIAG_WARN(pDiag, "parser", "failed to write default AST dump: %s", sDefaultPath);
-		}
-	}
-
-cleanup:
-	free(sTextDump);
-	free(sJsonDump);
-	xlParseResultFree(&result);
-	xlLexerDestroy(pLexer);
-	return iRc;
-}
-
-static int __xlDriverRunSem(
-	const XL_CliOptions* pOpts,
-	XL_DiagContext* pDiag,
-	XL_DumpContext* pDump
-)
-{
-	XL_ModuleLinkResult moduleResult;
-	XL_SemResult semResult;
-	char* sTextDump;
-	char* sJsonDump;
-	char* sSymbolsJson;
-	char* sTypesJson;
-	char* sFuncsJson;
-	char* sXlpFuncsJson;
-	char* sXlpJson;
-	char* sDiagText;
-	char sDefaultPath[XL_PATH_MAX_LEN];
-	int iRc;
-
-	xlModuleLinkResultInit(&moduleResult);
-	xlSemResultInit(&semResult);
-	sTextDump = NULL;
-	sJsonDump = NULL;
-	sSymbolsJson = NULL;
-	sTypesJson = NULL;
-	sFuncsJson = NULL;
-	sXlpFuncsJson = NULL;
-	sXlpJson = NULL;
-	sDiagText = NULL;
-
-	iRc = xlModuleLinkFromFile(pOpts->sInputFile, pDiag, pOpts->bTraceParser ? 1 : 0, &moduleResult);
-	if ( (iRc != XL_RC_OK) || (moduleResult.pLinkedRoot == NULL) ) {
-		goto cleanup;
-	}
-
-	iRc = xlSemAnalyzeAst(moduleResult.pLinkedRoot, pDiag, pOpts->bTraceSem ? 1 : 0, &semResult);
-	sTextDump = xlSemDumpText(&semResult);
-	sJsonDump = xlSemDumpJson(&semResult);
-	sSymbolsJson = xlSemDumpSymbolsJson(&semResult);
-	sTypesJson = xlSemDumpTypesJson(&semResult);
-	sFuncsJson = xlSemDumpFuncsJson(&semResult);
-	sXlpFuncsJson = xlSemDumpXlpFunctionsJson(&semResult);
-	sXlpJson = xlXlpDumpPackageJson(&moduleResult, &semResult, pOpts->sInputFile);
-	sDiagText = xlSemDumpDiagText(&semResult);
-	if ( (sTextDump == NULL) || (sJsonDump == NULL) || (sSymbolsJson == NULL) || (sTypesJson == NULL) ||
-		(sFuncsJson == NULL) || (sXlpFuncsJson == NULL) || (sXlpJson == NULL) || (sDiagText == NULL) ) {
-		XL_DIAG_ERROR(pDiag, "sem", "failed to build semantic dump output");
-		iRc = XL_RC_IO_ERROR;
-		goto cleanup;
-	}
-
-	if ( pOpts->bDumpJson ) {
-		fputs(sJsonDump, stdout);
-	} else {
-		fputs(sTextDump, stdout);
-	}
-
-	if ( pOpts->sEmitPath != NULL ) {
-		if ( __xlWriteTextFile(pOpts->sEmitPath, pOpts->bDumpJson ? sJsonDump : sTextDump) != XL_RC_OK ) {
-			XL_DIAG_ERROR(pDiag, "sem", "failed to write emit file: %s", pOpts->sEmitPath);
-			iRc = XL_RC_IO_ERROR;
-			goto cleanup;
-		}
-	}
-
-	if ( pOpts->bDumpSem || pOpts->bDumpJson ) {
-		__xlBuildDumpPath(
-			sDefaultPath,
-			sizeof(sDefaultPath),
-			"sem",
-			pOpts->sInputFile,
-			pOpts->bDumpJson ? ".sem.json" : ".sem.txt"
-		);
-		if ( xlDumpWriteText(pDump, sDefaultPath, pOpts->bDumpJson ? sJsonDump : sTextDump) != XL_RC_OK ) {
-			XL_DIAG_WARN(pDiag, "sem", "failed to write semantic dump: %s", sDefaultPath);
-		}
-
-		__xlBuildDumpPath(sDefaultPath, sizeof(sDefaultPath), "sem", pOpts->sInputFile, ".symbols.json");
-		if ( xlDumpWriteText(pDump, sDefaultPath, sSymbolsJson) != XL_RC_OK ) {
-			XL_DIAG_WARN(pDiag, "sem", "failed to write symbol dump: %s", sDefaultPath);
-		}
-
-		__xlBuildDumpPath(sDefaultPath, sizeof(sDefaultPath), "sem", pOpts->sInputFile, ".types.json");
-		if ( xlDumpWriteText(pDump, sDefaultPath, sTypesJson) != XL_RC_OK ) {
-			XL_DIAG_WARN(pDiag, "sem", "failed to write type dump: %s", sDefaultPath);
-		}
-
-		__xlBuildDumpPath(sDefaultPath, sizeof(sDefaultPath), "sem", pOpts->sInputFile, ".funcs.json");
-		if ( xlDumpWriteText(pDump, sDefaultPath, sFuncsJson) != XL_RC_OK ) {
-			XL_DIAG_WARN(pDiag, "sem", "failed to write function dump: %s", sDefaultPath);
-		}
-
-		__xlBuildDumpPath(sDefaultPath, sizeof(sDefaultPath), "sem", pOpts->sInputFile, ".xlp.functions.json");
-		if ( xlDumpWriteText(pDump, sDefaultPath, sXlpFuncsJson) != XL_RC_OK ) {
-			XL_DIAG_WARN(pDiag, "sem", "failed to write xlp function dump: %s", sDefaultPath);
-		}
-
-		__xlBuildDumpPath(sDefaultPath, sizeof(sDefaultPath), "sem", pOpts->sInputFile, ".xlp.json");
-		if ( xlDumpWriteText(pDump, sDefaultPath, sXlpJson) != XL_RC_OK ) {
-			XL_DIAG_WARN(pDiag, "sem", "failed to write xlp package dump: %s", sDefaultPath);
-		}
-
-		__xlBuildDumpPath(sDefaultPath, sizeof(sDefaultPath), "sem", pOpts->sInputFile, ".diag.txt");
-		if ( xlDumpWriteText(pDump, sDefaultPath, sDiagText) != XL_RC_OK ) {
-			XL_DIAG_WARN(pDiag, "sem", "failed to write diagnostic dump: %s", sDefaultPath);
-		}
-
-		__xlBuildDumpPath(sDefaultPath, sizeof(sDefaultPath), "sem", pOpts->sInputFile, ".modules.txt");
-		if ( xlDumpWriteText(pDump, sDefaultPath, (moduleResult.sTextDump != NULL) ? moduleResult.sTextDump : "") != XL_RC_OK ) {
-			XL_DIAG_WARN(pDiag, "sem", "failed to write module dump: %s", sDefaultPath);
-		}
-
-		__xlBuildDumpPath(sDefaultPath, sizeof(sDefaultPath), "sem", pOpts->sInputFile, ".modules.json");
-		if ( xlDumpWriteText(pDump, sDefaultPath, (moduleResult.sJsonDump != NULL) ? moduleResult.sJsonDump : "{}\n") != XL_RC_OK ) {
-			XL_DIAG_WARN(pDiag, "sem", "failed to write module json dump: %s", sDefaultPath);
-		}
-	}
-
-cleanup:
-	free(sTextDump);
-	free(sJsonDump);
-	free(sSymbolsJson);
-	free(sTypesJson);
-	free(sFuncsJson);
-	free(sXlpFuncsJson);
-	free(sXlpJson);
-	free(sDiagText);
-	xlSemResultFree(&semResult);
-	xlModuleLinkResultFree(&moduleResult);
-	return iRc;
-}
-
-static int __xlDriverRunLower(
-	const XL_CliOptions* pOpts,
-	XL_DiagContext* pDiag,
-	XL_DumpContext* pDump
-)
-{
-	XL_ModuleLinkResult moduleResult;
-	XL_SemResult semResult;
-	XL_LowerResult lowerResult;
-	char* sTextDump;
-	char* sJsonDump;
-	char* sHirJson;
-	char* sMirJson;
-	char* sSmText;
-	char* sSmJson;
-	char sDefaultPath[XL_PATH_MAX_LEN];
-	int iRc;
-
-	xlModuleLinkResultInit(&moduleResult);
-	xlSemResultInit(&semResult);
-	xlLowerResultInit(&lowerResult);
-	sTextDump = NULL;
-	sJsonDump = NULL;
-	sHirJson = NULL;
-	sMirJson = NULL;
-	sSmText = NULL;
-	sSmJson = NULL;
-
-	iRc = xlModuleLinkFromFile(pOpts->sInputFile, pDiag, pOpts->bTraceParser ? 1 : 0, &moduleResult);
-	if ( (iRc != XL_RC_OK) || (moduleResult.pLinkedRoot == NULL) ) {
-		goto cleanup;
-	}
-
-	iRc = xlSemAnalyzeAst(moduleResult.pLinkedRoot, pDiag, pOpts->bTraceSem ? 1 : 0, &semResult);
-	if ( iRc != XL_RC_OK ) {
-		goto cleanup;
-	}
-
-	iRc = xlLowerAst(moduleResult.pLinkedRoot, &semResult, pDiag, pOpts->bTraceLower ? 1 : 0, &lowerResult);
-	if ( iRc != XL_RC_OK ) {
-		goto cleanup;
-	}
-
-	sTextDump = xlLowerDumpText(&lowerResult);
-	sJsonDump = xlLowerDumpJson(&lowerResult);
-	sHirJson = xlHirDumpJson(lowerResult.pHirRoot);
-	sMirJson = xlMirDumpJson(lowerResult.pMirRoot);
-	sSmText = xlLowerDumpStateMachinesText(&lowerResult);
-	sSmJson = xlLowerDumpStateMachinesJson(&lowerResult);
-	if ( (sTextDump == NULL) || (sJsonDump == NULL) || (sHirJson == NULL) || (sMirJson == NULL) || (sSmText == NULL) || (sSmJson == NULL) ) {
-		XL_DIAG_ERROR(pDiag, "lower", "failed to build lowering dump output");
-		iRc = XL_RC_IO_ERROR;
-		goto cleanup;
-	}
-
-	if ( pOpts->bDumpJson ) {
-		fputs(sJsonDump, stdout);
-	} else {
-		fputs(sTextDump, stdout);
-	}
-
-	if ( pOpts->sEmitPath != NULL ) {
-		if ( __xlWriteTextFile(pOpts->sEmitPath, pOpts->bDumpJson ? sJsonDump : sTextDump) != XL_RC_OK ) {
-			XL_DIAG_ERROR(pDiag, "lower", "failed to write emit file: %s", pOpts->sEmitPath);
-			iRc = XL_RC_IO_ERROR;
-			goto cleanup;
-		}
-	}
-
-	if ( pOpts->bDumpHir || pOpts->bDumpMir || pOpts->bDumpJson ) {
-		__xlBuildDumpPath(
-			sDefaultPath,
-			sizeof(sDefaultPath),
-			"lower",
-			pOpts->sInputFile,
-			pOpts->bDumpJson ? ".lower.json" : ".lower.txt"
-		);
-		if ( xlDumpWriteText(pDump, sDefaultPath, pOpts->bDumpJson ? sJsonDump : sTextDump) != XL_RC_OK ) {
-			XL_DIAG_WARN(pDiag, "lower", "failed to write lower dump: %s", sDefaultPath);
-		}
-
-		__xlBuildDumpPath(sDefaultPath, sizeof(sDefaultPath), "lower", pOpts->sInputFile, ".hir.json");
-		if ( xlDumpWriteText(pDump, sDefaultPath, sHirJson) != XL_RC_OK ) {
-			XL_DIAG_WARN(pDiag, "lower", "failed to write HIR dump: %s", sDefaultPath);
-		}
-
-		__xlBuildDumpPath(sDefaultPath, sizeof(sDefaultPath), "lower", pOpts->sInputFile, ".mir.json");
-		if ( xlDumpWriteText(pDump, sDefaultPath, sMirJson) != XL_RC_OK ) {
-			XL_DIAG_WARN(pDiag, "lower", "failed to write MIR dump: %s", sDefaultPath);
-		}
-
-		__xlBuildDumpPath(sDefaultPath, sizeof(sDefaultPath), "lower", pOpts->sInputFile, ".sm.txt");
-		if ( xlDumpWriteText(pDump, sDefaultPath, sSmText) != XL_RC_OK ) {
-			XL_DIAG_WARN(pDiag, "lower", "failed to write state-machine dump: %s", sDefaultPath);
-		}
-
-		__xlBuildDumpPath(sDefaultPath, sizeof(sDefaultPath), "lower", pOpts->sInputFile, ".sm.json");
-		if ( xlDumpWriteText(pDump, sDefaultPath, sSmJson) != XL_RC_OK ) {
-			XL_DIAG_WARN(pDiag, "lower", "failed to write state-machine json dump: %s", sDefaultPath);
-		}
-
-		__xlBuildDumpPath(sDefaultPath, sizeof(sDefaultPath), "lower", pOpts->sInputFile, ".modules.txt");
-		if ( xlDumpWriteText(pDump, sDefaultPath, (moduleResult.sTextDump != NULL) ? moduleResult.sTextDump : "") != XL_RC_OK ) {
-			XL_DIAG_WARN(pDiag, "lower", "failed to write module dump: %s", sDefaultPath);
-		}
-
-		__xlBuildDumpPath(sDefaultPath, sizeof(sDefaultPath), "lower", pOpts->sInputFile, ".modules.json");
-		if ( xlDumpWriteText(pDump, sDefaultPath, (moduleResult.sJsonDump != NULL) ? moduleResult.sJsonDump : "{}\n") != XL_RC_OK ) {
-			XL_DIAG_WARN(pDiag, "lower", "failed to write module json dump: %s", sDefaultPath);
-		}
-	}
-
-cleanup:
-	free(sTextDump);
-	free(sJsonDump);
-	free(sHirJson);
-	free(sMirJson);
-	free(sSmText);
-	free(sSmJson);
-	xlLowerResultFree(&lowerResult);
-	xlSemResultFree(&semResult);
-	xlModuleLinkResultFree(&moduleResult);
-	return iRc;
-}
-
-static int __xlDriverRunCgen(
-	const XL_CliOptions* pOpts,
-	XL_DiagContext* pDiag,
-	XL_DumpContext* pDump
-)
-{
-	XL_ModuleLinkResult moduleResult;
-	XL_SemResult semResult;
-	XL_LowerResult lowerResult;
-	char* sCode;
-	char* sJsonDump;
-	char* sModuleComment;
-	char* sCodeWithModules;
-	char sDefaultPath[XL_PATH_MAX_LEN];
-	int iRc;
-
-	xlModuleLinkResultInit(&moduleResult);
-	xlSemResultInit(&semResult);
-	xlLowerResultInit(&lowerResult);
-	sCode = NULL;
-	sJsonDump = NULL;
-	sModuleComment = NULL;
-	sCodeWithModules = NULL;
-
-	iRc = xlModuleLinkFromFile(pOpts->sInputFile, pDiag, pOpts->bTraceParser ? 1 : 0, &moduleResult);
-	if ( (iRc != XL_RC_OK) || (moduleResult.pLinkedRoot == NULL) ) {
-		goto cleanup;
-	}
-
-	iRc = xlSemAnalyzeAst(moduleResult.pLinkedRoot, pDiag, pOpts->bTraceSem ? 1 : 0, &semResult);
-	if ( iRc != XL_RC_OK ) {
-		goto cleanup;
-	}
-
-	iRc = xlLowerAst(moduleResult.pLinkedRoot, &semResult, pDiag, pOpts->bTraceLower ? 1 : 0, &lowerResult);
-	if ( iRc != XL_RC_OK ) {
-		goto cleanup;
-	}
-
-	iRc = xlCgenMir(&lowerResult, &moduleResult, pDiag, &sCode);
-	if ( iRc != XL_RC_OK ) {
-		goto cleanup;
-	}
-
-	sModuleComment = __xlCommentText((moduleResult.sTextDump != NULL) ? moduleResult.sTextDump : "");
-	sCodeWithModules = __xlConcatText((sModuleComment != NULL) ? sModuleComment : "", sCode);
-	sJsonDump = __xlWrapJsonText("code", (sCodeWithModules != NULL) ? sCodeWithModules : sCode);
-	if ( (sCode == NULL) || (sJsonDump == NULL) || (sCodeWithModules == NULL) ) {
-		XL_DIAG_ERROR(pDiag, "cgen", "failed to build C code dump");
-		iRc = XL_RC_IO_ERROR;
-		goto cleanup;
-	}
-
-	if ( pOpts->bDumpJson ) {
-		fputs(sJsonDump, stdout);
-	} else {
-		fputs(sCodeWithModules, stdout);
-	}
-
-	if ( pOpts->sEmitPath != NULL ) {
-		if ( __xlWriteTextFile(pOpts->sEmitPath, pOpts->bDumpJson ? sJsonDump : sCodeWithModules) != XL_RC_OK ) {
-			XL_DIAG_ERROR(pDiag, "cgen", "failed to write emit file: %s", pOpts->sEmitPath);
-			iRc = XL_RC_IO_ERROR;
-			goto cleanup;
-		}
-	}
-
-	if ( pOpts->bDumpC || pOpts->bDumpJson ) {
-		__xlBuildDumpPath(
-			sDefaultPath,
-			sizeof(sDefaultPath),
-			"cgen",
-			pOpts->sInputFile,
-			pOpts->bDumpJson ? ".c.json" : ".c"
-		);
-		if ( xlDumpWriteText(pDump, sDefaultPath, pOpts->bDumpJson ? sJsonDump : sCodeWithModules) != XL_RC_OK ) {
-			XL_DIAG_WARN(pDiag, "cgen", "failed to write C dump: %s", sDefaultPath);
-		}
-
-		__xlBuildDumpPath(sDefaultPath, sizeof(sDefaultPath), "cgen", pOpts->sInputFile, ".modules.txt");
-		if ( xlDumpWriteText(pDump, sDefaultPath, (moduleResult.sTextDump != NULL) ? moduleResult.sTextDump : "") != XL_RC_OK ) {
-			XL_DIAG_WARN(pDiag, "cgen", "failed to write module dump: %s", sDefaultPath);
-		}
-
-		__xlBuildDumpPath(sDefaultPath, sizeof(sDefaultPath), "cgen", pOpts->sInputFile, ".modules.json");
-		if ( xlDumpWriteText(pDump, sDefaultPath, (moduleResult.sJsonDump != NULL) ? moduleResult.sJsonDump : "{}\n") != XL_RC_OK ) {
-			XL_DIAG_WARN(pDiag, "cgen", "failed to write module json dump: %s", sDefaultPath);
-		}
-	}
-
-cleanup:
-	free(sCode);
-	free(sJsonDump);
-	free(sModuleComment);
-	free(sCodeWithModules);
-	xlLowerResultFree(&lowerResult);
-	xlSemResultFree(&semResult);
-	xlModuleLinkResultFree(&moduleResult);
-	return iRc;
-}
 #endif
 
 static int __xlDriverRunProgram(
@@ -1295,33 +791,38 @@ static int __xlDriverRunProgram(
 	XL_ExecCtx execCtx;
 	char* sCode;
 	char* sTraceText;
-	char* sJsonDump;
+	char sRootPath[XL_PATH_MAX_LEN];
+	char sSummary[XL_DIAG_TEXT_MAX];
+	int iRc;
+#if XLANG_DEBUGMODE_ENABLED
 	char* sTraceWithModules;
 	char sCodePath[XL_PATH_MAX_LEN];
 	char sTracePath[XL_PATH_MAX_LEN];
-	char sSummary[XL_DIAG_TEXT_MAX];
-	int iRc;
+	char* sJsonDump;
+#endif
 
 	xlModuleLinkResultInit(&moduleResult);
 	xlSemResultInit(&semResult);
 	xlLowerResultInit(&lowerResult);
-	xlExecCtxInit(&execCtx, pOpts->sInputFile, pDump->sRoot);
+	xlExecCtxInit(&execCtx, pOpts->sInputFile, __xlDriverRootPath(pDump, sRootPath, sizeof(sRootPath)));
 	sCode = NULL;
 	sTraceText = NULL;
-	sJsonDump = NULL;
+#if XLANG_DEBUGMODE_ENABLED
 	sTraceWithModules = NULL;
+	sJsonDump = NULL;
+#endif
 
-	iRc = xlModuleLinkFromFile(pOpts->sInputFile, pDiag, pOpts->bTraceParser ? 1 : 0, &moduleResult);
+	iRc = xlModuleLinkFromFile(pOpts->sInputFile, pDiag, XL_CLI_TRACE_PARSER(pOpts) ? 1 : 0, &moduleResult);
 	if ( (iRc != XL_RC_OK) || (moduleResult.pLinkedRoot == NULL) ) {
 		goto cleanup;
 	}
 
-	iRc = xlSemAnalyzeAst(moduleResult.pLinkedRoot, pDiag, pOpts->bTraceSem ? 1 : 0, &semResult);
+	iRc = xlSemAnalyzeAst(moduleResult.pLinkedRoot, pDiag, XL_CLI_TRACE_SEM(pOpts) ? 1 : 0, &semResult);
 	if ( iRc != XL_RC_OK ) {
 		goto cleanup;
 	}
 
-	iRc = xlLowerAst(moduleResult.pLinkedRoot, &semResult, pDiag, pOpts->bTraceLower ? 1 : 0, &lowerResult);
+	iRc = xlLowerAst(moduleResult.pLinkedRoot, &semResult, pDiag, XL_CLI_TRACE_LOWER(pOpts) ? 1 : 0, &lowerResult);
 	if ( iRc != XL_RC_OK ) {
 		goto cleanup;
 	}
@@ -1371,17 +872,21 @@ static int __xlDriverRunProgram(
 		goto cleanup;
 	}
 
+#if XLANG_DEBUGMODE_ENABLED
 	__xlBuildDumpPath(sCodePath, sizeof(sCodePath), "cgen", pOpts->sInputFile, ".run.c");
 	if ( xlDumpWriteText(pDump, sCodePath, sCode) != XL_RC_OK ) {
 		XL_DIAG_WARN(pDiag, "run", "failed to write run C dump: %s", sCodePath);
 	}
+#endif
 
 	iRc = xlExecRunCode(&execCtx, pDiag, sCode, &sTraceText);
+#if XLANG_DEBUGMODE_ENABLED
 	__xlBuildDumpPath(sTracePath, sizeof(sTracePath), "runtime", pOpts->sInputFile, ".trace.txt");
 	sTraceWithModules = __xlConcatText((moduleResult.sTextDump != NULL) ? moduleResult.sTextDump : "", (sTraceText != NULL) ? sTraceText : "");
 	if ( xlDumpWriteText(pDump, sTracePath, (sTraceWithModules != NULL) ? sTraceWithModules : ((sTraceText != NULL) ? sTraceText : "")) != XL_RC_OK ) {
 		XL_DIAG_WARN(pDiag, "run", "failed to write runtime trace: %s", sTracePath);
 	}
+#endif
 	if ( iRc != XL_RC_OK ) {
 		goto cleanup;
 	}
@@ -1393,17 +898,27 @@ static int __xlDriverRunProgram(
 		execCtx.iExitCode,
 		execCtx.sEntrySymbol
 	);
+#if XLANG_DEBUGMODE_ENABLED
 	sJsonDump = __xlWrapJsonText("result", sSummary);
-	if ( pOpts->bDumpJson ) {
+	if ( XL_CLI_DUMP_JSON(pOpts) ) {
 		if ( sJsonDump != NULL ) {
 			fputs(sJsonDump, stdout);
 		}
 	} else {
 		fputs(sSummary, stdout);
 	}
+#else
+	fputs(sSummary, stdout);
+#endif
 
 	if ( pOpts->sEmitPath != NULL ) {
-		if ( __xlWriteTextFile(pOpts->sEmitPath, pOpts->bDumpJson ? ((sJsonDump != NULL) ? sJsonDump : "") : sSummary) != XL_RC_OK ) {
+		const char* sEmitText = sSummary;
+#if XLANG_DEBUGMODE_ENABLED
+		if ( XL_CLI_DUMP_JSON(pOpts) ) {
+			sEmitText = (sJsonDump != NULL) ? sJsonDump : "";
+		}
+#endif
+		if ( __xlWriteTextFile(pOpts->sEmitPath, sEmitText) != XL_RC_OK ) {
 			XL_DIAG_ERROR(pDiag, "run", "failed to write emit file: %s", pOpts->sEmitPath);
 			iRc = XL_RC_IO_ERROR;
 			goto cleanup;
@@ -1413,8 +928,10 @@ static int __xlDriverRunProgram(
 cleanup:
 	free(sCode);
 	free(sTraceText);
+#if XLANG_DEBUGMODE_ENABLED
 	free(sTraceWithModules);
 	free(sJsonDump);
+#endif
 	xlLowerResultFree(&lowerResult);
 	xlSemResultFree(&semResult);
 	xlModuleLinkResultFree(&moduleResult);
@@ -1430,21 +947,28 @@ static int __xlDriverRunCProgram(
 	XL_HostContext hostCtx;
 	XL_HostRunResult result;
 	char* sTraceText;
+	char sRootPath[XL_PATH_MAX_LEN];
 	char sTracePath[XL_PATH_MAX_LEN];
 	char sSummary[XL_DIAG_TEXT_MAX];
-	char* sJsonDump;
 	int iRc;
+#if XLANG_DEBUGMODE_ENABLED
+	char* sJsonDump;
+#endif
 
-	xlHostContextInit(&hostCtx, pOpts->sInputFile, pDump->sRoot);
+	xlHostContextInit(&hostCtx, pOpts->sInputFile, __xlDriverRootPath(pDump, sRootPath, sizeof(sRootPath)));
 	memset(&result, 0, sizeof(result));
 	sTraceText = NULL;
+#if XLANG_DEBUGMODE_ENABLED
 	sJsonDump = NULL;
+#endif
 
 	iRc = xlHostRunCFile(&hostCtx, pDiag, pOpts->sInputFile, &sTraceText, &result);
+#if XLANG_DEBUGMODE_ENABLED
 	__xlBuildDumpPath(sTracePath, sizeof(sTracePath), "host", pOpts->sInputFile, ".trace.txt");
 	if ( xlDumpWriteText(pDump, sTracePath, (sTraceText != NULL) ? sTraceText : "") != XL_RC_OK ) {
 		XL_DIAG_WARN(pDiag, "run-c", "failed to write host trace: %s", sTracePath);
 	}
+#endif
 	if ( iRc != XL_RC_OK ) {
 		free(sTraceText);
 		return iRc;
@@ -1457,24 +981,36 @@ static int __xlDriverRunCProgram(
 		result.iExitCode,
 		(result.sEntrySymbol[0] != '\0') ? result.sEntrySymbol : "main"
 	);
+#if XLANG_DEBUGMODE_ENABLED
 	sJsonDump = __xlWrapJsonText("result", sSummary);
-	if ( pOpts->bDumpJson ) {
+	if ( XL_CLI_DUMP_JSON(pOpts) ) {
 		if ( sJsonDump != NULL ) {
 			fputs(sJsonDump, stdout);
 		}
 	} else {
 		fputs(sSummary, stdout);
 	}
+#else
+	fputs(sSummary, stdout);
+#endif
 
 	if ( pOpts->sEmitPath != NULL ) {
-		if ( __xlWriteTextFile(pOpts->sEmitPath, pOpts->bDumpJson ? ((sJsonDump != NULL) ? sJsonDump : "") : sSummary) != XL_RC_OK ) {
+		const char* sEmitText = sSummary;
+#if XLANG_DEBUGMODE_ENABLED
+		if ( XL_CLI_DUMP_JSON(pOpts) ) {
+			sEmitText = (sJsonDump != NULL) ? sJsonDump : "";
+		}
+#endif
+		if ( __xlWriteTextFile(pOpts->sEmitPath, sEmitText) != XL_RC_OK ) {
 			XL_DIAG_ERROR(pDiag, "run-c", "failed to write emit file: %s", pOpts->sEmitPath);
 			iRc = XL_RC_IO_ERROR;
 		}
 	}
 
 	free(sTraceText);
+#if XLANG_DEBUGMODE_ENABLED
 	free(sJsonDump);
+#endif
 	return iRc;
 }
 
@@ -1491,35 +1027,46 @@ static int __xlDriverBuildProgram(
 	XL_HostBuildResult result;
 	char* sCode;
 	char* sTraceText;
-	char* sSymbolsJson;
-	char* sJsonDump;
-	char sCodePath[XL_PATH_MAX_LEN];
-	char sTracePath[XL_PATH_MAX_LEN];
-	char sSymbolsPath[XL_PATH_MAX_LEN];
+	char sRootPath[XL_PATH_MAX_LEN];
 	char sOutputFile[XL_PATH_MAX_LEN];
 	char sSummary[XL_DIAG_TEXT_MAX];
 	int iRc;
+#if XLANG_DEBUGMODE_ENABLED
+	char* sSymbolsJson;
+	char sCodePath[XL_PATH_MAX_LEN];
+	char sTracePath[XL_PATH_MAX_LEN];
+	char sSymbolsPath[XL_PATH_MAX_LEN];
+	char* sJsonDump;
+#endif
 
 	xlModuleLinkResultInit(&moduleResult);
 	xlSemResultInit(&semResult);
 	xlLowerResultInit(&lowerResult);
-	xlHostContextInit(&hostCtx, pOpts->sInputFile, pDump->sRoot);
+	xlHostContextInit(&hostCtx, pOpts->sInputFile, __xlDriverRootPath(pDump, sRootPath, sizeof(sRootPath)));
 	memset(&result, 0, sizeof(result));
 	sCode = NULL;
 	sTraceText = NULL;
+#if XLANG_DEBUGMODE_ENABLED
 	sSymbolsJson = NULL;
 	sJsonDump = NULL;
+#endif
 	if ( pOpts->sEmitPath != NULL ) {
 		snprintf(sOutputFile, sizeof(sOutputFile), "%s", pOpts->sEmitPath);
 	} else {
-		__xlBuildDefaultOutputPath(sOutputFile, sizeof(sOutputFile), pDump, pOpts->sInputFile, ".exe");
+		__xlBuildDefaultOutputPath(
+			sOutputFile,
+			sizeof(sOutputFile),
+			__xlDriverRootPath(pDump, sRootPath, sizeof(sRootPath)),
+			pOpts->sInputFile,
+			".exe"
+		);
 	}
 
-	iRc = xlModuleLinkFromFile(pOpts->sInputFile, pDiag, pOpts->bTraceParser ? 1 : 0, &moduleResult);
+	iRc = xlModuleLinkFromFile(pOpts->sInputFile, pDiag, XL_CLI_TRACE_PARSER(pOpts) ? 1 : 0, &moduleResult);
 	if ( (iRc != XL_RC_OK) || (moduleResult.pLinkedRoot == NULL) ) goto cleanup;
-	iRc = xlSemAnalyzeAst(moduleResult.pLinkedRoot, pDiag, pOpts->bTraceSem ? 1 : 0, &semResult);
+	iRc = xlSemAnalyzeAst(moduleResult.pLinkedRoot, pDiag, XL_CLI_TRACE_SEM(pOpts) ? 1 : 0, &semResult);
 	if ( iRc != XL_RC_OK ) goto cleanup;
-	iRc = xlLowerAst(moduleResult.pLinkedRoot, &semResult, pDiag, pOpts->bTraceLower ? 1 : 0, &lowerResult);
+	iRc = xlLowerAst(moduleResult.pLinkedRoot, &semResult, pDiag, XL_CLI_TRACE_LOWER(pOpts) ? 1 : 0, &lowerResult);
 	if ( iRc != XL_RC_OK ) goto cleanup;
 	iRc = xlCgenMir(&lowerResult, &moduleResult, pDiag, &sCode);
 	if ( iRc != XL_RC_OK ) goto cleanup;
@@ -1564,12 +1111,15 @@ static int __xlDriverBuildProgram(
 		goto cleanup;
 	}
 
+#if XLANG_DEBUGMODE_ENABLED
 	__xlBuildDumpPath(sCodePath, sizeof(sCodePath), "cgen", pOpts->sInputFile, ".build.c");
 	if ( xlDumpWriteText(pDump, sCodePath, sCode) != XL_RC_OK ) {
 		XL_DIAG_WARN(pDiag, "build", "failed to write build C dump: %s", sCodePath);
 	}
+#endif
 
 	iRc = xlHostBuildCText(&hostCtx, pDiag, pOpts->sInputFile, sCode, "xl_generated_entry", sOutputFile, &sTraceText, &result);
+#if XLANG_DEBUGMODE_ENABLED
 	__xlBuildDumpPath(sTracePath, sizeof(sTracePath), "host", pOpts->sInputFile, ".build.trace.txt");
 	if ( xlDumpWriteText(pDump, sTracePath, (sTraceText != NULL) ? sTraceText : "") != XL_RC_OK ) {
 		XL_DIAG_WARN(pDiag, "build", "failed to write host build trace: %s", sTracePath);
@@ -1579,21 +1129,28 @@ static int __xlDriverBuildProgram(
 	if ( xlDumpWriteText(pDump, sSymbolsPath, (sSymbolsJson != NULL) ? sSymbolsJson : "{\n\t\"symbols\": []\n}\n") != XL_RC_OK ) {
 		XL_DIAG_WARN(pDiag, "build", "failed to write symbol dump: %s", sSymbolsPath);
 	}
+#endif
 	if ( iRc != XL_RC_OK ) goto cleanup;
 
 	snprintf(sSummary, sizeof(sSummary), "BuildResult output=%s kind=%s entry=%s\n", result.sOutputFile, result.sOutputKind, result.sEntrySymbol);
+#if XLANG_DEBUGMODE_ENABLED
 	sJsonDump = __xlWrapJsonText("result", sSummary);
-	if ( pOpts->bDumpJson ) {
+	if ( XL_CLI_DUMP_JSON(pOpts) ) {
 		if ( sJsonDump != NULL ) fputs(sJsonDump, stdout);
 	} else {
 		fputs(sSummary, stdout);
 	}
+#else
+	fputs(sSummary, stdout);
+#endif
 
 cleanup:
 	free(sCode);
 	free(sTraceText);
+#if XLANG_DEBUGMODE_ENABLED
 	free(sSymbolsJson);
 	free(sJsonDump);
+#endif
 	xlLowerResultFree(&lowerResult);
 	xlSemResultFree(&semResult);
 	xlModuleLinkResultFree(&moduleResult);
@@ -1609,26 +1166,38 @@ static int __xlDriverBuildCProgram(
 	XL_HostContext hostCtx;
 	XL_HostBuildResult result;
 	char* sTraceText;
-	char* sSymbolsJson;
-	char* sJsonDump;
-	char sTracePath[XL_PATH_MAX_LEN];
-	char sSymbolsPath[XL_PATH_MAX_LEN];
+	char sRootPath[XL_PATH_MAX_LEN];
 	char sOutputFile[XL_PATH_MAX_LEN];
 	char sSummary[XL_DIAG_TEXT_MAX];
 	int iRc;
+#if XLANG_DEBUGMODE_ENABLED
+	char* sSymbolsJson;
+	char sTracePath[XL_PATH_MAX_LEN];
+	char sSymbolsPath[XL_PATH_MAX_LEN];
+	char* sJsonDump;
+#endif
 
-	xlHostContextInit(&hostCtx, pOpts->sInputFile, pDump->sRoot);
+	xlHostContextInit(&hostCtx, pOpts->sInputFile, __xlDriverRootPath(pDump, sRootPath, sizeof(sRootPath)));
 	memset(&result, 0, sizeof(result));
 	sTraceText = NULL;
+#if XLANG_DEBUGMODE_ENABLED
 	sSymbolsJson = NULL;
 	sJsonDump = NULL;
+#endif
 	if ( pOpts->sEmitPath != NULL ) {
 		snprintf(sOutputFile, sizeof(sOutputFile), "%s", pOpts->sEmitPath);
 	} else {
-		__xlBuildDefaultOutputPath(sOutputFile, sizeof(sOutputFile), pDump, pOpts->sInputFile, ".exe");
+		__xlBuildDefaultOutputPath(
+			sOutputFile,
+			sizeof(sOutputFile),
+			__xlDriverRootPath(pDump, sRootPath, sizeof(sRootPath)),
+			pOpts->sInputFile,
+			".exe"
+		);
 	}
 
 	iRc = xlHostBuildCFile(&hostCtx, pDiag, pOpts->sInputFile, sOutputFile, &sTraceText, &result);
+#if XLANG_DEBUGMODE_ENABLED
 	__xlBuildDumpPath(sTracePath, sizeof(sTracePath), "host", pOpts->sInputFile, ".build.trace.txt");
 	if ( xlDumpWriteText(pDump, sTracePath, (sTraceText != NULL) ? sTraceText : "") != XL_RC_OK ) {
 		XL_DIAG_WARN(pDiag, "build-c", "failed to write host build trace: %s", sTracePath);
@@ -1638,188 +1207,71 @@ static int __xlDriverBuildCProgram(
 	if ( xlDumpWriteText(pDump, sSymbolsPath, (sSymbolsJson != NULL) ? sSymbolsJson : "{\n\t\"symbols\": []\n}\n") != XL_RC_OK ) {
 		XL_DIAG_WARN(pDiag, "build-c", "failed to write symbol dump: %s", sSymbolsPath);
 	}
+#endif
 	if ( iRc != XL_RC_OK ) {
 		free(sTraceText);
+#if XLANG_DEBUGMODE_ENABLED
 		free(sSymbolsJson);
+#endif
 		return iRc;
 	}
 
 	snprintf(sSummary, sizeof(sSummary), "BuildCResult output=%s kind=%s entry=%s\n", result.sOutputFile, result.sOutputKind, result.sEntrySymbol);
+#if XLANG_DEBUGMODE_ENABLED
 	sJsonDump = __xlWrapJsonText("result", sSummary);
-	if ( pOpts->bDumpJson ) {
+	if ( XL_CLI_DUMP_JSON(pOpts) ) {
 		if ( sJsonDump != NULL ) fputs(sJsonDump, stdout);
 	} else {
 		fputs(sSummary, stdout);
 	}
+#else
+	fputs(sSummary, stdout);
+#endif
 
 	free(sTraceText);
+#if XLANG_DEBUGMODE_ENABLED
 	free(sSymbolsJson);
 	free(sJsonDump);
+#endif
 	return iRc;
 }
 
-static void __xlDriverFileStem(const char* sPath, char* sOut, size_t iOutSize)
-{
-	const char* sName;
-	const char* sScan;
-	const char* sDot;
-	size_t iLen;
-
-	if ( (sOut == NULL) || (iOutSize == 0) ) {
-		return;
-	}
-	sName = (sPath != NULL) ? sPath : "binding";
-	sScan = sName;
-	while ( *sScan != '\0' ) {
-		if ( xlPathIsSep((unsigned char)*sScan) ) {
-			sName = sScan + 1;
-		}
-		++sScan;
-	}
-	sDot = strrchr(sName, '.');
-	iLen = (sDot != NULL) ? (size_t)(sDot - sName) : strlen(sName);
-	if ( iLen >= iOutSize ) {
-		iLen = iOutSize - 1;
-	}
-	memcpy(sOut, sName, iLen);
-	sOut[iLen] = '\0';
-}
-
-static void __xlDriverSanitizeModuleName(char* sText)
-{
-	size_t i;
-
-	if ( sText == NULL ) {
-		return;
-	}
-	for ( i = 0; sText[i] != '\0'; ++i ) {
-		unsigned char ch = (unsigned char)sText[i];
-		if ( ((ch >= 'a') && (ch <= 'z')) || ((ch >= 'A') && (ch <= 'Z')) ||
-			((ch >= '0') && (ch <= '9')) || (ch == '_') ) {
-			continue;
-		}
-		sText[i] = '_';
-	}
-	if ( (sText[0] >= '0') && (sText[0] <= '9') ) {
-		size_t iLen = strlen(sText);
-		if ( (iLen + 2) < XL_PATH_MAX_LEN ) {
-			memmove(sText + 2, sText, iLen + 1);
-			sText[0] = 'b';
-			sText[1] = '_';
-		}
-	}
-	if ( sText[0] == '\0' ) {
-		snprintf(sText, XL_PATH_MAX_LEN, "binding");
-	}
-}
-
-static int __xlDriverGenerateBindingPackage(
-	const XL_CliOptions* pOpts,
-	XL_DiagContext* pDiag,
-	XL_DumpContext* pDump
-)
-{
-	char sStem[XL_PATH_MAX_LEN];
-	char sOutRoot[XL_PATH_MAX_LEN];
-	char sIncludeDir[XL_PATH_MAX_LEN];
-	char sHeaderName[XL_PATH_MAX_LEN];
-	char sHeaderDst[XL_PATH_MAX_LEN];
-	char sSrcPath[XL_PATH_MAX_LEN];
-	char sProjectPath[XL_PATH_MAX_LEN];
-	char sJson[XL_DIAG_TEXT_MAX];
-	char sModule[XL_DIAG_TEXT_MAX];
-	const char* sEmit;
-	int iRc;
-
-	if ( (pOpts == NULL) || (pOpts->sInputFile == NULL) ) {
-		return XL_RC_BAD_ARG;
-	}
-	(void)pDump;
-	__xlDriverFileStem(pOpts->sInputFile, sStem, sizeof(sStem));
-	__xlDriverSanitizeModuleName(sStem);
-	sEmit = pOpts->sEmitPath;
-	if ( sEmit != NULL ) {
-		snprintf(sOutRoot, sizeof(sOutRoot), "%s", sEmit);
-	} else {
-		xlPathJoin(sOutRoot, sizeof(sOutRoot), "release", "binding");
-		xlPathJoin(sOutRoot, sizeof(sOutRoot), sOutRoot, sStem);
-	}
-	xlPathJoin(sIncludeDir, sizeof(sIncludeDir), sOutRoot, "include");
-	__xlDriverFileStem(pOpts->sInputFile, sHeaderName, sizeof(sHeaderName));
-	{
-		const char* sDot = strrchr(pOpts->sInputFile, '.');
-		strncat(sHeaderName, (sDot != NULL) ? sDot : ".h", sizeof(sHeaderName) - strlen(sHeaderName) - 1);
-	}
-	xlPathJoin(sHeaderDst, sizeof(sHeaderDst), sIncludeDir, sHeaderName);
-	xlPathJoin(sSrcPath, sizeof(sSrcPath), sOutRoot, "src");
-	xlPathJoin(sSrcPath, sizeof(sSrcPath), sSrcPath, sStem);
-	strncat(sSrcPath, ".xl", sizeof(sSrcPath) - strlen(sSrcPath) - 1);
-	xlPathJoin(sProjectPath, sizeof(sProjectPath), sOutRoot, "xlang.json");
-
-	iRc = __xlCopyFileBytes(pOpts->sInputFile, sHeaderDst);
-	if ( iRc != XL_RC_OK ) {
-		XL_DIAG_ERROR(pDiag, "bind", "failed to copy header: %s", pOpts->sInputFile);
-		return iRc;
-	}
-	snprintf(
-		sModule,
-		sizeof(sModule),
-		"#incpath \"../include\"\n#binding \"../include/%s\"\n\n",
-		sHeaderName
-	);
-	iRc = __xlWriteTextFile(sSrcPath, sModule);
-	if ( iRc != XL_RC_OK ) {
-		XL_DIAG_ERROR(pDiag, "bind", "failed to write binding module: %s", sSrcPath);
-		return iRc;
-	}
-	snprintf(
-		sJson,
-		sizeof(sJson),
-		"{\n\t\"name\": \"binding.%s\",\n\t\"version\": \"0.1.0\",\n\t\"type\": \"package\",\n\t\"source\": [\"src\"],\n\t\"exports\": [\"%s\"],\n\t\"incpath\": [\"include\"]\n}\n",
-		sStem,
-		sStem
-	);
-	iRc = __xlWriteTextFile(sProjectPath, sJson);
-	if ( iRc != XL_RC_OK ) {
-		XL_DIAG_ERROR(pDiag, "bind", "failed to write package file: %s", sProjectPath);
-		return iRc;
-	}
-	printf("BindingPackage path=%s module=%s\n", sOutRoot, sStem);
-	return XL_RC_OK;
-}
-
-int xlDriverRun(const XL_CliOptions* pOpts, XL_DiagContext* pDiag, XL_DumpContext* pDump)
+static int __xlDriverRunInternal(const XL_CliOptions* pOpts, XL_DiagContext* pDiag, XL_DumpContext* pDump)
 {
 	int iRc;
 
-	if ( (pOpts == NULL) || (pDiag == NULL) || (pDump == NULL) ) {
+	if ( (pOpts == NULL) || (pDiag == NULL) ) {
 		return XL_RC_BAD_ARG;
 	}
 
-	iRc = xlDumpEnsureLayout(pDump);
-	if ( iRc != XL_RC_OK ) {
-		XL_DIAG_ERROR(pDiag, "driver", "failed to create release layout");
-		return iRc;
+#if XLANG_DEBUGMODE_ENABLED
+	if ( pDump != NULL ) {
+		iRc = xlDumpEnsureLayout(pDump);
+		if ( iRc != XL_RC_OK ) {
+			XL_DIAG_ERROR(pDiag, "driver", "failed to create release layout");
+			return iRc;
+		}
 	}
+#endif
 	if ( pOpts->sInputFile != NULL ) {
 		xlDiagSetDefaultSourceFile(pDiag, pOpts->sInputFile);
 	}
 
 #if XLANG_DEBUGMODE_ENABLED
 	if ( pOpts->eCommand == XL_CMD_LEX ) {
-		return __xlDriverRunLex(pOpts, pDiag, pDump);
+		return xlDriverRunLexDebug(pOpts, pDiag, pDump);
 	}
 	if ( pOpts->eCommand == XL_CMD_PARSE ) {
-		return __xlDriverRunParse(pOpts, pDiag, pDump);
+		return xlDriverRunParseDebug(pOpts, pDiag, pDump);
 	}
 	if ( pOpts->eCommand == XL_CMD_SEM ) {
-		return __xlDriverRunSem(pOpts, pDiag, pDump);
+		return xlDriverRunSemDebug(pOpts, pDiag, pDump);
 	}
 	if ( pOpts->eCommand == XL_CMD_LOWER ) {
-		return __xlDriverRunLower(pOpts, pDiag, pDump);
+		return xlDriverRunLowerDebug(pOpts, pDiag, pDump);
 	}
 	if ( pOpts->eCommand == XL_CMD_CGEN ) {
-		return __xlDriverRunCgen(pOpts, pDiag, pDump);
+		return xlDriverRunCgenDebug(pOpts, pDiag, pDump);
 	}
 #endif
 	if ( pOpts->eCommand == XL_CMD_BUILD ) {
@@ -1834,14 +1286,13 @@ int xlDriverRun(const XL_CliOptions* pOpts, XL_DiagContext* pDiag, XL_DumpContex
 	if ( pOpts->eCommand == XL_CMD_RUN_C ) {
 		return __xlDriverRunCProgram(pOpts, pDiag, pDump);
 	}
-	if ( pOpts->eCommand == XL_CMD_BIND ) {
-		return __xlDriverGenerateBindingPackage(pOpts, pDiag, pDump);
-	}
 
+#if XLANG_DEBUGMODE_ENABLED
 	iRc = __xlDriverWriteStubDump(pOpts, pDiag, pDump);
 	if ( iRc != XL_RC_OK ) {
 		return iRc;
 	}
+#endif
 
 	XL_DIAG_INFO(
 		pDiag,
@@ -1859,3 +1310,15 @@ int xlDriverRun(const XL_CliOptions* pOpts, XL_DiagContext* pDiag, XL_DumpContex
 
 	return XL_RC_NOT_IMPLEMENTED;
 }
+
+int xlDriverRunRelease(const XL_CliOptions* pOpts, XL_DiagContext* pDiag)
+{
+	return __xlDriverRunInternal(pOpts, pDiag, NULL);
+}
+
+#if XLANG_DEBUGMODE_ENABLED
+int xlDriverRunDebug(const XL_CliOptions* pOpts, XL_DiagContext* pDiag, XL_DumpContext* pDump)
+{
+	return __xlDriverRunInternal(pOpts, pDiag, pDump);
+}
+#endif

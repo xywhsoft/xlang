@@ -26,8 +26,8 @@ const char* xlStdSysFileModuleSource(void)
 		"func append_all(string path, string text) as bool\n"
 		"\treturn fs.append_all(path, text)\n"
 		"end\n"
-		"func delete(string path) as bool\n"
-		"\treturn fs.delete(path)\n"
+		"func remove(string path) as bool\n"
+		"\treturn fs.remove(path)\n"
 		"end\n"
 		"\n"
 		"export exists\n"
@@ -37,5 +37,5 @@ const char* xlStdSysFileModuleSource(void)
 		"export read_all\n"
 		"export write_all\n"
 		"export append_all\n"
-		"export delete\n";
+		"export remove\n";
 }

@@ -1,6 +1,5 @@
 #include "src/common/xl_common.h"
 #include "src/diag/xl_diag.h"
-#include "src/diag/xl_dump.h"
 #include "src/driver/xl_cli.h"
 #include "src/driver/xl_driver.h"
 
@@ -8,12 +7,10 @@ int main(int argc, char** argv)
 {
 	XL_CliOptions opts;
 	XL_DiagContext diag;
-	XL_DumpContext dump;
 	int iRc;
 
 	xlCliInit(&opts);
 	xlDiagInit(&diag, stderr, stderr);
-	xlDumpInit(&dump, NULL);
 
 	iRc = xlCliParse(argc, argv, &opts, &diag);
 	if ( iRc != XL_RC_OK ) {
@@ -25,10 +22,7 @@ int main(int argc, char** argv)
 		return XL_RC_OK;
 	}
 
-	if ( opts.bDiagJson ) {
-		xlDiagSetFormat(&diag, XL_DIAG_FORMAT_JSON);
-	}
 	xlDiagSetDefaultSourceFile(&diag, opts.sInputFile);
 
-	return xlDriverRun(&opts, &diag, &dump);
+	return xlDriverRunRelease(&opts, &diag);
 }

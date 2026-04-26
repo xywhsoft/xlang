@@ -7689,6 +7689,12 @@ static int __xlLoadModule(
 				pModule = __xlFindModuleByFile(pCtx, xlpInfo.sModuleFile);
 			}
 		}
+		if ( pModule == NULL ) {
+			memset(&nativeInfo, 0, sizeof(nativeInfo));
+			if ( xlNativeRegistryFind(sModuleKey, &nativeInfo) == XL_RC_OK ) {
+				pModule = __xlFindModuleByFile(pCtx, nativeInfo.sVirtualPath);
+			}
+		}
 	}
 	if ( pModule != NULL ) {
 		if ( pModule->iState == 1 ) {
