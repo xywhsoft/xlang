@@ -2,7 +2,7 @@
 #define XL_OBJECT_RUNTIME_H
 
 #include "../common/xl_common.h"
-#include "../../lib/xrt/xrt.h"
+#include "xrt.h"
 
 #define XL_OBJECT_HEADER_MAGIC 0x584C4F42u
 #define XL_OBJECT_FLAG_DESTROYING 0x00000001u

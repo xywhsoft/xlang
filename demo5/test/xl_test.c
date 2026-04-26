@@ -923,6 +923,46 @@ static int __xlReadFileText(const char* sPath, char** psText)
 	return XL_RC_OK;
 }
 
+static int __xlWriteFileText(const char* sPath, const char* sText)
+{
+	FILE* pFile;
+	size_t iLen;
+
+	if ( (sPath == NULL) || (sText == NULL) ) {
+		return XL_RC_BAD_ARG;
+	}
+	if ( xlPathEnsureParentDir(sPath) != XL_RC_OK ) {
+		return XL_RC_FAIL;
+	}
+
+	pFile = fopen(sPath, "wb");
+	if ( pFile == NULL ) {
+		return XL_RC_FAIL;
+	}
+	iLen = strlen(sText);
+	if ( (iLen != 0u) && (fwrite(sText, 1u, iLen, pFile) != iLen) ) {
+		fclose(pFile);
+		return XL_RC_FAIL;
+	}
+	fclose(pFile);
+	return XL_RC_OK;
+}
+
+static int __xlCopyTextFile(const char* sSrcPath, const char* sDstPath)
+{
+	char* sText;
+	int iRc;
+
+	sText = NULL;
+	iRc = __xlReadFileText(sSrcPath, &sText);
+	if ( iRc != XL_RC_OK ) {
+		return iRc;
+	}
+	iRc = __xlWriteFileText(sDstPath, sText);
+	free(sText);
+	return iRc;
+}
+
 static int __xlRunExe(const char* sExePath, int* piExitCode)
 {
 #if defined(_WIN32) || defined(_WIN64)
@@ -13186,6 +13226,42 @@ static int __xlTestRunGenericExplicitTypeArg(XL_TestContext* pCtx) { return __xl
 static int __xlTestProjectAppBuildBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\project\\app\\xlang.json", 1, 52, NULL, NULL); }
 static int __xlTestProjectBindingIncpath(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\project\\binding_incpath\\xlang.json", 1, 42, NULL, NULL); }
 static int __xlTestProjectPackageImportBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\project\\pkgapp\\xlang.json", 1, 42, NULL, NULL); }
+static int __xlPreparePublicLibsPkgMath(XL_TestContext* pCtx)
+{
+	char sSrcManifest[XL_PATH_MAX_LEN];
+	char sSrcImpl[XL_PATH_MAX_LEN];
+	char sDstManifest[XL_PATH_MAX_LEN];
+	char sDstImpl[XL_PATH_MAX_LEN];
+	int iRc;
+
+	__xlBuildProjectPath(pCtx, sSrcManifest, sizeof(sSrcManifest), "examples\\xlp\\packages\\pkg.math\\xlp.json");
+	__xlBuildProjectPath(pCtx, sSrcImpl, sizeof(sSrcImpl), "examples\\xlp\\packages\\pkg.math\\src\\math_pkg_impl.xl");
+	__xlBuildProjectPath(pCtx, sDstManifest, sizeof(sDstManifest), "release\\libs\\packages\\pkg.math\\xlp.json");
+	__xlBuildProjectPath(pCtx, sDstImpl, sizeof(sDstImpl), "release\\libs\\packages\\pkg.math\\src\\math_pkg_impl.xl");
+
+	iRc = __xlCopyTextFile(sSrcManifest, sDstManifest);
+	if ( iRc != XL_RC_OK ) {
+		return iRc;
+	}
+	return __xlCopyTextFile(sSrcImpl, sDstImpl);
+}
+
+static int __xlTestRunPrivateLibsPkgMathBasic(XL_TestContext* pCtx)
+{
+	return __xlRunProgramCase(pCtx, "examples\\full\\private_libs_pkg_math_basic.xl", 1, 42, NULL, NULL);
+}
+
+static int __xlTestRunPublicLibsPkgMathBasic(XL_TestContext* pCtx)
+{
+	int iRc;
+
+	iRc = __xlPreparePublicLibsPkgMath(pCtx);
+	if ( iRc != XL_RC_OK ) {
+		return iRc;
+	}
+	return __xlRunProgramCase(pCtx, "examples\\full\\public_libs_pkg_math_basic.xl", 1, 42, NULL, NULL);
+}
+
 static int __xlRunProjectWithEnvPath(
 	XL_TestContext* pCtx,
 	const char* sProjectRel,
@@ -20224,6 +20300,8 @@ static const XL_TestCase __gXLTests[] = {
 	{ "project.std_priority", "project", __xlTestProjectStdPriority },
 	{ "project.import_error_paths", "project", __xlTestProjectImportErrorPaths },
 	{ "project.xlp_package_project_build", "project", __xlTestXlpPackageProjectBuild },
+	{ "runtime.private_libs_pkg_math_basic", "runtime", __xlTestRunPrivateLibsPkgMathBasic },
+	{ "runtime.public_libs_pkg_math_basic", "runtime", __xlTestRunPublicLibsPkgMathBasic },
 	{ "runtime.module_init_throw", "runtime", __xlTestRunModuleInitThrow },
 	{ "runtime.function_forward_call_basic", "runtime", __xlTestRunFunctionForwardCallBasic },
 	{ "runtime.xlp_import", "runtime", __xlTestRunXlpImport },

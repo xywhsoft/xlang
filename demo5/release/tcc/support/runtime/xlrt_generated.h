@@ -2,7 +2,7 @@
 #define XLRT_GENERATED_H
 
 #include "xlrt_profile.h"
-#include "../../lib/xrt/xrt.h"
+#include "xrt.h"
 
 #ifndef XL_OBJECT_HEADER_MAGIC
 #define XL_OBJECT_HEADER_MAGIC 0x584C4F42u

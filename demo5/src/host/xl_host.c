@@ -116,12 +116,23 @@ static void __xlNormalizeRootPath(char* sOut, size_t iOutSize, const char* sPath
 
 static void __xlInitProjectRoot(char* sOut, size_t iOutSize, const char* sInputFile, const char* sReleaseRoot)
 {
+	char sResolved[XL_PATH_MAX_LEN];
+
 	if ( (sOut == NULL) || (iOutSize == 0) ) {
 		return;
 	}
 
 	if ( (sInputFile != NULL) && (sInputFile[0] != '\0') ) {
+		sResolved[0] = '\0';
+#if defined(_WIN32) || defined(_WIN64)
+		if ( GetFullPathNameA(sInputFile, (DWORD)sizeof(sResolved), sResolved, NULL) != 0 ) {
+			__xlCopyText(sOut, iOutSize, sResolved);
+		} else {
+			__xlCopyText(sOut, iOutSize, sInputFile);
+		}
+#else
 		__xlCopyText(sOut, iOutSize, sInputFile);
+#endif
 		__xlStripFileName(sOut);
 		if ( sOut[0] != '\0' ) {
 			return;
