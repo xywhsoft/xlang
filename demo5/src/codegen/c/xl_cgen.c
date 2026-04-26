@@ -8182,6 +8182,7 @@ static void __xlCgenRuntimeSupport(XL_CgenContext* pCtx)
 	__xlCgenAppend(pBuf, "int xl_generated_exception_column = 0;\n");
 	__xlCgenAppend(pBuf, "long long xl_generated_exception_int = 0;\n");
 	__xlCgenAppend(pBuf, "double xl_generated_exception_float = 0.0;\n");
+	#if XLANG_DEBUGMODE_ENABLED
 	__xlCgenAppend(pBuf, "char xl_generated_async_trace[8192];\n");
 	__xlCgenAppend(pBuf, "int xl_generated_async_trace_len = 0;\n\n");
 
@@ -8227,6 +8228,15 @@ static void __xlCgenRuntimeSupport(XL_CgenContext* pCtx)
 	__xlCgenAppend(pBuf, "\tsnprintf(sLine, sizeof(sLine), \"generator.%s=%s\\n\", sEvent, sName);\n");
 	__xlCgenAppend(pBuf, "\txl_generated_async_trace_append(sLine);\n");
 	__xlCgenAppend(pBuf, "}\n\n");
+	#else
+	__xlCgenAppend(pBuf, "char xl_generated_async_trace[1];\n");
+	__xlCgenAppend(pBuf, "int xl_generated_async_trace_len = 0;\n\n");
+	__xlCgenAppend(pBuf, "static void xl_generated_async_trace_append(const char* sText)\n{\n\t(void)sText;\n}\n\n");
+	__xlCgenAppend(pBuf, "static void xl_generated_async_trace_event(const char* sEvent, const char* sFunc)\n{\n\t(void)sEvent;\n\t(void)sFunc;\n}\n\n");
+	__xlCgenAppend(pBuf, "static void xl_generated_async_trace_state_event(const char* sFunc, int iStateId)\n{\n\t(void)sFunc;\n\t(void)iStateId;\n}\n\n");
+	__xlCgenAppend(pBuf, "static void xl_generated_task_trace_event(const char* sEvent, const char* sName)\n{\n\t(void)sEvent;\n\t(void)sName;\n}\n\n");
+	__xlCgenAppend(pBuf, "static void xl_generated_generator_trace_event(const char* sEvent, const char* sName)\n{\n\t(void)sEvent;\n\t(void)sName;\n}\n\n");
+	#endif
 	__xlCgenAppend(pBuf, "typedef struct XL_GeneratedGeneratorExecutor {\n");
 	__xlCgenAppend(pBuf, "\tint state;\n");
 	__xlCgenAppend(pBuf, "\tint done;\n");
@@ -8336,6 +8346,7 @@ static void __xlCgenRuntimeSupport(XL_CgenContext* pCtx)
 	__xlCgenAppend(pBuf, "\t}\n");
 	__xlCgenAppend(pBuf, "}\n\n");
 
+	#if XLANG_DEBUGMODE_ENABLED
 	__xlCgenAppend(pBuf, "static void xl_generated_async_trace_flush_to_env_file(void)\n{\n");
 	__xlCgenAppend(pBuf, "\tconst char* sTraceFile = getenv(\"XL_GENERATED_ASYNC_TRACE_FILE\");\n");
 	__xlCgenAppend(pBuf, "\tFILE* pFile;\n");
@@ -8349,6 +8360,9 @@ static void __xlCgenRuntimeSupport(XL_CgenContext* pCtx)
 	__xlCgenAppend(pBuf, "\t(void)fwrite(xl_generated_async_trace, 1u, (size_t)xl_generated_async_trace_len, pFile);\n");
 	__xlCgenAppend(pBuf, "\t(void)fclose(pFile);\n");
 	__xlCgenAppend(pBuf, "}\n\n");
+	#else
+	__xlCgenAppend(pBuf, "static void xl_generated_async_trace_flush_to_env_file(void)\n{\n}\n\n");
+	#endif
 
 	__xlCgenAppend(pBuf, "static void xl_generated_runtime_reset(void)\n{\n");
 	__xlCgenAppend(pBuf, "\txl_generated_had_exception = 0;\n");

@@ -2,7 +2,6 @@
 setlocal
 cd /d %~dp0
 
-if not exist release\bin mkdir release\bin
 if not exist release\tmp mkdir release\tmp
 if exist release\tmp\*.fallback.exe del /f /q release\tmp\*.fallback.exe >nul 2>nul
 if exist release\tmp\*.trace.txt del /f /q release\tmp\*.trace.txt >nul 2>nul
@@ -18,14 +17,17 @@ if not exist examples\xlp_static\packages\pkg.probe\lib mkdir examples\xlp_stati
 set SRC_LIST=release\tmp\gcc_sources.rsp
 set TEST_SRC_LIST=release\tmp\gcc_test_sources.rsp
 set TCC_OBJ=release\tmp\libtcc.o
-set XL5_BUILD_EXE=release\tmp\xl5.build.exe
-set XL5_TEST_BUILD_EXE=release\tmp\xl5_test.build.exe
+set XL_BUILD_EXE=release\xl.exe
+set XLDBG_BUILD_EXE=release\xldbg.exe
+set XL5_TEST_BUILD_EXE=release\xl5_test.exe
 set BUILD_STAMP_HEADER=release\tmp\xl_test_build_stamp.h
-set XL5_SMOKE_LOG=release\tmp\xl5_smoke.log
+set XL_SMOKE_LOG=release\tmp\xl_smoke.log
+set XLDBG_SMOKE_LOG=release\tmp\xldbg_smoke.log
 set XL5_TEST_SMOKE_LOG=release\tmp\xl5_test_smoke.log
 set XL5_SMOKE_FILE=examples\full\for_in_range.xl
 set SMOKE_SELECTOR=lower.async_generator_loop_control_hybrid_groups_json
 set GCC_COMMON_FLAGS=-std=c11 -O2 -ffunction-sections -fdata-sections -Wall -Wextra -Werror -Wno-unused-parameter -Wno-unused-variable -Wno-unused-function -Wno-format-truncation -Wno-restrict -Wno-maybe-uninitialized -D_CRT_SECURE_NO_WARNINGS -I. -Ilib\xrt -Ilib\tcc
+set GCC_DEBUG_FLAGS=%GCC_COMMON_FLAGS% -DXLANG_DEBUGMODE=1
 set GCC_LINK_FLAGS=-Wl,--gc-sections -s -lshell32 -lws2_32 -liphlpapi
 
 for /f "delims=" %%i in ('powershell -NoProfile -Command "(Get-Date).ToString('yyyy-MM-dd HH:mm:ss.fff')"') do set BUILD_ID=%%i
@@ -33,6 +35,24 @@ set BUILD_ID=%BUILD_ID% run-%RANDOM%-%RANDOM%
 > "%BUILD_STAMP_HEADER%" echo #ifndef XL_TEST_BUILD_ID
 >> "%BUILD_STAMP_HEADER%" echo #define XL_TEST_BUILD_ID "%BUILD_ID%"
 >> "%BUILD_STAMP_HEADER%" echo #endif
+
+if not exist release\src\common mkdir release\src\common
+if not exist release\src\runtime mkdir release\src\runtime
+if not exist release\src\host mkdir release\src\host
+if not exist release\lib\xrt mkdir release\lib\xrt
+
+copy /y src\common\xl_common.h release\src\common\xl_common.h >nul
+copy /y src\runtime\xlrt_profile.h release\src\runtime\xlrt_profile.h >nul
+copy /y src\runtime\xlrt_host.c release\src\runtime\xlrt_host.c >nul
+copy /y src\runtime\xlrt_generated.h release\src\runtime\xlrt_generated.h >nul
+copy /y src\runtime\xlrt_generated.c release\src\runtime\xlrt_generated.c >nul
+copy /y src\runtime\xl_object_runtime.h release\src\runtime\xl_object_runtime.h >nul
+copy /y src\runtime\xl_object_runtime.c release\src\runtime\xl_object_runtime.c >nul
+copy /y src\runtime\xl_channel_runtime.c release\src\runtime\xl_channel_runtime.c >nul
+copy /y src\runtime\xl_sys_lib_runtime.c release\src\runtime\xl_sys_lib_runtime.c >nul
+copy /y src\host\xl_host_runtime.h release\src\host\xl_host_runtime.h >nul
+copy /y src\host\xl_host_runtime.c release\src\host\xl_host_runtime.c >nul
+copy /y lib\xrt\xrt.h release\lib\xrt\xrt.h >nul
 
 echo Generating lexer with Flex...
 tools\flex.exe --wincompat --noline -o src\lexer\xl_lexer_gen.c --header-file=src\lexer\xl_lexer_gen.h src\lexer\xl_lexer.l
@@ -86,19 +106,44 @@ if errorlevel 1 (
 	exit /b 1
 )
 
-echo Building demo5 with GCC...
-gcc %GCC_COMMON_FLAGS% @"%SRC_LIST%" "%TCC_OBJ%" -o "%XL5_BUILD_EXE%" %GCC_LINK_FLAGS%
+if exist "%XL_BUILD_EXE%" del /f /q "%XL_BUILD_EXE%" >nul
+echo Building xl with GCC...
+gcc %GCC_COMMON_FLAGS% @"%SRC_LIST%" "%TCC_OBJ%" -o "%XL_BUILD_EXE%" %GCC_LINK_FLAGS%
 
 if errorlevel 1 (
-	echo Build failed.
+	echo xl build failed.
+	exit /b 1
+)
+
+if not exist "%XL_BUILD_EXE%" (
+	echo xl build output missing: %XL_BUILD_EXE%
+	exit /b 1
+)
+
+if exist "%XLDBG_BUILD_EXE%" del /f /q "%XLDBG_BUILD_EXE%" >nul
+echo Building xldbg with GCC...
+gcc %GCC_DEBUG_FLAGS% @"%SRC_LIST%" "%TCC_OBJ%" -o "%XLDBG_BUILD_EXE%" %GCC_LINK_FLAGS%
+
+if errorlevel 1 (
+	echo xldbg build failed.
+	exit /b 1
+)
+
+if not exist "%XLDBG_BUILD_EXE%" (
+	echo xldbg build output missing: %XLDBG_BUILD_EXE%
 	exit /b 1
 )
 
 echo Building demo5 test runner with GCC...
-gcc %GCC_COMMON_FLAGS% @"%TEST_SRC_LIST%" "%TCC_OBJ%" -o "%XL5_TEST_BUILD_EXE%" %GCC_LINK_FLAGS%
+gcc %GCC_DEBUG_FLAGS% @"%TEST_SRC_LIST%" "%TCC_OBJ%" -o "%XL5_TEST_BUILD_EXE%" %GCC_LINK_FLAGS%
 
 if errorlevel 1 (
 	echo Test runner build failed.
+	exit /b 1
+)
+
+if not exist "%XL5_TEST_BUILD_EXE%" (
+	echo Test runner build output missing: %XL5_TEST_BUILD_EXE%
 	exit /b 1
 )
 
@@ -145,7 +190,7 @@ if errorlevel 1 (
 	exit /b 1
 )
 
-"%XL5_BUILD_EXE%" build-c examples\xlp_artifacts\pkg_clock_artifact.c --emit release\tmp\pkg_clock_artifact.obj >nul
+call "%XL_BUILD_EXE%" build-c examples\xlp_artifacts\pkg_clock_artifact.c --emit release\tmp\pkg_clock_artifact.obj >nul
 
 if errorlevel 1 (
 	echo Static xlp artifact object build failed.
@@ -173,35 +218,35 @@ if errorlevel 1 (
 	exit /b 1
 )
 
+if exist release\xl5.exe del /f /q release\xl5.exe >nul
+if exist release\bin\xl.exe del /f /q release\bin\xl.exe >nul
+if exist release\bin\xldbg.exe del /f /q release\bin\xldbg.exe >nul
 if exist release\bin\xl5.exe del /f /q release\bin\xl5.exe >nul
-move /y "%XL5_BUILD_EXE%" release\bin\xl5.exe >nul
-
-if errorlevel 1 (
-	echo xl5.exe publish failed.
-	exit /b 1
-)
-
 if exist release\bin\xl5_test.exe del /f /q release\bin\xl5_test.exe >nul
-move /y "%XL5_TEST_BUILD_EXE%" release\bin\xl5_test.exe >nul
 
-if errorlevel 1 (
-	echo xl5_test.exe publish failed.
-	exit /b 1
-)
-
-if exist "%XL5_SMOKE_LOG%" del /f /q "%XL5_SMOKE_LOG%" >nul
+if exist "%XL_SMOKE_LOG%" del /f /q "%XL_SMOKE_LOG%" >nul
+if exist "%XLDBG_SMOKE_LOG%" del /f /q "%XLDBG_SMOKE_LOG%" >nul
 if exist "%XL5_TEST_SMOKE_LOG%" del /f /q "%XL5_TEST_SMOKE_LOG%" >nul
 
-release\bin\xl5.exe sem "%XL5_SMOKE_FILE%" > "%XL5_SMOKE_LOG%" 2>&1
+release\xl.exe run "%XL5_SMOKE_FILE%" > "%XL_SMOKE_LOG%" 2>&1
 
 if errorlevel 1 (
-	echo xl5.exe smoke test failed for %XL5_SMOKE_FILE%.
+	echo xl.exe smoke test failed for %XL5_SMOKE_FILE%.
 	type "%BUILD_STAMP_HEADER%"
-	type "%XL5_SMOKE_LOG%"
+	type "%XL_SMOKE_LOG%"
 	exit /b 1
 )
 
-release\bin\xl5_test.exe %SMOKE_SELECTOR% > "%XL5_TEST_SMOKE_LOG%" 2>&1
+release\xldbg.exe sem "%XL5_SMOKE_FILE%" > "%XLDBG_SMOKE_LOG%" 2>&1
+
+if errorlevel 1 (
+	echo xldbg.exe smoke test failed for %XL5_SMOKE_FILE%.
+	type "%BUILD_STAMP_HEADER%"
+	type "%XLDBG_SMOKE_LOG%"
+	exit /b 1
+)
+
+release\xl5_test.exe %SMOKE_SELECTOR% > "%XL5_TEST_SMOKE_LOG%" 2>&1
 
 if errorlevel 1 (
 	echo xl5_test.exe smoke test failed for %SMOKE_SELECTOR%.
@@ -210,5 +255,5 @@ if errorlevel 1 (
 	exit /b 1
 )
 
-echo Build completed: release\bin\xl5.exe
+echo Build completed: release\xl.exe and release\xldbg.exe
 exit /b 0

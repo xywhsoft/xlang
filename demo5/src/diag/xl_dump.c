@@ -1,4 +1,5 @@
 #include "xl_dump.h"
+#include "../common/xl_app_path.h"
 
 void xlDumpInit(XL_DumpContext* pDump, const char* sRoot)
 {
@@ -7,7 +8,10 @@ void xlDumpInit(XL_DumpContext* pDump, const char* sRoot)
 	}
 
 	if ( sRoot == NULL ) {
-		sRoot = "release";
+		if ( xlAppPathGetDirectory(pDump->sRoot, sizeof(pDump->sRoot)) == XL_RC_OK ) {
+			return;
+		}
+		sRoot = ".";
 	}
 
 	snprintf(pDump->sRoot, sizeof(pDump->sRoot), "%s", sRoot);
@@ -16,7 +20,6 @@ void xlDumpInit(XL_DumpContext* pDump, const char* sRoot)
 int xlDumpEnsureLayout(XL_DumpContext* pDump)
 {
 	static const char* arrDirs[] = {
-		"bin",
 		"cgen",
 		"dump",
 		"dump\\lexer",

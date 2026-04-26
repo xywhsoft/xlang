@@ -213,6 +213,7 @@ static int __xlDetectProjectRoot(char* sOut, size_t iOutSize)
 {
 #if defined(_WIN32) || defined(_WIN64)
 	DWORD iLen;
+	char* sTail;
 
 	if ( (sOut == NULL) || (iOutSize == 0) ) {
 		return XL_RC_BAD_ARG;
@@ -225,8 +226,22 @@ static int __xlDetectProjectRoot(char* sOut, size_t iOutSize)
 	}
 
 	__xlStripFileName(sOut);
-	__xlStripFileName(sOut);
-	__xlStripFileName(sOut);
+	sTail = strrchr(sOut, '\\');
+	if ( sTail == NULL ) {
+		sTail = strrchr(sOut, '/');
+	}
+	sTail = (sTail != NULL) ? (sTail + 1) : sOut;
+	if ( _stricmp(sTail, "bin") == 0 ) {
+		__xlStripFileName(sOut);
+		sTail = strrchr(sOut, '\\');
+		if ( sTail == NULL ) {
+			sTail = strrchr(sOut, '/');
+		}
+		sTail = (sTail != NULL) ? (sTail + 1) : sOut;
+	}
+	if ( _stricmp(sTail, "release") == 0 ) {
+		__xlStripFileName(sOut);
+	}
 	return (sOut[0] != '\0') ? XL_RC_OK : XL_RC_FAIL;
 #else
 	XL_UNUSED(sOut);
@@ -21099,7 +21114,7 @@ static int __xlRunSelectorAliasIsolated(XL_TestContext* pCtx, const XL_TestSelec
 		sExePath[0] = '\0';
 	}
 	if ( (sExePath[0] == '\0') && (pCtx->sReleaseRoot[0] != '\0') ) {
-		int nWritten = snprintf(sExePath, sizeof(sExePath), "%s\\bin\\xl5_test.exe", pCtx->sReleaseRoot);
+		int nWritten = snprintf(sExePath, sizeof(sExePath), "%s\\xl5_test.exe", pCtx->sReleaseRoot);
 		if ( (nWritten < 0) || ((size_t)nWritten >= sizeof(sExePath)) ) {
 			sExePath[0] = '\0';
 		}

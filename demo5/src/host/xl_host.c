@@ -1,10 +1,14 @@
 #include "xl_host.h"
 
 #include "xl_host_tcc.h"
+#include "../common/xl_app_path.h"
 
 #if defined(_WIN32) || defined(_WIN64)
 	#include <windows.h>
 #endif
+
+int xlHostContextAddLibraryPath(XL_HostContext* pCtx, const char* sPath);
+int xlHostContextAddIncludePath(XL_HostContext* pCtx, const char* sPath);
 
 static void __xlCopyText(char* sOut, size_t iOutSize, const char* sText)
 {
@@ -110,30 +114,57 @@ static void __xlNormalizeRootPath(char* sOut, size_t iOutSize, const char* sPath
 #endif
 }
 
-static int __xlDetectProjectRoot(char* sOut, size_t iOutSize)
+static void __xlInitProjectRoot(char* sOut, size_t iOutSize, const char* sInputFile, const char* sReleaseRoot)
 {
-#if defined(_WIN32) || defined(_WIN64)
-	DWORD iLen;
-
 	if ( (sOut == NULL) || (iOutSize == 0) ) {
-		return XL_RC_BAD_ARG;
+		return;
 	}
 
-	iLen = GetModuleFileNameA(NULL, sOut, (DWORD)iOutSize);
-	if ( (iLen == 0) || (iLen >= iOutSize) ) {
-		sOut[0] = '\0';
-		return XL_RC_FAIL;
+	if ( (sInputFile != NULL) && (sInputFile[0] != '\0') ) {
+		__xlCopyText(sOut, iOutSize, sInputFile);
+		__xlStripFileName(sOut);
+		if ( sOut[0] != '\0' ) {
+			return;
+		}
 	}
 
-	__xlStripFileName(sOut);
-	__xlStripFileName(sOut);
-	__xlStripFileName(sOut);
-	return (sOut[0] != '\0') ? XL_RC_OK : XL_RC_FAIL;
-#else
-	XL_UNUSED(sOut);
-	XL_UNUSED(iOutSize);
-	return XL_RC_NOT_IMPLEMENTED;
-#endif
+	__xlCopyText(sOut, iOutSize, sReleaseRoot);
+}
+
+static void __xlHostContextAddDefaultSearchPaths(XL_HostContext* pCtx)
+{
+	char sAppLibs[XL_PATH_MAX_LEN];
+	char sAppLibDir[XL_PATH_MAX_LEN];
+	char sAppIncDir[XL_PATH_MAX_LEN];
+	char sLocalLibs[XL_PATH_MAX_LEN];
+	char sLocalLibDir[XL_PATH_MAX_LEN];
+	char sLocalIncDir[XL_PATH_MAX_LEN];
+
+	if ( pCtx == NULL ) {
+		return;
+	}
+
+	__xlBuildPath2(sAppLibs, sizeof(sAppLibs), pCtx->sReleaseRoot, "libs");
+	__xlBuildPath2(sAppLibDir, sizeof(sAppLibDir), sAppLibs, "lib");
+	__xlBuildPath2(sAppIncDir, sizeof(sAppIncDir), sAppLibs, "include");
+
+	(void)xlHostContextAddLibraryPath(pCtx, sAppLibs);
+	(void)xlHostContextAddLibraryPath(pCtx, sAppLibDir);
+	(void)xlHostContextAddIncludePath(pCtx, sAppLibs);
+	(void)xlHostContextAddIncludePath(pCtx, sAppIncDir);
+
+	if ( pCtx->sInputFile[0] == '\0' ) {
+		return;
+	}
+
+	__xlBuildPath2(sLocalLibs, sizeof(sLocalLibs), pCtx->sProjectRoot, "libs");
+	__xlBuildPath2(sLocalLibDir, sizeof(sLocalLibDir), sLocalLibs, "lib");
+	__xlBuildPath2(sLocalIncDir, sizeof(sLocalIncDir), sLocalLibs, "include");
+
+	(void)xlHostContextAddLibraryPath(pCtx, sLocalLibs);
+	(void)xlHostContextAddLibraryPath(pCtx, sLocalLibDir);
+	(void)xlHostContextAddIncludePath(pCtx, sLocalLibs);
+	(void)xlHostContextAddIncludePath(pCtx, sLocalIncDir);
 }
 
 void xlHostContextInit(XL_HostContext* pCtx, const char* sInputFile, const char* sReleaseRoot)
@@ -144,14 +175,12 @@ void xlHostContextInit(XL_HostContext* pCtx, const char* sInputFile, const char*
 
 	memset(pCtx, 0, sizeof(*pCtx));
 	__xlCopyText(pCtx->sInputFile, sizeof(pCtx->sInputFile), sInputFile);
-	if ( __xlDetectProjectRoot(pCtx->sProjectRoot, sizeof(pCtx->sProjectRoot)) == XL_RC_OK ) {
-		__xlBuildPath2(pCtx->sReleaseRoot, sizeof(pCtx->sReleaseRoot), pCtx->sProjectRoot, "release");
-	} else {
+	if ( xlAppPathGetDirectory(pCtx->sReleaseRoot, sizeof(pCtx->sReleaseRoot)) != XL_RC_OK ) {
 		__xlNormalizeRootPath(pCtx->sReleaseRoot, sizeof(pCtx->sReleaseRoot), sReleaseRoot);
-		__xlCopyText(pCtx->sProjectRoot, sizeof(pCtx->sProjectRoot), pCtx->sReleaseRoot);
-		__xlStripFileName(pCtx->sProjectRoot);
 	}
-	__xlBuildPath3(pCtx->sTccRoot, sizeof(pCtx->sTccRoot), pCtx->sProjectRoot, "release", "tcc");
+	__xlInitProjectRoot(pCtx->sProjectRoot, sizeof(pCtx->sProjectRoot), pCtx->sInputFile, pCtx->sReleaseRoot);
+	__xlBuildPath2(pCtx->sTccRoot, sizeof(pCtx->sTccRoot), pCtx->sReleaseRoot, "tcc");
+	__xlHostContextAddDefaultSearchPaths(pCtx);
 }
 
 int xlHostContextAddArtifact(XL_HostContext* pCtx, const char* sKind, const char* sFile)

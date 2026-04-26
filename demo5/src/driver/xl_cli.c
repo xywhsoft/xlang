@@ -6,11 +6,13 @@ typedef struct XL_CommandEntry {
 } XL_CommandEntry;
 
 static const XL_CommandEntry __gXLCommands[] = {
+#if XLANG_DEBUGMODE_ENABLED
 	{"lex", XL_CMD_LEX},
 	{"parse", XL_CMD_PARSE},
 	{"sem", XL_CMD_SEM},
 	{"lower", XL_CMD_LOWER},
 	{"cgen", XL_CMD_CGEN},
+#endif
 	{"build", XL_CMD_BUILD},
 	{"run", XL_CMD_RUN},
 	{"build-c", XL_CMD_BUILD_C},
@@ -82,28 +84,58 @@ int xlCliParse(int argc, char** argv, XL_CliOptions* pOpts, XL_DiagContext* pDia
 			continue;
 		}
 		if ( strcmp(sArg, "--dump-token") == 0 ) {
+#if XLANG_DEBUGMODE_ENABLED
 			pOpts->bDumpToken = true;
 			continue;
+#else
+			XL_DIAG_ERROR(pDiag, "cli", "--dump-token is only available in xldbg");
+			return XL_RC_BAD_ARG;
+#endif
 		}
 		if ( strcmp(sArg, "--dump-ast") == 0 ) {
+#if XLANG_DEBUGMODE_ENABLED
 			pOpts->bDumpAst = true;
 			continue;
+#else
+			XL_DIAG_ERROR(pDiag, "cli", "--dump-ast is only available in xldbg");
+			return XL_RC_BAD_ARG;
+#endif
 		}
 		if ( strcmp(sArg, "--dump-sem") == 0 ) {
+#if XLANG_DEBUGMODE_ENABLED
 			pOpts->bDumpSem = true;
 			continue;
+#else
+			XL_DIAG_ERROR(pDiag, "cli", "--dump-sem is only available in xldbg");
+			return XL_RC_BAD_ARG;
+#endif
 		}
 		if ( strcmp(sArg, "--dump-hir") == 0 ) {
+#if XLANG_DEBUGMODE_ENABLED
 			pOpts->bDumpHir = true;
 			continue;
+#else
+			XL_DIAG_ERROR(pDiag, "cli", "--dump-hir is only available in xldbg");
+			return XL_RC_BAD_ARG;
+#endif
 		}
 		if ( strcmp(sArg, "--dump-mir") == 0 ) {
+#if XLANG_DEBUGMODE_ENABLED
 			pOpts->bDumpMir = true;
 			continue;
+#else
+			XL_DIAG_ERROR(pDiag, "cli", "--dump-mir is only available in xldbg");
+			return XL_RC_BAD_ARG;
+#endif
 		}
 		if ( strcmp(sArg, "--dump-c") == 0 ) {
+#if XLANG_DEBUGMODE_ENABLED
 			pOpts->bDumpC = true;
 			continue;
+#else
+			XL_DIAG_ERROR(pDiag, "cli", "--dump-c is only available in xldbg");
+			return XL_RC_BAD_ARG;
+#endif
 		}
 		if ( strcmp(sArg, "--dump-json") == 0 ) {
 			pOpts->bDumpJson = true;
@@ -115,20 +147,40 @@ int xlCliParse(int argc, char** argv, XL_CliOptions* pOpts, XL_DiagContext* pDia
 			continue;
 		}
 		if ( strcmp(sArg, "--trace-parser") == 0 ) {
+#if XLANG_DEBUGMODE_ENABLED
 			pOpts->bTraceParser = true;
 			continue;
+#else
+			XL_DIAG_ERROR(pDiag, "cli", "--trace-parser is only available in xldbg");
+			return XL_RC_BAD_ARG;
+#endif
 		}
 		if ( strcmp(sArg, "--trace-sem") == 0 ) {
+#if XLANG_DEBUGMODE_ENABLED
 			pOpts->bTraceSem = true;
 			continue;
+#else
+			XL_DIAG_ERROR(pDiag, "cli", "--trace-sem is only available in xldbg");
+			return XL_RC_BAD_ARG;
+#endif
 		}
 		if ( strcmp(sArg, "--trace-lower") == 0 ) {
+#if XLANG_DEBUGMODE_ENABLED
 			pOpts->bTraceLower = true;
 			continue;
+#else
+			XL_DIAG_ERROR(pDiag, "cli", "--trace-lower is only available in xldbg");
+			return XL_RC_BAD_ARG;
+#endif
 		}
 		if ( strcmp(sArg, "--trace-runtime") == 0 ) {
+#if XLANG_DEBUGMODE_ENABLED
 			pOpts->bTraceRuntime = true;
 			continue;
+#else
+			XL_DIAG_ERROR(pDiag, "cli", "--trace-runtime is only available in xldbg");
+			return XL_RC_BAD_ARG;
+#endif
 		}
 		if ( strcmp(sArg, "--emit") == 0 ) {
 			if ( (i + 1) >= argc ) {
@@ -191,24 +243,27 @@ int xlCliParse(int argc, char** argv, XL_CliOptions* pOpts, XL_DiagContext* pDia
 void xlCliPrintHelp(const char* sProgName)
 {
 	if ( sProgName == NULL ) {
-		sProgName = "xl5";
+		sProgName = XLANG_DEBUGMODE_ENABLED ? "xldbg" : "xl";
 	}
 
-	printf("xlang demo5 compiler driver\n\n");
+	printf("xlang compiler driver\n\n");
 	printf("Usage:\n");
 	printf("  %s <command> <file> [options]\n\n", sProgName);
 	printf("Commands:\n");
+#if XLANG_DEBUGMODE_ENABLED
 	printf("  lex      tokenize source and dump tokens\n");
 	printf("  parse    build AST from source\n");
 	printf("  sem      run semantic analysis\n");
 	printf("  lower    lower AST into HIR/MIR\n");
 	printf("  cgen     generate C code\n");
+#endif
 	printf("  build    build source into an output artifact\n");
 	printf("  run      run program through compiler pipeline\n");
 	printf("  build-c  build a C source file through embedded TCC\n");
 	printf("  run-c    run a C source file through embedded TCC\n\n");
 	printf("  bind     generate an xlang binding package skeleton from a C header\n\n");
 	printf("Options:\n");
+#if XLANG_DEBUGMODE_ENABLED
 	printf("  --dump-token      dump token stream\n");
 	printf("  --dump-ast        dump AST\n");
 	printf("  --dump-sem        dump semantic state\n");
@@ -221,6 +276,7 @@ void xlCliPrintHelp(const char* sProgName)
 	printf("  --trace-sem       enable semantic trace\n");
 	printf("  --trace-lower     enable lowering trace\n");
 	printf("  --trace-runtime   enable runtime trace\n");
+#endif
 	printf("  --emit <path>     write output to a path\n");
 	printf("  --stop-after <phase>\n");
 	printf("  -h, --help        print help\n");
