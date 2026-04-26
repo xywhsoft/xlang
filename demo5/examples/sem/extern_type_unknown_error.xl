@@ -1,5 +1,0 @@
-extern type Count = MissingType
-
-func main() as int
-	return 0
-end

@@ -1,7 +1,0 @@
-func apply(function<int(int)> op, int value) as int
-	return op(value)
-end
-
-func main() as int
-	return apply(func(int x) as int => x + 2, 40)
-end

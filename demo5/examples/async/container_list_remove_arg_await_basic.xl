@@ -1,8 +1,0 @@
-async func index_value() as int
-	return 0
-end
-
-async func main() as int
-	const bool ok = list{4, 5}.remove(await index_value())
-	return ok ? 20 : 0
-end

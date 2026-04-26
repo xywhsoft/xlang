@@ -1,5 +1,0 @@
-func main() as int
-	var int value = 7
-	if false then value = 1 else value = 42
-	return value
-end

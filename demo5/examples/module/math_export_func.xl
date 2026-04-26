@@ -1,6 +1,0 @@
-export func 加二(int x) as int
-	return x + 2
-end
-
-const int 基数 = 40
-export 基数

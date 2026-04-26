@@ -1,5 +1,0 @@
-func get() as int
-	return 20
-end
-
-export get

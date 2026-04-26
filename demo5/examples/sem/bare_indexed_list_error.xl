@@ -1,4 +1,0 @@
-func main() as int
-	auto values = ["x": 1]
-	return 0
-end

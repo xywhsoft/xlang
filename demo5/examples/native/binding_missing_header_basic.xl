@@ -1,5 +1,0 @@
-#binding "binding_missing_header_probe.h"
-
-func main() as int
-	return 0
-end

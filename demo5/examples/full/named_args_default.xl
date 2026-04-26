@@ -1,7 +1,0 @@
-func mix(int a, int b = 2, int c = 3) as int
-	return (a * 100) + (b * 10) + c
-end
-
-func 入口() as int
-	return mix(1, c = 9)
-end

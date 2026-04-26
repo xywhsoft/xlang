@@ -1,4 +1,0 @@
-func main() as int
-	auto value = 1
-	return value.length
-end

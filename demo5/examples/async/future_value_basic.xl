@@ -1,9 +1,0 @@
-async func get_value() as int
-	return 7
-end
-
-async func main() as int
-	auto pending = get_value()
-	future named = get_value()
-	return await pending + await named
-end

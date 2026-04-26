@@ -1,6 +1,0 @@
-func main() as int
-	var error current = null
-	current ?= Error("fallback", 7)
-	current ?= Error("ignored", 3)
-	return current.code
-end

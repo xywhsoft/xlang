@@ -1,7 +1,0 @@
-func count_more(int seed, ...) as int
-	return seed + arg.length
-end
-
-func main() as int
-	return count_more(1, 2, arg = [3])
-end

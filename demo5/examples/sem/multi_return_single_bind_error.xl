@@ -1,8 +1,0 @@
-func pair() as int, string
-	return 1, "x"
-end
-
-func main() as int
-	auto value = pair()
-	return value
-end

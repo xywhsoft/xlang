@@ -1,8 +1,0 @@
-async func key_text() as string
-	return "x"
-end
-
-async func main() as int
-	const bool ok = {"x": "one", "y": "two"}.remove(await key_text())
-	return ok ? 19 : 0
-end

@@ -1,7 +1,0 @@
-func main() as int
-	set values = set{40, 2}
-	if 40 in values then
-		return 42
-	end
-	return 0
-end

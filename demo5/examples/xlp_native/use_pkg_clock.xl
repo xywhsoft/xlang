@@ -1,5 +1,0 @@
-import pkg.clock
-
-func main() as int
-	return pkg.clock.seconds_per_day / pkg.clock.millis_per_second
-end

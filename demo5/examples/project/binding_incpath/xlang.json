@@ -1,8 +1,0 @@
-{
-	"name": "project.binding",
-	"version": "0.1.0",
-	"type": "app",
-	"main": "src/main.xl",
-	"source": ["src"],
-	"incpath": ["include"]
-}

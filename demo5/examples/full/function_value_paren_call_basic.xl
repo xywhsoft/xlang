@@ -1,8 +1,0 @@
-func add(int a, int b) as int
-	return a + b
-end
-
-func main() as int
-	function<int(int,int)> op = add
-	return (op)(20, 22)
-end

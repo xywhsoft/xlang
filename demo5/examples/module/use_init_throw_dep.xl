@@ -1,5 +1,0 @@
-import init_throw_dep
-
-func main() as int
-	return init_throw_dep.value()
-end

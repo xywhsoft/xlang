@@ -1,7 +1,0 @@
-#loadlib "msvcrt.dll"
-
-extern "atoi" func parse_int(string text) as int
-
-func main() as int
-	return parse_int("42")
-end

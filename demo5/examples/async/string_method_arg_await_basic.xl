@@ -1,8 +1,0 @@
-async func old_text() as string
-	return "-"
-end
-
-async func main() as int
-	const string a = "a-b".replace(await old_text(), ".")
-	return a.index_of(".") + 14
-end

@@ -1,9 +1,0 @@
-import std.task
-
-func relay_future(future<int> value) as future<int>
-	return value
-end
-
-async func main() as int
-	return await relay_future(task.delay(41)) + 1
-end

@@ -1,5 +1,0 @@
-func main() as int
-	var error current = null
-	const error resolved = current ?? Error("fallback", 9)
-	return resolved.code
-end

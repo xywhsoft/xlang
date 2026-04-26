@@ -1,4 +1,0 @@
-func main() as int
-	auto add = func(int a, int b) as int => a + b
-	return add(20, 22)
-end

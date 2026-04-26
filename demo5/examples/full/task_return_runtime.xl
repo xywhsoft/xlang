@@ -1,9 +1,0 @@
-import std.task
-
-async func make_task() as task
-	return task.delay(41)
-end
-
-async func main() as int
-	return await make_task() + 1
-end

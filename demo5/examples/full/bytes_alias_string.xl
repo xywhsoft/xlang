@@ -1,7 +1,0 @@
-func main() as int
-	const bytes raw = "abc"
-	if raw == "abc"
-		return 7
-	end
-	return 1
-end

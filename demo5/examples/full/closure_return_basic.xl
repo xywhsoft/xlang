@@ -1,8 +1,0 @@
-func make(int base) as function<int(int)>
-	return func(int x) as int => base + x
-end
-
-func main() as int
-	auto add = make(40)
-	return add(2)
-end

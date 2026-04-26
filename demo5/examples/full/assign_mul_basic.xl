@@ -1,5 +1,0 @@
-func main() as int
-	int value = 6
-	value *= 7
-	return value
-end

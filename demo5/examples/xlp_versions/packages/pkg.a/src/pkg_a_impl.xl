@@ -1,7 +1,0 @@
-import pkg.math
-
-func value() as int
-	return pkg.math.get()
-end
-
-export value

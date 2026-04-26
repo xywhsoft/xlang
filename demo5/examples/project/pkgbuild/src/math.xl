@@ -1,8 +1,0 @@
-func add_one(int x) as int
-	return x + 1
-end
-
-const int base = 41
-
-export add_one
-export base

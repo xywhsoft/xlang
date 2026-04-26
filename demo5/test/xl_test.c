@@ -252,6 +252,18 @@ static int __xlDetectProjectRoot(char* sOut, size_t iOutSize)
 
 static void __xlBuildProjectPath(XL_TestContext* pCtx, char* sOut, size_t iOutSize, const char* sRelativePath)
 {
+	if ( (pCtx != NULL) && (sRelativePath != NULL) ) {
+		if ( (_strnicmp(sRelativePath, "examples\\", 9) == 0) || (_strnicmp(sRelativePath, "examples/", 9) == 0) ) {
+			__xlCopyText(sOut, iOutSize, pCtx->sReleaseRoot);
+			__xlAppendPathPart(sOut, iOutSize, sRelativePath);
+			return;
+		}
+		if ( (_strnicmp(sRelativePath, "release\\", 8) == 0) || (_strnicmp(sRelativePath, "release/", 8) == 0) ) {
+			__xlCopyText(sOut, iOutSize, pCtx->sProjectRoot);
+			__xlAppendPathPart(sOut, iOutSize, sRelativePath);
+			return;
+		}
+	}
 	__xlCopyText(sOut, iOutSize, (pCtx != NULL) ? pCtx->sProjectRoot : "");
 	__xlAppendPathPart(sOut, iOutSize, sRelativePath);
 }

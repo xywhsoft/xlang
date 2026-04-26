@@ -1,5 +1,0 @@
-func main() as int
-	array values = [1, 2]
-	values.clear(1)
-	return 0
-end

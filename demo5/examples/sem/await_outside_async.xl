@@ -1,7 +1,0 @@
-async func foo() as int
-	return 1
-end
-
-func main() as int
-	return await foo()
-end

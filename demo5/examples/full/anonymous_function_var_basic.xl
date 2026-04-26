@@ -1,4 +1,0 @@
-func main() as int
-	var dyn = func(int x) as int => x + 2
-	return dyn(40)
-end

@@ -1,7 +1,0 @@
-func zero<T>() as T
-	return 12
-end
-
-func main() as int
-	return zero<int>() + 30
-end

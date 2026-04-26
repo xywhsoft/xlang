@@ -1,9 +1,0 @@
-func make_values() as int
-	auto current = (yield 1)
-	return current
-end
-
-func main() as int
-	auto gen = make_values()
-	return 0
-end

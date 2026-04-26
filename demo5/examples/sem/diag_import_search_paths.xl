@@ -1,5 +1,0 @@
-import missing.pkg.module
-
-func main() as int
-	return 0
-end

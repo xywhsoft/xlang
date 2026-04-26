@@ -1,7 +1,0 @@
-import std.time
-
-func main() as int
-	const time now = time.now()
-	const string text = time.to_string(now)
-	return 0
-end

@@ -1,7 +1,0 @@
-import std.task
-
-async func main() as int
-	const int waited = await task.delay(1)
-	const int canceled = task.cancel(task.delay(1))
-	return waited + canceled
-end

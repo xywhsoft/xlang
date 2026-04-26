@@ -1,6 +1,0 @@
-const int value = 50
-
-func main() as int
-	value -= 8
-	return value
-end

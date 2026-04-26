@@ -1,6 +1,0 @@
-#loadlib "msvcrt.dll"
-#binding "binding_probe.h"
-
-func main() as int
-	return atoi("42")
-end
