@@ -30,7 +30,7 @@ func main() as int
 	if fs.exists(moved) == false
 		return 8
 	end
-	if fs.delete(moved) == false
+if fs.remove(moved) == false
 		return 9
 	end
 	if fs.exists(moved)

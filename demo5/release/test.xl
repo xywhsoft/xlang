@@ -1,20 +1,152 @@
 
 
 
-import std.core
+/*
+	这是 xlang 的全面范例文件，展示 xlang 支持的各种写法
+*/
 
+
+
+/*
+	xLang 原生基础数据类型：
+		bool				逻辑类型
+		int					相当于 int64
+		int8				字节
+		uint8				无符号字节
+		int16				短整数
+		uint16				无符号短整数
+		int32				整数
+		uint32				无符号整数
+		int64				长整数
+		uint64				无符号长整数
+		float				相当于 float64
+		float32				单精度浮点数
+		float64				双精度浮点数
+		string				字符串
+		time				时间
+		point				指针
+		var					变体类型
+	
+	xLang 原生容器类型：
+		array				数组
+		list				列表
+		dict				字典
+		set					集合
+	
+	特殊“数据类型”：
+		void				用来表示无返回值函数
+		null				是 xLang 内置值，也是 null 数据类型的唯一值（null 不可以作为类型声明标识符）
+		auto				自动推导数据类型标识符
+		type				表示类型的类型
+	
+	xLang 内置扩展数据类型：
+		range				表示范围的类型
+*/
+
+
+
+// 导入内置标准库 - 这里列出了所有可以导入的标准库
+import std.core					// 核心库
+import std.io					// Input/output
+import std.math					// 数学库
+import std.str					// 字符串操作
+import std.array				// 数组操作
+import std.list					// 列表操作
+import std.dict					// 字典操作
+import std.set					// 集合操作
+import std.iter					// 迭代器
+import std.json					// JSON
+import std.regex				// 正则表达式
+import std.fs					// 文件系统
+import std.dir					// 目录操作
+import std.path					// 路径操作
+import std.env					// 环境变量
+import std.os					// 操作系统库
+import std.host					// 主机信息
+import std.time					// 时间库
+import std.clock				// 时钟
+import std.fmt					// 格式化
+import std.hash					// 哈希库
+import std.crypto				// 加密算法库
+import std.encode				// 编码解码库
+import std.log					// 日志库
+import std.assert				// 断言库
+import std.error				// 错误处理库
+import std.atomic				// 原子操作库
+import std.sync					// 同步库
+import std.thread				// 线程库
+import std.future				// 任务结果
+import std.task					// 任务
+import std.channel				// 通道
+import std.module				// 模块反射
+import std.object				// 对象反射
+import std.types				// 类型反射
+import std.rand					// 随机数
+import std.pack					// 数据打包解包
+import std.process				// 进程库
+import std.range				// 范围
+import std.query				// URL解析
+import std.template				// 模板
+// import std.debug				// 调试 - 仅 xldbg 可用
+// import std.trace				// 跟踪 - 仅 xldbg 可用
+import std.net					// 网络
+import std.net.tcp as tcp		// TCP网络
+import std.net.udp as udp		// UDP网络
+import std.net.dns				// DNS
+import std.net.ip				// IP地址
+import std.net.url				// URL解析
+import std.net.tls				// TLS 1.3 和 TLS 1.2
+import std.net.proxy			// 代理
+import std.net.ws				// WebSocket
+import std.net.http				// HTTP协议
+import std.net.httpd			// HTTP服务器
+import std.net.multipart		// Multipart 表单
+import std.net.mime				// MIME 类型
+import std.sys.env				// 系统环境变量
+import std.sys.file				// 系统文件库
+import std.sys.lib				// 系统动态库
+import std.sys.mem				// 系统内存库
+import std.sys.net				// 系统网络库
+import std.sys.process			// 系统进程库
+import std.sys.wait				// 系统等待库
+
+
+
+// 导入外部库
 #link shell32
 
+
+
+// 声明外部函数
 extern "ShellAboutA" func shell_about(point hwnd, string app, string other, point icon) as int
 extern "ShellExecuteA" func shell_exec(point hwnd, string op, string file, string params, string dir, int show) as int
 
 
 
+// 程序入口
 func main() as int
+	
+	// 基础数据类型
+	bool bVar = true
+	int iVal = 1234
+	int8 iByte = 123
+	uint8 iUByte = 234
+	int16 iShort = 12345
+	uint16 iUShort = 54321
+	int32 iInt = 200000000
+	uint32 iUInt = 400000000
+	int64 iLong = 1000000000000000
+	uint64 iULong = 1000000000000000
+	float fVal = 3.14
+	float32 f32 = 3.14
+	float64 f64 = 3.141592654
+	string sVal = "hello" + " " + "world"
+	time tVal = #2000-01-01 12:00:00#
+	
 	auto a = {"b": "hello", "c": " world"}
 	std.core.println(a["b"] + a["c"])
-	shell_about(null, "xlang Test", "Hello from extern!", null)
-	shell_exec(null, "open", "notepad.exe", "", "", 1)
+	// shell_about(null, "xlang Test", "Hello from extern!", null)
+	// shell_exec(null, "open", "notepad.exe", "", "", 1)
 	return 1234
 end
 

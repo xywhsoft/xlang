@@ -29,7 +29,7 @@ const char* xlStdFsModuleSource(void)
 		"end\n"
 		"func move(string src, string dst) as bool\n"
 		"end\n"
-		"func delete(string path) as bool\n"
+		"func remove(string path) as bool\n"
 		"end\n"
 		"\n"
 		"export exists\n"
@@ -45,5 +45,5 @@ const char* xlStdFsModuleSource(void)
 		"export mkdir_all\n"
 		"export copy\n"
 		"export move\n"
-		"export delete\n";
+		"export remove\n";
 }

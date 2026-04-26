@@ -3,7 +3,7 @@
 const char* xlStdEnvModuleSource(void)
 {
 	return
-		"func get(string name) as string\n"
+		"func read(string name) as string\n"
 		"end\n"
 		"func exists(string name) as bool\n"
 		"end\n"
@@ -16,7 +16,7 @@ const char* xlStdEnvModuleSource(void)
 		"func home() as string\n"
 		"end\n"
 		"\n"
-		"export get\n"
+		"export read\n"
 		"export exists\n"
 		"export set\n"
 		"export cwd\n"

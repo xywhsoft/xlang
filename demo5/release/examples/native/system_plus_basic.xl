@@ -17,18 +17,18 @@ func main() as int
 	auto moved_file = path.join(moved_dir, "note.txt")
 
 	if path.exists(root)
-		if dir.delete(root) == false
+if dir.remove(root) == false
 			return 102
 		end
 	end
 
-	if dir.create(root) == false
+if dir.make(root) == false
 		return 1
 	end
 	if path.exists(root) == false
 		return 2
 	end
-	if dir.create(src_dir) == false
+if dir.make(src_dir) == false
 		return 3
 	end
 	if fs.write_all(src_file, "abcdef") == false
@@ -58,10 +58,10 @@ func main() as int
 	if path.exists(moved_file) == false
 		return 12
 	end
-	if fs.delete(moved_file) == false
+if fs.remove(moved_file) == false
 		return 13
 	end
-	if dir.delete(moved_dir) == false
+if dir.remove(moved_dir) == false
 		return 14
 	end
 	if path.exists(moved_dir)
@@ -70,13 +70,13 @@ func main() as int
 	if process.terminal_supported() and false
 		return 16
 	end
-	if fs.delete(src_file) == false
+if fs.remove(src_file) == false
 		return 17
 	end
-	if dir.delete(src_dir) == false
+if dir.remove(src_dir) == false
 		return 18
 	end
-	if dir.delete(root) == false
+if dir.remove(root) == false
 		return 19
 	end
 	return 0

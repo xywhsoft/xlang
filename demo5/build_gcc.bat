@@ -6,16 +6,21 @@ if not exist release\tmp mkdir release\tmp
 if exist release\tmp\*.fallback.exe del /f /q release\tmp\*.fallback.exe >nul 2>nul
 if exist release\tmp\*.trace.txt del /f /q release\tmp\*.trace.txt >nul 2>nul
 set SRC_LIST=release\tmp\gcc_sources.rsp
+set XL_SRC_LIST=release\tmp\gcc_xl_sources.rsp
 set TEST_SRC_LIST=release\tmp\gcc_test_sources.rsp
 set TCC_OBJ=release\tmp\libtcc.o
 set XL_BUILD_EXE=release\xl.exe
 set XLDBG_BUILD_EXE=release\xldbg.exe
+set XLBIND_BUILD_EXE=release\xlbind.exe
 set XL5_TEST_BUILD_EXE=release\xl5_test.exe
 set BUILD_STAMP_HEADER=release\tmp\xl_test_build_stamp.h
 set XL_SMOKE_LOG=release\tmp\xl_smoke.log
 set XLDBG_SMOKE_LOG=release\tmp\xldbg_smoke.log
 set XL5_TEST_SMOKE_LOG=release\tmp\xl5_test_smoke.log
+set XLBIND_SMOKE_LOG=release\tmp\xlbind_smoke.log
 set XL5_SMOKE_FILE=release\examples\full\for_in_range.xl
+set XLBIND_SMOKE_HEADER=release\examples\native\binding_probe.h
+set XLBIND_SMOKE_OUT=release\tmp\bind_smoke
 set SMOKE_SELECTOR=lower.async_generator_loop_control_hybrid_groups_json
 set GCC_COMMON_FLAGS=-std=c11 -O2 -ffunction-sections -fdata-sections -Wall -Wextra -Werror -Wno-unused-parameter -Wno-unused-variable -Wno-unused-function -Wno-format-truncation -Wno-restrict -Wno-maybe-uninitialized -D_CRT_SECURE_NO_WARNINGS -I. -Ilib\xrt -Ilib\tcc
 set GCC_DEBUG_FLAGS=%GCC_COMMON_FLAGS% -DXLANG_DEBUGMODE=1
@@ -89,11 +94,22 @@ if not "%LEMON_RC%"=="0" (
 
 setlocal EnableDelayedExpansion
 > "%SRC_LIST%" (
-	echo main.c
+	echo main_debug.c
 	for /r src %%f in (*.c) do (
 		set "SRC_FILE=%%f"
 		set "SRC_FILE=!SRC_FILE:\=/!"
 		echo !SRC_FILE!
+	)
+)
+
+> "%XL_SRC_LIST%" (
+	echo main.c
+	for /r src %%f in (*.c) do (
+		set "SRC_FILE=%%f"
+		set "SRC_FILE=!SRC_FILE:\=/!"
+		if /I not "!SRC_FILE!"=="src/diag/xl_dump.c" if /I not "!SRC_FILE!"=="src/runtime/xl_std_trace.c" if /I not "!SRC_FILE!"=="src/runtime/xl_std_debug.c" if /I not "!SRC_FILE!"=="src/driver/xl_driver_debug.c" if /I not "!SRC_FILE!"=="src/driver/xl_cli_debug.c" (
+			echo !SRC_FILE!
+		)
 	)
 )
 
@@ -118,7 +134,7 @@ if errorlevel 1 (
 
 if exist "%XL_BUILD_EXE%" del /f /q "%XL_BUILD_EXE%" >nul
 echo Building xl with GCC...
-gcc %GCC_COMMON_FLAGS% @"%SRC_LIST%" "%TCC_OBJ%" -o "%XL_BUILD_EXE%" %GCC_LINK_FLAGS%
+gcc %GCC_COMMON_FLAGS% @"%XL_SRC_LIST%" "%TCC_OBJ%" -o "%XL_BUILD_EXE%" %GCC_LINK_FLAGS%
 
 if errorlevel 1 (
 	echo xl build failed.
@@ -141,6 +157,20 @@ if errorlevel 1 (
 
 if not exist "%XLDBG_BUILD_EXE%" (
 	echo xldbg build output missing: %XLDBG_BUILD_EXE%
+	exit /b 1
+)
+
+if exist "%XLBIND_BUILD_EXE%" del /f /q "%XLBIND_BUILD_EXE%" >nul
+echo Building xlbind with GCC...
+gcc %GCC_COMMON_FLAGS% tools\xlbind\main.c tools\xlbind\xlbind_tool.c src\common\xl_app_path.c -o "%XLBIND_BUILD_EXE%" %GCC_LINK_FLAGS%
+
+if errorlevel 1 (
+	echo xlbind build failed.
+	exit /b 1
+)
+
+if not exist "%XLBIND_BUILD_EXE%" (
+	echo xlbind build output missing: %XLBIND_BUILD_EXE%
 	exit /b 1
 )
 
@@ -237,6 +267,8 @@ if exist release\bin\xl5_test.exe del /f /q release\bin\xl5_test.exe >nul
 if exist "%XL_SMOKE_LOG%" del /f /q "%XL_SMOKE_LOG%" >nul
 if exist "%XLDBG_SMOKE_LOG%" del /f /q "%XLDBG_SMOKE_LOG%" >nul
 if exist "%XL5_TEST_SMOKE_LOG%" del /f /q "%XL5_TEST_SMOKE_LOG%" >nul
+if exist "%XLBIND_SMOKE_LOG%" del /f /q "%XLBIND_SMOKE_LOG%" >nul
+if exist "%XLBIND_SMOKE_OUT%" rmdir /s /q "%XLBIND_SMOKE_OUT%"
 
 release\xl.exe run "%XL5_SMOKE_FILE%" > "%XL_SMOKE_LOG%" 2>&1
 
@@ -256,6 +288,22 @@ if errorlevel 1 (
 	exit /b 1
 )
 
+release\xlbind.exe "%XLBIND_SMOKE_HEADER%" --emit "%XLBIND_SMOKE_OUT%" > "%XLBIND_SMOKE_LOG%" 2>&1
+
+if errorlevel 1 (
+	echo xlbind.exe smoke test failed for %XLBIND_SMOKE_HEADER%.
+	type "%BUILD_STAMP_HEADER%"
+	type "%XLBIND_SMOKE_LOG%"
+	exit /b 1
+)
+
+if not exist "%XLBIND_SMOKE_OUT%\xlang.json" (
+	echo xlbind.exe smoke output missing package file.
+	type "%BUILD_STAMP_HEADER%"
+	type "%XLBIND_SMOKE_LOG%"
+	exit /b 1
+)
+
 release\xl5_test.exe %SMOKE_SELECTOR% > "%XL5_TEST_SMOKE_LOG%" 2>&1
 
 if errorlevel 1 (
@@ -265,5 +313,5 @@ if errorlevel 1 (
 	exit /b 1
 )
 
-echo Build completed: release\xl.exe and release\xldbg.exe
+echo Build completed: release\xl.exe, release\xldbg.exe and release\xlbind.exe
 exit /b 0

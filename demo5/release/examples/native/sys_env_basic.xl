@@ -16,7 +16,7 @@ func main() as int
 	if env.exists("XLANG_SYS_ENV_BASIC") == false
 		return 5
 	end
-	if env.get("XLANG_SYS_ENV_BASIC") != "ok"
+if env.read("XLANG_SYS_ENV_BASIC") != "ok"
 		return 6
 	end
 	return 0

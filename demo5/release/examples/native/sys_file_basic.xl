@@ -24,7 +24,7 @@ func main() as int
 	if file.read_all(path) != "hello world"
 		return 6
 	end
-	if file.delete(path) == false
+if file.remove(path) == false
 		return 7
 	end
 	return 0

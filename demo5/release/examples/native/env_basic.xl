@@ -1,7 +1,7 @@
 import std.env
 
 func main() as int
-	const string path_text = env.get("PATH")
+const string path_text = env.read("PATH")
 	const string cwd_text = env.cwd()
 	const string temp_text = env.temp()
 	const string home_text = env.home()
@@ -28,7 +28,7 @@ func main() as int
 	if env.exists(key) == false
 		return 7
 	end
-	if env.get(key) != "demo5"
+if env.read(key) != "demo5"
 		return 8
 	end
 	return 0

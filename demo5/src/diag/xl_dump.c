@@ -1,6 +1,8 @@
 #include "xl_dump.h"
 #include "../common/xl_app_path.h"
 
+#if XLANG_DEBUGMODE_ENABLED
+
 void xlDumpInit(XL_DumpContext* pDump, const char* sRoot)
 {
 	if ( pDump == NULL ) {
@@ -75,3 +77,5 @@ int xlDumpWriteText(XL_DumpContext* pDump, const char* sRelativePath, const char
 	fclose(pFile);
 	return XL_RC_OK;
 }
+
+#endif
