@@ -1,0 +1,62 @@
+import std.object
+
+class Base extends object
+	func ping() as int
+		return 1
+	end
+end
+
+class Child extends Base
+	func pong() as int
+		return 2
+	end
+end
+
+custom Token extends object
+	func boost(int step) as int
+		return step + 1
+	end
+end
+
+func main() as int
+	auto c = Child()
+	auto names = std.object.method_names(c)
+	if std.object.method_count(c) != 2 then
+		return 1
+	end
+	if names.length != 2 then
+		return 2
+	end
+	if std.object.method_name_at(c, 0, "") != "pong" then
+		return 3
+	end
+	if std.object.method_name_at(c, 1, "") != "ping" then
+		return 4
+	end
+	if std.object.method_name_at(c, 2, "miss") != "miss" then
+		return 5
+	end
+	if names[0] != "pong" then
+		return 6
+	end
+	if names[1] != "ping" then
+		return 7
+	end
+
+	auto t = Token()
+	if std.object.method_count(t) != 1 then
+		return 8
+	end
+	if std.object.method_name_at(t, 0, "") != "boost" then
+		return 9
+	end
+
+	if std.object.method_count(123) != 0 then
+		return 10
+	end
+	if std.object.method_name_at(123, 0, "none") != "none" then
+		return 11
+	end
+
+	return 42
+end

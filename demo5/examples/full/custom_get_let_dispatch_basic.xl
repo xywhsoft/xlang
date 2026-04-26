@@ -1,0 +1,27 @@
+#loadlib "../xlp_native/packages/pkg.probe/bin/pkg_probe.dll"
+
+extern "pkg_clock_artifact_meter_create" func point_create(int value) as point
+extern "pkg_clock_artifact_meter_release" func point_release(point value) as void
+extern "pkg_clock_artifact_meter_score" func point_score(point value) as int
+
+custom Meter extends object
+	extern "pkg_clock_artifact_meter_create" create(int value)
+	extern "pkg_clock_artifact_meter_release" destroy()
+
+	get value() as int
+		return point_score(self.payload)
+	end
+
+	let value(int next)
+		point_release(self.payload)
+		self.payload = point_create(next)
+	end
+end
+
+func main() as int
+	auto meter = Meter(1)
+	meter.value = 42
+	auto value = meter.value
+	delete meter
+	return value
+end

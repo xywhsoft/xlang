@@ -356,13 +356,16 @@ static const char* __xlEraseGenericTypeName(const XL_AstNode* pTypeParams, const
 
 static const char* __xlFuncMethodName(const XL_AstNode* pNode)
 {
-	if ( __xlFuncReceiverNode(pNode) == NULL ) {
-		return NULL;
-	}
 	if ( pNode->iIntValue == 0 ) {
 		if ( (pNode->sText2 != NULL) && (pNode->sText2[0] != '\0') ) {
-			return pNode->sText2;
+			if ( (__xlFuncReceiverNode(pNode) != NULL) ||
+				((pNode->sText != NULL) && ((strncmp(pNode->sText, "__prop_get__", 12) == 0) || (strncmp(pNode->sText, "__prop_let__", 12) == 0))) ) {
+				return pNode->sText2;
+			}
 		}
+	}
+	if ( __xlFuncReceiverNode(pNode) == NULL ) {
+		return NULL;
 	}
 	return pNode->sText;
 }
@@ -520,12 +523,17 @@ static const char* __xlTypeFieldTypeName(const char* sFieldName)
 	if ( strcmp(sFieldName, "name") == 0 ) {
 		return "string";
 	}
+	if ( strcmp(sFieldName, "kind") == 0 ) {
+		return "string";
+	}
 	if ( strcmp(sFieldName, "base") == 0 ) {
 		return "type";
 	}
 	if ( (strcmp(sFieldName, "isObject") == 0) ||
 		(strcmp(sFieldName, "isCustom") == 0) ||
-		(strcmp(sFieldName, "isPlainClass") == 0) ) {
+		(strcmp(sFieldName, "isPlainClass") == 0) ||
+		(strcmp(sFieldName, "isBuiltin") == 0) ||
+		(strcmp(sFieldName, "isClass") == 0) ) {
 		return "bool";
 	}
 	return NULL;
@@ -2385,6 +2393,92 @@ static const XL_ClassFieldInfo* __xlFindClassFieldInfo(XL_ResolveContext* pCtx, 
 	return NULL;
 }
 
+static int __xlPropertyMethodNameParts(const char* sMethodName, const char** psPropertyName)
+{
+	static const char sEmpty[] = "";
+
+	if ( psPropertyName != NULL ) {
+		*psPropertyName = sEmpty;
+	}
+	if ( sMethodName == NULL ) {
+		return 0;
+	}
+	if ( strncmp(sMethodName, "get:", 4) == 0 ) {
+		if ( psPropertyName != NULL ) {
+			*psPropertyName = sMethodName + 4;
+		}
+		return 1;
+	}
+	if ( strncmp(sMethodName, "let:", 4) == 0 ) {
+		if ( psPropertyName != NULL ) {
+			*psPropertyName = sMethodName + 4;
+		}
+		return 2;
+	}
+	if ( strncmp(sMethodName, "__prop_get__", 12) == 0 ) {
+		if ( psPropertyName != NULL ) {
+			*psPropertyName = sMethodName + 12;
+		}
+		return 1;
+	}
+	if ( strncmp(sMethodName, "__prop_let__", 12) == 0 ) {
+		if ( psPropertyName != NULL ) {
+			*psPropertyName = sMethodName + 12;
+		}
+		return 2;
+	}
+	return 0;
+}
+
+static const XL_FuncInfo* __xlFindClassPropertyMethod(
+	XL_ResolveContext* pCtx,
+	const char* sClassTypeName,
+	const char* sPropertyName,
+	int iPropertyKind
+)
+{
+	const XL_FuncInfo* pMatch;
+	size_t i;
+
+	if ( (pCtx == NULL) || (sClassTypeName == NULL) || (sClassTypeName[0] == '\0') ||
+		(sPropertyName == NULL) || (sPropertyName[0] == '\0') ) {
+		return NULL;
+	}
+
+	pMatch = NULL;
+	for ( i = 0; i < pCtx->pResult->funcs.iCount; ++i ) {
+		const XL_FuncInfo* pFunc;
+		const char* sMethodPropertyName;
+		int iMethodKind;
+
+		pFunc = &pCtx->pResult->funcs.pItems[i];
+		if ( (pFunc->sReceiverType == NULL) || (pFunc->sReceiverType[0] == '\0') ) {
+			continue;
+		}
+		iMethodKind = __xlPropertyMethodNameParts(pFunc->sMethodName, &sMethodPropertyName);
+		if ( (iMethodKind != iPropertyKind) || (strcmp(sMethodPropertyName, sPropertyName) != 0) ) {
+			continue;
+		}
+		if ( strcmp(pFunc->sReceiverType, sClassTypeName) == 0 ) {
+			return pFunc;
+		}
+		if ( __xlMethodReceiverMatches(pCtx, pFunc->sReceiverType, sClassTypeName) && (pMatch == NULL) ) {
+			pMatch = pFunc;
+		}
+	}
+	return pMatch;
+}
+
+static const XL_FuncInfo* __xlFindClassPropertyGetter(XL_ResolveContext* pCtx, const char* sClassTypeName, const char* sPropertyName)
+{
+	return __xlFindClassPropertyMethod(pCtx, sClassTypeName, sPropertyName, 1);
+}
+
+static const XL_FuncInfo* __xlFindClassPropertySetter(XL_ResolveContext* pCtx, const char* sClassTypeName, const char* sPropertyName)
+{
+	return __xlFindClassPropertyMethod(pCtx, sClassTypeName, sPropertyName, 2);
+}
+
 static int __xlClassCreateRequiredParamCount(const XL_ClassCreateInfo* pCreate)
 {
 	size_t i;
@@ -4032,6 +4126,70 @@ static int __xlCollectFuncInfo(XL_ResolveContext* pCtx, const XL_AstNode* pNode,
 		}
 		sStorageReturnType = sAsyncStorageReturnType;
 	}
+	{
+		const char* sPropertyName;
+		int iPropertyKind;
+
+		iPropertyKind = __xlPropertyMethodNameParts(__xlFuncMethodName(pNode), &sPropertyName);
+		if ( iPropertyKind == 1 ) {
+			if ( pNode->bFlag != 0 ) {
+				free(arrParamNames);
+				free(arrParamTypes);
+				free(arrReturnTypes);
+				free(arrGenericReturnTypes);
+				free(arrTypeParamNames);
+				free(arrParamDefaults);
+				free(arrParamHasDefault);
+				pCtx->pActiveTypeParams = pPrevActiveTypeParams;
+				return __xlSemAddDiag(pCtx, XL_SEM_DIAG_ERROR, pNode, "get property '%s' cannot be async", (sPropertyName != NULL) ? sPropertyName : "");
+			}
+			if ( (pParams != NULL) && (pParams->iChildCount != 0) ) {
+				free(arrParamNames);
+				free(arrParamTypes);
+				free(arrReturnTypes);
+				free(arrGenericReturnTypes);
+				free(arrTypeParamNames);
+				free(arrParamDefaults);
+				free(arrParamHasDefault);
+				pCtx->pActiveTypeParams = pPrevActiveTypeParams;
+				return __xlSemAddDiag(pCtx, XL_SEM_DIAG_ERROR, pNode, "get property '%s' must not declare parameters", (sPropertyName != NULL) ? sPropertyName : "");
+			}
+			if ( (pRetList == NULL) || (pRetList->iChildCount != 1) ) {
+				free(arrParamNames);
+				free(arrParamTypes);
+				free(arrReturnTypes);
+				free(arrGenericReturnTypes);
+				free(arrTypeParamNames);
+				free(arrParamDefaults);
+				free(arrParamHasDefault);
+				pCtx->pActiveTypeParams = pPrevActiveTypeParams;
+				return __xlSemAddDiag(pCtx, XL_SEM_DIAG_ERROR, pNode, "get property '%s' must declare exactly one return type", (sPropertyName != NULL) ? sPropertyName : "");
+			}
+		} else if ( iPropertyKind == 2 ) {
+			if ( pNode->bFlag != 0 ) {
+				free(arrParamNames);
+				free(arrParamTypes);
+				free(arrReturnTypes);
+				free(arrGenericReturnTypes);
+				free(arrTypeParamNames);
+				free(arrParamDefaults);
+				free(arrParamHasDefault);
+				pCtx->pActiveTypeParams = pPrevActiveTypeParams;
+				return __xlSemAddDiag(pCtx, XL_SEM_DIAG_ERROR, pNode, "let property '%s' cannot be async", (sPropertyName != NULL) ? sPropertyName : "");
+			}
+			if ( (pParams == NULL) || (pParams->iChildCount != 1) ) {
+				free(arrParamNames);
+				free(arrParamTypes);
+				free(arrReturnTypes);
+				free(arrGenericReturnTypes);
+				free(arrTypeParamNames);
+				free(arrParamDefaults);
+				free(arrParamHasDefault);
+				pCtx->pActiveTypeParams = pPrevActiveTypeParams;
+				return __xlSemAddDiag(pCtx, XL_SEM_DIAG_ERROR, pNode, "let property '%s' must declare exactly one parameter", (sPropertyName != NULL) ? sPropertyName : "");
+			}
+		}
+	}
 
 	if ( ((pParams != NULL) && (pParams->iChildCount != 0)) || (iImplicitParamCount != 0) ) {
 		size_t iTotalParamCount = ((pParams != NULL) ? pParams->iChildCount : 0u) + iImplicitParamCount;
@@ -4153,7 +4311,7 @@ static int __xlCollectFuncInfo(XL_ResolveContext* pCtx, const XL_AstNode* pNode,
 		&pCtx->pResult->funcs,
 		pNode->sText,
 		sResolvedReceiverType,
-		bImplicitClassMethod ? pNode->sText : ((__xlFuncMethodName(pNode) != NULL) ? __xlFuncMethodName(pNode) : ""),
+		(__xlFuncMethodName(pNode) != NULL) ? __xlFuncMethodName(pNode) : (bImplicitClassMethod ? pNode->sText : ""),
 		sResolvedReturnType,
 		sStorageReturnType,
 		arrReturnTypes,
@@ -4372,6 +4530,18 @@ static const char* __xlBuiltinMethodTargetName(XL_ResolveContext* pCtx, const ch
 		if ( strcmp(sMethodName, "exports") == 0 ) return "__xl_method_module_exports";
 		if ( strcmp(sMethodName, "has_export") == 0 ) return "__xl_method_module_has_export";
 		if ( strcmp(sMethodName, "export_symbol") == 0 ) return "__xl_method_module_export_symbol";
+	}
+	if ( strcmp(sBaseType, "type") == 0 ) {
+		if ( strcmp(sMethodName, "has_field") == 0 ) return "__xl_method_type_has_field";
+		if ( strcmp(sMethodName, "has_method") == 0 ) return "__xl_method_type_has_method";
+		if ( strcmp(sMethodName, "declares_field") == 0 ) return "__xl_method_type_declares_field";
+		if ( strcmp(sMethodName, "declares_method") == 0 ) return "__xl_method_type_declares_method";
+		if ( strcmp(sMethodName, "declared_field_names") == 0 ) return "__xl_method_type_declared_field_names";
+		if ( strcmp(sMethodName, "declared_method_names") == 0 ) return "__xl_method_type_declared_method_names";
+		if ( strcmp(sMethodName, "declared_field_count") == 0 ) return "__xl_method_type_declared_field_count";
+		if ( strcmp(sMethodName, "declared_method_count") == 0 ) return "__xl_method_type_declared_method_count";
+		if ( strcmp(sMethodName, "declared_field_name_at") == 0 ) return "__xl_method_type_declared_field_name_at";
+		if ( strcmp(sMethodName, "declared_method_name_at") == 0 ) return "__xl_method_type_declared_method_name_at";
 	}
 	if ( __xlTypeHasBaseName(sBaseType, "future") || (strcmp(sBaseType, "task") == 0) ) {
 		if ( strcmp(sMethodName, "wait") == 0 ) return "xl_mod_std_future__wait";
@@ -9643,6 +9813,24 @@ static int __xlResolveAssign(XL_ResolveContext* pCtx, const XL_AstNode* pNode)
 		}
 	}
 	sLeftType = __xlInferExprType(pCtx, pLeft);
+	if ( pLeft->eKind == XL_AST_MEMBER ) {
+		const XL_AstNode* pBase = __xlAstChild(pLeft, 0);
+		const char* sBaseTypeName = __xlResolvedBaseValueTypeName(pCtx, pBase);
+		const XL_ClassFieldInfo* pField = __xlFindClassFieldInfo(pCtx, sBaseTypeName, pLeft->sText);
+		const XL_FuncInfo* pSetter = __xlFindClassPropertySetter(pCtx, sBaseTypeName, pLeft->sText);
+		const XL_FuncInfo* pGetter = __xlFindClassPropertyGetter(pCtx, sBaseTypeName, pLeft->sText);
+
+		if ( pSetter != NULL ) {
+			if ( (pSetter->iParamCount < 2) || (pSetter->arrParamTypes == NULL) || (pSetter->arrParamTypes[1] == NULL) || (pSetter->arrParamTypes[1][0] == '\0') ) {
+				return __xlSemAddDiag(pCtx, XL_SEM_DIAG_ERROR, pLeft, "let property '%s' has invalid setter signature", (pLeft->sText != NULL) ? pLeft->sText : "");
+			}
+			__xlSemNodeSetFunc(pCtx->pResult, pLeft, (int)(pSetter - pCtx->pResult->funcs.pItems));
+			__xlSemNodeSetType(pCtx->pResult, pLeft, pSetter->arrParamTypes[1]);
+			sLeftType = pSetter->arrParamTypes[1];
+		} else if ( (pField == NULL) && !__xlResolvedTypeIsObjectClass(pCtx, sBaseTypeName) && (pGetter != NULL) ) {
+			return __xlSemAddDiag(pCtx, XL_SEM_DIAG_ERROR, pLeft, "property '%s' is not assignable", (pLeft->sText != NULL) ? pLeft->sText : "");
+		}
+	}
 	sRightType = __xlInferExprType(pCtx, pRight);
 	sResultType = sRightType;
 	if ( strcmp(sOp, "=") != 0 ) {
@@ -10077,6 +10265,13 @@ static int __xlResolveExpr(XL_ResolveContext* pCtx, const XL_AstNode* pNode)
 			sBaseTypeName = __xlResolvedBaseValueTypeName(pCtx, __xlAstChild(pNode, 0));
 			__xlSemNodeSetType(pCtx->pResult, __xlAstChild(pNode, 0), sBaseTypeName);
 			sTypeName = __xlInferExprType(pCtx, pNode);
+			{
+				const XL_FuncInfo* pGetter = __xlFindClassPropertyGetter(pCtx, sBaseTypeName, pNode->sText);
+				if ( pGetter != NULL ) {
+					__xlSemNodeSetFunc(pCtx->pResult, pNode, (int)(pGetter - pCtx->pResult->funcs.pItems));
+					sTypeName = __xlFuncStorageReturnTypeName(pGetter);
+				}
+			}
 			if ( (pNode->bFlag != 0) && ((sBaseTypeName == NULL) || (strcmp(sBaseTypeName, "error") != 0)) ) {
 				return __xlSemAddDiag(
 					pCtx,
@@ -11575,6 +11770,7 @@ static int __xlRegisterBuiltinFuncs(XL_SemResult* pResult)
 	static const char* arrMethodSelfSep[] = { "self", "sep" };
 	static const char* arrMethodSelfCount[] = { "self", "count" };
 	static const char* arrMethodSelfStartCount[] = { "self", "start", "count" };
+	static const char* arrMethodSelfIndexDefault[] = { "self", "index", "default_value" };
 	static const char* arrMethodValue[] = { "self", "value" };
 	static const char* arrMethodIndex[] = { "self", "index" };
 	static const char* arrMethodIndexDefault[] = { "self", "index", "default" };
@@ -11591,14 +11787,17 @@ static int __xlRegisterBuiltinFuncs(XL_SemResult* pResult)
 	static const char* arrSelfError[] = { "error" };
 	static const char* arrSelfModule[] = { "module" };
 	static const char* arrSelfObject[] = { "object" };
+	static const char* arrSelfType[] = { "type" };
 	static const char* arrStringString[] = { "string", "string" };
 	static const char* arrStringStringString[] = { "string", "string", "string" };
 	static const char* arrStringInt[] = { "string", "int" };
+	static const char* arrTypeIntString[] = { "type", "int", "string" };
 	static const char* arrStringIntInt[] = { "string", "int", "int" };
 	static const char* arrTimeTime[] = { "time", "time" };
 	static const char* arrTimeString[] = { "time", "string" };
 	static const char* arrErrorString[] = { "error", "string" };
 	static const char* arrModuleString[] = { "module", "string" };
+	static const char* arrTypeString[] = { "type", "string" };
 	static const char* arrObjectString[] = { "object", "string" };
 	static const char* arrObjectStringVar[] = { "object", "string", "var" };
 	static const char* arrFutureInt[] = { "future<int>" };
@@ -11772,6 +11971,16 @@ static int __xlRegisterBuiltinFuncs(XL_SemResult* pResult)
 	XL_ADD_BUILTIN_METHOD("exports", "module", "__xl_method_module_exports", "array<var>", arrMethodSelf, arrSelfModule, 1);
 	XL_ADD_BUILTIN_METHOD("has_export", "module", "__xl_method_module_has_export", "bool", arrMethodSelfPart, arrModuleString, 2);
 	XL_ADD_BUILTIN_METHOD("export_symbol", "module", "__xl_method_module_export_symbol", "string", arrMethodSelfPart, arrModuleString, 2);
+	XL_ADD_BUILTIN_METHOD("has_field", "type", "__xl_method_type_has_field", "bool", arrMethodSelfPart, arrTypeString, 2);
+	XL_ADD_BUILTIN_METHOD("has_method", "type", "__xl_method_type_has_method", "bool", arrMethodSelfPart, arrTypeString, 2);
+	XL_ADD_BUILTIN_METHOD("declares_field", "type", "__xl_method_type_declares_field", "bool", arrMethodSelfPart, arrTypeString, 2);
+	XL_ADD_BUILTIN_METHOD("declares_method", "type", "__xl_method_type_declares_method", "bool", arrMethodSelfPart, arrTypeString, 2);
+	XL_ADD_BUILTIN_METHOD("declared_field_names", "type", "__xl_method_type_declared_field_names", "array<string>", arrMethodSelf, arrSelfType, 1);
+	XL_ADD_BUILTIN_METHOD("declared_method_names", "type", "__xl_method_type_declared_method_names", "array<string>", arrMethodSelf, arrSelfType, 1);
+	XL_ADD_BUILTIN_METHOD("declared_field_count", "type", "__xl_method_type_declared_field_count", "int", arrMethodSelf, arrSelfType, 1);
+	XL_ADD_BUILTIN_METHOD("declared_method_count", "type", "__xl_method_type_declared_method_count", "int", arrMethodSelf, arrSelfType, 1);
+	XL_ADD_BUILTIN_METHOD("declared_field_name_at", "type", "__xl_method_type_declared_field_name_at", "string", arrMethodSelfIndexDefault, arrTypeIntString, 3);
+	XL_ADD_BUILTIN_METHOD("declared_method_name_at", "type", "__xl_method_type_declared_method_name_at", "string", arrMethodSelfIndexDefault, arrTypeIntString, 3);
 	XL_ADD_BUILTIN_METHOD("cancel", "future<int>", "xl_mod_std_task__cancel", "int", arrMethodSelf, arrFutureInt, 1);
 	XL_ADD_BUILTIN_METHOD("cancel", "future<float>", "xl_mod_std_task__cancel", "int", arrMethodSelf, arrFutureFloat, 1);
 	XL_ADD_BUILTIN_METHOD("cancel", "future<string>", "xl_mod_std_task__cancel", "int", arrMethodSelf, arrFutureString, 1);

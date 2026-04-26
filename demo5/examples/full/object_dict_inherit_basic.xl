@@ -1,0 +1,21 @@
+class Base extends object
+	func seed() as void
+		self.kind = "base"
+		self.score = 41
+	end
+end
+
+class Child extends Base
+end
+
+func main() as int
+	auto item = Child()
+	item.seed()
+	if item.kind != "base" then
+		return 1
+	end
+	if item.score != 41 then
+		return 2
+	end
+	return 42
+end

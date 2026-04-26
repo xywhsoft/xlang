@@ -16,6 +16,9 @@ typedef struct XL_ObjectMethodEntry {
 } XL_ObjectMethodEntry;
 
 typedef struct XL_ObjectWeakRef XL_ObjectWeakRef;
+typedef struct XL_ObjectPinnedRef XL_ObjectPinnedRef;
+typedef int (*XL_ObjectGraphTraceVisitor)(xvalue value, void* pCtx);
+typedef int (*XL_ObjectTraceStateFn)(const void* pState, XL_ObjectGraphTraceVisitor pVisit, void* pCtx);
 
 typedef struct XL_ObjectTypeInfo {
 	const char* sName;
@@ -23,6 +26,8 @@ typedef struct XL_ObjectTypeInfo {
 	void (*pDestroyFunc)(void* pBlob);
 	const XL_ObjectMethodEntry* pMethods;
 	size_t iMethodCount;
+	int (*pVisibleExists)(void* pBlob, const char* sKey);
+	xvalue (*pVisibleKeys)(void* pBlob);
 } XL_ObjectTypeInfo;
 #endif
 
@@ -48,6 +53,12 @@ struct XL_ObjectWeakRef {
 	void* pBlob;
 };
 
+struct XL_ObjectPinnedRef {
+	XL_ObjectPinnedRef* pPrev;
+	XL_ObjectPinnedRef* pNext;
+	xvalue value;
+};
+
 int xl_object_header_ready(const void* pBlob);
 int xl_object_header_alive(const void* pBlob);
 int xl_object_header_destroying(const void* pBlob);
@@ -71,6 +82,8 @@ XL_ObjectWeakRef* xl_object_weak_new(xvalue value);
 void xl_object_weak_delete(XL_ObjectWeakRef* pWeakRef);
 int xl_object_weak_alive(const XL_ObjectWeakRef* pWeakRef);
 xvalue xl_object_weak_lock(XL_ObjectWeakRef* pWeakRef);
+XL_ObjectPinnedRef* xl_object_pin_value(xvalue value);
+void xl_object_unpin_value(XL_ObjectPinnedRef* pPinnedRef);
 xvalue xl_object_dynamic_fields(void* pBlob);
 int xl_object_length(void* pBlob, int iDeclaredFieldCount);
 int xl_object_exists(void* pBlob, const char* sKey);
@@ -81,6 +94,19 @@ void xl_object_clear(void* pBlob);
 xvalue xl_object_keys(void* pBlob);
 xvalue xl_object_values(void* pBlob);
 xvalue xl_object_items(void* pBlob);
+int xl_object_meta_has_field(xvalue value, const char* sKey);
+int xl_object_meta_has_method(xvalue value, const char* sKey);
+xvalue xl_object_meta_field_names(xvalue value);
+int xl_object_meta_field_count(xvalue value);
+const char* xl_object_meta_field_name_at(xvalue value, int index, const char* sDefaultValue);
+xvalue xl_object_meta_method_names(xvalue value);
+int xl_object_meta_method_count(xvalue value);
+const char* xl_object_meta_method_name_at(xvalue value, int index, const char* sDefaultValue);
 int xl_object_collect_cycles(void);
+int xl_object_trace_blob(const void* pBlob, XL_ObjectGraphTraceVisitor pVisit, void* pCtx);
+int xl_object_future_bind_trace(xfuture* pFuture, const void* pState, XL_ObjectTraceStateFn pTraceState);
+int xl_object_future_clear_trace(xfuture* pFuture);
+int xl_object_future_clear_promise_trace(xpromise* pPromise);
+int xl_object_future_trace_handle(const xfuture* pFuture, XL_ObjectGraphTraceVisitor pVisit, void* pCtx);
 
 #endif

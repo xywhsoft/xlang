@@ -1,0 +1,33 @@
+import std.object
+
+class Node extends object
+end
+
+func make_cycle(var target) as generator
+	yield target
+end
+
+func build_cycle() as point
+	var node = Node()
+	var weak = std.object.weak(node)
+
+	node.gen = make_cycle(node)
+	return weak
+end
+
+func main() as int
+	var weak = build_cycle()
+
+	if not std.object.alive(weak)
+		return 1
+	end
+	if std.object.collect() != 1
+		return 2
+	end
+	if std.object.alive(weak)
+		return 3
+	end
+
+	std.object.release(weak)
+	return 42
+end

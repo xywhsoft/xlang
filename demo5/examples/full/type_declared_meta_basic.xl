@@ -1,0 +1,78 @@
+class Vec2
+	var x as int
+	var y as int
+
+	func sum() as int
+		return self.x + self.y
+	end
+end
+
+class Entity extends object
+	var id as int
+
+	func score() as int
+		return self.id + 1
+	end
+end
+
+custom Token extends object
+	var score as int
+
+	func boost(int step) as int
+		return self.score + step
+	end
+end
+
+func main() as int
+	if Vec2.declared_field_count() != 2 then
+		return 1
+	end
+	if Vec2.declared_method_count() != 1 then
+		return 2
+	end
+	if Vec2.declared_field_name_at(0, "") != "x" then
+		return 3
+	end
+	if Vec2.declared_field_name_at(1, "") != "y" then
+		return 4
+	end
+	if Vec2.declared_method_name_at(0, "") != "sum" then
+		return 5
+	end
+
+	if Entity.declared_field_count() != 1 then
+		return 6
+	end
+	if Entity.declared_method_count() != 1 then
+		return 7
+	end
+	if Entity.declared_field_name_at(0, "") != "id" then
+		return 8
+	end
+	if Entity.declared_method_name_at(0, "") != "score" then
+		return 9
+	end
+
+	if Token.declared_field_count() != 1 then
+		return 10
+	end
+	if Token.declared_method_count() != 1 then
+		return 11
+	end
+	if Token.declared_field_name_at(0, "") != "score" then
+		return 12
+	end
+	if Token.declared_method_name_at(0, "") != "boost" then
+		return 13
+	end
+
+	var dyn = Entity()
+	if Type(dyn).declared_field_count() != 1 then
+		return 14
+	end
+	if Type(dyn).declared_method_name_at(0, "") != "score" then
+		return 15
+	end
+
+	return 42
+end

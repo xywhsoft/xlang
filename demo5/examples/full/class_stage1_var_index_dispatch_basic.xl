@@ -1,0 +1,15 @@
+class PlainSlot
+	var tag as int
+
+	func op_index(int index) as int
+		return index + 2 + self.tag
+	end
+end
+
+func main() as int
+	auto p = PlainSlot()
+	p.tag = 0
+
+	var v = p
+	return v[40]
+end

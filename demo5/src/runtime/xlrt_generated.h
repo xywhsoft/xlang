@@ -4,6 +4,18 @@
 #include "xlrt_profile.h"
 #include "../../lib/xrt/xrt.h"
 
+#ifndef XL_OBJECT_HEADER_MAGIC
+#define XL_OBJECT_HEADER_MAGIC 0x584C4F42u
+#endif
+
+#ifndef XL_OBJECT_FLAG_DESTROYING
+#define XL_OBJECT_FLAG_DESTROYING 0x00000001u
+#endif
+
+#ifndef XL_OBJECT_FLAG_DESTROYED
+#define XL_OBJECT_FLAG_DESTROYED  0x00000002u
+#endif
+
 #ifndef XL_OBJECT_TYPE_INFO_DEFINED
 #define XL_OBJECT_TYPE_INFO_DEFINED
 typedef struct XL_ObjectMethodEntry {
@@ -12,6 +24,8 @@ typedef struct XL_ObjectMethodEntry {
 } XL_ObjectMethodEntry;
 
 typedef struct XL_ObjectWeakRef XL_ObjectWeakRef;
+typedef int (*XL_ObjectGraphTraceVisitor)(xvalue value, void* pCtx);
+typedef int (*XL_ObjectTraceStateFn)(const void* pState, XL_ObjectGraphTraceVisitor pVisit, void* pCtx);
 
 typedef struct XL_ObjectTypeInfo {
 	const char* sName;
@@ -19,6 +33,8 @@ typedef struct XL_ObjectTypeInfo {
 	void (*pDestroyFunc)(void* pBlob);
 	const XL_ObjectMethodEntry* pMethods;
 	size_t iMethodCount;
+	int (*pVisibleExists)(void* pBlob, const char* sKey);
+	xvalue (*pVisibleKeys)(void* pBlob);
 } XL_ObjectTypeInfo;
 #endif
 
@@ -166,7 +182,20 @@ extern void xl_object_clear(void* pBlob);
 extern xvalue xl_object_keys(void* pBlob);
 extern xvalue xl_object_values(void* pBlob);
 extern xvalue xl_object_items(void* pBlob);
+extern int xl_object_meta_has_field(xvalue value, const char* sKey);
+extern int xl_object_meta_has_method(xvalue value, const char* sKey);
+extern xvalue xl_object_meta_field_names(xvalue value);
+extern int xl_object_meta_field_count(xvalue value);
+extern const char* xl_object_meta_field_name_at(xvalue value, int index, const char* sDefaultValue);
+extern xvalue xl_object_meta_method_names(xvalue value);
+extern int xl_object_meta_method_count(xvalue value);
+extern const char* xl_object_meta_method_name_at(xvalue value, int index, const char* sDefaultValue);
 extern int xl_object_collect_cycles(void);
+extern int xl_object_trace_blob(const void* pBlob, XL_ObjectGraphTraceVisitor pVisit, void* pCtx);
+extern int xl_object_future_bind_trace(xfuture* pFuture, const void* pState, XL_ObjectTraceStateFn pTraceState);
+extern int xl_object_future_clear_trace(xfuture* pFuture);
+extern int xl_object_future_clear_promise_trace(xpromise* pPromise);
+extern int xl_object_future_trace_handle(const xfuture* pFuture, XL_ObjectGraphTraceVisitor pVisit, void* pCtx);
 extern void* xl_sync_mutex(void);
 extern int xl_sync_mutex_free(void* pHandle);
 extern int xl_sync_mutex_lock(void* pHandle);

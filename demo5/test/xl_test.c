@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <process.h>
 
 #include "../src/ast/xl_ast_dump.h"
 #include "../src/codegen/c/xl_cgen.h"
@@ -92,7 +93,9 @@ static const XL_ObjectTypeInfo g_xlObjectRuntimeBaseType = {
 	NULL,
 	NULL,
 	g_xlObjectRuntimeBaseMethods,
-	XL_COUNTOF(g_xlObjectRuntimeBaseMethods)
+	XL_COUNTOF(g_xlObjectRuntimeBaseMethods),
+	NULL,
+	NULL
 };
 
 static const XL_ObjectTypeInfo g_xlObjectRuntimeDerivedType = {
@@ -100,8 +103,39 @@ static const XL_ObjectTypeInfo g_xlObjectRuntimeDerivedType = {
 	&g_xlObjectRuntimeBaseType,
 	NULL,
 	g_xlObjectRuntimeDerivedMethods,
-	XL_COUNTOF(g_xlObjectRuntimeDerivedMethods)
+	XL_COUNTOF(g_xlObjectRuntimeDerivedMethods),
+	NULL,
+	NULL
 };
+
+typedef struct XL_ObjectDestroyProbe {
+	XL_ObjectHeader header;
+	int value;
+} XL_ObjectDestroyProbe;
+
+static int g_xlObjectDestroyCount = 0;
+
+static void __xlObjectRuntimeCountDestroy(void* pBlob)
+{
+	XL_ObjectDestroyProbe* pProbe = (XL_ObjectDestroyProbe*)pBlob;
+
+	++g_xlObjectDestroyCount;
+	if ( pProbe != NULL ) {
+		pProbe->value += 1;
+	}
+	xl_object_header_dispose(pBlob);
+}
+
+static const XL_ObjectTypeInfo g_xlObjectDestroyCountType = {
+	"DestroyCountProbe",
+	NULL,
+	__xlObjectRuntimeCountDestroy,
+	NULL,
+	0u,
+	NULL,
+	NULL
+};
+
 
 static void __xlCopyText(char* sOut, size_t iOutSize, const char* sText)
 {
@@ -2268,6 +2302,26 @@ static int __xlTestParseNetTlsBasic(XL_TestContext* pCtx) { return __xlRunParseC
 static int __xlTestParseMimeBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\native\\mime_basic.xl", 1, XL_AST_CALL); }
 static int __xlTestParseMultipartBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\native\\multipart_basic.xl", 1, XL_AST_CALL); }
 static int __xlTestParseTypesBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\native\\types_basic.xl", 1, XL_AST_CALL); }
+static int __xlTestParseTypeDynamicDescriptorBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\full\\type_dynamic_descriptor_basic.xl", 1, XL_AST_CALL); }
+static int __xlTestParseTypeDynamicInstanceBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\full\\type_dynamic_instance_basic.xl", 1, XL_AST_CALL); }
+static int __xlTestParseTypeDynamicMembersBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\full\\type_dynamic_members_basic.xl", 1, XL_AST_CALL); }
+static int __xlTestParseTypeDynamicFieldTypesBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\full\\type_dynamic_field_types_basic.xl", 1, XL_AST_CALL); }
+static int __xlTestParseTypeDynamicInstanceMethodNamesBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\full\\type_dynamic_instance_method_names_basic.xl", 1, XL_AST_CALL); }
+static int __xlTestParseTypeDynamicMethodBindBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\full\\type_dynamic_method_bind_basic.xl", 1, XL_AST_CALL); }
+static int __xlTestParseTypeDynamicMethodBindArgsBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\full\\type_dynamic_method_bind_args_basic.xl", 1, XL_AST_CALL); }
+static int __xlTestParseTypeDynamicMethodBindStringBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\full\\type_dynamic_method_bind_string_basic.xl", 1, XL_AST_CALL); }
+static int __xlTestParseTypeDynamicMethodBindVarBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\full\\type_dynamic_method_bind_var_basic.xl", 1, XL_AST_CALL); }
+static int __xlTestParseTypeDynamicMethodBoundBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\full\\type_dynamic_method_bound_basic.xl", 1, XL_AST_CALL); }
+static int __xlTestParseTypeDynamicBoundMethodNamesBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\full\\type_dynamic_bound_method_names_basic.xl", 1, XL_AST_CALL); }
+static int __xlTestParseTypeDynamicMethodFallbackBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\full\\type_dynamic_method_fallback_basic.xl", 1, XL_AST_CALL); }
+static int __xlTestParseTypeDynamicMethodFallbackStringBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\full\\type_dynamic_method_fallback_string_basic.xl", 1, XL_AST_CALL); }
+static int __xlTestParseTypeDeclaredMetaBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\full\\type_declared_meta_basic.xl", 1, XL_AST_CALL); }
+static int __xlTestParseTypeDeclaresMetaBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\full\\type_declares_meta_basic.xl", 1, XL_AST_CALL); }
+static int __xlTestParseTypeDeclaredNamesBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\full\\type_declared_names_basic.xl", 1, XL_AST_CALL); }
+static int __xlTestParseObjectMetaRuntimeBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\full\\object_meta_runtime_basic.xl", 1, XL_AST_CALL); }
+static int __xlTestParseObjectMetaFieldNamesBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\full\\object_meta_field_names_basic.xl", 1, XL_AST_CALL); }
+static int __xlTestParseObjectMetaMethodNamesBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\full\\object_meta_method_names_basic.xl", 1, XL_AST_CALL); }
+static int __xlTestParseObjectFunctionFieldBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\full\\object_function_field_basic.xl", 1, XL_AST_CALL); }
 static int __xlTestParseSysProcessBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\native\\sys_process_basic.xl", 1, XL_AST_CALL); }
 static int __xlTestParseSysWaitBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\native\\sys_wait_basic.xl", 1, XL_AST_CALL); }
 static int __xlTestParseTemplateRenderBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\native\\template_render_basic.xl", 1, XL_AST_CALL); }
@@ -2286,7 +2340,22 @@ static int __xlTestParseCustomExternCreateDestroyRuntime(XL_TestContext* pCtx) {
 static int __xlTestParseCustomVarDispatchRuntime(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\full\\custom_var_dispatch_runtime.xl", 1, XL_AST_CLASS_DECL, "flag=1"); }
 static int __xlTestParseCustomPayloadRuntime(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\full\\custom_payload_runtime.xl", 1, XL_AST_CLASS_DECL, "flag=1"); }
 static int __xlTestParseCustomDestroyRuntime(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\full\\custom_destroy_runtime.xl", 1, XL_AST_DESTROY_DECL, "DestroyDecl"); }
+static int __xlTestParseCustomXrtResourceBasic(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\full\\custom_xrt_resource_basic.xl", 1, XL_AST_CREATE_DECL, "text2=\"pkg_clock_artifact_point_create\""); }
+static int __xlTestParseCustomOperatorBasic(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\full\\custom_operator_basic.xl", 1, XL_AST_FUNC_DECL, "text=\"op_add\""); }
+static int __xlTestParseCustomIndexDispatchBasic(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\full\\custom_index_dispatch_basic.xl", 1, XL_AST_FUNC_DECL, "text=\"op_index_set\""); }
+static int __xlTestParseObjectGetLetDispatchBasic(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\full\\object_get_let_dispatch_basic.xl", 1, XL_AST_FUNC_DECL, "text2=\"get:value\""); }
+static int __xlTestParseCustomGetLetDispatchBasic(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\full\\custom_get_let_dispatch_basic.xl", 1, XL_AST_FUNC_DECL, "text2=\"let:value\""); }
+static int __xlTestParseCustomVarOperatorBasic(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\full\\custom_var_operator_basic.xl", 1, XL_AST_FUNC_DECL, "text=\"op_add\""); }
+static int __xlTestParseCustomVarIndexDispatchBasic(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\full\\custom_var_index_dispatch_basic.xl", 1, XL_AST_FUNC_DECL, "text=\"op_index_set\""); }
+static int __xlTestParseClassStage1VarDispatchBasic(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\full\\class_stage1_var_dispatch_basic.xl", 1, XL_AST_FUNC_DECL, "text=\"op_add\""); }
+static int __xlTestParseClassStage1VarIndexDispatchBasic(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\full\\class_stage1_var_index_dispatch_basic.xl", 1, XL_AST_FUNC_DECL, "text=\"op_index\""); }
+static int __xlTestParseObjectClassBasic(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\full\\object_class_basic.xl", 1, XL_AST_CLASS_DECL, "text=\"Node\""); }
+static int __xlTestParseObjectDynamicFieldBasic(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\full\\object_dynamic_member_runtime.xl", 1, XL_AST_CLASS_DECL, "text=\"Entity\""); }
+static int __xlTestParseObjectFieldShadowBasic(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\full\\object_field_shadow_basic.xl", 1, XL_AST_CLASS_DECL, "text=\"Bag\""); }
+static int __xlTestParseObjectOperatorDispatchBasic(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\full\\object_operator_dispatch_basic.xl", 1, XL_AST_FUNC_DECL, "text=\"op_neg\""); }
 static int __xlTestParseObjectSuperCallRuntime(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\full\\object_super_call_runtime.xl", 1, XL_AST_CALL, "super"); }
+static int __xlTestParseObjectSuperCallBasic(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\full\\object_super_call_runtime.xl", 1, XL_AST_CALL, "super"); }
+static int __xlTestParseObjectVirtualDispatchBasic(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\full\\object_inherit_dispatch_runtime.xl", 1, XL_AST_CLASS_DECL, "text=\"Child\""); }
 static int __xlTestParseClassNoCopyDecl(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\full\\class_nocopy_decl.xl", 1, XL_AST_NOCOPY_DECL, "NoCopyDecl"); }
 static int __xlTestParseExternAtoiBasic(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\native\\extern_atoi_basic.xl", 1, XL_AST_FUNC_DECL, "text2=\"atoi\""); }
 static int __xlTestParseExternAsyncFuncBasic(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\native\\extern_async_func_basic.xl", 1, XL_AST_FUNC_DECL, "text2=\"pkg_clock_artifact_add_one\""); }
@@ -2355,6 +2424,8 @@ static int __xlTestParseGenericListTypeMethod(XL_TestContext* pCtx) { return __x
 static int __xlTestParseGenericExplicitTypeArg(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\full\\generic_explicit_type_arg.xl", 1, XL_AST_IDENT, "zero<int>"); }
 static int __xlTestParseTypeDefBasic(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\full\\typedef_basic.xl", 1, XL_AST_TYPEDEF, "text=\"Text\""); }
 static int __xlTestParseTypeReflectClassRuntime(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\full\\type_reflect_class_runtime.xl", 1, XL_AST_MEMBER, "text=\"isPlainClass\""); }
+static int __xlTestParseTypeRuntimeApiBasic(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\full\\type_runtime_api_basic.xl", 1, XL_AST_MEMBER, "text=\"isBuiltin\""); }
+static int __xlTestParseTypeMetaBridgeBasic(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\full\\type_meta_bridge_basic.xl", 1, XL_AST_MEMBER, "text=\"has_method\""); }
 static int __xlTestParsePointBasic(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\full\\point_basic.xl", 1, XL_AST_TYPE_REF, "text=\"point\""); }
 static int __xlTestParseAsyncBoolMain(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\async\\run_bool_main.xl", 1, XL_AST_TYPE_REF, "text=\"bool\""); }
 static int __xlTestParseFutureValueBasic(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\async\\future_value_basic.xl", 1, XL_AST_TYPE_REF, "text=\"future\""); }
@@ -2538,8 +2609,28 @@ static int __xlTestParseTaskSyncNestedLoopOctatriacontaSelectOmniverseRuntime(XL
 static int __xlTestParseTaskSyncNestedLoopEnneatriacontaSelectHyperverseRuntime(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\full\\task_sync_nested_loop_enneatriaconta_select_hyperverse_runtime.xl", 1, XL_AST_VAR_DECL, "text=\"hyperverse_pick\""); }
 static int __xlTestParseTaskSyncNestedLoopTetracontaSelectMetaverseRuntime(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\full\\task_sync_nested_loop_tetraconta_select_metaverse_runtime.xl", 1, XL_AST_VAR_DECL, "text=\"metaverse_pick\""); }
 static int __xlTestParseTaskSyncNestedLoopPentacontaSelectUltraverseRuntime(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\full\\task_sync_nested_loop_pentaconta_select_ultraverse_runtime.xl", 1, XL_AST_VAR_DECL, "text=\"ultraverse_pick\""); }
+static int __xlTestParseTaskSyncNestedLoopHenpentacontaSelectMegaverseRuntime(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\full\\task_sync_nested_loop_henpentaconta_select_megaverse_runtime.xl", 1, XL_AST_VAR_DECL, "text=\"megaverse_pick\""); }
+static int __xlTestParseTaskSyncNestedLoopDopentacontaSelectGigaverseRuntime(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\full\\task_sync_nested_loop_dopentaconta_select_gigaverse_runtime.xl", 1, XL_AST_VAR_DECL, "text=\"gigaverse_pick\""); }
+static int __xlTestParseTaskSyncNestedLoopTripentacontaSelectTeraverseRuntime(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\full\\task_sync_nested_loop_tripentaconta_select_teraverse_runtime.xl", 1, XL_AST_VAR_DECL, "text=\"teraverse_pick\""); }
+static int __xlTestParseTaskSyncNestedLoopQuadripentacontaSelectExtraverseRuntime(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\full\\task_sync_nested_loop_quadripentaconta_select_extraverse_runtime.xl", 1, XL_AST_VAR_DECL, "text=\"extraverse_pick\""); }
+static int __xlTestParseTaskSyncNestedLoopPentapentacontaSelectSuperverseRuntime(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\full\\task_sync_nested_loop_pentapentaconta_select_superverse_runtime.xl", 1, XL_AST_VAR_DECL, "text=\"superverse_pick\""); }
+static int __xlTestParseTaskSyncNestedLoopHexapentacontaSelectMacroverseRuntime(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\full\\task_sync_nested_loop_hexapentaconta_select_macroverse_runtime.xl", 1, XL_AST_VAR_DECL, "text=\"macroverse_pick\""); }
+static int __xlTestParseTaskSyncNestedLoopHeptapentacontaSelectMicroverseRuntime(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\full\\task_sync_nested_loop_heptapentaconta_select_microverse_runtime.xl", 1, XL_AST_VAR_DECL, "text=\"microverse_pick\""); }
+static int __xlTestParseTaskSyncNestedLoopOctapentacontaSelectNanoverseRuntime(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\full\\task_sync_nested_loop_octapentaconta_select_nanoverse_runtime.xl", 1, XL_AST_VAR_DECL, "text=\"nanoverse_pick\""); }
+static int __xlTestParseTaskSyncNestedLoopEnneapentacontaSelectPicoverseRuntime(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\full\\task_sync_nested_loop_enneapentaconta_select_picoverse_runtime.xl", 1, XL_AST_VAR_DECL, "text=\"picoverse_pick\""); }
+static int __xlTestParseTaskSyncNestedLoopHectopentacontaSelectFemtoverseRuntime(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\full\\task_sync_nested_loop_hectopentaconta_select_femtoverse_runtime.xl", 1, XL_AST_VAR_DECL, "text=\"femtoverse_pick\""); }
+static int __xlTestParseTaskSyncNestedLoopHenhectopentacontaSelectAttoversRuntime(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\full\\task_sync_nested_loop_henhectopentaconta_select_attovers_runtime.xl", 1, XL_AST_VAR_DECL, "text=\"attovers_pick\""); }
+static int __xlTestParseTaskSyncNestedLoopDihectopentacontaSelectZeptoverseRuntime(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\full\\task_sync_nested_loop_dihectopentaconta_select_zeptoverse_runtime.xl", 1, XL_AST_VAR_DECL, "text=\"zeptoverse_pick\""); }
+static int __xlTestParseTaskSyncNestedLoopTrihectopentacontaSelectYoctoverseRuntime(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\full\\task_sync_nested_loop_trihectopentaconta_select_yoctoverse_runtime.xl", 1, XL_AST_VAR_DECL, "text=\"yoctoverse_pick\""); }
+static int __xlTestParseTaskSyncNestedLoopQuadrihectopentacontaSelectXenoverseRuntime(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\full\\task_sync_nested_loop_quadrihectopentaconta_select_xenoverse_runtime.xl", 1, XL_AST_VAR_DECL, "text=\"xenoverse_pick\""); }
+static int __xlTestParseTaskSyncNestedLoopPentahectopentacontaSelectZettaverseRuntime(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\full\\task_sync_nested_loop_pentahectopentaconta_select_zettaverse_runtime.xl", 1, XL_AST_VAR_DECL, "text=\"zettaverse_pick\""); }
+static int __xlTestParseTaskSyncNestedLoopHexahectopentacontaSelectRonnaverseRuntime(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\full\\task_sync_nested_loop_hexahectopentaconta_select_ronnaverse_runtime.xl", 1, XL_AST_VAR_DECL, "text=\"ronnaverse_pick\""); }
+static int __xlTestParseTaskSyncNestedLoopHeptahectopentacontaSelectQuettaverseRuntime(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\full\\task_sync_nested_loop_heptahectopentaconta_select_quettaverse_runtime.xl", 1, XL_AST_VAR_DECL, "text=\"quettaverse_pick\""); }
 static int __xlTestParseVarGeneratorRuntime(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\full\\var_generator_runtime.xl", 1, XL_AST_CALL); }
+static int __xlTestParseObjectCollectGeneratorRuntime(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\full\\object_collect_generator_runtime.xl", 1, XL_AST_CALL); }
 static int __xlTestParseObjectCollectChannelRuntime(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\full\\object_collect_channel_runtime.xl", 1, XL_AST_CALL); }
+static int __xlTestParseObjectCollectTaskRuntime(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\full\\object_collect_task_runtime.xl", 1, XL_AST_CALL); }
+static int __xlTestParseObjectCollectFutureRuntime(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\full\\object_collect_future_runtime.xl", 1, XL_AST_CALL); }
 static int __xlTestParseVarTypeMethodsBasic(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\full\\var_type_methods_basic.xl", 1, XL_AST_FUNC_DECL, "text2=\"wrap\""); }
 static int __xlTestParseVarContainerTypeMethodsBasic(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\full\\var_container_type_methods_basic.xl", 1, XL_AST_FUNC_DECL, "text2=\"wrap_join\""); }
 static int __xlTestParseNewObjectRuntime(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\full\\new_object_runtime.xl", 1, XL_AST_UNARY); }
@@ -2620,6 +2711,26 @@ static int __xlTestSemNetTlsBasic(XL_TestContext* pCtx) { return __xlRunSemCase(
 static int __xlTestSemMimeBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\mime_basic.xl", 1, "int"); }
 static int __xlTestSemMultipartBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\multipart_basic.xl", 1, "int"); }
 static int __xlTestSemTypesBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\types_basic.xl", 1, "int"); }
+static int __xlTestSemTypeDynamicDescriptorBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\type_dynamic_descriptor_basic.xl", 1, "int"); }
+static int __xlTestSemTypeDynamicInstanceBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\type_dynamic_instance_basic.xl", 1, "int"); }
+static int __xlTestSemTypeDynamicMembersBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\type_dynamic_members_basic.xl", 1, "int"); }
+static int __xlTestSemTypeDynamicFieldTypesBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\type_dynamic_field_types_basic.xl", 1, "int"); }
+static int __xlTestSemTypeDynamicInstanceMethodNamesBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\type_dynamic_instance_method_names_basic.xl", 1, "int"); }
+static int __xlTestSemTypeDynamicMethodBindBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\type_dynamic_method_bind_basic.xl", 1, "int"); }
+static int __xlTestSemTypeDynamicMethodBindArgsBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\type_dynamic_method_bind_args_basic.xl", 1, "int"); }
+static int __xlTestSemTypeDynamicMethodBindStringBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\type_dynamic_method_bind_string_basic.xl", 1, "int"); }
+static int __xlTestSemTypeDynamicMethodBindVarBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\type_dynamic_method_bind_var_basic.xl", 1, "int"); }
+static int __xlTestSemTypeDynamicMethodBoundBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\type_dynamic_method_bound_basic.xl", 1, "int"); }
+static int __xlTestSemTypeDynamicBoundMethodNamesBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\type_dynamic_bound_method_names_basic.xl", 1, "int"); }
+static int __xlTestSemTypeDynamicMethodFallbackBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\type_dynamic_method_fallback_basic.xl", 1, "int"); }
+static int __xlTestSemTypeDynamicMethodFallbackStringBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\type_dynamic_method_fallback_string_basic.xl", 1, "int"); }
+static int __xlTestSemTypeDeclaredMetaBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\type_declared_meta_basic.xl", 1, "int"); }
+static int __xlTestSemTypeDeclaresMetaBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\type_declares_meta_basic.xl", 1, "int"); }
+static int __xlTestSemTypeDeclaredNamesBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\type_declared_names_basic.xl", 1, "int"); }
+static int __xlTestSemObjectMetaRuntimeBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\object_meta_runtime_basic.xl", 1, "int"); }
+static int __xlTestSemObjectMetaFieldNamesBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\object_meta_field_names_basic.xl", 1, "int"); }
+static int __xlTestSemObjectMetaMethodNamesBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\object_meta_method_names_basic.xl", 1, "int"); }
+static int __xlTestSemObjectFunctionFieldBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\object_function_field_basic.xl", 1, "int"); }
 static int __xlTestSemSysProcessBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\sys_process_basic.xl", 1, "int"); }
 static int __xlTestSemSysWaitBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\sys_wait_basic.xl", 1, "future"); }
 static int __xlTestSemTemplateRenderBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\template_render_basic.xl", 1, "int"); }
@@ -2674,7 +2785,20 @@ static int __xlTestSemCustomExternCreateDestroyRuntime(XL_TestContext* pCtx) { r
 static int __xlTestSemCustomVarDispatchRuntime(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\custom_var_dispatch_runtime.xl", 1, "int"); }
 static int __xlTestSemCustomPayloadRuntime(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\custom_payload_runtime.xl", 1, "Token"); }
 static int __xlTestSemCustomDestroyRuntime(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\custom_destroy_runtime.xl", 1, "Token"); }
+static int __xlTestSemCustomXrtResourceBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\custom_xrt_resource_basic.xl", 1, "int"); }
+static int __xlTestSemCustomOperatorBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\custom_operator_basic.xl", 1, "int"); }
+static int __xlTestSemCustomIndexDispatchBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\custom_index_dispatch_basic.xl", 1, "int"); }
+static int __xlTestSemObjectGetLetDispatchBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\object_get_let_dispatch_basic.xl", 1, "int"); }
+static int __xlTestSemCustomGetLetDispatchBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\custom_get_let_dispatch_basic.xl", 1, "int"); }
+static int __xlTestSemCustomVarOperatorBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\custom_var_operator_basic.xl", 1, "int"); }
+static int __xlTestSemCustomVarIndexDispatchBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\custom_var_index_dispatch_basic.xl", 1, "int"); }
+static int __xlTestSemObjectClassBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\object_class_basic.xl", 1, "int"); }
+static int __xlTestSemObjectDynamicFieldBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\object_dynamic_member_runtime.xl", 1, "int"); }
+static int __xlTestSemObjectFieldShadowBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\object_field_shadow_basic.xl", 1, "int"); }
+static int __xlTestSemObjectOperatorDispatchBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\object_operator_dispatch_basic.xl", 1, "int"); }
 static int __xlTestSemObjectSuperCallRuntime(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\object_super_call_runtime.xl", 1, "int"); }
+static int __xlTestSemObjectSuperCallBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\object_super_call_runtime.xl", 1, "int"); }
+static int __xlTestSemObjectVirtualDispatchBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\object_inherit_dispatch_runtime.xl", 1, "int"); }
 static int __xlTestSemObjectSuperWithoutBaseError(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\sem\\object_super_without_base_error.xl", 0, NULL); }
 static int __xlTestSemCustomLayoutBasic(XL_TestContext* pCtx) { return __xlRunSemDumpCase(pCtx, "examples\\full\\custom_basic_runtime.xl", 1, "Bag kind=custom"); }
 static int __xlTestSemCustomExternMethodLayoutBasic(XL_TestContext* pCtx) { return __xlRunSemDumpCase(pCtx, "examples\\full\\custom_extern_method_runtime.xl", 1, "Token kind=custom"); }
@@ -2682,6 +2806,14 @@ static int __xlTestSemCustomExternCreateDestroyLayoutBasic(XL_TestContext* pCtx)
 static int __xlTestSemCustomVarDispatchLayoutBasic(XL_TestContext* pCtx) { return __xlRunSemDumpCase(pCtx, "examples\\full\\custom_var_dispatch_runtime.xl", 1, "Token kind=custom"); }
 static int __xlTestSemCustomPayloadLayoutBasic(XL_TestContext* pCtx) { return __xlRunSemDumpCase(pCtx, "examples\\full\\custom_payload_runtime.xl", 1, "Token kind=custom"); }
 static int __xlTestSemCustomDestroyLayoutBasic(XL_TestContext* pCtx) { return __xlRunSemDumpCase(pCtx, "examples\\full\\custom_destroy_runtime.xl", 1, "Token kind=custom"); }
+static int __xlTestSemCustomXrtResourceLayoutBasic(XL_TestContext* pCtx) { return __xlRunSemDumpCase(pCtx, "examples\\full\\custom_xrt_resource_basic.xl", 1, "Texture kind=custom"); }
+static int __xlTestSemCustomOperatorLayoutBasic(XL_TestContext* pCtx) { return __xlRunSemDumpCase(pCtx, "examples\\full\\custom_operator_basic.xl", 1, "Counter kind=custom"); }
+static int __xlTestSemCustomIndexDispatchLayoutBasic(XL_TestContext* pCtx) { return __xlRunSemDumpCase(pCtx, "examples\\full\\custom_index_dispatch_basic.xl", 1, "Slot kind=custom"); }
+static int __xlTestSemObjectGetLetDispatchLayoutBasic(XL_TestContext* pCtx) { return __xlRunSemDumpCase(pCtx, "examples\\full\\object_get_let_dispatch_basic.xl", 1, "Child kind=object"); }
+static int __xlTestSemCustomGetLetDispatchLayoutBasic(XL_TestContext* pCtx) { return __xlRunSemDumpCase(pCtx, "examples\\full\\custom_get_let_dispatch_basic.xl", 1, "Meter kind=custom"); }
+static int __xlTestSemCustomVarOperatorLayoutBasic(XL_TestContext* pCtx) { return __xlRunSemDumpCase(pCtx, "examples\\full\\custom_var_operator_basic.xl", 1, "Counter kind=custom"); }
+static int __xlTestSemCustomVarIndexDispatchLayoutBasic(XL_TestContext* pCtx) { return __xlRunSemDumpCase(pCtx, "examples\\full\\custom_var_index_dispatch_basic.xl", 1, "Slot kind=custom"); }
+static int __xlTestSemObjectOperatorDispatchLayoutBasic(XL_TestContext* pCtx) { return __xlRunSemDumpCase(pCtx, "examples\\full\\object_operator_dispatch_basic.xl", 1, "Child kind=object extends=Base"); }
 static int __xlTestSemObjectSuperLayoutBasic(XL_TestContext* pCtx) { return __xlRunSemDumpCase(pCtx, "examples\\full\\object_super_call_runtime.xl", 1, "Child kind=object extends=Base"); }
 static int __xlTestSemClassStage1LayoutBasic(XL_TestContext* pCtx) { return __xlRunSemDumpCase(pCtx, "examples\\full\\class_stage1_parser_basic.xl", 1, "Vec2 kind=object extends=object size=24 align=8 create=1 destroy=1 fields=4"); }
 static int __xlTestSemClassStage1InheritLayoutBasic(XL_TestContext* pCtx) { return __xlRunSemDumpCase(pCtx, "examples\\full\\class_stage1_inherit_layout_basic.xl", 1, "Point3 kind=object extends=PointBase size=12 align=4 create=0 destroy=1 fields=3"); }
@@ -2731,6 +2863,8 @@ static int __xlTestSemClassStage1ContainerReleaseDestroyRuntime(XL_TestContext* 
 static int __xlTestSemClassStage1ContainerReturnEscapeRuntime(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\class_stage1_container_return_escape_runtime.xl", 1, "ReturnBox"); }
 static int __xlTestSemClassStage1VarClassDestroyRuntime(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\class_stage1_var_class_destroy_runtime.xl", 1, "VarBox"); }
 static int __xlTestSemClassStage1VarClassCopyRuntime(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\class_stage1_var_class_copy_runtime.xl", 1, "VarCopyBox"); }
+static int __xlTestSemClassStage1VarDispatchBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\class_stage1_var_dispatch_basic.xl", 1, "int"); }
+static int __xlTestSemClassStage1VarIndexDispatchBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\class_stage1_var_index_dispatch_basic.xl", 1, "int"); }
 static int __xlTestSemClassStage1VarContainerDestroyRuntime(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\class_stage1_var_container_destroy_runtime.xl", 1, "VarContainerBox"); }
 static int __xlTestSemClassStage1VarContainerCopyRuntime(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\class_stage1_var_container_copy_runtime.xl", 1, "VarContainerCopyBox"); }
 static int __xlTestSemClassStage1GeneratorDestroyRuntime(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\class_stage1_generator_destroy_runtime.xl", 1, "GenBox"); }
@@ -3064,6 +3198,119 @@ cleanup:
 		xvoUnref(fallbackValue);
 	}
 	xl_object_header_dispose(&probe);
+	return iRc;
+}
+
+static int __xlTestRuntimeObjectDestroyingDispatchGuard(XL_TestContext* pCtx)
+{
+	XL_ObjectRuntimeProbe probe;
+	int (*fnWho)(int);
+
+	memset(&probe, 0, sizeof(probe));
+	xl_object_header_bind(&probe, &g_xlObjectRuntimeDerivedType);
+
+	fnWho = (int (*)(int))xl_object_dispatch(&probe, "who$arity1|value:int");
+	if ( (fnWho == NULL) || (fnWho(5) != 15) ) {
+		xl_object_header_dispose(&probe);
+		return __xlFailObjectRuntime(pCtx, "live object should still dispatch methods before destroying");
+	}
+
+	probe.header.uFlags |= XL_OBJECT_FLAG_DESTROYING;
+	fnWho = (int (*)(int))xl_object_dispatch(&probe, "who$arity1|value:int");
+	if ( fnWho != NULL ) {
+		probe.header.uFlags &= ~XL_OBJECT_FLAG_DESTROYING;
+		xl_object_header_dispose(&probe);
+		return __xlFailObjectRuntime(pCtx, "destroying object should reject normal method dispatch");
+	}
+
+	probe.header.uFlags &= ~XL_OBJECT_FLAG_DESTROYING;
+	xl_object_header_dispose(&probe);
+	return XL_RC_OK;
+}
+
+static int __xlTestRuntimeObjectDestroyRunsOnce(XL_TestContext* pCtx)
+{
+	XL_ObjectDestroyProbe source;
+	xvalue boxed;
+	int iRc;
+
+	memset(&source, 0, sizeof(source));
+	boxed = NULL;
+	iRc = XL_RC_OK;
+	g_xlObjectDestroyCount = 0;
+
+	boxed = xvoCreateClass((uint32)sizeof(source));
+	if ( (boxed == NULL) || (xvoGetClass(boxed) == NULL) ) {
+		return __xlFailObjectRuntime(pCtx, "failed to allocate boxed object probe for destroy-once");
+	}
+
+	memcpy(xvoGetClass(boxed), &source, sizeof(source));
+	xl_object_header_clone(xvoGetClass(boxed), &source, &g_xlObjectDestroyCountType);
+	if ( !xl_object_delete_value(boxed) ) {
+		iRc = __xlFailObjectRuntime(pCtx, "delete should succeed for unique object");
+		goto cleanup;
+	}
+	if ( g_xlObjectDestroyCount != 1 ) {
+		iRc = __xlFailObjectRuntime(pCtx, "destroy should run exactly once on first delete");
+		goto cleanup;
+	}
+	if ( !xl_object_delete_value(boxed) ) {
+		iRc = __xlFailObjectRuntime(pCtx, "repeat delete on destroyed object should be harmless");
+		goto cleanup;
+	}
+	if ( g_xlObjectDestroyCount != 1 ) {
+		iRc = __xlFailObjectRuntime(pCtx, "destroy should not run again after object is already destroyed");
+		goto cleanup;
+	}
+
+cleanup:
+	if ( boxed != NULL ) {
+		xvoUnref(boxed);
+	}
+	g_xlObjectDestroyCount = 0;
+	return iRc;
+}
+
+static int __xlTestRuntimeObjectReentrantDeleteGuard(XL_TestContext* pCtx)
+{
+	XL_ObjectDestroyProbe source;
+	xvalue boxed;
+	XL_ObjectDestroyProbe* pProbe;
+	int iRc;
+
+	memset(&source, 0, sizeof(source));
+	boxed = NULL;
+	pProbe = NULL;
+	iRc = XL_RC_OK;
+
+	boxed = xvoCreateClass((uint32)sizeof(source));
+	if ( (boxed == NULL) || (xvoGetClass(boxed) == NULL) ) {
+		return __xlFailObjectRuntime(pCtx, "failed to allocate boxed object probe for reentrant delete");
+	}
+
+	memcpy(xvoGetClass(boxed), &source, sizeof(source));
+	xl_object_header_clone(xvoGetClass(boxed), &source, &g_xlObjectDestroyCountType);
+	pProbe = (XL_ObjectDestroyProbe*)xvoGetClass(boxed);
+	if ( pProbe == NULL ) {
+		iRc = __xlFailObjectRuntime(pCtx, "boxed object probe payload is null");
+		goto cleanup;
+	}
+	g_xlObjectDestroyCount = 0;
+	pProbe->header.uFlags |= XL_OBJECT_FLAG_DESTROYING;
+	if ( !xl_object_delete_value(boxed) ) {
+		iRc = __xlFailObjectRuntime(pCtx, "delete during destroying should be harmless");
+		goto cleanup;
+	}
+	if ( g_xlObjectDestroyCount != 0 ) {
+		iRc = __xlFailObjectRuntime(pCtx, "delete during destroying should not trigger destroy again");
+		goto cleanup;
+	}
+
+cleanup:
+	if ( boxed != NULL ) {
+		xvoUnref(boxed);
+	}
+	g_xlObjectDestroyCount = 0;
 	return iRc;
 }
 
@@ -3515,6 +3762,98 @@ cleanup:
 	}
 	if ( boxedB != NULL ) {
 		xl_object_release(boxedB);
+	}
+	if ( pWeakA != NULL ) {
+		xl_object_weak_delete(pWeakA);
+	}
+	if ( pWeakB != NULL ) {
+		xl_object_weak_delete(pWeakB);
+	}
+	return iRc;
+}
+
+static int __xlTestRuntimeObjectPinnedRootBasic(XL_TestContext* pCtx)
+{
+	XL_ObjectRuntimeProbe sourceA;
+	XL_ObjectRuntimeProbe sourceB;
+	xvalue boxedA;
+	xvalue boxedB;
+	XL_ObjectWeakRef* pWeakA;
+	XL_ObjectWeakRef* pWeakB;
+	XL_ObjectPinnedRef* pPinnedRef;
+	int iRc;
+
+	memset(&sourceA, 0, sizeof(sourceA));
+	memset(&sourceB, 0, sizeof(sourceB));
+	boxedA = NULL;
+	boxedB = NULL;
+	pWeakA = NULL;
+	pWeakB = NULL;
+	pPinnedRef = NULL;
+	iRc = XL_RC_OK;
+
+	boxedA = xvoCreateClass((uint32)sizeof(sourceA));
+	boxedB = xvoCreateClass((uint32)sizeof(sourceB));
+	if ( (boxedA == NULL) || (boxedB == NULL) || (xvoGetClass(boxedA) == NULL) || (xvoGetClass(boxedB) == NULL) ) {
+		return __xlFailObjectRuntime(pCtx, "failed to allocate boxed probes for pinned root collect");
+	}
+
+	memcpy(xvoGetClass(boxedA), &sourceA, sizeof(sourceA));
+	memcpy(xvoGetClass(boxedB), &sourceB, sizeof(sourceB));
+	xl_object_header_clone(xvoGetClass(boxedA), &sourceA, &g_xlObjectRuntimeDerivedType);
+	xl_object_header_clone(xvoGetClass(boxedB), &sourceB, &g_xlObjectRuntimeDerivedType);
+	xl_object_bind_value(boxedA);
+	xl_object_bind_value(boxedB);
+	pWeakA = xl_object_weak_new(boxedA);
+	pWeakB = xl_object_weak_new(boxedB);
+	pPinnedRef = xl_object_pin_value(boxedA);
+	if ( (pWeakA == NULL) || (pWeakB == NULL) || (pPinnedRef == NULL) ) {
+		iRc = __xlFailObjectRuntime(pCtx, "failed to prepare pinned root cycle test");
+		goto cleanup;
+	}
+
+	if ( !xl_object_set(xvoGetClass(boxedA), "peer", boxedB) || !xl_object_set(xvoGetClass(boxedB), "peer", boxedA) ) {
+		iRc = __xlFailObjectRuntime(pCtx, "failed to build pinned object cycle");
+		goto cleanup;
+	}
+
+	xl_object_release(boxedA);
+	xl_object_release(boxedB);
+	boxedA = NULL;
+	boxedB = NULL;
+	if ( !xl_object_weak_alive(pWeakA) || !xl_object_weak_alive(pWeakB) ) {
+		iRc = __xlFailObjectRuntime(pCtx, "pinned cycle should keep both objects alive before collect");
+		goto cleanup;
+	}
+	if ( xl_object_collect_cycles() != 0 ) {
+		iRc = __xlFailObjectRuntime(pCtx, "collect should not reclaim cycle while pinned root exists");
+		goto cleanup;
+	}
+	if ( !xl_object_weak_alive(pWeakA) || !xl_object_weak_alive(pWeakB) ) {
+		iRc = __xlFailObjectRuntime(pCtx, "pinned root should keep cycle alive after collect");
+		goto cleanup;
+	}
+
+	xl_object_unpin_value(pPinnedRef);
+	pPinnedRef = NULL;
+	if ( xl_object_collect_cycles() != 2 ) {
+		iRc = __xlFailObjectRuntime(pCtx, "collect should reclaim cycle after pinned root release");
+		goto cleanup;
+	}
+	if ( xl_object_weak_alive(pWeakA) || xl_object_weak_alive(pWeakB) ) {
+		iRc = __xlFailObjectRuntime(pCtx, "weak refs should be dead after pinned cycle collect");
+		goto cleanup;
+	}
+
+cleanup:
+	if ( boxedA != NULL ) {
+		xl_object_release(boxedA);
+	}
+	if ( boxedB != NULL ) {
+		xl_object_release(boxedB);
+	}
+	if ( pPinnedRef != NULL ) {
+		xl_object_unpin_value(pPinnedRef);
 	}
 	if ( pWeakA != NULL ) {
 		xl_object_weak_delete(pWeakA);
@@ -4695,6 +5034,23 @@ static int __xlTestSemTaskSyncNestedLoopOctatriacontaSelectOmniverseRuntime(XL_T
 static int __xlTestSemTaskSyncNestedLoopEnneatriacontaSelectHyperverseRuntime(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\task_sync_nested_loop_enneatriaconta_select_hyperverse_runtime.xl", 1, "int"); }
 static int __xlTestSemTaskSyncNestedLoopTetracontaSelectMetaverseRuntime(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\task_sync_nested_loop_tetraconta_select_metaverse_runtime.xl", 1, "int"); }
 static int __xlTestSemTaskSyncNestedLoopPentacontaSelectUltraverseRuntime(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\task_sync_nested_loop_pentaconta_select_ultraverse_runtime.xl", 1, "int"); }
+static int __xlTestSemTaskSyncNestedLoopHenpentacontaSelectMegaverseRuntime(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\task_sync_nested_loop_henpentaconta_select_megaverse_runtime.xl", 1, "int"); }
+static int __xlTestSemTaskSyncNestedLoopDopentacontaSelectGigaverseRuntime(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\task_sync_nested_loop_dopentaconta_select_gigaverse_runtime.xl", 1, "int"); }
+static int __xlTestSemTaskSyncNestedLoopTripentacontaSelectTeraverseRuntime(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\task_sync_nested_loop_tripentaconta_select_teraverse_runtime.xl", 1, "int"); }
+static int __xlTestSemTaskSyncNestedLoopQuadripentacontaSelectExtraverseRuntime(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\task_sync_nested_loop_quadripentaconta_select_extraverse_runtime.xl", 1, "int"); }
+static int __xlTestSemTaskSyncNestedLoopPentapentacontaSelectSuperverseRuntime(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\task_sync_nested_loop_pentapentaconta_select_superverse_runtime.xl", 1, "int"); }
+static int __xlTestSemTaskSyncNestedLoopHexapentacontaSelectMacroverseRuntime(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\task_sync_nested_loop_hexapentaconta_select_macroverse_runtime.xl", 1, "int"); }
+static int __xlTestSemTaskSyncNestedLoopHeptapentacontaSelectMicroverseRuntime(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\task_sync_nested_loop_heptapentaconta_select_microverse_runtime.xl", 1, "int"); }
+static int __xlTestSemTaskSyncNestedLoopOctapentacontaSelectNanoverseRuntime(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\task_sync_nested_loop_octapentaconta_select_nanoverse_runtime.xl", 1, "int"); }
+static int __xlTestSemTaskSyncNestedLoopEnneapentacontaSelectPicoverseRuntime(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\task_sync_nested_loop_enneapentaconta_select_picoverse_runtime.xl", 1, "int"); }
+static int __xlTestSemTaskSyncNestedLoopHectopentacontaSelectFemtoverseRuntime(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\task_sync_nested_loop_hectopentaconta_select_femtoverse_runtime.xl", 1, "int"); }
+static int __xlTestSemTaskSyncNestedLoopHenhectopentacontaSelectAttoversRuntime(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\task_sync_nested_loop_henhectopentaconta_select_attovers_runtime.xl", 1, "int"); }
+static int __xlTestSemTaskSyncNestedLoopDihectopentacontaSelectZeptoverseRuntime(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\task_sync_nested_loop_dihectopentaconta_select_zeptoverse_runtime.xl", 1, "int"); }
+static int __xlTestSemTaskSyncNestedLoopTrihectopentacontaSelectYoctoverseRuntime(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\task_sync_nested_loop_trihectopentaconta_select_yoctoverse_runtime.xl", 1, "int"); }
+static int __xlTestSemTaskSyncNestedLoopQuadrihectopentacontaSelectXenoverseRuntime(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\task_sync_nested_loop_quadrihectopentaconta_select_xenoverse_runtime.xl", 1, "int"); }
+static int __xlTestSemTaskSyncNestedLoopPentahectopentacontaSelectZettaverseRuntime(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\task_sync_nested_loop_pentahectopentaconta_select_zettaverse_runtime.xl", 1, "int"); }
+static int __xlTestSemTaskSyncNestedLoopHexahectopentacontaSelectRonnaverseRuntime(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\task_sync_nested_loop_hexahectopentaconta_select_ronnaverse_runtime.xl", 1, "int"); }
+static int __xlTestSemTaskSyncNestedLoopHeptahectopentacontaSelectQuettaverseRuntime(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\task_sync_nested_loop_heptahectopentaconta_select_quettaverse_runtime.xl", 1, "int"); }
 static int __xlTestSemVarGeneratorRuntime(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\var_generator_runtime.xl", 1, "int"); }
 static int __xlTestSemVarTypeMethodsBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\var_type_methods_basic.xl", 1, "int"); }
 static int __xlTestSemVarContainerTypeMethodsBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\var_container_type_methods_basic.xl", 1, "int"); }
@@ -4715,11 +5071,16 @@ static int __xlTestSemObjectRefcountRuntime(XL_TestContext* pCtx) { return __xlR
 static int __xlTestSemObjectCollectRuntime(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\object_collect_runtime.xl", 1, "int"); }
 static int __xlTestSemObjectCollectContainerRuntime(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\object_collect_container_runtime.xl", 1, "int"); }
 static int __xlTestSemObjectCollectClosureRuntime(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\object_collect_closure_runtime.xl", 1, "int"); }
+static int __xlTestSemObjectCollectGeneratorRuntime(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\object_collect_generator_runtime.xl", 1, "int"); }
 static int __xlTestSemObjectCollectChannelRuntime(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\object_collect_channel_runtime.xl", 1, "int"); }
+static int __xlTestSemObjectCollectTaskRuntime(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\object_collect_task_runtime.xl", 1, "int"); }
+static int __xlTestSemObjectCollectFutureRuntime(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\object_collect_future_runtime.xl", 1, "int"); }
 static int __xlTestSemObjectInheritCreateFieldsRuntime(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\object_inherit_create_fields_runtime.xl", 1, "int"); }
 static int __xlTestSemObjectCloneRuntime(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\object_clone_runtime.xl", 1, "int"); }
 static int __xlTestSemObjectForInRuntime(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\object_for_in_runtime.xl", 1, "int"); }
 static int __xlTestSemTypeReflectClassRuntime(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\type_reflect_class_runtime.xl", 1, "int"); }
+static int __xlTestSemTypeRuntimeApiBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\type_runtime_api_basic.xl", 1, "int"); }
+static int __xlTestSemTypeMetaBridgeBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\type_meta_bridge_basic.xl", 1, "int"); }
 static int __xlTestSemObjectReferenceRuntime(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\object_reference_runtime.xl", 1, "int"); }
 static int __xlTestSemTypeMethodSelfError(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\sem\\type_method_self_error.xl", 0, NULL); }
 static int __xlTestSemPropertyLengthBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\property_length_basic.xl", 1, "int"); }
@@ -5508,8 +5869,47 @@ static int __xlTestLowerTaskSyncNestedLoopOctatriacontaSelectOmniverseRuntime(XL
 static int __xlTestLowerTaskSyncNestedLoopEnneatriacontaSelectHyperverseRuntime(XL_TestContext* pCtx) { return __xlRunLowerCase(pCtx, "examples\\full\\task_sync_nested_loop_enneatriaconta_select_hyperverse_runtime.xl", 1, XL_AST_VAR_DECL, 0, 0); }
 static int __xlTestLowerTaskSyncNestedLoopTetracontaSelectMetaverseRuntime(XL_TestContext* pCtx) { return __xlRunLowerCase(pCtx, "examples\\full\\task_sync_nested_loop_tetraconta_select_metaverse_runtime.xl", 1, XL_AST_VAR_DECL, 0, 0); }
 static int __xlTestLowerTaskSyncNestedLoopPentacontaSelectUltraverseRuntime(XL_TestContext* pCtx) { return __xlRunLowerCase(pCtx, "examples\\full\\task_sync_nested_loop_pentaconta_select_ultraverse_runtime.xl", 1, XL_AST_VAR_DECL, 0, 0); }
+static int __xlTestLowerTaskSyncNestedLoopHenpentacontaSelectMegaverseRuntime(XL_TestContext* pCtx) { return __xlRunLowerCase(pCtx, "examples\\full\\task_sync_nested_loop_henpentaconta_select_megaverse_runtime.xl", 1, XL_AST_VAR_DECL, 0, 0); }
+static int __xlTestLowerTaskSyncNestedLoopDopentacontaSelectGigaverseRuntime(XL_TestContext* pCtx) { return __xlRunLowerCase(pCtx, "examples\\full\\task_sync_nested_loop_dopentaconta_select_gigaverse_runtime.xl", 1, XL_AST_VAR_DECL, 0, 0); }
+static int __xlTestLowerTaskSyncNestedLoopTripentacontaSelectTeraverseRuntime(XL_TestContext* pCtx) { return __xlRunLowerCase(pCtx, "examples\\full\\task_sync_nested_loop_tripentaconta_select_teraverse_runtime.xl", 1, XL_AST_VAR_DECL, 0, 0); }
+static int __xlTestLowerTaskSyncNestedLoopQuadripentacontaSelectExtraverseRuntime(XL_TestContext* pCtx) { return __xlRunLowerCase(pCtx, "examples\\full\\task_sync_nested_loop_quadripentaconta_select_extraverse_runtime.xl", 1, XL_AST_VAR_DECL, 0, 0); }
+static int __xlTestLowerTaskSyncNestedLoopPentapentacontaSelectSuperverseRuntime(XL_TestContext* pCtx) { return __xlRunLowerCase(pCtx, "examples\\full\\task_sync_nested_loop_pentapentaconta_select_superverse_runtime.xl", 1, XL_AST_VAR_DECL, 0, 0); }
+static int __xlTestLowerTaskSyncNestedLoopHexapentacontaSelectMacroverseRuntime(XL_TestContext* pCtx) { return __xlRunLowerCase(pCtx, "examples\\full\\task_sync_nested_loop_hexapentaconta_select_macroverse_runtime.xl", 1, XL_AST_VAR_DECL, 0, 0); }
+static int __xlTestLowerTaskSyncNestedLoopHeptapentacontaSelectMicroverseRuntime(XL_TestContext* pCtx) { return __xlRunLowerCase(pCtx, "examples\\full\\task_sync_nested_loop_heptapentaconta_select_microverse_runtime.xl", 1, XL_AST_VAR_DECL, 0, 0); }
+static int __xlTestLowerTaskSyncNestedLoopOctapentacontaSelectNanoverseRuntime(XL_TestContext* pCtx) { return __xlRunLowerCase(pCtx, "examples\\full\\task_sync_nested_loop_octapentaconta_select_nanoverse_runtime.xl", 1, XL_AST_VAR_DECL, 0, 0); }
+static int __xlTestLowerTaskSyncNestedLoopEnneapentacontaSelectPicoverseRuntime(XL_TestContext* pCtx) { return __xlRunLowerCase(pCtx, "examples\\full\\task_sync_nested_loop_enneapentaconta_select_picoverse_runtime.xl", 1, XL_AST_VAR_DECL, 0, 0); }
+static int __xlTestLowerTaskSyncNestedLoopHectopentacontaSelectFemtoverseRuntime(XL_TestContext* pCtx) { return __xlRunLowerCase(pCtx, "examples\\full\\task_sync_nested_loop_hectopentaconta_select_femtoverse_runtime.xl", 1, XL_AST_VAR_DECL, 0, 0); }
+static int __xlTestLowerTaskSyncNestedLoopHenhectopentacontaSelectAttoversRuntime(XL_TestContext* pCtx) { return __xlRunLowerCase(pCtx, "examples\\full\\task_sync_nested_loop_henhectopentaconta_select_attovers_runtime.xl", 1, XL_AST_VAR_DECL, 0, 0); }
+static int __xlTestLowerTaskSyncNestedLoopDihectopentacontaSelectZeptoverseRuntime(XL_TestContext* pCtx) { return __xlRunLowerCase(pCtx, "examples\\full\\task_sync_nested_loop_dihectopentaconta_select_zeptoverse_runtime.xl", 1, XL_AST_VAR_DECL, 0, 0); }
+static int __xlTestLowerTaskSyncNestedLoopTrihectopentacontaSelectYoctoverseRuntime(XL_TestContext* pCtx) { return __xlRunLowerCase(pCtx, "examples\\full\\task_sync_nested_loop_trihectopentaconta_select_yoctoverse_runtime.xl", 1, XL_AST_VAR_DECL, 0, 0); }
+static int __xlTestLowerTaskSyncNestedLoopQuadrihectopentacontaSelectXenoverseRuntime(XL_TestContext* pCtx) { return __xlRunLowerCase(pCtx, "examples\\full\\task_sync_nested_loop_quadrihectopentaconta_select_xenoverse_runtime.xl", 1, XL_AST_VAR_DECL, 0, 0); }
+static int __xlTestLowerTaskSyncNestedLoopPentahectopentacontaSelectZettaverseRuntime(XL_TestContext* pCtx) { return __xlRunLowerCase(pCtx, "examples\\full\\task_sync_nested_loop_pentahectopentaconta_select_zettaverse_runtime.xl", 1, XL_AST_VAR_DECL, 0, 0); }
+static int __xlTestLowerTaskSyncNestedLoopHexahectopentacontaSelectRonnaverseRuntime(XL_TestContext* pCtx) { return __xlRunLowerCase(pCtx, "examples\\full\\task_sync_nested_loop_hexahectopentaconta_select_ronnaverse_runtime.xl", 1, XL_AST_VAR_DECL, 0, 0); }
+static int __xlTestLowerTaskSyncNestedLoopHeptahectopentacontaSelectQuettaverseRuntime(XL_TestContext* pCtx) { return __xlRunLowerCase(pCtx, "examples\\full\\task_sync_nested_loop_heptahectopentaconta_select_quettaverse_runtime.xl", 1, XL_AST_VAR_DECL, 0, 0); }
 static int __xlTestLowerVarGeneratorRuntime(XL_TestContext* pCtx) { return __xlRunLowerCase(pCtx, "examples\\full\\var_generator_runtime.xl", 1, XL_AST_CALL, 0, 0); }
+static int __xlTestLowerObjectCollectGeneratorRuntime(XL_TestContext* pCtx) { return __xlRunLowerCase(pCtx, "examples\\full\\object_collect_generator_runtime.xl", 1, XL_AST_CALL, 0, 0); }
 static int __xlTestLowerObjectCollectChannelRuntime(XL_TestContext* pCtx) { return __xlRunLowerCase(pCtx, "examples\\full\\object_collect_channel_runtime.xl", 1, XL_AST_CALL, 0, 0); }
+static int __xlTestLowerObjectCollectTaskRuntime(XL_TestContext* pCtx) { return __xlRunLowerCase(pCtx, "examples\\full\\object_collect_task_runtime.xl", 1, XL_AST_CALL, 0, 0); }
+static int __xlTestLowerObjectCollectFutureRuntime(XL_TestContext* pCtx) { return __xlRunLowerCase(pCtx, "examples\\full\\object_collect_future_runtime.xl", 1, XL_AST_CALL, 0, 0); }
+static int __xlTestLowerObjectFunctionFieldBasic(XL_TestContext* pCtx) { return __xlRunLowerCase(pCtx, "examples\\full\\object_function_field_basic.xl", 1, XL_AST_CALL, 0, 0); }
+static int __xlTestLowerTypeDynamicInstanceBasic(XL_TestContext* pCtx) { return __xlRunLowerCase(pCtx, "examples\\full\\type_dynamic_instance_basic.xl", 1, XL_AST_CALL, 0, 0); }
+static int __xlTestLowerTypeDynamicMembersBasic(XL_TestContext* pCtx) { return __xlRunLowerCase(pCtx, "examples\\full\\type_dynamic_members_basic.xl", 1, XL_AST_CALL, 0, 0); }
+static int __xlTestLowerTypeDynamicFieldTypesBasic(XL_TestContext* pCtx) { return __xlRunLowerCase(pCtx, "examples\\full\\type_dynamic_field_types_basic.xl", 1, XL_AST_CALL, 0, 0); }
+static int __xlTestLowerTypeDynamicInstanceMethodNamesBasic(XL_TestContext* pCtx) { return __xlRunLowerCase(pCtx, "examples\\full\\type_dynamic_instance_method_names_basic.xl", 1, XL_AST_CALL, 0, 0); }
+static int __xlTestLowerTypeDynamicMethodBindBasic(XL_TestContext* pCtx) { return __xlRunLowerCase(pCtx, "examples\\full\\type_dynamic_method_bind_basic.xl", 1, XL_AST_CALL, 0, 0); }
+static int __xlTestLowerTypeDynamicMethodBindArgsBasic(XL_TestContext* pCtx) { return __xlRunLowerCase(pCtx, "examples\\full\\type_dynamic_method_bind_args_basic.xl", 1, XL_AST_CALL, 0, 0); }
+static int __xlTestLowerTypeDynamicMethodBindStringBasic(XL_TestContext* pCtx) { return __xlRunLowerCase(pCtx, "examples\\full\\type_dynamic_method_bind_string_basic.xl", 1, XL_AST_CALL, 0, 0); }
+static int __xlTestLowerTypeDynamicMethodBindVarBasic(XL_TestContext* pCtx) { return __xlRunLowerCase(pCtx, "examples\\full\\type_dynamic_method_bind_var_basic.xl", 1, XL_AST_CALL, 0, 0); }
+static int __xlTestLowerTypeDynamicMethodBoundBasic(XL_TestContext* pCtx) { return __xlRunLowerCase(pCtx, "examples\\full\\type_dynamic_method_bound_basic.xl", 1, XL_AST_CALL, 0, 0); }
+static int __xlTestLowerTypeDynamicBoundMethodNamesBasic(XL_TestContext* pCtx) { return __xlRunLowerCase(pCtx, "examples\\full\\type_dynamic_bound_method_names_basic.xl", 1, XL_AST_CALL, 0, 0); }
+static int __xlTestLowerTypeDynamicMethodFallbackBasic(XL_TestContext* pCtx) { return __xlRunLowerCase(pCtx, "examples\\full\\type_dynamic_method_fallback_basic.xl", 1, XL_AST_CALL, 0, 0); }
+static int __xlTestLowerTypeDynamicMethodFallbackStringBasic(XL_TestContext* pCtx) { return __xlRunLowerCase(pCtx, "examples\\full\\type_dynamic_method_fallback_string_basic.xl", 1, XL_AST_CALL, 0, 0); }
+static int __xlTestLowerTypeDeclaredMetaBasic(XL_TestContext* pCtx) { return __xlRunLowerCase(pCtx, "examples\\full\\type_declared_meta_basic.xl", 1, XL_AST_CALL, 0, 0); }
+static int __xlTestLowerTypeDeclaresMetaBasic(XL_TestContext* pCtx) { return __xlRunLowerCase(pCtx, "examples\\full\\type_declares_meta_basic.xl", 1, XL_AST_CALL, 0, 0); }
+static int __xlTestLowerTypeDeclaredNamesBasic(XL_TestContext* pCtx) { return __xlRunLowerCase(pCtx, "examples\\full\\type_declared_names_basic.xl", 1, XL_AST_CALL, 0, 0); }
+static int __xlTestLowerObjectMetaRuntimeBasic(XL_TestContext* pCtx) { return __xlRunLowerCase(pCtx, "examples\\full\\object_meta_runtime_basic.xl", 1, XL_AST_CALL, 0, 0); }
+static int __xlTestLowerObjectMetaFieldNamesBasic(XL_TestContext* pCtx) { return __xlRunLowerCase(pCtx, "examples\\full\\object_meta_field_names_basic.xl", 1, XL_AST_CALL, 0, 0); }
+static int __xlTestLowerObjectMetaMethodNamesBasic(XL_TestContext* pCtx) { return __xlRunLowerCase(pCtx, "examples\\full\\object_meta_method_names_basic.xl", 1, XL_AST_CALL, 0, 0); }
 static int __xlTestLowerVarTypeMethodsBasic(XL_TestContext* pCtx) { return __xlRunLowerCase(pCtx, "examples\\full\\var_type_methods_basic.xl", 1, XL_AST_CALL, 0, 0); }
 static int __xlTestLowerVarContainerTypeMethodsBasic(XL_TestContext* pCtx) { return __xlRunLowerCase(pCtx, "examples\\full\\var_container_type_methods_basic.xl", 1, XL_AST_CALL, 0, 0); }
 static int __xlTestLowerNewObjectRuntime(XL_TestContext* pCtx) { return __xlRunLowerCase(pCtx, "examples\\full\\new_object_runtime.xl", 1, XL_AST_UNARY, 0, 0); }
@@ -6348,7 +6748,7 @@ static int __xlTestCgenVarFutureRuntime(XL_TestContext* pCtx)
 static int __xlTestCgenVarTaskRuntime(XL_TestContext* pCtx)
 {
 	static const char* const aNeedles[] = {
-		"XL_FutureInt waited = ({ XL_FutureInt xl_future_value = (XL_FutureInt){0};",
+		"XL_FutureInt waited = ({ XL_FutureInt xl_future_value = (XL_FutureInt){ XL_GENERATED_FUTURE_MAGIC, NULL };",
 		"xl_generated_future_clone_handle(",
 		"xl_task_delay("
 	};
@@ -6369,8 +6769,8 @@ static int __xlTestCgenFutureRelayRuntime(XL_TestContext* pCtx)
 {
 	static const char* const aNeedles[] = {
 		"static XL_FutureInt xl__relay_future__arity1__value__future_x3Cint_x3E__ret__future_x3Cint_x3E(XL_FutureInt value)",
-		"XL_FutureInt xl_escape_value_3_6 = (XL_FutureInt){0};",
-		"return (XL_FutureInt){0};",
+		"XL_FutureInt xl_escape_value_3_6 = (XL_FutureInt){ XL_GENERATED_FUTURE_MAGIC, NULL };",
+		"return (XL_FutureInt){ XL_GENERATED_FUTURE_MAGIC, NULL };",
 		"xl__relay_future__arity1__value__future_x3Cint_x3E__ret__future_x3Cint_x3E(xl_task_delay(\"xl_mod_std_task__delay\", 41))"
 	};
 
@@ -7514,6 +7914,193 @@ static int __xlTestCgenTaskSyncNestedLoopPentacontaSelectUltraverseRuntime(XL_Te
 	};
 
 	return __xlRunCgenCaseAll(pCtx, "examples\\full\\task_sync_nested_loop_pentaconta_select_ultraverse_runtime.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenTaskSyncNestedLoopHenpentacontaSelectMegaverseRuntime(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"static XL_FutureInt xl__route_henpentaconta_select__arity45__value__future_x3Cint_x3E__choose_left__bool__choose_delayed__bool__choose_shared_delay__bool__choose_final_delay__bool__choose_alternate_delay__bool__choose_merge_shared__bool__choose_branch_second__bool__choose_tail_shared__bool__choose_last_second__bool__choose_end_shared__bool__choose_closing_second__bool__choose_terminal_shared__bool__choose_tail_second__bool__choose_final_shared__bool__choose_closure_second__bool__choose_settled_shared__bool__choose_anchor_second__bool__choose_vector_shared__bool__choose_matrix_second__bool__choose_tensor_shared__bool__choose_signal_second__bool__choose_pulse_shared__bool__choose_beacon_second__bool__choose_orbit_shared__bool__choose_flare_second__bool__choose_glow_shared__bool__choose_spark_second__bool__choose_aura_shared__bool__choose_halo_second__bool__choose_radiant_shared__bool__choose_prism_second__bool__choose_lumen_shared__bool__choose_nova_second__bool__choose_quasar_shared__bool__choose_nebula_second__bool__choose_galaxy_shared__bool__choose_cosmos_second__bool__choose_universe_shared__bool__choose_multiverse_second__bool__choose_omniverse_shared__bool__choose_hyperverse_second__bool__choose_metaverse_shared__bool__choose_ultraverse_second__bool__choose_megaverse_shared__bool__ret__future_x3Cint_x3E(",
+		"XL_FutureInt ultraverse_pick = (choose_ultraverse_second ? xl__relay_second__arity2__value__future_x3Cint_x3E__use_fallback__bool__ret__future_x3Cint_x3E(metaverse_pick, false) : xl__relay_shared__arity2__value__future_x3Cint_x3E__prefer_delay__bool__ret__future_x3Cint_x3E(metaverse_pick, false));",
+		"XL_FutureInt megaverse_pick = (choose_megaverse_shared ? xl__relay_shared__arity2__value__future_x3Cint_x3E__prefer_delay__bool__ret__future_x3Cint_x3E(ultraverse_pick, false) : xl__relay_first__arity2__value__future_x3Cint_x3E__use_mid__bool__ret__future_x3Cint_x3E(ultraverse_pick, false));",
+		"xl_generated_async_trace_event(\"await\", \"route_henpentaconta_select\");",
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\full\\task_sync_nested_loop_henpentaconta_select_megaverse_runtime.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenTaskSyncNestedLoopDopentacontaSelectGigaverseRuntime(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"static XL_FutureInt xl__route_dopentaconta_select__arity46__value__future_x3Cint_x3E__choose_left__bool__choose_delayed__bool__choose_shared_delay__bool__choose_final_delay__bool__choose_alternate_delay__bool__choose_merge_shared__bool__choose_branch_second__bool__choose_tail_shared__bool__choose_last_second__bool__choose_end_shared__bool__choose_closing_second__bool__choose_terminal_shared__bool__choose_tail_second__bool__choose_final_shared__bool__choose_closure_second__bool__choose_settled_shared__bool__choose_anchor_second__bool__choose_vector_shared__bool__choose_matrix_second__bool__choose_tensor_shared__bool__choose_signal_second__bool__choose_pulse_shared__bool__choose_beacon_second__bool__choose_orbit_shared__bool__choose_flare_second__bool__choose_glow_shared__bool__choose_spark_second__bool__choose_aura_shared__bool__choose_halo_second__bool__choose_radiant_shared__bool__choose_prism_second__bool__choose_lumen_shared__bool__choose_nova_second__bool__choose_quasar_shared__bool__choose_nebula_second__bool__choose_galaxy_shared__bool__choose_cosmos_second__bool__choose_universe_shared__bool__choose_multiverse_second__bool__choose_omniverse_shared__bool__choose_hyperverse_second__bool__choose_metaverse_shared__bool__choose_ultraverse_second__bool__choose_megaverse_shared__bool__choose_gigaverse_second__bool__ret__future_x3Cint_x3E(",
+		"XL_FutureInt megaverse_pick = (choose_megaverse_shared ? xl__relay_shared__arity2__value__future_x3Cint_x3E__prefer_delay__bool__ret__future_x3Cint_x3E(ultraverse_pick, false) : xl__relay_first__arity2__value__future_x3Cint_x3E__use_mid__bool__ret__future_x3Cint_x3E(ultraverse_pick, false));",
+		"XL_FutureInt gigaverse_pick = (choose_gigaverse_second ? xl__relay_second__arity2__value__future_x3Cint_x3E__use_fallback__bool__ret__future_x3Cint_x3E(megaverse_pick, false) : xl__relay_shared__arity2__value__future_x3Cint_x3E__prefer_delay__bool__ret__future_x3Cint_x3E(megaverse_pick, false));",
+		"xl_generated_async_trace_event(\"await\", \"route_dopentaconta_select\");",
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\full\\task_sync_nested_loop_dopentaconta_select_gigaverse_runtime.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenTaskSyncNestedLoopTripentacontaSelectTeraverseRuntime(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"static XL_FutureInt xl__route_tripentaconta_select__arity47__value__future_x3Cint_x3E__choose_left__bool__choose_delayed__bool__choose_shared_delay__bool__choose_final_delay__bool__choose_alternate_delay__bool__choose_merge_shared__bool__choose_branch_second__bool__choose_tail_shared__bool__choose_last_second__bool__choose_end_shared__bool__choose_closing_second__bool__choose_terminal_shared__bool__choose_tail_second__bool__choose_final_shared__bool__choose_closure_second__bool__choose_settled_shared__bool__choose_anchor_second__bool__choose_vector_shared__bool__choose_matrix_second__bool__choose_tensor_shared__bool__choose_signal_second__bool__choose_pulse_shared__bool__choose_beacon_second__bool__choose_orbit_shared__bool__choose_flare_second__bool__choose_glow_shared__bool__choose_spark_second__bool__choose_aura_shared__bool__choose_halo_second__bool__choose_radiant_shared__bool__choose_prism_second__bool__choose_lumen_shared__bool__choose_nova_second__bool__choose_quasar_shared__bool__choose_nebula_second__bool__choose_galaxy_shared__bool__choose_cosmos_second__bool__choose_universe_shared__bool__choose_multiverse_second__bool__choose_omniverse_shared__bool__choose_hyperverse_second__bool__choose_metaverse_shared__bool__choose_ultraverse_second__bool__choose_megaverse_shared__bool__choose_gigaverse_second__bool__choose_teraverse_shared__bool__ret__future_x3Cint_x3E(",
+		"XL_FutureInt gigaverse_pick = (choose_gigaverse_second ? xl__relay_second__arity2__value__future_x3Cint_x3E__use_fallback__bool__ret__future_x3Cint_x3E(megaverse_pick, false) : xl__relay_shared__arity2__value__future_x3Cint_x3E__prefer_delay__bool__ret__future_x3Cint_x3E(megaverse_pick, false));",
+		"XL_FutureInt teraverse_pick = (choose_teraverse_shared ? xl__relay_shared__arity2__value__future_x3Cint_x3E__prefer_delay__bool__ret__future_x3Cint_x3E(gigaverse_pick, false) : xl__relay_first__arity2__value__future_x3Cint_x3E__use_mid__bool__ret__future_x3Cint_x3E(gigaverse_pick, false));",
+		"xl_generated_async_trace_event(\"await\", \"route_tripentaconta_select\");",
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\full\\task_sync_nested_loop_tripentaconta_select_teraverse_runtime.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenTaskSyncNestedLoopQuadripentacontaSelectExtraverseRuntime(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"static XL_FutureInt xl__route_quadripentaconta_select__arity48__value__future_x3Cint_x3E__choose_left__bool__choose_delayed__bool__choose_shared_delay__bool__choose_final_delay__bool__choose_alternate_delay__bool__choose_merge_shared__bool__choose_branch_second__bool__choose_tail_shared__bool__choose_last_second__bool__choose_end_shared__bool__choose_closing_second__bool__choose_terminal_shared__bool__choose_tail_second__bool__choose_final_shared__bool__choose_closure_second__bool__choose_settled_shared__bool__choose_anchor_second__bool__choose_vector_shared__bool__choose_matrix_second__bool__choose_tensor_shared__bool__choose_signal_second__bool__choose_pulse_shared__bool__choose_beacon_second__bool__choose_orbit_shared__bool__choose_flare_second__bool__choose_glow_shared__bool__choose_spark_second__bool__choose_aura_shared__bool__choose_halo_second__bool__choose_radiant_shared__bool__choose_prism_second__bool__choose_lumen_shared__bool__choose_nova_second__bool__choose_quasar_shared__bool__choose_nebula_second__bool__choose_galaxy_shared__bool__choose_cosmos_second__bool__choose_universe_shared__bool__choose_multiverse_second__bool__choose_omniverse_shared__bool__choose_hyperverse_second__bool__choose_metaverse_shared__bool__choose_ultraverse_second__bool__choose_megaverse_shared__bool__choose_gigaverse_second__bool__choose_teraverse_shared__bool__choose_extraverse_second__bool__ret__future_x3Cint_x3E(",
+		"XL_FutureInt teraverse_pick = (choose_teraverse_shared ? xl__relay_shared__arity2__value__future_x3Cint_x3E__prefer_delay__bool__ret__future_x3Cint_x3E(gigaverse_pick, false) : xl__relay_first__arity2__value__future_x3Cint_x3E__use_mid__bool__ret__future_x3Cint_x3E(gigaverse_pick, false));",
+		"XL_FutureInt extraverse_pick = (choose_extraverse_second ? xl__relay_second__arity2__value__future_x3Cint_x3E__use_fallback__bool__ret__future_x3Cint_x3E(teraverse_pick, false) : xl__relay_shared__arity2__value__future_x3Cint_x3E__prefer_delay__bool__ret__future_x3Cint_x3E(teraverse_pick, false));",
+		"xl_generated_async_trace_event(\"await\", \"route_quadripentaconta_select\");",
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\full\\task_sync_nested_loop_quadripentaconta_select_extraverse_runtime.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenTaskSyncNestedLoopPentapentacontaSelectSuperverseRuntime(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"static XL_FutureInt xl__route_pentapentaconta_select__arity49__value__future_x3Cint_x3E__choose_left__bool__choose_delayed__bool__choose_shared_delay__bool__choose_final_delay__bool__choose_alternate_delay__bool__choose_merge_shared__bool__choose_branch_second__bool__choose_tail_shared__bool__choose_last_second__bool__choose_end_shared__bool__choose_closing_second__bool__choose_terminal_shared__bool__choose_tail_second__bool__choose_final_shared__bool__choose_closure_second__bool__choose_settled_shared__bool__choose_anchor_second__bool__choose_vector_shared__bool__choose_matrix_second__bool__choose_tensor_shared__bool__choose_signal_second__bool__choose_pulse_shared__bool__choose_beacon_second__bool__choose_orbit_shared__bool__choose_flare_second__bool__choose_glow_shared__bool__choose_spark_second__bool__choose_aura_shared__bool__choose_halo_second__bool__choose_radiant_shared__bool__choose_prism_second__bool__choose_lumen_shared__bool__choose_nova_second__bool__choose_quasar_shared__bool__choose_nebula_second__bool__choose_galaxy_shared__bool__choose_cosmos_second__bool__choose_universe_shared__bool__choose_multiverse_second__bool__choose_omniverse_shared__bool__choose_hyperverse_second__bool__choose_metaverse_shared__bool__choose_ultraverse_second__bool__choose_megaverse_shared__bool__choose_gigaverse_second__bool__choose_teraverse_shared__bool__choose_extraverse_second__bool__choose_superverse_shared__bool__ret__future_x3Cint_x3E(",
+		"XL_FutureInt extraverse_pick = (choose_extraverse_second ? xl__relay_second__arity2__value__future_x3Cint_x3E__use_fallback__bool__ret__future_x3Cint_x3E(teraverse_pick, false) : xl__relay_shared__arity2__value__future_x3Cint_x3E__prefer_delay__bool__ret__future_x3Cint_x3E(teraverse_pick, false));",
+		"XL_FutureInt superverse_pick = (choose_superverse_shared ? xl__relay_shared__arity2__value__future_x3Cint_x3E__prefer_delay__bool__ret__future_x3Cint_x3E(extraverse_pick, false) : xl__relay_first__arity2__value__future_x3Cint_x3E__use_mid__bool__ret__future_x3Cint_x3E(extraverse_pick, false));",
+		"xl_generated_async_trace_event(\"await\", \"route_pentapentaconta_select\");",
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\full\\task_sync_nested_loop_pentapentaconta_select_superverse_runtime.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenTaskSyncNestedLoopHexapentacontaSelectMacroverseRuntime(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"static XL_FutureInt xl__route_hexapentaconta_select__arity50__value__future_x3Cint_x3E__choose_left__bool__choose_delayed__bool__choose_shared_delay__bool__choose_final_delay__bool__choose_alternate_delay__bool__choose_merge_shared__bool__choose_branch_second__bool__choose_tail_shared__bool__choose_last_second__bool__choose_end_shared__bool__choose_closing_second__bool__choose_terminal_shared__bool__choose_tail_second__bool__choose_final_shared__bool__choose_closure_second__bool__choose_settled_shared__bool__choose_anchor_second__bool__choose_vector_shared__bool__choose_matrix_second__bool__choose_tensor_shared__bool__choose_signal_second__bool__choose_pulse_shared__bool__choose_beacon_second__bool__choose_orbit_shared__bool__choose_flare_second__bool__choose_glow_shared__bool__choose_spark_second__bool__choose_aura_shared__bool__choose_halo_second__bool__choose_radiant_shared__bool__choose_prism_second__bool__choose_lumen_shared__bool__choose_nova_second__bool__choose_quasar_shared__bool__choose_nebula_second__bool__choose_galaxy_shared__bool__choose_cosmos_second__bool__choose_universe_shared__bool__choose_multiverse_second__bool__choose_omniverse_shared__bool__choose_hyperverse_second__bool__choose_metaverse_shared__bool__choose_ultraverse_second__bool__choose_megaverse_shared__bool__choose_gigaverse_second__bool__choose_teraverse_shared__bool__choose_extraverse_second__bool__choose_superverse_shared__bool__choose_macroverse_second__bool__ret__future_x3Cint_x3E(",
+		"XL_FutureInt superverse_pick = (choose_superverse_shared ? xl__relay_shared__arity2__value__future_x3Cint_x3E__prefer_delay__bool__ret__future_x3Cint_x3E(extraverse_pick, false) : xl__relay_first__arity2__value__future_x3Cint_x3E__use_mid__bool__ret__future_x3Cint_x3E(extraverse_pick, false));",
+		"XL_FutureInt macroverse_pick = (choose_macroverse_second ? xl__relay_second__arity2__value__future_x3Cint_x3E__use_fallback__bool__ret__future_x3Cint_x3E(superverse_pick, false) : xl__relay_shared__arity2__value__future_x3Cint_x3E__prefer_delay__bool__ret__future_x3Cint_x3E(superverse_pick, false));",
+		"xl_generated_async_trace_event(\"await\", \"route_hexapentaconta_select\");",
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\full\\task_sync_nested_loop_hexapentaconta_select_macroverse_runtime.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenTaskSyncNestedLoopHeptapentacontaSelectMicroverseRuntime(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"static XL_FutureInt xl__route_heptapentaconta_select__arity51__value__future_x3Cint_x3E__choose_left__bool__choose_delayed__bool__choose_shared_delay__bool__choose_final_delay__bool__choose_alternate_delay__bool__choose_merge_shared__bool__choose_branch_second__bool__choose_tail_shared__bool__choose_last_second__bool__choose_end_shared__bool__choose_closing_second__bool__choose_terminal_shared__bool__choose_tail_second__bool__choose_final_shared__bool__choose_closure_second__bool__choose_settled_shared__bool__choose_anchor_second__bool__choose_vector_shared__bool__choose_matrix_second__bool__choose_tensor_shared__bool__choose_signal_second__bool__choose_pulse_shared__bool__choose_beacon_second__bool__choose_orbit_shared__bool__choose_flare_second__bool__choose_glow_shared__bool__choose_spark_second__bool__choose_aura_shared__bool__choose_halo_second__bool__choose_radiant_shared__bool__choose_prism_second__bool__choose_lumen_shared__bool__choose_nova_second__bool__choose_quasar_shared__bool__choose_nebula_second__bool__choose_galaxy_shared__bool__choose_cosmos_second__bool__choose_universe_shared__bool__choose_multiverse_second__bool__choose_omniverse_shared__bool__choose_hyperverse_second__bool__choose_metaverse_shared__bool__choose_ultraverse_second__bool__choose_megaverse_shared__bool__choose_gigaverse_second__bool__choose_teraverse_shared__bool__choose_extraverse_second__bool__choose_superverse_shared__bool__choose_macroverse_second__bool__choose_microverse_shared__bool__ret__future_x3Cint_x3E(",
+		"XL_FutureInt macroverse_pick = (choose_macroverse_second ? xl__relay_second__arity2__value__future_x3Cint_x3E__use_fallback__bool__ret__future_x3Cint_x3E(superverse_pick, false) : xl__relay_shared__arity2__value__future_x3Cint_x3E__prefer_delay__bool__ret__future_x3Cint_x3E(superverse_pick, false));",
+		"XL_FutureInt microverse_pick = (choose_microverse_shared ? xl__relay_shared__arity2__value__future_x3Cint_x3E__prefer_delay__bool__ret__future_x3Cint_x3E(macroverse_pick, false) : xl__relay_first__arity2__value__future_x3Cint_x3E__use_mid__bool__ret__future_x3Cint_x3E(macroverse_pick, false));",
+		"xl_generated_async_trace_event(\"await\", \"route_heptapentaconta_select\");",
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\full\\task_sync_nested_loop_heptapentaconta_select_microverse_runtime.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenTaskSyncNestedLoopOctapentacontaSelectNanoverseRuntime(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"static XL_FutureInt xl__route_octapentaconta_select__arity52__value__future_x3Cint_x3E__choose_left__bool__choose_delayed__bool__choose_shared_delay__bool__choose_final_delay__bool__choose_alternate_delay__bool__choose_merge_shared__bool__choose_branch_second__bool__choose_tail_shared__bool__choose_last_second__bool__choose_end_shared__bool__choose_closing_second__bool__choose_terminal_shared__bool__choose_tail_second__bool__choose_final_shared__bool__choose_closure_second__bool__choose_settled_shared__bool__choose_anchor_second__bool__choose_vector_shared__bool__choose_matrix_second__bool__choose_tensor_shared__bool__choose_signal_second__bool__choose_pulse_shared__bool__choose_beacon_second__bool__choose_orbit_shared__bool__choose_flare_second__bool__choose_glow_shared__bool__choose_spark_second__bool__choose_aura_shared__bool__choose_halo_second__bool__choose_radiant_shared__bool__choose_prism_second__bool__choose_lumen_shared__bool__choose_nova_second__bool__choose_quasar_shared__bool__choose_nebula_second__bool__choose_galaxy_shared__bool__choose_cosmos_second__bool__choose_universe_shared__bool__choose_multiverse_second__bool__choose_omniverse_shared__bool__choose_hyperverse_second__bool__choose_metaverse_shared__bool__choose_ultraverse_second__bool__choose_megaverse_shared__bool__choose_gigaverse_second__bool__choose_teraverse_shared__bool__choose_extraverse_second__bool__choose_superverse_shared__bool__choose_macroverse_second__bool__choose_microverse_shared__bool__choose_nanoverse_second__bool__ret__future_x3Cint_x3E(",
+		"XL_FutureInt microverse_pick = (choose_microverse_shared ? xl__relay_shared__arity2__value__future_x3Cint_x3E__prefer_delay__bool__ret__future_x3Cint_x3E(macroverse_pick, false) : xl__relay_first__arity2__value__future_x3Cint_x3E__use_mid__bool__ret__future_x3Cint_x3E(macroverse_pick, false));",
+		"XL_FutureInt nanoverse_pick = (choose_nanoverse_second ? xl__relay_second__arity2__value__future_x3Cint_x3E__use_fallback__bool__ret__future_x3Cint_x3E(microverse_pick, false) : xl__relay_shared__arity2__value__future_x3Cint_x3E__prefer_delay__bool__ret__future_x3Cint_x3E(microverse_pick, false));",
+		"xl_generated_async_trace_event(\"await\", \"route_octapentaconta_select\");",
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\full\\task_sync_nested_loop_octapentaconta_select_nanoverse_runtime.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenTaskSyncNestedLoopEnneapentacontaSelectPicoverseRuntime(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"static XL_FutureInt xl__route_enneapentaconta_select__arity53__value__future_x3Cint_x3E__choose_left__bool__choose_delayed__bool__choose_shared_delay__bool__choose_final_delay__bool__choose_alternate_delay__bool__choose_merge_shared__bool__choose_branch_second__bool__choose_tail_shared__bool__choose_last_second__bool__choose_end_shared__bool__choose_closing_second__bool__choose_terminal_shared__bool__choose_tail_second__bool__choose_final_shared__bool__choose_closure_second__bool__choose_settled_shared__bool__choose_anchor_second__bool__choose_vector_shared__bool__choose_matrix_second__bool__choose_tensor_shared__bool__choose_signal_second__bool__choose_pulse_shared__bool__choose_beacon_second__bool__choose_orbit_shared__bool__choose_flare_second__bool__choose_glow_shared__bool__choose_spark_second__bool__choose_aura_shared__bool__choose_halo_second__bool__choose_radiant_shared__bool__choose_prism_second__bool__choose_lumen_shared__bool__choose_nova_second__bool__choose_quasar_shared__bool__choose_nebula_second__bool__choose_galaxy_shared__bool__choose_cosmos_second__bool__choose_universe_shared__bool__choose_multiverse_second__bool__choose_omniverse_shared__bool__choose_hyperverse_second__bool__choose_metaverse_shared__bool__choose_ultraverse_second__bool__choose_megaverse_shared__bool__choose_gigaverse_second__bool__choose_teraverse_shared__bool__choose_extraverse_second__bool__choose_superverse_shared__bool__choose_macroverse_second__bool__choose_microverse_shared__bool__choose_nanoverse_second__bool__choose_picoverse_shared__bool__ret__future_x3Cint_x3E(",
+		"XL_FutureInt nanoverse_pick = (choose_nanoverse_second ? xl__relay_second__arity2__value__future_x3Cint_x3E__use_fallback__bool__ret__future_x3Cint_x3E(microverse_pick, false) : xl__relay_shared__arity2__value__future_x3Cint_x3E__prefer_delay__bool__ret__future_x3Cint_x3E(microverse_pick, false));",
+		"XL_FutureInt picoverse_pick = (choose_picoverse_shared ? xl__relay_shared__arity2__value__future_x3Cint_x3E__prefer_delay__bool__ret__future_x3Cint_x3E(nanoverse_pick, false) : xl__relay_first__arity2__value__future_x3Cint_x3E__use_mid__bool__ret__future_x3Cint_x3E(nanoverse_pick, false));",
+		"xl_generated_async_trace_event(\"await\", \"route_enneapentaconta_select\");",
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\full\\task_sync_nested_loop_enneapentaconta_select_picoverse_runtime.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenTaskSyncNestedLoopHectopentacontaSelectFemtoverseRuntime(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"static XL_FutureInt xl__route_hectopentaconta_select__arity54__value__future_x3Cint_x3E__choose_left__bool__choose_delayed__bool__choose_shared_delay__bool__choose_final_delay__bool__choose_alternate_delay__bool__choose_merge_shared__bool__choose_branch_second__bool__choose_tail_shared__bool__choose_last_second__bool__choose_end_shared__bool__choose_closing_second__bool__choose_terminal_shared__bool__choose_tail_second__bool__choose_final_shared__bool__choose_closure_second__bool__choose_settled_shared__bool__choose_anchor_second__bool__choose_vector_shared__bool__choose_matrix_second__bool__choose_tensor_shared__bool__choose_signal_second__bool__choose_pulse_shared__bool__choose_beacon_second__bool__choose_orbit_shared__bool__choose_flare_second__bool__choose_glow_shared__bool__choose_spark_second__bool__choose_aura_shared__bool__choose_halo_second__bool__choose_radiant_shared__bool__choose_prism_second__bool__choose_lumen_shared__bool__choose_nova_second__bool__choose_quasar_shared__bool__choose_nebula_second__bool__choose_galaxy_shared__bool__choose_cosmos_second__bool__choose_universe_shared__bool__choose_multiverse_second__bool__choose_omniverse_shared__bool__choose_hyperverse_second__bool__choose_metaverse_shared__bool__choose_ultraverse_second__bool__choose_megaverse_shared__bool__choose_gigaverse_second__bool__choose_teraverse_shared__bool__choose_extraverse_second__bool__choose_superverse_shared__bool__choose_macroverse_second__bool__choose_microverse_shared__bool__choose_nanoverse_second__bool__choose_picoverse_shared__bool__choose_femtoverse_second__bool__ret__future_x3Cint_x3E(",
+		"XL_FutureInt picoverse_pick = (choose_picoverse_shared ? xl__relay_shared__arity2__value__future_x3Cint_x3E__prefer_delay__bool__ret__future_x3Cint_x3E(nanoverse_pick, false) : xl__relay_first__arity2__value__future_x3Cint_x3E__use_mid__bool__ret__future_x3Cint_x3E(nanoverse_pick, false));",
+		"XL_FutureInt femtoverse_pick = (choose_femtoverse_second ? xl__relay_second__arity2__value__future_x3Cint_x3E__use_fallback__bool__ret__future_x3Cint_x3E(picoverse_pick, false) : xl__relay_shared__arity2__value__future_x3Cint_x3E__prefer_delay__bool__ret__future_x3Cint_x3E(picoverse_pick, false));",
+		"xl_generated_async_trace_event(\"await\", \"route_hectopentaconta_select\");",
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\full\\task_sync_nested_loop_hectopentaconta_select_femtoverse_runtime.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenTaskSyncNestedLoopHenhectopentacontaSelectAttoversRuntime(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"static XL_FutureInt xl__route_henhectopentaconta_select__arity55__value__future_x3Cint_x3E__choose_left__bool__choose_delayed__bool__choose_shared_delay__bool__choose_final_delay__bool__choose_alternate_delay__bool__choose_merge_shared__bool__choose_branch_second__bool__choose_tail_shared__bool__choose_last_second__bool__choose_end_shared__bool__choose_closing_second__bool__choose_terminal_shared__bool__choose_tail_second__bool__choose_final_shared__bool__choose_closure_second__bool__choose_settled_shared__bool__choose_anchor_second__bool__choose_vector_shared__bool__choose_matrix_second__bool__choose_tensor_shared__bool__choose_signal_second__bool__choose_pulse_shared__bool__choose_beacon_second__bool__choose_orbit_shared__bool__choose_flare_second__bool__choose_glow_shared__bool__choose_spark_second__bool__choose_aura_shared__bool__choose_halo_second__bool__choose_radiant_shared__bool__choose_prism_second__bool__choose_lumen_shared__bool__choose_nova_second__bool__choose_quasar_shared__bool__choose_nebula_second__bool__choose_galaxy_shared__bool__choose_cosmos_second__bool__choose_universe_shared__bool__choose_multiverse_second__bool__choose_omniverse_shared__bool__choose_hyperverse_second__bool__choose_metaverse_shared__bool__choose_ultraverse_second__bool__choose_megaverse_shared__bool__choose_gigaverse_second__bool__choose_teraverse_shared__bool__choose_extraverse_second__bool__choose_superverse_shared__bool__choose_macroverse_second__bool__choose_microverse_shared__bool__choose_nanoverse_second__bool__choose_picoverse_shared__bool__choose_femtoverse_second__bool__choose_attovers_shared__bool__ret__future_x3Cint_x3E(",
+		"XL_FutureInt femtoverse_pick = (choose_femtoverse_second ? xl__relay_second__arity2__value__future_x3Cint_x3E__use_fallback__bool__ret__future_x3Cint_x3E(picoverse_pick, false) : xl__relay_shared__arity2__value__future_x3Cint_x3E__prefer_delay__bool__ret__future_x3Cint_x3E(picoverse_pick, false));",
+		"XL_FutureInt attovers_pick = (choose_attovers_shared ? xl__relay_shared__arity2__value__future_x3Cint_x3E__prefer_delay__bool__ret__future_x3Cint_x3E(femtoverse_pick, false) : xl__relay_first__arity2__value__future_x3Cint_x3E__use_mid__bool__ret__future_x3Cint_x3E(femtoverse_pick, false));",
+		"xl_generated_async_trace_event(\"await\", \"route_henhectopentaconta_select\");",
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\full\\task_sync_nested_loop_henhectopentaconta_select_attovers_runtime.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenTaskSyncNestedLoopDihectopentacontaSelectZeptoverseRuntime(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"static XL_FutureInt xl__route_dihectopentaconta_select__arity56__value__future_x3Cint_x3E__choose_left__bool__choose_delayed__bool__choose_shared_delay__bool__choose_final_delay__bool__choose_alternate_delay__bool__choose_merge_shared__bool__choose_branch_second__bool__choose_tail_shared__bool__choose_last_second__bool__choose_end_shared__bool__choose_closing_second__bool__choose_terminal_shared__bool__choose_tail_second__bool__choose_final_shared__bool__choose_closure_second__bool__choose_settled_shared__bool__choose_anchor_second__bool__choose_vector_shared__bool__choose_matrix_second__bool__choose_tensor_shared__bool__choose_signal_second__bool__choose_pulse_shared__bool__choose_beacon_second__bool__choose_orbit_shared__bool__choose_flare_second__bool__choose_glow_shared__bool__choose_spark_second__bool__choose_aura_shared__bool__choose_halo_second__bool__choose_radiant_shared__bool__choose_prism_second__bool__choose_lumen_shared__bool__choose_nova_second__bool__choose_quasar_shared__bool__choose_nebula_second__bool__choose_galaxy_shared__bool__choose_cosmos_second__bool__choose_universe_shared__bool__choose_multiverse_second__bool__choose_omniverse_shared__bool__choose_hyperverse_second__bool__choose_metaverse_shared__bool__choose_ultraverse_second__bool__choose_megaverse_shared__bool__choose_gigaverse_second__bool__choose_teraverse_shared__bool__choose_extraverse_second__bool__choose_superverse_shared__bool__choose_macroverse_second__bool__choose_microverse_shared__bool__choose_nanoverse_second__bool__choose_picoverse_shared__bool__choose_femtoverse_second__bool__choose_attovers_shared__bool__choose_zeptoverse_second__bool__ret__future_x3Cint_x3E(",
+		"XL_FutureInt attovers_pick = (choose_attovers_shared ? xl__relay_shared__arity2__value__future_x3Cint_x3E__prefer_delay__bool__ret__future_x3Cint_x3E(femtoverse_pick, false) : xl__relay_first__arity2__value__future_x3Cint_x3E__use_mid__bool__ret__future_x3Cint_x3E(femtoverse_pick, false));",
+		"XL_FutureInt zeptoverse_pick = (choose_zeptoverse_second ? xl__relay_second__arity2__value__future_x3Cint_x3E__use_fallback__bool__ret__future_x3Cint_x3E(attovers_pick, false) : xl__relay_shared__arity2__value__future_x3Cint_x3E__prefer_delay__bool__ret__future_x3Cint_x3E(attovers_pick, false));",
+		"xl_generated_async_trace_event(\"await\", \"route_dihectopentaconta_select\");",
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\full\\task_sync_nested_loop_dihectopentaconta_select_zeptoverse_runtime.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenTaskSyncNestedLoopTrihectopentacontaSelectYoctoverseRuntime(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"static XL_FutureInt xl__route_trihectopentaconta_select__arity57__value__future_x3Cint_x3E__choose_left__bool__choose_delayed__bool__choose_shared_delay__bool__choose_final_delay__bool__choose_alternate_delay__bool__choose_merge_shared__bool__choose_branch_second__bool__choose_tail_shared__bool__choose_last_second__bool__choose_end_shared__bool__choose_closing_second__bool__choose_terminal_shared__bool__choose_tail_second__bool__choose_final_shared__bool__choose_closure_second__bool__choose_settled_shared__bool__choose_anchor_second__bool__choose_vector_shared__bool__choose_matrix_second__bool__choose_tensor_shared__bool__choose_signal_second__bool__choose_pulse_shared__bool__choose_beacon_second__bool__choose_orbit_shared__bool__choose_flare_second__bool__choose_glow_shared__bool__choose_spark_second__bool__choose_aura_shared__bool__choose_halo_second__bool__choose_radiant_shared__bool__choose_prism_second__bool__choose_lumen_shared__bool__choose_nova_second__bool__choose_quasar_shared__bool__choose_nebula_second__bool__choose_galaxy_shared__bool__choose_cosmos_second__bool__choose_universe_shared__bool__choose_multiverse_second__bool__choose_omniverse_shared__bool__choose_hyperverse_second__bool__choose_metaverse_shared__bool__choose_ultraverse_second__bool__choose_megaverse_shared__bool__choose_gigaverse_second__bool__choose_teraverse_shared__bool__choose_extraverse_second__bool__choose_superverse_shared__bool__choose_macroverse_second__bool__choose_microverse_shared__bool__choose_nanoverse_second__bool__choose_picoverse_shared__bool__choose_femtoverse_second__bool__choose_attovers_shared__bool__choose_zeptoverse_second__bool__choose_yoctoverse_shared__bool__ret__future_x3Cint_x3E(",
+		"XL_FutureInt zeptoverse_pick = (choose_zeptoverse_second ? xl__relay_second__arity2__value__future_x3Cint_x3E__use_fallback__bool__ret__future_x3Cint_x3E(attovers_pick, false) : xl__relay_shared__arity2__value__future_x3Cint_x3E__prefer_delay__bool__ret__future_x3Cint_x3E(attovers_pick, false));",
+		"XL_FutureInt yoctoverse_pick = (choose_yoctoverse_shared ? xl__relay_shared__arity2__value__future_x3Cint_x3E__prefer_delay__bool__ret__future_x3Cint_x3E(zeptoverse_pick, false) : xl__relay_first__arity2__value__future_x3Cint_x3E__use_mid__bool__ret__future_x3Cint_x3E(zeptoverse_pick, false));",
+		"xl_generated_async_trace_event(\"await\", \"route_trihectopentaconta_select\");",
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\full\\task_sync_nested_loop_trihectopentaconta_select_yoctoverse_runtime.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenTaskSyncNestedLoopQuadrihectopentacontaSelectXenoverseRuntime(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"static XL_FutureInt xl__route_quadrihectopentaconta_select__arity58__value__future_x3Cint_x3E__choose_left__bool__choose_delayed__bool__choose_shared_delay__bool__choose_final_delay__bool__choose_alternate_delay__bool__choose_merge_shared__bool__choose_branch_second__bool__choose_tail_shared__bool__choose_last_second__bool__choose_end_shared__bool__choose_closing_second__bool__choose_terminal_shared__bool__choose_tail_second__bool__choose_final_shared__bool__choose_closure_second__bool__choose_settled_shared__bool__choose_anchor_second__bool__choose_vector_shared__bool__choose_matrix_second__bool__choose_tensor_shared__bool__choose_signal_second__bool__choose_pulse_shared__bool__choose_beacon_second__bool__choose_orbit_shared__bool__choose_flare_second__bool__choose_glow_shared__bool__choose_spark_second__bool__choose_aura_shared__bool__choose_halo_second__bool__choose_radiant_shared__bool__choose_prism_second__bool__choose_lumen_shared__bool__choose_nova_second__bool__choose_quasar_shared__bool__choose_nebula_second__bool__choose_galaxy_shared__bool__choose_cosmos_second__bool__choose_universe_shared__bool__choose_multiverse_second__bool__choose_omniverse_shared__bool__choose_hyperverse_second__bool__choose_metaverse_shared__bool__choose_ultraverse_second__bool__choose_megaverse_shared__bool__choose_gigaverse_second__bool__choose_teraverse_shared__bool__choose_extraverse_second__bool__choose_superverse_shared__bool__choose_macroverse_second__bool__choose_microverse_shared__bool__choose_nanoverse_second__bool__choose_picoverse_shared__bool__choose_femtoverse_second__bool__choose_attovers_shared__bool__choose_zeptoverse_second__bool__choose_yoctoverse_shared__bool__choose_xenoverse_second__bool__ret__future_x3Cint_x3E(",
+		"XL_FutureInt yoctoverse_pick = (choose_yoctoverse_shared ? xl__relay_shared__arity2__value__future_x3Cint_x3E__prefer_delay__bool__ret__future_x3Cint_x3E(zeptoverse_pick, false) : xl__relay_first__arity2__value__future_x3Cint_x3E__use_mid__bool__ret__future_x3Cint_x3E(zeptoverse_pick, false));",
+		"XL_FutureInt xenoverse_pick = (choose_xenoverse_second ? xl__relay_second__arity2__value__future_x3Cint_x3E__use_fallback__bool__ret__future_x3Cint_x3E(yoctoverse_pick, false) : xl__relay_shared__arity2__value__future_x3Cint_x3E__prefer_delay__bool__ret__future_x3Cint_x3E(yoctoverse_pick, false));",
+		"xl_generated_async_trace_event(\"await\", \"route_quadrihectopentaconta_select\");",
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\full\\task_sync_nested_loop_quadrihectopentaconta_select_xenoverse_runtime.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenTaskSyncNestedLoopPentahectopentacontaSelectZettaverseRuntime(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"static XL_FutureInt xl__route_pentahectopentaconta_select__arity59__value__future_x3Cint_x3E__choose_left__bool__choose_delayed__bool__choose_shared_delay__bool__choose_final_delay__bool__choose_alternate_delay__bool__choose_merge_shared__bool__choose_branch_second__bool__choose_tail_shared__bool__choose_last_second__bool__choose_end_shared__bool__choose_closing_second__bool__choose_terminal_shared__bool__choose_tail_second__bool__choose_final_shared__bool__choose_closure_second__bool__choose_settled_shared__bool__choose_anchor_second__bool__choose_vector_shared__bool__choose_matrix_second__bool__choose_tensor_shared__bool__choose_signal_second__bool__choose_pulse_shared__bool__choose_beacon_second__bool__choose_orbit_shared__bool__choose_flare_second__bool__choose_glow_shared__bool__choose_spark_second__bool__choose_aura_shared__bool__choose_halo_second__bool__choose_radiant_shared__bool__choose_prism_second__bool__choose_lumen_shared__bool__choose_nova_second__bool__choose_quasar_shared__bool__choose_nebula_second__bool__choose_galaxy_shared__bool__choose_cosmos_second__bool__choose_universe_shared__bool__choose_multiverse_second__bool__choose_omniverse_shared__bool__choose_hyperverse_second__bool__choose_metaverse_shared__bool__choose_ultraverse_second__bool__choose_megaverse_shared__bool__choose_gigaverse_second__bool__choose_teraverse_shared__bool__choose_extraverse_second__bool__choose_superverse_shared__bool__choose_macroverse_second__bool__choose_microverse_shared__bool__choose_nanoverse_second__bool__choose_picoverse_shared__bool__choose_femtoverse_second__bool__choose_attovers_shared__bool__choose_zeptoverse_second__bool__choose_yoctoverse_shared__bool__choose_xenoverse_second__bool__choose_zettaverse_shared__bool__ret__future_x3Cint_x3E(",
+		"XL_FutureInt xenoverse_pick = (choose_xenoverse_second ? xl__relay_second__arity2__value__future_x3Cint_x3E__use_fallback__bool__ret__future_x3Cint_x3E(yoctoverse_pick, false) : xl__relay_shared__arity2__value__future_x3Cint_x3E__prefer_delay__bool__ret__future_x3Cint_x3E(yoctoverse_pick, false));",
+		"XL_FutureInt zettaverse_pick = (choose_zettaverse_shared ? xl__relay_shared__arity2__value__future_x3Cint_x3E__prefer_delay__bool__ret__future_x3Cint_x3E(xenoverse_pick, false) : xl__relay_first__arity2__value__future_x3Cint_x3E__use_mid__bool__ret__future_x3Cint_x3E(xenoverse_pick, false));",
+		"xl_generated_async_trace_event(\"await\", \"route_pentahectopentaconta_select\");",
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\full\\task_sync_nested_loop_pentahectopentaconta_select_zettaverse_runtime.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenTaskSyncNestedLoopHexahectopentacontaSelectRonnaverseRuntime(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"static XL_FutureInt xl__route_hexahectopentaconta_select__arity60__value__future_x3Cint_x3E__choose_left__bool__choose_delayed__bool__choose_shared_delay__bool__choose_final_delay__bool__choose_alternate_delay__bool__choose_merge_shared__bool__choose_branch_second__bool__choose_tail_shared__bool__choose_last_second__bool__choose_end_shared__bool__choose_closing_second__bool__choose_terminal_shared__bool__choose_tail_second__bool__choose_final_shared__bool__choose_closure_second__bool__choose_settled_shared__bool__choose_anchor_second__bool__choose_vector_shared__bool__choose_matrix_second__bool__choose_tensor_shared__bool__choose_signal_second__bool__choose_pulse_shared__bool__choose_beacon_second__bool__choose_orbit_shared__bool__choose_flare_second__bool__choose_glow_shared__bool__choose_spark_second__bool__choose_aura_shared__bool__choose_halo_second__bool__choose_radiant_shared__bool__choose_prism_second__bool__choose_lumen_shared__bool__choose_nova_second__bool__choose_quasar_shared__bool__choose_nebula_second__bool__choose_galaxy_shared__bool__choose_cosmos_second__bool__choose_universe_shared__bool__choose_multiverse_second__bool__choose_omniverse_shared__bool__choose_hyperverse_second__bool__choose_metaverse_shared__bool__choose_ultraverse_second__bool__choose_megaverse_shared__bool__choose_gigaverse_second__bool__choose_teraverse_shared__bool__choose_extraverse_second__bool__choose_superverse_shared__bool__choose_macroverse_second__bool__choose_microverse_shared__bool__choose_nanoverse_second__bool__choose_picoverse_shared__bool__choose_femtoverse_second__bool__choose_attovers_shared__bool__choose_zeptoverse_second__bool__choose_yoctoverse_shared__bool__choose_xenoverse_second__bool__choose_zettaverse_shared__bool__choose_ronnaverse_second__bool__ret__future_x3Cint_x3E(",
+		"XL_FutureInt zettaverse_pick = (choose_zettaverse_shared ? xl__relay_shared__arity2__value__future_x3Cint_x3E__prefer_delay__bool__ret__future_x3Cint_x3E(xenoverse_pick, false) : xl__relay_first__arity2__value__future_x3Cint_x3E__use_mid__bool__ret__future_x3Cint_x3E(xenoverse_pick, false));",
+		"XL_FutureInt ronnaverse_pick = (choose_ronnaverse_second ? xl__relay_second__arity2__value__future_x3Cint_x3E__use_fallback__bool__ret__future_x3Cint_x3E(zettaverse_pick, false) : xl__relay_shared__arity2__value__future_x3Cint_x3E__prefer_delay__bool__ret__future_x3Cint_x3E(zettaverse_pick, false));",
+		"xl_generated_async_trace_event(\"await\", \"route_hexahectopentaconta_select\");",
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\full\\task_sync_nested_loop_hexahectopentaconta_select_ronnaverse_runtime.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenTaskSyncNestedLoopHeptahectopentacontaSelectQuettaverseRuntime(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"static XL_FutureInt xl__route_heptahectopentaconta_select__arity61__value__future_x3Cint_x3E__choose_left__bool__choose_delayed__bool__choose_shared_delay__bool__choose_final_delay__bool__choose_alternate_delay__bool__choose_merge_shared__bool__choose_branch_second__bool__choose_tail_shared__bool__choose_last_second__bool__choose_end_shared__bool__choose_closing_second__bool__choose_terminal_shared__bool__choose_tail_second__bool__choose_final_shared__bool__choose_closure_second__bool__choose_settled_shared__bool__choose_anchor_second__bool__choose_vector_shared__bool__choose_matrix_second__bool__choose_tensor_shared__bool__choose_signal_second__bool__choose_pulse_shared__bool__choose_beacon_second__bool__choose_orbit_shared__bool__choose_flare_second__bool__choose_glow_shared__bool__choose_spark_second__bool__choose_aura_shared__bool__choose_halo_second__bool__choose_radiant_shared__bool__choose_prism_second__bool__choose_lumen_shared__bool__choose_nova_second__bool__choose_quasar_shared__bool__choose_nebula_second__bool__choose_galaxy_shared__bool__choose_cosmos_second__bool__choose_universe_shared__bool__choose_multiverse_second__bool__choose_omniverse_shared__bool__choose_hyperverse_second__bool__choose_metaverse_shared__bool__choose_ultraverse_second__bool__choose_megaverse_shared__bool__choose_gigaverse_second__bool__choose_teraverse_shared__bool__choose_extraverse_second__bool__choose_superverse_shared__bool__choose_macroverse_second__bool__choose_microverse_shared__bool__choose_nanoverse_second__bool__choose_picoverse_shared__bool__choose_femtoverse_second__bool__choose_attovers_shared__bool__choose_zeptoverse_second__bool__choose_yoctoverse_shared__bool__choose_xenoverse_second__bool__choose_zettaverse_shared__bool__choose_ronnaverse_second__bool__choose_quettaverse_shared__bool__ret__future_x3Cint_x3E(",
+		"XL_FutureInt ronnaverse_pick = (choose_ronnaverse_second ? xl__relay_second__arity2__value__future_x3Cint_x3E__use_fallback__bool__ret__future_x3Cint_x3E(zettaverse_pick, false) : xl__relay_shared__arity2__value__future_x3Cint_x3E__prefer_delay__bool__ret__future_x3Cint_x3E(zettaverse_pick, false));",
+		"XL_FutureInt quettaverse_pick = (choose_quettaverse_shared ? xl__relay_shared__arity2__value__future_x3Cint_x3E__prefer_delay__bool__ret__future_x3Cint_x3E(ronnaverse_pick, false) : xl__relay_first__arity2__value__future_x3Cint_x3E__use_mid__bool__ret__future_x3Cint_x3E(ronnaverse_pick, false));",
+		"xl_generated_async_trace_event(\"await\", \"route_heptahectopentaconta_select\");",
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\full\\task_sync_nested_loop_heptahectopentaconta_select_quettaverse_runtime.xl", aNeedles, XL_COUNTOF(aNeedles));
 }
 static int __xlTestCgenTaskReturnRuntime(XL_TestContext* pCtx)
 {
@@ -9371,7 +9958,8 @@ static int __xlTestCgenCustomVarDispatchRuntime(XL_TestContext* pCtx)
 static int __xlTestCgenCustomDestroyRuntime(XL_TestContext* pCtx)
 {
 	static const char* const aNeedles[] = {
-		"xl_class_Token__destroy(*((XL_Class_Token*)pSelfBlob));",
+		"xl_class_Token__destroy((XL_Class_Token*)pSelfBlob);",
+		"((XL_ObjectHeader*)pSelfBlob)->uFlags |= XL_OBJECT_FLAG_DESTROYING;",
 		"pkg_clock_artifact_point_slot =",
 		"xl_object_payload(&(self))",
 		"xl_object_header_dispose(pSelfBlob);",
@@ -9380,6 +9968,76 @@ static int __xlTestCgenCustomDestroyRuntime(XL_TestContext* pCtx)
 	};
 
 	return __xlRunCgenCaseAll(pCtx, "examples\\full\\custom_destroy_runtime.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenCustomXrtResourceBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"pkg_clock_artifact_point_create",
+		"pkg_clock_artifact_point_release",
+		"pkg_clock_artifact_point_score",
+		"Texture"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\full\\custom_xrt_resource_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenObjectGetLetDispatchBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"__prop_get__value",
+		"__prop_let__value",
+		"xl_object_dispatch("
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\full\\object_get_let_dispatch_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenCustomOperatorBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"op_add",
+		"xl__op_add__arity2__self__Counter__rhs__int__ret__int",
+		"return xl__op_add__arity2__self__Counter__rhs__int__ret__int("
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\full\\custom_operator_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenCustomGetLetDispatchBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"__prop_get__value",
+		"__prop_let__value",
+		"xl_object_dispatch("
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\full\\custom_get_let_dispatch_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenCustomIndexDispatchBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"op_index",
+		"op_index_set",
+		"xl__op_index_set__arity3__self__Slot__index__int__value__int__ret__int"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\full\\custom_index_dispatch_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenCustomVarOperatorBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"op_add",
+		"xvoGetClass((xvalue)(v))"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\full\\custom_var_operator_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenCustomVarIndexDispatchBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"op_index",
+		"op_index_set",
+		"xvoGetClass((xvalue)(v))"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\full\\custom_var_index_dispatch_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
 }
 static int __xlTestCgenObjectSuperCallRuntime(XL_TestContext* pCtx)
 {
@@ -9401,6 +10059,27 @@ static int __xlTestCgenTypeReflectClassRuntime(XL_TestContext* pCtx)
 	};
 
 	return __xlRunCgenCaseAll(pCtx, "examples\\full\\type_reflect_class_runtime.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenTypeRuntimeApiBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"xl_generated_type_kind(",
+		"xl_generated_type_is_builtin(",
+		"xl_generated_type_is_class("
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\full\\type_runtime_api_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenTypeMetaBridgeBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"__xl_method_type_has_field(",
+		"__xl_method_type_has_method(",
+		"xl_generated_type_has_field(",
+		"xl_generated_type_has_method("
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\full\\type_meta_bridge_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
 }
 static int __xlTestCgenBindingBasic(XL_TestContext* pCtx)
 {
@@ -10310,6 +10989,25 @@ static int __xlTestCgenClassStage1VarClassCopyRuntime(XL_TestContext* pCtx)
 
 	return __xlRunCgenCaseAll(pCtx, "examples\\full\\class_stage1_var_class_copy_runtime.xl", aNeedles, XL_COUNTOF(aNeedles));
 }
+static int __xlTestCgenClassStage1VarDispatchBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"*((XL_Class_PlainVec*)xvoGetClass((xvalue)(v)))",
+		"xl__sum__arity1__self__PlainVec__ret__int",
+		"xl__op_add__arity2__self__PlainVec__rhs__int__ret__int"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\full\\class_stage1_var_dispatch_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenClassStage1VarIndexDispatchBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"*((XL_Class_PlainSlot*)xvoGetClass((xvalue)(v)))",
+		"xl__op_index__arity2__self__PlainSlot__index__int__ret__int"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\full\\class_stage1_var_index_dispatch_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
 static int __xlTestCgenClassStage1VarContainerDestroyRuntime(XL_TestContext* pCtx)
 {
 	static const char* const aNeedles[] = {
@@ -10432,6 +11130,16 @@ static int __xlTestCgenObjectVarOperatorRuntime(XL_TestContext* pCtx)
 
 	return __xlRunCgenCaseAll(pCtx, "examples\\full\\object_var_operator_runtime.xl", aNeedles, XL_COUNTOF(aNeedles));
 }
+static int __xlTestCgenObjectOperatorDispatchBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"op_neg$arity0",
+		"xl_object_dispatch(",
+		"xl_object_dispatch_wrap__xl__op_neg__arity1__self__Base__ret__int"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\full\\object_operator_dispatch_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
 static int __xlTestCgenObjectWeakRuntime(XL_TestContext* pCtx)
 {
 	static const char* const aNeedles[] = {
@@ -10486,6 +11194,17 @@ static int __xlTestCgenObjectCollectClosureRuntime(XL_TestContext* pCtx)
 
 	return __xlRunCgenCaseAll(pCtx, "examples\\full\\object_collect_closure_runtime.xl", aNeedles, XL_COUNTOF(aNeedles));
 }
+static int __xlTestCgenObjectCollectGeneratorRuntime(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"xl_mod_std_object__collect",
+		"xl_generated_generator_make(",
+		"generator_trace",
+		"xl_object_collect_cycles("
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\full\\object_collect_generator_runtime.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
 static int __xlTestCgenObjectCollectChannelRuntime(XL_TestContext* pCtx)
 {
 	static const char* const aNeedles[] = {
@@ -10497,6 +11216,233 @@ static int __xlTestCgenObjectCollectChannelRuntime(XL_TestContext* pCtx)
 	};
 
 	return __xlRunCgenCaseAll(pCtx, "examples\\full\\object_collect_channel_runtime.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenObjectCollectTaskRuntime(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"xl_mod_std_object__collect",
+		"xl_object_future_bind_trace(",
+		"xl_object_future_clear_trace(",
+		"__trace(",
+		"xl_object_collect_cycles("
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\full\\object_collect_task_runtime.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenObjectCollectFutureRuntime(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"xl_mod_std_object__collect",
+		"xl_object_future_bind_trace(",
+		"hold_future",
+		"xl_object_release(",
+		"xl_object_collect_cycles("
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\full\\object_collect_future_runtime.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenObjectFunctionFieldBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"xl_object_set_value_",
+		"xvoCreateFunc((xfunction)xl__forty__arity0__ret__int__boxed)",
+		"xl_member_assign_value = xvoCopy((xvalue)(xvoCreateFunc(",
+		"xl_object_visible_get__Bag((XL_Class_Bag*)",
+		"xvoUnref(xl_object_set_value_"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\full\\object_function_field_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenTypeDynamicInstanceBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"XL_Class_DynamicObject",
+		"xl_mod_std_types__new_instance",
+		"xl_mod_std_types__instance_name",
+		"xl_mod_std_types__set_field",
+		"xl_object_visible_get__DynamicObject"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\full\\type_dynamic_instance_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenTypeDynamicMembersBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"xl_mod_std_types__field_name_at",
+		"xl_mod_std_types__method_name_at",
+		"xl_mod_std_types__instance_field_name_at",
+		"xl_mod_std_types__instance_field_count"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\full\\type_dynamic_members_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenTypeDynamicFieldTypesBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"xl_mod_std_types__field_type_name",
+		"xl_mod_std_types__field_type_name_at",
+		"xl_mod_std_types__instance_field_type_name",
+		"xl_mod_std_types__instance_field_type_name_at"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\full\\type_dynamic_field_types_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenTypeDynamicInstanceMethodNamesBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"xl_mod_std_types__instance_method_names",
+		"xl_mod_std_types__instance_method_count",
+		"xl_mod_std_types__instance_method_name_at"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\full\\type_dynamic_instance_method_names_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenTypeDynamicMethodBindBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"xl_mod_std_types__bind_method",
+		"xl_mod_std_types__method_impl",
+		"xl_mod_std_types__instance_method",
+		"xvoCreateFunc((xfunction)xl__score__arity0__ret__int__boxed)"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\full\\type_dynamic_method_bind_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenTypeDynamicMethodBindArgsBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"xl_mod_std_types__bind_method",
+		"xl_mod_std_types__method_impl",
+		"xl_mod_std_types__instance_method",
+		"xvoCreateFunc((xfunction)xl__score__arity1__base__int__ret__int__boxed)"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\full\\type_dynamic_method_bind_args_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenTypeDynamicMethodBindStringBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"xl_mod_std_types__bind_method",
+		"xl_mod_std_types__method_impl",
+		"xl_mod_std_types__instance_method",
+		"xvoCreateFunc((xfunction)xl__label__arity0__ret__string__boxed)"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\full\\type_dynamic_method_bind_string_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenTypeDynamicMethodBindVarBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"xl_mod_std_types__bind_method",
+		"xl_mod_std_types__method_impl",
+		"xl_mod_std_types__instance_method",
+		"xvoCreateFunc((xfunction)xl__payload__arity0__ret__var__boxed)"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\full\\type_dynamic_method_bind_var_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenTypeDynamicMethodBoundBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"xl_mod_std_types__bind_method",
+		"xl_mod_std_types__has_bound_method",
+		"xl_mod_std_types__instance_method_bound"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\full\\type_dynamic_method_bound_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenTypeDynamicBoundMethodNamesBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"xl_mod_std_types__bound_method_names",
+		"xl_mod_std_types__bound_method_count",
+		"xl_mod_std_types__bound_method_name_at",
+		"xl_mod_std_types__instance_bound_method_names",
+		"xl_mod_std_types__instance_bound_method_count",
+		"xl_mod_std_types__instance_bound_method_name_at"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\full\\type_dynamic_bound_method_names_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenTypeDynamicMethodFallbackBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"xl_mod_std_types__method_impl",
+		"xl_mod_std_types__instance_method",
+		"xvoCreateFunc((xfunction)xl__backup__arity0__ret__int__boxed)"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\full\\type_dynamic_method_fallback_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenTypeDynamicMethodFallbackStringBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"xl_mod_std_types__method_impl",
+		"xl_mod_std_types__instance_method",
+		"xvoCreateFunc((xfunction)xl__backup__arity0__ret__string__boxed)"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\full\\type_dynamic_method_fallback_string_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenTypeDeclaredMetaBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"__xl_method_type_declared_field_count",
+		"__xl_method_type_declared_method_count",
+		"__xl_method_type_declared_field_name_at",
+		"__xl_method_type_declared_method_name_at"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\full\\type_declared_meta_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenTypeDeclaresMetaBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"__xl_method_type_declares_field",
+		"__xl_method_type_declares_method"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\full\\type_declares_meta_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenTypeDeclaredNamesBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"__xl_method_type_declared_field_names",
+		"__xl_method_type_declared_method_names",
+		"xl_generated_type_declared_field_names",
+		"xl_generated_type_declared_method_names"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\full\\type_declared_names_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenObjectMetaRuntimeBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"xl_mod_std_object__has_field",
+		"xl_mod_std_object__has_method"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\full\\object_meta_runtime_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenObjectMetaFieldNamesBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"xl_mod_std_object__field_names",
+		"xl_mod_std_object__field_count",
+		"xl_mod_std_object__field_name_at"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\full\\object_meta_field_names_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenObjectMetaMethodNamesBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"xl_mod_std_object__method_names",
+		"xl_mod_std_object__method_count",
+		"xl_mod_std_object__method_name_at"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\full\\object_meta_method_names_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
 }
 static int __xlTestCgenClassStage1IndexOperatorRuntime(XL_TestContext* pCtx)
 {
@@ -11371,6 +12317,17 @@ static int __xlTestCgenTypesBasic(XL_TestContext* pCtx)
 	};
 
 	return __xlRunCgenCaseAll(pCtx, "examples\\native\\types_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenTypeDynamicDescriptorBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"DynamicTypeDesc",
+		"\"Enemy\"",
+		"\"hp\"",
+		"\"update\""
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\full\\type_dynamic_descriptor_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
 }
 static int __xlTestCgenFmtBasic(XL_TestContext* pCtx)
 {
@@ -12648,11 +13605,34 @@ static int __xlTestRunClassStage1TryFinallyReturnDestroyRuntime(XL_TestContext* 
 static int __xlTestRunClassStage1TryFinallyNestedDestroyRuntime(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\class_stage1_try_finally_nested_destroy_runtime.xl", 1, 32451, NULL, NULL); }
 static int __xlTestRunClassStage1ImplicitObjectRuntime(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\class_stage1_implicit_object_runtime.xl", 1, 42, NULL, NULL); }
 static int __xlTestRunCustomBasicRuntime(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\custom_basic_runtime.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunCustomXrtDictBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\custom_xrt_dict_basic.xl", 1, 42, NULL, NULL); }
 static int __xlTestRunCustomExternMethodRuntime(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\custom_extern_method_runtime.xl", 1, 42, NULL, NULL); }
 static int __xlTestRunCustomExternCreateDestroyRuntime(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\custom_extern_create_destroy_runtime.xl", 1, 42, NULL, NULL); }
 static int __xlTestRunCustomVarDispatchRuntime(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\custom_var_dispatch_runtime.xl", 1, 42, NULL, NULL); }
 static int __xlTestRunCustomPayloadRuntime(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\custom_payload_runtime.xl", 1, 42, NULL, NULL); }
 static int __xlTestRunCustomDestroyRuntime(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\custom_destroy_runtime.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunCustomDestroyBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\custom_destroy_runtime.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunCustomXrtResourceBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\custom_xrt_resource_basic.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunCustomOperatorBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\custom_operator_basic.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunCustomIndexDispatchBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\custom_index_dispatch_basic.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunObjectGetLetDispatchBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\object_get_let_dispatch_basic.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunCustomGetLetDispatchBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\custom_get_let_dispatch_basic.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunCustomVarOperatorBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\custom_var_operator_basic.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunCustomVarIndexDispatchBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\custom_var_index_dispatch_basic.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunObjectCreateDestroyBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\object_create_destroy_basic.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunObjectDynamicFieldBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\object_dynamic_member_runtime.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunObjectDictInheritBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\object_dict_inherit_basic.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunObjectOperatorDispatchBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\object_operator_dispatch_basic.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunObjectMethodOverrideBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\object_inherit_dispatch_runtime.xl", 1, 23, NULL, NULL); }
+static int __xlTestRunObjectBaseRefDispatchBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\object_base_assign_dispatch_runtime.xl", 1, 2, NULL, NULL); }
+static int __xlTestRunVarObjectDispatchBasic(XL_TestContext* pCtx) { return __xlRunProgramCaseAll(pCtx, "examples\\full\\object_var_methods_runtime.xl", 1, 42, NULL, 0, NULL); }
+static int __xlTestRunObjectKeysValuesItemsBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\object_class_methods_runtime.xl", 1, 48, NULL, NULL); }
+static int __xlTestRunObjectRemoveDynamicFieldBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\object_class_methods_runtime.xl", 1, 48, NULL, NULL); }
+static int __xlTestRunCustomMethodBindBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\custom_extern_method_runtime.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunCustomVarDispatchBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\custom_var_dispatch_runtime.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunObjectDeleteBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\delete_object_runtime.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunObjectDeleteSharedError(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\delete_shared_object_error.xl", 0, 0, NULL, "exception.text=ValueError: delete requires unique object reference"); }
+static int __xlTestRunObjectCycleCollectBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\object_collect_runtime.xl", 1, 42, NULL, NULL); }
 static int __xlTestRunObjectSuperCallRuntime(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\object_super_call_runtime.xl", 1, 42, NULL, NULL); }
 static int __xlTestRunObjectClassMethodsRuntime(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\object_class_methods_runtime.xl", 1, 48, NULL, NULL); }
 static int __xlTestRunObjectDynamicMemberRuntime(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\object_dynamic_member_runtime.xl", 1, 42, NULL, NULL); }
@@ -12687,6 +13667,8 @@ static int __xlTestRunClassStage1ContainerReleaseDestroyRuntime(XL_TestContext* 
 static int __xlTestRunClassStage1ContainerReturnEscapeRuntime(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\class_stage1_container_return_escape_runtime.xl", 1, 30, NULL, NULL); }
 static int __xlTestRunClassStage1VarClassDestroyRuntime(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\class_stage1_var_class_destroy_runtime.xl", 1, 22, NULL, NULL); }
 static int __xlTestRunClassStage1VarClassCopyRuntime(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\class_stage1_var_class_copy_runtime.xl", 1, 22, NULL, NULL); }
+static int __xlTestRunClassStage1VarDispatchBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\class_stage1_var_dispatch_basic.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunClassStage1VarIndexDispatchBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\class_stage1_var_index_dispatch_basic.xl", 1, 42, NULL, NULL); }
 static int __xlTestRunClassStage1VarContainerDestroyRuntime(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\class_stage1_var_container_destroy_runtime.xl", 1, 33, NULL, NULL); }
 static int __xlTestRunClassStage1VarContainerCopyRuntime(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\class_stage1_var_container_copy_runtime.xl", 1, 23, NULL, NULL); }
 static int __xlTestRunClassStage1GeneratorDestroyRuntime(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\class_stage1_generator_destroy_runtime.xl", 1, 82, "generator.done=make_values", NULL); }
@@ -12862,6 +13844,23 @@ static int __xlTestRunTaskSyncNestedLoopOctatriacontaSelectOmniverseRuntime(XL_T
 static int __xlTestRunTaskSyncNestedLoopEnneatriacontaSelectHyperverseRuntime(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\task_sync_nested_loop_enneatriaconta_select_hyperverse_runtime.xl", 1, 42, NULL, NULL); }
 static int __xlTestRunTaskSyncNestedLoopTetracontaSelectMetaverseRuntime(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\task_sync_nested_loop_tetraconta_select_metaverse_runtime.xl", 1, 42, NULL, NULL); }
 static int __xlTestRunTaskSyncNestedLoopPentacontaSelectUltraverseRuntime(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\task_sync_nested_loop_pentaconta_select_ultraverse_runtime.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunTaskSyncNestedLoopHenpentacontaSelectMegaverseRuntime(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\task_sync_nested_loop_henpentaconta_select_megaverse_runtime.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunTaskSyncNestedLoopDopentacontaSelectGigaverseRuntime(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\task_sync_nested_loop_dopentaconta_select_gigaverse_runtime.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunTaskSyncNestedLoopTripentacontaSelectTeraverseRuntime(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\task_sync_nested_loop_tripentaconta_select_teraverse_runtime.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunTaskSyncNestedLoopQuadripentacontaSelectExtraverseRuntime(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\task_sync_nested_loop_quadripentaconta_select_extraverse_runtime.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunTaskSyncNestedLoopPentapentacontaSelectSuperverseRuntime(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\task_sync_nested_loop_pentapentaconta_select_superverse_runtime.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunTaskSyncNestedLoopHexapentacontaSelectMacroverseRuntime(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\task_sync_nested_loop_hexapentaconta_select_macroverse_runtime.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunTaskSyncNestedLoopHeptapentacontaSelectMicroverseRuntime(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\task_sync_nested_loop_heptapentaconta_select_microverse_runtime.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunTaskSyncNestedLoopOctapentacontaSelectNanoverseRuntime(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\task_sync_nested_loop_octapentaconta_select_nanoverse_runtime.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunTaskSyncNestedLoopEnneapentacontaSelectPicoverseRuntime(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\task_sync_nested_loop_enneapentaconta_select_picoverse_runtime.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunTaskSyncNestedLoopHectopentacontaSelectFemtoverseRuntime(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\task_sync_nested_loop_hectopentaconta_select_femtoverse_runtime.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunTaskSyncNestedLoopHenhectopentacontaSelectAttoversRuntime(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\task_sync_nested_loop_henhectopentaconta_select_attovers_runtime.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunTaskSyncNestedLoopDihectopentacontaSelectZeptoverseRuntime(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\task_sync_nested_loop_dihectopentaconta_select_zeptoverse_runtime.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunTaskSyncNestedLoopTrihectopentacontaSelectYoctoverseRuntime(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\task_sync_nested_loop_trihectopentaconta_select_yoctoverse_runtime.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunTaskSyncNestedLoopQuadrihectopentacontaSelectXenoverseRuntime(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\task_sync_nested_loop_quadrihectopentaconta_select_xenoverse_runtime.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunTaskSyncNestedLoopPentahectopentacontaSelectZettaverseRuntime(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\task_sync_nested_loop_pentahectopentaconta_select_zettaverse_runtime.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunTaskSyncNestedLoopHexahectopentacontaSelectRonnaverseRuntime(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\task_sync_nested_loop_hexahectopentaconta_select_ronnaverse_runtime.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunTaskSyncNestedLoopHeptahectopentacontaSelectQuettaverseRuntime(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\task_sync_nested_loop_heptahectopentaconta_select_quettaverse_runtime.xl", 1, 42, NULL, NULL); }
 static int __xlTestRunVarGeneratorRuntime(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\var_generator_runtime.xl", 1, 42, NULL, NULL); }
 static int __xlTestRunVarTypeMethodsBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\var_type_methods_basic.xl", 1, 42, NULL, NULL); }
 static int __xlTestRunVarContainerTypeMethodsBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\var_container_type_methods_basic.xl", 1, 42, NULL, NULL); }
@@ -12880,11 +13879,35 @@ static int __xlTestRunObjectRefcountRuntime(XL_TestContext* pCtx) { return __xlR
 static int __xlTestRunObjectCollectRuntime(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\object_collect_runtime.xl", 1, 42, NULL, NULL); }
 static int __xlTestRunObjectCollectContainerRuntime(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\object_collect_container_runtime.xl", 1, 42, NULL, NULL); }
 static int __xlTestRunObjectCollectClosureRuntime(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\object_collect_closure_runtime.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunObjectCollectGeneratorRuntime(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\object_collect_generator_runtime.xl", 1, 42, NULL, NULL); }
 static int __xlTestRunObjectCollectChannelRuntime(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\object_collect_channel_runtime.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunObjectCollectTaskRuntime(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\object_collect_task_runtime.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunObjectCollectFutureRuntime(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\object_collect_future_runtime.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunObjectFunctionFieldBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\object_function_field_basic.xl", 1, 42, NULL, NULL); }
 static int __xlTestRunObjectReferenceRuntime(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\object_reference_runtime.xl", 1, 42, NULL, NULL); }
 static int __xlTestRunPropertyLengthBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\property_length_basic.xl", 1, 13, NULL, NULL); }
 static int __xlTestRunStringMethodsBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\string_methods_basic.xl", 1, 88, NULL, NULL); }
 static int __xlTestRunTypeReflectClassRuntime(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\type_reflect_class_runtime.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunTypeRuntimeApiBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\type_runtime_api_basic.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunTypeMetaBridgeBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\type_meta_bridge_basic.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunTypeDynamicInstanceBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\type_dynamic_instance_basic.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunTypeDynamicMembersBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\type_dynamic_members_basic.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunTypeDynamicFieldTypesBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\type_dynamic_field_types_basic.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunTypeDynamicInstanceMethodNamesBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\type_dynamic_instance_method_names_basic.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunTypeDynamicMethodBindBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\type_dynamic_method_bind_basic.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunTypeDynamicMethodBindArgsBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\type_dynamic_method_bind_args_basic.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunTypeDynamicMethodBindStringBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\type_dynamic_method_bind_string_basic.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunTypeDynamicMethodBindVarBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\type_dynamic_method_bind_var_basic.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunTypeDynamicMethodBoundBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\type_dynamic_method_bound_basic.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunTypeDynamicBoundMethodNamesBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\type_dynamic_bound_method_names_basic.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunTypeDynamicMethodFallbackBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\type_dynamic_method_fallback_basic.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunTypeDynamicMethodFallbackStringBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\type_dynamic_method_fallback_string_basic.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunTypeDeclaredMetaBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\type_declared_meta_basic.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunTypeDeclaresMetaBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\type_declares_meta_basic.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunTypeDeclaredNamesBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\type_declared_names_basic.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunObjectMetaRuntimeBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\object_meta_runtime_basic.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunObjectMetaFieldNamesBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\object_meta_field_names_basic.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunObjectMetaMethodNamesBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\object_meta_method_names_basic.xl", 1, 42, NULL, NULL); }
 static int __xlTestRunStringSplitBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\string_split_basic.xl", 1, 9, NULL, NULL); }
 static int __xlTestRunWhileBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\while_basic.xl", 1, 7, NULL, NULL); }
 static int __xlTestRunDoWhileBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\do_while_basic.xl", 1, 7, NULL, NULL); }
@@ -13023,6 +14046,7 @@ static int __xlTestRunNetTlsBasic(XL_TestContext* pCtx) { return __xlRunProgramC
 static int __xlTestRunMimeBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\native\\mime_basic.xl", 1, 65, NULL, NULL); }
 static int __xlTestRunMultipartBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\native\\multipart_basic.xl", 1, 66, NULL, NULL); }
 static int __xlTestRunTypesBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\native\\types_basic.xl", 1, 61, NULL, NULL); }
+static int __xlTestRunTypeDynamicDescriptorBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\type_dynamic_descriptor_basic.xl", 1, 42, NULL, NULL); }
 static int __xlTestRunSysProcessBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\native\\sys_process_basic.xl", 1, 0, NULL, NULL); }
 static int __xlTestRunSysWaitBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\native\\sys_wait_basic.xl", 1, 13, NULL, NULL); }
 static int __xlTestRunTemplateRenderBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\native\\template_render_basic.xl", 1, 0, NULL, NULL); }
@@ -17482,6 +18506,26 @@ static const XL_TestCase __gXLTests[] = {
 	{ "parser.mime_basic", "parser", __xlTestParseMimeBasic },
 	{ "parser.multipart_basic", "parser", __xlTestParseMultipartBasic },
 	{ "parser.types_basic", "parser", __xlTestParseTypesBasic },
+	{ "parser.type_dynamic_descriptor_basic", "parser", __xlTestParseTypeDynamicDescriptorBasic },
+	{ "parser.type_dynamic_instance_basic", "parser", __xlTestParseTypeDynamicInstanceBasic },
+	{ "parser.type_dynamic_members_basic", "parser", __xlTestParseTypeDynamicMembersBasic },
+	{ "parser.type_dynamic_field_types_basic", "parser", __xlTestParseTypeDynamicFieldTypesBasic },
+	{ "parser.type_dynamic_instance_method_names_basic", "parser", __xlTestParseTypeDynamicInstanceMethodNamesBasic },
+	{ "parser.type_dynamic_method_bind_basic", "parser", __xlTestParseTypeDynamicMethodBindBasic },
+	{ "parser.type_dynamic_method_bind_args_basic", "parser", __xlTestParseTypeDynamicMethodBindArgsBasic },
+	{ "parser.type_dynamic_method_bind_string_basic", "parser", __xlTestParseTypeDynamicMethodBindStringBasic },
+	{ "parser.type_dynamic_method_bind_var_basic", "parser", __xlTestParseTypeDynamicMethodBindVarBasic },
+	{ "parser.type_dynamic_method_bound_basic", "parser", __xlTestParseTypeDynamicMethodBoundBasic },
+	{ "parser.type_dynamic_bound_method_names_basic", "parser", __xlTestParseTypeDynamicBoundMethodNamesBasic },
+	{ "parser.type_dynamic_method_fallback_basic", "parser", __xlTestParseTypeDynamicMethodFallbackBasic },
+	{ "parser.type_dynamic_method_fallback_string_basic", "parser", __xlTestParseTypeDynamicMethodFallbackStringBasic },
+	{ "parser.type_declared_meta_basic", "parser", __xlTestParseTypeDeclaredMetaBasic },
+	{ "parser.type_declares_meta_basic", "parser", __xlTestParseTypeDeclaresMetaBasic },
+	{ "parser.type_declared_names_basic", "parser", __xlTestParseTypeDeclaredNamesBasic },
+	{ "parser.object_meta_runtime_basic", "parser", __xlTestParseObjectMetaRuntimeBasic },
+	{ "parser.object_meta_field_names_basic", "parser", __xlTestParseObjectMetaFieldNamesBasic },
+	{ "parser.object_meta_method_names_basic", "parser", __xlTestParseObjectMetaMethodNamesBasic },
+	{ "parser.object_function_field_basic", "parser", __xlTestParseObjectFunctionFieldBasic },
 	{ "parser.sys_process_basic", "parser", __xlTestParseSysProcessBasic },
 	{ "parser.sys_wait_basic", "parser", __xlTestParseSysWaitBasic },
 	{ "parser.template_render_basic", "parser", __xlTestParseTemplateRenderBasic },
@@ -17500,7 +18544,22 @@ static const XL_TestCase __gXLTests[] = {
 	{ "parser.custom_var_dispatch_runtime", "parser", __xlTestParseCustomVarDispatchRuntime },
 	{ "parser.custom_payload_runtime", "parser", __xlTestParseCustomPayloadRuntime },
 	{ "parser.custom_destroy_runtime", "parser", __xlTestParseCustomDestroyRuntime },
+	{ "parser.custom_xrt_resource_basic", "parser", __xlTestParseCustomXrtResourceBasic },
+	{ "parser.custom_operator_basic", "parser", __xlTestParseCustomOperatorBasic },
+	{ "parser.custom_index_dispatch_basic", "parser", __xlTestParseCustomIndexDispatchBasic },
+	{ "parser.object_get_let_dispatch_basic", "parser", __xlTestParseObjectGetLetDispatchBasic },
+	{ "parser.custom_get_let_dispatch_basic", "parser", __xlTestParseCustomGetLetDispatchBasic },
+	{ "parser.custom_var_operator_basic", "parser", __xlTestParseCustomVarOperatorBasic },
+	{ "parser.custom_var_index_dispatch_basic", "parser", __xlTestParseCustomVarIndexDispatchBasic },
+	{ "parser.class_stage1_var_dispatch_basic", "parser", __xlTestParseClassStage1VarDispatchBasic },
+	{ "parser.class_stage1_var_index_dispatch_basic", "parser", __xlTestParseClassStage1VarIndexDispatchBasic },
+	{ "parser.object_class_basic", "parser", __xlTestParseObjectClassBasic },
+	{ "parser.object_dynamic_field_basic", "parser", __xlTestParseObjectDynamicFieldBasic },
+	{ "parser.object_field_shadow_basic", "parser", __xlTestParseObjectFieldShadowBasic },
+	{ "parser.object_operator_dispatch_basic", "parser", __xlTestParseObjectOperatorDispatchBasic },
 	{ "parser.object_super_call_runtime", "parser", __xlTestParseObjectSuperCallRuntime },
+	{ "parser.object_super_call_basic", "parser", __xlTestParseObjectSuperCallBasic },
+	{ "parser.object_virtual_dispatch_basic", "parser", __xlTestParseObjectVirtualDispatchBasic },
 	{ "parser.class_nocopy_decl", "parser", __xlTestParseClassNoCopyDecl },
 	{ "parser.extern_atoi_basic", "parser", __xlTestParseExternAtoiBasic },
 	{ "parser.extern_async_func_basic", "parser", __xlTestParseExternAsyncFuncBasic },
@@ -17586,6 +18645,8 @@ static const XL_TestCase __gXLTests[] = {
 	{ "parser.async_generator_closure_basic", "parser", __xlTestParseAsyncGeneratorClosureBasic },
 	{ "parser.async_generator_closure_resume_basic", "parser", __xlTestParseAsyncGeneratorClosureResumeBasic },
 	{ "parser.type_value_basic", "parser", __xlTestParseTypeValueBasic },
+	{ "parser.type_runtime_api_basic", "parser", __xlTestParseTypeRuntimeApiBasic },
+	{ "parser.type_meta_bridge_basic", "parser", __xlTestParseTypeMetaBridgeBasic },
 	{ "parser.public_types_basic", "parser", __xlTestParsePublicTypesBasic },
 	{ "parser.task_value_basic", "parser", __xlTestParseTaskValueBasic },
 	{ "parser.assign_basic", "parser", __xlTestParseAssignBasic },
@@ -17728,8 +18789,28 @@ static const XL_TestCase __gXLTests[] = {
 	{ "parser.task_sync_nested_loop_enneatriaconta_select_hyperverse_runtime", "parser", __xlTestParseTaskSyncNestedLoopEnneatriacontaSelectHyperverseRuntime },
 	{ "parser.task_sync_nested_loop_tetraconta_select_metaverse_runtime", "parser", __xlTestParseTaskSyncNestedLoopTetracontaSelectMetaverseRuntime },
 	{ "parser.task_sync_nested_loop_pentaconta_select_ultraverse_runtime", "parser", __xlTestParseTaskSyncNestedLoopPentacontaSelectUltraverseRuntime },
+	{ "parser.task_sync_nested_loop_henpentaconta_select_megaverse_runtime", "parser", __xlTestParseTaskSyncNestedLoopHenpentacontaSelectMegaverseRuntime },
+	{ "parser.task_sync_nested_loop_dopentaconta_select_gigaverse_runtime", "parser", __xlTestParseTaskSyncNestedLoopDopentacontaSelectGigaverseRuntime },
+	{ "parser.task_sync_nested_loop_tripentaconta_select_teraverse_runtime", "parser", __xlTestParseTaskSyncNestedLoopTripentacontaSelectTeraverseRuntime },
+	{ "parser.task_sync_nested_loop_quadripentaconta_select_extraverse_runtime", "parser", __xlTestParseTaskSyncNestedLoopQuadripentacontaSelectExtraverseRuntime },
+	{ "parser.task_sync_nested_loop_pentapentaconta_select_superverse_runtime", "parser", __xlTestParseTaskSyncNestedLoopPentapentacontaSelectSuperverseRuntime },
+	{ "parser.task_sync_nested_loop_hexapentaconta_select_macroverse_runtime", "parser", __xlTestParseTaskSyncNestedLoopHexapentacontaSelectMacroverseRuntime },
+	{ "parser.task_sync_nested_loop_heptapentaconta_select_microverse_runtime", "parser", __xlTestParseTaskSyncNestedLoopHeptapentacontaSelectMicroverseRuntime },
+	{ "parser.task_sync_nested_loop_octapentaconta_select_nanoverse_runtime", "parser", __xlTestParseTaskSyncNestedLoopOctapentacontaSelectNanoverseRuntime },
+	{ "parser.task_sync_nested_loop_enneapentaconta_select_picoverse_runtime", "parser", __xlTestParseTaskSyncNestedLoopEnneapentacontaSelectPicoverseRuntime },
+	{ "parser.task_sync_nested_loop_hectopentaconta_select_femtoverse_runtime", "parser", __xlTestParseTaskSyncNestedLoopHectopentacontaSelectFemtoverseRuntime },
+	{ "parser.task_sync_nested_loop_henhectopentaconta_select_attovers_runtime", "parser", __xlTestParseTaskSyncNestedLoopHenhectopentacontaSelectAttoversRuntime },
+	{ "parser.task_sync_nested_loop_dihectopentaconta_select_zeptoverse_runtime", "parser", __xlTestParseTaskSyncNestedLoopDihectopentacontaSelectZeptoverseRuntime },
+	{ "parser.task_sync_nested_loop_trihectopentaconta_select_yoctoverse_runtime", "parser", __xlTestParseTaskSyncNestedLoopTrihectopentacontaSelectYoctoverseRuntime },
+	{ "parser.task_sync_nested_loop_quadrihectopentaconta_select_xenoverse_runtime", "parser", __xlTestParseTaskSyncNestedLoopQuadrihectopentacontaSelectXenoverseRuntime },
+	{ "parser.task_sync_nested_loop_pentahectopentaconta_select_zettaverse_runtime", "parser", __xlTestParseTaskSyncNestedLoopPentahectopentacontaSelectZettaverseRuntime },
+	{ "parser.task_sync_nested_loop_hexahectopentaconta_select_ronnaverse_runtime", "parser", __xlTestParseTaskSyncNestedLoopHexahectopentacontaSelectRonnaverseRuntime },
+	{ "parser.task_sync_nested_loop_heptahectopentaconta_select_quettaverse_runtime", "parser", __xlTestParseTaskSyncNestedLoopHeptahectopentacontaSelectQuettaverseRuntime },
 	{ "parser.var_generator_runtime", "parser", __xlTestParseVarGeneratorRuntime },
+	{ "parser.object_collect_generator_runtime", "parser", __xlTestParseObjectCollectGeneratorRuntime },
 	{ "parser.object_collect_channel_runtime", "parser", __xlTestParseObjectCollectChannelRuntime },
+	{ "parser.object_collect_task_runtime", "parser", __xlTestParseObjectCollectTaskRuntime },
+	{ "parser.object_collect_future_runtime", "parser", __xlTestParseObjectCollectFutureRuntime },
 	{ "parser.var_type_methods_basic", "parser", __xlTestParseVarTypeMethodsBasic },
 	{ "parser.var_container_type_methods_basic", "parser", __xlTestParseVarContainerTypeMethodsBasic },
 	{ "parser.new_object_runtime", "parser", __xlTestParseNewObjectRuntime },
@@ -17810,6 +18891,26 @@ static const XL_TestCase __gXLTests[] = {
 	{ "sem.mime_basic", "sem", __xlTestSemMimeBasic },
 	{ "sem.multipart_basic", "sem", __xlTestSemMultipartBasic },
 	{ "sem.types_basic", "sem", __xlTestSemTypesBasic },
+	{ "sem.type_dynamic_descriptor_basic", "sem", __xlTestSemTypeDynamicDescriptorBasic },
+	{ "sem.type_dynamic_instance_basic", "sem", __xlTestSemTypeDynamicInstanceBasic },
+	{ "sem.type_dynamic_members_basic", "sem", __xlTestSemTypeDynamicMembersBasic },
+	{ "sem.type_dynamic_field_types_basic", "sem", __xlTestSemTypeDynamicFieldTypesBasic },
+	{ "sem.type_dynamic_instance_method_names_basic", "sem", __xlTestSemTypeDynamicInstanceMethodNamesBasic },
+	{ "sem.type_dynamic_method_bind_basic", "sem", __xlTestSemTypeDynamicMethodBindBasic },
+	{ "sem.type_dynamic_method_bind_args_basic", "sem", __xlTestSemTypeDynamicMethodBindArgsBasic },
+	{ "sem.type_dynamic_method_bind_string_basic", "sem", __xlTestSemTypeDynamicMethodBindStringBasic },
+	{ "sem.type_dynamic_method_bind_var_basic", "sem", __xlTestSemTypeDynamicMethodBindVarBasic },
+	{ "sem.type_dynamic_method_bound_basic", "sem", __xlTestSemTypeDynamicMethodBoundBasic },
+	{ "sem.type_dynamic_bound_method_names_basic", "sem", __xlTestSemTypeDynamicBoundMethodNamesBasic },
+	{ "sem.type_dynamic_method_fallback_basic", "sem", __xlTestSemTypeDynamicMethodFallbackBasic },
+	{ "sem.type_dynamic_method_fallback_string_basic", "sem", __xlTestSemTypeDynamicMethodFallbackStringBasic },
+	{ "sem.type_declared_meta_basic", "sem", __xlTestSemTypeDeclaredMetaBasic },
+	{ "sem.type_declares_meta_basic", "sem", __xlTestSemTypeDeclaresMetaBasic },
+	{ "sem.type_declared_names_basic", "sem", __xlTestSemTypeDeclaredNamesBasic },
+	{ "sem.object_meta_runtime_basic", "sem", __xlTestSemObjectMetaRuntimeBasic },
+	{ "sem.object_meta_field_names_basic", "sem", __xlTestSemObjectMetaFieldNamesBasic },
+	{ "sem.object_meta_method_names_basic", "sem", __xlTestSemObjectMetaMethodNamesBasic },
+	{ "sem.object_function_field_basic", "sem", __xlTestSemObjectFunctionFieldBasic },
 	{ "sem.sys_process_basic", "sem", __xlTestSemSysProcessBasic },
 	{ "sem.sys_wait_basic", "sem", __xlTestSemSysWaitBasic },
 	{ "sem.template_render_basic", "sem", __xlTestSemTemplateRenderBasic },
@@ -17870,8 +18971,29 @@ static const XL_TestCase __gXLTests[] = {
 	{ "sem.custom_payload_layout_basic", "sem", __xlTestSemCustomPayloadLayoutBasic },
 	{ "sem.custom_destroy_runtime", "sem", __xlTestSemCustomDestroyRuntime },
 	{ "sem.custom_destroy_layout_basic", "sem", __xlTestSemCustomDestroyLayoutBasic },
+	{ "sem.custom_xrt_resource_basic", "sem", __xlTestSemCustomXrtResourceBasic },
+	{ "sem.custom_xrt_resource_layout_basic", "sem", __xlTestSemCustomXrtResourceLayoutBasic },
+	{ "sem.custom_operator_basic", "sem", __xlTestSemCustomOperatorBasic },
+	{ "sem.custom_operator_layout_basic", "sem", __xlTestSemCustomOperatorLayoutBasic },
+	{ "sem.custom_index_dispatch_basic", "sem", __xlTestSemCustomIndexDispatchBasic },
+	{ "sem.custom_index_dispatch_layout_basic", "sem", __xlTestSemCustomIndexDispatchLayoutBasic },
+	{ "sem.object_get_let_dispatch_basic", "sem", __xlTestSemObjectGetLetDispatchBasic },
+	{ "sem.object_get_let_dispatch_layout_basic", "sem", __xlTestSemObjectGetLetDispatchLayoutBasic },
+	{ "sem.custom_get_let_dispatch_basic", "sem", __xlTestSemCustomGetLetDispatchBasic },
+	{ "sem.custom_get_let_dispatch_layout_basic", "sem", __xlTestSemCustomGetLetDispatchLayoutBasic },
+	{ "sem.custom_var_operator_basic", "sem", __xlTestSemCustomVarOperatorBasic },
+	{ "sem.custom_var_operator_layout_basic", "sem", __xlTestSemCustomVarOperatorLayoutBasic },
+	{ "sem.custom_var_index_dispatch_basic", "sem", __xlTestSemCustomVarIndexDispatchBasic },
+	{ "sem.custom_var_index_dispatch_layout_basic", "sem", __xlTestSemCustomVarIndexDispatchLayoutBasic },
+	{ "sem.object_class_basic", "sem", __xlTestSemObjectClassBasic },
+	{ "sem.object_dynamic_field_basic", "sem", __xlTestSemObjectDynamicFieldBasic },
+	{ "sem.object_field_shadow_basic", "sem", __xlTestSemObjectFieldShadowBasic },
+	{ "sem.object_operator_dispatch_basic", "sem", __xlTestSemObjectOperatorDispatchBasic },
 	{ "sem.object_super_call_runtime", "sem", __xlTestSemObjectSuperCallRuntime },
+	{ "sem.object_super_call_basic", "sem", __xlTestSemObjectSuperCallBasic },
 	{ "sem.object_super_layout_basic", "sem", __xlTestSemObjectSuperLayoutBasic },
+	{ "sem.object_operator_dispatch_layout_basic", "sem", __xlTestSemObjectOperatorDispatchLayoutBasic },
+	{ "sem.object_virtual_dispatch_basic", "sem", __xlTestSemObjectVirtualDispatchBasic },
 	{ "sem.object_super_without_base_error", "sem", __xlTestSemObjectSuperWithoutBaseError },
 	{ "sem.class_stage1_layout_basic", "sem", __xlTestSemClassStage1LayoutBasic },
 	{ "sem.class_stage1_inherit_layout_basic", "sem", __xlTestSemClassStage1InheritLayoutBasic },
@@ -17921,6 +19043,8 @@ static const XL_TestCase __gXLTests[] = {
 	{ "sem.class_stage1_container_return_escape_runtime", "sem", __xlTestSemClassStage1ContainerReturnEscapeRuntime },
 	{ "sem.class_stage1_var_class_destroy_runtime", "sem", __xlTestSemClassStage1VarClassDestroyRuntime },
 	{ "sem.class_stage1_var_class_copy_runtime", "sem", __xlTestSemClassStage1VarClassCopyRuntime },
+	{ "sem.class_stage1_var_dispatch_basic", "sem", __xlTestSemClassStage1VarDispatchBasic },
+	{ "sem.class_stage1_var_index_dispatch_basic", "sem", __xlTestSemClassStage1VarIndexDispatchBasic },
 	{ "sem.class_stage1_var_container_destroy_runtime", "sem", __xlTestSemClassStage1VarContainerDestroyRuntime },
 	{ "sem.class_stage1_var_container_copy_runtime", "sem", __xlTestSemClassStage1VarContainerCopyRuntime },
 	{ "sem.class_stage1_generator_destroy_runtime", "sem", __xlTestSemClassStage1GeneratorDestroyRuntime },
@@ -18001,6 +19125,8 @@ static const XL_TestCase __gXLTests[] = {
 	{ "sem.async_generator_closure_basic", "sem", __xlTestSemAsyncGeneratorClosureBasic },
 	{ "sem.async_generator_closure_resume_basic", "sem", __xlTestSemAsyncGeneratorClosureResumeBasic },
 	{ "sem.type_value_basic", "sem", __xlTestSemTypeValueBasic },
+	{ "sem.type_runtime_api_basic", "sem", __xlTestSemTypeRuntimeApiBasic },
+	{ "sem.type_meta_bridge_basic", "sem", __xlTestSemTypeMetaBridgeBasic },
 	{ "sem.public_types_basic", "sem", __xlTestSemPublicTypesBasic },
 	{ "sem.task_value_basic", "sem", __xlTestSemTaskValueBasic },
 	{ "sem.task_error", "sem", __xlTestSemTaskError },
@@ -18185,6 +19311,23 @@ static const XL_TestCase __gXLTests[] = {
 	{ "sem.task_sync_nested_loop_enneatriaconta_select_hyperverse_runtime", "sem", __xlTestSemTaskSyncNestedLoopEnneatriacontaSelectHyperverseRuntime },
 	{ "sem.task_sync_nested_loop_tetraconta_select_metaverse_runtime", "sem", __xlTestSemTaskSyncNestedLoopTetracontaSelectMetaverseRuntime },
 	{ "sem.task_sync_nested_loop_pentaconta_select_ultraverse_runtime", "sem", __xlTestSemTaskSyncNestedLoopPentacontaSelectUltraverseRuntime },
+	{ "sem.task_sync_nested_loop_henpentaconta_select_megaverse_runtime", "sem", __xlTestSemTaskSyncNestedLoopHenpentacontaSelectMegaverseRuntime },
+	{ "sem.task_sync_nested_loop_dopentaconta_select_gigaverse_runtime", "sem", __xlTestSemTaskSyncNestedLoopDopentacontaSelectGigaverseRuntime },
+	{ "sem.task_sync_nested_loop_tripentaconta_select_teraverse_runtime", "sem", __xlTestSemTaskSyncNestedLoopTripentacontaSelectTeraverseRuntime },
+	{ "sem.task_sync_nested_loop_quadripentaconta_select_extraverse_runtime", "sem", __xlTestSemTaskSyncNestedLoopQuadripentacontaSelectExtraverseRuntime },
+	{ "sem.task_sync_nested_loop_pentapentaconta_select_superverse_runtime", "sem", __xlTestSemTaskSyncNestedLoopPentapentacontaSelectSuperverseRuntime },
+	{ "sem.task_sync_nested_loop_hexapentaconta_select_macroverse_runtime", "sem", __xlTestSemTaskSyncNestedLoopHexapentacontaSelectMacroverseRuntime },
+	{ "sem.task_sync_nested_loop_heptapentaconta_select_microverse_runtime", "sem", __xlTestSemTaskSyncNestedLoopHeptapentacontaSelectMicroverseRuntime },
+	{ "sem.task_sync_nested_loop_octapentaconta_select_nanoverse_runtime", "sem", __xlTestSemTaskSyncNestedLoopOctapentacontaSelectNanoverseRuntime },
+	{ "sem.task_sync_nested_loop_enneapentaconta_select_picoverse_runtime", "sem", __xlTestSemTaskSyncNestedLoopEnneapentacontaSelectPicoverseRuntime },
+	{ "sem.task_sync_nested_loop_hectopentaconta_select_femtoverse_runtime", "sem", __xlTestSemTaskSyncNestedLoopHectopentacontaSelectFemtoverseRuntime },
+	{ "sem.task_sync_nested_loop_henhectopentaconta_select_attovers_runtime", "sem", __xlTestSemTaskSyncNestedLoopHenhectopentacontaSelectAttoversRuntime },
+	{ "sem.task_sync_nested_loop_dihectopentaconta_select_zeptoverse_runtime", "sem", __xlTestSemTaskSyncNestedLoopDihectopentacontaSelectZeptoverseRuntime },
+	{ "sem.task_sync_nested_loop_trihectopentaconta_select_yoctoverse_runtime", "sem", __xlTestSemTaskSyncNestedLoopTrihectopentacontaSelectYoctoverseRuntime },
+	{ "sem.task_sync_nested_loop_quadrihectopentaconta_select_xenoverse_runtime", "sem", __xlTestSemTaskSyncNestedLoopQuadrihectopentacontaSelectXenoverseRuntime },
+	{ "sem.task_sync_nested_loop_pentahectopentaconta_select_zettaverse_runtime", "sem", __xlTestSemTaskSyncNestedLoopPentahectopentacontaSelectZettaverseRuntime },
+	{ "sem.task_sync_nested_loop_hexahectopentaconta_select_ronnaverse_runtime", "sem", __xlTestSemTaskSyncNestedLoopHexahectopentacontaSelectRonnaverseRuntime },
+	{ "sem.task_sync_nested_loop_heptahectopentaconta_select_quettaverse_runtime", "sem", __xlTestSemTaskSyncNestedLoopHeptahectopentacontaSelectQuettaverseRuntime },
 	{ "sem.var_generator_runtime", "sem", __xlTestSemVarGeneratorRuntime },
 	{ "sem.var_type_methods_basic", "sem", __xlTestSemVarTypeMethodsBasic },
 	{ "sem.var_container_type_methods_basic", "sem", __xlTestSemVarContainerTypeMethodsBasic },
@@ -18205,7 +19348,10 @@ static const XL_TestCase __gXLTests[] = {
 	{ "sem.object_collect_runtime", "sem", __xlTestSemObjectCollectRuntime },
 	{ "sem.object_collect_container_runtime", "sem", __xlTestSemObjectCollectContainerRuntime },
 	{ "sem.object_collect_closure_runtime", "sem", __xlTestSemObjectCollectClosureRuntime },
+	{ "sem.object_collect_generator_runtime", "sem", __xlTestSemObjectCollectGeneratorRuntime },
 	{ "sem.object_collect_channel_runtime", "sem", __xlTestSemObjectCollectChannelRuntime },
+	{ "sem.object_collect_task_runtime", "sem", __xlTestSemObjectCollectTaskRuntime },
+	{ "sem.object_collect_future_runtime", "sem", __xlTestSemObjectCollectFutureRuntime },
 	{ "sem.object_inherit_create_fields_runtime", "sem", __xlTestSemObjectInheritCreateFieldsRuntime },
 	{ "sem.object_clone_runtime", "sem", __xlTestSemObjectCloneRuntime },
 	{ "sem.object_for_in_runtime", "sem", __xlTestSemObjectForInRuntime },
@@ -18389,8 +19535,47 @@ static const XL_TestCase __gXLTests[] = {
 	{ "lower.task_sync_nested_loop_enneatriaconta_select_hyperverse_runtime", "lower", __xlTestLowerTaskSyncNestedLoopEnneatriacontaSelectHyperverseRuntime },
 	{ "lower.task_sync_nested_loop_tetraconta_select_metaverse_runtime", "lower", __xlTestLowerTaskSyncNestedLoopTetracontaSelectMetaverseRuntime },
 	{ "lower.task_sync_nested_loop_pentaconta_select_ultraverse_runtime", "lower", __xlTestLowerTaskSyncNestedLoopPentacontaSelectUltraverseRuntime },
+	{ "lower.task_sync_nested_loop_henpentaconta_select_megaverse_runtime", "lower", __xlTestLowerTaskSyncNestedLoopHenpentacontaSelectMegaverseRuntime },
+	{ "lower.task_sync_nested_loop_dopentaconta_select_gigaverse_runtime", "lower", __xlTestLowerTaskSyncNestedLoopDopentacontaSelectGigaverseRuntime },
+	{ "lower.task_sync_nested_loop_tripentaconta_select_teraverse_runtime", "lower", __xlTestLowerTaskSyncNestedLoopTripentacontaSelectTeraverseRuntime },
+	{ "lower.task_sync_nested_loop_quadripentaconta_select_extraverse_runtime", "lower", __xlTestLowerTaskSyncNestedLoopQuadripentacontaSelectExtraverseRuntime },
+	{ "lower.task_sync_nested_loop_pentapentaconta_select_superverse_runtime", "lower", __xlTestLowerTaskSyncNestedLoopPentapentacontaSelectSuperverseRuntime },
+	{ "lower.task_sync_nested_loop_hexapentaconta_select_macroverse_runtime", "lower", __xlTestLowerTaskSyncNestedLoopHexapentacontaSelectMacroverseRuntime },
+	{ "lower.task_sync_nested_loop_heptapentaconta_select_microverse_runtime", "lower", __xlTestLowerTaskSyncNestedLoopHeptapentacontaSelectMicroverseRuntime },
+	{ "lower.task_sync_nested_loop_octapentaconta_select_nanoverse_runtime", "lower", __xlTestLowerTaskSyncNestedLoopOctapentacontaSelectNanoverseRuntime },
+	{ "lower.task_sync_nested_loop_enneapentaconta_select_picoverse_runtime", "lower", __xlTestLowerTaskSyncNestedLoopEnneapentacontaSelectPicoverseRuntime },
+	{ "lower.task_sync_nested_loop_hectopentaconta_select_femtoverse_runtime", "lower", __xlTestLowerTaskSyncNestedLoopHectopentacontaSelectFemtoverseRuntime },
+	{ "lower.task_sync_nested_loop_henhectopentaconta_select_attovers_runtime", "lower", __xlTestLowerTaskSyncNestedLoopHenhectopentacontaSelectAttoversRuntime },
+	{ "lower.task_sync_nested_loop_dihectopentaconta_select_zeptoverse_runtime", "lower", __xlTestLowerTaskSyncNestedLoopDihectopentacontaSelectZeptoverseRuntime },
+	{ "lower.task_sync_nested_loop_trihectopentaconta_select_yoctoverse_runtime", "lower", __xlTestLowerTaskSyncNestedLoopTrihectopentacontaSelectYoctoverseRuntime },
+	{ "lower.task_sync_nested_loop_quadrihectopentaconta_select_xenoverse_runtime", "lower", __xlTestLowerTaskSyncNestedLoopQuadrihectopentacontaSelectXenoverseRuntime },
+	{ "lower.task_sync_nested_loop_pentahectopentaconta_select_zettaverse_runtime", "lower", __xlTestLowerTaskSyncNestedLoopPentahectopentacontaSelectZettaverseRuntime },
+	{ "lower.task_sync_nested_loop_hexahectopentaconta_select_ronnaverse_runtime", "lower", __xlTestLowerTaskSyncNestedLoopHexahectopentacontaSelectRonnaverseRuntime },
+	{ "lower.task_sync_nested_loop_heptahectopentaconta_select_quettaverse_runtime", "lower", __xlTestLowerTaskSyncNestedLoopHeptahectopentacontaSelectQuettaverseRuntime },
 	{ "lower.var_generator_runtime", "lower", __xlTestLowerVarGeneratorRuntime },
+	{ "lower.object_collect_generator_runtime", "lower", __xlTestLowerObjectCollectGeneratorRuntime },
 	{ "lower.object_collect_channel_runtime", "lower", __xlTestLowerObjectCollectChannelRuntime },
+	{ "lower.object_collect_task_runtime", "lower", __xlTestLowerObjectCollectTaskRuntime },
+	{ "lower.object_collect_future_runtime", "lower", __xlTestLowerObjectCollectFutureRuntime },
+	{ "lower.object_function_field_basic", "lower", __xlTestLowerObjectFunctionFieldBasic },
+	{ "lower.type_dynamic_instance_basic", "lower", __xlTestLowerTypeDynamicInstanceBasic },
+	{ "lower.type_dynamic_members_basic", "lower", __xlTestLowerTypeDynamicMembersBasic },
+	{ "lower.type_dynamic_field_types_basic", "lower", __xlTestLowerTypeDynamicFieldTypesBasic },
+	{ "lower.type_dynamic_instance_method_names_basic", "lower", __xlTestLowerTypeDynamicInstanceMethodNamesBasic },
+	{ "lower.type_dynamic_method_bind_basic", "lower", __xlTestLowerTypeDynamicMethodBindBasic },
+	{ "lower.type_dynamic_method_bind_args_basic", "lower", __xlTestLowerTypeDynamicMethodBindArgsBasic },
+	{ "lower.type_dynamic_method_bind_string_basic", "lower", __xlTestLowerTypeDynamicMethodBindStringBasic },
+	{ "lower.type_dynamic_method_bind_var_basic", "lower", __xlTestLowerTypeDynamicMethodBindVarBasic },
+	{ "lower.type_dynamic_method_bound_basic", "lower", __xlTestLowerTypeDynamicMethodBoundBasic },
+	{ "lower.type_dynamic_bound_method_names_basic", "lower", __xlTestLowerTypeDynamicBoundMethodNamesBasic },
+	{ "lower.type_dynamic_method_fallback_basic", "lower", __xlTestLowerTypeDynamicMethodFallbackBasic },
+	{ "lower.type_dynamic_method_fallback_string_basic", "lower", __xlTestLowerTypeDynamicMethodFallbackStringBasic },
+	{ "lower.type_declared_meta_basic", "lower", __xlTestLowerTypeDeclaredMetaBasic },
+	{ "lower.type_declares_meta_basic", "lower", __xlTestLowerTypeDeclaresMetaBasic },
+	{ "lower.type_declared_names_basic", "lower", __xlTestLowerTypeDeclaredNamesBasic },
+	{ "lower.object_meta_runtime_basic", "lower", __xlTestLowerObjectMetaRuntimeBasic },
+	{ "lower.object_meta_field_names_basic", "lower", __xlTestLowerObjectMetaFieldNamesBasic },
+	{ "lower.object_meta_method_names_basic", "lower", __xlTestLowerObjectMetaMethodNamesBasic },
 	{ "lower.var_type_methods_basic", "lower", __xlTestLowerVarTypeMethodsBasic },
 	{ "lower.var_container_type_methods_basic", "lower", __xlTestLowerVarContainerTypeMethodsBasic },
 	{ "lower.new_object_runtime", "lower", __xlTestLowerNewObjectRuntime },
@@ -18494,6 +19679,8 @@ static const XL_TestCase __gXLTests[] = {
 	{ "cgen.core_len_basic", "cgen", __xlTestCgenCoreLenBasic },
 	{ "cgen.type_methods_basic", "cgen", __xlTestCgenTypeMethodsBasic },
 	{ "cgen.type_reflect_class_runtime", "cgen", __xlTestCgenTypeReflectClassRuntime },
+	{ "cgen.type_runtime_api_basic", "cgen", __xlTestCgenTypeRuntimeApiBasic },
+	{ "cgen.type_meta_bridge_basic", "cgen", __xlTestCgenTypeMetaBridgeBasic },
 	{ "cgen.var_methods_basic", "cgen", __xlTestCgenVarMethodsBasic },
 	{ "cgen.var_channel_methods_basic", "cgen", __xlTestCgenVarChannelMethodsBasic },
 	{ "cgen.var_future_runtime", "cgen", __xlTestCgenVarFutureRuntime },
@@ -18569,6 +19756,23 @@ static const XL_TestCase __gXLTests[] = {
 	{ "cgen.task_sync_nested_loop_enneatriaconta_select_hyperverse_runtime", "cgen", __xlTestCgenTaskSyncNestedLoopEnneatriacontaSelectHyperverseRuntime },
 	{ "cgen.task_sync_nested_loop_tetraconta_select_metaverse_runtime", "cgen", __xlTestCgenTaskSyncNestedLoopTetracontaSelectMetaverseRuntime },
 	{ "cgen.task_sync_nested_loop_pentaconta_select_ultraverse_runtime", "cgen", __xlTestCgenTaskSyncNestedLoopPentacontaSelectUltraverseRuntime },
+	{ "cgen.task_sync_nested_loop_henpentaconta_select_megaverse_runtime", "cgen", __xlTestCgenTaskSyncNestedLoopHenpentacontaSelectMegaverseRuntime },
+	{ "cgen.task_sync_nested_loop_dopentaconta_select_gigaverse_runtime", "cgen", __xlTestCgenTaskSyncNestedLoopDopentacontaSelectGigaverseRuntime },
+	{ "cgen.task_sync_nested_loop_tripentaconta_select_teraverse_runtime", "cgen", __xlTestCgenTaskSyncNestedLoopTripentacontaSelectTeraverseRuntime },
+	{ "cgen.task_sync_nested_loop_quadripentaconta_select_extraverse_runtime", "cgen", __xlTestCgenTaskSyncNestedLoopQuadripentacontaSelectExtraverseRuntime },
+	{ "cgen.task_sync_nested_loop_pentapentaconta_select_superverse_runtime", "cgen", __xlTestCgenTaskSyncNestedLoopPentapentacontaSelectSuperverseRuntime },
+	{ "cgen.task_sync_nested_loop_hexapentaconta_select_macroverse_runtime", "cgen", __xlTestCgenTaskSyncNestedLoopHexapentacontaSelectMacroverseRuntime },
+	{ "cgen.task_sync_nested_loop_heptapentaconta_select_microverse_runtime", "cgen", __xlTestCgenTaskSyncNestedLoopHeptapentacontaSelectMicroverseRuntime },
+	{ "cgen.task_sync_nested_loop_octapentaconta_select_nanoverse_runtime", "cgen", __xlTestCgenTaskSyncNestedLoopOctapentacontaSelectNanoverseRuntime },
+	{ "cgen.task_sync_nested_loop_enneapentaconta_select_picoverse_runtime", "cgen", __xlTestCgenTaskSyncNestedLoopEnneapentacontaSelectPicoverseRuntime },
+	{ "cgen.task_sync_nested_loop_hectopentaconta_select_femtoverse_runtime", "cgen", __xlTestCgenTaskSyncNestedLoopHectopentacontaSelectFemtoverseRuntime },
+	{ "cgen.task_sync_nested_loop_henhectopentaconta_select_attovers_runtime", "cgen", __xlTestCgenTaskSyncNestedLoopHenhectopentacontaSelectAttoversRuntime },
+	{ "cgen.task_sync_nested_loop_dihectopentaconta_select_zeptoverse_runtime", "cgen", __xlTestCgenTaskSyncNestedLoopDihectopentacontaSelectZeptoverseRuntime },
+	{ "cgen.task_sync_nested_loop_trihectopentaconta_select_yoctoverse_runtime", "cgen", __xlTestCgenTaskSyncNestedLoopTrihectopentacontaSelectYoctoverseRuntime },
+	{ "cgen.task_sync_nested_loop_quadrihectopentaconta_select_xenoverse_runtime", "cgen", __xlTestCgenTaskSyncNestedLoopQuadrihectopentacontaSelectXenoverseRuntime },
+	{ "cgen.task_sync_nested_loop_pentahectopentaconta_select_zettaverse_runtime", "cgen", __xlTestCgenTaskSyncNestedLoopPentahectopentacontaSelectZettaverseRuntime },
+	{ "cgen.task_sync_nested_loop_hexahectopentaconta_select_ronnaverse_runtime", "cgen", __xlTestCgenTaskSyncNestedLoopHexahectopentacontaSelectRonnaverseRuntime },
+	{ "cgen.task_sync_nested_loop_heptahectopentaconta_select_quettaverse_runtime", "cgen", __xlTestCgenTaskSyncNestedLoopHeptahectopentacontaSelectQuettaverseRuntime },
 	{ "cgen.var_generator_runtime", "cgen", __xlTestCgenVarGeneratorRuntime },
 	{ "cgen.var_type_methods_basic", "cgen", __xlTestCgenVarTypeMethodsBasic },
 	{ "cgen.var_container_type_methods_basic", "cgen", __xlTestCgenVarContainerTypeMethodsBasic },
@@ -18608,6 +19812,13 @@ static const XL_TestCase __gXLTests[] = {
 	{ "cgen.extern_type_method_basic", "cgen", __xlTestCgenExternTypeMethodBasic },
 	{ "cgen.custom_payload_runtime", "cgen", __xlTestCgenCustomPayloadRuntime },
 	{ "cgen.custom_destroy_runtime", "cgen", __xlTestCgenCustomDestroyRuntime },
+	{ "cgen.custom_xrt_resource_basic", "cgen", __xlTestCgenCustomXrtResourceBasic },
+	{ "cgen.object_get_let_dispatch_basic", "cgen", __xlTestCgenObjectGetLetDispatchBasic },
+	{ "cgen.custom_get_let_dispatch_basic", "cgen", __xlTestCgenCustomGetLetDispatchBasic },
+	{ "cgen.custom_operator_basic", "cgen", __xlTestCgenCustomOperatorBasic },
+	{ "cgen.custom_index_dispatch_basic", "cgen", __xlTestCgenCustomIndexDispatchBasic },
+	{ "cgen.custom_var_operator_basic", "cgen", __xlTestCgenCustomVarOperatorBasic },
+	{ "cgen.custom_var_index_dispatch_basic", "cgen", __xlTestCgenCustomVarIndexDispatchBasic },
 	{ "cgen.object_super_call_runtime", "cgen", __xlTestCgenObjectSuperCallRuntime },
 	{ "cgen.binding_basic", "cgen", __xlTestCgenBindingBasic },
 	{ "cgen.binding_typedef_basic", "cgen", __xlTestCgenBindingTypedefBasic },
@@ -18684,6 +19895,8 @@ static const XL_TestCase __gXLTests[] = {
 	{ "cgen.class_stage1_container_return_escape_runtime", "cgen", __xlTestCgenClassStage1ContainerReturnEscapeRuntime },
 	{ "cgen.class_stage1_var_class_destroy_runtime", "cgen", __xlTestCgenClassStage1VarClassDestroyRuntime },
 	{ "cgen.class_stage1_var_class_copy_runtime", "cgen", __xlTestCgenClassStage1VarClassCopyRuntime },
+	{ "cgen.class_stage1_var_dispatch_basic", "cgen", __xlTestCgenClassStage1VarDispatchBasic },
+	{ "cgen.class_stage1_var_index_dispatch_basic", "cgen", __xlTestCgenClassStage1VarIndexDispatchBasic },
 	{ "cgen.class_stage1_var_container_destroy_runtime", "cgen", __xlTestCgenClassStage1VarContainerDestroyRuntime },
 	{ "cgen.class_stage1_var_container_copy_runtime", "cgen", __xlTestCgenClassStage1VarContainerCopyRuntime },
 	{ "cgen.class_stage1_generator_destroy_runtime", "cgen", __xlTestCgenClassStage1GeneratorDestroyRuntime },
@@ -18694,12 +19907,35 @@ static const XL_TestCase __gXLTests[] = {
 	{ "cgen.class_stage1_field_init_runtime", "cgen", __xlTestCgenClassStage1FieldInitRuntime },
 	{ "cgen.class_stage1_operator_runtime", "cgen", __xlTestCgenClassStage1OperatorRuntime },
 	{ "cgen.object_var_operator_runtime", "cgen", __xlTestCgenObjectVarOperatorRuntime },
+	{ "cgen.object_operator_dispatch_basic", "cgen", __xlTestCgenObjectOperatorDispatchBasic },
 	{ "cgen.object_weak_runtime", "cgen", __xlTestCgenObjectWeakRuntime },
 	{ "cgen.object_refcount_runtime", "cgen", __xlTestCgenObjectRefcountRuntime },
 	{ "cgen.object_collect_runtime", "cgen", __xlTestCgenObjectCollectRuntime },
 	{ "cgen.object_collect_container_runtime", "cgen", __xlTestCgenObjectCollectContainerRuntime },
 	{ "cgen.object_collect_closure_runtime", "cgen", __xlTestCgenObjectCollectClosureRuntime },
+	{ "cgen.object_collect_generator_runtime", "cgen", __xlTestCgenObjectCollectGeneratorRuntime },
 	{ "cgen.object_collect_channel_runtime", "cgen", __xlTestCgenObjectCollectChannelRuntime },
+	{ "cgen.object_collect_task_runtime", "cgen", __xlTestCgenObjectCollectTaskRuntime },
+	{ "cgen.object_collect_future_runtime", "cgen", __xlTestCgenObjectCollectFutureRuntime },
+	{ "cgen.object_function_field_basic", "cgen", __xlTestCgenObjectFunctionFieldBasic },
+	{ "cgen.type_dynamic_instance_basic", "cgen", __xlTestCgenTypeDynamicInstanceBasic },
+	{ "cgen.type_dynamic_members_basic", "cgen", __xlTestCgenTypeDynamicMembersBasic },
+	{ "cgen.type_dynamic_field_types_basic", "cgen", __xlTestCgenTypeDynamicFieldTypesBasic },
+	{ "cgen.type_dynamic_instance_method_names_basic", "cgen", __xlTestCgenTypeDynamicInstanceMethodNamesBasic },
+	{ "cgen.type_dynamic_method_bind_basic", "cgen", __xlTestCgenTypeDynamicMethodBindBasic },
+	{ "cgen.type_dynamic_method_bind_args_basic", "cgen", __xlTestCgenTypeDynamicMethodBindArgsBasic },
+	{ "cgen.type_dynamic_method_bind_string_basic", "cgen", __xlTestCgenTypeDynamicMethodBindStringBasic },
+	{ "cgen.type_dynamic_method_bind_var_basic", "cgen", __xlTestCgenTypeDynamicMethodBindVarBasic },
+	{ "cgen.type_dynamic_method_bound_basic", "cgen", __xlTestCgenTypeDynamicMethodBoundBasic },
+	{ "cgen.type_dynamic_bound_method_names_basic", "cgen", __xlTestCgenTypeDynamicBoundMethodNamesBasic },
+	{ "cgen.type_dynamic_method_fallback_basic", "cgen", __xlTestCgenTypeDynamicMethodFallbackBasic },
+	{ "cgen.type_dynamic_method_fallback_string_basic", "cgen", __xlTestCgenTypeDynamicMethodFallbackStringBasic },
+	{ "cgen.type_declared_meta_basic", "cgen", __xlTestCgenTypeDeclaredMetaBasic },
+	{ "cgen.type_declares_meta_basic", "cgen", __xlTestCgenTypeDeclaresMetaBasic },
+	{ "cgen.type_declared_names_basic", "cgen", __xlTestCgenTypeDeclaredNamesBasic },
+	{ "cgen.object_meta_runtime_basic", "cgen", __xlTestCgenObjectMetaRuntimeBasic },
+	{ "cgen.object_meta_field_names_basic", "cgen", __xlTestCgenObjectMetaFieldNamesBasic },
+	{ "cgen.object_meta_method_names_basic", "cgen", __xlTestCgenObjectMetaMethodNamesBasic },
 	{ "cgen.class_stage1_index_operator_runtime", "cgen", __xlTestCgenClassStage1IndexOperatorRuntime },
 	{ "cgen.class_stage1_call_operator_runtime", "cgen", __xlTestCgenClassStage1CallOperatorRuntime },
 	{ "cgen.future_value_basic", "cgen", __xlTestCgenFutureValueBasic },
@@ -18863,6 +20099,7 @@ static const XL_TestCase __gXLTests[] = {
 	{ "cgen.mime_basic", "cgen", __xlTestCgenMimeBasic },
 	{ "cgen.multipart_basic", "cgen", __xlTestCgenMultipartBasic },
 	{ "cgen.types_basic", "cgen", __xlTestCgenTypesBasic },
+	{ "cgen.type_dynamic_descriptor_basic", "cgen", __xlTestCgenTypeDynamicDescriptorBasic },
 	{ "cgen.sys_process_basic", "cgen", __xlTestCgenSysProcessBasic },
 	{ "cgen.sys_wait_basic", "cgen", __xlTestCgenSysWaitBasic },
 	{ "cgen.template_render_basic", "cgen", __xlTestCgenTemplateRenderBasic },
@@ -19016,9 +20253,13 @@ static const XL_TestCase __gXLTests[] = {
 	{ "runtime.object_runtime_lazy_init", "runtime", __xlTestRuntimeObjectRuntimeLazyInit },
 	{ "runtime.object_runtime_type_dispatch", "runtime", __xlTestRuntimeObjectRuntimeTypeDispatch },
 	{ "runtime.object_runtime_disposed_guard", "runtime", __xlTestRuntimeObjectRuntimeDisposedGuard },
+	{ "runtime.object_destroying_dispatch_guard", "runtime", __xlTestRuntimeObjectDestroyingDispatchGuard },
+	{ "runtime.object_destroy_runs_once", "runtime", __xlTestRuntimeObjectDestroyRunsOnce },
+	{ "runtime.object_reentrant_delete_guard", "runtime", __xlTestRuntimeObjectReentrantDeleteGuard },
 	{ "runtime.object_refcount_basic", "runtime", __xlTestRuntimeObjectRefcountBasic },
 	{ "runtime.object_weak_ref_basic", "runtime", __xlTestRuntimeObjectWeakRefBasic },
 	{ "runtime.object_collect_cycles_basic", "runtime", __xlTestRuntimeObjectCollectCyclesBasic },
+	{ "runtime.object_pinned_root_basic", "runtime", __xlTestRuntimeObjectPinnedRootBasic },
 	{ "runtime.object_collect_container_cycles_basic", "runtime", __xlTestRuntimeObjectCollectContainerCyclesBasic },
 	{ "runtime.object_collect_closure_cycles_basic", "runtime", __xlTestRuntimeObjectCollectClosureCycleBasic },
 	{ "runtime.object_collect_channel_cycles_basic", "runtime", __xlTestRuntimeObjectCollectChannelCycleBasic },
@@ -19044,11 +20285,34 @@ static const XL_TestCase __gXLTests[] = {
 	{ "runtime.class_stage1_try_finally_nested_destroy_runtime", "runtime", __xlTestRunClassStage1TryFinallyNestedDestroyRuntime },
 	{ "runtime.class_stage1_implicit_object_runtime", "runtime", __xlTestRunClassStage1ImplicitObjectRuntime },
 	{ "runtime.custom_basic_runtime", "runtime", __xlTestRunCustomBasicRuntime },
+	{ "runtime.custom_xrt_dict_basic", "runtime", __xlTestRunCustomXrtDictBasic },
 	{ "runtime.custom_extern_method_runtime", "runtime", __xlTestRunCustomExternMethodRuntime },
 	{ "runtime.custom_extern_create_destroy_runtime", "runtime", __xlTestRunCustomExternCreateDestroyRuntime },
 	{ "runtime.custom_var_dispatch_runtime", "runtime", __xlTestRunCustomVarDispatchRuntime },
 	{ "runtime.custom_payload_runtime", "runtime", __xlTestRunCustomPayloadRuntime },
 	{ "runtime.custom_destroy_runtime", "runtime", __xlTestRunCustomDestroyRuntime },
+	{ "runtime.custom_destroy_basic", "runtime", __xlTestRunCustomDestroyBasic },
+	{ "runtime.custom_xrt_resource_basic", "runtime", __xlTestRunCustomXrtResourceBasic },
+	{ "runtime.object_get_let_dispatch_basic", "runtime", __xlTestRunObjectGetLetDispatchBasic },
+	{ "runtime.custom_get_let_dispatch_basic", "runtime", __xlTestRunCustomGetLetDispatchBasic },
+	{ "runtime.custom_operator_basic", "runtime", __xlTestRunCustomOperatorBasic },
+	{ "runtime.custom_index_dispatch_basic", "runtime", __xlTestRunCustomIndexDispatchBasic },
+	{ "runtime.custom_var_operator_basic", "runtime", __xlTestRunCustomVarOperatorBasic },
+	{ "runtime.custom_var_index_dispatch_basic", "runtime", __xlTestRunCustomVarIndexDispatchBasic },
+	{ "runtime.object_create_destroy_basic", "runtime", __xlTestRunObjectCreateDestroyBasic },
+	{ "runtime.object_dynamic_field_basic", "runtime", __xlTestRunObjectDynamicFieldBasic },
+	{ "runtime.object_dict_inherit_basic", "runtime", __xlTestRunObjectDictInheritBasic },
+	{ "runtime.object_operator_dispatch_basic", "runtime", __xlTestRunObjectOperatorDispatchBasic },
+	{ "runtime.object_method_override_basic", "runtime", __xlTestRunObjectMethodOverrideBasic },
+	{ "runtime.object_base_ref_dispatch_basic", "runtime", __xlTestRunObjectBaseRefDispatchBasic },
+	{ "runtime.var_object_dispatch_basic", "runtime", __xlTestRunVarObjectDispatchBasic },
+	{ "runtime.object_keys_values_items_basic", "runtime", __xlTestRunObjectKeysValuesItemsBasic },
+	{ "runtime.object_remove_dynamic_field_basic", "runtime", __xlTestRunObjectRemoveDynamicFieldBasic },
+	{ "runtime.custom_method_bind_basic", "runtime", __xlTestRunCustomMethodBindBasic },
+	{ "runtime.custom_var_dispatch_basic", "runtime", __xlTestRunCustomVarDispatchBasic },
+	{ "runtime.object_delete_basic", "runtime", __xlTestRunObjectDeleteBasic },
+	{ "runtime.object_delete_shared_error", "runtime", __xlTestRunObjectDeleteSharedError },
+	{ "runtime.object_cycle_collect_basic", "runtime", __xlTestRunObjectCycleCollectBasic },
 	{ "runtime.object_super_call_runtime", "runtime", __xlTestRunObjectSuperCallRuntime },
 	{ "runtime.object_class_methods_runtime", "runtime", __xlTestRunObjectClassMethodsRuntime },
 	{ "runtime.object_dynamic_member_runtime", "runtime", __xlTestRunObjectDynamicMemberRuntime },
@@ -19084,6 +20348,8 @@ static const XL_TestCase __gXLTests[] = {
 	{ "runtime.class_stage1_container_return_escape_runtime", "runtime", __xlTestRunClassStage1ContainerReturnEscapeRuntime },
 	{ "runtime.class_stage1_var_class_destroy_runtime", "runtime", __xlTestRunClassStage1VarClassDestroyRuntime },
 	{ "runtime.class_stage1_var_class_copy_runtime", "runtime", __xlTestRunClassStage1VarClassCopyRuntime },
+	{ "runtime.class_stage1_var_dispatch_basic", "runtime", __xlTestRunClassStage1VarDispatchBasic },
+	{ "runtime.class_stage1_var_index_dispatch_basic", "runtime", __xlTestRunClassStage1VarIndexDispatchBasic },
 	{ "runtime.class_stage1_var_container_destroy_runtime", "runtime", __xlTestRunClassStage1VarContainerDestroyRuntime },
 	{ "runtime.class_stage1_var_container_copy_runtime", "runtime", __xlTestRunClassStage1VarContainerCopyRuntime },
 	{ "runtime.class_stage1_generator_destroy_runtime", "runtime", __xlTestRunClassStage1GeneratorDestroyRuntime },
@@ -19220,6 +20486,23 @@ static const XL_TestCase __gXLTests[] = {
 	{ "runtime.task_sync_nested_loop_enneatriaconta_select_hyperverse_runtime", "runtime", __xlTestRunTaskSyncNestedLoopEnneatriacontaSelectHyperverseRuntime },
 	{ "runtime.task_sync_nested_loop_tetraconta_select_metaverse_runtime", "runtime", __xlTestRunTaskSyncNestedLoopTetracontaSelectMetaverseRuntime },
 	{ "runtime.task_sync_nested_loop_pentaconta_select_ultraverse_runtime", "runtime", __xlTestRunTaskSyncNestedLoopPentacontaSelectUltraverseRuntime },
+	{ "runtime.task_sync_nested_loop_henpentaconta_select_megaverse_runtime", "runtime", __xlTestRunTaskSyncNestedLoopHenpentacontaSelectMegaverseRuntime },
+	{ "runtime.task_sync_nested_loop_dopentaconta_select_gigaverse_runtime", "runtime", __xlTestRunTaskSyncNestedLoopDopentacontaSelectGigaverseRuntime },
+	{ "runtime.task_sync_nested_loop_tripentaconta_select_teraverse_runtime", "runtime", __xlTestRunTaskSyncNestedLoopTripentacontaSelectTeraverseRuntime },
+	{ "runtime.task_sync_nested_loop_quadripentaconta_select_extraverse_runtime", "runtime", __xlTestRunTaskSyncNestedLoopQuadripentacontaSelectExtraverseRuntime },
+	{ "runtime.task_sync_nested_loop_pentapentaconta_select_superverse_runtime", "runtime", __xlTestRunTaskSyncNestedLoopPentapentacontaSelectSuperverseRuntime },
+	{ "runtime.task_sync_nested_loop_hexapentaconta_select_macroverse_runtime", "runtime", __xlTestRunTaskSyncNestedLoopHexapentacontaSelectMacroverseRuntime },
+	{ "runtime.task_sync_nested_loop_heptapentaconta_select_microverse_runtime", "runtime", __xlTestRunTaskSyncNestedLoopHeptapentacontaSelectMicroverseRuntime },
+	{ "runtime.task_sync_nested_loop_octapentaconta_select_nanoverse_runtime", "runtime", __xlTestRunTaskSyncNestedLoopOctapentacontaSelectNanoverseRuntime },
+	{ "runtime.task_sync_nested_loop_enneapentaconta_select_picoverse_runtime", "runtime", __xlTestRunTaskSyncNestedLoopEnneapentacontaSelectPicoverseRuntime },
+	{ "runtime.task_sync_nested_loop_hectopentaconta_select_femtoverse_runtime", "runtime", __xlTestRunTaskSyncNestedLoopHectopentacontaSelectFemtoverseRuntime },
+	{ "runtime.task_sync_nested_loop_henhectopentaconta_select_attovers_runtime", "runtime", __xlTestRunTaskSyncNestedLoopHenhectopentacontaSelectAttoversRuntime },
+	{ "runtime.task_sync_nested_loop_dihectopentaconta_select_zeptoverse_runtime", "runtime", __xlTestRunTaskSyncNestedLoopDihectopentacontaSelectZeptoverseRuntime },
+	{ "runtime.task_sync_nested_loop_trihectopentaconta_select_yoctoverse_runtime", "runtime", __xlTestRunTaskSyncNestedLoopTrihectopentacontaSelectYoctoverseRuntime },
+	{ "runtime.task_sync_nested_loop_quadrihectopentaconta_select_xenoverse_runtime", "runtime", __xlTestRunTaskSyncNestedLoopQuadrihectopentacontaSelectXenoverseRuntime },
+	{ "runtime.task_sync_nested_loop_pentahectopentaconta_select_zettaverse_runtime", "runtime", __xlTestRunTaskSyncNestedLoopPentahectopentacontaSelectZettaverseRuntime },
+	{ "runtime.task_sync_nested_loop_hexahectopentaconta_select_ronnaverse_runtime", "runtime", __xlTestRunTaskSyncNestedLoopHexahectopentacontaSelectRonnaverseRuntime },
+	{ "runtime.task_sync_nested_loop_heptahectopentaconta_select_quettaverse_runtime", "runtime", __xlTestRunTaskSyncNestedLoopHeptahectopentacontaSelectQuettaverseRuntime },
 	{ "runtime.var_generator_runtime", "runtime", __xlTestRunVarGeneratorRuntime },
 	{ "runtime.var_type_methods_basic", "runtime", __xlTestRunVarTypeMethodsBasic },
 	{ "runtime.var_container_type_methods_basic", "runtime", __xlTestRunVarContainerTypeMethodsBasic },
@@ -19238,8 +20521,32 @@ static const XL_TestCase __gXLTests[] = {
 	{ "runtime.object_collect_runtime", "runtime", __xlTestRunObjectCollectRuntime },
 	{ "runtime.object_collect_container_runtime", "runtime", __xlTestRunObjectCollectContainerRuntime },
 	{ "runtime.object_collect_closure_runtime", "runtime", __xlTestRunObjectCollectClosureRuntime },
+	{ "runtime.object_collect_generator_runtime", "runtime", __xlTestRunObjectCollectGeneratorRuntime },
 	{ "runtime.object_collect_channel_runtime", "runtime", __xlTestRunObjectCollectChannelRuntime },
+	{ "runtime.object_collect_task_runtime", "runtime", __xlTestRunObjectCollectTaskRuntime },
+	{ "runtime.object_collect_future_runtime", "runtime", __xlTestRunObjectCollectFutureRuntime },
+	{ "runtime.object_function_field_basic", "runtime", __xlTestRunObjectFunctionFieldBasic },
 	{ "runtime.type_reflect_class_runtime", "runtime", __xlTestRunTypeReflectClassRuntime },
+	{ "runtime.type_runtime_api_basic", "runtime", __xlTestRunTypeRuntimeApiBasic },
+	{ "runtime.type_meta_bridge_basic", "runtime", __xlTestRunTypeMetaBridgeBasic },
+	{ "runtime.type_dynamic_instance_basic", "runtime", __xlTestRunTypeDynamicInstanceBasic },
+	{ "runtime.type_dynamic_members_basic", "runtime", __xlTestRunTypeDynamicMembersBasic },
+	{ "runtime.type_dynamic_field_types_basic", "runtime", __xlTestRunTypeDynamicFieldTypesBasic },
+	{ "runtime.type_dynamic_instance_method_names_basic", "runtime", __xlTestRunTypeDynamicInstanceMethodNamesBasic },
+	{ "runtime.type_dynamic_method_bind_basic", "runtime", __xlTestRunTypeDynamicMethodBindBasic },
+	{ "runtime.type_dynamic_method_bind_args_basic", "runtime", __xlTestRunTypeDynamicMethodBindArgsBasic },
+	{ "runtime.type_dynamic_method_bind_string_basic", "runtime", __xlTestRunTypeDynamicMethodBindStringBasic },
+	{ "runtime.type_dynamic_method_bind_var_basic", "runtime", __xlTestRunTypeDynamicMethodBindVarBasic },
+	{ "runtime.type_dynamic_method_bound_basic", "runtime", __xlTestRunTypeDynamicMethodBoundBasic },
+	{ "runtime.type_dynamic_bound_method_names_basic", "runtime", __xlTestRunTypeDynamicBoundMethodNamesBasic },
+	{ "runtime.type_dynamic_method_fallback_basic", "runtime", __xlTestRunTypeDynamicMethodFallbackBasic },
+	{ "runtime.type_dynamic_method_fallback_string_basic", "runtime", __xlTestRunTypeDynamicMethodFallbackStringBasic },
+	{ "runtime.type_declared_meta_basic", "runtime", __xlTestRunTypeDeclaredMetaBasic },
+	{ "runtime.type_declares_meta_basic", "runtime", __xlTestRunTypeDeclaresMetaBasic },
+	{ "runtime.type_declared_names_basic", "runtime", __xlTestRunTypeDeclaredNamesBasic },
+	{ "runtime.object_meta_runtime_basic", "runtime", __xlTestRunObjectMetaRuntimeBasic },
+	{ "runtime.object_meta_field_names_basic", "runtime", __xlTestRunObjectMetaFieldNamesBasic },
+	{ "runtime.object_meta_method_names_basic", "runtime", __xlTestRunObjectMetaMethodNamesBasic },
 	{ "runtime.object_reference_runtime", "runtime", __xlTestRunObjectReferenceRuntime },
 	{ "runtime.property_length_basic", "runtime", __xlTestRunPropertyLengthBasic },
 	{ "runtime.string_methods_basic", "runtime", __xlTestRunStringMethodsBasic },
@@ -19350,6 +20657,7 @@ static const XL_TestCase __gXLTests[] = {
 	{ "runtime.mime_basic", "runtime", __xlTestRunMimeBasic },
 	{ "runtime.multipart_basic", "runtime", __xlTestRunMultipartBasic },
 	{ "runtime.types_basic", "runtime", __xlTestRunTypesBasic },
+	{ "runtime.type_dynamic_descriptor_basic", "runtime", __xlTestRunTypeDynamicDescriptorBasic },
 	{ "runtime.sys_process_basic", "runtime", __xlTestRunSysProcessBasic },
 	{ "runtime.sys_wait_basic", "runtime", __xlTestRunSysWaitBasic },
 	{ "runtime.template_render_basic", "runtime", __xlTestRunTemplateRenderBasic },
@@ -19578,10 +20886,276 @@ static const XL_TestCase __gXLTests[] = {
 	{ "runtime.task_error", "runtime", __xlTestRunTaskError }
 };
 
+typedef struct XL_TestSelectorAlias {
+	const char* sName;
+	const char* const* aPatterns;
+	size_t nPatternCount;
+} XL_TestSelectorAlias;
+
+static int __xlTextMatchesAny(const char* sText, const char* const* aPatterns, size_t nPatternCount)
+{
+	size_t i;
+
+	if ( (sText == NULL) || (aPatterns == NULL) ) {
+		return 0;
+	}
+	for ( i = 0; i < nPatternCount; ++i ) {
+		if ( (aPatterns[i] != NULL) && (aPatterns[i][0] != '\0') && (strstr(sText, aPatterns[i]) != NULL) ) {
+			return 1;
+		}
+	}
+	return 0;
+}
+
+static const char* const __gXLThemeTaskFutureChannel[] = {
+	"task_sync_",
+	"task_param_runtime",
+	"task_return_runtime",
+	"future_",
+	"parser.var_future_runtime",
+	"sem.var_future_runtime",
+	"lower.var_future_runtime",
+	"cgen.var_future_runtime",
+	"runtime.var_future_runtime",
+	"parser.var_task_runtime",
+	"sem.var_task_runtime",
+	"lower.var_task_runtime",
+	"cgen.var_task_runtime",
+	"runtime.var_task_runtime",
+	"runtime.channel_",
+	"runtime.var_channel_methods_basic",
+	"runtime.object_collect_channel_"
+};
+
+static const char* const __gXLThemeFutureTaskGraph[] = {
+	"parser.var_future_runtime",
+	"sem.var_future_runtime",
+	"lower.var_future_runtime",
+	"cgen.var_future_runtime",
+	"runtime.var_future_runtime",
+	"parser.var_task_runtime",
+	"sem.var_task_runtime",
+	"lower.var_task_runtime",
+	"cgen.var_task_runtime",
+	"runtime.var_task_runtime",
+	"parser.task_param_runtime",
+	"sem.task_param_runtime",
+	"lower.task_param_runtime",
+	"cgen.task_param_runtime",
+	"runtime.task_param_runtime",
+	"parser.task_return_runtime",
+	"sem.task_return_runtime",
+	"lower.task_return_runtime",
+	"cgen.task_return_runtime",
+	"runtime.task_return_runtime",
+	"parser.future_relay_runtime",
+	"sem.future_relay_runtime",
+	"lower.future_relay_runtime",
+	"cgen.future_relay_runtime",
+	"runtime.future_relay_runtime",
+	"parser.object_collect_channel_runtime",
+	"sem.object_collect_channel_runtime",
+	"lower.object_collect_channel_runtime",
+	"cgen.object_collect_channel_runtime",
+	"runtime.object_collect_channel_runtime",
+	"parser.object_collect_task_runtime",
+	"sem.object_collect_task_runtime",
+	"lower.object_collect_task_runtime",
+	"cgen.object_collect_task_runtime",
+	"runtime.object_collect_task_runtime",
+	"parser.object_collect_future_runtime",
+	"sem.object_collect_future_runtime",
+	"lower.object_collect_future_runtime",
+	"cgen.object_collect_future_runtime",
+	"runtime.object_collect_future_runtime",
+	"runtime.object_collect_channel_cycles_basic",
+	"runtime.channel_"
+};
+
+static const char* const __gXLThemeObjectCustomGraph[] = {
+	"parser.object_",
+	"sem.object_",
+	"cgen.object_",
+	"runtime.object_runtime_basic",
+	"runtime.object_runtime_lazy_init",
+	"runtime.object_runtime_type_dispatch",
+	"runtime.object_runtime_disposed_guard",
+	"runtime.object_refcount_basic",
+	"runtime.object_weak_ref_basic",
+	"runtime.object_collect_cycles_basic",
+	"runtime.object_pinned_root_basic",
+	"runtime.object_collect_container_cycles_basic",
+	"runtime.object_collect_closure_cycles_basic",
+	"runtime.object_collect_channel_cycles_basic",
+	"runtime.object_boxed_write_set_release",
+	"runtime.object_boxed_write_set_stmt_expr",
+	"runtime.object_boxed_write_set_inline_temp",
+	"runtime.object_super_call_runtime",
+	"runtime.object_class_methods_runtime",
+	"runtime.object_dynamic_member_runtime",
+	"runtime.object_index_runtime",
+	"runtime.object_inherit_dispatch_runtime",
+	"runtime.object_base_bind_dispatch_runtime",
+	"runtime.object_base_assign_dispatch_runtime",
+	"runtime.object_param_return_dispatch_runtime",
+	"runtime.object_inherit_create_fields_runtime",
+	"runtime.object_clone_runtime",
+	"runtime.object_for_in_runtime",
+	"runtime.object_var_type_query_runtime",
+	"runtime.object_var_box_clone_runtime",
+	"runtime.object_var_methods_runtime",
+	"runtime.object_var_operator_runtime",
+	"runtime.object_weak_runtime",
+	"runtime.object_refcount_runtime",
+	"runtime.object_collect_runtime",
+	"runtime.object_collect_container_runtime",
+	"runtime.object_collect_closure_runtime",
+	"runtime.object_collect_generator_runtime",
+	"runtime.object_collect_channel_runtime",
+	"runtime.object_collect_task_runtime",
+	"runtime.object_collect_future_runtime",
+	"runtime.object_reference_runtime",
+	"parser.custom_",
+	"sem.custom_",
+	"cgen.custom_",
+	"runtime.custom_",
+	"parser.type_reflect_class_runtime",
+	"sem.type_reflect_class_runtime",
+	"cgen.type_reflect_class_runtime",
+	"runtime.type_reflect_class_runtime",
+	"parser.var_generator_runtime",
+	"sem.var_generator_runtime",
+	"lower.var_generator_runtime",
+	"cgen.var_generator_runtime",
+	"runtime.var_generator_runtime"
+};
+
+static const char* const __gXLThemeNativeAbi[] = {
+	"binding_",
+	"extern_",
+	"link_",
+	"sys_dl",
+	"runtime.binding_",
+	"runtime.native_"
+};
+
+static const XL_TestSelectorAlias __gXLSelectorAliases[] = {
+	{ "theme.task-future-channel", __gXLThemeTaskFutureChannel, XL_COUNTOF(__gXLThemeTaskFutureChannel) },
+	{ "theme.future-task-graph", __gXLThemeFutureTaskGraph, XL_COUNTOF(__gXLThemeFutureTaskGraph) },
+	{ "theme.object-custom-graph", __gXLThemeObjectCustomGraph, XL_COUNTOF(__gXLThemeObjectCustomGraph) },
+	{ "theme.native-abi", __gXLThemeNativeAbi, XL_COUNTOF(__gXLThemeNativeAbi) }
+};
+
+static const XL_TestSelectorAlias* __xlFindSelectorAlias(const char* sSelector)
+{
+	size_t i;
+
+	if ( (sSelector == NULL) || (sSelector[0] == '\0') ) {
+		return NULL;
+	}
+	for ( i = 0; i < XL_COUNTOF(__gXLSelectorAliases); ++i ) {
+		if ( strcmp(__gXLSelectorAliases[i].sName, sSelector) == 0 ) {
+			return &__gXLSelectorAliases[i];
+		}
+	}
+	return NULL;
+}
+
+static int __xlGetSelfExePath(char* sPath, size_t nPath)
+{
+#if defined(_WIN32) || defined(_WIN64)
+	DWORD nLen;
+
+	if ( (sPath == NULL) || (nPath == 0) ) {
+		return 1;
+	}
+	nLen = GetModuleFileNameA(NULL, sPath, (DWORD)nPath);
+	if ( (nLen == 0) || (nLen >= (DWORD)nPath) ) {
+		if ( nPath > 0 ) {
+			sPath[0] = '\0';
+		}
+		return 1;
+	}
+	return 0;
+#else
+	XL_UNUSED(sPath);
+	XL_UNUSED(nPath);
+	return 1;
+#endif
+}
+
+static int __xlRunSelectorAliasIsolated(XL_TestContext* pCtx, const XL_TestSelectorAlias* pAlias)
+{
+	char sExePath[XL_PATH_MAX_LEN];
+	size_t i;
+	int iPassCount;
+	int iFailCount;
+
+	if ( (pCtx == NULL) || (pAlias == NULL) ) {
+		return 1;
+	}
+	sExePath[0] = '\0';
+	if ( __xlGetSelfExePath(sExePath, sizeof(sExePath)) != 0 ) {
+		sExePath[0] = '\0';
+	}
+	if ( (sExePath[0] == '\0') && (pCtx->sReleaseRoot[0] != '\0') ) {
+		int nWritten = snprintf(sExePath, sizeof(sExePath), "%s\\bin\\xl5_test.exe", pCtx->sReleaseRoot);
+		if ( (nWritten < 0) || ((size_t)nWritten >= sizeof(sExePath)) ) {
+			sExePath[0] = '\0';
+		}
+	}
+	if ( sExePath[0] == '\0' ) {
+		if ( __xlGetSelfExePath(sExePath, sizeof(sExePath)) != 0 ) {
+			fprintf(stdout, "[FAIL] test.alias: failed to resolve child runner path\n");
+			fflush(stdout);
+			return 1;
+		}
+	}
+
+	iPassCount = 0;
+	iFailCount = 0;
+	for ( i = 0; i < pAlias->nPatternCount; ++i ) {
+		const char* aArgv[3];
+		int iRc;
+
+		if ( (pAlias->aPatterns[i] == NULL) || (pAlias->aPatterns[i][0] == '\0') ) {
+			continue;
+		}
+		aArgv[0] = sExePath;
+		aArgv[1] = pAlias->aPatterns[i];
+		aArgv[2] = NULL;
+		iRc = _spawnv(_P_WAIT, sExePath, aArgv);
+		if ( iRc == 0 ) {
+			iPassCount += 1;
+		} else {
+			iFailCount += 1;
+		}
+		fflush(stdout);
+	}
+
+	fprintf(
+		stdout,
+		"summary: total=%llu pass=%d fail=%d\n",
+		(unsigned long long)pAlias->nPatternCount,
+		iPassCount,
+		iFailCount
+	);
+	fflush(stdout);
+	return (iFailCount == 0) ? 0 : 1;
+}
+
 static int __xlTestMatchesSelector(const XL_TestCase* pCase, const char* sSelector)
 {
+	size_t i;
+
 	if ( (pCase == NULL) || (sSelector == NULL) || (sSelector[0] == '\0') ) {
 		return 1;
+	}
+	for ( i = 0; i < XL_COUNTOF(__gXLSelectorAliases); ++i ) {
+		if ( strcmp(__gXLSelectorAliases[i].sName, sSelector) == 0 ) {
+			return __xlTextMatchesAny(pCase->sName, __gXLSelectorAliases[i].aPatterns, __gXLSelectorAliases[i].nPatternCount)
+				|| __xlTextMatchesAny(pCase->sGroup, __gXLSelectorAliases[i].aPatterns, __gXLSelectorAliases[i].nPatternCount);
+		}
 	}
 	return (strstr(pCase->sName, sSelector) != NULL) || (strstr(pCase->sGroup, sSelector) != NULL);
 }
@@ -19589,6 +21163,7 @@ static int __xlTestMatchesSelector(const XL_TestCase* pCase, const char* sSelect
 static int __xlTestRunInternal(const char* sSelector)
 {
 	XL_TestContext ctx;
+	const XL_TestSelectorAlias* pAlias;
 	size_t i;
 	size_t iSelectedCount;
 	int iRc;
@@ -19612,10 +21187,19 @@ static int __xlTestRunInternal(const char* sSelector)
  	fprintf(stdout, "project=demo5\n");
  	fprintf(stdout, "build_stamp=%s\n", __gXLTestBuildStamp);
  	fprintf(stdout, "test_count=%llu\n", (unsigned long long)XL_COUNTOF(__gXLTests));
- 	if ( (sSelector != NULL) && (sSelector[0] != '\0') ) {
- 		fprintf(stdout, "selector=%s\n", sSelector);
- 	}
- 	fflush(stdout);
+	if ( (sSelector != NULL) && (sSelector[0] != '\0') ) {
+		fprintf(stdout, "selector=%s\n", sSelector);
+	}
+	fflush(stdout);
+
+	pAlias = __xlFindSelectorAlias(sSelector);
+	if ( pAlias != NULL ) {
+		if ( ctx.pSink != NULL ) {
+			fclose(ctx.pSink);
+			ctx.pSink = NULL;
+		}
+		return __xlRunSelectorAliasIsolated(&ctx, pAlias);
+	}
 
 	iSelectedCount = 0;
 	for ( i = 0; i < XL_COUNTOF(__gXLTests); ++i ) {

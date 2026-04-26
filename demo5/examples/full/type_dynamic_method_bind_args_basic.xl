@@ -1,0 +1,31 @@
+import std.types as types
+
+func score(int base) as int
+	return base + 2
+end
+
+func main() as int
+	auto desc = types.dynamic("Enemy", object)
+	desc = types.add_method(desc, "score")
+	desc = types.bind_method(desc, "score", score)
+
+	auto obj = types.new_instance(desc)
+
+	if not types.instance_has_method(obj, "score")
+		return 1
+	end
+
+	auto fn = types.instance_method(obj, "score", null)
+	if fn == null
+		return 2
+	end
+
+	if function<int(int)>(fn)(40) != 42
+		return 3
+	end
+	if function<int(int)>(types.method_impl(desc, "score", null))(40) != 42
+		return 4
+	end
+
+	return 42
+end

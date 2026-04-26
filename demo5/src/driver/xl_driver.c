@@ -176,6 +176,9 @@ static const char* __xlDriverFuncExternName(const XL_AstNode* pNode)
 	if ( (pNode == NULL) || (pNode->eKind != XL_AST_FUNC_DECL) ) {
 		return NULL;
 	}
+	if ( pNode->iIntValue == 0 ) {
+		return NULL;
+	}
 	pReceiver = __xlDriverFuncReceiverNode(pNode);
 	sExternName = pNode->sText2;
 	if ( pReceiver != NULL ) {

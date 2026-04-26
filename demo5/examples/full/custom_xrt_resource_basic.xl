@@ -1,0 +1,15 @@
+#loadlib "../xlp_native/packages/pkg.probe/bin/pkg_probe.dll"
+
+extern "pkg_clock_artifact_point_release_reset" func release_reset() as void
+
+custom Texture
+	extern "pkg_clock_artifact_point_create" create()
+	extern "pkg_clock_artifact_point_release" destroy()
+	extern "pkg_clock_artifact_point_score" func score() as int
+end
+
+func main() as int
+	release_reset()
+	auto texture = Texture()
+	return texture.score() + 35
+end

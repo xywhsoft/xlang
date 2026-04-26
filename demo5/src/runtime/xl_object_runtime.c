@@ -18,7 +18,156 @@ typedef struct XL_ObjectCollectVisitState {
 	size_t iSeenCap;
 } XL_ObjectCollectVisitState;
 
+#define XL_GENERATED_GENERATOR_MAGIC 0x584C4747u
+#define XL_GENERATED_FUTURE_MAGIC    0x584C4654u
+
+typedef struct XL_RuntimeGeneratorBox {
+	uint32_t uMagic;
+	XL_ObjectTraceStateFn pTraceState;
+	void* pNext;
+	void* pState;
+	size_t iStateSize;
+	int iValueKind;
+	const char* sName;
+} XL_RuntimeGeneratorBox;
+
+typedef struct XL_RuntimeFutureBox {
+	uint32_t uMagic;
+	xfuture* handle;
+} XL_RuntimeFutureBox;
+
+typedef struct XL_ObjectFutureTraceCtx {
+	uint32_t uMagic;
+	xfuture* pFuture;
+	const void* pState;
+	XL_ObjectTraceStateFn pTraceState;
+	struct XL_ObjectFutureTraceCtx* pPrev;
+	struct XL_ObjectFutureTraceCtx* pNext;
+} XL_ObjectFutureTraceCtx;
+
+typedef struct XL_ObjectCollectAccumulateCtx {
+	const XL_ObjectCollectNode* arrNodes;
+	size_t iNodeCount;
+	uint32_t* arrIncoming;
+	XL_ObjectCollectVisitState* pSeen;
+} XL_ObjectCollectAccumulateCtx;
+
+typedef struct XL_ObjectCollectPushCtx {
+	XL_ObjectCollectNode* arrNodes;
+	size_t iNodeCount;
+	size_t* arrStack;
+	size_t* piStackCount;
+	XL_ObjectCollectVisitState* pSeen;
+} XL_ObjectCollectPushCtx;
+
 static XL_ObjectHeader* g_pXlObjectRegistryHead = NULL;
+static XL_ObjectFutureTraceCtx* g_pXlFutureTraceHead = NULL;
+static XL_ObjectPinnedRef* g_pXlPinnedRootHead = NULL;
+static char* g_sXlObjectMetaFieldNameScratch = NULL;
+static size_t g_iXlObjectMetaFieldNameScratchCap = 0u;
+static char* g_sXlObjectMetaMethodNameScratch = NULL;
+static size_t g_iXlObjectMetaMethodNameScratchCap = 0u;
+static xmutex g_pXlFutureTraceLock = NULL;
+static xmutex g_pXlPinnedRootLock = NULL;
+
+static xmutex __xlObjectFutureTraceLock(void)
+{
+	if ( g_pXlFutureTraceLock == NULL ) {
+		g_pXlFutureTraceLock = xrtMutexCreate();
+	}
+	return g_pXlFutureTraceLock;
+}
+
+static xmutex __xlObjectPinnedRootLock(void)
+{
+	if ( g_pXlPinnedRootLock == NULL ) {
+		g_pXlPinnedRootLock = xrtMutexCreate();
+	}
+	return g_pXlPinnedRootLock;
+}
+
+static size_t __xlObjectMetaPublicMethodNameLen(const char* sDispatchKey)
+{
+	const char* sArity;
+
+	if ( sDispatchKey == NULL ) {
+		return 0u;
+	}
+	sArity = strstr(sDispatchKey, "$arity");
+	if ( sArity == NULL ) {
+		return strlen(sDispatchKey);
+	}
+	return (size_t)(sArity - sDispatchKey);
+}
+
+static void __xlObjectFutureTraceInsert(XL_ObjectFutureTraceCtx* pCtx)
+{
+	xmutex pLock;
+
+	if ( pCtx == NULL ) {
+		return;
+	}
+	pLock = __xlObjectFutureTraceLock();
+	if ( pLock == NULL ) {
+		return;
+	}
+	xrtMutexLock(pLock);
+	pCtx->pPrev = NULL;
+	pCtx->pNext = g_pXlFutureTraceHead;
+	if ( g_pXlFutureTraceHead != NULL ) {
+		g_pXlFutureTraceHead->pPrev = pCtx;
+	}
+	g_pXlFutureTraceHead = pCtx;
+	xrtMutexUnlock(pLock);
+}
+
+static void __xlObjectFutureTraceRemove(XL_ObjectFutureTraceCtx* pCtx)
+{
+	xmutex pLock;
+
+	if ( pCtx == NULL ) {
+		return;
+	}
+	pLock = __xlObjectFutureTraceLock();
+	if ( pLock == NULL ) {
+		return;
+	}
+	xrtMutexLock(pLock);
+	if ( pCtx->pPrev != NULL ) {
+		pCtx->pPrev->pNext = pCtx->pNext;
+	} else if ( g_pXlFutureTraceHead == pCtx ) {
+		g_pXlFutureTraceHead = pCtx->pNext;
+	}
+	if ( pCtx->pNext != NULL ) {
+		pCtx->pNext->pPrev = pCtx->pPrev;
+	}
+	pCtx->pPrev = NULL;
+	pCtx->pNext = NULL;
+	xrtMutexUnlock(pLock);
+}
+
+static XL_ObjectFutureTraceCtx* __xlObjectFutureTraceCtx(const xfuture* pFuture)
+{
+	XL_ObjectFutureTraceCtx* pCtx;
+	xmutex pLock;
+
+	if ( pFuture == NULL ) {
+		return NULL;
+	}
+	pLock = __xlObjectFutureTraceLock();
+	if ( pLock == NULL ) {
+		return NULL;
+	}
+	xrtMutexLock(pLock);
+	for ( pCtx = g_pXlFutureTraceHead; pCtx != NULL; pCtx = pCtx->pNext ) {
+		if ( (pCtx->uMagic == XL_GENERATED_FUTURE_MAGIC) && (pCtx->pFuture == pFuture) ) {
+			xrtMutexUnlock(pLock);
+			return pCtx;
+		}
+	}
+	xrtMutexUnlock(pLock);
+	return NULL;
+}
 
 static XL_ObjectHeader* __xlObjectHeader(void* pBlob)
 {
@@ -221,6 +370,134 @@ static void __xlObjectCollectSeenFree(XL_ObjectCollectVisitState* pState)
 	pState->iSeenCap = 0u;
 }
 
+static const XL_RuntimeGeneratorBox* __xlRuntimeGeneratorBox(xvalue value)
+{
+	const XL_RuntimeGeneratorBox* pBox;
+
+	if ( (value == NULL) || (value->Type != XVO_DT_CLASS) || (xvoGetClass(value) == NULL) ) {
+		return NULL;
+	}
+	if ( value->Size < sizeof(XL_RuntimeGeneratorBox) ) {
+		return NULL;
+	}
+	pBox = (const XL_RuntimeGeneratorBox*)xvoGetClass(value);
+	if ( pBox->uMagic != XL_GENERATED_GENERATOR_MAGIC ) {
+		return NULL;
+	}
+	return pBox;
+}
+
+static const XL_RuntimeFutureBox* __xlRuntimeFutureBox(xvalue value)
+{
+	const XL_RuntimeFutureBox* pBox;
+
+	if ( (value == NULL) || (value->Type != XVO_DT_CLASS) || (xvoGetClass(value) == NULL) ) {
+		return NULL;
+	}
+	if ( value->Size < sizeof(XL_RuntimeFutureBox) ) {
+		return NULL;
+	}
+	pBox = (const XL_RuntimeFutureBox*)xvoGetClass(value);
+	if ( pBox->uMagic != XL_GENERATED_FUTURE_MAGIC ) {
+		return NULL;
+	}
+	return pBox;
+}
+
+static int __xlObjectCollectVisitAccumulate(xvalue value, void* pCtxVoid);
+static int __xlObjectCollectVisitPush(xvalue value, void* pCtxVoid);
+
+int xl_object_future_bind_trace(xfuture* pFuture, const void* pState, XL_ObjectTraceStateFn pTraceState)
+{
+	XL_ObjectFutureTraceCtx* pCtx;
+
+	if ( (pFuture == NULL) || (pState == NULL) || (pTraceState == NULL) ) {
+		return 0;
+	}
+	if ( __xlObjectFutureTraceCtx(pFuture) != NULL ) {
+		return 1;
+	}
+	pCtx = (XL_ObjectFutureTraceCtx*)xrtMalloc(sizeof(*pCtx));
+	if ( pCtx == NULL ) {
+		return 0;
+	}
+	memset(pCtx, 0, sizeof(*pCtx));
+	pCtx->uMagic = XL_GENERATED_FUTURE_MAGIC;
+	pCtx->pFuture = pFuture;
+	pCtx->pState = pState;
+	pCtx->pTraceState = pTraceState;
+	__xlObjectFutureTraceInsert(pCtx);
+	return 1;
+}
+
+int xl_object_future_clear_trace(xfuture* pFuture)
+{
+	XL_ObjectFutureTraceCtx* pCtx;
+
+	pCtx = __xlObjectFutureTraceCtx(pFuture);
+	if ( pCtx == NULL ) {
+		return 0;
+	}
+	__xlObjectFutureTraceRemove(pCtx);
+	xrtFree(pCtx);
+	return 1;
+}
+
+int xl_object_future_clear_promise_trace(xpromise* pPromise)
+{
+	xfuture* pFuture;
+
+	if ( pPromise == NULL ) {
+		return 0;
+	}
+	pFuture = xPromisePeekFuture(pPromise);
+	while ( pFuture != NULL ) {
+		if ( xl_object_future_clear_trace(pFuture) ) {
+			return 1;
+		}
+		pFuture = xFuturePeekGroupSource(pFuture);
+	}
+	return 0;
+}
+
+int xl_object_future_trace_handle(const xfuture* pFuture, XL_ObjectGraphTraceVisitor pVisit, void* pCtx)
+{
+	const XL_ObjectFutureTraceCtx* pTraceCtx;
+
+	if ( (pFuture == NULL) || (pVisit == NULL) ) {
+		return 1;
+	}
+	if ( xFutureState((xfuture*)pFuture) != XFUTURE_PENDING ) {
+		return 1;
+	}
+	pTraceCtx = __xlObjectFutureTraceCtx(pFuture);
+	if ( (pTraceCtx != NULL) && (pTraceCtx->pTraceState != NULL) && (pTraceCtx->pState != NULL) ) {
+		if ( !pTraceCtx->pTraceState(pTraceCtx->pState, pVisit, pCtx) ) {
+			return 0;
+		}
+	}
+	if ( xFuturePeekGroupSource((xfuture*)pFuture) != NULL ) {
+		return xl_object_future_trace_handle(xFuturePeekGroupSource((xfuture*)pFuture), pVisit, pCtx);
+	}
+	return 1;
+}
+
+int xl_object_trace_blob(const void* pBlob, XL_ObjectGraphTraceVisitor pVisit, void* pCtx)
+{
+	const XL_ObjectHeader* pHeader = (const XL_ObjectHeader*)pBlob;
+
+	if ( (pHeader == NULL) || (pVisit == NULL) ) {
+		return 1;
+	}
+	if ( !xl_object_header_alive(pBlob) ) {
+		return 1;
+	}
+	if ( pHeader->dynamicFields != NULL ) {
+		return pVisit(pHeader->dynamicFields, pCtx);
+	}
+	return 1;
+}
+
 static int __xlObjectCollectAccumulateValue(const XL_ObjectCollectNode* arrNodes, size_t iNodeCount, xvalue value, uint32_t* arrIncoming, XL_ObjectCollectVisitState* pState)
 {
 	uint32_t i;
@@ -234,6 +511,38 @@ static int __xlObjectCollectAccumulateValue(const XL_ObjectCollectNode* arrNodes
 	if ( iTargetIndex >= 0 ) {
 		arrIncoming[iTargetIndex] += 1u;
 		return 1;
+	}
+
+	if ( value->Type == XVO_DT_CLASS ) {
+		const XL_RuntimeGeneratorBox* pGeneratorBox = __xlRuntimeGeneratorBox(value);
+		const XL_RuntimeFutureBox* pFutureBox = __xlRuntimeFutureBox(value);
+
+		if ( pGeneratorBox != NULL ) {
+			XL_ObjectCollectAccumulateCtx ctx;
+
+			if ( !__xlObjectCollectSeenPush(pState, value) ) {
+				return 0;
+			}
+			if ( (pGeneratorBox->pTraceState == NULL) || (pGeneratorBox->pState == NULL) ) {
+				return 1;
+			}
+			ctx.arrNodes = arrNodes;
+			ctx.iNodeCount = iNodeCount;
+			ctx.arrIncoming = arrIncoming;
+			ctx.pSeen = pState;
+			return pGeneratorBox->pTraceState(pGeneratorBox->pState, __xlObjectCollectVisitAccumulate, &ctx);
+		}
+		if ( pFutureBox != NULL ) {
+			if ( !__xlObjectCollectSeenPush(pState, value) ) {
+				return 0;
+			}
+			return xl_object_future_trace_handle(pFutureBox->handle, __xlObjectCollectVisitAccumulate, &(XL_ObjectCollectAccumulateCtx) {
+				arrNodes,
+				iNodeCount,
+				arrIncoming,
+				pState
+			});
+		}
 	}
 
 	switch ( value->Type ) {
@@ -309,6 +618,22 @@ static int __xlObjectCollectAccumulateValue(const XL_ObjectCollectNode* arrNodes
 	}
 }
 
+static int __xlObjectCollectVisitAccumulate(xvalue value, void* pCtxVoid)
+{
+	const XL_ObjectCollectAccumulateCtx* pCtx = (const XL_ObjectCollectAccumulateCtx*)pCtxVoid;
+
+	if ( pCtx == NULL ) {
+		return 0;
+	}
+	return __xlObjectCollectAccumulateValue(
+		pCtx->arrNodes,
+		pCtx->iNodeCount,
+		value,
+		pCtx->arrIncoming,
+		pCtx->pSeen
+	);
+}
+
 static int __xlObjectCollectAccumulateEdges(const XL_ObjectCollectNode* arrNodes, size_t iNodeCount, const XL_ObjectHeader* pHeader, uint32_t* arrIncoming)
 {
 	XL_ObjectCollectVisitState state;
@@ -340,6 +665,40 @@ static int __xlObjectCollectPushValue(XL_ObjectCollectNode* arrNodes, size_t iNo
 			*piStackCount += 1u;
 		}
 		return 1;
+	}
+
+	if ( value->Type == XVO_DT_CLASS ) {
+		const XL_RuntimeGeneratorBox* pGeneratorBox = __xlRuntimeGeneratorBox(value);
+		const XL_RuntimeFutureBox* pFutureBox = __xlRuntimeFutureBox(value);
+
+		if ( pGeneratorBox != NULL ) {
+			XL_ObjectCollectPushCtx ctx;
+
+			if ( !__xlObjectCollectSeenPush(pState, value) ) {
+				return 0;
+			}
+			if ( (pGeneratorBox->pTraceState == NULL) || (pGeneratorBox->pState == NULL) ) {
+				return 1;
+			}
+			ctx.arrNodes = arrNodes;
+			ctx.iNodeCount = iNodeCount;
+			ctx.arrStack = arrStack;
+			ctx.piStackCount = piStackCount;
+			ctx.pSeen = pState;
+			return pGeneratorBox->pTraceState(pGeneratorBox->pState, __xlObjectCollectVisitPush, &ctx);
+		}
+		if ( pFutureBox != NULL ) {
+			if ( !__xlObjectCollectSeenPush(pState, value) ) {
+				return 0;
+			}
+			return xl_object_future_trace_handle(pFutureBox->handle, __xlObjectCollectVisitPush, &(XL_ObjectCollectPushCtx) {
+				arrNodes,
+				iNodeCount,
+				arrStack,
+				piStackCount,
+				pState
+			});
+		}
 	}
 
 	switch ( value->Type ) {
@@ -415,6 +774,23 @@ static int __xlObjectCollectPushValue(XL_ObjectCollectNode* arrNodes, size_t iNo
 	}
 }
 
+static int __xlObjectCollectVisitPush(xvalue value, void* pCtxVoid)
+{
+	XL_ObjectCollectPushCtx* pCtx = (XL_ObjectCollectPushCtx*)pCtxVoid;
+
+	if ( pCtx == NULL ) {
+		return 0;
+	}
+	return __xlObjectCollectPushValue(
+		pCtx->arrNodes,
+		pCtx->iNodeCount,
+		value,
+		pCtx->arrStack,
+		pCtx->piStackCount,
+		pCtx->pSeen
+	);
+}
+
 static int __xlObjectCollectPushEdges(XL_ObjectCollectNode* arrNodes, size_t iNodeCount, const XL_ObjectHeader* pHeader, size_t* arrStack, size_t* piStackCount)
 {
 	XL_ObjectCollectVisitState state;
@@ -427,6 +803,66 @@ static int __xlObjectCollectPushEdges(XL_ObjectCollectNode* arrNodes, size_t iNo
 	iRc = __xlObjectCollectPushValue(arrNodes, iNodeCount, pHeader->dynamicFields, arrStack, piStackCount, &state);
 	__xlObjectCollectSeenFree(&state);
 	return iRc;
+}
+
+static int __xlObjectCollectPushFutureRoots(XL_ObjectCollectNode* arrNodes, size_t iNodeCount, size_t* arrStack, size_t* piStackCount)
+{
+	XL_ObjectCollectVisitState state;
+	XL_ObjectCollectPushCtx ctx;
+	xmutex pLock;
+	XL_ObjectFutureTraceCtx* pTraceCtx;
+
+	memset(&state, 0, sizeof(state));
+	ctx.arrNodes = arrNodes;
+	ctx.iNodeCount = iNodeCount;
+	ctx.arrStack = arrStack;
+	ctx.piStackCount = piStackCount;
+	ctx.pSeen = &state;
+	pLock = __xlObjectFutureTraceLock();
+	if ( pLock == NULL ) {
+		return 1;
+	}
+	xrtMutexLock(pLock);
+	for ( pTraceCtx = g_pXlFutureTraceHead; pTraceCtx != NULL; pTraceCtx = pTraceCtx->pNext ) {
+		if ( (pTraceCtx->pFuture == NULL) || (xFutureState(pTraceCtx->pFuture) != XFUTURE_PENDING) ) {
+			continue;
+		}
+		if ( (pTraceCtx->pTraceState != NULL) &&
+			(pTraceCtx->pState != NULL) &&
+			!pTraceCtx->pTraceState(pTraceCtx->pState, __xlObjectCollectVisitPush, &ctx) ) {
+			xrtMutexUnlock(pLock);
+			__xlObjectCollectSeenFree(&state);
+			return 0;
+		}
+	}
+	xrtMutexUnlock(pLock);
+	__xlObjectCollectSeenFree(&state);
+	return 1;
+}
+
+static int __xlObjectCollectPushPinnedRoots(XL_ObjectCollectNode* arrNodes, size_t iNodeCount, size_t* arrStack, size_t* piStackCount)
+{
+	XL_ObjectCollectVisitState state;
+	xmutex pLock;
+	XL_ObjectPinnedRef* pPinnedRef;
+
+	memset(&state, 0, sizeof(state));
+	pLock = __xlObjectPinnedRootLock();
+	if ( pLock == NULL ) {
+		return 1;
+	}
+	xrtMutexLock(pLock);
+	for ( pPinnedRef = g_pXlPinnedRootHead; pPinnedRef != NULL; pPinnedRef = pPinnedRef->pNext ) {
+		if ( (pPinnedRef->value != NULL) &&
+			!__xlObjectCollectPushValue(arrNodes, iNodeCount, pPinnedRef->value, arrStack, piStackCount, &state) ) {
+			xrtMutexUnlock(pLock);
+			__xlObjectCollectSeenFree(&state);
+			return 0;
+		}
+	}
+	xrtMutexUnlock(pLock);
+	__xlObjectCollectSeenFree(&state);
+	return 1;
 }
 
 static void __xlObjectWeakDetach(XL_ObjectWeakRef* pWeakRef)
@@ -695,6 +1131,16 @@ void* xl_object_payload_take(void* pBlob)
 void* xl_object_dispatch(void* pBlob, const char* sDispatchKey)
 {
 	const XL_ObjectTypeInfo* pTypeInfo;
+	const XL_ObjectHeader* pHeader;
+
+	if ( (pBlob == NULL) || (sDispatchKey == NULL) ) {
+		return NULL;
+	}
+
+	pHeader = __xlObjectHeaderConst(pBlob);
+	if ( __xlObjectHeaderDestroyingRaw(pHeader) || __xlObjectHeaderDestroyedRaw(pHeader) ) {
+		return NULL;
+	}
 
 	pTypeInfo = xl_object_type(pBlob);
 	while ( pTypeInfo != NULL ) {
@@ -722,6 +1168,9 @@ int xl_object_delete_value(xvalue value)
 
 	pBlob = xvoGetClass(value);
 	if ( pBlob == NULL ) {
+		return 1;
+	}
+	if ( xl_object_header_destroying(pBlob) ) {
 		return 1;
 	}
 	pTypeInfo = xl_object_type(pBlob);
@@ -752,6 +1201,9 @@ void xl_object_destroy_if_last(xvalue value)
 
 	if ( value->Type == XVO_DT_CLASS ) {
 		pBlob = xvoGetClass(value);
+		if ( (pBlob != NULL) && xl_object_header_destroying(pBlob) ) {
+			return;
+		}
 		pTypeInfo = xl_object_type(pBlob);
 		if ( (pBlob != NULL) &&
 			(pTypeInfo != NULL) &&
@@ -875,6 +1327,71 @@ xvalue xl_object_weak_lock(XL_ObjectWeakRef* pWeakRef)
 		return NULL;
 	}
 	return xl_object_retain(pWeakRef->pValue);
+}
+
+XL_ObjectPinnedRef* xl_object_pin_value(xvalue value)
+{
+	XL_ObjectPinnedRef* pPinnedRef;
+	xmutex pLock;
+
+	if ( value == NULL ) {
+		return NULL;
+	}
+	pPinnedRef = (XL_ObjectPinnedRef*)calloc(1u, sizeof(*pPinnedRef));
+	if ( pPinnedRef == NULL ) {
+		return NULL;
+	}
+	pPinnedRef->value = xl_object_retain(value);
+	if ( pPinnedRef->value == NULL ) {
+		free(pPinnedRef);
+		return NULL;
+	}
+	pLock = __xlObjectPinnedRootLock();
+	if ( pLock == NULL ) {
+		xl_object_release(pPinnedRef->value);
+		free(pPinnedRef);
+		return NULL;
+	}
+	xrtMutexLock(pLock);
+	pPinnedRef->pPrev = NULL;
+	pPinnedRef->pNext = g_pXlPinnedRootHead;
+	if ( g_pXlPinnedRootHead != NULL ) {
+		g_pXlPinnedRootHead->pPrev = pPinnedRef;
+	}
+	g_pXlPinnedRootHead = pPinnedRef;
+	xrtMutexUnlock(pLock);
+	return pPinnedRef;
+}
+
+void xl_object_unpin_value(XL_ObjectPinnedRef* pPinnedRef)
+{
+	xvalue value;
+	xmutex pLock;
+
+	if ( pPinnedRef == NULL ) {
+		return;
+	}
+	pLock = __xlObjectPinnedRootLock();
+	if ( pLock != NULL ) {
+		xrtMutexLock(pLock);
+		if ( pPinnedRef->pPrev != NULL ) {
+			pPinnedRef->pPrev->pNext = pPinnedRef->pNext;
+		} else if ( g_pXlPinnedRootHead == pPinnedRef ) {
+			g_pXlPinnedRootHead = pPinnedRef->pNext;
+		}
+		if ( pPinnedRef->pNext != NULL ) {
+			pPinnedRef->pNext->pPrev = pPinnedRef->pPrev;
+		}
+		xrtMutexUnlock(pLock);
+	}
+	value = pPinnedRef->value;
+	pPinnedRef->pPrev = NULL;
+	pPinnedRef->pNext = NULL;
+	pPinnedRef->value = NULL;
+	if ( value != NULL ) {
+		xl_object_release(value);
+	}
+	free(pPinnedRef);
 }
 
 xvalue xl_object_dynamic_fields(void* pBlob)
@@ -1054,6 +1571,294 @@ xvalue xl_object_items(void* pBlob)
 	return xl_iter_items(pHeader->dynamicFields);
 }
 
+static const XL_ObjectTypeInfo* __xlObjectMetaTypeInfo(xvalue value, void** ppBlob)
+{
+	void* pBlob;
+	const XL_ObjectHeader* pHeader;
+
+	if ( ppBlob != NULL ) {
+		*ppBlob = NULL;
+	}
+	if ( (value == NULL) || (value->Type != XVO_DT_CLASS) ) {
+		return NULL;
+	}
+	pBlob = xvoGetClass(value);
+	if ( pBlob == NULL ) {
+		return NULL;
+	}
+	pHeader = __xlObjectHeaderConst(pBlob);
+	if ( !__xlObjectHeaderAliveRaw(pHeader) || (pHeader->pTypeInfo == NULL) ) {
+		return NULL;
+	}
+	if ( ppBlob != NULL ) {
+		*ppBlob = pBlob;
+	}
+	return pHeader->pTypeInfo;
+}
+
+static int __xlObjectMetaBuiltInMethod(const char* sKey)
+{
+	if ( sKey == NULL ) {
+		return 0;
+	}
+	return
+		(strcmp(sKey, "set") == 0) ||
+		(strcmp(sKey, "get") == 0) ||
+		(strcmp(sKey, "exists") == 0) ||
+		(strcmp(sKey, "remove") == 0) ||
+		(strcmp(sKey, "clear") == 0) ||
+		(strcmp(sKey, "keys") == 0) ||
+		(strcmp(sKey, "values") == 0) ||
+		(strcmp(sKey, "items") == 0) ||
+		(strcmp(sKey, "clone") == 0);
+}
+
+int xl_object_meta_has_field(xvalue value, const char* sKey)
+{
+	void* pBlob;
+	const XL_ObjectTypeInfo* pTypeInfo;
+
+	if ( sKey == NULL ) {
+		return 0;
+	}
+	pTypeInfo = __xlObjectMetaTypeInfo(value, &pBlob);
+	if ( (pTypeInfo == NULL) || (pTypeInfo->pVisibleExists == NULL) ) {
+		return 0;
+	}
+	return pTypeInfo->pVisibleExists(pBlob, sKey);
+}
+
+int xl_object_meta_has_method(xvalue value, const char* sKey)
+{
+	const XL_ObjectTypeInfo* pTypeInfo;
+
+	if ( sKey == NULL ) {
+		return 0;
+	}
+	pTypeInfo = __xlObjectMetaTypeInfo(value, NULL);
+	if ( (pTypeInfo != NULL) && __xlObjectMetaBuiltInMethod(sKey) ) {
+		return 1;
+	}
+	while ( pTypeInfo != NULL ) {
+		size_t i;
+
+		for ( i = 0; i < pTypeInfo->iMethodCount; ++i ) {
+			const XL_ObjectMethodEntry* pEntry = &pTypeInfo->pMethods[i];
+			const char* sDispatchKey;
+			const char* sArity;
+
+			if ( pEntry == NULL ) {
+				continue;
+			}
+			sDispatchKey = pEntry->sDispatchKey;
+			if ( (sDispatchKey == NULL) || (sDispatchKey[0] == '\0') ) {
+				continue;
+			}
+			sArity = strstr(sDispatchKey, "$arity");
+			if ( sArity == NULL ) {
+				if ( strcmp(sDispatchKey, sKey) == 0 ) {
+					return 1;
+				}
+				continue;
+			}
+			if ( ((size_t)(sArity - sDispatchKey) == strlen(sKey)) &&
+				(strncmp(sDispatchKey, sKey, (size_t)(sArity - sDispatchKey)) == 0) ) {
+				return 1;
+			}
+		}
+		pTypeInfo = pTypeInfo->pBaseType;
+	}
+	return 0;
+}
+
+xvalue xl_object_meta_field_names(xvalue value)
+{
+	void* pBlob;
+	const XL_ObjectTypeInfo* pTypeInfo;
+
+	pTypeInfo = __xlObjectMetaTypeInfo(value, &pBlob);
+	if ( (pTypeInfo == NULL) || (pTypeInfo->pVisibleKeys == NULL) ) {
+		return xvoCreateArray();
+	}
+	return pTypeInfo->pVisibleKeys(pBlob);
+}
+
+int xl_object_meta_field_count(xvalue value)
+{
+	xvalue names = xl_object_meta_field_names(value);
+	int iCount = 0;
+
+	if ( names == NULL ) {
+		return 0;
+	}
+	iCount = (int)xvoArrayItemCount(names);
+	xvoUnref(names);
+	return iCount;
+}
+
+const char* xl_object_meta_field_name_at(xvalue value, int index, const char* sDefaultValue)
+{
+	xvalue names = NULL;
+	xvalue item = NULL;
+	const char* sText = NULL;
+	size_t iLen;
+	char* sNewBuf;
+
+	if ( sDefaultValue == NULL ) {
+		sDefaultValue = "";
+	}
+	if ( index < 0 ) {
+		return sDefaultValue;
+	}
+	names = xl_object_meta_field_names(value);
+	if ( names == NULL ) {
+		return sDefaultValue;
+	}
+	if ( (uint32)index >= xvoArrayItemCount(names) ) {
+		xvoUnref(names);
+		return sDefaultValue;
+	}
+	item = xvoArrayGetValue(names, (uint32)index);
+	if ( (item == NULL) || !xvoIsText(item) ) {
+		xvoUnref(names);
+		return sDefaultValue;
+	}
+	sText = (const char*)xvoGetText(item);
+	if ( sText == NULL ) {
+		xvoUnref(names);
+		return sDefaultValue;
+	}
+	iLen = strlen(sText);
+	if ( g_iXlObjectMetaFieldNameScratchCap < (iLen + 1u) ) {
+		sNewBuf = (char*)realloc(g_sXlObjectMetaFieldNameScratch, iLen + 1u);
+		if ( sNewBuf == NULL ) {
+			xvoUnref(names);
+			return sDefaultValue;
+		}
+		g_sXlObjectMetaFieldNameScratch = sNewBuf;
+		g_iXlObjectMetaFieldNameScratchCap = iLen + 1u;
+	}
+	memcpy(g_sXlObjectMetaFieldNameScratch, sText, iLen + 1u);
+	xvoUnref(names);
+	return g_sXlObjectMetaFieldNameScratch;
+}
+
+xvalue xl_object_meta_method_names(xvalue value)
+{
+	void* pBlob;
+	const XL_ObjectTypeInfo* pTypeInfo;
+	xvalue result;
+	const XL_ObjectTypeInfo* pCursor;
+
+	pTypeInfo = __xlObjectMetaTypeInfo(value, &pBlob);
+	(void)pBlob;
+	result = xvoCreateArray();
+	if ( result == NULL ) {
+		return NULL;
+	}
+	for ( pCursor = pTypeInfo; pCursor != NULL; pCursor = pCursor->pBaseType ) {
+		size_t i;
+		for ( i = 0u; i < pCursor->iMethodCount; ++i ) {
+			const XL_ObjectMethodEntry* pEntry = &pCursor->pMethods[i];
+			uint32 j;
+			int bDuplicate = 0;
+			xvalue item;
+			size_t iNameLen;
+			if ( (pEntry == NULL) || (pEntry->sDispatchKey == NULL) || (pEntry->sDispatchKey[0] == '\0') ) {
+				continue;
+			}
+			iNameLen = __xlObjectMetaPublicMethodNameLen(pEntry->sDispatchKey);
+			if ( iNameLen == 0u ) {
+				continue;
+			}
+			for ( j = 0u; j < xvoArrayItemCount(result); ++j ) {
+				xvalue existing = xvoArrayGetValue(result, j);
+				const char* sExisting = (existing != NULL && xvoIsText(existing)) ? (const char*)xvoGetText(existing) : NULL;
+				size_t iExistingLen = (existing != NULL && xvoIsText(existing)) ? (size_t)xvoGetSize(existing) : 0u;
+				if ( (sExisting != NULL) &&
+				     (iExistingLen == iNameLen) &&
+				     (strncmp(sExisting, pEntry->sDispatchKey, iNameLen) == 0) ) {
+					bDuplicate = 1;
+					break;
+				}
+			}
+			if ( bDuplicate ) {
+				continue;
+			}
+			item = xvoCreateText((ptr)pEntry->sDispatchKey, (uint32)iNameLen, FALSE);
+			if ( (item == NULL) || !xvoArrayAppendValue(result, item, TRUE) ) {
+				if ( item != NULL ) {
+					xvoUnref(item);
+				}
+				xvoUnref(result);
+				return NULL;
+			}
+		}
+	}
+	return result;
+}
+
+int xl_object_meta_method_count(xvalue value)
+{
+	xvalue names = xl_object_meta_method_names(value);
+	int iCount = 0;
+
+	if ( names == NULL ) {
+		return 0;
+	}
+	iCount = (int)xvoArrayItemCount(names);
+	xvoUnref(names);
+	return iCount;
+}
+
+const char* xl_object_meta_method_name_at(xvalue value, int index, const char* sDefaultValue)
+{
+	xvalue names = NULL;
+	xvalue item = NULL;
+	const char* sText = NULL;
+	size_t iLen;
+	char* sNewBuf;
+
+	if ( sDefaultValue == NULL ) {
+		sDefaultValue = "";
+	}
+	if ( index < 0 ) {
+		return sDefaultValue;
+	}
+	names = xl_object_meta_method_names(value);
+	if ( names == NULL ) {
+		return sDefaultValue;
+	}
+	if ( (uint32)index >= xvoArrayItemCount(names) ) {
+		xvoUnref(names);
+		return sDefaultValue;
+	}
+	item = xvoArrayGetValue(names, (uint32)index);
+	if ( (item == NULL) || !xvoIsText(item) ) {
+		xvoUnref(names);
+		return sDefaultValue;
+	}
+	sText = (const char*)xvoGetText(item);
+	if ( sText == NULL ) {
+		xvoUnref(names);
+		return sDefaultValue;
+	}
+	iLen = (size_t)xvoGetSize(item);
+	if ( g_iXlObjectMetaMethodNameScratchCap < (iLen + 1u) ) {
+		sNewBuf = (char*)realloc(g_sXlObjectMetaMethodNameScratch, iLen + 1u);
+		if ( sNewBuf == NULL ) {
+			xvoUnref(names);
+			return sDefaultValue;
+		}
+		g_sXlObjectMetaMethodNameScratch = sNewBuf;
+		g_iXlObjectMetaMethodNameScratchCap = iLen + 1u;
+	}
+	memcpy(g_sXlObjectMetaMethodNameScratch, sText, iLen);
+	g_sXlObjectMetaMethodNameScratch[iLen] = '\0';
+	xvoUnref(names);
+	return g_sXlObjectMetaMethodNameScratch;
+}
+
 int xl_object_collect_cycles(void)
 {
 	size_t iNodeCount;
@@ -1129,6 +1934,18 @@ int xl_object_collect_cycles(void)
 			arrNodes[i].bQueued = 1u;
 			arrStack[iStackCount++] = i;
 		}
+	}
+	if ( !__xlObjectCollectPushFutureRoots(arrNodes, iNodeCount, arrStack, &iStackCount) ) {
+		free(arrNodes);
+		free(arrIncoming);
+		free(arrStack);
+		return 0;
+	}
+	if ( !__xlObjectCollectPushPinnedRoots(arrNodes, iNodeCount, arrStack, &iStackCount) ) {
+		free(arrNodes);
+		free(arrIncoming);
+		free(arrStack);
+		return 0;
 	}
 	while ( iStackCount > 0u ) {
 		size_t iNodeIndex = arrStack[--iStackCount];

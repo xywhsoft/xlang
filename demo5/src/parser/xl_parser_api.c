@@ -120,6 +120,10 @@ static int __xlParserMapToken(XL_TokenKind eKind)
 			return XLPG_KW_CREATE;
 		case XL_KW_DESTROY:
 			return XLPG_KW_DESTROY;
+		case XL_KW_GET:
+			return XLPG_KW_GET;
+		case XL_KW_LET:
+			return XLPG_KW_LET;
 		case XL_KW_NOCOPY:
 			return XLPG_KW_NOCOPY;
 		case XL_KW_AND:

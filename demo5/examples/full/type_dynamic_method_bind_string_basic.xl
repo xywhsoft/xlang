@@ -1,0 +1,31 @@
+import std.types as types
+
+func label() as string
+	return "ok"
+end
+
+func main() as int
+	auto desc = types.dynamic("Enemy", object)
+	desc = types.add_method(desc, "label")
+	desc = types.bind_method(desc, "label", label)
+
+	auto obj = types.new_instance(desc)
+
+	if not types.instance_has_method(obj, "label")
+		return 1
+	end
+
+	auto fn = types.instance_method(obj, "label", null)
+	if fn == null
+		return 2
+	end
+
+	if function<string()>(fn)() != "ok"
+		return 3
+	end
+	if function<string()>(types.method_impl(desc, "label", null))() != "ok"
+		return 4
+	end
+
+	return 42
+end
