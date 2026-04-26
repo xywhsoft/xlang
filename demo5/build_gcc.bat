@@ -5,15 +5,6 @@ cd /d %~dp0
 if not exist release\tmp mkdir release\tmp
 if exist release\tmp\*.fallback.exe del /f /q release\tmp\*.fallback.exe >nul 2>nul
 if exist release\tmp\*.trace.txt del /f /q release\tmp\*.trace.txt >nul 2>nul
-if not exist examples\xlp_native\packages\pkg.clock\bin mkdir examples\xlp_native\packages\pkg.clock\bin
-if not exist examples\xlp_native\packages\pkg.probe\bin mkdir examples\xlp_native\packages\pkg.probe\bin
-if not exist examples\xlp_official_native\packages\x.image.bmp\bin mkdir examples\xlp_official_native\packages\x.image.bmp\bin
-if not exist examples\xlp_official_native\packages\x.archive.tar\bin mkdir examples\xlp_official_native\packages\x.archive.tar\bin
-if not exist examples\xlp_official_native\packages\x.archive.zip\bin mkdir examples\xlp_official_native\packages\x.archive.zip\bin
-if not exist examples\xlp_official_native\packages\x.compress.gzip\bin mkdir examples\xlp_official_native\packages\x.compress.gzip\bin
-if not exist examples\xlp_static\packages\pkg.clock\lib mkdir examples\xlp_static\packages\pkg.clock\lib
-if not exist examples\xlp_static\packages\pkg.probe\lib mkdir examples\xlp_static\packages\pkg.probe\lib
-
 set SRC_LIST=release\tmp\gcc_sources.rsp
 set TEST_SRC_LIST=release\tmp\gcc_test_sources.rsp
 set TCC_OBJ=release\tmp\libtcc.o
@@ -24,7 +15,7 @@ set BUILD_STAMP_HEADER=release\tmp\xl_test_build_stamp.h
 set XL_SMOKE_LOG=release\tmp\xl_smoke.log
 set XLDBG_SMOKE_LOG=release\tmp\xldbg_smoke.log
 set XL5_TEST_SMOKE_LOG=release\tmp\xl5_test_smoke.log
-set XL5_SMOKE_FILE=examples\full\for_in_range.xl
+set XL5_SMOKE_FILE=release\examples\full\for_in_range.xl
 set SMOKE_SELECTOR=lower.async_generator_loop_control_hybrid_groups_json
 set GCC_COMMON_FLAGS=-std=c11 -O2 -ffunction-sections -fdata-sections -Wall -Wextra -Werror -Wno-unused-parameter -Wno-unused-variable -Wno-unused-function -Wno-format-truncation -Wno-restrict -Wno-maybe-uninitialized -D_CRT_SECURE_NO_WARNINGS -I. -Ilib\xrt -Ilib\tcc
 set GCC_DEBUG_FLAGS=%GCC_COMMON_FLAGS% -DXLANG_DEBUGMODE=1
@@ -43,6 +34,22 @@ if not exist release\tcc\support\common mkdir release\tcc\support\common
 if not exist release\tcc\support\runtime mkdir release\tcc\support\runtime
 if not exist release\tcc\support\host mkdir release\tcc\support\host
 if not exist release\tcc\include mkdir release\tcc\include
+if exist examples (
+	if exist release\examples rmdir /s /q release\examples
+	xcopy /E /I /Y examples release\examples >nul
+)
+if not exist release\examples (
+	echo Missing examples source: neither .\examples nor .\release\examples exists.
+	exit /b 1
+)
+if not exist release\examples\xlp_native\packages\pkg.clock\bin mkdir release\examples\xlp_native\packages\pkg.clock\bin
+if not exist release\examples\xlp_native\packages\pkg.probe\bin mkdir release\examples\xlp_native\packages\pkg.probe\bin
+if not exist release\examples\xlp_official_native\packages\x.image.bmp\bin mkdir release\examples\xlp_official_native\packages\x.image.bmp\bin
+if not exist release\examples\xlp_official_native\packages\x.archive.tar\bin mkdir release\examples\xlp_official_native\packages\x.archive.tar\bin
+if not exist release\examples\xlp_official_native\packages\x.archive.zip\bin mkdir release\examples\xlp_official_native\packages\x.archive.zip\bin
+if not exist release\examples\xlp_official_native\packages\x.compress.gzip\bin mkdir release\examples\xlp_official_native\packages\x.compress.gzip\bin
+if not exist release\examples\xlp_static\packages\pkg.clock\lib mkdir release\examples\xlp_static\packages\pkg.clock\lib
+if not exist release\examples\xlp_static\packages\pkg.probe\lib mkdir release\examples\xlp_static\packages\pkg.probe\lib
 
 copy /y src\common\xl_common.h release\tcc\support\common\xl_common.h >nul
 copy /y src\runtime\xlrt_profile.h release\tcc\support\runtime\xlrt_profile.h >nul
@@ -151,49 +158,49 @@ if not exist "%XL5_TEST_BUILD_EXE%" (
 )
 
 echo Building xlp example artifacts...
-gcc -std=c11 -shared -o examples\xlp_native\packages\pkg.clock\bin\pkg_clock.dll examples\xlp_artifacts\pkg_clock_artifact.c
+gcc -std=c11 -shared -o release\examples\xlp_native\packages\pkg.clock\bin\pkg_clock.dll release\examples\xlp_artifacts\pkg_clock_artifact.c
 
 if errorlevel 1 (
 	echo Shared xlp artifact build failed.
 	exit /b 1
 )
 
-gcc -std=c11 -shared -o examples\xlp_native\packages\pkg.probe\bin\pkg_probe.dll examples\xlp_artifacts\pkg_clock_artifact.c
+gcc -std=c11 -shared -o release\examples\xlp_native\packages\pkg.probe\bin\pkg_probe.dll release\examples\xlp_artifacts\pkg_clock_artifact.c
 
 if errorlevel 1 (
 	echo Shared xlp probe artifact build failed.
 	exit /b 1
 )
 
-gcc -std=c11 -shared -o examples\xlp_official_native\packages\x.image.bmp\bin\x_image_bmp.dll examples\xlp_artifacts\x_image_bmp_artifact.c
+gcc -std=c11 -shared -o release\examples\xlp_official_native\packages\x.image.bmp\bin\x_image_bmp.dll release\examples\xlp_artifacts\x_image_bmp_artifact.c
 
 if errorlevel 1 (
 	echo Official xlp image bmp artifact build failed.
 	exit /b 1
 )
 
-gcc -std=c11 -shared -o examples\xlp_official_native\packages\x.archive.tar\bin\x_archive_tar.dll examples\xlp_artifacts\x_archive_tar_artifact.c
+gcc -std=c11 -shared -o release\examples\xlp_official_native\packages\x.archive.tar\bin\x_archive_tar.dll release\examples\xlp_artifacts\x_archive_tar_artifact.c
 
 if errorlevel 1 (
 	echo Official xlp archive tar artifact build failed.
 	exit /b 1
 )
 
-gcc -std=c11 -shared -o examples\xlp_official_native\packages\x.archive.zip\bin\x_archive_zip.dll examples\xlp_artifacts\x_archive_zip_artifact.c
+gcc -std=c11 -shared -o release\examples\xlp_official_native\packages\x.archive.zip\bin\x_archive_zip.dll release\examples\xlp_artifacts\x_archive_zip_artifact.c
 
 if errorlevel 1 (
 	echo Official xlp archive zip artifact build failed.
 	exit /b 1
 )
 
-gcc -std=c11 -shared -o examples\xlp_official_native\packages\x.compress.gzip\bin\x_compress_gzip.dll examples\xlp_artifacts\x_compress_gzip_artifact.c
+gcc -std=c11 -shared -o release\examples\xlp_official_native\packages\x.compress.gzip\bin\x_compress_gzip.dll release\examples\xlp_artifacts\x_compress_gzip_artifact.c
 
 if errorlevel 1 (
 	echo Official xlp compress gzip artifact build failed.
 	exit /b 1
 )
 
-call "%XL_BUILD_EXE%" build-c examples\xlp_artifacts\pkg_clock_artifact.c --emit release\tmp\pkg_clock_artifact.obj >nul
+call "%XL_BUILD_EXE%" build-c release\examples\xlp_artifacts\pkg_clock_artifact.c --emit release\tmp\pkg_clock_artifact.obj >nul
 
 if errorlevel 1 (
 	echo Static xlp artifact object build failed.
@@ -207,14 +214,14 @@ if errorlevel 1 (
 	exit /b 1
 )
 
-copy /y release\tmp\pkg_clock_static.a examples\xlp_static\packages\pkg.clock\lib\pkg_clock.a >nul
+copy /y release\tmp\pkg_clock_static.a release\examples\xlp_static\packages\pkg.clock\lib\pkg_clock.a >nul
 
 if errorlevel 1 (
 	echo Static xlp artifact copy failed.
 	exit /b 1
 )
 
-copy /y release\tmp\pkg_clock_static.a examples\xlp_static\packages\pkg.probe\lib\pkg_probe.a >nul
+copy /y release\tmp\pkg_clock_static.a release\examples\xlp_static\packages\pkg.probe\lib\pkg_probe.a >nul
 
 if errorlevel 1 (
 	echo Static xlp probe artifact archive build failed.
