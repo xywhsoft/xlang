@@ -723,8 +723,7 @@ static int __xlApplyStaticArchive(
 				return XL_RC_FAIL;
 			}
 
-			xlPathJoin(sExtractDir, sizeof(sExtractDir), pCtx->sProjectRoot, "release");
-			xlPathJoin(sExtractDir, sizeof(sExtractDir), sExtractDir, "tmp");
+			xlPathJoin(sExtractDir, sizeof(sExtractDir), pCtx->sReleaseRoot, "tmp");
 			xlPathJoin(sExtractDir, sizeof(sExtractDir), sExtractDir, "host_static");
 			snprintf(sExtractName, sizeof(sExtractName), "artifact_%zu_member_%zu.obj", iArtifactIndex, iMemberIndex);
 			xlPathJoin(sExtractPath, sizeof(sExtractPath), sExtractDir, sExtractName);
@@ -1159,8 +1158,8 @@ static int __xlConfigureTcc(
 
 	__xlBuildPath2(sIncludeWin, sizeof(sIncludeWin), pCtx->sTccRoot, "include_win");
 	__xlBuildPath3(sIncludeWinApi, sizeof(sIncludeWinApi), pCtx->sTccRoot, "include_win", "winapi");
-	__xlBuildPath3(sProjectRuntimeInc, sizeof(sProjectRuntimeInc), pCtx->sProjectRoot, "src", "runtime");
-	__xlBuildPath3(sProjectXrtInc, sizeof(sProjectXrtInc), pCtx->sProjectRoot, "lib", "xrt");
+	__xlBuildPath3(sProjectRuntimeInc, sizeof(sProjectRuntimeInc), pCtx->sReleaseRoot, "src", "runtime");
+	__xlBuildPath3(sProjectXrtInc, sizeof(sProjectXrtInc), pCtx->sReleaseRoot, "lib", "xrt");
 	__xlBuildPath2(sLibDir, sizeof(sLibDir), pCtx->sTccRoot, "lib");
 
 	__xlRunTraceAppendFormat(pTrace, "tcc_root=%s\n", pCtx->sTccRoot);
@@ -1387,17 +1386,17 @@ static int __xlAddBuildSupportSources(const XL_HostContext* pCtx, TCCState* pTcc
 	char sGeneratedImpl[XL_PATH_MAX_LEN];
 	char sHostRuntimeImpl[XL_PATH_MAX_LEN];
 
-	__xlBuildPath3(sRuntimeImpl, sizeof(sRuntimeImpl), pCtx->sProjectRoot, "src", "runtime");
+	__xlBuildPath3(sRuntimeImpl, sizeof(sRuntimeImpl), pCtx->sReleaseRoot, "src", "runtime");
 	xlPathJoin(sRuntimeImpl, sizeof(sRuntimeImpl), sRuntimeImpl, "xlrt_host.c");
-	__xlBuildPath3(sObjectRuntimeImpl, sizeof(sObjectRuntimeImpl), pCtx->sProjectRoot, "src", "runtime");
+	__xlBuildPath3(sObjectRuntimeImpl, sizeof(sObjectRuntimeImpl), pCtx->sReleaseRoot, "src", "runtime");
 	xlPathJoin(sObjectRuntimeImpl, sizeof(sObjectRuntimeImpl), sObjectRuntimeImpl, "xl_object_runtime.c");
-	__xlBuildPath3(sChannelRuntimeImpl, sizeof(sChannelRuntimeImpl), pCtx->sProjectRoot, "src", "runtime");
+	__xlBuildPath3(sChannelRuntimeImpl, sizeof(sChannelRuntimeImpl), pCtx->sReleaseRoot, "src", "runtime");
 	xlPathJoin(sChannelRuntimeImpl, sizeof(sChannelRuntimeImpl), sChannelRuntimeImpl, "xl_channel_runtime.c");
-	__xlBuildPath3(sSysLibRuntimeImpl, sizeof(sSysLibRuntimeImpl), pCtx->sProjectRoot, "src", "runtime");
+	__xlBuildPath3(sSysLibRuntimeImpl, sizeof(sSysLibRuntimeImpl), pCtx->sReleaseRoot, "src", "runtime");
 	xlPathJoin(sSysLibRuntimeImpl, sizeof(sSysLibRuntimeImpl), sSysLibRuntimeImpl, "xl_sys_lib_runtime.c");
-	__xlBuildPath3(sGeneratedImpl, sizeof(sGeneratedImpl), pCtx->sProjectRoot, "src", "runtime");
+	__xlBuildPath3(sGeneratedImpl, sizeof(sGeneratedImpl), pCtx->sReleaseRoot, "src", "runtime");
 	xlPathJoin(sGeneratedImpl, sizeof(sGeneratedImpl), sGeneratedImpl, "xlrt_generated.c");
-	__xlBuildPath3(sHostRuntimeImpl, sizeof(sHostRuntimeImpl), pCtx->sProjectRoot, "src", "host");
+	__xlBuildPath3(sHostRuntimeImpl, sizeof(sHostRuntimeImpl), pCtx->sReleaseRoot, "src", "host");
 	xlPathJoin(sHostRuntimeImpl, sizeof(sHostRuntimeImpl), sHostRuntimeImpl, "xl_host_runtime.c");
 
 	__xlRunTraceAppendFormat(pTrace, "support_source=%s\n", sRuntimeImpl);

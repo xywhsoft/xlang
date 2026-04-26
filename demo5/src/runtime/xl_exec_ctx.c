@@ -464,26 +464,30 @@ void xlExecCtxInit(XL_ExecCtx* pCtx, const char* sInputFile, const char* sReleas
 	__xlCopyText(pCtx->sReleaseRoot, sizeof(pCtx->sReleaseRoot), hostCtx.sReleaseRoot);
 	__xlCopyText(pCtx->sProjectRoot, sizeof(pCtx->sProjectRoot), hostCtx.sProjectRoot);
 	__xlCopyText(pCtx->sTccRoot, sizeof(pCtx->sTccRoot), hostCtx.sTccRoot);
-	pCtx->iArtifactCount = 0;
-	pCtx->iExternSymbolCount = 0;
+	pCtx->iArtifactCount = hostCtx.iArtifactCount;
+	pCtx->iExternSymbolCount = hostCtx.iExternSymbolCount;
+	pCtx->iLinkLibraryCount = hostCtx.iLinkLibraryCount;
+	pCtx->iLibraryPathCount = hostCtx.iLibraryPathCount;
+	pCtx->iIncludePathCount = hostCtx.iIncludePathCount;
+	pCtx->iLoadLibraryCount = hostCtx.iLoadLibraryCount;
 	for ( i = 0; i < XL_HOST_ARTIFACT_MAX; ++i ) {
-		pCtx->arrArtifacts[i].sKind[0] = '\0';
-		pCtx->arrArtifacts[i].sFile[0] = '\0';
+		__xlCopyText(pCtx->arrArtifacts[i].sKind, sizeof(pCtx->arrArtifacts[i].sKind), hostCtx.arrArtifacts[i].sKind);
+		__xlCopyText(pCtx->arrArtifacts[i].sFile, sizeof(pCtx->arrArtifacts[i].sFile), hostCtx.arrArtifacts[i].sFile);
 	}
 	for ( i = 0; i < XL_HOST_EXTERN_SYMBOL_MAX; ++i ) {
-		pCtx->arrExternSymbols[i].sName[0] = '\0';
+		__xlCopyText(pCtx->arrExternSymbols[i].sName, sizeof(pCtx->arrExternSymbols[i].sName), hostCtx.arrExternSymbols[i].sName);
 	}
 	for ( i = 0; i < XL_HOST_LINK_LIBRARY_MAX; ++i ) {
-		pCtx->arrLinkLibraries[i].sName[0] = '\0';
+		__xlCopyText(pCtx->arrLinkLibraries[i].sName, sizeof(pCtx->arrLinkLibraries[i].sName), hostCtx.arrLinkLibraries[i].sName);
 	}
 	for ( i = 0; i < XL_HOST_LIBRARY_PATH_MAX; ++i ) {
-		pCtx->arrLibraryPaths[i].sPath[0] = '\0';
+		__xlCopyText(pCtx->arrLibraryPaths[i].sPath, sizeof(pCtx->arrLibraryPaths[i].sPath), hostCtx.arrLibraryPaths[i].sPath);
 	}
 	for ( i = 0; i < XL_HOST_INCLUDE_PATH_MAX; ++i ) {
-		pCtx->arrIncludePaths[i].sPath[0] = '\0';
+		__xlCopyText(pCtx->arrIncludePaths[i].sPath, sizeof(pCtx->arrIncludePaths[i].sPath), hostCtx.arrIncludePaths[i].sPath);
 	}
 	for ( i = 0; i < XL_HOST_LOAD_LIBRARY_MAX; ++i ) {
-		pCtx->arrLoadLibraries[i].sFile[0] = '\0';
+		__xlCopyText(pCtx->arrLoadLibraries[i].sFile, sizeof(pCtx->arrLoadLibraries[i].sFile), hostCtx.arrLoadLibraries[i].sFile);
 	}
 }
 

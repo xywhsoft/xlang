@@ -2,7 +2,9 @@
 
 const char* xlStdCoreModuleSource(void);
 const char* xlStdCryptoModuleSource(void);
+#if XLANG_DEBUGMODE_ENABLED
 const char* xlStdDebugModuleSource(void);
+#endif
 const char* xlStdChannelModuleSource(void);
 const char* xlStdClockModuleSource(void);
 const char* xlStdDictModuleSource(void);
@@ -60,7 +62,9 @@ const char* xlStdSysProcessModuleSource(void);
 const char* xlStdSysWaitModuleSource(void);
 const char* xlStdTemplateModuleSource(void);
 const char* xlStdThreadModuleSource(void);
+#if XLANG_DEBUGMODE_ENABLED
 const char* xlStdTraceModuleSource(void);
+#endif
 const char* xlStdTimeModuleSource(void);
 const char* xlStdTaskModuleSource(void);
 const char* xlStdSyncModuleSource(void);
@@ -82,7 +86,9 @@ typedef struct XL_NativeTextBuffer {
 static const XL_NativeRegistryEntry g_arrNativeModules[] = {
 	{ "std.core", "std.core", "<native:std.core>", xlStdCoreModuleSource },
 	{ "std.crypto", "std.crypto", "<native:std.crypto>", xlStdCryptoModuleSource },
+#if XLANG_DEBUGMODE_ENABLED
 	{ "std.debug", "std.debug", "<native:std.debug>", xlStdDebugModuleSource },
+#endif
 	{ "std.channel", "std.channel", "<native:std.channel>", xlStdChannelModuleSource },
 	{ "std.clock", "std.clock", "<native:std.clock>", xlStdClockModuleSource },
 	{ "std.dict", "std.dict", "<native:std.dict>", xlStdDictModuleSource },
@@ -139,7 +145,9 @@ static const XL_NativeRegistryEntry g_arrNativeModules[] = {
 	{ "std.sync", "std.sync", "<native:std.sync>", xlStdSyncModuleSource },
 	{ "std.template", "std.template", "<native:std.template>", xlStdTemplateModuleSource },
 	{ "std.thread", "std.thread", "<native:std.thread>", xlStdThreadModuleSource },
+#if XLANG_DEBUGMODE_ENABLED
 	{ "std.trace", "std.trace", "<native:std.trace>", xlStdTraceModuleSource },
+#endif
 	{ "std.time", "std.time", "<native:std.time>", xlStdTimeModuleSource },
 	{ "std.task", "std.task", "<native:std.task>", xlStdTaskModuleSource },
 	{ "std.types", "std.types", "<native:std.types>", xlStdTypesModuleSource }

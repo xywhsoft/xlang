@@ -722,7 +722,6 @@ static void __xlBuildDefaultOutputPath(
 	const char* sDot;
 	size_t iLen;
 	char sBaseName[XL_PATH_MAX_LEN];
-	char sBinDir[XL_PATH_MAX_LEN];
 
 	sName = (sInputFile != NULL) ? sInputFile : "output";
 	sScan = sName;
@@ -736,8 +735,7 @@ static void __xlBuildDefaultOutputPath(
 	sDot = strrchr(sName, '.');
 	iLen = (sDot != NULL) ? (size_t)(sDot - sName) : strlen(sName);
 	snprintf(sBaseName, sizeof(sBaseName), "%.*s%s", (int)iLen, sName, (sExt != NULL) ? sExt : ".exe");
-	xlPathJoin(sBinDir, sizeof(sBinDir), (pDump != NULL) ? pDump->sRoot : "release", "bin");
-	xlPathJoin(sOut, iOutSize, sBinDir, sBaseName);
+	xlPathJoin(sOut, iOutSize, (pDump != NULL) ? pDump->sRoot : ".", sBaseName);
 }
 
 static int __xlDriverWriteStubDump(
@@ -778,6 +776,7 @@ static int __xlDriverWriteStubDump(
 	return XL_RC_OK;
 }
 
+ #if XLANG_DEBUGMODE_ENABLED
 static int __xlDriverRunLex(
 	const XL_CliOptions* pOpts,
 	XL_DiagContext* pDiag,
@@ -1282,6 +1281,7 @@ cleanup:
 	xlModuleLinkResultFree(&moduleResult);
 	return iRc;
 }
+#endif
 
 static int __xlDriverRunProgram(
 	const XL_CliOptions* pOpts,
@@ -1805,6 +1805,7 @@ int xlDriverRun(const XL_CliOptions* pOpts, XL_DiagContext* pDiag, XL_DumpContex
 		xlDiagSetDefaultSourceFile(pDiag, pOpts->sInputFile);
 	}
 
+#if XLANG_DEBUGMODE_ENABLED
 	if ( pOpts->eCommand == XL_CMD_LEX ) {
 		return __xlDriverRunLex(pOpts, pDiag, pDump);
 	}
@@ -1820,6 +1821,7 @@ int xlDriverRun(const XL_CliOptions* pOpts, XL_DiagContext* pDiag, XL_DumpContex
 	if ( pOpts->eCommand == XL_CMD_CGEN ) {
 		return __xlDriverRunCgen(pOpts, pDiag, pDump);
 	}
+#endif
 	if ( pOpts->eCommand == XL_CMD_BUILD ) {
 		return __xlDriverBuildProgram(pOpts, pDiag, pDump);
 	}

@@ -1,9 +1,6 @@
 #include "src/common/xl_common.h"
-#include "src/ast/xl_ast_dump.h"
 #include "src/diag/xl_diag.h"
 #include "src/diag/xl_dump.h"
-#include "src/lexer/xl_lexer_api.h"
-#include "src/parser/xl_parser_api.h"
 #include "src/driver/xl_cli.h"
 #include "src/driver/xl_driver.h"
 
@@ -16,7 +13,7 @@ int main(int argc, char** argv)
 
 	xlCliInit(&opts);
 	xlDiagInit(&diag, stderr, stderr);
-	xlDumpInit(&dump, "release");
+	xlDumpInit(&dump, NULL);
 
 	iRc = xlCliParse(argc, argv, &opts, &diag);
 	if ( iRc != XL_RC_OK ) {

@@ -1,4 +1,5 @@
 #include "xl_module_link.h"
+#include "../common/xl_app_path.h"
 #include "xl_xlp_load.h"
 
 #include "../common/xl_path.h"
@@ -7056,12 +7057,22 @@ static void __xlProjectAddDefaultPackageRoots(XL_ModuleLinkContext* pCtx)
 #endif
 	if ( (sHome != NULL) && (sHome[0] != '\0') ) {
 		xlPathJoin(sJoined, sizeof(sJoined), sHome, ".xlang");
+		(void)__xlProjectAddPath(pCtx->arrPackageRoots, &pCtx->iPackageRootCount, "", sJoined);
+		xlPathJoin(sJoined, sizeof(sJoined), sJoined, "libs");
+		(void)__xlProjectAddPath(pCtx->arrPackageRoots, &pCtx->iPackageRootCount, "", sJoined);
+		xlPathJoin(sJoined, sizeof(sJoined), sJoined, "packages");
+		(void)__xlProjectAddPath(pCtx->arrPackageRoots, &pCtx->iPackageRootCount, "", sJoined);
+		xlPathJoin(sJoined, sizeof(sJoined), sHome, ".xlang");
 		xlPathJoin(sJoined, sizeof(sJoined), sJoined, "packages");
 		(void)__xlProjectAddPath(pCtx->arrPackageRoots, &pCtx->iPackageRootCount, "", sJoined);
 	}
 
 	sEnv = getenv("XLANG_HOME");
 	if ( (sEnv != NULL) && (sEnv[0] != '\0') ) {
+		xlPathJoin(sJoined, sizeof(sJoined), sEnv, "libs");
+		(void)__xlProjectAddPath(pCtx->arrPackageRoots, &pCtx->iPackageRootCount, "", sJoined);
+		xlPathJoin(sJoined, sizeof(sJoined), sJoined, "packages");
+		(void)__xlProjectAddPath(pCtx->arrPackageRoots, &pCtx->iPackageRootCount, "", sJoined);
 		xlPathJoin(sJoined, sizeof(sJoined), sEnv, "packages");
 		(void)__xlProjectAddPath(pCtx->arrPackageRoots, &pCtx->iPackageRootCount, "", sJoined);
 		xlPathJoin(sJoined, sizeof(sJoined), sEnv, "lib");
@@ -7072,17 +7083,17 @@ static void __xlProjectAddDefaultPackageRoots(XL_ModuleLinkContext* pCtx)
 
 #if defined(_WIN32) || defined(_WIN64)
 	{
-		char sExePath[XL_PATH_MAX_LEN];
-		char sReleaseRoot[XL_PATH_MAX_LEN];
+		char sAppRoot[XL_PATH_MAX_LEN];
 
-		if ( GetModuleFileNameA(NULL, sExePath, sizeof(sExePath)) != 0 ) {
-			__xlModuleNormalizePath(sExePath, sizeof(sExePath), sExePath);
-			snprintf(sReleaseRoot, sizeof(sReleaseRoot), "%s", sExePath);
-			__xlModuleStripFileName(sReleaseRoot);
-			__xlModuleStripFileName(sReleaseRoot);
-			xlPathJoin(sJoined, sizeof(sJoined), sReleaseRoot, "packages");
+		if ( xlAppPathGetDirectory(sAppRoot, sizeof(sAppRoot)) == XL_RC_OK ) {
+			__xlModuleNormalizePath(sAppRoot, sizeof(sAppRoot), sAppRoot);
+			xlPathJoin(sJoined, sizeof(sJoined), sAppRoot, "libs");
 			(void)__xlProjectAddPath(pCtx->arrPackageRoots, &pCtx->iPackageRootCount, "", sJoined);
-			xlPathJoin(sJoined, sizeof(sJoined), sReleaseRoot, "lib");
+			xlPathJoin(sJoined, sizeof(sJoined), sJoined, "packages");
+			(void)__xlProjectAddPath(pCtx->arrPackageRoots, &pCtx->iPackageRootCount, "", sJoined);
+			xlPathJoin(sJoined, sizeof(sJoined), sAppRoot, "packages");
+			(void)__xlProjectAddPath(pCtx->arrPackageRoots, &pCtx->iPackageRootCount, "", sJoined);
+			xlPathJoin(sJoined, sizeof(sJoined), sAppRoot, "lib");
 			xlPathJoin(sJoined, sizeof(sJoined), sJoined, "xlang");
 			xlPathJoin(sJoined, sizeof(sJoined), sJoined, "packages");
 			(void)__xlProjectAddPath(pCtx->arrPackageRoots, &pCtx->iPackageRootCount, "", sJoined);
@@ -7543,9 +7554,15 @@ static void __xlAppendXlpPackageSearchRoots(XL_ModuleTextBuffer* pBuf, const cha
 	__xlModuleStripFileName(sSearchDir);
 	while ( sSearchDir[0] != '\0' ) {
 		char sPackageDir[XL_PATH_MAX_LEN];
+		char sLibDir[XL_PATH_MAX_LEN];
+		char sLibPackageDir[XL_PATH_MAX_LEN];
 		char sPrevDir[XL_PATH_MAX_LEN];
 
 		snprintf(sPrevDir, sizeof(sPrevDir), "%s", sSearchDir);
+		xlPathJoin(sLibDir, sizeof(sLibDir), sSearchDir, "libs");
+		__xlAppendImportSearchPath(pBuf, sLibDir);
+		xlPathJoin(sLibPackageDir, sizeof(sLibPackageDir), sLibDir, "packages");
+		__xlAppendImportSearchPath(pBuf, sLibPackageDir);
 		xlPathJoin(sPackageDir, sizeof(sPackageDir), sSearchDir, "packages");
 		__xlAppendImportSearchPath(pBuf, sPackageDir);
 		__xlModuleStripFileName(sSearchDir);
