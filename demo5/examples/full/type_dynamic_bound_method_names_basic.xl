@@ -1,0 +1,47 @@
+import std.types as types
+
+func score() as int
+	return 7
+end
+
+func main() as int
+	auto desc = types.dynamic("Enemy", object)
+	desc = types.add_method(desc, "score")
+	desc = types.add_method(desc, "draw")
+	desc = types.bind_method(desc, "score", score)
+
+	if types.bound_method_count(desc) != 1
+		return 1
+	end
+	if types.bound_method_name_at(desc, 0, "") != "score"
+		return 2
+	end
+	if types.bound_method_name_at(desc, 1, "fallback") != "fallback"
+		return 3
+	end
+
+	auto names = types.bound_method_names(desc)
+	if names.length != 1
+		return 4
+	end
+	if names[0] != "score"
+		return 5
+	end
+
+	auto obj = types.new_instance(desc)
+	if types.instance_bound_method_count(obj) != 1
+		return 6
+	end
+	if types.instance_bound_method_name_at(obj, 0, "") != "score"
+		return 7
+	end
+	auto instanceNames = types.instance_bound_method_names(obj)
+	if instanceNames.length != 1
+		return 8
+	end
+	if instanceNames[0] != "score"
+		return 9
+	end
+
+	return 42
+end

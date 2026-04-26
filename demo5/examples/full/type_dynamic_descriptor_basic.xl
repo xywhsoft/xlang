@@ -1,0 +1,40 @@
+import std.types as types
+
+class Entity extends object
+	var id as int
+end
+
+func main() as int
+	auto desc = types.dynamic("Enemy", Entity)
+
+	if not types.is_dynamic(desc)
+		return 1
+	end
+	if types.dynamic_name(desc) != "Enemy"
+		return 2
+	end
+	if types.dynamic_base(desc) != Entity
+		return 3
+	end
+
+	desc = types.add_field(desc, "hp", int)
+	desc = types.add_method(desc, "update")
+
+	if not types.has_declared_field(desc, "hp")
+		return 4
+	end
+	if types.has_declared_field(desc, "id")
+		return 5
+	end
+	if not types.has_declared_method(desc, "update")
+		return 6
+	end
+	if types.has_declared_method(desc, "keys")
+		return 7
+	end
+	if not Entity.has_field("id")
+		return 8
+	end
+
+	return 42
+end

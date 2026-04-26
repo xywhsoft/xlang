@@ -1,0 +1,72 @@
+class Vec2
+	var x as int
+	var y as int
+
+	func sum() as int
+		return self.x + self.y
+	end
+end
+
+class Entity extends object
+	var id as int
+
+	func score() as int
+		return self.id + 1
+	end
+end
+
+custom Token extends object
+	var score as int
+
+	func boost(int step) as int
+		return self.score + step
+	end
+end
+
+func main() as int
+	if Vec2.declares_field("x") != true then
+		return 1
+	end
+	if Vec2.declares_field("id") != false then
+		return 2
+	end
+	if Vec2.declares_method("sum") != true then
+		return 3
+	end
+	if Vec2.declares_method("keys") != false then
+		return 4
+	end
+
+	if Entity.declares_field("id") != true then
+		return 5
+	end
+	if Entity.declares_method("score") != true then
+		return 6
+	end
+	if Entity.declares_method("keys") != false then
+		return 7
+	end
+
+	if Token.declares_field("score") != true then
+		return 8
+	end
+	if Token.declares_method("boost") != true then
+		return 9
+	end
+	if Token.declares_method("set") != false then
+		return 10
+	end
+
+	var dyn = Entity()
+	if Type(dyn).declares_field("id") != true then
+		return 11
+	end
+	if Type(dyn).declares_method("score") != true then
+		return 12
+	end
+	if Type(dyn).declares_method("keys") != false then
+		return 13
+	end
+
+	return 42
+end

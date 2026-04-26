@@ -1,0 +1,33 @@
+#loadlib "../xlp_native/packages/pkg.probe/bin/pkg_probe.dll"
+
+custom XDict
+	extern "pkg_clock_artifact_xdict_create" create(int cap)
+	extern "pkg_clock_artifact_xdict_destroy" destroy()
+	extern "pkg_clock_artifact_xdict_set" func set(string key, int value) as bool
+	extern "pkg_clock_artifact_xdict_get" func get(string key) as int
+	extern "pkg_clock_artifact_xdict_exists" func exists(string key) as bool
+	extern "pkg_clock_artifact_xdict_remove" func remove(string key) as bool
+end
+
+func main() as int
+	auto bag = XDict(4)
+	if !bag.set("a", 7) then
+		return 1
+	end
+	if !bag.set("b", 35) then
+		return 2
+	end
+	if !bag.exists("a") then
+		return 3
+	end
+	if bag.get("a") != 7 then
+		return 4
+	end
+	if !bag.remove("a") then
+		return 5
+	end
+	if bag.exists("a") then
+		return 6
+	end
+	return bag.get("b") + 7
+end

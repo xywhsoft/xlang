@@ -1,0 +1,52 @@
+import std.object
+
+class Entity extends object
+	var id as int
+
+	func score() as int
+		return self.id + 1
+	end
+end
+
+custom Token extends object
+	var score as int
+
+	func boost(int step) as int
+		return self.score + step
+	end
+end
+
+func main() as int
+	auto e = Entity()
+	e.id = 7
+	e.note = "ok"
+	if std.object.has_field(e, "id") != true then
+		return 1
+	end
+	if std.object.has_field(e, "note") != true then
+		return 2
+	end
+	if e.id != 7 then
+		return 4
+	end
+	if e.note != "ok" then
+		return 3
+	end
+	if std.object.has_method(e, "score") != true then
+		return 5
+	end
+
+	auto t = Token()
+	t.score = 40
+	if t.score != 40 then
+		return 6
+	end
+	if std.object.has_method(t, "boost") != true then
+		return 7
+	end
+	if std.object.has_field(123, "x") != false then
+		return 8
+	end
+
+	return t.score + 2
+end

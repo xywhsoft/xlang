@@ -1,0 +1,39 @@
+import std.types as types
+
+func backup() as int
+	return 42
+end
+
+func main() as int
+	auto desc = types.dynamic("Enemy", object)
+	desc = types.add_method(desc, "score")
+
+	auto obj = types.new_instance(desc)
+
+	if not types.instance_has_method(obj, "score")
+		return 1
+	end
+	if types.instance_has_method(obj, "ghost")
+		return 2
+	end
+
+	auto bound = types.instance_method(obj, "score", backup)
+	auto missing = types.instance_method(obj, "ghost", backup)
+	auto boundDesc = types.method_impl(desc, "score", backup)
+	auto missingDesc = types.method_impl(desc, "ghost", backup)
+
+	if function<int()>(bound)() != 42
+		return 3
+	end
+	if function<int()>(missing)() != 42
+		return 4
+	end
+	if function<int()>(boundDesc)() != 42
+		return 5
+	end
+	if function<int()>(missingDesc)() != 42
+		return 6
+	end
+
+	return 42
+end

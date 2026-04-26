@@ -401,6 +401,39 @@ static XL_AstNode* xlPCreateMethodFuncDecl(
 	return pDecl;
 }
 
+static XL_AstNode* xlPCreatePropertyFuncDecl(
+	const XL_Token* pKindToken,
+	const XL_Token* pNameToken,
+	XL_AstNode* pParams,
+	XL_AstNode* pRetTypes,
+	XL_AstNode* pBody
+)
+{
+	XL_AstNode* pDecl;
+	char sInternal[256];
+	char sDispatch[256];
+	const char* sPrefix;
+
+	if ( (pKindToken == NULL) || (pNameToken == NULL) ) {
+		xlAstFree(pParams);
+		xlAstFree(pRetTypes);
+		xlAstFree(pBody);
+		return NULL;
+	}
+
+	pDecl = xlAstCreateFuncDecl(pNameToken, 0, pParams, pRetTypes, pBody);
+	if ( pDecl == NULL ) {
+		return NULL;
+	}
+
+	sPrefix = (pKindToken->eKind == XL_KW_GET) ? "__prop_get__" : "__prop_let__";
+	snprintf(sInternal, sizeof(sInternal), "%s%.*s", sPrefix, (int)pNameToken->iTextLen, pNameToken->sText);
+	snprintf(sDispatch, sizeof(sDispatch), "%s:%.*s", (pKindToken->eKind == XL_KW_GET) ? "get" : "let", (int)pNameToken->iTextLen, pNameToken->sText);
+	xlAstSetText(pDecl, sInternal, strlen(sInternal));
+	xlAstSetText2(pDecl, sDispatch, strlen(sDispatch));
+	return pDecl;
+}
+
 static XL_AstNode* xlPCreateTypeParamList(void)
 {
 	XL_AstNode* pList;
@@ -813,6 +846,8 @@ static void xlPAppendStmt(XL_AstNode* pList, XL_AstNode* pStmt)
 %type class_member_items { XL_AstNode* }
 %type class_member { XL_AstNode* }
 %type class_method_decl { XL_AstNode* }
+%type get_decl { XL_AstNode* }
+%type let_decl { XL_AstNode* }
 %type create_decl { XL_AstNode* }
 %type destroy_decl { XL_AstNode* }
 %type union_decl { XL_AstNode* }
@@ -1004,6 +1039,8 @@ class_member(A) ::= typed_var_decl(V). { A = V; }
 class_member(A) ::= const_decl(C). { A = C; }
 class_member(A) ::= class_method_decl(F). { A = F; }
 class_member(A) ::= class_extern_method_decl(F). { A = F; }
+class_member(A) ::= get_decl(G). { A = G; }
+class_member(A) ::= let_decl(L). { A = L; }
 class_member(A) ::= create_decl(C). { A = C; }
 class_member(A) ::= destroy_decl(D). { A = D; }
 class_member(A) ::= KW_NOCOPY(T). { A = xlAstCreateNoCopyDecl(&T); }
@@ -1030,6 +1067,14 @@ class_field_decl(A) ::= KW_VAR TOK_IDENT(N) KW_AS function_type_ref(T) OP_ASSIGN
 
 class_method_decl(A) ::= func_intro(B) func_name(N) TK_LPAREN param_list(P) TK_RPAREN ret_type(R) opt_stmt_sep block(BODY) KW_END. {
 	A = xlAstCreateFuncDecl(&N, B.bAsync, P, R, BODY);
+}
+
+get_decl(A) ::= KW_GET(T) TOK_IDENT(N) TK_LPAREN TK_RPAREN ret_type(R) opt_stmt_sep block(BODY) KW_END. {
+	A = xlPCreatePropertyFuncDecl(&T, &N, xlPList(), R, BODY);
+}
+
+let_decl(A) ::= KW_LET(T) TOK_IDENT(N) TK_LPAREN param_list(P) TK_RPAREN ret_type(R) opt_stmt_sep block(BODY) KW_END. {
+	A = xlPCreatePropertyFuncDecl(&T, &N, P, R, BODY);
 }
 
 class_extern_method_decl(A) ::= KW_EXTERN(E) extern_symbol_opt(S) KW_FUNC TOK_IDENT(N) TK_LPAREN param_list(P) TK_RPAREN ret_type(R). {

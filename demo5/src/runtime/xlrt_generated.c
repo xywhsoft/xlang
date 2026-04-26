@@ -19,6 +19,7 @@ static int __xlQueryEncodeText(char** psBuf, size_t* piLen, size_t* piCap, const
 static const char* __xlQueryDecodeText(const char* sText, size_t iTextLen);
 static const char* __xlTemplateTrimKey(const char* sText, size_t iTextLen, size_t* piOutLen);
 static xvalue __xlValueCopyPreserveRefs(xvalue value);
+static int __xlValueIsChannel(xvalue value);
 
 typedef struct XL_JsonParseCtx {
 	const char* sText;
@@ -215,7 +216,7 @@ static xvalue __xlValueCopyPreserveRefs(xvalue value)
 	if ( value == NULL ) {
 		return NULL;
 	}
-	if ( xl_channel_is_value(value) ) {
+	if ( __xlValueIsChannel(value) ) {
 		return xvoCopy(value);
 	}
 	if ( value->Type == XVO_DT_CLASS ) {
@@ -336,6 +337,20 @@ static xvalue __xlValueCopyPreserveRefs(xvalue value)
 		default:
 			return xvoCopy(value);
 	}
+}
+
+static int __xlValueIsChannel(xvalue value)
+{
+	xvalue queue;
+
+	if ( (value == NULL) || (xvoType(value) != XVO_DT_TABLE) ) {
+		return 0;
+	}
+	queue = xvoTableGetValue(value, "queue", (uint32)(sizeof("queue") - 1u));
+	if ( queue == NULL ) {
+		return 0;
+	}
+	return xvoTableGetInt(value, "__xl_channel__", (uint32)(sizeof("__xl_channel__") - 1u)) ? 1 : 0;
 }
 
 xvalue xl_value_copy_preserve_refs(xvalue value)

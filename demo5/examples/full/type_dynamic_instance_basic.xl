@@ -1,0 +1,53 @@
+import std.types as types
+
+class Entity extends object
+	var id as int
+end
+
+func main() as int
+	auto desc = types.dynamic("Enemy", Entity)
+	desc = types.add_field(desc, "hp", int)
+	desc = types.add_field(desc, "title", string)
+
+	auto obj = types.new_instance(desc)
+
+	if not types.is_instance(obj)
+		return 1
+	end
+	if types.instance_name(obj) != "Enemy"
+		return 2
+	end
+	if types.instance_base(obj) != Entity
+		return 3
+	end
+	if types.instance_desc(obj).name != desc.name
+		return 4
+	end
+	if not types.instance_has_field(obj, "hp")
+		return 5
+	end
+	if types.instance_has_field(obj, "id")
+		return 6
+	end
+
+	obj = types.set_field(obj, "hp", 40)
+	obj = types.set_field(obj, "title", "ok")
+
+	if types.get_field(obj, "hp", 0) != 40
+		return 7
+	end
+	if types.get_field(obj, "title", "") != "ok"
+		return 8
+	end
+	if types.get_field(obj, "missing", 9) != 9
+		return 9
+	end
+	if obj["hp"] != 40
+		return 10
+	end
+	if obj["title"] != "ok"
+		return 11
+	end
+
+	return 42
+end

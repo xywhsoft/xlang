@@ -35,15 +35,15 @@ xlang 第五版对象系统与 XGE 集成开发 Spec
 - ☑ 只有 `object/custom` 进入运行时对象图和动态派发体系。
 
 1.3 本阶段包含
-- ◐ `class extends object`
-- ◐ `custom`
-- ◐ 虚表 / 动态派发
+- ☑ `class extends object`
+- ☑ `custom`
+- ☑ 虚表 / 动态派发
 - ☑ `new/delete`
 - ☑ 隐式堆分配
-- ◐ `var` 上完整对象方法派发
+- ☑ `var` 上完整对象方法派发
 - ☑ 基类引用指向子类实例后的动态派发
-- ◐ 对象图 GC / cycle collect
-- ◐ object 自带 dict 能力
+- ☑ 对象图 GC / cycle collect
+- ☑ object 自带 dict 能力
 - ☑ custom native 函数直接映射为对象方法
 
 1.4 本阶段不包含
@@ -103,7 +103,7 @@ xlang 第五版对象系统与 XGE 集成开发 Spec
 3.2 核心语义
 - ☑ 对象类为引用类型。
 - ☑ 对象类实例默认堆分配。
-- ◐ 对象类方法默认动态派发。
+- ☑ 对象类方法默认动态派发。
 - ☑ 对象类同时拥有“静态字段区 + 动态字段 dict”。
 - ☑ 对象类支持基类引用绑定子类实例。
 
@@ -113,12 +113,12 @@ xlang 第五版对象系统与 XGE 集成开发 Spec
 - ☑ 动态字段表 `dict`
 
 3.4 对象头建议字段
-- ☐ `type*`
-- ☐ `vtable*`
-- ☐ `refCount`
-- ☐ `gcFlags`
-- ☐ `weakList*`
-- ☐ `destroyState`
+- ☑ `type*`：当前以 `pTypeInfo` 形式落地
+- ☑ `vtable*`：当前通过 `pTypeInfo + method table` 间接落地
+- ☑ `refCount`：当前复用宿主 `xvalue` 的引用计数
+- ☑ `gcFlags`：当前以 `uFlags` 形式落地
+- ☑ `weakList*`：当前以 `pWeakRefs` 形式落地
+- ☑ `destroyState`：当前以 `XL_OBJECT_FLAG_DESTROYING / DESTROYED` 形式落地
 
 3.5 字段访问规则
 - ☑ 读 `obj.name`：
@@ -179,7 +179,7 @@ xlang 第五版对象系统与 XGE 集成开发 Spec
   - ☑ `custom` 支持构造
   - ☑ `custom` 支持析构
   - ☑ `custom` 支持普通成员函数
-  - ☐ `custom` 支持运算符重载
+  - ☑ `custom` 支持运算符重载
   - ☑ `custom` 支持继承 `object`
   - ☑ `custom` 支持进入 `var`
   - ☑ `custom` 支持动态派发
@@ -236,14 +236,14 @@ xlang 第五版对象系统与 XGE 集成开发 Spec
 - ☑ 基类引用绑定子类实例时，普通方法调用走子类实现
 
 5.3 属性与索引派发
-- ☐ `get / let` 在 object/custom 上也进入虚表槽位
-- ☐ 运算符元方法在 object/custom 上也进入虚表槽位
-- ☐ `obj[key]` / `obj[key] = value` 在 object/custom 上可参与动态派发
+- ☑ `get / let` 在 object/custom 上也进入虚表槽位
+- ☑ 运算符元方法在 object/custom 上也进入虚表槽位
+- ☑ `obj[key]` / `obj[key] = value` 在 object/custom 上可参与动态派发
 
 5.4 `var` 上完整派发
-- ☐ `var` 若装的是 object/custom，则 `v.foo()` 走运行时类型分派
-- ☐ `var` 若装的是 plain class，则维持当前装箱语义，后续可桥接到运行时方法表
-- ☐ `var` 上字段访问、方法调用、索引访问、运算符优先走运行时类型能力表
+- ☑ `var` 若装的是 object/custom，则 `v.foo()` 走运行时类型分派
+- ☑ `var` 若装的是 plain class，则维持当前装箱语义，字段 / 方法 / 索引 / 运算符可通过 boxed class 语义桥接
+- ☑ `var` 上字段访问、方法调用、索引访问、运算符优先走运行时类型能力表
 
 --------------------------------
 六、构造、分配与销毁
@@ -266,9 +266,9 @@ xlang 第五版对象系统与 XGE 集成开发 Spec
 - ☑ 若对象为唯一强引用，则立即执行析构链和释放
 
 6.4 销毁规则
-- ☐ 析构只执行一次
-- ☐ 对象进入 `destroying` 状态后禁止普通方法再次调用
-- ☐ 析构期间若再次触发 release，不允许二次销毁
+- ☑ 析构只执行一次
+- ☑ 对象进入 `destroying` 状态后禁止普通方法再次调用
+- ☑ 析构期间若再次触发 release，不允许二次销毁
 
 --------------------------------
 七、GC 与对象图
@@ -283,28 +283,28 @@ xlang 第五版对象系统与 XGE 集成开发 Spec
 - ☑ 保证常规对象析构及时执行
 
 7.3 cycle collector 职责
-- ◐ 回收 object/custom/container/closure/task 等形成的环
+- ☑ 回收 object/custom/container/closure/generator/task 等形成的环
 - ☑ 修复仅靠引用计数时的循环泄漏问题
 
 7.4 对象图节点
 - ☑ object
 - ☑ custom
-- ◐ array
-- ◐ list
-- ◐ set
-- ◐ dict
+- ☑ array
+- ☑ list
+- ☑ set
+- ☑ dict
 - ☑ 已覆盖 `object/custom -> dynamic field -> container -> object/custom` 的循环遍历与回收
 - ☑ closure env
-- ☐ generator
-- ☐ task / future
-- ☐ `var` 中装箱的运行时对象
+- ☑ generator
+- ☑ task / future
+- ☑ `var` 中装箱的运行时对象
 
 7.5 根集合
-- ☐ 全局变量
-- ☐ 栈帧局部变量
-- ☐ 闭包环境
-- ☐ task / generator 调度结构
-- ☐ native pinned handles
+- ☑ 全局变量：通过 `xvalue` 强引用保活
+- ☑ 栈帧局部变量：通过 `xvalue` 强引用保活
+- ☑ 闭包环境：已纳入 trace 与回收链
+- ☑ task / generator 调度结构：已纳入 trace 与回收链
+- ☑ native pinned handles
 
 7.6 弱引用
 - ☑ 引入弱引用支持
@@ -337,9 +337,17 @@ xlang 第五版对象系统与 XGE 集成开发 Spec
 - ☑ 虚表槽位定义依赖运行时类型描述
 - ☑ custom 绑定也依赖运行时类型描述
 
-8.4 明确后置
+8.4 runtime dynamic class 当前阶段
+- ☑ 已完成 descriptor API：`dynamic / is_dynamic / dynamic_name / dynamic_base / add_field / add_method / has_declared_field / has_declared_method`
+- ☑ 已完成最小实例 API：`new_instance / is_instance / instance_name / instance_base / instance_desc / instance_has_field / set_field / get_field`
+- ☑ 动态实例当前复用现有 object 运行时模型与动态字段能力
+- ☑ 已完成“descriptor + minimal instance API + descriptor/instance enumeration API + minimal callable method binding”
+- ☑ 脚本声明语法与完整元对象系统继续后置
+
+8.5 明确后置
 - ☑ class 元编程后置
-- ☑ object 元编程后置
+- ☑ object 元编程第一阶段运行时 API 已完成
+- ☑ 完整元对象系统继续后置
 - ☑ runtime dynamic class 脚本语法后置
 
 --------------------------------
@@ -377,10 +385,10 @@ xlang 第五版对象系统与 XGE 集成开发 Spec
 --------------------------------
 
 10.1 阶段 1：object 核心
-- ◐ `class extends object`
+- ☑ `class extends object`
 - ☑ 对象头
 - ☑ 静态字段 + 动态 dict
-- ◐ 虚表
+- ☑ 虚表
 - ☑ 基类引用动态派发
 - ☑ object 内建 dict API
 
@@ -394,7 +402,7 @@ xlang 第五版对象系统与 XGE 集成开发 Spec
 - ☑ native payload 模型
   - ☑ create / destroy 绑定
   - ☑ 成员函数直接映射
-  - ☐ XGE / xrt 资源类样例
+  - ☑ XGE / xrt 资源类样例
 
 10.4 阶段 4：new / delete / RC
 - ☑ 隐式堆分配
@@ -403,7 +411,7 @@ xlang 第五版对象系统与 XGE 集成开发 Spec
 - ☑ 基础引用计数模型
 
 10.5 阶段 5：cycle collect / weak
-- ◐ 对象图
+- ☑ 对象图
 - ☑ 循环回收
 - ☑ 弱引用
 
@@ -412,40 +420,58 @@ xlang 第五版对象系统与 XGE 集成开发 Spec
 --------------------------------
 
 11.1 object parser / sem
-- ☐ `object_class_basic`
-- ☐ `object_dynamic_field_basic`
-- ☐ `object_field_shadow_basic`
+- ☑ `object_class_basic`
+- ☑ `object_dynamic_field_basic`
+- ☑ `object_field_shadow_basic`
 - ☑ `object_super_call_basic`
 - ☑ `object_virtual_dispatch_basic`
 
 11.2 object runtime
-- ☐ `runtime.object_create_destroy_basic`
+- ☑ `runtime.object_create_destroy_basic`
 - ☑ `runtime.object_dynamic_field_basic`
-- ☐ `runtime.object_dict_inherit_basic`
+- ☑ `runtime.object_dict_inherit_basic`
 - ☑ `runtime.object_method_override_basic`
 - ☑ `runtime.object_base_ref_dispatch_basic`
+- ☑ `runtime.object_get_let_dispatch_basic`
+- ☑ `runtime.object_operator_dispatch_basic`
 - ☑ `runtime.var_object_dispatch_basic`
+- ☑ `runtime.class_stage1_var_dispatch_basic`
+- ☑ `runtime.class_stage1_var_index_dispatch_basic`
+- ☑ `runtime.object_meta_runtime_basic`
 - ☑ `runtime.object_keys_values_items_basic`
 - ☑ `runtime.object_remove_dynamic_field_basic`
 
 11.3 custom runtime
-- ☐ `runtime.custom_xrt_dict_basic`
+- ☑ `runtime.custom_xrt_dict_basic`
   - ☑ `runtime.custom_native_payload_basic`
 - ☑ `runtime.custom_destroy_basic`
 - ☑ `runtime.custom_extern_create_destroy_runtime`
   - ☑ `runtime.custom_method_bind_basic`
+  - ☑ `runtime.custom_get_let_dispatch_basic`
   - ☑ `runtime.custom_var_dispatch_basic`
+  - ☑ `runtime.custom_var_operator_basic`
+  - ☑ `runtime.custom_var_index_dispatch_basic`
+  - ☑ `runtime.custom_operator_basic`
+- ☑ `runtime.custom_xrt_resource_basic`
 
 11.4 memory / gc
 - ☑ `runtime.object_refcount_basic`
 - ☑ `runtime.object_delete_basic`
 - ☑ `runtime.object_delete_shared_error`
+- ☑ `runtime.object_destroy_runs_once`
+- ☑ `runtime.object_destroying_dispatch_guard`
+- ☑ `runtime.object_reentrant_delete_guard`
+- ☑ `runtime.object_runtime_disposed_guard`
 - ☑ `runtime.object_cycle_collect_basic`
 - ☑ `runtime.object_collect_container_cycles_basic`
 - ☑ `runtime.object_weak_ref_basic`
+- ☑ `runtime.object_pinned_root_basic`
 - ☑ `runtime.object_collect_runtime`
 - ☑ `runtime.object_collect_container_runtime`
 - ☑ `runtime.object_collect_closure_runtime`
+- ☑ `runtime.object_collect_generator_runtime`
+- ☑ `runtime.object_collect_task_runtime`
+- ☑ `runtime.object_collect_future_runtime`
 - ☑ `runtime.object_collect_channel_cycles_basic`
 - ☑ `runtime.object_collect_channel_runtime`
 
@@ -457,4 +483,7 @@ xlang 第五版对象系统与 XGE 集成开发 Spec
 - `plain class` 保持“增强结构体模型”不变。
 - `object` 定位为“class + dict + 虚表 + 引用语义”。
 - `custom` 定位为“native-backed object class”。
-- 元编程明确延后，避免污染对象系统首版落地。
+- `runtime dynamic class` 已完成：descriptor API、minimal instance API、descriptor/instance 两侧的 field/method 枚举 API、字段类型名查询、方法绑定与绑定状态查询、已绑定方法枚举、零参/带参/`string`/`var` 返回函数值调用，以及缺失/未绑定 `int/string` 方法的默认值回退；脚本声明语法与完整元对象系统继续后置。
+- `class 元编程` 第一阶段已完成：`declared_field_count / declared_method_count / declared_field_name_at / declared_method_name_at / declares_field / declares_method / declared_field_names / declared_method_names`；当前只承诺用户定义的 `plain/object/custom` 类型，builtin declared-member 语义继续后置。
+- `object 元编程` 第一阶段已完成：`std.object.has_field / has_method / field_names / field_count / field_name_at / method_names / method_count / method_name_at`；完整元对象系统继续后置。
+- 元编程整体仍保持延后策略，避免污染对象系统首版落地。

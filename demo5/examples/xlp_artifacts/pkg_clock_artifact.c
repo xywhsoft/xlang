@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include <stdlib.h>
 #include <string.h>
 
 #if defined(_WIN32) || defined(_WIN64)
@@ -90,6 +91,28 @@ XL_EXPORT int pkg_clock_artifact_point_is_sentinel(void)
 XL_EXPORT int pkg_clock_artifact_point_is_null(void)
 {
 	return pkg_clock_artifact_point_slot == NULL;
+}
+
+XL_EXPORT void* pkg_clock_artifact_meter_create(int value)
+{
+	int* pValue = (int*)malloc(sizeof(int));
+	if ( pValue == NULL ) {
+		return NULL;
+	}
+	*pValue = value;
+	return pValue;
+}
+
+XL_EXPORT int pkg_clock_artifact_meter_score(void* value)
+{
+	return (value != NULL) ? *((int*)value) : 0;
+}
+
+XL_EXPORT void pkg_clock_artifact_meter_release(void* value)
+{
+	if ( value != NULL ) {
+		free(value);
+	}
 }
 
 XL_EXPORT int pkg_clock_artifact_bool_slot_is_true(void)
@@ -430,4 +453,119 @@ XL_EXPORT int pkg_clock_artifact_var_text_len(XL_ArtifactXValue value)
 		return -1000;
 	}
 	return (int)value->Size;
+}
+
+typedef struct XL_PkgClockArtifactDictEntry {
+	int used;
+	char key[32];
+	int value;
+} XL_PkgClockArtifactDictEntry;
+
+typedef struct XL_PkgClockArtifactDict {
+	int cap;
+	XL_PkgClockArtifactDictEntry entries[16];
+} XL_PkgClockArtifactDict;
+
+static int pkg_clock_artifact_xdict_find(XL_PkgClockArtifactDict* dict, const char* key)
+{
+	int i;
+
+	if ( (dict == NULL) || (key == NULL) ) {
+		return -1;
+	}
+	for ( i = 0; i < dict->cap; ++i ) {
+		if ( dict->entries[i].used && (strcmp(dict->entries[i].key, key) == 0) ) {
+			return i;
+		}
+	}
+	return -1;
+}
+
+static int pkg_clock_artifact_xdict_find_free(XL_PkgClockArtifactDict* dict)
+{
+	int i;
+
+	if ( dict == NULL ) {
+		return -1;
+	}
+	for ( i = 0; i < dict->cap; ++i ) {
+		if ( !dict->entries[i].used ) {
+			return i;
+		}
+	}
+	return -1;
+}
+
+XL_EXPORT void* pkg_clock_artifact_xdict_create(int cap)
+{
+	XL_PkgClockArtifactDict* dict;
+
+	if ( cap <= 0 ) {
+		cap = 4;
+	}
+	if ( cap > 16 ) {
+		cap = 16;
+	}
+	dict = (XL_PkgClockArtifactDict*)calloc(1, sizeof(XL_PkgClockArtifactDict));
+	if ( dict == NULL ) {
+		return NULL;
+	}
+	dict->cap = cap;
+	return dict;
+}
+
+XL_EXPORT void pkg_clock_artifact_xdict_destroy(void* value)
+{
+	free(value);
+}
+
+XL_EXPORT int pkg_clock_artifact_xdict_set(void* value, const char* key, int item)
+{
+	XL_PkgClockArtifactDict* dict = (XL_PkgClockArtifactDict*)value;
+	int index;
+
+	if ( (dict == NULL) || (key == NULL) ) {
+		return 0;
+	}
+	index = pkg_clock_artifact_xdict_find(dict, key);
+	if ( index < 0 ) {
+		index = pkg_clock_artifact_xdict_find_free(dict);
+		if ( index < 0 ) {
+			return 0;
+		}
+		dict->entries[index].used = 1;
+		strncpy(dict->entries[index].key, key, sizeof(dict->entries[index].key) - 1);
+		dict->entries[index].key[sizeof(dict->entries[index].key) - 1] = '\0';
+	}
+	dict->entries[index].value = item;
+	return 1;
+}
+
+XL_EXPORT int pkg_clock_artifact_xdict_get(void* value, const char* key)
+{
+	XL_PkgClockArtifactDict* dict = (XL_PkgClockArtifactDict*)value;
+	int index = pkg_clock_artifact_xdict_find(dict, key);
+
+	if ( index < 0 ) {
+		return 0;
+	}
+	return dict->entries[index].value;
+}
+
+XL_EXPORT int pkg_clock_artifact_xdict_exists(void* value, const char* key)
+{
+	XL_PkgClockArtifactDict* dict = (XL_PkgClockArtifactDict*)value;
+	return pkg_clock_artifact_xdict_find(dict, key) >= 0;
+}
+
+XL_EXPORT int pkg_clock_artifact_xdict_remove(void* value, const char* key)
+{
+	XL_PkgClockArtifactDict* dict = (XL_PkgClockArtifactDict*)value;
+	int index = pkg_clock_artifact_xdict_find(dict, key);
+
+	if ( index < 0 ) {
+		return 0;
+	}
+	memset(&dict->entries[index], 0, sizeof(dict->entries[index]));
+	return 1;
 }
