@@ -36,23 +36,26 @@ set BUILD_ID=%BUILD_ID% run-%RANDOM%-%RANDOM%
 >> "%BUILD_STAMP_HEADER%" echo #define XL_TEST_BUILD_ID "%BUILD_ID%"
 >> "%BUILD_STAMP_HEADER%" echo #endif
 
-if not exist release\src\common mkdir release\src\common
-if not exist release\src\runtime mkdir release\src\runtime
-if not exist release\src\host mkdir release\src\host
-if not exist release\lib\xrt mkdir release\lib\xrt
+if exist release\src rmdir /s /q release\src
+if exist release\lib\xrt rmdir /s /q release\lib\xrt
+if exist release\tcc\xrt rmdir /s /q release\tcc\xrt
+if not exist release\tcc\support\common mkdir release\tcc\support\common
+if not exist release\tcc\support\runtime mkdir release\tcc\support\runtime
+if not exist release\tcc\support\host mkdir release\tcc\support\host
+if not exist release\tcc\include mkdir release\tcc\include
 
-copy /y src\common\xl_common.h release\src\common\xl_common.h >nul
-copy /y src\runtime\xlrt_profile.h release\src\runtime\xlrt_profile.h >nul
-copy /y src\runtime\xlrt_host.c release\src\runtime\xlrt_host.c >nul
-copy /y src\runtime\xlrt_generated.h release\src\runtime\xlrt_generated.h >nul
-copy /y src\runtime\xlrt_generated.c release\src\runtime\xlrt_generated.c >nul
-copy /y src\runtime\xl_object_runtime.h release\src\runtime\xl_object_runtime.h >nul
-copy /y src\runtime\xl_object_runtime.c release\src\runtime\xl_object_runtime.c >nul
-copy /y src\runtime\xl_channel_runtime.c release\src\runtime\xl_channel_runtime.c >nul
-copy /y src\runtime\xl_sys_lib_runtime.c release\src\runtime\xl_sys_lib_runtime.c >nul
-copy /y src\host\xl_host_runtime.h release\src\host\xl_host_runtime.h >nul
-copy /y src\host\xl_host_runtime.c release\src\host\xl_host_runtime.c >nul
-copy /y lib\xrt\xrt.h release\lib\xrt\xrt.h >nul
+copy /y src\common\xl_common.h release\tcc\support\common\xl_common.h >nul
+copy /y src\runtime\xlrt_profile.h release\tcc\support\runtime\xlrt_profile.h >nul
+copy /y src\runtime\xlrt_host.c release\tcc\support\runtime\xlrt_host.c >nul
+copy /y src\runtime\xlrt_generated.h release\tcc\support\runtime\xlrt_generated.h >nul
+copy /y src\runtime\xlrt_generated.c release\tcc\support\runtime\xlrt_generated.c >nul
+copy /y src\runtime\xl_object_runtime.h release\tcc\support\runtime\xl_object_runtime.h >nul
+copy /y src\runtime\xl_object_runtime.c release\tcc\support\runtime\xl_object_runtime.c >nul
+copy /y src\runtime\xl_channel_runtime.c release\tcc\support\runtime\xl_channel_runtime.c >nul
+copy /y src\runtime\xl_sys_lib_runtime.c release\tcc\support\runtime\xl_sys_lib_runtime.c >nul
+copy /y src\host\xl_host_runtime.h release\tcc\support\host\xl_host_runtime.h >nul
+copy /y src\host\xl_host_runtime.c release\tcc\support\host\xl_host_runtime.c >nul
+copy /y lib\xrt\xrt.h release\tcc\include\xrt.h >nul
 
 echo Generating lexer with Flex...
 tools\flex.exe --wincompat --noline -o src\lexer\xl_lexer_gen.c --header-file=src\lexer\xl_lexer_gen.h src\lexer\xl_lexer.l

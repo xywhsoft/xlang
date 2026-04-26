@@ -1,0 +1,162 @@
+xlang demo5 发布目录与 libs 布局规范
+
+一、目标
+
+demo5 的 release 目录作为正式发布目录使用。
+xl.exe / xldbg.exe 应该可以在任意机器、任意位置直接运行，不依赖仓库源码树的相对路径推导。
+
+二、发布目录标准布局
+
+最小推荐布局：
+
+release/
+    xl.exe
+    xldbg.exe
+    xl5_test.exe
+    tcc/
+    src/
+    lib/
+        xrt/
+    libs/
+    cgen/
+    dump/
+    tmp/
+    trace/
+
+说明：
+
+1. xl.exe、xldbg.exe 所在目录本身就是 AppPath。
+2. tcc 固定定位到：
+   AppPath\\tcc
+3. 运行期 support 源与头文件固定定位到：
+   AppPath\\src
+   AppPath\\lib\\xrt
+4. 运行时自动输出目录固定定位到：
+   AppPath\\cgen
+   AppPath\\dump
+   AppPath\\tmp
+   AppPath\\trace
+
+三、libs 的设计目标
+
+libs 分为两类：
+
+1. 公共 libs
+   AppPath\\libs
+
+   这是和 xl.exe 绑定在一起的公共外部库目录。
+   适合放：
+   - 发布包自带的公共 xlp 包
+   - 公共 native 头文件
+   - 公共静态库 / 动态库
+
+2. 私有 libs
+   输入文件所在目录\\libs
+
+   这是脚本或项目自身携带的私有库目录。
+   适合放：
+   - 当前脚本专用的 xlp 包
+   - 当前项目专用的 native 头文件 / 静态库 / 动态库
+
+四、默认搜索规则
+
+当前版本会自动把下列路径加入默认搜索链。
+
+1. 公共 libs
+   AppPath\\libs
+   AppPath\\libs\\packages
+   AppPath\\libs\\lib
+   AppPath\\libs\\include
+
+2. 私有 libs
+   输入文件所在目录\\libs
+   输入文件所在目录\\libs\\packages
+   输入文件所在目录\\libs\\lib
+   输入文件所在目录\\libs\\include
+
+五、推荐包布局
+
+1. 纯 xlp 源包
+
+libs/
+    packages/
+        pkg.math/
+            xlp.json
+            src/
+                math_pkg_impl.xl
+
+2. native shared 包
+
+libs/
+    packages/
+        pkg.probe/
+            xlp.json
+            bin/
+                pkg_probe.dll
+
+3. native static 包
+
+libs/
+    packages/
+        pkg.clock/
+            xlp.json
+            lib/
+                pkg_clock.a
+
+4. 头文件与裸库
+
+libs/
+    include/
+        xxx.h
+    lib/
+        xxx.a
+        xxx.lib
+        xxx.dll
+
+六、推荐使用方式
+
+1. 公共包
+
+把包放到：
+AppPath\\libs\\packages
+
+然后脚本直接：
+import pkg.math
+
+2. 私有包
+
+把包放到：
+当前脚本目录\\libs\\packages
+
+然后脚本直接：
+import pkg.math
+
+3. native include / link
+
+如果库文件和头文件放在：
+libs\\include
+libs\\lib
+
+那么通常不需要再显式写绝对路径。
+只有特殊目录布局下，才额外使用：
+- #incpath
+- #libpath
+
+七、当前版本的边界
+
+1. libs 默认搜索已经支持：
+   - 公共 AppPath\\libs
+   - 私有 输入文件同目录\\libs
+
+2. 当前“私有 libs”是按输入文件所在目录计算，不是按 importer 模块逐层独立隔离。
+
+3. 如果是 import 链，沿路径向上寻找 package roots 时，也会同时检查：
+   - 当前层\\packages
+   - 当前层\\libs\\packages
+
+八、建议
+
+1. 发布包自带依赖，优先放 AppPath\\libs
+2. 项目局部依赖，优先放 main.xl 同目录的 libs
+3. 不再依赖过去那种到处动态拼 release 根目录的方式
+4. 不建议把用户包直接散放到 tcc 目录中

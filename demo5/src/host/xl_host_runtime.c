@@ -1,7 +1,7 @@
 #include "xl_host_runtime.h"
 
 #include "../runtime/xlrt_profile.h"
-#include "../../lib/xrt/xrt.h"
+#include "xrt.h"
 
 #if defined(_WIN32) || defined(_WIN64)
 	#include <winsock2.h>
