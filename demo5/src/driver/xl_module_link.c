@@ -7917,6 +7917,7 @@ static int __xlBuildLinkedRoot(XL_ModuleLinkContext* pCtx, XL_AstNode** ppRoot)
 	return XL_RC_OK;
 }
 
+#if XLANG_DEBUGMODE_ENABLED
 static void __xlBuildModuleTextDump(const XL_ModuleLinkContext* pCtx, char** psText)
 {
 	XL_ModuleTextBuffer buf;
@@ -8122,6 +8123,7 @@ static void __xlBuildModuleJsonDump(const XL_ModuleLinkContext* pCtx, char** psJ
 	__xlModuleBufAppend(&buf, "}\n");
 	*psJson = buf.sData;
 }
+#endif
 
 static int __xlCopyModuleSummaries(const XL_ModuleLinkContext* pCtx, XL_ModuleLinkResult* pResult)
 {
@@ -8382,8 +8384,10 @@ int xlModuleLinkFromFile(const char* sInputFile, XL_DiagContext* pDiag, int bTra
 		goto cleanup;
 	}
 
+#if XLANG_DEBUGMODE_ENABLED
 	__xlBuildModuleTextDump(&ctx, &pResult->sTextDump);
 	__xlBuildModuleJsonDump(&ctx, &pResult->sJsonDump);
+#endif
 	iRc = __xlCopyModuleSummaries(&ctx, pResult);
 	if ( iRc != XL_RC_OK ) {
 		goto cleanup;

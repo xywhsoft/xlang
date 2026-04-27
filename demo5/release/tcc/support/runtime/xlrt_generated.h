@@ -4,6 +4,14 @@
 #include "xlrt_profile.h"
 #include "xrt.h"
 
+#ifndef XLANG_DEBUGMODE_ENABLED
+	#if defined(XLANG_DEBUGMODE)
+		#define XLANG_DEBUGMODE_ENABLED 1
+	#else
+		#define XLANG_DEBUGMODE_ENABLED 0
+	#endif
+#endif
+
 #ifndef XL_OBJECT_HEADER_MAGIC
 #define XL_OBJECT_HEADER_MAGIC 0x584C4F42u
 #endif
@@ -103,14 +111,18 @@ extern int xl_core_len_dict(xvalue value);
 extern const char* xl_point_to_string(void* value);
 extern const char* xl_value_to_string(xvalue value);
 extern xvalue xl_value_clone_async_state(xvalue value);
+#if XLANG_DEBUGMODE_ENABLED
 extern const char* xl_debug_text(xvalue value);
 extern void xl_debug_print(xvalue value);
 extern void xl_debug_println(xvalue value);
+#endif
 extern void xl_log_debug(const char* sText);
 extern void xl_log_info(const char* sText);
 extern void xl_log_warn(const char* sText);
 extern void xl_log_error(const char* sText);
+#if XLANG_DEBUGMODE_ENABLED
 extern void xl_trace_write(const char* sText);
+#endif
 extern int xl_regex_is_match(const char* sPattern, const char* sText);
 extern const char* xl_regex_find(const char* sPattern, const char* sText);
 extern xvalue xl_regex_captures(const char* sPattern, const char* sText);

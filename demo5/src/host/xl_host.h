@@ -43,6 +43,7 @@ typedef struct XL_HostContext {
 	char sReleaseRoot[XL_PATH_MAX_LEN];
 	char sProjectRoot[XL_PATH_MAX_LEN];
 	char sTccRoot[XL_PATH_MAX_LEN];
+	int bDebugMode;
 	XL_HostArtifact arrArtifacts[XL_HOST_ARTIFACT_MAX];
 	size_t iArtifactCount;
 	XL_HostExternSymbol arrExternSymbols[XL_HOST_EXTERN_SYMBOL_MAX];

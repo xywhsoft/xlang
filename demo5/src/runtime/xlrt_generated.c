@@ -358,22 +358,6 @@ xvalue xl_value_copy_preserve_refs(xvalue value)
 	return __xlValueCopyPreserveRefs(value);
 }
 
-const char* xl_debug_text(xvalue value)
-{
-	return xl_value_to_string(value);
-}
-
-void xl_debug_print(xvalue value)
-{
-	__xlWriteText(xl_value_to_string(value));
-}
-
-void xl_debug_println(xvalue value)
-{
-	__xlWriteText(xl_value_to_string(value));
-	__xlWriteText("\n");
-}
-
 void xl_log_debug(const char* sText)
 {
 	__xlWriteText("[debug] ");
@@ -398,13 +382,6 @@ void xl_log_warn(const char* sText)
 void xl_log_error(const char* sText)
 {
 	__xlWriteText("[error] ");
-	__xlWriteText((sText != NULL) ? sText : "");
-	__xlWriteText("\n");
-}
-
-void xl_trace_write(const char* sText)
-{
-	__xlWriteText("[trace] ");
 	__xlWriteText((sText != NULL) ? sText : "");
 	__xlWriteText("\n");
 }

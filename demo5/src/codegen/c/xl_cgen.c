@@ -92,11 +92,19 @@ static void __xlCgenClassDestroyActiveBlockLocalsUntilDepth(XL_CgenContext* pCtx
 static int __xlCgenIsClassTypeName(const XL_CgenContext* pCtx, const char* sTypeName);
 static int __xlIsClassCtorCall(XL_CgenContext* pCtx, const XL_MirNode* pNode);
 static const XL_MirNode* __xlFindFuncNodeBySymbolName(const XL_MirNode* pRoot, const char* sSymbolName);
+#if XLANG_DEBUGMODE_ENABLED
 static void __xlCgenTraceEventStmt(XL_CgenContext* pCtx, const char* sEvent, const char* sFuncName);
 static void __xlCgenTraceStateEventStmt(XL_CgenContext* pCtx, const char* sFuncName, int iStateId);
 static void __xlCgenTraceFlushStmt(XL_CgenContext* pCtx);
 static void __xlCgenGeneratorTraceEventStmt(XL_CgenContext* pCtx, const char* sEvent, const char* sFuncName);
 static void __xlCgenGeneratorTraceEventInline(XL_CgenContext* pCtx, const char* sEvent, const char* sFuncName);
+#else
+#define __xlCgenTraceEventStmt(pCtx, sEvent, sFuncName) ((void)(pCtx), (void)(sEvent), (void)(sFuncName))
+#define __xlCgenTraceStateEventStmt(pCtx, sFuncName, iStateId) ((void)(pCtx), (void)(sFuncName), (void)(iStateId))
+#define __xlCgenTraceFlushStmt(pCtx) ((void)(pCtx))
+#define __xlCgenGeneratorTraceEventStmt(pCtx, sEvent, sFuncName) ((void)(pCtx), (void)(sEvent), (void)(sFuncName))
+#define __xlCgenGeneratorTraceEventInline(pCtx, sEvent, sFuncName) ((void)(pCtx), (void)(sEvent), (void)(sFuncName))
+#endif
 
 typedef struct XL_CgenGeneratorTryFrameField {
 	char sName[64];
@@ -6532,6 +6540,7 @@ static int __xlCgenCountHybridAwaitsInGroup(const XL_HybridSmFunc* pFunc, int iP
 	return iCount;
 }
 
+#if XLANG_DEBUGMODE_ENABLED
 static void __xlCgenAppendHybridGroupTraceEvent(
 	XL_CgenContext* pCtx,
 	const XL_CgenFuncInfo* pFuncInfo,
@@ -6539,7 +6548,6 @@ static void __xlCgenAppendHybridGroupTraceEvent(
 	const char* sPhase
 )
 {
-#if XLANG_DEBUGMODE_ENABLED
 	const XL_HybridSmPoint* pHybridPoint;
 
 	if ( (pCtx == NULL) || (pFuncInfo == NULL) || (pFuncInfo->pHybridFunc == NULL) || (sPhase == NULL) ) {
@@ -6558,12 +6566,6 @@ static void __xlCgenAppendHybridGroupTraceEvent(
 	);
 	__xlCgenAppendCString(&pCtx->buf, pFuncInfo->sName);
 	__xlCgenAppend(&pCtx->buf, ");\n");
-#else
-	(void)pCtx;
-	(void)pFuncInfo;
-	(void)iGeneratorStateId;
-	(void)sPhase;
-#endif
 }
 
 static void __xlCgenAppendHybridGroupTraceEventInline(
@@ -6573,7 +6575,6 @@ static void __xlCgenAppendHybridGroupTraceEventInline(
 	const char* sPhase
 )
 {
-#if XLANG_DEBUGMODE_ENABLED
 	const XL_HybridSmPoint* pHybridPoint;
 
 	if ( (pCtx == NULL) || (pFuncInfo == NULL) || (pFuncInfo->pHybridFunc == NULL) || (sPhase == NULL) ) {
@@ -6591,13 +6592,11 @@ static void __xlCgenAppendHybridGroupTraceEventInline(
 	);
 	__xlCgenAppendCString(&pCtx->buf, pFuncInfo->sName);
 	__xlCgenAppend(&pCtx->buf, "); ");
-#else
-	(void)pCtx;
-	(void)pFuncInfo;
-	(void)iGeneratorStateId;
-	(void)sPhase;
-#endif
 }
+#else
+#define __xlCgenAppendHybridGroupTraceEvent(pCtx, pFuncInfo, iGeneratorStateId, sPhase) ((void)(pCtx), (void)(pFuncInfo), (void)(iGeneratorStateId), (void)(sPhase))
+#define __xlCgenAppendHybridGroupTraceEventInline(pCtx, pFuncInfo, iGeneratorStateId, sPhase) ((void)(pCtx), (void)(pFuncInfo), (void)(iGeneratorStateId), (void)(sPhase))
+#endif
 
 static int __xlCgenCountHybridYieldPoints(const XL_HybridSmFunc* pFunc)
 {
@@ -8318,9 +8317,6 @@ static void __xlCgenRuntimeSupport(XL_CgenContext* pCtx)
 	__xlCgenAppend(pBuf, "\txl_generated_async_trace_append(sLine);\n");
 	__xlCgenAppend(pBuf, "}\n\n");
 	#else
-	__xlCgenAppend(pBuf, "char xl_generated_async_trace[1];\n");
-	__xlCgenAppend(pBuf, "int xl_generated_async_trace_len = 0;\n\n");
-	__xlCgenAppend(pBuf, "static void xl_generated_async_trace_append(const char* sText)\n{\n\t(void)sText;\n}\n\n");
 	__xlCgenAppend(pBuf, "static void xl_generated_async_trace_event(const char* sEvent, const char* sFunc)\n{\n\t(void)sEvent;\n\t(void)sFunc;\n}\n\n");
 	__xlCgenAppend(pBuf, "static void xl_generated_async_trace_state_event(const char* sFunc, int iStateId)\n{\n\t(void)sFunc;\n\t(void)iStateId;\n}\n\n");
 	__xlCgenAppend(pBuf, "static void xl_generated_task_trace_event(const char* sEvent, const char* sName)\n{\n\t(void)sEvent;\n\t(void)sName;\n}\n\n");
@@ -8463,8 +8459,10 @@ static void __xlCgenRuntimeSupport(XL_CgenContext* pCtx)
 	__xlCgenAppend(pBuf, "\txl_generated_exception_column = 0;\n");
 	__xlCgenAppend(pBuf, "\txl_generated_exception_int = 0;\n");
 	__xlCgenAppend(pBuf, "\txl_generated_exception_float = 0.0;\n");
+	#if XLANG_DEBUGMODE_ENABLED
 	__xlCgenAppend(pBuf, "\txl_generated_async_trace_len = 0;\n");
 	__xlCgenAppend(pBuf, "\txl_generated_async_trace[0] = '\\0';\n");
+	#endif
 	__xlCgenAppend(pBuf, "\txl_generated_exception_frame_depth = 0;\n");
 	__xlCgenAppend(pBuf, "\txlrt_native_error_clear();\n");
 	__xlCgenAppend(pBuf, "}\n\n");
@@ -19587,76 +19585,50 @@ static void __xlCgenExpr(XL_CgenContext* pCtx, const XL_MirNode* pNode)
 	__xlCgenAppend(&pCtx->buf, "0");
 }
 
+#if XLANG_DEBUGMODE_ENABLED
 static void __xlCgenTraceEventStmt(XL_CgenContext* pCtx, const char* sEvent, const char* sFuncName)
 {
-#if XLANG_DEBUGMODE_ENABLED
 	__xlCgenAppendIndent(&pCtx->buf);
 	__xlCgenAppend(&pCtx->buf, "xl_generated_async_trace_event(");
 	__xlCgenAppendCString(&pCtx->buf, sEvent);
 	__xlCgenAppend(&pCtx->buf, ", ");
 	__xlCgenAppendCString(&pCtx->buf, (sFuncName != NULL) ? sFuncName : "");
 	__xlCgenAppend(&pCtx->buf, ");\n");
-#else
-	(void)pCtx;
-	(void)sEvent;
-	(void)sFuncName;
-#endif
 }
 
 static void __xlCgenTraceStateEventStmt(XL_CgenContext* pCtx, const char* sFuncName, int iStateId)
 {
-#if XLANG_DEBUGMODE_ENABLED
 	__xlCgenAppendIndent(&pCtx->buf);
 	__xlCgenAppend(&pCtx->buf, "xl_generated_async_trace_state_event(");
 	__xlCgenAppendCString(&pCtx->buf, (sFuncName != NULL) ? sFuncName : "");
 	__xlCgenAppendFormat(&pCtx->buf, ", %d);\n", iStateId);
-#else
-	(void)pCtx;
-	(void)sFuncName;
-	(void)iStateId;
-#endif
 }
 
 static void __xlCgenTraceFlushStmt(XL_CgenContext* pCtx)
 {
-#if XLANG_DEBUGMODE_ENABLED
 	__xlCgenAppendIndent(&pCtx->buf);
 	__xlCgenAppend(&pCtx->buf, "xl_generated_async_trace_flush_to_env_file();\n");
-#else
-	(void)pCtx;
-#endif
 }
 
 static void __xlCgenGeneratorTraceEventStmt(XL_CgenContext* pCtx, const char* sEvent, const char* sFuncName)
 {
-#if XLANG_DEBUGMODE_ENABLED
 	__xlCgenAppendIndent(&pCtx->buf);
 	__xlCgenAppend(&pCtx->buf, "xl_generated_generator_trace_event(");
 	__xlCgenAppendCString(&pCtx->buf, sEvent);
 	__xlCgenAppend(&pCtx->buf, ", ");
 	__xlCgenAppendCString(&pCtx->buf, (sFuncName != NULL) ? sFuncName : "");
 	__xlCgenAppend(&pCtx->buf, ");\n");
-#else
-	(void)pCtx;
-	(void)sEvent;
-	(void)sFuncName;
-#endif
 }
 
 static void __xlCgenGeneratorTraceEventInline(XL_CgenContext* pCtx, const char* sEvent, const char* sFuncName)
 {
-#if XLANG_DEBUGMODE_ENABLED
 	__xlCgenAppend(&pCtx->buf, "xl_generated_generator_trace_event(");
 	__xlCgenAppendCString(&pCtx->buf, sEvent);
 	__xlCgenAppend(&pCtx->buf, ", ");
 	__xlCgenAppendCString(&pCtx->buf, (sFuncName != NULL) ? sFuncName : "");
 	__xlCgenAppend(&pCtx->buf, "); ");
-#else
-	(void)pCtx;
-	(void)sEvent;
-	(void)sFuncName;
-#endif
 }
+#endif
 
 static int __xlIsRangeCall(const XL_MirNode* pNode)
 {
@@ -24980,10 +24952,7 @@ static void __xlCgenEmitAsyncLinearResumeHelper(
 				__xlCgenAppendIndent(&pCtx->buf);
 				__xlCgenAppendFormat(&pCtx->buf, "if ( pState->%s == %d ) {\n", sBranchSelectorField, bDynamicAwaitOnTrue ? 1 : 0);
 				pCtx->buf.iIndent += 1;
-				__xlCgenAppendIndent(&pCtx->buf);
-				__xlCgenAppend(&pCtx->buf, "xl_generated_async_trace_event(\"resume\", ");
-				__xlCgenAppendCString(&pCtx->buf, sAwaitTraceName);
-				__xlCgenAppend(&pCtx->buf, ");\n");
+				__xlCgenTraceEventStmt(pCtx, "resume", sAwaitTraceName);
 				pCtx->buf.iIndent -= 1;
 				__xlCgenAppendIndent(&pCtx->buf);
 				__xlCgenAppend(&pCtx->buf, "}\n");
@@ -24992,10 +24961,7 @@ static void __xlCgenEmitAsyncLinearResumeHelper(
 				__xlCgenAppendIndent(&pCtx->buf);
 				__xlCgenAppend(&pCtx->buf, "{\n");
 				pCtx->buf.iIndent += 1;
-				__xlCgenAppendIndent(&pCtx->buf);
-				__xlCgenAppend(&pCtx->buf, "xl_generated_async_trace_event(\"resume\", ");
-				__xlCgenAppendCString(&pCtx->buf, sAltAwaitTraceName);
-				__xlCgenAppend(&pCtx->buf, ");\n");
+				__xlCgenTraceEventStmt(pCtx, "resume", sAltAwaitTraceName);
 				pCtx->buf.iIndent -= 1;
 				__xlCgenAppendIndent(&pCtx->buf);
 				__xlCgenAppend(&pCtx->buf, "}\n");
@@ -25003,10 +24969,7 @@ static void __xlCgenEmitAsyncLinearResumeHelper(
 				__xlCgenAppendIndent(&pCtx->buf);
 				__xlCgenAppendFormat(&pCtx->buf, "if ( pState->%s == %d ) {\n", sBranchSelectorField, bDynamicAwaitOnTrue ? 1 : 0);
 				pCtx->buf.iIndent += 1;
-				__xlCgenAppendIndent(&pCtx->buf);
-				__xlCgenAppend(&pCtx->buf, "xl_generated_async_trace_event(\"resume\", ");
-				__xlCgenAppendCString(&pCtx->buf, sAwaitTraceName);
-				__xlCgenAppend(&pCtx->buf, ");\n");
+				__xlCgenTraceEventStmt(pCtx, "resume", sAwaitTraceName);
 				if ( iResumeStateId >= 0 ) {
 					__xlCgenTraceStateEventStmt(pCtx, pFuncInfo->sName, iResumeStateId);
 				}
@@ -25015,10 +24978,7 @@ static void __xlCgenEmitAsyncLinearResumeHelper(
 				__xlCgenAppend(&pCtx->buf, "}\n");
 			}
 		} else {
-			__xlCgenAppendIndent(&pCtx->buf);
-			__xlCgenAppend(&pCtx->buf, "xl_generated_async_trace_event(\"resume\", ");
-			__xlCgenAppendCString(&pCtx->buf, sAwaitTraceName);
-			__xlCgenAppend(&pCtx->buf, ");\n");
+			__xlCgenTraceEventStmt(pCtx, "resume", sAwaitTraceName);
 			if ( iResumeStateId >= 0 ) {
 				__xlCgenTraceStateEventStmt(pCtx, pFuncInfo->sName, iResumeStateId);
 			}
@@ -25254,10 +25214,7 @@ static void __xlCgenEmitAsyncLinearResumeHelper(
 			__xlCgenAppendIndent(&pCtx->buf);
 			__xlCgenAppend(&pCtx->buf, "return;\n");
 		} else {
-			__xlCgenAppendIndent(&pCtx->buf);
-			__xlCgenAppend(&pCtx->buf, "xl_generated_async_trace_event(\"return\", ");
-			__xlCgenAppendCString(&pCtx->buf, pFuncInfo->sName);
-			__xlCgenAppend(&pCtx->buf, ");\n");
+			__xlCgenTraceEventStmt(pCtx, "return", pFuncInfo->sName);
 			__xlCgenAsyncLinearReturnResolve(
 				pCtx,
 				pFuncInfo,

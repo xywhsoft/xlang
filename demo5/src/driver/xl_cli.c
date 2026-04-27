@@ -90,22 +90,12 @@ int xlCliParse(int argc, char** argv, XL_CliOptions* pOpts, XL_DiagContext* pDia
 			XL_CLI_DUMP_JSON(pOpts) = true;
 			continue;
 		}
-#else
-		if ( strcmp(sArg, "--dump-json") == 0 ) {
-			XL_DIAG_ERROR(pDiag, "cli", "--dump-json is only available in xldbg");
-			return XL_RC_BAD_ARG;
-		}
 #endif
 #if XLANG_DEBUGMODE_ENABLED
 		if ( strcmp(sArg, "--diag-json") == 0 ) {
 			XL_CLI_DIAG_JSON(pOpts) = true;
 			xlDiagSetFormat(pDiag, XL_DIAG_FORMAT_JSON);
 			continue;
-		}
-#else
-		if ( strcmp(sArg, "--diag-json") == 0 ) {
-			XL_DIAG_ERROR(pDiag, "cli", "--diag-json is only available in xldbg");
-			return XL_RC_BAD_ARG;
 		}
 #endif
 #if XLANG_DEBUGMODE_ENABLED
@@ -119,11 +109,6 @@ int xlCliParse(int argc, char** argv, XL_CliOptions* pOpts, XL_DiagContext* pDia
 			if ( eDebugResult == XL_CLI_DEBUG_PARSE_ERROR ) {
 				return XL_RC_BAD_ARG;
 			}
-		}
-#else
-		if ( (strncmp(sArg, "--dump-", 7) == 0) || (strncmp(sArg, "--trace-", 8) == 0) ) {
-			XL_DIAG_ERROR(pDiag, "cli", "%s is only available in xldbg", sArg);
-			return XL_RC_BAD_ARG;
 		}
 #endif
 		if ( strcmp(sArg, "--emit") == 0 ) {

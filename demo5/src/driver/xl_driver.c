@@ -13,10 +13,9 @@
 #include "../parser/xl_parser_api.h"
 #include "../sem/xl_sem_dump.h"
 #include "xl_driver_debug.h"
+#include "../host/xl_host_symbols.h"
 #include "xl_xlp_dump.h"
 #endif
-
-#include "../host/xl_host_symbols.h"
 
 static int __xlWriteTextFile(const char* sFilePath, const char* sText)
 {
@@ -231,36 +230,6 @@ static int __xlAddRootExternSymbolsGeneric(
 		}
 	}
 	return XL_RC_OK;
-}
-
-static char* __xlCommentText(const char* sText)
-{
-	size_t i;
-	size_t iLen;
-	size_t iOut;
-	char* sOut;
-
-	if ( sText == NULL ) {
-		sText = "";
-	}
-
-	iLen = strlen(sText);
-	sOut = (char*)malloc(iLen + 64);
-	if ( sOut == NULL ) {
-		return NULL;
-	}
-
-	iOut = (size_t)snprintf(sOut, iLen + 64, "/*\n");
-	for ( i = 0; i < iLen; ++i ) {
-		if ( (sText[i] == '*') && ((i + 1) < iLen) && (sText[i + 1] == '/') ) {
-			sOut[iOut++] = '*';
-			sOut[iOut++] = ' ';
-			continue;
-		}
-		sOut[iOut++] = sText[i];
-	}
-	iOut += (size_t)snprintf(sOut + iOut, (iLen + 64) - iOut, "*/\n");
-	return sOut;
 }
 
 #if XLANG_DEBUGMODE_ENABLED

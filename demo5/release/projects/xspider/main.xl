@@ -1,0 +1,436 @@
+// XSpider - xlang Web Crawler (Phase 1 MVP)
+import std.core
+import std.str
+import std.hash
+import std.time
+import std.fs
+import std.array
+import std.net.tcp as tcp
+import std.net.url as url_mod
+
+class Task extends object
+    var url as string
+    var referer as string
+    var depth as int
+    create(string url, string referer, int depth)
+        self.url = url
+        self.referer = referer
+        self.depth = depth
+    end
+end
+
+func main() as int
+    int result = crawl_one("http://www.wenku8.net")
+    return result
+end
+
+func crawl_one(string root_url) as int
+    std.core.println("XSpider v0.1")
+
+    var root = url_canonicalize(root_url, "")
+    if str.empty(root)
+        return 1
+    end
+
+    var parts = url_mod.parse(root)
+    string root_host = parts["host"].lower()
+
+    std.core.println("root: " + root)
+
+    if fs.exists("output") == false
+        fs.mkdir_all("output")
+    end
+    if fs.exists("output/pages") == false
+        fs.mkdir_all("output/pages")
+    end
+
+    try
+        fs.write_all("output/manifest.tsv", "url\tdepth\tstatus\tlinks\tfile\n")
+    catch e
+    end
+
+    fetch_and_save(root, "", 0, root_host)
+    std.core.println("done")
+
+    return 0
+end
+
+func fetch_and_save(string url, string referer, int depth, string root_host)
+    std.core.print("[" + to_str(depth) + "] " + url + "\n")
+
+    var url_parts = url_mod.parse(url)
+    var v_scheme = url_parts["scheme"]
+    string scheme = v_scheme.lower()
+
+    if scheme == "https"
+        std.core.println("  skip https")
+        return
+    end
+
+    var v_host = url_parts["host"]
+    var v_port = url_parts["port"]
+    var v_path = url_parts["path"]
+    string host = v_host
+    string port = v_port
+    string path = v_path
+
+    if str.empty(path)
+        path = "/"
+    end
+    if str.empty(port)
+        port = "80"
+    end
+
+    int port_num = to_int(port)
+
+    var socket = null
+    try
+        socket = tcp.connect(host, port_num)
+    catch e
+        std.core.println("  connect failed")
+        return
+    end
+
+    if socket == null
+        return
+    end
+
+    string req = "GET " + path + " HTTP/1.1\r\n"
+    req = req + "Host: " + host + "\r\n"
+    req = req + "User-Agent: XSpider/0.1\r\n"
+    req = req + "Accept: text/html,*/*\r\n"
+    req = req + "Connection: close\r\n"
+    req = req + "\r\n"
+
+    if tcp.send(socket, req) <= 0
+        tcp.close(socket)
+        std.core.println("  send failed")
+        return
+    end
+
+    var resp = tcp.recv(socket, 262144, 10000)
+    tcp.close(socket)
+
+    if str.empty(resp)
+        std.core.println("  recv empty")
+        return
+    end
+
+    int idx = resp.index_of("\r\n\r\n")
+    string header_text = resp
+    string body_text = ""
+
+    if idx >= 0
+        header_text = resp.slice(0, idx)
+        body_text = resp.slice(idx + 4, resp.length - idx - 4)
+    end
+
+    string status_str = "0"
+    auto lines = header_text.split("\r\n")
+    if lines.length > 0
+        auto tokens = lines[0].trim().split(" ")
+        if tokens.length >= 2
+            status_str = tokens[1]
+        end
+    end
+
+    int status = to_int(status_str)
+    std.core.println("  HTTP " + status_str)
+
+    string ct_found = ""
+    int m = 1
+    while m < lines.length do
+        string line = lines[m]
+        int colon = line.index_of(":")
+        if colon > 0
+            string key = line.slice(0, colon).trim().lower()
+            string value = line.slice(colon + 1, line.length - colon - 1).trim()
+            if key == "content-type"
+                ct_found = value
+            end
+        end
+        m += 1
+    end
+
+    string ext = ".bin"
+    if ct_found.contains("html")
+        ext = ".html"
+    else
+        if ct_found.contains("css")
+            ext = ".css"
+        else
+            if ct_found.contains("javascript")
+                ext = ".js"
+            else
+                if ct_found.contains("json")
+                    ext = ".json"
+                else
+                    if ct_found.contains("plain")
+                        ext = ".txt"
+                    end
+                end
+            end
+        end
+    end
+
+    var hash_val = hash.hash64(url)
+    var filename = hash_val + ext
+    var filepath = "output/pages/" + filename
+
+    try
+        fs.write_all(filepath, body_text)
+    catch e
+    end
+
+    int found_links = 0
+    string lower_html = body_text.lower()
+    int search_pos = 0
+
+    while search_pos < lower_html.length do
+        int found = index_of_from(lower_html, "href=", search_pos)
+        if found < 0
+            break
+        end
+
+        int qpos = found + 5
+        if qpos < lower_html.length
+            string qch = lower_html.slice(qpos, 1)
+            if qch == "\"" or qch == "'"
+                int epos = index_of_char_from(lower_html, qch, qpos + 1)
+                if epos >= 0
+                    string raw_link = body_text.slice(qpos + 1, epos - qpos - 1).trim()
+                    if str.empty(raw_link) == false and link_skip(raw_link) == false
+                        var link_url = url_canonicalize(raw_link, url)
+                        if str.empty(link_url) == false
+                            var link_parts = url_mod.parse(link_url)
+                            string link_host = link_parts["host"].lower()
+                            if link_host == root_host
+                                found_links += 1
+                            end
+                        end
+                    end
+                end
+                search_pos = epos + 1
+                continue
+            end
+        end
+        search_pos = found + 5
+    end
+
+    var man_line = url + "\t" + to_str(depth) + "\t" + to_str(status) + "\t" + to_str(found_links) + "\t" + filename
+    try
+        fs.append_all("output/manifest.tsv", man_line + "\n")
+    catch e
+    end
+end
+
+func url_canonicalize(string raw_url, string base_url) as string
+    if str.empty(raw_url)
+        return ""
+    end
+    string url = raw_url.trim()
+    if url.starts_with("//")
+        string scheme = "http"
+        if str.empty(base_url) == false
+            scheme = url_mod.parse(base_url)["scheme"]
+        end
+        url = scheme + ":" + url
+    end
+    var parts = url_mod.parse(url)
+    if str.empty(parts["host"]) and str.empty(base_url) == false
+        url = url_resolve_relative(raw_url, base_url)
+        parts = url_mod.parse(url)
+    end
+    if str.empty(parts["host"])
+        return ""
+    end
+    parts["scheme"] = parts["scheme"].lower()
+    parts["host"] = parts["host"].lower()
+    if str.empty(parts["scheme"])
+        parts["scheme"] = "http"
+    end
+    if str.empty(parts["path"])
+        parts["path"] = "/"
+    end
+    if parts["scheme"] == "http" and parts["port"] == "80"
+        parts["port"] = ""
+    end
+    if parts["scheme"] == "https" and parts["port"] == "443"
+        parts["port"] = ""
+    end
+
+    parts["fragment"] = ""
+    return url_mod.build(parts)
+end
+
+func url_resolve_relative(string url, string base) as string
+    if url.starts_with("/")
+        var parts = url_mod.parse(base)
+        parts["path"] = url
+        parts["query"] = ""
+        parts["fragment"] = ""
+        return url_mod.build(parts)
+    end
+    if url.starts_with("http://") or url.starts_with("https://")
+        return url
+    end
+    var parts = url_mod.parse(base)
+    string path = parts["path"]
+    if path.ends_with("/")
+        parts["path"] = path + url
+    else
+        int last = path.last_index_of("/")
+        if last < 0
+            parts["path"] = "/" + url
+        else
+            parts["path"] = path.slice(0, last + 1) + url
+        end
+    end
+    parts["query"] = ""
+    parts["fragment"] = ""
+    return url_mod.build(parts)
+end
+
+func normalize_path(string path) as string
+    if str.empty(path)
+        return "/"
+    end
+
+    auto items = path.split("/")
+    array result = []
+
+    int i = 0
+    while i < items.length do
+        string part = items[i]
+        bool ok = false
+        if str.empty(part) or part == "."
+            ok = true
+        end
+        if ok == false
+            if part == ".."
+                if result.length > 0
+                    array new_result = []
+                    int k = 0
+                    while k < result.length - 1 do
+                        string val = result[k]
+                        array.append(new_result, val)
+                        k += 1
+                    end
+                    result = new_result
+                end
+            else
+                array.append(result, part)
+            end
+        end
+        i += 1
+    end
+
+    if result.length == 0
+        return "/"
+    end
+
+    string out = ""
+    int j = 0
+    while j < result.length do
+        string val = result[j]
+        out = out + "/" + val
+        j += 1
+    end
+    return out
+end
+
+func link_skip(string link) as bool
+    if link.starts_with("javascript:")
+        return true
+    end
+    if link.starts_with("mailto:")
+        return true
+    end
+    if link.starts_with("tel:")
+        return true
+    end
+    if link.starts_with("data:")
+        return true
+    end
+    if link.starts_with("file:")
+        return true
+    end
+    if link.starts_with("#")
+        return true
+    end
+    return false
+end
+
+func index_of_from(string text, string part, int start) as int
+    if start >= text.length
+        return -1
+    end
+    string rest = text.slice(start, text.length - start)
+    int found = rest.index_of(part)
+    if found < 0
+        return -1
+    end
+    return start + found
+end
+
+func index_of_char_from(string text, string ch, int start) as int
+    if start >= text.length
+        return -1
+    end
+    int i = start
+    while i < text.length do
+        if text.slice(i, 1) == ch
+            return i
+        end
+        i += 1
+    end
+    return -1
+end
+
+func to_str(int value) as string
+    if value == 0
+        return "0"
+    end
+    string result = ""
+    int v = value
+    bool neg = false
+    if v < 0
+        neg = true
+        v = -v
+    end
+    while v > 0 do
+        int digit = v % 10
+        string digits = "0123456789"
+        string ch = digits.slice(digit, 1)
+        result = ch + result
+        v = v / 10
+    end
+    if neg
+        result = "-" + result
+    end
+    return result
+end
+
+func to_int(string text) as int
+    if str.empty(text)
+        return 0
+    end
+    int result = 0
+    int i = 0
+    int sign = 1
+    if text.length > 0 and text.slice(0, 1) == "-"
+        sign = -1
+        i = 1
+    end
+    while i < text.length do
+        string ch = text.slice(i, 1)
+        string digits = "0123456789"
+        int digit = digits.index_of(ch)
+        if digit < 0
+            break
+        end
+        result = result * 10 + digit
+        i += 1
+    end
+    return result * sign
+end

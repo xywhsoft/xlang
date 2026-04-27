@@ -185,6 +185,11 @@ void xlHostContextInit(XL_HostContext* pCtx, const char* sInputFile, const char*
 	}
 
 	memset(pCtx, 0, sizeof(*pCtx));
+#if XLANG_DEBUGMODE_ENABLED
+	pCtx->bDebugMode = 1;
+#else
+	pCtx->bDebugMode = 0;
+#endif
 	__xlCopyText(pCtx->sInputFile, sizeof(pCtx->sInputFile), sInputFile);
 	if ( xlAppPathGetDirectory(pCtx->sReleaseRoot, sizeof(pCtx->sReleaseRoot)) != XL_RC_OK ) {
 		__xlNormalizeRootPath(pCtx->sReleaseRoot, sizeof(pCtx->sReleaseRoot), sReleaseRoot);
