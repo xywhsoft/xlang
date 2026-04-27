@@ -295,14 +295,18 @@ static const XL_HostSymbolEntry __gXLHostSymbols[] = {
 	{ "xl_point_to_string", xl_point_to_string },
 	{ "xl_value_to_string", xl_value_to_string },
 	{ "xl_value_clone_async_state", xl_value_clone_async_state },
+#if XLANG_DEBUGMODE_ENABLED
 	{ "xl_debug_text", xl_debug_text },
 	{ "xl_debug_print", xl_debug_print },
 	{ "xl_debug_println", xl_debug_println },
+#endif
 	{ "xl_log_debug", xl_log_debug },
 	{ "xl_log_info", xl_log_info },
 	{ "xl_log_warn", xl_log_warn },
 	{ "xl_log_error", xl_log_error },
+#if XLANG_DEBUGMODE_ENABLED
 	{ "xl_trace_write", xl_trace_write },
+#endif
 	{ "xl_regex_is_match", xl_regex_is_match },
 	{ "xl_regex_find", xl_regex_find },
 	{ "xl_regex_captures", xl_regex_captures },
@@ -637,6 +641,7 @@ int xlHostRegisterSymbols(TCCState* pTcc)
 	return XL_RC_OK;
 }
 
+#if XLANG_DEBUGMODE_ENABLED
 char* xlHostDumpSymbolsJson(void)
 {
 	size_t i;
@@ -663,3 +668,4 @@ char* xlHostDumpSymbolsJson(void)
 	snprintf(sOut + iLen, iCap - iLen, "\t]\n}\n");
 	return sOut;
 }
+#endif

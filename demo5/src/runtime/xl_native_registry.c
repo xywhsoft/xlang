@@ -2,9 +2,6 @@
 
 const char* xlStdCoreModuleSource(void);
 const char* xlStdCryptoModuleSource(void);
-#if XLANG_DEBUGMODE_ENABLED
-const char* xlStdDebugModuleSource(void);
-#endif
 const char* xlStdChannelModuleSource(void);
 const char* xlStdClockModuleSource(void);
 const char* xlStdDictModuleSource(void);
@@ -62,20 +59,10 @@ const char* xlStdSysProcessModuleSource(void);
 const char* xlStdSysWaitModuleSource(void);
 const char* xlStdTemplateModuleSource(void);
 const char* xlStdThreadModuleSource(void);
-#if XLANG_DEBUGMODE_ENABLED
-const char* xlStdTraceModuleSource(void);
-#endif
 const char* xlStdTimeModuleSource(void);
 const char* xlStdTaskModuleSource(void);
 const char* xlStdSyncModuleSource(void);
 const char* xlStdTypesModuleSource(void);
-
-typedef struct XL_NativeRegistryEntry {
-	const char* sModuleKey;
-	const char* sBindingName;
-	const char* sVirtualPath;
-	const char* (*fnGetSource)(void);
-} XL_NativeRegistryEntry;
 
 typedef struct XL_NativeTextBuffer {
 	char* sData;
@@ -86,9 +73,6 @@ typedef struct XL_NativeTextBuffer {
 static const XL_NativeRegistryEntry g_arrNativeModules[] = {
 	{ "std.core", "std.core", "<native:std.core>", xlStdCoreModuleSource },
 	{ "std.crypto", "std.crypto", "<native:std.crypto>", xlStdCryptoModuleSource },
-#if XLANG_DEBUGMODE_ENABLED
-	{ "std.debug", "std.debug", "<native:std.debug>", xlStdDebugModuleSource },
-#endif
 	{ "std.channel", "std.channel", "<native:std.channel>", xlStdChannelModuleSource },
 	{ "std.clock", "std.clock", "<native:std.clock>", xlStdClockModuleSource },
 	{ "std.dict", "std.dict", "<native:std.dict>", xlStdDictModuleSource },
@@ -145,9 +129,6 @@ static const XL_NativeRegistryEntry g_arrNativeModules[] = {
 	{ "std.sync", "std.sync", "<native:std.sync>", xlStdSyncModuleSource },
 	{ "std.template", "std.template", "<native:std.template>", xlStdTemplateModuleSource },
 	{ "std.thread", "std.thread", "<native:std.thread>", xlStdThreadModuleSource },
-#if XLANG_DEBUGMODE_ENABLED
-	{ "std.trace", "std.trace", "<native:std.trace>", xlStdTraceModuleSource },
-#endif
 	{ "std.time", "std.time", "<native:std.time>", xlStdTimeModuleSource },
 	{ "std.task", "std.task", "<native:std.task>", xlStdTaskModuleSource },
 	{ "std.types", "std.types", "<native:std.types>", xlStdTypesModuleSource }
@@ -279,9 +260,26 @@ int xlNativeRegistryFind(const char* sModuleKey, XL_NativeModuleInfo* pInfo)
 		}
 	}
 
+#if XLANG_DEBUGMODE_ENABLED
+	{
+		size_t iDbgCount = xlNativeRegistryDebugEntryCount();
+		const XL_NativeRegistryEntry* pDbgEntries = xlNativeRegistryDebugEntries();
+		for ( i = 0; i < iDbgCount; ++i ) {
+			if ( strcmp(pDbgEntries[i].sModuleKey, sModuleKey) == 0 ) {
+				pInfo->sModuleKey = pDbgEntries[i].sModuleKey;
+				pInfo->sBindingName = pDbgEntries[i].sBindingName;
+				pInfo->sVirtualPath = pDbgEntries[i].sVirtualPath;
+				pInfo->sSourceText = pDbgEntries[i].fnGetSource();
+				return XL_RC_OK;
+			}
+		}
+	}
+#endif
+
 	return XL_RC_FAIL;
 }
 
+#if XLANG_DEBUGMODE_ENABLED
 char* xlNativeRegistryDumpText(void)
 {
 	XL_NativeTextBuffer buf;
@@ -298,6 +296,21 @@ char* xlNativeRegistryDumpText(void)
 			g_arrNativeModules[i].sVirtualPath
 		);
 	}
+#if XLANG_DEBUGMODE_ENABLED
+	{
+		size_t iDbgCount = xlNativeRegistryDebugEntryCount();
+		const XL_NativeRegistryEntry* pDbgEntries = xlNativeRegistryDebugEntries();
+		for ( i = 0; i < iDbgCount; ++i ) {
+			__xlNativeBufAppendFormat(
+				&buf,
+				"- key=%s binding=%s path=%s\n",
+				pDbgEntries[i].sModuleKey,
+				pDbgEntries[i].sBindingName,
+				pDbgEntries[i].sVirtualPath
+			);
+		}
+	}
+#endif
 	return buf.sData;
 }
 
@@ -321,6 +334,23 @@ char* xlNativeRegistryDumpJson(void)
 		}
 		__xlNativeBufAppend(&buf, "\n");
 	}
+#if XLANG_DEBUGMODE_ENABLED
+	{
+		size_t iDbgCount = xlNativeRegistryDebugEntryCount();
+		const XL_NativeRegistryEntry* pDbgEntries = xlNativeRegistryDebugEntries();
+		for ( i = 0; i < iDbgCount; ++i ) {
+			__xlNativeBufAppend(&buf, ",\n\t\t{\n\t\t\t\"key\": \"");
+			__xlNativeBufAppendEscaped(&buf, pDbgEntries[i].sModuleKey);
+			__xlNativeBufAppend(&buf, "\",\n\t\t\t\"binding\": \"");
+			__xlNativeBufAppendEscaped(&buf, pDbgEntries[i].sBindingName);
+			__xlNativeBufAppend(&buf, "\",\n\t\t\t\"path\": \"");
+			__xlNativeBufAppendEscaped(&buf, pDbgEntries[i].sVirtualPath);
+			__xlNativeBufAppend(&buf, "\"\n\t\t}");
+		}
+		__xlNativeBufAppend(&buf, "\n");
+	}
+#endif
 	__xlNativeBufAppend(&buf, "\t]\n}\n");
 	return buf.sData;
 }
+#endif

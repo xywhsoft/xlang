@@ -1154,7 +1154,12 @@ static int __xlConfigureTcc(
 
 	tcc_set_error_func(pTcc, pTrace, __xlTccErrorThunk);
 	tcc_set_lib_path(pTcc, pCtx->sTccRoot);
-	tcc_set_options(pTcc, "-D_CRT_SECURE_NO_WARNINGS -include xlrt_profile.h");
+	tcc_set_options(
+		pTcc,
+		pCtx->bDebugMode
+			? "-D_CRT_SECURE_NO_WARNINGS -DXLANG_DEBUGMODE=1 -include xlrt_profile.h"
+			: "-D_CRT_SECURE_NO_WARNINGS -include xlrt_profile.h"
+	);
 
 	__xlBuildPath2(sIncludeWin, sizeof(sIncludeWin), pCtx->sTccRoot, "include_win");
 	__xlBuildPath3(sIncludeWinApi, sizeof(sIncludeWinApi), pCtx->sTccRoot, "include_win", "winapi");
