@@ -6092,6 +6092,13 @@ static int __xlIsNullableTypeName(const char* sTypeName)
 		((sTypeName != NULL) && (strcmp(sTypeName, "error") == 0));
 }
 
+static int __xlIsSafeNullableExpr(const XL_AstNode* pNode)
+{
+	return (pNode != NULL) &&
+		((pNode->eKind == XL_AST_MEMBER) || (pNode->eKind == XL_AST_INDEX)) &&
+		(pNode->bFlag != 0);
+}
+
 static const char* __xlNumericResultType(const char* sLeftType, const char* sRightType)
 {
 	if ( !__xlIsNumericTypeName(sLeftType) || !__xlIsNumericTypeName(sRightType) ) {
@@ -7972,7 +7979,8 @@ static int __xlValidateGenericInstanceBinaryExpr(
 
 	if ( strcmp(sOp, "??") == 0 ) {
 		if ( (__xlIsNullTypeName(sLeftType) && __xlIsNullableTypeName(sRightType)) ||
-			(__xlIsNullableTypeName(sLeftType) && (__xlIsNullTypeName(sRightType) || __xlTypeMatches(sLeftType, sRightType))) ) {
+			(__xlIsNullableTypeName(sLeftType) && (__xlIsNullTypeName(sRightType) || __xlTypeMatches(sLeftType, sRightType))) ||
+			(__xlIsSafeNullableExpr(__xlAstChild(pNode, 0)) && (__xlIsNullTypeName(sRightType) || __xlTypeMatches(sLeftType, sRightType))) ) {
 			return XL_RC_OK;
 		}
 		return __xlSemAddDiag(
@@ -8093,7 +8101,7 @@ static int __xlValidateGenericInstanceUnaryExpr(
 		}
 		return XL_RC_OK;
 	}
-	if ( strcmp(sOp, "-") == 0 ) {
+	if ( (strcmp(sOp, "+") == 0) || (strcmp(sOp, "-") == 0) ) {
 		if ( !__xlIsNumericTypeName(sInnerType) ) {
 			return __xlSemAddDiag(
 				pCtx,
@@ -10619,6 +10627,12 @@ static int __xlResolveUnaryExpr(XL_ResolveContext* pCtx, const XL_AstNode* pNode
 	if ( (iRc != XL_RC_OK) || bOperatorHandled ) {
 		return iRc;
 	}
+	if ( (strcmp(sOp, "+") == 0) || (strcmp(sOp, "-") == 0) ) {
+		sTypeName = __xlInferExprType(pCtx, pInner);
+		if ( !__xlIsNumericTypeName(sTypeName) ) {
+			return __xlSemAddDiag(pCtx, XL_SEM_DIAG_ERROR, pNode, "operator '%s' requires numeric operand", sOp);
+		}
+	}
 
 	__xlSemNodeSetScope(pCtx->pResult, pNode, pCtx->iCurrentScopeId);
 	sTypeName = __xlInferExprType(pCtx, pNode);
@@ -10725,6 +10739,11 @@ static int __xlResolveBinaryExpr(XL_ResolveContext* pCtx, const XL_AstNode* pNod
 		if ( __xlIsNullableTypeName(sLeftType) && (__xlIsNullTypeName(sRightType) || __xlTypeMatches(sLeftType, sRightType)) ) {
 			__xlSemNodeSetScope(pCtx->pResult, pNode, pCtx->iCurrentScopeId);
 			__xlSemNodeSetType(pCtx->pResult, pNode, sLeftType);
+			return XL_RC_OK;
+		}
+		if ( __xlIsSafeNullableExpr(pLeft) && (__xlIsNullTypeName(sRightType) || __xlTypeMatches(sLeftType, sRightType)) ) {
+			__xlSemNodeSetScope(pCtx->pResult, pNode, pCtx->iCurrentScopeId);
+			__xlSemNodeSetType(pCtx->pResult, pNode, __xlIsNullTypeName(sRightType) ? sLeftType : sRightType);
 			return XL_RC_OK;
 		}
 		return __xlSemAddDiag(

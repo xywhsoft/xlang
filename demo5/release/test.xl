@@ -365,6 +365,63 @@ func main() as int
 	int awaited = 42
 	int delayed = 1
 	time print_time = #2026-04-30 12:34:56#
+	// const 可以声明只读局部值；这里同时覆盖带类型 const、自动推导 const。
+	const int const_answer = 42
+	const const_label = "const"
+	bool asserted_flag = true
+	// 单目正负号、幂运算和乘加优先级组合在一起，便于作为表达式优先级范例。
+	int unary_value = +5 + -2
+	int precedence_score = 1 + 2 * 3 ** 2
+	bool compare_combo = (5 >= 5) and (4 <= 6) and (5 != 6) and (5 == 5)
+	// 不复用前面的容器，避免追加示例影响已经存在的检查。
+	array extra_array = [10, 20]
+	list extra_list = list{"left", "right"}
+	dict extra_dict = {"name": "xlang"}
+	set extra_set = {"alpha", "beta"}
+	bool set_contains_alpha = false
+	bool set_contains_gamma = false
+	bool removed_beta = false
+	bool dict_has_name = false
+	bool dict_removed_name = false
+	string extra_joined = ""
+	// 标准库调用既可以写成 module.func，也能和普通表达式一样参与断言。
+	int math_abs_value = std.math.abs(-7)
+	int math_max_value = std.math.max(3, 9)
+	string str_upper = std.str.upper("xlang")
+	string str_replaced = std.str.replace("2026-04-30", "-", "/")
+	bool str_starts = std.str.starts_with(str_upper, "XL")
+	string fmt_bool = std.fmt.bool_text(true)
+	string fmt_int = std.fmt.int_text(255, "")
+	// 字符串既可以通过 std.str.func(text, ...) 调用，也可以用 text.func(...) 的方法风格调用。
+	string method_source = "  AbC-beta  "
+	string method_trimmed = method_source.trim()
+	string method_lower = method_trimmed.lower()
+	string method_replaced = method_trimmed.replace("beta", "demo")
+	list method_parts = "a,b,c".split(",")
+	// 这些标准库函数纯计算、无外部副作用，适合作为稳定的烟测示例。
+	string encoded_hex = std.encode.hex_encode("Hi")
+	string decoded_hex = std.encode.hex_decode(encoded_hex)
+	string json_text = std.json.encode({"name": "xlang", "ok": true})
+	var json_value = std.json.decode(json_text)
+	string json_round = std.json.encode(json_value)
+	string joined_path = std.path.join("C:\\tmp", "xlang.txt")
+	string path_name_ext = std.path.name_ext(joined_path)
+	bool path_abs = std.path.is_abs(joined_path)
+	auto hash32_a = std.hash.hash32("hello")
+	auto hash32_b = std.hash.hash32("hello")
+	string sha256_hello = std.hash.sha256("hello")
+	// lambda 表达式有独立的表达式解析分支，也要覆盖普通表达式支持的单目运算符。
+	auto lambda_unary = func(int x) as int => +x + -x
+	// ~= 是近似匹配/近似相等：数值按误差比较，字符串支持简单通配，time 支持相近时间判断。
+	float approx_left = 3.5
+	float approx_right = 3.5000001
+	time approx_time_a = time.parse("2024-01-02 03:04:05")
+	time approx_time_b = time.parse("2024-01-02 03:04:06")
+	// ?[] 是安全索引；正常容器等价于 []，空容器引用时应返回 null，再配合 ?? 给默认值。
+	array safe_index_values = [11, 22, 33]
+	array safe_index_null = null
+	int safe_index_hit = safe_index_values?[1]
+	int safe_index_default = safe_index_null?[0] ?? 99
 
 	check(b and i == 1234 and int8_value > 0 and uint8_value > 0 and i16 > 0 and u16 > 0, "basic integers")
 	check(i32 + u32 + i64 + u64 > 0 and f > 0 and f32 > 0 and f64 > 0, "numeric families")
@@ -410,6 +467,39 @@ func main() as int
 	coalesced = null ?? "fallback"
 	ternary_value = branch == 12 ? 100 : 0
 	check(branch == 12 and coalesced == "fallback" and ternary_value == 100, "branching")
+
+	// assert 是运行期断言语句；失败时会抛出带消息的错误，成功时继续向下执行。
+	assert asserted_flag, "assert statement"
+	check(const_answer == 42 and const_label == "const" and unary_value == 3, "const and unary")
+	check(precedence_score == 19 and compare_combo, "precedence and comparison")
+
+	// 容器方法可以直接链在容器变量上；in 适合写集合包含关系，has/remove 更适合需要布尔结果的场景。
+	extra_array.append(30)
+	extra_list.append("center")
+	extra_dict["kind"] = "demo"
+	set_contains_alpha = extra_set.has("alpha")
+	set_contains_gamma = "gamma" in extra_set
+	removed_beta = extra_set.remove("beta")
+	dict_has_name = extra_dict.has("name")
+	dict_removed_name = extra_dict.remove("name")
+	extra_joined = extra_list.join("|")
+	check(extra_array.length == 3 and extra_array[2] == 30 and extra_joined == "left|right|center", "extra containers")
+	check(set_contains_alpha and not set_contains_gamma and removed_beta and extra_set.length == 1, "set methods and in")
+	check(dict_has_name and dict_removed_name and extra_dict["kind"] == "demo", "dict methods")
+
+	// 常用标准库函数：数学、字符串、格式化。fmt.int_text 的第二个参数是格式模式，空串表示默认格式。
+	check(math_abs_value == 7 and math_max_value == 9, "std.math")
+	check(str_upper == "XLANG" and str_replaced == "2026/04/30" and str_starts, "std.str")
+	check(fmt_bool == "true" and fmt_int == "255", "std.fmt")
+	check(method_trimmed == "AbC-beta" and method_lower == "abc-beta" and method_replaced == "AbC-demo", "string method calls")
+	check(method_parts.length == 3 and method_parts[1] == "b", "string split")
+	check(encoded_hex == "4869" and decoded_hex == "Hi", "std.encode")
+	check(json_round.contains("\"name\":\"xlang\"") and json_round.contains("\"ok\":true"), "std.json")
+	check(path_abs and path_name_ext == "xlang.txt", "std.path")
+	check(hash32_a == hash32_b and sha256_hello == "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824", "std.hash")
+	check(lambda_unary(123) == 0, "lambda unary")
+	check(approx_left ~= approx_right and "hello" ~= "h*o" and approx_time_a ~= approx_time_b, "approx operator")
+	check(safe_index_hit == 22 and safe_index_default == 99, "safe index")
 
 	test_loops()
 
