@@ -1,0 +1,30 @@
+class ObjBox extends object
+	var value as int
+end
+
+func take_object(object value) as int
+	if Type(value) != ObjBox then
+		return 1
+	end
+	return 10
+end
+
+func make_object() as object
+	auto value = ObjBox()
+	value.value = 20
+	return value
+end
+
+func main() as int
+	auto box = ObjBox()
+	box.value = 11
+
+	object dyn = box
+	if Type(dyn) != ObjBox then
+		return 2
+	end
+	if Type(make_object()) != ObjBox then
+		return 3
+	end
+	return take_object(box) + 33
+end

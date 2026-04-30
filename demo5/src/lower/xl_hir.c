@@ -79,6 +79,16 @@ void xlHirSetTypeName(XL_HirNode* pNode, const char* sTypeName)
 	pNode->sTypeName = __xlHirDupText(sTypeName);
 }
 
+void xlHirSetConversion(XL_HirNode* pNode, const char* sConversion)
+{
+	if ( pNode == NULL ) {
+		return;
+	}
+
+	free(pNode->sConversion);
+	pNode->sConversion = __xlHirDupText(sConversion);
+}
+
 void xlHirAppendChild(XL_HirNode* pNode, XL_HirNode* pChild)
 {
 	XL_HirNode** ppNewItems;
@@ -117,6 +127,7 @@ void xlHirFree(XL_HirNode* pNode)
 	free(pNode->sAbiName);
 	free(pNode->sExternName);
 	free(pNode->sTypeName);
+	free(pNode->sConversion);
 	free(pNode);
 }
 

@@ -1,4 +1,4 @@
-func add_one(int value) as int
+func add_one(int value = 41) as int
 	return value + 1
 end
 

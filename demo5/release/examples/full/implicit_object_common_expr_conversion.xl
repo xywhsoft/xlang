@@ -1,0 +1,31 @@
+class ObjBox extends object
+	var value as int
+end
+
+func choose(bool flag, object fallback) as object
+	auto box = ObjBox()
+	box.value = 7
+	return flag ? box : fallback
+end
+
+func main() as int
+	auto box = ObjBox()
+	box.value = 40
+	object obj = box
+
+	if not (box == obj) then
+		return 1
+	end
+
+	object picked = false ? box : obj
+	if Type(picked) != ObjBox then
+		return 2
+	end
+
+	object made = choose(true, obj)
+	if Type(made) != ObjBox then
+		return 3
+	end
+
+	return box.value + 7
+end

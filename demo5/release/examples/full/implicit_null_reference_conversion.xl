@@ -1,0 +1,27 @@
+func fallback() as int
+	return 41
+end
+
+func take_text(string value) as int
+	return 1
+end
+
+func take_items(array<int> items) as int
+	return 1
+end
+
+func take_func(function<int()> fn) as int
+	return 1
+end
+
+func take_var(var value) as int
+	return 1
+end
+
+func main() as int
+	string text = null
+	var array<int> items = null
+	function<int()> fn = null
+	var value = null
+	return take_text(text) + take_items(items) + take_func(fn) + take_var(value) + 39
+end

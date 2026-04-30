@@ -1,0 +1,11 @@
+func choose(float left, int right) as int
+	return 1
+end
+
+func choose(int left, float right) as int
+	return 2
+end
+
+func main() as int
+	return choose(1, 1)
+end

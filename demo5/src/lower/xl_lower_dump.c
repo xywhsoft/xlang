@@ -209,6 +209,11 @@ static void __xlDumpHirText(XL_LowerTextBuffer* pBuf, const XL_HirNode* pNode, i
 		__xlLowerAppendEscaped(pBuf, pNode->sTypeName);
 		__xlLowerBufAppend(pBuf, "\"");
 	}
+	if ( (pNode->sConversion != NULL) && (pNode->sConversion[0] != '\0') ) {
+		__xlLowerBufAppend(pBuf, " convert=\"");
+		__xlLowerAppendEscaped(pBuf, pNode->sConversion);
+		__xlLowerBufAppend(pBuf, "\"");
+	}
 	if ( pNode->iScopeId >= 0 ) {
 		__xlLowerBufAppendFormat(pBuf, " scope=%d", pNode->iScopeId);
 	}
@@ -256,6 +261,11 @@ static void __xlDumpMirText(XL_LowerTextBuffer* pBuf, const XL_MirNode* pNode, i
 	if ( (pNode->sTypeName != NULL) && (pNode->sTypeName[0] != '\0') ) {
 		__xlLowerBufAppend(pBuf, " type=\"");
 		__xlLowerAppendEscaped(pBuf, pNode->sTypeName);
+		__xlLowerBufAppend(pBuf, "\"");
+	}
+	if ( (pNode->sConversion != NULL) && (pNode->sConversion[0] != '\0') ) {
+		__xlLowerBufAppend(pBuf, " convert=\"");
+		__xlLowerAppendEscaped(pBuf, pNode->sConversion);
 		__xlLowerBufAppend(pBuf, "\"");
 	}
 	if ( pNode->iScopeId >= 0 ) {
@@ -315,6 +325,16 @@ static void __xlDumpHirJson(XL_LowerTextBuffer* pBuf, const XL_HirNode* pNode, i
 	if ( (pNode->sTypeName != NULL) && (pNode->sTypeName[0] != '\0') ) {
 		__xlLowerBufAppend(pBuf, "\"");
 		__xlLowerAppendEscaped(pBuf, pNode->sTypeName);
+		__xlLowerBufAppend(pBuf, "\"");
+	} else {
+		__xlLowerBufAppend(pBuf, "null");
+	}
+	__xlLowerBufAppend(pBuf, ",\n");
+	for ( i = 0; i < (size_t)(iIndent + 1); ++i ) { __xlLowerBufAppend(pBuf, "\t"); }
+	__xlLowerBufAppend(pBuf, "\"conversion\": ");
+	if ( (pNode->sConversion != NULL) && (pNode->sConversion[0] != '\0') ) {
+		__xlLowerBufAppend(pBuf, "\"");
+		__xlLowerAppendEscaped(pBuf, pNode->sConversion);
 		__xlLowerBufAppend(pBuf, "\"");
 	} else {
 		__xlLowerBufAppend(pBuf, "null");
@@ -389,6 +409,16 @@ static void __xlDumpMirJson(XL_LowerTextBuffer* pBuf, const XL_MirNode* pNode, i
 	if ( (pNode->sTypeName != NULL) && (pNode->sTypeName[0] != '\0') ) {
 		__xlLowerBufAppend(pBuf, "\"");
 		__xlLowerAppendEscaped(pBuf, pNode->sTypeName);
+		__xlLowerBufAppend(pBuf, "\"");
+	} else {
+		__xlLowerBufAppend(pBuf, "null");
+	}
+	__xlLowerBufAppend(pBuf, ",\n");
+	for ( i = 0; i < (size_t)(iIndent + 1); ++i ) { __xlLowerBufAppend(pBuf, "\t"); }
+	__xlLowerBufAppend(pBuf, "\"conversion\": ");
+	if ( (pNode->sConversion != NULL) && (pNode->sConversion[0] != '\0') ) {
+		__xlLowerBufAppend(pBuf, "\"");
+		__xlLowerAppendEscaped(pBuf, pNode->sConversion);
 		__xlLowerBufAppend(pBuf, "\"");
 	} else {
 		__xlLowerBufAppend(pBuf, "null");

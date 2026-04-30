@@ -1,0 +1,12 @@
+class ObjBox extends object
+	var value as int
+end
+
+func take_object(object value, int code) as int
+	return code
+end
+
+func main() as int
+	auto box = ObjBox()
+	return take_object(box, "bad")
+end

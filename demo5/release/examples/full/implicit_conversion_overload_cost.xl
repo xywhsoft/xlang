@@ -1,0 +1,35 @@
+func choose_default(int value) as int
+	return 10
+end
+
+func choose_default(int value, int extra = 0) as int
+	return 20
+end
+
+func choose_vararg(int value) as int
+	return 30
+end
+
+func choose_vararg(int value, ...) as int
+	return 40
+end
+
+func choose_float(int value) as int
+	return 50
+end
+
+func choose_float(float value) as int
+	return 60
+end
+
+func choose_dynamic(float value) as int
+	return 70
+end
+
+func choose_dynamic(var value) as int
+	return 80
+end
+
+func main() as int
+	return choose_default(1) + choose_vararg(1) + choose_float(1.0) + choose_dynamic(1)
+end

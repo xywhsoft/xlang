@@ -1,0 +1,11 @@
+import pkg.probe
+import std.fmt
+import std.str
+
+func main() as int
+	const string text = fmt.float_text(pkg.probe.add_half(1), ".1")
+	if str.contains(text, "1.5") == false
+		return 1
+	end
+	return 0
+end

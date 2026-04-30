@@ -169,14 +169,62 @@ static char* __xlFuncBuildOverloadGroup(const char* sName)
 	return __xlFuncBufTake(&buf);
 }
 
-static char* __xlFuncBuildSignatureId(const char* sName, const char* const* arrParamTypes, size_t iParamCount)
+static char* __xlFuncBuildSignatureId(
+	const char* sName,
+	const char* sReceiverType,
+	const char* sMethodName,
+	const char* const* arrTypeParamNames,
+	size_t iTypeParamCount,
+	const char* const* arrParamNames,
+	const char* const* arrParamTypes,
+	size_t iParamCount,
+	const unsigned char* arrParamHasDefault,
+	const char* const* arrReturnTypeNames,
+	size_t iReturnCount,
+	int bAsync,
+	int bGenerator,
+	int eVarArgKind
+)
 {
 	XL_FuncTextBuffer buf;
 	size_t i;
 
 	memset(&buf, 0, sizeof(buf));
-	if ( (__xlFuncBufAppend(&buf, (sName != NULL) ? sName : "") != XL_RC_OK) ||
-		(__xlFuncBufAppend(&buf, "(") != XL_RC_OK) ) {
+	if ( (sReceiverType != NULL) && (sReceiverType[0] != '\0') ) {
+		if ( (__xlFuncBufAppend(&buf, "method[") != XL_RC_OK) ||
+			(__xlFuncBufAppend(&buf, sReceiverType) != XL_RC_OK) ||
+			(__xlFuncBufAppend(&buf, "].") != XL_RC_OK) ) {
+			__xlFuncBufFree(&buf);
+			return NULL;
+		}
+	}
+	if ( (__xlFuncBufAppend(&buf, ((sMethodName != NULL) && (sMethodName[0] != '\0')) ? sMethodName : ((sName != NULL) ? sName : "")) != XL_RC_OK) ) {
+		__xlFuncBufFree(&buf);
+		return NULL;
+	}
+	if ( iTypeParamCount != 0 ) {
+		if ( __xlFuncBufAppend(&buf, "<") != XL_RC_OK ) {
+			__xlFuncBufFree(&buf);
+			return NULL;
+		}
+		for ( i = 0; i < iTypeParamCount; ++i ) {
+			if ( i != 0 ) {
+				if ( __xlFuncBufAppend(&buf, ",") != XL_RC_OK ) {
+					__xlFuncBufFree(&buf);
+					return NULL;
+				}
+			}
+			if ( __xlFuncBufAppend(&buf, ((arrTypeParamNames != NULL) && (arrTypeParamNames[i] != NULL)) ? arrTypeParamNames[i] : "") != XL_RC_OK ) {
+				__xlFuncBufFree(&buf);
+				return NULL;
+			}
+		}
+		if ( __xlFuncBufAppend(&buf, ">") != XL_RC_OK ) {
+			__xlFuncBufFree(&buf);
+			return NULL;
+		}
+	}
+	if ( __xlFuncBufAppend(&buf, "(") != XL_RC_OK ) {
 		__xlFuncBufFree(&buf);
 		return NULL;
 	}
@@ -188,13 +236,53 @@ static char* __xlFuncBuildSignatureId(const char* sName, const char* const* arrP
 				return NULL;
 			}
 		}
+		if ( ((arrParamNames != NULL) && (arrParamNames[i] != NULL) && (arrParamNames[i][0] != '\0')) &&
+			(__xlFuncBufAppend(&buf, arrParamNames[i]) != XL_RC_OK || __xlFuncBufAppend(&buf, ":") != XL_RC_OK) ) {
+			__xlFuncBufFree(&buf);
+			return NULL;
+		}
 		if ( __xlFuncBufAppend(&buf, ((arrParamTypes != NULL) && (arrParamTypes[i] != NULL)) ? arrParamTypes[i] : "") != XL_RC_OK ) {
 			__xlFuncBufFree(&buf);
 			return NULL;
 		}
+		if ( (arrParamHasDefault != NULL) && arrParamHasDefault[i] ) {
+			if ( __xlFuncBufAppend(&buf, "=") != XL_RC_OK ) {
+				__xlFuncBufFree(&buf);
+				return NULL;
+			}
+		}
 	}
 
-	if ( __xlFuncBufAppend(&buf, ")") != XL_RC_OK ) {
+	if ( __xlFuncBufAppend(&buf, ")->") != XL_RC_OK ) {
+		__xlFuncBufFree(&buf);
+		return NULL;
+	}
+	if ( iReturnCount == 0 ) {
+		if ( __xlFuncBufAppend(&buf, "void") != XL_RC_OK ) {
+			__xlFuncBufFree(&buf);
+			return NULL;
+		}
+	} else {
+		for ( i = 0; i < iReturnCount; ++i ) {
+			if ( i != 0 ) {
+				if ( __xlFuncBufAppend(&buf, ",") != XL_RC_OK ) {
+					__xlFuncBufFree(&buf);
+					return NULL;
+				}
+			}
+			if ( __xlFuncBufAppend(&buf, ((arrReturnTypeNames != NULL) && (arrReturnTypeNames[i] != NULL)) ? arrReturnTypeNames[i] : "") != XL_RC_OK ) {
+				__xlFuncBufFree(&buf);
+				return NULL;
+			}
+		}
+	}
+	if ( __xlFuncBufAppendFormat(
+		&buf,
+		";async=%d;generator=%d;vararg=%d",
+		bAsync ? 1 : 0,
+		bGenerator ? 1 : 0,
+		eVarArgKind
+	) != XL_RC_OK ) {
 		__xlFuncBufFree(&buf);
 		return NULL;
 	}
@@ -441,7 +529,22 @@ int xlFuncTableAddEx(
 	pInfo->sStorageReturnTypeName = __xlFuncDupText((sStorageReturnTypeName != NULL) ? sStorageReturnTypeName : sReturnTypeName);
 	pInfo->sGeneratorValueTypeName = __xlFuncDupText(bGenerator ? ((sReturnTypeName != NULL) ? sReturnTypeName : "") : "");
 	pInfo->sOverloadGroup = __xlFuncBuildOverloadGroup(sName);
-	pInfo->sSignatureId = __xlFuncBuildSignatureId(sName, arrParamTypes, iParamCount);
+	pInfo->sSignatureId = __xlFuncBuildSignatureId(
+		sName,
+		sReceiverType,
+		sMethodName,
+		NULL,
+		0,
+		arrParamNames,
+		arrParamTypes,
+		iParamCount,
+		arrParamHasDefault,
+		arrReturnTypeNames,
+		iReturnCount,
+		bAsync,
+		bGenerator,
+		eVarArgKind
+	);
 	pInfo->sDispatchKey = __xlFuncBuildDispatchKey(sName, arrParamNames, arrParamTypes, iParamCount);
 	pInfo->sLanguageAbi = __xlFuncDupText(XL_FUNC_LANGUAGE_ABI_V1);
 	pInfo->sNativeAbi = __xlFuncDupText(XL_FUNC_NATIVE_ABI_V1);
@@ -592,8 +695,19 @@ int xlFuncInfoRefreshDerivedNames(XL_FuncInfo* pInfo)
 	sNewOverloadGroup = __xlFuncBuildOverloadGroup(pInfo->sName);
 	sNewSignatureId = __xlFuncBuildSignatureId(
 		pInfo->sName,
+		pInfo->sReceiverType,
+		pInfo->sMethodName,
+		(const char* const*)pInfo->arrTypeParamNames,
+		pInfo->iTypeParamCount,
+		(const char* const*)pInfo->arrParamNames,
 		(const char* const*)pInfo->arrParamTypes,
-		pInfo->iParamCount
+		pInfo->iParamCount,
+		pInfo->arrParamHasDefault,
+		(const char* const*)pInfo->arrReturnTypeNames,
+		pInfo->iReturnCount,
+		pInfo->bAsync,
+		pInfo->bGenerator,
+		pInfo->eVarArgKind
 	);
 	sNewDispatchKey = __xlFuncBuildDispatchKey(
 		pInfo->sName,
@@ -729,7 +843,7 @@ int xlFuncInfoSetGenerics(
 		}
 	}
 	pInfo->iTypeParamCount = iTypeParamCount;
-	return XL_RC_OK;
+	return xlFuncInfoRefreshDerivedNames(pInfo);
 }
 
 int xlFuncInfoSetGenericInstance(

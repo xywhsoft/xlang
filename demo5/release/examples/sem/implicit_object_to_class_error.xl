@@ -1,0 +1,9 @@
+class DownBox extends object
+end
+
+func main() as int
+	auto box = DownBox()
+	object value = box
+	DownBox again = value
+	return 0
+end

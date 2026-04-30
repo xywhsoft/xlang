@@ -1,0 +1,20 @@
+class ObjBox extends object
+	var value as int
+end
+
+func pick<T>(T left, T right) as T
+	return false ? left : right
+end
+
+func main() as int
+	auto box = ObjBox()
+	box.value = 48
+	object base = box
+	object picked = pick(base, box)
+
+	if Type(picked) != ObjBox then
+		return 1
+	end
+
+	return box.value
+end

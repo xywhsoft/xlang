@@ -1,0 +1,68 @@
+func count_array(array<var> values) as int
+	if Type(values[0]) != int then
+		return 1
+	end
+	return values.length
+end
+
+func count_dict(dict<var> values) as int
+	if Type(values["left"]) != int then
+		return 2
+	end
+	return values.length
+end
+
+func count_list(list<var> values) as int
+	if Type(values[0]) != int then
+		return 3
+	end
+	return values.length
+end
+
+func count_set(set<var> values) as int
+	if 7 in values then
+		return values.length
+	end
+	return 4
+end
+
+func make_array() as array<var>
+	var array<int> values = [3, 4]
+	return values
+end
+
+func make_dict() as dict<var>
+	var dict<int> values = {"left": 5, "right": 6}
+	return values
+end
+
+func make_list() as list<var>
+	var list<int> values = list{7, 8}
+	return values
+end
+
+func make_set() as set<var>
+	var set<int> values = set{7, 8}
+	return values
+end
+
+func main() as int
+	var array<int> numbers = [1, 2]
+	var dict<int> pairs = {"left": 3, "right": 4}
+	var list<int> items = list{5, 6}
+	var set<int> flags = set{7, 8}
+
+	if count_array(numbers) != 2 then
+		return 10
+	end
+	if count_dict(pairs) != 2 then
+		return 11
+	end
+	if count_list(items) != 2 then
+		return 12
+	end
+	if count_set(flags) != 2 then
+		return 13
+	end
+	return count_array(numbers) + count_dict(pairs) + count_list(items) + count_set(flags) + make_array().length + make_dict().length + make_list().length + make_set().length + 26
+end

@@ -35,6 +35,7 @@ typedef struct XL_MirNode {
 	char* sAbiName;
 	char* sExternName;
 	char* sTypeName;
+	char* sConversion;
 	int iScopeId;
 	int iSymbolIndex;
 	int iFuncIndex;
@@ -53,6 +54,7 @@ void xlMirSetText(XL_MirNode* pNode, const char* sText);
 void xlMirSetAbiName(XL_MirNode* pNode, const char* sAbiName);
 void xlMirSetExternName(XL_MirNode* pNode, const char* sExternName);
 void xlMirSetTypeName(XL_MirNode* pNode, const char* sTypeName);
+void xlMirSetConversion(XL_MirNode* pNode, const char* sConversion);
 void xlMirAppendChild(XL_MirNode* pNode, XL_MirNode* pChild);
 void xlMirFree(XL_MirNode* pNode);
 const char* xlMirKindName(XL_MirKind eKind);

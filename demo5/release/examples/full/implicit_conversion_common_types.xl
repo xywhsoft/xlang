@@ -1,0 +1,16 @@
+func main() as int
+	float mixed = 1 + 2.5
+	float chosen = true ? 1 : 2.5
+	auto values = [1, 2.5]
+	if mixed < 3.4 or mixed > 3.6
+		return 1
+	end
+	if chosen < 0.9 or chosen > 1.1
+		return 2
+	end
+	float first = values[0]
+	if first < 0.9 or first > 1.1
+		return 3
+	end
+	return 0
+end

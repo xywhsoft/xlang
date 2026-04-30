@@ -1,0 +1,16 @@
+func mix(float value, any boxed = 7, var dyn = 8) as int
+	if value < 0.9 or value > 1.1 then
+		return 1
+	end
+	if Type(boxed) != int then
+		return 2
+	end
+	if Type(dyn) != int then
+		return 3
+	end
+	return 40
+end
+
+func main() as int
+	return mix(dyn = 9, value = 1) + 2
+end

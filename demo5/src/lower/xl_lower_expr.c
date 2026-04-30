@@ -1,5 +1,4 @@
 #include "xl_lower.h"
-
 XL_HirNode* xlLowerExprToHir(const XL_AstNode* pNode, const XL_SemResult* pSem, XL_DiagContext* pDiag, int bTraceLower);
 
 static XL_HirKind __xlExprKind(const XL_AstNode* pNode)
@@ -68,6 +67,168 @@ static void __xlApplySemNodeInfo(XL_HirNode* pHir, const XL_SemResult* pSem, con
 				pHir->bFlag |= XL_HIR_FLAG_STORAGE_VAR;
 				break;
 			}
+		}
+	}
+}
+
+static void __xlAnnotateImplicitConversion(XL_HirNode* pHir, const char* sExpectedType, const XL_SemResult* pSem)
+{
+	const char* sActualType;
+	char sText[256];
+
+	if ( (pHir == NULL) || (sExpectedType == NULL) || (sExpectedType[0] == '\0') ) {
+		return;
+	}
+	sActualType = pHir->sTypeName;
+	if ( !xlLowerCanAnnotateImplicitConversion(pSem, sExpectedType, sActualType) ) {
+		return;
+	}
+	snprintf(sText, sizeof(sText), "%s->%s", sActualType, sExpectedType);
+	xlHirSetConversion(pHir, sText);
+}
+
+static int __xlLowerTypeHasBaseName(const char* sTypeName, const char* sBaseName)
+{
+	size_t iBaseLen;
+
+	if ( (sTypeName == NULL) || (sBaseName == NULL) ) {
+		return 0;
+	}
+	iBaseLen = strlen(sBaseName);
+	if ( strncmp(sTypeName, sBaseName, iBaseLen) != 0 ) {
+		return 0;
+	}
+	return (sTypeName[iBaseLen] == '\0') || (sTypeName[iBaseLen] == '<');
+}
+
+static int __xlLowerExtractContainerValueType(const char* sTypeName, const char* sBaseName, char* sOut, size_t iOutSize)
+{
+	const char* sStart;
+	const char* sEnd;
+	size_t iLen;
+
+	if ( (sOut == NULL) || (iOutSize == 0) ) {
+		return 0;
+	}
+	sOut[0] = '\0';
+	if ( !__xlLowerTypeHasBaseName(sTypeName, sBaseName) ) {
+		return 0;
+	}
+	iLen = strlen(sBaseName);
+	if ( sTypeName[iLen] == '\0' ) {
+		snprintf(sOut, iOutSize, "%s", "any");
+		return 1;
+	}
+	sStart = sTypeName + iLen + 1;
+	sEnd = strrchr(sStart, '>');
+	if ( (sEnd == NULL) || (sEnd <= sStart) ) {
+		return 0;
+	}
+	iLen = (size_t)(sEnd - sStart);
+	if ( iLen >= iOutSize ) {
+		iLen = iOutSize - 1;
+	}
+	memcpy(sOut, sStart, iLen);
+	sOut[iLen] = '\0';
+	return sOut[0] != '\0';
+}
+
+static int __xlLowerExtractLiteralItemType(const char* sTypeName, char* sOut, size_t iOutSize)
+{
+	if ( __xlLowerExtractContainerValueType(sTypeName, "array", sOut, iOutSize) ) {
+		return 1;
+	}
+	if ( __xlLowerExtractContainerValueType(sTypeName, "list", sOut, iOutSize) ) {
+		return 1;
+	}
+	if ( __xlLowerExtractContainerValueType(sTypeName, "set", sOut, iOutSize) ) {
+		return 1;
+	}
+	return __xlLowerExtractContainerValueType(sTypeName, "dict", sOut, iOutSize);
+}
+
+static int __xlLowerIsNumericCommonBinaryOp(const char* sOp)
+{
+	if ( sOp == NULL ) {
+		return 0;
+	}
+	return (strcmp(sOp, "+") == 0) ||
+		(strcmp(sOp, "-") == 0) ||
+		(strcmp(sOp, "*") == 0) ||
+		(strcmp(sOp, "/") == 0) ||
+		(strcmp(sOp, "%") == 0) ||
+		(strcmp(sOp, "**") == 0);
+}
+
+static int __xlLowerIsEqualityOp(const char* sOp)
+{
+	return (sOp != NULL) && ((strcmp(sOp, "==") == 0) || (strcmp(sOp, "!=") == 0));
+}
+
+static const char* __xlLowerCallCalleeText(const XL_AstNode* pNode)
+{
+	const XL_AstNode* pCallee;
+
+	pCallee = ((pNode != NULL) && (pNode->iChildCount > 0)) ? pNode->ppChildren[0] : NULL;
+	return (pCallee != NULL) ? pCallee->sText : NULL;
+}
+
+static void __xlAnnotateLiteralCallConversions(XL_HirNode* pArgs, const char* sCallType, const char* sCalleeName, const XL_SemResult* pSem)
+{
+	char sItemType[128];
+	size_t i;
+
+	if ( (pArgs == NULL) || (sCalleeName == NULL) || !__xlLowerExtractLiteralItemType(sCallType, sItemType, sizeof(sItemType)) ) {
+		return;
+	}
+	if ( (strcmp(sCalleeName, "__array_literal") == 0) ||
+		(strcmp(sCalleeName, "__list_literal") == 0) ||
+		(strcmp(sCalleeName, "__set_literal") == 0) ) {
+		for ( i = 0; i < pArgs->iChildCount; ++i ) {
+			__xlAnnotateImplicitConversion(pArgs->ppChildren[i], sItemType, pSem);
+		}
+		return;
+	}
+	if ( strcmp(sCalleeName, "__dict_literal") == 0 ) {
+		for ( i = 1; i < pArgs->iChildCount; i += 2 ) {
+			__xlAnnotateImplicitConversion(pArgs->ppChildren[i], sItemType, pSem);
+		}
+	}
+}
+
+static void __xlAnnotateCommonExprConversions(const XL_AstNode* pNode, XL_HirNode* pHir, const XL_SemResult* pSem)
+{
+	if ( (pNode == NULL) || (pHir == NULL) || (pHir->sTypeName == NULL) || (pHir->sTypeName[0] == '\0') ) {
+		return;
+	}
+	if ( (pNode->eKind == XL_AST_BINARY) && __xlLowerIsNumericCommonBinaryOp(pNode->sText) ) {
+		if ( pHir->iChildCount >= 1 ) {
+			__xlAnnotateImplicitConversion(pHir->ppChildren[0], pHir->sTypeName, pSem);
+		}
+		if ( pHir->iChildCount >= 2 ) {
+			__xlAnnotateImplicitConversion(pHir->ppChildren[1], pHir->sTypeName, pSem);
+		}
+		return;
+	}
+	if ( (pNode->eKind == XL_AST_BINARY) && __xlLowerIsEqualityOp(pNode->sText) && (pHir->iChildCount >= 2) ) {
+		XL_HirNode* pLeft = pHir->ppChildren[0];
+		XL_HirNode* pRight = pHir->ppChildren[1];
+
+		if ( (pLeft != NULL) && (pRight != NULL) &&
+			xlLowerCanAnnotateImplicitConversion(pSem, pRight->sTypeName, pLeft->sTypeName) ) {
+			__xlAnnotateImplicitConversion(pLeft, pRight->sTypeName, pSem);
+		} else if ( (pLeft != NULL) && (pRight != NULL) &&
+			xlLowerCanAnnotateImplicitConversion(pSem, pLeft->sTypeName, pRight->sTypeName) ) {
+			__xlAnnotateImplicitConversion(pRight, pLeft->sTypeName, pSem);
+		}
+		return;
+	}
+	if ( pNode->eKind == XL_AST_TERNARY ) {
+		if ( pHir->iChildCount >= 2 ) {
+			__xlAnnotateImplicitConversion(pHir->ppChildren[1], pHir->sTypeName, pSem);
+		}
+		if ( pHir->iChildCount >= 3 ) {
+			__xlAnnotateImplicitConversion(pHir->ppChildren[2], pHir->sTypeName, pSem);
 		}
 	}
 }
@@ -487,7 +648,11 @@ static void __xlLowerCallArgsResolved(
 					)
 				);
 			} else {
-				xlHirAppendChild(pArgs, xlLowerExprToHir(pValue, pSem, pDiag, bTraceLower));
+				XL_HirNode* pArgHir;
+
+				pArgHir = xlLowerExprToHir(pValue, pSem, pDiag, bTraceLower);
+				__xlAnnotateImplicitConversion(pArgHir, (pFunc->arrParamTypes != NULL) ? pFunc->arrParamTypes[i] : NULL, pSem);
+				xlHirAppendChild(pArgs, pArgHir);
 			}
 		}
 	}
@@ -496,7 +661,11 @@ static void __xlLowerCallArgsResolved(
 		XL_HirNode* pPackedArgs;
 
 		if ( pPackedArgValue != NULL ) {
-			xlHirAppendChild(pArgs, xlLowerExprToHir(pPackedArgValue, pSem, pDiag, bTraceLower));
+			XL_HirNode* pPackedHir;
+
+			pPackedHir = xlLowerExprToHir(pPackedArgValue, pSem, pDiag, bTraceLower);
+			__xlAnnotateImplicitConversion(pPackedHir, (pFunc->arrParamTypes != NULL) ? pFunc->arrParamTypes[iVarArgIndex] : NULL, pSem);
+			xlHirAppendChild(pArgs, pPackedHir);
 		} else {
 			pPackedCall = __xlCreateHiddenCallHir(pCallNode, "__array_literal", "array<var>");
 			pPackedArgs = (pPackedCall != NULL) ? pPackedCall->ppChildren[1] : NULL;
@@ -518,6 +687,7 @@ static void __xlLowerCallArgsResolved(
 					xlHirAppendChild(pPackedArgs, xlLowerExprToHir(arrVarArgValues[i], pSem, pDiag, bTraceLower));
 				}
 			}
+			__xlAnnotateLiteralCallConversions(pPackedArgs, "array<var>", "__array_literal", pSem);
 			xlHirAppendChild(pArgs, pPackedCall);
 		}
 	} else if ( pFunc->eVarArgKind == XL_FUNC_VARARG_DICT ) {
@@ -525,7 +695,11 @@ static void __xlLowerCallArgsResolved(
 		XL_HirNode* pPackedArgs;
 
 		if ( pPackedArgValue != NULL ) {
-			xlHirAppendChild(pArgs, xlLowerExprToHir(pPackedArgValue, pSem, pDiag, bTraceLower));
+			XL_HirNode* pPackedHir;
+
+			pPackedHir = xlLowerExprToHir(pPackedArgValue, pSem, pDiag, bTraceLower);
+			__xlAnnotateImplicitConversion(pPackedHir, (pFunc->arrParamTypes != NULL) ? pFunc->arrParamTypes[iVarArgIndex] : NULL, pSem);
+			xlHirAppendChild(pArgs, pPackedHir);
 		} else {
 			pPackedCall = __xlCreateHiddenCallHir(pCallNode, "__dict_literal", "dict<var>");
 			pPackedArgs = (pPackedCall != NULL) ? pPackedCall->ppChildren[1] : NULL;
@@ -533,6 +707,7 @@ static void __xlLowerCallArgsResolved(
 				xlHirAppendChild(pPackedArgs, __xlCreateStringLiteralHir(pCallNode, (arrVarArgNames[i] != NULL) ? arrVarArgNames[i] : ""));
 				xlHirAppendChild(pPackedArgs, xlLowerExprToHir(arrVarArgValues[i], pSem, pDiag, bTraceLower));
 			}
+			__xlAnnotateLiteralCallConversions(pPackedArgs, "dict<var>", "__dict_literal", pSem);
 			xlHirAppendChild(pArgs, pPackedCall);
 		}
 	}
@@ -622,6 +797,7 @@ XL_HirNode* xlLowerExprToHir(const XL_AstNode* pNode, const XL_SemResult* pSem, 
 			xlHirSetText(pArgs, "args");
 			__xlApplySemNodeInfo(pArgs, pSem, pNode->ppChildren[1]);
 			__xlLowerCallArgsResolved(pArgs, pNode, pSem, pDiag, bTraceLower);
+			__xlAnnotateLiteralCallConversions(pArgs, pHir->sTypeName, __xlLowerCallCalleeText(pNode), pSem);
 			xlHirAppendChild(pHir, pArgs);
 		}
 		return pHir;
@@ -640,6 +816,10 @@ XL_HirNode* xlLowerExprToHir(const XL_AstNode* pNode, const XL_SemResult* pSem, 
 	for ( i = 0; i < pNode->iChildCount; ++i ) {
 		xlHirAppendChild(pHir, xlLowerExprToHir(pNode->ppChildren[i], pSem, pDiag, bTraceLower));
 	}
+	if ( (pNode->eKind == XL_AST_ASSIGN) && (pHir->iChildCount >= 2) && (pHir->ppChildren[0] != NULL) ) {
+		__xlAnnotateImplicitConversion(pHir->ppChildren[1], pHir->ppChildren[0]->sTypeName, pSem);
+	}
+	__xlAnnotateCommonExprConversions(pNode, pHir, pSem);
 
 	return pHir;
 }

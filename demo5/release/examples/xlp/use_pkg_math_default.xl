@@ -1,0 +1,5 @@
+import pkg.math
+
+func main() as int
+	return pkg.math.add_one()
+end

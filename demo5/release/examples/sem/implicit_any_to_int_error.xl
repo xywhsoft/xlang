@@ -1,0 +1,8 @@
+func take_int(int value) as int
+	return value
+end
+
+func main() as int
+	any value = 1
+	return take_int(value)
+end

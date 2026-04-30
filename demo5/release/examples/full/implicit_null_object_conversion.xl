@@ -1,0 +1,24 @@
+class NullBox extends object
+end
+
+func take_box(NullBox value) as int
+	if value != null then
+		return 1
+	end
+	return 10
+end
+
+func make_box() as NullBox
+	return null
+end
+
+func main() as int
+	NullBox value = null
+	if value != null then
+		return 2
+	end
+	if make_box() != null then
+		return 3
+	end
+	return take_box(null) + 32
+end

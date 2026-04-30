@@ -1,0 +1,5 @@
+func main() as int
+	var value = 1
+	int result = value
+	return result
+end

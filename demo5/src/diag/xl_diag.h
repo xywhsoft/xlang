@@ -18,13 +18,17 @@ typedef struct XL_DiagContext {
 	FILE* pOut;
 	FILE* pErr;
 	const char* sDefaultSourceFile;
+#if XLANG_DEBUGMODE_ENABLED
 	XL_DiagFormat eFormat;
+#endif
 	int iWarnCount;
 	int iErrorCount;
 } XL_DiagContext;
 
 void xlDiagInit(XL_DiagContext* pDiag, FILE* pOut, FILE* pErr);
+#if XLANG_DEBUGMODE_ENABLED
 void xlDiagSetFormat(XL_DiagContext* pDiag, XL_DiagFormat eFormat);
+#endif
 void xlDiagSetDefaultSourceFile(XL_DiagContext* pDiag, const char* sSourceFile);
 void xlDiagEmit(
 	XL_DiagContext* pDiag,

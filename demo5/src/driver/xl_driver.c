@@ -759,7 +759,9 @@ static int __xlDriverRunProgram(
 	XL_LowerResult lowerResult;
 	XL_ExecCtx execCtx;
 	char* sCode;
+#if XLANG_DEBUGMODE_ENABLED
 	char* sTraceText;
+#endif
 	char sRootPath[XL_PATH_MAX_LEN];
 	char sSummary[XL_DIAG_TEXT_MAX];
 	int iRc;
@@ -775,7 +777,9 @@ static int __xlDriverRunProgram(
 	xlLowerResultInit(&lowerResult);
 	xlExecCtxInit(&execCtx, pOpts->sInputFile, __xlDriverRootPath(pDump, sRootPath, sizeof(sRootPath)));
 	sCode = NULL;
+#if XLANG_DEBUGMODE_ENABLED
 	sTraceText = NULL;
+#endif
 #if XLANG_DEBUGMODE_ENABLED
 	sTraceWithModules = NULL;
 	sJsonDump = NULL;
@@ -848,7 +852,16 @@ static int __xlDriverRunProgram(
 	}
 #endif
 
-	iRc = xlExecRunCode(&execCtx, pDiag, sCode, &sTraceText);
+	iRc = xlExecRunCode(
+		&execCtx,
+		pDiag,
+		sCode,
+#if XLANG_DEBUGMODE_ENABLED
+		&sTraceText
+#else
+		NULL
+#endif
+	);
 #if XLANG_DEBUGMODE_ENABLED
 	__xlBuildDumpPath(sTracePath, sizeof(sTracePath), "runtime", pOpts->sInputFile, ".trace.txt");
 	sTraceWithModules = __xlConcatText((moduleResult.sTextDump != NULL) ? moduleResult.sTextDump : "", (sTraceText != NULL) ? sTraceText : "");
@@ -896,7 +909,9 @@ static int __xlDriverRunProgram(
 
 cleanup:
 	free(sCode);
+#if XLANG_DEBUGMODE_ENABLED
 	free(sTraceText);
+#endif
 #if XLANG_DEBUGMODE_ENABLED
 	free(sTraceWithModules);
 	free(sJsonDump);
@@ -915,23 +930,35 @@ static int __xlDriverRunCProgram(
 {
 	XL_HostContext hostCtx;
 	XL_HostRunResult result;
-	char* sTraceText;
-	char sRootPath[XL_PATH_MAX_LEN];
-	char sTracePath[XL_PATH_MAX_LEN];
-	char sSummary[XL_DIAG_TEXT_MAX];
-	int iRc;
 #if XLANG_DEBUGMODE_ENABLED
+	char* sTraceText;
+	char sTracePath[XL_PATH_MAX_LEN];
 	char* sJsonDump;
 #endif
+	char sRootPath[XL_PATH_MAX_LEN];
+	char sSummary[XL_DIAG_TEXT_MAX];
+	int iRc;
 
 	xlHostContextInit(&hostCtx, pOpts->sInputFile, __xlDriverRootPath(pDump, sRootPath, sizeof(sRootPath)));
 	memset(&result, 0, sizeof(result));
+#if XLANG_DEBUGMODE_ENABLED
 	sTraceText = NULL;
+#endif
 #if XLANG_DEBUGMODE_ENABLED
 	sJsonDump = NULL;
 #endif
 
-	iRc = xlHostRunCFile(&hostCtx, pDiag, pOpts->sInputFile, &sTraceText, &result);
+	iRc = xlHostRunCFile(
+		&hostCtx,
+		pDiag,
+		pOpts->sInputFile,
+#if XLANG_DEBUGMODE_ENABLED
+		&sTraceText,
+#else
+		NULL,
+#endif
+		&result
+	);
 #if XLANG_DEBUGMODE_ENABLED
 	__xlBuildDumpPath(sTracePath, sizeof(sTracePath), "host", pOpts->sInputFile, ".trace.txt");
 	if ( xlDumpWriteText(pDump, sTracePath, (sTraceText != NULL) ? sTraceText : "") != XL_RC_OK ) {
@@ -939,7 +966,9 @@ static int __xlDriverRunCProgram(
 	}
 #endif
 	if ( iRc != XL_RC_OK ) {
+#if XLANG_DEBUGMODE_ENABLED
 		free(sTraceText);
+#endif
 		return iRc;
 	}
 
@@ -976,7 +1005,9 @@ static int __xlDriverRunCProgram(
 		}
 	}
 
+#if XLANG_DEBUGMODE_ENABLED
 	free(sTraceText);
+#endif
 #if XLANG_DEBUGMODE_ENABLED
 	free(sJsonDump);
 #endif
@@ -995,18 +1026,18 @@ static int __xlDriverBuildProgram(
 	XL_HostContext hostCtx;
 	XL_HostBuildResult result;
 	char* sCode;
-	char* sTraceText;
-	char sRootPath[XL_PATH_MAX_LEN];
-	char sOutputFile[XL_PATH_MAX_LEN];
-	char sSummary[XL_DIAG_TEXT_MAX];
-	int iRc;
 #if XLANG_DEBUGMODE_ENABLED
+	char* sTraceText;
 	char* sSymbolsJson;
 	char sCodePath[XL_PATH_MAX_LEN];
 	char sTracePath[XL_PATH_MAX_LEN];
 	char sSymbolsPath[XL_PATH_MAX_LEN];
 	char* sJsonDump;
 #endif
+	char sRootPath[XL_PATH_MAX_LEN];
+	char sOutputFile[XL_PATH_MAX_LEN];
+	char sSummary[XL_DIAG_TEXT_MAX];
+	int iRc;
 
 	xlModuleLinkResultInit(&moduleResult);
 	xlSemResultInit(&semResult);
@@ -1014,7 +1045,9 @@ static int __xlDriverBuildProgram(
 	xlHostContextInit(&hostCtx, pOpts->sInputFile, __xlDriverRootPath(pDump, sRootPath, sizeof(sRootPath)));
 	memset(&result, 0, sizeof(result));
 	sCode = NULL;
+#if XLANG_DEBUGMODE_ENABLED
 	sTraceText = NULL;
+#endif
 #if XLANG_DEBUGMODE_ENABLED
 	sSymbolsJson = NULL;
 	sJsonDump = NULL;
@@ -1087,7 +1120,20 @@ static int __xlDriverBuildProgram(
 	}
 #endif
 
-	iRc = xlHostBuildCText(&hostCtx, pDiag, pOpts->sInputFile, sCode, "xl_generated_entry", sOutputFile, &sTraceText, &result);
+	iRc = xlHostBuildCText(
+		&hostCtx,
+		pDiag,
+		pOpts->sInputFile,
+		sCode,
+		"xl_generated_entry",
+		sOutputFile,
+#if XLANG_DEBUGMODE_ENABLED
+		&sTraceText,
+#else
+		NULL,
+#endif
+		&result
+	);
 #if XLANG_DEBUGMODE_ENABLED
 	__xlBuildDumpPath(sTracePath, sizeof(sTracePath), "host", pOpts->sInputFile, ".build.trace.txt");
 	if ( xlDumpWriteText(pDump, sTracePath, (sTraceText != NULL) ? sTraceText : "") != XL_RC_OK ) {
@@ -1115,7 +1161,9 @@ static int __xlDriverBuildProgram(
 
 cleanup:
 	free(sCode);
+#if XLANG_DEBUGMODE_ENABLED
 	free(sTraceText);
+#endif
 #if XLANG_DEBUGMODE_ENABLED
 	free(sSymbolsJson);
 	free(sJsonDump);
@@ -1134,21 +1182,23 @@ static int __xlDriverBuildCProgram(
 {
 	XL_HostContext hostCtx;
 	XL_HostBuildResult result;
-	char* sTraceText;
-	char sRootPath[XL_PATH_MAX_LEN];
-	char sOutputFile[XL_PATH_MAX_LEN];
-	char sSummary[XL_DIAG_TEXT_MAX];
-	int iRc;
 #if XLANG_DEBUGMODE_ENABLED
+	char* sTraceText;
 	char* sSymbolsJson;
 	char sTracePath[XL_PATH_MAX_LEN];
 	char sSymbolsPath[XL_PATH_MAX_LEN];
 	char* sJsonDump;
 #endif
+	char sRootPath[XL_PATH_MAX_LEN];
+	char sOutputFile[XL_PATH_MAX_LEN];
+	char sSummary[XL_DIAG_TEXT_MAX];
+	int iRc;
 
 	xlHostContextInit(&hostCtx, pOpts->sInputFile, __xlDriverRootPath(pDump, sRootPath, sizeof(sRootPath)));
 	memset(&result, 0, sizeof(result));
+#if XLANG_DEBUGMODE_ENABLED
 	sTraceText = NULL;
+#endif
 #if XLANG_DEBUGMODE_ENABLED
 	sSymbolsJson = NULL;
 	sJsonDump = NULL;
@@ -1165,7 +1215,18 @@ static int __xlDriverBuildCProgram(
 		);
 	}
 
-	iRc = xlHostBuildCFile(&hostCtx, pDiag, pOpts->sInputFile, sOutputFile, &sTraceText, &result);
+	iRc = xlHostBuildCFile(
+		&hostCtx,
+		pDiag,
+		pOpts->sInputFile,
+		sOutputFile,
+#if XLANG_DEBUGMODE_ENABLED
+		&sTraceText,
+#else
+		NULL,
+#endif
+		&result
+	);
 #if XLANG_DEBUGMODE_ENABLED
 	__xlBuildDumpPath(sTracePath, sizeof(sTracePath), "host", pOpts->sInputFile, ".build.trace.txt");
 	if ( xlDumpWriteText(pDump, sTracePath, (sTraceText != NULL) ? sTraceText : "") != XL_RC_OK ) {
@@ -1178,7 +1239,9 @@ static int __xlDriverBuildCProgram(
 	}
 #endif
 	if ( iRc != XL_RC_OK ) {
+#if XLANG_DEBUGMODE_ENABLED
 		free(sTraceText);
+#endif
 #if XLANG_DEBUGMODE_ENABLED
 		free(sSymbolsJson);
 #endif
@@ -1197,7 +1260,9 @@ static int __xlDriverBuildCProgram(
 	fputs(sSummary, stdout);
 #endif
 
+#if XLANG_DEBUGMODE_ENABLED
 	free(sTraceText);
+#endif
 #if XLANG_DEBUGMODE_ENABLED
 	free(sSymbolsJson);
 	free(sJsonDump);
@@ -1205,63 +1270,28 @@ static int __xlDriverBuildCProgram(
 	return iRc;
 }
 
-static int __xlDriverRunInternal(const XL_CliOptions* pOpts, XL_DiagContext* pDiag, XL_DumpContext* pDump)
+static int __xlDriverRunInternalRelease(const XL_CliOptions* pOpts, XL_DiagContext* pDiag)
 {
-	int iRc;
-
 	if ( (pOpts == NULL) || (pDiag == NULL) ) {
 		return XL_RC_BAD_ARG;
 	}
 
-#if XLANG_DEBUGMODE_ENABLED
-	if ( pDump != NULL ) {
-		iRc = xlDumpEnsureLayout(pDump);
-		if ( iRc != XL_RC_OK ) {
-			XL_DIAG_ERROR(pDiag, "driver", "failed to create release layout");
-			return iRc;
-		}
-	}
-#endif
 	if ( pOpts->sInputFile != NULL ) {
 		xlDiagSetDefaultSourceFile(pDiag, pOpts->sInputFile);
 	}
 
-#if XLANG_DEBUGMODE_ENABLED
-	if ( pOpts->eCommand == XL_CMD_LEX ) {
-		return xlDriverRunLexDebug(pOpts, pDiag, pDump);
-	}
-	if ( pOpts->eCommand == XL_CMD_PARSE ) {
-		return xlDriverRunParseDebug(pOpts, pDiag, pDump);
-	}
-	if ( pOpts->eCommand == XL_CMD_SEM ) {
-		return xlDriverRunSemDebug(pOpts, pDiag, pDump);
-	}
-	if ( pOpts->eCommand == XL_CMD_LOWER ) {
-		return xlDriverRunLowerDebug(pOpts, pDiag, pDump);
-	}
-	if ( pOpts->eCommand == XL_CMD_CGEN ) {
-		return xlDriverRunCgenDebug(pOpts, pDiag, pDump);
-	}
-#endif
 	if ( pOpts->eCommand == XL_CMD_BUILD ) {
-		return __xlDriverBuildProgram(pOpts, pDiag, pDump);
+		return __xlDriverBuildProgram(pOpts, pDiag, NULL);
 	}
 	if ( pOpts->eCommand == XL_CMD_RUN ) {
-		return __xlDriverRunProgram(pOpts, pDiag, pDump);
+		return __xlDriverRunProgram(pOpts, pDiag, NULL);
 	}
 	if ( pOpts->eCommand == XL_CMD_BUILD_C ) {
-		return __xlDriverBuildCProgram(pOpts, pDiag, pDump);
+		return __xlDriverBuildCProgram(pOpts, pDiag, NULL);
 	}
 	if ( pOpts->eCommand == XL_CMD_RUN_C ) {
-		return __xlDriverRunCProgram(pOpts, pDiag, pDump);
+		return __xlDriverRunCProgram(pOpts, pDiag, NULL);
 	}
-
-#if XLANG_DEBUGMODE_ENABLED
-	iRc = __xlDriverWriteStubDump(pOpts, pDiag, pDump);
-	if ( iRc != XL_RC_OK ) {
-		return iRc;
-	}
-#endif
 
 	XL_DIAG_INFO(
 		pDiag,
@@ -1282,12 +1312,81 @@ static int __xlDriverRunInternal(const XL_CliOptions* pOpts, XL_DiagContext* pDi
 
 int xlDriverRunRelease(const XL_CliOptions* pOpts, XL_DiagContext* pDiag)
 {
-	return __xlDriverRunInternal(pOpts, pDiag, NULL);
+	return __xlDriverRunInternalRelease(pOpts, pDiag);
 }
 
 #if XLANG_DEBUGMODE_ENABLED
+static int __xlDriverRunInternalDebug(const XL_CliOptions* pOpts, XL_DiagContext* pDiag, XL_DumpContext* pDump)
+{
+	int iRc;
+
+	if ( (pOpts == NULL) || (pDiag == NULL) ) {
+		return XL_RC_BAD_ARG;
+	}
+
+	if ( pDump != NULL ) {
+		iRc = xlDumpEnsureLayout(pDump);
+		if ( iRc != XL_RC_OK ) {
+			XL_DIAG_ERROR(pDiag, "driver", "failed to create release layout");
+			return iRc;
+		}
+	}
+	if ( pOpts->sInputFile != NULL ) {
+		xlDiagSetDefaultSourceFile(pDiag, pOpts->sInputFile);
+	}
+
+	if ( pOpts->eCommand == XL_CMD_LEX ) {
+		return xlDriverRunLexDebug(pOpts, pDiag, pDump);
+	}
+	if ( pOpts->eCommand == XL_CMD_PARSE ) {
+		return xlDriverRunParseDebug(pOpts, pDiag, pDump);
+	}
+	if ( pOpts->eCommand == XL_CMD_SEM ) {
+		return xlDriverRunSemDebug(pOpts, pDiag, pDump);
+	}
+	if ( pOpts->eCommand == XL_CMD_LOWER ) {
+		return xlDriverRunLowerDebug(pOpts, pDiag, pDump);
+	}
+	if ( pOpts->eCommand == XL_CMD_CGEN ) {
+		return xlDriverRunCgenDebug(pOpts, pDiag, pDump);
+	}
+	if ( pOpts->eCommand == XL_CMD_BUILD ) {
+		return __xlDriverBuildProgram(pOpts, pDiag, pDump);
+	}
+	if ( pOpts->eCommand == XL_CMD_RUN ) {
+		return __xlDriverRunProgram(pOpts, pDiag, pDump);
+	}
+	if ( pOpts->eCommand == XL_CMD_BUILD_C ) {
+		return __xlDriverBuildCProgram(pOpts, pDiag, pDump);
+	}
+	if ( pOpts->eCommand == XL_CMD_RUN_C ) {
+		return __xlDriverRunCProgram(pOpts, pDiag, pDump);
+	}
+
+	iRc = __xlDriverWriteStubDump(pOpts, pDiag, pDump);
+	if ( iRc != XL_RC_OK ) {
+		return iRc;
+	}
+
+	XL_DIAG_INFO(
+		pDiag,
+		"driver",
+		"stage0 ready: command '%s' accepted, pipeline body not implemented yet",
+		xlCliCommandName(pOpts->eCommand)
+	);
+
+	if ( pOpts->sEmitPath != NULL ) {
+		XL_DIAG_INFO(pDiag, "driver", "emit path reserved: %s", pOpts->sEmitPath);
+	}
+	if ( pOpts->sStopAfter != NULL ) {
+		XL_DIAG_INFO(pDiag, "driver", "stop-after reserved: %s", pOpts->sStopAfter);
+	}
+
+	return XL_RC_NOT_IMPLEMENTED;
+}
+
 int xlDriverRunDebug(const XL_CliOptions* pOpts, XL_DiagContext* pDiag, XL_DumpContext* pDump)
 {
-	return __xlDriverRunInternal(pOpts, pDiag, pDump);
+	return __xlDriverRunInternalDebug(pOpts, pDiag, pDump);
 }
 #endif

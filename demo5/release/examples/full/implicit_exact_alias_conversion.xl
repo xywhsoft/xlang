@@ -1,0 +1,33 @@
+func take_int(int value) as int
+	return value + 1
+end
+
+func take_int32(int32 value) as int
+	return value + 2
+end
+
+func take_float(float value) as int
+	if value > 2.9
+		return 10
+	end
+	return 0
+end
+
+func take_float64(float64 value) as int
+	if value > 3.9
+		return 20
+	end
+	return 0
+end
+
+func main() as int
+	int exact = 5
+	int32 narrow_name = exact
+	int alias_from_i32 = narrow_name
+
+	float exact_float = 4.0
+	float64 wide_name = exact_float
+	float alias_from_f64 = wide_name
+
+	return take_int(exact) + take_int(alias_from_i32) + take_int32(exact) + take_float(alias_from_f64) + take_float64(exact_float)
+end

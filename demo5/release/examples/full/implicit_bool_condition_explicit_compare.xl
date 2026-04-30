@@ -1,0 +1,11 @@
+func main() as int
+	int value = 1
+	int total = 0
+	if value != 0
+		total = total + 1
+	end
+	while total < 2 do
+		total = total + 1
+	end
+	return total
+end

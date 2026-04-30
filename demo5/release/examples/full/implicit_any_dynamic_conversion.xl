@@ -1,0 +1,8 @@
+func take_any(any value) as int
+	return 41
+end
+
+func main() as int
+	any value = 1
+	return take_any(value) + 2
+end

@@ -1,0 +1,4 @@
+func main() as int
+	int value = 1.2
+	return value
+end

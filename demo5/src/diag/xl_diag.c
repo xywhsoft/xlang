@@ -14,6 +14,7 @@ static const char* __xlDiagLevelName(XL_DiagLevel eLevel)
 	}
 }
 
+#if XLANG_DEBUGMODE_ENABLED
 static void __xlDiagJsonString(FILE* pStream, const char* sText)
 {
 	const unsigned char* p;
@@ -39,6 +40,7 @@ static void __xlDiagJsonString(FILE* pStream, const char* sText)
 	}
 	fputc('"', pStream);
 }
+#endif
 
 static int __xlDiagReadSourceLine(const char* sFile, int iLine, char* sOut, size_t iOutSize)
 {
@@ -106,6 +108,7 @@ static void __xlDiagEmitV(
 
 	vsnprintf(sMessage, sizeof(sMessage), sFormat, args);
 	sLocationFile = ((sSourceFile != NULL) && (sSourceFile[0] != '\0')) ? sSourceFile : pDiag->sDefaultSourceFile;
+	#if XLANG_DEBUGMODE_ENABLED
 	if ( pDiag->eFormat == XL_DIAG_FORMAT_JSON ) {
 		fputs("{\"level\":", pStream);
 		__xlDiagJsonString(pStream, __xlDiagLevelName(eLevel));
@@ -119,6 +122,7 @@ static void __xlDiagEmitV(
 		fflush(pStream);
 		return;
 	}
+	#endif
 
 	fprintf(pStream, "[%s][%s] ", __xlDiagLevelName(eLevel), (sPhase != NULL) ? sPhase : "core");
 	if ( (sLocationFile != NULL) && (sLocationFile[0] != '\0') && (iSourceLine > 0) ) {
@@ -152,17 +156,21 @@ void xlDiagInit(XL_DiagContext* pDiag, FILE* pOut, FILE* pErr)
 	pDiag->pOut = pOut;
 	pDiag->pErr = pErr;
 	pDiag->sDefaultSourceFile = NULL;
+#if XLANG_DEBUGMODE_ENABLED
 	pDiag->eFormat = XL_DIAG_FORMAT_TEXT;
+#endif
 	pDiag->iWarnCount = 0;
 	pDiag->iErrorCount = 0;
 }
 
+#if XLANG_DEBUGMODE_ENABLED
 void xlDiagSetFormat(XL_DiagContext* pDiag, XL_DiagFormat eFormat)
 {
 	if ( pDiag != NULL ) {
 		pDiag->eFormat = eFormat;
 	}
 }
+#endif
 
 void xlDiagSetDefaultSourceFile(XL_DiagContext* pDiag, const char* sSourceFile)
 {

@@ -1,0 +1,7 @@
+func take_pair<T>(T left, T right) as int
+	return 41
+end
+
+func main() as int
+	return take_pair(1, 2.0)
+end

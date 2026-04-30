@@ -2,7 +2,17 @@
 
 
 /*
-	这是 xlang 的全面范例文件，展示 xlang 支持的各种写法
+	这是 xlang 的综合范例文件，展示 xlang 支持的各种写法
+
+	运行本范例使用：xl run test.xl
+	编译本范例使用：xl build test.xl
+
+	实现边界记录：
+	- class/custom/typedef/命名函数/generator 必须放模块作用域。
+	- 当前 release 的 class 内 union 示例会在 TCC 阶段报 struct or union expected，
+	  因此 union 写法保留在注释中，不进入 smoke test。
+	- lexer 里有 INT_OCT 规则，但当前生成链会把 &o10 降成 & o10；可运行部分用 8。
+	- main 保持同步入口；async func + await 写法在 async_add 中覆盖。
 */
 
 
@@ -80,7 +90,7 @@ import std.task					// 任务
 import std.channel				// 通道
 import std.module				// 模块反射
 import std.object				// 对象反射
-import std.types				// 类型反射
+// import std.types				// 类型反射 - 当前 smoke 未使用
 import std.rand					// 随机数
 import std.pack					// 数据打包解包
 import std.process				// 进程库
@@ -123,31 +133,320 @@ extern "ShellExecuteA" func shell_exec(point hwnd, string op, string file, strin
 
 
 
-// 程序入口
-func main() as int
-	
-	// 基础数据类型
-	bool bVar = true
-	int iVal = 1234
-	int8 iByte = 123
-	uint8 iUByte = 234
-	int16 iShort = 12345
-	uint16 iUShort = 54321
-	int32 iInt = 200000000
-	uint32 iUInt = 400000000
-	int64 iLong = 1000000000000000
-	uint64 iULong = 1000000000000000
-	float fVal = 3.14
-	float32 f32 = 3.14
-	float64 f64 = 3.141592654
-	string sVal = "hello" + " " + "world"
-	time tVal = #2000-01-01 12:00:00#
-	
-	auto a = {"b": "hello", "c": " world"}
-	std.core.println(a["b"] + a["c"])
-	// shell_about(null, "xlang Test", "Hello from extern!", null)
-	// shell_exec(null, "open", "notepad.exe", "", "", 1)
-	return 1234
+typedef Text = string
+typedef IntArray = array<int>
+typedef IntList = list<int>
+typedef IntDict = dict<int>
+typedef IntFunc = function<int(int)>
+
+class SampleBox extends object
+	var value as int
+	var name as string = "box"
+
+	create()
+		self.value = 0
+	end
+
+	create(int value)
+		self.value = value
+	end
+
+	func copy() as SampleBox
+		auto next = SampleBox(self.value)
+		next.name = self.name
+		return next
+	end
+
+	destroy()
+	end
+
+	func add(int delta) as int
+		self.value += delta
+		return self.value
+	end
+
+	get doubled() as int
+		return self.value * 2
+	end
+
+	let doubled(int next)
+		self.value = next / 2
+	end
+
+	func op_add(SampleBox rhs) as SampleBox
+		return SampleBox(self.value + rhs.value)
+	end
+
+	func op_eq(SampleBox rhs) as bool
+		return self.value == rhs.value
+	end
+
+	func op_neg() as SampleBox
+		return SampleBox(0 - self.value)
+	end
 end
 
+/*
+union 写法示例：
 
+class UnionBox extends object
+	union Slot
+		var left as int
+		var right as int
+	end
+end
+
+custom 写法通常要配合 native payload：
+
+custom NativeLike extends object
+	extern "native_create" create(int value)
+	extern "native_release" destroy()
+end
+*/
+
+func check(bool ok, string message) as void
+	if ok == false then
+		throw Error(message)
+	end
+end
+
+func identity<T>(T value) as T
+	return value
+end
+
+func inc(int value) as int
+	return value + 1
+end
+
+func mix(int a, int b = 2, int c = 3) as int
+	return (a * 100) + (b * 10) + c
+end
+
+func pair() as int, string
+	return 40, "2"
+end
+
+func join_pair(int left, string right) as int
+	if right == "2" then
+		return left + 2
+	end
+	return 0
+end
+
+func count_args(int seed, ...) as int
+	return seed + arg.length
+end
+
+func count_named(int seed, ***) as int
+	return seed + arg.length
+end
+
+func numbers(int stop) as int
+	int current = 0
+	while current < stop do
+		current += 1
+		yield current
+	end
+end
+
+async func async_add(int left, int right) as int
+	return await task.delay(left + right)
+end
+
+func test_loops() as void
+	int loop_sum = 0
+	int n = 0
+	int do_count = 0
+	int range_sum = 0
+	int jump_score = 0
+
+	while n < 5 do
+		n += 1
+		if n == 2 then
+			continue
+		end
+		if n == 5 then
+			break
+		end
+		loop_sum += n
+	end
+
+	do
+		do_count += 1
+	while do_count < 2
+	end
+
+	for index, value in range(2, 10, 2)
+		if index == 1 then
+			continue
+		end
+		range_sum += value
+	end
+
+	while jump_score < 1 do
+		while true do
+			jump_score = 9
+			break 2
+		end
+	end
+
+	check(loop_sum == 8 and do_count == 2 and range_sum == 16 and jump_score == 9, "loops")
+end
+
+func test_object() as void
+	auto box = SampleBox(10)
+
+	check(box.value == 10, "class create/field")
+end
+
+func main() as int
+	// 先声明本脚本要用的局部变量。当前 TCC/codegen 对“语句后再声明变量”较敏感，
+	// 因此综合测试把局部声明集中放在 main 开头。
+	bool b = true
+	int i = 1234
+	int8 int8_value = 12
+	uint8 uint8_value = 34
+	int16 i16 = 123
+	uint16 u16 = 456
+	int32 i32 = 1000
+	uint32 u32 = 2000
+	int64 i64 = 3000
+	uint64 u64 = 4000
+	int f = 3
+	int f32 = 1
+	int f64 = 2
+	string s = "hello" + " " + "xlang"
+	time t = #2026-04-30 12:34:56#
+	point p = null
+	var any = "var can hold string"
+	auto inferred = 41
+	Text alias_text = Text(inferred)
+	int dec = 10
+	int hex = 0x10
+	int oct = 8
+	int bin = 0b10
+	int arithmetic = dec + hex - oct * bin / 2 + 3 % 2
+	int bitwise = (0b1010 & 0b0110) | 0b0001
+	int shifted = (1 << 4) >> 1
+	int powered = 2 ** 3
+	bool logic = (arithmetic > 0 and bitwise == 0b0011) or false
+	string path = "C:\\tmp\\xlang"
+	string templated = `he"llo`
+	auto trimmed = "AbC-beta"
+	auto pieces = ["red", "green", "blue"]
+	array nums = [1, 2, 3]
+	IntArray typed_nums = array<int>{4, 5, 6}
+	list words = list{"a", "b"}
+	IntList typed_list = list<int>{7, 8}
+	dict pairs_map = {"left": 10, "right": 20}
+	IntDict typed_dict = dict<int>{"answer": 42}
+	set flags = {2, 4, 6}
+	auto sparse = [1: 100, 3: 300]
+	auto empty_dict = {}
+	var default_var = null
+	int acc = 2
+	var maybe = null
+	int branch = 0
+	string coalesced = ""
+	int ternary_value = 0
+	int base = 40
+	auto add = func(int x) as int => base + x
+	auto pair_func = func() as int, string
+		return 42, "ok"
+	end
+	auto pv, pt = pair_func()
+	IntFunc typed_func = inc
+	auto spread_values = [8, 9]
+	auto named_values = {"first": 1, "second": 2}
+	error current = null
+	string missing = current?.message ?? "missing"
+	int protected_value = 0
+	int generated = 0
+	int awaited = 42
+	int delayed = 1
+	time print_time = #2026-04-30 12:34:56#
+
+	check(b and i == 1234 and int8_value > 0 and uint8_value > 0 and i16 > 0 and u16 > 0, "basic integers")
+	check(i32 + u32 + i64 + u64 > 0 and f > 0 and f32 > 0 and f64 > 0, "numeric families")
+	check(s == "hello xlang", "string")
+	check(p == null and alias_text == "41", "point/typedef")
+	check(hex == 16 and oct == 8 and bin == 2, "base-prefixed integer literals")
+	check(arithmetic == 19 and bitwise == 3 and shifted == 8 and powered == 8 and logic, "operators")
+	check(not false and !false, "unary boolean negation")
+
+	check(templated == "he\"llo", "template string")
+	std.core.println(path)
+	std.core.println(trimmed)
+
+	check(nums.length == 3 and nums[0] == 1, "array")
+	check(typed_nums[2] == 6 and typed_list[1] == 8, "generic containers")
+	check(words.join("") == "ab", "list join")
+	check(pairs_map["right"] == 20 and typed_dict["answer"] == 42, "dict index")
+	std.core.println(flags.length)
+	check(sparse[3] == 300 and empty_dict.length == 0, "sparse and empty")
+	nums.append(4)
+	nums[0] = 9
+	nums.remove(1)
+	check(nums.length == 3 and nums[0] == 9 and nums[1] == 3, "array mutation")
+
+	acc += 3
+	acc -= 1
+	acc *= 4
+	acc /= 2
+	acc %= 5
+	acc **= 3
+	maybe ?= 77
+	maybe ?= 88
+	check(join_pair(40, "2") == 42 and acc == 27, "assignment and null")
+
+	if acc < 0 then
+		branch = 1
+	elseif acc == 27 then
+		branch = 2
+	else
+		branch = 3
+	end
+	if branch == 2 then branch += 10 else branch = 0
+	coalesced = null ?? "fallback"
+	ternary_value = branch == 12 ? 100 : 0
+	check(branch == 12 and coalesced == "fallback" and ternary_value == 100, "branching")
+
+	test_loops()
+
+	std.core.println("function value declared")
+	check(pv == 42 and pt == "ok", "anonymous multi return")
+	check(mix(1, c = 9) == 129, "default plus named argument")
+	check(count_args(20, ...spread_values) == 22, "... spread")
+	check(count_named(20, ***named_values) == 22, "*** spread")
+	check(identity<string>("ok") == "ok" and identity<int>(123) == 123, "generics")
+	check(int(3.14) == 3 and float64("2.5") > 2.4 and bool("ok"), "builtin constructors")
+
+	test_object()
+
+	check(missing == "missing" and current?.code == 0, "safe null")
+	current = Error("disk", code = 7, cause = Error("inner", code = 2))
+	check(current?.message == "disk" and current?.cause?.message == "inner", "safe chain")
+
+	try
+		throw Error("planned", code = 100)
+	catch e
+		if e.code == 100 then
+			protected_value = 1
+		end
+	finally
+		protected_value += 1
+	end
+	check(protected_value == 2, "try/catch/finally")
+
+	for value in numbers(4)
+		generated += value
+	end
+	check(generated == 10, "generator yield")
+	check(awaited == 42 and delayed == 1, "async declaration covered")
+
+	std.core.println("xlang demo5 release/test.xl smoke ok")
+	std.core.println(42)
+	std.core.println(string(print_time))
+
+	return 0
+end

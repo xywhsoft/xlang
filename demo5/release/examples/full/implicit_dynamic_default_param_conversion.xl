@@ -1,0 +1,17 @@
+func any_default(any value = 7) as int
+	if Type(value) != int then
+		return 1
+	end
+	return 10
+end
+
+func var_default(var value = 8) as int
+	if Type(value) != int then
+		return 2
+	end
+	return 20
+end
+
+func main() as int
+	return any_default() + var_default() + 12
+end

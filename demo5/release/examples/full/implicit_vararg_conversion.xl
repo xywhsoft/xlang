@@ -1,0 +1,23 @@
+func sum_more(int seed, ...) as int
+	if Type(arg[0]) != int then
+		return 1
+	end
+	if Type(arg[1]) != int then
+		return 2
+	end
+	return seed + arg.length
+end
+
+func sum_named(int seed, ***) as int
+	if Type(arg["left"]) != int then
+		return 3
+	end
+	if Type(arg["right"]) != int then
+		return 4
+	end
+	return seed + arg.length
+end
+
+func main() as int
+	return sum_more(10, 1, 2) + sum_named(28, left = 3, right = 4)
+end

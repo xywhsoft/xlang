@@ -1,0 +1,58 @@
+class DynAssignBox extends object
+	var value as int
+end
+
+func make_any_int() as any
+	return 7
+end
+
+func make_var_int() as var
+	return 8
+end
+
+func make_any_box(DynAssignBox box) as any
+	return box
+end
+
+func make_var_box(DynAssignBox box) as var
+	return box
+end
+
+func main() as int
+	any any_value = 0
+	var var_value = 0
+
+	any_value = 7
+	var_value = 8
+	if Type(any_value) != int then
+		return 1
+	end
+	if Type(var_value) != int then
+		return 2
+	end
+	if Type(make_any_int()) != int then
+		return 3
+	end
+	if Type(make_var_int()) != int then
+		return 4
+	end
+
+	auto box = DynAssignBox()
+	box.value = 13
+
+	any_value = box
+	var_value = box
+	if Type(any_value) != DynAssignBox then
+		return 5
+	end
+	if Type(var_value) != DynAssignBox then
+		return 6
+	end
+	if Type(make_any_box(box)) != DynAssignBox then
+		return 7
+	end
+	if Type(make_var_box(box)) != DynAssignBox then
+		return 8
+	end
+	return 42
+end

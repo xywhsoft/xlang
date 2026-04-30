@@ -1,0 +1,11 @@
+func take_numbers(array<int> values) as int
+	return values.length
+end
+
+func make_values() as array<var>
+	return [1, 2]
+end
+
+func main() as int
+	return take_numbers(make_values())
+end

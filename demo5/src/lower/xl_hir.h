@@ -41,6 +41,7 @@ typedef struct XL_HirNode {
 	char* sAbiName;
 	char* sExternName;
 	char* sTypeName;
+	char* sConversion;
 	int iScopeId;
 	int iSymbolIndex;
 	int iFuncIndex;
@@ -61,6 +62,7 @@ void xlHirSetText(XL_HirNode* pNode, const char* sText);
 void xlHirSetAbiName(XL_HirNode* pNode, const char* sAbiName);
 void xlHirSetExternName(XL_HirNode* pNode, const char* sExternName);
 void xlHirSetTypeName(XL_HirNode* pNode, const char* sTypeName);
+void xlHirSetConversion(XL_HirNode* pNode, const char* sConversion);
 void xlHirAppendChild(XL_HirNode* pNode, XL_HirNode* pChild);
 void xlHirFree(XL_HirNode* pNode);
 const char* xlHirKindName(XL_HirKind eKind);

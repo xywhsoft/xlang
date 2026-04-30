@@ -263,7 +263,9 @@
 					"name": "value",
 					"label": "value",
 					"type": "float",
-					"hasDefault": 0
+					"hasDefault": 1,
+					"defaultValueText": "1",
+					"defaultValueJson": ""
 				}
 			]
 		}
