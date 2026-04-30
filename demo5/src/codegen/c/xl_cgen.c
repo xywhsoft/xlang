@@ -13921,6 +13921,26 @@ static void __xlCgenIndexExpr(XL_CgenContext* pCtx, const XL_MirNode* pNode, con
 	}
 }
 
+static void __xlCgenIndexRawValueExpr(XL_CgenContext* pCtx, const XL_MirNode* pNode, const char* sBaseTypeName)
+{
+	const XL_MirNode* pBase;
+	const XL_MirNode* pIndex;
+	const char* sGetterValueName;
+	const char* sIndexCastType;
+
+	pBase = (pNode != NULL && pNode->iChildCount != 0) ? pNode->ppChildren[0] : NULL;
+	pIndex = (pNode != NULL && pNode->iChildCount > 1) ? pNode->ppChildren[1] : NULL;
+	sGetterValueName = __xlTypeHasBaseName(sBaseTypeName, "list") ? "xvoListGetValue" : "xvoArrayGetValue";
+	sIndexCastType = __xlTypeHasBaseName(sBaseTypeName, "list") ? "int64" : "uint32";
+
+	__xlCgenAppend(&pCtx->buf, sGetterValueName);
+	__xlCgenAppend(&pCtx->buf, "((xvalue)(");
+	__xlCgenExpr(pCtx, pBase);
+	__xlCgenAppendFormat(&pCtx->buf, "), (%s)(", sIndexCastType);
+	__xlCgenExpr(pCtx, pIndex);
+	__xlCgenAppend(&pCtx->buf, "))");
+}
+
 static const char* __xlCLogicalBinaryOp(const char* sOp)
 {
 	if ( sOp == NULL ) {
@@ -14047,6 +14067,69 @@ static void __xlCgenApproxCompare(XL_CgenContext* pCtx, const XL_MirNode* pLeft,
 
 static void __xlCgenNullCoalesce(XL_CgenContext* pCtx, const XL_MirNode* pLeft, const XL_MirNode* pRight)
 {
+	const char* sLeftTypeName;
+	const char* sRightTypeName;
+
+	if ( (pLeft != NULL) && (pLeft->eKind == XL_MIR_VALUE) && (pLeft->iChildCount == 2) && (pLeft->bFlag != 0) ) {
+		const XL_MirNode* pBase = pLeft->ppChildren[0];
+		const XL_MirNode* pIndex = pLeft->ppChildren[1];
+		char sTempName[80];
+		char sBaseName[80];
+		char sIndexName[80];
+		const char* sBaseTypeName = __xlInferExprTypeName(pCtx, pLeft->ppChildren[0]);
+		const char* sGetterValueName = __xlTypeHasBaseName(sBaseTypeName, "list") ? "xvoListGetValue" : "xvoArrayGetValue";
+		const char* sIndexCastType = __xlTypeHasBaseName(sBaseTypeName, "list") ? "int64" : "uint32";
+		const char* sResultTypeName;
+
+		sLeftTypeName = __xlInferExprTypeName(pCtx, pLeft);
+		sRightTypeName = __xlInferExprTypeName(pCtx, pRight);
+		sResultTypeName = sLeftTypeName;
+		if ( ((sResultTypeName == NULL) || (sResultTypeName[0] == '\0') ||
+			(strcmp(sResultTypeName, "null") == 0) || __xlIsVarTypeName(sResultTypeName)) &&
+			(sRightTypeName != NULL) && (sRightTypeName[0] != '\0') &&
+			(strcmp(sRightTypeName, "null") != 0) ) {
+			sResultTypeName = sRightTypeName;
+		}
+		snprintf(sTempName, sizeof(sTempName), "xl_safe_index_value_%d_%d", pLeft->iLine, pLeft->iColumn);
+		snprintf(sBaseName, sizeof(sBaseName), "xl_safe_index_base_%d_%d", pLeft->iLine, pLeft->iColumn);
+		snprintf(sIndexName, sizeof(sIndexName), "xl_safe_index_index_%d_%d", pLeft->iLine, pLeft->iColumn);
+		__xlCgenAppendFormat(&pCtx->buf, "({ xvalue %s = (xvalue)(", sBaseName);
+		__xlCgenExpr(pCtx, pBase);
+		__xlCgenAppend(&pCtx->buf, "); ");
+		if ( __xlTypeHasBaseName(sBaseTypeName, "dict") ) {
+			__xlCgenAppendFormat(&pCtx->buf, "const char* %s = ", sIndexName);
+			__xlCgenExprAsType(pCtx, pIndex, "string");
+			__xlCgenAppendFormat(
+				&pCtx->buf,
+				"; xvalue %s = (%s != NULL) ? xvoTableGetValue(%s, (const void*)%s, (uint32)strlen((%s != NULL) ? %s : \"\")) : NULL; ",
+				sTempName,
+				sBaseName,
+				sBaseName,
+				sIndexName,
+				sIndexName,
+				sIndexName
+			);
+		} else {
+			__xlCgenAppendFormat(&pCtx->buf, "%s %s = (%s)(", sIndexCastType, sIndexName, sIndexCastType);
+			__xlCgenExpr(pCtx, pIndex);
+			__xlCgenAppendFormat(
+				&pCtx->buf,
+				"); xvalue %s = (%s != NULL) ? %s(%s, %s) : NULL; ",
+				sTempName,
+				sBaseName,
+				sGetterValueName,
+				sBaseName,
+				sIndexName
+			);
+		}
+		__xlCgenAppendFormat(&pCtx->buf, "%s != NULL ? ", sTempName);
+		__xlCgenValueExprAsType(pCtx, sTempName, sResultTypeName);
+		__xlCgenAppend(&pCtx->buf, " : ");
+		__xlCgenExprAsType(pCtx, pRight, sResultTypeName);
+		__xlCgenAppend(&pCtx->buf, "; })");
+		return;
+	}
+
 	__xlCgenAppend(&pCtx->buf, "(");
 	__xlCgenExpr(pCtx, pLeft);
 	__xlCgenAppend(&pCtx->buf, " != NULL ? ");

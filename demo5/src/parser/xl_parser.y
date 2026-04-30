@@ -2004,6 +2004,9 @@ lambda_power_expr(A) ::= lambda_unary_expr(L) OP_POWER(T) lambda_power_expr(R). 
 lambda_unary_expr(A) ::= lambda_postfix_expr(E). [KW_AWAIT] {
 	A = E;
 }
+lambda_unary_expr(A) ::= OP_PLUS(T) lambda_unary_expr(E). {
+	A = xlAstCreateUnary(&T, "+", E);
+}
 lambda_unary_expr(A) ::= OP_MINUS(T) lambda_unary_expr(E). {
 	A = xlAstCreateUnary(&T, "-", E);
 }
@@ -2237,6 +2240,9 @@ yield_expr(A) ::= KW_YIELD(T) expr_opt(E). {
 
 unary_expr(A) ::= postfix_expr(E). [KW_AWAIT] {
 	A = E;
+}
+unary_expr(A) ::= OP_PLUS(T) unary_expr(E). {
+	A = xlAstCreateUnary(&T, "+", E);
 }
 unary_expr(A) ::= OP_MINUS(T) unary_expr(E). {
 	A = xlAstCreateUnary(&T, "-", E);
