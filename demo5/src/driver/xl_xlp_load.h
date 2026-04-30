@@ -32,28 +32,46 @@ typedef struct XL_XlpDependencyInfo {
 typedef struct XL_XlpParamInfo {
 	char sName[128];
 	char sLabel[128];
-	char sType[64];
+	char sType[XL_PATH_MAX_LEN];
+	char* sDefaultValueText;
+	char* sDefaultValueJson;
 	int bHasDefault;
 } XL_XlpParamInfo;
+
+typedef struct XL_XlpReturnInfo {
+	char sType[XL_PATH_MAX_LEN];
+} XL_XlpReturnInfo;
+
+typedef struct XL_XlpTypeParamInfo {
+	char sName[XL_PATH_MAX_LEN];
+} XL_XlpTypeParamInfo;
 
 typedef struct XL_XlpFunctionInfo {
 	char sModule[XL_PATH_MAX_LEN];
 	char sModuleAbiId[XL_PATH_MAX_LEN];
 	char sExportName[128];
+	char sReceiverType[XL_PATH_MAX_LEN];
+	char sMethodName[XL_PATH_MAX_LEN];
 	char sSymbol[128];
-	char sOverloadGroup[256];
-	char sSignatureId[256];
-	char sDispatchKey[256];
+	char sOverloadGroup[XL_PATH_MAX_LEN];
+	char sSignatureId[XL_PATH_MAX_LEN];
+	char sDispatchKey[XL_PATH_MAX_LEN];
 	char sLanguageAbi[64];
 	char sNativeAbi[64];
 	char sLanguageAbiId[XL_PATH_MAX_LEN];
 	char sNativeAbiId[XL_PATH_MAX_LEN];
-	char sAbiSymbol[256];
-	char sReturnType[64];
+	char sAbiSymbol[XL_PATH_MAX_LEN];
+	char sReturnType[XL_PATH_MAX_LEN];
+	char sStorageReturnType[XL_PATH_MAX_LEN];
 	int bAsync;
 	int bGenerator;
+	int iVarArgKind;
 	XL_XlpParamInfo* pParams;
 	size_t iParamCount;
+	XL_XlpReturnInfo* pReturns;
+	size_t iReturnCount;
+	XL_XlpTypeParamInfo* pTypeParams;
+	size_t iTypeParamCount;
 } XL_XlpFunctionInfo;
 
 typedef struct XL_XlpExportInfo {

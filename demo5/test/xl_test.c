@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <process.h>
+#include <string.h>
 
 #include "../src/ast/xl_ast_dump.h"
 #include "../src/codegen/c/xl_cgen.h"
@@ -14,6 +15,7 @@
 #include "../src/runtime/xl_exec_ctx.h"
 #include "../src/runtime/xl_object_runtime.h"
 #include "../src/runtime/xlrt_generated.h"
+#include "../src/sem/xl_convert.h"
 #include "../src/sem/xl_resolve.h"
 #include "../src/sem/xl_sem_dump.h"
 #include "../src/sem/xl_type.h"
@@ -40,6 +42,10 @@ typedef struct XL_TestCase {
 	const char* sGroup;
 	XL_TestFunc fnRun;
 } XL_TestCase;
+
+static int __xlRunLowerDumpCase(XL_TestContext* pCtx, const char* sRelativePath, int bExpectOk, const char* sNeedle);
+static int __xlRunLowerJsonCase(XL_TestContext* pCtx, const char* sRelativePath, int bExpectOk, const char* sNeedle);
+static int __xlRunLowerJsonCountCase(XL_TestContext* pCtx, const char* sRelativePath, int bExpectOk, const char* sNeedle, size_t iMinCount);
 
 #ifndef XL_TEST_BUILD_ID
 #define XL_TEST_BUILD_ID __DATE__ " " __TIME__
@@ -418,6 +424,49 @@ static int __xlFailObjectRuntime(XL_TestContext* pCtx, const char* sMessage)
 	XL_UNUSED(pCtx);
 	fprintf(stderr, "[trace][runtime.object] %s\n", (sMessage != NULL) ? sMessage : "failed");
 	return XL_RC_FAIL;
+}
+
+static int __xlExpectImplicitConversion(
+	XL_TestContext* pCtx,
+	const char* sExpected,
+	const char* sActual,
+	int bExpectedOk,
+	XL_ConvKind eExpectedKind,
+	int iExpectedCost,
+	int bExpectedRuntime
+)
+{
+	XL_Conversion conv;
+	int bOk;
+
+	XL_UNUSED(pCtx);
+	bOk = xlTypeCanConvertImplicit(sExpected, sActual, &conv);
+	if ( bOk != bExpectedOk ) {
+		fprintf(stderr, "[trace][sem.implicit_conversion_api] %s <- %s expected ok=%d got ok=%d\n",
+			(sExpected != NULL) ? sExpected : "<null>",
+			(sActual != NULL) ? sActual : "<null>",
+			bExpectedOk,
+			bOk);
+		return XL_RC_FAIL;
+	}
+	if ( !bExpectedOk ) {
+		return XL_RC_OK;
+	}
+	if ( (conv.eKind != eExpectedKind) ||
+		(conv.iCost != iExpectedCost) ||
+		(conv.bRequiresRuntime != bExpectedRuntime) ) {
+		fprintf(stderr, "[trace][sem.implicit_conversion_api] %s <- %s expected kind=%s cost=%d runtime=%d got kind=%s cost=%d runtime=%d\n",
+			(sExpected != NULL) ? sExpected : "<null>",
+			(sActual != NULL) ? sActual : "<null>",
+			xlConvKindName(eExpectedKind),
+			iExpectedCost,
+			bExpectedRuntime,
+			xlConvKindName(conv.eKind),
+			conv.iCost,
+			conv.bRequiresRuntime);
+		return XL_RC_FAIL;
+	}
+	return XL_RC_OK;
 }
 
 static int __xlTestEnvTruthy(const char* sName)
@@ -4282,6 +4331,308 @@ static int __xlTestSemExportGenericTypeMethod(XL_TestContext* pCtx) { return __x
 static int __xlTestSemExportValues(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\module\\use_math_export_values.xl", 1, "int"); }
 static int __xlTestSemTypedDecl(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\typed_decl_basic.xl", 1, "int"); }
 static int __xlTestSemExactNumericTypes(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\exact_numeric_types_basic.xl", 1, "int"); }
+static int __xlTestSemImplicitConversionApi(XL_TestContext* pCtx)
+{
+	if ( __xlExpectImplicitConversion(pCtx, "int", "int", 1, XL_CONV_EXACT, 0, 0) != XL_RC_OK ) return XL_RC_FAIL;
+	if ( __xlExpectImplicitConversion(pCtx, "int32", "int", 1, XL_CONV_ALIAS, 1, 0) != XL_RC_OK ) return XL_RC_FAIL;
+	if ( __xlExpectImplicitConversion(pCtx, "float", "int", 1, XL_CONV_NUMERIC_WIDEN, 2, 0) != XL_RC_OK ) return XL_RC_FAIL;
+	if ( __xlExpectImplicitConversion(pCtx, "any", "int", 1, XL_CONV_BOX_DYNAMIC, 3, 1) != XL_RC_OK ) return XL_RC_FAIL;
+	if ( __xlExpectImplicitConversion(pCtx, "var", "object", 1, XL_CONV_BOX_DYNAMIC, 3, 1) != XL_RC_OK ) return XL_RC_FAIL;
+	if ( __xlExpectImplicitConversion(pCtx, "any", "object", 1, XL_CONV_BOX_DYNAMIC, 3, 1) != XL_RC_OK ) return XL_RC_FAIL;
+	if ( __xlExpectImplicitConversion(pCtx, "var", "any", 1, XL_CONV_BOX_DYNAMIC, 3, 1) != XL_RC_OK ) return XL_RC_FAIL;
+	if ( __xlExpectImplicitConversion(pCtx, "array<int>", "null", 1, XL_CONV_NULL_REF, 1, 0) != XL_RC_OK ) return XL_RC_FAIL;
+	if ( __xlExpectImplicitConversion(pCtx, "object", "null", 1, XL_CONV_NULL_REF, 1, 0) != XL_RC_OK ) return XL_RC_FAIL;
+	if ( __xlExpectImplicitConversion(pCtx, "int", "float", 0, XL_CONV_NONE, 0, 0) != XL_RC_OK ) return XL_RC_FAIL;
+	if ( __xlExpectImplicitConversion(pCtx, "int", "bool", 0, XL_CONV_NONE, 0, 0) != XL_RC_OK ) return XL_RC_FAIL;
+	if ( __xlExpectImplicitConversion(pCtx, "int", "var", 0, XL_CONV_NONE, 0, 0) != XL_RC_OK ) return XL_RC_FAIL;
+	if ( __xlExpectImplicitConversion(pCtx, "int", "null", 0, XL_CONV_NONE, 0, 0) != XL_RC_OK ) return XL_RC_FAIL;
+	if ( __xlExpectImplicitConversion(pCtx, "float", "string", 0, XL_CONV_NONE, 0, 0) != XL_RC_OK ) return XL_RC_FAIL;
+	return XL_RC_OK;
+}
+static int __xlTestSemImplicitExactAliasConversion(XL_TestContext* pCtx) { return __xlRunSemDumpCase(pCtx, "examples\\full\\implicit_exact_alias_conversion.xl", 1, "take_int32(value:int32)->int"); }
+static int __xlTestSemImplicitConversionBasic(XL_TestContext* pCtx) { return __xlRunSemDumpCase(pCtx, "examples\\full\\implicit_conversion_basic.xl", 1, "take_float(value:float)->int"); }
+static int __xlTestLowerImplicitConversionMarker(XL_TestContext* pCtx) { return __xlRunLowerDumpCase(pCtx, "examples\\full\\implicit_conversion_basic.xl", 1, "convert=\"int->float\""); }
+static int __xlTestLowerImplicitConversionMarkerJson(XL_TestContext* pCtx) { return __xlRunLowerJsonCountCase(pCtx, "examples\\full\\implicit_conversion_basic.xl", 1, "\"conversion\": \"int->float\"", 10u); }
+static int __xlTestLowerImplicitReturnConversionMarker(XL_TestContext* pCtx) { return __xlRunLowerDumpCase(pCtx, "examples\\full\\implicit_conversion_basic.xl", 1, "Literal @ 18:9 text=\"3\" type=\"int\" convert=\"int->float\""); }
+static int __xlTestLowerImplicitAssignConversionMarker(XL_TestContext* pCtx) { return __xlRunLowerDumpCase(pCtx, "examples\\full\\implicit_conversion_basic.xl", 1, "Literal @ 25:10 text=\"2\" type=\"int\" convert=\"int->float\""); }
+static int __xlTestLowerImplicitDefaultArgConversionMarker(XL_TestContext* pCtx) { return __xlRunLowerDumpCase(pCtx, "examples\\full\\implicit_conversion_basic.xl", 1, "Literal @ 13:34 text=\"7\" type=\"int\" convert=\"int->float\""); }
+static int __xlTestSemImplicitConversionCommonTypes(XL_TestContext* pCtx) { return __xlRunSemDumpCase(pCtx, "examples\\full\\implicit_conversion_common_types.xl", 1, "array<float>"); }
+static int __xlTestSemImplicitContainerLiteralCommonConversion(XL_TestContext* pCtx) { return __xlRunSemDumpCase(pCtx, "examples\\full\\implicit_container_literal_common_conversion.xl", 1, "dict<float>"); }
+static int __xlTestLowerImplicitCommonExprConversionMarker(XL_TestContext* pCtx)
+{
+	if ( __xlRunLowerDumpCase(pCtx, "examples\\full\\implicit_conversion_common_types.xl", 1, "Literal @ 2:16 text=\"1\" type=\"int\" convert=\"int->float\"") != XL_RC_OK ) {
+		return XL_RC_FAIL;
+	}
+	if ( __xlRunLowerDumpCase(pCtx, "examples\\full\\implicit_conversion_common_types.xl", 1, "Literal @ 3:24 text=\"1\" type=\"int\" convert=\"int->float\"") != XL_RC_OK ) {
+		return XL_RC_FAIL;
+	}
+	return __xlRunLowerDumpCase(pCtx, "examples\\full\\implicit_conversion_common_types.xl", 1, "Literal @ 4:17 text=\"1\" type=\"int\" convert=\"int->float\"");
+}
+static int __xlTestLowerImplicitCommonExprConversionMarkerJson(XL_TestContext* pCtx) { return __xlRunLowerJsonCountCase(pCtx, "examples\\full\\implicit_conversion_common_types.xl", 1, "\"conversion\": \"int->float\"", 6u); }
+static int __xlTestLowerImplicitContainerLiteralCommonConversionMarker(XL_TestContext* pCtx)
+{
+	if ( __xlRunLowerDumpCase(pCtx, "examples\\full\\implicit_container_literal_common_conversion.xl", 1, "Literal @ 2:39 text=\"1\" type=\"int\" convert=\"int->float\"") != XL_RC_OK ) {
+		return XL_RC_FAIL;
+	}
+	if ( __xlRunLowerDumpCase(pCtx, "examples\\full\\implicit_container_literal_common_conversion.xl", 1, "Literal @ 3:36 text=\"1\" type=\"int\" convert=\"int->float\"") != XL_RC_OK ) {
+		return XL_RC_FAIL;
+	}
+	return __xlRunLowerDumpCase(pCtx, "examples\\full\\implicit_container_literal_common_conversion.xl", 1, "Literal @ 4:48 text=\"1\" type=\"int\" convert=\"int->float\"");
+}
+static int __xlTestLowerImplicitContainerLiteralCommonConversionMarkerJson(XL_TestContext* pCtx) { return __xlRunLowerJsonCountCase(pCtx, "examples\\full\\implicit_container_literal_common_conversion.xl", 1, "\"conversion\": \"int->float\"", 6u); }
+static int __xlTestSemImplicitContainerDynamicElementConversion(XL_TestContext* pCtx) { return __xlRunSemDumpCase(pCtx, "examples\\full\\implicit_container_dynamic_element_conversion.xl", 1, "count_array(values:array<var>)->int"); }
+static int __xlTestLowerImplicitContainerDynamicElementConversionMarker(XL_TestContext* pCtx)
+{
+	if ( __xlRunLowerDumpCase(pCtx, "examples\\full\\implicit_container_dynamic_element_conversion.xl", 1, "Name @ 31:9 text=\"values\" type=\"array<int>\" convert=\"array<int>->array<var>\"") != XL_RC_OK ) {
+		return XL_RC_FAIL;
+	}
+	if ( __xlRunLowerDumpCase(pCtx, "examples\\full\\implicit_container_dynamic_element_conversion.xl", 1, "Name @ 36:9 text=\"values\" type=\"dict<int>\" convert=\"dict<int>->dict<var>\"") != XL_RC_OK ) {
+		return XL_RC_FAIL;
+	}
+	if ( __xlRunLowerDumpCase(pCtx, "examples\\full\\implicit_container_dynamic_element_conversion.xl", 1, "Name @ 41:9 text=\"values\" type=\"list<int>\" convert=\"list<int>->list<var>\"") != XL_RC_OK ) {
+		return XL_RC_FAIL;
+	}
+	if ( __xlRunLowerDumpCase(pCtx, "examples\\full\\implicit_container_dynamic_element_conversion.xl", 1, "Name @ 46:9 text=\"values\" type=\"set<int>\" convert=\"set<int>->set<var>\"") != XL_RC_OK ) {
+		return XL_RC_FAIL;
+	}
+	if ( __xlRunLowerDumpCase(pCtx, "examples\\full\\implicit_container_dynamic_element_conversion.xl", 1, "Name @ 55:17 text=\"numbers\" type=\"array<int>\" convert=\"array<int>->array<var>\"") != XL_RC_OK ) {
+		return XL_RC_FAIL;
+	}
+	if ( __xlRunLowerDumpCase(pCtx, "examples\\full\\implicit_container_dynamic_element_conversion.xl", 1, "Name @ 58:16 text=\"pairs\" type=\"dict<int>\" convert=\"dict<int>->dict<var>\"") != XL_RC_OK ) {
+		return XL_RC_FAIL;
+	}
+	if ( __xlRunLowerDumpCase(pCtx, "examples\\full\\implicit_container_dynamic_element_conversion.xl", 1, "Name @ 61:16 text=\"items\" type=\"list<int>\" convert=\"list<int>->list<var>\"") != XL_RC_OK ) {
+		return XL_RC_FAIL;
+	}
+	return __xlRunLowerDumpCase(pCtx, "examples\\full\\implicit_container_dynamic_element_conversion.xl", 1, "Name @ 64:15 text=\"flags\" type=\"set<int>\" convert=\"set<int>->set<var>\"");
+}
+static int __xlTestLowerImplicitContainerDynamicElementConversionMarkerJson(XL_TestContext* pCtx)
+{
+	if ( __xlRunLowerJsonCountCase(pCtx, "examples\\full\\implicit_container_dynamic_element_conversion.xl", 1, "\"conversion\": \"array<int>->array<var>\"", 6u) != XL_RC_OK ) {
+		return XL_RC_FAIL;
+	}
+	if ( __xlRunLowerJsonCountCase(pCtx, "examples\\full\\implicit_container_dynamic_element_conversion.xl", 1, "\"conversion\": \"dict<int>->dict<var>\"", 6u) != XL_RC_OK ) {
+		return XL_RC_FAIL;
+	}
+	if ( __xlRunLowerJsonCountCase(pCtx, "examples\\full\\implicit_container_dynamic_element_conversion.xl", 1, "\"conversion\": \"list<int>->list<var>\"", 6u) != XL_RC_OK ) {
+		return XL_RC_FAIL;
+	}
+	return __xlRunLowerJsonCountCase(pCtx, "examples\\full\\implicit_container_dynamic_element_conversion.xl", 1, "\"conversion\": \"set<int>->set<var>\"", 6u);
+}
+static int __xlTestSemImplicitConversionOverloadCost(XL_TestContext* pCtx) { return __xlRunSemDumpCase(pCtx, "examples\\full\\implicit_conversion_overload_cost.xl", 1, "choose_dynamic(value:var)->int"); }
+static int __xlTestSemImplicitOverloadAmbiguousError(XL_TestContext* pCtx) { return __xlRunSemDumpCase(pCtx, "examples\\sem\\implicit_overload_ambiguous_error.xl", 0, "ambiguous overload for 'choose(int, int)'; candidates: choose(float, int) [arg1: int -> float ok cost=2 kind=numeric widening"); }
+static int __xlTestSemImplicitConversionGeneric(XL_TestContext* pCtx) { return __xlRunSemDumpCase(pCtx, "examples\\full\\implicit_conversion_generic.xl", 1, "take"); }
+static int __xlTestSemImplicitConversionGenericPostInfer(XL_TestContext* pCtx) { return __xlRunSemDumpCase(pCtx, "examples\\full\\implicit_conversion_generic_post_infer.xl", 1, "take_pair(left:float,right:float)->int"); }
+static int __xlTestLowerImplicitConversionGenericPostInferMarker(XL_TestContext* pCtx) { return __xlRunLowerDumpCase(pCtx, "examples\\full\\implicit_conversion_generic_post_infer.xl", 1, "Literal @ 6:24 text=\"2\" type=\"int\" convert=\"int->float\""); }
+static int __xlTestLowerImplicitConversionGenericPostInferMarkerJson(XL_TestContext* pCtx) { return __xlRunLowerJsonCountCase(pCtx, "examples\\full\\implicit_conversion_generic_post_infer.xl", 1, "\"conversion\": \"int->float\"", 2u); }
+static int __xlTestSemImplicitObjectGenericPostInferConversion(XL_TestContext* pCtx) { return __xlRunSemDumpCase(pCtx, "examples\\full\\implicit_object_generic_post_infer_conversion.xl", 1, "pick(left:object,right:object)->object"); }
+static int __xlTestLowerImplicitObjectGenericPostInferConversionMarker(XL_TestContext* pCtx) { return __xlRunLowerDumpCase(pCtx, "examples\\full\\implicit_object_generic_post_infer_conversion.xl", 1, "Name @ 13:29 text=\"box\" type=\"ObjBox\" convert=\"ObjBox->object\""); }
+static int __xlTestLowerImplicitObjectGenericPostInferConversionMarkerJson(XL_TestContext* pCtx) { return __xlRunLowerJsonCountCase(pCtx, "examples\\full\\implicit_object_generic_post_infer_conversion.xl", 1, "\"conversion\": \"ObjBox->object\"", 2u); }
+static int __xlTestSemImplicitGenericOverloadCost(XL_TestContext* pCtx) { return __xlRunSemDumpCase(pCtx, "examples\\full\\implicit_generic_overload_cost.xl", 1, "pick(value:int)->int"); }
+static int __xlTestSemImplicitGenericNoWidenInferError(XL_TestContext* pCtx) { return __xlRunSemDumpCase(pCtx, "examples\\sem\\implicit_generic_no_widen_infer_error.xl", 0, "type parameter 'T' was inferred as 'int' but argument requires 'float'"); }
+static int __xlTestSemImplicitNullReferenceConversion(XL_TestContext* pCtx) { return __xlRunSemDumpCase(pCtx, "examples\\full\\implicit_null_reference_conversion.xl", 1, "take_items(items:array<int>)->int"); }
+static int __xlTestLowerImplicitNullReferenceConversionMarker(XL_TestContext* pCtx)
+{
+	if ( __xlRunLowerDumpCase(pCtx, "examples\\full\\implicit_null_reference_conversion.xl", 1, "convert=\"null->string\"") != XL_RC_OK ) {
+		return XL_RC_FAIL;
+	}
+	if ( __xlRunLowerDumpCase(pCtx, "examples\\full\\implicit_null_reference_conversion.xl", 1, "convert=\"null->array<int>\"") != XL_RC_OK ) {
+		return XL_RC_FAIL;
+	}
+	if ( __xlRunLowerDumpCase(pCtx, "examples\\full\\implicit_null_reference_conversion.xl", 1, "convert=\"null->function<int()>\"") != XL_RC_OK ) {
+		return XL_RC_FAIL;
+	}
+	return __xlRunLowerDumpCase(pCtx, "examples\\full\\implicit_null_reference_conversion.xl", 1, "convert=\"null->var\"");
+}
+static int __xlTestLowerImplicitNullReferenceConversionMarkerJson(XL_TestContext* pCtx)
+{
+	if ( __xlRunLowerJsonCountCase(pCtx, "examples\\full\\implicit_null_reference_conversion.xl", 1, "\"conversion\": \"null->string\"", 2u) != XL_RC_OK ) {
+		return XL_RC_FAIL;
+	}
+	if ( __xlRunLowerJsonCountCase(pCtx, "examples\\full\\implicit_null_reference_conversion.xl", 1, "\"conversion\": \"null->array<int>\"", 2u) != XL_RC_OK ) {
+		return XL_RC_FAIL;
+	}
+	if ( __xlRunLowerJsonCountCase(pCtx, "examples\\full\\implicit_null_reference_conversion.xl", 1, "\"conversion\": \"null->function<int()>\"", 2u) != XL_RC_OK ) {
+		return XL_RC_FAIL;
+	}
+	return __xlRunLowerJsonCountCase(pCtx, "examples\\full\\implicit_null_reference_conversion.xl", 1, "\"conversion\": \"null->var\"", 2u);
+}
+static int __xlTestSemImplicitNullXvalueCompareConversion(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\implicit_null_xvalue_compare_conversion.xl", 1, "int"); }
+static int __xlTestSemImplicitNullObjectConversion(XL_TestContext* pCtx) { return __xlRunSemDumpCase(pCtx, "examples\\full\\implicit_null_object_conversion.xl", 1, "take_box(value:NullBox)->int"); }
+static int __xlTestLowerImplicitNullObjectConversionMarker(XL_TestContext* pCtx) { return __xlRunLowerDumpCase(pCtx, "examples\\full\\implicit_null_object_conversion.xl", 1, "Literal @ 23:18 text=\"null\" type=\"null\" convert=\"null->NullBox\""); }
+static int __xlTestLowerImplicitNullObjectConversionMarkerJson(XL_TestContext* pCtx) { return __xlRunLowerJsonCountCase(pCtx, "examples\\full\\implicit_null_object_conversion.xl", 1, "\"conversion\": \"null->NullBox\"", 2u); }
+static int __xlTestSemImplicitNullObjectBaseConversion(XL_TestContext* pCtx) { return __xlRunSemDumpCase(pCtx, "examples\\full\\implicit_null_object_base_conversion.xl", 1, "take_object(value:object)->int"); }
+static int __xlTestLowerImplicitNullObjectBaseConversionMarker(XL_TestContext* pCtx) { return __xlRunLowerDumpCase(pCtx, "examples\\full\\implicit_null_object_base_conversion.xl", 1, "Literal @ 20:21 text=\"null\" type=\"null\" convert=\"null->object\""); }
+static int __xlTestLowerImplicitNullObjectBaseConversionMarkerJson(XL_TestContext* pCtx) { return __xlRunLowerJsonCountCase(pCtx, "examples\\full\\implicit_null_object_base_conversion.xl", 1, "\"conversion\": \"null->object\"", 2u); }
+static int __xlTestSemImplicitNullToIntError(XL_TestContext* pCtx) { return __xlRunSemDumpCase(pCtx, "examples\\sem\\implicit_null_to_int_error.xl", 0, "expected 'int', actual 'null'"); }
+static int __xlTestSemImplicitAnyDynamicConversion(XL_TestContext* pCtx) { return __xlRunSemDumpCase(pCtx, "examples\\full\\implicit_any_dynamic_conversion.xl", 1, "take_any(value:any)->int"); }
+static int __xlTestLowerImplicitAnyDynamicConversionMarker(XL_TestContext* pCtx) { return __xlRunLowerDumpCase(pCtx, "examples\\full\\implicit_any_dynamic_conversion.xl", 1, "Literal @ 6:14 text=\"1\" type=\"int\" convert=\"int->any\""); }
+static int __xlTestLowerImplicitAnyDynamicConversionMarkerJson(XL_TestContext* pCtx) { return __xlRunLowerJsonCountCase(pCtx, "examples\\full\\implicit_any_dynamic_conversion.xl", 1, "\"conversion\": \"int->any\"", 2u); }
+static int __xlTestSemImplicitVarDynamicConversion(XL_TestContext* pCtx) { return __xlRunSemDumpCase(pCtx, "examples\\full\\implicit_var_dynamic_conversion.xl", 1, "take_var(value:var)->int"); }
+static int __xlTestLowerImplicitVarDynamicConversionMarker(XL_TestContext* pCtx) { return __xlRunLowerDumpCase(pCtx, "examples\\full\\implicit_var_dynamic_conversion.xl", 1, "Literal @ 6:14 text=\"1\" type=\"int\" convert=\"int->var\""); }
+static int __xlTestLowerImplicitVarDynamicConversionMarkerJson(XL_TestContext* pCtx) { return __xlRunLowerJsonCountCase(pCtx, "examples\\full\\implicit_var_dynamic_conversion.xl", 1, "\"conversion\": \"int->var\"", 2u); }
+static int __xlTestSemImplicitClassDynamicConversion(XL_TestContext* pCtx) { return __xlRunSemDumpCase(pCtx, "examples\\full\\implicit_class_dynamic_conversion.xl", 1, "take_any(value:any)->int"); }
+static int __xlTestLowerImplicitClassDynamicConversionMarker(XL_TestContext* pCtx)
+{
+	if ( __xlRunLowerDumpCase(pCtx, "examples\\full\\implicit_class_dynamic_conversion.xl", 1, "Name @ 23:18 text=\"box\" type=\"DynBox\" convert=\"DynBox->any\"") != XL_RC_OK ) {
+		return XL_RC_FAIL;
+	}
+	if ( __xlRunLowerDumpCase(pCtx, "examples\\full\\implicit_class_dynamic_conversion.xl", 1, "Name @ 24:18 text=\"box\" type=\"DynBox\" convert=\"DynBox->var\"") != XL_RC_OK ) {
+		return XL_RC_FAIL;
+	}
+	if ( __xlRunLowerDumpCase(pCtx, "examples\\full\\implicit_class_dynamic_conversion.xl", 1, "Name @ 31:18 text=\"box\" type=\"DynBox\" convert=\"DynBox->any\"") != XL_RC_OK ) {
+		return XL_RC_FAIL;
+	}
+	return __xlRunLowerDumpCase(pCtx, "examples\\full\\implicit_class_dynamic_conversion.xl", 1, "Name @ 31:34 text=\"box\" type=\"DynBox\" convert=\"DynBox->var\"");
+}
+static int __xlTestLowerImplicitClassDynamicConversionMarkerJson(XL_TestContext* pCtx)
+{
+	if ( __xlRunLowerJsonCountCase(pCtx, "examples\\full\\implicit_class_dynamic_conversion.xl", 1, "\"conversion\": \"DynBox->any\"", 4u) != XL_RC_OK ) {
+		return XL_RC_FAIL;
+	}
+	return __xlRunLowerJsonCountCase(pCtx, "examples\\full\\implicit_class_dynamic_conversion.xl", 1, "\"conversion\": \"DynBox->var\"", 4u);
+}
+static int __xlTestSemImplicitDynamicAssignmentReturnConversion(XL_TestContext* pCtx) { return __xlRunSemDumpCase(pCtx, "examples\\full\\implicit_dynamic_assignment_return_conversion.xl", 1, "make_any_box(box:DynAssignBox)->any"); }
+static int __xlTestLowerImplicitDynamicAssignmentReturnConversionMarker(XL_TestContext* pCtx)
+{
+	if ( __xlRunLowerDumpCase(pCtx, "examples\\full\\implicit_dynamic_assignment_return_conversion.xl", 1, "Literal @ 6:9 text=\"7\" type=\"int\" convert=\"int->any\"") != XL_RC_OK ) {
+		return XL_RC_FAIL;
+	}
+	if ( __xlRunLowerDumpCase(pCtx, "examples\\full\\implicit_dynamic_assignment_return_conversion.xl", 1, "Literal @ 25:14 text=\"7\" type=\"int\" convert=\"int->any\"") != XL_RC_OK ) {
+		return XL_RC_FAIL;
+	}
+	if ( __xlRunLowerDumpCase(pCtx, "examples\\full\\implicit_dynamic_assignment_return_conversion.xl", 1, "Name @ 14:9 text=\"box\" type=\"DynAssignBox\" convert=\"DynAssignBox->any\"") != XL_RC_OK ) {
+		return XL_RC_FAIL;
+	}
+	return __xlRunLowerDumpCase(pCtx, "examples\\full\\implicit_dynamic_assignment_return_conversion.xl", 1, "Name @ 44:14 text=\"box\" type=\"DynAssignBox\" convert=\"DynAssignBox->var\"");
+}
+static int __xlTestLowerImplicitDynamicAssignmentReturnConversionMarkerJson(XL_TestContext* pCtx)
+{
+	if ( __xlRunLowerJsonCountCase(pCtx, "examples\\full\\implicit_dynamic_assignment_return_conversion.xl", 1, "\"conversion\": \"int->any\"", 6u) != XL_RC_OK ) {
+		return XL_RC_FAIL;
+	}
+	if ( __xlRunLowerJsonCountCase(pCtx, "examples\\full\\implicit_dynamic_assignment_return_conversion.xl", 1, "\"conversion\": \"int->var\"", 6u) != XL_RC_OK ) {
+		return XL_RC_FAIL;
+	}
+	if ( __xlRunLowerJsonCountCase(pCtx, "examples\\full\\implicit_dynamic_assignment_return_conversion.xl", 1, "\"conversion\": \"DynAssignBox->any\"", 4u) != XL_RC_OK ) {
+		return XL_RC_FAIL;
+	}
+	return __xlRunLowerJsonCountCase(pCtx, "examples\\full\\implicit_dynamic_assignment_return_conversion.xl", 1, "\"conversion\": \"DynAssignBox->var\"", 4u);
+}
+static int __xlTestSemImplicitDynamicDefaultParamConversion(XL_TestContext* pCtx) { return __xlRunSemDumpCase(pCtx, "examples\\full\\implicit_dynamic_default_param_conversion.xl", 1, "any_default(value:any=)->int"); }
+static int __xlTestLowerImplicitDynamicDefaultParamConversionMarker(XL_TestContext* pCtx)
+{
+	if ( __xlRunLowerDumpCase(pCtx, "examples\\full\\implicit_dynamic_default_param_conversion.xl", 1, "Literal @ 1:30 text=\"7\" type=\"int\" convert=\"int->any\"") != XL_RC_OK ) {
+		return XL_RC_FAIL;
+	}
+	return __xlRunLowerDumpCase(pCtx, "examples\\full\\implicit_dynamic_default_param_conversion.xl", 1, "Literal @ 8:30 text=\"8\" type=\"int\" convert=\"int->var\"");
+}
+static int __xlTestLowerImplicitDynamicDefaultParamConversionMarkerJson(XL_TestContext* pCtx)
+{
+	if ( __xlRunLowerJsonCountCase(pCtx, "examples\\full\\implicit_dynamic_default_param_conversion.xl", 1, "\"conversion\": \"int->any\"", 2u) != XL_RC_OK ) {
+		return XL_RC_FAIL;
+	}
+	return __xlRunLowerJsonCountCase(pCtx, "examples\\full\\implicit_dynamic_default_param_conversion.xl", 1, "\"conversion\": \"int->var\"", 2u);
+}
+static int __xlTestSemImplicitNamedArgConversion(XL_TestContext* pCtx) { return __xlRunSemDumpCase(pCtx, "examples\\full\\implicit_named_arg_conversion.xl", 1, "mix(value:float,boxed:any=,dyn:var=)->int"); }
+static int __xlTestLowerImplicitNamedArgConversionMarker(XL_TestContext* pCtx)
+{
+	if ( __xlRunLowerDumpCase(pCtx, "examples\\full\\implicit_named_arg_conversion.xl", 1, "Literal @ 15:30 text=\"1\" type=\"int\" convert=\"int->float\"") != XL_RC_OK ) {
+		return XL_RC_FAIL;
+	}
+	if ( __xlRunLowerDumpCase(pCtx, "examples\\full\\implicit_named_arg_conversion.xl", 1, "Literal @ 1:35 text=\"7\" type=\"int\" convert=\"int->any\"") != XL_RC_OK ) {
+		return XL_RC_FAIL;
+	}
+	return __xlRunLowerDumpCase(pCtx, "examples\\full\\implicit_named_arg_conversion.xl", 1, "Literal @ 15:19 text=\"9\" type=\"int\" convert=\"int->var\"");
+}
+static int __xlTestLowerImplicitNamedArgConversionMarkerJson(XL_TestContext* pCtx)
+{
+	if ( __xlRunLowerJsonCountCase(pCtx, "examples\\full\\implicit_named_arg_conversion.xl", 1, "\"conversion\": \"int->float\"", 2u) != XL_RC_OK ) {
+		return XL_RC_FAIL;
+	}
+	if ( __xlRunLowerJsonCountCase(pCtx, "examples\\full\\implicit_named_arg_conversion.xl", 1, "\"conversion\": \"int->any\"", 2u) != XL_RC_OK ) {
+		return XL_RC_FAIL;
+	}
+	return __xlRunLowerJsonCountCase(pCtx, "examples\\full\\implicit_named_arg_conversion.xl", 1, "\"conversion\": \"int->var\"", 2u);
+}
+static int __xlTestSemImplicitVarargConversion(XL_TestContext* pCtx) { return __xlRunSemDumpCase(pCtx, "examples\\full\\implicit_vararg_conversion.xl", 1, "sum_more(seed:int,arg:array<var>)->int"); }
+static int __xlTestLowerImplicitVarargConversionMarker(XL_TestContext* pCtx)
+{
+	if ( __xlRunLowerDumpCase(pCtx, "examples\\full\\implicit_vararg_conversion.xl", 1, "Literal @ 22:22 text=\"1\" type=\"int\" convert=\"int->var\"") != XL_RC_OK ) {
+		return XL_RC_FAIL;
+	}
+	if ( __xlRunLowerDumpCase(pCtx, "examples\\full\\implicit_vararg_conversion.xl", 1, "Literal @ 22:25 text=\"2\" type=\"int\" convert=\"int->var\"") != XL_RC_OK ) {
+		return XL_RC_FAIL;
+	}
+	if ( __xlRunLowerDumpCase(pCtx, "examples\\full\\implicit_vararg_conversion.xl", 1, "Literal @ 22:51 text=\"3\" type=\"int\" convert=\"int->var\"") != XL_RC_OK ) {
+		return XL_RC_FAIL;
+	}
+	return __xlRunLowerDumpCase(pCtx, "examples\\full\\implicit_vararg_conversion.xl", 1, "Literal @ 22:62 text=\"4\" type=\"int\" convert=\"int->var\"");
+}
+static int __xlTestLowerImplicitVarargConversionMarkerJson(XL_TestContext* pCtx) { return __xlRunLowerJsonCountCase(pCtx, "examples\\full\\implicit_vararg_conversion.xl", 1, "\"conversion\": \"int->var\"", 8u); }
+static int __xlTestLowerImplicitVarargSpreadConversionMarker(XL_TestContext* pCtx)
+{
+	if ( __xlRunLowerDumpCase(pCtx, "examples\\full\\vararg_array_spread_basic.xl", 1, "Name @ 7:27 text=\"packed\" type=\"array<int>\" convert=\"array<int>->array<var>\"") != XL_RC_OK ) {
+		return XL_RC_FAIL;
+	}
+	return __xlRunLowerDumpCase(pCtx, "examples\\full\\vararg_dict_spread_basic.xl", 1, "Name @ 7:28 text=\"packed\" type=\"dict<int>\" convert=\"dict<int>->dict<var>\"");
+}
+static int __xlTestLowerImplicitVarargSpreadConversionMarkerJson(XL_TestContext* pCtx)
+{
+	if ( __xlRunLowerJsonCountCase(pCtx, "examples\\full\\vararg_array_spread_basic.xl", 1, "\"conversion\": \"array<int>->array<var>\"", 2u) != XL_RC_OK ) {
+		return XL_RC_FAIL;
+	}
+	return __xlRunLowerJsonCountCase(pCtx, "examples\\full\\vararg_dict_spread_basic.xl", 1, "\"conversion\": \"dict<int>->dict<var>\"", 2u);
+}
+static int __xlTestSemImplicitObjectBaseConversion(XL_TestContext* pCtx) { return __xlRunSemDumpCase(pCtx, "examples\\full\\implicit_object_base_conversion.xl", 1, "take_object(value:object)->int"); }
+static int __xlTestLowerImplicitObjectConversionMarker(XL_TestContext* pCtx) { return __xlRunLowerDumpCase(pCtx, "examples\\full\\implicit_object_base_conversion.xl", 1, "Name @ 29:21 text=\"box\" type=\"ObjBox\" convert=\"ObjBox->object\""); }
+static int __xlTestLowerImplicitObjectConversionMarkerJson(XL_TestContext* pCtx) { return __xlRunLowerJsonCountCase(pCtx, "examples\\full\\implicit_object_base_conversion.xl", 1, "\"conversion\": \"ObjBox->object\"", 2u); }
+static int __xlTestLowerImplicitObjectReturnConversionMarker(XL_TestContext* pCtx) { return __xlRunLowerDumpCase(pCtx, "examples\\full\\implicit_object_base_conversion.xl", 1, "Name @ 15:9 text=\"value\" type=\"ObjBox\" convert=\"ObjBox->object\""); }
+static int __xlTestSemImplicitObjectUpcastConversion(XL_TestContext* pCtx) { return __xlRunSemDumpCase(pCtx, "examples\\full\\implicit_object_upcast_conversion.xl", 1, "take_base(value:BaseBox)->int"); }
+static int __xlTestLowerImplicitObjectUpcastConversionMarker(XL_TestContext* pCtx) { return __xlRunLowerDumpCase(pCtx, "examples\\full\\implicit_object_upcast_conversion.xl", 1, "Name @ 25:34 text=\"child\" type=\"ChildBox\" convert=\"ChildBox->BaseBox\""); }
+static int __xlTestLowerImplicitObjectUpcastConversionMarkerJson(XL_TestContext* pCtx) { return __xlRunLowerJsonCountCase(pCtx, "examples\\full\\implicit_object_upcast_conversion.xl", 1, "\"conversion\": \"ChildBox->BaseBox\"", 2u); }
+static int __xlTestSemImplicitObjectUnrelatedUpcastError(XL_TestContext* pCtx) { return __xlRunSemDumpCase(pCtx, "examples\\sem\\implicit_object_unrelated_upcast_error.xl", 0, "arg1: RightBox -> LeftBox fail: not convertible"); }
+static int __xlTestSemImplicitObjectCommonExprConversion(XL_TestContext* pCtx) { return __xlRunSemDumpCase(pCtx, "examples\\full\\implicit_object_common_expr_conversion.xl", 1, "choose(flag:bool,fallback:object)->object"); }
+static int __xlTestLowerImplicitObjectCommonExprConversionMarker(XL_TestContext* pCtx)
+{
+	if ( __xlRunLowerDumpCase(pCtx, "examples\\full\\implicit_object_common_expr_conversion.xl", 1, "Name @ 16:10 text=\"box\" type=\"ObjBox\" convert=\"ObjBox->object\"") != XL_RC_OK ) {
+		return XL_RC_FAIL;
+	}
+	return __xlRunLowerDumpCase(pCtx, "examples\\full\\implicit_object_common_expr_conversion.xl", 1, "Name @ 20:26 text=\"box\" type=\"ObjBox\" convert=\"ObjBox->object\"");
+}
+static int __xlTestLowerImplicitObjectCommonExprConversionMarkerJson(XL_TestContext* pCtx) { return __xlRunLowerJsonCountCase(pCtx, "examples\\full\\implicit_object_common_expr_conversion.xl", 1, "\"conversion\": \"ObjBox->object\"", 8u); }
+static int __xlTestSemImplicitObjectConversionDiagError(XL_TestContext* pCtx) { return __xlRunSemDumpCase(pCtx, "examples\\sem\\implicit_object_conversion_diag_error.xl", 0, "arg1: ObjBox -> object ok cost=3 kind=object reference"); }
+static int __xlTestSemImplicitVarToIntError(XL_TestContext* pCtx) { return __xlRunSemDumpCase(pCtx, "examples\\sem\\implicit_var_to_int_error.xl", 0, "expected 'int', actual 'var'"); }
+static int __xlTestSemImplicitAnyToIntError(XL_TestContext* pCtx) { return __xlRunSemDumpCase(pCtx, "examples\\sem\\implicit_any_to_int_error.xl", 0, "arg1: any -> int fail: not convertible"); }
+static int __xlTestSemImplicitContainerDynamicToConcreteError(XL_TestContext* pCtx) { return __xlRunSemDumpCase(pCtx, "examples\\sem\\implicit_container_dynamic_to_concrete_error.xl", 0, "arg1: array<var> -> array<int> fail: not convertible"); }
+static int __xlTestSemImplicitContainerAnyToConcreteError(XL_TestContext* pCtx)
+{
+	if ( __xlRunSemDumpCase(pCtx, "examples\\sem\\implicit_container_any_to_concrete_error.xl", 0, "arg1: array<any> -> array<int> fail: not convertible") != XL_RC_OK ) {
+		return XL_RC_FAIL;
+	}
+	if ( __xlRunSemDumpCase(pCtx, "examples\\sem\\implicit_container_any_to_concrete_error.xl", 0, "arg1: dict<any> -> dict<int> fail: not convertible") != XL_RC_OK ) {
+		return XL_RC_FAIL;
+	}
+	if ( __xlRunSemDumpCase(pCtx, "examples\\sem\\implicit_container_any_to_concrete_error.xl", 0, "arg1: list<any> -> list<int> fail: not convertible") != XL_RC_OK ) {
+		return XL_RC_FAIL;
+	}
+	return __xlRunSemDumpCase(pCtx, "examples\\sem\\implicit_container_any_to_concrete_error.xl", 0, "arg1: set<any> -> set<int> fail: not convertible");
+}
+static int __xlTestSemImplicitObjectToClassError(XL_TestContext* pCtx) { return __xlRunSemDumpCase(pCtx, "examples\\sem\\implicit_object_to_class_error.xl", 0, "expected 'DownBox', actual 'object'"); }
+static int __xlTestSemImplicitNullToBoolError(XL_TestContext* pCtx) { return __xlRunSemDumpCase(pCtx, "examples\\sem\\implicit_null_to_bool_error.xl", 0, "expected 'bool', actual 'null'"); }
+static int __xlTestSemImplicitBoolToNumberError(XL_TestContext* pCtx) { return __xlRunSemDumpCase(pCtx, "examples\\sem\\implicit_bool_to_number_error.xl", 0, "expected 'int', actual 'bool'"); }
+static int __xlTestSemImplicitConversionReturnDefaultMulti(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\implicit_conversion_return_default_multi.xl", 1, "int"); }
+static int __xlTestLowerImplicitMultiReturnConversionMarker(XL_TestContext* pCtx) { return __xlRunLowerDumpCase(pCtx, "examples\\full\\implicit_conversion_return_default_multi.xl", 1, "Literal @ 10:9 text=\"1\" type=\"int\" convert=\"int->float\""); }
+static int __xlTestSemImplicitConversionFloatToIntError(XL_TestContext* pCtx) { return __xlRunSemDumpCase(pCtx, "examples\\full\\implicit_conversion_float_to_int_error.xl", 0, "float -> int fail"); }
+static int __xlTestSemImplicitFloatToIntAssignError(XL_TestContext* pCtx) { return __xlRunSemDumpCase(pCtx, "examples\\sem\\implicit_float_to_int_assign_error.xl", 0, "use explicit cast 'int(value)'"); }
+static int __xlTestSemImplicitFloatToIntReturnError(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\sem\\implicit_float_to_int_return_error.xl", 0, NULL); }
+static int __xlTestSemImplicitFloatToIntDefaultError(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\sem\\implicit_float_to_int_default_error.xl", 0, NULL); }
+static int __xlTestSemImplicitNumberToBoolError(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\sem\\implicit_number_to_bool_error.xl", 0, NULL); }
+static int __xlTestSemImplicitStringToNumberError(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\sem\\implicit_string_to_number_error.xl", 0, NULL); }
+static int __xlTestSemImplicitStringPlusNumberError(XL_TestContext* pCtx) { return __xlRunSemDumpCase(pCtx, "examples\\sem\\implicit_string_plus_number_error.xl", 0, "operator '+' requires numeric operands or two strings"); }
+static int __xlTestSemImplicitIfNumberConditionError(XL_TestContext* pCtx) { return __xlRunSemDumpCase(pCtx, "examples\\sem\\implicit_if_number_condition_error.xl", 0, "if condition requires bool, got 'int'; use an explicit comparison"); }
+static int __xlTestSemImplicitWhileNumberConditionError(XL_TestContext* pCtx) { return __xlRunSemDumpCase(pCtx, "examples\\sem\\implicit_while_number_condition_error.xl", 0, "while condition requires bool, got 'int'; use an explicit comparison"); }
+static int __xlTestSemImplicitBoolConditionExplicitCompare(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\implicit_bool_condition_explicit_compare.xl", 1, "int"); }
 static int __xlTestSemAutoDecl(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\auto_decl_basic.xl", 1, "int"); }
 static int __xlTestSemGenericFunctionBasic(XL_TestContext* pCtx) { return __xlRunSemDumpCase(pCtx, "examples\\full\\generic_function_basic.xl", 1, "param value scope="); }
 static int __xlTestSemGenericSameType(XL_TestContext* pCtx) { return __xlRunSemDumpCase(pCtx, "examples\\full\\generic_same_type.xl", 1, "same"); }
@@ -4948,6 +5299,48 @@ static int __xlRunLowerJsonCase(XL_TestContext* pCtx, const char* sRelativePath,
 	return iRc;
 }
 
+static int __xlRunLowerJsonCountCase(XL_TestContext* pCtx, const char* sRelativePath, int bExpectOk, const char* sNeedle, size_t iMinCount)
+{
+	char sPath[XL_PATH_MAX_LEN];
+	XL_ModuleLinkResult moduleResult;
+	XL_SemResult semResult;
+	XL_LowerResult lowerResult;
+	XL_DiagContext diag;
+	char* sDump;
+	int iRc;
+
+	__xlBuildProjectPath(pCtx, sPath, sizeof(sPath), sRelativePath);
+	__xlInitSilentDiag(pCtx, &diag);
+	xlModuleLinkResultInit(&moduleResult);
+	xlSemResultInit(&semResult);
+	xlLowerResultInit(&lowerResult);
+	sDump = NULL;
+
+	iRc = xlModuleLinkFromFile(sPath, &diag, 0, &moduleResult);
+	if ( iRc == XL_RC_OK ) {
+		iRc = xlSemAnalyzeAst(moduleResult.pLinkedRoot, &diag, 0, &semResult);
+	}
+	if ( iRc == XL_RC_OK ) {
+		iRc = xlLowerAst(moduleResult.pLinkedRoot, &semResult, &diag, 0, &lowerResult);
+	}
+	if ( iRc == XL_RC_OK ) {
+		sDump = xlLowerDumpJson(&lowerResult);
+		if ( (sNeedle != NULL) && ((sDump == NULL) || (__xlTraceCount(sDump, sNeedle) < iMinCount)) ) {
+			iRc = XL_RC_FAIL;
+		}
+	}
+
+	if ( !bExpectOk ) {
+		iRc = (iRc == XL_RC_OK) ? XL_RC_FAIL : XL_RC_OK;
+	}
+
+	free(sDump);
+	xlLowerResultFree(&lowerResult);
+	xlSemResultFree(&semResult);
+	xlModuleLinkResultFree(&moduleResult);
+	return iRc;
+}
+
 static int __xlTestSemMultiReturnBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\multi_return_basic.xl", 1, "int"); }
 static int __xlTestSemMultiReturnCallExpandBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\multi_return_call_expand_basic.xl", 1, "int"); }
 static int __xlTestSemMultiReturnSingleBindError(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\sem\\multi_return_single_bind_error.xl", 0, NULL); }
@@ -5172,6 +5565,43 @@ static int __xlTestSemXlpNativeFuncsBool(XL_TestContext* pCtx) { return __xlRunS
 static int __xlTestSemXlpNativeFuncsBoolParams(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\xlp_native\\use_pkg_probe_bool_score.xl", 1, "int"); }
 static int __xlTestSemXlpNativeFuncsFloat(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\xlp_native\\use_pkg_probe_float.xl", 1, "int"); }
 static int __xlTestSemXlpNativeFuncsFloatParams(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\xlp_native\\use_pkg_probe_add_half.xl", 1, "int"); }
+static int __xlTestSemXlpNativeImplicitIntToFloat(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\xlp_native\\use_pkg_probe_add_half_int.xl", 1, "int"); }
+static int __xlTestSemXlpNativeImplicitFloatToIntError(XL_TestContext* pCtx) { return __xlRunSemDumpCase(pCtx, "examples\\xlp_native\\implicit_float_to_int_error.xl", 0, "float -> int fail"); }
+static int __xlTestSemXlpNativeImplicitDefaultIntToFloat(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\xlp_native\\use_pkg_probe_add_half_default.xl", 1, "int"); }
+static int __xlTestSemXlpNativeImplicitAbiStable(XL_TestContext* pCtx)
+{
+	char sPath[XL_PATH_MAX_LEN];
+	XL_ModuleLinkResult moduleResult;
+	XL_SemResult semResult;
+	XL_DiagContext diag;
+	char* sJson;
+	int iRc;
+
+	__xlBuildProjectPath(pCtx, sPath, sizeof(sPath), "examples\\xlp_native\\use_pkg_probe_add_half_int.xl");
+	__xlInitSilentDiag(pCtx, &diag);
+	xlModuleLinkResultInit(&moduleResult);
+	xlSemResultInit(&semResult);
+	sJson = NULL;
+
+	iRc = xlModuleLinkFromFile(sPath, &diag, 0, &moduleResult);
+	if ( iRc == XL_RC_OK ) {
+		iRc = xlSemAnalyzeAst(moduleResult.pLinkedRoot, &diag, 0, &semResult);
+	}
+	if ( iRc == XL_RC_OK ) {
+		sJson = xlXlpDumpPackageJson(&moduleResult, &semResult, sPath);
+		if ( (sJson == NULL) ||
+			!__xlTraceContains(sJson, "add_half") ||
+			!__xlTraceContains(sJson, "value:float") ||
+			__xlTraceContains(sJson, "value:int__ret__float") ) {
+			iRc = XL_RC_FAIL;
+		}
+	}
+
+	free(sJson);
+	xlSemResultFree(&semResult);
+	xlModuleLinkResultFree(&moduleResult);
+	return iRc;
+}
 static int __xlTestSemXlpStatic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\xlp_static\\use_pkg_clock.xl", 1, "int"); }
 static int __xlTestSemXlpStaticFuncs(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\xlp_static\\use_pkg_probe.xl", 1, "int"); }
 static int __xlTestSemXlpStaticFuncsParams(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\xlp_static\\use_pkg_probe_add.xl", 1, "int"); }
@@ -5183,6 +5613,8 @@ static int __xlTestSemXlpStaticFuncsBool(XL_TestContext* pCtx) { return __xlRunS
 static int __xlTestSemXlpStaticFuncsBoolParams(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\xlp_static\\use_pkg_probe_bool_score.xl", 1, "int"); }
 static int __xlTestSemXlpStaticFuncsFloat(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\xlp_static\\use_pkg_probe_float.xl", 1, "int"); }
 static int __xlTestSemXlpStaticFuncsFloatParams(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\xlp_static\\use_pkg_probe_add_half.xl", 1, "int"); }
+static int __xlTestSemXlpStaticImplicitIntToFloat(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\xlp_static\\use_pkg_probe_add_half_int.xl", 1, "int"); }
+static int __xlTestSemXlpStaticImplicitDefaultIntToFloat(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\xlp_static\\use_pkg_probe_add_half_default.xl", 1, "int"); }
 static int __xlTestSemXlpSource(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\xlp_source\\use_pkg_math.xl", 1, "int"); }
 static int __xlTestSemXlpOfficialCsv(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\xlp_official\\use_x_csv.xl", 1, "int"); }
 static int __xlTestSemXlpOfficialIni(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\xlp_official\\use_x_ini.xl", 1, "int"); }
@@ -5224,8 +5656,42 @@ static int __xlTestSemXlpExternalPackage(XL_TestContext* pCtx)
 			!__xlTraceContains(sJson, "\"packageName\": \"use_pkg_math\"") ||
 			!__xlTraceContains(sJson, "\"abiId\": \"use_pkg_math@0.0.0#abi1::<root>\"") ||
 			!__xlTraceContains(sJson, "\"manifest\": \"") ||
-			!__xlTraceContains(sJson, "examples\\\\xlp\\\\packages\\\\pkg.math\\\\xlp.json\"") ||
+			!__xlTraceContains(sJson, "pkg.math\\\\xlp.json\"") ||
 			!__xlTraceContains(sJson, "\"moduleAbiId\": \"pkg.math@1.0.0#abi1::pkg.math\"") ) {
+			iRc = XL_RC_FAIL;
+		}
+	}
+
+	free(sJson);
+	xlSemResultFree(&semResult);
+	xlModuleLinkResultFree(&moduleResult);
+	return iRc;
+}
+static int __xlTestSemXlpSourceDefaultParam(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\xlp\\use_pkg_math_default.xl", 1, "int"); }
+static int __xlTestSemXlpSourceDefaultMetadata(XL_TestContext* pCtx)
+{
+	char sPath[XL_PATH_MAX_LEN];
+	XL_ModuleLinkResult moduleResult;
+	XL_SemResult semResult;
+	XL_DiagContext diag;
+	char* sJson;
+	int iRc;
+
+	__xlBuildProjectPath(pCtx, sPath, sizeof(sPath), "release\\libs\\packages\\pkg.math\\src\\math_pkg_impl.xl");
+	__xlInitSilentDiag(pCtx, &diag);
+	xlModuleLinkResultInit(&moduleResult);
+	xlSemResultInit(&semResult);
+	sJson = NULL;
+
+	iRc = xlModuleLinkFromFile(sPath, &diag, 0, &moduleResult);
+	if ( iRc == XL_RC_OK ) {
+		iRc = xlSemAnalyzeAst(moduleResult.pLinkedRoot, &diag, 0, &semResult);
+	}
+	if ( iRc == XL_RC_OK ) {
+		sJson = xlXlpDumpPackageJson(&moduleResult, &semResult, sPath);
+		if ( (sJson == NULL) ||
+			!__xlTraceContains(sJson, "\"defaultValueText\": \"41\"") ||
+			!__xlTraceContains(sJson, "\"defaultValueJson\": \"{") ) {
 			iRc = XL_RC_FAIL;
 		}
 	}
@@ -6323,8 +6789,8 @@ static int __xlTestCgenFunctionValueMultiReturnBasic(XL_TestContext* pCtx)
 	static const char* const aNeedles[] = {
 		"xvalue op = xvoCreateFunc((xfunction)xl__pair__arity0__ret__array_x3Cvar_x3E__boxed);",
 		"xvalue xl_unpack_7_2 = ({ xvalue xl_call_args = xvoCreateArray();",
-		"int number = xvoArrayGetInt((xvalue)(xl_unpack_7_2), (uint32)(0));",
-		"const char* text = xvoArrayGetText((xvalue)(xl_unpack_7_2), (uint32)(1));"
+		"xvoGetInt((xvalue)(xvoArrayGetValue((xvalue)(xl_unpack_7_2), (uint32)(0))))",
+		"xvoGetText((xvalue)(xvoArrayGetValue((xvalue)(xl_unpack_7_2), (uint32)(1))))"
 	};
 
 	return __xlRunCgenCaseAll(pCtx, "examples\\full\\function_value_multi_return_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
@@ -6333,7 +6799,8 @@ static int __xlTestCgenFunctionValueMultiReturnFlowBasic(XL_TestContext* pCtx)
 {
 	static const char* const aNeedles[] = {
 		"xvalue picked = xl__choose__arity0__ret__function_x3Cint_x2Cstring_x28_x29_x3E();",
-		"int xl_ret_19_2 = (xl__apply__arity1__op__function_x3Cint_x2Cstring_x28_x29_x3E__ret__int(xvoCreateFunc((xfunction)xl__pair__arity0__ret__array_x3Cvar_x3E__boxed)) + xl__apply__arity1__op__function_x3Cint_x2Cstring_x28_x29_x3E__ret__int(xvoCopy((xvalue)(picked))));",
+		"xl__apply__arity1__op__function_x3Cint_x2Cstring_x28_x29_x3E__ret__int(xvoCreateFunc((xfunction)xl__pair__arity0__ret__array_x3Cvar_x3E__boxed))",
+		"xl__apply__arity1__op__function_x3Cint_x2Cstring_x28_x29_x3E__ret__int(xvoCopy((xvalue)(picked)))",
 		"xvalue xl_unpack_10_2 = ({ xvalue xl_call_args = xvoCreateArray();"
 	};
 
@@ -6344,7 +6811,7 @@ static int __xlTestCgenFunctionValueMultiReturnVarBasic(XL_TestContext* pCtx)
 	static const char* const aNeedles[] = {
 		"xvalue dyn = xvoCopy((xvalue)(xvoCreateFunc((xfunction)xl__pair__arity0__ret__array_x3Cvar_x3E__boxed)));",
 		"xvalue xl_unpack_7_2 = ({ xvalue xl_call_args = xvoCreateArray(); xvalue xl_call_callee = xvoCopy((xvalue)(xvoCopy((xvalue)(dyn))));",
-		"const char* text = xvoArrayGetText((xvalue)(xl_unpack_7_2), (uint32)(1));"
+		"xvoGetText((xvalue)(xvoArrayGetValue((xvalue)(xl_unpack_7_2), (uint32)(1))))"
 	};
 
 	return __xlRunCgenCaseAll(pCtx, "examples\\full\\function_value_multi_return_var_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
@@ -11687,6 +12154,257 @@ static int __xlTestCgenXlpNativeFuncsFloatParams(XL_TestContext* pCtx)
 
 	return __xlRunCgenCaseAll(pCtx, "examples\\xlp_native\\use_pkg_probe_add_half.xl", aNeedles, XL_COUNTOF(aNeedles));
 }
+static int __xlTestCgenXlpNativeImplicitIntToFloat(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"extern double pkg_clock_artifact_add_half(double value);",
+		"return pkg_clock_artifact_add_half(value);",
+		"add_half__arity1__value__float__ret__float(((double)1))"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\xlp_native\\use_pkg_probe_add_half_int.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenXlpNativeImplicitDefaultIntToFloat(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"extern double pkg_clock_artifact_add_half(double value);",
+		"add_half__arity1__value__float__ret__float(((double)1))"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\xlp_native\\use_pkg_probe_add_half_default.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenImplicitConversionCommonTypes(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"((double)1)",
+		"xvoCreateFloat((double)(((double)1)))"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\full\\implicit_conversion_common_types.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenImplicitContainerLiteralCommonConversion(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"xvoListSetValue(xl_list_ctor, (int64)(0), xvoCreateFloat((double)(((double)1)))",
+		"xvoCollSetValue(xl_set_ctor, xvoCreateFloat((double)(((double)1)))",
+		"xvoTableSetValue(xl_dict_ctor, (const void*)xl_dict_key, (uint32)strlen((xl_dict_key != NULL) ? xl_dict_key : \"\"), xvoCreateFloat((double)(((double)1)))"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\full\\implicit_container_literal_common_conversion.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenImplicitContainerDynamicElementConversion(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"static int xl__count_array__arity1__values__array_x3Cvar_x3E__ret__int(xvalue values)",
+		"static int xl__count_dict__arity1__values__dict_x3Cvar_x3E__ret__int(xvalue values)",
+		"static int xl__count_list__arity1__values__list_x3Cvar_x3E__ret__int(xvalue values)",
+		"static int xl__count_set__arity1__values__set_x3Cvar_x3E__ret__int(xvalue values)",
+		"xl__count_array__arity1__values__array_x3Cvar_x3E__ret__int(numbers)",
+		"xl__count_dict__arity1__values__dict_x3Cvar_x3E__ret__int(pairs)",
+		"xl__count_list__arity1__values__list_x3Cvar_x3E__ret__int(items)",
+		"xl__count_set__arity1__values__set_x3Cvar_x3E__ret__int(flags)",
+		"xl_core_len_array(xl__make_array__arity0__ret__array_x3Cvar_x3E())",
+		"xl_core_len_dict(xl__make_dict__arity0__ret__dict_x3Cvar_x3E())",
+		"xl_core_len_list(xl__make_list__arity0__ret__list_x3Cvar_x3E())",
+		"xl_core_len_set(xl__make_set__arity0__ret__set_x3Cvar_x3E())"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\full\\implicit_container_dynamic_element_conversion.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenImplicitConversionOverloadCost(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"xl__choose_default__arity1__value__int__ret__int(1)",
+		"xl__choose_vararg__arity1__value__int__ret__int(1)",
+		"xl__choose_float__arity1__value__float__ret__int(1.0)",
+		"xl__choose_dynamic__arity1__value__float__ret__int(((double)1))"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\full\\implicit_conversion_overload_cost.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenImplicitConversionGenericPostInfer(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"xl__take_pair__arity2__left__float__right__float__ret__int(1.0, ((double)2))"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\full\\implicit_conversion_generic_post_infer.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenImplicitObjectGenericPostInferConversion(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"static xvalue xl__pick__arity2__left__object__right__object__ret__object(xvalue left, xvalue right)",
+		"xl__pick__arity2__left__object__right__object__ret__object(({ xvalue xl_object_ref = (xvalue)(base); xl_object_retain((xvalue)(xl_object_ref)); }), ({ xvalue xl_object_ref = (xvalue)(box); xl_object_retain((xvalue)(xl_object_ref)); }))"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\full\\implicit_object_generic_post_infer_conversion.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenImplicitGenericOverloadCost(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"xl__pick__arity1__value__int__ret__int(1)",
+		"xl__pick__arity1__value__float__ret__int(1.0)",
+		"xl__pick_dynamic__arity1__value__var__ret__int(xvoCreateInt((int64)(1)))"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\full\\implicit_generic_overload_cost.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenImplicitNullReferenceConversion(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"const char* text = NULL;",
+		"xvalue items = NULL;",
+		"xvalue fn = NULL;",
+		"xvalue value = xvoCreateNull();"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\full\\implicit_null_reference_conversion.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenImplicitNullXvalueCompareConversion(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"xvalue items = NULL;",
+		"xvalue fn = NULL;",
+		"xvalue value = xvoCreateNull();",
+		"xvoType(xl_null_cmp_"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\full\\implicit_null_xvalue_compare_conversion.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenImplicitNullObjectConversion(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"static int xl__take_box__arity1__value__NullBox__ret__int(xvalue value)",
+		"static xvalue xl__make_box__arity0__ret__NullBox()",
+		"xvalue value = xvoCreateNull();",
+		"xvoType(xl_null_cmp_"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\full\\implicit_null_object_conversion.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenImplicitNullObjectBaseConversion(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"static int xl__take_object__arity1__value__object__ret__int(xvalue value)",
+		"static xvalue xl__make_object__arity0__ret__object()",
+		"xvalue value = ({ xvalue xl_object_ref = (xvalue)(NULL); xl_object_retain((xvalue)(xl_object_ref)); });",
+		"xvoType(xl_null_cmp_"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\full\\implicit_null_object_base_conversion.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenImplicitAnyDynamicConversion(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"xvalue value = xvoCreateInt((int64)(1));",
+		"xl__take_any__arity1__value__any__ret__int(xvoCopy((xvalue)(value)))"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\full\\implicit_any_dynamic_conversion.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenImplicitVarDynamicConversion(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"xvalue value = xvoCreateInt((int64)(1));",
+		"xl__take_var__arity1__value__var__ret__int(xvoCopy((xvalue)(value)))"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\full\\implicit_var_dynamic_conversion.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenImplicitClassDynamicConversion(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"xvalue any_value = ({ xvalue xl_object_ref = (xvalue)(box); xl_object_retain((xvalue)(xl_object_ref)); });",
+		"xvalue var_value = ({ xvalue xl_object_ref = (xvalue)(box); xl_object_retain((xvalue)(xl_object_ref)); });",
+		"xl__take_any__arity1__value__any__ret__int(({ xvalue xl_object_ref = (xvalue)(box); xl_object_retain((xvalue)(xl_object_ref)); }))",
+		"xl__take_var__arity1__value__var__ret__int(({ xvalue xl_object_ref = (xvalue)(box); xl_object_retain((xvalue)(xl_object_ref)); }))"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\full\\implicit_class_dynamic_conversion.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenImplicitDynamicAssignmentReturnConversion(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"xvalue xl_ret_6_2 = xvoCreateInt((int64)(7));",
+		"xvalue xl_ret_14_2 = ({ xvalue xl_object_ref = (xvalue)(box); xl_object_retain((xvalue)(xl_object_ref)); });",
+		"xvalue xl_var_assign_new = xvoCreateInt((int64)(7)); any_value = xl_var_assign_new",
+		"xvalue xl_var_assign_new = ({ xvalue xl_object_ref = (xvalue)(box); xl_object_retain((xvalue)(xl_object_ref)); }); any_value = xl_var_assign_new"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\full\\implicit_dynamic_assignment_return_conversion.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenImplicitDynamicDefaultParamConversion(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"xl__any_default__arity1__value__any__ret__int(xvoCreateInt((int64)(7)))",
+		"xl__var_default__arity1__value__var__ret__int(xvoCreateInt((int64)(8)))"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\full\\implicit_dynamic_default_param_conversion.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenImplicitNamedArgConversion(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"xl__mix__arity3__value__float__boxed__any__dyn__var__ret__int(((double)1), xvoCreateInt((int64)(7)), xvoCreateInt((int64)(9)))"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\full\\implicit_named_arg_conversion.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenImplicitVarargConversion(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"xl__sum_more__arity2__seed__int__arg__array_x3Cvar_x3E__ret__int(10",
+		"xvoArrayAppendValue(xl_arr_literal, xvoCreateInt((int64)(1)), TRUE)",
+		"xvoArrayAppendValue(xl_arr_literal, xvoCreateInt((int64)(2)), TRUE)",
+		"xvoTableSetValue(xl_dict_ctor",
+		"xvoCreateInt((int64)(3))",
+		"xvoCreateInt((int64)(4))"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\full\\implicit_vararg_conversion.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenImplicitExactAliasConversion(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"int32_t narrow_name = exact;",
+		"int alias_from_i32 = narrow_name;",
+		"double alias_from_f64 = wide_name;",
+		"xl__take_int32__arity1__value__int32__ret__int(exact)"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\full\\implicit_exact_alias_conversion.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenImplicitObjectBaseConversion(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"static int xl__take_object__arity1__value__object__ret__int(xvalue value)",
+		"xvalue dyn = ({ xvalue xl_object_ref = (xvalue)(box); xl_object_retain((xvalue)(xl_object_ref)); });",
+		"xl_generated_type_of_value((xvalue)(dyn))"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\full\\implicit_object_base_conversion.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenImplicitObjectUpcastConversion(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"static int xl__take_base__arity1__value__BaseBox__ret__int(xvalue value)",
+		"static xvalue xl__make_base__arity0__ret__BaseBox()",
+		"xvalue base = ({ xvalue xl_object_ref = (xvalue)(child); xl_object_retain((xvalue)(xl_object_ref)); });",
+		"xl__take_base__arity1__value__BaseBox__ret__int(({ xvalue xl_object_ref = (xvalue)(child); xl_object_retain((xvalue)(xl_object_ref)); }))"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\full\\implicit_object_upcast_conversion.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenImplicitObjectCommonExprConversion(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"static xvalue xl__choose__arity2__flag__bool__fallback__object__ret__object(int flag, xvalue fallback)",
+		"({ xvalue xl_object_ref = (xvalue)((flag ? box : fallback)); xl_object_retain((xvalue)(xl_object_ref)); })",
+		"box == obj"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\full\\implicit_object_common_expr_conversion.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
 static int __xlTestCgenHelloWorld(XL_TestContext* pCtx)
 {
 	static const char* const aNeedles[] = {
@@ -13587,6 +14305,22 @@ static int __xlTestRunXlpNativeFuncsFloatParams(XL_TestContext* pCtx)
 
 	return __xlRunProgramCaseAllNoFallback(pCtx, "examples\\xlp_native\\use_pkg_probe_add_half.xl", 1, 0, aNeedles, XL_COUNTOF(aNeedles), NULL);
 }
+static int __xlTestRunXlpNativeImplicitIntToFloat(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"artifact.shared."
+	};
+
+	return __xlRunProgramCaseAllNoFallback(pCtx, "examples\\xlp_native\\use_pkg_probe_add_half_int.xl", 1, 0, aNeedles, XL_COUNTOF(aNeedles), NULL);
+}
+static int __xlTestRunXlpNativeImplicitDefaultIntToFloat(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"artifact.shared."
+	};
+
+	return __xlRunProgramCaseAllNoFallback(pCtx, "examples\\xlp_native\\use_pkg_probe_add_half_default.xl", 1, 0, aNeedles, XL_COUNTOF(aNeedles), NULL);
+}
 static int __xlTestRunXlpStatic(XL_TestContext* pCtx) { return __xlRunProgramCaseNoFallback(pCtx, "examples\\xlp_static\\use_pkg_clock.xl", 1, 86, "artifact.static.link=", NULL); }
 static int __xlTestRunXlpStaticFuncs(XL_TestContext* pCtx)
 {
@@ -13678,7 +14412,26 @@ static int __xlTestRunXlpStaticFuncsFloatParams(XL_TestContext* pCtx)
 
 	return __xlRunProgramCaseAllNoFallback(pCtx, "examples\\xlp_static\\use_pkg_probe_add_half.xl", 1, 0, aNeedles, XL_COUNTOF(aNeedles), NULL);
 }
+static int __xlTestRunXlpStaticImplicitIntToFloat(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"artifact.static.link=",
+		"artifact.static.object="
+	};
+
+	return __xlRunProgramCaseAllNoFallback(pCtx, "examples\\xlp_static\\use_pkg_probe_add_half_int.xl", 1, 0, aNeedles, XL_COUNTOF(aNeedles), NULL);
+}
+static int __xlTestRunXlpStaticImplicitDefaultIntToFloat(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"artifact.static.link=",
+		"artifact.static.object="
+	};
+
+	return __xlRunProgramCaseAllNoFallback(pCtx, "examples\\xlp_static\\use_pkg_probe_add_half_default.xl", 1, 0, aNeedles, XL_COUNTOF(aNeedles), NULL);
+}
 static int __xlTestRunXlpSource(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\xlp_source\\use_pkg_math.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunXlpSourceDefaultParam(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\xlp\\use_pkg_math_default.xl", 1, 42, NULL, NULL); }
 static int __xlTestRunXlpOfficialCsv(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\xlp_official\\use_x_csv.xl", 1, 5, NULL, NULL); }
 static int __xlTestRunXlpOfficialIni(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\xlp_official\\use_x_ini.xl", 1, 4, NULL, NULL); }
 static int __xlTestRunXlpOfficialYaml(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\xlp_official\\use_x_yaml.xl", 1, 4, NULL, NULL); }
@@ -13799,6 +14552,32 @@ static int __xlTestRunExportFunc(XL_TestContext* pCtx) { return __xlRunProgramCa
 static int __xlTestRunExportValues(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\module\\use_math_export_values.xl", 1, 42, NULL, NULL); }
 static int __xlTestRunTypedDecl(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\typed_decl_basic.xl", 1, 42, NULL, NULL); }
 static int __xlTestRunExactNumericTypes(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\exact_numeric_types_basic.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunImplicitExactAliasConversion(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\implicit_exact_alias_conversion.xl", 1, 49, NULL, NULL); }
+static int __xlTestRunImplicitConversionBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\implicit_conversion_basic.xl", 1, 51, NULL, NULL); }
+static int __xlTestRunImplicitConversionCommonTypes(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\implicit_conversion_common_types.xl", 1, 0, NULL, NULL); }
+static int __xlTestRunImplicitContainerLiteralCommonConversion(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\implicit_container_literal_common_conversion.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunImplicitContainerDynamicElementConversion(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\implicit_container_dynamic_element_conversion.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunImplicitConversionOverloadCost(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\implicit_conversion_overload_cost.xl", 1, 170, NULL, NULL); }
+static int __xlTestRunImplicitConversionGeneric(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\implicit_conversion_generic.xl", 1, 43, NULL, NULL); }
+static int __xlTestRunImplicitConversionGenericPostInfer(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\implicit_conversion_generic_post_infer.xl", 1, 43, NULL, NULL); }
+static int __xlTestRunImplicitObjectGenericPostInferConversion(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\implicit_object_generic_post_infer_conversion.xl", 1, 48, NULL, NULL); }
+static int __xlTestRunImplicitGenericOverloadCost(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\implicit_generic_overload_cost.xl", 1, 60, NULL, NULL); }
+static int __xlTestRunImplicitNullReferenceConversion(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\implicit_null_reference_conversion.xl", 1, 43, NULL, NULL); }
+static int __xlTestRunImplicitNullXvalueCompareConversion(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\implicit_null_xvalue_compare_conversion.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunImplicitNullObjectConversion(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\implicit_null_object_conversion.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunImplicitNullObjectBaseConversion(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\implicit_null_object_base_conversion.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunImplicitAnyDynamicConversion(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\implicit_any_dynamic_conversion.xl", 1, 43, NULL, NULL); }
+static int __xlTestRunImplicitVarDynamicConversion(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\implicit_var_dynamic_conversion.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunImplicitClassDynamicConversion(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\implicit_class_dynamic_conversion.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunImplicitDynamicAssignmentReturnConversion(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\implicit_dynamic_assignment_return_conversion.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunImplicitDynamicDefaultParamConversion(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\implicit_dynamic_default_param_conversion.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunImplicitNamedArgConversion(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\implicit_named_arg_conversion.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunImplicitVarargConversion(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\implicit_vararg_conversion.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunImplicitObjectBaseConversion(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\implicit_object_base_conversion.xl", 1, 43, NULL, NULL); }
+static int __xlTestRunImplicitObjectUpcastConversion(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\implicit_object_upcast_conversion.xl", 1, 41, NULL, NULL); }
+static int __xlTestRunImplicitObjectCommonExprConversion(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\implicit_object_common_expr_conversion.xl", 1, 47, NULL, NULL); }
+static int __xlTestRunImplicitConversionReturnDefaultMulti(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\implicit_conversion_return_default_multi.xl", 1, 51, NULL, NULL); }
+static int __xlTestRunImplicitBoolConditionExplicitCompare(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\implicit_bool_condition_explicit_compare.xl", 1, 2, NULL, NULL); }
 static int __xlTestRunAutoDecl(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\auto_decl_basic.xl", 1, 42, NULL, NULL); }
 static int __xlTestRunTypeDefBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\typedef_basic.xl", 1, 11, NULL, NULL); }
 static int __xlTestRunTypeCtorBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\type_ctor_basic.xl", 1, 64, NULL, NULL); }
@@ -19190,6 +19969,99 @@ static const XL_TestCase __gXLTests[] = {
 	{ "sem.export_values", "sem", __xlTestSemExportValues },
 	{ "sem.typed_decl", "sem", __xlTestSemTypedDecl },
 	{ "sem.exact_numeric_types", "sem", __xlTestSemExactNumericTypes },
+	{ "sem.implicit_conversion_api", "sem", __xlTestSemImplicitConversionApi },
+	{ "sem.implicit_exact_alias_conversion", "sem", __xlTestSemImplicitExactAliasConversion },
+	{ "sem.implicit_conversion_basic", "sem", __xlTestSemImplicitConversionBasic },
+	{ "lower.implicit_conversion_marker", "lower", __xlTestLowerImplicitConversionMarker },
+	{ "lower.implicit_conversion_marker_json", "lower", __xlTestLowerImplicitConversionMarkerJson },
+	{ "lower.implicit_return_conversion_marker", "lower", __xlTestLowerImplicitReturnConversionMarker },
+	{ "lower.implicit_assign_conversion_marker", "lower", __xlTestLowerImplicitAssignConversionMarker },
+	{ "lower.implicit_default_arg_conversion_marker", "lower", __xlTestLowerImplicitDefaultArgConversionMarker },
+	{ "sem.implicit_conversion_common_types", "sem", __xlTestSemImplicitConversionCommonTypes },
+	{ "sem.implicit_container_literal_common_conversion", "sem", __xlTestSemImplicitContainerLiteralCommonConversion },
+	{ "lower.implicit_common_expr_conversion_marker", "lower", __xlTestLowerImplicitCommonExprConversionMarker },
+	{ "lower.implicit_common_expr_conversion_marker_json", "lower", __xlTestLowerImplicitCommonExprConversionMarkerJson },
+	{ "lower.implicit_container_literal_common_conversion_marker", "lower", __xlTestLowerImplicitContainerLiteralCommonConversionMarker },
+	{ "lower.implicit_container_literal_common_conversion_marker_json", "lower", __xlTestLowerImplicitContainerLiteralCommonConversionMarkerJson },
+	{ "sem.implicit_container_dynamic_element_conversion", "sem", __xlTestSemImplicitContainerDynamicElementConversion },
+	{ "lower.implicit_container_dynamic_element_conversion_marker", "lower", __xlTestLowerImplicitContainerDynamicElementConversionMarker },
+	{ "lower.implicit_container_dynamic_element_conversion_marker_json", "lower", __xlTestLowerImplicitContainerDynamicElementConversionMarkerJson },
+	{ "sem.implicit_conversion_overload_cost", "sem", __xlTestSemImplicitConversionOverloadCost },
+	{ "sem.implicit_overload_ambiguous_error", "sem", __xlTestSemImplicitOverloadAmbiguousError },
+	{ "sem.implicit_conversion_generic", "sem", __xlTestSemImplicitConversionGeneric },
+	{ "sem.implicit_conversion_generic_post_infer", "sem", __xlTestSemImplicitConversionGenericPostInfer },
+	{ "lower.implicit_conversion_generic_post_infer_marker", "lower", __xlTestLowerImplicitConversionGenericPostInferMarker },
+	{ "lower.implicit_conversion_generic_post_infer_marker_json", "lower", __xlTestLowerImplicitConversionGenericPostInferMarkerJson },
+	{ "sem.implicit_object_generic_post_infer_conversion", "sem", __xlTestSemImplicitObjectGenericPostInferConversion },
+	{ "lower.implicit_object_generic_post_infer_conversion_marker", "lower", __xlTestLowerImplicitObjectGenericPostInferConversionMarker },
+	{ "lower.implicit_object_generic_post_infer_conversion_marker_json", "lower", __xlTestLowerImplicitObjectGenericPostInferConversionMarkerJson },
+	{ "sem.implicit_generic_overload_cost", "sem", __xlTestSemImplicitGenericOverloadCost },
+	{ "sem.implicit_generic_no_widen_infer_error", "sem", __xlTestSemImplicitGenericNoWidenInferError },
+	{ "sem.implicit_null_reference_conversion", "sem", __xlTestSemImplicitNullReferenceConversion },
+	{ "lower.implicit_null_reference_conversion_marker", "lower", __xlTestLowerImplicitNullReferenceConversionMarker },
+	{ "lower.implicit_null_reference_conversion_marker_json", "lower", __xlTestLowerImplicitNullReferenceConversionMarkerJson },
+	{ "sem.implicit_null_xvalue_compare_conversion", "sem", __xlTestSemImplicitNullXvalueCompareConversion },
+	{ "sem.implicit_null_object_conversion", "sem", __xlTestSemImplicitNullObjectConversion },
+	{ "lower.implicit_null_object_conversion_marker", "lower", __xlTestLowerImplicitNullObjectConversionMarker },
+	{ "lower.implicit_null_object_conversion_marker_json", "lower", __xlTestLowerImplicitNullObjectConversionMarkerJson },
+	{ "sem.implicit_null_object_base_conversion", "sem", __xlTestSemImplicitNullObjectBaseConversion },
+	{ "lower.implicit_null_object_base_conversion_marker", "lower", __xlTestLowerImplicitNullObjectBaseConversionMarker },
+	{ "lower.implicit_null_object_base_conversion_marker_json", "lower", __xlTestLowerImplicitNullObjectBaseConversionMarkerJson },
+	{ "sem.implicit_null_to_int_error", "sem", __xlTestSemImplicitNullToIntError },
+	{ "sem.implicit_any_dynamic_conversion", "sem", __xlTestSemImplicitAnyDynamicConversion },
+	{ "lower.implicit_any_dynamic_conversion_marker", "lower", __xlTestLowerImplicitAnyDynamicConversionMarker },
+	{ "lower.implicit_any_dynamic_conversion_marker_json", "lower", __xlTestLowerImplicitAnyDynamicConversionMarkerJson },
+	{ "sem.implicit_var_dynamic_conversion", "sem", __xlTestSemImplicitVarDynamicConversion },
+	{ "lower.implicit_var_dynamic_conversion_marker", "lower", __xlTestLowerImplicitVarDynamicConversionMarker },
+	{ "lower.implicit_var_dynamic_conversion_marker_json", "lower", __xlTestLowerImplicitVarDynamicConversionMarkerJson },
+	{ "sem.implicit_class_dynamic_conversion", "sem", __xlTestSemImplicitClassDynamicConversion },
+	{ "lower.implicit_class_dynamic_conversion_marker", "lower", __xlTestLowerImplicitClassDynamicConversionMarker },
+	{ "lower.implicit_class_dynamic_conversion_marker_json", "lower", __xlTestLowerImplicitClassDynamicConversionMarkerJson },
+	{ "sem.implicit_dynamic_assignment_return_conversion", "sem", __xlTestSemImplicitDynamicAssignmentReturnConversion },
+	{ "lower.implicit_dynamic_assignment_return_conversion_marker", "lower", __xlTestLowerImplicitDynamicAssignmentReturnConversionMarker },
+	{ "lower.implicit_dynamic_assignment_return_conversion_marker_json", "lower", __xlTestLowerImplicitDynamicAssignmentReturnConversionMarkerJson },
+	{ "sem.implicit_dynamic_default_param_conversion", "sem", __xlTestSemImplicitDynamicDefaultParamConversion },
+	{ "lower.implicit_dynamic_default_param_conversion_marker", "lower", __xlTestLowerImplicitDynamicDefaultParamConversionMarker },
+	{ "lower.implicit_dynamic_default_param_conversion_marker_json", "lower", __xlTestLowerImplicitDynamicDefaultParamConversionMarkerJson },
+	{ "sem.implicit_named_arg_conversion", "sem", __xlTestSemImplicitNamedArgConversion },
+	{ "lower.implicit_named_arg_conversion_marker", "lower", __xlTestLowerImplicitNamedArgConversionMarker },
+	{ "lower.implicit_named_arg_conversion_marker_json", "lower", __xlTestLowerImplicitNamedArgConversionMarkerJson },
+	{ "sem.implicit_vararg_conversion", "sem", __xlTestSemImplicitVarargConversion },
+	{ "lower.implicit_vararg_conversion_marker", "lower", __xlTestLowerImplicitVarargConversionMarker },
+	{ "lower.implicit_vararg_conversion_marker_json", "lower", __xlTestLowerImplicitVarargConversionMarkerJson },
+	{ "lower.implicit_vararg_spread_conversion_marker", "lower", __xlTestLowerImplicitVarargSpreadConversionMarker },
+	{ "lower.implicit_vararg_spread_conversion_marker_json", "lower", __xlTestLowerImplicitVarargSpreadConversionMarkerJson },
+	{ "sem.implicit_object_base_conversion", "sem", __xlTestSemImplicitObjectBaseConversion },
+	{ "lower.implicit_object_conversion_marker", "lower", __xlTestLowerImplicitObjectConversionMarker },
+	{ "lower.implicit_object_conversion_marker_json", "lower", __xlTestLowerImplicitObjectConversionMarkerJson },
+	{ "lower.implicit_object_return_conversion_marker", "lower", __xlTestLowerImplicitObjectReturnConversionMarker },
+	{ "sem.implicit_object_upcast_conversion", "sem", __xlTestSemImplicitObjectUpcastConversion },
+	{ "lower.implicit_object_upcast_conversion_marker", "lower", __xlTestLowerImplicitObjectUpcastConversionMarker },
+	{ "lower.implicit_object_upcast_conversion_marker_json", "lower", __xlTestLowerImplicitObjectUpcastConversionMarkerJson },
+	{ "sem.implicit_object_unrelated_upcast_error", "sem", __xlTestSemImplicitObjectUnrelatedUpcastError },
+	{ "sem.implicit_object_common_expr_conversion", "sem", __xlTestSemImplicitObjectCommonExprConversion },
+	{ "lower.implicit_object_common_expr_conversion_marker", "lower", __xlTestLowerImplicitObjectCommonExprConversionMarker },
+	{ "lower.implicit_object_common_expr_conversion_marker_json", "lower", __xlTestLowerImplicitObjectCommonExprConversionMarkerJson },
+	{ "sem.implicit_object_conversion_diag_error", "sem", __xlTestSemImplicitObjectConversionDiagError },
+	{ "sem.implicit_var_to_int_error", "sem", __xlTestSemImplicitVarToIntError },
+	{ "sem.implicit_any_to_int_error", "sem", __xlTestSemImplicitAnyToIntError },
+	{ "sem.implicit_container_dynamic_to_concrete_error", "sem", __xlTestSemImplicitContainerDynamicToConcreteError },
+	{ "sem.implicit_container_any_to_concrete_error", "sem", __xlTestSemImplicitContainerAnyToConcreteError },
+	{ "sem.implicit_object_to_class_error", "sem", __xlTestSemImplicitObjectToClassError },
+	{ "sem.implicit_null_to_bool_error", "sem", __xlTestSemImplicitNullToBoolError },
+	{ "sem.implicit_bool_to_number_error", "sem", __xlTestSemImplicitBoolToNumberError },
+	{ "sem.implicit_conversion_return_default_multi", "sem", __xlTestSemImplicitConversionReturnDefaultMulti },
+	{ "lower.implicit_multi_return_conversion_marker", "lower", __xlTestLowerImplicitMultiReturnConversionMarker },
+	{ "sem.implicit_conversion_float_to_int_error", "sem", __xlTestSemImplicitConversionFloatToIntError },
+	{ "sem.implicit_float_to_int_assign_error", "sem", __xlTestSemImplicitFloatToIntAssignError },
+	{ "sem.implicit_float_to_int_return_error", "sem", __xlTestSemImplicitFloatToIntReturnError },
+	{ "sem.implicit_float_to_int_default_error", "sem", __xlTestSemImplicitFloatToIntDefaultError },
+	{ "sem.implicit_number_to_bool_error", "sem", __xlTestSemImplicitNumberToBoolError },
+	{ "sem.implicit_string_to_number_error", "sem", __xlTestSemImplicitStringToNumberError },
+	{ "sem.implicit_string_plus_number_error", "sem", __xlTestSemImplicitStringPlusNumberError },
+	{ "sem.implicit_if_number_condition_error", "sem", __xlTestSemImplicitIfNumberConditionError },
+	{ "sem.implicit_while_number_condition_error", "sem", __xlTestSemImplicitWhileNumberConditionError },
+	{ "sem.implicit_bool_condition_explicit_compare", "sem", __xlTestSemImplicitBoolConditionExplicitCompare },
 	{ "sem.auto_decl", "sem", __xlTestSemAutoDecl },
 	{ "sem.generic_function_basic", "sem", __xlTestSemGenericFunctionBasic },
 	{ "sem.generic_same_type", "sem", __xlTestSemGenericSameType },
@@ -19482,6 +20354,10 @@ static const XL_TestCase __gXLTests[] = {
 	{ "sem.xlp_native_funcs_bool_params", "sem", __xlTestSemXlpNativeFuncsBoolParams },
 	{ "sem.xlp_native_funcs_float", "sem", __xlTestSemXlpNativeFuncsFloat },
 	{ "sem.xlp_native_funcs_float_params", "sem", __xlTestSemXlpNativeFuncsFloatParams },
+	{ "sem.xlp_native_implicit_int_to_float", "sem", __xlTestSemXlpNativeImplicitIntToFloat },
+	{ "sem.xlp_native_implicit_float_to_int_error", "sem", __xlTestSemXlpNativeImplicitFloatToIntError },
+	{ "sem.xlp_native_implicit_default_int_to_float", "sem", __xlTestSemXlpNativeImplicitDefaultIntToFloat },
+	{ "sem.xlp_native_implicit_abi_stable", "sem", __xlTestSemXlpNativeImplicitAbiStable },
 	{ "sem.xlp_static", "sem", __xlTestSemXlpStatic },
 	{ "sem.xlp_static_funcs", "sem", __xlTestSemXlpStaticFuncs },
 	{ "sem.xlp_static_funcs_params", "sem", __xlTestSemXlpStaticFuncsParams },
@@ -19493,6 +20369,8 @@ static const XL_TestCase __gXLTests[] = {
 	{ "sem.xlp_static_funcs_bool_params", "sem", __xlTestSemXlpStaticFuncsBoolParams },
 	{ "sem.xlp_static_funcs_float", "sem", __xlTestSemXlpStaticFuncsFloat },
 	{ "sem.xlp_static_funcs_float_params", "sem", __xlTestSemXlpStaticFuncsFloatParams },
+	{ "sem.xlp_static_implicit_int_to_float", "sem", __xlTestSemXlpStaticImplicitIntToFloat },
+	{ "sem.xlp_static_implicit_default_int_to_float", "sem", __xlTestSemXlpStaticImplicitDefaultIntToFloat },
 	{ "sem.xlp_source", "sem", __xlTestSemXlpSource },
 	{ "sem.xlp_official_csv", "sem", __xlTestSemXlpOfficialCsv },
 	{ "sem.xlp_official_ini", "sem", __xlTestSemXlpOfficialIni },
@@ -19506,6 +20384,8 @@ static const XL_TestCase __gXLTests[] = {
 	{ "sem.xlp_transitive", "sem", __xlTestSemXlpTransitive },
 	{ "sem.xlp_versions", "sem", __xlTestSemXlpVersions },
 	{ "sem.xlp_external_package", "sem", __xlTestSemXlpExternalPackage },
+	{ "sem.xlp_source_default_param", "sem", __xlTestSemXlpSourceDefaultParam },
+	{ "sem.xlp_source_default_metadata", "sem", __xlTestSemXlpSourceDefaultMetadata },
 	{ "sem.xlp_native_package", "sem", __xlTestSemXlpNativePackage },
 	{ "sem.xlp_static_package", "sem", __xlTestSemXlpStaticPackage },
 	{ "sem.xlp_source_package", "sem", __xlTestSemXlpSourcePackage },
@@ -20165,6 +21045,30 @@ static const XL_TestCase __gXLTests[] = {
 	{ "cgen.xlp_native_funcs_bool_params", "cgen", __xlTestCgenXlpNativeFuncsBoolParams },
 	{ "cgen.xlp_native_funcs_float", "cgen", __xlTestCgenXlpNativeFuncsFloat },
 	{ "cgen.xlp_native_funcs_float_params", "cgen", __xlTestCgenXlpNativeFuncsFloatParams },
+	{ "cgen.xlp_native_implicit_int_to_float", "cgen", __xlTestCgenXlpNativeImplicitIntToFloat },
+	{ "cgen.xlp_native_implicit_default_int_to_float", "cgen", __xlTestCgenXlpNativeImplicitDefaultIntToFloat },
+	{ "cgen.implicit_conversion_common_types", "cgen", __xlTestCgenImplicitConversionCommonTypes },
+	{ "cgen.implicit_container_literal_common_conversion", "cgen", __xlTestCgenImplicitContainerLiteralCommonConversion },
+	{ "cgen.implicit_container_dynamic_element_conversion", "cgen", __xlTestCgenImplicitContainerDynamicElementConversion },
+	{ "cgen.implicit_conversion_overload_cost", "cgen", __xlTestCgenImplicitConversionOverloadCost },
+	{ "cgen.implicit_conversion_generic_post_infer", "cgen", __xlTestCgenImplicitConversionGenericPostInfer },
+	{ "cgen.implicit_object_generic_post_infer_conversion", "cgen", __xlTestCgenImplicitObjectGenericPostInferConversion },
+	{ "cgen.implicit_generic_overload_cost", "cgen", __xlTestCgenImplicitGenericOverloadCost },
+	{ "cgen.implicit_null_reference_conversion", "cgen", __xlTestCgenImplicitNullReferenceConversion },
+	{ "cgen.implicit_null_xvalue_compare_conversion", "cgen", __xlTestCgenImplicitNullXvalueCompareConversion },
+	{ "cgen.implicit_null_object_conversion", "cgen", __xlTestCgenImplicitNullObjectConversion },
+	{ "cgen.implicit_null_object_base_conversion", "cgen", __xlTestCgenImplicitNullObjectBaseConversion },
+	{ "cgen.implicit_any_dynamic_conversion", "cgen", __xlTestCgenImplicitAnyDynamicConversion },
+	{ "cgen.implicit_var_dynamic_conversion", "cgen", __xlTestCgenImplicitVarDynamicConversion },
+	{ "cgen.implicit_class_dynamic_conversion", "cgen", __xlTestCgenImplicitClassDynamicConversion },
+	{ "cgen.implicit_dynamic_assignment_return_conversion", "cgen", __xlTestCgenImplicitDynamicAssignmentReturnConversion },
+	{ "cgen.implicit_dynamic_default_param_conversion", "cgen", __xlTestCgenImplicitDynamicDefaultParamConversion },
+	{ "cgen.implicit_named_arg_conversion", "cgen", __xlTestCgenImplicitNamedArgConversion },
+	{ "cgen.implicit_vararg_conversion", "cgen", __xlTestCgenImplicitVarargConversion },
+	{ "cgen.implicit_exact_alias_conversion", "cgen", __xlTestCgenImplicitExactAliasConversion },
+	{ "cgen.implicit_object_base_conversion", "cgen", __xlTestCgenImplicitObjectBaseConversion },
+	{ "cgen.implicit_object_upcast_conversion", "cgen", __xlTestCgenImplicitObjectUpcastConversion },
+	{ "cgen.implicit_object_common_expr_conversion", "cgen", __xlTestCgenImplicitObjectCommonExprConversion },
 	{ "cgen.hello_world", "cgen", __xlTestCgenHelloWorld },
 	{ "cgen.hello_world_io", "cgen", __xlTestCgenHelloWorldIo },
 	{ "cgen.io_plus_basic", "cgen", __xlTestCgenIoPlusBasic },
@@ -20330,6 +21234,8 @@ static const XL_TestCase __gXLTests[] = {
 	{ "runtime.xlp_native_funcs_bool_params", "runtime", __xlTestRunXlpNativeFuncsBoolParams },
 	{ "runtime.xlp_native_funcs_float", "runtime", __xlTestRunXlpNativeFuncsFloat },
 	{ "runtime.xlp_native_funcs_float_params", "runtime", __xlTestRunXlpNativeFuncsFloatParams },
+	{ "runtime.xlp_native_implicit_int_to_float", "runtime", __xlTestRunXlpNativeImplicitIntToFloat },
+	{ "runtime.xlp_native_implicit_default_int_to_float", "runtime", __xlTestRunXlpNativeImplicitDefaultIntToFloat },
 	{ "runtime.xlp_static", "runtime", __xlTestRunXlpStatic },
 	{ "runtime.xlp_static_funcs", "runtime", __xlTestRunXlpStaticFuncs },
 	{ "runtime.xlp_static_funcs_params", "runtime", __xlTestRunXlpStaticFuncsParams },
@@ -20341,7 +21247,10 @@ static const XL_TestCase __gXLTests[] = {
 	{ "runtime.xlp_static_funcs_bool_params", "runtime", __xlTestRunXlpStaticFuncsBoolParams },
 	{ "runtime.xlp_static_funcs_float", "runtime", __xlTestRunXlpStaticFuncsFloat },
 	{ "runtime.xlp_static_funcs_float_params", "runtime", __xlTestRunXlpStaticFuncsFloatParams },
+	{ "runtime.xlp_static_implicit_int_to_float", "runtime", __xlTestRunXlpStaticImplicitIntToFloat },
+	{ "runtime.xlp_static_implicit_default_int_to_float", "runtime", __xlTestRunXlpStaticImplicitDefaultIntToFloat },
 	{ "runtime.xlp_source", "runtime", __xlTestRunXlpSource },
+	{ "runtime.xlp_source_default_param", "runtime", __xlTestRunXlpSourceDefaultParam },
 	{ "runtime.xlp_official_csv", "runtime", __xlTestRunXlpOfficialCsv },
 	{ "runtime.xlp_official_ini", "runtime", __xlTestRunXlpOfficialIni },
 	{ "runtime.xlp_official_yaml", "runtime", __xlTestRunXlpOfficialYaml },
@@ -20663,6 +21572,32 @@ static const XL_TestCase __gXLTests[] = {
 	{ "runtime.export_values", "runtime", __xlTestRunExportValues },
 	{ "runtime.typed_decl", "runtime", __xlTestRunTypedDecl },
 	{ "runtime.exact_numeric_types", "runtime", __xlTestRunExactNumericTypes },
+	{ "runtime.implicit_exact_alias_conversion", "runtime", __xlTestRunImplicitExactAliasConversion },
+	{ "runtime.implicit_conversion_basic", "runtime", __xlTestRunImplicitConversionBasic },
+	{ "runtime.implicit_conversion_common_types", "runtime", __xlTestRunImplicitConversionCommonTypes },
+	{ "runtime.implicit_container_literal_common_conversion", "runtime", __xlTestRunImplicitContainerLiteralCommonConversion },
+	{ "runtime.implicit_container_dynamic_element_conversion", "runtime", __xlTestRunImplicitContainerDynamicElementConversion },
+	{ "runtime.implicit_conversion_overload_cost", "runtime", __xlTestRunImplicitConversionOverloadCost },
+	{ "runtime.implicit_conversion_generic", "runtime", __xlTestRunImplicitConversionGeneric },
+	{ "runtime.implicit_conversion_generic_post_infer", "runtime", __xlTestRunImplicitConversionGenericPostInfer },
+	{ "runtime.implicit_object_generic_post_infer_conversion", "runtime", __xlTestRunImplicitObjectGenericPostInferConversion },
+	{ "runtime.implicit_generic_overload_cost", "runtime", __xlTestRunImplicitGenericOverloadCost },
+	{ "runtime.implicit_null_reference_conversion", "runtime", __xlTestRunImplicitNullReferenceConversion },
+	{ "runtime.implicit_null_xvalue_compare_conversion", "runtime", __xlTestRunImplicitNullXvalueCompareConversion },
+	{ "runtime.implicit_null_object_conversion", "runtime", __xlTestRunImplicitNullObjectConversion },
+	{ "runtime.implicit_null_object_base_conversion", "runtime", __xlTestRunImplicitNullObjectBaseConversion },
+	{ "runtime.implicit_any_dynamic_conversion", "runtime", __xlTestRunImplicitAnyDynamicConversion },
+	{ "runtime.implicit_var_dynamic_conversion", "runtime", __xlTestRunImplicitVarDynamicConversion },
+	{ "runtime.implicit_class_dynamic_conversion", "runtime", __xlTestRunImplicitClassDynamicConversion },
+	{ "runtime.implicit_dynamic_assignment_return_conversion", "runtime", __xlTestRunImplicitDynamicAssignmentReturnConversion },
+	{ "runtime.implicit_dynamic_default_param_conversion", "runtime", __xlTestRunImplicitDynamicDefaultParamConversion },
+	{ "runtime.implicit_named_arg_conversion", "runtime", __xlTestRunImplicitNamedArgConversion },
+	{ "runtime.implicit_vararg_conversion", "runtime", __xlTestRunImplicitVarargConversion },
+	{ "runtime.implicit_object_base_conversion", "runtime", __xlTestRunImplicitObjectBaseConversion },
+	{ "runtime.implicit_object_upcast_conversion", "runtime", __xlTestRunImplicitObjectUpcastConversion },
+	{ "runtime.implicit_object_common_expr_conversion", "runtime", __xlTestRunImplicitObjectCommonExprConversion },
+	{ "runtime.implicit_conversion_return_default_multi", "runtime", __xlTestRunImplicitConversionReturnDefaultMulti },
+	{ "runtime.implicit_bool_condition_explicit_compare", "runtime", __xlTestRunImplicitBoolConditionExplicitCompare },
 	{ "runtime.auto_decl", "runtime", __xlTestRunAutoDecl },
 	{ "runtime.typedef_basic", "runtime", __xlTestRunTypeDefBasic },
 	{ "runtime.type_ctor_basic", "runtime", __xlTestRunTypeCtorBasic },

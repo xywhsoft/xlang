@@ -251,6 +251,35 @@ static int __xlXlpParseBoolLike(XL_XlpJsonCursor* pCur, int* pbValue)
 	return XL_RC_OK;
 }
 
+static int __xlXlpParseIntLike(XL_XlpJsonCursor* pCur, int* piValue)
+{
+	const char* pStart;
+	char sNumber[16];
+	size_t iLen;
+
+	if ( (pCur == NULL) || (piValue == NULL) ) {
+		return XL_RC_BAD_ARG;
+	}
+
+	__xlXlpSkipWs(pCur);
+	pStart = pCur->pCur;
+	if ( (pCur->pCur < pCur->pEnd) && (*pCur->pCur == '-') ) {
+		pCur->pCur += 1;
+	}
+	while ( (pCur->pCur < pCur->pEnd) && ((*pCur->pCur >= '0') && (*pCur->pCur <= '9')) ) {
+		pCur->pCur += 1;
+	}
+	iLen = (size_t)(pCur->pCur - pStart);
+	if ( (iLen == 0) || ((iLen == 1) && (*pStart == '-')) || (iLen >= sizeof(sNumber)) ) {
+		return XL_RC_FAIL;
+	}
+
+	memcpy(sNumber, pStart, iLen);
+	sNumber[iLen] = '\0';
+	*piValue = atoi(sNumber);
+	return XL_RC_OK;
+}
+
 static int __xlXlpSkipValue(XL_XlpJsonCursor* pCur);
 
 static int __xlXlpSkipArray(XL_XlpJsonCursor* pCur)
@@ -434,6 +463,23 @@ static void __xlXlpCopyText(char* sOut, size_t iOutSize, const char* sText)
 		sText = "";
 	}
 	snprintf(sOut, iOutSize, "%s", sText);
+}
+
+static char* __xlXlpDupText(const char* sText)
+{
+	size_t iLen;
+	char* sOut;
+
+	if ( sText == NULL ) {
+		sText = "";
+	}
+	iLen = strlen(sText);
+	sOut = (char*)malloc(iLen + 1u);
+	if ( sOut == NULL ) {
+		return NULL;
+	}
+	memcpy(sOut, sText, iLen + 1u);
+	return sOut;
 }
 
 static int __xlXlpParsePackageSection(const char* sJson, XL_XlpResolveInfo* pInfo)
@@ -1366,10 +1412,18 @@ void xlXlpDependencyInfoFree(XL_XlpDependencyInfo* pDeps)
 
 static void __xlXlpFunctionInfoReset(XL_XlpFunctionInfo* pFunc)
 {
+	size_t i;
+
 	if ( pFunc == NULL ) {
 		return;
 	}
+	for ( i = 0; i < pFunc->iParamCount; ++i ) {
+		free(pFunc->pParams[i].sDefaultValueText);
+		free(pFunc->pParams[i].sDefaultValueJson);
+	}
 	free(pFunc->pParams);
+	free(pFunc->pReturns);
+	free(pFunc->pTypeParams);
 	memset(pFunc, 0, sizeof(*pFunc));
 }
 
@@ -1394,16 +1448,65 @@ static int __xlXlpFunctionInfoAddParam(XL_XlpFunctionInfo* pFunc, const XL_XlpPa
 	return XL_RC_OK;
 }
 
+static int __xlXlpFunctionInfoAddReturn(XL_XlpFunctionInfo* pFunc, const XL_XlpReturnInfo* pReturn)
+{
+	XL_XlpReturnInfo* pNewReturns;
+	size_t iNewCount;
+
+	if ( (pFunc == NULL) || (pReturn == NULL) ) {
+		return XL_RC_BAD_ARG;
+	}
+
+	iNewCount = pFunc->iReturnCount + 1;
+	pNewReturns = (XL_XlpReturnInfo*)realloc(pFunc->pReturns, sizeof(*pFunc->pReturns) * iNewCount);
+	if ( pNewReturns == NULL ) {
+		return XL_RC_IO_ERROR;
+	}
+
+	pFunc->pReturns = pNewReturns;
+	pFunc->pReturns[pFunc->iReturnCount] = *pReturn;
+	pFunc->iReturnCount = iNewCount;
+	return XL_RC_OK;
+}
+
+static int __xlXlpFunctionInfoAddTypeParam(XL_XlpFunctionInfo* pFunc, const XL_XlpTypeParamInfo* pTypeParam)
+{
+	XL_XlpTypeParamInfo* pNewTypeParams;
+	size_t iNewCount;
+
+	if ( (pFunc == NULL) || (pTypeParam == NULL) ) {
+		return XL_RC_BAD_ARG;
+	}
+
+	iNewCount = pFunc->iTypeParamCount + 1;
+	pNewTypeParams = (XL_XlpTypeParamInfo*)realloc(pFunc->pTypeParams, sizeof(*pFunc->pTypeParams) * iNewCount);
+	if ( pNewTypeParams == NULL ) {
+		return XL_RC_IO_ERROR;
+	}
+
+	pFunc->pTypeParams = pNewTypeParams;
+	pFunc->pTypeParams[pFunc->iTypeParamCount] = *pTypeParam;
+	pFunc->iTypeParamCount = iNewCount;
+	return XL_RC_OK;
+}
+
 void xlXlpFunctionInfoFree(XL_XlpFunctionInfo* pFuncs, size_t iFuncCount)
 {
 	size_t i;
+	size_t j;
 
 	if ( pFuncs == NULL ) {
 		return;
 	}
 
 	for ( i = 0; i < iFuncCount; ++i ) {
+		for ( j = 0; j < pFuncs[i].iParamCount; ++j ) {
+			free(pFuncs[i].pParams[j].sDefaultValueText);
+			free(pFuncs[i].pParams[j].sDefaultValueJson);
+		}
 		free(pFuncs[i].pParams);
+		free(pFuncs[i].pReturns);
+		free(pFuncs[i].pTypeParams);
 	}
 	free(pFuncs);
 }
@@ -1487,6 +1590,22 @@ static int __xlXlpParseParams(XL_XlpJsonCursor* pCur, XL_XlpFunctionInfo* pFunc)
 					__xlXlpCopyText(param.sLabel, sizeof(param.sLabel), sValue);
 				} else if ( strcmp(sField, "type") == 0 ) {
 					__xlXlpCopyText(param.sType, sizeof(param.sType), sValue);
+				} else if ( strcmp(sField, "defaultValueText") == 0 ) {
+					free(param.sDefaultValueText);
+					param.sDefaultValueText = __xlXlpDupText(sValue);
+					if ( param.sDefaultValueText == NULL ) {
+						free(sValue);
+						free(sField);
+						return XL_RC_IO_ERROR;
+					}
+				} else if ( strcmp(sField, "defaultValueJson") == 0 ) {
+					free(param.sDefaultValueJson);
+					param.sDefaultValueJson = __xlXlpDupText(sValue);
+					if ( param.sDefaultValueJson == NULL ) {
+						free(sValue);
+						free(sField);
+						return XL_RC_IO_ERROR;
+					}
 				}
 				free(sValue);
 			} else if ( strcmp(sField, "hasDefault") == 0 ) {
@@ -1507,7 +1626,175 @@ static int __xlXlpParseParams(XL_XlpJsonCursor* pCur, XL_XlpFunctionInfo* pFunc)
 		}
 
 		if ( __xlXlpFunctionInfoAddParam(pFunc, &param) != XL_RC_OK ) {
+			free(param.sDefaultValueText);
+			free(param.sDefaultValueJson);
 			return XL_RC_IO_ERROR;
+		}
+
+		__xlXlpSkipWs(pCur);
+		if ( *pCur->pCur == ',' ) {
+			pCur->pCur += 1;
+			continue;
+		}
+		if ( *pCur->pCur == ']' ) {
+			pCur->pCur += 1;
+			return XL_RC_OK;
+		}
+	}
+
+	return XL_RC_FAIL;
+}
+
+static int __xlXlpParseReturns(XL_XlpJsonCursor* pCur, XL_XlpFunctionInfo* pFunc)
+{
+	if ( (pCur == NULL) || (pFunc == NULL) ) {
+		return XL_RC_BAD_ARG;
+	}
+
+	__xlXlpSkipWs(pCur);
+	if ( (pCur->pCur >= pCur->pEnd) || (*pCur->pCur != '[') ) {
+		return XL_RC_FAIL;
+	}
+	pCur->pCur += 1;
+
+	while ( pCur->pCur < pCur->pEnd ) {
+		XL_XlpReturnInfo ret;
+
+		memset(&ret, 0, sizeof(ret));
+		__xlXlpSkipWs(pCur);
+		if ( *pCur->pCur == ']' ) {
+			pCur->pCur += 1;
+			return XL_RC_OK;
+		}
+		if ( *pCur->pCur != '{' ) {
+			return XL_RC_FAIL;
+		}
+		pCur->pCur += 1;
+
+		while ( pCur->pCur < pCur->pEnd ) {
+			char* sField;
+			char* sValue;
+
+			__xlXlpSkipWs(pCur);
+			if ( *pCur->pCur == '}' ) {
+				pCur->pCur += 1;
+				break;
+			}
+			sField = NULL;
+			if ( __xlXlpParseString(pCur, &sField) != XL_RC_OK ) {
+				return XL_RC_FAIL;
+			}
+			__xlXlpSkipWs(pCur);
+			if ( (pCur->pCur >= pCur->pEnd) || (*pCur->pCur != ':') ) {
+				free(sField);
+				return XL_RC_FAIL;
+			}
+			pCur->pCur += 1;
+			sValue = NULL;
+			if ( __xlXlpParseString(pCur, &sValue) == XL_RC_OK ) {
+				if ( strcmp(sField, "type") == 0 ) {
+					__xlXlpCopyText(ret.sType, sizeof(ret.sType), sValue);
+				}
+				free(sValue);
+			} else if ( __xlXlpSkipValue(pCur) != XL_RC_OK ) {
+				free(sField);
+				return XL_RC_FAIL;
+			}
+			free(sField);
+			__xlXlpSkipWs(pCur);
+			if ( *pCur->pCur == ',' ) {
+				pCur->pCur += 1;
+				continue;
+			}
+		}
+
+		if ( ret.sType[0] != '\0' ) {
+			if ( __xlXlpFunctionInfoAddReturn(pFunc, &ret) != XL_RC_OK ) {
+				return XL_RC_IO_ERROR;
+			}
+		}
+
+		__xlXlpSkipWs(pCur);
+		if ( *pCur->pCur == ',' ) {
+			pCur->pCur += 1;
+			continue;
+		}
+		if ( *pCur->pCur == ']' ) {
+			pCur->pCur += 1;
+			return XL_RC_OK;
+		}
+	}
+
+	return XL_RC_FAIL;
+}
+
+static int __xlXlpParseTypeParams(XL_XlpJsonCursor* pCur, XL_XlpFunctionInfo* pFunc)
+{
+	if ( (pCur == NULL) || (pFunc == NULL) ) {
+		return XL_RC_BAD_ARG;
+	}
+
+	__xlXlpSkipWs(pCur);
+	if ( (pCur->pCur >= pCur->pEnd) || (*pCur->pCur != '[') ) {
+		return XL_RC_FAIL;
+	}
+	pCur->pCur += 1;
+
+	while ( pCur->pCur < pCur->pEnd ) {
+		XL_XlpTypeParamInfo typeParam;
+
+		memset(&typeParam, 0, sizeof(typeParam));
+		__xlXlpSkipWs(pCur);
+		if ( *pCur->pCur == ']' ) {
+			pCur->pCur += 1;
+			return XL_RC_OK;
+		}
+		if ( *pCur->pCur != '{' ) {
+			return XL_RC_FAIL;
+		}
+		pCur->pCur += 1;
+
+		while ( pCur->pCur < pCur->pEnd ) {
+			char* sField;
+			char* sValue;
+
+			__xlXlpSkipWs(pCur);
+			if ( *pCur->pCur == '}' ) {
+				pCur->pCur += 1;
+				break;
+			}
+			sField = NULL;
+			if ( __xlXlpParseString(pCur, &sField) != XL_RC_OK ) {
+				return XL_RC_FAIL;
+			}
+			__xlXlpSkipWs(pCur);
+			if ( (pCur->pCur >= pCur->pEnd) || (*pCur->pCur != ':') ) {
+				free(sField);
+				return XL_RC_FAIL;
+			}
+			pCur->pCur += 1;
+			sValue = NULL;
+			if ( __xlXlpParseString(pCur, &sValue) == XL_RC_OK ) {
+				if ( strcmp(sField, "name") == 0 ) {
+					__xlXlpCopyText(typeParam.sName, sizeof(typeParam.sName), sValue);
+				}
+				free(sValue);
+			} else if ( __xlXlpSkipValue(pCur) != XL_RC_OK ) {
+				free(sField);
+				return XL_RC_FAIL;
+			}
+			free(sField);
+			__xlXlpSkipWs(pCur);
+			if ( *pCur->pCur == ',' ) {
+				pCur->pCur += 1;
+				continue;
+			}
+		}
+
+		if ( typeParam.sName[0] != '\0' ) {
+			if ( __xlXlpFunctionInfoAddTypeParam(pFunc, &typeParam) != XL_RC_OK ) {
+				return XL_RC_IO_ERROR;
+			}
 		}
 
 		__xlXlpSkipWs(pCur);
@@ -1738,6 +2025,10 @@ static int __xlXlpParseFunctions(const char* sJson, const char* sModuleKey, XL_X
 							__xlXlpCopyText(func.sModuleAbiId, sizeof(func.sModuleAbiId), sValue);
 						} else if ( strcmp(sField, "exportName") == 0 ) {
 							__xlXlpCopyText(func.sExportName, sizeof(func.sExportName), sValue);
+						} else if ( strcmp(sField, "receiverType") == 0 ) {
+							__xlXlpCopyText(func.sReceiverType, sizeof(func.sReceiverType), sValue);
+						} else if ( strcmp(sField, "methodName") == 0 ) {
+							__xlXlpCopyText(func.sMethodName, sizeof(func.sMethodName), sValue);
 						} else if ( strcmp(sField, "symbol") == 0 ) {
 							__xlXlpCopyText(func.sSymbol, sizeof(func.sSymbol), sValue);
 						} else if ( strcmp(sField, "overloadGroup") == 0 ) {
@@ -1758,10 +2049,28 @@ static int __xlXlpParseFunctions(const char* sJson, const char* sModuleKey, XL_X
 							__xlXlpCopyText(func.sAbiSymbol, sizeof(func.sAbiSymbol), sValue);
 						} else if ( strcmp(sField, "returnType") == 0 ) {
 							__xlXlpCopyText(func.sReturnType, sizeof(func.sReturnType), sValue);
+						} else if ( strcmp(sField, "storageReturnType") == 0 ) {
+							__xlXlpCopyText(func.sStorageReturnType, sizeof(func.sStorageReturnType), sValue);
 						}
 						free(sValue);
 					} else if ( strcmp(sField, "params") == 0 ) {
 						if ( __xlXlpParseParams(&cur, &func) != XL_RC_OK ) {
+							free(sField);
+							free(sKey);
+							__xlXlpFunctionInfoReset(&func);
+							xlXlpFunctionInfoFree(pFuncs, iFuncCount);
+							return XL_RC_FAIL;
+						}
+					} else if ( strcmp(sField, "returns") == 0 ) {
+						if ( __xlXlpParseReturns(&cur, &func) != XL_RC_OK ) {
+							free(sField);
+							free(sKey);
+							__xlXlpFunctionInfoReset(&func);
+							xlXlpFunctionInfoFree(pFuncs, iFuncCount);
+							return XL_RC_FAIL;
+						}
+					} else if ( strcmp(sField, "typeParams") == 0 ) {
+						if ( __xlXlpParseTypeParams(&cur, &func) != XL_RC_OK ) {
 							free(sField);
 							free(sKey);
 							__xlXlpFunctionInfoReset(&func);
@@ -1782,6 +2091,16 @@ static int __xlXlpParseFunctions(const char* sJson, const char* sModuleKey, XL_X
 						} else {
 							func.bGenerator = bValue;
 						}
+					} else if ( strcmp(sField, "varargKind") == 0 ) {
+						int iValue;
+						if ( __xlXlpParseIntLike(&cur, &iValue) != XL_RC_OK ) {
+							free(sField);
+							free(sKey);
+							__xlXlpFunctionInfoReset(&func);
+							xlXlpFunctionInfoFree(pFuncs, iFuncCount);
+							return XL_RC_FAIL;
+						}
+						func.iVarArgKind = iValue;
 					} else if ( __xlXlpSkipValue(&cur) != XL_RC_OK ) {
 						free(sField);
 						free(sKey);

@@ -64,11 +64,13 @@ const char* xlStdTaskModuleSource(void);
 const char* xlStdSyncModuleSource(void);
 const char* xlStdTypesModuleSource(void);
 
+#if XLANG_DEBUGMODE_ENABLED
 typedef struct XL_NativeTextBuffer {
 	char* sData;
 	size_t iLen;
 	size_t iCap;
 } XL_NativeTextBuffer;
+#endif
 
 static const XL_NativeRegistryEntry g_arrNativeModules[] = {
 	{ "std.core", "std.core", "<native:std.core>", xlStdCoreModuleSource },
@@ -134,6 +136,7 @@ static const XL_NativeRegistryEntry g_arrNativeModules[] = {
 	{ "std.types", "std.types", "<native:std.types>", xlStdTypesModuleSource }
 };
 
+#if XLANG_DEBUGMODE_ENABLED
 static int __xlNativeBufGrow(XL_NativeTextBuffer* pBuf, size_t iNeed)
 {
 	char* sNewData;
@@ -240,6 +243,7 @@ static void __xlNativeBufAppendEscaped(XL_NativeTextBuffer* pBuf, const char* sT
 		}
 	}
 }
+#endif
 
 int xlNativeRegistryFind(const char* sModuleKey, XL_NativeModuleInfo* pInfo)
 {

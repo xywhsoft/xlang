@@ -7451,6 +7451,10 @@ static char* __xlBuildXlpNativeSource(const char* sModuleKey, const XL_XlpFuncti
 			}
 			__xlModuleBufAppendFormat(&buf, "%s %s", (pFunc->pParams[j].sType[0] != '\0') ? pFunc->pParams[j].sType : "int",
 				(pFunc->pParams[j].sName[0] != '\0') ? pFunc->pParams[j].sName : "arg");
+			if ( pFunc->pParams[j].bHasDefault && (pFunc->pParams[j].sDefaultValueText != NULL) &&
+				(pFunc->pParams[j].sDefaultValueText[0] != '\0') ) {
+				__xlModuleBufAppendFormat(&buf, " = %s", pFunc->pParams[j].sDefaultValueText);
+			}
 		}
 		__xlModuleBufAppend(&buf, ")");
 		if ( pFunc->sReturnType[0] != '\0' ) {
@@ -7465,6 +7469,10 @@ static char* __xlBuildXlpNativeSource(const char* sModuleKey, const XL_XlpFuncti
 			}
 			__xlModuleBufAppendFormat(&buf, "%s %s", (pFunc->pParams[j].sType[0] != '\0') ? pFunc->pParams[j].sType : "int",
 				(pFunc->pParams[j].sName[0] != '\0') ? pFunc->pParams[j].sName : "arg");
+			if ( pFunc->pParams[j].bHasDefault && (pFunc->pParams[j].sDefaultValueText != NULL) &&
+				(pFunc->pParams[j].sDefaultValueText[0] != '\0') ) {
+				__xlModuleBufAppendFormat(&buf, " = %s", pFunc->pParams[j].sDefaultValueText);
+			}
 		}
 		__xlModuleBufAppend(&buf, ")");
 		if ( pFunc->sReturnType[0] != '\0' ) {

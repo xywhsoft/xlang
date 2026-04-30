@@ -125,6 +125,19 @@ static int xlPNodeTextEquals(const XL_AstNode* pNode, const char* sText)
 	return (strlen(pNode->sText) == iLen) && (memcmp(pNode->sText, sText, iLen) == 0);
 }
 
+static int xlPTypeRefHasBaseName(const XL_AstNode* pTypeNode, const char* sBaseName)
+{
+	size_t iLen;
+
+	if ( (pTypeNode == NULL) || (pTypeNode->sText == NULL) || (sBaseName == NULL) ) {
+		return 0;
+	}
+
+	iLen = strlen(sBaseName);
+	return (strncmp(pTypeNode->sText, sBaseName, iLen) == 0) &&
+		((pTypeNode->sText[iLen] == '\0') || (pTypeNode->sText[iLen] == '<'));
+}
+
 static XL_AstNode* xlPCreateTypedVarDecl(XL_ParseContext* pCtx, XL_AstNode* pTypeNode, const XL_Token* pNameToken, XL_AstNode* pValue)
 {
 	XL_AstNode* pDecl;
@@ -778,6 +791,126 @@ static XL_AstNode* xlPCreateBracedDictLiteral(
 	return NULL;
 }
 
+static XL_AstNode* xlPCreateBracedValueLiteralFromType(
+	XL_ParseContext* pCtx,
+	XL_AstNode* pTypeNode,
+	XL_AstNode* pItems
+)
+{
+	if ( pTypeNode == NULL ) {
+		xlAstFree(pItems);
+		return NULL;
+	}
+
+	if ( xlPTypeRefHasBaseName(pTypeNode, "array") ) {
+		xlAstFree(pTypeNode);
+		return xlPCreateHiddenCall("__array_literal", pItems, NULL);
+	}
+	if ( xlPTypeRefHasBaseName(pTypeNode, "list") ) {
+		xlAstFree(pTypeNode);
+		return xlPCreateHiddenCall("__list_literal", pItems, NULL);
+	}
+	if ( xlPTypeRefHasBaseName(pTypeNode, "set") ) {
+		xlAstFree(pTypeNode);
+		return xlPCreateHiddenCall("__set_literal", pItems, NULL);
+	}
+	if ( xlPTypeRefHasBaseName(pTypeNode, "dict") && (pItems != NULL) && (pItems->iChildCount == 0) ) {
+		xlAstFree(pTypeNode);
+		return xlPCreateHiddenCall("__dict_literal", pItems, NULL);
+	}
+
+	if ( pCtx != NULL ) {
+		pCtx->bHadError = 1;
+		pCtx->iErrorCount += 1;
+		if ( pCtx->pDiag != NULL ) {
+			xlDiagEmitSource(
+				pCtx->pDiag,
+				XL_DIAG_LEVEL_ERROR,
+				"parser",
+				__FILE__,
+				__LINE__,
+				pCtx->sSourceFile,
+				pTypeNode->iLine,
+				pTypeNode->iColumn,
+				"'%s{...}' is not a supported literal form",
+				(pTypeNode->sText != NULL) ? pTypeNode->sText : ""
+			);
+		}
+	}
+
+	xlAstFree(pTypeNode);
+	xlAstFree(pItems);
+	return NULL;
+}
+
+static XL_AstNode* xlPCreateBracedDictLiteralFromType(
+	XL_ParseContext* pCtx,
+	XL_AstNode* pTypeNode,
+	XL_AstNode* pItems
+)
+{
+	if ( pTypeNode == NULL ) {
+		xlAstFree(pItems);
+		return NULL;
+	}
+
+	if ( xlPTypeRefHasBaseName(pTypeNode, "dict") ) {
+		xlAstFree(pTypeNode);
+		return xlPCreateHiddenCall("__dict_literal", pItems, NULL);
+	}
+
+	if ( pCtx != NULL ) {
+		pCtx->bHadError = 1;
+		pCtx->iErrorCount += 1;
+		if ( pCtx->pDiag != NULL ) {
+			xlDiagEmitSource(
+				pCtx->pDiag,
+				XL_DIAG_LEVEL_ERROR,
+				"parser",
+				__FILE__,
+				__LINE__,
+				pCtx->sSourceFile,
+				pTypeNode->iLine,
+				pTypeNode->iColumn,
+				"'%s{key: value}' is only supported for dict literals",
+				(pTypeNode->sText != NULL) ? pTypeNode->sText : ""
+			);
+		}
+	}
+
+	xlAstFree(pTypeNode);
+	xlAstFree(pItems);
+	return NULL;
+}
+
+static XL_AstNode* xlPCreateGenericBracedValueLiteral(
+	XL_ParseContext* pCtx,
+	const XL_Token* pNameToken,
+	XL_AstNode* pTypeArgs,
+	XL_AstNode* pItems
+)
+{
+	return xlPCreateBracedValueLiteralFromType(
+		pCtx,
+		xlPCreateGenericTypeRef(xlAstCreateTypeRef(pNameToken), pTypeArgs),
+		pItems
+	);
+}
+
+static XL_AstNode* xlPCreateGenericBracedDictLiteral(
+	XL_ParseContext* pCtx,
+	const XL_Token* pNameToken,
+	XL_AstNode* pTypeArgs,
+	XL_AstNode* pItems
+)
+{
+	return xlPCreateBracedDictLiteralFromType(
+		pCtx,
+		xlPCreateGenericTypeRef(xlAstCreateTypeRef(pNameToken), pTypeArgs),
+		pItems
+	);
+}
+
 static void xlPAppendStmt(XL_AstNode* pList, XL_AstNode* pStmt)
 {
 	if ( (pList == NULL) || (pStmt == NULL) ) {
@@ -1314,6 +1447,9 @@ type_name(A) ::= KW_VAR(T). [OP_LT] { A = T; }
 type_name(A) ::= KW_TYPE(T). [OP_LT] { A = T; }
 
 generic_type_ref(A) ::= type_name(T) OP_LT generic_type_args(L) OP_GT. {
+	A = xlPCreateGenericTypeRef(xlAstCreateTypeRef(&T), L);
+}
+generic_type_ref(A) ::= type_name(T) OP_GENERIC_LT generic_type_args(L) OP_GT. {
 	A = xlPCreateGenericTypeRef(xlAstCreateTypeRef(&T), L);
 }
 
@@ -1928,6 +2064,15 @@ lambda_primary_expr(A) ::= TOK_IDENT(N). [TK_LBRACE] {
 lambda_primary_expr(A) ::= TOK_IDENT(N) OP_GENERIC_LT generic_type_args(TA) OP_GT TK_LPAREN arg_list(ARGS) TK_RPAREN(RP). {
 	A = xlAstCreateCall(xlPCreateGenericIdent(&N, TA), ARGS, &RP);
 }
+lambda_primary_expr(A) ::= TOK_IDENT(N) OP_GENERIC_LT generic_type_args(TA) OP_GT TK_LBRACE opt_stmt_sep TK_RBRACE. {
+	A = xlPCreateGenericBracedValueLiteral(pCtx, &N, TA, xlPList());
+}
+lambda_primary_expr(A) ::= TOK_IDENT(N) OP_GENERIC_LT generic_type_args(TA) OP_GT TK_LBRACE opt_stmt_sep expr_items(ITEMS) opt_stmt_sep TK_RBRACE. {
+	A = xlPCreateGenericBracedValueLiteral(pCtx, &N, TA, ITEMS);
+}
+lambda_primary_expr(A) ::= TOK_IDENT(N) OP_GENERIC_LT generic_type_args(TA) OP_GT TK_LBRACE opt_stmt_sep dict_items(ITEMS) opt_stmt_sep TK_RBRACE. {
+	A = xlPCreateGenericBracedDictLiteral(pCtx, &N, TA, ITEMS);
+}
 lambda_primary_expr(A) ::= KW_CREATE(N). {
 	A = xlAstCreateIdent(&N);
 }
@@ -1954,6 +2099,15 @@ lambda_primary_expr(A) ::= TOK_IDENT(N) TK_LBRACE opt_stmt_sep expr_items(ITEMS)
 }
 lambda_primary_expr(A) ::= TOK_IDENT(N) TK_LBRACE opt_stmt_sep dict_items(ITEMS) opt_stmt_sep TK_RBRACE. {
 	A = xlPCreateBracedDictLiteral(pCtx, &N, ITEMS);
+}
+lambda_primary_expr(A) ::= generic_type_ref(T) TK_LBRACE opt_stmt_sep TK_RBRACE. {
+	A = xlPCreateBracedValueLiteralFromType(pCtx, T, xlPList());
+}
+lambda_primary_expr(A) ::= generic_type_ref(T) TK_LBRACE opt_stmt_sep expr_items(ITEMS) opt_stmt_sep TK_RBRACE. {
+	A = xlPCreateBracedValueLiteralFromType(pCtx, T, ITEMS);
+}
+lambda_primary_expr(A) ::= generic_type_ref(T) TK_LBRACE opt_stmt_sep dict_items(ITEMS) opt_stmt_sep TK_RBRACE. {
+	A = xlPCreateBracedDictLiteralFromType(pCtx, T, ITEMS);
 }
 
 null_expr(A) ::= conditional_expr(E). {
@@ -2143,6 +2297,15 @@ primary_expr(A) ::= TOK_IDENT(N). [TK_LBRACE] {
 primary_expr(A) ::= TOK_IDENT(N) OP_GENERIC_LT generic_type_args(TA) OP_GT TK_LPAREN arg_list(ARGS) TK_RPAREN(RP). {
 	A = xlAstCreateCall(xlPCreateGenericIdent(&N, TA), ARGS, &RP);
 }
+primary_expr(A) ::= TOK_IDENT(N) OP_GENERIC_LT generic_type_args(TA) OP_GT TK_LBRACE opt_stmt_sep TK_RBRACE. {
+	A = xlPCreateGenericBracedValueLiteral(pCtx, &N, TA, xlPList());
+}
+primary_expr(A) ::= TOK_IDENT(N) OP_GENERIC_LT generic_type_args(TA) OP_GT TK_LBRACE opt_stmt_sep expr_items(ITEMS) opt_stmt_sep TK_RBRACE. {
+	A = xlPCreateGenericBracedValueLiteral(pCtx, &N, TA, ITEMS);
+}
+primary_expr(A) ::= TOK_IDENT(N) OP_GENERIC_LT generic_type_args(TA) OP_GT TK_LBRACE opt_stmt_sep dict_items(ITEMS) opt_stmt_sep TK_RBRACE. {
+	A = xlPCreateGenericBracedDictLiteral(pCtx, &N, TA, ITEMS);
+}
 primary_expr(A) ::= KW_CREATE(N). {
 	A = xlAstCreateIdent(&N);
 }
@@ -2169,6 +2332,15 @@ primary_expr(A) ::= TOK_IDENT(N) TK_LBRACE opt_stmt_sep expr_items(ITEMS) opt_st
 }
 primary_expr(A) ::= TOK_IDENT(N) TK_LBRACE opt_stmt_sep dict_items(ITEMS) opt_stmt_sep TK_RBRACE. {
 	A = xlPCreateBracedDictLiteral(pCtx, &N, ITEMS);
+}
+primary_expr(A) ::= generic_type_ref(T) TK_LBRACE opt_stmt_sep TK_RBRACE. {
+	A = xlPCreateBracedValueLiteralFromType(pCtx, T, xlPList());
+}
+primary_expr(A) ::= generic_type_ref(T) TK_LBRACE opt_stmt_sep expr_items(ITEMS) opt_stmt_sep TK_RBRACE. {
+	A = xlPCreateBracedValueLiteralFromType(pCtx, T, ITEMS);
+}
+primary_expr(A) ::= generic_type_ref(T) TK_LBRACE opt_stmt_sep dict_items(ITEMS) opt_stmt_sep TK_RBRACE. {
+	A = xlPCreateBracedDictLiteralFromType(pCtx, T, ITEMS);
 }
 
 bare_bracket_literal(A) ::= TK_LBRACKET(T) opt_stmt_sep TK_RBRACKET. {

@@ -319,6 +319,7 @@ static char* __xlBuildFallbackPathEnv(const XL_ExecCtx* pCtx)
 #endif
 }
 
+#if XLANG_DEBUGMODE_ENABLED
 static char* __xlBuildFallbackAsyncTraceEnv(const char* sTraceFile)
 {
 	if ( (sTraceFile == NULL) || (sTraceFile[0] == '\0') ) {
@@ -327,6 +328,7 @@ static char* __xlBuildFallbackAsyncTraceEnv(const char* sTraceFile)
 
 	return __xlConcatText3("XL_GENERATED_ASYNC_TRACE_FILE=", sTraceFile, "");
 }
+#endif
 
 static void __xlFreeExecFallbackConfig(xprocessconfig* pConfig)
 {
@@ -355,7 +357,6 @@ static void __xlInitExecFallbackConfig(
 )
 {
 	char* sEnvPath;
-	char* sEnvTrace;
 	str* arrEnv;
 	size_t iEnvCount;
 
@@ -372,8 +373,14 @@ static void __xlInitExecFallbackConfig(
 	pConfig->iMaxCaptureBytes = 65536u;
 
 	sEnvPath = __xlBuildFallbackPathEnv(pCtx);
+#if XLANG_DEBUGMODE_ENABLED
+	char* sEnvTrace;
 	sEnvTrace = __xlBuildFallbackAsyncTraceEnv(sTraceFile);
 	iEnvCount = ((sEnvPath != NULL) ? 1u : 0u) + ((sEnvTrace != NULL) ? 1u : 0u);
+#else
+	XL_UNUSED(sTraceFile);
+	iEnvCount = ((sEnvPath != NULL) ? 1u : 0u);
+#endif
 	if ( iEnvCount == 0u ) {
 		return;
 	}
@@ -381,7 +388,9 @@ static void __xlInitExecFallbackConfig(
 	arrEnv = (str*)calloc(iEnvCount, sizeof(str));
 	if ( arrEnv == NULL ) {
 		free(sEnvPath);
+#if XLANG_DEBUGMODE_ENABLED
 		free(sEnvTrace);
+#endif
 		return;
 	}
 
@@ -389,15 +398,18 @@ static void __xlInitExecFallbackConfig(
 	if ( sEnvPath != NULL ) {
 		arrEnv[iEnvCount++] = (str)sEnvPath;
 	}
+#if XLANG_DEBUGMODE_ENABLED
 	if ( sEnvTrace != NULL ) {
 		arrEnv[iEnvCount++] = (str)sEnvTrace;
 	}
+#endif
 
 	pConfig->arrEnv = arrEnv;
 	pConfig->iEnvCount = iEnvCount;
 	pConfig->bInheritEnv = true;
 }
 
+#if XLANG_DEBUGMODE_ENABLED
 static char* __xlBuildFallbackTrace(
 	const char* sRunTrace,
 	const char* sBuildTrace,
@@ -447,6 +459,7 @@ static char* __xlBuildFallbackTrace(
 	}
 	return sOut;
 }
+#endif
 
 void xlExecCtxInit(XL_ExecCtx* pCtx, const char* sInputFile, const char* sReleaseRoot)
 {
@@ -634,16 +647,20 @@ int xlExecRunCode(XL_ExecCtx* pCtx, XL_DiagContext* pDiag, const char* sCode, ch
 	xprocessconfig procConfig;
 	xprocessresult procResult;
 	char sFallbackExe[XL_PATH_MAX_LEN];
+#if XLANG_DEBUGMODE_ENABLED
 	char sFallbackTraceFile[XL_PATH_MAX_LEN];
 	char* sRunTraceText;
 	char* sBuildTraceText;
 	char* sFallbackTrace;
 	char* sFallbackAsyncTrace;
+	char** ppRunTraceOut;
+	char** ppBuildTraceOut;
+#endif
 	int bExecOk;
 	int iRc;
 	size_t i;
 
-	if ( (pCtx == NULL) || (sCode == NULL) || (psTraceText == NULL) ) {
+	if ( (pCtx == NULL) || (sCode == NULL) ) {
 		return XL_RC_BAD_ARG;
 	}
 
@@ -652,10 +669,14 @@ int xlExecRunCode(XL_ExecCtx* pCtx, XL_DiagContext* pDiag, const char* sCode, ch
 	memset(&buildResult, 0, sizeof(buildResult));
 	memset(&procConfig, 0, sizeof(procConfig));
 	memset(&procResult, 0, sizeof(procResult));
+#if XLANG_DEBUGMODE_ENABLED
 	sRunTraceText = NULL;
 	sBuildTraceText = NULL;
 	sFallbackTrace = NULL;
 	sFallbackAsyncTrace = NULL;
+	ppRunTraceOut = (psTraceText != NULL) ? &sRunTraceText : NULL;
+	ppBuildTraceOut = (psTraceText != NULL) ? &sBuildTraceText : NULL;
+#endif
 	__xlCopyText(hostCtx.sInputFile, sizeof(hostCtx.sInputFile), pCtx->sInputFile);
 	__xlCopyText(hostCtx.sReleaseRoot, sizeof(hostCtx.sReleaseRoot), pCtx->sReleaseRoot);
 	__xlCopyText(hostCtx.sProjectRoot, sizeof(hostCtx.sProjectRoot), pCtx->sProjectRoot);
@@ -704,13 +725,21 @@ int xlExecRunCode(XL_ExecCtx* pCtx, XL_DiagContext* pDiag, const char* sCode, ch
 		pCtx->sInputFile,
 		sCode,
 		pCtx->sEntrySymbol,
-		&sRunTraceText,
+#if XLANG_DEBUGMODE_ENABLED
+		ppRunTraceOut,
+#else
+		NULL,
+#endif
 		&result
 	);
 
+#if XLANG_DEBUGMODE_ENABLED
 	if ( psTraceText != NULL ) {
 		*psTraceText = sRunTraceText;
 	}
+#else
+	XL_UNUSED(psTraceText);
+#endif
 	pCtx->iExitCode = result.iExitCode;
 	pCtx->bHadRuntimeError = result.bHadRuntimeError;
 	pCtx->bHadException = result.bHadException;
@@ -744,10 +773,15 @@ int xlExecRunCode(XL_ExecCtx* pCtx, XL_DiagContext* pDiag, const char* sCode, ch
 		sCode,
 		pCtx->sEntrySymbol,
 		sFallbackExe,
-		&sBuildTraceText,
+#if XLANG_DEBUGMODE_ENABLED
+		ppBuildTraceOut,
+#else
+		NULL,
+#endif
 		&buildResult
 	);
 	if ( iRc != XL_RC_OK ) {
+#if XLANG_DEBUGMODE_ENABLED
 		sFallbackTrace = __xlConcatText3(
 			(sRunTraceText != NULL) ? sRunTraceText : "",
 			((sBuildTraceText != NULL) && (sBuildTraceText[0] != '\0')) ? "\n[fallback.build]\n" : "",
@@ -761,9 +795,11 @@ int xlExecRunCode(XL_ExecCtx* pCtx, XL_DiagContext* pDiag, const char* sCode, ch
 			}
 		}
 		free(sBuildTraceText);
+#endif
 		return iRc;
 	}
 
+#if XLANG_DEBUGMODE_ENABLED
 	__xlCopyText(sFallbackTraceFile, sizeof(sFallbackTraceFile), buildResult.sOutputFile);
 	if ( !__xlAppendText(sFallbackTraceFile, sizeof(sFallbackTraceFile), ".trace.txt") ) {
 		sFallbackTraceFile[0] = '\0';
@@ -771,8 +807,10 @@ int xlExecRunCode(XL_ExecCtx* pCtx, XL_DiagContext* pDiag, const char* sCode, ch
 	if ( sFallbackTraceFile[0] != '\0' ) {
 		__xlRemoveFileBestEffort(sFallbackTraceFile);
 	}
-
 	__xlInitExecFallbackConfig(&procConfig, pCtx, buildResult.sOutputFile, pCtx->sProjectRoot, sFallbackTraceFile);
+#else
+	__xlInitExecFallbackConfig(&procConfig, pCtx, buildResult.sOutputFile, pCtx->sProjectRoot, NULL);
+#endif
 	bExecOk = xrtExecCapture(&procConfig, &procResult, 0u) ? 1 : 0;
 	__xlFreeExecFallbackConfig(&procConfig);
 	pCtx->iExitCode = procResult.iExitCode;
@@ -783,12 +821,20 @@ int xlExecRunCode(XL_ExecCtx* pCtx, XL_DiagContext* pDiag, const char* sCode, ch
 	pCtx->iExceptionInt = 0;
 	pCtx->fExceptionFloat = 0.0;
 
+#if XLANG_DEBUGMODE_ENABLED
 	if ( sFallbackTraceFile[0] != '\0' ) {
 		sFallbackAsyncTrace = __xlReadTextFile(sFallbackTraceFile);
 		__xlRemoveFileBestEffort(sFallbackTraceFile);
 	}
+#endif
 
-	sFallbackTrace = __xlBuildFallbackTrace(sRunTraceText, sBuildTraceText, &procResult, sFallbackAsyncTrace);
+#if XLANG_DEBUGMODE_ENABLED
+	sFallbackTrace = __xlBuildFallbackTrace(
+		sRunTraceText,
+		sBuildTraceText,
+		&procResult,
+		sFallbackAsyncTrace
+	);
 	if ( sFallbackTrace != NULL ) {
 		free(sRunTraceText);
 		sRunTraceText = sFallbackTrace;
@@ -799,6 +845,7 @@ int xlExecRunCode(XL_ExecCtx* pCtx, XL_DiagContext* pDiag, const char* sCode, ch
 
 	free(sBuildTraceText);
 	free(sFallbackAsyncTrace);
+#endif
 	xrtProcessResultUnit(&procResult);
 	if ( buildResult.sOutputFile[0] != '\0' ) {
 		__xlRemoveFileBestEffort(buildResult.sOutputFile);

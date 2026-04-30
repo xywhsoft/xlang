@@ -1,4 +1,5 @@
 #include "xl_xlp_dump.h"
+#include "../ast/xl_ast_dump.h"
 #include "xl_xlp_load.h"
 
 #include "../sem/xl_func.h"
@@ -74,6 +75,17 @@ static void __xlXlpBufAppendFormat(XL_XlpTextBuffer* pBuf, const char* sFormat, 
 	vsnprintf(pBuf->sData + pBuf->iLen, pBuf->iCap - pBuf->iLen, sFormat, args2);
 	va_end(args2);
 	pBuf->iLen += (size_t)iNeed;
+}
+
+static void __xlXlpBufFree(XL_XlpTextBuffer* pBuf)
+{
+	if ( pBuf == NULL ) {
+		return;
+	}
+	free(pBuf->sData);
+	pBuf->sData = NULL;
+	pBuf->iLen = 0;
+	pBuf->iCap = 0;
 }
 
 static void __xlXlpAppendEscaped(XL_XlpTextBuffer* pBuf, const char* sText)
@@ -563,6 +575,65 @@ static size_t __xlXlpCountExportFuncs(const XL_SemResult* pSemResult, const char
 	return iCount;
 }
 
+static int __xlXlpAppendDefaultExprText(XL_XlpTextBuffer* pBuf, const XL_AstNode* pNode)
+{
+	if ( (pBuf == NULL) || (pNode == NULL) ) {
+		return XL_RC_BAD_ARG;
+	}
+
+	switch ( pNode->eKind ) {
+		case XL_AST_INT:
+		case XL_AST_FLOAT:
+		case XL_AST_BOOL:
+		case XL_AST_NULL:
+		case XL_AST_IDENT:
+		case XL_AST_TIME:
+			__xlXlpBufAppend(pBuf, (pNode->sText != NULL) ? pNode->sText : "");
+			return XL_RC_OK;
+		case XL_AST_STRING:
+		case XL_AST_TEMPLATE:
+			__xlXlpBufAppend(pBuf, "\"");
+			__xlXlpAppendEscaped(pBuf, (pNode->sText != NULL) ? pNode->sText : "");
+			__xlXlpBufAppend(pBuf, "\"");
+			return XL_RC_OK;
+		case XL_AST_UNARY:
+			__xlXlpBufAppend(pBuf, (pNode->sText != NULL) ? pNode->sText : "");
+			return __xlXlpAppendDefaultExprText(pBuf, (pNode->iChildCount > 0) ? pNode->ppChildren[0] : NULL);
+		case XL_AST_BINARY:
+			__xlXlpBufAppend(pBuf, "(");
+			if ( __xlXlpAppendDefaultExprText(pBuf, (pNode->iChildCount > 0) ? pNode->ppChildren[0] : NULL) != XL_RC_OK ) return XL_RC_IO_ERROR;
+			__xlXlpBufAppend(pBuf, " ");
+			__xlXlpBufAppend(pBuf, (pNode->sText != NULL) ? pNode->sText : "");
+			__xlXlpBufAppend(pBuf, " ");
+			if ( __xlXlpAppendDefaultExprText(pBuf, (pNode->iChildCount > 1) ? pNode->ppChildren[1] : NULL) != XL_RC_OK ) return XL_RC_IO_ERROR;
+			__xlXlpBufAppend(pBuf, ")");
+			return XL_RC_OK;
+		case XL_AST_TERNARY:
+			__xlXlpBufAppend(pBuf, "(");
+			if ( __xlXlpAppendDefaultExprText(pBuf, (pNode->iChildCount > 0) ? pNode->ppChildren[0] : NULL) != XL_RC_OK ) return XL_RC_IO_ERROR;
+			__xlXlpBufAppend(pBuf, " ? ");
+			if ( __xlXlpAppendDefaultExprText(pBuf, (pNode->iChildCount > 1) ? pNode->ppChildren[1] : NULL) != XL_RC_OK ) return XL_RC_IO_ERROR;
+			__xlXlpBufAppend(pBuf, " : ");
+			if ( __xlXlpAppendDefaultExprText(pBuf, (pNode->iChildCount > 2) ? pNode->ppChildren[2] : NULL) != XL_RC_OK ) return XL_RC_IO_ERROR;
+			__xlXlpBufAppend(pBuf, ")");
+			return XL_RC_OK;
+		default:
+			return XL_RC_FAIL;
+	}
+}
+
+static char* __xlXlpBuildDefaultExprText(const XL_AstNode* pNode)
+{
+	XL_XlpTextBuffer buf;
+
+	memset(&buf, 0, sizeof(buf));
+	if ( __xlXlpAppendDefaultExprText(&buf, pNode) != XL_RC_OK ) {
+		free(buf.sData);
+		return NULL;
+	}
+	return buf.sData;
+}
+
 static void __xlXlpAppendParamsJson(XL_XlpTextBuffer* pBuf, const XL_FuncInfo* pFunc, int iIndent)
 {
 	size_t j;
@@ -600,6 +671,30 @@ static void __xlXlpAppendParamsJson(XL_XlpTextBuffer* pBuf, const XL_FuncInfo* p
 			__xlXlpBufAppend(pBuf, "\t");
 		}
 		__xlXlpBufAppendFormat(pBuf, "\"hasDefault\": %d\n", ((pFunc->arrParamHasDefault != NULL) && pFunc->arrParamHasDefault[j]) ? 1 : 0);
+		if ( (pFunc->arrParamHasDefault != NULL) && pFunc->arrParamHasDefault[j] ) {
+			char* sDefaultText;
+			char* sDefaultJson;
+
+			sDefaultText = ((pFunc->arrParamDefaultValues != NULL) && (pFunc->arrParamDefaultValues[j] != NULL)) ?
+				__xlXlpBuildDefaultExprText(pFunc->arrParamDefaultValues[j]) : NULL;
+			sDefaultJson = ((pFunc->arrParamDefaultValues != NULL) && (pFunc->arrParamDefaultValues[j] != NULL)) ?
+				xlAstDumpJson(pFunc->arrParamDefaultValues[j]) : NULL;
+			__xlXlpBufAppend(pBuf, ",\n");
+			for ( k = 0; k < (size_t)(iIndent + 2); ++k ) {
+				__xlXlpBufAppend(pBuf, "\t");
+			}
+			__xlXlpBufAppend(pBuf, "\"defaultValueText\": \"");
+			__xlXlpAppendEscaped(pBuf, (sDefaultText != NULL) ? sDefaultText : "");
+			__xlXlpBufAppend(pBuf, "\",\n");
+			for ( k = 0; k < (size_t)(iIndent + 2); ++k ) {
+				__xlXlpBufAppend(pBuf, "\t");
+			}
+			__xlXlpBufAppend(pBuf, "\"defaultValueJson\": \"");
+			__xlXlpAppendEscaped(pBuf, (sDefaultJson != NULL) ? sDefaultJson : "");
+			__xlXlpBufAppend(pBuf, "\"\n");
+			free(sDefaultText);
+			free(sDefaultJson);
+		}
 		for ( k = 0; k < (size_t)(iIndent + 1); ++k ) {
 			__xlXlpBufAppend(pBuf, "\t");
 		}
@@ -611,6 +706,93 @@ static void __xlXlpAppendParamsJson(XL_XlpTextBuffer* pBuf, const XL_FuncInfo* p
 	}
 
 	if ( (pFunc != NULL) && (pFunc->iParamCount != 0) ) {
+		for ( j = 0; j < (size_t)iIndent; ++j ) {
+			__xlXlpBufAppend(pBuf, "\t");
+		}
+	}
+	__xlXlpBufAppend(pBuf, "]");
+}
+
+static void __xlXlpAppendTypeParamsJson(XL_XlpTextBuffer* pBuf, const XL_FuncInfo* pFunc, int iIndent)
+{
+	size_t j;
+	size_t k;
+
+	__xlXlpBufAppend(pBuf, "[");
+	if ( (pFunc != NULL) && (pFunc->iTypeParamCount != 0) ) {
+		__xlXlpBufAppend(pBuf, "\n");
+	}
+
+	for ( j = 0; (pFunc != NULL) && (j < pFunc->iTypeParamCount); ++j ) {
+		for ( k = 0; k < (size_t)(iIndent + 1); ++k ) {
+			__xlXlpBufAppend(pBuf, "\t");
+		}
+		__xlXlpBufAppend(pBuf, "{\n");
+		for ( k = 0; k < (size_t)(iIndent + 2); ++k ) {
+			__xlXlpBufAppend(pBuf, "\t");
+		}
+		__xlXlpBufAppend(pBuf, "\"name\": \"");
+		__xlXlpAppendEscaped(pBuf, ((pFunc->arrTypeParamNames != NULL) && (pFunc->arrTypeParamNames[j] != NULL)) ? pFunc->arrTypeParamNames[j] : "");
+		__xlXlpBufAppend(pBuf, "\"\n");
+		for ( k = 0; k < (size_t)(iIndent + 1); ++k ) {
+			__xlXlpBufAppend(pBuf, "\t");
+		}
+		__xlXlpBufAppend(pBuf, "}");
+		if ( (j + 1) != pFunc->iTypeParamCount ) {
+			__xlXlpBufAppend(pBuf, ",");
+		}
+		__xlXlpBufAppend(pBuf, "\n");
+	}
+
+	if ( (pFunc != NULL) && (pFunc->iTypeParamCount != 0) ) {
+		for ( j = 0; j < (size_t)iIndent; ++j ) {
+			__xlXlpBufAppend(pBuf, "\t");
+		}
+	}
+	__xlXlpBufAppend(pBuf, "]");
+}
+
+static void __xlXlpAppendReturnsJson(XL_XlpTextBuffer* pBuf, const XL_FuncInfo* pFunc, int iIndent)
+{
+	size_t j;
+	size_t k;
+
+	__xlXlpBufAppend(pBuf, "[");
+	if ( (pFunc != NULL) && (pFunc->iReturnCount != 0) ) {
+		__xlXlpBufAppend(pBuf, "\n");
+	}
+
+	for ( j = 0; (pFunc != NULL) && (j < pFunc->iReturnCount); ++j ) {
+		const char* sType;
+
+		sType = ((pFunc->arrReturnTypeNames != NULL) && (pFunc->arrReturnTypeNames[j] != NULL)) ?
+			pFunc->arrReturnTypeNames[j] : "";
+		for ( k = 0; k < (size_t)(iIndent + 1); ++k ) {
+			__xlXlpBufAppend(pBuf, "\t");
+		}
+		__xlXlpBufAppendFormat(pBuf, "{\n");
+		for ( k = 0; k < (size_t)(iIndent + 2); ++k ) {
+			__xlXlpBufAppend(pBuf, "\t");
+		}
+		__xlXlpBufAppend(pBuf, "\"index\": ");
+		__xlXlpBufAppendFormat(pBuf, "%llu,\n", (unsigned long long)j);
+		for ( k = 0; k < (size_t)(iIndent + 2); ++k ) {
+			__xlXlpBufAppend(pBuf, "\t");
+		}
+		__xlXlpBufAppend(pBuf, "\"type\": \"");
+		__xlXlpAppendEscaped(pBuf, sType);
+		__xlXlpBufAppend(pBuf, "\"\n");
+		for ( k = 0; k < (size_t)(iIndent + 1); ++k ) {
+			__xlXlpBufAppend(pBuf, "\t");
+		}
+		__xlXlpBufAppend(pBuf, "}");
+		if ( (j + 1) != pFunc->iReturnCount ) {
+			__xlXlpBufAppend(pBuf, ",");
+		}
+		__xlXlpBufAppend(pBuf, "\n");
+	}
+
+	if ( (pFunc != NULL) && (pFunc->iReturnCount != 0) ) {
 		for ( j = 0; j < (size_t)iIndent; ++j ) {
 			__xlXlpBufAppend(pBuf, "\t");
 		}
@@ -963,6 +1145,12 @@ char* xlXlpDumpPackageJson(const XL_ModuleLinkResult* pModuleResult, const XL_Se
 				__xlXlpBufAppend(&buf, "\t\t\t\"exportName\": \"");
 				__xlXlpAppendEscaped(&buf, pModule->pExports[j].sName);
 				__xlXlpBufAppend(&buf, "\",\n");
+				__xlXlpBufAppend(&buf, "\t\t\t\"receiverType\": \"");
+				__xlXlpAppendEscaped(&buf, pFunc->sReceiverType);
+				__xlXlpBufAppend(&buf, "\",\n");
+				__xlXlpBufAppend(&buf, "\t\t\t\"methodName\": \"");
+				__xlXlpAppendEscaped(&buf, pFunc->sMethodName);
+				__xlXlpBufAppend(&buf, "\",\n");
 				__xlXlpBufAppend(&buf, "\t\t\t\"symbol\": \"");
 				__xlXlpAppendEscaped(&buf, pModule->pExports[j].sSymbol);
 				__xlXlpBufAppend(&buf, "\",\n");
@@ -993,8 +1181,20 @@ char* xlXlpDumpPackageJson(const XL_ModuleLinkResult* pModuleResult, const XL_Se
 				__xlXlpBufAppend(&buf, "\t\t\t\"returnType\": \"");
 				__xlXlpAppendEscaped(&buf, pFunc->sReturnTypeName);
 				__xlXlpBufAppend(&buf, "\",\n");
+				__xlXlpBufAppend(&buf, "\t\t\t\"storageReturnType\": \"");
+				__xlXlpAppendEscaped(&buf, pFunc->sStorageReturnTypeName);
+				__xlXlpBufAppend(&buf, "\",\n");
+				__xlXlpBufAppendFormat(&buf, "\t\t\t\"returnCount\": %llu,\n", (unsigned long long)pFunc->iReturnCount);
+				__xlXlpBufAppend(&buf, "\t\t\t\"returns\": ");
+				__xlXlpAppendReturnsJson(&buf, pFunc, 3);
+				__xlXlpBufAppend(&buf, ",\n");
 				__xlXlpBufAppendFormat(&buf, "\t\t\t\"async\": %d,\n", pFunc->bAsync ? 1 : 0);
 				__xlXlpBufAppendFormat(&buf, "\t\t\t\"generator\": %d,\n", pFunc->bGenerator ? 1 : 0);
+				__xlXlpBufAppendFormat(&buf, "\t\t\t\"varargKind\": %d,\n", pFunc->eVarArgKind);
+				__xlXlpBufAppendFormat(&buf, "\t\t\t\"typeParamCount\": %llu,\n", (unsigned long long)pFunc->iTypeParamCount);
+				__xlXlpBufAppend(&buf, "\t\t\t\"typeParams\": ");
+				__xlXlpAppendTypeParamsJson(&buf, pFunc, 3);
+				__xlXlpBufAppend(&buf, ",\n");
 				__xlXlpBufAppend(&buf, "\t\t\t\"params\": ");
 				__xlXlpAppendParamsJson(&buf, pFunc, 3);
 				__xlXlpBufAppend(&buf, "\n\t\t},\n");

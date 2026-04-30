@@ -183,7 +183,8 @@ static void __xlMarkExplicitGenericCallTokens(XL_TokenList* pList)
 			}
 			iDepth -= 1;
 			if ( iDepth == 0 ) {
-				if ( (j + 1 < pList->iCount) && (pList->pItems[j + 1].eKind == XL_TK_LPAREN) ) {
+				if ( (j + 1 < pList->iCount) &&
+					((pList->pItems[j + 1].eKind == XL_TK_LPAREN) || (pList->pItems[j + 1].eKind == XL_TK_LBRACE)) ) {
 					pList->pItems[i].eKind = XL_OP_GENERIC_LT;
 				}
 				break;

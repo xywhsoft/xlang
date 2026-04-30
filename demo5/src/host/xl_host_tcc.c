@@ -45,6 +45,7 @@ typedef struct XL_StaticExtractedFile {
 
 #define XL_HOST_STATIC_EXTRACT_MAX 256
 
+#if XLANG_DEBUGMODE_ENABLED
 static int __xlRunTraceGrow(XL_RunTraceBuffer* pBuf, size_t iNeed)
 {
 	char* sNewData;
@@ -111,7 +112,25 @@ static void __xlRunTraceAppendFormat(XL_RunTraceBuffer* pBuf, const char* sForma
 	va_end(args2);
 	pBuf->iLen += (size_t)iNeed;
 }
+#else
+#define __xlRunTraceAppend(pBuf, sText) ((void)0)
+#define __xlRunTraceAppendFormat(...) ((void)0)
+#endif
 
+static void __xlSetTraceText(char** psTraceText, XL_RunTraceBuffer* pTrace)
+{
+	if ( psTraceText == NULL ) {
+		return;
+	}
+#if XLANG_DEBUGMODE_ENABLED
+	*psTraceText = (pTrace != NULL) ? pTrace->sData : NULL;
+#else
+	(void)pTrace;
+	*psTraceText = NULL;
+#endif
+}
+
+#if XLANG_DEBUGMODE_ENABLED
 static void __xlTccErrorThunk(void* pOpaque, const char* sMsg)
 {
 	XL_RunTraceBuffer* pTrace;
@@ -121,6 +140,7 @@ static void __xlTccErrorThunk(void* pOpaque, const char* sMsg)
 		__xlRunTraceAppendFormat(pTrace, "[tcc] %s\n", sMsg);
 	}
 }
+#endif
 
 static void __xlBuildPath2(char* sOut, size_t iOutSize, const char* sBase, const char* sPart1);
 
@@ -1152,13 +1172,17 @@ static int __xlConfigureTcc(
 		return XL_RC_BAD_ARG;
 	}
 
+#if XLANG_DEBUGMODE_ENABLED
 	tcc_set_error_func(pTcc, pTrace, __xlTccErrorThunk);
+#else
+	tcc_set_error_func(pTcc, NULL, NULL);
+#endif
 	tcc_set_lib_path(pTcc, pCtx->sTccRoot);
 	tcc_set_options(
 		pTcc,
 		pCtx->bDebugMode
-			? "-D_CRT_SECURE_NO_WARNINGS -DXLANG_DEBUGMODE=1 -include xlrt_profile.h"
-			: "-D_CRT_SECURE_NO_WARNINGS -include xlrt_profile.h"
+			? "-std=c99 -D_CRT_SECURE_NO_WARNINGS -DXLANG_DEBUGMODE=1 -include xlrt_profile.h"
+			: "-std=c99 -D_CRT_SECURE_NO_WARNINGS -include xlrt_profile.h"
 	);
 
 	__xlBuildPath2(sIncludeWin, sizeof(sIncludeWin), pCtx->sTccRoot, "include_win");
@@ -1437,7 +1461,10 @@ int xlHostTccRunText(
 	XL_HostRunResult* pResult
 )
 {
+	XL_RunTraceBuffer* pTrace;
+#if XLANG_DEBUGMODE_ENABLED
 	XL_RunTraceBuffer trace;
+#endif
 	XL_CwdScope cwdScope;
 	XL_SharedArtifactHandle arrSharedHandles[XL_HOST_RUNTIME_LIBRARY_HANDLE_MAX];
 	XL_StaticExtractedFile arrStaticExtracted[XL_HOST_STATIC_EXTRACT_MAX];
@@ -1450,16 +1477,21 @@ int xlHostTccRunText(
 	int* piAsyncTraceLen;
 	int iRc;
 
-	if ( (pCtx == NULL) || (sCode == NULL) || (psTraceText == NULL) || (pResult == NULL) ) return XL_RC_BAD_ARG;
+	if ( (pCtx == NULL) || (sCode == NULL) || (pResult == NULL) ) return XL_RC_BAD_ARG;
 
+#if XLANG_DEBUGMODE_ENABLED
 	memset(&trace, 0, sizeof(trace));
+	pTrace = &trace;
+#else
+	pTrace = NULL;
+#endif
 	memset(&cwdScope, 0, sizeof(cwdScope));
 	memset(arrSharedHandles, 0, sizeof(arrSharedHandles));
 	memset(arrStaticExtracted, 0, sizeof(arrStaticExtracted));
 	iStaticExtractedCount = 0;
 	iSharedHandleCount = 0;
 	__xlInitRunResult(pResult, (sEntrySymbol != NULL) ? sEntrySymbol : "xl_generated_entry");
-	*psTraceText = NULL;
+	__xlSetTraceText(psTraceText, pTrace);
 	sWrapped = NULL;
 
 	pTcc = tcc_new();
@@ -1473,15 +1505,15 @@ int xlHostTccRunText(
 		tcc_delete(pTcc);
 		return XL_RC_FAIL;
 	}
-	if ( __xlConfigureTcc(pCtx, pTcc, &trace, 1) != XL_RC_OK ) {
+	if ( __xlConfigureTcc(pCtx, pTcc, pTrace, 1) != XL_RC_OK ) {
 		XL_DIAG_ERROR(pDiag, "host.tcc", "failed to configure TCC");
 		tcc_delete(pTcc);
-		*psTraceText = trace.sData;
+		__xlSetTraceText(psTraceText, pTrace);
 		return XL_RC_FAIL;
 	}
-	if ( __xlAddBuildLibraries(pCtx, pDiag, pTcc, &trace) != XL_RC_OK ) {
+	if ( __xlAddBuildLibraries(pCtx, pDiag, pTcc, pTrace) != XL_RC_OK ) {
 		tcc_delete(pTcc);
-		*psTraceText = trace.sData;
+		__xlSetTraceText(psTraceText, pTrace);
 		return XL_RC_FAIL;
 	}
 
@@ -1491,13 +1523,13 @@ int xlHostTccRunText(
 		return XL_RC_IO_ERROR;
 	}
 
-	__xlRunTraceAppendFormat(&trace, "compile_text=%s\n", (sVirtualPath != NULL) ? sVirtualPath : "<memory>");
+	__xlRunTraceAppendFormat(pTrace, "compile_text=%s\n", (sVirtualPath != NULL) ? sVirtualPath : "<memory>");
 	if ( tcc_compile_string(pTcc, sWrapped) < 0 ) {
 		XL_DIAG_ERROR(pDiag, "host.tcc", "tcc compile failed");
 		free(sWrapped);
 		tcc_delete(pTcc);
 		pResult->bHadRuntimeError = 1;
-		*psTraceText = trace.sData;
+		__xlSetTraceText(psTraceText, pTrace);
 		return XL_RC_FAIL;
 	}
 	free(sWrapped);
@@ -1505,7 +1537,7 @@ int xlHostTccRunText(
 	if ( __xlApplyStaticArtifacts(
 		pCtx,
 		pTcc,
-		&trace,
+		pTrace,
 		arrStaticExtracted,
 		XL_COUNTOF(arrStaticExtracted),
 		&iStaticExtractedCount
@@ -1514,74 +1546,74 @@ int xlHostTccRunText(
 		__xlCleanupStaticExtractedFiles(arrStaticExtracted, iStaticExtractedCount);
 		tcc_delete(pTcc);
 		pResult->bHadRuntimeError = 1;
-		*psTraceText = trace.sData;
+		__xlSetTraceText(psTraceText, pTrace);
 		return XL_RC_FAIL;
 	}
-	if ( __xlPushProjectCwd(pCtx, &trace, &cwdScope) != XL_RC_OK ) {
+	if ( __xlPushProjectCwd(pCtx, pTrace, &cwdScope) != XL_RC_OK ) {
 		XL_DIAG_ERROR(pDiag, "host.tcc", "failed to switch cwd: %s", pCtx->sProjectRoot);
 		__xlCleanupStaticExtractedFiles(arrStaticExtracted, iStaticExtractedCount);
 		tcc_delete(pTcc);
 		pResult->bHadRuntimeError = 1;
-		*psTraceText = trace.sData;
+		__xlSetTraceText(psTraceText, pTrace);
 		return XL_RC_FAIL;
 	}
-	if ( __xlLoadSharedArtifacts(pCtx, pDiag, &trace, arrSharedHandles, XL_COUNTOF(arrSharedHandles), &iSharedHandleCount) != XL_RC_OK ) {
-		__xlPopProjectCwd(&trace, &cwdScope);
+	if ( __xlLoadSharedArtifacts(pCtx, pDiag, pTrace, arrSharedHandles, XL_COUNTOF(arrSharedHandles), &iSharedHandleCount) != XL_RC_OK ) {
+		__xlPopProjectCwd(pTrace, &cwdScope);
 		__xlCleanupStaticExtractedFiles(arrStaticExtracted, iStaticExtractedCount);
 		tcc_delete(pTcc);
 		pResult->bHadRuntimeError = 1;
-		*psTraceText = trace.sData;
+		__xlSetTraceText(psTraceText, pTrace);
 		return XL_RC_FAIL;
 	}
-	if ( __xlRegisterSharedArtifactSymbols(pCtx, pDiag, pTcc, &trace, arrSharedHandles, iSharedHandleCount) != XL_RC_OK ) {
-		__xlUnloadSharedArtifacts(&trace, arrSharedHandles, iSharedHandleCount);
-		__xlPopProjectCwd(&trace, &cwdScope);
+	if ( __xlRegisterSharedArtifactSymbols(pCtx, pDiag, pTcc, pTrace, arrSharedHandles, iSharedHandleCount) != XL_RC_OK ) {
+		__xlUnloadSharedArtifacts(pTrace, arrSharedHandles, iSharedHandleCount);
+		__xlPopProjectCwd(pTrace, &cwdScope);
 		__xlCleanupStaticExtractedFiles(arrStaticExtracted, iStaticExtractedCount);
 		tcc_delete(pTcc);
 		pResult->bHadRuntimeError = 1;
-		*psTraceText = trace.sData;
+		__xlSetTraceText(psTraceText, pTrace);
 		return XL_RC_FAIL;
 	}
 
-	__xlRunTraceAppend(&trace, "relocate\n");
+	__xlRunTraceAppend(pTrace, "relocate\n");
 	if ( tcc_relocate(pTcc) < 0 ) {
-		__xlUnloadSharedArtifacts(&trace, arrSharedHandles, iSharedHandleCount);
-		__xlPopProjectCwd(&trace, &cwdScope);
+		__xlUnloadSharedArtifacts(pTrace, arrSharedHandles, iSharedHandleCount);
+		__xlPopProjectCwd(pTrace, &cwdScope);
 		XL_DIAG_ERROR(pDiag, "host.tcc", "tcc relocate failed");
 		__xlCleanupStaticExtractedFiles(arrStaticExtracted, iStaticExtractedCount);
 		tcc_delete(pTcc);
 		pResult->bHadRuntimeError = 1;
-		*psTraceText = trace.sData;
+		__xlSetTraceText(psTraceText, pTrace);
 		return XL_RC_FAIL;
 	}
 
-	__xlRunTraceAppendFormat(&trace, "resolve_symbol=%s\n", pResult->sEntrySymbol);
+	__xlRunTraceAppendFormat(pTrace, "resolve_symbol=%s\n", pResult->sEntrySymbol);
 	pfnEntry = (int (*)(void))tcc_get_symbol(pTcc, pResult->sEntrySymbol);
 	if ( pfnEntry == NULL ) {
-		__xlUnloadSharedArtifacts(&trace, arrSharedHandles, iSharedHandleCount);
-		__xlPopProjectCwd(&trace, &cwdScope);
+		__xlUnloadSharedArtifacts(pTrace, arrSharedHandles, iSharedHandleCount);
+		__xlPopProjectCwd(pTrace, &cwdScope);
 		XL_DIAG_ERROR(pDiag, "host.tcc", "entry symbol not found: %s", pResult->sEntrySymbol);
 		__xlCleanupStaticExtractedFiles(arrStaticExtracted, iStaticExtractedCount);
 		tcc_delete(pTcc);
 		pResult->bHadRuntimeError = 1;
-		*psTraceText = trace.sData;
+		__xlSetTraceText(psTraceText, pTrace);
 		return XL_RC_FAIL;
 	}
 
-	__xlRunTraceAppend(&trace, "execute\n");
+	__xlRunTraceAppend(pTrace, "execute\n");
 	pResult->iExitCode = pfnEntry();
-	__xlRunTraceAppendFormat(&trace, "exit_code=%d\n", pResult->iExitCode);
-	__xlUnloadSharedArtifacts(&trace, arrSharedHandles, iSharedHandleCount);
-	__xlPopProjectCwd(&trace, &cwdScope);
+	__xlRunTraceAppendFormat(pTrace, "exit_code=%d\n", pResult->iExitCode);
+	__xlUnloadSharedArtifacts(pTrace, arrSharedHandles, iSharedHandleCount);
+	__xlPopProjectCwd(pTrace, &cwdScope);
 	__xlCleanupStaticExtractedFiles(arrStaticExtracted, iStaticExtractedCount);
 
 	sAsyncTrace = (const char*)tcc_get_symbol(pTcc, "xl_generated_async_trace");
 	piAsyncTraceLen = (int*)tcc_get_symbol(pTcc, "xl_generated_async_trace_len");
 	if ( (sAsyncTrace != NULL) && (piAsyncTraceLen != NULL) && (*piAsyncTraceLen > 0) ) {
-		__xlRunTraceAppend(&trace, sAsyncTrace);
+		__xlRunTraceAppend(pTrace, sAsyncTrace);
 	}
 
-	__xlFillExceptionInfo(pTcc, &trace, pResult);
+	__xlFillExceptionInfo(pTcc, pTrace, pResult);
 	iRc = (pResult->bHadException != 0) ? XL_RC_FAIL : XL_RC_OK;
 	if ( pResult->bHadException ) {
 		pResult->bHadRuntimeError = 1;
@@ -1605,7 +1637,7 @@ int xlHostTccRunText(
 
 	xrtNetSyncShutdownHiddenEngine();
 	tcc_delete(pTcc);
-	*psTraceText = trace.sData;
+	__xlSetTraceText(psTraceText, pTrace);
 	return iRc;
 }
 
@@ -1617,7 +1649,10 @@ int xlHostTccRunFile(
 	XL_HostRunResult* pResult
 )
 {
+	XL_RunTraceBuffer* pTrace;
+#if XLANG_DEBUGMODE_ENABLED
 	XL_RunTraceBuffer trace;
+#endif
 	XL_CwdScope cwdScope;
 	XL_SharedArtifactHandle arrSharedHandles[XL_HOST_RUNTIME_LIBRARY_HANDLE_MAX];
 	XL_StaticExtractedFile arrStaticExtracted[XL_HOST_STATIC_EXTRACT_MAX];
@@ -1627,16 +1662,21 @@ int xlHostTccRunFile(
 	char* arrArgv[2];
 	int iRunRc;
 
-	if ( (pCtx == NULL) || (sSourceFile == NULL) || (psTraceText == NULL) || (pResult == NULL) ) return XL_RC_BAD_ARG;
+	if ( (pCtx == NULL) || (sSourceFile == NULL) || (pResult == NULL) ) return XL_RC_BAD_ARG;
 
+#if XLANG_DEBUGMODE_ENABLED
 	memset(&trace, 0, sizeof(trace));
+	pTrace = &trace;
+#else
+	pTrace = NULL;
+#endif
 	memset(&cwdScope, 0, sizeof(cwdScope));
 	memset(arrSharedHandles, 0, sizeof(arrSharedHandles));
 	memset(arrStaticExtracted, 0, sizeof(arrStaticExtracted));
 	iStaticExtractedCount = 0;
 	iSharedHandleCount = 0;
 	__xlInitRunResult(pResult, "main");
-	*psTraceText = NULL;
+	__xlSetTraceText(psTraceText, pTrace);
 
 	pTcc = tcc_new();
 	if ( pTcc == NULL ) {
@@ -1649,30 +1689,30 @@ int xlHostTccRunFile(
 		tcc_delete(pTcc);
 		return XL_RC_FAIL;
 	}
-	if ( __xlConfigureTcc(pCtx, pTcc, &trace, 1) != XL_RC_OK ) {
+	if ( __xlConfigureTcc(pCtx, pTcc, pTrace, 1) != XL_RC_OK ) {
 		XL_DIAG_ERROR(pDiag, "host.tcc", "failed to configure TCC");
 		tcc_delete(pTcc);
-		*psTraceText = trace.sData;
+		__xlSetTraceText(psTraceText, pTrace);
 		return XL_RC_FAIL;
 	}
-	if ( __xlAddBuildLibraries(pCtx, pDiag, pTcc, &trace) != XL_RC_OK ) {
+	if ( __xlAddBuildLibraries(pCtx, pDiag, pTcc, pTrace) != XL_RC_OK ) {
 		tcc_delete(pTcc);
-		*psTraceText = trace.sData;
+		__xlSetTraceText(psTraceText, pTrace);
 		return XL_RC_FAIL;
 	}
 
-	__xlRunTraceAppendFormat(&trace, "compile_file=%s\n", sSourceFile);
+	__xlRunTraceAppendFormat(pTrace, "compile_file=%s\n", sSourceFile);
 	if ( tcc_add_file(pTcc, sSourceFile) < 0 ) {
 		XL_DIAG_ERROR(pDiag, "host.tcc", "failed to add C file: %s", sSourceFile);
 		tcc_delete(pTcc);
 		pResult->bHadRuntimeError = 1;
-		*psTraceText = trace.sData;
+		__xlSetTraceText(psTraceText, pTrace);
 		return XL_RC_FAIL;
 	}
 	if ( __xlApplyStaticArtifacts(
 		pCtx,
 		pTcc,
-		&trace,
+		pTrace,
 		arrStaticExtracted,
 		XL_COUNTOF(arrStaticExtracted),
 		&iStaticExtractedCount
@@ -1681,54 +1721,54 @@ int xlHostTccRunFile(
 		__xlCleanupStaticExtractedFiles(arrStaticExtracted, iStaticExtractedCount);
 		tcc_delete(pTcc);
 		pResult->bHadRuntimeError = 1;
-		*psTraceText = trace.sData;
+		__xlSetTraceText(psTraceText, pTrace);
 		return XL_RC_FAIL;
 	}
 
 	arrArgv[0] = (char*)sSourceFile;
 	arrArgv[1] = NULL;
-	if ( __xlPushProjectCwd(pCtx, &trace, &cwdScope) != XL_RC_OK ) {
+	if ( __xlPushProjectCwd(pCtx, pTrace, &cwdScope) != XL_RC_OK ) {
 		XL_DIAG_ERROR(pDiag, "host.tcc", "failed to switch cwd: %s", pCtx->sProjectRoot);
 		__xlCleanupStaticExtractedFiles(arrStaticExtracted, iStaticExtractedCount);
 		tcc_delete(pTcc);
 		pResult->bHadRuntimeError = 1;
-		*psTraceText = trace.sData;
+		__xlSetTraceText(psTraceText, pTrace);
 		return XL_RC_FAIL;
 	}
-	if ( __xlLoadSharedArtifacts(pCtx, pDiag, &trace, arrSharedHandles, XL_COUNTOF(arrSharedHandles), &iSharedHandleCount) != XL_RC_OK ) {
-		__xlPopProjectCwd(&trace, &cwdScope);
+	if ( __xlLoadSharedArtifacts(pCtx, pDiag, pTrace, arrSharedHandles, XL_COUNTOF(arrSharedHandles), &iSharedHandleCount) != XL_RC_OK ) {
+		__xlPopProjectCwd(pTrace, &cwdScope);
 		__xlCleanupStaticExtractedFiles(arrStaticExtracted, iStaticExtractedCount);
 		tcc_delete(pTcc);
 		pResult->bHadRuntimeError = 1;
-		*psTraceText = trace.sData;
+		__xlSetTraceText(psTraceText, pTrace);
 		return XL_RC_FAIL;
 	}
-	if ( __xlRegisterSharedArtifactSymbols(pCtx, pDiag, pTcc, &trace, arrSharedHandles, iSharedHandleCount) != XL_RC_OK ) {
-		__xlUnloadSharedArtifacts(&trace, arrSharedHandles, iSharedHandleCount);
-		__xlPopProjectCwd(&trace, &cwdScope);
+	if ( __xlRegisterSharedArtifactSymbols(pCtx, pDiag, pTcc, pTrace, arrSharedHandles, iSharedHandleCount) != XL_RC_OK ) {
+		__xlUnloadSharedArtifacts(pTrace, arrSharedHandles, iSharedHandleCount);
+		__xlPopProjectCwd(pTrace, &cwdScope);
 		__xlCleanupStaticExtractedFiles(arrStaticExtracted, iStaticExtractedCount);
 		tcc_delete(pTcc);
 		pResult->bHadRuntimeError = 1;
-		*psTraceText = trace.sData;
+		__xlSetTraceText(psTraceText, pTrace);
 		return XL_RC_FAIL;
 	}
-	__xlRunTraceAppend(&trace, "tcc_run\n");
+	__xlRunTraceAppend(pTrace, "tcc_run\n");
 	iRunRc = tcc_run(pTcc, 1, arrArgv);
-	__xlUnloadSharedArtifacts(&trace, arrSharedHandles, iSharedHandleCount);
-	__xlPopProjectCwd(&trace, &cwdScope);
+	__xlUnloadSharedArtifacts(pTrace, arrSharedHandles, iSharedHandleCount);
+	__xlPopProjectCwd(pTrace, &cwdScope);
 	__xlCleanupStaticExtractedFiles(arrStaticExtracted, iStaticExtractedCount);
 	pResult->iExitCode = iRunRc;
-	__xlRunTraceAppendFormat(&trace, "exit_code=%d\n", pResult->iExitCode);
+	__xlRunTraceAppendFormat(pTrace, "exit_code=%d\n", pResult->iExitCode);
 	if ( iRunRc < 0 ) {
 		XL_DIAG_ERROR(pDiag, "host.tcc", "failed to run C file: %s", sSourceFile);
 		pResult->bHadRuntimeError = 1;
 		tcc_delete(pTcc);
-		*psTraceText = trace.sData;
+		__xlSetTraceText(psTraceText, pTrace);
 		return XL_RC_FAIL;
 	}
 
 	tcc_delete(pTcc);
-	*psTraceText = trace.sData;
+	__xlSetTraceText(psTraceText, pTrace);
 	return XL_RC_OK;
 }
 
@@ -1808,20 +1848,28 @@ int xlHostTccBuildText(
 	XL_HostBuildResult* pResult
 )
 {
+	XL_RunTraceBuffer* pTrace;
+#if XLANG_DEBUGMODE_ENABLED
 	XL_RunTraceBuffer trace;
+#endif
 	TCCState* pTcc;
 	char* sWrapped;
 	const char* sKindText;
 	XL_HostOutputType eOutputType;
 	int iRc;
 
-	if ( (pCtx == NULL) || (sCode == NULL) || (sOutputFile == NULL) || (psTraceText == NULL) || (pResult == NULL) ) return XL_RC_BAD_ARG;
+	if ( (pCtx == NULL) || (sCode == NULL) || (sOutputFile == NULL) || (pResult == NULL) ) return XL_RC_BAD_ARG;
 
+#if XLANG_DEBUGMODE_ENABLED
 	memset(&trace, 0, sizeof(trace));
+	pTrace = &trace;
+#else
+	pTrace = NULL;
+#endif
 	sKindText = "exe";
 	eOutputType = __xlDetectOutputType(sOutputFile, &sKindText);
 	__xlInitBuildResult(pResult, sOutputFile, sKindText, sEntrySymbol);
-	*psTraceText = NULL;
+	__xlSetTraceText(psTraceText, pTrace);
 
 	pTcc = tcc_new();
 	if ( pTcc == NULL ) {
@@ -1834,10 +1882,10 @@ int xlHostTccBuildText(
 		tcc_delete(pTcc);
 		return XL_RC_FAIL;
 	}
-	if ( __xlConfigureTcc(pCtx, pTcc, &trace, 0) != XL_RC_OK ) {
+	if ( __xlConfigureTcc(pCtx, pTcc, pTrace, 0) != XL_RC_OK ) {
 		XL_DIAG_ERROR(pDiag, "host.tcc", "failed to configure TCC");
 		tcc_delete(pTcc);
-		*psTraceText = trace.sData;
+		__xlSetTraceText(psTraceText, pTrace);
 		return XL_RC_FAIL;
 	}
 
@@ -1847,20 +1895,20 @@ int xlHostTccBuildText(
 		return XL_RC_IO_ERROR;
 	}
 
-	__xlRunTraceAppendFormat(&trace, "compile_text=%s\n", (sVirtualPath != NULL) ? sVirtualPath : "<memory>");
+	__xlRunTraceAppendFormat(pTrace, "compile_text=%s\n", (sVirtualPath != NULL) ? sVirtualPath : "<memory>");
 	if ( tcc_compile_string(pTcc, sWrapped) < 0 ) {
 		XL_DIAG_ERROR(pDiag, "host.tcc", "tcc compile failed");
 		free(sWrapped);
 		tcc_delete(pTcc);
 		pResult->bHadBuildError = 1;
-		*psTraceText = trace.sData;
+		__xlSetTraceText(psTraceText, pTrace);
 		return XL_RC_FAIL;
 	}
 	free(sWrapped);
 
-	iRc = __xlHostTccBuildCommon(pCtx, pDiag, pTcc, sOutputFile, sKindText, &trace, pResult);
+	iRc = __xlHostTccBuildCommon(pCtx, pDiag, pTcc, sOutputFile, sKindText, pTrace, pResult);
 	tcc_delete(pTcc);
-	*psTraceText = trace.sData;
+	__xlSetTraceText(psTraceText, pTrace);
 	return iRc;
 }
 
@@ -1873,19 +1921,27 @@ int xlHostTccBuildFile(
 	XL_HostBuildResult* pResult
 )
 {
+	XL_RunTraceBuffer* pTrace;
+#if XLANG_DEBUGMODE_ENABLED
 	XL_RunTraceBuffer trace;
+#endif
 	TCCState* pTcc;
 	const char* sKindText;
 	XL_HostOutputType eOutputType;
 	int iRc;
 
-	if ( (pCtx == NULL) || (sSourceFile == NULL) || (sOutputFile == NULL) || (psTraceText == NULL) || (pResult == NULL) ) return XL_RC_BAD_ARG;
+	if ( (pCtx == NULL) || (sSourceFile == NULL) || (sOutputFile == NULL) || (pResult == NULL) ) return XL_RC_BAD_ARG;
 
+#if XLANG_DEBUGMODE_ENABLED
 	memset(&trace, 0, sizeof(trace));
+	pTrace = &trace;
+#else
+	pTrace = NULL;
+#endif
 	sKindText = "exe";
 	eOutputType = __xlDetectOutputType(sOutputFile, &sKindText);
 	__xlInitBuildResult(pResult, sOutputFile, sKindText, "main");
-	*psTraceText = NULL;
+	__xlSetTraceText(psTraceText, pTrace);
 
 	pTcc = tcc_new();
 	if ( pTcc == NULL ) {
@@ -1898,24 +1954,24 @@ int xlHostTccBuildFile(
 		tcc_delete(pTcc);
 		return XL_RC_FAIL;
 	}
-	if ( __xlConfigureTcc(pCtx, pTcc, &trace, 0) != XL_RC_OK ) {
+	if ( __xlConfigureTcc(pCtx, pTcc, pTrace, 0) != XL_RC_OK ) {
 		XL_DIAG_ERROR(pDiag, "host.tcc", "failed to configure TCC");
 		tcc_delete(pTcc);
-		*psTraceText = trace.sData;
+		__xlSetTraceText(psTraceText, pTrace);
 		return XL_RC_FAIL;
 	}
 
-	__xlRunTraceAppendFormat(&trace, "compile_file=%s\n", sSourceFile);
+	__xlRunTraceAppendFormat(pTrace, "compile_file=%s\n", sSourceFile);
 	if ( tcc_add_file(pTcc, sSourceFile) < 0 ) {
 		XL_DIAG_ERROR(pDiag, "host.tcc", "failed to add C file: %s", sSourceFile);
 		tcc_delete(pTcc);
 		pResult->bHadBuildError = 1;
-		*psTraceText = trace.sData;
+		__xlSetTraceText(psTraceText, pTrace);
 		return XL_RC_FAIL;
 	}
 
-	iRc = __xlHostTccBuildCommon(pCtx, pDiag, pTcc, sOutputFile, sKindText, &trace, pResult);
+	iRc = __xlHostTccBuildCommon(pCtx, pDiag, pTcc, sOutputFile, sKindText, pTrace, pResult);
 	tcc_delete(pTcc);
-	*psTraceText = trace.sData;
+	__xlSetTraceText(psTraceText, pTrace);
 	return iRc;
 }
