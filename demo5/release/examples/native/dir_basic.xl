@@ -12,7 +12,7 @@ func main() as int
 	if cwd_text == ""
 		return 1
 	end
-	if str.contains(list_text, "examples") == false
+	if str.contains(list_text, "release") == false
 		return 2
 	end
 	if str.contains(files_text, "build_gcc.bat") == false

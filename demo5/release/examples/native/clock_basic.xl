@@ -8,9 +8,6 @@ func main() as int
 
 	clock.sleep(1)
 
-	if now == null
-		return 1
-	end
 	if text == ""
 		return 2
 	end

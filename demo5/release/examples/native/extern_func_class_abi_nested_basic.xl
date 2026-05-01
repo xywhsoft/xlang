@@ -1,6 +1,6 @@
 #loadlib "../xlp_native/packages/pkg.probe/bin/pkg_probe.dll"
 
-class NativeInner extends object
+class NativeInner
 	var x as int32
 	var y as int32
 
@@ -10,7 +10,7 @@ class NativeInner extends object
 	end
 end
 
-class NativeOuter extends object
+class NativeOuter
 	var inner as NativeInner
 	var z as int32
 	var scale as float64
@@ -22,7 +22,7 @@ class NativeOuter extends object
 	end
 end
 
-class NativeLarge extends object
+class NativeLarge
 	var a as int64
 	var b as int64
 	var c as int64

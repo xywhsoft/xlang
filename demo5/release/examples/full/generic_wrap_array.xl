@@ -1,7 +1,7 @@
 import std.core
 
 func wrap<T>(T value) as array<T>
-	return [value]
+	return array<T>{value}
 end
 
 func main() as int

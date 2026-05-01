@@ -13,7 +13,7 @@ class Box extends object
 end
 
 func make() as int
-	if 1
+	if true
 		auto a = Box(40)
 		auto b = Box(2)
 	end

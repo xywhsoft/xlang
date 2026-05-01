@@ -1,6 +1,6 @@
 #loadlib "../xlp_native/packages/pkg.probe/bin/pkg_probe.dll"
 
-class NativePair extends object
+class NativePair
 	var x as int
 	var y as int
 

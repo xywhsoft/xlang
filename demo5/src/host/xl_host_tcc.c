@@ -1164,6 +1164,7 @@ static int __xlConfigureTcc(
 {
 	char sIncludeWin[XL_PATH_MAX_LEN];
 	char sIncludeWinApi[XL_PATH_MAX_LEN];
+	char sProjectCommonInc[XL_PATH_MAX_LEN];
 	char sProjectRuntimeInc[XL_PATH_MAX_LEN];
 	char sProjectXrtInc[XL_PATH_MAX_LEN];
 	char sLibDir[XL_PATH_MAX_LEN];
@@ -1187,6 +1188,8 @@ static int __xlConfigureTcc(
 
 	__xlBuildPath2(sIncludeWin, sizeof(sIncludeWin), pCtx->sTccRoot, "include_win");
 	__xlBuildPath3(sIncludeWinApi, sizeof(sIncludeWinApi), pCtx->sTccRoot, "include_win", "winapi");
+	__xlBuildPath3(sProjectCommonInc, sizeof(sProjectCommonInc), pCtx->sReleaseRoot, "tcc", "support");
+	xlPathJoin(sProjectCommonInc, sizeof(sProjectCommonInc), sProjectCommonInc, "common");
 	__xlBuildPath3(sProjectRuntimeInc, sizeof(sProjectRuntimeInc), pCtx->sReleaseRoot, "tcc", "support");
 	xlPathJoin(sProjectRuntimeInc, sizeof(sProjectRuntimeInc), sProjectRuntimeInc, "runtime");
 	__xlBuildPath2(sProjectXrtInc, sizeof(sProjectXrtInc), pCtx->sTccRoot, "include");
@@ -1195,12 +1198,14 @@ static int __xlConfigureTcc(
 	__xlRunTraceAppendFormat(pTrace, "tcc_root=%s\n", pCtx->sTccRoot);
 	__xlRunTraceAppendFormat(pTrace, "include=%s\n", sIncludeWin);
 	__xlRunTraceAppendFormat(pTrace, "include=%s\n", sIncludeWinApi);
+	__xlRunTraceAppendFormat(pTrace, "include=%s\n", sProjectCommonInc);
 	__xlRunTraceAppendFormat(pTrace, "include=%s\n", sProjectRuntimeInc);
 	__xlRunTraceAppendFormat(pTrace, "include=%s\n", sProjectXrtInc);
 	__xlRunTraceAppendFormat(pTrace, "lib=%s\n", sLibDir);
 
 	if ( tcc_add_include_path(pTcc, sIncludeWin) < 0 ) return XL_RC_FAIL;
 	if ( tcc_add_include_path(pTcc, sIncludeWinApi) < 0 ) return XL_RC_FAIL;
+	if ( tcc_add_include_path(pTcc, sProjectCommonInc) < 0 ) return XL_RC_FAIL;
 	if ( tcc_add_include_path(pTcc, sProjectRuntimeInc) < 0 ) return XL_RC_FAIL;
 	if ( tcc_add_include_path(pTcc, sProjectXrtInc) < 0 ) return XL_RC_FAIL;
 	if ( tcc_add_sysinclude_path(pTcc, sIncludeWin) < 0 ) return XL_RC_FAIL;

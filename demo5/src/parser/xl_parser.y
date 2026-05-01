@@ -1097,6 +1097,8 @@ func_intro(A) ::= KW_ASYNC KW_FUNC(T). {
 func_name(A) ::= TOK_IDENT(N). [OP_LT] { A = N; }
 func_name(A) ::= KW_CREATE(N). { A = N; }
 func_name(A) ::= KW_DESTROY(N). { A = N; }
+func_name(A) ::= KW_GET(N). { A = N; }
+func_name(A) ::= KW_LET(N). { A = N; }
 
 func_decl(A) ::= func_intro(B) func_name(N) type_param_decl_opt(TP) TK_LPAREN param_list(P) TK_RPAREN ret_type(R) opt_stmt_sep block(BODY) KW_END. {
 	A = xlPAttachTypeParams(xlAstCreateFuncDecl(&N, B.bAsync, P, R, BODY), TP);
@@ -1757,6 +1759,12 @@ import_alias_opt(A) ::= . {
 export_stmt(A) ::= KW_EXPORT(T) expr(E). {
 	A = xlAstCreateExport(&T, E);
 }
+export_stmt(A) ::= KW_EXPORT(T) KW_GET(N). {
+	A = xlAstCreateExport(&T, xlAstCreateIdent(&N));
+}
+export_stmt(A) ::= KW_EXPORT(T) KW_LET(N). {
+	A = xlAstCreateExport(&T, xlAstCreateIdent(&N));
+}
 export_stmt(A) ::= KW_EXPORT(T) export_func_decl(F). {
 	XL_UNUSED(T);
 	A = F;
@@ -2041,6 +2049,8 @@ lambda_postfix_expr(A) ::= lambda_postfix_expr(C) TK_LPAREN arg_list(ARGS) TK_RP
 member_name(A) ::= TOK_IDENT(N). { A = N; }
 member_name(A) ::= KW_CREATE(N). { A = N; }
 member_name(A) ::= KW_DESTROY(N). { A = N; }
+member_name(A) ::= KW_GET(N). { A = N; }
+member_name(A) ::= KW_LET(N). { A = N; }
 
 lambda_postfix_expr(A) ::= lambda_postfix_expr(B) OP_DOT(T) member_name(N). {
 	A = xlAstCreateMember(B, &N, 0, &T);

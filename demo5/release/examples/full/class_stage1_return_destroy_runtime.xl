@@ -14,7 +14,7 @@ end
 
 func make() as int
 	auto outer = Box(1)
-	if 1
+	if true
 		auto a = Box(40)
 		auto b = Box(2)
 		return 0

@@ -1,6 +1,6 @@
 import std.sys.lib as sys
 
-class NativePair extends object
+class NativePair
 	var x as int
 	var y as int
 

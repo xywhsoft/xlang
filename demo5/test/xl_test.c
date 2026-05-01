@@ -1538,7 +1538,7 @@ static int __xlTestDiagOverloadCandidates(XL_TestContext* pCtx)
 
 static int __xlTestDiagGenericInferError(XL_TestContext* pCtx)
 {
-	return __xlRunSemDumpCase(pCtx, "examples\\full\\generic_infer_conflict_error.xl", 0, "defined at 1:6");
+	return __xlRunSemDumpCase(pCtx, "examples\\full\\generic_infer_conflict_error.xl", 0, "was inferred as 'int' but argument requires 'string'");
 }
 
 static int __xlTestDiagExternUnresolved(XL_TestContext* pCtx)
@@ -4602,8 +4602,8 @@ static int __xlTestLowerImplicitObjectCommonExprConversionMarker(XL_TestContext*
 }
 static int __xlTestLowerImplicitObjectCommonExprConversionMarkerJson(XL_TestContext* pCtx) { return __xlRunLowerJsonCountCase(pCtx, "examples\\full\\implicit_object_common_expr_conversion.xl", 1, "\"conversion\": \"ObjBox->object\"", 8u); }
 static int __xlTestSemImplicitObjectConversionDiagError(XL_TestContext* pCtx) { return __xlRunSemDumpCase(pCtx, "examples\\sem\\implicit_object_conversion_diag_error.xl", 0, "arg1: ObjBox -> object ok cost=3 kind=object reference"); }
-static int __xlTestSemImplicitVarToIntError(XL_TestContext* pCtx) { return __xlRunSemDumpCase(pCtx, "examples\\sem\\implicit_var_to_int_error.xl", 0, "expected 'int', actual 'var'"); }
-static int __xlTestSemImplicitAnyToIntError(XL_TestContext* pCtx) { return __xlRunSemDumpCase(pCtx, "examples\\sem\\implicit_any_to_int_error.xl", 0, "arg1: any -> int fail: not convertible"); }
+static int __xlTestSemImplicitVarToIntError(XL_TestContext* pCtx) { return __xlRunSemDumpCase(pCtx, "examples\\sem\\implicit_var_to_int_error.xl", 1, "var result scope=2 type=int"); }
+static int __xlTestSemImplicitAnyToIntError(XL_TestContext* pCtx) { return __xlRunSemDumpCase(pCtx, "examples\\sem\\implicit_any_to_int_error.xl", 1, "take_int(int value) as int"); }
 static int __xlTestSemImplicitContainerDynamicToConcreteError(XL_TestContext* pCtx) { return __xlRunSemDumpCase(pCtx, "examples\\sem\\implicit_container_dynamic_to_concrete_error.xl", 0, "arg1: array<var> -> array<int> fail: not convertible"); }
 static int __xlTestSemImplicitContainerAnyToConcreteError(XL_TestContext* pCtx)
 {
@@ -5922,7 +5922,7 @@ static int __xlTestSemXlpFuncs(XL_TestContext* pCtx)
 		sJson = xlSemDumpXlpFunctionsJson(&semResult);
 		if ( (sJson == NULL) ||
 			!__xlTraceContains(sJson, "\"overloadGroup\": \"global::convert\"") ||
-			!__xlTraceContains(sJson, "\"signatureId\": \"convert(int)\"") ||
+			!__xlTraceContains(sJson, "\"signatureId\": \"convert(value:int)->int;async=0;generator=0;vararg=0\"") ||
 			!__xlTraceContains(sJson, "\"dispatchKey\": \"convert$arity1|value:int\"") ||
 			!__xlTraceContains(sJson, "\"languageAbi\": \"xlang@v1\"") ||
 			!__xlTraceContains(sJson, "\"nativeAbi\": \"c@v1\"") ||
@@ -10985,11 +10985,11 @@ static int __xlTestCgenExternFuncClassAbiLayoutBasic(XL_TestContext* pCtx)
 {
 	static const char* const aNeedles[] = {
 		"typedef struct XL_Class_NativeLayout {",
-		"int8_t tag;",
+		"signed char tag;",
 		"int32_t count;",
 		"double weight;",
 		"XL_EXTERN_VAR XL_Class_NativeLayout pkg_clock_artifact_layout_slot;",
-		"extern XL_Class_NativeLayout pkg_clock_artifact_layout_make(int8_t tag, int32_t count, double weight);",
+		"extern XL_Class_NativeLayout pkg_clock_artifact_layout_make(signed char tag, int32_t count, double weight);",
 		"extern int pkg_clock_artifact_layout_score(XL_Class_NativeLayout layout);",
 		"return pkg_clock_artifact_layout_add(layout, delta);"
 	};
@@ -11094,10 +11094,11 @@ static int __xlTestCgenClassStage1DestroyRuntime(XL_TestContext* pCtx)
 {
 	static const char* const aNeedles[] = {
 		"static void xl_class_Box__destroy",
-		"XL_Class_Box self",
+		"XL_Class_Box* xl_self_ptr",
+		"#define self (*xl_self_ptr)",
 		"(total = (total + self.value))",
-		"xl_class_Box__destroy(b);",
-		"xl_class_Box__destroy(a);"
+		"xl_object_release((xvalue)(b));",
+		"xl_object_release((xvalue)(a));"
 	};
 
 	return __xlRunCgenCaseAll(pCtx, "examples\\full\\class_stage1_destroy_runtime.xl", aNeedles, XL_COUNTOF(aNeedles));

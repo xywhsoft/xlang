@@ -1,6 +1,6 @@
 #loadlib "../xlp_native/packages/pkg.probe/bin/pkg_probe.dll"
 
-class NativeLayout extends object
+class NativeLayout
 	var tag as int8
 	var count as int32
 	var weight as float64
