@@ -117,6 +117,8 @@ static void __xlNormalizeRootPath(char* sOut, size_t iOutSize, const char* sPath
 static void __xlInitProjectRoot(char* sOut, size_t iOutSize, const char* sInputFile, const char* sReleaseRoot)
 {
 	char sResolved[XL_PATH_MAX_LEN];
+	char sReleaseResolved[XL_PATH_MAX_LEN];
+	size_t iReleaseLen;
 
 	if ( (sOut == NULL) || (iOutSize == 0) ) {
 		return;
@@ -133,6 +135,25 @@ static void __xlInitProjectRoot(char* sOut, size_t iOutSize, const char* sInputF
 #else
 		__xlCopyText(sOut, iOutSize, sInputFile);
 #endif
+		sReleaseResolved[0] = '\0';
+		__xlNormalizeRootPath(sReleaseResolved, sizeof(sReleaseResolved), sReleaseRoot);
+		iReleaseLen = strlen(sReleaseResolved);
+		while ( (iReleaseLen > 0) && xlPathIsSep((unsigned char)sReleaseResolved[iReleaseLen - 1]) ) {
+			sReleaseResolved[--iReleaseLen] = '\0';
+		}
+		if ( (iReleaseLen != 0) &&
+#if defined(_WIN32) || defined(_WIN64)
+			(_strnicmp(sOut, sReleaseResolved, iReleaseLen) == 0) &&
+#else
+			(strncmp(sOut, sReleaseResolved, iReleaseLen) == 0) &&
+#endif
+			((sOut[iReleaseLen] == '\0') || xlPathIsSep((unsigned char)sOut[iReleaseLen])) ) {
+			__xlCopyText(sOut, iOutSize, sReleaseResolved);
+			__xlStripFileName(sOut);
+			if ( sOut[0] != '\0' ) {
+				return;
+			}
+		}
 		__xlStripFileName(sOut);
 		if ( sOut[0] != '\0' ) {
 			return;

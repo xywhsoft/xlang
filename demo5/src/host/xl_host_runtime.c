@@ -161,21 +161,45 @@ const char* xlrt_host_executable(void)
 const char* xlrt_env_get(const char* sName)
 {
 	const char* sValue;
+#if defined(_WIN32) || defined(_WIN64)
+	static char sWinValue[32768];
+	DWORD iLen;
+#endif
 
 	if ( sName == NULL ) {
 		return "";
 	}
 
+#if defined(_WIN32) || defined(_WIN64)
+	iLen = GetEnvironmentVariableA(sName, sWinValue, (DWORD)sizeof(sWinValue));
+	if ( (iLen > 0u) && (iLen < (DWORD)sizeof(sWinValue)) ) {
+		return sWinValue;
+	}
+#endif
 	sValue = getenv(sName);
 	return (sValue != NULL) ? sValue : "";
 }
 
 int xlrt_env_exists(const char* sName)
 {
+#if defined(_WIN32) || defined(_WIN64)
+	DWORD iLen;
+#endif
+
 	if ( sName == NULL ) {
 		return 0;
 	}
 
+#if defined(_WIN32) || defined(_WIN64)
+	SetLastError(ERROR_SUCCESS);
+	iLen = GetEnvironmentVariableA(sName, NULL, 0u);
+	if ( iLen != 0u ) {
+		return 1;
+	}
+	if ( GetLastError() != ERROR_ENVVAR_NOT_FOUND ) {
+		return 1;
+	}
+#endif
 	return getenv(sName) != NULL;
 }
 

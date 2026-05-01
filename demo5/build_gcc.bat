@@ -57,6 +57,8 @@ if not exist release\examples\xlp_static\packages\pkg.clock\lib mkdir release\ex
 if not exist release\examples\xlp_static\packages\pkg.probe\lib mkdir release\examples\xlp_static\packages\pkg.probe\lib
 
 copy /y src\common\xl_common.h release\tcc\support\common\xl_common.h >nul
+copy /y src\common\xl_config.h release\tcc\support\common\xl_config.h >nul
+copy /y src\common\xl_rc.h release\tcc\support\common\xl_rc.h >nul
 copy /y src\runtime\xlrt_profile.h release\tcc\support\runtime\xlrt_profile.h >nul
 copy /y src\runtime\xlrt_host.c release\tcc\support\runtime\xlrt_host.c >nul
 copy /y src\runtime\xlrt_generated.h release\tcc\support\runtime\xlrt_generated.h >nul

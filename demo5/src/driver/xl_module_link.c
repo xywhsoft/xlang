@@ -4182,7 +4182,7 @@ static int __xlBindingEmitTypedefStruct(const char* sLine, XL_ModuleTextBuffer* 
 		pTok = strtok_s(NULL, ";", &pCtx);
 	}
 	if ( bFieldsOk ) {
-		__xlModuleBufAppendFormat(pOut, "class %s extends object\n", sName);
+		__xlModuleBufAppendFormat(pOut, "class %s\n", sName);
 		__xlModuleBufAppend(pOut, (fieldBuf.sData != NULL) ? fieldBuf.sData : "");
 		__xlModuleBufAppend(pOut, "end\n\n");
 		if ( __xlBindingAddType(pBindingCtx, sName, sName, 1) != XL_RC_OK ) {
@@ -4433,7 +4433,7 @@ static int __xlBindingEmitStructDecl(const char* sLine, XL_ModuleTextBuffer* pOu
 	}
 	snprintf(sStructName, sizeof(sStructName), "struct %s", sName);
 	if ( bFieldsOk ) {
-		__xlModuleBufAppendFormat(pOut, "class %s extends object\n", sName);
+		__xlModuleBufAppendFormat(pOut, "class %s\n", sName);
 		__xlModuleBufAppend(pOut, (fieldBuf.sData != NULL) ? fieldBuf.sData : "");
 		__xlModuleBufAppend(pOut, "end\n\n");
 		if ( __xlBindingAddType(pBindingCtx, sName, sName, 1) != XL_RC_OK ) {
@@ -7634,6 +7634,10 @@ static int __xlFindXlpModuleForImport(
 	size_t i;
 
 	if ( (pCtx != NULL) && (pCtx->iPackageRootCount != 0) ) {
+		if ( (sImporterManifestPath != NULL) && (sImporterManifestPath[0] != '\0') &&
+			(xlXlpFindModuleSource(sLocalCandidateFile, sImporterManifestPath, sImportKey, pInfo) == XL_RC_OK) ) {
+			return XL_RC_OK;
+		}
 		for ( i = 0; i < pCtx->iPackageRootCount; ++i ) {
 			arrRoots[i] = pCtx->arrPackageRoots[i];
 		}
