@@ -168,6 +168,8 @@ static int __xlParserMapToken(XL_TokenKind eKind)
 			return XLPG_OP_PIPE;
 		case XL_OP_BANG:
 			return XLPG_OP_BANG;
+		case XL_OP_TILDE:
+			return XLPG_OP_TILDE;
 		case XL_OP_CARET:
 			return XLPG_OP_CARET;
 		case XL_OP_SHR:

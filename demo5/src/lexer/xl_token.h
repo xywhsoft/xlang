@@ -81,6 +81,7 @@ typedef enum XL_TokenKind {
 	XL_OP_AMP,
 	XL_OP_PIPE,
 	XL_OP_BANG,
+	XL_OP_TILDE,
 	XL_OP_CARET,
 	XL_OP_SHR,
 	XL_OP_SHL,

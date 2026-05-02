@@ -68,6 +68,57 @@ static void __xlAstSetNormalizedTemplateText(XL_AstNode* pNode, const XL_Token* 
 	free(sBuffer);
 }
 
+static void __xlAstSetNormalizedRawStringText(XL_AstNode* pNode, const XL_Token* pToken)
+{
+	const char* sSource;
+	char* sBuffer;
+	size_t iSourceLen;
+	size_t iStart;
+	size_t iEnd;
+	size_t i;
+	size_t iOut;
+
+	if ( (pNode == NULL) || (pToken == NULL) || (pToken->sText == NULL) ) {
+		return;
+	}
+
+	sSource = pToken->sText;
+	iSourceLen = pToken->iTextLen;
+	iStart = 0;
+	iEnd = iSourceLen;
+	if ( (iSourceLen >= 3) && ((sSource[0] == 'r') || (sSource[0] == 'R')) &&
+		(sSource[1] == '"') && (sSource[iSourceLen - 1] == '"') ) {
+		iStart = 2;
+		iEnd = iSourceLen - 1;
+	} else if ( (iSourceLen >= 2) && (sSource[0] == '\'') && (sSource[iSourceLen - 1] == '\'') ) {
+		iStart = 1;
+		iEnd = iSourceLen - 1;
+	} else {
+		xlAstSetText(pNode, pToken->sText, pToken->iTextLen);
+		return;
+	}
+
+	sBuffer = (char*)malloc(((iEnd - iStart) * 2) + 3);
+	if ( sBuffer == NULL ) {
+		xlAstSetText(pNode, pToken->sText, pToken->iTextLen);
+		return;
+	}
+
+	iOut = 0;
+	sBuffer[iOut++] = '"';
+	for ( i = iStart; i < iEnd; ++i ) {
+		if ( (sSource[i] == '\\') || (sSource[i] == '"') ) {
+			sBuffer[iOut++] = '\\';
+		}
+		sBuffer[iOut++] = sSource[i];
+	}
+	sBuffer[iOut++] = '"';
+	sBuffer[iOut] = '\0';
+
+	xlAstSetText(pNode, sBuffer, iOut);
+	free(sBuffer);
+}
+
 static void __xlAstSetNormalizedTypeText(XL_AstNode* pNode, const XL_Token* pToken)
 {
 	if ( (pNode == NULL) || (pToken == NULL) ) {
@@ -227,10 +278,15 @@ XL_AstNode* xlAstCreateLiteralFromToken(const XL_Token* pToken)
 			}
 			return pNode;
 		case XL_TK_STRING:
-		case XL_TK_STRING_RAW:
 			pNode = xlAstCreateNode(XL_AST_STRING, pToken);
 			if ( pNode != NULL ) {
 				xlAstSetText(pNode, pToken->sText, pToken->iTextLen);
+			}
+			return pNode;
+		case XL_TK_STRING_RAW:
+			pNode = xlAstCreateNode(XL_AST_STRING, pToken);
+			if ( pNode != NULL ) {
+				__xlAstSetNormalizedRawStringText(pNode, pToken);
 			}
 			return pNode;
 		case XL_TK_TEMPLATE:

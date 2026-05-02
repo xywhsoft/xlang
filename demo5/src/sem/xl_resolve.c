@@ -6258,6 +6258,21 @@ static int __xlResolveBinaryOperandTypes(XL_ResolveContext* pCtx, const XL_AstNo
 			((sRightType != NULL) && (sRightType[0] != '\0')) ? sRightType : "?"
 		);
 	}
+	if ( (strcmp(sOp, "&") == 0) || (strcmp(sOp, "|") == 0) || (strcmp(sOp, "^") == 0) ||
+		(strcmp(sOp, "<<") == 0) || (strcmp(sOp, ">>") == 0) ) {
+		if ( __xlIsIntegerTypeName(sLeftType) && __xlIsIntegerTypeName(sRightType) ) {
+			return XL_RC_OK;
+		}
+		return __xlSemAddDiag(
+			pCtx,
+			XL_SEM_DIAG_ERROR,
+			pNode,
+			"operator '%s' requires integer operands, got '%s' and '%s'",
+			sOp,
+			((sLeftType != NULL) && (sLeftType[0] != '\0')) ? sLeftType : "?",
+			((sRightType != NULL) && (sRightType[0] != '\0')) ? sRightType : "?"
+		);
+	}
 	if ( (strcmp(sOp, "==") == 0) || (strcmp(sOp, "!=") == 0) ) {
 		if ( __xlBinaryOperandsConvertible(pCtx, sLeftType, sRightType) ) {
 			return XL_RC_OK;
@@ -8104,6 +8119,23 @@ static int __xlValidateGenericInstanceBinaryExpr(
 		return XL_RC_OK;
 	}
 
+	if ( (strcmp(sOp, "&") == 0) || (strcmp(sOp, "|") == 0) || (strcmp(sOp, "^") == 0) ||
+		(strcmp(sOp, "<<") == 0) || (strcmp(sOp, ">>") == 0) ) {
+		if ( !__xlIsIntegerTypeName(sLeftType) || !__xlIsIntegerTypeName(sRightType) ) {
+			return __xlSemAddDiag(
+				pCtx,
+				XL_SEM_DIAG_ERROR,
+				pNode,
+				"generic instance '%s' operator '%s' requires integer operands, got '%s' and '%s'",
+				(pCheck->pInstanceFunc->sName != NULL) ? pCheck->pInstanceFunc->sName : "?",
+				sOp,
+				sLeftType,
+				sRightType
+			);
+		}
+		return XL_RC_OK;
+	}
+
 	if ( (strcmp(sOp, "==") == 0) || (strcmp(sOp, "!=") == 0) ) {
 		if ( __xlTypeMatches(sLeftType, sRightType) || __xlTypeMatches(sRightType, sLeftType) ) {
 			return XL_RC_OK;
@@ -8185,6 +8217,20 @@ static int __xlValidateGenericInstanceUnaryExpr(
 				XL_SEM_DIAG_ERROR,
 				pNode,
 				"generic instance '%s' operator '%s' requires numeric operand, got '%s'",
+				(pCheck->pInstanceFunc->sName != NULL) ? pCheck->pInstanceFunc->sName : "?",
+				sOp,
+				sInnerType
+			);
+		}
+		return XL_RC_OK;
+	}
+	if ( strcmp(sOp, "~") == 0 ) {
+		if ( !__xlIsIntegerTypeName(sInnerType) ) {
+			return __xlSemAddDiag(
+				pCtx,
+				XL_SEM_DIAG_ERROR,
+				pNode,
+				"generic instance '%s' operator '%s' requires integer operand, got '%s'",
 				(pCheck->pInstanceFunc->sName != NULL) ? pCheck->pInstanceFunc->sName : "?",
 				sOp,
 				sInnerType
@@ -10854,6 +10900,12 @@ static int __xlResolveUnaryExpr(XL_ResolveContext* pCtx, const XL_AstNode* pNode
 		sTypeName = __xlInferExprType(pCtx, pInner);
 		if ( !__xlIsNumericTypeName(sTypeName) ) {
 			return __xlSemAddDiag(pCtx, XL_SEM_DIAG_ERROR, pNode, "operator '%s' requires numeric operand", sOp);
+		}
+	}
+	if ( strcmp(sOp, "~") == 0 ) {
+		sTypeName = __xlInferExprType(pCtx, pInner);
+		if ( !__xlIsIntegerTypeName(sTypeName) ) {
+			return __xlSemAddDiag(pCtx, XL_SEM_DIAG_ERROR, pNode, "operator '%s' requires integer operand", sOp);
 		}
 	}
 
