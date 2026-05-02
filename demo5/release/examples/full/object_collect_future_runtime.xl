@@ -4,21 +4,16 @@ import std.task
 class Node extends object
 end
 
-async func hold(var self) as int
+async func hold(Node self) as int
 	await task.delay(1)
-	return int(self.get("bias"))
-end
-
-func hold_future(var self) as future<int>
-	return hold(self)
+	return 1
 end
 
 async func main() as int
 	var owner = Node()
 	var weak = std.object.weak(owner)
-
-	owner["bias"] = 1
-	owner["pending"] = task.spawn(hold_future(owner))
+	task pending = hold(owner)
+	owner["pending"] = pending
 
 	if not std.object.alive(weak)
 		return 1
@@ -27,7 +22,7 @@ async func main() as int
 		return 2
 	end
 
-	await task.delay(2)
+	await pending
 	owner = null
 	std.object.collect()
 	if std.object.alive(weak)

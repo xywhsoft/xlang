@@ -1,0 +1,9 @@
+func main() as int
+	int hex = 0x10
+	int oct = 0o10
+	int bin = 0b10
+	int legacy_hex = &h10
+	int legacy_oct = &o10
+	int legacy_bin = &b10
+	return hex + oct + bin + legacy_hex + legacy_oct + legacy_bin
+end

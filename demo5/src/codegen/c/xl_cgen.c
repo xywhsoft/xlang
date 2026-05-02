@@ -3235,6 +3235,35 @@ static void __xlCgenVarClassDestroyCall(XL_CgenContext* pCtx, const char* sTypeN
 	}
 }
 
+static void __xlCgenAppendObjectPayloadDestroyExpr(
+	XL_CgenContext* pCtx,
+	const char* sTypeName,
+	const char* sExpr
+)
+{
+	char sClassType[160];
+	char sDestroyName[256];
+
+	if ( (pCtx == NULL) || (sTypeName == NULL) || (sExpr == NULL) ||
+		!__xlCgenIsObjectClassTypeName(pCtx, sTypeName) ||
+		!__xlCgenClassHasDestroy(pCtx, sTypeName) ) {
+		return;
+	}
+
+	__xlCgenClassTypeName(sClassType, sizeof(sClassType), sTypeName);
+	__xlCgenClassDestroySymbolName(sDestroyName, sizeof(sDestroyName), sTypeName);
+	__xlCgenAppendFormat(
+		&pCtx->buf,
+		"if ( ((xvalue)(%s) != NULL) && (((xvalue)(%s))->Type == XVO_DT_CLASS) && (xvoGetClass((xvalue)(%s)) != NULL) ) %s((%s*)xvoGetClass((xvalue)(%s)));",
+		sExpr,
+		sExpr,
+		sExpr,
+		sDestroyName,
+		sClassType,
+		sExpr
+	);
+}
+
 static void __xlCgenContainerObjectDestroyIfLast(
 	XL_CgenContext* pCtx,
 	const char* sTypeName,
@@ -3308,18 +3337,18 @@ static void __xlCgenClassDestroyContainerElements(XL_CgenContext* pCtx, const ch
 		!__xlCgenContainerClassValueType(pCtx, sTypeName, sValueTypeName, sizeof(sValueTypeName)) ) {
 		return;
 	}
-	__xlCgenClassTypeName(sClassType, sizeof(sClassType), sValueTypeName);
 	__xlCgenClassDestroySymbolName(sDestroyName, sizeof(sDestroyName), sValueTypeName);
 	if ( __xlCgenIsObjectClassTypeName(pCtx, sValueTypeName) ) {
 		__xlCgenContainerObjectDestroyIfLast(pCtx, sTypeName, sVarName);
 		return;
 	}
+	__xlCgenClassTypeName(sClassType, sizeof(sClassType), sValueTypeName);
 
 	__xlCgenAppendIndent(&pCtx->buf);
 	if ( __xlTypeHasBaseName(sTypeName, "array") ) {
 		__xlCgenAppendFormat(
 			&pCtx->buf,
-			"{ xvalue xl_destroy_container = (xvalue)(%s); if ( xl_destroy_container != NULL ) { uint32 xl_destroy_i; for ( xl_destroy_i = 0; xl_destroy_i < xvoArrayItemCount(xl_destroy_container); ++xl_destroy_i ) { xvalue xl_destroy_item = xvoArrayGetValue(xl_destroy_container, xl_destroy_i); if ( (xl_destroy_item != NULL) && (xl_destroy_item->Type == XVO_DT_CLASS) && (xvoGetClass(xl_destroy_item) != NULL) ) %s((%s*)xvoGetClass(xl_destroy_item)); } } }\n",
+			"{ xvalue xl_destroy_container = (xvalue)(%s); if ( xl_destroy_container != NULL ) { uint32 xl_destroy_i; for ( xl_destroy_i = 0; xl_destroy_i < xvoArrayItemCount(xl_destroy_container); ++xl_destroy_i ) { xvalue xl_destroy_item = xvoArrayGetValue(xl_destroy_container, xl_destroy_i); if ( (xl_destroy_item != NULL) && (xl_destroy_item->Type == XVO_DT_CLASS) && (xvoGetClass(xl_destroy_item) != NULL) ) %s(*((%s*)xvoGetClass(xl_destroy_item))); } } }\n",
 			sVarName,
 			sDestroyName,
 			sClassType
@@ -3329,7 +3358,7 @@ static void __xlCgenClassDestroyContainerElements(XL_CgenContext* pCtx, const ch
 	if ( __xlTypeHasBaseName(sTypeName, "list") ) {
 		__xlCgenAppendFormat(
 			&pCtx->buf,
-			"{ xvalue xl_destroy_container = (xvalue)(%s); if ( xl_destroy_container != NULL ) { uint32 xl_destroy_i; for ( xl_destroy_i = 0; xl_destroy_i < xvoListItemCount(xl_destroy_container); ++xl_destroy_i ) { xvalue xl_destroy_item = xvoListGetValue(xl_destroy_container, (int64)xl_destroy_i); if ( (xl_destroy_item != NULL) && (xl_destroy_item->Type == XVO_DT_CLASS) && (xvoGetClass(xl_destroy_item) != NULL) ) %s((%s*)xvoGetClass(xl_destroy_item)); } } }\n",
+			"{ xvalue xl_destroy_container = (xvalue)(%s); if ( xl_destroy_container != NULL ) { uint32 xl_destroy_i; for ( xl_destroy_i = 0; xl_destroy_i < xvoListItemCount(xl_destroy_container); ++xl_destroy_i ) { xvalue xl_destroy_item = xvoListGetValue(xl_destroy_container, (int64)xl_destroy_i); if ( (xl_destroy_item != NULL) && (xl_destroy_item->Type == XVO_DT_CLASS) && (xvoGetClass(xl_destroy_item) != NULL) ) %s(*((%s*)xvoGetClass(xl_destroy_item))); } } }\n",
 			sVarName,
 			sDestroyName,
 			sClassType
@@ -3339,7 +3368,7 @@ static void __xlCgenClassDestroyContainerElements(XL_CgenContext* pCtx, const ch
 	if ( __xlTypeHasBaseName(sTypeName, "set") ) {
 		__xlCgenAppendFormat(
 			&pCtx->buf,
-			"{ xvalue xl_destroy_container = (xvalue)(%s); if ( xl_destroy_container != NULL ) { xavltree xl_destroy_tree = xvoGetColl(xl_destroy_container); if ( xl_destroy_tree != NULL ) { Coll_Key* xl_destroy_key; xrtAVLTreeIterBegin(xl_destroy_tree); for ( xl_destroy_key = (Coll_Key*)xrtAVLTreeIterNext(xl_destroy_tree); xl_destroy_key != NULL; xl_destroy_key = (Coll_Key*)xrtAVLTreeIterNext(xl_destroy_tree) ) { xvalue xl_destroy_item = xl_destroy_key->Value; if ( (xl_destroy_item != NULL) && (xl_destroy_item->Type == XVO_DT_CLASS) && (xvoGetClass(xl_destroy_item) != NULL) ) %s((%s*)xvoGetClass(xl_destroy_item)); } xrtAVLTreeIterEnd(xl_destroy_tree); } } }\n",
+			"{ xvalue xl_destroy_container = (xvalue)(%s); if ( xl_destroy_container != NULL ) { xavltree xl_destroy_tree = xvoGetColl(xl_destroy_container); if ( xl_destroy_tree != NULL ) { Coll_Key* xl_destroy_key; xrtAVLTreeIterBegin(xl_destroy_tree); for ( xl_destroy_key = (Coll_Key*)xrtAVLTreeIterNext(xl_destroy_tree); xl_destroy_key != NULL; xl_destroy_key = (Coll_Key*)xrtAVLTreeIterNext(xl_destroy_tree) ) { xvalue xl_destroy_item = xl_destroy_key->Value; if ( (xl_destroy_item != NULL) && (xl_destroy_item->Type == XVO_DT_CLASS) && (xvoGetClass(xl_destroy_item) != NULL) ) %s(*((%s*)xvoGetClass(xl_destroy_item))); } xrtAVLTreeIterEnd(xl_destroy_tree); } } }\n",
 			sVarName,
 			sDestroyName,
 			sClassType
@@ -3349,7 +3378,7 @@ static void __xlCgenClassDestroyContainerElements(XL_CgenContext* pCtx, const ch
 	if ( __xlTypeHasBaseName(sTypeName, "dict") ) {
 		__xlCgenAppendFormat(
 			&pCtx->buf,
-			"{ xvalue xl_destroy_container = (xvalue)(%s); if ( xl_destroy_container != NULL ) { xdict xl_destroy_table = xvoGetTable(xl_destroy_container); if ( xl_destroy_table != NULL ) { Dict_Key* xl_destroy_key; xrtAVLTB_IterBegin((xavltbase)xl_destroy_table); for ( xl_destroy_key = (Dict_Key*)xrtAVLTB_IterNext((xavltbase)xl_destroy_table); xl_destroy_key != NULL; xl_destroy_key = (Dict_Key*)xrtAVLTB_IterNext((xavltbase)xl_destroy_table) ) { xvalue xl_destroy_item = *(xvalue*)(&xl_destroy_key[1]); if ( (xl_destroy_item != NULL) && (xl_destroy_item->Type == XVO_DT_CLASS) && (xvoGetClass(xl_destroy_item) != NULL) ) %s((%s*)xvoGetClass(xl_destroy_item)); } xrtAVLTB_IterEnd((xavltbase)xl_destroy_table); } } }\n",
+			"{ xvalue xl_destroy_container = (xvalue)(%s); if ( xl_destroy_container != NULL ) { xdict xl_destroy_table = xvoGetTable(xl_destroy_container); if ( xl_destroy_table != NULL ) { Dict_Key* xl_destroy_key; xrtAVLTB_IterBegin((xavltbase)xl_destroy_table); for ( xl_destroy_key = (Dict_Key*)xrtAVLTB_IterNext((xavltbase)xl_destroy_table); xl_destroy_key != NULL; xl_destroy_key = (Dict_Key*)xrtAVLTB_IterNext((xavltbase)xl_destroy_table) ) { xvalue xl_destroy_item = *(xvalue*)(&xl_destroy_key[1]); if ( (xl_destroy_item != NULL) && (xl_destroy_item->Type == XVO_DT_CLASS) && (xvoGetClass(xl_destroy_item) != NULL) ) %s(*((%s*)xvoGetClass(xl_destroy_item))); } xrtAVLTB_IterEnd((xavltbase)xl_destroy_table); } } }\n",
 			sVarName,
 			sDestroyName,
 			sClassType
@@ -3455,7 +3484,9 @@ static void __xlCgenClassDestroyMemberFields(XL_CgenContext* pCtx, const XL_MirN
 				pCtx->buf.iIndent += 1;
 				pUnionFieldClass = __xlCgenFindClassInfo(pCtx, pUnionField->sTypeName);
 				if ( (pUnionFieldClass != NULL) && (pUnionFieldClass->bIsObject != 0) ) {
-					__xlCgenClassDestroyCall(pCtx, pUnionField->sTypeName, sFieldExpr);
+					__xlCgenAppendIndent(&pCtx->buf);
+					__xlCgenAppendObjectPayloadDestroyExpr(pCtx, pUnionField->sTypeName, sFieldExpr);
+					__xlCgenAppend(&pCtx->buf, "\n");
 				} else {
 					__xlCgenClassValueDestroyCall(pCtx, pUnionField->sTypeName, sFieldExpr);
 				}
@@ -3890,7 +3921,11 @@ static void __xlCgenClassMemberExpr(XL_CgenContext* pCtx, const XL_MirNode* pNod
 		return;
 	}
 	__xlCgenSanitizeIdentPart(sSafeField, sizeof(sSafeField), pField->sName);
-	bBoxedBase = __xlIsContainerIndexExpr(pCtx, pBase) || __xlIsVarTypeName(sBaseTypeName) || __xlIsVarTypeName(sStorageTypeName);
+	bBoxedBase = __xlIsContainerIndexExpr(pCtx, pBase) ||
+		__xlIsVarTypeName(sBaseTypeName) ||
+		__xlIsVarTypeName(sStorageTypeName) ||
+		(__xlCgenIsObjectClassTypeName(pCtx, sBaseTypeName) &&
+		 !__xlCgenIsDirectObjectSelfValue(pCtx, pBase, sBaseTypeName));
 	if ( __xlCgenIsDirectObjectSelfValue(pCtx, pBase, sBaseTypeName) ) {
 		bBoxedBase = 0;
 	}
@@ -4075,16 +4110,29 @@ static int __xlCgenClassUnionMemberAssign(XL_CgenContext* pCtx, const XL_MirNode
 		if ( __xlCgenClassHasDestroy(pCtx, pField->sTypeName) ) {
 			char sDestroyName[256];
 
-			__xlCgenClassDestroySymbolName(sDestroyName, sizeof(sDestroyName), pField->sTypeName);
-			__xlCgenAppendFormat(&pCtx->buf, "if ( (%s != NULL) && (%s->%s == %d) ) { %s(&(%s->%s.%s)); } else ",
-				sSelfName,
-				sSelfName,
-				sTagName,
-				pField->iUnionIndex,
-				sDestroyName,
-				sSelfName,
-				sSafeUnion,
-				sSafeField);
+			if ( __xlCgenIsObjectClassTypeName(pCtx, pField->sTypeName) ) {
+				char sFieldExpr[320];
+
+				snprintf(sFieldExpr, sizeof(sFieldExpr), "%s->%s.%s", sSelfName, sSafeUnion, sSafeField);
+				__xlCgenAppendFormat(&pCtx->buf, "if ( (%s != NULL) && (%s->%s == %d) ) { ",
+					sSelfName,
+					sSelfName,
+					sTagName,
+					pField->iUnionIndex);
+				__xlCgenAppendObjectPayloadDestroyExpr(pCtx, pField->sTypeName, sFieldExpr);
+				__xlCgenAppend(&pCtx->buf, " } else ");
+			} else {
+				__xlCgenClassDestroySymbolName(sDestroyName, sizeof(sDestroyName), pField->sTypeName);
+				__xlCgenAppendFormat(&pCtx->buf, "if ( (%s != NULL) && (%s->%s == %d) ) { %s(&(%s->%s.%s)); } else ",
+					sSelfName,
+					sSelfName,
+					sTagName,
+					pField->iUnionIndex,
+					sDestroyName,
+					sSelfName,
+					sSafeUnion,
+					sSafeField);
+			}
 		}
 		__xlCgenAppendFormat(&pCtx->buf, "if ( (%s != NULL) && (%s->%s != %d) ) { switch ( %s->%s ) { ",
 			sSelfName,
@@ -4105,14 +4153,23 @@ static int __xlCgenClassUnionMemberAssign(XL_CgenContext* pCtx, const XL_MirNode
 				char sDestroyName[256];
 				char sOldSafeField[128];
 
-				__xlCgenClassDestroySymbolName(sDestroyName, sizeof(sDestroyName), pUnionField->sTypeName);
 				__xlCgenSanitizeIdentPart(sOldSafeField, sizeof(sOldSafeField), pUnionField->sName);
-				__xlCgenAppendFormat(&pCtx->buf, "case %d: %s(&(%s->%s.%s)); break; ",
-					pUnionField->iUnionIndex,
-					sDestroyName,
-					sSelfName,
-					sSafeUnion,
-					sOldSafeField);
+				if ( __xlCgenIsObjectClassTypeName(pCtx, pUnionField->sTypeName) ) {
+					char sFieldExpr[320];
+
+					snprintf(sFieldExpr, sizeof(sFieldExpr), "%s->%s.%s", sSelfName, sSafeUnion, sOldSafeField);
+					__xlCgenAppendFormat(&pCtx->buf, "case %d: ", pUnionField->iUnionIndex);
+					__xlCgenAppendObjectPayloadDestroyExpr(pCtx, pUnionField->sTypeName, sFieldExpr);
+					__xlCgenAppend(&pCtx->buf, " break; ");
+				} else {
+					__xlCgenClassDestroySymbolName(sDestroyName, sizeof(sDestroyName), pUnionField->sTypeName);
+					__xlCgenAppendFormat(&pCtx->buf, "case %d: %s(&(%s->%s.%s)); break; ",
+						pUnionField->iUnionIndex,
+						sDestroyName,
+						sSelfName,
+						sSafeUnion,
+						sOldSafeField);
+				}
 			}
 		}
 		__xlCgenAppendFormat(&pCtx->buf,
@@ -7245,7 +7302,11 @@ static void __xlCgenGeneratorFieldCleanup(
 		__xlCgenAppendIndent(&pCtx->buf);
 		__xlCgenAppendFormat(&pCtx->buf, "if ( %s->xl_init_%s ) {\n", sSelfName, pField->sName);
 		pCtx->buf.iIndent += 1;
-		__xlCgenClassValueDestroyCall(pCtx, pField->sTypeName, sFieldExpr);
+		if ( __xlCgenIsObjectClassTypeName(pCtx, pField->sTypeName) ) {
+			__xlCgenClassDestroyCall(pCtx, pField->sTypeName, sFieldExpr);
+		} else {
+			__xlCgenClassValueDestroyCall(pCtx, pField->sTypeName, sFieldExpr);
+		}
 		__xlCgenAppendIndent(&pCtx->buf);
 		__xlCgenAppendFormat(&pCtx->buf, "%s->xl_init_%s = 0;\n", sSelfName, pField->sName);
 		pCtx->buf.iIndent -= 1;
@@ -7639,7 +7700,10 @@ static int __xlCgenEmitClassCopyExpr(XL_CgenContext* pCtx, const XL_MirNode* pNo
 
 	sStorageTypeName = __xlStorageTypeName(pCtx, pNode);
 	bObjectClass = __xlCgenIsObjectClassTypeName(pCtx, sExpectedTypeName);
-	bNeedsUnbox = __xlIsContainerIndexExpr(pCtx, pNode) || __xlIsVarTypeName(sActualTypeName) || __xlIsVarTypeName(sStorageTypeName);
+	bNeedsUnbox = __xlIsContainerIndexExpr(pCtx, pNode) ||
+		__xlIsVarTypeName(sActualTypeName) ||
+		__xlIsVarTypeName(sStorageTypeName) ||
+		(bObjectClass && !__xlCgenIsDirectObjectSelfValue(pCtx, pNode, sExpectedTypeName));
 	if ( (pCtx == NULL) || (!__xlCgenIsClassCopySourceExpr(pNode) && !__xlIsContainerIndexExpr(pCtx, pNode)) ||
 		!__xlCgenIsClassTypeName(pCtx, sExpectedTypeName) ||
 		(sActualTypeName == NULL) ||
@@ -13793,7 +13857,11 @@ static void __xlCgenObjectIndex(XL_CgenContext* pCtx, const XL_MirNode* pNode)
 	sBaseTypeName = __xlResolvedBaseTypeName(pCtx, pBase);
 	sStorageTypeName = __xlStorageTypeName(pCtx, pBase);
 	pClass = __xlCgenFindClassInfo(pCtx, sBaseTypeName);
-	bBoxedBase = __xlIsContainerIndexExpr(pCtx, pBase) || __xlIsVarTypeName(sBaseTypeName) || __xlIsVarTypeName(sStorageTypeName);
+	bBoxedBase = __xlIsContainerIndexExpr(pCtx, pBase) ||
+		__xlIsVarTypeName(sBaseTypeName) ||
+		__xlIsVarTypeName(sStorageTypeName) ||
+		(__xlCgenIsObjectClassTypeName(pCtx, sBaseTypeName) &&
+		 !__xlCgenIsDirectObjectSelfValue(pCtx, pBase, sBaseTypeName));
 	snprintf(sSelfName, sizeof(sSelfName), "xl_object_index_self_%d_%d", pNode->iLine, pNode->iColumn);
 	snprintf(sKeyName, sizeof(sKeyName), "xl_object_index_key_%d_%d", pNode->iLine, pNode->iColumn);
 
@@ -13981,7 +14049,7 @@ static void __xlCgenIndexAssign(XL_CgenContext* pCtx, const XL_MirNode* pLeft, c
 		__xlCgenAppend(&pCtx->buf, "; xvalue ");
 		__xlCgenAppend(&pCtx->buf, sValueName);
 		__xlCgenAppend(&pCtx->buf, " = ");
-		__xlCgenBoxValueExpr(pCtx, pRight);
+		__xlCgenBoxExprAsType(pCtx, pRight, sValueTypeName);
 		__xlCgenAppend(&pCtx->buf, "; ");
 		if ( pClass != NULL ) {
 			__xlCgenClassTypeName(sClassType, sizeof(sClassType), sBaseTypeName);
@@ -14035,7 +14103,7 @@ static void __xlCgenIndexAssign(XL_CgenContext* pCtx, const XL_MirNode* pLeft, c
 		__xlCgenAppend(&pCtx->buf, "; xvalue ");
 		__xlCgenAppend(&pCtx->buf, sValueName);
 		__xlCgenAppend(&pCtx->buf, " = ");
-		__xlCgenBoxValueExpr(pCtx, pRight);
+		__xlCgenBoxExprAsType(pCtx, pRight, sValueTypeName);
 		if ( bDestroyOldClassValue ) {
 			__xlCgenAppend(&pCtx->buf, "; xvalue ");
 			__xlCgenAppend(&pCtx->buf, sOldName);
@@ -14094,7 +14162,7 @@ static void __xlCgenIndexAssign(XL_CgenContext* pCtx, const XL_MirNode* pLeft, c
 	__xlCgenAppend(&pCtx->buf, "); xvalue ");
 	__xlCgenAppend(&pCtx->buf, sValueName);
 	__xlCgenAppend(&pCtx->buf, " = ");
-	__xlCgenBoxValueExpr(pCtx, pRight);
+	__xlCgenBoxExprAsType(pCtx, pRight, sValueTypeName);
 	if ( bDestroyOldClassValue ) {
 		__xlCgenAppend(&pCtx->buf, "; xvalue ");
 		__xlCgenAppend(&pCtx->buf, sOldName);
@@ -14764,7 +14832,11 @@ static void __xlCgenExprAsReceiverType(XL_CgenContext* pCtx, const XL_MirNode* p
 	sActualTypeName = __xlInferExprTypeName(pCtx, pNode);
 	sStorageTypeName = __xlStorageTypeName(pCtx, pNode);
 	__xlCgenClassTypeName(sClassType, sizeof(sClassType), sExpectedTypeName);
-	if ( __xlIsContainerIndexExpr(pCtx, pNode) || __xlIsVarTypeName(sActualTypeName) || __xlIsVarTypeName(sStorageTypeName) ) {
+	if ( __xlIsContainerIndexExpr(pCtx, pNode) ||
+		__xlIsVarTypeName(sActualTypeName) ||
+		__xlIsVarTypeName(sStorageTypeName) ||
+		(__xlCgenIsObjectClassTypeName(pCtx, sExpectedTypeName) &&
+		 !__xlCgenIsDirectObjectSelfValue(pCtx, pNode, sExpectedTypeName)) ) {
 		if ( __xlCgenIsObjectClassTypeName(pCtx, sExpectedTypeName) ) {
 			__xlCgenAppendFormat(&pCtx->buf, "((%s*)xvoGetClass((xvalue)(", sClassType);
 			__xlCgenExpr(pCtx, pNode);
@@ -16026,14 +16098,14 @@ static void __xlCgenContainerMethodCall(XL_CgenContext* pCtx, const XL_MirNode* 
 			__xlCgenAppend(&pCtx->buf, " = (xvalue)(");
 			__xlCgenExpr(pCtx, pBase);
 			__xlCgenAppend(&pCtx->buf, "); xvalue xl_set_item = ");
-			__xlCgenBoxValueExpr(pCtx, pArg0);
+			__xlCgenBoxExprAsType(pCtx, pArg0, sValueTypeName);
 			__xlCgenAppend(&pCtx->buf, "; xavltree xl_set_tree = xvoGetColl(");
 			__xlCgenAppend(&pCtx->buf, sBaseName);
 			__xlCgenAppend(&pCtx->buf, "); Coll_Key* ");
 			__xlCgenAppend(&pCtx->buf, sOldName);
-			__xlCgenAppend(&pCtx->buf, " = NULL; if ( (xl_set_tree != NULL) && (xvoGetClass(xl_set_item) != NULL) ) { Coll_Key* xl_set_scan; xrtAVLTreeIterBegin(xl_set_tree); for ( xl_set_scan = (Coll_Key*)xrtAVLTreeIterNext(xl_set_tree); xl_set_scan != NULL; xl_set_scan = (Coll_Key*)xrtAVLTreeIterNext(xl_set_tree) ) { if ( (xl_set_scan->Value != NULL) && (xl_set_scan->Value->Type == XVO_DT_CLASS) && (xvoGetClass(xl_set_scan->Value) != NULL) && (memcmp(xvoGetClass(xl_set_scan->Value), xvoGetClass(xl_set_item), sizeof(");
+			__xlCgenAppend(&pCtx->buf, " = NULL; if ( (xl_set_tree != NULL) && (xvoGetClass(xl_set_item) != NULL) ) { Coll_Key* xl_set_scan; xrtAVLTreeIterBegin(xl_set_tree); for ( xl_set_scan = (Coll_Key*)xrtAVLTreeIterNext(xl_set_tree); xl_set_scan != NULL; xl_set_scan = (Coll_Key*)xrtAVLTreeIterNext(xl_set_tree) ) { if ( (xl_set_scan->Value != NULL) && (xl_set_scan->Value->Type == XVO_DT_CLASS) && (xvoGetClass(xl_set_scan->Value) != NULL) && (memcmp(((const char*)xvoGetClass(xl_set_scan->Value)) + sizeof(XL_ObjectHeader), ((const char*)xvoGetClass(xl_set_item)) + sizeof(XL_ObjectHeader), sizeof(");
 			__xlCgenAppend(&pCtx->buf, sClassType);
-			__xlCgenAppend(&pCtx->buf, ")) == 0) ) { ");
+			__xlCgenAppend(&pCtx->buf, ") - sizeof(XL_ObjectHeader)) == 0) ) { ");
 			__xlCgenAppend(&pCtx->buf, sOldName);
 			__xlCgenAppend(&pCtx->buf, " = xl_set_scan; break; } } xrtAVLTreeIterEnd(xl_set_tree); } int xl_set_removed = 0; if ( (");
 			__xlCgenAppend(&pCtx->buf, sOldName);
@@ -16049,7 +16121,7 @@ static void __xlCgenContainerMethodCall(XL_CgenContext* pCtx, const XL_MirNode* 
 			__xlCgenAppend(&pCtx->buf, sClassType);
 			__xlCgenAppend(&pCtx->buf, "*)xvoGetClass(");
 			__xlCgenAppend(&pCtx->buf, sOldName);
-			__xlCgenAppend(&pCtx->buf, "->Value))); if ( (");
+			__xlCgenAppend(&pCtx->buf, "->Value)); if ( (");
 			__xlCgenAppend(&pCtx->buf, sOldName);
 			__xlCgenAppend(&pCtx->buf, " != NULL) ) { xl_set_removed = xl_set_remove(");
 			__xlCgenAppend(&pCtx->buf, sBaseName);
@@ -17069,7 +17141,11 @@ static void __xlCgenObjectMethodCall(XL_CgenContext* pCtx, const XL_MirNode* pNo
 	sStorageTypeName = __xlStorageTypeName(pCtx, pBase);
 	sMethodName = __xlObjectMethodName(pNode);
 	sResultTypeName = __xlInferExprTypeName(pCtx, pNode);
-	bBoxedBase = __xlIsContainerIndexExpr(pCtx, pBase) || __xlIsVarTypeName(sBaseTypeName) || __xlIsVarTypeName(sStorageTypeName);
+	bBoxedBase = __xlIsContainerIndexExpr(pCtx, pBase) ||
+		__xlIsVarTypeName(sBaseTypeName) ||
+		__xlIsVarTypeName(sStorageTypeName) ||
+		(__xlCgenIsObjectClassTypeName(pCtx, sBaseTypeName) &&
+		 !__xlCgenIsDirectObjectSelfValue(pCtx, pBase, sBaseTypeName));
 	__xlCgenClassTypeName(sClassType, sizeof(sClassType), sBaseTypeName);
 	__xlCgenObjectTypeInfoSymbolName(sTypeInfo, sizeof(sTypeInfo), sBaseTypeName);
 	__xlCgenObjectVisibleExistsSymbolName(sExistsHelper, sizeof(sExistsHelper), sBaseTypeName);
@@ -19137,7 +19213,14 @@ static int __xlCgenEmitMoveIntrinsicExpr(XL_CgenContext* pCtx, const XL_MirNode*
 		__xlCgenExpr(pCtx, pArg);
 		return 1;
 	}
-	__xlCgenStorageCTypeName(pCtx, sTypeName, sCTypeName, sizeof(sCTypeName));
+	if ( __xlCgenIsObjectClassTypeName(pCtx, sTypeName) ) {
+		snprintf(sCTypeName, sizeof(sCTypeName), "xvalue");
+	} else {
+		__xlCgenStorageCTypeName(pCtx, sTypeName, sCTypeName, sizeof(sCTypeName));
+		if ( sCTypeName[0] == '\0' ) {
+			snprintf(sCTypeName, sizeof(sCTypeName), "%s", __xlCTypeName(sTypeName));
+		}
+	}
 	snprintf(sTempName, sizeof(sTempName), "xl_move_value_%d_%d", pNode->iLine, pNode->iColumn);
 	__xlCgenAppendFormat(&pCtx->buf, "({ %s %s = ", sCTypeName, sTempName);
 	__xlCgenExpr(pCtx, pArg);
@@ -20142,6 +20225,11 @@ static void __xlCgenExpr(XL_CgenContext* pCtx, const XL_MirNode* pNode)
 	if ( (pNode->iChildCount == 0) && (pNode->sTypeName != NULL) && (strcmp(pNode->sTypeName, "string") == 0) &&
 		((pNode->sText == NULL) || (pNode->sText[0] == '\0')) ) {
 		__xlCgenAppendCString(&pCtx->buf, "");
+		return;
+	}
+	if ( (pNode->iChildCount == 0) && (pNode->iSymbolIndex < 0) &&
+		__xlIsIntegerTypeName(pNode->sTypeName) && (pNode->sText != NULL) && (pNode->sText[0] != '\0') ) {
+		__xlCgenAppendFormat(&pCtx->buf, "%lld", (long long)pNode->iIntValue);
 		return;
 	}
 	if ( (pNode->iChildCount == 0) && (pNode->sTypeName != NULL) && (strcmp(pNode->sTypeName, "time") == 0) &&
@@ -23385,8 +23473,10 @@ static void __xlCgenAsyncLinearStateFieldStore(XL_CgenContext* pCtx, const XL_Mi
 		pCtx->buf.iIndent += 1;
 		__xlCgenAppendIndent(&pCtx->buf);
 		__xlCgenAppendFormat(&pCtx->buf, "%s xl_async_store_%s = %s;\n", sCTypeName, sName, sName);
-		__xlCgenAppendIndent(&pCtx->buf);
-		__xlCgenAppendFormat(&pCtx->buf, "if ( xl_async_store_%s != NULL ) xl_object_retain((xvalue)(xl_async_store_%s));\n", sName, sName);
+		if ( pNode->eKind == XL_MIR_BIND ) {
+			__xlCgenAppendIndent(&pCtx->buf);
+			__xlCgenAppendFormat(&pCtx->buf, "if ( xl_async_store_%s != NULL ) xl_object_retain((xvalue)(xl_async_store_%s));\n", sName, sName);
+		}
 		__xlCgenAsyncLinearStateFieldRelease(pCtx, pNode, sStateName);
 		__xlCgenAppendIndent(&pCtx->buf);
 		__xlCgenAppendFormat(&pCtx->buf, "%s->%s = xl_async_store_%s;\n", sStateName, sName, sName);
@@ -25001,6 +25091,9 @@ static int __xlCgenExprReplacingAwait(
 			((strcmp(pNode->sText, "+") == 0) || (strcmp(pNode->sText, "-") == 0) ||
 			(strcmp(pNode->sText, "*") == 0) || (strcmp(pNode->sText, "/") == 0) ||
 			(strcmp(pNode->sText, "%") == 0) || (strcmp(pNode->sText, "**") == 0) ||
+			(strcmp(pNode->sText, "&") == 0) || (strcmp(pNode->sText, "|") == 0) ||
+			(strcmp(pNode->sText, "^") == 0) || (strcmp(pNode->sText, "<<") == 0) ||
+			(strcmp(pNode->sText, ">>") == 0) ||
 			(strcmp(pNode->sText, "==") == 0) || (strcmp(pNode->sText, "!=") == 0) ||
 			(strcmp(pNode->sText, ">") == 0) || (strcmp(pNode->sText, ">=") == 0) ||
 			(strcmp(pNode->sText, "<") == 0) || (strcmp(pNode->sText, "<=") == 0)) ) {

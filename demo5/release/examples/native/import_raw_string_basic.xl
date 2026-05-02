@@ -1,0 +1,8 @@
+import r"std/str"
+
+func main() as int
+	if str.contains("alphabet", "pha") then
+		return 42
+	end
+	return 0
+end

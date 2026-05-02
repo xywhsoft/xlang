@@ -1,0 +1,8 @@
+func main() as int
+	string path = r"c:\temp\xlang"
+	string single = 'a\b'
+	if path == "c:\\temp\\xlang" and single == "a\\b" then
+		return 42
+	end
+	return 0
+end

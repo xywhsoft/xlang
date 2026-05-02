@@ -2383,6 +2383,7 @@ static int __xlTestParseImportAlias(XL_TestContext* pCtx) { return __xlRunParseD
 static int __xlTestParseCryptoBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\native\\crypto_basic.xl", 1, XL_AST_CALL); }
 static int __xlTestParseImportMulti(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\native\\import_multi_basic.xl", 1, XL_AST_IMPORT); }
 static int __xlTestParseImportString(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\native\\import_string_basic.xl", 1, XL_AST_IMPORT, "text=\"\\\"std/str\\\"\""); }
+static int __xlTestParseImportRawString(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\native\\import_raw_string_basic.xl", 1, XL_AST_IMPORT, "text=\"\\\"std/str\\\"\""); }
 static int __xlTestParseIoPlusBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\native\\io_plus_basic.xl", 1, XL_AST_CALL); }
 static int __xlTestParseStrFmtPlusBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\native\\str_fmt_plus_basic.xl", 1, XL_AST_CALL); }
 static int __xlTestParseTimePlusBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\native\\time_plus_basic.xl", 1, XL_AST_CALL); }
@@ -2574,6 +2575,9 @@ static int __xlTestParseCoalesceBasic(XL_TestContext* pCtx) { return __xlRunPars
 static int __xlTestParseNullAssignBasic(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\full\\null_assign_basic.xl", 1, XL_AST_ASSIGN, "text=\"?=\""); }
 static int __xlTestParseTernaryBasic(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\full\\ternary_basic.xl", 1, XL_AST_TERNARY, "text=\"?:\""); }
 static int __xlTestParseApproxBasic(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\full\\approx_basic.xl", 1, XL_AST_BINARY, "text=\"~=\""); }
+static int __xlTestParseRawStringBasic(XL_TestContext* pCtx) { return __xlRunParseCase(pCtx, "examples\\full\\raw_string_basic.xl", 1, XL_AST_STRING); }
+static int __xlTestParseIntBaseLiteralsBasic(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\full\\int_base_literals_basic.xl", 1, XL_AST_INT, "int=16"); }
+static int __xlTestParseBitOpsBasic(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\full\\bit_ops_basic.xl", 1, XL_AST_BINARY, "text=\"<<\""); }
 static int __xlTestParseLogicBasic(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\full\\logic_basic.xl", 1, XL_AST_BINARY, "text=\"or\""); }
 static int __xlTestParseBytesAliasString(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\full\\bytes_alias_string.xl", 1, XL_AST_TYPE_REF, "text=\"string\""); }
 static int __xlTestParseTemplateBasic(XL_TestContext* pCtx) { return __xlRunParseDumpCase(pCtx, "examples\\full\\template_basic.xl", 1, XL_AST_TEMPLATE, "text=\"\\\"he\\\\\\\"llo\\\"\""); }
@@ -2856,6 +2860,7 @@ static int __xlTestSemEnvBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCt
 static int __xlTestSemCryptoBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\crypto_basic.xl", 1, "int"); }
 static int __xlTestSemImportMulti(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\import_multi_basic.xl", 1, "int"); }
 static int __xlTestSemImportString(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\import_string_basic.xl", 1, "int"); }
+static int __xlTestSemImportRawString(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\import_raw_string_basic.xl", 1, "int"); }
 static int __xlTestSemEncodeBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\encode_basic.xl", 1, "int"); }
 static int __xlTestSemHashBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\hash_basic.xl", 1, "int"); }
 static int __xlTestSemSystemPlusBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\native\\system_plus_basic.xl", 1, "int"); }
@@ -5382,6 +5387,11 @@ static int __xlTestSemTernaryBasic(XL_TestContext* pCtx) { return __xlRunSemCase
 static int __xlTestSemTernaryTypeError(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\sem\\ternary_type_error.xl", 0, NULL); }
 static int __xlTestSemApproxBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\approx_basic.xl", 1, "int"); }
 static int __xlTestSemApproxTypeError(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\sem\\approx_type_error.xl", 0, NULL); }
+static int __xlTestSemRawStringBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\raw_string_basic.xl", 1, "int"); }
+static int __xlTestSemIntBaseLiteralsBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\int_base_literals_basic.xl", 1, "int"); }
+static int __xlTestSemBitOpsBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\bit_ops_basic.xl", 1, "int"); }
+static int __xlTestSemBitOpsFloatError(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\sem\\bit_ops_float_error.xl", 0, NULL); }
+static int __xlTestSemBitNotBoolError(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\sem\\bit_not_bool_error.xl", 0, NULL); }
 static int __xlTestSemLogicBasic(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\full\\logic_basic.xl", 1, "int"); }
 static int __xlTestSemLogicTypeError(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\sem\\logic_type_error.xl", 0, NULL); }
 static int __xlTestSemNotTypeError(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\sem\\not_type_error.xl", 0, NULL); }
@@ -6500,6 +6510,7 @@ static int __xlTestCgenNative(XL_TestContext* pCtx) { return __xlRunCgenCase(pCt
 static int __xlTestCgenImportAlias(XL_TestContext* pCtx) { return __xlRunCgenCase(pCtx, "examples\\native\\import_alias_basic.xl", "xl_str_contains(\"alphabet\", \"pha\")"); }
 static int __xlTestCgenImportMulti(XL_TestContext* pCtx) { return __xlRunCgenCase(pCtx, "examples\\native\\import_multi_basic.xl", "xl_fmt_int_text(42"); }
 static int __xlTestCgenImportString(XL_TestContext* pCtx) { return __xlRunCgenCase(pCtx, "examples\\native\\import_string_basic.xl", "xl_str_contains(\"alphabet\", \"pha\")"); }
+static int __xlTestCgenImportRawString(XL_TestContext* pCtx) { return __xlRunCgenCase(pCtx, "examples\\native\\import_raw_string_basic.xl", "xl_str_contains(\"alphabet\", \"pha\")"); }
 static int __xlTestCgenExportFunc(XL_TestContext* pCtx) { return __xlRunCgenCase(pCtx, "examples\\module\\use_math_export_func.xl", "xl_mod_math_export_func__"); }
 static int __xlTestCgenExportValues(XL_TestContext* pCtx) { return __xlRunCgenCase(pCtx, "examples\\module\\use_math_export_values.xl", "xl_mod_math_export_values__"); }
 static int __xlTestCgenTypedDecl(XL_TestContext* pCtx)
@@ -6654,6 +6665,36 @@ static int __xlTestCgenApproxBasic(XL_TestContext* pCtx)
 
 	return __xlRunCgenCaseAll(pCtx, "examples\\full\\approx_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
 }
+static int __xlTestCgenRawStringBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"const char* path = \"c:\\\\temp\\\\xlang\";",
+		"const char* single = \"a\\\\b\";"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\full\\raw_string_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenIntBaseLiteralsBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"int hex = 16;",
+		"int oct = 8;",
+		"int bin = 2;"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\full\\int_base_literals_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
+static int __xlTestCgenBitOpsBasic(XL_TestContext* pCtx)
+{
+	static const char* const aNeedles[] = {
+		"int low = (mask & 3);",
+		"int high = (mask | 5);",
+		"int flip = (high ^ 3);",
+		"int inverted = (~0);"
+	};
+
+	return __xlRunCgenCaseAll(pCtx, "examples\\full\\bit_ops_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
+}
 static int __xlTestCgenIfInlineBasic(XL_TestContext* pCtx)
 {
 	static const char* const aNeedles[] = {
@@ -6699,7 +6740,7 @@ static int __xlTestCgenVarBasic(XL_TestContext* pCtx)
 {
 	static const char* const aNeedles[] = {
 		"xvalue value = xvoCreateInt((int64)(40));",
-		"(value = xvoCreateInt((int64)(41)))",
+		"xvalue xl_var_assign_new = xvoCreateInt((int64)(41)); value = xl_var_assign_new;",
 		"int local = ((int)xvoGetInt((xvalue)(v)));",
 		"xvalue xl_ret_2_2 = xvoCopy((xvalue)(v));",
 		"xvoCanCompareBasic(xl_cmp_left, xl_cmp_right)"
@@ -6712,7 +6753,7 @@ static int __xlTestCgenArrayBasic(XL_TestContext* pCtx)
 	static const char* const aNeedles[] = {
 		"xvalue values = ({ xvalue xl_arr_literal = xvoCreateArray();",
 		"xvoArrayAppendValue(xl_arr_literal, xvoCreateInt((int64)(40)), TRUE);",
-		"xvoArrayGetInt((xvalue)(values), (uint32)(0))"
+		"xvoGetInt((xvalue)(xvoArrayGetValue((xvalue)(values), (uint32)(0))))"
 	};
 
 	return __xlRunCgenCaseAll(pCtx, "examples\\full\\array_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
@@ -6722,7 +6763,7 @@ static int __xlTestCgenListBasic(XL_TestContext* pCtx)
 	static const char* const aNeedles[] = {
 		"xvalue values = ({ xvalue xl_list_ctor = xvoCreateList();",
 		"xvoListSetValue(xl_list_ctor, (int64)(0), xvoCreateInt((int64)(40)), TRUE);",
-		"xvoListGetInt((xvalue)(values), (int64)(0))"
+		"xvoGetInt((xvalue)(xvoListGetValue((xvalue)(values), (int64)(0))))"
 	};
 
 	return __xlRunCgenCaseAll(pCtx, "examples\\full\\list_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
@@ -6755,8 +6796,8 @@ static int __xlTestCgenMultiReturnBasic(XL_TestContext* pCtx)
 {
 	static const char* const aNeedles[] = {
 		"__ret__array_x3Cvar_x3E",
-		"xvoArrayGetInt((xvalue)(xl_unpack_",
-		"xvoArrayGetText((xvalue)(xl_unpack_"
+		"xvoGetInt((xvalue)(xvoArrayGetValue((xvalue)(xl_unpack_",
+		"xvoGetText((xvalue)(xvoArrayGetValue((xvalue)(xl_unpack_"
 	};
 
 	return __xlRunCgenCaseAll(pCtx, "examples\\full\\multi_return_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
@@ -6851,8 +6892,8 @@ static int __xlTestCgenAnonymousFunctionMultiReturnBasic(XL_TestContext* pCtx)
 	static const char* const aNeedles[] = {
 		"xvalue pair = xvoCreateFunc((xfunction)xl____lambda_2_14__arity0__ret__array_x3Cvar_x3E__boxed);",
 		"xvalue xl_unpack_5_2 = ({ xvalue xl_call_args = xvoCreateArray();",
-		"int number = xvoArrayGetInt((xvalue)(xl_unpack_5_2), (uint32)(0));",
-		"const char* text = xvoArrayGetText((xvalue)(xl_unpack_5_2), (uint32)(1));"
+		"int number = ((int)xvoGetInt((xvalue)(xvoArrayGetValue((xvalue)(xl_unpack_5_2), (uint32)(0)))));",
+		"const char* text = ((const char*)xvoGetText((xvalue)(xvoArrayGetValue((xvalue)(xl_unpack_5_2), (uint32)(1)))));"
 	};
 
 	return __xlRunCgenCaseAll(pCtx, "examples\\full\\anonymous_function_multi_return_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
@@ -6946,7 +6987,7 @@ static int __xlTestCgenClosureContainerVarBasic(XL_TestContext* pCtx)
 		"xvoCreateFuncEx((xfunction)xl____lambda_3_13__arity0__ret__int__boxed, xl_closure_env)",
 		"xvalue holders = ({ xvalue xl_arr_literal = xvoCreateArray();",
 		"xvoArrayAppendValue(xl_arr_literal,",
-		"xvalue dyn = xvoCopy((xvalue)(xvoCopy((xvalue)(xvoArrayGetValue((xvalue)(holders), (uint32)(0))))));",
+		"xvalue dyn = xvoCopy((xvalue)(xvoCopy((xvalue)((xvoArrayGetValue((xvalue)(holders), (uint32)(0)))))));",
 		"xvoGetFuncEnv(xl_call_callee)"
 	};
 
@@ -7009,9 +7050,9 @@ static int __xlTestCgenClassStage1AsyncContainerStateRuntime(XL_TestContext* pCt
 	static const char* const aNeedles[] = {
 		"xvalue values;",
 		"xl_async_state_2->values = xl_async_store_values;",
-		"xl_class_AsyncItem__destroy(pState->item);",
+		"if ( ((xvalue)(item) != NULL) ) xl_object_release((xvalue)(item));",
 		"xvoArrayItemCount(xl_destroy_container)",
-		"xl_class_AsyncItem__destroy(*((XL_Class_AsyncItem*)xvoGetClass(xl_destroy_item)))"
+		"if ( xl_destroy_item != NULL ) xl_object_destroy_if_last(xl_destroy_item);"
 	};
 
 	return __xlRunCgenCaseAll(pCtx, "examples\\async\\class_stage1_async_container_state_runtime.xl", aNeedles, XL_COUNTOF(aNeedles));
@@ -7020,9 +7061,9 @@ static int __xlTestCgenClassStage1AsyncContainerThrowCleanupRuntime(XL_TestConte
 {
 	static const char* const aNeedles[] = {
 		"xvalue values =",
-		"xl_class_AsyncThrowItem__destroy(item);",
+		"if ( ((xvalue)(item) != NULL) ) xl_object_release((xvalue)(item));",
 		"xvoArrayItemCount(xl_destroy_container)",
-		"xl_class_AsyncThrowItem__destroy(*((XL_Class_AsyncThrowItem*)xvoGetClass(xl_destroy_item)))"
+		"if ( xl_destroy_item != NULL ) xl_object_destroy_if_last(xl_destroy_item);"
 	};
 
 	return __xlRunCgenCaseAll(pCtx, "examples\\async\\class_stage1_async_container_throw_cleanup_runtime.xl", aNeedles, XL_COUNTOF(aNeedles));
@@ -7030,12 +7071,12 @@ static int __xlTestCgenClassStage1AsyncContainerThrowCleanupRuntime(XL_TestConte
 static int __xlTestCgenClassStage1AsyncLocalDefaultCreateRuntime(XL_TestContext* pCtx)
 {
 	static const char* const aNeedles[] = {
-		"XL_Class_AsyncDefaultBox box;",
+		"xvalue box;",
 		"int xl_init_box;",
 		"xl_class_AsyncDefaultBox__create__",
-		"((XL_Class_AsyncDefaultBox){0})",
+		"xvoCreateClass((uint32)sizeof(XL_Class_AsyncDefaultBox))",
 		"xl_async_state_1->xl_init_box = 1;",
-		"xl_class_AsyncDefaultBox__destroy(pState->box);"
+		"if ( ((xvalue)(pState->box) != NULL) ) xl_object_release((xvalue)(pState->box));"
 	};
 
 	return __xlRunCgenCaseAll(pCtx, "examples\\async\\class_stage1_async_local_default_create_runtime.xl", aNeedles, XL_COUNTOF(aNeedles));
@@ -7043,11 +7084,11 @@ static int __xlTestCgenClassStage1AsyncLocalDefaultCreateRuntime(XL_TestContext*
 static int __xlTestCgenClassStage1AsyncCopyRuntime(XL_TestContext* pCtx)
 {
 	static const char* const aNeedles[] = {
-		"XL_Class_AsyncCopyBox source;",
-		"XL_Class_AsyncCopyBox copied",
-		"xl__copy__arity1__self__AsyncCopyBox__ret__AsyncCopyBox(source)",
-		"xl_class_AsyncCopyBox__destroy(copied);",
-		"xl_class_AsyncCopyBox__destroy(pState->source);"
+		"xvalue source;",
+		"xvalue copied",
+		"xl__copy__arity1__self__AsyncCopyBox__ret__AsyncCopyBox(((XL_Class_AsyncCopyBox*)xvoGetClass((xvalue)(source))))",
+		"if ( ((xvalue)(copied) != NULL) ) xl_object_release((xvalue)(copied));",
+		"if ( ((xvalue)(pState->source) != NULL) ) xl_object_release((xvalue)(pState->source));"
 	};
 
 	return __xlRunCgenCaseAll(pCtx, "examples\\async\\class_stage1_async_copy_runtime.xl", aNeedles, XL_COUNTOF(aNeedles));
@@ -7055,11 +7096,11 @@ static int __xlTestCgenClassStage1AsyncCopyRuntime(XL_TestContext* pCtx)
 static int __xlTestCgenClassStage1AsyncPostContainerCopyRuntime(XL_TestContext* pCtx)
 {
 	static const char* const aNeedles[] = {
-		"XL_Class_AsyncPostContainerBox source;",
+		"xvalue source;",
 		"xvalue values =",
-		"xl__copy__arity1__self__AsyncPostContainerBox__ret__AsyncPostContainerBox(source)",
-		"xl_class_AsyncPostContainerBox__destroy(*((XL_Class_AsyncPostContainerBox*)xvoGetClass(xl_destroy_item)))",
-		"xl_class_AsyncPostContainerBox__destroy(pState->source);"
+		"xl__copy__arity1__self__AsyncPostContainerBox__ret__AsyncPostContainerBox(((XL_Class_AsyncPostContainerBox*)xvoGetClass((xvalue)(source))))",
+		"if ( xl_destroy_item != NULL ) xl_object_destroy_if_last(xl_destroy_item);",
+		"if ( ((xvalue)(pState->source) != NULL) ) xl_object_release((xvalue)(pState->source));"
 	};
 
 	return __xlRunCgenCaseAll(pCtx, "examples\\async\\class_stage1_async_post_container_copy_runtime.xl", aNeedles, XL_COUNTOF(aNeedles));
@@ -7068,9 +7109,9 @@ static int __xlTestCgenClassStage1AsyncContainerReturnEscapeRuntime(XL_TestConte
 {
 	static const char* const aNeedles[] = {
 		"xvalue values =",
-		"xl__copy__arity1__self__AsyncReturnBox__ret__AsyncReturnBox(a)",
+		"xl__copy__arity1__self__AsyncReturnBox__ret__AsyncReturnBox(((XL_Class_AsyncReturnBox*)xvoGetClass((xvalue)(a))))",
 		"xl_generated_promise_resolve_ptr(pState->pPromise, xl_async_ret_",
-		"xl_class_AsyncReturnBox__destroy(pState->a);"
+		"if ( ((xvalue)(pState->a) != NULL) ) xl_object_release((xvalue)(pState->a));"
 	};
 
 	return __xlRunCgenCaseAll(pCtx, "examples\\async\\class_stage1_async_container_return_escape_runtime.xl", aNeedles, XL_COUNTOF(aNeedles));
@@ -7079,7 +7120,7 @@ static int __xlTestCgenFunctionValueContainerBasic(XL_TestContext* pCtx)
 {
 	static const char* const aNeedles[] = {
 		"xvoArrayGetValue((xvalue)(arr), (uint32)(0))",
-		"xvalue xl_call_callee = xvoCopy((xvalue)(xvoArrayGetValue((xvalue)(arr), (uint32)(0))));",
+		"xvalue xl_call_callee = xvoCopy((xvalue)((xvoArrayGetValue((xvalue)(arr), (uint32)(0)))));",
 		"xvoArrayGetValue((xvalue)(dyn_arr), (uint32)(0))",
 		"xvoTableGetValue((xvalue)(named)",
 		"xvoTableGetValue((xvalue)(dyn_dict)",
@@ -10327,7 +10368,7 @@ static int __xlTestCgenAsyncContainerListAppendArgAwaitBasic(XL_TestContext* pCt
 		"xvalue values;",
 		"int xl_async_return_await_7_16 = ",
 		"xl_list_append(xl_chain_self, ({ int xl_async_boxed_value = xl_async_return_await_7_16; xvoCreateInt((int64)(xl_async_boxed_value)); }))",
-		"int xl_async_ret_8_2 = (xl_core_len_list(values) + xvoListGetInt((xvalue)(values), (int64)(2)));"
+		"int xl_async_ret_8_2 = (xl_core_len_list(values) + ((int)xvoGetInt((xvalue)(xvoListGetValue((xvalue)(values), (int64)(2))))));"
 	};
 
 	return __xlRunCgenCaseAll(pCtx, "examples\\async\\container_list_append_arg_await_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
@@ -10376,7 +10417,7 @@ static int __xlTestCgenAsyncContainerArrayAppendArgAwaitBasic(XL_TestContext* pC
 		"xvalue values;",
 		"int xl_async_return_await_7_16 = ",
 		"xl_array_append(xl_chain_self, ({ int xl_async_boxed_value = xl_async_return_await_7_16; xvoCreateInt((int64)(xl_async_boxed_value)); }))",
-		"int xl_async_ret_8_2 = (xl_core_len_array(values) + xvoArrayGetInt((xvalue)(values), (uint32)(2)));"
+		"int xl_async_ret_8_2 = (xl_core_len_array(values) + ((int)xvoGetInt((xvalue)(xvoArrayGetValue((xvalue)(values), (uint32)(2))))));"
 	};
 
 	return __xlRunCgenCaseAll(pCtx, "examples\\async\\container_array_append_arg_await_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
@@ -10462,7 +10503,7 @@ static int __xlTestCgenCustomExternMethodRuntime(XL_TestContext* pCtx)
 	static const char* const aNeedles[] = {
 		"extern int pkg_clock_artifact_bool_score(void* self);",
 		"return pkg_clock_artifact_bool_score(xl_object_payload(",
-		"xl_object_header_bind(&self, &xl_object_typeinfo__Token);"
+		"xl_object_header_bind(xvoGetClass((xvalue)(self)), &xl_object_typeinfo__Token);"
 	};
 
 	return __xlRunCgenCaseAll(pCtx, "examples\\full\\custom_extern_method_runtime.xl", aNeedles, XL_COUNTOF(aNeedles));
@@ -10471,9 +10512,9 @@ static int __xlTestCgenCustomExternCreateDestroyRuntime(XL_TestContext* pCtx)
 {
 	static const char* const aNeedles[] = {
 		"extern void* pkg_clock_artifact_point_create();",
-		"xl_object_payload_set(&self, pkg_clock_artifact_point_create());",
+		"xl_object_payload_set(xvoGetClass((xvalue)(self)), pkg_clock_artifact_point_create());",
 		"extern void pkg_clock_artifact_point_release(void* self);",
-		"pkg_clock_artifact_point_release(xl_object_payload(&self));"
+		"pkg_clock_artifact_point_release(xl_object_payload(xl_self_ptr));"
 	};
 
 	return __xlRunCgenCaseAll(pCtx, "examples\\full\\custom_extern_create_destroy_runtime.xl", aNeedles, XL_COUNTOF(aNeedles));
@@ -10577,7 +10618,7 @@ static int __xlTestCgenObjectSuperCallRuntime(XL_TestContext* pCtx)
 {
 	static const char* const aNeedles[] = {
 		"xl_class_Base__create__",
-		"xl__value__arity1__self__Base__ret__int((XL_Class_Base*)(&self))",
+		"xl__value__arity1__self__Base__ret__int((xvalue*)(&self))",
 		"+ 35)"
 	};
 
@@ -10833,7 +10874,7 @@ static int __xlTestCgenBindingUnionOpaqueBasic(XL_TestContext* pCtx)
 	static const char* const aNeedles[] = {
 		"extern void* binding_opaque_union_identity(void* p0);",
 		"extern void* binding_forward_union_identity(void* p0);",
-		"extern int binding_unnamed_exact_params(uint32_t p0, int8_t p1, uint64_t p2);",
+		"extern int binding_unnamed_exact_params(uint32_t p0, signed char p1, uint64_t p2);",
 		"extern int binding_array_param_probe(const char* p0, void* p1, const char* p2);",
 		"extern int binding_char_pointer_depth_probe(const char* p0, void* p1, void* p2);",
 		"extern int64_t binding_alias_signed_pointer_width(int64_t p0, int64_t p1, int64_t p2);",
@@ -11058,10 +11099,10 @@ static int __xlTestCgenClassStage1RuntimeBasic(XL_TestContext* pCtx)
 {
 	static const char* const aNeedles[] = {
 		"typedef struct XL_Class_Vec2 {",
-		"XL_Class_Vec2 a = xl_class_Vec2__create__",
-		"(a.x = 40)",
-		"(a.y = 2)",
-		"(a.x + a.y)"
+		"xvalue a = (xvalue)(xl_class_Vec2__create__",
+		"(((XL_Class_Vec2*)xvoGetClass((xvalue)(a))))->x = 40",
+		"(((XL_Class_Vec2*)xvoGetClass((xvalue)(a))))->y = 2",
+		"(((XL_Class_Vec2*)xvoGetClass((xvalue)(a))))->x + (((XL_Class_Vec2*)xvoGetClass((xvalue)(a))))->y"
 	};
 
 	return __xlRunCgenCaseAll(pCtx, "examples\\full\\class_stage1_runtime_basic.xl", aNeedles, XL_COUNTOF(aNeedles));
@@ -11069,12 +11110,12 @@ static int __xlTestCgenClassStage1RuntimeBasic(XL_TestContext* pCtx)
 static int __xlTestCgenClassStage1CreateRuntime(XL_TestContext* pCtx)
 {
 	static const char* const aNeedles[] = {
-		"static XL_Class_Vec2 xl_class_Vec2__create__",
-		"XL_Class_Vec2 self",
-		"(self.x = x)",
-		"(self.y = y)",
-		"XL_Class_Vec2 a = xl_class_Vec2__create__",
-		"(a.x + a.y)"
+		"static xvalue xl_class_Vec2__create__",
+		"xvalue self",
+		"(((XL_Class_Vec2*)xvoGetClass((xvalue)(self))))->x = x",
+		"(((XL_Class_Vec2*)xvoGetClass((xvalue)(self))))->y = y",
+		"xvalue a = (xvalue)(xl_class_Vec2__create__",
+		"(((XL_Class_Vec2*)xvoGetClass((xvalue)(a))))->x + (((XL_Class_Vec2*)xvoGetClass((xvalue)(a))))->y"
 	};
 
 	return __xlRunCgenCaseAll(pCtx, "examples\\full\\class_stage1_create_runtime.xl", aNeedles, XL_COUNTOF(aNeedles));
@@ -11083,9 +11124,9 @@ static int __xlTestCgenClassStage1MethodRuntime(XL_TestContext* pCtx)
 {
 	static const char* const aNeedles[] = {
 		"static int xl__sum__arity1__self__Vec2__ret__int",
-		"XL_Class_Vec2 self",
+		"XL_Class_Vec2* xl_self_ptr",
 		"return xl_ret_",
-		"xl__sum__arity1__self__Vec2__ret__int(a)"
+		"xl_object_dispatch(xl_dispatch_blob_"
 	};
 
 	return __xlRunCgenCaseAll(pCtx, "examples\\full\\class_stage1_method_runtime.xl", aNeedles, XL_COUNTOF(aNeedles));
@@ -11107,8 +11148,8 @@ static int __xlTestCgenClassStage1BlockDestroyRuntime(XL_TestContext* pCtx)
 {
 	static const char* const aNeedles[] = {
 		"static void xl_class_Box__destroy",
-		"xl_class_Box__destroy(b);",
-		"xl_class_Box__destroy(a);"
+		"if ( ((xvalue)(b) != NULL) ) xl_object_release((xvalue)(b));",
+		"if ( ((xvalue)(a) != NULL) ) xl_object_release((xvalue)(a));"
 	};
 
 	return __xlRunCgenCaseAll(pCtx, "examples\\full\\class_stage1_block_destroy_runtime.xl", aNeedles, XL_COUNTOF(aNeedles));
@@ -11117,9 +11158,9 @@ static int __xlTestCgenClassStage1ReturnDestroyRuntime(XL_TestContext* pCtx)
 {
 	static const char* const aNeedles[] = {
 		"static void xl_class_Box__destroy",
-		"xl_class_Box__destroy(b);",
-		"xl_class_Box__destroy(a);",
-		"xl_class_Box__destroy(outer);",
+		"if ( ((xvalue)(b) != NULL) ) xl_object_release((xvalue)(b));",
+		"if ( ((xvalue)(a) != NULL) ) xl_object_release((xvalue)(a));",
+		"if ( ((xvalue)(outer) != NULL) ) xl_object_release((xvalue)(outer));",
 		"return xl_ret_20_3;"
 	};
 
@@ -11129,9 +11170,9 @@ static int __xlTestCgenClassStage1AssignDestroyRuntime(XL_TestContext* pCtx)
 {
 	static const char* const aNeedles[] = {
 		"static void xl_class_Box__destroy",
-		"XL_Class_Box xl_assign_value_17_4 = xl_class_Box__create__",
-		"xl_class_Box__destroy(a);",
-		"a = xl_assign_value_17_4;"
+		"xvalue xl_var_assign_new = (xvalue)(xl_class_Box__create__",
+		"if ( ((xvalue)(a) != NULL) ) xl_object_release((xvalue)(a));",
+		"a = xl_var_assign_new;"
 	};
 
 	return __xlRunCgenCaseAll(pCtx, "examples\\full\\class_stage1_assign_destroy_runtime.xl", aNeedles, XL_COUNTOF(aNeedles));
@@ -11140,9 +11181,9 @@ static int __xlTestCgenClassStage1MemberAssignDestroyRuntime(XL_TestContext* pCt
 {
 	static const char* const aNeedles[] = {
 		"static void xl_class_InnerBox__destroy",
-		"XL_Class_InnerBox xl_assign_member_value_28_14 = xl_class_InnerBox__create__",
-		"xl_class_InnerBox__destroy(outer.inner);",
-		"outer.inner = xl_assign_member_value_28_14;"
+		"xvalue xl_assign_member_value_28_14 = ({ xvalue xl_object_ref = (xvalue)(xl_class_InnerBox__create__",
+		"xl_object_release((xvalue)((((XL_Class_OuterBox*)xvoGetClass((xvalue)(outer))))->inner))",
+		"(((XL_Class_OuterBox*)xvoGetClass((xvalue)(outer))))->inner = xl_assign_member_value_28_14;"
 	};
 
 	return __xlRunCgenCaseAll(pCtx, "examples\\full\\class_stage1_member_assign_destroy_runtime.xl", aNeedles, XL_COUNTOF(aNeedles));
@@ -11151,8 +11192,8 @@ static int __xlTestCgenClassStage1LoopBreakDestroyRuntime(XL_TestContext* pCtx)
 {
 	static const char* const aNeedles[] = {
 		"static void xl_class_Box__destroy",
-		"xl_class_Box__destroy(b);",
-		"xl_class_Box__destroy(a);",
+		"if ( ((xvalue)(b) != NULL) ) xl_object_release((xvalue)(b));",
+		"if ( ((xvalue)(a) != NULL) ) xl_object_release((xvalue)(a));",
 		"goto xl_while_break_"
 	};
 
@@ -11162,8 +11203,8 @@ static int __xlTestCgenClassStage1LoopContinueDestroyRuntime(XL_TestContext* pCt
 {
 	static const char* const aNeedles[] = {
 		"static void xl_class_Box__destroy",
-		"xl_class_Box__destroy(b);",
-		"xl_class_Box__destroy(a);",
+		"if ( ((xvalue)(b) != NULL) ) xl_object_release((xvalue)(b));",
+		"if ( ((xvalue)(a) != NULL) ) xl_object_release((xvalue)(a));",
 		"goto xl_while_continue_"
 	};
 
@@ -11174,8 +11215,8 @@ static int __xlTestCgenClassStage1ThrowDestroyRuntime(XL_TestContext* pCtx)
 	static const char* const aNeedles[] = {
 		"static void xl_class_Box__destroy",
 		"xl_generated_raise_error",
-		"xl_class_Box__destroy(b);",
-		"xl_class_Box__destroy(a);",
+		"if ( ((xvalue)(b) != NULL) ) xl_object_release((xvalue)(b));",
+		"if ( ((xvalue)(a) != NULL) ) xl_object_release((xvalue)(a));",
 		"goto xl_try_exit_"
 	};
 
@@ -11186,8 +11227,8 @@ static int __xlTestCgenClassStage1AssertDestroyRuntime(XL_TestContext* pCtx)
 	static const char* const aNeedles[] = {
 		"static void xl_class_Box__destroy",
 		"xl_generated_raise_error(Error(xl_assert_msg_",
-		"xl_class_Box__destroy(b);",
-		"xl_class_Box__destroy(a);",
+		"if ( ((xvalue)(b) != NULL) ) xl_object_release((xvalue)(b));",
+		"if ( ((xvalue)(a) != NULL) ) xl_object_release((xvalue)(a));",
 		"goto xl_try_exit_"
 	};
 
@@ -11198,7 +11239,7 @@ static int __xlTestCgenClassStage1PendingExceptionDestroyRuntime(XL_TestContext*
 	static const char* const aNeedles[] = {
 		"static void xl_class_PendingBox__destroy",
 		"if ( xl_generated_had_exception )",
-		"xl_class_PendingBox__destroy(a);",
+		"if ( ((xvalue)(a) != NULL) ) xl_object_release((xvalue)(a));",
 		"goto xl_try_exit_"
 	};
 
@@ -11208,7 +11249,7 @@ static int __xlTestCgenClassStage1TryFinallyReturnDestroyRuntime(XL_TestContext*
 {
 	static const char* const aNeedles[] = {
 		"static void xl_class_FinallyBox__destroy",
-		"xl_class_FinallyBox__destroy(a);",
+		"if ( ((xvalue)(a) != NULL) ) xl_object_release((xvalue)(a));",
 		"goto xl_try_finally_",
 		"(total = (total + 100))"
 	};
@@ -11219,9 +11260,9 @@ static int __xlTestCgenClassStage1TryFinallyNestedDestroyRuntime(XL_TestContext*
 {
 	static const char* const aNeedles[] = {
 		"static void xl_class_NestBox__destroy",
-		"xl_class_NestBox__destroy(leaf);",
-		"xl_class_NestBox__destroy(inner);",
-		"xl_class_NestBox__destroy(outer);",
+		"if ( ((xvalue)(leaf) != NULL) ) xl_object_release((xvalue)(leaf));",
+		"if ( ((xvalue)(inner) != NULL) ) xl_object_release((xvalue)(inner));",
+		"if ( ((xvalue)(outer) != NULL) ) xl_object_release((xvalue)(outer));",
 		"goto xl_try_finally_"
 	};
 
@@ -11230,10 +11271,10 @@ static int __xlTestCgenClassStage1TryFinallyNestedDestroyRuntime(XL_TestContext*
 static int __xlTestCgenClassStage1MemberCopyDestroyRuntime(XL_TestContext* pCtx)
 {
 	static const char* const aNeedles[] = {
-		"xl__copy__arity1__self__CopyPart__ret__CopyPart(replacement)",
-		"xl_class_CopyPart__destroy(holder.part);",
-		"xl__copy__arity1__self__CopyPart__ret__CopyPart(holder.part)",
-		"xl__copy__arity1__self__CopyPart__ret__CopyPart((*((XL_Class_CopyPart*)xvoGetClass((xvalue)("
+		"xl__copy__arity1__self__CopyPart__ret__CopyPart(((XL_Class_CopyPart*)xvoGetClass((xvalue)(replacement))))",
+		"xl_object_release((xvalue)((((XL_Class_CopyHolder*)xvoGetClass((xvalue)(holder))))->part))",
+		"xl__copy__arity1__self__CopyPart__ret__CopyPart(((XL_Class_CopyPart*)xvoGetClass((xvalue)((((XL_Class_CopyHolder*)xvoGetClass((xvalue)(holder))))->part))))",
+		"xl__copy__arity1__self__CopyPart__ret__CopyPart(((XL_Class_CopyPart*)xvoGetClass((xvalue)((xvoArrayGetValue"
 	};
 
 	return __xlRunCgenCaseAll(pCtx, "examples\\full\\class_stage1_member_copy_destroy_runtime.xl", aNeedles, XL_COUNTOF(aNeedles));
@@ -11244,8 +11285,8 @@ static int __xlTestCgenClassStage1MemberDestroyRuntime(XL_TestContext* pCtx)
 		"static void xl_class_Outer__destroy",
 		"static void xl_class_Inner__destroy",
 		"(total = (total + self.value))",
-		"xl_class_Inner__destroy(self.inner);",
-		"xl_class_Outer__destroy(outer);"
+		"if ( ((xvalue)(self.inner) != NULL) ) xl_object_release((xvalue)(self.inner));",
+		"if ( ((xvalue)(outer) != NULL) ) xl_object_release((xvalue)(outer));"
 	};
 
 	return __xlRunCgenCaseAll(pCtx, "examples\\full\\class_stage1_member_destroy_runtime.xl", aNeedles, XL_COUNTOF(aNeedles));
@@ -11257,8 +11298,8 @@ static int __xlTestCgenClassStage1BaseDestroyRuntime(XL_TestContext* pCtx)
 		"static void xl_class_BaseBox__destroy",
 		"XL_Class_BaseBox xl_base_self_BaseBox;",
 		"xl_base_self_BaseBox.baseValue = self.baseValue;",
-		"xl_class_BaseBox__destroy(xl_base_self_BaseBox);",
-		"xl_class_ChildBox__destroy(value);"
+		"xl_class_BaseBox__destroy(&(xl_base_self_BaseBox));",
+		"if ( ((xvalue)(value) != NULL) ) xl_object_release((xvalue)(value));"
 	};
 
 	return __xlRunCgenCaseAll(pCtx, "examples\\full\\class_stage1_base_destroy_runtime.xl", aNeedles, XL_COUNTOF(aNeedles));
@@ -11266,11 +11307,11 @@ static int __xlTestCgenClassStage1BaseDestroyRuntime(XL_TestContext* pCtx)
 static int __xlTestCgenClassStage1MemberCreateChainRuntime(XL_TestContext* pCtx)
 {
 	static const char* const aNeedles[] = {
-		"static XL_Class_InnerSeed xl_class_InnerSeed__create__",
-		"static XL_Class_OuterSeed xl_class_OuterSeed__create__",
-		"self.inner = xl_class_InnerSeed__create__",
-		"(self.value = value)",
-		"(outer.inner.value + outer.value)"
+		"static xvalue xl_class_InnerSeed__create__",
+		"static xvalue xl_class_OuterSeed__create__",
+		"(((XL_Class_OuterSeed*)xvoGetClass((xvalue)(self))))->inner = ({ xvalue xl_object_self = xvoCreateClass((uint32)sizeof(XL_Class_InnerSeed));",
+		"(((XL_Class_OuterSeed*)xvoGetClass((xvalue)(self))))->value = value",
+		"(((XL_Class_InnerSeed*)xvoGetClass((xvalue)((((XL_Class_OuterSeed*)xvoGetClass((xvalue)(outer))))->inner))))->value + (((XL_Class_OuterSeed*)xvoGetClass((xvalue)(outer))))->value"
 	};
 
 	return __xlRunCgenCaseAll(pCtx, "examples\\full\\class_stage1_member_create_chain_runtime.xl", aNeedles, XL_COUNTOF(aNeedles));
@@ -11278,11 +11319,11 @@ static int __xlTestCgenClassStage1MemberCreateChainRuntime(XL_TestContext* pCtx)
 static int __xlTestCgenClassStage1BaseCreateChainRuntime(XL_TestContext* pCtx)
 {
 	static const char* const aNeedles[] = {
-		"static XL_Class_BaseSeed xl_class_BaseSeed__create__",
-		"static XL_Class_ChildSeed xl_class_ChildSeed__create__",
-		"XL_Class_BaseSeed xl_base_init_BaseSeed = xl_class_BaseSeed__create__",
-		"self.baseValue = xl_base_init_BaseSeed.baseValue;",
-		"(child.baseValue + child.childValue)"
+		"static xvalue xl_class_BaseSeed__create__",
+		"static xvalue xl_class_ChildSeed__create__",
+		"xvalue xl_base_init_BaseSeed = ({ xvalue xl_object_self = xvoCreateClass((uint32)sizeof(XL_Class_BaseSeed));",
+		"(((XL_Class_ChildSeed*)xvoGetClass((xvalue)(self))))->baseValue = ((XL_Class_BaseSeed*)xvoGetClass((xvalue)(xl_base_init_BaseSeed)))->baseValue;",
+		"(((XL_Class_ChildSeed*)xvoGetClass((xvalue)(child))))->baseValue + (((XL_Class_ChildSeed*)xvoGetClass((xvalue)(child))))->childValue"
 	};
 
 	return __xlRunCgenCaseAll(pCtx, "examples\\full\\class_stage1_base_create_chain_runtime.xl", aNeedles, XL_COUNTOF(aNeedles));
@@ -11291,8 +11332,8 @@ static int __xlTestCgenClassStage1BaseParamCreateRuntime(XL_TestContext* pCtx)
 {
 	static const char* const aNeedles[] = {
 		"xl_class_BaseParam__create",
-		"self.baseValue = xl_base_value_",
-		"(self.childValue = (seed + 1))"
+		"xl_base_value_13_12",
+		"childValue = (seed + 1)"
 	};
 
 	return __xlRunCgenCaseAll(pCtx, "examples\\full\\class_stage1_base_param_create_runtime.xl", aNeedles, XL_COUNTOF(aNeedles));
@@ -11301,9 +11342,9 @@ static int __xlTestCgenClassStage1UnionLifecycleRuntime(XL_TestContext* pCtx)
 {
 	static const char* const aNeedles[] = {
 		"union {",
-		"UnionItem left;",
-		"UnionItem right;",
-		"xl_class_UnionHolder__destroy(holder);"
+		"xvalue left;",
+		"xvalue right;",
+		"if ( ((xvalue)(holder) != NULL) ) xl_object_release((xvalue)(holder));"
 	};
 
 	return __xlRunCgenCaseAll(pCtx, "examples\\full\\class_stage1_union_lifecycle_runtime.xl", aNeedles, XL_COUNTOF(aNeedles));
@@ -11315,10 +11356,10 @@ static int __xlTestCgenClassStage1UnionAccessRuntime(XL_TestContext* pCtx)
 		"int left;",
 		"int right;",
 		"int xl_union_tag_Data;",
-		"self.xl_union_tag_Data = 1;",
-		"item.xl_union_tag_Data = 2;",
+		"XL_Class_UnionScalar* xl_union_self_",
+		"xl_union_tag_Data = 2;",
 		"inactive union member",
-		"item.Data.right; }) != 12"
+		"Data.right; }) != 12"
 	};
 
 	return __xlRunCgenCaseAll(pCtx, "examples\\full\\class_stage1_union_access_runtime.xl", aNeedles, XL_COUNTOF(aNeedles));
@@ -11327,9 +11368,9 @@ static int __xlTestCgenClassStage1UnionActiveDestroyRuntime(XL_TestContext* pCtx
 {
 	static const char* const aNeedles[] = {
 		"int xl_union_tag_Data;",
-		"switch ( holder.xl_union_tag_Data )",
-		"xl_class_UnionDropItem__destroy(holder.Data.left);",
-		"xl_class_UnionDropItem__destroy(holder.Data.right);"
+		"switch ( self.xl_union_tag_Data )",
+		"xl_class_UnionDropItem__destroy((XL_Class_UnionDropItem*)xvoGetClass((xvalue)(self.Data.left)))",
+		"xl_class_UnionDropItem__destroy((XL_Class_UnionDropItem*)xvoGetClass((xvalue)(self.Data.right)))"
 	};
 
 	return __xlRunCgenCaseAll(pCtx, "examples\\full\\class_stage1_union_active_destroy_runtime.xl", aNeedles, XL_COUNTOF(aNeedles));
@@ -11337,10 +11378,10 @@ static int __xlTestCgenClassStage1UnionActiveDestroyRuntime(XL_TestContext* pCtx
 static int __xlTestCgenClassStage1CopyRuntime(XL_TestContext* pCtx)
 {
 	static const char* const aNeedles[] = {
-		"static XL_Class_CopyBox xl__copy__arity1__self__CopyBox__ret__CopyBox",
-		"XL_Class_CopyBox xl_ret_17_2 = xl__copy__arity1__self__CopyBox__ret__CopyBox(box);",
-		"xl__clone__arity1__box__CopyBox__ret__CopyBox(xl__copy__arity1__self__CopyBox__ret__CopyBox(a))",
-		"xl__take__arity1__box__CopyBox__ret__int(xl__copy__arity1__self__CopyBox__ret__CopyBox(b))"
+		"static xvalue xl__copy__arity1__self__CopyBox__ret__CopyBox",
+		"xvalue xl_ret_17_2 = xl__copy__arity1__self__CopyBox__ret__CopyBox(((XL_Class_CopyBox*)xvoGetClass((xvalue)(box))))",
+		"xl__clone__arity1__box__CopyBox__ret__CopyBox(xl__copy__arity1__self__CopyBox__ret__CopyBox(((XL_Class_CopyBox*)xvoGetClass((xvalue)(a)))))",
+		"xl__take__arity1__box__CopyBox__ret__int(xl__copy__arity1__self__CopyBox__ret__CopyBox(((XL_Class_CopyBox*)xvoGetClass((xvalue)(b)))))"
 	};
 
 	return __xlRunCgenCaseAll(pCtx, "examples\\full\\class_stage1_copy_runtime.xl", aNeedles, XL_COUNTOF(aNeedles));
@@ -11372,7 +11413,7 @@ static int __xlTestCgenClassMoveContainerRuntime(XL_TestContext* pCtx)
 		"memset(&(e), 0, sizeof(e));",
 		"xl_array_append(xl_chain_self",
 		"xvoArraySetValue((xvalue)(xl_assign_base_",
-		"(*((XL_Class_Handle*)xvoGetClass((xvalue)(xvoArrayGetValue"
+		"((XL_Class_Handle*)xvoGetClass((xvalue)((xvoArrayGetValue"
 	};
 
 	return __xlRunCgenCaseAll(pCtx, "examples\\full\\class_move_container_runtime.xl", aNeedles, XL_COUNTOF(aNeedles));
@@ -11392,7 +11433,7 @@ static int __xlTestCgenClassMoveReassignRuntime(XL_TestContext* pCtx)
 {
 	static const char* const aNeedles[] = {
 		"memset(&(a), 0, sizeof(a));",
-		"a = xl_class_Handle__create__",
+		"a = (xvalue)(xl_class_Handle__create__",
 		"return xl_ret_"
 	};
 
@@ -11401,8 +11442,8 @@ static int __xlTestCgenClassMoveReassignRuntime(XL_TestContext* pCtx)
 static int __xlTestCgenClassStage1CopyElisionTempRuntime(XL_TestContext* pCtx)
 {
 	static const char* const aNeedles[] = {
-		"XL_Class_TempBox a = xl__make_temp__arity0__ret__TempBox();",
-		"xl__take__arity1__box__TempBox__ret__int(xl_class_TempBox__create__"
+		"xvalue a = ({ xvalue xl_object_ref = (xvalue)(xl__make_temp__arity0__ret__TempBox());",
+		"xl__take__arity1__box__TempBox__ret__int((xvalue)(xl_class_TempBox__create__"
 	};
 
 	return __xlRunCgenCaseAll(pCtx, "examples\\full\\class_stage1_copy_elision_temp_runtime.xl", aNeedles, XL_COUNTOF(aNeedles));
@@ -11410,10 +11451,10 @@ static int __xlTestCgenClassStage1CopyElisionTempRuntime(XL_TestContext* pCtx)
 static int __xlTestCgenClassStage1ContainerCopyRuntime(XL_TestContext* pCtx)
 {
 	static const char* const aNeedles[] = {
-		"xvalue xl_class_box = xvoCreateClass((uint32)sizeof(XL_Class_CopyBox));",
-		"memcpy(xvoGetClass(xl_class_box), &xl_class_box_value, sizeof(XL_Class_CopyBox));",
+		"xvoCreateClass((uint32)sizeof(XL_Class_CopyBox));",
+		"xl__copy__arity1__self__CopyBox__ret__CopyBox",
 		"xvoArrayAppendValue(xl_arr_literal",
-		"*((XL_Class_CopyBox*)xvoGetClass((xvalue)("
+		"((XL_Class_CopyBox*)xvoGetClass((xvalue)("
 	};
 
 	return __xlRunCgenCaseAll(pCtx, "examples\\full\\class_stage1_container_copy_runtime.xl", aNeedles, XL_COUNTOF(aNeedles));
@@ -11424,11 +11465,11 @@ static int __xlTestCgenClassStage1ContainerAssignDestroyRuntime(XL_TestContext* 
 		"= xvoArrayGetValue((xvalue)(xl_assign_base_",
 		"= xvoListGetValue((xvalue)(xl_assign_base_",
 		"= xvoTableGetValue((xvalue)(xl_assign_base_",
-		"xl_class_SlotBox__destroy(*((XL_Class_SlotBox*)xvoGetClass(xl_assign_old_",
+		"xl_assign_old_",
 		"xvoArraySetValue((xvalue)(xl_assign_base_",
 		"xvoListSetValue((xvalue)(xl_assign_base_",
 		"xvoTableSetValue((xvalue)(xl_assign_base_",
-		"xvalue xl_class_box = xvoCreateClass((uint32)sizeof(XL_Class_SlotBox));"
+		"xvoCreateClass((uint32)sizeof(XL_Class_SlotBox));"
 	};
 
 	return __xlRunCgenCaseAll(pCtx, "examples\\full\\class_stage1_container_assign_destroy_runtime.xl", aNeedles, XL_COUNTOF(aNeedles));
@@ -11439,7 +11480,7 @@ static int __xlTestCgenClassStage1ContainerRemoveDestroyRuntime(XL_TestContext* 
 		"= xvoArrayGetValue(xl_remove_base_",
 		"= xvoListGetValue(xl_remove_base_",
 		"= xvoTableGetValue(xl_remove_base_",
-		"xl_class_RemBox__destroy(*((XL_Class_RemBox*)xvoGetClass(xl_remove_old_",
+		"xl_remove_old_",
 		"xl_array_remove(xl_remove_base_",
 		"xl_list_remove(xl_remove_base_",
 		"xl_dict_remove(xl_remove_base_"
@@ -11453,7 +11494,7 @@ static int __xlTestCgenClassStage1ContainerClearDestroyRuntime(XL_TestContext* p
 		"xvoArrayItemCount(xl_remove_base_",
 		"xvoListItemCount(xl_remove_base_",
 		"xrtAVLTB_IterBegin((xavltbase)xl_clear_table)",
-		"xl_class_ClearBox__destroy(*((XL_Class_ClearBox*)xvoGetClass(xl_remove_old_",
+		"xl_remove_old_",
 		"xl_array_clear(xl_remove_base_",
 		"xl_list_clear(xl_remove_base_",
 		"xl_dict_clear(xl_remove_base_"
@@ -11466,7 +11507,7 @@ static int __xlTestCgenClassStage1ContainerSetClearDestroyRuntime(XL_TestContext
 	static const char* const aNeedles[] = {
 		"xrtAVLTreeIterBegin(xl_clear_tree)",
 		"= xl_clear_key->Value",
-		"xl_class_SetClearBox__destroy(*((XL_Class_SetClearBox*)xvoGetClass(xl_remove_old_",
+		"xl_remove_old_",
 		"xl_set_clear(xl_remove_base_"
 	};
 
@@ -11476,8 +11517,8 @@ static int __xlTestCgenClassStage1ContainerSetRemoveDestroyRuntime(XL_TestContex
 {
 	static const char* const aNeedles[] = {
 		"xrtAVLTreeIterBegin(xl_set_tree)",
-		"memcmp(xvoGetClass(xl_set_scan->Value), xvoGetClass(xl_set_item), sizeof(XL_Class_SetRemoveBox))",
-		"xl_class_SetRemoveBox__destroy(*((XL_Class_SetRemoveBox*)xvoGetClass(xl_remove_old_",
+		"memcmp(((const char*)xvoGetClass(xl_set_scan->Value)) + sizeof(XL_ObjectHeader)",
+		"xl_remove_old_",
 		"xl_set_remove(xl_remove_base_"
 	};
 
@@ -11490,7 +11531,7 @@ static int __xlTestCgenClassStage1ContainerReleaseDestroyRuntime(XL_TestContext*
 		"xvoListItemCount(xl_destroy_container)",
 		"xrtAVLTreeIterBegin(xl_destroy_tree)",
 		"xrtAVLTB_IterBegin((xavltbase)xl_destroy_table)",
-		"xl_class_ReleaseBox__destroy(*((XL_Class_ReleaseBox*)xvoGetClass(xl_destroy_item)))"
+		"if ( xl_destroy_item != NULL ) xl_object_destroy_if_last(xl_destroy_item);"
 	};
 
 	return __xlRunCgenCaseAll(pCtx, "examples\\full\\class_stage1_container_release_destroy_runtime.xl", aNeedles, XL_COUNTOF(aNeedles));
@@ -11500,7 +11541,7 @@ static int __xlTestCgenClassStage1ContainerReturnEscapeRuntime(XL_TestContext* p
 	static const char* const aNeedles[] = {
 		"xvoArrayAppendValue(xl_arr_literal",
 		"xvalue xl_ret_",
-		"xl_class_ReturnBox__destroy(a);"
+		"if ( ((xvalue)(a) != NULL) ) xl_object_release((xvalue)(a));"
 	};
 
 	return __xlRunCgenCaseAll(pCtx, "examples\\full\\class_stage1_container_return_escape_runtime.xl", aNeedles, XL_COUNTOF(aNeedles));
@@ -11509,8 +11550,8 @@ static int __xlTestCgenClassStage1VarClassDestroyRuntime(XL_TestContext* pCtx)
 {
 	static const char* const aNeedles[] = {
 		"xvoCreateClass((uint32)sizeof(XL_Class_VarBox))",
-		"((xvalue)(item))->Type == XVO_DT_CLASS",
-		"xl_class_VarBox__destroy(*((XL_Class_VarBox*)xvoGetClass((xvalue)(item))))"
+		"xvalue item = (xvalue)(xl_class_VarBox__create__",
+		"xl_object_release((xvalue)(item));"
 	};
 
 	return __xlRunCgenCaseAll(pCtx, "examples\\full\\class_stage1_var_class_destroy_runtime.xl", aNeedles, XL_COUNTOF(aNeedles));
@@ -11518,8 +11559,8 @@ static int __xlTestCgenClassStage1VarClassDestroyRuntime(XL_TestContext* pCtx)
 static int __xlTestCgenClassStage1VarClassCopyRuntime(XL_TestContext* pCtx)
 {
 	static const char* const aNeedles[] = {
-		"xvalue item = ({ XL_Class_VarCopyBox",
-		"xl__copy__arity1__self__VarCopyBox__ret__VarCopyBox((*((XL_Class_VarCopyBox*)xvoGetClass((xvalue)(item)))))"
+		"xvalue item = (xvalue)(xl_class_VarCopyBox__create__",
+		"xl__copy__arity1__self__VarCopyBox__ret__VarCopyBox(((XL_Class_VarCopyBox*)xvoGetClass((xvalue)(item))))"
 	};
 
 	return __xlRunCgenCaseAll(pCtx, "examples\\full\\class_stage1_var_class_copy_runtime.xl", aNeedles, XL_COUNTOF(aNeedles));
@@ -11548,7 +11589,7 @@ static int __xlTestCgenClassStage1VarContainerDestroyRuntime(XL_TestContext* pCt
 	static const char* const aNeedles[] = {
 		"xvoCreateClass((uint32)sizeof(XL_Class_VarContainerBox))",
 		"xvoArrayItemCount(xl_destroy_container)",
-		"xl_class_VarContainerBox__destroy(*((XL_Class_VarContainerBox*)xvoGetClass(xl_destroy_item)))"
+		"if ( xl_destroy_item != NULL ) xl_object_destroy_if_last(xl_destroy_item);"
 	};
 
 	return __xlRunCgenCaseAll(pCtx, "examples\\full\\class_stage1_var_container_destroy_runtime.xl", aNeedles, XL_COUNTOF(aNeedles));
@@ -11556,8 +11597,8 @@ static int __xlTestCgenClassStage1VarContainerDestroyRuntime(XL_TestContext* pCt
 static int __xlTestCgenClassStage1VarContainerCopyRuntime(XL_TestContext* pCtx)
 {
 	static const char* const aNeedles[] = {
-		"xvalue values = xvoCopy((xvalue)(({ xvalue xl_arr_literal = xvoCreateArray();",
-		"xl__copy__arity1__self__VarContainerCopyBox__ret__VarContainerCopyBox((*((XL_Class_VarContainerCopyBox*)xvoGetClass((xvalue)("
+		"xvalue values = (xvalue)(({ xvalue xl_arr_literal = xvoCreateArray();",
+		"xl__copy__arity1__self__VarContainerCopyBox__ret__VarContainerCopyBox(((XL_Class_VarContainerCopyBox*)xvoGetClass((xvalue)("
 	};
 
 	return __xlRunCgenCaseAll(pCtx, "examples\\full\\class_stage1_var_container_copy_runtime.xl", aNeedles, XL_COUNTOF(aNeedles));
@@ -11577,13 +11618,13 @@ static int __xlTestCgenClassStage1GeneratorDestroyRuntime(XL_TestContext* pCtx)
 static int __xlTestCgenClassStage1GeneratorCopyRuntime(XL_TestContext* pCtx)
 {
 	static const char* const aNeedles[] = {
-		"XL_Class_GenCopyBox source;",
-		"XL_Class_GenCopyBox copied;",
+		"xvalue source;",
+		"xvalue copied;",
 		"#define source ((pGen)->source)",
 		"#define copied ((pGen)->copied)",
-		"copied = xl__copy__arity1__self__GenCopyBox__ret__GenCopyBox(source)",
-		"xl_class_GenCopyBox__destroy(pGen->source);",
-		"xl_class_GenCopyBox__destroy(pGen->copied);"
+		"copied = xl__copy__arity1__self__GenCopyBox__ret__GenCopyBox(((XL_Class_GenCopyBox*)xvoGetClass((xvalue)(source))))",
+		"if ( ((xvalue)(pGen->source) != NULL) ) xl_object_release((xvalue)(pGen->source));",
+		"if ( ((xvalue)(pGen->copied) != NULL) ) xl_object_release((xvalue)(pGen->copied));"
 	};
 
 	return __xlRunCgenCaseAll(pCtx, "examples\\full\\class_stage1_generator_copy_runtime.xl", aNeedles, XL_COUNTOF(aNeedles));
@@ -11592,9 +11633,9 @@ static int __xlTestCgenClassStage1GeneratorContainerDestroyRuntime(XL_TestContex
 {
 	static const char* const aNeedles[] = {
 		"xvalue values;",
-		"xl_class_GenItem__destroy(pGen->item);",
+		"if ( ((xvalue)(pGen->item) != NULL) ) xl_object_release((xvalue)(pGen->item));",
 		"xvoArrayItemCount(xl_destroy_container)",
-		"xl_class_GenItem__destroy(*((XL_Class_GenItem*)xvoGetClass(xl_destroy_item)))"
+		"if ( xl_destroy_item != NULL ) xl_object_destroy_if_last(xl_destroy_item);"
 	};
 
 	return __xlRunCgenCaseAll(pCtx, "examples\\full\\class_stage1_generator_container_destroy_runtime.xl", aNeedles, XL_COUNTOF(aNeedles));
@@ -11603,9 +11644,9 @@ static int __xlTestCgenClassStage1GeneratorContainerThrowCleanupRuntime(XL_TestC
 {
 	static const char* const aNeedles[] = {
 		"xvalue values;",
-		"xl_class_GenThrowItem__destroy(pGen->item);",
+		"if ( ((xvalue)(pGen->item) != NULL) ) xl_object_release((xvalue)(pGen->item));",
 		"xvoArrayItemCount(xl_destroy_container)",
-		"xl_class_GenThrowItem__destroy(*((XL_Class_GenThrowItem*)xvoGetClass(xl_destroy_item)))"
+		"if ( xl_destroy_item != NULL ) xl_object_destroy_if_last(xl_destroy_item);"
 	};
 
 	return __xlRunCgenCaseAll(pCtx, "examples\\full\\class_stage1_generator_container_throw_cleanup_runtime.xl", aNeedles, XL_COUNTOF(aNeedles));
@@ -11613,13 +11654,13 @@ static int __xlTestCgenClassStage1GeneratorContainerThrowCleanupRuntime(XL_TestC
 static int __xlTestCgenClassStage1GeneratorLocalDefaultCreateRuntime(XL_TestContext* pCtx)
 {
 	static const char* const aNeedles[] = {
-		"XL_Class_GenDefaultBox box;",
+		"xvalue box;",
 		"int xl_init_box;",
 		"#define xl_init_box ((pGen)->xl_init_box)",
-		"box = xl_class_GenDefaultBox__create__",
-		"((XL_Class_GenDefaultBox){0})",
+		"box = ({ xvalue xl_object_box = xvoCreateClass((uint32)sizeof(XL_Class_GenDefaultBox));",
+		"xvoCreateClass((uint32)sizeof(XL_Class_GenDefaultBox))",
 		"xl_init_box = 1;",
-		"xl_class_GenDefaultBox__destroy(pGen->box);"
+		"if ( ((xvalue)(pGen->box) != NULL) ) xl_object_release((xvalue)(pGen->box));"
 	};
 
 	return __xlRunCgenCaseAll(pCtx, "examples\\full\\class_stage1_generator_local_default_create_runtime.xl", aNeedles, XL_COUNTOF(aNeedles));
@@ -11627,9 +11668,9 @@ static int __xlTestCgenClassStage1GeneratorLocalDefaultCreateRuntime(XL_TestCont
 static int __xlTestCgenClassStage1FieldInitRuntime(XL_TestContext* pCtx)
 {
 	static const char* const aNeedles[] = {
-		"self.inner = xl_class_InnerParam__create",
-		"self.value = 10",
-		"(self.value = (self.value + 1))"
+		"(((XL_Class_OuterParam*)xvoGetClass((xvalue)(self))))->inner = xl_class_InnerParam__create__4_2",
+		"(((XL_Class_OuterParam*)xvoGetClass((xvalue)(self))))->value = 10",
+		"(((XL_Class_OuterParam*)xvoGetClass((xvalue)(self))))->value = ((((XL_Class_OuterParam*)xvoGetClass((xvalue)(self))))->value + 1)"
 	};
 
 	return __xlRunCgenCaseAll(pCtx, "examples\\full\\class_stage1_field_init_runtime.xl", aNeedles, XL_COUNTOF(aNeedles));
@@ -11637,8 +11678,8 @@ static int __xlTestCgenClassStage1FieldInitRuntime(XL_TestContext* pCtx)
 static int __xlTestCgenClassStage1LocalDefaultCreateRuntime(XL_TestContext* pCtx)
 {
 	static const char* const aNeedles[] = {
-		"XL_Class_LocalDefaultBox box = xl_class_LocalDefaultBox__create",
-		"xl_class_LocalDefaultBox__destroy(box);"
+		"xvalue box = ({ xvalue xl_object_box = xvoCreateClass((uint32)sizeof(XL_Class_LocalDefaultBox));",
+		"if ( ((xvalue)(box) != NULL) ) xl_object_release((xvalue)(box));"
 	};
 
 	return __xlRunCgenCaseAll(pCtx, "examples\\full\\class_stage1_local_default_create_runtime.xl", aNeedles, XL_COUNTOF(aNeedles));
@@ -11769,7 +11810,7 @@ static int __xlTestCgenObjectCollectFutureRuntime(XL_TestContext* pCtx)
 	static const char* const aNeedles[] = {
 		"xl_mod_std_object__collect",
 		"xl_object_future_bind_trace(",
-		"hold_future",
+		"xl__hold__arity1__self__Node__ret__future_x3Cint_x3E",
 		"xl_object_release(",
 		"xl_object_collect_cycles("
 	};
@@ -12836,7 +12877,7 @@ static int __xlTestCgenTemplateRenderBasic(XL_TestContext* pCtx)
 static int __xlTestCgenDiagBasic(XL_TestContext* pCtx)
 {
 	static const char* const aNeedles[] = {
-		"xl_debug_text(",
+		"xl_generated_debug_text(",
 		"xl_debug_println(",
 		"xl_log_info(",
 		"xl_trace_write("
@@ -13024,8 +13065,8 @@ static int __xlTestCgenSysDlsymExactNumericSignatureBasic(XL_TestContext* pCtx)
 		"pkg_clock_artifact_u64_add",
 		"pkg_clock_artifact_f32_add",
 		"pkg_clock_artifact_f64_add",
-		"((int8_t (*)(int8_t, int8_t))xvoGetPoint",
-		"((uint8_t (*)(uint8_t, uint8_t))xvoGetPoint",
+		"((signed char (*)(signed char, signed char))xvoGetPoint",
+		"((unsigned char (*)(unsigned char, unsigned char))xvoGetPoint",
 		"((int16_t (*)(int16_t, int16_t))xvoGetPoint",
 		"((uint16_t (*)(uint16_t, uint16_t))xvoGetPoint",
 		"((int32_t (*)(int32_t, int32_t))xvoGetPoint",
@@ -13755,7 +13796,7 @@ static int __xlTestCgenGeneratorReturnWrapperBasic(XL_TestContext* pCtx)
 {
 	static const char* const aNeedles[] = {
 		"xl__wrap__arity0__ret__generator(",
-		"__generator_state xl_ret_",
+		"_generator_state xl_gen_box_",
 		"__generator_next("
 	};
 
@@ -13765,7 +13806,7 @@ static int __xlTestCgenGeneratorReturnAbstractBranchResumeBasic(XL_TestContext* 
 {
 	static const char* const aNeedles[] = {
 		"XL_GeneratedGeneratorValue xl__choose",
-		"xl_generated_generator_clone(xl__choose",
+		"XL_GeneratedGeneratorValue xl_gen_abs = g;",
 		"xl_generated_generator_step("
 	};
 
@@ -14549,6 +14590,7 @@ static int __xlTestRunCoreLenBasic(XL_TestContext* pCtx) { return __xlRunProgram
 static int __xlTestRunImportAlias(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\native\\import_alias_basic.xl", 1, 0, NULL, NULL); }
 static int __xlTestRunImportMulti(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\native\\import_multi_basic.xl", 1, 0, NULL, NULL); }
 static int __xlTestRunImportString(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\native\\import_string_basic.xl", 1, 0, NULL, NULL); }
+static int __xlTestRunImportRawString(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\native\\import_raw_string_basic.xl", 1, 42, NULL, NULL); }
 static int __xlTestRunExportFunc(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\module\\use_math_export_func.xl", 1, 42, NULL, NULL); }
 static int __xlTestRunExportValues(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\module\\use_math_export_values.xl", 1, 42, NULL, NULL); }
 static int __xlTestRunTypedDecl(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\typed_decl_basic.xl", 1, 42, NULL, NULL); }
@@ -14598,6 +14640,9 @@ static int __xlTestRunCoalesceBasic(XL_TestContext* pCtx) { return __xlRunProgra
 static int __xlTestRunNullAssignBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\null_assign_basic.xl", 1, 7, NULL, NULL); }
 static int __xlTestRunTernaryBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\ternary_basic.xl", 1, 42, NULL, NULL); }
 static int __xlTestRunApproxBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\approx_basic.xl", 1, 1, NULL, NULL); }
+static int __xlTestRunRawStringBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\raw_string_basic.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunIntBaseLiteralsBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\int_base_literals_basic.xl", 1, 52, NULL, NULL); }
+static int __xlTestRunBitOpsBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\bit_ops_basic.xl", 1, 42, NULL, NULL); }
 static int __xlTestRunIfInlineBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\if_inline_basic.xl", 1, 42, NULL, NULL); }
 static int __xlTestRunIfInlineElseBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\if_inline_else_basic.xl", 1, 42, NULL, NULL); }
 static int __xlTestRunLogicBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\logic_basic.xl", 1, 1, NULL, NULL); }
@@ -19354,6 +19399,7 @@ static const XL_TestCase __gXLTests[] = {
 	{ "parser.crypto_basic", "parser", __xlTestParseCryptoBasic },
 	{ "parser.import_multi", "parser", __xlTestParseImportMulti },
 	{ "parser.import_string", "parser", __xlTestParseImportString },
+	{ "parser.import_raw_string", "parser", __xlTestParseImportRawString },
 	{ "parser.io_plus_basic", "parser", __xlTestParseIoPlusBasic },
 	{ "parser.str_fmt_plus_basic", "parser", __xlTestParseStrFmtPlusBasic },
 	{ "parser.time_plus_basic", "parser", __xlTestParseTimePlusBasic },
@@ -19544,6 +19590,9 @@ static const XL_TestCase __gXLTests[] = {
 	{ "parser.null_assign_basic", "parser", __xlTestParseNullAssignBasic },
 	{ "parser.ternary_basic", "parser", __xlTestParseTernaryBasic },
 	{ "parser.approx_basic", "parser", __xlTestParseApproxBasic },
+	{ "parser.raw_string_basic", "parser", __xlTestParseRawStringBasic },
+	{ "parser.int_base_literals_basic", "parser", __xlTestParseIntBaseLiteralsBasic },
+	{ "parser.bit_ops_basic", "parser", __xlTestParseBitOpsBasic },
 	{ "parser.logic_basic", "parser", __xlTestParseLogicBasic },
 	{ "parser.bytes_alias_string", "parser", __xlTestParseBytesAliasString },
 	{ "parser.template_basic", "parser", __xlTestParseTemplateBasic },
@@ -19803,6 +19852,7 @@ static const XL_TestCase __gXLTests[] = {
 	{ "sem.crypto_basic", "sem", __xlTestSemCryptoBasic },
 	{ "sem.import_multi", "sem", __xlTestSemImportMulti },
 	{ "sem.import_string", "sem", __xlTestSemImportString },
+	{ "sem.import_raw_string", "sem", __xlTestSemImportRawString },
 	{ "sem.encode_basic", "sem", __xlTestSemEncodeBasic },
 	{ "sem.hash_basic", "sem", __xlTestSemHashBasic },
 	{ "sem.system_plus_basic", "sem", __xlTestSemSystemPlusBasic },
@@ -20174,6 +20224,11 @@ static const XL_TestCase __gXLTests[] = {
 	{ "sem.ternary_type_error", "sem", __xlTestSemTernaryTypeError },
 	{ "sem.approx_basic", "sem", __xlTestSemApproxBasic },
 	{ "sem.approx_type_error", "sem", __xlTestSemApproxTypeError },
+	{ "sem.raw_string_basic", "sem", __xlTestSemRawStringBasic },
+	{ "sem.int_base_literals_basic", "sem", __xlTestSemIntBaseLiteralsBasic },
+	{ "sem.bit_ops_basic", "sem", __xlTestSemBitOpsBasic },
+	{ "sem.bit_ops_float_error", "sem", __xlTestSemBitOpsFloatError },
+	{ "sem.bit_not_bool_error", "sem", __xlTestSemBitNotBoolError },
 	{ "sem.logic_basic", "sem", __xlTestSemLogicBasic },
 	{ "sem.logic_type_error", "sem", __xlTestSemLogicTypeError },
 	{ "sem.not_type_error", "sem", __xlTestSemNotTypeError },
@@ -20582,6 +20637,7 @@ static const XL_TestCase __gXLTests[] = {
 	{ "cgen.import_alias", "cgen", __xlTestCgenImportAlias },
 	{ "cgen.import_multi", "cgen", __xlTestCgenImportMulti },
 	{ "cgen.import_string", "cgen", __xlTestCgenImportString },
+	{ "cgen.import_raw_string", "cgen", __xlTestCgenImportRawString },
 	{ "cgen.export_func", "cgen", __xlTestCgenExportFunc },
 	{ "cgen.export_values", "cgen", __xlTestCgenExportValues },
 	{ "cgen.typed_decl", "cgen", __xlTestCgenTypedDecl },
@@ -20602,6 +20658,9 @@ static const XL_TestCase __gXLTests[] = {
 	{ "cgen.null_assign_basic", "cgen", __xlTestCgenNullAssignBasic },
 	{ "cgen.ternary_basic", "cgen", __xlTestCgenTernaryBasic },
 	{ "cgen.approx_basic", "cgen", __xlTestCgenApproxBasic },
+	{ "cgen.raw_string_basic", "cgen", __xlTestCgenRawStringBasic },
+	{ "cgen.int_base_literals_basic", "cgen", __xlTestCgenIntBaseLiteralsBasic },
+	{ "cgen.bit_ops_basic", "cgen", __xlTestCgenBitOpsBasic },
 	{ "cgen.if_inline_basic", "cgen", __xlTestCgenIfInlineBasic },
 	{ "cgen.if_inline_else_basic", "cgen", __xlTestCgenIfInlineElseBasic },
 	{ "cgen.logic_basic", "cgen", __xlTestCgenLogicBasic },
@@ -21569,6 +21628,7 @@ static const XL_TestCase __gXLTests[] = {
 	{ "runtime.import_alias", "runtime", __xlTestRunImportAlias },
 	{ "runtime.import_multi", "runtime", __xlTestRunImportMulti },
 	{ "runtime.import_string", "runtime", __xlTestRunImportString },
+	{ "runtime.import_raw_string", "runtime", __xlTestRunImportRawString },
 	{ "runtime.export_func", "runtime", __xlTestRunExportFunc },
 	{ "runtime.export_values", "runtime", __xlTestRunExportValues },
 	{ "runtime.typed_decl", "runtime", __xlTestRunTypedDecl },
@@ -21615,6 +21675,9 @@ static const XL_TestCase __gXLTests[] = {
 	{ "runtime.null_assign_basic", "runtime", __xlTestRunNullAssignBasic },
 	{ "runtime.ternary_basic", "runtime", __xlTestRunTernaryBasic },
 	{ "runtime.approx_basic", "runtime", __xlTestRunApproxBasic },
+	{ "runtime.raw_string_basic", "runtime", __xlTestRunRawStringBasic },
+	{ "runtime.int_base_literals_basic", "runtime", __xlTestRunIntBaseLiteralsBasic },
+	{ "runtime.bit_ops_basic", "runtime", __xlTestRunBitOpsBasic },
 	{ "runtime.if_inline_basic", "runtime", __xlTestRunIfInlineBasic },
 	{ "runtime.if_inline_else_basic", "runtime", __xlTestRunIfInlineElseBasic },
 	{ "runtime.logic_basic", "runtime", __xlTestRunLogicBasic },

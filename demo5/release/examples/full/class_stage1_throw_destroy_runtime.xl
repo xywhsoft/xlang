@@ -15,7 +15,7 @@ end
 func main() as int
 	try
 		auto a = Box(10)
-		if 1 then
+		if true then
 			auto b = Box(30)
 			throw Error("boom")
 		end

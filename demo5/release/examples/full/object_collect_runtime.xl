@@ -3,7 +3,7 @@ import std.object
 class Node extends object
 end
 
-func make_cycle() as array<point>
+func make_cycle() as array<var>
 	var a = Node()
 	var b = Node()
 	var wa = std.object.weak(a)
@@ -12,7 +12,7 @@ func make_cycle() as array<point>
 	a.peer = b
 	b.peer = a
 
-	return [wa, wb]
+	return array<point>{wa, wb}
 end
 
 func main() as int

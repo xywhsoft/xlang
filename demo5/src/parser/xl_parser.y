@@ -1023,7 +1023,7 @@ static void xlPAppendStmt(XL_AstNode* pList, XL_AstNode* pStmt)
 %right OP_POWER.
 %right KW_THEN.
 %right KW_ELSE.
-%right UMINUS KW_NOT OP_BANG KW_AWAIT.
+%right UMINUS KW_NOT OP_BANG OP_TILDE KW_AWAIT.
 %right TK_LBRACE.
 %left OP_DOT OP_SAFE_DOT TK_LBRACKET OP_SAFE_LBRACKET TK_LPAREN.
 
@@ -1212,11 +1212,11 @@ let_decl(A) ::= KW_LET(T) TOK_IDENT(N) TK_LPAREN param_list(P) TK_RPAREN ret_typ
 	A = xlPCreatePropertyFuncDecl(&T, &N, P, R, BODY);
 }
 
-class_extern_method_decl(A) ::= KW_EXTERN(E) extern_symbol_opt(S) KW_FUNC TOK_IDENT(N) TK_LPAREN param_list(P) TK_RPAREN ret_type(R). {
+class_extern_method_decl(A) ::= KW_EXTERN(E) extern_symbol_opt(S) KW_FUNC func_name(N) TK_LPAREN param_list(P) TK_RPAREN ret_type(R). {
 	A = xlAstCreateFuncDecl(&N, 0, P, R, xlAstCreateBlock(&E));
 	xlPAttachExternSymbol(A, &N, (S.eKind != 0) ? &S : NULL);
 }
-class_extern_method_decl(A) ::= KW_EXTERN(E) extern_symbol_opt(S) KW_ASYNC KW_FUNC TOK_IDENT(N) TK_LPAREN param_list(P) TK_RPAREN ret_type(R). {
+class_extern_method_decl(A) ::= KW_EXTERN(E) extern_symbol_opt(S) KW_ASYNC KW_FUNC func_name(N) TK_LPAREN param_list(P) TK_RPAREN ret_type(R). {
 	A = xlAstCreateFuncDecl(&N, 1, P, R, xlAstCreateBlock(&E));
 	xlPAttachExternSymbol(A, &N, (S.eKind != 0) ? &S : NULL);
 }
@@ -2024,6 +2024,9 @@ lambda_unary_expr(A) ::= KW_NOT(T) lambda_unary_expr(E). {
 lambda_unary_expr(A) ::= OP_BANG(T) lambda_unary_expr(E). {
 	A = xlAstCreateUnary(&T, "!", E);
 }
+lambda_unary_expr(A) ::= OP_TILDE(T) lambda_unary_expr(E). {
+	A = xlAstCreateUnary(&T, "~", E);
+}
 lambda_unary_expr(A) ::= KW_AWAIT(T) lambda_unary_expr(E). {
 	A = xlAstCreateUnary(&T, "await", E);
 }
@@ -2262,6 +2265,9 @@ unary_expr(A) ::= KW_NOT(T) unary_expr(E). {
 }
 unary_expr(A) ::= OP_BANG(T) unary_expr(E). {
 	A = xlAstCreateUnary(&T, "!", E);
+}
+unary_expr(A) ::= OP_TILDE(T) unary_expr(E). {
+	A = xlAstCreateUnary(&T, "~", E);
 }
 unary_expr(A) ::= KW_AWAIT(T) unary_expr(E). {
 	A = xlAstCreateUnary(&T, "await", E);

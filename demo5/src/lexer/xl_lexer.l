@@ -258,6 +258,7 @@ IDENT		{IDENT_START}{IDENT_CONT}*
 "&"					{ __xlSetTokenCommon(yyscanner, XL_OP_AMP); return XL_OP_AMP; }
 "|"					{ __xlSetTokenCommon(yyscanner, XL_OP_PIPE); return XL_OP_PIPE; }
 "!"					{ __xlSetTokenCommon(yyscanner, XL_OP_BANG); return XL_OP_BANG; }
+"~"					{ __xlSetTokenCommon(yyscanner, XL_OP_TILDE); return XL_OP_TILDE; }
 "^"					{ __xlSetTokenCommon(yyscanner, XL_OP_CARET); return XL_OP_CARET; }
 "="					{ __xlSetTokenCommon(yyscanner, XL_OP_ASSIGN); return XL_OP_ASSIGN; }
 "?"					{ __xlSetTokenCommon(yyscanner, XL_OP_QUESTION); return XL_OP_QUESTION; }
@@ -303,6 +304,12 @@ IDENT		{IDENT_START}{IDENT_CONT}*
 						yyextra->currentToken.iIntValue = __xlParseIntBase(yytext, 8, 2);
 						return XL_TK_INT_OCT;
 					}
+0[oO]({OCTDIGIT}|_)+			{
+						__xlSetTokenCommon(yyscanner, XL_TK_INT_OCT);
+						yyextra->currentToken.eValueKind = XL_TV_INT;
+						yyextra->currentToken.iIntValue = __xlParseIntBase(yytext, 8, 2);
+						return XL_TK_INT_OCT;
+					}
 0[bB]({BINDIGIT}|_)+			{
 						__xlSetTokenCommon(yyscanner, XL_TK_INT_BIN);
 						yyextra->currentToken.eValueKind = XL_TV_INT;
@@ -326,6 +333,8 @@ IDENT		{IDENT_START}{IDENT_CONT}*
 
 \"([^\"\\\r\n]|\\.)*\"			{ __xlSetTokenCommon(yyscanner, XL_TK_STRING); return XL_TK_STRING; }
 \"([^\"\\\r\n]|\\.)*			{ __xlSetErrorToken(yyscanner, "unterminated string literal"); return XL_TK_ERROR; }
+[rR]\"([^\"\r\n])*\"			{ __xlSetTokenCommon(yyscanner, XL_TK_STRING_RAW); return XL_TK_STRING_RAW; }
+[rR]\"([^\"\r\n])*			{ __xlSetErrorToken(yyscanner, "unterminated raw string literal"); return XL_TK_ERROR; }
 \'[^\'\r\n]*\'				{ __xlSetTokenCommon(yyscanner, XL_TK_STRING_RAW); return XL_TK_STRING_RAW; }
 \'[^\'\r\n]*				{ __xlSetErrorToken(yyscanner, "unterminated raw string literal"); return XL_TK_ERROR; }
 \`([^\`\\\r\n]|\\.)*\`			{ __xlSetTokenCommon(yyscanner, XL_TK_TEMPLATE); return XL_TK_TEMPLATE; }
