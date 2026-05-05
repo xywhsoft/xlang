@@ -902,6 +902,7 @@ static char* __xlBuildFunctionValueTypeFromFunc(const XL_FuncInfo* pFunc)
 }
 
 static int __xlTypeMatches(const char* sExpectedType, const char* sActualType);
+static int __xlIsVarTypeName(const char* sTypeName);
 static int __xlResolvedAssignableTypeMatches(XL_ResolveContext* pCtx, const char* sExpectedType, const char* sActualType);
 static int __xlResolvedAssignableTypeMatchScore(XL_ResolveContext* pCtx, const char* sExpectedType, const char* sActualType);
 
@@ -914,6 +915,13 @@ static int __xlResolvedTypeIsObjectClass(XL_ResolveContext* pCtx, const char* sT
 	}
 	pClass = __xlClassTableFind(&pCtx->pResult->classes, sTypeName);
 	return (pClass != NULL) && (pClass->bIsObject != 0);
+}
+
+static int __xlResolvedTypeSupportsLateObjectCall(XL_ResolveContext* pCtx, const char* sTypeName)
+{
+	return __xlIsVarTypeName(sTypeName) ||
+		((sTypeName != NULL) && (strcmp(sTypeName, "object") == 0)) ||
+		__xlResolvedTypeIsObjectClass(pCtx, sTypeName);
 }
 
 static int __xlResolvedTypeIsCustomClass(XL_ResolveContext* pCtx, const char* sTypeName)
@@ -4842,6 +4850,20 @@ static int __xlResolveMethodCall(
 				);
 				return XL_RC_OK;
 			}
+		}
+		if ( __xlResolvedTypeSupportsLateObjectCall(pCtx, sBaseType) ) {
+			__xlSemNodeSetScope(pCtx->pResult, pCallee, pCtx->iCurrentScopeId);
+			__xlSemNodeSetType(pCtx->pResult, pCallee, "var");
+			__xlSemNodeSetScope(pCtx->pResult, pCallNode, pCtx->iCurrentScopeId);
+			__xlSemNodeSetType(pCtx->pResult, pCallNode, "var");
+			__xlSemTrace(
+				pCtx,
+				pCallNode,
+				"resolved late object method '%s.%s' -> var",
+				((sBaseType != NULL) && (sBaseType[0] != '\0')) ? sBaseType : "?",
+				sMethodName
+			);
+			return XL_RC_OK;
 		}
 		return __xlSemAddDiag(
 			pCtx,

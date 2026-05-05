@@ -1,0 +1,28 @@
+class LateComMock extends object
+	func __call(string name, array<var> args) as var
+		if name == "Reg" then
+			if args[0] == "code" and args[1] == "extra" then
+				return 7
+			end
+			return 1
+		end
+		if name == "FindPic" then
+			if args[0] == 0 and args[2] == 800 and args[4] == "a.bmp" then
+				return "found"
+			end
+			return "missing"
+		end
+		return null
+	end
+end
+
+func main() as int
+	auto dm = LateComMock()
+	if dm.Reg("code", "extra") != 7 then
+		return 1
+	end
+	if dm.FindPic(0, 0, 800, 600, "a.bmp", "000000", 0.9, 0) != "found" then
+		return 2
+	end
+	return 42
+end

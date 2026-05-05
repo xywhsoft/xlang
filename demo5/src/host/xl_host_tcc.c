@@ -1051,16 +1051,13 @@ static int __xlRegisterSharedArtifactSymbols(
 		size_t j;
 		void* pSymbol;
 
-		pSymbol = NULL;
-		for ( j = 0; j < iHandleCount; ++j ) {
+		pSymbol = pCtx->arrExternSymbols[i].pAddress;
+		for ( j = 0; (pSymbol == NULL) && (j < iHandleCount); ++j ) {
 #if defined(_WIN32) || defined(_WIN64)
 			pSymbol = (void*)GetProcAddress(arrHandles[j].hModule, pCtx->arrExternSymbols[i].sName);
 #else
 			pSymbol = dlsym(arrHandles[j].pHandle, pCtx->arrExternSymbols[i].sName);
 #endif
-			if ( pSymbol != NULL ) {
-				break;
-			}
 		}
 		if ( pSymbol == NULL ) {
 			__xlRunTraceAppendFormat(pTrace, "artifact.shared.symbol_missing=%s\n", pCtx->arrExternSymbols[i].sName);
@@ -1414,42 +1411,42 @@ static int __xlAddBuildLibraries(const XL_HostContext* pCtx, XL_DiagContext* pDi
 
 static int __xlAddBuildSupportSources(const XL_HostContext* pCtx, TCCState* pTcc, XL_RunTraceBuffer* pTrace)
 {
-	char sRuntimeImpl[XL_PATH_MAX_LEN];
-	char sObjectRuntimeImpl[XL_PATH_MAX_LEN];
-	char sChannelRuntimeImpl[XL_PATH_MAX_LEN];
-	char sSysLibRuntimeImpl[XL_PATH_MAX_LEN];
-	char sGeneratedImpl[XL_PATH_MAX_LEN];
 	char sHostRuntimeImpl[XL_PATH_MAX_LEN];
+	char sRuntimeDir[XL_PATH_MAX_LEN];
+	char sRuntimeImpl[XL_PATH_MAX_LEN];
+	static const char* arrRuntimeSources[] = {
+		"xlrt_host.c",
+		"xl_object_runtime.c",
+		"xl_channel_runtime.c",
+		"xl_sys_lib_runtime.c",
+		"xlrt_generated.c",
+		"xl_url_runtime.c",
+		"xl_http_runtime.c",
+		"xl_httpd_runtime.c",
+		"xl_mime_runtime.c",
+		"xl_multipart_runtime.c",
+		"xl_net_dns_runtime.c",
+		"xl_net_ip_runtime.c",
+		"xl_net_tcp_runtime.c",
+		"xl_net_udp_runtime.c",
+		"xl_net_tls_runtime.c",
+		"xl_net_proxy_runtime.c",
+		"xl_net_ws_runtime.c"
+	};
+	size_t i;
 
-	__xlBuildPath3(sRuntimeImpl, sizeof(sRuntimeImpl), pCtx->sReleaseRoot, "tcc", "support");
-	xlPathJoin(sRuntimeImpl, sizeof(sRuntimeImpl), sRuntimeImpl, "runtime");
-	xlPathJoin(sRuntimeImpl, sizeof(sRuntimeImpl), sRuntimeImpl, "xlrt_host.c");
-	__xlBuildPath3(sObjectRuntimeImpl, sizeof(sObjectRuntimeImpl), pCtx->sReleaseRoot, "tcc", "support");
-	xlPathJoin(sObjectRuntimeImpl, sizeof(sObjectRuntimeImpl), sObjectRuntimeImpl, "runtime");
-	xlPathJoin(sObjectRuntimeImpl, sizeof(sObjectRuntimeImpl), sObjectRuntimeImpl, "xl_object_runtime.c");
-	__xlBuildPath3(sChannelRuntimeImpl, sizeof(sChannelRuntimeImpl), pCtx->sReleaseRoot, "tcc", "support");
-	xlPathJoin(sChannelRuntimeImpl, sizeof(sChannelRuntimeImpl), sChannelRuntimeImpl, "runtime");
-	xlPathJoin(sChannelRuntimeImpl, sizeof(sChannelRuntimeImpl), sChannelRuntimeImpl, "xl_channel_runtime.c");
-	__xlBuildPath3(sSysLibRuntimeImpl, sizeof(sSysLibRuntimeImpl), pCtx->sReleaseRoot, "tcc", "support");
-	xlPathJoin(sSysLibRuntimeImpl, sizeof(sSysLibRuntimeImpl), sSysLibRuntimeImpl, "runtime");
-	xlPathJoin(sSysLibRuntimeImpl, sizeof(sSysLibRuntimeImpl), sSysLibRuntimeImpl, "xl_sys_lib_runtime.c");
-	__xlBuildPath3(sGeneratedImpl, sizeof(sGeneratedImpl), pCtx->sReleaseRoot, "tcc", "support");
-	xlPathJoin(sGeneratedImpl, sizeof(sGeneratedImpl), sGeneratedImpl, "runtime");
-	xlPathJoin(sGeneratedImpl, sizeof(sGeneratedImpl), sGeneratedImpl, "xlrt_generated.c");
+	__xlBuildPath3(sRuntimeDir, sizeof(sRuntimeDir), pCtx->sReleaseRoot, "tcc", "support");
+	xlPathJoin(sRuntimeDir, sizeof(sRuntimeDir), sRuntimeDir, "runtime");
 	__xlBuildPath3(sHostRuntimeImpl, sizeof(sHostRuntimeImpl), pCtx->sReleaseRoot, "tcc", "support");
 	xlPathJoin(sHostRuntimeImpl, sizeof(sHostRuntimeImpl), sHostRuntimeImpl, "host");
 	xlPathJoin(sHostRuntimeImpl, sizeof(sHostRuntimeImpl), sHostRuntimeImpl, "xl_host_runtime.c");
 
-	__xlRunTraceAppendFormat(pTrace, "support_source=%s\n", sRuntimeImpl);
-	if ( tcc_add_file(pTcc, sRuntimeImpl) < 0 ) return XL_RC_FAIL;
-	__xlRunTraceAppendFormat(pTrace, "support_source=%s\n", sObjectRuntimeImpl);
-	if ( tcc_add_file(pTcc, sObjectRuntimeImpl) < 0 ) return XL_RC_FAIL;
-	__xlRunTraceAppendFormat(pTrace, "support_source=%s\n", sChannelRuntimeImpl);
-	if ( tcc_add_file(pTcc, sChannelRuntimeImpl) < 0 ) return XL_RC_FAIL;
-	__xlRunTraceAppendFormat(pTrace, "support_source=%s\n", sSysLibRuntimeImpl);
-	if ( tcc_add_file(pTcc, sSysLibRuntimeImpl) < 0 ) return XL_RC_FAIL;
-	__xlRunTraceAppendFormat(pTrace, "support_source=%s\n", sGeneratedImpl);
-	if ( tcc_add_file(pTcc, sGeneratedImpl) < 0 ) return XL_RC_FAIL;
+	for ( i = 0; i < XL_COUNTOF(arrRuntimeSources); ++i ) {
+		snprintf(sRuntimeImpl, sizeof(sRuntimeImpl), "%s", sRuntimeDir);
+		xlPathJoin(sRuntimeImpl, sizeof(sRuntimeImpl), sRuntimeImpl, arrRuntimeSources[i]);
+		__xlRunTraceAppendFormat(pTrace, "support_source=%s\n", sRuntimeImpl);
+		if ( tcc_add_file(pTcc, sRuntimeImpl) < 0 ) return XL_RC_FAIL;
+	}
 	__xlRunTraceAppendFormat(pTrace, "support_source=%s\n", sHostRuntimeImpl);
 	if ( tcc_add_file(pTcc, sHostRuntimeImpl) < 0 ) return XL_RC_FAIL;
 

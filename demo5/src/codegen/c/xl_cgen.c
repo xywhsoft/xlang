@@ -92,6 +92,7 @@ static void __xlCgenClassDestroyActiveBlockLocalsUntil(XL_CgenContext* pCtx, con
 static void __xlCgenClassDestroyActiveBlockLocalsUntilDepth(XL_CgenContext* pCtx, const XL_CgenFuncInfo* pFuncInfo, const XL_MirNode* pUntilStmt, int iBlockDepthBase);
 static int __xlCgenIsClassTypeName(const XL_CgenContext* pCtx, const char* sTypeName);
 static int __xlIsClassCtorCall(XL_CgenContext* pCtx, const XL_MirNode* pNode);
+static int __xlIsNewObjectCtorExpr(XL_CgenContext* pCtx, const XL_MirNode* pNode);
 static const XL_MirNode* __xlFindFuncNodeBySymbolName(const XL_MirNode* pRoot, const char* sSymbolName);
 #if XLANG_DEBUGMODE_ENABLED
 static void __xlCgenTraceEventStmt(XL_CgenContext* pCtx, const char* sEvent, const char* sFuncName);
@@ -153,6 +154,7 @@ static void __xlCgenBoxTypedCExpr(XL_CgenContext* pCtx, const char* sTypeName, c
 static void __xlCgenRetainValueExpr(XL_CgenContext* pCtx, const char* sExpr);
 static void __xlCgenShareXValueExpr(XL_CgenContext* pCtx, const char* sExpr);
 static void __xlCgenCopyDynamicValueExpr(XL_CgenContext* pCtx, const char* sTypeName, const char* sExpr);
+static const char* __xlCgenObjectReceiverTypeFromSymbol(const XL_CgenContext* pCtx, const char* sFuncSymbol, char* sOut, size_t iOutSize);
 static int __xlIsMoveIntrinsicCall(const XL_MirNode* pNode);
 static int __xlIsTextLikeType(const char* sTypeName);
 static int __xlSymbolUsesClosureCell(const XL_CgenContext* pCtx, int iSymbolIndex);
@@ -1890,9 +1892,39 @@ static const XL_ClassInfo* __xlCgenCurrentSuperClassInfo(const XL_CgenContext* p
 	const XL_FuncInfo* pSemFuncInfo;
 	const XL_ClassInfo* pClass;
 	const char* sReceiverTypeName;
+	char sCurrentReceiverTypeName[160];
 
-	if ( (pCtx == NULL) || (pCtx->pCurrentFuncInfo == NULL) ||
-		(pCtx->pCurrentFuncInfo->sSymbolName == NULL) || (pCtx->pCurrentFuncInfo->sSymbolName[0] == '\0') ) {
+	if ( (pCtx == NULL) || (pCtx->pCurrentFuncInfo == NULL) ) {
+		return NULL;
+	}
+	if ( (pCtx->pCurrentFuncInfo->sSymbolName != NULL) &&
+		(pCtx->pCurrentFuncInfo->sSymbolName[0] != '\0') &&
+		(__xlCgenObjectReceiverTypeFromSymbol(pCtx, pCtx->pCurrentFuncInfo->sSymbolName, sCurrentReceiverTypeName, sizeof(sCurrentReceiverTypeName)) != NULL) ) {
+		pClass = __xlCgenFindClassInfo(pCtx, sCurrentReceiverTypeName);
+		if ( (pClass != NULL) && (pClass->sBaseName != NULL) && (pClass->sBaseName[0] != '\0') &&
+			(strcmp(pClass->sBaseName, "object") != 0) ) {
+			return __xlCgenFindClassInfo(pCtx, pClass->sBaseName);
+		}
+	}
+	if ( (pCtx->pCurrentFuncInfo->sTypeName != NULL) && (pCtx->pCurrentFuncInfo->sTypeName[0] != '\0') ) {
+		pClass = __xlCgenFindClassInfo(pCtx, pCtx->pCurrentFuncInfo->sTypeName);
+		if ( (pClass != NULL) && (pClass->sBaseName != NULL) && (pClass->sBaseName[0] != '\0') &&
+			(strcmp(pClass->sBaseName, "object") != 0) ) {
+			return __xlCgenFindClassInfo(pCtx, pClass->sBaseName);
+		}
+	}
+	if ( (pCtx->pCurrentFuncInfo->pParams != NULL) &&
+		(pCtx->pCurrentFuncInfo->pParams->iChildCount != 0) &&
+		(pCtx->pCurrentFuncInfo->pParams->ppChildren[0] != NULL) &&
+		(pCtx->pCurrentFuncInfo->pParams->ppChildren[0]->sTypeName != NULL) &&
+		(pCtx->pCurrentFuncInfo->pParams->ppChildren[0]->sTypeName[0] != '\0') ) {
+		pClass = __xlCgenFindClassInfo(pCtx, pCtx->pCurrentFuncInfo->pParams->ppChildren[0]->sTypeName);
+		if ( (pClass != NULL) && (pClass->sBaseName != NULL) && (pClass->sBaseName[0] != '\0') &&
+			(strcmp(pClass->sBaseName, "object") != 0) ) {
+			return __xlCgenFindClassInfo(pCtx, pClass->sBaseName);
+		}
+	}
+	if ( (pCtx->pCurrentFuncInfo->sSymbolName == NULL) || (pCtx->pCurrentFuncInfo->sSymbolName[0] == '\0') ) {
 		return NULL;
 	}
 	pFuncNode = __xlFindFuncNodeBySymbolName(pCtx->pRoot, pCtx->pCurrentFuncInfo->sSymbolName);
@@ -1918,6 +1950,38 @@ static int __xlCgenIsSuperValue(const XL_MirNode* pNode)
 		(pNode->iChildCount == 0) &&
 		(pNode->sText != NULL) &&
 		(strcmp(pNode->sText, "super") == 0);
+}
+
+static const char* __xlCgenObjectReceiverTypeFromSymbol(const XL_CgenContext* pCtx, const char* sFuncSymbol, char* sOut, size_t iOutSize)
+{
+	const XL_SemResult* pSem;
+	size_t i;
+
+	if ( (pCtx == NULL) || (sFuncSymbol == NULL) || (sOut == NULL) || (iOutSize == 0) ) {
+		return NULL;
+	}
+	sOut[0] = '\0';
+	pSem = ((pCtx->pLowerResult != NULL) && (pCtx->pLowerResult->pSemResult != NULL)) ?
+		pCtx->pLowerResult->pSemResult : NULL;
+	if ( pSem == NULL ) {
+		return NULL;
+	}
+	for ( i = 0; i < pSem->classes.iCount; ++i ) {
+		const XL_ClassInfo* pClass = &pSem->classes.pItems[i];
+		char sSafeClassName[160];
+		char sNeedle[220];
+
+		if ( (pClass == NULL) || !pClass->bIsObject || (pClass->sName == NULL) || (pClass->sName[0] == '\0') ) {
+			continue;
+		}
+		__xlCgenSanitizeIdentPart(sSafeClassName, sizeof(sSafeClassName), pClass->sName);
+		snprintf(sNeedle, sizeof(sNeedle), "__self__%s__", sSafeClassName);
+		if ( strstr(sFuncSymbol, sNeedle) != NULL ) {
+			snprintf(sOut, iOutSize, "%s", pClass->sName);
+			return sOut;
+		}
+	}
+	return NULL;
 }
 
 static int __xlCgenIsObjectClassTypeName(const XL_CgenContext* pCtx, const char* sTypeName)
@@ -10312,11 +10376,13 @@ static void __xlCgenCallArgs(XL_CgenContext* pCtx, const XL_MirNode* pCall)
 	const XL_MirNode* pParams;
 	const XL_MirNode* pParam;
 	const XL_FuncInfo* pSemFunc;
+	const char* sFuncSymbol;
 	size_t i;
 
 	pArgs = ((pCall != NULL) && (pCall->iChildCount > 1)) ? pCall->ppChildren[1] : NULL;
 	pFunc = __xlResolveCallFuncNode(pCtx, pCall);
 	pSemFunc = __xlResolveCallSemFuncInfo(pCtx, pCall);
+	sFuncSymbol = __xlMirFuncSymbolName(pFunc);
 	pParams = ((pFunc != NULL) && (pFunc->iChildCount != 0)) ? pFunc->ppChildren[0] : NULL;
 
 	for ( i = 0; (pArgs != NULL) && (i < pArgs->iChildCount); ++i ) {
@@ -10344,18 +10410,34 @@ static void __xlCgenCallArgs(XL_CgenContext* pCtx, const XL_MirNode* pCall)
 		}
 		sDeclaredParamType = (((pSemFunc != NULL) && (pSemFunc->arrParamTypes != NULL) && (i < pSemFunc->iParamCount)) ?
 			pSemFunc->arrParamTypes[i] : ((pParam != NULL) ? pParam->sTypeName : NULL));
+		if ( (i == 0u) &&
+			bReceiverMethod &&
+			(pSemFunc->sReceiverType != NULL) &&
+			(pSemFunc->sReceiverType[0] != '\0') ) {
+			sDeclaredParamType = pSemFunc->sReceiverType;
+		}
 		sExpectedParamType = __xlCgenObjectParamUsesStorageVar(pCtx, pSemFunc, pParam, i) ? "var" :
 			sDeclaredParamType;
 		if ( (i == 0u) &&
-			__xlCgenIsSuperValue(pArgs->ppChildren[i]) &&
-			(sExpectedParamType != NULL) &&
-			__xlCgenIsObjectClassTypeName(pCtx, sExpectedParamType) ) {
-			__xlCgenAppendFormat(
-				&pCtx->buf,
-				"(%s*)(&self)",
-				__xlCgenStorageCTypeName(pCtx, sExpectedParamType, sSelfClassType, sizeof(sSelfClassType))
-			);
-			continue;
+			__xlCgenIsSuperValue(pArgs->ppChildren[i]) ) {
+			const XL_MirNode* pSuperNode = pArgs->ppChildren[i];
+			const XL_ClassInfo* pSuperClass = __xlCgenCurrentSuperClassInfo(pCtx);
+			char sSuperSymbolTypeName[160];
+			const char* sSuperFromSymbol = __xlCgenObjectReceiverTypeFromSymbol(pCtx, sFuncSymbol, sSuperSymbolTypeName, sizeof(sSuperSymbolTypeName));
+			const char* sSuperSelfTypeName = ((pSuperNode != NULL) && (pSuperNode->sTypeName != NULL) && (pSuperNode->sTypeName[0] != '\0') &&
+				__xlCgenIsObjectClassTypeName(pCtx, pSuperNode->sTypeName)) ?
+				pSuperNode->sTypeName :
+				((sSuperFromSymbol != NULL) ? sSuperFromSymbol :
+					(((pSuperClass != NULL) && (pSuperClass->sName != NULL) && (pSuperClass->sName[0] != '\0')) ?
+						pSuperClass->sName : sExpectedParamType));
+			if ( __xlCgenIsObjectClassTypeName(pCtx, sSuperSelfTypeName) ) {
+				__xlCgenAppendFormat(
+					&pCtx->buf,
+					"(%s*)(&self)",
+					__xlCgenStorageCTypeName(pCtx, sSuperSelfTypeName, sSelfClassType, sizeof(sSelfClassType))
+				);
+				continue;
+			}
 		}
 		if ( (i == 0u) &&
 			(pSemFunc != NULL) &&
@@ -10785,8 +10867,10 @@ static void __xlCgenDynamicObjectMethodCall(XL_CgenContext* pCtx, const XL_MirNo
 	sFuncSymbol = __xlMirFuncSymbolName(pFunc);
 	sReturnTypeName = ((pFuncInfo != NULL) && (pFuncInfo->sStorageReturnTypeName != NULL) && (pFuncInfo->sStorageReturnTypeName[0] != '\0')) ?
 		pFuncInfo->sStorageReturnTypeName : __xlInferExprTypeName(pCtx, pNode);
-	sSelfTypeName = ((pFuncInfo != NULL) && (pFuncInfo->arrParamTypes != NULL) && (pFuncInfo->arrParamTypes[0] != NULL)) ?
-		pFuncInfo->arrParamTypes[0] : ((pFuncInfo != NULL) ? pFuncInfo->sReceiverType : NULL);
+	sSelfTypeName = ((pFuncInfo != NULL) && (pFuncInfo->sReceiverType != NULL) && (pFuncInfo->sReceiverType[0] != '\0')) ?
+		pFuncInfo->sReceiverType :
+		(((pFuncInfo != NULL) && (pFuncInfo->arrParamTypes != NULL) && (pFuncInfo->arrParamTypes[0] != NULL)) ?
+			pFuncInfo->arrParamTypes[0] : NULL);
 	sSelfActualTypeName = __xlInferExprTypeName(pCtx, pSelfSource);
 	sSelfStorageTypeName = __xlStorageTypeName(pCtx, pSelfSource);
 	bBoxedSelf = (pSelfArg != NULL) &&
@@ -10802,14 +10886,24 @@ static void __xlCgenDynamicObjectMethodCall(XL_CgenContext* pCtx, const XL_MirNo
 	}
 	if ( __xlCgenIsSuperValue(pSelfArg) || __xlCgenIsSuperValue(pSelfSource) ) {
 		char sSelfClassType[256];
+		const XL_MirNode* pSuperNode = __xlCgenIsSuperValue(pSelfArg) ? pSelfArg : pSelfSource;
+		const XL_ClassInfo* pSuperClass = __xlCgenCurrentSuperClassInfo(pCtx);
+		char sSuperSymbolTypeName[160];
+		const char* sSuperFromSymbol = __xlCgenObjectReceiverTypeFromSymbol(pCtx, sFuncSymbol, sSuperSymbolTypeName, sizeof(sSuperSymbolTypeName));
+		const char* sSuperSelfTypeName = ((pSuperNode != NULL) && (pSuperNode->sTypeName != NULL) && (pSuperNode->sTypeName[0] != '\0') &&
+			__xlCgenIsObjectClassTypeName(pCtx, pSuperNode->sTypeName)) ?
+			pSuperNode->sTypeName :
+			((sSuperFromSymbol != NULL) ? sSuperFromSymbol :
+				(((pSuperClass != NULL) && (pSuperClass->sName != NULL) && (pSuperClass->sName[0] != '\0')) ?
+					pSuperClass->sName : sSelfTypeName));
 
 		__xlCgenAppend(&pCtx->buf, sFuncSymbol);
 		__xlCgenAppend(&pCtx->buf, "(");
-		if ( (sSelfTypeName != NULL) && __xlCgenIsObjectClassTypeName(pCtx, sSelfTypeName) ) {
+		if ( (sSuperSelfTypeName != NULL) && __xlCgenIsObjectClassTypeName(pCtx, sSuperSelfTypeName) ) {
 			__xlCgenAppendFormat(
 				&pCtx->buf,
 				"(%s*)(&self)",
-				__xlCgenStorageCTypeName(pCtx, sSelfTypeName, sSelfClassType, sizeof(sSelfClassType))
+				__xlCgenStorageCTypeName(pCtx, sSuperSelfTypeName, sSelfClassType, sizeof(sSelfClassType))
 			);
 		} else {
 			__xlCgenExprAsType(pCtx, pSelfArg, (sSelfTypeName != NULL) ? sSelfTypeName : sSelfActualTypeName);
@@ -11035,6 +11129,104 @@ static void __xlCgenDynamicObjectFuncInvoke(
 		__xlCgenExprAsStorageParamType(pCtx, (i - 1u < iArgCount) ? ppArgs[i - 1u] : NULL, sExpectedParamType, sDeclaredParamType);
 	}
 	__xlCgenAppend(&pCtx->buf, "); })");
+}
+
+static int __xlCanCgenLateObjectMethodCall(const XL_CgenContext* pCtx, const XL_MirNode* pCallNode)
+{
+	const XL_MirNode* pCallee;
+	const XL_MirNode* pBase;
+	const char* sBaseTypeName;
+	const char* sStorageTypeName;
+
+	if ( (pCtx == NULL) || (pCallNode == NULL) || (pCallNode->eKind != XL_MIR_CALL) ) {
+		return 0;
+	}
+	pCallee = (pCallNode->iChildCount != 0) ? pCallNode->ppChildren[0] : NULL;
+	if ( (pCallee == NULL) || (pCallee->eKind != XL_MIR_MEMBER) || (pCallee->iChildCount == 0) ||
+		(pCallee->sText == NULL) || (pCallee->sText[0] == '\0') ) {
+		return 0;
+	}
+	if ( (pCallNode->iFuncIndex >= 0) || (pCallee->iFuncIndex >= 0) ) {
+		return 0;
+	}
+	if ( __xlIsVarTypeName(pCallNode->sTypeName) && __xlIsVarTypeName(pCallee->sTypeName) ) {
+		return 1;
+	}
+	pBase = pCallee->ppChildren[0];
+	sBaseTypeName = __xlResolvedBaseTypeName(pCtx, pBase);
+	sStorageTypeName = __xlStorageTypeName(pCtx, pBase);
+	return __xlCgenIsObjectClassTypeName(pCtx, sBaseTypeName) ||
+		__xlIsVarTypeName(sBaseTypeName) ||
+		__xlIsVarTypeName(sStorageTypeName) ||
+		((sBaseTypeName != NULL) && (strcmp(sBaseTypeName, "object") == 0)) ||
+		((sStorageTypeName != NULL) && (strcmp(sStorageTypeName, "object") == 0));
+}
+
+static void __xlCgenLateObjectMethodCall(XL_CgenContext* pCtx, const XL_MirNode* pNode)
+{
+	const XL_MirNode* pCallee;
+	const XL_MirNode* pBase;
+	const XL_MirNode* pArgs;
+	const char* sBaseTypeName;
+	const char* sStorageTypeName;
+	const char* sResultTypeName;
+	char sBlobName[96];
+	char sArgsName[96];
+	char sResultName[96];
+	int bBoxedBase;
+	size_t i;
+
+	if ( (pCtx == NULL) || (pNode == NULL) ) {
+		return;
+	}
+	pCallee = (pNode->iChildCount != 0) ? pNode->ppChildren[0] : NULL;
+	pBase = ((pCallee != NULL) && (pCallee->iChildCount != 0)) ? pCallee->ppChildren[0] : NULL;
+	pArgs = (pNode->iChildCount > 1) ? pNode->ppChildren[1] : NULL;
+	sBaseTypeName = __xlResolvedBaseTypeName(pCtx, pBase);
+	sStorageTypeName = __xlStorageTypeName(pCtx, pBase);
+	sResultTypeName = __xlInferExprTypeName(pCtx, pNode);
+	bBoxedBase = __xlIsContainerIndexExpr(pCtx, pBase) ||
+		__xlIsVarTypeName(sBaseTypeName) ||
+		__xlIsVarTypeName(sStorageTypeName) ||
+		((sBaseTypeName != NULL) && (strcmp(sBaseTypeName, "object") == 0)) ||
+		((sStorageTypeName != NULL) && (strcmp(sStorageTypeName, "object") == 0)) ||
+		(__xlCgenIsObjectClassTypeName(pCtx, sBaseTypeName) &&
+		 !__xlCgenIsDirectObjectSelfValue(pCtx, pBase, sBaseTypeName));
+	snprintf(sBlobName, sizeof(sBlobName), "xl_late_call_blob_%d_%d", pNode->iLine, pNode->iColumn);
+	snprintf(sArgsName, sizeof(sArgsName), "xl_late_call_args_%d_%d", pNode->iLine, pNode->iColumn);
+	snprintf(sResultName, sizeof(sResultName), "xl_late_call_result_%d_%d", pNode->iLine, pNode->iColumn);
+
+	__xlCgenAppend(&pCtx->buf, "({ ");
+	if ( bBoxedBase ) {
+		__xlCgenAppendFormat(&pCtx->buf, "void* %s = xvoGetClass((xvalue)(", sBlobName);
+		__xlCgenExpr(pCtx, pBase);
+		__xlCgenAppend(&pCtx->buf, ")); ");
+	} else {
+		__xlCgenAppendFormat(&pCtx->buf, "void* %s = &(", sBlobName);
+		__xlCgenExpr(pCtx, pBase);
+		__xlCgenAppend(&pCtx->buf, "); ");
+	}
+	__xlCgenAppendFormat(&pCtx->buf, "xvalue %s = xvoCreateArray(); ", sArgsName);
+	for ( i = 0; (pArgs != NULL) && (i < pArgs->iChildCount); ++i ) {
+		const XL_MirNode* pArg = pArgs->ppChildren[i];
+		__xlCgenAppendFormat(&pCtx->buf, "(void)xvoArrayAppendValue(%s, ", sArgsName);
+		__xlCgenBoxValueExpr(pCtx, pArg);
+		__xlCgenAppend(&pCtx->buf, ", TRUE); ");
+	}
+	__xlCgenAppendFormat(&pCtx->buf, "xvalue %s = xl_object_call(%s, ", sResultName, sBlobName);
+	__xlCgenAppendCString(&pCtx->buf, (pCallee != NULL) ? pCallee->sText : "");
+	__xlCgenAppendFormat(&pCtx->buf, ", %s); ", sArgsName);
+	__xlCgenAppendFormat(&pCtx->buf, "xvoUnref(%s); ", sArgsName);
+	if ( (sResultTypeName == NULL) || (sResultTypeName[0] == '\0') || (strcmp(sResultTypeName, "void") == 0) ) {
+		__xlCgenAppendFormat(&pCtx->buf, "if ( %s != NULL ) xvoUnref(%s); })", sResultName, sResultName);
+		return;
+	}
+	{
+		char sResultCTypeName[160];
+		__xlCgenAppendFormat(&pCtx->buf, "%s xl_late_call_value = ", __xlCgenStorageCTypeName(pCtx, sResultTypeName, sResultCTypeName, sizeof(sResultCTypeName)));
+	}
+	__xlCgenValueExprAsType(pCtx, sResultName, sResultTypeName);
+	__xlCgenAppendFormat(&pCtx->buf, "; if ( %s != NULL ) xvoUnref(%s); xl_late_call_value; })", sResultName, sResultName);
 }
 
 static void __xlCgenFunctionValueCallExpr(XL_CgenContext* pCtx, const XL_MirNode* pNode)
@@ -13381,6 +13573,26 @@ static const XL_MirNode* __xlMoveIntrinsicArg(const XL_MirNode* pNode)
 	return ((pArgs != NULL) && (pArgs->iChildCount != 0)) ? pArgs->ppChildren[0] : NULL;
 }
 
+static int __xlIsNewObjectCtorExpr(XL_CgenContext* pCtx, const XL_MirNode* pNode)
+{
+	const XL_MirNode* pInner;
+	const XL_ClassInfo* pClass;
+
+	if ( (pNode == NULL) ||
+		(pNode->eKind != XL_MIR_VALUE) ||
+		(pNode->iChildCount != 1) ||
+		(pNode->sText == NULL) ||
+		(strcmp(pNode->sText, "new") != 0) ) {
+		return 0;
+	}
+	pInner = pNode->ppChildren[0];
+	if ( !__xlIsClassCtorCall(pCtx, pInner) ) {
+		return 0;
+	}
+	pClass = __xlCgenFindClassInfo(pCtx, pInner->sTypeName);
+	return (pClass != NULL) && pClass->bIsObject;
+}
+
 static int __xlIsHiddenCallNamed(const XL_MirNode* pNode, const char* sName)
 {
 	return (pNode != NULL) &&
@@ -13559,7 +13771,7 @@ static void __xlCgenBoxValueExpr(XL_CgenContext* pCtx, const XL_MirNode* pNode)
 		char sClassType[160];
 
 		if ( __xlCgenIsObjectClassTypeName(pCtx, sTypeName) ) {
-			if ( __xlIsClassCtorCall(pCtx, pNode) ) {
+			if ( __xlIsClassCtorCall(pCtx, pNode) || __xlIsNewObjectCtorExpr(pCtx, pNode) ) {
 				__xlCgenAppend(&pCtx->buf, "(xvalue)(");
 				__xlCgenExpr(pCtx, pNode);
 				__xlCgenAppend(&pCtx->buf, ")");
@@ -14518,6 +14730,12 @@ static void __xlCgenExprAsType(XL_CgenContext* pCtx, const XL_MirNode* pNode, co
 	sStorageTypeName = __xlStorageTypeName(pCtx, pNode);
 	sResolvedBaseTypeName = __xlResolvedBaseTypeName(pCtx, pNode);
 	if ( (sExpectedTypeName != NULL) && (strcmp(sExpectedTypeName, "object") == 0) ) {
+		if ( __xlIsNewObjectCtorExpr(pCtx, pNode) ) {
+			__xlCgenAppend(&pCtx->buf, "(xvalue)(");
+			__xlCgenExpr(pCtx, pNode);
+			__xlCgenAppend(&pCtx->buf, ")");
+			return;
+		}
 		__xlCgenAppend(&pCtx->buf, "({ xvalue xl_object_ref = (xvalue)(");
 		__xlCgenExpr(pCtx, pNode);
 		__xlCgenAppend(&pCtx->buf, "); ");
@@ -14527,6 +14745,12 @@ static void __xlCgenExprAsType(XL_CgenContext* pCtx, const XL_MirNode* pNode, co
 	}
 	if ( __xlCgenIsObjectClassTypeName(pCtx, sExpectedTypeName) ) {
 		if ( __xlCgenEmitClassCopyExpr(pCtx, pNode, sExpectedTypeName, sActualTypeName) ) {
+			return;
+		}
+		if ( __xlIsNewObjectCtorExpr(pCtx, pNode) ) {
+			__xlCgenAppend(&pCtx->buf, "(xvalue)(");
+			__xlCgenExpr(pCtx, pNode);
+			__xlCgenAppend(&pCtx->buf, ")");
 			return;
 		}
 		__xlCgenAppend(&pCtx->buf, "({ xvalue xl_object_ref = (xvalue)(");
@@ -14557,6 +14781,12 @@ static void __xlCgenExprAsType(XL_CgenContext* pCtx, const XL_MirNode* pNode, co
 	if ( __xlIsVarTypeName(sExpectedTypeName) ) {
 		if ( __xlCgenIsObjectClassTypeName(pCtx, sResolvedBaseTypeName) &&
 			(__xlIsVarTypeName(sActualTypeName) || __xlIsVarTypeName(sStorageTypeName)) ) {
+			if ( __xlIsNewObjectCtorExpr(pCtx, pNode) ) {
+				__xlCgenAppend(&pCtx->buf, "(xvalue)(");
+				__xlCgenExpr(pCtx, pNode);
+				__xlCgenAppend(&pCtx->buf, ")");
+				return;
+			}
 			__xlCgenAppend(&pCtx->buf, "({ xvalue xl_object_ref = (xvalue)(");
 			__xlCgenExpr(pCtx, pNode);
 			__xlCgenAppend(&pCtx->buf, "); ");
@@ -14824,6 +15054,20 @@ static void __xlCgenExprAsReceiverType(XL_CgenContext* pCtx, const XL_MirNode* p
 	const char* sStorageTypeName;
 	char sClassType[160];
 
+	if ( __xlCgenIsSuperValue(pNode) ) {
+		const XL_ClassInfo* pSuperClass = __xlCgenCurrentSuperClassInfo(pCtx);
+		const char* sSuperTypeName = ((pNode->sTypeName != NULL) && (pNode->sTypeName[0] != '\0') &&
+			__xlCgenIsObjectClassTypeName(pCtx, pNode->sTypeName)) ?
+			pNode->sTypeName :
+			(((pSuperClass != NULL) && (pSuperClass->sName != NULL) && (pSuperClass->sName[0] != '\0')) ?
+				pSuperClass->sName : sExpectedTypeName);
+
+		if ( __xlCgenIsObjectClassTypeName(pCtx, sSuperTypeName) ) {
+			__xlCgenClassTypeName(sClassType, sizeof(sClassType), sSuperTypeName);
+			__xlCgenAppendFormat(&pCtx->buf, "(%s*)(&self)", sClassType);
+			return;
+		}
+	}
 	if ( !__xlCgenIsClassTypeName(pCtx, sExpectedTypeName) ) {
 		__xlCgenExprAsType(pCtx, pNode, sExpectedTypeName);
 		return;
@@ -19558,7 +19802,14 @@ static void __xlCgenExpr(XL_CgenContext* pCtx, const XL_MirNode* pNode)
 		return;
 	}
 
+	if ( (pNode->eKind == XL_MIR_VALUE) && (pNode->iChildCount == 1) &&
+		((pNode->sText == NULL) || (pNode->sText[0] == '\0')) ) {
+		__xlCgenExpr(pCtx, pNode->ppChildren[0]);
+		return;
+	}
+
 	if ( pNode->eKind == XL_MIR_CALL ) {
+		__xlCgenAppend(&pCtx->buf, "/*xl_call_probe*/");
 		if ( __xlCallHasExpandedMultiReturnArg(pNode) ) {
 			__xlCgenCallExprWithExpandedArgs(pCtx, pNode);
 			return;
@@ -19588,8 +19839,21 @@ static void __xlCgenExpr(XL_CgenContext* pCtx, const XL_MirNode* pNode)
 			(sCallType != NULL) &&
 			!__xlIsVarTypeName(sCallType) &&
 			(strcmp(sCallType, "void") != 0);
+		if ( (pCallee != NULL) &&
+			(pCallee->eKind == XL_MIR_MEMBER) &&
+			(pNode->iFuncIndex < 0) &&
+			(pCallee->iFuncIndex < 0) &&
+			(sCallType != NULL) &&
+			(strcmp(sCallType, "var") == 0) ) {
+			__xlCgenLateObjectMethodCall(pCtx, pNode);
+			return;
+		}
 		if ( __xlCanCgenDynamicObjectMethodCall(pCtx, pNode) ) {
 			__xlCgenDynamicObjectMethodCall(pCtx, pNode);
+			return;
+		}
+		if ( __xlCanCgenLateObjectMethodCall(pCtx, pNode) ) {
+			__xlCgenLateObjectMethodCall(pCtx, pNode);
 			return;
 		}
 		if ( bWrapGenericValueResult ) {
@@ -20321,8 +20585,15 @@ static void __xlCgenExpr(XL_CgenContext* pCtx, const XL_MirNode* pNode)
 
 	if ( __xlCgenIsSuperValue(pNode) ) {
 		char sSuperType[160];
+		const XL_ClassInfo* pSuperClass = __xlCgenCurrentSuperClassInfo(pCtx);
 
+		if ( (pSuperClass != NULL) && (pSuperClass->sName != NULL) && (pSuperClass->sName[0] != '\0') ) {
+			__xlCgenClassTypeName(sSuperType, sizeof(sSuperType), pSuperClass->sName);
+			__xlCgenAppendFormat(&pCtx->buf, "(*((%s*)(&self)))", sSuperType);
+			return;
+		}
 		if ( (pNode->sTypeName != NULL) && (pNode->sTypeName[0] != '\0') &&
+			(strcmp(pNode->sTypeName, "object") != 0) &&
 			(__xlCgenFindClassInfo(pCtx, pNode->sTypeName) != NULL) ) {
 			__xlCgenClassTypeName(sSuperType, sizeof(sSuperType), pNode->sTypeName);
 			__xlCgenAppendFormat(&pCtx->buf, "(*((%s*)(&self)))", sSuperType);
@@ -23938,16 +24209,19 @@ static int __xlCgenCallArgsReplacingAwait(
 	const XL_MirNode* pParams;
 	const XL_MirNode* pParam;
 	const XL_FuncInfo* pSemFunc;
+	const char* sFuncSymbol;
 	size_t i;
 
 	pArgs = ((pCall != NULL) && (pCall->iChildCount > 1)) ? pCall->ppChildren[1] : NULL;
 	pFunc = __xlResolveCallFuncNode(pCtx, pCall);
 	pSemFunc = __xlResolveCallSemFuncInfo(pCtx, pCall);
+	sFuncSymbol = __xlMirFuncSymbolName(pFunc);
 	pParams = ((pFunc != NULL) && (pFunc->iChildCount != 0)) ? pFunc->ppChildren[0] : NULL;
 	for ( i = 0; (pArgs != NULL) && (i < pArgs->iChildCount); ++i ) {
 		const char* sExpectedParamType;
 		const char* sDeclaredParamType;
 		const int bReceiverMethod = (pSemFunc != NULL) && (pSemFunc->sReceiverType != NULL) && (pSemFunc->sReceiverType[0] != '\0');
+		char sSelfClassType[256];
 
 		if ( i != 0 ) {
 			__xlCgenAppend(&pCtx->buf, ", ");
@@ -23959,6 +24233,26 @@ static int __xlCgenCallArgsReplacingAwait(
 		sDeclaredParamType = (((pSemFunc != NULL) && (pSemFunc->arrParamTypes != NULL) && (i < pSemFunc->iParamCount)) ?
 			pSemFunc->arrParamTypes[i] : ((pParam != NULL) ? pParam->sTypeName : NULL));
 		sExpectedParamType = __xlCgenObjectParamUsesStorageVar(pCtx, pSemFunc, pParam, i) ? "var" : sDeclaredParamType;
+		if ( (i == 0u) && __xlCgenIsSuperValue(pArgs->ppChildren[i]) ) {
+			const XL_MirNode* pSuperNode = pArgs->ppChildren[i];
+			const XL_ClassInfo* pSuperClass = __xlCgenCurrentSuperClassInfo(pCtx);
+			char sSuperSymbolTypeName[160];
+			const char* sSuperFromSymbol = __xlCgenObjectReceiverTypeFromSymbol(pCtx, sFuncSymbol, sSuperSymbolTypeName, sizeof(sSuperSymbolTypeName));
+			const char* sSuperSelfTypeName = ((pSuperNode != NULL) && (pSuperNode->sTypeName != NULL) && (pSuperNode->sTypeName[0] != '\0') &&
+				__xlCgenIsObjectClassTypeName(pCtx, pSuperNode->sTypeName) && (strcmp(pSuperNode->sTypeName, "object") != 0)) ?
+				pSuperNode->sTypeName :
+				((sSuperFromSymbol != NULL) ? sSuperFromSymbol :
+					(((pSuperClass != NULL) && (pSuperClass->sName != NULL) && (pSuperClass->sName[0] != '\0') ) ?
+						pSuperClass->sName : sExpectedParamType));
+			if ( __xlCgenIsObjectClassTypeName(pCtx, sSuperSelfTypeName) ) {
+				__xlCgenAppendFormat(
+					&pCtx->buf,
+					"(%s*)(&self)",
+					__xlCgenStorageCTypeName(pCtx, sSuperSelfTypeName, sSelfClassType, sizeof(sSelfClassType))
+				);
+				continue;
+			}
+		}
 		if ( !__xlCgenExprAsStorageParamTypeReplacingAwait(
 			pCtx,
 			pArgs->ppChildren[i],

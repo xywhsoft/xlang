@@ -22,4 +22,8 @@
 #define XL_UNUSED(x) (void)(x)
 #define XL_COUNTOF(arr) (sizeof(arr) / sizeof((arr)[0]))
 
+#if defined(__TINYC__) && (defined(_WIN32) || defined(_WIN64))
+int inet_pton(int af, const char* src, void* dst);
+#endif
+
 #endif

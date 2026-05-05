@@ -90,6 +90,7 @@ import std.task					// 任务
 import std.channel				// 通道
 import std.module				// 模块反射
 import std.object				// 对象反射
+import std.types as types
 // import std.types				// 类型反射 - 当前 smoke 未使用
 import std.rand					// 随机数
 import std.pack					// 数据打包解包
@@ -186,6 +187,126 @@ class SampleBox extends object
 	end
 end
 
+var int delete_score = 0
+var int void_score = 0
+
+class UnionScalar extends object
+	union Data
+		var left as int
+		var right as int
+	end
+
+	create(int value)
+		self.left = value
+	end
+
+	func get_right() as int
+		return self.right
+	end
+end
+
+class SuperBase extends object
+	var seed as int
+
+	create()
+		self.seed = 7
+	end
+
+	func value() as int
+		return self.seed
+	end
+end
+
+class SuperChild extends SuperBase
+	create()
+		base()
+	end
+
+	func value() as int
+		return super.value() + 35
+	end
+end
+
+class NewDeleteBox extends object
+	var fixed as int
+
+	destroy()
+		delete_score += 42
+	end
+end
+
+class NoCopyHandle extends object
+	nocopy
+	var value as int
+
+	create(int value)
+		self.value = value
+	end
+end
+
+class CallableBox extends object
+	var factor as int
+
+	create(int factor)
+		self.factor = factor
+	end
+
+	func op_call(int value) as int
+		return self.factor * value
+	end
+end
+
+class IndexBox extends object
+	var left as int
+	var right as int
+
+	create(int left, int right)
+		self.left = left
+		self.right = right
+	end
+
+	func op_index(int index) as int
+		if index == 0 then
+			return self.left
+		end
+		return self.right
+	end
+
+	func op_index_set(int index, int value) as int
+		if index == 0 then
+			self.left = value
+		else
+			self.right = value
+		end
+		return value
+	end
+end
+
+class PropertyBase extends object
+	get value() as int
+		return 1
+	end
+
+	let value(int next)
+	end
+end
+
+class PropertyChild extends PropertyBase
+	var score as int
+
+	create()
+		self.score = 0
+	end
+
+	get value() as int
+		return self.score
+	end
+
+	let value(int next)
+		self.score = next
+	end
+end
+
 /*
 union 写法示例：
 
@@ -216,6 +337,10 @@ end
 
 func inc(int value) as int
 	return value + 1
+end
+
+func touch_void()
+	void_score += 1
 end
 
 func mix(int a, int b = 2, int c = 3) as int
@@ -291,6 +416,25 @@ func test_loops() as void
 	end
 
 	check(loop_sum == 8 and do_count == 2 and range_sum == 16 and jump_score == 9, "loops")
+end
+
+func test_continue_levels() as void
+	int result = 0
+
+	for outer in range(1, 4)
+		for inner in range(1, 4)
+			if outer == 1 then
+				result += inner
+				continue 2
+			end
+			if outer == 2 and inner == 2 then
+				break 2
+			end
+			result += 100
+		end
+	end
+
+	check(result == 101, "continue levels")
 end
 
 func test_object() as void
@@ -422,14 +566,46 @@ func main() as int
 	array safe_index_null = null
 	int safe_index_hit = safe_index_values?[1]
 	int safe_index_default = safe_index_null?[0] ?? 99
+	float32 real_f32 = 1.25
+	float64 real_f64 = 2.5
+	any any_value = 0
+	var int typed_var_decl = 5
+	int modern_oct = 0o10
+	int legacy_hex = &h10
+	int legacy_oct = &o10
+	int legacy_bin = &b10
+	string raw_path = r"c:\temp\xlang"
+	string single_quoted = 'a\b'
+	int bit_xor = 0b1111 ^ 0b0011
+	int bit_not = ~0
+	type type_int = int
+	type type_from_value = Type(typed_var_decl)
+	type type_from_module = types.of("hello")
+	array empty_array = []
+	list empty_list = list{}
+	set empty_set = set{}
+	UnionScalar union_item = UnionScalar(7)
+	SuperChild super_child = SuperChild()
+	auto allocated = new NewDeleteBox()
+	NoCopyHandle no_copy = NoCopyHandle(42)
+	CallableBox callable = CallableBox(7)
+	IndexBox indexed = IndexBox(10, 31)
+	PropertyBase property_item = PropertyChild()
 
 	check(b and i == 1234 and int8_value > 0 and uint8_value > 0 and i16 > 0 and u16 > 0, "basic integers")
 	check(i32 + u32 + i64 + u64 > 0 and f > 0 and f32 > 0 and f64 > 0, "numeric families")
+	check(real_f32 > 1.2 and real_f64 > 2.4 and typed_var_decl == 5, "explicit float and var-type declarations")
 	check(s == "hello xlang", "string")
 	check(p == null and alias_text == "41", "point/typedef")
 	check(hex == 16 and oct == 8 and bin == 2, "base-prefixed integer literals")
+	check(modern_oct == 8 and legacy_hex == 16 and legacy_oct == 8 and legacy_bin == 2, "alternate integer literal prefixes")
+	check(raw_path == "c:\\temp\\xlang" and single_quoted == "a\\b", "raw and single quoted strings")
 	check(arithmetic == 19 and bitwise == 3 and shifted == 8 and powered == 8 and logic, "operators")
+	check(bit_xor == 12 and bit_not == -1, "bit xor and bit not")
 	check(not false and !false, "unary boolean negation")
+	any_value = 7
+	check(Type(any_value) == int and type_int.name == "int" and type_from_value == int, "any and type values")
+	check(types.name(type_from_module) == "string" and types.same(type_from_module, string), "std.types module")
 
 	check(templated == "he\"llo", "template string")
 	std.core.println(path)
@@ -441,6 +617,7 @@ func main() as int
 	check(pairs_map["right"] == 20 and typed_dict["answer"] == 42, "dict index")
 	std.core.println(flags.length)
 	check(sparse[3] == 300 and empty_dict.length == 0, "sparse and empty")
+	check(empty_array.length == 0 and empty_list.length == 0 and empty_set.length == 0, "empty container literals")
 	nums.append(4)
 	nums[0] = 9
 	nums.remove(1)
@@ -502,6 +679,7 @@ func main() as int
 	check(safe_index_hit == 22 and safe_index_default == 99, "safe index")
 
 	test_loops()
+	test_continue_levels()
 
 	std.core.println("function value declared")
 	check(pv == 42 and pt == "ok", "anonymous multi return")
@@ -510,6 +688,22 @@ func main() as int
 	check(count_named(20, ***named_values) == 22, "*** spread")
 	check(identity<string>("ok") == "ok" and identity<int>(123) == 123, "generics")
 	check(int(3.14) == 3 and float64("2.5") > 2.4 and bool("ok"), "builtin constructors")
+
+	touch_void()
+	check(union_item.left == 7, "class union initial member")
+	union_item.right = 12
+	allocated.fixed = 42
+	delete allocated
+	indexed[1] = 32
+	property_item.value = 42
+	check(void_score == 1, "void return function")
+	check(union_item.get_right() == 12, "class union active member switch")
+	check(super_child.value() == 42, "super call")
+	check(delete_score == 42, "new and delete")
+	check(no_copy.value == 42, "nocopy class")
+	check(callable(6) == 42, "op_call")
+	check(indexed[0] == 10 and indexed[1] == 32, "op_index and op_index_set")
+	check(property_item.value == 42, "virtual get and let")
 
 	test_object()
 

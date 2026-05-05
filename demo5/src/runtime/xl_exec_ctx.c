@@ -489,6 +489,7 @@ void xlExecCtxInit(XL_ExecCtx* pCtx, const char* sInputFile, const char* sReleas
 	}
 	for ( i = 0; i < XL_HOST_EXTERN_SYMBOL_MAX; ++i ) {
 		__xlCopyText(pCtx->arrExternSymbols[i].sName, sizeof(pCtx->arrExternSymbols[i].sName), hostCtx.arrExternSymbols[i].sName);
+		pCtx->arrExternSymbols[i].pAddress = hostCtx.arrExternSymbols[i].pAddress;
 	}
 	for ( i = 0; i < XL_HOST_LINK_LIBRARY_MAX; ++i ) {
 		__xlCopyText(pCtx->arrLinkLibraries[i].sName, sizeof(pCtx->arrLinkLibraries[i].sName), hostCtx.arrLinkLibraries[i].sName);
@@ -531,6 +532,11 @@ int xlExecCtxAddArtifact(XL_ExecCtx* pCtx, const char* sKind, const char* sFile)
 
 int xlExecCtxAddExternSymbol(XL_ExecCtx* pCtx, const char* sName)
 {
+	return xlExecCtxAddExternSymbolAddress(pCtx, sName, NULL);
+}
+
+int xlExecCtxAddExternSymbolAddress(XL_ExecCtx* pCtx, const char* sName, void* pAddress)
+{
 	size_t i;
 
 	if ( (pCtx == NULL) || (sName == NULL) || (sName[0] == '\0') ) {
@@ -539,6 +545,9 @@ int xlExecCtxAddExternSymbol(XL_ExecCtx* pCtx, const char* sName)
 
 	for ( i = 0; i < pCtx->iExternSymbolCount; ++i ) {
 		if ( strcmp(pCtx->arrExternSymbols[i].sName, sName) == 0 ) {
+			if ( pAddress != NULL ) {
+				pCtx->arrExternSymbols[i].pAddress = pAddress;
+			}
 			return XL_RC_OK;
 		}
 	}
@@ -548,6 +557,7 @@ int xlExecCtxAddExternSymbol(XL_ExecCtx* pCtx, const char* sName)
 	}
 
 	__xlCopyText(pCtx->arrExternSymbols[pCtx->iExternSymbolCount].sName, sizeof(pCtx->arrExternSymbols[pCtx->iExternSymbolCount].sName), sName);
+	pCtx->arrExternSymbols[pCtx->iExternSymbolCount].pAddress = pAddress;
 	pCtx->iExternSymbolCount += 1;
 	return XL_RC_OK;
 }
@@ -688,7 +698,7 @@ int xlExecRunCode(XL_ExecCtx* pCtx, XL_DiagContext* pDiag, const char* sCode, ch
 		}
 	}
 	for ( i = 0; i < pCtx->iExternSymbolCount; ++i ) {
-		iRc = xlHostContextAddExternSymbol(&hostCtx, pCtx->arrExternSymbols[i].sName);
+		iRc = xlHostContextAddExternSymbolAddress(&hostCtx, pCtx->arrExternSymbols[i].sName, pCtx->arrExternSymbols[i].pAddress);
 		if ( iRc != XL_RC_OK ) {
 			return iRc;
 		}

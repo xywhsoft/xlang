@@ -89,6 +89,7 @@ int xl_object_length(void* pBlob, int iDeclaredFieldCount);
 int xl_object_exists(void* pBlob, const char* sKey);
 xvalue xl_object_get(void* pBlob, const char* sKey, xvalue defaultValue, int bHasDefault);
 int xl_object_set(void* pBlob, const char* sKey, xvalue value);
+xvalue xl_object_call(void* pBlob, const char* sMethodName, xvalue args);
 int xl_object_remove(void* pBlob, const char* sKey);
 void xl_object_clear(void* pBlob);
 xvalue xl_object_keys(void* pBlob);
