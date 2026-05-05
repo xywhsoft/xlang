@@ -20,6 +20,7 @@ typedef struct XL_HostArtifact {
 
 typedef struct XL_HostExternSymbol {
 	char sName[128];
+	void* pAddress;
 } XL_HostExternSymbol;
 
 typedef struct XL_HostLinkLibrary {
@@ -82,6 +83,7 @@ typedef struct XL_HostBuildResult {
 void xlHostContextInit(XL_HostContext* pCtx, const char* sInputFile, const char* sReleaseRoot);
 int xlHostContextAddArtifact(XL_HostContext* pCtx, const char* sKind, const char* sFile);
 int xlHostContextAddExternSymbol(XL_HostContext* pCtx, const char* sName);
+int xlHostContextAddExternSymbolAddress(XL_HostContext* pCtx, const char* sName, void* pAddress);
 int xlHostContextAddLinkLibrary(XL_HostContext* pCtx, const char* sName);
 int xlHostContextAddLibraryPath(XL_HostContext* pCtx, const char* sPath);
 int xlHostContextAddIncludePath(XL_HostContext* pCtx, const char* sPath);

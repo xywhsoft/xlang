@@ -38,6 +38,7 @@ typedef struct XL_ExecCtx {
 void xlExecCtxInit(XL_ExecCtx* pCtx, const char* sInputFile, const char* sReleaseRoot);
 int xlExecCtxAddArtifact(XL_ExecCtx* pCtx, const char* sKind, const char* sFile);
 int xlExecCtxAddExternSymbol(XL_ExecCtx* pCtx, const char* sName);
+int xlExecCtxAddExternSymbolAddress(XL_ExecCtx* pCtx, const char* sName, void* pAddress);
 int xlExecCtxAddLinkLibrary(XL_ExecCtx* pCtx, const char* sName);
 int xlExecCtxAddLibraryPath(XL_ExecCtx* pCtx, const char* sPath);
 int xlExecCtxAddIncludePath(XL_ExecCtx* pCtx, const char* sPath);

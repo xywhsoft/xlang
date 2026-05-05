@@ -7,12 +7,16 @@ if exist release\tmp\*.fallback.exe del /f /q release\tmp\*.fallback.exe >nul 2>
 if exist release\tmp\*.trace.txt del /f /q release\tmp\*.trace.txt >nul 2>nul
 set SRC_LIST=release\tmp\gcc_sources.rsp
 set XL_SRC_LIST=release\tmp\gcc_xl_sources.rsp
+set XLANG_SRC_LIST=release\tmp\gcc_xlang_sources.rsp
 set TEST_SRC_LIST=release\tmp\gcc_test_sources.rsp
 set TCC_OBJ=release\tmp\libtcc.o
 set XL_BUILD_EXE=release\xl.exe
 set XLDBG_BUILD_EXE=release\xldbg.exe
 set XLBIND_BUILD_EXE=release\xlbind.exe
 set XL5_TEST_BUILD_EXE=release\xl5_test.exe
+set XLANG_BUILD_DLL=release\xlang.dll
+set XLANG_BUILD_IMPLIB=release\libxlang.dll.a
+set XLANG_SDK_SMOKE=release\bin\sdk_host_basic.exe
 set BUILD_STAMP_HEADER=release\tmp\xl_test_build_stamp.h
 set XL_SMOKE_LOG=release\tmp\xl_smoke.log
 set XLDBG_SMOKE_LOG=release\tmp\xldbg_smoke.log
@@ -67,9 +71,23 @@ copy /y src\runtime\xl_object_runtime.h release\tcc\support\runtime\xl_object_ru
 copy /y src\runtime\xl_object_runtime.c release\tcc\support\runtime\xl_object_runtime.c >nul
 copy /y src\runtime\xl_channel_runtime.c release\tcc\support\runtime\xl_channel_runtime.c >nul
 copy /y src\runtime\xl_sys_lib_runtime.c release\tcc\support\runtime\xl_sys_lib_runtime.c >nul
+copy /y src\runtime\xl_url_runtime.c release\tcc\support\runtime\xl_url_runtime.c >nul
+copy /y src\runtime\xl_http_runtime.c release\tcc\support\runtime\xl_http_runtime.c >nul
+copy /y src\runtime\xl_httpd_runtime.c release\tcc\support\runtime\xl_httpd_runtime.c >nul
+copy /y src\runtime\xl_mime_runtime.c release\tcc\support\runtime\xl_mime_runtime.c >nul
+copy /y src\runtime\xl_multipart_runtime.c release\tcc\support\runtime\xl_multipart_runtime.c >nul
+copy /y src\runtime\xl_net_dns_runtime.c release\tcc\support\runtime\xl_net_dns_runtime.c >nul
+copy /y src\runtime\xl_net_ip_runtime.c release\tcc\support\runtime\xl_net_ip_runtime.c >nul
+copy /y src\runtime\xl_net_tcp_runtime.c release\tcc\support\runtime\xl_net_tcp_runtime.c >nul
+copy /y src\runtime\xl_net_udp_runtime.c release\tcc\support\runtime\xl_net_udp_runtime.c >nul
+copy /y src\runtime\xl_net_tls_runtime.c release\tcc\support\runtime\xl_net_tls_runtime.c >nul
+copy /y src\runtime\xl_net_proxy_runtime.c release\tcc\support\runtime\xl_net_proxy_runtime.c >nul
+copy /y src\runtime\xl_net_ws_runtime.c release\tcc\support\runtime\xl_net_ws_runtime.c >nul
 copy /y src\host\xl_host_runtime.h release\tcc\support\host\xl_host_runtime.h >nul
 copy /y src\host\xl_host_runtime.c release\tcc\support\host\xl_host_runtime.c >nul
 copy /y lib\xrt\xrt.h release\tcc\include\xrt.h >nul
+if not exist release\include mkdir release\include
+copy /y src\sdk\xlang.h release\include\xlang.h >nul
 
 echo Generating lexer with Flex...
 tools\flex.exe --wincompat --noline -o src\lexer\xl_lexer_gen.c --header-file=src\lexer\xl_lexer_gen.h src\lexer\xl_lexer.l
@@ -115,6 +133,16 @@ setlocal EnableDelayedExpansion
 	)
 )
 
+> "%XLANG_SRC_LIST%" (
+	for /r src %%f in (*.c) do (
+		set "SRC_FILE=%%f"
+		set "SRC_FILE=!SRC_FILE:\=/!"
+		if /I not "!SRC_FILE!"=="src/diag/xl_dump.c" if /I not "!SRC_FILE!"=="src/ast/xl_ast_dump.c" if /I not "!SRC_FILE!"=="src/sem/xl_sem_dump.c" if /I not "!SRC_FILE!"=="src/lower/xl_lower_dump.c" if /I not "!SRC_FILE!"=="src/driver/xl_xlp_dump.c" if /I not "!SRC_FILE!"=="src/runtime/xl_std_trace.c" if /I not "!SRC_FILE!"=="src/runtime/xl_std_debug.c" if /I not "!SRC_FILE!"=="src/runtime/xlrt_generated_debug.c" if /I not "!SRC_FILE!"=="src/runtime/xl_native_registry_debug.c" if /I not "!SRC_FILE!"=="src/driver/xl_driver_debug.c" if /I not "!SRC_FILE!"=="src/driver/xl_cli_debug.c" (
+			echo !SRC_FILE!
+		)
+	)
+)
+
 > "%TEST_SRC_LIST%" (
 	echo test/main.c
 	echo test/xl_test.c
@@ -131,6 +159,21 @@ gcc -std=c11 -O2 -ffunction-sections -fdata-sections -w -D_CRT_SECURE_NO_WARNING
 
 if errorlevel 1 (
 	echo Embedded TCC build failed.
+	exit /b 1
+)
+
+if exist "%XLANG_BUILD_DLL%" del /f /q "%XLANG_BUILD_DLL%" >nul
+if exist "%XLANG_BUILD_IMPLIB%" del /f /q "%XLANG_BUILD_IMPLIB%" >nul
+echo Building xlang SDK DLL with GCC...
+gcc %GCC_COMMON_FLAGS% -DXLANG_BUILD_DLL -shared @"%XLANG_SRC_LIST%" "%TCC_OBJ%" -o "%XLANG_BUILD_DLL%" -Wl,--out-implib,"%XLANG_BUILD_IMPLIB%" %GCC_LINK_FLAGS%
+
+if errorlevel 1 (
+	echo xlang SDK DLL build failed.
+	exit /b 1
+)
+
+if not exist "%XLANG_BUILD_DLL%" (
+	echo xlang SDK DLL output missing: %XLANG_BUILD_DLL%
 	exit /b 1
 )
 
@@ -306,6 +349,22 @@ if not exist "%XLBIND_SMOKE_OUT%\xlang.json" (
 	exit /b 1
 )
 
+if not exist release\bin mkdir release\bin
+gcc %GCC_COMMON_FLAGS% release\examples\sdk\sdk_host_basic.c -Irelease\include -Lrelease -lxlang -o "%XLANG_SDK_SMOKE%" %GCC_LINK_FLAGS%
+
+if errorlevel 1 (
+	echo xlang SDK smoke host build failed.
+	exit /b 1
+)
+
+set PATH=%CD%\release;%PATH%
+"%XLANG_SDK_SMOKE%"
+
+if errorlevel 1 (
+	echo xlang SDK smoke host failed.
+	exit /b 1
+)
+
 release\xl5_test.exe %SMOKE_SELECTOR% > "%XL5_TEST_SMOKE_LOG%" 2>&1
 
 if errorlevel 1 (
@@ -315,5 +374,5 @@ if errorlevel 1 (
 	exit /b 1
 )
 
-echo Build completed: release\xl.exe, release\xldbg.exe and release\xlbind.exe
+echo Build completed: release\xl.exe, release\xldbg.exe, release\xlbind.exe and release\xlang.dll
 exit /b 0

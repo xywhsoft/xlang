@@ -212,8 +212,10 @@ void xlHostContextInit(XL_HostContext* pCtx, const char* sInputFile, const char*
 	pCtx->bDebugMode = 0;
 #endif
 	__xlCopyText(pCtx->sInputFile, sizeof(pCtx->sInputFile), sInputFile);
-	if ( xlAppPathGetDirectory(pCtx->sReleaseRoot, sizeof(pCtx->sReleaseRoot)) != XL_RC_OK ) {
+	if ( (sReleaseRoot != NULL) && (sReleaseRoot[0] != '\0') ) {
 		__xlNormalizeRootPath(pCtx->sReleaseRoot, sizeof(pCtx->sReleaseRoot), sReleaseRoot);
+	} else if ( xlAppPathGetDirectory(pCtx->sReleaseRoot, sizeof(pCtx->sReleaseRoot)) != XL_RC_OK ) {
+		__xlNormalizeRootPath(pCtx->sReleaseRoot, sizeof(pCtx->sReleaseRoot), "release");
 	}
 	__xlInitProjectRoot(pCtx->sProjectRoot, sizeof(pCtx->sProjectRoot), pCtx->sInputFile, pCtx->sReleaseRoot);
 	__xlBuildPath2(pCtx->sTccRoot, sizeof(pCtx->sTccRoot), pCtx->sReleaseRoot, "tcc");
@@ -247,6 +249,11 @@ int xlHostContextAddArtifact(XL_HostContext* pCtx, const char* sKind, const char
 
 int xlHostContextAddExternSymbol(XL_HostContext* pCtx, const char* sName)
 {
+	return xlHostContextAddExternSymbolAddress(pCtx, sName, NULL);
+}
+
+int xlHostContextAddExternSymbolAddress(XL_HostContext* pCtx, const char* sName, void* pAddress)
+{
 	size_t i;
 
 	if ( (pCtx == NULL) || (sName == NULL) || (sName[0] == '\0') ) {
@@ -255,6 +262,9 @@ int xlHostContextAddExternSymbol(XL_HostContext* pCtx, const char* sName)
 
 	for ( i = 0; i < pCtx->iExternSymbolCount; ++i ) {
 		if ( strcmp(pCtx->arrExternSymbols[i].sName, sName) == 0 ) {
+			if ( pAddress != NULL ) {
+				pCtx->arrExternSymbols[i].pAddress = pAddress;
+			}
 			return XL_RC_OK;
 		}
 	}
@@ -264,6 +274,7 @@ int xlHostContextAddExternSymbol(XL_HostContext* pCtx, const char* sName)
 	}
 
 	__xlCopyText(pCtx->arrExternSymbols[pCtx->iExternSymbolCount].sName, sizeof(pCtx->arrExternSymbols[pCtx->iExternSymbolCount].sName), sName);
+	pCtx->arrExternSymbols[pCtx->iExternSymbolCount].pAddress = pAddress;
 	pCtx->iExternSymbolCount += 1;
 	return XL_RC_OK;
 }

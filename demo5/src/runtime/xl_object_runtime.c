@@ -1496,6 +1496,46 @@ int xl_object_set(void* pBlob, const char* sKey, xvalue value)
 	}
 }
 
+xvalue xl_object_call(void* pBlob, const char* sMethodName, xvalue args)
+{
+	typedef xvalue (*XL_ObjectLateCallFn)(void* pBlob, const char* sMethodName, xvalue args);
+	XL_ObjectLateCallFn pCall;
+	xvalue fields;
+	xvalue callee;
+	xvalue callArgs;
+	xvalue methodNameValue;
+	const char* sCallKeys[] = {
+		"__call$arity2|name:string|args:array<var>",
+		"__call$arity2|method:string|args:array<var>",
+		"__call$arity2|methodName:string|args:array<var>",
+		NULL
+	};
+	size_t i;
+
+	if ( pBlob == NULL ) {
+		return xvoCreateNull();
+	}
+
+	for ( i = 0; sCallKeys[i] != NULL; ++i ) {
+		pCall = (XL_ObjectLateCallFn)xl_object_dispatch(pBlob, sCallKeys[i]);
+		if ( pCall != NULL ) {
+			return pCall(pBlob, (sMethodName != NULL) ? sMethodName : "", (args != NULL) ? args : xvoCreateArray());
+		}
+	}
+
+	fields = xl_object_dynamic_fields(pBlob);
+	callee = (fields != NULL) ? xvoTableGetValue(fields, "__call", 0) : NULL;
+	if ( (callee != NULL) && (xvoType(callee) == XVO_DT_FUNC) ) {
+		callArgs = xvoCreateArray();
+		methodNameValue = xvoCreateText((ptr)((sMethodName != NULL) ? sMethodName : ""), (uint32)strlen((sMethodName != NULL) ? sMethodName : ""), FALSE);
+		(void)xvoArrayAppendValue(callArgs, methodNameValue, TRUE);
+		(void)xvoArrayAppendValue(callArgs, (args != NULL) ? args : xvoCreateArray(), TRUE);
+		return xvoGetFunc(callee)(xvoGetFuncEnv(callee), callArgs);
+	}
+
+	return xvoCreateNull();
+}
+
 int xl_object_remove(void* pBlob, const char* sKey)
 {
 	XL_ObjectHeader* pHeader;
