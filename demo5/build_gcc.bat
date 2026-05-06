@@ -57,6 +57,7 @@ if not exist release\examples\xlp_official_native\packages\x.image.bmp\bin mkdir
 if not exist release\examples\xlp_official_native\packages\x.archive.tar\bin mkdir release\examples\xlp_official_native\packages\x.archive.tar\bin
 if not exist release\examples\xlp_official_native\packages\x.archive.zip\bin mkdir release\examples\xlp_official_native\packages\x.archive.zip\bin
 if not exist release\examples\xlp_official_native\packages\x.compress.gzip\bin mkdir release\examples\xlp_official_native\packages\x.compress.gzip\bin
+if not exist release\examples\xlp_official_native\packages\x.com\bin mkdir release\examples\xlp_official_native\packages\x.com\bin
 if not exist release\examples\xlp_static\packages\pkg.clock\lib mkdir release\examples\xlp_static\packages\pkg.clock\lib
 if not exist release\examples\xlp_static\packages\pkg.probe\lib mkdir release\examples\xlp_static\packages\pkg.probe\lib
 
@@ -272,6 +273,13 @@ gcc -std=c11 -shared -o release\examples\xlp_official_native\packages\x.compress
 
 if errorlevel 1 (
 	echo Official xlp compress gzip artifact build failed.
+	exit /b 1
+)
+
+gcc -std=c11 -shared -D_CRT_SECURE_NO_WARNINGS -o release\examples\xlp_official_native\packages\x.com\bin\x_com.dll release\examples\xlp_artifacts\x_com_artifact.c -lole32 -loleaut32 -luuid
+
+if errorlevel 1 (
+	echo Official xlp com artifact build failed.
 	exit /b 1
 )
 
