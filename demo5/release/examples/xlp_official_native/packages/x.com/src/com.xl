@@ -1,0 +1,85 @@
+#loadlib "../bin/x_com.dll"
+
+extern "x_com_create" func x_com_create(string progid) as point
+extern "x_com_release" func x_com_release(point handle) as int
+extern "x_com_is_null" func x_com_is_null(point handle) as int
+extern "x_com_last_error" func x_com_last_error() as string
+extern "x_com_get_text" func x_com_get_text(point handle, string name) as string
+extern "x_com_get_int" func x_com_get_int(point handle, string name) as int
+extern "x_com_invoke_text0" func x_com_invoke_text0(point handle, string name) as string
+extern "x_com_invoke_text1" func x_com_invoke_text1(point handle, string name, string a0) as string
+extern "x_com_invoke_text2" func x_com_invoke_text2(point handle, string name, string a0, string a1) as string
+extern "x_com_invoke_text3" func x_com_invoke_text3(point handle, string name, string a0, string a1, string a2) as string
+extern "x_com_invoke_text4" func x_com_invoke_text4(point handle, string name, string a0, string a1, string a2, string a3) as string
+extern "x_com_invoke_text5" func x_com_invoke_text5(point handle, string name, string a0, string a1, string a2, string a3, string a4) as string
+extern "x_com_invoke_text6" func x_com_invoke_text6(point handle, string name, string a0, string a1, string a2, string a3, string a4, string a5) as string
+extern "x_com_invoke_text7" func x_com_invoke_text7(point handle, string name, string a0, string a1, string a2, string a3, string a4, string a5, string a6) as string
+extern "x_com_invoke_text8" func x_com_invoke_text8(point handle, string name, string a0, string a1, string a2, string a3, string a4, string a5, string a6, string a7) as string
+
+class ComObject extends object
+	nocopy
+	var handle as point
+
+	create(string progid)
+		self.handle = x_com_create(progid)
+	end
+
+	destroy()
+		if x_com_is_null(self.handle) == 0 then
+			x_com_release(self.handle)
+		end
+	end
+
+	func valid() as bool
+		return x_com_is_null(self.handle) == 0
+	end
+
+	func last_error() as string
+		return x_com_last_error()
+	end
+
+	func text(string name) as string
+		return x_com_get_text(self.handle, name)
+	end
+
+	func int(string name) as int
+		return x_com_get_int(self.handle, name)
+	end
+
+	func __call(string name, array<var> args) as var
+		if args.len() == 0 then
+			return x_com_invoke_text0(self.handle, name)
+		end
+		if args.len() == 1 then
+			return x_com_invoke_text1(self.handle, name, string(args[0]))
+		end
+		if args.len() == 2 then
+			return x_com_invoke_text2(self.handle, name, string(args[0]), string(args[1]))
+		end
+		if args.len() == 3 then
+			return x_com_invoke_text3(self.handle, name, string(args[0]), string(args[1]), string(args[2]))
+		end
+		if args.len() == 4 then
+			return x_com_invoke_text4(self.handle, name, string(args[0]), string(args[1]), string(args[2]), string(args[3]))
+		end
+		if args.len() == 5 then
+			return x_com_invoke_text5(self.handle, name, string(args[0]), string(args[1]), string(args[2]), string(args[3]), string(args[4]))
+		end
+		if args.len() == 6 then
+			return x_com_invoke_text6(self.handle, name, string(args[0]), string(args[1]), string(args[2]), string(args[3]), string(args[4]), string(args[5]))
+		end
+		if args.len() == 7 then
+			return x_com_invoke_text7(self.handle, name, string(args[0]), string(args[1]), string(args[2]), string(args[3]), string(args[4]), string(args[5]), string(args[6]))
+		end
+		if args.len() == 8 then
+			return x_com_invoke_text8(self.handle, name, string(args[0]), string(args[1]), string(args[2]), string(args[3]), string(args[4]), string(args[5]), string(args[6]), string(args[7]))
+		end
+		return ""
+	end
+end
+
+func create(string progid) as ComObject
+	return ComObject(progid)
+end
+
+export create

@@ -1,0 +1,20 @@
+import x.com
+
+func main() as int
+	auto dict = x.com.create("Scripting.Dictionary")
+	if dict.valid() == false then
+		return 1
+	end
+
+	dict.Add("answer", "42")
+	auto exists = dict.Exists("answer")
+	if exists != "True" and exists != "true" and exists != "-1" and exists != "1" then
+		return 2
+	end
+
+	if dict.Item("answer") != "42" then
+		return 3
+	end
+
+	return 42
+end

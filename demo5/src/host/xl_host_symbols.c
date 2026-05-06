@@ -363,6 +363,7 @@ static const XL_HostSymbolEntry __gXLHostSymbols[] = {
 	{ "xl_object_exists", xl_object_exists },
 	{ "xl_object_get", xl_object_get },
 	{ "xl_object_set", xl_object_set },
+	{ "xl_object_call", xl_object_call },
 	{ "xl_object_remove", xl_object_remove },
 	{ "xl_object_clear", xl_object_clear },
 	{ "xl_object_keys", xl_object_keys },

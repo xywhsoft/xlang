@@ -13816,6 +13816,18 @@ static void __xlCgenBoxValueExpr(XL_CgenContext* pCtx, const XL_MirNode* pNode)
 
 static void __xlCgenValueCompareOperand(XL_CgenContext* pCtx, const XL_MirNode* pNode)
 {
+	const XL_MirNode* pValueNode = pNode;
+
+	while ( (pValueNode != NULL) &&
+		(pValueNode->eKind == XL_MIR_VALUE) &&
+		(pValueNode->iChildCount == 1) &&
+		((pValueNode->sText == NULL) || (pValueNode->sText[0] == '\0')) ) {
+		pValueNode = pValueNode->ppChildren[0];
+	}
+	if ( __xlCanCgenLateObjectMethodCall(pCtx, pValueNode) ) {
+		__xlCgenLateObjectMethodCall(pCtx, pValueNode);
+		return;
+	}
 	if ( __xlIsVarTypeName(__xlInferExprTypeName(pCtx, pNode)) ) {
 		__xlCgenAppend(&pCtx->buf, "xvoCopy((xvalue)(");
 		__xlCgenExpr(pCtx, pNode);
@@ -19567,6 +19579,10 @@ static void __xlCgenExpr(XL_CgenContext* pCtx, const XL_MirNode* pNode)
 		__xlCgenAppend(&pCtx->buf, "0");
 		return;
 	}
+	if ( __xlCanCgenLateObjectMethodCall(pCtx, pNode) ) {
+		__xlCgenLateObjectMethodCall(pCtx, pNode);
+		return;
+	}
 	if ( __xlCgenEmitMoveIntrinsicExpr(pCtx, pNode) ) {
 		return;
 	}
@@ -19809,7 +19825,6 @@ static void __xlCgenExpr(XL_CgenContext* pCtx, const XL_MirNode* pNode)
 	}
 
 	if ( pNode->eKind == XL_MIR_CALL ) {
-		__xlCgenAppend(&pCtx->buf, "/*xl_call_probe*/");
 		if ( __xlCallHasExpandedMultiReturnArg(pNode) ) {
 			__xlCgenCallExprWithExpandedArgs(pCtx, pNode);
 			return;

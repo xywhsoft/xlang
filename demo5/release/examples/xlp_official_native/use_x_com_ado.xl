@@ -1,0 +1,23 @@
+import x.com
+
+func main() as int
+	auto ado = x.com.create("ADODB.Connection")
+	if ado.valid() == false then
+		return 1
+	end
+
+	auto version = ado.text("Version")
+	if version == "" then
+		return 2
+	end
+
+	if ado.Version() != version then
+		return 3
+	end
+
+	if ado.int("State") != 0 then
+		return 4
+	end
+
+	return 42
+end
