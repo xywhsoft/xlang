@@ -7,5 +7,14 @@
 #include "../../lower/xl_lower.h"
 
 int xlCgenMir(const XL_LowerResult* pLowerResult, const XL_ModuleLinkResult* pModules, XL_DiagContext* pDiag, char** psOutCode);
+#if XLANG_DEBUGMODE_ENABLED
+int xlCgenMirDebug(
+	const XL_LowerResult* pLowerResult,
+	const XL_ModuleLinkResult* pModules,
+	XL_DiagContext* pDiag,
+	int bDebugInstrumentation,
+	char** psOutCode
+);
+#endif
 
 #endif

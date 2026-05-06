@@ -29,6 +29,7 @@ set SMOKE_SELECTOR=lower.async_generator_loop_control_hybrid_groups_json
 set GCC_COMMON_FLAGS=-std=c11 -O2 -ffunction-sections -fdata-sections -Wall -Wextra -Werror -Wno-unused-parameter -Wno-unused-variable -Wno-unused-function -Wno-format-truncation -Wno-restrict -Wno-maybe-uninitialized -D_CRT_SECURE_NO_WARNINGS -I. -Ilib\xrt -Ilib\tcc
 set GCC_DEBUG_FLAGS=%GCC_COMMON_FLAGS% -DXLANG_DEBUGMODE=1
 set GCC_LINK_FLAGS=-Wl,--gc-sections -s -lshell32 -lws2_32 -liphlpapi
+set SRC_ROOT=%CD%\src\
 
 for /f "delims=" %%i in ('powershell -NoProfile -Command "(Get-Date).ToString('yyyy-MM-dd HH:mm:ss.fff')"') do set BUILD_ID=%%i
 set BUILD_ID=%BUILD_ID% run-%RANDOM%-%RANDOM%
@@ -118,6 +119,7 @@ setlocal EnableDelayedExpansion
 	echo main_debug.c
 	for /r src %%f in (*.c) do (
 		set "SRC_FILE=%%f"
+		set "SRC_FILE=!SRC_FILE:%SRC_ROOT%=src\!"
 		set "SRC_FILE=!SRC_FILE:\=/!"
 		echo !SRC_FILE!
 	)
@@ -127,8 +129,11 @@ setlocal EnableDelayedExpansion
 	echo main.c
 	for /r src %%f in (*.c) do (
 		set "SRC_FILE=%%f"
+		set "SRC_FILE=!SRC_FILE:%SRC_ROOT%=src\!"
 		set "SRC_FILE=!SRC_FILE:\=/!"
-		if /I not "!SRC_FILE!"=="src/diag/xl_dump.c" if /I not "!SRC_FILE!"=="src/ast/xl_ast_dump.c" if /I not "!SRC_FILE!"=="src/sem/xl_sem_dump.c" if /I not "!SRC_FILE!"=="src/lower/xl_lower_dump.c" if /I not "!SRC_FILE!"=="src/driver/xl_xlp_dump.c" if /I not "!SRC_FILE!"=="src/runtime/xl_std_trace.c" if /I not "!SRC_FILE!"=="src/runtime/xl_std_debug.c" if /I not "!SRC_FILE!"=="src/runtime/xlrt_generated_debug.c" if /I not "!SRC_FILE!"=="src/runtime/xl_native_registry_debug.c" if /I not "!SRC_FILE!"=="src/driver/xl_driver_debug.c" if /I not "!SRC_FILE!"=="src/driver/xl_cli_debug.c" (
+		set "SRC_FILE_SKIP=0"
+		if /I "!SRC_FILE:~0,10!"=="src/debug/" set "SRC_FILE_SKIP=1"
+		if "!SRC_FILE_SKIP!"=="0" if /I not "!SRC_FILE!"=="src/diag/xl_dump.c" if /I not "!SRC_FILE!"=="src/ast/xl_ast_dump.c" if /I not "!SRC_FILE!"=="src/sem/xl_sem_dump.c" if /I not "!SRC_FILE!"=="src/lower/xl_lower_dump.c" if /I not "!SRC_FILE!"=="src/driver/xl_xlp_dump.c" if /I not "!SRC_FILE!"=="src/runtime/xl_std_trace.c" if /I not "!SRC_FILE!"=="src/runtime/xl_std_debug.c" if /I not "!SRC_FILE!"=="src/runtime/xlrt_generated_debug.c" if /I not "!SRC_FILE!"=="src/runtime/xl_native_registry_debug.c" if /I not "!SRC_FILE!"=="src/driver/xl_driver_debug.c" if /I not "!SRC_FILE!"=="src/driver/xl_cli_debug.c" (
 			echo !SRC_FILE!
 		)
 	)
@@ -137,8 +142,11 @@ setlocal EnableDelayedExpansion
 > "%XLANG_SRC_LIST%" (
 	for /r src %%f in (*.c) do (
 		set "SRC_FILE=%%f"
+		set "SRC_FILE=!SRC_FILE:%SRC_ROOT%=src\!"
 		set "SRC_FILE=!SRC_FILE:\=/!"
-		if /I not "!SRC_FILE!"=="src/diag/xl_dump.c" if /I not "!SRC_FILE!"=="src/ast/xl_ast_dump.c" if /I not "!SRC_FILE!"=="src/sem/xl_sem_dump.c" if /I not "!SRC_FILE!"=="src/lower/xl_lower_dump.c" if /I not "!SRC_FILE!"=="src/driver/xl_xlp_dump.c" if /I not "!SRC_FILE!"=="src/runtime/xl_std_trace.c" if /I not "!SRC_FILE!"=="src/runtime/xl_std_debug.c" if /I not "!SRC_FILE!"=="src/runtime/xlrt_generated_debug.c" if /I not "!SRC_FILE!"=="src/runtime/xl_native_registry_debug.c" if /I not "!SRC_FILE!"=="src/driver/xl_driver_debug.c" if /I not "!SRC_FILE!"=="src/driver/xl_cli_debug.c" (
+		set "SRC_FILE_SKIP=0"
+		if /I "!SRC_FILE:~0,10!"=="src/debug/" set "SRC_FILE_SKIP=1"
+		if "!SRC_FILE_SKIP!"=="0" if /I not "!SRC_FILE!"=="src/diag/xl_dump.c" if /I not "!SRC_FILE!"=="src/ast/xl_ast_dump.c" if /I not "!SRC_FILE!"=="src/sem/xl_sem_dump.c" if /I not "!SRC_FILE!"=="src/lower/xl_lower_dump.c" if /I not "!SRC_FILE!"=="src/driver/xl_xlp_dump.c" if /I not "!SRC_FILE!"=="src/runtime/xl_std_trace.c" if /I not "!SRC_FILE!"=="src/runtime/xl_std_debug.c" if /I not "!SRC_FILE!"=="src/runtime/xlrt_generated_debug.c" if /I not "!SRC_FILE!"=="src/runtime/xl_native_registry_debug.c" if /I not "!SRC_FILE!"=="src/driver/xl_driver_debug.c" if /I not "!SRC_FILE!"=="src/driver/xl_cli_debug.c" (
 			echo !SRC_FILE!
 		)
 	)
@@ -149,6 +157,7 @@ setlocal EnableDelayedExpansion
 	echo test/xl_test.c
 	for /r src %%f in (*.c) do (
 		set "SRC_FILE=%%f"
+		set "SRC_FILE=!SRC_FILE:%SRC_ROOT%=src\!"
 		set "SRC_FILE=!SRC_FILE:\=/!"
 		echo !SRC_FILE!
 	)

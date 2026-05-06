@@ -9,6 +9,8 @@ int xlDriverRunParseDebug(const XL_CliOptions* pOpts, XL_DiagContext* pDiag, XL_
 int xlDriverRunSemDebug(const XL_CliOptions* pOpts, XL_DiagContext* pDiag, XL_DumpContext* pDump);
 int xlDriverRunLowerDebug(const XL_CliOptions* pOpts, XL_DiagContext* pDiag, XL_DumpContext* pDump);
 int xlDriverRunCgenDebug(const XL_CliOptions* pOpts, XL_DiagContext* pDiag, XL_DumpContext* pDump);
+int xlDriverRunInteractiveDebug(const XL_CliOptions* pOpts, XL_DiagContext* pDiag, XL_DumpContext* pDump);
+int xlDriverRunDapDebug(const XL_CliOptions* pOpts, XL_DiagContext* pDiag, XL_DumpContext* pDump);
 #endif
 
 #endif

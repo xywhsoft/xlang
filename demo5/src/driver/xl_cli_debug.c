@@ -61,6 +61,15 @@ XL_CliDebugParseResult xlCliTryParseDebugOption(
 	eResult = __xlCliDebugConsumeFlag(sArg, "--trace-runtime", &XL_CLI_TRACE_RUNTIME(pOpts));
 	if ( eResult != XL_CLI_DEBUG_PARSE_NOT_HANDLED ) return eResult;
 
+	if ( strcmp(sArg, "--listen") == 0 ) {
+		if ( (*pArgIndex + 1) >= argc ) {
+			XL_DIAG_ERROR(pDiag, "cli", "--listen requires an address");
+			return XL_CLI_DEBUG_PARSE_ERROR;
+		}
+		pOpts->dbg.sDapListen = argv[++(*pArgIndex)];
+		return XL_CLI_DEBUG_PARSE_HANDLED;
+	}
+
 	return XL_CLI_DEBUG_PARSE_NOT_HANDLED;
 }
 
@@ -71,6 +80,8 @@ void xlCliPrintDebugCommandHelp(void)
 	printf("  sem      run semantic analysis\n");
 	printf("  lower    lower AST into HIR/MIR\n");
 	printf("  cgen     generate C code\n");
+	printf("  dbg      run source through the interactive debugger\n");
+	printf("  dap      run the Debug Adapter Protocol server\n");
 }
 
 void xlCliPrintDebugOptionHelp(void)
@@ -85,5 +96,6 @@ void xlCliPrintDebugOptionHelp(void)
 	printf("  --trace-sem       enable semantic trace\n");
 	printf("  --trace-lower     enable lowering trace\n");
 	printf("  --trace-runtime   enable runtime trace\n");
+	printf("  --listen <addr>   DAP listen address, reserved for TCP mode\n");
 }
 #endif

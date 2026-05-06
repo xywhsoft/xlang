@@ -12,6 +12,8 @@ typedef enum XL_Command {
 	XL_CMD_SEM,
 	XL_CMD_LOWER,
 	XL_CMD_CGEN,
+	XL_CMD_DBG,
+	XL_CMD_DAP,
 #endif
 	XL_CMD_BUILD,
 	XL_CMD_RUN,
@@ -33,6 +35,7 @@ typedef struct XL_CliDebugOptions {
 	bool bTraceSem;
 	bool bTraceLower;
 	bool bTraceRuntime;
+	const char* sDapListen;
 } XL_CliDebugOptions;
 #endif
 

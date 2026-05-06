@@ -77,6 +77,11 @@ release\bin\xl5.exe run <file>
 release\bin\xl5.exe test [selector]
 ```
 
+## Design Docs
+
+- `docs/design/xldbg-dap-debugger-design.md`
+- `docs/specs/xldbg-dap-debugger-v1-spec.md`
+
 ## Current Boundaries
 
 当前首轮主链路已经可用，但仍保留这些边界：
