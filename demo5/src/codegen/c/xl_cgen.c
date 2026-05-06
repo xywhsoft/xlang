@@ -47,6 +47,9 @@ typedef struct XL_CgenContext {
 	const XL_MirNode* pAsyncLinearCleanupParams;
 	const XL_CgenAsyncLinearResumeCandidate* pAsyncLinearCleanupCandidate;
 	int bDiscardExprResult;
+#if XLANG_DEBUGMODE_ENABLED
+	int bDebugInstrumentation;
+#endif
 } XL_CgenContext;
 
 typedef struct XL_CgenFuncInfo {
@@ -100,12 +103,20 @@ static void __xlCgenTraceStateEventStmt(XL_CgenContext* pCtx, const char* sFuncN
 static void __xlCgenTraceFlushStmt(XL_CgenContext* pCtx);
 static void __xlCgenGeneratorTraceEventStmt(XL_CgenContext* pCtx, const char* sEvent, const char* sFuncName);
 static void __xlCgenGeneratorTraceEventInline(XL_CgenContext* pCtx, const char* sEvent, const char* sFuncName);
+static void __xlCgenDebugProbePrototype(XL_CgenContext* pCtx);
+static void __xlCgenDebugProbeStmt(XL_CgenContext* pCtx, const XL_MirNode* pNode);
+static void __xlCgenDebugEnterFunc(XL_CgenContext* pCtx, const XL_CgenFuncInfo* pFuncInfo, const XL_MirNode* pNode);
+static void __xlCgenDebugLeaveFunc(XL_CgenContext* pCtx);
 #else
 #define __xlCgenTraceEventStmt(pCtx, sEvent, sFuncName) ((void)(pCtx), (void)(sEvent), (void)(sFuncName))
 #define __xlCgenTraceStateEventStmt(pCtx, sFuncName, iStateId) ((void)(pCtx), (void)(sFuncName), (void)(iStateId))
 #define __xlCgenTraceFlushStmt(pCtx) ((void)(pCtx))
 #define __xlCgenGeneratorTraceEventStmt(pCtx, sEvent, sFuncName) ((void)(pCtx), (void)(sEvent), (void)(sFuncName))
 #define __xlCgenGeneratorTraceEventInline(pCtx, sEvent, sFuncName) ((void)(pCtx), (void)(sEvent), (void)(sFuncName))
+#define __xlCgenDebugProbePrototype(pCtx) ((void)(pCtx))
+#define __xlCgenDebugProbeStmt(pCtx, pNode) ((void)(pCtx), (void)(pNode))
+#define __xlCgenDebugEnterFunc(pCtx, pFuncInfo, pNode) ((void)(pCtx), (void)(pFuncInfo), (void)(pNode))
+#define __xlCgenDebugLeaveFunc(pCtx) ((void)(pCtx))
 #endif
 
 typedef struct XL_CgenGeneratorTryFrameField {
@@ -1452,6 +1463,79 @@ static void __xlCgenAppendCString(XL_CgenBuffer* pBuf, const char* sText)
 
 	__xlCgenAppend(pBuf, "\"");
 }
+
+#if XLANG_DEBUGMODE_ENABLED
+static void __xlCgenDebugProbePrototype(XL_CgenContext* pCtx)
+{
+	if ( (pCtx == NULL) || !pCtx->bDebugInstrumentation ) {
+		return;
+	}
+
+	__xlCgenAppend(&pCtx->buf, "void xl_dbg_stmt(const char* sSource, int iLine, int iColumn);\n");
+	__xlCgenAppend(&pCtx->buf, "void xl_dbg_enter_func(const char* sSource, int iLine, int iColumn, const char* sFuncName, int iFuncIndex);\n");
+	__xlCgenAppend(&pCtx->buf, "void xl_dbg_leave_func(void);\n\n");
+}
+
+static int __xlCgenDebugIsExecutableStmt(const XL_MirNode* pNode)
+{
+	if ( pNode == NULL ) {
+		return 0;
+	}
+
+	switch ( pNode->eKind ) {
+		case XL_MIR_BIND:
+		case XL_MIR_BRANCH:
+		case XL_MIR_TRY:
+		case XL_MIR_WHILE:
+		case XL_MIR_FORIN:
+		case XL_MIR_RETURN:
+		case XL_MIR_BREAK:
+		case XL_MIR_CONTINUE:
+		case XL_MIR_THROW:
+		case XL_MIR_ASSERT:
+		case XL_MIR_YIELD:
+			return 1;
+		default:
+			return 0;
+	}
+}
+
+static void __xlCgenDebugProbeStmt(XL_CgenContext* pCtx, const XL_MirNode* pNode)
+{
+	if ( (pCtx == NULL) || (pNode == NULL) || !pCtx->bDebugInstrumentation || !__xlCgenDebugIsExecutableStmt(pNode) ) {
+		return;
+	}
+
+	__xlCgenAppendIndent(&pCtx->buf);
+	__xlCgenAppend(&pCtx->buf, "xl_dbg_stmt(");
+	__xlCgenAppendCString(&pCtx->buf, (pCtx->sRuntimeSourceFile != NULL) ? pCtx->sRuntimeSourceFile : "");
+	__xlCgenAppendFormat(&pCtx->buf, ", %d, %d);\n", pNode->iLine, pNode->iColumn);
+}
+
+static void __xlCgenDebugEnterFunc(XL_CgenContext* pCtx, const XL_CgenFuncInfo* pFuncInfo, const XL_MirNode* pNode)
+{
+	if ( (pCtx == NULL) || !pCtx->bDebugInstrumentation ) {
+		return;
+	}
+
+	__xlCgenAppendIndent(&pCtx->buf);
+	__xlCgenAppend(&pCtx->buf, "xl_dbg_enter_func(");
+	__xlCgenAppendCString(&pCtx->buf, (pCtx->sRuntimeSourceFile != NULL) ? pCtx->sRuntimeSourceFile : "");
+	__xlCgenAppendFormat(&pCtx->buf, ", %d, %d, ", (pNode != NULL) ? pNode->iLine : 0, (pNode != NULL) ? pNode->iColumn : 0);
+	__xlCgenAppendCString(&pCtx->buf, (pFuncInfo != NULL) ? pFuncInfo->sName : "");
+	__xlCgenAppendFormat(&pCtx->buf, ", %d);\n", (pNode != NULL) ? pNode->iFuncIndex : -1);
+}
+
+static void __xlCgenDebugLeaveFunc(XL_CgenContext* pCtx)
+{
+	if ( (pCtx == NULL) || !pCtx->bDebugInstrumentation ) {
+		return;
+	}
+
+	__xlCgenAppendIndent(&pCtx->buf);
+	__xlCgenAppend(&pCtx->buf, "xl_dbg_leave_func();\n");
+}
+#endif
 
 static void __xlCgenSanitizeIdentPart(char* sOut, size_t iOutSize, const char* sText)
 {
@@ -21688,6 +21772,8 @@ static void __xlCgenStmt(XL_CgenContext* pCtx, const XL_MirNode* pNode, const XL
 		}
 	}
 
+	__xlCgenDebugProbeStmt(pCtx, pNode);
+
 	switch ( pNode->eKind ) {
 		case XL_MIR_BLOCK:
 		{
@@ -22163,6 +22249,7 @@ static void __xlCgenStmt(XL_CgenContext* pCtx, const XL_MirNode* pNode, const XL
 				__xlCgenClassDestroyActiveBlockLocalsUntil(pCtx, pFuncInfo, pNode);
 				__xlCgenClassDestroyFunctionLocals(pCtx, pFuncInfo, pNode);
 				__xlCgenClassDestroyFunctionParams(pCtx, pFuncInfo);
+				__xlCgenDebugLeaveFunc(pCtx);
 				__xlCgenAppendIndent(&pCtx->buf);
 				__xlCgenAppendFormat(&pCtx->buf, "return xl_ret_%d_%d;\n", pNode->iLine, pNode->iColumn);
 			} else {
@@ -22185,6 +22272,7 @@ static void __xlCgenStmt(XL_CgenContext* pCtx, const XL_MirNode* pNode, const XL
 				__xlCgenClassDestroyActiveBlockLocalsUntil(pCtx, pFuncInfo, pNode);
 				__xlCgenClassDestroyFunctionLocals(pCtx, pFuncInfo, pNode);
 				__xlCgenClassDestroyFunctionParams(pCtx, pFuncInfo);
+				__xlCgenDebugLeaveFunc(pCtx);
 				__xlCgenAppendIndent(&pCtx->buf);
 				__xlCgenAppend(&pCtx->buf, "return;\n");
 			}
@@ -27663,6 +27751,7 @@ static void __xlCgenFunc(XL_CgenContext* pCtx, const XL_MirNode* pNode)
 		}
 	}
 
+	__xlCgenDebugEnterFunc(pCtx, &funcInfo, pNode);
 	if ( funcInfo.bAsync ) {
 		__xlCgenTraceEventStmt(pCtx, "enter", funcInfo.sName);
 	}
@@ -27767,6 +27856,7 @@ static void __xlCgenFunc(XL_CgenContext* pCtx, const XL_MirNode* pNode)
 	} else {
 		const char* sTailReturnDefault = __xlCgenFuncReturnDefaultValue(&funcInfo);
 
+		__xlCgenDebugLeaveFunc(pCtx);
 		__xlCgenAppendIndent(&pCtx->buf);
 		if ( sTailReturnDefault == NULL ) {
 			__xlCgenAppend(&pCtx->buf, "return;\n");
@@ -28232,7 +28322,13 @@ static void __xlCgenGenericInstanceFuncs(XL_CgenContext* pCtx)
 	pCtx->pGenericInstanceOverride = pPrevOverride;
 }
 
-int xlCgenMir(const XL_LowerResult* pLowerResult, const XL_ModuleLinkResult* pModules, XL_DiagContext* pDiag, char** psOutCode)
+static int __xlCgenMirEx(
+	const XL_LowerResult* pLowerResult,
+	const XL_ModuleLinkResult* pModules,
+	XL_DiagContext* pDiag,
+	int bDebugInstrumentation,
+	char** psOutCode
+)
 {
 	XL_CgenContext ctx;
 	const XL_MirNode* pEntryFunc;
@@ -28248,6 +28344,11 @@ int xlCgenMir(const XL_LowerResult* pLowerResult, const XL_ModuleLinkResult* pMo
 	ctx.pRoot = pRoot;
 	ctx.pLowerResult = pLowerResult;
 	ctx.pModules = pModules;
+#if XLANG_DEBUGMODE_ENABLED
+	ctx.bDebugInstrumentation = bDebugInstrumentation ? 1 : 0;
+#else
+	XL_UNUSED(bDebugInstrumentation);
+#endif
 	if ( (pModules != NULL) && (pModules->pModules != NULL) ) {
 		for ( i = 0; i < pModules->iModuleCount; ++i ) {
 			if ( pModules->pModules[i].bIsRoot && (pModules->pModules[i].sFilePath != NULL) && (pModules->pModules[i].sFilePath[0] != '\0') ) {
@@ -28266,6 +28367,7 @@ int xlCgenMir(const XL_LowerResult* pLowerResult, const XL_ModuleLinkResult* pMo
 	__xlCgenAppend(&ctx.buf, "#include <math.h>\n");
 	__xlCgenAppend(&ctx.buf, "#include \"xrt.h\"\n");
 	__xlCgenAppend(&ctx.buf, "#include \"xlrt_generated.h\"\n\n");
+	__xlCgenDebugProbePrototype(&ctx);
 	__xlCgenRuntimeSupport(&ctx);
 	__xlCgenClassStructs(&ctx);
 	__xlCgenObjectTypeInfoDecls(&ctx);
@@ -28312,3 +28414,21 @@ int xlCgenMir(const XL_LowerResult* pLowerResult, const XL_ModuleLinkResult* pMo
 	*psOutCode = ctx.buf.sData;
 	return XL_RC_OK;
 }
+
+int xlCgenMir(const XL_LowerResult* pLowerResult, const XL_ModuleLinkResult* pModules, XL_DiagContext* pDiag, char** psOutCode)
+{
+	return __xlCgenMirEx(pLowerResult, pModules, pDiag, 0, psOutCode);
+}
+
+#if XLANG_DEBUGMODE_ENABLED
+int xlCgenMirDebug(
+	const XL_LowerResult* pLowerResult,
+	const XL_ModuleLinkResult* pModules,
+	XL_DiagContext* pDiag,
+	int bDebugInstrumentation,
+	char** psOutCode
+)
+{
+	return __xlCgenMirEx(pLowerResult, pModules, pDiag, bDebugInstrumentation, psOutCode);
+}
+#endif

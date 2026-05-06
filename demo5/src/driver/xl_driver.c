@@ -1350,6 +1350,12 @@ static int __xlDriverRunInternalDebug(const XL_CliOptions* pOpts, XL_DiagContext
 	if ( pOpts->eCommand == XL_CMD_CGEN ) {
 		return xlDriverRunCgenDebug(pOpts, pDiag, pDump);
 	}
+	if ( pOpts->eCommand == XL_CMD_DBG ) {
+		return xlDriverRunInteractiveDebug(pOpts, pDiag, pDump);
+	}
+	if ( pOpts->eCommand == XL_CMD_DAP ) {
+		return xlDriverRunDapDebug(pOpts, pDiag, pDump);
+	}
 	if ( pOpts->eCommand == XL_CMD_BUILD ) {
 		return __xlDriverBuildProgram(pOpts, pDiag, pDump);
 	}
