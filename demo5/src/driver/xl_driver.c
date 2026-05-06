@@ -298,16 +298,23 @@ static int __xlAddModuleArtifactsToExecCtx(XL_ExecCtx* pExecCtx, const XL_Module
 
 	for ( i = 0; i < pModuleResult->iModuleCount; ++i ) {
 		const XL_ModuleSummary* pModule;
+		size_t j;
 
 		pModule = &pModuleResult->pModules[i];
 		if ( pModule->bIsRoot ) {
 			continue;
 		}
+		for ( j = 0; j < pModule->iCSourceCount; ++j ) {
+			if ( xlExecCtxAddArtifact(pExecCtx, "c-source", pModule->arrCSourceFiles[j]) != XL_RC_OK ) {
+				return XL_RC_FAIL;
+			}
+		}
 		if ( (pModule->sConsumeMode == NULL) || (pModule->sArtifactFile == NULL) ) {
 			continue;
 		}
 		if ( ((strcmp(pModule->sConsumeMode, "shared-bridge") != 0) &&
-			(strcmp(pModule->sConsumeMode, "static-bridge") != 0)) ||
+			(strcmp(pModule->sConsumeMode, "static-bridge") != 0) &&
+			(strcmp(pModule->sConsumeMode, "c-source-bridge") != 0)) ||
 			(pModule->sArtifactFile[0] == '\0') ) {
 			continue;
 		}
@@ -329,16 +336,23 @@ static int __xlAddModuleArtifactsToHostCtx(XL_HostContext* pHostCtx, const XL_Mo
 
 	for ( i = 0; i < pModuleResult->iModuleCount; ++i ) {
 		const XL_ModuleSummary* pModule;
+		size_t j;
 
 		pModule = &pModuleResult->pModules[i];
 		if ( pModule->bIsRoot ) {
 			continue;
 		}
+		for ( j = 0; j < pModule->iCSourceCount; ++j ) {
+			if ( xlHostContextAddArtifact(pHostCtx, "c-source", pModule->arrCSourceFiles[j]) != XL_RC_OK ) {
+				return XL_RC_FAIL;
+			}
+		}
 		if ( (pModule->sConsumeMode == NULL) || (pModule->sArtifactFile == NULL) ) {
 			continue;
 		}
 		if ( ((strcmp(pModule->sConsumeMode, "shared-bridge") != 0) &&
-			(strcmp(pModule->sConsumeMode, "static-bridge") != 0)) ||
+			(strcmp(pModule->sConsumeMode, "static-bridge") != 0) &&
+			(strcmp(pModule->sConsumeMode, "c-source-bridge") != 0)) ||
 			(pModule->sArtifactFile[0] == '\0') ) {
 			continue;
 		}

@@ -36,6 +36,8 @@ typedef struct XL_ModuleSummary {
 	size_t iLibPathCount;
 	char** arrIncPaths;
 	size_t iIncPathCount;
+	char** arrCSourceFiles;
+	size_t iCSourceCount;
 	char** arrLoadLibs;
 	size_t iLoadLibCount;
 	XL_ModuleExportSummary* pExports;

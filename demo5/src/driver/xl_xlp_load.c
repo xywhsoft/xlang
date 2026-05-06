@@ -17,6 +17,7 @@ static int __xlXlpParseDependencies(const char* sJson, XL_XlpDependencyInfo** pp
 static int __xlXlpParseFunctions(const char* sJson, const char* sModuleKey, XL_XlpFunctionInfo** ppFuncs, size_t* piFuncCount);
 static int __xlXlpParseExports(const char* sJson, const char* sModuleKey, XL_XlpExportInfo** ppExports, size_t* piExportCount);
 static int __xlXlpParseArtifactSection(const char* sJson, XL_XlpResolveInfo* pInfo);
+static int __xlXlpParseArtifactLinkArrays(const char* sJson, XL_XlpResolveInfo* pInfo);
 static int __xlXlpFinalizeArtifactInfo(XL_XlpResolveInfo* pInfo, const char* sManifestPath, const char* sModuleFile, int bIsNative);
 
 void xlXlpResolveInfoInit(XL_XlpResolveInfo* pInfo)
@@ -697,6 +698,171 @@ static int __xlXlpParseArtifactSection(const char* sJson, XL_XlpResolveInfo* pIn
 	return XL_RC_OK;
 }
 
+static int __xlXlpAddManifestTextItem(char arrItems[XL_XLP_LINK_ITEM_MAX][XL_PATH_MAX_LEN], size_t* piCount, const char* sValue)
+{
+	size_t i;
+
+	if ( (arrItems == NULL) || (piCount == NULL) || (sValue == NULL) || (sValue[0] == '\0') ) {
+		return XL_RC_OK;
+	}
+	for ( i = 0; i < *piCount; ++i ) {
+		if ( strcmp(arrItems[i], sValue) == 0 ) {
+			return XL_RC_OK;
+		}
+	}
+	if ( *piCount >= XL_XLP_LINK_ITEM_MAX ) {
+		return XL_RC_FAIL;
+	}
+	__xlXlpCopyText(arrItems[*piCount], XL_PATH_MAX_LEN, sValue);
+	*piCount += 1u;
+	return XL_RC_OK;
+}
+
+static int __xlXlpParseManifestStringArray(
+	XL_XlpJsonCursor* pCur,
+	char arrItems[XL_XLP_LINK_ITEM_MAX][XL_PATH_MAX_LEN],
+	size_t* piCount
+)
+{
+	if ( (pCur == NULL) || (arrItems == NULL) || (piCount == NULL) ) {
+		return XL_RC_BAD_ARG;
+	}
+	__xlXlpSkipWs(pCur);
+	if ( (pCur->pCur >= pCur->pEnd) || (*pCur->pCur != '[') ) {
+		return XL_RC_FAIL;
+	}
+	pCur->pCur += 1;
+	while ( pCur->pCur < pCur->pEnd ) {
+		char* sValue;
+
+		__xlXlpSkipWs(pCur);
+		if ( (pCur->pCur < pCur->pEnd) && (*pCur->pCur == ']') ) {
+			pCur->pCur += 1;
+			return XL_RC_OK;
+		}
+		sValue = NULL;
+		if ( __xlXlpParseString(pCur, &sValue) != XL_RC_OK ) {
+			return XL_RC_FAIL;
+		}
+		if ( __xlXlpAddManifestTextItem(arrItems, piCount, sValue) != XL_RC_OK ) {
+			free(sValue);
+			return XL_RC_FAIL;
+		}
+		free(sValue);
+		__xlXlpSkipWs(pCur);
+		if ( (pCur->pCur < pCur->pEnd) && (*pCur->pCur == ',') ) {
+			pCur->pCur += 1;
+			continue;
+		}
+		if ( (pCur->pCur < pCur->pEnd) && (*pCur->pCur == ']') ) {
+			pCur->pCur += 1;
+			return XL_RC_OK;
+		}
+		return XL_RC_FAIL;
+	}
+	return XL_RC_FAIL;
+}
+
+static int __xlXlpParseArtifactLinkArrays(const char* sJson, XL_XlpResolveInfo* pInfo)
+{
+	XL_XlpJsonCursor cur;
+	char* sKey;
+
+	if ( (sJson == NULL) || (pInfo == NULL) ) {
+		return XL_RC_BAD_ARG;
+	}
+
+	cur.pCur = sJson;
+	cur.pEnd = sJson + strlen(sJson);
+	__xlXlpSkipWs(&cur);
+	if ( (cur.pCur >= cur.pEnd) || (*cur.pCur != '{') ) {
+		return XL_RC_FAIL;
+	}
+	cur.pCur += 1;
+	while ( cur.pCur < cur.pEnd ) {
+		sKey = NULL;
+		__xlXlpSkipWs(&cur);
+		if ( (cur.pCur < cur.pEnd) && (*cur.pCur == '}') ) {
+			return XL_RC_OK;
+		}
+		if ( __xlXlpParseString(&cur, &sKey) != XL_RC_OK ) {
+			return XL_RC_FAIL;
+		}
+		__xlXlpSkipWs(&cur);
+		if ( (cur.pCur >= cur.pEnd) || (*cur.pCur != ':') ) {
+			free(sKey);
+			return XL_RC_FAIL;
+		}
+		cur.pCur += 1;
+		if ( strcmp(sKey, "artifact") == 0 ) {
+			__xlXlpSkipWs(&cur);
+			if ( (cur.pCur >= cur.pEnd) || (*cur.pCur != '{') ) {
+				free(sKey);
+				return XL_RC_FAIL;
+			}
+			cur.pCur += 1;
+			while ( cur.pCur < cur.pEnd ) {
+				char* sField;
+				int iRc;
+
+				__xlXlpSkipWs(&cur);
+				if ( (cur.pCur < cur.pEnd) && (*cur.pCur == '}') ) {
+					cur.pCur += 1;
+					free(sKey);
+					return XL_RC_OK;
+				}
+				sField = NULL;
+				if ( __xlXlpParseString(&cur, &sField) != XL_RC_OK ) {
+					free(sKey);
+					return XL_RC_FAIL;
+				}
+				__xlXlpSkipWs(&cur);
+				if ( (cur.pCur >= cur.pEnd) || (*cur.pCur != ':') ) {
+					free(sField);
+					free(sKey);
+					return XL_RC_FAIL;
+				}
+				cur.pCur += 1;
+				iRc = XL_RC_OK;
+				if ( strcmp(sField, "linkLibs") == 0 ) {
+					iRc = __xlXlpParseManifestStringArray(&cur, pInfo->arrLinkLibs, &pInfo->iLinkLibCount);
+				} else if ( strcmp(sField, "libPaths") == 0 ) {
+					iRc = __xlXlpParseManifestStringArray(&cur, pInfo->arrLibPaths, &pInfo->iLibPathCount);
+				} else if ( strcmp(sField, "incPaths") == 0 ) {
+					iRc = __xlXlpParseManifestStringArray(&cur, pInfo->arrIncPaths, &pInfo->iIncPathCount);
+				} else if ( strcmp(sField, "cSources") == 0 ) {
+					iRc = __xlXlpParseManifestStringArray(&cur, pInfo->arrCSourcePaths, &pInfo->iCSourceCount);
+				} else {
+					iRc = __xlXlpSkipValue(&cur);
+				}
+				free(sField);
+				if ( iRc != XL_RC_OK ) {
+					free(sKey);
+					return iRc;
+				}
+				__xlXlpSkipWs(&cur);
+				if ( (cur.pCur < cur.pEnd) && (*cur.pCur == ',') ) {
+					cur.pCur += 1;
+					continue;
+				}
+			}
+			free(sKey);
+			return XL_RC_FAIL;
+		}
+		if ( __xlXlpSkipValue(&cur) != XL_RC_OK ) {
+			free(sKey);
+			return XL_RC_FAIL;
+		}
+		free(sKey);
+		__xlXlpSkipWs(&cur);
+		if ( (cur.pCur < cur.pEnd) && (*cur.pCur == ',') ) {
+			cur.pCur += 1;
+			continue;
+		}
+	}
+	return XL_RC_OK;
+}
+
 static int __xlXlpFindDependencyVersionInJson(const char* sJson, const char* sImportKey, char* sOutVersion, size_t iOutVersionSize)
 {
 	XL_XlpJsonCursor cur;
@@ -910,7 +1076,8 @@ static int __xlXlpFinalizeArtifactInfo(XL_XlpResolveInfo* pInfo, const char* sMa
 		}
 		if ( (strcmp(pInfo->sArtifactKind, "native") != 0) &&
 			(strcmp(pInfo->sArtifactKind, "shared") != 0) &&
-			(strcmp(pInfo->sArtifactKind, "static") != 0) ) {
+			(strcmp(pInfo->sArtifactKind, "static") != 0) &&
+			(strcmp(pInfo->sArtifactKind, "c-source") != 0) ) {
 			return XL_RC_FAIL;
 		}
 		if ( pInfo->sBindingName[0] == '\0' ) {
@@ -922,16 +1089,29 @@ static int __xlXlpFinalizeArtifactInfo(XL_XlpResolveInfo* pInfo, const char* sMa
 		} else if ( strcmp(pInfo->sArtifactKind, "shared") == 0 ) {
 			__xlXlpCopyText(pInfo->sConsumeMode, sizeof(pInfo->sConsumeMode), "shared-bridge");
 			__xlXlpResolveManifestRelativePath(pInfo->sArtifactFile, sizeof(pInfo->sArtifactFile), sManifestPath, pInfo->sArtifactPath);
-		} else {
+		} else if ( strcmp(pInfo->sArtifactKind, "static") == 0 ) {
 			__xlXlpCopyText(pInfo->sConsumeMode, sizeof(pInfo->sConsumeMode), "static-bridge");
+			__xlXlpResolveManifestRelativePath(pInfo->sArtifactFile, sizeof(pInfo->sArtifactFile), sManifestPath, pInfo->sArtifactPath);
+		} else {
+			__xlXlpCopyText(pInfo->sConsumeMode, sizeof(pInfo->sConsumeMode), "c-source-bridge");
 			__xlXlpResolveManifestRelativePath(pInfo->sArtifactFile, sizeof(pInfo->sArtifactFile), sManifestPath, pInfo->sArtifactPath);
 		}
 	} else {
+		size_t i;
+
 		if ( strcmp(pInfo->sArtifactKind, "source") != 0 ) {
 			return XL_RC_FAIL;
 		}
 		__xlXlpCopyText(pInfo->sConsumeMode, sizeof(pInfo->sConsumeMode), "source-parse");
 		__xlXlpResolveManifestRelativePath(pInfo->sArtifactFile, sizeof(pInfo->sArtifactFile), sManifestPath, pInfo->sArtifactPath);
+		for ( i = 0; i < pInfo->iCSourceCount; ++i ) {
+			__xlXlpResolveManifestRelativePath(
+				pInfo->arrCSourceFiles[i],
+				sizeof(pInfo->arrCSourceFiles[i]),
+				sManifestPath,
+				pInfo->arrCSourcePaths[i]
+			);
+		}
 	}
 
 	return XL_RC_OK;
@@ -1065,6 +1245,7 @@ static int __xlXlpResolveModuleFromManifest(
 
 	__xlXlpParsePackageSection(sJson, pInfo);
 	__xlXlpParseArtifactSection(sJson, pInfo);
+	__xlXlpParseArtifactLinkArrays(sJson, pInfo);
 
 	cur.pCur = sJson;
 	cur.pEnd = sJson + strlen(sJson);
