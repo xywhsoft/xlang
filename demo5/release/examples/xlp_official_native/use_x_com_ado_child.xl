@@ -1,0 +1,19 @@
+import x.com
+
+func main() as int
+	auto ado = x.com.create("ADODB.Connection")
+	if ado.valid() == false then
+		return 1
+	end
+
+	auto props = x.com.attach(ado.Properties())
+	if props.valid() == false then
+		return 2
+	end
+
+	if props.Count() == 0 then
+		return 3
+	end
+
+	return 42
+end

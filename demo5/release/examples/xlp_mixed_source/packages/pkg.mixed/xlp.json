@@ -1,0 +1,53 @@
+{
+	"format": "xlp-0",
+	"package": {
+		"name": "pkg.mixed",
+		"version": "1.0.0",
+		"abiVersion": "1",
+		"xlangAbi": "1",
+		"abiId": "pkg.mixed@1.0.0#abi1"
+	},
+	"artifact": {
+		"kind": "source",
+		"path": "src\\mixed.xl",
+		"cSources": [
+			"src\\mixed.c"
+		],
+		"linkLibs": [
+			"ole32"
+		]
+	},
+	"dependencies": [],
+	"modules": [
+		{
+			"key": "pkg.mixed",
+			"abiId": "pkg.mixed@1.0.0#abi1::pkg.mixed",
+			"file": "src\\mixed.xl",
+			"root": 0,
+			"native": 0,
+			"binding": "",
+			"imports": [],
+			"exports": [
+				{
+					"name": "probe",
+					"symbol": "probe",
+					"kind": "function",
+					"overloadCount": 1
+				},
+				{
+					"name": "add",
+					"symbol": "add",
+					"kind": "function",
+					"overloadCount": 1
+				},
+				{
+					"name": "com_ready",
+					"symbol": "com_ready",
+					"kind": "function",
+					"overloadCount": 1
+				}
+			]
+		}
+	],
+	"functions": []
+}

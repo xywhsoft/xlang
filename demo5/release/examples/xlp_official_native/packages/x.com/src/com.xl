@@ -1,20 +1,34 @@
-#loadlib "../bin/x_com.dll"
-
 extern "x_com_create" func x_com_create(string progid) as point
+extern "x_com_attach" func x_com_attach(point dispatch) as point
+extern "x_com_test_object" func x_com_test_object() as point
 extern "x_com_release" func x_com_release(point handle) as int
 extern "x_com_is_null" func x_com_is_null(point handle) as int
 extern "x_com_last_error" func x_com_last_error() as string
 extern "x_com_get_text" func x_com_get_text(point handle, string name) as string
 extern "x_com_get_int" func x_com_get_int(point handle, string name) as int
-extern "x_com_invoke_text0" func x_com_invoke_text0(point handle, string name) as string
-extern "x_com_invoke_text1" func x_com_invoke_text1(point handle, string name, string a0) as string
-extern "x_com_invoke_text2" func x_com_invoke_text2(point handle, string name, string a0, string a1) as string
-extern "x_com_invoke_text3" func x_com_invoke_text3(point handle, string name, string a0, string a1, string a2) as string
-extern "x_com_invoke_text4" func x_com_invoke_text4(point handle, string name, string a0, string a1, string a2, string a3) as string
-extern "x_com_invoke_text5" func x_com_invoke_text5(point handle, string name, string a0, string a1, string a2, string a3, string a4) as string
-extern "x_com_invoke_text6" func x_com_invoke_text6(point handle, string name, string a0, string a1, string a2, string a3, string a4, string a5) as string
-extern "x_com_invoke_text7" func x_com_invoke_text7(point handle, string name, string a0, string a1, string a2, string a3, string a4, string a5, string a6) as string
-extern "x_com_invoke_text8" func x_com_invoke_text8(point handle, string name, string a0, string a1, string a2, string a3, string a4, string a5, string a6, string a7) as string
+extern "x_com_put_var" func x_com_put_var(point handle, string name, var value) as int
+extern "x_com_put_ref" func x_com_put_ref(point handle, string name, var value) as int
+extern "x_com_missing" func x_com_missing() as point
+extern "x_com_invoke_array" func x_com_invoke_array(point handle, string name, array<var> args) as var
+extern "x_com_invoke_out" func x_com_invoke_out(point handle, string name, array<var> args, array<var> byrefs) as var
+extern "x_com_invoke_named" func x_com_invoke_named(point handle, string name, array<var> args, array<var> names) as var
+extern "x_com_invoke_var0" func x_com_invoke_var0(point handle, string name) as var
+extern "x_com_invoke_var1" func x_com_invoke_var1(point handle, string name, var a0) as var
+extern "x_com_invoke_var2" func x_com_invoke_var2(point handle, string name, var a0, var a1) as var
+extern "x_com_invoke_var3" func x_com_invoke_var3(point handle, string name, var a0, var a1, var a2) as var
+extern "x_com_invoke_var4" func x_com_invoke_var4(point handle, string name, var a0, var a1, var a2, var a3) as var
+extern "x_com_invoke_var5" func x_com_invoke_var5(point handle, string name, var a0, var a1, var a2, var a3, var a4) as var
+extern "x_com_invoke_var6" func x_com_invoke_var6(point handle, string name, var a0, var a1, var a2, var a3, var a4, var a5) as var
+extern "x_com_invoke_var7" func x_com_invoke_var7(point handle, string name, var a0, var a1, var a2, var a3, var a4, var a5, var a6) as var
+extern "x_com_invoke_var8" func x_com_invoke_var8(point handle, string name, var a0, var a1, var a2, var a3, var a4, var a5, var a6, var a7) as var
+extern "x_com_invoke_var9" func x_com_invoke_var9(point handle, string name, var a0, var a1, var a2, var a3, var a4, var a5, var a6, var a7, var a8) as var
+extern "x_com_invoke_var10" func x_com_invoke_var10(point handle, string name, var a0, var a1, var a2, var a3, var a4, var a5, var a6, var a7, var a8, var a9) as var
+extern "x_com_invoke_var11" func x_com_invoke_var11(point handle, string name, var a0, var a1, var a2, var a3, var a4, var a5, var a6, var a7, var a8, var a9, var a10) as var
+extern "x_com_invoke_var12" func x_com_invoke_var12(point handle, string name, var a0, var a1, var a2, var a3, var a4, var a5, var a6, var a7, var a8, var a9, var a10, var a11) as var
+extern "x_com_invoke_var13" func x_com_invoke_var13(point handle, string name, var a0, var a1, var a2, var a3, var a4, var a5, var a6, var a7, var a8, var a9, var a10, var a11, var a12) as var
+extern "x_com_invoke_var14" func x_com_invoke_var14(point handle, string name, var a0, var a1, var a2, var a3, var a4, var a5, var a6, var a7, var a8, var a9, var a10, var a11, var a12, var a13) as var
+extern "x_com_invoke_var15" func x_com_invoke_var15(point handle, string name, var a0, var a1, var a2, var a3, var a4, var a5, var a6, var a7, var a8, var a9, var a10, var a11, var a12, var a13, var a14) as var
+extern "x_com_invoke_var16" func x_com_invoke_var16(point handle, string name, var a0, var a1, var a2, var a3, var a4, var a5, var a6, var a7, var a8, var a9, var a10, var a11, var a12, var a13, var a14, var a15) as var
 
 class ComObject extends object
 	nocopy
@@ -22,6 +36,10 @@ class ComObject extends object
 
 	create(string progid)
 		self.handle = x_com_create(progid)
+	end
+
+	create(point dispatch)
+		self.handle = x_com_attach(dispatch)
 	end
 
 	destroy()
@@ -46,35 +64,79 @@ class ComObject extends object
 		return x_com_get_int(self.handle, name)
 	end
 
+	func set(string name, var value) as bool
+		return x_com_put_var(self.handle, name, value) != 0
+	end
+
+	func set_ref(string name, var value) as bool
+		return x_com_put_ref(self.handle, name, value) != 0
+	end
+
+	func invoke(string name, array<var> args) as var
+		return x_com_invoke_array(self.handle, name, args)
+	end
+
+	func invoke_out(string name, array<var> args, array<var> byrefs) as var
+		return x_com_invoke_out(self.handle, name, args, byrefs)
+	end
+
+	func invoke_named(string name, array<var> args, array<var> names) as var
+		return x_com_invoke_named(self.handle, name, args, names)
+	end
+
 	func __call(string name, array<var> args) as var
 		if args.len() == 0 then
-			return x_com_invoke_text0(self.handle, name)
+			return x_com_invoke_var0(self.handle, name)
 		end
 		if args.len() == 1 then
-			return x_com_invoke_text1(self.handle, name, string(args[0]))
+			return x_com_invoke_var1(self.handle, name, args[0])
 		end
 		if args.len() == 2 then
-			return x_com_invoke_text2(self.handle, name, string(args[0]), string(args[1]))
+			return x_com_invoke_var2(self.handle, name, args[0], args[1])
 		end
 		if args.len() == 3 then
-			return x_com_invoke_text3(self.handle, name, string(args[0]), string(args[1]), string(args[2]))
+			return x_com_invoke_var3(self.handle, name, args[0], args[1], args[2])
 		end
 		if args.len() == 4 then
-			return x_com_invoke_text4(self.handle, name, string(args[0]), string(args[1]), string(args[2]), string(args[3]))
+			return x_com_invoke_var4(self.handle, name, args[0], args[1], args[2], args[3])
 		end
 		if args.len() == 5 then
-			return x_com_invoke_text5(self.handle, name, string(args[0]), string(args[1]), string(args[2]), string(args[3]), string(args[4]))
+			return x_com_invoke_var5(self.handle, name, args[0], args[1], args[2], args[3], args[4])
 		end
 		if args.len() == 6 then
-			return x_com_invoke_text6(self.handle, name, string(args[0]), string(args[1]), string(args[2]), string(args[3]), string(args[4]), string(args[5]))
+			return x_com_invoke_var6(self.handle, name, args[0], args[1], args[2], args[3], args[4], args[5])
 		end
 		if args.len() == 7 then
-			return x_com_invoke_text7(self.handle, name, string(args[0]), string(args[1]), string(args[2]), string(args[3]), string(args[4]), string(args[5]), string(args[6]))
+			return x_com_invoke_var7(self.handle, name, args[0], args[1], args[2], args[3], args[4], args[5], args[6])
 		end
 		if args.len() == 8 then
-			return x_com_invoke_text8(self.handle, name, string(args[0]), string(args[1]), string(args[2]), string(args[3]), string(args[4]), string(args[5]), string(args[6]), string(args[7]))
+			return x_com_invoke_var8(self.handle, name, args[0], args[1], args[2], args[3], args[4], args[5], args[6], args[7])
 		end
-		return ""
+		if args.len() == 9 then
+			return x_com_invoke_var9(self.handle, name, args[0], args[1], args[2], args[3], args[4], args[5], args[6], args[7], args[8])
+		end
+		if args.len() == 10 then
+			return x_com_invoke_var10(self.handle, name, args[0], args[1], args[2], args[3], args[4], args[5], args[6], args[7], args[8], args[9])
+		end
+		if args.len() == 11 then
+			return x_com_invoke_var11(self.handle, name, args[0], args[1], args[2], args[3], args[4], args[5], args[6], args[7], args[8], args[9], args[10])
+		end
+		if args.len() == 12 then
+			return x_com_invoke_var12(self.handle, name, args[0], args[1], args[2], args[3], args[4], args[5], args[6], args[7], args[8], args[9], args[10], args[11])
+		end
+		if args.len() == 13 then
+			return x_com_invoke_var13(self.handle, name, args[0], args[1], args[2], args[3], args[4], args[5], args[6], args[7], args[8], args[9], args[10], args[11], args[12])
+		end
+		if args.len() == 14 then
+			return x_com_invoke_var14(self.handle, name, args[0], args[1], args[2], args[3], args[4], args[5], args[6], args[7], args[8], args[9], args[10], args[11], args[12], args[13])
+		end
+		if args.len() == 15 then
+			return x_com_invoke_var15(self.handle, name, args[0], args[1], args[2], args[3], args[4], args[5], args[6], args[7], args[8], args[9], args[10], args[11], args[12], args[13], args[14])
+		end
+		if args.len() == 16 then
+			return x_com_invoke_var16(self.handle, name, args[0], args[1], args[2], args[3], args[4], args[5], args[6], args[7], args[8], args[9], args[10], args[11], args[12], args[13], args[14], args[15])
+		end
+		return null
 	end
 end
 
@@ -82,4 +144,19 @@ func create(string progid) as ComObject
 	return ComObject(progid)
 end
 
+func attach(point dispatch) as ComObject
+	return ComObject(dispatch)
+end
+
+func test_object() as ComObject
+	return ComObject(x_com_test_object())
+end
+
+func missing() as point
+	return x_com_missing()
+end
+
 export create
+export attach
+export test_object
+export missing

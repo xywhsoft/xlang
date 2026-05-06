@@ -127,6 +127,9 @@ typedef struct XL_ModuleInfo {
 	char** arrIncPaths;
 	size_t iIncPathCount;
 	size_t iIncPathCap;
+	char** arrCSourceFiles;
+	size_t iCSourceCount;
+	size_t iCSourceCap;
 	char** arrLoadLibs;
 	size_t iLoadLibCount;
 	size_t iLoadLibCap;
@@ -490,6 +493,14 @@ static int __xlModuleInfoAddIncPath(XL_ModuleInfo* pModule, const char* sPath)
 		return XL_RC_BAD_ARG;
 	}
 	return __xlModuleInfoAddTextItem(&pModule->arrIncPaths, &pModule->iIncPathCount, &pModule->iIncPathCap, sPath);
+}
+
+static int __xlModuleInfoAddCSourceFile(XL_ModuleInfo* pModule, const char* sFile)
+{
+	if ( pModule == NULL ) {
+		return XL_RC_BAD_ARG;
+	}
+	return __xlModuleInfoAddTextItem(&pModule->arrCSourceFiles, &pModule->iCSourceCount, &pModule->iCSourceCap, sFile);
 }
 
 static int __xlModuleInfoAddLoadLib(XL_ModuleInfo* pModule, const char* sFile)
@@ -6061,6 +6072,10 @@ static void __xlModuleInfoFree(XL_ModuleInfo* pModule)
 		free(pModule->arrIncPaths[i]);
 	}
 	free(pModule->arrIncPaths);
+	for ( i = 0; i < pModule->iCSourceCount; ++i ) {
+		free(pModule->arrCSourceFiles[i]);
+	}
+	free(pModule->arrCSourceFiles);
 	for ( i = 0; i < pModule->iLoadLibCount; ++i ) {
 		free(pModule->arrLoadLibs[i]);
 	}
@@ -7771,6 +7786,30 @@ static int __xlLoadModule(
 			(pModule->sArtifactFile == NULL) || (pModule->sConsumeMode == NULL) ) {
 			return XL_RC_IO_ERROR;
 		}
+		for ( i = 0; i < xlpInfo.iLinkLibCount; ++i ) {
+			iRc = __xlModuleInfoAddLinkLib(pModule, xlpInfo.arrLinkLibs[i]);
+			if ( iRc != XL_RC_OK ) {
+				return iRc;
+			}
+		}
+		for ( i = 0; i < xlpInfo.iLibPathCount; ++i ) {
+			iRc = __xlModuleInfoAddLibPath(pModule, xlpInfo.arrLibPaths[i]);
+			if ( iRc != XL_RC_OK ) {
+				return iRc;
+			}
+		}
+		for ( i = 0; i < xlpInfo.iIncPathCount; ++i ) {
+			iRc = __xlModuleInfoAddIncPath(pModule, xlpInfo.arrIncPaths[i]);
+			if ( iRc != XL_RC_OK ) {
+				return iRc;
+			}
+		}
+		for ( i = 0; i < xlpInfo.iCSourceCount; ++i ) {
+			iRc = __xlModuleInfoAddCSourceFile(pModule, xlpInfo.arrCSourceFiles[i]);
+			if ( iRc != XL_RC_OK ) {
+				return iRc;
+			}
+		}
 		iRc = __xlAssignModuleAbiSymbols(pModule, &xlpInfo);
 		if ( iRc != XL_RC_OK ) {
 			return iRc;
@@ -7778,7 +7817,8 @@ static int __xlLoadModule(
 		if ( xlpInfo.bIsNative ) {
 			if ( (strcmp(xlpInfo.sConsumeMode, "native-registry") != 0) &&
 				(strcmp(xlpInfo.sConsumeMode, "shared-bridge") != 0) &&
-				(strcmp(xlpInfo.sConsumeMode, "static-bridge") != 0) ) {
+				(strcmp(xlpInfo.sConsumeMode, "static-bridge") != 0) &&
+				(strcmp(xlpInfo.sConsumeMode, "c-source-bridge") != 0) ) {
 				XL_DIAG_ERROR(pCtx->pDiag, "module", "unsupported xlp native consume mode: %s", xlpInfo.sConsumeMode);
 				return XL_RC_IO_ERROR;
 			}
@@ -8182,6 +8222,7 @@ static int __xlCopyModuleSummaries(const XL_ModuleLinkContext* pCtx, XL_ModuleLi
 		pSummary->iLinkLibCount = (pModule != NULL) ? pModule->iLinkLibCount : 0;
 		pSummary->iLibPathCount = (pModule != NULL) ? pModule->iLibPathCount : 0;
 		pSummary->iIncPathCount = (pModule != NULL) ? pModule->iIncPathCount : 0;
+		pSummary->iCSourceCount = (pModule != NULL) ? pModule->iCSourceCount : 0;
 		pSummary->iLoadLibCount = (pModule != NULL) ? pModule->iLoadLibCount : 0;
 		pSummary->iExportCount = (pModule != NULL) ? pModule->iExportCount : 0;
 		if ( (pSummary->sKey == NULL) || (pSummary->sFilePath == NULL) || (pSummary->sBindingName == NULL) ||
@@ -8241,6 +8282,18 @@ static int __xlCopyModuleSummaries(const XL_ModuleLinkContext* pCtx, XL_ModuleLi
 			for ( j = 0; j < pSummary->iIncPathCount; ++j ) {
 				pSummary->arrIncPaths[j] = __xlModuleDupText(pModule->arrIncPaths[j]);
 				if ( pSummary->arrIncPaths[j] == NULL ) {
+					return XL_RC_IO_ERROR;
+				}
+			}
+		}
+		if ( pSummary->iCSourceCount != 0 ) {
+			pSummary->arrCSourceFiles = (char**)calloc(pSummary->iCSourceCount, sizeof(*pSummary->arrCSourceFiles));
+			if ( pSummary->arrCSourceFiles == NULL ) {
+				return XL_RC_IO_ERROR;
+			}
+			for ( j = 0; j < pSummary->iCSourceCount; ++j ) {
+				pSummary->arrCSourceFiles[j] = __xlModuleDupText(pModule->arrCSourceFiles[j]);
+				if ( pSummary->arrCSourceFiles[j] == NULL ) {
 					return XL_RC_IO_ERROR;
 				}
 			}
@@ -8318,6 +8371,10 @@ void xlModuleLinkResultFree(XL_ModuleLinkResult* pResult)
 			free(pResult->pModules[i].arrIncPaths[j]);
 		}
 		free(pResult->pModules[i].arrIncPaths);
+		for ( j = 0; j < pResult->pModules[i].iCSourceCount; ++j ) {
+			free(pResult->pModules[i].arrCSourceFiles[j]);
+		}
+		free(pResult->pModules[i].arrCSourceFiles);
 		for ( j = 0; j < pResult->pModules[i].iLoadLibCount; ++j ) {
 			free(pResult->pModules[i].arrLoadLibs[j]);
 		}

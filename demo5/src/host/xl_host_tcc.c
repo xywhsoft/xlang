@@ -830,6 +830,39 @@ static int __xlApplyStaticArtifacts(
 	return XL_RC_OK;
 }
 
+static int __xlApplyCSourceArtifacts(
+	const XL_HostContext* pCtx,
+	TCCState* pTcc,
+	XL_RunTraceBuffer* pTrace
+)
+{
+	size_t i;
+
+	if ( (pCtx == NULL) || (pTcc == NULL) ) {
+		return XL_RC_BAD_ARG;
+	}
+
+	for ( i = 0; i < pCtx->iArtifactCount; ++i ) {
+		const XL_HostArtifact* pArtifact;
+
+		pArtifact = &pCtx->arrArtifacts[i];
+		if ( strcmp(pArtifact->sKind, "c-source") != 0 ) {
+			continue;
+		}
+		__xlRunTraceAppendFormat(pTrace, "artifact.c-source.compile=%s\n", pArtifact->sFile);
+		if ( !__xlFileExists(pArtifact->sFile) ) {
+			__xlRunTraceAppendFormat(pTrace, "artifact.c-source.missing=%s\n", pArtifact->sFile);
+			return XL_RC_FAIL;
+		}
+		if ( tcc_add_file(pTcc, pArtifact->sFile) < 0 ) {
+			__xlRunTraceAppendFormat(pTrace, "artifact.c-source.compile_failed=%s\n", pArtifact->sFile);
+			return XL_RC_FAIL;
+		}
+	}
+
+	return XL_RC_OK;
+}
+
 static int __xlApplySharedArtifacts(
 	const XL_HostContext* pCtx,
 	TCCState* pTcc,
@@ -1064,9 +1097,8 @@ static int __xlRegisterSharedArtifactSymbols(
 #endif
 		}
 		if ( pSymbol == NULL ) {
-			__xlRunTraceAppendFormat(pTrace, "artifact.shared.symbol_missing=%s\n", pCtx->arrExternSymbols[i].sName);
-			__xlEmitHostExternLinkDiag(pDiag, pCtx, "external symbol was not found in loaded shared libraries", NULL, pCtx->arrExternSymbols[i].sName);
-			return XL_RC_FAIL;
+			__xlRunTraceAppendFormat(pTrace, "artifact.shared.symbol_defer=%s\n", pCtx->arrExternSymbols[i].sName);
+			continue;
 		}
 		__xlRunTraceAppendFormat(pTrace, "artifact.shared.symbol=%s\n", pCtx->arrExternSymbols[i].sName);
 		if ( tcc_add_symbol(pTcc, pCtx->arrExternSymbols[i].sName, pSymbol) < 0 ) {
@@ -1558,6 +1590,14 @@ int xlHostTccRunText(
 		__xlSetTraceText(psTraceText, pTrace);
 		return XL_RC_FAIL;
 	}
+	if ( __xlApplyCSourceArtifacts(pCtx, pTcc, pTrace) != XL_RC_OK ) {
+		XL_DIAG_ERROR(pDiag, "host.tcc", "failed to compile c-source xlp artifacts");
+		__xlCleanupStaticExtractedFiles(arrStaticExtracted, iStaticExtractedCount);
+		tcc_delete(pTcc);
+		pResult->bHadRuntimeError = 1;
+		__xlSetTraceText(psTraceText, pTrace);
+		return XL_RC_FAIL;
+	}
 	if ( __xlPushProjectCwd(pCtx, pTrace, &cwdScope) != XL_RC_OK ) {
 		XL_DIAG_ERROR(pDiag, "host.tcc", "failed to switch cwd: %s", pCtx->sProjectRoot);
 		__xlCleanupStaticExtractedFiles(arrStaticExtracted, iStaticExtractedCount);
@@ -1733,6 +1773,14 @@ int xlHostTccRunFile(
 		__xlSetTraceText(psTraceText, pTrace);
 		return XL_RC_FAIL;
 	}
+	if ( __xlApplyCSourceArtifacts(pCtx, pTcc, pTrace) != XL_RC_OK ) {
+		XL_DIAG_ERROR(pDiag, "host.tcc", "failed to compile c-source xlp artifacts");
+		__xlCleanupStaticExtractedFiles(arrStaticExtracted, iStaticExtractedCount);
+		tcc_delete(pTcc);
+		pResult->bHadRuntimeError = 1;
+		__xlSetTraceText(psTraceText, pTrace);
+		return XL_RC_FAIL;
+	}
 
 	arrArgv[0] = (char*)sSourceFile;
 	arrArgv[1] = NULL;
@@ -1819,6 +1867,12 @@ static int __xlHostTccBuildCommon(
 			&iStaticExtractedCount
 		) != XL_RC_OK ) {
 			XL_DIAG_ERROR(pDiag, "host.tcc", "failed to link static xlp artifacts");
+			__xlCleanupStaticExtractedFiles(arrStaticExtracted, iStaticExtractedCount);
+			pResult->bHadBuildError = 1;
+			return XL_RC_FAIL;
+		}
+		if ( __xlApplyCSourceArtifacts(pCtx, pTcc, pTrace) != XL_RC_OK ) {
+			XL_DIAG_ERROR(pDiag, "host.tcc", "failed to compile c-source xlp artifacts");
 			__xlCleanupStaticExtractedFiles(arrStaticExtracted, iStaticExtractedCount);
 			pResult->bHadBuildError = 1;
 			return XL_RC_FAIL;

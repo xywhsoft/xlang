@@ -1,0 +1,14 @@
+import pkg.mixed
+
+func main() as int
+	if pkg.mixed.probe() != 321 then
+		return 1
+	end
+	if pkg.mixed.add(20, 22) != 42 then
+		return 2
+	end
+	if pkg.mixed.com_ready() == false then
+		return 3
+	end
+	return 42
+end

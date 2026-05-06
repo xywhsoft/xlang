@@ -19,5 +19,13 @@ func main() as int
 		return 4
 	end
 
+	if ado.set("ConnectionString", "Provider=MSDASQL;") == false then
+		return 5
+	end
+
+	if ado.text("ConnectionString") != "Provider=MSDASQL;" then
+		return 6
+	end
+
 	return 42
 end

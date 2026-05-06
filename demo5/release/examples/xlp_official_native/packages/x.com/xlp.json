@@ -9,7 +9,14 @@
 	},
 	"artifact": {
 		"kind": "source",
-		"path": "src\\com.xl"
+		"path": "src\\com.xl",
+		"cSources": [
+			"src\\x_com_artifact.c"
+		],
+		"linkLibs": [
+			"ole32",
+			"oleaut32"
+		]
 	},
 	"dependencies": [],
 	"modules": [
@@ -25,6 +32,24 @@
 				{
 					"name": "create",
 					"symbol": "create",
+					"kind": "function",
+					"overloadCount": 1
+				},
+				{
+					"name": "attach",
+					"symbol": "attach",
+					"kind": "function",
+					"overloadCount": 1
+				},
+				{
+					"name": "missing",
+					"symbol": "missing",
+					"kind": "function",
+					"overloadCount": 1
+				},
+				{
+					"name": "test_object",
+					"symbol": "test_object",
 					"kind": "function",
 					"overloadCount": 1
 				}

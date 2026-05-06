@@ -1058,7 +1058,9 @@ static int __xlDapHostCtxAddModuleInputs(XL_HostContext* pHostCtx, const XL_Modu
 			(pModule->sConsumeMode != NULL) &&
 			(pModule->sArtifactFile != NULL) &&
 			(pModule->sArtifactFile[0] != '\0') &&
-			((strcmp(pModule->sConsumeMode, "shared-bridge") == 0) || (strcmp(pModule->sConsumeMode, "static-bridge") == 0)) ) {
+			((strcmp(pModule->sConsumeMode, "shared-bridge") == 0) ||
+				(strcmp(pModule->sConsumeMode, "static-bridge") == 0) ||
+				(strcmp(pModule->sConsumeMode, "c-source-bridge") == 0)) ) {
 			if ( xlHostContextAddArtifact(pHostCtx, pModule->sArtifactKind, pModule->sArtifactFile) != XL_RC_OK ) {
 				return XL_RC_FAIL;
 			}

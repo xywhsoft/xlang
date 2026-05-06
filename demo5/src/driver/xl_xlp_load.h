@@ -3,6 +3,9 @@
 
 #include "../common/xl_common.h"
 
+#define XL_XLP_LINK_ITEM_MAX 16
+#define XL_XLP_CSOURCE_ITEM_MAX 16
+
 typedef struct XL_XlpResolveInfo {
 	char sManifestPath[XL_PATH_MAX_LEN];
 	char sModuleFile[XL_PATH_MAX_LEN];
@@ -18,6 +21,15 @@ typedef struct XL_XlpResolveInfo {
 	char sArtifactPath[XL_PATH_MAX_LEN];
 	char sArtifactFile[XL_PATH_MAX_LEN];
 	char sConsumeMode[32];
+	char arrLinkLibs[XL_XLP_LINK_ITEM_MAX][XL_PATH_MAX_LEN];
+	size_t iLinkLibCount;
+	char arrLibPaths[XL_XLP_LINK_ITEM_MAX][XL_PATH_MAX_LEN];
+	size_t iLibPathCount;
+	char arrIncPaths[XL_XLP_LINK_ITEM_MAX][XL_PATH_MAX_LEN];
+	size_t iIncPathCount;
+	char arrCSourcePaths[XL_XLP_CSOURCE_ITEM_MAX][XL_PATH_MAX_LEN];
+	char arrCSourceFiles[XL_XLP_CSOURCE_ITEM_MAX][XL_PATH_MAX_LEN];
+	size_t iCSourceCount;
 	int bIsNative;
 } XL_XlpResolveInfo;
 
