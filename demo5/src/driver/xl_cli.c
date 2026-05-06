@@ -15,6 +15,8 @@ static const XL_CommandEntry __gXLCommands[] = {
 	{"sem", XL_CMD_SEM},
 	{"lower", XL_CMD_LOWER},
 	{"cgen", XL_CMD_CGEN},
+	{"dbg", XL_CMD_DBG},
+	{"dap", XL_CMD_DAP},
 #endif
 	{"build", XL_CMD_BUILD},
 	{"run", XL_CMD_RUN},
@@ -41,6 +43,11 @@ static XL_Command __xlCliParseCommand(const char* sName)
 
 static bool __xlCliNeedInput(XL_Command eCommand)
 {
+#if XLANG_DEBUGMODE_ENABLED
+	if ( eCommand == XL_CMD_DAP ) {
+		return false;
+	}
+#endif
 	return eCommand != XL_CMD_NONE;
 }
 

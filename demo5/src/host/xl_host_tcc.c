@@ -2,6 +2,10 @@
 
 #include "xl_host_symbols.h"
 
+#if XLANG_DEBUGMODE_ENABLED
+#include "../debug/xl_debugger_debug.h"
+#endif
+
 #include "../../lib/libtcc.h"
 
 #if defined(_WIN32) || defined(_WIN64)
@@ -1233,6 +1237,9 @@ static int __xlConfigureTcc(
 		}
 	}
 	if ( bRegisterSymbols && (xlHostRegisterSymbols(pTcc) != XL_RC_OK) ) return XL_RC_FAIL;
+#if XLANG_DEBUGMODE_ENABLED
+	if ( bRegisterSymbols && (xlDebugRegisterHostSymbols(pTcc) != XL_RC_OK) ) return XL_RC_FAIL;
+#endif
 
 	return XL_RC_OK;
 }
