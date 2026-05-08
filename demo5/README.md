@@ -30,9 +30,9 @@ build.bat
 运行统一测试：
 
 ```bat
-release\bin\xl5.exe test
-release\bin\xl5.exe test runtime
-release\bin\xl5_test.exe lower
+release\xl5_test.exe all
+release\xl5_test.exe runtime
+release\xl5_test.exe lower
 ```
 
 运行自动回归：
@@ -41,20 +41,26 @@ release\bin\xl5_test.exe lower
 regress.bat
 ```
 
+运行 xldbg DAP smoke：
+
+```bat
+node test\dap\xldbg_dap_smoke.js
+```
+
 运行示例程序：
 
 ```bat
-release\bin\xl5.exe run examples\full\run_basic.xl
-release\bin\xl5.exe run examples\full\for_in_range.xl
-release\bin\xl5.exe run examples\async\run_main.xl
-release\bin\xl5.exe run examples\task\task_basic.xl
+release\xl.exe run release\examples\full\run_basic.xl
+release\xl.exe run release\examples\full\for_in_range.xl
+release\xl.exe run release\examples\async\run_main.xl
+release\xl.exe run release\examples\task\task_basic.xl
 ```
 
 查看中间产物：
 
 ```bat
-release\bin\xl5.exe lower examples\async\basic.xl --dump-hir
-release\bin\xl5.exe cgen examples\task\task_basic.xl --dump-c
+release\xl.exe lower release\examples\async\basic.xl --dump-hir
+release\xl.exe cgen release\examples\task\task_basic.xl --dump-c
 ```
 
 产物目录：
@@ -68,19 +74,21 @@ release\bin\xl5.exe cgen examples\task\task_basic.xl --dump-c
 CLI 主入口：
 
 ```bat
-release\bin\xl5.exe lex <file>
-release\bin\xl5.exe parse <file>
-release\bin\xl5.exe sem <file>
-release\bin\xl5.exe lower <file>
-release\bin\xl5.exe cgen <file>
-release\bin\xl5.exe run <file>
-release\bin\xl5.exe test [selector]
+release\xl.exe lex <file>
+release\xl.exe parse <file>
+release\xl.exe sem <file>
+release\xl.exe lower <file>
+release\xl.exe cgen <file>
+release\xl.exe run <file>
+release\xl5_test.exe [selector]
 ```
 
 ## Design Docs
 
 - `docs/design/xldbg-dap-debugger-design.md`
+- `docs/design/xldbg-vscode-dap-adapter.md`
 - `docs/specs/xldbg-dap-debugger-v1-spec.md`
+- `tools/vscode-xlang-debug/README.md`
 
 ## Current Boundaries
 
