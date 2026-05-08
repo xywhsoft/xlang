@@ -7,7 +7,7 @@ xlang 第五版发布候选版收口开发 Spec
 
 目标
 - 将 demo5 从验证版推进为 xlang 发布候选版。
-- demo5 必须验证正式 xlang 的全链路设想：语言核心、标准库、C 混编、模块/package/xlp、诊断、class 第一阶段。
+- demo5 必须验证正式 xlang 的全链路设想：语言核心、标准库、C 混编、模块/package/xle、诊断、class 第一阶段。
 - 本 spec 只收口高价值、低扩散的发布候选能力；暂缓项不重新拉回实验期。
 
 总原则
@@ -26,7 +26,7 @@ xlang 第五版发布候选版收口开发 Spec
 - [x] 将当前基于 var 擦除的泛型函数升级为静态单态化泛型。
 - [x] 每个实际类型组合生成独立函数实例。
 - [x] 调用点调用具体实例，不再通过 xvalue/var 泛型返回包装完成类型恢复。
-- [x] 生成稳定 ABI 符号名，服务 package/xlp/调试/缓存。
+- [x] 生成稳定 ABI 符号名，服务 package/xle/调试/缓存。
 
 1.2 定版语法与语义
 - [x] 支持泛型函数：`func id<T>(T value) as T ... end`
@@ -99,7 +99,7 @@ xlang 第五版发布候选版收口开发 Spec
 - [x] cgen
 - [x] host.tcc
 - [x] runtime
-- [x] xlp/package
+- [x] xle/package
 
 2.4 重点诊断内容
 - [x] 类型错误显示 expected / actual。
@@ -124,12 +124,12 @@ xlang 第五版发布候选版收口开发 Spec
 
 --------------------------------
 
-3. module / package / xlp 工程化闭环
+3. module / package / xle 工程化闭环
 
 3.1 目标
 - [x] 让 xlang 可以表达真实项目结构。
 - [x] `xl5 build` 能基于项目入口构建应用或包。
-- [x] package/xlp 的元信息、导出、版本、搜索路径形成稳定首版。
+- [x] package/xle 的元信息、导出、版本、搜索路径形成稳定首版。
 
 3.2 项目文件
 - [x] 引入 `xlang.json` 作为项目/包描述文件。
@@ -186,7 +186,7 @@ xlang 第五版发布候选版收口开发 Spec
 - [x] `project_std_priority`
 - [x] `project_link_from_json`
 - [x] `project_import_error_paths`
-- [x] `xlp_package_project_build`
+- [x] `xle_package_project_build`
 
 --------------------------------
 
@@ -506,12 +506,12 @@ end
 - [x] 包生态和 ABI 共存更稳。
 
 11.2 范围
-- [x] 当前元信息 id 层稳定后，再将版本 ABI 参与真实导出符号：XLP/package 模块的 init/exports/descriptor symbol 已支持 packageAbiId 参与消歧。
+- [x] 当前元信息 id 层稳定后，再将版本 ABI 参与真实导出符号：XLE/package 模块的 init/exports/descriptor symbol 已支持 packageAbiId 参与消歧。
 - [x] 支持同模块多 ABI 共存的可能性：已覆盖同名 `pkg.math` 多版本包生成不同真实 C ABI 符号。
 
 11.3 风险
-- [x] 会影响现有导出/导入规则：当前限定在 XLP/package ABI 符号和模块描述符链路，不改变源代码级 import/export 名称。
-- [x] 必须和 xlp/package 版本策略一起设计：当前以 package name + version + abiVersion 组成 packageAbiId，并在 xlp manifest/package dump 中稳定输出。
+- [x] 会影响现有导出/导入规则：当前限定在 XLE/package ABI 符号和模块描述符链路，不改变源代码级 import/export 名称。
+- [x] 必须和 xle/package 版本策略一起设计：当前以 package name + version + abiVersion 组成 packageAbiId，并在 xle manifest/package dump 中稳定输出。
 
 --------------------------------
 三、明确暂缓内容
@@ -549,13 +549,13 @@ end
 阶段 2：错误诊断系统发布级增强
 - [x] 统一错误格式。
 - [x] 源码片段和 JSON 输出。
-- [x] 覆盖 lexer/parser/sem/lower/cgen/host/import/generic/runtime/xlp。
+- [x] 覆盖 lexer/parser/sem/lower/cgen/host/import/generic/runtime/xle。
 
-阶段 3：module / package / xlp 工程化闭环
+阶段 3：module / package / xle 工程化闭环
 - [x] `xlang.json`
 - [x] 模块搜索路径
 - [x] 项目构建
-- [x] package/xlp 首版闭环
+- [x] package/xle 首版闭环
 
 阶段 4：标准库一致性与类型方法补全
 - [x] `.length`
@@ -591,4 +591,4 @@ end
 - [x] native callback ABI 首版 runtime 闭环：支持 `function<int(int,string)>` 与 `function<void()>` 作为 C 函数指针参数导出，#binding 函数指针 typedef/字段/参数可生成 native callback C 原型，runtime 已覆盖 C 调 xlang 回调。
 - [x] binding package 工程化入口首版：新增 `xl5 bind <header.h> --emit <outdir>`，可生成 include/header 拷贝、binding 源文件与 `xlang.json` package 骨架；首版作为工程链入口，不承诺任意复杂头文件完全零人工修补。
 - [ ] 非常规对齐、复杂嵌套生命周期 ABI：当前发布候选版只承诺 plain class / plain struct ABI；带 destroy、union active tag、显式 pack/alignment、非平凡生命周期跨 C ABI 仍后置。
-- [ ] XLP 复杂依赖策略：当前已覆盖 dependencies、版本目录/manifest、ABI id 元信息与多版本共存；peer dependency、热升级、自动 ABI 兼容推断、复杂解析策略仍不建议塞进 demo5 首发闭环。
+- [ ] XLE 复杂依赖策略：当前已覆盖 dependencies、版本目录/manifest、ABI id 元信息与多版本共存；peer dependency、热升级、自动 ABI 兼容推断、复杂解析策略仍不建议塞进 demo5 首发闭环。

@@ -111,7 +111,7 @@ xlang 第五版语言标准支持覆盖率
 - ☑ var 参数优先级规则
 - ☑ 模块/跨语言重载元信息表
 - ☑ 语言层 ABI + C 层 ABI 双层模型（首版：函数元信息显式输出 `languageAbi=xlang@v1` / `nativeAbi=c@v1`）
-- ☑ 版本绑定 ABI（首版：xlp 函数元信息显式输出 `languageAbiId` / `nativeAbiId`，绑定 `moduleAbiId + version + abi`）
+- ☑ 版本绑定 ABI（首版：xle 函数元信息显式输出 `languageAbiId` / `nativeAbiId`，绑定 `moduleAbiId + version + abi`）
 - ☑ 模块导出表 ABI（首版：`modules.exports[]` 显式输出 `abiId` / `versionedSymbol`）
 - ☑ function 动态函数值（支持签名化 `function<...>`、按目标签名消歧、局部绑定、参数传递、返回值流转、typed array/dict 与 var array/dict 容器取值调用，以及 `var` 桥接）
 - ☑ 匿名函数（支持块体与 `=>` 表达式体，可赋给 `auto` / `function<...>` / `var`，可作为参数、返回值、容器元素并动态调用）
@@ -192,8 +192,8 @@ xlang 第五版语言标准支持覆盖率
 - ☑ 顶层代码
 - ☑ 模块初始化错误传播
 - ☑ 模块初始化缓存语义
-- ☑ 模块描述符 / 导出表 / 初始化函数 ABI（首版：module-link / xlp metadata / cgen 已统一携带 `initSymbol` / `exportsSymbol` / `descriptorSymbol`，本地源码模块 `packageAbiId/module abiId` 也已统一，不再回落到 `package@0.0.0#abi1`）
-- ☑ xlp 扩展包加载
+- ☑ 模块描述符 / 导出表 / 初始化函数 ABI（首版：module-link / xle metadata / cgen 已统一携带 `initSymbol` / `exportsSymbol` / `descriptorSymbol`，本地源码模块 `packageAbiId/module abiId` 也已统一，不再回落到 `package@0.0.0#abi1`）
+- ☑ xle 扩展包加载
 - ☑ 多版本依赖共存
 
 十二、标准协议与 native 绑定

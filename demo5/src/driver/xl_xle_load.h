@@ -1,12 +1,12 @@
-#ifndef XL_XLP_LOAD_H
-#define XL_XLP_LOAD_H
+#ifndef XL_XLE_LOAD_H
+#define XL_XLE_LOAD_H
 
 #include "../common/xl_common.h"
 
-#define XL_XLP_LINK_ITEM_MAX 16
-#define XL_XLP_CSOURCE_ITEM_MAX 16
+#define XL_XLE_LINK_ITEM_MAX 16
+#define XL_XLE_CSOURCE_ITEM_MAX 16
 
-typedef struct XL_XlpResolveInfo {
+typedef struct XL_XleResolveInfo {
 	char sManifestPath[XL_PATH_MAX_LEN];
 	char sModuleFile[XL_PATH_MAX_LEN];
 	char sBindingName[XL_PATH_MAX_LEN];
@@ -21,44 +21,44 @@ typedef struct XL_XlpResolveInfo {
 	char sArtifactPath[XL_PATH_MAX_LEN];
 	char sArtifactFile[XL_PATH_MAX_LEN];
 	char sConsumeMode[32];
-	char arrLinkLibs[XL_XLP_LINK_ITEM_MAX][XL_PATH_MAX_LEN];
+	char arrLinkLibs[XL_XLE_LINK_ITEM_MAX][XL_PATH_MAX_LEN];
 	size_t iLinkLibCount;
-	char arrLibPaths[XL_XLP_LINK_ITEM_MAX][XL_PATH_MAX_LEN];
+	char arrLibPaths[XL_XLE_LINK_ITEM_MAX][XL_PATH_MAX_LEN];
 	size_t iLibPathCount;
-	char arrIncPaths[XL_XLP_LINK_ITEM_MAX][XL_PATH_MAX_LEN];
+	char arrIncPaths[XL_XLE_LINK_ITEM_MAX][XL_PATH_MAX_LEN];
 	size_t iIncPathCount;
-	char arrCSourcePaths[XL_XLP_CSOURCE_ITEM_MAX][XL_PATH_MAX_LEN];
-	char arrCSourceFiles[XL_XLP_CSOURCE_ITEM_MAX][XL_PATH_MAX_LEN];
+	char arrCSourcePaths[XL_XLE_CSOURCE_ITEM_MAX][XL_PATH_MAX_LEN];
+	char arrCSourceFiles[XL_XLE_CSOURCE_ITEM_MAX][XL_PATH_MAX_LEN];
 	size_t iCSourceCount;
 	int bIsNative;
-} XL_XlpResolveInfo;
+} XL_XleResolveInfo;
 
-typedef struct XL_XlpDependencyInfo {
+typedef struct XL_XleDependencyInfo {
 	char sName[XL_PATH_MAX_LEN];
 	char sKind[32];
 	char sVersion[64];
 	char sAbiVersion[32];
 	char sAbiId[XL_PATH_MAX_LEN];
-} XL_XlpDependencyInfo;
+} XL_XleDependencyInfo;
 
-typedef struct XL_XlpParamInfo {
+typedef struct XL_XleParamInfo {
 	char sName[128];
 	char sLabel[128];
 	char sType[XL_PATH_MAX_LEN];
 	char* sDefaultValueText;
 	char* sDefaultValueJson;
 	int bHasDefault;
-} XL_XlpParamInfo;
+} XL_XleParamInfo;
 
-typedef struct XL_XlpReturnInfo {
+typedef struct XL_XleReturnInfo {
 	char sType[XL_PATH_MAX_LEN];
-} XL_XlpReturnInfo;
+} XL_XleReturnInfo;
 
-typedef struct XL_XlpTypeParamInfo {
+typedef struct XL_XleTypeParamInfo {
 	char sName[XL_PATH_MAX_LEN];
-} XL_XlpTypeParamInfo;
+} XL_XleTypeParamInfo;
 
-typedef struct XL_XlpFunctionInfo {
+typedef struct XL_XleFunctionInfo {
 	char sModule[XL_PATH_MAX_LEN];
 	char sModuleAbiId[XL_PATH_MAX_LEN];
 	char sExportName[128];
@@ -78,15 +78,15 @@ typedef struct XL_XlpFunctionInfo {
 	int bAsync;
 	int bGenerator;
 	int iVarArgKind;
-	XL_XlpParamInfo* pParams;
+	XL_XleParamInfo* pParams;
 	size_t iParamCount;
-	XL_XlpReturnInfo* pReturns;
+	XL_XleReturnInfo* pReturns;
 	size_t iReturnCount;
-	XL_XlpTypeParamInfo* pTypeParams;
+	XL_XleTypeParamInfo* pTypeParams;
 	size_t iTypeParamCount;
-} XL_XlpFunctionInfo;
+} XL_XleFunctionInfo;
 
-typedef struct XL_XlpExportInfo {
+typedef struct XL_XleExportInfo {
 	char sModule[XL_PATH_MAX_LEN];
 	char sModuleAbiId[XL_PATH_MAX_LEN];
 	char sName[128];
@@ -95,49 +95,49 @@ typedef struct XL_XlpExportInfo {
 	char sVersionedSymbol[XL_PATH_MAX_LEN];
 	char sKind[32];
 	int iOverloadCount;
-} XL_XlpExportInfo;
+} XL_XleExportInfo;
 
-void xlXlpResolveInfoInit(XL_XlpResolveInfo* pInfo);
+void xlXleResolveInfoInit(XL_XleResolveInfo* pInfo);
 
-int xlXlpFindModuleSource(
+int xlXleFindModuleSource(
 	const char* sCurrentFile,
 	const char* sCurrentManifestPath,
 	const char* sImportKey,
-	XL_XlpResolveInfo* pInfo
+	XL_XleResolveInfo* pInfo
 );
-int xlXlpFindModuleSourceInRoots(
+int xlXleFindModuleSourceInRoots(
 	const char** ppSearchRoots,
 	size_t iSearchRootCount,
 	const char* sCurrentManifestPath,
 	const char* sImportKey,
-	XL_XlpResolveInfo* pInfo
+	XL_XleResolveInfo* pInfo
 );
 
-int xlXlpFindDependencyVersion(
+int xlXleFindDependencyVersion(
 	const char* sManifestPath,
 	const char* sImportKey,
 	char* sOutVersion,
 	size_t iOutVersionSize
 );
 
-void xlXlpDependencyInfoFree(XL_XlpDependencyInfo* pDeps);
-int xlXlpReadDependencies(
+void xlXleDependencyInfoFree(XL_XleDependencyInfo* pDeps);
+int xlXleReadDependencies(
 	const char* sManifestPath,
-	XL_XlpDependencyInfo** ppDeps,
+	XL_XleDependencyInfo** ppDeps,
 	size_t* piDepCount
 );
-void xlXlpFunctionInfoFree(XL_XlpFunctionInfo* pFuncs, size_t iFuncCount);
-int xlXlpReadFunctions(
+void xlXleFunctionInfoFree(XL_XleFunctionInfo* pFuncs, size_t iFuncCount);
+int xlXleReadFunctions(
 	const char* sManifestPath,
 	const char* sModuleKey,
-	XL_XlpFunctionInfo** ppFuncs,
+	XL_XleFunctionInfo** ppFuncs,
 	size_t* piFuncCount
 );
-void xlXlpExportInfoFree(XL_XlpExportInfo* pExports);
-int xlXlpReadExports(
+void xlXleExportInfoFree(XL_XleExportInfo* pExports);
+int xlXleReadExports(
 	const char* sManifestPath,
 	const char* sModuleKey,
-	XL_XlpExportInfo** ppExports,
+	XL_XleExportInfo** ppExports,
 	size_t* piExportCount
 );
 

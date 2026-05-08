@@ -102,7 +102,7 @@ selector=all
 [PASS] runtime.try_finally_escape_basic
 [PASS] runtime.try_catch_finally
 [PASS] runtime.function_forward_call_basic
-[PASS] runtime.xlp_native_fallback_shared
+[PASS] runtime.xle_native_fallback_shared
 [PASS] runtime.class_stage1_try_finally_return_destroy_runtime
 [PASS] runtime.class_stage1_try_finally_nested_destroy_runtime
 [PASS] runtime.object_super_call_runtime

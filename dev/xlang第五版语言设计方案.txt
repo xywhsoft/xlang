@@ -592,7 +592,7 @@ ABI 原则：
 	- 更激进的“把版本编码继续压进最终 C 导出符号名”可以后续再讨论，但不再作为首版版本绑定 ABI 的阻塞项
 
 第五版首版的版本绑定 ABI：
-	- xlp 函数元信息继续保留未绑定版本的 `signatureId` / `abiSymbol`
+	- xle 函数元信息继续保留未绑定版本的 `signatureId` / `abiSymbol`
 	- 同时额外显式输出版本绑定后的 `languageAbiId`
 	- 格式为：`<moduleAbiId>::<signatureId>#<languageAbi>`
 	- 同时额外显式输出版本绑定后的 `nativeAbiId`
@@ -1161,11 +1161,11 @@ ABI 原则：
 	- 导出函数 -> 已决议的 C 符号
 	- 导出常量 -> 运行时值或静态值访问器
 	- 导出变量 -> 运行时槽位
-	- 首版 xlp 元信息中，每个模块额外显式携带 `initSymbol`
-	- 首版 xlp 元信息中，每个模块额外显式携带 `exportsSymbol`
-	- 首版 xlp 元信息中，每个模块额外显式携带 `descriptorSymbol`
-	- 首版 xlp 元信息中，每个导出项额外显式携带 `abiId = <moduleAbiId>::<exportName>`
-	- 首版 xlp 元信息中，每个导出项额外显式携带 `versionedSymbol = <moduleAbiId>::<symbol>`
+	- 首版 xle 元信息中，每个模块额外显式携带 `initSymbol`
+	- 首版 xle 元信息中，每个模块额外显式携带 `exportsSymbol`
+	- 首版 xle 元信息中，每个模块额外显式携带 `descriptorSymbol`
+	- 首版 xle 元信息中，每个导出项额外显式携带 `abiId = <moduleAbiId>::<exportName>`
+	- 首版 xle 元信息中，每个导出项额外显式携带 `versionedSymbol = <moduleAbiId>::<symbol>`
 
 建议首版限制：
 	- 模块循环依赖在第五版首版直接视为编译期错误
@@ -1184,19 +1184,19 @@ ABI 原则：
 基于 xrt 当前分发模型，建议正式承认以下几类扩展产物：
 
 	1. 共享库扩展包
-		- 使用 xpack 打包，包扩展名为 `.xlp`
+		- 使用 xpack 打包，包扩展名为 `.xle`
 		- 内含：
 			- `dll` / `so`
 			- 元信息文件
 
 	2. 静态库扩展包
-		- 使用 xpack 打包，包扩展名为 `.xlp`
+		- 使用 xpack 打包，包扩展名为 `.xle`
 		- 内含：
 			- `.a`
 			- 元信息文件
 
 	3. 分享库扩展包
-		- 使用 xpack 打包，包扩展名为 `.xlp`
+		- 使用 xpack 打包，包扩展名为 `.xle`
 		- 内含：
 			- `.c`
 			- 元信息文件

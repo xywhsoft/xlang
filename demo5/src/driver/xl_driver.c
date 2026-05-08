@@ -5,7 +5,7 @@
 #include "../lower/xl_lower.h"
 #include "../runtime/xl_exec_ctx.h"
 #include "xl_module_link.h"
-#include "xl_xlp_load.h"
+#include "xl_xle_load.h"
 #if XLANG_DEBUGMODE_ENABLED
 #include "../ast/xl_ast_dump.h"
 #include "../diag/xl_dump.h"
@@ -14,7 +14,7 @@
 #include "../sem/xl_sem_dump.h"
 #include "xl_driver_debug.h"
 #include "../host/xl_host_symbols.h"
-#include "xl_xlp_dump.h"
+#include "xl_xle_dump.h"
 #endif
 
 static int __xlWriteTextFile(const char* sFilePath, const char* sText)
@@ -383,7 +383,7 @@ static int __xlAddSharedExternSymbolsFromModule(
 	void* pCtx
 )
 {
-	XL_XlpFunctionInfo* pFuncs;
+	XL_XleFunctionInfo* pFuncs;
 	size_t iFuncCount;
 	size_t j;
 
@@ -396,7 +396,7 @@ static int __xlAddSharedExternSymbolsFromModule(
 
 	pFuncs = NULL;
 	iFuncCount = 0;
-	if ( xlXlpReadFunctions(pModule->sManifestPath, pModule->sKey, &pFuncs, &iFuncCount) != XL_RC_OK ) {
+	if ( xlXleReadFunctions(pModule->sManifestPath, pModule->sKey, &pFuncs, &iFuncCount) != XL_RC_OK ) {
 		return XL_RC_OK;
 	}
 
@@ -406,12 +406,12 @@ static int __xlAddSharedExternSymbolsFromModule(
 		 * shared artifact. abiSymbol stays inside generated code as the wrapper ABI name.
 		 */
 		if ( (pFuncs[j].sSymbol[0] != '\0') && (fnAddSymbol(pCtx, pFuncs[j].sSymbol) != XL_RC_OK) ) {
-			xlXlpFunctionInfoFree(pFuncs, iFuncCount);
+			xlXleFunctionInfoFree(pFuncs, iFuncCount);
 			return XL_RC_FAIL;
 		}
 	}
 
-	xlXlpFunctionInfoFree(pFuncs, iFuncCount);
+	xlXleFunctionInfoFree(pFuncs, iFuncCount);
 	return XL_RC_OK;
 }
 

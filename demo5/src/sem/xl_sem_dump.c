@@ -761,7 +761,7 @@ char* xlSemDumpFuncsJson(const XL_SemResult* pResult)
 	return buf.sData;
 }
 
-char* xlSemDumpXlpFunctionsJson(const XL_SemResult* pResult)
+char* xlSemDumpXleFunctionsJson(const XL_SemResult* pResult)
 {
 	XL_SemTextBuffer buf;
 

@@ -1583,7 +1583,7 @@ int xlHostTccRunText(
 		XL_COUNTOF(arrStaticExtracted),
 		&iStaticExtractedCount
 	) != XL_RC_OK ) {
-		XL_DIAG_ERROR(pDiag, "host.tcc", "failed to link static xlp artifacts");
+		XL_DIAG_ERROR(pDiag, "host.tcc", "failed to link static xle artifacts");
 		__xlCleanupStaticExtractedFiles(arrStaticExtracted, iStaticExtractedCount);
 		tcc_delete(pTcc);
 		pResult->bHadRuntimeError = 1;
@@ -1591,7 +1591,7 @@ int xlHostTccRunText(
 		return XL_RC_FAIL;
 	}
 	if ( __xlApplyCSourceArtifacts(pCtx, pTcc, pTrace) != XL_RC_OK ) {
-		XL_DIAG_ERROR(pDiag, "host.tcc", "failed to compile c-source xlp artifacts");
+		XL_DIAG_ERROR(pDiag, "host.tcc", "failed to compile c-source xle artifacts");
 		__xlCleanupStaticExtractedFiles(arrStaticExtracted, iStaticExtractedCount);
 		tcc_delete(pTcc);
 		pResult->bHadRuntimeError = 1;
@@ -1766,7 +1766,7 @@ int xlHostTccRunFile(
 		XL_COUNTOF(arrStaticExtracted),
 		&iStaticExtractedCount
 	) != XL_RC_OK ) {
-		XL_DIAG_ERROR(pDiag, "host.tcc", "failed to link static xlp artifacts");
+		XL_DIAG_ERROR(pDiag, "host.tcc", "failed to link static xle artifacts");
 		__xlCleanupStaticExtractedFiles(arrStaticExtracted, iStaticExtractedCount);
 		tcc_delete(pTcc);
 		pResult->bHadRuntimeError = 1;
@@ -1774,7 +1774,7 @@ int xlHostTccRunFile(
 		return XL_RC_FAIL;
 	}
 	if ( __xlApplyCSourceArtifacts(pCtx, pTcc, pTrace) != XL_RC_OK ) {
-		XL_DIAG_ERROR(pDiag, "host.tcc", "failed to compile c-source xlp artifacts");
+		XL_DIAG_ERROR(pDiag, "host.tcc", "failed to compile c-source xle artifacts");
 		__xlCleanupStaticExtractedFiles(arrStaticExtracted, iStaticExtractedCount);
 		tcc_delete(pTcc);
 		pResult->bHadRuntimeError = 1;
@@ -1866,19 +1866,19 @@ static int __xlHostTccBuildCommon(
 			XL_COUNTOF(arrStaticExtracted),
 			&iStaticExtractedCount
 		) != XL_RC_OK ) {
-			XL_DIAG_ERROR(pDiag, "host.tcc", "failed to link static xlp artifacts");
+			XL_DIAG_ERROR(pDiag, "host.tcc", "failed to link static xle artifacts");
 			__xlCleanupStaticExtractedFiles(arrStaticExtracted, iStaticExtractedCount);
 			pResult->bHadBuildError = 1;
 			return XL_RC_FAIL;
 		}
 		if ( __xlApplyCSourceArtifacts(pCtx, pTcc, pTrace) != XL_RC_OK ) {
-			XL_DIAG_ERROR(pDiag, "host.tcc", "failed to compile c-source xlp artifacts");
+			XL_DIAG_ERROR(pDiag, "host.tcc", "failed to compile c-source xle artifacts");
 			__xlCleanupStaticExtractedFiles(arrStaticExtracted, iStaticExtractedCount);
 			pResult->bHadBuildError = 1;
 			return XL_RC_FAIL;
 		}
 		if ( __xlApplySharedArtifacts(pCtx, pTcc, pTrace) != XL_RC_OK ) {
-			XL_DIAG_ERROR(pDiag, "host.tcc", "failed to link shared xlp artifacts");
+			XL_DIAG_ERROR(pDiag, "host.tcc", "failed to link shared xle artifacts");
 			__xlCleanupStaticExtractedFiles(arrStaticExtracted, iStaticExtractedCount);
 			pResult->bHadBuildError = 1;
 			return XL_RC_FAIL;
