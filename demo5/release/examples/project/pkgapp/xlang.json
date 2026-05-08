@@ -4,5 +4,5 @@
 	"type": "app",
 	"main": "src/main.xl",
 	"source": ["src"],
-	"packages": ["../../xlp/packages"]
+	"packages": ["../../xle/packages"]
 }

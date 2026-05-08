@@ -9,7 +9,7 @@
 #include "../sem/xl_sem_dump.h"
 #include "../debug/xl_debugger_debug.h"
 #include "xl_module_link.h"
-#include "xl_xlp_dump.h"
+#include "xl_xle_dump.h"
 
 #if XLANG_DEBUGMODE_ENABLED
 #include "../runtime/xlrt_generated.h"
@@ -365,8 +365,8 @@ int xlDriverRunSemDebug(const XL_CliOptions* pOpts, XL_DiagContext* pDiag, XL_Du
 	char* sSymbolsJson;
 	char* sTypesJson;
 	char* sFuncsJson;
-	char* sXlpFuncsJson;
-	char* sXlpJson;
+	char* sXleFuncsJson;
+	char* sXleJson;
 	char* sDiagText;
 	char sDefaultPath[XL_PATH_MAX_LEN];
 	int iRc;
@@ -378,8 +378,8 @@ int xlDriverRunSemDebug(const XL_CliOptions* pOpts, XL_DiagContext* pDiag, XL_Du
 	sSymbolsJson = NULL;
 	sTypesJson = NULL;
 	sFuncsJson = NULL;
-	sXlpFuncsJson = NULL;
-	sXlpJson = NULL;
+	sXleFuncsJson = NULL;
+	sXleJson = NULL;
 	sDiagText = NULL;
 
 	iRc = xlModuleLinkFromFile(pOpts->sInputFile, pDiag, XL_CLI_TRACE_PARSER(pOpts) ? 1 : 0, &moduleResult);
@@ -393,11 +393,11 @@ int xlDriverRunSemDebug(const XL_CliOptions* pOpts, XL_DiagContext* pDiag, XL_Du
 	sSymbolsJson = xlSemDumpSymbolsJson(&semResult);
 	sTypesJson = xlSemDumpTypesJson(&semResult);
 	sFuncsJson = xlSemDumpFuncsJson(&semResult);
-	sXlpFuncsJson = xlSemDumpXlpFunctionsJson(&semResult);
-	sXlpJson = xlXlpDumpPackageJson(&moduleResult, &semResult, pOpts->sInputFile);
+	sXleFuncsJson = xlSemDumpXleFunctionsJson(&semResult);
+	sXleJson = xlXleDumpPackageJson(&moduleResult, &semResult, pOpts->sInputFile);
 	sDiagText = xlSemDumpDiagText(&semResult);
 	if ( (sTextDump == NULL) || (sJsonDump == NULL) || (sSymbolsJson == NULL) || (sTypesJson == NULL) ||
-		(sFuncsJson == NULL) || (sXlpFuncsJson == NULL) || (sXlpJson == NULL) || (sDiagText == NULL) ) {
+		(sFuncsJson == NULL) || (sXleFuncsJson == NULL) || (sXleJson == NULL) || (sDiagText == NULL) ) {
 		XL_DIAG_ERROR(pDiag, "sem", "failed to build semantic dump output");
 		iRc = XL_RC_IO_ERROR;
 		goto cleanup;
@@ -426,10 +426,10 @@ int xlDriverRunSemDebug(const XL_CliOptions* pOpts, XL_DiagContext* pDiag, XL_Du
 		if ( xlDumpWriteText(pDump, sDefaultPath, sTypesJson) != XL_RC_OK ) XL_DIAG_WARN(pDiag, "sem", "failed to write type dump: %s", sDefaultPath);
 		__xlBuildDumpPathDebug(sDefaultPath, sizeof(sDefaultPath), "sem", pOpts->sInputFile, ".funcs.json");
 		if ( xlDumpWriteText(pDump, sDefaultPath, sFuncsJson) != XL_RC_OK ) XL_DIAG_WARN(pDiag, "sem", "failed to write function dump: %s", sDefaultPath);
-		__xlBuildDumpPathDebug(sDefaultPath, sizeof(sDefaultPath), "sem", pOpts->sInputFile, ".xlp.functions.json");
-		if ( xlDumpWriteText(pDump, sDefaultPath, sXlpFuncsJson) != XL_RC_OK ) XL_DIAG_WARN(pDiag, "sem", "failed to write xlp function dump: %s", sDefaultPath);
-		__xlBuildDumpPathDebug(sDefaultPath, sizeof(sDefaultPath), "sem", pOpts->sInputFile, ".xlp.json");
-		if ( xlDumpWriteText(pDump, sDefaultPath, sXlpJson) != XL_RC_OK ) XL_DIAG_WARN(pDiag, "sem", "failed to write xlp package dump: %s", sDefaultPath);
+		__xlBuildDumpPathDebug(sDefaultPath, sizeof(sDefaultPath), "sem", pOpts->sInputFile, ".xle.functions.json");
+		if ( xlDumpWriteText(pDump, sDefaultPath, sXleFuncsJson) != XL_RC_OK ) XL_DIAG_WARN(pDiag, "sem", "failed to write xle function dump: %s", sDefaultPath);
+		__xlBuildDumpPathDebug(sDefaultPath, sizeof(sDefaultPath), "sem", pOpts->sInputFile, ".package.json");
+		if ( xlDumpWriteText(pDump, sDefaultPath, sXleJson) != XL_RC_OK ) XL_DIAG_WARN(pDiag, "sem", "failed to write xle package dump: %s", sDefaultPath);
 		__xlBuildDumpPathDebug(sDefaultPath, sizeof(sDefaultPath), "sem", pOpts->sInputFile, ".diag.txt");
 		if ( xlDumpWriteText(pDump, sDefaultPath, sDiagText) != XL_RC_OK ) XL_DIAG_WARN(pDiag, "sem", "failed to write diagnostic dump: %s", sDefaultPath);
 		__xlBuildDumpPathDebug(sDefaultPath, sizeof(sDefaultPath), "sem", pOpts->sInputFile, ".modules.txt");
@@ -439,7 +439,7 @@ int xlDriverRunSemDebug(const XL_CliOptions* pOpts, XL_DiagContext* pDiag, XL_Du
 	}
 
 cleanup:
-	free(sTextDump); free(sJsonDump); free(sSymbolsJson); free(sTypesJson); free(sFuncsJson); free(sXlpFuncsJson); free(sXlpJson); free(sDiagText);
+	free(sTextDump); free(sJsonDump); free(sSymbolsJson); free(sTypesJson); free(sFuncsJson); free(sXleFuncsJson); free(sXleJson); free(sDiagText);
 	xlSemResultFree(&semResult);
 	xlModuleLinkResultFree(&moduleResult);
 	return iRc;

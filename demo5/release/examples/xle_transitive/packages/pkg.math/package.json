@@ -1,0 +1,31 @@
+{
+	"format": "xle-1",
+	"package": {
+		"name": "pkg.math",
+		"version": "1.0.0",
+		"abiVersion": "1",
+		"xlangAbi": "1",
+		"abiId": "pkg.math@1.0.0#abi1"
+	},
+	"dependencies": [],
+	"modules": [
+		{
+			"key": "pkg.math",
+			"abiId": "pkg.math@1.0.0#abi1::pkg.math",
+			"file": "src\\pkg_math_impl.xl",
+			"root": 0,
+			"native": 0,
+			"binding": "",
+			"imports": [],
+			"exports": [
+				{
+					"name": "value",
+					"symbol": "value",
+					"kind": "function",
+					"overloadCount": 1
+				}
+			]
+		}
+	],
+	"functions": []
+}

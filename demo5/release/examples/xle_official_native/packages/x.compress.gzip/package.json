@@ -1,0 +1,117 @@
+{
+	"format": "xle-1",
+	"package": {
+		"name": "x.compress.gzip",
+		"version": "1.0.0",
+		"abiVersion": "1",
+		"xlangAbi": "1",
+		"abiId": "x.compress.gzip@1.0.0#abi1"
+	},
+	"artifact": {
+		"kind": "shared",
+		"path": "bin\\x_compress_gzip.dll"
+	},
+	"dependencies": [],
+	"modules": [
+		{
+			"key": "x.compress.gzip",
+			"abiId": "x.compress.gzip@1.0.0#abi1::x.compress.gzip",
+			"file": "bin\\x_compress_gzip.dll",
+			"root": 0,
+			"native": 1,
+			"binding": "x.compress.gzip",
+			"imports": [],
+			"exports": [
+				{
+					"name": "write_test_gzip",
+					"symbol": "write_test_gzip",
+					"kind": "function",
+					"overloadCount": 1
+				},
+				{
+					"name": "is_gzip",
+					"symbol": "is_gzip",
+					"kind": "function",
+					"overloadCount": 1
+				},
+				{
+					"name": "uncompressed_size",
+					"symbol": "uncompressed_size",
+					"kind": "function",
+					"overloadCount": 1
+				}
+			]
+		}
+	],
+	"functions": [
+		{
+			"module": "x.compress.gzip",
+			"moduleAbiId": "x.compress.gzip@1.0.0#abi1::x.compress.gzip",
+			"exportName": "write_test_gzip",
+			"symbol": "x_compress_gzip_write_test_gzip",
+			"overloadGroup": "x.compress.gzip::write_test_gzip",
+			"signatureId": "write_test_gzip(string,string)",
+			"dispatchKey": "write_test_gzip$arity2|path:string|text:string",
+			"abiSymbol": "x_compress_gzip_write_test_gzip$arity2__path__string__text__string__ret__bool",
+			"returnType": "bool",
+			"async": 0,
+			"generator": 0,
+			"params": [
+				{
+					"name": "path",
+					"label": "path",
+					"type": "string",
+					"hasDefault": 0
+				},
+				{
+					"name": "text",
+					"label": "text",
+					"type": "string",
+					"hasDefault": 0
+				}
+			]
+		},
+		{
+			"module": "x.compress.gzip",
+			"moduleAbiId": "x.compress.gzip@1.0.0#abi1::x.compress.gzip",
+			"exportName": "is_gzip",
+			"symbol": "x_compress_gzip_is_gzip",
+			"overloadGroup": "x.compress.gzip::is_gzip",
+			"signatureId": "is_gzip(string)",
+			"dispatchKey": "is_gzip$arity1|path:string",
+			"abiSymbol": "x_compress_gzip_is_gzip$arity1__path__string__ret__bool",
+			"returnType": "bool",
+			"async": 0,
+			"generator": 0,
+			"params": [
+				{
+					"name": "path",
+					"label": "path",
+					"type": "string",
+					"hasDefault": 0
+				}
+			]
+		},
+		{
+			"module": "x.compress.gzip",
+			"moduleAbiId": "x.compress.gzip@1.0.0#abi1::x.compress.gzip",
+			"exportName": "uncompressed_size",
+			"symbol": "x_compress_gzip_uncompressed_size",
+			"overloadGroup": "x.compress.gzip::uncompressed_size",
+			"signatureId": "uncompressed_size(string)",
+			"dispatchKey": "uncompressed_size$arity1|path:string",
+			"abiSymbol": "x_compress_gzip_uncompressed_size$arity1__path__string__ret__int",
+			"returnType": "int",
+			"async": 0,
+			"generator": 0,
+			"params": [
+				{
+					"name": "path",
+					"label": "path",
+					"type": "string",
+					"hasDefault": 0
+				}
+			]
+		}
+	]
+}

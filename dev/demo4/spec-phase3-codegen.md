@@ -67,7 +67,7 @@ demo4/
 │   └── lempar.c
 └── release/
     ├── xllex.exe               # 词法分析工具
-    ├── xlparse.exe             # 语法分析工具
+    ├── xlearse.exe             # 语法分析工具
     ├── xlc.exe                 # xlang 编译器
     ├── xl.exe                  # xlang 解释器
     └── cgen/                   # 生成的 C 代码输出

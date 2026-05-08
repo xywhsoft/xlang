@@ -1,4 +1,4 @@
-xlang demo5 发布目录与 libs 布局规范
+﻿xlang demo5 发布目录与 libs 布局规范
 
 一、目标
 
@@ -46,7 +46,7 @@ libs 分为两类：
 
    这是和 xl.exe 绑定在一起的公共外部库目录。
    适合放：
-   - 发布包自带的公共 xlp 包
+   - 发布包自带的公共 XLE 包
    - 公共 native 头文件
    - 公共静态库 / 动态库
 
@@ -55,7 +55,7 @@ libs 分为两类：
 
    这是脚本或项目自身携带的私有库目录。
    适合放：
-   - 当前脚本专用的 xlp 包
+   - 当前脚本专用的 XLE 包
    - 当前项目专用的 native 头文件 / 静态库 / 动态库
 
 四、默认搜索规则
@@ -76,12 +76,12 @@ libs 分为两类：
 
 五、推荐包布局
 
-1. 纯 xlp 源包
+1. 纯 XLE 源包
 
 libs/
     packages/
         pkg.math/
-            xlp.json
+            package.json
             src/
                 math_pkg_impl.xl
 
@@ -90,7 +90,7 @@ libs/
 libs/
     packages/
         pkg.probe/
-            xlp.json
+            package.json
             bin/
                 pkg_probe.dll
 
@@ -99,7 +99,7 @@ libs/
 libs/
     packages/
         pkg.clock/
-            xlp.json
+            package.json
             lib/
                 pkg_clock.a
 

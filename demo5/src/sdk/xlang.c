@@ -10,7 +10,7 @@
 #include "../common/xl_path.h"
 #include "../diag/xl_diag.h"
 #include "../driver/xl_module_link.h"
-#include "../driver/xl_xlp_load.h"
+#include "../driver/xl_xle_load.h"
 #include "../host/xl_host.h"
 #include "../lower/xl_lower.h"
 #include "../runtime/xl_exec_ctx.h"
@@ -263,7 +263,7 @@ static int xlang_module_needs_shared_symbols(const XL_ModuleSummary* module)
 
 static int xlang_add_module_shared_symbols_exec(XL_ExecCtx* ctx, const XL_ModuleSummary* module)
 {
-	XL_XlpFunctionInfo* funcs;
+	XL_XleFunctionInfo* funcs;
 	size_t func_count;
 	size_t i;
 
@@ -272,22 +272,22 @@ static int xlang_add_module_shared_symbols_exec(XL_ExecCtx* ctx, const XL_Module
 	}
 	funcs = NULL;
 	func_count = 0u;
-	if ( xlXlpReadFunctions(module->sManifestPath, module->sKey, &funcs, &func_count) != XL_RC_OK ) {
+	if ( xlXleReadFunctions(module->sManifestPath, module->sKey, &funcs, &func_count) != XL_RC_OK ) {
 		return XL_RC_OK;
 	}
 	for ( i = 0u; i < func_count; ++i ) {
 		if ( (funcs[i].sSymbol[0] != '\0') && (xlExecCtxAddExternSymbol(ctx, funcs[i].sSymbol) != XL_RC_OK) ) {
-			xlXlpFunctionInfoFree(funcs, func_count);
+			xlXleFunctionInfoFree(funcs, func_count);
 			return XL_RC_FAIL;
 		}
 	}
-	xlXlpFunctionInfoFree(funcs, func_count);
+	xlXleFunctionInfoFree(funcs, func_count);
 	return XL_RC_OK;
 }
 
 static int xlang_add_module_shared_symbols_host(XL_HostContext* ctx, const XL_ModuleSummary* module)
 {
-	XL_XlpFunctionInfo* funcs;
+	XL_XleFunctionInfo* funcs;
 	size_t func_count;
 	size_t i;
 
@@ -296,16 +296,16 @@ static int xlang_add_module_shared_symbols_host(XL_HostContext* ctx, const XL_Mo
 	}
 	funcs = NULL;
 	func_count = 0u;
-	if ( xlXlpReadFunctions(module->sManifestPath, module->sKey, &funcs, &func_count) != XL_RC_OK ) {
+	if ( xlXleReadFunctions(module->sManifestPath, module->sKey, &funcs, &func_count) != XL_RC_OK ) {
 		return XL_RC_OK;
 	}
 	for ( i = 0u; i < func_count; ++i ) {
 		if ( (funcs[i].sSymbol[0] != '\0') && (xlHostContextAddExternSymbol(ctx, funcs[i].sSymbol) != XL_RC_OK) ) {
-			xlXlpFunctionInfoFree(funcs, func_count);
+			xlXleFunctionInfoFree(funcs, func_count);
 			return XL_RC_FAIL;
 		}
 	}
-	xlXlpFunctionInfoFree(funcs, func_count);
+	xlXleFunctionInfoFree(funcs, func_count);
 	return XL_RC_OK;
 }
 

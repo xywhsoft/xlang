@@ -16,7 +16,7 @@ V1 只实现安全核心：
 - concrete -> `var` / `any`
 - class/object instance -> `object`
 - `null -> reference/object/container`
-- 调用匹配、赋值、return、默认参数、基础表达式共同类型、XLP/native bridge
+- 调用匹配、赋值、return、默认参数、基础表达式共同类型、XLE/native bridge
 
 V1 明确不做：
 
@@ -130,15 +130,15 @@ V1 明确不做：
 - [x] 默认参数表达式匹配参数类型时使用转换 API
 - [x] `func f(float x = 1)` 通过
 - [x] `func f(int x = 1.2)` 报错
-- [x] XLP `defaultValueText` 保持源码可回填
-- [x] XLP `defaultValueJson` 保持 AST 元数据
-- [x] XLP native/source bridge 生成默认参数声明时保留默认值
+- [x] XLE `defaultValueText` 保持源码可回填
+- [x] XLE `defaultValueJson` 保持 AST 元数据
+- [x] XLE native/source bridge 生成默认参数声明时保留默认值
 
 验收：
 
 - [x] 本地默认参数转换测试
-- [x] XLP 导出默认参数转换测试
-- [x] XLP 导入后省略默认参数调用测试
+- [x] XLE 导出默认参数转换测试
+- [x] XLE 导入后省略默认参数调用测试
 
 ## 7. 表达式共同类型
 
@@ -186,10 +186,10 @@ V1 明确不做：
 - [x] C codegen 输出正确 cast
 - [x] TCC 运行测试通过
 
-## 10. XLP / Native Bridge
+## 10. XLE / Native Bridge
 
-- [x] XLP 函数 ABI 保持声明签名，不记录调用点转换
-- [x] XLP import 后调用匹配使用转换 API
+- [x] XLE 函数 ABI 保持声明签名，不记录调用点转换
+- [x] XLE import 后调用匹配使用转换 API
 - [x] native bridge 参数适配使用转换 API
 - [x] `int -> float` bridge 调用通过
 - [x] `float -> int` bridge 调用报错
@@ -197,11 +197,11 @@ V1 明确不做：
 
 验收：
 
-- [x] 新增 XLP native 包导出 `func take_float(float x)`
+- [x] 新增 XLE native 包导出 `func take_float(float x)`
 - [x] xlang 调用 `take_float(1)` 通过
-- [x] 新增 XLP native 包导出 `func take_int(int x)`
+- [x] 新增 XLE native 包导出 `func take_int(int x)`
 - [x] xlang 调用 `take_int(1.2)` 报错
-- [x] XLP dump 中 ABI id 不因调用转换改变
+- [x] XLE dump 中 ABI id 不因调用转换改变
 
 ## 11. 诊断
 
@@ -232,9 +232,9 @@ V1 明确不做：
 - [x] `implicit_multi_return_convert.xl`
 - [x] `implicit_binop_numeric_promote.xl`
 - [x] `implicit_container_common_type.xl`
-- [x] `implicit_xlp_native_int_to_float.xl`
-- [x] `implicit_xlp_native_float_to_int_error.xl`
-- [x] `implicit_xlp_default_param_cross_package.xl`
+- [x] `implicit_xle_native_int_to_float.xl`
+- [x] `implicit_xle_native_float_to_int_error.xl`
+- [x] `implicit_xle_default_param_cross_package.xl`
 
 ## 13. Done Definition
 
@@ -244,7 +244,7 @@ V1 完成需要满足：
 - [x] 调用匹配、赋值、return、默认参数都走统一转换 API
 - [x] 重载排序稳定且可诊断
 - [x] 禁止项均有明确错误
-- [x] XLP/native bridge 不破坏 ABI
+- [x] XLE/native bridge 不破坏 ABI
 - [x] `build_gcc.bat` 通过
 - [x] 新增 runtime/sem regression 通过
 - [x] 文档和 spec 更新到完成状态
@@ -260,27 +260,27 @@ V1 完成需要满足：
 - [x] Re-ran `build_gcc.bat`.
 - [x] Re-ran implicit-conversion sem/runtime regression selectors.
 
-## 2026-04-30 XLP bridge progress
+## 2026-04-30 XLE bridge progress
 
-- [x] Added XLP native shared-package `int -> float` call regression.
-- [x] Added XLP static-package `int -> float` call regression.
-- [x] Added XLP native `float -> int` rejection regression.
-- [x] Added C codegen assertion that XLP native `add_half(1)` emits `((double)1)`.
+- [x] Added XLE native shared-package `int -> float` call regression.
+- [x] Added XLE static-package `int -> float` call regression.
+- [x] Added XLE native `float -> int` rejection regression.
+- [x] Added C codegen assertion that XLE native `add_half(1)` emits `((double)1)`.
 - [x] Re-ran `build_gcc.bat`.
-- [x] Re-ran XLP bridge sem/cgen/runtime regression selectors.
+- [x] Re-ran XLE bridge sem/cgen/runtime regression selectors.
 
 ## 2026-04-30 diagnostics progress
 
 - [x] Overload failure diagnostics include per-candidate argument conversion details.
 - [x] Candidate diagnostics include `actual -> expected`, accepted conversion cost/kind, or failure reason.
 - [x] Ambiguous overload diagnostics use the same detailed candidate formatter.
-- [x] Added regression needles for `float -> int fail` in local and XLP native calls.
+- [x] Added regression needles for `float -> int fail` in local and XLE native calls.
 - [x] Re-ran overload diagnostics and implicit-conversion regression selectors.
 
-## 2026-04-30 XLP default progress
+## 2026-04-30 XLE default progress
 
 - [x] Added manifest default `1` for `pkg.probe.add_half(float value)`.
-- [x] Added XLP native/static omitted-argument default-call regressions.
+- [x] Added XLE native/static omitted-argument default-call regressions.
 - [x] Verified imported manifest default `int -> float` through sem/cgen/runtime selectors.
 - [x] Re-ran `build_gcc.bat`.
 
@@ -411,14 +411,14 @@ V1 完成需要满足：
 - [x] Added sem/cgen/runtime regression for `pick<T>(T)` versus `pick(float)` and dynamic boxing fallback.
 - [x] Re-ran `build_gcc.bat` and the full `implicit_` selector.
 
-## 2026-04-30 explicit diagnostic and XLP default progress
+## 2026-04-30 explicit diagnostic and XLE default progress
 
 - [x] Declaration and assignment mismatch diagnostics now include an explicit-cast hint.
 - [x] Added a sem regression needle for `use explicit cast 'int(value)'`.
-- [x] Source XLP package dumps now have coverage for `defaultValueText` and non-empty `defaultValueJson`.
-- [x] Source XLP import now has sem/runtime coverage for omitted default arguments.
-- [x] XLP ABI stability has coverage for call-site `int -> float` conversion that must not become an `int` ABI signature.
-- [x] Re-ran `build_gcc.bat`, `implicit_`, `xlp_source_default`, and `xlp_external_package`.
+- [x] Source XLE package dumps now have coverage for `defaultValueText` and non-empty `defaultValueJson`.
+- [x] Source XLE import now has sem/runtime coverage for omitted default arguments.
+- [x] XLE ABI stability has coverage for call-site `int -> float` conversion that must not become an `int` ABI signature.
+- [x] Re-ran `build_gcc.bat`, `implicit_`, `xle_source_default`, and `xle_external_package`.
 
 ## 2026-04-30 object lower marker progress
 

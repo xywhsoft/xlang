@@ -51,7 +51,7 @@ demo4/
 │   └── lempar.c
 └── release/
     ├── xllex.exe               # 词法分析工具（阶段一）
-    └── xlparse.exe             # 语法分析工具
+    └── xlearse.exe             # 语法分析工具
 ```
 
 **注意**：Lemon 生成的代码将被整合到 xl_parser.h 中，保持单一 .c 文件的开发模式。
@@ -433,10 +433,10 @@ void xlParserSetCallback(XL_Parser* parser, XL_AstCallback callback, void* userD
 void xlAstTraverse(xvalue ast, XL_AstCallback callback, void* userData);
 ```
 
-## 8. 命令行工具 (xlparse)
+## 8. 命令行工具 (xlearse)
 
 ```
-用法: xlparse [选项] <文件>
+用法: xlearse [选项] <文件>
 
 选项:
   -o <文件>     输出到文件（默认标准输出）
@@ -447,9 +447,9 @@ void xlAstTraverse(xvalue ast, XL_AstCallback callback, void* userData);
   -h            显示帮助
 
 示例:
-  xlparse test.xl           解析 test.xl 并输出 AST
-  xlparse -j test.xl        输出 JSON 格式的 AST
-  xlparse -p test.xl        输出美化的 AST 树形结构
+  xlearse test.xl           解析 test.xl 并输出 AST
+  xlearse -j test.xl        输出 JSON 格式的 AST
+  xlearse -p test.xl        输出美化的 AST 树形结构
 ```
 
 ## 9. 构建脚本
@@ -461,7 +461,7 @@ void xlAstTraverse(xvalue ast, XL_AstCallback callback, void* userData);
 cd /d %~dp0
 
 echo 编译 xlang 语法分析工具...
-tcc -o release\xlparse.exe main.c -Ilib
+tcc -o release\xlearse.exe main.c -Ilib
 
 echo 完成!
 ```
@@ -473,7 +473,7 @@ echo 完成!
 cd "$(dirname "$0")"
 
 echo "编译 xlang 语法分析工具..."
-gcc -o release/xlparse main.c -Ilib -O2
+gcc -o release/xlearse main.c -Ilib -O2
 
 echo "完成!"
 ```

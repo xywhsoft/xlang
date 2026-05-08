@@ -52,15 +52,15 @@ if not exist release\examples (
 	echo Missing examples source: neither .\examples nor .\release\examples exists.
 	exit /b 1
 )
-if not exist release\examples\xlp_native\packages\pkg.clock\bin mkdir release\examples\xlp_native\packages\pkg.clock\bin
-if not exist release\examples\xlp_native\packages\pkg.probe\bin mkdir release\examples\xlp_native\packages\pkg.probe\bin
-if not exist release\examples\xlp_official_native\packages\x.image.bmp\bin mkdir release\examples\xlp_official_native\packages\x.image.bmp\bin
-if not exist release\examples\xlp_official_native\packages\x.archive.tar\bin mkdir release\examples\xlp_official_native\packages\x.archive.tar\bin
-if not exist release\examples\xlp_official_native\packages\x.archive.zip\bin mkdir release\examples\xlp_official_native\packages\x.archive.zip\bin
-if not exist release\examples\xlp_official_native\packages\x.compress.gzip\bin mkdir release\examples\xlp_official_native\packages\x.compress.gzip\bin
-if not exist release\examples\xlp_official_native\packages\x.com\bin mkdir release\examples\xlp_official_native\packages\x.com\bin
-if not exist release\examples\xlp_static\packages\pkg.clock\lib mkdir release\examples\xlp_static\packages\pkg.clock\lib
-if not exist release\examples\xlp_static\packages\pkg.probe\lib mkdir release\examples\xlp_static\packages\pkg.probe\lib
+if not exist release\examples\xle_native\packages\pkg.clock\bin mkdir release\examples\xle_native\packages\pkg.clock\bin
+if not exist release\examples\xle_native\packages\pkg.probe\bin mkdir release\examples\xle_native\packages\pkg.probe\bin
+if not exist release\examples\xle_official_native\packages\x.image.bmp\bin mkdir release\examples\xle_official_native\packages\x.image.bmp\bin
+if not exist release\examples\xle_official_native\packages\x.archive.tar\bin mkdir release\examples\xle_official_native\packages\x.archive.tar\bin
+if not exist release\examples\xle_official_native\packages\x.archive.zip\bin mkdir release\examples\xle_official_native\packages\x.archive.zip\bin
+if not exist release\examples\xle_official_native\packages\x.compress.gzip\bin mkdir release\examples\xle_official_native\packages\x.compress.gzip\bin
+if not exist release\examples\xle_official_native\packages\x.com\bin mkdir release\examples\xle_official_native\packages\x.com\bin
+if not exist release\examples\xle_static\packages\pkg.clock\lib mkdir release\examples\xle_static\packages\pkg.clock\lib
+if not exist release\examples\xle_static\packages\pkg.probe\lib mkdir release\examples\xle_static\packages\pkg.probe\lib
 
 copy /y src\common\xl_common.h release\tcc\support\common\xl_common.h >nul
 copy /y src\common\xl_config.h release\tcc\support\common\xl_config.h >nul
@@ -133,7 +133,7 @@ setlocal EnableDelayedExpansion
 		set "SRC_FILE=!SRC_FILE:\=/!"
 		set "SRC_FILE_SKIP=0"
 		if /I "!SRC_FILE:~0,10!"=="src/debug/" set "SRC_FILE_SKIP=1"
-		if "!SRC_FILE_SKIP!"=="0" if /I not "!SRC_FILE!"=="src/diag/xl_dump.c" if /I not "!SRC_FILE!"=="src/ast/xl_ast_dump.c" if /I not "!SRC_FILE!"=="src/sem/xl_sem_dump.c" if /I not "!SRC_FILE!"=="src/lower/xl_lower_dump.c" if /I not "!SRC_FILE!"=="src/driver/xl_xlp_dump.c" if /I not "!SRC_FILE!"=="src/runtime/xl_std_trace.c" if /I not "!SRC_FILE!"=="src/runtime/xl_std_debug.c" if /I not "!SRC_FILE!"=="src/runtime/xlrt_generated_debug.c" if /I not "!SRC_FILE!"=="src/runtime/xl_native_registry_debug.c" if /I not "!SRC_FILE!"=="src/driver/xl_driver_debug.c" if /I not "!SRC_FILE!"=="src/driver/xl_cli_debug.c" (
+		if "!SRC_FILE_SKIP!"=="0" if /I not "!SRC_FILE!"=="src/diag/xl_dump.c" if /I not "!SRC_FILE!"=="src/ast/xl_ast_dump.c" if /I not "!SRC_FILE!"=="src/sem/xl_sem_dump.c" if /I not "!SRC_FILE!"=="src/lower/xl_lower_dump.c" if /I not "!SRC_FILE!"=="src/driver/xl_xle_dump.c" if /I not "!SRC_FILE!"=="src/runtime/xl_std_trace.c" if /I not "!SRC_FILE!"=="src/runtime/xl_std_debug.c" if /I not "!SRC_FILE!"=="src/runtime/xlrt_generated_debug.c" if /I not "!SRC_FILE!"=="src/runtime/xl_native_registry_debug.c" if /I not "!SRC_FILE!"=="src/driver/xl_driver_debug.c" if /I not "!SRC_FILE!"=="src/driver/xl_cli_debug.c" (
 			echo !SRC_FILE!
 		)
 	)
@@ -146,7 +146,7 @@ setlocal EnableDelayedExpansion
 		set "SRC_FILE=!SRC_FILE:\=/!"
 		set "SRC_FILE_SKIP=0"
 		if /I "!SRC_FILE:~0,10!"=="src/debug/" set "SRC_FILE_SKIP=1"
-		if "!SRC_FILE_SKIP!"=="0" if /I not "!SRC_FILE!"=="src/diag/xl_dump.c" if /I not "!SRC_FILE!"=="src/ast/xl_ast_dump.c" if /I not "!SRC_FILE!"=="src/sem/xl_sem_dump.c" if /I not "!SRC_FILE!"=="src/lower/xl_lower_dump.c" if /I not "!SRC_FILE!"=="src/driver/xl_xlp_dump.c" if /I not "!SRC_FILE!"=="src/runtime/xl_std_trace.c" if /I not "!SRC_FILE!"=="src/runtime/xl_std_debug.c" if /I not "!SRC_FILE!"=="src/runtime/xlrt_generated_debug.c" if /I not "!SRC_FILE!"=="src/runtime/xl_native_registry_debug.c" if /I not "!SRC_FILE!"=="src/driver/xl_driver_debug.c" if /I not "!SRC_FILE!"=="src/driver/xl_cli_debug.c" (
+		if "!SRC_FILE_SKIP!"=="0" if /I not "!SRC_FILE!"=="src/diag/xl_dump.c" if /I not "!SRC_FILE!"=="src/ast/xl_ast_dump.c" if /I not "!SRC_FILE!"=="src/sem/xl_sem_dump.c" if /I not "!SRC_FILE!"=="src/lower/xl_lower_dump.c" if /I not "!SRC_FILE!"=="src/driver/xl_xle_dump.c" if /I not "!SRC_FILE!"=="src/runtime/xl_std_trace.c" if /I not "!SRC_FILE!"=="src/runtime/xl_std_debug.c" if /I not "!SRC_FILE!"=="src/runtime/xlrt_generated_debug.c" if /I not "!SRC_FILE!"=="src/runtime/xl_native_registry_debug.c" if /I not "!SRC_FILE!"=="src/driver/xl_driver_debug.c" if /I not "!SRC_FILE!"=="src/driver/xl_cli_debug.c" (
 			echo !SRC_FILE!
 		)
 	)
@@ -242,81 +242,81 @@ if not exist "%XL5_TEST_BUILD_EXE%" (
 	exit /b 1
 )
 
-echo Building xlp example artifacts...
-gcc -std=c11 -shared -o release\examples\xlp_native\packages\pkg.clock\bin\pkg_clock.dll release\examples\xlp_artifacts\pkg_clock_artifact.c
+echo Building xle example artifacts...
+gcc -std=c11 -shared -o release\examples\xle_native\packages\pkg.clock\bin\pkg_clock.dll release\examples\xle_artifacts\pkg_clock_artifact.c
 
 if errorlevel 1 (
-	echo Shared xlp artifact build failed.
+	echo Shared xle artifact build failed.
 	exit /b 1
 )
 
-gcc -std=c11 -shared -o release\examples\xlp_native\packages\pkg.probe\bin\pkg_probe.dll release\examples\xlp_artifacts\pkg_clock_artifact.c
+gcc -std=c11 -shared -o release\examples\xle_native\packages\pkg.probe\bin\pkg_probe.dll release\examples\xle_artifacts\pkg_clock_artifact.c
 
 if errorlevel 1 (
-	echo Shared xlp probe artifact build failed.
+	echo Shared xle probe artifact build failed.
 	exit /b 1
 )
 
-gcc -std=c11 -shared -o release\examples\xlp_official_native\packages\x.image.bmp\bin\x_image_bmp.dll release\examples\xlp_artifacts\x_image_bmp_artifact.c
+gcc -std=c11 -shared -o release\examples\xle_official_native\packages\x.image.bmp\bin\x_image_bmp.dll release\examples\xle_artifacts\x_image_bmp_artifact.c
 
 if errorlevel 1 (
-	echo Official xlp image bmp artifact build failed.
+	echo Official xle image bmp artifact build failed.
 	exit /b 1
 )
 
-gcc -std=c11 -shared -o release\examples\xlp_official_native\packages\x.archive.tar\bin\x_archive_tar.dll release\examples\xlp_artifacts\x_archive_tar_artifact.c
+gcc -std=c11 -shared -o release\examples\xle_official_native\packages\x.archive.tar\bin\x_archive_tar.dll release\examples\xle_artifacts\x_archive_tar_artifact.c
 
 if errorlevel 1 (
-	echo Official xlp archive tar artifact build failed.
+	echo Official xle archive tar artifact build failed.
 	exit /b 1
 )
 
-gcc -std=c11 -shared -o release\examples\xlp_official_native\packages\x.archive.zip\bin\x_archive_zip.dll release\examples\xlp_artifacts\x_archive_zip_artifact.c
+gcc -std=c11 -shared -o release\examples\xle_official_native\packages\x.archive.zip\bin\x_archive_zip.dll release\examples\xle_artifacts\x_archive_zip_artifact.c
 
 if errorlevel 1 (
-	echo Official xlp archive zip artifact build failed.
+	echo Official xle archive zip artifact build failed.
 	exit /b 1
 )
 
-gcc -std=c11 -shared -o release\examples\xlp_official_native\packages\x.compress.gzip\bin\x_compress_gzip.dll release\examples\xlp_artifacts\x_compress_gzip_artifact.c
+gcc -std=c11 -shared -o release\examples\xle_official_native\packages\x.compress.gzip\bin\x_compress_gzip.dll release\examples\xle_artifacts\x_compress_gzip_artifact.c
 
 if errorlevel 1 (
-	echo Official xlp compress gzip artifact build failed.
+	echo Official xle compress gzip artifact build failed.
 	exit /b 1
 )
 
-gcc -std=c11 -shared -D_CRT_SECURE_NO_WARNINGS -o release\examples\xlp_official_native\packages\x.com\bin\x_com.dll release\examples\xlp_artifacts\x_com_artifact.c -lole32 -loleaut32 -luuid
+gcc -std=c11 -shared -D_CRT_SECURE_NO_WARNINGS -o release\examples\xle_official_native\packages\x.com\bin\x_com.dll release\examples\xle_artifacts\x_com_artifact.c -lole32 -loleaut32 -luuid
 
 if errorlevel 1 (
-	echo Official xlp com artifact build failed.
+	echo Official xle com artifact build failed.
 	exit /b 1
 )
 
-call "%XL_BUILD_EXE%" build-c release\examples\xlp_artifacts\pkg_clock_artifact.c --emit release\tmp\pkg_clock_artifact.obj >nul
+call "%XL_BUILD_EXE%" build-c release\examples\xle_artifacts\pkg_clock_artifact.c --emit release\tmp\pkg_clock_artifact.obj >nul
 
 if errorlevel 1 (
-	echo Static xlp artifact object build failed.
+	echo Static xle artifact object build failed.
 	exit /b 1
 )
 
 ar rcs release\tmp\pkg_clock_static.a release\tmp\pkg_clock_artifact.obj
 
 if errorlevel 1 (
-	echo Static xlp artifact archive build failed.
+	echo Static xle artifact archive build failed.
 	exit /b 1
 )
 
-copy /y release\tmp\pkg_clock_static.a release\examples\xlp_static\packages\pkg.clock\lib\pkg_clock.a >nul
+copy /y release\tmp\pkg_clock_static.a release\examples\xle_static\packages\pkg.clock\lib\pkg_clock.a >nul
 
 if errorlevel 1 (
-	echo Static xlp artifact copy failed.
+	echo Static xle artifact copy failed.
 	exit /b 1
 )
 
-copy /y release\tmp\pkg_clock_static.a release\examples\xlp_static\packages\pkg.probe\lib\pkg_probe.a >nul
+copy /y release\tmp\pkg_clock_static.a release\examples\xle_static\packages\pkg.probe\lib\pkg_probe.a >nul
 
 if errorlevel 1 (
-	echo Static xlp probe artifact archive build failed.
+	echo Static xle probe artifact archive build failed.
 	exit /b 1
 )
 

@@ -1,5 +1,5 @@
 #loadlib "msvcrt.dll"
-#loadlib "../xlp_native/packages/pkg.probe/bin/pkg_probe.dll"
+#loadlib "../xle_native/packages/pkg.probe/bin/pkg_probe.dll"
 #binding "binding_typedef_probe.h"
 
 func main() as int

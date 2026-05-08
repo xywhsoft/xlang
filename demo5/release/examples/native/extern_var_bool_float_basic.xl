@@ -1,4 +1,4 @@
-#loadlib "../xlp_native/packages/pkg.probe/bin/pkg_probe.dll"
+#loadlib "../xle_native/packages/pkg.probe/bin/pkg_probe.dll"
 
 extern "pkg_clock_artifact_bool_slot" var probe_bool as bool
 extern "pkg_clock_artifact_float_slot" var probe_float as float64

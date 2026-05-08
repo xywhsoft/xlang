@@ -1,0 +1,123 @@
+{
+	"format": "xle-1",
+	"package": {
+		"name": "x.archive.zip",
+		"version": "1.0.0",
+		"abiVersion": "1",
+		"xlangAbi": "1",
+		"abiId": "x.archive.zip@1.0.0#abi1"
+	},
+	"artifact": {
+		"kind": "shared",
+		"path": "bin\\x_archive_zip.dll"
+	},
+	"dependencies": [],
+	"modules": [
+		{
+			"key": "x.archive.zip",
+			"abiId": "x.archive.zip@1.0.0#abi1::x.archive.zip",
+			"file": "bin\\x_archive_zip.dll",
+			"root": 0,
+			"native": 1,
+			"binding": "x.archive.zip",
+			"imports": [],
+			"exports": [
+				{
+					"name": "write_test_zip",
+					"symbol": "write_test_zip",
+					"kind": "function",
+					"overloadCount": 1
+				},
+				{
+					"name": "count",
+					"symbol": "count",
+					"kind": "function",
+					"overloadCount": 1
+				},
+				{
+					"name": "first_name",
+					"symbol": "first_name",
+					"kind": "function",
+					"overloadCount": 1
+				}
+			]
+		}
+	],
+	"functions": [
+		{
+			"module": "x.archive.zip",
+			"moduleAbiId": "x.archive.zip@1.0.0#abi1::x.archive.zip",
+			"exportName": "write_test_zip",
+			"symbol": "x_archive_zip_write_test_zip",
+			"overloadGroup": "x.archive.zip::write_test_zip",
+			"signatureId": "write_test_zip(string,string,string)",
+			"dispatchKey": "write_test_zip$arity3|path:string|name:string|text:string",
+			"abiSymbol": "x_archive_zip_write_test_zip$arity3__path__string__name__string__text__string__ret__bool",
+			"returnType": "bool",
+			"async": 0,
+			"generator": 0,
+			"params": [
+				{
+					"name": "path",
+					"label": "path",
+					"type": "string",
+					"hasDefault": 0
+				},
+				{
+					"name": "name",
+					"label": "name",
+					"type": "string",
+					"hasDefault": 0
+				},
+				{
+					"name": "text",
+					"label": "text",
+					"type": "string",
+					"hasDefault": 0
+				}
+			]
+		},
+		{
+			"module": "x.archive.zip",
+			"moduleAbiId": "x.archive.zip@1.0.0#abi1::x.archive.zip",
+			"exportName": "count",
+			"symbol": "x_archive_zip_count",
+			"overloadGroup": "x.archive.zip::count",
+			"signatureId": "count(string)",
+			"dispatchKey": "count$arity1|path:string",
+			"abiSymbol": "x_archive_zip_count$arity1__path__string__ret__int",
+			"returnType": "int",
+			"async": 0,
+			"generator": 0,
+			"params": [
+				{
+					"name": "path",
+					"label": "path",
+					"type": "string",
+					"hasDefault": 0
+				}
+			]
+		},
+		{
+			"module": "x.archive.zip",
+			"moduleAbiId": "x.archive.zip@1.0.0#abi1::x.archive.zip",
+			"exportName": "first_name",
+			"symbol": "x_archive_zip_first_name",
+			"overloadGroup": "x.archive.zip::first_name",
+			"signatureId": "first_name(string)",
+			"dispatchKey": "first_name$arity1|path:string",
+			"abiSymbol": "x_archive_zip_first_name$arity1__path__string__ret__string",
+			"returnType": "string",
+			"async": 0,
+			"generator": 0,
+			"params": [
+				{
+					"name": "path",
+					"label": "path",
+					"type": "string",
+					"hasDefault": 0
+				}
+			]
+		}
+	]
+}

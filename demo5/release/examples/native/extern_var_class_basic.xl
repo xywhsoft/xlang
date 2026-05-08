@@ -1,4 +1,4 @@
-#loadlib "../xlp_native/packages/pkg.probe/bin/pkg_probe.dll"
+#loadlib "../xle_native/packages/pkg.probe/bin/pkg_probe.dll"
 
 class NativePair
 	var x as int

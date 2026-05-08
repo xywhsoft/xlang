@@ -1,0 +1,273 @@
+{
+	"format": "xle-1",
+	"package": {
+		"name": "pkg.probe",
+		"version": "1.0.0",
+		"abiVersion": "1",
+		"xlangAbi": "1",
+		"abiId": "pkg.probe@1.0.0#abi1"
+	},
+	"artifact": {
+		"kind": "static",
+		"path": "lib\\pkg_probe.a"
+	},
+	"dependencies": [],
+	"modules": [
+		{
+			"key": "pkg.probe",
+			"abiId": "pkg.probe@1.0.0#abi1::pkg.probe",
+			"file": "lib\\pkg_probe.a",
+			"root": 0,
+			"native": 1,
+			"binding": "pkg.probe",
+			"imports": [],
+			"exports": [
+				{
+					"name": "probe",
+					"symbol": "probe",
+					"kind": "function",
+					"overloadCount": 1
+				},
+				{
+					"name": "add_one",
+					"symbol": "add_one",
+					"kind": "function",
+					"overloadCount": 1
+				},
+				{
+					"name": "text",
+					"symbol": "text",
+					"kind": "function",
+					"overloadCount": 1
+				},
+				{
+					"name": "text_len",
+					"symbol": "text_len",
+					"kind": "function",
+					"overloadCount": 1
+				},
+				{
+					"name": "touch",
+					"symbol": "touch",
+					"kind": "function",
+					"overloadCount": 1
+				},
+				{
+					"name": "text_plus_len",
+					"symbol": "text_plus_len",
+					"kind": "function",
+					"overloadCount": 1
+				},
+				{
+					"name": "is_probe_text",
+					"symbol": "is_probe_text",
+					"kind": "function",
+					"overloadCount": 1
+				},
+				{
+					"name": "bool_score",
+					"symbol": "bool_score",
+					"kind": "function",
+					"overloadCount": 1
+				},
+				{
+					"name": "float_value",
+					"symbol": "float_value",
+					"kind": "function",
+					"overloadCount": 1
+				},
+				{
+					"name": "add_half",
+					"symbol": "add_half",
+					"kind": "function",
+					"overloadCount": 1
+				}
+			]
+		}
+	],
+	"functions": [
+		{
+			"module": "pkg.probe",
+			"moduleAbiId": "pkg.probe@1.0.0#abi1::pkg.probe",
+			"exportName": "probe",
+			"symbol": "pkg_clock_artifact_probe",
+			"overloadGroup": "pkg.probe::probe",
+			"signatureId": "probe()",
+			"dispatchKey": "probe$arity0",
+			"abiSymbol": "pkg_probe_probe$arity0",
+			"returnType": "int",
+			"async": 0,
+			"generator": 0,
+			"params": []
+		},
+		{
+			"module": "pkg.probe",
+			"moduleAbiId": "pkg.probe@1.0.0#abi1::pkg.probe",
+			"exportName": "add_one",
+			"symbol": "pkg_clock_artifact_add_one",
+			"overloadGroup": "pkg.probe::add_one",
+			"signatureId": "add_one(int)",
+			"dispatchKey": "add_one$arity1|value:int",
+			"abiSymbol": "pkg_probe_add_one$arity1__value__int__ret__int",
+			"returnType": "int",
+			"async": 0,
+			"generator": 0,
+			"params": [
+				{
+					"name": "value",
+					"label": "value",
+					"type": "int",
+					"hasDefault": 0
+				}
+			]
+		},
+		{
+			"module": "pkg.probe",
+			"moduleAbiId": "pkg.probe@1.0.0#abi1::pkg.probe",
+			"exportName": "text",
+			"symbol": "pkg_clock_artifact_text",
+			"overloadGroup": "pkg.probe::text",
+			"signatureId": "text()",
+			"dispatchKey": "text$arity0",
+			"abiSymbol": "pkg_probe_text$arity0__ret__string",
+			"returnType": "string",
+			"async": 0,
+			"generator": 0,
+			"params": []
+		},
+		{
+			"module": "pkg.probe",
+			"moduleAbiId": "pkg.probe@1.0.0#abi1::pkg.probe",
+			"exportName": "text_len",
+			"symbol": "pkg_clock_artifact_text_len",
+			"overloadGroup": "pkg.probe::text_len",
+			"signatureId": "text_len(string)",
+			"dispatchKey": "text_len$arity1|value:string",
+			"abiSymbol": "pkg_probe_text_len$arity1__value__string__ret__int",
+			"returnType": "int",
+			"async": 0,
+			"generator": 0,
+			"params": [
+				{
+					"name": "value",
+					"label": "value",
+					"type": "string",
+					"hasDefault": 0
+				}
+			]
+		},
+		{
+			"module": "pkg.probe",
+			"moduleAbiId": "pkg.probe@1.0.0#abi1::pkg.probe",
+			"exportName": "touch",
+			"symbol": "pkg_clock_artifact_touch",
+			"overloadGroup": "pkg.probe::touch",
+			"signatureId": "touch()",
+			"dispatchKey": "touch$arity0",
+			"abiSymbol": "pkg_probe_touch$arity0__ret__void",
+			"returnType": "void",
+			"async": 0,
+			"generator": 0,
+			"params": []
+		},
+		{
+			"module": "pkg.probe",
+			"moduleAbiId": "pkg.probe@1.0.0#abi1::pkg.probe",
+			"exportName": "text_plus_len",
+			"symbol": "pkg_clock_artifact_text_plus_len",
+			"overloadGroup": "pkg.probe::text_plus_len",
+			"signatureId": "text_plus_len(string,int)",
+			"dispatchKey": "text_plus_len$arity2|value:string|extra:int",
+			"abiSymbol": "pkg_probe_text_plus_len$arity2__value__string__extra__int__ret__int",
+			"returnType": "int",
+			"async": 0,
+			"generator": 0,
+			"params": [
+				{
+					"name": "value",
+					"label": "value",
+					"type": "string",
+					"hasDefault": 0
+				},
+				{
+					"name": "extra",
+					"label": "extra",
+					"type": "int",
+					"hasDefault": 0
+				}
+			]
+		},
+		{
+			"module": "pkg.probe",
+			"moduleAbiId": "pkg.probe@1.0.0#abi1::pkg.probe",
+			"exportName": "is_probe_text",
+			"symbol": "pkg_clock_artifact_is_probe_text",
+			"overloadGroup": "pkg.probe::is_probe_text",
+			"signatureId": "is_probe_text()",
+			"dispatchKey": "is_probe_text$arity0",
+			"abiSymbol": "pkg_probe_is_probe_text$arity0__ret__bool",
+			"returnType": "bool",
+			"async": 0,
+			"generator": 0,
+			"params": []
+		},
+		{
+			"module": "pkg.probe",
+			"moduleAbiId": "pkg.probe@1.0.0#abi1::pkg.probe",
+			"exportName": "bool_score",
+			"symbol": "pkg_clock_artifact_bool_score",
+			"overloadGroup": "pkg.probe::bool_score",
+			"signatureId": "bool_score(bool)",
+			"dispatchKey": "bool_score$arity1|flag:bool",
+			"abiSymbol": "pkg_probe_bool_score$arity1__flag__bool__ret__int",
+			"returnType": "int",
+			"async": 0,
+			"generator": 0,
+			"params": [
+				{
+					"name": "flag",
+					"label": "flag",
+					"type": "bool",
+					"hasDefault": 0
+				}
+			]
+		},
+		{
+			"module": "pkg.probe",
+			"moduleAbiId": "pkg.probe@1.0.0#abi1::pkg.probe",
+			"exportName": "float_value",
+			"symbol": "pkg_clock_artifact_float_value",
+			"overloadGroup": "pkg.probe::float_value",
+			"signatureId": "float_value()",
+			"dispatchKey": "float_value$arity0",
+			"abiSymbol": "pkg_probe_float_value$arity0__ret__float",
+			"returnType": "float",
+			"async": 0,
+			"generator": 0,
+			"params": []
+		},
+		{
+			"module": "pkg.probe",
+			"moduleAbiId": "pkg.probe@1.0.0#abi1::pkg.probe",
+			"exportName": "add_half",
+			"symbol": "pkg_clock_artifact_add_half",
+			"overloadGroup": "pkg.probe::add_half",
+			"signatureId": "add_half(float)",
+			"dispatchKey": "add_half$arity1|value:float",
+			"abiSymbol": "pkg_probe_add_half$arity1__value__float__ret__float",
+			"returnType": "float",
+			"async": 0,
+			"generator": 0,
+			"params": [
+				{
+					"name": "value",
+					"label": "value",
+					"type": "float",
+					"hasDefault": 1,
+					"defaultValueText": "1",
+					"defaultValueJson": ""
+				}
+			]
+		}
+	]
+}

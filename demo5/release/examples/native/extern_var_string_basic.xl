@@ -1,4 +1,4 @@
-#loadlib "../xlp_native/packages/pkg.probe/bin/pkg_probe.dll"
+#loadlib "../xle_native/packages/pkg.probe/bin/pkg_probe.dll"
 
 extern "pkg_clock_artifact_text_slot" var probe_text as string
 extern "pkg_clock_artifact_text_slot_is_probe" func is_probe_text() as int

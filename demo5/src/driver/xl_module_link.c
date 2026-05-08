@@ -1,6 +1,6 @@
 #include "xl_module_link.h"
 #include "../common/xl_app_path.h"
-#include "xl_xlp_load.h"
+#include "xl_xle_load.h"
 
 #include "../common/xl_path.h"
 #include "../lexer/xl_lexer_api.h"
@@ -7393,7 +7393,7 @@ static int __xlAssignLocalSourcePackageIdentity(XL_ModuleLinkContext* pCtx, XL_M
 	return XL_RC_OK;
 }
 
-static int __xlAssignModuleAbiSymbols(XL_ModuleInfo* pModule, const XL_XlpResolveInfo* pXlpInfo)
+static int __xlAssignModuleAbiSymbols(XL_ModuleInfo* pModule, const XL_XleResolveInfo* pXleInfo)
 {
 	char sInitSymbol[XL_PATH_MAX_LEN];
 	char sExportsSymbol[XL_PATH_MAX_LEN];
@@ -7409,9 +7409,9 @@ static int __xlAssignModuleAbiSymbols(XL_ModuleInfo* pModule, const XL_XlpResolv
 	__xlBuildModuleAbiSymbol(sInitSymbol, sizeof(sInitSymbol), pModule->sModuleKey, "init");
 	__xlBuildModuleAbiSymbol(sExportsSymbol, sizeof(sExportsSymbol), pModule->sModuleKey, "exports");
 	__xlBuildModuleAbiSymbol(sDescriptorSymbol, sizeof(sDescriptorSymbol), pModule->sModuleKey, "descriptor");
-	sInitText = ((pXlpInfo != NULL) && (pXlpInfo->sInitSymbol[0] != '\0')) ? pXlpInfo->sInitSymbol : sInitSymbol;
-	sExportsText = ((pXlpInfo != NULL) && (pXlpInfo->sExportsSymbol[0] != '\0')) ? pXlpInfo->sExportsSymbol : sExportsSymbol;
-	sDescriptorText = ((pXlpInfo != NULL) && (pXlpInfo->sDescriptorSymbol[0] != '\0')) ? pXlpInfo->sDescriptorSymbol : sDescriptorSymbol;
+	sInitText = ((pXleInfo != NULL) && (pXleInfo->sInitSymbol[0] != '\0')) ? pXleInfo->sInitSymbol : sInitSymbol;
+	sExportsText = ((pXleInfo != NULL) && (pXleInfo->sExportsSymbol[0] != '\0')) ? pXleInfo->sExportsSymbol : sExportsSymbol;
+	sDescriptorText = ((pXleInfo != NULL) && (pXleInfo->sDescriptorSymbol[0] != '\0')) ? pXleInfo->sDescriptorSymbol : sDescriptorSymbol;
 	pModule->sInitSymbol = __xlModuleDupText(sInitText);
 	pModule->sExportsSymbol = __xlModuleDupText(sExportsText);
 	pModule->sDescriptorSymbol = __xlModuleDupText(sDescriptorText);
@@ -7421,23 +7421,23 @@ static int __xlAssignModuleAbiSymbols(XL_ModuleInfo* pModule, const XL_XlpResolv
 	return XL_RC_OK;
 }
 
-static void __xlBuildXlpNativeVirtualPath(char* sOut, size_t iOutSize, const char* sManifestPath, const char* sModuleKey)
+static void __xlBuildXleNativeVirtualPath(char* sOut, size_t iOutSize, const char* sManifestPath, const char* sModuleKey)
 {
 	char sModuleKeySafe[XL_PATH_MAX_LEN];
 
 	__xlSanitizeIdentPart(sModuleKeySafe, sizeof(sModuleKeySafe), sModuleKey);
-	snprintf(sOut, iOutSize, "<xlp-native:%s:%s>", (sManifestPath != NULL) ? sManifestPath : "", sModuleKeySafe);
+	snprintf(sOut, iOutSize, "<xle-native:%s:%s>", (sManifestPath != NULL) ? sManifestPath : "", sModuleKeySafe);
 }
 
-static void __xlBuildXlpNativeHelperName(char* sOut, size_t iOutSize, const char* sModuleKey, size_t iFuncIndex)
+static void __xlBuildXleNativeHelperName(char* sOut, size_t iOutSize, const char* sModuleKey, size_t iFuncIndex)
 {
 	char sModuleKeySafe[XL_PATH_MAX_LEN];
 
 	__xlSanitizeIdentPart(sModuleKeySafe, sizeof(sModuleKeySafe), sModuleKey);
-	snprintf(sOut, iOutSize, "__xlp_extern__%s__%llu", sModuleKeySafe, (unsigned long long)iFuncIndex);
+	snprintf(sOut, iOutSize, "__xle_extern__%s__%llu", sModuleKeySafe, (unsigned long long)iFuncIndex);
 }
 
-static char* __xlBuildXlpNativeSource(const char* sModuleKey, const XL_XlpFunctionInfo* pFuncs, size_t iFuncCount)
+static char* __xlBuildXleNativeSource(const char* sModuleKey, const XL_XleFunctionInfo* pFuncs, size_t iFuncCount)
 {
 	XL_ModuleTextBuffer buf;
 	size_t i;
@@ -7448,7 +7448,7 @@ static char* __xlBuildXlpNativeSource(const char* sModuleKey, const XL_XlpFuncti
 	bHasExport = 0;
 	for ( i = 0; i < iFuncCount; ++i ) {
 		char sHelperName[256];
-		const XL_XlpFunctionInfo* pFunc;
+		const XL_XleFunctionInfo* pFunc;
 
 		pFunc = &pFuncs[i];
 		if ( pFunc->bAsync || pFunc->bGenerator ) {
@@ -7458,7 +7458,7 @@ static char* __xlBuildXlpNativeSource(const char* sModuleKey, const XL_XlpFuncti
 			continue;
 		}
 
-		__xlBuildXlpNativeHelperName(sHelperName, sizeof(sHelperName), sModuleKey, i);
+		__xlBuildXleNativeHelperName(sHelperName, sizeof(sHelperName), sModuleKey, i);
 		__xlModuleBufAppendFormat(&buf, "func %s(", sHelperName);
 		for ( j = 0; j < pFunc->iParamCount; ++j ) {
 			if ( j != 0 ) {
@@ -7522,7 +7522,7 @@ static char* __xlBuildXlpNativeSource(const char* sModuleKey, const XL_XlpFuncti
 	return buf.sData;
 }
 
-static void __xlAnnotateXlpNativeExterns(XL_AstNode* pRoot, const char* sModuleKey, const XL_XlpFunctionInfo* pFuncs, size_t iFuncCount)
+static void __xlAnnotateXleNativeExterns(XL_AstNode* pRoot, const char* sModuleKey, const XL_XleFunctionInfo* pFuncs, size_t iFuncCount)
 {
 	size_t i;
 	size_t j;
@@ -7537,7 +7537,7 @@ static void __xlAnnotateXlpNativeExterns(XL_AstNode* pRoot, const char* sModuleK
 		if ( pFuncs[i].sSymbol[0] == '\0' ) {
 			continue;
 		}
-		__xlBuildXlpNativeHelperName(sHelperName, sizeof(sHelperName), sModuleKey, i);
+		__xlBuildXleNativeHelperName(sHelperName, sizeof(sHelperName), sModuleKey, i);
 		for ( j = 0; j < pRoot->iChildCount; ++j ) {
 			XL_AstNode* pStmt;
 
@@ -7565,7 +7565,7 @@ static void __xlAppendImportSearchPath(XL_ModuleTextBuffer* pBuf, const char* sP
 	__xlModuleBufAppend(pBuf, sPath);
 }
 
-static void __xlAppendXlpPackageSearchRoots(XL_ModuleTextBuffer* pBuf, const char* sSearchStart)
+static void __xlAppendXlePackageSearchRoots(XL_ModuleTextBuffer* pBuf, const char* sSearchStart)
 {
 	char sSearchDir[XL_PATH_MAX_LEN];
 
@@ -7620,9 +7620,9 @@ static void __xlEmitImportNotFoundDiag(
 		__xlAppendImportSearchPath(&paths, pCtx->arrPackageRoots[i]);
 	}
 	if ( (sImporterManifestPath != NULL) && (sImporterManifestPath[0] != '\0') ) {
-		__xlAppendXlpPackageSearchRoots(&paths, sImporterManifestPath);
+		__xlAppendXlePackageSearchRoots(&paths, sImporterManifestPath);
 	}
-	__xlAppendXlpPackageSearchRoots(&paths, sLocalCandidateFile);
+	__xlAppendXlePackageSearchRoots(&paths, sLocalCandidateFile);
 	__xlAppendImportSearchPath(&paths, "native registry");
 
 	XL_DIAG_ERROR(
@@ -7637,12 +7637,12 @@ static void __xlEmitImportNotFoundDiag(
 	free(paths.sData);
 }
 
-static int __xlFindXlpModuleForImport(
+static int __xlFindXleModuleForImport(
 	XL_ModuleLinkContext* pCtx,
 	const char* sLocalCandidateFile,
 	const char* sImporterManifestPath,
 	const char* sImportKey,
-	XL_XlpResolveInfo* pInfo
+	XL_XleResolveInfo* pInfo
 )
 {
 	const char* arrRoots[XL_PROJECT_PATH_MAX];
@@ -7650,17 +7650,17 @@ static int __xlFindXlpModuleForImport(
 
 	if ( (pCtx != NULL) && (pCtx->iPackageRootCount != 0) ) {
 		if ( (sImporterManifestPath != NULL) && (sImporterManifestPath[0] != '\0') &&
-			(xlXlpFindModuleSource(sLocalCandidateFile, sImporterManifestPath, sImportKey, pInfo) == XL_RC_OK) ) {
+			(xlXleFindModuleSource(sLocalCandidateFile, sImporterManifestPath, sImportKey, pInfo) == XL_RC_OK) ) {
 			return XL_RC_OK;
 		}
 		for ( i = 0; i < pCtx->iPackageRootCount; ++i ) {
 			arrRoots[i] = pCtx->arrPackageRoots[i];
 		}
-		if ( xlXlpFindModuleSourceInRoots(arrRoots, pCtx->iPackageRootCount, sImporterManifestPath, sImportKey, pInfo) == XL_RC_OK ) {
+		if ( xlXleFindModuleSourceInRoots(arrRoots, pCtx->iPackageRootCount, sImporterManifestPath, sImportKey, pInfo) == XL_RC_OK ) {
 			return XL_RC_OK;
 		}
 	}
-	return xlXlpFindModuleSource(sLocalCandidateFile, sImporterManifestPath, sImportKey, pInfo);
+	return xlXleFindModuleSource(sLocalCandidateFile, sImporterManifestPath, sImportKey, pInfo);
 }
 
 static int __xlIsStdModuleKey(const char* sModuleKey)
@@ -7685,35 +7685,35 @@ static int __xlLoadModule(
 	char sImportFile[XL_PATH_MAX_LEN];
 	char sCurrentModuleFile[XL_PATH_MAX_LEN];
 	char sNativeVirtualPath[XL_PATH_MAX_LEN];
-	XL_XlpResolveInfo xlpInfo;
-	XL_XlpFunctionInfo* pXlpFuncs;
-	size_t iXlpFuncCount;
+	XL_XleResolveInfo xleInfo;
+	XL_XleFunctionInfo* pXleFuncs;
+	size_t iXleFuncCount;
 	char* sImportKey;
 	size_t i;
 	int iRc;
 
 	pModule = __xlFindModuleByFile(pCtx, sFilePath);
 	if ( (pModule == NULL) && !bIsRoot && (sModuleKey != NULL) && !__xlFileExists(sFilePath) ) {
-		xlXlpResolveInfoInit(&xlpInfo);
-		if ( __xlFindXlpModuleForImport(pCtx, sFilePath, sImporterManifestPath, sModuleKey, &xlpInfo) == XL_RC_OK ) {
-			if ( xlpInfo.bIsNative ) {
-				pXlpFuncs = NULL;
-				iXlpFuncCount = 0;
-				if ( xlXlpReadFunctions(xlpInfo.sManifestPath, sModuleKey, &pXlpFuncs, &iXlpFuncCount) == XL_RC_OK && (iXlpFuncCount != 0) ) {
-					__xlBuildXlpNativeVirtualPath(sNativeVirtualPath, sizeof(sNativeVirtualPath), xlpInfo.sManifestPath, sModuleKey);
+		xlXleResolveInfoInit(&xleInfo);
+		if ( __xlFindXleModuleForImport(pCtx, sFilePath, sImporterManifestPath, sModuleKey, &xleInfo) == XL_RC_OK ) {
+			if ( xleInfo.bIsNative ) {
+				pXleFuncs = NULL;
+				iXleFuncCount = 0;
+				if ( xlXleReadFunctions(xleInfo.sManifestPath, sModuleKey, &pXleFuncs, &iXleFuncCount) == XL_RC_OK && (iXleFuncCount != 0) ) {
+					__xlBuildXleNativeVirtualPath(sNativeVirtualPath, sizeof(sNativeVirtualPath), xleInfo.sManifestPath, sModuleKey);
 					pModule = __xlFindModuleByFile(pCtx, sNativeVirtualPath);
 				} else {
 					const char* sNativeKey;
 
-					sNativeKey = (xlpInfo.sBindingName[0] != '\0') ? xlpInfo.sBindingName : sModuleKey;
+					sNativeKey = (xleInfo.sBindingName[0] != '\0') ? xleInfo.sBindingName : sModuleKey;
 					memset(&nativeInfo, 0, sizeof(nativeInfo));
 					if ( xlNativeRegistryFind(sNativeKey, &nativeInfo) == XL_RC_OK ) {
 						pModule = __xlFindModuleByFile(pCtx, nativeInfo.sVirtualPath);
 					}
 				}
-				xlXlpFunctionInfoFree(pXlpFuncs, iXlpFuncCount);
+				xlXleFunctionInfoFree(pXleFuncs, iXleFuncCount);
 			} else {
-				pModule = __xlFindModuleByFile(pCtx, xlpInfo.sModuleFile);
+				pModule = __xlFindModuleByFile(pCtx, xleInfo.sModuleFile);
 			}
 		}
 		if ( pModule == NULL ) {
@@ -7748,9 +7748,9 @@ static int __xlLoadModule(
 	}
 
 	memset(&nativeInfo, 0, sizeof(nativeInfo));
-	xlXlpResolveInfoInit(&xlpInfo);
-	pXlpFuncs = NULL;
-	iXlpFuncCount = 0;
+	xlXleResolveInfoInit(&xleInfo);
+	pXleFuncs = NULL;
+	iXleFuncCount = 0;
 	if ( (!bIsRoot) && __xlIsStdModuleKey(sModuleKey) && (xlNativeRegistryFind(sModuleKey, &nativeInfo) == XL_RC_OK) ) {
 		pModule->bIsNative = 1;
 		pModule->sFilePath = __xlModuleDupText(nativeInfo.sVirtualPath);
@@ -7770,83 +7770,83 @@ static int __xlLoadModule(
 			iRc = __xlAssignModuleAbiSymbols(pModule, NULL);
 		}
 	} else if ( (sModuleKey != NULL) &&
-		(__xlFindXlpModuleForImport(pCtx, sFilePath, sImporterManifestPath, sModuleKey, &xlpInfo) == XL_RC_OK) ) {
-		pModule->sManifestPath = __xlModuleDupText(xlpInfo.sManifestPath);
-		pModule->sPackageName = __xlModuleDupText(xlpInfo.sPackageName);
-		pModule->sPackageVersion = __xlModuleDupText(xlpInfo.sPackageVersion);
-		pModule->sPackageAbiVersion = __xlModuleDupText(xlpInfo.sPackageAbiVersion);
-		pModule->sPackageAbiId = __xlModuleDupText(xlpInfo.sPackageAbiId);
-		pModule->sArtifactKind = __xlModuleDupText(xlpInfo.sArtifactKind);
-		pModule->sArtifactPath = __xlModuleDupText(xlpInfo.sArtifactPath);
-		pModule->sArtifactFile = __xlModuleDupText(xlpInfo.sArtifactFile);
-		pModule->sConsumeMode = __xlModuleDupText(xlpInfo.sConsumeMode);
+		(__xlFindXleModuleForImport(pCtx, sFilePath, sImporterManifestPath, sModuleKey, &xleInfo) == XL_RC_OK) ) {
+		pModule->sManifestPath = __xlModuleDupText(xleInfo.sManifestPath);
+		pModule->sPackageName = __xlModuleDupText(xleInfo.sPackageName);
+		pModule->sPackageVersion = __xlModuleDupText(xleInfo.sPackageVersion);
+		pModule->sPackageAbiVersion = __xlModuleDupText(xleInfo.sPackageAbiVersion);
+		pModule->sPackageAbiId = __xlModuleDupText(xleInfo.sPackageAbiId);
+		pModule->sArtifactKind = __xlModuleDupText(xleInfo.sArtifactKind);
+		pModule->sArtifactPath = __xlModuleDupText(xleInfo.sArtifactPath);
+		pModule->sArtifactFile = __xlModuleDupText(xleInfo.sArtifactFile);
+		pModule->sConsumeMode = __xlModuleDupText(xleInfo.sConsumeMode);
 		if ( (pModule->sManifestPath == NULL) || (pModule->sPackageName == NULL) || (pModule->sPackageVersion == NULL) ||
 			(pModule->sPackageAbiVersion == NULL) || (pModule->sPackageAbiId == NULL) ||
 			(pModule->sArtifactKind == NULL) || (pModule->sArtifactPath == NULL) ||
 			(pModule->sArtifactFile == NULL) || (pModule->sConsumeMode == NULL) ) {
 			return XL_RC_IO_ERROR;
 		}
-		for ( i = 0; i < xlpInfo.iLinkLibCount; ++i ) {
-			iRc = __xlModuleInfoAddLinkLib(pModule, xlpInfo.arrLinkLibs[i]);
+		for ( i = 0; i < xleInfo.iLinkLibCount; ++i ) {
+			iRc = __xlModuleInfoAddLinkLib(pModule, xleInfo.arrLinkLibs[i]);
 			if ( iRc != XL_RC_OK ) {
 				return iRc;
 			}
 		}
-		for ( i = 0; i < xlpInfo.iLibPathCount; ++i ) {
-			iRc = __xlModuleInfoAddLibPath(pModule, xlpInfo.arrLibPaths[i]);
+		for ( i = 0; i < xleInfo.iLibPathCount; ++i ) {
+			iRc = __xlModuleInfoAddLibPath(pModule, xleInfo.arrLibPaths[i]);
 			if ( iRc != XL_RC_OK ) {
 				return iRc;
 			}
 		}
-		for ( i = 0; i < xlpInfo.iIncPathCount; ++i ) {
-			iRc = __xlModuleInfoAddIncPath(pModule, xlpInfo.arrIncPaths[i]);
+		for ( i = 0; i < xleInfo.iIncPathCount; ++i ) {
+			iRc = __xlModuleInfoAddIncPath(pModule, xleInfo.arrIncPaths[i]);
 			if ( iRc != XL_RC_OK ) {
 				return iRc;
 			}
 		}
-		for ( i = 0; i < xlpInfo.iCSourceCount; ++i ) {
-			iRc = __xlModuleInfoAddCSourceFile(pModule, xlpInfo.arrCSourceFiles[i]);
+		for ( i = 0; i < xleInfo.iCSourceCount; ++i ) {
+			iRc = __xlModuleInfoAddCSourceFile(pModule, xleInfo.arrCSourceFiles[i]);
 			if ( iRc != XL_RC_OK ) {
 				return iRc;
 			}
 		}
-		iRc = __xlAssignModuleAbiSymbols(pModule, &xlpInfo);
+		iRc = __xlAssignModuleAbiSymbols(pModule, &xleInfo);
 		if ( iRc != XL_RC_OK ) {
 			return iRc;
 		}
-		if ( xlpInfo.bIsNative ) {
-			if ( (strcmp(xlpInfo.sConsumeMode, "native-registry") != 0) &&
-				(strcmp(xlpInfo.sConsumeMode, "shared-bridge") != 0) &&
-				(strcmp(xlpInfo.sConsumeMode, "static-bridge") != 0) &&
-				(strcmp(xlpInfo.sConsumeMode, "c-source-bridge") != 0) ) {
-				XL_DIAG_ERROR(pCtx->pDiag, "module", "unsupported xlp native consume mode: %s", xlpInfo.sConsumeMode);
+		if ( xleInfo.bIsNative ) {
+			if ( (strcmp(xleInfo.sConsumeMode, "native-registry") != 0) &&
+				(strcmp(xleInfo.sConsumeMode, "shared-bridge") != 0) &&
+				(strcmp(xleInfo.sConsumeMode, "static-bridge") != 0) &&
+				(strcmp(xleInfo.sConsumeMode, "c-source-bridge") != 0) ) {
+				XL_DIAG_ERROR(pCtx->pDiag, "module", "unsupported xle native consume mode: %s", xleInfo.sConsumeMode);
 				return XL_RC_IO_ERROR;
 			}
 			pModule->bIsNative = 1;
-			pModule->sBindingName = __xlModuleDupText(xlpInfo.sBindingName);
-			iRc = xlXlpReadFunctions(xlpInfo.sManifestPath, sModuleKey, &pXlpFuncs, &iXlpFuncCount);
-			if ( (iRc == XL_RC_OK) && (iXlpFuncCount != 0) ) {
+			pModule->sBindingName = __xlModuleDupText(xleInfo.sBindingName);
+			iRc = xlXleReadFunctions(xleInfo.sManifestPath, sModuleKey, &pXleFuncs, &iXleFuncCount);
+			if ( (iRc == XL_RC_OK) && (iXleFuncCount != 0) ) {
 				char* sNativeSource;
 
-				__xlBuildXlpNativeVirtualPath(sNativeVirtualPath, sizeof(sNativeVirtualPath), xlpInfo.sManifestPath, sModuleKey);
+				__xlBuildXleNativeVirtualPath(sNativeVirtualPath, sizeof(sNativeVirtualPath), xleInfo.sManifestPath, sModuleKey);
 				pModule->sFilePath = __xlModuleDupText(sNativeVirtualPath);
-				sNativeSource = __xlBuildXlpNativeSource(sModuleKey, pXlpFuncs, iXlpFuncCount);
+				sNativeSource = __xlBuildXleNativeSource(sModuleKey, pXleFuncs, iXleFuncCount);
 				if ( sNativeSource == NULL ) {
-					xlXlpFunctionInfoFree(pXlpFuncs, iXlpFuncCount);
+					xlXleFunctionInfoFree(pXleFuncs, iXleFuncCount);
 					return XL_RC_IO_ERROR;
 				}
 				iRc = __xlParseModuleSourceText(sNativeSource, sNativeVirtualPath, pModule, pCtx->pDiag, pCtx->bTraceParser, &pModule->pRoot);
 				if ( iRc == XL_RC_OK ) {
-					__xlAnnotateXlpNativeExterns(pModule->pRoot, sModuleKey, pXlpFuncs, iXlpFuncCount);
+					__xlAnnotateXleNativeExterns(pModule->pRoot, sModuleKey, pXleFuncs, iXleFuncCount);
 				}
 				free(sNativeSource);
 			} else {
 				const char* sNativeKey;
 
-				sNativeKey = (xlpInfo.sBindingName[0] != '\0') ? xlpInfo.sBindingName : sModuleKey;
+				sNativeKey = (xleInfo.sBindingName[0] != '\0') ? xleInfo.sBindingName : sModuleKey;
 				if ( xlNativeRegistryFind(sNativeKey, &nativeInfo) != XL_RC_OK ) {
-					xlXlpFunctionInfoFree(pXlpFuncs, iXlpFuncCount);
-					XL_DIAG_ERROR(pCtx->pDiag, "module", "xlp native module not found in registry: %s", sNativeKey);
+					xlXleFunctionInfoFree(pXleFuncs, iXleFuncCount);
+					XL_DIAG_ERROR(pCtx->pDiag, "module", "xle native module not found in registry: %s", sNativeKey);
 					return XL_RC_IO_ERROR;
 				}
 				pModule->sFilePath = __xlModuleDupText(nativeInfo.sVirtualPath);
@@ -7854,11 +7854,11 @@ static int __xlLoadModule(
 				pModule->sBindingName = __xlModuleDupText(nativeInfo.sBindingName);
 				iRc = __xlParseModuleSourceText(nativeInfo.sSourceText, nativeInfo.sVirtualPath, pModule, pCtx->pDiag, pCtx->bTraceParser, &pModule->pRoot);
 			}
-			xlXlpFunctionInfoFree(pXlpFuncs, iXlpFuncCount);
+			xlXleFunctionInfoFree(pXleFuncs, iXleFuncCount);
 		} else {
-			pModule->sFilePath = __xlModuleDupText(xlpInfo.sModuleFile);
-			pModule->sBindingName = __xlModuleDupText(xlpInfo.sBindingName);
-			iRc = __xlParseModuleFileToAst(xlpInfo.sModuleFile, pModule, pCtx->pDiag, pCtx->bTraceParser, &pModule->pRoot);
+			pModule->sFilePath = __xlModuleDupText(xleInfo.sModuleFile);
+			pModule->sBindingName = __xlModuleDupText(xleInfo.sBindingName);
+			iRc = __xlParseModuleFileToAst(xleInfo.sModuleFile, pModule, pCtx->pDiag, pCtx->bTraceParser, &pModule->pRoot);
 		}
 	} else if ( (sModuleKey != NULL) && (xlNativeRegistryFind(sModuleKey, &nativeInfo) == XL_RC_OK) ) {
 		pModule->bIsNative = 1;

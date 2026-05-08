@@ -1,4 +1,4 @@
-#loadlib "../xlp_native/packages/pkg.probe/bin/pkg_probe.dll"
+#loadlib "../xle_native/packages/pkg.probe/bin/pkg_probe.dll"
 
 extern "pkg_clock_artifact_meter_create" func point_create(int value) as point
 extern "pkg_clock_artifact_meter_release" func point_release(point value) as void
