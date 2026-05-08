@@ -1,0 +1,10 @@
+demo5 unified test runner
+project=demo5
+selector=debug
+[PASS] debug.controller_breakpoint
+[PASS] debug.controller_step_in
+[PASS] debug.controller_next
+[PASS] debug.controller_step_out
+[PASS] debug.controller_frame_variables
+[PASS] debug.controller_terminated_state
+summary: total=6 pass=6 fail=0

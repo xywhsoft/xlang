@@ -120,13 +120,15 @@ probe 执行逻辑：
 
 ```text
 更新当前 source location
+检查 stopOnEntry
+检查 pause 请求
 检查断点表
 检查 step mode
 如需暂停：
   设置状态为 stopped
   发送 stopped event 给 DAP 层
   阻塞 debuggee 线程
-等待 continue/next/stepIn/stepOut 唤醒
+等待 continue/next/stepIn/stepOut/disconnect 唤醒
 ```
 
 ## 调用栈
@@ -141,6 +143,8 @@ xl_dbg_leave_func();
 
 controller 维护 XL 语言层栈：
 
+debug controller 按调用顺序保存 frame stack；暂停时复制 stopped frame snapshot。DAP `stackTrace` 按从当前 frame 到调用者的顺序返回这些 snapshot frame。每个 frame 记录自己的 argument/local 变量池范围，DAP `scopes(frameId)` 返回该 frame 专属的 `variablesReference`。frame-specific reference 带有 stopped generation，编码为 `base + stopSequence * 1000 + frameId`；continue 到下一次暂停后旧 reference 会返回 stale error。
+
 ```text
 frameId
 functionName
@@ -153,36 +157,39 @@ locals
 arguments
 ```
 
-`stepOver` / `stepOut` 基于 frame depth 实现：
+`stepIn` / `next` / `stepOut` 基于 probe 计数、源码位置和 frame depth 实现：
 
 - `stepIn`：下一次到达任意可暂停点即停。
 - `next`：只在栈深度小于等于当前深度并且源码位置变化时停。
 - `stepOut`：只在栈深度小于当前深度后停。
 - `continue`：只在断点、异常或 pause 请求时停。
 
+当前 V1 已接入 DAP `stepIn` / `next` / `stepOut`，单步暂停 reason 为 `step`。`launch.stopOnEntry=true` 会在第一个 probe 处以 `entry` reason 暂停。DAP `pause` 会在运行中的 debuggee 下一个 probe 处以 `pause` reason 暂停。未捕获语言异常会以 `exception` reason 暂停，用户继续后发送 `terminated`。
+
 ## 局部变量
 
-局部变量需要 codegen 主动注册。外部不能可靠访问 C 栈上的局部变量地址，所以 probe runtime 应由生成 C 告知变量名、类型和地址。
+局部变量需要 codegen 主动注册。外部不能可靠访问 C 栈上的局部变量地址，所以 V1 先由生成 C 在变量写入后把变量名、类型和值快照提交给 probe runtime。
 
 示例：
 
 ```c
-xl_dbg_local_int("i", &xl_i);
-xl_dbg_local_bool("ok", &xl_ok);
-xl_dbg_local_float("total", &xl_total);
-xl_dbg_local_string("name", &xl_name);
-xl_dbg_local_value("item", &xl_item);
+xl_dbg_local_int("i", (long long)i);
+xl_dbg_local_bool("ok", ok ? 1 : 0);
+xl_dbg_local_float("total", (double)total);
+xl_dbg_local_string("name", name);
+xl_dbg_local_value("item", item);
 ```
 
 V1 变量范围：
 
-- arguments
-- current function locals
+- arguments snapshot
+- current frame locals snapshot
 - primitive values: `int` / `bool` / `float` / `string`
-- dynamic value: `var`
+- dynamic value: `var` 通过 `xl_value_to_string` 生成 DAP 展示文本，复杂值子项展开仍未完成
 
 后续扩展：
 
+- 基于地址或 value handle 的 live variable 更新。
 - array/list/dict/set 子项展开。
 - object 字段展开。
 - captured variables。
@@ -201,14 +208,16 @@ breakpoints[canonicalSourcePath][line] = breakpoint
 
 ```text
 source path -> executable lines
-source path + requested line -> actual executable line
+source path + requested line -> verified / unverified
 ```
 
 策略：
 
 - 若请求行可执行，返回 `verified=true`。
-- 若请求行不可执行但下一行有可暂停点，V1 可选择移动到下一条可执行行并返回实际行。
-- 若无法映射，返回 `verified=false` 和 message。
+- V1 不自动移动断点；actual line 保持 requested line，避免 IDE 显示的位置和实际探针位置不一致。
+- 若请求行不可执行，返回 `verified=false` 和 message。
+- `setBreakpoints` 在 launch 前先返回未绑定状态；launch 编译 preflight 建立 line table 后发送 DAP `breakpoint(reason=changed)` 事件更新 verified 状态。若 line table 已存在，后续 `setBreakpoints` 可立即返回绑定状态。
+- `xldbg/executableLines` 是 xldbg-only 自定义诊断请求，返回当前 session 的 line table，便于 IDE adapter 和 smoke 测试验证断点可绑定行；它不是标准 DAP capability，不应作为 VS Code 扩展的用户可见功能。
 
 ## DAP 通信
 
@@ -229,6 +238,8 @@ xldbg dap --listen 127.0.0.1:4711
 
 V1 优先实现 stdio 模式，因为 VS Code 可直接启动 adapter 进程并通过 stdin/stdout 通信。
 
+`launch` 在启动 debuggee thread 前会先做一次编译 preflight：module link、semantic analyze、lower、debug C codegen。preflight 失败时直接返回 `launch` error response，不创建 debuggee thread；成功后再启动 debuggee thread 并进入等待 stopped/exited 的事件循环。TCC link 或运行期失败仍属于 debuggee 已启动后的失败路径，当前通过 `output` 和 `terminated` event 报告。
+
 基本会话：
 
 ```text
@@ -244,7 +255,8 @@ IDE -> threads
 IDE -> stackTrace
 IDE -> scopes
 IDE -> variables
-IDE -> continue / next / stepIn / stepOut
+IDE/test -> xldbg/executableLines
+IDE -> continue / next / stepIn / stepOut / pause
 ```
 
 DAP 官方参考：
@@ -261,6 +273,7 @@ DAP thread:
   read requests
   write responses/events
   mutate controller state under lock
+  while debuggee is running, poll stdin in short intervals and handle nested DAP requests
 
 debuggee thread:
   call xlExecRunCode
@@ -284,6 +297,7 @@ pending stop reason
 - debuggee 只在 probe 边界暂停。
 - DAP thread 不直接读未加锁的 frame/variable 状态。
 - `continue` / `next` / `stepIn` / `stepOut` 修改 step mode 后唤醒 debuggee。
+- `pause` 只设置 pending pause flag；debuggee 到达下一个 probe 时转换为 stopped snapshot。
 - `disconnect` 应能请求终止，V1 可以先做到停止接收并让 debuggee 自然结束。
 
 ## 命令设计
@@ -295,7 +309,9 @@ xldbg dbg <file> [options]
 xldbg dap [--listen host:port]
 ```
 
-`dbg` 是本地交互 REPL，便于调试 adapter 之前验证 controller。
+`dbg` 是本地交互 REPL，便于调试 adapter 之前验证 controller。当前支持
+`break <line>`、`clear`、`run`、`continue`、`next`、`step`、`out`、`bt`、
+`locals`、`quit`，输出普通文本，适合命令行 smoke 和人工排查。
 
 `dap` 是 IDE 接入入口，适配 DAP 消息。
 

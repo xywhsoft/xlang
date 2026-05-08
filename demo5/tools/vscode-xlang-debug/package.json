@@ -1,0 +1,62 @@
+{
+  "name": "xlang-debug",
+  "displayName": "XLang Debug",
+  "description": "VS Code debug adapter launcher for xldbg dap.",
+  "version": "0.1.0",
+  "publisher": "xlang",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Debuggers"
+  ],
+  "activationEvents": [
+    "onDebug:xlang"
+  ],
+  "main": "./extension.js",
+  "contributes": {
+    "debuggers": [
+      {
+        "type": "xlang",
+        "label": "XL",
+        "languages": [
+          "xlang"
+        ],
+        "configurationAttributes": {
+          "launch": {
+            "required": [
+              "program"
+            ],
+            "properties": {
+              "program": {
+                "type": "string",
+                "description": "Path to the XL source file to debug.",
+                "default": "${file}"
+              },
+              "stopOnEntry": {
+                "type": "boolean",
+                "description": "Stop at the first executable XL probe.",
+                "default": false
+              },
+              "xldbg": {
+                "type": "string",
+                "description": "Path to xldbg.exe.",
+                "default": "${workspaceFolder}/release/xldbg.exe"
+              }
+            }
+          }
+        },
+        "initialConfigurations": [
+          {
+            "type": "xlang",
+            "request": "launch",
+            "name": "Debug XL Program",
+            "program": "${file}",
+            "stopOnEntry": false,
+            "xldbg": "${workspaceFolder}/release/xldbg.exe"
+          }
+        ]
+      }
+    ]
+  }
+}

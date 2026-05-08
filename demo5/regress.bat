@@ -21,6 +21,7 @@ call :run_case sem sem "test\cases\sem\baseline.txt"
 call :run_case lower lower "test\cases\lower\baseline.txt"
 call :run_case cgen cgen "test\cases\codegen\baseline.txt"
 call :run_case runtime runtime "test\cases\runtime\baseline.txt"
+call :run_case debug debug "test\cases\debug\baseline.txt"
 
 if not "%FAILED%"=="0" (
 	echo Regression failed. See "%TRACE_DIR%".
@@ -35,18 +36,22 @@ set NAME=%~1
 set SELECTOR=%~2
 set BASELINE=%~3
 set OUT_FILE=%LOG_DIR%\%NAME%.txt
+set RAW_FILE=%LOG_DIR%\%NAME%.raw.txt
 set DIFF_FILE=%DIFF_DIR%\%NAME%.txt
 
 if "%SELECTOR%"=="" (
-	release\bin\xl5.exe test > "%OUT_FILE%"
+	release\xl5_test.exe all > "%RAW_FILE%"
 ) else (
-	release\bin\xl5_test.exe %SELECTOR% > "%OUT_FILE%"
+	release\xl5_test.exe %SELECTOR% > "%RAW_FILE%"
 )
 if errorlevel 1 (
 	echo [FAIL] %NAME% execution
 	set FAILED=1
 	exit /b 0
 )
+
+findstr /v /b /c:"build_stamp=" /c:"test_count=" "%RAW_FILE%" > "%OUT_FILE%"
+del /q "%RAW_FILE%" >nul 2>nul
 
 fc /n "%BASELINE%" "%OUT_FILE%" > "%DIFF_FILE%"
 if errorlevel 1 (

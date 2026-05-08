@@ -7,6 +7,7 @@
 #include "../src/driver/xl_module_link.h"
 #include "../src/driver/xl_xlp_dump.h"
 #include "../src/driver/xl_xlp_load.h"
+#include "../src/debug/xl_debugger_debug.h"
 #include "../src/host/xl_host.h"
 #include "../src/host/xl_host_runtime.h"
 #include "../src/lexer/xl_lexer_api.h"
@@ -19372,7 +19373,204 @@ static int __xlTestRunTaskValueBasic(XL_TestContext* pCtx) { return __xlRunProgr
 static int __xlTestRunTaskDelay(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\task\\task_delay_basic.xl", 1, 2, NULL, NULL); }
 static int __xlTestRunTaskError(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\task\\task_error_basic.xl", 1, 1, NULL, NULL); }
 
+#if XLANG_DEBUGMODE_ENABLED
+static int __xlDebugExpectStop(
+	XL_DebugController* pController,
+	const char* sReason,
+	const char* sFunc,
+	int iLine
+)
+{
+	if ( (pController == NULL) || !xlDebugControllerHasStop(pController) ) {
+		return XL_RC_FAIL;
+	}
+	if ( (sReason != NULL) && (strcmp(pController->sStopReason, sReason) != 0) ) {
+		return XL_RC_FAIL;
+	}
+	if ( (sFunc != NULL) && (strcmp(pController->sStopFunc, sFunc) != 0) ) {
+		return XL_RC_FAIL;
+	}
+	if ( (iLine > 0) && (pController->iStopLine != iLine) ) {
+		return XL_RC_FAIL;
+	}
+	return XL_RC_OK;
+}
+
+static int __xlTestDebugControllerBreakpoint(XL_TestContext* pCtx)
+{
+	XL_DebugController controller;
+	int arrLines[1];
+	int arrColumns[1];
+	int arrUnsupported[1];
+	int iRc;
+
+	XL_UNUSED(pCtx);
+	arrLines[0] = 2;
+	arrColumns[0] = 1;
+	arrUnsupported[0] = 0;
+	xlDebugControllerInit(&controller);
+	xlDebugControllerMakeCurrent(&controller);
+	iRc = xlDebugControllerSetBreakpoints(&controller, "unit.xl", arrLines, arrColumns, arrUnsupported, 1u);
+	if ( iRc == XL_RC_OK ) {
+		xl_dbg_enter_func("unit.xl", 1, 1, "main", 1);
+		if ( xlDebugControllerHasStop(&controller) ) {
+			iRc = XL_RC_FAIL;
+		}
+	}
+	if ( iRc == XL_RC_OK ) {
+		xl_dbg_stmt("unit.xl", 2, 1);
+		iRc = __xlDebugExpectStop(&controller, "breakpoint", "main", 2);
+	}
+	if ( iRc == XL_RC_OK ) {
+		xlDebugControllerClearBreakpoints(&controller);
+		xlDebugControllerClearStop(&controller);
+		xl_dbg_stmt("unit.xl", 2, 1);
+		if ( xlDebugControllerHasStop(&controller) ) {
+			iRc = XL_RC_FAIL;
+		}
+	}
+	xlDebugControllerClearCurrent(&controller);
+	xlDebugControllerFree(&controller);
+	return iRc;
+}
+
+static int __xlTestDebugControllerStepIn(XL_TestContext* pCtx)
+{
+	XL_DebugController controller;
+	int iRc;
+
+	XL_UNUSED(pCtx);
+	xlDebugControllerInit(&controller);
+	xlDebugControllerMakeCurrent(&controller);
+	xlDebugControllerSetStopOnEntry(&controller, 1);
+	xl_dbg_enter_func("unit.xl", 1, 1, "main", 1);
+	iRc = __xlDebugExpectStop(&controller, "entry", "main", 1);
+	if ( iRc == XL_RC_OK ) {
+		xlDebugControllerSetStepMode(&controller, XL_DEBUG_STEP_IN);
+		xlDebugControllerClearStop(&controller);
+		xlDebugControllerResume(&controller);
+		xl_dbg_stmt("unit.xl", 2, 1);
+		iRc = __xlDebugExpectStop(&controller, "step", "main", 2);
+	}
+	xlDebugControllerClearCurrent(&controller);
+	xlDebugControllerFree(&controller);
+	return iRc;
+}
+
+static int __xlTestDebugControllerNext(XL_TestContext* pCtx)
+{
+	XL_DebugController controller;
+	int iRc;
+
+	XL_UNUSED(pCtx);
+	xlDebugControllerInit(&controller);
+	xlDebugControllerMakeCurrent(&controller);
+	xlDebugControllerSetStopOnEntry(&controller, 1);
+	xl_dbg_enter_func("unit.xl", 1, 1, "main", 1);
+	iRc = __xlDebugExpectStop(&controller, "entry", "main", 1);
+	if ( iRc == XL_RC_OK ) {
+		xlDebugControllerSetStepMode(&controller, XL_DEBUG_STEP_NEXT);
+		xlDebugControllerClearStop(&controller);
+		xlDebugControllerResume(&controller);
+		xl_dbg_enter_func("unit.xl", 10, 1, "child", 2);
+		if ( xlDebugControllerHasStop(&controller) ) {
+			iRc = XL_RC_FAIL;
+		}
+	}
+	if ( iRc == XL_RC_OK ) {
+		xl_dbg_leave_func();
+		xl_dbg_stmt("unit.xl", 2, 1);
+		iRc = __xlDebugExpectStop(&controller, "step", "main", 2);
+	}
+	xlDebugControllerClearCurrent(&controller);
+	xlDebugControllerFree(&controller);
+	return iRc;
+}
+
+static int __xlTestDebugControllerStepOut(XL_TestContext* pCtx)
+{
+	XL_DebugController controller;
+	int iRc;
+
+	XL_UNUSED(pCtx);
+	xlDebugControllerInit(&controller);
+	xlDebugControllerMakeCurrent(&controller);
+	xl_dbg_enter_func("unit.xl", 1, 1, "main", 1);
+	xl_dbg_enter_func("unit.xl", 10, 1, "child", 2);
+	xlDebugControllerSetStepMode(&controller, XL_DEBUG_STEP_OUT);
+	xl_dbg_stmt("unit.xl", 11, 1);
+	iRc = xlDebugControllerHasStop(&controller) ? XL_RC_FAIL : XL_RC_OK;
+	if ( iRc == XL_RC_OK ) {
+		xl_dbg_leave_func();
+		xl_dbg_stmt("unit.xl", 2, 1);
+		iRc = __xlDebugExpectStop(&controller, "step", "main", 2);
+	}
+	xlDebugControllerClearCurrent(&controller);
+	xlDebugControllerFree(&controller);
+	return iRc;
+}
+
+static int __xlTestDebugControllerFrameVariables(XL_TestContext* pCtx)
+{
+	XL_DebugController controller;
+	int arrLines[1];
+	int arrColumns[1];
+	int arrUnsupported[1];
+	int iRc;
+
+	XL_UNUSED(pCtx);
+	arrLines[0] = 2;
+	arrColumns[0] = 1;
+	arrUnsupported[0] = 0;
+	xlDebugControllerInit(&controller);
+	xlDebugControllerMakeCurrent(&controller);
+	iRc = xlDebugControllerSetBreakpoints(&controller, "unit.xl", arrLines, arrColumns, arrUnsupported, 1u);
+	if ( iRc == XL_RC_OK ) {
+		xl_dbg_enter_func("unit.xl", 1, 1, "main", 1);
+		xl_dbg_arg_int("a", 20);
+		xl_dbg_local_int("mask", 10);
+		xl_dbg_stmt("unit.xl", 2, 1);
+		iRc = __xlDebugExpectStop(&controller, "breakpoint", "main", 2);
+	}
+	if ( iRc == XL_RC_OK ) {
+		if ( (controller.iStopFrameCount != 1u) ||
+			(controller.iStopArgumentCount != 1u) ||
+			(controller.iStopLocalCount != 1u) ||
+			(strcmp(controller.arrStopArguments[0].sName, "a") != 0) ||
+			(strcmp(controller.arrStopArguments[0].sValue, "20") != 0) ||
+			(strcmp(controller.arrStopLocals[0].sName, "mask") != 0) ||
+			(strcmp(controller.arrStopLocals[0].sValue, "10") != 0) ) {
+			iRc = XL_RC_FAIL;
+		}
+	}
+	xlDebugControllerClearCurrent(&controller);
+	xlDebugControllerFree(&controller);
+	return iRc;
+}
+
+static int __xlTestDebugControllerTerminatedState(XL_TestContext* pCtx)
+{
+	XL_DebugController controller;
+	int iRc;
+
+	XL_UNUSED(pCtx);
+	xlDebugControllerInit(&controller);
+	xlDebugControllerSetState(&controller, XL_DEBUG_STATE_TERMINATED);
+	iRc = (xlDebugControllerState(&controller) == XL_DEBUG_STATE_TERMINATED) ? XL_RC_OK : XL_RC_FAIL;
+	xlDebugControllerFree(&controller);
+	return iRc;
+}
+#endif
+
 static const XL_TestCase __gXLTests[] = {
+#if XLANG_DEBUGMODE_ENABLED
+	{ "debug.controller_breakpoint", "debug", __xlTestDebugControllerBreakpoint },
+	{ "debug.controller_step_in", "debug", __xlTestDebugControllerStepIn },
+	{ "debug.controller_next", "debug", __xlTestDebugControllerNext },
+	{ "debug.controller_step_out", "debug", __xlTestDebugControllerStepOut },
+	{ "debug.controller_frame_variables", "debug", __xlTestDebugControllerFrameVariables },
+	{ "debug.controller_terminated_state", "debug", __xlTestDebugControllerTerminatedState },
+#endif
 	{ "diag.source_line", "diag", __xlTestDiagSourceLine },
 	{ "diag.json_output", "diag", __xlTestDiagJsonOutput },
 	{ "diag.parser_stops_at_first_error", "diag", __xlTestDiagParserStopsAtFirstError },
