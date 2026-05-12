@@ -7001,102 +7001,23 @@ static int __xlProjectAddPath(char arrItems[XL_PROJECT_PATH_MAX][XL_PATH_MAX_LEN
 	return XL_RC_OK;
 }
 
-static int __xlProjectAddPathList(
-	char arrItems[XL_PROJECT_PATH_MAX][XL_PATH_MAX_LEN],
-	size_t* piCount,
-	const char* sPathList
-)
+static void __xlProjectAddDefaultPackageRoots(XL_ModuleLinkContext* pCtx, const char* sRootInputFile)
 {
-	const char* pStart;
-	const char* p;
-
-	if ( (arrItems == NULL) || (piCount == NULL) || (sPathList == NULL) || (sPathList[0] == '\0') ) {
-		return XL_RC_OK;
-	}
-	pStart = sPathList;
-	for ( p = sPathList; ; ++p ) {
-		int bEnd;
-		int bSep;
-
-		bEnd = (*p == '\0');
-#if defined(_WIN32) || defined(_WIN64)
-		bSep = (*p == ';');
-#else
-		bSep = (*p == ':');
-#endif
-		if ( bEnd || bSep ) {
-			char sItem[XL_PATH_MAX_LEN];
-			size_t iLen;
-
-			iLen = (size_t)(p - pStart);
-			while ( (iLen != 0) && ((*pStart == ' ') || (*pStart == '\t')) ) {
-				++pStart;
-				--iLen;
-			}
-			while ( (iLen != 0) && ((pStart[iLen - 1] == ' ') || (pStart[iLen - 1] == '\t')) ) {
-				--iLen;
-			}
-			if ( iLen >= sizeof(sItem) ) {
-				iLen = sizeof(sItem) - 1;
-			}
-			if ( iLen != 0 ) {
-				memcpy(sItem, pStart, iLen);
-				sItem[iLen] = '\0';
-				(void)__xlProjectAddPath(arrItems, piCount, "", sItem);
-			}
-			if ( bEnd ) {
-				break;
-			}
-			pStart = p + 1;
-		}
-	}
-	return XL_RC_OK;
-}
-
-static void __xlProjectAddDefaultPackageRoots(XL_ModuleLinkContext* pCtx)
-{
-	const char* sEnv;
-	const char* sHome;
 	char sJoined[XL_PATH_MAX_LEN];
 
 	if ( pCtx == NULL ) {
 		return;
 	}
-	sEnv = getenv("XLANG_PACKAGE_PATH");
-	(void)__xlProjectAddPathList(pCtx->arrPackageRoots, &pCtx->iPackageRootCount, sEnv);
 
-#if defined(_WIN32) || defined(_WIN64)
-	sHome = getenv("USERPROFILE");
-#else
-	sHome = getenv("HOME");
-#endif
-	if ( (sHome != NULL) && (sHome[0] != '\0') ) {
-		xlPathJoin(sJoined, sizeof(sJoined), sHome, ".xlang");
-		(void)__xlProjectAddPath(pCtx->arrPackageRoots, &pCtx->iPackageRootCount, "", sJoined);
-		xlPathJoin(sJoined, sizeof(sJoined), sJoined, "libs");
-		(void)__xlProjectAddPath(pCtx->arrPackageRoots, &pCtx->iPackageRootCount, "", sJoined);
-		xlPathJoin(sJoined, sizeof(sJoined), sJoined, "packages");
-		(void)__xlProjectAddPath(pCtx->arrPackageRoots, &pCtx->iPackageRootCount, "", sJoined);
-		xlPathJoin(sJoined, sizeof(sJoined), sHome, ".xlang");
-		xlPathJoin(sJoined, sizeof(sJoined), sJoined, "packages");
+	if ( pCtx->sProjectRoot[0] == '\0' ) {
+		snprintf(pCtx->sProjectRoot, sizeof(pCtx->sProjectRoot), "%s", (sRootInputFile != NULL) ? sRootInputFile : "");
+		__xlModuleStripFileName(pCtx->sProjectRoot);
+	}
+	if ( pCtx->sProjectRoot[0] != '\0' ) {
+		xlPathJoin(sJoined, sizeof(sJoined), pCtx->sProjectRoot, "libs");
 		(void)__xlProjectAddPath(pCtx->arrPackageRoots, &pCtx->iPackageRootCount, "", sJoined);
 	}
 
-	sEnv = getenv("XLANG_HOME");
-	if ( (sEnv != NULL) && (sEnv[0] != '\0') ) {
-		xlPathJoin(sJoined, sizeof(sJoined), sEnv, "libs");
-		(void)__xlProjectAddPath(pCtx->arrPackageRoots, &pCtx->iPackageRootCount, "", sJoined);
-		xlPathJoin(sJoined, sizeof(sJoined), sJoined, "packages");
-		(void)__xlProjectAddPath(pCtx->arrPackageRoots, &pCtx->iPackageRootCount, "", sJoined);
-		xlPathJoin(sJoined, sizeof(sJoined), sEnv, "packages");
-		(void)__xlProjectAddPath(pCtx->arrPackageRoots, &pCtx->iPackageRootCount, "", sJoined);
-		xlPathJoin(sJoined, sizeof(sJoined), sEnv, "lib");
-		xlPathJoin(sJoined, sizeof(sJoined), sJoined, "xlang");
-		xlPathJoin(sJoined, sizeof(sJoined), sJoined, "packages");
-		(void)__xlProjectAddPath(pCtx->arrPackageRoots, &pCtx->iPackageRootCount, "", sJoined);
-	}
-
-#if defined(_WIN32) || defined(_WIN64)
 	{
 		char sAppRoot[XL_PATH_MAX_LEN];
 
@@ -7104,17 +7025,8 @@ static void __xlProjectAddDefaultPackageRoots(XL_ModuleLinkContext* pCtx)
 			__xlModuleNormalizePath(sAppRoot, sizeof(sAppRoot), sAppRoot);
 			xlPathJoin(sJoined, sizeof(sJoined), sAppRoot, "libs");
 			(void)__xlProjectAddPath(pCtx->arrPackageRoots, &pCtx->iPackageRootCount, "", sJoined);
-			xlPathJoin(sJoined, sizeof(sJoined), sJoined, "packages");
-			(void)__xlProjectAddPath(pCtx->arrPackageRoots, &pCtx->iPackageRootCount, "", sJoined);
-			xlPathJoin(sJoined, sizeof(sJoined), sAppRoot, "packages");
-			(void)__xlProjectAddPath(pCtx->arrPackageRoots, &pCtx->iPackageRootCount, "", sJoined);
-			xlPathJoin(sJoined, sizeof(sJoined), sAppRoot, "lib");
-			xlPathJoin(sJoined, sizeof(sJoined), sJoined, "xlang");
-			xlPathJoin(sJoined, sizeof(sJoined), sJoined, "packages");
-			(void)__xlProjectAddPath(pCtx->arrPackageRoots, &pCtx->iPackageRootCount, "", sJoined);
 		}
 	}
-#endif
 }
 
 static int __xlProjectAddText(char arrItems[XL_PROJECT_PATH_MAX][128], size_t* piCount, const char* sValue)
@@ -7314,9 +7226,6 @@ static int __xlLoadProjectFile(XL_ModuleLinkContext* pCtx, const char* sProjectF
 	pathAdd.arrItems = pCtx->arrSourceRoots;
 	pathAdd.piCount = &pCtx->iSourceRootCount;
 	__xlJsonReadStringArray(sJson, "source", __xlProjectAddPathFromJson, &pathAdd);
-	pathAdd.arrItems = pCtx->arrPackageRoots;
-	pathAdd.piCount = &pCtx->iPackageRootCount;
-	__xlJsonReadStringArray(sJson, "packages", __xlProjectAddPathFromJson, &pathAdd);
 	pathAdd.arrItems = pCtx->arrProjectLibPaths;
 	pathAdd.piCount = &pCtx->iProjectLibPathCount;
 	__xlJsonReadStringArray(sJson, "libpath", __xlProjectAddPathFromJson, &pathAdd);
@@ -7331,9 +7240,6 @@ static int __xlLoadProjectFile(XL_ModuleLinkContext* pCtx, const char* sProjectF
 
 	if ( pCtx->iSourceRootCount == 0 ) {
 		(void)__xlProjectAddPath(pCtx->arrSourceRoots, &pCtx->iSourceRootCount, pCtx->sProjectRoot, "src");
-	}
-	if ( pCtx->iPackageRootCount == 0 ) {
-		(void)__xlProjectAddPath(pCtx->arrPackageRoots, &pCtx->iPackageRootCount, pCtx->sProjectRoot, ".");
 	}
 	if ( (pCtx->sProjectMain[0] == '\0') &&
 		(strcmp(pCtx->sProjectType, "package") == 0) &&
@@ -7565,36 +7471,6 @@ static void __xlAppendImportSearchPath(XL_ModuleTextBuffer* pBuf, const char* sP
 	__xlModuleBufAppend(pBuf, sPath);
 }
 
-static void __xlAppendXlePackageSearchRoots(XL_ModuleTextBuffer* pBuf, const char* sSearchStart)
-{
-	char sSearchDir[XL_PATH_MAX_LEN];
-
-	if ( (pBuf == NULL) || (sSearchStart == NULL) || (sSearchStart[0] == '\0') ) {
-		return;
-	}
-
-	snprintf(sSearchDir, sizeof(sSearchDir), "%s", sSearchStart);
-	__xlModuleStripFileName(sSearchDir);
-	while ( sSearchDir[0] != '\0' ) {
-		char sPackageDir[XL_PATH_MAX_LEN];
-		char sLibDir[XL_PATH_MAX_LEN];
-		char sLibPackageDir[XL_PATH_MAX_LEN];
-		char sPrevDir[XL_PATH_MAX_LEN];
-
-		snprintf(sPrevDir, sizeof(sPrevDir), "%s", sSearchDir);
-		xlPathJoin(sLibDir, sizeof(sLibDir), sSearchDir, "libs");
-		__xlAppendImportSearchPath(pBuf, sLibDir);
-		xlPathJoin(sLibPackageDir, sizeof(sLibPackageDir), sLibDir, "packages");
-		__xlAppendImportSearchPath(pBuf, sLibPackageDir);
-		xlPathJoin(sPackageDir, sizeof(sPackageDir), sSearchDir, "packages");
-		__xlAppendImportSearchPath(pBuf, sPackageDir);
-		__xlModuleStripFileName(sSearchDir);
-		if ( strcmp(sPrevDir, sSearchDir) == 0 ) {
-			break;
-		}
-	}
-}
-
 static void __xlEmitImportNotFoundDiag(
 	XL_ModuleLinkContext* pCtx,
 	const char* sImportKey,
@@ -7619,10 +7495,6 @@ static void __xlEmitImportNotFoundDiag(
 	for ( i = 0; i < pCtx->iPackageRootCount; ++i ) {
 		__xlAppendImportSearchPath(&paths, pCtx->arrPackageRoots[i]);
 	}
-	if ( (sImporterManifestPath != NULL) && (sImporterManifestPath[0] != '\0') ) {
-		__xlAppendXlePackageSearchRoots(&paths, sImporterManifestPath);
-	}
-	__xlAppendXlePackageSearchRoots(&paths, sLocalCandidateFile);
 	__xlAppendImportSearchPath(&paths, "native registry");
 
 	XL_DIAG_ERROR(
@@ -7649,10 +7521,6 @@ static int __xlFindXleModuleForImport(
 	size_t i;
 
 	if ( (pCtx != NULL) && (pCtx->iPackageRootCount != 0) ) {
-		if ( (sImporterManifestPath != NULL) && (sImporterManifestPath[0] != '\0') &&
-			(xlXleFindModuleSource(sLocalCandidateFile, sImporterManifestPath, sImportKey, pInfo) == XL_RC_OK) ) {
-			return XL_RC_OK;
-		}
 		for ( i = 0; i < pCtx->iPackageRootCount; ++i ) {
 			arrRoots[i] = pCtx->arrPackageRoots[i];
 		}
@@ -7660,7 +7528,9 @@ static int __xlFindXleModuleForImport(
 			return XL_RC_OK;
 		}
 	}
-	return xlXleFindModuleSource(sLocalCandidateFile, sImporterManifestPath, sImportKey, pInfo);
+	XL_UNUSED(sLocalCandidateFile);
+	XL_UNUSED(sImporterManifestPath);
+	return XL_RC_FAIL;
 }
 
 static int __xlIsStdModuleKey(const char* sModuleKey)
@@ -8438,7 +8308,7 @@ int xlModuleLinkFromFile(const char* sInputFile, XL_DiagContext* pDiag, int bTra
 			goto cleanup;
 		}
 	}
-	__xlProjectAddDefaultPackageRoots(&ctx);
+	__xlProjectAddDefaultPackageRoots(&ctx, sRootInputFile);
 	iRc = __xlInitLocalSourcePackageIdentity(&ctx, sRootInputFile);
 	if ( iRc != XL_RC_OK ) {
 		goto cleanup;

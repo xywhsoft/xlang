@@ -19,6 +19,7 @@ static int __xlXleParseExports(const char* sJson, const char* sModuleKey, XL_Xle
 static int __xlXleParseArtifactSection(const char* sJson, XL_XleResolveInfo* pInfo);
 static int __xlXleParseArtifactLinkArrays(const char* sJson, XL_XleResolveInfo* pInfo);
 static int __xlXleFinalizeArtifactInfo(XL_XleResolveInfo* pInfo, const char* sManifestPath, const char* sModuleFile, int bIsNative);
+static int __xlXleTryResolveFromPackageDir(const char* sPackageDir, const char* sImportKey, const char* sVersion, XL_XleResolveInfo* pInfo);
 
 void xlXleResolveInfoInit(XL_XleResolveInfo* pInfo)
 {
@@ -1119,43 +1120,17 @@ static int __xlXleFinalizeArtifactInfo(XL_XleResolveInfo* pInfo, const char* sMa
 
 static int __xlXleTryResolveFromSearchRoot(const char* sSearchRoot, const char* sImportKey, const char* sVersion, XL_XleResolveInfo* pInfo)
 {
-	char sSearchDir[XL_PATH_MAX_LEN];
+	char sPackageRoot[XL_PATH_MAX_LEN];
 
 	if ( (sSearchRoot == NULL) || (sImportKey == NULL) || (pInfo == NULL) ) {
 		return XL_RC_BAD_ARG;
 	}
 
-	snprintf(sSearchDir, sizeof(sSearchDir), "%s", sSearchRoot);
-	while ( sSearchDir[0] != '\0' ) {
-		char sCandidateDir[XL_PATH_MAX_LEN];
-		char sCandidateFile[XL_PATH_MAX_LEN];
-		char sPackageDir[XL_PATH_MAX_LEN];
-		char sPrevDir[XL_PATH_MAX_LEN];
-
-		snprintf(sPrevDir, sizeof(sPrevDir), "%s", sSearchDir);
-		xlPathJoin(sPackageDir, sizeof(sPackageDir), sSearchDir, "packages");
-		if ( (sVersion != NULL) && (sVersion[0] != '\0') ) {
-			snprintf(sCandidateDir, sizeof(sCandidateDir), "%s@%s", sImportKey, sVersion);
-			xlPathJoin(sCandidateFile, sizeof(sCandidateFile), sPackageDir, sCandidateDir);
-			xlPathJoin(sCandidateDir, sizeof(sCandidateDir), sCandidateFile, "package.json");
-			if ( __xlXleFileExists(sCandidateDir) ) {
-				return __xlXleResolveModuleFromManifest(sCandidateDir, sImportKey, pInfo);
-			}
-		}
-
-		xlPathJoin(sCandidateDir, sizeof(sCandidateDir), sPackageDir, sImportKey);
-		xlPathJoin(sCandidateFile, sizeof(sCandidateFile), sCandidateDir, "package.json");
-		if ( __xlXleFileExists(sCandidateFile) ) {
-			return __xlXleResolveModuleFromManifest(sCandidateFile, sImportKey, pInfo);
-		}
-
-		__xlXleStripFileName(sSearchDir);
-		if ( strcmp(sPrevDir, sSearchDir) == 0 ) {
-			break;
-		}
+	snprintf(sPackageRoot, sizeof(sPackageRoot), "%s", sSearchRoot);
+	if ( sPackageRoot[0] == '\0' ) {
+		return XL_RC_FAIL;
 	}
-
-	return XL_RC_FAIL;
+	return __xlXleTryResolveFromPackageDir(sPackageRoot, sImportKey, sVersion, pInfo);
 }
 
 static int __xlXleTryResolveFromPackageDir(const char* sPackageDir, const char* sImportKey, const char* sVersion, XL_XleResolveInfo* pInfo)
@@ -1500,12 +1475,14 @@ int xlXleFindModuleSource(
 		(__xlXleFindDependencyVersion(sCurrentManifestPath, sImportKey, sVersion, sizeof(sVersion)) == XL_RC_OK) ) {
 		snprintf(sSearchDir, sizeof(sSearchDir), "%s", sCurrentManifestPath);
 		__xlXleStripFileName(sSearchDir);
+		xlPathJoin(sSearchDir, sizeof(sSearchDir), sSearchDir, "libs");
 		if ( __xlXleTryResolveFromSearchRoot(sSearchDir, sImportKey, sVersion, pInfo) == XL_RC_OK ) {
 			return XL_RC_OK;
 		}
 	}
 	snprintf(sSearchDir, sizeof(sSearchDir), "%s", sCurrentFile);
 	__xlXleStripFileName(sSearchDir);
+	xlPathJoin(sSearchDir, sizeof(sSearchDir), sSearchDir, "libs");
 	return __xlXleTryResolveFromSearchRoot(sSearchDir, sImportKey, NULL, pInfo);
 }
 

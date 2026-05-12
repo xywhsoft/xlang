@@ -1642,7 +1642,7 @@ static int __xlTestDiagImportSearchPaths(XL_TestContext* pCtx)
 	if ( (strstr(sText, "import not found") == NULL) ||
 		(strstr(sText, "missing.pkg.module") == NULL) ||
 		(strstr(sText, "search paths") == NULL) ||
-		(strstr(sText, "packages") == NULL) ||
+		(strstr(sText, "libs") == NULL) ||
 		(strstr(sText, "native registry") == NULL) ) {
 		free(sText);
 		return XL_RC_FAIL;
@@ -5688,7 +5688,7 @@ static int __xlTestSemXleSourceDefaultMetadata(XL_TestContext* pCtx)
 	char* sJson;
 	int iRc;
 
-	__xlBuildProjectPath(pCtx, sPath, sizeof(sPath), "release\\libs\\packages\\pkg.math\\src\\math_pkg_impl.xl");
+	__xlBuildProjectPath(pCtx, sPath, sizeof(sPath), "release\\libs\\pkg.math\\src\\math_pkg_impl.xl");
 	__xlInitSilentDiag(pCtx, &diag);
 	xlModuleLinkResultInit(&moduleResult);
 	xlSemResultInit(&semResult);
@@ -14007,10 +14007,10 @@ static int __xlPreparePublicLibsPkgMath(XL_TestContext* pCtx)
 	char sDstImpl[XL_PATH_MAX_LEN];
 	int iRc;
 
-	__xlBuildProjectPath(pCtx, sSrcManifest, sizeof(sSrcManifest), "examples\\xle\\packages\\pkg.math\\package.json");
-	__xlBuildProjectPath(pCtx, sSrcImpl, sizeof(sSrcImpl), "examples\\xle\\packages\\pkg.math\\src\\math_pkg_impl.xl");
-	__xlBuildProjectPath(pCtx, sDstManifest, sizeof(sDstManifest), "release\\libs\\packages\\pkg.math\\package.json");
-	__xlBuildProjectPath(pCtx, sDstImpl, sizeof(sDstImpl), "release\\libs\\packages\\pkg.math\\src\\math_pkg_impl.xl");
+	__xlBuildProjectPath(pCtx, sSrcManifest, sizeof(sSrcManifest), "examples\\xle\\libs\\pkg.math\\package.json");
+	__xlBuildProjectPath(pCtx, sSrcImpl, sizeof(sSrcImpl), "examples\\xle\\libs\\pkg.math\\src\\math_pkg_impl.xl");
+	__xlBuildProjectPath(pCtx, sDstManifest, sizeof(sDstManifest), "release\\libs\\pkg.math\\package.json");
+	__xlBuildProjectPath(pCtx, sDstImpl, sizeof(sDstImpl), "release\\libs\\pkg.math\\src\\math_pkg_impl.xl");
 
 	iRc = __xlCopyTextFile(sSrcManifest, sDstManifest);
 	if ( iRc != XL_RC_OK ) {
@@ -14035,23 +14035,26 @@ static int __xlTestRunPublicLibsPkgMathBasic(XL_TestContext* pCtx)
 	return __xlRunProgramCase(pCtx, "examples\\full\\public_libs_pkg_math_basic.xl", 1, 42, NULL, NULL);
 }
 
-static int __xlRunProjectWithEnvPath(
+static int __xlRunProjectWithIgnoredEnvPath(
 	XL_TestContext* pCtx,
 	const char* sProjectRel,
 	const char* sEnvName,
-	const char* sEnvPathRel,
-	int iExpectedExitCode
+	const char* sEnvPathRel
 )
 {
+	char sProjectPath[XL_PATH_MAX_LEN];
 	char sEnvPath[XL_PATH_MAX_LEN];
 	int iRc;
 
+	__xlBuildProjectPath(pCtx, sProjectPath, sizeof(sProjectPath), sProjectRel);
 	__xlBuildProjectPath(pCtx, sEnvPath, sizeof(sEnvPath), sEnvPathRel);
 #if defined(_WIN32) || defined(_WIN64)
 	{
 		char sOldValue[XL_PATH_MAX_LEN * 2];
 		const char* sOldEnv;
 		int bHadOldValue;
+		XL_ModuleLinkResult moduleResult;
+		XL_DiagContext diag;
 
 		sOldEnv = getenv(sEnvName);
 		bHadOldValue = (sOldEnv != NULL);
@@ -14061,17 +14064,23 @@ static int __xlRunProjectWithEnvPath(
 		if ( _putenv_s(sEnvName, sEnvPath) != 0 ) {
 			return XL_RC_FAIL;
 		}
-		iRc = __xlRunProgramCase(pCtx, sProjectRel, 1, iExpectedExitCode, NULL, NULL);
+		__xlInitSilentDiag(pCtx, &diag);
+		xlModuleLinkResultInit(&moduleResult);
+		iRc = xlModuleLinkFromFile(sProjectPath, &diag, 0, &moduleResult);
+		xlModuleLinkResultFree(&moduleResult);
 		if ( bHadOldValue ) {
 			_putenv_s(sEnvName, sOldValue);
 		} else {
 			_putenv_s(sEnvName, "");
 		}
+		iRc = (iRc == XL_RC_OK) ? XL_RC_FAIL : XL_RC_OK;
 	}
 #else
 	{
 		const char* sOldValue;
 		char* sOldCopy;
+		XL_ModuleLinkResult moduleResult;
+		XL_DiagContext diag;
 
 		sOldValue = getenv(sEnvName);
 		sOldCopy = (sOldValue != NULL) ? __xlTestDupCString(sOldValue) : NULL;
@@ -14079,35 +14088,37 @@ static int __xlRunProjectWithEnvPath(
 			free(sOldCopy);
 			return XL_RC_FAIL;
 		}
-		iRc = __xlRunProgramCase(pCtx, sProjectRel, 1, iExpectedExitCode, NULL, NULL);
+		__xlInitSilentDiag(pCtx, &diag);
+		xlModuleLinkResultInit(&moduleResult);
+		iRc = xlModuleLinkFromFile(sProjectPath, &diag, 0, &moduleResult);
+		xlModuleLinkResultFree(&moduleResult);
 		if ( sOldCopy != NULL ) {
 			setenv(sEnvName, sOldCopy, 1);
 			free(sOldCopy);
 		} else {
 			unsetenv(sEnvName);
 		}
+		iRc = (iRc == XL_RC_OK) ? XL_RC_FAIL : XL_RC_OK;
 	}
 #endif
 	return iRc;
 }
 static int __xlTestProjectUserPackagePath(XL_TestContext* pCtx)
 {
-	return __xlRunProjectWithEnvPath(
+	return __xlRunProjectWithIgnoredEnvPath(
 		pCtx,
 		"examples\\project\\env_pkg\\xlang.json",
 		"XLANG_PACKAGE_PATH",
-		"examples\\xle_source\\packages",
-		42
+		"examples\\xle_env_only\\libs"
 	);
 }
 static int __xlTestProjectXlangHomePackagePath(XL_TestContext* pCtx)
 {
-	return __xlRunProjectWithEnvPath(
+	return __xlRunProjectWithIgnoredEnvPath(
 		pCtx,
 		"examples\\project\\xlang_home_pkg\\xlang.json",
 		"XLANG_HOME",
-		"examples\\xle_source",
-		42
+		"examples\\xle_env_only"
 	);
 }
 static int __xlTestProjectLinkFromJson(XL_TestContext* pCtx)
@@ -14216,7 +14227,7 @@ static int __xlTestProjectImportErrorPaths(XL_TestContext* pCtx)
 	if ( iRc != XL_RC_OK ) return iRc;
 	if ( (strstr(sText, "missing.project.module") == NULL) ||
 		(strstr(sText, "examples\\project\\error_paths\\src") == NULL) ||
-		(strstr(sText, "examples\\project\\error_paths\\vendor_packages") == NULL) ) {
+		(strstr(sText, "examples\\project\\error_paths\\libs") == NULL) ) {
 		free(sText);
 		return XL_RC_FAIL;
 	}
