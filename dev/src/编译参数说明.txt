@@ -1,4 +1,0 @@
--o2															O2级别优化
--s															删除符号表（减少文件体积）
--ffunction-sections -fdata-sections -Wl,--gc-sections		删除不使用的函数和段（减少文件体积）
--m128bit-long-double										使用 128 位的 long double 类型（影响32位编译结果，32位默认使用80位）
