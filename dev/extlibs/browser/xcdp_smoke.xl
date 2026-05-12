@@ -1,0 +1,33 @@
+import x.cdp
+
+func main() as int
+	if x.cdp.version() == "" then
+		return 1
+	end
+	if x.cdp.version_url("http://127.0.0.1:9222") != "http://127.0.0.1:9222/json/version" then
+		return 2
+	end
+	if x.cdp.list_url("http://127.0.0.1:9222/") != "http://127.0.0.1:9222/json/list" then
+		return 3
+	end
+	if x.cdp.protocol_url("http://127.0.0.1:9222") != "http://127.0.0.1:9222/json/protocol" then
+		return 4
+	end
+	string body = x.cdp.http_get("http://127.0.0.1:9/json/version", 50)
+	if body != "" then
+		return 5
+	end
+	if x.cdp.last_error() == "" then
+		return 6
+	end
+	point conn = x.cdp.connect("ws://127.0.0.1:9/devtools/browser/not-running", 50)
+	if conn != null then
+		x.cdp.close(conn)
+		x.cdp.dispose(conn)
+		return 7
+	end
+	if x.cdp.last_error() == "" then
+		return 8
+	end
+	return 0
+end

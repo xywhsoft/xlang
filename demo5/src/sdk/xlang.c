@@ -15,6 +15,7 @@
 #include "../lower/xl_lower.h"
 #include "../runtime/xl_exec_ctx.h"
 #include "../sem/xl_resolve.h"
+#include "xrt.h"
 
 typedef struct xlang_registered_symbol {
 	char name[128];
@@ -470,6 +471,7 @@ xlang_runtime* xlang_runtime_create(const xlang_options* options)
 {
 	xlang_runtime* runtime;
 
+	xrtInit();
 	runtime = (xlang_runtime*)calloc(1u, sizeof(*runtime));
 	if ( runtime == NULL ) {
 		return NULL;

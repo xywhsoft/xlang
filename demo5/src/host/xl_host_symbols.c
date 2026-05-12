@@ -625,16 +625,20 @@ static const XL_HostSymbolEntry __gXLHostSymbols[] = {
 	{ "xl_mem_read_string", xl_mem_read_string }
 };
 
-int xlHostRegisterSymbols(TCCState* pTcc)
+static const XL_HostSymbolEntry __gXLHostXrtSymbols[] = {
+#include "xl_host_xrt_symbols.inc"
+};
+
+static int __xlRegisterSymbolTable(TCCState* pTcc, const XL_HostSymbolEntry* pSymbols, size_t iCount)
 {
 	size_t i;
 
-	if ( pTcc == NULL ) {
+	if ( (pTcc == NULL) || (pSymbols == NULL) ) {
 		return XL_RC_BAD_ARG;
 	}
 
-	for ( i = 0; i < XL_COUNTOF(__gXLHostSymbols); ++i ) {
-		if ( __xlAddSymbol(pTcc, __gXLHostSymbols[i].sName, __gXLHostSymbols[i].pValue) != XL_RC_OK ) {
+	for ( i = 0; i < iCount; ++i ) {
+		if ( __xlAddSymbol(pTcc, pSymbols[i].sName, pSymbols[i].pValue) != XL_RC_OK ) {
 			return XL_RC_FAIL;
 		}
 	}
@@ -642,30 +646,65 @@ int xlHostRegisterSymbols(TCCState* pTcc)
 	return XL_RC_OK;
 }
 
+int xlHostRegisterSymbols(TCCState* pTcc)
+{
+	if ( pTcc == NULL ) {
+		return XL_RC_BAD_ARG;
+	}
+
+	if ( __xlRegisterSymbolTable(pTcc, __gXLHostSymbols, XL_COUNTOF(__gXLHostSymbols)) != XL_RC_OK ) return XL_RC_FAIL;
+	if ( __xlRegisterSymbolTable(pTcc, __gXLHostXrtSymbols, XL_COUNTOF(__gXLHostXrtSymbols)) != XL_RC_OK ) return XL_RC_FAIL;
+
+	return XL_RC_OK;
+}
+
 #if XLANG_DEBUGMODE_ENABLED
-char* xlHostDumpSymbolsJson(void)
+static size_t __xlDumpSymbolTableJson(
+	char* sOut,
+	size_t iCap,
+	size_t iLen,
+	const XL_HostSymbolEntry* pSymbols,
+	size_t iCount,
+	size_t* piOrdinal
+)
 {
 	size_t i;
+
+	if ( (sOut == NULL) || (pSymbols == NULL) || (piOrdinal == NULL) ) {
+		return iLen;
+	}
+
+	for ( i = 0; i < iCount; ++i ) {
+		iLen += (size_t)snprintf(
+			sOut + iLen,
+			iCap - iLen,
+			"\t\t{\"name\": \"%s\"}%s\n",
+			pSymbols[i].sName,
+			((*piOrdinal) + 1u) < (XL_COUNTOF(__gXLHostSymbols) + XL_COUNTOF(__gXLHostXrtSymbols)) ? "," : ""
+		);
+		*piOrdinal += 1u;
+	}
+
+	return iLen;
+}
+
+char* xlHostDumpSymbolsJson(void)
+{
 	size_t iCap;
 	size_t iLen;
+	size_t iOrdinal;
 	char* sOut;
 
-	iCap = (XL_COUNTOF(__gXLHostSymbols) * 96u) + 64u;
+	iCap = ((XL_COUNTOF(__gXLHostSymbols) + XL_COUNTOF(__gXLHostXrtSymbols)) * 96u) + 64u;
 	sOut = (char*)malloc(iCap);
 	if ( sOut == NULL ) {
 		return NULL;
 	}
 
 	iLen = (size_t)snprintf(sOut, iCap, "{\n\t\"symbols\": [\n");
-	for ( i = 0; i < XL_COUNTOF(__gXLHostSymbols); ++i ) {
-		iLen += (size_t)snprintf(
-			sOut + iLen,
-			iCap - iLen,
-			"\t\t{\"name\": \"%s\"}%s\n",
-			__gXLHostSymbols[i].sName,
-			(i + 1u) < XL_COUNTOF(__gXLHostSymbols) ? "," : ""
-		);
-	}
+	iOrdinal = 0;
+	iLen = __xlDumpSymbolTableJson(sOut, iCap, iLen, __gXLHostSymbols, XL_COUNTOF(__gXLHostSymbols), &iOrdinal);
+	iLen = __xlDumpSymbolTableJson(sOut, iCap, iLen, __gXLHostXrtSymbols, XL_COUNTOF(__gXLHostXrtSymbols), &iOrdinal);
 	snprintf(sOut + iLen, iCap - iLen, "\t]\n}\n");
 	return sOut;
 }

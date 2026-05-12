@@ -64,6 +64,9 @@ const char* xlrt_host_name(void)
 int xlrt_attach_generated_runtime(void)
 {
 	xlrt_native_error_clear();
+	if ( !xCore.bInit ) {
+		return (xrtInit() != NULL) ? 2 : -1;
+	}
 	if ( xrtThreadIsAttached() ) {
 		return 0;
 	}
@@ -73,6 +76,10 @@ int xlrt_attach_generated_runtime(void)
 
 void xlrt_detach_generated_runtime(int bAttachedHere)
 {
+	if ( bAttachedHere > 1 ) {
+		xrtUnit();
+		return;
+	}
 	if ( (bAttachedHere > 0) && xrtThreadIsAttached() ) {
 		xrtThreadDetachCurrent();
 	}

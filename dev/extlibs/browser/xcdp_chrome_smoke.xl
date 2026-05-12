@@ -1,0 +1,44 @@
+import x.cdp
+import std.core
+import std.str
+
+func main() as int
+	point conn = x.cdp.connect_http("http://127.0.0.1:9223", 5000)
+	if conn == null then
+		std.core.println(x.cdp.last_error())
+		return 1
+	end
+	string version = x.cdp.send(conn, "Browser.getVersion", "{}", 5000)
+	if str.contains(version, "product") == false then
+		x.cdp.close(conn)
+		x.cdp.dispose(conn)
+		return 2
+	end
+	string discover = x.cdp.send(conn, "Target.setDiscoverTargets", "{\"discover\":true}", 5000)
+	if str.contains(discover, "result") == false then
+		x.cdp.close(conn)
+		x.cdp.dispose(conn)
+		return 3
+	end
+	string created = x.cdp.send(conn, "Target.createTarget", "{\"url\":\"about:blank\"}", 5000)
+	if str.contains(created, "targetId") == false then
+		x.cdp.close(conn)
+		x.cdp.dispose(conn)
+		return 4
+	end
+	int found = 0
+	int i = 0
+	while i < 5 do
+		string event = x.cdp.next_event(conn, 1000)
+		if str.contains(event, "Target.targetCreated") then
+			found = 1
+		end
+		i = i + 1
+	end
+	x.cdp.close(conn)
+	x.cdp.dispose(conn)
+	if found == 0 then
+		return 5
+	end
+	return 0
+end
