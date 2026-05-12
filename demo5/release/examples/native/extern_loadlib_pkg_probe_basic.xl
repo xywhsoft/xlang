@@ -1,6 +1,6 @@
 import std.core
 
-#loadlib "../xle_native/packages/pkg.probe/bin/pkg_probe.dll"
+#loadlib "../xle_native/libs/pkg.probe/bin/pkg_probe.dll"
 
 extern "pkg_clock_artifact_probe" func probe() as int
 

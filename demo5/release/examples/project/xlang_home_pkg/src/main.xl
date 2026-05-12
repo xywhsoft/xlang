@@ -1,5 +1,5 @@
-import pkg.math
+import pkg.envonly
 
 func main() as int
-	return pkg.math.base + 1
+	return pkg.envonly.value()
 end

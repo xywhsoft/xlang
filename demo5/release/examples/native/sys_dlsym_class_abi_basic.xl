@@ -11,7 +11,7 @@ class NativePair
 end
 
 func main() as int
-	auto lib = sys.dlopen("examples/xle_native/packages/pkg.probe/bin/pkg_probe.dll")
+	auto lib = sys.dlopen("examples/xle_native/libs/pkg.probe/bin/pkg_probe.dll")
 
 	function<NativePair(int, int)> pair_make = function<NativePair(int, int)>(sys.dlsym(lib, "pkg_clock_artifact_pair_make"))
 	function<int(NativePair)> pair_value_sum = function<int(NativePair)>(sys.dlsym(lib, "pkg_clock_artifact_pair_value_sum"))

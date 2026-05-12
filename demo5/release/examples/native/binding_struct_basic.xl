@@ -1,4 +1,4 @@
-#loadlib "../xle_native/packages/pkg.probe/bin/pkg_probe.dll"
+#loadlib "../xle_native/libs/pkg.probe/bin/pkg_probe.dll"
 #binding "binding_struct_probe.h"
 
 func main() as int

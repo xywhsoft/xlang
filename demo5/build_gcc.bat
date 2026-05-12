@@ -52,15 +52,14 @@ if not exist release\examples (
 	echo Missing examples source: neither .\examples nor .\release\examples exists.
 	exit /b 1
 )
-if not exist release\examples\xle_native\packages\pkg.clock\bin mkdir release\examples\xle_native\packages\pkg.clock\bin
-if not exist release\examples\xle_native\packages\pkg.probe\bin mkdir release\examples\xle_native\packages\pkg.probe\bin
-if not exist release\examples\xle_official_native\packages\x.image.bmp\bin mkdir release\examples\xle_official_native\packages\x.image.bmp\bin
-if not exist release\examples\xle_official_native\packages\x.archive.tar\bin mkdir release\examples\xle_official_native\packages\x.archive.tar\bin
-if not exist release\examples\xle_official_native\packages\x.archive.zip\bin mkdir release\examples\xle_official_native\packages\x.archive.zip\bin
-if not exist release\examples\xle_official_native\packages\x.compress.gzip\bin mkdir release\examples\xle_official_native\packages\x.compress.gzip\bin
-if not exist release\examples\xle_official_native\packages\x.com\bin mkdir release\examples\xle_official_native\packages\x.com\bin
-if not exist release\examples\xle_static\packages\pkg.clock\lib mkdir release\examples\xle_static\packages\pkg.clock\lib
-if not exist release\examples\xle_static\packages\pkg.probe\lib mkdir release\examples\xle_static\packages\pkg.probe\lib
+if not exist release\examples\xle_native\libs\pkg.clock\bin mkdir release\examples\xle_native\libs\pkg.clock\bin
+if not exist release\examples\xle_native\libs\pkg.probe\bin mkdir release\examples\xle_native\libs\pkg.probe\bin
+if not exist release\examples\xle_official_native\libs\x.image.bmp\bin mkdir release\examples\xle_official_native\libs\x.image.bmp\bin
+if not exist release\examples\xle_official_native\libs\x.archive.tar\bin mkdir release\examples\xle_official_native\libs\x.archive.tar\bin
+if not exist release\examples\xle_official_native\libs\x.archive.zip\bin mkdir release\examples\xle_official_native\libs\x.archive.zip\bin
+if not exist release\examples\xle_official_native\libs\x.compress.gzip\bin mkdir release\examples\xle_official_native\libs\x.compress.gzip\bin
+if not exist release\examples\xle_static\libs\pkg.clock\lib mkdir release\examples\xle_static\libs\pkg.clock\lib
+if not exist release\examples\xle_static\libs\pkg.probe\lib mkdir release\examples\xle_static\libs\pkg.probe\lib
 
 copy /y src\common\xl_common.h release\tcc\support\common\xl_common.h >nul
 copy /y src\common\xl_config.h release\tcc\support\common\xl_config.h >nul
@@ -243,52 +242,45 @@ if not exist "%XL5_TEST_BUILD_EXE%" (
 )
 
 echo Building xle example artifacts...
-gcc -std=c11 -shared -o release\examples\xle_native\packages\pkg.clock\bin\pkg_clock.dll release\examples\xle_artifacts\pkg_clock_artifact.c
+gcc -std=c11 -shared -o release\examples\xle_native\libs\pkg.clock\bin\pkg_clock.dll release\examples\xle_artifacts\pkg_clock_artifact.c
 
 if errorlevel 1 (
 	echo Shared xle artifact build failed.
 	exit /b 1
 )
 
-gcc -std=c11 -shared -o release\examples\xle_native\packages\pkg.probe\bin\pkg_probe.dll release\examples\xle_artifacts\pkg_clock_artifact.c
+gcc -std=c11 -shared -o release\examples\xle_native\libs\pkg.probe\bin\pkg_probe.dll release\examples\xle_artifacts\pkg_clock_artifact.c
 
 if errorlevel 1 (
 	echo Shared xle probe artifact build failed.
 	exit /b 1
 )
 
-gcc -std=c11 -shared -o release\examples\xle_official_native\packages\x.image.bmp\bin\x_image_bmp.dll release\examples\xle_artifacts\x_image_bmp_artifact.c
+gcc -std=c11 -shared -o release\examples\xle_official_native\libs\x.image.bmp\bin\x_image_bmp.dll release\examples\xle_artifacts\x_image_bmp_artifact.c
 
 if errorlevel 1 (
 	echo Official xle image bmp artifact build failed.
 	exit /b 1
 )
 
-gcc -std=c11 -shared -o release\examples\xle_official_native\packages\x.archive.tar\bin\x_archive_tar.dll release\examples\xle_artifacts\x_archive_tar_artifact.c
+gcc -std=c11 -shared -o release\examples\xle_official_native\libs\x.archive.tar\bin\x_archive_tar.dll release\examples\xle_artifacts\x_archive_tar_artifact.c
 
 if errorlevel 1 (
 	echo Official xle archive tar artifact build failed.
 	exit /b 1
 )
 
-gcc -std=c11 -shared -o release\examples\xle_official_native\packages\x.archive.zip\bin\x_archive_zip.dll release\examples\xle_artifacts\x_archive_zip_artifact.c
+gcc -std=c11 -shared -o release\examples\xle_official_native\libs\x.archive.zip\bin\x_archive_zip.dll release\examples\xle_artifacts\x_archive_zip_artifact.c
 
 if errorlevel 1 (
 	echo Official xle archive zip artifact build failed.
 	exit /b 1
 )
 
-gcc -std=c11 -shared -o release\examples\xle_official_native\packages\x.compress.gzip\bin\x_compress_gzip.dll release\examples\xle_artifacts\x_compress_gzip_artifact.c
+gcc -std=c11 -shared -o release\examples\xle_official_native\libs\x.compress.gzip\bin\x_compress_gzip.dll release\examples\xle_artifacts\x_compress_gzip_artifact.c
 
 if errorlevel 1 (
 	echo Official xle compress gzip artifact build failed.
-	exit /b 1
-)
-
-gcc -std=c11 -shared -D_CRT_SECURE_NO_WARNINGS -o release\examples\xle_official_native\packages\x.com\bin\x_com.dll release\examples\xle_artifacts\x_com_artifact.c -lole32 -loleaut32 -luuid
-
-if errorlevel 1 (
-	echo Official xle com artifact build failed.
 	exit /b 1
 )
 
@@ -306,14 +298,14 @@ if errorlevel 1 (
 	exit /b 1
 )
 
-copy /y release\tmp\pkg_clock_static.a release\examples\xle_static\packages\pkg.clock\lib\pkg_clock.a >nul
+copy /y release\tmp\pkg_clock_static.a release\examples\xle_static\libs\pkg.clock\lib\pkg_clock.a >nul
 
 if errorlevel 1 (
 	echo Static xle artifact copy failed.
 	exit /b 1
 )
 
-copy /y release\tmp\pkg_clock_static.a release\examples\xle_static\packages\pkg.probe\lib\pkg_probe.a >nul
+copy /y release\tmp\pkg_clock_static.a release\examples\xle_static\libs\pkg.probe\lib\pkg_probe.a >nul
 
 if errorlevel 1 (
 	echo Static xle probe artifact archive build failed.

@@ -1,7 +1,7 @@
 import std.sys.lib as sys
 
 func main() as int
-	auto lib = sys.dlopen("examples/xle_native/packages/pkg.probe/bin/pkg_probe.dll")
+	auto lib = sys.dlopen("examples/xle_native/libs/pkg.probe/bin/pkg_probe.dll")
 
 	function<int()> probe = function<int()>(sys.dlsym(lib, "pkg_clock_artifact_probe"))
 	function<string()> text = function<string()>(sys.dlsym(lib, "pkg_clock_artifact_text"))

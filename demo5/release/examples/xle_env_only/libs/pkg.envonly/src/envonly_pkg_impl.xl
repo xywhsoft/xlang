@@ -1,0 +1,5 @@
+func value() as int
+	return 42
+end
+
+export value
