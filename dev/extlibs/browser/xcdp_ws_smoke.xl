@@ -1,0 +1,21 @@
+import x.cdp
+import std.env as env
+import std.str
+
+func main() as int
+	string ws = env.read("XCDP_WS_URL")
+	if ws == "" then
+		return 1
+	end
+	point conn = x.cdp.connect(ws, 5000)
+	if conn == null then
+		return 2
+	end
+	string version = x.cdp.send(conn, "Browser.getVersion", "{}", 5000)
+	x.cdp.close(conn)
+	x.cdp.dispose(conn)
+	if str.contains(version, "product") == false then
+		return 3
+	end
+	return 0
+end

@@ -1,0 +1,293 @@
+{
+	"format": "xle-1",
+	"package": {
+		"name": "x.cdp",
+		"version": "0.1.0",
+		"abiVersion": "1",
+		"xlangAbi": "1",
+		"abiId": "x.cdp@0.1.0#abi1"
+	},
+	"artifact": {
+		"kind": "c-source",
+		"path": "src\\x_cdp.c",
+		"linkLibs": []
+	},
+	"dependencies": [],
+	"modules": [
+		{
+			"key": "x.cdp",
+			"abiId": "x.cdp@0.1.0#abi1::x.cdp",
+			"file": "src\\x_cdp.c",
+			"root": 0,
+			"native": 1,
+			"binding": "x.cdp",
+			"imports": [],
+			"exports": [
+				{ "name": "version", "symbol": "version", "kind": "function", "overloadCount": 1 },
+				{ "name": "last_error", "symbol": "last_error", "kind": "function", "overloadCount": 1 },
+				{ "name": "error", "symbol": "error", "kind": "function", "overloadCount": 1 },
+				{ "name": "version_url", "symbol": "version_url", "kind": "function", "overloadCount": 1 },
+				{ "name": "list_url", "symbol": "list_url", "kind": "function", "overloadCount": 1 },
+				{ "name": "protocol_url", "symbol": "protocol_url", "kind": "function", "overloadCount": 1 },
+				{ "name": "http_get", "symbol": "http_get", "kind": "function", "overloadCount": 1 },
+				{ "name": "connect", "symbol": "connect", "kind": "function", "overloadCount": 1 },
+				{ "name": "connect_http", "symbol": "connect_http", "kind": "function", "overloadCount": 1 },
+				{ "name": "is_open", "symbol": "is_open", "kind": "function", "overloadCount": 1 },
+				{ "name": "send", "symbol": "send", "kind": "function", "overloadCount": 1 },
+				{ "name": "send_session", "symbol": "send_session", "kind": "function", "overloadCount": 1 },
+				{ "name": "next_event", "symbol": "next_event", "kind": "function", "overloadCount": 1 },
+				{ "name": "close", "symbol": "close", "kind": "function", "overloadCount": 1 },
+				{ "name": "dispose", "symbol": "dispose", "kind": "function", "overloadCount": 1 }
+			]
+		}
+	],
+	"functions": [
+		{
+			"module": "x.cdp",
+			"moduleAbiId": "x.cdp@0.1.0#abi1::x.cdp",
+			"exportName": "version",
+			"symbol": "x_cdp_version",
+			"overloadGroup": "x.cdp::version",
+			"signatureId": "version()",
+			"dispatchKey": "version$arity0",
+			"abiSymbol": "x_cdp_version$arity0__ret__string",
+			"returnType": "string",
+			"async": 0,
+			"generator": 0,
+			"params": []
+		},
+		{
+			"module": "x.cdp",
+			"moduleAbiId": "x.cdp@0.1.0#abi1::x.cdp",
+			"exportName": "last_error",
+			"symbol": "x_cdp_last_error",
+			"overloadGroup": "x.cdp::last_error",
+			"signatureId": "last_error()",
+			"dispatchKey": "last_error$arity0",
+			"abiSymbol": "x_cdp_last_error$arity0__ret__string",
+			"returnType": "string",
+			"async": 0,
+			"generator": 0,
+			"params": []
+		},
+		{
+			"module": "x.cdp",
+			"moduleAbiId": "x.cdp@0.1.0#abi1::x.cdp",
+			"exportName": "error",
+			"symbol": "x_cdp_error",
+			"overloadGroup": "x.cdp::error",
+			"signatureId": "error(point)",
+			"dispatchKey": "error$arity1|conn:point",
+			"abiSymbol": "x_cdp_error$arity1__conn__point__ret__string",
+			"returnType": "string",
+			"async": 0,
+			"generator": 0,
+			"params": [
+				{ "name": "conn", "label": "conn", "type": "point", "hasDefault": 0 }
+			]
+		},
+		{
+			"module": "x.cdp",
+			"moduleAbiId": "x.cdp@0.1.0#abi1::x.cdp",
+			"exportName": "version_url",
+			"symbol": "x_cdp_version_url",
+			"overloadGroup": "x.cdp::version_url",
+			"signatureId": "version_url(string)",
+			"dispatchKey": "version_url$arity1|endpoint:string",
+			"abiSymbol": "x_cdp_version_url$arity1__endpoint__string__ret__string",
+			"returnType": "string",
+			"async": 0,
+			"generator": 0,
+			"params": [
+				{ "name": "endpoint", "label": "endpoint", "type": "string", "hasDefault": 0 }
+			]
+		},
+		{
+			"module": "x.cdp",
+			"moduleAbiId": "x.cdp@0.1.0#abi1::x.cdp",
+			"exportName": "list_url",
+			"symbol": "x_cdp_list_url",
+			"overloadGroup": "x.cdp::list_url",
+			"signatureId": "list_url(string)",
+			"dispatchKey": "list_url$arity1|endpoint:string",
+			"abiSymbol": "x_cdp_list_url$arity1__endpoint__string__ret__string",
+			"returnType": "string",
+			"async": 0,
+			"generator": 0,
+			"params": [
+				{ "name": "endpoint", "label": "endpoint", "type": "string", "hasDefault": 0 }
+			]
+		},
+		{
+			"module": "x.cdp",
+			"moduleAbiId": "x.cdp@0.1.0#abi1::x.cdp",
+			"exportName": "protocol_url",
+			"symbol": "x_cdp_protocol_url",
+			"overloadGroup": "x.cdp::protocol_url",
+			"signatureId": "protocol_url(string)",
+			"dispatchKey": "protocol_url$arity1|endpoint:string",
+			"abiSymbol": "x_cdp_protocol_url$arity1__endpoint__string__ret__string",
+			"returnType": "string",
+			"async": 0,
+			"generator": 0,
+			"params": [
+				{ "name": "endpoint", "label": "endpoint", "type": "string", "hasDefault": 0 }
+			]
+		},
+		{
+			"module": "x.cdp",
+			"moduleAbiId": "x.cdp@0.1.0#abi1::x.cdp",
+			"exportName": "http_get",
+			"symbol": "x_cdp_http_get",
+			"overloadGroup": "x.cdp::http_get",
+			"signatureId": "http_get(string,int)",
+			"dispatchKey": "http_get$arity2|url:string|timeout_ms:int",
+			"abiSymbol": "x_cdp_http_get$arity2__url__string__timeout_ms__int__ret__string",
+			"returnType": "string",
+			"async": 0,
+			"generator": 0,
+			"params": [
+				{ "name": "url", "label": "url", "type": "string", "hasDefault": 0 },
+				{ "name": "timeout_ms", "label": "timeout_ms", "type": "int", "hasDefault": 0 }
+			]
+		},
+		{
+			"module": "x.cdp",
+			"moduleAbiId": "x.cdp@0.1.0#abi1::x.cdp",
+			"exportName": "connect",
+			"symbol": "x_cdp_connect",
+			"overloadGroup": "x.cdp::connect",
+			"signatureId": "connect(string,int)",
+			"dispatchKey": "connect$arity2|websocket_url:string|timeout_ms:int",
+			"abiSymbol": "x_cdp_connect$arity2__websocket_url__string__timeout_ms__int__ret__point",
+			"returnType": "point",
+			"async": 0,
+			"generator": 0,
+			"params": [
+				{ "name": "websocket_url", "label": "websocket_url", "type": "string", "hasDefault": 0 },
+				{ "name": "timeout_ms", "label": "timeout_ms", "type": "int", "hasDefault": 0 }
+			]
+		},
+		{
+			"module": "x.cdp",
+			"moduleAbiId": "x.cdp@0.1.0#abi1::x.cdp",
+			"exportName": "connect_http",
+			"symbol": "x_cdp_connect_http",
+			"overloadGroup": "x.cdp::connect_http",
+			"signatureId": "connect_http(string,int)",
+			"dispatchKey": "connect_http$arity2|endpoint:string|timeout_ms:int",
+			"abiSymbol": "x_cdp_connect_http$arity2__endpoint__string__timeout_ms__int__ret__point",
+			"returnType": "point",
+			"async": 0,
+			"generator": 0,
+			"params": [
+				{ "name": "endpoint", "label": "endpoint", "type": "string", "hasDefault": 0 },
+				{ "name": "timeout_ms", "label": "timeout_ms", "type": "int", "hasDefault": 0 }
+			]
+		},
+		{
+			"module": "x.cdp",
+			"moduleAbiId": "x.cdp@0.1.0#abi1::x.cdp",
+			"exportName": "is_open",
+			"symbol": "x_cdp_is_open",
+			"overloadGroup": "x.cdp::is_open",
+			"signatureId": "is_open(point)",
+			"dispatchKey": "is_open$arity1|conn:point",
+			"abiSymbol": "x_cdp_is_open$arity1__conn__point__ret__bool",
+			"returnType": "bool",
+			"async": 0,
+			"generator": 0,
+			"params": [
+				{ "name": "conn", "label": "conn", "type": "point", "hasDefault": 0 }
+			]
+		},
+		{
+			"module": "x.cdp",
+			"moduleAbiId": "x.cdp@0.1.0#abi1::x.cdp",
+			"exportName": "send",
+			"symbol": "x_cdp_send",
+			"overloadGroup": "x.cdp::send",
+			"signatureId": "send(point,string,string,int)",
+			"dispatchKey": "send$arity4|conn:point|method:string|params_json:string|timeout_ms:int",
+			"abiSymbol": "x_cdp_send$arity4__conn__point__method__string__params_json__string__timeout_ms__int__ret__string",
+			"returnType": "string",
+			"async": 0,
+			"generator": 0,
+			"params": [
+				{ "name": "conn", "label": "conn", "type": "point", "hasDefault": 0 },
+				{ "name": "method", "label": "method", "type": "string", "hasDefault": 0 },
+				{ "name": "params_json", "label": "params_json", "type": "string", "hasDefault": 0 },
+				{ "name": "timeout_ms", "label": "timeout_ms", "type": "int", "hasDefault": 0 }
+			]
+		},
+		{
+			"module": "x.cdp",
+			"moduleAbiId": "x.cdp@0.1.0#abi1::x.cdp",
+			"exportName": "send_session",
+			"symbol": "x_cdp_send_session",
+			"overloadGroup": "x.cdp::send_session",
+			"signatureId": "send_session(point,string,string,string,int)",
+			"dispatchKey": "send_session$arity5|conn:point|session_id:string|method:string|params_json:string|timeout_ms:int",
+			"abiSymbol": "x_cdp_send_session$arity5__conn__point__session_id__string__method__string__params_json__string__timeout_ms__int__ret__string",
+			"returnType": "string",
+			"async": 0,
+			"generator": 0,
+			"params": [
+				{ "name": "conn", "label": "conn", "type": "point", "hasDefault": 0 },
+				{ "name": "session_id", "label": "session_id", "type": "string", "hasDefault": 0 },
+				{ "name": "method", "label": "method", "type": "string", "hasDefault": 0 },
+				{ "name": "params_json", "label": "params_json", "type": "string", "hasDefault": 0 },
+				{ "name": "timeout_ms", "label": "timeout_ms", "type": "int", "hasDefault": 0 }
+			]
+		},
+		{
+			"module": "x.cdp",
+			"moduleAbiId": "x.cdp@0.1.0#abi1::x.cdp",
+			"exportName": "next_event",
+			"symbol": "x_cdp_next_event",
+			"overloadGroup": "x.cdp::next_event",
+			"signatureId": "next_event(point,int)",
+			"dispatchKey": "next_event$arity2|conn:point|timeout_ms:int",
+			"abiSymbol": "x_cdp_next_event$arity2__conn__point__timeout_ms__int__ret__string",
+			"returnType": "string",
+			"async": 0,
+			"generator": 0,
+			"params": [
+				{ "name": "conn", "label": "conn", "type": "point", "hasDefault": 0 },
+				{ "name": "timeout_ms", "label": "timeout_ms", "type": "int", "hasDefault": 0 }
+			]
+		},
+		{
+			"module": "x.cdp",
+			"moduleAbiId": "x.cdp@0.1.0#abi1::x.cdp",
+			"exportName": "close",
+			"symbol": "x_cdp_close",
+			"overloadGroup": "x.cdp::close",
+			"signatureId": "close(point)",
+			"dispatchKey": "close$arity1|conn:point",
+			"abiSymbol": "x_cdp_close$arity1__conn__point__ret__bool",
+			"returnType": "bool",
+			"async": 0,
+			"generator": 0,
+			"params": [
+				{ "name": "conn", "label": "conn", "type": "point", "hasDefault": 0 }
+			]
+		},
+		{
+			"module": "x.cdp",
+			"moduleAbiId": "x.cdp@0.1.0#abi1::x.cdp",
+			"exportName": "dispose",
+			"symbol": "x_cdp_dispose",
+			"overloadGroup": "x.cdp::dispose",
+			"signatureId": "dispose(point)",
+			"dispatchKey": "dispose$arity1|conn:point",
+			"abiSymbol": "x_cdp_dispose$arity1__conn__point__ret__bool",
+			"returnType": "bool",
+			"async": 0,
+			"generator": 0,
+			"params": [
+				{ "name": "conn", "label": "conn", "type": "point", "hasDefault": 0 }
+			]
+		}
+	]
+}

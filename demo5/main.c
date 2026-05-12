@@ -2,6 +2,7 @@
 #include "src/diag/xl_diag.h"
 #include "src/driver/xl_cli.h"
 #include "src/driver/xl_driver.h"
+#include "xrt.h"
 
 int main(int argc, char** argv)
 {
@@ -9,6 +10,7 @@ int main(int argc, char** argv)
 	XL_DiagContext diag;
 	int iRc;
 
+	xrtInit();
 	xlCliInit(&opts);
 	xlDiagInit(&diag, stderr, stderr);
 

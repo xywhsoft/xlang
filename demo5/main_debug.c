@@ -3,6 +3,7 @@
 #include "src/diag/xl_dump.h"
 #include "src/driver/xl_cli.h"
 #include "src/driver/xl_driver.h"
+#include "xrt.h"
 
 int main(int argc, char** argv)
 {
@@ -11,6 +12,7 @@ int main(int argc, char** argv)
 	XL_DumpContext dump;
 	int iRc;
 
+	xrtInit();
 	xlCliInit(&opts);
 	xlDiagInit(&diag, stderr, stderr);
 	xlDumpInit(&dump, NULL);
