@@ -1,9 +1,0 @@
-
-
-
-function main(param)
-	var a = 0
-	print(a)
-end
-
-

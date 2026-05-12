@@ -1,3 +1,0 @@
-// 测试 round 函数
-let r = round(3.5)
-println(r)

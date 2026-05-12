@@ -1,3 +1,0 @@
-// 测试 let 关键字
-let r = -5
-println(r)
