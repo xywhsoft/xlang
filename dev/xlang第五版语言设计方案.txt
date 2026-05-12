@@ -1,3 +1,7 @@
+文档状态（2026-05-12）：
+本文件是第五版语言早期设计稿，部分“暂缓项”已经在 demo5 后续阶段实现，部分目标仍未压实。
+当前目标总表见《xlang第五版语言标准总表.txt》，实现覆盖率见《xlang第五版语言标准支持覆盖率.txt》。
+
 ================================================================================
 xlang 第五版语言设计方案
 ================================================================================
@@ -1300,10 +1304,22 @@ native 绑定要支持：
 		- 相对路径按声明该指令的模块文件目录解释
 	- `#incpath "<path>"`
 		- 追加 native 头文件搜索路径
-		- 首版主要为后续 native include / binding 生成链路预留
+		- 相对路径按声明该指令的模块文件目录解释
 	- `#loadlib "<file>"`
 		- 声明程序运行前应预加载一个动态库
 		- 它不参与静态链接，而是作为运行时符号来源
+
+TCC 搜索路径边界：
+	- TCC 根目录固定为程序目录下的 `tcc` 子目录，即 `AppPath\tcc`
+	- TCC 默认 include 路径来自 `AppPath\tcc` 下的固定 include/support 子目录
+	- TCC 默认 lib 路径来自 `AppPath\tcc\lib`
+	- 额外 include 路径只来自 `#incpath` 和 `xlang.json` 的 `incpath`
+	- 额外 lib 路径只来自 `#libpath` 和 `xlang.json` 的 `libpath`
+	- `libs` 只用于 xlang import 包搜索，不作为 TCC include/lib 默认搜索目录
+
+import 包搜索路径边界：
+	- import 只搜索程序目录下的 `libs` 和脚本/项目目录下的 `libs`
+	- 不搜索 `packages`、`libs\packages`、用户目录 `.xlang`、`XLANG_PACKAGE_PATH` 或 `XLANG_HOME`
 
 分层规则：
 	- `#link` / `#libpath` / `#incpath` 属于静态编译配置

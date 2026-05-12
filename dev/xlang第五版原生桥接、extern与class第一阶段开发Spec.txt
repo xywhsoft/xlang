@@ -9,7 +9,7 @@ xlang 第五版原生桥接、extern 与 class 第一阶段开发 Spec
 - 完成 `sys.loadlib() / lib.proc() / function<...>` 的 runtime 原生函数桥接
 - 补齐 `extern func / extern var / extern type` 体系
 - 完成 `class` 第一阶段能力：带构造、析构、重载、继承、内嵌 union 的“增强结构体模型”
-- 本阶段不包含运行时对象类系统，不包含动态 class/custom 元对象设计
+- 本阶段原始范围不包含运行时对象类系统；截至当前实现，object/custom、runtime dynamic class 首版与元编程第一阶段已由对象系统主线补齐，本文仅保留 class 第一阶段和 native bridge 的历史边界说明。
 
 --------------------------------
 一、总体范围
@@ -31,14 +31,14 @@ xlang 第五版原生桥接、extern 与 class 第一阶段开发 Spec
 - class 单继承
 
 1.2 本阶段不包含
-- 运行时 class 对象系统
-- 元类 / 反射驱动类系统
-- class/custom 的协议开放注册模型
-- 虚函数表 / 动态派发
+- 运行时 class 对象系统（已由对象系统主线完成首版）
+- 元类 / 反射驱动类系统（runtime dynamic class descriptor/instance API 已完成首版；完整元对象系统与脚本声明语法后置）
+- class/custom 的协议开放注册模型（custom/object 主链已完成；开放协议注册仍后置）
+- 虚函数表 / 动态派发（已由对象系统主线完成首版）
 - 多继承
-- `new/delete`
-- 垃圾回收对象图
-- 闭包 class / runtime dynamic class
+- `new/delete`（已由对象系统主线完成首版）
+- 垃圾回收对象图（引用计数 + cycle collect 已由对象系统主线完成首版）
+- 闭包 class / runtime dynamic class（闭包已完成；runtime dynamic class 首版已完成，完整脚本化能力后置）
 
 --------------------------------
 二、原生桥接
@@ -172,7 +172,7 @@ xlang 第五版原生桥接、extern 与 class 第一阶段开发 Spec
 - 首版语义：
   - native 类型别名
   - 作为 ABI 对齐与可读性增强入口
-- 首版不做完整 native 结构体导入系统
+- #binding 已补齐常见 C struct / typedef / enum 导入，并可生成 plain class 参与 extern func / extern var ABI；完整复杂 C 头文件零人工绑定仍后置
 
 3.5 与指令系统的关系
 - `#link`
@@ -198,9 +198,8 @@ xlang 第五版原生桥接、extern 与 class 第一阶段开发 Spec
 - 编译期确定布局
 - 默认值语义
 - 支持字段、方法、构造、析构、运算符重载、单继承、内嵌 union
-- 不做虚表
-- 不做运行时类对象
-- 不做动态派发
+- plain class 默认不做虚表和运行时类对象
+- object/custom 的动态派发已由对象系统主线完成，不改变 plain class 的值语义定位
 
 4.2 语法定版
 ```xl
@@ -226,7 +225,7 @@ end
 - 不使用 `:`
 - 首版只支持单继承
 - 未写 `extends` 则无基类
-- `extends object` 是否作为语法糖保留，由实现决定；语义上首版不要求内建根对象模型
+- `extends object` 已作为进入 object 引用语义和动态派发体系的明确入口
 
 4.4 union
 - `union` 只允许出现在 `class` 内部
@@ -321,26 +320,25 @@ v.f = 3.14
 - 析构顺序：
   - 先本类
   - 再基类
-- 首版不做基类引用指向子类后的动态派发
+- plain class 继承保持静态分发；object/custom 基类引用指向子类后的动态派发已由对象系统主线完成
 
 4.12 与 `var`
 - ☑ 首版允许 `var` 持有 class 值
 - 首版保证：
   - ☑ 可存储
-  - 可赋值
-  - 可传参
-  - 可返回
+  - ☑ 可赋值
+  - ☑ 可传参
+  - ☑ 可返回
 - ☑ 初始化时静态可知的 `var = Class(...)` 会在同步作用域退出前调用 class `destroy()`
 - ☑ 初始化时静态可知的 `var = [Class(...)]` / `var = array<SomeClass>` 局部容器会在同步作用域退出前逐元素调用 class `destroy()`
-- 首版不承诺 `var` 上完整 class 方法派发体系
-- 完整 runtime 对象方法系统留待第二阶段
+- ☑ `var` 上 plain class 方法、索引、运算符 dispatch 已有回归覆盖
+- ☑ object/custom runtime 对象方法系统已由对象系统主线完成首版
 
 4.13 与容器
-- 首版目标：允许 class 值进入 `array/list/dict/set`
-- 容器中的 class 值按值存储
-- 若实现复杂度过高，可临时限制为：
-  - 仅平凡析构 class 可直接进入容器
-- 最终以实现可控为准，但标准目标仍为“允许进入容器”
+- ☑ 允许 class 值进入 `array/list/dict/set`
+- ☑ 容器中的 class 值按值存储
+- ☑ class 值写入容器时 copy hook 已覆盖
+- ☑ array/list/set/dict 替换、remove、clear 和作用域退出时的 class destroy hook 已覆盖
 
 --------------------------------
 五、class 第一阶段验收项
@@ -390,14 +388,14 @@ v.f = 3.14
 --------------------------------
 
 6.1 class 与 ABI
-- 第一阶段 class 布局应尽量可用于 native ABI 对齐
-- 但首批 runtime 原生桥接优先只做基础类型 / `string` / `point`
-- class ABI 直通可作为第二批扩展
+- ☑ plain class 布局已可用于 native ABI 对齐
+- ☑ runtime 原生桥接已覆盖基础类型 / `string` / `point` / 精确数值类型
+- ☑ plain class ABI 直通已作为第二批扩展落地：extern func 按值传参/返回、extern var data symbol、#binding struct 导入和 sys.dlsym plain class 动态 ABI 均有回归
+- ☐ 非常规对齐、显式 pack/alignment、带 destroy/union active tag/非平凡生命周期跨 C ABI 仍后置
 
 6.2 extern type 与 class
-- 后续可允许：
-  - `extern type POINT = class ...`
-- 但这不是本阶段首批必做项
+- ☑ `extern type NativeAlias = NativeClass` 已可作为 plain class ABI 别名，用于 extern var / extern func 参数和返回
+- ☑ `#binding` 生成的 plain struct class 可参与 extern func / extern var ABI
 
 --------------------------------
 七、当前优先级
@@ -419,13 +417,13 @@ v.f = 3.14
 - class lowering / cgen / runtime 生命周期
 
 第五优先级
-- parser conflict 回收
+- parser conflict 回收（当前剩余 1 个 conflict，属于 parser hygiene）
 - 总覆盖率文档同步
 
 --------------------------------
 八、当前结论
 --------------------------------
 
-- 原生桥接、extern 补齐、class 第一阶段可以并入同一主线 spec
-- 其中最先落地的仍应是 runtime 原生桥接
-- class 第一阶段已经完成语义定版，可直接进入实现
+- 原生桥接、extern 补齐、class 第一阶段主线已经完成并进入回归维护状态。
+- plain class ABI 直通已完成首版；剩余 ABI 风险集中在非常规对齐、显式 pack/alignment、带 destroy/union active tag/非平凡生命周期跨 C ABI。
+- object/custom、runtime dynamic class、new/delete、GC 对象图已由对象系统主线完成首版，不再作为本文档的未实现项。

@@ -1,4 +1,4 @@
-﻿xlang demo5 发布目录与 libs 布局规范
+xlang demo5 发布目录、libs 与 TCC 路径规范
 
 一、目标
 
@@ -13,10 +13,8 @@ release/
     xl.exe
     xldbg.exe
     xl5_test.exe
+    xlang.dll
     tcc/
-    src/
-    lib/
-        xrt/
     libs/
     cgen/
     dump/
@@ -26,137 +24,111 @@ release/
 说明：
 
 1. xl.exe、xldbg.exe 所在目录本身就是 AppPath。
-2. tcc 固定定位到：
+2. TCC 固定定位到：
    AppPath\\tcc
-3. 运行期 support 源与头文件固定定位到：
-   AppPath\\src
-   AppPath\\lib\\xrt
-4. 运行时自动输出目录固定定位到：
+3. 运行时自动输出目录固定定位到：
    AppPath\\cgen
    AppPath\\dump
    AppPath\\tmp
    AppPath\\trace
 
-三、libs 的设计目标
+三、import 搜索规则
 
-libs 分为两类：
+import 只使用两类 libs 目录作为包根：
 
-1. 公共 libs
+1. 程序公共 libs
    AppPath\\libs
 
-   这是和 xl.exe 绑定在一起的公共外部库目录。
-   适合放：
-   - 发布包自带的公共 XLE 包
-   - 公共 native 头文件
-   - 公共静态库 / 动态库
+2. 脚本/项目私有 libs
+   ScriptPath\\libs
 
-2. 私有 libs
-   输入文件所在目录\\libs
+ScriptPath 的含义：
 
-   这是脚本或项目自身携带的私有库目录。
-   适合放：
-   - 当前脚本专用的 XLE 包
-   - 当前项目专用的 native 头文件 / 静态库 / 动态库
+1. 直接运行 .xl 文件时，ScriptPath 是该脚本文件所在目录。
+2. 通过 xlang.json 运行项目时，ScriptPath 是 xlang.json 所在的项目目录。
 
-四、默认搜索规则
+不再参与 import 包搜索的路径：
 
-当前版本会自动把下列路径加入默认搜索链。
+1. packages
+2. libs\\packages
+3. lib\\xlang\\packages
+4. XLANG_PACKAGE_PATH
+5. XLANG_HOME
+6. 用户目录 .xlang
+7. 沿父目录递归探测出的 packages / libs\\packages
 
-1. 公共 libs
-   AppPath\\libs
-   AppPath\\libs\\packages
-   AppPath\\libs\\lib
-   AppPath\\libs\\include
-
-2. 私有 libs
-   输入文件所在目录\\libs
-   输入文件所在目录\\libs\\packages
-   输入文件所在目录\\libs\\lib
-   输入文件所在目录\\libs\\include
-
-五、推荐包布局
+四、推荐包布局
 
 1. 纯 XLE 源包
 
 libs/
-    packages/
-        pkg.math/
-            package.json
-            src/
-                math_pkg_impl.xl
+    pkg.math/
+        package.json
+        src/
+            math_pkg_impl.xl
 
 2. native shared 包
 
 libs/
-    packages/
-        pkg.probe/
-            package.json
-            bin/
-                pkg_probe.dll
+    pkg.probe/
+        package.json
+        bin/
+            pkg_probe.dll
 
 3. native static 包
 
 libs/
-    packages/
-        pkg.clock/
-            package.json
-            lib/
-                pkg_clock.a
+    pkg.clock/
+        package.json
+        lib/
+            pkg_clock.a
 
-4. 头文件与裸库
+脚本直接导入：
 
-libs/
-    include/
-        xxx.h
-    lib/
-        xxx.a
-        xxx.lib
-        xxx.dll
-
-六、推荐使用方式
-
-1. 公共包
-
-把包放到：
-AppPath\\libs\\packages
-
-然后脚本直接：
 import pkg.math
 
-2. 私有包
+五、TCC include / lib 搜索规则
 
-把包放到：
-当前脚本目录\\libs\\packages
+TCC 编译链路不从 libs 推导 include / lib 目录。
+它只使用程序目录下 tcc 子目录的固定路径，以及编译指令或项目文件显式注册的路径。
 
-然后脚本直接：
-import pkg.math
+默认 TCC 根目录：
 
-3. native include / link
+AppPath\\tcc
 
-如果库文件和头文件放在：
-libs\\include
-libs\\lib
+默认 include 路径：
 
-那么通常不需要再显式写绝对路径。
-只有特殊目录布局下，才额外使用：
-- #incpath
-- #libpath
+AppPath\\tcc\\include_win
+AppPath\\tcc\\include_win\\winapi
+AppPath\\tcc\\support\\common
+AppPath\\tcc\\support\\runtime
+AppPath\\tcc\\include
 
-七、当前版本的边界
+默认 lib 路径：
 
-1. libs 默认搜索已经支持：
-   - 公共 AppPath\\libs
-   - 私有 输入文件同目录\\libs
+AppPath\\tcc\\lib
 
-2. 当前“私有 libs”是按输入文件所在目录计算，不是按 importer 模块逐层独立隔离。
+额外 include 路径只能来自：
 
-3. 如果是 import 链，沿路径向上寻找 package roots 时，也会同时检查：
-   - 当前层\\packages
-   - 当前层\\libs\\packages
+1. 源码中的 #incpath
+2. xlang.json 中的 incpath
+3. XLE 包元信息中显式注册的 C 源/头文件编译输入
 
-八、建议
+额外 lib 路径只能来自：
 
-1. 发布包自带依赖，优先放 AppPath\\libs
-2. 项目局部依赖，优先放 main.xl 同目录的 libs
-3. 不再依赖过去那种到处动态拼 release 根目录的方式
-4. 不建议把用户包直接散放到 tcc 目录中
+1. 源码中的 #libpath
+2. xlang.json 中的 libpath
+3. XLE 包元信息中显式注册的 static/native artifact
+
+相对路径解释规则：
+
+1. #incpath / #libpath 的相对路径按声明该指令的模块文件目录解释。
+2. xlang.json 的 incpath / libpath 相对路径按 xlang.json 所在项目目录解释。
+3. TCC 默认路径始终按 AppPath\\tcc 解释。
+
+六、建议
+
+1. 发布包自带的 XLE 依赖放 AppPath\\libs。
+2. 项目局部 XLE 依赖放 ScriptPath\\libs。
+3. native 头文件和库文件不要放进 libs 后期待 TCC 自动扫描；需要使用 AppPath\\tcc 的固定布局，或通过 #incpath / #libpath / xlang.json 注册。
+4. 不建议把用户包散放到 tcc 目录中；tcc 目录只承载 TCC toolchain 与其固定 include/lib/support 文件。

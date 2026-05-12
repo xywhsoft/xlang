@@ -1,3 +1,7 @@
+文档状态（2026-05-12）：
+本文件是第五版语言目标总表，并带有部分 demo5 当前实现注记。
+判断“是否已经实现/验证”时，以《xlang第五版语言标准支持覆盖率.txt》为准。
+
 xlang 第五版语言标准总表
 
 一、词法与基础风格
@@ -397,4 +401,6 @@ xlang 第五版语言标准总表
 - 模块级编译指令：`#link` / `#libpath` / `#incpath` / `#loadlib`
 - 静态绑定声明：`extern func` / `extern var` / `extern type`
 - 动态绑定能力：`sys.loadlib()` / `lib.proc()` / `as function<...>`
+- import 包搜索路径固定为程序目录 `libs` 与脚本/项目目录 `libs`
+- TCC include/lib 搜索路径固定为程序目录 `tcc` 下的对应目录，并叠加 `#incpath` / `#libpath` / `xlang.json` 显式注册路径
 - demo5 已完成 `link foo` 兼容迁移：正式标准只接受 `#link foo`；旧裸 `link foo` 不再作为编译指令剥离或收集
