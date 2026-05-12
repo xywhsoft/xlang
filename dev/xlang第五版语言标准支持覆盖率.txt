@@ -1,3 +1,7 @@
+文档状态（2026-05-12）：
+本文件是当前第五版语言实现覆盖率入口，优先级高于旧设计稿。
+☑ 表示已有实现或验证覆盖，不表示该能力已经达到完整生产级语义。
+
 xlang 第五版语言标准支持覆盖率
 
 说明：
@@ -213,6 +217,7 @@ xlang 第五版语言标准支持覆盖率
 - ☑ `#loadlib`
 - ☑ `sys.loadlib()` / `lib.proc()` 动态绑定 API（首版：`std.sys.lib.loadlib()` / `lib.proc()` / `lib.close()` / `lib.path()` / `lib.loaded()` 已接通 parser/sem/cgen/runtime，并固定到回归测试）
 - ☑ `point -> function<...>` runtime ABI 桥接（已覆盖 int/bool/point 返回、多签名、var 交互、`msvcrt.dll -> atoi`、`kernel32.dll` 无参整型 API、以及 close-after-proc pin 语义）
+update 2026-05-12: import 包搜索路径收紧为程序目录 `libs` 与脚本/项目目录 `libs`；TCC include/lib 搜索路径收紧为程序目录 `tcc` 下的固定路径，加上 `#incpath` / `#libpath` / `xlang.json` 显式注册路径。
 update 2026-04-21: `lib.path()` / `lib.loaded()` 已接通 runtime，`#link + #libpath + #incpath` 指令链路补齐回归用例。
 update 2026-04-21: 旧裸 `link foo` 兼容写法已迁移完成；demo5 仅将 `#link foo` 作为标准静态链接指令，裸 `link foo` 固定为语义失败用例。
 update 2026-04-21: 闭包、匿名函数、原生函数 `point -> function<...>` runtime 桥接与 class 第一阶段状态已同步回总覆盖率；parser conflict 已从 115 回收到 12，剩余顶层/block 空规则冲突转入后续 parser hygiene。

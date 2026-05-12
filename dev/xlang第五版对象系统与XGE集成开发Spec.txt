@@ -5,6 +5,10 @@ xlang 第五版对象系统与 XGE 集成开发 Spec
 - `◐` 已部分实现，或设计已定版但尚未全部收口
 - `☐` 尚未实现
 
+状态校准
+- 本文档已按 demo5 当前实现校准：object/custom、动态派发、new/delete、cycle collect、runtime dynamic class 首版、class/object 元编程第一阶段均已落地。
+- 后续仍不代表完整元对象系统或运行时脚本声明 class 已完成；这些能力继续后置。
+
 目标
 - 在 demo5 后续阶段补齐 xlang 的运行时对象系统，支撑 XGE 游戏开发。
 - 保持 `plain class` 的高性能静态布局能力，不把所有 class 都推入运行时对象模型。
@@ -47,9 +51,9 @@ xlang 第五版对象系统与 XGE 集成开发 Spec
 - ☑ custom native 函数直接映射为对象方法
 
 1.4 本阶段不包含
-- ☑ class 元编程
-- ☑ object 元编程
-- ☑ 运行时动态定义 class 的脚本语法
+- ☑ class 元编程第一阶段已完成，完整元对象系统继续后置
+- ☑ object 元编程第一阶段已完成，完整元对象系统继续后置
+- ☐ 运行时动态定义 class 的脚本语法
 - ☑ 宏系统
 - ☑ 多继承
 - ☑ trait / mixin

@@ -17,7 +17,7 @@ xlang 第五版闭包、匿名函数与原生函数桥接开发 Spec
 - ☑ 匿名函数进入 `array / dict / var` 并动态调用已完成
 - ☑ 多行容器字面量中放置匿名函数已可用
 - ☑ `point -> function<...>` 的 parser / sem / cgen / runtime ABI 桥接已完成
-- ◐ parser 为支持多行容器字面量做了扩展；当前 parser conflict 已从 `115` 回收到 `12`，并已收敛 lambda 表达式优先级、容器 item 重复规则与 `func_intro` 入口；功能可用，剩余顶层/block 空规则冲突转入后续 parser hygiene 任务
+- ◐ parser 为支持多行容器字面量做了扩展；当前 parser conflict 已从 `115` 回收到 `1`，并已收敛 lambda 表达式优先级、容器 item 重复规则与 `func_intro` 入口；功能可用，剩余冲突集中在 `extern` 声明中可选符号名与 `func` 入口的语法歧义，转入后续 parser hygiene 任务
 
 二、已完成能力
 
@@ -101,7 +101,7 @@ xlang 第五版闭包、匿名函数与原生函数桥接开发 Spec
 - ☑ 至少一个 `string` 或 `point` 返回 smoke case（当前已验证 `point` 返回）
 
 4.3 语法/工程收尾
-- ◐ 降低 parser conflict 数量，当前已从 `115` 降到 `12`；剩余冲突集中在顶层/block 空规则，转入后续 parser grammar 重构任务
+- ◐ 降低 parser conflict 数量，当前已从 `115` 降到 `1`；剩余冲突集中在 `extern` 声明中可选符号名与 `func` 入口的语法歧义，转入后续 parser grammar 重构任务
 - ☑ 将闭包 / 匿名函数 / 原生桥接状态同步回总覆盖率文档
 - ☑ 在语言标准总表中补入闭包与匿名函数标准
 - ☑ 明确 `function` 现已支持携带 env 的闭包模型
@@ -109,4 +109,4 @@ xlang 第五版闭包、匿名函数与原生函数桥接开发 Spec
 
 五、当前结论
 - 闭包、匿名函数与原生函数 runtime ABI 桥接主线已经完成，可以认为本 spec 的功能性任务已阶段性收口。
-- 剩余 parser conflict 回收属于后续 parser hygiene / grammar cleanup，不再阻塞闭包、匿名函数与原生桥接能力继续向上开发。
+- 剩余 1 个 parser conflict 回收属于后续 parser hygiene / grammar cleanup，不再阻塞闭包、匿名函数与原生桥接能力继续向上开发。

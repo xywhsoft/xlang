@@ -1,6 +1,10 @@
 # xldbg VS Code DAP 接入
 
-本文档记录 VS Code 侧最小接入约定。调试语义全部由 `xldbg dap` 提供，VS Code 扩展只负责启动 adapter 并转发 Debug Adapter Protocol。最小扩展骨架位于 `tools/vscode-xlang-debug`，使用普通 JavaScript 实现，无 npm 构建依赖。
+## 当前状态
+
+截至 2026-05-12，VS Code 最小扩展骨架位于 `demo5/tools/vscode-xlang-debug`，使用普通 JavaScript 实现，无 npm 构建依赖。当前 adapter 只走 `release\xldbg.exe dap` 的 stdio 模式。
+
+本文档记录 VS Code 侧最小接入约定。调试语义全部由 `xldbg dap` 提供，VS Code 扩展只负责启动 adapter 并转发 Debug Adapter Protocol。
 
 ## Debug Type
 
@@ -49,6 +53,8 @@ VS Code configuration 到 DAP `launch` request 的映射：
 | `xldbg` | adapter executable | 可选，默认可解析为 `${workspaceFolder}/release/xldbg.exe` |
 
 V1 扩展不实现表达式求值、变量修改、条件断点执行、数据断点或自定义 stepping 语义。这些能力必须先在 `xldbg dap` 中实现，再由扩展声明。
+
+`--listen` TCP 模式当前是 `xldbg` 的保留接口，不作为 VS Code 扩展默认接入方式。
 
 ## Minimal Extension Shape
 

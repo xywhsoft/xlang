@@ -1,3 +1,7 @@
+文档状态（2026-05-12）：
+本文件是第四版历史设计方案，仅供追溯 demo4 编译到 C 路线的来源。
+当前 demo5 口径请看 demo5/README.md、demo5/docs/README.md 和第五版覆盖率文档。
+
 基础规范：
 	xlang 使用 UTF-8 编码存储源代码
 	

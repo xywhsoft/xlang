@@ -12,7 +12,8 @@ xlang 第五版发布候选版收口开发 Spec
 
 总原则
 - 优先完成能显著改善开发体验、工程化能力、性能和发布稳定性的任务。
-- 不引入 namespace/using、include、宏系统、元编程、runtime dynamic class、GC、虚表、channel select 等暂缓项。
+- 不引入 namespace/using、语言级 include、宏系统、channel select 等仍暂缓项。
+- runtime dynamic class、GC、虚表/动态派发、new/delete 已在对象系统主线完成首版落地，不再作为本 spec 的未实现阻塞项。
 - 每个大项完成后必须补齐 parser / sem / lower / cgen / runtime 覆盖测试中适用的层级。
 - 文档状态以本 spec、xlang第五版语言标准支持覆盖率.txt、xlang第五版原生桥接、extern与class第一阶段开发Spec.txt 为准。
 
@@ -144,7 +145,6 @@ xlang 第五版发布候选版收口开发 Spec
   "type": "app",
   "main": "src/main.xl",
   "source": ["src"],
-  "packages": ["packages"],
   "links": ["shell32"],
   "libpath": ["lib"],
   "incpath": ["include"]
@@ -166,9 +166,8 @@ xlang 第五版发布候选版收口开发 Spec
 - [x] `import foo.bar` 映射到 `foo/bar.xl`。
 - [x] 当前文件所在目录优先用于相对模块。
 - [x] 项目 `source` 路径参与搜索。
-- [x] 项目 `packages` 路径参与搜索。
-- [x] 用户级包目录参与搜索：支持 `XLANG_PACKAGE_PATH` 与用户目录 `.xlang/packages`。
-- [x] xlang 安装目录官方扩展库参与搜索：支持 `XLANG_HOME/packages`、`XLANG_HOME/lib/xlang/packages` 与 release 安装根 package 目录。
+- [x] import 包搜索路径统一收紧为两类 `libs` 包根：程序目录 `AppPath\libs`，以及脚本/项目目录 `ScriptPath\libs`。
+- [x] `packages`、`libs\packages`、`XLANG_PACKAGE_PATH`、`XLANG_HOME`、用户目录 `.xlang` 与父目录递归探测均不再参与 import 包搜索。
 - [x] `std.*` 固定优先内置标准库，不允许用户包覆盖。
 - [x] 字符串 import 保留路径直连能力：`import "local/file.xl"`。
 
@@ -181,8 +180,8 @@ xlang 第五版发布候选版收口开发 Spec
 3.7 验收样例
 - [x] `project_app_build_basic`
 - [x] `project_package_import_basic`
-- [x] `project_user_package_path`
-- [x] `project_xlang_home_package_path`
+- [x] `project_user_package_path`（旧环境变量包路径负向用例）
+- [x] `project_xlang_home_package_path`（旧 XLANG_HOME 包路径负向用例）
 - [x] `project_std_priority`
 - [x] `project_link_from_json`
 - [x] `project_import_error_paths`
@@ -261,6 +260,8 @@ auto item = list.at(10, null)
 - [x] `#link shell32` 允许自动补平台扩展名。
 - [x] Windows 下 `shell32` 可解析到 shell32/lib/dll 相关策略。
 - [x] Linux 下 `foo` 可解析为 `-lfoo` / `libfoo.so` 相关策略。
+- [x] TCC 默认根目录固定为程序目录下的 `tcc` 子目录，即 `AppPath\tcc`。
+- [x] TCC 默认 include/lib 路径只来自 `AppPath\tcc` 下的固定子目录；额外路径只来自 `#incpath`、`#libpath`、`xlang.json` 的 `incpath` / `libpath`，以及 XLE 元信息显式注册的 native artifact。
 - [x] extern 失败只输出明确原因，不额外提供建议。
 
 5.3 动态库 API 命名
@@ -312,7 +313,7 @@ sys.dlclose(lib)
 - [x] `#binding` 零参数函数式宏：支持 `#define FOO() 42` 这类无参数 C 函数式宏导入为 xlang `func FOO() as int`。
 - [x] extern async func：支持 `extern "symbol" async func f(...) as T`，语义返回 `future<T>`，运行时由 native 返回值包装为 ready future。
 - [x] 类型方法形式 extern：支持 `extern func int.name(int self) as int` 与 `extern "c_symbol" func int.name(int self) as int`，方法名与 C 符号名分离。
-- [ ] 完整 class ABI 直通
+- [~] class ABI 直通：plain class / plain struct ABI 已支持 extern func 按值传参、按值返回、extern var data symbol、#binding struct 导入和 sys.dlsym plain class 动态 ABI；非常规对齐、显式 pack/alignment、带 destroy/union active tag/非平凡生命周期的跨 C ABI 仍后置。
 
 5.6 验收样例
 - [x] `link_auto_platform_suffix`
@@ -348,7 +349,7 @@ sys.dlclose(lib)
 
 6.1 目标
 - [x] 将当前 class 第一阶段定义为“静态布局增强结构体”并发布级稳定。
-- [x] 不做 runtime object/class 元对象体系。
+- [x] class 第一阶段保持 plain class 值语义；runtime object/class 元对象体系已转入对象系统主线并完成首版，不再阻塞 class 第一阶段。
 
 6.2 定版规则
 - [x] class 默认值语义。
@@ -389,15 +390,14 @@ end
 - [x] 析构宿主 class 时只析构当前 active 成员。
 - [x] 读取非 active 成员首版报 runtime error。
 
-6.6 暂不纳入
-- [ ] runtime class 对象系统
-- [ ] custom/object 完整模型
-- [ ] 元类 / runtime dynamic class
-- [ ] 虚函数 / 动态派发
-- [ ] new/delete
-- [ ] 隐式堆分配
-- [ ] GC 对象图
-- [ ] 基类引用指向子类后的动态派发
+6.6 已转入对象系统主线并完成首版
+- [x] runtime class 对象系统：`class extends object`、object/custom 引用语义、对象头与动态字段表已落地。
+- [x] custom/object 完整模型：custom native payload、extern create/destroy、方法/索引/运算符派发已落地。
+- [x] runtime dynamic class 首版：descriptor API、minimal instance API、字段/方法枚举、方法绑定与 fallback 已落地；脚本声明语法和完整元对象系统后置。
+- [x] 虚函数 / 动态派发：object/custom 通过 runtime type info + method table 派发，基类引用指向子类实例后走子类实现。
+- [x] new/delete 与隐式堆分配：object/custom 构造隐式堆分配，`new`/`delete` 已有 parser/sem/lower/cgen/runtime 回归。
+- [x] GC 对象图：引用计数 + cycle collect 已覆盖 object/custom/container/closure/generator/task/future/channel 主链。
+- [x] var 上完整 class/object/custom 方法派发：plain class boxed method/index/operator 与 object/custom runtime dispatch 均已有回归。
 
 6.7 验收样例
 - [x] `class_nocopy_decl`
@@ -440,8 +440,8 @@ end
 8.1 价值
 - [x] 让 xlang class 与 C struct 深度互通。
 
-8.2 建议时机
-- [ ] class 第一阶段完全稳定后。
+8.2 当前状态
+- [x] plain class ABI 首版已在 class 第一阶段稳定后落地。
 
 8.3 范围
 - [x] plain class 布局按 C ABI 导出。
@@ -458,7 +458,7 @@ end
 - [x] Linux ABI 差异跨平台 CI 入口：已新增 `demo5/build_gcc.sh` 与 `.github/workflows/demo5-linux-abi.yml`，用于 Ubuntu GCC 构建和 ABI smoke；本地 Windows 环境只完成脚本语法检查，真实 Linux runner 结果以后续 CI 为准。
 - [x] 当前 Windows x64 / GCC + TCC 链路已覆盖嵌套 plain struct/class 的基础按值传参/返回验收。
 - [x] 当前 Windows x64 / GCC + TCC 链路已覆盖大 plain class 按值传参/返回验收。
-- [ ] 非常规对齐/复杂嵌套生命周期规则仍暂缓。
+- [ ] 非常规对齐、显式 pack/alignment、带 destroy/union active tag/非平凡生命周期跨 C ABI 仍暂缓。
 
 --------------------------------
 
@@ -526,15 +526,15 @@ end
 - [x] extern async func
 - [x] 类型方法形式 extern
 - [~] native include / binding 自动生成链路：`#binding` 已覆盖常见 C 头声明、typedef/struct/enum/宏边界和链接集成；从任意 `.h` 自动生成完整 binding package 的工程化封装仍作为后续增强。
-- [ ] runtime class 对象系统
-- [ ] custom / object 完整模型
-- [ ] 元类 / runtime dynamic class
-- [ ] 虚表 / 虚函数 / 动态派发
-- [ ] new/delete
-- [ ] 隐式堆分配
-- [ ] GC 对象图
-- [ ] var 上完整 class 方法派发
-- [ ] 基类引用指向子类后的动态派发
+- [x] runtime class 对象系统
+- [x] custom / object 完整模型
+- [~] 元类 / runtime dynamic class（descriptor/instance API 首版已完成；脚本声明语法与完整元对象系统后置）
+- [x] 虚表 / 虚函数 / 动态派发
+- [x] new/delete
+- [x] 隐式堆分配
+- [x] GC 对象图
+- [x] var 上完整 class 方法派发
+- [x] 基类引用指向子类后的动态派发
 - [ ] peer dependency / 热升级 / ABI 自动兼容推断
 
 --------------------------------
@@ -574,8 +574,9 @@ end
 
 当前结论
 - 本 spec 作为 demo5 发布候选版收口主跟踪文档。
-- 发布候选版前置阶段已完成，当前进入“后置但高价值内容”的增量验证阶段。
-- 下一步建议继续扩展 native binding：优先补更多 struct/typedef 边界、复杂函数式宏/表达式宏的更完整策略。
+- 发布候选版前置阶段已完成，后置高价值内容中 plain class ABI、object/custom、runtime dynamic class 首版、native binding 主链路也已完成大部分落地。
+- 当前仍真实未完成/未收口项集中在 namespace/using、语言级 include、宏系统、channel select、XLE 复杂依赖策略、native binding 任意复杂头文件工程化、非常规对齐与非平凡生命周期跨 C ABI。
+- 下一步建议先决定上述暂缓项哪些不再需要，再对保留项单独拆更小 spec。
 
 --------------------------------
 五、后置高价值项增量验收状态

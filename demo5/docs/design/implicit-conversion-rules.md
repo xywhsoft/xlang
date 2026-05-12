@@ -1,5 +1,15 @@
 # xlang 隐式类型转换规则设计
 
+## 当前状态
+
+本文档描述 demo5 当前采用的隐式转换 V1 口径。实现已落在 `src/sem/xl_convert.h` / `src/sem/xl_convert.c`，语义解析、lowering 与部分 codegen 已开始复用 `xlTypeCanConvertImplicit(...)`。
+
+仍未压实的部分：
+
+- 类型描述符还没有成为转换规则的唯一来源，部分 class/object/dynamic 规则仍在 resolver 中补充处理。
+- 所有赋值、调用、return、默认参数、容器共同类型等上下文尚未完全统一到同一条转换路径。
+- `var` / `any` 的动态兜底只做首版装箱与少量桥接，不等同于完整 checked cast 系统。
+
 ## 目标
 
 隐式类型转换用于让 xlang 在函数调用、赋值、返回值、默认参数、基础表达式和 XLE/native bridge 中处理安全的类型适配。
@@ -28,10 +38,10 @@
 | cost | 名称 | 说明 |
 | ---: | --- | --- |
 | 0 | exact | 源类型和目标类型完全一致 |
-| 1 | alias | 类型别名或规范化后的同一类型 |
+| 1 | alias / null ref | 类型别名、整数/浮点族别名，或 `null` 到引用类目标 |
 | 2 | numeric widening | 安全数值扩大，例如 `int -> float` |
 | 3 | box / erase | 具体类型转换到 `var` / `any` |
-| 4 | null literal | `null` 转换到可空引用、对象或容器类型 |
+| 4 | reserved | 保留给后续更细分的引用/可空成本 |
 | 5 | dynamic fallback | 保留给后续动态兜底，V1 默认不启用 |
 | 禁止 | lossy / semantic | 有损或语义转换，例如 `float -> int`、`string -> int` |
 
@@ -45,7 +55,7 @@
 | concrete | `var` | 是 | 3 | 装箱为动态值 |
 | concrete | `any` | 是 | 3 | 如果 `any` 已启用，按动态接收处理 |
 | class/object instance | `object` | 是 | 3 | 对象基类或元对象 |
-| `null` | object/container/reference | 是 | 4 | 不能转到数值和 bool |
+| `null` | object/container/reference | 是 | 1 | 不能转到数值和 bool |
 | `float` | `int` | 否 | - | 必须显式 `int(x)`、`floor(x)`、`round(x)` |
 | `string` | number/bool | 否 | - | 必须显式 parse |
 | number/bool | `string` | 否 | - | 必须显式 `to_string` |
@@ -162,7 +172,7 @@ condition must be bool; compare explicitly, for example x != 0
 
 ## 编译器内部模型
 
-建议新增统一转换判定 API，避免在 resolver、lower、codegen 中散落转换规则。
+当前已经建立统一转换判定 API，目标是继续减少 resolver、lower、codegen 中散落的转换规则。
 
 ```c
 typedef enum XL_ConvKind {
@@ -170,17 +180,16 @@ typedef enum XL_ConvKind {
 	XL_CONV_EXACT,
 	XL_CONV_ALIAS,
 	XL_CONV_NUMERIC_WIDEN,
-	XL_CONV_BOX,
-	XL_CONV_NULL,
-	XL_CONV_DYNAMIC
+	XL_CONV_BOX_DYNAMIC,
+	XL_CONV_NULL_REF,
+	XL_CONV_OBJECT_REF
 } XL_ConvKind;
 
 typedef struct XL_Conversion {
 	XL_ConvKind eKind;
 	int iCost;
 	int bRequiresRuntime;
-	char sSourceType[XL_TYPE_NAME_MAX];
-	char sTargetType[XL_TYPE_NAME_MAX];
+	const char* sReason;
 } XL_Conversion;
 ```
 
@@ -188,9 +197,8 @@ typedef struct XL_Conversion {
 
 ```c
 int xlTypeCanConvertImplicit(
-	const XL_TypeContext* pTypes,
-	const char* sSourceType,
-	const char* sTargetType,
+	const char* sExpectedType,
+	const char* sActualType,
 	XL_Conversion* pOut
 );
 ```

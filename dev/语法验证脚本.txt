@@ -1,3 +1,7 @@
+文档状态（2026-05-12）：
+本文件是早期语法验证草稿，不代表当前 demo5 测试入口。
+当前测试入口请看 demo5/README.md 和 demo5/regress.bat。
+
 
 bool varBool = true
 varBool = bool(0)

@@ -1,3 +1,7 @@
+文档状态（2026-05-12）：
+本文件是当前增强标准库与官方扩展库覆盖率入口。
+☑ 表示模块名、最小 API 或主链路已有实现/验证；完整语义边界仍需结合 demo5 README 和源码判断。
+
 xlang 第五版增强标准库支持覆盖率
 ==================================
 
@@ -142,8 +146,8 @@ xlang 第五版增强标准库支持覆盖率
 - ☑ std.future / std.task / std.channel 最小语义已由语言与 runtime 覆盖
 - ☑ protocol 注册矩阵已覆盖 Callable / Indexable / Iterable / Iterator / Awaitable 的 builtin 注册
 - ☑ extern / xle / runtime 主链路已具备后续标准库接入基础
-- ◐ 官方扩展库 source 包骨架已验证（examples/xle_official/packages/x.csv）
-- ◐ 官方扩展库 native 包骨架已验证（examples/xle_official_native/packages/x.image.bmp）
+- ◐ 官方扩展库 source 包骨架已验证（examples/xle_official/libs/x.csv）
+- ◐ 官方扩展库 native 包骨架已验证（examples/xle_official_native/libs/x.image.bmp）
 - ☑ 显式泛型空容器声明可保留声明类型（array/list/dict），用于标准库源码包内部 typed state
 - ☑ C 后端已生成普通函数 raw 前置声明，source 包内部函数可先调用后定义
 

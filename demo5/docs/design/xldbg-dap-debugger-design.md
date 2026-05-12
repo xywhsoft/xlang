@@ -1,8 +1,21 @@
 # xldbg DAP 调试器设计
 
+## 当前状态
+
+截至 2026-05-12，`xldbg dap` 的 stdio V1 主链路已经接通，并由 `test/dap/xldbg_dap_smoke.js` 覆盖 initialize、launch、断点、单步、变量、异常、pause、unsupported request 等 smoke 场景。
+
+本文档保留设计背景和后续边界说明；实现状态以 smoke 测试和 `demo5/docs/README.md` 为准。
+
+当前边界：
+
+- DAP 只承诺 stdio 模式；`--listen` 是保留参数，TCP listen 当前按 unsupported 处理。
+- 支持源码 probe 级断点、单步、基础 stack/scopes/variables、stopOnEntry、pause 和未捕获异常 stop。
+- 不支持条件断点、logpoint、data breakpoint、完整表达式 evaluate、变量修改、attach、多线程 debuggee 或 async/generator 完整逻辑栈。
+- 调试器代码必须继续只进入 `xldbg.exe`，不得进入发布版 `xl.exe`。
+
 ## 目标
 
-`xldbg` 当前是 debug mode compiler driver，已经能执行 `lex` / `parse` / `sem` / `lower` / `cgen` / `run` 并输出 dump/trace。下一阶段目标是在此基础上实现语言层调试器，让 IDE 能通过标准协议调试 XL 源码。
+`xldbg` 是 debug mode compiler driver，已经能执行 `lex` / `parse` / `sem` / `lower` / `cgen` / `run` 并输出 dump/trace。DAP V1 的目标是在此基础上提供语言层调试器，让 IDE 能通过标准协议调试 XL 源码。
 
 设计目标：
 
@@ -229,14 +242,14 @@ Content-Length: <byte-length>\r\n
 {...json...}
 ```
 
-推荐支持两种启动方式：
+启动方式：
 
 ```bat
 xldbg dap
 xldbg dap --listen 127.0.0.1:4711
 ```
 
-V1 优先实现 stdio 模式，因为 VS Code 可直接启动 adapter 进程并通过 stdin/stdout 通信。
+V1 只支持 stdio 模式，因为 VS Code 可直接启动 adapter 进程并通过 stdin/stdout 通信。`--listen` 当前只是保留接口，TCP 模式返回 unsupported。
 
 `launch` 在启动 debuggee thread 前会先做一次编译 preflight：module link、semantic analyze、lower、debug C codegen。preflight 失败时直接返回 `launch` error response，不创建 debuggee thread；成功后再启动 debuggee thread 并进入等待 stopped/exited 的事件循环。TCC link 或运行期失败仍属于 debuggee 已启动后的失败路径，当前通过 `output` 和 `terminated` event 报告。
 
@@ -302,7 +315,7 @@ pending stop reason
 
 ## 命令设计
 
-建议新增命令：
+当前命令：
 
 ```bat
 xldbg dbg <file> [options]
