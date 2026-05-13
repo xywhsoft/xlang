@@ -1,0 +1,51 @@
+extern "xstbiw_version" func xstbiw_version() as string
+extern "xstbiw_last_error" func xstbiw_last_error() as string
+extern "xstbiw_write_png" func xstbiw_write_png(string path, point data, int width, int height, int channels, int stride) as int
+extern "xstbiw_write_jpg" func xstbiw_write_jpg(string path, point data, int width, int height, int channels, int quality) as int
+extern "xstbiw_write_bmp" func xstbiw_write_bmp(string path, point data, int width, int height, int channels) as int
+extern "xstbiw_write_tga" func xstbiw_write_tga(string path, point data, int width, int height, int channels) as int
+extern "xstbiw_write_hdr" func xstbiw_write_hdr(string path, point data, int width, int height, int channels) as int
+
+func version() as string
+	return xstbiw_version()
+end
+
+func last_error() as string
+	return xstbiw_last_error()
+end
+
+func write_png(string path, point data, int width, int height, int channels) as bool
+	return xstbiw_write_png(path, data, width, height, channels, 0) != 0
+end
+
+func write_png(string path, point data, int width, int height, int channels, int stride) as bool
+	return xstbiw_write_png(path, data, width, height, channels, stride) != 0
+end
+
+func write_jpg(string path, point data, int width, int height, int channels) as bool
+	return xstbiw_write_jpg(path, data, width, height, channels, 90) != 0
+end
+
+func write_jpg(string path, point data, int width, int height, int channels, int quality) as bool
+	return xstbiw_write_jpg(path, data, width, height, channels, quality) != 0
+end
+
+func write_bmp(string path, point data, int width, int height, int channels) as bool
+	return xstbiw_write_bmp(path, data, width, height, channels) != 0
+end
+
+func write_tga(string path, point data, int width, int height, int channels) as bool
+	return xstbiw_write_tga(path, data, width, height, channels) != 0
+end
+
+func write_hdr(string path, point data, int width, int height, int channels) as bool
+	return xstbiw_write_hdr(path, data, width, height, channels) != 0
+end
+
+export version
+export last_error
+export write_png
+export write_jpg
+export write_bmp
+export write_tga
+export write_hdr
