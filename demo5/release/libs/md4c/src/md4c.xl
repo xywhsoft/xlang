@@ -1,0 +1,61 @@
+extern "xmd4c_version" func xmd4c_version() as string
+extern "xmd4c_last_error" func xmd4c_last_error() as string
+extern "xmd4c_html" func xmd4c_html(string markdown) as string
+extern "xmd4c_html_flags" func xmd4c_html_flags(string markdown, int parser_flags, int renderer_flags) as string
+extern "xmd4c_file_html" func xmd4c_file_html(string path, int parser_flags, int renderer_flags) as string
+extern "xmd4c_commonmark_flags" func xmd4c_commonmark_flags() as int
+extern "xmd4c_github_flags" func xmd4c_github_flags() as int
+extern "xmd4c_xhtml_flag" func xmd4c_xhtml_flag() as int
+extern "xmd4c_skip_utf8_bom_flag" func xmd4c_skip_utf8_bom_flag() as int
+extern "xmd4c_verbatim_entities_flag" func xmd4c_verbatim_entities_flag() as int
+
+func version() as string
+	return xmd4c_version()
+end
+
+func last_error() as string
+	return xmd4c_last_error()
+end
+
+func html(string markdown) as string
+	return xmd4c_html(markdown)
+end
+
+func html_flags(string markdown, int parser_flags, int renderer_flags) as string
+	return xmd4c_html_flags(markdown, parser_flags, renderer_flags)
+end
+
+func file_html(string path, int parser_flags, int renderer_flags) as string
+	return xmd4c_file_html(path, parser_flags, renderer_flags)
+end
+
+func commonmark_flags() as int
+	return xmd4c_commonmark_flags()
+end
+
+func github_flags() as int
+	return xmd4c_github_flags()
+end
+
+func xhtml_flag() as int
+	return xmd4c_xhtml_flag()
+end
+
+func skip_utf8_bom_flag() as int
+	return xmd4c_skip_utf8_bom_flag()
+end
+
+func verbatim_entities_flag() as int
+	return xmd4c_verbatim_entities_flag()
+end
+
+export version
+export last_error
+export html
+export html_flags
+export file_html
+export commonmark_flags
+export github_flags
+export xhtml_flag
+export skip_utf8_bom_flag
+export verbatim_entities_flag

@@ -1,0 +1,20 @@
+import md4c
+
+func main() as int
+	auto html = md4c.html("# Title\n\nHello **xlang**")
+	if html != "<h1>Title</h1>\n<p>Hello <strong>xlang</strong></p>\n" then
+		return 1
+	end
+
+	auto table_html = md4c.html_flags("| A | B |\n| - | - |\n| 1 | 2 |\n", md4c.github_flags(), 0)
+	if table_html.contains("<table>") == false then
+		return 2
+	end
+
+	auto xhtml = md4c.html_flags("![alt](image.png)", md4c.commonmark_flags(), md4c.xhtml_flag())
+	if xhtml.contains("<img src=\"image.png\" alt=\"alt\" />") == false then
+		return 3
+	end
+
+	return 0
+end
