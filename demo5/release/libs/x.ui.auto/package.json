@@ -1,0 +1,48 @@
+{
+	"format": "xle-1",
+	"package": {
+		"name": "x.ui.auto",
+		"version": "0.1.0",
+		"abiVersion": "1",
+		"xlangAbi": "1",
+		"abiId": "x.ui.auto@0.1.0#abi1"
+	},
+	"artifact": {
+		"kind": "source",
+		"path": "src\\auto.xl"
+	},
+	"dependencies": [
+		{"name": "x.uia", "kind": "source", "version": "0.1.0", "abiVersion": "1", "abiId": "x.uia@0.1.0#abi1"},
+		{"name": "opencv", "kind": "source", "version": "0.1.0", "abiVersion": "1", "abiId": "opencv@0.1.0#abi1"}
+	],
+	"modules": [
+		{
+			"key": "x.ui.auto",
+			"abiId": "x.ui.auto@0.1.0#abi1::x.ui.auto",
+			"file": "src\\auto.xl",
+			"root": 0,
+			"native": 0,
+			"binding": "",
+			"imports": ["x.uia", "opencv"],
+			"exports": [
+				{"name": "DEFAULT_TIMEOUT_MS", "symbol": "DEFAULT_TIMEOUT_MS", "kind": "value", "overloadCount": 0},
+				{"name": "locator", "symbol": "locator", "kind": "function", "overloadCount": 1},
+				{"name": "by_automation_id", "symbol": "by_automation_id", "kind": "function", "overloadCount": 1},
+				{"name": "by_class_name", "symbol": "by_class_name", "kind": "function", "overloadCount": 1},
+				{"name": "by_name", "symbol": "by_name", "kind": "function", "overloadCount": 1},
+				{"name": "by_control_type", "symbol": "by_control_type", "kind": "function", "overloadCount": 1},
+				{"name": "by_process_id", "symbol": "by_process_id", "kind": "function", "overloadCount": 1},
+				{"name": "within", "symbol": "within", "kind": "function", "overloadCount": 1},
+				{"name": "with_timeout", "symbol": "with_timeout", "kind": "function", "overloadCount": 1},
+				{"name": "locator_from_json", "symbol": "locator_from_json", "kind": "function", "overloadCount": 1},
+				{"name": "wait_exists", "symbol": "wait_exists", "kind": "function", "overloadCount": 1},
+				{"name": "click", "symbol": "click", "kind": "function", "overloadCount": 1},
+				{"name": "type_text", "symbol": "type_text", "kind": "function", "overloadCount": 1},
+				{"name": "read", "symbol": "read", "kind": "function", "overloadCount": 1},
+				{"name": "screenshot", "symbol": "screenshot", "kind": "function", "overloadCount": 1},
+				{"name": "focused_locator_json", "symbol": "focused_locator_json", "kind": "function", "overloadCount": 1}
+			]
+		}
+	],
+	"functions": []
+}
