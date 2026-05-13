@@ -556,7 +556,10 @@ typedef enum XL_RegexHelperKind {
 
 typedef enum XL_CryptoHelperKind {
 	XL_CRYPTO_HELPER_NONE = 0,
+	XL_CRYPTO_HELPER_SHA256_HEX,
 	XL_CRYPTO_HELPER_HMAC_SHA256,
+	XL_CRYPTO_HELPER_HMAC_SHA256_HEX,
+	XL_CRYPTO_HELPER_HMAC_SHA256_HEX_KEY,
 	XL_CRYPTO_HELPER_HMAC_SHA512
 } XL_CryptoHelperKind;
 
@@ -12685,8 +12688,17 @@ static XL_CryptoHelperKind __xlCryptoHelperKind(const char* sCalleeName)
 	if ( sCalleeName == NULL ) {
 		return XL_CRYPTO_HELPER_NONE;
 	}
+	if ( strcmp(sCalleeName, "xl_mod_std_crypto__sha256_hex") == 0 ) {
+		return XL_CRYPTO_HELPER_SHA256_HEX;
+	}
 	if ( strcmp(sCalleeName, "xl_mod_std_crypto__hmac_sha256") == 0 ) {
 		return XL_CRYPTO_HELPER_HMAC_SHA256;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_crypto__hmac_sha256_hex") == 0 ) {
+		return XL_CRYPTO_HELPER_HMAC_SHA256_HEX;
+	}
+	if ( strcmp(sCalleeName, "xl_mod_std_crypto__hmac_sha256_hex_key") == 0 ) {
+		return XL_CRYPTO_HELPER_HMAC_SHA256_HEX_KEY;
 	}
 	if ( strcmp(sCalleeName, "xl_mod_std_crypto__hmac_sha512") == 0 ) {
 		return XL_CRYPTO_HELPER_HMAC_SHA512;
@@ -18720,7 +18732,10 @@ static int __xlCgenEmitBuiltinHelperFunc(
 		__xlCgenEmitHelperFuncOpen(pCtx, pFuncInfo, pParams);
 		__xlCgenAppendIndent(&pCtx->buf);
 		switch ( eCryptoKind ) {
+			case XL_CRYPTO_HELPER_SHA256_HEX: __xlCgenAppendFormat(&pCtx->buf, "return xl_crypto_sha256_hex(%s);\n", sParam0); break;
 			case XL_CRYPTO_HELPER_HMAC_SHA256: __xlCgenAppendFormat(&pCtx->buf, "return xl_crypto_hmac_sha256(%s, %s);\n", sParam0, sParam1); break;
+			case XL_CRYPTO_HELPER_HMAC_SHA256_HEX: __xlCgenAppendFormat(&pCtx->buf, "return xl_crypto_hmac_sha256_hex(%s, %s);\n", sParam0, sParam1); break;
+			case XL_CRYPTO_HELPER_HMAC_SHA256_HEX_KEY: __xlCgenAppendFormat(&pCtx->buf, "return xl_crypto_hmac_sha256_hex_key(%s, %s);\n", sParam0, sParam1); break;
 			case XL_CRYPTO_HELPER_HMAC_SHA512: __xlCgenAppendFormat(&pCtx->buf, "return xl_crypto_hmac_sha512(%s, %s);\n", sParam0, sParam1); break;
 			default: break;
 		}

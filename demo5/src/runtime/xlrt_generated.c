@@ -2725,6 +2725,42 @@ int xl_dir_delete(const char* sPath)
 const char* xl_fmt_int_text(int value, const char* sPattern) { return XLRT_CSTR(xrtIntFormat((int64)value, (str)sPattern)); }
 const char* xl_fmt_float_text(double value, const char* sPattern) { return XLRT_CSTR(xrtNumFormat(value, (str)sPattern)); }
 const char* xl_fmt_bool_text(int value) { return value ? "true" : "false"; }
+static int __xlCryptoHexValue(int ch)
+{
+	if ( ch >= '0' && ch <= '9' ) return ch - '0';
+	if ( ch >= 'a' && ch <= 'f' ) return ch - 'a' + 10;
+	if ( ch >= 'A' && ch <= 'F' ) return ch - 'A' + 10;
+	return -1;
+}
+static int __xlCryptoHexDecode32(const char* sHex, unsigned char aOut[32])
+{
+	size_t i;
+	if ( sHex == NULL || __xlTextLen(sHex) != 64u ) {
+		__xlRaiseNativeError("ValueError", "hex key must be 64 hex characters", 0, sHex);
+		return 0;
+	}
+	for ( i = 0u; i < 32u; ++i ) {
+		int hi = __xlCryptoHexValue((unsigned char)sHex[i * 2u]);
+		int lo = __xlCryptoHexValue((unsigned char)sHex[i * 2u + 1u]);
+		if ( hi < 0 || lo < 0 ) {
+			__xlRaiseNativeError("ValueError", "hex key contains non-hex character", 0, sHex);
+			return 0;
+		}
+		aOut[i] = (unsigned char)((hi << 4) | lo);
+	}
+	return 1;
+}
+const char* xl_crypto_sha256_hex(const char* sText)
+{
+	unsigned char aDigest[32];
+
+	xrtSHA256(
+		(const ptr)sText,
+		__xlTextLen(sText),
+		aDigest
+	);
+	return __xlHexLowerBytes(aDigest, sizeof(aDigest));
+}
 const char* xl_crypto_hmac_sha256(const char* sKey, const char* sText)
 {
 	unsigned char aDigest[32];
@@ -2732,6 +2768,28 @@ const char* xl_crypto_hmac_sha256(const char* sKey, const char* sText)
 	xrtHMAC_SHA256(
 		(const uint8*)sKey,
 		__xlTextLen(sKey),
+		(const uint8*)sText,
+		__xlTextLen(sText),
+		aDigest
+	);
+	return __xlHexLowerBytes(aDigest, sizeof(aDigest));
+}
+
+const char* xl_crypto_hmac_sha256_hex(const char* sKey, const char* sText)
+{
+	return xl_crypto_hmac_sha256(sKey, sText);
+}
+
+const char* xl_crypto_hmac_sha256_hex_key(const char* sHexKey, const char* sText)
+{
+	unsigned char aKey[32];
+	unsigned char aDigest[32];
+	if ( !__xlCryptoHexDecode32(sHexKey, aKey) ) {
+		return "";
+	}
+	xrtHMAC_SHA256(
+		(const uint8*)aKey,
+		sizeof(aKey),
 		(const uint8*)sText,
 		__xlTextLen(sText),
 		aDigest

@@ -337,6 +337,9 @@ extern const char* xl_fmt_float_text(double value, const char* sPattern);
 extern const char* xl_fmt_bool_text(int value);
 
 extern const char* xl_crypto_hmac_sha256(const char* sKey, const char* sText);
+extern const char* xl_crypto_sha256_hex(const char* sText);
+extern const char* xl_crypto_hmac_sha256_hex(const char* sKey, const char* sText);
+extern const char* xl_crypto_hmac_sha256_hex_key(const char* sHexKey, const char* sText);
 extern const char* xl_crypto_hmac_sha512(const char* sKey, const char* sText);
 
 extern const char* xl_encode_hex_encode(const char* sText);
