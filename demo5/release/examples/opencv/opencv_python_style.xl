@@ -1,0 +1,22 @@
+import opencv as cv2
+
+func main() as int
+	if cv2.available() == false then
+		return 42
+	end
+
+	auto img = cv2.imread("release\\examples\\rapidocr\\sample.png")
+	if img.empty() then
+		return 1
+	end
+
+	auto small = cv2.resize(img, 320, 32)
+	if small.width() != 320 then
+		return 2
+	end
+	if small.height() != 32 then
+		return 3
+	end
+
+	return 42
+end

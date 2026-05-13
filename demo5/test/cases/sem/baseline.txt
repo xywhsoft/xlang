@@ -636,6 +636,7 @@ selector=sem
 [PASS] sem.xle_official_native_archive_zip
 [PASS] sem.xle_official_native_compress_gzip
 [PASS] sem.xle_official_native_image_bmp
+[PASS] sem.xle_official_native_uia_version
 [PASS] sem.xle_transitive
 [PASS] sem.xle_versions
 [PASS] sem.xle_external_package
@@ -652,4 +653,4 @@ selector=sem
 [PASS] sem.xle_read_functions_abi
 [PASS] sem.xle_read_exports_abi
 [PASS] sem.xle_dependencies
-summary: total=651 pass=651 fail=0
+summary: total=652 pass=652 fail=0

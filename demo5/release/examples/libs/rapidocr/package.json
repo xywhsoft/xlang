@@ -1,0 +1,56 @@
+{
+	"format": "xle-1",
+	"package": {
+		"name": "rapidocr",
+		"version": "0.1.0",
+		"abiVersion": "1",
+		"xlangAbi": "1",
+		"abiId": "rapidocr@0.1.0#abi1"
+	},
+	"artifact": {
+		"kind": "source",
+		"path": "src\\rapidocr.xl",
+		"cSources": [
+			"src\\rapidocr_artifact.c"
+		]
+	},
+	"dependencies": [
+		{"name": "opencv", "kind": "source", "version": "0.1.0", "abiVersion": "1", "abiId": "opencv@0.1.0#abi1"},
+		{"name": "onnxruntime", "kind": "source", "version": "0.1.0", "abiVersion": "1", "abiId": "onnxruntime@0.1.0#abi1"}
+	],
+	"modules": [
+		{
+			"key": "rapidocr",
+			"abiId": "rapidocr@0.1.0#abi1::rapidocr",
+			"file": "src\\rapidocr.xl",
+			"root": 0,
+			"native": 0,
+			"binding": "",
+			"imports": ["opencv", "onnxruntime"],
+			"exports": [
+				{"name": "RapidOCR", "symbol": "RapidOCR", "kind": "function", "overloadCount": 3},
+				{"name": "available", "symbol": "available", "kind": "function", "overloadCount": 1},
+				{"name": "backend", "symbol": "backend", "kind": "function", "overloadCount": 1},
+				{"name": "dependency_status", "symbol": "dependency_status", "kind": "function", "overloadCount": 1},
+				{"name": "default_model_dir", "symbol": "default_model_dir", "kind": "function", "overloadCount": 1},
+				{"name": "default_config_json", "symbol": "default_config_json", "kind": "function", "overloadCount": 1},
+				{"name": "model_layout_json", "symbol": "model_layout_json", "kind": "function", "overloadCount": 1},
+				{"name": "det_boxes_from_output", "symbol": "det_boxes_from_output", "kind": "function", "overloadCount": 2},
+				{"name": "charset_info", "symbol": "charset_info", "kind": "function", "overloadCount": 1},
+				{"name": "rec_decode", "symbol": "rec_decode", "kind": "function", "overloadCount": 1},
+				{"name": "rec_decode_result", "symbol": "rec_decode_result", "kind": "function", "overloadCount": 1},
+				{"name": "cls_decode_result", "symbol": "cls_decode_result", "kind": "function", "overloadCount": 1},
+				{"name": "box_count", "symbol": "box_count", "kind": "function", "overloadCount": 1},
+				{"name": "box_x", "symbol": "box_x", "kind": "function", "overloadCount": 1},
+				{"name": "box_y", "symbol": "box_y", "kind": "function", "overloadCount": 1},
+				{"name": "box_width", "symbol": "box_width", "kind": "function", "overloadCount": 1},
+				{"name": "box_height", "symbol": "box_height", "kind": "function", "overloadCount": 1},
+				{"name": "vis_image", "symbol": "vis_image", "kind": "function", "overloadCount": 1},
+				{"name": "assemble_result", "symbol": "assemble_result", "kind": "function", "overloadCount": 2},
+				{"name": "assemble_result2", "symbol": "assemble_result2", "kind": "function", "overloadCount": 2},
+				{"name": "last_error", "symbol": "last_error", "kind": "function", "overloadCount": 1}
+			]
+		}
+	],
+	"functions": []
+}

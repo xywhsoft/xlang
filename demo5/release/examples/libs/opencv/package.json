@@ -1,0 +1,47 @@
+{
+	"format": "xle-1",
+	"package": {
+		"name": "opencv",
+		"version": "0.1.0",
+		"abiVersion": "1",
+		"xlangAbi": "1",
+		"abiId": "opencv@0.1.0#abi1"
+	},
+	"artifact": {
+		"kind": "source",
+		"path": "src\\opencv.xl",
+		"cSources": [
+			"src\\opencv_artifact.c"
+		]
+	},
+	"dependencies": [],
+	"modules": [
+		{
+			"key": "opencv",
+			"abiId": "opencv@0.1.0#abi1::opencv",
+			"file": "src\\opencv.xl",
+			"root": 0,
+			"native": 0,
+			"binding": "",
+			"imports": [],
+			"exports": [
+				{"name": "available", "symbol": "available", "kind": "function", "overloadCount": 1},
+				{"name": "backend", "symbol": "backend", "kind": "function", "overloadCount": 1},
+				{"name": "last_error", "symbol": "last_error", "kind": "function", "overloadCount": 1},
+				{"name": "imread", "symbol": "imread", "kind": "function", "overloadCount": 2},
+				{"name": "imwrite", "symbol": "imwrite", "kind": "function", "overloadCount": 1},
+				{"name": "resize", "symbol": "resize", "kind": "function", "overloadCount": 1},
+				{"name": "crop", "symbol": "crop", "kind": "function", "overloadCount": 1},
+				{"name": "rotate180", "symbol": "rotate180", "kind": "function", "overloadCount": 1},
+				{"name": "capture_rect", "symbol": "capture_rect", "kind": "function", "overloadCount": 1},
+				{"name": "capture_window", "symbol": "capture_window", "kind": "function", "overloadCount": 1},
+				{"name": "cvtColor", "symbol": "cvtColor", "kind": "function", "overloadCount": 1},
+				{"name": "copyMakeBorder", "symbol": "copyMakeBorder", "kind": "function", "overloadCount": 2},
+				{"name": "rectangle", "symbol": "rectangle", "kind": "function", "overloadCount": 2},
+				{"name": "normalize", "symbol": "normalize", "kind": "function", "overloadCount": 1},
+				{"name": "toCHWTensorJson", "symbol": "toCHWTensorJson", "kind": "function", "overloadCount": 1}
+			]
+		}
+	],
+	"functions": []
+}

@@ -1,0 +1,22 @@
+import opencv as cv2
+
+func main() as int
+	auto img = cv2.imread("release\\examples\\rapidocr\\sample.png", cv2.IMREAD_COLOR)
+	if img.empty() then
+		return 1
+	end
+	auto rotated = cv2.rotate180(img)
+	if rotated.empty() then
+		return 2
+	end
+	if rotated.width() != img.width() then
+		return 3
+	end
+	if rotated.height() != img.height() then
+		return 4
+	end
+	if cv2.imwrite("release\\examples\\opencv\\opencv_rotate180_smoke.png", rotated) == false then
+		return 5
+	end
+	return 42
+end
