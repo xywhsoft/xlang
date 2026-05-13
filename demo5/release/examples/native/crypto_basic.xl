@@ -1,8 +1,17 @@
 import std.crypto
 
 func main() as int
+	if crypto.sha256_hex("hello") != "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"
+		return 10
+	end
 	if crypto.hmac_sha256("key", "hello") != "9307b3b915efb5171ff14d8cb55fbcc798c6c0ef1456d66ded1a6aa723a58b7b"
 		return 1
+	end
+	if crypto.hmac_sha256_hex("key", "hello") != "9307b3b915efb5171ff14d8cb55fbcc798c6c0ef1456d66ded1a6aa723a58b7b"
+		return 11
+	end
+	if crypto.hmac_sha256_hex_key("000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f", "hello") != "53c40272a70c15ca4ee0af4df1f155fd6c41e00ce2307d8987ecd4bb36a7e990"
+		return 12
 	end
 	if crypto.hmac_sha512("key", "hello") != "ff06ab36757777815c008d32c8e14a705b4e7bf310351a06a23b612dc4c7433e7757d20525a5593b71020ea2ee162d2311b247e9855862b270122419652c0c92"
 		return 2

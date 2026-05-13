@@ -13942,6 +13942,7 @@ static int __xlTestCgenGeneratorNestedTryFlowBasic(XL_TestContext* pCtx)
 }
 static int __xlTestCgenLoopJumpLevels(XL_TestContext* pCtx) { return __xlRunCgenCase(pCtx, "examples\\full\\loop_jump_levels.xl", "goto xl_for_break_"); }
 static int __xlTestRunBasic(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\run_basic.xl", 1, 42, NULL, NULL); }
+static int __xlTestRunRedisOfflineCodec(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\redis\\redis_offline_codec.xl", 1, 0, NULL, NULL); }
 static int __xlTestRunTryCatch(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\try_catch_basic.xl", 1, 7, NULL, NULL); }
 static int __xlTestRunTryNestedRethrow(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\try_nested_rethrow.xl", 1, 23, NULL, NULL); }
 static int __xlTestRunErrorFields(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\error_fields_basic.xl", 1, 13, NULL, NULL); }
@@ -21928,6 +21929,7 @@ static const XL_TestCase __gXLTests[] = {
 	{ "runtime.rand_plus_basic", "runtime", __xlTestRunRandPlusBasic },
 	{ "runtime.regex_basic", "runtime", __xlTestRunRegexBasic },
 	{ "runtime.json_basic", "runtime", __xlTestRunJsonBasic },
+	{ "runtime.redis_offline_codec", "runtime", __xlTestRunRedisOfflineCodec },
 	{ "runtime.query_basic", "runtime", __xlTestRunQueryBasic },
 	{ "runtime.container_modules_basic", "runtime", __xlTestRunContainerModulesBasic },
 	{ "runtime.range_basic", "runtime", __xlTestRunRangeBasic },

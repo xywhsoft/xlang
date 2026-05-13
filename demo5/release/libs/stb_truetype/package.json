@@ -1,0 +1,56 @@
+{
+	"format": "xle-1",
+	"package": {
+		"name": "stb_truetype",
+		"version": "0.1.0",
+		"abiVersion": "1",
+		"xlangAbi": "1",
+		"abiId": "stb_truetype@0.1.0#abi1"
+	},
+	"artifact": {
+		"kind": "source",
+		"path": "src\\stb_truetype.xl",
+		"cSources": [
+			"src\\stb_truetype_artifact.c"
+		]
+	},
+	"dependencies": [],
+	"modules": [
+		{
+			"key": "stb_truetype",
+			"abiId": "stb_truetype@0.1.0#abi1::stb_truetype",
+			"file": "src\\stb_truetype.xl",
+			"root": 0,
+			"native": 0,
+			"binding": "",
+			"imports": [],
+			"exports": [
+				{"name": "version", "symbol": "version", "kind": "function", "overloadCount": 1},
+				{"name": "last_error", "symbol": "last_error", "kind": "function", "overloadCount": 1},
+				{"name": "load", "symbol": "load", "kind": "function", "overloadCount": 2},
+				{"name": "valid", "symbol": "valid", "kind": "function", "overloadCount": 1},
+				{"name": "release", "symbol": "release", "kind": "function", "overloadCount": 1},
+				{"name": "scale_for_pixel_height", "symbol": "scale_for_pixel_height", "kind": "function", "overloadCount": 1},
+				{"name": "ascent", "symbol": "ascent", "kind": "function", "overloadCount": 1},
+				{"name": "descent", "symbol": "descent", "kind": "function", "overloadCount": 1},
+				{"name": "line_gap", "symbol": "line_gap", "kind": "function", "overloadCount": 1},
+				{"name": "find_glyph_index", "symbol": "find_glyph_index", "kind": "function", "overloadCount": 1},
+				{"name": "h_advance", "symbol": "h_advance", "kind": "function", "overloadCount": 1},
+				{"name": "left_bearing", "symbol": "left_bearing", "kind": "function", "overloadCount": 1},
+				{"name": "kern_advance", "symbol": "kern_advance", "kind": "function", "overloadCount": 1},
+				{"name": "vmetrics", "symbol": "vmetrics", "kind": "function", "overloadCount": 1},
+				{"name": "hmetrics", "symbol": "hmetrics", "kind": "function", "overloadCount": 1},
+				{"name": "codepoint_bitmap", "symbol": "codepoint_bitmap", "kind": "function", "overloadCount": 1},
+				{"name": "codepoint_bitmap_box", "symbol": "codepoint_bitmap_box", "kind": "function", "overloadCount": 1},
+				{"name": "bitmap_valid", "symbol": "bitmap_valid", "kind": "function", "overloadCount": 1},
+				{"name": "bitmap_width", "symbol": "bitmap_width", "kind": "function", "overloadCount": 1},
+				{"name": "bitmap_height", "symbol": "bitmap_height", "kind": "function", "overloadCount": 1},
+				{"name": "bitmap_xoff", "symbol": "bitmap_xoff", "kind": "function", "overloadCount": 1},
+				{"name": "bitmap_yoff", "symbol": "bitmap_yoff", "kind": "function", "overloadCount": 1},
+				{"name": "bitmap_data", "symbol": "bitmap_data", "kind": "function", "overloadCount": 1},
+				{"name": "bitmap_release", "symbol": "bitmap_release", "kind": "function", "overloadCount": 1}
+			]
+		}
+	],
+	"functions": []
+}
