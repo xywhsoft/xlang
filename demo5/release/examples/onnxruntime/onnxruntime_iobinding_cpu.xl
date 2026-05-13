@@ -1,0 +1,56 @@
+import onnxruntime as ort
+import std.str as str
+
+func main() as int
+	if ort.available() == false then
+		return 1
+	end
+
+	auto sess = ort.InferenceSession("release\\examples\\onnxruntime\\identity.onnx")
+	if sess.valid() == false then
+		return 2
+	end
+	auto binding = sess.io_binding()
+	if binding.valid() == false then
+		return 3
+	end
+	if binding.bind_cpu_input("x", "{\"dtype\":\"float32\",\"shape\":[3],\"data\":[31,32,33]}") == false then
+		return 4
+	end
+	if binding.bind_output("y") == false then
+		return 5
+	end
+	auto result = sess.run_with_iobinding(binding)
+	auto json = result.to_json()
+	if str.contains(json, "\"dtype\":\"float32\"") == false then
+		return 6
+	end
+	if str.contains(json, "33") == false then
+		return 7
+	end
+	if str.contains(binding.to_json(), "33") == false then
+		return 8
+	end
+
+	auto ss = ort.InferenceSession("release\\examples\\onnxruntime\\identity_string_meta.onnx")
+	if ss.valid() == false then
+		return 9
+	end
+	auto sb = ss.io_binding()
+	if sb.bind_cpu_input("x", "{\"dtype\":\"string\",\"shape\":[3],\"data\":[\"io\",\"binding\",\"ok\"]}") == false then
+		return 10
+	end
+	if sb.bind_output("y") == false then
+		return 11
+	end
+	auto sr = ss.run_with_iobinding(sb)
+	auto sj = sr.to_json()
+	if str.contains(sj, "\"dtype\":\"string\"") == false then
+		return 12
+	end
+	if str.contains(sj, "binding") == false then
+		return 13
+	end
+
+	return 42
+end

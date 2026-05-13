@@ -1,0 +1,31 @@
+import onnxruntime as ort
+
+func main() as int
+	if ort.available() == false then
+		return 1
+	end
+
+	auto sess = ort.InferenceSession("release\\examples\\onnxruntime\\identity.onnx")
+	if sess.valid() == false then
+		return 2
+	end
+
+	auto tensor = ort.TensorZerosF32("[3]")
+	if tensor.valid() == false then
+		return 3
+	end
+
+	auto result = sess.run_tensor("x", tensor, "[]")
+	if result.ok() == false then
+		return 4
+	end
+	auto json = result.to_json()
+	if json.contains("\"dtype\":\"float32\"") == false then
+		return 5
+	end
+	if json.contains("\"shape\":[3]") == false then
+		return 6
+	end
+
+	return 42
+end

@@ -1,0 +1,44 @@
+import onnxruntime as ort
+import std.str as str
+
+func main() as int
+	if ort.available() == false then
+		return 1
+	end
+
+	auto version = ort.get_version_string()
+	if version == "" then
+		return 2
+	end
+
+	auto providers = ort.get_available_providers()
+	if str.contains(providers, "CPUExecutionProvider") == false then
+		return 3
+	end
+
+	auto options = ort.SessionOptions()
+	options.set_intra_op_num_threads(1)
+	options.set_inter_op_num_threads(1)
+	options.set_graph_optimization_level(ort.ORT_ENABLE_ALL)
+
+	auto sess = ort.InferenceSession("release\\examples\\onnxruntime\\identity.onnx", options)
+	if sess.valid() == false then
+		return 4
+	end
+
+	auto result = sess.run("[\"y\"]", "{\"x\":{\"dtype\":\"float32\",\"shape\":[3],\"data\":[4,5,6]}}")
+	auto json = result.to_json()
+	if str.contains(json, "\"y\"") == false then
+		return 5
+	end
+	if str.contains(json, "4") == false then
+		return 6
+	end
+	if str.contains(json, "5") == false then
+		return 7
+	end
+	if str.contains(json, "6") == false then
+		return 8
+	end
+	return 42
+end

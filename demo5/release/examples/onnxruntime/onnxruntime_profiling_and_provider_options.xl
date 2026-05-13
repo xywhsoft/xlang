@@ -1,0 +1,58 @@
+import onnxruntime as ort
+import std.str as str
+
+func main() as int
+	if ort.available() == false then
+		return 1
+	end
+
+	auto options = ort.SessionOptions()
+	if options.set_intra_op_num_threads(1) == false then
+		return 2
+	end
+	if options.set_execution_mode(ort.ORT_SEQUENTIAL) == false then
+		return 3
+	end
+	if options.enable_cpu_mem_arena() == false then
+		return 4
+	end
+	if options.enable_mem_pattern() == false then
+		return 5
+	end
+	if options.set_log_id("xlang-profile-smoke") == false then
+		return 6
+	end
+	if options.set_log_severity_level(ort.ORT_LOGGING_LEVEL_WARNING) == false then
+		return 7
+	end
+	if options.set_log_verbosity_level(0) == false then
+		return 8
+	end
+	if options.append_execution_provider(ort.CPUExecutionProvider) == false then
+		return 9
+	end
+	if options.enable_profiling("release\\tmp\\xlang_ort_profile") == false then
+		return 10
+	end
+
+	auto sess = ort.InferenceSession("release\\examples\\onnxruntime\\identity.onnx", options)
+	if sess.valid() == false then
+		return 11
+	end
+
+	auto result = sess.run("[]", "{\"x\":{\"dtype\":\"float32\",\"shape\":[3],\"data\":[21,22,23]}}")
+	auto json = result.to_json()
+	if str.contains(json, "23") == false then
+		return 12
+	end
+
+	auto profile_file = sess.end_profiling()
+	if profile_file == "" then
+		return 13
+	end
+	if str.contains(profile_file, "xlang_ort_profile") == false then
+		return 14
+	end
+
+	return 42
+end

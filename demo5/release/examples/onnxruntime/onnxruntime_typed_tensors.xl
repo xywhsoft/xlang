@@ -1,0 +1,63 @@
+import onnxruntime as ort
+import std.str as str
+
+func check(bool ok, int code) as int
+	if ok == false then
+		return code
+	end
+	return 0
+end
+
+func main() as int
+	if ort.available() == false then
+		return 1
+	end
+
+	auto s64 = ort.InferenceSession("release\\examples\\onnxruntime\\identity_int64.onnx")
+	if s64.valid() == false then
+		return 2
+	end
+	auto inputs64 = s64.get_inputs()
+	if str.contains(inputs64, "\"dtype\":\"int64\"") == false then
+		return 3
+	end
+	auto r64 = s64.run("[]", "{\"x\":{\"dtype\":\"int64\",\"shape\":[3],\"data\":[7,8,9]}}")
+	auto j64 = r64.to_json()
+	if str.contains(j64, "\"dtype\":\"int64\"") == false then
+		return 4
+	end
+	if str.contains(j64, "9") == false then
+		return 5
+	end
+
+	auto sf64 = ort.InferenceSession("release\\examples\\onnxruntime\\identity_float64.onnx")
+	if sf64.valid() == false then
+		return 6
+	end
+	auto rf64 = sf64.run("[]", "{\"x\":{\"dtype\":\"float64\",\"shape\":[3],\"data\":[1.5,2.5,3.5]}}")
+	auto jf64 = rf64.to_json()
+	if str.contains(jf64, "\"dtype\":\"float64\"") == false then
+		return 7
+	end
+	if str.contains(jf64, "3.5") == false then
+		return 8
+	end
+
+	auto sb = ort.InferenceSession("release\\examples\\onnxruntime\\identity_bool.onnx")
+	if sb.valid() == false then
+		return 9
+	end
+	auto rb = sb.run("[]", "{\"x\":{\"dtype\":\"bool\",\"shape\":[3],\"data\":[1,0,1]}}")
+	auto jb = rb.to_json()
+	if str.contains(jb, "\"dtype\":\"bool\"") == false then
+		return 10
+	end
+	if str.contains(jb, "true") == false then
+		return 11
+	end
+	if str.contains(jb, "false") == false then
+		return 12
+	end
+
+	return 42
+end

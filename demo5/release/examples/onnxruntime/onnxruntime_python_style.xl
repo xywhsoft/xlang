@@ -1,0 +1,38 @@
+import onnxruntime as ort
+import std.str as str
+
+func main() as int
+	if ort.available() == false then
+		return 42
+	end
+
+	auto sess = ort.InferenceSession("release\\examples\\onnxruntime\\identity.onnx")
+	if sess.valid() == false then
+		return 1
+	end
+
+	auto inputs = sess.get_inputs()
+	auto outputs = sess.get_outputs()
+	if inputs == "" then
+		return 2
+	end
+	if outputs == "" then
+		return 3
+	end
+
+	auto result = sess.run("[]", "{\"x\":{\"dtype\":\"float32\",\"shape\":[3],\"data\":[1,2,3]}}")
+	auto json = result.to_json()
+	if json == "" then
+		return 4
+	end
+	if str.contains(json, "1") == false then
+		return 5
+	end
+	if str.contains(json, "2") == false then
+		return 6
+	end
+	if str.contains(json, "3") == false then
+		return 7
+	end
+	return 42
+end

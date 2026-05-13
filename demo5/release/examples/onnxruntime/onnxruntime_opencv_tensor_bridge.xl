@@ -1,0 +1,34 @@
+import opencv as cv2
+import onnxruntime as ort
+
+func main() as int
+	auto img = cv2.imread("release\\examples\\rapidocr\\sample.png", cv2.IMREAD_COLOR)
+	if img.empty() then
+		return 1
+	end
+
+	auto resized = cv2.resize(img, 32, 32)
+	auto tensor = ort.TensorFromOpenCV(resized.handle, 0.0039215689, 0.485, 0.456, 0.406, 0.229, 0.224, 0.225)
+	if tensor.valid() == false then
+		return 2
+	end
+
+	auto sess = ort.InferenceSession("release\\examples\\libs\\rapidocr\\models\\ch_PP-OCRv4_det_infer.onnx")
+	if sess.valid() == false then
+		return 3
+	end
+
+	auto result = sess.run_tensor("x", tensor, "[]")
+	if result.ok() == false then
+		return 4
+	end
+	auto json = result.to_json()
+	if json.contains("\"dtype\":\"float32\"") == false then
+		return 5
+	end
+	if json.contains("\"shape\":[1,1,32,32]") == false then
+		return 6
+	end
+
+	return 42
+end
