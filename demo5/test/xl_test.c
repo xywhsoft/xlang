@@ -622,6 +622,7 @@ static int __xlAddRootExternSymbolsToHostCtx(XL_HostContext* pHostCtx, const XL_
 static int __xlAddModuleArtifactsToExecCtx(XL_ExecCtx* pExecCtx, const XL_ModuleLinkResult* pModuleResult)
 {
 	size_t i;
+	size_t j;
 
 	if ( (pExecCtx == NULL) || (pModuleResult == NULL) ) {
 		return XL_RC_BAD_ARG;
@@ -634,11 +635,17 @@ static int __xlAddModuleArtifactsToExecCtx(XL_ExecCtx* pExecCtx, const XL_Module
 		if ( pModule->bIsRoot ) {
 			continue;
 		}
+		for ( j = 0; j < pModule->iCSourceCount; ++j ) {
+			if ( xlExecCtxAddArtifact(pExecCtx, "c-source", pModule->arrCSourceFiles[j]) != XL_RC_OK ) {
+				return XL_RC_FAIL;
+			}
+		}
 		if ( (pModule->sConsumeMode == NULL) || (pModule->sArtifactFile == NULL) ) {
 			continue;
 		}
 		if ( ((strcmp(pModule->sConsumeMode, "shared-bridge") != 0) &&
-			(strcmp(pModule->sConsumeMode, "static-bridge") != 0)) ||
+			(strcmp(pModule->sConsumeMode, "static-bridge") != 0) &&
+			(strcmp(pModule->sConsumeMode, "c-source-bridge") != 0)) ||
 			(pModule->sArtifactFile[0] == '\0') ) {
 			continue;
 		}
@@ -653,6 +660,7 @@ static int __xlAddModuleArtifactsToExecCtx(XL_ExecCtx* pExecCtx, const XL_Module
 static int __xlAddModuleArtifactsToHostCtx(XL_HostContext* pHostCtx, const XL_ModuleLinkResult* pModuleResult)
 {
 	size_t i;
+	size_t j;
 
 	if ( (pHostCtx == NULL) || (pModuleResult == NULL) ) {
 		return XL_RC_BAD_ARG;
@@ -665,11 +673,17 @@ static int __xlAddModuleArtifactsToHostCtx(XL_HostContext* pHostCtx, const XL_Mo
 		if ( pModule->bIsRoot ) {
 			continue;
 		}
+		for ( j = 0; j < pModule->iCSourceCount; ++j ) {
+			if ( xlHostContextAddArtifact(pHostCtx, "c-source", pModule->arrCSourceFiles[j]) != XL_RC_OK ) {
+				return XL_RC_FAIL;
+			}
+		}
 		if ( (pModule->sConsumeMode == NULL) || (pModule->sArtifactFile == NULL) ) {
 			continue;
 		}
 		if ( ((strcmp(pModule->sConsumeMode, "shared-bridge") != 0) &&
-			(strcmp(pModule->sConsumeMode, "static-bridge") != 0)) ||
+			(strcmp(pModule->sConsumeMode, "static-bridge") != 0) &&
+			(strcmp(pModule->sConsumeMode, "c-source-bridge") != 0)) ||
 			(pModule->sArtifactFile[0] == '\0') ) {
 			continue;
 		}
@@ -5636,6 +5650,7 @@ static int __xlTestSemXleOfficialNativeArchiveTar(XL_TestContext* pCtx) { return
 static int __xlTestSemXleOfficialNativeArchiveZip(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\xle_official_native\\use_x_archive_zip.xl", 1, "int"); }
 static int __xlTestSemXleOfficialNativeCompressGzip(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\xle_official_native\\use_x_compress_gzip.xl", 1, "int"); }
 static int __xlTestSemXleOfficialNativeImageBmp(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\xle_official_native\\use_x_image_bmp.xl", 1, "int"); }
+static int __xlTestSemXleOfficialNativeUiaVersion(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\xle_official_native\\use_x_uia_version.xl", 1, "int"); }
 static int __xlTestSemXleTransitive(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\xle_transitive\\use_pkg_app.xl", 1, "int"); }
 static int __xlTestSemXleVersions(XL_TestContext* pCtx) { return __xlRunSemCase(pCtx, "examples\\xle_versions\\use_dual_versions.xl", 1, "int"); }
 static int __xlTestSemXleExternalPackage(XL_TestContext* pCtx)
@@ -14495,6 +14510,7 @@ static int __xlTestRunXleOfficialNativeArchiveTar(XL_TestContext* pCtx) { return
 static int __xlTestRunXleOfficialNativeArchiveZip(XL_TestContext* pCtx) { return __xlRunProgramCaseNoFallback(pCtx, "examples\\xle_official_native\\use_x_archive_zip.xl", 1, 48, "artifact.shared.", NULL); }
 static int __xlTestRunXleOfficialNativeCompressGzip(XL_TestContext* pCtx) { return __xlRunProgramCaseNoFallback(pCtx, "examples\\xle_official_native\\use_x_compress_gzip.xl", 1, 42, "artifact.shared.", NULL); }
 static int __xlTestRunXleOfficialNativeImageBmp(XL_TestContext* pCtx) { return __xlRunProgramCaseNoFallback(pCtx, "examples\\xle_official_native\\use_x_image_bmp.xl", 1, 23, "artifact.shared.", NULL); }
+static int __xlTestRunXleOfficialNativeUiaVersion(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\xle_official_native\\use_x_uia_version.xl", 1, 0, NULL, NULL); }
 static int __xlTestRunXleTransitive(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\xle_transitive\\use_pkg_app.xl", 1, 42, NULL, NULL); }
 static int __xlTestRunXleVersions(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\xle_versions\\use_dual_versions.xl", 1, 30, NULL, NULL); }
 static int __xlTestRunOverloadAbi(XL_TestContext* pCtx) { return __xlRunProgramCase(pCtx, "examples\\full\\overload_runtime.xl", 1, 42, NULL, NULL); }
@@ -20646,6 +20662,7 @@ static const XL_TestCase __gXLTests[] = {
 	{ "sem.xle_official_native_archive_zip", "sem", __xlTestSemXleOfficialNativeArchiveZip },
 	{ "sem.xle_official_native_compress_gzip", "sem", __xlTestSemXleOfficialNativeCompressGzip },
 	{ "sem.xle_official_native_image_bmp", "sem", __xlTestSemXleOfficialNativeImageBmp },
+	{ "sem.xle_official_native_uia_version", "sem", __xlTestSemXleOfficialNativeUiaVersion },
 	{ "sem.xle_transitive", "sem", __xlTestSemXleTransitive },
 	{ "sem.xle_versions", "sem", __xlTestSemXleVersions },
 	{ "sem.xle_external_package", "sem", __xlTestSemXleExternalPackage },
@@ -21529,6 +21546,7 @@ static const XL_TestCase __gXLTests[] = {
 	{ "runtime.xle_official_native_archive_zip", "runtime", __xlTestRunXleOfficialNativeArchiveZip },
 	{ "runtime.xle_official_native_compress_gzip", "runtime", __xlTestRunXleOfficialNativeCompressGzip },
 	{ "runtime.xle_official_native_image_bmp", "runtime", __xlTestRunXleOfficialNativeImageBmp },
+	{ "runtime.xle_official_native_uia_version", "runtime", __xlTestRunXleOfficialNativeUiaVersion },
 	{ "runtime.xle_transitive", "runtime", __xlTestRunXleTransitive },
 	{ "runtime.xle_versions", "runtime", __xlTestRunXleVersions },
 	{ "runtime.overload_abi", "runtime", __xlTestRunOverloadAbi },

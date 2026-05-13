@@ -556,6 +556,143 @@ static int __xlWriteBinaryFile(const char* sFilePath, const unsigned char* pData
 	return XL_RC_OK;
 }
 
+static const char* __xlPathBaseName(const char* sPath)
+{
+	const char* sName;
+	const char* sScan;
+
+	if ( sPath == NULL ) {
+		return "";
+	}
+	sName = sPath;
+	for ( sScan = sPath; *sScan != '\0'; ++sScan ) {
+		if ( (*sScan == '\\') || (*sScan == '/') ) {
+			sName = sScan + 1;
+		}
+	}
+	return sName;
+}
+
+static void __xlStripPathFileName(char* sPath)
+{
+	size_t iLen;
+
+	if ( sPath == NULL ) {
+		return;
+	}
+	iLen = strlen(sPath);
+	while ( iLen > 0 ) {
+		if ( (sPath[iLen - 1] == '\\') || (sPath[iLen - 1] == '/') ) {
+			sPath[iLen - 1] = '\0';
+			--iLen;
+			continue;
+		}
+		break;
+	}
+	while ( iLen > 0 ) {
+		if ( (sPath[iLen - 1] == '\\') || (sPath[iLen - 1] == '/') ) {
+			sPath[iLen - 1] = '\0';
+			return;
+		}
+		--iLen;
+	}
+	sPath[0] = '\0';
+}
+
+static int __xlCopyFileBinary(const char* sSrcPath, const char* sDstPath)
+{
+	unsigned char* pData;
+	size_t iSize;
+	int iRc;
+
+	pData = NULL;
+	iSize = 0;
+	iRc = __xlReadBinaryFile(sSrcPath, &pData, &iSize);
+	if ( iRc != XL_RC_OK ) {
+		return iRc;
+	}
+	iRc = __xlWriteBinaryFile(sDstPath, pData, iSize);
+	free(pData);
+	return iRc;
+}
+
+static int __xlCopySharedArtifactsToOutputDir(
+	const XL_HostContext* pCtx,
+	const char* sOutputFile,
+	XL_RunTraceBuffer* pTrace
+)
+{
+	char sOutputDir[XL_PATH_MAX_LEN];
+	size_t i;
+
+	if ( (pCtx == NULL) || (sOutputFile == NULL) || (sOutputFile[0] == '\0') ) {
+		return XL_RC_BAD_ARG;
+	}
+
+	snprintf(sOutputDir, sizeof(sOutputDir), "%s", sOutputFile);
+	__xlStripPathFileName(sOutputDir);
+	if ( sOutputDir[0] == '\0' ) {
+		snprintf(sOutputDir, sizeof(sOutputDir), ".");
+	}
+
+	for ( i = 0; i < pCtx->iArtifactCount; ++i ) {
+		const XL_HostArtifact* pArtifact;
+		const char* sBase;
+		char sDst[XL_PATH_MAX_LEN];
+
+		pArtifact = &pCtx->arrArtifacts[i];
+		if ( strcmp(pArtifact->sKind, "shared") != 0 ) {
+			continue;
+		}
+		if ( !__xlFileExists(pArtifact->sFile) ) {
+			__xlRunTraceAppendFormat(pTrace, "artifact.shared.copy_missing=%s\n", pArtifact->sFile);
+			return XL_RC_FAIL;
+		}
+		sBase = __xlPathBaseName(pArtifact->sFile);
+		if ( sBase[0] == '\0' ) {
+			continue;
+		}
+		xlPathJoin(sDst, sizeof(sDst), sOutputDir, sBase);
+		if ( strcmp(sDst, pArtifact->sFile) == 0 ) {
+			continue;
+		}
+		__xlRunTraceAppendFormat(pTrace, "artifact.shared.copy=%s -> %s\n", pArtifact->sFile, sDst);
+		if ( __xlCopyFileBinary(pArtifact->sFile, sDst) != XL_RC_OK ) {
+			return XL_RC_IO_ERROR;
+		}
+	}
+	for ( i = 0; i < pCtx->iLoadLibraryCount; ++i ) {
+		const XL_HostLoadLibrary* pLib;
+		const char* sBase;
+		char sDst[XL_PATH_MAX_LEN];
+
+		pLib = &pCtx->arrLoadLibraries[i];
+		if ( pLib->sFile[0] == '\0' ) {
+			continue;
+		}
+		if ( __xlLoadLibraryNeedsFileProbe(pLib->sFile) && !__xlFileExists(pLib->sFile) ) {
+			__xlRunTraceAppendFormat(pTrace, "loadlib.copy_missing=%s\n", pLib->sFile);
+			return XL_RC_FAIL;
+		}
+		if ( !__xlLoadLibraryNeedsFileProbe(pLib->sFile) ) {
+			continue;
+		}
+		sBase = __xlPathBaseName(pLib->sFile);
+		if ( sBase[0] == '\0' ) {
+			continue;
+		}
+		xlPathJoin(sDst, sizeof(sDst), sOutputDir, sBase);
+		if ( strcmp(sDst, pLib->sFile) == 0 ) {
+			continue;
+		}
+		__xlRunTraceAppendFormat(pTrace, "loadlib.copy=%s -> %s\n", pLib->sFile, sDst);
+		if ( __xlCopyFileBinary(pLib->sFile, sDst) != XL_RC_OK ) {
+			return XL_RC_IO_ERROR;
+		}
+	}
+	return XL_RC_OK;
+}
+
 static size_t __xlArParseDecimal(const unsigned char* pText, size_t iLen)
 {
 	char sBuf[32];
@@ -1893,6 +2030,12 @@ static int __xlHostTccBuildCommon(
 	if ( tcc_output_file(pTcc, sOutputFile) < 0 ) {
 		__xlCleanupStaticExtractedFiles(arrStaticExtracted, iStaticExtractedCount);
 		XL_DIAG_ERROR(pDiag, "host.tcc", "failed to write output file: %s", sOutputFile);
+		pResult->bHadBuildError = 1;
+		return XL_RC_FAIL;
+	}
+	if ( !bObjOutput && (__xlCopySharedArtifactsToOutputDir(pCtx, sOutputFile, pTrace) != XL_RC_OK) ) {
+		__xlCleanupStaticExtractedFiles(arrStaticExtracted, iStaticExtractedCount);
+		XL_DIAG_ERROR(pDiag, "host.tcc", "failed to copy shared xle artifacts next to output: %s", sOutputFile);
 		pResult->bHadBuildError = 1;
 		return XL_RC_FAIL;
 	}

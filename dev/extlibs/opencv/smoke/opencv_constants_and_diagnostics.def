@@ -1,0 +1,15 @@
+LIBRARY opencv_constants_and_diagnostics.exe
+
+EXPORTS
+opencv_available_native
+opencv_backend_native
+opencv_channels_native
+opencv_copy_make_border_native
+opencv_cvt_color_native
+opencv_height_native
+opencv_imread_native
+opencv_imwrite_native
+opencv_last_error_native
+opencv_release_native
+opencv_resize_native
+opencv_width_native

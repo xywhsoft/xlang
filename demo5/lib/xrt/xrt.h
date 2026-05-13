@@ -29711,6 +29711,8 @@ static const xnetportops* xrtNetPortUringOps(void) UNUSED_ATTR;
 #define XNET_PORT_EVENT_F_MORE       0x00000004u
 /* Internal marker: synthetic accepted-stream open event, not listener accept completion. */
 #define XNET_PORT_EVENT_F_ACCEPTED_OPEN 0x8000u
+/* Internal marker: recv payload already moved through the worker queue. */
+#define XNET_PORT_EVENT_F_DEFERRED_RECV 0x4000u
 /* ============================== Config and I/O descriptors ============================== */
 typedef struct {
 	uint32 iBackend;
@@ -47833,6 +47835,7 @@ static bool __xnetStreamSubmitRecvChain(xnetstream* pStream, xnetchain* pChain)
 	if ( !pStream || !pStream->pWorker || !pChain ) { return false; }
 	memset(&tSubmit, 0, sizeof(tSubmit));
 	tSubmit.iOpType = XNET_PORT_OP_RECV;
+	tSubmit.iFlags = XNET_PORT_EVENT_F_DEFERRED_RECV;
 	tSubmit.hSocket = (intptr_t)XNET_SOCKET_INVALID;
 	tSubmit.pUserData = pStream;
 	tSubmit.pChain = pChain;
@@ -48973,7 +48976,12 @@ static void __xnetStreamOnPortEvents(xnetworker* pWorker, const xnetportevent* p
 			#endif
 			if ( pEvent->pChain ) {
 				// 有接收数据，交给接收事件处理器
-				__xnetStreamHandleRecvEvent(pStream, pEvent->pChain);
+				if ( (pEvent->iFlags & XNET_PORT_EVENT_F_DEFERRED_RECV) == 0 &&
+					pStream && __xnetStreamSubmitRecvChain(pStream, pEvent->pChain) ) {
+					/* Ownership of pChain moved to the synthetic recv event. */
+				} else {
+					__xnetStreamHandleRecvEvent(pStream, pEvent->pChain);
+				}
 			} else if ( pStream ) {
 				// 无接收数据，根据事件状态处理
 				#if defined(XNET_DEBUG_CLOSE_DIAG)

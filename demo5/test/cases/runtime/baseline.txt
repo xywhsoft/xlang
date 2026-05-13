@@ -643,6 +643,7 @@ neo
 [PASS] runtime.xle_official_native_archive_zip
 [PASS] runtime.xle_official_native_compress_gzip
 [PASS] runtime.xle_official_native_image_bmp
+[PASS] runtime.xle_official_native_uia_version
 [PASS] runtime.xle_transitive
 [PASS] runtime.xle_versions
 [PASS] runtime.overload_abi
@@ -1324,4 +1325,4 @@ beta
 [PASS] runtime.task_value_basic
 [PASS] runtime.task_delay
 [PASS] runtime.task_error
-summary: total=1305 pass=1305 fail=0
+summary: total=1306 pass=1306 fail=0
