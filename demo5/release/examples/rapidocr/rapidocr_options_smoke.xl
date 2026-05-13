@@ -1,0 +1,27 @@
+import rapidocr
+
+func main() as int
+	auto engine = rapidocr.RapidOCR()
+	if engine.set_det_threshold(0.25) == false then
+		return 1
+	end
+	if engine.set_cls_image_shape(192, 48) == false then
+		return 2
+	end
+	if engine.set_rec_image_shape(32, 48) == false then
+		return 3
+	end
+	if engine.set_rec_image_shape(0, 48) != false then
+		return 4
+	end
+
+	auto result = engine("release\\examples\\rapidocr\\sample.png")
+	if result.ok() == false then
+		return 5
+	end
+	if result.to_json().contains("\"boxes\"") == false then
+		return 6
+	end
+
+	return 42
+end

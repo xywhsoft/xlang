@@ -1,0 +1,34 @@
+import rapidocr
+
+func main() as int
+	if rapidocr.available() == false then
+		return 1
+	end
+	if rapidocr.backend() != "xlang-pipeline" then
+		return 2
+	end
+
+	auto engine = rapidocr.RapidOCR()
+	if engine.valid() == false then
+		return 3
+	end
+
+	auto result = engine("release\\examples\\rapidocr\\sample.png")
+	if result.ok() == false then
+		return 4
+	end
+	if result.to_json().contains("\"boxes\"") == false then
+		return 5
+	end
+	if result.to_json().contains("\"txts\"") == false then
+		return 6
+	end
+	if result.boxes.contains("\"box\"") == false then
+		return 7
+	end
+	if result.word_results.contains("\"label\"") == false then
+		return 8
+	end
+
+	return 42
+end

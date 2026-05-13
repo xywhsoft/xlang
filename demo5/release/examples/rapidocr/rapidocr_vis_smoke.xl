@@ -1,0 +1,28 @@
+import opencv as cv2
+import rapidocr
+
+func main() as int
+	auto engine = rapidocr.RapidOCR()
+	auto result = engine("release\\examples\\rapidocr\\sample.png")
+	if result.ok() == false then
+		return 1
+	end
+
+	string out_path = "release\\examples\\rapidocr\\rapidocr_vis_smoke.png"
+	if result.vis(out_path) == false then
+		return 2
+	end
+
+	auto img = cv2.imread(out_path, cv2.IMREAD_COLOR)
+	if img.empty() then
+		return 3
+	end
+	if img.width() <= 0 then
+		return 4
+	end
+	if img.height() <= 0 then
+		return 5
+	end
+
+	return 42
+end

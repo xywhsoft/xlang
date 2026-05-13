@@ -35,6 +35,7 @@ extern "rapidocr_rec_decode_result_native" func rapidocr_rec_decode_result_nativ
 extern "rapidocr_cls_decode_result_native" func rapidocr_cls_decode_result_native(point result_handle) as string
 extern "rapidocr_assemble_result_native" func rapidocr_assemble_result_native(string boxes_json, string rec_json, float elapse) as string
 extern "rapidocr_assemble_result2_native" func rapidocr_assemble_result2_native(string boxes_json, string rec0_json, string rec1_json, float elapse) as string
+extern "rapidocr_assemble_result4_native" func rapidocr_assemble_result4_native(string boxes_json, string rec0_json, string rec1_json, string rec2_json, string rec3_json, float elapse) as string
 extern "rapidocr_vis_image_native" func rapidocr_vis_image_native(string source_path, string boxes_json, string save_path) as int
 extern "rapidocr_first_box_x_native" func rapidocr_first_box_x_native(string boxes_json) as int
 extern "rapidocr_first_box_y_native" func rapidocr_first_box_y_native(string boxes_json) as int
@@ -166,6 +167,8 @@ func rapidocr_run_xlang_pipeline(string img_path, bool use_det, bool use_cls, bo
 
 	string rec = "{\"text\":\"\",\"score\":0,\"tokens\":0}"
 	string rec2 = ""
+	string rec3 = ""
+	string rec4 = ""
 	string txts = "[\"\"]"
 	string scores = "[0]"
 	if use_rec then
@@ -234,10 +237,50 @@ func rapidocr_run_xlang_pipeline(string img_path, bool use_det, bool use_cls, bo
 				end
 			end
 		end
+		if boxes_count > 2 then
+			int box3_x = rapidocr_box_x_native(boxes, 2)
+			int box3_y = rapidocr_box_y_native(boxes, 2)
+			int box3_w = rapidocr_box_width_native(boxes, 2)
+			int box3_h = rapidocr_box_height_native(boxes, 2)
+			if box3_w > 0 and box3_h > 0 then
+				auto crop3_img = cv2.crop(img, box3_x, box3_y, box3_w, box3_h)
+				if crop3_img.empty() == false then
+					auto rec3_img = cv2.resize(crop3_img, rec_img_w, rec_img_h)
+					auto rec3_tensor = ort.TensorFromOpenCV(rec3_img.handle, 0.0039215689, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5)
+					auto rec3_sess = ort.InferenceSession(rec_model_path)
+					auto rec3_result = rec3_sess.run_tensor("x", rec3_tensor, "[]")
+					if rec3_result.ok() then
+						rec3 = rec_decode_result(rec3_result.handle, keys_path)
+					end
+				end
+			end
+		end
+		if boxes_count > 3 then
+			int box4_x = rapidocr_box_x_native(boxes, 3)
+			int box4_y = rapidocr_box_y_native(boxes, 3)
+			int box4_w = rapidocr_box_width_native(boxes, 3)
+			int box4_h = rapidocr_box_height_native(boxes, 3)
+			if box4_w > 0 and box4_h > 0 then
+				auto crop4_img = cv2.crop(img, box4_x, box4_y, box4_w, box4_h)
+				if crop4_img.empty() == false then
+					auto rec4_img = cv2.resize(crop4_img, rec_img_w, rec_img_h)
+					auto rec4_tensor = ort.TensorFromOpenCV(rec4_img.handle, 0.0039215689, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5)
+					auto rec4_sess = ort.InferenceSession(rec_model_path)
+					auto rec4_result = rec4_sess.run_tensor("x", rec4_tensor, "[]")
+					if rec4_result.ok() then
+						rec4 = rec_decode_result(rec4_result.handle, keys_path)
+					end
+				end
+			end
+		end
 	end
 
 	string assembled = ""
-	if rec2 != "" then
+	if rec4 != "" then
+		assembled = assemble_result4(boxes, rec, rec2, rec3, rec4)
+	elseif rec3 != "" then
+		assembled = assemble_result4(boxes, rec, rec2, rec3, "")
+	elseif rec2 != "" then
 		assembled = assemble_result2(boxes, rec, rec2)
 	else
 		assembled = assemble_result(boxes, rec)
@@ -467,6 +510,14 @@ func assemble_result2(string boxes_json, string rec0_json, string rec1_json, flo
 	return rapidocr_assemble_result2_native(boxes_json, rec0_json, rec1_json, elapse)
 end
 
+func assemble_result4(string boxes_json, string rec0_json, string rec1_json, string rec2_json, string rec3_json) as string
+	return rapidocr_assemble_result4_native(boxes_json, rec0_json, rec1_json, rec2_json, rec3_json, 0)
+end
+
+func assemble_result4(string boxes_json, string rec0_json, string rec1_json, string rec2_json, string rec3_json, float elapse) as string
+	return rapidocr_assemble_result4_native(boxes_json, rec0_json, rec1_json, rec2_json, rec3_json, elapse)
+end
+
 func last_error() as string
 	if cv2.available() == false then
 		return cv2.last_error()
@@ -500,4 +551,5 @@ export box_height
 export vis_image
 export assemble_result
 export assemble_result2
+export assemble_result4
 export last_error

@@ -1,0 +1,17 @@
+import rapidocr
+
+func main() as int
+	string boxes = "[{\"box\":[[0,0],[10,0],[10,10],[0,10]],\"score\":1},{\"box\":[[20,0],[30,0],[30,10],[20,10]],\"score\":1},{\"box\":[[40,0],[50,0],[50,10],[40,10]],\"score\":1},{\"box\":[[60,0],[70,0],[70,10],[60,10]],\"score\":1}]"
+	string rec0 = "{\"text\":\"a\",\"score\":0.9,\"tokens\":1}"
+	string rec1 = "{\"text\":\"b\",\"score\":0.8,\"tokens\":1}"
+	string rec2 = "{\"text\":\"c\",\"score\":0.7,\"tokens\":1}"
+	string rec3 = "{\"text\":\"d\",\"score\":0.6,\"tokens\":1}"
+	auto out = rapidocr.assemble_result4(boxes, rec0, rec1, rec2, rec3)
+	if out.contains("\"txts\":[\"a\",\"b\",\"c\",\"d\"]") == false then
+		return 1
+	end
+	if out.contains("\"scores\":[0.9,0.8,0.7,0.6]") == false then
+		return 2
+	end
+	return 42
+end

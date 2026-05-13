@@ -1,0 +1,28 @@
+import opencv as cv2
+import rapidocr
+
+func main() as int
+	auto img = cv2.imread("release\\examples\\rapidocr\\sample.png", cv2.IMREAD_COLOR)
+	if img.empty() then
+		return 1
+	end
+
+	string boxes = "[{\"box\":[[0,0],[16,0],[16,16],[0,16]],\"score\":1}]"
+	auto crop_img = cv2.crop(img, 0, 0, 16, 16)
+	if crop_img.empty() then
+		return 2
+	end
+	if crop_img.width() != 16 then
+		return 3
+	end
+	if crop_img.height() != 16 then
+		return 4
+	end
+
+	auto assembled = rapidocr.assemble_result(boxes, "{\"text\":\"\",\"score\":0,\"tokens\":0}")
+	if assembled.contains("\"boxes\"") == false then
+		return 5
+	end
+
+	return 42
+end

@@ -48,6 +48,7 @@
 				{"name": "vis_image", "symbol": "vis_image", "kind": "function", "overloadCount": 1},
 				{"name": "assemble_result", "symbol": "assemble_result", "kind": "function", "overloadCount": 2},
 				{"name": "assemble_result2", "symbol": "assemble_result2", "kind": "function", "overloadCount": 2},
+				{"name": "assemble_result4", "symbol": "assemble_result4", "kind": "function", "overloadCount": 2},
 				{"name": "last_error", "symbol": "last_error", "kind": "function", "overloadCount": 1}
 			]
 		}

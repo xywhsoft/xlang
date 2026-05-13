@@ -1,0 +1,24 @@
+import rapidocr
+
+func main() as int
+	auto engine = rapidocr.RapidOCR()
+	if engine.valid() == false then
+		return 1
+	end
+
+	auto result = engine("release\\examples\\rapidocr\\sample.png")
+	if rapidocr.available() == false then
+		if result.ok() then
+			return 2
+		end
+		if result.txts != "[]" then
+			return 3
+		end
+		return 42
+	end
+
+	if result.ok() == false then
+		return 4
+	end
+	return 42
+end

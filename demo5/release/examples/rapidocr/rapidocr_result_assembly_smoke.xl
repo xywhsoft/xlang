@@ -1,0 +1,20 @@
+import rapidocr
+
+func main() as int
+	auto boxes = "[{\"box\":[[1,2],[3,2],[3,4],[1,4]],\"score\":0.9,\"pixels\":8}]"
+	auto rec = "{\"text\":\"abc\",\"score\":0.8,\"tokens\":3}"
+	auto result = rapidocr.assemble_result(boxes, rec, 0.12)
+	if result.contains("\"boxes\"") == false then
+		return 1
+	end
+	if result.contains("\"txts\":[\"abc\"]") == false then
+		return 2
+	end
+	if result.contains("\"scores\"") == false then
+		return 3
+	end
+	if result.contains("\"elapse\"") == false then
+		return 4
+	end
+	return 42
+end

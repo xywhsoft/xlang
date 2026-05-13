@@ -633,6 +633,18 @@ XL_EXPORT const char* rapidocr_det_boxes_from_output_native(const char* output_j
 			y1 = (int)((double)min_y * (double)image_height / (double)map_h);
 			y2 = (int)(((double)max_y + 1.0) * (double)image_height / (double)map_h);
 			score = sum / (double)hits;
+			{
+				int bw = x2 - x1;
+				int bh = y2 - y1;
+				int pad = bw < bh ? bw / 10 : bh / 10;
+				if ( pad < 1 ) pad = 1;
+				x1 -= pad;
+				y1 -= pad;
+				x2 += pad;
+				y2 += pad;
+			}
+			if ( x1 < 0 ) x1 = 0;
+			if ( y1 < 0 ) y1 = 0;
 			if ( x2 > image_width ) x2 = image_width;
 			if ( y2 > image_height ) y2 = image_height;
 			{
@@ -1020,6 +1032,28 @@ XL_EXPORT const char* rapidocr_assemble_result2_native(const char* boxes_json, c
 	score0 = rapid_json_number_value(rec0_json, "\"score\"", 0.0);
 	score1 = rapid_json_number_value(rec1_json, "\"score\"", 0.0);
 	snprintf(g_assembled_json, sizeof(g_assembled_json), "{\"boxes\":%s,\"txts\":[\"%s\",\"%s\"],\"scores\":[%.6g,%.6g],\"word_results\":[],\"elapse_list\":[],\"elapse\":%.6g}", boxes_json, text0, text1, score0, score1, elapse);
+	rapid_set_error("");
+	return g_assembled_json;
+}
+
+XL_EXPORT const char* rapidocr_assemble_result4_native(const char* boxes_json, const char* rec0_json, const char* rec1_json, const char* rec2_json, const char* rec3_json, double elapse)
+{
+	char text0[1024], text1[1024], text2[1024], text3[1024];
+	double score0, score1, score2, score3;
+	if ( boxes_json == NULL || boxes_json[0] == '\0' ) boxes_json = "[]";
+	if ( rec0_json == NULL || rec0_json[0] == '\0' ) rec0_json = "{}";
+	if ( rec1_json == NULL || rec1_json[0] == '\0' ) rec1_json = "{}";
+	if ( rec2_json == NULL || rec2_json[0] == '\0' ) rec2_json = "{}";
+	if ( rec3_json == NULL || rec3_json[0] == '\0' ) rec3_json = "{}";
+	if ( !rapid_json_string_value(rec0_json, "\"text\"", text0, sizeof(text0)) ) text0[0] = '\0';
+	if ( !rapid_json_string_value(rec1_json, "\"text\"", text1, sizeof(text1)) ) text1[0] = '\0';
+	if ( !rapid_json_string_value(rec2_json, "\"text\"", text2, sizeof(text2)) ) text2[0] = '\0';
+	if ( !rapid_json_string_value(rec3_json, "\"text\"", text3, sizeof(text3)) ) text3[0] = '\0';
+	score0 = rapid_json_number_value(rec0_json, "\"score\"", 0.0);
+	score1 = rapid_json_number_value(rec1_json, "\"score\"", 0.0);
+	score2 = rapid_json_number_value(rec2_json, "\"score\"", 0.0);
+	score3 = rapid_json_number_value(rec3_json, "\"score\"", 0.0);
+	snprintf(g_assembled_json, sizeof(g_assembled_json), "{\"boxes\":%s,\"txts\":[\"%s\",\"%s\",\"%s\",\"%s\"],\"scores\":[%.6g,%.6g,%.6g,%.6g],\"word_results\":[],\"elapse_list\":[],\"elapse\":%.6g}", boxes_json, text0, text1, text2, text3, score0, score1, score2, score3, elapse);
 	rapid_set_error("");
 	return g_assembled_json;
 }

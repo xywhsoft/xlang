@@ -1,0 +1,22 @@
+import rapidocr
+
+func main() as int
+	if rapidocr.default_model_dir() != "models" then
+		return 1
+	end
+
+	auto config = rapidocr.default_config_json()
+	if config.contains("det_model_path") == false then
+		return 2
+	end
+	if config.contains("rec_img_w") == false then
+		return 3
+	end
+
+	auto layout = rapidocr.model_layout_json()
+	if layout.contains("ppocr_keys_v1.txt") == false then
+		return 4
+	end
+
+	return 42
+end

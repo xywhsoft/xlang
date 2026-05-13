@@ -39,5 +39,5 @@ Returned tensors use the same `{ dtype, shape, data }` shape inside a JSON objec
 - JSON tensors are convenient for smoke tests and small models.
 - `TensorZerosF32(shape_json)` and `sess.run_tensor(input_name, tensor, outputs_json)` provide the first typed tensor handle path.
 - `TensorFromOpenCV(image.handle, scale, mean0, mean1, mean2, std0, std1, std2)` creates a CHW float32 tensor from the current OpenCV image backend without JSON input transfer.
-- Large OCR outputs still need a typed/binary output reader for full recognizer accuracy.
-- CPU inference is the verified provider path in this package.
+- `RunResult.float_shape_json()`, `RunResult.float_count()`, and `RunResult.float_at(index)` expose the first typed float output reader path.
+- CPU inference is the verified provider path in this package. The current local bundle includes `onnxruntime.dll`, `onnxruntime_providers_shared.dll`, and `onnxruntime_xlang.dll`, but no non-CPU provider DLLs.

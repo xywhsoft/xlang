@@ -1,0 +1,44 @@
+import opencv as cv2
+import onnxruntime as ort
+import rapidocr
+
+func main() as int
+	auto img = cv2.imread("release\\examples\\rapidocr\\sample.png", cv2.IMREAD_COLOR)
+	if img.empty() then
+		return 1
+	end
+
+	auto det_img = cv2.resize(img, 32, 32)
+	auto det_tensor = ort.TensorFromOpenCV(det_img.handle, 0.0039215689, 0.485, 0.456, 0.406, 0.229, 0.224, 0.225)
+	auto det_sess = ort.InferenceSession("release\\examples\\libs\\rapidocr\\models\\ch_PP-OCRv4_det_infer.onnx")
+	auto det_result = det_sess.run_tensor("x", det_tensor, "[]")
+	if det_result.ok() == false then
+		return 2
+	end
+	auto boxes = rapidocr.det_boxes_from_output(det_result.to_json(), img.width(), img.height(), 0.3)
+	if boxes.contains("\"box\"") == false then
+		return 3
+	end
+
+	auto rec_img = cv2.resize(img, 32, 48)
+	auto rec_tensor = ort.TensorFromOpenCV(rec_img.handle, 0.0039215689, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5)
+	auto rec_sess = ort.InferenceSession("release\\examples\\libs\\rapidocr\\models\\ch_PP-OCRv4_rec_infer.onnx")
+	auto rec_result = rec_sess.run_tensor("x", rec_tensor, "[]")
+	if rec_result.ok() == false then
+		return 4
+	end
+	auto rec = rapidocr.rec_decode_result(rec_result.handle, "release\\examples\\libs\\rapidocr\\models\\ppocr_keys_v1.txt")
+	if rec.contains("\"text\"") == false then
+		return 5
+	end
+
+	auto assembled = rapidocr.assemble_result(boxes, rec)
+	if assembled.contains("\"boxes\"") == false then
+		return 6
+	end
+	if assembled.contains("\"txts\"") == false then
+		return 7
+	end
+
+	return 42
+end

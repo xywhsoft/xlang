@@ -1,0 +1,18 @@
+import rapidocr
+
+func main() as int
+	auto info = rapidocr.charset_info("release\\examples\\libs\\rapidocr\\models\\ppocr_keys_v1.txt")
+	if info.contains("\"count\"") == false then
+		return 1
+	end
+	if info.contains("\"first\"") == false then
+		return 2
+	end
+	if info.contains("\"last\"") == false then
+		return 3
+	end
+	if info.contains("\"count\":") == false then
+		return 4
+	end
+	return 42
+end

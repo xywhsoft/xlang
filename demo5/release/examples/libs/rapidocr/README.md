@@ -56,4 +56,12 @@ When `rapidocr_xlang.dll` is not present, the xlang wrapper currently falls back
 2. ONNX Runtime runs the detector, classifier, and recognizer models through typed tensor inputs.
 3. RapidOCR helpers postprocess detector boxes, decode classifier/CTC recognizer typed outputs, and assemble a RapidOCR-style JSON result.
 
-This path is functional for smoke tests. The remaining OCR quality work is real text-crop handling, batching, rotation behavior, and drawn visualization.
+Current xlang-pipeline coverage:
+
+- Detector postprocess returns connected-component boxes with basic IoU suppression.
+- Recognizer input uses detected text crops when boxes are available.
+- Classifier output can trigger 180-degree correction before recognition.
+- Visualization draws up to 16 detected boxes.
+- Result assembly supports up to four recognized text entries in the current V1 path.
+
+Remaining OCR quality work is broader batching, PP-OCR-style geometric unclip/box scoring, and accuracy tuning against real OCR fixtures.

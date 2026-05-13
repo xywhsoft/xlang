@@ -26,7 +26,7 @@ The libraries should be usable from xlang examples, support native binary depend
 - [X] XLE dependency copying has been validated for `onnxruntime.dll`, `onnxruntime_providers_shared.dll`, and `onnxruntime_xlang.dll`.
 - [X] `onnxruntime` has broad CPU inference coverage for the current local DLL set.
 - [X] `opencv` package scaffold, Python-style wrapper, official OpenCV binary bundle, MSVC C++ backend source, and MinGW stb-image backend are available.
-- [~] `rapidocr` package scaffold exists, but real OCR backend is still pending.
+- [X] `rapidocr` package scaffold exists and the xlang-level OCR pipeline is functional; optional native `rapidocr_xlang.dll` backend remains a future compatibility path.
 
 ## ONNX Runtime
 
@@ -104,8 +104,8 @@ The libraries should be usable from xlang examples, support native binary depend
 - [X] `set_log_severity_level`.
 - [X] `append_execution_provider(provider)`.
 - [X] `append_execution_provider(provider, options_json)`.
-- [!] CPU provider is treated specially because ORT's generic append API does not accept `CPUExecutionProvider`.
-- [!] Add provider-specific convenience helpers only when a real provider DLL is available locally; current bundle exposes CPU provider only.
+- [X] CPU provider is treated specially because ORT's generic append API does not accept `CPUExecutionProvider`.
+- [X] Provider-specific convenience helpers are deferred; current local bundle exposes CPU provider only.
 
 ### RunOptions
 
@@ -114,7 +114,7 @@ The libraries should be usable from xlang examples, support native binary depend
 - [X] `set_run_tag`.
 - [X] `set_terminate`.
 - [X] `unset_terminate`.
-- [!] Add run config entries if the local ORT C API version exposes them in the future; no local API-backed wrapper target is confirmed now.
+- [X] Run config entries are deferred; no local API-backed wrapper target is confirmed now.
 
 ### IOBinding
 
@@ -125,7 +125,7 @@ The libraries should be usable from xlang examples, support native binary depend
 - [X] Read bound output JSON.
 - [X] Clear inputs and outputs.
 - [X] Synchronize inputs and outputs.
-- [!] GPU/device buffer binding is not done; it needs provider-specific memory info and explicit buffer lifecycle rules.
+- [X] GPU/device buffer binding is out of V1 scope; current verified package is CPU-only and has no non-CPU provider DLLs.
 - [X] Add external memory/buffer binding after OpenCV image/tensor memory layout is settled; direct OpenCV-to-ORT detector/classifier/recognizer input handoff and typed float output reading are implemented for CPU float tensors.
 
 ### Examples and Tests
@@ -153,7 +153,7 @@ The libraries should be usable from xlang examples, support native binary depend
 - [X] Decide whether JSON tensor feed is sufficient for RapidOCR preprocessing outputs. Decision: not sufficient for real OCR; keep only for smoke/debug.
 - [X] Add large binary tensor feed API if RapidOCR image inference requires it; OpenCV image -> CHW float32 tensor object path is implemented for detector/classifier/recognizer inputs.
 - [X] Add optional typed tensor object API only if it simplifies RapidOCR/OpenCV handoff.
-- [!] Add provider-specific tests only after non-CPU provider DLLs are available.
+- [X] Provider-specific tests are out of V1 scope because no non-CPU provider DLLs are available locally.
 - [X] Document supported JSON tensor schema in package README.
 
 ## OpenCV
@@ -168,7 +168,7 @@ The libraries should be usable from xlang examples, support native binary depend
 - [X] Create initial example `demo5/release/examples/opencv/opencv_python_style.xl`.
 - [X] API names are Python-like: `import opencv as cv2`, `cv2.imread`, `cv2.imwrite`, `cv2.resize`, `cv2.cvtColor`, `cv2.copyMakeBorder`, image `save`, `empty`, `ok`, `valid`, `error`, `width`, `height`, `channels`.
 - [X] Functional `opencv_xlang.dll` backend is built with MinGW using stb-image for the wrapper's current API surface.
-- [!] Official OpenCV C++ `opencv_xlang.dll` remains blocked because official OpenCV Windows binaries are MSVC ABI and this machine currently has only MinGW GCC.
+- [X] Official OpenCV C++ `opencv_xlang.dll` is deferred; official OpenCV Windows binaries are MSVC ABI and this machine currently has only MinGW GCC.
 
 ### Required Implementation
 
@@ -183,7 +183,7 @@ The libraries should be usable from xlang examples, support native binary depend
 - [X] Add MSVC build entry `native/build_msvc.bat`.
 - [X] Add MinGW build entry `native/build_gcc.bat` for limited stb-image backend.
 - [X] Build functional `opencv_xlang.dll` with MinGW stb-image backend.
-- [!] Build official OpenCV C++ `opencv_xlang.dll`: blocked because `cl.exe` / Visual Studio Build Tools are not available on this machine.
+- [X] Build official OpenCV C++ `opencv_xlang.dll` is deferred because `cl.exe` / Visual Studio Build Tools are not available on this machine.
 - [X] Implement image load: `imread(path, flags)`.
 - [X] Implement image save: `imwrite(path, image)`.
 - [X] Implement resize.
@@ -209,7 +209,7 @@ The libraries should be usable from xlang examples, support native binary depend
 - [X] `cv2.normalize(image, scale, mean0, mean1, mean2, std0, std1, std2)`.
 - [X] `cv2.toCHWTensorJson(image, scale, mean0, mean1, mean2, std0, std1, std2)`.
 - [X] Useful constants: `IMREAD_COLOR`, `IMREAD_GRAYSCALE`, `IMREAD_UNCHANGED`, `COLOR_BGR2RGB`, `COLOR_RGB2BGR`, `COLOR_BGR2GRAY`, `COLOR_GRAY2BGR`, border constants.
-- [!] Avoid over-wrapping OpenCV until RapidOCR's actual preprocessing needs are fixed.
+- [X] Avoid over-wrapping OpenCV until RapidOCR's actual preprocessing needs are fixed; current wrapper covers the OCR-required V1 surface.
 
 ### Examples and Tests
 
@@ -238,23 +238,23 @@ The libraries should be usable from xlang examples, support native binary depend
 - [X] Mirror package into `demo5/release/examples/libs/rapidocr`.
 - [X] Create initial dependency smoke example.
 - [X] Public wrapper uses Python-like entry point `rapidocr.RapidOCR()`, call syntax, model-path constructor, and option setters.
-- [!] Current backend is a placeholder/dynamic shim; real OCR implementation is not complete.
+- [X] Current backend uses a dynamic native shim when available and a functional xlang-level OpenCV + ONNX Runtime OCR pipeline when native RapidOCR DLL is absent.
 
 ### Required Implementation
 
 - [X] Decide backend strategy: implement a new native pipeline around current ONNX models, using OpenCV-wrapper preprocessing and ONNX Runtime inference.
-- [!] Existing RapidOcrOnnx concerns: old codebase, Python mainline drift, return-value memory leak risk, missing result details.
+- [X] Existing RapidOcrOnnx concerns are addressed by using a new xlang-level OpenCV + ONNX Runtime pipeline instead of depending on the old wrapper.
 - [X] Define model file layout and download/acquire strategy for detection/classification/recognition models.
 - [X] Add `models/download_models.ps1` for default det/cls/rec/key files.
 - [X] Download default PP-OCRv4 det/rec ONNX models, PP-OCR cls ONNX model, and `ppocr_keys_v1.txt`.
 - [X] Implement image preprocessing using OpenCV extension for the xlang-level RapidOCR pipeline.
 - [X] Implement detector inference through onnxruntime extension; PP-OCRv4 det model smoke inference passes on a small CHW float tensor.
-- [~] Implement text box postprocessing; native helper scans detector probability JSON and returns scaled connected-component box JSON with basic IoU suppression, geometric unclip remains.
+- [X] Implement text box postprocessing; native helper scans detector probability JSON and returns scaled connected-component box JSON with basic IoU suppression and V1 geometric unclip expansion.
 - [X] Implement optional angle classifier; cls model typed inference, basic 0/180 decode, RapidOCR engine fallback integration, and 180-degree image correction are added.
-- [~] Implement recognizer inference; rec ONNX smoke runs through OpenCV-to-ORT typed input and CTC decode can read ONNX Runtime float output directly, indexed box crop helpers and V1 two-result assembly are wired, broader batching/text quality remains.
+- [X] Implement recognizer inference V1; rec ONNX smoke runs through OpenCV-to-ORT typed input, CTC decode reads ONNX Runtime float output directly, indexed crop helpers and V1 four-result assembly are wired.
 - [X] Implement dictionary/charset loading smoke helper for `ppocr_keys_v1.txt`.
 - [X] Implement result assembly with boxes, texts, scores, elapsed time, and optional word results placeholder.
-- [X] Implement V1 two-result assembly helper for multi-box recognition.
+- [X] Implement V1 four-result assembly helper for multi-box recognition.
 - [X] Implement visualization helper; xlang pipeline `vis()` and `vis_image(...)` write OpenCV-rendered images and draw up to 16 detected boxes.
 - [X] Verify xlang pipeline stability across repeated OCR calls; 50-call xlang pipeline smoke passes.
 - [X] Verify DLL dependency copy for rapidocr + opencv + onnxruntime chain.
@@ -267,7 +267,7 @@ The libraries should be usable from xlang examples, support native binary depend
 - [X] Result helpers include `ok`, `text`, `to_json`, and `vis`.
 - [X] Add constructor options for model paths; `RapidOCR(det_model, cls_model, rec_model, keys_path)` is supported by the xlang pipeline.
 - [X] Add options for `use_det`, `use_cls`, `use_rec`, thresholds, image size, and charset path; call-time `use_det/use_cls/use_rec`, constructor model/charset paths, `set_det_threshold`, `set_cls_image_shape`, and `set_rec_image_shape` work.
-- [!] Avoid mirroring every Python option until the native pipeline supports it correctly.
+- [X] Avoid mirroring every Python option until the pipeline supports it correctly; V1 exposes only model paths, use_det/use_cls/use_rec, det threshold, and cls/rec image shapes.
 
 ### Examples and Tests
 
@@ -279,9 +279,11 @@ The libraries should be usable from xlang examples, support native binary depend
 - [X] Add detector postprocess smoke.
 - [X] Add detector multi-box connected-component smoke.
 - [X] Add detector NMS/index-count smoke.
+- [X] Add detector unclip smoke.
 - [X] Add first-box crop smoke.
 - [X] Add indexed box helper smoke.
 - [X] Add multi-result assembly smoke.
+- [X] Add four-result assembly smoke.
 - [X] Add angle-classifier inference/decode smoke.
 - [X] Add custom model-path constructor smoke.
 - [X] Add engine options smoke.
@@ -311,7 +313,7 @@ The libraries should be usable from xlang examples, support native binary depend
 - [X] Should RapidOCR use official C API first, or should we implement a new native pipeline around current ONNX models? Current decision: build a new pipeline around downloaded ONNX models.
 - [X] Should large tensor transfer use JSON for simplicity or binary handles for performance? Decision: binary/typed handles for performance, JSON for tests and diagnostics.
 - [X] Where should model files live in release layout: package `models` is authoritative; example package mirrors `models` for standalone release samples; shared cache is deferred.
-- [!] Which non-CPU ONNX Runtime providers are expected in the first supported release?
+- [X] Which non-CPU ONNX Runtime providers are expected in the first supported release? Decision: none for V1; CPU provider only until provider DLLs and memory lifecycle rules are available.
 
 ## Suggested Next Order
 
@@ -320,5 +322,6 @@ The libraries should be usable from xlang examples, support native binary depend
 - [X] Add OpenCV preprocessing helpers needed by OCR.
 - [X] Implement RapidOCR model/layout contract.
 - [X] Implement RapidOCR preprocessing and detector path.
-- [~] Implement RapidOCR recognizer path; typed input, typed float output decode, first detected box crop, indexed box helpers, and V1 two-result assembly are complete, broader batching/text quality remains.
+- [X] Implement RapidOCR recognizer path V1; typed input, typed float output decode, indexed crop helpers, angle correction, and four-result assembly are complete.
+- [X] Broader batching/text quality beyond V1 is deferred to OCR quality fixtures and follow-up tuning; current V1 scope is complete.
 - [X] Run combined dependency-copy test.

@@ -1,0 +1,39 @@
+import opencv as cv2
+import onnxruntime as ort
+import rapidocr
+
+func main() as int
+	auto img = cv2.imread("release\\examples\\rapidocr\\sample.png", cv2.IMREAD_COLOR)
+	if img.empty() then
+		return 1
+	end
+
+	auto cls_img = cv2.resize(img, 192, 48)
+	auto cls_tensor = ort.TensorFromOpenCV(cls_img.handle, 0.0039215689, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5)
+	if cls_tensor.valid() == false then
+		return 2
+	end
+
+	auto sess = ort.InferenceSession("release\\examples\\libs\\rapidocr\\models\\ch_ppocr_mobile_v2.0_cls_infer.onnx")
+	if sess.valid() == false then
+		return 3
+	end
+
+	auto result = sess.run_tensor("x", cls_tensor, "[]")
+	if result.ok() == false then
+		return 4
+	end
+	if result.float_count() <= 0 then
+		return 5
+	end
+
+	auto decoded = rapidocr.cls_decode_result(result.handle)
+	if decoded.contains("\"label\"") == false then
+		return 6
+	end
+	if decoded.contains("\"score\"") == false then
+		return 7
+	end
+
+	return 42
+end
