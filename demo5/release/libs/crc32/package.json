@@ -1,0 +1,42 @@
+{
+	"format": "xle-1",
+	"package": {
+		"name": "crc32",
+		"version": "0.1.0",
+		"abiVersion": "1",
+		"xlangAbi": "1",
+		"abiId": "crc32@0.1.0#abi1"
+	},
+	"artifact": {
+		"kind": "source",
+		"path": "src\\crc32.xl",
+		"cSources": [
+			"src\\crc32_artifact.c"
+		]
+	},
+	"dependencies": [],
+	"modules": [
+		{
+			"key": "crc32",
+			"abiId": "crc32@0.1.0#abi1::crc32",
+			"file": "src\\crc32.xl",
+			"root": 0,
+			"native": 0,
+			"binding": "",
+			"imports": [],
+			"exports": [
+				{"name": "version", "symbol": "version", "kind": "function", "overloadCount": 1},
+				{"name": "last_error", "symbol": "last_error", "kind": "function", "overloadCount": 1},
+				{"name": "init", "symbol": "init", "kind": "function", "overloadCount": 1},
+				{"name": "update", "symbol": "update", "kind": "function", "overloadCount": 1},
+				{"name": "finish", "symbol": "finish", "kind": "function", "overloadCount": 1},
+				{"name": "checksum", "symbol": "checksum", "kind": "function", "overloadCount": 1},
+				{"name": "checksum_hex", "symbol": "checksum_hex", "kind": "function", "overloadCount": 1},
+				{"name": "file", "symbol": "file", "kind": "function", "overloadCount": 1},
+				{"name": "file_hex", "symbol": "file_hex", "kind": "function", "overloadCount": 1},
+				{"name": "hex", "symbol": "hex", "kind": "function", "overloadCount": 1}
+			]
+		}
+	],
+	"functions": []
+}
