@@ -1,0 +1,49 @@
+extern "xlzma_version" func xlzma_version() as string
+extern "xlzma_last_error" func xlzma_last_error() as string
+extern "xlzma_compress_hex" func xlzma_compress_hex(string text) as string
+extern "xlzma_compress_hex_level" func xlzma_compress_hex_level(string text, int level) as string
+extern "xlzma_decompress_hex" func xlzma_decompress_hex(string hex_text) as string
+extern "xlzma_compress_file" func xlzma_compress_file(string input_path, string output_path) as int
+extern "xlzma_compress_file_level" func xlzma_compress_file_level(string input_path, string output_path, int level) as int
+extern "xlzma_decompress_file" func xlzma_decompress_file(string input_path, string output_path) as int
+
+func version() as string
+	return xlzma_version()
+end
+
+func last_error() as string
+	return xlzma_last_error()
+end
+
+func compress_hex(string text) as string
+	return xlzma_compress_hex(text)
+end
+
+func compress_hex_level(string text, int level) as string
+	return xlzma_compress_hex_level(text, level)
+end
+
+func decompress_hex(string hex_text) as string
+	return xlzma_decompress_hex(hex_text)
+end
+
+func compress_file(string input_path, string output_path) as bool
+	return xlzma_compress_file(input_path, output_path) != 0
+end
+
+func compress_file_level(string input_path, string output_path, int level) as bool
+	return xlzma_compress_file_level(input_path, output_path, level) != 0
+end
+
+func decompress_file(string input_path, string output_path) as bool
+	return xlzma_decompress_file(input_path, output_path) != 0
+end
+
+export version
+export last_error
+export compress_hex
+export compress_hex_level
+export decompress_hex
+export compress_file
+export compress_file_level
+export decompress_file
