@@ -1,0 +1,43 @@
+extern "xihash_version" func xihash_version() as string
+extern "xihash_last_error" func xihash_last_error() as string
+extern "xihash_ahash" func xihash_ahash(string path) as string
+extern "xihash_dhash" func xihash_dhash(string path) as string
+extern "xihash_phash" func xihash_phash(string path) as string
+extern "xihash_hamming" func xihash_hamming(string left, string right) as int
+extern "xihash_valid" func xihash_valid(string hash) as int
+
+func version() as string
+	return xihash_version()
+end
+
+func last_error() as string
+	return xihash_last_error()
+end
+
+func ahash(string path) as string
+	return xihash_ahash(path)
+end
+
+func dhash(string path) as string
+	return xihash_dhash(path)
+end
+
+func phash(string path) as string
+	return xihash_phash(path)
+end
+
+func hamming(string left, string right) as int
+	return xihash_hamming(left, right)
+end
+
+func valid(string hash) as bool
+	return xihash_valid(hash) != 0
+end
+
+export version
+export last_error
+export ahash
+export dhash
+export phash
+export hamming
+export valid
