@@ -1,0 +1,12 @@
+import x.uia
+
+func main() as int
+	auto focused = x.uia.focused()
+	if focused.valid() == false then
+		return 0
+	end
+	focused.name()
+	focused.class_name()
+	focused.rect_json()
+	return 0
+end

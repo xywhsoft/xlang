@@ -1,0 +1,40 @@
+import x.uia
+import std.str
+
+func main() as int
+	auto win = x.uia.test_window()
+	if win.valid() == false then
+		return 1
+	end
+
+	auto root = x.uia.from_hwnd(win.hwnd())
+	if root.valid() == false then
+		win.release()
+		return 2
+	end
+
+	auto json = root.cached_children_json(2, 32)
+	if str.contains(json, "\"children\"") == false then
+		win.release()
+		return 3
+	end
+	if str.contains(json, "\"controlType\":50032") == false then
+		win.release()
+		return 4
+	end
+	if str.contains(json, "\"controlType\":50004") == false then
+		win.release()
+		return 5
+	end
+	if str.contains(json, "\"controlType\":50000") == false then
+		win.release()
+		return 6
+	end
+	if str.contains(json, "\"rect\"") == false then
+		win.release()
+		return 7
+	end
+
+	win.release()
+	return 0
+end

@@ -1,0 +1,75 @@
+import x.uia
+import x.ui.auto
+import opencv as cv2
+import std.str
+
+func main() as int
+	auto win = x.uia.test_window()
+	if win.valid() == false then
+		return 1
+	end
+
+	auto edit = x.ui.auto.within(x.ui.auto.by_automation_id("1001", 50004), win.hwnd())
+	if x.ui.auto.wait_exists(edit) == false then
+		win.release()
+		return 2
+	end
+	if x.ui.auto.type_text(edit, "x-ui-auto-text") == false then
+		win.release()
+		return 3
+	end
+	if x.ui.auto.read(edit) != "x-ui-auto-text" then
+		win.release()
+		return 4
+	end
+
+	auto button = x.ui.auto.within(x.ui.auto.by_automation_id("1002", 50000), win.hwnd())
+	if x.ui.auto.click(button) == false then
+		win.release()
+		return 5
+	end
+	if x.ui.auto.read(edit) != "xlang-uia-button-clicked" then
+		win.release()
+		return 6
+	end
+
+	auto edit_element = x.uia.from_hwnd(win.edit_hwnd())
+	if edit_element.valid() == false then
+		win.release()
+		return 7
+	end
+	auto recorded = x.ui.auto.within(x.ui.auto.locator_from_json(x.uia.locator_for(edit_element)), win.hwnd())
+	if x.ui.auto.type_text(recorded, "x-ui-auto-json") == false then
+		win.release()
+		return 8
+	end
+	if x.ui.auto.read(recorded) != "x-ui-auto-json" then
+		win.release()
+		return 9
+	end
+
+	auto screenshot_path = "release\\examples\\opencv\\x_ui_auto_screenshot_smoke.png"
+	if x.ui.auto.screenshot(recorded, screenshot_path) == false then
+		win.release()
+		return 10
+	end
+	auto shot = cv2.imread(screenshot_path)
+	if shot.empty() then
+		win.release()
+		return 11
+	end
+	if shot.width() <= 0 or shot.height() <= 0 then
+		win.release()
+		return 12
+	end
+
+	win.focus_edit()
+	auto json = x.ui.auto.focused_locator_json()
+	if str.contains(json, "\"strategy\"") == false then
+		win.release()
+		return 13
+	end
+
+	win.release()
+	return 0
+end

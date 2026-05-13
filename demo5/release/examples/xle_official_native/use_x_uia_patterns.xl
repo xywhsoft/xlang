@@ -1,0 +1,66 @@
+import x.uia
+import std.str
+
+func main() as int
+	auto win = x.uia.test_window()
+	if win.valid() == false then
+		return 1
+	end
+
+	auto checkbox = x.uia.from_hwnd(win.checkbox_hwnd())
+	if checkbox.valid() == false then
+		win.release()
+		return 2
+	end
+	if checkbox.toggle_state() != 0 then
+		win.release()
+		return 3
+	end
+	if checkbox.toggle() == false then
+		win.release()
+		return 4
+	end
+	if checkbox.toggle_state() != 1 then
+		win.release()
+		return 5
+	end
+
+	auto edit = x.uia.from_hwnd(win.edit_hwnd())
+	if edit.valid() == false then
+		win.release()
+		return 6
+	end
+	if edit.scroll(2, 4) == true then
+		win.release()
+		return 7
+	end
+	if str.contains(x.uia.last_error(), "scroll") == false then
+		win.release()
+		return 8
+	end
+	if edit.set_range_value(50.0) == true then
+		win.release()
+		return 9
+	end
+	if str.contains(x.uia.last_error(), "set_range_value") == false then
+		win.release()
+		return 10
+	end
+
+	auto window_element = x.uia.from_hwnd(win.hwnd())
+	if window_element.valid() == false then
+		win.release()
+		return 11
+	end
+	if window_element.close_window() == false then
+		win.release()
+		return 12
+	end
+	if window_element.wait_window_closed(3000) == false then
+		win.release()
+		return 13
+	end
+
+	win.release()
+	return 0
+end

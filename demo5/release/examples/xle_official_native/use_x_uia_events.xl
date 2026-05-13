@@ -1,0 +1,70 @@
+import x.uia
+import std.str
+
+func main() as int
+	auto queue = x.uia.events()
+	if queue.valid() == false then
+		return 1
+	end
+	if queue.subscribe_focus_changed() == false then
+		queue.release()
+		return 2
+	end
+
+	auto win = x.uia.test_window()
+	if win.valid() == false then
+		queue.release()
+		return 3
+	end
+
+	auto edit = x.uia.from_hwnd(win.edit_hwnd())
+	if edit.valid() == false then
+		win.release()
+		queue.release()
+		return 4
+	end
+	win.focus_button()
+	win.focus_edit()
+	auto focus_json = queue.poll_json(3000)
+	if str.contains(focus_json, "\"type\":\"focus\"") == false then
+		win.release()
+		queue.release()
+		return 5
+	end
+	if str.contains(focus_json, "\"controlType\":") == false then
+		win.release()
+		queue.release()
+		return 6
+	end
+
+	if queue.subscribe_property_changed(edit, 30045) == false then
+		win.release()
+		queue.release()
+		return 7
+	end
+	if edit.set_value("xlang-uia-events-value") == false then
+		win.release()
+		queue.release()
+		return 8
+	end
+
+	auto event_json = queue.poll_json(3000)
+	if str.contains(event_json, "\"type\":\"") == false then
+		win.release()
+		queue.release()
+		return 9
+	end
+	if str.contains(event_json, "\"controlType\":") == false then
+		win.release()
+		queue.release()
+		return 10
+	end
+
+	if queue.release() == false then
+		win.release()
+		return 11
+	end
+
+	win.release()
+	return 0
+end

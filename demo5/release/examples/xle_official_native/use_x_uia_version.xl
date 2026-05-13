@@ -1,0 +1,14 @@
+import x.uia
+
+func main() as int
+	if x.uia.version() != "0.1.0" then
+		return 1
+	end
+	if x.uia.last_error() != "" then
+		return 2
+	end
+	if x.uia.shutdown() == false then
+		return 3
+	end
+	return 0
+end
