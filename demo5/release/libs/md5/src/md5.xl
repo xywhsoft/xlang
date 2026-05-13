@@ -1,0 +1,31 @@
+extern "xmd5_version" func xmd5_version() as string
+extern "xmd5_last_error" func xmd5_last_error() as string
+extern "xmd5_hex" func xmd5_hex(string text) as string
+extern "xmd5_file" func xmd5_file(string path) as string
+extern "xmd5_valid" func xmd5_valid(string text) as int
+
+func version() as string
+	return xmd5_version()
+end
+
+func last_error() as string
+	return xmd5_last_error()
+end
+
+func hex(string text) as string
+	return xmd5_hex(text)
+end
+
+func file(string path) as string
+	return xmd5_file(path)
+end
+
+func valid(string text) as bool
+	return xmd5_valid(text) != 0
+end
+
+export version
+export last_error
+export hex
+export file
+export valid
