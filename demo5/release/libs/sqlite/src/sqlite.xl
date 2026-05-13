@@ -1,0 +1,300 @@
+extern "xsqlite3_last_error" func xsqlite3_last_error() as string
+extern "xsqlite3_open_native" func xsqlite3_open_native(string filename) as point
+extern "xsqlite3_open_v2_native" func xsqlite3_open_v2_native(string filename, int flags, string vfs) as point
+extern "xsqlite3_exec_native" func xsqlite3_exec_native(point db, string sql) as int
+extern "xsqlite3_prepare_v2_native" func xsqlite3_prepare_v2_native(point db, string sql) as point
+extern "xsqlite3_bind_text_native" func xsqlite3_bind_text_native(point stmt, int index, string value) as int
+extern "xsqlite3_bind_blob_text_native" func xsqlite3_bind_blob_text_native(point stmt, int index, string value) as int
+extern "xsqlite3_column_text_native" func xsqlite3_column_text_native(point stmt, int column) as string
+extern "xsqlite3_column_name_native" func xsqlite3_column_name_native(point stmt, int column) as string
+extern "xsqlite3_last_insert_rowid_text_native" func xsqlite3_last_insert_rowid_text_native(point db) as string
+extern "xsqlite3_errstr_native" func xsqlite3_errstr_native(int rc) as string
+extern "xsqlite3_libversion_native" func xsqlite3_libversion_native() as string
+extern "xsqlite3_libversion_number_native" func xsqlite3_libversion_number_native() as int
+extern "xsqlite3_close_native" func xsqlite3_close_native(point db) as int
+extern "xsqlite3_close_v2_native" func xsqlite3_close_v2_native(point db) as int
+extern "xsqlite3_errmsg_native" func xsqlite3_errmsg_native(point db) as string
+extern "xsqlite3_extended_errcode_native" func xsqlite3_extended_errcode_native(point db) as int
+extern "xsqlite3_changes_native" func xsqlite3_changes_native(point db) as int
+extern "xsqlite3_total_changes_native" func xsqlite3_total_changes_native(point db) as int
+extern "xsqlite3_step_native" func xsqlite3_step_native(point stmt) as int
+extern "xsqlite3_finalize_native" func xsqlite3_finalize_native(point stmt) as int
+extern "xsqlite3_reset_native" func xsqlite3_reset_native(point stmt) as int
+extern "xsqlite3_clear_bindings_native" func xsqlite3_clear_bindings_native(point stmt) as int
+extern "xsqlite3_bind_int_native" func xsqlite3_bind_int_native(point stmt, int index, int value) as int
+extern "xsqlite3_bind_double_native" func xsqlite3_bind_double_native(point stmt, int index, float value) as int
+extern "xsqlite3_bind_null_native" func xsqlite3_bind_null_native(point stmt, int index) as int
+extern "xsqlite3_bind_parameter_count_native" func xsqlite3_bind_parameter_count_native(point stmt) as int
+extern "xsqlite3_column_count_native" func xsqlite3_column_count_native(point stmt) as int
+extern "xsqlite3_column_type_native" func xsqlite3_column_type_native(point stmt, int column) as int
+extern "xsqlite3_column_int_native" func xsqlite3_column_int_native(point stmt, int column) as int
+extern "xsqlite3_column_double_native" func xsqlite3_column_double_native(point stmt, int column) as float
+extern "xsqlite3_column_bytes_native" func xsqlite3_column_bytes_native(point stmt, int column) as int
+
+export const int SQLITE_OK = 0
+export const int SQLITE_ERROR = 1
+export const int SQLITE_INTERNAL = 2
+export const int SQLITE_PERM = 3
+export const int SQLITE_ABORT = 4
+export const int SQLITE_BUSY = 5
+export const int SQLITE_LOCKED = 6
+export const int SQLITE_NOMEM = 7
+export const int SQLITE_READONLY = 8
+export const int SQLITE_INTERRUPT = 9
+export const int SQLITE_IOERR = 10
+export const int SQLITE_CORRUPT = 11
+export const int SQLITE_NOTFOUND = 12
+export const int SQLITE_FULL = 13
+export const int SQLITE_CANTOPEN = 14
+export const int SQLITE_PROTOCOL = 15
+export const int SQLITE_EMPTY = 16
+export const int SQLITE_SCHEMA = 17
+export const int SQLITE_TOOBIG = 18
+export const int SQLITE_CONSTRAINT = 19
+export const int SQLITE_MISMATCH = 20
+export const int SQLITE_MISUSE = 21
+export const int SQLITE_NOLFS = 22
+export const int SQLITE_AUTH = 23
+export const int SQLITE_FORMAT = 24
+export const int SQLITE_RANGE = 25
+export const int SQLITE_NOTADB = 26
+export const int SQLITE_NOTICE = 27
+export const int SQLITE_WARNING = 28
+export const int SQLITE_ROW = 100
+export const int SQLITE_DONE = 101
+
+export const int SQLITE_INTEGER = 1
+export const int SQLITE_FLOAT = 2
+export const int SQLITE_TEXT = 3
+export const int SQLITE_BLOB = 4
+export const int SQLITE_NULL = 5
+
+export const int SQLITE_OPEN_READONLY = 1
+export const int SQLITE_OPEN_READWRITE = 2
+export const int SQLITE_OPEN_CREATE = 4
+export const int SQLITE_OPEN_URI = 64
+export const int SQLITE_OPEN_MEMORY = 128
+export const int SQLITE_OPEN_NOMUTEX = 32768
+export const int SQLITE_OPEN_FULLMUTEX = 65536
+export const int SQLITE_OPEN_SHAREDCACHE = 131072
+export const int SQLITE_OPEN_PRIVATECACHE = 262144
+
+class Db extends object
+	nocopy
+	var handle as point
+
+	create(point handle)
+		self.handle = handle
+	end
+
+	destroy()
+		if self.handle != null then
+			xsqlite3_close_v2_native(self.handle)
+		end
+	end
+
+	func valid() as bool
+		return self.handle != null
+	end
+
+	func error() as string
+		return xsqlite3_errmsg_native(self.handle)
+	end
+end
+
+class Stmt extends object
+	nocopy
+	var handle as point
+
+	create(point handle)
+		self.handle = handle
+	end
+
+	destroy()
+		if self.handle != null then
+			xsqlite3_finalize_native(self.handle)
+		end
+	end
+
+	func valid() as bool
+		return self.handle != null
+	end
+end
+
+func sqlite3_last_error() as string
+	return xsqlite3_last_error()
+end
+
+func sqlite3_open(string filename) as Db
+	return Db(xsqlite3_open_native(filename))
+end
+
+func sqlite3_open_v2(string filename, int flags, string vfs) as Db
+	return Db(xsqlite3_open_v2_native(filename, flags, vfs))
+end
+
+func sqlite3_close(Db db) as int
+	auto rc = xsqlite3_close_native(db.handle)
+	if rc == SQLITE_OK then
+		db.handle = null
+	end
+	return rc
+end
+
+func sqlite3_close_v2(Db db) as int
+	auto rc = xsqlite3_close_v2_native(db.handle)
+	if rc == SQLITE_OK then
+		db.handle = null
+	end
+	return rc
+end
+
+func sqlite3_exec(Db db, string sql) as int
+	return xsqlite3_exec_native(db.handle, sql)
+end
+
+func sqlite3_prepare_v2(Db db, string sql) as Stmt
+	return Stmt(xsqlite3_prepare_v2_native(db.handle, sql))
+end
+
+func sqlite3_step(Stmt stmt) as int
+	return xsqlite3_step_native(stmt.handle)
+end
+
+func sqlite3_finalize(Stmt stmt) as int
+	auto rc = xsqlite3_finalize_native(stmt.handle)
+	if rc == SQLITE_OK then
+		stmt.handle = null
+	end
+	return rc
+end
+
+func sqlite3_reset(Stmt stmt) as int
+	return xsqlite3_reset_native(stmt.handle)
+end
+
+func sqlite3_clear_bindings(Stmt stmt) as int
+	return xsqlite3_clear_bindings_native(stmt.handle)
+end
+
+func sqlite3_bind_int(Stmt stmt, int index, int value) as int
+	return xsqlite3_bind_int_native(stmt.handle, index, value)
+end
+
+func sqlite3_bind_double(Stmt stmt, int index, float value) as int
+	return xsqlite3_bind_double_native(stmt.handle, index, value)
+end
+
+func sqlite3_bind_text(Stmt stmt, int index, string value) as int
+	return xsqlite3_bind_text_native(stmt.handle, index, value)
+end
+
+func sqlite3_bind_blob_text(Stmt stmt, int index, string value) as int
+	return xsqlite3_bind_blob_text_native(stmt.handle, index, value)
+end
+
+func sqlite3_bind_null(Stmt stmt, int index) as int
+	return xsqlite3_bind_null_native(stmt.handle, index)
+end
+
+func sqlite3_bind_parameter_count(Stmt stmt) as int
+	return xsqlite3_bind_parameter_count_native(stmt.handle)
+end
+
+func sqlite3_column_count(Stmt stmt) as int
+	return xsqlite3_column_count_native(stmt.handle)
+end
+
+func sqlite3_column_type(Stmt stmt, int column) as int
+	return xsqlite3_column_type_native(stmt.handle, column)
+end
+
+func sqlite3_column_int(Stmt stmt, int column) as int
+	return xsqlite3_column_int_native(stmt.handle, column)
+end
+
+func sqlite3_column_double(Stmt stmt, int column) as float
+	return xsqlite3_column_double_native(stmt.handle, column)
+end
+
+func sqlite3_column_text(Stmt stmt, int column) as string
+	return xsqlite3_column_text_native(stmt.handle, column)
+end
+
+func sqlite3_column_blob_text(Stmt stmt, int column) as string
+	return xsqlite3_column_text_native(stmt.handle, column)
+end
+
+func sqlite3_column_bytes(Stmt stmt, int column) as int
+	return xsqlite3_column_bytes_native(stmt.handle, column)
+end
+
+func sqlite3_column_name(Stmt stmt, int column) as string
+	return xsqlite3_column_name_native(stmt.handle, column)
+end
+
+func sqlite3_errmsg(Db db) as string
+	return xsqlite3_errmsg_native(db.handle)
+end
+
+func sqlite3_errstr(int rc) as string
+	return xsqlite3_errstr_native(rc)
+end
+
+func sqlite3_extended_errcode(Db db) as int
+	return xsqlite3_extended_errcode_native(db.handle)
+end
+
+func sqlite3_changes(Db db) as int
+	return xsqlite3_changes_native(db.handle)
+end
+
+func sqlite3_total_changes(Db db) as int
+	return xsqlite3_total_changes_native(db.handle)
+end
+
+func sqlite3_last_insert_rowid_text(Db db) as string
+	return xsqlite3_last_insert_rowid_text_native(db.handle)
+end
+
+func sqlite3_libversion() as string
+	return xsqlite3_libversion_native()
+end
+
+func sqlite3_libversion_number() as int
+	return xsqlite3_libversion_number_native()
+end
+
+export sqlite3_last_error
+export sqlite3_open
+export sqlite3_open_v2
+export sqlite3_close
+export sqlite3_close_v2
+export sqlite3_exec
+export sqlite3_prepare_v2
+export sqlite3_step
+export sqlite3_finalize
+export sqlite3_reset
+export sqlite3_clear_bindings
+export sqlite3_bind_int
+export sqlite3_bind_double
+export sqlite3_bind_text
+export sqlite3_bind_blob_text
+export sqlite3_bind_null
+export sqlite3_bind_parameter_count
+export sqlite3_column_count
+export sqlite3_column_type
+export sqlite3_column_int
+export sqlite3_column_double
+export sqlite3_column_text
+export sqlite3_column_blob_text
+export sqlite3_column_bytes
+export sqlite3_column_name
+export sqlite3_errmsg
+export sqlite3_errstr
+export sqlite3_extended_errcode
+export sqlite3_changes
+export sqlite3_total_changes
+export sqlite3_last_insert_rowid_text
+export sqlite3_libversion
+export sqlite3_libversion_number
