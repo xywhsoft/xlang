@@ -1,0 +1,37 @@
+extern "xlz4_version" func xlz4_version() as string
+extern "xlz4_last_error" func xlz4_last_error() as string
+extern "xlz4_compress_hex" func xlz4_compress_hex(string text) as string
+extern "xlz4_decompress_hex" func xlz4_decompress_hex(string hex_text) as string
+extern "xlz4_compress_file" func xlz4_compress_file(string input_path, string output_path) as int
+extern "xlz4_decompress_file" func xlz4_decompress_file(string input_path, string output_path) as int
+
+func version() as string
+	return xlz4_version()
+end
+
+func last_error() as string
+	return xlz4_last_error()
+end
+
+func compress_hex(string text) as string
+	return xlz4_compress_hex(text)
+end
+
+func decompress_hex(string hex_text) as string
+	return xlz4_decompress_hex(hex_text)
+end
+
+func compress_file(string input_path, string output_path) as bool
+	return xlz4_compress_file(input_path, output_path) != 0
+end
+
+func decompress_file(string input_path, string output_path) as bool
+	return xlz4_decompress_file(input_path, output_path) != 0
+end
+
+export version
+export last_error
+export compress_hex
+export decompress_hex
+export compress_file
+export decompress_file

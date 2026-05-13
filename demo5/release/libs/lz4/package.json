@@ -1,0 +1,39 @@
+{
+	"format": "xle-1",
+	"package": {
+		"name": "lz4",
+		"version": "0.1.0",
+		"abiVersion": "1",
+		"xlangAbi": "1",
+		"abiId": "lz4@0.1.0#abi1"
+	},
+	"artifact": {
+		"kind": "source",
+		"path": "src\\lz4.xl",
+		"cSources": [
+			"src\\lz4_artifact.c",
+			"src\\lz4.c"
+		]
+	},
+	"dependencies": [],
+	"modules": [
+		{
+			"key": "lz4",
+			"abiId": "lz4@0.1.0#abi1::lz4",
+			"file": "src\\lz4.xl",
+			"root": 0,
+			"native": 0,
+			"binding": "",
+			"imports": [],
+			"exports": [
+				{"name": "version", "symbol": "version", "kind": "function", "overloadCount": 1},
+				{"name": "last_error", "symbol": "last_error", "kind": "function", "overloadCount": 1},
+				{"name": "compress_hex", "symbol": "compress_hex", "kind": "function", "overloadCount": 1},
+				{"name": "decompress_hex", "symbol": "decompress_hex", "kind": "function", "overloadCount": 1},
+				{"name": "compress_file", "symbol": "compress_file", "kind": "function", "overloadCount": 1},
+				{"name": "decompress_file", "symbol": "decompress_file", "kind": "function", "overloadCount": 1}
+			]
+		}
+	],
+	"functions": []
+}
