@@ -1,0 +1,73 @@
+extern "xminiz_version" func xminiz_version() as string
+extern "xminiz_last_error" func xminiz_last_error() as string
+extern "xminiz_compress_hex" func xminiz_compress_hex(string text) as string
+extern "xminiz_compress_hex_level" func xminiz_compress_hex_level(string text, int level) as string
+extern "xminiz_decompress_hex" func xminiz_decompress_hex(string hex_text) as string
+extern "xminiz_compress_file" func xminiz_compress_file(string input_path, string output_path) as int
+extern "xminiz_compress_file_level" func xminiz_compress_file_level(string input_path, string output_path, int level) as int
+extern "xminiz_decompress_file" func xminiz_decompress_file(string input_path, string output_path) as int
+extern "xminiz_zip_write_text" func xminiz_zip_write_text(string zip_path, string entry_name, string text) as int
+extern "xminiz_zip_count" func xminiz_zip_count(string zip_path) as int
+extern "xminiz_zip_first_name" func xminiz_zip_first_name(string zip_path) as string
+extern "xminiz_zip_read_text" func xminiz_zip_read_text(string zip_path, string entry_name) as string
+
+func version() as string
+	return xminiz_version()
+end
+
+func last_error() as string
+	return xminiz_last_error()
+end
+
+func compress_hex(string text) as string
+	return xminiz_compress_hex(text)
+end
+
+func compress_hex_level(string text, int level) as string
+	return xminiz_compress_hex_level(text, level)
+end
+
+func decompress_hex(string hex_text) as string
+	return xminiz_decompress_hex(hex_text)
+end
+
+func compress_file(string input_path, string output_path) as bool
+	return xminiz_compress_file(input_path, output_path) != 0
+end
+
+func compress_file_level(string input_path, string output_path, int level) as bool
+	return xminiz_compress_file_level(input_path, output_path, level) != 0
+end
+
+func decompress_file(string input_path, string output_path) as bool
+	return xminiz_decompress_file(input_path, output_path) != 0
+end
+
+func zip_write_text(string zip_path, string entry_name, string text) as bool
+	return xminiz_zip_write_text(zip_path, entry_name, text) != 0
+end
+
+func zip_count(string zip_path) as int
+	return xminiz_zip_count(zip_path)
+end
+
+func zip_first_name(string zip_path) as string
+	return xminiz_zip_first_name(zip_path)
+end
+
+func zip_read_text(string zip_path, string entry_name) as string
+	return xminiz_zip_read_text(zip_path, entry_name)
+end
+
+export version
+export last_error
+export compress_hex
+export compress_hex_level
+export decompress_hex
+export compress_file
+export compress_file_level
+export decompress_file
+export zip_write_text
+export zip_count
+export zip_first_name
+export zip_read_text
