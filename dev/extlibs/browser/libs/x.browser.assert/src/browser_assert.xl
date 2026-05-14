@@ -1,0 +1,283 @@
+import x.cdp
+
+class AssertResult extends object
+	var passed as int
+	var message as string
+	var expected as string
+	var actual as string
+	var trace_dir as string
+
+	create(int passed, string message, string expected, string actual, string trace_dir)
+		self.passed = passed
+		self.message = message
+		self.expected = expected
+		self.actual = actual
+		self.trace_dir = trace_dir
+	end
+
+	func ok() as bool
+		return self.passed != 0
+	end
+
+	func message_value() as string
+		return self.message
+	end
+
+	func expected_value() as string
+		return self.expected
+	end
+
+	func actual_value() as string
+		return self.actual
+	end
+
+	func trace_dir_value() as string
+		return self.trace_dir
+	end
+end
+
+class AssertionErrorInfo extends object
+	var kind as string
+	var selector as string
+	var expected as string
+	var actual as string
+	var trace_dir as string
+	var timeout_ms as int
+
+	create(string kind, string selector, string expected, string actual, string trace_dir, int timeout_ms)
+		self.kind = kind
+		self.selector = selector
+		self.expected = expected
+		self.actual = actual
+		self.trace_dir = trace_dir
+		self.timeout_ms = timeout_ms
+	end
+
+	func kind_value() as string
+		return self.kind
+	end
+
+	func selector_value() as string
+		return self.selector
+	end
+
+	func expected_value() as string
+		return self.expected
+	end
+
+	func actual_value() as string
+		return self.actual
+	end
+
+	func trace_dir_value() as string
+		return self.trace_dir
+	end
+
+	func timeout_value() as int
+		return self.timeout_ms
+	end
+
+	func has_trace() as bool
+		return self.trace_dir != ""
+	end
+end
+
+class AssertionRetryPlan extends object
+	var timeout_ms as int
+	var interval_ms as int
+	var attempt_count as int
+	var last_message as string
+	var completed as int
+
+	create(int timeout_ms, int interval_ms)
+		self.timeout_ms = timeout_ms
+		self.interval_ms = interval_ms
+		self.attempt_count = 0
+		self.last_message = ""
+		self.completed = 0
+	end
+
+	func timeout_value() as int
+		return self.timeout_ms
+	end
+
+	func interval_value() as int
+		return self.interval_ms
+	end
+
+	func attempt_count_value() as int
+		return self.attempt_count
+	end
+
+	func last_message_value() as string
+		return self.last_message
+	end
+
+	func completed_value() as int
+		return self.completed
+	end
+
+	func record_attempt(string message) as void
+		self.attempt_count = self.attempt_count + 1
+		self.last_message = message
+	end
+
+	func mark_completed() as void
+		self.completed = 1
+	end
+
+	func should_retry() as bool
+		return self.completed == 0 and self.timeout_ms > 0 and self.interval_ms > 0
+	end
+end
+
+class AssertionTracePlan extends object
+	var kind as string
+	var selector as string
+	var expected as string
+	var actual as string
+	var trace_dir as string
+	var artifact_recorded as int
+
+	create(string kind, string selector, string expected, string actual, string trace_dir)
+		self.kind = kind
+		self.selector = selector
+		self.expected = expected
+		self.actual = actual
+		self.trace_dir = trace_dir
+		self.artifact_recorded = 0
+	end
+
+	func kind_value() as string
+		return self.kind
+	end
+
+	func selector_value() as string
+		return self.selector
+	end
+
+	func expected_value() as string
+		return self.expected
+	end
+
+	func actual_value() as string
+		return self.actual
+	end
+
+	func trace_dir_value() as string
+		return self.trace_dir
+	end
+
+	func artifact_recorded_value() as int
+		return self.artifact_recorded
+	end
+
+	func mark_artifact_recorded() as void
+		self.artifact_recorded = 1
+	end
+
+	func ready() as bool
+		return self.kind != "" and self.trace_dir != ""
+	end
+end
+
+func trace_failure(point browser, string session_id, string trace_dir, string action_json, string manifest_json, int timeout_ms) as bool
+	return x.cdp.trace_record_failure(browser, session_id, trace_dir + "/trace.jsonl", action_json, trace_dir + "/failure.png", trace_dir + "/failure.html", trace_dir + "/manifest.json", manifest_json, timeout_ms)
+end
+
+func title(point browser, string session_id, string expected, int timeout_ms) as bool
+	return x.cdp.expect_title(browser, session_id, expected, timeout_ms)
+end
+
+func title_trace(point browser, string session_id, string expected, string trace_dir, string action_json, string manifest_json, int timeout_ms) as bool
+	if x.cdp.expect_title(browser, session_id, expected, timeout_ms) then
+		return true
+	end
+	trace_failure(browser, session_id, trace_dir, action_json, manifest_json, timeout_ms)
+	return false
+end
+
+func url(point browser, string session_id, string expected, int timeout_ms) as bool
+	return x.cdp.expect_url(browser, session_id, expected, timeout_ms)
+end
+
+func url_trace(point browser, string session_id, string expected, string trace_dir, string action_json, string manifest_json, int timeout_ms) as bool
+	if x.cdp.expect_url(browser, session_id, expected, timeout_ms) then
+		return true
+	end
+	trace_failure(browser, session_id, trace_dir, action_json, manifest_json, timeout_ms)
+	return false
+end
+
+func visible(point browser, string session_id, string selector, int timeout_ms) as bool
+	return x.cdp.expect_visible(browser, session_id, selector, timeout_ms)
+end
+
+func visible_trace(point browser, string session_id, string selector, string trace_dir, string action_json, string manifest_json, int timeout_ms) as bool
+	if x.cdp.expect_visible(browser, session_id, selector, timeout_ms) then
+		return true
+	end
+	trace_failure(browser, session_id, trace_dir, action_json, manifest_json, timeout_ms)
+	return false
+end
+
+func text(point browser, string session_id, string selector, string expected, int timeout_ms) as bool
+	return x.cdp.expect_text(browser, session_id, selector, expected, timeout_ms)
+end
+
+func text_trace(point browser, string session_id, string selector, string expected, string trace_dir, string action_json, string manifest_json, int timeout_ms) as bool
+	if x.cdp.expect_text(browser, session_id, selector, expected, timeout_ms) then
+		return true
+	end
+	trace_failure(browser, session_id, trace_dir, action_json, manifest_json, timeout_ms)
+	return false
+end
+
+func count(point browser, string session_id, string selector, int expected, int timeout_ms) as bool
+	return x.cdp.expect_count(browser, session_id, selector, expected, timeout_ms)
+end
+
+func count_trace(point browser, string session_id, string selector, int expected, string trace_dir, string action_json, string manifest_json, int timeout_ms) as bool
+	if x.cdp.expect_count(browser, session_id, selector, expected, timeout_ms) then
+		return true
+	end
+	trace_failure(browser, session_id, trace_dir, action_json, manifest_json, timeout_ms)
+	return false
+end
+
+func ok(point browser, int value) as bool
+	return x.cdp.expect_ok(browser, value)
+end
+
+func result(int passed, string message, string expected, string actual, string trace_dir) as AssertResult
+	return AssertResult(passed, message, expected, actual, trace_dir)
+end
+
+func error_info(string kind, string selector, string expected, string actual, string trace_dir, int timeout_ms) as AssertionErrorInfo
+	return AssertionErrorInfo(kind, selector, expected, actual, trace_dir, timeout_ms)
+end
+
+func retry_plan(int timeout_ms, int interval_ms) as AssertionRetryPlan
+	return AssertionRetryPlan(timeout_ms, interval_ms)
+end
+
+func trace_plan(string kind, string selector, string expected, string actual, string trace_dir) as AssertionTracePlan
+	return AssertionTracePlan(kind, selector, expected, actual, trace_dir)
+end
+
+export trace_failure
+export title
+export title_trace
+export url
+export url_trace
+export visible
+export visible_trace
+export text
+export text_trace
+export count
+export count_trace
+export ok
+export result
+export error_info
+export retry_plan
+export trace_plan
