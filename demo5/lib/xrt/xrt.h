@@ -47480,6 +47480,7 @@ static bool __xnetStreamDrainTlsCipherNow(xnetstream* pStream)
 	bool bReadAny = false;
 	uint32 iSpin = 0;
 	if ( !pStream || !pStream->pTls || pStream->bClosing || !__xnetSocketIsValid(pStream->hSocket) ) { return false; }
+	if ( __xnetStreamUseNativePortIO(pStream) ) { return false; }
 	for ( ;; ) {
 		int iRet;
 		#if defined(_WIN32) || defined(_WIN64)

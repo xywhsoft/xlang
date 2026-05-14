@@ -169,22 +169,22 @@ const char* xlrt_env_get(const char* sName)
 {
 	const char* sValue;
 #if defined(_WIN32) || defined(_WIN64)
-	static char sWinValue[32768];
+	char sWinValue[32768];
 	DWORD iLen;
 #endif
 
 	if ( sName == NULL ) {
-		return "";
+		return (const char*)xrtCopyStr((str)"", 0u);
 	}
 
 #if defined(_WIN32) || defined(_WIN64)
 	iLen = GetEnvironmentVariableA(sName, sWinValue, (DWORD)sizeof(sWinValue));
 	if ( (iLen > 0u) && (iLen < (DWORD)sizeof(sWinValue)) ) {
-		return sWinValue;
+		return (const char*)xrtCopyStr((str)sWinValue, (size_t)iLen);
 	}
 #endif
 	sValue = getenv(sName);
-	return (sValue != NULL) ? sValue : "";
+	return (const char*)xrtCopyStr((str)((sValue != NULL) ? sValue : ""), (sValue != NULL) ? strlen(sValue) : 0u);
 }
 
 int xlrt_env_exists(const char* sName)
@@ -237,7 +237,7 @@ const char* xlrt_env_cwd(void)
 		sPath[0] = '\0';
 	}
 #endif
-	return sPath;
+	return (const char*)xrtCopyStr((str)sPath, strlen(sPath));
 }
 
 const char* xlrt_env_temp(void)
@@ -255,7 +255,7 @@ const char* xlrt_env_temp(void)
 		__xlCopyNativeText(sPath, sizeof(sPath), "/tmp");
 	}
 #endif
-	return sPath;
+	return (const char*)xrtCopyStr((str)sPath, strlen(sPath));
 }
 
 const char* xlrt_env_home(void)
@@ -275,7 +275,7 @@ const char* xlrt_env_home(void)
 #else
 	__xlCopyNativeText(sPath, sizeof(sPath), getenv("HOME"));
 #endif
-	return sPath;
+	return (const char*)xrtCopyStr((str)sPath, strlen(sPath));
 }
 
 void xlrt_native_error_clear(void)
