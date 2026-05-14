@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Dialog</title>
+</head>
+<body>
+	<h1>Dialog</h1>
+	<button id="alert-button" type="button">Alert</button>
+	<button id="confirm-button" type="button">Confirm</button>
+	<button id="prompt-button" type="button">Prompt</button>
+	<script>
+		document.getElementById("alert-button").addEventListener("click", function () { alert("alert message"); });
+		document.getElementById("confirm-button").addEventListener("click", function () { confirm("confirm message"); });
+		document.getElementById("prompt-button").addEventListener("click", function () { prompt("prompt message", "default"); });
+	</script>
+</body>
+</html>

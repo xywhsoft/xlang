@@ -8,37 +8,140 @@ func main() as int
 		std.core.println(x.cdp.last_error())
 		return 1
 	end
-	string version = x.cdp.send(conn, "Browser.getVersion", "{}", 5000)
+	string version = x.cdp.browser_get_version(conn, 5000)
 	if str.contains(version, "product") == false then
 		x.cdp.close(conn)
 		x.cdp.dispose(conn)
 		return 2
 	end
-	string discover = x.cdp.send(conn, "Target.setDiscoverTargets", "{\"discover\":true}", 5000)
-	if str.contains(discover, "result") == false then
+	if x.cdp.target_set_discover(conn, 1, 5000) == false then
 		x.cdp.close(conn)
 		x.cdp.dispose(conn)
 		return 3
 	end
-	string created = x.cdp.send(conn, "Target.createTarget", "{\"url\":\"about:blank\"}", 5000)
-	if str.contains(created, "targetId") == false then
+	string context_id = x.cdp.create_context(conn, 5000)
+	if context_id == "" then
 		x.cdp.close(conn)
 		x.cdp.dispose(conn)
 		return 4
 	end
-	int found = 0
-	int i = 0
-	while i < 5 do
-		string event = x.cdp.next_event(conn, 1000)
-		if str.contains(event, "Target.targetCreated") then
-			found = 1
-		end
-		i = i + 1
+	string target_id = x.cdp.create_target_context(conn, context_id, "about:blank", 5000)
+	if target_id == "" then
+		x.cdp.dispose_context(conn, context_id, 5000)
+		x.cdp.close(conn)
+		x.cdp.dispose(conn)
+		return 5
 	end
+	string session_id = x.cdp.attach_target(conn, target_id, 1, 5000)
+	if session_id == "" then
+		x.cdp.close_target(conn, target_id, 5000)
+		x.cdp.dispose_context(conn, context_id, 5000)
+		x.cdp.close(conn)
+		x.cdp.dispose(conn)
+		return 6
+	end
+	if x.cdp.page_enable(conn, session_id, 5000) == false then
+		x.cdp.close_target(conn, target_id, 5000)
+		x.cdp.dispose_context(conn, context_id, 5000)
+		x.cdp.close(conn)
+		x.cdp.dispose(conn)
+		return 7
+	end
+	if x.cdp.network_enable(conn, session_id, 5000) == false then
+		x.cdp.close_target(conn, target_id, 5000)
+		x.cdp.dispose_context(conn, context_id, 5000)
+		x.cdp.close(conn)
+		x.cdp.dispose(conn)
+		return 7
+	end
+	if x.cdp.page_set_viewport(conn, session_id, 800, 600, 1, 0, 5000) == false then
+		x.cdp.close_target(conn, target_id, 5000)
+		x.cdp.dispose_context(conn, context_id, 5000)
+		x.cdp.close(conn)
+		x.cdp.dispose(conn)
+		return 7
+	end
+	if x.cdp.page_set_user_agent(conn, session_id, "xlang-cdp-smoke", 5000) == false then
+		x.cdp.close_target(conn, target_id, 5000)
+		x.cdp.dispose_context(conn, context_id, 5000)
+		x.cdp.close(conn)
+		x.cdp.dispose(conn)
+		return 7
+	end
+	if x.cdp.page_set_locale(conn, session_id, "en-US", 5000) == false then
+		x.cdp.close_target(conn, target_id, 5000)
+		x.cdp.dispose_context(conn, context_id, 5000)
+		x.cdp.close(conn)
+		x.cdp.dispose(conn)
+		return 7
+	end
+	if x.cdp.page_set_timezone(conn, session_id, "UTC", 5000) == false then
+		x.cdp.close_target(conn, target_id, 5000)
+		x.cdp.dispose_context(conn, context_id, 5000)
+		x.cdp.close(conn)
+		x.cdp.dispose(conn)
+		return 7
+	end
+	if x.cdp.page_set_geolocation(conn, session_id, 399000000, 1164000000, 100, 5000) == false then
+		x.cdp.close_target(conn, target_id, 5000)
+		x.cdp.dispose_context(conn, context_id, 5000)
+		x.cdp.close(conn)
+		x.cdp.dispose(conn)
+		return 7
+	end
+	if x.cdp.page_set_offline(conn, session_id, 0, 5000) == false then
+		x.cdp.close_target(conn, target_id, 5000)
+		x.cdp.dispose_context(conn, context_id, 5000)
+		x.cdp.close(conn)
+		x.cdp.dispose(conn)
+		return 7
+	end
+	string frame_id = x.cdp.page_goto(conn, session_id, "about:blank", 5000)
+	if frame_id == "" then
+		x.cdp.close_target(conn, target_id, 5000)
+		x.cdp.dispose_context(conn, context_id, 5000)
+		x.cdp.close(conn)
+		x.cdp.dispose(conn)
+		return 8
+	end
+	string title = x.cdp.page_title(conn, session_id, 5000)
+	string page_url = x.cdp.page_url(conn, session_id, 5000)
+	string value = x.cdp.runtime_evaluate(conn, session_id, "1 + 1", 5000)
+	if title != "" then
+		x.cdp.close_target(conn, target_id, 5000)
+		x.cdp.dispose_context(conn, context_id, 5000)
+		x.cdp.close(conn)
+		x.cdp.dispose(conn)
+		return 9
+	end
+	if str.contains(page_url, "about:blank") == false then
+		x.cdp.close_target(conn, target_id, 5000)
+		x.cdp.dispose_context(conn, context_id, 5000)
+		x.cdp.close(conn)
+		x.cdp.dispose(conn)
+		return 9
+	end
+	if value != "2" then
+		x.cdp.close_target(conn, target_id, 5000)
+		x.cdp.dispose_context(conn, context_id, 5000)
+		x.cdp.close(conn)
+		x.cdp.dispose(conn)
+		return 9
+	end
+	if x.cdp.page_screenshot(conn, session_id, "dev/extlibs/browser/xcdp_chrome_smoke.png", 5000) == false then
+		x.cdp.close_target(conn, target_id, 5000)
+		x.cdp.dispose_context(conn, context_id, 5000)
+		x.cdp.close(conn)
+		x.cdp.dispose(conn)
+		return 10
+	end
+	string target_event = x.cdp.wait_target_created(conn, 5000)
+	x.cdp.close_target(conn, target_id, 5000)
+	x.cdp.dispose_context(conn, context_id, 5000)
 	x.cdp.close(conn)
 	x.cdp.dispose(conn)
-	if found == 0 then
-		return 5
+	if str.contains(target_event, "Target.targetCreated") == false then
+		return 11
 	end
 	return 0
 end

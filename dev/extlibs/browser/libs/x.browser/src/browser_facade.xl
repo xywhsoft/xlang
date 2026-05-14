@@ -1,0 +1,7036 @@
+import x.cdp
+
+func resolve_timeout(int timeout_ms, int default_timeout) as int
+	if timeout_ms > 0 then
+		return timeout_ms
+	end
+	return default_timeout
+end
+
+class ActionOptions extends object
+	var timeout_ms as int
+	var force as int
+
+	create(int timeout_ms, int force)
+		self.timeout_ms = timeout_ms
+		self.force = force
+	end
+
+	func timeout_value() as int
+		return self.timeout_ms
+	end
+
+	func force_value() as int
+		return self.force
+	end
+end
+
+class KeyboardActionPlan extends object
+	var key as string
+	var input_text as string
+	var repeat_count as int
+	var delay_ms as int
+
+	create(string key, string input_text, int repeat_count, int delay_ms)
+		self.key = key
+		self.input_text = input_text
+		self.repeat_count = repeat_count
+		self.delay_ms = delay_ms
+	end
+
+	func key_value() as string
+		return self.key
+	end
+
+	func text_value() as string
+		return self.input_text
+	end
+
+	func repeat_count_value() as int
+		return self.repeat_count
+	end
+
+	func delay_value() as int
+		return self.delay_ms
+	end
+end
+
+class MouseActionPlan extends object
+	var x as int
+	var y as int
+	var button as string
+	var click_count as int
+	var delta_x as int
+	var delta_y as int
+
+	create(int x, int y, string button, int click_count, int delta_x, int delta_y)
+		self.x = x
+		self.y = y
+		self.button = button
+		self.click_count = click_count
+		self.delta_x = delta_x
+		self.delta_y = delta_y
+	end
+
+	func x_value() as int
+		return self.x
+	end
+
+	func y_value() as int
+		return self.y
+	end
+
+	func button_value() as string
+		return self.button
+	end
+
+	func click_count_value() as int
+		return self.click_count
+	end
+
+	func delta_x_value() as int
+		return self.delta_x
+	end
+
+	func delta_y_value() as int
+		return self.delta_y
+	end
+end
+
+class FileUploadPlan extends object
+	var selector as string
+	var files_json as string
+	var file_count as int
+
+	create(string selector, string files_json, int file_count)
+		self.selector = selector
+		self.files_json = files_json
+		self.file_count = file_count
+	end
+
+	func selector_value() as string
+		return self.selector
+	end
+
+	func files_value() as string
+		return self.files_json
+	end
+
+	func file_count_value() as int
+		return self.file_count
+	end
+
+	func has_files() as bool
+		return self.file_count > 0
+	end
+end
+
+class DragPlan extends object
+	var source_selector as string
+	var target_selector as string
+	var start_x as int
+	var start_y as int
+	var end_x as int
+	var end_y as int
+
+	create(string source_selector, string target_selector, int start_x, int start_y, int end_x, int end_y)
+		self.source_selector = source_selector
+		self.target_selector = target_selector
+		self.start_x = start_x
+		self.start_y = start_y
+		self.end_x = end_x
+		self.end_y = end_y
+	end
+
+	func source_value() as string
+		return self.source_selector
+	end
+
+	func target_value() as string
+		return self.target_selector
+	end
+
+	func start_x_value() as int
+		return self.start_x
+	end
+
+	func start_y_value() as int
+		return self.start_y
+	end
+
+	func end_x_value() as int
+		return self.end_x
+	end
+
+	func end_y_value() as int
+		return self.end_y
+	end
+end
+
+class Selector extends object
+	var kind as string
+	var value_text as string
+
+	create(string kind, string value_text)
+		self.kind = kind
+		self.value_text = value_text
+	end
+
+	func kind_value() as string
+		return self.kind
+	end
+
+	func value() as string
+		return self.value_text
+	end
+
+	func is_css() as bool
+		return self.kind == "css"
+	end
+
+	func query() as string
+		if self.kind == "css" then
+			return self.value_text
+		end
+		return self.kind + "=" + self.value_text
+	end
+end
+
+class SelectorParsePlan extends object
+	var kind as string
+	var value_text as string
+	var normalized_query as string
+	var parsed as int
+	var unsupported as int
+
+	create(string kind, string value_text, string normalized_query)
+		self.kind = kind
+		self.value_text = value_text
+		self.normalized_query = normalized_query
+		self.parsed = 0
+		self.unsupported = 0
+	end
+
+	func kind_value() as string
+		return self.kind
+	end
+
+	func value() as string
+		return self.value_text
+	end
+
+	func query() as string
+		return self.normalized_query
+	end
+
+	func parsed_value() as int
+		return self.parsed
+	end
+
+	func unsupported_value() as int
+		return self.unsupported
+	end
+
+	func is_supported() as bool
+		if self.kind == "css" then
+			return true
+		end
+		if self.kind == "text" then
+			return true
+		end
+		if self.kind == "testid" then
+			return true
+		end
+		if self.kind == "xpath" then
+			return true
+		end
+		return false
+	end
+
+	func mark_parsed() as void
+		self.parsed = 1
+		self.unsupported = 0
+	end
+
+	func mark_unsupported() as void
+		self.unsupported = 1
+		self.parsed = 0
+	end
+
+	func ready() as bool
+		return self.parsed == 1 and self.unsupported == 0
+	end
+end
+
+class SelectorGroup extends object
+	var selector_count as int
+	var last_query_text as string
+	var strict as int
+
+	create(int strict)
+		self.selector_count = 0
+		self.last_query_text = ""
+		self.strict = strict
+	end
+
+	func add(Selector selector) as void
+		self.selector_count = self.selector_count + 1
+		self.last_query_text = selector.query()
+	end
+
+	func add_query(string query_text) as void
+		self.selector_count = self.selector_count + 1
+		self.last_query_text = query_text
+	end
+
+	func count() as int
+		return self.selector_count
+	end
+
+	func last_query() as string
+		return self.last_query_text
+	end
+
+	func strict_value() as int
+		return self.strict
+	end
+
+	func clear() as void
+		self.selector_count = 0
+		self.last_query_text = ""
+	end
+end
+
+class StrictResult extends object
+	var selector_text as string
+	var count_value as int
+	var message as string
+
+	create(string selector_text, int count_value)
+		self.selector_text = selector_text
+		self.count_value = count_value
+		if count_value == 1 then
+			self.message = ""
+		else
+			self.message = "strict mode violation"
+		end
+	end
+
+	func selector_value() as string
+		return self.selector_text
+	end
+
+	func count() as int
+		return self.count_value
+	end
+
+	func ok() as bool
+		return self.count_value == 1
+	end
+
+	func message_value() as string
+		return self.message
+	end
+end
+
+class ActionabilityState extends object
+	var selector_text as string
+	var raw_json as string
+	var visible_value as int
+	var enabled_value as int
+	var editable_value as int
+	var receives_events_value as int
+	var stable_value as int
+
+	create(string selector_text, string raw_json, int visible_value, int enabled_value, int editable_value, int receives_events_value, int stable_value)
+		self.selector_text = selector_text
+		self.raw_json = raw_json
+		self.visible_value = visible_value
+		self.enabled_value = enabled_value
+		self.editable_value = editable_value
+		self.receives_events_value = receives_events_value
+		self.stable_value = stable_value
+	end
+
+	func selector_value() as string
+		return self.selector_text
+	end
+
+	func raw() as string
+		return self.raw_json
+	end
+
+	func visible() as int
+		return self.visible_value
+	end
+
+	func enabled() as int
+		return self.enabled_value
+	end
+
+	func editable() as int
+		return self.editable_value
+	end
+
+	func receives_events() as int
+		return self.receives_events_value
+	end
+
+	func stable() as int
+		return self.stable_value
+	end
+
+	func ready() as bool
+		return self.visible_value == 1 and self.enabled_value == 1 and self.receives_events_value == 1 and self.stable_value == 1
+	end
+end
+
+class ActionabilityPolicy extends object
+	var require_visible as int
+	var require_enabled as int
+	var require_editable as int
+	var require_receives_events as int
+	var require_stable as int
+
+	create(int require_visible, int require_enabled, int require_editable, int require_receives_events, int require_stable)
+		self.require_visible = require_visible
+		self.require_enabled = require_enabled
+		self.require_editable = require_editable
+		self.require_receives_events = require_receives_events
+		self.require_stable = require_stable
+	end
+
+	func require_visible_value() as int
+		return self.require_visible
+	end
+
+	func require_enabled_value() as int
+		return self.require_enabled
+	end
+
+	func require_editable_value() as int
+		return self.require_editable
+	end
+
+	func require_receives_events_value() as int
+		return self.require_receives_events
+	end
+
+	func require_stable_value() as int
+		return self.require_stable
+	end
+
+	func satisfied(ActionabilityState state) as bool
+		if self.require_visible == 1 and state.visible() != 1 then
+			return false
+		end
+		if self.require_enabled == 1 and state.enabled() != 1 then
+			return false
+		end
+		if self.require_editable == 1 and state.editable() != 1 then
+			return false
+		end
+		if self.require_receives_events == 1 and state.receives_events() != 1 then
+			return false
+		end
+		if self.require_stable == 1 and state.stable() != 1 then
+			return false
+		end
+		return true
+	end
+end
+
+class ActionabilityCheckPlan extends object
+	var selector_text as string
+	var action_name as string
+	var timeout_ms as int
+	var force as int
+	var checks_requested as int
+	var satisfied as int
+	var failed as int
+
+	create(string selector_text, string action_name, int timeout_ms, int force)
+		self.selector_text = selector_text
+		self.action_name = action_name
+		self.timeout_ms = timeout_ms
+		self.force = force
+		self.checks_requested = 0
+		self.satisfied = 0
+		self.failed = 0
+	end
+
+	func selector_value() as string
+		return self.selector_text
+	end
+
+	func action_value() as string
+		return self.action_name
+	end
+
+	func timeout_value() as int
+		return self.timeout_ms
+	end
+
+	func force_value() as int
+		return self.force
+	end
+
+	func checks_requested_value() as int
+		return self.checks_requested
+	end
+
+	func satisfied_value() as int
+		return self.satisfied
+	end
+
+	func failed_value() as int
+		return self.failed
+	end
+
+	func request_checks() as void
+		self.checks_requested = 1
+	end
+
+	func mark_satisfied() as void
+		self.satisfied = 1
+		self.failed = 0
+	end
+
+	func mark_failed() as void
+		self.failed = 1
+		self.satisfied = 0
+	end
+
+	func should_check() as bool
+		return self.force == 0 and self.checks_requested != 0
+	end
+
+	func ready() as bool
+		return self.checks_requested != 0 and self.satisfied == 1 and self.failed == 0
+	end
+end
+
+class Locator extends object
+	var handle as point
+	var session_id as string
+	var selector as string
+	var default_timeout as int
+
+	create(point handle, string session_id, string selector, int default_timeout)
+		self.handle = handle
+		self.session_id = session_id
+		self.selector = selector
+		self.default_timeout = default_timeout
+	end
+
+	func set_default_timeout(int ms) as void
+		self.default_timeout = ms
+	end
+
+	func default_timeout_ms() as int
+		return self.default_timeout
+	end
+
+	func selector_value() as string
+		return self.selector
+	end
+
+	func timeout_or_default(int timeout_ms) as int
+		if timeout_ms > 0 then
+			return timeout_ms
+		end
+		return self.default_timeout
+	end
+
+	func click(int timeout_ms) as bool
+		return x.cdp.locator_click(self.handle, self.session_id, self.selector, resolve_timeout(timeout_ms, self.default_timeout))
+	end
+
+	func click_ex(ActionOptions options) as bool
+		return x.cdp.locator_click(self.handle, self.session_id, self.selector, resolve_timeout(options.timeout_value(), self.default_timeout))
+	end
+
+	func fill(string value, int timeout_ms) as bool
+		return x.cdp.locator_fill(self.handle, self.session_id, self.selector, value, resolve_timeout(timeout_ms, self.default_timeout))
+	end
+
+	func fill_ex(string value, ActionOptions options) as bool
+		return x.cdp.locator_fill(self.handle, self.session_id, self.selector, value, resolve_timeout(options.timeout_value(), self.default_timeout))
+	end
+
+	func hover(int timeout_ms) as bool
+		return x.cdp.locator_hover(self.handle, self.session_id, self.selector, resolve_timeout(timeout_ms, self.default_timeout))
+	end
+
+	func hover_ex(ActionOptions options) as bool
+		return x.cdp.locator_hover(self.handle, self.session_id, self.selector, resolve_timeout(options.timeout_value(), self.default_timeout))
+	end
+
+	func check(int checked, int timeout_ms) as bool
+		return x.cdp.locator_check(self.handle, self.session_id, self.selector, checked, resolve_timeout(timeout_ms, self.default_timeout))
+	end
+
+	func check_ex(int checked, ActionOptions options) as bool
+		return x.cdp.locator_check(self.handle, self.session_id, self.selector, checked, resolve_timeout(options.timeout_value(), self.default_timeout))
+	end
+
+	func select(string value_text, int timeout_ms) as bool
+		return x.cdp.locator_select(self.handle, self.session_id, self.selector, value_text, resolve_timeout(timeout_ms, self.default_timeout))
+	end
+
+	func select_ex(string value_text, ActionOptions options) as bool
+		return x.cdp.locator_select(self.handle, self.session_id, self.selector, value_text, resolve_timeout(options.timeout_value(), self.default_timeout))
+	end
+
+	func press(string key, int timeout_ms) as bool
+		return x.cdp.locator_press(self.handle, self.session_id, self.selector, key, resolve_timeout(timeout_ms, self.default_timeout))
+	end
+
+	func type(string text, int timeout_ms) as bool
+		return x.cdp.locator_type(self.handle, self.session_id, self.selector, text, resolve_timeout(timeout_ms, self.default_timeout))
+	end
+
+	func text(int timeout_ms) as string
+		return x.cdp.locator_text(self.handle, self.session_id, self.selector, resolve_timeout(timeout_ms, self.default_timeout))
+	end
+
+	func count(int timeout_ms) as int
+		return x.cdp.locator_count(self.handle, self.session_id, self.selector, resolve_timeout(timeout_ms, self.default_timeout))
+	end
+
+	func state(int timeout_ms) as string
+		return x.cdp.locator_state(self.handle, self.session_id, self.selector, resolve_timeout(timeout_ms, self.default_timeout))
+	end
+
+	func actionability(int timeout_ms) as ActionabilityState
+		string raw = x.cdp.locator_state(self.handle, self.session_id, self.selector, resolve_timeout(timeout_ms, self.default_timeout))
+		return ActionabilityState(self.selector, raw, 0, 0, 0, 0, 0)
+	end
+
+	func strict(int timeout_ms) as bool
+		return x.cdp.locator_count(self.handle, self.session_id, self.selector, resolve_timeout(timeout_ms, self.default_timeout)) == 1
+	end
+
+	func strict_result(int timeout_ms) as StrictResult
+		int count_value = x.cdp.locator_count(self.handle, self.session_id, self.selector, resolve_timeout(timeout_ms, self.default_timeout))
+		return StrictResult(self.selector, count_value)
+	end
+end
+
+class Dialog extends object
+	var handle as point
+	var session_id as string
+	var event_json as string
+	var dialog_type as string
+	var message as string
+	var default_value as string
+	var default_timeout as int
+
+	create(point handle, string session_id, string event_json, int default_timeout)
+		self.handle = handle
+		self.session_id = session_id
+		self.event_json = event_json
+		self.dialog_type = ""
+		self.message = ""
+		self.default_value = ""
+		self.default_timeout = default_timeout
+	end
+
+	func raw() as string
+		return self.event_json
+	end
+
+	func set_info(string dialog_type, string message, string default_value) as void
+		self.dialog_type = dialog_type
+		self.message = message
+		self.default_value = default_value
+	end
+
+	func type_value() as string
+		return self.dialog_type
+	end
+
+	func message_value() as string
+		return self.message
+	end
+
+	func default_value_text() as string
+		return self.default_value
+	end
+
+	func set_default_timeout(int ms) as void
+		self.default_timeout = ms
+	end
+
+	func default_timeout_ms() as int
+		return self.default_timeout
+	end
+
+	func accept(int timeout_ms) as bool
+		return x.cdp.dialog_accept(self.handle, self.session_id, resolve_timeout(timeout_ms, self.default_timeout))
+	end
+
+	func dismiss(int timeout_ms) as bool
+		return x.cdp.dialog_dismiss(self.handle, self.session_id, resolve_timeout(timeout_ms, self.default_timeout))
+	end
+
+	func accept_with_text(string prompt_text, int timeout_ms) as bool
+		return x.cdp.dialog_accept_text(self.handle, self.session_id, prompt_text, resolve_timeout(timeout_ms, self.default_timeout))
+	end
+end
+
+class DialogInfo extends object
+	var dialog_type as string
+	var message as string
+	var default_value as string
+	var accepted as int
+	var dismissed as int
+
+	create(string dialog_type, string message, string default_value)
+		self.dialog_type = dialog_type
+		self.message = message
+		self.default_value = default_value
+		self.accepted = 0
+		self.dismissed = 0
+	end
+
+	func type_value() as string
+		return self.dialog_type
+	end
+
+	func message_value() as string
+		return self.message
+	end
+
+	func default_value_text() as string
+		return self.default_value
+	end
+
+	func mark_accepted() as void
+		self.accepted = 1
+		self.dismissed = 0
+	end
+
+	func mark_dismissed() as void
+		self.dismissed = 1
+		self.accepted = 0
+	end
+
+	func accepted_value() as int
+		return self.accepted
+	end
+
+	func dismissed_value() as int
+		return self.dismissed
+	end
+end
+
+class DialogActionPlan extends object
+	var action_name as string
+	var prompt_text as string
+	var timeout_ms as int
+	var handled as int
+
+	create(string action_name, string prompt_text, int timeout_ms)
+		self.action_name = action_name
+		self.prompt_text = prompt_text
+		self.timeout_ms = timeout_ms
+		self.handled = 0
+	end
+
+	func action_value() as string
+		return self.action_name
+	end
+
+	func prompt_text_value() as string
+		return self.prompt_text
+	end
+
+	func timeout_value() as int
+		return self.timeout_ms
+	end
+
+	func handled_value() as int
+		return self.handled
+	end
+
+	func mark_handled() as void
+		self.handled = 1
+	end
+
+	func is_accept() as bool
+		return self.action_name == "accept"
+	end
+
+	func is_dismiss() as bool
+		return self.action_name == "dismiss"
+	end
+
+	func needs_prompt_text() as bool
+		return self.action_name == "accept" and self.prompt_text != ""
+	end
+end
+
+class Download extends object
+	var handle as point
+	var event_json as string
+	var suggested_filename as string
+	var download_path as string
+	var save_as_path as string
+	var state as string
+	var default_timeout as int
+
+	create(point handle, string event_json, int default_timeout)
+		self.handle = handle
+		self.event_json = event_json
+		self.suggested_filename = ""
+		self.download_path = ""
+		self.save_as_path = ""
+		self.state = ""
+		self.default_timeout = default_timeout
+	end
+
+	func raw() as string
+		return self.event_json
+	end
+
+	func set_info(string suggested_filename, string download_path, string save_as_path, string state) as void
+		self.suggested_filename = suggested_filename
+		self.download_path = download_path
+		self.save_as_path = save_as_path
+		self.state = state
+	end
+
+	func suggested_filename_value() as string
+		return self.suggested_filename
+	end
+
+	func path_value() as string
+		return self.download_path
+	end
+
+	func save_as_path_value() as string
+		return self.save_as_path
+	end
+
+	func state_value() as string
+		return self.state
+	end
+
+	func set_default_timeout(int ms) as void
+		self.default_timeout = ms
+	end
+
+	func default_timeout_ms() as int
+		return self.default_timeout
+	end
+
+	func progress(int timeout_ms) as string
+		return x.cdp.wait_download_progress(self.handle, resolve_timeout(timeout_ms, self.default_timeout))
+	end
+end
+
+class DownloadInfo extends object
+	var suggested_filename as string
+	var download_path as string
+	var save_as_path as string
+	var state as string
+	var received_bytes as int
+	var total_bytes as int
+
+	create(string suggested_filename, string download_path, string save_as_path, string state, int received_bytes, int total_bytes)
+		self.suggested_filename = suggested_filename
+		self.download_path = download_path
+		self.save_as_path = save_as_path
+		self.state = state
+		self.received_bytes = received_bytes
+		self.total_bytes = total_bytes
+	end
+
+	func suggested_filename_value() as string
+		return self.suggested_filename
+	end
+
+	func path_value() as string
+		return self.download_path
+	end
+
+	func save_as_path_value() as string
+		return self.save_as_path
+	end
+
+	func state_value() as string
+		return self.state
+	end
+
+	func received_bytes_value() as int
+		return self.received_bytes
+	end
+
+	func total_bytes_value() as int
+		return self.total_bytes
+	end
+
+	func completed() as bool
+		return self.state == "completed"
+	end
+end
+
+class DownloadSavePlan extends object
+	var suggested_filename as string
+	var save_as_path as string
+	var received_bytes as int
+	var total_bytes as int
+	var completed as int
+	var failed as int
+
+	create(string suggested_filename, string save_as_path, int total_bytes)
+		self.suggested_filename = suggested_filename
+		self.save_as_path = save_as_path
+		self.received_bytes = 0
+		self.total_bytes = total_bytes
+		self.completed = 0
+		self.failed = 0
+	end
+
+	func suggested_filename_value() as string
+		return self.suggested_filename
+	end
+
+	func save_as_path_value() as string
+		return self.save_as_path
+	end
+
+	func received_bytes_value() as int
+		return self.received_bytes
+	end
+
+	func total_bytes_value() as int
+		return self.total_bytes
+	end
+
+	func completed_value() as int
+		return self.completed
+	end
+
+	func failed_value() as int
+		return self.failed
+	end
+
+	func record_progress(int received_bytes, int total_bytes) as void
+		self.received_bytes = received_bytes
+		self.total_bytes = total_bytes
+	end
+
+	func mark_completed() as void
+		self.completed = 1
+		self.failed = 0
+	end
+
+	func mark_failed() as void
+		self.failed = 1
+		self.completed = 0
+	end
+
+	func ready_to_save() as bool
+		return self.save_as_path != "" and self.failed == 0
+	end
+
+	func progress_complete() as bool
+		return self.total_bytes > 0 and self.received_bytes >= self.total_bytes
+	end
+end
+
+class Route extends object
+	var handle as point
+	var session_id as string
+	var request_id as string
+	var event_json as string
+	var default_timeout as int
+
+	create(point handle, string session_id, string request_id, string event_json, int default_timeout)
+		self.handle = handle
+		self.session_id = session_id
+		self.request_id = request_id
+		self.event_json = event_json
+		self.default_timeout = default_timeout
+	end
+
+	func id() as string
+		return self.request_id
+	end
+
+	func raw() as string
+		return self.event_json
+	end
+
+	func set_default_timeout(int ms) as void
+		self.default_timeout = ms
+	end
+
+	func default_timeout_ms() as int
+		return self.default_timeout
+	end
+
+	func apply(string action_json, int timeout_ms) as bool
+		return x.cdp.route_apply(self.handle, self.session_id, self.request_id, action_json, resolve_timeout(timeout_ms, self.default_timeout))
+	end
+
+	func abort(string error_reason, int timeout_ms) as bool
+		return x.cdp.fetch_abort(self.handle, self.session_id, self.request_id, error_reason, resolve_timeout(timeout_ms, self.default_timeout))
+	end
+
+	func continue_request(int timeout_ms) as bool
+		return x.cdp.fetch_continue(self.handle, self.session_id, self.request_id, resolve_timeout(timeout_ms, self.default_timeout))
+	end
+
+	func fulfill_text(int status_code, string content_type, string body, int timeout_ms) as bool
+		return x.cdp.fetch_fulfill_text(self.handle, self.session_id, self.request_id, status_code, content_type, body, resolve_timeout(timeout_ms, self.default_timeout))
+	end
+end
+
+class RoutePlan extends object
+	var url_pattern as string
+	var action_json as string
+	var default_timeout as int
+
+	create(string url_pattern, string action_json, int default_timeout)
+		self.url_pattern = url_pattern
+		self.action_json = action_json
+		self.default_timeout = default_timeout
+	end
+
+	func pattern_value() as string
+		return self.url_pattern
+	end
+
+	func action_value() as string
+		return self.action_json
+	end
+
+	func set_default_timeout(int ms) as void
+		self.default_timeout = ms
+	end
+
+	func default_timeout_ms() as int
+		return self.default_timeout
+	end
+
+	func enable(point handle, string session_id, int timeout_ms) as bool
+		return x.cdp.fetch_enable(handle, session_id, self.url_pattern, resolve_timeout(timeout_ms, self.default_timeout))
+	end
+
+	func apply(Route route, int timeout_ms) as bool
+		return route.apply(self.action_json, resolve_timeout(timeout_ms, self.default_timeout))
+	end
+end
+
+class RouteMatchPlan extends object
+	var pattern_kind as string
+	var pattern_text as string
+	var action_json as string
+	var priority as int
+	var enabled as int
+
+	create(string pattern_kind, string pattern_text, string action_json, int priority)
+		self.pattern_kind = pattern_kind
+		self.pattern_text = pattern_text
+		self.action_json = action_json
+		self.priority = priority
+		self.enabled = 1
+	end
+
+	func kind_value() as string
+		return self.pattern_kind
+	end
+
+	func pattern_value() as string
+		return self.pattern_text
+	end
+
+	func action_value() as string
+		return self.action_json
+	end
+
+	func priority_value() as int
+		return self.priority
+	end
+
+	func enabled_value() as int
+		return self.enabled
+	end
+
+	func disable() as void
+		self.enabled = 0
+	end
+
+	func enable() as void
+		self.enabled = 1
+	end
+
+	func is_glob() as bool
+		return self.pattern_kind == "glob"
+	end
+
+	func is_regex() as bool
+		return self.pattern_kind == "regex"
+	end
+
+	func is_active() as bool
+		return self.enabled != 0 and self.pattern_text != ""
+	end
+end
+
+class RouteDispatchPlan extends object
+	var pending_request_id as string
+	var pending_action_json as string
+	var pending_count as int
+	var handled_count as int
+	var cancelled as int
+
+	create()
+		self.pending_request_id = ""
+		self.pending_action_json = ""
+		self.pending_count = 0
+		self.handled_count = 0
+		self.cancelled = 0
+	end
+
+	func request_id_value() as string
+		return self.pending_request_id
+	end
+
+	func action_value() as string
+		return self.pending_action_json
+	end
+
+	func pending_count_value() as int
+		return self.pending_count
+	end
+
+	func handled_count_value() as int
+		return self.handled_count
+	end
+
+	func cancelled_value() as int
+		return self.cancelled
+	end
+
+	func enqueue(string request_id, string action_json) as void
+		self.pending_request_id = request_id
+		self.pending_action_json = action_json
+		self.pending_count = self.pending_count + 1
+		self.cancelled = 0
+	end
+
+	func mark_handled() as void
+		if self.pending_count > 0 then
+			self.pending_count = self.pending_count - 1
+			self.handled_count = self.handled_count + 1
+		end
+		if self.pending_count == 0 then
+			self.pending_request_id = ""
+			self.pending_action_json = ""
+		end
+	end
+
+	func cancel() as void
+		self.cancelled = 1
+		self.pending_count = 0
+		self.pending_request_id = ""
+		self.pending_action_json = ""
+	end
+
+	func ready_to_dispatch() as bool
+		return self.cancelled == 0 and self.pending_count > 0 and self.pending_request_id != "" and self.pending_action_json != ""
+	end
+end
+
+class RouteAction extends object
+	var action_json as string
+	var action_name as string
+
+	create(string action_name, string action_json)
+		self.action_name = action_name
+		self.action_json = action_json
+	end
+
+	func name_value() as string
+		return self.action_name
+	end
+
+	func json() as string
+		return self.action_json
+	end
+
+	func apply(Route route, int timeout_ms) as bool
+		return route.apply(self.action_json, timeout_ms)
+	end
+end
+
+class RouteActionPlan extends object
+	var request_id as string
+	var action_name as string
+	var action_json as string
+	var prepared as int
+	var applied as int
+
+	create(string request_id, RouteAction action)
+		self.request_id = request_id
+		self.action_name = action.name_value()
+		self.action_json = action.json()
+		self.prepared = 0
+		self.applied = 0
+	end
+
+	func request_id_value() as string
+		return self.request_id
+	end
+
+	func name_value() as string
+		return self.action_name
+	end
+
+	func json() as string
+		return self.action_json
+	end
+
+	func prepared_value() as int
+		return self.prepared
+	end
+
+	func applied_value() as int
+		return self.applied
+	end
+
+	func mark_prepared() as void
+		self.prepared = 1
+	end
+
+	func mark_applied() as void
+		self.applied = 1
+	end
+
+	func ready() as bool
+		return self.request_id != "" and self.action_json != "" and self.prepared != 0
+	end
+end
+
+class RouteRegistry extends object
+	var route_count as int
+	var enabled as int
+	var last_pattern as string
+	var last_action_json as string
+
+	create()
+		self.route_count = 0
+		self.enabled = 0
+		self.last_pattern = ""
+		self.last_action_json = ""
+	end
+
+	func register(string pattern, string action_json) as void
+		self.route_count = self.route_count + 1
+		self.last_pattern = pattern
+		self.last_action_json = action_json
+		self.enabled = 1
+	end
+
+	func register_plan(RoutePlan plan) as void
+		self.route_count = self.route_count + 1
+		self.last_pattern = plan.pattern_value()
+		self.last_action_json = plan.action_value()
+		self.enabled = 1
+	end
+
+	func unroute(string pattern) as void
+		if self.last_pattern == pattern then
+			self.last_pattern = ""
+			self.last_action_json = ""
+		end
+		if self.route_count > 0 then
+			self.route_count = self.route_count - 1
+		end
+		if self.route_count == 0 then
+			self.enabled = 0
+		end
+	end
+
+	func clear() as void
+		self.route_count = 0
+		self.enabled = 0
+		self.last_pattern = ""
+		self.last_action_json = ""
+	end
+
+	func count() as int
+		return self.route_count
+	end
+
+	func enabled_value() as int
+		return self.enabled
+	end
+
+	func last_pattern_value() as string
+		return self.last_pattern
+	end
+
+	func last_action_value() as string
+		return self.last_action_json
+	end
+end
+
+class RouteHandlerRegistryPlan extends object
+	var handler_count as int
+	var active_count as int
+	var highest_priority as int
+	var last_pattern as string
+	var last_action_json as string
+	var cancelled as int
+
+	create()
+		self.handler_count = 0
+		self.active_count = 0
+		self.highest_priority = 0
+		self.last_pattern = ""
+		self.last_action_json = ""
+		self.cancelled = 0
+	end
+
+	func handler_count_value() as int
+		return self.handler_count
+	end
+
+	func active_count_value() as int
+		return self.active_count
+	end
+
+	func highest_priority_value() as int
+		return self.highest_priority
+	end
+
+	func last_pattern_value() as string
+		return self.last_pattern
+	end
+
+	func last_action_value() as string
+		return self.last_action_json
+	end
+
+	func cancelled_value() as int
+		return self.cancelled
+	end
+
+	func register(RouteMatchPlan plan) as void
+		self.handler_count = self.handler_count + 1
+		if plan.enabled_value() != 0 then
+			self.active_count = self.active_count + 1
+		end
+		if self.handler_count == 1 or plan.priority_value() > self.highest_priority then
+			self.highest_priority = plan.priority_value()
+		end
+		self.last_pattern = plan.pattern_value()
+		self.last_action_json = plan.action_value()
+		self.cancelled = 0
+	end
+
+	func disable_one() as void
+		if self.active_count > 0 then
+			self.active_count = self.active_count - 1
+		end
+	end
+
+	func cancel() as void
+		self.cancelled = 1
+		self.active_count = 0
+	end
+
+	func ready() as bool
+		return self.cancelled == 0 and self.active_count > 0 and self.last_pattern != "" and self.last_action_json != ""
+	end
+end
+
+class Request extends object
+	var handle as point
+	var session_id as string
+	var event_json as string
+	var default_timeout as int
+
+	create(point handle, string session_id, string event_json, int default_timeout)
+		self.handle = handle
+		self.session_id = session_id
+		self.event_json = event_json
+		self.default_timeout = default_timeout
+	end
+
+	func raw() as string
+		return self.event_json
+	end
+
+	func set_default_timeout(int ms) as void
+		self.default_timeout = ms
+	end
+
+	func default_timeout_ms() as int
+		return self.default_timeout
+	end
+end
+
+class HeaderSet extends object
+	var headers_json as string
+
+	create(string headers_json)
+		self.headers_json = headers_json
+	end
+
+	func json() as string
+		return self.headers_json
+	end
+
+	func empty() as bool
+		return self.headers_json == "" or self.headers_json == "{}"
+	end
+end
+
+class HeaderBuilder extends object
+	var header_count as int
+	var last_name as string
+	var last_value as string
+
+	create()
+		self.header_count = 0
+		self.last_name = ""
+		self.last_value = ""
+	end
+
+	func add(string name, string value) as void
+		self.header_count = self.header_count + 1
+		self.last_name = name
+		self.last_value = value
+	end
+
+	func count() as int
+		return self.header_count
+	end
+
+	func last_name_value() as string
+		return self.last_name
+	end
+
+	func last_value_value() as string
+		return self.last_value
+	end
+
+	func clear() as void
+		self.header_count = 0
+		self.last_name = ""
+		self.last_value = ""
+	end
+
+	func to_headers(string headers_json) as HeaderSet
+		return HeaderSet(headers_json)
+	end
+end
+
+class HeaderApplyPlan extends object
+	var target as string
+	var header_count as int
+	var headers_json as string
+	var applied as int
+
+	create(string target, int header_count, string headers_json)
+		self.target = target
+		self.header_count = header_count
+		self.headers_json = headers_json
+		self.applied = 0
+	end
+
+	func target_value() as string
+		return self.target
+	end
+
+	func header_count_value() as int
+		return self.header_count
+	end
+
+	func json() as string
+		return self.headers_json
+	end
+
+	func applied_value() as int
+		return self.applied
+	end
+
+	func mark_applied() as void
+		self.applied = 1
+	end
+
+	func ready() as bool
+		return self.target != "" and self.headers_json != "" and self.headers_json != "{}"
+	end
+end
+
+class NetworkPattern extends object
+	var pattern_kind as string
+	var pattern_text as string
+
+	create(string pattern_kind, string pattern_text)
+		self.pattern_kind = pattern_kind
+		self.pattern_text = pattern_text
+	end
+
+	func kind_value() as string
+		return self.pattern_kind
+	end
+
+	func value() as string
+		return self.pattern_text
+	end
+
+	func is_regex() as bool
+		return self.pattern_kind == "regex"
+	end
+
+	func is_glob() as bool
+		return self.pattern_kind == "glob"
+	end
+end
+
+class NetworkWaitPlan extends object
+	var wait_for as string
+	var pattern_kind as string
+	var pattern_text as string
+	var timeout_ms as int
+	var matched_event_json as string
+	var matched_count as int
+	var timed_out as int
+	var cancelled as int
+
+	create(string wait_for, string pattern_kind, string pattern_text, int timeout_ms)
+		self.wait_for = wait_for
+		self.pattern_kind = pattern_kind
+		self.pattern_text = pattern_text
+		self.timeout_ms = timeout_ms
+		self.matched_event_json = ""
+		self.matched_count = 0
+		self.timed_out = 0
+		self.cancelled = 0
+	end
+
+	func wait_for_value() as string
+		return self.wait_for
+	end
+
+	func kind_value() as string
+		return self.pattern_kind
+	end
+
+	func pattern_value() as string
+		return self.pattern_text
+	end
+
+	func timeout_value() as int
+		return self.timeout_ms
+	end
+
+	func matched_event() as string
+		return self.matched_event_json
+	end
+
+	func matched_count_value() as int
+		return self.matched_count
+	end
+
+	func timed_out_value() as int
+		return self.timed_out
+	end
+
+	func cancelled_value() as int
+		return self.cancelled
+	end
+
+	func record_match(string event_json) as void
+		self.matched_event_json = event_json
+		self.matched_count = self.matched_count + 1
+		self.timed_out = 0
+	end
+
+	func mark_timeout() as void
+		self.timed_out = 1
+	end
+
+	func cancel() as void
+		self.cancelled = 1
+	end
+
+	func ready() as bool
+		return self.cancelled == 0 and self.wait_for != "" and self.pattern_text != "" and self.timeout_ms >= 0
+	end
+
+	func matched() as bool
+		return self.matched_count > 0 and self.matched_event_json != ""
+	end
+end
+
+class RequestId extends object
+	var request_id as string
+
+	create(string request_id)
+		self.request_id = request_id
+	end
+
+	func id_value() as string
+		return self.request_id
+	end
+
+	func empty() as bool
+		return self.request_id == ""
+	end
+end
+
+class RequestIdParsePlan extends object
+	var event_json as string
+	var request_id as string
+	var parsed as int
+	var failed as int
+
+	create(string event_json, string request_id)
+		self.event_json = event_json
+		self.request_id = request_id
+		self.parsed = 0
+		self.failed = 0
+	end
+
+	func raw() as string
+		return self.event_json
+	end
+
+	func request_id_value() as string
+		return self.request_id
+	end
+
+	func parsed_value() as int
+		return self.parsed
+	end
+
+	func failed_value() as int
+		return self.failed
+	end
+
+	func mark_parsed() as void
+		self.parsed = 1
+		self.failed = 0
+	end
+
+	func mark_failed() as void
+		self.failed = 1
+		self.parsed = 0
+	end
+
+	func ready() as bool
+		return self.event_json != "" and self.request_id != ""
+	end
+end
+
+class RequestResponsePairPlan extends object
+	var request_id as string
+	var request_event_json as string
+	var response_event_json as string
+	var body_json as string
+	var paired as int
+	var body_received as int
+	var failed as int
+
+	create(string request_id)
+		self.request_id = request_id
+		self.request_event_json = ""
+		self.response_event_json = ""
+		self.body_json = ""
+		self.paired = 0
+		self.body_received = 0
+		self.failed = 0
+	end
+
+	func request_id_value() as string
+		return self.request_id
+	end
+
+	func request_raw() as string
+		return self.request_event_json
+	end
+
+	func response_raw() as string
+		return self.response_event_json
+	end
+
+	func body_raw() as string
+		return self.body_json
+	end
+
+	func paired_value() as int
+		return self.paired
+	end
+
+	func body_received_value() as int
+		return self.body_received
+	end
+
+	func failed_value() as int
+		return self.failed
+	end
+
+	func set_request_event(string event_json) as void
+		self.request_event_json = event_json
+	end
+
+	func set_response_event(string event_json) as void
+		self.response_event_json = event_json
+	end
+
+	func set_body(string body_json) as void
+		self.body_json = body_json
+		self.body_received = 1
+	end
+
+	func mark_paired() as void
+		self.paired = 1
+		self.failed = 0
+	end
+
+	func mark_failed() as void
+		self.failed = 1
+		self.paired = 0
+	end
+
+	func ready() as bool
+		return self.request_id != "" and self.request_event_json != "" and self.response_event_json != "" and self.failed == 0
+	end
+
+	func complete() as bool
+		return self.request_id != "" and self.paired == 1 and self.body_received == 1 and self.failed == 0
+	end
+end
+
+class HarEntry extends object
+	var request_id as string
+	var url as string
+	var method as string
+	var status_code as int
+	var request_event_json as string
+	var response_event_json as string
+
+	create(string request_id, string url, string method, int status_code, string request_event_json, string response_event_json)
+		self.request_id = request_id
+		self.url = url
+		self.method = method
+		self.status_code = status_code
+		self.request_event_json = request_event_json
+		self.response_event_json = response_event_json
+	end
+
+	func id_value() as string
+		return self.request_id
+	end
+
+	func url_value() as string
+		return self.url
+	end
+
+	func method_value() as string
+		return self.method
+	end
+
+	func status_value() as int
+		return self.status_code
+	end
+
+	func request_raw() as string
+		return self.request_event_json
+	end
+
+	func response_raw() as string
+		return self.response_event_json
+	end
+
+	func complete() as bool
+		return self.request_event_json != "" and self.response_event_json != ""
+	end
+end
+
+class HarLog extends object
+	var entry_count as int
+	var last_request_id as string
+	var last_url as string
+	var last_status_code as int
+
+	create()
+		self.entry_count = 0
+		self.last_request_id = ""
+		self.last_url = ""
+		self.last_status_code = 0
+	end
+
+	func record(HarEntry entry) as void
+		self.entry_count = self.entry_count + 1
+		self.last_request_id = entry.id_value()
+		self.last_url = entry.url_value()
+		self.last_status_code = entry.status_value()
+	end
+
+	func count() as int
+		return self.entry_count
+	end
+
+	func last_request_id_value() as string
+		return self.last_request_id
+	end
+
+	func last_url_value() as string
+		return self.last_url
+	end
+
+	func last_status_value() as int
+		return self.last_status_code
+	end
+
+	func clear() as void
+		self.entry_count = 0
+		self.last_request_id = ""
+		self.last_url = ""
+		self.last_status_code = 0
+	end
+end
+
+class HarSerializePlan extends object
+	var entry_count as int
+	var output_path as string
+	var include_content as int
+	var serialized as int
+	var failed as int
+
+	create(int entry_count, string output_path, int include_content)
+		self.entry_count = entry_count
+		self.output_path = output_path
+		self.include_content = include_content
+		self.serialized = 0
+		self.failed = 0
+	end
+
+	func entry_count_value() as int
+		return self.entry_count
+	end
+
+	func output_path_value() as string
+		return self.output_path
+	end
+
+	func include_content_value() as int
+		return self.include_content
+	end
+
+	func serialized_value() as int
+		return self.serialized
+	end
+
+	func failed_value() as int
+		return self.failed
+	end
+
+	func mark_serialized() as void
+		self.serialized = 1
+		self.failed = 0
+	end
+
+	func mark_failed() as void
+		self.failed = 1
+		self.serialized = 0
+	end
+
+	func ready() as bool
+		return self.entry_count > 0 and self.output_path != "" and self.failed == 0
+	end
+
+	func has_content() as bool
+		return self.include_content != 0
+	end
+end
+
+class Response extends object
+	var handle as point
+	var session_id as string
+	var request_id as string
+	var event_json as string
+	var default_timeout as int
+
+	create(point handle, string session_id, string request_id, string event_json, int default_timeout)
+		self.handle = handle
+		self.session_id = session_id
+		self.request_id = request_id
+		self.event_json = event_json
+		self.default_timeout = default_timeout
+	end
+
+	func id() as string
+		return self.request_id
+	end
+
+	func raw() as string
+		return self.event_json
+	end
+
+	func set_default_timeout(int ms) as void
+		self.default_timeout = ms
+	end
+
+	func default_timeout_ms() as int
+		return self.default_timeout
+	end
+
+	func body(int timeout_ms) as string
+		return x.cdp.network_get_response_body(self.handle, self.session_id, self.request_id, resolve_timeout(timeout_ms, self.default_timeout))
+	end
+end
+
+class BrowserError extends object
+	var source as string
+	var message as string
+	var details as string
+
+	create(string source, string message, string details)
+		self.source = source
+		self.message = message
+		self.details = details
+	end
+
+	func source_value() as string
+		return self.source
+	end
+
+	func message_value() as string
+		return self.message
+	end
+
+	func details_value() as string
+		return self.details
+	end
+
+	func ok() as bool
+		return self.message == ""
+	end
+end
+
+class ScreencastFrame extends object
+	var handle as point
+	var session_id as string
+	var frame_id as int
+	var event_json as string
+	var default_timeout as int
+
+	create(point handle, string session_id, int frame_id, string event_json, int default_timeout)
+		self.handle = handle
+		self.session_id = session_id
+		self.frame_id = frame_id
+		self.event_json = event_json
+		self.default_timeout = default_timeout
+	end
+
+	func id() as int
+		return self.frame_id
+	end
+
+	func raw() as string
+		return self.event_json
+	end
+
+	func set_default_timeout(int ms) as void
+		self.default_timeout = ms
+	end
+
+	func default_timeout_ms() as int
+		return self.default_timeout
+	end
+
+	func ack(int timeout_ms) as bool
+		return x.cdp.screencast_frame_ack(self.handle, self.session_id, self.frame_id, resolve_timeout(timeout_ms, self.default_timeout))
+	end
+end
+
+class ScreencastSession extends object
+	var format as string
+	var quality as int
+	var every_nth_frame as int
+	var last_frame_json as string
+	var frame_count as int
+
+	create(string format, int quality, int every_nth_frame)
+		self.format = format
+		self.quality = quality
+		self.every_nth_frame = every_nth_frame
+		self.last_frame_json = ""
+		self.frame_count = 0
+	end
+
+	func format_value() as string
+		return self.format
+	end
+
+	func quality_value() as int
+		return self.quality
+	end
+
+	func every_nth_frame_value() as int
+		return self.every_nth_frame
+	end
+
+	func record_frame(string frame_json) as void
+		self.last_frame_json = frame_json
+		self.frame_count = self.frame_count + 1
+	end
+
+	func last_frame() as string
+		return self.last_frame_json
+	end
+
+	func frame_count_value() as int
+		return self.frame_count
+	end
+end
+
+class ScreencastLifecyclePlan extends object
+	var format as string
+	var quality as int
+	var every_nth_frame as int
+	var start_requested as int
+	var stop_requested as int
+	var frame_count as int
+	var failed as int
+
+	create(string format, int quality, int every_nth_frame)
+		self.format = format
+		self.quality = quality
+		self.every_nth_frame = every_nth_frame
+		self.start_requested = 0
+		self.stop_requested = 0
+		self.frame_count = 0
+		self.failed = 0
+	end
+
+	func format_value() as string
+		return self.format
+	end
+
+	func quality_value() as int
+		return self.quality
+	end
+
+	func every_nth_frame_value() as int
+		return self.every_nth_frame
+	end
+
+	func start_requested_value() as int
+		return self.start_requested
+	end
+
+	func stop_requested_value() as int
+		return self.stop_requested
+	end
+
+	func frame_count_value() as int
+		return self.frame_count
+	end
+
+	func failed_value() as int
+		return self.failed
+	end
+
+	func request_start() as void
+		self.start_requested = 1
+		self.stop_requested = 0
+	end
+
+	func record_frame() as void
+		self.frame_count = self.frame_count + 1
+	end
+
+	func request_stop() as void
+		self.stop_requested = 1
+	end
+
+	func mark_failed() as void
+		self.failed = 1
+	end
+
+	func ready() as bool
+		return self.format != "" and self.every_nth_frame > 0 and self.failed == 0
+	end
+
+	func active() as bool
+		return self.start_requested != 0 and self.stop_requested == 0 and self.failed == 0
+	end
+
+	func complete() as bool
+		return self.start_requested != 0 and self.stop_requested != 0 and self.failed == 0
+	end
+end
+
+class VideoRecordPlan extends object
+	var output_path as string
+	var format as string
+	var quality as int
+	var every_nth_frame as int
+	var started as int
+	var stopped as int
+
+	create(string output_path, string format, int quality, int every_nth_frame)
+		self.output_path = output_path
+		self.format = format
+		self.quality = quality
+		self.every_nth_frame = every_nth_frame
+		self.started = 0
+		self.stopped = 0
+	end
+
+	func output_path_value() as string
+		return self.output_path
+	end
+
+	func format_value() as string
+		return self.format
+	end
+
+	func quality_value() as int
+		return self.quality
+	end
+
+	func every_nth_frame_value() as int
+		return self.every_nth_frame
+	end
+
+	func mark_started() as void
+		self.started = 1
+		self.stopped = 0
+	end
+
+	func mark_stopped() as void
+		self.stopped = 1
+	end
+
+	func started_value() as int
+		return self.started
+	end
+
+	func stopped_value() as int
+		return self.stopped
+	end
+end
+
+class VideoTracePlan extends object
+	var trace_dir as string
+	var output_path as string
+	var frame_count as int
+	var manifest_written as int
+	var attached as int
+
+	create(string trace_dir, string output_path)
+		self.trace_dir = trace_dir
+		self.output_path = output_path
+		self.frame_count = 0
+		self.manifest_written = 0
+		self.attached = 0
+	end
+
+	func dir() as string
+		return self.trace_dir
+	end
+
+	func output_path_value() as string
+		return self.output_path
+	end
+
+	func frame_count_value() as int
+		return self.frame_count
+	end
+
+	func manifest_written_value() as int
+		return self.manifest_written
+	end
+
+	func attached_value() as int
+		return self.attached
+	end
+
+	func record_frame() as void
+		self.frame_count = self.frame_count + 1
+	end
+
+	func mark_manifest_written() as void
+		self.manifest_written = 1
+	end
+
+	func mark_attached() as void
+		self.attached = 1
+	end
+
+	func ready() as bool
+		return self.trace_dir != "" and self.output_path != ""
+	end
+end
+
+class ContextApplyPlan extends object
+	var viewport_count as int
+	var user_agent_count as int
+	var locale_count as int
+	var timezone_count as int
+	var geolocation_count as int
+	var offline_count as int
+	var cache_count as int
+	var permissions_count as int
+	var storage_state_count as int
+
+	create(int viewport_count, int user_agent_count, int locale_count, int timezone_count, int geolocation_count, int offline_count, int cache_count, int permissions_count, int storage_state_count)
+		self.viewport_count = viewport_count
+		self.user_agent_count = user_agent_count
+		self.locale_count = locale_count
+		self.timezone_count = timezone_count
+		self.geolocation_count = geolocation_count
+		self.offline_count = offline_count
+		self.cache_count = cache_count
+		self.permissions_count = permissions_count
+		self.storage_state_count = storage_state_count
+	end
+
+	func viewport_value() as int
+		return self.viewport_count
+	end
+
+	func user_agent_value() as int
+		return self.user_agent_count
+	end
+
+	func locale_value() as int
+		return self.locale_count
+	end
+
+	func timezone_value() as int
+		return self.timezone_count
+	end
+
+	func geolocation_value() as int
+		return self.geolocation_count
+	end
+
+	func offline_value() as int
+		return self.offline_count
+	end
+
+	func cache_value() as int
+		return self.cache_count
+	end
+
+	func permissions_value() as int
+		return self.permissions_count
+	end
+
+	func storage_state_value() as int
+		return self.storage_state_count
+	end
+
+	func total_enabled() as int
+		return self.viewport_count + self.user_agent_count + self.locale_count + self.timezone_count + self.geolocation_count + self.offline_count + self.cache_count + self.permissions_count + self.storage_state_count
+	end
+end
+
+class ContextDefaultApplyPlan extends object
+	var session_id as string
+	var default_count as int
+	var timeout_ms as int
+	var applied_count as int
+	var completed as int
+	var failed as int
+
+	create(string session_id, int default_count, int timeout_ms)
+		self.session_id = session_id
+		self.default_count = default_count
+		self.timeout_ms = timeout_ms
+		self.applied_count = 0
+		self.completed = 0
+		self.failed = 0
+	end
+
+	func session_value() as string
+		return self.session_id
+	end
+
+	func default_count_value() as int
+		return self.default_count
+	end
+
+	func timeout_value() as int
+		return self.timeout_ms
+	end
+
+	func applied_count_value() as int
+		return self.applied_count
+	end
+
+	func completed_value() as int
+		return self.completed
+	end
+
+	func failed_value() as int
+		return self.failed
+	end
+
+	func record_applied() as void
+		self.applied_count = self.applied_count + 1
+	end
+
+	func mark_completed() as void
+		self.completed = 1
+		self.failed = 0
+	end
+
+	func mark_failed() as void
+		self.failed = 1
+		self.completed = 0
+	end
+
+	func ready() as bool
+		return self.session_id != "" and self.default_count > 0 and self.timeout_ms >= 0 and self.failed == 0
+	end
+
+	func complete() as bool
+		return self.completed == 1 and self.applied_count >= self.default_count and self.failed == 0
+	end
+end
+
+class ContextLifecyclePlan extends object
+	var context_id as string
+	var page_count as int
+	var target_count as int
+	var defaults_applied as int
+	var permissions_applied as int
+	var storage_applied as int
+	var closed as int
+
+	create(string context_id)
+		self.context_id = context_id
+		self.page_count = 0
+		self.target_count = 0
+		self.defaults_applied = 0
+		self.permissions_applied = 0
+		self.storage_applied = 0
+		self.closed = 0
+	end
+
+	func context_id_value() as string
+		return self.context_id
+	end
+
+	func page_count_value() as int
+		return self.page_count
+	end
+
+	func target_count_value() as int
+		return self.target_count
+	end
+
+	func defaults_applied_value() as int
+		return self.defaults_applied
+	end
+
+	func permissions_applied_value() as int
+		return self.permissions_applied
+	end
+
+	func storage_applied_value() as int
+		return self.storage_applied
+	end
+
+	func closed_value() as int
+		return self.closed
+	end
+
+	func remember_page() as void
+		self.page_count = self.page_count + 1
+	end
+
+	func remember_target() as void
+		self.target_count = self.target_count + 1
+	end
+
+	func mark_defaults_applied() as void
+		self.defaults_applied = 1
+	end
+
+	func mark_permissions_applied() as void
+		self.permissions_applied = 1
+	end
+
+	func mark_storage_applied() as void
+		self.storage_applied = 1
+	end
+
+	func mark_closed() as void
+		self.closed = 1
+	end
+
+	func ready_for_page() as bool
+		return self.context_id != "" and self.closed == 0
+	end
+
+	func ready_to_close() as bool
+		return self.context_id != "" and self.closed == 0
+	end
+end
+
+class ContextPageCreatePlan extends object
+	var context_id as string
+	var target_id as string
+	var session_id as string
+	var default_count as int
+	var page_created as int
+	var defaults_requested as int
+	var defaults_applied as int
+	var failed as int
+
+	create(string context_id, string target_id, string session_id, ContextApplyPlan defaults_plan)
+		self.context_id = context_id
+		self.target_id = target_id
+		self.session_id = session_id
+		self.default_count = defaults_plan.total_enabled()
+		self.page_created = 0
+		if target_id != "" and session_id != "" then
+			self.page_created = 1
+		end
+		self.defaults_requested = 0
+		self.defaults_applied = 0
+		self.failed = 0
+	end
+
+	func context_id_value() as string
+		return self.context_id
+	end
+
+	func target_id_value() as string
+		return self.target_id
+	end
+
+	func session_value() as string
+		return self.session_id
+	end
+
+	func default_count_value() as int
+		return self.default_count
+	end
+
+	func page_created_value() as int
+		return self.page_created
+	end
+
+	func defaults_requested_value() as int
+		return self.defaults_requested
+	end
+
+	func defaults_applied_value() as int
+		return self.defaults_applied
+	end
+
+	func failed_value() as int
+		return self.failed
+	end
+
+	func request_defaults() as void
+		self.defaults_requested = 1
+	end
+
+	func mark_defaults_applied() as void
+		self.defaults_applied = 1
+		self.failed = 0
+	end
+
+	func mark_failed() as void
+		self.failed = 1
+		self.defaults_applied = 0
+	end
+
+	func ready() as bool
+		return self.context_id != "" and self.page_created != 0 and self.failed == 0
+	end
+
+	func ready_for_defaults() as bool
+		return self.context_id != "" and self.page_created != 0 and self.default_count > 0 and self.defaults_requested != 0 and self.failed == 0
+	end
+
+	func complete() as bool
+		return self.context_id != "" and self.page_created != 0 and self.failed == 0 and (self.default_count == 0 or self.defaults_applied != 0)
+	end
+end
+
+class ContextOptions extends object
+	var viewport_width as int
+	var viewport_height as int
+	var viewport_scale as int
+	var viewport_mobile as int
+	var user_agent as string
+	var locale as string
+	var timezone_id as string
+	var geolocation_latitude_e7 as int
+	var geolocation_longitude_e7 as int
+	var geolocation_accuracy as int
+	var geolocation_enabled as int
+	var offline as int
+	var offline_enabled as int
+	var cache_disabled as int
+	var cache_disabled_enabled as int
+	var permissions_json as string
+	var permissions_origin as string
+
+	create()
+		self.viewport_width = 0
+		self.viewport_height = 0
+		self.viewport_scale = 1
+		self.viewport_mobile = 0
+		self.user_agent = ""
+		self.locale = ""
+		self.timezone_id = ""
+		self.geolocation_latitude_e7 = 0
+		self.geolocation_longitude_e7 = 0
+		self.geolocation_accuracy = 0
+		self.geolocation_enabled = 0
+		self.offline = 0
+		self.offline_enabled = 0
+		self.cache_disabled = 0
+		self.cache_disabled_enabled = 0
+		self.permissions_json = ""
+		self.permissions_origin = ""
+	end
+
+	func set_viewport(int width, int height, int device_scale_factor, int mobile) as void
+		self.viewport_width = width
+		self.viewport_height = height
+		self.viewport_scale = device_scale_factor
+		self.viewport_mobile = mobile
+	end
+
+	func set_user_agent(string value) as void
+		self.user_agent = value
+	end
+
+	func set_locale(string value) as void
+		self.locale = value
+	end
+
+	func set_timezone(string value) as void
+		self.timezone_id = value
+	end
+
+	func set_geolocation(int latitude_e7, int longitude_e7, int accuracy) as void
+		self.geolocation_latitude_e7 = latitude_e7
+		self.geolocation_longitude_e7 = longitude_e7
+		self.geolocation_accuracy = accuracy
+		self.geolocation_enabled = 1
+	end
+
+	func set_offline(int value) as void
+		self.offline = value
+		self.offline_enabled = 1
+	end
+
+	func set_cache_disabled(int value) as void
+		self.cache_disabled = value
+		self.cache_disabled_enabled = 1
+	end
+
+	func set_permissions(string permissions_json, string origin) as void
+		self.permissions_json = permissions_json
+		self.permissions_origin = origin
+	end
+
+	func viewport_width_value() as int
+		return self.viewport_width
+	end
+
+	func viewport_height_value() as int
+		return self.viewport_height
+	end
+
+	func user_agent_value() as string
+		return self.user_agent
+	end
+
+	func locale_value() as string
+		return self.locale
+	end
+
+	func timezone_value() as string
+		return self.timezone_id
+	end
+
+	func permissions_value() as string
+		return self.permissions_json
+	end
+
+	func permissions_origin_value() as string
+		return self.permissions_origin
+	end
+
+	func apply_plan(string storage_state_json) as ContextApplyPlan
+		int viewport_count = 0
+		if self.viewport_width > 0 and self.viewport_height > 0 then
+			viewport_count = 1
+		end
+		int user_agent_count = 0
+		if self.user_agent != "" then
+			user_agent_count = 1
+		end
+		int locale_count = 0
+		if self.locale != "" then
+			locale_count = 1
+		end
+		int timezone_count = 0
+		if self.timezone_id != "" then
+			timezone_count = 1
+		end
+		int geolocation_count = 0
+		if self.geolocation_enabled != 0 then
+			geolocation_count = 1
+		end
+		int offline_count = 0
+		if self.offline_enabled != 0 then
+			offline_count = 1
+		end
+		int cache_count = 0
+		if self.cache_disabled_enabled != 0 then
+			cache_count = 1
+		end
+		int permissions_count = 0
+		if self.permissions_json != "" then
+			permissions_count = 1
+		end
+		int storage_count = 0
+		if storage_state_json != "" then
+			storage_count = 1
+		end
+		return ContextApplyPlan(viewport_count, user_agent_count, locale_count, timezone_count, geolocation_count, offline_count, cache_count, permissions_count, storage_count)
+	end
+end
+
+class ContextOptionsParsePlan extends object
+	var raw_json as string
+	var option_count as int
+	var storage_state_present as int
+	var parsed as int
+
+	create(string raw_json, int option_count, int storage_state_present)
+		self.raw_json = raw_json
+		self.option_count = option_count
+		self.storage_state_present = storage_state_present
+		self.parsed = 0
+	end
+
+	func raw() as string
+		return self.raw_json
+	end
+
+	func option_count_value() as int
+		return self.option_count
+	end
+
+	func storage_state_present_value() as int
+		return self.storage_state_present
+	end
+
+	func parsed_value() as int
+		return self.parsed
+	end
+
+	func mark_parsed() as void
+		self.parsed = 1
+	end
+
+	func ready() as bool
+		return self.raw_json != ""
+	end
+end
+
+class ContextStorageStatePlan extends object
+	var raw_options_json as string
+	var storage_state_json as string
+	var present as int
+	var parsed as int
+	var applied as int
+	var failed as int
+
+	create(ContextOptionsParsePlan parse_plan, string storage_state_json)
+		self.raw_options_json = parse_plan.raw()
+		self.storage_state_json = storage_state_json
+		self.present = parse_plan.storage_state_present_value()
+		self.parsed = 0
+		self.applied = 0
+		self.failed = 0
+	end
+
+	func raw_options() as string
+		return self.raw_options_json
+	end
+
+	func storage_state_value() as string
+		return self.storage_state_json
+	end
+
+	func present_value() as int
+		return self.present
+	end
+
+	func parsed_value() as int
+		return self.parsed
+	end
+
+	func applied_value() as int
+		return self.applied
+	end
+
+	func failed_value() as int
+		return self.failed
+	end
+
+	func mark_parsed() as void
+		self.parsed = 1
+		self.failed = 0
+	end
+
+	func mark_applied() as void
+		self.applied = 1
+	end
+
+	func mark_failed() as void
+		self.failed = 1
+		self.applied = 0
+	end
+
+	func ready() as bool
+		return self.present != 0 and self.storage_state_json != "" and self.failed == 0
+	end
+
+	func complete() as bool
+		return self.parsed != 0 and self.applied != 0 and self.failed == 0
+	end
+end
+
+class NavigationOptions extends object
+	var wait_until as string
+	var timeout_ms as int
+
+	create(string wait_until, int timeout_ms)
+		self.wait_until = wait_until
+		self.timeout_ms = timeout_ms
+	end
+
+	func wait_until_value() as string
+		return self.wait_until
+	end
+
+	func timeout_value() as int
+		return self.timeout_ms
+	end
+
+	func waits_for_network_idle() as bool
+		return self.wait_until == "networkidle"
+	end
+end
+
+class NavigationWaitPlan extends object
+	var url as string
+	var wait_until as string
+	var timeout_ms as int
+	var navigation_started as int
+	var load_state_reached as int
+	var network_idle_reached as int
+
+	create(string url, string wait_until, int timeout_ms)
+		self.url = url
+		self.wait_until = wait_until
+		self.timeout_ms = timeout_ms
+		self.navigation_started = 0
+		self.load_state_reached = 0
+		self.network_idle_reached = 0
+	end
+
+	func url_value() as string
+		return self.url
+	end
+
+	func wait_until_value() as string
+		return self.wait_until
+	end
+
+	func timeout_value() as int
+		return self.timeout_ms
+	end
+
+	func navigation_started_value() as int
+		return self.navigation_started
+	end
+
+	func load_state_reached_value() as int
+		return self.load_state_reached
+	end
+
+	func network_idle_reached_value() as int
+		return self.network_idle_reached
+	end
+
+	func mark_started() as void
+		self.navigation_started = 1
+	end
+
+	func mark_load_state_reached() as void
+		self.load_state_reached = 1
+	end
+
+	func mark_network_idle_reached() as void
+		self.network_idle_reached = 1
+	end
+
+	func waits_for_network_idle() as bool
+		return self.wait_until == "networkidle"
+	end
+
+	func ready() as bool
+		return self.url != "" and self.navigation_started != 0
+	end
+end
+
+class NavigationNetworkIdlePlan extends object
+	var url as string
+	var timeout_ms as int
+	var idle_window_ms as int
+	var inflight_count as int
+	var quiet_started as int
+	var idle_reached as int
+	var timed_out as int
+
+	create(string url, int timeout_ms, int idle_window_ms)
+		self.url = url
+		self.timeout_ms = timeout_ms
+		self.idle_window_ms = idle_window_ms
+		self.inflight_count = 0
+		self.quiet_started = 0
+		self.idle_reached = 0
+		self.timed_out = 0
+	end
+
+	func url_value() as string
+		return self.url
+	end
+
+	func timeout_value() as int
+		return self.timeout_ms
+	end
+
+	func idle_window_value() as int
+		return self.idle_window_ms
+	end
+
+	func inflight_count_value() as int
+		return self.inflight_count
+	end
+
+	func quiet_started_value() as int
+		return self.quiet_started
+	end
+
+	func idle_reached_value() as int
+		return self.idle_reached
+	end
+
+	func timed_out_value() as int
+		return self.timed_out
+	end
+
+	func request_started() as void
+		self.inflight_count = self.inflight_count + 1
+		self.quiet_started = 0
+		self.idle_reached = 0
+	end
+
+	func request_finished() as void
+		if self.inflight_count > 0 then
+			self.inflight_count = self.inflight_count - 1
+		end
+		if self.inflight_count == 0 then
+			self.quiet_started = 1
+		end
+	end
+
+	func mark_idle_reached() as void
+		self.idle_reached = 1
+		self.timed_out = 0
+	end
+
+	func mark_timeout() as void
+		self.timed_out = 1
+		self.idle_reached = 0
+	end
+
+	func ready() as bool
+		return self.url != "" and self.timeout_ms >= 0 and self.idle_window_ms >= 0 and self.timed_out == 0
+	end
+
+	func complete() as bool
+		return self.inflight_count == 0 and self.quiet_started != 0 and self.idle_reached != 0 and self.timed_out == 0
+	end
+end
+
+class ChromeProcess extends object
+	var handle as point
+
+	create(point handle)
+		self.handle = handle
+	end
+
+	func process() as point
+		return self.handle
+	end
+
+	func is_running() as bool
+		return x.cdp.process_is_running(self.handle)
+	end
+
+	func kill_tree() as bool
+		return x.cdp.process_kill_tree(self.handle)
+	end
+
+	func dispose() as bool
+		if self.handle == null then
+			return false
+		end
+		bool ok = x.cdp.process_dispose(self.handle)
+		self.handle = null
+		return ok
+	end
+end
+
+class LaunchOptions extends object
+	var executable_path as string
+	var user_data_dir as string
+	var port as int
+	var headless as int
+	var keep_user_data_dir as int
+	var timeout_ms as int
+
+	create(string executable_path, string user_data_dir, int port, int headless, int keep_user_data_dir, int timeout_ms)
+		self.executable_path = executable_path
+		self.user_data_dir = user_data_dir
+		self.port = port
+		self.headless = headless
+		self.keep_user_data_dir = keep_user_data_dir
+		self.timeout_ms = timeout_ms
+	end
+
+	func set_keep_user_data_dir(int value) as void
+		self.keep_user_data_dir = value
+	end
+
+	func set_timeout(int value) as void
+		self.timeout_ms = value
+	end
+
+	func executable_path_value() as string
+		return self.executable_path
+	end
+
+	func user_data_dir_value() as string
+		return self.user_data_dir
+	end
+
+	func port_value() as int
+		return self.port
+	end
+
+	func headless_value() as int
+		return self.headless
+	end
+
+	func keep_user_data_dir_value() as int
+		return self.keep_user_data_dir
+	end
+
+	func timeout_value() as int
+		return self.timeout_ms
+	end
+end
+
+class LaunchPolicy extends object
+	var allow_default_profile as int
+	var require_isolated_user_data_dir as int
+	var bind_localhost as int
+	var auto_port as int
+
+	create(int allow_default_profile, int require_isolated_user_data_dir, int bind_localhost, int auto_port)
+		self.allow_default_profile = allow_default_profile
+		self.require_isolated_user_data_dir = require_isolated_user_data_dir
+		self.bind_localhost = bind_localhost
+		self.auto_port = auto_port
+	end
+
+	func allow_default_profile_value() as int
+		return self.allow_default_profile
+	end
+
+	func require_isolated_user_data_dir_value() as int
+		return self.require_isolated_user_data_dir
+	end
+
+	func bind_localhost_value() as int
+		return self.bind_localhost
+	end
+
+	func auto_port_value() as int
+		return self.auto_port
+	end
+
+	func requires_isolated_profile() as bool
+		return self.allow_default_profile == 0 and self.require_isolated_user_data_dir != 0
+	end
+
+	func uses_auto_port() as bool
+		return self.auto_port != 0
+	end
+
+	func accepts_default_profile() as bool
+		return self.allow_default_profile != 0
+	end
+
+	func should_bind_localhost() as bool
+		return self.bind_localhost != 0
+	end
+end
+
+class LaunchPreparePlan extends object
+	var executable_path as string
+	var user_data_dir as string
+	var port as int
+	var use_auto_port as int
+	var needs_user_data_dir as int
+	var prepared as int
+
+	create(LaunchOptions options, LaunchPolicy policy)
+		self.executable_path = options.executable_path_value()
+		self.user_data_dir = options.user_data_dir_value()
+		self.port = options.port_value()
+		self.use_auto_port = 0
+		if policy.uses_auto_port() and self.port <= 0 then
+			self.use_auto_port = 1
+		end
+		self.needs_user_data_dir = 0
+		if policy.requires_isolated_profile() and self.user_data_dir == "" then
+			self.needs_user_data_dir = 1
+		end
+		self.prepared = 0
+	end
+
+	func executable_path_value() as string
+		return self.executable_path
+	end
+
+	func user_data_dir_value() as string
+		return self.user_data_dir
+	end
+
+	func port_value() as int
+		return self.port
+	end
+
+	func use_auto_port_value() as int
+		return self.use_auto_port
+	end
+
+	func needs_user_data_dir_value() as int
+		return self.needs_user_data_dir
+	end
+
+	func prepared_value() as int
+		return self.prepared
+	end
+
+	func mark_prepared() as void
+		self.prepared = 1
+	end
+
+	func ready_to_launch() as bool
+		return self.executable_path != "" and self.needs_user_data_dir == 0 and self.prepared != 0
+	end
+end
+
+class LaunchCleanupPlan extends object
+	var user_data_dir as string
+	var keep_user_data_dir as int
+	var browser_closed as int
+	var process_disposed as int
+	var cleanup_requested as int
+
+	create(string user_data_dir, int keep_user_data_dir)
+		self.user_data_dir = user_data_dir
+		self.keep_user_data_dir = keep_user_data_dir
+		self.browser_closed = 0
+		self.process_disposed = 0
+		self.cleanup_requested = 0
+	end
+
+	func user_data_dir_value() as string
+		return self.user_data_dir
+	end
+
+	func keep_user_data_dir_value() as int
+		return self.keep_user_data_dir
+	end
+
+	func mark_browser_closed() as void
+		self.browser_closed = 1
+	end
+
+	func mark_process_disposed() as void
+		self.process_disposed = 1
+	end
+
+	func request_cleanup() as void
+		self.cleanup_requested = 1
+	end
+
+	func browser_closed_value() as int
+		return self.browser_closed
+	end
+
+	func process_disposed_value() as int
+		return self.process_disposed
+	end
+
+	func cleanup_requested_value() as int
+		return self.cleanup_requested
+	end
+
+	func should_cleanup_user_data_dir() as bool
+		return self.user_data_dir != "" and self.keep_user_data_dir == 0 and self.cleanup_requested == 1
+	end
+end
+
+class UserDataDirLifecyclePlan extends object
+	var base_dir as string
+	var user_data_dir as string
+	var keep_user_data_dir as int
+	var created as int
+	var release_requested as int
+	var cleanup_requested as int
+
+	create(string base_dir, string user_data_dir, int keep_user_data_dir)
+		self.base_dir = base_dir
+		self.user_data_dir = user_data_dir
+		self.keep_user_data_dir = keep_user_data_dir
+		self.created = 0
+		if user_data_dir != "" then
+			self.created = 1
+		end
+		self.release_requested = 0
+		self.cleanup_requested = 0
+	end
+
+	func base_dir_value() as string
+		return self.base_dir
+	end
+
+	func user_data_dir_value() as string
+		return self.user_data_dir
+	end
+
+	func keep_user_data_dir_value() as int
+		return self.keep_user_data_dir
+	end
+
+	func created_value() as int
+		return self.created
+	end
+
+	func release_requested_value() as int
+		return self.release_requested
+	end
+
+	func cleanup_requested_value() as int
+		return self.cleanup_requested
+	end
+
+	func mark_created(string user_data_dir) as void
+		self.user_data_dir = user_data_dir
+		if user_data_dir != "" then
+			self.created = 1
+		end
+	end
+
+	func request_release() as void
+		self.release_requested = 1
+	end
+
+	func request_cleanup() as void
+		self.cleanup_requested = 1
+	end
+
+	func ready() as bool
+		return self.created != 0 and self.user_data_dir != ""
+	end
+
+	func should_cleanup() as bool
+		return self.user_data_dir != "" and self.keep_user_data_dir == 0 and self.release_requested != 0 and self.cleanup_requested != 0
+	end
+end
+
+class LaunchResult extends object
+	var process_handle as point
+	var browser_handle as point
+	var user_data_dir as string
+	var port_text as string
+	var error_message as string
+	var keep_user_data_dir as int
+
+	create(point process_handle, point browser_handle, string user_data_dir, string port_text, string error_message, int keep_flag)
+		self.process_handle = process_handle
+		self.browser_handle = browser_handle
+		self.user_data_dir = user_data_dir
+		self.port_text = port_text
+		self.error_message = error_message
+		self.keep_user_data_dir = keep_flag
+	end
+
+	func process() as point
+		return self.process_handle
+	end
+
+	func browser() as point
+		return self.browser_handle
+	end
+
+	func process_object() as ChromeProcess
+		return ChromeProcess(self.process_handle)
+	end
+
+	func user_data_dir_value() as string
+		return self.user_data_dir
+	end
+
+	func port_text_value() as string
+		return self.port_text
+	end
+
+	func error_value() as string
+		return self.error_message
+	end
+
+	func keep_user_data_dir_value() as int
+		return self.keep_user_data_dir
+	end
+
+	func set_keep_user_data_dir(int value) as void
+		self.keep_user_data_dir = value
+	end
+
+	func is_running() as bool
+		return x.cdp.process_is_running(self.process_handle)
+	end
+
+	func cleanup_plan() as LaunchCleanupPlan
+		return LaunchCleanupPlan(self.user_data_dir, self.keep_user_data_dir)
+	end
+end
+
+class LaunchConnectPlan extends object
+	var user_data_dir as string
+	var port_text as string
+	var timeout_ms as int
+	var connect_requested as int
+	var connected as int
+	var failed as int
+	var cleanup_on_failure as int
+
+	create(LaunchResult result, int timeout_ms)
+		self.user_data_dir = result.user_data_dir_value()
+		self.port_text = result.port_text_value()
+		self.timeout_ms = timeout_ms
+		self.connect_requested = 0
+		self.connected = 0
+		self.failed = 0
+		self.cleanup_on_failure = 0
+		if result.keep_user_data_dir_value() == 0 then
+			self.cleanup_on_failure = 1
+		end
+	end
+
+	func user_data_dir_value() as string
+		return self.user_data_dir
+	end
+
+	func port_text_value() as string
+		return self.port_text
+	end
+
+	func timeout_value() as int
+		return self.timeout_ms
+	end
+
+	func connect_requested_value() as int
+		return self.connect_requested
+	end
+
+	func connected_value() as int
+		return self.connected
+	end
+
+	func failed_value() as int
+		return self.failed
+	end
+
+	func cleanup_on_failure_value() as int
+		return self.cleanup_on_failure
+	end
+
+	func request_connect() as void
+		self.connect_requested = 1
+	end
+
+	func mark_connected() as void
+		self.connected = 1
+		self.failed = 0
+	end
+
+	func mark_failed() as void
+		self.failed = 1
+		self.connected = 0
+	end
+
+	func ready() as bool
+		return self.user_data_dir != "" and self.connect_requested != 0 and self.failed == 0
+	end
+
+	func complete() as bool
+		return self.connected != 0 and self.failed == 0
+	end
+end
+
+class ResourceClosePlan extends object
+	var context_count as int
+	var page_count as int
+	var target_count as int
+	var close_pages_first as int
+	var close_contexts_second as int
+	var close_browser_last as int
+
+	create(int context_count, int page_count, int target_count)
+		self.context_count = context_count
+		self.page_count = page_count
+		self.target_count = target_count
+		self.close_pages_first = 1
+		self.close_contexts_second = 1
+		self.close_browser_last = 1
+	end
+
+	func context_count_value() as int
+		return self.context_count
+	end
+
+	func page_count_value() as int
+		return self.page_count
+	end
+
+	func target_count_value() as int
+		return self.target_count
+	end
+
+	func close_pages_first_value() as int
+		return self.close_pages_first
+	end
+
+	func close_contexts_second_value() as int
+		return self.close_contexts_second
+	end
+
+	func close_browser_last_value() as int
+		return self.close_browser_last
+	end
+
+	func total_resources() as int
+		return self.context_count + self.page_count + self.target_count
+	end
+end
+
+class ResourceCascadeClosePlan extends object
+	var context_count as int
+	var page_count as int
+	var target_count as int
+	var closed_pages as int
+	var closed_contexts as int
+	var closed_targets as int
+	var browser_closed as int
+	var failed as int
+
+	create(ResourceClosePlan plan)
+		self.context_count = plan.context_count_value()
+		self.page_count = plan.page_count_value()
+		self.target_count = plan.target_count_value()
+		self.closed_pages = 0
+		self.closed_contexts = 0
+		self.closed_targets = 0
+		self.browser_closed = 0
+		self.failed = 0
+	end
+
+	func context_count_value() as int
+		return self.context_count
+	end
+
+	func page_count_value() as int
+		return self.page_count
+	end
+
+	func target_count_value() as int
+		return self.target_count
+	end
+
+	func closed_pages_value() as int
+		return self.closed_pages
+	end
+
+	func closed_contexts_value() as int
+		return self.closed_contexts
+	end
+
+	func closed_targets_value() as int
+		return self.closed_targets
+	end
+
+	func browser_closed_value() as int
+		return self.browser_closed
+	end
+
+	func failed_value() as int
+		return self.failed
+	end
+
+	func mark_pages_closed() as void
+		self.closed_pages = self.page_count
+	end
+
+	func mark_contexts_closed() as void
+		self.closed_contexts = self.context_count
+	end
+
+	func mark_targets_closed() as void
+		self.closed_targets = self.target_count
+	end
+
+	func mark_browser_closed() as void
+		self.browser_closed = 1
+	end
+
+	func mark_failed() as void
+		self.failed = 1
+	end
+
+	func ready() as bool
+		return self.failed == 0 and (self.context_count > 0 or self.page_count > 0 or self.target_count > 0)
+	end
+
+	func complete() as bool
+		return self.failed == 0 and self.closed_pages >= self.page_count and self.closed_contexts >= self.context_count and self.closed_targets >= self.target_count and self.browser_closed != 0
+	end
+end
+
+class TargetLifecyclePlan extends object
+	var target_id as string
+	var create_requested as int
+	var attach_requested as int
+	var page_wrapped as int
+	var close_requested as int
+	var flatten as int
+	var timeout_ms as int
+
+	create(string target_id, int timeout_ms)
+		self.target_id = target_id
+		self.create_requested = 0
+		self.attach_requested = 0
+		self.page_wrapped = 0
+		self.close_requested = 0
+		self.flatten = 1
+		self.timeout_ms = timeout_ms
+	end
+
+	func target_id_value() as string
+		return self.target_id
+	end
+
+	func timeout_value() as int
+		return self.timeout_ms
+	end
+
+	func flatten_value() as int
+		return self.flatten
+	end
+
+	func mark_create_requested() as void
+		self.create_requested = 1
+	end
+
+	func mark_attach_requested(int flatten) as void
+		self.attach_requested = 1
+		self.flatten = flatten
+	end
+
+	func mark_page_wrapped() as void
+		self.page_wrapped = 1
+	end
+
+	func mark_close_requested() as void
+		self.close_requested = 1
+	end
+
+	func create_requested_value() as int
+		return self.create_requested
+	end
+
+	func attach_requested_value() as int
+		return self.attach_requested
+	end
+
+	func page_wrapped_value() as int
+		return self.page_wrapped
+	end
+
+	func close_requested_value() as int
+		return self.close_requested
+	end
+
+	func ready_to_attach() as bool
+		return self.target_id != "" and self.create_requested != 0
+	end
+
+	func ready_to_close() as bool
+		return self.target_id != "" and self.close_requested != 0
+	end
+end
+
+class BrowserSession extends object
+	var handle as point
+	var context_count as int
+	var page_count as int
+	var target_count as int
+	var closed as int
+
+	create(point handle)
+		self.handle = handle
+		self.context_count = 0
+		self.page_count = 0
+		self.target_count = 0
+		self.closed = 0
+	end
+
+	func cdp() as point
+		return self.handle
+	end
+
+	func context_count_value() as int
+		return self.context_count
+	end
+
+	func page_count_value() as int
+		return self.page_count
+	end
+
+	func target_count_value() as int
+		return self.target_count
+	end
+
+	func closed_value() as int
+		return self.closed
+	end
+
+	func remember_context(BrowserContext context) as void
+		self.context_count = self.context_count + 1
+	end
+
+	func remember_page(Page page) as void
+		self.page_count = self.page_count + 1
+	end
+
+	func remember_target(Target target) as void
+		self.target_count = self.target_count + 1
+	end
+
+	func close_plan() as ResourceClosePlan
+		return ResourceClosePlan(self.context_count, self.page_count, self.target_count)
+	end
+
+	func close() as bool
+		self.closed = 1
+		if self.handle == null then
+			return false
+		end
+		bool closed_ok = x.cdp.close(self.handle)
+		x.cdp.dispose(self.handle)
+		self.handle = null
+		return closed_ok
+	end
+end
+
+class ScreenshotOptions extends object
+	var path as string
+	var format as string
+	var full_page as int
+	var clip_enabled as int
+	var clip_x as int
+	var clip_y as int
+	var clip_width as int
+	var clip_height as int
+
+	create(string path, string format, int full_page)
+		self.path = path
+		self.format = format
+		self.full_page = full_page
+		self.clip_enabled = 0
+		self.clip_x = 0
+		self.clip_y = 0
+		self.clip_width = 0
+		self.clip_height = 0
+	end
+
+	func path_value() as string
+		return self.path
+	end
+
+	func format_value() as string
+		return self.format
+	end
+
+	func full_page_value() as int
+		return self.full_page
+	end
+
+	func set_clip(int x, int y, int width, int height) as void
+		self.clip_enabled = 1
+		self.clip_x = x
+		self.clip_y = y
+		self.clip_width = width
+		self.clip_height = height
+	end
+
+	func has_clip() as bool
+		return self.clip_enabled == 1
+	end
+
+	func clip_x_value() as int
+		return self.clip_x
+	end
+
+	func clip_y_value() as int
+		return self.clip_y
+	end
+
+	func clip_width_value() as int
+		return self.clip_width
+	end
+
+	func clip_height_value() as int
+		return self.clip_height
+	end
+end
+
+class ScreenshotRenderPlan extends object
+	var path as string
+	var format as string
+	var full_page as int
+	var clip_enabled as int
+	var render_requested as int
+	var completed as int
+
+	create(ScreenshotOptions options)
+		self.path = options.path_value()
+		self.format = options.format_value()
+		self.full_page = options.full_page_value()
+		self.clip_enabled = 0
+		if options.has_clip() then
+			self.clip_enabled = 1
+		end
+		self.render_requested = 0
+		self.completed = 0
+	end
+
+	func path_value() as string
+		return self.path
+	end
+
+	func format_value() as string
+		return self.format
+	end
+
+	func full_page_value() as int
+		return self.full_page
+	end
+
+	func clip_enabled_value() as int
+		return self.clip_enabled
+	end
+
+	func render_requested_value() as int
+		return self.render_requested
+	end
+
+	func completed_value() as int
+		return self.completed
+	end
+
+	func request_render() as void
+		self.render_requested = 1
+	end
+
+	func mark_completed() as void
+		self.completed = 1
+	end
+
+	func ready() as bool
+		return self.path != "" and self.render_requested != 0
+	end
+end
+
+class ScreenshotOptionsApplyPlan extends object
+	var path as string
+	var option_count as int
+	var clip_enabled as int
+	var full_page as int
+	var applied as int
+	var failed as int
+
+	create(ScreenshotOptions options)
+		self.path = options.path_value()
+		self.option_count = 0
+		if options.format_value() != "" then
+			self.option_count = self.option_count + 1
+		end
+		if options.full_page_value() != 0 then
+			self.option_count = self.option_count + 1
+		end
+		self.clip_enabled = 0
+		if options.has_clip() then
+			self.clip_enabled = 1
+			self.option_count = self.option_count + 1
+		end
+		self.full_page = options.full_page_value()
+		self.applied = 0
+		self.failed = 0
+	end
+
+	func path_value() as string
+		return self.path
+	end
+
+	func option_count_value() as int
+		return self.option_count
+	end
+
+	func clip_enabled_value() as int
+		return self.clip_enabled
+	end
+
+	func full_page_value() as int
+		return self.full_page
+	end
+
+	func applied_value() as int
+		return self.applied
+	end
+
+	func failed_value() as int
+		return self.failed
+	end
+
+	func mark_applied() as void
+		self.applied = 1
+		self.failed = 0
+	end
+
+	func mark_failed() as void
+		self.failed = 1
+		self.applied = 0
+	end
+
+	func ready() as bool
+		return self.path != "" and self.option_count > 0 and self.failed == 0
+	end
+
+	func complete() as bool
+		return self.applied != 0 and self.failed == 0
+	end
+end
+
+class PdfOptions extends object
+	var path as string
+	var landscape as int
+	var print_background as int
+	var paper_width_e4 as int
+	var paper_height_e4 as int
+	var margin_top_e4 as int
+	var margin_right_e4 as int
+	var margin_bottom_e4 as int
+	var margin_left_e4 as int
+
+	create(string path, int landscape, int print_background)
+		self.path = path
+		self.landscape = landscape
+		self.print_background = print_background
+		self.paper_width_e4 = 0
+		self.paper_height_e4 = 0
+		self.margin_top_e4 = 0
+		self.margin_right_e4 = 0
+		self.margin_bottom_e4 = 0
+		self.margin_left_e4 = 0
+	end
+
+	func path_value() as string
+		return self.path
+	end
+
+	func landscape_value() as int
+		return self.landscape
+	end
+
+	func print_background_value() as int
+		return self.print_background
+	end
+
+	func set_paper_e4(int width_e4, int height_e4) as void
+		self.paper_width_e4 = width_e4
+		self.paper_height_e4 = height_e4
+	end
+
+	func set_margins_e4(int top_e4, int right_e4, int bottom_e4, int left_e4) as void
+		self.margin_top_e4 = top_e4
+		self.margin_right_e4 = right_e4
+		self.margin_bottom_e4 = bottom_e4
+		self.margin_left_e4 = left_e4
+	end
+
+	func paper_width_e4_value() as int
+		return self.paper_width_e4
+	end
+
+	func paper_height_e4_value() as int
+		return self.paper_height_e4
+	end
+
+	func margin_top_e4_value() as int
+		return self.margin_top_e4
+	end
+
+	func margin_right_e4_value() as int
+		return self.margin_right_e4
+	end
+
+	func margin_bottom_e4_value() as int
+		return self.margin_bottom_e4
+	end
+
+	func margin_left_e4_value() as int
+		return self.margin_left_e4
+	end
+end
+
+class PdfRenderPlan extends object
+	var path as string
+	var option_count as int
+	var render_requested as int
+	var completed as int
+
+	create(PdfOptions options)
+		self.path = options.path_value()
+		self.option_count = 0
+		if options.landscape_value() != 0 then
+			self.option_count = self.option_count + 1
+		end
+		if options.print_background_value() != 0 then
+			self.option_count = self.option_count + 1
+		end
+		if options.paper_width_e4_value() > 0 and options.paper_height_e4_value() > 0 then
+			self.option_count = self.option_count + 1
+		end
+		if options.margin_top_e4_value() != 0 or options.margin_right_e4_value() != 0 or options.margin_bottom_e4_value() != 0 or options.margin_left_e4_value() != 0 then
+			self.option_count = self.option_count + 1
+		end
+		self.render_requested = 0
+		self.completed = 0
+	end
+
+	func path_value() as string
+		return self.path
+	end
+
+	func option_count_value() as int
+		return self.option_count
+	end
+
+	func render_requested_value() as int
+		return self.render_requested
+	end
+
+	func completed_value() as int
+		return self.completed
+	end
+
+	func request_render() as void
+		self.render_requested = 1
+	end
+
+	func mark_completed() as void
+		self.completed = 1
+	end
+
+	func ready() as bool
+		return self.path != "" and self.render_requested != 0
+	end
+end
+
+class PdfOptionsApplyPlan extends object
+	var path as string
+	var option_count as int
+	var paper_enabled as int
+	var margin_enabled as int
+	var landscape as int
+	var print_background as int
+	var applied as int
+	var failed as int
+
+	create(PdfOptions options)
+		self.path = options.path_value()
+		self.option_count = 0
+		if options.landscape_value() != 0 then
+			self.option_count = self.option_count + 1
+		end
+		if options.print_background_value() != 0 then
+			self.option_count = self.option_count + 1
+		end
+		self.paper_enabled = 0
+		if options.paper_width_e4_value() > 0 and options.paper_height_e4_value() > 0 then
+			self.paper_enabled = 1
+			self.option_count = self.option_count + 1
+		end
+		self.margin_enabled = 0
+		if options.margin_top_e4_value() != 0 or options.margin_right_e4_value() != 0 or options.margin_bottom_e4_value() != 0 or options.margin_left_e4_value() != 0 then
+			self.margin_enabled = 1
+			self.option_count = self.option_count + 1
+		end
+		self.landscape = options.landscape_value()
+		self.print_background = options.print_background_value()
+		self.applied = 0
+		self.failed = 0
+	end
+
+	func path_value() as string
+		return self.path
+	end
+
+	func option_count_value() as int
+		return self.option_count
+	end
+
+	func paper_enabled_value() as int
+		return self.paper_enabled
+	end
+
+	func margin_enabled_value() as int
+		return self.margin_enabled
+	end
+
+	func landscape_value() as int
+		return self.landscape
+	end
+
+	func print_background_value() as int
+		return self.print_background
+	end
+
+	func applied_value() as int
+		return self.applied
+	end
+
+	func failed_value() as int
+		return self.failed
+	end
+
+	func mark_applied() as void
+		self.applied = 1
+		self.failed = 0
+	end
+
+	func mark_failed() as void
+		self.failed = 1
+		self.applied = 0
+	end
+
+	func ready() as bool
+		return self.path != "" and self.option_count > 0 and self.failed == 0
+	end
+
+	func complete() as bool
+		return self.applied != 0 and self.failed == 0
+	end
+end
+
+class AccessibilityOptions extends object
+	var interesting_only as int
+	var root_selector as string
+
+	create(int interesting_only, string root_selector)
+		self.interesting_only = interesting_only
+		self.root_selector = root_selector
+	end
+
+	func interesting_only_value() as int
+		return self.interesting_only
+	end
+
+	func root_selector_value() as string
+		return self.root_selector
+	end
+end
+
+class AccessibilityOptionsApplyPlan extends object
+	var option_count as int
+	var interesting_only as int
+	var root_selector as string
+	var root_filter_enabled as int
+	var snapshot_requested as int
+	var applied as int
+	var failed as int
+
+	create(AccessibilityOptions options)
+		self.option_count = 0
+		if options.interesting_only_value() != 0 then
+			self.option_count = self.option_count + 1
+		end
+		if options.root_selector_value() != "" then
+			self.option_count = self.option_count + 1
+		end
+		self.interesting_only = options.interesting_only_value()
+		self.root_selector = options.root_selector_value()
+		self.root_filter_enabled = 0
+		if self.root_selector != "" then
+			self.root_filter_enabled = 1
+		end
+		self.snapshot_requested = 0
+		self.applied = 0
+		self.failed = 0
+	end
+
+	func option_count_value() as int
+		return self.option_count
+	end
+
+	func interesting_only_value() as int
+		return self.interesting_only
+	end
+
+	func root_selector_value() as string
+		return self.root_selector
+	end
+
+	func root_filter_enabled_value() as int
+		return self.root_filter_enabled
+	end
+
+	func snapshot_requested_value() as int
+		return self.snapshot_requested
+	end
+
+	func applied_value() as int
+		return self.applied
+	end
+
+	func failed_value() as int
+		return self.failed
+	end
+
+	func request_snapshot() as void
+		self.snapshot_requested = 1
+	end
+
+	func mark_applied() as void
+		self.applied = 1
+		self.failed = 0
+	end
+
+	func mark_failed() as void
+		self.failed = 1
+		self.applied = 0
+	end
+
+	func ready() as bool
+		return self.option_count > 0 and self.snapshot_requested != 0 and self.failed == 0
+	end
+
+	func complete() as bool
+		return self.applied != 0 and self.failed == 0
+	end
+end
+
+class AccessibilitySnapshotPlan extends object
+	var interesting_only as int
+	var root_selector as string
+	var include_ignored as int
+	var max_depth as int
+
+	create(int interesting_only, string root_selector, int include_ignored, int max_depth)
+		self.interesting_only = interesting_only
+		self.root_selector = root_selector
+		self.include_ignored = include_ignored
+		self.max_depth = max_depth
+	end
+
+	func interesting_only_value() as int
+		return self.interesting_only
+	end
+
+	func root_selector_value() as string
+		return self.root_selector
+	end
+
+	func include_ignored_value() as int
+		return self.include_ignored
+	end
+
+	func max_depth_value() as int
+		return self.max_depth
+	end
+end
+
+class AccessibilitySerializePlan extends object
+	var root_selector as string
+	var node_count as int
+	var max_depth as int
+	var include_ignored as int
+	var serialized as int
+
+	create(string root_selector, int node_count, int max_depth, int include_ignored)
+		self.root_selector = root_selector
+		self.node_count = node_count
+		self.max_depth = max_depth
+		self.include_ignored = include_ignored
+		self.serialized = 0
+	end
+
+	func root_selector_value() as string
+		return self.root_selector
+	end
+
+	func node_count_value() as int
+		return self.node_count
+	end
+
+	func max_depth_value() as int
+		return self.max_depth
+	end
+
+	func include_ignored_value() as int
+		return self.include_ignored
+	end
+
+	func serialized_value() as int
+		return self.serialized
+	end
+
+	func mark_serialized() as void
+		self.serialized = 1
+	end
+
+	func ready() as bool
+		return self.node_count >= 0 and self.max_depth >= 0
+	end
+
+	func has_root_filter() as bool
+		return self.root_selector != ""
+	end
+end
+
+class StorageState extends object
+	var cookies_json as string
+	var local_storage_json as string
+	var session_storage_json as string
+
+	create(string cookies_json, string local_storage_json, string session_storage_json)
+		self.cookies_json = cookies_json
+		self.local_storage_json = local_storage_json
+		self.session_storage_json = session_storage_json
+	end
+
+	func cookies_value() as string
+		return self.cookies_json
+	end
+
+	func local_storage_value() as string
+		return self.local_storage_json
+	end
+
+	func session_storage_value() as string
+		return self.session_storage_json
+	end
+
+	func has_cookies() as bool
+		return self.cookies_json != ""
+	end
+
+	func has_page_storage() as bool
+		return self.local_storage_json != "" or self.session_storage_json != ""
+	end
+end
+
+class StorageOriginState extends object
+	var origin as string
+	var local_storage_json as string
+	var session_storage_json as string
+
+	create(string origin, string local_storage_json, string session_storage_json)
+		self.origin = origin
+		self.local_storage_json = local_storage_json
+		self.session_storage_json = session_storage_json
+	end
+
+	func origin_value() as string
+		return self.origin
+	end
+
+	func local_storage_value() as string
+		return self.local_storage_json
+	end
+
+	func session_storage_value() as string
+		return self.session_storage_json
+	end
+
+	func has_storage() as bool
+		return self.local_storage_json != "" or self.session_storage_json != ""
+	end
+end
+
+class StorageStateBuilder extends object
+	var cookies_json as string
+	var origin_count as int
+	var last_origin as string
+	var last_local_storage_json as string
+	var last_session_storage_json as string
+
+	create()
+		self.cookies_json = ""
+		self.origin_count = 0
+		self.last_origin = ""
+		self.last_local_storage_json = ""
+		self.last_session_storage_json = ""
+	end
+
+	func set_cookies(string cookies_json) as void
+		self.cookies_json = cookies_json
+	end
+
+	func add_origin(string origin, string local_storage_json, string session_storage_json) as void
+		self.origin_count = self.origin_count + 1
+		self.last_origin = origin
+		self.last_local_storage_json = local_storage_json
+		self.last_session_storage_json = session_storage_json
+	end
+
+	func add_origin_state(StorageOriginState origin_state) as void
+		self.origin_count = self.origin_count + 1
+		self.last_origin = origin_state.origin_value()
+		self.last_local_storage_json = origin_state.local_storage_value()
+		self.last_session_storage_json = origin_state.session_storage_value()
+	end
+
+	func cookies_value() as string
+		return self.cookies_json
+	end
+
+	func origin_count_value() as int
+		return self.origin_count
+	end
+
+	func last_origin_value() as string
+		return self.last_origin
+	end
+
+	func last_local_storage_value() as string
+		return self.last_local_storage_json
+	end
+
+	func last_session_storage_value() as string
+		return self.last_session_storage_json
+	end
+
+	func to_storage_state() as StorageState
+		return StorageState(self.cookies_json, self.last_local_storage_json, self.last_session_storage_json)
+	end
+end
+
+class StorageApplyPlan extends object
+	var cookie_count as int
+	var origin_count as int
+	var has_local_storage as int
+	var has_session_storage as int
+	var import_requested as int
+
+	create(int cookie_count, int origin_count, int has_local_storage, int has_session_storage)
+		self.cookie_count = cookie_count
+		self.origin_count = origin_count
+		self.has_local_storage = has_local_storage
+		self.has_session_storage = has_session_storage
+		self.import_requested = 0
+	end
+
+	func cookie_count_value() as int
+		return self.cookie_count
+	end
+
+	func origin_count_value() as int
+		return self.origin_count
+	end
+
+	func has_local_storage_value() as int
+		return self.has_local_storage
+	end
+
+	func has_session_storage_value() as int
+		return self.has_session_storage
+	end
+
+	func import_requested_value() as int
+		return self.import_requested
+	end
+
+	func request_import() as void
+		self.import_requested = 1
+	end
+
+	func has_storage() as bool
+		return self.has_local_storage != 0 or self.has_session_storage != 0
+	end
+
+	func ready() as bool
+		return self.import_requested != 0 and (self.cookie_count > 0 or self.origin_count > 0 or self.has_local_storage != 0 or self.has_session_storage != 0)
+	end
+end
+
+class StorageSerializePlan extends object
+	var cookie_count as int
+	var origin_count as int
+	var include_local_storage as int
+	var include_session_storage as int
+	var serialized as int
+
+	create(int cookie_count, int origin_count, int include_local_storage, int include_session_storage)
+		self.cookie_count = cookie_count
+		self.origin_count = origin_count
+		self.include_local_storage = include_local_storage
+		self.include_session_storage = include_session_storage
+		self.serialized = 0
+	end
+
+	func cookie_count_value() as int
+		return self.cookie_count
+	end
+
+	func origin_count_value() as int
+		return self.origin_count
+	end
+
+	func include_local_storage_value() as int
+		return self.include_local_storage
+	end
+
+	func include_session_storage_value() as int
+		return self.include_session_storage
+	end
+
+	func serialized_value() as int
+		return self.serialized
+	end
+
+	func mark_serialized() as void
+		self.serialized = 1
+	end
+
+	func has_storage() as bool
+		return self.cookie_count > 0 or self.origin_count > 0 or self.include_local_storage != 0 or self.include_session_storage != 0
+	end
+
+	func ready() as bool
+		return self.cookie_count > 0 or self.origin_count > 0 or self.include_local_storage != 0 or self.include_session_storage != 0
+	end
+end
+
+class EvaluateResult extends object
+	var raw_json as string
+	var type_name as string
+	var value_text as string
+
+	create(string raw_json, string type_name, string value_text)
+		self.raw_json = raw_json
+		self.type_name = type_name
+		self.value_text = value_text
+	end
+
+	func raw() as string
+		return self.raw_json
+	end
+
+	func type_value() as string
+		return self.type_name
+	end
+
+	func value() as string
+		return self.value_text
+	end
+
+	func ok() as bool
+		return self.raw_json != ""
+	end
+end
+
+class TypedEvaluateResult extends object
+	var raw_json as string
+	var type_name as string
+	var string_value as string
+	var int_value as int
+	var bool_value as int
+	var float_e6_value as int
+
+	create(string raw_json, string type_name, string string_value, int int_value, int bool_value, int float_e6_value)
+		self.raw_json = raw_json
+		self.type_name = type_name
+		self.string_value = string_value
+		self.int_value = int_value
+		self.bool_value = bool_value
+		self.float_e6_value = float_e6_value
+	end
+
+	func raw() as string
+		return self.raw_json
+	end
+
+	func type_value() as string
+		return self.type_name
+	end
+
+	func string_result() as string
+		return self.string_value
+	end
+
+	func int_result() as int
+		return self.int_value
+	end
+
+	func bool_result() as int
+		return self.bool_value
+	end
+
+	func float_e6_result() as int
+		return self.float_e6_value
+	end
+
+	func ok() as bool
+		return self.raw_json != ""
+	end
+end
+
+class EvaluateParsePlan extends object
+	var raw_json as string
+	var expected_type as string
+	var has_value as int
+	var parsed as int
+	var failed as int
+
+	create(string raw_json, string expected_type, int has_value)
+		self.raw_json = raw_json
+		self.expected_type = expected_type
+		self.has_value = has_value
+		self.parsed = 0
+		self.failed = 0
+	end
+
+	func raw() as string
+		return self.raw_json
+	end
+
+	func expected_type_value() as string
+		return self.expected_type
+	end
+
+	func has_value_value() as int
+		return self.has_value
+	end
+
+	func parsed_value() as int
+		return self.parsed
+	end
+
+	func failed_value() as int
+		return self.failed
+	end
+
+	func mark_parsed() as void
+		self.parsed = 1
+		self.failed = 0
+	end
+
+	func mark_failed() as void
+		self.failed = 1
+		self.parsed = 0
+	end
+
+	func ready() as bool
+		return self.raw_json != "" and self.expected_type != ""
+	end
+end
+
+class EvaluateTypedParsePlan extends object
+	var raw_json as string
+	var expected_type as string
+	var actual_type as string
+	var value_text as string
+	var parsed as int
+	var failed as int
+
+	create(EvaluateResult result, string expected_type)
+		self.raw_json = result.raw()
+		self.expected_type = expected_type
+		self.actual_type = result.type_value()
+		self.value_text = result.value()
+		self.parsed = 0
+		self.failed = 0
+	end
+
+	func raw() as string
+		return self.raw_json
+	end
+
+	func expected_type_value() as string
+		return self.expected_type
+	end
+
+	func actual_type_value() as string
+		return self.actual_type
+	end
+
+	func value() as string
+		return self.value_text
+	end
+
+	func parsed_value() as int
+		return self.parsed
+	end
+
+	func failed_value() as int
+		return self.failed
+	end
+
+	func mark_parsed() as void
+		self.parsed = 1
+		self.failed = 0
+	end
+
+	func mark_failed() as void
+		self.failed = 1
+		self.parsed = 0
+	end
+
+	func type_matches() as bool
+		return self.expected_type == "" or self.actual_type == self.expected_type
+	end
+
+	func ready() as bool
+		return self.raw_json != "" and self.value_text != "" and self.failed == 0
+	end
+
+	func complete() as bool
+		return self.parsed != 0 and self.failed == 0 and self.value_text != ""
+	end
+end
+
+class PageEventLog extends object
+	var network_event_json as string
+	var console_event_json as string
+	var error_event_json as string
+	var network_count as int
+	var console_count as int
+	var error_count as int
+
+	create()
+		self.network_event_json = ""
+		self.console_event_json = ""
+		self.error_event_json = ""
+		self.network_count = 0
+		self.console_count = 0
+		self.error_count = 0
+	end
+
+	func record_network(string event_json) as void
+		self.network_event_json = event_json
+		self.network_count = self.network_count + 1
+	end
+
+	func record_console(string event_json) as void
+		self.console_event_json = event_json
+		self.console_count = self.console_count + 1
+	end
+
+	func record_error(string event_json) as void
+		self.error_event_json = event_json
+		self.error_count = self.error_count + 1
+	end
+
+	func last_network() as string
+		return self.network_event_json
+	end
+
+	func last_console() as string
+		return self.console_event_json
+	end
+
+	func last_error() as string
+		return self.error_event_json
+	end
+
+	func network_count_value() as int
+		return self.network_count
+	end
+
+	func console_count_value() as int
+		return self.console_count
+	end
+
+	func error_count_value() as int
+		return self.error_count
+	end
+
+	func total_count() as int
+		return self.network_count + self.console_count + self.error_count
+	end
+
+	func clear() as void
+		self.network_event_json = ""
+		self.console_event_json = ""
+		self.error_event_json = ""
+		self.network_count = 0
+		self.console_count = 0
+		self.error_count = 0
+	end
+end
+
+class PageEventWindow extends object
+	var capacity as int
+	var event_count as int
+	var dropped_count as int
+	var network_count as int
+	var console_count as int
+	var error_count as int
+	var last_kind as string
+	var last_event_json as string
+
+	create(int capacity)
+		self.capacity = capacity
+		self.event_count = 0
+		self.dropped_count = 0
+		self.network_count = 0
+		self.console_count = 0
+		self.error_count = 0
+		self.last_kind = ""
+		self.last_event_json = ""
+	end
+
+	func record(string kind, string event_json) as void
+		self.event_count = self.event_count + 1
+		if self.capacity > 0 and self.event_count > self.capacity then
+			self.dropped_count = self.dropped_count + 1
+		end
+		self.last_kind = kind
+		self.last_event_json = event_json
+		if kind == "network" then
+			self.network_count = self.network_count + 1
+		end
+		if kind == "console" then
+			self.console_count = self.console_count + 1
+		end
+		if kind == "error" then
+			self.error_count = self.error_count + 1
+		end
+	end
+
+	func record_network(string event_json) as void
+		self.event_count = self.event_count + 1
+		if self.capacity > 0 and self.event_count > self.capacity then
+			self.dropped_count = self.dropped_count + 1
+		end
+		self.last_kind = "network"
+		self.last_event_json = event_json
+		self.network_count = self.network_count + 1
+	end
+
+	func record_console(string event_json) as void
+		self.event_count = self.event_count + 1
+		if self.capacity > 0 and self.event_count > self.capacity then
+			self.dropped_count = self.dropped_count + 1
+		end
+		self.last_kind = "console"
+		self.last_event_json = event_json
+		self.console_count = self.console_count + 1
+	end
+
+	func record_error(string event_json) as void
+		self.event_count = self.event_count + 1
+		if self.capacity > 0 and self.event_count > self.capacity then
+			self.dropped_count = self.dropped_count + 1
+		end
+		self.last_kind = "error"
+		self.last_event_json = event_json
+		self.error_count = self.error_count + 1
+	end
+
+	func capacity_value() as int
+		return self.capacity
+	end
+
+	func count() as int
+		return self.event_count
+	end
+
+	func dropped_value() as int
+		return self.dropped_count
+	end
+
+	func network_count_value() as int
+		return self.network_count
+	end
+
+	func console_count_value() as int
+		return self.console_count
+	end
+
+	func error_count_value() as int
+		return self.error_count
+	end
+
+	func last_kind_value() as string
+		return self.last_kind
+	end
+
+	func last_event() as string
+		return self.last_event_json
+	end
+
+	func clear() as void
+		self.event_count = 0
+		self.dropped_count = 0
+		self.network_count = 0
+		self.console_count = 0
+		self.error_count = 0
+		self.last_kind = ""
+		self.last_event_json = ""
+	end
+end
+
+class EventDispatchPlan extends object
+	var session_id as string
+	var capacity as int
+	var queued_count as int
+	var dispatched_count as int
+	var dropped_count as int
+	var canceled as int
+	var last_event_json as string
+
+	create(string session_id, int capacity)
+		self.session_id = session_id
+		self.capacity = capacity
+		self.queued_count = 0
+		self.dispatched_count = 0
+		self.dropped_count = 0
+		self.canceled = 0
+		self.last_event_json = ""
+	end
+
+	func session_value() as string
+		return self.session_id
+	end
+
+	func capacity_value() as int
+		return self.capacity
+	end
+
+	func queued_value() as int
+		return self.queued_count
+	end
+
+	func dispatched_value() as int
+		return self.dispatched_count
+	end
+
+	func dropped_value() as int
+		return self.dropped_count
+	end
+
+	func canceled_value() as int
+		return self.canceled
+	end
+
+	func last_event() as string
+		return self.last_event_json
+	end
+
+	func enqueue(string event_json) as void
+		if self.canceled != 0 then
+			self.dropped_count = self.dropped_count + 1
+		else
+			self.queued_count = self.queued_count + 1
+			if self.capacity > 0 and self.queued_count > self.capacity then
+				self.dropped_count = self.dropped_count + 1
+			end
+			self.last_event_json = event_json
+		end
+	end
+
+	func dispatch_one() as void
+		if self.queued_count > 0 then
+			self.queued_count = self.queued_count - 1
+			self.dispatched_count = self.dispatched_count + 1
+		end
+	end
+
+	func cancel() as void
+		self.canceled = 1
+	end
+
+	func drained() as bool
+		return self.queued_count == 0
+	end
+end
+
+class CallbackRegistryPlan extends object
+	var event_kind_count as int
+	var handler_count as int
+	var enabled as int
+	var dispatching as int
+	var canceled as int
+
+	create()
+		self.event_kind_count = 0
+		self.handler_count = 0
+		self.enabled = 0
+		self.dispatching = 0
+		self.canceled = 0
+	end
+
+	func event_kind_count_value() as int
+		return self.event_kind_count
+	end
+
+	func handler_count_value() as int
+		return self.handler_count
+	end
+
+	func enabled_value() as int
+		return self.enabled
+	end
+
+	func dispatching_value() as int
+		return self.dispatching
+	end
+
+	func canceled_value() as int
+		return self.canceled
+	end
+
+	func register_event_kind() as void
+		self.event_kind_count = self.event_kind_count + 1
+	end
+
+	func register_handler() as void
+		self.handler_count = self.handler_count + 1
+	end
+
+	func enable() as void
+		self.enabled = 1
+		self.canceled = 0
+	end
+
+	func begin_dispatch() as void
+		if self.enabled != 0 and self.handler_count > 0 then
+			self.dispatching = 1
+		end
+	end
+
+	func cancel() as void
+		self.canceled = 1
+		self.dispatching = 0
+	end
+
+	func ready() as bool
+		return self.enabled != 0 and self.event_kind_count > 0 and self.handler_count > 0 and self.canceled == 0
+	end
+
+	func active() as bool
+		return self.dispatching != 0 and self.canceled == 0
+	end
+end
+
+class Frame extends object
+	var handle as point
+	var session_id as string
+	var frame_id as string
+	var event_json as string
+	var default_timeout as int
+
+	create(point handle, string session_id, string frame_id, string event_json, int default_timeout)
+		self.handle = handle
+		self.session_id = session_id
+		self.frame_id = frame_id
+		self.event_json = event_json
+		self.default_timeout = default_timeout
+	end
+
+	func id() as string
+		return self.frame_id
+	end
+
+	func raw() as string
+		return self.event_json
+	end
+
+	func locator(string selector) as Locator
+		return Locator(self.handle, self.session_id, selector, self.default_timeout)
+	end
+end
+
+class FrameBindingPlan extends object
+	var frame_id as string
+	var selector as string
+	var execution_context_id as string
+	var init_script_count as int
+	var bound as int
+
+	create(string frame_id, string selector)
+		self.frame_id = frame_id
+		self.selector = selector
+		self.execution_context_id = ""
+		self.init_script_count = 0
+		self.bound = 0
+	end
+
+	func frame_id_value() as string
+		return self.frame_id
+	end
+
+	func selector_value() as string
+		return self.selector
+	end
+
+	func execution_context_value() as string
+		return self.execution_context_id
+	end
+
+	func init_script_count_value() as int
+		return self.init_script_count
+	end
+
+	func bound_value() as int
+		return self.bound
+	end
+
+	func set_execution_context(string execution_context_id) as void
+		self.execution_context_id = execution_context_id
+	end
+
+	func remember_init_script() as void
+		self.init_script_count = self.init_script_count + 1
+	end
+
+	func mark_bound() as void
+		self.bound = 1
+	end
+
+	func ready() as bool
+		return self.frame_id != "" and self.execution_context_id != "" and self.bound != 0
+	end
+
+	func needs_init_script() as bool
+		return self.init_script_count == 0
+	end
+end
+
+class FrameLocator extends object
+	var handle as point
+	var session_id as string
+	var selector as string
+	var default_timeout as int
+
+	create(point handle, string session_id, string selector, int default_timeout)
+		self.handle = handle
+		self.session_id = session_id
+		self.selector = selector
+		self.default_timeout = default_timeout
+	end
+
+	func selector_value() as string
+		return self.selector
+	end
+
+	func locator(string selector) as Locator
+		return Locator(self.handle, self.session_id, selector, self.default_timeout)
+	end
+end
+
+class FrameLocatorPlan extends object
+	var frame_selector as string
+	var locator_selector as string
+	var timeout_ms as int
+	var resolved as int
+	var bound as int
+	var failed as int
+
+	create(string frame_selector, string locator_selector, int timeout_ms)
+		self.frame_selector = frame_selector
+		self.locator_selector = locator_selector
+		self.timeout_ms = timeout_ms
+		self.resolved = 0
+		self.bound = 0
+		self.failed = 0
+	end
+
+	func frame_selector_value() as string
+		return self.frame_selector
+	end
+
+	func locator_selector_value() as string
+		return self.locator_selector
+	end
+
+	func timeout_value() as int
+		return self.timeout_ms
+	end
+
+	func resolved_value() as int
+		return self.resolved
+	end
+
+	func bound_value() as int
+		return self.bound
+	end
+
+	func failed_value() as int
+		return self.failed
+	end
+
+	func mark_resolved() as void
+		self.resolved = 1
+		self.failed = 0
+	end
+
+	func mark_bound() as void
+		self.bound = 1
+	end
+
+	func mark_failed() as void
+		self.failed = 1
+		self.resolved = 0
+		self.bound = 0
+	end
+
+	func ready() as bool
+		return self.frame_selector != "" and self.locator_selector != "" and self.resolved == 1 and self.bound == 1 and self.failed == 0
+	end
+end
+
+class Page extends object
+	var handle as point
+	var session_id as string
+	var target_id as string
+	var default_timeout as int
+
+	create(point handle, string session_id, string target_id)
+		self.handle = handle
+		self.session_id = session_id
+		self.target_id = target_id
+		self.default_timeout = 30000
+	end
+
+	func cdp() as point
+		return self.handle
+	end
+
+	func session() as string
+		return self.session_id
+	end
+
+	func target() as string
+		return self.target_id
+	end
+
+	func set_default_timeout(int ms) as void
+		self.default_timeout = ms
+	end
+
+	func default_timeout_ms() as int
+		return self.default_timeout
+	end
+
+	func timeout_or_default(int timeout_ms) as int
+		if timeout_ms > 0 then
+			return timeout_ms
+		end
+		return self.default_timeout
+	end
+
+	func goto(string url, int timeout_ms) as string
+		return x.cdp.page_goto(self.handle, self.session_id, url, resolve_timeout(timeout_ms, self.default_timeout))
+	end
+
+	func goto_ex(string url, NavigationOptions options) as string
+		string result = x.cdp.page_goto(self.handle, self.session_id, url, resolve_timeout(options.timeout_value(), self.default_timeout))
+		if result != "" and options.wait_until_value() != "" and options.wait_until_value() != "none" then
+			x.cdp.page_wait_load_state(self.handle, self.session_id, options.wait_until_value(), resolve_timeout(options.timeout_value(), self.default_timeout))
+		end
+		return result
+	end
+
+	func reload(int ignore_cache, int timeout_ms) as bool
+		return x.cdp.page_reload(self.handle, self.session_id, ignore_cache, resolve_timeout(timeout_ms, self.default_timeout))
+	end
+
+	func reload_ex(int ignore_cache, NavigationOptions options) as bool
+		bool ok = x.cdp.page_reload(self.handle, self.session_id, ignore_cache, resolve_timeout(options.timeout_value(), self.default_timeout))
+		if ok and options.wait_until_value() != "" and options.wait_until_value() != "none" then
+			return x.cdp.page_wait_load_state(self.handle, self.session_id, options.wait_until_value(), resolve_timeout(options.timeout_value(), self.default_timeout))
+		end
+		return ok
+	end
+
+	func wait_load_state(string wait_until, int timeout_ms) as bool
+		return x.cdp.page_wait_load_state(self.handle, self.session_id, wait_until, resolve_timeout(timeout_ms, self.default_timeout))
+	end
+
+	func close(int timeout_ms) as bool
+		if self.target_id == "" then
+			return false
+		end
+		return x.cdp.close_target(self.handle, self.target_id, resolve_timeout(timeout_ms, self.default_timeout))
+	end
+
+	func title(int timeout_ms) as string
+		return x.cdp.page_title(self.handle, self.session_id, resolve_timeout(timeout_ms, self.default_timeout))
+	end
+
+	func url(int timeout_ms) as string
+		return x.cdp.page_url(self.handle, self.session_id, resolve_timeout(timeout_ms, self.default_timeout))
+	end
+
+	func content(int timeout_ms) as string
+		return x.cdp.page_content(self.handle, self.session_id, resolve_timeout(timeout_ms, self.default_timeout))
+	end
+
+	func evaluate(string expression, int timeout_ms) as string
+		return x.cdp.runtime_evaluate(self.handle, self.session_id, expression, resolve_timeout(timeout_ms, self.default_timeout))
+	end
+
+	func evaluate_result(string expression, int timeout_ms) as EvaluateResult
+		string raw = x.cdp.runtime_evaluate(self.handle, self.session_id, expression, resolve_timeout(timeout_ms, self.default_timeout))
+		return EvaluateResult(raw, "", "")
+	end
+
+	func add_init_script(string source, int timeout_ms) as string
+		return x.cdp.page_add_init_script(self.handle, self.session_id, source, resolve_timeout(timeout_ms, self.default_timeout))
+	end
+
+	func remove_init_script(string identifier, int timeout_ms) as bool
+		return x.cdp.page_remove_init_script(self.handle, self.session_id, identifier, resolve_timeout(timeout_ms, self.default_timeout))
+	end
+
+	func screenshot(string path, int timeout_ms) as bool
+		return x.cdp.page_screenshot(self.handle, self.session_id, path, resolve_timeout(timeout_ms, self.default_timeout))
+	end
+
+	func screenshot_ex(ScreenshotOptions options, int timeout_ms) as bool
+		return x.cdp.page_screenshot(self.handle, self.session_id, options.path_value(), resolve_timeout(timeout_ms, self.default_timeout))
+	end
+
+	func locator_click(string selector, int timeout_ms) as bool
+		return x.cdp.locator_click(self.handle, self.session_id, selector, resolve_timeout(timeout_ms, self.default_timeout))
+	end
+
+	func locator_click_ex(string selector, ActionOptions options) as bool
+		return x.cdp.locator_click(self.handle, self.session_id, selector, resolve_timeout(options.timeout_value(), self.default_timeout))
+	end
+
+	func locator_fill(string selector, string value, int timeout_ms) as bool
+		return x.cdp.locator_fill(self.handle, self.session_id, selector, value, resolve_timeout(timeout_ms, self.default_timeout))
+	end
+
+	func locator_fill_ex(string selector, string value, ActionOptions options) as bool
+		return x.cdp.locator_fill(self.handle, self.session_id, selector, value, resolve_timeout(options.timeout_value(), self.default_timeout))
+	end
+
+	func locator_hover(string selector, int timeout_ms) as bool
+		return x.cdp.locator_hover(self.handle, self.session_id, selector, resolve_timeout(timeout_ms, self.default_timeout))
+	end
+
+	func locator_check(string selector, int checked, int timeout_ms) as bool
+		return x.cdp.locator_check(self.handle, self.session_id, selector, checked, resolve_timeout(timeout_ms, self.default_timeout))
+	end
+
+	func locator_select(string selector, string value_text, int timeout_ms) as bool
+		return x.cdp.locator_select(self.handle, self.session_id, selector, value_text, resolve_timeout(timeout_ms, self.default_timeout))
+	end
+
+	func locator_press(string selector, string key, int timeout_ms) as bool
+		return x.cdp.locator_press(self.handle, self.session_id, selector, key, resolve_timeout(timeout_ms, self.default_timeout))
+	end
+
+	func locator_type(string selector, string text, int timeout_ms) as bool
+		return x.cdp.locator_type(self.handle, self.session_id, selector, text, resolve_timeout(timeout_ms, self.default_timeout))
+	end
+
+	func locator_text(string selector, int timeout_ms) as string
+		return x.cdp.locator_text(self.handle, self.session_id, selector, resolve_timeout(timeout_ms, self.default_timeout))
+	end
+
+	func locator_count(string selector, int timeout_ms) as int
+		return x.cdp.locator_count(self.handle, self.session_id, selector, resolve_timeout(timeout_ms, self.default_timeout))
+	end
+
+	func locator_state(string selector, int timeout_ms) as string
+		return x.cdp.locator_state(self.handle, self.session_id, selector, resolve_timeout(timeout_ms, self.default_timeout))
+	end
+
+	func locator_actionability(string selector, int timeout_ms) as ActionabilityState
+		string raw = x.cdp.locator_state(self.handle, self.session_id, selector, resolve_timeout(timeout_ms, self.default_timeout))
+		return ActionabilityState(selector, raw, 0, 0, 0, 0, 0)
+	end
+
+	func locator_strict(string selector, int timeout_ms) as bool
+		return x.cdp.locator_count(self.handle, self.session_id, selector, resolve_timeout(timeout_ms, self.default_timeout)) == 1
+	end
+
+	func locator_strict_result(string selector, int timeout_ms) as StrictResult
+		int count_value = x.cdp.locator_count(self.handle, self.session_id, selector, resolve_timeout(timeout_ms, self.default_timeout))
+		return StrictResult(selector, count_value)
+	end
+
+	func locator(string selector) as Locator
+		return Locator(self.handle, self.session_id, selector, self.default_timeout)
+	end
+
+	func locator_selector(Selector selector) as Locator
+		return Locator(self.handle, self.session_id, selector.query(), self.default_timeout)
+	end
+
+	func expect_title(string expected, int timeout_ms) as bool
+		return x.cdp.expect_title(self.handle, self.session_id, expected, resolve_timeout(timeout_ms, self.default_timeout))
+	end
+
+	func expect_url(string expected, int timeout_ms) as bool
+		return x.cdp.expect_url(self.handle, self.session_id, expected, resolve_timeout(timeout_ms, self.default_timeout))
+	end
+
+	func local_storage(int timeout_ms) as string
+		return x.cdp.storage_get_local_storage(self.handle, self.session_id, resolve_timeout(timeout_ms, self.default_timeout))
+	end
+
+	func set_local_storage(string items_json, int timeout_ms) as bool
+		return x.cdp.storage_set_local_storage(self.handle, self.session_id, items_json, resolve_timeout(timeout_ms, self.default_timeout))
+	end
+
+	func session_storage(int timeout_ms) as string
+		return x.cdp.storage_get_session_storage(self.handle, self.session_id, resolve_timeout(timeout_ms, self.default_timeout))
+	end
+
+	func set_session_storage(string items_json, int timeout_ms) as bool
+		return x.cdp.storage_set_session_storage(self.handle, self.session_id, items_json, resolve_timeout(timeout_ms, self.default_timeout))
+	end
+
+	func storage_state(int timeout_ms) as StorageState
+		int effective_timeout = resolve_timeout(timeout_ms, self.default_timeout)
+		string local_json = x.cdp.storage_get_local_storage(self.handle, self.session_id, effective_timeout)
+		string session_json = x.cdp.storage_get_session_storage(self.handle, self.session_id, effective_timeout)
+		return StorageState("", local_json, session_json)
+	end
+
+	func set_viewport(int width, int height, int device_scale_factor, int mobile, int timeout_ms) as bool
+		return x.cdp.page_set_viewport(self.handle, self.session_id, width, height, device_scale_factor, mobile, resolve_timeout(timeout_ms, self.default_timeout))
+	end
+
+	func set_user_agent(string user_agent, int timeout_ms) as bool
+		return x.cdp.page_set_user_agent(self.handle, self.session_id, user_agent, resolve_timeout(timeout_ms, self.default_timeout))
+	end
+
+	func set_locale(string locale, int timeout_ms) as bool
+		return x.cdp.page_set_locale(self.handle, self.session_id, locale, resolve_timeout(timeout_ms, self.default_timeout))
+	end
+
+	func set_timezone(string timezone_id, int timeout_ms) as bool
+		return x.cdp.page_set_timezone(self.handle, self.session_id, timezone_id, resolve_timeout(timeout_ms, self.default_timeout))
+	end
+
+	func set_geolocation(int latitude_e7, int longitude_e7, int accuracy, int timeout_ms) as bool
+		return x.cdp.page_set_geolocation(self.handle, self.session_id, latitude_e7, longitude_e7, accuracy, resolve_timeout(timeout_ms, self.default_timeout))
+	end
+
+	func set_offline(int offline, int timeout_ms) as bool
+		return x.cdp.page_set_offline(self.handle, self.session_id, offline, resolve_timeout(timeout_ms, self.default_timeout))
+	end
+
+	func mouse_move(int x, int y, int timeout_ms) as bool
+		return x.cdp.page_mouse_move(self.handle, self.session_id, x, y, resolve_timeout(timeout_ms, self.default_timeout))
+	end
+
+	func mouse_click(int x, int y, string button, int timeout_ms) as bool
+		return x.cdp.page_mouse_click(self.handle, self.session_id, x, y, button, resolve_timeout(timeout_ms, self.default_timeout))
+	end
+
+	func mouse_wheel(int x, int y, int delta_x, int delta_y, int timeout_ms) as bool
+		return x.cdp.page_mouse_wheel(self.handle, self.session_id, x, y, delta_x, delta_y, resolve_timeout(timeout_ms, self.default_timeout))
+	end
+
+	func key_event(string event_type, string key, string text, int timeout_ms) as bool
+		return x.cdp.input_dispatch_key_event(self.handle, self.session_id, event_type, key, text, resolve_timeout(timeout_ms, self.default_timeout))
+	end
+
+	func insert_text(string text, int timeout_ms) as bool
+		return x.cdp.input_insert_text(self.handle, self.session_id, text, resolve_timeout(timeout_ms, self.default_timeout))
+	end
+
+	func frame_tree(int timeout_ms) as string
+		return x.cdp.page_frame_tree(self.handle, self.session_id, resolve_timeout(timeout_ms, self.default_timeout))
+	end
+
+	func wrap_frame(string frame_id, string event_json) as Frame
+		return Frame(self.handle, self.session_id, frame_id, event_json, self.default_timeout)
+	end
+
+	func frame_locator(string selector) as FrameLocator
+		return FrameLocator(self.handle, self.session_id, selector, self.default_timeout)
+	end
+
+	func runtime_enable(int timeout_ms) as bool
+		return x.cdp.runtime_enable(self.handle, self.session_id, resolve_timeout(timeout_ms, self.default_timeout))
+	end
+
+	func log_enable(int timeout_ms) as bool
+		return x.cdp.log_enable(self.handle, self.session_id, resolve_timeout(timeout_ms, self.default_timeout))
+	end
+
+	func wait_console(int timeout_ms) as string
+		return x.cdp.wait_console(self.handle, self.session_id, resolve_timeout(timeout_ms, self.default_timeout))
+	end
+
+	func wait_exception(int timeout_ms) as string
+		return x.cdp.wait_exception(self.handle, self.session_id, resolve_timeout(timeout_ms, self.default_timeout))
+	end
+
+	func wait_log_entry(int timeout_ms) as string
+		return x.cdp.wait_log_entry(self.handle, self.session_id, resolve_timeout(timeout_ms, self.default_timeout))
+	end
+
+	func network_enable(int timeout_ms) as bool
+		return x.cdp.network_enable(self.handle, self.session_id, resolve_timeout(timeout_ms, self.default_timeout))
+	end
+
+	func network_set_cache_disabled(int disabled, int timeout_ms) as bool
+		return x.cdp.network_set_cache_disabled(self.handle, self.session_id, disabled, resolve_timeout(timeout_ms, self.default_timeout))
+	end
+
+	func network_set_extra_http_headers(string headers_json, int timeout_ms) as bool
+		return x.cdp.network_set_extra_http_headers(self.handle, self.session_id, headers_json, resolve_timeout(timeout_ms, self.default_timeout))
+	end
+
+	func network_set_extra_headers(HeaderSet headers, int timeout_ms) as bool
+		return x.cdp.network_set_extra_http_headers(self.handle, self.session_id, headers.json(), resolve_timeout(timeout_ms, self.default_timeout))
+	end
+
+	func wait_network_event(int timeout_ms) as string
+		return x.cdp.wait_network_event(self.handle, self.session_id, resolve_timeout(timeout_ms, self.default_timeout))
+	end
+
+	func wait_request(string url_part, int timeout_ms) as string
+		return x.cdp.wait_request(self.handle, self.session_id, url_part, resolve_timeout(timeout_ms, self.default_timeout))
+	end
+
+	func wait_request_pattern(NetworkPattern pattern, int timeout_ms) as string
+		return x.cdp.wait_request(self.handle, self.session_id, pattern.value(), resolve_timeout(timeout_ms, self.default_timeout))
+	end
+
+	func wrap_request(string event_json) as Request
+		return Request(self.handle, self.session_id, event_json, self.default_timeout)
+	end
+
+	func wait_response(string url_part, int timeout_ms) as string
+		return x.cdp.wait_response(self.handle, self.session_id, url_part, resolve_timeout(timeout_ms, self.default_timeout))
+	end
+
+	func wait_response_pattern(NetworkPattern pattern, int timeout_ms) as string
+		return x.cdp.wait_response(self.handle, self.session_id, pattern.value(), resolve_timeout(timeout_ms, self.default_timeout))
+	end
+
+	func wrap_response(string request_id, string event_json) as Response
+		return Response(self.handle, self.session_id, request_id, event_json, self.default_timeout)
+	end
+
+	func response_body(string request_id, int timeout_ms) as string
+		return x.cdp.network_get_response_body(self.handle, self.session_id, request_id, resolve_timeout(timeout_ms, self.default_timeout))
+	end
+
+	func response_body_id(RequestId request_id, int timeout_ms) as string
+		return x.cdp.network_get_response_body(self.handle, self.session_id, request_id.id_value(), resolve_timeout(timeout_ms, self.default_timeout))
+	end
+
+	func route_enable(string url_pattern, int timeout_ms) as bool
+		return x.cdp.fetch_enable(self.handle, self.session_id, url_pattern, resolve_timeout(timeout_ms, self.default_timeout))
+	end
+
+	func route_disable(int timeout_ms) as bool
+		return x.cdp.fetch_disable(self.handle, self.session_id, resolve_timeout(timeout_ms, self.default_timeout))
+	end
+
+	func wait_route(string url_part, int timeout_ms) as string
+		return x.cdp.wait_route(self.handle, self.session_id, url_part, resolve_timeout(timeout_ms, self.default_timeout))
+	end
+
+	func wrap_route(string request_id, string event_json) as Route
+		return Route(self.handle, self.session_id, request_id, event_json, self.default_timeout)
+	end
+
+	func route_apply(string request_id, string action_json, int timeout_ms) as bool
+		return x.cdp.route_apply(self.handle, self.session_id, request_id, action_json, resolve_timeout(timeout_ms, self.default_timeout))
+	end
+
+	func route_apply_id(RequestId request_id, string action_json, int timeout_ms) as bool
+		return x.cdp.route_apply(self.handle, self.session_id, request_id.id_value(), action_json, resolve_timeout(timeout_ms, self.default_timeout))
+	end
+
+	func wait_dialog(int timeout_ms) as string
+		return x.cdp.wait_dialog(self.handle, self.session_id, resolve_timeout(timeout_ms, self.default_timeout))
+	end
+
+	func wait_dialog_object(int timeout_ms) as Dialog
+		int effective_timeout = resolve_timeout(timeout_ms, self.default_timeout)
+		string event_json = x.cdp.wait_dialog(self.handle, self.session_id, effective_timeout)
+		return Dialog(self.handle, self.session_id, event_json, self.default_timeout)
+	end
+
+	func dialog_accept(int timeout_ms) as bool
+		return x.cdp.dialog_accept(self.handle, self.session_id, resolve_timeout(timeout_ms, self.default_timeout))
+	end
+
+	func dialog_dismiss(int timeout_ms) as bool
+		return x.cdp.dialog_dismiss(self.handle, self.session_id, resolve_timeout(timeout_ms, self.default_timeout))
+	end
+
+	func dialog_accept_text(string prompt_text, int timeout_ms) as bool
+		return x.cdp.dialog_accept_text(self.handle, self.session_id, prompt_text, resolve_timeout(timeout_ms, self.default_timeout))
+	end
+
+	func pdf(string path, int timeout_ms) as bool
+		return x.cdp.page_pdf(self.handle, self.session_id, path, resolve_timeout(timeout_ms, self.default_timeout))
+	end
+
+	func pdf_ex(PdfOptions options, int timeout_ms) as bool
+		return x.cdp.page_pdf(self.handle, self.session_id, options.path_value(), resolve_timeout(timeout_ms, self.default_timeout))
+	end
+
+	func accessibility_snapshot(int timeout_ms) as string
+		return x.cdp.accessibility_snapshot(self.handle, self.session_id, resolve_timeout(timeout_ms, self.default_timeout))
+	end
+
+	func accessibility_snapshot_ex(AccessibilityOptions options, int timeout_ms) as string
+		return x.cdp.accessibility_snapshot(self.handle, self.session_id, resolve_timeout(timeout_ms, self.default_timeout))
+	end
+
+	func start_screencast(string format, int quality, int every_nth_frame, int timeout_ms) as bool
+		return x.cdp.page_start_screencast(self.handle, self.session_id, format, quality, every_nth_frame, resolve_timeout(timeout_ms, self.default_timeout))
+	end
+
+	func stop_screencast(int timeout_ms) as bool
+		return x.cdp.page_stop_screencast(self.handle, self.session_id, resolve_timeout(timeout_ms, self.default_timeout))
+	end
+
+	func wait_screencast_frame(int timeout_ms) as string
+		return x.cdp.wait_screencast_frame(self.handle, self.session_id, resolve_timeout(timeout_ms, self.default_timeout))
+	end
+
+	func wrap_screencast_frame(int frame_id, string event_json) as ScreencastFrame
+		return ScreencastFrame(self.handle, self.session_id, frame_id, event_json, self.default_timeout)
+	end
+
+	func screencast_frame_ack(int frame_id, int timeout_ms) as bool
+		return x.cdp.screencast_frame_ack(self.handle, self.session_id, frame_id, resolve_timeout(timeout_ms, self.default_timeout))
+	end
+end
+
+class Target extends object
+	var handle as point
+	var target_id as string
+	var default_timeout as int
+
+	create(point handle, string target_id, int default_timeout)
+		self.handle = handle
+		self.target_id = target_id
+		self.default_timeout = default_timeout
+	end
+
+	func cdp() as point
+		return self.handle
+	end
+
+	func id() as string
+		return self.target_id
+	end
+
+	func set_default_timeout(int ms) as void
+		self.default_timeout = ms
+	end
+
+	func default_timeout_ms() as int
+		return self.default_timeout
+	end
+
+	func attach(int flatten, int timeout_ms) as string
+		return x.cdp.attach_target(self.handle, self.target_id, flatten, resolve_timeout(timeout_ms, self.default_timeout))
+	end
+
+	func attach_page(int timeout_ms) as Page
+		string session_id = x.cdp.attach_target(self.handle, self.target_id, 1, resolve_timeout(timeout_ms, self.default_timeout))
+		if session_id == "" then
+			return Page(self.handle, "", "")
+		end
+		return Page(self.handle, session_id, self.target_id)
+	end
+
+	func close(int timeout_ms) as bool
+		if self.target_id == "" then
+			return false
+		end
+		return x.cdp.close_target(self.handle, self.target_id, resolve_timeout(timeout_ms, self.default_timeout))
+	end
+end
+
+class BrowserContext extends object
+	var handle as point
+	var context_id as string
+	var default_timeout as int
+	var viewport_width as int
+	var viewport_height as int
+	var viewport_scale as int
+	var viewport_mobile as int
+	var user_agent as string
+	var locale as string
+	var timezone_id as string
+	var geolocation_latitude_e7 as int
+	var geolocation_longitude_e7 as int
+	var geolocation_accuracy as int
+	var geolocation_enabled as int
+	var offline as int
+	var offline_enabled as int
+	var cache_disabled as int
+	var cache_disabled_enabled as int
+	var permissions_json as string
+	var permissions_origin as string
+
+	create(point handle, string context_id, int default_timeout)
+		self.handle = handle
+		self.context_id = context_id
+		self.default_timeout = default_timeout
+		self.viewport_width = 0
+		self.viewport_height = 0
+		self.viewport_scale = 1
+		self.viewport_mobile = 0
+		self.user_agent = ""
+		self.locale = ""
+		self.timezone_id = ""
+		self.geolocation_latitude_e7 = 0
+		self.geolocation_longitude_e7 = 0
+		self.geolocation_accuracy = 0
+		self.geolocation_enabled = 0
+		self.offline = 0
+		self.offline_enabled = 0
+		self.cache_disabled = 0
+		self.cache_disabled_enabled = 0
+		self.permissions_json = ""
+		self.permissions_origin = ""
+	end
+
+	func cdp() as point
+		return self.handle
+	end
+
+	func id() as string
+		return self.context_id
+	end
+
+	func set_default_timeout(int ms) as void
+		self.default_timeout = ms
+	end
+
+	func default_timeout_ms() as int
+		return self.default_timeout
+	end
+
+	func timeout_or_default(int timeout_ms) as int
+		if timeout_ms > 0 then
+			return timeout_ms
+		end
+		return self.default_timeout
+	end
+
+	func set_viewport(int width, int height, int device_scale_factor, int mobile) as void
+		self.viewport_width = width
+		self.viewport_height = height
+		self.viewport_scale = device_scale_factor
+		self.viewport_mobile = mobile
+	end
+
+	func viewport_width_value() as int
+		return self.viewport_width
+	end
+
+	func viewport_height_value() as int
+		return self.viewport_height
+	end
+
+	func set_user_agent(string value) as void
+		self.user_agent = value
+	end
+
+	func user_agent_value() as string
+		return self.user_agent
+	end
+
+	func set_locale(string value) as void
+		self.locale = value
+	end
+
+	func locale_value() as string
+		return self.locale
+	end
+
+	func set_timezone(string value) as void
+		self.timezone_id = value
+	end
+
+	func timezone_value() as string
+		return self.timezone_id
+	end
+
+	func set_geolocation(int latitude_e7, int longitude_e7, int accuracy) as void
+		self.geolocation_latitude_e7 = latitude_e7
+		self.geolocation_longitude_e7 = longitude_e7
+		self.geolocation_accuracy = accuracy
+		self.geolocation_enabled = 1
+	end
+
+	func set_offline(int value) as void
+		self.offline = value
+		self.offline_enabled = 1
+	end
+
+	func set_cache_disabled(int value) as void
+		self.cache_disabled = value
+		self.cache_disabled_enabled = 1
+	end
+
+	func set_permissions(string permissions_json, string origin) as void
+		self.permissions_json = permissions_json
+		self.permissions_origin = origin
+	end
+
+	func permissions_value() as string
+		return self.permissions_json
+	end
+
+	func permissions_origin_value() as string
+		return self.permissions_origin
+	end
+
+	func apply_permissions(int timeout_ms) as bool
+		if self.permissions_json == "" then
+			return false
+		end
+		return x.cdp.browser_grant_permissions(self.handle, self.context_id, self.permissions_json, self.permissions_origin, resolve_timeout(timeout_ms, self.default_timeout))
+	end
+
+	func apply_defaults(string session_id, int timeout_ms) as bool
+		if session_id == "" then
+			return false
+		end
+		int effective_timeout = resolve_timeout(timeout_ms, self.default_timeout)
+		bool ok = true
+		if self.viewport_width > 0 and self.viewport_height > 0 then
+			ok = x.cdp.page_set_viewport(self.handle, session_id, self.viewport_width, self.viewport_height, self.viewport_scale, self.viewport_mobile, effective_timeout) and ok
+		end
+		if self.user_agent != "" then
+			ok = x.cdp.page_set_user_agent(self.handle, session_id, self.user_agent, effective_timeout) and ok
+		end
+		if self.locale != "" then
+			ok = x.cdp.page_set_locale(self.handle, session_id, self.locale, effective_timeout) and ok
+		end
+		if self.timezone_id != "" then
+			ok = x.cdp.page_set_timezone(self.handle, session_id, self.timezone_id, effective_timeout) and ok
+		end
+		if self.geolocation_enabled != 0 then
+			ok = x.cdp.page_set_geolocation(self.handle, session_id, self.geolocation_latitude_e7, self.geolocation_longitude_e7, self.geolocation_accuracy, effective_timeout) and ok
+		end
+		if self.offline_enabled != 0 then
+			ok = x.cdp.page_set_offline(self.handle, session_id, self.offline, effective_timeout) and ok
+		end
+		if self.cache_disabled_enabled != 0 then
+			ok = x.cdp.network_set_cache_disabled(self.handle, session_id, self.cache_disabled, effective_timeout) and ok
+		end
+		return ok
+	end
+
+	func close(int timeout_ms) as bool
+		return x.cdp.dispose_context(self.handle, self.context_id, resolve_timeout(timeout_ms, self.default_timeout))
+	end
+
+	func new_page(string url, int timeout_ms) as string
+		return x.cdp.create_target_context(self.handle, self.context_id, url, resolve_timeout(timeout_ms, self.default_timeout))
+	end
+
+	func new_page_object(string url, int timeout_ms) as Page
+		int effective_timeout = resolve_timeout(timeout_ms, self.default_timeout)
+		string target_id = x.cdp.create_target_context(self.handle, self.context_id, url, effective_timeout)
+		if target_id == "" then
+			return Page(self.handle, "", "")
+		end
+		string session_id = x.cdp.attach_target(self.handle, target_id, 1, effective_timeout)
+		if session_id != "" then
+			if self.viewport_width > 0 and self.viewport_height > 0 then
+				x.cdp.page_set_viewport(self.handle, session_id, self.viewport_width, self.viewport_height, self.viewport_scale, self.viewport_mobile, effective_timeout)
+			end
+			if self.user_agent != "" then
+				x.cdp.page_set_user_agent(self.handle, session_id, self.user_agent, effective_timeout)
+			end
+			if self.locale != "" then
+				x.cdp.page_set_locale(self.handle, session_id, self.locale, effective_timeout)
+			end
+			if self.timezone_id != "" then
+				x.cdp.page_set_timezone(self.handle, session_id, self.timezone_id, effective_timeout)
+			end
+			if self.geolocation_enabled != 0 then
+				x.cdp.page_set_geolocation(self.handle, session_id, self.geolocation_latitude_e7, self.geolocation_longitude_e7, self.geolocation_accuracy, effective_timeout)
+			end
+			if self.offline_enabled != 0 then
+				x.cdp.page_set_offline(self.handle, session_id, self.offline, effective_timeout)
+			end
+			if self.cache_disabled_enabled != 0 then
+				x.cdp.network_set_cache_disabled(self.handle, session_id, self.cache_disabled, effective_timeout)
+			end
+			if self.permissions_json != "" then
+				x.cdp.browser_grant_permissions(self.handle, self.context_id, self.permissions_json, self.permissions_origin, effective_timeout)
+			end
+		end
+		return Page(self.handle, session_id, target_id)
+	end
+
+	func cookies(int timeout_ms) as string
+		return x.cdp.storage_get_cookies(self.handle, self.context_id, resolve_timeout(timeout_ms, self.default_timeout))
+	end
+
+	func storage_state(int timeout_ms) as StorageState
+		return StorageState(x.cdp.storage_get_cookies(self.handle, self.context_id, resolve_timeout(timeout_ms, self.default_timeout)), "", "")
+	end
+
+	func set_cookies(string cookies_json, int timeout_ms) as bool
+		return x.cdp.storage_set_cookies(self.handle, self.context_id, cookies_json, resolve_timeout(timeout_ms, self.default_timeout))
+	end
+
+	func clear_cookies(int timeout_ms) as bool
+		return x.cdp.storage_clear_cookies(self.handle, self.context_id, resolve_timeout(timeout_ms, self.default_timeout))
+	end
+
+	func grant_permissions(string permissions_json, string origin, int timeout_ms) as bool
+		return x.cdp.browser_grant_permissions(self.handle, self.context_id, permissions_json, origin, resolve_timeout(timeout_ms, self.default_timeout))
+	end
+
+	func clear_permissions(int timeout_ms) as bool
+		return x.cdp.browser_clear_permissions(self.handle, self.context_id, resolve_timeout(timeout_ms, self.default_timeout))
+	end
+end
+
+class Browser extends object
+	var handle as point
+	var default_timeout as int
+
+	create(point handle)
+		self.handle = handle
+		self.default_timeout = 30000
+	end
+
+	func cdp() as point
+		return self.handle
+	end
+
+	func is_open() as bool
+		return x.cdp.is_open(self.handle)
+	end
+
+	func set_default_timeout(int ms) as void
+		self.default_timeout = ms
+	end
+
+	func default_timeout_ms() as int
+		return self.default_timeout
+	end
+
+	func timeout_or_default(int timeout_ms) as int
+		if timeout_ms > 0 then
+			return timeout_ms
+		end
+		return self.default_timeout
+	end
+
+	func close() as bool
+		if self.handle == null then
+			return false
+		end
+		bool closed = x.cdp.close(self.handle)
+		x.cdp.dispose(self.handle)
+		self.handle = null
+		return closed
+	end
+
+	func new_page(string url, int timeout_ms) as string
+		return x.cdp.create_target(self.handle, url, resolve_timeout(timeout_ms, self.default_timeout))
+	end
+
+	func new_target(string url, int timeout_ms) as Target
+		string target_id = x.cdp.create_target(self.handle, url, resolve_timeout(timeout_ms, self.default_timeout))
+		return Target(self.handle, target_id, self.default_timeout)
+	end
+
+	func new_context_object(int timeout_ms) as BrowserContext
+		int effective_timeout = resolve_timeout(timeout_ms, self.default_timeout)
+		string context_id = x.cdp.create_context(self.handle, effective_timeout)
+		return BrowserContext(self.handle, context_id, self.default_timeout)
+	end
+
+	func new_page_object(string url, int timeout_ms) as Page
+		int effective_timeout = resolve_timeout(timeout_ms, self.default_timeout)
+		string target_id = x.cdp.create_target(self.handle, url, effective_timeout)
+		if target_id == "" then
+			return Page(self.handle, "", "")
+		end
+		string session_id = x.cdp.attach_target(self.handle, target_id, 1, effective_timeout)
+		return Page(self.handle, session_id, target_id)
+	end
+
+	func wait_download_object(int timeout_ms) as Download
+		int effective_timeout = resolve_timeout(timeout_ms, self.default_timeout)
+		string event_json = x.cdp.wait_download(self.handle, effective_timeout)
+		return Download(self.handle, event_json, self.default_timeout)
+	end
+end
+
+func version() as string
+	return x.cdp.version()
+end
+
+func last_error() as string
+	return x.cdp.last_error()
+end
+
+func error(point browser) as string
+	return x.cdp.error(browser)
+end
+
+func error_info(point browser) as BrowserError
+	return BrowserError("x.cdp", x.cdp.error(browser), "")
+end
+
+func make_error(string source, string message, string details) as BrowserError
+	return BrowserError(source, message, details)
+end
+
+func find_chrome() as string
+	return x.cdp.find_chrome()
+end
+
+func create_user_data_dir(string base_dir) as string
+	return x.cdp.create_user_data_dir(base_dir)
+end
+
+func launch_chrome(string executable_path, string user_data_dir, int port, int headless) as point
+	return x.cdp.launch_chrome(executable_path, user_data_dir, port, headless)
+end
+
+func launch_process(string executable_path, string user_data_dir, int port, int headless) as ChromeProcess
+	return ChromeProcess(x.cdp.launch_chrome(executable_path, user_data_dir, port, headless))
+end
+
+func launch_options(string executable_path, string user_data_dir, int port, int headless) as LaunchOptions
+	return LaunchOptions(executable_path, user_data_dir, port, headless, 0, 30000)
+end
+
+func launch_options_full(string executable_path, string user_data_dir, int port, int headless, int keep_user_data_dir, int timeout_ms) as LaunchOptions
+	return LaunchOptions(executable_path, user_data_dir, port, headless, keep_user_data_dir, timeout_ms)
+end
+
+func launch_policy(int allow_default_profile, int require_isolated_user_data_dir, int bind_localhost, int auto_port) as LaunchPolicy
+	return LaunchPolicy(allow_default_profile, require_isolated_user_data_dir, bind_localhost, auto_port)
+end
+
+func launch_cleanup_plan(string user_data_dir, int keep_user_data_dir) as LaunchCleanupPlan
+	return LaunchCleanupPlan(user_data_dir, keep_user_data_dir)
+end
+
+func user_data_dir_lifecycle_plan(string base_dir, string user_data_dir, int keep_user_data_dir) as UserDataDirLifecyclePlan
+	return UserDataDirLifecyclePlan(base_dir, user_data_dir, keep_user_data_dir)
+end
+
+func launch_result(point process_handle, point browser_handle, string user_data_dir, string port_text, string error_message, int keep_user_data_dir) as LaunchResult
+	return LaunchResult(process_handle, browser_handle, user_data_dir, port_text, error_message, keep_user_data_dir)
+end
+
+func launch_prepare_plan(LaunchOptions options, LaunchPolicy policy) as LaunchPreparePlan
+	return LaunchPreparePlan(options, policy)
+end
+
+func launch_connect_plan(LaunchResult result, int timeout_ms) as LaunchConnectPlan
+	return LaunchConnectPlan(result, timeout_ms)
+end
+
+func launch_with_options(LaunchOptions options) as LaunchResult
+	point process = x.cdp.launch_chrome(options.executable_path, options.user_data_dir, options.port, options.headless)
+	int keep_flag = options.keep_user_data_dir
+	if process == null then
+		auto failed = LaunchResult(null, null, options.user_data_dir, "", x.cdp.last_error(), 0)
+		failed.set_keep_user_data_dir(keep_flag)
+		return failed
+	end
+	auto result = LaunchResult(process, null, options.user_data_dir, "", "", 0)
+	result.set_keep_user_data_dir(keep_flag)
+	return result
+end
+
+func wrap_process(point process) as ChromeProcess
+	return ChromeProcess(process)
+end
+
+func process_is_running(point process) as bool
+	return x.cdp.process_is_running(process)
+end
+
+func process_kill_tree(point process) as bool
+	return x.cdp.process_kill_tree(process)
+end
+
+func process_dispose(point process) as bool
+	return x.cdp.process_dispose(process)
+end
+
+func read_devtools_active_port(string user_data_dir) as string
+	return x.cdp.read_devtools_active_port(user_data_dir)
+end
+
+func wait_devtools_active_port(string user_data_dir, int timeout_ms) as string
+	return x.cdp.wait_devtools_active_port(user_data_dir, timeout_ms)
+end
+
+func connect_user_data_dir(string user_data_dir, int timeout_ms) as point
+	return x.cdp.connect_user_data_dir(user_data_dir, timeout_ms)
+end
+
+func connect(string cdp_url, int timeout_ms) as point
+	if cdp_url.starts_with("http://") or cdp_url.starts_with("https://") then
+		return x.cdp.connect_http(cdp_url, timeout_ms)
+	end
+	return x.cdp.connect(cdp_url, timeout_ms)
+end
+
+func wrap_browser(point handle) as Browser
+	return Browser(handle)
+end
+
+func browser_session(Browser browser) as BrowserSession
+	return BrowserSession(browser.cdp())
+end
+
+func browser_session_handle(point handle) as BrowserSession
+	return BrowserSession(handle)
+end
+
+func resource_close_plan(int context_count, int page_count, int target_count) as ResourceClosePlan
+	return ResourceClosePlan(context_count, page_count, target_count)
+end
+
+func resource_cascade_close_plan(ResourceClosePlan plan) as ResourceCascadeClosePlan
+	return ResourceCascadeClosePlan(plan)
+end
+
+func target_lifecycle_plan(string target_id, int timeout_ms) as TargetLifecyclePlan
+	return TargetLifecyclePlan(target_id, timeout_ms)
+end
+
+func connect_browser(string cdp_url, int timeout_ms) as Browser
+	return Browser(connect(cdp_url, timeout_ms))
+end
+
+func wrap_context(point handle, string context_id) as BrowserContext
+	return BrowserContext(handle, context_id, 30000)
+end
+
+func wrap_context_options(point handle, string context_id, ContextOptions options) as BrowserContext
+	auto context = BrowserContext(handle, context_id, 30000)
+	if options.viewport_width > 0 and options.viewport_height > 0 then
+		context.set_viewport(options.viewport_width, options.viewport_height, options.viewport_scale, options.viewport_mobile)
+	end
+	if options.user_agent != "" then
+		context.set_user_agent(options.user_agent)
+	end
+	if options.locale != "" then
+		context.set_locale(options.locale)
+	end
+	if options.timezone_id != "" then
+		context.set_timezone(options.timezone_id)
+	end
+	if options.geolocation_enabled != 0 then
+		context.set_geolocation(options.geolocation_latitude_e7, options.geolocation_longitude_e7, options.geolocation_accuracy)
+	end
+	if options.offline_enabled != 0 then
+		context.set_offline(options.offline)
+	end
+	if options.cache_disabled_enabled != 0 then
+		context.set_cache_disabled(options.cache_disabled)
+	end
+	if options.permissions_json != "" then
+		context.set_permissions(options.permissions_json, options.permissions_origin)
+	end
+	return context
+end
+
+func wrap_page(point handle, string session_id) as Page
+	return Page(handle, session_id, "")
+end
+
+func wrap_target_page(point handle, string session_id, string target_id) as Page
+	return Page(handle, session_id, target_id)
+end
+
+func wrap_target(point handle, string target_id) as Target
+	return Target(handle, target_id, 30000)
+end
+
+func wrap_locator(point handle, string session_id, string selector) as Locator
+	return Locator(handle, session_id, selector, 30000)
+end
+
+func wrap_dialog(point handle, string session_id, string event_json) as Dialog
+	return Dialog(handle, session_id, event_json, 30000)
+end
+
+func wrap_dialog_info(point handle, string session_id, string event_json, string dialog_type, string message, string default_value) as Dialog
+	auto dialog = Dialog(handle, session_id, event_json, 30000)
+	dialog.set_info(dialog_type, message, default_value)
+	return dialog
+end
+
+func dialog_info(string dialog_type, string message, string default_value) as DialogInfo
+	return DialogInfo(dialog_type, message, default_value)
+end
+
+func dialog_action_plan(string action_name, string prompt_text, int timeout_ms) as DialogActionPlan
+	return DialogActionPlan(action_name, prompt_text, timeout_ms)
+end
+
+func wrap_download(point handle, string event_json) as Download
+	return Download(handle, event_json, 30000)
+end
+
+func wrap_download_info(point handle, string event_json, string suggested_filename, string download_path, string save_as_path, string state) as Download
+	auto download = Download(handle, event_json, 30000)
+	download.set_info(suggested_filename, download_path, save_as_path, state)
+	return download
+end
+
+func download_info(string suggested_filename, string download_path, string save_as_path, string state, int received_bytes, int total_bytes) as DownloadInfo
+	return DownloadInfo(suggested_filename, download_path, save_as_path, state, received_bytes, total_bytes)
+end
+
+func download_save_plan(string suggested_filename, string save_as_path, int total_bytes) as DownloadSavePlan
+	return DownloadSavePlan(suggested_filename, save_as_path, total_bytes)
+end
+
+func wrap_route(point handle, string session_id, string request_id, string event_json) as Route
+	return Route(handle, session_id, request_id, event_json, 30000)
+end
+
+func route_plan(string url_pattern, string action_json) as RoutePlan
+	return RoutePlan(url_pattern, action_json, 30000)
+end
+
+func route_match_plan(string pattern_kind, string pattern_text, string action_json, int priority) as RouteMatchPlan
+	return RouteMatchPlan(pattern_kind, pattern_text, action_json, priority)
+end
+
+func route_dispatch_plan() as RouteDispatchPlan
+	return RouteDispatchPlan()
+end
+
+func route_match_pattern(NetworkPattern pattern, string action_json, int priority) as RouteMatchPlan
+	return RouteMatchPlan(pattern.kind_value(), pattern.value(), action_json, priority)
+end
+
+func route_abort_action(string error_reason) as RouteAction
+	return RouteAction("abort", "{\"action\":\"abort\",\"errorReason\":\"" + error_reason + "\"}")
+end
+
+func route_continue_action() as RouteAction
+	return RouteAction("continue", "{\"action\":\"continue\"}")
+end
+
+func route_fulfill_text_action(int status_code, string content_type, string body) as RouteAction
+	return RouteAction("fulfill", "{\"action\":\"fulfill\",\"status\":" + string(status_code) + ",\"contentType\":\"" + content_type + "\",\"body\":\"" + body + "\"}")
+end
+
+func route_action_plan(string request_id, RouteAction action) as RouteActionPlan
+	return RouteActionPlan(request_id, action)
+end
+
+func route_registry() as RouteRegistry
+	return RouteRegistry()
+end
+
+func route_handler_registry_plan() as RouteHandlerRegistryPlan
+	return RouteHandlerRegistryPlan()
+end
+
+func headers(string headers_json) as HeaderSet
+	return HeaderSet(headers_json)
+end
+
+func header_builder() as HeaderBuilder
+	return HeaderBuilder()
+end
+
+func header_apply_plan(string target, int header_count, string headers_json) as HeaderApplyPlan
+	return HeaderApplyPlan(target, header_count, headers_json)
+end
+
+func network_pattern(string pattern_kind, string pattern_text) as NetworkPattern
+	return NetworkPattern(pattern_kind, pattern_text)
+end
+
+func network_wait_plan(string wait_for, NetworkPattern pattern, int timeout_ms) as NetworkWaitPlan
+	return NetworkWaitPlan(wait_for, pattern.kind_value(), pattern.value(), timeout_ms)
+end
+
+func glob(string pattern_text) as NetworkPattern
+	return NetworkPattern("glob", pattern_text)
+end
+
+func regex(string pattern_text) as NetworkPattern
+	return NetworkPattern("regex", pattern_text)
+end
+
+func make_request_id(string value) as RequestId
+	return RequestId(value)
+end
+
+func request_id_parse_plan(string event_json, string request_id) as RequestIdParsePlan
+	return RequestIdParsePlan(event_json, request_id)
+end
+
+func request_response_pair_plan(string request_id) as RequestResponsePairPlan
+	return RequestResponsePairPlan(request_id)
+end
+
+func har_entry(string request_id, string url, string method, int status_code, string request_event_json, string response_event_json) as HarEntry
+	return HarEntry(request_id, url, method, status_code, request_event_json, response_event_json)
+end
+
+func har_log() as HarLog
+	return HarLog()
+end
+
+func har_serialize_plan(int entry_count, string output_path, int include_content) as HarSerializePlan
+	return HarSerializePlan(entry_count, output_path, include_content)
+end
+
+func wrap_request(point handle, string session_id, string event_json) as Request
+	return Request(handle, session_id, event_json, 30000)
+end
+
+func wrap_response(point handle, string session_id, string request_id, string event_json) as Response
+	return Response(handle, session_id, request_id, event_json, 30000)
+end
+
+func wrap_screencast_frame(point handle, string session_id, int frame_id, string event_json) as ScreencastFrame
+	return ScreencastFrame(handle, session_id, frame_id, event_json, 30000)
+end
+
+func screencast_session(string format, int quality, int every_nth_frame) as ScreencastSession
+	return ScreencastSession(format, quality, every_nth_frame)
+end
+
+func screencast_lifecycle_plan(string format, int quality, int every_nth_frame) as ScreencastLifecyclePlan
+	return ScreencastLifecyclePlan(format, quality, every_nth_frame)
+end
+
+func video_record_plan(string output_path, string format, int quality, int every_nth_frame) as VideoRecordPlan
+	return VideoRecordPlan(output_path, format, quality, every_nth_frame)
+end
+
+func video_trace_plan(string trace_dir, string output_path) as VideoTracePlan
+	return VideoTracePlan(trace_dir, output_path)
+end
+
+func context_options() as ContextOptions
+	return ContextOptions()
+end
+
+func context_apply_plan(int viewport_count, int user_agent_count, int locale_count, int timezone_count, int geolocation_count, int offline_count, int cache_count, int permissions_count, int storage_state_count) as ContextApplyPlan
+	return ContextApplyPlan(viewport_count, user_agent_count, locale_count, timezone_count, geolocation_count, offline_count, cache_count, permissions_count, storage_state_count)
+end
+
+func context_default_apply_plan(string session_id, ContextApplyPlan plan, int timeout_ms) as ContextDefaultApplyPlan
+	return ContextDefaultApplyPlan(session_id, plan.total_enabled(), timeout_ms)
+end
+
+func context_lifecycle_plan(string context_id) as ContextLifecyclePlan
+	return ContextLifecyclePlan(context_id)
+end
+
+func context_page_create_plan(string context_id, string target_id, string session_id, ContextApplyPlan defaults_plan) as ContextPageCreatePlan
+	return ContextPageCreatePlan(context_id, target_id, session_id, defaults_plan)
+end
+
+func context_options_parse_plan(string raw_json, int option_count, int storage_state_present) as ContextOptionsParsePlan
+	return ContextOptionsParsePlan(raw_json, option_count, storage_state_present)
+end
+
+func context_storage_state_plan(ContextOptionsParsePlan parse_plan, string storage_state_json) as ContextStorageStatePlan
+	return ContextStorageStatePlan(parse_plan, storage_state_json)
+end
+
+func navigation_options(string wait_until, int timeout_ms) as NavigationOptions
+	return NavigationOptions(wait_until, timeout_ms)
+end
+
+func navigation_wait_plan(string url, NavigationOptions options) as NavigationWaitPlan
+	return NavigationWaitPlan(url, options.wait_until_value(), options.timeout_value())
+end
+
+func navigation_network_idle_plan(string url, NavigationOptions options, int idle_window_ms) as NavigationNetworkIdlePlan
+	return NavigationNetworkIdlePlan(url, options.timeout_value(), idle_window_ms)
+end
+
+func wrap_frame(point handle, string session_id, string frame_id, string event_json) as Frame
+	return Frame(handle, session_id, frame_id, event_json, 30000)
+end
+
+func frame_binding_plan(string frame_id, string selector) as FrameBindingPlan
+	return FrameBindingPlan(frame_id, selector)
+end
+
+func wrap_frame_locator(point handle, string session_id, string selector) as FrameLocator
+	return FrameLocator(handle, session_id, selector, 30000)
+end
+
+func frame_locator_plan(FrameLocator frame_locator, string selector, int timeout_ms) as FrameLocatorPlan
+	return FrameLocatorPlan(frame_locator.selector_value(), selector, timeout_ms)
+end
+
+func action_options(int timeout_ms, int force) as ActionOptions
+	return ActionOptions(timeout_ms, force)
+end
+
+func keyboard_action_plan(string key, string input_text, int repeat_count, int delay_ms) as KeyboardActionPlan
+	return KeyboardActionPlan(key, input_text, repeat_count, delay_ms)
+end
+
+func mouse_action_plan(int x, int y, string button, int click_count, int delta_x, int delta_y) as MouseActionPlan
+	return MouseActionPlan(x, y, button, click_count, delta_x, delta_y)
+end
+
+func file_upload_plan(string selector, string files_json, int file_count) as FileUploadPlan
+	return FileUploadPlan(selector, files_json, file_count)
+end
+
+func drag_plan(string source_selector, string target_selector, int start_x, int start_y, int end_x, int end_y) as DragPlan
+	return DragPlan(source_selector, target_selector, start_x, start_y, end_x, end_y)
+end
+
+func make_selector(string kind, string value_text) as Selector
+	return Selector(kind, value_text)
+end
+
+func css(string value_text) as Selector
+	return Selector("css", value_text)
+end
+
+func text(string value_text) as Selector
+	return Selector("text", value_text)
+end
+
+func testid(string value_text) as Selector
+	return Selector("testid", value_text)
+end
+
+func xpath(string value_text) as Selector
+	return Selector("xpath", value_text)
+end
+
+func selector_group(int strict) as SelectorGroup
+	return SelectorGroup(strict)
+end
+
+func selector_parse_plan(Selector selector) as SelectorParsePlan
+	return SelectorParsePlan(selector.kind_value(), selector.value(), selector.query())
+end
+
+func strict_result(string selector_text, int count_value) as StrictResult
+	return StrictResult(selector_text, count_value)
+end
+
+func actionability_state(string selector_text, string raw_json, int visible_value, int enabled_value, int editable_value, int receives_events_value, int stable_value) as ActionabilityState
+	return ActionabilityState(selector_text, raw_json, visible_value, enabled_value, editable_value, receives_events_value, stable_value)
+end
+
+func actionability_policy(int require_visible, int require_enabled, int require_editable, int require_receives_events, int require_stable) as ActionabilityPolicy
+	return ActionabilityPolicy(require_visible, require_enabled, require_editable, require_receives_events, require_stable)
+end
+
+func actionability_check_plan(string selector_text, string action_name, ActionOptions options) as ActionabilityCheckPlan
+	return ActionabilityCheckPlan(selector_text, action_name, options.timeout_value(), options.force_value())
+end
+
+func screenshot_options(string path, string format, int full_page) as ScreenshotOptions
+	return ScreenshotOptions(path, format, full_page)
+end
+
+func screenshot_options_clip(string path, string format, int x, int y, int width, int height) as ScreenshotOptions
+	auto options = ScreenshotOptions(path, format, 0)
+	options.set_clip(x, y, width, height)
+	return options
+end
+
+func screenshot_render_plan(ScreenshotOptions options) as ScreenshotRenderPlan
+	return ScreenshotRenderPlan(options)
+end
+
+func screenshot_options_apply_plan(ScreenshotOptions options) as ScreenshotOptionsApplyPlan
+	return ScreenshotOptionsApplyPlan(options)
+end
+
+func pdf_options(string path, int landscape, int print_background) as PdfOptions
+	return PdfOptions(path, landscape, print_background)
+end
+
+func pdf_options_paper(string path, int landscape, int print_background, int width_e4, int height_e4) as PdfOptions
+	auto options = PdfOptions(path, landscape, print_background)
+	options.set_paper_e4(width_e4, height_e4)
+	return options
+end
+
+func pdf_render_plan(PdfOptions options) as PdfRenderPlan
+	return PdfRenderPlan(options)
+end
+
+func pdf_options_apply_plan(PdfOptions options) as PdfOptionsApplyPlan
+	return PdfOptionsApplyPlan(options)
+end
+
+func accessibility_options(int interesting_only, string root_selector) as AccessibilityOptions
+	return AccessibilityOptions(interesting_only, root_selector)
+end
+
+func accessibility_options_apply_plan(AccessibilityOptions options) as AccessibilityOptionsApplyPlan
+	return AccessibilityOptionsApplyPlan(options)
+end
+
+func accessibility_snapshot_plan(int interesting_only, string root_selector, int include_ignored, int max_depth) as AccessibilitySnapshotPlan
+	return AccessibilitySnapshotPlan(interesting_only, root_selector, include_ignored, max_depth)
+end
+
+func accessibility_serialize_plan(string root_selector, int node_count, int max_depth, int include_ignored) as AccessibilitySerializePlan
+	return AccessibilitySerializePlan(root_selector, node_count, max_depth, include_ignored)
+end
+
+func storage_state(string cookies_json, string local_storage_json, string session_storage_json) as StorageState
+	return StorageState(cookies_json, local_storage_json, session_storage_json)
+end
+
+func storage_origin_state(string origin, string local_storage_json, string session_storage_json) as StorageOriginState
+	return StorageOriginState(origin, local_storage_json, session_storage_json)
+end
+
+func storage_state_builder() as StorageStateBuilder
+	return StorageStateBuilder()
+end
+
+func storage_apply_plan(int cookie_count, int origin_count, int has_local_storage, int has_session_storage) as StorageApplyPlan
+	return StorageApplyPlan(cookie_count, origin_count, has_local_storage, has_session_storage)
+end
+
+func storage_serialize_plan(int cookie_count, int origin_count, int include_local_storage, int include_session_storage) as StorageSerializePlan
+	return StorageSerializePlan(cookie_count, origin_count, include_local_storage, include_session_storage)
+end
+
+func evaluate_result(string raw_json, string type_name, string value_text) as EvaluateResult
+	return EvaluateResult(raw_json, type_name, value_text)
+end
+
+func typed_evaluate_result(string raw_json, string type_name, string string_value, int int_value, int bool_value, int float_e6_value) as TypedEvaluateResult
+	return TypedEvaluateResult(raw_json, type_name, string_value, int_value, bool_value, float_e6_value)
+end
+
+func evaluate_parse_plan(string raw_json, string expected_type, int has_value) as EvaluateParsePlan
+	return EvaluateParsePlan(raw_json, expected_type, has_value)
+end
+
+func evaluate_typed_parse_plan(EvaluateResult result, string expected_type) as EvaluateTypedParsePlan
+	return EvaluateTypedParsePlan(result, expected_type)
+end
+
+func event_log() as PageEventLog
+	return PageEventLog()
+end
+
+func event_window(int capacity) as PageEventWindow
+	return PageEventWindow(capacity)
+end
+
+func event_dispatch_plan(string session_id, int capacity) as EventDispatchPlan
+	return EventDispatchPlan(session_id, capacity)
+end
+
+func callback_registry_plan() as CallbackRegistryPlan
+	return CallbackRegistryPlan()
+end
+
+func connect_http(string endpoint, int timeout_ms) as point
+	return x.cdp.connect_http(endpoint, timeout_ms)
+end
+
+func is_open(point browser) as bool
+	return x.cdp.is_open(browser)
+end
+
+func close(point browser) as bool
+	if browser == null then
+		return false
+	end
+	bool closed = x.cdp.close(browser)
+	x.cdp.dispose(browser)
+	return closed
+end
+
+func new_context(point browser, int timeout_ms) as string
+	return x.cdp.create_context(browser, timeout_ms)
+end
+
+func new_context_object(point browser, int timeout_ms) as BrowserContext
+	string context_id = x.cdp.create_context(browser, timeout_ms)
+	return BrowserContext(browser, context_id, timeout_ms)
+end
+
+func close_context(point browser, string context_id, int timeout_ms) as bool
+	return x.cdp.dispose_context(browser, context_id, timeout_ms)
+end
+
+func new_page(point browser, string url, int timeout_ms) as string
+	return x.cdp.create_target(browser, url, timeout_ms)
+end
+
+func new_page_object(point browser, string url, int timeout_ms) as Page
+	string target_id = x.cdp.create_target(browser, url, timeout_ms)
+	if target_id == "" then
+		return Page(browser, "", "")
+	end
+	string session_id = x.cdp.attach_target(browser, target_id, 1, timeout_ms)
+	return Page(browser, session_id, target_id)
+end
+
+func new_context_page(point browser, string context_id, string url, int timeout_ms) as string
+	return x.cdp.create_target_context(browser, context_id, url, timeout_ms)
+end
+
+func new_context_page_object(point browser, string context_id, string url, int timeout_ms) as Page
+	string target_id = x.cdp.create_target_context(browser, context_id, url, timeout_ms)
+	if target_id == "" then
+		return Page(browser, "", "")
+	end
+	string session_id = x.cdp.attach_target(browser, target_id, 1, timeout_ms)
+	return Page(browser, session_id, target_id)
+end
+
+func attach_page(point browser, string target_id, int timeout_ms) as string
+	return x.cdp.attach_target(browser, target_id, 1, timeout_ms)
+end
+
+func attach_page_object(point browser, string target_id, int timeout_ms) as Page
+	string session_id = x.cdp.attach_target(browser, target_id, 1, timeout_ms)
+	if session_id == "" then
+		return Page(browser, "", "")
+	end
+	return Page(browser, session_id, target_id)
+end
+
+func attach_target_object(point browser, string target_id, int timeout_ms) as Target
+	return Target(browser, target_id, timeout_ms)
+end
+
+func close_page(point browser, string target_id, int timeout_ms) as bool
+	return x.cdp.close_target(browser, target_id, timeout_ms)
+end
+
+func browser_get_version(point browser, int timeout_ms) as string
+	return x.cdp.browser_get_version(browser, timeout_ms)
+end
+
+func page_goto(point browser, string session_id, string url, int timeout_ms) as string
+	return x.cdp.page_goto(browser, session_id, url, timeout_ms)
+end
+
+func page_reload(point browser, string session_id, int ignore_cache, int timeout_ms) as bool
+	return x.cdp.page_reload(browser, session_id, ignore_cache, timeout_ms)
+end
+
+func page_wait_load_state(point browser, string session_id, string wait_until, int timeout_ms) as bool
+	return x.cdp.page_wait_load_state(browser, session_id, wait_until, timeout_ms)
+end
+
+func page_title(point browser, string session_id, int timeout_ms) as string
+	return x.cdp.page_title(browser, session_id, timeout_ms)
+end
+
+func page_url(point browser, string session_id, int timeout_ms) as string
+	return x.cdp.page_url(browser, session_id, timeout_ms)
+end
+
+func page_content(point browser, string session_id, int timeout_ms) as string
+	return x.cdp.page_content(browser, session_id, timeout_ms)
+end
+
+func page_evaluate(point browser, string session_id, string expression, int timeout_ms) as string
+	return x.cdp.runtime_evaluate(browser, session_id, expression, timeout_ms)
+end
+
+func page_add_init_script(point browser, string session_id, string source, int timeout_ms) as string
+	return x.cdp.page_add_init_script(browser, session_id, source, timeout_ms)
+end
+
+func page_remove_init_script(point browser, string session_id, string identifier, int timeout_ms) as bool
+	return x.cdp.page_remove_init_script(browser, session_id, identifier, timeout_ms)
+end
+
+func page_screenshot(point browser, string session_id, string path, int timeout_ms) as bool
+	return x.cdp.page_screenshot(browser, session_id, path, timeout_ms)
+end
+
+func locator_click(point browser, string session_id, string selector, int timeout_ms) as bool
+	return x.cdp.locator_click(browser, session_id, selector, timeout_ms)
+end
+
+func locator_fill(point browser, string session_id, string selector, string value, int timeout_ms) as bool
+	return x.cdp.locator_fill(browser, session_id, selector, value, timeout_ms)
+end
+
+func locator_hover(point browser, string session_id, string selector, int timeout_ms) as bool
+	return x.cdp.locator_hover(browser, session_id, selector, timeout_ms)
+end
+
+func locator_check(point browser, string session_id, string selector, int checked, int timeout_ms) as bool
+	return x.cdp.locator_check(browser, session_id, selector, checked, timeout_ms)
+end
+
+func locator_select(point browser, string session_id, string selector, string value_text, int timeout_ms) as bool
+	return x.cdp.locator_select(browser, session_id, selector, value_text, timeout_ms)
+end
+
+func locator_press(point browser, string session_id, string selector, string key, int timeout_ms) as bool
+	return x.cdp.locator_press(browser, session_id, selector, key, timeout_ms)
+end
+
+func locator_type(point browser, string session_id, string selector, string text, int timeout_ms) as bool
+	return x.cdp.locator_type(browser, session_id, selector, text, timeout_ms)
+end
+
+func locator_text(point browser, string session_id, string selector, int timeout_ms) as string
+	return x.cdp.locator_text(browser, session_id, selector, timeout_ms)
+end
+
+func locator_count(point browser, string session_id, string selector, int timeout_ms) as int
+	return x.cdp.locator_count(browser, session_id, selector, timeout_ms)
+end
+
+func locator_state(point browser, string session_id, string selector, int timeout_ms) as string
+	return x.cdp.locator_state(browser, session_id, selector, timeout_ms)
+end
+
+func locator_strict(point browser, string session_id, string selector, int timeout_ms) as bool
+	return x.cdp.locator_count(browser, session_id, selector, timeout_ms) == 1
+end
+
+func expect_title(point browser, string session_id, string expected, int timeout_ms) as bool
+	return x.cdp.expect_title(browser, session_id, expected, timeout_ms)
+end
+
+func expect_url(point browser, string session_id, string expected, int timeout_ms) as bool
+	return x.cdp.expect_url(browser, session_id, expected, timeout_ms)
+end
+
+func storage_get_cookies(point browser, string context_id, int timeout_ms) as string
+	return x.cdp.storage_get_cookies(browser, context_id, timeout_ms)
+end
+
+func storage_set_cookies(point browser, string context_id, string cookies_json, int timeout_ms) as bool
+	return x.cdp.storage_set_cookies(browser, context_id, cookies_json, timeout_ms)
+end
+
+func storage_clear_cookies(point browser, string context_id, int timeout_ms) as bool
+	return x.cdp.storage_clear_cookies(browser, context_id, timeout_ms)
+end
+
+func storage_get_local_storage(point browser, string session_id, int timeout_ms) as string
+	return x.cdp.storage_get_local_storage(browser, session_id, timeout_ms)
+end
+
+func storage_set_local_storage(point browser, string session_id, string items_json, int timeout_ms) as bool
+	return x.cdp.storage_set_local_storage(browser, session_id, items_json, timeout_ms)
+end
+
+func storage_get_session_storage(point browser, string session_id, int timeout_ms) as string
+	return x.cdp.storage_get_session_storage(browser, session_id, timeout_ms)
+end
+
+func storage_set_session_storage(point browser, string session_id, string items_json, int timeout_ms) as bool
+	return x.cdp.storage_set_session_storage(browser, session_id, items_json, timeout_ms)
+end
+
+func page_set_viewport(point browser, string session_id, int width, int height, int device_scale_factor, int mobile, int timeout_ms) as bool
+	return x.cdp.page_set_viewport(browser, session_id, width, height, device_scale_factor, mobile, timeout_ms)
+end
+
+func page_set_user_agent(point browser, string session_id, string user_agent, int timeout_ms) as bool
+	return x.cdp.page_set_user_agent(browser, session_id, user_agent, timeout_ms)
+end
+
+func page_set_locale(point browser, string session_id, string locale, int timeout_ms) as bool
+	return x.cdp.page_set_locale(browser, session_id, locale, timeout_ms)
+end
+
+func page_set_timezone(point browser, string session_id, string timezone_id, int timeout_ms) as bool
+	return x.cdp.page_set_timezone(browser, session_id, timezone_id, timeout_ms)
+end
+
+func page_set_geolocation(point browser, string session_id, int latitude_e7, int longitude_e7, int accuracy, int timeout_ms) as bool
+	return x.cdp.page_set_geolocation(browser, session_id, latitude_e7, longitude_e7, accuracy, timeout_ms)
+end
+
+func page_set_offline(point browser, string session_id, int offline, int timeout_ms) as bool
+	return x.cdp.page_set_offline(browser, session_id, offline, timeout_ms)
+end
+
+func page_mouse_move(point browser, string session_id, int x, int y, int timeout_ms) as bool
+	return x.cdp.page_mouse_move(browser, session_id, x, y, timeout_ms)
+end
+
+func page_mouse_click(point browser, string session_id, int x, int y, string button, int timeout_ms) as bool
+	return x.cdp.page_mouse_click(browser, session_id, x, y, button, timeout_ms)
+end
+
+func page_mouse_wheel(point browser, string session_id, int x, int y, int delta_x, int delta_y, int timeout_ms) as bool
+	return x.cdp.page_mouse_wheel(browser, session_id, x, y, delta_x, delta_y, timeout_ms)
+end
+
+func input_dispatch_key_event(point browser, string session_id, string event_type, string key, string text, int timeout_ms) as bool
+	return x.cdp.input_dispatch_key_event(browser, session_id, event_type, key, text, timeout_ms)
+end
+
+func input_insert_text(point browser, string session_id, string text, int timeout_ms) as bool
+	return x.cdp.input_insert_text(browser, session_id, text, timeout_ms)
+end
+
+func page_frame_tree(point browser, string session_id, int timeout_ms) as string
+	return x.cdp.page_frame_tree(browser, session_id, timeout_ms)
+end
+
+func runtime_enable(point browser, string session_id, int timeout_ms) as bool
+	return x.cdp.runtime_enable(browser, session_id, timeout_ms)
+end
+
+func log_enable(point browser, string session_id, int timeout_ms) as bool
+	return x.cdp.log_enable(browser, session_id, timeout_ms)
+end
+
+func wait_console(point browser, string session_id, int timeout_ms) as string
+	return x.cdp.wait_console(browser, session_id, timeout_ms)
+end
+
+func wait_exception(point browser, string session_id, int timeout_ms) as string
+	return x.cdp.wait_exception(browser, session_id, timeout_ms)
+end
+
+func wait_log_entry(point browser, string session_id, int timeout_ms) as string
+	return x.cdp.wait_log_entry(browser, session_id, timeout_ms)
+end
+
+func grant_permissions(point browser, string context_id, string permissions_json, string origin, int timeout_ms) as bool
+	return x.cdp.browser_grant_permissions(browser, context_id, permissions_json, origin, timeout_ms)
+end
+
+func clear_permissions(point browser, string context_id, int timeout_ms) as bool
+	return x.cdp.browser_clear_permissions(browser, context_id, timeout_ms)
+end
+
+func network_enable(point browser, string session_id, int timeout_ms) as bool
+	return x.cdp.network_enable(browser, session_id, timeout_ms)
+end
+
+func network_set_cache_disabled(point browser, string session_id, int disabled, int timeout_ms) as bool
+	return x.cdp.network_set_cache_disabled(browser, session_id, disabled, timeout_ms)
+end
+
+func network_set_extra_http_headers(point browser, string session_id, string headers_json, int timeout_ms) as bool
+	return x.cdp.network_set_extra_http_headers(browser, session_id, headers_json, timeout_ms)
+end
+
+func wait_network_event(point browser, string session_id, int timeout_ms) as string
+	return x.cdp.wait_network_event(browser, session_id, timeout_ms)
+end
+
+func wait_request(point browser, string session_id, string url_part, int timeout_ms) as string
+	return x.cdp.wait_request(browser, session_id, url_part, timeout_ms)
+end
+
+func wait_response(point browser, string session_id, string url_part, int timeout_ms) as string
+	return x.cdp.wait_response(browser, session_id, url_part, timeout_ms)
+end
+
+func response_body(point browser, string session_id, string request_id, int timeout_ms) as string
+	return x.cdp.network_get_response_body(browser, session_id, request_id, timeout_ms)
+end
+
+func route_enable(point browser, string session_id, string url_pattern, int timeout_ms) as bool
+	return x.cdp.fetch_enable(browser, session_id, url_pattern, timeout_ms)
+end
+
+func route_disable(point browser, string session_id, int timeout_ms) as bool
+	return x.cdp.fetch_disable(browser, session_id, timeout_ms)
+end
+
+func wait_route(point browser, string session_id, string url_part, int timeout_ms) as string
+	return x.cdp.wait_route(browser, session_id, url_part, timeout_ms)
+end
+
+func route_apply(point browser, string session_id, string request_id, string action_json, int timeout_ms) as bool
+	return x.cdp.route_apply(browser, session_id, request_id, action_json, timeout_ms)
+end
+
+func route_abort(point browser, string session_id, string request_id, string error_reason, int timeout_ms) as bool
+	return x.cdp.fetch_abort(browser, session_id, request_id, error_reason, timeout_ms)
+end
+
+func route_continue(point browser, string session_id, string request_id, int timeout_ms) as bool
+	return x.cdp.fetch_continue(browser, session_id, request_id, timeout_ms)
+end
+
+func route_fulfill_text(point browser, string session_id, string request_id, int status_code, string content_type, string body, int timeout_ms) as bool
+	return x.cdp.fetch_fulfill_text(browser, session_id, request_id, status_code, content_type, body, timeout_ms)
+end
+
+func wait_dialog(point browser, string session_id, int timeout_ms) as string
+	return x.cdp.wait_dialog(browser, session_id, timeout_ms)
+end
+
+func wait_dialog_object(point browser, string session_id, int timeout_ms) as Dialog
+	string event_json = x.cdp.wait_dialog(browser, session_id, timeout_ms)
+	return Dialog(browser, session_id, event_json, timeout_ms)
+end
+
+func dialog_accept(point browser, string session_id, int timeout_ms) as bool
+	return x.cdp.dialog_accept(browser, session_id, timeout_ms)
+end
+
+func dialog_dismiss(point browser, string session_id, int timeout_ms) as bool
+	return x.cdp.dialog_dismiss(browser, session_id, timeout_ms)
+end
+
+func dialog_accept_text(point browser, string session_id, string prompt_text, int timeout_ms) as bool
+	return x.cdp.dialog_accept_text(browser, session_id, prompt_text, timeout_ms)
+end
+
+func page_pdf(point browser, string session_id, string path, int timeout_ms) as bool
+	return x.cdp.page_pdf(browser, session_id, path, timeout_ms)
+end
+
+func accessibility_snapshot(point browser, string session_id, int timeout_ms) as string
+	return x.cdp.accessibility_snapshot(browser, session_id, timeout_ms)
+end
+
+func page_start_screencast(point browser, string session_id, string format, int quality, int every_nth_frame, int timeout_ms) as bool
+	return x.cdp.page_start_screencast(browser, session_id, format, quality, every_nth_frame, timeout_ms)
+end
+
+func page_stop_screencast(point browser, string session_id, int timeout_ms) as bool
+	return x.cdp.page_stop_screencast(browser, session_id, timeout_ms)
+end
+
+func wait_screencast_frame(point browser, string session_id, int timeout_ms) as string
+	return x.cdp.wait_screencast_frame(browser, session_id, timeout_ms)
+end
+
+func screencast_frame_ack(point browser, string session_id, int session_frame_id, int timeout_ms) as bool
+	return x.cdp.screencast_frame_ack(browser, session_id, session_frame_id, timeout_ms)
+end
+
+func set_download_behavior(point browser, string behavior, string download_path, int timeout_ms) as bool
+	return x.cdp.browser_set_download_behavior(browser, behavior, download_path, timeout_ms)
+end
+
+func wait_download(point browser, int timeout_ms) as string
+	return x.cdp.wait_download(browser, timeout_ms)
+end
+
+func wait_download_object(point browser, int timeout_ms) as Download
+	string event_json = x.cdp.wait_download(browser, timeout_ms)
+	return Download(browser, event_json, timeout_ms)
+end
+
+func wait_download_progress(point browser, int timeout_ms) as string
+	return x.cdp.wait_download_progress(browser, timeout_ms)
+end
+
+export version
+export last_error
+export error
+export error_info
+export make_error
+export find_chrome
+export create_user_data_dir
+export launch_chrome
+export launch_process
+export launch_options
+export launch_options_full
+export launch_policy
+export launch_cleanup_plan
+export user_data_dir_lifecycle_plan
+export launch_result
+export launch_prepare_plan
+export launch_connect_plan
+export launch_with_options
+export wrap_process
+export process_is_running
+export process_kill_tree
+export process_dispose
+export read_devtools_active_port
+export wait_devtools_active_port
+export connect_user_data_dir
+export connect
+export wrap_browser
+export browser_session
+export browser_session_handle
+export resource_close_plan
+export resource_cascade_close_plan
+export target_lifecycle_plan
+export connect_browser
+export wrap_context
+export wrap_context_options
+export wrap_page
+export wrap_target_page
+export wrap_target
+export wrap_locator
+export wrap_dialog
+export wrap_dialog_info
+export dialog_info
+export dialog_action_plan
+export wrap_download
+export wrap_download_info
+export download_info
+export download_save_plan
+export wrap_route
+export route_plan
+export route_match_plan
+export route_dispatch_plan
+export route_match_pattern
+export route_abort_action
+export route_continue_action
+export route_fulfill_text_action
+export route_action_plan
+export route_registry
+export route_handler_registry_plan
+export headers
+export header_builder
+export header_apply_plan
+export network_pattern
+export network_wait_plan
+export glob
+export regex
+export make_request_id
+export request_id_parse_plan
+export request_response_pair_plan
+export har_entry
+export har_log
+export har_serialize_plan
+export wrap_request
+export wrap_response
+export wrap_screencast_frame
+export screencast_session
+export screencast_lifecycle_plan
+export video_record_plan
+export video_trace_plan
+export context_options
+export context_apply_plan
+export context_default_apply_plan
+export context_lifecycle_plan
+export context_page_create_plan
+export context_options_parse_plan
+export context_storage_state_plan
+export navigation_options
+export navigation_wait_plan
+export navigation_network_idle_plan
+export wrap_frame
+export frame_binding_plan
+export wrap_frame_locator
+export frame_locator_plan
+export action_options
+export keyboard_action_plan
+export mouse_action_plan
+export file_upload_plan
+export drag_plan
+export make_selector
+export css
+export text
+export testid
+export xpath
+export selector_group
+export selector_parse_plan
+export strict_result
+export actionability_state
+export actionability_policy
+export actionability_check_plan
+export screenshot_options
+export screenshot_options_clip
+export screenshot_render_plan
+export screenshot_options_apply_plan
+export pdf_options
+export pdf_options_paper
+export pdf_render_plan
+export pdf_options_apply_plan
+export accessibility_options
+export accessibility_options_apply_plan
+export accessibility_snapshot_plan
+export accessibility_serialize_plan
+export storage_state
+export storage_origin_state
+export storage_state_builder
+export storage_apply_plan
+export storage_serialize_plan
+export evaluate_result
+export typed_evaluate_result
+export evaluate_parse_plan
+export evaluate_typed_parse_plan
+export event_log
+export event_window
+export event_dispatch_plan
+export callback_registry_plan
+export connect_http
+export is_open
+export close
+export new_context
+export new_context_object
+export close_context
+export new_page
+export new_page_object
+export new_context_page
+export new_context_page_object
+export attach_page
+export attach_page_object
+export attach_target_object
+export close_page
+export browser_get_version
+export page_goto
+export page_reload
+export page_wait_load_state
+export page_title
+export page_url
+export page_content
+export page_evaluate
+export page_add_init_script
+export page_remove_init_script
+export page_screenshot
+export locator_click
+export locator_fill
+export locator_hover
+export locator_check
+export locator_select
+export locator_press
+export locator_type
+export locator_text
+export locator_count
+export locator_state
+export locator_strict
+export expect_title
+export expect_url
+export storage_get_cookies
+export storage_set_cookies
+export storage_clear_cookies
+export storage_get_local_storage
+export storage_set_local_storage
+export storage_get_session_storage
+export storage_set_session_storage
+export page_set_viewport
+export page_set_user_agent
+export page_set_locale
+export page_set_timezone
+export page_set_geolocation
+export page_set_offline
+export page_mouse_move
+export page_mouse_click
+export page_mouse_wheel
+export input_dispatch_key_event
+export input_insert_text
+export page_frame_tree
+export runtime_enable
+export log_enable
+export wait_console
+export wait_exception
+export wait_log_entry
+export grant_permissions
+export clear_permissions
+export network_enable
+export network_set_cache_disabled
+export network_set_extra_http_headers
+export wait_network_event
+export wait_request
+export wait_response
+export response_body
+export route_enable
+export route_disable
+export wait_route
+export route_apply
+export route_abort
+export route_continue
+export route_fulfill_text
+export wait_dialog
+export wait_dialog_object
+export dialog_accept
+export dialog_dismiss
+export dialog_accept_text
+export page_pdf
+export accessibility_snapshot
+export page_start_screencast
+export page_stop_screencast
+export wait_screencast_frame
+export screencast_frame_ack
+export set_download_behavior
+export wait_download
+export wait_download_object
+export wait_download_progress

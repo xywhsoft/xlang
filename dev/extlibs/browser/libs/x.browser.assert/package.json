@@ -1,0 +1,53 @@
+{
+	"format": "xle-1",
+	"package": {
+		"name": "x.browser.assert",
+		"version": "0.1.0",
+		"abiVersion": "1",
+		"xlangAbi": "1",
+		"abiId": "x.browser.assert@0.1.0#abi1"
+	},
+	"artifact": {
+		"kind": "source",
+		"path": "src\\browser_assert.xl"
+	},
+	"dependencies": [
+		{
+			"name": "x.cdp",
+			"kind": "c-source",
+			"version": "0.1.0",
+			"abiVersion": "1",
+			"abiId": "x.cdp@0.1.0#abi1"
+		}
+	],
+	"modules": [
+		{
+			"key": "x.browser.assert",
+			"abiId": "x.browser.assert@0.1.0#abi1::x.browser.assert",
+			"file": "src\\browser_assert.xl",
+			"root": 0,
+			"native": 0,
+			"binding": "",
+			"imports": ["x.cdp"],
+			"exports": [
+				{ "name": "trace_failure", "symbol": "trace_failure", "kind": "function", "overloadCount": 1 },
+				{ "name": "title", "symbol": "title", "kind": "function", "overloadCount": 1 },
+				{ "name": "title_trace", "symbol": "title_trace", "kind": "function", "overloadCount": 1 },
+				{ "name": "url", "symbol": "url", "kind": "function", "overloadCount": 1 },
+				{ "name": "url_trace", "symbol": "url_trace", "kind": "function", "overloadCount": 1 },
+				{ "name": "visible", "symbol": "visible", "kind": "function", "overloadCount": 1 },
+				{ "name": "visible_trace", "symbol": "visible_trace", "kind": "function", "overloadCount": 1 },
+				{ "name": "text", "symbol": "text", "kind": "function", "overloadCount": 1 },
+				{ "name": "text_trace", "symbol": "text_trace", "kind": "function", "overloadCount": 1 },
+				{ "name": "count", "symbol": "count", "kind": "function", "overloadCount": 1 },
+				{ "name": "count_trace", "symbol": "count_trace", "kind": "function", "overloadCount": 1 },
+				{ "name": "ok", "symbol": "ok", "kind": "function", "overloadCount": 1 },
+				{ "name": "result", "symbol": "result", "kind": "function", "overloadCount": 1 },
+				{ "name": "error_info", "symbol": "error_info", "kind": "function", "overloadCount": 1 },
+				{ "name": "retry_plan", "symbol": "retry_plan", "kind": "function", "overloadCount": 1 },
+				{ "name": "trace_plan", "symbol": "trace_plan", "kind": "function", "overloadCount": 1 }
+			]
+		}
+	],
+	"functions": []
+}
