@@ -1,0 +1,20 @@
+import x.volc.phone as phone
+import std.env as env
+
+func env_or(string name, string fallback) as string
+	if env.exists(name) then
+		return env.read(name)
+	end
+	return fallback
+end
+
+func main() as int
+	if env.exists("VOLC_ACCESS_KEY") == false or env.exists("VOLC_SECRET_KEY") == false or env.exists("VOLC_PHONE_PRODUCT_ID") == false or env.exists("VOLC_PHONE_POD_ID") == false then
+		return 0
+	end
+	auto raw = phone.pod_adb(env.read("VOLC_ACCESS_KEY"), env.read("VOLC_SECRET_KEY"), env_or("VOLC_SESSION_TOKEN", ""), env.read("VOLC_PHONE_PRODUCT_ID"), env.read("VOLC_PHONE_POD_ID"), true, 30000)
+	if raw == "" then
+		return 1
+	end
+	return 0
+end

@@ -1,0 +1,65 @@
+import x.volc.phone as phone
+
+func main() as int
+	if phone.product_body("p1") != "{\"ProductId\":\"p1\"}"
+		return 1
+	end
+	if phone.pod_body("p1", "pod1") != "{\"ProductId\":\"p1\",\"PodId\":\"pod1\"}"
+		return 2
+	end
+	if phone.pod_adb_body("p1", "pod1", true) != "{\"ProductId\":\"p1\",\"PodId\":\"pod1\",\"Enable\":true}"
+		return 21
+	end
+	if phone.command_body("p1", "pod1", "input keyevent 3") != "{\"ProductId\":\"p1\",\"PodId\":\"pod1\",\"Command\":\"input keyevent 3\"}"
+		return 22
+	end
+	if phone.app_body("p1", "pod1", "com.demo") != "{\"ProductId\":\"p1\",\"PodId\":\"pod1\",\"PackageName\":\"com.demo\"}"
+		return 23
+	end
+	if phone.install_app_body("p1", "pod1", "app", "ver") != "{\"ProductId\":\"p1\",\"PodIdList\":[\"pod1\"],\"AppId\":\"app\",\"VersionId\":\"ver\"}"
+		return 24
+	end
+	if phone.screenshot_body("p1", "pod1", "r1") != "{\"ProductId\":\"p1\",\"PodId\":\"pod1\",\"RoundId\":\"r1\"}"
+		return 25
+	end
+	if phone.batch_screenshot_body("p1", "[\"pod1\",\"pod2\"]", "r1") != "{\"ProductId\":\"p1\",\"PodIdList\":[\"pod1\",\"pod2\"],\"RoundId\":\"r1\"}"
+		return 26
+	end
+	if phone.recording_body("p1", "pod1", "r1", 60, false) != "{\"ProductId\":\"p1\",\"PodId\":\"pod1\",\"RoundId\":\"r1\",\"DurationLimit\":60,\"IsSavedOnPod\":false}"
+		return 27
+	end
+	if phone.file_body("p1", "pod1", "local.txt", "/sdcard/remote.txt") != "{\"ProductId\":\"p1\",\"PodId\":\"pod1\",\"LocalPath\":\"local.txt\",\"RemotePath\":\"/sdcard/remote.txt\"}"
+		return 28
+	end
+	if phone.pull_file_body("p1", "pod1", "/sdcard/remote.txt", "local.txt") != "{\"ProductId\":\"p1\",\"PodId\":\"pod1\",\"RemotePath\":\"/sdcard/remote.txt\",\"LocalPath\":\"local.txt\"}"
+		return 29
+	end
+	if phone.task_state("{\"Result\":{\"TaskResult\":100}}") != "success"
+		return 3
+	end
+	if phone.task_state("{\"Result\":{\"TaskResult\":10}}") != "running"
+		return 4
+	end
+	if phone.recording_download_url("{\"Result\":{\"Data\":{\"VideoURL\":\"https://example.com/r.mp4\"}}}") != "https://example.com/r.mp4"
+		return 5
+	end
+	if phone.pod_adb_endpoint("{\"Result\":{\"AdbStatus\":1,\"Adb\":\"127.0.0.1:5555\"}}") != "127.0.0.1:5555"
+		return 6
+	end
+	if phone.pod_run_state("{\"Result\":{\"Online\":1}}") != 1
+		return 7
+	end
+	if phone.host_remain_text("{\"Result\":{\"PodNumAvailable\":6,\"PodNumOnHost\":2}}") != "2,4"
+		return 8
+	end
+	auto resp = phone.normalize_response("ListPod", "{\"ResponseMetadata\":{\"RequestId\":\"rid\"},\"Result\":{\"Row\":[]}}")
+	if resp.ok() == false or resp.request_id() != "rid"
+		return 9
+	end
+	auto c = phone.client("AK", "SK", "pid")
+	c.set_timeout(1234)
+	if c.timeout_ms != 1234
+		return 10
+	end
+	return 0
+end

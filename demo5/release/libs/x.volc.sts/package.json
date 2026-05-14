@@ -1,0 +1,43 @@
+{
+	"format": "xle-1",
+	"package": {
+		"name": "x.volc.sts",
+		"version": "0.1.0",
+		"abiVersion": "1",
+		"xlangAbi": "1",
+		"abiId": "x.volc.sts@0.1.0#abi1"
+	},
+	"artifact": {
+		"kind": "source",
+		"path": "src\\sts.xl"
+	},
+	"dependencies": [
+		{"name": "x.volc.core", "kind": "source", "version": "0.1.0", "abiVersion": "1", "abiId": "x.volc.core@0.1.0#abi1"}
+	],
+	"modules": [
+		{
+			"key": "x.volc.sts",
+			"abiId": "x.volc.sts@0.1.0#abi1::x.volc.sts",
+			"file": "src\\sts.xl",
+			"root": 0,
+			"native": 0,
+			"binding": "",
+			"imports": ["x.volc.core", "std.fmt", "std.json"],
+			"exports": [
+				{"name": "last_error", "symbol": "last_error", "kind": "function", "overloadCount": 1},
+				{"name": "assume_role_trn", "symbol": "assume_role_trn", "kind": "function", "overloadCount": 1},
+				{"name": "assume_role", "symbol": "assume_role", "kind": "function", "overloadCount": 1},
+				{"name": "preview_assume_role", "symbol": "preview_assume_role", "kind": "function", "overloadCount": 1},
+				{"name": "json_string_field", "symbol": "json_string_field", "kind": "function", "overloadCount": 1},
+				{"name": "access_key_id", "symbol": "access_key_id", "kind": "function", "overloadCount": 1},
+				{"name": "secret_access_key", "symbol": "secret_access_key", "kind": "function", "overloadCount": 1},
+				{"name": "session_token", "symbol": "session_token", "kind": "function", "overloadCount": 1},
+				{"name": "expired_time", "symbol": "expired_time", "kind": "function", "overloadCount": 1},
+				{"name": "current_time", "symbol": "current_time", "kind": "function", "overloadCount": 1},
+				{"name": "credentials_json", "symbol": "credentials_json", "kind": "function", "overloadCount": 1},
+				{"name": "projection_credentials_json", "symbol": "projection_credentials_json", "kind": "function", "overloadCount": 1}
+			]
+		}
+	],
+	"functions": []
+}

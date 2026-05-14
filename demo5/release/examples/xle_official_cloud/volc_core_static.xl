@@ -1,0 +1,31 @@
+import x.volc.core as volc
+
+func main() as int
+	if volc.sha256_hex("hello") != "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"
+		return 1
+	end
+	if volc.hmac_sha256_hex("key", "hello") != "9307b3b915efb5171ff14d8cb55fbcc798c6c0ef1456d66ded1a6aa723a58b7b"
+		return 2
+	end
+	auto q = volc.canonical_query("AssumeRole", "2018-01-01", "RoleSessionName=xlang client\nDurationSeconds=3600\nRoleTrn=trn:iam::2100310067:role/pingkong_phone")
+	if q != "Action=AssumeRole&DurationSeconds=3600&RoleSessionName=xlang%20client&RoleTrn=trn%3Aiam%3A%3A2100310067%3Arole%2Fpingkong_phone&Version=2018-01-01"
+		return 3
+	end
+	auto preview = volc.sign_preview("GET", "sts.volcengineapi.com", "/", "sts", "cn-north-1", "AssumeRole", "2018-01-01", "AK", "SK", "", "application/x-www-form-urlencoded", "RoleSessionName=xlang\nDurationSeconds=3600\nRoleTrn=trn:iam::1:role/demo", "", "20260513T030405Z")
+	if preview == ""
+		return 4
+	end
+	auto acep_preview = volc.sign_preview_acep("ListPod", "2023-10-30", "AK", "SK", "", "{\"ProductId\":\"p1\"}", "20260513T030405Z")
+	if acep_preview == ""
+		return 5
+	end
+	auto sts_preview = volc.sign_preview_sts("AK", "SK", "trn:iam::1:role/demo", "xlang", 3600, "20260513T030405Z")
+	if sts_preview == ""
+		return 6
+	end
+	auto acep_spec_preview = volc.sign_preview_acep_spec("action=ListPod\nversion=2023-10-30\naccess_key=AK\nsecret_key=SK\nsession_token=\nbody={\"ProductId\":\"p1\"}\nx_date=20260513T030405Z")
+	if acep_spec_preview == ""
+		return 7
+	end
+	return 0
+end
