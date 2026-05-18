@@ -1,0 +1,24 @@
+{
+	"format": "xle-1",
+	"package": {"name": "x.mail.smtp", "version": "0.1.0", "abiVersion": "1", "xlangAbi": "1", "abiId": "x.mail.smtp@0.1.0#abi1"},
+	"artifact": {"kind": "source", "path": "src\\smtp.xl"},
+	"dependencies": [{"name": "x.mail.mime", "kind": "source", "version": "0.1.0", "abiVersion": "1", "abiId": "x.mail.mime@0.1.0#abi1"}],
+	"modules": [{
+		"key": "x.mail.smtp",
+		"abiId": "x.mail.smtp@0.1.0#abi1::x.mail.smtp",
+		"file": "src\\smtp.xl",
+		"root": 0,
+		"native": 0,
+		"binding": "",
+		"imports": ["std.json", "x.mail.mime"],
+		"exports": [
+			{"name": "result", "symbol": "result", "kind": "function", "overloadCount": 1},
+			{"name": "unsupported", "symbol": "unsupported", "kind": "function", "overloadCount": 1},
+			{"name": "capability", "symbol": "capability", "kind": "function", "overloadCount": 1},
+			{"name": "send", "symbol": "send", "kind": "function", "overloadCount": 1},
+			{"name": "capability_json", "symbol": "capability_json", "kind": "function", "overloadCount": 1},
+			{"name": "send_json", "symbol": "send_json", "kind": "function", "overloadCount": 1}
+		]
+	}],
+	"functions": []
+}

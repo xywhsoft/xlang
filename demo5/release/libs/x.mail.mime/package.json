@@ -1,0 +1,27 @@
+{
+	"format": "xle-1",
+	"package": {"name": "x.mail.mime", "version": "0.1.0", "abiVersion": "1", "xlangAbi": "1", "abiId": "x.mail.mime@0.1.0#abi1"},
+	"artifact": {"kind": "source", "path": "src\\mime.xl"},
+	"dependencies": [],
+	"modules": [{
+		"key": "x.mail.mime",
+		"abiId": "x.mail.mime@0.1.0#abi1::x.mail.mime",
+		"file": "src\\mime.xl",
+		"root": 0,
+		"native": 0,
+		"binding": "",
+		"imports": ["std.json"],
+		"exports": [
+			{"name": "result", "symbol": "result", "kind": "function", "overloadCount": 1},
+			{"name": "unsupported", "symbol": "unsupported", "kind": "function", "overloadCount": 1},
+			{"name": "address", "symbol": "address", "kind": "function", "overloadCount": 1},
+			{"name": "attachment", "symbol": "attachment", "kind": "function", "overloadCount": 1},
+			{"name": "message", "symbol": "message", "kind": "function", "overloadCount": 1},
+			{"name": "build", "symbol": "build", "kind": "function", "overloadCount": 1},
+			{"name": "parse", "symbol": "parse", "kind": "function", "overloadCount": 1},
+			{"name": "build_json", "symbol": "build_json", "kind": "function", "overloadCount": 1},
+			{"name": "parse_json", "symbol": "parse_json", "kind": "function", "overloadCount": 1}
+		]
+	}],
+	"functions": []
+}

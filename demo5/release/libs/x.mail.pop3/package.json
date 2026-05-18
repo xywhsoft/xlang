@@ -1,0 +1,30 @@
+{
+	"format": "xle-1",
+	"package": {"name": "x.mail.pop3", "version": "0.1.0", "abiVersion": "1", "xlangAbi": "1", "abiId": "x.mail.pop3@0.1.0#abi1"},
+	"artifact": {"kind": "source", "path": "src\\pop3.xl"},
+	"dependencies": [{"name": "x.mail.mime", "kind": "source", "version": "0.1.0", "abiVersion": "1", "abiId": "x.mail.mime@0.1.0#abi1"}],
+	"modules": [{
+		"key": "x.mail.pop3",
+		"abiId": "x.mail.pop3@0.1.0#abi1::x.mail.pop3",
+		"file": "src\\pop3.xl",
+		"root": 0,
+		"native": 0,
+		"binding": "",
+		"imports": ["std.json", "x.mail.mime"],
+		"exports": [
+			{"name": "result", "symbol": "result", "kind": "function", "overloadCount": 1},
+			{"name": "unsupported", "symbol": "unsupported", "kind": "function", "overloadCount": 1},
+			{"name": "capability", "symbol": "capability", "kind": "function", "overloadCount": 1},
+			{"name": "status", "symbol": "status", "kind": "function", "overloadCount": 1},
+			{"name": "list", "symbol": "list", "kind": "function", "overloadCount": 1},
+			{"name": "fetch", "symbol": "fetch", "kind": "function", "overloadCount": 1},
+			{"name": "delete_message", "symbol": "delete_message", "kind": "function", "overloadCount": 1},
+			{"name": "capability_json", "symbol": "capability_json", "kind": "function", "overloadCount": 1},
+			{"name": "status_json", "symbol": "status_json", "kind": "function", "overloadCount": 1},
+			{"name": "list_json", "symbol": "list_json", "kind": "function", "overloadCount": 1},
+			{"name": "fetch_json", "symbol": "fetch_json", "kind": "function", "overloadCount": 1},
+			{"name": "delete_message_json", "symbol": "delete_message_json", "kind": "function", "overloadCount": 1}
+		]
+	}],
+	"functions": []
+}
