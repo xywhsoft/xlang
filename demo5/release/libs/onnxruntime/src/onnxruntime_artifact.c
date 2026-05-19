@@ -93,6 +93,7 @@ typedef struct OrtApi {
 	OrtTensorZerosFn tensor_zeros_f32;
 	OrtReleasePtrFn release_tensor;
 	OrtRunTensorFn run_tensor;
+	OrtRunTensorFn run_tensor_fast;
 	OrtResultTextFn result_json;
 	OrtResultTextFn result_float_shape_json;
 	OrtResultIntFn result_float_count;
@@ -201,6 +202,7 @@ static int ort_try_load(const char* path)
 	g_ort.tensor_zeros_f32 = (OrtTensorZerosFn)ort_sym("onnxruntime_xl_tensor_zeros_f32");
 	g_ort.release_tensor = (OrtReleasePtrFn)ort_sym("onnxruntime_xl_release_tensor");
 	g_ort.run_tensor = (OrtRunTensorFn)ort_sym("onnxruntime_xl_run_tensor");
+	g_ort.run_tensor_fast = (OrtRunTensorFn)ort_sym("onnxruntime_xl_run_tensor_fast");
 	g_ort.result_json = (OrtResultTextFn)ort_sym("onnxruntime_xl_result_json");
 	g_ort.result_float_shape_json = (OrtResultTextFn)ort_sym("onnxruntime_xl_result_float_shape_json");
 	g_ort.result_float_count = (OrtResultIntFn)ort_sym("onnxruntime_xl_result_float_count");
@@ -250,6 +252,7 @@ static int cv_bridge_load(void)
 		"libs\\opencv\\bin\\opencv_xlang.dll",
 		"release\\libs\\opencv\\bin\\opencv_xlang.dll",
 		"examples\\libs\\opencv\\bin\\opencv_xlang.dll",
+		"D:\\git\\x-lang\\demo5\\release\\libs\\opencv\\bin\\opencv_xlang.dll",
 		NULL
 	};
 	int i;
@@ -362,8 +365,76 @@ XL_EXPORT void* ort_tensor_from_opencv_native(void* image, double scale, double 
 	g_cv_bridge.release_tensor_f32(data);
 	return tensor;
 }
+
+XL_EXPORT void* ort_tensor_from_opencv_batch_native(int batch_count, void* image0, void* image1, void* image2, void* image3, void* image4, void* image5, double scale, double mean0, double mean1, double mean2, double std0, double std1, double std2)
+{
+	void* images[6];
+	float* batch_data = NULL;
+	long long batch_shape[4] = {0, 0, 0, 0};
+	int per_image_count = 0;
+	int i;
+	void* tensor;
+	images[0] = image0;
+	images[1] = image1;
+	images[2] = image2;
+	images[3] = image3;
+	images[4] = image4;
+	images[5] = image5;
+	if ( batch_count <= 0 || batch_count > 6 ) {
+		ort_set_error("invalid OpenCV batch count");
+		return NULL;
+	}
+	for ( i = 0; i < batch_count; ++i ) {
+		if ( images[i] == NULL ) {
+			ort_set_error("invalid OpenCV image handle in batch");
+			return NULL;
+		}
+	}
+	if ( !ort_load() || g_ort.tensor_from_f32 == NULL ) {
+		ort_set_error("onnxruntime tensor_from_f32 is unavailable");
+		return NULL;
+	}
+	if ( !cv_bridge_load() || g_cv_bridge.to_chw_tensor_f32 == NULL || g_cv_bridge.release_tensor_f32 == NULL ) {
+		return NULL;
+	}
+	for ( i = 0; i < batch_count; ++i ) {
+		float* data = NULL;
+		long long shape[4] = {0, 0, 0, 0};
+		int count = 0;
+		if ( !g_cv_bridge.to_chw_tensor_f32(images[i], scale, mean0, mean1, mean2, std0, std1, std2, &data, shape, &count) || data == NULL || count <= 0 ) {
+			free(batch_data);
+			ort_set_error("OpenCV image to CHW tensor conversion failed");
+			return NULL;
+		}
+		if ( i == 0 ) {
+			per_image_count = count;
+			batch_shape[0] = batch_count;
+			batch_shape[1] = shape[1];
+			batch_shape[2] = shape[2];
+			batch_shape[3] = shape[3];
+			batch_data = (float*)malloc((size_t)per_image_count * (size_t)batch_count * sizeof(float));
+			if ( batch_data == NULL ) {
+				g_cv_bridge.release_tensor_f32(data);
+				ort_set_error("out of memory");
+				return NULL;
+			}
+		} else if ( count != per_image_count || shape[1] != batch_shape[1] || shape[2] != batch_shape[2] || shape[3] != batch_shape[3] ) {
+			g_cv_bridge.release_tensor_f32(data);
+			free(batch_data);
+			ort_set_error("OpenCV batch images must have the same CHW shape");
+			return NULL;
+		}
+		memcpy(batch_data + (size_t)i * (size_t)per_image_count, data, (size_t)per_image_count * sizeof(float));
+		g_cv_bridge.release_tensor_f32(data);
+	}
+	tensor = g_ort.tensor_from_f32(batch_data, per_image_count * batch_count, batch_shape, 4);
+	free(batch_data);
+	return tensor;
+}
+
 XL_EXPORT int ort_tensor_release_native(void* handle) { if ( handle != NULL && ort_load() && g_ort.release_tensor != NULL ) g_ort.release_tensor(handle); return 1; }
 XL_EXPORT void* ort_session_run_tensor_native(void* handle, const char* input_name, void* tensor, const char* outputs) { return (handle != NULL && tensor != NULL && ort_load() && g_ort.run_tensor != NULL) ? g_ort.run_tensor(handle, input_name, tensor, outputs) : NULL; }
+XL_EXPORT void* ort_session_run_tensor_fast_native(void* handle, const char* input_name, void* tensor, const char* outputs) { return (handle != NULL && tensor != NULL && ort_load() && g_ort.run_tensor_fast != NULL) ? g_ort.run_tensor_fast(handle, input_name, tensor, outputs) : NULL; }
 XL_EXPORT const char* ort_result_json_native(void* handle) { return (handle != NULL && ort_load() && g_ort.result_json != NULL) ? g_ort.result_json(handle) : "{}"; }
 XL_EXPORT const char* ort_result_float_shape_json_native(void* handle) { return (handle != NULL && ort_load() && g_ort.result_float_shape_json != NULL) ? g_ort.result_float_shape_json(handle) : "[]"; }
 XL_EXPORT int ort_result_float_count_native(void* handle) { return (handle != NULL && ort_load() && g_ort.result_float_count != NULL) ? g_ort.result_float_count(handle) : 0; }

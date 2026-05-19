@@ -8,7 +8,9 @@ extern "opencv_imread_native" func opencv_imread_native(string path, int flags) 
 extern "opencv_imwrite_native" func opencv_imwrite_native(string path, point image) as int
 extern "opencv_resize_native" func opencv_resize_native(point image, int width, int height) as point
 extern "opencv_crop_native" func opencv_crop_native(point image, int x, int y, int width, int height) as point
+extern "opencv_perspective_crop_native" func opencv_perspective_crop_native(point image, float x0, float y0, float x1, float y1, float x2, float y2, float x3, float y3) as point
 extern "opencv_rotate180_native" func opencv_rotate180_native(point image) as point
+extern "opencv_rotate90ccw_native" func opencv_rotate90ccw_native(point image) as point
 extern "opencv_capture_rect_native" func opencv_capture_rect_native(int x, int y, int width, int height) as point
 extern "opencv_capture_window_native" func opencv_capture_window_native(point hwnd) as point
 extern "opencv_cvt_color_native" func opencv_cvt_color_native(point image, int code) as point
@@ -87,8 +89,16 @@ class Image extends object
 		return Image(opencv_crop_native(self.handle, x, y, width, height))
 	end
 
+	func perspectiveCrop(float x0, float y0, float x1, float y1, float x2, float y2, float x3, float y3) as Image
+		return Image(opencv_perspective_crop_native(self.handle, x0, y0, x1, y1, x2, y2, x3, y3))
+	end
+
 	func rotate180() as Image
 		return Image(opencv_rotate180_native(self.handle))
+	end
+
+	func rotate90ccw() as Image
+		return Image(opencv_rotate90ccw_native(self.handle))
 	end
 
 	func cvtColor(int code) as Image
@@ -144,8 +154,16 @@ func crop(Image image, int x, int y, int width, int height) as Image
 	return image.crop(x, y, width, height)
 end
 
+func perspectiveCrop(Image image, float x0, float y0, float x1, float y1, float x2, float y2, float x3, float y3) as Image
+	return image.perspectiveCrop(x0, y0, x1, y1, x2, y2, x3, y3)
+end
+
 func rotate180(Image image) as Image
 	return image.rotate180()
+end
+
+func rotate90ccw(Image image) as Image
+	return image.rotate90ccw()
 end
 
 func capture_rect(int x, int y, int width, int height) as Image
@@ -195,7 +213,9 @@ export imread
 export imwrite
 export resize
 export crop
+export perspectiveCrop
 export rotate180
+export rotate90ccw
 export capture_rect
 export capture_window
 export cvtColor

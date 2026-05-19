@@ -32,7 +32,8 @@
 				{"name": "SessionOptions", "symbol": "SessionOptions", "kind": "function", "overloadCount": 1},
 				{"name": "RunOptions", "symbol": "RunOptions", "kind": "function", "overloadCount": 1},
 				{"name": "TensorZerosF32", "symbol": "TensorZerosF32", "kind": "function", "overloadCount": 1},
-				{"name": "TensorFromOpenCV", "symbol": "TensorFromOpenCV", "kind": "function", "overloadCount": 1}
+				{"name": "TensorFromOpenCV", "symbol": "TensorFromOpenCV", "kind": "function", "overloadCount": 1},
+				{"name": "TensorFromOpenCVBatch", "symbol": "TensorFromOpenCVBatch", "kind": "function", "overloadCount": 1}
 			]
 		}
 	],

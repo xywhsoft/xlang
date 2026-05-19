@@ -60,6 +60,7 @@ XlOrtTensor onnxruntime_xl_tensor_from_f32(const float* data, int data_count, co
 XlOrtTensor onnxruntime_xl_tensor_zeros_f32(const char* shape_json);
 void onnxruntime_xl_release_tensor(XlOrtTensor tensor);
 XlOrtResult onnxruntime_xl_run_tensor(XlOrtSession session, const char* input_name, XlOrtTensor tensor, const char* output_names_json);
+XlOrtResult onnxruntime_xl_run_tensor_fast(XlOrtSession session, const char* input_name, XlOrtTensor tensor, const char* output_names_json);
 XlOrtResult onnxruntime_xl_run_json(XlOrtSession session, const char* output_names_json, const char* input_feed_json);
 XlOrtResult onnxruntime_xl_run_json_with_options(XlOrtSession session, const char* output_names_json, const char* input_feed_json, XlOrtRunOptions options);
 const char* onnxruntime_xl_result_json(XlOrtResult result);

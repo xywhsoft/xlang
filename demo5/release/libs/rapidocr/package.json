@@ -45,6 +45,8 @@
 				{"name": "box_y", "symbol": "box_y", "kind": "function", "overloadCount": 1},
 				{"name": "box_width", "symbol": "box_width", "kind": "function", "overloadCount": 1},
 				{"name": "box_height", "symbol": "box_height", "kind": "function", "overloadCount": 1},
+				{"name": "box_point_x", "symbol": "box_point_x", "kind": "function", "overloadCount": 1},
+				{"name": "box_point_y", "symbol": "box_point_y", "kind": "function", "overloadCount": 1},
 				{"name": "vis_image", "symbol": "vis_image", "kind": "function", "overloadCount": 1},
 				{"name": "assemble_result", "symbol": "assemble_result", "kind": "function", "overloadCount": 2},
 				{"name": "assemble_result2", "symbol": "assemble_result2", "kind": "function", "overloadCount": 2},

@@ -7,6 +7,7 @@
 
 #if defined(_WIN32) || defined(_WIN64)
 #include <windows.h>
+#include <wchar.h>
 #endif
 
 #define STB_IMAGE_IMPLEMENTATION
@@ -87,6 +88,78 @@ static float xlcv_clampf(float value, float low, float high)
 	return value;
 }
 
+static void xlcv_free_image(XlCvImageImpl* image)
+{
+	if ( image != NULL ) {
+		free(image->data);
+		free(image);
+	}
+}
+
+static double xlcv_point_distance(double x0, double y0, double x1, double y1)
+{
+	double dx = x0 - x1;
+	double dy = y0 - y1;
+	return sqrt(dx * dx + dy * dy);
+}
+
+static float xlcv_sample_replicate_bilinear(const XlCvImageImpl* image, double src_x, double src_y, int channel)
+{
+	int x0;
+	int x1;
+	int y0;
+	int y1;
+	double wx;
+	double wy;
+	double v00;
+	double v01;
+	double v10;
+	double v11;
+	double top;
+	double bottom;
+	if ( src_x < 0.0 ) src_x = 0.0;
+	if ( src_y < 0.0 ) src_y = 0.0;
+	if ( src_x > (double)(image->width - 1) ) src_x = (double)(image->width - 1);
+	if ( src_y > (double)(image->height - 1) ) src_y = (double)(image->height - 1);
+	x0 = (int)floor(src_x);
+	y0 = (int)floor(src_y);
+	x1 = x0 + 1;
+	y1 = y0 + 1;
+	if ( x1 >= image->width ) x1 = image->width - 1;
+	if ( y1 >= image->height ) y1 = image->height - 1;
+	wx = src_x - (double)x0;
+	wy = src_y - (double)y0;
+	v00 = (double)image->data[((size_t)y0 * image->width + x0) * image->channels + channel];
+	v01 = (double)image->data[((size_t)y0 * image->width + x1) * image->channels + channel];
+	v10 = (double)image->data[((size_t)y1 * image->width + x0) * image->channels + channel];
+	v11 = (double)image->data[((size_t)y1 * image->width + x1) * image->channels + channel];
+	top = v00 + (v01 - v00) * wx;
+	bottom = v10 + (v11 - v10) * wx;
+	return (float)(top + (bottom - top) * wy);
+}
+
+static XlCvImageImpl* xlcv_rotate90ccw_impl(const XlCvImageImpl* image)
+{
+	XlCvImageImpl* out;
+	int x;
+	int y;
+	int c;
+	if ( image == NULL || image->data == NULL ) return NULL;
+	out = xlcv_alloc(image->height, image->width, image->channels);
+	if ( out == NULL ) return NULL;
+	for ( y = 0; y < out->height; ++y ) {
+		for ( x = 0; x < out->width; ++x ) {
+			int sx = image->width - 1 - y;
+			int sy = x;
+			for ( c = 0; c < image->channels; ++c ) {
+				out->data[((size_t)y * out->width + x) * out->channels + c] = image->data[((size_t)sy * image->width + sx) * image->channels + c];
+			}
+		}
+	}
+	xlcv_set_error("");
+	return out;
+}
+
 static int xlcv_streq_ext(const char* path, const char* ext)
 {
 	size_t path_len;
@@ -100,6 +173,65 @@ static int xlcv_streq_ext(const char* path, const char* ext)
 #else
 	return strcasecmp(path + path_len - ext_len, ext) == 0;
 #endif
+}
+
+static unsigned char* xlcv_read_file_bytes(const char* path, int* out_size)
+{
+	FILE* fp = NULL;
+	unsigned char* data = NULL;
+	long size;
+	size_t got;
+	if ( out_size != NULL ) *out_size = 0;
+	if ( path == NULL || path[0] == '\0' || out_size == NULL ) return NULL;
+#if defined(_WIN32) || defined(_WIN64)
+	{
+		int need = MultiByteToWideChar(CP_UTF8, 0, path, -1, NULL, 0);
+		if ( need > 0 ) {
+			wchar_t* wide_path = (wchar_t*)calloc((size_t)need, sizeof(wchar_t));
+			if ( wide_path != NULL ) {
+				MultiByteToWideChar(CP_UTF8, 0, path, -1, wide_path, need);
+				fp = _wfopen(wide_path, L"rb");
+				free(wide_path);
+			}
+		}
+	}
+#endif
+	if ( fp == NULL ) fp = fopen(path, "rb");
+	if ( fp == NULL ) {
+		xlcv_set_error("can't fopen");
+		return NULL;
+	}
+	if ( fseek(fp, 0, SEEK_END) != 0 ) {
+		fclose(fp);
+		xlcv_set_error("file seek failed");
+		return NULL;
+	}
+	size = ftell(fp);
+	if ( size <= 0 ) {
+		fclose(fp);
+		xlcv_set_error("empty image file");
+		return NULL;
+	}
+	if ( fseek(fp, 0, SEEK_SET) != 0 ) {
+		fclose(fp);
+		xlcv_set_error("file seek failed");
+		return NULL;
+	}
+	data = (unsigned char*)malloc((size_t)size);
+	if ( data == NULL ) {
+		fclose(fp);
+		xlcv_set_error("out of memory");
+		return NULL;
+	}
+	got = fread(data, 1u, (size_t)size, fp);
+	fclose(fp);
+	if ( got != (size_t)size ) {
+		free(data);
+		xlcv_set_error("file read failed");
+		return NULL;
+	}
+	*out_size = (int)size;
+	return data;
 }
 
 XLCV_EXPORT int opencv_xl_available(void)
@@ -124,6 +256,8 @@ XLCV_EXPORT XlCvImage opencv_xl_imread(const char* path, int flags)
 	int channels = 0;
 	int desired = 3;
 	unsigned char* pixels;
+	unsigned char* file_bytes;
+	int file_size = 0;
 	XlCvImageImpl* image;
 	size_t count;
 	size_t i;
@@ -133,7 +267,10 @@ XLCV_EXPORT XlCvImage opencv_xl_imread(const char* path, int flags)
 	}
 	if ( flags == 0 ) desired = 1;
 	else if ( flags < 0 ) desired = 0;
-	pixels = stbi_load(path, &width, &height, &channels, desired);
+	file_bytes = xlcv_read_file_bytes(path, &file_size);
+	if ( file_bytes == NULL ) return NULL;
+	pixels = stbi_load_from_memory(file_bytes, file_size, &width, &height, &channels, desired);
+	free(file_bytes);
 	if ( pixels == NULL ) {
 		xlcv_set_error(stbi_failure_reason());
 		return NULL;
@@ -145,7 +282,17 @@ XLCV_EXPORT XlCvImage opencv_xl_imread(const char* path, int flags)
 		return NULL;
 	}
 	count = (size_t)width * (size_t)height * (size_t)channels;
-	for ( i = 0; i < count; ++i ) image->data[i] = (float)pixels[i];
+	if ( channels >= 3 ) {
+		size_t pixels_count = (size_t)width * (size_t)height;
+		for ( i = 0; i < pixels_count; ++i ) {
+			image->data[i * (size_t)channels + 0u] = (float)pixels[i * (size_t)channels + 2u];
+			image->data[i * (size_t)channels + 1u] = (float)pixels[i * (size_t)channels + 1u];
+			image->data[i * (size_t)channels + 2u] = (float)pixels[i * (size_t)channels + 0u];
+			if ( channels > 3 ) image->data[i * (size_t)channels + 3u] = (float)pixels[i * (size_t)channels + 3u];
+		}
+	} else {
+		for ( i = 0; i < count; ++i ) image->data[i] = (float)pixels[i];
+	}
 	stbi_image_free(pixels);
 	xlcv_set_error("");
 	return image;
@@ -168,7 +315,17 @@ XLCV_EXPORT int opencv_xl_imwrite(const char* path, XlCvImage handle)
 		xlcv_set_error("out of memory");
 		return 0;
 	}
-	for ( i = 0; i < count; ++i ) pixels[i] = (unsigned char)(xlcv_clampf(image->data[i], 0.0f, 255.0f) + 0.5f);
+	if ( image->channels >= 3 ) {
+		size_t pixels_count = (size_t)image->width * (size_t)image->height;
+		for ( i = 0; i < pixels_count; ++i ) {
+			pixels[i * (size_t)image->channels + 0u] = (unsigned char)(xlcv_clampf(image->data[i * (size_t)image->channels + 2u], 0.0f, 255.0f) + 0.5f);
+			pixels[i * (size_t)image->channels + 1u] = (unsigned char)(xlcv_clampf(image->data[i * (size_t)image->channels + 1u], 0.0f, 255.0f) + 0.5f);
+			pixels[i * (size_t)image->channels + 2u] = (unsigned char)(xlcv_clampf(image->data[i * (size_t)image->channels + 0u], 0.0f, 255.0f) + 0.5f);
+			if ( image->channels > 3 ) pixels[i * (size_t)image->channels + 3u] = (unsigned char)(xlcv_clampf(image->data[i * (size_t)image->channels + 3u], 0.0f, 255.0f) + 0.5f);
+		}
+	} else {
+		for ( i = 0; i < count; ++i ) pixels[i] = (unsigned char)(xlcv_clampf(image->data[i], 0.0f, 255.0f) + 0.5f);
+	}
 	if ( xlcv_streq_ext(path, ".jpg") || xlcv_streq_ext(path, ".jpeg") ) {
 		ok = stbi_write_jpg(path, image->width, image->height, image->channels, pixels, 90);
 	} else if ( xlcv_streq_ext(path, ".bmp") ) {
@@ -195,13 +352,35 @@ XLCV_EXPORT XlCvImage opencv_xl_resize(XlCvImage handle, int width, int height)
 	out = xlcv_alloc(width, height, image->channels);
 	if ( out == NULL ) return NULL;
 	for ( y = 0; y < height; ++y ) {
-		int sy = (int)((double)y * (double)image->height / (double)height);
-		if ( sy >= image->height ) sy = image->height - 1;
+		double src_y = ((double)y + 0.5) * (double)image->height / (double)height - 0.5;
+		int y0;
+		int y1;
+		double wy;
+		if ( src_y < 0.0 ) src_y = 0.0;
+		if ( src_y > (double)(image->height - 1) ) src_y = (double)(image->height - 1);
+		y0 = (int)floor(src_y);
+		y1 = y0 + 1;
+		if ( y1 >= image->height ) y1 = image->height - 1;
+		wy = src_y - (double)y0;
 		for ( x = 0; x < width; ++x ) {
-			int sx = (int)((double)x * (double)image->width / (double)width);
-			if ( sx >= image->width ) sx = image->width - 1;
+			double src_x = ((double)x + 0.5) * (double)image->width / (double)width - 0.5;
+			int x0;
+			int x1;
+			double wx;
+			if ( src_x < 0.0 ) src_x = 0.0;
+			if ( src_x > (double)(image->width - 1) ) src_x = (double)(image->width - 1);
+			x0 = (int)floor(src_x);
+			x1 = x0 + 1;
+			if ( x1 >= image->width ) x1 = image->width - 1;
+			wx = src_x - (double)x0;
 			for ( c = 0; c < image->channels; ++c ) {
-				out->data[((size_t)y * width + x) * image->channels + c] = image->data[((size_t)sy * image->width + sx) * image->channels + c];
+				double v00 = (double)image->data[((size_t)y0 * image->width + x0) * image->channels + c];
+				double v01 = (double)image->data[((size_t)y0 * image->width + x1) * image->channels + c];
+				double v10 = (double)image->data[((size_t)y1 * image->width + x0) * image->channels + c];
+				double v11 = (double)image->data[((size_t)y1 * image->width + x1) * image->channels + c];
+				double top = v00 + (v01 - v00) * wx;
+				double bottom = v10 + (v11 - v10) * wx;
+				out->data[((size_t)y * width + x) * image->channels + c] = (float)(top + (bottom - top) * wy);
 			}
 		}
 	}
@@ -241,6 +420,109 @@ XLCV_EXPORT XlCvImage opencv_xl_crop(XlCvImage handle, int x, int y, int width, 
 				out->data[((size_t)yy * width + xx) * image->channels + c] = image->data[((size_t)(y + yy) * image->width + (x + xx)) * image->channels + c];
 			}
 		}
+	}
+	xlcv_set_error("");
+	return out;
+}
+
+XLCV_EXPORT XlCvImage opencv_xl_perspective_crop(XlCvImage handle, double x0, double y0, double x1, double y1, double x2, double y2, double x3, double y3)
+{
+	XlCvImageImpl* image = (XlCvImageImpl*)handle;
+	XlCvImageImpl* out;
+	double width_top;
+	double width_bottom;
+	double height_left;
+	double height_right;
+	int crop_w;
+	int crop_h;
+	double dx1;
+	double dx2;
+	double dx3;
+	double dy1;
+	double dy2;
+	double dy3;
+	double a11;
+	double a12;
+	double a13;
+	double a21;
+	double a22;
+	double a23;
+	double a31;
+	double a32;
+	int x;
+	int y;
+	int c;
+	if ( image == NULL || image->data == NULL ) {
+		xlcv_set_error("invalid image");
+		return NULL;
+	}
+	width_top = xlcv_point_distance(x0, y0, x1, y1);
+	width_bottom = xlcv_point_distance(x2, y2, x3, y3);
+	height_left = xlcv_point_distance(x0, y0, x3, y3);
+	height_right = xlcv_point_distance(x1, y1, x2, y2);
+	crop_w = (int)(width_top > width_bottom ? width_top : width_bottom);
+	crop_h = (int)(height_left > height_right ? height_left : height_right);
+	if ( crop_w <= 0 || crop_h <= 0 ) {
+		xlcv_set_error("invalid perspective crop dimensions");
+		return NULL;
+	}
+	out = xlcv_alloc(crop_w, crop_h, image->channels);
+	if ( out == NULL ) return NULL;
+
+	dx1 = x1 - x2;
+	dx2 = x3 - x2;
+	dx3 = x0 - x1 + x2 - x3;
+	dy1 = y1 - y2;
+	dy2 = y3 - y2;
+	dy3 = y0 - y1 + y2 - y3;
+	if ( fabs(dx3) < 1.0e-9 && fabs(dy3) < 1.0e-9 ) {
+		a11 = x1 - x0;
+		a12 = x3 - x0;
+		a13 = x0;
+		a21 = y1 - y0;
+		a22 = y3 - y0;
+		a23 = y0;
+		a31 = 0.0;
+		a32 = 0.0;
+	} else {
+		double denom = dx1 * dy2 - dx2 * dy1;
+		double g;
+		double h;
+		if ( fabs(denom) < 1.0e-9 ) {
+			xlcv_free_image(out);
+			xlcv_set_error("degenerate perspective crop");
+			return NULL;
+		}
+		g = (dx3 * dy2 - dx2 * dy3) / denom;
+		h = (dx1 * dy3 - dx3 * dy1) / denom;
+		a11 = x1 - x0 + g * x1;
+		a12 = x3 - x0 + h * x3;
+		a13 = x0;
+		a21 = y1 - y0 + g * y1;
+		a22 = y3 - y0 + h * y3;
+		a23 = y0;
+		a31 = g;
+		a32 = h;
+	}
+	for ( y = 0; y < crop_h; ++y ) {
+		double v = (double)y / (double)crop_h;
+		for ( x = 0; x < crop_w; ++x ) {
+			double u = (double)x / (double)crop_w;
+			double den = a31 * u + a32 * v + 1.0;
+			double sx;
+			double sy;
+			if ( fabs(den) < 1.0e-12 ) den = den < 0.0 ? -1.0e-12 : 1.0e-12;
+			sx = (a11 * u + a12 * v + a13) / den;
+			sy = (a21 * u + a22 * v + a23) / den;
+			for ( c = 0; c < image->channels; ++c ) {
+				out->data[((size_t)y * out->width + x) * out->channels + c] = xlcv_sample_replicate_bilinear(image, sx, sy, c);
+			}
+		}
+	}
+	if ( crop_h * 2 >= crop_w * 3 ) {
+		XlCvImageImpl* rotated = xlcv_rotate90ccw_impl(out);
+		xlcv_free_image(out);
+		return rotated;
 	}
 	xlcv_set_error("");
 	return out;
@@ -317,9 +599,9 @@ static XlCvImage xlcv_capture_hdc_region(HDC source_dc, int x, int y, int width,
 			for ( xx = 0; xx < width; ++xx ) {
 				unsigned char* px = pixels + ((size_t)yy * (size_t)width + (size_t)xx) * 4u;
 				float* out = image->data + ((size_t)yy * (size_t)width + (size_t)xx) * 3u;
-				out[0] = (float)px[2];
+				out[0] = (float)px[0];
 				out[1] = (float)px[1];
-				out[2] = (float)px[0];
+				out[2] = (float)px[2];
 			}
 		}
 		xlcv_set_error("");
@@ -405,6 +687,32 @@ XLCV_EXPORT XlCvImage opencv_xl_rotate180(XlCvImage handle)
 			int sy = image->height - 1 - y;
 			for ( c = 0; c < image->channels; ++c ) {
 				out->data[((size_t)y * image->width + x) * image->channels + c] = image->data[((size_t)sy * image->width + sx) * image->channels + c];
+			}
+		}
+	}
+	xlcv_set_error("");
+	return out;
+}
+
+XLCV_EXPORT XlCvImage opencv_xl_rotate90ccw(XlCvImage handle)
+{
+	XlCvImageImpl* image = (XlCvImageImpl*)handle;
+	XlCvImageImpl* out;
+	int x;
+	int y;
+	int c;
+	if ( image == NULL || image->data == NULL ) {
+		xlcv_set_error("invalid image");
+		return NULL;
+	}
+	out = xlcv_alloc(image->height, image->width, image->channels);
+	if ( out == NULL ) return NULL;
+	for ( y = 0; y < out->height; ++y ) {
+		for ( x = 0; x < out->width; ++x ) {
+			int sx = image->width - 1 - y;
+			int sy = x;
+			for ( c = 0; c < image->channels; ++c ) {
+				out->data[((size_t)y * out->width + x) * out->channels + c] = image->data[((size_t)sy * image->width + sx) * image->channels + c];
 			}
 		}
 	}

@@ -1051,7 +1051,7 @@ XLORT_EXPORT XlOrtSessionOptions onnxruntime_xl_create_session_options(void)
 		xlort_set_error("out of memory");
 		return NULL;
 	}
-	options->intra_threads = 1;
+	options->intra_threads = 0;
 	options->inter_threads = 0;
 	options->graph_optimization_level = ORT_ENABLE_ALL;
 	options->execution_mode = -1;
@@ -1401,7 +1401,6 @@ XLORT_EXPORT XlOrtSession onnxruntime_xl_create_session(const char* model_path, 
 			}
 		}
 	} else {
-		(void)g_api->SetIntraOpNumThreads(sess->options, 1);
 		(void)g_api->SetSessionGraphOptimizationLevel(sess->options, ORT_ENABLE_ALL);
 	}
 #if defined(_WIN32) || defined(_WIN64)
@@ -1720,7 +1719,7 @@ XLORT_EXPORT void onnxruntime_xl_release_tensor(XlOrtTensor tensor)
 	}
 }
 
-XLORT_EXPORT XlOrtResult onnxruntime_xl_run_tensor(XlOrtSession session, const char* input_name, XlOrtTensor tensor, const char* output_names_json)
+static XlOrtResult xlort_run_tensor_impl(XlOrtSession session, const char* input_name, XlOrtTensor tensor, const char* output_names_json, int include_data_json)
 {
 	XlOrtSessionImpl* sess = (XlOrtSessionImpl*)session;
 	XlOrtTensorImpl* t = (XlOrtTensorImpl*)tensor;
@@ -1802,7 +1801,17 @@ XLORT_EXPORT XlOrtResult onnxruntime_xl_run_tensor(XlOrtSession session, const c
 			if ( elem_type == ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT ) {
 				xlort_capture_first_float_output(result, dims, dim_count, data, elem_count);
 			}
-			xlort_append_tensor_data_json(result->json, sizeof(result->json), &used, elem_type, dims, dim_count, data, elem_count);
+			if ( include_data_json ) {
+				xlort_append_tensor_data_json(result->json, sizeof(result->json), &used, elem_type, dims, dim_count, data, elem_count);
+			} else {
+				size_t di;
+				xlort_appendf(result->json, sizeof(result->json), &used, "\"dtype\":\"%s\",\"shape\":[", xlort_dtype_name(elem_type));
+				for ( di = 0; di < dim_count; ++di ) {
+					if ( di > 0 ) xlort_append(result->json, sizeof(result->json), &used, ",");
+					xlort_appendf(result->json, sizeof(result->json), &used, "%lld", (long long)dims[di]);
+				}
+				xlort_append(result->json, sizeof(result->json), &used, "]");
+			}
 		} else {
 			xlort_appendf(result->json, sizeof(result->json), &used, "\"error\":\"unsupported output dtype %d\"", (int)elem_type);
 		}
@@ -1815,6 +1824,16 @@ XLORT_EXPORT XlOrtResult onnxruntime_xl_run_tensor(XlOrtSession session, const c
 	}
 	xlort_set_error("");
 	return result;
+}
+
+XLORT_EXPORT XlOrtResult onnxruntime_xl_run_tensor(XlOrtSession session, const char* input_name, XlOrtTensor tensor, const char* output_names_json)
+{
+	return xlort_run_tensor_impl(session, input_name, tensor, output_names_json, 1);
+}
+
+XLORT_EXPORT XlOrtResult onnxruntime_xl_run_tensor_fast(XlOrtSession session, const char* input_name, XlOrtTensor tensor, const char* output_names_json)
+{
+	return xlort_run_tensor_impl(session, input_name, tensor, output_names_json, 0);
 }
 
 XLORT_EXPORT XlOrtResult onnxruntime_xl_run_json_with_options(XlOrtSession session, const char* output_names_json, const char* input_feed_json, XlOrtRunOptions run_options)

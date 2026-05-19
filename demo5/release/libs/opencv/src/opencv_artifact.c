@@ -17,7 +17,9 @@ typedef void* (*CvImreadFn)(const char*, int);
 typedef int (*CvImwriteFn)(const char*, void*);
 typedef void* (*CvResizeFn)(void*, int, int);
 typedef void* (*CvCropFn)(void*, int, int, int, int);
+typedef void* (*CvPerspectiveCropFn)(void*, double, double, double, double, double, double, double, double);
 typedef void* (*CvRotate180Fn)(void*);
+typedef void* (*CvRotate90Fn)(void*);
 typedef void* (*CvCaptureRectFn)(int, int, int, int);
 typedef void* (*CvCaptureWindowFn)(void*);
 typedef void* (*CvCvtColorFn)(void*, int);
@@ -42,7 +44,9 @@ typedef struct CvApi {
 	CvImwriteFn imwrite;
 	CvResizeFn resize;
 	CvCropFn crop;
+	CvPerspectiveCropFn perspective_crop;
 	CvRotate180Fn rotate180;
+	CvRotate90Fn rotate90ccw;
 	CvCaptureRectFn capture_rect;
 	CvCaptureWindowFn capture_window;
 	CvCvtColorFn cvt_color;
@@ -101,7 +105,9 @@ static int cv_try_load(const char* path)
 	g_cv.imwrite = (CvImwriteFn)cv_sym("opencv_xl_imwrite");
 	g_cv.resize = (CvResizeFn)cv_sym("opencv_xl_resize");
 	g_cv.crop = (CvCropFn)cv_sym("opencv_xl_crop");
+	g_cv.perspective_crop = (CvPerspectiveCropFn)cv_sym("opencv_xl_perspective_crop");
 	g_cv.rotate180 = (CvRotate180Fn)cv_sym("opencv_xl_rotate180");
+	g_cv.rotate90ccw = (CvRotate90Fn)cv_sym("opencv_xl_rotate90ccw");
 	g_cv.capture_rect = (CvCaptureRectFn)cv_sym("opencv_xl_capture_rect");
 	g_cv.capture_window = (CvCaptureWindowFn)cv_sym("opencv_xl_capture_window");
 	g_cv.cvt_color = (CvCvtColorFn)cv_sym("opencv_xl_cvt_color");
@@ -191,10 +197,22 @@ XL_EXPORT void* opencv_crop_native(void* image, int x, int y, int width, int hei
 	return g_cv.crop(image, x, y, width, height);
 }
 
+XL_EXPORT void* opencv_perspective_crop_native(void* image, double x0, double y0, double x1, double y1, double x2, double y2, double x3, double y3)
+{
+	if ( !cv_load() || g_cv.perspective_crop == NULL ) return NULL;
+	return g_cv.perspective_crop(image, x0, y0, x1, y1, x2, y2, x3, y3);
+}
+
 XL_EXPORT void* opencv_rotate180_native(void* image)
 {
 	if ( !cv_load() || g_cv.rotate180 == NULL ) return NULL;
 	return g_cv.rotate180(image);
+}
+
+XL_EXPORT void* opencv_rotate90ccw_native(void* image)
+{
+	if ( !cv_load() || g_cv.rotate90ccw == NULL ) return NULL;
+	return g_cv.rotate90ccw(image);
 }
 
 XL_EXPORT void* opencv_capture_rect_native(int x, int y, int width, int height)
