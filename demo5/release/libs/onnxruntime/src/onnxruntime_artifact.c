@@ -438,5 +438,5 @@ XL_EXPORT void* ort_session_run_tensor_fast_native(void* handle, const char* inp
 XL_EXPORT const char* ort_result_json_native(void* handle) { return (handle != NULL && ort_load() && g_ort.result_json != NULL) ? g_ort.result_json(handle) : "{}"; }
 XL_EXPORT const char* ort_result_float_shape_json_native(void* handle) { return (handle != NULL && ort_load() && g_ort.result_float_shape_json != NULL) ? g_ort.result_float_shape_json(handle) : "[]"; }
 XL_EXPORT int ort_result_float_count_native(void* handle) { return (handle != NULL && ort_load() && g_ort.result_float_count != NULL) ? g_ort.result_float_count(handle) : 0; }
-XL_EXPORT float ort_result_float_at_native(void* handle, int index) { return (handle != NULL && ort_load() && g_ort.result_float_at != NULL) ? g_ort.result_float_at(handle, index) : 0.0f; }
+XL_EXPORT double ort_result_float_at_native(void* handle, int index) { return (handle != NULL && ort_load() && g_ort.result_float_at != NULL) ? (double)g_ort.result_float_at(handle, index) : 0.0; }
 XL_EXPORT int ort_result_release_native(void* handle) { if ( handle != NULL && ort_load() && g_ort.release_result != NULL ) g_ort.release_result(handle); return 1; }

@@ -1,0 +1,22 @@
+import dinov3
+import std.io
+
+func main() as int
+	auto model = dinov3.DinoV3("E:\\workspace\\llmrunner\\models\\dinov3-vits16plus_fp32.onnx")
+	auto result = model("D:\\git\\model-benchmark\\OCR模型\\image\\1.jpg")
+	if result.ok() == false then
+		std.io.println(result.error())
+		return 1
+	end
+	std.io.println("shape")
+	std.io.println(result.shape_json())
+	std.io.println("count")
+	std.io.println(result.count())
+	std.io.println("l2_norm")
+	std.io.println(result.l2_norm())
+	std.io.println("first")
+	std.io.println(result.at(0))
+	std.io.println("json_prefix")
+	std.io.println(result.to_json().slice(0, 80))
+	return 0
+end
