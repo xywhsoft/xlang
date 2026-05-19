@@ -29,8 +29,11 @@ func main() as int
 	std.io.println(result.count())
 	std.io.println(result.l2_norm())
 	std.io.println(result.embedding_json())
+	std.io.println(dinov3.similarity("D:\\git\\model-benchmark\\OCR模型\\image\\1.jpg", "D:\\git\\model-benchmark\\OCR模型\\image\\2.jpg"))
 	return 0
 end
 ```
 
 Use `set_direct_resize(true)` if the caller wants plain `224x224` resize instead of aspect-preserving resize plus center crop.
+
+`similarity(left, right)` and `cosine_similarity(left, right)` return cosine similarity for two images.

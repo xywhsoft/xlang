@@ -31,6 +31,8 @@
 				{"name": "DinoV3", "symbol": "DinoV3", "kind": "function", "overloadCount": 2},
 				{"name": "embedding_json", "symbol": "embedding_json", "kind": "function", "overloadCount": 2},
 				{"name": "infer_json", "symbol": "infer_json", "kind": "function", "overloadCount": 2},
+				{"name": "similarity", "symbol": "similarity", "kind": "function", "overloadCount": 2},
+				{"name": "cosine_similarity", "symbol": "cosine_similarity", "kind": "function", "overloadCount": 2},
 				{"name": "version", "symbol": "version", "kind": "function", "overloadCount": 1},
 				{"name": "last_error", "symbol": "last_error", "kind": "function", "overloadCount": 1}
 			]

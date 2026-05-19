@@ -245,6 +245,7 @@ class DinoV3Model extends object
 		point direct_result_handle = ort_session_run_tensor_fast_native(self.session.handle, self.input_name, direct_tensor.handle, self.output_names)
 		return DinoV3Output(direct_result_handle, image_path)
 	end
+
 end
 
 func DinoV3() as DinoV3Model
@@ -279,6 +280,34 @@ func infer_json(string model_path, string image_path) as string
 	return result.to_json()
 end
 
+func similarity(string left_image_path, string right_image_path) as float
+	auto model = DinoV3Model()
+	auto left = model(left_image_path)
+	auto right = model(right_image_path)
+	if left.ok() == false or right.ok() == false then
+		return 0
+	end
+	return dinov3_cosine_native(left.handle, right.handle)
+end
+
+func similarity(string model_path, string left_image_path, string right_image_path) as float
+	auto model = DinoV3Model(model_path)
+	auto left = model(left_image_path)
+	auto right = model(right_image_path)
+	if left.ok() == false or right.ok() == false then
+		return 0
+	end
+	return dinov3_cosine_native(left.handle, right.handle)
+end
+
+func cosine_similarity(string left_image_path, string right_image_path) as float
+	return similarity(left_image_path, right_image_path)
+end
+
+func cosine_similarity(string model_path, string left_image_path, string right_image_path) as float
+	return similarity(model_path, left_image_path, right_image_path)
+end
+
 func version() as string
 	return dinov3_version_native()
 end
@@ -290,5 +319,7 @@ end
 export DinoV3
 export embedding_json
 export infer_json
+export similarity
+export cosine_similarity
 export version
 export last_error

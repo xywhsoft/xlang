@@ -18,5 +18,7 @@ func main() as int
 	std.io.println(result.at(0))
 	std.io.println("json_prefix")
 	std.io.println(result.to_json().slice(0, 80))
+	std.io.println("similarity_1_2")
+	std.io.println(dinov3.similarity("E:\\workspace\\llmrunner\\models\\dinov3-vits16plus_fp32.onnx", "D:\\git\\model-benchmark\\OCR模型\\image\\1.jpg", "D:\\git\\model-benchmark\\OCR模型\\image\\2.jpg"))
 	return 0
 end
