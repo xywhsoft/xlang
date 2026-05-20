@@ -175,6 +175,31 @@ static int xlcv_streq_ext(const char* path, const char* ext)
 #endif
 }
 
+static FILE* xlcv_fopen_utf8(const char* path, const char* mode)
+{
+	FILE* fp = NULL;
+	if ( path == NULL || mode == NULL ) return NULL;
+#if defined(_WIN32) || defined(_WIN64)
+	{
+		int path_need = MultiByteToWideChar(CP_UTF8, 0, path, -1, NULL, 0);
+		int mode_need = MultiByteToWideChar(CP_UTF8, 0, mode, -1, NULL, 0);
+		if ( path_need > 0 && mode_need > 0 ) {
+			wchar_t* wide_path = (wchar_t*)calloc((size_t)path_need, sizeof(wchar_t));
+			wchar_t* wide_mode = (wchar_t*)calloc((size_t)mode_need, sizeof(wchar_t));
+			if ( wide_path != NULL && wide_mode != NULL ) {
+				MultiByteToWideChar(CP_UTF8, 0, path, -1, wide_path, path_need);
+				MultiByteToWideChar(CP_UTF8, 0, mode, -1, wide_mode, mode_need);
+				fp = _wfopen(wide_path, wide_mode);
+			}
+			free(wide_path);
+			free(wide_mode);
+		}
+	}
+#endif
+	if ( fp == NULL ) fp = fopen(path, mode);
+	return fp;
+}
+
 static unsigned char* xlcv_read_file_bytes(const char* path, int* out_size)
 {
 	FILE* fp = NULL;
@@ -183,20 +208,7 @@ static unsigned char* xlcv_read_file_bytes(const char* path, int* out_size)
 	size_t got;
 	if ( out_size != NULL ) *out_size = 0;
 	if ( path == NULL || path[0] == '\0' || out_size == NULL ) return NULL;
-#if defined(_WIN32) || defined(_WIN64)
-	{
-		int need = MultiByteToWideChar(CP_UTF8, 0, path, -1, NULL, 0);
-		if ( need > 0 ) {
-			wchar_t* wide_path = (wchar_t*)calloc((size_t)need, sizeof(wchar_t));
-			if ( wide_path != NULL ) {
-				MultiByteToWideChar(CP_UTF8, 0, path, -1, wide_path, need);
-				fp = _wfopen(wide_path, L"rb");
-				free(wide_path);
-			}
-		}
-	}
-#endif
-	if ( fp == NULL ) fp = fopen(path, "rb");
+	fp = xlcv_fopen_utf8(path, "rb");
 	if ( fp == NULL ) {
 		xlcv_set_error("can't fopen");
 		return NULL;
@@ -232,6 +244,18 @@ static unsigned char* xlcv_read_file_bytes(const char* path, int* out_size)
 	}
 	*out_size = (int)size;
 	return data;
+}
+
+typedef struct XlCvWriteContext {
+	FILE* fp;
+	int ok;
+} XlCvWriteContext;
+
+static void xlcv_stbi_write_callback(void* context, void* data, int size)
+{
+	XlCvWriteContext* ctx = (XlCvWriteContext*)context;
+	if ( ctx == NULL || ctx->fp == NULL || data == NULL || size <= 0 || !ctx->ok ) return;
+	if ( fwrite(data, 1u, (size_t)size, ctx->fp) != (size_t)size ) ctx->ok = 0;
 }
 
 XLCV_EXPORT int opencv_xl_available(void)
@@ -305,6 +329,8 @@ XLCV_EXPORT int opencv_xl_imwrite(const char* path, XlCvImage handle)
 	size_t count;
 	size_t i;
 	int ok;
+	FILE* fp;
+	XlCvWriteContext write_ctx;
 	if ( path == NULL || path[0] == '\0' || image == NULL || image->data == NULL ) {
 		xlcv_set_error("invalid image or output path");
 		return 0;
@@ -326,14 +352,24 @@ XLCV_EXPORT int opencv_xl_imwrite(const char* path, XlCvImage handle)
 	} else {
 		for ( i = 0; i < count; ++i ) pixels[i] = (unsigned char)(xlcv_clampf(image->data[i], 0.0f, 255.0f) + 0.5f);
 	}
-	if ( xlcv_streq_ext(path, ".jpg") || xlcv_streq_ext(path, ".jpeg") ) {
-		ok = stbi_write_jpg(path, image->width, image->height, image->channels, pixels, 90);
-	} else if ( xlcv_streq_ext(path, ".bmp") ) {
-		ok = stbi_write_bmp(path, image->width, image->height, image->channels, pixels);
-	} else {
-		ok = stbi_write_png(path, image->width, image->height, image->channels, pixels, image->width * image->channels);
+	fp = xlcv_fopen_utf8(path, "wb");
+	if ( fp == NULL ) {
+		free(pixels);
+		xlcv_set_error("can't fopen");
+		return 0;
 	}
+	write_ctx.fp = fp;
+	write_ctx.ok = 1;
+	if ( xlcv_streq_ext(path, ".jpg") || xlcv_streq_ext(path, ".jpeg") ) {
+		ok = stbi_write_jpg_to_func(xlcv_stbi_write_callback, &write_ctx, image->width, image->height, image->channels, pixels, 90);
+	} else if ( xlcv_streq_ext(path, ".bmp") ) {
+		ok = stbi_write_bmp_to_func(xlcv_stbi_write_callback, &write_ctx, image->width, image->height, image->channels, pixels);
+	} else {
+		ok = stbi_write_png_to_func(xlcv_stbi_write_callback, &write_ctx, image->width, image->height, image->channels, pixels, image->width * image->channels);
+	}
+	if ( fclose(fp) != 0 ) write_ctx.ok = 0;
 	free(pixels);
+	ok = ok && write_ctx.ok;
 	xlcv_set_error(ok ? "" : "image write failed");
 	return ok ? 1 : 0;
 }
@@ -950,6 +986,140 @@ XLCV_EXPORT int opencv_xl_to_chw_tensor_f32(XlCvImage handle, double scale, doub
 	out_shape[1] = image->channels;
 	out_shape[2] = image->height;
 	out_shape[3] = image->width;
+	*out_count = (int)count;
+	*out_data = data;
+	xlcv_set_error("");
+	return 1;
+}
+
+XLCV_EXPORT int opencv_xl_to_chw_tensor_f32_resized(XlCvImage handle, int width, int height, double scale, double mean0, double mean1, double mean2, double std0, double std1, double std2, float** out_data, long long* out_shape, int* out_count)
+{
+	XlCvImageImpl* image = (XlCvImageImpl*)handle;
+	float* data;
+	int* x0s;
+	int* x1s;
+	int* y0s;
+	int* y1s;
+	double* wxs;
+	double* wys;
+	size_t count;
+	size_t pos = 0;
+	int c;
+	int y;
+	int x;
+	if ( out_data == NULL || out_shape == NULL || out_count == NULL ) {
+		xlcv_set_error("invalid tensor output pointers");
+		return 0;
+	}
+	*out_data = NULL;
+	*out_count = 0;
+	if ( image == NULL || image->data == NULL || width <= 0 || height <= 0 ) {
+		xlcv_set_error("invalid image or resize dimensions");
+		return 0;
+	}
+	count = (size_t)width * (size_t)height * (size_t)image->channels;
+	data = (float*)malloc(sizeof(float) * count);
+	x0s = (int*)malloc(sizeof(int) * (size_t)width);
+	x1s = (int*)malloc(sizeof(int) * (size_t)width);
+	y0s = (int*)malloc(sizeof(int) * (size_t)height);
+	y1s = (int*)malloc(sizeof(int) * (size_t)height);
+	wxs = (double*)malloc(sizeof(double) * (size_t)width);
+	wys = (double*)malloc(sizeof(double) * (size_t)height);
+	if ( data == NULL || x0s == NULL || x1s == NULL || y0s == NULL || y1s == NULL || wxs == NULL || wys == NULL ) {
+		free(data);
+		free(x0s);
+		free(x1s);
+		free(y0s);
+		free(y1s);
+		free(wxs);
+		free(wys);
+		xlcv_set_error("out of memory");
+		return 0;
+	}
+	for ( x = 0; x < width; ++x ) {
+		double src_x = ((double)x + 0.5) * (double)image->width / (double)width - 0.5;
+		if ( src_x < 0.0 ) src_x = 0.0;
+		if ( src_x > (double)(image->width - 1) ) src_x = (double)(image->width - 1);
+		x0s[x] = (int)floor(src_x);
+		x1s[x] = x0s[x] + 1;
+		if ( x1s[x] >= image->width ) x1s[x] = image->width - 1;
+		wxs[x] = src_x - (double)x0s[x];
+	}
+	for ( y = 0; y < height; ++y ) {
+		double src_y = ((double)y + 0.5) * (double)image->height / (double)height - 0.5;
+		if ( src_y < 0.0 ) src_y = 0.0;
+		if ( src_y > (double)(image->height - 1) ) src_y = (double)(image->height - 1);
+		y0s[y] = (int)floor(src_y);
+		y1s[y] = y0s[y] + 1;
+		if ( y1s[y] >= image->height ) y1s[y] = image->height - 1;
+		wys[y] = src_y - (double)y0s[y];
+	}
+	if ( image->channels == 3 ) {
+		size_t plane = (size_t)width * (size_t)height;
+		double means[3];
+		double stddevs[3];
+		means[0] = mean0;
+		means[1] = mean1;
+		means[2] = mean2;
+		stddevs[0] = std0 == 0.0 ? 1.0 : std0;
+		stddevs[1] = std1 == 0.0 ? 1.0 : std1;
+		stddevs[2] = std2 == 0.0 ? 1.0 : std2;
+		for ( y = 0; y < height; ++y ) {
+			const float* row0 = image->data + ((size_t)y0s[y] * (size_t)image->width * (size_t)image->channels);
+			const float* row1 = image->data + ((size_t)y1s[y] * (size_t)image->width * (size_t)image->channels);
+			double wy = wys[y];
+			for ( x = 0; x < width; ++x ) {
+				const float* p00 = row0 + (size_t)x0s[x] * 3u;
+				const float* p01 = row0 + (size_t)x1s[x] * 3u;
+				const float* p10 = row1 + (size_t)x0s[x] * 3u;
+				const float* p11 = row1 + (size_t)x1s[x] * 3u;
+				size_t out_i = (size_t)y * (size_t)width + (size_t)x;
+				double wx = wxs[x];
+				for ( c = 0; c < 3; ++c ) {
+					double v00 = (double)p00[c];
+					double v01 = (double)p01[c];
+					double v10 = (double)p10[c];
+					double v11 = (double)p11[c];
+					double top = v00 + (v01 - v00) * wx;
+					double bottom = v10 + (v11 - v10) * wx;
+					double v = top + (bottom - top) * wy;
+					data[(size_t)c * plane + out_i] = (float)((v * scale - means[c]) / stddevs[c]);
+				}
+			}
+		}
+	} else {
+		for ( c = 0; c < image->channels; ++c ) {
+			double mean = xlcv_channel_value(c, mean0, mean1, mean2);
+			double stddev = xlcv_channel_value(c, std0, std1, std2);
+			if ( stddev == 0.0 ) stddev = 1.0;
+			for ( y = 0; y < height; ++y ) {
+				const float* row0 = image->data + ((size_t)y0s[y] * (size_t)image->width * (size_t)image->channels);
+				const float* row1 = image->data + ((size_t)y1s[y] * (size_t)image->width * (size_t)image->channels);
+				double wy = wys[y];
+				for ( x = 0; x < width; ++x ) {
+					double wx = wxs[x];
+					double v00 = (double)row0[(size_t)x0s[x] * (size_t)image->channels + (size_t)c];
+					double v01 = (double)row0[(size_t)x1s[x] * (size_t)image->channels + (size_t)c];
+					double v10 = (double)row1[(size_t)x0s[x] * (size_t)image->channels + (size_t)c];
+					double v11 = (double)row1[(size_t)x1s[x] * (size_t)image->channels + (size_t)c];
+					double top = v00 + (v01 - v00) * wx;
+					double bottom = v10 + (v11 - v10) * wx;
+					double v = top + (bottom - top) * wy;
+					data[pos++] = (float)((v * scale - mean) / stddev);
+				}
+			}
+		}
+	}
+	free(x0s);
+	free(x1s);
+	free(y0s);
+	free(y1s);
+	free(wxs);
+	free(wys);
+	out_shape[0] = 1;
+	out_shape[1] = image->channels;
+	out_shape[2] = height;
+	out_shape[3] = width;
 	*out_count = (int)count;
 	*out_data = data;
 	xlcv_set_error("");

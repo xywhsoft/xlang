@@ -57,6 +57,7 @@ XlOrtResult onnxruntime_xl_run_with_iobinding(XlOrtSession session, XlOrtIoBindi
 const char* onnxruntime_xl_iobinding_outputs_json(XlOrtIoBinding binding);
 void onnxruntime_xl_release_iobinding(XlOrtIoBinding binding);
 XlOrtTensor onnxruntime_xl_tensor_from_f32(const float* data, int data_count, const long long* shape, int shape_count);
+XlOrtTensor onnxruntime_xl_tensor_adopt_f32(float* data, int data_count, const long long* shape, int shape_count);
 XlOrtTensor onnxruntime_xl_tensor_zeros_f32(const char* shape_json);
 void onnxruntime_xl_release_tensor(XlOrtTensor tensor);
 XlOrtResult onnxruntime_xl_run_tensor(XlOrtSession session, const char* input_name, XlOrtTensor tensor, const char* output_names_json);
@@ -67,6 +68,7 @@ const char* onnxruntime_xl_result_json(XlOrtResult result);
 const char* onnxruntime_xl_result_float_shape_json(XlOrtResult result);
 int onnxruntime_xl_result_float_count(XlOrtResult result);
 float onnxruntime_xl_result_float_at(XlOrtResult result, int index);
+const float* onnxruntime_xl_result_float_data(XlOrtResult result);
 void onnxruntime_xl_release_result(XlOrtResult result);
 
 #ifdef __cplusplus

@@ -23,6 +23,7 @@ XlCvImage opencv_xl_rectangle(XlCvImage image, int x1, int y1, int x2, int y2, d
 XlCvImage opencv_xl_normalize(XlCvImage image, double scale, double mean0, double mean1, double mean2, double std0, double std1, double std2);
 const char* opencv_xl_to_chw_tensor_json(XlCvImage image, double scale, double mean0, double mean1, double mean2, double std0, double std1, double std2);
 int opencv_xl_to_chw_tensor_f32(XlCvImage image, double scale, double mean0, double mean1, double mean2, double std0, double std1, double std2, float** out_data, long long* out_shape, int* out_count);
+int opencv_xl_to_chw_tensor_f32_resized(XlCvImage image, int width, int height, double scale, double mean0, double mean1, double mean2, double std0, double std1, double std2, float** out_data, long long* out_shape, int* out_count);
 void opencv_xl_release_tensor_f32(float* data);
 int opencv_xl_width(XlCvImage image);
 int opencv_xl_height(XlCvImage image);

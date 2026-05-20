@@ -1679,6 +1679,41 @@ XLORT_EXPORT XlOrtTensor onnxruntime_xl_tensor_from_f32(const float* data, int d
 	return tensor;
 }
 
+XLORT_EXPORT XlOrtTensor onnxruntime_xl_tensor_adopt_f32(float* data, int data_count, const long long* shape, int shape_count)
+{
+	XlOrtTensorImpl* tensor;
+	int i;
+	size_t expected = 1u;
+	if ( data == NULL || data_count <= 0 || shape == NULL || shape_count <= 0 || shape_count > 8 ) {
+		xlort_set_error("invalid float32 tensor input");
+		return NULL;
+	}
+	tensor = (XlOrtTensorImpl*)calloc(1, sizeof(*tensor));
+	if ( tensor == NULL ) {
+		xlort_set_error("out of memory");
+		return NULL;
+	}
+	tensor->shape_count = (size_t)shape_count;
+	for ( i = 0; i < shape_count; ++i ) {
+		if ( shape[i] <= 0 ) {
+			free(tensor);
+			xlort_set_error("tensor shape dimensions must be positive");
+			return NULL;
+		}
+		tensor->shape[i] = (int64_t)shape[i];
+		expected *= (size_t)shape[i];
+	}
+	if ( expected != (size_t)data_count ) {
+		free(tensor);
+		xlort_set_error("tensor data_count does not match shape");
+		return NULL;
+	}
+	tensor->data_count = (size_t)data_count;
+	tensor->data = data;
+	xlort_set_error("");
+	return tensor;
+}
+
 XLORT_EXPORT XlOrtTensor onnxruntime_xl_tensor_zeros_f32(const char* shape_json)
 {
 	double dims[8];
@@ -2043,6 +2078,12 @@ XLORT_EXPORT float onnxruntime_xl_result_float_at(XlOrtResult result, int index)
 	XlOrtResultImpl* r = (XlOrtResultImpl*)result;
 	if ( r == NULL || r->float_data == NULL || index < 0 || (size_t)index >= r->float_count ) return 0.0f;
 	return r->float_data[index];
+}
+
+XLORT_EXPORT const float* onnxruntime_xl_result_float_data(XlOrtResult result)
+{
+	XlOrtResultImpl* r = (XlOrtResultImpl*)result;
+	return r != NULL ? r->float_data : NULL;
 }
 
 XLORT_EXPORT void onnxruntime_xl_release_result(XlOrtResult result)

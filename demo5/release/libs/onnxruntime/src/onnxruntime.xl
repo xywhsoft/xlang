@@ -51,6 +51,7 @@ extern "ort_session_run_json_native" func ort_session_run_json_native(point hand
 extern "ort_session_run_json_with_options_native" func ort_session_run_json_with_options_native(point handle, string output_names_json, string input_feed_json, point options) as point
 extern "ort_tensor_zeros_f32_native" func ort_tensor_zeros_f32_native(string shape_json) as point
 extern "ort_tensor_from_opencv_native" func ort_tensor_from_opencv_native(point image, float scale, float mean0, float mean1, float mean2, float std0, float std1, float std2) as point
+extern "ort_tensor_from_opencv_resized_native" func ort_tensor_from_opencv_resized_native(point image, int width, int height, float scale, float mean0, float mean1, float mean2, float std0, float std1, float std2) as point
 extern "ort_tensor_from_opencv_batch_native" func ort_tensor_from_opencv_batch_native(int batch_count, point image0, point image1, point image2, point image3, point image4, point image5, float scale, float mean0, float mean1, float mean2, float std0, float std1, float std2) as point
 extern "ort_tensor_release_native" func ort_tensor_release_native(point handle) as int
 extern "ort_session_run_tensor_native" func ort_session_run_tensor_native(point handle, string input_name, point tensor, string output_names_json) as point
@@ -431,6 +432,10 @@ func TensorFromOpenCV(point image, float scale, float mean0, float mean1, float 
 	return TensorObject(ort_tensor_from_opencv_native(image, scale, mean0, mean1, mean2, std0, std1, std2))
 end
 
+func TensorFromOpenCVResized(point image, int width, int height, float scale, float mean0, float mean1, float mean2, float std0, float std1, float std2) as TensorObject
+	return TensorObject(ort_tensor_from_opencv_resized_native(image, width, height, scale, mean0, mean1, mean2, std0, std1, std2))
+end
+
 func TensorFromOpenCVBatch(int batch_count, point image0, point image1, point image2, point image3, point image4, point image5, float scale, float mean0, float mean1, float mean2, float std0, float std1, float std2) as TensorObject
 	return TensorObject(ort_tensor_from_opencv_batch_native(batch_count, image0, image1, image2, image3, image4, image5, scale, mean0, mean1, mean2, std0, std1, std2))
 end
@@ -475,6 +480,7 @@ export SessionOptions
 export RunOptions
 export TensorZerosF32
 export TensorFromOpenCV
+export TensorFromOpenCVResized
 export TensorFromOpenCVBatch
 export InferenceSession
 export available

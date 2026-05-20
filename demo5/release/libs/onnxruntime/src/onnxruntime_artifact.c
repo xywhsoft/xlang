@@ -25,12 +25,14 @@ typedef void* (*OrtRunJsonFn)(void*, const char*, const char*);
 typedef void* (*OrtRunJsonWithOptionsFn)(void*, const char*, const char*, void*);
 typedef void* (*OrtTensorZerosFn)(const char*);
 typedef void* (*OrtTensorFromF32Fn)(const float*, int, const long long*, int);
+typedef void* (*OrtTensorAdoptF32Fn)(float*, int, const long long*, int);
 typedef void* (*OrtRunTensorFn)(void*, const char*, void*, const char*);
 typedef const char* (*OrtResultTextFn)(void*);
 typedef int (*OrtResultIntFn)(void*);
 typedef float (*OrtResultFloatAtFn)(void*, int);
 typedef void* (*OrtCreateIoBindingFn)(void*);
 typedef int (*CvToChwTensorF32Fn)(void*, double, double, double, double, double, double, double, float**, long long*, int*);
+typedef int (*CvToChwTensorF32ResizedFn)(void*, int, int, double, double, double, double, double, double, double, float**, long long*, int*);
 typedef void (*CvReleaseTensorF32Fn)(float*);
 typedef int (*OrtIoBindingBindInputFn)(void*, const char*, const char*);
 typedef int (*OrtIoBindingBindOutputFn)(void*, const char*);
@@ -90,6 +92,7 @@ typedef struct OrtApi {
 	OrtRunJsonFn run_json;
 	OrtRunJsonWithOptionsFn run_json_with_options;
 	OrtTensorFromF32Fn tensor_from_f32;
+	OrtTensorAdoptF32Fn tensor_adopt_f32;
 	OrtTensorZerosFn tensor_zeros_f32;
 	OrtReleasePtrFn release_tensor;
 	OrtRunTensorFn run_tensor;
@@ -114,6 +117,7 @@ typedef struct CvBridgeApi {
 	void* module;
 #endif
 	CvToChwTensorF32Fn to_chw_tensor_f32;
+	CvToChwTensorF32ResizedFn to_chw_tensor_f32_resized;
 	CvReleaseTensorF32Fn release_tensor_f32;
 } CvBridgeApi;
 
@@ -199,6 +203,7 @@ static int ort_try_load(const char* path)
 	g_ort.run_json = (OrtRunJsonFn)ort_sym("onnxruntime_xl_run_json");
 	g_ort.run_json_with_options = (OrtRunJsonWithOptionsFn)ort_sym("onnxruntime_xl_run_json_with_options");
 	g_ort.tensor_from_f32 = (OrtTensorFromF32Fn)ort_sym("onnxruntime_xl_tensor_from_f32");
+	g_ort.tensor_adopt_f32 = (OrtTensorAdoptF32Fn)ort_sym("onnxruntime_xl_tensor_adopt_f32");
 	g_ort.tensor_zeros_f32 = (OrtTensorZerosFn)ort_sym("onnxruntime_xl_tensor_zeros_f32");
 	g_ort.release_tensor = (OrtReleasePtrFn)ort_sym("onnxruntime_xl_release_tensor");
 	g_ort.run_tensor = (OrtRunTensorFn)ort_sym("onnxruntime_xl_run_tensor");
@@ -237,6 +242,7 @@ static int cv_bridge_try_load(const char* path)
 #endif
 	if ( g_cv_bridge.module == NULL ) return 0;
 	g_cv_bridge.to_chw_tensor_f32 = (CvToChwTensorF32Fn)cv_bridge_sym("opencv_xl_to_chw_tensor_f32");
+	g_cv_bridge.to_chw_tensor_f32_resized = (CvToChwTensorF32ResizedFn)cv_bridge_sym("opencv_xl_to_chw_tensor_f32_resized");
 	g_cv_bridge.release_tensor_f32 = (CvReleaseTensorF32Fn)cv_bridge_sym("opencv_xl_release_tensor_f32");
 	if ( g_cv_bridge.to_chw_tensor_f32 == NULL || g_cv_bridge.release_tensor_f32 == NULL ) return 0;
 	g_cv_bridge.loaded = 1;
@@ -361,8 +367,45 @@ XL_EXPORT void* ort_tensor_from_opencv_native(void* image, double scale, double 
 		ort_set_error("OpenCV image to CHW tensor conversion failed");
 		return NULL;
 	}
-	tensor = g_ort.tensor_from_f32(data, count, shape, 4);
-	g_cv_bridge.release_tensor_f32(data);
+	if ( g_ort.tensor_adopt_f32 != NULL ) {
+		tensor = g_ort.tensor_adopt_f32(data, count, shape, 4);
+		if ( tensor != NULL ) data = NULL;
+	} else {
+		tensor = g_ort.tensor_from_f32(data, count, shape, 4);
+	}
+	if ( data != NULL ) g_cv_bridge.release_tensor_f32(data);
+	return tensor;
+}
+
+XL_EXPORT void* ort_tensor_from_opencv_resized_native(void* image, int width, int height, double scale, double mean0, double mean1, double mean2, double std0, double std1, double std2)
+{
+	float* data = NULL;
+	long long shape[4] = {0, 0, 0, 0};
+	int count = 0;
+	void* tensor;
+	if ( image == NULL || width <= 0 || height <= 0 ) {
+		ort_set_error("invalid OpenCV image handle or resize dimensions");
+		return NULL;
+	}
+	if ( !ort_load() || g_ort.tensor_from_f32 == NULL ) {
+		ort_set_error("onnxruntime tensor_from_f32 is unavailable");
+		return NULL;
+	}
+	if ( !cv_bridge_load() || g_cv_bridge.to_chw_tensor_f32_resized == NULL || g_cv_bridge.release_tensor_f32 == NULL ) {
+		ort_set_error("OpenCV resized CHW tensor bridge is unavailable");
+		return NULL;
+	}
+	if ( !g_cv_bridge.to_chw_tensor_f32_resized(image, width, height, scale, mean0, mean1, mean2, std0, std1, std2, &data, shape, &count) || data == NULL || count <= 0 ) {
+		ort_set_error("OpenCV image resize to CHW tensor conversion failed");
+		return NULL;
+	}
+	if ( g_ort.tensor_adopt_f32 != NULL ) {
+		tensor = g_ort.tensor_adopt_f32(data, count, shape, 4);
+		if ( tensor != NULL ) data = NULL;
+	} else {
+		tensor = g_ort.tensor_from_f32(data, count, shape, 4);
+	}
+	if ( data != NULL ) g_cv_bridge.release_tensor_f32(data);
 	return tensor;
 }
 
@@ -427,7 +470,12 @@ XL_EXPORT void* ort_tensor_from_opencv_batch_native(int batch_count, void* image
 		memcpy(batch_data + (size_t)i * (size_t)per_image_count, data, (size_t)per_image_count * sizeof(float));
 		g_cv_bridge.release_tensor_f32(data);
 	}
-	tensor = g_ort.tensor_from_f32(batch_data, per_image_count * batch_count, batch_shape, 4);
+	if ( g_ort.tensor_adopt_f32 != NULL ) {
+		tensor = g_ort.tensor_adopt_f32(batch_data, per_image_count * batch_count, batch_shape, 4);
+		if ( tensor != NULL ) batch_data = NULL;
+	} else {
+		tensor = g_ort.tensor_from_f32(batch_data, per_image_count * batch_count, batch_shape, 4);
+	}
 	free(batch_data);
 	return tensor;
 }
