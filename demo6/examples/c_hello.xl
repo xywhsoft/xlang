@@ -1,0 +1,3 @@
+extern "puts" func puts(string text) -> int32
+
+puts("hello from c")

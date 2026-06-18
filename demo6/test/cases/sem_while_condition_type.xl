@@ -1,0 +1,5 @@
+int value = 0
+
+while value do
+    value = value + 1
+end

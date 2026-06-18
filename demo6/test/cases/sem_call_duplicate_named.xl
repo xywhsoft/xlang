@@ -1,0 +1,5 @@
+func open(string path, string mode = "read")
+    return
+end
+
+open(path = "a.txt", path = "b.txt")

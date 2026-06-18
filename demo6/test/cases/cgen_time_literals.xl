@@ -1,0 +1,11 @@
+extern "expect_i64" func expect(int actual, int expected)
+
+time dateOnly = #2026-06-18#
+time timeOnly = #12:30:59#
+time both = #2026-06-18 12:30:59#
+auto inferred = #2026-06-18#
+
+expect(dateOnly == inferred, 1)
+expect(timeOnly == #12:30:59#, 1)
+expect(both > dateOnly, 1)
+expect(both ~= #2026-06-18 12:30:59#, 1)

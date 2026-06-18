@@ -1,0 +1,69 @@
+class Tracker
+    int value = 0
+
+    create(int value)
+        self.value = value
+    end
+
+    destroy()
+        recordDestroy(self.value)
+    end
+end
+
+extern "record_destroy" func recordDestroy(int value)
+extern "expect_i64" func expect(int actual, int expected)
+extern "destroy_count" func destroyCount() -> int
+extern "destroy_value" func destroyValue() -> int
+
+func exercise()
+    auto tracker = Tracker(77)
+    expect(destroyCount(), 0)
+end
+
+func earlyReturn() -> int
+    auto tracker = Tracker(88)
+    return 9
+end
+
+func breakCleanup()
+    for i in range(0, 3)
+        auto tracker = Tracker(100 + i)
+        break
+    end
+end
+
+func continueCleanup()
+    for i in range(0, 2)
+        auto tracker = Tracker(200 + i)
+        continue
+    end
+end
+
+func branchCleanup()
+    if true then
+        auto tracker = Tracker(300)
+        expect(destroyCount(), 5)
+    end
+    expect(destroyCount(), 6)
+    expect(destroyValue(), 300)
+end
+
+exercise()
+expect(destroyCount(), 1)
+expect(destroyValue(), 77)
+
+expect(earlyReturn(), 9)
+expect(destroyCount(), 2)
+expect(destroyValue(), 88)
+
+breakCleanup()
+expect(destroyCount(), 3)
+expect(destroyValue(), 100)
+
+continueCleanup()
+expect(destroyCount(), 5)
+expect(destroyValue(), 201)
+
+branchCleanup()
+expect(destroyCount(), 6)
+expect(destroyValue(), 300)

@@ -1,0 +1,5 @@
+func log(string text, ...)
+end
+
+func log(string text, ...)
+end

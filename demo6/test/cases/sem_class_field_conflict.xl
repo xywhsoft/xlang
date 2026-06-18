@@ -1,0 +1,6 @@
+class Bad
+    int value
+
+    func value()
+    end
+end

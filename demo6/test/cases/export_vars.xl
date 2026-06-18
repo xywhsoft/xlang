@@ -1,0 +1,10 @@
+export "xl6_counter" var int counter = 1
+export "xl6_version" const int version = 7
+
+export "xl6_get_total" func getTotal() -> int
+    return counter + version
+end
+
+export "xl6_set_counter" func setCounter(int value)
+    counter = value
+end

@@ -1,0 +1,5 @@
+func identity<T>(T value) -> T
+    return value
+end
+
+auto value = identity::<Missing>(1)

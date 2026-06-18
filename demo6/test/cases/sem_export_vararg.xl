@@ -1,0 +1,3 @@
+export "bad_vararg" func bad(...)
+    return
+end

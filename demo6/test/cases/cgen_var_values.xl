@@ -1,0 +1,42 @@
+extern "expect_i64" func expect(int actual, int expected)
+
+func makeValue(int value) -> var
+    return value
+end
+
+func makePair() -> (var, int)
+    return #2026-06-18#, 7
+end
+
+func count(...) -> int
+    return arg.length
+end
+
+var empty
+var number = 123
+var moment = #2026-06-18#
+var textValue = "hello"
+var values = [1, 2, 3]
+var table = {"a": 1}
+var unique = {1, 2, 3}
+
+number = 456
+moment = #12:30:59#
+
+var fromFunc = makeValue(789)
+auto first, _ = makePair()
+auto _, pairInt = makePair()
+
+expect(type(empty) == null, 1)
+expect(type(number) == int, 1)
+expect(type(moment) == time, 1)
+expect(type(textValue) == string, 1)
+expect(type(values) == array, 1)
+expect(type(table) == dict, 1)
+expect(type(unique) == set, 1)
+expect(type(fromFunc) == int, 1)
+expect(type(first) == time, 1)
+expect(type(makeValue(10)) == int, 1)
+
+expect(pairInt, 7)
+expect(count(empty, number, moment, fromFunc, first, makeValue(10), #2026-06-18 12:30:59#), 7)

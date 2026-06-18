@@ -1,0 +1,10 @@
+class Resource
+    int value = 0
+
+    destroy()
+    end
+end
+
+func make() -> var
+    return Resource()
+end

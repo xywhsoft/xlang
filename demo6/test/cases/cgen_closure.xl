@@ -1,0 +1,24 @@
+extern "expect_i64" func expect(int actual, int expected)
+
+auto inc = func(int value) -> int => value + 1
+expect(inc(41), 42)
+
+func makeAdder(int base) -> function(int) -> int
+    return func(int value) -> int
+        return base + value
+    end
+end
+
+func identity(function(int) -> int fn) -> function(int) -> int
+    return fn
+end
+
+auto add10 = makeAdder(10)
+auto value = add10(5)
+expect(value, 15)
+
+auto copy = add10
+expect(copy(7), 17)
+
+auto same = identity(copy)
+expect(same(8), 18)

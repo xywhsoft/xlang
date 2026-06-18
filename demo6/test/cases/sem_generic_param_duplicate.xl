@@ -1,0 +1,2 @@
+func bad<T, T>(T value)
+end

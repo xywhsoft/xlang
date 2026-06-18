@@ -1,0 +1,6 @@
+func identity<T>(T value) -> T
+    return value
+end
+
+int answer = identity::<int>(42)
+string label = identity::<string>("demo6")

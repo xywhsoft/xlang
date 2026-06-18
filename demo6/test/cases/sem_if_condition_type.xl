@@ -1,0 +1,5 @@
+int value = 0
+
+if 1 then
+    value = 1
+end

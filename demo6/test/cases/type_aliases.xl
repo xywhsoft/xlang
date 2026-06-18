@@ -1,0 +1,10 @@
+typedef MyInt = int
+extern type HANDLE = point
+extern "expect_i64" func expect(int actual, int expected)
+
+MyInt value = 41
+HANDLE handle
+
+expect(value + 1, 42)
+expect(type(value) == MyInt, 1)
+expect(type(value) == int, 1)

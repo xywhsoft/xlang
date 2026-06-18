@@ -1,0 +1,18 @@
+extern "expect_i64" func expect(int actual, int expected)
+
+func pick(string value) -> int
+    return 1
+end
+
+func pick(string value, ...) -> int
+    auto n = arg.length
+    return 2 + n
+end
+
+func options(string path, ***) -> int
+    return arg.length
+end
+
+expect(pick("x"), 1)
+expect(pick("x", 10), 3)
+expect(options("x", mode = "fast"), 1)

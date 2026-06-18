@@ -1,0 +1,24 @@
+extern "expect_i64" func expect(int actual, int expected)
+
+int breakCount = 0
+for outer in range(5)
+    for inner in range(5)
+        breakCount += 1
+        break 2
+    end
+    breakCount += 100
+end
+expect(breakCount, 1)
+
+int continueCount = 0
+int skipped = 0
+for i in range(3)
+    for j in range(3)
+        continueCount += 1
+        continue 2
+        skipped += 1
+    end
+    skipped += 10
+end
+expect(continueCount, 3)
+expect(skipped, 0)

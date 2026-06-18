@@ -1,0 +1,63 @@
+class Pair
+    int value = 0
+
+    create()
+        self.value = 1
+    end
+
+    create(int value)
+        self.value = value
+    end
+end
+
+class Ops
+    int pad = 0
+
+    func pick(int value) -> int
+        return value + 1
+    end
+
+    func pick(string text) -> int
+        return 99
+    end
+end
+
+class Base
+    int seed = 0
+
+    create(int seed)
+        self.seed = seed
+    end
+
+    func pick(int value) -> int
+        return self.seed + value
+    end
+end
+
+class Child extends Base
+    int extra = 0
+
+    create(int seed, int extra)
+        base(seed)
+        self.extra = extra
+    end
+
+    func pick(string text) -> int
+        return self.extra
+    end
+end
+
+extern "expect_i64" func expect(int actual, int expected)
+
+auto left = Pair()
+auto right = Pair(7)
+expect(left.value, 1)
+expect(right.value, 7)
+
+auto ops = Ops()
+expect(ops.pick(41), 42)
+expect(ops.pick("x"), 99)
+
+auto child = Child(10, 5)
+expect(child.pick(7), 17)
+expect(child.pick("x"), 5)

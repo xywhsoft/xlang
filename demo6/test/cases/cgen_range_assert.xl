@@ -1,0 +1,25 @@
+extern "expect_i64" func expect(int actual, int expected)
+
+int forwardSum = 0
+for value in range(5)
+    if value == 3 then
+        break
+    end
+    forwardSum = forwardSum + value
+end
+expect(forwardSum, 3)
+
+int oddSum = 0
+for index, value in range(1, 5, 2)
+    if index > value then
+        continue
+    end
+    oddSum = oddSum + value
+end
+expect(oddSum, 4)
+
+int backwardSum = 0
+for value in range(5, 0, -2)
+    backwardSum = backwardSum + value
+end
+expect(backwardSum, 9)

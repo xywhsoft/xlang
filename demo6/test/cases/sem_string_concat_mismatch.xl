@@ -1,0 +1,3 @@
+string text = "count: "
+int count = 3
+string bad = text + count

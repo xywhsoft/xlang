@@ -1,0 +1,25 @@
+extern "expect_i64" func expect(int actual, int expected)
+
+class 点
+    int 横 = 0
+    int 纵 = 0
+
+    create(int 横, int 纵)
+        self.横 = 横
+        self.纵 = 纵
+    end
+
+    func 求和() -> int
+        return self.横 + self.纵
+    end
+end
+
+func 加一(int 数值) -> int
+    return 数值 + 1
+end
+
+int 结果 = 加一(41)
+点 坐标 = 点(1, 2)
+
+expect(结果, 42)
+expect(坐标.求和(), 3)

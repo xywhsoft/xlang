@@ -1,0 +1,5 @@
+class Bad
+    destroy(int code)
+        return
+    end
+end

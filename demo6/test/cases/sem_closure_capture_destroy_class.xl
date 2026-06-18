@@ -1,0 +1,13 @@
+class Resource
+    destroy()
+    end
+end
+
+func make() -> function() -> int
+    auto resource = Resource()
+
+    return func() -> int
+        type(resource)
+        return 1
+    end
+end

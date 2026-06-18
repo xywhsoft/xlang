@@ -1,0 +1,3 @@
+func bad() -> auto
+    return 1
+end

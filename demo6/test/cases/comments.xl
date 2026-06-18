@@ -1,0 +1,7 @@
+/*
+    outer
+    /*
+        inner
+    */
+*/
+int value = 1

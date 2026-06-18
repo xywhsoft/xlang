@@ -1,0 +1,14 @@
+custom MaybeBox
+    extern "borrowed_box_close" destroy()
+end
+
+extern "expect_i64" func expect(int actual, int expected)
+extern "borrowed_close_count" func closeCount() -> int
+
+func exercise()
+    MaybeBox box
+    expect(closeCount(), 0)
+end
+
+exercise()
+expect(closeCount(), 0)

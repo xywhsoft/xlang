@@ -1,0 +1,13 @@
+func add(int a, int b) -> int
+    return a + b
+end
+
+func max(int a, int b) -> int
+    if a > b then
+        return a
+    else
+        return b
+    end
+end
+
+int value = max(add(1, 2), 3)

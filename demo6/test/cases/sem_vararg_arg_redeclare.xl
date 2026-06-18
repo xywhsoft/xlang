@@ -1,0 +1,3 @@
+func count(...)
+    int arg = 0
+end

@@ -1,0 +1,5 @@
+func open(string path, ***)
+    return
+end
+
+open("a.txt", mode = "write", retry = 3)

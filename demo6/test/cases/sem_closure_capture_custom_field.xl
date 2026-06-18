@@ -1,0 +1,13 @@
+custom Native
+end
+
+class Holder
+    Native native
+end
+
+func make(Holder holder) -> function() -> int
+    return func() -> int
+        type(holder)
+        return 1
+    end
+end

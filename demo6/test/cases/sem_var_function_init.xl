@@ -1,0 +1,6 @@
+func add(int left, int right) -> int
+    return left + right
+end
+
+function(int, int) -> int fn = add
+var boxed = fn

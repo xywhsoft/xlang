@@ -1,0 +1,30 @@
+class Point
+    int x = 0
+    int y = 0
+
+    create(int x, int y)
+        self.x = x
+        self.y = y
+        return
+    end
+
+    func length2() -> int
+        return self.x * self.x + self.y * self.y
+    end
+end
+
+class Point3 extends Point
+    int z = 0
+
+    create(int x, int y, int z)
+        base(x, y)
+        self.z = z
+    end
+end
+
+auto point = Point3(10, 20, 30)
+
+int total = point.x + point.y + point.z
+
+auto flat = Point(3, 4)
+int length2 = flat.length2()

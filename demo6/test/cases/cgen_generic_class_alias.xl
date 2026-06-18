@@ -1,0 +1,21 @@
+typedef MyInt = int
+
+extern "expect_i64" func expect(int actual, int expected)
+
+class Box<T>
+    T value
+
+    create(T value)
+        self.value = value
+    end
+
+    func valueOf() -> T
+        return self.value
+    end
+end
+
+Box<MyInt> aliasBox = Box::<MyInt>(5)
+Box<int> intBox = Box::<int>(6)
+
+expect(aliasBox.valueOf(), 5)
+expect(intBox.valueOf(), 6)

@@ -1,0 +1,14 @@
+auto inc = func(int value) -> int => value + 1
+
+auto printer = func(string text)
+    return
+end
+
+func makeAdder(int base) -> function(int) -> int
+    return func(int value) -> int
+        return base + value
+    end
+end
+
+auto add10 = makeAdder(10)
+auto value = add10(5)

@@ -1,0 +1,9 @@
+class Bad
+    func parse(int value) -> int
+        return value
+    end
+
+    func parse(int value) -> string
+        return "bad"
+    end
+end

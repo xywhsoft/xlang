@@ -1,0 +1,16 @@
+extern "expect_i64" func expect(int actual, int expected)
+
+var empty
+var fallback = empty ?? 9
+var literal = null ?? 7
+var assigned
+auto staticInt = null ?? 5
+string text = null ?? "hello"
+
+assigned ?= 11
+assigned ?= 22
+
+expect(int(fallback), 9)
+expect(int(literal), 7)
+expect(int(assigned), 11)
+expect(staticInt, 5)

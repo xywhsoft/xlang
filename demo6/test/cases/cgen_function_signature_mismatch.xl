@@ -1,0 +1,3 @@
+auto raw = func(string text) -> int => 1
+function(int) -> int wrong = raw
+int value = wrong(123)

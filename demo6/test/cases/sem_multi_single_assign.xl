@@ -1,0 +1,6 @@
+func pair() -> (int, int)
+    return 1, 2
+end
+
+int only = 0
+only = pair()

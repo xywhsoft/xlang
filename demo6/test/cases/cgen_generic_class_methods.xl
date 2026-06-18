@@ -1,0 +1,14 @@
+class Box<T>
+    T value
+
+    func valueOf() -> T
+        return self.value
+    end
+end
+
+extern "expect_i64" func expect(int actual, int expected)
+
+Box<int> intBox
+intBox.value = 123
+int value = intBox.valueOf()
+expect(value, 123)

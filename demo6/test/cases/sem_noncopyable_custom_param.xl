@@ -1,0 +1,7 @@
+custom Native
+    extern "native_open" create()
+    extern "native_close" destroy()
+end
+
+func use(Native native)
+end

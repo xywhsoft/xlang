@@ -1,0 +1,3 @@
+func bad() -> (int, string)
+    return 1
+end

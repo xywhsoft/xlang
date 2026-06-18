@@ -1,0 +1,10 @@
+func pick(int value) -> int
+    return value
+end
+
+func pick(string value) -> string
+    return value
+end
+
+int number = pick(1)
+string text = pick("x")

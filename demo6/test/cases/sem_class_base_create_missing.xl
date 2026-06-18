@@ -1,0 +1,17 @@
+class Base
+    int seed = 0
+
+    create(int seed)
+        self.seed = seed
+    end
+end
+
+class Child extends Base
+    int value = 0
+
+    create(int value)
+        self.value = value
+    end
+end
+
+auto child = Child(7)

@@ -1,0 +1,2 @@
+extern "native_counter" var int counter
+extern "native_counter" func counterFunc() -> int

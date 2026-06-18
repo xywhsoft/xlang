@@ -1,0 +1,2 @@
+function(int) -> int inc = func(int value) -> int => value + 1
+int value = inc("x")

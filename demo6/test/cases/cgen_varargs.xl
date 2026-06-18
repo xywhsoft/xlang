@@ -1,0 +1,14 @@
+extern "expect_i64" func expect(int actual, int expected)
+
+func count(int base, ...) -> int
+    auto n = arg.length
+    return base + n
+end
+
+func optionCount(string path, ***) -> int
+    return arg.length
+end
+
+expect(count(10, 1, "two", true), 13)
+expect(optionCount("demo.txt", mode = "fast", retry = 3), 2)
+expect(optionCount(path = "demo.txt", retry = 3), 1)

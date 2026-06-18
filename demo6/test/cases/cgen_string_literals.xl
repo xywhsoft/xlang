@@ -1,0 +1,13 @@
+extern "expect_str" func expectStr(string actual, string expected)
+
+string single = 'hello "x"'
+string rawPath = r"c:\tmp\file.txt"
+string multi = """line1
+line2"""
+string rawMulti = r'''a\b
+"q"'''
+
+expectStr(single, "hello \"x\"")
+expectStr(rawPath, "c:\\tmp\\file.txt")
+expectStr(multi, "line1\nline2")
+expectStr(rawMulti, "a\\b\n\"q\"")

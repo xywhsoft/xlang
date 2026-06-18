@@ -1,0 +1,9 @@
+custom Native
+end
+
+func make(Native native) -> function() -> int
+    return func() -> int
+        type(native)
+        return 1
+    end
+end

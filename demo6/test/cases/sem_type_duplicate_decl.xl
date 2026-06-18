@@ -1,0 +1,5 @@
+class Thing
+end
+
+custom Thing
+end

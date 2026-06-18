@@ -1,0 +1,14 @@
+int a = 1
+a = a + 1
+a += 2
+a -= 1
+a *= 3
+a /= 2
+a %= 4
+a ?= 10
+
+int bits = (a & 3) | (a ^ 2)
+int shifted = (bits << 2) >> 1
+int inverted = ~shifted
+bool flag = true ? true : false
+var fallback = null ?? 9

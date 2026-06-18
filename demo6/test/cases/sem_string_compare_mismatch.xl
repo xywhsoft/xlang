@@ -1,0 +1,2 @@
+string text = "abc"
+bool bad = text == 1

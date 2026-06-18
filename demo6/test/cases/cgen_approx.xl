@@ -1,0 +1,11 @@
+extern "expect_i64" func expect(int actual, int expected)
+
+int a = 10
+int b = 10
+float x = 1.0
+float y = 1.0
+
+expect(a ~= b, 1)
+expect(10 ~= 11, 0)
+expect(x ~= y, 1)
+expect(1.0 ~= 2.0, 0)

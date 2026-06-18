@@ -1,0 +1,17 @@
+custom BorrowedBox
+    extern "borrowed_box_close" destroy()
+    extern "borrowed_box_value" func value() -> int
+end
+
+extern "make_borrowed_box" func makeBox(int value) -> point
+extern "expect_i64" func expect(int actual, int expected)
+extern "borrowed_close_count" func closeCount() -> int
+
+func exercise()
+    auto box = BorrowedBox(makeBox(55))
+    expect(box.value(), 55)
+    expect(closeCount(), 0)
+end
+
+exercise()
+expect(closeCount(), 1)

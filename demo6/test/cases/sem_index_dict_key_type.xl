@@ -1,0 +1,2 @@
+auto table = {"a": 1}
+auto value = table[1]

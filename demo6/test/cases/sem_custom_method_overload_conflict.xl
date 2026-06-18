@@ -1,0 +1,4 @@
+custom Bad
+    extern "bad_int" func value(int n) -> int
+    extern "bad_other" func value(int n) -> int
+end

@@ -1,0 +1,5 @@
+func open(string path, string mode = "read")
+    return
+end
+
+open(mode = "write", "a.txt")

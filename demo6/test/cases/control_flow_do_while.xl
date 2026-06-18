@@ -1,0 +1,9 @@
+extern "expect_i64" func expect(int actual, int expected)
+
+int value = 0
+
+do
+    value += 1
+while value < 3
+
+expect(value, 3)

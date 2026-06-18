@@ -1,0 +1,8 @@
+class Pair
+    int left = 1
+    int right = 2
+end
+
+func make() -> var
+    return Pair()
+end

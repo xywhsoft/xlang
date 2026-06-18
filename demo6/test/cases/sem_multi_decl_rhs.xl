@@ -1,0 +1,5 @@
+func single() -> int
+    return 1
+end
+
+auto left, right = single()

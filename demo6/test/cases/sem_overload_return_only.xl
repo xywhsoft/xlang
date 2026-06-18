@@ -1,0 +1,7 @@
+func parse(string text) -> int
+    return 1
+end
+
+func parse(string text) -> float
+    return 1.0
+end

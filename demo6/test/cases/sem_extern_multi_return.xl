@@ -1,0 +1,1 @@
+extern "native_pair" func pair() -> (int, int)

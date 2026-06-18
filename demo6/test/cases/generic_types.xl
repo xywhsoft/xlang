@@ -1,0 +1,8 @@
+func first(array<int> values) -> array<int>
+    return values
+end
+
+func pair(dict<string> names) -> (array<int>, dict<string>)
+    const dict<string> copy = names
+    return [1, 2], copy
+end

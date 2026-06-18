@@ -1,0 +1,20 @@
+func identity<T>(T value) -> T
+    return value
+end
+
+class Box<T>
+    T value
+
+    create(T value)
+        self.value = value
+    end
+
+    func valueOf() -> T
+        return self.value
+    end
+end
+
+auto box = Box::<int>(42)
+int stored = box.valueOf()
+auto value = identity::<int>(1)
+auto text = identity("demo6")

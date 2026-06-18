@@ -1,0 +1,16 @@
+extern "expect_i64" func expect(int actual, int expected)
+
+auto values = [10, 20, 30]
+auto sparse = [0: 11, 2: 22]
+auto table = {"count": 6}
+
+var missing = null
+var dynamicValues = values
+var dynamicTable = table
+
+expect(int(values?[1]), 20)
+expect(int(sparse?[2]), 22)
+expect(int(table?["count"]), 6)
+expect(int(dynamicValues?[1]), 20)
+expect(int(dynamicTable?["count"]), 6)
+expect(int(missing?[0] ?? 9), 9)

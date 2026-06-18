@@ -1,0 +1,5 @@
+func choose<T>(T left, T right) -> T
+    return right
+end
+
+auto bad = choose(1, "x")

@@ -1,0 +1,5 @@
+func add(int a, int b) -> int
+    return a + b
+end
+
+auto value = add(1, 2)

@@ -1,0 +1,12 @@
+extern "expect_i64" func expect(int actual, int expected)
+
+int count
+bool flag
+float ratio
+string name
+point handle
+
+expect(count, 0)
+expect(flag, 0)
+expect(ratio == 0.0, 1)
+expect(handle == null, 1)

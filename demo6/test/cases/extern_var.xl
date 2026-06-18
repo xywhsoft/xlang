@@ -1,0 +1,6 @@
+extern "host_counter" var int counter
+extern "expect_i64" func expect(int actual, int expected)
+
+expect(counter, 40)
+counter = counter + 2
+expect(counter, 42)

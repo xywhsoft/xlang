@@ -1,0 +1,16 @@
+typedef MyInt = int
+
+extern "expect_i64" func expect(int actual, int expected)
+
+func identity<T>(T value) -> T
+    return value
+end
+
+MyInt aliasValue = 42
+int explicitAlias = identity::<MyInt>(41)
+int inferredAlias = identity(aliasValue)
+int explicitInt = identity::<int>(43)
+
+expect(explicitAlias, 41)
+expect(inferredAlias, 42)
+expect(explicitInt, 43)

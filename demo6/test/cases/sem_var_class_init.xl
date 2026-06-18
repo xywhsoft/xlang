@@ -1,0 +1,6 @@
+class Pair
+    int left = 1
+    int right = 2
+end
+
+var boxed = Pair()

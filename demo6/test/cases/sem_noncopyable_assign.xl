@@ -1,0 +1,10 @@
+class Resource
+    destroy()
+    end
+end
+
+func test()
+    auto first = Resource()
+    auto second = Resource()
+    second = first
+end
