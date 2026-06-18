@@ -1,0 +1,9 @@
+func pick(int value) -> int
+    return value
+end
+
+func pick(string value) -> string
+    return value
+end
+
+function fn = pick

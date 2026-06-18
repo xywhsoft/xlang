@@ -1,0 +1,38 @@
+extern "expect_i64" func expect(int actual, int expected)
+extern "expect_str" func expectStr(string actual, string expected)
+
+int fromText = int("42")
+int fromFloat = int(3.9)
+float parsed = float("2.5")
+int parsedTwice = int(parsed * 2.0)
+
+expect(fromText, 42)
+expect(fromFloat, 3)
+expect(parsedTwice, 5)
+
+bool falseValue = bool(0)
+bool trueValue = bool(1)
+bool nullValue = bool(null)
+
+expect(falseValue, 0)
+expect(trueValue, 1)
+expect(nullValue, 0)
+
+string intText = string(123)
+string boolText = string(true)
+time dateValue = time("2026-06-18")
+string dateText = string(dateValue)
+
+expectStr(intText, "123")
+expectStr(boolText, "true")
+expect(dateValue == #2026-06-18#, 1)
+expectStr(dateText, "2026-06-18 00:00:00")
+
+var boxedInt = 7
+var boxedText = "91"
+var boxedTime = #2026-06-18 12:30:59#
+
+expect(int(boxedInt), 7)
+expect(int(boxedText), 91)
+expect(time(boxedTime) == #2026-06-18 12:30:59#, 1)
+expectStr(string(boxedInt), "7")

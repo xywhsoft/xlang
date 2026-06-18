@@ -1,0 +1,33 @@
+func add(int a, int b) -> int
+    return a + b
+end
+
+auto value = add(
+    1,
+    2
+)
+
+int left = 1; int right = 2
+
+auto values = [
+    1,
+    2,
+    3,
+]
+
+auto unique = {
+    1,
+    2,
+    3,
+}
+
+auto table = {
+    "a": 1,
+    "b": 2,
+}
+
+auto emptySet = set{
+}
+
+auto emptyDict = dict{
+}

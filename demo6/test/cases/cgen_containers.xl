@@ -1,0 +1,112 @@
+extern "expect_i64" func expect(int actual, int expected)
+
+array emptyArray
+list emptyList
+set emptySet
+dict emptyDict
+
+auto values = [1, 2, 3]
+auto sparse = [0: "a", 2: "b"]
+auto unique = {1, 2, 3}
+auto table = {"a": 1, "b": 2}
+
+auto typedArray = array[4, 5]
+auto typedList = list[0: "x"]
+auto typedSet = set{6, 7}
+auto typedDict = dict{"k": 8}
+auto explicitEmptySet = set{}
+auto explicitEmptyDict = dict{}
+
+int emptyArrayCount = 0
+for value in emptyArray
+    emptyArrayCount = emptyArrayCount + 1
+end
+expect(emptyArrayCount, 0)
+
+int emptyListCount = 0
+for value in emptyList
+    emptyListCount = emptyListCount + 1
+end
+expect(emptyListCount, 0)
+
+int emptySetCount = 0
+for value in emptySet
+    emptySetCount = emptySetCount + 1
+end
+expect(emptySetCount, 0)
+
+int emptyDictCount = 0
+for key, value in emptyDict
+    emptyDictCount = emptyDictCount + 1
+end
+expect(emptyDictCount, 0)
+
+int arrayCount = 0
+int secondValue = 0
+for index, value in values
+    arrayCount = arrayCount + 1
+    if index == 1 then
+        secondValue = int(value)
+    end
+end
+expect(arrayCount, 3)
+expect(secondValue, 2)
+
+int listCount = 0
+for index, value in sparse
+    listCount = listCount + 1
+end
+expect(listCount, 2)
+
+int setCount = 0
+for value in unique
+    setCount = setCount + 1
+end
+expect(setCount, 3)
+
+int dictCount = 0
+for key, value in table
+    dictCount = dictCount + 1
+end
+expect(dictCount, 2)
+
+int typedArrayCount = 0
+int typedFirstValue = 0
+for index, value in typedArray
+    typedArrayCount = typedArrayCount + 1
+    if index == 0 then
+        typedFirstValue = int(value)
+    end
+end
+expect(typedArrayCount, 2)
+expect(typedFirstValue, 4)
+
+int typedListCount = 0
+for index, value in typedList
+    typedListCount = typedListCount + 1
+end
+expect(typedListCount, 1)
+
+int typedSetCount = 0
+for value in typedSet
+    typedSetCount = typedSetCount + 1
+end
+expect(typedSetCount, 2)
+
+int typedDictCount = 0
+for key, value in typedDict
+    typedDictCount = typedDictCount + 1
+end
+expect(typedDictCount, 1)
+
+int explicitEmptySetCount = 0
+for value in explicitEmptySet
+    explicitEmptySetCount = explicitEmptySetCount + 1
+end
+expect(explicitEmptySetCount, 0)
+
+int explicitEmptyDictCount = 0
+for key, value in explicitEmptyDict
+    explicitEmptyDictCount = explicitEmptyDictCount + 1
+end
+expect(explicitEmptyDictCount, 0)

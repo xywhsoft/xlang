@@ -1,0 +1,8 @@
+custom Native
+end
+
+func accept(var value)
+end
+
+point handle
+accept(Native(handle))

@@ -1,0 +1,3 @@
+export "bad_string_return" func bad() -> string
+    return "x"
+end

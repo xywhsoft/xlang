@@ -1,0 +1,11 @@
+extern "expect_str" func expectStr(string actual, string expected)
+
+string left = "hello"
+string right = "world"
+string joined = left + ", " + right
+auto inferred = "x" + "lang"
+
+joined += "!"
+
+expectStr(joined, "hello, world!")
+expectStr(inferred, "xlang")

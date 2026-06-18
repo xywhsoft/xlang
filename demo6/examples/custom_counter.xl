@@ -1,0 +1,9 @@
+custom Counter
+    extern "counter_open" create(int seed)
+    extern "counter_close" destroy()
+    extern "counter_add" func add(int value) -> int
+    extern "counter_value" func value() -> int
+end
+
+auto counter = Counter(40)
+int value = counter.add(2)

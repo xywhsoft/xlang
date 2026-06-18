@@ -1,0 +1,63 @@
+class Base
+    int seed = 0
+
+    create(int seed)
+        self.seed = seed
+    end
+
+    destroy()
+        recordDestroy(self.seed)
+    end
+end
+
+class Child extends Base
+    int value = 0
+
+    create(int seed, int value)
+        base(seed)
+        self.value = value
+    end
+
+    destroy()
+        recordDestroy(self.value)
+    end
+end
+
+class AutoChild extends Base
+    int value = 0
+
+    create(int seed, int value)
+        base(seed)
+        self.value = value
+    end
+end
+
+extern "record_destroy" func recordDestroy(int value)
+extern "expect_i64" func expect(int actual, int expected)
+extern "destroy_count" func destroyCount() -> int
+extern "destroy_value" func destroyValue() -> int
+
+func explicitDestroy()
+    auto child = Child(11, 22)
+end
+
+func inheritedDestroy()
+    auto child = AutoChild(33, 44)
+end
+
+func earlyReturnDestroy() -> int
+    auto child = Child(55, 66)
+    return 7
+end
+
+explicitDestroy()
+expect(destroyCount(), 2)
+expect(destroyValue(), 11)
+
+inheritedDestroy()
+expect(destroyCount(), 3)
+expect(destroyValue(), 33)
+
+expect(earlyReturnDestroy(), 7)
+expect(destroyCount(), 5)
+expect(destroyValue(), 55)

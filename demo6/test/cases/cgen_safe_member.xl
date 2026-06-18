@@ -1,0 +1,17 @@
+extern "expect_i64" func expect(int actual, int expected)
+
+auto values = [1, 2, 3]
+auto table = {"a": 1, "b": 2}
+
+var missing = null
+var dynamicValues = values
+
+var valuesLength = values?.length
+var tableLength = table?.length
+var dynamicLength = dynamicValues?.length
+var missingLength = missing?.length
+
+expect(int(valuesLength), 3)
+expect(int(tableLength), 2)
+expect(int(dynamicLength), 3)
+expect(int(missingLength ?? 9), 9)

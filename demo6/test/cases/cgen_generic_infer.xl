@@ -1,0 +1,60 @@
+func identity<T>(T value) -> T
+    return value
+end
+
+func choose<T>(T left, T right) -> T
+    return right
+end
+
+func countArray<T>(array<T> values) -> int
+    return values.length
+end
+
+func acceptList<T>(list<T> values) -> int
+    return 2
+end
+
+func acceptSet<T>(set<T> values) -> int
+    return 3
+end
+
+func countDict<T>(dict<T> values) -> int
+    return values.length
+end
+
+func countNested<T>(array<dict<T>> values) -> int
+    return values.length
+end
+
+func apply<T>(function(T) -> T op, T value) -> T
+    return op(value)
+end
+
+extern "expect_i64" func expect(int actual, int expected)
+
+int number = identity(41)
+string text = identity("ok")
+int chosen = choose(1, 2)
+auto seed = 7
+int copied = identity(seed)
+int arrayCount = countArray([1, 2, 3])
+int listOk = acceptList([0: "a", 2: "b"])
+int setOk = acceptSet({1, 2, 3})
+int dictCount = countDict({"a": 1, "b": 2})
+int typedDictCount = countDict(dict{"x": 3})
+int nestedCount = countNested([dict{"a": 1}, dict{"b": 2}])
+auto explicitNested = identity::<array<dict<int>>>([dict{"z": 9}])
+function(int) -> int inc = func(int value) -> int => value + 1
+int applied = apply(inc, 9)
+
+expect(number, 41)
+expect(chosen, 2)
+expect(copied, 7)
+expect(arrayCount, 3)
+expect(listOk, 2)
+expect(setOk, 3)
+expect(dictCount, 2)
+expect(typedDictCount, 1)
+expect(nestedCount, 2)
+expect(explicitNested.length, 1)
+expect(applied, 10)

@@ -1,0 +1,14 @@
+custom NativeScore
+    extern "score_open" create(int seed)
+    extern "score_close" destroy()
+    extern "score_add_i" func add(int value) -> int
+    extern "score_add_s" func add(string text) -> int
+end
+
+extern "expect_i64" func expect(int actual, int expected)
+extern "score_closed" func closed() -> int
+
+auto score = NativeScore(10)
+expect(score.add(5), 15)
+expect(score.add("abc"), 18)
+expect(closed(), 0)

@@ -1,0 +1,24 @@
+extern "expect_i64" func expect(int actual, int expected)
+
+int a = 1
+a += 2
+a -= 1
+a *= 4
+a /= 2
+a %= 5
+a ?= 9
+
+int bits = (a & 3) | (a ^ 2)
+int shifted = (bits << 2) >> 1
+int inverted = ~shifted
+int selected = true ? inverted : 1
+bool logicAnd = true and not false
+bool logicOr = false or !false
+
+expect(a, 4)
+expect(bits, 6)
+expect(shifted, 12)
+expect(inverted, -13)
+expect(selected, -13)
+expect(logicAnd, 1)
+expect(logicOr, 1)

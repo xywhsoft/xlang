@@ -1,0 +1,37 @@
+extern "expect_i64" func expect(int actual, int expected)
+
+func makeFirst() -> function() -> int
+    array values = [41]
+    return func() -> int
+        return int(values[0])
+    end
+end
+
+func makeAdder(int base) -> function(int) -> int
+    return func(int value) -> int
+        return base + value
+    end
+end
+
+func makeRunner() -> function(int) -> int
+    auto inner = makeAdder(10)
+    return func(int value) -> int
+        return inner(value)
+    end
+end
+
+auto first = makeFirst()
+expect(first(), 41)
+
+auto runner = makeRunner()
+expect(runner(5), 15)
+
+auto current = makeAdder(1)
+expect(current(1), 2)
+
+current = makeAdder(10)
+expect(current(1), 11)
+
+auto other = makeAdder(20)
+current = other
+expect(current(1), 21)

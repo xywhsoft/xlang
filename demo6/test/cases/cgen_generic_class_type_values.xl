@@ -1,0 +1,21 @@
+extern "expect_i64" func expect(int actual, int expected)
+
+typedef MyInt = int
+
+class Box<T>
+    T value
+end
+
+Box<int> left
+Box<int> right
+Box<MyInt> alias
+Box<string> text
+
+type leftType = type(left)
+type rightType = type(right)
+type aliasType = type(alias)
+type textType = type(text)
+
+expect(leftType == rightType, 1)
+expect(leftType == aliasType, 1)
+expect(leftType == textType, 0)

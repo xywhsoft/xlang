@@ -1,0 +1,22 @@
+func choose(int value) -> int
+    return 10
+end
+
+func choose(int64 value) -> int
+    return 20
+end
+
+func chooseFloat(float value) -> int
+    return 30
+end
+
+func chooseFloat(float64 value) -> int
+    return 40
+end
+
+extern "expect_i64" func expect(int actual, int expected)
+
+expect(choose(1), 10)
+expect(choose(int64(1)), 20)
+expect(chooseFloat(1.5), 30)
+expect(chooseFloat(float64(1.5)), 40)

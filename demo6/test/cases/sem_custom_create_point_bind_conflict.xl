@@ -1,0 +1,6 @@
+custom Native
+    extern "native_create" create(int value)
+end
+
+point handle
+auto native = Native(handle)

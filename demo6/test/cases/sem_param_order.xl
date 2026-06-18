@@ -1,0 +1,3 @@
+func bad(int a = 1, int b)
+    return
+end

@@ -1,0 +1,8 @@
+class Resource
+    int value = 0
+
+    destroy()
+    end
+end
+
+var boxed = Resource()

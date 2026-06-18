@@ -1,0 +1,4 @@
+typedef First = Second
+typedef Second = First
+
+First value = 1

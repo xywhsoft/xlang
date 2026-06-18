@@ -1,0 +1,49 @@
+custom Counter
+    extern "counter_open" create(int seed)
+    extern "counter_close" destroy()
+    extern "counter_add" func add(int value) -> int
+    extern "counter_value" func value() -> int
+end
+
+extern "expect_i64" func expect(int actual, int expected)
+extern "counter_closed" func counterClosed() -> int
+
+func exercise()
+    auto counter = Counter(40)
+    int afterAdd = counter.add(2)
+    int current = counter.value()
+
+    expect(afterAdd, 42)
+    expect(current, 42)
+end
+
+func earlyReturn() -> int
+    auto counter = Counter(1)
+    return counter.add(1)
+end
+
+func breakCleanup()
+    for i in range(0, 3)
+        auto counter = Counter(i)
+        break
+    end
+end
+
+func continueCleanup()
+    for i in range(0, 2)
+        auto counter = Counter(i)
+        continue
+    end
+end
+
+exercise()
+expect(counterClosed(), 1)
+
+expect(earlyReturn(), 2)
+expect(counterClosed(), 2)
+
+breakCleanup()
+expect(counterClosed(), 3)
+
+continueCleanup()
+expect(counterClosed(), 5)

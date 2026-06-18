@@ -1,0 +1,6 @@
+func makeSetter(int base) -> function(int) -> int
+    return func(int value) -> int
+        base = value
+        return base
+    end
+end

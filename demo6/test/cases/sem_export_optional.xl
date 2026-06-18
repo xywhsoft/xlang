@@ -1,0 +1,3 @@
+export "bad_optional" func bad(int a = 1) -> int
+    return a
+end

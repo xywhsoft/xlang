@@ -1,0 +1,3 @@
+export "xl6_is_even" func isEven(int value) -> bool
+    return value % 2 == 0
+end

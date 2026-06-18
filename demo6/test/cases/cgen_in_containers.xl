@@ -1,0 +1,32 @@
+extern "expect_i64" func expect(int actual, int expected)
+
+string text = "alphabet"
+auto values = [1, 2, 3]
+auto sparse = [0: "a", 2: "b"]
+auto unique = {1, 2, 3}
+auto table = {"a": 1, "b": 2}
+
+expect("pha" in text, 1)
+expect("xyz" in text, 0)
+
+expect(2 in values, 1)
+expect(9 in values, 0)
+
+expect("b" in sparse, 1)
+expect("x" in sparse, 0)
+
+expect(3 in unique, 1)
+expect(9 in unique, 0)
+
+expect("a" in table, 1)
+expect("z" in table, 0)
+
+var dynArray = values
+var dynText = text
+var dynTable = table
+
+expect(1 in dynArray, 1)
+expect(8 in dynArray, 0)
+expect("bet" in dynText, 1)
+expect("nope" in dynText, 0)
+expect("b" in dynTable, 1)

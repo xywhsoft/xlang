@@ -1,0 +1,5 @@
+extern "native_flip_bool" func flip(bool value) -> bool
+extern "expect_bool" func expect(bool actual, bool expected)
+
+expect(flip(true), false)
+expect(flip(false), true)

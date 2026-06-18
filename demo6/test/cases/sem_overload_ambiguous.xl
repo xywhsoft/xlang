@@ -1,0 +1,9 @@
+func cast(int32 value) -> int32
+    return value
+end
+
+func cast(uint32 value) -> uint32
+    return value
+end
+
+int32 value = cast(1)

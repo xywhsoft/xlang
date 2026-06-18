@@ -1,0 +1,38 @@
+class Base
+    int seed = 0
+
+    create(int seed)
+        self.seed = seed
+    end
+end
+
+class Child extends Base
+    int value = 0
+
+    create(int seed, int value)
+        base(seed)
+        self.value = value
+    end
+end
+
+class AutoBase
+    int seed = 0
+
+    create()
+        self.seed = 42
+    end
+end
+
+class AutoChild extends AutoBase
+    int value = 7
+end
+
+extern "expect_i64" func expect(int actual, int expected)
+
+auto child = Child(7, 9)
+expect(child.seed, 7)
+expect(child.value, 9)
+
+auto autoChild = AutoChild()
+expect(autoChild.seed, 42)
+expect(autoChild.value, 7)

@@ -1,0 +1,9 @@
+func pair() -> (int, int)
+    return 1, 2
+end
+
+func take(int value)
+    return
+end
+
+take(pair())

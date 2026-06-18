@@ -1,0 +1,2 @@
+time started = #12:00:00#
+bool bad = started == 1

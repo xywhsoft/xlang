@@ -1,0 +1,10 @@
+export "app_counter" var int counter = 0
+export "app_version" const int version = 1
+
+export "app_set_counter" func setCounter(int value)
+    counter = value
+end
+
+export "app_get_counter" func getCounter() -> int
+    return counter
+end

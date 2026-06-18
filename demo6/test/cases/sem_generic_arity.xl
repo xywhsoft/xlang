@@ -1,0 +1,3 @@
+func bad(array<int, string> values)
+    return
+end

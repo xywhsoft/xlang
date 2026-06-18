@@ -1,0 +1,3 @@
+function fn = func(int value) -> int => value
+
+auto bad = fn(value = 1)

@@ -1,0 +1,15 @@
+extern "expect_i64" func expect(int actual, int expected)
+
+func pick<T>(T value) -> int
+    return 10
+end
+
+func pick<T>(array<T> values) -> int
+    return 20
+end
+
+auto arrayValue = pick::<int>([1, 2, 3])
+int scalarValue = pick::<int>(1)
+
+expect(arrayValue, 20)
+expect(scalarValue, 10)

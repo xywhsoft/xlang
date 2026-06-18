@@ -1,0 +1,7 @@
+extern "expect_i64" func expect(int actual, int expected)
+
+int Name = 1
+int name = 2
+int NAME = 3
+
+expect(Name + name + NAME, 6)

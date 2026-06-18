@@ -1,0 +1,6 @@
+class Base
+end
+
+class Box<T> extends Base
+    T value
+end

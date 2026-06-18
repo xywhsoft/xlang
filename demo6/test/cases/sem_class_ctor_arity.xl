@@ -1,0 +1,9 @@
+class Point
+    int x = 0
+
+    create(int x)
+        self.x = x
+    end
+end
+
+auto point = Point()

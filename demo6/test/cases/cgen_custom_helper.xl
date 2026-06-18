@@ -1,0 +1,28 @@
+custom Counter
+    extern "counter_open" create(int seed)
+    extern "counter_close" destroy()
+    extern "counter_add" func add(int value) -> int
+    extern "counter_value" func value() -> int
+
+    func isZero() -> bool
+        return self.value() == 0
+    end
+
+    func plus(int extra) -> int
+        return self.value() + extra
+    end
+end
+
+extern "expect_i64" func expect(int actual, int expected)
+extern "counter_closed" func counterClosed() -> int
+
+func exercise()
+    auto counter = Counter(0)
+
+    expect(counter.isZero(), 1)
+    expect(counter.plus(7), 7)
+    expect(counterClosed(), 0)
+end
+
+exercise()
+expect(counterClosed(), 1)

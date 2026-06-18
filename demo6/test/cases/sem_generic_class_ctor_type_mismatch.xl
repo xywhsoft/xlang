@@ -1,0 +1,9 @@
+class Box<T>
+    T value
+
+    create(T value)
+        self.value = value
+    end
+end
+
+auto box = Box::<int>("x")

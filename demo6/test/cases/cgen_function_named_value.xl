@@ -1,0 +1,59 @@
+extern "expect_i64" func expect(int actual, int expected)
+
+func add(int left, int right) -> int
+    return left + right
+end
+
+func pick(int value) -> int
+    return value + 1
+end
+
+func pick(string value) -> string
+    return value
+end
+
+func addDefault(int left, int right = 1) -> int
+    return left + right
+end
+
+func total(int base, ...) -> int
+    return base + arg.length
+end
+
+func totalDefault(int base = 5, ...) -> int
+    return base + arg.length
+end
+
+func optionCount(string path, ***) -> int
+    return arg.length
+end
+
+function(int, int) -> int typed = add
+function erased = add
+function(int) -> int picked = pick
+function(int, ...) -> int variadic = total
+function(int) -> int oneDefault = addDefault
+function(int, int) -> int twoDefault = addDefault
+function erasedDefault = addDefault
+function(...) -> int variadicDefault = totalDefault
+function(string, ***) -> int options = optionCount
+
+int typedValue = typed(20, 22)
+var erasedValue = erased(10, 5)
+int pickedValue = picked(41)
+int variadicValue = variadic(10, 1, 2, 3)
+int oneDefaultValue = oneDefault(10)
+int twoDefaultValue = twoDefault(10, 5)
+var erasedDefaultValue = erasedDefault(10)
+int variadicDefaultValue = variadicDefault("a", "b")
+int optionValue = options("demo.txt", mode = "fast", retry = 3)
+
+expect(typedValue, 42)
+expect(int(erasedValue), 15)
+expect(pickedValue, 42)
+expect(variadicValue, 13)
+expect(oneDefaultValue, 11)
+expect(twoDefaultValue, 15)
+expect(int(erasedDefaultValue), 11)
+expect(variadicDefaultValue, 7)
+expect(optionValue, 2)

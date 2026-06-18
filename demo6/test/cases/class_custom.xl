@@ -1,0 +1,38 @@
+class Point
+    int x = 0
+    int y = 0
+
+    create(int x, int y)
+        return
+    end
+
+    func length2() -> int
+        return 0
+    end
+
+    destroy()
+        return
+    end
+end
+
+class Point3 extends Point
+    int z = 0
+
+    create(int x, int y, int z)
+        base(x, y)
+        self.z = z
+    end
+end
+
+custom Bag
+    extern "bag_create" create()
+    extern "bag_destroy" destroy()
+    extern "bag_count" func count() -> int
+
+    func empty() -> bool
+        return false
+    end
+end
+
+Point p
+Bag bag

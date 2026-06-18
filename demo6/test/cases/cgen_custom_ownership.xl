@@ -1,0 +1,46 @@
+custom OpenOnly
+    extern "make_borrowed_box" create(int value)
+    extern "borrowed_box_value" func value() -> int
+end
+
+custom ViewOnly
+    extern "borrowed_box_value" func value() -> int
+end
+
+extern "make_borrowed_box" func makeBox(int value) -> point
+extern "expect_i64" func expect(int actual, int expected)
+extern "borrowed_close_count" func closeCount() -> int
+
+func openOnly()
+    auto box = OpenOnly(66)
+    expect(box.value(), 66)
+end
+
+func viewOnly()
+    point handle = makeBox(77)
+    auto box = ViewOnly(handle)
+    expect(box.value(), 77)
+end
+
+func copyOpenOnly()
+    auto original = OpenOnly(88)
+    OpenOnly copied = original
+    expect(copied.value(), 88)
+end
+
+func assignOpenOnly()
+    auto original = OpenOnly(99)
+    OpenOnly assigned
+    assigned = original
+    expect(assigned.value(), 99)
+end
+
+expect(closeCount(), 0)
+openOnly()
+expect(closeCount(), 0)
+viewOnly()
+expect(closeCount(), 0)
+copyOpenOnly()
+expect(closeCount(), 0)
+assignOpenOnly()
+expect(closeCount(), 0)

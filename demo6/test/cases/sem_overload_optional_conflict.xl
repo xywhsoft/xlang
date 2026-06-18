@@ -1,0 +1,7 @@
+func add(int a) -> int
+    return a
+end
+
+func add(int a, int b = 1) -> int
+    return a + b
+end

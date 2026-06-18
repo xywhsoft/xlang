@@ -1,0 +1,5 @@
+export "xl6_add_i64" func add_i64(int a, int b) -> int
+    return a + b
+end
+
+int value = add_i64(1, 2)

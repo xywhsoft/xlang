@@ -1,0 +1,19 @@
+func makeAdder(int base) -> function(int) -> int
+    return func(int value) -> int
+        return base + value
+    end
+end
+
+auto add10 = makeAdder(10)
+auto value = add10(5)
+
+func namedAdd(int left, int right) -> int
+    return left + right
+end
+
+function(int, int) -> int named = namedAdd
+auto namedValue = named(1, 2)
+
+function erased = func(int left, int right) -> int => left + right
+var dynamicValue = erased(20, 22)
+int dynamicInt = int(dynamicValue)

@@ -1,0 +1,10 @@
+func sample()
+    var obj = null
+    auto field = obj.name
+    auto safeField = obj?.name
+    auto item = obj[0]
+    auto safeItem = obj?[1]
+
+    obj.name = 1
+    obj[0] = 2
+end

@@ -1,0 +1,13 @@
+extern "expect_i64" func expect(int actual, int expected)
+
+func pair() -> (int, int)
+    return 7, 8
+end
+
+auto values = [0, 0]
+int other = 0
+
+values[0], other = pair()
+
+expect(int(values[0]), 7)
+expect(other, 8)

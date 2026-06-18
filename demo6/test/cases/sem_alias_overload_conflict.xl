@@ -1,0 +1,9 @@
+typedef MyInt = int
+
+func pick(int value) -> int
+    return value
+end
+
+func pick(MyInt value) -> int
+    return value
+end

@@ -1,0 +1,82 @@
+extern "expect_i64" func expect(int actual, int expected)
+extern "expect_str" func expectStr(string actual, string expected)
+
+auto values = [1, 2, 3]
+auto sparse = [0: "a", 2: "b"]
+auto unique = {1, 2, 3}
+auto table = {"a": 1, "b": 2}
+
+int total = 0
+for value in values
+    total = total + int(value)
+end
+expect(total, 6)
+
+int weighted = 0
+for index, value in values
+    weighted = weighted + index * 10 + int(value)
+end
+expect(weighted, 36)
+
+int listIndexSum = 0
+string listLast = ""
+for index, value in sparse
+    listIndexSum = listIndexSum + index
+    listLast = string(value)
+end
+expect(listIndexSum, 2)
+expectStr(listLast, "b")
+
+int setCount = 0
+int setSum = 0
+for value in unique
+    setCount = setCount + 1
+    setSum = setSum + int(value)
+end
+expect(setCount, 3)
+expect(setSum, 6)
+
+int dictSum = 0
+int sawA = 0
+int sawB = 0
+for key, value in table
+    dictSum = dictSum + int(value)
+    if key == "a" then
+        sawA = int(value)
+    elseif key == "b" then
+        sawB = int(value)
+    end
+end
+expect(dictSum, 3)
+expect(sawA, 1)
+expect(sawB, 2)
+
+var dynValues = values
+int dynTotal = 0
+for value in dynValues
+    dynTotal = dynTotal + int(value)
+end
+expect(dynTotal, 6)
+
+var dynTable = table
+int dynDictSum = 0
+int dynSawB = 0
+for key, value in dynTable
+    dynDictSum = dynDictSum + int(value)
+    if string(key) == "b" then
+        dynSawB = int(value)
+    end
+end
+expect(dynDictSum, 3)
+expect(dynSawB, 2)
+
+int skipAndBreak = 0
+for value in values
+    if int(value) == 2 then
+        continue
+    elseif int(value) == 3 then
+        break
+    end
+    skipAndBreak = skipAndBreak + int(value)
+end
+expect(skipAndBreak, 1)

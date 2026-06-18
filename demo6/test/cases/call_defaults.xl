@@ -1,0 +1,7 @@
+func add(int a, int b = 1, int c = 2) -> int
+    return a + b + c
+end
+
+int first = add(1)
+int second = add(1, c = 4)
+int third = add(a = 1, b = 2, c = 3)

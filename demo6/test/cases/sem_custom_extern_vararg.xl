@@ -1,0 +1,3 @@
+custom Bad
+    extern "bad_add" func add(...) -> int
+end

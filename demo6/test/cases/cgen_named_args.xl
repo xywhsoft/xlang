@@ -1,0 +1,27 @@
+extern "expect_i64" func expect(int actual, int expected)
+
+func add(int a, int b = 1, int c = 2) -> int
+    return a + b + c
+end
+
+expect(add(1), 4)
+expect(add(1, c = 4), 6)
+expect(add(a = 1, b = 2, c = 3), 6)
+expect(add(c = 3, a = 1, b = 2), 6)
+
+class Box
+    int value = 0
+
+    create(int start = 1, int step = 2)
+        self.value = start + step
+        return
+    end
+
+    func bump(int amount = 1, int factor = 1) -> int
+        return self.value + amount * factor
+    end
+end
+
+auto box = Box(step = 4, start = 6)
+expect(box.value, 10)
+expect(box.bump(factor = 3, amount = 2), 16)

@@ -1,0 +1,30 @@
+extern "expect_i64" func expect(int actual, int expected)
+
+class Box
+    int value = 0
+end
+
+int value = 1
+type valueType = type(value)
+auto textType = type("x")
+auto nullType = type(null)
+Box box
+type boxType = type(box)
+auto values = [1, 2, 3]
+auto table = {"a": 1}
+type arrayType = type(values)
+type dictType = type(table)
+
+bool intOk = valueType == int
+bool stringOk = textType == string
+bool nullOk = nullType == null
+bool classOk = boxType == Box
+bool arrayOk = arrayType == array
+bool dictOk = dictType == dict
+
+expect(intOk, 1)
+expect(stringOk, 1)
+expect(nullOk, 1)
+expect(classOk, 1)
+expect(arrayOk, 1)
+expect(dictOk, 1)

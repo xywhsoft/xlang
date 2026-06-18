@@ -1,0 +1,4 @@
+func bad()
+    var obj = null
+    obj?.name = 1
+end

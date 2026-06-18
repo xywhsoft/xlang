@@ -1,0 +1,10 @@
+func identity<T>(T value) -> T
+    return value
+end
+
+extern "expect_i64" func expect(int actual, int expected)
+
+int number = identity::<int>(41)
+string text = identity::<string>("ok")
+
+expect(number, 41)

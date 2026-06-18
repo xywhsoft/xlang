@@ -1,0 +1,4 @@
+extern "cli_link_value" func cliValue() -> int
+extern "expect_i64" func expect(int actual, int expected)
+
+expect(cliValue(), 42)

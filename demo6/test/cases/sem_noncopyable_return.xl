@@ -1,0 +1,8 @@
+class Resource
+    destroy()
+    end
+end
+
+func make() -> Resource
+    return Resource()
+end

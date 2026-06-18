@@ -1,0 +1,15 @@
+func pick(string value) -> int
+    return 1
+end
+
+func pick(string value, ...) -> int
+    return 2
+end
+
+func options(string path, ***) -> int
+    return arg.length
+end
+
+int fixed = pick("x")
+int extra = pick("x", 1)
+int named = options("x", mode = "fast")

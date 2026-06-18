@@ -4,3 +4,9 @@
 /demo5/release/bin
 /demo5/release/examples/native/release
 /demo5/release/xl5_test_*.exe
+/demo6/release
+/demo6/src/lexer/xl6_lexer_gen.c
+/demo6/src/lexer/xl6_lexer_gen.h
+/demo6/src/parser/xl6_parser.c
+/demo6/src/parser/xl6_parser.h
+/demo6/src/parser/xl6_parser.out

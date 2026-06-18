@@ -1,0 +1,15 @@
+extern "expect_i64" func expect(int actual, int expected)
+
+int rightAssoc = 2 ** 3 ** 2
+expect(rightAssoc, 512)
+
+int grouped = (2 ** 3) ** 2
+expect(grouped, 64)
+
+int value = 3
+value **= 4
+expect(value, 81)
+
+int exp = 2
+auto inferred = 5 ** exp
+expect(inferred, 25)

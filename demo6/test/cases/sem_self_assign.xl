@@ -1,0 +1,7 @@
+class Box
+    int value = 0
+
+    func replace()
+        self = self
+    end
+end

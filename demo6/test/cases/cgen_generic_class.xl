@@ -1,0 +1,6 @@
+class Box<T>
+    T value
+end
+
+Box<int> intBox
+Box<string> stringBox

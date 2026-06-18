@@ -1,0 +1,111 @@
+#include "src/lexer/xl6_token.h"
+
+const char* xl6TokenKindName(XL6_TokenKind kind)
+{
+    switch ( kind ) {
+    case XL6_TK_EOF: return "EOF";
+    case XL6_TK_ERROR: return "ERROR";
+    case XL6_TK_IDENT: return "IDENT";
+    case XL6_TK_INT: return "INT";
+    case XL6_TK_FLOAT: return "FLOAT";
+    case XL6_TK_STRING: return "STRING";
+    case XL6_TK_TEMPLATE_STRING: return "TEMPLATE_STRING";
+    case XL6_TK_TIME: return "TIME";
+    case XL6_TK_SEP: return "SEP";
+    case XL6_KW_NULL: return "KW_NULL";
+    case XL6_KW_TRUE: return "KW_TRUE";
+    case XL6_KW_FALSE: return "KW_FALSE";
+    case XL6_KW_FUNC: return "KW_FUNC";
+    case XL6_KW_CONST: return "KW_CONST";
+    case XL6_KW_VAR: return "KW_VAR";
+    case XL6_KW_AUTO: return "KW_AUTO";
+    case XL6_KW_TYPEDEF: return "KW_TYPEDEF";
+    case XL6_KW_AS: return "KW_AS";
+    case XL6_KW_IF: return "KW_IF";
+    case XL6_KW_THEN: return "KW_THEN";
+    case XL6_KW_ELSE: return "KW_ELSE";
+    case XL6_KW_ELSEIF: return "KW_ELSEIF";
+    case XL6_KW_END: return "KW_END";
+    case XL6_KW_FOR: return "KW_FOR";
+    case XL6_KW_IN: return "KW_IN";
+    case XL6_KW_WHILE: return "KW_WHILE";
+    case XL6_KW_DO: return "KW_DO";
+    case XL6_KW_BREAK: return "KW_BREAK";
+    case XL6_KW_CONTINUE: return "KW_CONTINUE";
+    case XL6_KW_RETURN: return "KW_RETURN";
+    case XL6_KW_ASYNC: return "KW_ASYNC";
+    case XL6_KW_AWAIT: return "KW_AWAIT";
+    case XL6_KW_YIELD: return "KW_YIELD";
+    case XL6_KW_TRY: return "KW_TRY";
+    case XL6_KW_CATCH: return "KW_CATCH";
+    case XL6_KW_FINALLY: return "KW_FINALLY";
+    case XL6_KW_THROW: return "KW_THROW";
+    case XL6_KW_ASSERT: return "KW_ASSERT";
+    case XL6_KW_IMPORT: return "KW_IMPORT";
+    case XL6_KW_EXPORT: return "KW_EXPORT";
+    case XL6_KW_EXTERN: return "KW_EXTERN";
+    case XL6_KW_INCLUDE: return "KW_INCLUDE";
+    case XL6_KW_DEFINE: return "KW_DEFINE";
+    case XL6_KW_CLASS: return "KW_CLASS";
+    case XL6_KW_CUSTOM: return "KW_CUSTOM";
+    case XL6_KW_EXTENDS: return "KW_EXTENDS";
+    case XL6_KW_UNION: return "KW_UNION";
+    case XL6_KW_GET: return "KW_GET";
+    case XL6_KW_LET: return "KW_LET";
+    case XL6_KW_AND: return "KW_AND";
+    case XL6_KW_OR: return "KW_OR";
+    case XL6_KW_NOT: return "KW_NOT";
+    case XL6_TK_LPAREN: return "LPAREN";
+    case XL6_TK_RPAREN: return "RPAREN";
+    case XL6_TK_LBRACKET: return "LBRACKET";
+    case XL6_TK_RBRACKET: return "RBRACKET";
+    case XL6_TK_LBRACE: return "LBRACE";
+    case XL6_TK_RBRACE: return "RBRACE";
+    case XL6_TK_COMMA: return "COMMA";
+    case XL6_TK_COLON: return "COLON";
+    case XL6_TK_DOT: return "DOT";
+    case XL6_TK_SCOPE: return "SCOPE";
+    case XL6_TK_ARROW: return "ARROW";
+    case XL6_TK_FAT_ARROW: return "FAT_ARROW";
+    case XL6_TK_ELLIPSIS: return "ELLIPSIS";
+    case XL6_TK_TRIPLE_STAR: return "TRIPLE_STAR";
+    case XL6_TK_ASSIGN: return "ASSIGN";
+    case XL6_TK_PLUS_ASSIGN: return "PLUS_ASSIGN";
+    case XL6_TK_MINUS_ASSIGN: return "MINUS_ASSIGN";
+    case XL6_TK_STAR_ASSIGN: return "STAR_ASSIGN";
+    case XL6_TK_SLASH_ASSIGN: return "SLASH_ASSIGN";
+    case XL6_TK_PERCENT_ASSIGN: return "PERCENT_ASSIGN";
+    case XL6_TK_POW_ASSIGN: return "POW_ASSIGN";
+    case XL6_TK_NULL_ASSIGN: return "NULL_ASSIGN";
+    case XL6_TK_PLUS: return "PLUS";
+    case XL6_TK_MINUS: return "MINUS";
+    case XL6_TK_STAR: return "STAR";
+    case XL6_TK_SLASH: return "SLASH";
+    case XL6_TK_PERCENT: return "PERCENT";
+    case XL6_TK_POW: return "POW";
+    case XL6_TK_EQ: return "EQ";
+    case XL6_TK_NE: return "NE";
+    case XL6_TK_LT: return "LT";
+    case XL6_TK_LE: return "LE";
+    case XL6_TK_GT: return "GT";
+    case XL6_TK_GE: return "GE";
+    case XL6_TK_APPROX: return "APPROX";
+    case XL6_TK_QUESTION: return "QUESTION";
+    case XL6_TK_NULL_COALESCE: return "NULL_COALESCE";
+    case XL6_TK_SAFE_DOT: return "SAFE_DOT";
+    case XL6_TK_SAFE_LBRACKET: return "SAFE_LBRACKET";
+    case XL6_TK_BANG: return "BANG";
+    case XL6_TK_BIT_NOT: return "BIT_NOT";
+    case XL6_TK_BIT_AND: return "BIT_AND";
+    case XL6_TK_BIT_OR: return "BIT_OR";
+    case XL6_TK_BIT_XOR: return "BIT_XOR";
+    case XL6_TK_SHL: return "SHL";
+    case XL6_TK_SHR: return "SHR";
+    default: return "UNKNOWN";
+    }
+}
+
+int xl6TokenIsKeyword(XL6_TokenKind kind)
+{
+    return (kind >= XL6_KW_NULL) && (kind <= XL6_KW_NOT);
+}

@@ -1,0 +1,2 @@
+string text = "value"
+text += 1

@@ -1,0 +1,33 @@
+extern "expect_i64" func expect(int actual, int expected)
+
+func pair(int seed) -> (int, int)
+    return seed, seed + 1
+end
+
+func pairDefault(int seed, int step = 2) -> (int, int)
+    return seed, seed + step
+end
+
+function(int) -> (int, int) pairFn = pair
+auto first, second = pairFn(10)
+expect(first, 10)
+expect(second, 11)
+
+function(int) -> (int, int) defaultFn = pairDefault
+auto third, fourth = defaultFn(20)
+expect(third, 20)
+expect(fourth, 22)
+
+function(int) -> (int, int) anonFn = func(int seed) -> (int, int)
+    return seed + 10, seed + 20
+end
+
+auto fifth, sixth = anonFn(1)
+expect(fifth, 11)
+expect(sixth, 21)
+
+int left = 0
+int right = 0
+left, right = pairFn(30)
+expect(left, 30)
+expect(right, 31)

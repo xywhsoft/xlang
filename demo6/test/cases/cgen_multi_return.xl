@@ -1,0 +1,18 @@
+extern "expect_i64" func expect(int actual, int expected)
+
+func pair(int seed) -> (int, int)
+    return seed, seed + 1
+end
+
+auto first, second = pair(10)
+expect(first, 10)
+expect(second, 11)
+
+auto kept, _ = pair(20)
+expect(kept, 20)
+
+int left = 0
+int right = 0
+left, right = pair(30)
+expect(left, 30)
+expect(right, 31)

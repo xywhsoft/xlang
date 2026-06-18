@@ -1,0 +1,7 @@
+func pair() -> (int, int)
+    return 1, 2
+end
+
+func single() -> int
+    return pair()
+end

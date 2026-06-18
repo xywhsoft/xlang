@@ -1,0 +1,22 @@
+func identity<T>(T value) -> T
+    return value
+end
+
+func first<T>(array<T> values) -> T
+    return values[0]
+end
+
+class Box<T>
+    T value
+
+    create(T value)
+        return
+    end
+
+    func valueOf() -> T
+        return value
+    end
+end
+
+Box<int> intBox
+auto number = identity::<int>(1)

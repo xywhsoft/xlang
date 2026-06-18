@@ -1,0 +1,5 @@
+func count(...)
+    return
+end
+
+count(1, 2, 3)

@@ -1,0 +1,16 @@
+extern "expect_i64" func expect(int actual, int expected)
+
+int dec = 1_000_000
+int hexA = 0x2A
+int hexB = &H2A
+int octA = 0o52
+int octB = &O52
+int binA = 0b101010
+int binB = &B101010
+float sci = 1_2.5e1
+
+expect(dec, 1000000)
+expect(hexA + hexB, 84)
+expect(octA + octB, 84)
+expect(binA + binB, 84)
+expect(int(sci), 125)

@@ -1,0 +1,10 @@
+auto a = []
+auto b = [1, 2, 3]
+auto c = [0: "a", 1: "b"]
+auto d = {}
+auto e = {"a": 1, "b": 2}
+auto f = {1, 2, 3}
+auto g = array[1, 2, 3]
+auto h = list[0: "a"]
+auto i = set{1, 2}
+auto j = dict{"a": 1}

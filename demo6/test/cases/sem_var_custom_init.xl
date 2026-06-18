@@ -1,0 +1,5 @@
+custom Native
+end
+
+point handle
+var boxed = Native(handle)

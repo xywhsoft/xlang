@@ -1,0 +1,21 @@
+class Vec2
+    int x = 0
+    int y = 0
+
+    create(int x, int y)
+        return
+    end
+
+    func length2() -> int
+        return 0
+    end
+end
+
+custom NativeClock
+    extern "clock_open" create()
+    extern "clock_close" destroy()
+    extern "clock_ticks" func ticks() -> int
+end
+
+Vec2 v
+NativeClock clock

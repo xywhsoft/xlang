@@ -1,0 +1,28 @@
+custom NativeBox
+    extern "native_box_open" create(int value)
+    extern "native_box_close" destroy()
+end
+
+class Holder
+    NativeBox first
+    NativeBox second
+
+    create()
+        self.first = NativeBox(10)
+        self.second = NativeBox(20)
+    end
+end
+
+extern "expect_i64" func expect(int actual, int expected)
+extern "close_count" func closeCount() -> int
+extern "close_value" func closeValue(int index) -> int
+
+func exercise()
+    auto holder = Holder()
+    expect(closeCount(), 0)
+end
+
+exercise()
+expect(closeCount(), 2)
+expect(closeValue(0), 20)
+expect(closeValue(1), 10)

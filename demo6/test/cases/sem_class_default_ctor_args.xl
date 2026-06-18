@@ -1,0 +1,5 @@
+class Point
+    int x = 0
+end
+
+auto point = Point(1)

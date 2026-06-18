@@ -1,0 +1,5 @@
+custom Native
+end
+
+int handle = 1
+auto native = Native(handle)

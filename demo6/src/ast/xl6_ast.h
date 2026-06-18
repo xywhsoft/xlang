@@ -1,0 +1,91 @@
+#ifndef XL6_AST_H
+#define XL6_AST_H
+
+#include "src/lexer/xl6_token.h"
+
+typedef enum XL6_AstKind {
+    XL6_AST_MODULE,
+    XL6_AST_LIST,
+    XL6_AST_FUNC,
+    XL6_AST_ANON_FUNC,
+    XL6_AST_EXTERN_FUNC,
+    XL6_AST_EXPORT_FUNC,
+    XL6_AST_EXTERN_VAR,
+    XL6_AST_EXPORT_VAR,
+    XL6_AST_EXPORT_CONST,
+    XL6_AST_TYPE_ALIAS,
+    XL6_AST_EXTERN_TYPE_ALIAS,
+    XL6_AST_CLASS,
+    XL6_AST_CUSTOM,
+    XL6_AST_FIELD,
+    XL6_AST_CREATE,
+    XL6_AST_CUSTOM_EXTERN_SPECIAL,
+    XL6_AST_CUSTOM_EXTERN_FUNC,
+    XL6_AST_TYPE_PARAMS,
+    XL6_AST_PARAM,
+    XL6_AST_RETURN_TYPES,
+    XL6_AST_BLOCK,
+    XL6_AST_VAR_DECL,
+    XL6_AST_MULTI_VAR_DECL,
+    XL6_AST_CONST_DECL,
+    XL6_AST_RETURN,
+    XL6_AST_EXPR_STMT,
+    XL6_AST_TYPE,
+    XL6_AST_NAME,
+    XL6_AST_INT,
+    XL6_AST_FLOAT,
+    XL6_AST_STRING,
+    XL6_AST_TIME,
+    XL6_AST_BOOL,
+    XL6_AST_NULL,
+    XL6_AST_CALL,
+    XL6_AST_MEMBER,
+    XL6_AST_SAFE_MEMBER,
+    XL6_AST_INDEX,
+    XL6_AST_SAFE_INDEX,
+    XL6_AST_GENERIC_INSTANT,
+    XL6_AST_ARG,
+    XL6_AST_NAMED_ARG,
+    XL6_AST_ASSIGN,
+    XL6_AST_MULTI_ASSIGN,
+    XL6_AST_CONDITIONAL,
+    XL6_AST_BINARY,
+    XL6_AST_UNARY,
+    XL6_AST_ARRAY_LITERAL,
+    XL6_AST_LIST_LITERAL,
+    XL6_AST_SET_LITERAL,
+    XL6_AST_DICT_LITERAL,
+    XL6_AST_TYPED_LITERAL,
+    XL6_AST_KEY_VALUE,
+    XL6_AST_IF,
+    XL6_AST_ELSEIF,
+    XL6_AST_WHILE,
+    XL6_AST_DO_WHILE,
+    XL6_AST_FOR,
+    XL6_AST_FOR_TARGETS,
+    XL6_AST_BREAK,
+    XL6_AST_CONTINUE
+} XL6_AstKind;
+
+typedef struct XL6_AstNode {
+    XL6_AstKind kind;
+    char* text;
+    int line;
+    int column;
+    struct XL6_AstNode** children;
+    size_t childCount;
+    size_t childCapacity;
+} XL6_AstNode;
+
+const char* xl6AstKindName(XL6_AstKind kind);
+XL6_AstNode* xl6AstNew(XL6_AstKind kind, const XL6_Token* token);
+XL6_AstNode* xl6AstNewText(XL6_AstKind kind, const char* text, size_t len, const XL6_Token* token);
+XL6_AstNode* xl6AstNewBinary(const XL6_Token* op, XL6_AstNode* left, XL6_AstNode* right);
+XL6_AstNode* xl6AstNewUnary(const XL6_Token* op, XL6_AstNode* expr);
+XL6_AstNode* xl6AstNewCall(XL6_AstNode* callee, XL6_AstNode* args, const XL6_Token* token);
+XL6_AstNode* xl6AstNewGenericType(const XL6_Token* name, XL6_AstNode* args);
+void xl6AstAddChild(XL6_AstNode* parent, XL6_AstNode* child);
+void xl6AstMoveChildren(XL6_AstNode* dst, XL6_AstNode* src);
+void xl6AstFree(XL6_AstNode* node);
+
+#endif
