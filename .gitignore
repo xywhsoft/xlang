@@ -1,10 +1,24 @@
-/release
-/demo5/release/tmp
-/demo5/release/dump
-/demo5/release/bin
-/demo5/release/examples/native/release
+# repository-local build output
+/release/
+
+# DEMO5 generated output
+/demo5/release/tmp/
+/demo5/release/dump/
+/demo5/release/bin/
+/demo5/release/examples/native/release/
 /demo5/release/xl5_test_*.exe
-/demo6/release
+
+# DEMO6 generated output
+/demo6/release/
+/demo6/*.exe
+/demo6/*.dll
+/demo6/*.obj
+/demo6/*.o
+/demo6/*.lib
+/demo6/*.exp
+/demo6/*.pdb
+
+# DEMO6 generated lexer/parser sources
 /demo6/src/lexer/xl6_lexer_gen.c
 /demo6/src/lexer/xl6_lexer_gen.h
 /demo6/src/parser/xl6_parser.c

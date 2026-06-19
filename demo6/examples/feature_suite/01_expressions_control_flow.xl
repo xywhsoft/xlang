@@ -1,0 +1,144 @@
+extern "expect_i64" func expect(int actual, int expected)
+
+// 算术、复合赋值、指数运算。
+int value = 10
+value += 5
+value -= 3
+value *= 2
+value /= 4
+value %= 5
+expect(value, 1)
+
+int power = 2 ** 5
+expect(power, 32)
+
+// 位运算。
+int bits = (0b1100 & 0b1010) | 0b0001
+expect(bits, 9)
+expect(0b0101 ^ 0b0011, 6)
+expect(1 << 4, 16)
+expect(16 >> 2, 4)
+
+// 逻辑运算、比较运算、三元表达式。
+bool logic = true and not false or false
+expect(logic, 1)
+expect(!false, 1)
+expect(3 < 4, 1)
+expect(4 <= 4, 1)
+expect(5 > 4, 1)
+expect(5 >= 5, 1)
+expect(5 == 5, 1)
+expect(5 != 6, 1)
+
+int ternaryValue = logic ? 100 : 200
+expect(ternaryValue, 100)
+
+// null 合并、空赋值、安全成员/索引。
+var maybe = null
+int fallback = int(maybe ?? 9)
+expect(fallback, 9)
+
+maybe ?= 11
+maybe ?= 22
+expect(int(maybe), 11)
+
+var missing = null
+array values = [10, 20, 30]
+expect(int(values?[1]), 20)
+expect(int(missing?[0] ?? 99), 99)
+expect(values.length, 3)
+expect(int(missing?.length ?? 0), 0)
+
+// 字符串与容器的 in。
+expect("lang" in "xlang demo6", 1)
+expect(20 in values, 1)
+expect(40 in values, 0)
+expect("name" in {"name": 7}, 1)
+
+// if / elseif / else。
+int branch = 0
+if value > 10 then
+    branch = 1
+elseif value == 1 then
+    branch = 2
+else
+    branch = 3
+end
+expect(branch, 2)
+
+// 单行 if return。
+func sign(int input) -> int
+    if input > 0 then return 1
+    if input < 0 then return -1 else return 0
+end
+
+expect(sign(12), 1)
+expect(sign(-3), -1)
+expect(sign(0), 0)
+
+// while。
+int i = 0
+int total = 0
+while i < 5 do
+    i += 1
+    total += i
+end
+expect(total, 15)
+
+// do while。
+int once = 0
+do
+    once += 1
+while once < 1
+expect(once, 1)
+
+// range：range(stop)、range(start, stop)、range(start, stop, step)。
+int rangeSum = 0
+for item in range(5)
+    rangeSum += item
+end
+expect(rangeSum, 10)
+
+int rangeIndexSum = 0
+int rangeValueSum = 0
+for index, item in range(2, 8, 2)
+    rangeIndexSum += index
+    rangeValueSum += item
+end
+expect(rangeIndexSum, 3)
+expect(rangeValueSum, 12)
+
+// break / continue，以及多层 break / continue。
+int filtered = 0
+for item in range(0, 8)
+    if item % 2 == 0 then
+        continue
+    end
+    if item > 5 then
+        break
+    end
+    filtered += item
+end
+expect(filtered, 9)
+
+int nested = 0
+for outer in range(0, 3)
+    for inner in range(0, 3)
+        if outer == 1 and inner == 1 then
+            break 2
+        end
+        nested += 1
+    end
+end
+expect(nested, 4)
+
+int skipOuter = 0
+for outer in range(0, 3)
+    for inner in range(0, 3)
+        if inner == 1 then
+            continue 2
+        end
+        skipOuter += 1
+    end
+end
+expect(skipOuter, 3)

@@ -142,6 +142,7 @@ items(A) ::= items(B) item(C) opt_seps. {
 }
 
 item(A) ::= func_decl(B). { A = B; }
+item(A) ::= import_decl(B). { A = B; }
 item(A) ::= extern_func_decl(B). { A = B; }
 item(A) ::= export_func_decl(B). { A = B; }
 item(A) ::= extern_var_decl(B). { A = B; }
@@ -159,6 +160,15 @@ item(A) ::= TOK_ERROR(E). {
 
 name_tok(A) ::= IDENT(B). { A = B; }
 name_tok(A) ::= TYPE_FUNCTION(B). [KW_NOT] { A = B; }
+
+import_decl(A) ::= KW_IMPORT(I) STRING(S) need_sep. {
+    A = xl6AstNew(XL6_AST_IMPORT, &S);
+    (void)I;
+}
+import_decl(A) ::= KW_IMPORT(I) name_tok(N) need_sep. {
+    A = xl6AstNew(XL6_AST_IMPORT, &N);
+    (void)I;
+}
 
 opt_seps ::= .
 opt_seps ::= opt_seps SEP.
@@ -213,13 +223,13 @@ export_const_decl(A) ::= KW_EXPORT(E) STRING(S) KW_CONST type_ref(T) name_tok(N)
     (void)E;
 }
 
-type_alias_decl(A) ::= KW_TYPEDEF(D) name_tok(N) ASSIGN type_ref(T) need_sep. {
+type_alias_decl(A) ::= KW_TYPEDEF(D) name_tok(N) ASSIGN type_expr(T) need_sep. {
     A = xl6AstNew(XL6_AST_TYPE_ALIAS, &N);
     xl6AstAddChild(A, T);
     (void)D;
 }
 
-extern_type_alias_decl(A) ::= KW_EXTERN(E) name_tok(K) name_tok(N) ASSIGN type_ref(T) need_sep. {
+extern_type_alias_decl(A) ::= KW_EXTERN(E) name_tok(K) name_tok(N) ASSIGN type_expr(T) need_sep. {
     if ( !xl6PTokenTextEquals(&K, "type") ) {
         xl6PDiag(ctx, &K, "extern type alias must start with extern type");
     }
@@ -343,8 +353,10 @@ param_list(A) ::= param_list(B) COMMA param(C). {
     xl6AstAddChild(A, C);
 }
 
-param_type_ref(A) ::= type_ref(T). { A = T; }
-param_type_ref(A) ::= function_type_ref(T). { A = T; }
+type_expr(A) ::= type_ref(T). { A = T; }
+type_expr(A) ::= function_type_ref(T). { A = T; }
+
+param_type_ref(A) ::= type_expr(T). { A = T; }
 
 param(A) ::= param_type_ref(T) name_tok(N). {
     A = xl6AstNew(XL6_AST_PARAM, &N);
@@ -377,11 +389,11 @@ return_sig(A) ::= ARROW LPAREN type_list(L) RPAREN. {
     xl6AstFree(L);
 }
 
-type_list(A) ::= type_ref(T). {
+type_list(A) ::= type_expr(T). {
     A = xl6PList();
     xl6AstAddChild(A, T);
 }
-type_list(A) ::= type_list(B) COMMA type_ref(T). {
+type_list(A) ::= type_list(B) COMMA type_expr(T). {
     A = B;
     xl6AstAddChild(A, T);
 }
@@ -399,8 +411,7 @@ type_ref(A) ::= name_tok(N) TYPE_LT type_list(L) GT. {
     A = xl6AstNewGenericType(&N, L);
 }
 
-return_value_type_ref(A) ::= type_ref(T). { A = T; }
-return_value_type_ref(A) ::= function_type_ref(T). { A = T; }
+return_value_type_ref(A) ::= type_expr(T). { A = T; }
 
 function_type_ref(A) ::= TYPE_FUNCTION(N) LPAREN func_type_params_opt(P) RPAREN return_sig(R). {
     A = xl6AstNew(XL6_AST_TYPE, &N);
@@ -420,7 +431,7 @@ func_type_params(A) ::= func_type_params(B) COMMA func_type_param(T). {
     xl6AstAddChild(A, T);
 }
 
-func_type_param(A) ::= type_ref(T). { A = T; }
+func_type_param(A) ::= type_expr(T). { A = T; }
 func_type_param(A) ::= ELLIPSIS(T). {
     A = xl6AstNewText(XL6_AST_TYPE, "array<var>", 10, &T);
 }
@@ -476,8 +487,7 @@ compound_stmt(A) ::= while_stmt(B). { A = B; }
 compound_stmt(A) ::= do_while_stmt(B). { A = B; }
 compound_stmt(A) ::= for_stmt(B). { A = B; }
 
-var_type_ref(A) ::= type_ref(T). { A = T; }
-var_type_ref(A) ::= function_type_ref(T). { A = T; }
+var_type_ref(A) ::= type_expr(T). { A = T; }
 
 var_decl(A) ::= var_type_ref(T) name_tok(N). {
     A = xl6AstNew(XL6_AST_VAR_DECL, &N);
@@ -498,7 +508,7 @@ var_decl(A) ::= KW_AUTO(N) multi_name_list(L) ASSIGN expr(E). {
     xl6AstAddChild(A, L);
     xl6AstAddChild(A, E);
 }
-var_decl(A) ::= KW_CONST type_ref(T) name_tok(V) ASSIGN expr(E). {
+var_decl(A) ::= KW_CONST var_type_ref(T) name_tok(V) ASSIGN expr(E). {
     A = xl6AstNew(XL6_AST_CONST_DECL, &V);
     xl6AstAddChild(A, T);
     xl6AstAddChild(A, E);

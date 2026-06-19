@@ -1,0 +1,47 @@
+extern "expect_i64" func expect(int actual, int expected)
+extern "expect_str" func expectStr(string actual, string expected)
+
+array<int> values = array[10, 20, 30]
+list<string> names = list[0: "a", 2: "b"]
+set<int> unique = set{1, 2}
+dict<int> table = dict{"a": 7, "b": 9}
+
+expect(int(values[0]), 10)
+expect(int(values[2]), 30)
+expectStr(string(names[2]), "b")
+expect(int(table["a"]), 7)
+
+int total = 0
+for index, value in values
+    total = total + index + int(value)
+end
+expect(total, 63)
+
+int listIndexSum = 0
+string listLast = ""
+for index, value in names
+    listIndexSum = listIndexSum + index
+    listLast = string(value)
+end
+expect(listIndexSum, 2)
+expectStr(listLast, "b")
+
+int setCount = 0
+int setSum = 0
+for value in unique
+    setCount = setCount + 1
+    setSum = setSum + int(value)
+end
+expect(setCount, 2)
+expect(setSum, 3)
+
+int dictSum = 0
+int sawB = 0
+for key, value in table
+    dictSum = dictSum + int(value)
+    if key == "b" then
+        sawB = int(value)
+    end
+end
+expect(dictSum, 16)
+expect(sawB, 9)

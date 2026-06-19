@@ -1,0 +1,53 @@
+class Pair
+    int left = 0
+    int right = 0
+end
+
+custom Native
+end
+
+func makePair(int seed, int step = 1) -> (int, int)
+    return seed, seed + step
+end
+
+func optionCount(string path, ***) -> int
+    return arg.length
+end
+
+array<int> numbers = array[1, 2, 3]
+list<string> names = list[0: "alpha", 2: "beta"]
+set<int> unique = set{1, 2, 2}
+dict<int> scores = dict{"alpha": 10, "beta": 20}
+
+int number = numbers[1]
+string name = names[2]
+int score = scores["beta"]
+
+int total = 0
+for index, value in numbers
+    total = total + index + int(value)
+end
+
+function(int) -> (int, int) pairFn = makePair
+auto left, right = pairFn(10)
+
+var boxedPairFn = pairFn
+var firstValue = boxedPairFn(20)
+int optionTotal = optionCount(path = "demo.txt", mode = "fast", retry = 3)
+
+Pair pair
+pair.left = left
+pair.right = right
+
+array<Pair> pairs = array[pair]
+Pair fromArray = pairs[0]
+var boxedPair = fromArray
+
+point rawHandle
+Native native = Native(rawHandle)
+var boxedNative = native
+
+type pairFnType = type(pairFn)
+bool functionTypeOk = type(boxedPairFn) == pairFnType
+bool pairTypeOk = type(boxedPair) == Pair
+bool nativeTypeOk = type(boxedNative) == Native

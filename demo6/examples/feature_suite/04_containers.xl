@@ -1,0 +1,155 @@
+extern "expect_i64" func expect(int actual, int expected)
+extern "expect_str" func expectStr(string actual, string expected)
+
+// 动态容器字面量。
+auto values = [1, 2, 3]
+auto sparse = [0: "a", 2: "b"]
+auto table = {"a": 10, "b": 20}
+auto unique = {1, 2, 2, 3}
+
+expect(values.length, 3)
+expect(table.length, 2)
+
+int sparseLength = 0
+for index, item in sparse
+    sparseLength += 1
+end
+
+int uniqueLength = 0
+for item in unique
+    uniqueLength += 1
+end
+
+expect(sparseLength, 2)
+expect(uniqueLength, 3)
+
+expect(int(values[0]), 1)
+expectStr(string(sparse[2]), "b")
+expect(int(table["b"]), 20)
+expect(2 in unique, 1)
+
+// 显式容器前缀，空集合必须写 set{}，空字典可写 {} 或 dict{}。
+auto explicitArray = array[4, 5]
+auto explicitList = list[1: "x"]
+dict emptyDict = {}
+auto explicitDict = dict{"k": 8}
+set emptySet = set{}
+auto explicitSet = set{6, 7}
+
+int explicitArrayCount = 0
+for item in explicitArray
+    explicitArrayCount += 1
+end
+
+int explicitListCount = 0
+for index, item in explicitList
+    explicitListCount += 1
+end
+
+int explicitSetCount = 0
+for item in explicitSet
+    explicitSetCount += 1
+end
+
+expect(explicitArrayCount, 2)
+expect(explicitListCount, 1)
+expect(emptyDict.length, 0)
+expect(int(explicitDict["k"]), 8)
+expect(emptySet.length, 0)
+expect(explicitSetCount, 2)
+
+// 索引读写、复合赋值、空赋值。
+values[1] = 10
+values[1] += 5
+table["c"] ?= 30
+table["c"] ?= 40
+
+expect(int(values[1]), 15)
+expect(int(table["c"]), 30)
+
+// for in：array 可以取 value，也可以取 index, value。
+int valueSum = 0
+for item in values
+    valueSum += int(item)
+end
+expect(valueSum, 19)
+
+int indexSum = 0
+for index, item in values
+    indexSum += index
+end
+expect(indexSum, 3)
+
+// for in：list 返回稀疏索引和值。
+int listIndexSum = 0
+string listLast = ""
+for index, item in sparse
+    listIndexSum += index
+    listLast = string(item)
+end
+expect(listIndexSum, 2)
+expectStr(listLast, "b")
+
+// for in：set 返回值，dict 返回 key/value。
+int setSum = 0
+for item in unique
+    setSum += int(item)
+end
+expect(setSum, 6)
+
+int dictSum = 0
+int sawB = 0
+for key, item in table
+    dictSum += int(item)
+    if key == "b" then
+        sawB = int(item)
+    end
+end
+expect(dictSum, 60)
+expect(sawB, 20)
+
+// 静态泛型容器。
+array<int> numbers = array[10, 20, 30]
+list<string> names = list[0: "alpha", 2: "beta"]
+set<int> ids = set{1, 2, 2}
+dict<int> scores = dict{"alpha": 10, "beta": 20}
+
+expect(numbers[2], 30)
+expectStr(names[2], "beta")
+int idCount = 0
+for item in ids
+    idCount += 1
+end
+expect(idCount, 2)
+expect(scores["beta"], 20)
+
+// 泛型容器可以保存 class、custom、function 等一等公民类型。
+class Pair
+    int left = 0
+    int right = 0
+end
+
+custom Native
+end
+
+func add(int left, int right) -> int
+    return left + right
+end
+
+Pair seed
+seed.left = 5
+seed.right = 6
+array<Pair> pairs = array[seed]
+Pair fromPair = pairs[0]
+expect(fromPair.left + fromPair.right, 11)
+
+point raw
+Native native = Native(raw)
+array<Native> nativeArray = array[native]
+Native fromNative = nativeArray[0]
+expect(type(fromNative) == Native, 1)
+
+function(int, int) -> int fn = add
+dict<function(int, int) -> int> funcs = dict{"add": fn}
+function(int, int) -> int picked = funcs["add"]
+expect(picked(20, 22), 42)

@@ -1,0 +1,35 @@
+extern "expect_i64" func expect(int actual, int expected)
+
+func add(int left, int right) -> int
+    return left + right
+end
+
+function(int, int) -> int fn = add
+array<function(int, int) -> int> funcs = array[fn]
+list<function(int, int) -> int> listed = list[0: fn]
+set<function(int, int) -> int> unique = set{fn}
+dict<function(int, int) -> int> named = dict{"add": fn}
+function(int, int) -> int first = funcs[0]
+var boxed = first
+var dynamic = boxed(20, 22)
+var loopValue = null
+
+for each in funcs
+    loopValue = each(3, 4)
+end
+
+for index, each in listed
+    loopValue = each(index, 5)
+end
+
+for each in unique
+    loopValue = each(4, 6)
+end
+
+for key, each in named
+    loopValue = each(5, 6)
+end
+
+expect(first(1, 2), 3)
+expect(int(dynamic), 42)
+expect(int(loopValue), 11)

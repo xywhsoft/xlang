@@ -1,0 +1,18 @@
+extern "expect_str" func expectStr(string actual, string expected)
+
+int value = 123
+bool flag = true
+string text = "hello"
+var boxed = 456
+
+auto literalText = 123.toString()
+auto valueText = value.toString()
+auto flagText = flag.toString()
+auto textText = text.toString()
+auto boxedText = boxed.toString()
+
+expectStr(literalText, "123")
+expectStr(valueText, "123")
+expectStr(flagText, "true")
+expectStr(textText, "hello")
+expectStr(boxedText, "456")

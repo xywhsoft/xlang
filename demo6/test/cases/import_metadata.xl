@@ -1,0 +1,6 @@
+import counter
+import "local/math"
+
+export "xl6_import_probe" func probe() -> int
+    return 1
+end

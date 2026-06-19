@@ -1,0 +1,100 @@
+extern "expect_i64" func expect(int actual, int expected)
+extern "expect_str" func expectStr(string actual, string expected)
+
+// UTF-8 源文件、大小写敏感标识符、中文标识符。
+int Name = 1
+int name = 2
+int 数量 = 3
+expect(Name + name + 数量, 6)
+
+/*
+    多行注释支持嵌套。
+    /*
+        这是嵌套注释。
+    */
+*/
+
+// 换行是语句分隔符，分号也可以显式分隔语句。
+int lineSeparated = 10
+int semicolonA = 20; int semicolonB = 30
+expect(lineSeparated + semicolonA + semicolonB, 60)
+
+// C 风格变量声明、const、auto、var、默认初始化。
+const int answer = 42
+auto inferred = 43
+var dynamic = 43
+
+int defaultInt
+bool defaultBool
+string defaultString
+var defaultVar
+
+expect(answer, 42)
+expect(inferred, 43)
+expect(int(dynamic), 43)
+expect(defaultInt, 0)
+expect(defaultBool, 0)
+expect(type(defaultVar) == null, 1)
+expectStr(defaultString, "")
+
+// typedef 类型别名。
+typedef Count = int
+Count count = 7
+expect(count, 7)
+
+// 整数字面量：十进制、十六进制、八进制、二进制、下划线分隔。
+int dec = 1_000_000
+int hexA = 0x2A
+int hexB = &H2A
+int octA = 0o52
+int octB = &O52
+int binA = 0b101010
+int binB = &B101010
+
+expect(dec, 1000000)
+expect(hexA + hexB + octA + octB + binA + binB, 252)
+
+// 浮点字面量：小数、科学计数、下划线分隔。
+float pi = 3.14
+float thousand = 1e3
+float small = 1e-3
+float separated = 1_2.5e1
+
+expect(int(pi), 3)
+expect(int(thousand), 1000)
+expect(int(small * 1000.0), 1)
+expect(int(separated), 125)
+
+// 字符串：单双引号、转义、raw string、多行 string。
+string single = 'hello "x"'
+string doubleQuote = "hello 'x'"
+string rawPath = r"c:\tmp\file.txt"
+string multi = """line1
+line2"""
+string rawMulti = r'''a\b
+"q"'''
+
+expectStr(single, "hello \"x\"")
+expectStr(doubleQuote, "hello 'x'")
+expectStr(rawPath, "c:\\tmp\\file.txt")
+expectStr(multi, "line1\nline2")
+expectStr(rawMulti, "a\\b\n\"q\"")
+
+// 时间字面量：日期、时间、日期时间。
+time dateOnly = #2026-06-18#
+time timeOnly = #12:30:59#
+time dateTime = #2026-06-18 12:30:59#
+
+expect(dateOnly == #2026-06-18#, 1)
+expect(timeOnly == #12:30:59#, 1)
+expect(dateTime > dateOnly, 1)
+expect(dateTime ~= #2026-06-18 12:30:59#, 1)
+
+// 布尔与 null。
+bool yes = true
+bool no = false
+var empty = null
+
+expect(yes, 1)
+expect(no, 0)
+expect(type(empty) == null, 1)

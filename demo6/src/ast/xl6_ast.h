@@ -6,6 +6,7 @@
 typedef enum XL6_AstKind {
     XL6_AST_MODULE,
     XL6_AST_LIST,
+    XL6_AST_IMPORT,
     XL6_AST_FUNC,
     XL6_AST_ANON_FUNC,
     XL6_AST_EXTERN_FUNC,

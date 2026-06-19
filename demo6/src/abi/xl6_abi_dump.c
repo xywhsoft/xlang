@@ -1,8 +1,9 @@
 #include "src/abi/xl6_abi_dump.h"
+#include "src/common/xl6_output.h"
 
-static void xl6AbiText(FILE* out, const char* text)
+static void xl6AbiText(XL6_Output* out, const char* text)
 {
-    fputs(text != NULL ? text : "", out);
+    xl6OutputPuts(text != NULL ? text : "", out);
 }
 
 static int xl6AbiTextEquals(const char* a, const char* b)
@@ -70,30 +71,30 @@ static int xl6AbiIsSimpleCIdent(const char* text)
     return 1;
 }
 
-static void xl6AbiEncodedText(FILE* out, const char* text)
+static void xl6AbiEncodedText(XL6_Output* out, const char* text)
 {
     const unsigned char* p;
 
     if ( text == NULL || text[0] == '\0' ) {
-        fputc('_', out);
+        xl6OutputPutc('_', out);
         return;
     }
     p = (const unsigned char*)text;
     while ( *p != '\0' ) {
         unsigned int cp = xl6AbiNextUtf8Codepoint(&p);
         if ( (cp >= 'a' && cp <= 'z') || (cp >= 'A' && cp <= 'Z') || (cp >= '0' && cp <= '9') ) {
-            fputc((int)cp, out);
+            xl6OutputPutc((int)cp, out);
         } else if ( cp == '_' ) {
-            fputs("__", out);
+            xl6OutputPuts("__", out);
         } else if ( cp <= 0xFFFFU ) {
-            fprintf(out, "_u%04X_", cp);
+            xl6OutputPrintf(out, "_u%04X_", cp);
         } else {
-            fprintf(out, "_u%06X_", cp);
+            xl6OutputPrintf(out, "_u%06X_", cp);
         }
     }
 }
 
-static void xl6AbiCStringSymbol(FILE* out, const char* text)
+static void xl6AbiCStringSymbol(XL6_Output* out, const char* text)
 {
     size_t len;
     size_t i;
@@ -104,14 +105,14 @@ static void xl6AbiCStringSymbol(FILE* out, const char* text)
     len = strlen(text);
     if ( len >= 2 && (text[0] == '"' || text[0] == '\'') ) {
         for ( i = 1; i + 1 < len; ++i ) {
-            fputc(text[i], out);
+            xl6OutputPutc(text[i], out);
         }
         return;
     }
-    fputs(text, out);
+    xl6OutputPuts(text, out);
 }
 
-static void xl6AbiJsonEscapedRange(FILE* out, const char* text, size_t len)
+static void xl6AbiJsonEscapedRange(XL6_Output* out, const char* text, size_t len)
 {
     size_t i;
 
@@ -121,28 +122,28 @@ static void xl6AbiJsonEscapedRange(FILE* out, const char* text, size_t len)
     for ( i = 0; i < len; ++i ) {
         unsigned char ch = (unsigned char)text[i];
         if ( ch == '"' ) {
-            fputs("\\\"", out);
+            xl6OutputPuts("\\\"", out);
         } else if ( ch == '\\' ) {
-            fputs("\\\\", out);
+            xl6OutputPuts("\\\\", out);
         } else if ( ch == '\b' ) {
-            fputs("\\b", out);
+            xl6OutputPuts("\\b", out);
         } else if ( ch == '\f' ) {
-            fputs("\\f", out);
+            xl6OutputPuts("\\f", out);
         } else if ( ch == '\n' ) {
-            fputs("\\n", out);
+            xl6OutputPuts("\\n", out);
         } else if ( ch == '\r' ) {
-            fputs("\\r", out);
+            xl6OutputPuts("\\r", out);
         } else if ( ch == '\t' ) {
-            fputs("\\t", out);
+            xl6OutputPuts("\\t", out);
         } else if ( ch < 0x20 ) {
-            fprintf(out, "\\u%04X", (unsigned)ch);
+            xl6OutputPrintf(out, "\\u%04X", (unsigned)ch);
         } else {
-            fputc((int)ch, out);
+            xl6OutputPutc((int)ch, out);
         }
     }
 }
 
-static void xl6AbiJsonEscaped(FILE* out, const char* text)
+static void xl6AbiJsonEscaped(XL6_Output* out, const char* text)
 {
     if ( text == NULL ) {
         return;
@@ -150,18 +151,18 @@ static void xl6AbiJsonEscaped(FILE* out, const char* text)
     xl6AbiJsonEscapedRange(out, text, strlen(text));
 }
 
-static void xl6AbiJsonString(FILE* out, const char* text)
+static void xl6AbiJsonString(XL6_Output* out, const char* text)
 {
-    fputc('"', out);
+    xl6OutputPutc('"', out);
     xl6AbiJsonEscaped(out, text);
-    fputc('"', out);
+    xl6OutputPutc('"', out);
 }
 
-static void xl6AbiJsonCStringSymbol(FILE* out, const char* text)
+static void xl6AbiJsonCStringSymbol(XL6_Output* out, const char* text)
 {
     size_t len;
 
-    fputc('"', out);
+    xl6OutputPutc('"', out);
     if ( text != NULL ) {
         len = strlen(text);
         if ( len >= 2 && (text[0] == '"' || text[0] == '\'') ) {
@@ -170,7 +171,7 @@ static void xl6AbiJsonCStringSymbol(FILE* out, const char* text)
             xl6AbiJsonEscapedRange(out, text, len);
         }
     }
-    fputc('"', out);
+    xl6OutputPutc('"', out);
 }
 
 static int xl6AbiIsTypeAliasDecl(const XL6_AstNode* node)
@@ -212,7 +213,7 @@ static const XL6_AstNode* xl6AbiResolveAliasType(const XL6_AstNode* root, const 
     return typeNode;
 }
 
-static void xl6AbiDumpType(FILE* out, const XL6_AstNode* root, const XL6_AstNode* typeNode)
+static void xl6AbiDumpType(XL6_Output* out, const XL6_AstNode* root, const XL6_AstNode* typeNode)
 {
     size_t i;
     const XL6_AstNode* args;
@@ -220,36 +221,36 @@ static void xl6AbiDumpType(FILE* out, const XL6_AstNode* root, const XL6_AstNode
 
     typeNode = xl6AbiResolveAliasType(root, typeNode);
     if ( typeNode == NULL ) {
-        fputs("<missing-type>", out);
+        xl6OutputPuts("<missing-type>", out);
         return;
     }
 
     if ( xl6AbiTextEquals(typeNode->text, "function") && typeNode->childCount == 2 ) {
         args = typeNode->children[0];
         returns = typeNode->children[1];
-        fputs("function(", out);
+        xl6OutputPuts("function(", out);
         if ( args != NULL ) {
             for ( i = 0; i < args->childCount; ++i ) {
                 if ( i > 0 ) {
-                    fputc(',', out);
+                    xl6OutputPutc(',', out);
                 }
                 xl6AbiDumpType(out, root, args->children[i]);
             }
         }
-        fputc(')', out);
+        xl6OutputPutc(')', out);
         if ( returns != NULL && returns->childCount > 0 ) {
-            fputs("->", out);
+            xl6OutputPuts("->", out);
             if ( returns->childCount > 1 ) {
-                fputc('(', out);
+                xl6OutputPutc('(', out);
             }
             for ( i = 0; i < returns->childCount; ++i ) {
                 if ( i > 0 ) {
-                    fputc(',', out);
+                    xl6OutputPutc(',', out);
                 }
                 xl6AbiDumpType(out, root, returns->children[i]);
             }
             if ( returns->childCount > 1 ) {
-                fputc(')', out);
+                xl6OutputPutc(')', out);
             }
         }
         return;
@@ -265,17 +266,17 @@ static void xl6AbiDumpType(FILE* out, const XL6_AstNode* root, const XL6_AstNode
         return;
     }
 
-    fputc('<', out);
+    xl6OutputPutc('<', out);
     for ( i = 0; i < args->childCount; ++i ) {
         if ( i > 0 ) {
-            fputc(',', out);
+            xl6OutputPutc(',', out);
         }
         xl6AbiDumpType(out, root, args->children[i]);
     }
-    fputc('>', out);
+    xl6OutputPutc('>', out);
 }
 
-static void xl6AbiDumpTypeJsonBody(FILE* out, const XL6_AstNode* root, const XL6_AstNode* typeNode)
+static void xl6AbiDumpTypeJsonBody(XL6_Output* out, const XL6_AstNode* root, const XL6_AstNode* typeNode)
 {
     size_t i;
     const XL6_AstNode* args;
@@ -283,36 +284,36 @@ static void xl6AbiDumpTypeJsonBody(FILE* out, const XL6_AstNode* root, const XL6
 
     typeNode = xl6AbiResolveAliasType(root, typeNode);
     if ( typeNode == NULL ) {
-        fputs("<missing-type>", out);
+        xl6OutputPuts("<missing-type>", out);
         return;
     }
 
     if ( xl6AbiTextEquals(typeNode->text, "function") && typeNode->childCount == 2 ) {
         args = typeNode->children[0];
         returns = typeNode->children[1];
-        fputs("function(", out);
+        xl6OutputPuts("function(", out);
         if ( args != NULL ) {
             for ( i = 0; i < args->childCount; ++i ) {
                 if ( i > 0 ) {
-                    fputc(',', out);
+                    xl6OutputPutc(',', out);
                 }
                 xl6AbiDumpTypeJsonBody(out, root, args->children[i]);
             }
         }
-        fputc(')', out);
+        xl6OutputPutc(')', out);
         if ( returns != NULL && returns->childCount > 0 ) {
-            fputs("->", out);
+            xl6OutputPuts("->", out);
             if ( returns->childCount > 1 ) {
-                fputc('(', out);
+                xl6OutputPutc('(', out);
             }
             for ( i = 0; i < returns->childCount; ++i ) {
                 if ( i > 0 ) {
-                    fputc(',', out);
+                    xl6OutputPutc(',', out);
                 }
                 xl6AbiDumpTypeJsonBody(out, root, returns->children[i]);
             }
             if ( returns->childCount > 1 ) {
-                fputc(')', out);
+                xl6OutputPutc(')', out);
             }
         }
         return;
@@ -328,24 +329,24 @@ static void xl6AbiDumpTypeJsonBody(FILE* out, const XL6_AstNode* root, const XL6
         return;
     }
 
-    fputc('<', out);
+    xl6OutputPutc('<', out);
     for ( i = 0; i < args->childCount; ++i ) {
         if ( i > 0 ) {
-            fputc(',', out);
+            xl6OutputPutc(',', out);
         }
         xl6AbiDumpTypeJsonBody(out, root, args->children[i]);
     }
-    fputc('>', out);
+    xl6OutputPutc('>', out);
 }
 
-static void xl6AbiDumpTypeJsonString(FILE* out, const XL6_AstNode* root, const XL6_AstNode* typeNode)
+static void xl6AbiDumpTypeJsonString(XL6_Output* out, const XL6_AstNode* root, const XL6_AstNode* typeNode)
 {
-    fputc('"', out);
+    xl6OutputPutc('"', out);
     xl6AbiDumpTypeJsonBody(out, root, typeNode);
-    fputc('"', out);
+    xl6OutputPutc('"', out);
 }
 
-static void xl6AbiDumpSignature(FILE* out, const XL6_AstNode* root, const XL6_AstNode* node)
+static void xl6AbiDumpSignature(XL6_Output* out, const XL6_AstNode* root, const XL6_AstNode* node)
 {
     size_t i;
     const XL6_AstNode* nameNode;
@@ -353,84 +354,84 @@ static void xl6AbiDumpSignature(FILE* out, const XL6_AstNode* root, const XL6_As
     const XL6_AstNode* returns;
 
     nameNode = node->childCount > 0 ? node->children[0] : NULL;
-    fprintf(out, "fn:app.%s(", (nameNode != NULL && nameNode->text != NULL) ? nameNode->text : "<unnamed>");
+    xl6OutputPrintf(out, "fn:app.%s(", (nameNode != NULL && nameNode->text != NULL) ? nameNode->text : "<unnamed>");
 
     params = node->childCount > 1 ? node->children[1] : NULL;
     if ( params != NULL ) {
         for ( i = 0; i < params->childCount; ++i ) {
             if ( i > 0 ) {
-                fputc(',', out);
+                xl6OutputPutc(',', out);
             }
             if ( params->children[i]->childCount > 0 ) {
                 xl6AbiDumpType(out, root, params->children[i]->children[0]);
             } else {
-                fputs("<missing-type>", out);
+                xl6OutputPuts("<missing-type>", out);
             }
         }
     }
 
-    fputs(")->", out);
+    xl6OutputPuts(")->", out);
     returns = node->childCount > 2 ? node->children[2] : NULL;
     if ( returns == NULL || returns->childCount == 0 ) {
-        fputs("()", out);
+        xl6OutputPuts("()", out);
     } else if ( returns->childCount == 1 ) {
         xl6AbiDumpType(out, root, returns->children[0]);
     } else {
-        fputc('(', out);
+        xl6OutputPutc('(', out);
         for ( i = 0; i < returns->childCount; ++i ) {
             if ( i > 0 ) {
-                fputc(',', out);
+                xl6OutputPutc(',', out);
             }
             xl6AbiDumpType(out, root, returns->children[i]);
         }
-        fputc(')', out);
+        xl6OutputPutc(')', out);
     }
 }
 
-static void xl6AbiDumpSignatureJsonString(FILE* out, const XL6_AstNode* root, const XL6_AstNode* node)
+static void xl6AbiDumpSignatureJsonString(XL6_Output* out, const XL6_AstNode* root, const XL6_AstNode* node)
 {
     size_t i;
     const XL6_AstNode* nameNode;
     const XL6_AstNode* params;
     const XL6_AstNode* returns;
 
-    fputc('"', out);
+    xl6OutputPutc('"', out);
     nameNode = node->childCount > 0 ? node->children[0] : NULL;
-    fputs("fn:app.", out);
+    xl6OutputPuts("fn:app.", out);
     xl6AbiJsonEscaped(out, (nameNode != NULL && nameNode->text != NULL) ? nameNode->text : "<unnamed>");
-    fputc('(', out);
+    xl6OutputPutc('(', out);
 
     params = node->childCount > 1 ? node->children[1] : NULL;
     if ( params != NULL ) {
         for ( i = 0; i < params->childCount; ++i ) {
             if ( i > 0 ) {
-                fputc(',', out);
+                xl6OutputPutc(',', out);
             }
             if ( params->children[i]->childCount > 0 ) {
                 xl6AbiDumpTypeJsonBody(out, root, params->children[i]->children[0]);
             } else {
-                fputs("<missing-type>", out);
+                xl6OutputPuts("<missing-type>", out);
             }
         }
     }
 
-    fputs(")->", out);
+    xl6OutputPuts(")->", out);
     returns = node->childCount > 2 ? node->children[2] : NULL;
     if ( returns == NULL || returns->childCount == 0 ) {
-        fputs("()", out);
+        xl6OutputPuts("()", out);
     } else if ( returns->childCount == 1 ) {
         xl6AbiDumpTypeJsonBody(out, root, returns->children[0]);
     } else {
-        fputc('(', out);
+        xl6OutputPutc('(', out);
         for ( i = 0; i < returns->childCount; ++i ) {
             if ( i > 0 ) {
-                fputc(',', out);
+                xl6OutputPutc(',', out);
             }
             xl6AbiDumpTypeJsonBody(out, root, returns->children[i]);
         }
-        fputc(')', out);
+        xl6OutputPutc(')', out);
     }
-    fputc('"', out);
+    xl6OutputPutc('"', out);
 }
 
 static int xl6AbiFuncOverloadCount(const XL6_AstNode* root, const char* name)
@@ -457,7 +458,7 @@ static int xl6AbiFuncOverloadCount(const XL6_AstNode* root, const char* name)
     return count;
 }
 
-static void xl6AbiDumpInternalSymbol(FILE* out, const XL6_AstNode* root, const XL6_AstNode* node)
+static void xl6AbiDumpInternalSymbol(XL6_Output* out, const XL6_AstNode* root, const XL6_AstNode* node)
 {
     const XL6_AstNode* nameNode;
     const XL6_AstNode* params;
@@ -465,115 +466,115 @@ static void xl6AbiDumpInternalSymbol(FILE* out, const XL6_AstNode* root, const X
 
     nameNode = node->childCount > 0 ? node->children[0] : NULL;
     if ( node->kind == XL6_AST_EXPORT_FUNC ) {
-        fputs("xl6_export_", out);
+        xl6OutputPuts("xl6_export_", out);
         xl6AbiEncodedText(out, (nameNode != NULL && nameNode->text != NULL) ? nameNode->text : "_");
         return;
     }
 
     if ( nameNode != NULL && xl6AbiFuncOverloadCount(root, nameNode->text) <= 1 &&
          xl6AbiIsSimpleCIdent(nameNode->text) ) {
-        fputs(nameNode->text, out);
+        xl6OutputPuts(nameNode->text, out);
         return;
     }
 
-    fputs("xl_fn_", out);
+    xl6OutputPuts("xl_fn_", out);
     xl6AbiEncodedText(out, (nameNode != NULL && nameNode->text != NULL) ? nameNode->text : "_");
     params = node->childCount > 1 ? node->children[1] : NULL;
     if ( params == NULL || params->childCount == 0 ) {
-        fputs("__void", out);
+        xl6OutputPuts("__void", out);
         return;
     }
     for ( i = 0; i < params->childCount; ++i ) {
         const XL6_AstNode* param = params->children[i];
-        fputs("__", out);
+        xl6OutputPuts("__", out);
         if ( param != NULL && param->childCount > 0 && param->children[0] != NULL ) {
             xl6AbiEncodedText(out, param->children[0]->text);
         } else {
-            fputc('_', out);
+            xl6OutputPutc('_', out);
         }
     }
 }
 
-static void xl6AbiDumpInternalSymbolJsonString(FILE* out, const XL6_AstNode* root, const XL6_AstNode* node)
+static void xl6AbiDumpInternalSymbolJsonString(XL6_Output* out, const XL6_AstNode* root, const XL6_AstNode* node)
 {
     const XL6_AstNode* nameNode;
     const XL6_AstNode* params;
     size_t i;
 
-    fputc('"', out);
+    xl6OutputPutc('"', out);
     nameNode = node->childCount > 0 ? node->children[0] : NULL;
     if ( node->kind == XL6_AST_EXPORT_FUNC ) {
-        fputs("xl6_export_", out);
+        xl6OutputPuts("xl6_export_", out);
         xl6AbiEncodedText(out, (nameNode != NULL && nameNode->text != NULL) ? nameNode->text : "_");
-        fputc('"', out);
+        xl6OutputPutc('"', out);
         return;
     }
 
     if ( nameNode != NULL && xl6AbiFuncOverloadCount(root, nameNode->text) <= 1 &&
          xl6AbiIsSimpleCIdent(nameNode->text) ) {
         xl6AbiJsonEscaped(out, nameNode->text);
-        fputc('"', out);
+        xl6OutputPutc('"', out);
         return;
     }
 
-    fputs("xl_fn_", out);
+    xl6OutputPuts("xl_fn_", out);
     xl6AbiEncodedText(out, (nameNode != NULL && nameNode->text != NULL) ? nameNode->text : "_");
     params = node->childCount > 1 ? node->children[1] : NULL;
     if ( params == NULL || params->childCount == 0 ) {
-        fputs("__void", out);
-        fputc('"', out);
+        xl6OutputPuts("__void", out);
+        xl6OutputPutc('"', out);
         return;
     }
     for ( i = 0; i < params->childCount; ++i ) {
         const XL6_AstNode* param = params->children[i];
-        fputs("__", out);
+        xl6OutputPuts("__", out);
         if ( param != NULL && param->childCount > 0 && param->children[0] != NULL ) {
             xl6AbiEncodedText(out, param->children[0]->text);
         } else {
-            fputc('_', out);
+            xl6OutputPutc('_', out);
         }
     }
-    fputc('"', out);
+    xl6OutputPutc('"', out);
 }
 
-static void xl6AbiDumpFuncLike(FILE* out, const XL6_AstNode* root, const XL6_AstNode* node)
+static void xl6AbiDumpFuncLike(XL6_Output* out, const XL6_AstNode* root, const XL6_AstNode* node)
 {
     const XL6_AstNode* nameNode;
 
     nameNode = node->childCount > 0 ? node->children[0] : NULL;
 
     if ( node->kind == XL6_AST_EXTERN_FUNC ) {
-        fprintf(out, "extern ");
+        xl6OutputPrintf(out, "extern ");
         xl6AbiCStringSymbol(out, node->text);
-        fprintf(out, "\n  name: %s\n  signature: ", (nameNode != NULL && nameNode->text != NULL) ? nameNode->text : "<unnamed>");
+        xl6OutputPrintf(out, "\n  name: %s\n  signature: ", (nameNode != NULL && nameNode->text != NULL) ? nameNode->text : "<unnamed>");
         xl6AbiDumpSignature(out, root, node);
-        fputs("\n  c_symbol: ", out);
+        xl6OutputPuts("\n  c_symbol: ", out);
         xl6AbiCStringSymbol(out, node->text);
-        fputc('\n', out);
+        xl6OutputPutc('\n', out);
         return;
     }
 
     if ( node->kind == XL6_AST_EXPORT_FUNC ) {
-        fputs("export ", out);
+        xl6OutputPuts("export ", out);
         xl6AbiCStringSymbol(out, node->text);
-        fprintf(out, "\n  name: %s\n  signature: ", (nameNode != NULL && nameNode->text != NULL) ? nameNode->text : "<unnamed>");
+        xl6OutputPrintf(out, "\n  name: %s\n  signature: ", (nameNode != NULL && nameNode->text != NULL) ? nameNode->text : "<unnamed>");
         xl6AbiDumpSignature(out, root, node);
-        fputs("\n  symbol: ", out);
+        xl6OutputPuts("\n  symbol: ", out);
         xl6AbiDumpInternalSymbol(out, root, node);
-        fputs("\n  c_export: ", out);
+        xl6OutputPuts("\n  c_export: ", out);
         xl6AbiCStringSymbol(out, node->text);
-        fputc('\n', out);
+        xl6OutputPutc('\n', out);
         return;
     }
 
-    fprintf(out, "func %s\n  signature: ", (nameNode != NULL && nameNode->text != NULL) ? nameNode->text : "<unnamed>");
+    xl6OutputPrintf(out, "func %s\n  signature: ", (nameNode != NULL && nameNode->text != NULL) ? nameNode->text : "<unnamed>");
     xl6AbiDumpSignature(out, root, node);
-    fputs("\n  symbol: ", out);
+    xl6OutputPuts("\n  symbol: ", out);
     xl6AbiDumpInternalSymbol(out, root, node);
-    fputc('\n', out);
+    xl6OutputPutc('\n', out);
 }
 
-static void xl6AbiDumpVarLike(FILE* out, const XL6_AstNode* root, const XL6_AstNode* node)
+static void xl6AbiDumpVarLike(XL6_Output* out, const XL6_AstNode* root, const XL6_AstNode* node)
 {
     const XL6_AstNode* nameNode;
     const XL6_AstNode* typeNode;
@@ -582,37 +583,37 @@ static void xl6AbiDumpVarLike(FILE* out, const XL6_AstNode* root, const XL6_AstN
     typeNode = node->childCount > 1 ? node->children[1] : NULL;
 
     if ( node->kind == XL6_AST_EXTERN_VAR ) {
-        fputs("extern ", out);
+        xl6OutputPuts("extern ", out);
         xl6AbiCStringSymbol(out, node->text);
-        fprintf(out, "\n  name: %s\n  kind: var\n  type: ",
+        xl6OutputPrintf(out, "\n  name: %s\n  kind: var\n  type: ",
                 (nameNode != NULL && nameNode->text != NULL) ? nameNode->text : "<unnamed>");
         xl6AbiDumpType(out, root, typeNode);
-        fputs("\n  c_symbol: ", out);
+        xl6OutputPuts("\n  c_symbol: ", out);
         xl6AbiCStringSymbol(out, node->text);
-        fputc('\n', out);
+        xl6OutputPutc('\n', out);
         return;
     }
 
-    fputs("export ", out);
+    xl6OutputPuts("export ", out);
     xl6AbiCStringSymbol(out, node->text);
-    fprintf(out, "\n  name: %s\n  kind: %s\n  type: ",
+    xl6OutputPrintf(out, "\n  name: %s\n  kind: %s\n  type: ",
             (nameNode != NULL && nameNode->text != NULL) ? nameNode->text : "<unnamed>",
             node->kind == XL6_AST_EXPORT_CONST ? "const" : "var");
     xl6AbiDumpType(out, root, typeNode);
-    fputs("\n  c_export: ", out);
+    xl6OutputPuts("\n  c_export: ", out);
     xl6AbiCStringSymbol(out, node->text);
-    fputc('\n', out);
+    xl6OutputPutc('\n', out);
 }
 
-static void xl6AbiDumpFuncLikeJson(FILE* out, const XL6_AstNode* root, const XL6_AstNode* node, int comma)
+static void xl6AbiDumpFuncLikeJson(XL6_Output* out, const XL6_AstNode* root, const XL6_AstNode* node, int comma)
 {
     const XL6_AstNode* nameNode;
 
     nameNode = node->childCount > 0 ? node->children[0] : NULL;
     if ( comma ) {
-        fputs(",\n", out);
+        xl6OutputPuts(",\n", out);
     }
-    fputs("    {\"kind\":", out);
+    xl6OutputPuts("    {\"kind\":", out);
     if ( node->kind == XL6_AST_EXTERN_FUNC ) {
         xl6AbiJsonString(out, "extern_func");
     } else if ( node->kind == XL6_AST_EXPORT_FUNC ) {
@@ -620,26 +621,26 @@ static void xl6AbiDumpFuncLikeJson(FILE* out, const XL6_AstNode* root, const XL6
     } else {
         xl6AbiJsonString(out, "func");
     }
-    fputs(",\"name\":", out);
+    xl6OutputPuts(",\"name\":", out);
     xl6AbiJsonString(out, (nameNode != NULL && nameNode->text != NULL) ? nameNode->text : "<unnamed>");
-    fputs(",\"signature\":", out);
+    xl6OutputPuts(",\"signature\":", out);
     xl6AbiDumpSignatureJsonString(out, root, node);
 
     if ( node->kind == XL6_AST_EXTERN_FUNC ) {
-        fputs(",\"cSymbol\":", out);
+        xl6OutputPuts(",\"cSymbol\":", out);
         xl6AbiJsonCStringSymbol(out, node->text);
     } else {
-        fputs(",\"symbol\":", out);
+        xl6OutputPuts(",\"symbol\":", out);
         xl6AbiDumpInternalSymbolJsonString(out, root, node);
         if ( node->kind == XL6_AST_EXPORT_FUNC ) {
-            fputs(",\"cExport\":", out);
+            xl6OutputPuts(",\"cExport\":", out);
             xl6AbiJsonCStringSymbol(out, node->text);
         }
     }
-    fputc('}', out);
+    xl6OutputPutc('}', out);
 }
 
-static void xl6AbiDumpVarLikeJson(FILE* out, const XL6_AstNode* root, const XL6_AstNode* node, int comma)
+static void xl6AbiDumpVarLikeJson(XL6_Output* out, const XL6_AstNode* root, const XL6_AstNode* node, int comma)
 {
     const XL6_AstNode* nameNode;
     const XL6_AstNode* typeNode;
@@ -647,10 +648,10 @@ static void xl6AbiDumpVarLikeJson(FILE* out, const XL6_AstNode* root, const XL6_
     nameNode = node->childCount > 0 ? node->children[0] : NULL;
     typeNode = node->childCount > 1 ? node->children[1] : NULL;
     if ( comma ) {
-        fputs(",\n", out);
+        xl6OutputPuts(",\n", out);
     }
 
-    fputs("    {\"kind\":", out);
+    xl6OutputPuts("    {\"kind\":", out);
     if ( node->kind == XL6_AST_EXTERN_VAR ) {
         xl6AbiJsonString(out, "extern_var");
     } else if ( node->kind == XL6_AST_EXPORT_CONST ) {
@@ -658,21 +659,21 @@ static void xl6AbiDumpVarLikeJson(FILE* out, const XL6_AstNode* root, const XL6_
     } else {
         xl6AbiJsonString(out, "export_var");
     }
-    fputs(",\"name\":", out);
+    xl6OutputPuts(",\"name\":", out);
     xl6AbiJsonString(out, (nameNode != NULL && nameNode->text != NULL) ? nameNode->text : "<unnamed>");
-    fputs(",\"type\":", out);
+    xl6OutputPuts(",\"type\":", out);
     xl6AbiDumpTypeJsonString(out, root, typeNode);
     if ( node->kind == XL6_AST_EXTERN_VAR ) {
-        fputs(",\"cSymbol\":", out);
+        xl6OutputPuts(",\"cSymbol\":", out);
         xl6AbiJsonCStringSymbol(out, node->text);
     } else {
-        fputs(",\"cExport\":", out);
+        xl6OutputPuts(",\"cExport\":", out);
         xl6AbiJsonCStringSymbol(out, node->text);
     }
-    fputc('}', out);
+    xl6OutputPutc('}', out);
 }
 
-void xl6AbiDumpText(FILE* out, const XL6_AstNode* root)
+void xl6AbiDumpText(XL6_Output* out, const XL6_AstNode* root)
 {
     size_t i;
 
@@ -680,8 +681,8 @@ void xl6AbiDumpText(FILE* out, const XL6_AstNode* root)
         return;
     }
 
-    fputs("xlang abi version: 6\n", out);
-    fputs("module: app\n", out);
+    xl6OutputPuts("xlang abi version: 6\n", out);
+    xl6OutputPuts("module: app\n", out);
 
     if ( root == NULL ) {
         return;
@@ -699,7 +700,7 @@ void xl6AbiDumpText(FILE* out, const XL6_AstNode* root)
     }
 }
 
-void xl6AbiDumpJson(FILE* out, const XL6_AstNode* root)
+void xl6AbiDumpJson(XL6_Output* out, const XL6_AstNode* root)
 {
     size_t i;
     int emitted;
@@ -708,10 +709,10 @@ void xl6AbiDumpJson(FILE* out, const XL6_AstNode* root)
         return;
     }
 
-    fputs("{\n", out);
-    fputs("  \"abiVersion\":6,\n", out);
-    fputs("  \"module\":\"app\",\n", out);
-    fputs("  \"symbols\":[\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("  \"abiVersion\":6,\n", out);
+    xl6OutputPuts("  \"module\":\"app\",\n", out);
+    xl6OutputPuts("  \"symbols\":[\n", out);
 
     emitted = 0;
     if ( root != NULL ) {
@@ -730,8 +731,8 @@ void xl6AbiDumpJson(FILE* out, const XL6_AstNode* root)
     }
 
     if ( emitted ) {
-        fputc('\n', out);
+        xl6OutputPutc('\n', out);
     }
-    fputs("  ]\n", out);
-    fputs("}\n", out);
+    xl6OutputPuts("  ]\n", out);
+    xl6OutputPuts("}\n", out);
 }

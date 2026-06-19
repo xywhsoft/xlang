@@ -1,0 +1,79 @@
+extern "expect_i64" func expect(int actual, int expected)
+
+class Pair
+    int left = 1
+    int right = 2
+end
+
+custom Native
+end
+
+func add(int left, int right) -> int
+    return left + right
+end
+
+func pair(int seed) -> (int, int)
+    return seed, seed + 1
+end
+
+func five(int seed) -> (int, int, int, int, int)
+    return seed, seed + 1, seed + 2, seed + 3, seed + 4
+end
+
+func pairDefault(int seed, int step = 2) -> (int, int)
+    return seed, seed + step
+end
+
+func optionCount(string path, ***) -> int
+    return arg.length
+end
+
+func totalDefault(int base = 5, ...) -> int
+    return base + arg.length
+end
+
+function(int, int) -> int fn = add
+type fnType = type(fn)
+var boxedFn = fn
+var value = boxedFn(20, 22)
+
+function(int) -> (int, int) pairFn = pair
+type pairFnType = type(pairFn)
+var boxedPairFn = pairFn
+var firstPairValue = boxedPairFn(31)
+
+function(int) -> (int, int, int, int, int) fiveFn = five
+var boxedFiveFn = fiveFn
+var firstFiveValue = boxedFiveFn(50)
+
+function(int) -> (int, int) defaultPairFn = pairDefault
+var boxedDefaultPairFn = defaultPairFn
+var firstDefaultPairValue = boxedDefaultPairFn(40)
+
+function(string, ***) -> int optionsFn = optionCount
+var boxedOptions = optionsFn
+var optionValue = boxedOptions("demo.txt", mode = "fast", retry = 3)
+var optionNamedValue = boxedOptions(path = "demo.txt", mode = "slow")
+
+function(...) -> int variadicDefaultFn = totalDefault
+var boxedVariadicDefault = variadicDefaultFn
+var variadicDefaultValue = boxedVariadicDefault(1, 2, 3)
+
+expect(type(boxedFn) == fnType, 1)
+expect(type(boxedFn) == function, 0)
+expect(type(value) == int, 1)
+expect(int(value), 42)
+expect(type(boxedPairFn) == pairFnType, 1)
+expect(int(firstPairValue), 31)
+expect(int(firstFiveValue), 50)
+expect(int(firstDefaultPairValue), 40)
+expect(int(optionValue), 2)
+expect(int(optionNamedValue), 1)
+expect(int(variadicDefaultValue), 8)
+
+var boxedPair = Pair()
+expect(type(boxedPair) == Pair, 1)
+
+point handle
+var boxedNative = Native(handle)
+expect(type(boxedNative) == Native, 1)

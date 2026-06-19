@@ -1,0 +1,5 @@
+{
+  "format":"xlang-xapi-0",
+  "module":{"name":"broken_xapi","source":"packages/broken_xapi","sourceHash":""},
+  "exports":[]
+}

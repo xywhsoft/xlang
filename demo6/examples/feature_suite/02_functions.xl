@@ -1,0 +1,94 @@
+extern "expect_i64" func expect(int actual, int expected)
+extern "expect_str" func expectStr(string actual, string expected)
+
+// 无返回值函数：不写 -> 返回类型。
+func touch()
+    return
+end
+
+// 单返回值函数。
+func add(int left, int right) -> int
+    return left + right
+end
+
+expect(add(20, 22), 42)
+touch()
+
+// 多返回值函数，调用侧可以拆包，也可以用 _ 丢弃。
+func pair(int seed) -> (int, string)
+    return seed, "value"
+end
+
+auto first, text = pair(7)
+auto onlyFirst, _ = pair(8)
+auto _, onlyText = pair(9)
+
+expect(first, 7)
+expect(onlyFirst, 8)
+expectStr(text, "value")
+expectStr(onlyText, "value")
+
+// 已声明变量也可以接收多返回值。
+int assignedInt = 0
+string assignedString = ""
+assignedInt, assignedString = pair(10)
+expect(assignedInt, 10)
+expectStr(assignedString, "value")
+
+// 可选参数：参数表直接赋默认值。
+func optionalSum(int a, int b = 10, int c = 100) -> int
+    return a + b + c
+end
+
+expect(optionalSum(1), 111)
+expect(optionalSum(1, 2), 103)
+expect(optionalSum(1, 2, 3), 6)
+
+// 命名参数：可以按名字指定参数。
+expect(optionalSum(c = 3, a = 1, b = 2), 6)
+expect(optionalSum(1, c = 3), 14)
+
+// 数组可变参数：... 通过 arg 访问，arg 是 array<var>。
+func variadicCount(int base, ...) -> int
+    return base + arg.length
+end
+
+func variadicSum(...) -> int
+    int total = 0
+    for value in arg
+        total += int(value)
+    end
+    return total
+end
+
+expect(variadicCount(10), 10)
+expect(variadicCount(10, 1, "x", true), 13)
+expect(variadicSum(1, 2, 3, 4), 10)
+
+// 字典可变参数：*** 通过 arg 访问，调用侧使用命名参数。
+func optionValue(string path, ***) -> int
+    int total = path == "demo.txt" ? 1 : 0
+    if "retry" in arg then
+        total += int(arg["retry"])
+    end
+    if "cache" in arg then
+        total += bool(arg["cache"]) ? 10 : 0
+    end
+    return total
+end
+
+expect(optionValue(path = "demo.txt", retry = 3, cache = true), 14)
+expect(optionValue("other.txt", retry = 5), 5)
+
+// 函数重载：参数列表不同即可共存。
+func describe(int value) -> string
+    return "int"
+end
+
+func describe(string value) -> string
+    return value
+end
+
+expectStr(describe(1), "int")
+expectStr(describe("text"), "text")
+

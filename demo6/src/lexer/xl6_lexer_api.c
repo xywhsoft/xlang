@@ -1,6 +1,8 @@
 #include "src/lexer/xl6_lexer_api.h"
 #include "src/lexer/xl6_lexer_gen.h"
 
+#include <stdio.h>
+
 int xl6LexerOpen(XL6_Lexer* lexer, const char* sourceText)
 {
     if ( (lexer == NULL) || (sourceText == NULL) ) {
@@ -43,53 +45,53 @@ XL6_Token xl6LexerNext(XL6_Lexer* lexer)
     return lexer->extra.current;
 }
 
-static void xl6PrintTokenText(FILE* out, const XL6_Token* token)
+static void xl6PrintTokenText(XL6_Output* out, const XL6_Token* token)
 {
-    fprintf(out, "%4d:%-3d %-16s ", token->startLine, token->startColumn, xl6TokenKindName(token->kind));
+    xl6OutputPrintf(out, "%4d:%-3d %-16s ", token->startLine, token->startColumn, xl6TokenKindName(token->kind));
     if ( token->text != NULL && token->len > 0 ) {
-        fprintf(out, "%.*s", (int)token->len, token->text);
+        xl6OutputPrintf(out, "%.*s", (int)token->len, token->text);
     }
     if ( token->message[0] != '\0' ) {
-        fprintf(out, "  # %s", token->message);
+        xl6OutputPrintf(out, "  # %s", token->message);
     }
-    fputc('\n', out);
+    xl6OutputPutc('\n', out);
 }
 
-static void xl6PrintEscapedJsonText(FILE* out, const char* text, size_t len)
+static void xl6PrintEscapedJsonText(XL6_Output* out, const char* text, size_t len)
 {
     size_t i;
 
     for ( i = 0; i < len; ++i ) {
         unsigned char ch = (unsigned char)text[i];
         if ( ch == '"' || ch == '\\' ) {
-            fputc('\\', out);
-            fputc(ch, out);
+            xl6OutputPutc('\\', out);
+            xl6OutputPutc(ch, out);
         } else if ( ch == '\n' ) {
-            fputs("\\n", out);
+            xl6OutputPuts("\\n", out);
         } else if ( ch == '\r' ) {
-            fputs("\\r", out);
+            xl6OutputPuts("\\r", out);
         } else if ( ch == '\t' ) {
-            fputs("\\t", out);
+            xl6OutputPuts("\\t", out);
         } else {
-            fputc(ch, out);
+            xl6OutputPutc(ch, out);
         }
     }
 }
 
-static void xl6PrintTokenJson(FILE* out, const XL6_Token* token, int comma)
+static void xl6PrintTokenJson(XL6_Output* out, const XL6_Token* token, int comma)
 {
-    fprintf(out, "  {\"kind\":\"%s\",\"line\":%d,\"column\":%d,\"text\":\"",
+    xl6OutputPrintf(out, "  {\"kind\":\"%s\",\"line\":%d,\"column\":%d,\"text\":\"",
             xl6TokenKindName(token->kind), token->startLine, token->startColumn);
     if ( token->text != NULL && token->len > 0 ) {
         xl6PrintEscapedJsonText(out, token->text, token->len);
     }
-    fputs("\"}", out);
+    xl6OutputPuts("\"}", out);
     if ( comma ) {
-        fputc(',', out);
+        xl6OutputPutc(',', out);
     }
 }
 
-int xl6LexerDumpFileTo(FILE* out, const char* path, int jsonOutput)
+int xl6LexerDumpFileTo(XL6_Output* out, const char* path, int jsonOutput)
 {
     char* source;
     size_t sourceLen;
@@ -101,15 +103,22 @@ int xl6LexerDumpFileTo(FILE* out, const char* path, int jsonOutput)
     if ( out == NULL ) {
         return 1;
     }
-    source = xl6ReadFileText(path, &sourceLen);
+    if ( path == NULL ) {
+        fprintf(stderr, "cannot read file: <null>\n");
+        return 1;
+    }
+
+    xrtClearError();
+    source = xrtFileReadAll((char*)path, XRT_CP_UTF8, &sourceLen);
     (void)sourceLen;
-    if ( source == NULL ) {
+    if ( xrtGetError()[0] != '\0' || source == NULL ) {
+        xrtFree(source);
         fprintf(stderr, "cannot read file: %s\n", path);
         return 1;
     }
 
     if ( !xl6LexerOpen(&lexer, source) ) {
-        xl6Free(source);
+        xrtFree(source);
         fprintf(stderr, "cannot open lexer\n");
         return 1;
     }
@@ -117,14 +126,14 @@ int xl6LexerDumpFileTo(FILE* out, const char* path, int jsonOutput)
     ok = 1;
     first = 1;
     if ( jsonOutput ) {
-        fputs("[\n", out);
+        xl6OutputPuts("[\n", out);
     }
 
     for (;;) {
         token = xl6LexerNext(&lexer);
         if ( jsonOutput ) {
             if ( !first ) {
-                fputs(",\n", out);
+                xl6OutputPuts(",\n", out);
             }
             xl6PrintTokenJson(out, &token, 0);
             first = 0;
@@ -140,15 +149,18 @@ int xl6LexerDumpFileTo(FILE* out, const char* path, int jsonOutput)
     }
 
     if ( jsonOutput ) {
-        fputs("\n]\n", out);
+        xl6OutputPuts("\n]\n", out);
     }
 
     xl6LexerClose(&lexer);
-    xl6Free(source);
+    xrtFree(source);
     return ok ? 0 : 1;
 }
 
 int xl6LexerDumpFile(const char* path, int jsonOutput)
 {
-    return xl6LexerDumpFileTo(stdout, path, jsonOutput);
+    XL6_Output out;
+
+    xl6OutputInitStdFile(&out, stdout);
+    return xl6LexerDumpFileTo(&out, path, jsonOutput);
 }

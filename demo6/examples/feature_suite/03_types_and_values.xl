@@ -1,0 +1,82 @@
+extern "expect_i64" func expect(int actual, int expected)
+extern "expect_str" func expectStr(string actual, string expected)
+
+class TypeBox
+    int value = 0
+end
+
+// type 是真实值，可保存、比较、作为判断条件的一部分。
+int number = 123
+type numberType = type(number)
+expect(numberType == int, 1)
+expect(type("hello") == string, 1)
+expect(type(#2026-06-18#) == time, 1)
+
+TypeBox box
+expect(type(box) == TypeBox, 1)
+
+// 类型标识符同时承担声明、转换、type 字面量三种角色。
+int parsed = int("42")
+int truncated = int(3.9)
+float parsedFloat = float("2.5")
+bool falseValue = bool(0)
+bool trueValue = bool(1)
+bool nullValue = bool(null)
+string intText = string(123)
+string boolText = string(true)
+time parsedTime = time("2026-06-18")
+
+expect(parsed, 42)
+expect(truncated, 3)
+expect(int(parsedFloat * 2.0), 5)
+expect(falseValue, 0)
+expect(trueValue, 1)
+expect(nullValue, 0)
+expectStr(intText, "123")
+expectStr(boolText, "true")
+expect(parsedTime == #2026-06-18#, 1)
+expectStr(string(parsedTime), "2026-06-18 00:00:00")
+
+// 隐性类方法：字面量、静态变量、var 都可以调用对应方法。
+auto literalText = 123.toString()
+auto valueText = number.toString()
+auto flagText = true.toString()
+auto stringText = "xlang".toString()
+var boxedNumber = 456
+auto boxedText = boxedNumber.toString()
+
+expectStr(literalText, "123")
+expectStr(valueText, "123")
+expectStr(flagText, "true")
+expectStr(stringText, "xlang")
+expectStr(boxedText, "456")
+
+// var 可以保存不同动态值，并保留运行时类型。
+var empty
+var dynamicInt = 7
+var dynamicFloat = 2.5
+var dynamicString = "hello"
+var dynamicTime = #2026-06-18 12:30:59#
+var dynamicArray = [1, 2, 3]
+var dynamicList = [0: "a", 2: "b"]
+var dynamicSet = {1, 2, 3}
+var dynamicDict = {"name": 1}
+var dynamicClass = box
+
+expect(type(empty) == null, 1)
+expect(type(dynamicInt) == int, 1)
+expect(type(dynamicFloat) == float, 1)
+expect(type(dynamicString) == string, 1)
+expect(type(dynamicTime) == time, 1)
+expect(type(dynamicArray) == array, 1)
+expect(type(dynamicList) == list, 1)
+expect(type(dynamicSet) == set, 1)
+expect(type(dynamicDict) == dict, 1)
+expect(type(dynamicClass) == TypeBox, 1)
+
+// var 转回静态类型。
+expect(int(dynamicInt), 7)
+expect(int("91"), 91)
+expectStr(string(dynamicString), "hello")
+expect(time(dynamicTime) == #2026-06-18 12:30:59#, 1)
+
