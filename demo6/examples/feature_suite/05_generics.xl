@@ -1,0 +1,59 @@
+extern "expect_i64" func expect(int actual, int expected)
+extern "expect_str" func expectStr(string actual, string expected)
+
+// 泛型函数：可显式实例化，也可从参数推断。
+func identity<T>(T value) -> T
+    return value
+end
+
+int explicitInt = identity::<int>(41)
+int inferredInt = identity(42)
+string explicitString = identity::<string>("xlang")
+string inferredString = identity("demo6")
+
+expect(explicitInt, 41)
+expect(inferredInt, 42)
+expectStr(explicitString, "xlang")
+expectStr(inferredString, "demo6")
+
+// 多类型参数。
+func chooseRight<T, U>(T left, U right) -> U
+    return right
+end
+
+expectStr(chooseRight::<int, string>(1, "right"), "right")
+expect(chooseRight("left", 9), 9)
+
+// 泛型 class。
+class Box<T>
+    T value
+
+    create(T value)
+        self.value = value
+    end
+
+    func valueOf() -> T
+        return self.value
+    end
+end
+
+Box<int> intBox = Box::<int>(7)
+
+expect(intBox.valueOf(), 7)
+
+// typedef 可以作为泛型实参使用。
+typedef MyInt = int
+Box<MyInt> aliasBox = Box::<MyInt>(99)
+expect(aliasBox.valueOf(), 99)
+
+// 非泛型重载优先于泛型重载。
+func classify<T>(T value) -> string
+    return "generic"
+end
+
+func classify(int value) -> string
+    return "int"
+end
+
+expectStr(classify(1), "int")
+expectStr(classify("a"), "generic")

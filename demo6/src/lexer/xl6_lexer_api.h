@@ -30,6 +30,6 @@ int xl6LexerOpen(XL6_Lexer* lexer, const char* sourceText);
 void xl6LexerClose(XL6_Lexer* lexer);
 XL6_Token xl6LexerNext(XL6_Lexer* lexer);
 int xl6LexerDumpFile(const char* path, int jsonOutput);
-int xl6LexerDumpFileTo(FILE* out, const char* path, int jsonOutput);
+int xl6LexerDumpFileTo(XL6_Output* out, const char* path, int jsonOutput);
 
 #endif

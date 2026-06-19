@@ -1,0 +1,50 @@
+extern "expect_i64" func expect(int actual, int expected)
+
+class Pair
+    int left = 1
+    int right = 2
+end
+
+custom Native
+end
+
+Pair seed
+seed.left = 5
+seed.right = 6
+
+array<Pair> pairArray = array[seed, Pair()]
+list<Pair> pairList = list[2: seed]
+dict<Pair> pairDict = dict{"main": seed}
+set<Pair> pairSet = set{seed, seed}
+
+Pair fromArray = pairArray[0]
+Pair fromList = pairList[2]
+Pair fromDict = pairDict["main"]
+
+expect(fromArray.left, 5)
+expect(fromArray.right, 6)
+expect(fromList.left, 5)
+expect(fromDict.right, 6)
+
+int pairCount = 0
+for item in pairSet
+    pairCount = pairCount + 1
+    expect(type(item) == Pair, 1)
+end
+expect(pairCount, 1)
+
+point raw
+Native native = Native(raw)
+array<Native> nativeArray = array[native]
+set<Native> nativeSet = set{native, native}
+
+Native fromNativeArray = nativeArray[0]
+var boxedNative = fromNativeArray
+expect(type(boxedNative) == Native, 1)
+
+int nativeCount = 0
+for handle in nativeSet
+    nativeCount = nativeCount + 1
+    expect(type(handle) == Native, 1)
+end
+expect(nativeCount, 1)

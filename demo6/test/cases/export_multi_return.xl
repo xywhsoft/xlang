@@ -1,0 +1,3 @@
+export "xl6_pair_i64" func pair(int seed) -> (int, int)
+    return seed, seed + 1
+end

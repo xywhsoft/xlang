@@ -5,6 +5,7 @@ const char* xl6AstKindName(XL6_AstKind kind)
     switch ( kind ) {
     case XL6_AST_MODULE: return "module";
     case XL6_AST_LIST: return "list";
+    case XL6_AST_IMPORT: return "import";
     case XL6_AST_FUNC: return "func";
     case XL6_AST_ANON_FUNC: return "anon_func";
     case XL6_AST_EXTERN_FUNC: return "extern_func";
@@ -72,7 +73,7 @@ XL6_AstNode* xl6AstNew(XL6_AstKind kind, const XL6_Token* token)
 {
     XL6_AstNode* node;
 
-    node = (XL6_AstNode*)xl6Alloc(sizeof(*node));
+    node = (XL6_AstNode*)xrtCalloc(1, sizeof(*node));
     if ( node == NULL ) {
         return NULL;
     }
@@ -81,7 +82,7 @@ XL6_AstNode* xl6AstNew(XL6_AstKind kind, const XL6_Token* token)
         node->line = token->startLine;
         node->column = token->startColumn;
         if ( token->text != NULL && token->len > 0 ) {
-            node->text = xl6StrDupRange(token->text, token->len);
+            node->text = xrtCopyStr((char*)token->text, token->len);
         }
     }
     return node;
@@ -95,8 +96,8 @@ XL6_AstNode* xl6AstNewText(XL6_AstKind kind, const char* text, size_t len, const
     if ( node == NULL ) {
         return NULL;
     }
-    xl6Free(node->text);
-    node->text = xl6StrDupRange(text != NULL ? text : "", len);
+    xrtFree(node->text);
+    node->text = xrtCopyStr((char*)(text != NULL ? text : ""), len);
     return node;
 }
 
@@ -148,7 +149,7 @@ void xl6AstAddChild(XL6_AstNode* parent, XL6_AstNode* child)
     }
     if ( parent->childCount == parent->childCapacity ) {
         newCapacity = (parent->childCapacity == 0) ? 4 : parent->childCapacity * 2;
-        newChildren = (XL6_AstNode**)realloc(parent->children, newCapacity * sizeof(XL6_AstNode*));
+        newChildren = (XL6_AstNode**)xrtRealloc(parent->children, newCapacity * sizeof(XL6_AstNode*));
         if ( newChildren == NULL ) {
             return;
         }
@@ -182,7 +183,7 @@ void xl6AstFree(XL6_AstNode* node)
     for ( i = 0; i < node->childCount; ++i ) {
         xl6AstFree(node->children[i]);
     }
-    xl6Free(node->children);
-    xl6Free(node->text);
-    xl6Free(node);
+    xrtFree(node->children);
+    xrtFree(node->text);
+    xrtFree(node);
 }

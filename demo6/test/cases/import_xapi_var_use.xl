@@ -1,0 +1,5 @@
+import settings
+
+func readImported() -> int
+    return importedCounter
+end

@@ -1,18 +1,19 @@
 #include "src/ir/xl6_ir_dump.h"
 #include "src/ast/xl6_ast_dump.h"
+#include "src/common/xl6_output.h"
 
-static void xl6IrIndent(FILE* out, int indent)
+static void xl6IrIndent(XL6_Output* out, int indent)
 {
     int i;
 
     for ( i = 0; i < indent; ++i ) {
-        fputs("  ", out);
+        xl6OutputPuts("  ", out);
     }
 }
 
-static void xl6IrText(FILE* out, const char* text)
+static void xl6IrText(XL6_Output* out, const char* text)
 {
-    fputs(text != NULL ? text : "", out);
+    xl6OutputPuts(text != NULL ? text : "", out);
 }
 
 static int xl6IrTextEquals(const char* a, const char* b)
@@ -20,43 +21,43 @@ static int xl6IrTextEquals(const char* a, const char* b)
     return a != NULL && b != NULL && strcmp(a, b) == 0;
 }
 
-static void xl6IrDumpType(FILE* out, const XL6_AstNode* typeNode)
+static void xl6IrDumpType(XL6_Output* out, const XL6_AstNode* typeNode)
 {
     size_t i;
     const XL6_AstNode* args;
     const XL6_AstNode* returns;
 
     if ( typeNode == NULL ) {
-        fputs("<missing-type>", out);
+        xl6OutputPuts("<missing-type>", out);
         return;
     }
 
     if ( xl6IrTextEquals(typeNode->text, "function") && typeNode->childCount == 2 ) {
         args = typeNode->children[0];
         returns = typeNode->children[1];
-        fputs("function(", out);
+        xl6OutputPuts("function(", out);
         if ( args != NULL ) {
             for ( i = 0; i < args->childCount; ++i ) {
                 if ( i > 0 ) {
-                    fputs(", ", out);
+                    xl6OutputPuts(", ", out);
                 }
                 xl6IrDumpType(out, args->children[i]);
             }
         }
-        fputc(')', out);
+        xl6OutputPutc(')', out);
         if ( returns != NULL && returns->childCount > 0 ) {
-            fputs(" -> ", out);
+            xl6OutputPuts(" -> ", out);
             if ( returns->childCount > 1 ) {
-                fputc('(', out);
+                xl6OutputPutc('(', out);
             }
             for ( i = 0; i < returns->childCount; ++i ) {
                 if ( i > 0 ) {
-                    fputs(", ", out);
+                    xl6OutputPuts(", ", out);
                 }
                 xl6IrDumpType(out, returns->children[i]);
             }
             if ( returns->childCount > 1 ) {
-                fputc(')', out);
+                xl6OutputPutc(')', out);
             }
         }
         return;
@@ -72,38 +73,38 @@ static void xl6IrDumpType(FILE* out, const XL6_AstNode* typeNode)
         return;
     }
 
-    fputc('<', out);
+    xl6OutputPutc('<', out);
     for ( i = 0; i < args->childCount; ++i ) {
         if ( i > 0 ) {
-            fputs(", ", out);
+            xl6OutputPuts(", ", out);
         }
         xl6IrDumpType(out, args->children[i]);
     }
-    fputc('>', out);
+    xl6OutputPutc('>', out);
 }
 
-static void xl6IrDumpExpr(FILE* out, const XL6_AstNode* node);
-static void xl6IrDumpParams(FILE* out, const XL6_AstNode* params);
-static void xl6IrDumpReturns(FILE* out, const XL6_AstNode* returns);
+static void xl6IrDumpExpr(XL6_Output* out, const XL6_AstNode* node);
+static void xl6IrDumpParams(XL6_Output* out, const XL6_AstNode* params);
+static void xl6IrDumpReturns(XL6_Output* out, const XL6_AstNode* returns);
 
-static void xl6IrDumpTypeParams(FILE* out, const XL6_AstNode* params)
+static void xl6IrDumpTypeParams(XL6_Output* out, const XL6_AstNode* params)
 {
     size_t i;
 
     if ( params == NULL || params->childCount == 0 ) {
         return;
     }
-    fputc('<', out);
+    xl6OutputPutc('<', out);
     for ( i = 0; i < params->childCount; ++i ) {
         if ( i > 0 ) {
-            fputs(", ", out);
+            xl6OutputPuts(", ", out);
         }
         xl6IrText(out, params->children[i]->text);
     }
-    fputc('>', out);
+    xl6OutputPutc('>', out);
 }
 
-static void xl6IrDumpExprList(FILE* out, const XL6_AstNode* list)
+static void xl6IrDumpExprList(XL6_Output* out, const XL6_AstNode* list)
 {
     size_t i;
 
@@ -112,30 +113,30 @@ static void xl6IrDumpExprList(FILE* out, const XL6_AstNode* list)
     }
     for ( i = 0; i < list->childCount; ++i ) {
         if ( i > 0 ) {
-            fputs(", ", out);
+            xl6OutputPuts(", ", out);
         }
         xl6IrDumpExpr(out, list->children[i]);
     }
 }
 
-static void xl6IrDumpPairList(FILE* out, const XL6_AstNode* node)
+static void xl6IrDumpPairList(XL6_Output* out, const XL6_AstNode* node)
 {
     size_t i;
 
     for ( i = 0; i < node->childCount; ++i ) {
         const XL6_AstNode* pair = node->children[i];
         if ( i > 0 ) {
-            fputs(", ", out);
+            xl6OutputPuts(", ", out);
         }
         if ( (pair != NULL) && (pair->kind == XL6_AST_KEY_VALUE) && (pair->childCount >= 2) ) {
             xl6IrDumpExpr(out, pair->children[0]);
-            fputs(": ", out);
+            xl6OutputPuts(": ", out);
             xl6IrDumpExpr(out, pair->children[1]);
         }
     }
 }
 
-static void xl6IrDumpCallArgs(FILE* out, const XL6_AstNode* args)
+static void xl6IrDumpCallArgs(XL6_Output* out, const XL6_AstNode* args)
 {
     size_t i;
 
@@ -145,14 +146,14 @@ static void xl6IrDumpCallArgs(FILE* out, const XL6_AstNode* args)
     for ( i = 0; i < args->childCount; ++i ) {
         const XL6_AstNode* arg = args->children[i];
         if ( i > 0 ) {
-            fputs(", ", out);
+            xl6OutputPuts(", ", out);
         }
         if ( arg == NULL ) {
             continue;
         }
         if ( arg->kind == XL6_AST_NAMED_ARG ) {
             xl6IrText(out, arg->text);
-            fputs(" = ", out);
+            xl6OutputPuts(" = ", out);
             if ( arg->childCount > 0 ) {
                 xl6IrDumpExpr(out, arg->children[0]);
             }
@@ -162,10 +163,10 @@ static void xl6IrDumpCallArgs(FILE* out, const XL6_AstNode* args)
     }
 }
 
-static void xl6IrDumpExpr(FILE* out, const XL6_AstNode* node)
+static void xl6IrDumpExpr(XL6_Output* out, const XL6_AstNode* node)
 {
     if ( node == NULL ) {
-        fputs("<null>", out);
+        xl6OutputPuts("<null>", out);
         return;
     }
 
@@ -179,69 +180,69 @@ static void xl6IrDumpExpr(FILE* out, const XL6_AstNode* node)
         xl6IrText(out, node->text);
         break;
     case XL6_AST_NULL:
-        fputs("null", out);
+        xl6OutputPuts("null", out);
         break;
     case XL6_AST_ANON_FUNC:
-        fputs("func(", out);
+        xl6OutputPuts("func(", out);
         if ( node->childCount > 0 ) {
             xl6IrDumpParams(out, node->children[0]);
         }
-        fputc(')', out);
+        xl6OutputPutc(')', out);
         if ( node->childCount > 1 ) {
             xl6IrDumpReturns(out, node->children[1]);
         }
-        fputs(" <body>", out);
+        xl6OutputPuts(" <body>", out);
         break;
     case XL6_AST_BINARY:
-        fputc('(', out);
+        xl6OutputPutc('(', out);
         if ( node->childCount > 0 ) {
             xl6IrDumpExpr(out, node->children[0]);
         }
-        fprintf(out, " %s ", node->text != NULL ? node->text : "?");
+        xl6OutputPrintf(out, " %s ", node->text != NULL ? node->text : "?");
         if ( node->childCount > 1 ) {
             xl6IrDumpExpr(out, node->children[1]);
         }
-        fputc(')', out);
+        xl6OutputPutc(')', out);
         break;
     case XL6_AST_CONDITIONAL:
-        fputc('(', out);
+        xl6OutputPutc('(', out);
         if ( node->childCount > 0 ) {
             xl6IrDumpExpr(out, node->children[0]);
         }
-        fputs(" ? ", out);
+        xl6OutputPuts(" ? ", out);
         if ( node->childCount > 1 ) {
             xl6IrDumpExpr(out, node->children[1]);
         }
-        fputs(" : ", out);
+        xl6OutputPuts(" : ", out);
         if ( node->childCount > 2 ) {
             xl6IrDumpExpr(out, node->children[2]);
         }
-        fputc(')', out);
+        xl6OutputPutc(')', out);
         break;
     case XL6_AST_UNARY:
-        fprintf(out, "(%s ", node->text != NULL ? node->text : "?");
+        xl6OutputPrintf(out, "(%s ", node->text != NULL ? node->text : "?");
         if ( node->childCount > 0 ) {
             xl6IrDumpExpr(out, node->children[0]);
         }
-        fputc(')', out);
+        xl6OutputPutc(')', out);
         break;
     case XL6_AST_CALL:
-        fputs("call ", out);
+        xl6OutputPuts("call ", out);
         if ( node->childCount > 0 ) {
             xl6IrDumpExpr(out, node->children[0]);
         }
-        fputc('(', out);
+        xl6OutputPutc('(', out);
         if ( node->childCount > 1 ) {
             xl6IrDumpCallArgs(out, node->children[1]);
         }
-        fputc(')', out);
+        xl6OutputPutc(')', out);
         break;
     case XL6_AST_MEMBER:
     case XL6_AST_SAFE_MEMBER:
         if ( node->childCount > 0 ) {
             xl6IrDumpExpr(out, node->children[0]);
         }
-        fputs(node->kind == XL6_AST_SAFE_MEMBER ? "?." : ".", out);
+        xl6OutputPuts(node->kind == XL6_AST_SAFE_MEMBER ? "?." : ".", out);
         xl6IrText(out, node->text);
         break;
     case XL6_AST_INDEX:
@@ -249,57 +250,57 @@ static void xl6IrDumpExpr(FILE* out, const XL6_AstNode* node)
         if ( node->childCount > 0 ) {
             xl6IrDumpExpr(out, node->children[0]);
         }
-        fputs(node->kind == XL6_AST_SAFE_INDEX ? "?[" : "[", out);
+        xl6OutputPuts(node->kind == XL6_AST_SAFE_INDEX ? "?[" : "[", out);
         if ( node->childCount > 1 ) {
             xl6IrDumpExpr(out, node->children[1]);
         }
-        fputc(']', out);
+        xl6OutputPutc(']', out);
         break;
     case XL6_AST_GENERIC_INSTANT:
         if ( node->childCount > 0 ) {
             xl6IrDumpExpr(out, node->children[0]);
         }
-        fputs("::<", out);
+        xl6OutputPuts("::<", out);
         if ( node->childCount > 1 ) {
             const XL6_AstNode* typeArgs = node->children[1];
             size_t i;
             for ( i = 0; i < typeArgs->childCount; ++i ) {
                 if ( i > 0 ) {
-                    fputs(", ", out);
+                    xl6OutputPuts(", ", out);
                 }
                 xl6IrDumpType(out, typeArgs->children[i]);
             }
         }
-        fputc('>', out);
+        xl6OutputPutc('>', out);
         break;
     case XL6_AST_ARRAY_LITERAL:
-        fputc('[', out);
+        xl6OutputPutc('[', out);
         xl6IrDumpExprList(out, node);
-        fputc(']', out);
+        xl6OutputPutc(']', out);
         break;
     case XL6_AST_LIST_LITERAL:
-        fputs("list[", out);
+        xl6OutputPuts("list[", out);
         xl6IrDumpPairList(out, node);
-        fputc(']', out);
+        xl6OutputPutc(']', out);
         break;
     case XL6_AST_SET_LITERAL:
-        fputs("set{", out);
+        xl6OutputPuts("set{", out);
         xl6IrDumpExprList(out, node);
-        fputc('}', out);
+        xl6OutputPutc('}', out);
         break;
     case XL6_AST_DICT_LITERAL:
-        fputs("dict{", out);
+        xl6OutputPuts("dict{", out);
         xl6IrDumpPairList(out, node);
-        fputc('}', out);
+        xl6OutputPutc('}', out);
         break;
     case XL6_AST_TYPED_LITERAL:
         xl6IrText(out, node->text);
         if ( node->childCount > 0 ) {
             const XL6_AstNode* literal = node->children[0];
             if ( (literal->kind == XL6_AST_ARRAY_LITERAL) || (literal->kind == XL6_AST_LIST_LITERAL) ) {
-                fputc('[', out);
+                xl6OutputPutc('[', out);
             } else {
-                fputc('{', out);
+                xl6OutputPutc('{', out);
             }
             if ( literal->kind == XL6_AST_LIST_LITERAL || literal->kind == XL6_AST_DICT_LITERAL ) {
                 xl6IrDumpPairList(out, literal);
@@ -307,71 +308,71 @@ static void xl6IrDumpExpr(FILE* out, const XL6_AstNode* node)
                 xl6IrDumpExprList(out, literal);
             }
             if ( (literal->kind == XL6_AST_ARRAY_LITERAL) || (literal->kind == XL6_AST_LIST_LITERAL) ) {
-                fputc(']', out);
+                xl6OutputPutc(']', out);
             } else {
-                fputc('}', out);
+                xl6OutputPutc('}', out);
             }
         }
         break;
     default:
-        fprintf(out, "<expr:%s>", xl6AstKindName(node->kind));
+        xl6OutputPrintf(out, "<expr:%s>", xl6AstKindName(node->kind));
         break;
     }
 }
 
-static void xl6IrDumpBlock(FILE* out, const XL6_AstNode* block, int indent);
+static void xl6IrDumpBlock(XL6_Output* out, const XL6_AstNode* block, int indent);
 
-static void xl6IrDumpReturn(FILE* out, const XL6_AstNode* node, int indent)
+static void xl6IrDumpReturn(XL6_Output* out, const XL6_AstNode* node, int indent)
 {
     xl6IrIndent(out, indent);
-    fputs("return", out);
+    xl6OutputPuts("return", out);
     if ( node->childCount > 0 ) {
-        fputc(' ', out);
+        xl6OutputPutc(' ', out);
         xl6IrDumpExprList(out, node);
     }
-    fputc('\n', out);
+    xl6OutputPutc('\n', out);
 }
 
-static void xl6IrDumpDecl(FILE* out, const XL6_AstNode* node, int indent, const char* kind)
+static void xl6IrDumpDecl(XL6_Output* out, const XL6_AstNode* node, int indent, const char* kind)
 {
     xl6IrIndent(out, indent);
-    fprintf(out, "%s %s : ", kind, node->text != NULL ? node->text : "<unnamed>");
+    xl6OutputPrintf(out, "%s %s : ", kind, node->text != NULL ? node->text : "<unnamed>");
     if ( node->childCount > 0 ) {
         xl6IrDumpType(out, node->children[0]);
     } else {
-        fputs("<missing-type>", out);
+        xl6OutputPuts("<missing-type>", out);
     }
     if ( node->childCount > 1 ) {
-        fputs(" = ", out);
+        xl6OutputPuts(" = ", out);
         xl6IrDumpExpr(out, node->children[1]);
     }
-    fputc('\n', out);
+    xl6OutputPutc('\n', out);
 }
 
-static void xl6IrDumpMultiDecl(FILE* out, const XL6_AstNode* node, int indent)
+static void xl6IrDumpMultiDecl(XL6_Output* out, const XL6_AstNode* node, int indent)
 {
     size_t i;
     const XL6_AstNode* names;
 
     xl6IrIndent(out, indent);
-    fputs("var ", out);
+    xl6OutputPuts("var ", out);
     names = node->childCount > 0 ? node->children[0] : NULL;
     if ( names != NULL ) {
         for ( i = 0; i < names->childCount; ++i ) {
             if ( i > 0 ) {
-                fputs(", ", out);
+                xl6OutputPuts(", ", out);
             }
             xl6IrText(out, names->children[i]->text);
         }
     }
-    fputs(" : auto = ", out);
+    xl6OutputPuts(" : auto = ", out);
     if ( node->childCount > 1 ) {
         xl6IrDumpExpr(out, node->children[1]);
     }
-    fputc('\n', out);
+    xl6OutputPutc('\n', out);
 }
 
-static void xl6IrDumpMultiAssign(FILE* out, const XL6_AstNode* node, int indent)
+static void xl6IrDumpMultiAssign(XL6_Output* out, const XL6_AstNode* node, int indent)
 {
     size_t i;
     const XL6_AstNode* targets;
@@ -381,29 +382,29 @@ static void xl6IrDumpMultiAssign(FILE* out, const XL6_AstNode* node, int indent)
     if ( targets != NULL ) {
         for ( i = 0; i < targets->childCount; ++i ) {
             if ( i > 0 ) {
-                fputs(", ", out);
+                xl6OutputPuts(", ", out);
             }
             xl6IrDumpExpr(out, targets->children[i]);
         }
     }
-    fputs(" = ", out);
+    xl6OutputPuts(" = ", out);
     if ( node->childCount > 1 ) {
         xl6IrDumpExpr(out, node->children[1]);
     }
-    fputc('\n', out);
+    xl6OutputPutc('\n', out);
 }
 
-static void xl6IrDumpIf(FILE* out, const XL6_AstNode* node, int indent)
+static void xl6IrDumpIf(XL6_Output* out, const XL6_AstNode* node, int indent)
 {
     size_t i;
     const XL6_AstNode* elseifList;
 
     xl6IrIndent(out, indent);
-    fputs("if ", out);
+    xl6OutputPuts("if ", out);
     if ( node->childCount > 0 ) {
         xl6IrDumpExpr(out, node->children[0]);
     }
-    fputc('\n', out);
+    xl6OutputPutc('\n', out);
 
     if ( node->childCount > 1 ) {
         xl6IrDumpBlock(out, node->children[1], indent + 1);
@@ -414,11 +415,11 @@ static void xl6IrDumpIf(FILE* out, const XL6_AstNode* node, int indent)
         for ( i = 0; i < elseifList->childCount; ++i ) {
             const XL6_AstNode* item = elseifList->children[i];
             xl6IrIndent(out, indent);
-            fputs("elseif ", out);
+            xl6OutputPuts("elseif ", out);
             if ( item->childCount > 0 ) {
                 xl6IrDumpExpr(out, item->children[0]);
             }
-            fputc('\n', out);
+            xl6OutputPutc('\n', out);
             if ( item->childCount > 1 ) {
                 xl6IrDumpBlock(out, item->children[1], indent + 1);
             }
@@ -427,75 +428,75 @@ static void xl6IrDumpIf(FILE* out, const XL6_AstNode* node, int indent)
 
     if ( node->childCount > 3 && node->children[3]->childCount > 0 ) {
         xl6IrIndent(out, indent);
-        fputs("else\n", out);
+        xl6OutputPuts("else\n", out);
         xl6IrDumpBlock(out, node->children[3], indent + 1);
     }
 
     xl6IrIndent(out, indent);
-    fputs("end_if\n", out);
+    xl6OutputPuts("end_if\n", out);
 }
 
-static void xl6IrDumpWhile(FILE* out, const XL6_AstNode* node, int indent)
+static void xl6IrDumpWhile(XL6_Output* out, const XL6_AstNode* node, int indent)
 {
     xl6IrIndent(out, indent);
-    fputs("while ", out);
+    xl6OutputPuts("while ", out);
     if ( node->childCount > 0 ) {
         xl6IrDumpExpr(out, node->children[0]);
     }
-    fputc('\n', out);
+    xl6OutputPutc('\n', out);
     if ( node->childCount > 1 ) {
         xl6IrDumpBlock(out, node->children[1], indent + 1);
     }
     xl6IrIndent(out, indent);
-    fputs("end_while\n", out);
+    xl6OutputPuts("end_while\n", out);
 }
 
-static void xl6IrDumpDoWhile(FILE* out, const XL6_AstNode* node, int indent)
+static void xl6IrDumpDoWhile(XL6_Output* out, const XL6_AstNode* node, int indent)
 {
     xl6IrIndent(out, indent);
-    fputs("do\n", out);
+    xl6OutputPuts("do\n", out);
     if ( node->childCount > 0 ) {
         xl6IrDumpBlock(out, node->children[0], indent + 1);
     }
     xl6IrIndent(out, indent);
-    fputs("while ", out);
+    xl6OutputPuts("while ", out);
     if ( node->childCount > 1 ) {
         xl6IrDumpExpr(out, node->children[1]);
     }
-    fputc('\n', out);
+    xl6OutputPutc('\n', out);
     xl6IrIndent(out, indent);
-    fputs("end_do\n", out);
+    xl6OutputPuts("end_do\n", out);
 }
 
-static void xl6IrDumpFor(FILE* out, const XL6_AstNode* node, int indent)
+static void xl6IrDumpFor(XL6_Output* out, const XL6_AstNode* node, int indent)
 {
     size_t i;
     const XL6_AstNode* targets;
 
     xl6IrIndent(out, indent);
-    fputs("for ", out);
+    xl6OutputPuts("for ", out);
     if ( node->childCount > 0 ) {
         targets = node->children[0];
         for ( i = 0; i < targets->childCount; ++i ) {
             if ( i > 0 ) {
-                fputs(", ", out);
+                xl6OutputPuts(", ", out);
             }
             xl6IrText(out, targets->children[i]->text);
         }
     }
-    fputs(" in ", out);
+    xl6OutputPuts(" in ", out);
     if ( node->childCount > 1 ) {
         xl6IrDumpExpr(out, node->children[1]);
     }
-    fputc('\n', out);
+    xl6OutputPutc('\n', out);
     if ( node->childCount > 2 ) {
         xl6IrDumpBlock(out, node->children[2], indent + 1);
     }
     xl6IrIndent(out, indent);
-    fputs("end_for\n", out);
+    xl6OutputPuts("end_for\n", out);
 }
 
-static void xl6IrDumpStmt(FILE* out, const XL6_AstNode* node, int indent)
+static void xl6IrDumpStmt(XL6_Output* out, const XL6_AstNode* node, int indent)
 {
     if ( node == NULL ) {
         return;
@@ -518,11 +519,11 @@ static void xl6IrDumpStmt(FILE* out, const XL6_AstNode* node, int indent)
         if ( node->childCount > 0 ) {
             xl6IrDumpExpr(out, node->children[0]);
         }
-        fprintf(out, " %s ", node->text != NULL ? node->text : "=");
+        xl6OutputPrintf(out, " %s ", node->text != NULL ? node->text : "=");
         if ( node->childCount > 1 ) {
             xl6IrDumpExpr(out, node->children[1]);
         }
-        fputc('\n', out);
+        xl6OutputPutc('\n', out);
         break;
     case XL6_AST_MULTI_ASSIGN:
         xl6IrDumpMultiAssign(out, node, indent);
@@ -535,7 +536,7 @@ static void xl6IrDumpStmt(FILE* out, const XL6_AstNode* node, int indent)
         if ( node->childCount > 0 ) {
             xl6IrDumpExpr(out, node->children[0]);
         }
-        fputc('\n', out);
+        xl6OutputPutc('\n', out);
         break;
     case XL6_AST_IF:
         xl6IrDumpIf(out, node, indent);
@@ -551,30 +552,30 @@ static void xl6IrDumpStmt(FILE* out, const XL6_AstNode* node, int indent)
         break;
     case XL6_AST_BREAK:
         xl6IrIndent(out, indent);
-        fputs("break", out);
+        xl6OutputPuts("break", out);
         if ( node->childCount > 0 ) {
-            fputc(' ', out);
+            xl6OutputPutc(' ', out);
             xl6IrDumpExpr(out, node->children[0]);
         }
-        fputc('\n', out);
+        xl6OutputPutc('\n', out);
         break;
     case XL6_AST_CONTINUE:
         xl6IrIndent(out, indent);
-        fputs("continue", out);
+        xl6OutputPuts("continue", out);
         if ( node->childCount > 0 ) {
-            fputc(' ', out);
+            xl6OutputPutc(' ', out);
             xl6IrDumpExpr(out, node->children[0]);
         }
-        fputc('\n', out);
+        xl6OutputPutc('\n', out);
         break;
     default:
         xl6IrIndent(out, indent);
-        fprintf(out, "<stmt:%s>\n", xl6AstKindName(node->kind));
+        xl6OutputPrintf(out, "<stmt:%s>\n", xl6AstKindName(node->kind));
         break;
     }
 }
 
-static void xl6IrDumpBlock(FILE* out, const XL6_AstNode* block, int indent)
+static void xl6IrDumpBlock(XL6_Output* out, const XL6_AstNode* block, int indent)
 {
     size_t i;
 
@@ -586,7 +587,7 @@ static void xl6IrDumpBlock(FILE* out, const XL6_AstNode* block, int indent)
     }
 }
 
-static void xl6IrDumpParams(FILE* out, const XL6_AstNode* params)
+static void xl6IrDumpParams(XL6_Output* out, const XL6_AstNode* params)
 {
     size_t i;
 
@@ -594,44 +595,44 @@ static void xl6IrDumpParams(FILE* out, const XL6_AstNode* params)
         for ( i = 0; i < params->childCount; ++i ) {
             const XL6_AstNode* param = params->children[i];
             if ( i > 0 ) {
-                fputs(", ", out);
+                xl6OutputPuts(", ", out);
             }
             xl6IrText(out, param->text);
-            fputs(": ", out);
+            xl6OutputPuts(": ", out);
             if ( param->childCount > 0 ) {
                 xl6IrDumpType(out, param->children[0]);
             }
             if ( param->childCount > 1 ) {
-                fputs(" = ", out);
+                xl6OutputPuts(" = ", out);
                 xl6IrDumpExpr(out, param->children[1]);
             }
         }
     }
 }
 
-static void xl6IrDumpReturns(FILE* out, const XL6_AstNode* returns)
+static void xl6IrDumpReturns(XL6_Output* out, const XL6_AstNode* returns)
 {
     size_t i;
 
     if ( returns == NULL || returns->childCount == 0 ) {
         return;
     }
-    fputs(" -> ", out);
+    xl6OutputPuts(" -> ", out);
     if ( returns->childCount > 1 ) {
-        fputc('(', out);
+        xl6OutputPutc('(', out);
     }
     for ( i = 0; i < returns->childCount; ++i ) {
         if ( i > 0 ) {
-            fputs(", ", out);
+            xl6OutputPuts(", ", out);
         }
         xl6IrDumpType(out, returns->children[i]);
     }
     if ( returns->childCount > 1 ) {
-        fputc(')', out);
+        xl6OutputPutc(')', out);
     }
 }
 
-static void xl6IrDumpFuncAt(FILE* out, const XL6_AstNode* node, int indent, const char* endLabel)
+static void xl6IrDumpFuncAt(XL6_Output* out, const XL6_AstNode* node, int indent, const char* endLabel)
 {
     const XL6_AstNode* nameNode;
     const XL6_AstNode* typeParams;
@@ -640,32 +641,32 @@ static void xl6IrDumpFuncAt(FILE* out, const XL6_AstNode* node, int indent, cons
 
     nameNode = node->childCount > 0 ? node->children[0] : NULL;
     xl6IrIndent(out, indent);
-    fprintf(out, "func %s", (nameNode != NULL && nameNode->text != NULL) ? nameNode->text : "<unnamed>");
+    xl6OutputPrintf(out, "func %s", (nameNode != NULL && nameNode->text != NULL) ? nameNode->text : "<unnamed>");
     typeParams = node->childCount > 4 ? node->children[4] : NULL;
     xl6IrDumpTypeParams(out, typeParams);
-    fputc('(', out);
+    xl6OutputPutc('(', out);
 
     params = node->childCount > 1 ? node->children[1] : NULL;
     xl6IrDumpParams(out, params);
-    fputc(')', out);
+    xl6OutputPutc(')', out);
 
     returns = node->childCount > 2 ? node->children[2] : NULL;
     xl6IrDumpReturns(out, returns);
-    fputc('\n', out);
+    xl6OutputPutc('\n', out);
 
     if ( node->childCount > 3 ) {
         xl6IrDumpBlock(out, node->children[3], indent + 1);
     }
     xl6IrIndent(out, indent);
-    fprintf(out, "%s\n", endLabel != NULL ? endLabel : "end_func");
+    xl6OutputPrintf(out, "%s\n", endLabel != NULL ? endLabel : "end_func");
 }
 
-static void xl6IrDumpFunc(FILE* out, const XL6_AstNode* node)
+static void xl6IrDumpFunc(XL6_Output* out, const XL6_AstNode* node)
 {
     xl6IrDumpFuncAt(out, node, 0, "end_func");
 }
 
-static void xl6IrDumpExternFunc(FILE* out, const XL6_AstNode* node)
+static void xl6IrDumpExternFunc(XL6_Output* out, const XL6_AstNode* node)
 {
     size_t i;
     const XL6_AstNode* nameNode;
@@ -673,43 +674,43 @@ static void xl6IrDumpExternFunc(FILE* out, const XL6_AstNode* node)
     const XL6_AstNode* returns;
 
     nameNode = node->childCount > 0 ? node->children[0] : NULL;
-    fprintf(out, "extern %s func %s(", node->text != NULL ? node->text : "\"\"", (nameNode != NULL && nameNode->text != NULL) ? nameNode->text : "<unnamed>");
+    xl6OutputPrintf(out, "extern %s func %s(", node->text != NULL ? node->text : "\"\"", (nameNode != NULL && nameNode->text != NULL) ? nameNode->text : "<unnamed>");
     params = node->childCount > 1 ? node->children[1] : NULL;
     if ( params != NULL ) {
         for ( i = 0; i < params->childCount; ++i ) {
             const XL6_AstNode* param = params->children[i];
             if ( i > 0 ) {
-                fputs(", ", out);
+                xl6OutputPuts(", ", out);
             }
             xl6IrText(out, param->text);
-            fputs(": ", out);
+            xl6OutputPuts(": ", out);
             if ( param->childCount > 0 ) {
                 xl6IrDumpType(out, param->children[0]);
             }
         }
     }
-    fputc(')', out);
+    xl6OutputPutc(')', out);
 
     returns = node->childCount > 2 ? node->children[2] : NULL;
     if ( returns != NULL && returns->childCount > 0 ) {
-        fputs(" -> ", out);
+        xl6OutputPuts(" -> ", out);
         if ( returns->childCount > 1 ) {
-            fputc('(', out);
+            xl6OutputPutc('(', out);
         }
         for ( i = 0; i < returns->childCount; ++i ) {
             if ( i > 0 ) {
-                fputs(", ", out);
+                xl6OutputPuts(", ", out);
             }
             xl6IrDumpType(out, returns->children[i]);
         }
         if ( returns->childCount > 1 ) {
-            fputc(')', out);
+            xl6OutputPutc(')', out);
         }
     }
-    fputc('\n', out);
+    xl6OutputPutc('\n', out);
 }
 
-static void xl6IrDumpExportFunc(FILE* out, const XL6_AstNode* node)
+static void xl6IrDumpExportFunc(XL6_Output* out, const XL6_AstNode* node)
 {
     size_t i;
     const XL6_AstNode* nameNode;
@@ -717,48 +718,48 @@ static void xl6IrDumpExportFunc(FILE* out, const XL6_AstNode* node)
     const XL6_AstNode* returns;
 
     nameNode = node->childCount > 0 ? node->children[0] : NULL;
-    fprintf(out, "export %s func %s(", node->text != NULL ? node->text : "\"\"", (nameNode != NULL && nameNode->text != NULL) ? nameNode->text : "<unnamed>");
+    xl6OutputPrintf(out, "export %s func %s(", node->text != NULL ? node->text : "\"\"", (nameNode != NULL && nameNode->text != NULL) ? nameNode->text : "<unnamed>");
     params = node->childCount > 1 ? node->children[1] : NULL;
     if ( params != NULL ) {
         for ( i = 0; i < params->childCount; ++i ) {
             const XL6_AstNode* param = params->children[i];
             if ( i > 0 ) {
-                fputs(", ", out);
+                xl6OutputPuts(", ", out);
             }
             xl6IrText(out, param->text);
-            fputs(": ", out);
+            xl6OutputPuts(": ", out);
             if ( param->childCount > 0 ) {
                 xl6IrDumpType(out, param->children[0]);
             }
         }
     }
-    fputc(')', out);
+    xl6OutputPutc(')', out);
 
     returns = node->childCount > 2 ? node->children[2] : NULL;
     if ( returns != NULL && returns->childCount > 0 ) {
-        fputs(" -> ", out);
+        xl6OutputPuts(" -> ", out);
         if ( returns->childCount > 1 ) {
-            fputc('(', out);
+            xl6OutputPutc('(', out);
         }
         for ( i = 0; i < returns->childCount; ++i ) {
             if ( i > 0 ) {
-                fputs(", ", out);
+                xl6OutputPuts(", ", out);
             }
             xl6IrDumpType(out, returns->children[i]);
         }
         if ( returns->childCount > 1 ) {
-            fputc(')', out);
+            xl6OutputPutc(')', out);
         }
     }
-    fputc('\n', out);
+    xl6OutputPutc('\n', out);
 
     if ( node->childCount > 3 ) {
         xl6IrDumpBlock(out, node->children[3], 1);
     }
-    fputs("end_export\n", out);
+    xl6OutputPuts("end_export\n", out);
 }
 
-static void xl6IrDumpExternalVar(FILE* out, const XL6_AstNode* node)
+static void xl6IrDumpExternalVar(XL6_Output* out, const XL6_AstNode* node)
 {
     const XL6_AstNode* nameNode;
     const XL6_AstNode* typeNode;
@@ -769,67 +770,67 @@ static void xl6IrDumpExternalVar(FILE* out, const XL6_AstNode* node)
     initExpr = node->childCount > 2 ? node->children[2] : NULL;
 
     if ( node->kind == XL6_AST_EXTERN_VAR ) {
-        fputs("extern ", out);
+        xl6OutputPuts("extern ", out);
     } else {
-        fputs("export ", out);
+        xl6OutputPuts("export ", out);
     }
-    fprintf(out, "%s %s ", node->text != NULL ? node->text : "\"\"",
+    xl6OutputPrintf(out, "%s %s ", node->text != NULL ? node->text : "\"\"",
             node->kind == XL6_AST_EXPORT_CONST ? "const" : "var");
-    fprintf(out, "%s : ", (nameNode != NULL && nameNode->text != NULL) ? nameNode->text : "<unnamed>");
+    xl6OutputPrintf(out, "%s : ", (nameNode != NULL && nameNode->text != NULL) ? nameNode->text : "<unnamed>");
     xl6IrDumpType(out, typeNode);
     if ( initExpr != NULL ) {
-        fputs(" = ", out);
+        xl6OutputPuts(" = ", out);
         xl6IrDumpExpr(out, initExpr);
     }
-    fputc('\n', out);
+    xl6OutputPutc('\n', out);
 }
 
-static void xl6IrDumpTypeAlias(FILE* out, const XL6_AstNode* node)
+static void xl6IrDumpTypeAlias(XL6_Output* out, const XL6_AstNode* node)
 {
     const XL6_AstNode* target;
 
     target = node != NULL && node->childCount > 0 ? node->children[0] : NULL;
     if ( node != NULL && node->kind == XL6_AST_EXTERN_TYPE_ALIAS ) {
-        fputs("extern type ", out);
+        xl6OutputPuts("extern type ", out);
     } else {
-        fputs("typedef ", out);
+        xl6OutputPuts("typedef ", out);
     }
-    fprintf(out, "%s = ", (node != NULL && node->text != NULL) ? node->text : "<unnamed>");
+    xl6OutputPrintf(out, "%s = ", (node != NULL && node->text != NULL) ? node->text : "<unnamed>");
     xl6IrDumpType(out, target);
-    fputc('\n', out);
+    xl6OutputPutc('\n', out);
 }
 
-static void xl6IrDumpClassSpecial(FILE* out, const XL6_AstNode* node, int indent)
+static void xl6IrDumpClassSpecial(XL6_Output* out, const XL6_AstNode* node, int indent)
 {
     const XL6_AstNode* params;
 
     xl6IrIndent(out, indent);
-    fprintf(out, "%s(", node->text != NULL ? node->text : "<special>");
+    xl6OutputPrintf(out, "%s(", node->text != NULL ? node->text : "<special>");
     params = node->childCount > 0 ? node->children[0] : NULL;
     xl6IrDumpParams(out, params);
-    fputs(")\n", out);
+    xl6OutputPuts(")\n", out);
     if ( node->childCount > 1 ) {
         xl6IrDumpBlock(out, node->children[1], indent + 1);
     }
     xl6IrIndent(out, indent);
-    fprintf(out, "end_%s\n", node->text != NULL ? node->text : "special");
+    xl6OutputPrintf(out, "end_%s\n", node->text != NULL ? node->text : "special");
 }
 
-static void xl6IrDumpClass(FILE* out, const XL6_AstNode* node)
+static void xl6IrDumpClass(XL6_Output* out, const XL6_AstNode* node)
 {
     const XL6_AstNode* base;
     const XL6_AstNode* body;
     const XL6_AstNode* typeParams;
     size_t i;
 
-    fprintf(out, "class %s", node->text != NULL ? node->text : "<unnamed>");
+    xl6OutputPrintf(out, "class %s", node->text != NULL ? node->text : "<unnamed>");
     typeParams = node->childCount > 2 ? node->children[2] : NULL;
     xl6IrDumpTypeParams(out, typeParams);
     base = node->childCount > 0 ? node->children[0] : NULL;
     if ( base != NULL && base->kind == XL6_AST_NAME ) {
-        fprintf(out, " extends %s", base->text != NULL ? base->text : "<unnamed>");
+        xl6OutputPrintf(out, " extends %s", base->text != NULL ? base->text : "<unnamed>");
     }
-    fputc('\n', out);
+    xl6OutputPutc('\n', out);
 
     body = node->childCount > 1 ? node->children[1] : NULL;
     if ( body != NULL ) {
@@ -846,14 +847,14 @@ static void xl6IrDumpClass(FILE* out, const XL6_AstNode* node)
                 xl6IrDumpClassSpecial(out, member, 1);
             } else {
                 xl6IrIndent(out, 1);
-                fprintf(out, "<class-member:%s>\n", xl6AstKindName(member->kind));
+                xl6OutputPrintf(out, "<class-member:%s>\n", xl6AstKindName(member->kind));
             }
         }
     }
-    fputs("end_class\n", out);
+    xl6OutputPuts("end_class\n", out);
 }
 
-static void xl6IrDumpCustomExternSpecial(FILE* out, const XL6_AstNode* node, int indent)
+static void xl6IrDumpCustomExternSpecial(XL6_Output* out, const XL6_AstNode* node, int indent)
 {
     const XL6_AstNode* nameNode;
     const XL6_AstNode* params;
@@ -862,12 +863,12 @@ static void xl6IrDumpCustomExternSpecial(FILE* out, const XL6_AstNode* node, int
     params = node->childCount > 1 ? node->children[1] : NULL;
 
     xl6IrIndent(out, indent);
-    fprintf(out, "extern %s %s(", node->text != NULL ? node->text : "\"\"", (nameNode != NULL && nameNode->text != NULL) ? nameNode->text : "<special>");
+    xl6OutputPrintf(out, "extern %s %s(", node->text != NULL ? node->text : "\"\"", (nameNode != NULL && nameNode->text != NULL) ? nameNode->text : "<special>");
     xl6IrDumpParams(out, params);
-    fputs(")\n", out);
+    xl6OutputPuts(")\n", out);
 }
 
-static void xl6IrDumpCustomExternFunc(FILE* out, const XL6_AstNode* node, int indent)
+static void xl6IrDumpCustomExternFunc(XL6_Output* out, const XL6_AstNode* node, int indent)
 {
     const XL6_AstNode* nameNode;
     const XL6_AstNode* params;
@@ -878,19 +879,19 @@ static void xl6IrDumpCustomExternFunc(FILE* out, const XL6_AstNode* node, int in
     returns = node->childCount > 2 ? node->children[2] : NULL;
 
     xl6IrIndent(out, indent);
-    fprintf(out, "extern %s func %s(", node->text != NULL ? node->text : "\"\"", (nameNode != NULL && nameNode->text != NULL) ? nameNode->text : "<unnamed>");
+    xl6OutputPrintf(out, "extern %s func %s(", node->text != NULL ? node->text : "\"\"", (nameNode != NULL && nameNode->text != NULL) ? nameNode->text : "<unnamed>");
     xl6IrDumpParams(out, params);
-    fputc(')', out);
+    xl6OutputPutc(')', out);
     xl6IrDumpReturns(out, returns);
-    fputc('\n', out);
+    xl6OutputPutc('\n', out);
 }
 
-static void xl6IrDumpCustom(FILE* out, const XL6_AstNode* node)
+static void xl6IrDumpCustom(XL6_Output* out, const XL6_AstNode* node)
 {
     const XL6_AstNode* body;
     size_t i;
 
-    fprintf(out, "custom %s\n", node->text != NULL ? node->text : "<unnamed>");
+    xl6OutputPrintf(out, "custom %s\n", node->text != NULL ? node->text : "<unnamed>");
     body = node->childCount > 0 ? node->children[0] : NULL;
     if ( body != NULL ) {
         for ( i = 0; i < body->childCount; ++i ) {
@@ -906,28 +907,32 @@ static void xl6IrDumpCustom(FILE* out, const XL6_AstNode* node)
                 xl6IrDumpFuncAt(out, member, 1, "end_func");
             } else {
                 xl6IrIndent(out, 1);
-                fprintf(out, "<custom-member:%s>\n", xl6AstKindName(member->kind));
+                xl6OutputPrintf(out, "<custom-member:%s>\n", xl6AstKindName(member->kind));
             }
         }
     }
-    fputs("end_custom\n", out);
+    xl6OutputPuts("end_custom\n", out);
 }
 
-void xl6IrDumpText(FILE* out, const XL6_AstNode* root)
+void xl6IrDumpText(XL6_Output* out, const XL6_AstNode* root)
 {
     size_t i;
 
     if ( out == NULL ) {
         return;
     }
-    fputs("xlir 0\n", out);
+    xl6OutputPuts("xlir 0\n", out);
     if ( root == NULL ) {
         return;
     }
 
     for ( i = 0; i < root->childCount; ++i ) {
         const XL6_AstNode* child = root->children[i];
-        if ( child->kind == XL6_AST_FUNC ) {
+        if ( child->kind == XL6_AST_IMPORT ) {
+            xl6OutputPuts("import ", out);
+            xl6IrText(out, child->text);
+            xl6OutputPutc('\n', out);
+        } else if ( child->kind == XL6_AST_FUNC ) {
             xl6IrDumpFunc(out, child);
         } else if ( child->kind == XL6_AST_EXTERN_FUNC ) {
             xl6IrDumpExternFunc(out, child);
@@ -949,14 +954,14 @@ void xl6IrDumpText(FILE* out, const XL6_AstNode* root)
     }
 }
 
-void xl6IrDumpJson(FILE* out, const XL6_AstNode* root)
+void xl6IrDumpJson(XL6_Output* out, const XL6_AstNode* root)
 {
     if ( out == NULL ) {
         return;
     }
-    fputs("{\n", out);
-    fputs("  \"stage\":\"ir\",\n", out);
-    fputs("  \"root\":", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("  \"stage\":\"ir\",\n", out);
+    xl6OutputPuts("  \"root\":", out);
     xl6AstDumpJson(out, root);
-    fputs("}\n", out);
+    xl6OutputPuts("}\n", out);
 }

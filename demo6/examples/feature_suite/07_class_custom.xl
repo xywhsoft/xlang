@@ -1,0 +1,166 @@
+extern "expect_i64" func expect(int actual, int expected)
+extern "destroy_reset" func destroyReset()
+extern "record_destroy" func recordDestroy(int value)
+extern "destroy_count" func destroyCount() -> int
+extern "destroy_value" func destroyValue() -> int
+extern "counter_reset" func counterReset()
+extern "counter_closed" func counterClosed() -> int
+
+// class：标准 OOP 数据类型，字段、构造、方法、析构。
+class Point
+    int x = 0
+    int y = 0
+
+    create(int x, int y)
+        self.x = x
+        self.y = y
+    end
+
+    func length2() -> int
+        return self.x * self.x + self.y * self.y
+    end
+end
+
+Point point = Point(3, 4)
+expect(point.length2(), 25)
+
+// class 继承与 base 构造调用。
+class Base
+    int seed = 0
+
+    create(int seed)
+        self.seed = seed
+    end
+
+    func value() -> int
+        return self.seed
+    end
+end
+
+class Child extends Base
+    int extra = 0
+
+    create(int seed, int extra)
+        base(seed)
+        self.extra = extra
+    end
+
+    func total() -> int
+        return self.value() + self.extra
+    end
+end
+
+Child child = Child(10, 32)
+expect(child.total(), 42)
+
+// 方法重载与构造重载。
+class Overloaded
+    int value = 0
+
+    create()
+        self.value = 1
+    end
+
+    create(int value)
+        self.value = value
+    end
+
+    func add(int right) -> int
+        return self.value + right
+    end
+
+    func add(string text) -> int
+        return self.value + int(text)
+    end
+end
+
+auto defaultObject = Overloaded()
+auto customObject = Overloaded(40)
+expect(defaultObject.add(2), 3)
+expect(customObject.add("2"), 42)
+
+// 析构在作用域退出、return、break、continue 时自动执行。
+class Tracker
+    int value = 0
+
+    create(int value)
+        self.value = value
+    end
+
+    destroy()
+        recordDestroy(self.value)
+    end
+end
+
+func scopedDestroy()
+    auto tracker = Tracker(77)
+    expect(destroyCount(), 0)
+end
+
+func returnDestroy() -> int
+    auto tracker = Tracker(88)
+    return 9
+end
+
+func breakDestroy()
+    for i in range(0, 3)
+        auto tracker = Tracker(100 + i)
+        break
+    end
+end
+
+func continueDestroy()
+    for i in range(0, 2)
+        auto tracker = Tracker(200 + i)
+        continue
+    end
+end
+
+destroyReset()
+scopedDestroy()
+expect(destroyCount(), 1)
+expect(destroyValue(), 77)
+
+expect(returnDestroy(), 9)
+expect(destroyCount(), 2)
+expect(destroyValue(), 88)
+
+breakDestroy()
+expect(destroyCount(), 3)
+expect(destroyValue(), 100)
+
+continueDestroy()
+expect(destroyCount(), 5)
+expect(destroyValue(), 201)
+
+// custom：把 C 句柄与 C 函数直接抽象为 xlang 轻量类。
+custom Counter
+    extern "counter_open" create(int seed)
+    extern "counter_close" destroy()
+    extern "counter_add" func add(int value) -> int
+    extern "counter_value" func value() -> int
+
+    func isZero() -> bool
+        return self.value() == 0
+    end
+end
+
+func customLifecycle()
+    auto counter = Counter(40)
+    expect(counter.add(2), 42)
+    expect(counter.value(), 42)
+    expect(counter.isZero(), 0)
+end
+
+counterReset()
+customLifecycle()
+expect(counterClosed(), 1)
+
+// custom 也可以只绑定已有 point，不额外负责内存管理。
+custom NativeView
+end
+
+point raw
+NativeView view = NativeView(raw)
+var boxedView = view
+expect(type(boxedView) == NativeView, 1)

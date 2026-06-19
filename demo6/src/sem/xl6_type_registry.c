@@ -32,9 +32,9 @@ void xl6TypeRegistryFree(XL6_TypeRegistry* registry)
         return;
     }
     for ( i = 0; i < registry->count; ++i ) {
-        xl6Free(registry->items[i].name);
+        xrtFree(registry->items[i].name);
     }
-    xl6Free(registry->items);
+    xrtFree(registry->items);
     memset(registry, 0, sizeof(*registry));
 }
 
@@ -68,7 +68,7 @@ int xl6TypeRegistryAdd(XL6_TypeRegistry* registry, const char* name, XL6_TypeKin
 
     if ( registry->count == registry->capacity ) {
         newCapacity = registry->capacity == 0 ? 16 : registry->capacity * 2;
-        newItems = (XL6_TypeInfo*)realloc(registry->items, newCapacity * sizeof(XL6_TypeInfo));
+        newItems = (XL6_TypeInfo*)xrtRealloc(registry->items, newCapacity * sizeof(XL6_TypeInfo));
         if ( newItems == NULL ) {
             return 0;
         }
@@ -78,7 +78,7 @@ int xl6TypeRegistryAdd(XL6_TypeRegistry* registry, const char* name, XL6_TypeKin
 
     item = &registry->items[registry->count];
     memset(item, 0, sizeof(*item));
-    item->name = xl6StrDupRange(name, strlen(name));
+    item->name = xrtCopyStr((char*)name, strlen(name));
     if ( item->name == NULL ) {
         return 0;
     }

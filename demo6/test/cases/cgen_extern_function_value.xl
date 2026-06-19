@@ -1,0 +1,21 @@
+extern "native_add_i64" func cadd(int left, int right) -> int
+extern "expect_i64" func expect(int actual, int expected)
+
+export "xl6_exported_add_i64" func exportedAdd(int left, int right) -> int
+    return left + right
+end
+
+function(int, int) -> int fn = cadd
+int direct = fn(10, 3)
+var boxed = fn
+var dynamic = boxed(20, 22)
+
+function(int, int) -> int exportedFn = exportedAdd
+int exportedDirect = exportedFn(5, 6)
+var boxedExported = exportedFn
+var exportedDynamic = boxedExported(7, 8)
+
+expect(direct, 13)
+expect(int(dynamic), 42)
+expect(exportedDirect, 11)
+expect(int(exportedDynamic), 15)

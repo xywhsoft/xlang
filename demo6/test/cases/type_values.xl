@@ -11,7 +11,10 @@ auto nullType = type(null)
 Box box
 type boxType = type(box)
 auto values = [1, 2, 3]
+auto otherValues = [4, 5]
+auto stringValues = ["x"]
 auto table = {"a": 1}
+auto otherTable = {"b": 2}
 type arrayType = type(values)
 type dictType = type(table)
 
@@ -19,12 +22,18 @@ bool intOk = valueType == int
 bool stringOk = textType == string
 bool nullOk = nullType == null
 bool classOk = boxType == Box
-bool arrayOk = arrayType == array
-bool dictOk = dictType == dict
+bool arrayOk = arrayType == type(otherValues)
+bool arrayPrecise = arrayType != array
+bool arrayDiff = arrayType != type(stringValues)
+bool dictOk = dictType == type(otherTable)
+bool dictPrecise = dictType != dict
 
 expect(intOk, 1)
 expect(stringOk, 1)
 expect(nullOk, 1)
 expect(classOk, 1)
 expect(arrayOk, 1)
+expect(arrayPrecise, 1)
+expect(arrayDiff, 1)
 expect(dictOk, 1)
+expect(dictPrecise, 1)
