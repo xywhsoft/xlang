@@ -1,0 +1,11 @@
+func bad() -> int
+    int value = 0
+
+    try
+        throw "boom"
+    catch e
+        value = e.nope
+    end
+
+    return value
+end

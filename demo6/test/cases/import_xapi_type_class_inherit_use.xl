@@ -1,0 +1,15 @@
+import class_inherit_api
+
+func main(...) -> int
+    auto point = class_inherit_api.makeNamedPoint(5, 7, 30)
+    if point.id != 5 then
+        return 1
+    end
+    if point.x + point.y != 37 then
+        return 2
+    end
+    if class_inherit_api.score(point) != 42 then
+        return 3
+    end
+    return 0
+end

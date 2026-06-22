@@ -1,0 +1,87 @@
+extern "expect_i64" func expect(int actual, int expected)
+
+func add(int left, int right) -> int
+    return left + right
+end
+
+func mul(int left, int right) -> int
+    return left * right
+end
+
+func makeAdder(int base) -> function(int) -> int
+    return func(int value) -> int
+        return base + value
+    end
+end
+
+class FnBox
+    function(int, int) -> int op
+    int bias = 0
+end
+
+class UnaryBox
+    function(int) -> int op
+end
+
+FnBox seed
+seed.op = add
+seed.bias = 10
+
+FnBox next
+next.op = mul
+next.bias = 20
+
+FnBox copied
+copied.op = seed.op
+copied.bias = 30
+
+FnBox reassigned
+reassigned.op = mul
+reassigned.bias = 1
+reassigned = seed
+reassigned = reassigned
+
+UnaryBox closureBox
+closureBox.op = makeAdder(5)
+
+UnaryBox closureCopy
+closureCopy.op = closureBox.op
+
+array<FnBox> boxes = array[seed]
+list<FnBox> listed = list[0: seed]
+dict<FnBox> named = dict{"seed": seed}
+
+boxes[0] = next
+listed[1] = next
+named["next"] = next
+
+FnBox fromArray = boxes[0]
+FnBox fromList = listed[1]
+FnBox fromDict = named["next"]
+
+auto autoCall = fromArray.op(1, 2)
+
+expect(fromArray.op(2, 3) + fromArray.bias, 26)
+expect(fromList.op(3, 4) + fromList.bias, 32)
+expect(fromDict.op(4, 5) + fromDict.bias, 40)
+expect(autoCall + fromArray.bias, 22)
+expect(copied.op(1, 2) + copied.bias, 33)
+expect(reassigned.op(2, 3) + reassigned.bias, 15)
+expect(closureCopy.op(7), 12)
+
+int loopTotal = 0
+for item in boxes
+    loopTotal = loopTotal + item.op(1, 2) + item.bias
+end
+
+for index, item in listed
+    loopTotal = loopTotal + index + item.op(2, 2) + item.bias
+end
+
+for key, item in named
+    if key == "next" then
+        loopTotal = loopTotal + item.op(2, 3) + item.bias
+    end
+end
+
+expect(loopTotal, 87)

@@ -1,0 +1,42 @@
+#doc
+desc:
+    Divide two integers and report invalid input with xlang exceptions.
+param left:
+    Dividend.
+param right:
+    Divisor.
+return value:
+    Integer quotient.
+example:
+    ```xlang
+    auto value = checkedDivide(8, 2)
+    ```
+#end
+func checkedDivide(int left, int right) -> int
+    if right == 0 then
+        throw "division by zero"
+    end
+    return left / right
+end
+
+func recoverDivide(int left, int right) -> int
+    int value = 0
+
+    try
+        value = checkedDivide(left, right)
+    catch e
+        if e.message == "division by zero" then
+            value = -1
+        end
+    finally
+        assert true
+    end
+
+    return value
+end
+
+func main(...) -> int
+    if recoverDivide(8, 2) != 4 then return 1
+    if recoverDivide(8, 0) != -1 then return 2
+    return 0
+end

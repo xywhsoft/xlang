@@ -9,6 +9,11 @@ auto unique = {1, 2, 2, 3}
 
 expect(values.length, 3)
 expect(table.length, 2)
+expect(sparse.length, 2)
+expect(unique.length, 3)
+
+var dynamicUnique = unique
+expect(dynamicUnique.length, 3)
 
 int sparseLength = 0
 for index, item in sparse

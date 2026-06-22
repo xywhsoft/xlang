@@ -1,0 +1,10 @@
+extern "expect_i64" func expect(int actual, int expected)
+
+expect(regex.isMatch("abc123", "[a-z]+[0-9]+"), 1)
+expect(regex.isMatch("abc", "^[0-9]+$"), 0)
+
+expect(regex.find("hello 2026", "[0-9]+"), 6)
+expect(regex.find("hello", "[0-9]+"), -1)
+
+expect(regex.isMatch("abc", "["), 0)
+expect(regex.find("abc", "["), -1)

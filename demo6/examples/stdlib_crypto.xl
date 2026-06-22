@@ -1,0 +1,14 @@
+auto text = "xlang"
+
+string sha1 = crypto.sha1(text)
+string sha256 = crypto.sha256(text)
+string sha384 = crypto.sha384(text)
+string sha512 = crypto.sha512(text)
+
+assert string.len(sha1) == 40, "sha1 hex length mismatch"
+assert string.len(sha256) == 64, "sha256 hex length mismatch"
+assert string.len(sha384) == 96, "sha384 hex length mismatch"
+assert string.len(sha512) == 128, "sha512 hex length mismatch"
+
+assert sha256 == crypto.sha256("xlang"), "sha256 should be stable"
+assert sha256 != crypto.sha256("xlang!"), "sha256 should change with input"

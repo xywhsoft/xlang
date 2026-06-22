@@ -1,0 +1,28 @@
+channel<int> ch = channel::<int>(4)
+
+bool sent = ch.send(42)
+int value = 0
+bool received = ch.recvInto(value)
+
+assert sent, "channel send failed"
+assert received, "channel recv failed"
+assert value == 42, "channel value mismatch"
+assert ch.count() == 0, "channel count mismatch"
+
+ch.close()
+bool closed = ch.isClosed()
+bool empty = ch.tryRecvInto(value)
+
+assert closed, "channel close failed"
+assert not empty, "closed channel should not receive"
+
+auto autoCh = channel::<int>(1)
+auto autoSent = autoCh.send(7)
+int autoValue = 0
+auto autoReceived = autoCh.recvInto(autoValue)
+
+assert autoSent, "auto channel send failed"
+assert autoReceived, "auto channel recv failed"
+assert autoValue == 7, "auto channel value mismatch"
+
+autoCh.close()

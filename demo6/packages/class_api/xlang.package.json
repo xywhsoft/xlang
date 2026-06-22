@@ -1,0 +1,17 @@
+{
+  "format": "xlang-package-1",
+  "name": "class_api",
+  "version": "1.0.0",
+  "abiVersion": "1",
+  "xapi": "package.xapi.json",
+  "artifact": {
+    "kind": "source",
+    "cSources": ["class_api_native.c"]
+  },
+  "links": [],
+  "loadlibs": [],
+  "dependencies": [],
+  "native": {
+    "singleton": false
+  }
+}

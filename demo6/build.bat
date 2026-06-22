@@ -61,6 +61,7 @@ echo Building DEMO6 xl.exe...
     src\parser\xl6_parser.c ^
     src\parser\xl6_parser_api.c ^
     src\package\xl6_package.c ^
+    src\stdlib\xl6_stdlib.c ^
     src\type\xl6_type_model.c ^
     src\sem\xl6_type_registry.c ^
     src\sem\xl6_sem.c ^

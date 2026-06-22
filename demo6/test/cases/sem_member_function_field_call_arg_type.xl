@@ -1,0 +1,11 @@
+func add(int left, int right) -> int
+    return left + right
+end
+
+class FnBox
+    function(int, int) -> int op
+end
+
+FnBox box
+box.op = add
+int value = box.op("bad", 1)

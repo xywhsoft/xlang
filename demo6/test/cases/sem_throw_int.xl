@@ -1,0 +1,3 @@
+func bad()
+    throw 1
+end

@@ -1,0 +1,13 @@
+extern "expect_i64" func expect(int actual, int expected)
+extern "expect_str" func expectStr(string actual, string expected)
+
+string out = process.exec("cmd /c echo xlang-process")
+expectStr(string.trim(out), "xlang-process")
+
+expect(process.success("cmd /c exit /b 0"), 1)
+expect(process.success("cmd /c exit /b 7"), 0)
+expect(process.exitCode("cmd /c exit /b 0"), 0)
+expect(process.exitCode("cmd /c exit /b 7"), 7)
+
+string missing = process.exec("cmd /c exit /b 3")
+expectStr(missing, "")

@@ -1,0 +1,9 @@
+auto text = "xlang"
+
+auto hex = codec.hexEncode(text)
+assert hex == "786C616E67", "hex encode failed"
+assert codec.hexDecode(hex) == text, "hex decode failed"
+
+auto b64 = codec.base64Encode(text)
+assert b64 == "eGxhbmc=", "base64 encode failed"
+assert codec.base64Decode(b64) == text, "base64 decode failed"

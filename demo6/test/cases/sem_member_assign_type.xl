@@ -1,0 +1,8 @@
+class Box
+    int value
+end
+
+func bad()
+    Box box
+    box.value = "bad"
+end

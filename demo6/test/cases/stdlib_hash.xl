@@ -1,0 +1,26 @@
+uint32 h32a = hash.u32("xlang")
+uint32 h32b = hash.u32("xlang")
+uint32 h32c = hash.u32("xlang!")
+uint32 h32s1 = hash.u32WithSeed("xlang", uint32(123))
+uint32 h32s2 = hash.u32WithSeed("xlang", uint32(123))
+uint32 h32s3 = hash.u32WithSeed("xlang", uint32(124))
+
+uint64 h64a = hash.u64("xlang")
+uint64 h64b = hash.u64("xlang")
+uint64 h64c = hash.u64("xlang!")
+uint64 h64s1 = hash.u64WithSeed("xlang", uint64(123))
+uint64 h64s2 = hash.u64WithSeed("xlang", uint64(123))
+uint64 h64s3 = hash.u64WithSeed("xlang", uint64(124))
+
+assert h32a == h32b, "hash.u32 should be stable"
+assert h32a != h32c, "hash.u32 should depend on bytes"
+assert h32s1 == h32s2, "hash.u32WithSeed should be stable"
+assert h32s1 != h32s3, "hash.u32WithSeed should depend on seed"
+
+assert h64a == h64b, "hash.u64 should be stable"
+assert h64a != h64c, "hash.u64 should depend on bytes"
+assert h64s1 == h64s2, "hash.u64WithSeed should be stable"
+assert h64s1 != h64s3, "hash.u64WithSeed should depend on seed"
+
+assert hash.u32("") == hash.u32(""), "empty u32 hash should be stable"
+assert hash.u64("") == hash.u64(""), "empty u64 hash should be stable"

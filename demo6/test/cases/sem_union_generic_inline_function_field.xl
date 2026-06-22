@@ -1,0 +1,10 @@
+class Box<T>
+    union
+        T value
+        int code
+    end
+end
+
+union Bad
+    Box<function(int) -> int> box
+end

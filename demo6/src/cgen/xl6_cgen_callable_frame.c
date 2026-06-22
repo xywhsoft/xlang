@@ -43,7 +43,7 @@ static void xl6CgenEmitVarInvokeValueExpr(XL6_CgenContext* ctx, const XL6_AstNod
         xl6OutputPrintf(ctx->out, "((%s)xvoGetInt(%s))", xl6CgenTypeName(ctx, concreteType), valueExpr != NULL ? valueExpr : "0");
     } else if ( xl6CgenIsFloatTypeName(typeName) ) {
         xl6OutputPrintf(ctx->out, "((%s)xvoGetFloat(%s))", xl6CgenTypeName(ctx, concreteType), valueExpr != NULL ? valueExpr : "0");
-    } else if ( xl6CTextEquals(typeName, "bool") ) {
+    } else if ( xl6CgenIsBoolTypeName(typeName) ) {
         xl6OutputPrintf(ctx->out, "xvoGetBool(%s)", valueExpr != NULL ? valueExpr : "0");
     } else if ( xl6CTextEquals(typeName, "string") ) {
         xl6OutputPrintf(ctx->out, "xvoGetText(%s)", valueExpr != NULL ? valueExpr : "0");

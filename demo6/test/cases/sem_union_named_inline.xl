@@ -1,0 +1,5 @@
+class Packet
+    union payload
+        int code
+    end
+end

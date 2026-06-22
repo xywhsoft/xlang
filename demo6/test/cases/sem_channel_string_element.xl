@@ -1,0 +1,1 @@
+channel<string> ch = channel::<string>(1)

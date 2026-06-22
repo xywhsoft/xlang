@@ -1,0 +1,36 @@
+class Packet
+    #doc
+    desc:
+        Packet tag field.
+    #end
+    int tag
+    union
+        int code
+        c_double ratio
+    end
+end
+
+class ChildPacket extends Packet
+    int extra
+end
+
+class Box<T>
+    T value
+end
+
+class Point
+    int x
+    int y
+end
+
+union ClassPayload
+    Point point
+end
+
+union Payload
+    int i
+    c_double d
+end
+
+custom NativeView
+end

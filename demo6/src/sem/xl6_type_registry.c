@@ -12,9 +12,17 @@ static const XL6_BuiltinTypeSeed g_xl6BuiltinTypeSeeds[] = {
     {"int16", 0, 0}, {"uint16", 0, 0}, {"int32", 0, 0}, {"uint32", 0, 0},
     {"int64", 0, 0}, {"uint64", 0, 0},
     {"float", 0, 0}, {"float32", 0, 0}, {"float64", 0, 0},
-    {"string", 0, 0}, {"time", 0, 0}, {"point", 0, 0},
+    {"c_char", 0, 0}, {"c_schar", 0, 0}, {"c_uchar", 0, 0},
+    {"c_short", 0, 0}, {"c_ushort", 0, 0}, {"c_int", 0, 0}, {"c_uint", 0, 0},
+    {"c_long", 0, 0}, {"c_ulong", 0, 0}, {"c_longlong", 0, 0}, {"c_ulonglong", 0, 0},
+    {"c_size", 0, 0}, {"c_ssize", 0, 0}, {"c_ptrdiff", 0, 0},
+    {"c_intptr", 0, 0}, {"c_uintptr", 0, 0}, {"c_bool", 0, 0},
+    {"c_float", 0, 0}, {"c_double", 0, 0}, {"c_wchar", 0, 0},
+    {"string", 0, 0}, {"time", 0, 0}, {"point", 0, 0}, {"error", 0, 0},
     {"function", 0, 0}, {"var", 0, 0}, {"type", 0, 0},
-    {"array", 1, 1}, {"list", 1, 1}, {"set", 1, 1}, {"dict", 1, 1}
+    {"array", 1, 1}, {"list", 1, 1}, {"set", 1, 1}, {"dict", 1, 1},
+    {"future", 1, 1}, {"task", 1, 1}, {"channel", 1, 1}, {"generator", 1, 1},
+    {"thread", 0, 0}, {"mutex", 0, 0}, {"cond", 0, 0}, {"rwlock", 0, 0}, {"sem", 0, 0}
 };
 
 void xl6TypeRegistryInit(XL6_TypeRegistry* registry)

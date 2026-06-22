@@ -1,0 +1,19 @@
+extern "expect_i64" func expect(int actual, int expected)
+
+class Box<T>
+    T value
+end
+
+class Packet
+    union
+        Box<int> boxed
+        int code
+    end
+end
+
+Packet packet
+packet.boxed.value = 41
+expect(packet.boxed.value, 41)
+
+packet.code = 7
+expect(packet.code, 7)

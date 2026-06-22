@@ -1,0 +1,40 @@
+extern "expect_i64" func expect(int actual, int expected)
+
+time moment = time.fromDateTime(2026, 6, 18, 12, 0, 0)
+int unixSeconds = time.toUnix(moment)
+time fromUnix = time.fromUnix(unixSeconds)
+
+expect(fromUnix == moment, 1)
+
+time utcValue = time.localToUTC(moment)
+time localValue = time.utcToLocal(utcValue)
+expect(localValue == moment, 1)
+
+time firstMonth = time.firstDayOfMonth(moment)
+time lastMonth = time.lastDayOfMonth(moment)
+time firstYear = time.firstDayOfYear(moment)
+time lastYear = time.lastDayOfYear(moment)
+time firstWeek = time.firstDayOfWeek(moment)
+time lastWeek = time.lastDayOfWeek(moment)
+
+expect(time.month(firstMonth), 6)
+expect(time.day(firstMonth), 1)
+expect(time.month(lastMonth), 6)
+expect(time.day(lastMonth), 30)
+expect(time.isLeapYear(2024), 1)
+expect(time.isLeapYear(2023), 0)
+expect(time.daysInMonth(2024, 2), 29)
+expect(time.daysInMonth(2023, 2), 28)
+expect(time.daysInYear(2024), 366)
+expect(time.daysInYear(2023), 365)
+
+expect(time.month(firstYear), 1)
+expect(time.day(firstYear), 1)
+expect(time.month(lastYear), 12)
+expect(time.day(lastYear), 31)
+
+expect(firstWeek <= moment, 1)
+expect(lastWeek >= moment, 1)
+expect(time.diffDays(firstWeek, lastWeek), 6)
+expect(time.weekOfYear(moment) > 0, 1)
+expect(time.weekOfMonth(moment) > 0, 1)

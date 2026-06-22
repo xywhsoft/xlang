@@ -275,7 +275,7 @@ static void xl6CgenXValueFromExpr(XL6_CgenContext* ctx, const XL6_AstNode* expr)
         xl6OutputPuts("xvoCreateTime((long long)(", ctx->out);
         xl6CgenExpr(ctx, expr);
         xl6OutputPuts("))", ctx->out);
-    } else if ( typeNode != NULL && xl6CTextEquals(typeNode->text, "bool") ) {
+    } else if ( typeNode != NULL && xl6CgenIsBoolTypeName(typeNode->text) ) {
         xl6OutputPuts("xvoCreateBool(", ctx->out);
         xl6CgenExpr(ctx, expr);
         xl6OutputPutc(')', ctx->out);
@@ -338,6 +338,398 @@ static void xl6CgenXValueFromExpr(XL6_CgenContext* ctx, const XL6_AstNode* expr)
     xl6AstFree(rawTypeNode);
 }
 
+static int xl6CgenExprIsXValueResult(XL6_CgenContext* ctx, const XL6_AstNode* expr)
+{
+    XL6_AstNode* typeNode;
+    int result;
+
+    typeNode = xl6CgenCloneExprTypeForInference(ctx, expr);
+    result = xl6CgenIsXValueType(typeNode);
+    xl6AstFree(typeNode);
+    return result;
+}
+
+static void xl6CgenConditionExpr(XL6_CgenContext* ctx, const XL6_AstNode* expr)
+{
+    int id;
+
+    if ( !xl6CgenExprIsXValueResult(ctx, expr) ) {
+        xl6CgenExpr(ctx, expr);
+        return;
+    }
+
+    id = ctx->tempId++;
+    xl6OutputPrintf(ctx->out, "({ xvalue __xl6_truth_value_%d = ", id);
+    xl6CgenXValueFromExpr(ctx, expr);
+    xl6OutputPrintf(ctx->out,
+                     "; int __xl6_truth_result_%d = xl6_xrt_value_truthy(__xl6_truth_value_%d); if (__xl6_truth_value_%d != 0) { xvoUnref(__xl6_truth_value_%d); } __xl6_truth_result_%d; })",
+                     id,
+                     id,
+                     id,
+                     id,
+                     id);
+}
+
+static int xl6CgenConditionalIsXValue(XL6_CgenContext* ctx, const XL6_AstNode* node)
+{
+    if ( node == NULL || node->kind != XL6_AST_CONDITIONAL || node->childCount < 3 ) {
+        return 0;
+    }
+    return xl6CgenExprIsXValueResult(ctx, node);
+}
+
+static void xl6CgenXValueConditionalExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
+{
+    const XL6_AstNode* cond;
+    const XL6_AstNode* thenExpr;
+    const XL6_AstNode* elseExpr;
+    int id;
+
+    cond = node != NULL && node->childCount > 0 ? node->children[0] : NULL;
+    thenExpr = node != NULL && node->childCount > 1 ? node->children[1] : NULL;
+    elseExpr = node != NULL && node->childCount > 2 ? node->children[2] : NULL;
+    id = ctx->tempId++;
+
+    xl6OutputPrintf(ctx->out, "({ xvalue __xl6_cond_result_%d; if (", id);
+    xl6CgenConditionExpr(ctx, cond);
+    xl6OutputPrintf(ctx->out, ") { __xl6_cond_result_%d = ", id);
+    xl6CgenXValueFromExpr(ctx, thenExpr);
+    xl6OutputPrintf(ctx->out, "; } else { __xl6_cond_result_%d = ", id);
+    xl6CgenXValueFromExpr(ctx, elseExpr);
+    xl6OutputPrintf(ctx->out, "; } __xl6_cond_result_%d; })", id);
+}
+
+static int xl6CgenBinaryCompareOpIsXValue(const char* op)
+{
+    return xl6CTextEquals(op, "==") || xl6CTextEquals(op, "!=") ||
+           xl6CTextEquals(op, "<") || xl6CTextEquals(op, "<=") ||
+           xl6CTextEquals(op, ">") || xl6CTextEquals(op, ">=");
+}
+
+static int xl6CgenBinaryCompareIsXValue(XL6_CgenContext* ctx, const XL6_AstNode* node)
+{
+    XL6_AstNode* leftType;
+    XL6_AstNode* rightType;
+    int result;
+
+    if ( node == NULL || node->kind != XL6_AST_BINARY || node->childCount < 2 ||
+         !xl6CgenBinaryCompareOpIsXValue(node->text) ) {
+        return 0;
+    }
+
+    leftType = xl6CgenCloneExprTypeForInference(ctx, node->children[0]);
+    rightType = xl6CgenCloneExprTypeForInference(ctx, node->children[1]);
+    result = xl6CgenIsXValueType(leftType) || xl6CgenIsXValueType(rightType);
+    xl6AstFree(leftType);
+    xl6AstFree(rightType);
+    return result;
+}
+
+static int xl6CgenXValueOrderMode(const char* op)
+{
+    if ( xl6CTextEquals(op, "<") ) {
+        return 0;
+    }
+    if ( xl6CTextEquals(op, "<=") ) {
+        return 1;
+    }
+    if ( xl6CTextEquals(op, ">") ) {
+        return 2;
+    }
+    return 3;
+}
+
+static void xl6CgenXValueCompareExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
+{
+    const XL6_AstNode* left;
+    const XL6_AstNode* right;
+    int id;
+    int equalMode;
+    int negate;
+
+    left = node != NULL && node->childCount > 0 ? node->children[0] : NULL;
+    right = node != NULL && node->childCount > 1 ? node->children[1] : NULL;
+    id = ctx->tempId++;
+    equalMode = node == NULL || xl6CTextEquals(node->text, "==") || xl6CTextEquals(node->text, "!=");
+    negate = node != NULL && xl6CTextEquals(node->text, "!=");
+
+    xl6OutputPrintf(ctx->out, "({ xvalue __xl6_cmp_left_%d = ", id);
+    xl6CgenXValueFromExpr(ctx, left);
+    xl6OutputPrintf(ctx->out, "; xvalue __xl6_cmp_right_%d = ", id);
+    xl6CgenXValueFromExpr(ctx, right);
+    if ( equalMode ) {
+        xl6OutputPrintf(ctx->out,
+                         "; int __xl6_cmp_result_%d = xl6_xrt_basic_equal(__xl6_cmp_left_%d, __xl6_cmp_right_%d); if (__xl6_cmp_left_%d != 0) { xvoUnref(__xl6_cmp_left_%d); } if (__xl6_cmp_right_%d != 0) { xvoUnref(__xl6_cmp_right_%d); } %s__xl6_cmp_result_%d; })",
+                         id,
+                         id,
+                         id,
+                         id,
+                         id,
+                         id,
+                         id,
+                         negate ? "!" : "",
+                         id);
+    } else {
+        xl6OutputPrintf(ctx->out,
+                         "; int __xl6_cmp_result_%d = xl6_xrt_basic_order(__xl6_cmp_left_%d, __xl6_cmp_right_%d, %d); if (__xl6_cmp_left_%d != 0) { xvoUnref(__xl6_cmp_left_%d); } if (__xl6_cmp_right_%d != 0) { xvoUnref(__xl6_cmp_right_%d); } __xl6_cmp_result_%d; })",
+                         id,
+                         id,
+                         id,
+                         xl6CgenXValueOrderMode(node != NULL ? node->text : "<"),
+                         id,
+                         id,
+                         id,
+                         id,
+                         id);
+    }
+}
+static int xl6CgenBinaryApproxIsXValue(XL6_CgenContext* ctx, const XL6_AstNode* node)
+{
+    XL6_AstNode* leftType;
+    XL6_AstNode* rightType;
+    int result;
+
+    if ( node == NULL || node->kind != XL6_AST_BINARY || node->childCount < 2 ||
+         !xl6CTextEquals(node->text, "~=") ) {
+        return 0;
+    }
+
+    leftType = xl6CgenCloneExprTypeForInference(ctx, node->children[0]);
+    rightType = xl6CgenCloneExprTypeForInference(ctx, node->children[1]);
+    result = xl6CgenIsXValueType(leftType) || xl6CgenIsXValueType(rightType);
+    xl6AstFree(leftType);
+    xl6AstFree(rightType);
+    return result;
+}
+
+static void xl6CgenXValueApproxExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
+{
+    const XL6_AstNode* left;
+    const XL6_AstNode* right;
+    int id;
+
+    left = node != NULL && node->childCount > 0 ? node->children[0] : NULL;
+    right = node != NULL && node->childCount > 1 ? node->children[1] : NULL;
+    id = ctx->tempId++;
+
+    xl6OutputPrintf(ctx->out, "({ xvalue __xl6_approx_left_%d = ", id);
+    xl6CgenXValueFromExpr(ctx, left);
+    xl6OutputPrintf(ctx->out, "; xvalue __xl6_approx_right_%d = ", id);
+    xl6CgenXValueFromExpr(ctx, right);
+    xl6OutputPrintf(ctx->out,
+                     "; int __xl6_approx_result_%d = xl6_xrt_basic_approx(__xl6_approx_left_%d, __xl6_approx_right_%d); if (__xl6_approx_left_%d != 0) { xvoUnref(__xl6_approx_left_%d); } if (__xl6_approx_right_%d != 0) { xvoUnref(__xl6_approx_right_%d); } __xl6_approx_result_%d; })",
+                     id,
+                     id,
+                     id,
+                     id,
+                     id,
+                     id,
+                     id,
+                     id);
+}
+static int xl6CgenBinaryArithmeticOpIsXValue(const char* op)
+{
+    return xl6CTextEquals(op, "+") || xl6CTextEquals(op, "-") ||
+           xl6CTextEquals(op, "*") || xl6CTextEquals(op, "/") ||
+           xl6CTextEquals(op, "%") || xl6CTextEquals(op, "&") ||
+           xl6CTextEquals(op, "|") || xl6CTextEquals(op, "^") ||
+           xl6CTextEquals(op, "<<") || xl6CTextEquals(op, ">>");
+}
+
+static int xl6CgenBinaryArithmeticIsXValue(XL6_CgenContext* ctx, const XL6_AstNode* node)
+{
+    XL6_AstNode* leftType;
+    XL6_AstNode* rightType;
+    int result;
+
+    if ( node == NULL || node->kind != XL6_AST_BINARY || node->childCount < 2 ||
+         !xl6CgenBinaryArithmeticOpIsXValue(node->text) ) {
+        return 0;
+    }
+
+    leftType = xl6CgenCloneExprTypeForInference(ctx, node->children[0]);
+    rightType = xl6CgenCloneExprTypeForInference(ctx, node->children[1]);
+    result = xl6CgenIsXValueType(leftType) || xl6CgenIsXValueType(rightType);
+    xl6AstFree(leftType);
+    xl6AstFree(rightType);
+    return result;
+}
+
+static int xl6CgenXValueBinaryMode(const char* op)
+{
+    if ( xl6CTextEquals(op, "+") ) {
+        return 0;
+    }
+    if ( xl6CTextEquals(op, "-") ) {
+        return 1;
+    }
+    if ( xl6CTextEquals(op, "*") ) {
+        return 2;
+    }
+    if ( xl6CTextEquals(op, "/") ) {
+        return 3;
+    }
+    if ( xl6CTextEquals(op, "%") ) {
+        return 4;
+    }
+    if ( xl6CTextEquals(op, "&") ) {
+        return 5;
+    }
+    if ( xl6CTextEquals(op, "|") ) {
+        return 6;
+    }
+    if ( xl6CTextEquals(op, "^") ) {
+        return 7;
+    }
+    if ( xl6CTextEquals(op, "<<") ) {
+        return 8;
+    }
+    return 9;
+}
+
+static void xl6CgenXValueBinaryExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
+{
+    const XL6_AstNode* left;
+    const XL6_AstNode* right;
+    int id;
+
+    left = node != NULL && node->childCount > 0 ? node->children[0] : NULL;
+    right = node != NULL && node->childCount > 1 ? node->children[1] : NULL;
+    id = ctx->tempId++;
+
+    xl6OutputPrintf(ctx->out, "({ xvalue __xl6_bin_left_%d = ", id);
+    xl6CgenXValueFromExpr(ctx, left);
+    xl6OutputPrintf(ctx->out, "; xvalue __xl6_bin_right_%d = ", id);
+    xl6CgenXValueFromExpr(ctx, right);
+    xl6OutputPrintf(ctx->out,
+                     "; xvalue __xl6_bin_result_%d = xl6_xrt_basic_binary(__xl6_bin_left_%d, __xl6_bin_right_%d, %d); if (__xl6_bin_left_%d != 0) { xvoUnref(__xl6_bin_left_%d); } if (__xl6_bin_right_%d != 0) { xvoUnref(__xl6_bin_right_%d); } __xl6_bin_result_%d; })",
+                     id,
+                     id,
+                     id,
+                     xl6CgenXValueBinaryMode(node != NULL ? node->text : "+"),
+                     id,
+                     id,
+                     id,
+                     id,
+                     id);
+}
+static int xl6CgenUnaryIsXValue(XL6_CgenContext* ctx, const XL6_AstNode* node)
+{
+    XL6_AstNode* valueType;
+    int result;
+
+    if ( node == NULL || node->kind != XL6_AST_UNARY || node->childCount == 0 ) {
+        return 0;
+    }
+
+    valueType = xl6CgenCloneExprTypeForInference(ctx, node->children[0]);
+    result = xl6CgenIsXValueType(valueType);
+    xl6AstFree(valueType);
+    return result;
+}
+
+static int xl6CgenXValueUnaryMode(const char* op)
+{
+    if ( xl6CTextEquals(op, "+") ) {
+        return 0;
+    }
+    if ( xl6CTextEquals(op, "-") ) {
+        return 1;
+    }
+    return 2;
+}
+
+static void xl6CgenXValueUnaryExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
+{
+    const XL6_AstNode* value;
+    int id;
+
+    value = node != NULL && node->childCount > 0 ? node->children[0] : NULL;
+    id = ctx->tempId++;
+
+    xl6OutputPrintf(ctx->out, "({ xvalue __xl6_unary_value_%d = ", id);
+    xl6CgenXValueFromExpr(ctx, value);
+    xl6OutputPrintf(ctx->out,
+                     "; xvalue __xl6_unary_result_%d = xl6_xrt_basic_unary(__xl6_unary_value_%d, %d); if (__xl6_unary_value_%d != 0) { xvoUnref(__xl6_unary_value_%d); } __xl6_unary_result_%d; })",
+                     id,
+                     id,
+                     xl6CgenXValueUnaryMode(node != NULL ? node->text : "+"),
+                     id,
+                     id,
+                     id);
+}
+
+static void xl6CgenXValueNotExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
+{
+    const XL6_AstNode* value;
+    int id;
+
+    value = node != NULL && node->childCount > 0 ? node->children[0] : NULL;
+    id = ctx->tempId++;
+
+    xl6OutputPrintf(ctx->out, "({ xvalue __xl6_not_value_%d = ", id);
+    xl6CgenXValueFromExpr(ctx, value);
+    xl6OutputPrintf(ctx->out,
+                     "; int __xl6_not_result_%d = !xl6_xrt_value_truthy(__xl6_not_value_%d); if (__xl6_not_value_%d != 0) { xvoUnref(__xl6_not_value_%d); } __xl6_not_result_%d; })",
+                     id,
+                     id,
+                     id,
+                     id,
+                     id);
+}
+static int xl6CgenBinaryLogicalIsXValue(XL6_CgenContext* ctx, const XL6_AstNode* node)
+{
+    XL6_AstNode* leftType;
+    XL6_AstNode* rightType;
+    int result;
+
+    if ( node == NULL || node->kind != XL6_AST_BINARY || node->childCount < 2 ||
+         (!xl6CTextEquals(node->text, "and") && !xl6CTextEquals(node->text, "or")) ) {
+        return 0;
+    }
+
+    leftType = xl6CgenCloneExprTypeForInference(ctx, node->children[0]);
+    rightType = xl6CgenCloneExprTypeForInference(ctx, node->children[1]);
+    result = xl6CgenIsXValueType(leftType) || xl6CgenIsXValueType(rightType);
+    xl6AstFree(leftType);
+    xl6AstFree(rightType);
+    return result;
+}
+
+static void xl6CgenXValueLogicalExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
+{
+    const XL6_AstNode* left;
+    const XL6_AstNode* right;
+    int id;
+    int isOr;
+
+    left = node != NULL && node->childCount > 0 ? node->children[0] : NULL;
+    right = node != NULL && node->childCount > 1 ? node->children[1] : NULL;
+    id = ctx->tempId++;
+    isOr = node != NULL && xl6CTextEquals(node->text, "or");
+
+    xl6OutputPrintf(ctx->out, "({ xvalue __xl6_logic_left_%d = ", id);
+    xl6CgenXValueFromExpr(ctx, left);
+    xl6OutputPrintf(ctx->out,
+                     "; int __xl6_logic_left_truth_%d = xl6_xrt_value_truthy(__xl6_logic_left_%d); if (__xl6_logic_left_%d != 0) { xvoUnref(__xl6_logic_left_%d); } int __xl6_logic_result_%d = %s; if (%s__xl6_logic_left_truth_%d) { xvalue __xl6_logic_right_%d = ",
+                     id,
+                     id,
+                     id,
+                     id,
+                     id,
+                     isOr ? "1" : "0",
+                     isOr ? "!" : "",
+                     id,
+                     id);
+    xl6CgenXValueFromExpr(ctx, right);
+    xl6OutputPrintf(ctx->out,
+                     "; __xl6_logic_result_%d = xl6_xrt_value_truthy(__xl6_logic_right_%d); if (__xl6_logic_right_%d != 0) { xvoUnref(__xl6_logic_right_%d); } } __xl6_logic_result_%d; })",
+                     id,
+                     id,
+                     id,
+                     id,
+                     id);
+}
 static const XL6_AstNode* xl6CgenTypeConvertArg(const XL6_AstNode* node)
 {
     const XL6_AstNode* args;
@@ -353,6 +745,33 @@ static void xl6CgenCastExpr(XL6_CgenContext* ctx, const char* cType, const XL6_A
     xl6OutputPrintf(ctx->out, "((%s)(", cType != NULL ? cType : "int");
     xl6CgenExpr(ctx, expr);
     xl6OutputPuts("))", ctx->out);
+}
+
+static void xl6CgenXValueScalarGetExpr(XL6_CgenContext* ctx, const char* cType, const char* getter, const XL6_AstNode* expr)
+{
+    int id;
+
+    if ( xl6CgenExprIsXValueBorrow(ctx, expr) ) {
+        xl6OutputPrintf(ctx->out, "((%s)%s(", cType != NULL ? cType : "int", getter != NULL ? getter : "xvoGetInt");
+        xl6CgenExpr(ctx, expr);
+        xl6OutputPuts("))", ctx->out);
+        return;
+    }
+
+    id = ctx->tempId++;
+    xl6OutputPrintf(ctx->out, "({ xvalue __xl6_conv_%d = ", id);
+    xl6CgenExpr(ctx, expr);
+    xl6OutputPrintf(ctx->out,
+                     "; %s __xl6_conv_result_%d = (%s)(__xl6_conv_%d != 0 ? %s(__xl6_conv_%d) : 0); if (__xl6_conv_%d != 0) { xvoUnref(__xl6_conv_%d); } __xl6_conv_result_%d; })",
+                     cType != NULL ? cType : "int",
+                     id,
+                     cType != NULL ? cType : "int",
+                     id,
+                     getter != NULL ? getter : "xvoGetInt",
+                     id,
+                     id,
+                     id,
+                     id);
 }
 
 static void xl6CgenTypeConvertExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
@@ -374,30 +793,26 @@ static void xl6CgenTypeConvertExpr(XL6_CgenContext* ctx, const XL6_AstNode* node
     if ( xl6CTextEquals(target, "var") ) {
         xl6CgenXValueFromExpr(ctx, arg);
     } else if ( sourceIsXValue ) {
-        if ( xl6CgenIsIntegerTypeName(target) ) {
-            xl6OutputPrintf(ctx->out, "((%s)xvoGetInt(", xl6CgenConvertCTypeName(target));
-            xl6CgenExpr(ctx, arg);
-            xl6OutputPuts("))", ctx->out);
+        if ( xl6CgenIsXValueTypeName(target) ) {
+            xl6CgenXValueFromExpr(ctx, arg);
+        } else if ( xl6CgenIsIntegerTypeName(target) ) {
+            xl6CgenXValueScalarGetExpr(ctx, xl6CgenConvertCTypeName(target), "xvoGetInt", arg);
         } else if ( xl6CgenIsFloatTypeName(target) ) {
-            xl6OutputPrintf(ctx->out, "((%s)xvoGetFloat(", xl6CgenConvertCTypeName(target));
-            xl6CgenExpr(ctx, arg);
-            xl6OutputPuts("))", ctx->out);
-        } else if ( xl6CTextEquals(target, "bool") ) {
-            xl6OutputPuts("xvoGetBool(", ctx->out);
-            xl6CgenExpr(ctx, arg);
-            xl6OutputPutc(')', ctx->out);
+            xl6CgenXValueScalarGetExpr(ctx, xl6CgenConvertCTypeName(target), "xvoGetFloat", arg);
+        } else if ( xl6CgenIsBoolTypeName(target) ) {
+            xl6CgenXValueScalarGetExpr(ctx, xl6CgenConvertCTypeName(target), "xvoGetBool", arg);
         } else if ( xl6CTextEquals(target, "string") ) {
-            xl6OutputPuts("xl6_xrt_value_to_string(", ctx->out);
+            if ( xl6CgenExprIsXValueBorrow(ctx, arg) ) {
+                xl6OutputPuts("xl6_xrt_value_to_string(", ctx->out);
+            } else {
+                xl6OutputPuts("xl6_xrt_value_to_string_release(", ctx->out);
+            }
             xl6CgenExpr(ctx, arg);
             xl6OutputPutc(')', ctx->out);
         } else if ( xl6CTextEquals(target, "time") ) {
-            xl6OutputPuts("xvoGetTime(", ctx->out);
-            xl6CgenExpr(ctx, arg);
-            xl6OutputPutc(')', ctx->out);
+            xl6CgenXValueScalarGetExpr(ctx, xl6CgenConvertCTypeName(target), "xvoGetTime", arg);
         } else if ( xl6CTextEquals(target, "point") ) {
-            xl6OutputPuts("xvoGetPoint(", ctx->out);
-            xl6CgenExpr(ctx, arg);
-            xl6OutputPutc(')', ctx->out);
+            xl6CgenXValueScalarGetExpr(ctx, xl6CgenConvertCTypeName(target), "xvoGetPoint", arg);
         } else {
             xl6CgenError(ctx, node, "当前 C 生成不支持该类型转换");
             xl6OutputPuts("0", ctx->out);
@@ -426,7 +841,7 @@ static void xl6CgenTypeConvertExpr(XL6_CgenContext* ctx, const XL6_AstNode* node
             xl6CgenExpr(ctx, arg);
         }
         xl6OutputPuts("))", ctx->out);
-    } else if ( xl6CTextEquals(target, "bool") ) {
+    } else if ( xl6CgenIsBoolTypeName(target) ) {
         if ( xl6CTextEquals(source, "null") ) {
             xl6OutputPuts("0", ctx->out);
         } else {
@@ -447,18 +862,18 @@ static void xl6CgenTypeConvertExpr(XL6_CgenContext* ctx, const XL6_AstNode* node
             xl6OutputPuts("xl6_xrt_f64_to_string((double)(", ctx->out);
             xl6CgenExpr(ctx, arg);
             xl6OutputPuts("))", ctx->out);
-        } else if ( xl6CTextEquals(source, "bool") ) {
+        } else if ( xl6CgenIsBoolTypeName(source) ) {
             xl6OutputPutc('(', ctx->out);
             xl6CgenExpr(ctx, arg);
             xl6OutputPuts(" ? \"true\" : \"false\")", ctx->out);
         } else if ( xl6CTextEquals(source, "time") ) {
-            xl6OutputPuts("xrtTimeToStr((long long)(", ctx->out);
+            xl6OutputPuts("xl6_xrt_take_cstr((char*)xrtTimeToStr((long long)(", ctx->out);
             xl6CgenExpr(ctx, arg);
-            xl6OutputPuts("), 0)", ctx->out);
+            xl6OutputPuts("), 0))", ctx->out);
         } else if ( xl6CTextEquals(source, "point") ) {
-            xl6OutputPuts("xrtFormat(\"[point:%p]\", ", ctx->out);
+            xl6OutputPuts("xl6_xrt_take_cstr((char*)xrtFormat(\"[point:%p]\", ", ctx->out);
             xl6CgenExpr(ctx, arg);
-            xl6OutputPutc(')', ctx->out);
+            xl6OutputPuts("))", ctx->out);
         } else {
             xl6CgenError(ctx, node, "当前 C 生成不支持转换为 string");
             xl6OutputPuts("\"\"", ctx->out);
@@ -497,6 +912,7 @@ static void xl6CgenNullCoalesceExpr(XL6_CgenContext* ctx, const XL6_AstNode* nod
     XL6_AstNode* leftType;
     XL6_AstNode* rightType;
     int isXValue;
+    int id;
 
     left = node != NULL && node->childCount > 0 ? node->children[0] : NULL;
     right = node != NULL && node->childCount > 1 ? node->children[1] : NULL;
@@ -515,13 +931,20 @@ static void xl6CgenNullCoalesceExpr(XL6_CgenContext* ctx, const XL6_AstNode* nod
             xl6CgenError(ctx, node, "code generation error");
             xl6OutputPuts("xvoCreateNull()", ctx->out);
         } else {
-            xl6OutputPuts("(xvoIsNull(", ctx->out);
-            xl6CgenExpr(ctx, left);
-            xl6OutputPuts(") ? ", ctx->out);
-            xl6CgenXValueFromExpr(ctx, right);
-            xl6OutputPuts(" : ", ctx->out);
+            id = ctx->tempId++;
+            xl6OutputPrintf(ctx->out, "({ xvalue __xl6_nc_%d = ", id);
             xl6CgenXValueFromExpr(ctx, left);
-            xl6OutputPutc(')', ctx->out);
+            xl6OutputPrintf(ctx->out, "; xvalue __xl6_nc_result_%d; if (xvoIsNull(__xl6_nc_%d)) { if (__xl6_nc_%d != 0) { xvoUnref(__xl6_nc_%d); } __xl6_nc_result_%d = ",
+                             id,
+                             id,
+                             id,
+                             id,
+                             id);
+            xl6CgenXValueFromExpr(ctx, right);
+            xl6OutputPrintf(ctx->out, "; } else { __xl6_nc_result_%d = __xl6_nc_%d; } __xl6_nc_result_%d; })",
+                             id,
+                             id,
+                             id);
         }
         xl6AstFree(leftType);
         xl6AstFree(rightType);
@@ -536,18 +959,60 @@ static void xl6CgenNullCoalesceExpr(XL6_CgenContext* ctx, const XL6_AstNode* nod
         return;
     }
 
-    xl6OutputPutc('(', ctx->out);
+    id = ctx->tempId++;
+    xl6OutputPuts("({ ", ctx->out);
+    xl6OutputPuts(xl6CgenTypeName(ctx, leftType), ctx->out);
+    xl6OutputPrintf(ctx->out, " __xl6_nc_%d = ", id);
     xl6CgenExpr(ctx, left);
-    xl6OutputPuts(" != 0 ? ", ctx->out);
-    xl6CgenExpr(ctx, left);
-    xl6OutputPuts(" : ", ctx->out);
+    xl6OutputPrintf(ctx->out, "; __xl6_nc_%d != 0 ? __xl6_nc_%d : ", id, id);
     xl6CgenExpr(ctx, right);
-    xl6OutputPutc(')', ctx->out);
+    xl6OutputPuts("; })", ctx->out);
 
     xl6AstFree(leftType);
     xl6AstFree(rightType);
 }
 
+static void xl6CgenContainsXValueCallExpr(XL6_CgenContext* ctx, const char* funcName, const XL6_AstNode* values, const XL6_AstNode* item)
+{
+    int id;
+
+    if ( xl6CgenExprIsXValueBorrow(ctx, values) ) {
+        xl6OutputPrintf(ctx->out, "%s(", funcName != NULL ? funcName : "xl6_xrt_value_contains");
+        xl6CgenExpr(ctx, values);
+        xl6OutputPuts(", ", ctx->out);
+        xl6CgenXValueFromExpr(ctx, item);
+        xl6OutputPutc(')', ctx->out);
+        return;
+    }
+
+    id = ctx->tempId++;
+    xl6OutputPrintf(ctx->out, "({ xvalue __xl6_in_values_%d = ", id);
+    xl6CgenExpr(ctx, values);
+    xl6OutputPrintf(ctx->out, "; int __xl6_in_result_%d = %s(__xl6_in_values_%d, ", id, funcName != NULL ? funcName : "xl6_xrt_value_contains", id);
+    xl6CgenXValueFromExpr(ctx, item);
+    xl6OutputPrintf(ctx->out, "); if (__xl6_in_values_%d != 0) { xvoUnref(__xl6_in_values_%d); } __xl6_in_result_%d; })", id, id, id);
+}
+
+static void xl6CgenDictContainsKeyExpr(XL6_CgenContext* ctx, const XL6_AstNode* values, const XL6_AstNode* key)
+{
+    int id;
+
+    if ( xl6CgenExprIsXValueBorrow(ctx, values) ) {
+        xl6OutputPuts("xvoTableExists(", ctx->out);
+        xl6CgenExpr(ctx, values);
+        xl6OutputPuts(", ", ctx->out);
+        xl6CgenExpr(ctx, key);
+        xl6OutputPuts(", 0)", ctx->out);
+        return;
+    }
+
+    id = ctx->tempId++;
+    xl6OutputPrintf(ctx->out, "({ xvalue __xl6_in_values_%d = ", id);
+    xl6CgenExpr(ctx, values);
+    xl6OutputPrintf(ctx->out, "; int __xl6_in_result_%d = xvoTableExists(__xl6_in_values_%d, ", id, id);
+    xl6CgenExpr(ctx, key);
+    xl6OutputPrintf(ctx->out, ", 0); if (__xl6_in_values_%d != 0) { xvoUnref(__xl6_in_values_%d); } __xl6_in_result_%d; })", id, id, id);
+}
 static void xl6CgenInExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
 {
     const XL6_AstNode* left;
@@ -586,31 +1051,19 @@ static void xl6CgenInExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
     }
 
     if ( xl6CgenIsArrayXValueType(rightType) ) {
-        xl6OutputPuts("xl6_xrt_array_contains(", ctx->out);
-        xl6CgenExpr(ctx, right);
-        xl6OutputPuts(", ", ctx->out);
-        xl6CgenXValueFromExpr(ctx, left);
-        xl6OutputPutc(')', ctx->out);
+        xl6CgenContainsXValueCallExpr(ctx, "xl6_xrt_array_contains", right, left);
         xl6AstFree(rightType);
         return;
     }
 
     if ( xl6CTextEquals(rightType->text, "list") || xl6CTextEquals(rightType->text, "list<var>") ) {
-        xl6OutputPuts("xl6_xrt_list_contains(", ctx->out);
-        xl6CgenExpr(ctx, right);
-        xl6OutputPuts(", ", ctx->out);
-        xl6CgenXValueFromExpr(ctx, left);
-        xl6OutputPutc(')', ctx->out);
+        xl6CgenContainsXValueCallExpr(ctx, "xl6_xrt_list_contains", right, left);
         xl6AstFree(rightType);
         return;
     }
 
     if ( xl6CTextEquals(rightType->text, "set") || xl6CTextEquals(rightType->text, "set<var>") ) {
-        xl6OutputPuts("xl6_xrt_set_contains(", ctx->out);
-        xl6CgenExpr(ctx, right);
-        xl6OutputPuts(", ", ctx->out);
-        xl6CgenXValueFromExpr(ctx, left);
-        xl6OutputPutc(')', ctx->out);
+        xl6CgenContainsXValueCallExpr(ctx, "xl6_xrt_set_contains", right, left);
         xl6AstFree(rightType);
         return;
     }
@@ -620,22 +1073,14 @@ static void xl6CgenInExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
             xl6CgenError(ctx, node, "code generation error");
             xl6OutputPuts("0", ctx->out);
         } else {
-            xl6OutputPuts("xvoTableExists(", ctx->out);
-            xl6CgenExpr(ctx, right);
-            xl6OutputPuts(", ", ctx->out);
-            xl6CgenExpr(ctx, left);
-            xl6OutputPuts(", 0)", ctx->out);
+            xl6CgenDictContainsKeyExpr(ctx, right, left);
         }
         xl6AstFree(rightType);
         return;
     }
 
     if ( xl6CTextEquals(rightType->text, "var") ) {
-        xl6OutputPuts("xl6_xrt_value_contains(", ctx->out);
-        xl6CgenExpr(ctx, right);
-        xl6OutputPuts(", ", ctx->out);
-        xl6CgenXValueFromExpr(ctx, left);
-        xl6OutputPutc(')', ctx->out);
+        xl6CgenContainsXValueCallExpr(ctx, "xl6_xrt_value_contains", right, left);
         xl6AstFree(rightType);
         return;
     }

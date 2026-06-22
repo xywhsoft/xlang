@@ -1,0 +1,2 @@
+array<int> values = array[1, 2, 3]
+auto bad = values?.length

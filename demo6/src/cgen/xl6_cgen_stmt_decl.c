@@ -137,7 +137,7 @@ static void xl6CgenDecl(XL6_CgenContext* ctx, const XL6_AstNode* node)
                     sameType = resolvedInitType != NULL && xl6CTextEquals(resolvedInitType->text, classNode->text);
                 }
 
-                if ( sameType && !xl6CgenClassNeedsDestroy(ctx, classNode) ) {
+                if ( sameType ) {
                     copyInit = 1;
                 } else {
                     xl6CgenError(ctx, initExpr, "class 变量只能使用同类型构造表达式或可复制同类型值初始化");
@@ -153,6 +153,7 @@ static void xl6CgenDecl(XL6_CgenContext* ctx, const XL6_AstNode* node)
             xl6OutputPrintf(ctx->out, "%s = ", cName);
             xl6CgenExpr(ctx, initExpr);
             xl6OutputPuts(";\n", ctx->out);
+            xl6CgenRetainClassFunctionFields(ctx, classNode, cName);
         } else if ( initExpr != NULL && ctorClass != NULL && xl6CTextEquals(ctorClass->text, classNode->text) ) {
             if ( createNode != NULL ) {
                 xl6CgenIndent(ctx);
@@ -215,6 +216,11 @@ static void xl6CgenDecl(XL6_CgenContext* ctx, const XL6_AstNode* node)
     }
     xl6CgenAddVarType(ctx, node->text, typeNode);
     xl6CgenAddFunctionCleanup(ctx, node->text, typeNode);
+    xl6CgenAddFutureCleanup(ctx, node->text, typeNode);
+    xl6CgenAddChannelCleanup(ctx, node->text, typeNode);
+    xl6CgenAddThreadCleanup(ctx, node->text, typeNode);
+    xl6CgenAddGeneratorCleanup(ctx, node->text, typeNode);
+    xl6CgenAddSyncCleanup(ctx, node->text, typeNode);
     xl6OutputPrintf(ctx->out, "%s %s", cType, cName);
     if ( initExpr != NULL ) {
         xl6OutputPuts(" = ", ctx->out);
@@ -251,17 +257,36 @@ static const XL6_AstNode* xl6CgenResolveMultiReturnCall(XL6_CgenContext* ctx, co
     return (returns != NULL && returns->childCount > 1) ? func : NULL;
 }
 
-static const XL6_AstNode* xl6CgenResolveMultiReturnFunctionType(XL6_CgenContext* ctx, const XL6_AstNode* expr)
+static const XL6_AstNode* xl6CgenResolveMultiReturnFunctionType(XL6_CgenContext* ctx, const XL6_AstNode* expr, XL6_AstNode** ownedType)
 {
     const XL6_AstNode* callee;
     const XL6_AstNode* functionType;
     const XL6_AstNode* returns;
 
+    if ( ownedType != NULL ) {
+        *ownedType = NULL;
+    }
     if ( expr == NULL || expr->kind != XL6_AST_CALL || expr->childCount == 0 ) {
         return NULL;
     }
     callee = expr->children[0];
-    if ( callee == NULL || callee->kind != XL6_AST_NAME ) {
+    if ( callee == NULL ) {
+        return NULL;
+    }
+
+    if ( callee->kind == XL6_AST_MEMBER ) {
+        XL6_AstNode* memberType = xl6CgenCloneMemberFieldTypeForInference(ctx, callee);
+        returns = xl6CgenFunctionReturnTypes(memberType);
+        if ( xl6CgenIsFunctionType(memberType) && returns != NULL && returns->childCount > 1 ) {
+            if ( ownedType != NULL ) {
+                *ownedType = memberType;
+                return memberType;
+            }
+        }
+        xl6AstFree(memberType);
+        return NULL;
+    }
+    if ( callee->kind != XL6_AST_NAME ) {
         return NULL;
     }
 
@@ -269,7 +294,6 @@ static const XL6_AstNode* xl6CgenResolveMultiReturnFunctionType(XL6_CgenContext*
     returns = xl6CgenFunctionReturnTypes(functionType);
     return (xl6CgenIsFunctionType(functionType) && returns != NULL && returns->childCount > 1) ? functionType : NULL;
 }
-
 static void xl6CgenEmitKnownFuncCall(XL6_CgenContext* ctx, const XL6_AstNode* func, const XL6_AstNode* call)
 {
     xl6CgenFuncSymbol(ctx, func);
@@ -292,11 +316,22 @@ static void xl6CgenEmitMultiReturnCall(XL6_CgenContext* ctx, const XL6_AstNode* 
             xl6CgenFunctionInvoke(ctx, callee->text, functionType, args);
             return;
         }
+        if ( callee != NULL && callee->kind == XL6_AST_MEMBER ) {
+            int id = ctx->tempId++;
+            char tempName[64];
+
+            snprintf(tempName, sizeof(tempName), "__xl6_member_fn_multi_%d", id);
+            xl6OutputPrintf(ctx->out, "({ XL6_Function %s = ", tempName);
+            xl6CgenExpr(ctx, callee);
+            xl6OutputPuts("; ", ctx->out);
+            xl6CgenFunctionInvoke(ctx, tempName, functionType, args);
+            xl6OutputPuts("; })", ctx->out);
+            return;
+        }
     }
 
     xl6CgenEmitKnownFuncCall(ctx, func, expr);
 }
-
 static void xl6CgenMultiReturnStructName(XL6_CgenContext* ctx, const XL6_AstNode* func, const XL6_AstNode* functionType)
 {
     if ( functionType != NULL ) {
@@ -318,6 +353,26 @@ static void xl6CgenAddManagedCleanupForType(XL6_CgenContext* ctx, const char* na
     }
     if ( xl6CgenIsFunctionType(typeNode) ) {
         xl6CgenAddFunctionCleanup(ctx, name, typeNode);
+        return;
+    }
+    if ( xl6CgenIsFutureLikeType(typeNode) ) {
+        xl6CgenAddFutureCleanup(ctx, name, typeNode);
+        return;
+    }
+    if ( xl6CgenIsChannelType(typeNode) ) {
+        xl6CgenAddChannelCleanup(ctx, name, typeNode);
+        return;
+    }
+    if ( xl6CgenIsThreadType(typeNode) ) {
+        xl6CgenAddThreadCleanup(ctx, name, typeNode);
+        return;
+    }
+    if ( xl6CgenIsGeneratorType(typeNode) ) {
+        xl6CgenAddGeneratorCleanup(ctx, name, typeNode);
+        return;
+    }
+    if ( xl6CgenIsSyncHandleType(typeNode) ) {
+        xl6CgenAddSyncCleanup(ctx, name, typeNode);
         return;
     }
     if ( xl6CgenIsTypedContainerType(ctx, typeNode) ) {
@@ -345,21 +400,25 @@ static void xl6CgenMultiDecl(XL6_CgenContext* ctx, const XL6_AstNode* node)
     const XL6_AstNode* expr;
     const XL6_AstNode* func;
     const XL6_AstNode* functionType;
+    XL6_AstNode* ownedFunctionType;
     const XL6_AstNode* returns;
     int id;
     size_t i;
 
     names = node->childCount > 0 ? node->children[0] : NULL;
     expr = node->childCount > 1 ? node->children[1] : NULL;
-    functionType = xl6CgenResolveMultiReturnFunctionType(ctx, expr);
+    ownedFunctionType = NULL;
+    functionType = xl6CgenResolveMultiReturnFunctionType(ctx, expr, &ownedFunctionType);
     func = functionType == NULL ? xl6CgenResolveMultiReturnCall(ctx, expr) : NULL;
     returns = functionType != NULL ? xl6CgenFunctionReturnTypes(functionType) : (func != NULL ? func->children[2] : NULL);
     if ( returns == NULL || names == NULL ) {
+        xl6AstFree(ownedFunctionType);
         xl6CgenError(ctx, node, "多返回值声明右侧必须是多返回�?xlang 函数调用");
         return;
     }
 
     if ( names->childCount != returns->childCount ) {
+        xl6AstFree(ownedFunctionType);
         xl6CgenError(ctx, node, "多返回值声明数量和函数返回值数量不匹配");
         return;
     }
@@ -374,6 +433,8 @@ static void xl6CgenMultiDecl(XL6_CgenContext* ctx, const XL6_AstNode* node)
     for ( i = 0; i < names->childCount; ++i ) {
         const XL6_AstNode* name = names->children[i];
         const XL6_AstNode* typeNode = returns->children[i];
+        const XL6_AstNode* varTypeNode;
+        XL6_AstNode* ownedTypeNode;
         char cName[512];
 
         if ( name == NULL || xl6CTextEquals(name->text, "_") ) {
@@ -393,9 +454,16 @@ static void xl6CgenMultiDecl(XL6_CgenContext* ctx, const XL6_AstNode* node)
         xl6CgenIndent(ctx);
         xl6OutputPuts(xl6CgenTypeName(ctx, typeNode), ctx->out);
         xl6OutputPrintf(ctx->out, " %s = __xl6_multi_%d.value%u;\n", cName, id, (unsigned)i);
-        xl6CgenAddVarType(ctx, name->text, typeNode);
-        xl6CgenAddManagedCleanupForType(ctx, name->text, typeNode);
+        varTypeNode = typeNode;
+        ownedTypeNode = xl6CgenCloneTypeNode(typeNode);
+        if ( ownedTypeNode != NULL ) {
+            xl6CgenOwnTypeNode(ctx, ownedTypeNode);
+            varTypeNode = ownedTypeNode;
+        }
+        xl6CgenAddVarType(ctx, name->text, varTypeNode);
+        xl6CgenAddManagedCleanupForType(ctx, name->text, varTypeNode);
     }
+    xl6AstFree(ownedFunctionType);
 }
 
 static void xl6CgenXValueFromTypedCExpr(XL6_CgenContext* ctx, const XL6_AstNode* typeNode, const char* exprText)
@@ -444,21 +512,25 @@ static void xl6CgenMultiAssign(XL6_CgenContext* ctx, const XL6_AstNode* node)
     const XL6_AstNode* expr;
     const XL6_AstNode* func;
     const XL6_AstNode* functionType;
+    XL6_AstNode* ownedFunctionType;
     const XL6_AstNode* returns;
     int id;
     size_t i;
 
     targets = node->childCount > 0 ? node->children[0] : NULL;
     expr = node->childCount > 1 ? node->children[1] : NULL;
-    functionType = xl6CgenResolveMultiReturnFunctionType(ctx, expr);
+    ownedFunctionType = NULL;
+    functionType = xl6CgenResolveMultiReturnFunctionType(ctx, expr, &ownedFunctionType);
     func = functionType == NULL ? xl6CgenResolveMultiReturnCall(ctx, expr) : NULL;
     returns = functionType != NULL ? xl6CgenFunctionReturnTypes(functionType) : (func != NULL ? func->children[2] : NULL);
     if ( returns == NULL || targets == NULL ) {
+        xl6AstFree(ownedFunctionType);
         xl6CgenError(ctx, node, "多返回值赋值右侧必须是多返回�?xlang 函数调用");
         return;
     }
 
     if ( targets->childCount != returns->childCount ) {
+        xl6AstFree(ownedFunctionType);
         xl6CgenError(ctx, node, "多返回值赋值数量和函数返回值数量不匹配");
         return;
     }
@@ -520,5 +592,6 @@ static void xl6CgenMultiAssign(XL6_CgenContext* ctx, const XL6_AstNode* node)
         xl6CgenExpr(ctx, target);
         xl6OutputPrintf(ctx->out, " = __xl6_multi_%d.value%u;\n", id, (unsigned)i);
     }
+    xl6AstFree(ownedFunctionType);
 }
 

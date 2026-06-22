@@ -642,7 +642,7 @@ static void xl6CgenFunctionInvokeFallbackExpr(XL6_CgenContext* ctx,
         xl6OutputPrintf(ctx->out, "((%s)xl6_xvalue_to_f64_release(", xl6CgenTypeName(ctx, concreteType));
         xl6CgenFunctionInvokeFallbackCall(ctx, cName, args);
         xl6OutputPuts("))", ctx->out);
-    } else if ( xl6CTextEquals(typeName, "bool") ) {
+    } else if ( xl6CgenIsBoolTypeName(typeName) ) {
         xl6OutputPuts("xl6_xvalue_to_bool_release(", ctx->out);
         xl6CgenFunctionInvokeFallbackCall(ctx, cName, args);
         xl6OutputPutc(')', ctx->out);
@@ -759,6 +759,48 @@ static void xl6CgenFunctionInvoke(XL6_CgenContext* ctx, const char* name, const 
         xl6CgenFunctionInvokeFallbackCall(ctx, cName, args);
         xl6OutputPuts(")) : exit(3))", ctx->out);
     }
+}
+
+static int xl6CgenMemberFunctionInvoke(XL6_CgenContext* ctx, const XL6_AstNode* call, const XL6_AstNode* member)
+{
+    XL6_AstNode* functionType;
+    const XL6_AstNode* args;
+    int id;
+
+    functionType = xl6CgenCloneMemberFieldTypeForInference(ctx, member);
+    if ( functionType == NULL ) {
+        return 0;
+    }
+
+    args = call != NULL && call->childCount > 1 ? call->children[1] : NULL;
+    id = ctx->tempId++;
+    if ( xl6CgenIsFunctionType(functionType) ) {
+        char tempName[64];
+
+        snprintf(tempName, sizeof(tempName), "__xl6_member_fn_%d", id);
+        xl6OutputPrintf(ctx->out, "({ XL6_Function %s = ", tempName);
+        xl6CgenExpr(ctx, member);
+        xl6OutputPuts("; ", ctx->out);
+        xl6CgenFunctionInvoke(ctx, tempName, functionType, args);
+        xl6OutputPuts("; })", ctx->out);
+        xl6AstFree(functionType);
+        return 1;
+    }
+    if ( xl6CTextEquals(functionType->text, "var") ) {
+        char tempName[64];
+
+        snprintf(tempName, sizeof(tempName), "__xl6_member_fnv_%d", id);
+        xl6OutputPrintf(ctx->out, "({ xvalue %s = ", tempName);
+        xl6CgenExpr(ctx, member);
+        xl6OutputPuts("; ", ctx->out);
+        xl6CgenVarFunctionInvoke(ctx, tempName, args);
+        xl6OutputPuts("; })", ctx->out);
+        xl6AstFree(functionType);
+        return 1;
+    }
+
+    xl6AstFree(functionType);
+    return 0;
 }
 
 static void xl6CgenAnonMakeCall(XL6_CgenContext* ctx, const XL6_AstNode* node)

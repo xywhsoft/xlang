@@ -1,0 +1,36 @@
+async func addAsync(int a, int b) -> int
+    return a + b
+end
+
+func numbers(int count) -> generator<int>
+    int i = 0
+    while i < count do
+        i = i + 1
+        yield i
+    end
+end
+
+func worker() -> int
+    return 7
+end
+
+auto f = addAsync(20, 22)
+int answer = await f
+assert answer == 42, "async/await failed"
+
+int total = 0
+for value in numbers(4)
+    total = total + value
+end
+assert total == 10, "generator failed"
+
+channel<int> ch = channel::<int>(1)
+assert ch.send(123), "channel send failed"
+int received = 0
+assert ch.recvInto(received), "channel recv failed"
+assert received == 123, "channel value failed"
+ch.close()
+
+thread t = thread(worker)
+assert t.wait(), "thread wait failed"
+assert t.exitCode() == 7, "thread exit code failed"

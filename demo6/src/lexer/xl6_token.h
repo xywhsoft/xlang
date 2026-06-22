@@ -12,6 +12,7 @@ typedef enum XL6_TokenKind {
     XL6_TK_STRING,
     XL6_TK_TEMPLATE_STRING,
     XL6_TK_TIME,
+    XL6_TK_DOC,
     XL6_TK_SEP,
 
     XL6_KW_NULL,

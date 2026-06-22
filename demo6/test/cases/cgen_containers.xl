@@ -10,10 +10,10 @@ auto sparse = [0: "a", 2: "b"]
 auto unique = {1, 2, 3}
 auto table = {"a": 1, "b": 2}
 
-auto typedArray = array[4, 5]
-auto typedList = list[0: "x"]
-auto typedSet = set{6, 7}
-auto typedDict = dict{"k": 8}
+array<int> typedArray = array[4, 5]
+list<string> typedList = list[0: "x"]
+set<int> typedSet = set{6, 7}
+dict<int> typedDict = dict{"k": 8}
 auto explicitEmptySet = set{}
 auto explicitEmptyDict = dict{}
 
@@ -75,29 +75,38 @@ int typedFirstValue = 0
 for index, value in typedArray
     typedArrayCount = typedArrayCount + 1
     if index == 0 then
-        typedFirstValue = int(value)
+        typedFirstValue = value
     end
 end
 expect(typedArrayCount, 2)
 expect(typedFirstValue, 4)
 
 int typedListCount = 0
+string typedListValue = ""
 for index, value in typedList
     typedListCount = typedListCount + 1
+    typedListValue = value
 end
 expect(typedListCount, 1)
+assert typedListValue == "x", "typed list for-in should expose static string value"
 
 int typedSetCount = 0
+int typedSetSum = 0
 for value in typedSet
     typedSetCount = typedSetCount + 1
+    typedSetSum = typedSetSum + value
 end
 expect(typedSetCount, 2)
+expect(typedSetSum, 13)
 
 int typedDictCount = 0
+int typedDictValue = 0
 for key, value in typedDict
     typedDictCount = typedDictCount + 1
+    typedDictValue = value
 end
 expect(typedDictCount, 1)
+expect(typedDictValue, 8)
 
 int explicitEmptySetCount = 0
 for value in explicitEmptySet

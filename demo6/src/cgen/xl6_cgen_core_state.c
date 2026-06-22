@@ -153,6 +153,59 @@ static void xl6CgenFreeEmittedClasses(XL6_CgenContext* ctx)
     ctx->emittedClassCapacity = 0;
 }
 
+static int xl6CgenUnionWasEmitted(XL6_CgenContext* ctx, const char* name)
+{
+    size_t i;
+
+    if ( ctx == NULL || name == NULL ) {
+        return 0;
+    }
+    for ( i = 0; i < ctx->emittedUnionCount; ++i ) {
+        if ( xl6CTextEquals(ctx->emittedUnions[i], name) ) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+static void xl6CgenMarkUnionEmitted(XL6_CgenContext* ctx, const char* name)
+{
+    char** newItems;
+    size_t newCapacity;
+
+    if ( ctx == NULL || name == NULL || xl6CgenUnionWasEmitted(ctx, name) ) {
+        return;
+    }
+    if ( ctx->emittedUnionCount == ctx->emittedUnionCapacity ) {
+        newCapacity = ctx->emittedUnionCapacity == 0 ? 16 : ctx->emittedUnionCapacity * 2;
+        newItems = (char**)xrtRealloc(ctx->emittedUnions, newCapacity * sizeof(char*));
+        if ( newItems == NULL ) {
+            xl6CgenError(ctx, NULL, "C union emit table allocation failed");
+            return;
+        }
+        ctx->emittedUnions = newItems;
+        ctx->emittedUnionCapacity = newCapacity;
+    }
+    ctx->emittedUnions[ctx->emittedUnionCount] = xrtCopyStr((char*)name, strlen(name));
+    ctx->emittedUnionCount += 1;
+}
+
+static void xl6CgenFreeEmittedUnions(XL6_CgenContext* ctx)
+{
+    size_t i;
+
+    if ( ctx == NULL ) {
+        return;
+    }
+    for ( i = 0; i < ctx->emittedUnionCount; ++i ) {
+        xrtFree(ctx->emittedUnions[i]);
+    }
+    xrtFree(ctx->emittedUnions);
+    ctx->emittedUnions = NULL;
+    ctx->emittedUnionCount = 0;
+    ctx->emittedUnionCapacity = 0;
+}
+
 static int xl6CgenHasFunctionReturnStruct(const XL6_CgenContext* ctx, unsigned long long signatureId)
 {
     size_t i;
@@ -200,4 +253,55 @@ static void xl6CgenFreeFunctionReturnStructs(XL6_CgenContext* ctx)
     ctx->emittedFunctionReturns = NULL;
     ctx->emittedFunctionReturnCount = 0;
     ctx->emittedFunctionReturnCapacity = 0;
+}
+
+static int xl6CgenPushTryTarget(XL6_CgenContext* ctx, size_t cleanupMark, int id, int targetFinally)
+{
+    XL6_CgenTryTarget* newItems;
+    size_t newCapacity;
+
+    if ( ctx == NULL ) {
+        return 0;
+    }
+    if ( ctx->tryTargetCount == ctx->tryTargetCapacity ) {
+        newCapacity = ctx->tryTargetCapacity == 0 ? 8 : ctx->tryTargetCapacity * 2;
+        newItems = (XL6_CgenTryTarget*)xrtRealloc(ctx->tryTargets, newCapacity * sizeof(XL6_CgenTryTarget));
+        if ( newItems == NULL ) {
+            xl6CgenError(ctx, NULL, "C 生成异常目标栈内存不足");
+            return 0;
+        }
+        ctx->tryTargets = newItems;
+        ctx->tryTargetCapacity = newCapacity;
+    }
+    ctx->tryTargets[ctx->tryTargetCount].cleanupMark = cleanupMark;
+    ctx->tryTargets[ctx->tryTargetCount].id = id;
+    ctx->tryTargets[ctx->tryTargetCount].targetFinally = targetFinally;
+    ctx->tryTargetCount += 1;
+    return 1;
+}
+
+static void xl6CgenPopTryTarget(XL6_CgenContext* ctx)
+{
+    if ( ctx != NULL && ctx->tryTargetCount > 0 ) {
+        ctx->tryTargetCount -= 1;
+    }
+}
+
+static XL6_CgenTryTarget* xl6CgenCurrentTryTarget(XL6_CgenContext* ctx)
+{
+    if ( ctx == NULL || ctx->tryTargetCount == 0 ) {
+        return NULL;
+    }
+    return &ctx->tryTargets[ctx->tryTargetCount - 1];
+}
+
+static void xl6CgenFreeTryTargets(XL6_CgenContext* ctx)
+{
+    if ( ctx == NULL ) {
+        return;
+    }
+    xrtFree(ctx->tryTargets);
+    ctx->tryTargets = NULL;
+    ctx->tryTargetCount = 0;
+    ctx->tryTargetCapacity = 0;
 }

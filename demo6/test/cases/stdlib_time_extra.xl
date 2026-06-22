@@ -1,0 +1,23 @@
+extern "expect_i64" func expect(int actual, int expected)
+extern "expect_str" func expectStr(string actual, string expected)
+
+time start = time.fromDateTime(2026, 1, 1, 8, 0, 0)
+time endValue = time.addHours(start, 1)
+time farStart = time.addDays(start, 2)
+time farEnd = time.addHours(farStart, 1)
+
+time.sleep(0)
+
+float elapsed = time.timer()
+time utcNow = time.nowUTC()
+int offset = time.timezoneOffset()
+
+expect(elapsed >= 0.0, 1)
+expect(time.year(utcNow) >= 1970, 1)
+expect(offset == offset, 1)
+expect(time.rangeOverlap(start, endValue, start, endValue), 1)
+expect(time.rangeOverlap(start, endValue, farStart, farEnd), 0)
+expect(time.approx(start, start), 1)
+expectStr(time.format(start), "2026-01-01 08:00:00")
+expectStr(time.dateString(start), "2026-01-01")
+expectStr(time.timeString(start), "08:00:00")

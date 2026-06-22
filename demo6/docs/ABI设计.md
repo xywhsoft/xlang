@@ -136,6 +136,43 @@ ABI 中的类型名必须规范化。
 - `func f(int a)` 和 `typedef MyInt = int; func f(MyInt a)` 在 ABI 上视为同一参数类型。
 - 如果后续需要不透明别名，必须单独设计，不能让普通 `typedef` 自动承担不透明类型语义。
 
+### 4.1 C ABI 兼容类型
+
+DEMO6 提供一组 `c_*` 类型用于 C ABI 边界。
+
+这些类型不是 xlang 推荐的日常编程类型。普通 xlang 代码应优先使用 `int`、`float`、`bool`、`string` 等语言类型；只有在 `extern`、`export`、`custom`、DLL API、C 混编和头文件生成等需要精确匹配 C ABI 的场景下，才使用 `c_*` 类型。
+
+| xlang 类型 | 生成 C 类型 | 说明 |
+| --- | --- | --- |
+| `c_char` | `char` | C 原生 `char`，不承诺 signedness |
+| `c_schar` | `signed char` | 明确有符号字符/8 位整数语义 |
+| `c_uchar` | `unsigned char` | 明确无符号字符/8 位整数语义 |
+| `c_short` | `short` | C 原生 `short` |
+| `c_ushort` | `unsigned short` | C 原生 `unsigned short` |
+| `c_int` | `int` | C 原生 `int`，不等同于 xlang `int` |
+| `c_uint` | `unsigned int` | C 原生 `unsigned int` |
+| `c_long` | `long` | C 原生 `long`，长度跟随平台 ABI |
+| `c_ulong` | `unsigned long` | C 原生 `unsigned long` |
+| `c_longlong` | `long long` | C 原生 `long long` |
+| `c_ulonglong` | `unsigned long long` | C 原生 `unsigned long long` |
+| `c_size` | `size_t` | C 标准库尺寸类型 |
+| `c_ssize` | `xl6_ssize_t` | 与 `size_t` 等宽的有符号尺寸类型 |
+| `c_ptrdiff` | `ptrdiff_t` | C 标准指针差值类型 |
+| `c_intptr` | `intptr_t` | 可容纳指针的有符号整数 |
+| `c_uintptr` | `uintptr_t` | 可容纳指针的无符号整数 |
+| `c_bool` | `bool` | C99 `_Bool` / `bool` |
+| `c_float` | `float` | C 原生 `float` |
+| `c_double` | `double` | C 原生 `double` |
+| `c_wchar` | `wchar_t` | C 原生宽字符类型，长度跟随平台 ABI |
+
+`c_ssize` 需要特别说明：C 标准没有统一的 `ssize_t`，POSIX 和 Windows 对它的提供方式不同。DEMO6 在生成 C 文件和导出头文件时统一声明：
+
+```c
+typedef intptr_t xl6_ssize_t;
+```
+
+因此 xlang 源码使用 `c_ssize`，生成的 C ABI 使用 `xl6_ssize_t`。这样可以和 `c_intptr` 在语义上区分开，同时保留后续切换到平台原生 `ssize_t` / `SSIZE_T` 的空间。
+
 ## 5. internal ABI symbol
 
 internal ABI symbol 是生成 C 代码时使用的内部函数名。

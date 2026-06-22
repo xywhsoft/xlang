@@ -1,7 +1,7 @@
 /*
 
     XRT Single Header File
-    Generated: 2026-06-19 18:55:48
+    Generated: 2026-06-20 02:04:57
 
     MIT License
 
@@ -2763,6 +2763,34 @@
 			// 关闭可等待队列写入端并唤醒等待者
 			XXAPI void xrtMPSCQWaitClose(xmpscqwait pQueue);
 		#endif
+		#ifndef XRT_NO_QUEUE_WAIT
+			typedef struct xchannel_struct
+			{
+				xmpscqwait_struct tQueue;
+			} xchannel_struct, *xchannel;
+			// 初始化 channel
+			XXAPI bool xrtChannelInit(xchannel pChannel, uint32 iCapacity);
+			// 释放 channel 内部资源
+			XXAPI void xrtChannelUnit(xchannel pChannel);
+			// 创建 channel
+			XXAPI xchannel xrtChannelCreate(uint32 iCapacity);
+			// 销毁 channel
+			XXAPI void xrtChannelDestroy(xchannel pChannel);
+			// 向 channel 发送一个指针值
+			XXAPI xqueue_result xrtChannelSend(xchannel pChannel, ptr pItem);
+			// 从 channel 尝试接收一个指针值
+			XXAPI xqueue_result xrtChannelTryRecv(xchannel pChannel, ptr* ppItem);
+			// 从 channel 阻塞接收一个指针值
+			XXAPI xqueue_result xrtChannelRecv(xchannel pChannel, ptr* ppItem);
+			// 从 channel 限时接收一个指针值
+			XXAPI xqueue_result xrtChannelRecvTimeout(xchannel pChannel, ptr* ppItem, uint32 iTimeoutMs);
+			// 关闭 channel
+			XXAPI void xrtChannelClose(xchannel pChannel);
+			// 获取 channel 中近似元素数量
+			XXAPI uint32 xrtChannelCount(xchannel pChannel);
+			// 判断 channel 是否已经关闭
+			XXAPI bool xrtChannelIsClosed(xchannel pChannel);
+		#endif
 	#endif
 	
 	
@@ -3947,6 +3975,8 @@
 		ptr pValue;
 		str sError;
 		uint32 iFlags;
+		void (*pfnFreeValue)(ptr pValue);
+		void (*pfnFreeError)(ptr pError);
 	} xfuture_result;
 	typedef struct {
 		int iCount;
@@ -4851,6 +4881,7 @@
 	XXAPI xfuture* xPromisePeekFuture(xpromise* pPromise);
 	// 解析 Promise
 	XXAPI bool xPromiseResolve(xpromise* pPromise, ptr pValue);
+	XXAPI bool xPromiseResolveOwned(xpromise* pPromise, ptr pValue);
 	// 以错误状态拒绝 Promise
 	XXAPI bool xPromiseReject(xpromise* pPromise, int32 iStatus, str sError);
 	// 取消 Promise
@@ -18194,6 +18225,7 @@ static int32 __xafileTaskFail(xfuture_result* pOut, const char* sError)
 		pOut->sError = xrtCopyStr((str)sError, 0);
 		if ( pOut->sError && pOut->sError != xCore.sNull ) {
 			pOut->iFlags |= XFUTURE_RESULT_F_OWN_ERROR;
+			pOut->pfnFreeError = xrtFree;
 		}
 		else {
 			pOut->sError = (str)sError;
@@ -22439,6 +22471,133 @@ XXAPI void xrtMPSCQWaitClose(xmpscqwait pQueue)
 	__xrtMPSCQWaitWakeAll(pQueue);
 }
 #endif
+	#ifndef XRT_NO_QUEUE_WAIT
+
+// ========================================
+// File: D:/GIT/xrt/lib/channel.h
+// ========================================
+
+#ifndef XRT_CHANNEL_H
+#define XRT_CHANNEL_H
+/*
+	XRT channel runtime.
+	The channel is a small blocking message queue wrapper built on top of
+	xrtMPSCQWait.  It stores opaque pointers only; value ownership is defined by
+	the caller so C and xlang can both use the same primitive without coupling.
+*/
+#ifndef XRT_CHANNEL_DEFAULT_CAPACITY
+	#define XRT_CHANNEL_DEFAULT_CAPACITY 64u
+#endif
+// 内部函数：修正 channel 容量
+static uint32 __xrtChannelCapacity(uint32 iCapacity)
+{
+	return iCapacity == 0u ? XRT_CHANNEL_DEFAULT_CAPACITY : iCapacity;
+}
+// 初始化 channel
+XXAPI bool xrtChannelInit(xchannel pChannel, uint32 iCapacity)
+{
+	xqueue_config tCfg;
+	if ( pChannel == NULL ) {
+		xrtSetError("channel is null.", FALSE);
+		return FALSE;
+	}
+	memset(pChannel, 0, sizeof(*pChannel));
+	memset(&tCfg, 0, sizeof(tCfg));
+	tCfg.iCapacity = __xrtChannelCapacity(iCapacity);
+	return xrtMPSCQWaitInit(&pChannel->tQueue, &tCfg);
+}
+// 释放 channel 内部资源
+XXAPI void xrtChannelUnit(xchannel pChannel)
+{
+	if ( pChannel == NULL ) {
+		return;
+	}
+	xrtMPSCQWaitUnit(&pChannel->tQueue);
+}
+// 创建 channel
+XXAPI xchannel xrtChannelCreate(uint32 iCapacity)
+{
+	xchannel pChannel = (xchannel)xrtCalloc(1, sizeof(xchannel_struct));
+	if ( pChannel == NULL ) {
+		return NULL;
+	}
+	if ( !xrtChannelInit(pChannel, iCapacity) ) {
+		xrtFree(pChannel);
+		return NULL;
+	}
+	return pChannel;
+}
+// 销毁 channel
+XXAPI void xrtChannelDestroy(xchannel pChannel)
+{
+	if ( pChannel == NULL ) {
+		return;
+	}
+	xrtChannelUnit(pChannel);
+	xrtFree(pChannel);
+}
+// 向 channel 发送一个指针值
+XXAPI xqueue_result xrtChannelSend(xchannel pChannel, ptr pItem)
+{
+	if ( pChannel == NULL ) {
+		xrtSetError("channel is null.", FALSE);
+		return XQUEUE_ERROR;
+	}
+	return xrtMPSCQWaitTryPush(&pChannel->tQueue, pItem);
+}
+// 从 channel 尝试接收一个指针值
+XXAPI xqueue_result xrtChannelTryRecv(xchannel pChannel, ptr* ppItem)
+{
+	if ( pChannel == NULL || ppItem == NULL ) {
+		xrtSetError("channel receive argument is null.", FALSE);
+		return XQUEUE_ERROR;
+	}
+	return xrtMPSCQWaitTryPop(&pChannel->tQueue, ppItem);
+}
+// 从 channel 阻塞接收一个指针值
+XXAPI xqueue_result xrtChannelRecv(xchannel pChannel, ptr* ppItem)
+{
+	if ( pChannel == NULL || ppItem == NULL ) {
+		xrtSetError("channel receive argument is null.", FALSE);
+		return XQUEUE_ERROR;
+	}
+	return xrtMPSCQWaitPop(&pChannel->tQueue, ppItem);
+}
+// 从 channel 限时接收一个指针值
+XXAPI xqueue_result xrtChannelRecvTimeout(xchannel pChannel, ptr* ppItem, uint32 iTimeoutMs)
+{
+	if ( pChannel == NULL || ppItem == NULL ) {
+		xrtSetError("channel receive argument is null.", FALSE);
+		return XQUEUE_ERROR;
+	}
+	return xrtMPSCQWaitPopTimeout(&pChannel->tQueue, ppItem, iTimeoutMs);
+}
+// 关闭 channel
+XXAPI void xrtChannelClose(xchannel pChannel)
+{
+	if ( pChannel == NULL ) {
+		return;
+	}
+	xrtMPSCQWaitClose(&pChannel->tQueue);
+}
+// 获取 channel 中近似元素数量
+XXAPI uint32 xrtChannelCount(xchannel pChannel)
+{
+	if ( pChannel == NULL ) {
+		return 0u;
+	}
+	return xrtMPSCQWaitApproxCount(&pChannel->tQueue);
+}
+// 判断 channel 是否已经关闭
+XXAPI bool xrtChannelIsClosed(xchannel pChannel)
+{
+	if ( pChannel == NULL ) {
+		return TRUE;
+	}
+	return xrtQueueIsClosed(&pChannel->tQueue.tQueue.tBase);
+}
+#endif
+	#endif
 #endif
 #ifndef XRT_NO_COROUTINE
 
@@ -53191,6 +53350,7 @@ struct xrt_net_future {
 	volatile long iRefCount;
 	xnet_result iStatus;
 	ptr pValue;
+	void (*pfnFreeValue)(ptr pValue);
 	const char* sError;
 	uint32 iResultFlags;
 	uint64 iCreateTimeMs;
@@ -53831,6 +53991,34 @@ static void __xnetFutureFreeError(const char* sError, uint32 iFlags)
 		XNET_FREE((ptr)sError);
 	}
 }
+// 内部函数：释放 Future 结果中的错误字符串
+static void __xnetFutureFreeResultError(const char* sError, uint32 iFlags, void (*pfnFreeError)(ptr pError))
+{
+	if ( sError && (iFlags & XFUTURE_RESULT_F_OWN_ERROR) ) {
+		if ( pfnFreeError ) {
+			pfnFreeError((ptr)sError);
+		}
+		else {
+			XNET_FREE((ptr)sError);
+		}
+	}
+}
+// 内部函数：释放 Future 值
+static void __xnetFutureFreeValue(ptr pValue, uint32 iFlags, void (*pfnFreeValue)(ptr pValue))
+{
+	if ( pValue == NULL || !(iFlags & XFUTURE_RESULT_F_OWN_VALUE) ) {
+		return;
+	}
+	if ( iFlags & XFUTURE_RESULT_F_GROUP_ALL ) {
+		__xnetFutureAllValueFree((xfuture_all_value*)pValue);
+		return;
+	}
+	if ( pfnFreeValue != NULL ) {
+		pfnFreeValue(pValue);
+		return;
+	}
+	XNET_FREE(pValue);
+}
 // 内部函数：__xnetFutureAddRefInternal
 static void __xnetFutureAddRefInternal(xnetfuture* pFuture)
 {
@@ -53900,6 +54088,9 @@ static void __xnetFutureReleaseAsyncHold(xnetfuture* pFuture)
 static void __xnetFutureUnit(xnetfuture* pFuture)
 {
 	if ( !pFuture ) { return; }
+	__xnetFutureFreeValue(pFuture->pValue, pFuture->iResultFlags, pFuture->pfnFreeValue);
+	pFuture->pValue = NULL;
+	pFuture->pfnFreeValue = NULL;
 	// 释放错误字符串和调试名称
 	__xnetFutureFreeError(pFuture->sError, pFuture->iResultFlags);
 	pFuture->sError = NULL;
@@ -53938,7 +54129,9 @@ static void UNUSED_ATTR __xnetFutureReset(xnetfuture* pFuture)
 	__xnetFutureLock(pFuture);
 	pFuture->bDone = false;
 	pFuture->iStatus = XRT_NET_AGAIN;
+	__xnetFutureFreeValue(pFuture->pValue, pFuture->iResultFlags, pFuture->pfnFreeValue);
 	pFuture->pValue = NULL;
+	pFuture->pfnFreeValue = NULL;
 	__xnetFutureFreeError(pFuture->sError, pFuture->iResultFlags);
 	pFuture->sError = NULL;
 	pFuture->iResultFlags = 0;
@@ -53956,9 +54149,10 @@ static void UNUSED_ATTR __xnetFutureReset(xnetfuture* pFuture)
 	__xnetFutureUnlock(pFuture);
 }
 // 内部函数：__xnetFutureCompleteEx
-static bool __xnetFutureCompleteEx(xnetfuture* pFuture, xnet_result iStatus, ptr pValue, const char* sError, uint32 iFlags)
+static bool __xnetFutureCompleteExWithFree(xnetfuture* pFuture, xnet_result iStatus, ptr pValue, const char* sError, uint32 iFlags, void (*pfnFreeValue)(ptr pValue), void (*pfnFreeError)(ptr pError))
 {
 	bool bResolved = false;
+	uint32 iInputFlags = iFlags;
 	#if defined(XXRTL_CORE)
 		xrt_future_cont* pDispatchHead = NULL;
 		xfuture_result tDispatchInput;
@@ -53987,6 +54181,7 @@ static bool __xnetFutureCompleteEx(xnetfuture* pFuture, xnet_result iStatus, ptr
 		pFuture->bDone = true;
 		pFuture->iStatus = iStatus;
 		pFuture->pValue = pValue;
+		pFuture->pfnFreeValue = pfnFreeValue;
 		pFuture->sError = sOwnedError;
 		pFuture->iResultFlags = iFlags;
 		pFuture->iCompleteTimeMs = __xnetSyncNowMs();
@@ -53997,6 +54192,7 @@ static bool __xnetFutureCompleteEx(xnetfuture* pFuture, xnet_result iStatus, ptr
 			tDispatchInput.pValue = pValue;
 			tDispatchInput.sError = (str)sOwnedError;
 			tDispatchInput.iFlags = iFlags;
+			tDispatchInput.pfnFreeValue = pfnFreeValue;
 			pDispatchHead = pFuture->pContHead;
 			pFuture->pContHead = NULL;
 			pFuture->pContTail = NULL;
@@ -54021,6 +54217,12 @@ static bool __xnetFutureCompleteEx(xnetfuture* pFuture, xnet_result iStatus, ptr
 	if ( !bResolved && sOwnedError && (iFlags & XFUTURE_RESULT_F_OWN_ERROR) ) {
 		XNET_FREE((ptr)sOwnedError);
 	}
+	if ( sError && (iInputFlags & XFUTURE_RESULT_F_OWN_ERROR) && pfnFreeError ) {
+		pfnFreeError((ptr)sError);
+	}
+	if ( !bResolved ) {
+		__xnetFutureFreeValue(pValue, iFlags, pfnFreeValue);
+	}
 	// 唤醒协程等待者
 	#if defined(XXRTL_CORE) && !defined(XRT_NO_COROUTINE)
 		if ( bResolved && pCoEvent ) {
@@ -54035,6 +54237,10 @@ static bool __xnetFutureCompleteEx(xnetfuture* pFuture, xnet_result iStatus, ptr
 	#endif
 	return bResolved;
 }
+static bool __xnetFutureCompleteEx(xnetfuture* pFuture, xnet_result iStatus, ptr pValue, const char* sError, uint32 iFlags)
+{
+	return __xnetFutureCompleteExWithFree(pFuture, iStatus, pValue, sError, iFlags, NULL, NULL);
+}
 // 内部函数：解析 Future
 static bool __xnetFutureResolve(xnetfuture* pFuture, xnet_result iStatus, ptr pValue)
 {
@@ -54048,6 +54254,8 @@ static bool __xnetPromiseCompleteResult(xpromise* pPromise, const xfuture_result
 	ptr pValue;
 	const char* sError;
 	uint32 iFlags;
+	void (*pfnFreeValue)(ptr pValue);
+	void (*pfnFreeError)(ptr pError);
 	if ( !pPromise ) { return false; }
 	if ( __xnetSyncAtomicCompareExchange(&pPromise->bCompleted, 1, 0) != 0 ) {
 		return false;
@@ -54056,9 +54264,11 @@ static bool __xnetPromiseCompleteResult(xpromise* pPromise, const xfuture_result
 	pValue = pResult ? pResult->pValue : NULL;
 	sError = pResult ? (const char*)pResult->sError : NULL;
 	iFlags = pResult ? pResult->iFlags : XFUTURE_RESULT_F_NONE;
+	pfnFreeValue = pResult ? pResult->pfnFreeValue : NULL;
+	pfnFreeError = pResult ? pResult->pfnFreeError : NULL;
 	if ( iStatus == 0 ) { iStatus = XRT_NET_OK; }
 	if ( iStatus == XRT_NET_AGAIN ) { iStatus = XRT_NET_ERROR; }
-	return __xnetFutureCompleteEx(pPromise->pFuture, (xnet_result)iStatus, pValue, sError, iFlags);
+	return __xnetFutureCompleteExWithFree(pPromise->pFuture, (xnet_result)iStatus, pValue, sError, iFlags, pfnFreeValue, pfnFreeError);
 }
 // 内部函数：释放 Future 结果
 static void __xnetFutureResultFree(xfuture_result* pResult)
@@ -54066,15 +54276,13 @@ static void __xnetFutureResultFree(xfuture_result* pResult)
 	if ( pResult == NULL ) {
 		return;
 	}
-	if ( pResult->pValue && (pResult->iFlags & XFUTURE_RESULT_F_OWN_VALUE) ) {
-		if ( pResult->iFlags & XFUTURE_RESULT_F_GROUP_ALL ) {
-			__xnetFutureAllValueFree((xfuture_all_value*)pResult->pValue);
-		}
-	}
+	__xnetFutureFreeValue(pResult->pValue, pResult->iFlags, pResult->pfnFreeValue);
 	pResult->pValue = NULL;
+	pResult->pfnFreeValue = NULL;
 	pResult->iFlags &= ~XFUTURE_RESULT_F_OWN_VALUE;
-	__xnetFutureFreeError((const char*)pResult->sError, pResult->iFlags);
+	__xnetFutureFreeResultError((const char*)pResult->sError, pResult->iFlags, pResult->pfnFreeError);
 	pResult->sError = NULL;
+	pResult->pfnFreeError = NULL;
 	pResult->iFlags &= ~XFUTURE_RESULT_F_OWN_ERROR;
 }
 // 内部函数：复制 Future 结果
@@ -54086,6 +54294,8 @@ static bool __xnetFutureResultCopy(xfuture_result* pDst, const xfuture_result* p
 	memset(pDst, 0, sizeof(*pDst));
 	pDst->iStatus = pSrc->iStatus;
 	pDst->pValue = pSrc->pValue;
+	pDst->pfnFreeValue = NULL;
+	pDst->pfnFreeError = NULL;
 	pDst->iFlags = pSrc->iFlags & ~(XFUTURE_RESULT_F_OWN_ERROR | XFUTURE_RESULT_F_OWN_VALUE);
 	if ( pSrc->sError && pSrc->sError[0] ) {
 		pDst->sError = (str)__xnetFutureDupError((const char*)pSrc->sError);
@@ -54879,7 +55089,9 @@ XXAPI bool xFutureGetResult(xfuture* pFuture, xfuture_result* pOut)
 	pOut->iStatus = pFuture->bDone ? pFuture->iStatus : XRT_NET_AGAIN;
 	pOut->pValue = pFuture->bDone ? pFuture->pValue : NULL;
 	pOut->sError = (str)(pFuture->bDone ? pFuture->sError : NULL);
-	pOut->iFlags = pFuture->bDone ? pFuture->iResultFlags : XFUTURE_RESULT_F_NONE;
+	pOut->iFlags = pFuture->bDone ? (pFuture->iResultFlags & ~(XFUTURE_RESULT_F_OWN_VALUE | XFUTURE_RESULT_F_OWN_ERROR)) : XFUTURE_RESULT_F_NONE;
+	pOut->pfnFreeValue = NULL;
+	pOut->pfnFreeError = NULL;
 	__xnetFutureUnlock(pFuture);
 	return pOut->iStatus == XRT_NET_OK;
 }
@@ -55073,6 +55285,19 @@ XXAPI bool xPromiseResolve(xpromise* pPromise, ptr pValue)
 		return false;
 	}
 	return __xnetFutureCompleteEx(pPromise->pFuture, XRT_NET_OK, pValue, NULL, XFUTURE_RESULT_F_NONE);
+}
+// 解析 Promise，并让 Future 接管 pValue 的内存所有权
+XXAPI bool xPromiseResolveOwned(xpromise* pPromise, ptr pValue)
+{
+	if ( !pPromise ) {
+		if ( pValue ) { XNET_FREE(pValue); }
+		return false;
+	}
+	if ( __xnetSyncAtomicCompareExchange(&pPromise->bCompleted, 1, 0) != 0 ) {
+		if ( pValue ) { XNET_FREE(pValue); }
+		return false;
+	}
+	return __xnetFutureCompleteExWithFree(pPromise->pFuture, XRT_NET_OK, pValue, NULL, XFUTURE_RESULT_F_OWN_VALUE, NULL, NULL);
 }
 // xPromiseReject 相关处理
 XXAPI bool xPromiseReject(xpromise* pPromise, int32 iStatus, str sError)

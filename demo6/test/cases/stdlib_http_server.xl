@@ -1,0 +1,22 @@
+func handle(string method, string path, string query, string body) -> string
+    if method == "POST" and path == "/demo" and query == "x=1" and body == "ping" then
+        return "xlang-http-ok"
+    end
+    return "xlang-http-bad"
+end
+
+export "xl6_http_server_create" func createServer() -> point
+    function(string, string, string, string) -> string fn = handle
+    point server = http.server.create(0, fn)
+    http.server.start(server)
+    return server
+end
+
+export "xl6_http_server_port" func serverPort(point server) -> int
+    return http.server.port(server)
+end
+
+export "xl6_http_server_stop" func stopServer(point server)
+    http.server.stop(server)
+    http.server.destroy(server)
+end

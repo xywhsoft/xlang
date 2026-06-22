@@ -1,0 +1,88 @@
+// 教学目标：
+// 1. 泛型函数支持显式 `::<T>`，也支持从参数推断。
+// 2. 泛型可以有多个类型参数。
+// 3. 泛型 class 和泛型容器可以组合使用。
+
+func identity<T>(T value) -> T
+    return value
+end
+
+func chooseRight<T, U>(T left, U right) -> U
+    return right
+end
+
+class Box<T>
+    T value
+
+    create(T value)
+        self.value = value
+    end
+
+    func valueOf() -> T
+        return self.value
+    end
+end
+
+class Pair
+    int left = 0
+    int right = 0
+
+    create(int left, int right)
+        self.left = left
+        self.right = right
+    end
+
+    func sum() -> int
+        return self.left + self.right
+    end
+end
+
+typedef MyInt = int
+
+func classify<T>(T value) -> string
+    return "generic"
+end
+
+func classify(int value) -> string
+    return "int"
+end
+
+func main(...) -> int
+    int explicitInt = identity::<int>(41)
+    int inferredInt = identity(42)
+    string explicitString = identity::<string>("xlang")
+    string inferredString = identity("demo6")
+
+    Box<MyInt> aliasBox = Box::<MyInt>(99)
+
+    array<int> numbers = array[7, 8, 9]
+    Pair pair = Pair(5, 6)
+    array<Pair> pairs = array[pair]
+    Pair pickedPair = pairs[0]
+
+    if explicitInt != 41 or inferredInt != 42 then
+        return 1
+    end
+    if explicitString != "xlang" or inferredString != "demo6" then
+        return 2
+    end
+    if chooseRight::<int, string>(1, "right") != "right" then
+        return 3
+    end
+    if chooseRight("left", 9) != 9 then
+        return 4
+    end
+    if numbers[0] != 7 then
+        return 5
+    end
+    if aliasBox.valueOf() != 99 then
+        return 6
+    end
+    if pickedPair.sum() != 11 then
+        return 7
+    end
+    if classify(1) != "int" or classify("a") != "generic" then
+        return 8
+    end
+    return 0
+end

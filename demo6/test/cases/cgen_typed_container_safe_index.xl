@@ -1,0 +1,17 @@
+extern "expect_i64" func expect(int actual, int expected)
+extern "expect_str" func expectStr(string actual, string expected)
+
+array<int> values = array[10, 20]
+list<string> names = list[2: "beta"]
+dict<int> scores = dict{"alpha": 10}
+var scoreKey = "alpha"
+
+expect(int(values?[1]), 20)
+expect(int(values?[9] ?? 77), 77)
+
+expectStr(string(names?[2]), "beta")
+expectStr(string(names?[9] ?? "fallback"), "fallback")
+
+expect(int(scores?["alpha"]), 10)
+expect(int(scores?[scoreKey]), 10)
+expect(int(scores?["missing"] ?? 88), 88)

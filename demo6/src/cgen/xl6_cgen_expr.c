@@ -61,8 +61,13 @@ static void xl6CgenExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
     case XL6_AST_ANON_FUNC:
         xl6CgenAnonMakeCall(ctx, node);
         break;
+    case XL6_AST_AWAIT:
+        xl6CgenAwaitExpr(ctx, node);
+        break;
     case XL6_AST_MEMBER:
-        if ( !xl6CgenXValueMemberAccess(ctx, node) ) {
+        if ( !xl6CgenErrorMemberAccess(ctx, node) &&
+             !xl6CgenXValueMemberAccess(ctx, node) &&
+             !xl6CgenUnionFieldAccess(ctx, node) ) {
             xl6CgenClassFieldAccess(ctx, node);
         }
         break;
@@ -80,7 +85,15 @@ static void xl6CgenExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
         break;
     case XL6_AST_BINARY:
         if ( xl6CTextEquals(node->text, "~=") ) {
-            xl6CgenApproxExpr(ctx, node);
+            if ( xl6CgenBinaryApproxIsXValue(ctx, node) ) {
+                xl6CgenXValueApproxExpr(ctx, node);
+            } else {
+                xl6CgenApproxExpr(ctx, node);
+            }
+            break;
+        }
+        if ( xl6CgenBinaryLogicalIsXValue(ctx, node) ) {
+            xl6CgenXValueLogicalExpr(ctx, node);
             break;
         }
         if ( xl6CgenBinaryCompareIsTypeValue(ctx, node) ) {
@@ -91,12 +104,20 @@ static void xl6CgenExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
             xl6CgenStringCompareExpr(ctx, node);
             break;
         }
+        if ( xl6CgenBinaryCompareIsXValue(ctx, node) ) {
+            xl6CgenXValueCompareExpr(ctx, node);
+            break;
+        }
         if ( xl6CTextEquals(node->text, "**") ) {
             xl6CgenPowExpr(ctx, node);
             break;
         }
         if ( xl6CgenBinaryPlusIsString(ctx, node) ) {
             xl6CgenStringConcatExpr(ctx, node);
+            break;
+        }
+        if ( xl6CgenBinaryArithmeticIsXValue(ctx, node) ) {
+            xl6CgenXValueBinaryExpr(ctx, node);
             break;
         }
         if ( xl6CTextEquals(node->text, "in") ) {
@@ -124,6 +145,14 @@ static void xl6CgenExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
         xl6OutputPutc(')', ctx->out);
         break;
     case XL6_AST_UNARY:
+        if ( xl6CgenUnaryIsXValue(ctx, node) ) {
+            if ( xl6CTextEquals(node->text, "not") || xl6CTextEquals(node->text, "!") ) {
+                xl6CgenXValueNotExpr(ctx, node);
+            } else {
+                xl6CgenXValueUnaryExpr(ctx, node);
+            }
+            break;
+        }
         if ( xl6CTextEquals(node->text, "not") ) {
             xl6OutputPuts("(!", ctx->out);
         } else {
@@ -135,9 +164,13 @@ static void xl6CgenExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
         xl6OutputPutc(')', ctx->out);
         break;
     case XL6_AST_CONDITIONAL:
+        if ( xl6CgenConditionalIsXValue(ctx, node) ) {
+            xl6CgenXValueConditionalExpr(ctx, node);
+            break;
+        }
         xl6OutputPutc('(', ctx->out);
         if ( node->childCount > 0 ) {
-            xl6CgenExpr(ctx, node->children[0]);
+            xl6CgenConditionExpr(ctx, node->children[0]);
         }
         xl6OutputPuts(" ? ", ctx->out);
         if ( node->childCount > 1 ) {
@@ -154,7 +187,15 @@ static void xl6CgenExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
             const XL6_AstNode* callee = node->children[0];
             XL6_AstNode* knownFunc = NULL;
             if ( callee->kind == XL6_AST_MEMBER ) {
-                if ( xl6CgenIsImplicitToStringCall(ctx, node) ) {
+                if ( xl6CgenMemberFunctionInvoke(ctx, node, callee) ) {
+                    ;
+                } else if ( xl6CgenThreadMethodCall(ctx, node, callee) ) {
+                    ;
+                } else if ( xl6CgenSyncMethodCall(ctx, node, callee) ) {
+                    ;
+                } else if ( xl6CgenChannelMethodCall(ctx, node, callee) ) {
+                    ;
+                } else if ( xl6CgenIsImplicitToStringCall(ctx, node) ) {
                     xl6CgenImplicitToStringCall(ctx, node, callee);
                 } else if ( !xl6CgenClassMethodCall(ctx, node, callee) ) {
                     xl6CgenCustomMethodCall(ctx, node, callee);
@@ -164,11 +205,21 @@ static void xl6CgenExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
             if ( xl6CgenBaseCtorCall(ctx, node) ) {
                 break;
             }
+            if ( xl6CgenThreadCtorCall(ctx, node, callee) ) {
+                break;
+            }
+            if ( xl6CgenSyncCtorCall(ctx, node, callee) ) {
+                break;
+            }
             if ( callee->kind == XL6_AST_GENERIC_INSTANT ) {
                 const XL6_AstNode* instantName = callee->childCount > 0 ? callee->children[0] : NULL;
                 const XL6_AstNode* typeArgs = callee->childCount > 1 ? callee->children[1] : NULL;
                 const XL6_AstNode* prevParams = ctx->currentGenericParams;
                 const XL6_AstNode* prevArgs = ctx->currentGenericArgs;
+
+                if ( xl6CgenChannelCtorCall(ctx, node, callee) ) {
+                    break;
+                }
 
                 if ( instantName == NULL || instantName->kind != XL6_AST_NAME ) {
                     xl6CgenError(ctx, callee, "当前 C 生成只支持函数名形式的泛型实例化");

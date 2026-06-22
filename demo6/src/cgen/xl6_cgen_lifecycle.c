@@ -37,6 +37,11 @@ void xl6CgenEmitLifecycleRuntime(XL6_Output* out)
     xl6OutputPuts("    void* reserved;\n", out);
     xl6OutputPuts("} XL_InitOptions;\n", out);
     xl6OutputPuts("#endif\n\n", out);
+    xl6OutputPuts("#ifndef XL6_NO_XRT_LIFECYCLE\n", out);
+    xl6OutputPuts("#ifndef XL6_USE_XRT_LIFECYCLE\n", out);
+    xl6OutputPuts("#define XL6_USE_XRT_LIFECYCLE 1\n", out);
+    xl6OutputPuts("#endif\n", out);
+    xl6OutputPuts("#endif\n\n", out);
     xl6OutputPuts("#ifdef XL6_USE_XRT_LIFECYCLE\n", out);
     xl6OutputPuts("#ifndef XRT_SINGLE_HEADER\n", out);
     xl6OutputPuts("void* xrtInit();\n", out);

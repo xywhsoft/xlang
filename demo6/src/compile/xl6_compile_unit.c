@@ -2,6 +2,7 @@
 
 #include "src/compile/xl6_imports.h"
 #include "src/sem/xl6_sem.h"
+#include "src/stdlib/xl6_stdlib.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -50,6 +51,7 @@ void xl6CompileUnitInit(XL6_CompileUnit* unit)
     }
     memset(unit, 0, sizeof(*unit));
     xl6ParseResultInit(&unit->parse);
+    xl6ImportDepsInit(&unit->importDeps);
 }
 
 void xl6CompileUnitFree(XL6_CompileUnit* unit)
@@ -58,6 +60,7 @@ void xl6CompileUnitFree(XL6_CompileUnit* unit)
         return;
     }
     xl6ParseResultFree(&unit->parse);
+    xl6ImportDepsFree(&unit->importDeps);
     memset(unit, 0, sizeof(*unit));
 }
 
@@ -76,7 +79,46 @@ int xl6CompileUnitLoadFile(XL6_CompileUnit* unit, const char* path, int runSem)
     ok = xl6ParseFile(path, &unit->parse);
     if ( ok ) {
         unit->phase = "import";
-        ok = xl6ImportsExpandModule(unit->parse.root, path, &unit->parse.diags);
+        ok = xl6ImportsExpandModule(unit->parse.root, path, &unit->parse.diags, &unit->importDeps);
+    }
+    if ( ok ) {
+        unit->phase = "stdlib";
+        ok = xl6StdlibExpandModule(unit->parse.root, &unit->parse.diags);
+    }
+    if ( ok && runSem ) {
+        unit->phase = "sem";
+        ok = xl6SemCheckModule(unit->parse.root, &unit->parse.diags);
+        unit->semChecked = 1;
+    }
+    unit->success = ok && unit->parse.diags.count == 0;
+    if ( unit->success ) {
+        unit->phase = "checked";
+    }
+    return unit->success;
+}
+
+int xl6CompileUnitLoadSource(XL6_CompileUnit* unit, const char* source, const char* virtualPath, int runSem)
+{
+    const char* path;
+    int ok;
+
+    if ( unit == NULL || source == NULL ) {
+        return 0;
+    }
+
+    path = virtualPath != NULL && virtualPath[0] != '\0' ? virtualPath : "<memory>";
+    unit->path = path;
+    unit->phase = "parse";
+    xl6CompileUnitBaseNameNoExt(unit->moduleName, sizeof(unit->moduleName), path);
+
+    ok = xl6ParseSource(source, path, &unit->parse);
+    if ( ok ) {
+        unit->phase = "import";
+        ok = xl6ImportsExpandModule(unit->parse.root, path, &unit->parse.diags, &unit->importDeps);
+    }
+    if ( ok ) {
+        unit->phase = "stdlib";
+        ok = xl6StdlibExpandModule(unit->parse.root, &unit->parse.diags);
     }
     if ( ok && runSem ) {
         unit->phase = "sem";

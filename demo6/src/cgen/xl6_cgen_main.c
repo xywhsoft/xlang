@@ -52,10 +52,24 @@ static void xl6CgenEmitMainWrapper(XL6_CgenContext* ctx, const XL6_AstNode* main
     xl6OutputPuts("    }\n", ctx->out);
     if ( returnsInt ) {
         xl6OutputPuts("    __xl6_code = (int)xl_user_main(__xl6_arg);\n", ctx->out);
+        if ( ctx->needsErrorRuntime ) {
+            xl6OutputPuts("    if ( xl6_error_has() ) {\n", ctx->out);
+            xl6OutputPuts("        xl6_error_clear();\n", ctx->out);
+            xl6OutputPuts("        xlUnit();\n", ctx->out);
+            xl6OutputPuts("        return 1;\n", ctx->out);
+            xl6OutputPuts("    }\n", ctx->out);
+        }
         xl6OutputPuts("    xlUnit();\n", ctx->out);
         xl6OutputPuts("    return __xl6_code;\n", ctx->out);
     } else {
         xl6OutputPuts("    xl_user_main(__xl6_arg);\n", ctx->out);
+        if ( ctx->needsErrorRuntime ) {
+            xl6OutputPuts("    if ( xl6_error_has() ) {\n", ctx->out);
+            xl6OutputPuts("        xl6_error_clear();\n", ctx->out);
+            xl6OutputPuts("        xlUnit();\n", ctx->out);
+            xl6OutputPuts("        return 1;\n", ctx->out);
+            xl6OutputPuts("    }\n", ctx->out);
+        }
         xl6OutputPuts("    xlUnit();\n", ctx->out);
         xl6OutputPuts("    return 0;\n", ctx->out);
     }

@@ -10,8 +10,14 @@ typedef enum XL6_CgenCleanupKind {
     XL6_CGEN_CLEANUP_CUSTOM,
     XL6_CGEN_CLEANUP_CLASS,
     XL6_CGEN_CLEANUP_FUNCTION,
+    XL6_CGEN_CLEANUP_FUTURE,
+    XL6_CGEN_CLEANUP_CHANNEL,
+    XL6_CGEN_CLEANUP_THREAD,
+    XL6_CGEN_CLEANUP_GENERATOR,
+    XL6_CGEN_CLEANUP_SYNC,
     XL6_CGEN_CLEANUP_XVALUE,
     XL6_CGEN_CLEANUP_TYPED_CONTAINER,
+    XL6_CGEN_CLEANUP_ERROR,
     XL6_CGEN_CLEANUP_AVLTB_ITER
 } XL6_CgenCleanupKind;
 
@@ -57,6 +63,12 @@ typedef struct XL6_CgenLoopTarget {
     int continueId;
 } XL6_CgenLoopTarget;
 
+typedef struct XL6_CgenTryTarget {
+    size_t cleanupMark;
+    int id;
+    int targetFinally;
+} XL6_CgenTryTarget;
+
 typedef struct XL6_CgenContext {
     XL6_Output* out;
     XL6_AstNode* root;
@@ -67,12 +79,18 @@ typedef struct XL6_CgenContext {
     char** emittedClasses;
     size_t emittedClassCount;
     size_t emittedClassCapacity;
+    char** emittedUnions;
+    size_t emittedUnionCount;
+    size_t emittedUnionCapacity;
     XL6_CgenCleanup* cleanups;
     size_t cleanupCount;
     size_t cleanupCapacity;
     XL6_CgenLoopTarget* loopTargets;
     size_t loopTargetCount;
     size_t loopTargetCapacity;
+    XL6_CgenTryTarget* tryTargets;
+    size_t tryTargetCount;
+    size_t tryTargetCapacity;
     XL6_CgenGenericInstance* genericInstances;
     size_t genericInstanceCount;
     size_t genericInstanceCapacity;
@@ -100,17 +118,47 @@ typedef struct XL6_CgenContext {
     const XL6_AstNode* currentClass;
     const XL6_AstNode* currentCustom;
     const XL6_CgenAnonFunc* currentAnonFunc;
+    const XL6_AstNode* currentGeneratorItemType;
+    const char* currentGeneratorHandleName;
+    const char* currentCatchErrorName;
+    const char* currentErrorExitLabel;
+    int currentAsyncWorker;
     int needsXValueRuntime;
     int needsFunctionVarRuntime;
+    int needsErrorRuntime;
     int ok;
     int indent;
     int tempId;
 } XL6_CgenContext;
 
 static int xl6CgenParamRequiredCount(const XL6_AstNode* params);
+static int xl6CgenIsAsyncFunc(const XL6_AstNode* node);
+static int xl6CgenIsFutureLikeType(const XL6_AstNode* typeNode);
+static int xl6CgenIsChannelType(const XL6_AstNode* typeNode);
+static int xl6CgenIsThreadType(const XL6_AstNode* typeNode);
+static int xl6CgenIsGeneratorType(const XL6_AstNode* typeNode);
+static int xl6CgenIsSyncHandleType(const XL6_AstNode* typeNode);
+static int xl6CgenNodeNeedsAsyncRuntime(const XL6_AstNode* node);
+static void xl6CgenEmitAsyncRuntime(XL6_Output* out);
+static void xl6CgenEmitGeneratorRuntime(XL6_Output* out);
+static void xl6CgenAsyncFuncProto(XL6_CgenContext* ctx, const XL6_AstNode* node);
+static void xl6CgenAsyncFunc(XL6_CgenContext* ctx, const XL6_AstNode* node);
+static void xl6CgenAsyncReturnStmt(XL6_CgenContext* ctx, const XL6_AstNode* node);
+static void xl6CgenAwaitExpr(XL6_CgenContext* ctx, const XL6_AstNode* node);
+static int xl6CgenChannelCtorCall(XL6_CgenContext* ctx, const XL6_AstNode* call, const XL6_AstNode* callee);
+static int xl6CgenChannelMethodCall(XL6_CgenContext* ctx, const XL6_AstNode* call, const XL6_AstNode* member);
+static int xl6CgenThreadCtorCall(XL6_CgenContext* ctx, const XL6_AstNode* call, const XL6_AstNode* callee);
+static int xl6CgenThreadMethodCall(XL6_CgenContext* ctx, const XL6_AstNode* call, const XL6_AstNode* member);
+static int xl6CgenFuncReturnsGenerator(XL6_CgenContext* ctx, const XL6_AstNode* node);
+static void xl6CgenGeneratorFunc(XL6_CgenContext* ctx, const XL6_AstNode* node);
+static void xl6CgenYieldStmt(XL6_CgenContext* ctx, const XL6_AstNode* node);
+static XL6_AstNode* xl6CgenCloneGeneratorItemType(XL6_CgenContext* ctx, const XL6_AstNode* typeNode);
+static void xl6CgenAddGeneratorCleanup(XL6_CgenContext* ctx, const char* name, const XL6_AstNode* typeNode);
+static void xl6CgenEmitExceptionPropagate(XL6_CgenContext* ctx, const XL6_AstNode* at);
+static int xl6CgenSyncCtorCall(XL6_CgenContext* ctx, const XL6_AstNode* call, const XL6_AstNode* callee);
+static int xl6CgenSyncMethodCall(XL6_CgenContext* ctx, const XL6_AstNode* call, const XL6_AstNode* member);
 
 static int xl6CTextEquals(const char* a, const char* b)
 {
     return (a != NULL) && (b != NULL) && (strcmp(a, b) == 0);
 }
-

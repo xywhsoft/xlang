@@ -8,6 +8,7 @@ typedef enum XL6_AstKind {
     XL6_AST_LIST,
     XL6_AST_IMPORT,
     XL6_AST_FUNC,
+    XL6_AST_ASYNC_FUNC,
     XL6_AST_ANON_FUNC,
     XL6_AST_EXTERN_FUNC,
     XL6_AST_EXPORT_FUNC,
@@ -18,6 +19,7 @@ typedef enum XL6_AstKind {
     XL6_AST_EXTERN_TYPE_ALIAS,
     XL6_AST_CLASS,
     XL6_AST_CUSTOM,
+    XL6_AST_UNION,
     XL6_AST_FIELD,
     XL6_AST_CREATE,
     XL6_AST_CUSTOM_EXTERN_SPECIAL,
@@ -30,6 +32,7 @@ typedef enum XL6_AstKind {
     XL6_AST_MULTI_VAR_DECL,
     XL6_AST_CONST_DECL,
     XL6_AST_RETURN,
+    XL6_AST_YIELD,
     XL6_AST_EXPR_STMT,
     XL6_AST_TYPE,
     XL6_AST_NAME,
@@ -52,6 +55,7 @@ typedef enum XL6_AstKind {
     XL6_AST_CONDITIONAL,
     XL6_AST_BINARY,
     XL6_AST_UNARY,
+    XL6_AST_AWAIT,
     XL6_AST_ARRAY_LITERAL,
     XL6_AST_LIST_LITERAL,
     XL6_AST_SET_LITERAL,
@@ -64,6 +68,10 @@ typedef enum XL6_AstKind {
     XL6_AST_DO_WHILE,
     XL6_AST_FOR,
     XL6_AST_FOR_TARGETS,
+    XL6_AST_TRY,
+    XL6_AST_CATCH,
+    XL6_AST_THROW,
+    XL6_AST_ASSERT,
     XL6_AST_BREAK,
     XL6_AST_CONTINUE
 } XL6_AstKind;
@@ -71,6 +79,7 @@ typedef enum XL6_AstKind {
 typedef struct XL6_AstNode {
     XL6_AstKind kind;
     char* text;
+    char* doc;
     int line;
     int column;
     struct XL6_AstNode** children;
@@ -85,6 +94,7 @@ XL6_AstNode* xl6AstNewBinary(const XL6_Token* op, XL6_AstNode* left, XL6_AstNode
 XL6_AstNode* xl6AstNewUnary(const XL6_Token* op, XL6_AstNode* expr);
 XL6_AstNode* xl6AstNewCall(XL6_AstNode* callee, XL6_AstNode* args, const XL6_Token* token);
 XL6_AstNode* xl6AstNewGenericType(const XL6_Token* name, XL6_AstNode* args);
+void xl6AstSetDoc(XL6_AstNode* node, const XL6_Token* token);
 void xl6AstAddChild(XL6_AstNode* parent, XL6_AstNode* child);
 void xl6AstMoveChildren(XL6_AstNode* dst, XL6_AstNode* src);
 void xl6AstFree(XL6_AstNode* node);

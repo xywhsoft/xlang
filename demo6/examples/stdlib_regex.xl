@@ -1,0 +1,5 @@
+string text = "item-2026-ready"
+
+assert regex.isMatch(text, "^item-[0-9]+-[a-z]+$"), "regex match failed"
+assert regex.find(text, "[0-9]+") == 5, "regex find failed"
+assert regex.find(text, "missing") == -1, "regex missing result failed"

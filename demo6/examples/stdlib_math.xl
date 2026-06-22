@@ -1,0 +1,28 @@
+float radius = 3.0
+float area = math.pow(radius, 2.0) * 3.141592653589793
+float diagonal = math.sqrt(2.0)
+
+float sine = math.sin(0.0)
+float cosine = math.cos(0.0)
+float tangent = math.tan(0.0)
+float arcSine = math.asin(0.0)
+float arcCosine = math.acos(1.0)
+float arcTangent = math.atan(0.0)
+float quadrant = math.atan2(0.0, 1.0)
+float exponential = math.exp(0.0)
+float naturalLog = math.log(1.0)
+float decimalLog = math.log10(100.0)
+float floorValue = math.floor(1.9)
+float ceilValue = math.ceil(1.1)
+float rounded = math.round(area)
+float absolute = math.abs(-3.5)
+float wave = sine + cosine + tangent
+
+auto areaText = area.toString()
+auto diagonalText = diagonal.toString()
+auto waveText = wave.toString()
+auto roundedText = rounded.toString()
+auto arcText = (arcSine + arcCosine + arcTangent + quadrant).toString()
+auto expLogText = (exponential + naturalLog + decimalLog).toString()
+auto floorCeilText = (floorValue + ceilValue).toString()
+auto absoluteText = absolute.toString()

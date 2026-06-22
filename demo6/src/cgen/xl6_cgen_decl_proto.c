@@ -285,14 +285,29 @@ static void xl6CgenClassDestroyProto(XL6_CgenContext* ctx, const XL6_AstNode* cl
     xl6OutputPuts("* self)", ctx->out);
 }
 
-static void xl6CgenEmitRecordBoxRuntime(XL6_CgenContext* ctx, const XL6_AstNode* classNode, const char* cTypeName, const char* sourceName)
+static void xl6CgenEmitRecordBoxRuntime(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* classNode,
+    const XL6_AstNode* typeNode,
+    const char* cTypeName,
+    const char* sourceName)
 {
     int needsDestroy;
+    int isGeneric;
+    const XL6_AstNode* prevParams;
+    const XL6_AstNode* prevArgs;
 
     if ( ctx == NULL || cTypeName == NULL || sourceName == NULL ) {
         return;
     }
     needsDestroy = xl6CgenClassNeedsDestroy(ctx, classNode);
+    isGeneric = typeNode != NULL && typeNode->childCount > 0 && xl6CgenClassHasTypeParams(classNode);
+    prevParams = ctx->currentGenericParams;
+    prevArgs = ctx->currentGenericArgs;
+    if ( isGeneric ) {
+        ctx->currentGenericParams = xl6CgenClassTypeParams(classNode);
+        ctx->currentGenericArgs = typeNode->children[0];
+    }
 
     xl6OutputPrintf(ctx->out, "static void xl6_type_copy_%s(void* dst, const void* src)\n{\n", cTypeName);
     xl6OutputPrintf(ctx->out, "    if ( dst == 0 ) {\n");
@@ -300,6 +315,15 @@ static void xl6CgenEmitRecordBoxRuntime(XL6_CgenContext* ctx, const XL6_AstNode*
     xl6OutputPrintf(ctx->out, "    }\n");
     xl6OutputPrintf(ctx->out, "    if ( src != 0 ) {\n");
     xl6OutputPrintf(ctx->out, "        memcpy(dst, src, sizeof(%s));\n", cTypeName);
+    if ( needsDestroy ) {
+        char dstPath[512];
+        int prevIndent = ctx->indent;
+
+        snprintf(dstPath, sizeof(dstPath), "(*(%s*)dst)", cTypeName);
+        ctx->indent = 2;
+        xl6CgenRetainClassFunctionFields(ctx, classNode, dstPath);
+        ctx->indent = prevIndent;
+    }
     xl6OutputPrintf(ctx->out, "    } else {\n");
     xl6OutputPrintf(ctx->out, "        memset(dst, 0, sizeof(%s));\n", cTypeName);
     xl6OutputPrintf(ctx->out, "    }\n");
@@ -307,12 +331,20 @@ static void xl6CgenEmitRecordBoxRuntime(XL6_CgenContext* ctx, const XL6_AstNode*
 
     if ( needsDestroy ) {
         xl6OutputPuts("void ", ctx->out);
-        xl6CgenClassMemberSymbol(ctx->out, classNode->text, "destroy");
+        if ( isGeneric ) {
+            xl6CgenGenericClassMemberSymbol(ctx, classNode, typeNode, "destroy");
+        } else {
+            xl6CgenClassMemberSymbol(ctx->out, classNode->text, "destroy");
+        }
         xl6OutputPrintf(ctx->out, "(%s* self);\n", cTypeName);
         xl6OutputPrintf(ctx->out, "static void xl6_type_drop_%s(void* obj)\n{\n", cTypeName);
         xl6OutputPrintf(ctx->out, "    if ( obj != 0 ) {\n");
         xl6OutputPrintf(ctx->out, "        ");
-        xl6CgenClassMemberSymbol(ctx->out, classNode->text, "destroy");
+        if ( isGeneric ) {
+            xl6CgenGenericClassMemberSymbol(ctx, classNode, typeNode, "destroy");
+        } else {
+            xl6CgenClassMemberSymbol(ctx->out, classNode->text, "destroy");
+        }
         xl6OutputPrintf(ctx->out, "((%s*)obj);\n", cTypeName);
         xl6OutputPrintf(ctx->out, "    }\n");
         xl6OutputPrintf(ctx->out, "}\n\n");
@@ -335,7 +367,7 @@ static void xl6CgenEmitRecordBoxRuntime(XL6_CgenContext* ctx, const XL6_AstNode*
     xl6OutputPrintf(ctx->out, "    if ( obj == 0 ) {\n");
     xl6OutputPrintf(ctx->out, "        return 0;\n");
     xl6OutputPrintf(ctx->out, "    }\n");
-    xl6OutputPrintf(ctx->out, "    return xrtHash64((void*)obj, sizeof(%s));\n", cTypeName);
+    xl6OutputPrintf(ctx->out, "    return xrtHash64((const char*)obj, sizeof(%s));\n", cTypeName);
     xl6OutputPrintf(ctx->out, "}\n\n");
 
     xl6OutputPrintf(ctx->out, "static xvalue xl6_type_box_%s(const void* obj, const xrt_type_desc* type)\n{\n", cTypeName);
@@ -419,6 +451,9 @@ static void xl6CgenEmitRecordBoxRuntime(XL6_CgenContext* ctx, const XL6_AstNode*
     xl6OutputPuts("return value;\n", ctx->out);
     ctx->indent -= 1;
     xl6OutputPuts("}\n\n", ctx->out);
+
+    ctx->currentGenericParams = prevParams;
+    ctx->currentGenericArgs = prevArgs;
 }
 
 static void xl6CgenEmitHandleBoxRuntime(XL6_CgenContext* ctx, const XL6_AstNode* customNode, const char* cTypeName, const char* sourceName)
@@ -467,7 +502,7 @@ static void xl6CgenEmitHandleBoxRuntime(XL6_CgenContext* ctx, const XL6_AstNode*
 
     xl6OutputPrintf(ctx->out, "static unsigned long long xl6_type_hash_%s(const void* obj)\n{\n", cTypeName);
     xl6OutputPrintf(ctx->out, "    void* handle = ((const %s*)obj != 0) ? ((const %s*)obj)->handle : 0;\n", cTypeName, cTypeName);
-    xl6OutputPrintf(ctx->out, "    return xrtHash64(&handle, sizeof(handle));\n");
+    xl6OutputPrintf(ctx->out, "    return xrtHash64((const char*)&handle, sizeof(handle));\n");
     xl6OutputPrintf(ctx->out, "}\n\n");
 
     xl6OutputPrintf(ctx->out, "static xvalue xl6_type_box_%s(const void* obj, const xrt_type_desc* type)\n{\n", cTypeName);

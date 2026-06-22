@@ -163,6 +163,52 @@ int xl6OutputOpenFile(XL6_Output* out, const char* path)
     return 1;
 }
 
+int xl6OutputOpenMemory(XL6_Output* out)
+{
+    if ( out == NULL ) {
+        return 0;
+    }
+    out->kind = XL6_OUTPUT_BUFFER_MEMORY;
+    out->stdFile = NULL;
+    out->path = NULL;
+    out->buffer = xrtBufferCreate(XL6_OUTPUT_BUFFER_STEP);
+    out->error = NULL;
+    out->failed = 0;
+
+    if ( out->buffer == NULL ) {
+        xl6OutputMarkFailedXrt(out, "cannot create output buffer");
+        return 0;
+    }
+    return 1;
+}
+
+char* xl6OutputTakeMemoryText(XL6_Output* out, size_t* outSize)
+{
+    char* text;
+    size_t len;
+
+    if ( outSize != NULL ) {
+        *outSize = 0;
+    }
+    if ( out == NULL || out->kind != XL6_OUTPUT_BUFFER_MEMORY || out->failed || out->buffer == NULL ) {
+        return NULL;
+    }
+    len = out->buffer->Length;
+    text = (char*)xrtMalloc(len + 1);
+    if ( text == NULL ) {
+        xl6OutputMarkFailedXrt(out, "cannot copy output buffer");
+        return NULL;
+    }
+    if ( len > 0 ) {
+        memcpy(text, out->buffer->Buffer, len);
+    }
+    text[len] = '\0';
+    if ( outSize != NULL ) {
+        *outSize = len;
+    }
+    return text;
+}
+
 void xl6OutputClose(XL6_Output* out)
 {
     if ( out == NULL ) {
@@ -180,6 +226,9 @@ void xl6OutputClose(XL6_Output* out)
         if ( !out->failed && !xl6OutputFlushBufferStdFile(out) ) {
             out->failed = 1;
         }
+        xrtBufferDestroy(out->buffer);
+        out->buffer = NULL;
+    } else if ( out->kind == XL6_OUTPUT_BUFFER_MEMORY ) {
         xrtBufferDestroy(out->buffer);
         out->buffer = NULL;
     } else if ( out->kind == XL6_OUTPUT_STD_FILE && out->stdFile != NULL ) {
@@ -215,7 +264,7 @@ int xl6OutputPuts(const char* text, XL6_Output* out)
         return 0;
     }
 
-    if ( out->kind == XL6_OUTPUT_BUFFER_FILE || out->kind == XL6_OUTPUT_BUFFER_STD_FILE ) {
+    if ( out->kind == XL6_OUTPUT_BUFFER_FILE || out->kind == XL6_OUTPUT_BUFFER_STD_FILE || out->kind == XL6_OUTPUT_BUFFER_MEMORY ) {
         if ( out->buffer == NULL || len > 0xFFFFFFFFu || !xrtBufferAppend(out->buffer, (char*)text, (uint32)len, XBUF_BINARY) ) {
             xl6OutputMarkFailedXrt(out, "cannot append output buffer");
             return EOF;
@@ -239,7 +288,7 @@ int xl6OutputPutc(int ch, XL6_Output* out)
     }
 
     text[0] = (char)ch;
-    if ( out->kind == XL6_OUTPUT_BUFFER_FILE || out->kind == XL6_OUTPUT_BUFFER_STD_FILE ) {
+    if ( out->kind == XL6_OUTPUT_BUFFER_FILE || out->kind == XL6_OUTPUT_BUFFER_STD_FILE || out->kind == XL6_OUTPUT_BUFFER_MEMORY ) {
         if ( out->buffer == NULL || !xrtBufferAppend(out->buffer, text, 1, XBUF_BINARY) ) {
             xl6OutputMarkFailedXrt(out, "cannot append output buffer");
             return EOF;

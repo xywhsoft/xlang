@@ -1,0 +1,34 @@
+extern "expect_i64" func expect(int actual, int expected)
+extern "expect_str" func expectStr(string actual, string expected)
+
+string filePath = "release/tmp/stdlib_xson_case.xson"
+
+file.delete(filePath)
+
+var values = xson.parse("[1,2,3]")
+string compactValues = xson.stringify(values)
+string prettyValues = xson.stringify(values, pretty = true)
+
+expect(string.contains(compactValues, "1"), 1)
+expect(string.contains(compactValues, "2"), 1)
+expect(string.contains(compactValues, "3"), 1)
+expect(string.len(prettyValues) >= string.len(compactValues), 1)
+
+var roundTripValues = xson.parse(compactValues)
+expectStr(json.stringify(roundTripValues), "[1,2,3]")
+
+var object = xson.parse('{"name":"xlang","ok":true}')
+string objectText = xson.stringify(object)
+
+expect(string.contains(objectText, "name"), 1)
+expect(string.contains(objectText, "xlang"), 1)
+
+expect(xson.write(filePath, object), 1)
+expect(file.exists(filePath), 1)
+
+var fileObject = xson.read(filePath)
+string fileObjectText = json.stringify(fileObject)
+
+expect(string.contains(fileObjectText, '"name"'), 1)
+expect(string.contains(fileObjectText, '"xlang"'), 1)
+expect(file.delete(filePath), 1)

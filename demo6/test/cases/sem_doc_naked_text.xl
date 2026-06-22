@@ -1,0 +1,5 @@
+#doc
+This line is not under a doc field.
+#end
+func bad()
+end

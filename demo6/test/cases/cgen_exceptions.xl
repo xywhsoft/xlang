@@ -1,0 +1,115 @@
+func catchThrow() -> int
+    int state = 0
+    int messageOk = 0
+    int kindOk = 0
+    int lineOk = 0
+
+    try
+        state = 1
+        throw "boom"
+        state = 100
+    catch e
+        state = state + 1
+        if e.message == "boom" then
+            messageOk = 1
+        end
+        if e.kind == "Error" then
+            kindOk = 1
+        end
+        if e.line > 0 then
+            lineOk = 1
+        end
+    finally
+        state = state + 10
+    end
+
+    return state + messageOk + kindOk + lineOk
+end
+
+func catchAssert() -> int
+    int state = 0
+    int messageOk = 0
+    int kindOk = 0
+
+    try
+        assert false, "bad state"
+        state = 100
+    catch e
+        state = 1
+        if e.message == "bad state" then
+            messageOk = 1
+        end
+        if e.kind == "AssertError" then
+            kindOk = 1
+        end
+    end
+
+    return state + messageOk + kindOk
+end
+
+func rethrowKeepsOriginal() -> int
+    int state = 0
+
+    try
+        try
+            throw "inner"
+        catch e
+            state = state + 1
+            throw
+        end
+    catch outer
+        if outer.message == "inner" then
+            state = state + 10
+        end
+    end
+
+    return state
+end
+
+func finallyWithoutCatchNormal() -> int
+    int state = 0
+
+    try
+        state = 1
+    finally
+        state = state + 10
+    end
+
+    return state
+end
+
+func finallyWithoutCatchThrows() -> int
+    int state = 0
+
+    try
+        try
+            state = 1
+            throw "through finally"
+        finally
+            state = state + 10
+        end
+    catch e
+        if e.message == "through finally" then
+            state = state + 100
+        end
+    end
+
+    return state
+end
+
+func assertTrueDoesNothing() -> int
+    int state = 1
+    assert state == 1
+    state = state + 1
+    return state
+end
+
+func main(...) -> int
+    if catchThrow() != 15 then return 1
+    if catchAssert() != 3 then return 2
+    if rethrowKeepsOriginal() != 11 then return 3
+    if finallyWithoutCatchNormal() != 11 then return 4
+    if finallyWithoutCatchThrows() != 111 then return 5
+    if assertTrueDoesNothing() != 2 then return 6
+    return 0
+end

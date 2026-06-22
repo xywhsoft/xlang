@@ -1,0 +1,12 @@
+extern "expect_i64" func expect(int actual, int expected)
+
+string xid = id.xid()
+expect(string.len(xid), 32)
+
+string localIP = net.localIP()
+string localMAC = net.localMAC()
+string localName = net.localName()
+
+assert string.len(localIP) >= 0, "localIP should return a string"
+assert string.len(localMAC) >= 0, "localMAC should return a string"
+assert string.len(localName) >= 0, "localName should return a string"

@@ -1,0 +1,6 @@
+#doc
+summary:
+    Unknown field.
+#end
+func bad()
+end

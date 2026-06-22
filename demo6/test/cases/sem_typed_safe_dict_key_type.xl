@@ -1,0 +1,3 @@
+dict<int> scores = dict{"alpha": 10}
+
+var value = scores?[1]

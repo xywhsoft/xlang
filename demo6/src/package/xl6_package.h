@@ -14,11 +14,60 @@ typedef struct XL6_PackageResolveResult {
     int resolved;
     char target[256];
     char manifestPath[512];
+    char packageDir[512];
+    char interfacePath[512];
+    char packageName[128];
+    char packageVersion[64];
+    char abiVersion[64];
+    char packageId[256];
 } XL6_PackageResolveResult;
+
+typedef struct XL6_PackageStringList {
+    char** items;
+    size_t count;
+} XL6_PackageStringList;
+
+typedef struct XL6_PackageDependency {
+    char* name;
+    char* version;
+    char* abiVersion;
+    char* packageId;
+} XL6_PackageDependency;
+
+typedef struct XL6_PackageNativeInfo {
+    int singleton;
+    char* loadName;
+    char* version;
+} XL6_PackageNativeInfo;
+
+typedef struct XL6_PackageManifest {
+    char* format;
+    char* name;
+    char* version;
+    char* abiVersion;
+    char* packageId;
+    char* xapi;
+    char* dir;
+    XL6_PackageStringList cSources;
+    XL6_PackageStringList links;
+    XL6_PackageStringList loadlibs;
+    XL6_PackageDependency* dependencies;
+    size_t dependencyCount;
+    XL6_PackageNativeInfo nativeInfo;
+} XL6_PackageManifest;
+
+void xl6PackageStringListInit(XL6_PackageStringList* list);
+void xl6PackageStringListFree(XL6_PackageStringList* list);
+int xl6PackageStringListAppend(XL6_PackageStringList* list, const char* text);
+
+void xl6PackageManifestInit(XL6_PackageManifest* manifest);
+void xl6PackageManifestFree(XL6_PackageManifest* manifest);
+int xl6PackageLoadManifest(const char* path, XL6_PackageManifest* manifest);
 
 void xl6PackageResolveResultInit(XL6_PackageResolveResult* result);
 const char* xl6PackageResolveKindName(XL6_PackageResolveKind kind);
 int xl6PackageResolveImport(const char* importerPath, const char* target, XL6_PackageResolveResult* result);
 int xl6PackageResolveInterfacePath(const XL6_PackageResolveResult* result, char* out, size_t outSize);
+int xl6PackageJoinPath(char* out, size_t outSize, const char* a, const char* b);
 
 #endif

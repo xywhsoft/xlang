@@ -1,0 +1,143 @@
+static void xl6CgenEmitProcessRuntime(XL6_Output* out)
+{
+    if ( out == NULL ) {
+        return;
+    }
+
+    xl6OutputPuts("#ifndef XL6_PROCESS_RUNTIME\n", out);
+    xl6OutputPuts("#define XL6_PROCESS_RUNTIME\n", out);
+    xl6OutputPuts("#include <string.h>\n", out);
+    xl6OutputPuts("#define XL6_XPROC_TARGET_SHELL 2\n", out);
+    xl6OutputPuts("#define XL6_XPROC_EXIT_NORMAL 1\n\n", out);
+
+    xl6OutputPuts("typedef struct xprocess_struct xprocess;\n", out);
+    xl6OutputPuts("typedef struct { int iMode; bool bCapture; } xprocessstdio;\n", out);
+    xl6OutputPuts("typedef struct {\n", out);
+    xl6OutputPuts("    int iKind;\n", out);
+    xl6OutputPuts("    int iExitCode;\n", out);
+    xl6OutputPuts("    int iSignal;\n", out);
+    xl6OutputPuts("    int iStage;\n", out);
+    xl6OutputPuts("    int iOsError;\n", out);
+    xl6OutputPuts("    int iStopReason;\n", out);
+    xl6OutputPuts("    bool bTimedOut;\n", out);
+    xl6OutputPuts("    bool bCancelled;\n", out);
+    xl6OutputPuts("} xprocessexitinfo;\n", out);
+    xl6OutputPuts("typedef struct {\n", out);
+    xl6OutputPuts("    void (*OnStart)(xprocess* pProcess, void* pUserData);\n", out);
+    xl6OutputPuts("    void (*OnStdout)(xprocess* pProcess, const void* pData, size_t iSize, void* pUserData);\n", out);
+    xl6OutputPuts("    void (*OnStderr)(xprocess* pProcess, const void* pData, size_t iSize, void* pUserData);\n", out);
+    xl6OutputPuts("    void (*OnExit)(xprocess* pProcess, const xprocessexitinfo* pExitInfo, void* pUserData);\n", out);
+    xl6OutputPuts("} xprocessevents;\n", out);
+    xl6OutputPuts("typedef struct {\n", out);
+    xl6OutputPuts("    int iTargetKind;\n", out);
+    xl6OutputPuts("    char* sProgram;\n", out);
+    xl6OutputPuts("    char** arrArgs;\n", out);
+    xl6OutputPuts("    uint32_t iArgCount;\n", out);
+    xl6OutputPuts("    char* sCommand;\n", out);
+    xl6OutputPuts("    char* sWorkDir;\n", out);
+    xl6OutputPuts("    char** arrEnv;\n", out);
+    xl6OutputPuts("    uint32_t iEnvCount;\n", out);
+    xl6OutputPuts("    bool bInheritEnv;\n", out);
+    xl6OutputPuts("    bool bUseTerminal;\n", out);
+    xl6OutputPuts("    bool bNewConsole;\n", out);
+    xl6OutputPuts("    bool bMergeStderr;\n", out);
+    xl6OutputPuts("    bool bCreateProcessGroup;\n", out);
+    xl6OutputPuts("    bool bHideWindow;\n", out);
+    xl6OutputPuts("    uint32_t iTerminalCols;\n", out);
+    xl6OutputPuts("    uint32_t iTerminalRows;\n", out);
+    xl6OutputPuts("    uint32_t iReadChunkSize;\n", out);
+    xl6OutputPuts("    size_t iMaxCaptureBytes;\n", out);
+    xl6OutputPuts("    uint32_t iMaxEventCount;\n", out);
+    xl6OutputPuts("    xprocessstdio Stdin;\n", out);
+    xl6OutputPuts("    xprocessstdio Stdout;\n", out);
+    xl6OutputPuts("    xprocessstdio Stderr;\n", out);
+    xl6OutputPuts("    const xprocessevents* pEvents;\n", out);
+    xl6OutputPuts("    void* pUserData;\n", out);
+    xl6OutputPuts("} xprocessconfig;\n", out);
+    xl6OutputPuts("typedef struct {\n", out);
+    xl6OutputPuts("    xprocessexitinfo ExitInfo;\n", out);
+    xl6OutputPuts("    int iExitCode;\n", out);
+    xl6OutputPuts("    void* pStdout;\n", out);
+    xl6OutputPuts("    size_t iStdoutSize;\n", out);
+    xl6OutputPuts("    uint64_t iStdoutBaseOffset;\n", out);
+    xl6OutputPuts("    void* pStderr;\n", out);
+    xl6OutputPuts("    size_t iStderrSize;\n", out);
+    xl6OutputPuts("    uint64_t iStderrBaseOffset;\n", out);
+    xl6OutputPuts("    bool bStdoutTruncated;\n", out);
+    xl6OutputPuts("    bool bStderrTruncated;\n", out);
+    xl6OutputPuts("} xprocessresult;\n\n", out);
+
+    xl6OutputPuts("void* xrtMalloc(size_t iSize);\n", out);
+    xl6OutputPuts("void xrtFree(void* p);\n", out);
+    xl6OutputPuts("void xrtProcessConfigInit(xprocessconfig* pConfig);\n", out);
+    xl6OutputPuts("bool xrtExecCapture(const xprocessconfig* pConfig, xprocessresult* pResult, uint32_t iTimeoutMs);\n", out);
+    xl6OutputPuts("void xrtProcessResultUnit(xprocessresult* pResult);\n\n", out);
+
+    xl6OutputPuts("static void* xl6_process_empty_string(void)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    char* text = (char*)xrtMalloc(1);\n", out);
+    xl6OutputPuts("    if ( text != 0 ) { text[0] = '\\0'; }\n", out);
+    xl6OutputPuts("    return text;\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("static void xl6_process_config_shell(xprocessconfig* config, const char* command)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    xrtProcessConfigInit(config);\n", out);
+    xl6OutputPuts("    config->iTargetKind = XL6_XPROC_TARGET_SHELL;\n", out);
+    xl6OutputPuts("    config->sCommand = (char*)(command != 0 ? command : \"\");\n", out);
+    xl6OutputPuts("    config->bHideWindow = true;\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("void* xl6_xrt_process_exec(const char* command, int timeoutMs)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    xprocessconfig config;\n", out);
+    xl6OutputPuts("    xprocessresult result;\n", out);
+    xl6OutputPuts("    char* outText;\n", out);
+    xl6OutputPuts("    size_t size;\n", out);
+    xl6OutputPuts("    uint32_t timeout;\n", out);
+    xl6OutputPuts("    xl6_process_config_shell(&config, command);\n", out);
+    xl6OutputPuts("    timeout = timeoutMs > 0 ? (uint32_t)timeoutMs : 0u;\n", out);
+    xl6OutputPuts("    if ( !xrtExecCapture(&config, &result, timeout) ) { xrtProcessResultUnit(&result); return xl6_process_empty_string(); }\n", out);
+    xl6OutputPuts("    size = result.pStdout != 0 ? result.iStdoutSize : 0u;\n", out);
+    xl6OutputPuts("    if ( size == 0u ) { xrtProcessResultUnit(&result); return xl6_process_empty_string(); }\n", out);
+    xl6OutputPuts("    outText = (char*)xrtMalloc(size + 1u);\n", out);
+    xl6OutputPuts("    if ( outText == 0 ) { xrtProcessResultUnit(&result); return 0; }\n", out);
+    xl6OutputPuts("    memcpy(outText, result.pStdout, size);\n", out);
+    xl6OutputPuts("    outText[size] = '\\0';\n", out);
+    xl6OutputPuts("    xrtProcessResultUnit(&result);\n", out);
+    xl6OutputPuts("    return outText;\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("bool xl6_xrt_process_success(const char* command, int timeoutMs)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    xprocessconfig config;\n", out);
+    xl6OutputPuts("    xprocessresult result;\n", out);
+    xl6OutputPuts("    bool ok;\n", out);
+    xl6OutputPuts("    uint32_t timeout;\n", out);
+    xl6OutputPuts("    xl6_process_config_shell(&config, command);\n", out);
+    xl6OutputPuts("    timeout = timeoutMs > 0 ? (uint32_t)timeoutMs : 0u;\n", out);
+    xl6OutputPuts("    ok = xrtExecCapture(&config, &result, timeout) &&\n", out);
+    xl6OutputPuts("         !result.ExitInfo.bTimedOut &&\n", out);
+    xl6OutputPuts("         result.ExitInfo.iKind == XL6_XPROC_EXIT_NORMAL &&\n", out);
+    xl6OutputPuts("         result.iExitCode == 0;\n", out);
+    xl6OutputPuts("    xrtProcessResultUnit(&result);\n", out);
+    xl6OutputPuts("    return ok;\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("int xl6_xrt_process_exit_code(const char* command, int timeoutMs)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    xprocessconfig config;\n", out);
+    xl6OutputPuts("    xprocessresult result;\n", out);
+    xl6OutputPuts("    int code;\n", out);
+    xl6OutputPuts("    uint32_t timeout;\n", out);
+    xl6OutputPuts("    xl6_process_config_shell(&config, command);\n", out);
+    xl6OutputPuts("    timeout = timeoutMs > 0 ? (uint32_t)timeoutMs : 0u;\n", out);
+    xl6OutputPuts("    code = -1;\n", out);
+    xl6OutputPuts("    if ( xrtExecCapture(&config, &result, timeout) && !result.ExitInfo.bTimedOut ) {\n", out);
+    xl6OutputPuts("        code = result.iExitCode;\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    xrtProcessResultUnit(&result);\n", out);
+    xl6OutputPuts("    return code;\n", out);
+    xl6OutputPuts("}\n\n", out);
+    xl6OutputPuts("#endif\n\n", out);
+}

@@ -194,6 +194,7 @@ static int xl6XapiIsTopLevelRuntimeStmt(const XL6_AstNode* node)
            node->kind != XL6_AST_TYPE_ALIAS &&
            node->kind != XL6_AST_EXTERN_TYPE_ALIAS &&
            node->kind != XL6_AST_CUSTOM &&
+           node->kind != XL6_AST_UNION &&
            node->kind != XL6_AST_CLASS;
 }
 
@@ -348,7 +349,7 @@ static void xl6XapiDumpTypeDecl(XL6_Output* out, const XL6_AstNode* node, int co
         xl6OutputPuts(",\n", out);
     }
     xl6OutputPuts("    {\"kind\":", out);
-    xl6XapiJsonString(out, node->kind == XL6_AST_CUSTOM ? "custom" : "class");
+    xl6XapiJsonString(out, node->kind == XL6_AST_CUSTOM ? "custom" : (node->kind == XL6_AST_UNION ? "union" : "class"));
     xl6OutputPuts(",\"name\":", out);
     xl6XapiJsonString(out, node->text != NULL ? node->text : "");
     xl6OutputPutc('}', out);
@@ -473,6 +474,312 @@ static char* xl6XapiDupText(const char* text)
     return xrtCopyStr((char*)(text != NULL ? text : ""), text != NULL ? strlen(text) : 0);
 }
 
+static int xl6XapiDocLineIsEnd(const char* line, size_t len)
+{
+    while ( len > 0 && (line[len - 1] == '\r' || line[len - 1] == '\n') ) {
+        len -= 1;
+    }
+    while ( len > 0 && (line[0] == ' ' || line[0] == '\t') ) {
+        line += 1;
+        len -= 1;
+    }
+    return len >= 4 && strncmp(line, "#end", 4) == 0;
+}
+
+static int xl6XapiDocLineIsStart(const char* line, size_t len)
+{
+    while ( len > 0 && (line[len - 1] == '\r' || line[len - 1] == '\n') ) {
+        len -= 1;
+    }
+    while ( len > 0 && (line[0] == ' ' || line[0] == '\t') ) {
+        line += 1;
+        len -= 1;
+    }
+    return len >= 4 && strncmp(line, "#doc", 4) == 0;
+}
+
+static size_t xl6XapiDocLeadingIndent(const char* line, size_t len)
+{
+    size_t indent;
+
+    indent = 0;
+    while ( indent < len && (line[indent] == ' ' || line[indent] == '\t') ) {
+        indent += 1;
+    }
+    return indent;
+}
+
+static void xl6XapiDocStripBaseIndent(const char** line, size_t* len, size_t baseIndent)
+{
+    size_t removed;
+
+    if ( line == NULL || *line == NULL || len == NULL || baseIndent == 0 ) {
+        return;
+    }
+    removed = 0;
+    while ( removed < baseIndent && *len > 0 && ((*line)[0] == ' ' || (*line)[0] == '\t') ) {
+        *line += 1;
+        *len -= 1;
+        removed += 1;
+    }
+}
+
+static size_t xl6XapiDocBaseIndent(const char* raw)
+{
+    const char* p;
+
+    if ( raw == NULL ) {
+        return 0;
+    }
+    p = raw;
+    while ( *p != '\0' ) {
+        const char* line = p;
+        size_t len;
+
+        while ( *p != '\0' && *p != '\n' ) {
+            p += 1;
+        }
+        len = (size_t)(p - line);
+        if ( *p == '\n' ) {
+            p += 1;
+            len += 1;
+        }
+        if ( xl6XapiDocLineIsStart(line, len) ) {
+            return xl6XapiDocLeadingIndent(line, len);
+        }
+    }
+    return 0;
+}
+
+static int xl6XapiDocHeaderText(
+    const char* line,
+    size_t len,
+    const char** outKind,
+    const char** outName,
+    size_t* outNameLen,
+    const char** outBody,
+    size_t* outBodyLen)
+{
+    const char* colon;
+    size_t headLen;
+    const char* body;
+    size_t bodyLen;
+
+    while ( len > 0 && (line[len - 1] == '\r' || line[len - 1] == '\n') ) {
+        len -= 1;
+    }
+    if ( len == 0 || line[0] == ' ' || line[0] == '\t' ) {
+        return 0;
+    }
+    colon = (const char*)memchr(line, ':', len);
+    if ( colon == NULL ) {
+        return 0;
+    }
+    headLen = (size_t)(colon - line);
+    body = colon + 1;
+    bodyLen = len - headLen - 1;
+    if ( bodyLen > 0 && (*body == ' ' || *body == '\t') ) {
+        body += 1;
+        bodyLen -= 1;
+    }
+
+    *outName = NULL;
+    *outNameLen = 0;
+    if ( headLen == 4 && strncmp(line, "desc", 4) == 0 ) {
+        *outKind = "desc";
+    } else if ( headLen == 4 && strncmp(line, "note", 4) == 0 ) {
+        *outKind = "note";
+    } else if ( headLen == 7 && strncmp(line, "example", 7) == 0 ) {
+        *outKind = "example";
+    } else if ( headLen > 6 && strncmp(line, "param ", 6) == 0 ) {
+        *outKind = "param";
+        *outName = line + 6;
+        *outNameLen = headLen - 6;
+    } else if ( headLen > 7 && strncmp(line, "return ", 7) == 0 ) {
+        *outKind = "return";
+        *outName = line + 7;
+        *outNameLen = headLen - 7;
+    } else {
+        return 0;
+    }
+
+    *outBody = body;
+    *outBodyLen = bodyLen;
+    return 1;
+}
+
+static void xl6XapiDocDumpDedentedString(XL6_Output* out, const char* text)
+{
+    const char* p;
+    const char* line;
+    size_t minIndent;
+    int hasContent;
+
+    if ( text == NULL ) {
+        xl6XapiJsonString(out, "");
+        return;
+    }
+
+    minIndent = (size_t)-1;
+    hasContent = 0;
+    p = text;
+    while ( *p != '\0' ) {
+        size_t indent = 0;
+        const char* scan;
+
+        line = p;
+        while ( *p != '\0' && *p != '\n' ) {
+            p += 1;
+        }
+        scan = line;
+        while ( scan < p && (*scan == ' ' || *scan == '\t') ) {
+            indent += 1;
+            scan += 1;
+        }
+        if ( scan < p && *scan != '\r' ) {
+            hasContent = 1;
+            if ( indent < minIndent ) {
+                minIndent = indent;
+            }
+        }
+        if ( *p == '\n' ) {
+            p += 1;
+        }
+    }
+    if ( !hasContent ) {
+        minIndent = 0;
+    }
+
+    xl6OutputPutc('"', out);
+    p = text;
+    while ( *p != '\0' ) {
+        size_t skipped = 0;
+        const char* lineEnd;
+
+        line = p;
+        while ( *p != '\0' && *p != '\n' ) {
+            p += 1;
+        }
+        lineEnd = p;
+        while ( line < lineEnd && skipped < minIndent && (*line == ' ' || *line == '\t') ) {
+            line += 1;
+            skipped += 1;
+        }
+        if ( lineEnd > line && lineEnd[-1] == '\r' ) {
+            lineEnd -= 1;
+        }
+        xl6XapiJsonEscapedRange(out, line, (size_t)(lineEnd - line));
+        if ( *p == '\n' ) {
+            p += 1;
+            if ( *p != '\0' ) {
+                xl6OutputPuts("\\n", out);
+            }
+        }
+    }
+    xl6OutputPutc('"', out);
+}
+
+static void xl6XapiDocDumpField(
+    XL6_Output* out,
+    const char* kind,
+    const char* name,
+    size_t nameLen,
+    XL6_XapiStringBuilder* body,
+    int* first)
+{
+    if ( kind == NULL || body == NULL ) {
+        return;
+    }
+    if ( !*first ) {
+        xl6OutputPutc(',', out);
+    }
+    *first = 0;
+    xl6OutputPuts("{\"kind\":", out);
+    xl6XapiJsonString(out, kind);
+    if ( name != NULL ) {
+        xl6OutputPuts(",\"name\":\"", out);
+        xl6XapiJsonEscapedRange(out, name, nameLen);
+        xl6OutputPutc('"', out);
+    }
+    xl6OutputPuts(",\"text\":", out);
+    xl6XapiDocDumpDedentedString(out, body->data != NULL ? body->data : "");
+    xl6OutputPutc('}', out);
+}
+
+static void xl6XapiDumpDocJson(XL6_Output* out, const char* raw)
+{
+    XL6_XapiStringBuilder body;
+    const char* p;
+    const char* currentKind;
+    const char* currentName;
+    size_t baseIndent;
+    size_t currentNameLen;
+    int first;
+
+    xl6OutputPuts("{\"raw\":", out);
+    xl6XapiJsonString(out, raw != NULL ? raw : "");
+    xl6OutputPuts(",\"fields\":[", out);
+    if ( raw == NULL ) {
+        xl6OutputPuts("]}", out);
+        return;
+    }
+
+    xl6XapiStringBuilderInit(&body);
+    p = raw;
+    currentKind = NULL;
+    currentName = NULL;
+    currentNameLen = 0;
+    baseIndent = xl6XapiDocBaseIndent(raw);
+    first = 1;
+    while ( *p != '\0' ) {
+        const char* line = p;
+        const char* parseLine;
+        size_t len;
+        size_t parseLen;
+        const char* kind;
+        const char* name;
+        const char* fieldBody;
+        size_t nameLen;
+        size_t fieldBodyLen;
+
+        while ( *p != '\0' && *p != '\n' ) {
+            p += 1;
+        }
+        len = (size_t)(p - line);
+        if ( *p == '\n' ) {
+            p += 1;
+            len += 1;
+        }
+        parseLine = line;
+        parseLen = len;
+        xl6XapiDocStripBaseIndent(&parseLine, &parseLen, baseIndent);
+
+        if ( xl6XapiDocLineIsStart(parseLine, parseLen) || xl6XapiDocLineIsEnd(parseLine, parseLen) ) {
+            continue;
+        }
+        if ( xl6XapiDocHeaderText(parseLine, parseLen, &kind, &name, &nameLen, &fieldBody, &fieldBodyLen) ) {
+            xl6XapiDocDumpField(out, currentKind, currentName, currentNameLen, &body, &first);
+            xl6XapiStringBuilderFree(&body);
+            xl6XapiStringBuilderInit(&body);
+            currentKind = kind;
+            currentName = name;
+            currentNameLen = nameLen;
+            xl6XapiStringBuilderAppendRange(&body, fieldBody, fieldBodyLen);
+        } else if ( currentKind != NULL ) {
+            if ( body.len > 0 ) {
+                xl6XapiStringBuilderAppendChar(&body, '\n');
+            }
+            while ( parseLen > 0 && (parseLine[parseLen - 1] == '\n' || parseLine[parseLen - 1] == '\r') ) {
+                parseLen -= 1;
+            }
+            xl6XapiStringBuilderAppendRange(&body, parseLine, parseLen);
+        }
+    }
+    xl6XapiDocDumpField(out, currentKind, currentName, currentNameLen, &body, &first);
+    xl6XapiStringBuilderFree(&body);
+    xl6OutputPuts("]}", out);
+}
+
 static char* xl6XapiDupCStringSymbol(const char* text)
 {
     size_t len;
@@ -500,6 +807,111 @@ static char* xl6XapiDupImportTarget(const char* text)
         return xrtCopyStr((char*)text + 1, len - 2);
     }
     return xrtCopyStr((char*)text, len);
+}
+
+static char* xl6XapiBuildPackageId(const char* name, const char* version, const char* abiVersion)
+{
+    char buffer[512];
+    int written;
+
+    written = snprintf(buffer, sizeof(buffer), "%s@%s#abi%s",
+                       name != NULL && name[0] != '\0' ? name : "app",
+                       version != NULL && version[0] != '\0' ? version : "0.0.0",
+                       abiVersion != NULL && abiVersion[0] != '\0' ? abiVersion : "1");
+    if ( written <= 0 || (size_t)written >= sizeof(buffer) ) {
+        return NULL;
+    }
+    return xl6XapiDupText(buffer);
+}
+
+static char* xl6XapiBuildModuleId(const char* packageId, const char* moduleName)
+{
+    XL6_XapiStringBuilder builder;
+    char* out;
+
+    xl6XapiStringBuilderInit(&builder);
+    xl6XapiStringBuilderAppend(&builder, packageId != NULL && packageId[0] != '\0' ? packageId : "app@0.0.0#abi1");
+    xl6XapiStringBuilderAppend(&builder, "::");
+    xl6XapiStringBuilderAppend(&builder, moduleName != NULL && moduleName[0] != '\0' ? moduleName : "app");
+    out = xl6XapiStringBuilderTake(&builder);
+    xl6XapiStringBuilderFree(&builder);
+    return out;
+}
+
+static char* xl6XapiBuildSignature(const XL6_XapiExport* item)
+{
+    XL6_XapiStringBuilder builder;
+    size_t i;
+    char* out;
+
+    if ( item == NULL || item->kind == NULL ) {
+        return xl6XapiDupText("");
+    }
+
+    xl6XapiStringBuilderInit(&builder);
+    if ( xl6XapiTextEquals(item->kind, "function") ) {
+        xl6XapiStringBuilderAppend(&builder, "func(");
+        for ( i = 0; i < item->paramCount; ++i ) {
+            if ( i > 0 ) {
+                xl6XapiStringBuilderAppendChar(&builder, ',');
+            }
+            xl6XapiStringBuilderAppend(&builder, item->params[i].type != NULL ? item->params[i].type : "<missing-type>");
+        }
+        xl6XapiStringBuilderAppendChar(&builder, ')');
+        if ( item->returnCount > 0 ) {
+            xl6XapiStringBuilderAppend(&builder, "->");
+            if ( item->returnCount > 1 ) {
+                xl6XapiStringBuilderAppendChar(&builder, '(');
+            }
+            for ( i = 0; i < item->returnCount; ++i ) {
+                if ( i > 0 ) {
+                    xl6XapiStringBuilderAppendChar(&builder, ',');
+                }
+                xl6XapiStringBuilderAppend(&builder, item->returns[i] != NULL ? item->returns[i] : "<missing-type>");
+            }
+            if ( item->returnCount > 1 ) {
+                xl6XapiStringBuilderAppendChar(&builder, ')');
+            }
+        }
+    } else {
+        xl6XapiStringBuilderAppend(&builder, item->kind);
+        xl6XapiStringBuilderAppendChar(&builder, ':');
+        xl6XapiStringBuilderAppend(&builder, item->type != NULL ? item->type : "<missing-type>");
+    }
+    out = xl6XapiStringBuilderTake(&builder);
+    xl6XapiStringBuilderFree(&builder);
+    return out;
+}
+
+static char* xl6XapiBuildExportId(const XL6_XapiModule* module, const XL6_XapiExport* item)
+{
+    XL6_XapiStringBuilder builder;
+    char* out;
+
+    xl6XapiStringBuilderInit(&builder);
+    xl6XapiStringBuilderAppend(&builder, module != NULL && module->moduleId != NULL ? module->moduleId : "app@0.0.0#abi1::app");
+    xl6XapiStringBuilderAppend(&builder, "::");
+    xl6XapiStringBuilderAppend(&builder, item != NULL && item->name != NULL ? item->name : "");
+    xl6XapiStringBuilderAppendChar(&builder, '(');
+    xl6XapiStringBuilderAppend(&builder, item != NULL && item->signature != NULL ? item->signature : "");
+    xl6XapiStringBuilderAppendChar(&builder, ')');
+    out = xl6XapiStringBuilderTake(&builder);
+    xl6XapiStringBuilderFree(&builder);
+    return out;
+}
+
+static int xl6XapiFinalizeExportIdentity(XL6_XapiModule* module, XL6_XapiExport* item)
+{
+    if ( item == NULL ) {
+        return 0;
+    }
+    if ( item->signature == NULL ) {
+        item->signature = xl6XapiBuildSignature(item);
+    }
+    if ( item->exportId == NULL ) {
+        item->exportId = xl6XapiBuildExportId(module, item);
+    }
+    return item->signature != NULL && item->exportId != NULL;
 }
 
 static void xl6XapiAppendTypeBody(XL6_XapiStringBuilder* builder, const XL6_AstNode* root, const XL6_AstNode* typeNode)
@@ -570,6 +982,231 @@ static char* xl6XapiTypeToString(const XL6_AstNode* root, const XL6_AstNode* typ
     return xl6TypeToCanonicalString(root, typeNode);
 }
 
+static const XL6_AstNode* xl6XapiClassBody(const XL6_AstNode* classNode)
+{
+    if ( classNode == NULL || classNode->kind != XL6_AST_CLASS || classNode->childCount <= 1 ) {
+        return NULL;
+    }
+    return classNode->children[1];
+}
+
+static const XL6_AstNode* xl6XapiClassBase(const XL6_AstNode* classNode)
+{
+    if ( classNode == NULL || classNode->kind != XL6_AST_CLASS || classNode->childCount == 0 ) {
+        return NULL;
+    }
+    return classNode->children[0];
+}
+
+static const XL6_AstNode* xl6XapiClassTypeParams(const XL6_AstNode* classNode)
+{
+    if ( classNode == NULL || classNode->kind != XL6_AST_CLASS || classNode->childCount <= 2 ) {
+        return NULL;
+    }
+    return classNode->children[2];
+}
+
+static const XL6_AstNode* xl6XapiUnionBody(const XL6_AstNode* unionNode)
+{
+    if ( unionNode == NULL || unionNode->kind != XL6_AST_UNION || unionNode->childCount == 0 ) {
+        return NULL;
+    }
+    return unionNode->children[0];
+}
+
+static size_t xl6XapiCountUnionFields(const XL6_AstNode* unionNode)
+{
+    const XL6_AstNode* body;
+    size_t i;
+    size_t count;
+
+    body = xl6XapiUnionBody(unionNode);
+    count = 0;
+    if ( body == NULL ) {
+        return 0;
+    }
+    for ( i = 0; i < body->childCount; ++i ) {
+        const XL6_AstNode* field = body->children[i];
+        if ( field != NULL && field->kind == XL6_AST_FIELD ) {
+            count += 1;
+        }
+    }
+    return count;
+}
+
+static size_t xl6XapiCountClassFields(const XL6_AstNode* classNode)
+{
+    const XL6_AstNode* body;
+    size_t i;
+    size_t count;
+
+    body = xl6XapiClassBody(classNode);
+    count = 0;
+    if ( body == NULL ) {
+        return 0;
+    }
+    for ( i = 0; i < body->childCount; ++i ) {
+        const XL6_AstNode* member = body->children[i];
+        if ( member == NULL ) {
+            continue;
+        }
+        if ( member->kind == XL6_AST_FIELD ) {
+            count += 1;
+        } else if ( member->kind == XL6_AST_UNION ) {
+            count += xl6XapiCountUnionFields(member);
+        }
+    }
+    return count;
+}
+
+static int xl6XapiSetField(
+    XL6_XapiField* out,
+    const XL6_AstNode* root,
+    const XL6_AstNode* field,
+    const char* storage)
+{
+    if ( out == NULL || field == NULL || field->kind != XL6_AST_FIELD ) {
+        return 0;
+    }
+    out->name = xl6XapiDupText(field->text != NULL ? field->text : "");
+    out->type = xl6XapiTypeToString(root, field->childCount > 0 ? field->children[0] : NULL);
+    out->doc = field->doc != NULL ? xl6XapiDupText(field->doc) : NULL;
+    out->storage = xl6XapiDupText(storage != NULL ? storage : "field");
+    return out->name != NULL && out->type != NULL && out->storage != NULL;
+}
+
+static int xl6XapiFillUnionFields(
+    XL6_XapiField* fields,
+    size_t fieldCount,
+    size_t* index,
+    const XL6_AstNode* root,
+    const XL6_AstNode* unionNode,
+    const char* storage)
+{
+    const XL6_AstNode* body;
+    size_t i;
+
+    if ( fields == NULL || index == NULL ) {
+        return 0;
+    }
+    body = xl6XapiUnionBody(unionNode);
+    if ( body == NULL ) {
+        return 1;
+    }
+    for ( i = 0; i < body->childCount; ++i ) {
+        const XL6_AstNode* field = body->children[i];
+        if ( field == NULL || field->kind != XL6_AST_FIELD ) {
+            continue;
+        }
+        if ( *index >= fieldCount || !xl6XapiSetField(&fields[*index], root, field, storage) ) {
+            return 0;
+        }
+        *index += 1;
+    }
+    return 1;
+}
+
+static int xl6XapiFillClassFields(
+    XL6_XapiField* fields,
+    size_t fieldCount,
+    const XL6_AstNode* root,
+    const XL6_AstNode* classNode)
+{
+    const XL6_AstNode* body;
+    size_t i;
+    size_t index;
+
+    body = xl6XapiClassBody(classNode);
+    index = 0;
+    if ( body == NULL ) {
+        return 1;
+    }
+    for ( i = 0; i < body->childCount; ++i ) {
+        const XL6_AstNode* member = body->children[i];
+        if ( member == NULL ) {
+            continue;
+        }
+        if ( member->kind == XL6_AST_FIELD ) {
+            if ( index >= fieldCount || !xl6XapiSetField(&fields[index], root, member, "field") ) {
+                return 0;
+            }
+            index += 1;
+        } else if ( member->kind == XL6_AST_UNION ) {
+            if ( !xl6XapiFillUnionFields(fields, fieldCount, &index, root, member, "inline-union") ) {
+                return 0;
+            }
+        }
+    }
+    return index == fieldCount;
+}
+
+static int xl6XapiTypeBuildFields(XL6_XapiTypeDecl* item, const XL6_AstNode* root, const XL6_AstNode* node)
+{
+    size_t fieldCount;
+    size_t index;
+
+    if ( item == NULL || node == NULL ) {
+        return 0;
+    }
+    if ( node->kind == XL6_AST_CLASS ) {
+        fieldCount = xl6XapiCountClassFields(node);
+    } else if ( node->kind == XL6_AST_UNION ) {
+        fieldCount = xl6XapiCountUnionFields(node);
+    } else {
+        return 1;
+    }
+    if ( fieldCount == 0 ) {
+        return 1;
+    }
+    item->fields = (XL6_XapiField*)xrtCalloc(fieldCount, sizeof(XL6_XapiField));
+    if ( item->fields == NULL ) {
+        return 0;
+    }
+    item->fieldCount = fieldCount;
+    if ( node->kind == XL6_AST_CLASS ) {
+        return xl6XapiFillClassFields(item->fields, item->fieldCount, root, node);
+    }
+    index = 0;
+    return xl6XapiFillUnionFields(item->fields, item->fieldCount, &index, root, node, "union") &&
+           index == item->fieldCount;
+}
+
+static int xl6XapiTypeBuildClassShape(XL6_XapiTypeDecl* item, const XL6_AstNode* node)
+{
+    const XL6_AstNode* base;
+    const XL6_AstNode* params;
+    size_t i;
+
+    if ( item == NULL || node == NULL || node->kind != XL6_AST_CLASS ) {
+        return 1;
+    }
+    base = xl6XapiClassBase(node);
+    if ( base != NULL && base->text != NULL && base->text[0] != '\0' ) {
+        item->base = xl6XapiDupText(base->text);
+        if ( item->base == NULL ) {
+            return 0;
+        }
+    }
+
+    params = xl6XapiClassTypeParams(node);
+    if ( params == NULL || params->childCount == 0 ) {
+        return 1;
+    }
+    item->typeParams = (char**)xrtCalloc(params->childCount, sizeof(char*));
+    if ( item->typeParams == NULL ) {
+        return 0;
+    }
+    item->typeParamCount = params->childCount;
+    for ( i = 0; i < params->childCount; ++i ) {
+        const XL6_AstNode* param = params->children[i];
+        item->typeParams[i] = xl6XapiDupText(param != NULL && param->text != NULL ? param->text : "");
+        if ( item->typeParams[i] == NULL ) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
 void xl6XapiModuleInit(XL6_XapiModule* module)
 {
     if ( module == NULL ) {
@@ -586,7 +1223,12 @@ void xl6XapiModuleFree(XL6_XapiModule* module)
     if ( module == NULL ) {
         return;
     }
+    xrtFree(module->packageName);
+    xrtFree(module->packageVersion);
+    xrtFree(module->packageAbiVersion);
+    xrtFree(module->packageId);
     xrtFree(module->name);
+    xrtFree(module->moduleId);
     xrtFree(module->source);
     xrtFree(module->sourceHash);
     for ( i = 0; i < module->exportCount; ++i ) {
@@ -595,8 +1237,11 @@ void xl6XapiModuleFree(XL6_XapiModule* module)
         xrtFree(item->name);
         xrtFree(item->cSymbol);
         xrtFree(item->type);
+        xrtFree(item->signature);
+        xrtFree(item->exportId);
         xrtFree(item->callingConvention);
         xrtFree(item->varargMode);
+        xrtFree(item->doc);
         for ( j = 0; j < item->paramCount; ++j ) {
             xrtFree(item->params[j].name);
             xrtFree(item->params[j].type);
@@ -611,6 +1256,19 @@ void xl6XapiModuleFree(XL6_XapiModule* module)
     for ( i = 0; i < module->typeCount; ++i ) {
         xrtFree(module->types[i].kind);
         xrtFree(module->types[i].name);
+        xrtFree(module->types[i].doc);
+        xrtFree(module->types[i].base);
+        for ( j = 0; j < module->types[i].typeParamCount; ++j ) {
+            xrtFree(module->types[i].typeParams[j]);
+        }
+        xrtFree(module->types[i].typeParams);
+        for ( j = 0; j < module->types[i].fieldCount; ++j ) {
+            xrtFree(module->types[i].fields[j].name);
+            xrtFree(module->types[i].fields[j].type);
+            xrtFree(module->types[i].fields[j].doc);
+            xrtFree(module->types[i].fields[j].storage);
+        }
+        xrtFree(module->types[i].fields);
     }
     xrtFree(module->types);
     for ( i = 0; i < module->importCount; ++i ) {
@@ -618,8 +1276,24 @@ void xl6XapiModuleFree(XL6_XapiModule* module)
         xrtFree(module->imports[i].mode);
         xrtFree(module->imports[i].resolvedKind);
         xrtFree(module->imports[i].manifestPath);
+        xrtFree(module->imports[i].interfacePath);
+        xrtFree(module->imports[i].packageId);
     }
     xrtFree(module->imports);
+    for ( i = 0; i < module->linkCount; ++i ) {
+        xrtFree(module->links[i]);
+    }
+    xrtFree(module->links);
+    for ( i = 0; i < module->loadlibCount; ++i ) {
+        xrtFree(module->loadlibs[i]);
+    }
+    xrtFree(module->loadlibs);
+    for ( i = 0; i < module->cSourceCount; ++i ) {
+        xrtFree(module->cSources[i]);
+    }
+    xrtFree(module->cSources);
+    xrtFree(module->nativeLoadName);
+    xrtFree(module->nativeVersion);
     memset(module, 0, sizeof(*module));
 }
 
@@ -660,6 +1334,7 @@ static int xl6XapiExportBuildFunc(XL6_XapiExport* item, const XL6_AstNode* root,
     item->kind = xl6XapiDupText("function");
     item->name = xl6XapiDupText(nameNode != NULL ? nameNode->text : "");
     item->cSymbol = xl6XapiDupCStringSymbol(node->text);
+    item->doc = node != NULL && node->doc != NULL ? xl6XapiDupText(node->doc) : NULL;
     item->callingConvention = xl6XapiDupText(xl6CallableConventionName(XL6_CALLABLE_CONV_CDECL));
     item->varargMode = xl6XapiDupText(xl6CallableVarargModeName(xl6CallableDetectVarargMode(params)));
     item->requiredParamCount = xl6CallableRequiredParamCount(params);
@@ -702,6 +1377,7 @@ static int xl6XapiExportBuildVar(XL6_XapiExport* item, const XL6_AstNode* root, 
     item->kind = xl6XapiDupText(node->kind == XL6_AST_EXPORT_CONST ? "const" : "var");
     item->name = xl6XapiDupText(nameNode != NULL ? nameNode->text : "");
     item->cSymbol = xl6XapiDupCStringSymbol(node->text);
+    item->doc = node != NULL && node->doc != NULL ? xl6XapiDupText(node->doc) : NULL;
     item->type = xl6XapiTypeToString(root, typeNode);
     return item->kind != NULL && item->name != NULL && item->cSymbol != NULL && item->type != NULL;
 }
@@ -723,9 +1399,16 @@ int xl6XapiModuleBuild(XL6_XapiModule* module, const XL6_AstNode* root, const ch
     xl6XapiModuleInit(module);
 
     module->name = xl6XapiDupText(moduleName != NULL ? moduleName : "app");
+    module->packageName = xl6XapiDupText(module->name != NULL ? module->name : "app");
+    module->packageVersion = xl6XapiDupText("0.0.0");
+    module->packageAbiVersion = xl6XapiDupText("1");
+    module->packageId = xl6XapiBuildPackageId(module->packageName, module->packageVersion, module->packageAbiVersion);
+    module->moduleId = xl6XapiBuildModuleId(module->packageId, module->name);
     module->source = xl6XapiDupText(sourcePath != NULL ? sourcePath : "");
     module->sourceHash = xl6XapiDupText("");
-    if ( module->name == NULL || module->source == NULL || module->sourceHash == NULL ) {
+    if ( module->name == NULL || module->packageName == NULL || module->packageVersion == NULL ||
+         module->packageAbiVersion == NULL || module->packageId == NULL || module->moduleId == NULL ||
+         module->source == NULL || module->sourceHash == NULL ) {
         xl6XapiModuleFree(module);
         return 0;
     }
@@ -749,7 +1432,7 @@ int xl6XapiModuleBuild(XL6_XapiModule* module, const XL6_AstNode* root, const ch
             }
             if ( child->kind == XL6_AST_EXPORT_FUNC || child->kind == XL6_AST_EXPORT_VAR || child->kind == XL6_AST_EXPORT_CONST ) {
                 exportCount += 1;
-            } else if ( child->kind == XL6_AST_CLASS || child->kind == XL6_AST_CUSTOM ) {
+            } else if ( child->kind == XL6_AST_CLASS || child->kind == XL6_AST_CUSTOM || child->kind == XL6_AST_UNION ) {
                 typeCount += 1;
             } else if ( child->kind == XL6_AST_IMPORT ) {
                 importCount += 1;
@@ -775,17 +1458,29 @@ int xl6XapiModuleBuild(XL6_XapiModule* module, const XL6_AstNode* root, const ch
                     xl6XapiModuleFree(module);
                     return 0;
                 }
+                if ( !xl6XapiFinalizeExportIdentity(module, &module->exports[exportIndex]) ) {
+                    xl6XapiModuleFree(module);
+                    return 0;
+                }
                 exportIndex += 1;
             } else if ( child->kind == XL6_AST_EXPORT_VAR || child->kind == XL6_AST_EXPORT_CONST ) {
                 if ( !xl6XapiExportBuildVar(&module->exports[exportIndex], root, child) ) {
                     xl6XapiModuleFree(module);
                     return 0;
                 }
+                if ( !xl6XapiFinalizeExportIdentity(module, &module->exports[exportIndex]) ) {
+                    xl6XapiModuleFree(module);
+                    return 0;
+                }
                 exportIndex += 1;
-            } else if ( child->kind == XL6_AST_CLASS || child->kind == XL6_AST_CUSTOM ) {
-                module->types[typeIndex].kind = xl6XapiDupText(child->kind == XL6_AST_CUSTOM ? "custom" : "class");
+            } else if ( child->kind == XL6_AST_CLASS || child->kind == XL6_AST_CUSTOM || child->kind == XL6_AST_UNION ) {
+                module->types[typeIndex].kind = xl6XapiDupText(child->kind == XL6_AST_CUSTOM ? "custom" : (child->kind == XL6_AST_UNION ? "union" : "class"));
                 module->types[typeIndex].name = xl6XapiDupText(child->text != NULL ? child->text : "");
-                if ( module->types[typeIndex].kind == NULL || module->types[typeIndex].name == NULL ) {
+                module->types[typeIndex].doc = child->doc != NULL ? xl6XapiDupText(child->doc) : NULL;
+                if ( module->types[typeIndex].kind == NULL ||
+                     module->types[typeIndex].name == NULL ||
+                     !xl6XapiTypeBuildClassShape(&module->types[typeIndex], child) ||
+                     !xl6XapiTypeBuildFields(&module->types[typeIndex], root, child) ) {
                     xl6XapiModuleFree(module);
                     return 0;
                 }
@@ -800,10 +1495,14 @@ int xl6XapiModuleBuild(XL6_XapiModule* module, const XL6_AstNode* root, const ch
                 module->imports[importIndex].resolved = resolved.resolved;
                 module->imports[importIndex].resolvedKind = xl6XapiDupText(xl6PackageResolveKindName(resolved.kind));
                 module->imports[importIndex].manifestPath = xl6XapiDupText(resolved.manifestPath);
+                module->imports[importIndex].interfacePath = xl6XapiDupText(resolved.interfacePath);
+                module->imports[importIndex].packageId = xl6XapiDupText(resolved.packageId);
                 if ( module->imports[importIndex].target == NULL ||
                      module->imports[importIndex].mode == NULL ||
                      module->imports[importIndex].resolvedKind == NULL ||
-                     module->imports[importIndex].manifestPath == NULL ) {
+                     module->imports[importIndex].manifestPath == NULL ||
+                     module->imports[importIndex].interfacePath == NULL ||
+                     module->imports[importIndex].packageId == NULL ) {
                     xl6XapiModuleFree(module);
                     return 0;
                 }
@@ -838,6 +1537,20 @@ static void xl6XapiDumpEntryModule(XL6_Output* out, const XL6_XapiModule* module
     }
 }
 
+static void xl6XapiDumpStringArray(XL6_Output* out, char** items, size_t count)
+{
+    size_t i;
+
+    xl6OutputPutc('[', out);
+    for ( i = 0; i < count; ++i ) {
+        if ( i > 0 ) {
+            xl6OutputPutc(',', out);
+        }
+        xl6XapiJsonString(out, items[i]);
+    }
+    xl6OutputPutc(']', out);
+}
+
 void xl6XapiDumpJsonModule(XL6_Output* out, const XL6_XapiModule* module)
 {
     size_t i;
@@ -850,8 +1563,19 @@ void xl6XapiDumpJsonModule(XL6_Output* out, const XL6_XapiModule* module)
     xl6OutputPuts("  \"format\":\"xlang-xapi-1\",\n", out);
     xl6OutputPuts("  \"compiler\":{\"name\":\"xl\",\"version\":\"demo6\",\"xlangAbi\":1,\"xrtAbi\":1},\n", out);
     xl6OutputPuts("  \"target\":{\"os\":\"windows\",\"arch\":\"x64\",\"callingConvention\":\"cdecl\"},\n", out);
+    xl6OutputPuts("  \"package\":{\"name\":", out);
+    xl6XapiJsonString(out, module != NULL ? module->packageName : "app");
+    xl6OutputPuts(",\"version\":", out);
+    xl6XapiJsonString(out, module != NULL ? module->packageVersion : "0.0.0");
+    xl6OutputPuts(",\"abiVersion\":", out);
+    xl6XapiJsonString(out, module != NULL ? module->packageAbiVersion : "1");
+    xl6OutputPuts(",\"packageId\":", out);
+    xl6XapiJsonString(out, module != NULL ? module->packageId : "app@0.0.0#abi1");
+    xl6OutputPuts("},\n", out);
     xl6OutputPuts("  \"module\":{\"name\":", out);
     xl6XapiJsonString(out, module != NULL ? module->name : "app");
+    xl6OutputPuts(",\"moduleId\":", out);
+    xl6XapiJsonString(out, module != NULL ? module->moduleId : "app@0.0.0#abi1::app");
     xl6OutputPuts(",\"source\":", out);
     xl6XapiJsonString(out, module != NULL ? module->source : "");
     xl6OutputPuts(",\"sourceHash\":", out);
@@ -873,9 +1597,21 @@ void xl6XapiDumpJsonModule(XL6_Output* out, const XL6_XapiModule* module)
             xl6XapiJsonString(out, item->name);
             xl6OutputPuts(",\"cSymbol\":", out);
             xl6XapiJsonString(out, item->cSymbol);
+            if ( item->signature != NULL ) {
+                xl6OutputPuts(",\"signature\":", out);
+                xl6XapiJsonString(out, item->signature);
+            }
+            if ( item->exportId != NULL ) {
+                xl6OutputPuts(",\"exportId\":", out);
+                xl6XapiJsonString(out, item->exportId);
+            }
             if ( item->type != NULL ) {
                 xl6OutputPuts(",\"type\":", out);
                 xl6XapiJsonString(out, item->type);
+            }
+            if ( item->doc != NULL ) {
+                xl6OutputPuts(",\"doc\":", out);
+                xl6XapiDumpDocJson(out, item->doc);
             }
             if ( item->paramCount > 0 || xl6XapiTextEquals(item->kind, "function") ) {
                 xl6OutputPuts(",\"callingConvention\":", out);
@@ -929,6 +1665,45 @@ void xl6XapiDumpJsonModule(XL6_Output* out, const XL6_XapiModule* module)
             xl6XapiJsonString(out, module->types[i].kind);
             xl6OutputPuts(",\"name\":", out);
             xl6XapiJsonString(out, module->types[i].name);
+            if ( module->types[i].base != NULL && module->types[i].base[0] != '\0' ) {
+                xl6OutputPuts(",\"base\":", out);
+                xl6XapiJsonString(out, module->types[i].base);
+            }
+            if ( module->types[i].typeParamCount > 0 ) {
+                xl6OutputPuts(",\"typeParams\":[", out);
+                for ( j = 0; j < module->types[i].typeParamCount; ++j ) {
+                    if ( j > 0 ) {
+                        xl6OutputPutc(',', out);
+                    }
+                    xl6XapiJsonString(out, module->types[i].typeParams[j]);
+                }
+                xl6OutputPutc(']', out);
+            }
+            if ( module->types[i].doc != NULL ) {
+                xl6OutputPuts(",\"doc\":", out);
+                xl6XapiDumpDocJson(out, module->types[i].doc);
+            }
+            if ( module->types[i].fieldCount > 0 ) {
+                xl6OutputPuts(",\"fields\":[", out);
+                for ( j = 0; j < module->types[i].fieldCount; ++j ) {
+                    const XL6_XapiField* field = &module->types[i].fields[j];
+                    if ( j > 0 ) {
+                        xl6OutputPutc(',', out);
+                    }
+                    xl6OutputPuts("{\"name\":", out);
+                    xl6XapiJsonString(out, field->name);
+                    xl6OutputPuts(",\"type\":", out);
+                    xl6XapiJsonString(out, field->type);
+                    xl6OutputPuts(",\"storage\":", out);
+                    xl6XapiJsonString(out, field->storage);
+                    if ( field->doc != NULL ) {
+                        xl6OutputPuts(",\"doc\":", out);
+                        xl6XapiDumpDocJson(out, field->doc);
+                    }
+                    xl6OutputPutc('}', out);
+                }
+                xl6OutputPutc(']', out);
+            }
             xl6OutputPutc('}', out);
         }
         if ( module->typeCount > 0 ) {
@@ -953,6 +1728,10 @@ void xl6XapiDumpJsonModule(XL6_Output* out, const XL6_XapiModule* module)
             xl6XapiJsonString(out, module->imports[i].resolvedKind);
             xl6OutputPuts(",\"manifest\":", out);
             xl6XapiJsonString(out, module->imports[i].manifestPath);
+            xl6OutputPuts(",\"interface\":", out);
+            xl6XapiJsonString(out, module->imports[i].interfacePath);
+            xl6OutputPuts(",\"packageId\":", out);
+            xl6XapiJsonString(out, module->imports[i].packageId);
             xl6OutputPutc('}', out);
         }
         if ( module->importCount > 0 ) {
@@ -960,9 +1739,22 @@ void xl6XapiDumpJsonModule(XL6_Output* out, const XL6_XapiModule* module)
         }
     }
     xl6OutputPuts("  ],\n", out);
-    xl6OutputPuts("  \"links\":[],\n", out);
-    xl6OutputPuts("  \"loadlibs\":[],\n", out);
-    xl6OutputPuts("  \"cSources\":[],\n", out);
+    xl6OutputPuts("  \"links\":", out);
+    xl6XapiDumpStringArray(out, module != NULL ? module->links : NULL, module != NULL ? module->linkCount : 0);
+    xl6OutputPuts(",\n", out);
+    xl6OutputPuts("  \"loadlibs\":", out);
+    xl6XapiDumpStringArray(out, module != NULL ? module->loadlibs : NULL, module != NULL ? module->loadlibCount : 0);
+    xl6OutputPuts(",\n", out);
+    xl6OutputPuts("  \"cSources\":", out);
+    xl6XapiDumpStringArray(out, module != NULL ? module->cSources : NULL, module != NULL ? module->cSourceCount : 0);
+    xl6OutputPuts(",\n", out);
+    xl6OutputPuts("  \"native\":{\"singleton\":", out);
+    xl6OutputPuts(module != NULL && module->nativeSingleton ? "true" : "false", out);
+    xl6OutputPuts(",\"loadName\":", out);
+    xl6XapiJsonString(out, module != NULL ? module->nativeLoadName : "");
+    xl6OutputPuts(",\"version\":", out);
+    xl6XapiJsonString(out, module != NULL ? module->nativeVersion : "");
+    xl6OutputPuts("},\n", out);
     xl6OutputPuts("  \"docs\":[]\n", out);
     xl6OutputPuts("}\n", out);
 }

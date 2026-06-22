@@ -1,0 +1,36 @@
+// 教学目标：
+// 1. xlang 源文件使用 UTF-8。
+// 2. 标识符大小写敏感，并支持中文。
+// 3. 换行和分号都可以分隔语句。
+// 4. main 可以接收 ...，命令行参数会进入 arg。
+
+func 加一(int 值) -> int
+    return 值 + 1
+end
+
+func main(...) -> int
+    int Name = 10
+    int name = 20
+    int 中文变量 = 加一(11)
+
+    int lineSeparated = 1
+    int semicolonA = 2; int semicolonB = 3
+
+    /*
+        多行注释支持嵌套。
+        /*
+            嵌套注释内容。
+        */
+    */
+
+    if Name + name + 中文变量 != 42 then
+        return 1
+    end
+    if lineSeparated + semicolonA + semicolonB != 6 then
+        return 2
+    end
+    if arg.length < 0 then
+        return 3
+    end
+    return 0
+end

@@ -1,0 +1,14 @@
+uint32 seed32 = random.u32()
+uint64 seed64 = random.u64()
+
+int dice = random.range(1, 6)
+int fixed = random.range(7, 7)
+string token = random.string(16)
+string hexLike = random.string(12, "0123456789abcdef")
+
+auto seed32Text = seed32.toString()
+auto seed64Text = seed64.toString()
+auto diceText = dice.toString()
+auto fixedText = fixed.toString()
+auto tokenText = token.toString()
+auto hexLikeText = hexLike.toString()

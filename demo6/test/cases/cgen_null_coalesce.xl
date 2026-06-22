@@ -1,4 +1,8 @@
 extern "expect_i64" func expect(int actual, int expected)
+extern "nc_probe_reset" func resetProbe()
+extern "nc_probe_next" func nextProbeInt() -> int
+extern "nc_probe_next_var" func nextProbe() -> var
+extern "nc_probe_count" func probeCount() -> int
 
 var empty
 var fallback = empty ?? 9
@@ -9,6 +13,16 @@ string text = null ?? "hello"
 
 assigned ?= 11
 assigned ?= 22
+
+resetProbe()
+var probed = nextProbe() ?? 44
+expect(int(probed), 33)
+expect(probeCount(), 1)
+
+resetProbe()
+auto staticProbed = nextProbeInt() ?? 44
+expect(staticProbed, 33)
+expect(probeCount(), 1)
 
 expect(int(fallback), 9)
 expect(int(literal), 7)

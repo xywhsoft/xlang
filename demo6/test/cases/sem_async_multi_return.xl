@@ -1,0 +1,3 @@
+async func bad() -> (int, int)
+    return 1, 2
+end

@@ -1,0 +1,15 @@
+auto text = "xlang"
+
+uint32 id32 = hash.u32(text)
+uint64 id64 = hash.u64(text)
+uint32 seeded32 = hash.u32WithSeed(text, uint32(123))
+uint64 seeded64 = hash.u64WithSeed(text, uint64(123))
+
+assert id32 == hash.u32("xlang"), "hash.u32 is not stable"
+assert id64 == hash.u64("xlang"), "hash.u64 is not stable"
+assert seeded32 == hash.u32WithSeed("xlang", uint32(123)), "hash.u32WithSeed is not stable"
+assert seeded64 == hash.u64WithSeed("xlang", uint64(123)), "hash.u64WithSeed is not stable"
+assert id32 != hash.u32("xlang!"), "hash.u32 did not change"
+assert id64 != hash.u64("xlang!"), "hash.u64 did not change"
+assert seeded32 != hash.u32WithSeed("xlang", uint32(124)), "hash.u32WithSeed did not change"
+assert seeded64 != hash.u64WithSeed("xlang", uint64(124)), "hash.u64WithSeed did not change"

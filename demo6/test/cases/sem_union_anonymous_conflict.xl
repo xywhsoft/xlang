@@ -1,0 +1,6 @@
+class Bad
+    int a
+    union
+        c_double a
+    end
+end

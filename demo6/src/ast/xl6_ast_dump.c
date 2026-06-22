@@ -28,6 +28,9 @@ void xl6AstDumpTextFile(XL6_Output* out, const XL6_AstNode* node, int indent)
     if ( node->line > 0 ) {
         xl6OutputPrintf(out, " @%d:%d", node->line, node->column);
     }
+    if ( node->doc != NULL && node->doc[0] != '\0' ) {
+        xl6OutputPuts(" #doc", out);
+    }
     xl6OutputPutc('\n', out);
 
     for ( i = 0; i < node->childCount; ++i ) {
@@ -109,6 +112,13 @@ static void xl6AstDumpJsonNode(XL6_Output* out, const XL6_AstNode* node, int ind
         xl6OutputPrintf(out, "\"line\":%d,\n", node->line);
         xl6AstDumpJsonIndent(out, indent + 1);
         xl6OutputPrintf(out, "\"column\":%d", node->column);
+    }
+    if ( node->doc != NULL && node->doc[0] != '\0' ) {
+        xl6OutputPuts(",\n", out);
+        xl6AstDumpJsonIndent(out, indent + 1);
+        xl6OutputPuts("\"doc\":\"", out);
+        xl6AstDumpJsonEscaped(out, node->doc);
+        xl6OutputPutc('"', out);
     }
     xl6OutputPuts(",\n", out);
     xl6AstDumpJsonIndent(out, indent + 1);

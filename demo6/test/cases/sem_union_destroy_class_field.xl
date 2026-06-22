@@ -1,0 +1,7 @@
+class Box
+    function(int) -> int op
+end
+
+union Bad
+    Box box
+end

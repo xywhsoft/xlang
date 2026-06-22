@@ -43,7 +43,7 @@ static XL6_AstNode* xl6CgenResolveCallFuncInternal(
         int cost;
         XL6_AstNode* candidateArgs;
 
-        if ( node == NULL || node->kind != XL6_AST_FUNC || node->childCount == 0 ) {
+        if ( node == NULL || (node->kind != XL6_AST_FUNC && node->kind != XL6_AST_ASYNC_FUNC) || node->childCount == 0 ) {
             continue;
         }
         nameNode = node->children[0];
@@ -144,7 +144,7 @@ static XL6_AstNode* xl6CgenResolveExplicitGenericCallFunc(
         XL6_AstNode* nameNode;
         int cost;
 
-        if ( node == NULL || node->kind != XL6_AST_FUNC || !xl6CgenFuncIsGeneric(node) || node->childCount == 0 ) {
+        if ( node == NULL || (node->kind != XL6_AST_FUNC && node->kind != XL6_AST_ASYNC_FUNC) || !xl6CgenFuncIsGeneric(node) || node->childCount == 0 ) {
             continue;
         }
         nameNode = node->children[0];
@@ -234,7 +234,7 @@ static XL6_AstNode* xl6CgenResolveCallFunc(XL6_CgenContext* ctx, const XL6_AstNo
     for ( i = 0; i < ctx->root->childCount; ++i ) {
         XL6_AstNode* node = ctx->root->children[i];
         XL6_AstNode* nameNode;
-        if ( node == NULL || node->kind != XL6_AST_FUNC || xl6CgenFuncIsGeneric(node) || node->childCount == 0 ) {
+        if ( node == NULL || (node->kind != XL6_AST_FUNC && node->kind != XL6_AST_ASYNC_FUNC) || xl6CgenFuncIsGeneric(node) || node->childCount == 0 ) {
             continue;
         }
         nameNode = node->children[0];
@@ -574,6 +574,15 @@ static void xl6CgenDefaultValue(XL6_CgenContext* ctx, const XL6_AstNode* typeNod
     }
     if ( xl6CgenIsFunctionType(typeNode) ) {
         xl6OutputPuts("{0}", ctx->out);
+        return;
+    }
+    if ( xl6CgenIsUnionType(ctx, typeNode) ) {
+        xl6OutputPuts("{0}", ctx->out);
+        return;
+    }
+    if ( xl6CgenIsFutureLikeType(typeNode) || xl6CgenIsChannelType(typeNode) ||
+         xl6CgenIsThreadType(typeNode) || xl6CgenIsGeneratorType(typeNode) || xl6CgenIsSyncHandleType(typeNode) ) {
+        xl6OutputPuts("0", ctx->out);
         return;
     }
     if ( xl6CTextEquals(typeNode->text, "array") ) {

@@ -1,0 +1,20 @@
+string filePath = "release/tmp/example_stdlib_json.json"
+
+var values = json.parse("[1,2,3]")
+string compact = json.stringify(values)
+string pretty = json.stringify(values, pretty = true)
+
+var object = json.parse('{"name":"xlang","stage":6}')
+string objectText = json.stringify(object)
+
+bool written = json.write(filePath, object, pretty = true)
+var loaded = json.read(filePath)
+string loadedText = json.stringify(loaded)
+bool deleted = file.delete(filePath)
+
+auto compactText = compact.toString()
+auto prettyText = pretty.toString()
+auto objectJsonText = objectText.toString()
+auto writtenText = written.toString()
+auto loadedJsonText = loadedText.toString()
+auto deletedText = deleted.toString()

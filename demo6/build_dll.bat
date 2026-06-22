@@ -1,0 +1,98 @@
+@echo off
+setlocal
+cd /d %~dp0
+
+set XL6_ROOT=%CD%
+set XL6_TCC=..\demo5\lib\tcc\tcc.exe
+set XL6_FLEX=..\demo5\tools\flex.exe
+set XL6_LEMON=..\demo5\tools\lemon.exe
+set XL6_XRT_OBJ=..\..\xrt\release\x64\xrt.o
+set XL6_TCC_LIBTCC1=..\demo5\release\tcc\lib\libtcc1-64.a
+
+if not exist release mkdir release
+if not exist release\tmp mkdir release\tmp
+
+if not exist "%XL6_XRT_OBJ%" (
+    echo DEMO6 xl.dll build failed: missing XRT object "%XL6_XRT_OBJ%".
+    exit /b 1
+)
+
+echo Generating DEMO6 lexer...
+"%XL6_FLEX%" --wincompat --noline -o src\lexer\xl6_lexer_gen.c --header-file=src\lexer\xl6_lexer_gen.h src\lexer\xl6_lexer.l
+if errorlevel 1 (
+    echo DEMO6 lexer generation failed.
+    exit /b 1
+)
+
+echo Generating DEMO6 parser...
+pushd src\parser
+"%XL6_ROOT%\%XL6_LEMON%" -q xl6_parser.y
+set XL6_LEMON_RC=%errorlevel%
+popd
+if not "%XL6_LEMON_RC%"=="0" (
+    echo DEMO6 parser generation failed.
+    exit /b 1
+)
+
+echo Building DEMO6 xl.dll...
+"%XL6_TCC%" -std=c11 -Wall -shared -DXL_BUILD_DLL -D_CRT_SECURE_NO_WARNINGS -I. -Iinclude -Isrc -I..\demo5\lib\tcc -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -I..\demo5\release\tcc\include_win\winapi -L..\demo5\release\tcc\lib -o release\xl.dll ^
+    src\api\xl_api.c ^
+    src\abi\xl6_callable.c ^
+    src\abi\xl6_xapi_dump.c ^
+    src\abi\xl6_xapi_load.c ^
+    src\backend\xl6_build_backend.c ^
+    src\compile\xl6_compile_unit.c ^
+    src\compile\xl6_imports.c ^
+    src\common\xl6_output.c ^
+    src\diag\xl6_diag.c ^
+    src\ast\xl6_ast.c ^
+    src\cgen\xl6_cgen_entry.c ^
+    src\cgen\xl6_cgen_lifecycle.c ^
+    src\cgen\xl6_cgen_runtime.c ^
+    src\cgen\xl6_cgen_header.c ^
+    src\cgen\xl6_cgen_needs_basic.c ^
+    src\cgen\xl6_cgen.c ^
+    src\lexer\xl6_token.c ^
+    src\lexer\xl6_lexer_api.c ^
+    src\lexer\xl6_lexer_gen.c ^
+    src\parser\xl6_parser.c ^
+    src\parser\xl6_parser_api.c ^
+    src\package\xl6_package.c ^
+    src\stdlib\xl6_stdlib.c ^
+    src\type\xl6_type_model.c ^
+    src\sem\xl6_type_registry.c ^
+    src\sem\xl6_sem.c ^
+    "%XL6_XRT_OBJ%" ^
+    "%XL6_TCC_LIBTCC1%" ^
+    -lWs2_32 -lIPHLPAPI -lShell32
+
+if errorlevel 1 (
+    echo DEMO6 xl.dll build failed.
+    exit /b 1
+)
+
+copy /Y ..\demo5\lib\tcc\libtcc.dll release\libtcc.dll >nul
+if errorlevel 1 (
+    echo DEMO6 xl.dll build failed: cannot copy libtcc.dll.
+    exit /b 1
+)
+
+echo Generating xl.dll import definition...
+"%XL6_TCC%" -impdef release\xl.dll -o release\xl.def
+if errorlevel 1 (
+    echo DEMO6 xl.dll import definition failed.
+    exit /b 1
+)
+
+echo Building xl.dll embed verification program...
+"%XL6_TCC%" -std=c11 -Wall -D_CRT_SECURE_NO_WARNINGS -I. -Iinclude -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -I..\demo5\release\tcc\include_win\winapi -L..\demo5\release\tcc\lib -o release\xl_dll_embed_string.exe ^
+    examples\xl_dll_embed_string.c ^
+    release\xl.def
+
+if errorlevel 1 (
+    echo DEMO6 xl.dll verification program build failed.
+    exit /b 1
+)
+
+echo DEMO6 xl.dll build ok: release\xl.dll
+exit /b 0

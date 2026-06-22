@@ -1,0 +1,67 @@
+// 教学目标：
+// 1. 变量使用 C 风格类型前置声明。
+// 2. const/auto/var 分别用于常量、局部推断、动态值。
+// 3. typedef 是模块级类型别名声明。
+// 4. 数字、字符串、time 字面量都有稳定写法。
+
+typedef Count = int
+
+func main(...) -> int
+    const int answer = 42
+    auto inferred = 43
+    var dynamic = "43"
+
+    int defaultInt
+    bool defaultBool
+    string defaultString
+    var defaultVar
+
+    Count count = 7
+
+    int dec = 1_000_000
+    int hex = 0x10 + &H10
+    int oct = 0o10 + &O10
+    int bin = 0b10 + &B10
+
+    float pi = 3.14
+    float sci = 1.25e2
+
+    string single = 'hello "x"'
+    string doubleText = "hello 'x'"
+    string rawPath = r"c:\demo6\tutorial.txt"
+    string multi = """line1
+line2"""
+
+    time dateOnly = #2026-06-18#
+    time clockOnly = #12:30:59#
+    time dateTime = #2026-06-18 12:30:59#
+
+    if answer != 42 or inferred != 43 then
+        return 1
+    end
+    if int(dynamic) != 43 then
+        return 2
+    end
+    if defaultInt != 0 or defaultBool != false or defaultString != "" or type(defaultVar) != null then
+        return 3
+    end
+    if count != 7 then
+        return 4
+    end
+    if dec != 1000000 or hex != 32 or oct != 16 or bin != 4 then
+        return 5
+    end
+    if int(pi) != 3 or int(sci) != 125 then
+        return 6
+    end
+    if single != "hello \"x\"" or doubleText != "hello 'x'" then
+        return 7
+    end
+    if rawPath != "c:\\demo6\\tutorial.txt" or multi != "line1\nline2" then
+        return 8
+    end
+    if dateOnly != #2026-06-18# or clockOnly != #12:30:59# or dateTime <= dateOnly then
+        return 9
+    end
+    return 0
+end
