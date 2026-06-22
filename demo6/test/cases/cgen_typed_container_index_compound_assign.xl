@@ -1,0 +1,28 @@
+extern "expect_i64" func expect(int actual, int expected)
+extern "expect_str" func expectStr(string actual, string expected)
+
+array<int> values = array[10, 20]
+values[0] += 5
+values[0] /= 3
+values[0] %= 4
+values[1] *= 2
+
+list<int> scores = list[3: 7]
+scores[3] -= 2
+
+array<int> powers = array[2]
+powers[0] **= 5
+
+array<float> ratios = array[1.5]
+ratios[0] += 0.5
+ratios[0] *= 2.0
+
+dict<string> names = dict{"a": "hello"}
+names["a"] += " world"
+
+expect(values[0], 1)
+expect(values[1], 40)
+expect(scores[3], 5)
+expect(powers[0], 32)
+expect(int(ratios[0]), 4)
+expectStr(names["a"], "hello world")

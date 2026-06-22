@@ -1,0 +1,17 @@
+var config = xson.parse('{"name":"xlang","level":6,"enabled":true}')
+
+string compact = xson.stringify(config)
+string pretty = xson.stringify(config, pretty = true)
+
+var copy = xson.parse(compact)
+string jsonText = json.stringify(copy)
+
+xson.write("release/tmp/stdlib_xson_example.xson", config)
+var fileCopy = xson.read("release/tmp/stdlib_xson_example.xson")
+string fileText = xson.stringify(fileCopy)
+file.delete("release/tmp/stdlib_xson_example.xson")
+
+auto compactText = compact.toString()
+auto prettyText = pretty.toString()
+auto jsonTextCopy = jsonText.toString()
+auto fileTextCopy = fileText.toString()

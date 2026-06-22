@@ -1,0 +1,3 @@
+cond c = cond()
+sem s = sem(0, 1)
+bool ok = c.wait(s)

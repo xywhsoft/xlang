@@ -1,4 +1,7 @@
 extern "expect_i64" func expect(int actual, int expected)
+extern "nc_probe_reset" func resetProbe()
+extern "nc_probe_next_var" func nextProbe() -> var
+extern "nc_probe_count" func probeCount() -> int
 
 func makeValue(int value) -> var
     return value
@@ -24,6 +27,29 @@ number = 456
 moment = #12:30:59#
 
 var fromFunc = makeValue(789)
+var sameNumber = 456
+var otherNumber = 789
+var funcNumberA = makeValue(321)
+var funcNumberB = makeValue(321)
+var funcNumberC = makeValue(654)
+var lowNumber = 100
+var highNumber = 200
+var textBefore = "abc"
+var textAfter = "abd"
+var dayBefore = #2026-06-18#
+var dayAfter = #2026-06-19#
+var sumNumber = lowNumber + highNumber
+var joinedText = textBefore + textAfter
+var trueValue = true
+var falseValue = false
+var negNumber = -lowNumber
+var chooseLow = true
+var chooseHigh = false
+var conditionalPick = chooseLow ? lowNumber : highNumber
+var conditionalTemp = chooseHigh ? makeValue(30) : makeValue(40)
+auto mixedAuto = chooseLow ? 12 : "alt"
+var mixedConditional = chooseHigh ? 12 : "alt"
+auto mixedPlus = mixedAuto + 8
 auto first, _ = makePair()
 auto _, pairInt = makePair()
 
@@ -37,6 +63,84 @@ expect(type(unique) == set, 1)
 expect(type(fromFunc) == int, 1)
 expect(type(first) == time, 1)
 expect(type(makeValue(10)) == int, 1)
+
+expect(number == sameNumber, 1)
+expect(number != otherNumber, 1)
+expect(funcNumberA == funcNumberB, 1)
+expect(funcNumberA != funcNumberC, 1)
+expect(number == 456, 1)
+expect(number != 789, 1)
+expect(empty == null, 1)
+expect(lowNumber < highNumber, 1)
+expect(lowNumber <= highNumber, 1)
+expect(highNumber > lowNumber, 1)
+expect(highNumber >= lowNumber, 1)
+expect(textBefore < textAfter, 1)
+expect(dayBefore < dayAfter, 1)
+expect(textBefore ~= "abc", 1)
+expect(lowNumber ~= 100, 1)
+expect(dayBefore ~= #2026-06-18#, 1)
+expect(int(lowNumber + highNumber), 300)
+expect(int(highNumber - lowNumber), 100)
+expect(int(lowNumber * 2), 200)
+expect(int(highNumber / 2), 100)
+expect(int(highNumber % 150), 50)
+expect(int(lowNumber & 15), 4)
+expect(int(lowNumber | 3), 103)
+expect(int(lowNumber ^ 7), 99)
+expect(int(lowNumber << 1), 200)
+expect(int(highNumber >> 2), 50)
+expect(int(sumNumber), 300)
+expect(string(joinedText) == "abcabd", 1)
+expect(string(textBefore + textAfter) == "abcabd", 1)
+expect(int(+lowNumber), 100)
+expect(int(-lowNumber), -100)
+expect(int(~lowNumber), -101)
+expect(int(negNumber), -100)
+expect(int(conditionalPick), 100)
+expect(int(conditionalTemp), 40)
+expect(int(chooseHigh ? makeValue(30) : makeValue(40)), 40)
+expect(chooseHigh ? 1 : 2, 2)
+expect(type(mixedAuto) == int, 1)
+expect(int(mixedAuto), 12)
+expect(type(mixedPlus) == int, 1)
+expect(int(mixedPlus), 20)
+expect(type(mixedConditional) == string, 1)
+expect(string(mixedConditional) == "alt", 1)
+expect(not empty, 1)
+expect(not falseValue, 1)
+expect(not lowNumber, 0)
+
+int branchValue = 0
+if falseValue then
+    branchValue = 1
+else
+    branchValue = 2
+end
+expect(branchValue, 2)
+
+if trueValue then
+    branchValue = 3
+end
+expect(branchValue, 3)
+
+int loopCount = 0
+var loopFlag = true
+while loopFlag do
+    loopCount = loopCount + 1
+    loopFlag = false
+end
+expect(loopCount, 1)
+
+resetProbe()
+expect(empty and nextProbe(), 0)
+expect(probeCount(), 0)
+resetProbe()
+expect(lowNumber or nextProbe(), 1)
+expect(probeCount(), 0)
+resetProbe()
+expect(lowNumber and nextProbe(), 1)
+expect(probeCount(), 1)
 
 expect(pairInt, 7)
 expect(count(empty, number, moment, fromFunc, first, makeValue(10), #2026-06-18 12:30:59#), 7)

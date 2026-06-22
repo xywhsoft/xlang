@@ -1,0 +1,92 @@
+// 教学目标：
+// 1. 展示 if/elseif/else 与内联 if return。
+// 2. 展示 while、do while、for in range。
+// 3. 展示多层 break/continue。
+
+func sign(int value) -> int
+    if value > 0 then return 1
+    if value < 0 then return -1 else return 0
+end
+
+func main(...) -> int
+    int branch = 0
+    if sign(12) == 0 then
+        branch = 1
+    elseif sign(-3) < 0 then
+        branch = 2
+    else
+        branch = 3
+    end
+
+    int i = 0
+    int total = 0
+    while i < 5 do
+        i += 1
+        total += i
+    end
+
+    int once = 0
+    do
+        once += 1
+    while once < 1
+
+    int rangeSum = 0
+    for item in range(5)
+        rangeSum += item
+    end
+
+    int rangeIndexSum = 0
+    int rangeValueSum = 0
+    for index, item in range(2, 8, 2)
+        rangeIndexSum += index
+        rangeValueSum += item
+    end
+
+    int filtered = 0
+    for item in range(0, 8)
+        if item % 2 == 0 then
+            continue
+        end
+        if item > 5 then
+            break
+        end
+        filtered += item
+    end
+
+    int nested = 0
+    for outer in range(0, 3)
+        for inner in range(0, 3)
+            if outer == 1 and inner == 1 then
+                break 2
+            end
+            nested += 1
+        end
+    end
+
+    int skipOuter = 0
+    for outer in range(0, 3)
+        for inner in range(0, 3)
+            if inner == 1 then
+                continue 2
+            end
+            skipOuter += 1
+        end
+    end
+
+    if branch != 2 or sign(0) != 0 then
+        return 1
+    end
+    if total != 15 or once != 1 then
+        return 2
+    end
+    if rangeSum != 10 or rangeIndexSum != 3 or rangeValueSum != 12 then
+        return 3
+    end
+    if filtered != 9 then
+        return 4
+    end
+    if nested != 4 or skipOuter != 3 then
+        return 5
+    end
+    return 0
+end

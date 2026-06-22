@@ -1,0 +1,5 @@
+func bad(int value) -> int
+    return value
+end
+
+thread t = thread(bad)

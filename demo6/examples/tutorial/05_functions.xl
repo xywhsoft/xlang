@@ -1,0 +1,93 @@
+// 教学目标：
+// 1. 普通函数、多返回值、可选参数、命名参数。
+// 2. 数组可变参数 ... 与字典可变参数 ***。
+// 3. 函数重载。
+
+func touch()
+    return
+end
+
+func add(int left, int right) -> int
+    return left + right
+end
+
+func pair(int seed) -> (int, string)
+    return seed + 2, "ok"
+end
+
+func optionalSum(int a, int b = 10, int c = 100) -> int
+    return a + b + c
+end
+
+func variadicCount(int base, ...) -> int
+    return base + arg.length
+end
+
+func variadicSum(...) -> int
+    int total = 0
+    for value in arg
+        total += int(value)
+    end
+    return total
+end
+
+func optionValue(string path, ***) -> int
+    int total = path == "demo.txt" ? 1 : 0
+    if "retry" in arg then
+        total += int(arg["retry"])
+    end
+    if "cache" in arg then
+        total += bool(arg["cache"]) ? 10 : 0
+    end
+    return total
+end
+
+func describe(int value) -> string
+    return "int"
+end
+
+func describe(string value) -> string
+    return value
+end
+
+func main(...) -> int
+    touch()
+
+    auto number, text = pair(40)
+    auto onlyNumber, _ = pair(1)
+    int assigned = 0
+    string label = ""
+    assigned, label = pair(5)
+
+    if add(20, 22) != 42 then
+        return 1
+    end
+    if number != 42 or text != "ok" or onlyNumber != 3 then
+        return 2
+    end
+    if assigned != 7 or label != "ok" then
+        return 3
+    end
+    if optionalSum(1) != 111 or optionalSum(1, 2) != 103 or optionalSum(1, 2, 3) != 6 then
+        return 4
+    end
+    if optionalSum(c = 3, a = 1, b = 2) != 6 or optionalSum(1, c = 3) != 14 then
+        return 5
+    end
+    if variadicCount(10, 1, "x", true) != 13 then
+        return 6
+    end
+    if variadicSum(1, 2, 3, 4) != 10 then
+        return 7
+    end
+    if optionValue(path = "demo.txt", retry = 3, cache = true) != 14 then
+        return 8
+    end
+    if optionValue("other.txt", retry = 5) != 5 then
+        return 9
+    end
+    if describe(1) != "int" or describe("text") != "text" then
+        return 10
+    end
+    return 0
+end

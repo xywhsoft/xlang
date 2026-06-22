@@ -216,8 +216,11 @@ xxx_destroy(a.__handle);
 - `bool` -> C `bool`
 - `int` / `int8` / `uint8` / `int16` / `uint16` / `int32` / `uint32` / `int64` / `uint64`
 - `float` / `float32` / `float64`
+- C ABI 专用类型：`c_char` / `c_schar` / `c_uchar` / `c_short` / `c_ushort` / `c_int` / `c_uint` / `c_long` / `c_ulong` / `c_longlong` / `c_ulonglong` / `c_size` / `c_ssize` / `c_ptrdiff` / `c_intptr` / `c_uintptr` / `c_bool` / `c_float` / `c_double` / `c_wchar`
 - `string` 参数与 C UTF-8 只读字符串指针互转，xlang 导出到 C 时第一阶段不直接返回 `string`
 - `point` -> C 黑盒指针
+
+`c_*` 类型只用于 ABI 对齐，不作为 xlang 日常推荐类型。需要固定宽度时使用 `int32`、`uint64` 等类型；需要跟随 C 编译器和目标平台 ABI 时使用 `c_int`、`c_long`、`c_size` 等类型。
 
 第一阶段建议不直接导出：
 

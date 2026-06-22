@@ -1,0 +1,5 @@
+import uses_dep
+
+func main(...) -> int
+    return dep_value.depValue()
+end

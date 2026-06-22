@@ -4,6 +4,12 @@
 #include <stdio.h>
 #include <string.h>
 
+static char* xl6PackageDupText(const char* text)
+{
+    const char* src = text != NULL ? text : "";
+    return xrtCopyStr((char*)src, strlen(src));
+}
+
 static void xl6PackageCopyText(char* out, size_t outSize, const char* text)
 {
     if ( out == NULL || outSize == 0 ) {
@@ -49,7 +55,7 @@ static void xl6PackageDirName(char* out, size_t outSize, const char* path)
     out[len] = '\0';
 }
 
-static int xl6PackageJoin(char* out, size_t outSize, const char* a, const char* b)
+int xl6PackageJoinPath(char* out, size_t outSize, const char* a, const char* b)
 {
     const char* sep;
     size_t aLen;
@@ -64,18 +70,40 @@ static int xl6PackageJoin(char* out, size_t outSize, const char* a, const char* 
     return written > 0 && (size_t)written < outSize;
 }
 
-static int xl6PackageTryManifest(XL6_PackageResolveResult* result, const char* path, XL6_PackageResolveKind kind)
+static void xl6PackageBaseNameNoExt(char* out, size_t outSize, const char* path)
 {
-    if ( result == NULL || path == NULL ) {
-        return 0;
+    const char* base;
+    const char* p;
+    const char* dot;
+    size_t len;
+
+    if ( out == NULL || outSize == 0 ) {
+        return;
     }
-    if ( !xrtFileExists((char*)path) ) {
-        return 0;
+    out[0] = '\0';
+
+    base = path != NULL ? path : "package";
+    for ( p = base; *p != '\0'; ++p ) {
+        if ( *p == '\\' || *p == '/' || *p == ':' ) {
+            base = p + 1;
+        }
     }
-    result->resolved = 1;
-    result->kind = kind;
-    xl6PackageCopyText(result->manifestPath, sizeof(result->manifestPath), path);
-    return 1;
+    dot = NULL;
+    for ( p = base; *p != '\0'; ++p ) {
+        if ( *p == '.' ) {
+            dot = p;
+        }
+    }
+    len = dot != NULL ? (size_t)(dot - base) : strlen(base);
+    if ( len == 0 ) {
+        base = "package";
+        len = strlen(base);
+    }
+    if ( len >= outSize ) {
+        len = outSize - 1;
+    }
+    memcpy(out, base, len);
+    out[len] = '\0';
 }
 
 static int xl6PackageEndsWith(const char* text, const char* suffix)
@@ -89,6 +117,711 @@ static int xl6PackageEndsWith(const char* text, const char* suffix)
     textLen = strlen(text);
     suffixLen = strlen(suffix);
     return textLen >= suffixLen && strcmp(text + textLen - suffixLen, suffix) == 0;
+}
+
+static void xl6PackageMakePackageId(char* out, size_t outSize, const char* name, const char* version, const char* abiVersion)
+{
+    if ( out == NULL || outSize == 0 ) {
+        return;
+    }
+    snprintf(out, outSize, "%s@%s#abi%s",
+             name != NULL && name[0] != '\0' ? name : "package",
+             version != NULL && version[0] != '\0' ? version : "0.0.0",
+             abiVersion != NULL && abiVersion[0] != '\0' ? abiVersion : "1");
+}
+
+void xl6PackageStringListInit(XL6_PackageStringList* list)
+{
+    if ( list != NULL ) {
+        memset(list, 0, sizeof(*list));
+    }
+}
+
+void xl6PackageStringListFree(XL6_PackageStringList* list)
+{
+    size_t i;
+
+    if ( list == NULL ) {
+        return;
+    }
+    for ( i = 0; i < list->count; ++i ) {
+        xrtFree(list->items[i]);
+    }
+    xrtFree(list->items);
+    memset(list, 0, sizeof(*list));
+}
+
+int xl6PackageStringListAppend(XL6_PackageStringList* list, const char* text)
+{
+    char** newItems;
+    char* copy;
+
+    if ( list == NULL || text == NULL ) {
+        return 0;
+    }
+    copy = xl6PackageDupText(text);
+    if ( copy == NULL ) {
+        return 0;
+    }
+    newItems = (char**)xrtRealloc(list->items, (list->count + 1) * sizeof(char*));
+    if ( newItems == NULL ) {
+        xrtFree(copy);
+        return 0;
+    }
+    list->items = newItems;
+    list->items[list->count] = copy;
+    list->count += 1;
+    return 1;
+}
+
+void xl6PackageManifestInit(XL6_PackageManifest* manifest)
+{
+    if ( manifest != NULL ) {
+        memset(manifest, 0, sizeof(*manifest));
+    }
+}
+
+void xl6PackageManifestFree(XL6_PackageManifest* manifest)
+{
+    size_t i;
+
+    if ( manifest == NULL ) {
+        return;
+    }
+    xrtFree(manifest->format);
+    xrtFree(manifest->name);
+    xrtFree(manifest->version);
+    xrtFree(manifest->abiVersion);
+    xrtFree(manifest->packageId);
+    xrtFree(manifest->xapi);
+    xrtFree(manifest->dir);
+    xl6PackageStringListFree(&manifest->cSources);
+    xl6PackageStringListFree(&manifest->links);
+    xl6PackageStringListFree(&manifest->loadlibs);
+    for ( i = 0; i < manifest->dependencyCount; ++i ) {
+        xrtFree(manifest->dependencies[i].name);
+        xrtFree(manifest->dependencies[i].version);
+        xrtFree(manifest->dependencies[i].abiVersion);
+        xrtFree(manifest->dependencies[i].packageId);
+    }
+    xrtFree(manifest->dependencies);
+    xrtFree(manifest->nativeInfo.loadName);
+    xrtFree(manifest->nativeInfo.version);
+    memset(manifest, 0, sizeof(*manifest));
+}
+
+typedef struct XL6_PackageJson {
+    const char* text;
+    size_t len;
+    size_t pos;
+} XL6_PackageJson;
+
+static void xl6PackageJsonSkipWs(XL6_PackageJson* json)
+{
+    while ( json != NULL && json->pos < json->len ) {
+        char ch = json->text[json->pos];
+        if ( ch != ' ' && ch != '\t' && ch != '\r' && ch != '\n' ) {
+            break;
+        }
+        json->pos += 1;
+    }
+}
+
+static int xl6PackageJsonPeek(XL6_PackageJson* json)
+{
+    xl6PackageJsonSkipWs(json);
+    if ( json == NULL || json->pos >= json->len ) {
+        return 0;
+    }
+    return (unsigned char)json->text[json->pos];
+}
+
+static int xl6PackageJsonConsume(XL6_PackageJson* json, char ch)
+{
+    xl6PackageJsonSkipWs(json);
+    if ( json == NULL || json->pos >= json->len || json->text[json->pos] != ch ) {
+        return 0;
+    }
+    json->pos += 1;
+    return 1;
+}
+
+static int xl6PackageJsonAppendChar(char** out, size_t* len, size_t* cap, char ch)
+{
+    char* newData;
+    size_t newCap;
+
+    if ( out == NULL || len == NULL || cap == NULL ) {
+        return 0;
+    }
+    if ( *len + 2 > *cap ) {
+        newCap = *cap == 0 ? 32 : *cap * 2;
+        while ( *len + 2 > newCap ) {
+            newCap *= 2;
+        }
+        newData = (char*)xrtRealloc(*out, newCap);
+        if ( newData == NULL ) {
+            return 0;
+        }
+        *out = newData;
+        *cap = newCap;
+    }
+    (*out)[*len] = ch;
+    *len += 1;
+    (*out)[*len] = '\0';
+    return 1;
+}
+
+static char* xl6PackageJsonReadString(XL6_PackageJson* json)
+{
+    char* out;
+    size_t len;
+    size_t cap;
+
+    if ( !xl6PackageJsonConsume(json, '"') ) {
+        return NULL;
+    }
+    out = NULL;
+    len = 0;
+    cap = 0;
+    while ( json->pos < json->len ) {
+        char ch = json->text[json->pos++];
+        if ( ch == '"' ) {
+            return out != NULL ? out : xl6PackageDupText("");
+        }
+        if ( ch == '\\' && json->pos < json->len ) {
+            ch = json->text[json->pos++];
+            switch ( ch ) {
+            case '"': ch = '"'; break;
+            case '\\': ch = '\\'; break;
+            case '/': ch = '/'; break;
+            case 'b': ch = '\b'; break;
+            case 'f': ch = '\f'; break;
+            case 'n': ch = '\n'; break;
+            case 'r': ch = '\r'; break;
+            case 't': ch = '\t'; break;
+            case 'u':
+                if ( json->pos + 4 <= json->len ) {
+                    json->pos += 4;
+                }
+                ch = '?';
+                break;
+            default:
+                break;
+            }
+        }
+        if ( !xl6PackageJsonAppendChar(&out, &len, &cap, ch) ) {
+            xrtFree(out);
+            return NULL;
+        }
+    }
+    xrtFree(out);
+    return NULL;
+}
+
+static int xl6PackageJsonReadBool(XL6_PackageJson* json, int* outValue)
+{
+    xl6PackageJsonSkipWs(json);
+    if ( json->pos + 4 <= json->len && memcmp(json->text + json->pos, "true", 4) == 0 ) {
+        json->pos += 4;
+        if ( outValue != NULL ) {
+            *outValue = 1;
+        }
+        return 1;
+    }
+    if ( json->pos + 5 <= json->len && memcmp(json->text + json->pos, "false", 5) == 0 ) {
+        json->pos += 5;
+        if ( outValue != NULL ) {
+            *outValue = 0;
+        }
+        return 1;
+    }
+    return 0;
+}
+
+static int xl6PackageJsonSkipValue(XL6_PackageJson* json);
+
+static int xl6PackageJsonSkipObject(XL6_PackageJson* json)
+{
+    if ( !xl6PackageJsonConsume(json, '{') ) {
+        return 0;
+    }
+    if ( xl6PackageJsonConsume(json, '}') ) {
+        return 1;
+    }
+    for (;;) {
+        char* key = xl6PackageJsonReadString(json);
+        if ( key == NULL ) {
+            return 0;
+        }
+        xrtFree(key);
+        if ( !xl6PackageJsonConsume(json, ':') || !xl6PackageJsonSkipValue(json) ) {
+            return 0;
+        }
+        if ( xl6PackageJsonConsume(json, '}') ) {
+            return 1;
+        }
+        if ( !xl6PackageJsonConsume(json, ',') ) {
+            return 0;
+        }
+    }
+}
+
+static int xl6PackageJsonSkipArray(XL6_PackageJson* json)
+{
+    if ( !xl6PackageJsonConsume(json, '[') ) {
+        return 0;
+    }
+    if ( xl6PackageJsonConsume(json, ']') ) {
+        return 1;
+    }
+    for (;;) {
+        if ( !xl6PackageJsonSkipValue(json) ) {
+            return 0;
+        }
+        if ( xl6PackageJsonConsume(json, ']') ) {
+            return 1;
+        }
+        if ( !xl6PackageJsonConsume(json, ',') ) {
+            return 0;
+        }
+    }
+}
+
+static int xl6PackageJsonSkipValue(XL6_PackageJson* json)
+{
+    int ch;
+
+    ch = xl6PackageJsonPeek(json);
+    if ( ch == '"' ) {
+        char* text = xl6PackageJsonReadString(json);
+        xrtFree(text);
+        return text != NULL;
+    }
+    if ( ch == '{' ) {
+        return xl6PackageJsonSkipObject(json);
+    }
+    if ( ch == '[' ) {
+        return xl6PackageJsonSkipArray(json);
+    }
+    if ( ch == 't' || ch == 'f' ) {
+        return xl6PackageJsonReadBool(json, NULL);
+    }
+    if ( ch == 'n' && json->pos + 4 <= json->len && memcmp(json->text + json->pos, "null", 4) == 0 ) {
+        json->pos += 4;
+        return 1;
+    }
+    xl6PackageJsonSkipWs(json);
+    while ( json->pos < json->len ) {
+        ch = (unsigned char)json->text[json->pos];
+        if ( ch == ',' || ch == ']' || ch == '}' || ch == ' ' || ch == '\t' || ch == '\r' || ch == '\n' ) {
+            break;
+        }
+        json->pos += 1;
+    }
+    return 1;
+}
+
+static int xl6PackageManifestReadStringArray(XL6_PackageJson* json, XL6_PackageStringList* list)
+{
+    if ( !xl6PackageJsonConsume(json, '[') ) {
+        return 0;
+    }
+    if ( xl6PackageJsonConsume(json, ']') ) {
+        return 1;
+    }
+    for (;;) {
+        char* text = xl6PackageJsonReadString(json);
+        int ok = text != NULL && xl6PackageStringListAppend(list, text);
+        xrtFree(text);
+        if ( !ok ) {
+            return 0;
+        }
+        if ( xl6PackageJsonConsume(json, ']') ) {
+            return 1;
+        }
+        if ( !xl6PackageJsonConsume(json, ',') ) {
+            return 0;
+        }
+    }
+}
+
+static int xl6PackageManifestAppendDependency(
+    XL6_PackageManifest* manifest,
+    char* name,
+    char* version,
+    char* abiVersion)
+{
+    XL6_PackageDependency* newItems;
+    XL6_PackageDependency* dep;
+    char id[256];
+
+    if ( manifest == NULL || name == NULL || name[0] == '\0' ) {
+        return 0;
+    }
+    newItems = (XL6_PackageDependency*)xrtRealloc(
+        manifest->dependencies,
+        (manifest->dependencyCount + 1) * sizeof(XL6_PackageDependency));
+    if ( newItems == NULL ) {
+        return 0;
+    }
+    manifest->dependencies = newItems;
+    dep = &manifest->dependencies[manifest->dependencyCount];
+    memset(dep, 0, sizeof(*dep));
+    dep->name = xl6PackageDupText(name);
+    dep->version = xl6PackageDupText(version != NULL && version[0] != '\0' ? version : "0.0.0");
+    dep->abiVersion = xl6PackageDupText(abiVersion != NULL && abiVersion[0] != '\0' ? abiVersion : "1");
+    xl6PackageMakePackageId(id, sizeof(id), dep->name, dep->version, dep->abiVersion);
+    dep->packageId = xl6PackageDupText(id);
+    if ( dep->name == NULL || dep->version == NULL || dep->abiVersion == NULL || dep->packageId == NULL ) {
+        return 0;
+    }
+    manifest->dependencyCount += 1;
+    return 1;
+}
+
+static int xl6PackageManifestReadDependencyObject(XL6_PackageJson* json, XL6_PackageManifest* manifest)
+{
+    char* name;
+    char* version;
+    char* abiVersion;
+    int ok;
+
+    name = NULL;
+    version = NULL;
+    abiVersion = NULL;
+    if ( !xl6PackageJsonConsume(json, '{') ) {
+        return 0;
+    }
+    if ( !xl6PackageJsonConsume(json, '}') ) {
+        for (;;) {
+            char* key = xl6PackageJsonReadString(json);
+            if ( key == NULL || !xl6PackageJsonConsume(json, ':') ) {
+                xrtFree(key);
+                xrtFree(name);
+                xrtFree(version);
+                xrtFree(abiVersion);
+                return 0;
+            }
+            if ( strcmp(key, "name") == 0 ) {
+                xrtFree(name);
+                name = xl6PackageJsonReadString(json);
+            } else if ( strcmp(key, "version") == 0 ) {
+                xrtFree(version);
+                version = xl6PackageJsonReadString(json);
+            } else if ( strcmp(key, "abiVersion") == 0 ) {
+                xrtFree(abiVersion);
+                abiVersion = xl6PackageJsonReadString(json);
+            } else if ( !xl6PackageJsonSkipValue(json) ) {
+                xrtFree(key);
+                xrtFree(name);
+                xrtFree(version);
+                xrtFree(abiVersion);
+                return 0;
+            }
+            xrtFree(key);
+            if ( xl6PackageJsonConsume(json, '}') ) {
+                break;
+            }
+            if ( !xl6PackageJsonConsume(json, ',') ) {
+                xrtFree(name);
+                xrtFree(version);
+                xrtFree(abiVersion);
+                return 0;
+            }
+        }
+    }
+    ok = xl6PackageManifestAppendDependency(manifest, name, version, abiVersion);
+    xrtFree(name);
+    xrtFree(version);
+    xrtFree(abiVersion);
+    return ok;
+}
+
+static int xl6PackageManifestReadDependencies(XL6_PackageJson* json, XL6_PackageManifest* manifest)
+{
+    if ( !xl6PackageJsonConsume(json, '[') ) {
+        return 0;
+    }
+    if ( xl6PackageJsonConsume(json, ']') ) {
+        return 1;
+    }
+    for (;;) {
+        if ( !xl6PackageManifestReadDependencyObject(json, manifest) ) {
+            return 0;
+        }
+        if ( xl6PackageJsonConsume(json, ']') ) {
+            return 1;
+        }
+        if ( !xl6PackageJsonConsume(json, ',') ) {
+            return 0;
+        }
+    }
+}
+
+static int xl6PackageManifestReadArtifact(XL6_PackageJson* json, XL6_PackageManifest* manifest)
+{
+    if ( !xl6PackageJsonConsume(json, '{') ) {
+        return 0;
+    }
+    if ( xl6PackageJsonConsume(json, '}') ) {
+        return 1;
+    }
+    for (;;) {
+        char* key = xl6PackageJsonReadString(json);
+        if ( key == NULL || !xl6PackageJsonConsume(json, ':') ) {
+            xrtFree(key);
+            return 0;
+        }
+        if ( strcmp(key, "cSources") == 0 ) {
+            if ( !xl6PackageManifestReadStringArray(json, &manifest->cSources) ) {
+                xrtFree(key);
+                return 0;
+            }
+        } else if ( !xl6PackageJsonSkipValue(json) ) {
+            xrtFree(key);
+            return 0;
+        }
+        xrtFree(key);
+        if ( xl6PackageJsonConsume(json, '}') ) {
+            return 1;
+        }
+        if ( !xl6PackageJsonConsume(json, ',') ) {
+            return 0;
+        }
+    }
+}
+
+static int xl6PackageManifestReadNative(XL6_PackageJson* json, XL6_PackageManifest* manifest)
+{
+    if ( !xl6PackageJsonConsume(json, '{') ) {
+        return 0;
+    }
+    if ( xl6PackageJsonConsume(json, '}') ) {
+        return 1;
+    }
+    for (;;) {
+        char* key = xl6PackageJsonReadString(json);
+        if ( key == NULL || !xl6PackageJsonConsume(json, ':') ) {
+            xrtFree(key);
+            return 0;
+        }
+        if ( strcmp(key, "singleton") == 0 ) {
+            if ( !xl6PackageJsonReadBool(json, &manifest->nativeInfo.singleton) ) {
+                xrtFree(key);
+                return 0;
+            }
+        } else if ( strcmp(key, "loadName") == 0 ) {
+            xrtFree(manifest->nativeInfo.loadName);
+            manifest->nativeInfo.loadName = xl6PackageJsonReadString(json);
+        } else if ( strcmp(key, "version") == 0 ) {
+            xrtFree(manifest->nativeInfo.version);
+            manifest->nativeInfo.version = xl6PackageJsonReadString(json);
+        } else if ( !xl6PackageJsonSkipValue(json) ) {
+            xrtFree(key);
+            return 0;
+        }
+        xrtFree(key);
+        if ( xl6PackageJsonConsume(json, '}') ) {
+            return 1;
+        }
+        if ( !xl6PackageJsonConsume(json, ',') ) {
+            return 0;
+        }
+    }
+}
+
+static int xl6PackageManifestParseRoot(XL6_PackageJson* json, XL6_PackageManifest* manifest)
+{
+    if ( !xl6PackageJsonConsume(json, '{') ) {
+        return 0;
+    }
+    if ( xl6PackageJsonConsume(json, '}') ) {
+        return 1;
+    }
+    for (;;) {
+        char* key = xl6PackageJsonReadString(json);
+        if ( key == NULL || !xl6PackageJsonConsume(json, ':') ) {
+            xrtFree(key);
+            return 0;
+        }
+        if ( strcmp(key, "format") == 0 ) {
+            xrtFree(manifest->format);
+            manifest->format = xl6PackageJsonReadString(json);
+        } else if ( strcmp(key, "name") == 0 ) {
+            xrtFree(manifest->name);
+            manifest->name = xl6PackageJsonReadString(json);
+        } else if ( strcmp(key, "version") == 0 ) {
+            xrtFree(manifest->version);
+            manifest->version = xl6PackageJsonReadString(json);
+        } else if ( strcmp(key, "abiVersion") == 0 ) {
+            xrtFree(manifest->abiVersion);
+            manifest->abiVersion = xl6PackageJsonReadString(json);
+        } else if ( strcmp(key, "xapi") == 0 ) {
+            xrtFree(manifest->xapi);
+            manifest->xapi = xl6PackageJsonReadString(json);
+        } else if ( strcmp(key, "artifact") == 0 ) {
+            if ( !xl6PackageManifestReadArtifact(json, manifest) ) {
+                xrtFree(key);
+                return 0;
+            }
+        } else if ( strcmp(key, "links") == 0 ) {
+            if ( !xl6PackageManifestReadStringArray(json, &manifest->links) ) {
+                xrtFree(key);
+                return 0;
+            }
+        } else if ( strcmp(key, "loadlibs") == 0 ) {
+            if ( !xl6PackageManifestReadStringArray(json, &manifest->loadlibs) ) {
+                xrtFree(key);
+                return 0;
+            }
+        } else if ( strcmp(key, "cSources") == 0 ) {
+            if ( !xl6PackageManifestReadStringArray(json, &manifest->cSources) ) {
+                xrtFree(key);
+                return 0;
+            }
+        } else if ( strcmp(key, "dependencies") == 0 ) {
+            if ( !xl6PackageManifestReadDependencies(json, manifest) ) {
+                xrtFree(key);
+                return 0;
+            }
+        } else if ( strcmp(key, "native") == 0 ) {
+            if ( !xl6PackageManifestReadNative(json, manifest) ) {
+                xrtFree(key);
+                return 0;
+            }
+        } else if ( !xl6PackageJsonSkipValue(json) ) {
+            xrtFree(key);
+            return 0;
+        }
+        xrtFree(key);
+        if ( xl6PackageJsonConsume(json, '}') ) {
+            return 1;
+        }
+        if ( !xl6PackageJsonConsume(json, ',') ) {
+            return 0;
+        }
+    }
+}
+
+int xl6PackageLoadManifest(const char* path, XL6_PackageManifest* manifest)
+{
+    char* text;
+    size_t textLen;
+    XL6_PackageJson json;
+    char dir[512];
+    char fallbackName[128];
+    char packageId[256];
+    int ok;
+
+    if ( path == NULL || manifest == NULL ) {
+        return 0;
+    }
+
+    xl6PackageManifestFree(manifest);
+    xl6PackageManifestInit(manifest);
+
+    xrtClearError();
+    text = xrtFileReadAll((char*)path, XRT_CP_UTF8, &textLen);
+    if ( xrtGetError()[0] != '\0' || text == NULL ) {
+        xrtFree(text);
+        return 0;
+    }
+    memset(&json, 0, sizeof(json));
+    json.text = text;
+    json.len = textLen;
+    ok = xl6PackageManifestParseRoot(&json, manifest);
+    xrtFree(text);
+    xl6PackageDirName(dir, sizeof(dir), path);
+    xl6PackageBaseNameNoExt(fallbackName, sizeof(fallbackName), dir);
+    if ( ok && (manifest->format == NULL || strcmp(manifest->format, "xlang-package-1") != 0) ) {
+        ok = 0;
+    }
+    if ( ok && (manifest->name == NULL || manifest->name[0] == '\0') ) {
+        manifest->name = xl6PackageDupText(fallbackName);
+    }
+    if ( ok && manifest->version == NULL ) {
+        manifest->version = xl6PackageDupText("0.0.0");
+    }
+    if ( ok && manifest->abiVersion == NULL ) {
+        manifest->abiVersion = xl6PackageDupText("1");
+    }
+    if ( ok && manifest->xapi == NULL ) {
+        manifest->xapi = xl6PackageDupText("package.xapi.json");
+    }
+    if ( ok ) {
+        manifest->dir = xl6PackageDupText(dir);
+        xl6PackageMakePackageId(packageId, sizeof(packageId), manifest->name, manifest->version, manifest->abiVersion);
+        manifest->packageId = xl6PackageDupText(packageId);
+        if ( manifest->name == NULL || manifest->version == NULL || manifest->abiVersion == NULL ||
+             manifest->xapi == NULL || manifest->dir == NULL || manifest->packageId == NULL ) {
+            ok = 0;
+        }
+    }
+    if ( !ok ) {
+        xl6PackageManifestFree(manifest);
+    }
+    return ok;
+}
+
+static void xl6PackageFinalizeXapiResult(XL6_PackageResolveResult* result)
+{
+    char base[128];
+
+    xl6PackageDirName(result->packageDir, sizeof(result->packageDir), result->manifestPath);
+    xl6PackageCopyText(result->interfacePath, sizeof(result->interfacePath), result->manifestPath);
+    xl6PackageBaseNameNoExt(base, sizeof(base), result->manifestPath);
+    xl6PackageCopyText(result->packageName, sizeof(result->packageName), base);
+    xl6PackageCopyText(result->packageVersion, sizeof(result->packageVersion), "0.0.0");
+    xl6PackageCopyText(result->abiVersion, sizeof(result->abiVersion), "1");
+    xl6PackageMakePackageId(result->packageId, sizeof(result->packageId),
+                            result->packageName, result->packageVersion, result->abiVersion);
+}
+
+static int xl6PackageFinalizeManifestResult(XL6_PackageResolveResult* result)
+{
+    XL6_PackageManifest manifest;
+    char xapiPath[512];
+    int ok;
+
+    xl6PackageManifestInit(&manifest);
+    if ( !xl6PackageLoadManifest(result->manifestPath, &manifest) ) {
+        xl6PackageManifestFree(&manifest);
+        return 0;
+    }
+    ok = xl6PackageJoinPath(xapiPath, sizeof(xapiPath), manifest.dir, manifest.xapi);
+    if ( ok ) {
+        xl6PackageCopyText(result->packageDir, sizeof(result->packageDir), manifest.dir);
+        xl6PackageCopyText(result->interfacePath, sizeof(result->interfacePath), xapiPath);
+        xl6PackageCopyText(result->packageName, sizeof(result->packageName), manifest.name);
+        xl6PackageCopyText(result->packageVersion, sizeof(result->packageVersion), manifest.version);
+        xl6PackageCopyText(result->abiVersion, sizeof(result->abiVersion), manifest.abiVersion);
+        xl6PackageCopyText(result->packageId, sizeof(result->packageId), manifest.packageId);
+    }
+    xl6PackageManifestFree(&manifest);
+    return ok;
+}
+
+static int xl6PackageTryManifest(XL6_PackageResolveResult* result, const char* path, XL6_PackageResolveKind kind)
+{
+    if ( result == NULL || path == NULL ) {
+        return 0;
+    }
+    if ( !xrtFileExists((char*)path) ) {
+        return 0;
+    }
+    result->resolved = 1;
+    result->kind = kind;
+    xl6PackageCopyText(result->manifestPath, sizeof(result->manifestPath), path);
+    if ( xl6PackageEndsWith(path, ".xapi.json") ) {
+        xl6PackageFinalizeXapiResult(result);
+        return 1;
+    }
+    if ( !xl6PackageFinalizeManifestResult(result) ) {
+        xl6PackageResolveResultInit(result);
+        return 0;
+    }
+    return 1;
 }
 
 static int xl6PackageLooksLikePath(const char* target)
@@ -151,7 +884,7 @@ int xl6PackageResolveImport(const char* importerPath, const char* target, XL6_Pa
         if ( xl6PackageTryManifest(result, path, XL6_PACKAGE_RESOLVE_FILE) ) {
             return 1;
         }
-        if ( xl6PackageJoin(path, sizeof(path), importerDir, target) ) {
+        if ( xl6PackageJoinPath(path, sizeof(path), importerDir, target) ) {
             if ( xl6PackageTryManifest(result, path, XL6_PACKAGE_RESOLVE_FILE) ) {
                 return 1;
             }
@@ -159,11 +892,11 @@ int xl6PackageResolveImport(const char* importerPath, const char* target, XL6_Pa
             if ( xl6PackageTryManifest(result, path2, XL6_PACKAGE_RESOLVE_FILE) ) {
                 return 1;
             }
-            if ( xl6PackageJoin(path2, sizeof(path2), path, "xlang.package.json") &&
+            if ( xl6PackageJoinPath(path2, sizeof(path2), path, "xlang.package.json") &&
                  xl6PackageTryManifest(result, path2, XL6_PACKAGE_RESOLVE_PACKAGE) ) {
                 return 1;
             }
-            if ( xl6PackageJoin(path2, sizeof(path2), path, "package.xapi.json") &&
+            if ( xl6PackageJoinPath(path2, sizeof(path2), path, "package.xapi.json") &&
                  xl6PackageTryManifest(result, path2, XL6_PACKAGE_RESOLVE_PACKAGE) ) {
                 return 1;
             }
@@ -171,22 +904,22 @@ int xl6PackageResolveImport(const char* importerPath, const char* target, XL6_Pa
         return 0;
     }
 
-    if ( xl6PackageJoin(path, sizeof(path), "packages", target) ) {
-        if ( xl6PackageJoin(path2, sizeof(path2), path, "xlang.package.json") &&
+    if ( xl6PackageJoinPath(path, sizeof(path), "packages", target) ) {
+        if ( xl6PackageJoinPath(path2, sizeof(path2), path, "xlang.package.json") &&
              xl6PackageTryManifest(result, path2, XL6_PACKAGE_RESOLVE_PACKAGE) ) {
             return 1;
         }
-        if ( xl6PackageJoin(path2, sizeof(path2), path, "package.xapi.json") &&
+        if ( xl6PackageJoinPath(path2, sizeof(path2), path, "package.xapi.json") &&
              xl6PackageTryManifest(result, path2, XL6_PACKAGE_RESOLVE_PACKAGE) ) {
             return 1;
         }
     }
-    if ( xl6PackageJoin(path, sizeof(path), "lib", target) ) {
-        if ( xl6PackageJoin(path2, sizeof(path2), path, "xlang.package.json") &&
+    if ( xl6PackageJoinPath(path, sizeof(path), "lib", target) ) {
+        if ( xl6PackageJoinPath(path2, sizeof(path2), path, "xlang.package.json") &&
              xl6PackageTryManifest(result, path2, XL6_PACKAGE_RESOLVE_PACKAGE) ) {
             return 1;
         }
-        if ( xl6PackageJoin(path2, sizeof(path2), path, "package.xapi.json") &&
+        if ( xl6PackageJoinPath(path2, sizeof(path2), path, "package.xapi.json") &&
              xl6PackageTryManifest(result, path2, XL6_PACKAGE_RESOLVE_PACKAGE) ) {
             return 1;
         }
@@ -206,12 +939,16 @@ int xl6PackageResolveInterfacePath(const XL6_PackageResolveResult* result, char*
     if ( result == NULL || !result->resolved || result->manifestPath[0] == '\0' ) {
         return 0;
     }
+    if ( result->interfacePath[0] != '\0' ) {
+        xl6PackageCopyText(out, outSize, result->interfacePath);
+        return 1;
+    }
     if ( xl6PackageEndsWith(result->manifestPath, ".xapi.json") ) {
         xl6PackageCopyText(out, outSize, result->manifestPath);
         return 1;
     }
     xl6PackageDirName(dir, sizeof(dir), result->manifestPath);
-    if ( xl6PackageJoin(path, sizeof(path), dir, "package.xapi.json") && xrtFileExists((char*)path) ) {
+    if ( xl6PackageJoinPath(path, sizeof(path), dir, "package.xapi.json") && xrtFileExists((char*)path) ) {
         xl6PackageCopyText(out, outSize, path);
         return 1;
     }

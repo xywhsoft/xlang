@@ -12,6 +12,7 @@ int xl6CgenIsTopLevelRuntimeStmt(const XL6_AstNode* node)
     return node != NULL &&
            node->kind != XL6_AST_IMPORT &&
            node->kind != XL6_AST_FUNC &&
+           node->kind != XL6_AST_ASYNC_FUNC &&
            node->kind != XL6_AST_EXTERN_FUNC &&
            node->kind != XL6_AST_EXPORT_FUNC &&
            node->kind != XL6_AST_EXTERN_VAR &&
@@ -20,6 +21,7 @@ int xl6CgenIsTopLevelRuntimeStmt(const XL6_AstNode* node)
            node->kind != XL6_AST_TYPE_ALIAS &&
            node->kind != XL6_AST_EXTERN_TYPE_ALIAS &&
            node->kind != XL6_AST_CUSTOM &&
+           node->kind != XL6_AST_UNION &&
            node->kind != XL6_AST_CLASS;
 }
 

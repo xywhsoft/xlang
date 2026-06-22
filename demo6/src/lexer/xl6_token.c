@@ -11,6 +11,7 @@ const char* xl6TokenKindName(XL6_TokenKind kind)
     case XL6_TK_STRING: return "STRING";
     case XL6_TK_TEMPLATE_STRING: return "TEMPLATE_STRING";
     case XL6_TK_TIME: return "TIME";
+    case XL6_TK_DOC: return "DOC";
     case XL6_TK_SEP: return "SEP";
     case XL6_KW_NULL: return "KW_NULL";
     case XL6_KW_TRUE: return "KW_TRUE";

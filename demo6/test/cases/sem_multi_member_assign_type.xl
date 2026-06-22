@@ -1,0 +1,13 @@
+class Box
+    int value
+end
+
+func pair() -> (string, string)
+    return "bad", "ok"
+end
+
+func bad()
+    Box box
+    string text
+    box.value, text = pair()
+end

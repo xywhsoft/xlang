@@ -1,0 +1,46 @@
+union Payload
+    int i
+    c_double d
+end
+
+func makePayload(int value) -> Payload
+    Payload p
+    p.i = value
+    return p
+end
+
+func readPayload(Payload p) -> int
+    return p.i
+end
+
+Payload payload = makePayload(42)
+assert payload.i == 42, "union int field failed"
+assert readPayload(payload) == 42, "union function parameter failed"
+
+payload.d = 12.5
+assert int(payload.d) == 12, "union double field failed"
+
+class Packet
+    int tag
+    union
+        int code
+        c_double ratio
+    end
+end
+
+Packet packet
+packet.tag = 7
+packet.code = 200
+assert packet.tag == 7, "class field beside union failed"
+assert packet.code == 200, "anonymous union int field failed"
+
+packet.ratio = 3.5
+assert int(packet.ratio) == 3, "anonymous union double field failed"
+
+class Envelope
+    Payload payload
+end
+
+Envelope envelope
+envelope.payload.i = 99
+assert envelope.payload.i == 99, "nested union field failed"

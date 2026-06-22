@@ -1,0 +1,43 @@
+func nums(int count) -> generator<int>
+    int i = 0
+    while i < count do
+        i = i + 1
+        yield i
+    end
+end
+
+int total = 0
+for value in nums(3)
+    total = total + value
+end
+
+assert total == 6, "generator total failed"
+
+int filtered = 0
+for value in nums(5)
+    if value == 2 then
+        continue
+    end
+    if value == 5 then
+        break
+    end
+    filtered = filtered + value
+end
+
+assert filtered == 8, "generator break/continue failed"
+
+auto autoGen = nums(2)
+int autoTotal = 0
+for item in autoGen
+    autoTotal = autoTotal + item
+end
+
+assert autoTotal == 3, "auto generator failed"
+
+generator<int> explicitGen = nums(1)
+int last = 0
+for item in explicitGen
+    last = item
+end
+
+assert last == 1, "explicit generator failed"

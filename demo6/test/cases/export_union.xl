@@ -1,0 +1,8 @@
+union Payload
+    int i
+    c_double d
+end
+
+export "xl6_union_pick" func pick(Payload p) -> int
+    return p.i
+end

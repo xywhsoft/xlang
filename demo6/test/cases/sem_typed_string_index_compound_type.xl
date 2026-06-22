@@ -1,0 +1,3 @@
+dict<string> names = dict{"a": "hello"}
+
+names["a"] += 1

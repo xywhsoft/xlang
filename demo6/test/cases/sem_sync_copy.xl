@@ -1,0 +1,2 @@
+mutex a = mutex()
+mutex b = a

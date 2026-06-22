@@ -1,0 +1,80 @@
+async func addAsync(int a, int b) -> int
+    return a + b
+end
+
+async func touchAsync()
+    int marker = 1
+    assert marker == 1, "async void body failed"
+end
+
+func numbers(int count) -> generator<int>
+    int i = 0
+    while i < count do
+        i = i + 1
+        yield i
+    end
+end
+
+func worker() -> int
+    return 7
+end
+
+future<int> futureValue = addAsync(20, 22)
+int answer = await futureValue
+assert answer == 42, "async/await failed"
+
+auto autoFuture = addAsync(4, 6)
+auto autoAnswer = await autoFuture
+assert autoAnswer == 10, "auto await failed"
+
+auto voidFuture = touchAsync()
+await voidFuture
+
+int total = 0
+for value in numbers(4)
+    total = total + value
+end
+assert total == 10, "generator for-in failed"
+
+channel<int> ch = channel::<int>(2)
+assert ch.send(123), "channel send failed"
+int received = 0
+assert ch.recvInto(received), "channel recv failed"
+assert received == 123, "channel value failed"
+assert ch.count() == 0, "channel count failed"
+ch.close()
+assert ch.isClosed(), "channel close failed"
+
+thread t = thread(worker)
+assert t.wait(), "thread wait failed"
+assert t.exitCode() == 7, "thread exit code failed"
+
+int base = 5
+auto capturedWorker = func() -> int
+    return base + 2
+end
+thread captured = thread(capturedWorker)
+assert captured.wait(), "thread captured wait failed"
+assert captured.exitCode() == 7, "thread captured exit code failed"
+
+mutex m = mutex()
+assert m.lock(), "mutex lock failed"
+assert m.unlock(), "mutex unlock failed"
+assert m.tryLock(), "mutex tryLock failed"
+assert m.unlock(), "mutex tryUnlock failed"
+
+sem gate = sem(0, 2)
+assert gate.post(), "sem post failed"
+assert gate.waitTimeout(10), "sem waitTimeout failed"
+assert not gate.tryWait(), "sem empty tryWait failed"
+
+cond c = cond()
+assert c.signal(), "cond signal failed"
+assert c.broadcast(), "cond broadcast failed"
+
+rwlock rw = rwlock()
+assert rw.readLock(), "rwlock readLock failed"
+assert rw.readUnlock(), "rwlock readUnlock failed"
+assert rw.writeLock(), "rwlock writeLock failed"
+assert rw.downgrade(), "rwlock downgrade failed"
+assert rw.readUnlock(), "rwlock downgraded unlock failed"

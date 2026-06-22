@@ -1,0 +1,3 @@
+async func bad() -> future<int>
+    return 1
+end

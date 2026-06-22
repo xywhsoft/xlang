@@ -30,6 +30,22 @@ static XL6_AstNode* xl6CgenFindClass(XL6_CgenContext* ctx, const char* name)
     return NULL;
 }
 
+static XL6_AstNode* xl6CgenFindUnion(XL6_CgenContext* ctx, const char* name)
+{
+    size_t i;
+
+    if ( ctx == NULL || ctx->root == NULL || name == NULL ) {
+        return NULL;
+    }
+    for ( i = 0; i < ctx->root->childCount; ++i ) {
+        XL6_AstNode* node = ctx->root->children[i];
+        if ( node->kind == XL6_AST_UNION && node->text != NULL && xl6CTextEquals(node->text, name) ) {
+            return node;
+        }
+    }
+    return NULL;
+}
+
 static int xl6CgenIsCustomType(XL6_CgenContext* ctx, const XL6_AstNode* typeNode)
 {
     return typeNode != NULL && typeNode->text != NULL && xl6CgenFindCustom(ctx, typeNode->text) != NULL;
@@ -38,6 +54,12 @@ static int xl6CgenIsCustomType(XL6_CgenContext* ctx, const XL6_AstNode* typeNode
 static int xl6CgenIsClassType(XL6_CgenContext* ctx, const XL6_AstNode* typeNode)
 {
     return typeNode != NULL && typeNode->text != NULL && xl6CgenFindClass(ctx, typeNode->text) != NULL;
+}
+
+static int xl6CgenIsUnionType(XL6_CgenContext* ctx, const XL6_AstNode* typeNode)
+{
+    return typeNode != NULL && typeNode->text != NULL && typeNode->childCount == 0 &&
+           xl6CgenFindUnion(ctx, typeNode->text) != NULL;
 }
 
 static int xl6CgenClassHasTypeParams(const XL6_AstNode* classNode)
@@ -66,6 +88,14 @@ static int xl6CgenFuncIsGeneric(const XL6_AstNode* funcNode)
     return typeParams != NULL && typeParams->childCount > 0;
 }
 
+static int xl6CgenIsFuncDeclNode(const XL6_AstNode* node)
+{
+    return node != NULL &&
+           (node->kind == XL6_AST_FUNC ||
+            node->kind == XL6_AST_ASYNC_FUNC ||
+            node->kind == XL6_AST_EXPORT_FUNC);
+}
+
 static XL6_AstNode* xl6CgenCloneCanonicalTypeNode(XL6_CgenContext* ctx, const XL6_AstNode* node);
 
 static const XL6_AstNode* xl6CgenSubstituteGenericType(XL6_CgenContext* ctx, const XL6_AstNode* typeNode)
@@ -88,6 +118,29 @@ static const XL6_AstNode* xl6CgenSubstituteGenericType(XL6_CgenContext* ctx, con
 static const XL6_AstNode* xl6CgenClassBody(const XL6_AstNode* classNode)
 {
     return classNode != NULL && classNode->childCount > 1 ? classNode->children[1] : NULL;
+}
+
+static const XL6_AstNode* xl6CgenUnionBody(const XL6_AstNode* unionNode)
+{
+    return unionNode != NULL && unionNode->childCount > 0 ? unionNode->children[0] : NULL;
+}
+
+static const XL6_AstNode* xl6CgenFindUnionFieldNode(const XL6_AstNode* unionNode, const char* fieldName)
+{
+    const XL6_AstNode* body;
+    size_t i;
+
+    body = xl6CgenUnionBody(unionNode);
+    if ( body == NULL || fieldName == NULL ) {
+        return NULL;
+    }
+    for ( i = 0; i < body->childCount; ++i ) {
+        const XL6_AstNode* field = body->children[i];
+        if ( field != NULL && field->kind == XL6_AST_FIELD && xl6CTextEquals(field->text, fieldName) ) {
+            return field;
+        }
+    }
+    return NULL;
 }
 
 static const XL6_AstNode* xl6CgenFindClassFunc(const XL6_AstNode* classNode, const char* name)
@@ -293,4 +346,3 @@ static const XL6_AstNode* xl6CgenFindExternalVar(XL6_CgenContext* ctx, const cha
     }
     return NULL;
 }
-

@@ -1,6 +1,12 @@
 #include <stdlib.h>
 #include <string.h>
 
+typedef struct xvalue_struct* xvalue;
+
+xvalue xvoCreateInt(long long iVal);
+
+static long long g_nc_probe_count = 0;
+
 void expect_i64(long long actual, long long expected)
 {
     if ( actual != expected ) {
@@ -13,4 +19,26 @@ void expect_str(const char* actual, const char* expected)
     if ( actual == NULL || expected == NULL || strcmp(actual, expected) != 0 ) {
         exit(1);
     }
+}
+
+void nc_probe_reset(void)
+{
+    g_nc_probe_count = 0;
+}
+
+long long nc_probe_next(void)
+{
+    g_nc_probe_count += 1;
+    return 33;
+}
+
+xvalue nc_probe_next_var(void)
+{
+    g_nc_probe_count += 1;
+    return xvoCreateInt(33);
+}
+
+long long nc_probe_count(void)
+{
+    return g_nc_probe_count;
 }

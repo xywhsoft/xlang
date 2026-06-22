@@ -27,6 +27,8 @@ static XL6_AstNode* xl6CgenCloneTypeNode(const XL6_AstNode* node)
     return copy;
 }
 
+static XL6_AstNode* xl6CgenCloneExprTypeForInference(XL6_CgenContext* ctx, const XL6_AstNode* expr);
+
 static XL6_AstNode* xl6CgenNewSimpleType(const char* name, const XL6_AstNode* at)
 {
     XL6_AstNode* node;
@@ -155,6 +157,109 @@ static XL6_AstNode* xl6CgenNewGenericTypeNode(const char* name, XL6_AstNode* typ
     xl6AstAddChild(args, typeArg);
     xl6AstAddChild(typeNode, args);
     return typeNode;
+}
+
+static int xl6CgenIsFutureLikeType(const XL6_AstNode* typeNode)
+{
+    return typeNode != NULL &&
+           (xl6CTextEquals(typeNode->text, "future") ||
+            xl6CTextEquals(typeNode->text, "task"));
+}
+
+static int xl6CgenIsChannelType(const XL6_AstNode* typeNode)
+{
+    return typeNode != NULL && xl6CTextEquals(typeNode->text, "channel");
+}
+
+static int xl6CgenIsThreadType(const XL6_AstNode* typeNode)
+{
+    return typeNode != NULL && xl6CTextEquals(typeNode->text, "thread");
+}
+
+static int xl6CgenIsGeneratorType(const XL6_AstNode* typeNode)
+{
+    return typeNode != NULL && xl6CTextEquals(typeNode->text, "generator");
+}
+
+static int xl6CgenIsSyncHandleTypeName(const char* name)
+{
+    return xl6CTextEquals(name, "mutex") ||
+           xl6CTextEquals(name, "sem") ||
+           xl6CTextEquals(name, "cond") ||
+           xl6CTextEquals(name, "rwlock");
+}
+
+static int xl6CgenIsSyncHandleType(const XL6_AstNode* typeNode)
+{
+    return typeNode != NULL && xl6CgenIsSyncHandleTypeName(typeNode->text);
+}
+
+static XL6_AstNode* xl6CgenCloneSingleGenericArgType(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* typeNode,
+    const char* baseName)
+{
+    const XL6_AstNode* concrete;
+    const XL6_AstNode* args;
+
+    concrete = xl6CgenSubstituteGenericType(ctx, typeNode);
+    concrete = xl6CgenResolveAliasType(ctx, concrete);
+    if ( concrete == NULL || !xl6CTextEquals(concrete->text, baseName) ) {
+        return NULL;
+    }
+
+    args = concrete->childCount > 0 && concrete->children[0] != NULL &&
+           concrete->children[0]->kind == XL6_AST_LIST ? concrete->children[0] : NULL;
+    if ( args == NULL || args->childCount == 0 ) {
+        return xl6CgenNewSimpleType("null", concrete);
+    }
+    return xl6CgenCloneCanonicalTypeNode(ctx, args->children[0]);
+}
+
+static XL6_AstNode* xl6CgenCloneAwaitResultType(XL6_CgenContext* ctx, const XL6_AstNode* awaitNode)
+{
+    XL6_AstNode* futureType;
+    XL6_AstNode* result;
+
+    if ( awaitNode == NULL || awaitNode->childCount == 0 ) {
+        return NULL;
+    }
+
+    futureType = xl6CgenCloneExprTypeForInference(ctx, awaitNode->children[0]);
+    result = xl6CgenCloneSingleGenericArgType(ctx, futureType, "future");
+    if ( result == NULL ) {
+        result = xl6CgenCloneSingleGenericArgType(ctx, futureType, "task");
+    }
+    xl6AstFree(futureType);
+    return result;
+}
+
+static XL6_AstNode* xl6CgenCloneAsyncCallType(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* func,
+    const XL6_AstNode* typeArgs,
+    const XL6_AstNode* at)
+{
+    const XL6_AstNode* returns;
+    XL6_AstNode* valueType;
+
+    returns = func != NULL && func->childCount > 2 ? func->children[2] : NULL;
+    if ( returns != NULL && returns->childCount == 1 ) {
+        const XL6_AstNode* prevParams = ctx->currentGenericParams;
+        const XL6_AstNode* prevArgs = ctx->currentGenericArgs;
+
+        if ( typeArgs != NULL ) {
+            ctx->currentGenericParams = xl6CgenFuncTypeParams(func);
+            ctx->currentGenericArgs = typeArgs;
+        }
+        valueType = xl6CgenCloneCanonicalTypeNode(ctx, returns->children[0]);
+        ctx->currentGenericParams = prevParams;
+        ctx->currentGenericArgs = prevArgs;
+    } else {
+        valueType = xl6CgenNewSimpleType("null", at != NULL ? at : func);
+    }
+
+    return xl6CgenNewGenericTypeNode("future", valueType, at != NULL ? at : func);
 }
 
 static XL6_AstNode* xl6CgenCloneCommonLiteralElementType(XL6_CgenContext* ctx, const XL6_AstNode* literal, int usePairValue)
@@ -349,6 +454,162 @@ static XL6_AstNode* xl6CgenGenericClassCtorType(XL6_CgenContext* ctx, const XL6_
     return typeNode;
 }
 
+static XL6_AstNode* xl6CgenChannelCtorType(XL6_CgenContext* ctx, const XL6_AstNode* call)
+{
+    const XL6_AstNode* instant;
+    const XL6_AstNode* nameNode;
+    const XL6_AstNode* typeArgs;
+    XL6_AstNode* typeNode;
+    XL6_AstNode* argsCopy;
+
+    if ( call == NULL || call->kind != XL6_AST_CALL || call->childCount == 0 ) {
+        return NULL;
+    }
+    instant = call->children[0];
+    if ( instant == NULL || instant->kind != XL6_AST_GENERIC_INSTANT || instant->childCount < 2 ) {
+        return NULL;
+    }
+    nameNode = instant->children[0];
+    typeArgs = instant->children[1];
+    if ( nameNode == NULL || nameNode->kind != XL6_AST_NAME ||
+         !xl6CTextEquals(nameNode->text, "channel") ||
+         typeArgs == NULL || typeArgs->childCount != 1 ) {
+        return NULL;
+    }
+
+    typeNode = xl6CgenNewSimpleType("channel", nameNode);
+    argsCopy = xl6CgenCloneCanonicalTypeNode(ctx, typeArgs);
+    if ( typeNode == NULL || argsCopy == NULL ) {
+        xl6AstFree(typeNode);
+        xl6AstFree(argsCopy);
+        xl6CgenError(ctx, call, "channel type inference out of memory");
+        return NULL;
+    }
+    xl6AstAddChild(typeNode, argsCopy);
+    return typeNode;
+}
+
+static XL6_AstNode* xl6CgenChannelMethodType(XL6_CgenContext* ctx, const XL6_AstNode* call)
+{
+    const XL6_AstNode* member;
+    const XL6_AstNode* receiver;
+    XL6_AstNode* receiverType;
+    XL6_AstNode* result;
+
+    if ( call == NULL || call->kind != XL6_AST_CALL || call->childCount == 0 ) {
+        return NULL;
+    }
+    member = call->children[0];
+    if ( member == NULL || member->kind != XL6_AST_MEMBER ) {
+        return NULL;
+    }
+    receiver = member->childCount > 0 ? member->children[0] : NULL;
+    receiverType = xl6CgenCloneExprTypeForInference(ctx, receiver);
+    if ( !xl6CgenIsChannelType(receiverType) ) {
+        xl6AstFree(receiverType);
+        return NULL;
+    }
+
+    result = NULL;
+    if ( xl6CTextEquals(member->text, "send") ||
+         xl6CTextEquals(member->text, "recvInto") ||
+         xl6CTextEquals(member->text, "tryRecvInto") ||
+         xl6CTextEquals(member->text, "isClosed") ) {
+        result = xl6CgenNewSimpleType("bool", call);
+    } else if ( xl6CTextEquals(member->text, "count") ) {
+        result = xl6CgenNewSimpleType("int", call);
+    }
+    xl6AstFree(receiverType);
+    return result;
+}
+
+static XL6_AstNode* xl6CgenSyncCtorType(XL6_CgenContext* ctx, const XL6_AstNode* call)
+{
+    const XL6_AstNode* callee;
+
+    (void)ctx;
+    if ( call == NULL || call->kind != XL6_AST_CALL || call->childCount == 0 ) {
+        return NULL;
+    }
+    callee = call->children[0];
+    if ( callee == NULL || callee->kind != XL6_AST_NAME || !xl6CgenIsSyncHandleTypeName(callee->text) ) {
+        return NULL;
+    }
+    return xl6CgenNewSimpleType(callee->text, callee);
+}
+
+static XL6_AstNode* xl6CgenThreadCtorType(XL6_CgenContext* ctx, const XL6_AstNode* call)
+{
+    const XL6_AstNode* callee;
+
+    (void)ctx;
+    if ( call == NULL || call->kind != XL6_AST_CALL || call->childCount == 0 ) {
+        return NULL;
+    }
+    callee = call->children[0];
+    if ( callee == NULL || callee->kind != XL6_AST_NAME || !xl6CTextEquals(callee->text, "thread") ) {
+        return NULL;
+    }
+    return xl6CgenNewSimpleType("thread", callee);
+}
+
+static XL6_AstNode* xl6CgenThreadMethodType(XL6_CgenContext* ctx, const XL6_AstNode* call)
+{
+    const XL6_AstNode* member;
+    const XL6_AstNode* receiver;
+    XL6_AstNode* receiverType;
+    XL6_AstNode* result;
+
+    if ( call == NULL || call->kind != XL6_AST_CALL || call->childCount == 0 ) {
+        return NULL;
+    }
+    member = call->children[0];
+    if ( member == NULL || member->kind != XL6_AST_MEMBER ) {
+        return NULL;
+    }
+    receiver = member->childCount > 0 ? member->children[0] : NULL;
+    receiverType = xl6CgenCloneExprTypeForInference(ctx, receiver);
+    if ( !xl6CgenIsThreadType(receiverType) ) {
+        xl6AstFree(receiverType);
+        return NULL;
+    }
+
+    result = NULL;
+    if ( xl6CTextEquals(member->text, "wait") ||
+         xl6CTextEquals(member->text, "waitTimeout") ||
+         xl6CTextEquals(member->text, "stop") ) {
+        result = xl6CgenNewSimpleType("bool", call);
+    } else if ( xl6CTextEquals(member->text, "state") ||
+                xl6CTextEquals(member->text, "exitCode") ) {
+        result = xl6CgenNewSimpleType("int", call);
+    }
+    xl6AstFree(receiverType);
+    return result;
+}
+
+static XL6_AstNode* xl6CgenSyncMethodType(XL6_CgenContext* ctx, const XL6_AstNode* call)
+{
+    const XL6_AstNode* member;
+    const XL6_AstNode* receiver;
+    XL6_AstNode* receiverType;
+
+    if ( call == NULL || call->kind != XL6_AST_CALL || call->childCount == 0 ) {
+        return NULL;
+    }
+    member = call->children[0];
+    if ( member == NULL || member->kind != XL6_AST_MEMBER ) {
+        return NULL;
+    }
+    receiver = member->childCount > 0 ? member->children[0] : NULL;
+    receiverType = xl6CgenCloneExprTypeForInference(ctx, receiver);
+    if ( !xl6CgenIsSyncHandleType(receiverType) ) {
+        xl6AstFree(receiverType);
+        return NULL;
+    }
+    xl6AstFree(receiverType);
+    return xl6CgenNewSimpleType("bool", call);
+}
+
 static XL6_AstNode* xl6CgenCloneExprTypeForInference(XL6_CgenContext* ctx, const XL6_AstNode* expr)
 {
     const XL6_AstNode* varType;
@@ -391,6 +652,8 @@ static XL6_AstNode* xl6CgenCloneExprTypeForInference(XL6_CgenContext* ctx, const
         return xl6CgenNewSimpleType(expr->text != NULL ? expr->text : "var", expr);
     case XL6_AST_ANON_FUNC:
         return xl6CgenAnonFunctionType(expr);
+    case XL6_AST_AWAIT:
+        return xl6CgenCloneAwaitResultType(ctx, expr);
     case XL6_AST_NAME:
         varType = xl6CgenFindVarType(ctx, expr->text);
         if ( varType != NULL && !xl6CTextEquals(varType->text, "auto") ) {
@@ -400,7 +663,42 @@ static XL6_AstNode* xl6CgenCloneExprTypeForInference(XL6_CgenContext* ctx, const
             return xl6CgenNewSimpleType("type", expr);
         }
         return NULL;
+    case XL6_AST_UNARY: {
+        XL6_AstNode* valueType = expr->childCount > 0 ? xl6CgenCloneExprTypeForInference(ctx, expr->children[0]) : NULL;
+        int isXValue = xl6CgenIsXValueType(valueType);
+
+        if ( xl6CTextEquals(expr->text, "not") || xl6CTextEquals(expr->text, "!") ) {
+            xl6AstFree(valueType);
+            return xl6CgenNewSimpleType("bool", expr);
+        }
+        if ( isXValue ) {
+            xl6AstFree(valueType);
+            return xl6CgenNewSimpleType("var", expr);
+        }
+        if ( valueType != NULL &&
+             (xl6CTextEquals(expr->text, "+") || xl6CTextEquals(expr->text, "-")) &&
+             xl6CgenIsFloatTypeName(valueType->text) ) {
+            xl6AstFree(valueType);
+            return xl6CgenNewSimpleType("float", expr);
+        }
+        if ( valueType != NULL &&
+             (xl6CTextEquals(expr->text, "+") || xl6CTextEquals(expr->text, "-") ||
+              xl6CTextEquals(expr->text, "~")) &&
+             xl6CgenIsIntegerTypeName(valueType->text) ) {
+            xl6AstFree(valueType);
+            return xl6CgenNewSimpleType("int", expr);
+        }
+        xl6AstFree(valueType);
+        return NULL;
+    }
     case XL6_AST_BINARY:
+        if ( xl6CTextEquals(expr->text, "and") || xl6CTextEquals(expr->text, "or") ||
+             xl6CTextEquals(expr->text, "==") || xl6CTextEquals(expr->text, "!=") ||
+             xl6CTextEquals(expr->text, "~=") ||
+             xl6CTextEquals(expr->text, "<") || xl6CTextEquals(expr->text, "<=") ||
+             xl6CTextEquals(expr->text, ">") || xl6CTextEquals(expr->text, ">=") ) {
+            return xl6CgenNewSimpleType("bool", expr);
+        }
         if ( xl6CTextEquals(expr->text, "in") ) {
             return xl6CgenNewSimpleType("bool", expr);
         }
@@ -429,17 +727,104 @@ static XL6_AstNode* xl6CgenCloneExprTypeForInference(XL6_CgenContext* ctx, const
             int isString = leftType != NULL && rightType != NULL &&
                            xl6CTextEquals(leftType->text, "string") &&
                            xl6CTextEquals(rightType->text, "string");
+            int isXValue = xl6CgenIsXValueType(leftType) || xl6CgenIsXValueType(rightType);
+            int isNumeric = leftType != NULL && rightType != NULL &&
+                            (xl6CgenIsIntegerTypeName(leftType->text) || xl6CgenIsFloatTypeName(leftType->text)) &&
+                            (xl6CgenIsIntegerTypeName(rightType->text) || xl6CgenIsFloatTypeName(rightType->text));
+            int isFloat = isNumeric &&
+                          (xl6CgenIsFloatTypeName(leftType->text) || xl6CgenIsFloatTypeName(rightType->text));
             xl6AstFree(leftType);
             xl6AstFree(rightType);
             if ( isString ) {
                 return xl6CgenNewSimpleType("string", expr);
+            }
+            if ( isXValue ) {
+                return xl6CgenNewSimpleType("var", expr);
+            }
+            if ( isNumeric ) {
+                return xl6CgenNewSimpleType(isFloat ? "float" : "int", expr);
+            }
+        }
+        if ( xl6CTextEquals(expr->text, "-") || xl6CTextEquals(expr->text, "*") ||
+             xl6CTextEquals(expr->text, "/") ) {
+            XL6_AstNode* leftType = expr->childCount > 0 ? xl6CgenCloneExprTypeForInference(ctx, expr->children[0]) : NULL;
+            XL6_AstNode* rightType = expr->childCount > 1 ? xl6CgenCloneExprTypeForInference(ctx, expr->children[1]) : NULL;
+            int isXValue = xl6CgenIsXValueType(leftType) || xl6CgenIsXValueType(rightType);
+            int isNumeric = leftType != NULL && rightType != NULL &&
+                            (xl6CgenIsIntegerTypeName(leftType->text) || xl6CgenIsFloatTypeName(leftType->text)) &&
+                            (xl6CgenIsIntegerTypeName(rightType->text) || xl6CgenIsFloatTypeName(rightType->text));
+            int isFloat = isNumeric &&
+                          (xl6CgenIsFloatTypeName(leftType->text) || xl6CgenIsFloatTypeName(rightType->text));
+            xl6AstFree(leftType);
+            xl6AstFree(rightType);
+            if ( isXValue ) {
+                return xl6CgenNewSimpleType("var", expr);
+            }
+            if ( isNumeric ) {
+                return xl6CgenNewSimpleType(isFloat ? "float" : "int", expr);
+            }
+        }
+        if ( xl6CTextEquals(expr->text, "%") || xl6CTextEquals(expr->text, "&") || xl6CTextEquals(expr->text, "|") ||
+             xl6CTextEquals(expr->text, "^") || xl6CTextEquals(expr->text, "<<") ||
+             xl6CTextEquals(expr->text, ">>") ) {
+            XL6_AstNode* leftType = expr->childCount > 0 ? xl6CgenCloneExprTypeForInference(ctx, expr->children[0]) : NULL;
+            XL6_AstNode* rightType = expr->childCount > 1 ? xl6CgenCloneExprTypeForInference(ctx, expr->children[1]) : NULL;
+            int isXValue = xl6CgenIsXValueType(leftType) || xl6CgenIsXValueType(rightType);
+            int isInteger = leftType != NULL && rightType != NULL &&
+                            xl6CgenIsIntegerTypeName(leftType->text) &&
+                            xl6CgenIsIntegerTypeName(rightType->text);
+            xl6AstFree(leftType);
+            xl6AstFree(rightType);
+            if ( isXValue ) {
+                return xl6CgenNewSimpleType("var", expr);
+            }
+            if ( isInteger ) {
+                return xl6CgenNewSimpleType("int", expr);
             }
         }
         if ( xl6CTextEquals(expr->text, "**") && xl6CgenExprIntPowKind(ctx, expr) ) {
             return xl6CgenNewSimpleType("int", expr);
         }
         return NULL;
+    case XL6_AST_CONDITIONAL: {
+        XL6_AstNode* thenType = expr->childCount > 1 ? xl6CgenCloneExprTypeForInference(ctx, expr->children[1]) : NULL;
+        XL6_AstNode* elseType = expr->childCount > 2 ? xl6CgenCloneExprTypeForInference(ctx, expr->children[2]) : NULL;
+        XL6_AstNode* result = NULL;
+
+        if ( xl6CgenIsXValueType(thenType) || xl6CgenIsXValueType(elseType) ) {
+            result = xl6CgenNewSimpleType("var", expr);
+        } else if ( thenType != NULL && xl6CTextEquals(thenType->text, "null") && elseType != NULL ) {
+            result = xl6CgenCloneTypeNode(elseType);
+        } else if ( elseType != NULL && xl6CTextEquals(elseType->text, "null") && thenType != NULL ) {
+            result = xl6CgenCloneTypeNode(thenType);
+        } else if ( thenType != NULL && elseType != NULL && xl6CgenTypeNodeEqual(thenType, elseType) ) {
+            result = xl6CgenCloneTypeNode(thenType);
+        } else if ( thenType != NULL && elseType != NULL ) {
+            result = xl6CgenNewSimpleType("var", expr);
+        }
+
+        xl6AstFree(thenType);
+        xl6AstFree(elseType);
+        return result;
+    }
     case XL6_AST_MEMBER:
+        receiverType = expr->childCount > 0 ? xl6CgenCloneExprTypeForInference(ctx, expr->children[0]) : NULL;
+        if ( receiverType != NULL && xl6CTextEquals(receiverType->text, "error") ) {
+            int isTextField = xl6CTextEquals(expr->text, "kind") ||
+                              xl6CTextEquals(expr->text, "message") ||
+                              xl6CTextEquals(expr->text, "file");
+            int isIntField = xl6CTextEquals(expr->text, "line") ||
+                             xl6CTextEquals(expr->text, "column");
+            xl6AstFree(receiverType);
+            if ( isTextField ) {
+                return xl6CgenNewSimpleType("string", expr);
+            }
+            if ( isIntField ) {
+                return xl6CgenNewSimpleType("int", expr);
+            }
+            return NULL;
+        }
+        xl6AstFree(receiverType);
         {
             XL6_AstNode* fieldType = xl6CgenCloneMemberFieldTypeForInference(ctx, expr);
             if ( fieldType != NULL ) {
@@ -466,14 +851,16 @@ static XL6_AstNode* xl6CgenCloneExprTypeForInference(XL6_CgenContext* ctx, const
             XL6_AstNode* result = NULL;
 
             if ( concreteType != NULL && !xl6CTextEquals(concreteType->text, "set") && itemType != NULL ) {
-                result = xl6CgenCloneCanonicalTypeNode(ctx, itemType);
+                result = expr->kind == XL6_AST_SAFE_INDEX
+                    ? xl6CgenNewSimpleType("var", expr)
+                    : xl6CgenCloneCanonicalTypeNode(ctx, itemType);
             }
             xl6AstFree(receiverType);
             return result;
         }
         if ( xl6CgenIsArrayXValueType(receiverType) || xl6CgenIsListXValueType(receiverType) ||
-             xl6CgenIsDictXValueType(receiverType) ||
-             (expr->kind == XL6_AST_SAFE_INDEX && receiverType != NULL && xl6CTextEquals(receiverType->text, "var")) ) {
+              xl6CgenIsDictXValueType(receiverType) ||
+              (receiverType != NULL && xl6CTextEquals(receiverType->text, "var")) ) {
             xl6AstFree(receiverType);
             return xl6CgenNewSimpleType("var", expr);
         }
@@ -483,11 +870,68 @@ static XL6_AstNode* xl6CgenCloneExprTypeForInference(XL6_CgenContext* ctx, const
         if ( xl6CgenIsImplicitToStringCall(ctx, expr) ) {
             return xl6CgenNewSimpleType("string", expr);
         }
+        {
+            XL6_AstNode* threadMethodType = xl6CgenThreadMethodType(ctx, expr);
+            if ( threadMethodType != NULL ) {
+                return threadMethodType;
+            }
+        }
+        {
+            XL6_AstNode* syncMethodType = xl6CgenSyncMethodType(ctx, expr);
+            if ( syncMethodType != NULL ) {
+                return syncMethodType;
+            }
+        }
+        {
+            XL6_AstNode* channelMethodType = xl6CgenChannelMethodType(ctx, expr);
+            if ( channelMethodType != NULL ) {
+                return channelMethodType;
+            }
+        }
+        if ( expr->childCount > 0 && expr->children[0] != NULL &&
+             expr->children[0]->kind == XL6_AST_MEMBER ) {
+            XL6_AstNode* memberType = xl6CgenCloneMemberFieldTypeForInference(ctx, expr->children[0]);
+            if ( xl6CgenIsFunctionType(memberType) ) {
+                const XL6_AstNode* returns = xl6CgenFunctionReturnTypes(memberType);
+                XL6_AstNode* result = NULL;
+
+                if ( xl6CgenIsBareFunctionType(memberType) ) {
+                    result = xl6CgenNewSimpleType("var", expr);
+                } else if ( returns != NULL && returns->childCount == 1 ) {
+                    result = xl6CgenCloneTypeNode(returns->children[0]);
+                }
+                xl6AstFree(memberType);
+                return result;
+            }
+            if ( memberType != NULL && xl6CTextEquals(memberType->text, "var") ) {
+                xl6AstFree(memberType);
+                return xl6CgenNewSimpleType("var", expr);
+            }
+            xl6AstFree(memberType);
+        }
+        {
+            XL6_AstNode* threadCtorType = xl6CgenThreadCtorType(ctx, expr);
+            if ( threadCtorType != NULL ) {
+                return threadCtorType;
+            }
+        }
+        {
+            XL6_AstNode* syncCtorType = xl6CgenSyncCtorType(ctx, expr);
+            if ( syncCtorType != NULL ) {
+                return syncCtorType;
+            }
+        }
         if ( expr->childCount > 0 && expr->children[0] != NULL &&
              expr->children[0]->kind == XL6_AST_GENERIC_INSTANT ) {
             XL6_AstNode* genericClassType = xl6CgenGenericClassCtorType(ctx, expr, NULL);
             if ( genericClassType != NULL ) {
                 return genericClassType;
+            }
+            {
+                XL6_AstNode* channelCtorType = xl6CgenChannelCtorType(ctx, expr);
+                if ( channelCtorType != NULL ) {
+                    return channelCtorType;
+                }
             }
             {
                 XL6_AstNode* instant = expr->children[0];
@@ -497,6 +941,9 @@ static XL6_AstNode* xl6CgenCloneExprTypeForInference(XL6_CgenContext* ctx, const
 
                 if ( nameNode != NULL && nameNode->kind == XL6_AST_NAME ) {
                     func = xl6CgenResolveExplicitGenericCallFunc(ctx, expr, nameNode->text, typeArgs, 0);
+                }
+                if ( xl6CgenIsAsyncFunc(func) ) {
+                    return xl6CgenCloneAsyncCallType(ctx, func, typeArgs, expr);
                 }
                 if ( func != NULL && func->childCount > 2 &&
                      func->children[2] != NULL && func->children[2]->childCount == 1 ) {
@@ -557,6 +1004,11 @@ static XL6_AstNode* xl6CgenCloneExprTypeForInference(XL6_CgenContext* ctx, const
                 func = xl6CgenResolveCallFuncInternal(ctx, expr, expr->children[0]->text, &inferredArgs, 0);
                 returns = func != NULL && func->childCount > 2 ? func->children[2] : NULL;
             }
+            if ( xl6CgenIsAsyncFunc(func) ) {
+                XL6_AstNode* result = xl6CgenCloneAsyncCallType(ctx, func, inferredArgs, expr);
+                xl6AstFree(inferredArgs);
+                return result;
+            }
             if ( returns != NULL && returns->childCount == 1 ) {
                 XL6_AstNode* result;
 
@@ -583,4 +1035,3 @@ static XL6_AstNode* xl6CgenCloneExprTypeForInference(XL6_CgenContext* ctx, const
         return NULL;
     }
 }
-

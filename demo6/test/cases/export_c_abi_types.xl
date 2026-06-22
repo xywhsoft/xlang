@@ -1,0 +1,23 @@
+export "xl6_echo_c_size" func echoSize(c_size value) -> c_size
+    return value
+end
+
+export "xl6_echo_c_ssize" func echoSSize(c_ssize value) -> c_ssize
+    return value
+end
+
+export "xl6_echo_c_ptrdiff" func echoPtrDiff(c_ptrdiff value) -> c_ptrdiff
+    return value
+end
+
+export "xl6_not_c_bool" func notBool(c_bool value) -> c_bool
+    return not value
+end
+
+export "xl6_echo_c_wchar" func echoWChar(c_wchar value) -> c_wchar
+    return value
+end
+
+export "xl6_echo_c_long" func echoLong(c_long value) -> c_long
+    return value
+end

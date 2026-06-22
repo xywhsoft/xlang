@@ -1,0 +1,45 @@
+extern "expect_i64" func expect(int actual, int expected)
+
+func makeAdder(int base) -> function(int) -> int
+    return func(int value) -> int
+        return base + value
+    end
+end
+
+class Mapper<T>
+    function(T) -> T op
+    T value
+end
+
+class Middle<T>
+    Mapper<T> mapper
+end
+
+class Outer<T>
+    Middle<T> middle
+end
+
+Outer<int> direct
+direct.middle.mapper.op = makeAdder(7)
+direct.middle.mapper.value = 35
+
+Outer<int> copied = direct
+expect(copied.middle.mapper.op(copied.middle.mapper.value), 42)
+
+Outer<int> reassigned
+reassigned = copied
+reassigned = reassigned
+expect(reassigned.middle.mapper.op(reassigned.middle.mapper.value), 42)
+
+array<Outer<int>> boxes = array[direct]
+boxes[0] = copied
+
+Outer<int> fromArray = boxes[0]
+expect(fromArray.middle.mapper.op(fromArray.middle.mapper.value), 42)
+
+int total = 0
+for item in boxes
+    total = total + item.middle.mapper.op(item.middle.mapper.value)
+end
+
+expect(total, 42)

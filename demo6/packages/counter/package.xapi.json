@@ -2,10 +2,11 @@
   "format":"xlang-xapi-1",
   "compiler":{"name":"xl","version":"demo6","xlangAbi":1,"xrtAbi":1},
   "target":{"os":"windows","arch":"x64","callingConvention":"cdecl"},
-  "module":{"name":"counter","source":"packages/counter","sourceHash":""},
+  "package":{"name":"counter","version":"1.0.0","abiVersion":"1","packageId":"counter@1.0.0#abi1"},
+  "module":{"name":"counter","moduleId":"counter@1.0.0#abi1::counter","source":"packages/counter","sourceHash":""},
   "entry":{"kind":"none","requiresExplicitInit":true,"initSymbol":"xlInit","unitSymbol":"xlUnit"},
   "exports":[
-    {"kind":"function","name":"counterAdd","cSymbol":"xl6_import_counter_add","callingConvention":"cdecl","varargMode":"none","requiredParamCount":2,"fixedParamCount":2,"params":[{"name":"a","type":"int","optional":false,"vararg":false},{"name":"b","type":"int","optional":false,"vararg":false}],"returns":[{"type":"int"}]}
+    {"kind":"function","name":"counterAdd","cSymbol":"xl6_import_counter_add","signature":"func(int,int)->int","exportId":"counter@1.0.0#abi1::counter::counterAdd(func(int,int)->int)","callingConvention":"cdecl","varargMode":"none","requiredParamCount":2,"fixedParamCount":2,"params":[{"name":"a","type":"int","optional":false,"vararg":false},{"name":"b","type":"int","optional":false,"vararg":false}],"returns":[{"type":"int"}]}
   ],
   "types":[
   ],
@@ -13,6 +14,7 @@
   ],
   "links":[],
   "loadlibs":[],
-  "cSources":[],
+  "cSources":["counter_native.c"],
+  "native":{"singleton":false,"loadName":"","version":""},
   "docs":[]
 }

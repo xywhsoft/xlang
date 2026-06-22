@@ -1,0 +1,16 @@
+{
+  "format": "xlang-package-1",
+  "name": "native_one",
+  "version": "1.0.0",
+  "abiVersion": "1",
+  "xapi": "package.xapi.json",
+  "kind": "demo6-test-package",
+  "links": [],
+  "loadlibs": [],
+  "dependencies": [],
+  "native": {
+    "singleton": true,
+    "loadName": "shared_native.dll",
+    "version": "1.0.0"
+  }
+}

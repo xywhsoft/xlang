@@ -189,6 +189,12 @@ static void xl6CgenClassTypeName(XL6_Output* out, const char* name)
     xl6CgenFputsEncodedText(out, name);
 }
 
+static void xl6CgenUnionTypeName(XL6_Output* out, const char* name)
+{
+    xl6OutputPuts("XL_Union_", out);
+    xl6CgenFputsEncodedText(out, name);
+}
+
 static void xl6CgenTypeDescSymbol(XL6_Output* out, const char* cTypeName)
 {
     xl6OutputPuts("xl6_type_desc_", out);
@@ -291,6 +297,16 @@ static void xl6CgenClassTypeTextName(char* buffer, size_t capacity, const char* 
     xl6CgenAppendMangledText(buffer, capacity, name);
 }
 
+static void xl6CgenUnionTypeTextName(char* buffer, size_t capacity, const char* name)
+{
+    if ( buffer == NULL || capacity == 0 ) {
+        return;
+    }
+    buffer[0] = '\0';
+    xl6CgenAppendText(buffer, capacity, "XL_Union_");
+    xl6CgenAppendMangledText(buffer, capacity, name);
+}
+
 static void xl6CgenClassTypeRefName(char* buffer, size_t capacity, const XL6_AstNode* typeNode)
 {
     const XL6_AstNode* args;
@@ -318,4 +334,3 @@ static void xl6CgenClassMemberSymbol(XL6_Output* out, const char* className, con
     xl6OutputPuts("__", out);
     xl6CgenFputsEncodedText(out, memberName);
 }
-

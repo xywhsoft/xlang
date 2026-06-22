@@ -1,0 +1,12 @@
+union Payload
+    Point point
+end
+
+class Point
+    int x
+end
+
+func bad()
+    Payload payload
+    payload.point.x = "bad"
+end

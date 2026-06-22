@@ -1,0 +1,47 @@
+extern "expect_i64" func expect(int actual, int expected)
+
+func pair(int seed) -> (int, int)
+    return seed, seed + 1
+end
+
+func makePairer(int base) -> function(int) -> (int, int)
+    return func(int value) -> (int, int)
+        return base + value, base - value
+    end
+end
+
+class PairBox
+    function(int) -> (int, int) op
+    int bias = 0
+end
+
+PairBox direct
+direct.op = pair
+direct.bias = 10
+
+auto first, second = direct.op(3)
+expect(first, 3)
+expect(second, 4)
+
+PairBox closureBox
+closureBox.op = makePairer(20)
+closureBox.bias = 5
+
+auto closureLeft, closureRight = closureBox.op(7)
+expect(closureLeft, 27)
+expect(closureRight, 13)
+
+PairBox copied
+copied = closureBox
+
+auto copiedLeft, copiedRight = copied.op(8)
+expect(copiedLeft + copied.bias, 33)
+expect(copiedRight + copied.bias, 17)
+
+array<PairBox> boxes = array[direct]
+boxes[0] = closureBox
+
+PairBox fromArray = boxes[0]
+auto arrayLeft, arrayRight = fromArray.op(9)
+expect(arrayLeft, 29)
+expect(arrayRight, 11)

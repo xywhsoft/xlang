@@ -22,6 +22,8 @@ static void xl6CgenEmitFunctionRuntime(XL6_Output* out)
     xl6OutputPuts("    unsigned int Flags;\n", out);
     xl6OutputPuts("};\n", out);
     xl6OutputPuts("#endif\n", out);
+    xl6OutputPuts("#ifndef XL6_FUNCTION_TYPEDEF\n", out);
+    xl6OutputPuts("#define XL6_FUNCTION_TYPEDEF\n", out);
     xl6OutputPuts("typedef struct XL6_Function {\n", out);
     xl6OutputPuts("    unsigned long long signature;\n", out);
     xl6OutputPuts("    const struct xrt_func_sig* sig;\n", out);
@@ -31,7 +33,8 @@ static void xl6CgenEmitFunctionRuntime(XL6_Output* out)
     xl6OutputPuts("    bool (*invoke_xcall)(void* env, xrt_call_frame* frame, xrt_call_result* result);\n", out);
     xl6OutputPuts("    void (*retain)(void* env);\n", out);
     xl6OutputPuts("    void (*release)(void* env);\n", out);
-    xl6OutputPuts("} XL6_Function;\n\n", out);
+    xl6OutputPuts("} XL6_Function;\n", out);
+    xl6OutputPuts("#endif\n\n", out);
 }
 
 static void xl6CgenEmitFunctionVarRuntime(XL6_Output* out)
@@ -520,4 +523,3 @@ static void xl6CgenEmitFunctionVarRuntime(XL6_Output* out)
     xl6OutputPuts("    return result != 0 ? result : xvoCreateNull();\n", out);
     xl6OutputPuts("}\n\n", out);
 }
-

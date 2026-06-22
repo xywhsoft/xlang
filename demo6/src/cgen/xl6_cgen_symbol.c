@@ -10,7 +10,7 @@ static int xl6CgenFuncOverloadCount(XL6_CgenContext* ctx, const char* name)
     for ( i = 0; i < ctx->root->childCount; ++i ) {
         XL6_AstNode* node = ctx->root->children[i];
         XL6_AstNode* nameNode;
-        if ( node == NULL || node->kind != XL6_AST_FUNC || xl6CgenFuncIsGeneric(node) || node->childCount == 0 ) {
+        if ( node == NULL || (node->kind != XL6_AST_FUNC && node->kind != XL6_AST_ASYNC_FUNC) || xl6CgenFuncIsGeneric(node) || node->childCount == 0 ) {
             continue;
         }
         nameNode = node->children[0];
@@ -74,7 +74,7 @@ static int xl6CgenGenericFuncNeedsSignatureSuffix(XL6_CgenContext* ctx, const XL
         const XL6_AstNode* otherName;
         const XL6_AstNode* otherParams;
 
-        if ( node == NULL || node->kind != XL6_AST_FUNC || !xl6CgenFuncIsGeneric(node) ) {
+        if ( node == NULL || (node->kind != XL6_AST_FUNC && node->kind != XL6_AST_ASYNC_FUNC) || !xl6CgenFuncIsGeneric(node) ) {
             continue;
         }
         otherName = node->childCount > 0 ? node->children[0] : NULL;
@@ -116,6 +116,7 @@ static const char* xl6CgenCallableName(const XL6_AstNode* node)
         return NULL;
     }
     if ( node->kind == XL6_AST_FUNC ||
+         node->kind == XL6_AST_ASYNC_FUNC ||
          node->kind == XL6_AST_CUSTOM_EXTERN_FUNC ||
          node->kind == XL6_AST_CUSTOM_EXTERN_SPECIAL ) {
         const XL6_AstNode* nameNode = node->childCount > 0 ? node->children[0] : NULL;

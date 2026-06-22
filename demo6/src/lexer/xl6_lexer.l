@@ -95,6 +95,26 @@ static int xl6SetErrorToken(yyscan_t yyscanner, const char* message)
     return XL6_TK_ERROR;
 }
 
+static int xl6SetDocToken(yyscan_t yyscanner)
+{
+    XL6_LexerExtra* extra;
+    XL6_Token* token;
+
+    extra = xl6get_extra(yyscanner);
+    token = &extra->current;
+    memset(token, 0, sizeof(*token));
+    token->kind = XL6_TK_DOC;
+    token->text = extra->sourceText != NULL ? extra->sourceText + extra->docStartOffset : xl6get_text(yyscanner);
+    token->len = extra->offset >= extra->docStartOffset ? extra->offset - extra->docStartOffset : 0;
+    token->startOffset = extra->docStartOffset;
+    token->endOffset = extra->offset;
+    token->startLine = extra->docStartLine;
+    token->startColumn = extra->docStartColumn;
+    token->endLine = extra->line;
+    token->endColumn = extra->column;
+    return XL6_TK_DOC;
+}
+
 static XL6_TokenKind xl6LookupKeyword(const char* text, int len)
 {
     typedef struct XL6_Keyword {
@@ -141,7 +161,7 @@ static XL6_TokenKind xl6LookupKeyword(const char* text, int len)
 %option noinput
 %option nounput
 
-%x COMMENT
+%x COMMENT DOC
 
 DIGIT          [0-9]
 HEXDIGIT       [0-9a-fA-F]
@@ -170,6 +190,11 @@ FLOAT_B        {DIGIT}({DIGIT}|_)*[eE][+-]?{DIGIT}({DIGIT}|_)*
 \r\n                               { if ( xl6SetSepToken(yyscanner) ) return XL6_TK_SEP; }
 \n                                 { if ( xl6SetSepToken(yyscanner) ) return XL6_TK_SEP; }
 \r                                 { if ( xl6SetSepToken(yyscanner) ) return XL6_TK_SEP; }
+
+^[ \t]*"#doc"[ \t]*(\r\n|\n|\r)    { yyextra->docStartOffset = yyextra->tokenStartOffset; yyextra->docStartLine = yyextra->tokenStartLine; yyextra->docStartColumn = yyextra->tokenStartColumn; BEGIN(DOC); }
+<DOC>^[ \t]*"#end"[ \t]*(\r\n|\n|\r)? { BEGIN(INITIAL); return xl6SetDocToken(yyscanner); }
+<DOC><<EOF>>                       { BEGIN(INITIAL); return xl6SetErrorToken(yyscanner, "未闭合的 #doc 文档块"); }
+<DOC>.|\r\n|\n|\r                  { }
 
 "//"[^\r\n]*                       { }
 "/*"                               { yyextra->commentDepth = 1; BEGIN(COMMENT); }

@@ -1,0 +1,56 @@
+mutex m = mutex()
+bool locked = m.lock()
+bool unlocked = m.unlock()
+bool tryLocked = m.tryLock()
+bool tryUnlocked = m.unlock()
+
+assert locked, "mutex lock failed"
+assert unlocked, "mutex unlock failed"
+assert tryLocked, "mutex tryLock failed"
+assert tryUnlocked, "mutex try unlock failed"
+
+sem gate = sem(0, 2)
+bool posted = gate.post()
+bool waited = gate.waitTimeout(10)
+bool empty = gate.tryWait()
+bool postedMany = gate.postMultiple(2)
+bool waited1 = gate.waitTimeout(10)
+bool waited2 = gate.waitTimeout(10)
+
+assert posted, "sem post failed"
+assert waited, "sem waitTimeout failed"
+assert not empty, "sem should be empty"
+assert postedMany, "sem postMultiple failed"
+assert waited1, "sem wait 1 failed"
+assert waited2, "sem wait 2 failed"
+
+cond c = cond()
+bool signaled = c.signal()
+bool broadcasted = c.broadcast()
+
+assert signaled, "cond signal failed"
+assert broadcasted, "cond broadcast failed"
+
+rwlock rw = rwlock()
+bool readLocked = rw.readLock()
+bool readUnlocked = rw.readUnlock()
+bool writeLocked = rw.writeLock()
+bool downgraded = rw.downgrade()
+bool readUnlocked2 = rw.readUnlock()
+bool tryWriteLocked = rw.tryWriteLock()
+bool writeUnlocked = rw.writeUnlock()
+
+assert readLocked, "rwlock readLock failed"
+assert readUnlocked, "rwlock readUnlock failed"
+assert writeLocked, "rwlock writeLock failed"
+assert downgraded, "rwlock downgrade failed"
+assert readUnlocked2, "rwlock downgraded readUnlock failed"
+assert tryWriteLocked, "rwlock tryWriteLock failed"
+assert writeUnlocked, "rwlock writeUnlock failed"
+
+auto am = mutex()
+auto autoLocked = am.lock()
+auto autoUnlocked = am.unlock()
+
+assert autoLocked, "auto mutex lock failed"
+assert autoUnlocked, "auto mutex unlock failed"

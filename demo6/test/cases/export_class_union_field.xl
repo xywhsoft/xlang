@@ -1,0 +1,18 @@
+class Box
+    Payload payload
+end
+
+union Payload
+    int i
+    c_double d
+end
+
+export "xl6_box_make" func makeBox(int value) -> Box
+    Box box
+    box.payload.i = value
+    return box
+end
+
+export "xl6_box_pick" func pick(Box box) -> int
+    return box.payload.i
+end

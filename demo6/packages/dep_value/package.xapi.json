@@ -1,0 +1,18 @@
+{
+  "format":"xlang-xapi-1",
+  "compiler":{"name":"xl","version":"demo6","xlangAbi":1,"xrtAbi":1},
+  "target":{"os":"windows","arch":"x64","callingConvention":"cdecl"},
+  "package":{"name":"dep_value","version":"1.0.0","abiVersion":"1","packageId":"dep_value@1.0.0#abi1"},
+  "module":{"name":"dep_value","moduleId":"dep_value@1.0.0#abi1::dep_value","source":"packages/dep_value","sourceHash":""},
+  "entry":{"kind":"none","requiresExplicitInit":true,"initSymbol":"xlInit","unitSymbol":"xlUnit"},
+  "exports":[
+    {"kind":"function","name":"depValue","cSymbol":"xl6_dep_value","signature":"func()->int","exportId":"dep_value@1.0.0#abi1::dep_value::depValue(func()->int)","callingConvention":"cdecl","varargMode":"none","requiredParamCount":0,"fixedParamCount":0,"params":[],"returns":[{"type":"int"}]}
+  ],
+  "types":[],
+  "imports":[],
+  "links":[],
+  "loadlibs":[],
+  "cSources":["dep_value.c"],
+  "native":{"singleton":false,"loadName":"","version":""},
+  "docs":[]
+}

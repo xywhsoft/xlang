@@ -1,0 +1,5 @@
+import counter
+
+func main(...) -> int
+    return counterAdd(1, 2)
+end

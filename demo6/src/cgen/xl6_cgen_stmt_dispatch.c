@@ -13,12 +13,14 @@ static void xl6CgenForIn(XL6_CgenContext* ctx, const XL6_AstNode* node)
 
     iterableType = xl6CgenCloneExprTypeForInference(ctx, node->children[1]);
     if ( !xl6CgenIsForIterableType(iterableType) ) {
-        xl6CgenError(ctx, node->children[1], "for in 右侧必须�?range、array、list、set、dict �?var");
+        xl6CgenError(ctx, node->children[1], "for in right side must be range, array, list, set, dict, generator or var");
         xl6AstFree(iterableType);
         return;
     }
 
-    if ( xl6CgenExprUsesTypedContainerStorage(ctx, node->children[1]) ) {
+    if ( xl6CgenIsGeneratorType(iterableType) ) {
+        xl6CgenForGeneratorIterable(ctx, node, iterableType);
+    } else if ( xl6CgenExprUsesTypedContainerStorage(ctx, node->children[1]) ) {
         xl6CgenForTypedContainerIterable(ctx, node, iterableType);
     } else {
         xl6CgenForXValueIterable(ctx, node, iterableType);
@@ -36,17 +38,25 @@ static void xl6CgenStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
     case XL6_AST_VAR_DECL:
     case XL6_AST_CONST_DECL:
         xl6CgenDecl(ctx, node);
+        xl6CgenEmitExceptionPropagate(ctx, node);
         break;
     case XL6_AST_MULTI_VAR_DECL:
         xl6CgenMultiDecl(ctx, node);
+        xl6CgenEmitExceptionPropagate(ctx, node);
         break;
     case XL6_AST_ASSIGN:
         xl6CgenAssignStmt(ctx, node);
+        xl6CgenEmitExceptionPropagate(ctx, node);
         break;
     case XL6_AST_MULTI_ASSIGN:
         xl6CgenMultiAssign(ctx, node);
+        xl6CgenEmitExceptionPropagate(ctx, node);
         break;
     case XL6_AST_RETURN:
+        if ( ctx->currentAsyncWorker ) {
+            xl6CgenAsyncReturnStmt(ctx, node);
+            break;
+        }
         if ( node->childCount > 0 ) {
             int id = ctx->tempId++;
             char returnName[64];
@@ -105,18 +115,32 @@ static void xl6CgenStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
             xl6CgenExpr(ctx, node->children[0]);
         }
         xl6OutputPuts(";\n", ctx->out);
+        xl6CgenEmitExceptionPropagate(ctx, node);
         break;
     case XL6_AST_IF:
         xl6CgenIf(ctx, node);
+        xl6CgenEmitExceptionPropagate(ctx, node);
         break;
     case XL6_AST_WHILE:
         xl6CgenWhile(ctx, node);
+        xl6CgenEmitExceptionPropagate(ctx, node);
         break;
     case XL6_AST_DO_WHILE:
         xl6CgenDoWhile(ctx, node);
+        xl6CgenEmitExceptionPropagate(ctx, node);
         break;
     case XL6_AST_FOR:
         xl6CgenForIn(ctx, node);
+        xl6CgenEmitExceptionPropagate(ctx, node);
+        break;
+    case XL6_AST_THROW:
+        xl6CgenThrowStmt(ctx, node);
+        break;
+    case XL6_AST_ASSERT:
+        xl6CgenAssertStmt(ctx, node);
+        break;
+    case XL6_AST_TRY:
+        xl6CgenTryStmt(ctx, node);
         break;
     case XL6_AST_BREAK:
         xl6CgenLoopJump(ctx, node, 0);
@@ -124,6 +148,11 @@ static void xl6CgenStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
     case XL6_AST_CONTINUE:
         xl6CgenLoopJump(ctx, node, 1);
         break;
+    case XL6_AST_YIELD:
+        xl6CgenYieldStmt(ctx, node);
+        xl6CgenEmitExceptionPropagate(ctx, node);
+        break;
+
     default:
         xl6CgenError(ctx, node, "code generation error");
         break;

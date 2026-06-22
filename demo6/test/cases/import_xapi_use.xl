@@ -1,7 +1,7 @@
 import counter
 
 func main(...) -> int
-    if counterAdd(10, 32) == 42 then
+    if counter.counterAdd(10, 32) == 42 then
         return 0
     else
         return 1

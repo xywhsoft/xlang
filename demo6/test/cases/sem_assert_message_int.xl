@@ -1,0 +1,3 @@
+func bad()
+    assert true, 1
+end

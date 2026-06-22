@@ -1,0 +1,31 @@
+string page = "https://user@example.com:8443/docs/index.html?lang=zh#top"
+
+assert url.valid(page), "URL should be valid"
+assert url.isAbsolute(page), "URL should be absolute"
+assert url.isSecure(page), "URL should be secure"
+
+string scheme = url.scheme(page)
+string authority = url.authority(page)
+string userInfo = url.userInfo(page)
+string host = url.host(page)
+int port = url.port(page)
+string path = url.path(page)
+string query = url.query(page)
+string fragment = url.fragment(page)
+string target = url.target(page)
+
+assert scheme == "https", "scheme mismatch"
+assert authority == "user@example.com:8443", "authority mismatch"
+assert userInfo == "user", "userinfo mismatch"
+assert host == "example.com", "host mismatch"
+assert port == 8443, "port mismatch"
+assert path == "/docs/index.html", "path mismatch"
+assert query == "lang=zh", "query mismatch"
+assert fragment == "top", "fragment mismatch"
+assert target == "/docs/index.html?lang=zh", "target mismatch"
+
+string api = url.resolve("https://example.com/app/page.html", "../api/list?limit=10")
+assert api == "https://example.com/api/list?limit=10", "resolve mismatch"
+
+string clean = url.normalizePath("/app/./data/../index.html")
+assert clean == "/app/index.html", "normalizePath mismatch"

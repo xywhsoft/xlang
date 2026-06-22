@@ -1,0 +1,51 @@
+extern "expect_i64" func expect(int actual, int expected)
+
+var dynamicNumber = 5
+var dynamicFalse = false
+
+auto sum = 1 + 2
+auto diff = 5 - 3
+auto product = 4 * 3
+auto quotient = 8 / 2
+auto modValue = 9 % 4
+auto bitAnd = 6 & 3
+auto bitOr = 4 | 1
+auto bitXor = 7 ^ 3
+auto shiftLeft = 3 << 2
+auto shiftRight = 16 >> 2
+auto floatSum = 1.5 + 2
+auto neg = -5
+auto pos = +5
+auto bitNot = ~5
+auto truth = not false
+auto cmp = 1 < 2
+auto eq = 3 == 3
+auto approxText = "abc" ~= "abc"
+auto logicAnd = true and false
+auto logicOr = false or true
+auto dynSum = dynamicNumber + 7
+auto dynNot = not dynamicFalse
+
+expect(sum, 3)
+expect(diff, 2)
+expect(product, 12)
+expect(quotient, 4)
+expect(modValue, 1)
+expect(bitAnd, 2)
+expect(bitOr, 5)
+expect(bitXor, 4)
+expect(shiftLeft, 12)
+expect(shiftRight, 4)
+expect(int(floatSum), 3)
+expect(neg, -5)
+expect(pos, 5)
+expect(bitNot, -6)
+expect(truth, 1)
+expect(cmp, 1)
+expect(eq, 1)
+expect(approxText, 1)
+expect(logicAnd, 0)
+expect(logicOr, 1)
+expect(type(dynSum) == int, 1)
+expect(int(dynSum), 12)
+expect(dynNot, 1)

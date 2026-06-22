@@ -1,0 +1,8 @@
+#doc
+desc:
+    Bad param doc.
+param missing:
+    No such parameter.
+#end
+func bad(int value)
+end

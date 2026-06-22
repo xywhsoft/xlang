@@ -113,6 +113,7 @@ static void xl6CgenEmitClassDirectFieldCleanups(XL6_CgenContext* ctx, const XL6_
     for ( i = body->childCount; i > 0; --i ) {
         const XL6_AstNode* member = body->children[i - 1];
         const XL6_AstNode* typeNode;
+        XL6_AstNode* concreteType;
         XL6_AstNode* customNode;
         XL6_AstNode* nestedClass;
         char path[512];
@@ -123,6 +124,21 @@ static void xl6CgenEmitClassDirectFieldCleanups(XL6_CgenContext* ctx, const XL6_
         }
         xl6CgenCIdentText(cFieldName, sizeof(cFieldName), member->text);
         typeNode = member->children[0];
+        if ( xl6CgenIsFunctionType(typeNode) ) {
+            xl6CgenIndent(ctx);
+            xl6OutputPrintf(ctx->out, "if (self->%s.release != 0 && self->%s.env != 0) {\n", cFieldName, cFieldName);
+            ctx->indent += 1;
+            xl6CgenIndent(ctx);
+            xl6OutputPrintf(ctx->out, "self->%s.release(self->%s.env);\n", cFieldName, cFieldName);
+            xl6CgenIndent(ctx);
+            xl6OutputPrintf(ctx->out, "self->%s.env = 0;\n", cFieldName);
+            xl6CgenIndent(ctx);
+            xl6OutputPrintf(ctx->out, "self->%s.release = 0;\n", cFieldName);
+            ctx->indent -= 1;
+            xl6CgenIndent(ctx);
+            xl6OutputPuts("}\n", ctx->out);
+            continue;
+        }
         customNode = xl6CgenFindCustom(ctx, typeNode != NULL ? typeNode->text : NULL);
         if ( customNode != NULL && xl6CgenCustomHasDestroy(customNode) ) {
             snprintf(path, sizeof(path), "self->%s.handle", cFieldName);
@@ -130,12 +146,18 @@ static void xl6CgenEmitClassDirectFieldCleanups(XL6_CgenContext* ctx, const XL6_
             continue;
         }
 
-        nestedClass = xl6CgenFindClass(ctx, typeNode != NULL ? typeNode->text : NULL);
+        concreteType = xl6CgenCloneCanonicalTypeNode(ctx, typeNode);
+        nestedClass = xl6CgenFindClass(ctx, concreteType != NULL ? concreteType->text : (typeNode != NULL ? typeNode->text : NULL));
         if ( nestedClass != NULL && xl6CgenClassNeedsDestroy(ctx, nestedClass) ) {
             xl6CgenIndent(ctx);
-            xl6CgenClassMemberSymbol(ctx->out, nestedClass->text, "destroy");
+            if ( concreteType != NULL && concreteType->childCount > 0 && xl6CgenClassHasTypeParams(nestedClass) ) {
+                xl6CgenGenericClassMemberSymbol(ctx, nestedClass, concreteType, "destroy");
+            } else {
+                xl6CgenClassMemberSymbol(ctx->out, nestedClass->text, "destroy");
+            }
             xl6OutputPrintf(ctx->out, "(&self->%s);\n", cFieldName);
         }
+        xl6AstFree(concreteType);
     }
 }
 

@@ -3,19 +3,38 @@
 
 #include <stdio.h>
 
+static const char* xl6SkipUtf8Bom(const char* sourceText)
+{
+    const unsigned char* bytes;
+
+    if ( sourceText == NULL ) {
+        return NULL;
+    }
+
+    bytes = (const unsigned char*)sourceText;
+    if ( bytes[0] == 0xEFu && bytes[1] == 0xBBu && bytes[2] == 0xBFu ) {
+        return sourceText + 3;
+    }
+    return sourceText;
+}
+
 int xl6LexerOpen(XL6_Lexer* lexer, const char* sourceText)
 {
+    const char* scanText;
+
     if ( (lexer == NULL) || (sourceText == NULL) ) {
         return 0;
     }
+    scanText = xl6SkipUtf8Bom(sourceText);
     memset(lexer, 0, sizeof(*lexer));
     lexer->extra.line = 1;
     lexer->extra.column = 1;
+    lexer->extra.sourceText = scanText;
 
     if ( xl6lex_init_extra(&lexer->extra, (yyscan_t*)&lexer->scanner) != 0 ) {
         return 0;
     }
-    lexer->buffer = xl6_scan_string(sourceText, (yyscan_t)lexer->scanner);
+    lexer->buffer = xl6_scan_string(scanText, (yyscan_t)lexer->scanner);
     return lexer->buffer != NULL;
 }
 

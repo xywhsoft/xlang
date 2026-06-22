@@ -1,6 +1,14 @@
 {
   "format": "xlang-package-1",
   "name": "settings",
+  "version": "1.0.0",
+  "abiVersion": "1",
+  "xapi": "package.xapi.json",
   "kind": "demo6-test-package",
-  "exports": []
+  "links": [],
+  "loadlibs": [],
+  "dependencies": [],
+  "native": {
+    "singleton": false
+  }
 }

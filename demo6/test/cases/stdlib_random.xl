@@ -1,0 +1,17 @@
+extern "expect_i64" func expect(int actual, int expected)
+extern "expect_str" func expectStr(string actual, string expected)
+
+uint32 u32 = random.u32()
+uint64 u64 = random.u64()
+int value = random.range(0, 100)
+string token = random.string(12)
+string fixedText = random.string(4, "x")
+
+expect(u32 >= 0, 1)
+expect(u64 >= 0, 1)
+expect(value >= 0, 1)
+expect(value <= 100, 1)
+expect(random.range(7, 7), 7)
+expect(string.len(token), 12)
+expectStr(fixedText, "xxxx")
+expectStr(random.string(0), "")

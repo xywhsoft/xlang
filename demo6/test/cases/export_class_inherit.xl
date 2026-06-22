@@ -1,0 +1,20 @@
+class Entity
+    int id
+end
+
+class NamedPoint extends Entity
+    int x
+    int y
+end
+
+export "xl6_named_point_make" func makeNamedPoint(int id, int x, int y) -> NamedPoint
+    NamedPoint point
+    point.id = id
+    point.x = x
+    point.y = y
+    return point
+end
+
+export "xl6_named_point_score" func score(NamedPoint point) -> int
+    return point.id + point.x + point.y
+end

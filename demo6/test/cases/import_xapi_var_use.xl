@@ -1,5 +1,5 @@
 import settings
 
 func readImported() -> int
-    return importedCounter
+    return settings.importedCounter
 end

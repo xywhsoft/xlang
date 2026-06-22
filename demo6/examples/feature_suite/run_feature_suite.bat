@@ -22,6 +22,9 @@ for %%f in (
     06_function_values_closures.xl
     07_class_custom.xl
     08_c_interop_exports.xl
+    10_errors_docs.xl
+    11_concurrency.xl
+    12_union.xl
 ) do (
     echo RUN %%f
     release\xl.exe run "examples\feature_suite\%%f" %LINKS%
@@ -34,7 +37,7 @@ if not exist release\tmp\feature_exports mkdir release\tmp\feature_exports
 release\xl.exe cgen examples\feature_suite\09_c_export_abi.xl --emit release\tmp\feature_exports\09_c_export_abi.c --emit-header release\tmp\feature_exports\09_c_export_abi.h
 if errorlevel 1 exit /b 1
 
-..\demo5\lib\tcc\tcc.exe -Irelease\tmp\feature_exports -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\feature_exports\09_c_export_abi.c examples\feature_suite\host_exports.c -o release\tmp\feature_exports\host_exports.exe
+..\demo5\lib\tcc\tcc.exe -Irelease\tmp\feature_exports -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\feature_exports\09_c_export_abi.c examples\feature_suite\host_exports.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\feature_exports\host_exports.exe
 if errorlevel 1 exit /b 1
 
 release\tmp\feature_exports\host_exports.exe
@@ -42,4 +45,3 @@ if errorlevel 1 exit /b 1
 
 echo Feature suite ok.
 exit /b 0
-

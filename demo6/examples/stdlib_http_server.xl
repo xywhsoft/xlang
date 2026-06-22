@@ -1,0 +1,18 @@
+func hello(string method, string path, string query, string body) -> string
+    if method == "GET" and path == "/hello" then
+        return "hello from xlang"
+    end
+    return "xlang http server"
+end
+
+function(string, string, string, string) -> string handler = hello
+point server = http.server.create(8080, handler)
+
+if http.server.start(server) then
+    int boundPort = http.server.port(server)
+    auto portText = boundPort.toString()
+    time.sleep(1000)
+    http.server.stop(server)
+end
+
+http.server.destroy(server)

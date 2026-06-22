@@ -74,6 +74,165 @@ static int xl6CgenNeedsBasicIsToStringMemberCallSyntax(const XL6_AstNode* node)
     return args == NULL || args->childCount == 0;
 }
 
+static int xl6CgenNeedsBasicIsCryptoRuntimeCall(const XL6_AstNode* node)
+{
+    const XL6_AstNode* callee;
+
+    if ( node == NULL || node->kind != XL6_AST_CALL || node->childCount == 0 ) {
+        return 0;
+    }
+    callee = node->children[0];
+    if ( callee == NULL || callee->kind != XL6_AST_NAME ) {
+        return 0;
+    }
+    return xl6CgenNeedsBasicTextEquals(callee->text, "__xl_std_runtime_sha1_hex") ||
+           xl6CgenNeedsBasicTextEquals(callee->text, "__xl_std_runtime_sha256_hex") ||
+           xl6CgenNeedsBasicTextEquals(callee->text, "__xl_std_runtime_sha384_hex") ||
+           xl6CgenNeedsBasicTextEquals(callee->text, "__xl_std_runtime_sha512_hex");
+}
+
+static int xl6CgenNeedsBasicIsUrlRuntimeCall(const XL6_AstNode* node)
+{
+    const XL6_AstNode* callee;
+
+    if ( node == NULL || node->kind != XL6_AST_CALL || node->childCount == 0 ) {
+        return 0;
+    }
+    callee = node->children[0];
+    if ( callee == NULL || callee->kind != XL6_AST_NAME ) {
+        return 0;
+    }
+    return xl6CgenNeedsBasicTextEquals(callee->text, "__xl_std_runtime_url_part") ||
+           xl6CgenNeedsBasicTextEquals(callee->text, "__xl_std_runtime_url_flag") ||
+           xl6CgenNeedsBasicTextEquals(callee->text, "__xl_std_runtime_url_port") ||
+           xl6CgenNeedsBasicTextEquals(callee->text, "__xl_std_runtime_url_resolve") ||
+           xl6CgenNeedsBasicTextEquals(callee->text, "__xl_std_runtime_url_normalize_path");
+}
+
+static int xl6CgenNeedsBasicIsQueryRuntimeCall(const XL6_AstNode* node)
+{
+    const XL6_AstNode* callee;
+
+    if ( node == NULL || node->kind != XL6_AST_CALL || node->childCount == 0 ) {
+        return 0;
+    }
+    callee = node->children[0];
+    if ( callee == NULL || callee->kind != XL6_AST_NAME ) {
+        return 0;
+    }
+    return xl6CgenNeedsBasicTextEquals(callee->text, "__xl_std_runtime_query_encode") ||
+           xl6CgenNeedsBasicTextEquals(callee->text, "__xl_std_runtime_query_decode") ||
+           xl6CgenNeedsBasicTextEquals(callee->text, "__xl_std_runtime_query_valid") ||
+           xl6CgenNeedsBasicTextEquals(callee->text, "__xl_std_runtime_query_pair") ||
+           xl6CgenNeedsBasicTextEquals(callee->text, "__xl_std_runtime_query_append");
+}
+
+static int xl6CgenNeedsBasicIsRegexRuntimeCall(const XL6_AstNode* node)
+{
+    const XL6_AstNode* callee;
+
+    if ( node == NULL || node->kind != XL6_AST_CALL || node->childCount == 0 ) {
+        return 0;
+    }
+    callee = node->children[0];
+    if ( callee == NULL || callee->kind != XL6_AST_NAME ) {
+        return 0;
+    }
+    return xl6CgenNeedsBasicTextEquals(callee->text, "__xl_std_runtime_regex_is_match") ||
+           xl6CgenNeedsBasicTextEquals(callee->text, "__xl_std_runtime_regex_find");
+}
+
+static int xl6CgenNeedsBasicIsProcessRuntimeCall(const XL6_AstNode* node)
+{
+    const XL6_AstNode* callee;
+
+    if ( node == NULL || node->kind != XL6_AST_CALL || node->childCount == 0 ) {
+        return 0;
+    }
+    callee = node->children[0];
+    if ( callee == NULL || callee->kind != XL6_AST_NAME ) {
+        return 0;
+    }
+    return xl6CgenNeedsBasicTextEquals(callee->text, "__xl_std_runtime_process_exec") ||
+           xl6CgenNeedsBasicTextEquals(callee->text, "__xl_std_runtime_process_success") ||
+           xl6CgenNeedsBasicTextEquals(callee->text, "__xl_std_runtime_process_exit_code");
+}
+
+static int xl6CgenNeedsBasicIsDirRuntimeCall(const XL6_AstNode* node)
+{
+    const XL6_AstNode* callee;
+
+    if ( node == NULL || node->kind != XL6_AST_CALL || node->childCount == 0 ) {
+        return 0;
+    }
+    callee = node->children[0];
+    if ( callee == NULL || callee->kind != XL6_AST_NAME ) {
+        return 0;
+    }
+    return xl6CgenNeedsBasicTextEquals(callee->text, "__xl_std_runtime_dir_list");
+}
+
+static int xl6CgenNeedsBasicIsStringEdgeRuntimeCall(const XL6_AstNode* node)
+{
+    const XL6_AstNode* callee;
+
+    if ( node == NULL || node->kind != XL6_AST_CALL || node->childCount == 0 ) {
+        return 0;
+    }
+    callee = node->children[0];
+    if ( callee == NULL || callee->kind != XL6_AST_NAME ) {
+        return 0;
+    }
+    return xl6CgenNeedsBasicTextEquals(callee->text, "__xl_std_runtime_string_starts_with") ||
+           xl6CgenNeedsBasicTextEquals(callee->text, "__xl_std_runtime_string_ends_with");
+}
+
+static int xl6CgenNeedsBasicIsStdStringRuntimeCall(const XL6_AstNode* node)
+{
+    const XL6_AstNode* callee;
+
+    if ( node == NULL || node->kind != XL6_AST_CALL || node->childCount == 0 ) {
+        return 0;
+    }
+    callee = node->children[0];
+    if ( callee == NULL || callee->kind != XL6_AST_NAME ) {
+        return 0;
+    }
+    return xl6CgenNeedsBasicTextEquals(callee->text, "__xl_std_runtime_string_split");
+}
+
+static int xl6CgenNeedsBasicIsPathRuntimeCall(const XL6_AstNode* node)
+{
+    const XL6_AstNode* callee;
+
+    if ( node == NULL || node->kind != XL6_AST_CALL || node->childCount == 0 ) {
+        return 0;
+    }
+    callee = node->children[0];
+    if ( callee == NULL || callee->kind != XL6_AST_NAME ) {
+        return 0;
+    }
+    return xl6CgenNeedsBasicTextEquals(callee->text, "__xl_std_runtime_path_join");
+}
+
+static int xl6CgenNeedsBasicIsHttpServerRuntimeCall(const XL6_AstNode* node)
+{
+    const XL6_AstNode* callee;
+
+    if ( node == NULL || node->kind != XL6_AST_CALL || node->childCount == 0 ) {
+        return 0;
+    }
+    callee = node->children[0];
+    if ( callee == NULL || callee->kind != XL6_AST_NAME ) {
+        return 0;
+    }
+    return xl6CgenNeedsBasicTextEquals(callee->text, "__xl_std_runtime_http_server_create") ||
+           xl6CgenNeedsBasicTextEquals(callee->text, "__xl_std_runtime_http_server_start") ||
+           xl6CgenNeedsBasicTextEquals(callee->text, "__xl_std_runtime_http_server_port") ||
+           xl6CgenNeedsBasicTextEquals(callee->text, "__xl_std_runtime_http_server_stop") ||
+           xl6CgenNeedsBasicTextEquals(callee->text, "__xl_std_runtime_http_server_destroy");
+}
+
 int xl6CgenNodeNeedsRangeContains(const XL6_AstNode* node)
 {
     size_t i;
@@ -125,6 +284,13 @@ int xl6CgenNodeNeedsFunctionRuntime(const XL6_AstNode* node)
         return 1;
     }
     if ( node->kind == XL6_AST_TYPE && xl6CgenNeedsBasicTextEquals(node->text, "function") ) {
+        return 1;
+    }
+    if ( node->kind == XL6_AST_CALL &&
+         node->childCount > 0 &&
+         node->children[0] != NULL &&
+         node->children[0]->kind == XL6_AST_NAME &&
+         xl6CgenNeedsBasicTextEquals(node->children[0]->text, "thread") ) {
         return 1;
     }
     for ( i = 0; i < node->childCount; ++i ) {
@@ -196,6 +362,186 @@ int xl6CgenNodeNeedsXValueRuntime(const XL6_AstNode* node)
     }
     for ( i = 0; i < node->childCount; ++i ) {
         if ( xl6CgenNodeNeedsXValueRuntime(node->children[i]) ) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+int xl6CgenNodeNeedsCryptoRuntime(const XL6_AstNode* node)
+{
+    size_t i;
+
+    if ( node == NULL ) {
+        return 0;
+    }
+    if ( xl6CgenNeedsBasicIsCryptoRuntimeCall(node) ) {
+        return 1;
+    }
+    for ( i = 0; i < node->childCount; ++i ) {
+        if ( xl6CgenNodeNeedsCryptoRuntime(node->children[i]) ) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+int xl6CgenNodeNeedsUrlRuntime(const XL6_AstNode* node)
+{
+    size_t i;
+
+    if ( node == NULL ) {
+        return 0;
+    }
+    if ( xl6CgenNeedsBasicIsUrlRuntimeCall(node) ) {
+        return 1;
+    }
+    for ( i = 0; i < node->childCount; ++i ) {
+        if ( xl6CgenNodeNeedsUrlRuntime(node->children[i]) ) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+int xl6CgenNodeNeedsQueryRuntime(const XL6_AstNode* node)
+{
+    size_t i;
+
+    if ( node == NULL ) {
+        return 0;
+    }
+    if ( xl6CgenNeedsBasicIsQueryRuntimeCall(node) ) {
+        return 1;
+    }
+    for ( i = 0; i < node->childCount; ++i ) {
+        if ( xl6CgenNodeNeedsQueryRuntime(node->children[i]) ) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+int xl6CgenNodeNeedsRegexRuntime(const XL6_AstNode* node)
+{
+    size_t i;
+
+    if ( node == NULL ) {
+        return 0;
+    }
+    if ( xl6CgenNeedsBasicIsRegexRuntimeCall(node) ) {
+        return 1;
+    }
+    for ( i = 0; i < node->childCount; ++i ) {
+        if ( xl6CgenNodeNeedsRegexRuntime(node->children[i]) ) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+int xl6CgenNodeNeedsProcessRuntime(const XL6_AstNode* node)
+{
+    size_t i;
+
+    if ( node == NULL ) {
+        return 0;
+    }
+    if ( xl6CgenNeedsBasicIsProcessRuntimeCall(node) ) {
+        return 1;
+    }
+    for ( i = 0; i < node->childCount; ++i ) {
+        if ( xl6CgenNodeNeedsProcessRuntime(node->children[i]) ) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+int xl6CgenNodeNeedsDirRuntime(const XL6_AstNode* node)
+{
+    size_t i;
+
+    if ( node == NULL ) {
+        return 0;
+    }
+    if ( xl6CgenNeedsBasicIsDirRuntimeCall(node) ) {
+        return 1;
+    }
+    for ( i = 0; i < node->childCount; ++i ) {
+        if ( xl6CgenNodeNeedsDirRuntime(node->children[i]) ) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+int xl6CgenNodeNeedsStringEdgeRuntime(const XL6_AstNode* node)
+{
+    size_t i;
+
+    if ( node == NULL ) {
+        return 0;
+    }
+    if ( xl6CgenNeedsBasicIsStringEdgeRuntimeCall(node) ) {
+        return 1;
+    }
+    for ( i = 0; i < node->childCount; ++i ) {
+        if ( xl6CgenNodeNeedsStringEdgeRuntime(node->children[i]) ) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+int xl6CgenNodeNeedsStdStringRuntime(const XL6_AstNode* node)
+{
+    size_t i;
+
+    if ( node == NULL ) {
+        return 0;
+    }
+    if ( xl6CgenNeedsBasicIsStdStringRuntimeCall(node) ) {
+        return 1;
+    }
+    for ( i = 0; i < node->childCount; ++i ) {
+        if ( xl6CgenNodeNeedsStdStringRuntime(node->children[i]) ) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+int xl6CgenNodeNeedsPathRuntime(const XL6_AstNode* node)
+{
+    size_t i;
+
+    if ( node == NULL ) {
+        return 0;
+    }
+    if ( xl6CgenNeedsBasicIsPathRuntimeCall(node) ) {
+        return 1;
+    }
+    for ( i = 0; i < node->childCount; ++i ) {
+        if ( xl6CgenNodeNeedsPathRuntime(node->children[i]) ) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+int xl6CgenNodeNeedsHttpServerRuntime(const XL6_AstNode* node)
+{
+    size_t i;
+
+    if ( node == NULL ) {
+        return 0;
+    }
+    if ( xl6CgenNeedsBasicIsHttpServerRuntimeCall(node) ) {
+        return 1;
+    }
+    for ( i = 0; i < node->childCount; ++i ) {
+        if ( xl6CgenNodeNeedsHttpServerRuntime(node->children[i]) ) {
             return 1;
         }
     }

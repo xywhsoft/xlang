@@ -1,0 +1,5 @@
+func bad()
+    try
+        int value = 1
+    end
+end

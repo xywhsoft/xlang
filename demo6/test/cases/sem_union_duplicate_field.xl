@@ -1,0 +1,4 @@
+union Bad
+    int a
+    c_double a
+end

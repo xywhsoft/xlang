@@ -1,0 +1,8 @@
+union Payload
+    int i
+end
+
+func bad() -> int
+    Payload payload
+    return payload.missing
+end

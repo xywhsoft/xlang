@@ -1,0 +1,22 @@
+extern "expect_i64" func expect(int actual, int expected)
+
+string filePath = "release/tmp/stdlib_file_meta.txt"
+
+file.delete(filePath)
+
+expect(file.writeText(filePath, "abcdef"), 1)
+expect(file.size(filePath), 6)
+expect(file.setSize(filePath, 3), 1)
+expect(file.size(filePath), 3)
+
+int attr = file.attr(filePath)
+expect(attr != 0, 1)
+expect(file.setAttr(filePath, attr), 1)
+
+time accessTime = file.accessTime(filePath)
+time changeTime = file.changeTime(filePath)
+
+expect(time.year(accessTime) >= 1970, 1)
+expect(time.year(changeTime) >= 1970, 1)
+
+expect(file.delete(filePath), 1)

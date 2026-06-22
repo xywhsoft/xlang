@@ -1,0 +1,3 @@
+dict<int> scores = dict{"a": 1}
+
+scores[1] = 2

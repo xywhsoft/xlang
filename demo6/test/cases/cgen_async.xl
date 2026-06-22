@@ -1,0 +1,21 @@
+async func addAsync(int a, int b) -> int
+    return a + b
+end
+
+async func doneAsync()
+    int a = 1
+    assert a == 1, "async void body failed"
+end
+
+future<int> futureValue = addAsync(2, 3)
+int value = await futureValue
+
+assert value == 5, "await int result failed"
+
+auto autoFuture = addAsync(4, 6)
+auto autoValue = await autoFuture
+
+assert autoValue == 10, "await auto result failed"
+
+auto voidFuture = doneAsync()
+await voidFuture

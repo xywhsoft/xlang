@@ -1,0 +1,50 @@
+extern "expect_i64" func expect(int actual, int expected)
+extern "expect_str" func expectStr(string actual, string expected)
+
+#doc
+desc:
+    Parse a non-empty decimal text.
+param text:
+    Decimal text.
+return value:
+    Parsed value.
+note:
+    This example keeps parsing intentionally small.
+example:
+    ```xlang
+    auto value = parseSmallInt("1")
+    ```
+#end
+func parseSmallInt(string text) -> int
+    if text == "" then
+        throw "empty text"
+    end
+    if text == "1" then
+        return 1
+    end
+    throw "unsupported text"
+    return 0
+end
+
+func safeParse(string text) -> int
+    int value = 0
+
+    try
+        value = parseSmallInt(text)
+    catch e
+        expectStr(e.kind, "Error")
+        if e.message == "empty text" then
+            value = -1
+        else
+            value = -2
+        end
+    finally
+        assert true, "finally still runs"
+    end
+
+    return value
+end
+
+expect(safeParse("1"), 1)
+expect(safeParse(""), -1)
+expect(safeParse("2"), -2)

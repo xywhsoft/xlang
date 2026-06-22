@@ -6,11 +6,21 @@ auto sparse = [0: "a", 2: "b"]
 auto unique = {1, 2, 3}
 auto table = {"a": 1, "b": 2}
 
+func makeDynArray() -> var
+    return [4, 5, 6]
+end
+
+func makeDynTable() -> var
+    return {"b": 2}
+end
+
 expect("pha" in text, 1)
 expect("xyz" in text, 0)
 
 expect(2 in values, 1)
 expect(9 in values, 0)
+expect(2 in [1, 2, 3], 1)
+expect(5 in makeDynArray(), 1)
 
 expect("b" in sparse, 1)
 expect("x" in sparse, 0)
@@ -20,6 +30,7 @@ expect(9 in unique, 0)
 
 expect("a" in table, 1)
 expect("z" in table, 0)
+expect("a" in {"a": 1}, 1)
 
 var dynArray = values
 var dynText = text
@@ -30,3 +41,4 @@ expect(8 in dynArray, 0)
 expect("bet" in dynText, 1)
 expect("nope" in dynText, 0)
 expect("b" in dynTable, 1)
+expect("b" in makeDynTable(), 1)

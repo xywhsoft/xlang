@@ -352,7 +352,7 @@ static XL6_AstNode* xl6CgenFindInferredGenericFunc(XL6_CgenContext* ctx, const X
     for ( i = 0; i < ctx->root->childCount; ++i ) {
         XL6_AstNode* node = ctx->root->children[i];
         XL6_AstNode* typeArgs;
-        if ( node == NULL || node->kind != XL6_AST_FUNC || !xl6CgenFuncIsGeneric(node) ||
+        if ( node == NULL || (node->kind != XL6_AST_FUNC && node->kind != XL6_AST_ASYNC_FUNC) || !xl6CgenFuncIsGeneric(node) ||
              node->childCount == 0 || node->children[0] == NULL ||
              !xl6CTextEquals(node->children[0]->text, name) ) {
             continue;
@@ -386,7 +386,7 @@ static XL6_AstNode* xl6CgenFindInferredGenericFunc(XL6_CgenContext* ctx, const X
     } else if ( candidateCount > 0 && report ) {
         for ( i = 0; i < ctx->root->childCount; ++i ) {
             XL6_AstNode* node = ctx->root->children[i];
-            if ( node != NULL && node->kind == XL6_AST_FUNC && xl6CgenFuncIsGeneric(node) &&
+            if ( node != NULL && (node->kind == XL6_AST_FUNC || node->kind == XL6_AST_ASYNC_FUNC) && xl6CgenFuncIsGeneric(node) &&
                  node->childCount > 0 && node->children[0] != NULL &&
                  xl6CTextEquals(node->children[0]->text, name) ) {
                 (void)xl6CgenInferGenericTypeArgs(ctx, call, node, 1);
@@ -435,6 +435,9 @@ static void xl6CgenCollectGenericCall(XL6_CgenContext* ctx, const XL6_AstNode* c
     if ( xl6CgenFindClass(ctx, nameNode->text) != NULL ) {
         return;
     }
+    if ( xl6CTextEquals(nameNode->text, "channel") ) {
+        return;
+    }
     func = xl6CgenResolveExplicitGenericCallFunc(ctx, call, nameNode->text, typeArgs, 0);
     if ( func == NULL ) {
         xl6CgenError(ctx, callee, "no matching generic function declaration");
@@ -452,7 +455,7 @@ static void xl6CgenCollectGenericInstances(XL6_CgenContext* ctx, const XL6_AstNo
     }
 
     /* 泛型模板本身不直接扫描，只有被实例化后才进入代码生成�?*/
-    if ( node->kind == XL6_AST_FUNC && xl6CgenFuncIsGeneric(node) ) {
+    if ( (node->kind == XL6_AST_FUNC || node->kind == XL6_AST_ASYNC_FUNC) && xl6CgenFuncIsGeneric(node) ) {
         return;
     }
     if ( node->kind == XL6_AST_VAR_DECL || node->kind == XL6_AST_CONST_DECL ) {
@@ -506,7 +509,7 @@ static void xl6CgenCollectRuntimeTypeDescsInNode(XL6_CgenContext* ctx, const XL6
     if ( ctx == NULL || node == NULL ) {
         return;
     }
-    if ( node->kind == XL6_AST_FUNC && xl6CgenFuncIsGeneric(node) && ctx->currentGenericArgs == NULL ) {
+    if ( (node->kind == XL6_AST_FUNC || node->kind == XL6_AST_ASYNC_FUNC) && xl6CgenFuncIsGeneric(node) && ctx->currentGenericArgs == NULL ) {
         return;
     }
     if ( node->kind == XL6_AST_TYPE ) {
@@ -581,6 +584,12 @@ static const char* xl6CgenInferExprType(XL6_CgenContext* ctx, const XL6_AstNode*
     }
     case XL6_AST_ANON_FUNC:
         return "XL6_Function";
+    case XL6_AST_AWAIT: {
+        XL6_AstNode* typeNode = xl6CgenCloneAwaitResultType(ctx, expr);
+        const char* cType = typeNode != NULL ? xl6CgenTypeName(ctx, typeNode) : "int";
+        xl6AstFree(typeNode);
+        return cType;
+    }
     case XL6_AST_NAME:
         varType = xl6CgenFindVarType(ctx, expr->text);
         if ( varType != NULL && !xl6CTextEquals(varType->text, "auto") ) {
@@ -590,6 +599,15 @@ static const char* xl6CgenInferExprType(XL6_CgenContext* ctx, const XL6_AstNode*
             return "unsigned long long";
         }
         break;
+    case XL6_AST_UNARY: {
+        XL6_AstNode* typeNode = xl6CgenCloneExprTypeForInference(ctx, expr);
+        const char* cType = typeNode != NULL ? xl6CgenTypeName(ctx, typeNode) : NULL;
+        xl6AstFree(typeNode);
+        if ( cType != NULL ) {
+            return cType;
+        }
+        break;
+    }
     case XL6_AST_BINARY:
         if ( xl6CTextEquals(expr->text, "in") ) {
             return "int";
@@ -606,7 +624,21 @@ static const char* xl6CgenInferExprType(XL6_CgenContext* ctx, const XL6_AstNode*
         if ( xl6CTextEquals(expr->text, "**") && xl6CgenExprIntPowKind(ctx, expr) ) {
             return "long long";
         }
+        {
+            XL6_AstNode* typeNode = xl6CgenCloneExprTypeForInference(ctx, expr);
+            const char* cType = typeNode != NULL ? xl6CgenTypeName(ctx, typeNode) : NULL;
+            xl6AstFree(typeNode);
+            if ( cType != NULL ) {
+                return cType;
+            }
+        }
         break;
+    case XL6_AST_CONDITIONAL: {
+        XL6_AstNode* typeNode = xl6CgenCloneExprTypeForInference(ctx, expr);
+        const char* cType = typeNode != NULL ? xl6CgenTypeName(ctx, typeNode) : "xvalue";
+        xl6AstFree(typeNode);
+        return cType;
+    }
     case XL6_AST_MEMBER:
         if ( expr->text != NULL && xl6CTextEquals(expr->text, "length") &&
              expr->childCount > 0 && expr->children[0] != NULL &&
@@ -640,6 +672,30 @@ static const char* xl6CgenInferExprType(XL6_CgenContext* ctx, const XL6_AstNode*
         if ( xl6CgenIsImplicitToStringCall(ctx, expr) ) {
             return "const char*";
         }
+        {
+            XL6_AstNode* threadMethodType = xl6CgenThreadMethodType(ctx, expr);
+            if ( threadMethodType != NULL ) {
+                const char* cType = xl6CgenTypeName(ctx, threadMethodType);
+                xl6AstFree(threadMethodType);
+                return cType;
+            }
+        }
+        {
+            XL6_AstNode* syncMethodType = xl6CgenSyncMethodType(ctx, expr);
+            if ( syncMethodType != NULL ) {
+                const char* cType = xl6CgenTypeName(ctx, syncMethodType);
+                xl6AstFree(syncMethodType);
+                return cType;
+            }
+        }
+        {
+            XL6_AstNode* channelMethodType = xl6CgenChannelMethodType(ctx, expr);
+            if ( channelMethodType != NULL ) {
+                const char* cType = xl6CgenTypeName(ctx, channelMethodType);
+                xl6AstFree(channelMethodType);
+                return cType;
+            }
+        }
         if ( expr->childCount > 0 && expr->children[0] != NULL &&
              expr->children[0]->kind == XL6_AST_NAME &&
              xl6CTextEquals(expr->children[0]->text, "type") ) {
@@ -667,12 +723,39 @@ static const char* xl6CgenInferExprType(XL6_CgenContext* ctx, const XL6_AstNode*
                 return cType;
             }
         }
+        {
+            XL6_AstNode* channelCtorType = xl6CgenChannelCtorType(ctx, expr);
+            if ( channelCtorType != NULL ) {
+                const char* cType = xl6CgenTypeName(ctx, channelCtorType);
+                xl6AstFree(channelCtorType);
+                return cType;
+            }
+        }
+        {
+            XL6_AstNode* threadCtorType = xl6CgenThreadCtorType(ctx, expr);
+            if ( threadCtorType != NULL ) {
+                const char* cType = xl6CgenTypeName(ctx, threadCtorType);
+                xl6AstFree(threadCtorType);
+                return cType;
+            }
+        }
+        {
+            XL6_AstNode* syncCtorType = xl6CgenSyncCtorType(ctx, expr);
+            if ( syncCtorType != NULL ) {
+                const char* cType = xl6CgenTypeName(ctx, syncCtorType);
+                xl6AstFree(syncCtorType);
+                return cType;
+            }
+        }
         if ( expr->childCount > 0 && expr->children[0]->kind == XL6_AST_GENERIC_INSTANT ) {
             const XL6_AstNode* instant = expr->children[0];
             const XL6_AstNode* nameNode = instant->childCount > 0 ? instant->children[0] : NULL;
             const XL6_AstNode* typeArgs = instant->childCount > 1 ? instant->children[1] : NULL;
             XL6_AstNode* func = (nameNode != NULL && nameNode->kind == XL6_AST_NAME) ?
                                 xl6CgenResolveExplicitGenericCallFunc(ctx, expr, nameNode->text, typeArgs, 0) : NULL;
+            if ( xl6CgenIsAsyncFunc(func) ) {
+                return "xfuture*";
+            }
             if ( func != NULL && func->childCount > 2 && func->children[2]->childCount == 1 ) {
                 const XL6_AstNode* prevParams = ctx->currentGenericParams;
                 const XL6_AstNode* prevArgs = ctx->currentGenericArgs;
@@ -707,6 +790,10 @@ static const char* xl6CgenInferExprType(XL6_CgenContext* ctx, const XL6_AstNode*
             if ( func == NULL ) {
                 func = xl6CgenResolveCallFuncInternal(ctx, expr, expr->children[0]->text, &inferredArgs, 0);
             }
+            if ( xl6CgenIsAsyncFunc(func) ) {
+                xl6AstFree(inferredArgs);
+                return "xfuture*";
+            }
             if ( func != NULL && func->childCount > 2 && func->children[2]->childCount == 1 ) {
                 if ( inferredArgs != NULL ) {
                     const XL6_AstNode* prevParams = ctx->currentGenericParams;
@@ -733,6 +820,26 @@ static const char* xl6CgenInferExprType(XL6_CgenContext* ctx, const XL6_AstNode*
             const XL6_AstNode* customDecl = customReceiverType != NULL ? xl6CgenFindCustom(ctx, customReceiverType->text) : NULL;
             const XL6_AstNode* method = NULL;
             const XL6_AstNode* returns = method != NULL && method->childCount > 2 ? method->children[2] : NULL;
+            {
+                XL6_AstNode* memberType = xl6CgenCloneMemberFieldTypeForInference(ctx, member);
+                if ( xl6CgenIsFunctionType(memberType) ) {
+                    const XL6_AstNode* functionReturns = xl6CgenFunctionReturnTypes(memberType);
+                    if ( xl6CgenIsBareFunctionType(memberType) ) {
+                        xl6AstFree(memberType);
+                        return "xvalue";
+                    }
+                    if ( functionReturns != NULL && functionReturns->childCount == 1 ) {
+                        const char* cType = xl6CgenTypeName(ctx, functionReturns->children[0]);
+                        xl6AstFree(memberType);
+                        return cType;
+                    }
+                }
+                if ( memberType != NULL && xl6CTextEquals(memberType->text, "var") ) {
+                    xl6AstFree(memberType);
+                    return "xvalue";
+                }
+                xl6AstFree(memberType);
+            }
             if ( customDecl != NULL ) {
                 const XL6_AstNode* helperMethod = xl6CgenResolveCustomFunc(ctx, customDecl, expr, member->text, 0);
                 const XL6_AstNode* externMethod = xl6CgenResolveCustomExternFuncWithReport(ctx, customDecl, expr, member->text, 0);

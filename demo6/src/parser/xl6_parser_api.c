@@ -45,7 +45,13 @@ static int xl6ParserTokenKind(const XL6_Token* token)
     case XL6_TK_STRING: return XL6PG_STRING;
     case XL6_TK_TEMPLATE_STRING: return XL6PG_TEMPLATE_STRING;
     case XL6_TK_TIME: return XL6PG_TIME;
+    case XL6_TK_DOC: return XL6PG_DOC;
     case XL6_TK_SEP: return XL6PG_SEP;
+    case XL6_KW_TRY: return XL6PG_KW_TRY;
+    case XL6_KW_CATCH: return XL6PG_KW_CATCH;
+    case XL6_KW_FINALLY: return XL6PG_KW_FINALLY;
+    case XL6_KW_THROW: return XL6PG_KW_THROW;
+    case XL6_KW_ASSERT: return XL6PG_KW_ASSERT;
     case XL6_KW_NULL: return XL6PG_KW_NULL;
     case XL6_KW_TRUE: return XL6PG_KW_TRUE;
     case XL6_KW_FALSE: return XL6PG_KW_FALSE;
@@ -60,6 +66,7 @@ static int xl6ParserTokenKind(const XL6_Token* token)
     case XL6_KW_CLASS: return XL6PG_KW_CLASS;
     case XL6_KW_CUSTOM: return XL6PG_KW_CUSTOM;
     case XL6_KW_EXTENDS: return XL6PG_KW_EXTENDS;
+    case XL6_KW_UNION: return XL6PG_KW_UNION;
     case XL6_KW_RETURN: return XL6PG_KW_RETURN;
     case XL6_KW_END: return XL6PG_KW_END;
     case XL6_KW_IF: return XL6PG_KW_IF;
@@ -71,6 +78,9 @@ static int xl6ParserTokenKind(const XL6_Token* token)
     case XL6_KW_FOR: return XL6PG_KW_FOR;
     case XL6_KW_BREAK: return XL6PG_KW_BREAK;
     case XL6_KW_CONTINUE: return XL6PG_KW_CONTINUE;
+    case XL6_KW_ASYNC: return XL6PG_KW_ASYNC;
+    case XL6_KW_AWAIT: return XL6PG_KW_AWAIT;
+    case XL6_KW_YIELD: return XL6PG_KW_YIELD;
     case XL6_KW_AND: return XL6PG_KW_AND;
     case XL6_KW_OR: return XL6PG_KW_OR;
     case XL6_KW_NOT: return XL6PG_KW_NOT;

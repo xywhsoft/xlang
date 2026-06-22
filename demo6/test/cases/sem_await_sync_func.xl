@@ -1,0 +1,8 @@
+async func valueAsync() -> int
+    return 1
+end
+
+func bad() -> int
+    auto value = await valueAsync()
+    return value
+end

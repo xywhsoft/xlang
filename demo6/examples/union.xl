@@ -1,0 +1,26 @@
+union Payload
+    int i
+    c_double d
+end
+
+Payload p
+p.i = 100
+assert p.i == 100, "union int field failed"
+p.d = 12.5
+assert int(p.d) == 12, "union double field failed"
+
+class Packet
+    int tag
+    union
+        int code
+        c_double ratio
+    end
+end
+
+Packet packet
+packet.tag = 1
+packet.code = 200
+assert packet.tag == 1, "class field beside union failed"
+assert packet.code == 200, "anonymous union field failed"
+packet.ratio = 3.5
+assert int(packet.ratio) == 3, "anonymous union double field failed"

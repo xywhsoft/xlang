@@ -24,8 +24,11 @@ typedef struct XL6_XapiExport {
     char* name;
     char* cSymbol;
     char* type;
+    char* signature;
+    char* exportId;
     char* callingConvention;
     char* varargMode;
+    char* doc;
     int requiredParamCount;
     int fixedParamCount;
     XL6_XapiParam* params;
@@ -34,9 +37,22 @@ typedef struct XL6_XapiExport {
     size_t returnCount;
 } XL6_XapiExport;
 
+typedef struct XL6_XapiField {
+    char* name;
+    char* type;
+    char* doc;
+    char* storage;
+} XL6_XapiField;
+
 typedef struct XL6_XapiTypeDecl {
     char* kind;
     char* name;
+    char* doc;
+    char* base;
+    char** typeParams;
+    size_t typeParamCount;
+    XL6_XapiField* fields;
+    size_t fieldCount;
 } XL6_XapiTypeDecl;
 
 typedef struct XL6_XapiImport {
@@ -45,10 +61,17 @@ typedef struct XL6_XapiImport {
     int resolved;
     char* resolvedKind;
     char* manifestPath;
+    char* interfacePath;
+    char* packageId;
 } XL6_XapiImport;
 
 typedef struct XL6_XapiModule {
+    char* packageName;
+    char* packageVersion;
+    char* packageAbiVersion;
+    char* packageId;
     char* name;
+    char* moduleId;
     char* source;
     char* sourceHash;
     XL6_XapiEntryKind entryKind;
@@ -58,6 +81,15 @@ typedef struct XL6_XapiModule {
     size_t typeCount;
     XL6_XapiImport* imports;
     size_t importCount;
+    char** links;
+    size_t linkCount;
+    char** loadlibs;
+    size_t loadlibCount;
+    char** cSources;
+    size_t cSourceCount;
+    int nativeSingleton;
+    char* nativeLoadName;
+    char* nativeVersion;
 } XL6_XapiModule;
 
 void xl6XapiModuleInit(XL6_XapiModule* module);

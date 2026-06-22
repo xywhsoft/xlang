@@ -7,6 +7,7 @@ const char* xl6AstKindName(XL6_AstKind kind)
     case XL6_AST_LIST: return "list";
     case XL6_AST_IMPORT: return "import";
     case XL6_AST_FUNC: return "func";
+    case XL6_AST_ASYNC_FUNC: return "async_func";
     case XL6_AST_ANON_FUNC: return "anon_func";
     case XL6_AST_EXTERN_FUNC: return "extern_func";
     case XL6_AST_EXPORT_FUNC: return "export_func";
@@ -17,6 +18,7 @@ const char* xl6AstKindName(XL6_AstKind kind)
     case XL6_AST_EXTERN_TYPE_ALIAS: return "extern_type_alias";
     case XL6_AST_CLASS: return "class";
     case XL6_AST_CUSTOM: return "custom";
+    case XL6_AST_UNION: return "union";
     case XL6_AST_FIELD: return "field";
     case XL6_AST_CREATE: return "create";
     case XL6_AST_CUSTOM_EXTERN_SPECIAL: return "custom_extern_special";
@@ -29,6 +31,7 @@ const char* xl6AstKindName(XL6_AstKind kind)
     case XL6_AST_MULTI_VAR_DECL: return "multi_var_decl";
     case XL6_AST_CONST_DECL: return "const_decl";
     case XL6_AST_RETURN: return "return";
+    case XL6_AST_YIELD: return "yield";
     case XL6_AST_EXPR_STMT: return "expr_stmt";
     case XL6_AST_TYPE: return "type";
     case XL6_AST_NAME: return "name";
@@ -51,6 +54,7 @@ const char* xl6AstKindName(XL6_AstKind kind)
     case XL6_AST_CONDITIONAL: return "conditional";
     case XL6_AST_BINARY: return "binary";
     case XL6_AST_UNARY: return "unary";
+    case XL6_AST_AWAIT: return "await";
     case XL6_AST_ARRAY_LITERAL: return "array_literal";
     case XL6_AST_LIST_LITERAL: return "list_literal";
     case XL6_AST_SET_LITERAL: return "set_literal";
@@ -63,6 +67,10 @@ const char* xl6AstKindName(XL6_AstKind kind)
     case XL6_AST_DO_WHILE: return "do_while";
     case XL6_AST_FOR: return "for";
     case XL6_AST_FOR_TARGETS: return "for_targets";
+    case XL6_AST_TRY: return "try";
+    case XL6_AST_CATCH: return "catch";
+    case XL6_AST_THROW: return "throw";
+    case XL6_AST_ASSERT: return "assert";
     case XL6_AST_BREAK: return "break";
     case XL6_AST_CONTINUE: return "continue";
     default: return "unknown";
@@ -139,6 +147,15 @@ XL6_AstNode* xl6AstNewGenericType(const XL6_Token* name, XL6_AstNode* args)
     return node;
 }
 
+void xl6AstSetDoc(XL6_AstNode* node, const XL6_Token* token)
+{
+    if ( node == NULL || token == NULL ) {
+        return;
+    }
+    xrtFree(node->doc);
+    node->doc = xrtCopyStr((char*)(token->text != NULL ? token->text : ""), token->len);
+}
+
 void xl6AstAddChild(XL6_AstNode* parent, XL6_AstNode* child)
 {
     XL6_AstNode** newChildren;
@@ -185,5 +202,6 @@ void xl6AstFree(XL6_AstNode* node)
     }
     xrtFree(node->children);
     xrtFree(node->text);
+    xrtFree(node->doc);
     xrtFree(node);
 }

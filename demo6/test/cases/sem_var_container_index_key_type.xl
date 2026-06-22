@@ -1,0 +1,2 @@
+var values = [1, 2, 3]
+auto value = values[1.5]

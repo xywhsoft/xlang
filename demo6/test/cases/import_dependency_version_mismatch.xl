@@ -1,0 +1,5 @@
+import uses_dep_bad
+
+func main(...) -> int
+    return 0
+end

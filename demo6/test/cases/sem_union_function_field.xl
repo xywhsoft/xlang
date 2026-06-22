@@ -1,0 +1,3 @@
+union Bad
+    function(int) -> int op
+end

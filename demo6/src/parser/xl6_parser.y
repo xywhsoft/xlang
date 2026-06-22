@@ -5,6 +5,7 @@
 %extra_argument { XL6_ParseContext* ctx }
 %type assign_op { XL6_Token }
 %type name_tok { XL6_Token }
+%type doc_block { XL6_Token }
 
 %include {
 #include "src/parser/xl6_parser_api.h"
@@ -95,6 +96,12 @@ static XL6_AstNode* xl6PBraceAfterName(const XL6_Token* token, XL6_AstNode* lite
     }
     return xl6PTypedLiteral(token, literal);
 }
+
+static XL6_AstNode* xl6PWithDoc(XL6_AstNode* node, const XL6_Token* doc)
+{
+    xl6AstSetDoc(node, doc);
+    return node;
+}
 }
 
 %syntax_error {
@@ -141,22 +148,28 @@ items(A) ::= items(B) item(C) opt_seps. {
     xl6AstAddChild(A, C);
 }
 
-item(A) ::= func_decl(B). { A = B; }
-item(A) ::= import_decl(B). { A = B; }
-item(A) ::= extern_func_decl(B). { A = B; }
-item(A) ::= export_func_decl(B). { A = B; }
-item(A) ::= extern_var_decl(B). { A = B; }
-item(A) ::= export_var_decl(B). { A = B; }
-item(A) ::= export_const_decl(B). { A = B; }
-item(A) ::= type_alias_decl(B). { A = B; }
-item(A) ::= extern_type_alias_decl(B). { A = B; }
-item(A) ::= class_decl(B). { A = B; }
-item(A) ::= custom_decl(B). { A = B; }
-item(A) ::= stmt(B). { A = B; }
+item(A) ::= item_base(B). { A = B; }
+item(A) ::= doc_block(D) item_base(B). { A = xl6PWithDoc(B, &D); }
+
+item_base(A) ::= func_decl(B). { A = B; }
+item_base(A) ::= import_decl(B). { A = B; }
+item_base(A) ::= extern_func_decl(B). { A = B; }
+item_base(A) ::= export_func_decl(B). { A = B; }
+item_base(A) ::= extern_var_decl(B). { A = B; }
+item_base(A) ::= export_var_decl(B). { A = B; }
+item_base(A) ::= export_const_decl(B). { A = B; }
+item_base(A) ::= type_alias_decl(B). { A = B; }
+item_base(A) ::= extern_type_alias_decl(B). { A = B; }
+item_base(A) ::= class_decl(B). { A = B; }
+item_base(A) ::= custom_decl(B). { A = B; }
+item_base(A) ::= union_decl(B). { A = B; }
+item_base(A) ::= stmt(B). { A = B; }
 item(A) ::= TOK_ERROR(E). {
     xl6PDiag(ctx, &E, "当前语法位置不支持该 token");
     A = xl6AstNew(XL6_AST_LIST, NULL);
 }
+
+doc_block(A) ::= DOC(D). { A = D; }
 
 name_tok(A) ::= IDENT(B). { A = B; }
 name_tok(A) ::= TYPE_FUNCTION(B). [KW_NOT] { A = B; }
@@ -176,6 +189,14 @@ need_sep ::= SEP.
 
 func_decl(A) ::= KW_FUNC(N) name_tok(F) generic_params_opt(G) name_params(P) return_sig(R) need_sep block(B) KW_END. {
     A = xl6AstNew(XL6_AST_FUNC, &N);
+    xl6AstAddChild(A, xl6AstNew(XL6_AST_NAME, &F));
+    xl6AstAddChild(A, P);
+    xl6AstAddChild(A, R);
+    xl6AstAddChild(A, B);
+    xl6AstAddChild(A, G);
+}
+func_decl(A) ::= KW_ASYNC(AW) KW_FUNC name_tok(F) generic_params_opt(G) name_params(P) return_sig(R) need_sep block(B) KW_END. {
+    A = xl6AstNew(XL6_AST_ASYNC_FUNC, &AW);
     xl6AstAddChild(A, xl6AstNew(XL6_AST_NAME, &F));
     xl6AstAddChild(A, P);
     xl6AstAddChild(A, R);
@@ -264,9 +285,13 @@ class_body(A) ::= class_body(B) class_member(M). {
     xl6AstAddChild(A, M);
 }
 
-class_member(A) ::= field_decl(B). { A = B; }
-class_member(A) ::= func_decl(B). { A = B; }
-class_member(A) ::= class_special_decl(B). { A = B; }
+class_member(A) ::= class_member_base(B). { A = B; }
+class_member(A) ::= doc_block(D) class_member_base(B). { A = xl6PWithDoc(B, &D); }
+
+class_member_base(A) ::= field_decl(B). { A = B; }
+class_member_base(A) ::= func_decl(B). { A = B; }
+class_member_base(A) ::= class_special_decl(B). { A = B; }
+class_member_base(A) ::= union_decl(B). { A = B; }
 
 field_decl(A) ::= var_type_ref(T) name_tok(N) field_default(D) need_sep. {
     A = xl6AstNew(XL6_AST_FIELD, &N);
@@ -278,6 +303,31 @@ field_decl(A) ::= var_type_ref(T) name_tok(N) field_default(D) need_sep. {
 
 field_default(A) ::= . { A = NULL; }
 field_default(A) ::= ASSIGN expr(E). { A = E; }
+
+union_decl(A) ::= KW_UNION(U) need_sep union_body(B) KW_END. {
+    A = xl6AstNew(XL6_AST_UNION, &U);
+    xrtFree(A->text);
+    A->text = NULL;
+    xl6AstAddChild(A, B);
+}
+union_decl(A) ::= KW_UNION(U) name_tok(N) need_sep union_body(B) KW_END. {
+    A = xl6AstNew(XL6_AST_UNION, &N);
+    xl6AstAddChild(A, B);
+    (void)U;
+}
+
+union_body(A) ::= . {
+    A = xl6PList();
+}
+union_body(A) ::= union_body(B) SEP. {
+    A = B;
+}
+union_body(A) ::= union_body(B) union_member(M). {
+    A = B;
+    xl6AstAddChild(A, M);
+}
+
+union_member(A) ::= field_decl(B). { A = B; }
 
 class_special_decl(A) ::= name_tok(N) name_params(P) need_sep block(B) KW_END. {
     A = xl6AstNew(XL6_AST_CREATE, &N);
@@ -302,9 +352,12 @@ custom_body(A) ::= custom_body(B) custom_member(M). {
     xl6AstAddChild(A, M);
 }
 
-custom_member(A) ::= custom_extern_special(B). { A = B; }
-custom_member(A) ::= custom_extern_func(B). { A = B; }
-custom_member(A) ::= func_decl(B). { A = B; }
+custom_member(A) ::= custom_member_base(B). { A = B; }
+custom_member(A) ::= doc_block(D) custom_member_base(B). { A = xl6PWithDoc(B, &D); }
+
+custom_member_base(A) ::= custom_extern_special(B). { A = B; }
+custom_member_base(A) ::= custom_extern_func(B). { A = B; }
+custom_member_base(A) ::= func_decl(B). { A = B; }
 
 custom_extern_special(A) ::= KW_EXTERN(E) STRING(S) name_tok(N) name_params(P) need_sep. {
     A = xl6AstNew(XL6_AST_CUSTOM_EXTERN_SPECIAL, &S);
@@ -456,6 +509,9 @@ stmt(A) ::= compound_stmt(B). { A = B; }
 simple_stmt(A) ::= var_decl(B). { A = B; }
 simple_stmt(A) ::= assign_stmt(B). { A = B; }
 simple_stmt(A) ::= return_stmt(B). { A = B; }
+simple_stmt(A) ::= yield_stmt(B). { A = B; }
+simple_stmt(A) ::= throw_stmt(B). { A = B; }
+simple_stmt(A) ::= assert_stmt(B). { A = B; }
 simple_stmt(A) ::= break_stmt(B). { A = B; }
 simple_stmt(A) ::= continue_stmt(B). { A = B; }
 simple_stmt(A) ::= expr(E). {
@@ -486,6 +542,7 @@ compound_stmt(A) ::= if_stmt(B). { A = B; }
 compound_stmt(A) ::= while_stmt(B). { A = B; }
 compound_stmt(A) ::= do_while_stmt(B). { A = B; }
 compound_stmt(A) ::= for_stmt(B). { A = B; }
+compound_stmt(A) ::= try_stmt(B). { A = B; }
 
 var_type_ref(A) ::= type_expr(T). { A = T; }
 
@@ -543,6 +600,11 @@ return_stmt(A) ::= KW_RETURN(R) expr_list(L). {
     xl6AstFree(L);
 }
 
+yield_stmt(A) ::= KW_YIELD(Y) expr(E). {
+    A = xl6AstNew(XL6_AST_YIELD, &Y);
+    xl6AstAddChild(A, E);
+}
+
 break_stmt(A) ::= KW_BREAK(B). {
     A = xl6AstNew(XL6_AST_BREAK, &B);
 }
@@ -557,6 +619,24 @@ continue_stmt(A) ::= KW_CONTINUE(C). {
 continue_stmt(A) ::= KW_CONTINUE(C) INT(N). {
     A = xl6AstNew(XL6_AST_CONTINUE, &C);
     xl6AstAddChild(A, xl6AstNew(XL6_AST_INT, &N));
+}
+
+throw_stmt(A) ::= KW_THROW(T). {
+    A = xl6AstNew(XL6_AST_THROW, &T);
+}
+throw_stmt(A) ::= KW_THROW(T) expr(E). {
+    A = xl6AstNew(XL6_AST_THROW, &T);
+    xl6AstAddChild(A, E);
+}
+
+assert_stmt(A) ::= KW_ASSERT(T) expr(C). {
+    A = xl6AstNew(XL6_AST_ASSERT, &T);
+    xl6AstAddChild(A, C);
+}
+assert_stmt(A) ::= KW_ASSERT(T) expr(C) COMMA expr(M). {
+    A = xl6AstNew(XL6_AST_ASSERT, &T);
+    xl6AstAddChild(A, C);
+    xl6AstAddChild(A, M);
 }
 
 if_stmt(A) ::= KW_IF(I) expr(C) if_sep block(B) elseif_list(EL) else_opt(EO) KW_END. {
@@ -652,6 +732,29 @@ for_targets(A) ::= name_tok(K) COMMA name_tok(V). {
     xl6AstAddChild(A, xl6AstNew(XL6_AST_NAME, &V));
 }
 
+try_stmt(A) ::= KW_TRY(T) need_sep block(B) catch_opt(C) finally_opt(F) KW_END. {
+    if ( C == NULL && F == NULL ) {
+        xl6PDiag(ctx, &T, "try 必须包含 catch 或 finally");
+    }
+    A = xl6AstNew(XL6_AST_TRY, &T);
+    xl6AstAddChild(A, B);
+    xl6AstAddChild(A, C != NULL ? C : xl6PList());
+    xl6AstAddChild(A, F != NULL ? F : xl6AstNew(XL6_AST_BLOCK, NULL));
+}
+
+catch_opt(A) ::= . { A = NULL; }
+catch_opt(A) ::= KW_CATCH(C) name_tok(N) need_sep block(B). {
+    A = xl6AstNew(XL6_AST_CATCH, &C);
+    xl6AstAddChild(A, xl6AstNew(XL6_AST_NAME, &N));
+    xl6AstAddChild(A, B);
+}
+
+finally_opt(A) ::= . { A = NULL; }
+finally_opt(A) ::= KW_FINALLY(F) need_sep block(B). {
+    A = B;
+    (void)F;
+}
+
 expr_list(A) ::= expr(E). {
     A = xl6PList();
     xl6AstAddChild(A, E);
@@ -723,6 +826,10 @@ unary_expr(A) ::= MINUS(OP) unary_expr(B). { A = xl6AstNewUnary(&OP, B); }
 unary_expr(A) ::= KW_NOT(OP) unary_expr(B). { A = xl6AstNewUnary(&OP, B); }
 unary_expr(A) ::= BANG(OP) unary_expr(B). { A = xl6AstNewUnary(&OP, B); }
 unary_expr(A) ::= BIT_NOT(OP) unary_expr(B). { A = xl6AstNewUnary(&OP, B); }
+unary_expr(A) ::= KW_AWAIT(OP) unary_expr(B). {
+    A = xl6AstNew(XL6_AST_AWAIT, &OP);
+    xl6AstAddChild(A, B);
+}
 
 postfix_expr(A) ::= atom(B). { A = B; }
 postfix_expr(A) ::= postfix_expr(C) LPAREN(P) call_args_opt(L) RPAREN. {

@@ -1,0 +1,8 @@
+class Point
+    int x
+end
+
+func bad()
+    Point point
+    point.y = 1
+end

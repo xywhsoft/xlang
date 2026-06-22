@@ -1,26 +1,75 @@
 extern "expect_i64" func expect(int actual, int expected)
+extern "nc_probe_reset" func resetProbe()
+extern "nc_probe_next_var" func nextProbe() -> var
+extern "nc_probe_count" func probeCount() -> int
 
 auto values = [10, 20, 30]
 auto sparse = [0: 11, 2: 22]
 auto table = {"count": 6, "retry": 3}
+var dynValues = [10, 20]
+var dynSparse = [0: 11]
+var dynIndex = 1
+var dynTable = {"count": 6}
+var dynKey = "count"
+
+func makeArray() -> array
+    return [101, 102]
+end
+
+func makeTable() -> dict
+    return {"temp": 44}
+end
+
+func makeDynArray() -> var
+    return [101, 102]
+end
+
+func makeDynTable() -> var
+    return {"temp": 44}
+end
 
 expect(int(values[1]), 20)
 expect(int(sparse[2]), 22)
 expect(int(table["count"]), 6)
+expect(int(dynValues[0]), 10)
+expect(int(dynTable[dynKey]), 6)
+expect(int(makeArray()[1]), 102)
+expect(int(makeDynArray()?[0]), 101)
+expect(int(makeTable()["temp"]), 44)
+expect(int(makeDynTable()?["temp"]), 44)
+expect(int(dynTable?[dynKey]), 6)
 
 values[1] = 21
 sparse[2] = 23
 table["count"] = 7
+dynValues[0] = 42
+dynValues[dynIndex] = 77
+dynSparse[2] = 33
+expect(int(dynValues[0]), 42)
+expect(int(dynValues[1]), 77)
+expect(int(dynSparse[2]), 33)
+dynTable[dynKey] = 8
+expect(int(dynTable["count"]), 8)
+dynTable["count"] = 9
+expect(int(dynTable[dynKey]), 9)
 
 values[1] += 2
 sparse[2] *= 2
 table["count"] -= 1
 
+resetProbe()
+values[1] += nextProbe()
+expect(probeCount(), 1)
+
+resetProbe()
+sparse[2] *= nextProbe()
+expect(probeCount(), 1)
+
 auto maybe = [null]
 maybe[0] ?= 9
 
-expect(int(values[1]), 23)
-expect(int(sparse[2]), 46)
+expect(int(values[1]), 56)
+expect(int(sparse[2]), 1518)
 expect(int(table["count"]), 6)
 expect(int(maybe[0]), 9)
 

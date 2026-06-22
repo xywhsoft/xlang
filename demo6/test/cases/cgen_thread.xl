@@ -1,0 +1,50 @@
+func worker() -> int
+    return 7
+end
+
+func zero() -> int
+    return 0
+end
+
+function() -> int borrowedWorker = worker
+
+thread first = thread(worker)
+bool waited = first.wait()
+int code = first.exitCode()
+int state = first.state()
+
+assert waited, "thread wait failed"
+assert code == 7, "thread exit code failed"
+assert state >= 0, "thread state failed"
+
+auto second = thread(worker)
+bool waitedTimeout = second.waitTimeout(5000)
+int secondCode = second.exitCode()
+
+assert waitedTimeout, "thread waitTimeout failed"
+assert secondCode == 7, "thread waitTimeout exit code failed"
+
+thread borrowed = thread(borrowedWorker)
+bool borrowedWaited = borrowed.wait()
+int borrowedCode = borrowed.exitCode()
+
+assert borrowedWaited, "thread borrowed wait failed"
+assert borrowedCode == 7, "thread borrowed exit code failed"
+
+int base = 5
+auto capturedWorker = func() -> int
+    return base + 2
+end
+auto captured = thread(capturedWorker)
+bool capturedWaited = captured.wait()
+int capturedCode = captured.exitCode()
+
+assert capturedWaited, "thread captured wait failed"
+assert capturedCode == 7, "thread captured exit code failed"
+
+thread stopped = thread(zero)
+bool stoppedSignal = stopped.stop()
+bool stoppedWaited = stopped.wait()
+
+assert stoppedSignal, "thread stop failed"
+assert stoppedWaited, "thread wait after stop failed"

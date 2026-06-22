@@ -1,0 +1,16 @@
+extern "expect_i64" func expect(int actual, int expected)
+extern "expect_str" func expectStr(string actual, string expected)
+
+expectStr(crypto.sha1("abc"), "A9993E364706816ABA3E25717850C26C9CD0D89D")
+expectStr(crypto.sha256("abc"), "BA7816BF8F01CFEA414140DE5DAE2223B00361A396177A9CB410FF61F20015AD")
+expectStr(crypto.sha384("abc"), "CB00753F45A35E8BB5A03D699AC65007272C32AB0EDED1631A8B605A43FF5BED8086072BA1E7CC2358BAECA134C825A7")
+expectStr(crypto.sha512("abc"), "DDAF35A193617ABACC417349AE20413112E6FA4E89A97EA20A9EEEE64B55D39A2192992A274FC1A836BA3C23A3FEEBBD454D4423643CE80E2A9AC94FA54CA49F")
+
+expect(string.len(crypto.sha1("abc")), 40)
+expect(string.len(crypto.sha256("abc")), 64)
+expect(string.len(crypto.sha384("abc")), 96)
+expect(string.len(crypto.sha512("abc")), 128)
+
+assert crypto.sha256("") == "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855", "empty sha256 mismatch"
+assert crypto.sha256("xlang") == crypto.sha256("xlang"), "sha256 should be stable"
+assert crypto.sha256("xlang") != crypto.sha256("xlang!"), "sha256 should depend on bytes"

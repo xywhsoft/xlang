@@ -1,0 +1,6 @@
+func worker() -> int
+    return 1
+end
+
+thread t = thread(worker)
+bool ok = t.wait(1)

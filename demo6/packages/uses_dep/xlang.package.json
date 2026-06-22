@@ -1,0 +1,19 @@
+{
+  "format": "xlang-package-1",
+  "name": "uses_dep",
+  "version": "1.0.0",
+  "abiVersion": "1",
+  "xapi": "package.xapi.json",
+  "artifact": {
+    "kind": "source",
+    "cSources": ["uses_dep.c"]
+  },
+  "links": [],
+  "loadlibs": [],
+  "dependencies": [
+    {"name": "dep_value", "version": "1.0.0", "abiVersion": "1"}
+  ],
+  "native": {
+    "singleton": false
+  }
+}

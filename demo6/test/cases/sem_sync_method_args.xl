@@ -1,0 +1,2 @@
+mutex m = mutex()
+bool ok = m.lock(1)

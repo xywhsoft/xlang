@@ -1,0 +1,19 @@
+union Payload
+    Point point
+end
+
+class Point
+    int x
+    int y
+end
+
+export "xl6_payload_make" func makePayload(int x, int y) -> Payload
+    Payload payload
+    payload.point.x = x
+    payload.point.y = y
+    return payload
+end
+
+export "xl6_payload_sum" func sumPayload(Payload payload) -> int
+    return payload.point.x + payload.point.y
+end

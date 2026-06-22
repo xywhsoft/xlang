@@ -1,0 +1,10 @@
+#doc
+desc:
+    Duplicate param doc.
+param value:
+    First description.
+param value:
+    Second description.
+#end
+func bad(int value)
+end

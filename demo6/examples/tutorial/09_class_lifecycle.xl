@@ -1,0 +1,61 @@
+// 教学目标：
+// 1. class 是结构化数据 + 方法。
+// 2. create/destroy 分别用于构造和析构。
+// 3. extends 和 base(...) 形成继承构造链。
+
+extern "reset_destroy_log" func resetDestroyLog()
+extern "record_destroy" func recordDestroy(int value)
+extern "destroy_count" func destroyCount() -> int
+extern "destroy_value" func destroyValue() -> int
+
+class Point
+    int x = 0
+    int y = 0
+
+    create(int x, int y)
+        self.x = x
+        self.y = y
+    end
+
+    func sum() -> int
+        return self.x + self.y
+    end
+
+    destroy()
+        recordDestroy(self.sum())
+    end
+end
+
+class Point3 extends Point
+    int z = 0
+
+    create(int x, int y, int z)
+        base(x, y)
+        self.z = z
+    end
+
+    func sum3() -> int
+        return self.sum() + self.z
+    end
+end
+
+func main(...) -> int
+    resetDestroyLog()
+
+    int value = 0
+    do
+        Point3 point = Point3(10, 20, 12)
+        value = point.sum3()
+    while false
+
+    if value != 42 then
+        return 1
+    end
+    if destroyCount() != 1 then
+        return 2
+    end
+    if destroyValue() != 30 then
+        return 3
+    end
+    return 0
+end

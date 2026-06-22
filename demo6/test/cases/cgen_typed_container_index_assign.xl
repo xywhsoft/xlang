@@ -1,0 +1,42 @@
+extern "expect_i64" func expect(int actual, int expected)
+extern "expect_str" func expectStr(string actual, string expected)
+
+class Pair
+    int left = 1
+    int right = 2
+end
+
+array<int> values = array[10, 20, 30]
+values[1] = 42
+expect(values[0], 10)
+expect(values[1], 42)
+expect(values[2], 30)
+
+list<string> names = list[0: "a"]
+names[2] = "b"
+expectStr(names[0], "a")
+expectStr(names[2], "b")
+
+dict<int> scores = dict{"a": 1}
+var scoreKey = "a"
+expect(scores[scoreKey], 1)
+scores[scoreKey] = 8
+expect(scores["a"], 8)
+scores["b"] = 9
+expect(scores["a"], 8)
+expect(scores["b"], 9)
+
+Pair seed
+seed.left = 5
+seed.right = 6
+
+Pair replacement
+replacement.left = 9
+replacement.right = 10
+
+array<Pair> pairs = array[seed]
+pairs[0] = replacement
+
+Pair loaded = pairs[0]
+expect(loaded.left, 9)
+expect(loaded.right, 10)

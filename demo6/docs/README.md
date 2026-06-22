@@ -16,12 +16,16 @@
 - `ABI设计.md`：记录 DEMO6 的内部 ABI、C ABI、符号生成、类型映射和 ABI dump 口径。
 - `命令行设计.md`：记录 DEMO6 的 CLI、编译阶段划分、调试 dump、C 混编命令口径。
 - `C混编设计.md`：记录 C 与 xlang 互相声明、导出、生成头文件和 C ABI wrapper 的设计口径。
+- `异常处理与文档注释设计.md`：记录 DEMO6 的异常处理、断言、高级错误模型和 `#doc ... #end` 文档注释口径。
 - `第二阶段功能清单.md`：记录 DEMO6 第二阶段准备实现的基础语义夯实目标、XRT 改造边界、xvalue/type desc/type ops、静态泛型容器和 xcall 设计口径。
 - `本轮开发任务_XAPI_import_混编.md`：记录 DEMO6 本轮成熟化开发任务，包括 XAPI、import、零配置 C 混编、main 入口和 `xlInit`/`xlUnit` 生命周期口径。
 - `本轮工程骨架优化任务.md`：记录 DEMO6 本轮工程骨架优化任务，包括 CompileUnit、XAPI 内部模型、独立临时目录和 package resolver 地基。
 - `工程收口10项任务.md`：记录 DEMO6 当前工程收口的 10 项目标，包括 canonical type、XAPI 权威化、package/import、callable descriptor、后端接口和生命周期强化。
 - `RC0稳定化与import闭环.md`：记录 DEMO6 RC0 稳定化目标，以及 import 读取 XAPI 并注入 extern 声明的第一版边界。
+- `DLL嵌入式运行库设计.md`：记录 `xl.dll` 嵌入式 API、上下文、字符串/文件脚本运行、exe 编译、C 函数注册和 XRT 注入口径。
 
 除非用户明确要求“对照历史版本”或“回查 DEMO5 实现”，否则不再将 `demo3`、`demo4`、`demo5`、`dev` 目录中的旧文档作为 DEMO6 设计依据。
 
 历史资料只允许作为事实背景或迁移参考，不允许自动提升为 DEMO6 标准。
+
+- `标准库设计.md`：记录 DEMO6 标准库默认注册、短命名空间、XRT/CRT 边界、第一批 `math` 函数和后续扩展批次。

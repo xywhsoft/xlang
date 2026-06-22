@@ -1,3 +1,18 @@
+static void xl6CgenNeedsAddDeclVarType(
+    XL6_CgenContext* ctx,
+    const char* name,
+    const XL6_AstNode* typeNode,
+    const XL6_AstNode* initExpr,
+    int declaredAuto)
+{
+    unsigned int flags;
+
+    flags = xl6CgenDeclShouldUseTypedContainer(ctx, typeNode, initExpr, declaredAuto)
+        ? XL6_CGEN_VAR_TYPED_CONTAINER
+        : 0u;
+    xl6CgenAddVarTypeWithFlags(ctx, name, typeNode, flags);
+}
+
 static int xl6CgenNodeNeedsStringRuntime(XL6_CgenContext* ctx, const XL6_AstNode* node)
 {
     size_t i;
@@ -32,15 +47,15 @@ static int xl6CgenNodeNeedsStringRuntime(XL6_CgenContext* ctx, const XL6_AstNode
             XL6_AstNode* inferredType = xl6CgenCloneExprTypeForInference(ctx, initExpr);
             if ( inferredType != NULL ) {
                 xl6CgenOwnTypeNode(ctx, inferredType);
-                xl6CgenAddVarType(ctx, node->text, inferredType);
+                xl6CgenNeedsAddDeclVarType(ctx, node->text, inferredType, initExpr, 1);
             }
         } else if ( typeNode != NULL ) {
-            xl6CgenAddVarType(ctx, node->text, typeNode);
+            xl6CgenNeedsAddDeclVarType(ctx, node->text, typeNode, initExpr, 0);
         }
         return 0;
     }
 
-    if ( node->kind == XL6_AST_FUNC || node->kind == XL6_AST_EXPORT_FUNC || node->kind == XL6_AST_ANON_FUNC ) {
+    if ( node->kind == XL6_AST_FUNC || node->kind == XL6_AST_ASYNC_FUNC || node->kind == XL6_AST_EXPORT_FUNC || node->kind == XL6_AST_ANON_FUNC ) {
         const XL6_AstNode* params = node->childCount > (node->kind == XL6_AST_ANON_FUNC ? 0 : 1)
                                         ? node->children[node->kind == XL6_AST_ANON_FUNC ? 0 : 1]
                                         : NULL;
@@ -51,7 +66,7 @@ static int xl6CgenNodeNeedsStringRuntime(XL6_CgenContext* ctx, const XL6_AstNode
         size_t cleanupMark = ctx->cleanupCount;
         int result;
 
-        if ( node->kind == XL6_AST_FUNC && xl6CgenFuncIsGeneric(node) && ctx->currentGenericParams == NULL ) {
+        if ( (node->kind == XL6_AST_FUNC || node->kind == XL6_AST_ASYNC_FUNC) && xl6CgenFuncIsGeneric(node) && ctx->currentGenericParams == NULL ) {
             return 0;
         }
         if ( ctx->currentClass != NULL ) {
@@ -66,6 +81,32 @@ static int xl6CgenNodeNeedsStringRuntime(XL6_CgenContext* ctx, const XL6_AstNode
         return result;
     }
 
+    if ( node->kind == XL6_AST_TRY ) {
+        const XL6_AstNode* tryBlock = node->childCount > 0 ? node->children[0] : NULL;
+        const XL6_AstNode* catchNode = node->childCount > 1 ? node->children[1] : NULL;
+        const XL6_AstNode* finallyBlock = node->childCount > 2 ? node->children[2] : NULL;
+
+        if ( xl6CgenNodeNeedsStringRuntime(ctx, tryBlock) ) {
+            return 1;
+        }
+        if ( catchNode != NULL && catchNode->kind == XL6_AST_CATCH ) {
+            const XL6_AstNode* catchName = catchNode->childCount > 0 ? catchNode->children[0] : NULL;
+            const XL6_AstNode* catchBlock = catchNode->childCount > 1 ? catchNode->children[1] : NULL;
+            const XL6_AstNode* errorType = xl6CgenOwnSimpleType(ctx, "error", catchName != NULL ? catchName : catchNode);
+            size_t varMark = ctx->varCount;
+            size_t cleanupMark = ctx->cleanupCount;
+            int result;
+
+            xl6CgenAddVarType(ctx, catchName != NULL ? catchName->text : "__xl6_error", errorType);
+            result = xl6CgenNodeNeedsStringRuntime(ctx, catchBlock);
+            xl6CgenFreeCleanupsSince(ctx, cleanupMark);
+            xl6CgenFreeVarsSince(ctx, varMark);
+            if ( result ) {
+                return 1;
+            }
+        }
+        return xl6CgenNodeNeedsStringRuntime(ctx, finallyBlock);
+    }
     if ( node->kind == XL6_AST_CREATE ) {
         const XL6_AstNode* params = node->childCount > 0 ? node->children[0] : NULL;
         const XL6_AstNode* body = node->childCount > 1 ? node->children[1] : NULL;
@@ -210,6 +251,12 @@ static int xl6CgenNodeNeedsTypeConvertRuntime(XL6_CgenContext* ctx, const XL6_As
     if ( xl6CgenTypeConvertCallNeedsRuntime(ctx, node) ) {
         return 1;
     }
+    if ( node->kind == XL6_AST_CALL && node->childCount > 0 &&
+         node->children[0] != NULL &&
+         node->children[0]->kind == XL6_AST_NAME &&
+         xl6CTextEquals(node->children[0]->text, "__xl_std_runtime_take_cstr") ) {
+        return 1;
+    }
 
     if ( node->kind == XL6_AST_VAR_DECL || node->kind == XL6_AST_CONST_DECL ) {
         const XL6_AstNode* typeNode = node->childCount > 0 ? node->children[0] : NULL;
@@ -222,15 +269,15 @@ static int xl6CgenNodeNeedsTypeConvertRuntime(XL6_CgenContext* ctx, const XL6_As
             XL6_AstNode* inferredType = xl6CgenCloneExprTypeForInference(ctx, initExpr);
             if ( inferredType != NULL ) {
                 xl6CgenOwnTypeNode(ctx, inferredType);
-                xl6CgenAddVarType(ctx, node->text, inferredType);
+                xl6CgenNeedsAddDeclVarType(ctx, node->text, inferredType, initExpr, 1);
             }
         } else if ( typeNode != NULL ) {
-            xl6CgenAddVarType(ctx, node->text, typeNode);
+            xl6CgenNeedsAddDeclVarType(ctx, node->text, typeNode, initExpr, 0);
         }
         return 0;
     }
 
-    if ( node->kind == XL6_AST_FUNC || node->kind == XL6_AST_EXPORT_FUNC || node->kind == XL6_AST_ANON_FUNC ) {
+    if ( node->kind == XL6_AST_FUNC || node->kind == XL6_AST_ASYNC_FUNC || node->kind == XL6_AST_EXPORT_FUNC || node->kind == XL6_AST_ANON_FUNC ) {
         const XL6_AstNode* params = node->childCount > (node->kind == XL6_AST_ANON_FUNC ? 0 : 1)
                                         ? node->children[node->kind == XL6_AST_ANON_FUNC ? 0 : 1]
                                         : NULL;
@@ -241,7 +288,7 @@ static int xl6CgenNodeNeedsTypeConvertRuntime(XL6_CgenContext* ctx, const XL6_As
         size_t cleanupMark = ctx->cleanupCount;
         int result;
 
-        if ( node->kind == XL6_AST_FUNC && xl6CgenFuncIsGeneric(node) && ctx->currentGenericParams == NULL ) {
+        if ( (node->kind == XL6_AST_FUNC || node->kind == XL6_AST_ASYNC_FUNC) && xl6CgenFuncIsGeneric(node) && ctx->currentGenericParams == NULL ) {
             return 0;
         }
         if ( ctx->currentClass != NULL ) {
@@ -388,6 +435,16 @@ static int xl6CgenNodeNeedsFunctionVarRuntime(XL6_CgenContext* ctx, const XL6_As
             return 1;
         }
     }
+    if ( node->kind == XL6_AST_CALL && node->childCount > 0 &&
+         node->children[0] != NULL && node->children[0]->kind == XL6_AST_MEMBER ) {
+        XL6_AstNode* memberType = xl6CgenCloneMemberFieldTypeForInference(ctx, node->children[0]);
+        int needsRuntime = xl6CgenIsFunctionType(memberType) ||
+                           (memberType != NULL && xl6CTextEquals(memberType->text, "var"));
+        xl6AstFree(memberType);
+        if ( needsRuntime ) {
+            return 1;
+        }
+    }
 
     if ( node->kind == XL6_AST_VAR_DECL || node->kind == XL6_AST_CONST_DECL ) {
         const XL6_AstNode* typeNode = node->childCount > 0 ? node->children[0] : NULL;
@@ -400,10 +457,10 @@ static int xl6CgenNodeNeedsFunctionVarRuntime(XL6_CgenContext* ctx, const XL6_As
             XL6_AstNode* inferredType = xl6CgenCloneExprTypeForInference(ctx, initExpr);
             if ( inferredType != NULL ) {
                 xl6CgenOwnTypeNode(ctx, inferredType);
-                xl6CgenAddVarType(ctx, node->text, inferredType);
+                xl6CgenNeedsAddDeclVarType(ctx, node->text, inferredType, initExpr, 1);
             }
         } else if ( typeNode != NULL ) {
-            xl6CgenAddVarType(ctx, node->text, typeNode);
+            xl6CgenNeedsAddDeclVarType(ctx, node->text, typeNode, initExpr, 0);
             if ( xl6CgenIsTypedContainerType(ctx, typeNode) ) {
                 const XL6_AstNode* itemType = xl6CgenTypedContainerItemType(ctx, typeNode);
                 if ( xl6CgenTypeContainsFunctionType(itemType) ) {
@@ -422,7 +479,7 @@ static int xl6CgenNodeNeedsFunctionVarRuntime(XL6_CgenContext* ctx, const XL6_As
         return 0;
     }
 
-    if ( node->kind == XL6_AST_FUNC || node->kind == XL6_AST_EXPORT_FUNC || node->kind == XL6_AST_ANON_FUNC ) {
+    if ( node->kind == XL6_AST_FUNC || node->kind == XL6_AST_ASYNC_FUNC || node->kind == XL6_AST_EXPORT_FUNC || node->kind == XL6_AST_ANON_FUNC ) {
         const XL6_AstNode* params = node->childCount > (node->kind == XL6_AST_ANON_FUNC ? 0 : 1)
                                         ? node->children[node->kind == XL6_AST_ANON_FUNC ? 0 : 1]
                                         : NULL;
@@ -433,7 +490,7 @@ static int xl6CgenNodeNeedsFunctionVarRuntime(XL6_CgenContext* ctx, const XL6_As
         size_t cleanupMark = ctx->cleanupCount;
         int result;
 
-        if ( node->kind == XL6_AST_FUNC && xl6CgenFuncIsGeneric(node) && ctx->currentGenericParams == NULL ) {
+        if ( (node->kind == XL6_AST_FUNC || node->kind == XL6_AST_ASYNC_FUNC) && xl6CgenFuncIsGeneric(node) && ctx->currentGenericParams == NULL ) {
             return 0;
         }
         if ( ctx->currentClass != NULL ) {

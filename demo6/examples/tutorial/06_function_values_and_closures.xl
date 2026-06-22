@@ -1,0 +1,69 @@
+// 教学目标：
+// 1. function 是一等公民类型。
+// 2. 匿名函数可以写成块体或 => 表达式。
+// 3. 闭包可以捕获外部变量。
+// 4. 函数值可以进入容器和 var。
+
+func inc(int value) -> int
+    return value + 1
+end
+
+func echo(string value) -> string
+    return value
+end
+
+func apply(function(int) -> int op, int value) -> int
+    return op(value)
+end
+
+func pair(int value) -> (int, string)
+    return value, "ok"
+end
+
+func main(...) -> int
+    function(int) -> int plusOne = inc
+    function(string) -> string textEcho = echo
+
+    auto add = func(int a, int b) -> int
+        return a + b
+    end
+
+    auto timesTwo = func(int value) -> int => value * 2
+
+    int base = 40
+    auto addBase = func(int value) -> int => base + value
+
+    function(int) -> (int, string) pairFn = pair
+    auto number, label = pairFn(42)
+
+    array<function(int) -> int> ops = array[plusOne, timesTwo]
+    function(int) -> int firstOp = ops[0]
+    function(int) -> int secondOp = ops[1]
+    var dynamicFunction = plusOne
+
+    if plusOne(41) != 42 then
+        return 1
+    end
+    if textEcho("xlang") != "xlang" then
+        return 2
+    end
+    if apply(plusOne, 9) != 10 then
+        return 3
+    end
+    if add(20, 22) != 42 or timesTwo(21) != 42 then
+        return 4
+    end
+    if addBase(2) != 42 then
+        return 5
+    end
+    if number != 42 or label != "ok" then
+        return 6
+    end
+    if firstOp(1) != 2 or secondOp(3) != 6 then
+        return 7
+    end
+    if int(dynamicFunction(41)) != 42 then
+        return 8
+    end
+    return 0
+end

@@ -1,0 +1,37 @@
+extern "expect_i64" func expect(int actual, int expected)
+
+union Payload
+    int i
+    c_double d
+end
+
+Payload p
+expect(p.i, 0)
+p.i = 42
+expect(p.i, 42)
+p.d = 3.0
+expect(int(p.d), 3)
+
+class Packet
+    int tag
+    union
+        int code
+        c_double ratio
+    end
+end
+
+Packet pkt
+pkt.tag = 7
+pkt.code = 11
+expect(pkt.tag, 7)
+expect(pkt.code, 11)
+pkt.ratio = 4.0
+expect(int(pkt.ratio), 4)
+
+class Envelope
+    Payload payload
+end
+
+Envelope e
+e.payload.i = 9
+expect(e.payload.i, 9)

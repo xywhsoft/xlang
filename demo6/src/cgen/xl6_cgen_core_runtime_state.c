@@ -344,6 +344,7 @@ static void xl6CgenClassCallableSymbol(XL6_CgenContext* ctx, const XL6_AstNode* 
 static void xl6CgenClassDefaultInitFields(XL6_CgenContext* ctx, const XL6_AstNode* classNode, const char* varPath);
 static void xl6CgenCollectGenericInstances(XL6_CgenContext* ctx, const XL6_AstNode* node);
 static void xl6CgenCollectRuntimeTypeDescs(XL6_CgenContext* ctx, const XL6_AstNode* root);
+static void xl6CgenTypeText(XL6_CgenContext* ctx, const XL6_AstNode* typeNode, char* buffer, size_t capacity);
 static void xl6CgenGenericClassMemberSymbol(XL6_CgenContext* ctx, const XL6_AstNode* classNode, const XL6_AstNode* typeNode, const char* memberName);
 static void xl6CgenGenericClassCallableSymbol(XL6_CgenContext* ctx, const XL6_AstNode* classNode, const XL6_AstNode* typeNode, const XL6_AstNode* memberNode);
 static int xl6CgenFixedParamCount(const XL6_AstNode* params);

@@ -1,0 +1,70 @@
+extern "expect_i64" func expect(int actual, int expected)
+
+class Pair
+    int left = 0
+    int right = 0
+end
+
+custom Native
+end
+
+func add(int left, int right) -> int
+    return left + right
+end
+
+func mul(int left, int right) -> int
+    return left * right
+end
+
+Pair first
+first.left = 1
+first.right = 2
+
+Pair second
+second.left = 5
+second.right = 6
+
+list<Pair> pairList = list[0: first]
+dict<Pair> pairDict = dict{"first": first}
+
+pairList[2] = second
+pairDict["second"] = second
+
+Pair fromList = pairList[2]
+Pair fromDict = pairDict["second"]
+
+expect(fromList.left + fromList.right, 11)
+expect(fromDict.left + fromDict.right, 11)
+
+point rawA
+point rawB
+Native nativeA = Native(rawA)
+Native nativeB = Native(rawB)
+
+array<Native> nativeArray = array[nativeA]
+dict<Native> nativeDict = dict{"main": nativeA}
+
+nativeArray[0] = nativeB
+nativeDict["main"] = nativeB
+
+Native loadedArrayNative = nativeArray[0]
+Native loadedDictNative = nativeDict["main"]
+var boxedArrayNative = loadedArrayNative
+var boxedDictNative = loadedDictNative
+
+expect(type(boxedArrayNative) == Native, 1)
+expect(type(boxedDictNative) == Native, 1)
+
+function(int, int) -> int fn = add
+array<function(int, int) -> int> funcs = array[fn]
+dict<function(int, int) -> int> table = dict{"op": fn}
+
+function(int, int) -> int next = mul
+funcs[0] = next
+table["op"] = next
+
+function(int, int) -> int pickedArray = funcs[0]
+function(int, int) -> int pickedDict = table["op"]
+
+expect(pickedArray(2, 3), 6)
+expect(pickedDict(3, 4), 12)
