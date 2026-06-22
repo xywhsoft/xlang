@@ -8,10 +8,13 @@ func main(...) -> int
     auto sparse = [0: "a", 2: "b"]
     auto unique = {1, 2, 2, 3}
     auto table = {"a": 10, "b": 20}
+    var dynamicTable = {"name": 31, "nested": {"count": 32}}
 
     values[1] = 10
     table["c"] ?= 30
     table["c"] ?= 40
+    dynamicTable.extra = 33
+    dynamicTable.nested.count = 34
 
     int arraySum = 0
     for item in values
@@ -77,6 +80,12 @@ func main(...) -> int
     end
     if numbers[2] != 30 or string(names[2]) != "beta" or idCount != 2 or scores["beta"] != 20 then
         return 8
+    end
+    if int(dynamicTable.name) != 31 or int(dynamicTable?.name) != 31 then
+        return 9
+    end
+    if int(dynamicTable?.missing ?? 35) != 35 or int(dynamicTable.extra) != 33 or int(dynamicTable.nested.count) != 34 then
+        return 10
     end
     return 0
 end

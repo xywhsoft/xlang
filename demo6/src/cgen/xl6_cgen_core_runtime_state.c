@@ -27,6 +27,40 @@ static const XL6_AstNode* xl6CgenTypeNodeGenericArgs(const XL6_AstNode* typeNode
     return NULL;
 }
 
+static int xl6CgenContainerGenericIsVar(XL6_CgenContext* ctx, const XL6_AstNode* concreteType)
+{
+    const XL6_AstNode* args;
+    const XL6_AstNode* itemType;
+
+    args = xl6CgenTypeNodeGenericArgs(concreteType);
+    if ( args == NULL || args->childCount == 0 ) {
+        return 1;
+    }
+    if ( args->childCount != 1 ) {
+        return 0;
+    }
+    itemType = xl6CgenSubstituteGenericType(ctx, args->children[0]);
+    itemType = xl6CgenResolveAliasType(ctx, itemType);
+    return itemType != NULL && xl6CTextEquals(itemType->text, "var");
+}
+
+static int xl6CgenMemberKeyReceiverIsDynamic(XL6_CgenContext* ctx, const XL6_AstNode* typeNode)
+{
+    const XL6_AstNode* concreteType;
+    const char* name;
+
+    concreteType = xl6CgenSubstituteGenericType(ctx, typeNode);
+    concreteType = xl6CgenResolveAliasType(ctx, concreteType);
+    name = concreteType != NULL ? concreteType->text : NULL;
+    if ( xl6CTextEquals(name, "var") ) {
+        return 1;
+    }
+    if ( !xl6CTextEquals(name, "dict") && !xl6CTextEquals(name, "dict<var>") ) {
+        return 0;
+    }
+    return xl6CgenContainerGenericIsVar(ctx, concreteType);
+}
+
 static int xl6CgenIsRuntimeContainerTypeDesc(XL6_CgenContext* ctx, const XL6_AstNode* typeNode)
 {
     const XL6_AstNode* concreteType;

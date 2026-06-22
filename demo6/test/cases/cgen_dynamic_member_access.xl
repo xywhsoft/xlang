@@ -1,0 +1,35 @@
+extern "expect_i64" func expect(int actual, int expected)
+
+var obj = {"name": 41}
+var missing = null
+
+func makeObj() -> var
+    return {"name": 42, "nested": {"name": 43}}
+end
+
+auto field = obj.name
+auto safeField = obj?.name
+auto safeMissing = missing?.name
+auto tempField = makeObj().name
+auto safeTempField = makeObj()?.name
+auto nestedField = makeObj()?.nested?.name
+
+obj.name = 51
+obj.extra = 52
+
+var table = {}
+table.answer = 53
+
+var nested = {"inner": {}}
+nested.inner.name = 54
+
+expect(int(field), 41)
+expect(int(safeField), 41)
+expect(int(safeMissing ?? 9), 9)
+expect(int(tempField), 42)
+expect(int(safeTempField), 42)
+expect(int(nestedField), 43)
+expect(int(obj.name), 51)
+expect(int(obj.extra), 52)
+expect(int(table.answer), 53)
+expect(int(nested.inner.name), 54)

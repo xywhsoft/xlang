@@ -6,11 +6,21 @@ auto values = [1, 2, 3]
 auto sparse = [0: "a", 2: "b"]
 auto table = {"a": 10, "b": 20}
 auto unique = {1, 2, 2, 3}
+var dynamicTable = {"name": 31, "nested": {"count": 32}}
 
 expect(values.length, 3)
 expect(table.length, 2)
 expect(sparse.length, 2)
 expect(unique.length, 3)
+expect(int(dynamicTable.name), 31)
+expect(int(dynamicTable?.name), 31)
+expect(int(dynamicTable?.missing ?? 33), 33)
+
+dynamicTable.extra = 34
+dynamicTable.nested.count = 35
+
+expect(int(dynamicTable.extra), 34)
+expect(int(dynamicTable.nested.count), 35)
 
 var dynamicUnique = unique
 expect(dynamicUnique.length, 3)

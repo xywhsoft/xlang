@@ -697,43 +697,94 @@ static void xl6CgenClassFieldAccess(XL6_CgenContext* ctx, const XL6_AstNode* mem
         xl6CgenError(ctx, member, "class field not found");
     }
 }
+static void xl6CgenXValueMemberKeyExpr(XL6_CgenContext* ctx, const XL6_AstNode* receiver, const char* key)
+{
+    int id;
+
+    if ( xl6CgenExprIsXValueBorrow(ctx, receiver) ) {
+        xl6OutputPuts("xl6_xrt_index_safe_get_key(", ctx->out);
+        xl6CgenExpr(ctx, receiver);
+        xl6OutputPuts(", ", ctx->out);
+        xl6CgenCStringLiteral(ctx->out, key);
+        xl6OutputPutc(')', ctx->out);
+        return;
+    }
+
+    id = ctx->tempId++;
+    xl6OutputPrintf(ctx->out, "({ xvalue __xl6_member_values_%d = ", id);
+    xl6CgenExpr(ctx, receiver);
+    xl6OutputPrintf(ctx->out, "; xvalue __xl6_member_result_%d = xl6_xrt_retain(xl6_xrt_index_safe_get_key(__xl6_member_values_%d, ", id, id);
+    xl6CgenCStringLiteral(ctx->out, key);
+    xl6OutputPrintf(ctx->out, ")); if (__xl6_member_values_%d != 0) { xvoUnref(__xl6_member_values_%d); } __xl6_member_result_%d; })",
+                     id,
+                     id,
+                     id);
+}
+
+static void xl6CgenXValueMemberLengthExpr(XL6_CgenContext* ctx, const XL6_AstNode* receiver, const XL6_AstNode* receiverType)
+{
+    int id;
+
+    if ( xl6CgenExprIsXValueBorrow(ctx, receiver) ) {
+        if ( receiver != NULL && receiver->kind == XL6_AST_NAME && xl6CgenIsArrayXValueType(receiverType) ) {
+            xl6OutputPuts("xvoArrayItemCount(", ctx->out);
+            xl6CgenNamedValueReference(ctx, receiver->text);
+            xl6OutputPutc(')', ctx->out);
+        } else if ( receiver != NULL && receiver->kind == XL6_AST_NAME && xl6CgenIsListXValueType(receiverType) ) {
+            xl6OutputPuts("xvoListItemCount(", ctx->out);
+            xl6CgenNamedValueReference(ctx, receiver->text);
+            xl6OutputPutc(')', ctx->out);
+        } else if ( receiver != NULL && receiver->kind == XL6_AST_NAME && xl6CgenIsSetXValueType(receiverType) ) {
+            xl6OutputPuts("xvoSetItemCount(", ctx->out);
+            xl6CgenNamedValueReference(ctx, receiver->text);
+            xl6OutputPutc(')', ctx->out);
+        } else if ( receiver != NULL && receiver->kind == XL6_AST_NAME && xl6CgenIsDictXValueType(receiverType) ) {
+            xl6OutputPuts("xvoTableItemCount(", ctx->out);
+            xl6CgenNamedValueReference(ctx, receiver->text);
+            xl6OutputPutc(')', ctx->out);
+        } else {
+            xl6OutputPuts("xl6_xrt_member_length(", ctx->out);
+            xl6CgenExpr(ctx, receiver);
+            xl6OutputPutc(')', ctx->out);
+        }
+        return;
+    }
+
+    id = ctx->tempId++;
+    xl6OutputPrintf(ctx->out, "({ xvalue __xl6_member_values_%d = ", id);
+    xl6CgenExpr(ctx, receiver);
+    xl6OutputPrintf(ctx->out, "; unsigned int __xl6_member_result_%d = xl6_xrt_member_length(__xl6_member_values_%d); if (__xl6_member_values_%d != 0) { xvoUnref(__xl6_member_values_%d); } __xl6_member_result_%d; })",
+                     id,
+                     id,
+                     id,
+                     id,
+                     id);
+}
+
 static int xl6CgenXValueMemberAccess(XL6_CgenContext* ctx, const XL6_AstNode* member)
 {
     const XL6_AstNode* receiver;
-    const XL6_AstNode* receiverType;
+    XL6_AstNode* receiverType;
 
     if ( member == NULL || member->text == NULL || member->childCount == 0 ) {
         return 0;
     }
     receiver = member->children[0];
-    if ( receiver == NULL || receiver->kind != XL6_AST_NAME ) {
+    receiverType = xl6CgenCloneExprTypeForInference(ctx, receiver);
+    if ( !xl6CgenIsXValueType(receiverType) ) {
+        xl6AstFree(receiverType);
         return 0;
     }
-    receiverType = xl6CgenFindVarType(ctx, receiver->text);
-    if ( !xl6CgenIsXValueType(receiverType) || !xl6CTextEquals(member->text, "length") ) {
-        return 0;
-    }
-    if ( xl6CgenIsArrayXValueType(receiverType) ) {
-        xl6OutputPuts("xvoArrayItemCount(", ctx->out);
-        xl6CgenNamedValueReference(ctx, receiver->text);
-        xl6OutputPutc(')', ctx->out);
-    } else if ( xl6CgenIsListXValueType(receiverType) ) {
-        xl6OutputPuts("xvoListItemCount(", ctx->out);
-        xl6CgenNamedValueReference(ctx, receiver->text);
-        xl6OutputPutc(')', ctx->out);
-    } else if ( xl6CgenIsSetXValueType(receiverType) ) {
-        xl6OutputPuts("xvoSetItemCount(", ctx->out);
-        xl6CgenNamedValueReference(ctx, receiver->text);
-        xl6OutputPutc(')', ctx->out);
-    } else if ( xl6CgenIsDictXValueType(receiverType) ) {
-        xl6OutputPuts("xvoTableItemCount(", ctx->out);
-        xl6CgenNamedValueReference(ctx, receiver->text);
-        xl6OutputPutc(')', ctx->out);
+
+    if ( xl6CTextEquals(member->text, "length") ) {
+        xl6CgenXValueMemberLengthExpr(ctx, receiver, receiverType);
+    } else if ( xl6CgenMemberKeyReceiverIsDynamic(ctx, receiverType) ) {
+        xl6CgenXValueMemberKeyExpr(ctx, receiver, member->text);
     } else {
-        xl6OutputPuts("xl6_xrt_member_length(", ctx->out);
-        xl6CgenNamedValueReference(ctx, receiver->text);
-        xl6OutputPutc(')', ctx->out);
+        xl6CgenError(ctx, member, "member key receiver must be var or dynamic dict");
+        xl6OutputPuts("xvoCreateNull()", ctx->out);
     }
+    xl6AstFree(receiverType);
     return 1;
 }
 
@@ -777,8 +828,7 @@ static int xl6CgenSafeXValueMemberAccess(XL6_CgenContext* ctx, const XL6_AstNode
     XL6_AstNode* receiverType;
     int id;
 
-    if ( member == NULL || member->text == NULL || !xl6CTextEquals(member->text, "length") ||
-         member->childCount == 0 ) {
+    if ( member == NULL || member->text == NULL || member->childCount == 0 ) {
         return 0;
     }
 
@@ -788,6 +838,18 @@ static int xl6CgenSafeXValueMemberAccess(XL6_CgenContext* ctx, const XL6_AstNode
         xl6AstFree(receiverType);
         return 0;
     }
+
+    if ( !xl6CTextEquals(member->text, "length") ) {
+        if ( xl6CgenMemberKeyReceiverIsDynamic(ctx, receiverType) ) {
+            xl6CgenXValueMemberKeyExpr(ctx, receiver, member->text);
+        } else {
+            xl6CgenError(ctx, member, "member key receiver must be var or dynamic dict");
+            xl6OutputPuts("xvoCreateNull()", ctx->out);
+        }
+        xl6AstFree(receiverType);
+        return 1;
+    }
+
 
     if ( !xl6CgenExprIsXValueBorrow(ctx, receiver) ) {
         id = ctx->tempId++;
@@ -809,4 +871,3 @@ static int xl6CgenSafeXValueMemberAccess(XL6_CgenContext* ctx, const XL6_AstNode
     xl6AstFree(receiverType);
     return 1;
 }
-

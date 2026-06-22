@@ -5,17 +5,26 @@ end
 auto values = [10, 20, 30]
 auto sparse = [0: 11, 2: 22]
 auto table = {"count": 6, "retry": 3}
+var dynamicTable = {"name": 31, "nested": {"count": 32}}
 
 values[1] = 21
 sparse[2] = 23
 table["count"] = 7
+dynamicTable.extra = 33
+dynamicTable.nested.count = 34
 
 int middle = int(values[1])
 int sparseValue = int(sparse[2])
 int count = int(table["count"])
 int score = optionScore("demo.txt", retry = 3, level = 4)
+int dynamicName = int(dynamicTable.name)
+int dynamicSafeName = int(dynamicTable?.name)
+int dynamicMissing = int(dynamicTable?.missing ?? 35)
+int dynamicExtra = int(dynamicTable.extra)
+int dynamicNested = int(dynamicTable.nested.count)
 
 var missing = null
+var dynamicValues = values
 int safeValue = int(values?[1])
-int safeLength = int(values?.length)
+int safeLength = int(dynamicValues?.length)
 int fallback = int(missing?[0] ?? 9)

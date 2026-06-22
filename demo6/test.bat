@@ -3176,6 +3176,43 @@ if errorlevel 1 exit /b 1
 release\tmp\cgen_typed_container_safe_index.exe
 if errorlevel 1 exit /b 1
 
+release\xl.exe cgen test\cases\cgen_dynamic_member_access.xl --emit release\tmp\cgen_dynamic_member_access.c
+if errorlevel 1 exit /b 1
+findstr /C:"xl6_xrt_index_safe_get_key(obj," release\tmp\cgen_dynamic_member_access.c >nul
+if errorlevel 1 (
+    echo cgen_dynamic_member_access.c missing borrowed dynamic member access.
+    exit /b 1
+)
+findstr /C:"xvalue __xl6_member_values_" release\tmp\cgen_dynamic_member_access.c >nul
+if errorlevel 1 (
+    echo cgen_dynamic_member_access.c missing temporary dynamic member receiver capture.
+    exit /b 1
+)
+findstr /C:"xl6_xrt_retain(xl6_xrt_index_safe_get_key(__xl6_member_values_" release\tmp\cgen_dynamic_member_access.c >nul
+if errorlevel 1 (
+    echo cgen_dynamic_member_access.c missing temporary dynamic member retain.
+    exit /b 1
+)
+findstr /C:"xvalue __xl6_member_assign_" release\tmp\cgen_dynamic_member_access.c >nul
+if errorlevel 1 (
+    echo cgen_dynamic_member_access.c missing dynamic member assignment temporary.
+    exit /b 1
+)
+findstr /C:"xvoTableSetValue(obj," release\tmp\cgen_dynamic_member_access.c >nul
+if errorlevel 1 (
+    echo cgen_dynamic_member_access.c missing direct dynamic member assignment lowering.
+    exit /b 1
+)
+findstr /C:"xvoTableSetValue(xl6_xrt_index_safe_get_key(nested," release\tmp\cgen_dynamic_member_access.c >nul
+if errorlevel 1 (
+    echo cgen_dynamic_member_access.c missing nested dynamic member assignment lowering.
+    exit /b 1
+)
+..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\cgen_dynamic_member_access.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_dynamic_member_access.exe
+if errorlevel 1 exit /b 1
+release\tmp\cgen_dynamic_member_access.exe
+if errorlevel 1 exit /b 1
+
 release\xl.exe cgen test\cases\cgen_safe_member.xl --emit release\tmp\cgen_safe_member.c
 if errorlevel 1 exit /b 1
 findstr /C:"xl6_xrt_member_safe_length(values)" release\tmp\cgen_safe_member.c >nul
@@ -4879,7 +4916,7 @@ if not errorlevel 1 (
     echo sem_safe_member_unknown.xl should fail.
     exit /b 1
 )
-findstr /C:"safe member access only supports length" release\tmp\sem_safe_member_unknown.err.txt >nul
+findstr /C:"safe member key receiver must be var or dynamic dict" release\tmp\sem_safe_member_unknown.err.txt >nul
 if errorlevel 1 (
     echo sem_safe_member_unknown.xl missing expected diagnostic.
     exit /b 1
@@ -4902,6 +4939,94 @@ if not errorlevel 1 (
 findstr /C:"safe member length receiver must be var or dynamic container" release\tmp\sem_safe_member_non_container.err.txt >nul
 if errorlevel 1 (
     echo sem_safe_member_non_container.xl missing expected diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_member_key_array.xl >nul 2> release\tmp\sem_member_key_array.err.txt
+if not errorlevel 1 (
+    echo sem_member_key_array.xl should fail.
+    exit /b 1
+)
+findstr /C:"member key receiver must be var or dynamic dict" release\tmp\sem_member_key_array.err.txt >nul
+if errorlevel 1 (
+    echo sem_member_key_array.xl missing expected diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_member_key_set.xl >nul 2> release\tmp\sem_member_key_set.err.txt
+if not errorlevel 1 (
+    echo sem_member_key_set.xl should fail.
+    exit /b 1
+)
+findstr /C:"member key receiver must be var or dynamic dict" release\tmp\sem_member_key_set.err.txt >nul
+if errorlevel 1 (
+    echo sem_member_key_set.xl missing expected diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_member_key_typed_dict.xl >nul 2> release\tmp\sem_member_key_typed_dict.err.txt
+if not errorlevel 1 (
+    echo sem_member_key_typed_dict.xl should fail.
+    exit /b 1
+)
+findstr /C:"member key receiver must be var or dynamic dict" release\tmp\sem_member_key_typed_dict.err.txt >nul
+if errorlevel 1 (
+    echo sem_member_key_typed_dict.xl missing expected diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_dynamic_member_assign_length.xl >nul 2> release\tmp\sem_dynamic_member_assign_length.err.txt
+if not errorlevel 1 (
+    echo sem_dynamic_member_assign_length.xl should fail.
+    exit /b 1
+)
+findstr /C:"member length is read-only" release\tmp\sem_dynamic_member_assign_length.err.txt >nul
+if errorlevel 1 (
+    echo sem_dynamic_member_assign_length.xl missing expected diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_dynamic_member_assign_container.xl >nul 2> release\tmp\sem_dynamic_member_assign_container.err.txt
+if not errorlevel 1 (
+    echo sem_dynamic_member_assign_container.xl should fail.
+    exit /b 1
+)
+findstr /C:"member assignment receiver must be class/union field, var or dynamic dict" release\tmp\sem_dynamic_member_assign_container.err.txt >nul
+if errorlevel 1 (
+    echo sem_dynamic_member_assign_container.xl missing expected diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_dynamic_member_assign_typed_dict.xl >nul 2> release\tmp\sem_dynamic_member_assign_typed_dict.err.txt
+if not errorlevel 1 (
+    echo sem_dynamic_member_assign_typed_dict.xl should fail.
+    exit /b 1
+)
+findstr /C:"member assignment receiver must be class/union field, var or dynamic dict" release\tmp\sem_dynamic_member_assign_typed_dict.err.txt >nul
+if errorlevel 1 (
+    echo sem_dynamic_member_assign_typed_dict.xl missing expected diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_dynamic_member_assign_compound.xl >nul 2> release\tmp\sem_dynamic_member_assign_compound.err.txt
+if not errorlevel 1 (
+    echo sem_dynamic_member_assign_compound.xl should fail.
+    exit /b 1
+)
+findstr /C:"dynamic member assignment only supports =" release\tmp\sem_dynamic_member_assign_compound.err.txt >nul
+if errorlevel 1 (
+    echo sem_dynamic_member_assign_compound.xl missing expected diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_dynamic_member_assign_temporary.xl >nul 2> release\tmp\sem_dynamic_member_assign_temporary.err.txt
+if not errorlevel 1 (
+    echo sem_dynamic_member_assign_temporary.xl should fail.
+    exit /b 1
+)
+findstr /C:"dynamic member assignment receiver must be mutable" release\tmp\sem_dynamic_member_assign_temporary.err.txt >nul
+if errorlevel 1 (
+    echo sem_dynamic_member_assign_temporary.xl missing expected diagnostic.
     exit /b 1
 )
 

@@ -1,0 +1,2 @@
+dict<int> scores = dict{"a": 1}
+auto bad = scores.a

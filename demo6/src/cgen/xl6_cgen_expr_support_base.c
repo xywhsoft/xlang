@@ -893,6 +893,32 @@ static int xl6CgenExprIsXValueBorrow(XL6_CgenContext* ctx, const XL6_AstNode* ex
     if ( ctx == NULL || expr == NULL ) {
         return 0;
     }
+    if ( expr->kind == XL6_AST_MEMBER || expr->kind == XL6_AST_SAFE_MEMBER ) {
+        const XL6_AstNode* receiver;
+        XL6_AstNode* receiverType;
+        XL6_AstNode* fieldType;
+        int result;
+
+        if ( expr->text != NULL && xl6CTextEquals(expr->text, "length") ) {
+            return 0;
+        }
+        receiver = expr->childCount > 0 ? expr->children[0] : NULL;
+        receiverType = xl6CgenCloneExprTypeForInference(ctx, receiver);
+        if ( xl6CgenIsXValueType(receiverType) ) {
+            result = xl6CgenExprIsXValueBorrow(ctx, receiver);
+            xl6AstFree(receiverType);
+            return result;
+        }
+        xl6AstFree(receiverType);
+        if ( expr->kind == XL6_AST_SAFE_MEMBER ) {
+            return 0;
+        }
+
+        fieldType = xl6CgenCloneMemberFieldTypeForInference(ctx, expr);
+        result = xl6CgenIsXValueType(fieldType);
+        xl6AstFree(fieldType);
+        return result;
+    }
     if ( expr->kind == XL6_AST_INDEX || expr->kind == XL6_AST_SAFE_INDEX ) {
         const XL6_AstNode* receiver = expr->childCount > 0 ? expr->children[0] : NULL;
         if ( xl6CgenExprUsesTypedContainerStorage(ctx, receiver) ) {
