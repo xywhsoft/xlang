@@ -6016,11 +6016,25 @@ static int xl6SemCheckIndexExpr(XL6_SemContext* ctx, XL6_AstNode* node)
     return ok;
 }
 
+static int xl6SemSafeMemberGenericIsVar(XL6_SemContext* ctx, const XL6_AstNode* concreteType)
+{
+    const XL6_AstNode* args;
+    const XL6_AstNode* itemType;
+
+    args = xl6SemTypeNodeGenericArgs(concreteType);
+    if ( args == NULL || args->childCount == 0 ) {
+        return 1;
+    }
+    if ( args->childCount != 1 ) {
+        return 0;
+    }
+    itemType = xl6SemResolveAliasType(ctx, args->children[0]);
+    return itemType != NULL && xl6TextEquals(itemType->text, "var");
+}
+
 static int xl6SemSafeMemberLengthReceiverIsDynamic(XL6_SemContext* ctx, const XL6_AstNode* typeNode)
 {
     const XL6_AstNode* concreteType;
-    const XL6_AstNode* args;
-    const XL6_AstNode* itemType;
     const char* name;
 
     concreteType = xl6SemResolveAliasType(ctx, typeNode);
@@ -6035,16 +6049,38 @@ static int xl6SemSafeMemberLengthReceiverIsDynamic(XL6_SemContext* ctx, const XL
          !xl6SemIsDictTypeName(name) ) {
         return 0;
     }
+    return xl6SemSafeMemberGenericIsVar(ctx, concreteType);
+}
 
-    args = xl6SemTypeNodeGenericArgs(concreteType);
-    if ( args == NULL || args->childCount == 0 ) {
+static int xl6SemSafeMemberKeyReceiverIsDynamic(XL6_SemContext* ctx, const XL6_AstNode* typeNode)
+{
+    const XL6_AstNode* concreteType;
+    const char* name;
+
+    concreteType = xl6SemResolveAliasType(ctx, typeNode);
+    name = concreteType != NULL ? concreteType->text : NULL;
+    if ( xl6TextEquals(name, "var") ) {
         return 1;
     }
-    if ( args->childCount != 1 ) {
+    if ( !xl6SemIsDictTypeName(name) ) {
         return 0;
     }
-    itemType = xl6SemResolveAliasType(ctx, args->children[0]);
-    return itemType != NULL && xl6TextEquals(itemType->text, "var");
+    return xl6SemSafeMemberGenericIsVar(ctx, concreteType);
+}
+
+static int xl6SemMemberReceiverIsXValueContainer(XL6_SemContext* ctx, const XL6_AstNode* typeNode)
+{
+    const XL6_AstNode* concreteType;
+    const char* name;
+
+    concreteType = xl6SemResolveAliasType(ctx, typeNode);
+    name = concreteType != NULL ? concreteType->text : NULL;
+    return xl6TextEquals(name, "var") ||
+           xl6SemIsArrayTypeName(name) ||
+           xl6SemIsListTypeName(name) ||
+           xl6TextEquals(name, "set") ||
+           xl6TextEquals(name, "set<var>") ||
+           xl6SemIsDictTypeName(name);
 }
 
 static int xl6SemCheckSafeMemberExpr(XL6_SemContext* ctx, XL6_AstNode* node)
@@ -6057,17 +6093,23 @@ static int xl6SemCheckSafeMemberExpr(XL6_SemContext* ctx, XL6_AstNode* node)
     if ( node == NULL ) {
         return ok;
     }
-    if ( !xl6TextEquals(node->text, "length") ) {
-        xl6SemErrorNode(ctx, node, "safe member access only supports length");
-        ok = 0;
-    }
 
     receiver = node->childCount > 0 ? node->children[0] : NULL;
     receiverType = receiver != NULL ? xl6SemInferAutoTypeNode(ctx, receiver) : NULL;
-    if ( receiverType != NULL && !xl6SemSafeMemberLengthReceiverIsDynamic(ctx, receiverType) ) {
-        xl6SemErrorNode(ctx, receiver, "safe member length receiver must be var or dynamic container");
+    if ( receiverType == NULL ) {
+        return ok;
+    }
+
+    if ( xl6TextEquals(node->text, "length") ) {
+        if ( !xl6SemSafeMemberLengthReceiverIsDynamic(ctx, receiverType) ) {
+            xl6SemErrorNode(ctx, receiver, "safe member length receiver must be var or dynamic container");
+            ok = 0;
+        }
+    } else if ( !xl6SemSafeMemberKeyReceiverIsDynamic(ctx, receiverType) ) {
+        xl6SemErrorNode(ctx, node, "safe member key receiver must be var or dynamic dict");
         ok = 0;
     }
+
     xl6AstFree(receiverType);
     return ok;
 }
@@ -6109,6 +6151,11 @@ static int xl6SemCheckMemberExpr(XL6_SemContext* ctx, XL6_AstNode* node)
     }
     if ( receiverDecl != NULL && (receiverDecl->kind == XL6_AST_CLASS || receiverDecl->kind == XL6_AST_UNION) ) {
         xl6SemErrorNode(ctx, node, "unknown class/union field");
+        ok = 0;
+    } else if ( !xl6TextEquals(node->text, "length") &&
+                xl6SemMemberReceiverIsXValueContainer(ctx, receiverType) &&
+                !xl6SemSafeMemberKeyReceiverIsDynamic(ctx, receiverType) ) {
+        xl6SemErrorNode(ctx, node, "member key receiver must be var or dynamic dict");
         ok = 0;
     }
     xl6AstFree(receiverType);
@@ -6427,6 +6474,53 @@ static int xl6SemCheckCompoundAssignTypes(
     xl6SemErrorNode(ctx, node, "unsupported compound assignment operator");
     return 0;
 }
+static int xl6SemCheckDynamicMemberAssignTarget(XL6_SemContext* ctx, XL6_AstNode* node, XL6_AstNode* left, const char* op)
+{
+    XL6_AstNode* fieldType;
+    XL6_AstNode* receiver;
+    XL6_AstNode* receiverType;
+    const XL6_AstNode* concreteType;
+    const char* typeName;
+    int ok;
+
+    if ( left == NULL || left->kind != XL6_AST_MEMBER ) {
+        return 1;
+    }
+
+    fieldType = xl6SemCloneMemberFieldType(ctx, left);
+    if ( fieldType != NULL ) {
+        xl6AstFree(fieldType);
+        return 1;
+    }
+
+    receiver = left->childCount > 0 ? left->children[0] : NULL;
+    receiverType = receiver != NULL ? xl6SemInferAutoTypeNode(ctx, receiver) : NULL;
+    if ( receiverType == NULL ) {
+        return 1;
+    }
+
+    ok = 1;
+    concreteType = xl6SemResolveAliasType(ctx, receiverType);
+    typeName = concreteType != NULL ? concreteType->text : NULL;
+    if ( xl6TextEquals(left->text, "length") && xl6SemSafeMemberLengthReceiverIsDynamic(ctx, receiverType) ) {
+        xl6SemErrorNode(ctx, left, "member length is read-only");
+        ok = 0;
+    } else if ( xl6SemSafeMemberKeyReceiverIsDynamic(ctx, receiverType) ) {
+        if ( receiver->kind != XL6_AST_NAME && receiver->kind != XL6_AST_MEMBER && receiver->kind != XL6_AST_INDEX ) {
+            xl6SemErrorNode(ctx, receiver, "dynamic member assignment receiver must be mutable");
+            ok = 0;
+        } else if ( !xl6TextEquals(op, "=") ) {
+            xl6SemErrorNode(ctx, node, "dynamic member assignment only supports =");
+            ok = 0;
+        }
+    } else if ( typeName != NULL ) {
+        xl6SemErrorNode(ctx, left, "member assignment receiver must be class/union field, var or dynamic dict");
+        ok = 0;
+    }
+
+    xl6AstFree(receiverType);
+    return ok;
+}
 static int xl6SemCheckAssign(XL6_SemContext* ctx, XL6_AstNode* node)
 {
     XL6_AstNode* left;
@@ -6468,6 +6562,9 @@ static int xl6SemCheckAssign(XL6_SemContext* ctx, XL6_AstNode* node)
             ok = 0;
         }
     } else if ( !xl6SemCheckExpr(ctx, left) ) {
+        ok = 0;
+    }
+    if ( left != NULL && left->kind == XL6_AST_MEMBER && !xl6SemCheckDynamicMemberAssignTarget(ctx, node, left, op) ) {
         ok = 0;
     }
 

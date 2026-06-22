@@ -1,0 +1,2 @@
+auto values = [1, 2, 3]
+auto bad = values.name

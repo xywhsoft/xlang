@@ -484,6 +484,81 @@ static void xl6CgenIndexCompoundAssignStmt(
     xl6CgenIndexAssignTemp(ctx, left, tempName);
 }
 
+static int xl6CgenDynamicMemberReceiverTypeAllowed(XL6_CgenContext* ctx, const XL6_AstNode* receiverType)
+{
+    return xl6CgenMemberKeyReceiverIsDynamic(ctx, receiverType);
+}
+
+static int xl6CgenMemberAssignIsDynamicTarget(XL6_CgenContext* ctx, const XL6_AstNode* left)
+{
+    const XL6_AstNode* receiver;
+    XL6_AstNode* receiverType;
+    int result;
+
+    if ( left == NULL || left->kind != XL6_AST_MEMBER || left->text == NULL || left->childCount == 0 ) {
+        return 0;
+    }
+    receiver = left->children[0];
+    receiverType = xl6CgenCloneExprTypeForInference(ctx, receiver);
+    result = xl6CgenIsXValueType(receiverType);
+    xl6AstFree(receiverType);
+    return result;
+}
+
+static int xl6CgenDynamicMemberAssignStmt(XL6_CgenContext* ctx, const XL6_AstNode* left, const XL6_AstNode* right)
+{
+    const XL6_AstNode* receiver;
+    XL6_AstNode* receiverType;
+    int id;
+    char tempName[64];
+
+    if ( left == NULL || left->kind != XL6_AST_MEMBER || left->text == NULL || left->childCount == 0 ) {
+        return 0;
+    }
+
+    receiver = left->children[0];
+    receiverType = xl6CgenCloneExprTypeForInference(ctx, receiver);
+    if ( !xl6CgenIsXValueType(receiverType) ) {
+        xl6AstFree(receiverType);
+        return 0;
+    }
+    if ( xl6CTextEquals(left->text, "length") ) {
+        xl6CgenError(ctx, left, "member length is read-only");
+        xl6AstFree(receiverType);
+        return 1;
+    }
+    if ( !xl6CgenDynamicMemberReceiverTypeAllowed(ctx, receiverType) ) {
+        xl6CgenError(ctx, left, "dynamic member assignment receiver must be var or dynamic dict");
+        xl6AstFree(receiverType);
+        return 1;
+    }
+    if ( !xl6CgenExprIsXValueBorrow(ctx, receiver) ) {
+        xl6CgenError(ctx, left, "dynamic member assignment receiver must be a mutable var or dict value");
+        xl6AstFree(receiverType);
+        return 1;
+    }
+
+    id = ctx->tempId++;
+    snprintf(tempName, sizeof(tempName), "__xl6_member_assign_%d", id);
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "xvalue %s = ", tempName);
+    xl6CgenXValueFromExpr(ctx, right);
+    xl6OutputPuts(";\n", ctx->out);
+    xl6CgenIndent(ctx);
+    xl6OutputPuts("if ( !xvoTableSetValue(", ctx->out);
+    xl6CgenExpr(ctx, receiver);
+    xl6OutputPuts(", ", ctx->out);
+    xl6CgenCStringLiteral(ctx->out, left->text);
+    xl6OutputPrintf(ctx->out, ", 0, %s, true) && %s != 0 ) {\n", tempName, tempName);
+    ctx->indent += 1;
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "xvoUnref(%s);\n", tempName);
+    ctx->indent -= 1;
+    xl6CgenIndent(ctx);
+    xl6OutputPuts("}\n", ctx->out);
+    xl6AstFree(receiverType);
+    return 1;
+}
 static void xl6CgenAssignStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
 {
     const XL6_AstNode* left;
@@ -509,6 +584,9 @@ static void xl6CgenAssignStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
 
         ctorCustom = NULL;
         fieldType = xl6CgenCloneMemberFieldTypeForInference(ctx, left);
+        if ( fieldType == NULL && xl6CgenDynamicMemberAssignStmt(ctx, left, right) ) {
+            return;
+        }
         if ( xl6CgenIsFunctionType(fieldType) ) {
             int id = ctx->tempId++;
             char tempName[64];
@@ -569,6 +647,10 @@ static void xl6CgenAssignStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
             return;
         }
         xl6AstFree(fieldType);
+    }
+    if ( left->kind == XL6_AST_MEMBER && xl6CgenMemberAssignIsDynamicTarget(ctx, left) ) {
+        xl6CgenError(ctx, node, "dynamic member assignment only supports =");
+        return;
     }
     if ( xl6CTextEquals(op, "=") && left->kind == XL6_AST_NAME ) {
         const XL6_AstNode* targetType = xl6CgenFindVarType(ctx, left->text);

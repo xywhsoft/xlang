@@ -640,11 +640,18 @@ static const char* xl6CgenInferExprType(XL6_CgenContext* ctx, const XL6_AstNode*
         return cType;
     }
     case XL6_AST_MEMBER:
-        if ( expr->text != NULL && xl6CTextEquals(expr->text, "length") &&
-             expr->childCount > 0 && expr->children[0] != NULL &&
-             expr->children[0]->kind == XL6_AST_NAME &&
-             xl6CgenIsXValueType(xl6CgenFindVarType(ctx, expr->children[0]->text)) ) {
-            return "long long";
+        {
+            XL6_AstNode* receiverType = expr->childCount > 0 ? xl6CgenCloneExprTypeForInference(ctx, expr->children[0]) : NULL;
+            int isXValue = xl6CgenIsXValueType(receiverType);
+            int isLength = expr->text != NULL && xl6CTextEquals(expr->text, "length");
+            int isDynamicKey = xl6CgenMemberKeyReceiverIsDynamic(ctx, receiverType);
+            xl6AstFree(receiverType);
+            if ( isXValue && isLength ) {
+                return "long long";
+            }
+            if ( isXValue && isDynamicKey ) {
+                return "xvalue";
+            }
         }
         {
             XL6_AstNode* typeNode = xl6CgenCloneMemberFieldTypeForInference(ctx, expr);
@@ -656,10 +663,15 @@ static const char* xl6CgenInferExprType(XL6_CgenContext* ctx, const XL6_AstNode*
         }
         break;
     case XL6_AST_SAFE_MEMBER: {
-        XL6_AstNode* typeNode = xl6CgenCloneExprTypeForInference(ctx, expr);
-        const char* cType = typeNode != NULL ? xl6CgenTypeName(ctx, typeNode) : "xvalue";
-        xl6AstFree(typeNode);
-        return cType;
+        XL6_AstNode* receiverType = expr->childCount > 0 ? xl6CgenCloneExprTypeForInference(ctx, expr->children[0]) : NULL;
+        int isLength = expr->text != NULL && xl6CTextEquals(expr->text, "length");
+        int isAllowed = xl6CgenIsXValueType(receiverType) &&
+                        (isLength || xl6CgenMemberKeyReceiverIsDynamic(ctx, receiverType));
+        xl6AstFree(receiverType);
+        if ( isAllowed ) {
+            return "xvalue";
+        }
+        break;
     }
     case XL6_AST_INDEX:
     case XL6_AST_SAFE_INDEX: {

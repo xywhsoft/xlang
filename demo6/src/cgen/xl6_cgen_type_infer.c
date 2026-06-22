@@ -824,6 +824,15 @@ static XL6_AstNode* xl6CgenCloneExprTypeForInference(XL6_CgenContext* ctx, const
             }
             return NULL;
         }
+        if ( xl6CgenIsXValueType(receiverType) ) {
+            int isLength = expr->text != NULL && xl6CTextEquals(expr->text, "length");
+            int isDynamicKey = xl6CgenMemberKeyReceiverIsDynamic(ctx, receiverType);
+            xl6AstFree(receiverType);
+            if ( isLength ) {
+                return xl6CgenNewSimpleType("int", expr);
+            }
+            return isDynamicKey ? xl6CgenNewSimpleType("var", expr) : NULL;
+        }
         xl6AstFree(receiverType);
         {
             XL6_AstNode* fieldType = xl6CgenCloneMemberFieldTypeForInference(ctx, expr);
@@ -834,9 +843,11 @@ static XL6_AstNode* xl6CgenCloneExprTypeForInference(XL6_CgenContext* ctx, const
         return NULL;
     case XL6_AST_SAFE_MEMBER:
         receiverType = expr->childCount > 0 ? xl6CgenCloneExprTypeForInference(ctx, expr->children[0]) : NULL;
-        if ( expr->text != NULL && xl6CTextEquals(expr->text, "length") && xl6CgenIsXValueType(receiverType) ) {
+        if ( xl6CgenIsXValueType(receiverType) ) {
+            int isLength = expr->text != NULL && xl6CTextEquals(expr->text, "length");
+            int isAllowed = isLength || xl6CgenMemberKeyReceiverIsDynamic(ctx, receiverType);
             xl6AstFree(receiverType);
-            return xl6CgenNewSimpleType("var", expr);
+            return isAllowed ? xl6CgenNewSimpleType("var", expr) : NULL;
         }
         xl6AstFree(receiverType);
         return NULL;
