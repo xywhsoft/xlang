@@ -218,6 +218,56 @@ static void xl6CgenStringLiteralExpr(XL6_CgenContext* ctx, const XL6_AstNode* no
     xl6OutputPutc('"', ctx->out);
 }
 
+static int xl6CgenTypedContainerXValueFromExpr(XL6_CgenContext* ctx, const XL6_AstNode* expr)
+{
+    XL6_AstNode* rawTypeNode;
+    const XL6_AstNode* typeNode;
+    const XL6_AstNode* concreteType;
+    const XL6_AstNode* itemType;
+    const char* typeName;
+
+    if ( !xl6CgenExprUsesTypedContainerStorage(ctx, expr) ) {
+        return 0;
+    }
+
+    rawTypeNode = xl6CgenCloneExprTypeForInference(ctx, expr);
+    typeNode = xl6CgenResolveAliasType(ctx, xl6CgenSubstituteGenericType(ctx, rawTypeNode));
+    concreteType = xl6CgenTypedContainerConcreteType(ctx, typeNode);
+    itemType = xl6CgenTypedContainerItemType(ctx, typeNode);
+    typeName = concreteType != NULL ? concreteType->text : NULL;
+
+    if ( typeName == NULL || itemType == NULL ) {
+        xl6CgenError(ctx, expr, "typed container boxing requires a concrete item type");
+        xl6OutputPuts("xvoCreateNull()", ctx->out);
+        xl6AstFree(rawTypeNode);
+        return 1;
+    }
+
+    xl6OutputPuts("xl6_xrt_bind_type(", ctx->out);
+    if ( xl6CTextEquals(typeName, "array") ) {
+        xl6OutputPuts("xl6_xrt_typed_array_to_xvalue(", ctx->out);
+    } else if ( xl6CTextEquals(typeName, "list") ) {
+        xl6OutputPuts("xl6_xrt_typed_list_to_xvalue(", ctx->out);
+    } else if ( xl6CTextEquals(typeName, "set") ) {
+        xl6OutputPuts("xl6_xrt_typed_set_to_xvalue(", ctx->out);
+    } else if ( xl6CTextEquals(typeName, "dict") ) {
+        xl6OutputPuts("xl6_xrt_typed_dict_to_xvalue(", ctx->out);
+    } else {
+        xl6CgenError(ctx, expr, "typed container boxing requires array/list/set/dict");
+        xl6OutputPuts("xvoCreateNull()", ctx->out);
+        xl6AstFree(rawTypeNode);
+        return 1;
+    }
+    xl6CgenEmitXrtTypeDescRef(ctx, itemType);
+    xl6OutputPuts(", ", ctx->out);
+    xl6CgenExpr(ctx, expr);
+    xl6OutputPuts("), ", ctx->out);
+    xl6CgenEmitRuntimeTypeDescRef(ctx, typeNode);
+    xl6OutputPutc(')', ctx->out);
+
+    xl6AstFree(rawTypeNode);
+    return 1;
+}
 static void xl6CgenXValueFromExpr(XL6_CgenContext* ctx, const XL6_AstNode* expr)
 {
     XL6_AstNode* rawTypeNode;
@@ -232,9 +282,7 @@ static void xl6CgenXValueFromExpr(XL6_CgenContext* ctx, const XL6_AstNode* expr)
         xl6OutputPuts("xvoCreateNull()", ctx->out);
         return;
     }
-    if ( xl6CgenExprUsesTypedContainerStorage(ctx, expr) ) {
-        xl6CgenError(ctx, expr, "静态泛型容器暂不能直接装箱�?var");
-        xl6OutputPuts("xvoCreateNull()", ctx->out);
+    if ( xl6CgenTypedContainerXValueFromExpr(ctx, expr) ) {
         return;
     }
 

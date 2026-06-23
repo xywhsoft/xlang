@@ -92,6 +92,55 @@ static const XL6_AstNode* xl6CgenTypedContainerInitLiteral(XL6_CgenContext* ctx,
     return NULL;
 }
 
+static int xl6CgenTypedContainerCanCopyFromExpr(XL6_CgenContext* ctx, const XL6_AstNode* typeNode, const XL6_AstNode* initExpr)
+{
+    XL6_AstNode* targetType;
+    XL6_AstNode* initType;
+    int result;
+
+    if ( initExpr == NULL || xl6CgenTypedContainerInitLiteral(ctx, typeNode, initExpr) != NULL ) {
+        return 0;
+    }
+
+    targetType = xl6CgenCloneCanonicalTypeNode(ctx, typeNode);
+    initType = xl6CgenCloneExprTypeForInference(ctx, initExpr);
+    result = targetType != NULL &&
+             initType != NULL &&
+             xl6CgenIsTypedContainerType(ctx, initType) &&
+             xl6CgenTypeNodeEqual(targetType, initType);
+    xl6AstFree(targetType);
+    xl6AstFree(initType);
+    return result;
+}
+
+static void xl6CgenTypedContainerCopyExpr(XL6_CgenContext* ctx, const XL6_AstNode* typeNode, const XL6_AstNode* expr)
+{
+    const XL6_AstNode* concreteType;
+    const XL6_AstNode* itemType;
+    const char* typeName;
+
+    concreteType = xl6CgenTypedContainerConcreteType(ctx, typeNode);
+    itemType = xl6CgenTypedContainerItemType(ctx, typeNode);
+    typeName = concreteType != NULL ? concreteType->text : NULL;
+
+    if ( xl6CTextEquals(typeName, "array") ) {
+        xl6OutputPuts("xl6_xrt_typed_array_copy(", ctx->out);
+    } else if ( xl6CTextEquals(typeName, "list") ) {
+        xl6OutputPuts("xl6_xrt_typed_list_copy(", ctx->out);
+    } else if ( xl6CTextEquals(typeName, "set") ) {
+        xl6OutputPuts("xl6_xrt_typed_set_copy(", ctx->out);
+    } else if ( xl6CTextEquals(typeName, "dict") ) {
+        xl6OutputPuts("xl6_xrt_typed_dict_copy(", ctx->out);
+    } else {
+        xl6CgenError(ctx, expr, "typed container copy requires array/list/set/dict");
+        xl6OutputPuts("0", ctx->out);
+        return;
+    }
+    xl6CgenEmitXrtTypeDescRef(ctx, itemType);
+    xl6OutputPuts(", ", ctx->out);
+    xl6CgenExpr(ctx, expr);
+    xl6OutputPutc(')', ctx->out);
+}
 static void xl6CgenTypedContainerValueStmt(XL6_CgenContext* ctx, const char* cName, const char* callPrefix, const XL6_AstNode* valueExpr)
 {
     int id;

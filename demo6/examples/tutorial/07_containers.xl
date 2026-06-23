@@ -57,6 +57,11 @@ func main(...) -> int
         idCount += 1
     end
 
+    var boxedNumbers = numbers
+    var boxedNames = names
+    var boxedIds = ids
+    var boxedScores = scores
+
     if values.length != 3 or int(values[1]) != 10 then
         return 1
     end
@@ -80,6 +85,18 @@ func main(...) -> int
     end
     if numbers[2] != 30 or string(names[2]) != "beta" or idCount != 2 or scores["beta"] != 20 then
         return 8
+    end
+    if type(boxedNumbers) != type(numbers) or type(boxedNames) != type(names) then
+        return 11
+    end
+    if type(boxedIds) != type(ids) or type(boxedScores) != type(scores) then
+        return 12
+    end
+    if int(boxedNumbers[2]) != 30 or string(boxedNames[2]) != "beta" then
+        return 13
+    end
+    if 2 in boxedIds != true or int(boxedScores["beta"]) != 20 then
+        return 14
     end
     if int(dynamicTable.name) != 31 or int(dynamicTable?.name) != 31 then
         return 9
