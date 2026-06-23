@@ -559,6 +559,25 @@ static int xl6CgenDynamicMemberAssignStmt(XL6_CgenContext* ctx, const XL6_AstNod
     xl6AstFree(receiverType);
     return 1;
 }
+static void xl6CgenTypedContainerDestroyValue(XL6_CgenContext* ctx, const XL6_AstNode* typeNode, const char* cName)
+{
+    const XL6_AstNode* concreteType;
+    const char* typeName;
+
+    concreteType = xl6CgenTypedContainerConcreteType(ctx, typeNode);
+    typeName = concreteType != NULL ? concreteType->text : NULL;
+    if ( xl6CTextEquals(typeName, "array") ) {
+        xl6OutputPrintf(ctx->out, "xrtTypedArrayDestroy(%s);\n", cName);
+    } else if ( xl6CTextEquals(typeName, "list") ) {
+        xl6OutputPrintf(ctx->out, "xrtTypedListDestroy(%s);\n", cName);
+    } else if ( xl6CTextEquals(typeName, "set") ) {
+        xl6OutputPrintf(ctx->out, "xrtTypedSetDestroy(%s);\n", cName);
+    } else if ( xl6CTextEquals(typeName, "dict") ) {
+        xl6OutputPrintf(ctx->out, "xrtTypedDictDestroy(%s);\n", cName);
+    } else {
+        xl6CgenError(ctx, typeNode, "typed container destroy requires array/list/set/dict");
+    }
+}
 static void xl6CgenAssignStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
 {
     const XL6_AstNode* left;
@@ -650,6 +669,44 @@ static void xl6CgenAssignStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
     }
     if ( left->kind == XL6_AST_MEMBER && xl6CgenMemberAssignIsDynamicTarget(ctx, left) ) {
         xl6CgenError(ctx, node, "dynamic member assignment only supports =");
+        return;
+    }
+    if ( xl6CTextEquals(op, "=") && left->kind == XL6_AST_NAME &&
+         xl6CgenIsTypedContainerType(ctx, xl6CgenFindVarType(ctx, left->text)) ) {
+        const XL6_AstNode* targetType = xl6CgenFindVarType(ctx, left->text);
+        const XL6_AstNode* literal = xl6CgenTypedContainerInitLiteral(ctx, targetType, right);
+        XL6_AstNode* targetCanonical = xl6CgenCloneCanonicalTypeNode(ctx, targetType);
+        XL6_AstNode* rightType = literal == NULL ? xl6CgenCloneExprTypeForInference(ctx, right) : NULL;
+        int id = ctx->tempId++;
+        char cName[512];
+        char tempName[64];
+
+        if ( literal == NULL &&
+             (targetCanonical == NULL || rightType == NULL || !xl6CgenTypeNodeEqual(targetCanonical, rightType)) ) {
+            xl6CgenError(ctx, right, "typed container assignment requires the same container type or literal");
+            xl6AstFree(targetCanonical);
+            xl6AstFree(rightType);
+            return;
+        }
+        xl6CgenCIdentText(cName, sizeof(cName), left->text);
+        snprintf(tempName, sizeof(tempName), "__xl6_typed_container_assign_%d", id);
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "%s %s = ", xl6CgenTypedContainerCType(ctx, targetType), tempName);
+        if ( literal != NULL ) {
+            xl6CgenTypedContainerCreateExpr(ctx, targetType);
+        } else {
+            xl6CgenTypedContainerCopyExpr(ctx, targetType, right);
+        }
+        xl6OutputPuts(";\n", ctx->out);
+        if ( literal != NULL ) {
+            xl6CgenTypedContainerFillFromLiteral(ctx, tempName, targetType, right);
+        }
+        xl6CgenIndent(ctx);
+        xl6CgenTypedContainerDestroyValue(ctx, targetType, cName);
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "%s = %s;\n", cName, tempName);
+        xl6AstFree(targetCanonical);
+        xl6AstFree(rightType);
         return;
     }
     if ( xl6CTextEquals(op, "=") && left->kind == XL6_AST_NAME ) {

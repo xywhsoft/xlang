@@ -194,12 +194,19 @@ static void xl6CgenDecl(XL6_CgenContext* ctx, const XL6_AstNode* node)
         cType = typeNode != NULL ? xl6CgenTypeName(ctx, typeNode) : "int";
     }
     if ( xl6CgenDeclShouldUseTypedContainer(ctx, typeNode, initExpr, declaredAuto) ) {
+        int initByCopy = xl6CgenTypedContainerCanCopyFromExpr(ctx, typeNode, initExpr);
         xl6OutputPrintf(ctx->out, "%s %s = ", xl6CgenTypedContainerCType(ctx, typeNode), cName);
-        xl6CgenTypedContainerCreateExpr(ctx, typeNode);
+        if ( initByCopy ) {
+            xl6CgenTypedContainerCopyExpr(ctx, typeNode, initExpr);
+        } else {
+            xl6CgenTypedContainerCreateExpr(ctx, typeNode);
+        }
         xl6OutputPuts(";\n", ctx->out);
         xl6CgenAddVarTypeWithFlags(ctx, node->text, typeNode, XL6_CGEN_VAR_TYPED_CONTAINER);
         xl6CgenAddTypedContainerCleanup(ctx, node->text, typeNode);
-        xl6CgenTypedContainerFillFromLiteral(ctx, cName, typeNode, initExpr);
+        if ( !initByCopy ) {
+            xl6CgenTypedContainerFillFromLiteral(ctx, cName, typeNode, initExpr);
+        }
         return;
     }
     if ( xl6CgenIsXValueType(typeNode) ) {

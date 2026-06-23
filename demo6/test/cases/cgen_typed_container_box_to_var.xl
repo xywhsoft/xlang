@@ -1,0 +1,37 @@
+extern "expect_i64" func expect(int actual, int expected)
+extern "expect_str" func expectStr(string actual, string expected)
+
+array<int> values = array[10, 20, 30]
+list<string> names = list[0: "a", 2: "b"]
+set<int> unique = set{1, 2}
+dict<int> scores = dict{"a": 7, "b": 9}
+
+type valuesType = type(values)
+type namesType = type(names)
+type uniqueType = type(unique)
+type scoresType = type(scores)
+
+var boxedValues = values
+var boxedNames = names
+var boxedUnique = unique
+var boxedScores = scores
+
+expect(type(boxedValues) == valuesType, 1)
+expect(type(boxedNames) == namesType, 1)
+expect(type(boxedUnique) == uniqueType, 1)
+expect(type(boxedScores) == scoresType, 1)
+
+expect(boxedValues.length, 3)
+expect(int(boxedValues[1]), 20)
+
+expect(boxedNames.length, 2)
+expectStr(string(boxedNames[2]), "b")
+
+expect(boxedUnique.length, 2)
+expect(2 in boxedUnique, 1)
+expect(9 in boxedUnique, 0)
+
+expect(boxedScores.length, 2)
+expect(int(boxedScores["b"]), 9)
+expect("a" in boxedScores, 1)
+expect("missing" in boxedScores, 0)

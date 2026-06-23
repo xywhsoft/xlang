@@ -1483,6 +1483,38 @@ if errorlevel 1 exit /b 1
 release\tmp\cgen_static_typed_containers.exe
 if errorlevel 1 exit /b 1
 
+release\xl.exe cgen test\cases\cgen_typed_container_box_to_var.xl --emit release\tmp\cgen_typed_container_box_to_var.c
+if errorlevel 1 exit /b 1
+findstr /C:"xl6_xrt_typed_array_to_xvalue" release\tmp\cgen_typed_container_box_to_var.c >nul
+if errorlevel 1 (
+    echo cgen_typed_container_box_to_var.c missing typed array boxing helper.
+    exit /b 1
+)
+findstr /C:"xl6_xrt_typed_list_to_xvalue" release\tmp\cgen_typed_container_box_to_var.c >nul
+if errorlevel 1 (
+    echo cgen_typed_container_box_to_var.c missing typed list boxing helper.
+    exit /b 1
+)
+findstr /C:"xl6_xrt_typed_set_to_xvalue" release\tmp\cgen_typed_container_box_to_var.c >nul
+if errorlevel 1 (
+    echo cgen_typed_container_box_to_var.c missing typed set boxing helper.
+    exit /b 1
+)
+findstr /C:"xl6_xrt_typed_dict_to_xvalue" release\tmp\cgen_typed_container_box_to_var.c >nul
+if errorlevel 1 (
+    echo cgen_typed_container_box_to_var.c missing typed dict boxing helper.
+    exit /b 1
+)
+findstr /C:"xl6_xrt_bind_type(xl6_xrt_typed_array_to_xvalue" release\tmp\cgen_typed_container_box_to_var.c >nul
+if errorlevel 1 (
+    echo cgen_typed_container_box_to_var.c missing runtime type binding for boxed typed containers.
+    exit /b 1
+)
+..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\cgen_typed_container_box_to_var.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_typed_container_box_to_var.exe
+if errorlevel 1 exit /b 1
+release\tmp\cgen_typed_container_box_to_var.exe
+if errorlevel 1 exit /b 1
+
 release\xl.exe cgen test\cases\cgen_typed_container_functions.xl --emit release\tmp\cgen_typed_container_functions.c
 if errorlevel 1 exit /b 1
 findstr /C:"xrtTypedArrayCreate(xrtTypeFunction()" release\tmp\cgen_typed_container_functions.c >nul

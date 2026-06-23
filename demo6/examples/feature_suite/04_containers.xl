@@ -138,6 +138,20 @@ end
 expect(idCount, 2)
 expect(scores["beta"], 20)
 
+var boxedNumbers = numbers
+var boxedNames = names
+var boxedIds = ids
+var boxedScores = scores
+
+expect(type(boxedNumbers) == type(numbers), 1)
+expect(type(boxedNames) == type(names), 1)
+expect(type(boxedIds) == type(ids), 1)
+expect(type(boxedScores) == type(scores), 1)
+expect(int(boxedNumbers[2]), 30)
+expectStr(string(boxedNames[2]), "beta")
+expect(2 in boxedIds, 1)
+expect(int(boxedScores["beta"]), 20)
+
 // 泛型容器可以保存 class、custom、function 等一等公民类型。
 class Pair
     int left = 0

@@ -28,3 +28,9 @@ var dynamicValues = values
 int safeValue = int(values?[1])
 int safeLength = int(dynamicValues?.length)
 int fallback = int(missing?[0] ?? 9)
+
+array<int> typedValues = array[10, 20, 30]
+type typedValuesType = type(typedValues)
+var boxedTypedValues = typedValues
+type boxedTypedValuesType = type(boxedTypedValues)
+int boxedTypedMiddle = int(boxedTypedValues[1])

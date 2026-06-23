@@ -1,0 +1,66 @@
+extern "expect_i64" func expect(int actual, int expected)
+extern "expect_str" func expectStr(string actual, string expected)
+
+array<int> values = array[1, 2, 3]
+array<int> valuesCopy = values
+
+values[0] = 10
+expect(valuesCopy[0], 1)
+expect(values[0], 10)
+
+valuesCopy = values
+values[1] = 20
+expect(valuesCopy[0], 10)
+expect(valuesCopy[1], 2)
+expect(values[1], 20)
+
+valuesCopy = array[7, 8]
+expect(valuesCopy.length, 2)
+expect(valuesCopy[0], 7)
+expect(valuesCopy[1], 8)
+
+list<string> names = list[0: "a", 2: "b"]
+list<string> namesCopy = names
+
+names[2] = "c"
+expectStr(namesCopy[2], "b")
+
+namesCopy = names
+names[0] = "z"
+expectStr(namesCopy[0], "a")
+expectStr(namesCopy[2], "c")
+
+namesCopy = list[5: "five"]
+expect(namesCopy.length, 1)
+expectStr(namesCopy[5], "five")
+
+set<int> ids = set{1, 2}
+set<int> idsCopy = ids
+
+ids = set{3, 4}
+expect(1 in idsCopy, 1)
+expect(3 in idsCopy, 0)
+expect(3 in ids, 1)
+
+idsCopy = ids
+ids = set{5}
+expect(3 in idsCopy, 1)
+expect(5 in idsCopy, 0)
+expect(5 in ids, 1)
+
+dict<int> scores = dict{"a": 1, "b": 2}
+dict<int> scoresCopy = scores
+
+scores["a"] = 10
+expect(scoresCopy["a"], 1)
+expect(scores["a"], 10)
+
+scoresCopy = scores
+scores["b"] = 20
+expect(scoresCopy["a"], 10)
+expect(scoresCopy["b"], 2)
+expect(scores["b"], 20)
+
+scoresCopy = dict{"z": 99}
+expect(scoresCopy.length, 1)
+expect(scoresCopy["z"], 99)
