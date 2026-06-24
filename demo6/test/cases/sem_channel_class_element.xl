@@ -1,0 +1,5 @@
+class Box
+    int value = 0
+end
+
+channel<Box> ch = channel::<Box>(1)

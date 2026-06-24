@@ -18,6 +18,8 @@ valuesCopy = array[7, 8]
 expect(valuesCopy.length, 2)
 expect(valuesCopy[0], 7)
 expect(valuesCopy[1], 8)
+expect(20 in values, 1)
+expect(7 in values, 0)
 
 list<string> names = list[0: "a", 2: "b"]
 list<string> namesCopy = names
@@ -33,6 +35,8 @@ expectStr(namesCopy[2], "c")
 namesCopy = list[5: "five"]
 expect(namesCopy.length, 1)
 expectStr(namesCopy[5], "five")
+expect("c" in names, 1)
+expect("five" in names, 0)
 
 set<int> ids = set{1, 2}
 set<int> idsCopy = ids
@@ -44,6 +48,7 @@ expect(3 in ids, 1)
 
 idsCopy = ids
 ids = set{5}
+expect(ids.length, 1)
 expect(3 in idsCopy, 1)
 expect(5 in idsCopy, 0)
 expect(5 in ids, 1)
@@ -64,3 +69,5 @@ expect(scores["b"], 20)
 scoresCopy = dict{"z": 99}
 expect(scoresCopy.length, 1)
 expect(scoresCopy["z"], 99)
+expect("z" in scoresCopy, 1)
+expect("a" in scoresCopy, 0)

@@ -8,7 +8,11 @@ static void xl6CgenRegisterParamTypes(XL6_CgenContext* ctx, const XL6_AstNode* p
     for ( i = 0; i < params->childCount; ++i ) {
         const XL6_AstNode* param = params->children[i];
         if ( param != NULL && param->childCount > 0 ) {
-            xl6CgenAddVarType(ctx, param->text, param->children[0]);
+            if ( xl6CgenParamTypeUsesTypedContainerStorage(ctx, param->children[0]) ) {
+                xl6CgenAddVarTypeWithFlags(ctx, param->text, param->children[0], XL6_CGEN_VAR_TYPED_CONTAINER);
+            } else {
+                xl6CgenAddVarType(ctx, param->text, param->children[0]);
+            }
             if ( xl6CgenParamIsVararg(param) ) {
                 xl6CgenAddXValueCleanup(ctx, param->text, param->children[0]);
             }

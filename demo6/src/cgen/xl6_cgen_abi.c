@@ -398,6 +398,10 @@ static void xl6CgenEmitXrtTypeDescRef(XL6_CgenContext* ctx, const XL6_AstNode* t
         xl6CgenClassTypeRefName(cTypeName, sizeof(cTypeName), concreteType);
         xl6CgenTypeDescSymbol(ctx->out, cTypeName);
         xl6OutputPuts("()", ctx->out);
+    } else if ( xl6CgenIsUnionType(ctx, concreteType) ) {
+        xl6CgenUnionTypeTextName(cTypeName, sizeof(cTypeName), concreteType->text);
+        xl6CgenTypeDescSymbol(ctx->out, cTypeName);
+        xl6OutputPuts("()", ctx->out);
     } else if ( xl6CgenIsCustomType(ctx, concreteType) ) {
         xl6CgenCustomTypeRefName(cTypeName, sizeof(cTypeName), concreteType->text);
         xl6CgenTypeDescSymbol(ctx->out, cTypeName);
@@ -431,6 +435,8 @@ static void xl6CgenEmitRuntimeTypeDescDependencyProto(XL6_CgenContext* ctx, cons
 
     if ( xl6CgenIsClassType(ctx, concreteType) ) {
         xl6CgenClassTypeRefName(cTypeName, sizeof(cTypeName), concreteType);
+    } else if ( xl6CgenIsUnionType(ctx, concreteType) ) {
+        xl6CgenUnionTypeTextName(cTypeName, sizeof(cTypeName), name);
     } else if ( xl6CgenIsCustomType(ctx, concreteType) ) {
         xl6CgenCustomTypeRefName(cTypeName, sizeof(cTypeName), name);
     } else {

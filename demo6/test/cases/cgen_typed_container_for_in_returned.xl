@@ -1,0 +1,53 @@
+func makeValues() -> array<int>
+    return array[1, 2, 3]
+end
+
+func makeNames() -> list<string>
+    return list[0: "a", 2: "b"]
+end
+
+func makeIds() -> set<int>
+    return set{1, 2, 3}
+end
+
+func makeScores() -> dict<int>
+    return dict{"a": 1, "b": 2}
+end
+
+int arrayTotal = 0
+for value in makeValues()
+    arrayTotal = arrayTotal + value
+end
+assert arrayTotal == 6, "returned array for-in failed"
+
+int listIndexTotal = 0
+int listCount = 0
+for index, name in makeNames()
+    listIndexTotal = listIndexTotal + index
+    if name == "a" or name == "b" then
+        listCount = listCount + 1
+    end
+end
+assert listIndexTotal == 2, "returned list index failed"
+assert listCount == 2, "returned list value failed"
+
+int setTotal = 0
+for id in makeIds()
+    setTotal = setTotal + id
+end
+assert setTotal == 6, "returned set for-in failed"
+
+int dictTotal = 0
+for key, score in makeScores()
+    dictTotal = dictTotal + score
+end
+assert dictTotal == 3, "returned dict for-in failed"
+
+int breakTotal = 0
+for value in makeValues()
+    if value == 3 then
+        break
+    end
+    breakTotal = breakTotal + value
+end
+assert breakTotal == 3, "returned typed container break cleanup failed"

@@ -244,13 +244,17 @@ static XL6_AstNode* xl6CgenCloneMemberFieldTypeForInference(XL6_CgenContext* ctx
     }
 
     receiver = member->childCount > 0 ? member->children[0] : NULL;
-    if ( receiver == NULL || (receiver->kind != XL6_AST_NAME && receiver->kind != XL6_AST_MEMBER) ) {
+    if ( receiver == NULL || (receiver->kind != XL6_AST_NAME &&
+                              receiver->kind != XL6_AST_MEMBER &&
+                              receiver->kind != XL6_AST_INDEX) ) {
         return NULL;
     }
 
     receiverType = NULL;
-    if ( receiver->kind == XL6_AST_MEMBER ) {
-        receiverType = xl6CgenCloneMemberFieldTypeForInference(ctx, receiver);
+    if ( receiver->kind == XL6_AST_MEMBER || receiver->kind == XL6_AST_INDEX ) {
+        receiverType = receiver->kind == XL6_AST_MEMBER
+            ? xl6CgenCloneMemberFieldTypeForInference(ctx, receiver)
+            : xl6CgenCloneExprTypeForInference(ctx, receiver);
         if ( receiverType != NULL && xl6CgenIsUnionType(ctx, receiverType) ) {
             field = xl6CgenFindUnionFieldNode(xl6CgenFindUnion(ctx, receiverType->text), member->text);
             result = field != NULL && field->childCount > 0 ? xl6CgenCloneCanonicalTypeNode(ctx, field->children[0]) : NULL;
@@ -495,6 +499,66 @@ static void xl6CgenReleaseClassFunctionFieldsForType(XL6_CgenContext* ctx, const
     classNode = xl6CgenClassNodeForType(ctx, typeNode);
     if ( classNode != NULL ) {
         xl6CgenReleaseClassFunctionFields(ctx, classNode, valuePath);
+    }
+}
+
+static int xl6CgenClassTypeNeedsFunctionFieldCleanup(XL6_CgenContext* ctx, const XL6_AstNode* typeNode)
+{
+    XL6_AstNode* classNode;
+
+    classNode = xl6CgenClassNodeForType(ctx, typeNode);
+    return classNode != NULL && xl6CgenClassNeedsDestroy(ctx, classNode);
+}
+
+static int xl6CgenExprIsClassBorrow(XL6_CgenContext* ctx, const XL6_AstNode* expr, const XL6_AstNode* typeNode)
+{
+    XL6_AstNode* exprType;
+    const XL6_AstNode* resolvedExprType;
+    const XL6_AstNode* resolvedType;
+    int result;
+
+    if ( ctx == NULL || expr == NULL || !xl6CgenClassTypeNeedsFunctionFieldCleanup(ctx, typeNode) ) {
+        return 0;
+    }
+    if ( expr->kind != XL6_AST_NAME &&
+         expr->kind != XL6_AST_MEMBER &&
+         expr->kind != XL6_AST_INDEX &&
+         expr->kind != XL6_AST_AWAIT ) {
+        return 0;
+    }
+
+    exprType = xl6CgenCloneExprTypeForInference(ctx, expr);
+    resolvedExprType = xl6CgenResolveAliasType(ctx, exprType);
+    resolvedType = xl6CgenResolveAliasType(ctx, typeNode);
+    result = resolvedExprType != NULL && resolvedType != NULL &&
+             (xl6CgenTypeNodeEqual(resolvedExprType, resolvedType) ||
+              (resolvedExprType->text != NULL && resolvedType->text != NULL &&
+               xl6CTextEquals(resolvedExprType->text, resolvedType->text) &&
+               xl6CgenClassNodeForType(ctx, resolvedExprType) != NULL &&
+               xl6CgenClassNodeForType(ctx, resolvedType) != NULL));
+    xl6AstFree(exprType);
+    return result;
+}
+
+static void xl6CgenRetainClassFunctionFieldsForBorrowedExpr(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* typeNode,
+    const char* valuePath,
+    const XL6_AstNode* expr)
+{
+    if ( xl6CgenExprIsClassBorrow(ctx, expr, typeNode) ) {
+        xl6CgenRetainClassFunctionFieldsForType(ctx, typeNode, valuePath);
+    }
+}
+
+static void xl6CgenReleaseReturnedValuePath(XL6_CgenContext* ctx, const XL6_AstNode* typeNode, const char* valuePath)
+{
+    if ( xl6CgenIsFunctionType(typeNode) ) {
+        xl6CgenReleaseFunctionPath(ctx, valuePath);
+        return;
+    }
+    if ( xl6CgenClassTypeNeedsFunctionFieldCleanup(ctx, typeNode) ) {
+        xl6CgenReleaseClassFunctionFieldsForType(ctx, typeNode, valuePath);
     }
 }
 
@@ -877,6 +941,12 @@ static int xl6CgenExprIsFunctionBorrow(XL6_CgenContext* ctx, const XL6_AstNode* 
         XL6_AstNode* memberType = xl6CgenCloneMemberFieldTypeForInference(ctx, expr);
         int result = xl6CgenIsFunctionType(memberType);
         xl6AstFree(memberType);
+        return result;
+    }
+    if ( expr->kind == XL6_AST_AWAIT ) {
+        XL6_AstNode* awaitType = xl6CgenCloneExprTypeForInference(ctx, expr);
+        int result = xl6CgenIsFunctionType(awaitType);
+        xl6AstFree(awaitType);
         return result;
     }
     if ( expr->kind != XL6_AST_NAME ) {

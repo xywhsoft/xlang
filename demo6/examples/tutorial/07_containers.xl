@@ -98,6 +98,18 @@ func main(...) -> int
     if 2 in boxedIds != true or int(boxedScores["beta"]) != 20 then
         return 14
     end
+
+    array<int> numbersCopy = numbers
+    set<int> idsCopy = ids
+    numbers[0] = 99
+    ids = set{3, 4}
+    if numbersCopy[0] != 10 or numbers[0] != 99 then
+        return 15
+    end
+    if 1 in idsCopy != true or 3 in idsCopy != false or 3 in ids != true then
+        return 16
+    end
+
     if int(dynamicTable.name) != 31 or int(dynamicTable?.name) != 31 then
         return 9
     end

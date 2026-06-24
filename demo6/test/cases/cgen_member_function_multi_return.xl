@@ -15,6 +15,18 @@ class PairBox
     int bias = 0
 end
 
+func makeBox(int base) -> PairBox
+    PairBox box
+    box.op = makePairer(base)
+    box.bias = base
+    return box
+end
+
+func makeBoxAndOp(int base) -> (PairBox, function(int) -> (int, int))
+    PairBox box = makeBox(base)
+    return box, box.op
+end
+
 PairBox direct
 direct.op = pair
 direct.bias = 10
@@ -45,3 +57,34 @@ PairBox fromArray = boxes[0]
 auto arrayLeft, arrayRight = fromArray.op(9)
 expect(arrayLeft, 29)
 expect(arrayRight, 11)
+
+PairBox returned = makeBox(40)
+auto returnedLeft, returnedRight = returned.op(2)
+expect(returnedLeft + returned.bias, 82)
+expect(returnedRight + returned.bias, 78)
+
+PairBox assignedBox
+assignedBox.op = pair
+assignedBox.bias = 1
+function(int) -> (int, int) assignedOp = pair
+
+assignedBox, assignedOp = makeBoxAndOp(50)
+
+auto assignedLeft, assignedRight = assignedBox.op(3)
+auto assignedFnLeft, assignedFnRight = assignedOp(4)
+
+expect(assignedLeft + assignedBox.bias, 103)
+expect(assignedRight + assignedBox.bias, 97)
+expect(assignedFnLeft, 54)
+expect(assignedFnRight, 46)
+
+auto declaredBox, declaredOp = makeBoxAndOp(60)
+auto declaredLeft, declaredRight = declaredBox.op(5)
+auto declaredFnLeft, declaredFnRight = declaredOp(6)
+
+expect(declaredLeft + declaredBox.bias, 125)
+expect(declaredRight + declaredBox.bias, 115)
+expect(declaredFnLeft, 66)
+expect(declaredFnRight, 54)
+
+_, _ = makeBoxAndOp(70)

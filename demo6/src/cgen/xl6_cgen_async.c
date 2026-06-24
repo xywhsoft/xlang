@@ -36,6 +36,12 @@ static void xl6CgenAsyncArgsStructName(XL6_CgenContext* ctx, const XL6_AstNode* 
     xl6CgenFuncSymbol(ctx, node);
 }
 
+static void xl6CgenAsyncResultFreeSymbol(XL6_CgenContext* ctx, const XL6_AstNode* node)
+{
+    xl6OutputPuts("xl_async_result_free_", ctx->out);
+    xl6CgenFuncSymbol(ctx, node);
+}
+
 static void xl6CgenAsyncEmitParamList(XL6_CgenContext* ctx, const XL6_AstNode* params)
 {
     size_t i;
@@ -170,6 +176,20 @@ static void xl6CgenEmitAsyncRuntime(XL6_Output* out)
     xl6OutputPuts("void xrtChannelClose(xchannel pChannel);\n", out);
     xl6OutputPuts("unsigned int xrtChannelCount(xchannel pChannel);\n", out);
     xl6OutputPuts("bool xrtChannelIsClosed(xchannel pChannel);\n\n", out);
+
+    xl6OutputPuts("#ifdef XL6_FUNCTION_TYPEDEF\n", out);
+    xl6OutputPuts("static void xl6_async_free_function_value(void* pValue)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    XL6_Function* fn = (XL6_Function*)pValue;\n", out);
+    xl6OutputPuts("    if ( fn != 0 && fn->release != 0 && fn->env != 0 ) {\n", out);
+    xl6OutputPuts("        fn->release(fn->env);\n", out);
+    xl6OutputPuts("        fn->env = 0;\n", out);
+    xl6OutputPuts("        fn->release = 0;\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    xrtFree(pValue);\n", out);
+    xl6OutputPuts("}\n", out);
+    xl6OutputPuts("#endif\n\n", out);
+
     xl6OutputPuts("void* xrtMutexCreate(void);\n", out);
     xl6OutputPuts("void xrtMutexDestroy(void* pMutex);\n", out);
     xl6OutputPuts("void xrtMutexLock(void* pMutex);\n", out);
@@ -860,6 +880,56 @@ static void xl6CgenAsyncArgStructDecl(XL6_CgenContext* ctx, const XL6_AstNode* n
     xl6OutputPuts(";\n\n", ctx->out);
 }
 
+static void xl6CgenAsyncResultFreeFunc(XL6_CgenContext* ctx, const XL6_AstNode* node)
+{
+    const XL6_AstNode* returns;
+    const XL6_AstNode* resultType;
+    XL6_AstNode* classNode;
+    int isGenericClass;
+
+    returns = node != NULL && node->childCount > 2 ? node->children[2] : NULL;
+    resultType = returns != NULL && returns->childCount == 1 ? returns->children[0] : NULL;
+    if ( !xl6CgenClassTypeNeedsFunctionFieldCleanup(ctx, resultType) ) {
+        return;
+    }
+
+    classNode = xl6CgenClassNodeForType(ctx, resultType);
+    if ( classNode == NULL ) {
+        return;
+    }
+    isGenericClass = resultType != NULL && resultType->childCount > 0 && xl6CgenClassHasTypeParams(classNode);
+
+    xl6OutputPuts("static void ", ctx->out);
+    xl6CgenAsyncResultFreeSymbol(ctx, node);
+    xl6OutputPuts("(void* pValue)\n{\n", ctx->out);
+    xl6OutputPuts("    if ( pValue != 0 ) {\n", ctx->out);
+    xl6OutputPuts("        ", ctx->out);
+    if ( isGenericClass ) {
+        xl6CgenGenericClassMemberSymbol(ctx, classNode, resultType, "destroy");
+    } else {
+        xl6CgenClassMemberSymbol(ctx->out, classNode->text, "destroy");
+    }
+    xl6OutputPuts("((", ctx->out);
+    xl6OutputPuts(xl6CgenTypeName(ctx, resultType), ctx->out);
+    xl6OutputPuts("*)pValue);\n", ctx->out);
+    xl6OutputPuts("    }\n", ctx->out);
+    xl6OutputPuts("    xrtFree(pValue);\n", ctx->out);
+    xl6OutputPuts("}\n\n", ctx->out);
+}
+
+static void xl6CgenAsyncResultFreeValue(XL6_CgenContext* ctx, const XL6_AstNode* funcNode, const XL6_AstNode* resultType)
+{
+    if ( xl6CgenIsFunctionType(resultType) ) {
+        xl6OutputPuts("xl6_async_free_function_value", ctx->out);
+        return;
+    }
+    if ( xl6CgenClassTypeNeedsFunctionFieldCleanup(ctx, resultType) ) {
+        xl6CgenAsyncResultFreeSymbol(ctx, funcNode);
+        return;
+    }
+    xl6OutputPuts("xrtFree", ctx->out);
+}
+
 static void xl6CgenAsyncReturnStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
 {
     const XL6_AstNode* resultType = ctx->currentReturnType;
@@ -889,6 +959,11 @@ static void xl6CgenAsyncReturnStmt(XL6_CgenContext* ctx, const XL6_AstNode* node
         char returnName[64];
         snprintf(returnName, sizeof(returnName), "__xl6_async_return_%d", id);
         xl6CgenRetainFunctionValue(ctx, returnName);
+    }
+    {
+        char returnName[64];
+        snprintf(returnName, sizeof(returnName), "__xl6_async_return_%d", id);
+        xl6CgenRetainClassFunctionFieldsForBorrowedExpr(ctx, resultType, returnName, node->children[0]);
     }
 
     xl6CgenIndent(ctx);
@@ -920,7 +995,9 @@ static void xl6CgenAsyncReturnStmt(XL6_CgenContext* ctx, const XL6_AstNode* node
     xl6CgenIndent(ctx);
     xl6OutputPuts("pOut->iFlags = XFUTURE_RESULT_F_OWN_VALUE;\n", ctx->out);
     xl6CgenIndent(ctx);
-    xl6OutputPuts("pOut->pfnFreeValue = xrtFree;\n", ctx->out);
+    xl6OutputPuts("pOut->pfnFreeValue = ", ctx->out);
+    xl6CgenAsyncResultFreeValue(ctx, ctx->currentReturnFunc, resultType);
+    xl6OutputPuts(";\n", ctx->out);
     xl6CgenIndent(ctx);
     xl6OutputPuts("pOut->pfnFreeError = 0;\n", ctx->out);
     xl6CgenEmitCleanupsSince(ctx, 0);
@@ -1082,6 +1159,7 @@ static void xl6CgenAsyncFunc(XL6_CgenContext* ctx, const XL6_AstNode* node)
     size_t i;
 
     xl6CgenAsyncArgStructDecl(ctx, node);
+    xl6CgenAsyncResultFreeFunc(ctx, node);
     xl6CgenAsyncWorker(ctx, node);
 
     xl6CgenAsyncFuncProto(ctx, node);

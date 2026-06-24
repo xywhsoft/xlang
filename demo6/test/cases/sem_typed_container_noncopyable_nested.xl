@@ -1,0 +1,6 @@
+class Resource
+    destroy()
+    end
+end
+
+array<array<Resource>> nested = array[]

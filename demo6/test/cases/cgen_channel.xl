@@ -26,3 +26,29 @@ assert autoReceived, "auto channel recv failed"
 assert autoValue == 7, "auto channel value mismatch"
 
 autoCh.close()
+
+channel<bool> boolCh = channel::<bool>(2)
+bool boolValue = false
+
+assert boolCh.send(true), "bool channel send failed"
+assert boolCh.recvInto(boolValue), "bool channel recv failed"
+assert boolValue, "bool channel value mismatch"
+assert not boolCh.tryRecvInto(boolValue), "empty bool channel should not receive"
+
+channel<float> floatCh = channel::<float>(1)
+float floatValue = 0.0
+
+assert floatCh.send(1.5), "float channel send failed"
+assert floatCh.recvInto(floatValue), "float channel recv failed"
+assert floatValue == 1.5, "float channel value mismatch"
+
+channel<time> timeCh = channel::<time>(1)
+time timeValue = #00:00:00#
+
+assert timeCh.send(#12:34:56#), "time channel send failed"
+assert timeCh.recvInto(timeValue), "time channel recv failed"
+assert timeValue == #12:34:56#, "time channel value mismatch"
+
+channel<int> closedCh = channel::<int>(1)
+closedCh.close()
+assert not closedCh.send(1), "closed channel send should fail"

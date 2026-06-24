@@ -1,0 +1,6 @@
+class Resource
+    destroy()
+    end
+end
+
+dict<Resource> resources = dict{}

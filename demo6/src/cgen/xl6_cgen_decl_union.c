@@ -93,6 +93,12 @@ static void xl6CgenUnionDecls(XL6_CgenContext* ctx, const XL6_AstNode* unionNode
     xl6OutputPuts("} ", ctx->out);
     xl6CgenUnionTypeName(ctx->out, unionNode->text);
     xl6OutputPuts(";\n", ctx->out);
+    if ( ctx->needsXValueRuntime ) {
+        char cTypeName[256];
+
+        xl6CgenUnionTypeTextName(cTypeName, sizeof(cTypeName), unionNode->text);
+        xl6CgenEmitPlainRecordBoxRuntime(ctx, cTypeName, unionNode->text);
+    }
 }
 
 static void xl6CgenInlineUnionFieldDecl(XL6_CgenContext* ctx, const XL6_AstNode* unionNode)
