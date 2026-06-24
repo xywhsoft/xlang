@@ -152,10 +152,43 @@ expectStr(string(boxedNames[2]), "beta")
 expect(2 in boxedIds, 1)
 expect(int(boxedScores["beta"]), 20)
 
+// 静态泛型容器复制和赋值会生成独立容器。
+array<int> numbersCopy = numbers
+list<string> namesCopy = names
+set<int> idsCopy = ids
+dict<int> scoresCopy = scores
+
+numbers[0] = 99
+names[2] = "gamma"
+ids = set{3, 4}
+scores["beta"] = 25
+
+expect(numbersCopy[0], 10)
+expectStr(namesCopy[2], "beta")
+expect(1 in idsCopy, 1)
+expect(3 in idsCopy, 0)
+expect(scoresCopy["beta"], 20)
+
+numbersCopy = array[7, 8]
+namesCopy = list[5: "five"]
+idsCopy = ids
+scoresCopy = dict{"z": 99}
+
+expect(numbersCopy.length, 2)
+expectStr(namesCopy[5], "five")
+expect(3 in idsCopy, 1)
+expect(scoresCopy.length, 1)
+expect(scoresCopy["z"], 99)
+
 // 泛型容器可以保存 class、custom、function 等一等公民类型。
 class Pair
     int left = 0
     int right = 0
+end
+
+class FnBox
+    function(int) -> int op
+    int bias = 0
 end
 
 custom Native
@@ -163,6 +196,12 @@ end
 
 func add(int left, int right) -> int
     return left + right
+end
+
+func makeAdder(int base) -> function(int) -> int
+    return func(int value) -> int
+        return base + value
+    end
 end
 
 Pair seed
@@ -182,3 +221,24 @@ function(int, int) -> int fn = add
 dict<function(int, int) -> int> funcs = dict{"add": fn}
 function(int, int) -> int picked = funcs["add"]
 expect(picked(20, 22), 42)
+
+function(int) -> int add5 = makeAdder(5)
+function(int) -> int add9 = makeAdder(9)
+array<function(int) -> int> unaryFuncs = array[add5]
+array<function(int) -> int> unaryFuncsCopy = unaryFuncs
+unaryFuncs[0] = add9
+function(int) -> int copiedUnary = unaryFuncsCopy[0]
+expect(copiedUnary(7), 12)
+
+FnBox box
+box.op = add5
+box.bias = 10
+FnBox nextBox
+nextBox.op = add9
+nextBox.bias = 20
+
+array<FnBox> boxes = array[box]
+array<FnBox> boxesCopy = boxes
+boxes[0] = nextBox
+FnBox copiedBox = boxesCopy[0]
+expect(copiedBox.op(1) + copiedBox.bias, 16)

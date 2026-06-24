@@ -20,6 +20,16 @@ assert readPayload(payload) == 42, "union function parameter failed"
 payload.d = 12.5
 assert int(payload.d) == 12, "union double field failed"
 
+var boxedPayload = payload
+assert type(boxedPayload) == Payload, "union var type failed"
+
+array<Payload> payloads = array[payload]
+array<Payload> copiedPayloads = payloads
+var boxedPayloads = copiedPayloads
+assert type(boxedPayloads) == type(copiedPayloads), "union typed array var type failed"
+assert copiedPayloads.length == 1, "union typed array copy failed"
+assert int(copiedPayloads[0].d) == 12, "union typed array item failed"
+
 class Packet
     int tag
     union

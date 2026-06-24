@@ -1,0 +1,7 @@
+func inc(int value) -> int
+    return value + 1
+end
+
+func values() -> generator<function(int) -> int>
+    yield inc
+end

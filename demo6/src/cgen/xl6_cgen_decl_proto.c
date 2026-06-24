@@ -9,7 +9,7 @@ static void xl6CgenFuncProto(XL6_CgenContext* ctx, const XL6_AstNode* node)
     if ( returns != NULL && returns->childCount > 1 ) {
         xl6CgenFuncReturnStructName(ctx, node);
     } else if ( returns != NULL && returns->childCount == 1 ) {
-        xl6OutputPuts(xl6CgenTypeName(ctx, returns->children[0]), ctx->out);
+        xl6OutputPuts(xl6CgenFuncSingleReturnCType(ctx, node), ctx->out);
     } else {
         xl6OutputPuts("void", ctx->out);
     }
@@ -33,7 +33,7 @@ static void xl6CgenFuncProto(XL6_CgenContext* ctx, const XL6_AstNode* node)
                 xl6CgenError(ctx, param, "函数参数缺少类型");
                 xl6OutputPuts("int ", ctx->out);
             } else {
-                xl6OutputPuts(xl6CgenTypeName(ctx, param->children[0]), ctx->out);
+                xl6OutputPuts(xl6CgenParamCType(ctx, param->children[0]), ctx->out);
                 xl6OutputPutc(' ', ctx->out);
             }
             xl6CgenFputsCIdent(ctx->out, param->text);
@@ -52,7 +52,7 @@ static void xl6CgenExportInternalProto(XL6_CgenContext* ctx, const XL6_AstNode* 
     if ( returns != NULL && returns->childCount > 1 ) {
         xl6CgenFuncReturnStructName(ctx, node);
     } else if ( returns != NULL && returns->childCount == 1 ) {
-        xl6OutputPuts(xl6CgenTypeName(ctx, returns->children[0]), ctx->out);
+        xl6OutputPuts(xl6CgenFuncSingleReturnCType(ctx, node), ctx->out);
     } else {
         xl6OutputPuts("void", ctx->out);
     }
@@ -454,6 +454,110 @@ static void xl6CgenEmitRecordBoxRuntime(
 
     ctx->currentGenericParams = prevParams;
     ctx->currentGenericArgs = prevArgs;
+}
+
+static void xl6CgenEmitPlainRecordBoxRuntime(XL6_CgenContext* ctx, const char* cTypeName, const char* sourceName)
+{
+    if ( ctx == NULL || cTypeName == NULL || sourceName == NULL ) {
+        return;
+    }
+
+    xl6OutputPrintf(ctx->out, "static void xl6_type_copy_%s(void* dst, const void* src)\n{\n", cTypeName);
+    xl6OutputPrintf(ctx->out, "    if ( dst == 0 ) {\n");
+    xl6OutputPrintf(ctx->out, "        return;\n");
+    xl6OutputPrintf(ctx->out, "    }\n");
+    xl6OutputPrintf(ctx->out, "    if ( src != 0 ) {\n");
+    xl6OutputPrintf(ctx->out, "        memcpy(dst, src, sizeof(%s));\n", cTypeName);
+    xl6OutputPrintf(ctx->out, "    } else {\n");
+    xl6OutputPrintf(ctx->out, "        memset(dst, 0, sizeof(%s));\n", cTypeName);
+    xl6OutputPrintf(ctx->out, "    }\n");
+    xl6OutputPrintf(ctx->out, "}\n\n");
+
+    xl6OutputPrintf(ctx->out, "static int xl6_type_compare_%s(const void* a, const void* b)\n{\n", cTypeName);
+    xl6OutputPrintf(ctx->out, "    if ( a == b ) {\n");
+    xl6OutputPrintf(ctx->out, "        return 0;\n");
+    xl6OutputPrintf(ctx->out, "    }\n");
+    xl6OutputPrintf(ctx->out, "    if ( a == 0 ) {\n");
+    xl6OutputPrintf(ctx->out, "        return -1;\n");
+    xl6OutputPrintf(ctx->out, "    }\n");
+    xl6OutputPrintf(ctx->out, "    if ( b == 0 ) {\n");
+    xl6OutputPrintf(ctx->out, "        return 1;\n");
+    xl6OutputPrintf(ctx->out, "    }\n");
+    xl6OutputPrintf(ctx->out, "    return memcmp(a, b, sizeof(%s));\n", cTypeName);
+    xl6OutputPrintf(ctx->out, "}\n\n");
+
+    xl6OutputPrintf(ctx->out, "static unsigned long long xl6_type_hash_%s(const void* obj)\n{\n", cTypeName);
+    xl6OutputPrintf(ctx->out, "    if ( obj == 0 ) {\n");
+    xl6OutputPrintf(ctx->out, "        return 0;\n");
+    xl6OutputPrintf(ctx->out, "    }\n");
+    xl6OutputPrintf(ctx->out, "    return xrtHash64((const char*)obj, sizeof(%s));\n", cTypeName);
+    xl6OutputPrintf(ctx->out, "}\n\n");
+
+    xl6OutputPrintf(ctx->out, "static xvalue xl6_type_box_%s(const void* obj, const xrt_type_desc* type)\n{\n", cTypeName);
+    xl6OutputPrintf(ctx->out, "    xvalue boxed;\n");
+    xl6OutputPrintf(ctx->out, "    if ( type == 0 ) {\n");
+    xl6OutputPrintf(ctx->out, "        return xvoCreateNull();\n");
+    xl6OutputPrintf(ctx->out, "    }\n");
+    xl6OutputPrintf(ctx->out, "    boxed = xvoCreateRecord(type, obj);\n");
+    xl6OutputPrintf(ctx->out, "    return boxed != 0 ? boxed : xvoCreateNull();\n");
+    xl6OutputPrintf(ctx->out, "}\n\n");
+
+    xl6OutputPrintf(ctx->out, "static bool xl6_type_unbox_%s(xvalue value, void* out, const xrt_type_desc* type)\n{\n", cTypeName);
+    xl6OutputPrintf(ctx->out, "    const xrt_type_desc* actual;\n");
+    xl6OutputPrintf(ctx->out, "    void* data;\n");
+    xl6OutputPrintf(ctx->out, "    if ( value == 0 || out == 0 || type == 0 ) {\n");
+    xl6OutputPrintf(ctx->out, "        return false;\n");
+    xl6OutputPrintf(ctx->out, "    }\n");
+    xl6OutputPrintf(ctx->out, "    actual = xvoTypeDesc(value);\n");
+    xl6OutputPrintf(ctx->out, "    if ( actual != type ) {\n");
+    xl6OutputPrintf(ctx->out, "        return false;\n");
+    xl6OutputPrintf(ctx->out, "    }\n");
+    xl6OutputPrintf(ctx->out, "    data = xvoGetRecordData(value);\n");
+    xl6OutputPrintf(ctx->out, "    if ( data == 0 ) {\n");
+    xl6OutputPrintf(ctx->out, "        return false;\n");
+    xl6OutputPrintf(ctx->out, "    }\n");
+    xl6OutputPrintf(ctx->out, "    xl6_type_copy_%s(out, data);\n", cTypeName);
+    xl6OutputPrintf(ctx->out, "    return true;\n");
+    xl6OutputPrintf(ctx->out, "}\n\n");
+
+    xl6OutputPrintf(ctx->out, "static const xrt_type_ops xl6_type_ops_%s = {\n", cTypeName);
+    xl6OutputPuts("    0,\n", ctx->out);
+    xl6OutputPrintf(ctx->out, "    xl6_type_copy_%s,\n", cTypeName);
+    xl6OutputPuts("    0,\n", ctx->out);
+    xl6OutputPuts("    0,\n", ctx->out);
+    xl6OutputPrintf(ctx->out, "    xl6_type_compare_%s,\n", cTypeName);
+    xl6OutputPrintf(ctx->out, "    xl6_type_hash_%s,\n", cTypeName);
+    xl6OutputPuts("    0,\n", ctx->out);
+    xl6OutputPrintf(ctx->out, "    xl6_type_box_%s,\n", cTypeName);
+    xl6OutputPrintf(ctx->out, "    xl6_type_unbox_%s\n", cTypeName);
+    xl6OutputPuts("};\n\n", ctx->out);
+
+    xl6OutputPuts("static const xrt_type_desc* ", ctx->out);
+    xl6CgenTypeDescSymbol(ctx->out, cTypeName);
+    xl6OutputPuts("(void)\n{\n", ctx->out);
+    xl6OutputPuts("    static const xrt_type_desc desc = {\n", ctx->out);
+    xl6OutputPuts("        0u,\n", ctx->out);
+    xl6OutputPuts("        XL6_XRT_TYPE_KIND_RECORD,\n", ctx->out);
+    xl6OutputPuts("        ", ctx->out);
+    xl6CgenCStringLiteral(ctx->out, sourceName);
+    xl6OutputPrintf(ctx->out, ", %uu,\n", (unsigned)strlen(sourceName));
+    xl6OutputPuts("        ", ctx->out);
+    xl6CgenCStringLiteral(ctx->out, cTypeName);
+    xl6OutputPrintf(ctx->out, ", %uu,\n", (unsigned)strlen(cTypeName));
+    xl6OutputPrintf(ctx->out, "        sizeof(%s), sizeof(void*),\n", cTypeName);
+    xl6OutputPrintf(ctx->out, "        &xl6_type_ops_%s, 0, 0\n", cTypeName);
+    xl6OutputPuts("    };\n", ctx->out);
+    xl6OutputPuts("    return &desc;\n", ctx->out);
+    xl6OutputPuts("}\n\n", ctx->out);
+
+    xl6OutputPuts("static xvalue ", ctx->out);
+    xl6CgenBoxSymbol(ctx->out, cTypeName);
+    xl6OutputPrintf(ctx->out, "(%s value)\n{\n", cTypeName);
+    xl6OutputPuts("    xvalue boxed = xvoCreateRecord(", ctx->out);
+    xl6CgenTypeDescSymbol(ctx->out, cTypeName);
+    xl6OutputPuts("(), &value);\n", ctx->out);
+    xl6OutputPuts("    return boxed != 0 ? boxed : xvoCreateNull();\n", ctx->out);
+    xl6OutputPuts("}\n\n", ctx->out);
 }
 
 static void xl6CgenEmitHandleBoxRuntime(XL6_CgenContext* ctx, const XL6_AstNode* customNode, const char* cTypeName, const char* sourceName)

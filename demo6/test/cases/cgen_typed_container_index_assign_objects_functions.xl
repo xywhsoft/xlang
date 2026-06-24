@@ -8,6 +8,11 @@ end
 custom Native
 end
 
+union Payload
+    int i
+    c_double d
+end
+
 func add(int left, int right) -> int
     return left + right
 end
@@ -26,15 +31,42 @@ second.right = 6
 
 list<Pair> pairList = list[0: first]
 dict<Pair> pairDict = dict{"first": first}
+var pairKey = "dynamic"
 
 pairList[2] = second
 pairDict["second"] = second
+pairDict[pairKey] = second
 
 Pair fromList = pairList[2]
 Pair fromDict = pairDict["second"]
+Pair fromDynamicDict = pairDict[pairKey]
 
 expect(fromList.left + fromList.right, 11)
 expect(fromDict.left + fromDict.right, 11)
+expect(fromDynamicDict.left + fromDynamicDict.right, 11)
+
+Payload payloadA
+payloadA.i = 3
+
+Payload payloadB
+payloadB.i = 8
+
+array<Payload> payloadArray = array[payloadA]
+list<Payload> payloadList = list[1: payloadA]
+dict<Payload> payloadDict = dict{"first": payloadA}
+var payloadKey = "payload"
+
+payloadArray[0] = payloadB
+payloadList[2] = payloadB
+payloadDict[payloadKey] = payloadB
+
+Payload fromPayloadArray = payloadArray[0]
+Payload fromPayloadList = payloadList[2]
+Payload fromPayloadDict = payloadDict[payloadKey]
+
+expect(fromPayloadArray.i, 8)
+expect(fromPayloadList.i, 8)
+expect(fromPayloadDict.i, 8)
 
 point rawA
 point rawB
@@ -42,29 +74,47 @@ Native nativeA = Native(rawA)
 Native nativeB = Native(rawB)
 
 array<Native> nativeArray = array[nativeA]
+list<Native> nativeList = list[1: nativeA]
 dict<Native> nativeDict = dict{"main": nativeA}
+var nativeKey = "other"
 
 nativeArray[0] = nativeB
+nativeList[4] = nativeB
 nativeDict["main"] = nativeB
+nativeDict[nativeKey] = nativeB
 
 Native loadedArrayNative = nativeArray[0]
+Native loadedListNative = nativeList[4]
 Native loadedDictNative = nativeDict["main"]
+Native loadedDynamicDictNative = nativeDict[nativeKey]
 var boxedArrayNative = loadedArrayNative
+var boxedListNative = loadedListNative
 var boxedDictNative = loadedDictNative
+var boxedDynamicDictNative = loadedDynamicDictNative
 
 expect(type(boxedArrayNative) == Native, 1)
+expect(type(boxedListNative) == Native, 1)
 expect(type(boxedDictNative) == Native, 1)
+expect(type(boxedDynamicDictNative) == Native, 1)
 
 function(int, int) -> int fn = add
 array<function(int, int) -> int> funcs = array[fn]
+list<function(int, int) -> int> listedFuncs = list[1: fn]
 dict<function(int, int) -> int> table = dict{"op": fn}
+var opKey = "dyn"
 
 function(int, int) -> int next = mul
 funcs[0] = next
+listedFuncs[2] = next
 table["op"] = next
+table[opKey] = next
 
 function(int, int) -> int pickedArray = funcs[0]
+function(int, int) -> int pickedList = listedFuncs[2]
 function(int, int) -> int pickedDict = table["op"]
+function(int, int) -> int pickedDynamicDict = table[opKey]
 
 expect(pickedArray(2, 3), 6)
+expect(pickedList(2, 4), 8)
 expect(pickedDict(3, 4), 12)
+expect(pickedDynamicDict(5, 6), 30)

@@ -1,0 +1,8 @@
+class Box
+    int value = 0
+end
+
+func values() -> generator<Box>
+    Box box
+    yield box
+end

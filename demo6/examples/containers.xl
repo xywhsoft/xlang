@@ -30,7 +30,43 @@ int safeLength = int(dynamicValues?.length)
 int fallback = int(missing?[0] ?? 9)
 
 array<int> typedValues = array[10, 20, 30]
+array<int> typedValuesCopy = typedValues
+typedValues[0] = 40
+typedValuesCopy = array[1, 2]
 type typedValuesType = type(typedValues)
 var boxedTypedValues = typedValues
 type boxedTypedValuesType = type(boxedTypedValues)
 int boxedTypedMiddle = int(boxedTypedValues[1])
+int typedValuesCopyLength = typedValuesCopy.length
+int typedValuesCopyFirst = typedValuesCopy[0]
+
+func makeAdder(int base) -> function(int) -> int
+    return func(int value) -> int
+        return base + value
+    end
+end
+
+class FnBox
+    function(int) -> int op
+    int bias = 0
+end
+
+function(int) -> int add5 = makeAdder(5)
+function(int) -> int add9 = makeAdder(9)
+array<function(int) -> int> handlers = array[add5]
+array<function(int) -> int> handlersCopy = handlers
+handlers[0] = add9
+function(int) -> int copiedHandler = handlersCopy[0]
+int copiedHandlerValue = copiedHandler(7)
+
+FnBox box
+box.op = add5
+box.bias = 10
+FnBox nextBox
+nextBox.op = add9
+nextBox.bias = 20
+array<FnBox> boxes = array[box]
+array<FnBox> boxesCopy = boxes
+boxes[0] = nextBox
+FnBox copiedBox = boxesCopy[0]
+int copiedBoxValue = copiedBox.op(1) + copiedBox.bias

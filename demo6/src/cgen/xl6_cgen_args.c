@@ -358,6 +358,12 @@ static void xl6CgenXValueFromExpr(XL6_CgenContext* ctx, const XL6_AstNode* expr)
             xl6CgenExpr(ctx, expr);
         }
         xl6OutputPutc(')', ctx->out);
+    } else if ( typeNode != NULL && xl6CgenIsUnionType(ctx, typeNode) ) {
+        xl6CgenUnionTypeTextName(cTypeName, sizeof(cTypeName), typeNode->text);
+        xl6CgenBoxSymbol(ctx->out, cTypeName);
+        xl6OutputPutc('(', ctx->out);
+        xl6CgenExpr(ctx, expr);
+        xl6OutputPutc(')', ctx->out);
     } else if ( typeNode != NULL && xl6CgenIsCustomType(ctx, typeNode) ) {
         XL6_AstNode* ctorCustom = NULL;
         int isCtor;
@@ -1024,6 +1030,16 @@ static void xl6CgenContainsXValueCallExpr(XL6_CgenContext* ctx, const char* func
 {
     int id;
 
+    if ( xl6CgenExprUsesTypedContainerStorage(ctx, values) ) {
+        id = ctx->tempId++;
+        xl6OutputPrintf(ctx->out, "({ xvalue __xl6_in_values_%d = ", id);
+        xl6CgenXValueFromExpr(ctx, values);
+        xl6OutputPrintf(ctx->out, "; int __xl6_in_result_%d = %s(__xl6_in_values_%d, ", id, funcName != NULL ? funcName : "xl6_xrt_value_contains", id);
+        xl6CgenXValueFromExpr(ctx, item);
+        xl6OutputPrintf(ctx->out, "); if (__xl6_in_values_%d != 0) { xvoUnref(__xl6_in_values_%d); } __xl6_in_result_%d; })", id, id, id);
+        return;
+    }
+
     if ( xl6CgenExprIsXValueBorrow(ctx, values) ) {
         xl6OutputPrintf(ctx->out, "%s(", funcName != NULL ? funcName : "xl6_xrt_value_contains");
         xl6CgenExpr(ctx, values);
@@ -1044,6 +1060,16 @@ static void xl6CgenContainsXValueCallExpr(XL6_CgenContext* ctx, const char* func
 static void xl6CgenDictContainsKeyExpr(XL6_CgenContext* ctx, const XL6_AstNode* values, const XL6_AstNode* key)
 {
     int id;
+
+    if ( xl6CgenExprUsesTypedContainerStorage(ctx, values) ) {
+        id = ctx->tempId++;
+        xl6OutputPrintf(ctx->out, "({ xvalue __xl6_in_values_%d = ", id);
+        xl6CgenXValueFromExpr(ctx, values);
+        xl6OutputPrintf(ctx->out, "; int __xl6_in_result_%d = xvoTableExists(__xl6_in_values_%d, ", id, id);
+        xl6CgenExpr(ctx, key);
+        xl6OutputPrintf(ctx->out, ", 0); if (__xl6_in_values_%d != 0) { xvoUnref(__xl6_in_values_%d); } __xl6_in_result_%d; })", id, id, id);
+        return;
+    }
 
     if ( xl6CgenExprIsXValueBorrow(ctx, values) ) {
         xl6OutputPuts("xvoTableExists(", ctx->out);

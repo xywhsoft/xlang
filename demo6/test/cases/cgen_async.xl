@@ -7,6 +7,33 @@ async func doneAsync()
     assert a == 1, "async void body failed"
 end
 
+func makeAdder(int base) -> function(int) -> int
+    return func(int value) -> int
+        return base + value
+    end
+end
+
+class AsyncBox
+    function(int) -> int op
+    int bias = 0
+end
+
+func makeBox(int base) -> AsyncBox
+    AsyncBox box
+    box.op = makeAdder(base)
+    box.bias = base
+    return box
+end
+
+async func makeBoxAsync(int base) -> AsyncBox
+    AsyncBox box = makeBox(base)
+    return box
+end
+
+async func makeAdderAsync(int base) -> function(int) -> int
+    return makeAdder(base)
+end
+
 future<int> futureValue = addAsync(2, 3)
 int value = await futureValue
 
@@ -19,3 +46,27 @@ assert autoValue == 10, "await auto result failed"
 
 auto voidFuture = doneAsync()
 await voidFuture
+
+future<AsyncBox> boxFuture = makeBoxAsync(30)
+AsyncBox box = await boxFuture
+
+assert box.op(12) + box.bias == 72, "await class function field failed"
+
+future<function(int) -> int> fnFuture = makeAdderAsync(50)
+function(int) -> int fnA = await fnFuture
+function(int) -> int fnB = await fnFuture
+
+assert fnA(1) == 51, "await function result failed"
+assert fnB(2) == 52, "second await function result failed"
+
+future<AsyncBox> sharedBoxFuture = makeBoxAsync(70)
+AsyncBox firstBox = await sharedBoxFuture
+AsyncBox secondBox = await sharedBoxFuture
+
+assert firstBox.op(3) + firstBox.bias == 143, "first repeated await class result failed"
+assert secondBox.op(4) + secondBox.bias == 144, "second repeated await class result failed"
+
+auto autoBoxFuture = makeBoxAsync(90)
+auto autoBox = await autoBoxFuture
+
+assert autoBox.op(5) + autoBox.bias == 185, "auto await class result failed"

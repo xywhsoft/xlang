@@ -64,6 +64,7 @@ static int xl6SemCheckThreadCall(XL6_SemContext* ctx, XL6_AstNode* node);
 static const char* xl6SemThreadCallResultTypeName(XL6_SemContext* ctx, XL6_AstNode* node);
 static int xl6SemCheckSyncCall(XL6_SemContext* ctx, XL6_AstNode* node);
 static const char* xl6SemSyncCallResultTypeName(XL6_SemContext* ctx, XL6_AstNode* node);
+static int xl6SemTypeCanCopy(XL6_SemContext* ctx, const XL6_AstNode* typeNode);
 static int xl6SemIsSyncHandleTypeName(const char* name);
 static int xl6SemIsThreadTypeName(const char* name);
 static int xl6SemIsGeneratorTypeName(const char* name);
@@ -471,6 +472,19 @@ static int xl6SemCheckType(XL6_SemContext* ctx, XL6_AstNode* typeNode)
         }
     }
 
+    if ( genericCount == 1 &&
+         (xl6TextEquals(typeNode->text, "array") ||
+          xl6TextEquals(typeNode->text, "list") ||
+          xl6TextEquals(typeNode->text, "set") ||
+          xl6TextEquals(typeNode->text, "dict")) ) {
+        const XL6_AstNode* args = typeNode->childCount > 0 ? typeNode->children[0] : NULL;
+        const XL6_AstNode* itemType = args != NULL && args->kind == XL6_AST_LIST && args->childCount == 1 ?
+                                      args->children[0] : NULL;
+        if ( itemType != NULL && !xl6SemTypeCanCopy(ctx, itemType) ) {
+            xl6SemErrorNode(ctx, itemType, "typed container item type must be copyable");
+            ok = 0;
+        }
+    }
     if ( xl6TextEquals(typeNode->text, "generator") ) {
         const XL6_AstNode* typeArgs = (typeNode->childCount > 0 && typeNode->children[0] != NULL &&
                                       typeNode->children[0]->kind == XL6_AST_LIST) ? typeNode->children[0] : NULL;
@@ -774,6 +788,16 @@ static int xl6SemTypeCanCopyDepth(XL6_SemContext* ctx, const XL6_AstNode* typeNo
     }
     if ( typeInfo->kind == XL6_TYPE_BUILTIN && xl6SemIsResourceHandleTypeName(typeNode->text) ) {
         return 0;
+    }
+    if ( typeInfo->kind == XL6_TYPE_BUILTIN &&
+         (xl6TextEquals(typeNode->text, "array") ||
+          xl6TextEquals(typeNode->text, "list") ||
+          xl6TextEquals(typeNode->text, "set") ||
+          xl6TextEquals(typeNode->text, "dict")) ) {
+        const XL6_AstNode* args = typeNode->childCount > 0 ? typeNode->children[0] : NULL;
+        const XL6_AstNode* itemType = args != NULL && args->kind == XL6_AST_LIST && args->childCount == 1 ?
+                                      args->children[0] : NULL;
+        return itemType == NULL || xl6SemTypeCanCopyDepth(ctx, itemType, depth + 1);
     }
     if ( typeInfo->kind == XL6_TYPE_CUSTOM ) {
         return !xl6SemCustomDeclHasDestroy(typeInfo->decl);
@@ -5511,6 +5535,10 @@ static XL6_AstNode* xl6SemInferAutoTypeNode(XL6_SemContext* ctx, XL6_AstNode* ex
     if ( expr->kind == XL6_AST_INDEX || expr->kind == XL6_AST_SAFE_INDEX ) {
         XL6_AstNode* itemType = xl6SemCloneIndexedItemType(ctx, expr);
         if ( itemType != NULL ) {
+            if ( expr->kind == XL6_AST_SAFE_INDEX ) {
+                xl6AstFree(itemType);
+                return xl6AstNewText(XL6_AST_TYPE, "var", 3, NULL);
+            }
             return itemType;
         }
     }

@@ -1,0 +1,82 @@
+extern "expect_i64" func expect(int actual, int expected)
+
+func add(int left, int right) -> int
+    return left + right
+end
+
+func mul(int left, int right) -> int
+    return left * right
+end
+
+func makeAdder(int base) -> function(int) -> int
+    return func(int value) -> int
+        return base + value
+    end
+end
+
+class FnBox
+    function(int) -> int op
+    int bias = 0
+end
+
+function(int) -> int add5 = makeAdder(5)
+function(int) -> int add9 = makeAdder(9)
+
+array<function(int) -> int> funcs = array[add5]
+array<function(int) -> int> funcsCopy = funcs
+funcs[0] = add9
+
+function(int) -> int copiedFunc = funcsCopy[0]
+function(int) -> int currentFunc = funcs[0]
+expect(copiedFunc(7), 12)
+expect(currentFunc(7), 16)
+
+funcsCopy = funcs
+funcs[0] = add5
+copiedFunc = funcsCopy[0]
+expect(copiedFunc(1), 10)
+
+FnBox boxA
+boxA.op = add5
+boxA.bias = 10
+
+FnBox boxB
+boxB.op = add9
+boxB.bias = 20
+
+array<FnBox> boxes = array[boxA]
+array<FnBox> boxesCopy = boxes
+boxes[0] = boxB
+
+FnBox loadedCopy = boxesCopy[0]
+FnBox loadedNow = boxes[0]
+expect(loadedCopy.op(1) + loadedCopy.bias, 16)
+expect(loadedNow.op(1) + loadedNow.bias, 30)
+
+boxesCopy = boxes
+boxes[0] = boxA
+loadedCopy = boxesCopy[0]
+expect(loadedCopy.op(2) + loadedCopy.bias, 31)
+
+dict<FnBox> named = dict{"next": boxB}
+dict<FnBox> namedCopy = named
+named["next"] = boxA
+
+FnBox namedLoaded = namedCopy["next"]
+expect(namedLoaded.op(3) + namedLoaded.bias, 32)
+
+custom Native
+end
+
+point rawA
+point rawB
+Native nativeA = Native(rawA)
+Native nativeB = Native(rawB)
+
+array<Native> natives = array[nativeA]
+array<Native> nativesCopy = natives
+natives[0] = nativeB
+
+Native nativeLoaded = nativesCopy[0]
+var boxedNative = nativeLoaded
+expect(type(boxedNative) == Native, 1)

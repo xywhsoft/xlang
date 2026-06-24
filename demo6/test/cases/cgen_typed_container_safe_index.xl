@@ -6,6 +6,20 @@ list<string> names = list[2: "beta"]
 dict<int> scores = dict{"alpha": 10}
 var scoreKey = "alpha"
 
+auto maybeValue = values?[1]
+auto missingValue = values?[9]
+auto maybeName = names?[2]
+auto missingName = names?[9]
+auto maybeScore = scores?[scoreKey]
+auto missingScore = scores?["missing"]
+
+expect(type(maybeValue) == int, 1)
+expect(type(missingValue) == null, 1)
+expect(type(maybeName) == string, 1)
+expect(type(missingName) == null, 1)
+expect(type(maybeScore) == int, 1)
+expect(type(missingScore) == null, 1)
+
 expect(int(values?[1]), 20)
 expect(int(values?[9] ?? 77), 77)
 

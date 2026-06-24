@@ -1,0 +1,5 @@
+func inc(int value) -> int
+    return value + 1
+end
+
+channel<function(int) -> int> ch = channel::<function(int) -> int>(1)

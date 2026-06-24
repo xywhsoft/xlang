@@ -9,6 +9,15 @@ assert p.i == 100, "union int field failed"
 p.d = 12.5
 assert int(p.d) == 12, "union double field failed"
 
+var boxedPayload = p
+assert type(boxedPayload) == Payload, "union var type failed"
+
+array<Payload> payloads = array[p]
+array<Payload> payloadCopies = payloads
+var boxedPayloads = payloadCopies
+assert type(boxedPayloads) == type(payloadCopies), "union typed array var type failed"
+assert payloadCopies.length == 1, "union typed array copy failed"
+
 class Packet
     int tag
     union

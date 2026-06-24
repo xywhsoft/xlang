@@ -1066,7 +1066,9 @@ static void xl6CgenForTypedContainerIterable(XL6_CgenContext* ctx, const XL6_Ast
     const XL6_AstNode* concreteType;
     const char* typeName;
     int id;
+    int ownsIter;
     char iterName[64];
+    size_t iterCleanupMark;
 
     if ( node->childCount < 3 ) {
         xl6CgenError(ctx, node, "code generation error");
@@ -1088,23 +1090,30 @@ static void xl6CgenForTypedContainerIterable(XL6_CgenContext* ctx, const XL6_Ast
     xl6CgenIndent(ctx);
     xl6OutputPuts("{\n", ctx->out);
     ctx->indent += 1;
+    iterCleanupMark = ctx->cleanupCount;
     xl6CgenIndent(ctx);
     xl6OutputPrintf(ctx->out, "%s %s = ", xl6CgenTypedContainerCType(ctx, iterableType), iterName);
     xl6CgenExpr(ctx, iterable);
     xl6OutputPuts(";\n", ctx->out);
+    ownsIter = !xl6CgenExprUsesTypedContainerStorage(ctx, iterable);
+    if ( ownsIter ) {
+        xl6CgenAddTypedContainerCleanup(ctx, iterName, iterableType);
+    }
 
     if ( xl6CTextEquals(typeName, "array") ) {
-        xl6CgenForTypedArrayLoop(ctx, node, targets, iterName, iterableType, ctx->cleanupCount, id, id);
+        xl6CgenForTypedArrayLoop(ctx, node, targets, iterName, iterableType, iterCleanupMark, id, id);
     } else if ( xl6CTextEquals(typeName, "list") ) {
-        xl6CgenForTypedListLoop(ctx, node, targets, iterName, iterableType, ctx->cleanupCount, id, id);
+        xl6CgenForTypedListLoop(ctx, node, targets, iterName, iterableType, iterCleanupMark, id, id);
     } else if ( xl6CTextEquals(typeName, "set") ) {
-        xl6CgenForTypedSetLoop(ctx, node, targets, iterName, iterableType, ctx->cleanupCount, id, id);
+        xl6CgenForTypedSetLoop(ctx, node, targets, iterName, iterableType, iterCleanupMark, id, id);
     } else if ( xl6CTextEquals(typeName, "dict") ) {
-        xl6CgenForTypedDictLoop(ctx, node, targets, iterName, iterableType, ctx->cleanupCount, id, id);
+        xl6CgenForTypedDictLoop(ctx, node, targets, iterName, iterableType, iterCleanupMark, id, id);
     } else {
         xl6CgenError(ctx, iterable, "code generation error");
     }
 
+    xl6CgenEmitCleanupsSince(ctx, iterCleanupMark);
+    xl6CgenFreeCleanupsSince(ctx, iterCleanupMark);
     ctx->indent -= 1;
     xl6CgenIndent(ctx);
     xl6OutputPuts("}\n", ctx->out);

@@ -1110,6 +1110,33 @@ if errorlevel 1 exit /b 1
 release\tmp\cgen_union.exe
 if errorlevel 1 exit /b 1
 
+release\xl.exe cgen test\cases\cgen_union_var_box.xl --emit release\tmp\cgen_union_var_box.c
+if errorlevel 1 exit /b 1
+findstr /C:"static const xrt_type_desc* xl6_type_desc_XL_Union_Payload" release\tmp\cgen_union_var_box.c >nul
+if errorlevel 1 (
+    echo cgen_union_var_box.c missing union XRT type descriptor.
+    exit /b 1
+)
+findstr /C:"xl6_box_XL_Union_Payload(p)" release\tmp\cgen_union_var_box.c >nul
+if errorlevel 1 (
+    echo cgen_union_var_box.c missing union var boxing helper call.
+    exit /b 1
+)
+findstr /C:"xrtTypedArrayCreate(xl6_type_desc_XL_Union_Payload()" release\tmp\cgen_union_var_box.c >nul
+if errorlevel 1 (
+    echo cgen_union_var_box.c missing typed union array descriptor.
+    exit /b 1
+)
+findstr /C:"xl6_xrt_typed_array_to_xvalue(xl6_type_desc_XL_Union_Payload(), copied)" release\tmp\cgen_union_var_box.c >nul
+if errorlevel 1 (
+    echo cgen_union_var_box.c missing typed union array boxing.
+    exit /b 1
+)
+..\demo5\lib\tcc\tcc.exe -Irelease\tcc\include_win -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -I..\demo5\release\tcc\include_win\winapi -L..\demo5\release\tcc\lib release\tmp\cgen_union_var_box.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_union_var_box.exe
+if errorlevel 1 exit /b 1
+release\tmp\cgen_union_var_box.exe
+if errorlevel 1 exit /b 1
+
 release\xl.exe cgen test\cases\cgen_inline_union_generic_class_field.xl --emit release\tmp\cgen_inline_union_generic_class_field.c
 if errorlevel 1 exit /b 1
 findstr /C:"typedef struct XL_Class_Box__int {" release\tmp\cgen_inline_union_generic_class_field.c >nul
@@ -1483,6 +1510,42 @@ if errorlevel 1 exit /b 1
 release\tmp\cgen_static_typed_containers.exe
 if errorlevel 1 exit /b 1
 
+release\xl.exe check test\cases\cgen_typed_container_for_in_returned.xl
+if errorlevel 1 exit /b 1
+release\xl.exe run test\cases\cgen_typed_container_for_in_returned.xl
+if errorlevel 1 exit /b 1
+release\xl.exe cgen test\cases\cgen_typed_container_for_in_returned.xl --emit release\tmp\cgen_typed_container_for_in_returned.c
+if errorlevel 1 exit /b 1
+findstr /C:"xtarray makeValues(void)" release\tmp\cgen_typed_container_for_in_returned.c >nul
+if errorlevel 1 (
+    echo cgen_typed_container_for_in_returned.c missing typed array return ABI.
+    exit /b 1
+)
+findstr /C:"xvalue makeValues(void)" release\tmp\cgen_typed_container_for_in_returned.c >nul
+if not errorlevel 1 (
+    echo cgen_typed_container_for_in_returned.c regressed to xvalue array return.
+    exit /b 1
+)
+findstr /C:"xrtTypedArrayGet(__xl6_typed_iter_" release\tmp\cgen_typed_container_for_in_returned.c >nul
+if errorlevel 1 (
+    echo cgen_typed_container_for_in_returned.c missing typed array for-in lowering.
+    exit /b 1
+)
+findstr /C:"xrtTypedDictItemAt(__xl6_typed_iter_" release\tmp\cgen_typed_container_for_in_returned.c >nul
+if errorlevel 1 (
+    echo cgen_typed_container_for_in_returned.c missing typed dict for-in lowering.
+    exit /b 1
+)
+findstr /C:"xrtTypedArrayDestroy(__xl6_typed_iter_" release\tmp\cgen_typed_container_for_in_returned.c >nul
+if errorlevel 1 (
+    echo cgen_typed_container_for_in_returned.c missing returned typed array cleanup.
+    exit /b 1
+)
+..\demo5\lib\tcc\tcc.exe -Irelease\tcc\include_win -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -I..\demo5\release\tcc\include_win\winapi -L..\demo5\release\tcc\lib release\tmp\cgen_typed_container_for_in_returned.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_typed_container_for_in_returned.exe
+if errorlevel 1 exit /b 1
+release\tmp\cgen_typed_container_for_in_returned.exe
+if errorlevel 1 exit /b 1
+
 release\xl.exe cgen test\cases\cgen_typed_container_box_to_var.xl --emit release\tmp\cgen_typed_container_box_to_var.c
 if errorlevel 1 exit /b 1
 findstr /C:"xl6_xrt_typed_array_to_xvalue" release\tmp\cgen_typed_container_box_to_var.c >nul
@@ -1513,6 +1576,90 @@ if errorlevel 1 (
 ..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\cgen_typed_container_box_to_var.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_typed_container_box_to_var.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_typed_container_box_to_var.exe
+if errorlevel 1 exit /b 1
+
+release\xl.exe cgen test\cases\cgen_typed_container_copy_assign.xl --emit release\tmp\cgen_typed_container_copy_assign.c
+if errorlevel 1 exit /b 1
+findstr /C:"xl6_xrt_typed_array_copy" release\tmp\cgen_typed_container_copy_assign.c >nul
+if errorlevel 1 (
+    echo cgen_typed_container_copy_assign.c missing typed array copy helper.
+    exit /b 1
+)
+findstr /C:"xl6_xrt_typed_list_copy" release\tmp\cgen_typed_container_copy_assign.c >nul
+if errorlevel 1 (
+    echo cgen_typed_container_copy_assign.c missing typed list copy helper.
+    exit /b 1
+)
+findstr /C:"xl6_xrt_typed_set_copy" release\tmp\cgen_typed_container_copy_assign.c >nul
+if errorlevel 1 (
+    echo cgen_typed_container_copy_assign.c missing typed set copy helper.
+    exit /b 1
+)
+findstr /C:"xl6_xrt_typed_dict_copy" release\tmp\cgen_typed_container_copy_assign.c >nul
+if errorlevel 1 (
+    echo cgen_typed_container_copy_assign.c missing typed dict copy helper.
+    exit /b 1
+)
+findstr /C:"xrtTypedArrayCount(valuesCopy)" release\tmp\cgen_typed_container_copy_assign.c >nul
+if errorlevel 1 (
+    echo cgen_typed_container_copy_assign.c missing typed container length lowering.
+    exit /b 1
+)
+findstr /C:"xl6_xrt_typed_set_to_xvalue(xrtTypeInt(), idsCopy)" release\tmp\cgen_typed_container_copy_assign.c >nul
+if errorlevel 1 (
+    echo cgen_typed_container_copy_assign.c missing typed set in lowering.
+    exit /b 1
+)
+findstr /C:"xl6_xrt_typed_array_to_xvalue(xrtTypeInt(), values)" release\tmp\cgen_typed_container_copy_assign.c >nul
+if errorlevel 1 (
+    echo cgen_typed_container_copy_assign.c missing typed array in lowering.
+    exit /b 1
+)
+findstr /C:"xl6_xrt_typed_list_to_xvalue(xrtTypeString(), names)" release\tmp\cgen_typed_container_copy_assign.c >nul
+if errorlevel 1 (
+    echo cgen_typed_container_copy_assign.c missing typed list in lowering.
+    exit /b 1
+)
+findstr /C:"xl6_xrt_typed_dict_to_xvalue(xrtTypeInt(), scoresCopy)" release\tmp\cgen_typed_container_copy_assign.c >nul
+if errorlevel 1 (
+    echo cgen_typed_container_copy_assign.c missing typed dict in lowering.
+    exit /b 1
+)
+..\demo5\lib\tcc\tcc.exe -Irelease\tcc\include_win -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -I..\demo5\release\tcc\include_win\winapi -L..\demo5\release\tcc\lib release\tmp\cgen_typed_container_copy_assign.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_typed_container_copy_assign.exe
+if errorlevel 1 exit /b 1
+release\tmp\cgen_typed_container_copy_assign.exe
+if errorlevel 1 exit /b 1
+
+release\xl.exe cgen test\cases\cgen_typed_container_copy_objects_functions.xl --emit release\tmp\cgen_typed_container_copy_objects_functions.c
+if errorlevel 1 exit /b 1
+findstr /C:"xl6_xrt_typed_array_copy(xrtTypeFunction(), funcs)" release\tmp\cgen_typed_container_copy_objects_functions.c >nul
+if errorlevel 1 (
+    echo cgen_typed_container_copy_objects_functions.c missing typed function array copy.
+    exit /b 1
+)
+findstr /C:"xl6_xrt_typed_array_copy(xl6_type_desc_XL_Class_FnBox(), boxes)" release\tmp\cgen_typed_container_copy_objects_functions.c >nul
+if errorlevel 1 (
+    echo cgen_typed_container_copy_objects_functions.c missing typed class array copy.
+    exit /b 1
+)
+findstr /C:"xl6_xrt_typed_dict_copy(xl6_type_desc_XL_Class_FnBox(), named)" release\tmp\cgen_typed_container_copy_objects_functions.c >nul
+if errorlevel 1 (
+    echo cgen_typed_container_copy_objects_functions.c missing typed class dict copy.
+    exit /b 1
+)
+findstr /C:"xl6_xrt_typed_array_copy(xl6_type_desc_XL_Custom_Native(), natives)" release\tmp\cgen_typed_container_copy_objects_functions.c >nul
+if errorlevel 1 (
+    echo cgen_typed_container_copy_objects_functions.c missing typed custom array copy.
+    exit /b 1
+)
+findstr /C:"(*(XL_Class_FnBox*)dst).op.retain" release\tmp\cgen_typed_container_copy_objects_functions.c >nul
+if errorlevel 1 (
+    echo cgen_typed_container_copy_objects_functions.c missing class copy function retain.
+    exit /b 1
+)
+..\demo5\lib\tcc\tcc.exe -Irelease\tcc\include_win -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -I..\demo5\release\tcc\include_win\winapi -L..\demo5\release\tcc\lib release\tmp\cgen_typed_container_copy_objects_functions.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_typed_container_copy_objects_functions.exe
+if errorlevel 1 exit /b 1
+release\tmp\cgen_typed_container_copy_objects_functions.exe
 if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_typed_container_functions.xl --emit release\tmp\cgen_typed_container_functions.c
@@ -1650,9 +1797,34 @@ if errorlevel 1 (
     echo cgen_typed_container_index_assign_objects_functions.c missing typed class dict assignment.
     exit /b 1
 )
+findstr /C:"xrtTypedDictSetValue(pairDict, xvoGetText(__xl6_dict_key_" release\tmp\cgen_typed_container_index_assign_objects_functions.c >nul
+if errorlevel 1 (
+    echo cgen_typed_container_index_assign_objects_functions.c missing typed class dynamic dict assignment.
+    exit /b 1
+)
+findstr /C:"xrtTypedArraySetValue(payloadArray" release\tmp\cgen_typed_container_index_assign_objects_functions.c >nul
+if errorlevel 1 (
+    echo cgen_typed_container_index_assign_objects_functions.c missing typed union array assignment.
+    exit /b 1
+)
+findstr /C:"xrtTypedListSetValue(payloadList" release\tmp\cgen_typed_container_index_assign_objects_functions.c >nul
+if errorlevel 1 (
+    echo cgen_typed_container_index_assign_objects_functions.c missing typed union list assignment.
+    exit /b 1
+)
+findstr /C:"xrtTypedDictSetValue(payloadDict, xvoGetText(__xl6_dict_key_" release\tmp\cgen_typed_container_index_assign_objects_functions.c >nul
+if errorlevel 1 (
+    echo cgen_typed_container_index_assign_objects_functions.c missing typed union dynamic dict assignment.
+    exit /b 1
+)
 findstr /C:"xrtTypedArraySetValue(nativeArray" release\tmp\cgen_typed_container_index_assign_objects_functions.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_index_assign_objects_functions.c missing typed custom array assignment.
+    exit /b 1
+)
+findstr /C:"xrtTypedListSetValue(nativeList" release\tmp\cgen_typed_container_index_assign_objects_functions.c >nul
+if errorlevel 1 (
+    echo cgen_typed_container_index_assign_objects_functions.c missing typed custom list assignment.
     exit /b 1
 )
 findstr /C:"xrtTypedDictSetValue(nativeDict" release\tmp\cgen_typed_container_index_assign_objects_functions.c >nul
@@ -1660,14 +1832,39 @@ if errorlevel 1 (
     echo cgen_typed_container_index_assign_objects_functions.c missing typed custom dict assignment.
     exit /b 1
 )
+findstr /C:"xrtTypedDictSetValue(nativeDict, xvoGetText(__xl6_dict_key_" release\tmp\cgen_typed_container_index_assign_objects_functions.c >nul
+if errorlevel 1 (
+    echo cgen_typed_container_index_assign_objects_functions.c missing typed custom dynamic dict assignment.
+    exit /b 1
+)
 findstr /C:"xrtTypedArraySetValue(funcs" release\tmp\cgen_typed_container_index_assign_objects_functions.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_index_assign_objects_functions.c missing typed function array assignment.
     exit /b 1
 )
+findstr /C:"xrtTypedListSetValue(listedFuncs" release\tmp\cgen_typed_container_index_assign_objects_functions.c >nul
+if errorlevel 1 (
+    echo cgen_typed_container_index_assign_objects_functions.c missing typed function list assignment.
+    exit /b 1
+)
+findstr /C:"xrtTypedDictSetValue(table, xvoGetText(__xl6_dict_key_" release\tmp\cgen_typed_container_index_assign_objects_functions.c >nul
+if errorlevel 1 (
+    echo cgen_typed_container_index_assign_objects_functions.c missing typed function dynamic dict assignment.
+    exit /b 1
+)
 findstr /C:"xl6_function_to_xvalue(next)" release\tmp\cgen_typed_container_index_assign_objects_functions.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_index_assign_objects_functions.c missing function boxing for typed assignment.
+    exit /b 1
+)
+findstr /C:"xl6_function_from_callable(*(xrt_callable**)xrtTypedListGet(listedFuncs" release\tmp\cgen_typed_container_index_assign_objects_functions.c >nul
+if errorlevel 1 (
+    echo cgen_typed_container_index_assign_objects_functions.c missing typed function list get lowering.
+    exit /b 1
+)
+findstr /C:"xrtTypedDictGet(table, xvoGetText(__xl6_dict_key_" release\tmp\cgen_typed_container_index_assign_objects_functions.c >nul
+if errorlevel 1 (
+    echo cgen_typed_container_index_assign_objects_functions.c missing typed function dynamic dict get lowering.
     exit /b 1
 )
 ..\demo5\lib\tcc\tcc.exe -Irelease\tcc\include_win -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -I..\demo5\release\tcc\include_win\winapi -L..\demo5\release\tcc\lib release\tmp\cgen_typed_container_index_assign_objects_functions.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_typed_container_index_assign_objects_functions.exe
@@ -1685,6 +1882,41 @@ if errorlevel 1 (
 findstr /C:"xrtTypedDictSetValue(scores" release\tmp\cgen_typed_container_multi_assign_index.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_multi_assign_index.c missing typed dict multi assignment.
+    exit /b 1
+)
+findstr /C:"xl6_box_XL_Class_Pair(__xl6_multi_" release\tmp\cgen_typed_container_multi_assign_index.c >nul
+if errorlevel 1 (
+    echo cgen_typed_container_multi_assign_index.c missing class multi assignment boxing.
+    exit /b 1
+)
+findstr /C:"xl6_box_XL_Union_Payload(__xl6_multi_" release\tmp\cgen_typed_container_multi_assign_index.c >nul
+if errorlevel 1 (
+    echo cgen_typed_container_multi_assign_index.c missing union multi assignment boxing.
+    exit /b 1
+)
+findstr /C:"xl6_box_XL_Custom_Native(__xl6_multi_" release\tmp\cgen_typed_container_multi_assign_index.c >nul
+if errorlevel 1 (
+    echo cgen_typed_container_multi_assign_index.c missing custom multi assignment boxing.
+    exit /b 1
+)
+findstr /C:"xl6_function_to_xvalue(__xl6_multi_" release\tmp\cgen_typed_container_multi_assign_index.c >nul
+if errorlevel 1 (
+    echo cgen_typed_container_multi_assign_index.c missing function multi assignment boxing.
+    exit /b 1
+)
+findstr /C:"xrtTypedListSetValue(payloads" release\tmp\cgen_typed_container_multi_assign_index.c >nul
+if errorlevel 1 (
+    echo cgen_typed_container_multi_assign_index.c missing typed list multi assignment.
+    exit /b 1
+)
+findstr /C:"xrtTypedDictSetValue(natives, xvoGetText(__xl6_dict_key_" release\tmp\cgen_typed_container_multi_assign_index.c >nul
+if errorlevel 1 (
+    echo cgen_typed_container_multi_assign_index.c missing custom dynamic dict multi assignment.
+    exit /b 1
+)
+findstr /C:"xrtTypedDictSetValue(table, xvoGetText(__xl6_dict_key_" release\tmp\cgen_typed_container_multi_assign_index.c >nul
+if errorlevel 1 (
+    echo cgen_typed_container_multi_assign_index.c missing function dynamic dict multi assignment.
     exit /b 1
 )
 ..\demo5\lib\tcc\tcc.exe -Irelease\tcc\include_win -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -I..\demo5\release\tcc\include_win\winapi -L..\demo5\release\tcc\lib release\tmp\cgen_typed_container_multi_assign_index.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_typed_container_multi_assign_index.exe
@@ -2395,6 +2627,46 @@ if errorlevel 1 (
 findstr /C:"XL6_Function_Return_" release\tmp\cgen_member_function_multi_return.c >nul
 if errorlevel 1 (
     echo cgen_member_function_multi_return.c missing member multi-return struct.
+    exit /b 1
+)
+findstr /C:".op.retain != 0" release\tmp\cgen_member_function_multi_return.c >nul
+if errorlevel 1 (
+    echo cgen_member_function_multi_return.c missing class return function-field retain.
+    exit /b 1
+)
+findstr /C:"__xl6_class_assign_" release\tmp\cgen_member_function_multi_return.c >nul
+if errorlevel 1 (
+    echo cgen_member_function_multi_return.c missing borrowed class assignment temporary.
+    exit /b 1
+)
+findstr /C:"returned.op.retain" release\tmp\cgen_member_function_multi_return.c >nul
+if not errorlevel 1 (
+    echo cgen_member_function_multi_return.c should not retain function fields for class rvalue initialization.
+    exit /b 1
+)
+findstr /C:"assignedBox.op.retain" release\tmp\cgen_member_function_multi_return.c >nul
+if not errorlevel 1 (
+    echo cgen_member_function_multi_return.c should not retain function fields for multi-return rvalue assignment.
+    exit /b 1
+)
+findstr /C:"assignedBox.op.release != 0" release\tmp\cgen_member_function_multi_return.c >nul
+if errorlevel 1 (
+    echo cgen_member_function_multi_return.c missing class multi-assignment release.
+    exit /b 1
+)
+findstr /C:"assignedOp.release != 0" release\tmp\cgen_member_function_multi_return.c >nul
+if errorlevel 1 (
+    echo cgen_member_function_multi_return.c missing function multi-assignment release.
+    exit /b 1
+)
+findstr /C:".value0.op.release != 0" release\tmp\cgen_member_function_multi_return.c >nul
+if errorlevel 1 (
+    echo cgen_member_function_multi_return.c missing discarded class multi-return release.
+    exit /b 1
+)
+findstr /C:".value1.release != 0" release\tmp\cgen_member_function_multi_return.c >nul
+if errorlevel 1 (
+    echo cgen_member_function_multi_return.c missing discarded function multi-return release.
     exit /b 1
 )
 ..\demo5\lib\tcc\tcc.exe -Irelease\tcc\include_win -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -I..\demo5\release\tcc\include_win\winapi -L..\demo5\release\tcc\lib release\tmp\cgen_member_function_multi_return.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_member_function_multi_return.exe
@@ -3188,6 +3460,21 @@ if errorlevel 1 (
     echo cgen_typed_container_safe_index.c missing typed dict safe index lowering.
     exit /b 1
 )
+findstr /C:"xvalue maybeValue = xl6_xrt_typed_box_or_null(xrtTypeInt(), xrtTypedArrayGet(values" release\tmp\cgen_typed_container_safe_index.c >nul
+if errorlevel 1 (
+    echo cgen_typed_container_safe_index.c missing auto typed array safe index as xvalue.
+    exit /b 1
+)
+findstr /C:"xvalue missingName = xl6_xrt_typed_box_or_null(xrtTypeString(), xrtTypedListGet(names" release\tmp\cgen_typed_container_safe_index.c >nul
+if errorlevel 1 (
+    echo cgen_typed_container_safe_index.c missing auto typed list safe index as xvalue.
+    exit /b 1
+)
+findstr /C:"xvalue missingScore = xl6_xrt_typed_box_or_null(xrtTypeInt(), xrtTypedDictGet(scores" release\tmp\cgen_typed_container_safe_index.c >nul
+if errorlevel 1 (
+    echo cgen_typed_container_safe_index.c missing auto typed dict safe index as xvalue.
+    exit /b 1
+)
 findstr /C:"xvalue __xl6_conv_" release\tmp\cgen_typed_container_safe_index.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_safe_index.c missing temporary xvalue conversion lowering.
@@ -3206,6 +3493,103 @@ if errorlevel 1 (
 ..\demo5\lib\tcc\tcc.exe -Irelease\tcc\include_win -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -I..\demo5\release\tcc\include_win\winapi -L..\demo5\release\tcc\lib release\tmp\cgen_typed_container_safe_index.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_typed_container_safe_index.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_typed_container_safe_index.exe
+if errorlevel 1 exit /b 1
+
+release\xl.exe cgen test\cases\cgen_typed_container_safe_index_objects_functions.xl --emit release\tmp\cgen_typed_container_safe_index_objects_functions.c
+if errorlevel 1 exit /b 1
+findstr /C:"xvalue maybePair = xl6_xrt_typed_box_or_null(xl6_type_desc_XL_Class_Pair(), xrtTypedArrayGet(pairs" release\tmp\cgen_typed_container_safe_index_objects_functions.c >nul
+if errorlevel 1 (
+    echo cgen_typed_container_safe_index_objects_functions.c missing class typed array safe index lowering.
+    exit /b 1
+)
+findstr /C:"xvalue maybePayload = xl6_xrt_typed_box_or_null(xl6_type_desc_XL_Union_Payload(), xrtTypedArrayGet(payloads" release\tmp\cgen_typed_container_safe_index_objects_functions.c >nul
+if errorlevel 1 (
+    echo cgen_typed_container_safe_index_objects_functions.c missing union typed array safe index lowering.
+    exit /b 1
+)
+findstr /C:"xvalue maybeNative = xl6_xrt_typed_box_or_null(xl6_type_desc_XL_Custom_Native(), xrtTypedArrayGet(natives" release\tmp\cgen_typed_container_safe_index_objects_functions.c >nul
+if errorlevel 1 (
+    echo cgen_typed_container_safe_index_objects_functions.c missing custom typed array safe index lowering.
+    exit /b 1
+)
+findstr /C:"xvalue maybeFn = xl6_xrt_typed_box_or_null(xrtTypeFunction(), xrtTypedArrayGet(funcs" release\tmp\cgen_typed_container_safe_index_objects_functions.c >nul
+if errorlevel 1 (
+    echo cgen_typed_container_safe_index_objects_functions.c missing function typed array safe index lowering.
+    exit /b 1
+)
+findstr /C:"xvalue maybeListPair = xl6_xrt_typed_box_or_null(xl6_type_desc_XL_Class_Pair(), xrtTypedListGet(pairList" release\tmp\cgen_typed_container_safe_index_objects_functions.c >nul
+if errorlevel 1 (
+    echo cgen_typed_container_safe_index_objects_functions.c missing class typed list safe index lowering.
+    exit /b 1
+)
+findstr /C:"xvalue maybeListPayload = xl6_xrt_typed_box_or_null(xl6_type_desc_XL_Union_Payload(), xrtTypedListGet(payloadList" release\tmp\cgen_typed_container_safe_index_objects_functions.c >nul
+if errorlevel 1 (
+    echo cgen_typed_container_safe_index_objects_functions.c missing union typed list safe index lowering.
+    exit /b 1
+)
+findstr /C:"xvalue maybeListNative = xl6_xrt_typed_box_or_null(xl6_type_desc_XL_Custom_Native(), xrtTypedListGet(nativeList" release\tmp\cgen_typed_container_safe_index_objects_functions.c >nul
+if errorlevel 1 (
+    echo cgen_typed_container_safe_index_objects_functions.c missing custom typed list safe index lowering.
+    exit /b 1
+)
+findstr /C:"xvalue maybeListFn = xl6_xrt_typed_box_or_null(xrtTypeFunction(), xrtTypedListGet(funcList" release\tmp\cgen_typed_container_safe_index_objects_functions.c >nul
+if errorlevel 1 (
+    echo cgen_typed_container_safe_index_objects_functions.c missing function typed list safe index lowering.
+    exit /b 1
+)
+findstr /C:"xrtTypedDictGet(pairDict, xvoGetText(__xl6_dict_key_" release\tmp\cgen_typed_container_safe_index_objects_functions.c >nul
+if errorlevel 1 (
+    echo cgen_typed_container_safe_index_objects_functions.c missing class typed dict dynamic safe index lowering.
+    exit /b 1
+)
+findstr /C:"xvalue maybeDictPayload = xl6_xrt_typed_box_or_null(xl6_type_desc_XL_Union_Payload(), xrtTypedDictGet(payloadDict" release\tmp\cgen_typed_container_safe_index_objects_functions.c >nul
+if errorlevel 1 (
+    echo cgen_typed_container_safe_index_objects_functions.c missing union typed dict safe index lowering.
+    exit /b 1
+)
+findstr /C:"xvalue maybeDictNative = xl6_xrt_typed_box_or_null(xl6_type_desc_XL_Custom_Native(), xrtTypedDictGet(nativeDict" release\tmp\cgen_typed_container_safe_index_objects_functions.c >nul
+if errorlevel 1 (
+    echo cgen_typed_container_safe_index_objects_functions.c missing custom typed dict safe index lowering.
+    exit /b 1
+)
+findstr /C:"xrtTypedDictGet(funcDict, xvoGetText(__xl6_dict_key_" release\tmp\cgen_typed_container_safe_index_objects_functions.c >nul
+if errorlevel 1 (
+    echo cgen_typed_container_safe_index_objects_functions.c missing function typed dict dynamic safe index lowering.
+    exit /b 1
+)
+findstr /C:"xl6_xrt_type_value_id(maybeFn, false) == fnType" release\tmp\cgen_typed_container_safe_index_objects_functions.c >nul
+if errorlevel 1 (
+    echo cgen_typed_container_safe_index_objects_functions.c missing function signature type preservation.
+    exit /b 1
+)
+findstr /C:"xl6_xrt_type_value_id(maybeListFn, false) == fnType" release\tmp\cgen_typed_container_safe_index_objects_functions.c >nul
+if errorlevel 1 (
+    echo cgen_typed_container_safe_index_objects_functions.c missing list function signature type preservation.
+    exit /b 1
+)
+findstr /C:"xl6_xrt_type_value_id(maybeDictFn, false) == fnType" release\tmp\cgen_typed_container_safe_index_objects_functions.c >nul
+if errorlevel 1 (
+    echo cgen_typed_container_safe_index_objects_functions.c missing dict function signature type preservation.
+    exit /b 1
+)
+findstr /C:"xl6_var_call(maybeFn, 1" release\tmp\cgen_typed_container_safe_index_objects_functions.c >nul
+if errorlevel 1 (
+    echo cgen_typed_container_safe_index_objects_functions.c missing function safe index var call lowering.
+    exit /b 1
+)
+findstr /C:"xl6_var_call(maybeListFn, 1" release\tmp\cgen_typed_container_safe_index_objects_functions.c >nul
+if errorlevel 1 (
+    echo cgen_typed_container_safe_index_objects_functions.c missing list function safe index var call lowering.
+    exit /b 1
+)
+findstr /C:"xl6_var_call(maybeDictFn, 1" release\tmp\cgen_typed_container_safe_index_objects_functions.c >nul
+if errorlevel 1 (
+    echo cgen_typed_container_safe_index_objects_functions.c missing dict function safe index var call lowering.
+    exit /b 1
+)
+..\demo5\lib\tcc\tcc.exe -Irelease\tcc\include_win -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -I..\demo5\release\tcc\include_win\winapi -L..\demo5\release\tcc\lib release\tmp\cgen_typed_container_safe_index_objects_functions.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_typed_container_safe_index_objects_functions.exe
+if errorlevel 1 exit /b 1
+release\tmp\cgen_typed_container_safe_index_objects_functions.exe
 if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_dynamic_member_access.xl --emit release\tmp\cgen_dynamic_member_access.c
@@ -5338,6 +5722,39 @@ if not errorlevel 1 (
     exit /b 1
 )
 
+release\xl.exe check test\cases\sem_typed_container_noncopyable_custom.xl >nul 2> release\tmp\sem_typed_container_noncopyable_custom.err.txt
+if not errorlevel 1 (
+    echo sem_typed_container_noncopyable_custom.xl should fail.
+    exit /b 1
+)
+findstr /C:"typed container item type must be copyable" release\tmp\sem_typed_container_noncopyable_custom.err.txt >nul
+if errorlevel 1 (
+    echo sem_typed_container_noncopyable_custom.xl missing expected diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_typed_container_noncopyable_class.xl >nul 2> release\tmp\sem_typed_container_noncopyable_class.err.txt
+if not errorlevel 1 (
+    echo sem_typed_container_noncopyable_class.xl should fail.
+    exit /b 1
+)
+findstr /C:"typed container item type must be copyable" release\tmp\sem_typed_container_noncopyable_class.err.txt >nul
+if errorlevel 1 (
+    echo sem_typed_container_noncopyable_class.xl missing expected diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_typed_container_noncopyable_nested.xl >nul 2> release\tmp\sem_typed_container_noncopyable_nested.err.txt
+if not errorlevel 1 (
+    echo sem_typed_container_noncopyable_nested.xl should fail.
+    exit /b 1
+)
+findstr /C:"typed container item type must be copyable" release\tmp\sem_typed_container_noncopyable_nested.err.txt >nul
+if errorlevel 1 (
+    echo sem_typed_container_noncopyable_nested.xl missing expected diagnostic.
+    exit /b 1
+)
+
 release\xl.exe check test\cases\sem_class_unknown_base.xl >nul 2> release\tmp\sem_class_unknown_base.err.txt
 if not errorlevel 1 (
     echo sem_class_unknown_base.xl should fail.
@@ -6003,6 +6420,46 @@ if errorlevel 1 (
     echo cgen_async.c missing future cleanup.
     exit /b 1
 )
+findstr /C:"__xl6_async_return_" release\tmp\cgen_async.c >nul
+if errorlevel 1 (
+    echo cgen_async.c missing async return temporary.
+    exit /b 1
+)
+findstr /C:".op.retain != 0" release\tmp\cgen_async.c >nul
+if errorlevel 1 (
+    echo cgen_async.c missing async class function-field retain.
+    exit /b 1
+)
+findstr /C:"pOut->pfnFreeValue = xl_async_result_free_makeBoxAsync" release\tmp\cgen_async.c >nul
+if errorlevel 1 (
+    echo cgen_async.c missing async class result free hook.
+    exit /b 1
+)
+findstr /C:"pOut->pfnFreeValue = xl6_async_free_function_value" release\tmp\cgen_async.c >nul
+if errorlevel 1 (
+    echo cgen_async.c missing async function result free hook.
+    exit /b 1
+)
+findstr /C:"fnA.retain(fnA.env)" release\tmp\cgen_async.c >nul
+if errorlevel 1 (
+    echo cgen_async.c missing await function retain.
+    exit /b 1
+)
+findstr /C:"secondBox.op.retain(secondBox.op.env)" release\tmp\cgen_async.c >nul
+if errorlevel 1 (
+    echo cgen_async.c missing repeated await class retain.
+    exit /b 1
+)
+findstr /C:"autoBox.op.retain(autoBox.op.env)" release\tmp\cgen_async.c >nul
+if errorlevel 1 (
+    echo cgen_async.c missing auto await class retain.
+    exit /b 1
+)
+findstr /C:"xl_class_AsyncBox__destroy(&autoBox)" release\tmp\cgen_async.c >nul
+if errorlevel 1 (
+    echo cgen_async.c missing auto await class cleanup.
+    exit /b 1
+)
 
 release\xl.exe check test\cases\sem_await_non_future.xl >nul 2> release\tmp\sem_await_non_future.err.txt
 if not errorlevel 1 (
@@ -6069,6 +6526,21 @@ if errorlevel 1 (
     echo cgen_generator.c missing generator cleanup helper.
     exit /b 1
 )
+findstr /C:"xl_gen_worker_toggles" release\tmp\cgen_generator.c >nul
+if errorlevel 1 (
+    echo cgen_generator.c missing bool generator worker.
+    exit /b 1
+)
+findstr /C:"xl_gen_worker_weights" release\tmp\cgen_generator.c >nul
+if errorlevel 1 (
+    echo cgen_generator.c missing float generator worker.
+    exit /b 1
+)
+findstr /C:"12:34:56" release\tmp\cgen_generator.c >nul
+if errorlevel 1 (
+    echo cgen_generator.c missing time generator literal lowering.
+    exit /b 1
+)
 
 release\xl.exe check test\cases\sem_yield_outside_generator.xl >nul 2> release\tmp\sem_yield_outside_generator.err.txt
 if not errorlevel 1 (
@@ -6079,6 +6551,18 @@ if not errorlevel 1 (
 release\xl.exe check test\cases\sem_generator_string_element.xl >nul 2> release\tmp\sem_generator_string_element.err.txt
 if not errorlevel 1 (
     echo sem_generator_string_element.xl should fail.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_generator_class_element.xl >nul 2> release\tmp\sem_generator_class_element.err.txt
+if not errorlevel 1 (
+    echo sem_generator_class_element.xl should fail.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_generator_function_element.xl >nul 2> release\tmp\sem_generator_function_element.err.txt
+if not errorlevel 1 (
+    echo sem_generator_function_element.xl should fail.
     exit /b 1
 )
 
@@ -6121,6 +6605,21 @@ if errorlevel 1 (
     echo cgen_channel.c missing recv helper.
     exit /b 1
 )
+findstr /C:"xrtChannelTryRecv" release\tmp\cgen_channel.c >nul
+if errorlevel 1 (
+    echo cgen_channel.c missing try recv path.
+    exit /b 1
+)
+findstr /C:"12:34:56" release\tmp\cgen_channel.c >nul
+if errorlevel 1 (
+    echo cgen_channel.c missing time channel literal lowering.
+    exit /b 1
+)
+findstr /C:"xl6_channel_send_value(closedCh" release\tmp\cgen_channel.c >nul
+if errorlevel 1 (
+    echo cgen_channel.c missing closed channel send assertion.
+    exit /b 1
+)
 
 release\xl.exe check test\cases\sem_channel_string_element.xl >nul 2> release\tmp\sem_channel_string_element.err.txt
 if not errorlevel 1 (
@@ -6137,6 +6636,18 @@ if not errorlevel 1 (
 release\xl.exe check test\cases\sem_channel_recv_target_type.xl >nul 2> release\tmp\sem_channel_recv_target_type.err.txt
 if not errorlevel 1 (
     echo sem_channel_recv_target_type.xl should fail.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_channel_class_element.xl >nul 2> release\tmp\sem_channel_class_element.err.txt
+if not errorlevel 1 (
+    echo sem_channel_class_element.xl should fail.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_channel_function_element.xl >nul 2> release\tmp\sem_channel_function_element.err.txt
+if not errorlevel 1 (
+    echo sem_channel_function_element.xl should fail.
     exit /b 1
 )
 

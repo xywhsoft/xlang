@@ -1,0 +1,20 @@
+extern "expect_i64" func expect(int actual, int expected)
+
+union Payload
+    int i
+    c_double d
+end
+
+Payload p
+p.i = 42
+
+var boxed = p
+expect(type(boxed) == Payload, 1)
+
+array<Payload> payloads = array[p]
+array<Payload> copied = payloads
+var boxedPayloads = copied
+
+expect(type(boxedPayloads) == type(copied), 1)
+expect(copied.length, 1)
+expect(copied[0].i, 42)

@@ -1,7 +1,47 @@
 extern "expect_i64" func expect(int actual, int expected)
 
+class Pair
+    int left = 0
+    int right = 0
+end
+
+custom Native
+end
+
+union Payload
+    int i
+    c_double d
+end
+
+func add(int left, int right) -> int
+    return left + right
+end
+
+func mul(int left, int right) -> int
+    return left * right
+end
+
 func pair() -> (int, int)
     return 7, 8
+end
+
+func makePairPayload() -> (Pair, Payload)
+    Pair pair
+    pair.left = 4
+    pair.right = 5
+
+    Payload payload
+    payload.i = 9
+
+    return pair, payload
+end
+
+func makeNative(Native value) -> (Native, int)
+    return value, 11
+end
+
+func makeOps() -> (function(int, int) -> int, function(int, int) -> int)
+    return add, mul
 end
 
 array<int> values = array[0]
@@ -11,3 +51,43 @@ values[0], scores["main"] = pair()
 
 expect(values[0], 7)
 expect(scores["main"], 8)
+
+Pair emptyPair
+Payload emptyPayload
+
+array<Pair> pairs = array[emptyPair]
+list<Payload> payloads = list[0: emptyPayload]
+
+pairs[0], payloads[3] = makePairPayload()
+
+Pair gotPair = pairs[0]
+Payload gotPayload = payloads[3]
+
+expect(gotPair.left + gotPair.right, 9)
+expect(gotPayload.i, 9)
+
+point rawA
+Native nativeA = Native(rawA)
+dict<Native> natives = dict{"main": nativeA}
+var nativeKey = "dynamic"
+
+natives[nativeKey], scores["native"] = makeNative(nativeA)
+
+Native gotNative = natives[nativeKey]
+var boxedNative = gotNative
+
+expect(type(boxedNative) == Native, 1)
+expect(scores["native"], 11)
+
+function(int, int) -> int fn = add
+array<function(int, int) -> int> funcs = array[fn]
+dict<function(int, int) -> int> table = dict{"op": fn}
+var opKey = "dyn"
+
+funcs[0], table[opKey] = makeOps()
+
+function(int, int) -> int gotAdd = funcs[0]
+function(int, int) -> int gotMul = table[opKey]
+
+expect(gotAdd(2, 3), 5)
+expect(gotMul(4, 5), 20)

@@ -724,7 +724,7 @@ static void xl6CgenAssignStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
             xl6OutputPrintf(ctx->out, "%s %s = ", xl6CgenTypeName(ctx, targetType), tempName);
             xl6CgenExpr(ctx, right);
             xl6OutputPuts(";\n", ctx->out);
-            xl6CgenRetainClassFunctionFieldsForType(ctx, targetType, tempName);
+            xl6CgenRetainClassFunctionFieldsForBorrowedExpr(ctx, targetType, tempName, right);
             xl6CgenReleaseClassFunctionFieldsForType(ctx, targetType, cName);
             xl6CgenIndent(ctx);
             xl6OutputPrintf(ctx->out, "%s = %s;\n", cName, tempName);

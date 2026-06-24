@@ -7,12 +7,53 @@ async func touchAsync()
     assert marker == 1, "async void body failed"
 end
 
+func makeAdder(int base) -> function(int) -> int
+    return func(int value) -> int
+        return base + value
+    end
+end
+
+class AsyncBox
+    function(int) -> int op
+    int bias = 0
+end
+
+func makeBox(int base) -> AsyncBox
+    AsyncBox box
+    box.op = makeAdder(base)
+    box.bias = base
+    return box
+end
+
+async func makeBoxAsync(int base) -> AsyncBox
+    AsyncBox box = makeBox(base)
+    return box
+end
+
+async func makeAdderAsync(int base) -> function(int) -> int
+    return makeAdder(base)
+end
+
 func numbers(int count) -> generator<int>
     int i = 0
     while i < count do
         i = i + 1
         yield i
     end
+end
+
+func toggles() -> generator<bool>
+    yield true
+    yield false
+end
+
+func weights() -> generator<float>
+    yield 1.5
+    yield 2.5
+end
+
+func clocks() -> generator<time>
+    yield #12:34:56#
 end
 
 func worker() -> int
@@ -30,11 +71,51 @@ assert autoAnswer == 10, "auto await failed"
 auto voidFuture = touchAsync()
 await voidFuture
 
+future<AsyncBox> boxFuture = makeBoxAsync(30)
+AsyncBox box = await boxFuture
+assert box.op(12) + box.bias == 72, "await class function field failed"
+
+future<function(int) -> int> fnFuture = makeAdderAsync(50)
+function(int) -> int fnA = await fnFuture
+function(int) -> int fnB = await fnFuture
+assert fnA(1) == 51, "await function result failed"
+assert fnB(2) == 52, "second await function result failed"
+
+future<AsyncBox> sharedBoxFuture = makeBoxAsync(70)
+AsyncBox firstBox = await sharedBoxFuture
+AsyncBox secondBox = await sharedBoxFuture
+assert firstBox.op(3) + firstBox.bias == 143, "first repeated await class result failed"
+assert secondBox.op(4) + secondBox.bias == 144, "second repeated await class result failed"
+
+auto autoBoxFuture = makeBoxAsync(90)
+auto autoBox = await autoBoxFuture
+assert autoBox.op(5) + autoBox.bias == 185, "auto await class result failed"
+
 int total = 0
 for value in numbers(4)
     total = total + value
 end
 assert total == 10, "generator for-in failed"
+
+int trueCount = 0
+for flag in toggles()
+    if flag then
+        trueCount = trueCount + 1
+    end
+end
+assert trueCount == 1, "bool generator failed"
+
+float weightTotal = 0.0
+for weight in weights()
+    weightTotal = weightTotal + weight
+end
+assert weightTotal == 4.0, "float generator failed"
+
+time clockValue = #00:00:00#
+for clock in clocks()
+    clockValue = clock
+end
+assert clockValue == #12:34:56#, "time generator failed"
 
 channel<int> ch = channel::<int>(2)
 assert ch.send(123), "channel send failed"

@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 
 typedef struct xvalue_struct* xvalue;
 
@@ -10,6 +11,7 @@ static long long g_nc_probe_count = 0;
 void expect_i64(long long actual, long long expected)
 {
     if ( actual != expected ) {
+        fprintf(stderr, "expect_i64 failed: actual=%lld expected=%lld\n", actual, expected);
         exit(1);
     }
 }
@@ -17,6 +19,7 @@ void expect_i64(long long actual, long long expected)
 void expect_str(const char* actual, const char* expected)
 {
     if ( actual == NULL || expected == NULL || strcmp(actual, expected) != 0 ) {
+        fprintf(stderr, "expect_str failed: actual=%s expected=%s\n", actual != NULL ? actual : "(null)", expected != NULL ? expected : "(null)");
         exit(1);
     }
 }

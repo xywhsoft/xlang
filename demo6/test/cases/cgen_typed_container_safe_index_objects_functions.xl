@@ -1,0 +1,105 @@
+extern "expect_i64" func expect(int actual, int expected)
+
+class Pair
+    int left = 1
+    int right = 2
+end
+
+custom Native
+end
+
+union Payload
+    int i
+    c_double d
+end
+
+func inc(int value) -> int
+    return value + 1
+end
+
+Pair pair
+pair.left = 7
+pair.right = 8
+
+Payload payload
+payload.i = 42
+
+point raw
+Native native = Native(raw)
+function(int) -> int fn = inc
+type fnType = type(fn)
+
+array<Pair> pairs = array[pair]
+array<Payload> payloads = array[payload]
+array<Native> natives = array[native]
+array<function(int) -> int> funcs = array[fn]
+
+list<Pair> pairList = list[4: pair]
+list<Payload> payloadList = list[5: payload]
+list<Native> nativeList = list[6: native]
+list<function(int) -> int> funcList = list[7: fn]
+
+dict<Pair> pairDict = dict{"pair": pair}
+dict<Payload> payloadDict = dict{"payload": payload}
+dict<Native> nativeDict = dict{"native": native}
+dict<function(int) -> int> funcDict = dict{"fn": fn}
+var pairKey = "pair"
+var fnKey = "fn"
+
+auto maybePair = pairs?[0]
+auto missingPair = pairs?[9]
+auto maybePayload = payloads?[0]
+auto missingPayload = payloads?[9]
+auto maybeNative = natives?[0]
+auto missingNative = natives?[9]
+auto maybeFn = funcs?[0]
+auto missingFn = funcs?[9]
+
+auto maybeListPair = pairList?[4]
+auto missingListPair = pairList?[9]
+auto maybeListPayload = payloadList?[5]
+auto missingListPayload = payloadList?[9]
+auto maybeListNative = nativeList?[6]
+auto missingListNative = nativeList?[9]
+auto maybeListFn = funcList?[7]
+auto missingListFn = funcList?[9]
+
+auto maybeDictPair = pairDict?[pairKey]
+auto missingDictPair = pairDict?["missing"]
+auto maybeDictPayload = payloadDict?["payload"]
+auto missingDictPayload = payloadDict?["missing"]
+auto maybeDictNative = nativeDict?["native"]
+auto missingDictNative = nativeDict?["missing"]
+auto maybeDictFn = funcDict?[fnKey]
+auto missingDictFn = funcDict?["missing"]
+
+expect(type(maybePair) == Pair, 1)
+expect(type(missingPair) == null, 1)
+expect(type(maybePayload) == Payload, 1)
+expect(type(missingPayload) == null, 1)
+expect(type(maybeNative) == Native, 1)
+expect(type(missingNative) == null, 1)
+expect(type(maybeFn) == fnType, 1)
+expect(type(missingFn) == null, 1)
+
+expect(type(maybeListPair) == Pair, 1)
+expect(type(missingListPair) == null, 1)
+expect(type(maybeListPayload) == Payload, 1)
+expect(type(missingListPayload) == null, 1)
+expect(type(maybeListNative) == Native, 1)
+expect(type(missingListNative) == null, 1)
+expect(type(maybeListFn) == fnType, 1)
+expect(type(missingListFn) == null, 1)
+
+expect(type(maybeDictPair) == Pair, 1)
+expect(type(missingDictPair) == null, 1)
+expect(type(maybeDictPayload) == Payload, 1)
+expect(type(missingDictPayload) == null, 1)
+expect(type(maybeDictNative) == Native, 1)
+expect(type(missingDictNative) == null, 1)
+expect(type(maybeDictFn) == fnType, 1)
+expect(type(missingDictFn) == null, 1)
+
+expect(int(maybeFn(41)), 42)
+expect(int(maybeListFn(41)), 42)
+expect(int(maybeDictFn(41)), 42)

@@ -92,25 +92,63 @@ static const XL6_AstNode* xl6CgenTypedContainerInitLiteral(XL6_CgenContext* ctx,
     return NULL;
 }
 
-static int xl6CgenTypedContainerCanCopyFromExpr(XL6_CgenContext* ctx, const XL6_AstNode* typeNode, const XL6_AstNode* initExpr)
+static int xl6CgenFuncSingleReturnUsesTypedContainerStorage(XL6_CgenContext* ctx, const XL6_AstNode* funcNode);
+
+static int xl6CgenTypedContainerExprTypeMatches(XL6_CgenContext* ctx, const XL6_AstNode* typeNode, const XL6_AstNode* expr)
 {
     XL6_AstNode* targetType;
-    XL6_AstNode* initType;
+    XL6_AstNode* exprType;
     int result;
 
-    if ( initExpr == NULL || xl6CgenTypedContainerInitLiteral(ctx, typeNode, initExpr) != NULL ) {
+    targetType = xl6CgenCloneCanonicalTypeNode(ctx, typeNode);
+    exprType = xl6CgenCloneExprTypeForInference(ctx, expr);
+    result = targetType != NULL &&
+             exprType != NULL &&
+             xl6CgenIsTypedContainerType(ctx, exprType) &&
+             xl6CgenTypeNodeEqual(targetType, exprType);
+    xl6AstFree(targetType);
+    xl6AstFree(exprType);
+    return result;
+}
+
+static int xl6CgenExprIsTypedContainerReturnCall(XL6_CgenContext* ctx, const XL6_AstNode* expr)
+{
+    const XL6_AstNode* callee;
+    XL6_AstNode* func;
+
+    if ( expr == NULL || expr->kind != XL6_AST_CALL || expr->childCount == 0 ) {
         return 0;
     }
 
-    targetType = xl6CgenCloneCanonicalTypeNode(ctx, typeNode);
-    initType = xl6CgenCloneExprTypeForInference(ctx, initExpr);
-    result = targetType != NULL &&
-             initType != NULL &&
-             xl6CgenIsTypedContainerType(ctx, initType) &&
-             xl6CgenTypeNodeEqual(targetType, initType);
-    xl6AstFree(targetType);
-    xl6AstFree(initType);
-    return result;
+    callee = expr->children[0];
+    if ( callee == NULL || callee->kind != XL6_AST_NAME ) {
+        return 0;
+    }
+
+    func = xl6CgenResolveCallFunc(ctx, expr, callee->text);
+    return xl6CgenFuncSingleReturnUsesTypedContainerStorage(ctx, func);
+}
+
+static int xl6CgenTypedContainerCanCopyFromExpr(XL6_CgenContext* ctx, const XL6_AstNode* typeNode, const XL6_AstNode* initExpr)
+{
+    if ( initExpr == NULL || xl6CgenTypedContainerInitLiteral(ctx, typeNode, initExpr) != NULL ) {
+        return 0;
+    }
+    if ( !xl6CgenExprUsesTypedContainerStorage(ctx, initExpr) ) {
+        return 0;
+    }
+    return xl6CgenTypedContainerExprTypeMatches(ctx, typeNode, initExpr);
+}
+
+static int xl6CgenTypedContainerCanMoveFromExpr(XL6_CgenContext* ctx, const XL6_AstNode* typeNode, const XL6_AstNode* initExpr)
+{
+    if ( initExpr == NULL || xl6CgenTypedContainerInitLiteral(ctx, typeNode, initExpr) != NULL ) {
+        return 0;
+    }
+    if ( !xl6CgenExprIsTypedContainerReturnCall(ctx, initExpr) ) {
+        return 0;
+    }
+    return xl6CgenTypedContainerExprTypeMatches(ctx, typeNode, initExpr);
 }
 
 static void xl6CgenTypedContainerCopyExpr(XL6_CgenContext* ctx, const XL6_AstNode* typeNode, const XL6_AstNode* expr)
@@ -272,6 +310,90 @@ static void xl6CgenTypedContainerFillFromLiteral(XL6_CgenContext* ctx, const cha
     }
 }
 
+static int xl6CgenFuncSingleReturnUsesTypedContainerStorage(XL6_CgenContext* ctx, const XL6_AstNode* funcNode)
+{
+    const XL6_AstNode* returns;
+
+    if ( ctx == NULL || funcNode == NULL || funcNode->kind != XL6_AST_FUNC ) {
+        return 0;
+    }
+    if ( xl6CgenFuncIsGeneric(funcNode) ) {
+        return 0;
+    }
+
+    returns = funcNode->childCount > 2 ? funcNode->children[2] : NULL;
+    return returns != NULL &&
+           returns->childCount == 1 &&
+           xl6CgenIsTypedContainerType(ctx, returns->children[0]);
+}
+
+static const char* xl6CgenFuncSingleReturnCType(XL6_CgenContext* ctx, const XL6_AstNode* funcNode)
+{
+    const XL6_AstNode* returns;
+
+    if ( xl6CgenFuncSingleReturnUsesTypedContainerStorage(ctx, funcNode) ) {
+        returns = funcNode->childCount > 2 ? funcNode->children[2] : NULL;
+        return xl6CgenTypedContainerCType(ctx, returns->children[0]);
+    }
+
+    returns = funcNode != NULL && funcNode->childCount > 2 ? funcNode->children[2] : NULL;
+    if ( returns != NULL && returns->childCount == 1 ) {
+        return xl6CgenTypeName(ctx, returns->children[0]);
+    }
+    return "void";
+}
+
+static int xl6CgenParamTypeUsesTypedContainerStorage(XL6_CgenContext* ctx, const XL6_AstNode* typeNode)
+{
+    return ctx != NULL &&
+           typeNode != NULL &&
+           ctx->currentGenericParams == NULL &&
+           ctx->currentGenericArgs == NULL &&
+           ctx->currentClass == NULL &&
+           ctx->currentCustom == NULL &&
+           ctx->currentAnonFunc == NULL &&
+           xl6CgenIsTypedContainerType(ctx, typeNode);
+}
+
+static const char* xl6CgenParamCType(XL6_CgenContext* ctx, const XL6_AstNode* typeNode)
+{
+    if ( xl6CgenParamTypeUsesTypedContainerStorage(ctx, typeNode) ) {
+        return xl6CgenTypedContainerCType(ctx, typeNode);
+    }
+    return xl6CgenTypeName(ctx, typeNode);
+}
+
+static void xl6CgenTypedContainerValueFromExpr(XL6_CgenContext* ctx, const XL6_AstNode* typeNode, const XL6_AstNode* expr)
+{
+    const XL6_AstNode* literal;
+
+    literal = xl6CgenTypedContainerInitLiteral(ctx, typeNode, expr);
+    if ( literal != NULL ) {
+        xl6CgenTypedContainerCreateExpr(ctx, typeNode);
+        return;
+    }
+
+    if ( xl6CgenExprUsesTypedContainerStorage(ctx, expr) ) {
+        xl6CgenTypedContainerCopyExpr(ctx, typeNode, expr);
+        return;
+    }
+
+    xl6CgenExpr(ctx, expr);
+}
+
+static void xl6CgenTypedContainerReturnStmt(XL6_CgenContext* ctx, const XL6_AstNode* typeNode, const XL6_AstNode* expr, int id)
+{
+    char returnName[64];
+
+    snprintf(returnName, sizeof(returnName), "__xl6_return_%d", id);
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "%s %s = ", xl6CgenTypedContainerCType(ctx, typeNode), returnName);
+    xl6CgenTypedContainerValueFromExpr(ctx, typeNode, expr);
+    xl6OutputPuts(";\n", ctx->out);
+    if ( xl6CgenTypedContainerInitLiteral(ctx, typeNode, expr) != NULL ) {
+        xl6CgenTypedContainerFillFromLiteral(ctx, returnName, typeNode, expr);
+    }
+}
 static int xl6CgenIsCurrentCustomSelfReceiver(XL6_CgenContext* ctx, const XL6_AstNode* receiver)
 {
     return ctx != NULL &&
@@ -613,15 +735,19 @@ static const XL6_AstNode* xl6CgenMemberFieldType(XL6_CgenContext* ctx, const XL6
     }
 
     receiver = member->childCount > 0 ? member->children[0] : NULL;
-    if ( receiver == NULL || (receiver->kind != XL6_AST_NAME && receiver->kind != XL6_AST_MEMBER) ) {
+    if ( receiver == NULL || (receiver->kind != XL6_AST_NAME &&
+                              receiver->kind != XL6_AST_MEMBER &&
+                              receiver->kind != XL6_AST_INDEX) ) {
         return NULL;
     }
 
     receiverType = NULL;
     ownedReceiverType = NULL;
     classNode = NULL;
-    if ( receiver->kind == XL6_AST_MEMBER ) {
-        ownedReceiverType = xl6CgenCloneMemberFieldTypeForInference(ctx, receiver);
+    if ( receiver->kind == XL6_AST_MEMBER || receiver->kind == XL6_AST_INDEX ) {
+        ownedReceiverType = receiver->kind == XL6_AST_MEMBER
+            ? xl6CgenCloneMemberFieldTypeForInference(ctx, receiver)
+            : xl6CgenCloneExprTypeForInference(ctx, receiver);
         receiverType = ownedReceiverType;
         classNode = receiverType != NULL ? xl6CgenFindClass(ctx, receiverType->text) : NULL;
     } else if ( xl6CTextEquals(receiver->text, "self") && ctx->currentClass != NULL ) {
@@ -658,13 +784,17 @@ static int xl6CgenUnionFieldAccess(XL6_CgenContext* ctx, const XL6_AstNode* memb
         return 0;
     }
     receiver = member->children[0];
-    if ( receiver == NULL || (receiver->kind != XL6_AST_NAME && receiver->kind != XL6_AST_MEMBER) ) {
+    if ( receiver == NULL || (receiver->kind != XL6_AST_NAME &&
+                              receiver->kind != XL6_AST_MEMBER &&
+                              receiver->kind != XL6_AST_INDEX) ) {
         return 0;
     }
 
     ownedReceiverType = NULL;
-    if ( receiver->kind == XL6_AST_MEMBER ) {
-        ownedReceiverType = xl6CgenCloneMemberFieldTypeForInference(ctx, receiver);
+    if ( receiver->kind == XL6_AST_MEMBER || receiver->kind == XL6_AST_INDEX ) {
+        ownedReceiverType = receiver->kind == XL6_AST_MEMBER
+            ? xl6CgenCloneMemberFieldTypeForInference(ctx, receiver)
+            : xl6CgenCloneExprTypeForInference(ctx, receiver);
         receiverType = ownedReceiverType;
     } else {
         receiverType = xl6CgenFindVarType(ctx, receiver->text);
@@ -699,7 +829,9 @@ static void xl6CgenClassFieldAccess(XL6_CgenContext* ctx, const XL6_AstNode* mem
     XL6_AstNode* ownedReceiverType;
 
     receiver = member->childCount > 0 ? member->children[0] : NULL;
-    if ( receiver == NULL || (receiver->kind != XL6_AST_NAME && receiver->kind != XL6_AST_MEMBER) ) {
+    if ( receiver == NULL || (receiver->kind != XL6_AST_NAME &&
+                              receiver->kind != XL6_AST_MEMBER &&
+                              receiver->kind != XL6_AST_INDEX) ) {
         xl6CgenError(ctx, member, "code generation error");
         xl6OutputPuts("0", ctx->out);
         return;
@@ -714,8 +846,10 @@ static void xl6CgenClassFieldAccess(XL6_CgenContext* ctx, const XL6_AstNode* mem
     }
 
     ownedReceiverType = NULL;
-    if ( receiver->kind == XL6_AST_MEMBER ) {
-        ownedReceiverType = xl6CgenCloneMemberFieldTypeForInference(ctx, receiver);
+    if ( receiver->kind == XL6_AST_MEMBER || receiver->kind == XL6_AST_INDEX ) {
+        ownedReceiverType = receiver->kind == XL6_AST_MEMBER
+            ? xl6CgenCloneMemberFieldTypeForInference(ctx, receiver)
+            : xl6CgenCloneExprTypeForInference(ctx, receiver);
         receiverType = ownedReceiverType;
         classNode = receiverType != NULL ? xl6CgenFindClass(ctx, receiverType->text) : NULL;
         if ( classNode == NULL ) {
@@ -773,6 +907,28 @@ static void xl6CgenXValueMemberKeyExpr(XL6_CgenContext* ctx, const XL6_AstNode* 
 static void xl6CgenXValueMemberLengthExpr(XL6_CgenContext* ctx, const XL6_AstNode* receiver, const XL6_AstNode* receiverType)
 {
     int id;
+
+    if ( xl6CgenExprUsesTypedContainerStorage(ctx, receiver) && xl6CgenIsTypedContainerType(ctx, receiverType) ) {
+        const XL6_AstNode* concreteType = xl6CgenTypedContainerConcreteType(ctx, receiverType);
+        const char* typeName = concreteType != NULL ? concreteType->text : NULL;
+
+        if ( xl6CTextEquals(typeName, "array") ) {
+            xl6OutputPuts("xrtTypedArrayCount(", ctx->out);
+        } else if ( xl6CTextEquals(typeName, "list") ) {
+            xl6OutputPuts("xrtTypedListCount(", ctx->out);
+        } else if ( xl6CTextEquals(typeName, "set") ) {
+            xl6OutputPuts("xrtTypedSetCount(", ctx->out);
+        } else if ( xl6CTextEquals(typeName, "dict") ) {
+            xl6OutputPuts("xrtTypedDictCount(", ctx->out);
+        } else {
+            xl6CgenError(ctx, receiver, "typed container length requires array/list/set/dict");
+            xl6OutputPuts("0", ctx->out);
+            return;
+        }
+        xl6CgenExpr(ctx, receiver);
+        xl6OutputPutc(')', ctx->out);
+        return;
+    }
 
     if ( xl6CgenExprIsXValueBorrow(ctx, receiver) ) {
         if ( receiver != NULL && receiver->kind == XL6_AST_NAME && xl6CgenIsArrayXValueType(receiverType) ) {

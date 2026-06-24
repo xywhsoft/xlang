@@ -1,0 +1,6 @@
+custom Native
+    extern "native_open" create()
+    extern "native_close" destroy()
+end
+
+array<Native> handles = array[]
