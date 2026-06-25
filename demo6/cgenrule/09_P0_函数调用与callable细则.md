@@ -127,12 +127,12 @@
 | 字段 | 内容 |
 | --- | --- |
 | xlang 写法 | `function(int) int f; f(1)` |
-| 生成规则描述 | 静态类型为 `function` 且带签名时，调用点先计算签名 id，并生成三目表达式检查 `f.signature == expectedId`。签名匹配时优先走 `invoke` 直接调用；签名不匹配直接 `exit(3)`。 |
-| 生成器文件名和行号 | `xl6_cgen_expr.c:268`、`xl6_cgen_function_value.c:704`、`xl6_cgen_function_value.c:728`、`xl6_cgen_abi.c:168` |
-| 对应生成的 C 代码 | `((f.signature == 0x...ULL) ? ((f.invoke != 0) ? ((long long (*)(void*, long long))f.invoke)(f.env, 1LL) : fallback) : (exit(3), (long long)0))` |
+| 生成规则描述 | 静态类型为 `function` 且带签名时，调用点先计算签名 id，并生成三目表达式检查 `f.signature == expectedId`。签名匹配时优先走 `invoke` 直接调用；签名不匹配走集中 helper `xl6_function_fatal(3)`，该 helper 再委托模块级 `xl6_runtime_fatal`。 |
+| 生成器文件名和行号 | `xl6_cgen_expr.c:268`、`xl6_cgen_function_value.c:704`、`xl6_cgen_function_value.c:737`、`xl6_cgen_function_value.c:740`、`xl6_cgen_abi.c:168` |
+| 对应生成的 C 代码 | `((f.signature == 0x...ULL) ? ((f.invoke != 0) ? ((long long (*)(void*, long long))f.invoke)(f.env, 1LL) : fallback) : (xl6_function_fatal(3), (long long)0))` |
 | 中间形态伪代码 | `require signature; if direct invoke exists -> direct; else fallback xvalue call` |
 | 实现同等功能手写的 C 代码 | 手写 C 可直接强转 `invoke` 函数指针，但也应先检查签名。 |
-| 额外依赖的封装代码 | 需要 `XL6_Function` runtime 与签名 id。 |
+| 额外依赖的封装代码 | 需要 `XL6_Function` runtime、签名 id 与模块级 `xl6_runtime_fatal`。 |
 
 ## CGEN-CALL-012 function 变量无签名调用
 
@@ -164,7 +164,7 @@
 | --- | --- |
 | xlang 写法 | `function(int) string f; f(1)`，但 `f.invoke == 0` 且有 `invoke_var/xcall` |
 | 生成规则描述 | 如果签名匹配但没有直接 invoke，生成器退回 `xl6_function_call_var` 或 `xl6_function_call_kwargs`，返回 `xvalue` 后按声明返回类型释放转换：int/float/bool/string/time/point/function/type 各自有转换 helper。 |
-| 生成器文件名和行号 | `xl6_cgen_function_value.c:593`、`xl6_cgen_function_value.c:623`、`xl6_cgen_function_value.c:640`、`xl6_cgen_callable_runtime.c:1`、`xl6_cgen_callable_runtime.c:40` |
+| 生成器文件名和行号 | `xl6_cgen_function_value.c:593`、`xl6_cgen_function_value.c:623`、`xl6_cgen_function_value.c:640`、`xl6_cgen_callable_runtime.c:1`、`xl6_cgen_callable_runtime.c:44` |
 | 对应生成的 C 代码 | `xl6_xvalue_to_string_release(xl6_function_call_var(f, 1, xvoCreateInt(1)))` |
 | 中间形态伪代码 | `xv = dynamicInvoke(fn, boxedArgs); return convertAndRelease<T>(xv)` |
 | 实现同等功能手写的 C 代码 | 手写 C 需要调用动态 invoke，并按目标类型取值和释放。 |
@@ -176,7 +176,7 @@
 | --- | --- |
 | xlang 写法 | `var f; f(1, name = "x")` |
 | 生成规则描述 | 静态类型为 `var` 的 callee 调用走 `xl6_var_call` 或 `xl6_var_call_kwargs`。位置实参装箱为 `xvalue`，命名实参打包为 kwargs dict。运行时通过 `xvoInvoke` 执行，并返回第一个结果或 null。 |
-| 生成器文件名和行号 | `xl6_cgen_expr.c:264`、`xl6_cgen_function_value.c:670`、`xl6_cgen_function_value.c:681`、`xl6_cgen_callable_runtime.c:40` |
+| 生成器文件名和行号 | `xl6_cgen_expr.c:264`、`xl6_cgen_function_value.c:670`、`xl6_cgen_function_value.c:681`、`xl6_cgen_callable_runtime.c:44` |
 | 对应生成的 C 代码 | `xl6_var_call_kwargs(f, xl6_xrt_dict_varargs(1, "name", xvoCreateText((void*)"x", 0, false)), 1, xvoCreateInt(1))` |
 | 中间形态伪代码 | `xvoInvoke(fn, callFrame{argv, kwargs})` |
 | 实现同等功能手写的 C 代码 | 手写 C 需要构造 `xrt_call_frame`、`xrt_call_result` 并释放 argv/kwargs。 |
@@ -199,8 +199,8 @@
 | 字段 | 内容 |
 | --- | --- |
 | xlang 写法 | `func add(int a, int b = 1) int; function(int) int f = add` |
-| 生成规则描述 | function 类型匹配函数参数时，会考虑 required/fixed 参数数量和可选参数。若 function 类型参数个数在 required 和 fixed 之间，可通过 optional adapter 生成较短签名的 function 值。 |
-| 生成器文件名和行号 | `xl6_cgen_function_value.c:391`、`xl6_cgen_callable_wrappers.c:747`、`xl6_cgen_callable_wrappers.c:552`、`xl6_cgen_callable_wrappers.c:707` |
+| 生成规则描述 | function 类型匹配函数参数时，会考虑 required/fixed 参数数量和可选参数。若 function 类型参数个数在 required 和 fixed 之间，可通过 optional adapter 生成较短签名的 function 值。adapter 补默认值时若参数节点缺少默认表达式，会明确诊断为 `optional adapter parameter is missing a default expression`；声明需要 vararg 但当前 adapter 签名未携带 vararg 时，诊断为 `callable adapter requires a vararg parameter`。 |
+| 生成器文件名和行号 | `xl6_cgen_function_value.c:391`、`xl6_cgen_callable_wrappers.c:747`、`xl6_cgen_callable_wrappers.c:552`、`xl6_cgen_callable_wrappers.c:595`、`xl6_cgen_callable_wrappers.c:606`、`xl6_cgen_callable_wrappers.c:707` |
 | 对应生成的 C 代码 | `XL6_Function f = xl6_function_value_add_1_make();`，adapter 内部调用 `add(a, defaultB)` |
 | 中间形态伪代码 | `if required <= expectedCount <= fixed: generate prefix adapter` |
 | 实现同等功能手写的 C 代码 | 手写 C 需要写一个只接收 `a` 的 wrapper，并在内部补默认参数。 |
@@ -247,9 +247,9 @@
 | 字段 | 内容 |
 | --- | --- |
 | xlang 写法 | `auto f = func(int x) int return x + base end` |
-| 生成规则描述 | 匿名函数表达式生成 `xl6_anon_N_make(captures...)`。捕获变量按匿名函数信息表顺序作为参数传入 make 函数；函数体内部访问捕获变量时生成 `__env->name`。 |
-| 生成器文件名和行号 | `xl6_cgen_expr.c:61`、`xl6_cgen_function_value.c:806`、`xl6_cgen_expr.c:8`、`xl6_cgen_callable_frame.c:1`、`xl6_cgen_callable_wrappers.c:1` |
-| 对应生成的 C 代码 | `xl6_anon_1_make(base)` |
+| 生成规则描述 | 匿名函数表达式生成 `xl6_anon_N_make(captures...)`。捕获变量按匿名函数信息表顺序作为参数传入 make 函数；有捕获时 make 函数通过 `xrtMalloc(sizeof(XL6_Closure_N))` 创建 closure env，release 路径在引用计数归零后通过 `xrtFree(__env)` 释放；函数体内部访问捕获变量时生成 `__env->name`。若匿名函数信息未被预扫描收集，兜底诊断为 `anonymous function metadata was not collected`。 |
+| 生成器文件名和行号 | `xl6_cgen_expr.c:61`、`xl6_cgen_function_value.c:806`、`xl6_cgen_function_value.c:813`、`xl6_cgen_expr.c:8`、`xl6_cgen_callable_frame.c:1`、`xl6_cgen_callable_wrappers.c:1` |
+| 对应生成的 C 代码 | `xl6_anon_1_make(base)`，内部生成 `XL6_Closure_1* __env = (XL6_Closure_1*)xrtMalloc(sizeof(XL6_Closure_1));` |
 | 中间形态伪代码 | `makeClosure(anonId, capturedValues)` |
 | 实现同等功能手写的 C 代码 | 手写 C 需要定义 env struct、invoke 函数、retain/release 和 make 函数。 |
 | 额外依赖的封装代码 | 需要匿名函数 wrapper 与 closure env 代码。 |
@@ -343,7 +343,7 @@
 | 字段 | 内容 |
 | --- | --- |
 | xlang 写法 | `var v = f`、`function(...) g = v` |
-| 生成规则描述 | function 转 xvalue 时把 `XL6_Function` 装入 `XL6_Function_Callable_Env`，创建 `xrt_callable` 并生成 `xvoCreateCallable`。xvalue 转 function 时从 xvalue 取 `xrt_callable`，构造带 retain/release/xcall/var invoke 的 `XL6_Function`，并释放原 xvalue。 |
+| 生成规则描述 | function 转 xvalue 时把 `XL6_Function` 装入 `XL6_Function_Callable_Env`，通过 `xrtMalloc` 创建 env，创建 `xrt_callable` 并生成 `xvoCreateCallable`。xvalue 转 function 时从 xvalue 取 `xrt_callable`，构造带 retain/release/xcall/var invoke 的 `XL6_Function`，release 路径通过 `xrtFree` 释放 env，并释放原 xvalue。 |
 | 生成器文件名和行号 | `xl6_cgen_callable_runtime.c:40` |
 | 对应生成的 C 代码 | `xvalue v = xl6_function_to_xvalue(fn);`<br>`XL6_Function fn = xl6_function_from_xvalue_release(v);` |
 | 中间形态伪代码 | `function <-> xrt_callable <-> xvalue callable` |
@@ -368,5 +368,5 @@
 | --- | --- |
 | RISK-CALL-001 | function 调用和成员 function 调用大量使用 GNU 语句表达式，未来若强化 MSVC 直编兼容，需要把表达式降级为语句临时或 helper。 |
 | RISK-CALL-002 | `xrt_func_sig` 当前只填 signature id、名称、参数/返回数量，`Params/ReturnTypes` 为 0；作为长期接口元数据还不够完整。 |
-| RISK-CALL-003 | `function` fallback 返回 string 时使用 `malloc` 拷贝文本，和 XRT 统一内存管理原则存在偏差，后续应评估改为 `xrtMalloc/xrtFree` 或 XRT 字符串对象。 |
-| RISK-CALL-004 | direct function invoke 的签名检查是运行期三目表达式，错误路径 `exit(3)` 直接终止；异常系统成熟后可替换为统一运行时错误。 |
+| RISK-CALL-003 | 已收口：`function` fallback 返回 string、function/xvalue callable env、erased call argv、闭包 closure env 均改为使用 `xrtMalloc/xrtFree`；`cgen_function_named_value.xl`、`cgen_closure.xl`、`cgen_closure_resource_capture.xl` 的生成检查确认对应生成文件不再输出小写 CRT `malloc/free`。 |
+| RISK-CALL-004 | 已收口：function/callable runtime、erased wrapper 参数检查、闭包 env 分配和 direct function invoke fallback 的错误路径不再散落生成裸 `exit(2/3)`，而是集中到 `xl6_function_fatal(code)`；`xl6_function_fatal` 再委托模块级 `xl6_runtime_fatal(code)`，后续异常系统成熟后可只替换模块级入口。 |
