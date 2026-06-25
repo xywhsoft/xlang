@@ -60,6 +60,12 @@ const char* xlGetLastError(XL_Context* ctx);
 void xlClearLastError(XL_Context* ctx);
 ```
 
+命名说明：
+
+- `xlRuntimeInit` / `xlRuntimeUnit` 是 `xl.dll` 的进程级公共 API，用于管理 DLL 内部 XRT/libtcc 运行时计数。
+- 生成出来的 xlang/C 程序仍使用 `xlInit` / `xlUnit` 作为模块生命周期入口。
+- DEMO6 不使用任何 Uninit/UnInit 式卸载命名，避免和 `xrtInit` / `xrtUnit` 口径冲突。
+
 ## 运行模型
 
 字符串脚本和文件脚本都走统一流水线：

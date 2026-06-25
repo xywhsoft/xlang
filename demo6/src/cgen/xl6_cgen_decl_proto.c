@@ -245,7 +245,7 @@ static void xl6CgenClassFuncProto(XL6_CgenContext* ctx, const XL6_AstNode* class
     nameNode = funcNode->childCount > 0 ? funcNode->children[0] : NULL;
     returns = funcNode->childCount > 2 ? funcNode->children[2] : NULL;
     if ( returns != NULL && returns->childCount > 1 ) {
-        xl6CgenError(ctx, returns, "code generation error");
+        xl6CgenError(ctx, returns, "class method C prototype does not support multiple return values");
     }
     if ( returns != NULL && returns->childCount == 1 ) {
         xl6OutputPuts(xl6CgenTypeName(ctx, returns->children[0]), ctx->out);

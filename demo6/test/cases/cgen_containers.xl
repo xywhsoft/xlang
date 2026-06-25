@@ -9,6 +9,10 @@ auto values = [1, 2, 3]
 auto sparse = [0: "a", 2: "b"]
 auto unique = {1, 2, 3}
 auto table = {"a": 1, "b": 2}
+var prefixedArray = array[9, 10]
+var prefixedList = list[0: "p", 2: "q"]
+var prefixedSet = set{11, 12}
+var prefixedDict = dict{"p": 13}
 
 array<int> typedArray = array[4, 5]
 list<string> typedList = list[0: "x"]
@@ -119,3 +123,32 @@ for key, value in explicitEmptyDict
     explicitEmptyDictCount = explicitEmptyDictCount + 1
 end
 expect(explicitEmptyDictCount, 0)
+
+int prefixedArraySum = 0
+for value in prefixedArray
+    prefixedArraySum = prefixedArraySum + int(value)
+end
+expect(prefixedArraySum, 19)
+
+int prefixedListIndexSum = 0
+string prefixedListLast = ""
+for index, value in prefixedList
+    prefixedListIndexSum = prefixedListIndexSum + int(index)
+    prefixedListLast = string(value)
+end
+expect(prefixedListIndexSum, 2)
+assert prefixedListLast == "q", "prefixed list literal should stay iterable as dynamic value"
+
+int prefixedSetCount = 0
+for value in prefixedSet
+    prefixedSetCount = prefixedSetCount + 1
+end
+expect(prefixedSetCount, 2)
+
+int prefixedDictValue = 0
+for key, value in prefixedDict
+    if string(key) == "p" then
+        prefixedDictValue = int(value)
+    end
+end
+expect(prefixedDictValue, 13)

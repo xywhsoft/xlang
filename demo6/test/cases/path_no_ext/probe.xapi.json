@@ -1,0 +1,18 @@
+{
+  "format":"xlang-xapi-1",
+  "compiler":{"name":"xl","version":"demo6","xlangAbi":1,"xrtAbi":1},
+  "target":{"os":"windows","arch":"x64","callingConvention":"cdecl"},
+  "package":{"name":"probe","version":"1.0.0","abiVersion":"1","packageId":"probe@1.0.0#abi1"},
+  "module":{"name":"probe","moduleId":"probe@1.0.0#abi1::probe","source":"test/cases/path_no_ext/probe","sourceHash":""},
+  "entry":{"kind":"none","requiresExplicitInit":true,"initSymbol":"xlInit","unitSymbol":"xlUnit"},
+  "exports":[
+    {"kind":"function","name":"value","cSymbol":"xl6_path_no_ext_value","signature":"func()->int","exportId":"probe@1.0.0#abi1::probe::value(func()->int)","callingConvention":"cdecl","varargMode":"none","requiredParamCount":0,"fixedParamCount":0,"params":[],"returns":[{"type":"int"}]}
+  ],
+  "types":[],
+  "imports":[],
+  "links":[],
+  "loadlibs":[],
+  "cSources":[],
+  "native":{"singleton":false,"loadName":"","version":""},
+  "docs":[]
+}

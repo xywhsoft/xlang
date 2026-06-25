@@ -2,6 +2,9 @@
 setlocal
 cd /d %~dp0
 
+call tools\xl6_toolchain_env.bat
+if errorlevel 1 exit /b 1
+
 if not exist release\tmp\tutorial mkdir release\tmp\tutorial
 
 echo Checking tutorial examples...
@@ -42,7 +45,7 @@ echo Verifying tutorial C export ABI...
 release\xl.exe cgen examples\tutorial\11_export_to_c.xl --emit release\tmp\tutorial\11_export_to_c.c --emit-header release\tmp\tutorial\11_export_to_c.h
 if errorlevel 1 exit /b 1
 
-..\demo5\lib\tcc\tcc.exe -Irelease\tmp\tutorial -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\tutorial\11_export_to_c.c examples\tutorial\host_export.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\tutorial\host_export.exe
+"%XL6_TCC%" -Irelease\tmp\tutorial %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\tutorial\11_export_to_c.c examples\tutorial\host_export.c %XL6_DEFAULT_LINKS% -o release\tmp\tutorial\host_export.exe
 if errorlevel 1 exit /b 1
 
 release\tmp\tutorial\host_export.exe

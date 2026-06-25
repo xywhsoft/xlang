@@ -74,7 +74,7 @@ XAPI 不是用户常规手写源，而是机器生成的接口元数据：
 
 ## 3. main 入口约定
 
-当前 DEMO6 尚无正式 xlang main 函数约定，只有顶层语句生成 `int main(void)` 的脚本模式。本轮正式收口。
+本文立项时 DEMO6 尚无正式 xlang main 函数约定，只有顶层语句生成 `int main(void)` 的脚本模式。本轮已按以下规则收口；当前实现细节以 `C混编设计.md`、`命令行设计.md`、`ABI设计.md` 和 cgenrule 入口规则为准。
 
 ### 3.1 xlang main
 
@@ -233,23 +233,24 @@ xl build main.xl helper.c -o app.exe
 - 用户仍可用 `--link`、`--lib-path`、`--inc-path`、`--loadlib` 添加额外依赖。
 - `run` 命令仍以一个 `.xl` 为主，后续可扩展 C 输入。
 
-默认链接：
+默认链接由 `tools\xl6_toolchain_env.bat` 集中提供，不在各个命令、测试和文档里重复写死工具链路径。当前入口变量为：
 
 ```text
-..\..\xrt\release\x64\xrt.o
-..\demo5\release\tcc\lib\libtcc1-64.a
+XL6_XRT_OBJ
+XL6_TCC_LIBTCC1
 Ws2_32
 IPHLPAPI
 Shell32
 ```
 
-默认 include：
+默认 include 同样由集中工具链环境提供：
 
 ```text
-demo6\lib
+XL6_TCC_INCLUDES
+XL6_TCC_INCLUDES_WINAPI
 ```
 
-后续如果 xrt 单头文件位置变化，统一在 driver 中集中调整。
+后续如果 XRT、TCC 或系统库路径变化，只调整 `tools\xl6_toolchain_env.bat` 和 driver/backend 的集中默认值，不把路径重新散落到 API、CLI、cgen、测试脚本或设计文档中。
 
 ## 6. package.json 与 import 第一版
 
@@ -321,4 +322,3 @@ import 行为：
 12. 实现 `import package` 第一版。
 13. 补测试与 feature_suite 范例。
 14. 运行完整回归并修复问题。
-

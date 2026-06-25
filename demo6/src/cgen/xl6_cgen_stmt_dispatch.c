@@ -3,7 +3,7 @@ static void xl6CgenForIn(XL6_CgenContext* ctx, const XL6_AstNode* node)
     XL6_AstNode* iterableType;
 
     if ( node->childCount < 3 ) {
-        xl6CgenError(ctx, node, "code generation error");
+        xl6CgenError(ctx, node, "malformed for-in statement");
         return;
     }
     if ( xl6CgenIsRangeCall(node->children[1]) ) {
@@ -179,7 +179,7 @@ static void xl6CgenStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
         break;
 
     default:
-        xl6CgenError(ctx, node, "code generation error");
+        xl6CgenError(ctx, node, "unsupported statement kind in C generator");
         break;
     }
 }

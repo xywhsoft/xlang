@@ -1,0 +1,18 @@
+{
+  "format":"xlang-xapi-1",
+  "compiler":{"name":"xl","version":"demo6","xlangAbi":1,"xrtAbi":1},
+  "target":{"os":"windows","arch":"x64","callingConvention":"cdecl"},
+  "package":{"name":"libprobe","version":"1.0.0","abiVersion":"1","packageId":"libprobe@1.0.0#abi1"},
+  "module":{"name":"libprobe","moduleId":"libprobe@1.0.0#abi1::libprobe","source":"lib/libprobe","sourceHash":""},
+  "entry":{"kind":"none","requiresExplicitInit":true,"initSymbol":"xlInit","unitSymbol":"xlUnit"},
+  "exports":[
+    {"kind":"function","name":"value","cSymbol":"xl6_libprobe_value","signature":"func()->int","exportId":"libprobe@1.0.0#abi1::libprobe::value(func()->int)","callingConvention":"cdecl","varargMode":"none","requiredParamCount":0,"fixedParamCount":0,"params":[],"returns":[{"type":"int"}]}
+  ],
+  "types":[],
+  "imports":[],
+  "links":[],
+  "loadlibs":[],
+  "cSources":[],
+  "native":{"singleton":false,"loadName":"","version":""},
+  "docs":[]
+}

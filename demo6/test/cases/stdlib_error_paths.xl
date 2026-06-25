@@ -1,0 +1,57 @@
+extern "expect_i64" func expect(int actual, int expected)
+extern "expect_str" func expectStr(string actual, string expected)
+
+string missingFile = "release/tmp/stdlib_missing_file.txt"
+string missingCopy = "release/tmp/stdlib_missing_copy.txt"
+string missingMove = "release/tmp/stdlib_missing_move.txt"
+string missingDir = "release/tmp/stdlib_missing_dir"
+string missingDirCopy = "release/tmp/stdlib_missing_dir_copy"
+string missingDirMove = "release/tmp/stdlib_missing_dir_move"
+string badJson = "release/tmp/stdlib_bad.json"
+string badXson = "release/tmp/stdlib_bad.xson"
+
+file.delete(missingFile)
+file.delete(missingCopy)
+file.delete(missingMove)
+dir.delete(missingDir)
+dir.delete(missingDirCopy)
+dir.delete(missingDirMove)
+file.delete(badJson)
+file.delete(badXson)
+
+expect(file.exists(missingFile), 0)
+expectStr(file.readText(missingFile), "")
+expect(file.copy(missingFile, missingCopy), 0)
+expect(file.move(missingFile, missingMove), 0)
+expect(file.delete(missingFile), 0)
+
+expect(dir.exists(missingDir), 0)
+expect(dir.copy(missingDir, missingDirCopy), 0)
+expect(dir.move(missingDir, missingDirMove), 0)
+expect(dir.delete(missingDir), 0)
+
+array missingList = dir.list(missingDir)
+array missingFiles = dir.files(missingDir)
+array missingDirs = dir.dirs(missingDir)
+expect(missingList.length, 0)
+expect(missingFiles.length, 0)
+expect(missingDirs.length, 0)
+
+var invalidJson = json.parse("{")
+expect(type(invalidJson) == null, 1)
+expect(json.write("release/tmp/stdlib_missing_dir/out.json", {"a": 1}), 0)
+expect(file.writeText(badJson, "{"), 1)
+var invalidJsonFile = json.read(badJson)
+expect(type(invalidJsonFile) == null, 1)
+expect(file.delete(badJson), 1)
+
+var invalidXson = xson.parse("{")
+expect(type(invalidXson) == null, 1)
+expect(xson.write("release/tmp/stdlib_missing_dir/out.xson", {"a": 1}), 0)
+expect(file.writeText(badXson, "{"), 1)
+var invalidXsonFile = xson.read(badXson)
+expect(type(invalidXsonFile) == null, 1)
+expect(file.delete(badXson), 1)
+
+expect(regex.isMatch("abc", "["), 0)
+expect(regex.find("abc", "["), -1)

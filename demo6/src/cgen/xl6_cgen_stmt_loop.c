@@ -1,3 +1,5 @@
+static void xl6CgenEmitExceptionPropagate(XL6_CgenContext* ctx, const XL6_AstNode* at);
+
 static void xl6CgenIf(XL6_CgenContext* ctx, const XL6_AstNode* node)
 {
     size_t i;
@@ -564,7 +566,7 @@ static void xl6CgenForRange(XL6_CgenContext* ctx, const XL6_AstNode* node)
     int id;
 
     if ( node->childCount < 3 ) {
-        xl6CgenError(ctx, node, "code generation error");
+        xl6CgenError(ctx, node, "malformed range for-in statement");
         return;
     }
 
@@ -616,6 +618,22 @@ static void xl6CgenForRange(XL6_CgenContext* ctx, const XL6_AstNode* node)
         xl6OutputPuts("1", ctx->out);
     }
     xl6OutputPuts(";\n", ctx->out);
+
+    if ( args->childCount >= 3 ) {
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "if ( __xl6_range_step_%d == 0 ) {\n", id);
+        ctx->indent += 1;
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(
+                ctx->out,
+                "xl6_error_raise(\"RangeError\", \"range step cannot be 0\", \"\", %d, %d);\n",
+                rangeCall != NULL ? rangeCall->line : 0,
+                rangeCall != NULL ? rangeCall->column : 0);
+        xl6CgenEmitExceptionPropagate(ctx, rangeCall);
+        ctx->indent -= 1;
+        xl6CgenIndent(ctx);
+        xl6OutputPuts("}\n", ctx->out);
+    }
 
     xl6CgenIndent(ctx);
     xl6OutputPrintf(ctx->out, "long long __xl6_range_index_%d = 0;\n", id);
@@ -674,7 +692,7 @@ static void xl6CgenForXValueIterable(XL6_CgenContext* ctx, const XL6_AstNode* no
     char iterName[64];
 
     if ( node->childCount < 3 ) {
-        xl6CgenError(ctx, node, "code generation error");
+        xl6CgenError(ctx, node, "malformed dynamic for-in statement");
         return;
     }
 
@@ -764,7 +782,7 @@ static void xl6CgenForGeneratorIterable(XL6_CgenContext* ctx, const XL6_AstNode*
     char iterName[64];
 
     if ( node->childCount < 3 ) {
-        xl6CgenError(ctx, node, "code generation error");
+        xl6CgenError(ctx, node, "malformed generator for-in statement");
         return;
     }
 
@@ -1071,7 +1089,7 @@ static void xl6CgenForTypedContainerIterable(XL6_CgenContext* ctx, const XL6_Ast
     size_t iterCleanupMark;
 
     if ( node->childCount < 3 ) {
-        xl6CgenError(ctx, node, "code generation error");
+        xl6CgenError(ctx, node, "malformed typed container for-in statement");
         return;
     }
 
@@ -1109,7 +1127,7 @@ static void xl6CgenForTypedContainerIterable(XL6_CgenContext* ctx, const XL6_Ast
     } else if ( xl6CTextEquals(typeName, "dict") ) {
         xl6CgenForTypedDictLoop(ctx, node, targets, iterName, iterableType, iterCleanupMark, id, id);
     } else {
-        xl6CgenError(ctx, iterable, "code generation error");
+        xl6CgenError(ctx, iterable, "typed container for-in requires array, list, set or dict");
     }
 
     xl6CgenEmitCleanupsSince(ctx, iterCleanupMark);

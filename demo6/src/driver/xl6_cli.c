@@ -4,6 +4,7 @@
 #include "src/abi/xl6_xapi_dump.h"
 #include "src/ast/xl6_ast_dump.h"
 #include "src/backend/xl6_build_backend.h"
+#include "src/backend/xl6_toolchain.h"
 #include "src/cgen/xl6_cgen.h"
 #include "src/common/xl6_common.h"
 #include "src/compile/xl6_compile_unit.h"
@@ -149,7 +150,7 @@ static void xl6CliMakeHeaderGuard(char* out, size_t outSize, const char* path)
 
     used = 0;
     if ( outSize > 1 ) {
-        strcpy(out, "XL6_");
+        snprintf(out, outSize, "XL6_");
         used = strlen(out);
     }
     for ( p = base; *p != '\0' && p != dot && used + 3 < outSize; ++p ) {
@@ -551,8 +552,11 @@ static int xl6CliJoinDumpPath(char* out, size_t outSize, const char* dir, const 
 
 static int xl6CliEnsureTmpDir(void)
 {
-    (void)system("if not exist release\\tmp mkdir release\\tmp >nul 2>nul");
-    return 1;
+    if ( xrtDirCreateAll("release\\tmp") ) {
+        return 1;
+    }
+    fprintf(stderr, "cannot create temporary directory: release\\tmp\n");
+    return 0;
 }
 
 static unsigned long xl6CliNextTempId(void)
@@ -579,7 +583,9 @@ static int xl6CliMakeWorkDir(char* out, size_t outSize, const char* purpose)
     if ( out == NULL || outSize == 0 ) {
         return 0;
     }
-    xl6CliEnsureTmpDir();
+    if ( !xl6CliEnsureTmpDir() ) {
+        return 0;
+    }
     written = snprintf(
         out,
         outSize,
@@ -634,13 +640,13 @@ static int xl6CliJoinPath(char* out, size_t outSize, const char* dir, const char
     return written > 0 && (size_t)written < outSize;
 }
 
-static int xl6CliQuoteCommand(char* out, size_t outSize, const char* text)
-{
-    int written;
+static int xl6CliQuoteCommand(char* out, size_t outSize, const char* text);
 
-    written = snprintf(out, outSize, "\"%s\"", text != NULL ? text : "");
-    return written > 0 && (size_t)written < outSize;
-}
+/* 实现放在文件末尾，避免影响既有规则文档行号。 */
+
+
+
+
 
 static int xl6CliAppendCommandText(char* command, size_t commandSize, const char* text);
 
@@ -763,7 +769,7 @@ static int xl6CliAppendCommandText(char* command, size_t commandSize, const char
     if ( used + add + 1 >= commandSize ) {
         return 0;
     }
-    strcat(command, text);
+    memcpy(command + used, text, add + 1);
     return 1;
 }
 
@@ -831,7 +837,9 @@ static int xl6CliMakeLoadlibDef(const char* dllPath, int index, const char* work
             return 0;
         }
     } else {
-        xl6CliEnsureTmpDir();
+        if ( !xl6CliEnsureTmpDir() ) {
+            return 0;
+        }
         written = snprintf(outPath, outSize, "release\\tmp\\xl6_loadlib_%d.def", index);
         if ( written <= 0 || (size_t)written >= outSize ) {
             fprintf(stderr, "loadlib def path is too long\n");
@@ -990,8 +998,8 @@ static int xl6CliAppendDefaultXrtLinks(char* command, size_t commandSize, int ar
         }
     }
     if ( !xl6CliHasUserLink(argc, argv, xl6CliIsTccRuntimeLinkValue) &&
-         xrtFileExists("..\\demo5\\release\\tcc\\lib\\libtcc1-64.a") ) {
-        if ( !xl6CliAppendLinkOption(command, commandSize, "..\\demo5\\release\\tcc\\lib\\libtcc1-64.a") ) {
+         xrtFileExists(XL6_TCC_LIBTCC1_PATH) ) {
+        if ( !xl6CliAppendLinkOption(command, commandSize, XL6_TCC_LIBTCC1_PATH) ) {
             return 0;
         }
     }
@@ -1043,8 +1051,7 @@ static int xl6CliCompileWithTccInputs(
             return 1;
         }
     }
-    if ( !xl6CliAppendDefaultXrtLinks(command, sizeof(command), argc, argv) ||
-         !xl6CliAppendCommandText(command, sizeof(command), " -o ") ||
+    if ( !xl6CliAppendCommandText(command, sizeof(command), " -o ") ||
          !xl6CliAppendCommandText(command, sizeof(command), quotedExe) ) {
         fprintf(stderr, "tcc command is too long\n");
         return 1;
@@ -1055,6 +1062,10 @@ static int xl6CliCompileWithTccInputs(
     }
     if ( !xl6CliAppendImportDepsTccOptions(command, sizeof(command), deps, workDir, loadlibDefPaths, maxLoadlibDefs, outLoadlibDefCount) ) {
         fprintf(stderr, "import package tcc options are too long\n");
+        return 1;
+    }
+    if ( !xl6CliAppendDefaultXrtLinks(command, sizeof(command), argc, argv) ) {
+        fprintf(stderr, "tcc command is too long\n");
         return 1;
     }
     return system(command);
@@ -1670,7 +1681,6 @@ static int xl6CliRunCommand(const char* path, int argc, char** argv)
     int i;
     int argStart;
     int saveTemps;
-    size_t used;
     size_t depIndex;
 
     saveTemps = xl6CliHasSaveTempsFlag(argc, argv);
@@ -1714,13 +1724,12 @@ static int xl6CliRunCommand(const char* path, int argc, char** argv)
     command[0] = '\0';
     if ( !xl6CliAppendRunLoadlibPathPrefix(command, sizeof(command), argc, argv) ||
          !xl6CliAppendRunImportLoadlibPathPrefix(command, sizeof(command), &unit.importDeps) ||
+         !xl6CliAppendCommandText(command, sizeof(command), "call ") ||
          !xl6CliAppendCommandText(command, sizeof(command), quotedExe) ) {
         fprintf(stderr, "run command is too long\n");
         xl6CompileUnitFree(&unit);
         return 1;
     }
-    used = strlen(command);
-
     argStart = 0;
     for ( i = 3; i < argc; ++i ) {
         if ( strcmp(argv[i], "--") == 0 ) {
@@ -1736,15 +1745,12 @@ static int xl6CliRunCommand(const char* path, int argc, char** argv)
                 xl6CompileUnitFree(&unit);
                 return 1;
             }
-            if ( used + strlen(quotedArg) + 2 >= sizeof(command) ) {
+            if ( !xl6CliAppendCommandText(command, sizeof(command), " ") ||
+                 !xl6CliAppendCommandText(command, sizeof(command), quotedArg) ) {
                 fprintf(stderr, "run command is too long\n");
                 xl6CompileUnitFree(&unit);
                 return 1;
             }
-            command[used++] = ' ';
-            command[used] = '\0';
-            strcat(command, quotedArg);
-            used = strlen(command);
         }
     }
 
@@ -1825,4 +1831,71 @@ int xl6CliMain(int argc, char** argv)
 
     fprintf(stderr, "unknown command: %s\n", cmd);
     return 1;
+}
+
+static int xl6CliQuoteCommandPut(char* out, size_t outSize, size_t* pos, char ch)
+{
+    if ( out == NULL || pos == NULL || *pos + 1 >= outSize ) {
+        if ( out != NULL && outSize > 0 ) {
+            out[0] = '\0';
+        }
+        return 0;
+    }
+    out[*pos] = ch;
+    *pos += 1;
+    out[*pos] = '\0';
+    return 1;
+}
+
+static int xl6CliQuoteCommand(char* out, size_t outSize, const char* text)
+{
+    const char* p;
+    size_t pos;
+    size_t slashCount;
+    size_t i;
+
+    if ( out == NULL || outSize == 0 ) {
+        return 0;
+    }
+
+    pos = 0;
+    slashCount = 0;
+    out[0] = '\0';
+    if ( !xl6CliQuoteCommandPut(out, outSize, &pos, '"') ) {
+        return 0;
+    }
+    for ( p = text != NULL ? text : ""; *p != '\0'; ++p ) {
+        if ( *p == '\\' ) {
+            slashCount += 1;
+            continue;
+        }
+        if ( *p == '"' ) {
+            for ( i = 0; i < slashCount * 2; ++i ) {
+                if ( !xl6CliQuoteCommandPut(out, outSize, &pos, '\\') ) {
+                    return 0;
+                }
+            }
+            slashCount = 0;
+            if ( !xl6CliQuoteCommandPut(out, outSize, &pos, '\\') ||
+                 !xl6CliQuoteCommandPut(out, outSize, &pos, '"') ) {
+                return 0;
+            }
+            continue;
+        }
+        for ( i = 0; i < slashCount; ++i ) {
+            if ( !xl6CliQuoteCommandPut(out, outSize, &pos, '\\') ) {
+                return 0;
+            }
+        }
+        slashCount = 0;
+        if ( !xl6CliQuoteCommandPut(out, outSize, &pos, *p) ) {
+            return 0;
+        }
+    }
+    for ( i = 0; i < slashCount * 2; ++i ) {
+        if ( !xl6CliQuoteCommandPut(out, outSize, &pos, '\\') ) {
+            return 0;
+        }
+    }
+    return xl6CliQuoteCommandPut(out, outSize, &pos, '"');
 }

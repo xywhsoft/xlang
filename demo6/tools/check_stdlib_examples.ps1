@@ -24,7 +24,13 @@ foreach ( $example in $examples ) {
     if ( $LASTEXITCODE -ne 0 ) {
         exit $LASTEXITCODE
     }
+
+    Write-Host "RUN example $($example.Name)"
+    & $xl run $example.FullName
+    if ( $LASTEXITCODE -ne 0 ) {
+        exit $LASTEXITCODE
+    }
 }
 
-Write-Host "Standard library examples check ok: $($examples.Count) files."
+Write-Host "Standard library examples check/run ok: $($examples.Count) files."
 exit 0

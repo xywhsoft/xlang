@@ -767,10 +767,15 @@ int xl6PackageLoadManifest(const char* path, XL6_PackageManifest* manifest)
 static void xl6PackageFinalizeXapiResult(XL6_PackageResolveResult* result)
 {
     char base[128];
+    size_t baseLen;
 
     xl6PackageDirName(result->packageDir, sizeof(result->packageDir), result->manifestPath);
     xl6PackageCopyText(result->interfacePath, sizeof(result->interfacePath), result->manifestPath);
     xl6PackageBaseNameNoExt(base, sizeof(base), result->manifestPath);
+    baseLen = strlen(base);
+    if ( baseLen > 5 && strcmp(base + baseLen - 5, ".xapi") == 0 ) {
+        base[baseLen - 5] = '\0';
+    }
     xl6PackageCopyText(result->packageName, sizeof(result->packageName), base);
     xl6PackageCopyText(result->packageVersion, sizeof(result->packageVersion), "0.0.0");
     xl6PackageCopyText(result->abiVersion, sizeof(result->abiVersion), "1");

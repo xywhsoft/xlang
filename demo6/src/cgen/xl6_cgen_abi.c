@@ -552,7 +552,7 @@ static void xl6CgenEmitTypeOfExpr(XL6_CgenContext* ctx, const XL6_AstNode* expr)
 
     typeNode = xl6CgenCloneExprTypeForTypeValue(ctx, expr);
     if ( typeNode == NULL ) {
-        xl6CgenError(ctx, expr, "code generation error");
+        xl6CgenError(ctx, expr, "cannot infer type for type(expr)");
         xl6OutputPuts("0", ctx->out);
         return;
     }

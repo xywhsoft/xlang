@@ -3,11 +3,8 @@ setlocal
 cd /d %~dp0
 
 set XL6_ROOT=%CD%
-set XL6_TCC=..\demo5\lib\tcc\tcc.exe
-set XL6_FLEX=..\demo5\tools\flex.exe
-set XL6_LEMON=..\demo5\tools\lemon.exe
-set XL6_XRT_OBJ=..\..\xrt\release\x64\xrt.o
-set XL6_TCC_LIBTCC1=..\demo5\release\tcc\lib\libtcc1-64.a
+call tools\xl6_toolchain_env.bat
+if errorlevel 1 exit /b 1
 
 if not exist release mkdir release
 if not exist release\tmp mkdir release\tmp
@@ -35,7 +32,7 @@ if not "%XL6_LEMON_RC%"=="0" (
 )
 
 echo Building DEMO6 xl.exe...
-"%XL6_TCC%" -std=c11 -Wall -D_CRT_SECURE_NO_WARNINGS -I. -Isrc -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -I..\demo5\release\tcc\include_win\winapi -L..\demo5\release\tcc\lib -o release\xl.exe ^
+"%XL6_TCC%" -std=c11 -Wall -D_CRT_SECURE_NO_WARNINGS -I. -Isrc %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% -o release\xl.exe ^
     main.c ^
     src\abi\xl6_abi_dump.c ^
     src\abi\xl6_callable.c ^
@@ -66,9 +63,7 @@ echo Building DEMO6 xl.exe...
     src\sem\xl6_type_registry.c ^
     src\sem\xl6_sem.c ^
     src\driver\xl6_cli.c ^
-    "%XL6_XRT_OBJ%" ^
-    "%XL6_TCC_LIBTCC1%" ^
-    -lWs2_32 -lIPHLPAPI -lShell32
+    %XL6_DEFAULT_LINKS%
 
 if errorlevel 1 (
     echo DEMO6 build failed.

@@ -20,6 +20,8 @@ static void xl6CgenEmitAnonFunction(XL6_CgenContext* ctx, const XL6_CgenAnonFunc
 
     xl6CgenFunctionReturnStructDecl(ctx, params, returns);
     if ( info->captureCount > 0 ) {
+        xl6OutputPuts("void* xrtMalloc(size_t iSize);\n", ctx->out);
+        xl6OutputPuts("void xrtFree(void* pMem);\n\n", ctx->out);
         xl6OutputPrintf(ctx->out, "typedef struct XL6_Closure_%d {\n", info->id);
         xl6OutputPuts("    int ref_count;\n", ctx->out);
         for ( i = 0; i < info->captureCount; ++i ) {
@@ -118,7 +120,7 @@ static void xl6CgenEmitAnonFunction(XL6_CgenContext* ctx, const XL6_CgenAnonFunc
                 xl6OutputPuts("        }\n", ctx->out);
             }
         }
-        xl6OutputPuts("        free(__env);\n", ctx->out);
+        xl6OutputPuts("        xrtFree(__env);\n", ctx->out);
         xl6OutputPuts("    }\n", ctx->out);
         xl6OutputPuts("}\n\n", ctx->out);
     }
@@ -141,9 +143,9 @@ static void xl6CgenEmitAnonFunction(XL6_CgenContext* ctx, const XL6_CgenAnonFunc
     }
     xl6OutputPuts(")\n{\n", ctx->out);
     if ( info->captureCount > 0 ) {
-        xl6OutputPrintf(ctx->out, "    XL6_Closure_%d* __env = (XL6_Closure_%d*)malloc(sizeof(XL6_Closure_%d));\n", info->id, info->id, info->id);
+        xl6OutputPrintf(ctx->out, "    XL6_Closure_%d* __env = (XL6_Closure_%d*)xrtMalloc(sizeof(XL6_Closure_%d));\n", info->id, info->id, info->id);
         xl6OutputPuts("    if (__env == 0) {\n", ctx->out);
-        xl6OutputPuts("        exit(2);\n", ctx->out);
+        xl6OutputPuts("        xl6_function_fatal(2);\n", ctx->out);
         xl6OutputPuts("    }\n", ctx->out);
         xl6OutputPuts("    __env->ref_count = 1;\n", ctx->out);
         for ( i = 0; i < info->captureCount; ++i ) {
@@ -587,10 +589,10 @@ static void xl6CgenEmitFunctionValueAdapterInvoke(XL6_CgenContext* ctx, const XL
         if ( i < paramCount ) {
             xl6CgenFputsCIdent(ctx->out, param != NULL ? param->text : "_");
         } else if ( param != NULL && param->childCount > 1 ) {
-            /* function 适配器在这里补齐省略的可选参数默认值�?*/
+            /* Fill omitted optional parameter with its default expression. */
             xl6CgenExpr(ctx, param->children[1]);
         } else {
-            xl6CgenError(ctx, param, "code generation error");
+            xl6CgenError(ctx, param, "optional adapter parameter is missing a default expression");
             xl6OutputPuts("0", ctx->out);
         }
     }
@@ -601,7 +603,7 @@ static void xl6CgenEmitFunctionValueAdapterInvoke(XL6_CgenContext* ctx, const XL
         if ( includeVararg ) {
             xl6OutputPuts("__xl6_vararg", ctx->out);
         } else {
-            xl6CgenError(ctx, func, "code generation error");
+            xl6CgenError(ctx, func, "callable adapter requires a vararg parameter");
             xl6OutputPuts("xvoCreateNull()", ctx->out);
         }
     }

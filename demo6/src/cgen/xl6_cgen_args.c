@@ -348,7 +348,7 @@ static void xl6CgenXValueFromExpr(XL6_CgenContext* ctx, const XL6_AstNode* expr)
             const XL6_AstNode* args = expr->childCount > 1 ? expr->children[1] : NULL;
             if ( xl6CgenResolveClassCreate(ctx, ctorClass, expr) != NULL ||
                  (args != NULL && args->childCount > 0) ) {
-                xl6CgenError(ctx, expr, "code generation error");
+                xl6CgenError(ctx, expr, "class constructor with create/arguments cannot be boxed directly as var");
                 xl6OutputPrintf(ctx->out, "(%s){0}", cTypeName);
             } else {
                 xl6CgenDefaultClassSymbol(ctx->out, cTypeName);
@@ -982,7 +982,7 @@ static void xl6CgenNullCoalesceExpr(XL6_CgenContext* ctx, const XL6_AstNode* nod
 
     if ( isXValue ) {
         if ( left == NULL || !xl6CgenIsXValueType(leftType) ) {
-            xl6CgenError(ctx, node, "code generation error");
+            xl6CgenError(ctx, node, "null coalesce with var result requires the left operand to be var or null");
             xl6OutputPuts("xvoCreateNull()", ctx->out);
         } else {
             id = ctx->tempId++;
@@ -1144,7 +1144,7 @@ static void xl6CgenInExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
 
     if ( xl6CgenIsDictXValueType(rightType) ) {
         if ( !xl6CgenExprStaticTypeIs(ctx, left, "string") ) {
-            xl6CgenError(ctx, node, "code generation error");
+            xl6CgenError(ctx, node, "dict membership requires a string key");
             xl6OutputPuts("0", ctx->out);
         } else {
             xl6CgenDictContainsKeyExpr(ctx, right, left);
@@ -1242,7 +1242,7 @@ static void xl6CgenTypedLiteralExpr(XL6_CgenContext* ctx, const XL6_AstNode* nod
     } else if ( xl6CTextEquals(node != NULL ? node->text : NULL, "dict") ) {
         xl6CgenDictLiteralExpr(ctx, literal);
     } else {
-        xl6CgenError(ctx, node, "code generation error");
+        xl6CgenError(ctx, node, "unknown typed container literal prefix");
         xl6OutputPuts("xvoCreateNull()", ctx->out);
     }
 }
@@ -1365,7 +1365,7 @@ static void xl6CgenKnownCallArgs(XL6_CgenContext* ctx, const XL6_AstNode* func, 
         } else if ( param->childCount > 1 ) {
             xl6CgenExpr(ctx, param->children[1]);
         } else {
-            xl6CgenError(ctx, param, "code generation error");
+            xl6CgenError(ctx, param, "missing required argument for parameter");
             xl6OutputPuts("0", ctx->out);
         }
     }
@@ -1405,7 +1405,7 @@ static void xl6CgenParamNodeArgs(XL6_CgenContext* ctx, const XL6_AstNode* params
         } else if ( param->childCount > 1 ) {
             xl6CgenExpr(ctx, param->children[1]);
         } else {
-            xl6CgenError(ctx, param, "code generation error");
+            xl6CgenError(ctx, param, "missing required argument for parameter");
             xl6OutputPuts("0", ctx->out);
         }
     }

@@ -1,0 +1,5 @@
+import "path_no_ext/probe"
+
+func usePathProbe() -> int
+    return probe.value()
+end

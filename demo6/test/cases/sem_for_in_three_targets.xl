@@ -1,0 +1,4 @@
+auto values = [1, 2, 3]
+
+for index, value, extra in values
+end

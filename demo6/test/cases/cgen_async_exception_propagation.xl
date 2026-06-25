@@ -1,0 +1,18 @@
+async func failAsync() -> int
+    throw "async boom"
+    return 0
+end
+
+future<int> failed = failAsync()
+int state = 0
+
+try
+    int value = await failed
+    state = value
+catch e
+    if e.message == "async boom" then
+        state = 7
+    end
+end
+
+assert state == 7, "async exception should reach catch"

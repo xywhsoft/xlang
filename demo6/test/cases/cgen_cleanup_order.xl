@@ -1,0 +1,20 @@
+class Tracker
+    int value = 0
+
+    create(int value)
+        self.value = value
+    end
+
+    destroy()
+        recordDestroy(self.value)
+    end
+end
+
+extern "record_destroy" func recordDestroy(int value)
+
+func scoped()
+    auto first = Tracker(1)
+    auto second = Tracker(2)
+end
+
+scoped()

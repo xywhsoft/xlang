@@ -45,6 +45,12 @@ function Invoke-Cmd {
     }
 }
 
+function Invoke-CheckScript {
+    param([string]$Name)
+
+    Invoke-Cmd "powershell.exe" @("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "tools\$Name")
+}
+
 function Get-CheckedSourceFiles {
     param([string[]]$Roots)
 
@@ -68,7 +74,8 @@ function Assert-NoPattern {
     param(
         [string]$Name,
         [string[]]$Roots,
-        [string]$Pattern
+        [string]$Pattern,
+        [switch]$CaseSensitive
     )
 
     $files = Get-CheckedSourceFiles $Roots
@@ -76,7 +83,40 @@ function Assert-NoPattern {
         throw "$Name has no files to scan"
     }
 
-    $matches = @(Select-String -Path $files -Pattern $Pattern -AllMatches)
+    if ( $CaseSensitive ) {
+        $matches = @(Select-String -Path $files -Pattern $Pattern -AllMatches -CaseSensitive)
+    } else {
+        $matches = @(Select-String -Path $files -Pattern $Pattern -AllMatches)
+    }
+    if ( $matches.Count -gt 0 ) {
+        $sample = $matches |
+            Select-Object -First 20 |
+            ForEach-Object { "{0}:{1}: {2}" -f $_.Path, $_.LineNumber, $_.Line.Trim() }
+        throw "$Name found $($matches.Count) match(es):`n$($sample -join "`n")"
+    }
+}
+
+function Assert-NoPatternExcept {
+    param(
+        [string]$Name,
+        [string[]]$Roots,
+        [string]$Pattern,
+        [string]$AllowedPathPattern,
+        [switch]$CaseSensitive
+    )
+
+    $files = Get-CheckedSourceFiles $Roots
+    if ( $files.Count -eq 0 ) {
+        throw "$Name has no files to scan"
+    }
+
+    if ( $CaseSensitive ) {
+        $allMatches = @(Select-String -Path $files -Pattern $Pattern -AllMatches -CaseSensitive)
+    } else {
+        $allMatches = @(Select-String -Path $files -Pattern $Pattern -AllMatches)
+    }
+
+    $matches = @($allMatches | Where-Object { $_.Path -notmatch $AllowedPathPattern })
     if ( $matches.Count -gt 0 ) {
         $sample = $matches |
             Select-Object -First 20 |
@@ -200,13 +240,49 @@ Invoke-GuardStep "required files" {
 Invoke-GuardStep "static output boundary" {
     Assert-NoPattern "removed output compat header" @("src") "xl6_output_compat"
     Assert-NoPattern "codegen and dump CRT text output" @("src\cgen", "src\common", "src\abi", "src\ast", "src\ir") "\b(fputc|fputs|fprintf)\s*\("
-    Assert-NoPattern "codegen direct stdio output" @("src\cgen") "(FILE\s*\*)|(\bstdout\b)|(\bstderr\b)"
+    Assert-NoPattern "codegen direct stdio output" @("src\cgen") "(FILE\s*\*)|(\bstdout\b)|(\bstderr\b)" -CaseSensitive
 }
 
 Invoke-GuardStep "static XRT boundary" {
-    Assert-NoPattern "removed common file wrappers" @("src") "xl6(?!OutputOpenFile\b)[A-Za-z0-9_]*(ReadFileText|OpenFile|FileExists|CreateDirAll|StrDupRange)|xl6_file\.c"
+    Assert-NoPattern "removed common file wrappers" @("src") "xl6(?!Std)(?!OutputOpenFile\b)[A-Za-z0-9_]*(ReadFileText|OpenFile|FileExists|CreateDirAll|StrDupRange)|xl6_file\.c"
     Assert-NoPattern "removed custom time literal wrapper" @("src") "xl6_time_literal"
+    Assert-NoPattern "codegen CRT heap allocation" @("src\cgen") "\b(malloc|calloc|realloc|free)\s*\(" -CaseSensitive
+    Assert-NoPattern "CRT file path I/O" @("src\driver", "src\package", "src\compile", "src\api", "src\backend", "src\sem", "src\ast", "src\ir", "src\abi", "src\cgen", "src\common") "\b(fopen|_wfopen|fread|fclose|fseek|ftell|rename|remove|_unlink|unlink|_rmdir|rmdir)\s*\(" -CaseSensitive
+    Assert-NoPattern "CRT buffered file output outside common" @("src\driver", "src\package", "src\compile", "src\api", "src\backend", "src\sem", "src\ast", "src\ir", "src\abi", "src\cgen") "\b(fwrite|fflush)\s*\(" -CaseSensitive
+    $outputFilePattern = "\\src\\common\\xl6_output" + "\.c$"
+    Assert-NoPatternExcept "CRT buffered file output in common" @("src\common") "\b(fwrite|fflush)\s*\(" $outputFilePattern -CaseSensitive
+    $cliFilePattern = "\\src\\driver\\xl6_cli" + "\.c$"
+    Assert-NoPatternExcept "command execution outside CLI" @("src") "\b(system|popen|_popen|WinExec|ShellExecute[A-Za-z]*|CreateProcess[A-Za-z]*)\s*\(" $cliFilePattern -CaseSensitive
     Assert-NoPattern "CRT file deletion" @("src\driver", "src\package", "src\common") "\b(remove|_rmdir|rmdir)\s*\("
+    Assert-NoPattern "shell directory creation" @("src\driver", "src\package", "src\common") "\bsystem\s*\(\s*`"[^`"]*\bmkdir\b"
+    Assert-NoPattern "unchecked CLI temp dir creation" @("src\driver") "(?m)^\s*xl6CliEnsureTmpDir\s*\(\s*\)\s*;"
+}
+
+Invoke-GuardStep "static wiring guards" {
+    $scripts = @(
+        "check_docs_index.ps1",
+        "check_cgenrule_docs.ps1",
+        "check_tool_wiring.ps1",
+        "check_batch_wiring.ps1",
+        "check_source_wiring.ps1",
+        "check_toolchain_paths.ps1",
+        "check_test_case_wiring.ps1",
+        "check_test_data_wiring.ps1",
+        "check_example_wiring.ps1",
+        "check_c_fixture_wiring.ps1",
+        "check_package_fixtures.ps1",
+        "check_stdlib_coverage.ps1",
+        "check_stdlib_test_wiring.ps1",
+        "check_stdlib_dll_symbols.ps1"
+    )
+
+    foreach ( $script in $scripts ) {
+        Invoke-CheckScript $script
+    }
+}
+
+Invoke-GuardStep "handwritten C safety" {
+    Invoke-CheckScript "check_c_string_safety.ps1"
 }
 
 Invoke-GuardStep "build" {

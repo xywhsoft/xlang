@@ -30,7 +30,7 @@ static void xl6CgenIndexAssignTemp(XL6_CgenContext* ctx, const XL6_AstNode* left
                 xl6OutputPuts("if (!false) {\n", ctx->out);
                 ctx->indent += 1;
                 xl6CgenIndent(ctx);
-                xl6OutputPuts("exit(3);\n", ctx->out);
+                xl6OutputPuts("xl6_runtime_fatal(3);\n", ctx->out);
                 ctx->indent -= 1;
                 xl6CgenIndent(ctx);
                 xl6OutputPuts("}\n", ctx->out);
@@ -60,13 +60,13 @@ static void xl6CgenIndexAssignTemp(XL6_CgenContext* ctx, const XL6_AstNode* left
             xl6CgenExpr(ctx, index);
             xl6OutputPrintf(ctx->out, ", 0, %s)", tempName != NULL ? tempName : "0");
         } else {
-            xl6CgenError(ctx, left, "code generation error");
+            xl6CgenError(ctx, left, "typed container index assignment requires array, list or dict");
             xl6OutputPuts("false", ctx->out);
         }
         xl6OutputPuts(") {\n", ctx->out);
         ctx->indent += 1;
         xl6CgenIndent(ctx);
-        xl6OutputPuts("exit(3);\n", ctx->out);
+        xl6OutputPuts("xl6_runtime_fatal(3);\n", ctx->out);
         ctx->indent -= 1;
         xl6CgenIndent(ctx);
         xl6OutputPuts("}\n", ctx->out);
@@ -149,7 +149,7 @@ static void xl6CgenIndexAssignTemp(XL6_CgenContext* ctx, const XL6_AstNode* left
         xl6CgenExpr(ctx, index);
         xl6OutputPrintf(ctx->out, ", 0, %s, true)", tempName != NULL ? tempName : "0");
     } else {
-        xl6CgenError(ctx, left, "code generation error");
+        xl6CgenError(ctx, left, "dynamic index assignment receiver must be array, list or dict");
         xl6OutputPuts("false", ctx->out);
     }
     xl6OutputPrintf(ctx->out, " && %s != 0 ) {\n", tempName != NULL ? tempName : "0");
@@ -589,7 +589,7 @@ static void xl6CgenAssignStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
     op = node->text != NULL ? node->text : "=";
 
     if ( left == NULL || (left->kind != XL6_AST_NAME && left->kind != XL6_AST_MEMBER && left->kind != XL6_AST_INDEX) ) {
-        xl6CgenError(ctx, node, "code generation error");
+        xl6CgenError(ctx, node, "assignment target must be name, member or index");
         return;
     }
     if ( left->kind == XL6_AST_INDEX ) {
@@ -653,7 +653,7 @@ static void xl6CgenAssignStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
                 return;
             }
             if ( !xl6CTextEquals(fieldCustom->text, ctorCustom->text) ) {
-                xl6CgenError(ctx, right, "code generation error");
+                xl6CgenError(ctx, right, "custom constructor type does not match target field type");
                 xl6AstFree(fieldType);
                 return;
             }
@@ -999,7 +999,7 @@ static void xl6CgenTypedDictSetDynamicKeyStmt(XL6_CgenContext* ctx, const XL6_As
     xl6OutputPrintf(ctx->out, ", xvoGetText(__xl6_dict_key_%d), 0, %s))) {\n", id, tempName != NULL ? tempName : "0");
     ctx->indent += 1;
     xl6CgenIndent(ctx);
-    xl6OutputPuts("exit(3);\n", ctx->out);
+    xl6OutputPuts("xl6_runtime_fatal(3);\n", ctx->out);
     ctx->indent -= 1;
     xl6CgenIndent(ctx);
     xl6OutputPuts("}\n", ctx->out);
@@ -1203,7 +1203,7 @@ static void xl6CgenIndexExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
             } else if ( xl6CTextEquals(typeName, "dict") ) {
                 xl6CgenTypedDictGetRawExpr(ctx, receiver, index);
             } else {
-                xl6CgenError(ctx, node, "code generation error");
+                xl6CgenError(ctx, node, "typed container safe index requires array, list or dict");
                 xl6OutputPuts("0", ctx->out);
             }
             xl6OutputPutc(')', ctx->out);
@@ -1244,7 +1244,7 @@ static void xl6CgenIndexExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
                 xl6OutputPuts(")", ctx->out);
             }
         } else {
-            xl6CgenError(ctx, node, "code generation error");
+            xl6CgenError(ctx, node, "typed container index access requires array, list or dict");
             xl6OutputPuts("xvoCreateNull()", ctx->out);
         }
     } else if ( !xl6CgenExprIsXValueBorrow(ctx, receiver) && xl6CgenDynamicIndexReceiverCanOwnResult(node, index, receiverType) ) {
