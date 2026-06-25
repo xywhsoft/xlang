@@ -15,6 +15,21 @@ array<Payload> payloads = array[p]
 array<Payload> copied = payloads
 var boxedPayloads = copied
 
+Payload same
+same.i = 42
+
+Payload other
+other.i = 43
+
+set<Payload> payloadSet = set{p, same, other, same}
+
 expect(type(boxedPayloads) == type(copied), 1)
 expect(copied.length, 1)
 expect(copied[0].i, 42)
+
+int payloadCount = 0
+for item in payloadSet
+    payloadCount = payloadCount + 1
+    expect(type(item) == Payload, 1)
+end
+expect(payloadCount, 2)

@@ -1,4 +1,5 @@
 extern "expect_i64" func expect(int actual, int expected)
+extern "native_handle" func nativeHandle(int value) -> point
 
 class Pair
     int left = 1
@@ -12,10 +13,18 @@ Pair seed
 seed.left = 5
 seed.right = 6
 
+Pair sameSeed
+sameSeed.left = 5
+sameSeed.right = 6
+
+Pair otherSeed
+otherSeed.left = 7
+otherSeed.right = 8
+
 array<Pair> pairArray = array[seed, Pair()]
 list<Pair> pairList = list[2: seed]
 dict<Pair> pairDict = dict{"main": seed}
-set<Pair> pairSet = set{seed, seed}
+set<Pair> pairSet = set{seed, sameSeed, otherSeed, sameSeed}
 
 Pair fromArray = pairArray[0]
 Pair fromList = pairList[2]
@@ -31,12 +40,15 @@ for item in pairSet
     pairCount = pairCount + 1
     expect(type(item) == Pair, 1)
 end
-expect(pairCount, 1)
+expect(pairCount, 2)
 
-point raw
+point raw = nativeHandle(1)
+point otherRaw = nativeHandle(2)
 Native native = Native(raw)
+Native nativeSame = Native(raw)
+Native nativeOther = Native(otherRaw)
 array<Native> nativeArray = array[native]
-set<Native> nativeSet = set{native, native}
+set<Native> nativeSet = set{native, nativeSame, nativeOther, nativeSame}
 
 Native fromNativeArray = nativeArray[0]
 var boxedNative = fromNativeArray
@@ -47,4 +59,4 @@ for handle in nativeSet
     nativeCount = nativeCount + 1
     expect(type(handle) == Native, 1)
 end
-expect(nativeCount, 1)
+expect(nativeCount, 2)

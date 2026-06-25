@@ -1,0 +1,8 @@
+func zero() -> int
+    return 0
+end
+
+int total = 0
+for value in range(3, 0, zero())
+    total = total + value
+end

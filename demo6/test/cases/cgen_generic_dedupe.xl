@@ -1,0 +1,11 @@
+func identity<T>(T value) -> T
+    return value
+end
+
+extern "expect_i64" func expect(int actual, int expected)
+
+int first = identity::<int>(1)
+int second = identity::<int>(2)
+int third = identity(3)
+
+expect(first + second + third, 6)

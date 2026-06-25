@@ -315,7 +315,7 @@ static void xl6CgenEmitVarInvokeArityCheck(XL6_CgenContext* ctx, const XL6_AstNo
     } else {
         xl6OutputPrintf(ctx->out, "    if (__xl6_argc < %u || __xl6_argc > %u) {\n", (unsigned)requiredCount, (unsigned)fixedCount);
     }
-    xl6OutputPuts("        exit(3);\n", ctx->out);
+    xl6OutputPuts("        xl6_function_fatal(3);\n", ctx->out);
     xl6OutputPuts("    }\n", ctx->out);
 }
 
@@ -338,7 +338,7 @@ static void xl6CgenEmitVarInvokeTypeChecks(XL6_CgenContext* ctx, const XL6_AstNo
             } else {
                 xl6OutputPrintf(ctx->out, "    if (xvoType(__xl6_argv[%u]) != %s) {\n", (unsigned)i, runtimeType);
             }
-            xl6OutputPuts("        exit(3);\n", ctx->out);
+            xl6OutputPuts("        xl6_function_fatal(3);\n", ctx->out);
             xl6OutputPuts("    }\n", ctx->out);
         }
     }
@@ -351,12 +351,12 @@ static void xl6CgenEmitVarInvokeArrayPack(XL6_CgenContext* ctx, int fixedCount, 
     }
     xl6OutputPuts("    __xl6_vararg = xvoCreateArray();\n", ctx->out);
     xl6OutputPuts("    if (__xl6_vararg == 0) {\n", ctx->out);
-    xl6OutputPuts("        exit(2);\n", ctx->out);
+    xl6OutputPuts("        xl6_function_fatal(2);\n", ctx->out);
     xl6OutputPuts("    }\n", ctx->out);
     xl6OutputPrintf(ctx->out, "    for (__xl6_i = %u; __xl6_i < __xl6_argc; ++__xl6_i) {\n", (unsigned)fixedCount);
-    /* __xl6_argv 的释放仍�?xl6_function_call_var 负责，这里必须追加引用�?*/
+    /* xl6_function_call_var owns __xl6_argv; append by reference here. */
     xl6OutputPuts("        if (!xvoArrayAppendValue(__xl6_vararg, __xl6_argv[__xl6_i], false)) {\n", ctx->out);
-    xl6OutputPuts("            exit(2);\n", ctx->out);
+    xl6OutputPuts("            xl6_function_fatal(2);\n", ctx->out);
     xl6OutputPuts("        }\n", ctx->out);
     xl6OutputPuts("    }\n", ctx->out);
 }
@@ -530,4 +530,3 @@ static void xl6CgenEmitAnonXCall(XL6_CgenContext* ctx, const XL6_CgenAnonFunc* i
     xl6OutputPuts("    return true;\n", ctx->out);
     xl6OutputPuts("}\n\n", ctx->out);
 }
-

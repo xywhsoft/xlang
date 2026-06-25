@@ -218,7 +218,7 @@ static void xl6CgenGenericClassFuncProto(XL6_CgenContext* ctx, const XL6_AstNode
 
     returns = funcNode->childCount > 2 ? funcNode->children[2] : NULL;
     if ( returns != NULL && returns->childCount > 1 ) {
-        xl6CgenError(ctx, returns, "code generation error");
+        xl6CgenError(ctx, returns, "generic class method C prototype does not support multiple return values");
     }
     if ( returns != NULL && returns->childCount == 1 ) {
         xl6OutputPuts(xl6CgenTypeName(ctx, returns->children[0]), ctx->out);
@@ -464,7 +464,7 @@ static void xl6CgenClassDefaultInitFields(XL6_CgenContext* ctx, const XL6_AstNod
         ctorCustom = NULL;
         if ( fieldCustom != NULL && xl6CgenCallIsCustomCtor(ctx, initExpr, &ctorCustom) ) {
             if ( !xl6CTextEquals(fieldCustom->text, ctorCustom->text) ) {
-                xl6CgenError(ctx, initExpr, "code generation error");
+                xl6CgenError(ctx, initExpr, "custom field initializer constructor type does not match field type");
                 continue;
             }
             xl6CgenIndent(ctx);
@@ -504,7 +504,7 @@ static void xl6CgenCustomParamList(XL6_CgenContext* ctx, const XL6_AstNode* para
             }
             if ( param->childCount == 0 || xl6CTextEquals(param->children[0]->text, "array<var>") ||
                  xl6CTextEquals(param->children[0]->text, "dict<var>") ) {
-                xl6CgenError(ctx, param, "code generation error");
+                xl6CgenError(ctx, param, "custom extern parameter must have a non-vararg C ABI type");
                 xl6OutputPuts("int ", ctx->out);
             } else {
                 xl6OutputPuts(xl6CgenCAbiTypeName(ctx, param->children[0]), ctx->out);
@@ -548,7 +548,7 @@ static void xl6CgenCustomExternProto(XL6_CgenContext* ctx, const XL6_AstNode* cu
     params = member->childCount > 1 ? member->children[1] : NULL;
     returns = member->childCount > 2 ? member->children[2] : NULL;
     if ( returns != NULL && returns->childCount > 1 ) {
-        xl6CgenError(ctx, returns, "code generation error");
+        xl6CgenError(ctx, returns, "custom extern method cannot return multiple values");
     }
     if ( returns != NULL && returns->childCount == 1 ) {
         xl6OutputPuts(xl6CgenCAbiTypeName(ctx, returns->children[0]), ctx->out);
@@ -594,7 +594,7 @@ static void xl6CgenCustomFuncProto(XL6_CgenContext* ctx, const XL6_AstNode* cust
 
     returns = funcNode->childCount > 2 ? funcNode->children[2] : NULL;
     if ( returns != NULL && returns->childCount > 1 ) {
-        xl6CgenError(ctx, returns, "code generation error");
+        xl6CgenError(ctx, returns, "custom helper method cannot return multiple values");
     }
     if ( returns != NULL && returns->childCount == 1 ) {
         xl6OutputPuts(xl6CgenTypeName(ctx, returns->children[0]), ctx->out);

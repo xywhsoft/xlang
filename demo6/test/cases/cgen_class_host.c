@@ -45,3 +45,11 @@ long long nc_probe_count(void)
 {
     return g_nc_probe_count;
 }
+
+void* native_handle(long long value)
+{
+    static long long slots[8];
+    int index = (int)(value & 7);
+    slots[index] = value;
+    return &slots[index];
+}

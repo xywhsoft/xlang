@@ -54,14 +54,14 @@ static void xl6CgenDecl(XL6_CgenContext* ctx, const XL6_AstNode* node)
             declClassType = xl6CgenCloneCanonicalTypeNode(ctx, typeNode);
             ctorClassType = xl6CgenGenericClassCtorType(ctx, initExpr, &ctorClass);
             if ( declClassType == NULL ) {
-                xl6CgenError(ctx, typeNode, "code generation error");
+                xl6CgenError(ctx, typeNode, "generic class type could not be resolved");
             } else if ( ctorClassType != NULL && !xl6CgenTypeNodeEqual(declClassType, ctorClassType) ) {
-                xl6CgenError(ctx, initExpr, "code generation error");
+                xl6CgenError(ctx, initExpr, "generic class constructor type does not match declared type");
             }
         } else if ( typeNode != NULL && typeNode->childCount > 0 ) {
             declClassType = xl6CgenCloneCanonicalTypeNode(ctx, typeNode);
             if ( declClassType == NULL ) {
-                xl6CgenError(ctx, typeNode, "code generation error");
+                xl6CgenError(ctx, typeNode, "generic class type could not be resolved");
             }
         }
     }
@@ -173,7 +173,7 @@ static void xl6CgenDecl(XL6_CgenContext* ctx, const XL6_AstNode* node)
                 ctx->currentGenericParams = prevParams;
                 ctx->currentGenericArgs = prevArgs;
             } else if ( args != NULL && args->childCount > 0 ) {
-                xl6CgenError(ctx, initExpr, "code generation error");
+                xl6CgenError(ctx, initExpr, "class constructor has arguments but no matching create method");
             }
         }
         if ( !copyInit && createNode == NULL ) {
@@ -209,7 +209,7 @@ static void xl6CgenDecl(XL6_CgenContext* ctx, const XL6_AstNode* node)
             if ( isGenericAutoClass ) {
                 autoClassType = xl6CgenCloneCanonicalTypeNode(ctx, typeNode);
                 if ( autoClassType == NULL ) {
-                    xl6CgenError(ctx, typeNode, "code generation error");
+                    xl6CgenError(ctx, typeNode, "auto generic class type could not be resolved");
                     return;
                 }
                 xl6CgenOwnTypeNode(ctx, autoClassType);
@@ -562,7 +562,7 @@ static void xl6CgenXValueFromTypedCExpr(XL6_CgenContext* ctx, const XL6_AstNode*
         xl6CgenBoxSymbol(ctx->out, cTypeName);
         xl6OutputPrintf(ctx->out, "(%s)", exprText != NULL ? exprText : "{}");
     } else {
-        xl6CgenError(ctx, typeNode, "code generation error");
+        xl6CgenError(ctx, typeNode, "cannot box unsupported type into var");
         xl6OutputPuts("xvoCreateNull()", ctx->out);
     }
 }

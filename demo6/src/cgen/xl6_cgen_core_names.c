@@ -217,6 +217,7 @@ static void xl6CgenAppendText(char* buffer, size_t capacity, const char* text)
 {
     size_t used;
     size_t left;
+    size_t copyLen;
 
     if ( buffer == NULL || capacity == 0 || text == NULL ) {
         return;
@@ -226,7 +227,14 @@ static void xl6CgenAppendText(char* buffer, size_t capacity, const char* text)
         return;
     }
     left = capacity - used - 1;
-    strncat(buffer, text, left);
+    copyLen = strlen(text);
+    if ( copyLen > left ) {
+        copyLen = left;
+    }
+    if ( copyLen > 0 ) {
+        memcpy(buffer + used, text, copyLen);
+    }
+    buffer[used + copyLen] = '\0';
 }
 
 static void xl6CgenAppendMangledText(char* buffer, size_t capacity, const char* text)
@@ -245,7 +253,9 @@ static void xl6CgenAppendMangledText(char* buffer, size_t capacity, const char* 
             tmp[0] = (char)cp;
             tmp[1] = '\0';
         } else if ( cp == '_' ) {
-            strcpy(tmp, "__");
+            tmp[0] = '_';
+            tmp[1] = '_';
+            tmp[2] = '\0';
         } else if ( cp <= 0xFFFFU ) {
             snprintf(tmp, sizeof(tmp), "_u%04X_", cp);
         } else {

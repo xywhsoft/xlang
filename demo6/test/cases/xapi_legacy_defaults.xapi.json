@@ -1,0 +1,29 @@
+{
+  "format": "xlang-xapi-1",
+  "module": {
+    "name": "legacy"
+  },
+  "exports": [
+    {
+      "kind": "function",
+      "name": "add",
+      "cSymbol": "legacy_add",
+      "params": [
+        { "name": "a", "type": "int" },
+        { "name": "b", "type": "int" }
+      ],
+      "returns": [
+        { "type": "int" }
+      ]
+    }
+  ],
+  "types": [
+    {
+      "kind": "class",
+      "name": "Point",
+      "fields": [
+        { "name": "x", "type": "int" }
+      ]
+    }
+  ]
+}

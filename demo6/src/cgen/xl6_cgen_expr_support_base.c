@@ -575,7 +575,7 @@ static void xl6CgenAddCleanupEntry(XL6_CgenContext* ctx, const char* name, XL6_C
         newCapacity = ctx->cleanupCapacity == 0 ? 16 : ctx->cleanupCapacity * 2;
         newItems = (XL6_CgenCleanup*)xrtRealloc(ctx->cleanups, newCapacity * sizeof(XL6_CgenCleanup));
         if ( newItems == NULL ) {
-            xl6CgenError(ctx, typeNode, "code generation error");
+            xl6CgenError(ctx, typeNode, "out of memory while growing cgen cleanup stack");
             return;
         }
         ctx->cleanups = newItems;
@@ -1036,7 +1036,7 @@ static void xl6CgenPushLoopTarget(XL6_CgenContext* ctx, size_t breakMark, size_t
         newCapacity = ctx->loopTargetCapacity == 0 ? 8 : ctx->loopTargetCapacity * 2;
         newItems = (XL6_CgenLoopTarget*)xrtRealloc(ctx->loopTargets, newCapacity * sizeof(XL6_CgenLoopTarget));
         if ( newItems == NULL ) {
-            xl6CgenError(ctx, NULL, "code generation error");
+            xl6CgenError(ctx, NULL, "out of memory while growing cgen loop target stack");
             return;
         }
         ctx->loopTargets = newItems;

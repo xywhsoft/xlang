@@ -1,0 +1,9 @@
+extern "expect_i64" func expect(int actual, int expected)
+
+array<int> first = array[1, 2]
+array<int> second = array[3, 4]
+
+var boxedFirst = first
+var boxedSecond = second
+
+expect(type(boxedFirst) == type(boxedSecond), 1)

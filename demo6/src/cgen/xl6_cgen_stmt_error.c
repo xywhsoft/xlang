@@ -5,6 +5,15 @@ static int xl6CgenNodeNeedsErrorRuntime(const XL6_AstNode* node)
     if ( node == NULL ) {
         return 0;
     }
+    if ( node->kind == XL6_AST_FOR &&
+         node->childCount > 1 &&
+         xl6CgenIsRangeCall(node->children[1]) &&
+         node->children[1] != NULL &&
+         node->children[1]->childCount > 1 &&
+         node->children[1]->children[1] != NULL &&
+         node->children[1]->children[1]->childCount >= 3 ) {
+        return 1;
+    }
     if ( node->kind == XL6_AST_TRY ||
          node->kind == XL6_AST_THROW ||
          node->kind == XL6_AST_ASSERT ||

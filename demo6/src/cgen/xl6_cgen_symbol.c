@@ -414,31 +414,26 @@ static int xl6CgenFuncHasMultiReturn(const XL6_AstNode* funcNode)
 
 static void xl6CgenFuncReturnStructName(XL6_CgenContext* ctx, const XL6_AstNode* funcNode)
 {
-    xl6OutputPuts("XL6_Return_", ctx->out);
-    xl6CgenFuncSymbol(ctx, funcNode);
+    const XL6_AstNode* params;
+    const XL6_AstNode* returns;
+
+    params = funcNode != NULL && funcNode->childCount > 1 ? funcNode->children[1] : NULL;
+    returns = funcNode != NULL && funcNode->childCount > 2 ? funcNode->children[2] : NULL;
+    xl6CgenFunctionReturnStructName(ctx, params, returns);
 }
 
 static void xl6CgenFuncReturnStructDecl(XL6_CgenContext* ctx, const XL6_AstNode* funcNode)
 {
+    const XL6_AstNode* params;
     const XL6_AstNode* returns;
-    size_t i;
 
     if ( !xl6CgenFuncHasMultiReturn(funcNode) ) {
         return;
     }
 
+    params = funcNode->childCount > 1 ? funcNode->children[1] : NULL;
     returns = funcNode->children[2];
-    xl6OutputPuts("typedef struct ", ctx->out);
-    xl6CgenFuncReturnStructName(ctx, funcNode);
-    xl6OutputPuts(" {\n", ctx->out);
-    for ( i = 0; i < returns->childCount; ++i ) {
-        xl6OutputPuts("    ", ctx->out);
-        xl6OutputPuts(xl6CgenTypeName(ctx, returns->children[i]), ctx->out);
-        xl6OutputPrintf(ctx->out, " value%u;\n", (unsigned)i);
-    }
-    xl6OutputPuts("} ", ctx->out);
-    xl6CgenFuncReturnStructName(ctx, funcNode);
-    xl6OutputPuts(";\n\n", ctx->out);
+    xl6CgenFunctionReturnStructDecl(ctx, params, returns);
 }
 
 static void xl6CgenFunctionReturnStructDeclsInNode(XL6_CgenContext* ctx, const XL6_AstNode* node)

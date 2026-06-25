@@ -1,0 +1,22 @@
+extern "expect_i64" func expect(int actual, int expected)
+extern "expect_str" func expectStr(string actual, string expected)
+
+func leftPair() -> (int, string)
+    return 1, "left"
+end
+
+func rightPair() -> (int, string)
+    return 2, "right"
+end
+
+int leftNumber
+string leftText
+leftNumber, leftText = leftPair()
+
+int rightNumber
+string rightText
+rightNumber, rightText = rightPair()
+
+expect(leftNumber + rightNumber, 3)
+expectStr(leftText, "left")
+expectStr(rightText, "right")

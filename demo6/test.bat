@@ -1,11 +1,53 @@
-@echo off
+﻿@echo off
 setlocal
 cd /d %~dp0
+
+call tools\xl6_toolchain_env.bat
+if errorlevel 1 exit /b 1
 
 call build.bat
 if errorlevel 1 exit /b 1
 
 echo Running DEMO6 smoke tests...
+
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_docs_index.ps1
+if errorlevel 1 exit /b 1
+
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_cgenrule_docs.ps1
+if errorlevel 1 exit /b 1
+
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_tool_wiring.ps1
+if errorlevel 1 exit /b 1
+
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_batch_wiring.ps1
+if errorlevel 1 exit /b 1
+
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_source_wiring.ps1
+if errorlevel 1 exit /b 1
+
+powershell -NoProfile -Command "$dir = Join-Path 'src' 'cgen'; $m = Get-ChildItem -LiteralPath $dir -Filter '*.c' | Select-String -SimpleMatch 'code generation error'; if ($m) { Write-Host 'src cgen contains generic cgen diagnostic.'; exit 1 }"
+if errorlevel 1 exit /b 1
+
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_toolchain_paths.ps1
+if errorlevel 1 exit /b 1
+
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_c_string_safety.ps1
+if errorlevel 1 exit /b 1
+
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_test_case_wiring.ps1
+if errorlevel 1 exit /b 1
+
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_test_data_wiring.ps1
+if errorlevel 1 exit /b 1
+
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_example_wiring.ps1
+if errorlevel 1 exit /b 1
+
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_c_fixture_wiring.ps1
+if errorlevel 1 exit /b 1
+
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_package_fixtures.ps1
+if errorlevel 1 exit /b 1
 
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_stdlib_coverage.ps1
 if errorlevel 1 exit /b 1
@@ -22,10 +64,10 @@ if errorlevel 1 exit /b 1
 call examples\feature_suite\run_feature_suite.bat
 if errorlevel 1 exit /b 1
 
-release\xl.exe run examples\concurrency.xl --link ..\..\xrt\release\x64\xrt.o --link ..\demo5\release\tcc\lib\libtcc1-64.a --link Ws2_32 --link IPHLPAPI --link Shell32
+release\xl.exe run examples\concurrency.xl %XL6_XL_DEFAULT_LINK_ARGS%
 if errorlevel 1 exit /b 1
 
-release\xl.exe run examples\union.xl --link ..\..\xrt\release\x64\xrt.o --link ..\demo5\release\tcc\lib\libtcc1-64.a --link Ws2_32 --link IPHLPAPI --link Shell32
+release\xl.exe run examples\union.xl %XL6_XL_DEFAULT_LINK_ARGS%
 if errorlevel 1 exit /b 1
 
 release\xl.exe lex examples\hello.xl > release\tmp\hello.tokens.txt
@@ -172,6 +214,50 @@ if errorlevel 1 exit /b 1
 findstr /C:"int main(" release\tmp\import_metadata.c >nul
 if not errorlevel 1 (
     echo import_metadata.c should not emit main.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\import_path_no_ext.xl
+if errorlevel 1 exit /b 1
+release\xl.exe ir test\cases\import_path_no_ext.xl --emit release\tmp\import_path_no_ext.xlir
+if errorlevel 1 exit /b 1
+findstr /C:"extern \"xl6_path_no_ext_value\" func __xl6_import_probe_value" release\tmp\import_path_no_ext.xlir >nul
+if errorlevel 1 (
+    echo import_path_no_ext.xlir missing generated extern.
+    exit /b 1
+)
+findstr /C:"call __xl6_import_probe_value" release\tmp\import_path_no_ext.xlir >nul
+if errorlevel 1 (
+    echo import_path_no_ext.xlir missing namespace rewrite.
+    exit /b 1
+)
+release\xl.exe cgen test\cases\import_path_no_ext.xl --emit release\tmp\import_path_no_ext.c
+if errorlevel 1 exit /b 1
+findstr /C:"xl6_path_no_ext_value" release\tmp\import_path_no_ext.c >nul
+if errorlevel 1 (
+    echo import_path_no_ext.c missing imported C symbol.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\import_lib_search.xl
+if errorlevel 1 exit /b 1
+release\xl.exe ir test\cases\import_lib_search.xl --emit release\tmp\import_lib_search.xlir
+if errorlevel 1 exit /b 1
+findstr /C:"extern \"xl6_libprobe_value\" func __xl6_import_libprobe_value" release\tmp\import_lib_search.xlir >nul
+if errorlevel 1 (
+    echo import_lib_search.xlir missing generated extern.
+    exit /b 1
+)
+findstr /C:"call __xl6_import_libprobe_value" release\tmp\import_lib_search.xlir >nul
+if errorlevel 1 (
+    echo import_lib_search.xlir missing namespace rewrite.
+    exit /b 1
+)
+release\xl.exe cgen test\cases\import_lib_search.xl --emit release\tmp\import_lib_search.c
+if errorlevel 1 exit /b 1
+findstr /C:"xl6_libprobe_value" release\tmp\import_lib_search.c >nul
+if errorlevel 1 (
+    echo import_lib_search.c missing imported C symbol.
     exit /b 1
 )
 
@@ -366,6 +452,29 @@ release\xl.exe build test\cases\import_dependency_versions.xl -o release\tmp\imp
 if errorlevel 1 exit /b 1
 release\tmp\import_dependency_versions.exe
 if errorlevel 1 exit /b 1
+
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$j=Get-Content 'packages\metadata_combo\package.xapi.json' -Raw | ConvertFrom-Json; if($j.links[0] -ne '../../release/tmp/metadata_combo_link.a'){exit 1}; if($j.loadlibs[0] -ne '../../release/tmp/metadata_combo_loadlib.dll'){exit 2}; if($j.cSources[0] -ne 'metadata_combo_native.c'){exit 3}; if(-not $j.native.singleton){exit 4}; if($j.native.loadName -ne 'metadata_combo_runtime.dll'){exit 5}; if($j.native.version -ne '1.0.0'){exit 6}"
+if errorlevel 1 (
+    echo metadata_combo package.xapi.json missing combined dependency metadata.
+    exit /b 1
+)
+"%XL6_TCC%" -c test\cases\metadata_combo_link_host.c -o release\tmp\metadata_combo_link_host.o
+if errorlevel 1 exit /b 1
+"%XL6_TCC%" -ar rcs release\tmp\metadata_combo_link.a release\tmp\metadata_combo_link_host.o
+if errorlevel 1 exit /b 1
+"%XL6_TCC%" -shared %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% test\cases\metadata_combo_loadlib_host.c -o release\tmp\metadata_combo_loadlib.dll
+if errorlevel 1 exit /b 1
+release\xl.exe run test\cases\import_metadata_combo.xl
+if errorlevel 1 exit /b 1
+release\xl.exe build test\cases\import_metadata_combo.xl -o release\tmp\import_metadata_combo.exe
+if errorlevel 1 exit /b 1
+release\tmp\import_metadata_combo.exe
+if errorlevel 1 exit /b 1
+"%XL6_TCC%" -I. %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% test\cases\import_deps_snapshot_host.c src\compile\xl6_imports.c src\package\xl6_package.c src\abi\xl6_xapi_load.c src\abi\xl6_xapi_dump.c src\abi\xl6_callable.c src\type\xl6_type_model.c src\common\xl6_output.c src\parser\xl6_parser_api.c src\parser\xl6_parser.c src\lexer\xl6_lexer_api.c src\lexer\xl6_lexer_gen.c src\lexer\xl6_token.c src\ast\xl6_ast.c src\diag\xl6_diag.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\import_deps_snapshot_host.exe
+if errorlevel 1 exit /b 1
+release\tmp\import_deps_snapshot_host.exe test\cases\import_metadata_combo.xl
+if errorlevel 1 exit /b 1
+
 release\xl.exe build test\cases\import_dependency_no_pollution.xl -o release\tmp\import_dependency_no_pollution.exe >nul 2> release\tmp\import_dependency_no_pollution.err.txt
 if not errorlevel 1 (
     echo import_dependency_no_pollution.xl should fail.
@@ -431,6 +540,17 @@ if errorlevel 1 (
     exit /b 1
 )
 
+release\xl.exe check test\cases\import_invalid_decl_xapi.xl >nul 2> release\tmp\import_invalid_decl_xapi.err.txt
+if not errorlevel 1 (
+    echo import_invalid_decl_xapi.xl should fail.
+    exit /b 1
+)
+findstr /C:"XAPI import generated invalid extern declarations" release\tmp\import_invalid_decl_xapi.err.txt >nul
+if errorlevel 1 (
+    echo import_invalid_decl_xapi.err.txt missing generated declaration diagnostic.
+    exit /b 1
+)
+
 release\xl.exe check test\cases\import_unsupported_xapi_use.xl >nul 2> release\tmp\import_unsupported_xapi_use.err.txt
 if not errorlevel 1 (
     echo import_unsupported_xapi_use.xl should fail.
@@ -491,15 +611,31 @@ if errorlevel 1 (
     echo cgen_numeric_literals.c missing float underscore normalization.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\cgen_numeric_literals.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_numeric_literals.exe
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_numeric_literals.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_numeric_literals.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_numeric_literals.exe
 if errorlevel 1 exit /b 1
 
+release\xl.exe cgen test\cases\cgen_int_literal_overflow.xl --emit release\tmp\cgen_int_literal_overflow.c >nul 2> release\tmp\cgen_int_literal_overflow.err.txt
+if not errorlevel 1 (
+    echo cgen_int_literal_overflow.xl should fail.
+    exit /b 1
+)
+findstr /C:"integer literal is too large or invalid" release\tmp\cgen_int_literal_overflow.err.txt >nul
+if errorlevel 1 (
+    echo cgen_int_literal_overflow.err.txt missing integer literal overflow diagnostic.
+    exit /b 1
+)
+findstr /C:"code generation error" release\tmp\cgen_int_literal_overflow.err.txt >nul
+if not errorlevel 1 (
+    echo cgen_int_literal_overflow.err.txt regressed to generic cgen diagnostic.
+    exit /b 1
+)
+
 release\xl.exe check examples\containers.xl
 if errorlevel 1 exit /b 1
 
-release\xl.exe run examples\containers.xl --link ..\..\xrt\release\x64\xrt.o --link ..\demo5\release\tcc\lib\libtcc1-64.a --link Ws2_32 --link IPHLPAPI --link Shell32
+release\xl.exe run examples\containers.xl %XL6_XL_DEFAULT_LINK_ARGS%
 if errorlevel 1 exit /b 1
 
 release\xl.exe check test\cases\layout.xl
@@ -531,7 +667,7 @@ if errorlevel 1 (
     echo cgen_case_sensitive.c missing all-caps NAME.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\cgen_case_sensitive.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_case_sensitive.exe
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_case_sensitive.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_case_sensitive.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_case_sensitive.exe
 if errorlevel 1 exit /b 1
@@ -548,7 +684,7 @@ if errorlevel 1 (
     echo cgen_context_keywords.c missing ordinary base variable.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\cgen_context_keywords.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_context_keywords.exe
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_context_keywords.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_context_keywords.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_context_keywords.exe
 if errorlevel 1 exit /b 1
@@ -570,7 +706,7 @@ if errorlevel 1 (
     echo cgen_unicode_identifiers.c missing encoded unicode variable name.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\cgen_unicode_identifiers.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_unicode_identifiers.exe
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_unicode_identifiers.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_unicode_identifiers.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_unicode_identifiers.exe
 if errorlevel 1 exit /b 1
@@ -645,7 +781,7 @@ release\xl.exe check test\cases\type_values.xl
 if errorlevel 1 exit /b 1
 release\xl.exe cgen test\cases\cgen_type_name_identifiers.xl --emit release\tmp\cgen_type_name_identifiers.c
 if errorlevel 1 exit /b 1
-..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\cgen_type_name_identifiers.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_type_name_identifiers.exe
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_type_name_identifiers.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_type_name_identifiers.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_type_name_identifiers.exe
 if errorlevel 1 exit /b 1
@@ -873,7 +1009,7 @@ release\xl.exe check examples\class_point.xl
 if errorlevel 1 exit /b 1
 release\xl.exe check examples\second_stage.xl
 if errorlevel 1 exit /b 1
-release\xl.exe run examples\second_stage.xl --link ..\..\xrt\release\x64\xrt.o --link ..\demo5\release\tcc\lib\libtcc1-64.a --link Ws2_32 --link IPHLPAPI --link Shell32
+release\xl.exe run examples\second_stage.xl %XL6_XL_DEFAULT_LINK_ARGS%
 if errorlevel 1 exit /b 1
 
 release\xl.exe ir examples\hello.xl > release\tmp\hello.xlir
@@ -1066,7 +1202,7 @@ if errorlevel 1 (
     echo cgen_basic.c missing add prototype.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\cgen_basic.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_basic.exe
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_basic.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_basic.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_basic.exe
 if errorlevel 1 exit /b 1
@@ -1088,7 +1224,7 @@ if errorlevel 1 (
     echo cgen_default_init.c missing point default init.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\cgen_default_init.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_default_init.exe
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_default_init.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_default_init.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_default_init.exe
 if errorlevel 1 exit /b 1
@@ -1105,7 +1241,7 @@ if errorlevel 1 (
     echo cgen_union.c missing inline class union.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\cgen_union.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_union.exe
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_union.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_union.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_union.exe
 if errorlevel 1 exit /b 1
@@ -1115,6 +1251,16 @@ if errorlevel 1 exit /b 1
 findstr /C:"static const xrt_type_desc* xl6_type_desc_XL_Union_Payload" release\tmp\cgen_union_var_box.c >nul
 if errorlevel 1 (
     echo cgen_union_var_box.c missing union XRT type descriptor.
+    exit /b 1
+)
+findstr /C:"static int xl6_type_compare_XL_Union_Payload" release\tmp\cgen_union_var_box.c >nul
+if errorlevel 1 (
+    echo cgen_union_var_box.c missing union compare type op.
+    exit /b 1
+)
+findstr /C:"static unsigned long long xl6_type_hash_XL_Union_Payload" release\tmp\cgen_union_var_box.c >nul
+if errorlevel 1 (
+    echo cgen_union_var_box.c missing union hash type op.
     exit /b 1
 )
 findstr /C:"xl6_box_XL_Union_Payload(p)" release\tmp\cgen_union_var_box.c >nul
@@ -1132,7 +1278,12 @@ if errorlevel 1 (
     echo cgen_union_var_box.c missing typed union array boxing.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -Irelease\tcc\include_win -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -I..\demo5\release\tcc\include_win\winapi -L..\demo5\release\tcc\lib release\tmp\cgen_union_var_box.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_union_var_box.exe
+findstr /C:"xrtTypedSetCreate(xl6_type_desc_XL_Union_Payload()" release\tmp\cgen_union_var_box.c >nul
+if errorlevel 1 (
+    echo cgen_union_var_box.c missing typed union set descriptor.
+    exit /b 1
+)
+"%XL6_TCC%" -Irelease\tcc\include_win %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_union_var_box.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_union_var_box.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_union_var_box.exe
 if errorlevel 1 exit /b 1
@@ -1159,7 +1310,7 @@ if errorlevel 1 (
     echo cgen_inline_union_generic_class_field.c missing inline union generic member write.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -Irelease\tcc\include_win -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -I..\demo5\release\tcc\include_win\winapi -L..\demo5\release\tcc\lib release\tmp\cgen_inline_union_generic_class_field.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_inline_union_generic_class_field.exe
+"%XL6_TCC%" -Irelease\tcc\include_win %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_inline_union_generic_class_field.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_inline_union_generic_class_field.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_inline_union_generic_class_field.exe
 if errorlevel 1 exit /b 1
@@ -1253,9 +1404,15 @@ if errorlevel 1 (
     echo xapi_type_fields.json missing custom type metadata.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -I. -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -I..\demo5\release\tcc\include_win\winapi -L..\demo5\release\tcc\lib test\cases\xapi_load_types_host.c src\abi\xl6_xapi_load.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\xapi_load_types_host.exe
+"%XL6_TCC%" -I. %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% test\cases\xapi_load_types_host.c src\abi\xl6_xapi_load.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\xapi_load_types_host.exe
 if errorlevel 1 exit /b 1
 release\tmp\xapi_load_types_host.exe release\tmp\xapi_type_fields.json
+if errorlevel 1 exit /b 1
+"%XL6_TCC%" -I. %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% test\cases\xapi_loader_defaults_host.c src\abi\xl6_xapi_load.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\xapi_loader_defaults_host.exe
+if errorlevel 1 exit /b 1
+release\tmp\xapi_loader_defaults_host.exe legacy test\cases\xapi_legacy_defaults.xapi.json
+if errorlevel 1 exit /b 1
+release\tmp\xapi_loader_defaults_host.exe unknowns test\cases\xapi_unknown_fields.xapi.json
 if errorlevel 1 exit /b 1
 release\xl.exe check test\cases\sem_union_top_anon.xl >nul 2> release\tmp\sem_union_top_anon.err.txt
 if not errorlevel 1 (
@@ -1291,6 +1448,11 @@ if not errorlevel 1 (
 release\xl.exe check test\cases\sem_class_unknown_field.xl >nul 2> release\tmp\sem_class_unknown_field.err.txt
 if not errorlevel 1 (
     echo sem_class_unknown_field.xl should fail.
+    exit /b 1
+)
+findstr /C:"code generation error" release\tmp\sem_class_unknown_field.err.txt >nul
+if not errorlevel 1 (
+    echo sem_class_unknown_field.err.txt regressed to generic cgen diagnostic.
     exit /b 1
 )
 release\xl.exe check test\cases\sem_union_unknown_field.xl >nul 2> release\tmp\sem_union_unknown_field.err.txt
@@ -1333,14 +1495,29 @@ if not errorlevel 1 (
     echo sem_typed_array_assign_type.xl should fail.
     exit /b 1
 )
+findstr /C:"code generation error" release\tmp\sem_typed_array_assign_type.err.txt >nul
+if not errorlevel 1 (
+    echo sem_typed_array_assign_type.err.txt regressed to generic cgen diagnostic.
+    exit /b 1
+)
 release\xl.exe check test\cases\sem_typed_dict_assign_type.xl >nul 2> release\tmp\sem_typed_dict_assign_type.err.txt
 if not errorlevel 1 (
     echo sem_typed_dict_assign_type.xl should fail.
     exit /b 1
 )
+findstr /C:"code generation error" release\tmp\sem_typed_dict_assign_type.err.txt >nul
+if not errorlevel 1 (
+    echo sem_typed_dict_assign_type.err.txt regressed to generic cgen diagnostic.
+    exit /b 1
+)
 release\xl.exe check test\cases\sem_typed_dict_assign_key_type.xl >nul 2> release\tmp\sem_typed_dict_assign_key_type.err.txt
 if not errorlevel 1 (
     echo sem_typed_dict_assign_key_type.xl should fail.
+    exit /b 1
+)
+findstr /C:"code generation error" release\tmp\sem_typed_dict_assign_key_type.err.txt >nul
+if not errorlevel 1 (
+    echo sem_typed_dict_assign_key_type.err.txt regressed to generic cgen diagnostic.
     exit /b 1
 )
 release\xl.exe check test\cases\sem_typed_safe_dict_key_type.xl >nul 2> release\tmp\sem_typed_safe_dict_key_type.err.txt
@@ -1411,7 +1588,7 @@ if errorlevel 1 (
     echo cgen_primitive_widths.c missing float64 C type.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\cgen_primitive_widths.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_primitive_widths.exe
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_primitive_widths.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_primitive_widths.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_primitive_widths.exe
 if errorlevel 1 exit /b 1
@@ -1453,6 +1630,16 @@ if errorlevel 1 (
     echo cgen_containers.c missing explicit empty dict lowering.
     exit /b 1
 )
+findstr /C:"xvalue prefixedArray = xl6_xrt_array_varargs(2" release\tmp\cgen_containers.c >nul
+if errorlevel 1 (
+    echo cgen_containers.c missing prefixed array expression fallback.
+    exit /b 1
+)
+findstr /C:"xvalue prefixedDict = xl6_xrt_dict_varargs(1" release\tmp\cgen_containers.c >nul
+if errorlevel 1 (
+    echo cgen_containers.c missing prefixed dict expression fallback.
+    exit /b 1
+)
 findstr /C:"xrtTypedArrayCreate(xrtTypeInt()" release\tmp\cgen_containers.c >nul
 if errorlevel 1 (
     echo cgen_containers.c missing typed array lowering.
@@ -1473,7 +1660,7 @@ if errorlevel 1 (
     echo cgen_containers.c missing typed container cleanup.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\cgen_containers.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_containers.exe
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_containers.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_containers.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_containers.exe
 if errorlevel 1 exit /b 1
@@ -1505,7 +1692,7 @@ if errorlevel 1 (
     echo cgen_static_typed_containers.c missing typed dict iteration.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\cgen_static_typed_containers.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_static_typed_containers.exe
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_static_typed_containers.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_static_typed_containers.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_static_typed_containers.exe
 if errorlevel 1 exit /b 1
@@ -1541,7 +1728,7 @@ if errorlevel 1 (
     echo cgen_typed_container_for_in_returned.c missing returned typed array cleanup.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -Irelease\tcc\include_win -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -I..\demo5\release\tcc\include_win\winapi -L..\demo5\release\tcc\lib release\tmp\cgen_typed_container_for_in_returned.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_typed_container_for_in_returned.exe
+"%XL6_TCC%" -Irelease\tcc\include_win %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_typed_container_for_in_returned.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_typed_container_for_in_returned.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_typed_container_for_in_returned.exe
 if errorlevel 1 exit /b 1
@@ -1573,9 +1760,21 @@ if errorlevel 1 (
     echo cgen_typed_container_box_to_var.c missing runtime type binding for boxed typed containers.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\cgen_typed_container_box_to_var.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_typed_container_box_to_var.exe
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_typed_container_box_to_var.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_typed_container_box_to_var.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_typed_container_box_to_var.exe
+if errorlevel 1 exit /b 1
+
+release\xl.exe cgen test\cases\cgen_type_desc_dedupe.xl --emit release\tmp\cgen_type_desc_dedupe.c
+if errorlevel 1 exit /b 1
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content 'release\tmp\cgen_type_desc_dedupe.c' -Raw; if(([regex]::Matches($t, 'static const xrt_type_desc\* xl6_runtime_type_desc_[0-9A-F]+\(void\)\s*\{')).Count -ne 1){exit 1}; if(([regex]::Matches($t, 'static const xrt_generic_type generic')).Count -ne 1){exit 2}"
+if errorlevel 1 (
+    echo cgen_type_desc_dedupe.c duplicated runtime type desc for same typed container.
+    exit /b 1
+)
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_type_desc_dedupe.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_type_desc_dedupe.exe
+if errorlevel 1 exit /b 1
+release\tmp\cgen_type_desc_dedupe.exe
 if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_typed_container_copy_assign.xl --emit release\tmp\cgen_typed_container_copy_assign.c
@@ -1625,7 +1824,7 @@ if errorlevel 1 (
     echo cgen_typed_container_copy_assign.c missing typed dict in lowering.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -Irelease\tcc\include_win -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -I..\demo5\release\tcc\include_win\winapi -L..\demo5\release\tcc\lib release\tmp\cgen_typed_container_copy_assign.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_typed_container_copy_assign.exe
+"%XL6_TCC%" -Irelease\tcc\include_win %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_typed_container_copy_assign.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_typed_container_copy_assign.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_typed_container_copy_assign.exe
 if errorlevel 1 exit /b 1
@@ -1657,7 +1856,7 @@ if errorlevel 1 (
     echo cgen_typed_container_copy_objects_functions.c missing class copy function retain.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -Irelease\tcc\include_win -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -I..\demo5\release\tcc\include_win\winapi -L..\demo5\release\tcc\lib release\tmp\cgen_typed_container_copy_objects_functions.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_typed_container_copy_objects_functions.exe
+"%XL6_TCC%" -Irelease\tcc\include_win %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_typed_container_copy_objects_functions.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_typed_container_copy_objects_functions.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_typed_container_copy_objects_functions.exe
 if errorlevel 1 exit /b 1
@@ -1694,7 +1893,7 @@ if errorlevel 1 (
     echo cgen_typed_container_functions.c missing typed function iteration cleanup.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -Irelease\tcc\include_win -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -I..\demo5\release\tcc\include_win\winapi -L..\demo5\release\tcc\lib release\tmp\cgen_typed_container_functions.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_typed_container_functions.exe
+"%XL6_TCC%" -Irelease\tcc\include_win %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_typed_container_functions.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_typed_container_functions.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_typed_container_functions.exe
 if errorlevel 1 exit /b 1
@@ -1706,9 +1905,29 @@ if errorlevel 1 (
     echo cgen_typed_container_objects.c missing class unbox type op.
     exit /b 1
 )
+findstr /C:"static int xl6_type_compare_XL_Class_Pair" release\tmp\cgen_typed_container_objects.c >nul
+if errorlevel 1 (
+    echo cgen_typed_container_objects.c missing class compare type op.
+    exit /b 1
+)
+findstr /C:"static unsigned long long xl6_type_hash_XL_Class_Pair" release\tmp\cgen_typed_container_objects.c >nul
+if errorlevel 1 (
+    echo cgen_typed_container_objects.c missing class hash type op.
+    exit /b 1
+)
 findstr /C:"xl6_type_unbox_XL_Custom_Native" release\tmp\cgen_typed_container_objects.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_objects.c missing custom unbox type op.
+    exit /b 1
+)
+findstr /C:"static int xl6_type_compare_XL_Custom_Native" release\tmp\cgen_typed_container_objects.c >nul
+if errorlevel 1 (
+    echo cgen_typed_container_objects.c missing custom compare type op.
+    exit /b 1
+)
+findstr /C:"static unsigned long long xl6_type_hash_XL_Custom_Native" release\tmp\cgen_typed_container_objects.c >nul
+if errorlevel 1 (
+    echo cgen_typed_container_objects.c missing custom hash type op.
     exit /b 1
 )
 findstr /C:"xrtTypedSetAddValue(pairSet" release\tmp\cgen_typed_container_objects.c >nul
@@ -1716,7 +1935,7 @@ if errorlevel 1 (
     echo cgen_typed_container_objects.c missing typed class set fill.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -Irelease\tcc\include_win -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -I..\demo5\release\tcc\include_win\winapi -L..\demo5\release\tcc\lib release\tmp\cgen_typed_container_objects.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_typed_container_objects.exe
+"%XL6_TCC%" -Irelease\tcc\include_win %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_typed_container_objects.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_typed_container_objects.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_typed_container_objects.exe
 if errorlevel 1 exit /b 1
@@ -1758,7 +1977,7 @@ if errorlevel 1 (
     echo cgen_typed_container_function_field_objects.c missing typed iteration class retain.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -Irelease\tcc\include_win -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -I..\demo5\release\tcc\include_win\winapi -L..\demo5\release\tcc\lib release\tmp\cgen_typed_container_function_field_objects.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_typed_container_function_field_objects.exe
+"%XL6_TCC%" -Irelease\tcc\include_win %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_typed_container_function_field_objects.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_typed_container_function_field_objects.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_typed_container_function_field_objects.exe
 if errorlevel 1 exit /b 1
@@ -1780,7 +1999,27 @@ if errorlevel 1 (
     echo cgen_typed_container_index_assign.c missing typed dict index assignment.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -Irelease\tcc\include_win -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -I..\demo5\release\tcc\include_win\winapi -L..\demo5\release\tcc\lib release\tmp\cgen_typed_container_index_assign.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_typed_container_index_assign.exe
+findstr /C:"static void xl6_runtime_fatal(int code)" release\tmp\cgen_typed_container_index_assign.c >nul
+if errorlevel 1 (
+    echo cgen_typed_container_index_assign.c missing centralized runtime fatal helper.
+    exit /b 1
+)
+findstr /C:"xl6_runtime_fatal(3);" release\tmp\cgen_typed_container_index_assign.c >nul
+if errorlevel 1 (
+    echo cgen_typed_container_index_assign.c missing centralized runtime fatal call.
+    exit /b 1
+)
+findstr /C:"exit(3);" release\tmp\cgen_typed_container_index_assign.c >nul
+if not errorlevel 1 (
+    echo cgen_typed_container_index_assign.c still contains direct runtime exit 3.
+    exit /b 1
+)
+findstr /C:"exit(2);" release\tmp\cgen_typed_container_index_assign.c >nul
+if not errorlevel 1 (
+    echo cgen_typed_container_index_assign.c still contains direct runtime exit 2.
+    exit /b 1
+)
+"%XL6_TCC%" -Irelease\tcc\include_win %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_typed_container_index_assign.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_typed_container_index_assign.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_typed_container_index_assign.exe
 if errorlevel 1 exit /b 1
@@ -1867,7 +2106,7 @@ if errorlevel 1 (
     echo cgen_typed_container_index_assign_objects_functions.c missing typed function dynamic dict get lowering.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -Irelease\tcc\include_win -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -I..\demo5\release\tcc\include_win\winapi -L..\demo5\release\tcc\lib release\tmp\cgen_typed_container_index_assign_objects_functions.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_typed_container_index_assign_objects_functions.exe
+"%XL6_TCC%" -Irelease\tcc\include_win %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_typed_container_index_assign_objects_functions.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_typed_container_index_assign_objects_functions.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_typed_container_index_assign_objects_functions.exe
 if errorlevel 1 exit /b 1
@@ -1919,7 +2158,7 @@ if errorlevel 1 (
     echo cgen_typed_container_multi_assign_index.c missing function dynamic dict multi assignment.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -Irelease\tcc\include_win -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -I..\demo5\release\tcc\include_win\winapi -L..\demo5\release\tcc\lib release\tmp\cgen_typed_container_multi_assign_index.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_typed_container_multi_assign_index.exe
+"%XL6_TCC%" -Irelease\tcc\include_win %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_typed_container_multi_assign_index.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_typed_container_multi_assign_index.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_typed_container_multi_assign_index.exe
 if errorlevel 1 exit /b 1
@@ -1951,7 +2190,7 @@ if not errorlevel 1 (
     echo cgen_typed_container_index_compound_assign.c should not use xvalue current for typed index compound assignment.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -Irelease\tcc\include_win -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -I..\demo5\release\tcc\include_win\winapi -L..\demo5\release\tcc\lib release\tmp\cgen_typed_container_index_compound_assign.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_typed_container_index_compound_assign.exe
+"%XL6_TCC%" -Irelease\tcc\include_win %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_typed_container_index_compound_assign.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_typed_container_index_compound_assign.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_typed_container_index_compound_assign.exe
 if errorlevel 1 exit /b 1
@@ -1988,9 +2227,21 @@ if errorlevel 1 (
     echo type_values.c missing XRT generic type metadata.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\type_values.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\type_values.exe
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\type_values.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\type_values.exe
 if errorlevel 1 exit /b 1
 release\tmp\type_values.exe
+if errorlevel 1 exit /b 1
+
+release\xl.exe cgen test\cases\cgen_minimal_runtime.xl --emit release\tmp\cgen_minimal_runtime.c
+if errorlevel 1 exit /b 1
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content 'release\tmp\cgen_minimal_runtime.c' -Raw; if($t -match 'typedef struct XL6_Function'){exit 1}; if($t -match '__xl_std_'){exit 2}; if($t -match 'xl6_xrt_array_varargs'){exit 3}; if($t -match '\bxvalue\b'){exit 4}; if($t -notmatch 'int main\(int argc, char\*\* argv\)'){exit 5}"
+if errorlevel 1 (
+    echo cgen_minimal_runtime.c runtime needs negative snapshot failed.
+    exit /b 1
+)
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_minimal_runtime.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_minimal_runtime.exe
+if errorlevel 1 exit /b 1
+release\tmp\cgen_minimal_runtime.exe
 if errorlevel 1 exit /b 1
 
 release\xl.exe ir test\cases\type_aliases.xl --emit release\tmp\type_aliases.xlir
@@ -2017,7 +2268,7 @@ if errorlevel 1 (
     echo type_aliases.c missing point alias lowering.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\type_aliases.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\type_aliases.exe
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\type_aliases.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\type_aliases.exe
 if errorlevel 1 exit /b 1
 release\tmp\type_aliases.exe
 if errorlevel 1 exit /b 1
@@ -2039,7 +2290,7 @@ if errorlevel 1 (
     echo cgen_string_concat.c missing string += lowering.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\cgen_string_concat.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_string_concat.exe
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_string_concat.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_string_concat.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_string_concat.exe
 if errorlevel 1 exit /b 1
@@ -2061,7 +2312,7 @@ if errorlevel 1 (
     echo cgen_string_compare.c missing string approximate lowering.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\cgen_string_compare.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_string_compare.exe
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_string_compare.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_string_compare.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_string_compare.exe
 if errorlevel 1 exit /b 1
@@ -2078,7 +2329,7 @@ if errorlevel 1 (
     echo cgen_string_literals.c missing raw string lowering.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\cgen_string_literals.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_string_literals.exe
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_string_literals.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_string_literals.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_string_literals.exe
 if errorlevel 1 exit /b 1
@@ -2110,7 +2361,7 @@ if errorlevel 1 (
     echo cgen_time_literals.c missing time approximate lowering.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\cgen_time_literals.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_time_literals.exe
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_time_literals.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_time_literals.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_time_literals.exe
 if errorlevel 1 exit /b 1
@@ -2132,7 +2383,7 @@ if errorlevel 1 (
     echo cgen_auto_expressions.c missing auto float expression inference.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\cgen_auto_expressions.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_auto_expressions.exe
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_auto_expressions.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_auto_expressions.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_auto_expressions.exe
 if errorlevel 1 exit /b 1
@@ -2254,7 +2505,7 @@ if errorlevel 1 (
     echo cgen_var_values.c missing var cleanup.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\cgen_var_values.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_var_values.exe
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_var_values.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_var_values.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_var_values.exe
 if errorlevel 1 exit /b 1
@@ -2341,7 +2592,7 @@ if errorlevel 1 (
     echo cgen_var_runtime_objects.c missing fixed named parameter filtering.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -Irelease\tcc\include_win -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -I..\demo5\release\tcc\include_win\winapi -L..\demo5\release\tcc\lib release\tmp\cgen_var_runtime_objects.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_var_runtime_objects.exe
+"%XL6_TCC%" -Irelease\tcc\include_win %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_var_runtime_objects.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_var_runtime_objects.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_var_runtime_objects.exe
 if errorlevel 1 exit /b 1
@@ -2373,7 +2624,7 @@ if errorlevel 1 (
     echo cgen_type_conversions.c missing var to string conversion.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\cgen_type_conversions.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_type_conversions.exe
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_type_conversions.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_type_conversions.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_type_conversions.exe
 if errorlevel 1 exit /b 1
@@ -2395,7 +2646,7 @@ if errorlevel 1 (
     echo cgen_implicit_methods.c missing literal toString boxing.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\cgen_implicit_methods.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_implicit_methods.exe
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_implicit_methods.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_implicit_methods.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_implicit_methods.exe
 if errorlevel 1 exit /b 1
@@ -2422,6 +2673,26 @@ if errorlevel 1 (
     echo cgen_closure.c missing closure ref count init.
     exit /b 1
 )
+findstr /C:"xrtMalloc(sizeof(XL6_Closure_" release\tmp\cgen_closure.c >nul
+if errorlevel 1 (
+    echo cgen_closure.c should use XRT allocation for closure env.
+    exit /b 1
+)
+findstr /C:"xrtFree(__env);" release\tmp\cgen_closure.c >nul
+if errorlevel 1 (
+    echo cgen_closure.c should use XRT free for closure env.
+    exit /b 1
+)
+findstr /C:"malloc(" release\tmp\cgen_closure.c >nul
+if not errorlevel 1 (
+    echo cgen_closure.c still contains CRT malloc.
+    exit /b 1
+)
+findstr /C:"free(" release\tmp\cgen_closure.c >nul
+if not errorlevel 1 (
+    echo cgen_closure.c still contains CRT free.
+    exit /b 1
+)
 findstr /C:"copy.retain(copy.env);" release\tmp\cgen_closure.c >nul
 if errorlevel 1 (
     echo cgen_closure.c missing function copy retain.
@@ -2437,7 +2708,7 @@ if errorlevel 1 (
     echo cgen_closure.c missing function value invoke.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -Irelease\tcc\include_win -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -I..\demo5\release\tcc\include_win\winapi -L..\demo5\release\tcc\lib release\tmp\cgen_closure.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_closure.exe
+"%XL6_TCC%" -Irelease\tcc\include_win %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_closure.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_closure.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_closure.exe
 if errorlevel 1 exit /b 1
@@ -2474,7 +2745,27 @@ if errorlevel 1 (
     echo cgen_closure_resource_capture.c missing borrowed function assignment retain.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\cgen_closure_resource_capture.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_closure_resource_capture.exe
+findstr /C:"xrtMalloc(sizeof(XL6_Closure_" release\tmp\cgen_closure_resource_capture.c >nul
+if errorlevel 1 (
+    echo cgen_closure_resource_capture.c should use XRT allocation for closure env.
+    exit /b 1
+)
+findstr /C:"xrtFree(__env);" release\tmp\cgen_closure_resource_capture.c >nul
+if errorlevel 1 (
+    echo cgen_closure_resource_capture.c should use XRT free for closure env.
+    exit /b 1
+)
+findstr /C:"malloc(" release\tmp\cgen_closure_resource_capture.c >nul
+if not errorlevel 1 (
+    echo cgen_closure_resource_capture.c still contains CRT malloc.
+    exit /b 1
+)
+findstr /C:"free(" release\tmp\cgen_closure_resource_capture.c >nul
+if not errorlevel 1 (
+    echo cgen_closure_resource_capture.c still contains CRT free.
+    exit /b 1
+)
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_closure_resource_capture.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_closure_resource_capture.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_closure_resource_capture.exe
 if errorlevel 1 exit /b 1
@@ -2511,7 +2802,7 @@ if errorlevel 1 (
     echo cgen_function_bare_call.c missing erased array vararg packing.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\cgen_function_bare_call.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_function_bare_call.exe
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_function_bare_call.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_function_bare_call.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_function_bare_call.exe
 if errorlevel 1 exit /b 1
@@ -2563,7 +2854,77 @@ if errorlevel 1 (
     echo cgen_function_named_value.c missing typed function dict vararg lowering.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\cgen_function_named_value.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_function_named_value.exe
+findstr /C:"copy = (char*)xrtMalloc(len + 1u);" release\tmp\cgen_function_named_value.c >nul
+if errorlevel 1 (
+    echo cgen_function_named_value.c should use XRT allocation for function fallback string.
+    exit /b 1
+)
+findstr /C:"copy = (char*)malloc(len + 1u);" release\tmp\cgen_function_named_value.c >nul
+if not errorlevel 1 (
+    echo cgen_function_named_value.c still uses CRT malloc for function fallback string.
+    exit /b 1
+)
+findstr /C:"box = (XL6_Function_Callable_Env*)xrtMalloc(sizeof(XL6_Function_Callable_Env));" release\tmp\cgen_function_named_value.c >nul
+if errorlevel 1 (
+    echo cgen_function_named_value.c should use XRT allocation for callable env.
+    exit /b 1
+)
+findstr /C:"xrtFree(box);" release\tmp\cgen_function_named_value.c >nul
+if errorlevel 1 (
+    echo cgen_function_named_value.c should use XRT free for callable env.
+    exit /b 1
+)
+findstr /C:"argv = (xvalue*)xrtMalloc(sizeof(xvalue) * (size_t)argc);" release\tmp\cgen_function_named_value.c >nul
+if errorlevel 1 (
+    echo cgen_function_named_value.c should use XRT allocation for erased call argv.
+    exit /b 1
+)
+findstr /C:"xrtFree(argv);" release\tmp\cgen_function_named_value.c >nul
+if errorlevel 1 (
+    echo cgen_function_named_value.c should use XRT free for erased call argv.
+    exit /b 1
+)
+findstr /C:"malloc(" release\tmp\cgen_function_named_value.c >nul
+if not errorlevel 1 (
+    echo cgen_function_named_value.c still contains CRT malloc.
+    exit /b 1
+)
+findstr /C:"free(" release\tmp\cgen_function_named_value.c >nul
+if not errorlevel 1 (
+    echo cgen_function_named_value.c still contains CRT free.
+    exit /b 1
+)
+findstr /C:"static void xl6_function_fatal(int code)" release\tmp\cgen_function_named_value.c >nul
+if errorlevel 1 (
+    echo cgen_function_named_value.c missing centralized function fatal helper.
+    exit /b 1
+)
+findstr /C:"static void xl6_runtime_fatal(int code)" release\tmp\cgen_function_named_value.c >nul
+if errorlevel 1 (
+    echo cgen_function_named_value.c missing centralized runtime fatal helper.
+    exit /b 1
+)
+findstr /C:"xl6_function_fatal(3);" release\tmp\cgen_function_named_value.c >nul
+if errorlevel 1 (
+    echo cgen_function_named_value.c missing centralized function fatal call.
+    exit /b 1
+)
+findstr /C:"xl6_runtime_fatal(code);" release\tmp\cgen_function_named_value.c >nul
+if errorlevel 1 (
+    echo cgen_function_named_value.c missing function fatal delegation.
+    exit /b 1
+)
+findstr /C:"exit(3);" release\tmp\cgen_function_named_value.c >nul
+if not errorlevel 1 (
+    echo cgen_function_named_value.c still contains direct function runtime exit 3.
+    exit /b 1
+)
+findstr /C:"exit(2);" release\tmp\cgen_function_named_value.c >nul
+if not errorlevel 1 (
+    echo cgen_function_named_value.c still contains direct function runtime exit 2.
+    exit /b 1
+)
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_function_named_value.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_function_named_value.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_function_named_value.exe
 if errorlevel 1 exit /b 1
@@ -2590,7 +2951,7 @@ if errorlevel 1 (
     echo cgen_extern_function_value.c missing export function internal target call.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -Irelease\tcc\include_win -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -I..\demo5\release\tcc\include_win\winapi -L..\demo5\release\tcc\lib release\tmp\cgen_extern_function_value.c test\cases\cgen_extern_function_value_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_extern_function_value.exe
+"%XL6_TCC%" -Irelease\tcc\include_win %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_extern_function_value.c test\cases\cgen_extern_function_value_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_extern_function_value.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_extern_function_value.exe
 if errorlevel 1 exit /b 1
@@ -2612,7 +2973,7 @@ if errorlevel 1 (
     echo cgen_function_multi_return.c missing multi-return optional adapter.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -Irelease\tcc\include_win -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -I..\demo5\release\tcc\include_win\winapi -L..\demo5\release\tcc\lib release\tmp\cgen_function_multi_return.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_function_multi_return.exe
+"%XL6_TCC%" -Irelease\tcc\include_win %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_function_multi_return.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_function_multi_return.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_function_multi_return.exe
 if errorlevel 1 exit /b 1
@@ -2669,7 +3030,7 @@ if errorlevel 1 (
     echo cgen_member_function_multi_return.c missing discarded function multi-return release.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -Irelease\tcc\include_win -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -I..\demo5\release\tcc\include_win\winapi -L..\demo5\release\tcc\lib release\tmp\cgen_member_function_multi_return.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_member_function_multi_return.exe
+"%XL6_TCC%" -Irelease\tcc\include_win %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_member_function_multi_return.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_member_function_multi_return.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_member_function_multi_return.exe
 if errorlevel 1 exit /b 1
@@ -2686,9 +3047,21 @@ if errorlevel 1 (
     echo cgen_function_default.c missing function default init.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\cgen_function_default.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_function_default.exe
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_function_default.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_function_default.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_function_default.exe
+if errorlevel 1 exit /b 1
+
+release\xl.exe cgen test\cases\cgen_function_adapter_dedupe.xl --emit release\tmp\cgen_function_adapter_dedupe.c
+if errorlevel 1 exit /b 1
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content 'release\tmp\cgen_function_adapter_dedupe.c' -Raw; if(([regex]::Matches($t, 'static XL6_Function xl6_fnvalue_addDefault_arity1_make\(void\)\s*\{')).Count -ne 1){exit 1}; if(([regex]::Matches($t, 'static long long xl6_fnvalue_addDefault_arity1_invoke\(')).Count -ne 1){exit 2}"
+if errorlevel 1 (
+    echo cgen_function_adapter_dedupe.c duplicated default-arg adapter.
+    exit /b 1
+)
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_function_adapter_dedupe.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_function_adapter_dedupe.exe
+if errorlevel 1 exit /b 1
+release\tmp\cgen_function_adapter_dedupe.exe
 if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\call_defaults.xl --emit release\tmp\call_defaults.c
@@ -2708,7 +3081,7 @@ if errorlevel 1 (
     echo call_defaults.c missing all named arguments.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\call_defaults.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\call_defaults.exe
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\call_defaults.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\call_defaults.exe
 if errorlevel 1 exit /b 1
 release\tmp\call_defaults.exe
 if errorlevel 1 exit /b 1
@@ -2720,7 +3093,7 @@ if errorlevel 1 (
     echo cgen_range.c missing range lowering.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\cgen_range.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_range.exe
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_range.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_range.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_range.exe
 if errorlevel 1 exit /b 1
@@ -2732,10 +3105,25 @@ if errorlevel 1 (
     echo cgen_range_assert.c missing range lowering.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\cgen_range_assert.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_range_assert.exe
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_range_assert.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_range_assert.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_range_assert.exe
 if errorlevel 1 exit /b 1
+
+release\xl.exe cgen test\cases\cgen_range_step_runtime_zero.xl --emit release\tmp\cgen_range_step_runtime_zero.c
+if errorlevel 1 exit /b 1
+findstr /C:"RangeError" release\tmp\cgen_range_step_runtime_zero.c >nul
+if errorlevel 1 (
+    echo cgen_range_step_runtime_zero.c missing range step runtime error guard.
+    exit /b 1
+)
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_range_step_runtime_zero.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_range_step_runtime_zero.exe
+if errorlevel 1 exit /b 1
+release\tmp\cgen_range_step_runtime_zero.exe >nul 2> release\tmp\cgen_range_step_runtime_zero.err.txt
+if not errorlevel 1 (
+    echo cgen_range_step_runtime_zero.xl should fail at runtime.
+    exit /b 1
+)
 
 release\xl.exe cgen test\cases\cgen_in_range.xl --emit release\tmp\cgen_in_range.c
 if errorlevel 1 exit /b 1
@@ -2749,7 +3137,7 @@ if errorlevel 1 (
     echo cgen_in_range.c missing range contains call.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\cgen_in_range.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_in_range.exe
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_in_range.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_in_range.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_in_range.exe
 if errorlevel 1 exit /b 1
@@ -2796,7 +3184,7 @@ if errorlevel 1 (
     echo cgen_in_containers.c missing temporary RHS container release.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\cgen_in_containers.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_in_containers.exe
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_in_containers.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_in_containers.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_in_containers.exe
 if errorlevel 1 exit /b 1
@@ -2833,7 +3221,7 @@ if errorlevel 1 (
     echo cgen_for_in_containers.c missing var-to-string comparison.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\cgen_for_in_containers.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_for_in_containers.exe
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_for_in_containers.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_for_in_containers.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_for_in_containers.exe
 if errorlevel 1 exit /b 1
@@ -2855,7 +3243,7 @@ if errorlevel 1 (
     echo cgen_approx.c missing num approx call.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\cgen_approx.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_approx.exe
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_approx.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_approx.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_approx.exe
 if errorlevel 1 exit /b 1
@@ -2879,7 +3267,7 @@ if errorlevel 1 (
     echo stdlib_math.c missing round helper call.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\stdlib_math.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\stdlib_math.exe
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\stdlib_math.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\stdlib_math.exe
 if errorlevel 1 exit /b 1
 release\tmp\stdlib_math.exe
 if errorlevel 1 exit /b 1
@@ -2968,7 +3356,7 @@ if errorlevel 1 (
     echo stdlib_string.c missing string.split helper.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\stdlib_string.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\stdlib_string.exe
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\stdlib_string.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\stdlib_string.exe
 if errorlevel 1 exit /b 1
 release\tmp\stdlib_string.exe
 if errorlevel 1 exit /b 1
@@ -3002,7 +3390,7 @@ if errorlevel 1 (
     echo stdlib_time.c missing xrtTimeParse extern prototype.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\stdlib_time.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\stdlib_time.exe
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\stdlib_time.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\stdlib_time.exe
 if errorlevel 1 exit /b 1
 release\tmp\stdlib_time.exe
 if errorlevel 1 exit /b 1
@@ -3026,7 +3414,7 @@ if errorlevel 1 (
     echo stdlib_time_extra.c missing xrtTimeRangeOverlap extern prototype.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -DXL6_USE_XRT_LIFECYCLE -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\stdlib_time_extra.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\stdlib_time_extra.exe
+"%XL6_TCC%" -DXL6_USE_XRT_LIFECYCLE %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\stdlib_time_extra.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\stdlib_time_extra.exe
 if errorlevel 1 exit /b 1
 release\tmp\stdlib_time_extra.exe
 if errorlevel 1 exit /b 1
@@ -3065,7 +3453,7 @@ if errorlevel 1 (
     echo stdlib_time_calendar.c missing xrtDaysInYear extern prototype.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -DXL6_USE_XRT_LIFECYCLE -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\stdlib_time_calendar.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\stdlib_time_calendar.exe
+"%XL6_TCC%" -DXL6_USE_XRT_LIFECYCLE %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\stdlib_time_calendar.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\stdlib_time_calendar.exe
 if errorlevel 1 exit /b 1
 release\tmp\stdlib_time_calendar.exe
 if errorlevel 1 exit /b 1
@@ -3094,7 +3482,7 @@ if errorlevel 1 (
     echo stdlib_random.c missing random.string helper.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -DXL6_USE_XRT_LIFECYCLE -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\stdlib_random.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\stdlib_random.exe
+"%XL6_TCC%" -DXL6_USE_XRT_LIFECYCLE %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\stdlib_random.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\stdlib_random.exe
 if errorlevel 1 exit /b 1
 release\tmp\stdlib_random.exe
 if errorlevel 1 exit /b 1
@@ -3178,7 +3566,7 @@ if errorlevel 1 (
     echo stdlib_path_file.c missing dir.dirs helper.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -DXL6_USE_XRT_LIFECYCLE -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\stdlib_path_file.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\stdlib_path_file.exe
+"%XL6_TCC%" -DXL6_USE_XRT_LIFECYCLE %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\stdlib_path_file.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\stdlib_path_file.exe
 if errorlevel 1 exit /b 1
 release\tmp\stdlib_path_file.exe
 if errorlevel 1 exit /b 1
@@ -3202,7 +3590,7 @@ if errorlevel 1 (
     echo stdlib_file_meta.c missing xrtFileGetAccessTime extern prototype.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -DXL6_USE_XRT_LIFECYCLE -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\stdlib_file_meta.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\stdlib_file_meta.exe
+"%XL6_TCC%" -DXL6_USE_XRT_LIFECYCLE %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\stdlib_file_meta.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\stdlib_file_meta.exe
 if errorlevel 1 exit /b 1
 release\tmp\stdlib_file_meta.exe
 if errorlevel 1 exit /b 1
@@ -3219,7 +3607,7 @@ if errorlevel 1 (
     echo control_flow_do_while.c missing while condition.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\control_flow_do_while.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\control_flow_do_while.exe
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\control_flow_do_while.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\control_flow_do_while.exe
 if errorlevel 1 exit /b 1
 release\tmp\control_flow_do_while.exe
 if errorlevel 1 exit /b 1
@@ -3236,7 +3624,7 @@ if errorlevel 1 (
     echo cgen_loop_levels.c missing multi-level continue jump.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\cgen_loop_levels.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_loop_levels.exe
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_loop_levels.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_loop_levels.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_loop_levels.exe
 if errorlevel 1 exit /b 1
@@ -3258,21 +3646,16 @@ if errorlevel 1 (
     echo cgen_named_args.c missing named class constructor lowering.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\cgen_named_args.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_named_args.exe
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_named_args.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_named_args.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_named_args.exe
 if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_multi_return.xl --emit release\tmp\cgen_multi_return.c
 if errorlevel 1 exit /b 1
-findstr /C:"typedef struct XL6_Return_pair {" release\tmp\cgen_multi_return.c >nul
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content 'release\tmp\cgen_multi_return.c' -Raw; if($t -notmatch 'typedef struct XL6_Function_Return_[0-9A-F]+'){exit 1}; if($t -notmatch 'XL6_Function_Return_[0-9A-F]+ __xl6_multi_'){exit 2}"
 if errorlevel 1 (
-    echo cgen_multi_return.c missing return struct.
-    exit /b 1
-)
-findstr /C:"XL6_Return_pair __xl6_multi_" release\tmp\cgen_multi_return.c >nul
-if errorlevel 1 (
-    echo cgen_multi_return.c missing multi-return temp.
+    echo cgen_multi_return.c missing signature return struct or temp.
     exit /b 1
 )
 findstr /C:"left = __xl6_multi_" release\tmp\cgen_multi_return.c >nul
@@ -3280,9 +3663,21 @@ if errorlevel 1 (
     echo cgen_multi_return.c missing multi-assign lowering.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\cgen_multi_return.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_multi_return.exe
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_multi_return.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_multi_return.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_multi_return.exe
+if errorlevel 1 exit /b 1
+
+release\xl.exe cgen test\cases\cgen_multi_return_struct_dedupe.xl --emit release\tmp\cgen_multi_return_struct_dedupe.c
+if errorlevel 1 exit /b 1
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content 'release\tmp\cgen_multi_return_struct_dedupe.c' -Raw; if(([regex]::Matches($t, 'typedef struct XL6_Function_Return_[0-9A-F]+')).Count -ne 1){exit 1}; if($t -match 'XL6_Return_leftPair'){exit 2}; if($t -match 'XL6_Return_rightPair'){exit 3}; if(([regex]::Matches($t, 'XL6_Function_Return_[0-9A-F]+ leftPair\(void\);')).Count -ne 1){exit 4}; if(([regex]::Matches($t, 'XL6_Function_Return_[0-9A-F]+ rightPair\(void\);')).Count -ne 1){exit 5}"
+if errorlevel 1 (
+    echo cgen_multi_return_struct_dedupe.c should reuse one signature return struct.
+    exit /b 1
+)
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_multi_return_struct_dedupe.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_multi_return_struct_dedupe.exe
+if errorlevel 1 exit /b 1
+release\tmp\cgen_multi_return_struct_dedupe.exe
 if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_multi_assign_index.xl --emit release\tmp\cgen_multi_assign_index.c
@@ -3292,7 +3687,7 @@ if errorlevel 1 (
     echo cgen_multi_assign_index.c missing index target lowering.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\cgen_multi_assign_index.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_multi_assign_index.exe
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_multi_assign_index.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_multi_assign_index.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_multi_assign_index.exe
 if errorlevel 1 exit /b 1
@@ -3324,7 +3719,7 @@ if errorlevel 1 (
     echo cgen_varargs.c missing dict length lowering.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\cgen_varargs.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_varargs.exe
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_varargs.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_varargs.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_varargs.exe
 if errorlevel 1 exit /b 1
@@ -3406,7 +3801,7 @@ if errorlevel 1 (
     echo cgen_index_access.c missing index null assignment lowering.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\cgen_index_access.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_index_access.exe
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_index_access.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_index_access.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_index_access.exe
 if errorlevel 1 exit /b 1
@@ -3438,7 +3833,7 @@ if errorlevel 1 (
     echo cgen_safe_index.c should return borrowed null for keyed safe index misses.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\cgen_safe_index.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_safe_index.exe
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_safe_index.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_safe_index.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_safe_index.exe
 if errorlevel 1 exit /b 1
@@ -3490,7 +3885,7 @@ if errorlevel 1 (
     echo cgen_typed_container_safe_index.c missing temporary xvalue string conversion release.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -Irelease\tcc\include_win -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -I..\demo5\release\tcc\include_win\winapi -L..\demo5\release\tcc\lib release\tmp\cgen_typed_container_safe_index.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_typed_container_safe_index.exe
+"%XL6_TCC%" -Irelease\tcc\include_win %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_typed_container_safe_index.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_typed_container_safe_index.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_typed_container_safe_index.exe
 if errorlevel 1 exit /b 1
@@ -3587,7 +3982,7 @@ if errorlevel 1 (
     echo cgen_typed_container_safe_index_objects_functions.c missing dict function safe index var call lowering.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -Irelease\tcc\include_win -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -I..\demo5\release\tcc\include_win\winapi -L..\demo5\release\tcc\lib release\tmp\cgen_typed_container_safe_index_objects_functions.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_typed_container_safe_index_objects_functions.exe
+"%XL6_TCC%" -Irelease\tcc\include_win %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_typed_container_safe_index_objects_functions.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_typed_container_safe_index_objects_functions.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_typed_container_safe_index_objects_functions.exe
 if errorlevel 1 exit /b 1
@@ -3624,7 +4019,7 @@ if errorlevel 1 (
     echo cgen_dynamic_member_access.c missing nested dynamic member assignment lowering.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\cgen_dynamic_member_access.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_dynamic_member_access.exe
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_dynamic_member_access.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_dynamic_member_access.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_dynamic_member_access.exe
 if errorlevel 1 exit /b 1
@@ -3651,7 +4046,7 @@ if errorlevel 1 (
     echo cgen_safe_member.c missing temporary safe member receiver release.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\cgen_safe_member.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_safe_member.exe
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_safe_member.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_safe_member.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_safe_member.exe
 if errorlevel 1 exit /b 1
@@ -3673,7 +4068,7 @@ if errorlevel 1 (
     echo cgen_overload_varargs.c missing dict vararg overload call.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\cgen_overload_varargs.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_overload_varargs.exe
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_overload_varargs.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_overload_varargs.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_overload_varargs.exe
 if errorlevel 1 exit /b 1
@@ -3690,7 +4085,7 @@ if errorlevel 1 (
     echo control_flow_inline_if.c missing inline else.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\control_flow_inline_if.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\control_flow_inline_if.exe
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\control_flow_inline_if.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\control_flow_inline_if.exe
 if errorlevel 1 exit /b 1
 release\tmp\control_flow_inline_if.exe
 if errorlevel 1 exit /b 1
@@ -3712,7 +4107,7 @@ if errorlevel 1 (
     echo cgen_assign_ops.c missing logical expression.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\cgen_assign_ops.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_assign_ops.exe
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_assign_ops.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_assign_ops.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_assign_ops.exe
 if errorlevel 1 exit /b 1
@@ -3749,7 +4144,7 @@ if errorlevel 1 (
     echo cgen_null_coalesce.c missing var null assignment lowering.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\cgen_null_coalesce.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_null_coalesce.exe
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_null_coalesce.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_null_coalesce.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_null_coalesce.exe
 if errorlevel 1 exit /b 1
@@ -3771,7 +4166,7 @@ if errorlevel 1 (
     echo cgen_pow.c missing pow assignment lowering.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\cgen_pow.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_pow.exe
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_pow.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_pow.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_pow.exe
 if errorlevel 1 exit /b 1
@@ -3798,7 +4193,7 @@ if errorlevel 1 (
     echo cgen_custom.c missing custom destroy call.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\cgen_custom.c test\cases\cgen_custom_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_custom.exe
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_custom.c test\cases\cgen_custom_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_custom.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_custom.exe
 if errorlevel 1 exit /b 1
@@ -3825,7 +4220,7 @@ if errorlevel 1 (
     echo cgen_custom_helper.c missing custom helper call args.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\cgen_custom_helper.c test\cases\cgen_custom_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_custom_helper.exe
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_custom_helper.c test\cases\cgen_custom_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_custom_helper.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_custom_helper.exe
 if errorlevel 1 exit /b 1
@@ -3842,7 +4237,7 @@ if errorlevel 1 (
     echo cgen_custom_bind_point.c missing borrowed destroy.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\cgen_custom_bind_point.c test\cases\cgen_custom_bind_point_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_custom_bind_point.exe
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_custom_bind_point.c test\cases\cgen_custom_bind_point_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_custom_bind_point.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_custom_bind_point.exe
 if errorlevel 1 exit /b 1
@@ -3864,7 +4259,7 @@ if not errorlevel 1 (
     echo cgen_custom_ownership.c should not emit destroy without destroy mapping.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\cgen_custom_ownership.c test\cases\cgen_custom_bind_point_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_custom_ownership.exe
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_custom_ownership.c test\cases\cgen_custom_bind_point_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_custom_ownership.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_custom_ownership.exe
 if errorlevel 1 exit /b 1
@@ -3876,7 +4271,7 @@ if errorlevel 1 (
     echo cgen_custom_null_destroy.c missing null-handle destroy guard.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\cgen_custom_null_destroy.c test\cases\cgen_custom_bind_point_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_custom_null_destroy.exe
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_custom_null_destroy.c test\cases\cgen_custom_bind_point_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_custom_null_destroy.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_custom_null_destroy.exe
 if errorlevel 1 exit /b 1
@@ -3903,7 +4298,7 @@ if errorlevel 1 (
     echo cgen_class.c missing inherited field assignment.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\cgen_class.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_class.exe
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_class.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_class.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_class.exe
 if errorlevel 1 exit /b 1
@@ -3920,7 +4315,7 @@ if errorlevel 1 (
     echo cgen_base_create.c missing auto base create call.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\cgen_base_create.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_base_create.exe
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_base_create.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_base_create.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_base_create.exe
 if errorlevel 1 exit /b 1
@@ -3932,7 +4327,7 @@ if errorlevel 1 (
     echo cgen_base_create_overloads.c missing auto no-arg base create overload call.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\cgen_base_create_overloads.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_base_create_overloads.exe
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_base_create_overloads.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_base_create_overloads.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_base_create_overloads.exe
 if errorlevel 1 exit /b 1
@@ -3959,7 +4354,7 @@ if errorlevel 1 (
     echo cgen_class_methods.c missing method call.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\cgen_class_methods.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_class_methods.exe
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_class_methods.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_class_methods.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_class_methods.exe
 if errorlevel 1 exit /b 1
@@ -3993,7 +4388,7 @@ if errorlevel 1 (
     echo cgen_class_overloads.c missing inherited method base receiver path.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\cgen_class_overloads.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_class_overloads.exe
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_class_overloads.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_class_overloads.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_class_overloads.exe
 if errorlevel 1 exit /b 1
@@ -4042,7 +4437,7 @@ if errorlevel 1 (
     echo cgen_unicode_identifiers.c missing encoded class variable.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\cgen_unicode_identifiers.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_unicode_identifiers.exe
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_unicode_identifiers.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_unicode_identifiers.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_unicode_identifiers.exe
 if errorlevel 1 exit /b 1
@@ -4059,9 +4454,21 @@ if errorlevel 1 (
     echo cgen_class_destroy.c missing scope destroy call.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\cgen_class_destroy.c test\cases\cgen_class_destroy_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_class_destroy.exe
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_class_destroy.c test\cases\cgen_class_destroy_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_class_destroy.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_class_destroy.exe
+if errorlevel 1 exit /b 1
+
+release\xl.exe cgen test\cases\cgen_cleanup_order.xl --emit release\tmp\cgen_cleanup_order.c
+if errorlevel 1 exit /b 1
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$lines=Get-Content 'release\tmp\cgen_cleanup_order.c'; $second=($lines | Select-String -SimpleMatch 'xl_class_Tracker__destroy(&second);' | Select-Object -First 1).LineNumber; $first=($lines | Select-String -SimpleMatch 'xl_class_Tracker__destroy(&first);' | Select-Object -First 1).LineNumber; if(-not $second -or -not $first -or $second -ge $first){exit 1}"
+if errorlevel 1 (
+    echo cgen_cleanup_order.c should destroy later local before earlier local.
+    exit /b 1
+)
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_cleanup_order.c test\cases\cgen_class_destroy_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_cleanup_order.exe
+if errorlevel 1 exit /b 1
+release\tmp\cgen_cleanup_order.exe
 if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_class_inherit_destroy.xl --emit release\tmp\cgen_class_inherit_destroy.c
@@ -4076,7 +4483,7 @@ if errorlevel 1 (
     echo cgen_class_inherit_destroy.c missing base destroy tail call.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\cgen_class_inherit_destroy.c test\cases\cgen_class_destroy_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_class_inherit_destroy.exe
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_class_inherit_destroy.c test\cases\cgen_class_destroy_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_class_inherit_destroy.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_class_inherit_destroy.exe
 if errorlevel 1 exit /b 1
@@ -4108,7 +4515,7 @@ if errorlevel 1 (
     echo cgen_class_custom_field.c missing holder scope cleanup.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\cgen_class_custom_field.c test\cases\cgen_class_custom_field_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_class_custom_field.exe
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_class_custom_field.c test\cases\cgen_class_custom_field_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_class_custom_field.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_class_custom_field.exe
 if errorlevel 1 exit /b 1
@@ -4120,7 +4527,7 @@ if errorlevel 1 (
     echo cgen_custom_field_method.c missing custom field method call.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\cgen_custom_field_method.c test\cases\cgen_class_custom_field_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_custom_field_method.exe
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_custom_field_method.c test\cases\cgen_class_custom_field_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_custom_field_method.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_custom_field_method.exe
 if errorlevel 1 exit /b 1
@@ -4139,7 +4546,7 @@ if errorlevel 1 (
     echo cgen_custom_overloads.c missing string custom overload call.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\cgen_custom_overloads.c test\cases\cgen_custom_overloads_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_custom_overloads.exe
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_custom_overloads.c test\cases\cgen_custom_overloads_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_custom_overloads.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_custom_overloads.exe
 if errorlevel 1 exit /b 1
@@ -4161,14 +4568,14 @@ if errorlevel 1 (
     echo cgen_overloads.c missing resolved overload call.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\cgen_overloads.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_overloads.exe
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_overloads.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_overloads.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_overloads.exe
 if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_overload_costs.xl --emit release\tmp\cgen_overload_costs.c
 if errorlevel 1 exit /b 1
-..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\cgen_overload_costs.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_overload_costs.exe
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_overload_costs.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_overload_costs.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_overload_costs.exe
 if errorlevel 1 exit /b 1
@@ -4180,7 +4587,7 @@ if errorlevel 1 (
     echo cgen_generic_overload_priority.c should prefer exact non-generic overload.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\cgen_generic_overload_priority.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_generic_overload_priority.exe
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_generic_overload_priority.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_generic_overload_priority.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_generic_overload_priority.exe
 if errorlevel 1 exit /b 1
@@ -4192,7 +4599,7 @@ if errorlevel 1 (
     echo cgen_generic_overload_var_priority.c should prefer generic overload over var boxing.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\cgen_generic_overload_var_priority.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_generic_overload_var_priority.exe
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_generic_overload_var_priority.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_generic_overload_var_priority.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_generic_overload_var_priority.exe
 if errorlevel 1 exit /b 1
@@ -4219,7 +4626,7 @@ if errorlevel 1 (
     echo cgen_generic_explicit_overload.c should choose scalar explicit generic overload.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\cgen_generic_explicit_overload.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_generic_explicit_overload.exe
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_generic_explicit_overload.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_generic_explicit_overload.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_generic_explicit_overload.exe
 if errorlevel 1 exit /b 1
@@ -4246,9 +4653,21 @@ if errorlevel 1 (
     echo cgen_generic_function.c missing string generic call.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\cgen_generic_function.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_generic_function.exe
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_generic_function.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_generic_function.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_generic_function.exe
+if errorlevel 1 exit /b 1
+
+release\xl.exe cgen test\cases\cgen_generic_dedupe.xl --emit release\tmp\cgen_generic_dedupe.c
+if errorlevel 1 exit /b 1
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content 'release\tmp\cgen_generic_dedupe.c' -Raw; if(([regex]::Matches($t, '^long long xl_gen_identity__int\(long long value\);', 'Multiline')).Count -ne 1){exit 1}; if(([regex]::Matches($t, '^long long xl_gen_identity__int\(long long value\)\s*\{', 'Multiline')).Count -ne 1){exit 2}; if(([regex]::Matches($t, 'xl_gen_identity__int\(')).Count -ne 5){exit 3}"
+if errorlevel 1 (
+    echo cgen_generic_dedupe.c duplicated or lost generic function instance.
+    exit /b 1
+)
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_generic_dedupe.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_generic_dedupe.exe
+if errorlevel 1 exit /b 1
+release\tmp\cgen_generic_dedupe.exe
 if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_generic_infer.xl --emit release\tmp\cgen_generic_infer.c
@@ -4328,7 +4747,7 @@ if errorlevel 1 (
     echo cgen_generic_infer.c missing explicit nested generic call.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\cgen_generic_infer.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_generic_infer.exe
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_generic_infer.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_generic_infer.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_generic_infer.exe
 if errorlevel 1 exit /b 1
@@ -4350,7 +4769,7 @@ if errorlevel 1 (
     echo cgen_generic_alias.c missing canonical explicit alias call.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\cgen_generic_alias.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_generic_alias.exe
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_generic_alias.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_generic_alias.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_generic_alias.exe
 if errorlevel 1 exit /b 1
@@ -4372,7 +4791,7 @@ if errorlevel 1 (
     echo cgen_generic_class_alias.c missing canonical alias variable type.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\cgen_generic_class_alias.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_generic_class_alias.exe
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_generic_class_alias.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_generic_class_alias.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_generic_class_alias.exe
 if errorlevel 1 exit /b 1
@@ -4409,7 +4828,7 @@ if errorlevel 1 (
     echo cgen_generic_class.c missing string variable declaration.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\cgen_generic_class.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_generic_class.exe
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_generic_class.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_generic_class.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_generic_class.exe
 if errorlevel 1 exit /b 1
@@ -4431,7 +4850,7 @@ if errorlevel 1 (
     echo cgen_generic_class_fields.c missing generic class field read.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\cgen_generic_class_fields.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_generic_class_fields.exe
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_generic_class_fields.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_generic_class_fields.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_generic_class_fields.exe
 if errorlevel 1 exit /b 1
@@ -4468,7 +4887,7 @@ if errorlevel 1 (
     echo cgen_generic_class_function_fields.c missing generic typed iteration retain.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -Irelease\tcc\include_win -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -I..\demo5\release\tcc\include_win\winapi -L..\demo5\release\tcc\lib release\tmp\cgen_generic_class_function_fields.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_generic_class_function_fields.exe
+"%XL6_TCC%" -Irelease\tcc\include_win %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_generic_class_function_fields.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_generic_class_function_fields.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_generic_class_function_fields.exe
 if errorlevel 1 exit /b 1
@@ -4510,7 +4929,7 @@ if errorlevel 1 (
     echo cgen_generic_class_nested_function_fields.c missing nested typed iteration retain.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -Irelease\tcc\include_win -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -I..\demo5\release\tcc\include_win\winapi -L..\demo5\release\tcc\lib release\tmp\cgen_generic_class_nested_function_fields.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_generic_class_nested_function_fields.exe
+"%XL6_TCC%" -Irelease\tcc\include_win %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_generic_class_nested_function_fields.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_generic_class_nested_function_fields.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_generic_class_nested_function_fields.exe
 if errorlevel 1 exit /b 1
@@ -4567,7 +4986,7 @@ if errorlevel 1 (
     echo cgen_generic_class_deep_function_fields.c missing deep typed iteration retain.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -Irelease\tcc\include_win -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -I..\demo5\release\tcc\include_win\winapi -L..\demo5\release\tcc\lib release\tmp\cgen_generic_class_deep_function_fields.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_generic_class_deep_function_fields.exe
+"%XL6_TCC%" -Irelease\tcc\include_win %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_generic_class_deep_function_fields.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_generic_class_deep_function_fields.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_generic_class_deep_function_fields.exe
 if errorlevel 1 exit /b 1
@@ -4589,7 +5008,7 @@ if errorlevel 1 (
     echo cgen_generic_class_methods.c missing generic class method call.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\cgen_generic_class_methods.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_generic_class_methods.exe
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_generic_class_methods.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_generic_class_methods.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_generic_class_methods.exe
 if errorlevel 1 exit /b 1
@@ -4606,7 +5025,7 @@ if errorlevel 1 (
     echo cgen_generic_class_auto.c missing generic method return auto inference.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\cgen_generic_class_auto.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_generic_class_auto.exe
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_generic_class_auto.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_generic_class_auto.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_generic_class_auto.exe
 if errorlevel 1 exit /b 1
@@ -4633,7 +5052,7 @@ if errorlevel 1 (
     echo cgen_generic_class_overloads.c missing string generic class overload call.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\cgen_generic_class_overloads.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_generic_class_overloads.exe
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_generic_class_overloads.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_generic_class_overloads.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_generic_class_overloads.exe
 if errorlevel 1 exit /b 1
@@ -4660,7 +5079,7 @@ if errorlevel 1 (
     echo cgen_generic_class_ctor.c missing generic class method call after create.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\cgen_generic_class_ctor.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_generic_class_ctor.exe
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_generic_class_ctor.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_generic_class_ctor.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_generic_class_ctor.exe
 if errorlevel 1 exit /b 1
@@ -4682,7 +5101,7 @@ if errorlevel 1 (
     echo cgen_generic_class_explicit_ctor.c missing method call after explicit create.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\cgen_generic_class_explicit_ctor.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_generic_class_explicit_ctor.exe
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_generic_class_explicit_ctor.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_generic_class_explicit_ctor.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_generic_class_explicit_ctor.exe
 if errorlevel 1 exit /b 1
@@ -4704,7 +5123,7 @@ if errorlevel 1 (
     echo cgen_generic_class_type_values.c missing distinct generic class type comparison.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\cgen_generic_class_type_values.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_generic_class_type_values.exe
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_generic_class_type_values.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_generic_class_type_values.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_generic_class_type_values.exe
 if errorlevel 1 exit /b 1
@@ -4734,10 +5153,116 @@ if errorlevel 4 (
     exit /b 1
 )
 
+release\xl.exe run test\cases\xl_run_args.xl -- alpha "two words" "quote\"value" beta
+if errorlevel 1 exit /b 1
+
+release\xl.exe cgen test\cases\cgen_main_entry.xl --emit release\tmp\cgen_main_entry.c
+if errorlevel 1 exit /b 1
+findstr /C:"static xvalue xl6_argv_to_arg(int argc, char** argv)" release\tmp\cgen_main_entry.c >nul
+if errorlevel 1 (
+    echo cgen_main_entry.c missing argv-to-arg helper.
+    exit /b 1
+)
+findstr /C:"XL_InitOptions __xl6_options = xlInitOptions(argc, argv);" release\tmp\cgen_main_entry.c >nul
+if errorlevel 1 (
+    echo cgen_main_entry.c missing xlInitOptions call.
+    exit /b 1
+)
+findstr /C:"__xl6_arg = xl6_argv_to_arg(argc, argv);" release\tmp\cgen_main_entry.c >nul
+if errorlevel 1 (
+    echo cgen_main_entry.c missing argv-to-arg call.
+    exit /b 1
+)
+findstr /C:"__xl6_code = (int)xl_user_main(__xl6_arg);" release\tmp\cgen_main_entry.c >nul
+if errorlevel 1 (
+    echo cgen_main_entry.c missing xlang main dispatch.
+    exit /b 1
+)
+findstr /C:"xlUnit();" release\tmp\cgen_main_entry.c >nul
+if errorlevel 1 (
+    echo cgen_main_entry.c missing xlUnit call.
+    exit /b 1
+)
+
+release\xl.exe cgen test\cases\cgen_main_case_sensitive.xl --emit release\tmp\cgen_main_case_sensitive.c
+if errorlevel 1 exit /b 1
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content 'release\tmp\cgen_main_case_sensitive.c' -Raw; if($t -match 'xl_user_main'){exit 1}; if($t -match 'int main\('){exit 2}; if($t -notmatch 'long long Main\(xvalue arg\)'){exit 3}"
+if errorlevel 1 (
+    echo cgen_main_case_sensitive.c should treat Main as a normal function.
+    exit /b 1
+)
+release\xl.exe xapi test\cases\cgen_main_case_sensitive.xl --emit release\tmp\cgen_main_case_sensitive.xapi.json
+if errorlevel 1 exit /b 1
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$j=Get-Content 'release\tmp\cgen_main_case_sensitive.xapi.json' -Raw | ConvertFrom-Json; if($j.entry.kind -ne 'none'){exit 1}"
+if errorlevel 1 (
+    echo cgen_main_case_sensitive.xapi.json should report entry none.
+    exit /b 1
+)
+
 release\xl.exe build examples\feature_suite\09_c_export_abi.xl test\cases\build_mixed_host.c -o release\tmp\build_mixed_host.exe
 if errorlevel 1 exit /b 1
 release\tmp\build_mixed_host.exe
 if errorlevel 1 exit /b 1
+
+release\xl.exe help > release\tmp\xl_help.txt
+if errorlevel 1 exit /b 1
+powershell -NoProfile -ExecutionPolicy Bypass -Command "if(-not (Select-String -Path 'release\tmp\xl_help.txt' -SimpleMatch 'xl build')){exit 1}"
+if errorlevel 1 (
+    echo xl_help.txt missing build usage.
+    exit /b 1
+)
+
+release\xl.exe xapi test\cases\export_add.xl > release\tmp\xapi_stdout.json
+if errorlevel 1 exit /b 1
+powershell -NoProfile -ExecutionPolicy Bypass -Command "if(-not (Select-String -Path 'release\tmp\xapi_stdout.json' -SimpleMatch 'xlang-xapi-1')){exit 1}"
+if errorlevel 1 (
+    echo xapi stdout missing format marker.
+    exit /b 1
+)
+
+release\xl.exe build test\cases\export_add.xl >nul 2> release\tmp\build_missing_output.err.txt
+if not errorlevel 1 (
+    echo build without -o should fail.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "if(-not (Select-String -Path 'release\tmp\build_missing_output.err.txt' -SimpleMatch 'build requires -o')){exit 1}"
+if errorlevel 1 (
+    echo build missing -o diagnostic missing.
+    exit /b 1
+)
+
+release\xl.exe build examples\feature_suite\09_c_export_abi.xl test\cases\build_mixed_host.c test\cases\build_mixed_extra.c -o release\tmp\build_mixed_two_c.exe
+if errorlevel 1 exit /b 1
+release\tmp\build_mixed_two_c.exe
+if errorlevel 1 exit /b 1
+
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$argsList=@('build','examples\feature_suite\09_c_export_abi.xl'); for($i=0;$i -lt 33;$i++){ $argsList += 'test\cases\build_mixed_extra.c' }; $argsList += @('-o','release\tmp\too_many_c.exe'); $p=Start-Process -FilePath 'release\xl.exe' -ArgumentList $argsList -NoNewWindow -PassThru -Wait -RedirectStandardOutput 'release\tmp\build_too_many_c.out.txt' -RedirectStandardError 'release\tmp\build_too_many_c.err.txt'; if($p.ExitCode -eq 0){exit 1}; if(-not (Select-String -Path 'release\tmp\build_too_many_c.err.txt' -SimpleMatch 'too many C source files')){exit 2}"
+if errorlevel 1 (
+    echo build too many C source diagnostic missing.
+    exit /b 1
+)
+
+release\xl.exe build examples\feature_suite\09_c_export_abi.xl test\cases\build_mixed_host.c test\cases\build_mixed_extra.c --save-temps -o release\tmp\build_mixed_save_temps.exe > release\tmp\build_mixed_save_temps.log
+if errorlevel 1 exit /b 1
+release\tmp\build_mixed_save_temps.exe
+if errorlevel 1 exit /b 1
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$d=Get-ChildItem release\tmp -Directory -Filter 'xl6_build_*' | Sort-Object LastWriteTime -Descending | Select-Object -First 1; if(-not $d){exit 1}; foreach($f in @('csrc_0.c','csrc_1.c')){$p=Join-Path $d.FullName $f; if(-not (Test-Path $p)){exit 2}; $t=Get-Content $p -Raw; if($t -notmatch 'lib/xrt/xrt\.h'){exit 3}; if($t -notmatch 'module\.h'){exit 4}}; $t0=Get-Content (Join-Path $d.FullName 'csrc_0.c') -Raw; $t1=Get-Content (Join-Path $d.FullName 'csrc_1.c') -Raw; if($t0 -notmatch 'build_mixed_host\.c'){exit 5}; if($t1 -notmatch 'build_mixed_extra\.c'){exit 6}"
+if errorlevel 1 (
+    echo build save-temps wrapper check failed.
+    exit /b 1
+)
+
+release\xl.exe build test\cases\cgen_main_entry.xl -o release\tmp\explicit_xrt_link.exe --link %XL6_XRT_OBJ%
+if errorlevel 1 exit /b 1
+release\tmp\explicit_xrt_link.exe one
+if not errorlevel 2 (
+    echo explicit_xrt_link.exe should return argc 2.
+    exit /b 1
+)
+if errorlevel 3 (
+    echo explicit_xrt_link.exe should return argc 2.
+    exit /b 1
+)
 
 release\xl.exe build test\cases\cgen_main_entry.xl -shared -o release\tmp\bad_main_shared.dll >nul 2> release\tmp\bad_main_shared.err.txt
 if not errorlevel 1 (
@@ -4750,9 +5275,9 @@ if errorlevel 1 (
     exit /b 1
 )
 
-..\demo5\lib\tcc\tcc.exe -c test\cases\cli_link_host.c -o release\tmp\cli_link_host.o
+"%XL6_TCC%" -c test\cases\cli_link_host.c -o release\tmp\cli_link_host.o
 if errorlevel 1 exit /b 1
-..\demo5\lib\tcc\tcc.exe -ar rcs release\tmp\libxl6clitest.a release\tmp\cli_link_host.o
+"%XL6_TCC%" -ar rcs release\tmp\libxl6clitest.a release\tmp\cli_link_host.o
 if errorlevel 1 exit /b 1
 release\xl.exe run test\cases\cli_link.xl --lib-path release\tmp --link xl6clitest
 if errorlevel 1 exit /b 1
@@ -4761,7 +5286,7 @@ if errorlevel 1 exit /b 1
 release\tmp\cli_link_build.exe
 if errorlevel 1 exit /b 1
 
-..\demo5\lib\tcc\tcc.exe -shared -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib test\cases\cli_loadlib_host.c -o release\tmp\cli_loadlib_host.dll
+"%XL6_TCC%" -shared %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% test\cases\cli_loadlib_host.c -o release\tmp\cli_loadlib_host.dll
 if errorlevel 1 exit /b 1
 release\xl.exe run test\cases\cli_loadlib.xl --loadlib release\tmp\cli_loadlib_host.dll
 if errorlevel 1 exit /b 1
@@ -4810,7 +5335,7 @@ if errorlevel 1 (
     echo extern_bool.c missing C bool expect prototype.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\extern_bool.c test\cases\extern_bool_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\extern_bool.exe
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\extern_bool.c test\cases\extern_bool_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\extern_bool.exe
 if errorlevel 1 exit /b 1
 release\tmp\extern_bool.exe
 if errorlevel 1 exit /b 1
@@ -4849,7 +5374,7 @@ if errorlevel 1 (
     echo c_abi_types.c missing c_wchar prototype.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\c_abi_types.c test\cases\c_abi_types_host.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\c_abi_types.exe
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\c_abi_types.c test\cases\c_abi_types_host.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\c_abi_types.exe
 if errorlevel 1 exit /b 1
 release\tmp\c_abi_types.exe
 if errorlevel 1 exit /b 1
@@ -4861,7 +5386,7 @@ if errorlevel 1 (
     echo cgen_extern_string_return.c missing string return extern prototype.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\cgen_extern_string_return.c test\cases\cgen_extern_string_return_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_extern_string_return.exe
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_extern_string_return.c test\cases\cgen_extern_string_return_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_extern_string_return.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_extern_string_return.exe
 if errorlevel 1 exit /b 1
@@ -4886,7 +5411,7 @@ if errorlevel 1 (
     echo extern_var.c missing extern C variable assignment.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\extern_var.c test\cases\extern_var_host.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\extern_var.exe
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\extern_var.c test\cases\extern_var_host.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\extern_var.exe
 if errorlevel 1 exit /b 1
 release\tmp\extern_var.exe
 if errorlevel 1 exit /b 1
@@ -4924,7 +5449,7 @@ if errorlevel 1 (
     echo export_add.c missing C export wrapper prototype.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\export_add.c test\cases\export_add_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\export_add_host.exe
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\export_add.c test\cases\export_add_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\export_add_host.exe
 if errorlevel 1 exit /b 1
 release\tmp\export_add_host.exe
 if errorlevel 1 exit /b 1
@@ -4941,7 +5466,7 @@ if errorlevel 1 (
     echo export_add.h missing C export declaration.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -Irelease\tmp -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\export_add_header.c test\cases\export_add_header_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\export_add_header_host.exe
+"%XL6_TCC%" -Irelease\tmp %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\export_add_header.c test\cases\export_add_header_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\export_add_header_host.exe
 if errorlevel 1 exit /b 1
 release\tmp\export_add_header_host.exe
 if errorlevel 1 exit /b 1
@@ -4963,7 +5488,7 @@ if errorlevel 1 (
     echo export_class.h missing class parameter export declaration.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -Irelease\tmp -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\export_class.c test\cases\export_class_header_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\export_class_header_host.exe
+"%XL6_TCC%" -Irelease\tmp %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\export_class.c test\cases\export_class_header_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\export_class_header_host.exe
 if errorlevel 1 exit /b 1
 release\tmp\export_class_header_host.exe
 if errorlevel 1 exit /b 1
@@ -4985,7 +5510,7 @@ if errorlevel 1 (
     echo export_class_inherit.h missing inherited class return export declaration.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -Irelease\tmp -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\export_class_inherit.c test\cases\export_class_inherit_header_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\export_class_inherit_header_host.exe
+"%XL6_TCC%" -Irelease\tmp %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\export_class_inherit.c test\cases\export_class_inherit_header_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\export_class_inherit_header_host.exe
 if errorlevel 1 exit /b 1
 release\tmp\export_class_inherit_header_host.exe
 if errorlevel 1 exit /b 1
@@ -5007,7 +5532,7 @@ if errorlevel 1 (
     echo export_class_union_field.h missing class-with-union export declaration.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -Irelease\tmp -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\export_class_union_field.c test\cases\export_class_union_field_header_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\export_class_union_field_header_host.exe
+"%XL6_TCC%" -Irelease\tmp %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\export_class_union_field.c test\cases\export_class_union_field_header_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\export_class_union_field_header_host.exe
 if errorlevel 1 exit /b 1
 release\tmp\export_class_union_field_header_host.exe
 if errorlevel 1 exit /b 1
@@ -5034,7 +5559,7 @@ if errorlevel 1 (
     echo export_union_class_field.h missing union-with-class export declaration.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -Irelease\tmp -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\export_union_class_field.c test\cases\export_union_class_field_header_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\export_union_class_field_header_host.exe
+"%XL6_TCC%" -Irelease\tmp %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\export_union_class_field.c test\cases\export_union_class_field_header_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\export_union_class_field_header_host.exe
 if errorlevel 1 exit /b 1
 release\tmp\export_union_class_field_header_host.exe
 if errorlevel 1 exit /b 1
@@ -5060,12 +5585,12 @@ if errorlevel 1 (
 
 release\xl.exe cgen test\cases\export_multi_return.xl --emit release\tmp\export_multi_return.c --emit-header release\tmp\export_multi_return.h
 if errorlevel 1 exit /b 1
-findstr /C:"typedef struct XL6_Return_pair {" release\tmp\export_multi_return.c >nul
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content 'release\tmp\export_multi_return.c' -Raw; if($t -notmatch 'typedef struct XL6_Function_Return_[0-9A-F]+'){exit 1}"
 if errorlevel 1 (
     echo export_multi_return.c missing internal return struct.
     exit /b 1
 )
-findstr /C:"XL6_Return_pair xl6_export_pair(long long seed);" release\tmp\export_multi_return.c >nul
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content 'release\tmp\export_multi_return.c' -Raw; if($t -notmatch 'XL6_Function_Return_[0-9A-F]+ xl6_export_pair\(long long seed\);'){exit 1}"
 if errorlevel 1 (
     echo export_multi_return.c missing multi-return internal prototype.
     exit /b 1
@@ -5080,7 +5605,7 @@ if errorlevel 1 (
     echo export_multi_return.c missing out-param assignment.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -Irelease\tmp -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\export_multi_return.c test\cases\export_multi_return_header_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\export_multi_return_header_host.exe
+"%XL6_TCC%" -Irelease\tmp %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\export_multi_return.c test\cases\export_multi_return_header_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\export_multi_return_header_host.exe
 if errorlevel 1 exit /b 1
 release\tmp\export_multi_return_header_host.exe
 if errorlevel 1 exit /b 1
@@ -5102,7 +5627,7 @@ if errorlevel 1 (
     echo export_bool.h missing C bool wrapper declaration.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -Irelease\tmp -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\export_bool.c test\cases\export_bool_header_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\export_bool_header_host.exe
+"%XL6_TCC%" -Irelease\tmp %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\export_bool.c test\cases\export_bool_header_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\export_bool_header_host.exe
 if errorlevel 1 exit /b 1
 release\tmp\export_bool_header_host.exe
 if errorlevel 1 exit /b 1
@@ -5124,7 +5649,7 @@ if errorlevel 1 (
     echo export_primitive_widths.c missing C wrapper prototype.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -c -Irelease\tmp -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\export_primitive_widths.c -o release\tmp\export_primitive_widths.o
+"%XL6_TCC%" -c -Irelease\tmp %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\export_primitive_widths.c -o release\tmp\export_primitive_widths.o
 if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\export_c_abi_types.xl --emit release\tmp\export_c_abi_types.c --emit-header release\tmp\export_c_abi_types.h
@@ -5159,7 +5684,7 @@ if errorlevel 1 (
     echo export_c_abi_types.h missing c_wchar export declaration.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -Irelease\tmp -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\export_c_abi_types.c test\cases\export_c_abi_types_header_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\export_c_abi_types_header_host.exe
+"%XL6_TCC%" -Irelease\tmp %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\export_c_abi_types.c test\cases\export_c_abi_types_header_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\export_c_abi_types_header_host.exe
 if errorlevel 1 exit /b 1
 release\tmp\export_c_abi_types_header_host.exe
 if errorlevel 1 exit /b 1
@@ -5212,7 +5737,7 @@ if errorlevel 1 (
     echo export_alias.h missing expanded alias header declaration.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -Irelease\tmp -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\export_alias.c test\cases\export_alias_header_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\export_alias_header_host.exe
+"%XL6_TCC%" -Irelease\tmp %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\export_alias.c test\cases\export_alias_header_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\export_alias_header_host.exe
 if errorlevel 1 exit /b 1
 release\tmp\export_alias_header_host.exe
 if errorlevel 1 exit /b 1
@@ -5273,7 +5798,7 @@ if errorlevel 1 (
     echo export_vars.h missing export const declaration.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -Irelease\tmp -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\export_vars.c test\cases\export_vars_header_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\export_vars_header_host.exe
+"%XL6_TCC%" -Irelease\tmp %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\export_vars.c test\cases\export_vars_header_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\export_vars_header_host.exe
 if errorlevel 1 exit /b 1
 release\tmp\export_vars_header_host.exe
 if errorlevel 1 exit /b 1
@@ -5285,7 +5810,7 @@ if errorlevel 1 (
     echo export_call.c did not use internal ABI symbol.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\export_call.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\export_call.exe
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\export_call.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\export_call.exe
 if errorlevel 1 exit /b 1
 release\tmp\export_call.exe
 if errorlevel 1 exit /b 1
@@ -5337,6 +5862,11 @@ if errorlevel 1 (
     echo sem_safe_member_unknown.xl missing expected diagnostic.
     exit /b 1
 )
+findstr /C:"code generation error" release\tmp\sem_safe_member_unknown.err.txt >nul
+if not errorlevel 1 (
+    echo sem_safe_member_unknown.err.txt regressed to generic cgen diagnostic.
+    exit /b 1
+)
 release\xl.exe check test\cases\sem_safe_member_typed_container.xl >nul 2> release\tmp\sem_safe_member_typed_container.err.txt
 if not errorlevel 1 (
     echo sem_safe_member_typed_container.xl should fail.
@@ -5347,6 +5877,11 @@ if errorlevel 1 (
     echo sem_safe_member_typed_container.xl missing expected diagnostic.
     exit /b 1
 )
+findstr /C:"code generation error" release\tmp\sem_safe_member_typed_container.err.txt >nul
+if not errorlevel 1 (
+    echo sem_safe_member_typed_container.err.txt regressed to generic cgen diagnostic.
+    exit /b 1
+)
 release\xl.exe check test\cases\sem_safe_member_non_container.xl >nul 2> release\tmp\sem_safe_member_non_container.err.txt
 if not errorlevel 1 (
     echo sem_safe_member_non_container.xl should fail.
@@ -5355,6 +5890,11 @@ if not errorlevel 1 (
 findstr /C:"safe member length receiver must be var or dynamic container" release\tmp\sem_safe_member_non_container.err.txt >nul
 if errorlevel 1 (
     echo sem_safe_member_non_container.xl missing expected diagnostic.
+    exit /b 1
+)
+findstr /C:"code generation error" release\tmp\sem_safe_member_non_container.err.txt >nul
+if not errorlevel 1 (
+    echo sem_safe_member_non_container.err.txt regressed to generic cgen diagnostic.
     exit /b 1
 )
 
@@ -5368,6 +5908,11 @@ if errorlevel 1 (
     echo sem_member_key_array.xl missing expected diagnostic.
     exit /b 1
 )
+findstr /C:"code generation error" release\tmp\sem_member_key_array.err.txt >nul
+if not errorlevel 1 (
+    echo sem_member_key_array.err.txt regressed to generic cgen diagnostic.
+    exit /b 1
+)
 
 release\xl.exe check test\cases\sem_member_key_set.xl >nul 2> release\tmp\sem_member_key_set.err.txt
 if not errorlevel 1 (
@@ -5379,6 +5924,11 @@ if errorlevel 1 (
     echo sem_member_key_set.xl missing expected diagnostic.
     exit /b 1
 )
+findstr /C:"code generation error" release\tmp\sem_member_key_set.err.txt >nul
+if not errorlevel 1 (
+    echo sem_member_key_set.err.txt regressed to generic cgen diagnostic.
+    exit /b 1
+)
 
 release\xl.exe check test\cases\sem_member_key_typed_dict.xl >nul 2> release\tmp\sem_member_key_typed_dict.err.txt
 if not errorlevel 1 (
@@ -5388,6 +5938,11 @@ if not errorlevel 1 (
 findstr /C:"member key receiver must be var or dynamic dict" release\tmp\sem_member_key_typed_dict.err.txt >nul
 if errorlevel 1 (
     echo sem_member_key_typed_dict.xl missing expected diagnostic.
+    exit /b 1
+)
+findstr /C:"code generation error" release\tmp\sem_member_key_typed_dict.err.txt >nul
+if not errorlevel 1 (
+    echo sem_member_key_typed_dict.err.txt regressed to generic cgen diagnostic.
     exit /b 1
 )
 
@@ -5455,6 +6010,11 @@ if not errorlevel 1 (
 release\xl.exe check test\cases\sem_index_dict_key_type.xl >nul 2> release\tmp\sem_index_dict_key_type.err.txt
 if not errorlevel 1 (
     echo sem_index_dict_key_type.xl should fail.
+    exit /b 1
+)
+findstr /C:"code generation error" release\tmp\sem_index_dict_key_type.err.txt >nul
+if not errorlevel 1 (
+    echo sem_index_dict_key_type.err.txt regressed to generic cgen diagnostic.
     exit /b 1
 )
 
@@ -5589,6 +6149,11 @@ if not errorlevel 1 (
     echo sem_call_missing_required.xl should fail.
     exit /b 1
 )
+findstr /C:"code generation error" release\tmp\sem_call_missing_required.err.txt >nul
+if not errorlevel 1 (
+    echo sem_call_missing_required.err.txt regressed to generic cgen diagnostic.
+    exit /b 1
+)
 
 release\xl.exe check test\cases\sem_param_order.xl >nul 2> release\tmp\sem_param_order.err.txt
 if not errorlevel 1 (
@@ -5625,10 +6190,30 @@ if not errorlevel 1 (
     echo sem_function_signature_mismatch.xl should fail.
     exit /b 1
 )
+findstr /C:"[sem]" release\tmp\sem_function_signature_mismatch.err.txt >nul
+if errorlevel 1 (
+    echo sem_function_signature_mismatch.err.txt missing semantic diagnostic.
+    exit /b 1
+)
+findstr /C:"code generation error" release\tmp\sem_function_signature_mismatch.err.txt >nul
+if not errorlevel 1 (
+    echo sem_function_signature_mismatch.err.txt regressed to generic cgen diagnostic.
+    exit /b 1
+)
 
 release\xl.exe check test\cases\cgen_function_signature_mismatch.xl >nul 2> release\tmp\cgen_function_signature_mismatch.err.txt
 if not errorlevel 1 (
     echo cgen_function_signature_mismatch.xl should fail.
+    exit /b 1
+)
+findstr /C:"[sem]" release\tmp\cgen_function_signature_mismatch.err.txt >nul
+if errorlevel 1 (
+    echo cgen_function_signature_mismatch.err.txt missing semantic diagnostic.
+    exit /b 1
+)
+findstr /C:"code generation error" release\tmp\cgen_function_signature_mismatch.err.txt >nul
+if not errorlevel 1 (
+    echo cgen_function_signature_mismatch.err.txt regressed to generic cgen diagnostic.
     exit /b 1
 )
 
@@ -5649,10 +6234,30 @@ if not errorlevel 1 (
     echo sem_function_bare_named_arg.xl should fail.
     exit /b 1
 )
+findstr /C:"function" release\tmp\sem_function_bare_named_arg.err.txt >nul
+if errorlevel 1 (
+    echo sem_function_bare_named_arg.err.txt missing function diagnostic.
+    exit /b 1
+)
+findstr /C:"code generation error" release\tmp\sem_function_bare_named_arg.err.txt >nul
+if not errorlevel 1 (
+    echo sem_function_bare_named_arg.err.txt regressed to generic cgen diagnostic.
+    exit /b 1
+)
 
 release\xl.exe check test\cases\sem_function_bare_overload_name.xl >nul 2> release\tmp\sem_function_bare_overload_name.err.txt
 if not errorlevel 1 (
     echo sem_function_bare_overload_name.xl should fail.
+    exit /b 1
+)
+findstr /C:"function" release\tmp\sem_function_bare_overload_name.err.txt >nul
+if errorlevel 1 (
+    echo sem_function_bare_overload_name.err.txt missing function overload diagnostic.
+    exit /b 1
+)
+findstr /C:"code generation error" release\tmp\sem_function_bare_overload_name.err.txt >nul
+if not errorlevel 1 (
+    echo sem_function_bare_overload_name.err.txt regressed to generic cgen diagnostic.
     exit /b 1
 )
 
@@ -5790,10 +6395,30 @@ if not errorlevel 1 (
     echo sem_class_ctor_arity.xl should fail.
     exit /b 1
 )
+findstr /C:"create" release\tmp\sem_class_ctor_arity.err.txt >nul
+if errorlevel 1 (
+    echo sem_class_ctor_arity.err.txt missing create diagnostic.
+    exit /b 1
+)
+findstr /C:"code generation error" release\tmp\sem_class_ctor_arity.err.txt >nul
+if not errorlevel 1 (
+    echo sem_class_ctor_arity.err.txt regressed to generic cgen diagnostic.
+    exit /b 1
+)
 
 release\xl.exe check test\cases\sem_class_default_ctor_args.xl >nul 2> release\tmp\sem_class_default_ctor_args.err.txt
 if not errorlevel 1 (
     echo sem_class_default_ctor_args.xl should fail.
+    exit /b 1
+)
+findstr /C:"create" release\tmp\sem_class_default_ctor_args.err.txt >nul
+if errorlevel 1 (
+    echo sem_class_default_ctor_args.err.txt missing create diagnostic.
+    exit /b 1
+)
+findstr /C:"code generation error" release\tmp\sem_class_default_ctor_args.err.txt >nul
+if not errorlevel 1 (
+    echo sem_class_default_ctor_args.err.txt regressed to generic cgen diagnostic.
     exit /b 1
 )
 
@@ -5812,6 +6437,11 @@ if not errorlevel 1 (
 release\xl.exe check test\cases\sem_class_field_default_type.xl >nul 2> release\tmp\sem_class_field_default_type.err.txt
 if not errorlevel 1 (
     echo sem_class_field_default_type.xl should fail.
+    exit /b 1
+)
+findstr /C:"code generation error" release\tmp\sem_class_field_default_type.err.txt >nul
+if not errorlevel 1 (
+    echo sem_class_field_default_type.err.txt regressed to generic cgen diagnostic.
     exit /b 1
 )
 
@@ -5856,16 +6486,31 @@ if not errorlevel 1 (
     echo sem_custom_extern_bad_type.xl should fail.
     exit /b 1
 )
+findstr /C:"code generation error" release\tmp\sem_custom_extern_bad_type.err.txt >nul
+if not errorlevel 1 (
+    echo sem_custom_extern_bad_type.err.txt regressed to generic cgen diagnostic.
+    exit /b 1
+)
 
 release\xl.exe check test\cases\sem_custom_extern_return_bad.xl >nul 2> release\tmp\sem_custom_extern_return_bad.err.txt
 if not errorlevel 1 (
     echo sem_custom_extern_return_bad.xl should fail.
     exit /b 1
 )
+findstr /C:"code generation error" release\tmp\sem_custom_extern_return_bad.err.txt >nul
+if not errorlevel 1 (
+    echo sem_custom_extern_return_bad.err.txt regressed to generic cgen diagnostic.
+    exit /b 1
+)
 
 release\xl.exe check test\cases\sem_custom_extern_vararg.xl >nul 2> release\tmp\sem_custom_extern_vararg.err.txt
 if not errorlevel 1 (
     echo sem_custom_extern_vararg.xl should fail.
+    exit /b 1
+)
+findstr /C:"code generation error" release\tmp\sem_custom_extern_vararg.err.txt >nul
+if not errorlevel 1 (
+    echo sem_custom_extern_vararg.err.txt regressed to generic cgen diagnostic.
     exit /b 1
 )
 
@@ -6222,10 +6867,26 @@ if not errorlevel 1 (
     echo sem_range_arity.xl should fail.
     exit /b 1
 )
+findstr /C:"code generation error" release\tmp\sem_range_arity.err.txt >nul
+if not errorlevel 1 (
+    echo sem_range_arity.err.txt regressed to generic cgen diagnostic.
+    exit /b 1
+)
 
 release\xl.exe check test\cases\sem_range_step_zero.xl >nul 2> release\tmp\sem_range_step_zero.err.txt
 if not errorlevel 1 (
     echo sem_range_step_zero.xl should fail.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_for_in_three_targets.xl >nul 2> release\tmp\sem_for_in_three_targets.err.txt
+if not errorlevel 1 (
+    echo sem_for_in_three_targets.xl should fail.
+    exit /b 1
+)
+findstr /C:"code generation error" release\tmp\sem_for_in_three_targets.err.txt >nul
+if not errorlevel 1 (
+    echo sem_for_in_three_targets.err.txt regressed to generic cgen diagnostic.
     exit /b 1
 )
 
@@ -6247,6 +6908,33 @@ if errorlevel 1 exit /b 1
 findstr /C:"xl6_error_raise" release\tmp\cgen_exceptions.c >nul
 if errorlevel 1 (
     echo cgen_exceptions.c missing error runtime raise.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\cgen_loop_exception_propagation.xl
+if errorlevel 1 exit /b 1
+
+release\xl.exe run test\cases\cgen_loop_exception_propagation.xl
+if errorlevel 1 exit /b 1
+
+release\xl.exe build test\cases\cgen_loop_exception_propagation.xl -o release\tmp\cgen_loop_exception_propagation.exe
+if errorlevel 1 exit /b 1
+
+release\tmp\cgen_loop_exception_propagation.exe
+if errorlevel 1 exit /b 1
+
+release\xl.exe cgen test\cases\cgen_loop_exception_propagation.xl --emit release\tmp\cgen_loop_exception_propagation.c
+if errorlevel 1 exit /b 1
+
+findstr /C:"xl6_error_raise(\"Error\", \"loop boom\"" release\tmp\cgen_loop_exception_propagation.c >nul
+if errorlevel 1 (
+    echo cgen_loop_exception_propagation.c missing loop throw raise.
+    exit /b 1
+)
+
+findstr /C:"goto __xl6_try_finally_" release\tmp\cgen_loop_exception_propagation.c >nul
+if errorlevel 1 (
+    echo cgen_loop_exception_propagation.c missing loop exception try/finally jump.
     exit /b 1
 )
 
@@ -6461,6 +7149,33 @@ if errorlevel 1 (
     exit /b 1
 )
 
+release\xl.exe check test\cases\cgen_async_exception_propagation.xl
+if errorlevel 1 exit /b 1
+
+release\xl.exe run test\cases\cgen_async_exception_propagation.xl
+if errorlevel 1 exit /b 1
+
+release\xl.exe build test\cases\cgen_async_exception_propagation.xl -o release\tmp\cgen_async_exception_propagation.exe
+if errorlevel 1 exit /b 1
+
+release\tmp\cgen_async_exception_propagation.exe
+if errorlevel 1 exit /b 1
+
+release\xl.exe cgen test\cases\cgen_async_exception_propagation.xl --emit release\tmp\cgen_async_exception_propagation.c
+if errorlevel 1 exit /b 1
+
+findstr /C:"xl6_error_raise(\"Error\", \"async boom\"" release\tmp\cgen_async_exception_propagation.c >nul
+if errorlevel 1 (
+    echo cgen_async_exception_propagation.c missing async throw raise.
+    exit /b 1
+)
+
+findstr /C:"xl6_future_await_value" release\tmp\cgen_async_exception_propagation.c >nul
+if errorlevel 1 (
+    echo cgen_async_exception_propagation.c missing await helper.
+    exit /b 1
+)
+
 release\xl.exe check test\cases\sem_await_non_future.xl >nul 2> release\tmp\sem_await_non_future.err.txt
 if not errorlevel 1 (
     echo sem_await_non_future.xl should fail.
@@ -6577,6 +7292,11 @@ if not errorlevel 1 (
     echo sem_generator_two_targets.xl should fail.
     exit /b 1
 )
+findstr /C:"code generation error" release\tmp\sem_generator_two_targets.err.txt >nul
+if not errorlevel 1 (
+    echo sem_generator_two_targets.err.txt regressed to generic cgen diagnostic.
+    exit /b 1
+)
 
 release\xl.exe run test\cases\cgen_channel.xl
 if errorlevel 1 exit /b 1
@@ -6672,6 +7392,14 @@ if errorlevel 1 (
     exit /b 1
 )
 
+release\xl.exe xapi test\cases\xapi_json_escape.xl --emit release\tmp\xapi_json_escape.json
+if errorlevel 1 exit /b 1
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$j=Get-Content 'release\tmp\xapi_json_escape.json' -Raw | ConvertFrom-Json; $q=[char]34; $fields=$j.exports[0].doc.fields; $desc=($fields | Where-Object { $_.kind -eq 'desc' } | Select-Object -First 1).text; $example=($fields | Where-Object { $_.kind -eq 'example' } | Select-Object -First 1).text; if($desc -ne ('Quote '+$q+'demo'+$q+' and path c:\tmp\file.')){exit 1}; if($example -ne ('print('+$q+'hello\nworld'+$q+')')){exit 2}"
+if errorlevel 1 (
+    echo xapi_json_escape.json failed JSON escape roundtrip.
+    exit /b 1
+)
+
 release\xl.exe check test\cases\sem_throw_int.xl >nul 2> release\tmp\sem_throw_int.err.txt
 if not errorlevel 1 (
     echo sem_throw_int.xl should fail.
@@ -6699,6 +7427,11 @@ if not errorlevel 1 (
 release\xl.exe check test\cases\sem_error_unknown_member.xl >nul 2> release\tmp\sem_error_unknown_member.err.txt
 if not errorlevel 1 (
     echo sem_error_unknown_member.xl should fail.
+    exit /b 1
+)
+findstr /C:"code generation error" release\tmp\sem_error_unknown_member.err.txt >nul
+if not errorlevel 1 (
+    echo sem_error_unknown_member.err.txt regressed to generic cgen diagnostic.
     exit /b 1
 )
 
@@ -6763,7 +7496,7 @@ if errorlevel 1 (
     echo stdlib_json.c missing json.stringify helper.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\stdlib_json.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\stdlib_json.exe
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\stdlib_json.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\stdlib_json.exe
 if errorlevel 1 exit /b 1
 release\tmp\stdlib_json.exe
 if errorlevel 1 exit /b 1
@@ -6787,9 +7520,43 @@ if errorlevel 1 (
     echo stdlib_xson.c missing xson.stringify helper.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\stdlib_xson.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\stdlib_xson.exe
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\stdlib_xson.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\stdlib_xson.exe
 if errorlevel 1 exit /b 1
 release\tmp\stdlib_xson.exe
+if errorlevel 1 exit /b 1
+
+release\xl.exe check test\cases\stdlib_error_paths.xl
+if errorlevel 1 exit /b 1
+release\xl.exe cgen test\cases\stdlib_error_paths.xl --emit release\tmp\stdlib_error_paths.c
+if errorlevel 1 exit /b 1
+findstr /C:"void* xrtFileReadAll" release\tmp\stdlib_error_paths.c >nul
+if errorlevel 1 (
+    echo stdlib_error_paths.c missing xrtFileReadAll extern prototype.
+    exit /b 1
+)
+findstr /C:"int xrtDirScanEx" release\tmp\stdlib_error_paths.c >nul
+if errorlevel 1 (
+    echo stdlib_error_paths.c missing xrtDirScanEx runtime prototype.
+    exit /b 1
+)
+findstr /C:"xvalue xrtParseJSON" release\tmp\stdlib_error_paths.c >nul
+if errorlevel 1 (
+    echo stdlib_error_paths.c missing xrtParseJSON extern prototype.
+    exit /b 1
+)
+findstr /C:"xvalue xrtParseXSON" release\tmp\stdlib_error_paths.c >nul
+if errorlevel 1 (
+    echo stdlib_error_paths.c missing xrtParseXSON extern prototype.
+    exit /b 1
+)
+findstr /C:"xregex* xrtRegexCreate" release\tmp\stdlib_error_paths.c >nul
+if errorlevel 1 (
+    echo stdlib_error_paths.c missing xrtRegexCreate runtime prototype.
+    exit /b 1
+)
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\stdlib_error_paths.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\stdlib_error_paths.exe
+if errorlevel 1 exit /b 1
+release\tmp\stdlib_error_paths.exe > release\tmp\stdlib_error_paths.out.txt 2> release\tmp\stdlib_error_paths.err.txt
 if errorlevel 1 exit /b 1
 
 release\xl.exe check test\cases\stdlib_codec.xl
@@ -6811,7 +7578,7 @@ if errorlevel 1 (
     echo stdlib_codec.c missing codec.base64Decode helper.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\stdlib_codec.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\stdlib_codec.exe
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\stdlib_codec.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\stdlib_codec.exe
 if errorlevel 1 exit /b 1
 release\tmp\stdlib_codec.exe
 if errorlevel 1 exit /b 1
@@ -6855,7 +7622,7 @@ if errorlevel 1 (
     echo stdlib_hash.c missing hash.u64WithSeed helper.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\stdlib_hash.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\stdlib_hash.exe
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\stdlib_hash.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\stdlib_hash.exe
 if errorlevel 1 exit /b 1
 release\tmp\stdlib_hash.exe
 if errorlevel 1 exit /b 1
@@ -6874,7 +7641,7 @@ if errorlevel 1 (
     echo stdlib_crypto.c missing sha512 runtime helper.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\stdlib_crypto.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\stdlib_crypto.exe
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\stdlib_crypto.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\stdlib_crypto.exe
 if errorlevel 1 exit /b 1
 release\tmp\stdlib_crypto.exe
 if errorlevel 1 exit /b 1
@@ -6893,7 +7660,7 @@ if errorlevel 1 (
     echo stdlib_id_net.c missing xrtGetLocalName extern prototype.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\stdlib_id_net.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\stdlib_id_net.exe
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\stdlib_id_net.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\stdlib_id_net.exe
 if errorlevel 1 exit /b 1
 release\tmp\stdlib_id_net.exe
 if errorlevel 1 exit /b 1
@@ -6912,7 +7679,7 @@ if errorlevel 1 (
     echo stdlib_url.c missing url resolve runtime helper.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\stdlib_url.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\stdlib_url.exe
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\stdlib_url.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\stdlib_url.exe
 if errorlevel 1 exit /b 1
 release\tmp\stdlib_url.exe
 if errorlevel 1 exit /b 1
@@ -6931,7 +7698,7 @@ if errorlevel 1 (
     echo stdlib_query.c missing query append runtime helper.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\stdlib_query.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\stdlib_query.exe
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\stdlib_query.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\stdlib_query.exe
 if errorlevel 1 exit /b 1
 release\tmp\stdlib_query.exe
 if errorlevel 1 exit /b 1
@@ -6950,7 +7717,7 @@ if errorlevel 1 (
     echo stdlib_regex.c missing regex find runtime helper.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\stdlib_regex.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\stdlib_regex.exe
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\stdlib_regex.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\stdlib_regex.exe
 if errorlevel 1 exit /b 1
 release\tmp\stdlib_regex.exe
 if errorlevel 1 exit /b 1
@@ -6974,7 +7741,7 @@ if errorlevel 1 (
     echo stdlib_process.c missing process exitCode runtime helper.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\stdlib_process.c test\cases\cgen_class_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\stdlib_process.exe
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\stdlib_process.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\stdlib_process.exe
 if errorlevel 1 exit /b 1
 release\tmp\stdlib_process.exe
 if errorlevel 1 exit /b 1
@@ -6993,7 +7760,7 @@ if errorlevel 1 (
     echo stdlib_http_server.c missing http server runtime helper.
     exit /b 1
 )
-..\demo5\lib\tcc\tcc.exe -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -I..\demo5\release\tcc\include_win\winapi -L..\demo5\release\tcc\lib release\tmp\stdlib_http_server.c test\cases\stdlib_http_server_host.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\stdlib_http_server.exe
+"%XL6_TCC%" %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% release\tmp\stdlib_http_server.c test\cases\stdlib_http_server_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\stdlib_http_server.exe
 if errorlevel 1 exit /b 1
 release\tmp\stdlib_http_server.exe
 if errorlevel 1 exit /b 1

@@ -300,16 +300,20 @@ static int xl6ImportsDepsAddNative(
 {
     XL6_ImportNativeItem* newItems;
     XL6_ImportNativeItem* item;
+    const char* versionText;
     size_t i;
 
     if ( deps == NULL || !singleton || loadName == NULL || loadName[0] == '\0' ) {
         return 1;
     }
+    versionText = version != NULL ? version : "";
     for ( i = 0; i < deps->nativeCount; ++i ) {
         XL6_ImportNativeItem* existing = &deps->natives[i];
-        if ( existing->singleton && xl6ImportsTextEquals(existing->loadName, loadName) &&
-             (!xl6ImportsTextEquals(existing->version, version) ||
-              !xl6ImportsTextEquals(existing->packageId, packageId)) ) {
+        if ( existing->singleton && xl6ImportsTextEquals(existing->loadName, loadName) ) {
+            if ( xl6ImportsTextEquals(existing->version, versionText) &&
+                 xl6ImportsTextEquals(existing->packageId, packageId) ) {
+                return 1;
+            }
             if ( diags != NULL ) {
                 xl6DiagAdd(diags,
                            importNode != NULL ? importNode->line : 1,
@@ -329,7 +333,7 @@ static int xl6ImportsDepsAddNative(
     item->packageId = xl6ImportsDupText(packageId);
     item->singleton = singleton;
     item->loadName = xl6ImportsDupText(loadName);
-    item->version = xl6ImportsDupText(version != NULL ? version : "");
+    item->version = xl6ImportsDupText(versionText);
     if ( item->packageId == NULL || item->loadName == NULL || item->version == NULL ) {
         return 0;
     }
@@ -1095,13 +1099,12 @@ static int xl6ImportsMergeGeneratedDecls(XL6_AstNode* root, const char* generate
     xl6ParseResultInit(&result);
     ok = xl6ParseSource(generated, "<xapi-import>", &result);
     if ( !ok ) {
-        if ( diags != NULL && result.diags.count > 0 ) {
+        if ( diags != NULL ) {
             size_t i;
+            xl6DiagAdd(diags, 1, 1, "XAPI import generated invalid extern declarations");
             for ( i = 0; i < result.diags.count; ++i ) {
                 xl6DiagAdd(diags, result.diags.items[i].line, result.diags.items[i].column, result.diags.items[i].message);
             }
-        } else if ( diags != NULL ) {
-            xl6DiagAdd(diags, 1, 1, "XAPI import generated invalid extern declarations");
         }
         xl6ParseResultFree(&result);
         return 0;

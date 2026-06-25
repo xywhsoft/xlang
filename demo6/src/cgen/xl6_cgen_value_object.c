@@ -195,7 +195,7 @@ static void xl6CgenTypedContainerValueStmt(XL6_CgenContext* ctx, const char* cNa
     xl6OutputPrintf(ctx->out, "if (!%s%s, __xl6_typed_value_%d)) {\n", callPrefix, cName, id);
     ctx->indent += 1;
     xl6CgenIndent(ctx);
-    xl6OutputPuts("exit(3);\n", ctx->out);
+    xl6OutputPuts("xl6_runtime_fatal(3);\n", ctx->out);
     ctx->indent -= 1;
     xl6CgenIndent(ctx);
     xl6OutputPuts("}\n", ctx->out);
@@ -259,7 +259,7 @@ static void xl6CgenTypedContainerFillFromLiteral(XL6_CgenContext* ctx, const cha
             xl6OutputPrintf(ctx->out, "), __xl6_typed_value_%d)) {\n", id);
             ctx->indent += 1;
             xl6CgenIndent(ctx);
-            xl6OutputPuts("exit(3);\n", ctx->out);
+            xl6OutputPuts("xl6_runtime_fatal(3);\n", ctx->out);
             ctx->indent -= 1;
             xl6CgenIndent(ctx);
             xl6OutputPuts("}\n", ctx->out);
@@ -297,7 +297,7 @@ static void xl6CgenTypedContainerFillFromLiteral(XL6_CgenContext* ctx, const cha
             xl6OutputPrintf(ctx->out, ", 0, __xl6_typed_value_%d)) {\n", id);
             ctx->indent += 1;
             xl6CgenIndent(ctx);
-            xl6OutputPuts("exit(3);\n", ctx->out);
+            xl6OutputPuts("xl6_runtime_fatal(3);\n", ctx->out);
             ctx->indent -= 1;
             xl6CgenIndent(ctx);
             xl6OutputPuts("}\n", ctx->out);
@@ -473,7 +473,7 @@ static void xl6CgenCustomMethodCall(XL6_CgenContext* ctx, const XL6_AstNode* cal
     receiverType = receiver->kind == XL6_AST_NAME ? xl6CgenFindVarType(ctx, receiverName) : xl6CgenMemberFieldType(ctx, receiver);
     customNode = receiverType != NULL ? xl6CgenFindCustom(ctx, receiverType->text) : NULL;
     if ( customNode == NULL ) {
-        xl6CgenError(ctx, member, "code generation error");
+        xl6CgenError(ctx, member, "custom method receiver is not a custom value");
         xl6OutputPuts("0", ctx->out);
         return;
     }
@@ -660,7 +660,7 @@ static int xl6CgenBaseCtorCall(XL6_CgenContext* ctx, const XL6_AstNode* call)
 
     args = call->childCount > 1 ? call->children[1] : NULL;
     if ( ctx->currentClass == NULL ) {
-        xl6CgenError(ctx, call, "code generation error");
+        xl6CgenError(ctx, call, "base constructor call requires current class context");
         xl6OutputPuts("0", ctx->out);
         return 1;
     }
@@ -832,7 +832,7 @@ static void xl6CgenClassFieldAccess(XL6_CgenContext* ctx, const XL6_AstNode* mem
     if ( receiver == NULL || (receiver->kind != XL6_AST_NAME &&
                               receiver->kind != XL6_AST_MEMBER &&
                               receiver->kind != XL6_AST_INDEX) ) {
-        xl6CgenError(ctx, member, "code generation error");
+        xl6CgenError(ctx, member, "class field receiver must be name, member or index");
         xl6OutputPuts("0", ctx->out);
         return;
     }
@@ -854,7 +854,7 @@ static void xl6CgenClassFieldAccess(XL6_CgenContext* ctx, const XL6_AstNode* mem
         classNode = receiverType != NULL ? xl6CgenFindClass(ctx, receiverType->text) : NULL;
         if ( classNode == NULL ) {
             xl6AstFree(ownedReceiverType);
-            xl6CgenError(ctx, member, "code generation error");
+            xl6CgenError(ctx, member, "class field receiver is not a class value");
             xl6OutputPuts("0", ctx->out);
             return;
         }
@@ -870,7 +870,7 @@ static void xl6CgenClassFieldAccess(XL6_CgenContext* ctx, const XL6_AstNode* mem
     receiverType = xl6CgenFindVarType(ctx, receiver->text);
     classNode = receiverType != NULL ? xl6CgenFindClass(ctx, receiverType->text) : NULL;
     if ( classNode == NULL ) {
-        xl6CgenError(ctx, member, "code generation error");
+        xl6CgenError(ctx, member, "class field receiver is not a class value");
         xl6OutputPuts("0", ctx->out);
         return;
     }

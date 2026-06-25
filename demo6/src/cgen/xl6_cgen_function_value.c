@@ -56,7 +56,7 @@ static void xl6CgenIntLiteralExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
         digit = xl6CgenDigitValue(*p);
         if ( digit < 0 || digit >= base ||
              value > (ULLONG_MAX - (unsigned long long)digit) / (unsigned long long)base ) {
-            xl6CgenError(ctx, node, "code generation error");
+            xl6CgenError(ctx, node, "integer literal is too large or invalid");
             xl6OutputPuts("0", ctx->out);
             return;
         }
@@ -497,11 +497,11 @@ static XL6_AstNode* xl6CgenFindFunctionValueFunc(XL6_CgenContext* ctx, const cha
     if ( candidateCount == 0 ) {
         xl6CgenError(ctx, atNode, "找不到可作为 function 值的具名函数");
     } else if ( functionType->childCount == 0 ) {
-        xl6CgenError(ctx, atNode, "code generation error");
+        xl6CgenError(ctx, atNode, "bare function value target is ambiguous; add an explicit function signature");
     } else if ( matchCount == 0 ) {
-        xl6CgenError(ctx, atNode, "code generation error");
+        xl6CgenError(ctx, atNode, "function value signature does not match any function overload");
     } else {
-        xl6CgenError(ctx, atNode, "code generation error");
+        xl6CgenError(ctx, atNode, "function value signature matches multiple overloads");
     }
     return NULL;
 }
@@ -533,7 +533,7 @@ static void xl6CgenBareFunctionInvoke(XL6_CgenContext* ctx, const char* name, co
             const XL6_AstNode* arg = args->children[i];
             xl6OutputPuts(", ", ctx->out);
             if ( arg != NULL && arg->kind == XL6_AST_NAMED_ARG ) {
-                xl6CgenError(ctx, arg, "code generation error");
+                xl6CgenError(ctx, arg, "bare function call does not support named arguments");
                 xl6OutputPuts("xvoCreateNull()", ctx->out);
             } else if ( arg != NULL && arg->childCount > 0 ) {
                 xl6CgenXValueFromExpr(ctx, arg->children[0]);
@@ -663,7 +663,7 @@ static void xl6CgenFunctionInvokeFallbackExpr(XL6_CgenContext* ctx,
         xl6CgenFunctionInvokeFallbackCall(ctx, cName, args);
         xl6OutputPuts("))", ctx->out);
     } else {
-        xl6OutputPrintf(ctx->out, "(exit(3), (%s)0)", xl6CgenTypeName(ctx, concreteType));
+        xl6OutputPrintf(ctx->out, "(xl6_function_fatal(3), (%s)0)", xl6CgenTypeName(ctx, concreteType));
     }
 }
 
@@ -741,9 +741,9 @@ static void xl6CgenFunctionInvoke(XL6_CgenContext* ctx, const char* name, const 
     if ( returnCount > 1 ) {
         xl6OutputPrintf(ctx->out, "((%s.invoke != 0) ? ", cName);
         xl6CgenFunctionInvokeDirectCall(ctx, cName, paramTypes, returns, args, fixedCount, hasArrayVararg, hasDictVararg);
-        xl6OutputPuts(" : (exit(3), (", ctx->out);
+        xl6OutputPuts(" : (xl6_function_fatal(3), (", ctx->out);
         xl6CgenFunctionReturnStructName(ctx, paramTypes, returns);
-        xl6OutputPuts("){0})) : (exit(3), (", ctx->out);
+        xl6OutputPuts("){0})) : (xl6_function_fatal(3), (", ctx->out);
         xl6CgenFunctionReturnStructName(ctx, paramTypes, returns);
         xl6OutputPuts("){0}))", ctx->out);
     } else if ( returnCount == 1 ) {
@@ -751,13 +751,13 @@ static void xl6CgenFunctionInvoke(XL6_CgenContext* ctx, const char* name, const 
         xl6CgenFunctionInvokeDirectCall(ctx, cName, paramTypes, returns, args, fixedCount, hasArrayVararg, hasDictVararg);
         xl6OutputPuts(" : ", ctx->out);
         xl6CgenFunctionInvokeFallbackExpr(ctx, returns->children[0], cName, args);
-        xl6OutputPrintf(ctx->out, ") : (exit(3), (%s)0))", xl6CgenTypeName(ctx, returns->children[0]));
+        xl6OutputPrintf(ctx->out, ") : (xl6_function_fatal(3), (%s)0))", xl6CgenTypeName(ctx, returns->children[0]));
     } else {
         xl6OutputPrintf(ctx->out, "((%s.invoke != 0) ? ", cName);
         xl6CgenFunctionInvokeDirectCall(ctx, cName, paramTypes, returns, args, fixedCount, hasArrayVararg, hasDictVararg);
         xl6OutputPuts(" : xl6_xvalue_drop(", ctx->out);
         xl6CgenFunctionInvokeFallbackCall(ctx, cName, args);
-        xl6OutputPuts(")) : exit(3))", ctx->out);
+        xl6OutputPuts(")) : xl6_function_fatal(3))", ctx->out);
     }
 }
 
@@ -810,7 +810,7 @@ static void xl6CgenAnonMakeCall(XL6_CgenContext* ctx, const XL6_AstNode* node)
 
     info = xl6CgenFindAnonFuncInfo(ctx, node);
     if ( info == NULL ) {
-        xl6CgenError(ctx, node, "code generation error");
+        xl6CgenError(ctx, node, "anonymous function metadata was not collected");
         xl6OutputPuts("(XL6_Function){0}", ctx->out);
         return;
     }

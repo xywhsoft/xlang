@@ -1,6 +1,10 @@
 static void xl6CgenEmitFunctionRuntime(XL6_Output* out)
 {
     xl6OutputPuts("#include <stdlib.h>\n", out);
+    xl6OutputPuts("static void xl6_function_fatal(int code)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    xl6_runtime_fatal(code);\n", out);
+    xl6OutputPuts("}\n\n", out);
     xl6OutputPuts("#ifndef XL6_XVALUE_TYPEDEF\n", out);
     xl6OutputPuts("#define XL6_XVALUE_TYPEDEF\n", out);
     xl6OutputPuts("typedef struct xvalue_struct* xvalue;\n", out);
@@ -39,6 +43,9 @@ static void xl6CgenEmitFunctionRuntime(XL6_Output* out)
 
 static void xl6CgenEmitFunctionVarRuntime(XL6_Output* out)
 {
+    xl6OutputPuts("void* xrtMalloc(size_t iSize);\n", out);
+    xl6OutputPuts("void xrtFree(void* pMem);\n\n", out);
+
     xl6OutputPuts("typedef struct XL6_Function_Callable_Env {\n", out);
     xl6OutputPuts("    XL6_Function fn;\n", out);
     xl6OutputPuts("} XL6_Function_Callable_Env;\n\n", out);
@@ -54,7 +61,7 @@ static void xl6CgenEmitFunctionVarRuntime(XL6_Output* out)
     xl6OutputPuts("        box->fn.env = 0;\n", out);
     xl6OutputPuts("        box->fn.release = 0;\n", out);
     xl6OutputPuts("    }\n", out);
-    xl6OutputPuts("    free(box);\n", out);
+    xl6OutputPuts("    xrtFree(box);\n", out);
     xl6OutputPuts("}\n\n", out);
 
     xl6OutputPuts("static bool xl6_function_callable_xcall(xrt_call_frame* frame, xrt_call_result* result)\n", out);
@@ -90,11 +97,11 @@ static void xl6CgenEmitFunctionVarRuntime(XL6_Output* out)
     xl6OutputPuts("    xrt_callable* callable;\n", out);
     xl6OutputPuts("    xvalue value;\n", out);
     xl6OutputPuts("    if ( fn.invoke_var == 0 && fn.invoke_xcall == 0 ) {\n", out);
-    xl6OutputPuts("        exit(3);\n", out);
+    xl6OutputPuts("        xl6_function_fatal(3);\n", out);
     xl6OutputPuts("    }\n", out);
-    xl6OutputPuts("    box = (XL6_Function_Callable_Env*)malloc(sizeof(XL6_Function_Callable_Env));\n", out);
+    xl6OutputPuts("    box = (XL6_Function_Callable_Env*)xrtMalloc(sizeof(XL6_Function_Callable_Env));\n", out);
     xl6OutputPuts("    if ( box == 0 ) {\n", out);
-    xl6OutputPuts("        exit(2);\n", out);
+    xl6OutputPuts("        xl6_function_fatal(2);\n", out);
     xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    box->fn = fn;\n", out);
     xl6OutputPuts("    if ( box->fn.retain != 0 && box->fn.env != 0 ) {\n", out);
@@ -103,12 +110,12 @@ static void xl6CgenEmitFunctionVarRuntime(XL6_Output* out)
     xl6OutputPuts("    callable = xrtCallableCreate(fn.sig, fn.invoke, 0, xl6_function_callable_xcall, box, xl6_function_callable_drop);\n", out);
     xl6OutputPuts("    if ( callable == 0 ) {\n", out);
     xl6OutputPuts("        xl6_function_callable_drop(box);\n", out);
-    xl6OutputPuts("        exit(2);\n", out);
+    xl6OutputPuts("        xl6_function_fatal(2);\n", out);
     xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    value = xvoCreateCallable(callable, true);\n", out);
     xl6OutputPuts("    if ( value == 0 ) {\n", out);
     xl6OutputPuts("        xrtCallableUnref(callable);\n", out);
-    xl6OutputPuts("        exit(2);\n", out);
+    xl6OutputPuts("        xl6_function_fatal(2);\n", out);
     xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    return value;\n", out);
     xl6OutputPuts("}\n\n", out);
@@ -147,7 +154,7 @@ static void xl6CgenEmitFunctionVarRuntime(XL6_Output* out)
     xl6OutputPuts("    xrt_call_result result;\n", out);
     xl6OutputPuts("    xvalue value;\n", out);
     xl6OutputPuts("    if ( env == 0 || argc < 0 ) {\n", out);
-    xl6OutputPuts("        exit(3);\n", out);
+    xl6OutputPuts("        xl6_function_fatal(3);\n", out);
     xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    frame.Self = 0;\n", out);
     xl6OutputPuts("    frame.Env = 0;\n", out);
@@ -159,7 +166,7 @@ static void xl6CgenEmitFunctionVarRuntime(XL6_Output* out)
     xl6OutputPuts("    xrtCallResultInit(&result);\n", out);
     xl6OutputPuts("    if ( !xrtCallableInvoke((xrt_callable*)env, &frame, &result) ) {\n", out);
     xl6OutputPuts("        xrtCallResultUnit(&result);\n", out);
-    xl6OutputPuts("        exit(3);\n", out);
+    xl6OutputPuts("        xl6_function_fatal(3);\n", out);
     xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    value = result.Count > 0 ? result.Values[0] : 0;\n", out);
     xl6OutputPuts("    result.Values[0] = 0;\n", out);
@@ -172,7 +179,7 @@ static void xl6CgenEmitFunctionVarRuntime(XL6_Output* out)
     xl6OutputPuts("    XL6_Function fn;\n", out);
     xl6OutputPuts("    const xrt_func_sig* sig;\n", out);
     xl6OutputPuts("    if ( callable == 0 ) {\n", out);
-    xl6OutputPuts("        exit(3);\n", out);
+    xl6OutputPuts("        xl6_function_fatal(3);\n", out);
     xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    sig = xrtCallableSig(callable);\n", out);
     xl6OutputPuts("    xrtCallableAddRef(callable);\n", out);
@@ -258,12 +265,12 @@ static void xl6CgenEmitFunctionVarRuntime(XL6_Output* out)
     xl6OutputPuts("        text = \"\";\n", out);
     xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    len = strlen(text);\n", out);
-    xl6OutputPuts("    copy = (char*)malloc(len + 1u);\n", out);
+    xl6OutputPuts("    copy = (char*)xrtMalloc(len + 1u);\n", out);
     xl6OutputPuts("    if ( copy == 0 ) {\n", out);
     xl6OutputPuts("        if ( value != 0 ) {\n", out);
     xl6OutputPuts("            xvoUnref(value);\n", out);
     xl6OutputPuts("        }\n", out);
-    xl6OutputPuts("        exit(2);\n", out);
+    xl6OutputPuts("        xl6_function_fatal(2);\n", out);
     xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    memcpy(copy, text, len + 1u);\n", out);
     xl6OutputPuts("    if ( value != 0 ) {\n", out);
@@ -284,15 +291,15 @@ static void xl6CgenEmitFunctionVarRuntime(XL6_Output* out)
     xl6OutputPuts("        if ( kwargs != 0 ) {\n", out);
     xl6OutputPuts("            xvoUnref(kwargs);\n", out);
     xl6OutputPuts("        }\n", out);
-    xl6OutputPuts("        exit(3);\n", out);
+    xl6OutputPuts("        xl6_function_fatal(3);\n", out);
     xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    if ( argc > 0 ) {\n", out);
-    xl6OutputPuts("        argv = (xvalue*)malloc(sizeof(xvalue) * (size_t)argc);\n", out);
+    xl6OutputPuts("        argv = (xvalue*)xrtMalloc(sizeof(xvalue) * (size_t)argc);\n", out);
     xl6OutputPuts("        if ( argv == 0 ) {\n", out);
     xl6OutputPuts("            if ( kwargs != 0 ) {\n", out);
     xl6OutputPuts("                xvoUnref(kwargs);\n", out);
     xl6OutputPuts("            }\n", out);
-    xl6OutputPuts("            exit(2);\n", out);
+    xl6OutputPuts("            xl6_function_fatal(2);\n", out);
     xl6OutputPuts("        }\n", out);
     xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    va_start(ap, argc);\n", out);
@@ -314,19 +321,19 @@ static void xl6CgenEmitFunctionVarRuntime(XL6_Output* out)
     xl6OutputPuts("                xvoUnref(argv[i]);\n", out);
     xl6OutputPuts("            }\n", out);
     xl6OutputPuts("        }\n", out);
-    xl6OutputPuts("        free(argv);\n", out);
+    xl6OutputPuts("        xrtFree(argv);\n", out);
     xl6OutputPuts("        if ( kwargs != 0 ) {\n", out);
     xl6OutputPuts("            xvoUnref(kwargs);\n", out);
     xl6OutputPuts("        }\n", out);
     xl6OutputPuts("        xrtCallResultUnit(&result);\n", out);
-    xl6OutputPuts("        exit(3);\n", out);
+    xl6OutputPuts("        xl6_function_fatal(3);\n", out);
     xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    for ( i = 0; i < argc; ++i ) {\n", out);
     xl6OutputPuts("        if ( argv[i] != 0 ) {\n", out);
     xl6OutputPuts("            xvoUnref(argv[i]);\n", out);
     xl6OutputPuts("        }\n", out);
     xl6OutputPuts("    }\n", out);
-    xl6OutputPuts("    free(argv);\n", out);
+    xl6OutputPuts("    xrtFree(argv);\n", out);
     xl6OutputPuts("    if ( kwargs != 0 ) {\n", out);
     xl6OutputPuts("        xvoUnref(kwargs);\n", out);
     xl6OutputPuts("    }\n", out);
@@ -345,12 +352,12 @@ static void xl6CgenEmitFunctionVarRuntime(XL6_Output* out)
     xl6OutputPuts("    va_list ap;\n", out);
     xl6OutputPuts("    int i;\n\n", out);
     xl6OutputPuts("    if ( argc < 0 || fn == 0 ) {\n", out);
-    xl6OutputPuts("        exit(3);\n", out);
+    xl6OutputPuts("        xl6_function_fatal(3);\n", out);
     xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    if ( argc > 0 ) {\n", out);
-    xl6OutputPuts("        argv = (xvalue*)malloc(sizeof(xvalue) * (size_t)argc);\n", out);
+    xl6OutputPuts("        argv = (xvalue*)xrtMalloc(sizeof(xvalue) * (size_t)argc);\n", out);
     xl6OutputPuts("        if ( argv == 0 ) {\n", out);
-    xl6OutputPuts("            exit(2);\n", out);
+    xl6OutputPuts("            xl6_function_fatal(2);\n", out);
     xl6OutputPuts("        }\n", out);
     xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    va_start(ap, argc);\n", out);
@@ -372,16 +379,16 @@ static void xl6CgenEmitFunctionVarRuntime(XL6_Output* out)
     xl6OutputPuts("                xvoUnref(argv[i]);\n", out);
     xl6OutputPuts("            }\n", out);
     xl6OutputPuts("        }\n", out);
-    xl6OutputPuts("        free(argv);\n", out);
+    xl6OutputPuts("        xrtFree(argv);\n", out);
     xl6OutputPuts("        xrtCallResultUnit(&result);\n", out);
-    xl6OutputPuts("        exit(3);\n", out);
+    xl6OutputPuts("        xl6_function_fatal(3);\n", out);
     xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    for ( i = 0; i < argc; ++i ) {\n", out);
     xl6OutputPuts("        if ( argv[i] != 0 ) {\n", out);
     xl6OutputPuts("            xvoUnref(argv[i]);\n", out);
     xl6OutputPuts("        }\n", out);
     xl6OutputPuts("    }\n", out);
-    xl6OutputPuts("    free(argv);\n", out);
+    xl6OutputPuts("    xrtFree(argv);\n", out);
     xl6OutputPuts("    value = result.Count > 0 ? result.Values[0] : 0;\n", out);
     xl6OutputPuts("    result.Values[0] = 0;\n", out);
     xl6OutputPuts("    xrtCallResultUnit(&result);\n", out);
@@ -397,12 +404,12 @@ static void xl6CgenEmitFunctionVarRuntime(XL6_Output* out)
     xl6OutputPuts("    va_list ap;\n", out);
     xl6OutputPuts("    int i;\n\n", out);
     xl6OutputPuts("    if ( argc < 0 || (fn.invoke_var == 0 && fn.invoke_xcall == 0) ) {\n", out);
-    xl6OutputPuts("        exit(3);\n", out);
+    xl6OutputPuts("        xl6_function_fatal(3);\n", out);
     xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    if ( argc > 0 ) {\n", out);
-    xl6OutputPuts("        argv = (xvalue*)malloc(sizeof(xvalue) * (size_t)argc);\n", out);
+    xl6OutputPuts("        argv = (xvalue*)xrtMalloc(sizeof(xvalue) * (size_t)argc);\n", out);
     xl6OutputPuts("        if ( argv == 0 ) {\n", out);
-    xl6OutputPuts("            exit(2);\n", out);
+    xl6OutputPuts("            xl6_function_fatal(2);\n", out);
     xl6OutputPuts("        }\n", out);
     xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    va_start(ap, argc);\n", out);
@@ -427,9 +434,9 @@ static void xl6CgenEmitFunctionVarRuntime(XL6_Output* out)
     xl6OutputPuts("                    xvoUnref(argv[i]);\n", out);
     xl6OutputPuts("                }\n", out);
     xl6OutputPuts("            }\n", out);
-    xl6OutputPuts("            free(argv);\n", out);
+    xl6OutputPuts("            xrtFree(argv);\n", out);
     xl6OutputPuts("            xrtCallResultUnit(&callResult);\n", out);
-    xl6OutputPuts("            exit(3);\n", out);
+    xl6OutputPuts("            xl6_function_fatal(3);\n", out);
     xl6OutputPuts("        }\n", out);
     xl6OutputPuts("        result = callResult.Count > 0 ? callResult.Values[0] : 0;\n", out);
     xl6OutputPuts("        callResult.Values[0] = 0;\n", out);
@@ -440,7 +447,7 @@ static void xl6CgenEmitFunctionVarRuntime(XL6_Output* out)
     xl6OutputPuts("            xvoUnref(argv[i]);\n", out);
     xl6OutputPuts("        }\n", out);
     xl6OutputPuts("    }\n", out);
-    xl6OutputPuts("    free(argv);\n", out);
+    xl6OutputPuts("    xrtFree(argv);\n", out);
     xl6OutputPuts("    return result != 0 ? result : xvoCreateNull();\n", out);
     xl6OutputPuts("}\n\n", out);
 
@@ -456,15 +463,15 @@ static void xl6CgenEmitFunctionVarRuntime(XL6_Output* out)
     xl6OutputPuts("        if ( kwargs != 0 ) {\n", out);
     xl6OutputPuts("            xvoUnref(kwargs);\n", out);
     xl6OutputPuts("        }\n", out);
-    xl6OutputPuts("        exit(3);\n", out);
+    xl6OutputPuts("        xl6_function_fatal(3);\n", out);
     xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    if ( argc > 0 ) {\n", out);
-    xl6OutputPuts("        argv = (xvalue*)malloc(sizeof(xvalue) * (size_t)argc);\n", out);
+    xl6OutputPuts("        argv = (xvalue*)xrtMalloc(sizeof(xvalue) * (size_t)argc);\n", out);
     xl6OutputPuts("        if ( argv == 0 ) {\n", out);
     xl6OutputPuts("            if ( kwargs != 0 ) {\n", out);
     xl6OutputPuts("                xvoUnref(kwargs);\n", out);
     xl6OutputPuts("            }\n", out);
-    xl6OutputPuts("            exit(2);\n", out);
+    xl6OutputPuts("            xl6_function_fatal(2);\n", out);
     xl6OutputPuts("        }\n", out);
     xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    va_start(ap, argc);\n", out);
@@ -489,12 +496,12 @@ static void xl6CgenEmitFunctionVarRuntime(XL6_Output* out)
     xl6OutputPuts("                    xvoUnref(argv[i]);\n", out);
     xl6OutputPuts("                }\n", out);
     xl6OutputPuts("            }\n", out);
-    xl6OutputPuts("            free(argv);\n", out);
+    xl6OutputPuts("            xrtFree(argv);\n", out);
     xl6OutputPuts("            if ( kwargs != 0 ) {\n", out);
     xl6OutputPuts("                xvoUnref(kwargs);\n", out);
     xl6OutputPuts("            }\n", out);
     xl6OutputPuts("            xrtCallResultUnit(&callResult);\n", out);
-    xl6OutputPuts("            exit(3);\n", out);
+    xl6OutputPuts("            xl6_function_fatal(3);\n", out);
     xl6OutputPuts("        }\n", out);
     xl6OutputPuts("        result = callResult.Count > 0 ? callResult.Values[0] : 0;\n", out);
     xl6OutputPuts("        callResult.Values[0] = 0;\n", out);
@@ -505,18 +512,18 @@ static void xl6CgenEmitFunctionVarRuntime(XL6_Output* out)
     xl6OutputPuts("                xvoUnref(argv[i]);\n", out);
     xl6OutputPuts("            }\n", out);
     xl6OutputPuts("        }\n", out);
-    xl6OutputPuts("        free(argv);\n", out);
+    xl6OutputPuts("        xrtFree(argv);\n", out);
     xl6OutputPuts("        if ( kwargs != 0 ) {\n", out);
     xl6OutputPuts("            xvoUnref(kwargs);\n", out);
     xl6OutputPuts("        }\n", out);
-    xl6OutputPuts("        exit(3);\n", out);
+    xl6OutputPuts("        xl6_function_fatal(3);\n", out);
     xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    for ( i = 0; i < argc; ++i ) {\n", out);
     xl6OutputPuts("        if ( argv[i] != 0 ) {\n", out);
     xl6OutputPuts("            xvoUnref(argv[i]);\n", out);
     xl6OutputPuts("        }\n", out);
     xl6OutputPuts("    }\n", out);
-    xl6OutputPuts("    free(argv);\n", out);
+    xl6OutputPuts("    xrtFree(argv);\n", out);
     xl6OutputPuts("    if ( kwargs != 0 ) {\n", out);
     xl6OutputPuts("        xvoUnref(kwargs);\n", out);
     xl6OutputPuts("    }\n", out);

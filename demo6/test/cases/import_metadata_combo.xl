@@ -1,0 +1,14 @@
+import metadata_combo
+
+func main(...) -> int
+    if metadata_combo.sourceValue() != 11 then
+        return 1
+    end
+    if metadata_combo.linkValue() != 13 then
+        return 2
+    end
+    if metadata_combo.loadValue() != 17 then
+        return 3
+    end
+    return 0
+end
