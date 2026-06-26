@@ -9,8 +9,10 @@ if ( $Root -eq "" ) {
 }
 
 $toolsDir = Join-Path $Root "tools"
+$toolsReadme = Join-Path $toolsDir "README.md"
 $testBat = Join-Path $Root "test.bat"
 $rc0Guard = Join-Path $toolsDir "rc0_guard.ps1"
+$minCheckScripts = 21
 $failures = New-Object System.Collections.Generic.List[string]
 
 function Add-Failure($message)
@@ -33,6 +35,11 @@ if ( ! (Test-Path -LiteralPath $toolsDir -PathType Container) ) {
     exit 1
 }
 
+if ( ! (Test-Path -LiteralPath $toolsReadme -PathType Leaf) ) {
+    Write-Host "tools README missing: $toolsReadme"
+    exit 1
+}
+
 if ( ! (Test-Path -LiteralPath $testBat -PathType Leaf) ) {
     Write-Host "test.bat missing: $testBat"
     exit 1
@@ -45,11 +52,16 @@ if ( ! (Test-Path -LiteralPath $rc0Guard -PathType Leaf) ) {
 
 $testText = Read-Utf8Text $testBat
 $rc0Text = Read-Utf8Text $rc0Guard
+$toolsReadmeText = Read-Utf8Text $toolsReadme
 $checkScripts = @(Get-ChildItem -LiteralPath $toolsDir -Filter "check_*.ps1" -File | Sort-Object Name)
 $testWiredScripts = New-Object System.Collections.Generic.HashSet[string]
 $rc0WiredScripts = New-Object System.Collections.Generic.HashSet[string]
 $fullRegressionOnly = New-Object System.Collections.Generic.HashSet[string]
 $fullRegressionOnly.Add((Normalize-ToolPath "tools\check_stdlib_examples.ps1")) | Out-Null
+
+if ( $checkScripts.Count -lt $minCheckScripts ) {
+    Add-Failure "check script baseline regressed: $($checkScripts.Count) < $minCheckScripts"
+}
 
 foreach ( $match in [regex]::Matches($testText, 'tools[\\/](check_[^"''\s\^<>|&]+\.ps1)') ) {
     $relative = Normalize-ToolPath ("tools\" + $match.Groups[1].Value)
@@ -73,6 +85,11 @@ foreach ( $match in [regex]::Matches($rc0Text, 'check_[A-Za-z0-9_]+\.ps1') ) {
 
 foreach ( $script in $checkScripts ) {
     $relative = Normalize-ToolPath ("tools\" + $script.Name)
+
+    if ( ! $toolsReadmeText.Contains($script.Name) ) {
+        Add-Failure "tools README does not list check script: $relative"
+    }
+
     if ( ! $testWiredScripts.Contains($relative) ) {
         Add-Failure "check script is not wired into test.bat: $relative"
     }
@@ -90,6 +107,14 @@ foreach ( $relative in $fullRegressionOnly ) {
     if ( ! $testWiredScripts.Contains($relative) ) {
         Add-Failure "full-regression-only check script is not wired into test.bat: $relative"
     }
+}
+
+if ( ! $toolsReadmeText.Contains("xl6_toolchain_env.bat") ) {
+    Add-Failure "tools README does not mention tools\xl6_toolchain_env.bat"
+}
+
+if ( ! $toolsReadmeText.Contains("rc0_guard.ps1") ) {
+    Add-Failure "tools README does not mention tools\rc0_guard.ps1"
 }
 
 if ( $failures.Count -gt 0 ) {

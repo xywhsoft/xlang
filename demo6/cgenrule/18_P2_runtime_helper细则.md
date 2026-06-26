@@ -175,24 +175,24 @@
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | `func main(...) int ... end` |
-| 生成规则描述 | 返回值路径调用 `xl_user_main(__xl6_arg)` 并转为 `int` 保存为 `__xl6_code`。如果错误 runtime 启用且存在未清错误，则清理错误、调用 `xlUnit`、返回 1；否则调用 `xlUnit` 并返回 `__xl6_code`。 |
-| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_main.c:53` |
-| 对应生成的 C 代码 | `__xl6_code = (int)xl_user_main(__xl6_arg); ... return __xl6_code;` |
-| 中间形态伪代码 | `code = main(arg); if error: clear/unit/return 1; unit; return code` |
+| 生成规则描述 | 返回值路径调用 `xl_user_main(__xl6_arg)` 并转为 `int` 保存为 `__xl6_code`。如果错误 runtime 启用且存在未清错误，则先输出未捕获错误诊断，再清理错误、调用 `xlUnit`、返回 1；否则调用 `xlUnit` 并返回 `__xl6_code`。 |
+| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_main.c:54` |
+| 对应生成的 C 代码 | `__xl6_code = (int)xl_user_main(__xl6_arg); if (xl6_error_has()) { xl6_error_print_uncaught(); xl6_error_clear(); xlUnit(); return 1; } ... return __xl6_code;` |
+| 中间形态伪代码 | `code = main(arg); if error: printUncaught(); clear/unit/return 1; unit; return code` |
 | 实现同等功能手写的 C 代码 | 手写 C main 需要手动把语言 main 返回值映射为进程退出码。 |
-| 额外依赖的封装代码 | 错误 runtime 可选依赖。 |
+| 额外依赖的封装代码 | 错误 runtime 可选依赖，包含 `xl6_error_print_uncaught`。 |
 
 ## CGEN-RTH-016 main 无返回值时的默认退出码
 
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | `func main(...) ... end` 无返回类型 |
-| 生成规则描述 | 无返回值路径调用 `xl_user_main(__xl6_arg)` 后，若错误 runtime 存在未清错误则返回 1，否则调用 `xlUnit` 并返回 0。 |
-| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_main.c:64` |
-| 对应生成的 C 代码 | `xl_user_main(__xl6_arg); ... xlUnit(); return 0;` |
-| 中间形态伪代码 | `main(arg); if error: clear/unit/return 1; unit; return 0` |
+| 生成规则描述 | 无返回值路径调用 `xl_user_main(__xl6_arg)` 后，若错误 runtime 存在未清错误，则先输出未捕获错误诊断，再清理错误、调用 `xlUnit` 并返回 1；否则调用 `xlUnit` 并返回 0。 |
+| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_main.c:66` |
+| 对应生成的 C 代码 | `xl_user_main(__xl6_arg); if (xl6_error_has()) { xl6_error_print_uncaught(); xl6_error_clear(); xlUnit(); return 1; } ... xlUnit(); return 0;` |
+| 中间形态伪代码 | `main(arg); if error: printUncaught(); clear/unit/return 1; unit; return 0` |
 | 实现同等功能手写的 C 代码 | 手写 C main 需要自己约定无返回语言入口的退出码。 |
-| 额外依赖的封装代码 | 错误 runtime 可选依赖。 |
+| 额外依赖的封装代码 | 错误 runtime 可选依赖，包含 `xl6_error_print_uncaught`。 |
 
 ## CGEN-RTH-017 类型转换 runtime 原型注入
 

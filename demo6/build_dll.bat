@@ -40,6 +40,7 @@ echo Building DEMO6 xl.dll...
     src\backend\xl6_build_backend.c ^
     src\compile\xl6_compile_unit.c ^
     src\compile\xl6_imports.c ^
+    src\common\xl6_console.c ^
     src\common\xl6_output.c ^
     src\diag\xl6_diag.c ^
     src\ast\xl6_ast.c ^
@@ -80,7 +81,7 @@ if errorlevel 1 (
 )
 
 echo Building xl.dll dependency fixtures...
-"%XL6_TCC%" -c examples\xl_dll_link_host.c -o release\tmp\xl_dll_link_host.o
+"%XL6_TCC%" %XL6_TCC_INCLUDES% -c examples\xl_dll_link_host.c -o release\tmp\xl_dll_link_host.o
 if errorlevel 1 (
     echo DEMO6 xl.dll static dependency fixture build failed.
     exit /b 1

@@ -11,6 +11,14 @@ if ( $Root -eq "" ) {
 $srcDir = Join-Path $Root "src"
 $allowedSource = "src/backend/xl6_toolchain.h"
 $allowedBatch = "tools/xl6_toolchain_env.bat"
+$fixtureScanDirs = @(
+    "examples",
+    "test\cases",
+    "packages"
+)
+$minToolchainSourceFiles = 114
+$minToolchainFixtureFiles = 50
+$minToolchainBatchFiles = 11
 $failures = New-Object System.Collections.Generic.List[string]
 
 function Add-Failure($message)
@@ -35,6 +43,22 @@ if ( ! (Test-Path -LiteralPath $srcDir -PathType Container) ) {
 }
 
 $sourceFiles = @(Get-ChildItem -LiteralPath $srcDir -Recurse -File -Include "*.c", "*.h" | Sort-Object FullName)
+$fixtureFiles = @(
+    foreach ( $relativeDir in $fixtureScanDirs ) {
+        $dir = Join-Path $Root $relativeDir
+        if ( Test-Path -LiteralPath $dir -PathType Container ) {
+            Get-ChildItem -LiteralPath $dir -Recurse -File | Where-Object { $_.Extension -eq ".c" -or $_.Extension -eq ".h" }
+        }
+    }
+) | Sort-Object FullName
+
+if ( $sourceFiles.Count -lt $minToolchainSourceFiles ) {
+    Add-Failure "toolchain source scan baseline regressed: $($sourceFiles.Count) < $minToolchainSourceFiles"
+}
+
+if ( $fixtureFiles.Count -lt $minToolchainFixtureFiles ) {
+    Add-Failure "toolchain fixture scan baseline regressed: $($fixtureFiles.Count) < $minToolchainFixtureFiles"
+}
 
 foreach ( $file in $sourceFiles ) {
     $relative = Relative-From-Root $file.FullName
@@ -49,10 +73,38 @@ foreach ( $file in $sourceFiles ) {
     }
 }
 
-$batchFiles = @(
-    Get-ChildItem -LiteralPath $Root -File -Filter "*.bat"
-    Get-ChildItem -LiteralPath (Join-Path $Root "tools") -File -Filter "*.bat"
-) | Sort-Object FullName
+foreach ( $file in $fixtureFiles ) {
+    $relative = Relative-From-Root $file.FullName
+    $text = Read-Utf8Text $file.FullName
+
+    if ( $text -match '(?i)demo5|[.][.][\\/]+demo5|[.][.][\\/]+[.][.][\\/]+xrt[\\/]release' ) {
+        Add-Failure "fixture toolchain path/reference must stay in ${allowedBatch}: ${relative}"
+    }
+}
+
+$batchFiles = New-Object System.Collections.Generic.List[System.IO.FileInfo]
+foreach ( $file in @(Get-ChildItem -LiteralPath $Root -File -Filter "*.bat") ) {
+    $batchFiles.Add($file) | Out-Null
+}
+
+$batchScanDirs = @(
+    (Join-Path $Root "tools"),
+    (Join-Path $Root "examples")
+)
+
+foreach ( $dir in $batchScanDirs ) {
+    if ( Test-Path -LiteralPath $dir -PathType Container ) {
+        foreach ( $file in @(Get-ChildItem -LiteralPath $dir -Recurse -File -Filter "*.bat") ) {
+            $batchFiles.Add($file) | Out-Null
+        }
+    }
+}
+
+$batchFiles = @($batchFiles | Sort-Object FullName -Unique)
+
+if ( $batchFiles.Count -lt $minToolchainBatchFiles ) {
+    Add-Failure "toolchain batch scan baseline regressed: $($batchFiles.Count) < $minToolchainBatchFiles"
+}
 
 foreach ( $file in $batchFiles ) {
     $relative = Relative-From-Root $file.FullName
@@ -67,6 +119,71 @@ foreach ( $file in $batchFiles ) {
     }
 }
 
+$cliPath = Join-Path $Root "src\driver\xl6_cli.c"
+$apiPath = Join-Path $Root "src\api\xl_api.c"
+$backendPath = Join-Path $Root "src\backend\xl6_build_backend.c"
+
+foreach ( $path in @($cliPath, $apiPath, $backendPath) ) {
+    if ( ! (Test-Path -LiteralPath $path -PathType Leaf) ) {
+        Add-Failure "toolchain consumer source is missing: $(Relative-From-Root $path)"
+    }
+}
+
+if ( (Test-Path -LiteralPath $cliPath -PathType Leaf) -and
+     (Test-Path -LiteralPath $apiPath -PathType Leaf) -and
+     (Test-Path -LiteralPath $backendPath -PathType Leaf) ) {
+    $cliText = Read-Utf8Text $cliPath
+    $apiText = Read-Utf8Text $apiPath
+    $backendText = Read-Utf8Text $backendPath
+
+    if ( $backendText -notmatch [regex]::Escape("XL6_TCC") ) {
+        Add-Failure "build backend must honor centralized toolchain environment variable: XL6_TCC"
+    }
+    if ( $backendText -notmatch 'xl6BuildBackendEnvPathOrDefault' ) {
+        Add-Failure "build backend must keep centralized TCC executable default helper"
+    }
+
+    foreach ( $name in @(
+        "XL6_TCC_INCLUDE",
+        "XL6_TCC_WIN_INCLUDE",
+        "XL6_TCC_WINAPI_INCLUDE",
+        "XL6_TCC_LIB",
+        "XL6_TCC_LIBTCC1",
+        "XL6_XRT_OBJ"
+    ) ) {
+        if ( $cliText -notmatch [regex]::Escape($name) ) {
+            Add-Failure "CLI must honor centralized toolchain environment variable: $name"
+        }
+        if ( $apiText -notmatch [regex]::Escape($name) ) {
+            Add-Failure "DLL API must honor centralized toolchain environment variable: $name"
+        }
+    }
+
+    foreach ( $name in @(
+        "xl6CliDefaultTccIncludePath",
+        "xl6CliDefaultTccWinIncludePath",
+        "xl6CliDefaultTccWinapiIncludePath",
+        "xl6CliDefaultTccLibPath",
+        "xl6CliDefaultTccLibtcc1Path"
+    ) ) {
+        if ( $cliText -notmatch ('(?<![A-Za-z0-9_])' + [regex]::Escape($name) + '(?![A-Za-z0-9_])') ) {
+            Add-Failure "CLI must keep centralized TCC default helper: $name"
+        }
+    }
+
+    foreach ( $name in @(
+        "xlDefaultTccIncludePath",
+        "xlDefaultTccWinIncludePath",
+        "xlDefaultTccWinapiIncludePath",
+        "xlDefaultTccLibPath",
+        "xlDefaultTccLibtcc1Path"
+    ) ) {
+        if ( $apiText -notmatch ('(?<![A-Za-z0-9_])' + [regex]::Escape($name) + '(?![A-Za-z0-9_])') ) {
+            Add-Failure "DLL API must keep centralized TCC default helper: $name"
+        }
+    }
+}
+
 if ( $failures.Count -gt 0 ) {
     foreach ( $failure in $failures ) {
         Write-Host $failure
@@ -74,5 +191,5 @@ if ( $failures.Count -gt 0 ) {
     exit 1
 }
 
-Write-Host "Toolchain path guard ok: $($sourceFiles.Count) source headers/files, $($batchFiles.Count) batch files."
+Write-Host "Toolchain path guard ok: $($sourceFiles.Count) source headers/files, $($fixtureFiles.Count) fixture C/H files, $($batchFiles.Count) batch files."
 exit 0

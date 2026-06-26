@@ -1,6 +1,5 @@
 #include <stdbool.h>
-
-void exit(int code);
+#include <stdlib.h>
 
 bool native_flip_bool(bool value)
 {

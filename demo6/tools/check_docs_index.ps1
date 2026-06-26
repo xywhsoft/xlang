@@ -14,7 +14,10 @@ $matrixName = ([char]0x6587) + ([char]0x6863) + ([char]0x72B6) + ([char]0x6001) 
 $matrixPath = Join-Path $docsDir $matrixName
 $settlementName = ([char]0x6587) + ([char]0x6863) + ([char]0x6574) + ([char]0x7406) + ([char]0x6536) + ([char]0x53E3) + ".md"
 $settlementPath = Join-Path $docsDir $settlementName
+$workspaceSnapshotName = "RC0" + ([char]0x5DE5) + ([char]0x4F5C) + ([char]0x533A) + ([char]0x6E05) + ([char]0x5355) + ".md"
 $toolsDir = Join-Path $Root "tools"
+$minDocsMarkdownFiles = 31
+$minExtraMarkdownEntryDocs = 12
 $failures = New-Object System.Collections.Generic.List[string]
 
 function Add-Failure($message)
@@ -51,6 +54,39 @@ $readme = Read-Utf8Text $readmePath
 $matrix = Read-Utf8Text $matrixPath
 $settlement = Read-Utf8Text $settlementPath
 $docs = @(Get-ChildItem -LiteralPath $docsDir -Filter "*.md" -File | Sort-Object Name)
+$extraMarkdownDocs = @(
+    "README.md",
+    "cgenrule\README.md",
+    "src\README.md",
+    "tools\README.md",
+    "include\README.md",
+    "lib\README.md",
+    "release\README.md",
+    "examples\README.md",
+    "examples\feature_suite\README.md",
+    "examples\tutorial\README.md",
+    "packages\README.md",
+    "test\README.md"
+)
+
+if ( $docs.Count -lt $minDocsMarkdownFiles ) {
+    Add-Failure "docs markdown file baseline regressed: $($docs.Count) < $minDocsMarkdownFiles"
+}
+
+if ( $extraMarkdownDocs.Count -lt $minExtraMarkdownEntryDocs ) {
+    Add-Failure "extra markdown entry doc baseline regressed: $($extraMarkdownDocs.Count) < $minExtraMarkdownEntryDocs"
+}
+
+$knownReadmeDocs = New-Object System.Collections.Generic.HashSet[string]
+$knownReadmeDocs.Add(("docs\README.md").ToLowerInvariant()) | Out-Null
+foreach ( $relative in $extraMarkdownDocs ) {
+    $knownReadmeDocs.Add($relative.ToLowerInvariant()) | Out-Null
+}
+$ignoredReadmePrefixes = @(
+    "release\tmp\",
+    "release\tcc\",
+    "lib\xrt\"
+)
 $stalePatterns = @(
     '\bTODO\b',
     '\bTBD\b',
@@ -65,7 +101,17 @@ $forbiddenPolicyPatterns = @(
     '\.\.\\demo5\\release',
     'demo5\\release\\tcc\\lib\\libtcc1-64\.a',
     'xlUninit',
-    'xlUnInit'
+    'xlUnInit',
+    '`system`.*\u7528\u4E8E\u8C03\u7528\s*tcc',
+    'XRT process.*`system`.*\u8C03\u7528',
+    '`driver`.*\u547D\u4EE4\u884C\u62FC\u63A5.*`system`'
+)
+$staleCurrentCountPatterns = @(
+    '271\s*\u4E2A\u6D4B\u8BD5',
+    '251\s*\u4E2A',
+    '27\s*\u4E2A\u8303\u4F8B',
+    '`docs`\s*\uFF1A19\s*\u4E2A',
+    '`packages`\s*\uFF1A9\s*\u4E2A'
 )
 
 foreach ( $doc in $docs ) {
@@ -94,6 +140,92 @@ foreach ( $doc in $docs ) {
             Add-Failure "forbidden stale policy wording in docs/$($doc.Name): $pattern"
         }
     }
+
+    foreach ( $pattern in $staleCurrentCountPatterns ) {
+        if ( $doc.Name -ne $workspaceSnapshotName -and $text -match $pattern ) {
+            Add-Failure "stale current-count wording in docs/$($doc.Name): $pattern"
+        }
+    }
+
+    if ( $doc.Name -eq $workspaceSnapshotName ) {
+        if ( $text -notmatch '\u5386\u53F2\u5FEB\u7167' -or $text -notmatch '\u4E0D\u4EE3\u8868\u5F53\u524D' ) {
+            Add-Failure "RC0 workspace snapshot must clearly state it is historical and not current"
+        }
+    }
+}
+
+foreach ( $relative in $extraMarkdownDocs ) {
+    $path = Join-Path $Root $relative
+    if ( ! (Test-Path -LiteralPath $path -PathType Leaf) ) {
+        Add-Failure "extra markdown document missing: $relative"
+        continue
+    }
+
+    $text = Read-Utf8Text $path
+    $display = $relative.Replace("\", "/")
+
+    if ( $text.Contains([char]0) ) {
+        Add-Failure "NUL/control character found in $display"
+    }
+
+    if ( ! $readme.Contains($display) ) {
+        Add-Failure "docs README does not reference $display"
+    }
+
+    if ( ! $matrix.Contains($display) ) {
+        Add-Failure "docs status matrix does not reference $display"
+    }
+
+    foreach ( $pattern in $stalePatterns ) {
+        if ( $text -match $pattern ) {
+            Add-Failure "stale marker remains in ${display}: $pattern"
+        }
+    }
+
+    foreach ( $pattern in $forbiddenPolicyPatterns ) {
+        if ( $text -match $pattern ) {
+            Add-Failure "forbidden stale policy wording in ${display}: $pattern"
+        }
+    }
+
+    foreach ( $pattern in $staleCurrentCountPatterns ) {
+        if ( $text -match $pattern ) {
+            Add-Failure "stale current-count wording in ${display}: $pattern"
+        }
+    }
+}
+
+$readmeDocs = @(Get-ChildItem -LiteralPath $Root -Filter "README.md" -File -Recurse | Sort-Object FullName)
+$rootFullPath = (Resolve-Path -LiteralPath $Root).Path
+if ( ! $rootFullPath.EndsWith("\") ) {
+    $rootFullPath = $rootFullPath + "\"
+}
+foreach ( $doc in $readmeDocs ) {
+    $docFullPath = (Resolve-Path -LiteralPath $doc.FullName).Path
+    if ( ! $docFullPath.StartsWith($rootFullPath, [System.StringComparison]::OrdinalIgnoreCase) ) {
+        Add-Failure "README document is outside root: $docFullPath"
+        continue
+    }
+
+    $relative = $docFullPath.Substring($rootFullPath.Length)
+    $normalized = $relative.Replace("/", "\")
+    $lower = $normalized.ToLowerInvariant()
+    $ignored = $false
+
+    foreach ( $prefix in $ignoredReadmePrefixes ) {
+        if ( $lower.StartsWith($prefix) ) {
+            $ignored = $true
+            break
+        }
+    }
+
+    if ( $ignored ) {
+        continue
+    }
+
+    if ( ! $knownReadmeDocs.Contains($lower) ) {
+        Add-Failure "README document is not registered in docs index guard: $normalized"
+    }
 }
 
 if ( ! $readme.Contains("../cgenrule/README.md") ) {
@@ -120,4 +252,4 @@ if ( $failures.Count -gt 0 ) {
     exit 1
 }
 
-Write-Host "docs index ok: $($docs.Count) markdown files."
+Write-Host "docs index ok: $($docs.Count) docs markdown files, $($extraMarkdownDocs.Count) extra markdown entry docs."

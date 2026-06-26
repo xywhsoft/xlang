@@ -9,6 +9,8 @@ if ( $Root -eq "" ) {
 }
 
 $packageDir = Join-Path $Root "packages"
+$readmePath = Join-Path $packageDir "README.md"
+$minPackages = 17
 $failures = New-Object System.Collections.Generic.List[string]
 $missingXapiPackages = @("missing_interface")
 $legacyFormatPackages = @("broken_xapi")
@@ -64,6 +66,51 @@ if ( ! (Test-Path -LiteralPath $packageDir -PathType Container) ) {
 $packages = @(Get-ChildItem -LiteralPath $packageDir -Directory | Sort-Object Name)
 $manifests = @{}
 $packageIndex = New-Object System.Collections.Generic.HashSet[string]
+$moduleIndex = New-Object System.Collections.Generic.HashSet[string]
+$exportIndex = New-Object System.Collections.Generic.HashSet[string]
+
+if ( $packages.Count -lt $minPackages ) {
+    Add-Failure "package fixture baseline regressed: $($packages.Count) < $minPackages"
+}
+
+if ( ! (Test-Path -LiteralPath $readmePath -PathType Leaf) ) {
+    Add-Failure "packages README missing: packages/README.md"
+} else {
+    $readmeText = [System.IO.File]::ReadAllText($readmePath, [System.Text.Encoding]::UTF8)
+    $readmePackageNames = New-Object System.Collections.Generic.HashSet[string]
+    $startMarker = "<!-- package-index:start -->"
+    $endMarker = "<!-- package-index:end -->"
+    $start = $readmeText.IndexOf($startMarker)
+    $end = $readmeText.IndexOf($endMarker)
+
+    if ( $start -lt 0 -or $end -lt 0 -or $end -le $start ) {
+        Add-Failure "packages README package index markers are missing or invalid"
+        $indexText = ""
+    } else {
+        $indexStart = $start + $startMarker.Length
+        $indexText = $readmeText.Substring($indexStart, $end - $indexStart)
+    }
+
+    $readmeMatches = [regex]::Matches($indexText, '(?m)^-\s+`([^`]+)`')
+
+    foreach ( $match in $readmeMatches ) {
+        $name = $match.Groups[1].Value
+        if ( ! $readmePackageNames.Add($name) ) {
+            Add-Failure "packages README lists package more than once: $name"
+        }
+
+        $path = Join-Path $packageDir $name
+        if ( ! (Test-Path -LiteralPath $path -PathType Container) ) {
+            Add-Failure "packages README references missing package directory: packages/$name"
+        }
+    }
+
+    foreach ( $pkg in $packages ) {
+        if ( ! $readmePackageNames.Contains($pkg.Name) ) {
+            Add-Failure "packages README does not list package directory: packages/$($pkg.Name)"
+        }
+    }
+}
 
 foreach ( $pkg in $packages ) {
     $manifestPath = Join-Path $pkg.FullName "xlang.package.json"
@@ -97,7 +144,10 @@ foreach ( $pkg in $packages ) {
         Add-Failure "package manifest xapi missing: packages/$($pkg.Name)/xlang.package.json"
     }
 
-    $packageIndex.Add(("{0}@{1}#abi{2}" -f $manifest.name, $manifest.version, $manifest.abiVersion)) | Out-Null
+    $expectedPackageId = "{0}@{1}#abi{2}" -f $manifest.name, $manifest.version, $manifest.abiVersion
+    if ( ! $packageIndex.Add($expectedPackageId) ) {
+        Add-Failure "duplicate package identity: $expectedPackageId"
+    }
 }
 
 foreach ( $pkg in $packages ) {
@@ -143,6 +193,68 @@ foreach ( $pkg in $packages ) {
     }
     if ( $xapi.package.abiVersion -ne $manifest.abiVersion ) {
         Add-Failure "package abiVersion mismatch between manifest and xapi: packages/$($pkg.Name)"
+    }
+
+    $expectedPackageId = "{0}@{1}#abi{2}" -f $manifest.name, $manifest.version, $manifest.abiVersion
+    if ( [string]$xapi.package.packageId -ne $expectedPackageId ) {
+        Add-Failure "packageId mismatch between manifest and xapi: packages/$($pkg.Name)"
+    }
+
+    if ( [string]::IsNullOrEmpty($xapi.module.name) ) {
+        Add-Failure "package xapi module.name missing: packages/$($pkg.Name)/$xapiRel"
+    } elseif ( [string]$xapi.module.name -ne [string]$manifest.name ) {
+        Add-Failure "module name mismatch between manifest and xapi: packages/$($pkg.Name)"
+    }
+
+    $expectedModuleId = "{0}::{1}" -f $expectedPackageId, $xapi.module.name
+    if ( [string]$xapi.module.moduleId -ne $expectedModuleId ) {
+        Add-Failure "moduleId mismatch between packageId and module name: packages/$($pkg.Name)"
+    } elseif ( ! $moduleIndex.Add([string]$xapi.module.moduleId) ) {
+        Add-Failure "duplicate xapi moduleId: $($xapi.module.moduleId)"
+    }
+
+    $expectedSource = "packages/$($pkg.Name)"
+    if ( [string]$xapi.module.source -ne $expectedSource ) {
+        Add-Failure "module source mismatch: packages/$($pkg.Name), expected $expectedSource"
+    }
+
+    if ( [string]$xapi.entry.kind -ne "none" ) {
+        Add-Failure "package xapi entry.kind must be none: packages/$($pkg.Name)"
+    }
+    if ( [string]$xapi.entry.initSymbol -ne "xlInit" ) {
+        Add-Failure "package xapi entry.initSymbol must be xlInit: packages/$($pkg.Name)"
+    }
+    if ( [string]$xapi.entry.unitSymbol -ne "xlUnit" ) {
+        Add-Failure "package xapi entry.unitSymbol must be xlUnit: packages/$($pkg.Name)"
+    }
+
+    foreach ( $export in @($xapi.exports) ) {
+        if ( $null -eq $export ) {
+            continue
+        }
+
+        if ( [string]::IsNullOrEmpty($export.kind) ) {
+            Add-Failure "package xapi export kind missing: packages/$($pkg.Name)"
+        }
+        if ( [string]::IsNullOrEmpty($export.name) ) {
+            Add-Failure "package xapi export name missing: packages/$($pkg.Name)"
+        }
+        if ( [string]::IsNullOrEmpty($export.signature) ) {
+            Add-Failure "package xapi export signature missing: packages/$($pkg.Name)::$($export.name)"
+        }
+        if ( [string]::IsNullOrEmpty($export.exportId) ) {
+            Add-Failure "package xapi exportId missing: packages/$($pkg.Name)::$($export.name)"
+            continue
+        }
+
+        $expectedExportId = "{0}::{1}({2})" -f $xapi.module.moduleId, $export.name, $export.signature
+        if ( [string]$export.exportId -ne $expectedExportId ) {
+            Add-Failure "package xapi exportId mismatch: packages/$($pkg.Name)::$($export.name)"
+        }
+
+        if ( ! $exportIndex.Add([string]$export.exportId) ) {
+            Add-Failure "duplicate xapi exportId: $($export.exportId)"
+        }
     }
 
     $manifestSources = Artifact-Sources $manifest

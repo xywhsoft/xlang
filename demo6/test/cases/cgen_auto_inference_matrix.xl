@@ -1,0 +1,99 @@
+extern "expect_i64" func expect(int actual, int expected)
+extern "expect_str" func expectStr(string actual, string expected)
+
+class MatrixBox
+    int value
+    string label
+
+    func getValue() -> int
+        return self.value
+    end
+end
+
+func makeBox(int value, string label) -> MatrixBox
+    MatrixBox box
+    box.value = value
+    box.label = label
+    return box
+end
+
+func makeAdder(int base) -> function(int) -> int
+    return func(int value) -> int
+        return base + value
+    end
+end
+
+func add(int left, int right) -> int
+    return left + right
+end
+
+async func doubleAsync(int value) -> int
+    return value * 2
+end
+
+auto literalInt = 42
+auto literalFloat = 1.5
+auto literalBool = true
+auto literalString = "matrix"
+
+auto dynamicArray = [1, 2, 3]
+auto dynamicList = [0: "zero", 2: "two"]
+auto dynamicDict = {"count": 5}
+
+array<int> typedArray = array[10, 20, 30]
+list<string> typedList = list[2: "two"]
+dict<int> typedDict = dict{"count": 9}
+
+auto typedArrayItem = typedArray[1]
+auto typedListItem = typedList[2]
+auto typedDictItem = typedDict["count"]
+auto missingTypedItem = typedArray?[9]
+
+auto dynamicArrayItem = dynamicArray[1]
+auto dynamicListItem = dynamicList[2]
+auto dynamicDictItem = dynamicDict["count"]
+
+auto box = makeBox(7, "box")
+auto fieldValue = box.value
+auto fieldText = box.label
+auto methodValue = box.getValue()
+
+auto fn = makeAdder(10)
+auto fnResult = fn(5)
+auto callResult = add(fieldValue, methodValue)
+
+auto futureValue = doubleAsync(6)
+auto awaitedValue = await futureValue
+
+auto autoCh = channel::<int>(1)
+auto sent = autoCh.send(33)
+int receivedValue = 0
+auto received = autoCh.recvInto(receivedValue)
+autoCh.close()
+
+expect(literalInt, 42)
+expect(int(literalFloat), 1)
+expect(literalBool, 1)
+expectStr(literalString, "matrix")
+
+expect(typedArrayItem, 20)
+expectStr(typedListItem, "two")
+expect(typedDictItem, 9)
+expect(type(missingTypedItem) == null, 1)
+
+expect(type(dynamicArrayItem) == int, 1)
+expect(int(dynamicArrayItem), 2)
+expectStr(string(dynamicListItem), "two")
+expect(type(dynamicDictItem) == int, 1)
+expect(int(dynamicDictItem), 5)
+
+expect(fieldValue, 7)
+expectStr(fieldText, "box")
+expect(methodValue, 7)
+expect(fnResult, 15)
+expect(callResult, 14)
+expect(awaitedValue, 12)
+
+expect(sent, 1)
+expect(received, 1)
+expect(receivedValue, 33)

@@ -18,7 +18,7 @@
 - `ABI设计.md`：内部 ABI、C ABI、C 兼容类型、符号生成、类型映射和 ABI dump。
 - `C混编设计.md`：C 与 xlang 互相声明、导出、生成头文件和 C ABI wrapper。
 - `命令行设计.md`：CLI、四阶段编译管线、调试 dump、构建、运行和 C 混编命令。
-- `标准库设计.md`：标准库默认注册、短命名空间、XRT/CRT 边界、第一批标准库函数和扩展批次。
+- `标准库设计.md`：标准库默认注册、短命名空间、XRT/CRT 边界、第一批标准库函数、暂缓能力和后续设计议题。
 - `异常处理与文档注释设计.md`：异常处理、断言、高级错误模型和 `#doc ... #end` 文档注释。
 - `扩展库系统设计.md`：package、XAPI、接口元数据、版本隔离、依赖解析和扩展库分发模型。
 - `DLL嵌入式运行库设计.md`：`xl.dll` 嵌入式 API、上下文、脚本运行、exe 编译、C 函数注册和 XRT 注入。
@@ -54,6 +54,32 @@
 - `../cgenrule/01_入口与声明规则.md` 到 `../cgenrule/33_P2_DLL_API动态执行细则.md`：共 834 条 `CGEN-*` 规则。
 - `../cgenrule/34_规则测试范例交叉索引.md` 到 `../cgenrule/42_P2_CLI_DLL验证矩阵.md`：规则到测试、范例和工具脚本的验证矩阵。
 - `../cgenrule/43_文档整理收口.md` 与 `../cgenrule/44_文档整理验收报告.md`：cgenrule 文档整理收口和验收报告。
+
+## 范例文档
+
+范例目录中的 README 不作为语言设计来源，但属于当前可用功能的说明入口：
+
+- `../examples/README.md`：范例目录总入口、根目录范例和标准库范例索引。
+- `../examples/tutorial/README.md`：教学范例阅读顺序和运行入口。
+- `../examples/feature_suite/README.md`：功能范例套件索引、宿主文件和回归入口。
+
+## 测试资产文档
+
+以下 README 只描述测试资产，不作为语言设计来源：
+
+- `../packages/README.md`：package/import/XAPI 测试包目录索引、正负例用途和验证入口。
+- `../test/README.md`：测试目录入口、用例前缀索引和测试资产守门脚本说明。
+
+## 工程目录文档
+
+以下 README 只描述工程目录职责，不作为语言设计来源：
+
+- `../README.md`：DEMO6 根目录入口、常用命令和维护原则。
+- `../src/README.md`：源码分片职责、生成文件和源码维护规则。
+- `../tools/README.md`：工具链入口、守门脚本索引和 RC0 入口。
+- `../include/README.md`：公开 C API 头文件说明。
+- `../lib/README.md`：XRT 单头文件、libprobe fixture 和依赖维护规则。
+- `../release/README.md`：构建产物目录说明。
 
 ## 维护规则
 

@@ -67,7 +67,7 @@ RC0 的目标不是继续扩张语言特性，而是把已经实现的基础能�
 - CLI 和诊断层对 `stderr` 的流程级输出。
 - `snprintf` 用于固定缓冲区安全格式化。
 - flex/lemon 生成代码内部 CRT 使用。
-- `system` 暂时用于调用 tcc 和辅助工具。
+- CLI 调用 TCC、生成 loadlib import definition 和运行临时 exe 已迁移到 XRT process API，不再保留 `system` 例外。
 
 ### cgen 结构
 
@@ -138,10 +138,9 @@ JSON 诊断格式基线：
 
 当前覆盖：
 
-- `test/cases`：271 个测试输入或 host 文件。
-- `.xl` 测试：251 个。
-- C host 测试：20 个。
-- `examples`：27 个范例相关文件。
+- `test/cases`：428 个 `.xl` 测试用例。
+- C/H fixture：41 个入口 fixture，9 个 package native fixture。
+- `examples`：57 个 `.xl` 范例文件，其中标准库范例 17 个。
 - `feature_suite` 覆盖基础语言、控制流、函数、类型、容器、泛型、闭包、class/custom、C 混编、C export ABI。
 
 ## 不属于 RC0 的范围
@@ -151,7 +150,7 @@ JSON 诊断格式基线：
 - 新增高级语言特性。
 - 完整 package 管理器。
 - 用户手写 XAPI 格式承诺。
-- XRT process 替换所有 `system` 调用。
+- 继续把 `test.bat` 拆成更细的独立子套件。
 - object 动态对象系统。
 - f-string 插值实现。
 - 完整跨平台 DLL 入口抽象。
@@ -162,7 +161,6 @@ JSON 诊断格式基线：
 
 仍需关注：
 
-- `driver` 中仍有较多命令行拼接和 `system` 调用，后续可迁移到 XRT process。
 - `sem` 仍是最大单体模块，后续可按类型检查、调用检查、class/custom、泛型等边界拆分。
 - `test.bat` 体量很大，后续可拆成 smoke/sem/cgen/import/export 多个脚本。
 - 中文诊断文本需要持续保持 UTF-8 源文件口径。

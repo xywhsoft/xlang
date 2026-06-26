@@ -102,6 +102,11 @@ static const XL6_StdlibParam xl6StdRuntimeTakeCstrParams[] = {
     {"point", "value"}
 };
 
+static const XL6_StdlibParam xl6StdRuntimePrintParams[] = {
+    {"var", "values"},
+    {"bool", "newline"}
+};
+
 static const XL6_StdlibParam xl6StdRuntimeStringSplitParams[] = {
     {"string", "text"},
     {"string", "sep"}
@@ -1334,9 +1339,20 @@ static const char xl6StdHttpServerDestroyBody[] =
     "    __xl_std_runtime_http_server_destroy(server)\n"
     "end\n";
 
+static const char xl6StdPrintBody[] =
+    "func __xl_std_print(...)\n"
+    "    __xl_std_runtime_print(arg, false)\n"
+    "end\n";
+
+static const char xl6StdPrintlnBody[] =
+    "func __xl_std_println(...)\n"
+    "    __xl_std_runtime_print(arg, true)\n"
+    "end\n";
+
 static const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"__crt_string", "strlen", "__xl_std_crt_strlen", "strlen", xl6StdStringLenParams, 1, "c_size", NULL},
     {"__xl_runtime", "takeCstr", "__xl_std_runtime_take_cstr", "xl6_xrt_take_cstr", xl6StdRuntimeTakeCstrParams, 1, "string", NULL},
+    {"__xl_runtime", "print", "__xl_std_runtime_print", "xl6_xrt_print", xl6StdRuntimePrintParams, 2, "", NULL},
     {"__xl_runtime", "stringSplit", "__xl_std_runtime_string_split", "xl6_xrt_string_split", xl6StdRuntimeStringSplitParams, 2, "var", NULL},
     {"__xl_runtime", "stringStartsWith", "__xl_std_runtime_string_starts_with", "xl6_xrt_string_starts_with", xl6StdRuntimeStringEdgeParams, 5, "c_bool", NULL},
     {"__xl_runtime", "stringEndsWith", "__xl_std_runtime_string_ends_with", "xl6_xrt_string_ends_with", xl6StdRuntimeStringEdgeParams, 5, "c_bool", NULL},
@@ -1481,6 +1497,9 @@ static const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"__xrt_net", "localIP", "__xl_std_xrt_get_local_ip", "xrtGetLocalIP", NULL, 0, "point", NULL},
     {"__xrt_net", "localMAC", "__xl_std_xrt_get_local_mac", "xrtGetLocalMAC", NULL, 0, "point", NULL},
     {"__xrt_net", "localName", "__xl_std_xrt_get_local_name", "xrtGetLocalName", NULL, 0, "point", NULL},
+
+    {"", "print", "__xl_std_print", NULL, NULL, 0, "", xl6StdPrintBody},
+    {"", "println", "__xl_std_println", NULL, NULL, 0, "", xl6StdPrintlnBody},
 
     {"math", "sin", "__xl_std_math_sin", "sin", xl6StdMathUnaryFloatParams, 1, "float", NULL},
     {"math", "cos", "__xl_std_math_cos", "cos", xl6StdMathUnaryFloatParams, 1, "float", NULL},
@@ -1832,6 +1851,13 @@ static void xl6StdlibApplyDeps(int* used)
     if ( xl6StdlibFindFunc("math", "round", &index) != NULL && used[index] ) {
         xl6StdlibMarkFuncUsed(used, "math", "floor");
         xl6StdlibMarkFuncUsed(used, "math", "ceil");
+    }
+
+    if ( xl6StdlibFindFunc("", "print", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "print");
+    }
+    if ( xl6StdlibFindFunc("", "println", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "print");
     }
 
     if ( xl6StdlibFindFunc("string", "len", &index) != NULL && used[index] ) {
@@ -2495,6 +2521,21 @@ static int xl6StdlibRewriteRefs(XL6_AstNode* node, int* used, XL6_DiagList* diag
     size_t index;
     size_t i;
     int ok;
+
+    /* 全局标准库函数：print(...) -> __xl_std_print(...)。 */
+    if ( node != NULL && node->kind == XL6_AST_CALL && node->childCount > 0 &&
+         node->children[0] != NULL && node->children[0]->kind == XL6_AST_NAME ) {
+        XL6_AstNode* callee = node->children[0];
+        const XL6_StdlibFunc* func = xl6StdlibFindFunc("", callee->text, &index);
+        if ( func != NULL ) {
+            used[index] = 1;
+            xrtFree(callee->text);
+            callee->text = xl6StdlibDupText(func->internalName);
+            if ( callee->text == NULL ) {
+                return 0;
+            }
+        }
+    }
 
     if ( node == NULL ) {
         return 1;

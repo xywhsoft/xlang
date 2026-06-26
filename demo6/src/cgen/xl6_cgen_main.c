@@ -54,6 +54,7 @@ static void xl6CgenEmitMainWrapper(XL6_CgenContext* ctx, const XL6_AstNode* main
         xl6OutputPuts("    __xl6_code = (int)xl_user_main(__xl6_arg);\n", ctx->out);
         if ( ctx->needsErrorRuntime ) {
             xl6OutputPuts("    if ( xl6_error_has() ) {\n", ctx->out);
+            xl6OutputPuts("        xl6_error_print_uncaught();\n", ctx->out);
             xl6OutputPuts("        xl6_error_clear();\n", ctx->out);
             xl6OutputPuts("        xlUnit();\n", ctx->out);
             xl6OutputPuts("        return 1;\n", ctx->out);
@@ -65,6 +66,7 @@ static void xl6CgenEmitMainWrapper(XL6_CgenContext* ctx, const XL6_AstNode* main
         xl6OutputPuts("    xl_user_main(__xl6_arg);\n", ctx->out);
         if ( ctx->needsErrorRuntime ) {
             xl6OutputPuts("    if ( xl6_error_has() ) {\n", ctx->out);
+            xl6OutputPuts("        xl6_error_print_uncaught();\n", ctx->out);
             xl6OutputPuts("        xl6_error_clear();\n", ctx->out);
             xl6OutputPuts("        xlUnit();\n", ctx->out);
             xl6OutputPuts("        return 1;\n", ctx->out);

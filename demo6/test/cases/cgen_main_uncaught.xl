@@ -1,0 +1,4 @@
+func main(...) -> int
+    throw "main boom"
+    return 0
+end

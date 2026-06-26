@@ -17,6 +17,8 @@ $entryWiringFiles = @(
     "examples\feature_suite\run_feature_suite.bat"
 )
 
+$minEntryFixtures = 41
+$minPackageFixtures = 9
 $failures = New-Object System.Collections.Generic.List[string]
 
 function Add-Failure($message)
@@ -93,11 +95,10 @@ foreach ( $relative in ($referenced | Sort-Object) ) {
 $packageDir = Join-Path $Root "packages"
 if ( Test-Path -LiteralPath $packageDir -PathType Container ) {
     $jsonFiles = @(Get-ChildItem -LiteralPath $packageDir -File -Recurse -Filter "*.json" | Sort-Object FullName)
-    $packageTextParts = New-Object System.Collections.Generic.List[string]
+    $packageDeclaredSources = @{}
 
     foreach ( $json in $jsonFiles ) {
         $text = Read-Utf8Text $json.FullName
-        $packageTextParts.Add($text) | Out-Null
 
         $sourceMatches = [regex]::Matches($text, '"cSources"\s*:\s*\[(?<items>[^\]]*)\]')
         foreach ( $sourceMatch in $sourceMatches ) {
@@ -106,6 +107,9 @@ if ( Test-Path -LiteralPath $packageDir -PathType Container ) {
             foreach ( $itemMatch in $itemMatches ) {
                 $source = $itemMatch.Groups[1].Value
                 $sourcePath = Join-Path $json.DirectoryName $source
+                $sourceFullPath = [System.IO.Path]::GetFullPath($sourcePath)
+                $packageDeclaredSources[$sourceFullPath.ToLowerInvariant()] = $true
+
                 if ( ! (Test-Path -LiteralPath $sourcePath -PathType Leaf) ) {
                     $relJson = $json.FullName.Substring($rootPath.Length + 1).Replace("\", "/")
                     Add-Failure "package cSources missing file: $relJson -> $source"
@@ -114,14 +118,28 @@ if ( Test-Path -LiteralPath $packageDir -PathType Container ) {
         }
     }
 
-    $packageText = [string]::Join("`n", $packageTextParts)
     $packageAssets = @(Get-ChildItem -LiteralPath $packageDir -File -Recurse | Where-Object { $_.Extension -in ".c", ".h" } | Sort-Object FullName)
     foreach ( $asset in $packageAssets ) {
-        if ( $packageText -notmatch [regex]::Escape($asset.Name) ) {
-            $relative = $asset.FullName.Substring($rootPath.Length + 1).Replace("\", "/")
+        $relative = $asset.FullName.Substring($rootPath.Length + 1).Replace("\", "/")
+        $assetFullPath = [System.IO.Path]::GetFullPath($asset.FullName)
+        if ( ! $packageDeclaredSources.ContainsKey($assetFullPath.ToLowerInvariant()) ) {
             Add-Failure "package C fixture is not declared by package metadata: $relative"
         }
     }
+}
+
+$entryCount = @(Get-ChildItem -Path (Join-Path $Root "test\cases"), (Join-Path $Root "examples") -File -Recurse | Where-Object { $_.Extension -in ".c", ".h" }).Count
+$packageCount = 0
+if ( Test-Path -LiteralPath $packageDir -PathType Container ) {
+    $packageCount = @(Get-ChildItem -LiteralPath $packageDir -File -Recurse | Where-Object { $_.Extension -in ".c", ".h" }).Count
+}
+
+if ( $entryCount -lt $minEntryFixtures ) {
+    Add-Failure "entry C fixture baseline regressed: $entryCount < $minEntryFixtures"
+}
+
+if ( $packageCount -lt $minPackageFixtures ) {
+    Add-Failure "package C fixture baseline regressed: $packageCount < $minPackageFixtures"
 }
 
 if ( $failures.Count -gt 0 ) {
@@ -129,12 +147,6 @@ if ( $failures.Count -gt 0 ) {
         Write-Host $failure
     }
     exit 1
-}
-
-$entryCount = @(Get-ChildItem -Path (Join-Path $Root "test\cases"), (Join-Path $Root "examples") -File -Recurse | Where-Object { $_.Extension -in ".c", ".h" }).Count
-$packageCount = 0
-if ( Test-Path -LiteralPath $packageDir -PathType Container ) {
-    $packageCount = @(Get-ChildItem -LiteralPath $packageDir -File -Recurse | Where-Object { $_.Extension -in ".c", ".h" }).Count
 }
 
 Write-Host "C fixture wiring ok: $entryCount entry fixtures, $packageCount package fixtures."

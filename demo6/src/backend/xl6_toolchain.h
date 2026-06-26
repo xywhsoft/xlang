@@ -13,6 +13,7 @@
 #define XL6_TCC_WINAPI_INCLUDE_PATH "..\\demo5\\release\\tcc\\include_win\\winapi"
 #define XL6_TCC_LIB_PATH "..\\demo5\\release\\tcc\\lib"
 #define XL6_TCC_LIBTCC1_PATH "..\\demo5\\release\\tcc\\lib\\libtcc1-64.a"
+#define XL6_XRT_OBJ_PATH "..\\..\\xrt\\release\\x64\\xrt.o"
 
 #define XL6_TCC_DEFAULT_COMMAND_PREFIX \
     XL6_TCC_EXE_PATH " " \

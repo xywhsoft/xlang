@@ -332,7 +332,8 @@ static int xl6CgenTypedIndexCompoundAssignStmt(
 
     binaryOp = xl6CgenCompoundBinaryOp(op);
     if ( binaryOp == NULL ) {
-        xl6CgenError(ctx, left, "unsupported typed index compound assignment operator");
+        snprintf(tempName, sizeof(tempName), "typed index compound operator is not supported: %s", op != NULL ? op : "<missing>");
+        xl6CgenError(ctx, left, tempName);
         xl6AstFree(itemType);
         xl6AstFree(receiverType);
         return 1;

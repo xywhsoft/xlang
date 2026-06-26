@@ -1,0 +1,15 @@
+extern "expect_i64" func expect(int actual, int expected)
+
+func order<T, U>(T left, U right) -> int
+    return 10
+end
+
+func order<T, U>(U left, T right) -> int
+    return 20
+end
+
+int first = order::<int, string>(1, "x")
+int second = order::<int, string>("x", 1)
+
+expect(first, 10)
+expect(second, 20)

@@ -132,14 +132,14 @@ static void xl6CgenRangeContainsExpr(XL6_CgenContext* ctx, const XL6_AstNode* va
     const XL6_AstNode* args;
 
     if ( !xl6CgenIsRangeCall(rangeCall) || rangeCall->childCount < 2 ) {
-        xl6CgenError(ctx, rangeCall, "in 右侧必须�?range(...)");
+        xl6CgenError(ctx, rangeCall, "in 右侧必须是 range(...)");
         xl6OutputPuts("0", ctx->out);
         return;
     }
 
     args = rangeCall->children[1];
     if ( args == NULL || args->childCount == 0 || args->childCount > 3 ) {
-        xl6CgenError(ctx, rangeCall, "range 参数数量必须�?1�? �?3");
+        xl6CgenError(ctx, rangeCall, "range 参数数量必须是 1、2 或 3");
         xl6OutputPuts("0", ctx->out);
         return;
     }
@@ -573,7 +573,7 @@ static void xl6CgenForRange(XL6_CgenContext* ctx, const XL6_AstNode* node)
     targets = node->children[0];
     rangeCall = node->children[1];
     if ( !xl6CgenIsRangeCall(rangeCall) ) {
-        xl6CgenError(ctx, rangeCall, "当前 C 生成只支�?for ... in range(...)");
+        xl6CgenError(ctx, rangeCall, "当前 C 生成只支持 for ... in range(...)");
         return;
     }
     if ( targets == NULL || targets->childCount == 0 || targets->childCount > 2 ) {
@@ -583,7 +583,7 @@ static void xl6CgenForRange(XL6_CgenContext* ctx, const XL6_AstNode* node)
 
     args = rangeCall->children[1];
     if ( args->childCount == 0 || args->childCount > 3 ) {
-        xl6CgenError(ctx, rangeCall, "range 参数数量必须�?1�? �?3");
+        xl6CgenError(ctx, rangeCall, "range 参数数量必须是 1、2 或 3");
         return;
     }
 
@@ -789,13 +789,13 @@ static void xl6CgenForGeneratorIterable(XL6_CgenContext* ctx, const XL6_AstNode*
     targets = node->children[0];
     iterable = node->children[1];
     if ( targets == NULL || targets->childCount != 1 ) {
-        xl6CgenError(ctx, targets, "generator for in ֻ֧��һ����������");
+        xl6CgenError(ctx, targets, "generator for in 只支持一个目标变量");
         return;
     }
 
     itemType = xl6CgenCloneGeneratorItemType(ctx, iterableType);
     if ( itemType == NULL ) {
-        xl6CgenError(ctx, iterableType, "generator ����д�� generator<T>");
+        xl6CgenError(ctx, iterableType, "generator 类型必须写成 generator<T>");
         return;
     }
     itemCType = xl6CgenTypeName(ctx, itemType);

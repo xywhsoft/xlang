@@ -179,7 +179,12 @@ static void xl6CgenStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
         break;
 
     default:
-        xl6CgenError(ctx, node, "unsupported statement kind in C generator");
+    {
+        char message[160];
+
+        snprintf(message, sizeof(message), "C generator does not support statement node: %s", xl6AstKindName(node->kind));
+        xl6CgenError(ctx, node, message);
         break;
+    }
     }
 }

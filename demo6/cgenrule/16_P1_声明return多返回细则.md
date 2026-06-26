@@ -235,12 +235,12 @@
 | 字段 | 内容 |
 | --- | --- |
 | xlang 写法 | `arr[i], b = pair()` |
-| 生成规则描述 | 索引目标不能直接接收任意 C 类型。生成器先把返回字段按返回类型装箱成临时 xvalue，再调用 `xl6CgenIndexAssignTemp` 复用索引赋值规则写入容器。 |
-| 生成器文件名和行号 | `xl6_cgen_stmt_decl.c:526`、`xl6_cgen_stmt_decl.c:643` |
-| 对应生成的 C 代码 | `xvalue __xl6_multi_index_1 = xvoCreateInt(__xl6_multi_0.value0); xl6_index_assign(..., __xl6_multi_index_1);` |
-| 中间形态伪代码 | `returned C value -> xvalue temp -> index assignment` |
-| 实现同等功能手写的 C 代码 | 手写 C 需要按容器 API 将值装箱后 set。 |
-| 额外依赖的封装代码 | xvalue 装箱和索引赋值 helper。 |
+| 生成规则描述 | 索引目标不能直接接收任意 C 类型。生成器先把返回字段按返回类型装箱成临时 xvalue，再调用 `xl6CgenIndexAssignTemp` 复用索引赋值规则写入容器。typed container setValue 成功后必须释放临时 xvalue；动态 dict key 路径还必须先释放临时 key，再释放临时 value。 |
+| 生成器文件名和行号 | `xl6_cgen_stmt_decl.c:526`、`xl6_cgen_stmt_decl.c:656`、`xl6_cgen_stmt_decl.c:667`、`xl6_cgen_value_assign.c:10`、`xl6_cgen_value_assign.c:75`、`xl6_cgen_value_assign.c:1010` |
+| 对应生成的 C 代码 | `xvalue __xl6_multi_index_1 = xvoCreateInt(__xl6_multi_0.value0); if (!xrtTypedArraySetValue(values, i, __xl6_multi_index_1)) { xl6_runtime_fatal(3); } xvoUnref(__xl6_multi_index_1);` |
+| 中间形态伪代码 | `returned C value -> xvalue temp -> index assignment -> release temp after container takes/copies value` |
+| 实现同等功能手写的 C 代码 | 手写 C 需要按容器 API 将值装箱后 set，并在容器完成 copy/retain 后释放临时装箱值。 |
+| 额外依赖的封装代码 | xvalue 装箱、索引赋值 helper、XRT typed container setValue。 |
 
 ## CGEN-DRET-021 多返回赋值到普通目标
 

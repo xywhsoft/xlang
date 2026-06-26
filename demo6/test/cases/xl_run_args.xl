@@ -1,8 +1,9 @@
 func main(...) -> int
-    assert arg.length == 5, "argc mismatch"
+    assert arg.length == 6, "argc mismatch"
     assert arg[1] == "alpha", "argv[1] mismatch"
     assert arg[2] == "two words", "argv[2] mismatch"
     assert arg[3] == "quote\"value", "argv[3] mismatch"
     assert arg[4] == "beta", "argv[4] mismatch"
+    assert arg[5] == "", "argv[5] mismatch"
     return 0
 end

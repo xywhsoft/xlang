@@ -223,12 +223,12 @@
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | 顶层语句里使用 `throw`、`assert` 或可能产生 xlang 错误的表达式 |
-| 生成规则描述 | 脚本模式 main 在错误 runtime 启用时设置 `__xl6_script_error` 标签。顶层语句执行后如果存在未清理错误，则跳转到错误路径；错误路径清理错误状态、调用 `xlUnit`，并返回 1。 |
-| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_module.c:286` |
-| 对应生成的 C 代码 | `if (xl6_error_has()) goto __xl6_script_error; ... __xl6_script_error: xl6_error_clear(); xlUnit(); return 1;` |
-| 中间形态伪代码 | `currentErrorExitLabel = "__xl6_script_error"; emitTopLevel(); if error: goto label; normalExit(); label: clearError(); xlUnit(); return 1` |
+| 生成规则描述 | 脚本模式 main 在错误 runtime 启用时设置 `__xl6_script_error` 标签。顶层语句执行后如果存在未清理错误，则跳转到错误路径；错误路径先输出未捕获错误诊断，再清理错误状态、调用 `xlUnit`，并返回 1。 |
+| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_module.c:286`、错误打印 `demo6/src/cgen/xl6_cgen_module.c:295` |
+| 对应生成的 C 代码 | `if (xl6_error_has()) goto __xl6_script_error; ... __xl6_script_error: xl6_error_print_uncaught(); xl6_error_clear(); xlUnit(); return 1;` |
+| 中间形态伪代码 | `currentErrorExitLabel = "__xl6_script_error"; emitTopLevel(); if error: goto label; normalExit(); label: printUncaught(); clearError(); xlUnit(); return 1` |
 | 实现同等功能手写的 C 代码 | 手写 C 需要人工维护错误标签和统一清理路径。 |
-| 额外依赖的封装代码 | 错误 runtime、脚本错误标签。 |
+| 额外依赖的封装代码 | 错误 runtime、脚本错误标签、`xl6_error_print_uncaught`。 |
 
 ## CGEN-MODULE-020 模块生成状态汇总与上下文资源释放
 

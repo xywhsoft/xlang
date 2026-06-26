@@ -10,14 +10,22 @@ if ( $Root -eq "" ) {
 
 $testDir = Join-Path $Root "test\cases"
 $testBat = Join-Path $Root "test.bat"
+$minStdlibTestFiles = 21
 
 $batText = [System.IO.File]::ReadAllText($testBat, [System.Text.Encoding]::UTF8)
 $missing = New-Object System.Collections.Generic.List[string]
-$tests = Get-ChildItem -Path $testDir -Filter "stdlib_*.xl" -File | Sort-Object Name
+$tests = @(Get-ChildItem -Path $testDir -Filter "stdlib_*.xl" -File | Sort-Object Name)
+
+if ( $tests.Count -lt $minStdlibTestFiles ) {
+    $missing.Add("stdlib test baseline regressed: $($tests.Count) < $minStdlibTestFiles")
+}
 
 foreach ( $test in $tests ) {
-    if ( $batText -notmatch [regex]::Escape($test.Name) ) {
-        $missing.Add($test.Name)
+    $relative = "test\cases\$($test.Name)"
+    $slashRelative = $relative.Replace("\", "/")
+
+    if ( ($batText -notmatch [regex]::Escape($relative)) -and ($batText -notmatch [regex]::Escape($slashRelative)) ) {
+        $missing.Add($relative)
     }
 }
 

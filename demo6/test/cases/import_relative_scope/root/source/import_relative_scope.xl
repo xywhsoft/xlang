@@ -1,0 +1,5 @@
+import "./pkg"
+
+func useRelativePackage() -> int
+    return pkg.value()
+end

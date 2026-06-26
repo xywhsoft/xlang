@@ -1,6 +1,7 @@
 param(
     [string]$Root = "",
-    [int]$ExpectedRuleCount = 834
+    [int]$ExpectedRuleCount = 834,
+    [int]$MinMarkdownDocs = 47
 )
 
 $ErrorActionPreference = "Stop"
@@ -10,6 +11,7 @@ if ( $Root -eq "" ) {
 }
 
 $cgenruleDir = Join-Path $Root "cgenrule"
+$readmePath = Join-Path $cgenruleDir "README.md"
 $srcDir = Join-Path $Root "src"
 $failures = New-Object System.Collections.Generic.List[string]
 
@@ -37,12 +39,22 @@ if ( ! (Test-Path -LiteralPath $cgenruleDir -PathType Container) ) {
     exit 1
 }
 
+if ( ! (Test-Path -LiteralPath $readmePath -PathType Leaf) ) {
+    Write-Host "cgenrule README missing: $readmePath"
+    exit 1
+}
+
 $docs = @(Get-ChildItem -LiteralPath $cgenruleDir -Filter "*.md" -File | Sort-Object Name)
 if ( $docs.Count -eq 0 ) {
     Write-Host "No cgenrule markdown files found."
     exit 1
 }
 
+if ( $docs.Count -lt $MinMarkdownDocs ) {
+    Add-Failure "cgenrule markdown file baseline regressed: $($docs.Count) < $MinMarkdownDocs"
+}
+
+$readmeText = Read-Utf8Text $readmePath
 $ruleIds = New-Object System.Collections.Generic.HashSet[string]
 $ruleLines = New-Object System.Collections.Generic.List[object]
 $allTextParts = New-Object System.Collections.Generic.List[string]
@@ -50,6 +62,10 @@ $allTextParts = New-Object System.Collections.Generic.List[string]
 foreach ( $doc in $docs ) {
     $text = Read-Utf8Text $doc.FullName
     $allTextParts.Add($text) | Out-Null
+
+    if ( $doc.Name -ne "README.md" -and ! $readmeText.Contains($doc.Name) ) {
+        Add-Failure "cgenrule README does not reference $($doc.Name)"
+    }
 
     if ( $text.Contains([char]0) ) {
         Add-Failure "NUL/control character found in $($doc.Name)"

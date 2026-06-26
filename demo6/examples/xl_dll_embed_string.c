@@ -63,7 +63,7 @@ int main(void)
 
     options = xlDefaultContextOptions();
     options.workDir = ".";
-    options.tempDir = "release\\tmp";
+    options.tempDir = "release\\tmp\\dll_api_temp";
     options.tccDllPath = "release\\libtcc.dll";
 
     ctx = xlCreateContext(&options);
@@ -72,7 +72,7 @@ int main(void)
         return 1;
     }
 
-    if ( !xlSetWorkDir(ctx, ".") || !xlSetTempDir(ctx, "release\\tmp") || !xlSetSaveTemps(ctx, 0) ||
+    if ( !xlSetWorkDir(ctx, ".") || !xlSetTempDir(ctx, "release\\tmp\\dll_api_temp") || !xlSetSaveTemps(ctx, 0) ||
          !xlAddIncludePath(ctx, ".") || !xlAddLibraryPath(ctx, "release\\tmp") ||
          !xlAddLinkLibrary(ctx, "xl6dlllink") ||
          !xlLoadDependencyLibrary(ctx, "release\\tmp\\xl_dll_loadlib_host.dll") ||
@@ -101,6 +101,7 @@ int main(void)
     hostScript =
         "extern \"host_add\" func hostAdd(int a, int b) -> int\n"
         "\n"
+        "assert dir.exists(\"release/tmp/dll_api_temp\"), \"temp dir was not prepared\"\n"
         "int value = hostAdd(20, 22)\n"
         "assert value == 42, \"host function call failed\"\n";
 

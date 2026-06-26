@@ -9,7 +9,8 @@
 /demo5/release/xl5_test_*.exe
 
 # DEMO6 generated output
-/demo6/release/
+/demo6/release/*
+!/demo6/release/README.md
 /demo6/*.exe
 /demo6/*.dll
 /demo6/*.obj

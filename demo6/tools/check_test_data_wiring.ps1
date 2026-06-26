@@ -9,6 +9,7 @@ if ( $Root -eq "" ) {
 }
 
 $caseDir = Join-Path $Root "test\cases"
+$minJsonFixtures = 5
 $wiringFiles = @(
     "test.bat",
     "test_all.bat",
@@ -45,9 +46,6 @@ function Test-DirectReference($text, $relative)
     if ( $text -match [regex]::Escape($backslashPath) ) {
         return $true
     }
-    if ( $text -match [regex]::Escape([System.IO.Path]::GetFileName($relative)) ) {
-        return $true
-    }
     return $false
 }
 
@@ -74,6 +72,10 @@ foreach ( $source in $caseSources ) {
 $allText = [string]::Join("`n", $textParts)
 $rootPath = (Resolve-Path -LiteralPath $Root).Path
 $dataFiles = @(Get-ChildItem -LiteralPath $caseDir -File -Recurse | Where-Object { $_.Name.EndsWith(".json") } | Sort-Object FullName)
+
+if ( $dataFiles.Count -lt $minJsonFixtures ) {
+    Add-Failure "test data fixture baseline regressed: $($dataFiles.Count) < $minJsonFixtures"
+}
 
 foreach ( $data in $dataFiles ) {
     $relative = Normalize-PathText ($data.FullName.Substring($rootPath.Length + 1))

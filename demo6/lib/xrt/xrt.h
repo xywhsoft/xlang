@@ -1,7 +1,7 @@
 /*
 
     XRT Single Header File
-    Generated: 2026-06-20 02:04:57
+    Generated: 2026-06-26 00:04:21
 
     MIT License
 
@@ -86067,12 +86067,12 @@ static xson_write_result_t _xson_write_dict(xson_print_t* pPrint, xvalue varVal,
 	}
 	return XSON_WRITE_RESULT_OK;
 }
-// [R12] 集合遍历回调：序列化集合中的每个元素值
-static bool _xson_write_set_proc(Coll_Key* pKey, xson_walk_ctx_t* pCtx)
+// [R12] 集合元素序列化：同时服务旧 Coll 和新 Set 两套底层结构
+static bool _xson_write_set_item(xvalue pItem, xson_walk_ctx_t* pCtx)
 {
 	size_t iMark;
 	xson_write_result_t iRet;
-	if ( pCtx == NULL || pCtx->pPrint == NULL || pKey == NULL ) {
+	if ( pCtx == NULL || pCtx->pPrint == NULL || pItem == NULL ) {
 		return TRUE;
 	}
 	// 记录当前位置，以便跳过时回退
@@ -86092,7 +86092,7 @@ static bool _xson_write_set_proc(Coll_Key* pKey, xson_walk_ctx_t* pCtx)
 		}
 	}
 	// 递归序列化元素值，跳过时回退到元素开始前的位置
-	iRet = _xson_write_value(pCtx->pPrint, pKey->Value, pCtx->iDepth + 1, FALSE);
+	iRet = _xson_write_value(pCtx->pPrint, pItem, pCtx->iDepth + 1, FALSE);
 	if ( iRet == XSON_WRITE_RESULT_SKIP ) {
 		pCtx->pPrint->iUsed = iMark;
 		pCtx->pPrint->sText[pCtx->pPrint->iUsed] = '\0';
@@ -86105,13 +86105,33 @@ static bool _xson_write_set_proc(Coll_Key* pKey, xson_walk_ctx_t* pCtx)
 	pCtx->iCount++;
 	return FALSE;
 }
+// [R12] 旧 Coll 遍历回调：序列化集合中的每个元素值
+static bool _xson_write_set_proc(Coll_Key* pKey, xson_walk_ctx_t* pCtx)
+{
+	if ( pKey == NULL ) {
+		return TRUE;
+	}
+	return _xson_write_set_item(pKey->Value, pCtx);
+}
+// [R12] 新 Set 遍历回调：xrtSet 中保存的是 xvalue 槽位
+static bool _xson_write_set_value_proc(xvalue* ppVal, xson_walk_ctx_t* pCtx)
+{
+	if ( ppVal == NULL ) {
+		return TRUE;
+	}
+	return _xson_write_set_item(*ppVal, pCtx);
+}
 static xson_write_result_t _xson_write_set(xson_print_t* pPrint, xvalue varVal, int iDepth)
 {
 	xson_walk_ctx_t tCtx = { pPrint, iDepth, 0, FALSE };
 	if ( _xson_print_append_raw(pPrint, "set{", 4) == FALSE ) {
 		return XSON_WRITE_RESULT_FAIL;
 	}
-	xrtAVLTreeWalk(varVal->vColl, (ptr)_xson_write_set_proc, &tCtx);
+	if ( __xvoIsSetValue(varVal) ) {
+		xrtSetWalk(varVal->vSet, (xset_each_proc)_xson_write_set_value_proc, &tCtx);
+	} else {
+		xrtAVLTreeWalk(varVal->vColl, (ptr)_xson_write_set_proc, &tCtx);
+	}
 	if ( tCtx.bError ) {
 		return XSON_WRITE_RESULT_FAIL;
 	}

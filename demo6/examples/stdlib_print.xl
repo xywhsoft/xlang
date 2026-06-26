@@ -1,0 +1,8 @@
+print("xlang", "print", 123)
+println(" done")
+
+println(null, true, false, 42, 3.14, #2026-06-18 12:30:59#)
+println([1, 2, 3])
+println([0: "alpha", 5: "omega"])
+println({"name": "xlang", "stage": 6})
+println(set{"red", "green", "blue"})

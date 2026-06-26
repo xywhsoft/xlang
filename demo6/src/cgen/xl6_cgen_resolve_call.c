@@ -81,7 +81,7 @@ static XL6_AstNode* xl6CgenResolveCallFuncInternal(
         xl6AstFree(fixedArgs);
         xl6AstFree(varargArgs);
         if ( report ) {
-            xl6CgenError(ctx, call, "重载调用存在歧义，当�?C 生成无法选择唯一函数");
+            xl6CgenError(ctx, call, "重载调用存在歧义，当前 C 生成无法选择唯一函数");
         }
         return NULL;
     }
@@ -98,7 +98,7 @@ static XL6_AstNode* xl6CgenResolveCallFuncInternal(
     xl6AstFree(varargArgs);
     if ( varargBestCount > 1 ) {
         if ( report ) {
-            xl6CgenError(ctx, call, "重载调用存在歧义，当�?C 生成无法选择唯一函数");
+            xl6CgenError(ctx, call, "重载调用存在歧义，当前 C 生成无法选择唯一函数");
         }
     } else if ( report ) {
         xl6CgenError(ctx, call, "找不到匹配的重载函数");
@@ -267,14 +267,14 @@ static XL6_AstNode* xl6CgenResolveCallFunc(XL6_CgenContext* ctx, const XL6_AstNo
         return fixedMatch;
     }
     if ( fixedBestCount > 1 ) {
-        xl6CgenError(ctx, call, "重载调用存在歧义，当�?C 生成无法选择唯一函数");
+        xl6CgenError(ctx, call, "重载调用存在歧义，当前 C 生成无法选择唯一函数");
         return NULL;
     }
     if ( varargBestCount == 1 ) {
         return varargMatch;
     }
     if ( varargBestCount > 1 ) {
-        xl6CgenError(ctx, call, "重载调用存在歧义，当�?C 生成无法选择唯一函数");
+        xl6CgenError(ctx, call, "重载调用存在歧义，当前 C 生成无法选择唯一函数");
     } else {
         xl6CgenError(ctx, call, "找不到匹配的重载函数");
     }
@@ -356,14 +356,14 @@ static const XL6_AstNode* xl6CgenResolveCallableInBody(
         return fixedMatch;
     }
     if ( fixedBestCount > 1 ) {
-        xl6CgenError(ctx, call, "成员调用存在重载歧义，当�?C 生成无法选择唯一成员");
+        xl6CgenError(ctx, call, "成员调用存在重载歧义，当前 C 生成无法选择唯一成员");
         return NULL;
     }
     if ( varargBestCount == 1 ) {
         return varargMatch;
     }
     if ( varargBestCount > 1 ) {
-        xl6CgenError(ctx, call, "成员调用存在重载歧义，当�?C 生成无法选择唯一成员");
+        xl6CgenError(ctx, call, "成员调用存在重载歧义，当前 C 生成无法选择唯一成员");
     } else if ( candidateCount > 0 && reportNoMatch ) {
         xl6CgenError(ctx, call, "找不到匹配的成员重载");
     }
@@ -543,7 +543,7 @@ static void xl6CgenCustomCtorValue(XL6_CgenContext* ctx, const XL6_AstNode* cust
         return;
     }
 
-    xl6CgenError(ctx, call, "custom 没有 create 时只能用一�?point 参数绑定已有句柄");
+    xl6CgenError(ctx, call, "custom 没有 create 时只能用一个 point 参数绑定已有句柄");
     xl6OutputPuts("0", ctx->out);
 }
 
