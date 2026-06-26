@@ -9,12 +9,21 @@ if ( $Root -eq "" ) {
 }
 
 $srcDir = Join-Path $Root "src"
+$srcReadme = Join-Path $srcDir "README.md"
+$minSourceFiles = 79
+$minDirectSources = 31
+$minIncludedSources = 48
+$minGeneratedDirectSources = 2
 $wiringFiles = @(
     "build.bat",
     "build_dll.bat",
     "test.bat",
     "tools\rc0_guard.ps1"
 )
+$generatedSourceInputs = @{
+    "src/lexer/xl6_lexer_gen.c" = "src/lexer/xl6_lexer.l"
+    "src/parser/xl6_parser.c" = "src/parser/xl6_parser.y"
+}
 
 $failures = New-Object System.Collections.Generic.List[string]
 
@@ -39,9 +48,28 @@ function Relative-From-Root($path)
     return (Normalize-RelativePath $path.FullName.Substring($rootPath.Length + 1))
 }
 
+function Test-GeneratedSource($relative)
+{
+    return $generatedSourceInputs.ContainsKey($relative)
+}
+
 if ( ! (Test-Path -LiteralPath $srcDir -PathType Container) ) {
     Write-Host "src directory missing: $srcDir"
     exit 1
+}
+
+if ( ! (Test-Path -LiteralPath $srcReadme -PathType Leaf) ) {
+    Write-Host "src README missing: $srcReadme"
+    exit 1
+}
+
+$srcReadmeText = Read-Utf8Text $srcReadme
+$srcSubdirs = @(Get-ChildItem -LiteralPath $srcDir -Directory | Sort-Object Name)
+
+foreach ( $dir in $srcSubdirs ) {
+    if ( ! $srcReadmeText.Contains($dir.Name) ) {
+        Add-Failure "src README does not list source directory: src/$($dir.Name)"
+    }
 }
 
 $wiringTextParts = New-Object System.Collections.Generic.List[string]
@@ -64,7 +92,15 @@ foreach ( $match in $directMatches ) {
 
     $path = Join-Path $Root ($relative.Replace("/", "\"))
     if ( ! (Test-Path -LiteralPath $path -PathType Leaf) ) {
-        Add-Failure "wired source file is missing: $relative"
+        if ( Test-GeneratedSource $relative ) {
+            $inputRelative = $generatedSourceInputs[$relative]
+            $inputPath = Join-Path $Root ($inputRelative.Replace("/", "\"))
+            if ( ! (Test-Path -LiteralPath $inputPath -PathType Leaf) ) {
+                Add-Failure "generated source input is missing: $relative <- $inputRelative"
+            }
+        } else {
+            Add-Failure "wired source file is missing: $relative"
+        }
     }
 }
 
@@ -105,6 +141,24 @@ foreach ( $relative in ($directSources | Sort-Object) ) {
     }
 }
 
+$generatedDirectCount = @($directSources | Where-Object { Test-GeneratedSource $_ }).Count
+
+if ( $srcFiles.Count -lt $minSourceFiles ) {
+    Add-Failure "source file baseline regressed: $($srcFiles.Count) < $minSourceFiles"
+}
+
+if ( $directSources.Count -lt $minDirectSources ) {
+    Add-Failure "direct source baseline regressed: $($directSources.Count) < $minDirectSources"
+}
+
+if ( $includedSources.Count -lt $minIncludedSources ) {
+    Add-Failure "included source baseline regressed: $($includedSources.Count) < $minIncludedSources"
+}
+
+if ( $generatedDirectCount -lt $minGeneratedDirectSources ) {
+    Add-Failure "generated direct source baseline regressed: $generatedDirectCount < $minGeneratedDirectSources"
+}
+
 if ( $failures.Count -gt 0 ) {
     foreach ( $failure in $failures ) {
         Write-Host $failure
@@ -112,5 +166,5 @@ if ( $failures.Count -gt 0 ) {
     exit 1
 }
 
-Write-Host "Source wiring ok: $($srcFiles.Count) source files, $($directSources.Count) direct, $($includedSources.Count) included."
+Write-Host "Source wiring ok: $($srcFiles.Count) source files, $($directSources.Count) direct, $($includedSources.Count) included, $generatedDirectCount generated direct."
 exit 0

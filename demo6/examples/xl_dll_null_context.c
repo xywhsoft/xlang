@@ -1,6 +1,7 @@
 #include "include/xl.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #ifdef _WIN32
@@ -78,6 +79,37 @@ static int make_full_path(const char* base, const char* rel, char* out, size_t o
 #endif
 }
 
+static int is_absolute_path(const char* path)
+{
+    if ( path == NULL || path[0] == '\0' ) {
+        return 0;
+    }
+#ifdef _WIN32
+    return (path[0] != '\0' && path[1] == ':') || (path[0] == '\\' && path[1] == '\\');
+#else
+    return path[0] == '/';
+#endif
+}
+
+static int make_toolchain_path(const char* root, const char* envName, char* out, size_t outSize)
+{
+    const char* value = getenv(envName);
+
+    if ( value == NULL || value[0] == '\0' ) {
+        fprintf(stderr, "missing toolchain environment variable: %s\n", envName);
+        return 0;
+    }
+    if ( is_absolute_path(value) ) {
+#ifdef _WIN32
+        DWORD got = GetFullPathNameA(value, (DWORD)outSize, out, NULL);
+        return got > 0 && got < outSize;
+#else
+        return realpath(value, out) != NULL;
+#endif
+    }
+    return make_full_path(root, value, out, outSize);
+}
+
 static int make_dir(const char* path)
 {
 #ifdef _WIN32
@@ -137,16 +169,16 @@ static int add_default_include_paths(XL_Context* ctx, const char* root)
     if ( !make_full_path(root, "lib\\xrt", path, sizeof(path)) || !xlAddIncludePath(ctx, path) ) {
         return 0;
     }
-    if ( !make_full_path(root, "..\\demo5\\lib\\tcc\\include", path, sizeof(path)) || !xlAddIncludePath(ctx, path) ) {
+    if ( !make_toolchain_path(root, "XL6_TCC_INCLUDE", path, sizeof(path)) || !xlAddIncludePath(ctx, path) ) {
         return 0;
     }
-    if ( !make_full_path(root, "..\\demo5\\release\\tcc\\include_win", path, sizeof(path)) || !xlAddIncludePath(ctx, path) ) {
+    if ( !make_toolchain_path(root, "XL6_TCC_WIN_INCLUDE", path, sizeof(path)) || !xlAddIncludePath(ctx, path) ) {
         return 0;
     }
-    if ( !make_full_path(root, "..\\demo5\\release\\tcc\\include_win\\winapi", path, sizeof(path)) || !xlAddIncludePath(ctx, path) ) {
+    if ( !make_toolchain_path(root, "XL6_TCC_WINAPI_INCLUDE", path, sizeof(path)) || !xlAddIncludePath(ctx, path) ) {
         return 0;
     }
-    if ( !make_full_path(root, "..\\demo5\\release\\tcc\\lib", path, sizeof(path)) || !xlAddLibraryPath(ctx, path) ) {
+    if ( !make_toolchain_path(root, "XL6_TCC_LIB", path, sizeof(path)) || !xlAddLibraryPath(ctx, path) ) {
         return 0;
     }
     return 1;
@@ -167,7 +199,7 @@ static XL_Context* create_context_for_workdir(const char* root, const char* work
     options.tccDllPath = path;
     {
         char tccLibPath[1024];
-        if ( !make_full_path(root, "..\\demo5\\release\\tcc", tccLibPath, sizeof(tccLibPath)) ) {
+        if ( !make_toolchain_path(root, "XL6_TCC_ROOT", tccLibPath, sizeof(tccLibPath)) ) {
             return NULL;
         }
         options.tccLibPath = tccLibPath;
@@ -244,11 +276,116 @@ static int run_cwd_failure_case(const char* root, const char* originalCwd)
     return expect_cwd("cwd failure script", originalCwd);
 }
 
+static int run_default_toolchain_snapshot_case(const char* originalCwd)
+{
+    XL_ContextOptions options;
+    XL_Context* ctx;
+    const char* workDir = "release\\tmp\\dll_cwd_default_toolchain";
+    const char* marker = "release\\tmp\\dll_cwd_default_toolchain\\default_toolchain_marker.txt";
+    const char* script =
+        "assert string.trim(\" ok \") == \"ok\", \"default toolchain string failed\"\n"
+        "file.writeText(\"default_toolchain_marker.txt\", \"ok\")\n"
+        "assert file.exists(\"default_toolchain_marker.txt\"), \"default toolchain marker missing\"\n";
+
+    if ( !make_dir("release\\tmp\\dll_cwd_default_toolchain") ) {
+        fprintf(stderr, "cannot create dll_cwd_default_toolchain\n");
+        return 0;
+    }
+    delete_file_if_exists(marker);
+
+    options = xlDefaultContextOptions();
+    options.workDir = workDir;
+    options.tempDir = "release\\tmp";
+    options.tccDllPath = "release\\libtcc.dll";
+
+    ctx = xlCreateContext(&options);
+    if ( ctx == NULL ) {
+        fprintf(stderr, "cannot create default toolchain context\n");
+        return 0;
+    }
+    if ( !xlRunScriptString(ctx, script) ) {
+        fprintf(stderr, "default toolchain snapshot script failed: %s\n", xlGetLastError(ctx));
+        xlDestroyContext(ctx);
+        return 0;
+    }
+    xlDestroyContext(ctx);
+
+    if ( !file_exists(marker) ) {
+        fprintf(stderr, "default toolchain snapshot script did not write marker\n");
+        return 0;
+    }
+    return expect_cwd("default toolchain snapshot script", originalCwd);
+}
+
+static int run_dependency_path_snapshot_case(const char* originalCwd)
+{
+    XL_ContextOptions options;
+    XL_Context* ctx;
+    const char* workDir = "release\\tmp\\dll_dependency_snapshot";
+    const char* marker = "release\\tmp\\dll_dependency_snapshot\\dependency_snapshot_marker.txt";
+    const char* script =
+        "extern \"xl6_dll_link_value\" func linkedValue() -> int\n"
+        "extern \"xl6_dll_loadlib_value\" func loadedValue() -> int\n"
+        "assert linkedValue() == 42, \"snapshot link library failed\"\n"
+        "assert loadedValue() == 42, \"snapshot loadlib failed\"\n"
+        "file.writeText(\"dependency_snapshot_marker.txt\", \"ok\")\n"
+        "assert file.exists(\"dependency_snapshot_marker.txt\"), \"snapshot marker missing\"\n";
+
+    if ( !make_dir("release\\tmp\\dll_dependency_snapshot") ) {
+        fprintf(stderr, "cannot create dll_dependency_snapshot\n");
+        return 0;
+    }
+    delete_file_if_exists(marker);
+
+    options = xlDefaultContextOptions();
+    options.workDir = workDir;
+    options.tempDir = "release\\tmp";
+    options.tccDllPath = "release\\libtcc.dll";
+
+    ctx = xlCreateContext(&options);
+    if ( ctx == NULL ) {
+        fprintf(stderr, "cannot create dependency snapshot context\n");
+        return 0;
+    }
+    if ( !xlAddLibraryPath(ctx, "release\\tmp") ||
+         !xlAddLinkLibrary(ctx, "xl6dlllink") ||
+         !xlLoadDependencyLibrary(ctx, "release\\tmp\\xl_dll_loadlib_host.dll") ||
+         !xlAddLinkLibrary(ctx, "release\\tmp\\xl_dll_loadlib_host.def") ) {
+        fprintf(stderr, "cannot add dependency snapshot paths: %s\n", xlGetLastError(ctx));
+        xlDestroyContext(ctx);
+        return 0;
+    }
+    if ( !xlRunScriptString(ctx, script) ) {
+        fprintf(stderr, "dependency path snapshot script failed: %s\n", xlGetLastError(ctx));
+        xlDestroyContext(ctx);
+        return 0;
+    }
+    xlDestroyContext(ctx);
+
+    if ( !file_exists(marker) ) {
+        fprintf(stderr, "dependency path snapshot script did not write marker\n");
+        return 0;
+    }
+    return expect_cwd("dependency path snapshot script", originalCwd);
+}
+
 int main(void)
 {
     XL_ContextOptions options;
     XL_Context* ctx;
     char originalCwd[1024];
+
+    if ( !xlRuntimeInit() ) {
+        fprintf(stderr, "xlRuntimeInit failed\n");
+        return 1;
+    }
+    if ( !xlRuntimeInit() ) {
+        fprintf(stderr, "second xlRuntimeInit failed\n");
+        xlRuntimeUnit();
+        return 1;
+    }
+    xlRuntimeUnit();
+    xlRuntimeUnit();
 
     xlDestroyContext(NULL);
     xlClearLastError(NULL);
@@ -298,6 +435,12 @@ int main(void)
         fprintf(stderr, "xlCreateContext default options failed\n");
         return 1;
     }
+    xlRuntimeUnit();
+    if ( !xlRunScriptString(ctx, "int value = 21 * 2\nassert value == 42, \"context runtime ref failed\"\n") ) {
+        fprintf(stderr, "context did not survive unmatched xlRuntimeUnit: %s\n", xlGetLastError(ctx));
+        xlDestroyContext(ctx);
+        return 1;
+    }
     if ( !expect_api_failure(ctx, "xlRunScriptString NULL source", xlRunScriptString(ctx, NULL), "script source is empty") ||
          !expect_api_failure(ctx, "xlRunScriptFile empty path", xlRunScriptFile(ctx, ""), "script file path is empty") ||
          !expect_api_failure(ctx, "xlCompileScriptStringToExe NULL source", xlCompileScriptStringToExe(ctx, NULL, "release\\tmp\\null_source.exe"), "script source is empty") ||
@@ -313,7 +456,9 @@ int main(void)
         return 1;
     }
     if ( !run_cwd_success_case(originalCwd, originalCwd) ||
-         !run_cwd_failure_case(originalCwd, originalCwd) ) {
+         !run_cwd_failure_case(originalCwd, originalCwd) ||
+         !run_default_toolchain_snapshot_case(originalCwd) ||
+         !run_dependency_path_snapshot_case(originalCwd) ) {
         return 1;
     }
 

@@ -32,6 +32,7 @@ static int xl6CgenNodeNeedsErrorRuntime(const XL6_AstNode* node)
 static void xl6CgenEmitErrorRuntime(XL6_Output* out)
 {
     xl6OutputPuts("#include <stddef.h>\n", out);
+    xl6OutputPuts("#include <stdio.h>\n", out);
     xl6OutputPuts("#include <string.h>\n", out);
     xl6OutputPuts("void* xrtMalloc(size_t iSize);\n", out);
     xl6OutputPuts("void xrtFree(void* pMem);\n\n", out);
@@ -147,6 +148,46 @@ static void xl6CgenEmitErrorRuntime(XL6_Output* out)
     xl6OutputPuts("static const char* xl6_error_file(XL6_Error* error) { return error != 0 && error->file != 0 ? error->file : \"\"; }\n", out);
     xl6OutputPuts("static int xl6_error_line(XL6_Error* error) { return error != 0 ? error->line : 0; }\n", out);
     xl6OutputPuts("static int xl6_error_column(XL6_Error* error) { return error != 0 ? error->column : 0; }\n\n", out);
+
+    xl6OutputPuts("static void xl6_error_print_uncaught(void)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    XL6_Error* error = xl6__active_error;\n", out);
+    xl6OutputPuts("    const char* kind;\n", out);
+    xl6OutputPuts("    const char* message;\n", out);
+    xl6OutputPuts("    const char* file;\n", out);
+    xl6OutputPuts("    int line;\n", out);
+    xl6OutputPuts("    int column;\n\n", out);
+    xl6OutputPuts("    if ( error == 0 ) {\n", out);
+    xl6OutputPuts("        return;\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    kind = xl6_error_kind(error);\n", out);
+    xl6OutputPuts("    message = xl6_error_message(error);\n", out);
+    xl6OutputPuts("    file = xl6_error_file(error);\n", out);
+    xl6OutputPuts("    line = xl6_error_line(error);\n", out);
+    xl6OutputPuts("    column = xl6_error_column(error);\n", out);
+    xl6OutputPuts("    if ( kind == 0 || kind[0] == 0 ) {\n", out);
+    xl6OutputPuts("        kind = \"Error\";\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    if ( message == 0 ) {\n", out);
+    xl6OutputPuts("        message = \"\";\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    if ( file != 0 && file[0] != 0 && line > 0 && column > 0 ) {\n", out);
+    xl6OutputPuts("        f", out);
+    xl6OutputPuts("pri", out);
+    xl6OutputPuts("ntf(st", out);
+    xl6OutputPuts("derr, \"%s:%d:%d: uncaught %s: %s\\n\", file, line, column, kind, message);\n", out);
+    xl6OutputPuts("    } else if ( line > 0 && column > 0 ) {\n", out);
+    xl6OutputPuts("        f", out);
+    xl6OutputPuts("pri", out);
+    xl6OutputPuts("ntf(st", out);
+    xl6OutputPuts("derr, \"%d:%d: uncaught %s: %s\\n\", line, column, kind, message);\n", out);
+    xl6OutputPuts("    } else {\n", out);
+    xl6OutputPuts("        f", out);
+    xl6OutputPuts("pri", out);
+    xl6OutputPuts("ntf(st", out);
+    xl6OutputPuts("derr, \"uncaught %s: %s\\n\", kind, message);\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("}\n\n", out);
 }
 
 static void xl6CgenEmitDefaultErrorReturn(XL6_CgenContext* ctx)

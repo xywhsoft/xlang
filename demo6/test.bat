@@ -16,13 +16,22 @@ if errorlevel 1 exit /b 1
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_cgenrule_docs.ps1
 if errorlevel 1 exit /b 1
 
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_markdown_links.ps1
+if errorlevel 1 exit /b 1
+
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_tool_wiring.ps1
 if errorlevel 1 exit /b 1
 
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_batch_wiring.ps1
 if errorlevel 1 exit /b 1
 
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_cli_temp_cleanup.ps1
+if errorlevel 1 exit /b 1
+
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_source_wiring.ps1
+if errorlevel 1 exit /b 1
+
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_source_encoding.ps1
 if errorlevel 1 exit /b 1
 
 powershell -NoProfile -Command "$dir = Join-Path 'src' 'cgen'; $m = Get-ChildItem -LiteralPath $dir -Filter '*.c' | Select-String -SimpleMatch 'code generation error'; if ($m) { Write-Host 'src cgen contains generic cgen diagnostic.'; exit 1 }"
@@ -32,6 +41,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_toolchain_paths.
 if errorlevel 1 exit /b 1
 
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_c_string_safety.ps1
+if errorlevel 1 exit /b 1
+
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_dll_api_boundary.ps1
 if errorlevel 1 exit /b 1
 
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_test_case_wiring.ps1
@@ -58,6 +70,9 @@ if errorlevel 1 exit /b 1
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_stdlib_dll_symbols.ps1
 if errorlevel 1 exit /b 1
 
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_negative_diagnostics.ps1
+if errorlevel 1 exit /b 1
+
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_stdlib_examples.ps1
 if errorlevel 1 exit /b 1
 
@@ -68,6 +83,11 @@ release\xl.exe run examples\concurrency.xl %XL6_XL_DEFAULT_LINK_ARGS%
 if errorlevel 1 exit /b 1
 
 release\xl.exe run examples\union.xl %XL6_XL_DEFAULT_LINK_ARGS%
+if errorlevel 1 exit /b 1
+
+release\xl.exe --help > release\tmp\help.stdout.txt
+if errorlevel 1 exit /b 1
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$bytes=[System.IO.File]::ReadAllBytes('release\tmp\help.stdout.txt'); $enc=New-Object System.Text.UTF8Encoding($false,$true); $text=$enc.GetString($bytes); if($text.IndexOf('Usage:') -lt 0 -or $text.IndexOf('xl build') -lt 0){ Write-Host 'help.stdout.txt missing UTF-8 CLI help output.'; exit 1 }"
 if errorlevel 1 exit /b 1
 
 release\xl.exe lex examples\hello.xl > release\tmp\hello.tokens.txt
@@ -129,6 +149,17 @@ if errorlevel 1 (
     echo hello.check.json missing success flag.
     exit /b 1
 )
+
+release\xl.exe check test\cases\sem_diag_utf8.xl >nul 2> release\tmp\sem_diag_utf8.err.txt
+if not errorlevel 1 (
+    echo sem_diag_utf8.xl should fail.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$bytes=[System.IO.File]::ReadAllBytes('release\tmp\sem_diag_utf8.err.txt'); $enc=New-Object System.Text.UTF8Encoding($false,$true); $text=$enc.GetString($bytes); $expected='return '+([char]0x8868)+([char]0x8FBE)+([char]0x5F0F)+([char]0x7C7B)+([char]0x578B)+([char]0x548C)+([char]0x51FD)+([char]0x6570)+([char]0x8FD4)+([char]0x56DE)+([char]0x7C7B)+([char]0x578B)+([char]0x4E0D)+([char]0x5339)+([char]0x914D); if($text.IndexOf($expected) -lt 0){ Write-Host 'sem_diag_utf8.err.txt missing UTF-8 semantic diagnostic.'; exit 1 }"
+if errorlevel 1 exit /b 1
+
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$name=([char]0x7F3A)+([char]0x5931)+'_'+([char]0x6587)+([char]0x4EF6)+'.xl'; $missing=Join-Path 'release\tmp' $name; $err='release\tmp\cli_lex_missing_utf8.err.txt'; $out='release\tmp\cli_lex_missing_utf8.out.txt'; $p=Start-Process -FilePath 'release\xl.exe' -ArgumentList @('lex',$missing) -NoNewWindow -PassThru -Wait -RedirectStandardOutput $out -RedirectStandardError $err; if($p.ExitCode -eq 0){ Write-Host 'lex missing unicode path should fail.'; exit 1 }; $bytes=[System.IO.File]::ReadAllBytes($err); $enc=New-Object System.Text.UTF8Encoding($false,$true); $text=$enc.GetString($bytes); if($text.IndexOf('cannot read file:') -lt 0 -or $text.IndexOf($name) -lt 0){ Write-Host 'cli_lex_missing_utf8.err.txt missing UTF-8 path diagnostic.'; exit 2 }"
+if errorlevel 1 exit /b 1
 
 release\xl.exe cgen examples\hello.xl --dump-dir release\tmp\dump_hello
 if errorlevel 1 exit /b 1
@@ -236,6 +267,12 @@ if errorlevel 1 exit /b 1
 findstr /C:"xl6_path_no_ext_value" release\tmp\import_path_no_ext.c >nul
 if errorlevel 1 (
     echo import_path_no_ext.c missing imported C symbol.
+    exit /b 1
+)
+
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$root=(Resolve-Path '.').Path; $work=Join-Path $root 'test\cases\import_relative_scope\root'; $case='test\cases\import_relative_scope\root\source\import_relative_scope.xl'; $src=Join-Path $root $case; $correct=Join-Path $root 'test\cases\import_relative_scope\root\source\pkg.xapi.json'; $wrong=Join-Path $root 'test\cases\import_relative_scope\root\pkg.xapi.json'; $out=Join-Path $root 'release\tmp\import_relative_scope.xlir'; foreach($file in @($src,$correct,$wrong)){ if(!(Test-Path -LiteralPath $file)){ exit 10 } }; Push-Location $work; & (Join-Path $root 'release\xl.exe') ir 'source\import_relative_scope.xl' --emit $out; $code=$LASTEXITCODE; Pop-Location; if($code -ne 0){ exit $code }; $text=[System.IO.File]::ReadAllText($out,[System.Text.Encoding]::UTF8); if($text -notmatch 'xl6_import_relative_local_value'){ exit 11 }; if($text -notmatch '__xl6_import_pkg_value'){ exit 12 }; if($text -match 'xl6_import_relative_wrong_value'){ exit 13 }"
+if errorlevel 1 (
+    echo import_relative_scope resolver check failed.
     exit /b 1
 )
 
@@ -458,7 +495,7 @@ if errorlevel 1 (
     echo metadata_combo package.xapi.json missing combined dependency metadata.
     exit /b 1
 )
-"%XL6_TCC%" -c test\cases\metadata_combo_link_host.c -o release\tmp\metadata_combo_link_host.o
+"%XL6_TCC%" %XL6_TCC_INCLUDES% -c test\cases\metadata_combo_link_host.c -o release\tmp\metadata_combo_link_host.o
 if errorlevel 1 exit /b 1
 "%XL6_TCC%" -ar rcs release\tmp\metadata_combo_link.a release\tmp\metadata_combo_link_host.o
 if errorlevel 1 exit /b 1
@@ -470,7 +507,7 @@ release\xl.exe build test\cases\import_metadata_combo.xl -o release\tmp\import_m
 if errorlevel 1 exit /b 1
 release\tmp\import_metadata_combo.exe
 if errorlevel 1 exit /b 1
-"%XL6_TCC%" -I. %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% test\cases\import_deps_snapshot_host.c src\compile\xl6_imports.c src\package\xl6_package.c src\abi\xl6_xapi_load.c src\abi\xl6_xapi_dump.c src\abi\xl6_callable.c src\type\xl6_type_model.c src\common\xl6_output.c src\parser\xl6_parser_api.c src\parser\xl6_parser.c src\lexer\xl6_lexer_api.c src\lexer\xl6_lexer_gen.c src\lexer\xl6_token.c src\ast\xl6_ast.c src\diag\xl6_diag.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\import_deps_snapshot_host.exe
+"%XL6_TCC%" -I. %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% test\cases\import_deps_snapshot_host.c src\compile\xl6_imports.c src\package\xl6_package.c src\abi\xl6_xapi_load.c src\abi\xl6_xapi_dump.c src\abi\xl6_callable.c src\type\xl6_type_model.c src\common\xl6_console.c src\common\xl6_output.c src\parser\xl6_parser_api.c src\parser\xl6_parser.c src\lexer\xl6_lexer_api.c src\lexer\xl6_lexer_gen.c src\lexer\xl6_token.c src\ast\xl6_ast.c src\diag\xl6_diag.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\import_deps_snapshot_host.exe
 if errorlevel 1 exit /b 1
 release\tmp\import_deps_snapshot_host.exe test\cases\import_metadata_combo.xl
 if errorlevel 1 exit /b 1
@@ -644,11 +681,18 @@ if errorlevel 1 exit /b 1
 release\xl.exe check test\cases\comments.xl
 if errorlevel 1 exit /b 1
 
-release\xl.exe lex test\cases\sem_unclosed_comment.xl > release\tmp\sem_unclosed_comment.tokens.txt 2>nul
+release\xl.exe lex test\cases\sem_unclosed_comment.xl > release\tmp\sem_unclosed_comment.tokens.txt 2> release\tmp\sem_unclosed_comment.err.txt
 if not errorlevel 1 (
     echo sem_unclosed_comment.xl should fail.
     exit /b 1
 )
+findstr /C:"ERROR" release\tmp\sem_unclosed_comment.tokens.txt >nul
+if errorlevel 1 (
+    echo sem_unclosed_comment.tokens.txt missing ERROR token.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$bytes=[System.IO.File]::ReadAllBytes('release\tmp\sem_unclosed_comment.tokens.txt'); $enc=New-Object System.Text.UTF8Encoding($false,$true); $text=$enc.GetString($bytes); $expected=([char]0x672A)+([char]0x95ED)+([char]0x5408)+([char]0x7684)+([char]0x591A)+([char]0x884C)+([char]0x6CE8)+([char]0x91CA); if($text.IndexOf($expected) -lt 0){ Write-Host 'sem_unclosed_comment.tokens.txt missing unclosed-comment diagnostic.'; exit 1 }"
+if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_case_sensitive.xl --emit release\tmp\cgen_case_sensitive.c
 if errorlevel 1 exit /b 1
@@ -1419,9 +1463,19 @@ if not errorlevel 1 (
     echo sem_union_top_anon.xl should fail.
     exit /b 1
 )
+findstr /C:"top-level union must have a name" release\tmp\sem_union_top_anon.err.txt >nul
+if errorlevel 1 (
+    echo sem_union_top_anon.err.txt missing named top-level union diagnostic.
+    exit /b 1
+)
 release\xl.exe check test\cases\sem_union_empty.xl >nul 2> release\tmp\sem_union_empty.err.txt
 if not errorlevel 1 (
     echo sem_union_empty.xl should fail.
+    exit /b 1
+)
+findstr /C:"union must contain at least one field" release\tmp\sem_union_empty.err.txt >nul
+if errorlevel 1 (
+    echo sem_union_empty.err.txt missing empty union diagnostic.
     exit /b 1
 )
 release\xl.exe check test\cases\sem_union_default.xl >nul 2> release\tmp\sem_union_default.err.txt
@@ -1429,9 +1483,19 @@ if not errorlevel 1 (
     echo sem_union_default.xl should fail.
     exit /b 1
 )
+findstr /C:"union fields do not support default values" release\tmp\sem_union_default.err.txt >nul
+if errorlevel 1 (
+    echo sem_union_default.err.txt missing union default diagnostic.
+    exit /b 1
+)
 release\xl.exe check test\cases\sem_union_duplicate_field.xl >nul 2> release\tmp\sem_union_duplicate_field.err.txt
 if not errorlevel 1 (
     echo sem_union_duplicate_field.xl should fail.
+    exit /b 1
+)
+findstr /C:"duplicate union field name" release\tmp\sem_union_duplicate_field.err.txt >nul
+if errorlevel 1 (
+    echo sem_union_duplicate_field.err.txt missing duplicate union field diagnostic.
     exit /b 1
 )
 release\xl.exe check test\cases\sem_union_anonymous_conflict.xl >nul 2> release\tmp\sem_union_anonymous_conflict.err.txt
@@ -1439,9 +1503,19 @@ if not errorlevel 1 (
     echo sem_union_anonymous_conflict.xl should fail.
     exit /b 1
 )
+findstr /C:"class member layout name conflicts with an existing field or union" release\tmp\sem_union_anonymous_conflict.err.txt >nul
+if errorlevel 1 (
+    echo sem_union_anonymous_conflict.err.txt missing inline union conflict diagnostic.
+    exit /b 1
+)
 release\xl.exe check test\cases\sem_union_named_inline.xl >nul 2> release\tmp\sem_union_named_inline.err.txt
 if not errorlevel 1 (
     echo sem_union_named_inline.xl should fail.
+    exit /b 1
+)
+findstr /C:"class inline union must be anonymous in this phase" release\tmp\sem_union_named_inline.err.txt >nul
+if errorlevel 1 (
+    echo sem_union_named_inline.err.txt missing named inline union diagnostic.
     exit /b 1
 )
 
@@ -1460,9 +1534,19 @@ if not errorlevel 1 (
     echo sem_union_unknown_field.xl should fail.
     exit /b 1
 )
+findstr /C:"unknown class/union field" release\tmp\sem_union_unknown_field.err.txt >nul
+if errorlevel 1 (
+    echo sem_union_unknown_field.err.txt missing unknown union field diagnostic.
+    exit /b 1
+)
 release\xl.exe check test\cases\sem_union_function_field.xl >nul 2> release\tmp\sem_union_function_field.err.txt
 if not errorlevel 1 (
     echo sem_union_function_field.xl should fail.
+    exit /b 1
+)
+findstr /C:"union field type must be a plain C-compatible value type" release\tmp\sem_union_function_field.err.txt >nul
+if errorlevel 1 (
+    echo sem_union_function_field.err.txt missing union function field diagnostic.
     exit /b 1
 )
 release\xl.exe check test\cases\sem_union_destroy_class_field.xl >nul 2> release\tmp\sem_union_destroy_class_field.err.txt
@@ -1470,9 +1554,19 @@ if not errorlevel 1 (
     echo sem_union_destroy_class_field.xl should fail.
     exit /b 1
 )
+findstr /C:"union field type must be a plain C-compatible value type" release\tmp\sem_union_destroy_class_field.err.txt >nul
+if errorlevel 1 (
+    echo sem_union_destroy_class_field.err.txt missing union non-plain class field diagnostic.
+    exit /b 1
+)
 release\xl.exe check test\cases\sem_union_generic_inline_function_field.xl >nul 2> release\tmp\sem_union_generic_inline_function_field.err.txt
 if not errorlevel 1 (
     echo sem_union_generic_inline_function_field.xl should fail.
+    exit /b 1
+)
+findstr /C:"union field type must be a plain C-compatible value type" release\tmp\sem_union_generic_inline_function_field.err.txt >nul
+if errorlevel 1 (
+    echo sem_union_generic_inline_function_field.err.txt missing generic inline union field diagnostic.
     exit /b 1
 )
 release\xl.exe check test\cases\sem_member_assign_type.xl >nul 2> release\tmp\sem_member_assign_type.err.txt
@@ -2158,6 +2252,11 @@ if errorlevel 1 (
     echo cgen_typed_container_multi_assign_index.c missing function dynamic dict multi assignment.
     exit /b 1
 )
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content 'release\tmp\cgen_typed_container_multi_assign_index.c' -Raw; $simple=[regex]::Matches($t,'xvalue (__xl6_multi_index_\d+) = (?:xvoCreateInt|xl6_box_XL_Class_Pair|xl6_box_XL_Union_Payload|xl6_function_to_xvalue)[^;]*;\s*if \(!xrtTyped(?:Array|List|Dict)SetValue\([^\n]*\1\)\) \{\s*xl6_runtime_fatal\(3\);\s*\}\s*xvoUnref\(\1\);',[Text.RegularExpressions.RegexOptions]::Singleline); if($simple.Count -lt 6){exit 1}; if($t -notmatch 'xvalue (__xl6_multi_index_\d+) = xl6_box_XL_Custom_Native\(__xl6_multi_[^;]+;[\s\S]*?xrtTypedDictSetValue\(natives,[\s\S]*?\1[\s\S]*?xvoUnref\(\1\);'){exit 2}; if($t -notmatch 'xvalue (__xl6_multi_index_\d+) = xl6_function_to_xvalue\(__xl6_multi_[^;]+;[\s\S]*?xrtTypedDictSetValue\(table,[\s\S]*?\1[\s\S]*?xvoUnref\(\1\);'){exit 3}"
+if errorlevel 1 (
+    echo cgen_typed_container_multi_assign_index.c missing multi-return typed index temp cleanup ordering.
+    exit /b 1
+)
 "%XL6_TCC%" -Irelease\tcc\include_win %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_typed_container_multi_assign_index.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_typed_container_multi_assign_index.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_typed_container_multi_assign_index.exe
@@ -2386,6 +2485,17 @@ if errorlevel 1 (
 "%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_auto_expressions.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_auto_expressions.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_auto_expressions.exe
+if errorlevel 1 exit /b 1
+
+release\xl.exe check test\cases\cgen_auto_inference_matrix.xl
+if errorlevel 1 exit /b 1
+release\xl.exe cgen test\cases\cgen_auto_inference_matrix.xl --emit release\tmp\cgen_auto_inference_matrix.c
+if errorlevel 1 exit /b 1
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content -Raw -Encoding UTF8 'release\tmp\cgen_auto_inference_matrix.c'; $checks=@('long long literalInt =','double literalFloat =','int literalBool =','const char* literalString =','xvalue dynamicArray =','xvalue dynamicList =','xvalue dynamicDict =','long long typedArrayItem = (*(long long*)xrtTypedArrayGet(typedArray','const char* typedListItem = (*(const char**)xrtTypedListGet(typedList','long long typedDictItem = (*(long long*)xrtTypedDictGet(typedDict','xvalue missingTypedItem = xl6_xrt_typed_box_or_null(xrtTypeInt(), xrtTypedArrayGet(typedArray','xvalue dynamicArrayItem = xl6_xrt_retain(xvoArrayGetValue(dynamicArray','xvalue dynamicListItem = xl6_xrt_retain(xvoListGetValue(dynamicList','xvalue dynamicDictItem = xl6_xrt_retain(xvoTableGetValue(dynamicDict','XL_Class_MatrixBox box = {0};','box = makeBox(7LL,','long long fieldValue = box.value;','const char* fieldText = box.label;','long long methodValue = xl_class_MatrixBox__getValue(&box);','XL6_Function fn = makeAdder(10LL);','long long fnResult =','long long callResult = add(fieldValue, methodValue);','xfuture* futureValue = doubleAsync(6LL);','long long awaitedValue =','xchannel autoCh = xrtChannelCreate(1LL);','int sent = xl6_channel_send_value(autoCh','int received = xl6_channel_recv_into(autoCh'); foreach($p in $checks){ if($t.IndexOf($p) -lt 0){ Write-Host ('cgen_auto_inference_matrix.c missing '+$p); exit 1 } }"
+if errorlevel 1 exit /b 1
+release\xl.exe build test\cases\cgen_auto_inference_matrix.xl test\cases\cgen_class_host.c -o release\tmp\cgen_auto_inference_matrix.exe
+if errorlevel 1 exit /b 1
+release\tmp\cgen_auto_inference_matrix.exe
 if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_var_values.xl --emit release\tmp\cgen_var_values.c
@@ -3117,11 +3227,21 @@ if errorlevel 1 (
     echo cgen_range_step_runtime_zero.c missing range step runtime error guard.
     exit /b 1
 )
+findstr /C:"xl6_error_print_uncaught" release\tmp\cgen_range_step_runtime_zero.c >nul
+if errorlevel 1 (
+    echo cgen_range_step_runtime_zero.c missing uncaught runtime error printer.
+    exit /b 1
+)
 "%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_range_step_runtime_zero.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_range_step_runtime_zero.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_range_step_runtime_zero.exe >nul 2> release\tmp\cgen_range_step_runtime_zero.err.txt
 if not errorlevel 1 (
     echo cgen_range_step_runtime_zero.xl should fail at runtime.
+    exit /b 1
+)
+findstr /C:"uncaught RangeError: range step cannot be 0" release\tmp\cgen_range_step_runtime_zero.err.txt >nul
+if errorlevel 1 (
+    echo cgen_range_step_runtime_zero.err.txt missing uncaught RangeError diagnostic.
     exit /b 1
 )
 
@@ -3216,6 +3336,8 @@ if errorlevel 1 (
     echo cgen_for_in_containers.c missing AVL iterator cleanup.
     exit /b 1
 )
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text = Get-Content -Raw -Encoding UTF8 'release\tmp\cgen_for_in_containers.c'; $list=[regex]::Matches($text,'xavltbase (__xl6_avl_\d+) = \(xavltbase\)xvoGetList\(__xl6_iter_\d+\);[\s\S]*?xrtAVLTB_IterBegin\(\1\);[\s\S]*?xrtAVLTB_IterNext\(\1\)[\s\S]*?xrtAVLTB_IterEnd\(\1\);'); $dict=[regex]::Matches($text,'xavltbase (__xl6_avl_\d+) = \(xavltbase\)xvoGetTable\(__xl6_iter_\d+\);[\s\S]*?xrtAVLTB_IterBegin\(\1\);[\s\S]*?xrtAVLTB_IterNext\(\1\)[\s\S]*?xrtAVLTB_IterEnd\(\1\);'); if ($list.Count -lt 1) { Write-Host 'cgen_for_in_containers.c missing list AVL begin/next/end cleanup sequence.'; exit 1 }; if ($dict.Count -lt 1) { Write-Host 'cgen_for_in_containers.c missing dict AVL begin/next/end cleanup sequence.'; exit 1 }"
+if errorlevel 1 exit /b 1
 findstr /C:"xrtStrComp(xl6_xrt_value_to_string(key), \"b\", 0, false)" release\tmp\cgen_for_in_containers.c >nul
 if errorlevel 1 (
     echo cgen_for_in_containers.c missing var-to-string comparison.
@@ -4483,6 +4605,11 @@ if errorlevel 1 (
     echo cgen_class_inherit_destroy.c missing base destroy tail call.
     exit /b 1
 )
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$lines=Get-Content 'release\tmp\cgen_class_inherit_destroy.c'; $body=($lines | Select-String -SimpleMatch 'record_destroy(self->value);' | Select-Object -First 1).LineNumber; $base=($lines | Select-String -SimpleMatch 'xl_class_Base__destroy(&self->base);' | Select-Object -First 1).LineNumber; if(-not $body -or -not $base -or $body -ge $base){exit 1}"
+if errorlevel 1 (
+    echo cgen_class_inherit_destroy.c should run child destroy body before base destroy tail call.
+    exit /b 1
+)
 "%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_class_inherit_destroy.c test\cases\cgen_class_destroy_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_class_inherit_destroy.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_class_inherit_destroy.exe
@@ -4508,6 +4635,11 @@ if errorlevel 1 (
 findstr /C:"native_box_close(self->first.handle);" release\tmp\cgen_class_custom_field.c >nul
 if errorlevel 1 (
     echo cgen_class_custom_field.c missing first custom field cleanup.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$lines=Get-Content 'release\tmp\cgen_class_custom_field.c'; $second=($lines | Select-String -SimpleMatch 'native_box_close(self->second.handle);' | Select-Object -First 1).LineNumber; $first=($lines | Select-String -SimpleMatch 'native_box_close(self->first.handle);' | Select-Object -First 1).LineNumber; if(-not $second -or -not $first -or $second -ge $first){exit 1}"
+if errorlevel 1 (
+    echo cgen_class_custom_field.c should destroy custom fields in reverse declaration order.
     exit /b 1
 )
 findstr /C:"xl_class_Holder__destroy(&holder);" release\tmp\cgen_class_custom_field.c >nul
@@ -4629,6 +4761,18 @@ if errorlevel 1 (
 "%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_generic_explicit_overload.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_generic_explicit_overload.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_generic_explicit_overload.exe
+if errorlevel 1 exit /b 1
+
+release\xl.exe cgen test\cases\cgen_generic_signature_suffix.xl --emit release\tmp\cgen_generic_signature_suffix.c
+if errorlevel 1 exit /b 1
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content -Raw -Encoding UTF8 'release\tmp\cgen_generic_signature_suffix.c'; if(([regex]::Matches($t, '^long long xl_gen_order__int__string__sig__int__string\(long long left, const char\* right\);', 'Multiline')).Count -ne 1){exit 1}; if(([regex]::Matches($t, '^long long xl_gen_order__int__string__sig__string__int\(const char\* left, long long right\);', 'Multiline')).Count -ne 1){exit 2}; if(([regex]::Matches($t, '^long long xl_gen_order__int__string__sig__int__string\(long long left, const char\* right\)\s*\{', 'Multiline')).Count -ne 1){exit 3}; if(([regex]::Matches($t, '^long long xl_gen_order__int__string__sig__string__int\(const char\* left, long long right\)\s*\{', 'Multiline')).Count -ne 1){exit 4}; if($t -notmatch 'long long first = xl_gen_order__int__string__sig__int__string\(1LL, \"x\"\);'){exit 5}; if($t -notmatch 'long long second = xl_gen_order__int__string__sig__string__int\(\"x\", 1LL\);'){exit 6}"
+if errorlevel 1 (
+    echo cgen_generic_signature_suffix.c missing distinct generic signature suffix instances.
+    exit /b 1
+)
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_generic_signature_suffix.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_generic_signature_suffix.exe
+if errorlevel 1 exit /b 1
+release\tmp\cgen_generic_signature_suffix.exe
 if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_generic_function.xl --emit release\tmp\cgen_generic_function.c
@@ -5153,7 +5297,7 @@ if errorlevel 4 (
     exit /b 1
 )
 
-release\xl.exe run test\cases\xl_run_args.xl -- alpha "two words" "quote\"value" beta
+release\xl.exe run test\cases\xl_run_args.xl -- alpha "two words" "quote\"value" beta ""
 if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_main_entry.xl --emit release\tmp\cgen_main_entry.c
@@ -5184,6 +5328,24 @@ if errorlevel 1 (
     exit /b 1
 )
 
+release\xl.exe cgen test\cases\cgen_main_uncaught.xl --emit release\tmp\cgen_main_uncaught.c
+if errorlevel 1 exit /b 1
+findstr /C:"xl6_error_print_uncaught();" release\tmp\cgen_main_uncaught.c >nul
+if errorlevel 1 (
+    echo cgen_main_uncaught.c missing uncaught main error printer.
+    exit /b 1
+)
+release\xl.exe run test\cases\cgen_main_uncaught.xl >nul 2> release\tmp\cgen_main_uncaught.err.txt
+if not errorlevel 1 (
+    echo cgen_main_uncaught.xl should fail at runtime.
+    exit /b 1
+)
+findstr /C:"uncaught Error: main boom" release\tmp\cgen_main_uncaught.err.txt >nul
+if errorlevel 1 (
+    echo cgen_main_uncaught.err.txt missing uncaught main exception diagnostic.
+    exit /b 1
+)
+
 release\xl.exe cgen test\cases\cgen_main_case_sensitive.xl --emit release\tmp\cgen_main_case_sensitive.c
 if errorlevel 1 exit /b 1
 powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content 'release\tmp\cgen_main_case_sensitive.c' -Raw; if($t -match 'xl_user_main'){exit 1}; if($t -match 'int main\('){exit 2}; if($t -notmatch 'long long Main\(xvalue arg\)'){exit 3}"
@@ -5198,6 +5360,26 @@ if errorlevel 1 (
     echo cgen_main_case_sensitive.xapi.json should report entry none.
     exit /b 1
 )
+release\xl.exe check test\cases\cgen_main_case_sensitive_script.xl
+if errorlevel 1 exit /b 1
+release\xl.exe cgen test\cases\cgen_main_case_sensitive_script.xl --emit release\tmp\cgen_main_case_sensitive_script.c
+if errorlevel 1 exit /b 1
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content 'release\tmp\cgen_main_case_sensitive_script.c' -Raw; if($t -match 'xl_user_main'){exit 1}; if($t -notmatch 'int main\('){exit 2}; if($t -notmatch 'long long Main\(xvalue arg\)'){exit 3}; if($t -notmatch 'expect_i64\(1LL, 1LL\);'){exit 4}"
+if errorlevel 1 (
+    echo cgen_main_case_sensitive_script.c should treat Main as normal function and top-level code as script main.
+    exit /b 1
+)
+release\xl.exe xapi test\cases\cgen_main_case_sensitive_script.xl --emit release\tmp\cgen_main_case_sensitive_script.xapi.json
+if errorlevel 1 exit /b 1
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$j=Get-Content 'release\tmp\cgen_main_case_sensitive_script.xapi.json' -Raw | ConvertFrom-Json; if($j.entry.kind -ne 'script-main'){exit 1}; if($j.entry.returnType -ne 'int'){exit 2}"
+if errorlevel 1 (
+    echo cgen_main_case_sensitive_script.xapi.json should report script-main.
+    exit /b 1
+)
+release\xl.exe build test\cases\cgen_main_case_sensitive_script.xl test\cases\cgen_class_host.c -o release\tmp\cgen_main_case_sensitive_script.exe
+if errorlevel 1 exit /b 1
+release\tmp\cgen_main_case_sensitive_script.exe
+if errorlevel 1 exit /b 1
 
 release\xl.exe build examples\feature_suite\09_c_export_abi.xl test\cases\build_mixed_host.c -o release\tmp\build_mixed_host.exe
 if errorlevel 1 exit /b 1
@@ -5242,11 +5424,11 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe build examples\feature_suite\09_c_export_abi.xl test\cases\build_mixed_host.c test\cases\build_mixed_extra.c --save-temps -o release\tmp\build_mixed_save_temps.exe > release\tmp\build_mixed_save_temps.log
+release\xl.exe build examples\feature_suite\09_c_export_abi.xl test\cases\build_mixed_host.c test\cases\build_mixed_extra.c --save-temps -o release\tmp\build_mixed_save_temps.exe > release\tmp\build_mixed_save_temps.log 2>&1
 if errorlevel 1 exit /b 1
 release\tmp\build_mixed_save_temps.exe
 if errorlevel 1 exit /b 1
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$d=Get-ChildItem release\tmp -Directory -Filter 'xl6_build_*' | Sort-Object LastWriteTime -Descending | Select-Object -First 1; if(-not $d){exit 1}; foreach($f in @('csrc_0.c','csrc_1.c')){$p=Join-Path $d.FullName $f; if(-not (Test-Path $p)){exit 2}; $t=Get-Content $p -Raw; if($t -notmatch 'lib/xrt/xrt\.h'){exit 3}; if($t -notmatch 'module\.h'){exit 4}}; $t0=Get-Content (Join-Path $d.FullName 'csrc_0.c') -Raw; $t1=Get-Content (Join-Path $d.FullName 'csrc_1.c') -Raw; if($t0 -notmatch 'build_mixed_host\.c'){exit 5}; if($t1 -notmatch 'build_mixed_extra\.c'){exit 6}"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$log=Get-Content 'release\tmp\build_mixed_save_temps.log' -Raw; $m=[regex]::Match($log,'temporary files kept:\s*(.+)'); if(-not $m.Success){exit 1}; $dir=$m.Groups[1].Value.Trim(); if(-not (Test-Path -LiteralPath $dir -PathType Container)){exit 2}; foreach($f in @('csrc_0.c','csrc_1.c')){$p=Join-Path $dir $f; if(-not (Test-Path -LiteralPath $p)){exit 3}; $t=Get-Content -LiteralPath $p -Raw; if($t -notmatch 'lib/xrt/xrt\.h'){exit 4}; if($t -notmatch 'module\.h'){exit 5}}; $t0=Get-Content -LiteralPath (Join-Path $dir 'csrc_0.c') -Raw; $t1=Get-Content -LiteralPath (Join-Path $dir 'csrc_1.c') -Raw; if($t0 -notmatch 'build_mixed_host\.c'){exit 6}; if($t1 -notmatch 'build_mixed_extra\.c'){exit 7}; Remove-Item -LiteralPath $dir -Recurse -Force"
 if errorlevel 1 (
     echo build save-temps wrapper check failed.
     exit /b 1
@@ -5264,6 +5446,8 @@ if errorlevel 3 (
     exit /b 1
 )
 
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$before=@(Get-ChildItem 'release\tmp' -Directory -Filter 'xl6_build_*').Count; Set-Content 'release\tmp\build_fail_dirs.before' $before"
+if errorlevel 1 exit /b 1
 release\xl.exe build test\cases\cgen_main_entry.xl -shared -o release\tmp\bad_main_shared.dll >nul 2> release\tmp\bad_main_shared.err.txt
 if not errorlevel 1 (
     echo shared build with xlang main should fail.
@@ -5274,8 +5458,26 @@ if errorlevel 1 (
     echo shared build error message missing.
     exit /b 1
 )
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$before=[int](Get-Content 'release\tmp\build_fail_dirs.before'); $after=@(Get-ChildItem 'release\tmp' -Directory -Filter 'xl6_build_*').Count; if($after -ne $before){exit 1}"
+if errorlevel 1 (
+    echo failed build should clean temporary work directory.
+    exit /b 1
+)
 
-"%XL6_TCC%" -c test\cases\cli_link_host.c -o release\tmp\cli_link_host.o
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$before=@(Get-ChildItem 'release\tmp' -Directory -Filter 'xl6_run_*').Count; Set-Content 'release\tmp\run_fail_dirs.before' $before"
+if errorlevel 1 exit /b 1
+release\xl.exe run test\cases\sem_time_literal_bad.xl >nul 2> release\tmp\run_bad_script.err.txt
+if not errorlevel 1 (
+    echo bad script run should fail.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$before=[int](Get-Content 'release\tmp\run_fail_dirs.before'); $after=@(Get-ChildItem 'release\tmp' -Directory -Filter 'xl6_run_*').Count; if($after -ne $before){exit 1}"
+if errorlevel 1 (
+    echo failed run should clean temporary work directory.
+    exit /b 1
+)
+
+"%XL6_TCC%" %XL6_TCC_INCLUDES% -c test\cases\cli_link_host.c -o release\tmp\cli_link_host.o
 if errorlevel 1 exit /b 1
 "%XL6_TCC%" -ar rcs release\tmp\libxl6clitest.a release\tmp\cli_link_host.o
 if errorlevel 1 exit /b 1
@@ -6943,6 +7145,11 @@ if not errorlevel 1 (
     echo cgen_exception_uncaught.xl should fail at runtime.
     exit /b 1
 )
+findstr /C:"uncaught Error: uncaught" release\tmp\cgen_exception_uncaught.err.txt >nul
+if errorlevel 1 (
+    echo cgen_exception_uncaught.err.txt missing uncaught exception diagnostic.
+    exit /b 1
+)
 
 release\xl.exe check test\cases\cgen_channel.xl
 if errorlevel 1 exit /b 1
@@ -7465,17 +7672,29 @@ if not errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe lex test\cases\invalid_range.xl > release\tmp\invalid_range.tokens.txt 2>nul
+release\xl.exe lex test\cases\invalid_range.xl > release\tmp\invalid_range.tokens.txt 2> release\tmp\invalid_range.err.txt
 if not errorlevel 1 (
     echo invalid_range.xl should fail.
     exit /b 1
 )
+findstr /C:"ERROR" release\tmp\invalid_range.tokens.txt >nul
+if errorlevel 1 (
+    echo invalid_range.tokens.txt missing ERROR token.
+    exit /b 1
+)
+findstr /C:"range(...)" release\tmp\invalid_range.tokens.txt >nul
+if errorlevel 1 (
+    echo invalid_range.tokens.txt missing range diagnostic.
+    exit /b 1
+)
 
-release\xl.exe parse test\cases\template_todo.xl > release\tmp\template_todo.ast.txt 2>nul
+release\xl.exe parse test\cases\template_todo.xl > release\tmp\template_todo.ast.txt 2> release\tmp\template_todo.err.txt
 if not errorlevel 1 (
     echo template_todo.xl should fail.
     exit /b 1
 )
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$bytes=[System.IO.File]::ReadAllBytes('release\tmp\template_todo.err.txt'); $enc=New-Object System.Text.UTF8Encoding($false,$true); $text=$enc.GetString($bytes); $expected=([char]0x6A21)+([char]0x677F)+([char]0x5B57)+([char]0x7B26)+([char]0x4E32)+([char]0x7B2C)+([char]0x4E00)+([char]0x9636)+([char]0x6BB5)+([char]0x6682)+([char]0x672A)+([char]0x5B9E)+([char]0x73B0); if($text.IndexOf($expected) -lt 0){ Write-Host 'template_todo.err.txt missing template-string diagnostic.'; exit 1 }"
+if errorlevel 1 exit /b 1
 
 release\xl.exe check test\cases\stdlib_json.xl
 if errorlevel 1 exit /b 1
@@ -7525,6 +7744,50 @@ if errorlevel 1 exit /b 1
 release\tmp\stdlib_xson.exe
 if errorlevel 1 exit /b 1
 
+release\xl.exe check test\cases\stdlib_print.xl
+if errorlevel 1 exit /b 1
+release\xl.exe cgen test\cases\stdlib_print.xl --emit release\tmp\stdlib_print.c
+if errorlevel 1 exit /b 1
+findstr /C:"void xl6_xrt_print(xvalue values, bool newline)" release\tmp\stdlib_print.c >nul
+if errorlevel 1 (
+    echo stdlib_print.c missing print runtime helper.
+    exit /b 1
+)
+findstr /C:"void* xrtStringifyJSON" release\tmp\stdlib_print.c >nul
+if errorlevel 1 (
+    echo stdlib_print.c missing xrtStringifyJSON runtime prototype.
+    exit /b 1
+)
+findstr /C:"void* xrtStringifyXSON" release\tmp\stdlib_print.c >nul
+if errorlevel 1 (
+    echo stdlib_print.c missing xrtStringifyXSON runtime prototype.
+    exit /b 1
+)
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\stdlib_print.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\stdlib_print.exe
+if errorlevel 1 exit /b 1
+release\tmp\stdlib_print.exe > release\tmp\stdlib_print.out.txt
+if errorlevel 1 exit /b 1
+findstr /C:"null" release\tmp\stdlib_print.out.txt >nul
+if errorlevel 1 (
+    echo stdlib_print.out.txt missing null output.
+    exit /b 1
+)
+findstr /C:"true false 123 -45" release\tmp\stdlib_print.out.txt >nul
+if errorlevel 1 (
+    echo stdlib_print.out.txt missing scalar output.
+    exit /b 1
+)
+findstr /C:"[1,2,3]" release\tmp\stdlib_print.out.txt >nul
+if errorlevel 1 (
+    echo stdlib_print.out.txt missing array JSON output.
+    exit /b 1
+)
+findstr /C:"name" release\tmp\stdlib_print.out.txt >nul
+if errorlevel 1 (
+    echo stdlib_print.out.txt missing dict JSON output.
+    exit /b 1
+)
+
 release\xl.exe check test\cases\stdlib_error_paths.xl
 if errorlevel 1 exit /b 1
 release\xl.exe cgen test\cases\stdlib_error_paths.xl --emit release\tmp\stdlib_error_paths.c
@@ -7554,6 +7817,23 @@ if errorlevel 1 (
     echo stdlib_error_paths.c missing xrtRegexCreate runtime prototype.
     exit /b 1
 )
+findstr /C:"bool xrtFormUrlEncodedDecodeTo" release\tmp\stdlib_error_paths.c >nul
+if errorlevel 1 (
+    echo stdlib_error_paths.c missing xrtFormUrlEncodedDecodeTo runtime prototype.
+    exit /b 1
+)
+findstr /C:"bool xrtUrlResolveTo" release\tmp\stdlib_error_paths.c >nul
+if errorlevel 1 (
+    echo stdlib_error_paths.c missing xrtUrlResolveTo runtime prototype.
+    exit /b 1
+)
+findstr /C:"bool xrtExecCapture" release\tmp\stdlib_error_paths.c >nul
+if errorlevel 1 (
+    echo stdlib_error_paths.c missing xrtExecCapture runtime prototype.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text = Get-Content -Raw -Encoding UTF8 'release\tmp\stdlib_error_paths.c'; if ($text -notmatch 'xrtFormUrlEncodedDecodeTo\([^\)]*\) \) \{\s*xrtFree\(outText\);\s*return xl6_query_empty_string\(\);') { Write-Host 'stdlib_error_paths.c missing query decode failure cleanup.'; exit 1 }; if ($text -notmatch 'if \( !xl6_url_parse_view\(base, baseSize, &baseUrl\) \) \{ return xl6_url_empty_string\(\); \}') { Write-Host 'stdlib_error_paths.c missing url resolve invalid base fallback.'; exit 1 }; if ($text -notmatch 'if \( !xrtExecCapture\(&config, &result, timeout\) \) \{ xrtProcessResultUnit\(&result\); return xl6_process_empty_string\(\); \}') { Write-Host 'stdlib_error_paths.c missing process exec failure cleanup.'; exit 1 }; if ($text -notmatch 'xrtProcessResultUnit\(&result\);\s*return ok;') { Write-Host 'stdlib_error_paths.c missing process success result cleanup.'; exit 1 }"
+if errorlevel 1 exit /b 1
 "%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\stdlib_error_paths.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\stdlib_error_paths.exe
 if errorlevel 1 exit /b 1
 release\tmp\stdlib_error_paths.exe > release\tmp\stdlib_error_paths.out.txt 2> release\tmp\stdlib_error_paths.err.txt
@@ -7763,6 +8043,9 @@ if errorlevel 1 (
 "%XL6_TCC%" %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% release\tmp\stdlib_http_server.c test\cases\stdlib_http_server_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\stdlib_http_server.exe
 if errorlevel 1 exit /b 1
 release\tmp\stdlib_http_server.exe
+if errorlevel 1 exit /b 1
+
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_negative_diagnostics.ps1 -Artifacts
 if errorlevel 1 exit /b 1
 
 echo DEMO6 smoke tests ok.

@@ -1,4 +1,4 @@
-void exit(int code);
+#include <stdlib.h>
 
 __declspec(dllexport) long long cli_loadlib_value(void)
 {

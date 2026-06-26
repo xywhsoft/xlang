@@ -292,6 +292,7 @@ int xl6CgenEmitC(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags)
         xl6OutputPuts("    return 0;\n", out);
         if ( hasErrorRuntime ) {
             xl6OutputPuts("__xl6_script_error:\n", out);
+            xl6OutputPuts("    xl6_error_print_uncaught();\n", out);
             xl6OutputPuts("    xl6_error_clear();\n", out);
             xl6OutputPuts("    xlUnit();\n", out);
             xl6OutputPuts("    return 1;\n", out);

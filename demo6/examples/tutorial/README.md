@@ -17,6 +17,7 @@
 - `09_class_lifecycle.xl`：class 字段、构造、继承、base 调用、析构顺序。
 - `10_c_interop_and_custom.xl`：extern C 函数、extern C 变量、custom C 句柄类。
 - `11_export_to_c.xl`：xlang 导出 C ABI，由 C 宿主调用。
+- `12_errors_and_docs.xl`：字符串异常、`try/catch/finally`、`assert` 和 `#doc ... #end`。
 
 ## 运行
 
@@ -35,6 +36,7 @@ release\xl.exe run examples\tutorial\05_functions.xl
 涉及 C 宿主的范例需要链接 `host.c`：
 
 ```bat
+release\xl.exe run examples\tutorial\09_class_lifecycle.xl --link examples\tutorial\host.c
 release\xl.exe run examples\tutorial\10_c_interop_and_custom.xl --link examples\tutorial\host.c
 ```
 

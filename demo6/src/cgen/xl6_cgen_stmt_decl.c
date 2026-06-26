@@ -80,7 +80,9 @@ static void xl6CgenDecl(XL6_CgenContext* ctx, const XL6_AstNode* node)
                 const XL6_AstNode* resolvedInitType = xl6CgenResolveAliasType(ctx, initType);
 
                 /*
-                    �?destroy �?custom 本质只是句柄值，可以按结构体值复制�?                    �?destroy �?custom 已经由语义层判为不可复制，这里仍保持构造表达式专用路径�?                */
+                    没有 destroy 的 custom 本质只是句柄值，可以按结构体值复制。
+                    有 destroy 的 custom 已经由语义层判为不可复制，这里仍保持构造表达式专用路径。
+                */
                 if ( resolvedInitType != NULL &&
                      xl6CTextEquals(resolvedInitType->text, customNode->text) &&
                      !xl6CgenCustomHasDestroy(customNode) ) {
@@ -466,7 +468,7 @@ static void xl6CgenMultiDecl(XL6_CgenContext* ctx, const XL6_AstNode* node)
     returns = functionType != NULL ? xl6CgenFunctionReturnTypes(functionType) : (func != NULL ? func->children[2] : NULL);
     if ( returns == NULL || names == NULL ) {
         xl6AstFree(ownedFunctionType);
-        xl6CgenError(ctx, node, "多返回值声明右侧必须是多返回�?xlang 函数调用");
+        xl6CgenError(ctx, node, "多返回值声明右侧必须是多返回值 xlang 函数调用");
         return;
     }
 
@@ -562,7 +564,9 @@ static void xl6CgenXValueFromTypedCExpr(XL6_CgenContext* ctx, const XL6_AstNode*
         xl6CgenBoxSymbol(ctx->out, cTypeName);
         xl6OutputPrintf(ctx->out, "(%s)", exprText != NULL ? exprText : "{}");
     } else {
-        xl6CgenError(ctx, typeNode, "cannot box unsupported type into var");
+        snprintf(cTypeName, sizeof(cTypeName), "C generator cannot box type into var: %s (%s)",
+                 typeName != NULL ? typeName : "<missing>", concreteType != NULL ? xl6AstKindName(concreteType->kind) : "NULL");
+        xl6CgenError(ctx, typeNode, cTypeName);
         xl6OutputPuts("xvoCreateNull()", ctx->out);
     }
 }
@@ -586,7 +590,7 @@ static void xl6CgenMultiAssign(XL6_CgenContext* ctx, const XL6_AstNode* node)
     returns = functionType != NULL ? xl6CgenFunctionReturnTypes(functionType) : (func != NULL ? func->children[2] : NULL);
     if ( returns == NULL || targets == NULL ) {
         xl6AstFree(ownedFunctionType);
-        xl6CgenError(ctx, node, "多返回值赋值右侧必须是多返回�?xlang 函数调用");
+        xl6CgenError(ctx, node, "多返回值赋值右侧必须是多返回值 xlang 函数调用");
         return;
     }
 
@@ -673,4 +677,3 @@ static void xl6CgenMultiAssign(XL6_CgenContext* ctx, const XL6_AstNode* node)
     }
     xl6AstFree(ownedFunctionType);
 }
-

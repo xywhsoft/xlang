@@ -252,7 +252,7 @@ static void xl6CgenFuncSymbol(XL6_CgenContext* ctx, const XL6_AstNode* funcNode)
     nameNode = funcNode != NULL && funcNode->childCount > 0 ? funcNode->children[0] : NULL;
     if ( xl6CgenFuncIsGeneric(funcNode) ) {
         if ( ctx->currentGenericArgs == NULL ) {
-            xl6CgenError(ctx, funcNode, "泛型函数必须先实例化再生�?C 符号");
+            xl6CgenError(ctx, funcNode, "泛型函数必须先实例化再生成 C 符号");
             xl6OutputPuts("xl_gen_uninstantiated", ctx->out);
             return;
         }

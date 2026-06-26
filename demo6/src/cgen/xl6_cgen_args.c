@@ -1006,7 +1006,7 @@ static void xl6CgenNullCoalesceExpr(XL6_CgenContext* ctx, const XL6_AstNode* nod
     }
 
     if ( leftType == NULL || rightType == NULL || !xl6CgenTypeNodeEqual(leftType, rightType) ) {
-        xl6CgenError(ctx, node, "当前 C 生成�??? 两侧必须是同一静态类型，或左侧为 null/var");
+        xl6CgenError(ctx, node, "当前 C 生成 ?? 两侧必须是同一静态类型，或左侧为 null/var");
         xl6OutputPuts("0", ctx->out);
         xl6AstFree(leftType);
         xl6AstFree(rightType);
@@ -1111,7 +1111,7 @@ static void xl6CgenInExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
 
     if ( xl6CTextEquals(rightType->text, "string") ) {
         if ( !xl6CgenExprStaticTypeIs(ctx, left, "string") ) {
-            xl6CgenError(ctx, node, "字符�?in 判断左侧必须�?string");
+            xl6CgenError(ctx, node, "字符串 in 判断左侧必须是 string");
             xl6OutputPuts("0", ctx->out);
         } else {
             xl6OutputPuts("(xrtFindStr(", ctx->out);
@@ -1159,7 +1159,7 @@ static void xl6CgenInExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
         return;
     }
 
-    xl6CgenError(ctx, node, "当前 C 生成 in 右侧只支�?string、array、list、set、dict、range �?var");
+    xl6CgenError(ctx, node, "当前 C 生成 in 右侧只支持 string、array、list、set、dict、range 或 var");
     xl6OutputPuts("0", ctx->out);
     xl6AstFree(rightType);
 }
@@ -1218,7 +1218,7 @@ static void xl6CgenDictLiteralExpr(XL6_CgenContext* ctx, const XL6_AstNode* node
 
         xl6OutputPuts(", ", ctx->out);
         if ( !xl6CgenExprStaticTypeIs(ctx, key, "string") ) {
-            xl6CgenError(ctx, key, "当前 C 生成 dict 字面量键只支�?string");
+            xl6CgenError(ctx, key, "当前 C 生成 dict 字面量键只支持 string");
             xl6OutputPuts("\"\"", ctx->out);
         } else {
             xl6CgenExpr(ctx, key);

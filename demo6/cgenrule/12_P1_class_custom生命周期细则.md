@@ -211,7 +211,7 @@
 | 字段 | 内容 |
 | --- | --- |
 | xlang 写法 | `destroy()` |
-| 生成规则描述 | 用户 destroy 方法体执行后，生成器会追加统一 destroy tail。tail 先按字段声明的逆序清理当前 class 直接字段，再调用父类 destroy。这样模拟 C++/Rust 常见的“先子类资源，后父类资源”的析构顺序。 |
+| 生成规则描述 | 用户 destroy 方法体执行后，生成器会追加统一 destroy tail。tail 先按字段声明的逆序清理当前 class 直接字段，再调用父类 destroy。这样模拟 C++/Rust 常见的“先子类资源，后父类资源”的析构顺序；`test.bat` 对 `cgen_class_inherit_destroy.c` 检查用户 destroy body 位于 base destroy tail 之前。 |
 | 生成器文件名和行号 | `xl6_cgen_decl_methods.c:107`、`xl6_cgen_decl_methods.c:168`、`xl6_cgen_decl_methods.c:191`、`xl6_cgen_decl_methods.c:337` |
 | 对应生成的 C 代码 | `/* user body */ cleanup_direct_fields(self); xl_class_Base__destroy(&self->base);` |
 | 中间形态伪代码 | `destroyBody(); for field in reverse(fields): cleanup(field); cleanup(base)` |
@@ -235,7 +235,7 @@
 | 字段 | 内容 |
 | --- | --- |
 | xlang 写法 | `class Holder` / `File f`，其中 `File` 是有 `destroy` 的 custom |
-| 生成规则描述 | class 字段如果是 custom 且该 custom 声明了 `destroy`，析构时检查 `self->field.handle != 0`，调用 custom destroy 对应的 C 函数，然后将 handle 置零。没有 destroy 的 custom 字段不生成自动释放。 |
+| 生成规则描述 | class 字段如果是 custom 且该 custom 声明了 `destroy`，析构时检查 `self->field.handle != 0`，调用 custom destroy 对应的 C 函数，然后将 handle 置零。没有 destroy 的 custom 字段不生成自动释放；多个 custom 字段按字段声明逆序释放，`test.bat` 对 `cgen_class_custom_field.c` 检查 `second` 字段释放位于 `first` 字段之前。 |
 | 生成器文件名和行号 | `xl6_cgen_decl_methods.c:82`、`xl6_cgen_decl_methods.c:139` |
 | 对应生成的 C 代码 | `if (self->f.handle != 0) { file_close(self->f.handle); self->f.handle = 0; }` |
 | 中间形态伪代码 | `if custom.hasDestroy and handle: destroy(handle); handle = 0` |

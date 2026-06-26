@@ -1,0 +1,77 @@
+# DEMO6 范例入口
+
+本目录收集 demo6 当前可运行或可验证的示例。范例只描述当前实现能力，不作为语言设计来源；语言设计仍以 `docs` 目录为准。
+
+## 推荐入口
+
+- `tutorial/README.md`：按学习顺序组织的小型教学范例。
+- `feature_suite/README.md`：按语言特性组织的完整功能范例套件。
+
+## 根目录语言范例
+
+- `hello.xl`：最小程序、CLI 基础阶段示例；回归：`lex`、`parse`、`check`、`cgen`、`ir`。
+- `literals.xl`：数字、字符串、time 等字面量基础示例；回归：`lex`、`parse`。
+- `containers.xl`：容器字面量、索引和基础操作；回归：`check`、`run`。
+- `anonymous_functions.xl`：匿名函数与函数值基础示例；回归：`check`。
+- `generic_identity.xl`：泛型函数最小示例；回归：`check`。
+- `generics.xl`：泛型函数、泛型调用和泛型容器示例；回归：`check`。
+- `class_point.xl`：class 字段和方法基础示例；回归：`check`。
+- `class_custom.xl`：class 与 custom 组合示例；回归：`check`。
+- `custom_counter.xl`：custom 句柄类示例；回归：`check`。
+- `second_stage.xl`：第二阶段基础语义组合示例；回归：`check`、`run`。
+- `concurrency.xl`：并发、通道和异步相关示例；回归：`run`。
+- `union.xl`：C 风格 union 示例；回归：`run`。
+
+## C 混编与导出范例
+
+- `c_hello.xl`：调用 C/CRT 风格函数的最小示例；回归：`run`。
+- `c_variables.xl`：extern C 变量示例；回归：`check`。
+- `c_export.xl`：xlang 导出 C ABI 和 ABI dump 示例；回归：`abi`。
+
+## 标准库范例
+
+标准库范例文件名统一为 `stdlib_*.xl`，由 `tools/check_stdlib_examples.ps1` 批量 `check` 和 `run`，并由 `tools/check_stdlib_coverage.ps1` 参与函数覆盖校验。
+
+- `stdlib_math.xl`
+- `stdlib_string.xl`
+- `stdlib_time.xl`
+- `stdlib_random.xl`
+- `stdlib_path_file.xl`
+- `stdlib_json.xl`
+- `stdlib_xson.xl`
+- `stdlib_print.xl`
+- `stdlib_codec.xl`
+- `stdlib_hash.xl`
+- `stdlib_crypto.xl`
+- `stdlib_id_net.xl`
+- `stdlib_url.xl`
+- `stdlib_query.xl`
+- `stdlib_regex.xl`
+- `stdlib_process.xl`
+- `stdlib_http_server.xl`
+
+## DLL 宿主范例
+
+以下 C 文件用于 `xl.dll` 嵌入式运行库验证：
+
+- `xl_dll_embed_string.c`
+- `xl_dll_link_host.c`
+- `xl_dll_loadlib_host.c`
+- `xl_dll_null_context.c`
+- `xl_dll_threaded_host.c`
+
+## 回归入口
+
+在 `demo6` 目录下运行：
+
+```bat
+test_tutorial.bat
+test_feature_suite.bat
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_stdlib_examples.ps1
+```
+
+完整主回归使用：
+
+```bat
+test.bat
+```

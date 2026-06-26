@@ -1,4 +1,5 @@
 #include "src/diag/xl6_diag.h"
+#include "src/common/xl6_console.h"
 
 void xl6DiagInit(XL6_DiagList* list)
 {
@@ -51,11 +52,12 @@ void xl6DiagPrintText(const XL6_DiagList* list, const char* fileName)
         return;
     }
     for ( i = 0; i < list->count; ++i ) {
-        fprintf(stderr, "%s:%d:%d: %s\n",
-                fileName != NULL ? fileName : "<source>",
-                list->items[i].line,
-                list->items[i].column,
-                list->items[i].message != NULL ? list->items[i].message : "error");
+        xl6ConsolePrintf(XL6_CONSOLE_STDERR,
+                         "%s:%d:%d: %s\n",
+                         fileName != NULL ? fileName : "<source>",
+                         list->items[i].line,
+                         list->items[i].column,
+                         list->items[i].message != NULL ? list->items[i].message : "error");
     }
 }
 
@@ -69,16 +71,17 @@ void xl6DiagPrintTextWithPhase(const XL6_DiagList* list, const char* fileName, c
     }
     phaseText = phase != NULL ? phase : "compile";
     if ( list->count == 0 ) {
-        fprintf(stderr, "%s: [%s] failed\n", fileName != NULL ? fileName : "<source>", phaseText);
+        xl6ConsolePrintf(XL6_CONSOLE_STDERR, "%s: [%s] failed\n", fileName != NULL ? fileName : "<source>", phaseText);
         return;
     }
     for ( i = 0; i < list->count; ++i ) {
-        fprintf(stderr, "%s:%d:%d: [%s] %s\n",
-                fileName != NULL ? fileName : "<source>",
-                list->items[i].line,
-                list->items[i].column,
-                phaseText,
-                list->items[i].message != NULL ? list->items[i].message : "error");
+        xl6ConsolePrintf(XL6_CONSOLE_STDERR,
+                         "%s:%d:%d: [%s] %s\n",
+                         fileName != NULL ? fileName : "<source>",
+                         list->items[i].line,
+                         list->items[i].column,
+                         phaseText,
+                         list->items[i].message != NULL ? list->items[i].message : "error");
     }
 }
 

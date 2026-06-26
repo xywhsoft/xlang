@@ -15,6 +15,7 @@
 #include <windows.h>
 #else
 #include <dlfcn.h>
+#include <errno.h>
 #include <pthread.h>
 #include <unistd.h>
 #endif
@@ -68,19 +69,36 @@ typedef struct XL_CSymbol {
     void* value;
 } XL_CSymbol;
 
+typedef struct XL_LoadedLibrary {
+    char* path;
+#ifdef _WIN32
+    HMODULE module;
+#else
+    void* module;
+#endif
+} XL_LoadedLibrary;
+
 struct XL_Context {
+    char* baseDir;
     char* workDir;
     char* tempDir;
     char* tccDllPath;
     char* tccLibPath;
+    char* tccIncludePath;
+    char* tccWinIncludePath;
+    char* tccWinapiIncludePath;
+    char* tccLibSearchPath;
+    char* tccLibtcc1Path;
+    char* xrtObjPath;
     int saveTemps;
     char* lastError;
     XL_StringList includePaths;
     XL_StringList libraryPaths;
     XL_StringList linkLibraries;
-    XL_StringList loadLibraries;
     XL_CSymbol* symbols;
     size_t symbolCount;
+    XL_LoadedLibrary* loadedLibraries;
+    size_t loadedLibraryCount;
 };
 
 typedef struct XL_CwdScope {
@@ -93,7 +111,8 @@ typedef struct XL_CwdScope {
 } XL_CwdScope;
 
 static XL_TccApi xl__tcc;
-static int xl__runtimeCount = 0;
+static int xl__runtimeManualCount = 0;
+static int xl__runtimeContextCount = 0;
 static const float xl__mzerosf = -0.0f;
 static const double xl__mzerodf = -0.0;
 
@@ -159,6 +178,42 @@ static char* xlDupText(const char* text)
     return xrtCopyStr((char*)src, strlen(src));
 }
 
+static int xlPathIsAbsolute(const char* path)
+{
+    if ( path == NULL || path[0] == '\0' ) {
+        return 0;
+    }
+    if ( xrtPathIsAbs((str)path, 0) ) {
+        return 1;
+    }
+#ifdef _WIN32
+    return (path[0] == '\\' && path[1] == '\\') || (path[0] == '/' && path[1] == '/');
+#else
+    return 0;
+#endif
+}
+
+static int xlTextLooksLikePath(const char* text)
+{
+    return text != NULL &&
+           (strchr(text, '\\') != NULL || strchr(text, '/') != NULL ||
+            strchr(text, ':') != NULL || strchr(text, '.') != NULL);
+}
+
+static char* xlPathSnapshot(const char* baseDir, const char* path)
+{
+    str joined;
+
+    if ( path == NULL || path[0] == '\0' ) {
+        return xlDupText("");
+    }
+    if ( xlPathIsAbsolute(path) || baseDir == NULL || baseDir[0] == '\0' ) {
+        return xlDupText(path);
+    }
+    joined = xrtPathJoin(2, (str)baseDir, (str)path);
+    return joined != NULL ? (char*)joined : NULL;
+}
+
 static void xlSetError(XL_Context* ctx, const char* text)
 {
     if ( ctx == NULL ) {
@@ -177,6 +232,92 @@ static void xlSetError2(XL_Context* ctx, const char* prefix, const char* detail)
              detail != NULL && detail[0] != '\0' ? ": " : "",
              detail != NULL ? detail : "");
     xlSetError(ctx, text);
+}
+
+static char* xlGetCurrentDirText(XL_Context* ctx)
+{
+#ifdef _WIN32
+    DWORD need;
+    DWORD got;
+    wchar_t* wide;
+    char* text;
+
+    need = GetCurrentDirectoryW(0, NULL);
+    if ( need == 0 ) {
+        xlSetError(ctx, "cannot query current directory");
+        return NULL;
+    }
+    wide = (wchar_t*)xrtMalloc(((size_t)need + 1) * sizeof(wchar_t));
+    if ( wide == NULL ) {
+        xlSetError(ctx, "cannot allocate current directory buffer");
+        return NULL;
+    }
+    got = GetCurrentDirectoryW(need + 1, wide);
+    if ( got == 0 || got > need ) {
+        xrtFree(wide);
+        xlSetError(ctx, "cannot save current directory");
+        return NULL;
+    }
+    text = (char*)xrtUTF16to8((u16str)wide, 0, NULL);
+    xrtFree(wide);
+    if ( text == NULL ) {
+        xlSetError(ctx, "cannot convert current directory");
+    }
+    return text;
+#else
+    size_t size = 1024;
+    char* buffer;
+
+    while ( size <= 65536 ) {
+        buffer = (char*)xrtMalloc(size);
+        if ( buffer == NULL ) {
+            xlSetError(ctx, "cannot allocate current directory buffer");
+            return NULL;
+        }
+        if ( getcwd(buffer, size) != NULL ) {
+            return buffer;
+        }
+        xrtFree(buffer);
+        if ( errno != ERANGE ) {
+            xlSetError(ctx, "cannot save current directory");
+            return NULL;
+        }
+        size *= 2;
+    }
+    xlSetError(ctx, "current directory path is too long");
+    return NULL;
+#endif
+}
+
+static char* xlPathSnapshotFromCurrentDir(XL_Context* ctx, const char* path, const char* errorText)
+{
+    char* baseDir;
+    char* copy;
+
+    baseDir = xlGetCurrentDirText(ctx);
+    if ( baseDir == NULL ) {
+        return NULL;
+    }
+    copy = xlPathSnapshot(baseDir, path);
+    xrtFree(baseDir);
+    if ( copy == NULL ) {
+        xlSetError(ctx, errorText != NULL ? errorText : "cannot snapshot path");
+    }
+    return copy;
+}
+
+static char* xlLinkValueSnapshotFromCurrentDir(XL_Context* ctx, const char* value, const char* errorText)
+{
+    char* copy;
+
+    if ( !xlTextLooksLikePath(value) ) {
+        copy = xlDupText(value);
+        if ( copy == NULL ) {
+            xlSetError(ctx, errorText != NULL ? errorText : "cannot copy link library");
+        }
+        return copy;
+    }
+    return xlPathSnapshotFromCurrentDir(ctx, value, errorText);
 }
 
 static void xlStringListFree(XL_StringList* list)
@@ -219,6 +360,7 @@ static int xlStringListAppend(XL_StringList* list, const char* text)
 static int xlContextAddSymbol(XL_Context* ctx, const char* name, void* value)
 {
     XL_CSymbol* newItems;
+    char* nameCopy;
     size_t i;
 
     if ( ctx == NULL || name == NULL || name[0] == '\0' || value == NULL ) {
@@ -230,16 +372,18 @@ static int xlContextAddSymbol(XL_Context* ctx, const char* name, void* value)
             return 1;
         }
     }
+    nameCopy = xlDupText(name);
+    if ( nameCopy == NULL ) {
+        return 0;
+    }
     newItems = (XL_CSymbol*)xrtRealloc(ctx->symbols, (ctx->symbolCount + 1) * sizeof(XL_CSymbol));
     if ( newItems == NULL ) {
+        xrtFree(nameCopy);
         return 0;
     }
     ctx->symbols = newItems;
-    ctx->symbols[ctx->symbolCount].name = xlDupText(name);
+    ctx->symbols[ctx->symbolCount].name = nameCopy;
     ctx->symbols[ctx->symbolCount].value = value;
-    if ( ctx->symbols[ctx->symbolCount].name == NULL ) {
-        return 0;
-    }
     ctx->symbolCount += 1;
     return 1;
 }
@@ -257,6 +401,67 @@ static void xlFreeSymbols(XL_Context* ctx)
     xrtFree(ctx->symbols);
     ctx->symbols = NULL;
     ctx->symbolCount = 0;
+}
+
+static void xlCloseLoadedLibrary(XL_LoadedLibrary* item)
+{
+    if ( item == NULL ) {
+        return;
+    }
+#ifdef _WIN32
+    if ( item->module != NULL ) {
+        FreeLibrary(item->module);
+    }
+#else
+    if ( item->module != NULL ) {
+        dlclose(item->module);
+    }
+#endif
+    xrtFree(item->path);
+    memset(item, 0, sizeof(*item));
+}
+
+static void xlLoadedLibrariesFree(XL_Context* ctx)
+{
+    size_t i;
+
+    if ( ctx == NULL ) {
+        return;
+    }
+    for ( i = 0; i < ctx->loadedLibraryCount; ++i ) {
+        xlCloseLoadedLibrary(&ctx->loadedLibraries[i]);
+    }
+    xrtFree(ctx->loadedLibraries);
+    ctx->loadedLibraries = NULL;
+    ctx->loadedLibraryCount = 0;
+}
+
+static int xlContextAddLoadedLibrary(XL_Context* ctx, const char* path, XL_LoadedLibrary* loaded)
+{
+    XL_LoadedLibrary* newItems;
+    XL_LoadedLibrary* item;
+    char* pathCopy;
+
+    if ( ctx == NULL || path == NULL || path[0] == '\0' || loaded == NULL || loaded->module == NULL ) {
+        return 0;
+    }
+    pathCopy = xlDupText(path);
+    if ( pathCopy == NULL ) {
+        return 0;
+    }
+    newItems = (XL_LoadedLibrary*)xrtRealloc(ctx->loadedLibraries, (ctx->loadedLibraryCount + 1) * sizeof(XL_LoadedLibrary));
+    if ( newItems == NULL ) {
+        xrtFree(pathCopy);
+        return 0;
+    }
+    ctx->loadedLibraries = newItems;
+    item = &ctx->loadedLibraries[ctx->loadedLibraryCount];
+    memset(item, 0, sizeof(*item));
+    item->path = pathCopy;
+    item->module = loaded->module;
+    loaded->module = NULL;
+    ctx->loadedLibraryCount += 1;
+    return 1;
 }
 
 static int xlEnterWorkDir(XL_Context* ctx, XL_CwdScope* scope)
@@ -342,6 +547,22 @@ static void xlLeaveWorkDir(XL_CwdScope* scope)
     memset(scope, 0, sizeof(*scope));
 }
 
+static int xlEnsureTempDir(XL_Context* ctx)
+{
+    if ( ctx == NULL ) {
+        return 0;
+    }
+    if ( ctx->tempDir == NULL || ctx->tempDir[0] == '\0' ) {
+        xlSetError(ctx, "temp dir path is empty");
+        return 0;
+    }
+    if ( !xrtDirCreateAll(ctx->tempDir) ) {
+        xlSetError2(ctx, "cannot create temp dir", ctx->tempDir);
+        return 0;
+    }
+    return 1;
+}
+
 static void xlTccError(void* opaque, const char* msg)
 {
     XL_Context* ctx = (XL_Context*)opaque;
@@ -360,9 +581,76 @@ static void* xlLoadProc(XL_TccApi* api, const char* name)
 #endif
 }
 
+static void xlUnloadTccApi(XL_TccApi* api)
+{
+    if ( api == NULL ) {
+        return;
+    }
+#ifdef _WIN32
+    if ( api->module != NULL ) {
+        FreeLibrary(api->module);
+    }
+#else
+    if ( api->module != NULL ) {
+        dlclose(api->module);
+    }
+#endif
+    xrtFree(api->path);
+    memset(api, 0, sizeof(*api));
+}
+
+static const char* xlEnvPathOrNull(const char* name)
+{
+    const char* value;
+
+    if ( name == NULL || name[0] == '\0' ) {
+        return NULL;
+    }
+    value = getenv(name);
+    return value != NULL && value[0] != '\0' ? value : NULL;
+}
+
+static const char* xlEnvPathOrDefault(const char* name, const char* fallback)
+{
+    const char* envPath = xlEnvPathOrNull(name);
+
+    return envPath != NULL ? envPath : fallback;
+}
+
+static const char* xlDefaultTccRootPath(void)
+{
+    return xlEnvPathOrDefault("XL6_TCC_ROOT", XL6_TCC_ROOT_PATH);
+}
+
+static const char* xlDefaultTccIncludePath(void)
+{
+    return xlEnvPathOrDefault("XL6_TCC_INCLUDE", XL6_TCC_INCLUDE_PATH);
+}
+
+static const char* xlDefaultTccWinIncludePath(void)
+{
+    return xlEnvPathOrDefault("XL6_TCC_WIN_INCLUDE", XL6_TCC_WIN_INCLUDE_PATH);
+}
+
+static const char* xlDefaultTccWinapiIncludePath(void)
+{
+    return xlEnvPathOrDefault("XL6_TCC_WINAPI_INCLUDE", XL6_TCC_WINAPI_INCLUDE_PATH);
+}
+
+static const char* xlDefaultTccLibPath(void)
+{
+    return xlEnvPathOrDefault("XL6_TCC_LIB", XL6_TCC_LIB_PATH);
+}
+
+static const char* xlDefaultTccLibtcc1Path(void)
+{
+    return xlEnvPathOrDefault("XL6_TCC_LIBTCC1", XL6_TCC_LIBTCC1_PATH);
+}
+
 static int xlLoadTccFromPath(XL_Context* ctx, const char* path)
 {
     XL_TccApi* api;
+    XL_TccApi loaded;
 
     api = &xl__tcc;
     if ( api->ready ) {
@@ -371,62 +659,80 @@ static int xlLoadTccFromPath(XL_Context* ctx, const char* path)
     if ( path == NULL || path[0] == '\0' ) {
         return 0;
     }
+    memset(&loaded, 0, sizeof(loaded));
 #ifdef _WIN32
     {
         u16str pathW = xrtUTF8to16((u8str)path, 0, NULL);
         if ( pathW != NULL ) {
-            api->module = LoadLibraryW((LPCWSTR)pathW);
+            loaded.module = LoadLibraryW((LPCWSTR)pathW);
             xrtFree(pathW);
         }
     }
 #else
-    api->module = dlopen(path, RTLD_NOW | RTLD_LOCAL);
+    loaded.module = dlopen(path, RTLD_NOW | RTLD_LOCAL);
 #endif
-    if ( api->module == NULL ) {
+    if ( loaded.module == NULL ) {
         return 0;
     }
 
-#define XL_LOAD_TCC_PROC(field) \
-    do { \
-        api->field = (XL_Tcc##field##Proc)xlLoadProc(api, #field); \
-        if ( api->field == NULL ) { \
-            xlSetError2(ctx, "libtcc missing symbol", #field); \
-            return 0; \
-        } \
-    } while (0)
+    loaded.tcc_new = (XL_TccNewProc)xlLoadProc(&loaded, "tcc_new");
+    loaded.tcc_delete = (XL_TccDeleteProc)xlLoadProc(&loaded, "tcc_delete");
+    loaded.tcc_set_lib_path = (XL_TccSetLibPathProc)xlLoadProc(&loaded, "tcc_set_lib_path");
+    loaded.tcc_set_error_func = (XL_TccSetErrorFuncProc)xlLoadProc(&loaded, "tcc_set_error_func");
+    loaded.tcc_set_options = (XL_TccSetOptionsProc)xlLoadProc(&loaded, "tcc_set_options");
+    loaded.tcc_add_include_path = (XL_TccAddIncludePathProc)xlLoadProc(&loaded, "tcc_add_include_path");
+    loaded.tcc_add_library_path = (XL_TccAddLibraryPathProc)xlLoadProc(&loaded, "tcc_add_library_path");
+    loaded.tcc_add_library = (XL_TccAddLibraryProc)xlLoadProc(&loaded, "tcc_add_library");
+    loaded.tcc_add_file = (XL_TccAddFileProc)xlLoadProc(&loaded, "tcc_add_file");
+    loaded.tcc_add_symbol = (XL_TccAddSymbolProc)xlLoadProc(&loaded, "tcc_add_symbol");
+    loaded.tcc_set_output_type = (XL_TccSetOutputTypeProc)xlLoadProc(&loaded, "tcc_set_output_type");
+    loaded.tcc_compile_string = (XL_TccCompileStringProc)xlLoadProc(&loaded, "tcc_compile_string");
+    loaded.tcc_output_file = (XL_TccOutputFileProc)xlLoadProc(&loaded, "tcc_output_file");
+    loaded.tcc_run = (XL_TccRunProc)xlLoadProc(&loaded, "tcc_run");
 
-    api->tcc_new = (XL_TccNewProc)xlLoadProc(api, "tcc_new");
-    api->tcc_delete = (XL_TccDeleteProc)xlLoadProc(api, "tcc_delete");
-    api->tcc_set_lib_path = (XL_TccSetLibPathProc)xlLoadProc(api, "tcc_set_lib_path");
-    api->tcc_set_error_func = (XL_TccSetErrorFuncProc)xlLoadProc(api, "tcc_set_error_func");
-    api->tcc_set_options = (XL_TccSetOptionsProc)xlLoadProc(api, "tcc_set_options");
-    api->tcc_add_include_path = (XL_TccAddIncludePathProc)xlLoadProc(api, "tcc_add_include_path");
-    api->tcc_add_library_path = (XL_TccAddLibraryPathProc)xlLoadProc(api, "tcc_add_library_path");
-    api->tcc_add_library = (XL_TccAddLibraryProc)xlLoadProc(api, "tcc_add_library");
-    api->tcc_add_file = (XL_TccAddFileProc)xlLoadProc(api, "tcc_add_file");
-    api->tcc_add_symbol = (XL_TccAddSymbolProc)xlLoadProc(api, "tcc_add_symbol");
-    api->tcc_set_output_type = (XL_TccSetOutputTypeProc)xlLoadProc(api, "tcc_set_output_type");
-    api->tcc_compile_string = (XL_TccCompileStringProc)xlLoadProc(api, "tcc_compile_string");
-    api->tcc_output_file = (XL_TccOutputFileProc)xlLoadProc(api, "tcc_output_file");
-    api->tcc_run = (XL_TccRunProc)xlLoadProc(api, "tcc_run");
-
-    if ( api->tcc_new == NULL || api->tcc_delete == NULL || api->tcc_set_lib_path == NULL ||
-         api->tcc_set_error_func == NULL || api->tcc_add_include_path == NULL ||
-         api->tcc_add_library_path == NULL || api->tcc_add_library == NULL ||
-         api->tcc_add_file == NULL || api->tcc_add_symbol == NULL ||
-         api->tcc_set_output_type == NULL || api->tcc_compile_string == NULL ||
-         api->tcc_output_file == NULL || api->tcc_run == NULL ) {
+    if ( loaded.tcc_new == NULL || loaded.tcc_delete == NULL || loaded.tcc_set_lib_path == NULL ||
+         loaded.tcc_set_error_func == NULL || loaded.tcc_add_include_path == NULL ||
+         loaded.tcc_set_options == NULL || loaded.tcc_add_library_path == NULL || loaded.tcc_add_library == NULL ||
+         loaded.tcc_add_file == NULL || loaded.tcc_add_symbol == NULL ||
+         loaded.tcc_set_output_type == NULL || loaded.tcc_compile_string == NULL ||
+         loaded.tcc_output_file == NULL || loaded.tcc_run == NULL ) {
         xlSetError2(ctx, "invalid libtcc dll", path);
+        xlUnloadTccApi(&loaded);
         return 0;
     }
-    api->path = xlDupText(path);
-    api->ready = 1;
+    loaded.path = xlDupText(path);
+    if ( loaded.path == NULL ) {
+        xlSetError(ctx, "cannot remember libtcc path");
+        xlUnloadTccApi(&loaded);
+        return 0;
+    }
+    loaded.ready = 1;
+    *api = loaded;
     return 1;
+}
+
+static int xlLoadTccFromBasePath(XL_Context* ctx, const char* path)
+{
+    char* snapshot;
+    int ok;
+
+    if ( path == NULL || path[0] == '\0' ) {
+        return 0;
+    }
+    snapshot = xlPathSnapshot(ctx != NULL ? ctx->baseDir : NULL, path);
+    if ( snapshot == NULL ) {
+        xlSetError(ctx, "cannot snapshot libtcc path");
+        return 0;
+    }
+    ok = xlLoadTccFromPath(ctx, snapshot);
+    xrtFree(snapshot);
+    return ok;
 }
 
 static int xlEnsureTcc(XL_Context* ctx)
 {
     const char* path;
+    const char* envPath;
 
     if ( xl__tcc.ready ) {
         return 1;
@@ -435,13 +741,17 @@ static int xlEnsureTcc(XL_Context* ctx)
     if ( xlLoadTccFromPath(ctx, path) ) {
         return 1;
     }
+    envPath = xlEnvPathOrNull("XL6_TCC_DLL");
+    if ( xlLoadTccFromBasePath(ctx, envPath) ) {
+        return 1;
+    }
     if ( xlLoadTccFromPath(ctx, "libtcc.dll") ) {
         return 1;
     }
-    if ( xlLoadTccFromPath(ctx, "release\\libtcc.dll") ) {
+    if ( xlLoadTccFromBasePath(ctx, "release\\libtcc.dll") ) {
         return 1;
     }
-    if ( xlLoadTccFromPath(ctx, XL6_TCC_DLL_PATH) ) {
+    if ( xlLoadTccFromBasePath(ctx, XL6_TCC_DLL_PATH) ) {
         return 1;
     }
     xlSetError(ctx, "cannot load libtcc.dll");
@@ -821,7 +1131,7 @@ static TCCState* xlCreateTccState(XL_Context* ctx, int outputType)
     }
     xl__tcc.tcc_set_error_func(s, ctx, xlTccError);
     tccLibPath = ctx != NULL && ctx->tccLibPath != NULL && ctx->tccLibPath[0] != '\0' ?
-                 ctx->tccLibPath : XL6_TCC_ROOT_PATH;
+                 ctx->tccLibPath : xlDefaultTccRootPath();
     xl__tcc.tcc_set_lib_path(s, tccLibPath);
     if ( xl__tcc.tcc_set_output_type(s, outputType) != 0 ) {
         xlSetError(ctx, "cannot set TCC output type");
@@ -829,15 +1139,15 @@ static TCCState* xlCreateTccState(XL_Context* ctx, int outputType)
         return NULL;
     }
     (void)xl__tcc.tcc_set_options(s, "-std=c11 -D_CRT_SECURE_NO_WARNINGS");
-    (void)xl__tcc.tcc_add_include_path(s, ".");
+    (void)xl__tcc.tcc_add_include_path(s, ctx != NULL && ctx->baseDir != NULL ? ctx->baseDir : ".");
     (void)xl__tcc.tcc_add_include_path(s, "src");
     (void)xl__tcc.tcc_add_include_path(s, "lib\\xrt");
-    (void)xl__tcc.tcc_add_include_path(s, XL6_TCC_INCLUDE_PATH);
-    (void)xl__tcc.tcc_add_include_path(s, XL6_TCC_WIN_INCLUDE_PATH);
-    (void)xl__tcc.tcc_add_include_path(s, XL6_TCC_WINAPI_INCLUDE_PATH);
-    (void)xl__tcc.tcc_add_library_path(s, XL6_TCC_LIB_PATH);
-    if ( xrtFileExists(XL6_TCC_LIBTCC1_PATH) ) {
-        (void)xl__tcc.tcc_add_file(s, XL6_TCC_LIBTCC1_PATH);
+    (void)xl__tcc.tcc_add_include_path(s, ctx != NULL && ctx->tccIncludePath != NULL ? ctx->tccIncludePath : xlDefaultTccIncludePath());
+    (void)xl__tcc.tcc_add_include_path(s, ctx != NULL && ctx->tccWinIncludePath != NULL ? ctx->tccWinIncludePath : xlDefaultTccWinIncludePath());
+    (void)xl__tcc.tcc_add_include_path(s, ctx != NULL && ctx->tccWinapiIncludePath != NULL ? ctx->tccWinapiIncludePath : xlDefaultTccWinapiIncludePath());
+    (void)xl__tcc.tcc_add_library_path(s, ctx != NULL && ctx->tccLibSearchPath != NULL ? ctx->tccLibSearchPath : xlDefaultTccLibPath());
+    if ( xrtFileExists((char*)(ctx != NULL && ctx->tccLibtcc1Path != NULL ? ctx->tccLibtcc1Path : xlDefaultTccLibtcc1Path())) ) {
+        (void)xl__tcc.tcc_add_file(s, ctx != NULL && ctx->tccLibtcc1Path != NULL ? ctx->tccLibtcc1Path : xlDefaultTccLibtcc1Path());
     }
     for ( i = 0; ctx != NULL && i < ctx->includePaths.count; ++i ) {
         if ( xl__tcc.tcc_add_include_path(s, ctx->includePaths.items[i]) != 0 ) {
@@ -858,6 +1168,33 @@ static TCCState* xlCreateTccState(XL_Context* ctx, int outputType)
         return NULL;
     }
     return s;
+}
+
+static const char* xlDefaultXrtObjPath(void)
+{
+    return xlEnvPathOrDefault("XL6_XRT_OBJ", XL6_XRT_OBJ_PATH);
+}
+
+static int xlAddDefaultXrtObject(XL_Context* ctx, TCCState* s)
+{
+    const char* xrtObjPath;
+
+    if ( s == NULL ) {
+        xlSetError(ctx, "cannot add xrt object");
+        return 0;
+    }
+    xrtObjPath = ctx != NULL && ctx->xrtObjPath != NULL && ctx->xrtObjPath[0] != '\0' ?
+                 ctx->xrtObjPath :
+                 xlDefaultXrtObjPath();
+    if ( !xrtFileExists((char*)xrtObjPath) ) {
+        xlSetError2(ctx, "missing XRT object", xrtObjPath);
+        return 0;
+    }
+    if ( xl__tcc.tcc_add_file(s, xrtObjPath) != 0 ) {
+        xlSetError2(ctx, "cannot add XRT object", xrtObjPath);
+        return 0;
+    }
+    return 1;
 }
 
 static void xlSetCompileDiagError(XL_Context* ctx, const XL6_CompileUnit* unit)
@@ -948,7 +1285,7 @@ static int xlAddDependenciesToTcc(XL_Context* ctx, TCCState* s, const XL6_Compil
 
     for ( i = 0; ctx != NULL && i < ctx->linkLibraries.count; ++i ) {
         const char* value = ctx->linkLibraries.items[i];
-        if ( strchr(value, '\\') != NULL || strchr(value, '/') != NULL || strchr(value, ':') != NULL || strchr(value, '.') != NULL ) {
+        if ( xlTextLooksLikePath(value) ) {
             if ( xl__tcc.tcc_add_file(s, value) != 0 ) {
                 xlSetError2(ctx, "cannot add link file", value);
                 return 0;
@@ -958,9 +1295,9 @@ static int xlAddDependenciesToTcc(XL_Context* ctx, TCCState* s, const XL6_Compil
             return 0;
         }
     }
-    for ( i = 0; ctx != NULL && i < ctx->loadLibraries.count; ++i ) {
-        if ( xl__tcc.tcc_add_file(s, ctx->loadLibraries.items[i]) != 0 ) {
-            xlSetError2(ctx, "cannot add dependency library", ctx->loadLibraries.items[i]);
+    for ( i = 0; ctx != NULL && i < ctx->loadedLibraryCount; ++i ) {
+        if ( xl__tcc.tcc_add_file(s, ctx->loadedLibraries[i].path) != 0 ) {
+            xlSetError2(ctx, "cannot add dependency library", ctx->loadedLibraries[i].path);
             return 0;
         }
     }
@@ -1069,8 +1406,8 @@ static int xlCompileUnitToExe(XL_Context* ctx, XL6_CompileUnit* unit, const char
         return 0;
     }
     xrtFree(cText);
-    if ( xrtFileExists(XL6_TCC_LIBTCC1_PATH) ) {
-        (void)xl__tcc.tcc_add_file(s, XL6_TCC_LIBTCC1_PATH);
+    if ( xrtFileExists((char*)(ctx != NULL && ctx->tccLibtcc1Path != NULL ? ctx->tccLibtcc1Path : xlDefaultTccLibtcc1Path())) ) {
+        (void)xl__tcc.tcc_add_file(s, ctx != NULL && ctx->tccLibtcc1Path != NULL ? ctx->tccLibtcc1Path : xlDefaultTccLibtcc1Path());
     }
     for ( i = 0; i < unit->importDeps.cSources.count; ++i ) {
         if ( xl__tcc.tcc_add_file(s, unit->importDeps.cSources.items[i]) != 0 ) {
@@ -1083,14 +1420,7 @@ static int xlCompileUnitToExe(XL_Context* ctx, XL6_CompileUnit* unit, const char
         xl__tcc.tcc_delete(s);
         return 0;
     }
-    if ( xrtFileExists("..\\..\\xrt\\release\\x64\\xrt.o") ) {
-        if ( xl__tcc.tcc_add_file(s, "..\\..\\xrt\\release\\x64\\xrt.o") != 0 ) {
-            xlSetError(ctx, "cannot add xrt object");
-            xl__tcc.tcc_delete(s);
-            return 0;
-        }
-    } else {
-        xlSetError(ctx, "missing XRT object: ..\\..\\xrt\\release\\x64\\xrt.o");
+    if ( !xlAddDefaultXrtObject(ctx, s) ) {
         xl__tcc.tcc_delete(s);
         return 0;
     }
@@ -1118,7 +1448,7 @@ XL_ContextOptions xlDefaultContextOptions(void)
     options.workDir = ".";
     options.tempDir = "release\\tmp";
     options.tccDllPath = NULL;
-    options.tccLibPath = XL6_TCC_ROOT_PATH;
+    options.tccLibPath = NULL;
     options.saveTemps = 0;
     return options;
 }
@@ -1132,24 +1462,51 @@ static void xlClearLastErrorUnlocked(XL_Context* ctx)
     ctx->lastError = NULL;
 }
 
-static int xlRuntimeInitUnlocked(void)
+static int xlRuntimeRefTotal(void)
 {
-    if ( xl__runtimeCount == 0 ) {
+    return xl__runtimeManualCount + xl__runtimeContextCount;
+}
+
+static int xlRuntimeAcquireManualUnlocked(void)
+{
+    if ( xlRuntimeRefTotal() == 0 ) {
         if ( xrtInit() == NULL ) {
             return 0;
         }
     }
-    xl__runtimeCount += 1;
+    xl__runtimeManualCount += 1;
     return 1;
 }
 
-static void xlRuntimeUnitUnlocked(void)
+static void xlRuntimeReleaseManualUnlocked(void)
 {
-    if ( xl__runtimeCount <= 0 ) {
+    if ( xl__runtimeManualCount <= 0 ) {
         return;
     }
-    xl__runtimeCount -= 1;
-    if ( xl__runtimeCount == 0 ) {
+    xl__runtimeManualCount -= 1;
+    if ( xlRuntimeRefTotal() == 0 ) {
+        xrtUnit();
+    }
+}
+
+static int xlRuntimeAcquireContextUnlocked(void)
+{
+    if ( xlRuntimeRefTotal() == 0 ) {
+        if ( xrtInit() == NULL ) {
+            return 0;
+        }
+    }
+    xl__runtimeContextCount += 1;
+    return 1;
+}
+
+static void xlRuntimeReleaseContextUnlocked(void)
+{
+    if ( xl__runtimeContextCount <= 0 ) {
+        return;
+    }
+    xl__runtimeContextCount -= 1;
+    if ( xlRuntimeRefTotal() == 0 ) {
         xrtUnit();
     }
 }
@@ -1159,7 +1516,7 @@ int xlRuntimeInit(void)
     int ok;
 
     xlApiLock();
-    ok = xlRuntimeInitUnlocked();
+    ok = xlRuntimeAcquireManualUnlocked();
     xlApiUnlock();
     return ok;
 }
@@ -1167,7 +1524,7 @@ int xlRuntimeInit(void)
 void xlRuntimeUnit(void)
 {
     xlApiLock();
-    xlRuntimeUnitUnlocked();
+    xlRuntimeReleaseManualUnlocked();
     xlApiUnlock();
 }
 
@@ -1176,18 +1533,25 @@ static void xlDestroyContextUnlocked(XL_Context* ctx)
     if ( ctx == NULL ) {
         return;
     }
+    xrtFree(ctx->baseDir);
     xrtFree(ctx->workDir);
     xrtFree(ctx->tempDir);
     xrtFree(ctx->tccDllPath);
     xrtFree(ctx->tccLibPath);
+    xrtFree(ctx->tccIncludePath);
+    xrtFree(ctx->tccWinIncludePath);
+    xrtFree(ctx->tccWinapiIncludePath);
+    xrtFree(ctx->tccLibSearchPath);
+    xrtFree(ctx->tccLibtcc1Path);
+    xrtFree(ctx->xrtObjPath);
     xrtFree(ctx->lastError);
     xlStringListFree(&ctx->includePaths);
     xlStringListFree(&ctx->libraryPaths);
     xlStringListFree(&ctx->linkLibraries);
-    xlStringListFree(&ctx->loadLibraries);
     xlFreeSymbols(ctx);
+    xlLoadedLibrariesFree(ctx);
     xrtFree(ctx);
-    xlRuntimeUnitUnlocked();
+    xlRuntimeReleaseContextUnlocked();
 }
 
 XL_Context* xlCreateContext(const XL_ContextOptions* options)
@@ -1196,33 +1560,47 @@ XL_Context* xlCreateContext(const XL_ContextOptions* options)
     XL_Context* ctx;
 
     xlApiLock();
-    if ( !xlRuntimeInitUnlocked() ) {
+    if ( !xlRuntimeAcquireContextUnlocked() ) {
         xlApiUnlock();
         return NULL;
     }
     localOptions = options != NULL ? *options : xlDefaultContextOptions();
     if ( localOptions.size != 0 && localOptions.size < sizeof(XL_ContextOptions) ) {
-        xlRuntimeUnitUnlocked();
+        xlRuntimeReleaseContextUnlocked();
         xlApiUnlock();
         return NULL;
     }
     if ( localOptions.version != 0 && localOptions.version != XL_API_VERSION ) {
-        xlRuntimeUnitUnlocked();
+        xlRuntimeReleaseContextUnlocked();
         xlApiUnlock();
         return NULL;
     }
     ctx = (XL_Context*)xrtCalloc(1, sizeof(XL_Context));
     if ( ctx == NULL ) {
-        xlRuntimeUnitUnlocked();
+        xlRuntimeReleaseContextUnlocked();
         xlApiUnlock();
         return NULL;
     }
-    ctx->workDir = xlDupText(localOptions.workDir != NULL ? localOptions.workDir : ".");
-    ctx->tempDir = xlDupText(localOptions.tempDir != NULL ? localOptions.tempDir : "release\\tmp");
-    ctx->tccDllPath = xlDupText(localOptions.tccDllPath != NULL ? localOptions.tccDllPath : "");
-    ctx->tccLibPath = xlDupText(localOptions.tccLibPath != NULL ? localOptions.tccLibPath : XL6_TCC_ROOT_PATH);
+    ctx->baseDir = xlGetCurrentDirText(NULL);
+    ctx->workDir = xlPathSnapshot(ctx->baseDir, localOptions.workDir != NULL ? localOptions.workDir : ".");
+    ctx->tempDir = xlPathSnapshot(ctx->baseDir, localOptions.tempDir != NULL ? localOptions.tempDir : "release\\tmp");
+    ctx->tccDllPath = xlPathSnapshot(ctx->baseDir, localOptions.tccDllPath != NULL ? localOptions.tccDllPath : "");
+    ctx->tccLibPath = xlPathSnapshot(ctx->baseDir,
+                                     localOptions.tccLibPath != NULL && localOptions.tccLibPath[0] != '\0' ?
+                                     localOptions.tccLibPath :
+                                     xlDefaultTccRootPath());
+    ctx->tccIncludePath = xlPathSnapshot(ctx->baseDir, xlDefaultTccIncludePath());
+    ctx->tccWinIncludePath = xlPathSnapshot(ctx->baseDir, xlDefaultTccWinIncludePath());
+    ctx->tccWinapiIncludePath = xlPathSnapshot(ctx->baseDir, xlDefaultTccWinapiIncludePath());
+    ctx->tccLibSearchPath = xlPathSnapshot(ctx->baseDir, xlDefaultTccLibPath());
+    ctx->tccLibtcc1Path = xlPathSnapshot(ctx->baseDir, xlDefaultTccLibtcc1Path());
+    ctx->xrtObjPath = xlPathSnapshot(ctx->baseDir, xlDefaultXrtObjPath());
     ctx->saveTemps = localOptions.saveTemps != 0;
-    if ( ctx->workDir == NULL || ctx->tempDir == NULL || ctx->tccDllPath == NULL || ctx->tccLibPath == NULL ) {
+    if ( ctx->baseDir == NULL || ctx->workDir == NULL || ctx->tempDir == NULL ||
+         ctx->tccDllPath == NULL || ctx->tccLibPath == NULL ||
+         ctx->tccIncludePath == NULL || ctx->tccWinIncludePath == NULL ||
+         ctx->tccWinapiIncludePath == NULL || ctx->tccLibSearchPath == NULL ||
+         ctx->tccLibtcc1Path == NULL || ctx->xrtObjPath == NULL ) {
         xlDestroyContextUnlocked(ctx);
         ctx = NULL;
     }
@@ -1253,9 +1631,8 @@ int xlSetWorkDir(XL_Context* ctx, const char* path)
         xlApiUnlock();
         return 0;
     }
-    copy = xlDupText(path);
+    copy = xlPathSnapshotFromCurrentDir(ctx, path, "cannot allocate work dir");
     if ( copy == NULL ) {
-        xlSetError(ctx, "cannot allocate work dir");
         xlApiUnlock();
         return 0;
     }
@@ -1278,9 +1655,8 @@ int xlSetTempDir(XL_Context* ctx, const char* path)
         xlApiUnlock();
         return 0;
     }
-    copy = xlDupText(path);
+    copy = xlPathSnapshotFromCurrentDir(ctx, path, "cannot allocate temp dir");
     if ( copy == NULL ) {
-        xlSetError(ctx, "cannot allocate temp dir");
         xlApiUnlock();
         return 0;
     }
@@ -1303,13 +1679,16 @@ int xlSetSaveTemps(XL_Context* ctx, int enabled)
 
 int xlAddIncludePath(XL_Context* ctx, const char* path)
 {
+    char* snapshot;
     int ok;
 
     if ( ctx == NULL ) {
         return 0;
     }
     xlApiLock();
-    ok = xlStringListAppend(&ctx->includePaths, path);
+    snapshot = xlPathSnapshotFromCurrentDir(ctx, path, "cannot snapshot include path");
+    ok = snapshot != NULL && xlStringListAppend(&ctx->includePaths, snapshot);
+    xrtFree(snapshot);
     if ( !ok ) {
         xlSetError(ctx, "cannot add include path");
     }
@@ -1319,13 +1698,16 @@ int xlAddIncludePath(XL_Context* ctx, const char* path)
 
 int xlAddLibraryPath(XL_Context* ctx, const char* path)
 {
+    char* snapshot;
     int ok;
 
     if ( ctx == NULL ) {
         return 0;
     }
     xlApiLock();
-    ok = xlStringListAppend(&ctx->libraryPaths, path);
+    snapshot = xlPathSnapshotFromCurrentDir(ctx, path, "cannot snapshot library path");
+    ok = snapshot != NULL && xlStringListAppend(&ctx->libraryPaths, snapshot);
+    xrtFree(snapshot);
     if ( !ok ) {
         xlSetError(ctx, "cannot add library path");
     }
@@ -1335,13 +1717,16 @@ int xlAddLibraryPath(XL_Context* ctx, const char* path)
 
 int xlAddLinkLibrary(XL_Context* ctx, const char* nameOrPath)
 {
+    char* snapshot;
     int ok;
 
     if ( ctx == NULL ) {
         return 0;
     }
     xlApiLock();
-    ok = xlStringListAppend(&ctx->linkLibraries, nameOrPath);
+    snapshot = xlLinkValueSnapshotFromCurrentDir(ctx, nameOrPath, "cannot snapshot link library");
+    ok = snapshot != NULL && xlStringListAppend(&ctx->linkLibraries, snapshot);
+    xrtFree(snapshot);
     if ( !ok ) {
         xlSetError(ctx, "cannot add link library");
     }
@@ -1351,6 +1736,9 @@ int xlAddLinkLibrary(XL_Context* ctx, const char* nameOrPath)
 
 int xlLoadDependencyLibrary(XL_Context* ctx, const char* path)
 {
+    XL_LoadedLibrary loaded;
+    char* snapshot;
+
     if ( ctx == NULL ) {
         return 0;
     }
@@ -1360,32 +1748,43 @@ int xlLoadDependencyLibrary(XL_Context* ctx, const char* path)
         xlApiUnlock();
         return 0;
     }
+    memset(&loaded, 0, sizeof(loaded));
+    snapshot = xlPathSnapshotFromCurrentDir(ctx, path, "cannot snapshot dependency library");
+    if ( snapshot == NULL ) {
+        xlApiUnlock();
+        return 0;
+    }
 #ifdef _WIN32
     {
-        u16str pathW = xrtUTF8to16((u8str)path, 0, NULL);
-        HMODULE module = NULL;
+        u16str pathW = xrtUTF8to16((u8str)snapshot, 0, NULL);
         if ( pathW != NULL ) {
-            module = LoadLibraryW((LPCWSTR)pathW);
+            loaded.module = LoadLibraryW((LPCWSTR)pathW);
             xrtFree(pathW);
         }
-        if ( module == NULL ) {
-            xlSetError2(ctx, "cannot load dependency library", path);
+        if ( loaded.module == NULL ) {
+            xlSetError2(ctx, "cannot load dependency library", snapshot);
+            xrtFree(snapshot);
             xlApiUnlock();
             return 0;
         }
     }
 #else
-    if ( dlopen(path, RTLD_NOW | RTLD_GLOBAL) == NULL ) {
-        xlSetError2(ctx, "cannot load dependency library", path);
+    loaded.module = dlopen(snapshot, RTLD_NOW | RTLD_GLOBAL);
+    if ( loaded.module == NULL ) {
+        xlSetError2(ctx, "cannot load dependency library", snapshot);
+        xrtFree(snapshot);
         xlApiUnlock();
         return 0;
     }
 #endif
-    if ( !xlStringListAppend(&ctx->loadLibraries, path) ) {
+    if ( !xlContextAddLoadedLibrary(ctx, snapshot, &loaded) ) {
         xlSetError(ctx, "cannot remember dependency library");
+        xlCloseLoadedLibrary(&loaded);
+        xrtFree(snapshot);
         xlApiUnlock();
         return 0;
     }
+    xrtFree(snapshot);
     xlApiUnlock();
     return 1;
 }
@@ -1417,6 +1816,10 @@ int xlRunScriptString(XL_Context* ctx, const char* source)
     }
     xlApiLock();
     xlClearLastErrorUnlocked(ctx);
+    if ( !xlEnsureTempDir(ctx) ) {
+        xlApiUnlock();
+        return 0;
+    }
     if ( !xlEnterWorkDir(ctx, &cwd) ) {
         xlApiUnlock();
         return 0;
@@ -1442,6 +1845,10 @@ int xlRunScriptFile(XL_Context* ctx, const char* path)
     }
     xlApiLock();
     xlClearLastErrorUnlocked(ctx);
+    if ( !xlEnsureTempDir(ctx) ) {
+        xlApiUnlock();
+        return 0;
+    }
     if ( !xlEnterWorkDir(ctx, &cwd) ) {
         xlApiUnlock();
         return 0;
@@ -1467,6 +1874,10 @@ int xlCompileScriptStringToExe(XL_Context* ctx, const char* source, const char* 
     }
     xlApiLock();
     xlClearLastErrorUnlocked(ctx);
+    if ( !xlEnsureTempDir(ctx) ) {
+        xlApiUnlock();
+        return 0;
+    }
     if ( !xlEnterWorkDir(ctx, &cwd) ) {
         xlApiUnlock();
         return 0;
@@ -1492,6 +1903,10 @@ int xlCompileScriptFileToExe(XL_Context* ctx, const char* path, const char* outp
     }
     xlApiLock();
     xlClearLastErrorUnlocked(ctx);
+    if ( !xlEnsureTempDir(ctx) ) {
+        xlApiUnlock();
+        return 0;
+    }
     if ( !xlEnterWorkDir(ctx, &cwd) ) {
         xlApiUnlock();
         return 0;

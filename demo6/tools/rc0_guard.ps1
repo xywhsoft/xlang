@@ -133,6 +133,48 @@ function Assert-FileExists {
     }
 }
 
+function Invoke-XlCaptureRaw {
+    param(
+        [string[]]$CommandArgs,
+        [string]$StdoutPath,
+        [string]$StderrPath
+    )
+
+    foreach ( $path in @($StdoutPath, $StderrPath) ) {
+        if ( Test-Path -LiteralPath $path -PathType Leaf ) {
+            Remove-Item -LiteralPath $path -Force
+        }
+    }
+
+    $xl = Join-Path $Root "release\xl.exe"
+    $process = Start-Process `
+        -FilePath $xl `
+        -ArgumentList $CommandArgs `
+        -NoNewWindow `
+        -PassThru `
+        -Wait `
+        -RedirectStandardOutput $StdoutPath `
+        -RedirectStandardError $StderrPath
+
+    return $process.ExitCode
+}
+
+function Assert-RawNativeOutput {
+    param(
+        [string]$Name,
+        [string]$Path
+    )
+
+    if ( ! (Test-Path -LiteralPath $Path -PathType Leaf) ) {
+        return
+    }
+
+    $text = Get-Content -LiteralPath $Path -Raw
+    if ( $text -match "CategoryInfo|FullyQualifiedErrorId|NativeCommandError" ) {
+        throw "$Name output was wrapped by PowerShell native error formatting"
+    }
+}
+
 function Invoke-XlToFile {
     param(
         [string]$Name,
@@ -140,10 +182,12 @@ function Invoke-XlToFile {
         [string]$OutputPath
     )
 
-    $xl = Join-Path $Root "release\xl.exe"
-    & $xl @CommandArgs > $OutputPath
-    if ( $LASTEXITCODE -ne 0 ) {
-        throw "$Name failed with code $LASTEXITCODE"
+    $stderrPath = "$OutputPath.stderr"
+    $exitCode = Invoke-XlCaptureRaw $CommandArgs $OutputPath $stderrPath
+    Assert-RawNativeOutput $Name $OutputPath
+    Assert-RawNativeOutput $Name $stderrPath
+    if ( $exitCode -ne 0 ) {
+        throw "$Name failed with code $exitCode"
     }
 }
 
@@ -168,15 +212,10 @@ function Invoke-XlExpectJsonFailure {
         [string]$ExpectedPhase
     )
 
-    $xl = Join-Path $Root "release\xl.exe"
-    $oldErrorAction = $ErrorActionPreference
-    try {
-        $ErrorActionPreference = "Continue"
-        & $xl @CommandArgs > $OutputPath
-        $exitCode = $LASTEXITCODE
-    } finally {
-        $ErrorActionPreference = $oldErrorAction
-    }
+    $stderrPath = "$OutputPath.stderr"
+    $exitCode = Invoke-XlCaptureRaw $CommandArgs $OutputPath $stderrPath
+    Assert-RawNativeOutput $Name $OutputPath
+    Assert-RawNativeOutput $Name $stderrPath
     if ( $exitCode -eq 0 ) {
         throw "$Name unexpectedly succeeded"
     }
@@ -207,15 +246,10 @@ function Invoke-XlExpectTextFailure {
         [string]$ExpectedPhase
     )
 
-    $xl = Join-Path $Root "release\xl.exe"
-    $oldErrorAction = $ErrorActionPreference
-    try {
-        $ErrorActionPreference = "Continue"
-        & $xl @CommandArgs > "$OutputPath.stdout" 2> $OutputPath
-        $exitCode = $LASTEXITCODE
-    } finally {
-        $ErrorActionPreference = $oldErrorAction
-    }
+    $stdoutPath = "$OutputPath.stdout"
+    $exitCode = Invoke-XlCaptureRaw $CommandArgs $stdoutPath $OutputPath
+    Assert-RawNativeOutput $Name $stdoutPath
+    Assert-RawNativeOutput $Name $OutputPath
     if ( $exitCode -eq 0 ) {
         throw "$Name unexpectedly succeeded"
     }
@@ -251,8 +285,8 @@ Invoke-GuardStep "static XRT boundary" {
     Assert-NoPattern "CRT buffered file output outside common" @("src\driver", "src\package", "src\compile", "src\api", "src\backend", "src\sem", "src\ast", "src\ir", "src\abi", "src\cgen") "\b(fwrite|fflush)\s*\(" -CaseSensitive
     $outputFilePattern = "\\src\\common\\xl6_output" + "\.c$"
     Assert-NoPatternExcept "CRT buffered file output in common" @("src\common") "\b(fwrite|fflush)\s*\(" $outputFilePattern -CaseSensitive
-    $cliFilePattern = "\\src\\driver\\xl6_cli" + "\.c$"
-    Assert-NoPatternExcept "command execution outside CLI" @("src") "\b(system|popen|_popen|WinExec|ShellExecute[A-Za-z]*|CreateProcess[A-Za-z]*)\s*\(" $cliFilePattern -CaseSensitive
+    Assert-NoPattern "direct CRT/Win32 command execution" @("src") "\b(system|popen|_popen|WinExec|ShellExecute[A-Za-z]*|CreateProcess[A-Za-z]*)\s*\(" -CaseSensitive
+    Assert-NoPattern "CRT time in CLI" @("src\driver") "\btime\s*\(" -CaseSensitive
     Assert-NoPattern "CRT file deletion" @("src\driver", "src\package", "src\common") "\b(remove|_rmdir|rmdir)\s*\("
     Assert-NoPattern "shell directory creation" @("src\driver", "src\package", "src\common") "\bsystem\s*\(\s*`"[^`"]*\bmkdir\b"
     Assert-NoPattern "unchecked CLI temp dir creation" @("src\driver") "(?m)^\s*xl6CliEnsureTmpDir\s*\(\s*\)\s*;"
@@ -262,10 +296,14 @@ Invoke-GuardStep "static wiring guards" {
     $scripts = @(
         "check_docs_index.ps1",
         "check_cgenrule_docs.ps1",
+        "check_markdown_links.ps1",
         "check_tool_wiring.ps1",
         "check_batch_wiring.ps1",
+        "check_cli_temp_cleanup.ps1",
         "check_source_wiring.ps1",
+        "check_source_encoding.ps1",
         "check_toolchain_paths.ps1",
+        "check_dll_api_boundary.ps1",
         "check_test_case_wiring.ps1",
         "check_test_data_wiring.ps1",
         "check_example_wiring.ps1",
@@ -273,7 +311,8 @@ Invoke-GuardStep "static wiring guards" {
         "check_package_fixtures.ps1",
         "check_stdlib_coverage.ps1",
         "check_stdlib_test_wiring.ps1",
-        "check_stdlib_dll_symbols.ps1"
+        "check_stdlib_dll_symbols.ps1",
+        "check_negative_diagnostics.ps1"
     )
 
     foreach ( $script in $scripts ) {

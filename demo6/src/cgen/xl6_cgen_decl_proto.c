@@ -147,7 +147,7 @@ static void xl6CgenExternFuncProto(XL6_CgenContext* ctx, const XL6_AstNode* node
 
     returns = node->childCount > 2 ? node->children[2] : NULL;
     if ( returns != NULL && returns->childCount > 1 ) {
-        xl6CgenError(ctx, returns, "当前 C 生成暂不支持多返回�?extern 函数");
+        xl6CgenError(ctx, returns, "当前 C 生成暂不支持多返回值 extern 函数");
     }
     if ( returns != NULL && returns->childCount == 1 ) {
         xl6OutputPuts(xl6CgenCAbiTypeName(ctx, returns->children[0]), ctx->out);

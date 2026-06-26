@@ -1,5 +1,6 @@
 #include "src/lexer/xl6_lexer_api.h"
 #include "src/lexer/xl6_lexer_gen.h"
+#include "src/common/xl6_console.h"
 
 #include <stdio.h>
 
@@ -123,7 +124,7 @@ int xl6LexerDumpFileTo(XL6_Output* out, const char* path, int jsonOutput)
         return 1;
     }
     if ( path == NULL ) {
-        fprintf(stderr, "cannot read file: <null>\n");
+        xl6ConsolePrintf(XL6_CONSOLE_STDERR, "cannot read file: <null>\n");
         return 1;
     }
 
@@ -132,13 +133,13 @@ int xl6LexerDumpFileTo(XL6_Output* out, const char* path, int jsonOutput)
     (void)sourceLen;
     if ( xrtGetError()[0] != '\0' || source == NULL ) {
         xrtFree(source);
-        fprintf(stderr, "cannot read file: %s\n", path);
+        xl6ConsolePrintf(XL6_CONSOLE_STDERR, "cannot read file: %s\n", path);
         return 1;
     }
 
     if ( !xl6LexerOpen(&lexer, source) ) {
         xrtFree(source);
-        fprintf(stderr, "cannot open lexer\n");
+        xl6ConsolePrintf(XL6_CONSOLE_STDERR, "cannot open lexer\n");
         return 1;
     }
 

@@ -1,0 +1,13 @@
+extern "expect_i64" func expect(int actual, int expected)
+
+print()
+print(null)
+println()
+
+println(true, false, 123, -45, 1.25, "xlang", #2026-06-18 12:30:59#)
+println([1, 2, 3])
+println([0: "zero", 2: "two"])
+println({"name": "xlang", "ok": true})
+println(set{1, 2, 3})
+
+expect(1, 1)

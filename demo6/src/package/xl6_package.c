@@ -844,6 +844,46 @@ static int xl6PackageLooksLikePath(const char* target)
     return 0;
 }
 
+static int xl6PackagePathIsAbsolute(const char* path)
+{
+    if ( path == NULL || path[0] == '\0' ) {
+        return 0;
+    }
+    if ( path[0] == '/' || path[0] == '\\' ) {
+        return 1;
+    }
+    if ( path[1] == ':' &&
+         ((path[0] >= 'A' && path[0] <= 'Z') || (path[0] >= 'a' && path[0] <= 'z')) ) {
+        return 1;
+    }
+    return 0;
+}
+
+static int xl6PackageTryPathCandidates(XL6_PackageResolveResult* result, const char* path)
+{
+    char path2[512];
+
+    if ( path == NULL || path[0] == '\0' ) {
+        return 0;
+    }
+    if ( xl6PackageTryManifest(result, path, XL6_PACKAGE_RESOLVE_FILE) ) {
+        return 1;
+    }
+    snprintf(path2, sizeof(path2), "%s.xapi.json", path);
+    if ( xl6PackageTryManifest(result, path2, XL6_PACKAGE_RESOLVE_FILE) ) {
+        return 1;
+    }
+    if ( xl6PackageJoinPath(path2, sizeof(path2), path, "xlang.package.json") &&
+         xl6PackageTryManifest(result, path2, XL6_PACKAGE_RESOLVE_PACKAGE) ) {
+        return 1;
+    }
+    if ( xl6PackageJoinPath(path2, sizeof(path2), path, "package.xapi.json") &&
+         xl6PackageTryManifest(result, path2, XL6_PACKAGE_RESOLVE_PACKAGE) ) {
+        return 1;
+    }
+    return 0;
+}
+
 void xl6PackageResolveResultInit(XL6_PackageResolveResult* result)
 {
     if ( result == NULL ) {
@@ -882,27 +922,16 @@ int xl6PackageResolveImport(const char* importerPath, const char* target, XL6_Pa
     xl6PackageDirName(importerDir, sizeof(importerDir), importerPath);
 
     if ( xl6PackageLooksLikePath(target) ) {
-        if ( xl6PackageTryManifest(result, target, XL6_PACKAGE_RESOLVE_FILE) ) {
-            return 1;
-        }
-        snprintf(path, sizeof(path), "%s.xapi.json", target);
-        if ( xl6PackageTryManifest(result, path, XL6_PACKAGE_RESOLVE_FILE) ) {
-            return 1;
-        }
-        if ( xl6PackageJoinPath(path, sizeof(path), importerDir, target) ) {
-            if ( xl6PackageTryManifest(result, path, XL6_PACKAGE_RESOLVE_FILE) ) {
+        if ( xl6PackagePathIsAbsolute(target) ) {
+            if ( xl6PackageTryPathCandidates(result, target) ) {
                 return 1;
             }
-            snprintf(path2, sizeof(path2), "%s.xapi.json", path);
-            if ( xl6PackageTryManifest(result, path2, XL6_PACKAGE_RESOLVE_FILE) ) {
+        } else {
+            if ( xl6PackageJoinPath(path, sizeof(path), importerDir, target) &&
+                 xl6PackageTryPathCandidates(result, path) ) {
                 return 1;
             }
-            if ( xl6PackageJoinPath(path2, sizeof(path2), path, "xlang.package.json") &&
-                 xl6PackageTryManifest(result, path2, XL6_PACKAGE_RESOLVE_PACKAGE) ) {
-                return 1;
-            }
-            if ( xl6PackageJoinPath(path2, sizeof(path2), path, "package.xapi.json") &&
-                 xl6PackageTryManifest(result, path2, XL6_PACKAGE_RESOLVE_PACKAGE) ) {
+            if ( xl6PackageTryPathCandidates(result, target) ) {
                 return 1;
             }
         }

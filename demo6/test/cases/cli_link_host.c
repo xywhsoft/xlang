@@ -1,4 +1,4 @@
-void exit(int code);
+#include <stdlib.h>
 
 long long cli_link_value(void)
 {

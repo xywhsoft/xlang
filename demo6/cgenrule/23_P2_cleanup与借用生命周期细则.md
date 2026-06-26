@@ -390,8 +390,8 @@
 
 | 项目 | 内容 |
 |---|---|
-| xlang 写法 | 动态 set/dict 遍历内部迭代器 |
-| 生成规则描述 | cleanup kind 为 AVLTB iter 时输出空指针保护，并调用 `xrtAVLTB_IterEnd`。该分支用于动态容器遍历产生的内部迭代器，不依赖 xlang 可见类型。 |
+| xlang 写法 | 动态 list/dict 遍历内部迭代器 |
+| 生成规则描述 | cleanup kind 为 AVLTB iter 时输出空指针保护，并调用 `xrtAVLTB_IterEnd`。该分支用于动态 list/dict 遍历产生的内部 AVL 迭代器；动态 set 当前按位置下标遍历，不走 AVLTB iter cleanup。 |
 | 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_expr_support_base.c:721` |
 | 对应生成的 C 代码 | `if (it != 0) { xrtAVLTB_IterEnd(it); }` |
 | 中间形态伪代码 | `if kind AVLTB_ITER: emit iter end` |

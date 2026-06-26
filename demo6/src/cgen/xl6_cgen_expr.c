@@ -73,7 +73,7 @@ static void xl6CgenExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
         break;
     case XL6_AST_SAFE_MEMBER:
         if ( !xl6CgenSafeXValueMemberAccess(ctx, node) ) {
-            xl6CgenError(ctx, node, "当前 C 生成安全成员访问只支持容�?length");
+            xl6CgenError(ctx, node, "当前 C 生成安全成员访问只支持容器 length");
             xl6OutputPuts("0", ctx->out);
         }
         break;
@@ -319,9 +319,14 @@ static void xl6CgenExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
         xl6OutputPuts("()", ctx->out);
         break;
     default:
-        xl6CgenError(ctx, node, "当前 C 生成暂不支持该表达式");
+    {
+        char message[160];
+
+        snprintf(message, sizeof(message), "C generator does not support expression node: %s", xl6AstKindName(node->kind));
+        xl6CgenError(ctx, node, message);
         xl6OutputPuts("0", ctx->out);
         break;
+    }
     }
 }
 

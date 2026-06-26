@@ -2,7 +2,10 @@
 setlocal
 cd /d %~dp0\..\..
 
-set LINKS=--link examples\feature_suite\host.c --link ..\..\xrt\release\x64\xrt.o --link ..\demo5\release\tcc\lib\libtcc1-64.a --link Ws2_32 --link IPHLPAPI --link Shell32
+call tools\xl6_toolchain_env.bat
+if errorlevel 1 exit /b 1
+
+set LINKS=--link examples\feature_suite\host.c %XL6_XL_DEFAULT_LINK_ARGS%
 
 echo Checking feature suite...
 for %%f in (examples\feature_suite\*.xl) do (
@@ -37,7 +40,7 @@ if not exist release\tmp\feature_exports mkdir release\tmp\feature_exports
 release\xl.exe cgen examples\feature_suite\09_c_export_abi.xl --emit release\tmp\feature_exports\09_c_export_abi.c --emit-header release\tmp\feature_exports\09_c_export_abi.h
 if errorlevel 1 exit /b 1
 
-..\demo5\lib\tcc\tcc.exe -Irelease\tmp\feature_exports -I..\demo5\lib\tcc\include -I..\demo5\release\tcc\include_win -L..\demo5\release\tcc\lib release\tmp\feature_exports\09_c_export_abi.c examples\feature_suite\host_exports.c ..\..\xrt\release\x64\xrt.o ..\demo5\release\tcc\lib\libtcc1-64.a -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\feature_exports\host_exports.exe
+"%XL6_TCC%" -Irelease\tmp\feature_exports %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\feature_exports\09_c_export_abi.c examples\feature_suite\host_exports.c %XL6_DEFAULT_LINKS% -o release\tmp\feature_exports\host_exports.exe
 if errorlevel 1 exit /b 1
 
 release\tmp\feature_exports\host_exports.exe

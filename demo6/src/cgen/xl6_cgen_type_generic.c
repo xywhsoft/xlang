@@ -454,7 +454,7 @@ static void xl6CgenCollectGenericInstances(XL6_CgenContext* ctx, const XL6_AstNo
         return;
     }
 
-    /* 泛型模板本身不直接扫描，只有被实例化后才进入代码生成�?*/
+    /* 泛型模板本身不直接扫描，只有被实例化后才进入代码生成。*/
     if ( (node->kind == XL6_AST_FUNC || node->kind == XL6_AST_ASYNC_FUNC) && xl6CgenFuncIsGeneric(node) ) {
         return;
     }

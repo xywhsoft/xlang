@@ -280,7 +280,7 @@ static void xl6CgenTypedContainerFillFromLiteral(XL6_CgenContext* ctx, const cha
             int id = ctx->tempId++;
 
             if ( !xl6CgenExprStaticTypeIs(ctx, key, "string") ) {
-                xl6CgenError(ctx, key, "静�?dict 字面量键必须�?string");
+                xl6CgenError(ctx, key, "静态 dict 字面量键必须是 string");
                 continue;
             }
 
@@ -488,7 +488,7 @@ static void xl6CgenCustomMethodCall(XL6_CgenContext* ctx, const XL6_AstNode* cal
 
     method = helperMethod != NULL ? helperMethod : externMethod;
     if ( method == NULL ) {
-        xl6CgenError(ctx, member, "找不�?custom extern 方法");
+        xl6CgenError(ctx, member, "找不到 custom extern 方法");
         xl6OutputPuts("0", ctx->out);
         return;
     }
@@ -565,7 +565,7 @@ static int xl6CgenClassMethodCall(XL6_CgenContext* ctx, const XL6_AstNode* call,
     ctx->currentGenericParams = prevParams;
     ctx->currentGenericArgs = prevArgs;
     if ( method == NULL ) {
-        xl6CgenError(ctx, member, "找不�?class 方法");
+        xl6CgenError(ctx, member, "找不到 class 方法");
         xl6OutputPuts("0", ctx->out);
         return 1;
     }
@@ -585,7 +585,7 @@ static int xl6CgenClassMethodCall(XL6_CgenContext* ctx, const XL6_AstNode* call,
     xl6OutputPutc('(', ctx->out);
     basePath[0] = '\0';
     if ( !xl6CgenClassBasePath(ctx, classNode, ownerClass, basePath, sizeof(basePath)) ) {
-        xl6CgenError(ctx, member, "无法生成继承方法调用�?base 路径");
+        xl6CgenError(ctx, member, "无法生成继承方法调用的 base 路径");
         basePath[0] = '\0';
     }
     if ( xl6CTextEquals(receiver->text, "self") && ctx->currentClass != NULL ) {
@@ -667,7 +667,7 @@ static int xl6CgenBaseCtorCall(XL6_CgenContext* ctx, const XL6_AstNode* call)
 
     baseClass = xl6CgenBaseClass(ctx, ctx->currentClass);
     if ( baseClass == NULL ) {
-        xl6CgenError(ctx, call, "当前 class 没有父类，不能调�?base(...)");
+        xl6CgenError(ctx, call, "当前 class 没有父类，不能调用 base(...)");
         xl6OutputPuts("0", ctx->out);
         return 1;
     }

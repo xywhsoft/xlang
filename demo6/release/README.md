@@ -1,0 +1,18 @@
+# demo6/release 构建产物目录
+
+本目录保存 DEMO6 构建和验证生成的产物，不作为源码或设计真相来源。
+
+## 常见产物
+
+- `xl.exe`：DEMO6 CLI。
+- `xl.dll`：嵌入式运行库 DLL。
+- `xl.def`：由 `build_dll.bat` 生成的 DLL import definition。
+- `libtcc.dll`：运行 DLL 动态编译能力所需的 TCC 动态库副本。
+- `xl_dll_embed_string.exe`、`xl_dll_null_context.exe`、`xl_dll_threaded_host.exe`：DLL API 验证程序。
+- `tmp`：构建、测试和 DLL dependency fixture 使用的临时产物目录。
+
+## 维护规则
+
+- 不手工修改构建产物来修复问题；应修改源码、构建脚本或工具链配置后重新构建。
+- 如果产物和源码行为不一致，以源码、测试和构建脚本为准。
+- `release/tmp` 可以被构建或测试过程覆盖。

@@ -44,6 +44,7 @@ void xlDestroyContext(XL_Context* ctx);
 
 int xlSetWorkDir(XL_Context* ctx, const char* path);
 int xlSetTempDir(XL_Context* ctx, const char* path);
+int xlSetSaveTemps(XL_Context* ctx, int enabled);
 
 int xlAddIncludePath(XL_Context* ctx, const char* path);
 int xlAddLibraryPath(XL_Context* ctx, const char* path);
@@ -63,6 +64,8 @@ void xlClearLastError(XL_Context* ctx);
 命名说明：
 
 - `xlRuntimeInit` / `xlRuntimeUnit` 是 `xl.dll` 的进程级公共 API，用于管理 DLL 内部 XRT/libtcc 运行时计数。
+- `xlCreateContext` / `xlDestroyContext` 会为每个 context 持有独立运行时引用；公开 `xlRuntimeUnit` 只释放公开 `xlRuntimeInit` 取得的引用，不能提前释放仍被 context 持有的运行时。
+- `xlLoadDependencyLibrary` 加载的依赖库句柄由当前 context 持有，`xlDestroyContext` 负责释放；该 API 会在调用时把路径按宿主当前目录固化为快照，然后用同一快照路径加载动态库并参与后续 TCC 链接。
 - 生成出来的 xlang/C 程序仍使用 `xlInit` / `xlUnit` 作为模块生命周期入口。
 - DEMO6 不使用任何 Uninit/UnInit 式卸载命名，避免和 `xrtInit` / `xrtUnit` 口径冲突。
 
@@ -79,7 +82,13 @@ void xlClearLastError(XL_Context* ctx);
 
 进程内运行时，`xl.dll` 不额外链接外部 `xrt.o`。它会将自身内部链接的 XRT 函数和宿主注册的 C 函数注入 TCC state。
 
-独立 exe 输出时，目标 exe 仍需要静态链接 XRT object；DLL API 会按当前 DEMO6 约定自动使用 `..\..\xrt\release\x64\xrt.o`。
+独立 exe 输出时，目标 exe 仍需要静态链接 XRT object；创建 context 时 DLL API 会优先读取 `XL6_XRT_OBJ` 环境变量，未设置时回退到 `XL6_XRT_OBJ_PATH` 的源码级默认值，并把该路径按 context 创建目录固化为快照。
+
+libtcc 动态库搜索顺序为：context 显式 `tccDllPath`、`XL6_TCC_DLL` 环境变量、进程默认 `libtcc.dll`、`release\libtcc.dll`、`XL6_TCC_DLL_PATH` 源码级默认值。TCC lib root 默认优先使用 context 显式 `tccLibPath`，否则读取 `XL6_TCC_ROOT`，未设置时回退到 `XL6_TCC_ROOT_PATH`。TCC include、Win include、WinAPI include、library path 和 libtcc runtime 分别优先读取 `XL6_TCC_INCLUDE`、`XL6_TCC_WIN_INCLUDE`、`XL6_TCC_WINAPI_INCLUDE`、`XL6_TCC_LIB`、`XL6_TCC_LIBTCC1`，未设置时回退到 `xl6_toolchain.h` 中的源码级默认值。
+
+`xlCreateContext()` 会记录创建 context 时的当前目录，并把 `workDir`、`tempDir`、显式/默认 TCC 路径、默认 XRT object 路径都按该目录做路径快照。`xlSetWorkDir()` 和 `xlSetTempDir()` 也会按调用当下的当前目录做路径快照。之后运行脚本时即使进入了 context `workDir`，也不会改变 libtcc、TCC include/lib、libtcc runtime、XRT object 和临时目录这些内部路径的解释基准。
+
+手动追加的 include/library/link/loadlib 按 API 调用时的路径环境固定：`xlAddIncludePath` 和 `xlAddLibraryPath` 会把相对路径按宿主当前目录固化为快照；`xlAddLinkLibrary` 会保留裸库名，让它继续走 TCC library 搜索规则，但会把像路径的值固化为快照；`xlLoadDependencyLibrary` 会用快照路径加载动态库并记录到 context。这样进入 context `workDir` 后，依赖解析不会被脚本工作目录重新解释。
 
 ## 工作目录
 
@@ -90,6 +99,12 @@ void xlClearLastError(XL_Context* ctx);
 - `packages` / `lib` 包搜索基准。
 
 字符串脚本使用逻辑文件名 `__xl_string.xl`，因此相对 import 会以当前上下文工作目录为基准，而不是临时目录。
+
+## 临时目录
+
+上下文临时目录由 `XL_ContextOptions.tempDir` 或 `xlSetTempDir` 设置。相对路径会在创建 context 或调用 `xlSetTempDir` 时按当时的宿主当前目录固化为路径快照；每次运行脚本或编译 exe 前，DLL API 只按该快照创建或校验目录，然后才进入 context 工作目录。
+
+当前 DLL 执行管线以 libtcc 内存编译为主，不输出 CLI 调试 dump。`saveTemps` 目前只作为上下文配置保留，不会强制生成调试临时文件；后续如果 DLL API 引入可选落盘产物，应继续以 `tempDir` 为根目录，并由 `saveTemps` 决定是否保留。
 
 ## C 函数注册
 
@@ -145,7 +160,7 @@ examples\xl_dll_embed_string.c
 
 ## 当前约束
 
-- `xl.dll` 当前使用 libtcc 动态库，构建时会复制 `libtcc.dll` 到 `release` 目录。
+- `xl.dll` 当前使用 libtcc 动态库，构建时会复制 `libtcc.dll` 到 `release` 目录；宿主也可以通过 `XL6_TCC_DLL`、`XL6_TCC_ROOT`、`XL6_TCC_INCLUDE`、`XL6_TCC_LIB` 等变量复用集中工具链配置。
 - 进程内运行适合脚本执行和宿主 C 函数注册。
 - 编译为独立 exe 时，不能直接固化宿主进程函数指针；需要通过普通 C/库链接方式提供外部符号。
 - DLL API 第一版不暴露调试 dump 能力，相关能力继续由 `xl.exe` CLI 提供。

@@ -312,7 +312,9 @@ static const char* xl6CgenTypeName(XL6_CgenContext* ctx, const XL6_AstNode* type
         return customTypeName;
     }
 
-    xl6CgenError(ctx, typeNode, "unsupported type in C generation");
+    snprintf(customTypeName, sizeof(customTypeName), "C generator does not support type node: %s (%s)",
+             typeNode->text != NULL ? typeNode->text : "<missing>", xl6AstKindName(typeNode->kind));
+    xl6CgenError(ctx, typeNode, customTypeName);
     return "int";
 }
 

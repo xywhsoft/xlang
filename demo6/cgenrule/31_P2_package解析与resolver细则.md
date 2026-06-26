@@ -308,21 +308,21 @@
 |---|---|
 | xlang 写法 | `import target` |
 | 生成规则描述 | `xl6PackageResolveImport` 先初始化 result，并把原始 target 复制到 result.target。result 为 NULL 或 target 为空时失败。importerPath 用于提取 importerDir，作为相对路径搜索基准。 |
-| 生成器文件名和行号 | `demo6/src/package/xl6_package.c:862` |
+| 生成器文件名和行号 | `demo6/src/package/xl6_package.c:907` |
 | 对应生成的 C 代码 | 不直接生成 C；后续 import 展开使用 result.target 和 result.packageName。 |
 | 中间形态伪代码 | `result.target = target; importerDir = dirname(importerPath)` |
 | 实现同等功能手写的 C 代码 | 手写 resolver 需要保留原始 target 以便诊断。 |
 | 额外依赖的封装代码 | dirname helper。 |
 
-## CGEN-PKG-027 path target 原样命中规则
+## CGEN-PKG-027 path target 候选集合与绝对路径原样命中
 
 | 项目 | 内容 |
 |---|---|
-| xlang 写法 | `import "D:/pkg/xlang.package.json"` 或 `import "./pkg.xapi.json"` |
-| 生成规则描述 | target 若被判定为路径，第一优先级直接把 target 当候选路径尝试。命中 `.xapi.json` 得到 file 结果；命中 manifest 得到 file kind 结果。 |
-| 生成器文件名和行号 | `demo6/src/package/xl6_package.c:879`、`demo6/src/package/xl6_package.c:880` |
+| xlang 写法 | `import "D:/pkg/xlang.package.json"` |
+| 生成规则描述 | target 若被判定为路径，会先区分绝对路径和相对路径。绝对路径直接把 target 作为候选基准交给 `xl6PackageTryPathCandidates`；相对路径只在 importerDir 优先候选失败后，才把原始 target 作为 cwd 兜底候选。候选基准命中 `.xapi.json` 得到 file 结果；命中 manifest 文件时保持 file kind。 |
+| 生成器文件名和行号 | `demo6/src/package/xl6_package.c:847`、`demo6/src/package/xl6_package.c:862`、`demo6/src/package/xl6_package.c:925`、`demo6/src/package/xl6_package.c:934` |
 | 对应生成的 C 代码 | 不直接生成 C；命中后 import 使用该目标接口。 |
-| 中间形态伪代码 | `tryManifest(target, FILE)` |
+| 中间形态伪代码 | `if absolute(target) tryCandidates(target) else tryCandidates(join(importerDir,target)); tryCandidates(target)` |
 | 实现同等功能手写的 C 代码 | 手写导入绝对路径时也应优先使用用户指定路径。 |
 | 额外依赖的封装代码 | manifest try helper。 |
 
@@ -331,10 +331,10 @@
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | `import "./foo"`，旁边存在 `./foo.xapi.json` |
-| 生成规则描述 | path target 原样未命中时，追加 `.xapi.json` 再作为 file kind 尝试。这样可以省略接口文件后缀。 |
-| 生成器文件名和行号 | `demo6/src/package/xl6_package.c:883` |
+| 生成规则描述 | 每个候选基准路径都会先尝试原样路径，再追加 `.xapi.json` 作为 file kind 尝试。这样可以省略接口文件后缀；相对路径场景下，追加后缀也跟随 importerDir 优先级。 |
+| 生成器文件名和行号 | `demo6/src/package/xl6_package.c:869`、`demo6/src/package/xl6_package.c:872` |
 | 对应生成的 C 代码 | 不直接生成 C；命中后 import 读取追加后缀的 XAPI。 |
-| 中间形态伪代码 | `tryManifest(target + ".xapi.json", FILE)` |
+| 中间形态伪代码 | `tryManifest(base, FILE); tryManifest(base + ".xapi.json", FILE)` |
 | 实现同等功能手写的 C 代码 | 手写包导入也常支持扩展名省略。 |
 | 额外依赖的封装代码 | manifest try helper。 |
 
@@ -343,10 +343,10 @@
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | 源文件位于 `src/main.xl`，写 `import "./pkg"` |
-| 生成规则描述 | 若 target 原样和追加 `.xapi.json` 都未命中，则把 importerDir 与 target 拼接后尝试该路径，再尝试该路径追加 `.xapi.json`。两者均作为 file kind。 |
-| 生成器文件名和行号 | `demo6/src/package/xl6_package.c:887`、`demo6/src/package/xl6_package.c:891` |
-| 对应生成的 C 代码 | 不直接生成 C；使相对 import 以当前源文件所在目录为基准。 |
-| 中间形态伪代码 | `path = join(importerDir, target); try path; try path+".xapi.json"` |
+| 生成规则描述 | 相对路径 target 先把 importerDir 与 target 拼接后尝试完整候选集合；只有 importerDir 候选全部失败时，才回退尝试原始 target。这样同一进程 cwd 下的同名 XAPI 不会遮蔽源文件旁边的相对 import。 |
+| 生成器文件名和行号 | `demo6/src/package/xl6_package.c:922`、`demo6/src/package/xl6_package.c:930`、`demo6/src/package/xl6_package.c:934` |
+| 对应生成的 C 代码 | 不直接生成 C；使相对 import 以当前源文件所在目录为第一基准。 |
+| 中间形态伪代码 | `base = join(importerDir, target); if tryCandidates(base) return; tryCandidates(target)` |
 | 实现同等功能手写的 C 代码 | 手写模块系统通常使用 importer 文件目录解析相对路径。 |
 | 额外依赖的封装代码 | path join helper。 |
 
@@ -355,10 +355,10 @@
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | `import "./pkg"`，目录内有 `xlang.package.json` 或 `package.xapi.json` |
-| 生成规则描述 | 相对路径作为目录时，先尝试 `<path>/xlang.package.json` 并以 package kind 归一；失败后尝试 `<path>/package.xapi.json`，同样标为 package kind。 |
-| 生成器文件名和行号 | `demo6/src/package/xl6_package.c:895`、`demo6/src/package/xl6_package.c:899` |
+| 生成规则描述 | 每个候选基准路径都可以作为目录包：先尝试 `<base>/xlang.package.json` 并以 package kind 归一；失败后尝试 `<base>/package.xapi.json`，同样标为 package kind。相对路径目录包仍遵循 importerDir 优先。 |
+| 生成器文件名和行号 | `demo6/src/package/xl6_package.c:876`、`demo6/src/package/xl6_package.c:880` |
 | 对应生成的 C 代码 | 不直接生成 C；目录包优先使用 manifest，其次允许只有默认 XAPI 的轻量包。 |
-| 中间形态伪代码 | `try path/xlang.package.json; try path/package.xapi.json` |
+| 中间形态伪代码 | `try base/xlang.package.json; try base/package.xapi.json` |
 | 实现同等功能手写的 C 代码 | 手写包系统常约定目录下 manifest 优先于默认接口文件。 |
 | 额外依赖的封装代码 | manifest try helper。 |
 

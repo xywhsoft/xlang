@@ -1,6 +1,7 @@
 #include "include/xl.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #ifdef _WIN32
@@ -52,6 +53,29 @@ static int make_full_path(const char* base, const char* rel, char* out, size_t o
     }
     got = GetFullPathNameA(joined, (DWORD)outSize, out, NULL);
     return got > 0 && got < outSize;
+}
+
+static int is_absolute_path(const char* path)
+{
+    if ( path == NULL || path[0] == '\0' ) {
+        return 0;
+    }
+    return (path[0] != '\0' && path[1] == ':') || (path[0] == '\\' && path[1] == '\\');
+}
+
+static int make_toolchain_path(const char* root, const char* envName, char* out, size_t outSize)
+{
+    const char* value = getenv(envName);
+    DWORD got;
+
+    if ( value == NULL || value[0] == '\0' ) {
+        return 0;
+    }
+    if ( is_absolute_path(value) ) {
+        got = GetFullPathNameA(value, (DWORD)outSize, out, NULL);
+        return got > 0 && got < outSize;
+    }
+    return make_full_path(root, value, out, outSize);
 }
 
 static int make_dir(const char* path)
@@ -158,13 +182,13 @@ static int init_arg(ThreadArg* arg, const char* root, int index)
     if ( !make_full_path(root, rel, arg->workDir, sizeof(arg->workDir)) ||
          !make_full_path(root, "release\\tmp", arg->tempDir, sizeof(arg->tempDir)) ||
          !make_full_path(root, "release\\libtcc.dll", arg->tccDllPath, sizeof(arg->tccDllPath)) ||
-         !make_full_path(root, "..\\demo5\\release\\tcc", arg->tccLibPath, sizeof(arg->tccLibPath)) ||
+         !make_toolchain_path(root, "XL6_TCC_ROOT", arg->tccLibPath, sizeof(arg->tccLibPath)) ||
          !make_full_path(root, "src", arg->includeSrc, sizeof(arg->includeSrc)) ||
          !make_full_path(root, "lib\\xrt", arg->includeXrt, sizeof(arg->includeXrt)) ||
-         !make_full_path(root, "..\\demo5\\lib\\tcc\\include", arg->includeTcc, sizeof(arg->includeTcc)) ||
-         !make_full_path(root, "..\\demo5\\release\\tcc\\include_win", arg->includeWin, sizeof(arg->includeWin)) ||
-         !make_full_path(root, "..\\demo5\\release\\tcc\\include_win\\winapi", arg->includeWinapi, sizeof(arg->includeWinapi)) ||
-         !make_full_path(root, "..\\demo5\\release\\tcc\\lib", arg->libPath, sizeof(arg->libPath)) ) {
+         !make_toolchain_path(root, "XL6_TCC_INCLUDE", arg->includeTcc, sizeof(arg->includeTcc)) ||
+         !make_toolchain_path(root, "XL6_TCC_WIN_INCLUDE", arg->includeWin, sizeof(arg->includeWin)) ||
+         !make_toolchain_path(root, "XL6_TCC_WINAPI_INCLUDE", arg->includeWinapi, sizeof(arg->includeWinapi)) ||
+         !make_toolchain_path(root, "XL6_TCC_LIB", arg->libPath, sizeof(arg->libPath)) ) {
         set_error(arg, "cannot build absolute paths");
         return 0;
     }

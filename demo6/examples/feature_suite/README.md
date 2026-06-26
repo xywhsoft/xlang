@@ -27,8 +27,10 @@
 
 ```bat
 release\xl.exe check examples\feature_suite\00_language_basics.xl
-release\xl.exe run examples\feature_suite\00_language_basics.xl --link examples\feature_suite\host.c --link ..\..\xrt\release\x64\xrt.o --link ..\demo5\release\tcc\lib\libtcc1-64.a --link Ws2_32 --link IPHLPAPI --link Shell32
+release\xl.exe run examples\feature_suite\00_language_basics.xl --link examples\feature_suite\host.c
 ```
+
+`release\xl.exe run` 会使用 DEMO6 的默认 XRT/TCC 链接环境；需要覆盖工具链路径时，先设置 `XL6_TCC`、`XL6_XRT_OBJ`、`XL6_TCC_LIBTCC1` 等环境变量，或通过 `tools\xl6_toolchain_env.bat` 统一调整。
 
 批量检查：
 
