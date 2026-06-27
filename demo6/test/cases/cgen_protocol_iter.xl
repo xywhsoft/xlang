@@ -1,0 +1,50 @@
+class CounterIter
+    int current = 0
+    int stop = 0
+
+    create(int start, int stop)
+        self.current = start
+        self.stop = stop
+    end
+
+    func __next__() as (bool, int)
+        if self.current >= self.stop then
+            return false, 0
+        end
+
+        int value = self.current
+        self.current = self.current + 1
+        return true, value
+    end
+end
+
+class Counter
+    int start = 0
+    int stop = 0
+
+    create(int start, int stop)
+        self.start = start
+        self.stop = stop
+    end
+
+    func __iter__() as CounterIter
+        CounterIter result = CounterIter(self.start, self.stop)
+        return result
+    end
+end
+
+extern "expect_i64" func expect(int actual, int expected)
+
+int total = 0
+auto first = Counter(2, 5)
+for value in first
+    total = total + value
+end
+expect(total, 9)
+
+int weighted = 0
+auto counter = Counter(3, 6)
+for index, value in counter
+    weighted = weighted + index * 10 + value
+end
+expect(weighted, 42)

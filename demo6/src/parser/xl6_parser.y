@@ -288,9 +288,15 @@ class_member(A) ::= class_member_base(B). { A = B; }
 class_member(A) ::= doc_block(D) class_member_base(B). { A = xl6PWithDoc(B, &D); }
 
 class_member_base(A) ::= field_decl(B). { A = B; }
+class_member_base(A) ::= derive_decl(B). { A = B; }
 class_member_base(A) ::= func_decl(B). { A = B; }
 class_member_base(A) ::= class_special_decl(B). { A = B; }
 class_member_base(A) ::= union_decl(B). { A = B; }
+
+derive_decl(A) ::= KW_DERIVE(D) name_tok(N) need_sep. {
+    A = xl6AstNew(XL6_AST_DERIVE, &N);
+    (void)D;
+}
 
 field_decl(A) ::= var_type_ref(T) name_tok(N) field_default(D) need_sep. {
     A = xl6AstNew(XL6_AST_FIELD, &N);
@@ -356,6 +362,7 @@ custom_member(A) ::= doc_block(D) custom_member_base(B). { A = xl6PWithDoc(B, &D
 
 custom_member_base(A) ::= custom_extern_special(B). { A = B; }
 custom_member_base(A) ::= custom_extern_func(B). { A = B; }
+custom_member_base(A) ::= derive_decl(B). { A = B; }
 custom_member_base(A) ::= func_decl(B). { A = B; }
 
 custom_extern_special(A) ::= KW_EXTERN(E) STRING(S) name_tok(N) name_params(P) need_sep. {

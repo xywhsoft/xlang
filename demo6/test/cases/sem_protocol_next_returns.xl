@@ -1,0 +1,5 @@
+class BadIter
+    func __next__() as int
+        return 1
+    end
+end

@@ -1,0 +1,8 @@
+class Bag
+    func __contains__(int item) as bool
+        return item == 1
+    end
+end
+
+Bag bag = Bag()
+auto bad = "x" in bag

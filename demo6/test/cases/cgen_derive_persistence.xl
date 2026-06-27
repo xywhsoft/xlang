@@ -1,0 +1,42 @@
+class Stats
+    derive value
+
+    int hp = 0
+    float speed = 0.0
+end
+
+class Player extends object
+    derive value
+
+    int id = 0
+    string name = ""
+    Stats stats
+    var tags = []
+end
+
+extern "expect_i64" func expect(int actual, int expected)
+extern "expect_str" func expectText(string actual, string expected)
+
+auto p = Player()
+p.id = 7
+p.name = "hero"
+p.stats.hp = 120
+p.stats.speed = 3.5
+p.tags = ["tank", "lead"]
+p.rank = 9
+
+auto jsonText = json.stringify(p)
+auto fromJson = json.parse::<Player>(jsonText)
+expect(fromJson.id, 7)
+expectText(fromJson.name, "hero")
+expect(fromJson.stats.hp, 120)
+expect(int(fromJson.rank), 9)
+expectText(string(fromJson.tags[0]), "tank")
+
+auto xsonText = xson.stringify(p)
+auto fromXson = xson.parse::<Player>(xsonText)
+expect(fromXson.id, 7)
+expectText(fromXson.name, "hero")
+expect(fromXson.stats.hp, 120)
+expect(int(fromXson.rank), 9)
+expectText(string(fromXson.tags[1]), "lead")

@@ -16,6 +16,9 @@
 - `generic_identity.xl`：泛型函数最小示例；回归：`check`。
 - `generics.xl`：泛型函数、泛型调用和泛型容器示例；回归：`check`。
 - `class_point.xl`：class 字段和方法基础示例；回归：`check`。
+- `object_protocol.xl`：object 标准基类、动态字段、索引、运算符和可调用协议示例；回归：`check`。
+- `copy_clone.xl`：`derive copy/clone`、`copy()` 和 `clone()` 示例；回归：`check`。
+- `class_persistence.xl`：`derive value`、class 与 object 的 json/xson 持久化 roundtrip 示例；回归：`run`。
 - `class_custom.xl`：class 与 custom 组合示例；回归：`check`。
 - `custom_counter.xl`：custom 句柄类示例；回归：`check`。
 - `second_stage.xl`：第二阶段基础语义组合示例；回归：`check`、`run`。

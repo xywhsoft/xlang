@@ -102,6 +102,7 @@ echo Building DEMO6 xl.exe...
     src\package\xl6_package.c ^
     src\stdlib\xl6_stdlib.c ^
     src\type\xl6_type_model.c ^
+    src\sem\xl6_protocol.c ^
     src\sem\xl6_type_registry.c ^
     src\sem\xl6_sem.c ^
     src\driver\xl6_cli.c ^

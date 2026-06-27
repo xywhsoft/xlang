@@ -1161,6 +1161,186 @@ release\xl.exe check examples\class_custom.xl
 if errorlevel 1 exit /b 1
 release\xl.exe check examples\class_point.xl
 if errorlevel 1 exit /b 1
+release\xl.exe check examples\object_protocol.xl
+if errorlevel 1 exit /b 1
+release\xl.exe check examples\copy_clone.xl
+if errorlevel 1 exit /b 1
+release\xl.exe run examples\class_persistence.xl
+if errorlevel 1 exit /b 1
+release\xl.exe check test\cases\sem_protocol_valid.xl
+if errorlevel 1 exit /b 1
+release\xl.exe check test\cases\sem_protocol_unknown_reserved.xl > release\tmp\sem_protocol_unknown_reserved.err.txt 2>&1
+if not errorlevel 1 (
+    echo sem_protocol_unknown_reserved.xl should fail.
+    exit /b 1
+)
+findstr /C:"__unknown__" release\tmp\sem_protocol_unknown_reserved.err.txt >nul
+if errorlevel 1 (
+    echo sem_protocol_unknown_reserved.err.txt missing protocol diagnostic.
+    exit /b 1
+)
+release\xl.exe check test\cases\sem_protocol_item_arity.xl > release\tmp\sem_protocol_item_arity.err.txt 2>&1
+if not errorlevel 1 (
+    echo sem_protocol_item_arity.xl should fail.
+    exit /b 1
+)
+findstr /C:"__item__" release\tmp\sem_protocol_item_arity.err.txt >nul
+if errorlevel 1 (
+    echo sem_protocol_item_arity.err.txt missing protocol arity diagnostic.
+    exit /b 1
+)
+release\xl.exe check test\cases\sem_protocol_field_key_type.xl > release\tmp\sem_protocol_field_key_type.err.txt 2>&1
+if not errorlevel 1 (
+    echo sem_protocol_field_key_type.xl should fail.
+    exit /b 1
+)
+findstr /C:"__field__" release\tmp\sem_protocol_field_key_type.err.txt >nul
+if errorlevel 1 (
+    echo sem_protocol_field_key_type.err.txt missing protocol field key diagnostic.
+    exit /b 1
+)
+release\xl.exe check test\cases\sem_protocol_copyable_return.xl > release\tmp\sem_protocol_copyable_return.err.txt 2>&1
+if not errorlevel 1 (
+    echo sem_protocol_copyable_return.xl should fail.
+    exit /b 1
+)
+findstr /C:"__copyable__" release\tmp\sem_protocol_copyable_return.err.txt >nul
+if errorlevel 1 (
+    echo sem_protocol_copyable_return.err.txt missing protocol return diagnostic.
+    exit /b 1
+)
+release\xl.exe check test\cases\sem_protocol_optional_param.xl > release\tmp\sem_protocol_optional_param.err.txt 2>&1
+if not errorlevel 1 (
+    echo sem_protocol_optional_param.xl should fail.
+    exit /b 1
+)
+findstr /C:"__item__" release\tmp\sem_protocol_optional_param.err.txt >nul
+if errorlevel 1 (
+    echo sem_protocol_optional_param.err.txt missing protocol optional parameter diagnostic.
+    exit /b 1
+)
+release\xl.exe check test\cases\sem_protocol_operator_arg_type.xl > release\tmp\sem_protocol_operator_arg_type.err.txt 2>&1
+if not errorlevel 1 (
+    echo sem_protocol_operator_arg_type.xl should fail.
+    exit /b 1
+)
+findstr /C:"target int, value string" release\tmp\sem_protocol_operator_arg_type.err.txt >nul
+if errorlevel 1 (
+    echo sem_protocol_operator_arg_type.err.txt missing protocol operator type diagnostic.
+    exit /b 1
+)
+release\xl.exe check test\cases\sem_protocol_contains_arg_type.xl > release\tmp\sem_protocol_contains_arg_type.err.txt 2>&1
+if not errorlevel 1 (
+    echo sem_protocol_contains_arg_type.xl should fail.
+    exit /b 1
+)
+findstr /C:"target int, value string" release\tmp\sem_protocol_contains_arg_type.err.txt >nul
+if errorlevel 1 (
+    echo sem_protocol_contains_arg_type.err.txt missing protocol contains type diagnostic.
+    exit /b 1
+)
+release\xl.exe check test\cases\sem_protocol_call_arg_type.xl > release\tmp\sem_protocol_call_arg_type.err.txt 2>&1
+if not errorlevel 1 (
+    echo sem_protocol_call_arg_type.xl should fail.
+    exit /b 1
+)
+findstr /C:"target int, value string" release\tmp\sem_protocol_call_arg_type.err.txt >nul
+if errorlevel 1 (
+    echo sem_protocol_call_arg_type.err.txt missing protocol call type diagnostic.
+    exit /b 1
+)
+release\xl.exe check test\cases\sem_protocol_len_readonly.xl > release\tmp\sem_protocol_len_readonly.err.txt 2>&1
+if not errorlevel 1 (
+    echo sem_protocol_len_readonly.xl should fail.
+    exit /b 1
+)
+findstr /C:"member length is read-only" release\tmp\sem_protocol_len_readonly.err.txt >nul
+if errorlevel 1 (
+    echo sem_protocol_len_readonly.err.txt missing length readonly diagnostic.
+    exit /b 1
+)
+release\xl.exe check test\cases\sem_protocol_next_returns.xl > release\tmp\sem_protocol_next_returns.err.txt 2>&1
+if not errorlevel 1 (
+    echo sem_protocol_next_returns.xl should fail.
+    exit /b 1
+)
+findstr /C:"__next__" release\tmp\sem_protocol_next_returns.err.txt >nul
+if errorlevel 1 (
+    echo sem_protocol_next_returns.err.txt missing __next__ diagnostic.
+    exit /b 1
+)
+release\xl.exe check test\cases\sem_derive_valid.xl
+if errorlevel 1 exit /b 1
+release\xl.exe check test\cases\sem_derive_unknown.xl > release\tmp\sem_derive_unknown.err.txt 2>&1
+if not errorlevel 1 (
+    echo sem_derive_unknown.xl should fail.
+    exit /b 1
+)
+findstr /C:"derive" release\tmp\sem_derive_unknown.err.txt >nul
+if errorlevel 1 (
+    echo sem_derive_unknown.err.txt missing derive diagnostic.
+    exit /b 1
+)
+release\xl.exe check test\cases\sem_derive_duplicate.xl > release\tmp\sem_derive_duplicate.err.txt 2>&1
+if not errorlevel 1 (
+    echo sem_derive_duplicate.xl should fail.
+    exit /b 1
+)
+findstr /C:"derive" release\tmp\sem_derive_duplicate.err.txt >nul
+if errorlevel 1 (
+    echo sem_derive_duplicate.err.txt missing derive duplicate diagnostic.
+    exit /b 1
+)
+release\xl.exe check test\cases\sem_derive_move_conflict.xl > release\tmp\sem_derive_move_conflict.err.txt 2>&1
+if not errorlevel 1 (
+    echo sem_derive_move_conflict.xl should fail.
+    exit /b 1
+)
+findstr /C:"moveOnly" release\tmp\sem_derive_move_conflict.err.txt >nul
+if errorlevel 1 (
+    echo sem_derive_move_conflict.err.txt missing derive conflict diagnostic.
+    exit /b 1
+)
+release\xl.exe check test\cases\sem_derive_copy_noncopyable_field.xl > release\tmp\sem_derive_copy_noncopyable_field.err.txt 2>&1
+if not errorlevel 1 (
+    echo sem_derive_copy_noncopyable_field.xl should fail.
+    exit /b 1
+)
+findstr /C:"derive copy/clone" release\tmp\sem_derive_copy_noncopyable_field.err.txt >nul
+if errorlevel 1 (
+    echo sem_derive_copy_noncopyable_field.err.txt missing copy field diagnostic.
+    exit /b 1
+)
+release\xl.exe check test\cases\sem_derive_value_custom_field.xl > release\tmp\sem_derive_value_custom_field.err.txt 2>&1
+if not errorlevel 1 (
+    echo sem_derive_value_custom_field.xl should fail.
+    exit /b 1
+)
+findstr /C:"derive value/json/xson" release\tmp\sem_derive_value_custom_field.err.txt >nul
+if errorlevel 1 (
+    echo sem_derive_value_custom_field.err.txt missing persistence field diagnostic.
+    exit /b 1
+)
+release\xl.exe check test\cases\sem_json_parse_without_derive.xl > release\tmp\sem_json_parse_without_derive.err.txt 2>&1
+if not errorlevel 1 (
+    echo sem_json_parse_without_derive.xl should fail.
+    exit /b 1
+)
+findstr /C:"derive value/json/xson" release\tmp\sem_json_parse_without_derive.err.txt >nul
+if errorlevel 1 (
+    echo sem_json_parse_without_derive.err.txt missing persistence target diagnostic.
+    exit /b 1
+)
+release\xl.exe check test\cases\sem_json_stringify_without_derive.xl > release\tmp\sem_json_stringify_without_derive.err.txt 2>&1
+if not errorlevel 1 (
+    echo sem_json_stringify_without_derive.xl should fail.
+    exit /b 1
+)
+findstr /C:"derive value/json/xson" release\tmp\sem_json_stringify_without_derive.err.txt >nul
+if errorlevel 1 (
+    echo sem_json_stringify_without_derive.err.txt missing persistence stringify diagnostic.
+    exit /b 1
+)
 release\xl.exe check examples\second_stage.xl
 if errorlevel 1 exit /b 1
 release\xl.exe run examples\second_stage.xl %XL6_XL_DEFAULT_LINK_ARGS%
@@ -5915,6 +6095,179 @@ if errorlevel 1 (
 "%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_class_methods.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_class_methods.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_class_methods.exe
+if errorlevel 1 exit /b 1
+
+release\xl.exe check test\cases\cgen_class_method_multi_return.xl
+if errorlevel 1 exit /b 1
+release\xl.exe cgen test\cases\cgen_class_method_multi_return.xl --emit release\tmp\cgen_class_method_multi_return.c
+if errorlevel 1 exit /b 1
+findstr /C:"typedef struct XL6_Function_Return_" release\tmp\cgen_class_method_multi_return.c >nul
+if errorlevel 1 (
+    echo cgen_class_method_multi_return.c missing class method multi-return struct.
+    exit /b 1
+)
+findstr /C:"xl_class_Pairer__pair(&pairer, 3LL)" release\tmp\cgen_class_method_multi_return.c >nul
+if errorlevel 1 (
+    echo cgen_class_method_multi_return.c missing class method multi-return call.
+    exit /b 1
+)
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_class_method_multi_return.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_class_method_multi_return.exe
+if errorlevel 1 exit /b 1
+release\tmp\cgen_class_method_multi_return.exe
+if errorlevel 1 exit /b 1
+
+release\xl.exe cgen test\cases\cgen_object_protocol.xl --emit release\tmp\cgen_object_protocol.c
+if errorlevel 1 exit /b 1
+findstr /C:"xl_class_object______setField____(&a.base" release\tmp\cgen_object_protocol.c >nul
+if errorlevel 1 (
+    echo cgen_object_protocol.c missing object field protocol setter call.
+    exit /b 1
+)
+findstr /C:"xl_class_object______setItem____(&a.base" release\tmp\cgen_object_protocol.c >nul
+if errorlevel 1 (
+    echo cgen_object_protocol.c missing object item protocol setter call.
+    exit /b 1
+)
+findstr /C:"xvoUnref(__xl6_protocol_value_" release\tmp\cgen_object_protocol.c >nul
+if errorlevel 1 (
+    echo cgen_object_protocol.c missing protocol value cleanup.
+    exit /b 1
+)
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_object_protocol.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_object_protocol.exe
+if errorlevel 1 exit /b 1
+release\tmp\cgen_object_protocol.exe
+if errorlevel 1 exit /b 1
+
+release\xl.exe cgen test\cases\cgen_protocol_ops.xl --emit release\tmp\cgen_protocol_ops.c
+if errorlevel 1 exit /b 1
+findstr /C:"xl_class_Counter______add____(&c" release\tmp\cgen_protocol_ops.c >nul
+if errorlevel 1 (
+    echo cgen_protocol_ops.c missing operator protocol call.
+    exit /b 1
+)
+findstr /C:"xl_class_Counter______contains____(&c" release\tmp\cgen_protocol_ops.c >nul
+if errorlevel 1 (
+    echo cgen_protocol_ops.c missing contains protocol call.
+    exit /b 1
+)
+findstr /C:"xl_class_Counter______call____(&c" release\tmp\cgen_protocol_ops.c >nul
+if errorlevel 1 (
+    echo cgen_protocol_ops.c missing call protocol call.
+    exit /b 1
+)
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_protocol_ops.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_protocol_ops.exe
+if errorlevel 1 exit /b 1
+release\tmp\cgen_protocol_ops.exe
+if errorlevel 1 exit /b 1
+
+release\xl.exe cgen test\cases\cgen_protocol_complex_receiver.xl --emit release\tmp\cgen_protocol_complex_receiver.c
+if errorlevel 1 exit /b 1
+findstr /C:"xl_protocol_tmp_Counter______add____" release\tmp\cgen_protocol_complex_receiver.c >nul
+if errorlevel 1 (
+    echo cgen_protocol_complex_receiver.c missing value receiver protocol wrapper.
+    exit /b 1
+)
+findstr /C:"xl_protocol_tmp_Bag______item____" release\tmp\cgen_protocol_complex_receiver.c >nul
+if errorlevel 1 (
+    echo cgen_protocol_complex_receiver.c missing item protocol wrapper.
+    exit /b 1
+)
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_protocol_complex_receiver.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_protocol_complex_receiver.exe
+if errorlevel 1 exit /b 1
+release\tmp\cgen_protocol_complex_receiver.exe
+if errorlevel 1 exit /b 1
+
+release\xl.exe cgen test\cases\cgen_protocol_len.xl --emit release\tmp\cgen_protocol_len.c
+if errorlevel 1 exit /b 1
+findstr /C:"xl_class_Sized______len____(&value)" release\tmp\cgen_protocol_len.c >nul
+if errorlevel 1 (
+    echo cgen_protocol_len.c missing named receiver len protocol call.
+    exit /b 1
+)
+findstr /C:"xl_protocol_tmp_Sized______len____" release\tmp\cgen_protocol_len.c >nul
+if errorlevel 1 (
+    echo cgen_protocol_len.c missing temporary receiver len protocol wrapper.
+    exit /b 1
+)
+findstr /C:"withField.length = 4LL;" release\tmp\cgen_protocol_len.c >nul
+if errorlevel 1 (
+    echo cgen_protocol_len.c missing static length field assignment.
+    exit /b 1
+)
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_protocol_len.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_protocol_len.exe
+if errorlevel 1 exit /b 1
+release\tmp\cgen_protocol_len.exe
+if errorlevel 1 exit /b 1
+
+release\xl.exe check test\cases\cgen_protocol_iter.xl
+if errorlevel 1 exit /b 1
+release\xl.exe cgen test\cases\cgen_protocol_iter.xl --emit release\tmp\cgen_protocol_iter.c
+if errorlevel 1 exit /b 1
+findstr /C:"xl_protocol_tmp_Counter______iter______void" release\tmp\cgen_protocol_iter.c >nul
+if errorlevel 1 (
+    echo cgen_protocol_iter.c missing temporary receiver iter protocol wrapper.
+    exit /b 1
+)
+findstr /C:"xl_class_CounterIter______next____(&__xl6_class_iter_" release\tmp\cgen_protocol_iter.c >nul
+if errorlevel 1 (
+    echo cgen_protocol_iter.c missing iterator next protocol call.
+    exit /b 1
+)
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_protocol_iter.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_protocol_iter.exe
+if errorlevel 1 exit /b 1
+release\tmp\cgen_protocol_iter.exe
+if errorlevel 1 exit /b 1
+
+release\xl.exe cgen test\cases\cgen_copy_clone.xl --emit release\tmp\cgen_copy_clone.c
+if errorlevel 1 exit /b 1
+findstr /C:"xl_class_Packet______copy____" release\tmp\cgen_copy_clone.c >nul
+if errorlevel 1 (
+    echo cgen_copy_clone.c missing derived copy protocol.
+    exit /b 1
+)
+findstr /C:"xl_class_Packet______clone____" release\tmp\cgen_copy_clone.c >nul
+if errorlevel 1 (
+    echo cgen_copy_clone.c missing derived clone protocol.
+    exit /b 1
+)
+findstr /C:"xvoDeepCopy(value.values)" release\tmp\cgen_copy_clone.c >nul
+if errorlevel 1 (
+    echo cgen_copy_clone.c missing deep xvalue field copy.
+    exit /b 1
+)
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_copy_clone.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_copy_clone.exe
+if errorlevel 1 exit /b 1
+release\tmp\cgen_copy_clone.exe
+if errorlevel 1 exit /b 1
+
+release\xl.exe cgen test\cases\cgen_deepcopy_removed.xl --emit release\tmp\cgen_deepcopy_removed.c > release\tmp\cgen_deepcopy_removed.err.txt 2>&1
+if not errorlevel 1 (
+    echo cgen_deepcopy_removed.xl should fail because deepcopy is not a builtin alias.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$bytes=[System.IO.File]::ReadAllBytes('release\tmp\cgen_deepcopy_removed.err.txt'); $enc=New-Object System.Text.UTF8Encoding($false,$true); $text=$enc.GetString($bytes); $expected=([char]0x6682)+([char]0x4E0D)+([char]0x652F)+([char]0x6301); if($text.IndexOf($expected) -lt 0){ Write-Host 'cgen_deepcopy_removed.err.txt missing unsupported diagnostic.'; exit 1 }"
+if errorlevel 1 exit /b 1
+
+release\xl.exe cgen test\cases\cgen_derive_persistence.xl --emit release\tmp\cgen_derive_persistence.c
+if errorlevel 1 exit /b 1
+findstr /C:"xl_class_Player______toValue____" release\tmp\cgen_derive_persistence.c >nul
+if errorlevel 1 (
+    echo cgen_derive_persistence.c missing derived toValue protocol.
+    exit /b 1
+)
+findstr /C:"xl_class_Player______fromValue____" release\tmp\cgen_derive_persistence.c >nul
+if errorlevel 1 (
+    echo cgen_derive_persistence.c missing derived fromValue protocol.
+    exit /b 1
+)
+findstr /C:"__xl6__stringify__value" release\tmp\cgen_derive_persistence.c >nul
+if errorlevel 1 (
+    echo cgen_derive_persistence.c missing class stringify helper.
+    exit /b 1
+)
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_derive_persistence.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_derive_persistence.exe
+if errorlevel 1 exit /b 1
+release\tmp\cgen_derive_persistence.exe
 if errorlevel 1 exit /b 1
 
 release\xl.exe check test\cases\cgen_class_overloads.xl

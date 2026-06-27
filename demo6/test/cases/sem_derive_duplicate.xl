@@ -1,0 +1,4 @@
+class BadDeriveDuplicate
+    derive copy
+    derive copy
+end

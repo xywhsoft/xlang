@@ -669,6 +669,69 @@ static void xl6CgenEmitClassCreateCall(XL6_CgenContext* ctx, const XL6_AstNode* 
     xl6OutputPutc(')', ctx->out);
 }
 
+static int xl6CgenClassConstructorExpr(XL6_CgenContext* ctx, const XL6_AstNode* call)
+{
+    const XL6_AstNode* callee;
+    const XL6_AstNode* args;
+    XL6_AstNode* classNode;
+    const XL6_AstNode* createNode;
+    char tempName[64];
+    int id;
+
+    if ( ctx == NULL || call == NULL || call->kind != XL6_AST_CALL || call->childCount == 0 ) {
+        return 0;
+    }
+
+    callee = call->children[0];
+    if ( callee == NULL || callee->kind != XL6_AST_NAME ) {
+        return 0;
+    }
+
+    classNode = xl6CgenFindClass(ctx, callee->text);
+    if ( classNode == NULL ) {
+        return 0;
+    }
+    if ( xl6CgenClassHasTypeParams(classNode) ) {
+        xl6CgenError(ctx, call, "generic class constructor expression requires explicit typed storage");
+        xl6OutputPuts("0", ctx->out);
+        return 1;
+    }
+
+    args = call->childCount > 1 ? call->children[1] : NULL;
+    createNode = xl6CgenResolveClassCreate(ctx, classNode, call);
+    id = ctx->tempId++;
+    snprintf(tempName, sizeof(tempName), "__xl6_ctor_expr_%d", id);
+
+    xl6OutputPuts("({\n", ctx->out);
+    ctx->indent += 1;
+    xl6CgenIndent(ctx);
+    xl6OutputPuts(xl6CgenTypeName(ctx, classNode), ctx->out);
+    xl6OutputPrintf(ctx->out, " %s = {0};\n", tempName);
+
+    xl6CgenClassDefaultInitFields(ctx, classNode, tempName);
+    if ( createNode != NULL ) {
+        char selfExpr[96];
+
+        snprintf(selfExpr, sizeof(selfExpr), "&%s", tempName);
+        xl6CgenIndent(ctx);
+        xl6CgenEmitClassCreateCall(ctx, classNode, createNode, selfExpr, args);
+        xl6OutputPuts(";\n", ctx->out);
+    } else {
+        if ( args != NULL && args->childCount > 0 ) {
+            xl6CgenError(ctx, call, "class constructor has arguments but no matching create method");
+        }
+        xl6CgenEmitAutoBaseCreateForValue(ctx, classNode, tempName, call);
+    }
+
+    xl6CgenIndent(ctx);
+    xl6OutputPuts(tempName, ctx->out);
+    xl6OutputPuts(";\n", ctx->out);
+    ctx->indent -= 1;
+    xl6CgenIndent(ctx);
+    xl6OutputPuts("})", ctx->out);
+    return 1;
+}
+
 static int xl6CgenBaseCtorCall(XL6_CgenContext* ctx, const XL6_AstNode* call)
 {
     const XL6_AstNode* callee;
@@ -857,13 +920,18 @@ static void xl6CgenClassFieldAccess(XL6_CgenContext* ctx, const XL6_AstNode* mem
     receiver = member->childCount > 0 ? member->children[0] : NULL;
     if ( receiver == NULL || (receiver->kind != XL6_AST_NAME &&
                               receiver->kind != XL6_AST_MEMBER &&
-                              receiver->kind != XL6_AST_INDEX) ) {
-        xl6CgenError(ctx, member, "class field receiver must be name, member or index");
+                              receiver->kind != XL6_AST_INDEX &&
+                              receiver->kind != XL6_AST_CALL) ) {
+        xl6CgenError(ctx, member, "class field receiver must be name, member, index or call");
         xl6OutputPuts("0", ctx->out);
         return;
     }
 
     if ( receiver->kind == XL6_AST_NAME && xl6CTextEquals(receiver->text, "self") && ctx->currentClass != NULL ) {
+        if ( xl6CgenFindClassFieldNode(ctx, ctx->currentClass, member->text) == NULL &&
+             xl6CgenClassProtocolMemberAccess(ctx, member) ) {
+            return;
+        }
         xl6OutputPuts("self", ctx->out);
         if ( !xl6CgenEmitClassFieldSuffixWithSep(ctx, ctx->currentClass, member->text, "->") ) {
             xl6CgenError(ctx, member, "class field not found");
@@ -872,7 +940,7 @@ static void xl6CgenClassFieldAccess(XL6_CgenContext* ctx, const XL6_AstNode* mem
     }
 
     ownedReceiverType = NULL;
-    if ( receiver->kind == XL6_AST_MEMBER || receiver->kind == XL6_AST_INDEX ) {
+    if ( receiver->kind == XL6_AST_MEMBER || receiver->kind == XL6_AST_INDEX || receiver->kind == XL6_AST_CALL ) {
         ownedReceiverType = receiver->kind == XL6_AST_MEMBER
             ? xl6CgenCloneMemberFieldTypeForInference(ctx, receiver)
             : xl6CgenCloneExprTypeForInference(ctx, receiver);
@@ -885,6 +953,11 @@ static void xl6CgenClassFieldAccess(XL6_CgenContext* ctx, const XL6_AstNode* mem
             return;
         }
 
+        if ( xl6CgenFindClassFieldNode(ctx, classNode, member->text) == NULL &&
+             xl6CgenClassProtocolMemberAccess(ctx, member) ) {
+            xl6AstFree(ownedReceiverType);
+            return;
+        }
         xl6CgenExpr(ctx, receiver);
         if ( !xl6CgenEmitClassFieldSuffix(ctx, classNode, member->text) ) {
             xl6CgenError(ctx, member, "class field not found");
@@ -901,6 +974,10 @@ static void xl6CgenClassFieldAccess(XL6_CgenContext* ctx, const XL6_AstNode* mem
         return;
     }
 
+    if ( xl6CgenFindClassFieldNode(ctx, classNode, member->text) == NULL &&
+         xl6CgenClassProtocolMemberAccess(ctx, member) ) {
+        return;
+    }
     xl6CgenNamedValueReference(ctx, receiver->text);
     if ( !xl6CgenEmitClassFieldSuffix(ctx, classNode, member->text) ) {
         xl6CgenError(ctx, member, "class field not found");

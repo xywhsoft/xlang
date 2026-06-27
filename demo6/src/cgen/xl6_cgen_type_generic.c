@@ -438,6 +438,9 @@ static void xl6CgenCollectGenericCall(XL6_CgenContext* ctx, const XL6_AstNode* c
     if ( xl6CTextEquals(nameNode->text, "channel") ) {
         return;
     }
+    if ( xl6CgenIsPersistenceGenericCall(call) ) {
+        return;
+    }
     func = xl6CgenResolveExplicitGenericCallFunc(ctx, call, nameNode->text, typeArgs, 0);
     if ( func == NULL ) {
         xl6CgenError(ctx, callee, "no matching generic function declaration");
@@ -736,6 +739,17 @@ static const char* xl6CgenInferExprType(XL6_CgenContext* ctx, const XL6_AstNode*
         }
         if ( expr->childCount > 0 && expr->children[0] != NULL &&
              expr->children[0]->kind == XL6_AST_NAME &&
+             xl6CgenIsCopyBuiltinName(expr->children[0]->text) &&
+             !xl6CgenCopyBuiltinNameIsShadowed(ctx, expr->children[0]->text) ) {
+            XL6_AstNode* typeNode = xl6CgenCloneExprTypeForInference(ctx, expr);
+            const char* cType = typeNode != NULL ? xl6CgenTypeName(ctx, typeNode) : NULL;
+            xl6AstFree(typeNode);
+            if ( cType != NULL ) {
+                return cType;
+            }
+        }
+        if ( expr->childCount > 0 && expr->children[0] != NULL &&
+             expr->children[0]->kind == XL6_AST_NAME &&
              xl6CgenIsBuiltinConvertTypeName(expr->children[0]->text) &&
              xl6CgenIsKnownTypeName(ctx, expr->children[0]->text) ) {
             return xl6CgenConvertCTypeName(expr->children[0]->text);
@@ -781,11 +795,15 @@ static const char* xl6CgenInferExprType(XL6_CgenContext* ctx, const XL6_AstNode*
             }
         }
         if ( expr->childCount > 0 && expr->children[0]->kind == XL6_AST_GENERIC_INSTANT ) {
+            const char* persistenceCType = xl6CgenPersistenceGenericCallCType(ctx, expr);
             const XL6_AstNode* instant = expr->children[0];
             const XL6_AstNode* nameNode = instant->childCount > 0 ? instant->children[0] : NULL;
             const XL6_AstNode* typeArgs = instant->childCount > 1 ? instant->children[1] : NULL;
             XL6_AstNode* func = (nameNode != NULL && nameNode->kind == XL6_AST_NAME) ?
                                 xl6CgenResolveExplicitGenericCallFunc(ctx, expr, nameNode->text, typeArgs, 0) : NULL;
+            if ( persistenceCType != NULL ) {
+                return persistenceCType;
+            }
             if ( xl6CgenIsAsyncFunc(func) ) {
                 return "xfuture*";
             }

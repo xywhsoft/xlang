@@ -120,6 +120,37 @@ static const XL6_AstNode* xl6CgenClassBody(const XL6_AstNode* classNode)
     return classNode != NULL && classNode->childCount > 1 ? classNode->children[1] : NULL;
 }
 
+static int xl6CgenBodyHasDerive(const XL6_AstNode* body, const char* ability)
+{
+    size_t i;
+
+    if ( body == NULL || ability == NULL ) {
+        return 0;
+    }
+    for ( i = 0; i < body->childCount; ++i ) {
+        const XL6_AstNode* member = body->children[i];
+        if ( member != NULL &&
+             member->kind == XL6_AST_DERIVE &&
+             xl6CTextEquals(member->text, ability) ) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+static int xl6CgenClassHasDerive(const XL6_AstNode* classNode, const char* ability)
+{
+    return xl6CgenBodyHasDerive(xl6CgenClassBody(classNode), ability);
+}
+
+static int xl6CgenCustomHasDerive(const XL6_AstNode* customNode, const char* ability)
+{
+    const XL6_AstNode* body;
+
+    body = customNode != NULL && customNode->childCount > 0 ? customNode->children[0] : NULL;
+    return xl6CgenBodyHasDerive(body, ability);
+}
+
 static const XL6_AstNode* xl6CgenUnionBody(const XL6_AstNode* unionNode)
 {
     return unionNode != NULL && unionNode->childCount > 0 ? unionNode->children[0] : NULL;

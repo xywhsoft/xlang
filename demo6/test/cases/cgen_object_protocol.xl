@@ -1,0 +1,18 @@
+class Actor extends object
+    int id = 0
+
+    create(int id)
+        self.id = id
+    end
+end
+
+extern "expect_i64" func expect(int actual, int expected)
+
+auto a = Actor(7)
+a.hp = 120
+a.name = "hero"
+a["score"] = 30
+
+expect(a.id, 7)
+expect(int(a.hp), 120)
+expect(int(a["score"]), 30)

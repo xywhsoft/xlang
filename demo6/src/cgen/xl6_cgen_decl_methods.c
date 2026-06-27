@@ -138,6 +138,11 @@ static void xl6CgenEmitClassDirectFieldCleanups(XL6_CgenContext* ctx, const XL6_
         }
         xl6CgenCIdentText(cFieldName, sizeof(cFieldName), member->text);
         typeNode = member->children[0];
+        if ( xl6CgenIsXValueType(typeNode) ) {
+            xl6CgenIndent(ctx);
+            xl6OutputPrintf(ctx->out, "if (self->%s != 0) { xvoUnref(self->%s); self->%s = 0; }\n", cFieldName, cFieldName, cFieldName);
+            continue;
+        }
         if ( xl6CgenIsFunctionType(typeNode) ) {
             xl6CgenIndent(ctx);
             xl6OutputPrintf(ctx->out, "if (self->%s.release != 0 && self->%s.env != 0) {\n", cFieldName, cFieldName);
@@ -207,6 +212,9 @@ static void xl6CgenEmitClassDestroyTail(XL6_CgenContext* ctx, const XL6_AstNode*
 static void xl6CgenClassFunc(XL6_CgenContext* ctx, const XL6_AstNode* classNode, const XL6_AstNode* funcNode)
 {
     const XL6_AstNode* prevReturnType;
+    const XL6_AstNode* prevReturnParams;
+    const XL6_AstNode* prevReturns;
+    const XL6_AstNode* prevReturnFunc;
     const XL6_AstNode* prevClass;
     const XL6_AstNode* returns;
     const XL6_AstNode* params;
@@ -218,16 +226,25 @@ static void xl6CgenClassFunc(XL6_CgenContext* ctx, const XL6_AstNode* classNode,
     varMark = ctx->varCount;
     prevClass = ctx->currentClass;
     prevReturnType = ctx->currentReturnType;
+    prevReturnParams = ctx->currentReturnParams;
+    prevReturns = ctx->currentReturns;
+    prevReturnFunc = ctx->currentReturnFunc;
     ctx->currentClass = classNode;
     returns = funcNode->childCount > 2 ? funcNode->children[2] : NULL;
     ctx->currentReturnType = returns != NULL && returns->childCount == 1 ? returns->children[0] : NULL;
     xl6CgenAddVarType(ctx, "self", classNode);
     params = funcNode->childCount > 1 ? funcNode->children[1] : NULL;
+    ctx->currentReturnParams = params;
+    ctx->currentReturns = returns;
+    ctx->currentReturnFunc = funcNode;
     xl6CgenRegisterParamTypes(ctx, params);
     if ( funcNode->childCount > 3 ) {
         xl6CgenBlock(ctx, funcNode->children[3]);
     }
     ctx->currentReturnType = prevReturnType;
+    ctx->currentReturnParams = prevReturnParams;
+    ctx->currentReturns = prevReturns;
+    ctx->currentReturnFunc = prevReturnFunc;
     ctx->currentClass = prevClass;
     xl6CgenFreeVarsSince(ctx, varMark);
     ctx->indent -= 1;
@@ -237,6 +254,9 @@ static void xl6CgenClassFunc(XL6_CgenContext* ctx, const XL6_AstNode* classNode,
 static void xl6CgenGenericClassFunc(XL6_CgenContext* ctx, const XL6_AstNode* classNode, const XL6_AstNode* typeNode, const XL6_AstNode* funcNode)
 {
     const XL6_AstNode* prevReturnType;
+    const XL6_AstNode* prevReturnParams;
+    const XL6_AstNode* prevReturns;
+    const XL6_AstNode* prevReturnFunc;
     const XL6_AstNode* prevClass;
     const XL6_AstNode* prevParams;
     const XL6_AstNode* prevArgs;
@@ -255,16 +275,25 @@ static void xl6CgenGenericClassFunc(XL6_CgenContext* ctx, const XL6_AstNode* cla
     varMark = ctx->varCount;
     prevClass = ctx->currentClass;
     prevReturnType = ctx->currentReturnType;
+    prevReturnParams = ctx->currentReturnParams;
+    prevReturns = ctx->currentReturns;
+    prevReturnFunc = ctx->currentReturnFunc;
     ctx->currentClass = classNode;
     returns = funcNode->childCount > 2 ? funcNode->children[2] : NULL;
     ctx->currentReturnType = returns != NULL && returns->childCount == 1 ? returns->children[0] : NULL;
     xl6CgenAddVarType(ctx, "self", typeNode);
     params = funcNode->childCount > 1 ? funcNode->children[1] : NULL;
+    ctx->currentReturnParams = params;
+    ctx->currentReturns = returns;
+    ctx->currentReturnFunc = funcNode;
     xl6CgenRegisterParamTypes(ctx, params);
     if ( funcNode->childCount > 3 ) {
         xl6CgenBlock(ctx, funcNode->children[3]);
     }
     ctx->currentReturnType = prevReturnType;
+    ctx->currentReturnParams = prevReturnParams;
+    ctx->currentReturns = prevReturns;
+    ctx->currentReturnFunc = prevReturnFunc;
     ctx->currentClass = prevClass;
     xl6CgenFreeVarsSince(ctx, varMark);
     ctx->indent -= 1;
@@ -398,6 +427,46 @@ static void xl6CgenClassAutoDestroy(XL6_CgenContext* ctx, const XL6_AstNode* cla
     xl6OutputPuts("}\n\n", ctx->out);
 }
 
+static void xl6CgenClassAutoCopyProtocol(XL6_CgenContext* ctx, const XL6_AstNode* classNode, const char* protocolName, int deep)
+{
+    const XL6_AstNode* prevClass;
+    size_t varMark;
+
+    xl6CgenClassAutoCopyProto(ctx, classNode, protocolName);
+    xl6OutputPuts("\n{\n", ctx->out);
+    ctx->indent += 1;
+    varMark = ctx->varCount;
+    prevClass = ctx->currentClass;
+    ctx->currentClass = classNode;
+    xl6CgenAddVarType(ctx, "self", classNode);
+
+    xl6CgenIndent(ctx);
+    xl6CgenClassTypeName(ctx->out, classNode->text);
+    xl6OutputPuts(" value = {0};\n", ctx->out);
+    xl6CgenIndent(ctx);
+    xl6OutputPuts("if ( self == 0 ) {\n", ctx->out);
+    ctx->indent += 1;
+    xl6CgenIndent(ctx);
+    xl6OutputPuts("return value;\n", ctx->out);
+    ctx->indent -= 1;
+    xl6CgenIndent(ctx);
+    xl6OutputPuts("}\n", ctx->out);
+    xl6CgenIndent(ctx);
+    xl6OutputPuts("value = *self;\n", ctx->out);
+    if ( deep ) {
+        xl6CgenDeepCopyClassFunctionFields(ctx, classNode, "value");
+    } else {
+        xl6CgenRetainClassFunctionFields(ctx, classNode, "value");
+    }
+    xl6CgenIndent(ctx);
+    xl6OutputPuts("return value;\n", ctx->out);
+
+    ctx->currentClass = prevClass;
+    xl6CgenFreeVarsSince(ctx, varMark);
+    ctx->indent -= 1;
+    xl6OutputPuts("}\n\n", ctx->out);
+}
+
 static void xl6CgenClassMethods(XL6_CgenContext* ctx, const XL6_AstNode* classNode)
 {
     const XL6_AstNode* body;
@@ -426,6 +495,20 @@ static void xl6CgenClassMethods(XL6_CgenContext* ctx, const XL6_AstNode* classNo
     if ( !hasDestroy && xl6CgenClassNeedsDestroy(ctx, classNode) ) {
         xl6CgenClassAutoDestroy(ctx, classNode);
     }
+    if ( xl6CgenClassNeedsAutoCopyProtocol(ctx, classNode, "copy", "__copy__") ) {
+        xl6CgenClassAutoCopyProtocol(ctx, classNode, "__copy__", 0);
+    }
+    if ( xl6CgenClassNeedsAutoCopyProtocol(ctx, classNode, "clone", "__clone__") ) {
+        xl6CgenClassAutoCopyProtocol(ctx, classNode, "__clone__", 1);
+    }
+    if ( xl6CgenClassNeedsAutoValueProtocol(ctx, classNode, "__toValue__") ) {
+        xl6CgenClassAutoToValueProtocol(ctx, classNode);
+    }
+    if ( xl6CgenClassNeedsAutoValueProtocol(ctx, classNode, "__fromValue__") ) {
+        xl6CgenClassAutoFromValueProtocol(ctx, classNode);
+    }
+    xl6CgenClassCopyBuiltinHelpers(ctx, classNode);
+    xl6CgenClassPersistenceHelpers(ctx, classNode);
 }
 
 static void xl6CgenGenericClassMethods(XL6_CgenContext* ctx)

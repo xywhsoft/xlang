@@ -1,0 +1,64 @@
+class Counter
+    int value = 0
+
+    create(int value)
+        self.value = value
+    end
+
+    func __add__(int delta) as Counter
+        Counter result = Counter(self.value + delta)
+        return result
+    end
+
+    func __neg__() as Counter
+        Counter result = Counter(0 - self.value)
+        return result
+    end
+
+    func __contains__(int item) as bool
+        return item == self.value
+    end
+end
+
+class Bag
+    int base = 0
+
+    create(int base)
+        self.base = base
+    end
+
+    func __item__(int64 index) as int
+        return self.base + int(index)
+    end
+
+    func __field__(string name) as int
+        return self.base + 100
+    end
+
+    func __call__(int add) as int
+        return self.base + add
+    end
+end
+
+func makeCounter(int value) as Counter
+    Counter result = Counter(value)
+    return result
+end
+
+func makeBag(int value) as Bag
+    Bag result = Bag(value)
+    return result
+end
+
+extern "expect_i64" func expect(int actual, int expected)
+
+auto sum = makeCounter(10) + 5
+auto neg = -makeCounter(7)
+
+expect(sum.value, 15)
+expect(neg.value, -7)
+expect(int(5 in makeCounter(5)), 1)
+expect(int(6 in makeCounter(5)), 0)
+expect(makeBag(40)[2], 42)
+expect(makeBag(1).missing, 101)
+expect(makeBag(7)(8), 15)

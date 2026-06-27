@@ -34,7 +34,8 @@ $allowed = @(
     [pscustomobject]@{ Path = "src\cgen\xl6_cgen_args.c"; Text = 'xl6OutputPrintf(ctx->out, "({ xvalue __xl6_logic_left_'; Count = 1 },
     [pscustomobject]@{ Path = "src\cgen\xl6_cgen_args.c"; Text = 'xl6OutputPrintf(ctx->out, "({ xvalue __xl6_nc_'; Count = 1 },
     [pscustomobject]@{ Path = "src\cgen\xl6_cgen_args.c"; Text = 'xl6OutputPuts("({ ", ctx->out);'; Count = 1 },
-    [pscustomobject]@{ Path = "src\cgen\xl6_cgen_async_func.c"; Text = 'xl6OutputPuts("({ xfuture* ", ctx->out);'; Count = 1 }
+    [pscustomobject]@{ Path = "src\cgen\xl6_cgen_async_func.c"; Text = 'xl6OutputPuts("({ xfuture* ", ctx->out);'; Count = 1 },
+    [pscustomobject]@{ Path = "src\cgen\xl6_cgen_value_object.c"; Text = 'xl6OutputPuts("({\n", ctx->out);'; Count = 1 }
 )
 
 $files = @(Get-ChildItem -LiteralPath $cgenDir -Filter "*.c" -File | Sort-Object FullName)

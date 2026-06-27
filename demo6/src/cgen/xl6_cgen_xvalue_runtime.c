@@ -289,6 +289,7 @@ static void xl6CgenEmitXValueRuntime(XL6_CgenContext* ctx)
     xl6OutputPuts("void* xrtMalloc(size_t iSize);\n", out);
     xl6OutputPuts("void* xrtRealloc(void* pMem, size_t iSize);\n", out);
     xl6OutputPuts("void xrtFree(void* pmem);\n", out);
+    xl6OutputPuts("void* xrtTempMemory(size_t iSize);\n", out);
     xl6OutputPuts("int xrtI64ToStr(long long num, char* buffer);\n", out);
     xl6OutputPuts("int xrtNumToStr(double num, char* buffer);\n", out);
     xl6OutputPuts("void* xrtTimeToStr(long long iTime, int iFormat);\n", out);
@@ -314,10 +315,12 @@ static void xl6CgenEmitXValueRuntime(XL6_CgenContext* ctx)
     xl6OutputPuts("bool xvoListSetValue(xvalue pList, long long index, xvalue pVal, bool bColloc);\n", out);
     xl6OutputPuts("bool xvoCollSetValue(xvalue pColl, xvalue pVal, bool bColloc);\n", out);
     xl6OutputPuts("bool xvoTableSetValue(xvalue pTbl, const void* key, unsigned int kl, xvalue pVal, bool bColloc);\n", out);
+    xl6OutputPuts("bool xvoTableMerge(xvalue pTbl1, xvalue pTbl2, bool bReWrite);\n", out);
     xl6OutputPuts("xvalue xvoArrayGetValue(xvalue pArr, unsigned int index);\n", out);
     xl6OutputPuts("xvalue xvoListGetValue(xvalue pList, long long index);\n", out);
     xl6OutputPuts("xvalue xvoTableGetValue(xvalue pTbl, const void* key, unsigned int kl);\n", out);
     xl6OutputPuts("xvalue xvoCopy(xvalue pVal);\n", out);
+    xl6OutputPuts("xvalue xvoDeepCopy(xvalue pVal);\n", out);
     xl6OutputPuts("unsigned int xvoArrayItemCount(xvalue pArr);\n", out);
     xl6OutputPuts("unsigned int xvoListItemCount(xvalue pList);\n", out);
     xl6OutputPuts("unsigned int xvoCollItemCount(xvalue pColl);\n", out);
@@ -402,6 +405,22 @@ static void xl6CgenEmitXValueRuntime(XL6_CgenContext* ctx)
     xl6OutputPuts("void xvoUnref(xvalue pVal);\n\n", out);
 
     xl6CgenEmitXValueReleaseConvertHelpers(out);
+
+    xl6OutputPuts("static const char* xl6_xrt_text_temp_copy(const char* value)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    size_t len;\n", out);
+    xl6OutputPuts("    char* text;\n", out);
+    xl6OutputPuts("    if ( value == 0 ) {\n", out);
+    xl6OutputPuts("        return \"\";\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    len = strlen(value);\n", out);
+    xl6OutputPuts("    text = (char*)xrtTempMemory(len + 1u);\n", out);
+    xl6OutputPuts("    if ( text == 0 ) {\n", out);
+    xl6OutputPuts("        return \"\";\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    memcpy(text, value, len + 1u);\n", out);
+    xl6OutputPuts("    return text;\n", out);
+    xl6OutputPuts("}\n\n", out);
 
     xl6OutputPuts("#define XL6_XVO_DT_NULL 0\n", out);
     xl6OutputPuts("#define XL6_XVO_DT_BOOL 1\n", out);
@@ -662,6 +681,15 @@ static void xl6CgenEmitXValueRuntime(XL6_CgenContext* ctx)
     xl6OutputPuts("        xvoAddRef(value);\n", out);
     xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    return value;\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("static xvalue xl6_xrt_value_copy_release(xvalue value, int deep)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    xvalue result = deep ? xvoDeepCopy(value) : xvoCopy(value);\n", out);
+    xl6OutputPuts("    if ( value != 0 ) {\n", out);
+    xl6OutputPuts("        xvoUnref(value);\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    return result;\n", out);
     xl6OutputPuts("}\n\n", out);
 
     xl6OutputPuts("typedef struct XL6_XrtIterItem {\n", out);

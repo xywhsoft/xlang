@@ -1,0 +1,6 @@
+class Plain
+    int id = 0
+end
+
+auto p = Plain()
+auto text = json.stringify(p)

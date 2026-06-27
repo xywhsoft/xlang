@@ -248,9 +248,9 @@ static void xl6CgenClassFuncProto(XL6_CgenContext* ctx, const XL6_AstNode* class
     nameNode = funcNode->childCount > 0 ? funcNode->children[0] : NULL;
     returns = funcNode->childCount > 2 ? funcNode->children[2] : NULL;
     if ( returns != NULL && returns->childCount > 1 ) {
-        xl6CgenError(ctx, returns, "class method C prototype does not support multiple return values");
-    }
-    if ( returns != NULL && returns->childCount == 1 ) {
+        xl6CgenFuncReturnStructDecl(ctx, funcNode);
+        xl6CgenFuncReturnStructName(ctx, funcNode);
+    } else if ( returns != NULL && returns->childCount == 1 ) {
         xl6OutputPuts(xl6CgenTypeName(ctx, returns->children[0]), ctx->out);
     } else {
         xl6OutputPuts("void", ctx->out);
@@ -283,6 +283,16 @@ static void xl6CgenClassDestroyProto(XL6_CgenContext* ctx, const XL6_AstNode* cl
 {
     xl6OutputPuts("void ", ctx->out);
     xl6CgenClassMemberSymbol(ctx->out, classNode->text, "destroy");
+    xl6OutputPutc('(', ctx->out);
+    xl6CgenClassTypeName(ctx->out, classNode->text);
+    xl6OutputPuts("* self)", ctx->out);
+}
+
+static void xl6CgenClassAutoCopyProto(XL6_CgenContext* ctx, const XL6_AstNode* classNode, const char* protocolName)
+{
+    xl6CgenClassTypeName(ctx->out, classNode->text);
+    xl6OutputPutc(' ', ctx->out);
+    xl6CgenClassMemberSymbol(ctx->out, classNode->text, protocolName);
     xl6OutputPutc('(', ctx->out);
     xl6CgenClassTypeName(ctx->out, classNode->text);
     xl6OutputPuts("* self)", ctx->out);

@@ -1,0 +1,5 @@
+class BadProtocol
+    func __copyable__() as int
+        return 1
+    end
+end

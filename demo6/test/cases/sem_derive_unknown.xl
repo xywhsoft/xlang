@@ -1,0 +1,3 @@
+class BadDeriveUnknown
+    derive unknownAbility
+end

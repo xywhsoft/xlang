@@ -133,7 +133,8 @@ static XL6_TokenKind xl6LookupKeyword(const char* text, int len)
         {"try", XL6_KW_TRY}, {"catch", XL6_KW_CATCH}, {"finally", XL6_KW_FINALLY},
         {"throw", XL6_KW_THROW}, {"assert", XL6_KW_ASSERT},
         {"import", XL6_KW_IMPORT}, {"export", XL6_KW_EXPORT}, {"extern", XL6_KW_EXTERN}, {"include", XL6_KW_INCLUDE}, {"define", XL6_KW_DEFINE},
-        {"class", XL6_KW_CLASS}, {"custom", XL6_KW_CUSTOM}, {"extends", XL6_KW_EXTENDS}, {"union", XL6_KW_UNION}, {"get", XL6_KW_GET}, {"let", XL6_KW_LET},
+        {"class", XL6_KW_CLASS}, {"custom", XL6_KW_CUSTOM}, {"extends", XL6_KW_EXTENDS}, {"union", XL6_KW_UNION}, {"derive", XL6_KW_DERIVE},
+        {"get", XL6_KW_GET}, {"let", XL6_KW_LET},
         {"and", XL6_KW_AND}, {"or", XL6_KW_OR}, {"not", XL6_KW_NOT}
     };
     size_t i;

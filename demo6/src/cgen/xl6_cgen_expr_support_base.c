@@ -244,6 +244,76 @@ static const XL6_AstNode* xl6CgenFindClassFieldNode(XL6_CgenContext* ctx, const 
     return xl6CgenFindClassFieldNode(ctx, baseClass, fieldName);
 }
 
+static const XL6_AstNode* xl6CgenFindClassProtocolFunc(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* classNode,
+    const char* protocolName,
+    const XL6_AstNode** outOwnerClass)
+{
+    const XL6_AstNode* body;
+    const XL6_AstNode* base;
+    XL6_AstNode* baseClass;
+    size_t i;
+
+    if ( outOwnerClass != NULL ) {
+        *outOwnerClass = NULL;
+    }
+    if ( ctx == NULL || classNode == NULL || protocolName == NULL ) {
+        return NULL;
+    }
+
+    body = xl6CgenClassBody(classNode);
+    if ( body != NULL ) {
+        for ( i = 0; i < body->childCount; ++i ) {
+            const XL6_AstNode* member = body->children[i];
+            const XL6_AstNode* nameNode;
+
+            if ( member == NULL || member->kind != XL6_AST_FUNC || member->childCount == 0 ) {
+                continue;
+            }
+            nameNode = member->children[0];
+            if ( nameNode != NULL && xl6CTextEquals(nameNode->text, protocolName) ) {
+                if ( outOwnerClass != NULL ) {
+                    *outOwnerClass = classNode;
+                }
+                return member;
+            }
+        }
+    }
+
+    base = classNode->childCount > 0 ? classNode->children[0] : NULL;
+    if ( base == NULL || base->kind != XL6_AST_NAME ) {
+        return NULL;
+    }
+    baseClass = xl6CgenFindClass(ctx, base->text);
+    return xl6CgenFindClassProtocolFunc(ctx, baseClass, protocolName, outOwnerClass);
+}
+
+static XL6_AstNode* xl6CgenCloneClassProtocolReturnType(XL6_CgenContext* ctx, const XL6_AstNode* receiverType, const char* protocolName)
+{
+    const XL6_AstNode* concreteType;
+    const XL6_AstNode* classNode;
+    const XL6_AstNode* method;
+    const XL6_AstNode* returns;
+
+    concreteType = xl6CgenResolveAliasType(ctx, receiverType);
+    if ( concreteType == NULL || concreteType->text == NULL || protocolName == NULL ) {
+        return NULL;
+    }
+
+    classNode = xl6CgenFindClass(ctx, concreteType->text);
+    if ( classNode == NULL ) {
+        return NULL;
+    }
+
+    method = xl6CgenFindClassProtocolFunc(ctx, classNode, protocolName, NULL);
+    returns = method != NULL && method->childCount > 2 ? method->children[2] : NULL;
+    if ( returns == NULL || returns->childCount != 1 ) {
+        return NULL;
+    }
+    return xl6CgenCloneCanonicalTypeNode(ctx, returns->children[0]);
+}
+
 static XL6_AstNode* xl6CgenCloneMemberFieldTypeForInference(XL6_CgenContext* ctx, const XL6_AstNode* member)
 {
     const XL6_AstNode* receiver;
@@ -281,8 +351,16 @@ static XL6_AstNode* xl6CgenCloneMemberFieldTypeForInference(XL6_CgenContext* ctx
         if ( classNode != NULL ) {
             field = xl6CgenFindClassFieldNode(ctx, classNode, member->text);
             if ( field == NULL || field->childCount == 0 ) {
+                if ( xl6CTextEquals(member->text, "length") ) {
+                    result = xl6CgenCloneClassProtocolReturnType(ctx, receiverType, "__len__");
+                    if ( result != NULL ) {
+                        xl6AstFree((XL6_AstNode*)receiverType);
+                        return result;
+                    }
+                }
+                result = xl6CgenCloneClassProtocolReturnType(ctx, receiverType, "__field__");
                 xl6AstFree((XL6_AstNode*)receiverType);
-                return NULL;
+                return result;
             }
 
             prevParams = ctx->currentGenericParams;
@@ -319,7 +397,13 @@ static XL6_AstNode* xl6CgenCloneMemberFieldTypeForInference(XL6_CgenContext* ctx
 
     field = xl6CgenFindClassFieldNode(ctx, classNode, member->text);
     if ( field == NULL || field->childCount == 0 ) {
-        return NULL;
+        if ( xl6CTextEquals(member->text, "length") ) {
+            result = xl6CgenCloneClassProtocolReturnType(ctx, receiverType != NULL ? receiverType : classNode, "__len__");
+            if ( result != NULL ) {
+                return result;
+            }
+        }
+        return xl6CgenCloneClassProtocolReturnType(ctx, receiverType != NULL ? receiverType : classNode, "__field__");
     }
 
     prevParams = ctx->currentGenericParams;
@@ -363,6 +447,9 @@ static int xl6CgenClassNeedsDestroy(XL6_CgenContext* ctx, const XL6_AstNode* cla
             }
             typeNode = member->children[0];
             if ( xl6CgenIsFunctionType(typeNode) ) {
+                return 1;
+            }
+            if ( xl6CgenIsXValueType(typeNode) ) {
                 return 1;
             }
             customNode = xl6CgenFindCustom(ctx, typeNode != NULL ? typeNode->text : NULL);
@@ -420,7 +507,12 @@ static void xl6CgenRetainFunctionPath(XL6_CgenContext* ctx, const char* path)
     xl6OutputPuts("}\n", ctx->out);
 }
 
-static void xl6CgenClassFunctionFieldRefs(XL6_CgenContext* ctx, const XL6_AstNode* classNode, const char* valuePath, int retain)
+static void xl6CgenClassFunctionFieldRefs(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* classNode,
+    const char* valuePath,
+    int retain,
+    int deep)
 {
     const XL6_AstNode* body;
     const XL6_AstNode* base;
@@ -437,7 +529,7 @@ static void xl6CgenClassFunctionFieldRefs(XL6_CgenContext* ctx, const XL6_AstNod
 
         baseClass = xl6CgenFindClass(ctx, base->text);
         snprintf(basePath, sizeof(basePath), "%s.base", valuePath);
-        xl6CgenClassFunctionFieldRefs(ctx, baseClass, basePath, retain);
+        xl6CgenClassFunctionFieldRefs(ctx, baseClass, basePath, retain, deep);
     }
 
     body = xl6CgenClassBody(classNode);
@@ -457,6 +549,15 @@ static void xl6CgenClassFunctionFieldRefs(XL6_CgenContext* ctx, const XL6_AstNod
         typeNode = member->children[0];
         xl6CgenCIdentText(cFieldName, sizeof(cFieldName), member->text);
         snprintf(fieldPath, sizeof(fieldPath), "%s.%s", valuePath, cFieldName);
+        if ( xl6CgenIsXValueType(typeNode) ) {
+            xl6CgenIndent(ctx);
+            if ( retain ) {
+                xl6OutputPrintf(ctx->out, "%s = %s(%s);\n", fieldPath, deep ? "xvoDeepCopy" : "xvoCopy", fieldPath);
+            } else {
+                xl6OutputPrintf(ctx->out, "if (%s != 0) { xvoUnref(%s); %s = 0; }\n", fieldPath, fieldPath, fieldPath);
+            }
+            continue;
+        }
         if ( xl6CgenIsFunctionType(typeNode) ) {
             if ( retain ) {
                 xl6CgenRetainFunctionPath(ctx, fieldPath);
@@ -467,19 +568,24 @@ static void xl6CgenClassFunctionFieldRefs(XL6_CgenContext* ctx, const XL6_AstNod
         }
         nestedClass = xl6CgenFindClass(ctx, typeNode != NULL ? typeNode->text : NULL);
         if ( nestedClass != NULL ) {
-            xl6CgenClassFunctionFieldRefs(ctx, nestedClass, fieldPath, retain);
+            xl6CgenClassFunctionFieldRefs(ctx, nestedClass, fieldPath, retain, deep);
         }
     }
 }
 
 static void xl6CgenRetainClassFunctionFields(XL6_CgenContext* ctx, const XL6_AstNode* classNode, const char* valuePath)
 {
-    xl6CgenClassFunctionFieldRefs(ctx, classNode, valuePath, 1);
+    xl6CgenClassFunctionFieldRefs(ctx, classNode, valuePath, 1, 0);
+}
+
+static void xl6CgenDeepCopyClassFunctionFields(XL6_CgenContext* ctx, const XL6_AstNode* classNode, const char* valuePath)
+{
+    xl6CgenClassFunctionFieldRefs(ctx, classNode, valuePath, 1, 1);
 }
 
 static void xl6CgenReleaseClassFunctionFields(XL6_CgenContext* ctx, const XL6_AstNode* classNode, const char* valuePath)
 {
-    xl6CgenClassFunctionFieldRefs(ctx, classNode, valuePath, 0);
+    xl6CgenClassFunctionFieldRefs(ctx, classNode, valuePath, 0, 0);
 }
 
 static XL6_AstNode* xl6CgenClassNodeForType(XL6_CgenContext* ctx, const XL6_AstNode* typeNode)
@@ -496,6 +602,24 @@ static XL6_AstNode* xl6CgenClassNodeForType(XL6_CgenContext* ctx, const XL6_AstN
         return NULL;
     }
     return xl6CgenFindClass(ctx, resolvedType->text);
+}
+
+static int xl6CgenClassNeedsAutoCopyProtocol(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* classNode,
+    const char* deriveName,
+    const char* protocolName)
+{
+    if ( ctx == NULL || classNode == NULL || deriveName == NULL || protocolName == NULL ) {
+        return 0;
+    }
+    if ( xl6CgenClassHasTypeParams(classNode) ) {
+        return 0;
+    }
+    if ( !xl6CgenClassHasDerive(classNode, deriveName) ) {
+        return 0;
+    }
+    return xl6CgenFindClassFunc(classNode, protocolName) == NULL;
 }
 
 static void xl6CgenRetainClassFunctionFieldsForType(XL6_CgenContext* ctx, const XL6_AstNode* typeNode, const char* valuePath)
@@ -1072,56 +1196,3 @@ static void xl6CgenCloseScope(XL6_CgenContext* ctx, size_t mark)
     xl6CgenFreeCleanupsSince(ctx, mark);
 }
 
-static void xl6CgenPushLoopTarget(XL6_CgenContext* ctx, size_t breakMark, size_t continueMark, int breakId, int continueId)
-{
-    XL6_CgenLoopTarget* newItems;
-    size_t newCapacity;
-
-    if ( ctx == NULL ) {
-        return;
-    }
-    if ( ctx->loopTargetCount == ctx->loopTargetCapacity ) {
-        newCapacity = ctx->loopTargetCapacity == 0 ? 8 : ctx->loopTargetCapacity * 2;
-        newItems = (XL6_CgenLoopTarget*)xrtRealloc(ctx->loopTargets, newCapacity * sizeof(XL6_CgenLoopTarget));
-        if ( newItems == NULL ) {
-            xl6CgenError(ctx, NULL, "out of memory while growing cgen loop target stack");
-            return;
-        }
-        ctx->loopTargets = newItems;
-        ctx->loopTargetCapacity = newCapacity;
-    }
-    ctx->loopTargets[ctx->loopTargetCount].breakCleanupMark = breakMark;
-    ctx->loopTargets[ctx->loopTargetCount].continueCleanupMark = continueMark;
-    ctx->loopTargets[ctx->loopTargetCount].breakId = breakId;
-    ctx->loopTargets[ctx->loopTargetCount].continueId = continueId;
-    ctx->loopTargetCount += 1;
-}
-
-static void xl6CgenPopLoopTarget(XL6_CgenContext* ctx)
-{
-    if ( ctx != NULL && ctx->loopTargetCount > 0 ) {
-        ctx->loopTargetCount -= 1;
-    }
-}
-
-static XL6_CgenLoopTarget* xl6CgenLoopTargetAtLevel(XL6_CgenContext* ctx, int level)
-{
-    size_t index;
-
-    if ( ctx == NULL || level <= 0 || (size_t)level > ctx->loopTargetCount ) {
-        return NULL;
-    }
-    index = ctx->loopTargetCount - (size_t)level;
-    return &ctx->loopTargets[index];
-}
-
-static void xl6CgenFreeLoopTargets(XL6_CgenContext* ctx)
-{
-    if ( ctx == NULL ) {
-        return;
-    }
-    xrtFree(ctx->loopTargets);
-    ctx->loopTargets = NULL;
-    ctx->loopTargetCount = 0;
-    ctx->loopTargetCapacity = 0;
-}

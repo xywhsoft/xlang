@@ -1,0 +1,10 @@
+class Counter
+    int value = 0
+
+    func __add__(int delta) as int
+        return self.value + delta
+    end
+end
+
+Counter c = Counter()
+auto bad = c + "x"

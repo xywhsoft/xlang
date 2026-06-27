@@ -20,7 +20,7 @@
 - `check_docs_index.ps1`：检查文档入口、状态矩阵、旧口径残留、未登记 README 和目录级 README 入口；同时拦截旧 demo5 release 路径、Uninit 式卸载命名、RC0 摘要中的旧 `system` 例外口径，以及早期资产数量被写成当前口径；`RC0工作区清单.md` 必须明确标注为历史快照，并守住 32 个 docs Markdown 文件和 12 个额外 Markdown 入口文档的当前基线。
 - `check_markdown_links.ps1`：扫描 DEMO6 Markdown 文档中的本地 Markdown 链接，跳过第三方 XRT 单头文件和构建临时目录，拦截断链、非法链接目标和逃出 DEMO6 根目录的本地链接；同时守住 90 个 Markdown 扫描文件的当前数量基线。
 - `check_example_wiring.ps1`：检查范例 README、根级范例覆盖模式、tutorial、feature suite 和执行/导出分类接线；同时守住 57 个范例文件的当前数量基线。
-- `check_negative_diagnostics.ps1`：静态扫描 `test.bat` 中 xlang 预期失败命令，要求每条命令捕获 stderr、合并诊断、JSON 诊断或 lexer token dump 之一；主回归后以 `-Artifacts` 检查对应诊断产物非空、严格 UTF-8、无替换字符，并防止 PowerShell native error 包装和内部泛化 cgen 诊断混入诊断快照；除循环类型别名和重复 export 这类多位置错误外，正式负例诊断产物不得出现多行；同时守住 245 条预期失败命令、244 个诊断产物、245 条内容断言且 baseline-only 为 0 的当前覆盖基线，防止新增负例只检查退出码。
+- `check_negative_diagnostics.ps1`：静态扫描 `test.bat` 中 xlang 预期失败命令，要求每条命令捕获 stderr、合并诊断、JSON 诊断或 lexer token dump 之一；主回归后以 `-Artifacts` 检查对应诊断产物非空、严格 UTF-8、无替换字符，并防止 PowerShell native error 包装和内部泛化 cgen 诊断混入诊断快照；除循环类型别名和重复 export 这类多位置错误外，正式负例诊断产物不得出现多行；同时守住 250 条预期失败命令、249 个诊断产物、250 条内容断言且 baseline-only 为 0 的当前覆盖基线，防止新增负例只检查退出码。
 - `check_package_fixtures.ps1`：检查 package/import/XAPI fixture、身份字段唯一性、自洽性与 `packages/README.md` 索引；同时守住 17 个 package fixture 的当前数量基线。
 - `check_release_tmp_artifacts.ps1`：扫描 `release/tmp` 顶层文本产物，要求严格 UTF-8、无替换字符、无 PowerShell native error 包装、无 XRT JSON 解析调试输出、无泛化 cgen 诊断，且生成 C 产物不得包含 GNU statement expression；主回归末尾当前最低文本产物基线为 541 个，RC0 轻量守门允许空产物目录下执行。
 - `check_source_wiring.ps1`：检查源码 `.c` 文件是否接入构建或被分片包含；同时守住 91 个源码文件、31 个直接构建源码、60 个分片包含源码和 2 个生成物直接构建入口的当前数量基线。
@@ -29,7 +29,7 @@
 - `check_stdlib_dll_symbols.ps1`：检查 DLL 标准库相关符号、XRT 注入表格式、重复项和边界；同时守住 161 个标准库 DLL C 符号和 346 个 XRT/runtime 注入导出符号的当前数量基线。
 - `check_stdlib_examples.ps1`：批量 check/run 标准库范例；脚本会先切到 DEMO6 根目录，避免从仓库根或 CI 调用时相对工具链路径漂移；同时守住 17 个标准库范例文件的当前数量基线。
 - `check_stdlib_test_wiring.ps1`：检查标准库测试用例按 `test/cases/...` 完整相对路径接线；同时守住 21 个标准库测试文件的当前数量基线。
-- `check_test_case_wiring.ps1`：递归检查 `test/cases` 下 `.xl` 接入主回归，并维护用例前缀索引；同时守住 449 个测试用例文件和 28 个用例前缀的当前数量基线。
+- `check_test_case_wiring.ps1`：递归检查 `test/cases` 下 `.xl` 接入主回归，并维护用例前缀索引；同时守住 455 个测试用例文件和 28 个用例前缀的当前数量基线。
 - `check_test_data_wiring.ps1`：检查 JSON/XAPI 测试数据 fixture 有效，并按完整相对路径或 XAPI import 语义接线；同时守住 5 个 JSON/XAPI fixture 的当前数量基线。
 - `check_tool_wiring.ps1`：检查所有 `check_*.ps1` 是否接入 `test.bat` 和 RC0 守门；同时守住 25 个守门脚本的当前数量基线。
 - `check_toolchain_paths.ps1`：防止旧 demo5 路径、旧 XRT release 路径和分散工具链路径回流到源码、批处理和手写 C/H fixture；同时要求 CLI 与 DLL API 都尊重集中工具链环境变量，并守住 126 个源码/头文件、50 个 fixture C/H 文件和 11 个批处理文件的当前扫描基线。

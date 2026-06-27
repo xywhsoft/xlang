@@ -19,6 +19,7 @@ const char* xl6AstKindName(XL6_AstKind kind)
     case XL6_AST_CLASS: return "class";
     case XL6_AST_CUSTOM: return "custom";
     case XL6_AST_UNION: return "union";
+    case XL6_AST_DERIVE: return "derive";
     case XL6_AST_FIELD: return "field";
     case XL6_AST_CREATE: return "create";
     case XL6_AST_CUSTOM_EXTERN_SPECIAL: return "custom_extern_special";

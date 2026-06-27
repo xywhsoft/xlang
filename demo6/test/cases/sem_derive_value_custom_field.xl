@@ -1,0 +1,8 @@
+custom Handle
+end
+
+class Bad
+    derive value
+
+    Handle handle
+end

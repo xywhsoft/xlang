@@ -1,0 +1,26 @@
+class Packet
+    derive copy
+    derive clone
+
+    int id = 0
+    var values = [0]
+
+    create(int id)
+        self.id = id
+        self.values = [id]
+    end
+end
+
+extern "expect_i64" func expect(int actual, int expected)
+
+auto source = Packet(7)
+auto copied = copy(source)
+auto cloned = clone(source)
+
+source.id = 9
+source.values[0] = 99
+
+expect(copied.id, 7)
+expect(cloned.id, 7)
+expect(int(copied.values[0]), 7)
+expect(int(cloned.values[0]), 7)
