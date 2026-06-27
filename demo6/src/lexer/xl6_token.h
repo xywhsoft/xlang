@@ -53,6 +53,7 @@ typedef enum XL6_TokenKind {
     XL6_KW_CUSTOM,
     XL6_KW_EXTENDS,
     XL6_KW_UNION,
+    XL6_KW_DERIVE,
     XL6_KW_GET,
     XL6_KW_LET,
     XL6_KW_AND,

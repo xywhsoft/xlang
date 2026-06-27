@@ -1,0 +1,36 @@
+class Stats
+    derive value
+
+    int hp = 0
+    float speed = 0.0
+end
+
+class Player extends object
+    derive value
+
+    int id = 0
+    string name = ""
+    Stats stats
+    var tags = []
+end
+
+auto p = Player()
+p.id = 7
+p.name = "hero"
+p.stats.hp = 120
+p.stats.speed = 3.5
+p.tags = ["tank", "lead"]
+p.rank = 9
+
+auto jsonText = json.stringify(p)
+auto jsonPlayer = json.parse::<Player>(jsonText)
+
+auto xsonText = xson.stringify(p)
+auto xsonPlayer = xson.parse::<Player>(xsonText)
+
+println(jsonPlayer.name)
+println(jsonPlayer.stats.hp)
+println(jsonPlayer.rank)
+println(xsonPlayer.name)
+println(xsonPlayer.stats.hp)
+println(xsonPlayer.rank)

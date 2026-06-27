@@ -225,6 +225,23 @@ static int xl6CgenTryInExprStmt(XL6_CgenContext* ctx, const XL6_AstNode* node, c
     left = node->childCount > 0 ? node->children[0] : NULL;
     right = node->childCount > 1 ? node->children[1] : NULL;
 
+    {
+        XL6_AstNode* protocolReceiverType = right != NULL && right->kind == XL6_AST_NAME ?
+                                            xl6CgenCloneExprTypeForInference(ctx, right) :
+                                            NULL;
+        XL6_AstNode* protocolReturnType = xl6CgenCloneClassProtocolReturnType(ctx, protocolReceiverType, "__contains__");
+        int hasProtocol = protocolReturnType != NULL;
+        xl6AstFree(protocolReceiverType);
+        xl6AstFree(protocolReturnType);
+        if ( hasProtocol ) {
+            xl6CgenIndent(ctx);
+            xl6OutputPrintf(ctx->out, "%s = ", targetName);
+            xl6CgenClassProtocolBinaryExpr(ctx, node);
+            xl6OutputPuts(";\n", ctx->out);
+            return 1;
+        }
+    }
+
     if ( right != NULL && xl6CgenIsRangeCall(right) ) {
         xl6CgenIndent(ctx);
         xl6OutputPrintf(ctx->out, "%s = ", targetName);

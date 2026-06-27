@@ -1,0 +1,5 @@
+class BadProtocol
+    func __field__(int key) as var
+        return key
+    end
+end

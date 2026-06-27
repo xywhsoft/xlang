@@ -62,6 +62,13 @@ static void xl6CgenEmitFunctionRuntime(XL6_Output* out)
     xl6OutputPuts("    void (*release)(void* env);\n", out);
     xl6OutputPuts("} XL6_Function;\n", out);
     xl6OutputPuts("#endif\n\n", out);
+    xl6OutputPuts("static XL6_Function xl6_function_copy_value(XL6_Function value)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    if ( value.retain != 0 && value.env != 0 ) {\n", out);
+    xl6OutputPuts("        value.retain(value.env);\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    return value;\n", out);
+    xl6OutputPuts("}\n\n", out);
 }
 
 static void xl6CgenEmitFunctionVarRuntime(XL6_Output* out)

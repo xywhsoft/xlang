@@ -1,0 +1,4 @@
+class BadDeriveMoveConflict
+    derive copy
+    derive moveOnly
+end

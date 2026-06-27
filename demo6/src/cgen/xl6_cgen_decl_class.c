@@ -218,9 +218,9 @@ static void xl6CgenGenericClassFuncProto(XL6_CgenContext* ctx, const XL6_AstNode
 
     returns = funcNode->childCount > 2 ? funcNode->children[2] : NULL;
     if ( returns != NULL && returns->childCount > 1 ) {
-        xl6CgenError(ctx, returns, "generic class method C prototype does not support multiple return values");
-    }
-    if ( returns != NULL && returns->childCount == 1 ) {
+        xl6CgenFuncReturnStructDecl(ctx, funcNode);
+        xl6CgenFuncReturnStructName(ctx, funcNode);
+    } else if ( returns != NULL && returns->childCount == 1 ) {
         xl6OutputPuts(xl6CgenTypeName(ctx, returns->children[0]), ctx->out);
     } else {
         xl6OutputPuts("void", ctx->out);
@@ -420,6 +420,24 @@ static void xl6CgenClassDecls(XL6_CgenContext* ctx, const XL6_AstNode* classNode
             xl6CgenClassDestroyProto(ctx, classNode);
             xl6OutputPuts(";\n", ctx->out);
         }
+        if ( xl6CgenClassNeedsAutoCopyProtocol(ctx, classNode, "copy", "__copy__") ) {
+            xl6CgenClassAutoCopyProto(ctx, classNode, "__copy__");
+            xl6OutputPuts(";\n", ctx->out);
+        }
+        if ( xl6CgenClassNeedsAutoCopyProtocol(ctx, classNode, "clone", "__clone__") ) {
+            xl6CgenClassAutoCopyProto(ctx, classNode, "__clone__");
+            xl6OutputPuts(";\n", ctx->out);
+        }
+        if ( xl6CgenClassNeedsAutoValueProtocol(ctx, classNode, "__toValue__") ) {
+            xl6CgenClassAutoToValueProto(ctx, classNode);
+            xl6OutputPuts(";\n", ctx->out);
+        }
+        if ( xl6CgenClassNeedsAutoValueProtocol(ctx, classNode, "__fromValue__") ) {
+            xl6CgenClassAutoFromValueProto(ctx, classNode);
+            xl6OutputPuts(";\n", ctx->out);
+        }
+        xl6CgenClassCopyBuiltinHelperProtos(ctx, classNode);
+        xl6CgenClassPersistenceHelperProtos(ctx, classNode);
     }
 }
 

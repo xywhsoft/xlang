@@ -1,0 +1,52 @@
+class Entity extends object
+    int id = 0
+
+    create(int id)
+        self.id = id
+    end
+end
+
+class Counter
+    int value = 0
+
+    create(int value)
+        self.value = value
+    end
+
+    func __add__(int delta) as Counter
+        Counter result = Counter(self.value + delta)
+        return result
+    end
+
+    func __neg__() as Counter
+        Counter result = Counter(0 - self.value)
+        return result
+    end
+
+    func __contains__(int item) as bool
+        return item == self.value
+    end
+
+    func __call__(int factor, int add) as int
+        return self.value * factor + add
+    end
+end
+
+auto e = Entity(1001)
+
+e.hp = 80
+e.mp = 30
+e["title"] = "knight"
+
+println(e.id)
+println(e.hp)
+println(e["title"])
+
+auto c = Counter(10)
+auto d = c + 5
+auto n = -c
+
+println(d.value)
+println(n.value)
+println(10 in c)
+println(c(2, 3))

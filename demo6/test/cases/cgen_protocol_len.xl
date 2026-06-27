@@ -1,0 +1,42 @@
+class Sized
+    int base = 0
+
+    create(int base)
+        self.base = base
+    end
+
+    func __len__() as int
+        return self.base + 1
+    end
+end
+
+class FieldLength
+    int length = 0
+
+    create()
+        self.length = 3
+    end
+
+    func __len__() as int
+        return 99
+    end
+end
+
+func makeSized(int value) as Sized
+    Sized result = Sized(value)
+    return result
+end
+
+extern "expect_i64" func expect(int actual, int expected)
+
+auto value = Sized(10)
+auto withField = FieldLength()
+auto made = makeSized(20)
+auto fromCtor = Sized(2)
+
+expect(value.length, 11)
+expect(made.length, 21)
+expect(fromCtor.length, 3)
+
+withField.length = 4
+expect(withField.length, 4)

@@ -1,0 +1,14 @@
+class Sized
+    int base = 0
+
+    create(int base)
+        self.base = base
+    end
+
+    func __len__() as int
+        return self.base + 1
+    end
+end
+
+auto value = Sized(10)
+value.length = 1

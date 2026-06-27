@@ -1,0 +1,5 @@
+class Plain
+    int id = 0
+end
+
+auto p = json.parse::<Plain>("{}")

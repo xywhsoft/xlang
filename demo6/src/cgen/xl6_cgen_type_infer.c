@@ -666,6 +666,17 @@ static XL6_AstNode* xl6CgenCloneExprTypeForInference(XL6_CgenContext* ctx, const
     case XL6_AST_UNARY: {
         XL6_AstNode* valueType = expr->childCount > 0 ? xl6CgenCloneExprTypeForInference(ctx, expr->children[0]) : NULL;
         int isXValue = xl6CgenIsXValueType(valueType);
+        const char* protocolName = expr->childCount > 0 && expr->children[0] != NULL ?
+                                   xl6CgenUnaryProtocolName(expr->text) :
+                                   NULL;
+        XL6_AstNode* protocolType = protocolName != NULL ?
+                                    xl6CgenCloneClassProtocolReturnType(ctx, valueType, protocolName) :
+                                    NULL;
+
+        if ( protocolType != NULL ) {
+            xl6AstFree(valueType);
+            return protocolType;
+        }
 
         if ( xl6CTextEquals(expr->text, "not") || xl6CTextEquals(expr->text, "!") ) {
             xl6AstFree(valueType);
@@ -692,6 +703,27 @@ static XL6_AstNode* xl6CgenCloneExprTypeForInference(XL6_CgenContext* ctx, const
         return NULL;
     }
     case XL6_AST_BINARY:
+        if ( expr->childCount > 1 ) {
+            const char* protocolName = NULL;
+            XL6_AstNode* receiverType = NULL;
+            XL6_AstNode* protocolType = NULL;
+            if ( xl6CTextEquals(expr->text, "in") ) {
+                protocolName = expr->children[1] != NULL ? "__contains__" : NULL;
+                receiverType = protocolName != NULL ? xl6CgenCloneExprTypeForInference(ctx, expr->children[1]) : NULL;
+            } else {
+                protocolName = expr->children[0] != NULL ?
+                               xl6CgenBinaryProtocolName(expr->text) :
+                               NULL;
+                receiverType = protocolName != NULL ? xl6CgenCloneExprTypeForInference(ctx, expr->children[0]) : NULL;
+            }
+            protocolType = protocolName != NULL ?
+                           xl6CgenCloneClassProtocolReturnType(ctx, receiverType, protocolName) :
+                           NULL;
+            xl6AstFree(receiverType);
+            if ( protocolType != NULL ) {
+                return protocolType;
+            }
+        }
         if ( xl6CTextEquals(expr->text, "and") || xl6CTextEquals(expr->text, "or") ||
              xl6CTextEquals(expr->text, "==") || xl6CTextEquals(expr->text, "!=") ||
              xl6CTextEquals(expr->text, "~=") ||
@@ -875,6 +907,13 @@ static XL6_AstNode* xl6CgenCloneExprTypeForInference(XL6_CgenContext* ctx, const
             xl6AstFree(receiverType);
             return xl6CgenNewSimpleType("var", expr);
         }
+        {
+            XL6_AstNode* protocolType = xl6CgenCloneClassProtocolReturnType(ctx, receiverType, "__item__");
+            if ( protocolType != NULL ) {
+                xl6AstFree(receiverType);
+                return protocolType;
+            }
+        }
         xl6AstFree(receiverType);
         return NULL;
     case XL6_AST_CALL:
@@ -933,8 +972,22 @@ static XL6_AstNode* xl6CgenCloneExprTypeForInference(XL6_CgenContext* ctx, const
             }
         }
         if ( expr->childCount > 0 && expr->children[0] != NULL &&
+             expr->children[0]->kind != XL6_AST_NAME &&
+             expr->children[0]->kind != XL6_AST_MEMBER ) {
+            XL6_AstNode* calleeType = xl6CgenCloneExprTypeForInference(ctx, expr->children[0]);
+            XL6_AstNode* protocolType = xl6CgenCloneClassProtocolReturnType(ctx, calleeType, "__call__");
+            xl6AstFree(calleeType);
+            if ( protocolType != NULL ) {
+                return protocolType;
+            }
+        }
+        if ( expr->childCount > 0 && expr->children[0] != NULL &&
              expr->children[0]->kind == XL6_AST_GENERIC_INSTANT ) {
+            XL6_AstNode* persistenceType = xl6CgenClonePersistenceGenericCallType(ctx, expr);
             XL6_AstNode* genericClassType = xl6CgenGenericClassCtorType(ctx, expr, NULL);
+            if ( persistenceType != NULL ) {
+                return persistenceType;
+            }
             if ( genericClassType != NULL ) {
                 return genericClassType;
             }
@@ -979,6 +1032,17 @@ static XL6_AstNode* xl6CgenCloneExprTypeForInference(XL6_CgenContext* ctx, const
             if ( xl6CTextEquals(expr->children[0]->text, "type") ) {
                 return xl6CgenNewSimpleType("type", expr);
             }
+            if ( xl6CgenIsCopyBuiltinName(expr->children[0]->text) &&
+                 !xl6CgenCopyBuiltinNameIsShadowed(ctx, expr->children[0]->text) &&
+                 expr->childCount > 1 &&
+                 expr->children[1] != NULL &&
+                 expr->children[1]->childCount == 1 ) {
+                const XL6_AstNode* argNode = expr->children[1]->children[0];
+                const XL6_AstNode* arg = xl6CgenArgExpr(argNode);
+                if ( argNode != NULL && argNode->kind != XL6_AST_NAMED_ARG ) {
+                    return xl6CgenCloneExprTypeForInference(ctx, arg);
+                }
+            }
             if ( xl6CgenIsBuiltinConvertTypeName(expr->children[0]->text) &&
                  xl6CgenIsKnownTypeName(ctx, expr->children[0]->text) ) {
                 return xl6CgenNewSimpleType(expr->children[0]->text, expr);
@@ -1005,6 +1069,12 @@ static XL6_AstNode* xl6CgenCloneExprTypeForInference(XL6_CgenContext* ctx, const
             }
             if ( functionVarType != NULL && xl6CTextEquals(functionVarType->text, "var") ) {
                 return xl6CgenNewSimpleType("var", expr);
+            }
+            {
+                XL6_AstNode* protocolType = xl6CgenCloneClassProtocolReturnType(ctx, functionVarType, "__call__");
+                if ( protocolType != NULL ) {
+                    return protocolType;
+                }
             }
         }
         if ( expr->childCount > 0 && expr->children[0] != NULL && expr->children[0]->kind == XL6_AST_NAME ) {

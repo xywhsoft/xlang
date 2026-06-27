@@ -1,0 +1,23 @@
+class Pairer
+    int base = 0
+
+    create(int base)
+        self.base = base
+    end
+
+    func pair(int value) as (int, int)
+        return self.base + value, self.base - value
+    end
+end
+
+extern "expect_i64" func expect(int actual, int expected)
+
+auto pairer = Pairer(10)
+
+auto left, right = pairer.pair(3)
+expect(left, 13)
+expect(right, 7)
+
+left, right = pairer.pair(4)
+expect(left, 14)
+expect(right, 6)

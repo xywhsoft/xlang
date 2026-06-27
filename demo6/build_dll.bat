@@ -81,6 +81,7 @@ echo Building DEMO6 xl.dll runtime...
     src\package\xl6_package.c ^
     src\stdlib\xl6_stdlib.c ^
     src\type\xl6_type_model.c ^
+    src\sem\xl6_protocol.c ^
     src\sem\xl6_type_registry.c ^
     src\sem\xl6_sem.c ^
     %XL6_DEFAULT_LINKS%
@@ -135,6 +136,7 @@ echo Building DEMO6 xlc.dll compiler runtime...
     src\package\xl6_package.c ^
     src\stdlib\xl6_stdlib.c ^
     src\type\xl6_type_model.c ^
+    src\sem\xl6_protocol.c ^
     src\sem\xl6_type_registry.c ^
     src\sem\xl6_sem.c ^
     %XL6_DEFAULT_LINKS%

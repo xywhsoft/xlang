@@ -1,0 +1,5 @@
+class BadProtocol
+    func __item__() as int
+        return 0
+    end
+end

@@ -1,0 +1,8 @@
+class Callable
+    func __call__(int value) as int
+        return value
+    end
+end
+
+Callable fn = Callable()
+auto bad = fn("x")

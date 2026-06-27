@@ -956,6 +956,7 @@ static void xl6CgenForGeneratorIterable(XL6_CgenContext* ctx, const XL6_AstNode*
     xl6OutputPuts(";\n", ctx->out);
     xl6AstFree(itemType);
 }
+
 static void xl6CgenForTypedArrayLoop(XL6_CgenContext* ctx, const XL6_AstNode* node, const XL6_AstNode* targets, const char* iterName, const XL6_AstNode* iterableType, size_t breakCleanupMark, int breakId, int continueId)
 {
     const XL6_AstNode* itemType;

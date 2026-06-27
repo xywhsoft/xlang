@@ -1,0 +1,44 @@
+class Counter
+    int value = 0
+
+    create(int value)
+        self.value = value
+    end
+
+    func __add__(int delta) as Counter
+        Counter result = Counter(self.value + delta)
+        return result
+    end
+
+    func __neg__() as Counter
+        Counter result = Counter(0 - self.value)
+        return result
+    end
+
+    func __eq__(Counter other) as bool
+        return self.value == other.value
+    end
+
+    func __contains__(int item) as bool
+        return item == self.value
+    end
+
+    func __call__(int factor, int add) as int
+        return self.value * factor + add
+    end
+end
+
+extern "expect_i64" func expect(int actual, int expected)
+
+auto c = Counter(10)
+auto same = Counter(10)
+auto d = c + 5
+auto n = -c
+
+expect(d.value, 15)
+expect(n.value, -10)
+expect(int(c == d), 0)
+expect(int(c == same), 1)
+expect(int(10 in c), 1)
+expect(int(11 in c), 0)
+expect(c(2, 3), 23)

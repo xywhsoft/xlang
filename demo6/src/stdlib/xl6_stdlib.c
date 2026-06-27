@@ -28,6 +28,27 @@ typedef struct XL6_StdlibFunc {
     const char* sourceBody;
 } XL6_StdlibFunc;
 
+static const char* xl6StdlibCoreClassSource =
+    "class object\n"
+    "    var __fields = dict{}\n"
+    "\n"
+    "    func __field__(string name) as var\n"
+    "        return self.__fields[name]\n"
+    "    end\n"
+    "\n"
+    "    func __setField__(string name, var value)\n"
+    "        self.__fields[name] = value\n"
+    "    end\n"
+    "\n"
+    "    func __item__(string name) as var\n"
+    "        return self.__fields[name]\n"
+    "    end\n"
+    "\n"
+    "    func __setItem__(string name, var value)\n"
+    "        self.__fields[name] = value\n"
+    "    end\n"
+    "end\n";
+
 static const XL6_StdlibParam xl6StdMathUnaryFloatParams[] = {
     {"float", "x"}
 };
@@ -2652,6 +2673,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
 
     /* 只为实际用到的标准库函数注入 extern 声明。 */
     xl6StdlibBuilderInit(&builder);
+    xl6StdlibBuilderAppend(&builder, xl6StdlibCoreClassSource);
     for ( i = 0; i < XL6_ARRAY_COUNT(xl6StdlibFuncs); ++i ) {
         if ( used[i] ) {
             xl6StdlibAppendFuncDecl(&builder, &xl6StdlibFuncs[i]);

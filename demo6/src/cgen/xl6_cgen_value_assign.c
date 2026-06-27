@@ -847,6 +847,13 @@ static void xl6CgenAssignStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
         return;
     }
     if ( left->kind == XL6_AST_INDEX ) {
+        if ( xl6CTextEquals(op, "=") && xl6CgenClassProtocolIndexSetStmt(ctx, left, right) ) {
+            return;
+        }
+        if ( xl6CTextEquals(op, "=") && xl6CgenClassProtocolIndexHasGetter(ctx, left) ) {
+            xl6CgenError(ctx, left, "class protocol index assignment requires __setItem__");
+            return;
+        }
         xl6CgenIndexCompoundAssignStmt(ctx, left, op, right);
         return;
     }
@@ -856,6 +863,13 @@ static void xl6CgenAssignStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
         XL6_AstNode* fieldCustom;
 
         ctorCustom = NULL;
+        if ( xl6CgenClassProtocolMemberSetStmt(ctx, left, right) ) {
+            return;
+        }
+        if ( xl6CgenClassProtocolMemberHasGetter(ctx, left) ) {
+            xl6CgenError(ctx, left, "class protocol member assignment requires __setField__");
+            return;
+        }
         fieldType = xl6CgenCloneMemberFieldTypeForInference(ctx, left);
         if ( fieldType == NULL && xl6CgenDynamicMemberAssignStmt(ctx, left, right) ) {
             return;

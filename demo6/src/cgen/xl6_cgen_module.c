@@ -21,6 +21,7 @@ int xl6CgenEmitC(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags)
     int hasStdStringRuntime;
     int hasPathRuntime;
     int hasHttpServerRuntime;
+    int needsObjectClass;
     const XL6_AstNode* mainFunc;
 
     if ( out == NULL || root == NULL ) {
@@ -38,6 +39,7 @@ int xl6CgenEmitC(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags)
     xl6CgenCollectRuntimeTypeDescs(&ctx, root);
     xl6CgenFreeVarsSince(&ctx, 0);
     mainFunc = xl6CgenFindMainEntry(root);
+    needsObjectClass = xl6CgenNodeNeedsBuiltinObjectClass(root);
     hasTopLevel = xl6CgenHasTopLevelRuntimeStmt(root);
     hasStringRuntime = xl6CgenProgramNeedsStringRuntime(&ctx, root);
     hasTypeConvertRuntime = xl6CgenProgramNeedsTypeConvertRuntime(&ctx, root);
@@ -58,6 +60,9 @@ int xl6CgenEmitC(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags)
     hasPathRuntime = xl6CgenNodeNeedsPathRuntime(root);
     hasHttpServerRuntime = xl6CgenNodeNeedsHttpServerRuntime(root);
     if ( hasStdStringRuntime || hasDirRuntime ) {
+        hasXValueRuntime = 1;
+    }
+    if ( needsObjectClass ) {
         hasXValueRuntime = 1;
     }
     if ( hasHttpServerRuntime ) {
@@ -155,7 +160,8 @@ int xl6CgenEmitC(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags)
         }
     }
     for ( i = 0; i < root->childCount; ++i ) {
-        if ( root->children[i]->kind == XL6_AST_CLASS ) {
+        if ( root->children[i]->kind == XL6_AST_CLASS &&
+             (!xl6CgenIsBuiltinObjectClass(root->children[i]) || needsObjectClass) ) {
             xl6CgenClassDecls(&ctx, root->children[i]);
         } else if ( root->children[i]->kind == XL6_AST_CUSTOM ) {
             xl6CgenCustomDecls(&ctx, root->children[i]);
@@ -217,6 +223,7 @@ int xl6CgenEmitC(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags)
         ctx.currentGenericArgs = prevArgs;
     }
     xl6CgenGenericClassMethodProtos(&ctx);
+    xl6CgenClassProtocolWrapperProtos(&ctx);
     if ( root->childCount > 0 ) {
         xl6OutputPutc('\n', out);
     }
@@ -227,7 +234,8 @@ int xl6CgenEmitC(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags)
     xl6CgenEmitAnonFunctions(&ctx);
 
     for ( i = 0; i < root->childCount; ++i ) {
-        if ( root->children[i]->kind == XL6_AST_CLASS ) {
+        if ( root->children[i]->kind == XL6_AST_CLASS &&
+             (!xl6CgenIsBuiltinObjectClass(root->children[i]) || needsObjectClass) ) {
             xl6CgenClassMethods(&ctx, root->children[i]);
         }
     }
@@ -237,6 +245,7 @@ int xl6CgenEmitC(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags)
         }
     }
     xl6CgenGenericClassMethods(&ctx);
+    xl6CgenClassProtocolWrappers(&ctx);
 
     for ( i = 0; i < root->childCount; ++i ) {
         if ( root->children[i]->kind == XL6_AST_FUNC && !xl6CgenFuncIsGeneric(root->children[i]) ) {

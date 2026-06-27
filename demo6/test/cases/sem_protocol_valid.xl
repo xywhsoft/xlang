@@ -1,0 +1,46 @@
+class ProtocolBox
+    int value
+
+    func __item__(int64 index) as int
+        return self.value + int(index)
+    end
+
+    func __setItem__(int64 index, int value)
+        self.value = value + int(index)
+    end
+
+    func __field__(string name) as var
+        return self.value
+    end
+
+    func __setField__(string name, var value)
+        self.value = int(value)
+    end
+
+    func __callField__(string name, ...)
+        print(name)
+    end
+
+    func __toString__() as string
+        return "ProtocolBox"
+    end
+
+    func __copyable__() as bool
+        return true
+    end
+
+    func __copy__() as ProtocolBox
+        return self
+    end
+
+    func __eq__(ProtocolBox other) as bool
+        return self.value == other.value
+    end
+end
+
+custom ProtocolHandle
+    extern "protocol_handle_destroy" destroy()
+    extern "protocol_handle_item" func __item__(int64 index) as int
+end
+
+ProtocolBox box

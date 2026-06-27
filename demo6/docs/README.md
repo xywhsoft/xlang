@@ -14,6 +14,7 @@
 - `函数重载设计.md`：函数、方法、构造、custom 方法和泛型函数的重载解析。
 - `类型与隐性类设计.md`：隐性类、类型标识符三重角色、`type` 类型、透明别名和类型值比较。
 - `类型系统设计.md`：`class`、`custom`、成员、继承、生命周期、析构和 C opaque handle 映射。
+- `class_object协议设计.md`：class/object 统一对象模型、协议方法、derive 能力、copy/clone、动态字段和持久化设计。
 - `泛型设计.md`：泛型声明、类型参数、显式实例化、静态泛型容器和 C 混编限制。
 - `ABI设计.md`：内部 ABI、C ABI、C 兼容类型、符号生成、类型映射和 ABI dump。
 - `C混编设计.md`：C 与 xlang 互相声明、导出、生成头文件和 C ABI wrapper。

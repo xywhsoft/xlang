@@ -1,0 +1,17 @@
+class DerivePoint
+    derive copy
+    derive clone
+    derive value
+    derive json
+    derive xson
+    derive string
+    derive hash
+    derive equals
+
+    int x
+    int y
+end
+
+custom DeriveHandle
+    derive moveOnly
+end

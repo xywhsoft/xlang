@@ -1,32 +1,44 @@
 # DEMO6 功能清单
 
-> 生成时间：2026-06-19
+> 更新日期：2026-06-27
 >
-> 本清单基于当前 `demo6` 目录下的源码、测试用例、范例程序和工具链脚本整理。
-> 本文只描述 DEMO6 当前已经实现或已经形成明确验证边界的功能，不把 DEMO5/dev 旧文档作为设计来源。
+> 本清单用于快速核对当前 `demo6/release/xl.exe` 的已实现能力、测试入口和验收边界。
+> 本文只描述 DEMO6 当前代码、测试、范例和守门脚本已经覆盖的能力；`demo3`、`demo4`、`demo5`、`dev` 目录中的材料只能作为历史参考，不能作为 DEMO6 设计来源。
 
 ## 1. 当前总体状态
 
-DEMO6 当前已经从语法原型推进到可检查、可生成 C 代码、可运行、可构建可执行文件的编译器雏形。
+DEMO6 当前已经具备完整的四阶段编译管线：
 
-已具备的主流程：
-
-- 使用 Flex 作为词法分析器。
-- 使用 Lemon 作为语法分析器。
-- 具备 AST 构建、AST 文本/JSON dump。
-- 具备语义检查阶段。
-- 具备 IR 文本/JSON dump。
-- 具备 ABI dump。
-- 具备 XAPI 接口元数据生成与读取。
-- 具备 C 代码生成。
-- 具备 TCC 后端构建与运行。
-- 具备 `.xl` 与 `.c` 混合构建能力。
-- 具备 XRT 链接与运行时生命周期初始化能力。
-- 具备 smoke test、feature suite 和 RC0 guard。
+1. 词法分析：Flex。
+2. 语法分析：Lemon。
+3. 语义检查与 IR。
+4. C 代码生成与 TCC 后端构建/运行。
 
 当前可执行文件：
 
 - `demo6/release/xl.exe`
+
+当前已经具备的主流程：
+
+- 读取 UTF-8 `.xl` 源文件。
+- 输出词法 token。
+- 输出 AST 文本树或 AST JSON。
+- 执行语义检查。
+- 输出 IR 文本或 IR JSON。
+- 输出 ABI 文本或 ABI JSON。
+- 输出 XAPI 接口元数据。
+- 生成 C 源文件。
+- 生成供 C 使用的头文件。
+- 直接运行 `.xl` 脚本。
+- 构建 Windows exe。
+- 构建共享库/DLL 目标边界。
+- 混合编译 `.xl` 与 `.c` 文件。
+- 自动链接 xlang/XRT/TCC 所需基础运行时。
+- 通过内嵌 TCC 与内置 VFS 资源降低外部依赖。
+- 提供 DLL 形式的嵌入式运行库。
+- 提供标准库默认注册。
+- 提供 package/import/XAPI/扩展库基础链路。
+- 提供主回归、功能范例、标准库范例和 RC0 工程守门。
 
 主要验证脚本：
 
@@ -40,7 +52,7 @@ DEMO6 当前已经从语法原型推进到可检查、可生成 C 代码、可�
 
 ## 2. 命令行功能
 
-当前 `xl.exe` 已实现以下命令：
+当前 `xl.exe` 支持以下命令：
 
 ```bat
 xl lex <file.xl> [--format text|json]
@@ -54,58 +66,50 @@ xl run <file.xl> [--save-temps] [--inc-path dir] [--lib-path dir] [--link lib] [
 xl build <file.xl> -o <output.exe> [-shared] [--save-temps] [--emit-header output.h] [--inc-path dir] [--lib-path dir] [--link lib] [--loadlib dll]
 ```
 
-已实现的命令行细节：
+命令行为：
 
-- `lex` 支持文本和 JSON token 输出。
-- `parse` 支持 AST 文本树和 JSON 输出。
-- `check` 支持普通诊断和 JSON 诊断。
-- `ir` 支持文本和 JSON 输出。
-- `cgen` 支持输出 C 文件。
-- `cgen` 支持同时输出 C 头文件。
-- `cgen --dump-dir` 会一次性输出：
-  - tokens JSON
-  - AST JSON
-  - IR
-  - ABI JSON
-  - XAPI JSON
-  - C 文件
-  - H 文件
-- `abi` 支持文本和 JSON 输出。
-- `xapi` 支持生成 `xlang-xapi-1` 格式接口元数据。
-- `run` 会生成临时 C 文件、调用 TCC 编译并运行。
-- `run -- <args>...` 支持把命令行参数传递给生成程序。
-- `run --save-temps` 支持保留临时文件。
-- `build` 支持生成 exe。
-- `build` 支持 `.xl` 与多个 `.c` 文件一起混合编译。
-- `build -shared` 支持共享库/DLL 目标边界。
-- `build --emit-header` 支持生成供 C 使用的头文件。
-- `--inc-path`、`--lib-path`、`--link`、`--loadlib` 已接入 TCC 命令构造。
-- 自动创建独立临时目录，避免不同构建互相覆盖。
-- 默认后端为 TCC。
-- 当前 build 脚本会链接 XRT 对象文件和 TCC runtime。
+- `lex`：输出 token 文本或 JSON。
+- `parse`：输出 AST 文本树或 JSON。
+- `check`：只执行语义检查，可输出 JSON 诊断。
+- `ir`：输出中间 IR 文本或 JSON。
+- `cgen`：只生成 C，可同时生成头文件。
+- `cgen --dump-dir`：一次性输出 token、AST、IR、ABI、XAPI、C、H 等阶段产物。
+- `abi`：输出 ABI 信息。
+- `xapi`：输出 `xlang-xapi-1` 接口元数据。
+- `run`：生成临时 C，调用 TCC 编译并运行。
+- `run -- <args>...`：把命令行参数传给 xlang 程序。
+- `run --save-temps`：保留临时构建目录。
+- `build`：生成 exe。
+- `build -shared`：进入共享库/DLL 构建边界。
+- `build --emit-header`：输出供 C 调用的头文件。
+- `--inc-path`、`--lib-path`、`--link`、`--loadlib`：向 TCC 后端注入 include、lib、链接库和运行库。
+
+内嵌 TCC 规则：
+
+- `xl.exe` 优先使用自身所在目录及命令行指定路径下的外部文件。
+- 外部文件不存在时，才使用内置 VFS 中的必要资源。
+- 内置资源使用当前正式虚拟路径，不为旧路径做兼容映射。
+- `run` 与 `build` 走同一套 TCC 文件解析和 VFS 规则。
 
 ## 3. 源文件与词法
 
-已实现的源文件与词法规则：
+已实现规则：
 
-- 源码按 UTF-8 处理。
-- 标识符支持 ASCII 标识符。
-- 标识符支持 UTF-8 字符，因此可以使用中文标识符。
-- 语言大小写敏感，`Name`、`name`、`NAME` 是不同标识符。
+- 源文件按 UTF-8 处理。
+- 支持 ASCII 标识符。
+- 支持 UTF-8 标识符，因此可以使用中文标识符。
+- 语言大小写敏感。
 - 关键字大小写敏感。
-- 空格、tab、换页、垂直制表等普通空白会被忽略。
+- 普通空白被忽略。
 - 换行是语句分隔符。
 - `;` 也是语句分隔符。
-- `()`、`[]`、`{}` 内部的换行不会结束语句。
-- 支持 Windows/Unix 换行：`\r\n`、`\n`、`\r`。
+- `()`、`[]`、`{}` 内部换行不结束语句。
 - 支持 `//` 单行注释。
 - 支持 `/* ... */` 多行注释。
 - 多行注释支持嵌套。
-- 未闭合多行注释会产生词法错误。
-- 未闭合字符串会产生词法错误。
-- 未闭合时间字面量会产生词法错误。
+- 未闭合注释、字符串、时间字面量会产生词法错误。
 
-已识别的关键字：
+已识别关键字：
 
 ```text
 null true false
@@ -120,198 +124,136 @@ class custom extends union get let
 and or not
 ```
 
-说明：
+上下文关键字：
 
-- `async`、`await`、`yield`、`try`、`catch`、`finally`、`throw`、`assert`、`include`、`define`、`union`、`get`、`let` 当前属于词法保留/识别层面，不等价于对应高级语义已经实现。
-- `self`、`base`、`create`、`destroy` 按上下文关键字方式处理：在 class/custom 特定位置有特殊含义，在普通上下文中可以作为普通标识符使用。
+- `self`
+- `base`
+- `create`
+- `destroy`
 
 ## 4. 字面量
 
-### 4.1 整数字面量
+整数：
 
-已实现：
+```xlang
+123
+1_000_000
+0x2A
+0o52
+0b101010
+```
 
-- 十进制整数：`123`
-- 十进制下划线分隔：`1_000_000`
-- 十六进制：`0x2A`
-- 八进制：`0o52`
-- 二进制：`0b101010`
-- 数字中的 `_` 会在代码生成时归一化。
+浮点：
 
-### 4.2 浮点字面量
+```xlang
+1.25
+1e3
+1.2e-3
+```
 
-已实现：
+字符串：
 
-- 小数：`1.25`
-- 科学计数：`1e3`、`1.2e-3`
-- 数字中允许 `_` 分隔。
+```xlang
+"hello"
+'hello'
+r"c:\temp\a.txt"
+r'c:\temp\a.txt'
+"""
+multi line
+"""
+'''
+multi line
+'''
+```
 
-### 4.3 字符串字面量
+时间：
 
-已实现：
+```xlang
+#2026-06-18#
+#12:30:45#
+#2026-06-18 12:30:45#
+```
 
-- 双引号字符串：`"hello"`
-- 单引号字符串：`'hello'`
+布尔与空值：
+
+```xlang
+true
+false
+null
+```
+
+当前边界：
+
 - 普通字符串支持转义。
-- raw string：`r"c:\123.txt"`、`r'c:\123.txt'`
-- 三引号多行字符串：`"""..."""`、`'''...'''`
-- raw 多行字符串：`r"""..."""`、`r'''...'''`
-
-已保留但未实现：
-
-- 模板字符串 `f"..."`、`f'...'`、`f"""..."""`、`f'''...'''` 已在词法层识别，但解析时会报错，当前阶段暂未实现表达式插值。
-
-### 4.4 时间字面量
-
-已实现：
-
-- `#yyyy-mm-dd#`
-- `#hh:mm:ss#`
-- `#yyyy-mm-dd hh:mm:ss#`
-
-规则：
-
-- 时间字面量从 `#` 到下一处 `#`。
+- raw string 不处理转义。
+- 多行字符串支持单引号三引号和双引号三引号。
 - 时间字面量内部不能换行。
-- 非法时间格式会在语义检查阶段报错。
-- 代码生成接入 XRT 时间函数：
-  - `xrtTimeSerial`
-  - `xrtDateSerial`
-  - `xrtDateTimeSerial`
-  - `xrtStrToTime`
-  - `xrtTimeToStr`
-
-### 4.5 布尔与空值
-
-已实现：
-
-- `true`
-- `false`
-- `null`
+- 模板字符串语法占位已存在，但表达式插值暂缓实现。
+- 数字前缀只保留当前小写规范形式。
 
 ## 5. 类型系统
 
-### 5.1 内置类型注册
-
-DEMO6 已实现类型注册系统。当前内置类型通过 registry 注册进入语义系统。
-
-已注册内置类型：
+基础类型：
 
 ```text
+null
 bool
 int int8 uint8 int16 uint16 int32 uint32 int64 uint64
 float float32 float64
 string
 time
 point
-function
 var
 type
-array list set dict
 ```
 
-泛型内置容器：
+C ABI 类型：
 
 ```text
-array<T>
-list<T>
-set<T>
-dict<T>
+c_char c_schar c_uchar
+c_short c_ushort
+c_int c_uint
+c_long c_ulong
+c_longlong c_ulonglong
+c_size c_ssize
+c_ptrdiff
+c_intptr c_uintptr
+c_bool
+c_float c_double
+c_wchar
 ```
 
-说明：
+容器类型：
 
-- `array`、`list`、`set`、`dict` 是类型注册系统中的类型名，可用于类型表达式和类型化字面量。
-- `function` 是一等公民函数值类型。
-- `type` 是类型值类型。
+```text
+array array<T>
+list list<T>
+set set<T>
+dict dict<T>
+```
+
+函数值类型：
+
+```xlang
+func(int) as int proc
+func(string, int) as (int, string) mapper
+```
+
+类型相关能力：
+
+- 内置类型通过类型注册系统进入语义层。
+- `auto` 是局部推断关键字。
 - `var` 是动态值类型。
-- `auto` 是关键字，不是注册类型。
-- `void` 不存在于 DEMO6 类型系统中；使用 `void` 会被测试为错误。
-- 当前阶段不实现 `object` 动态对象模型。
+- `type` 是真实的类型值类型。
+- `type(expr)` 可以取得表达式类型值。
+- 类型标识符可作为类型值参与比较。
+- `typedef` 支持类型别名。
+- 泛型容器支持静态元素类型。
+- `void` 不属于 DEMO6 类型系统。
 
-### 5.2 类型别名
+## 6. 变量、常量和初始化
 
-已实现：
-
-```xlang
-typedef MyInt = int
-typedef IntArray = array<int>
-extern type CInt = int
-```
-
-已支持的规则：
-
-- 类型别名参与语义检查。
-- 类型别名参与 ABI/XAPI 输出时会进行 canonical type 归一。
-- 检测别名循环。
-- 检测别名与重载造成的冲突。
-- 检测重复类型声明。
-- 检测未知类型。
-- 不允许用内置类型名重复声明新类型。
-
-### 5.3 类型值
-
-已实现：
-
-```xlang
-auto a = 123
-type t = type(a)
-if t == int then
-    ...
-end
-```
-
-已支持：
-
-- `type(expr)` 获取表达式的类型值。
-- 类型标识符可以作为 type 字面值参与比较。
-- `type` 值可与类型名比较。
-- `type` 值不允许与普通 `int` 混用。
-- 不支持对 `type` 值做大小比较。
-- 泛型 class 的 type value 已有测试覆盖。
-
-### 5.4 自动类型推断
-
-已实现：
-
-```xlang
-auto a = 1
-auto x, y = pair()
-```
-
-规则：
-
-- `auto` 支持局部变量声明推断。
-- `auto` 支持多返回值解构声明。
-- `auto` 不允许用于函数参数。
-- `auto` 不允许用于返回类型。
-- `auto` 不允许用于字段类型。
-- `auto` 不允许用于类型别名。
-- `auto` 不允许用于 function 类型签名。
-
-### 5.5 默认初始化
-
-已实现：
-
-- 局部变量可按类型默认初始化。
-- 基础类型、class/custom、function、xvalue/容器等都有对应的初始化/清理路径。
-- 具备默认初始化测试。
-
-### 5.6 非拷贝类型约束
-
-已实现：
-
-- 带析构语义的 class/custom 会进入资源管理约束。
-- 检测不可拷贝对象的赋值。
-- 检测不可拷贝对象的拷贝初始化。
-- 检测不可拷贝对象作为参数传递。
-- 检测不可拷贝对象作为返回值。
-- 检测带析构 class/custom 进入 `var` 的受限场景。
-- 闭包捕获资源对象有专门限制。
-
-## 6. 变量、常量与作用域
-
-已实现写法：
+基本写法：
 
 ```xlang
 int a
@@ -321,81 +263,135 @@ auto c = b + 1
 const int max = 10
 ```
 
-已支持：
+已实现规则：
 
-- 类型前置变量声明。
-- `var` 动态变量声明。
-- `auto` 局部推断声明。
-- `const Type name = expr` 常量声明。
-- 多变量 `auto` 解构声明。
-- 全局声明和局部声明语义检查。
-- 重复声明检查。
-- const 赋值错误检查。
-- C 风格的类型前置口径。
+- 变量声明采用 C 风格类型前置。
+- 支持全局变量和局部变量。
+- 支持默认初始化。
+- 支持重复声明检查。
+- 支持 const 赋值约束。
+- 支持 `auto` 推断。
+- 支持多返回值解构声明。
+- 支持资源类型生命周期检查。
 
-## 7. 表达式与运算符
+## 7. 函数系统
 
-### 7.1 基础算术与赋值
+函数声明：
 
-已实现：
+```xlang
+func hello()
+    print("hello")
+end
+
+func add(int a, int b) as int
+    return a + b
+end
+
+func pair() as (int, string)
+    return 1, "one"
+end
+```
+
+参数能力：
+
+```xlang
+func log(string text, int level = 1)
+    print(text)
+end
+
+func sum(...)
+    return arg.len()
+end
+
+func open(string path, ***)
+    return arg["mode"]
+end
+
+func move(int x, int y)
+end
+
+move(y = 2, x = 1)
+```
+
+已实现规则：
+
+- 使用 `as` 声明返回类型。
+- 无 `as` 表示无返回值。
+- 多返回值使用 `as (T1, T2)`。
+- 支持可选参数。
+- 支持命名参数。
+- 支持数组可变参数 `...`，函数体内通过 `arg` 访问。
+- 支持字典可变参数 `***`，函数体内通过 `arg` 访问。
+- `...` 与 `***` 不能同时出现。
+- 命名参数优先匹配已声明形参。
+- 未匹配的命名参数进入 `***` 参数字典。
+- 可选参数导出到 C 环境时，默认值语义不导出，C 侧按普通参数调用。
+- 支持函数值赋值与调用。
+- 支持匿名函数与闭包。
+- 支持函数重载。
+- 支持泛型函数显式实例化。
+
+函数值示例：
+
+```xlang
+func add(int a, int b) as int
+    return a + b
+end
+
+func(int, int) as int proc = add
+print(proc(1, 2))
+```
+
+匿名函数示例：
+
+```xlang
+auto inc = func(int a) as int => a + 1
+```
+
+泛型函数示例：
+
+```xlang
+func max<T>(T a, T b) as T
+    if a > b then
+        return a
+    end
+    return b
+end
+
+int a = max::<int>(1, 2)
+```
+
+## 8. 表达式与运算符
+
+算术与赋值：
 
 ```text
-+  -  *  /  %
-** 
++  -  *  /  %  **
 =  +=  -=  *=  /=  %=  **=  ?=
 ```
 
-说明：
-
-- `**` 为幂运算。
-- `**=` 为幂赋值。
-- `?=` 为空赋值。
-- 整数幂生成辅助函数。
-
-### 7.2 比较与逻辑
-
-已实现：
+比较与逻辑：
 
 ```text
 ==  !=  <  <=  >  >=  ~=
-and  or  not
-!
+and  or  not  !
 ```
 
-说明：
-
-- `~=` 使用 XRT 近似比较机制。
-- 支持 int/float/string/time 等已实现类型的比较约束。
-- 语义检查会阻止不合法比较。
-
-### 7.3 位运算
-
-已实现：
+位运算：
 
 ```text
 &  |  ^  ~  <<  >>
 ```
 
-### 7.4 空值与条件表达式
-
-已实现：
+空值与条件：
 
 ```xlang
 auto x = a ?? b
 auto y = cond ? a : b
+a ?= b
 ```
 
-已支持：
-
-- `??` 空合并。
-- `? :` 条件表达式。
-- `?.` 安全成员访问。
-- `?[ ]` 安全索引访问。
-- `?=` 空赋值。
-
-### 7.5 成员、索引与调用
-
-已实现：
+成员、调用和索引：
 
 ```xlang
 obj.field
@@ -404,1312 +400,448 @@ arr[0]
 dict["key"]
 obj?.field
 arr?[0]
-fn(1, 2)
 ```
 
-已支持：
-
-- 函数调用。
-- 方法调用。
-- 成员访问。
-- 索引读写。
-- 多重 postfix 表达式组合。
-- 安全成员访问。
-- 安全索引访问。
-- 索引赋值。
-- 多目标索引赋值测试。
-
-### 7.6 `in` 与 range
-
-已实现：
+范围与成员判断：
 
 ```xlang
-if x in values then
-    ...
+for i in range(0, 10)
+    print(i)
 end
 
-for i in range(10)
-    ...
+if "a" in dict then
+    print("hit")
 end
 ```
 
-已支持：
+## 9. 控制流
 
-- `in` 用于容器成员判断。
-- `in` 用于字符串包含判断。
-- `in` 用于 `range(...)`。
-- `range(...)` 支持 Python 风格方向：
-  - `range(stop)`
-  - `range(start, stop)`
-  - `range(start, stop, step)`
-- `range` 参数数量检查。
-- `range` step 为 0 的错误检查。
-- `..` 范围运算符明确不支持，会提示使用 `range(...)`。
-
-## 8. 控制流
-
-### 8.1 if / elseif / else
-
-已实现：
+条件：
 
 ```xlang
-if cond then
-    ...
-elseif other then
-    ...
+if a > 0 then
+    print("positive")
+elseif a == 0 then
+    print("zero")
 else
-    ...
+    print("negative")
 end
 ```
 
-也支持省略 `then` 后以换行分隔：
+循环：
 
 ```xlang
-if cond
-    ...
+while i < 10
+    i += 1
 end
-```
 
-已实现内联形式：
-
-```xlang
-if cond then return value
-if cond then break else continue
-```
-
-语义检查：
-
-- `if` 条件必须是 bool。
-- `elseif` 条件必须是 bool。
-
-### 8.2 while
-
-已实现：
-
-```xlang
-while cond do
-    ...
-end
-```
-
-语义检查：
-
-- `while` 条件必须是 bool。
-
-### 8.3 do while
-
-已实现：
-
-```xlang
 do
-    ...
-while cond
-```
-
-### 8.4 for in
-
-已实现：
-
-```xlang
-for item in arrayValue
-    ...
-end
-
-for key, value in dictValue
-    ...
-end
-```
-
-已支持：
-
-- 遍历 `range(...)`。
-- 遍历 array。
-- 遍历 list。
-- 遍历 set。
-- 遍历 dict。
-- typed container 的遍历。
-- 单目标和双目标循环变量。
-
-### 8.5 break / continue
-
-已实现：
-
-```xlang
-break
-continue
-break 2
-continue 2
-```
-
-规则：
-
-- 支持多层级 break/continue。
-- 检测循环外使用。
-- 检测层级超过当前循环深度。
-- 检测 `continue 0` 等非法层级。
-- 代码生成会在跳转前执行必要清理。
-
-## 9. 函数系统
-
-### 9.1 普通函数声明
-
-已实现：
-
-```xlang
-func add(int a, int b) -> int
-    return a + b
-end
-```
-
-当前函数签名统一使用：
-
-```text
-func name(params) -> returns
-```
-
-无返回值函数不写 `->`，不使用 `void`。
-
-### 9.2 多返回值
-
-已实现：
-
-```xlang
-func pair() -> (int, string)
-    return 1, "one"
-end
-
-auto a, b = pair()
-```
-
-规则：
-
-- 多返回值使用 `as (T1, T2)`。
-- `return a, b` 支持返回多个值。
-- `auto a, b = expr` 支持多返回值解构。
-- `a, b = expr` 支持多目标赋值。
-- 检测返回值数量不匹配。
-- 检测多返回值传入单值参数等错误。
-
-### 9.3 可选参数
-
-已实现：
-
-```xlang
-func add(int a, int b = 1) as int
-    return a + b
-end
-```
-
-规则：
-
-- 参数默认值表示可选参数。
-- 可选参数必须位于必选参数之后。
-- 参数默认值参与类型检查。
-- 调用时可省略尾部可选参数。
-- 可选参数是 xlang 调用侧能力；导出到 C 环境时默认值自动失效。
-- 导出到 C 环境的函数按完整固定参数表生成 C 声明；例如 `func foo(int a = 1)` 导出为 `void foo(int a);`，C 侧必须显式传入 `a`。
-- C ABI/header 不表达默认值，也不生成用于省略参数的 C 重载包装。
-- extern C 函数当前不允许可选参数。
-
-### 9.4 命名参数
-
-已实现：
-
-```xlang
-add(a = 1, b = 2)
-```
-
-规则：
-
-- 支持按参数名传参。
-- 检测重复命名参数。
-- 检测缺少必选参数。
-- 检测命名参数顺序/位置约束。
-- 不允许对裸函数名值使用不明确的命名参数场景。
-
-### 9.5 可变参数
-
-已实现：
-
-```xlang
-func sum(...)
-    auto values = arg
-end
-
-func options(***)
-    auto values = arg
-end
-```
-
-规则：
-
-- `...` 为数组可变参数。
-- `***` 为字典可变参数。
-- 函数体内自动提供 `arg`。
-- `...` 的 `arg` 类型为 `array<var>`。
-- `***` 的 `arg` 类型为 `dict<var>`。
-- `...` 和 `***` 不能同时存在。
-- 可变参数必须位于参数表末尾。
-- 检测用户重新声明 `arg` 的错误。
-- 调用侧已支持命名参数，因此 `***` 有调用语法基础。
-- extern C 函数当前不允许可变参数。
-- export C ABI 函数当前不允许可变参数。
-
-### 9.6 函数类型
-
-已实现：
-
-```xlang
-function(int, int) -> int f
-function(int) -> (int, string) g
-function(...) h
-function(***) k
-```
-
-已支持：
-
-- `function(...) -> ...` 作为类型表达式。
-- 函数签名中支持无返回值、单返回值、多返回值。
-- 函数签名中支持 `...` 和 `***` 的类型表达。
-- 检测 function 类型中参数名错误。
-- 检测 vararg 在 function 类型中的位置错误。
-- 检测函数值赋值签名不匹配。
-- 函数类型可进入 `var` 的动态调用链。
-
-### 9.7 函数值与一等公民函数
-
-已实现：
-
-```xlang
-function(int, int) -> int f = add
-auto r = f(1, 2)
-```
-
-已支持：
-
-- 函数作为值保存。
-- 函数值调用。
-- 函数值签名检查。
-- extern C 函数可进入 function value 场景。
-- 裸函数调用与函数值取值分离。
-- 重载函数名在裸值场景会进行歧义检查。
-- function value 具备 retain/release 清理路径。
-- 底层接入 `xrt_callable`、`xrt_func_sig`、`xrt_call_frame`、`xrt_call_result`。
-
-### 9.8 匿名函数与闭包
-
-已实现：
-
-```xlang
-auto f = func(int x) -> int
-    return x + 1
-end
-
-auto g = func(int x) -> int => x + 1
-```
-
-已支持：
-
-- 块体匿名函数。
-- 箭头表达式匿名函数。
-- 捕获外部变量。
-- 闭包环境生成。
-- 闭包 retain/release。
-- 闭包调用。
-- 闭包签名检查。
-- 检测对捕获变量进行非法赋值。
-- 检测捕获带析构 class/custom 等资源对象的危险场景。
-
-### 9.9 函数重载
-
-已实现：
-
-```xlang
-func add(int a, int b) -> int
-    return a + b
-end
-
-func add(float a, float b) -> float
-    return a + b
-end
-```
-
-已支持：
-
-- 普通函数重载。
-- 方法重载。
-- class 构造重载。
-- custom 方法重载。
-- 可变参数重载。
-- 泛型函数与普通函数重载优先级。
-- `var` 重载优先级。
-- 重载匹配成本计算。
-- 重载歧义检测。
-- 禁止仅返回值不同的重载。
-- 检测可选参数造成的重载冲突。
-- 检测相同 vararg kind 的重载冲突。
-- 类型别名参与重载冲突检查。
-
-## 10. 泛型
-
-### 10.1 泛型函数
-
-已实现：
-
-```xlang
-func id<T>(T value) -> T
-    return value
-end
-
-auto a = id(1)
-auto b = id::<string>("x")
-```
-
-已支持：
-
-- 泛型参数声明。
-- 泛型函数类型推断。
-- 显式实例化调用 `::<T>`。
-- 多个类型参数。
-- 泛型参数重复检查。
-- 显式类型实参数量检查。
-- 未知类型实参检查。
-- 泛型推断冲突检查。
-- 旧式 `foo<int>()` 调用语法被拒绝。
-
-### 10.2 泛型 class
-
-已实现：
-
-```xlang
-class Box<T>
-    T value
-
-    create(T v)
-        self.value = v
+    i += 1
+while i < 10
+
+for i in range(0, 10)
+    if i == 5 then
+        break
     end
+    continue
 end
-
-Box<int> b = Box<int>(1)
 ```
 
-已支持：
+已实现规则：
 
-- 泛型 class 声明。
-- 泛型字段。
-- 泛型方法。
-- 泛型构造函数。
-- 显式泛型 class 构造。
-- `auto` 推断泛型 class 实例。
-- 泛型 class 类型别名。
-- 泛型 class type value。
-- 泛型 class 方法重载。
-- 泛型 class 构造参数数量检查。
-- 泛型 class 构造类型检查。
-- 禁止 open generic 直接构造。
-- 当前限制：泛型 class 继承有语义约束测试。
+- `if` / `elseif` / `else` / `end`
+- `while`
+- `do while`
+- `for in`
+- `break`
+- `continue`
+- `return`
+- 多返回值 `return`
 
-### 10.3 泛型容器
+## 10. 容器
 
-已实现：
+数组：
 
 ```xlang
-array<int> a = array[1, 2, 3]
-list<string> b = list[0: "a", 10: "b"]
-set<int> c = set{1, 2, 3}
-dict<int> d = dict{"a": 1}
+array<int> a = array<int>[1, 2, 3]
+auto b = [1, 2, 3]
 ```
 
-已支持：
-
-- 静态泛型容器。
-- `array<T>` 静态元素类型。
-- `list<T>` 静态元素类型，索引为 int64 稀疏索引。
-- `set<T>` 静态元素类型。
-- `dict<T>` 静态值类型，键当前以字符串为主要路径。
-- 泛型容器保存基础类型。
-- 泛型容器保存 class。
-- 泛型容器保存 custom。
-- 泛型容器保存 function。
-- typed container 接入 XRT：
-  - `xrtTypedArrayCreate/Destroy/AppendValue/Get/Count`
-  - `xrtTypedListCreate/Destroy/SetValue/Get/ItemAt/Count`
-  - `xrtTypedSetCreate/Destroy/AddValue/ItemAt/Count`
-  - `xrtTypedDictCreate/Destroy/SetValue/Get/ItemAt/Count`
-- typed container 有清理路径。
-- typed container 支持遍历、索引、函数参数与返回等测试场景。
-
-## 11. 容器字面量与动态容器
-
-### 11.1 array
-
-已实现：
+列表：
 
 ```xlang
-[] 
-[1, 2, 3]
-array[]
-array[1, 2, 3]
-array<int>[1, 2, 3]
+list<string> a = list<string>[0: "a", 2: "b"]
 ```
 
-已支持：
-
-- 空数组字面量。
-- 数组字面量。
-- 类型前缀数组字面量。
-- 动态 `array` 基于 xvalue。
-- 静态 `array<T>` 基于 typed container。
-- 索引访问。
-- 索引赋值。
-- `for item in array`。
-- `in` 成员判断。
-- `length` 安全成员路径。
-
-### 11.2 list
-
-已实现：
+字典：
 
 ```xlang
-[0: "a", 10: "b"]
-list[]
-list[0: "a", 10: "b"]
-list<string>[0: "a"]
+dict<int> d = dict<int>{"a": 1, "b": 2}
+auto empty = {}
 ```
 
-已支持：
-
-- list 是带 int64 稀疏索引的数据结构。
-- list 字面量用 `index: value` 形式。
-- 动态 `list` 基于 xvalue。
-- 静态 `list<T>` 基于 typed container。
-- 索引访问。
-- 索引赋值。
-- `for key, value in list`。
-- `in` 成员判断。
-
-### 11.3 dict
-
-已实现：
+集合：
 
 ```xlang
-{}
-{"a": 1, "b": 2}
-dict{}
-dict{"a": 1}
-dict<int>{"a": 1}
+set<int> s = set<int>{1, 2, 3}
+set<int> empty = set<int>{}
 ```
 
-已支持：
+已实现规则：
 
-- `{}` 默认是空字典。
-- 键值对 `{key: value}` 是字典字面量。
-- `dict{}` 明确空字典。
-- 动态 `dict` 基于 xvalue table。
-- 静态 `dict<T>` 基于 typed container。
-- 字符串键访问。
-- 字符串键写入。
-- `for key, value in dict`。
-- `in` 检查 key 是否存在。
+- `[]` 默认数组字面量。
+- `{}` 默认字典字面量。
+- `array[...]` 明确数组。
+- `list[...]` 明确列表。
+- `dict{...}` 明确字典。
+- `set{...}` 明确集合。
+- 泛型容器使用静态元素类型。
+- `var` 可承载动态容器值。
+- 容器运行时依托 XRT/xvalue 基础设施。
 
-### 11.4 set
+## 11. class、custom、union
 
-已实现：
-
-```xlang
-{1, 2, 3}
-set{}
-set{1, 2, 3}
-set<int>{1, 2, 3}
-```
-
-已支持：
-
-- `{1, 2, 3}` 是集合字面量。
-- `set{}` 明确空集合。
-- 动态 `set` 基于 xvalue coll/set。
-- 静态 `set<T>` 基于 typed container。
-- `for item in set`。
-- `in` 成员判断。
-- 检测 set 字面量中误写 key/value pair 的错误。
-
-## 12. var / xvalue 动态值
-
-已实现：
-
-```xlang
-var v = 123
-var s = "hello"
-var a = [1, 2, 3]
-var f = func(int x) -> int => x + 1
-```
-
-当前 `var` 已支持进入 xvalue 的主要类型：
-
-- null
-- bool
-- int
-- float
-- string
-- time
-- point
-- function/callable
-- array
-- list
-- set
-- dict
-- class record
-- custom handle
-
-已支持：
-
-- 基础值 boxing/unboxing。
-- xvalue 引用计数。
-- xvalue 类型描述绑定。
-- xvalue callable 保存签名。
-- `var` 保存 function 并调用。
-- `var` 保存 class/custom 的受限场景。
-- `var` 保存动态容器。
-- `var` 与类型转换。
-- `type(varValue)` 能识别基础类型、function 签名、class/custom/container 类型描述。
-- `xvoInvoke` 动态调用链。
-- `xvoCreateCallable`、`xvoGetCallable`、`xvoCallableSig` 接入。
-
-资源限制：
-
-- 带析构 class/custom 进入 `var` 的拷贝和返回路径有限制。
-- 不允许用 `var` 绕开不可拷贝资源约束。
-
-## 13. 类型转换与隐性类方法
-
-已实现类型转换方向：
-
-```xlang
-int("123")
-float("1.25")
-string(123)
-time("2026-06-18")
-var(123)
-```
-
-已实现/已接入的转换基础：
-
-- int 与字符串转换接入 XRT。
-- float 与字符串转换接入 XRT。
-- time 与字符串转换接入 XRT。
-- xvalue 到 bool/int/float/string/time/point 的读取路径。
-- class/custom/function/container 的 xvalue type desc 路径。
-
-已实现隐性类方法方向：
-
-```xlang
-auto s = 123.toString()
-auto t = true.toString()
-auto u = value.toString()
-```
-
-当前已验证：
-
-- 基础类型 `toString()`。
-- `var`/xvalue 的 `toString()`。
-- 容器相关 `length` 安全成员路径。
-- 隐性类方法代码生成依赖 XRT 能力和必要的轻量辅助函数。
-
-说明：
-
-- 隐性类方法体系仍属于持续扩展区，但当前已有 `toString` 等基础路径和测试覆盖。
-
-## 14. class
-
-已实现：
+class 示例：
 
 ```xlang
 class Point
     int x
     int y
 
-    create(int ax, int ay)
+    func create(int ax, int ay)
         self.x = ax
         self.y = ay
     end
 
-    func sum() -> int
+    func sum() as int
         return self.x + self.y
     end
-
-    destroy()
-        ...
-    end
 end
 ```
 
-已支持：
-
-- class 声明。
-- 字段声明。
-- 字段默认值。
-- 方法声明。
-- 方法调用。
-- `self` 上下文。
-- `create` 构造函数。
-- `destroy` 析构函数。
-- 构造函数重载。
-- 方法重载。
-- 字段冲突检查。
-- 字段默认值类型检查。
-- 构造参数数量检查。
-- 析构函数参数检查。
-- class 作为普通变量。
-- class 作为字段。
-- class 作为泛型容器元素。
-- class 进入 `var` 的受限场景。
-- class 类型描述进入 xvalue。
-- class 析构清理自动生成。
-
-继承已支持：
+custom 示例：
 
 ```xlang
-class Child extends Base
-    create(...)
-        base(...)
-    end
+custom Timer
+    extern func reset(self)
+    extern func elapsed(self) as float64
 end
 ```
 
-已实现继承相关能力：
-
-- `extends` 父类声明。
-- 父类字段访问/布局。
-- `base(...)` 构造调用。
-- 父类析构顺序。
-- 检测未知父类。
-- 检测缺少父类构造调用。
-- 检测父类默认构造不可用。
-- 检测 `base` 在 create 外使用。
-- 检测父类构造重载不存在。
-
-当前边界：
-
-- DEMO6 当前不实现 `object` 动态字段/元方法模型。
-- 当前 class 更接近 C/C++ 风格结构体 + 方法 + 构造析构 + 继承。
-
-## 15. custom
-
-已实现：
+union 示例：
 
 ```xlang
-custom Counter
-    extern "counter_create" create(int start)
-    extern "counter_destroy" destroy()
-    extern "counter_add" func add(int value) -> int
+union NumberBits
+    int64 i
+    float64 f
 end
 ```
 
-设计定位：
+当前已实现：
 
-- `custom` 是轻量类。
-- 背后保存 C 黑盒句柄。
-- custom 成员函数映射 C 函数。
-- C 函数第一个参数由 custom 句柄隐式传递。
-- 通常以 `void*` 或对应 C 指针类型承载句柄。
+- class 字段。
+- class 方法。
+- class 构造与析构生命周期。
+- class 继承与 `base` 调用。
+- class 默认初始化与清理。
+- custom 对接 C opaque handle。
+- custom 成员函数第一个参数映射底层指针。
+- custom 生命周期映射。
+- C 风格 union。
+- union 字段访问。
+- union C ABI/XAPI 元数据。
+- object 作为标准库普通基类。
+- `class X extends object` 动态字段存储。
+- class/object 字段协议 `__field__` / `__setField__`。
+- class/object 索引协议 `__item__` / `__setItem__`。
+- 协议方法签名校验与双下划线保留名检查。
+- class 命名变量接收者的运算符协议：`__add__`、`__sub__`、`__mul__`、`__div__`、`__mod__`、`__pow__`。
+- class 命名变量接收者的一元协议：`__neg__`、`__pos__`、`__not__`、`__bitNot__`。
+- class 命名变量接收者的比较协议：`__eq__`、`__ne__`、`__lt__`、`__le__`、`__gt__`、`__ge__`、`__approx__`。
+- `in` 对 class 命名变量接收者调用 `__contains__`。
+- class 命名变量接收者可通过 `__call__` 支持 `obj(...)` 调用。
+- class 临时值接收者支持运算符、字段、索引、`in`、`__call__` 和 `.length` 协议调用。
+- `__len__` 可将 `.length` 作为只读协议属性暴露给 class；静态字段 `length` 优先于协议。
+- class 构造表达式可作为成员/协议临时接收者，例如 `Sized(2).length`。
+- class 方法支持多返回值，并可参与解构声明、解构赋值和成员调用返回类型推断。
+- 普通 class 支持 `__iter__` / `__next__` 迭代协议。
+- `__iter__() as IteratorClass` 创建迭代器，`IteratorClass.__next__() as (bool, T)` 返回是否存在下一项和值。
+- `for value in obj` 绑定迭代项类型 `T`；`for index, value in obj` 绑定 `int` 索引和 `T` 值。
+- `derive` 能力开关语法与语义校验。
+- `derive copy` / `derive clone` 自动生成 `__copy__` / `__clone__`。
+- `derive moveOnly` 与复制能力冲突检查。
+- `copy()` / `clone()` 与 class、var、容器和 function 值的复制语义。
+- `clone()` 固定表示深复制；`deepcopy()` 不属于 DEMO6 公开函数，不提供兼容别名。
+- 自动 copy/clone 对 `var` 字段分别使用 XRT `xvoCopy` / `xvoDeepCopy`。
+- `derive value` 自动生成 class 与 xvalue table 的互转协议。
+- `derive json` / `derive xson` 基于 `derive value` 接入标准库持久化。
+- 自动生成 `__toValue__()` / `__fromValue__(var value)` 协议。
+- `json.stringify(class)` / `xson.stringify(class)` 序列化 class 实例。
+- `json.parse::<Class>(text)` / `xson.parse::<Class>(text)` 反序列化为 class 实例。
+- `json.write(path, class)` / `json.read::<Class>(path)` 文件持久化入口。
+- `xson.write(path, class)` / `xson.read::<Class>(path)` 文件持久化入口。
 
-已支持：
+当前未实现并已进入下一轮设计：
 
-- custom 声明。
-- extern create。
-- extern destroy。
-- extern 方法。
-- xlang 方法。
-- custom 方法调用。
-- custom 方法重载。
-- custom ownership。
-- custom 空句柄析构保护。
-- custom 绑定 `point` 等 C 数据路径。
-- custom 作为 class 字段。
-- custom 作为泛型容器元素。
-- custom 进入 `var` 的受限场景。
-- custom 类型描述进入 xvalue。
-- 检测 custom 特殊成员名错误。
-- 检测重复 C symbol。
-- 检测不支持的 extern 类型。
-- 检测 extern custom 返回类型错误。
-- 检测 custom extern vararg 错误。
-- 检测 custom 方法重载冲突。
+- `and` / `or` 短路逻辑的协议化方案。
+- 泛型 class 的 `__iter__` / `__next__` 迭代协议。
+- 字段级 json/xson 配置块。
 
-当前边界：
+## 12. 异常、断言与文档注释
 
-- custom 是否自动管理内存取决于是否声明 `create`/`destroy`。
-- 无 `destroy` 的 custom 不自动释放外部资源。
-- 有 `destroy` 的 custom 会在作用域退出时生成清理。
-
-## 16. C 混编与 ABI
-
-### 16.1 extern C 函数
-
-已实现：
+异常：
 
 ```xlang
-extern "puts" func puts(string text) -> int
+try
+    throw "boom"
+catch e
+    print(e.message)
+finally
+    print("done")
+end
 ```
 
-已支持：
-
-- 声明 C 函数进入 xlang。
-- C symbol 与 xlang 名分离。
-- bool、整数宽度、float、string 等基础类型映射。
-- extern string return 测试。
-- extern C 函数可作为 function value。
-- 检测 extern C symbol 类型冲突。
-- 检测同名 C symbol kind 冲突。
-
-当前限制：
-
-- extern C 函数不支持多返回值。
-- extern C 函数不支持可选参数。
-- extern C 函数不支持 xlang vararg。
-- extern C 函数不支持泛型。
-- extern C 函数参数和返回类型只允许当前 C ABI 可表达的类型集合。
-
-### 16.2 extern C 变量
-
-已实现：
+断言：
 
 ```xlang
-extern "global_count" var int count
+assert a > 0
+assert a > 0, "a must be positive"
 ```
 
-已支持：
-
-- C 全局变量声明进入 xlang。
-- 读取 C 变量。
-- 写入 C 变量。
-- bool 与基础整数宽度测试。
-
-### 16.3 export 到 C
-
-已实现：
+文档注释：
 
 ```xlang
-export "xl_add" func add(int a, int b) as int
+#doc
+desc:
+    Adds two integers.
+param a:
+    First value.
+param b:
+    Second value.
+return value:
+    Sum result.
+example:
+    ```xlang
+    print(add(1, 2))
+    ```
+#end
+func add(int a, int b) as int
     return a + b
 end
-
-export "xl_count" var int count = 0
-export "xl_answer" const int answer = 42
 ```
 
-已支持：
+已实现规则：
 
-- 导出函数为 C symbol。
-- 导出变量为 C symbol。
-- 导出 const 为 C symbol。
+- `throw` 抛出字符串描述。
+- `try` / `catch` / `finally`。
+- 异常路径资源清理。
+- `assert` 语句。
+- `#doc ... #end` 文档块。
+- doc 字段进入 XAPI 元数据。
+- example 内容作为文档文本保存，不解析为代码。
+
+## 13. 并发、异步与任务
+
+当前已实现基础能力：
+
+- `async` 函数。
+- `await`。
+- future/task 基础运行模型。
+- 异步异常传播。
+- thread 基础封装。
+- channel/sync 基础能力。
+- 并发相关范例与测试。
+
+当前开放风险：
+
+- `RISK-ASYNC-001` 仍在风险总账中开放，表示异步体系仍需要继续压实边界和压力测试。
+
+## 14. 标准库
+
+当前标准库采用短命名空间，优先绑定 XRT，必要时绑定 CRT。
+
+已纳入标准库范围的能力包括：
+
+- 基础输出与运行时辅助。
+- math 数学函数。
+- string 字符串函数。
+- time 时间函数。
+- path/file/dir 文件系统函数。
+- json/xson 序列化函数。
+- url/query/regex 文本与网络辅助函数。
+- random 随机函数。
+- hash/crypto 摘要与编码辅助函数。
+- codec 编解码函数。
+- process 进程辅助函数。
+- HTTP server 基础能力。
+- 标准库函数默认注册到 xlang 环境。
+- 标准库 DLL C 符号导出基线。
+
+当前边界：
+
+- HTTP client 暂缓进入标准库。
+- 能够由 XRT 提供的能力必须优先使用 XRT。
+- XRT 暂缺但属于基础运行时的能力，应以 XRT 命名风格补充，后续回流 XRT。
+- CRT 只用于确实没有必要在 XRT 重复实现的底层能力。
+
+## 15. C 混编、ABI 与导出
+
+已实现能力：
+
+- `extern` 声明 C 函数、变量、常量进入 xlang。
+- `export` 导出 xlang 函数给 C。
 - 生成 C 头文件。
-- C host 调用 xlang 导出函数。
-- C host 访问 xlang 导出变量。
-- bool、基础整数宽度导出。
-- 类型别名导出时 canonical 化。
-- 多返回值 export 具备 ABI/header 测试。
+- 生成 ABI dump。
+- 生成 XAPI 接口元数据。
+- `.xl` 与 `.c` 混合构建。
+- C 侧可调用 xlang 导出函数。
+- xlang 可直接调用声明后的 C 函数。
+- C ABI 类型用于跨平台精确对齐。
+- 可选参数导出到 C 时默认值失效，C 侧按普通参数签名调用。
+- 多返回值、可变参数等 xlang 特性通过 xcall/封装边界与 C ABI 区分。
 
-当前限制：
+main 与入口规则：
 
-- export 函数允许声明可选参数，但导出到 C ABI/header 时默认值失效，C 侧按完整参数表调用。
-- export 函数不支持 vararg。
-- export 函数不支持泛型。
-- export string return 当前被语义检查限制。
+- xlang `main(...) as int` 会生成固定 C `main`。
+- 生成的 C `main` 负责初始化 xlang/XRT 运行环境。
+- 命令行参数转换为 xvalue 数组形式传入 xlang main。
+- xlang main 返回值作为进程退出码。
+- 如果 `.xl` 中没有 main，exe 目标假定 C 源提供 main。
+- C main 场景下，C 代码需要显式调用 `xlInit` 和 `xlUnit`。
+- DLL 目标不要求 main。
 
-### 16.4 `.xl` + `.c` 混合构建
+## 16. XAPI、import、package 与扩展库
 
-已实现：
+已实现能力：
+
+- `xlang-xapi-1` 接口元数据。
+- XAPI strict schema。
+- doc 元数据输出。
+- package fixture。
+- import 读取 XAPI 并注入声明。
+- import/package 与 C 混编测试闭环。
+- 扩展库基础分发信息。
+- 多版本共存的设计口径。
+- package resolver 基础能力。
+
+当前原则：
+
+- XAPI 是机器生成的接口元数据。
+- XAPI 是 xlang 与 C、扩展库、文档生成之间的接口信息中枢。
+- 用户不需要手写 XAPI。
+- xlang 环境保持显式导入，不做 C 符号自动污染。
+- C 环境可以由 xlang 工具链自动注入必要头文件和声明。
+
+## 17. DLL 嵌入式运行库
+
+当前产物边界：
+
+- `xl.dll`：嵌入式运行库 DLL。
+- `xl.def`：DLL import definition。
+- `libtcc.dll`：动态编译能力所需 TCC 动态库副本。
+- `xl_dll_embed_string.exe`：字符串脚本运行验证程序。
+- `xl_dll_null_context.exe`：空上下文防御验证程序。
+- `xl_dll_threaded_host.exe`：多线程宿主验证程序。
+
+已实现 API 方向：
+
+- 创建/销毁语言上下文。
+- 设置工作目录。
+- 添加 include/lib/link/loadlib 依赖。
+- 运行字符串脚本。
+- 运行脚本文件。
+- 编译字符串脚本到 exe。
+- 编译脚本文件到 exe。
+- 注册 C 函数进入上下文。
+- 向执行环境注入当前进程内的 XRT/xlang 运行时符号。
+- DLL API 边界由守门脚本维护，当前公开 API 数量基线为 21。
+
+## 18. 代码生成与工程结构
+
+当前代码生成状态：
+
+- cgen 已拆分为多个独立职责文件。
+- cgen 规则已形成对照表。
+- 当前 cgen 文件基线为 66 个。
+- 当前 cgenrule 唯一规则基线为 835 条。
+- 当前 cgen 单文件行数受守门脚本约束。
+- C 输出路径已经从大量直接 `fprintf` 逐步收口到统一输出抽象。
+- XRT buffer/file/time/memory 能力优先用于工具链与运行时。
+- 旧语法、旧路径、旧格式不做兼容回退。
+
+当前开放风险：
+
+- `RISK-ASYNC-001`
+- `RISK-CALL-001`
+- `RISK-LOOP-002`
+
+## 19. 范例与测试
+
+当前测试资产：
+
+- `demo6/test/cases` 下有 462 个 `.xl` 测试用例。
+- 负例诊断命令基线为 250 条。
+- 负例诊断产物静态登记基线为 249 个。
+- 负例诊断内容断言基线为 250 条。
+- package fixture 基线为 17 个。
+- 标准库测试基线为 21 个。
+- 标准库 public function 基线为 180 个。
+- DLL API 基线为 21 个。
+- 风险总账基线为 21 条，其中 18 条已收口，3 条开放。
+
+当前范例资产：
+
+- `demo6/examples` 下有 57 个 `.xl` 范例。
+- 包含根目录范例。
+- 包含 tutorial 范例。
+- 包含 feature suite 范例。
+- 包含 stdlib 范例。
+- 包含 DLL/C 宿主验证范例。
+
+常用验证命令：
 
 ```bat
+cd demo6
+build.bat
+test.bat
+test_feature_suite.bat
+rc0_guard.bat
+```
+
+快速运行：
+
+```bat
+cd demo6\release
+xl run test.xl
+```
+
+构建 exe：
+
+```bat
+cd demo6\release
+xl build test.xl -o test.exe
+test.exe
+```
+
+混合 C 构建：
+
+```bat
+cd demo6\release
 xl build main.xl helper.c -o app.exe
 ```
 
-能力：
-
-- build 命令接受一个 `.xl` 模块和多个 `.c` 输入。
-- 自动生成 xlang C 文件。
-- 自动生成 xlang H 文件。
-- 自动生成 C wrapper，把 `xrt.h`、生成头文件、用户 C 源一起纳入构建。
-- 用户 C 文件不需要手写导入生成头文件即可调用 xlang 导出符号。
-- 自动把生成模块和 C 源传给 TCC。
-
-当前边界：
-
-- 当前 build 只接受一个 `.xl` 主模块；更多 xlang 模块通过 import/XAPI 方向推进。
-- C 源不会被 xlang 解析；只作为 C 编译输入。
-
-### 16.5 链接与加载
-
-已实现：
-
-- `--link` 传递对象文件、库文件或系统库。
-- `--lib-path` 传递库搜索路径。
-- `--inc-path` 传递 include 搜索路径。
-- `--loadlib` 支持运行时加载库路径处理。
-- build/run 会避免重复显式链接 XRT/TCC runtime 的部分场景。
-- 当前 build 脚本要求存在 `..\..\xrt\release\x64\xrt.o`。
-
-## 17. 程序入口与生命周期
-
-### 17.1 xlang main
-
-已实现 main 约定：
-
-```xlang
-func main(...) -> int
-    ...
-end
-```
-
-已支持：
-
-- xlang 源中存在 `main` 时，代码生成显式 C `main`。
-- C `main` 会初始化 xlang 运行环境。
-- 命令行参数融合到 xlang 内部 `arg`，类型为 `array<var>`。
-- `main` 返回 `int`。
-- XAPI 中记录 entry kind 为 `xlang-main`。
-
-### 17.2 script main
-
-已实现：
-
-- 顶层可执行语句会生成脚本式入口。
-- XAPI 中记录 entry kind 为 `script-main`。
-- 顶层没有运行语句且无 main 时，不生成 C main。
-
-### 17.3 C main
-
-已支持边界：
-
-- 如果 xlang 没有 `main` 且无顶层运行语句，可假定 C 代码提供 main。
-- 由 C 提供 main 时，需要显式调用生命周期函数。
-
-生成头文件提供：
-
-```c
-XL_InitOptions xlInitOptions(int argc, char** argv);
-int xlInit(const XL_InitOptions* options);
-void xlUnit(void);
-```
-
-### 17.4 DLL/shared 入口
-
-已实现：
-
-- `xlDllAttach(void* module)`
-- `xlDllDetach(int processTerminating)`
-- Windows 下生成 `DllMain`。
-- 非 Windows 方向预留 constructor/destructor 形式。
-- `-shared` 构建时禁止包含 xlang main 或顶层可执行语句。
-
-### 17.5 XRT 生命周期
-
-已实现：
-
-- `xlInit`/`xlUnit` 内部维护 init count。
-- 可通过 `XL6_USE_XRT_LIFECYCLE` 接入 `xrtInit`/`xrtUnit`。
-- `XL_InitOptions` 带 size/version 检查，便于 ABI 演进。
-
-## 18. XAPI / import / package
-
-### 18.1 XAPI 生成
-
-已实现：
-
-```bat
-xl xapi module.xl --emit module.xapi.json
-```
-
-XAPI 当前格式：
-
-```json
-{
-  "format": "xlang-xapi-1"
-}
-```
-
-当前 XAPI 包含：
-
-- compiler 信息。
-- target 信息。
-- module 信息。
-- entry 信息。
-- exports。
-- types。
-- imports。
-- links/loadlibs/cSources/docs 占位数组。
-
-exports 已包含：
-
-- kind：function/var/const
-- name
-- cSymbol
-- type
-- callingConvention
-- varargMode
-- requiredParamCount
-- fixedParamCount
-- params
-- returns
-- optional 标记
-- vararg 标记
-
-types 已包含：
-
-- class 声明名。
-- custom 声明名。
-
-imports 已包含：
-
-- import target。
-- mode。
-- resolved。
-- resolvedKind。
-- manifest 路径。
-
-### 18.2 XAPI 读取
-
-已实现：
-
-- 严格读取 `xlang-xapi-1`。
-- 读取 package/interface 的 XAPI JSON。
-- 对格式错误的 XAPI 产生诊断。
-- 对缺少 `package.xapi.json` 的 package 产生诊断。
-
-当前边界：
-
-- XAPI loader 是当前格式的专用严格读取器，不是通用 JSON 框架。
-
-### 18.3 import 展开
-
-已实现：
-
-```xlang
-import counter
-import "local/math"
-```
-
-已支持：
-
-- import package 名。
-- import 路径字符串。
-- package resolver 查找：
-  - 直接 `.xapi.json` 文件。
-  - 相对路径。
-  - `xlang.package.json`
-  - `package.xapi.json`
-  - `packages/<name>`
-  - `lib/<name>`
-- 读取 XAPI 后自动注入可支持的 extern 声明。
-- 注入 extern C 函数。
-- 注入 extern C 变量。
-- `check`、`ir`、`cgen` 都走 CompileUnit 的 import 展开流程。
-
-当前 import 自动注入限制：
-
-- 只自动注入 calling convention 为 `cdecl` 的函数。
-- 不自动注入 vararg 函数。
-- 不自动注入可选参数函数。
-- 不自动注入多返回值函数。
-- 不自动注入 class/custom 高级类型。
-- unsupported XAPI export 会被跳过，不会强行注入。
-
-## 19. ABI 与 callable
-
-已实现：
-
-- ABI 文本/JSON dump。
-- callable descriptor 模块。
-- calling convention 名称：
-  - 当前主要落地 `cdecl`。
-- vararg mode：
-  - none
-  - array vararg
-  - dict vararg
-- required param count。
-- fixed param count。
-- xlang function signature 到 ABI/XAPI 的描述。
-- XRT callable 接入：
-  - `xrt_callable`
-  - `xrt_func_sig`
-  - `xrt_call_frame`
-  - `xrt_call_result`
-- `var` 保存 callable 时通过函数对象保存签名，而不是把签名直接塞进 xvalue struct。
-
-当前边界：
-
-- stdcall 等其他调用约定尚未完整作为语言层声明落地。
-- 多返回值、vararg 在 xcall 内部模型更自然，但 C ABI 对外导出仍保持受限；可选参数导出到 C 时降级为完整固定参数表，默认值不进入 C ABI。
-
-## 20. C 代码生成
-
-已实现的 C 生成能力：
-
-- 生成 C11 风格代码。
-- 生成函数。
-- 生成全局变量。
-- 生成局部变量。
-- 生成表达式。
-- 生成控制流。
-- 生成 class 结构体与方法。
-- 生成 custom handle 包装。
-- 生成泛型函数/泛型 class 实例化符号。
-- 生成 function value wrapper。
-- 生成 closure 环境。
-- 生成 callable frame 调用。
-- 生成 xvalue 动态值运行时代码片段。
-- 生成 typed container 调用。
-- 生成生命周期函数。
-- 生成 main/script main。
-- 生成 DLL/shared 入口。
-- 生成 export 头文件。
-- 生成多返回值辅助结构。
-- 生成作用域退出清理。
-- 生成 break/continue 前清理。
-
-当前工程结构已经把 cgen 拆分为多个关注点文件，包括：
-
-- ABI
-- 参数处理
-- callable frame/runtime/wrapper
-- closure
-- core context/generic/lookup/names/state/type
-- class/custom 声明
-- entry/main/lifecycle
-- expression
-- function value
-- header
-- module
-- runtime
-- statement
-- symbol
-- generic type
-- type inference
-- value assignment/object
-- xvalue runtime
-
-## 21. 诊断能力
-
-已实现：
-
-- 词法错误诊断。
-- 语法错误诊断。
-- 语义错误诊断。
-- 代码生成错误诊断。
-- 文本诊断输出。
-- JSON 诊断输出。
-- CompileUnit phase 信息，用于显示错误发生阶段。
-- `check --json` 输出 success/diagnostics。
-
-已覆盖的典型错误：
-
-- 未闭合注释。
-- 未闭合字符串。
-- 未闭合时间字面量。
-- 模板字符串暂未实现。
-- 语法错误。
-- 未知类型。
-- 重复声明。
-- const 赋值。
-- return 出现在函数外。
-- return 数量不匹配。
-- return 类型不匹配。
-- if/while 条件类型错误。
-- break/continue 越界。
-- 参数默认值类型错误。
-- 调用参数类型错误。
-- 缺少必选参数。
-- 重复命名参数。
-- 多返回值错误使用。
-- 泛型数量错误。
-- 泛型推断冲突。
-- 重载歧义。
-- C ABI 不支持类型/参数形态。
-- import package 缺失接口文件。
-- XAPI 格式错误。
-
-## 22. 测试与范例覆盖
-
-### 22.1 范例程序
-
-当前 `demo6/examples` 包含：
-
-- `hello.xl`
-- `literals.xl`
-- `containers.xl`
-- `generics.xl`
-- `generic_identity.xl`
-- `anonymous_functions.xl`
-- `class_custom.xl`
-- `class_point.xl`
-- `custom_counter.xl`
-- `c_hello.xl`
-- `c_variables.xl`
-- `c_export.xl`
-- `second_stage.xl`
-
-### 22.2 feature suite
-
-当前 `demo6/examples/feature_suite` 包含：
-
-- `00_language_basics.xl`
-- `01_expressions_control_flow.xl`
-- `02_functions.xl`
-- `03_types_and_values.xl`
-- `04_containers.xl`
-- `05_generics.xl`
-- `06_function_values_closures.xl`
-- `07_class_custom.xl`
-- `08_c_interop_exports.xl`
-- `09_c_export_abi.xl`
-- `host.c`
-- `host_exports.c`
-- `run_feature_suite.bat`
-
-覆盖主题：
-
-- UTF-8 与中文标识符。
-- 大小写敏感。
-- 注释。
-- 语句分隔。
-- 变量、常量、typedef。
-- 字面量。
-- 运算符。
-- 控制流。
-- 函数、多返回值、可选参数、命名参数、可变参数。
-- 类型值、类型转换、隐性类方法、var。
-- 容器与泛型容器。
-- 泛型函数与泛型 class。
-- function value 与闭包。
-- class/custom。
-- C extern/export。
-- C ABI 头文件与 host 调用。
-
-### 22.3 test/cases 覆盖
-
-当前 `demo6/test/cases` 已包含大量正向和反向测试，覆盖：
-
-- call args/defaults/named/vararg。
-- numeric/string/time literals。
-- comments/layout/case-sensitive/unicode identifiers。
-- operators/null coalesce/safe member/safe index/index access。
-- control flow/inline if/do while/loop levels。
-- containers/in/for-in/range/static typed containers。
-- type aliases/type values/type conversions/type identifiers。
-- generics/generic function/generic infer/generic class/generic alias/generic overload。
-- overloads/overload costs/overload varargs。
-- anonymous functions/function types/function values/function signature mismatch。
-- closures/resource capture。
-- class fields/methods/create/destroy/inheritance/base create/overloads。
-- custom create/destroy/methods/ownership/null destroy/overloads/C host。
-- var runtime values/class/custom/function objects。
-- extern functions/vars/bool/string return/primitive widths。
-- export functions/vars/const/bool/primitive widths/multi-return/header host。
-- import metadata/XAPI use/XAPI var use/missing/broken/unsupported XAPI。
-- main entry/shared build/lifecycle。
-- C mixed build/link/loadlib。
-- 大量语义负例。
-
-## 23. 当前明确未实现或受限的能力
-
-以下能力当前不应被视为 DEMO6 已完成特性：
-
-- `void` 类型不存在，并且会被拒绝。
-- `object` 动态对象、任意字段、元方法当前不实现。
-- 模板字符串 `f"..."` 只保留语法入口，当前会报错。
-- `..` 范围运算符不支持，当前使用 `range(...)`。
-- `async`/`await`/`yield` 尚未实现。
-- `try`/`catch`/`finally`/`throw` 尚未实现。
-- `assert` 尚未作为语言语义落地。
-- `include`/`define` 尚未实现。
-- `union` 尚未实现。
-- `get`/`let` 属性语义尚未实现。
-- 完整 package manager 尚未完成，目前是 package resolver + XAPI import 闭环。
-- import 自动注入目前只覆盖可安全映射为 extern C 的函数和变量。
-- class/custom 的完整 XAPI 消费和跨包类型导入仍未完成。
-- stdcall 等非 cdecl 调用约定尚未形成完整语言声明与生成闭环。
-- C ABI 对 optional 的兼容采用“完整参数表 + 默认值失效”的降级规则；vararg/generic/multi-return 仍保持受限。
-- 当前 build 只接受一个 `.xl` 主模块。
-- 当前 XAPI loader 是专用严格读取器，不是完整 JSON 解析基础设施。
-
-## 24. 关键源码位置
-
-编译器入口：
-
-- `demo6/main.c`
-- `demo6/src/driver/xl6_cli.c`
-
-词法/语法：
-
-- `demo6/src/lexer/xl6_lexer.l`
-- `demo6/src/parser/xl6_parser.y`
-
-AST/IR/诊断：
-
-- `demo6/src/ast/xl6_ast.*`
-- `demo6/src/ast/xl6_ast_dump.*`
-- `demo6/src/ir/xl6_ir_dump.*`
-- `demo6/src/diag/xl6_diag.*`
-
-语义与类型：
-
-- `demo6/src/sem/xl6_sem.c`
-- `demo6/src/sem/xl6_type_registry.*`
-- `demo6/src/type/xl6_type_model.*`
-
-ABI/XAPI/callable：
-
-- `demo6/src/abi/xl6_abi_dump.*`
-- `demo6/src/abi/xl6_callable.*`
-- `demo6/src/abi/xl6_xapi_dump.*`
-- `demo6/src/abi/xl6_xapi_load.*`
-
-import/package/compile unit：
-
-- `demo6/src/compile/xl6_compile_unit.*`
-- `demo6/src/compile/xl6_imports.*`
-- `demo6/src/package/xl6_package.*`
-
-C 代码生成：
-
-- `demo6/src/cgen/xl6_cgen.*`
-- `demo6/src/cgen/xl6_cgen_entry.*`
-- `demo6/src/cgen/xl6_cgen_lifecycle.*`
-- `demo6/src/cgen/xl6_cgen_runtime.*`
-- `demo6/src/cgen/xl6_cgen_header.c`
-- `demo6/src/cgen/xl6_cgen_xvalue_runtime.c`
-- `demo6/src/cgen/xl6_cgen_function_value.c`
-- `demo6/src/cgen/xl6_cgen_closure.c`
-- `demo6/src/cgen/xl6_cgen_type_generic.c`
-- `demo6/src/cgen/xl6_cgen_type_infer.c`
-
-构建后端：
-
-- `demo6/src/backend/xl6_build_backend.*`
-
-输出抽象：
-
-- `demo6/src/common/xl6_output.*`
-
-## 25. 总结
-
-当前 DEMO6 已经完成了语言基础、类型系统、函数系统、容器、泛型、class/custom、C 混编、XAPI/import、可执行文件生成等大量基础能力。
-
-它目前的核心优势是：
-
-- 类型口径比 DEMO5 更集中。
-- `void` 已从语言中移除。
-- `function`、`type`、`var`、class/custom、typed container 都已经进入统一类型与代码生成链路。
-- C 混编从声明、导出、头文件、混合构建到生命周期有了闭环。
-- XAPI 已经从“扩展库设想”进入编译器可生成、可读取、可注入的工程链路。
-- 测试覆盖已经包含大量正向运行和负向语义验证。
-
-仍需重点收口的方向：
-
-- import 对 class/custom/function/复杂 ABI 的扩展。
-- XAPI 元数据的长期稳定格式。
-- XRT 中 typed container、callable、type desc、xvalue 的最终库级实现收敛。
-- 标准库/隐性类方法的系统化扩充。
-- 跨平台 shared library 入口与非 TCC 后端。
-- 更成熟的错误恢复、诊断文本和调试体验。
+## 20. 当前明确不属于已实现稳定口径的能力
+
+以下能力不是当前根清单中的已实现稳定功能：
+
+- `and` / `or` 短路逻辑的协议化方案。
+- 泛型 class 的 `__iter__` / `__next__` 迭代协议。
+- 字段级 json/xson 配置块。
+- f-string 表达式插值。
+- 完整 package manager。
+- HTTP client 标准库。
+- 完整调试器。
+- 泛型约束系统。
+- 更完整的跨平台 DLL 入口封装。
+
+这些能力应先进入 `demo6/docs` 的权威设计文档，再进入实现与测试。
