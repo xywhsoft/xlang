@@ -1,5 +1,5 @@
-func makeSetter(int base) -> function(int) -> int
-    return func(int value) -> int
+func makeSetter(int base) as func(int) as int
+    return func(int value) as int
         base = value
         return base
     end

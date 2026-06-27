@@ -3,6 +3,6 @@ class Pair
     int right = 2
 end
 
-func make() -> var
+func make() as var
     return Pair()
 end

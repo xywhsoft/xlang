@@ -1,4 +1,4 @@
-async func addAsync(int a, int b) -> int
+async func addAsync(int a, int b) as int
     return a + b
 end
 
@@ -7,30 +7,30 @@ async func doneAsync()
     assert a == 1, "async void body failed"
 end
 
-func makeAdder(int base) -> function(int) -> int
-    return func(int value) -> int
+func makeAdder(int base) as func(int) as int
+    return func(int value) as int
         return base + value
     end
 end
 
 class AsyncBox
-    function(int) -> int op
+    func(int) as int op
     int bias = 0
 end
 
-func makeBox(int base) -> AsyncBox
+func makeBox(int base) as AsyncBox
     AsyncBox box
     box.op = makeAdder(base)
     box.bias = base
     return box
 end
 
-async func makeBoxAsync(int base) -> AsyncBox
+async func makeBoxAsync(int base) as AsyncBox
     AsyncBox box = makeBox(base)
     return box
 end
 
-async func makeAdderAsync(int base) -> function(int) -> int
+async func makeAdderAsync(int base) as func(int) as int
     return makeAdder(base)
 end
 
@@ -50,14 +50,14 @@ await voidFuture
 future<AsyncBox> boxFuture = makeBoxAsync(30)
 AsyncBox box = await boxFuture
 
-assert box.op(12) + box.bias == 72, "await class function field failed"
+assert box.op(12) + box.bias == 72, "await class func field failed"
 
-future<function(int) -> int> fnFuture = makeAdderAsync(50)
-function(int) -> int fnA = await fnFuture
-function(int) -> int fnB = await fnFuture
+future<func(int) as int> fnFuture = makeAdderAsync(50)
+func(int) as int fnA = await fnFuture
+func(int) as int fnB = await fnFuture
 
-assert fnA(1) == 51, "await function result failed"
-assert fnB(2) == 52, "second await function result failed"
+assert fnA(1) == 51, "await func result failed"
+assert fnB(2) == 52, "second await func result failed"
 
 future<AsyncBox> sharedBoxFuture = makeBoxAsync(70)
 AsyncBox firstBox = await sharedBoxFuture
@@ -70,3 +70,14 @@ auto autoBoxFuture = makeBoxAsync(90)
 auto autoBox = await autoBoxFuture
 
 assert autoBox.op(5) + autoBox.bias == 185, "auto await class result failed"
+
+int temporaryValue = await addAsync(8, 9)
+assert temporaryValue == 17, "temporary await int result failed"
+
+await doneAsync()
+
+func(int) as int temporaryFn = await makeAdderAsync(60)
+assert temporaryFn(4) == 64, "temporary await func result failed"
+
+AsyncBox temporaryBox = await makeBoxAsync(110)
+assert temporaryBox.op(6) + temporaryBox.bias == 226, "temporary await class result failed"

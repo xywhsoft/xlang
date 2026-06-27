@@ -46,7 +46,7 @@
 | 生成规则描述 | `create` 和 `destroy` 都生成 `void` 返回值。`create` 使用可重载的 callable 符号，`destroy` 使用固定成员符号。若没有用户声明 `destroy`，但 class 字段或父类需要销毁，会额外生成自动 `destroy` 原型。 |
 | 生成器文件名和行号 | `xl6_cgen_decl_proto.c:263`、`xl6_cgen_decl_proto.c:279`、`xl6_cgen_decl_class.c:413`、`xl6_cgen_decl_class.c:420` |
 | 对应生成的 C 代码 | `void xl_class_Counter__create(XL_Class_Counter* self, long long n);` / `void xl_class_Counter__destroy(XL_Class_Counter* self);` |
-| 中间形态伪代码 | `special create/destroy -> void C function(self, params...)` |
+| 中间形态伪代码 | `special create/destroy -> void C func(self, params...)` |
 | 实现同等功能手写的 C 代码 | C 中通常写 `Counter_init(&obj, n)` 和 `Counter_deinit(&obj)`。 |
 | 额外依赖的封装代码 | 自动析构原型依赖 `xl6CgenClassNeedsDestroy` 判断。 |
 
@@ -222,8 +222,8 @@
 
 | 字段 | 内容 |
 | --- | --- |
-| xlang 写法 | `class Holder` / `function(int) int fn` |
-| 生成规则描述 | class 字段如果是 function 类型，析构时检查 `release` 和 `env`，调用 release 后把 `env` 与 `release` 置零。该规则只处理 class 字段里的 function，普通局部 function 由变量 cleanup 规则处理。 |
+| xlang 写法 | `class Holder` / `func(int) int fn` |
+| 生成规则描述 | class 字段如果是 func 类型，析构时检查 `release` 和 `env`，调用 release 后把 `env` 与 `release` 置零。该规则只处理 class 字段里的 function，普通局部 function 由变量 cleanup 规则处理。 |
 | 生成器文件名和行号 | `xl6_cgen_decl_methods.c:107`、`xl6_cgen_decl_methods.c:124` |
 | 对应生成的 C 代码 | `if (self->fn.release != 0 && self->fn.env != 0) { self->fn.release(self->fn.env); self->fn.env = 0; self->fn.release = 0; }` |
 | 中间形态伪代码 | `if functionField owns env: release(env); clear` |

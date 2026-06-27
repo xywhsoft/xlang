@@ -34,8 +34,8 @@ end
 
 extern "record_destroy" func recordDestroy(int value)
 extern "expect_i64" func expect(int actual, int expected)
-extern "destroy_count" func destroyCount() -> int
-extern "destroy_value" func destroyValue() -> int
+extern "destroy_count" func destroyCount() as int
+extern "destroy_value" func destroyValue() as int
 
 func explicitDestroy()
     auto child = Child(11, 22)
@@ -45,7 +45,7 @@ func inheritedDestroy()
     auto child = AutoChild(33, 44)
 end
 
-func earlyReturnDestroy() -> int
+func earlyReturnDestroy() as int
     auto child = Child(55, 66)
     return 7
 end

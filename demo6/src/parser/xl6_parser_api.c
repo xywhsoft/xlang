@@ -31,12 +31,6 @@ static int xl6ParserTokenKind(const XL6_Token* token)
     }
 
     kind = token->kind;
-    if ( kind == XL6_TK_IDENT &&
-         token->text != NULL &&
-         token->len == 8 &&
-         strncmp(token->text, "function", 8) == 0 ) {
-        return XL6PG_TYPE_FUNCTION;
-    }
 
     switch ( kind ) {
     case XL6_TK_IDENT: return XL6PG_IDENT;
@@ -60,6 +54,7 @@ static int xl6ParserTokenKind(const XL6_Token* token)
     case XL6_KW_VAR: return XL6PG_KW_VAR;
     case XL6_KW_AUTO: return XL6PG_KW_AUTO;
     case XL6_KW_TYPEDEF: return XL6PG_KW_TYPEDEF;
+    case XL6_KW_AS: return XL6PG_KW_AS;
     case XL6_KW_IMPORT: return XL6PG_KW_IMPORT;
     case XL6_KW_EXTERN: return XL6PG_KW_EXTERN;
     case XL6_KW_EXPORT: return XL6PG_KW_EXPORT;
@@ -105,7 +100,6 @@ static int xl6ParserTokenKind(const XL6_Token* token)
     case XL6_TK_PERCENT_ASSIGN: return XL6PG_PERCENT_ASSIGN;
     case XL6_TK_POW_ASSIGN: return XL6PG_POW_ASSIGN;
     case XL6_TK_NULL_ASSIGN: return XL6PG_NULL_ASSIGN;
-    case XL6_TK_ARROW: return XL6PG_ARROW;
     case XL6_TK_FAT_ARROW: return XL6PG_FAT_ARROW;
     case XL6_TK_ELLIPSIS: return XL6PG_ELLIPSIS;
     case XL6_TK_TRIPLE_STAR: return XL6PG_TRIPLE_STAR;
@@ -194,7 +188,27 @@ static int xl6ParserIsNameToken(const XL6_Token* token)
     int kind;
 
     kind = xl6ParserTokenKind(token);
-    return kind == XL6PG_IDENT || kind == XL6PG_TYPE_FUNCTION;
+    return kind == XL6PG_IDENT;
+}
+
+static int xl6ParserIsTypeNameToken(const XL6_Token* token)
+{
+    return xl6ParserIsNameToken(token) || (token != NULL && token->kind == XL6_KW_FUNC);
+}
+
+static size_t xl6ParserStmtStartIndex(const XL6_ParseTokenStream* stream, size_t index)
+{
+    size_t start;
+
+    if ( stream == NULL || index >= stream->count ) {
+        return index;
+    }
+
+    start = index;
+    while ( start > 0 && stream->tokens[start - 1].kind != XL6_TK_SEP ) {
+        start -= 1;
+    }
+    return start;
 }
 
 static int xl6ParserIsStmtStart(const XL6_ParseTokenStream* stream, size_t index)
@@ -244,7 +258,7 @@ static int xl6ParserMatchFunctionReturnSig(const XL6_ParseTokenStream* stream, s
 {
     size_t next;
 
-    if ( stream == NULL || index >= stream->count || stream->tokens[index].kind != XL6_TK_ARROW ) {
+    if ( stream == NULL || index >= stream->count || stream->tokens[index].kind != XL6_KW_AS ) {
         *outNext = index;
         return 1;
     }
@@ -269,7 +283,7 @@ static int xl6ParserMatchFunctionTypeRef(const XL6_ParseTokenStream* stream, siz
     size_t next;
 
     if ( stream == NULL || index + 1 >= stream->count ||
-         stream->parserKinds[index] != XL6PG_TYPE_FUNCTION ||
+         stream->tokens[index].kind != XL6_KW_FUNC ||
          stream->tokens[index + 1].kind != XL6_TK_LPAREN ) {
         return 0;
     }
@@ -296,7 +310,7 @@ static int xl6ParserMatchTypeRef(const XL6_ParseTokenStream* stream, size_t inde
 {
     size_t next;
 
-    if ( index >= stream->count || !xl6ParserIsNameToken(&stream->tokens[index]) ) {
+    if ( index >= stream->count || !xl6ParserIsTypeNameToken(&stream->tokens[index]) ) {
         return 0;
     }
 
@@ -362,6 +376,14 @@ static int xl6ParserVIsNameToken(const XL6_ParseTokenStream* stream, XL6_VTokenP
     return xl6ParserIsNameToken(&stream->tokens[pos.index]);
 }
 
+static int xl6ParserVIsTypeNameToken(const XL6_ParseTokenStream* stream, XL6_VTokenPos pos)
+{
+    if ( stream == NULL || pos.index >= stream->count || pos.secondGt ) {
+        return 0;
+    }
+    return xl6ParserIsTypeNameToken(&stream->tokens[pos.index]);
+}
+
 static int xl6ParserVMatchTypeExpr(const XL6_ParseTokenStream* stream, XL6_VTokenPos pos, XL6_VTokenPos* outNext);
 static int xl6ParserVMatchTypeRef(const XL6_ParseTokenStream* stream, XL6_VTokenPos pos, XL6_VTokenPos* outNext);
 static int xl6ParserVMatchFunctionTypeRef(const XL6_ParseTokenStream* stream, XL6_VTokenPos pos, XL6_VTokenPos* outNext);
@@ -400,7 +422,7 @@ static int xl6ParserVMatchFunctionReturnSig(const XL6_ParseTokenStream* stream, 
 {
     XL6_VTokenPos next;
 
-    if ( xl6ParserVKindAt(stream, pos) != XL6_TK_ARROW ) {
+    if ( xl6ParserVKindAt(stream, pos) != XL6_KW_AS ) {
         *outNext = pos;
         return 1;
     }
@@ -426,7 +448,7 @@ static int xl6ParserVMatchFunctionTypeRef(const XL6_ParseTokenStream* stream, XL
     XL6_VTokenPos next;
 
     if ( stream == NULL || pos.index >= stream->count || pos.secondGt ||
-         stream->parserKinds[pos.index] != XL6PG_TYPE_FUNCTION ) {
+         stream->tokens[pos.index].kind != XL6_KW_FUNC ) {
         return 0;
     }
 
@@ -459,7 +481,7 @@ static int xl6ParserVMatchTypeRef(const XL6_ParseTokenStream* stream, XL6_VToken
     XL6_VTokenPos next;
     int kind;
 
-    if ( !xl6ParserVIsNameToken(stream, pos) ) {
+    if ( !xl6ParserVIsTypeNameToken(stream, pos) ) {
         return 0;
     }
 
@@ -494,7 +516,7 @@ static int xl6ParserTypeRefFollowerKind(int kind)
     case XL6_TK_IDENT:
     case XL6_TK_COMMA:
     case XL6_TK_RPAREN:
-    case XL6_TK_ARROW:
+    case XL6_KW_AS:
     case XL6_TK_ASSIGN:
     case XL6_TK_SEP:
     case XL6_TK_EOF:
@@ -502,6 +524,165 @@ static int xl6ParserTypeRefFollowerKind(int kind)
         return 1;
     default:
         return 0;
+    }
+}
+
+static int xl6ParserFunctionTypeFollowerKind(int kind)
+{
+    switch ( kind ) {
+    case XL6_TK_COMMA:
+    case XL6_TK_RPAREN:
+    case XL6_TK_RBRACKET:
+    case XL6_TK_GT:
+    case XL6_TK_SEP:
+    case XL6_TK_EOF:
+        return 1;
+    default:
+        return 0;
+    }
+}
+
+static int xl6ParserFunctionTypePrevKind(const XL6_ParseTokenStream* stream, size_t index, int kind)
+{
+    if ( stream == NULL || index == 0 || index > stream->count ) {
+        return 0;
+    }
+    return stream->tokens[index - 1].kind == kind;
+}
+
+static int xl6ParserFunctionTypePrevParserKind(const XL6_ParseTokenStream* stream, size_t index, int kind)
+{
+    if ( stream == NULL || index == 0 || index > stream->count ) {
+        return 0;
+    }
+    return stream->parserKinds[index - 1] == kind;
+}
+
+static int xl6ParserFunctionTypeInAlias(const XL6_ParseTokenStream* stream, size_t index)
+{
+    size_t start;
+
+    if ( stream == NULL || index >= stream->count ) {
+        return 0;
+    }
+
+    start = xl6ParserStmtStartIndex(stream, index);
+    return start < stream->count &&
+           (stream->tokens[start].kind == XL6_KW_TYPEDEF ||
+            stream->tokens[start].kind == XL6_KW_EXTERN);
+}
+
+static int xl6ParserIsFuncDeclHead(const XL6_ParseTokenStream* stream, size_t index)
+{
+    XL6_VTokenPos pos;
+    XL6_VTokenPos next;
+
+    if ( stream == NULL || index + 2 >= stream->count ) {
+        return 0;
+    }
+    if ( stream->tokens[index].kind != XL6_KW_FUNC ||
+         !xl6ParserIsNameToken(&stream->tokens[index + 1]) ) {
+        return 0;
+    }
+    if ( stream->tokens[index + 2].kind == XL6_TK_LPAREN ) {
+        return 1;
+    }
+    if ( stream->tokens[index + 2].kind != XL6_TK_LT ) {
+        return 0;
+    }
+
+    pos.index = index + 3;
+    pos.secondGt = 0;
+    if ( !xl6ParserVMatchTypeList(stream, pos, &next) ) {
+        return 0;
+    }
+    if ( xl6ParserVKindAt(stream, next) != XL6_TK_GT ) {
+        return 0;
+    }
+    next = xl6ParserVNext(stream, next);
+    return xl6ParserVKindAt(stream, next) == XL6_TK_LPAREN;
+}
+
+static int xl6ParserCanUseFunctionType(const XL6_ParseTokenStream* stream, size_t index, size_t next)
+{
+    int nextKind;
+
+    if ( stream == NULL || index >= stream->count || next > stream->count ) {
+        return 0;
+    }
+
+    nextKind = next < stream->count ? stream->tokens[next].kind : XL6_TK_EOF;
+    if ( nextKind == XL6_TK_FAT_ARROW ) {
+        return 0;
+    }
+
+    /* 函数类型后接声明名，例如：func(int) as int proc */
+    if ( next < stream->count && xl6ParserIsNameToken(&stream->tokens[next]) ) {
+        return 1;
+    }
+
+    /* 返回类型上下文，例如：func outer() as func(int) as int */
+    if ( xl6ParserFunctionTypePrevKind(stream, index, XL6_KW_AS) ) {
+        return 1;
+    }
+
+    /* 类型字面量比较，例如：type(value) == func */
+    if ( xl6ParserFunctionTypePrevKind(stream, index, XL6_TK_EQ) ||
+         xl6ParserFunctionTypePrevKind(stream, index, XL6_TK_NE) ) {
+        return xl6ParserFunctionTypeFollowerKind(nextKind);
+    }
+
+    /* 裸 func 类型字面量初始化，例如：type t = func */
+    if ( next == index + 1 &&
+         xl6ParserFunctionTypePrevKind(stream, index, XL6_TK_ASSIGN) ) {
+        return xl6ParserFunctionTypeFollowerKind(nextKind);
+    }
+
+    /* 泛型实参或多返回类型列表中的函数类型。 */
+    if ( xl6ParserFunctionTypePrevKind(stream, index, XL6_TK_LT) ||
+         xl6ParserFunctionTypePrevParserKind(stream, index, XL6PG_TYPE_LT) ||
+         xl6ParserFunctionTypePrevKind(stream, index, XL6_TK_COMMA) ||
+         xl6ParserFunctionTypePrevKind(stream, index, XL6_TK_LPAREN) ) {
+        return xl6ParserFunctionTypeFollowerKind(nextKind);
+    }
+
+    /* typedef/extern typedef 的右侧是类型，不是匿名函数表达式。 */
+    if ( xl6ParserFunctionTypePrevKind(stream, index, XL6_TK_ASSIGN) &&
+         xl6ParserFunctionTypeInAlias(stream, index) ) {
+        return xl6ParserFunctionTypeFollowerKind(nextKind);
+    }
+
+    return 0;
+}
+
+static void xl6ParserMarkFunctionTypeTokens(XL6_ParseTokenStream* stream)
+{
+    size_t i;
+    size_t next;
+
+    if ( stream == NULL ) {
+        return;
+    }
+
+    for ( i = 0; i < stream->count; ++i ) {
+        if ( stream->tokens[i].kind != XL6_KW_FUNC ) {
+            continue;
+        }
+        if ( xl6ParserIsFuncDeclHead(stream, i) ) {
+            continue;
+        }
+
+        if ( i + 1 < stream->count &&
+             stream->tokens[i + 1].kind == XL6_TK_LPAREN &&
+             xl6ParserMatchFunctionTypeRef(stream, i, &next) &&
+             xl6ParserCanUseFunctionType(stream, i, next) ) {
+            stream->parserKinds[i] = XL6PG_TYPE_FUNCTION;
+            continue;
+        }
+
+        if ( xl6ParserCanUseFunctionType(stream, i, i + 1) ) {
+            stream->parserKinds[i] = XL6PG_TYPE_FUNCTION;
+        }
     }
 }
 
@@ -680,6 +861,7 @@ static int xl6ParserReadTokens(XL6_Lexer* lexer, XL6_ParseTokenStream* stream, X
         xl6DiagAdd(diags, token.startLine, token.startColumn, "内存不足，无法拆分嵌套泛型 token");
         return 0;
     }
+    xl6ParserMarkFunctionTypeTokens(stream);
     xl6ParserMarkGenericDeclTypeLt(stream);
     return 1;
 }

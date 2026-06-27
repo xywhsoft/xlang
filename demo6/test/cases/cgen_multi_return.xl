@@ -1,6 +1,6 @@
 extern "expect_i64" func expect(int actual, int expected)
 
-func pair(int seed) -> (int, int)
+func pair(int seed) as (int, int)
     return seed, seed + 1
 end
 

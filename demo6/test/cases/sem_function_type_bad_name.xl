@@ -1,1 +1,1 @@
-callable(int) -> int op
+callable(int) as int op

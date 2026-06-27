@@ -1,8 +1,8 @@
-func pick(int value) -> int
+func pick(int value) as int
     return value + 1
 end
 
-func pick(string value) -> string
+func pick(string value) as string
     return value
 end
 

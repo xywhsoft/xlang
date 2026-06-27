@@ -359,6 +359,16 @@ static const char* xl6CgenHeaderTypeName(const XL6_AstNode* root, const XL6_AstN
     if ( xl6CgenHeaderTextEquals(typeNode->text, "point") ) {
         return "void*";
     }
+    if ( xl6CgenHeaderTextEquals(typeNode->text, "var") ||
+         xl6CgenHeaderTextEquals(typeNode->text, "array") || xl6CgenHeaderTextEquals(typeNode->text, "array<var>") ||
+         xl6CgenHeaderTextEquals(typeNode->text, "list") || xl6CgenHeaderTextEquals(typeNode->text, "list<var>") ||
+         xl6CgenHeaderTextEquals(typeNode->text, "set") || xl6CgenHeaderTextEquals(typeNode->text, "set<var>") ||
+         xl6CgenHeaderTextEquals(typeNode->text, "dict") || xl6CgenHeaderTextEquals(typeNode->text, "dict<var>") ) {
+        return "xvalue";
+    }
+    if ( xl6CgenHeaderTextEquals(typeNode->text, "function") ) {
+        return "XL6_Function";
+    }
     if ( xl6CgenHeaderFindUnion(root, typeNode->text) != NULL ) {
         xl6CgenHeaderUnionTypeTextName(unionTypeName, sizeof(unionTypeName), typeNode->text);
         return unionTypeName;
@@ -752,6 +762,24 @@ int xl6CgenEmitHeader(XL6_Output* out, XL6_AstNode* root, const char* guardName,
     xl6OutputPuts("#include <stdint.h>\n", out);
     xl6OutputPuts("#include <stddef.h>\n\n", out);
     xl6OutputPuts("typedef intptr_t xl6_ssize_t;\n\n", out);
+    xl6OutputPuts("typedef struct xvalue_struct xvalue_struct;\n", out);
+    xl6OutputPuts("typedef xvalue_struct* xvalue;\n", out);
+    xl6OutputPuts("typedef struct xrt_func_sig xrt_func_sig;\n", out);
+    xl6OutputPuts("typedef struct xrt_call_frame xrt_call_frame;\n", out);
+    xl6OutputPuts("typedef struct xrt_call_result xrt_call_result;\n\n", out);
+    xl6OutputPuts("#ifndef XL6_FUNCTION_DEFINED\n", out);
+    xl6OutputPuts("#define XL6_FUNCTION_DEFINED\n", out);
+    xl6OutputPuts("typedef struct XL6_Function {\n", out);
+    xl6OutputPuts("    unsigned long long signature;\n", out);
+    xl6OutputPuts("    const struct xrt_func_sig* sig;\n", out);
+    xl6OutputPuts("    void* env;\n", out);
+    xl6OutputPuts("    void* invoke;\n", out);
+    xl6OutputPuts("    xvalue (*invoke_var)(void* env, int argc, xvalue* argv);\n", out);
+    xl6OutputPuts("    bool (*invoke_xcall)(void* env, xrt_call_frame* frame, xrt_call_result* result);\n", out);
+    xl6OutputPuts("    void (*retain)(void* env);\n", out);
+    xl6OutputPuts("    void (*release)(void* env);\n", out);
+    xl6OutputPuts("} XL6_Function;\n", out);
+    xl6OutputPuts("#endif\n\n", out);
     xl6OutputPuts("#ifdef __cplusplus\nextern \"C\" {\n#endif\n\n", out);
     xl6CgenHeaderLifecycleDecls(out);
 

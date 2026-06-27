@@ -1,5 +1,5 @@
 extern "expect_i64" func expect(int actual, int expected)
-extern "native_handle" func nativeHandle(int value) -> point
+extern "native_handle" func nativeHandle(int value) as point
 
 class Pair
     int left = 1

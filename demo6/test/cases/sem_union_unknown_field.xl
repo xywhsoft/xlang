@@ -2,7 +2,7 @@ union Payload
     int i
 end
 
-func bad() -> int
+func bad() as int
     Payload payload
     return payload.missing
 end

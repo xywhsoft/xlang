@@ -1092,7 +1092,7 @@ static char* xl6XapiLoadBuildSignature(const XL6_XapiExport* item)
             return NULL;
         }
         if ( item->returnCount > 0 ) {
-            if ( !xl6XapiLoadAppendText(&out, &len, &capacity, "->") ) {
+            if ( !xl6XapiLoadAppendText(&out, &len, &capacity, " as ") ) {
                 xrtFree(out);
                 return NULL;
             }

@@ -3,10 +3,10 @@ class Resource
     end
 end
 
-func make() -> function() -> int
+func make() as func() as int
     auto resource = Resource()
 
-    return func() -> int
+    return func() as int
         type(resource)
         return 1
     end

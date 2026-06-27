@@ -1,6 +1,6 @@
 extern "expect_i64" func expect(int actual, int expected)
 
-func add(int a, int b = 1, int c = 2) -> int
+func add(int a, int b = 1, int c = 2) as int
     return a + b + c
 end
 
@@ -17,7 +17,7 @@ class Box
         return
     end
 
-    func bump(int amount = 1, int factor = 1) -> int
+    func bump(int amount = 1, int factor = 1) as int
         return self.value + amount * factor
     end
 end

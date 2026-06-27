@@ -1,5 +1,5 @@
 import uses_dep
 
-func main(...) -> int
+func main(...) as int
     return dep_value.depValue()
 end

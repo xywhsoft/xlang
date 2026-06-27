@@ -1,6 +1,6 @@
-func pair(int seed) -> (int, int)
+func pair(int seed) as (int, int)
     return seed, seed + 1
 end
 
-function(int) -> (int, int) pairFn = pair
+func(int) as (int, int) pairFn = pair
 auto first, second = pairFn("bad")

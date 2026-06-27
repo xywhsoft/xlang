@@ -1,4 +1,4 @@
-async func failAsync() -> int
+async func failAsync() as int
     throw "async boom"
     return 0
 end
@@ -16,3 +16,16 @@ catch e
 end
 
 assert state == 7, "async exception should reach catch"
+
+int tempState = 0
+
+try
+    int tempValue = await failAsync()
+    tempState = tempValue
+catch e
+    if e.message == "async boom" then
+        tempState = 9
+    end
+end
+
+assert tempState == 9, "temporary async exception should reach catch"

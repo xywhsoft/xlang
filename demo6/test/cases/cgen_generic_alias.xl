@@ -2,7 +2,7 @@ typedef MyInt = int
 
 extern "expect_i64" func expect(int actual, int expected)
 
-func identity<T>(T value) -> T
+func identity<T>(T value) as T
     return value
 end
 

@@ -3,13 +3,13 @@ class Point
     int y
 end
 
-export "xl6_point_make" func makePoint(int x, int y) -> Point
+export "xl6_point_make" func makePoint(int x, int y) as Point
     Point point
     point.x = x
     point.y = y
     return point
 end
 
-export "xl6_point_sum" func sumPoint(Point point) -> int
+export "xl6_point_sum" func sumPoint(Point point) as int
     return point.x + point.y
 end

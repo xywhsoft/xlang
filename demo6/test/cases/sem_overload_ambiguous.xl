@@ -1,8 +1,8 @@
-func cast(int32 value) -> int32
+func cast(int32 value) as int32
     return value
 end
 
-func cast(uint32 value) -> uint32
+func cast(uint32 value) as uint32
     return value
 end
 

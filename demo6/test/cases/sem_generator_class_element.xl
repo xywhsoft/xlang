@@ -2,7 +2,7 @@ class Box
     int value = 0
 end
 
-func values() -> generator<Box>
+func values() as generator<Box>
     Box box
     yield box
 end

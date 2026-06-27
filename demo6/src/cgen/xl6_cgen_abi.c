@@ -248,38 +248,6 @@ static void xl6CgenFunctionReturnStructDeclForPrefix(XL6_CgenContext* ctx, const
     xl6CgenFunctionReturnStructDeclForId(ctx, returns, xl6CgenFunctionSignatureIdForPrefix(ctx, params, returns, paramCount, includeVararg));
 }
 
-static void xl6CgenEmitFunctionSigObject(XL6_CgenContext* ctx, const char* localName, const char* name, unsigned long long signatureId, const XL6_AstNode* params, const XL6_AstNode* returns)
-{
-    xl6CgenEmitFunctionSigObjectForCounts(ctx,
-                                          localName,
-                                          name,
-                                          signatureId,
-                                          (unsigned int)(params != NULL ? params->childCount : 0),
-                                          (unsigned int)(returns != NULL ? returns->childCount : 0));
-}
-
-static void xl6CgenEmitFunctionSigObjectForCounts(XL6_CgenContext* ctx, const char* localName, const char* name, unsigned long long signatureId, unsigned int paramCount, unsigned int returnCount)
-{
-    unsigned int nameSize;
-
-    if ( localName == NULL || *localName == '\0' ) {
-        localName = "__xl6_sig";
-    }
-    if ( name == NULL ) {
-        name = "";
-    }
-    nameSize = (unsigned int)strlen(name);
-
-    xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "static const xrt_func_sig %s = { 0x%016llXULL, ", localName, signatureId);
-    xl6CgenCStringLiteral(ctx->out, name);
-    xl6OutputPrintf(ctx->out,
-            ", %uu, %uu, 0, %uu, 0, 0u };\n",
-            nameSize,
-            paramCount,
-            returnCount);
-}
-
 static unsigned long long xl6CgenTypeIdForTypeNode(XL6_CgenContext* ctx, const XL6_AstNode* typeNode)
 {
     unsigned long long hash;
@@ -392,6 +360,14 @@ static void xl6CgenEmitXrtTypeDescRef(XL6_CgenContext* ctx, const XL6_AstNode* t
         xl6OutputPuts("xrtTypePoint()", ctx->out);
     } else if ( xl6CgenIsFunctionType(concreteType) ) {
         xl6OutputPuts("xrtTypeFunction()", ctx->out);
+    } else if ( xl6CTextEquals(name, "array") || xl6CTextEquals(name, "array<var>") ) {
+        xl6OutputPuts("xrtTypeArray()", ctx->out);
+    } else if ( xl6CTextEquals(name, "list") || xl6CTextEquals(name, "list<var>") ) {
+        xl6OutputPuts("xrtTypeList()", ctx->out);
+    } else if ( xl6CTextEquals(name, "set") || xl6CTextEquals(name, "set<var>") ) {
+        xl6OutputPuts("xrtTypeSet()", ctx->out);
+    } else if ( xl6CTextEquals(name, "dict") || xl6CTextEquals(name, "dict<var>") ) {
+        xl6OutputPuts("xrtTypeDict()", ctx->out);
     } else if ( xl6CTextEquals(name, "type") ) {
         xl6OutputPuts("xrtTypeType()", ctx->out);
     } else if ( xl6CgenIsClassType(ctx, concreteType) ) {
@@ -409,6 +385,201 @@ static void xl6CgenEmitXrtTypeDescRef(XL6_CgenContext* ctx, const XL6_AstNode* t
     } else {
         xl6OutputPuts("0", ctx->out);
     }
+}
+
+static const XL6_AstNode* xl6CgenFunctionSigParamAt(const XL6_AstNode* params, size_t paramCount, int includeVararg, size_t index)
+{
+    int fixedCount;
+
+    if ( params == NULL ) {
+        return NULL;
+    }
+    if ( index < paramCount && index < params->childCount ) {
+        return params->children[index];
+    }
+    if ( includeVararg && index == paramCount ) {
+        fixedCount = xl6CgenFixedParamCount(params);
+        if ( params->childCount > (size_t)fixedCount ) {
+            return params->children[fixedCount];
+        }
+    }
+    return NULL;
+}
+
+static unsigned int xl6CgenFunctionSigParamCount(const XL6_AstNode* params, size_t paramCount, int includeVararg)
+{
+    unsigned int count;
+    int fixedCount;
+
+    if ( params == NULL ) {
+        return 0;
+    }
+    count = (unsigned int)(paramCount < params->childCount ? paramCount : params->childCount);
+    if ( includeVararg ) {
+        fixedCount = xl6CgenFixedParamCount(params);
+        if ( params->childCount > (size_t)fixedCount ) {
+            count += 1u;
+        }
+    }
+    return count;
+}
+
+static const XL6_AstNode* xl6CgenFunctionSigVarargParam(const XL6_AstNode* params, size_t paramCount, int includeVararg)
+{
+    int fixedCount;
+
+    if ( params == NULL ) {
+        return NULL;
+    }
+    fixedCount = xl6CgenFixedParamCount(params);
+    if ( params->childCount <= (size_t)fixedCount ) {
+        return NULL;
+    }
+    if ( includeVararg || paramCount > (size_t)fixedCount ) {
+        return params->children[fixedCount];
+    }
+    return NULL;
+}
+
+static unsigned int xl6CgenFunctionSigFlags(const XL6_AstNode* params, size_t paramCount, int includeVararg)
+{
+    const XL6_AstNode* vararg;
+
+    vararg = xl6CgenFunctionSigVarargParam(params, paramCount, includeVararg);
+    if ( xl6CgenParamIsDictVararg(vararg) ) {
+        return 0x00000002u;
+    }
+    if ( xl6CgenParamIsArrayVararg(vararg) ) {
+        return 0x00000001u;
+    }
+    return 0u;
+}
+
+static unsigned int xl6CgenFunctionSigParamFlags(const XL6_AstNode* param)
+{
+    if ( param != NULL && param->kind == XL6_AST_PARAM && !xl6CgenParamIsVararg(param) && param->childCount > 1 ) {
+        return 0x00000001u;
+    }
+    return 0u;
+}
+
+static const char* xl6CgenFunctionSigParamName(const XL6_AstNode* param)
+{
+    if ( param != NULL && param->kind == XL6_AST_PARAM && param->text != NULL ) {
+        return param->text;
+    }
+    return "";
+}
+
+static void xl6CgenFunctionSigIndent(XL6_CgenContext* ctx)
+{
+    (void)ctx;
+    xl6OutputPuts("    ", ctx->out);
+}
+
+static void xl6CgenEmitFunctionSigParamAssign(XL6_CgenContext* ctx, const char* localName, size_t index, const XL6_AstNode* param)
+{
+    const XL6_AstNode* typeNode;
+    const char* paramName;
+
+    typeNode = xl6CgenCallableItemType(param);
+    paramName = xl6CgenFunctionSigParamName(param);
+
+    xl6CgenFunctionSigIndent(ctx);
+    xl6OutputPrintf(ctx->out, "%s_params[%u].Name = ", localName, (unsigned)index);
+    xl6CgenCStringLiteral(ctx->out, paramName);
+    xl6OutputPuts(";\n", ctx->out);
+    xl6CgenFunctionSigIndent(ctx);
+    xl6OutputPrintf(ctx->out, "%s_params[%u].NameSize = %uu;\n", localName, (unsigned)index, (unsigned)strlen(paramName));
+    xl6CgenFunctionSigIndent(ctx);
+    xl6OutputPrintf(ctx->out, "%s_params[%u].Type = ", localName, (unsigned)index);
+    xl6CgenEmitXrtTypeDescRef(ctx, typeNode);
+    xl6OutputPuts(";\n", ctx->out);
+    xl6CgenFunctionSigIndent(ctx);
+    xl6OutputPrintf(ctx->out, "%s_params[%u].DefaultValue = 0;\n", localName, (unsigned)index);
+    xl6CgenFunctionSigIndent(ctx);
+    xl6OutputPrintf(ctx->out, "%s_params[%u].Flags = 0x%08XU;\n", localName, (unsigned)index, xl6CgenFunctionSigParamFlags(param));
+}
+
+static void xl6CgenEmitFunctionSigObjectForPrefix(XL6_CgenContext* ctx, const char* localName, const char* name, unsigned long long signatureId, const XL6_AstNode* params, const XL6_AstNode* returns, size_t paramCount, int includeVararg)
+{
+    unsigned int actualParamCount;
+    unsigned int returnCount;
+    unsigned int nameSize;
+    unsigned int flags;
+    size_t i;
+
+    if ( localName == NULL || *localName == '\0' ) {
+        localName = "__xl6_sig";
+    }
+    if ( name == NULL ) {
+        name = "";
+    }
+    actualParamCount = xl6CgenFunctionSigParamCount(params, paramCount, includeVararg);
+    returnCount = (unsigned int)(returns != NULL ? returns->childCount : 0);
+    nameSize = (unsigned int)strlen(name);
+    flags = xl6CgenFunctionSigFlags(params, paramCount, includeVararg);
+
+    /* 签名元数据包含运行时类型指针，需要在 make 函数内按需填充。 */
+    if ( actualParamCount > 0 ) {
+        xl6CgenFunctionSigIndent(ctx);
+        xl6OutputPrintf(ctx->out, "static xrt_func_param %s_params[%uu];\n", localName, actualParamCount);
+    }
+    if ( returnCount > 0 ) {
+        xl6CgenFunctionSigIndent(ctx);
+        xl6OutputPrintf(ctx->out, "static const struct xrt_type_desc* %s_returns[%uu];\n", localName, returnCount);
+    }
+    xl6CgenFunctionSigIndent(ctx);
+    xl6OutputPrintf(ctx->out, "static xrt_func_sig %s;\n", localName);
+
+    for ( i = 0; i < actualParamCount; ++i ) {
+        xl6CgenEmitFunctionSigParamAssign(ctx, localName, i, xl6CgenFunctionSigParamAt(params, paramCount, includeVararg, i));
+    }
+    for ( i = 0; returns != NULL && i < returns->childCount; ++i ) {
+        xl6CgenFunctionSigIndent(ctx);
+        xl6OutputPrintf(ctx->out, "%s_returns[%u] = ", localName, (unsigned)i);
+        xl6CgenEmitXrtTypeDescRef(ctx, returns->children[i]);
+        xl6OutputPuts(";\n", ctx->out);
+    }
+
+    xl6CgenFunctionSigIndent(ctx);
+    xl6OutputPrintf(ctx->out, "%s.TypeId = 0x%016llXULL;\n", localName, signatureId);
+    xl6CgenFunctionSigIndent(ctx);
+    xl6OutputPrintf(ctx->out, "%s.Name = ", localName);
+    xl6CgenCStringLiteral(ctx->out, name);
+    xl6OutputPuts(";\n", ctx->out);
+    xl6CgenFunctionSigIndent(ctx);
+    xl6OutputPrintf(ctx->out, "%s.NameSize = %uu;\n", localName, nameSize);
+    xl6CgenFunctionSigIndent(ctx);
+    xl6OutputPrintf(ctx->out, "%s.ParamCount = %uu;\n", localName, actualParamCount);
+    xl6CgenFunctionSigIndent(ctx);
+    if ( actualParamCount > 0 ) {
+        xl6OutputPrintf(ctx->out, "%s.Params = %s_params;\n", localName, localName);
+    } else {
+        xl6OutputPrintf(ctx->out, "%s.Params = 0;\n", localName);
+    }
+    xl6CgenFunctionSigIndent(ctx);
+    xl6OutputPrintf(ctx->out, "%s.ReturnCount = %uu;\n", localName, returnCount);
+    xl6CgenFunctionSigIndent(ctx);
+    if ( returnCount > 0 ) {
+        xl6OutputPrintf(ctx->out, "%s.ReturnTypes = %s_returns;\n", localName, localName);
+    } else {
+        xl6OutputPrintf(ctx->out, "%s.ReturnTypes = 0;\n", localName);
+    }
+    xl6CgenFunctionSigIndent(ctx);
+    xl6OutputPrintf(ctx->out, "%s.Flags = 0x%08XU;\n", localName, flags);
+}
+
+static void xl6CgenEmitFunctionSigObject(XL6_CgenContext* ctx, const char* localName, const char* name, unsigned long long signatureId, const XL6_AstNode* params, const XL6_AstNode* returns)
+{
+    xl6CgenEmitFunctionSigObjectForPrefix(ctx,
+                                          localName,
+                                          name,
+                                          signatureId,
+                                          params,
+                                          returns,
+                                          params != NULL ? params->childCount : 0,
+                                          0);
 }
 
 static void xl6CgenEmitRuntimeTypeDescDependencyProto(XL6_CgenContext* ctx, const XL6_AstNode* typeNode)

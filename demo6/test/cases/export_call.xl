@@ -1,4 +1,4 @@
-export "xl6_add_i64" func add_i64(int a, int b) -> int
+export "xl6_add_i64" func add_i64(int a, int b) as int
     return a + b
 end
 

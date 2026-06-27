@@ -1,4 +1,4 @@
-func add(int a, int b = 1, int c = 2) -> int
+func add(int a, int b = 1, int c = 2) as int
     return a + b + c
 end
 

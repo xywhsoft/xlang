@@ -14,7 +14,7 @@ $scanRoots = @(
     "test\cases",
     "packages"
 )
-$minSafetyCFiles = 156
+$minSafetyCFiles = 165
 $minSafetySpecFiles = 2
 $failures = New-Object System.Collections.Generic.List[string]
 $generatedFiles = @(

@@ -1,10 +1,10 @@
 extern "expect_i64" func expect(int actual, int expected)
 extern "destroy_reset" func destroyReset()
 extern "record_destroy" func recordDestroy(int value)
-extern "destroy_count" func destroyCount() -> int
-extern "destroy_value" func destroyValue() -> int
+extern "destroy_count" func destroyCount() as int
+extern "destroy_value" func destroyValue() as int
 extern "counter_reset" func counterReset()
-extern "counter_closed" func counterClosed() -> int
+extern "counter_closed" func counterClosed() as int
 
 // class：标准 OOP 数据类型，字段、构造、方法、析构。
 class Point
@@ -16,7 +16,7 @@ class Point
         self.y = y
     end
 
-    func length2() -> int
+    func length2() as int
         return self.x * self.x + self.y * self.y
     end
 end
@@ -32,7 +32,7 @@ class Base
         self.seed = seed
     end
 
-    func value() -> int
+    func value() as int
         return self.seed
     end
 end
@@ -45,7 +45,7 @@ class Child extends Base
         self.extra = extra
     end
 
-    func total() -> int
+    func total() as int
         return self.value() + self.extra
     end
 end
@@ -65,11 +65,11 @@ class Overloaded
         self.value = value
     end
 
-    func add(int right) -> int
+    func add(int right) as int
         return self.value + right
     end
 
-    func add(string text) -> int
+    func add(string text) as int
         return self.value + int(text)
     end
 end
@@ -97,7 +97,7 @@ func scopedDestroy()
     expect(destroyCount(), 0)
 end
 
-func returnDestroy() -> int
+func returnDestroy() as int
     auto tracker = Tracker(88)
     return 9
 end
@@ -137,10 +137,10 @@ expect(destroyValue(), 201)
 custom Counter
     extern "counter_open" create(int seed)
     extern "counter_close" destroy()
-    extern "counter_add" func add(int value) -> int
-    extern "counter_value" func value() -> int
+    extern "counter_add" func add(int value) as int
+    extern "counter_value" func value() as int
 
-    func isZero() -> bool
+    func isZero() as bool
         return self.value() == 0
     end
 end

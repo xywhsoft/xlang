@@ -66,11 +66,11 @@
 
 | 字段 | 内容 |
 | --- | --- |
-| xlang 写法 | `function(int, string) (bool)` |
-| 生成规则描述 | 函数签名 ID 使用 FNV-1a 风格哈希，从 `function(` 开始，依次写入参数类型、`)->(`、返回类型、`)`。类型会先做泛型替换和 alias 解析，确保同一语义类型得到稳定签名。 |
+| xlang 写法 | `func(int, string) (bool)` |
+| 生成规则描述 | 函数签名 ID 使用 FNV-1a 风格哈希，从 `func(` 开始，依次写入参数类型、`)->(`、返回类型、`)`。类型会先做泛型替换和 alias 解析，确保同一语义类型得到稳定签名。 |
 | 生成器文件名和行号 | `xl6_cgen_abi.c:1`、`xl6_cgen_abi.c:80`、`xl6_cgen_abi.c:115`、`xl6_cgen_abi.c:168` |
 | 对应生成的 C 代码 | `0x0123456789ABCDEFULL` |
-| 中间形态伪代码 | `hash("function(" + params + ")->(" + returns + ")")` |
+| 中间形态伪代码 | `hash("func(" + params + ")->(" + returns + ")")` |
 | 实现同等功能手写的 C 代码 | 手写 C 可用枚举或手写常量；xlang 自动按签名生成。 |
 | 额外依赖的封装代码 | 签名 hash helper；不生成运行时代码。 |
 
@@ -82,7 +82,7 @@
 | 生成规则描述 | 前缀签名 ID 只 hash 前 `paramCount` 个参数，并可选择是否把 vararg 参数纳入签名。该规则用于可选参数 adapter、xcall wrapper 等需要“较短调用签名”的场景。 |
 | 生成器文件名和行号 | `xl6_cgen_abi.c:135`、`xl6_cgen_abi.c:181`、`xl6_cgen_callable_wrappers.c:565` |
 | 对应生成的 C 代码 | `XL6_Function_Return_<prefixSignature>` |
-| 中间形态伪代码 | `hash(function(param[0:n], maybeVararg)->returns)` |
+| 中间形态伪代码 | `hash(func(param[0:n], maybeVararg) as returns)` |
 | 实现同等功能手写的 C 代码 | 手写 C 通常需要为每个可选参数数量写一个 adapter 类型。 |
 | 额外依赖的封装代码 | optional adapter / xcall wrapper。 |
 
@@ -102,8 +102,8 @@
 
 | 字段 | 内容 |
 | --- | --- |
-| xlang 写法 | `function(int) (int, string) f` / `func() (int, string) ... end` |
-| 生成规则描述 | 除普通函数本身外，function 类型和匿名函数中出现的多返回签名也会被递归扫描并提前生成返回结构体，避免后续 function value 或 wrapper 引用未声明类型。 |
+| xlang 写法 | `func(int) (int, string) f` / `func() (int, string) ... end` |
+| 生成规则描述 | 除普通函数本身外，func 类型和匿名函数中出现的多返回签名也会被递归扫描并提前生成返回结构体，避免后续 function value 或 wrapper 引用未声明类型。 |
 | 生成器文件名和行号 | `xl6_cgen_symbol.c:444`、`xl6_cgen_symbol.c:463`、`xl6_cgen_module.c:172` |
 | 对应生成的 C 代码 | `typedef struct XL6_Function_Return_ABCD ...;` 在函数原型前输出。 |
 | 中间形态伪代码 | `walk AST; if function type has multi returns: emit return struct` |
@@ -114,7 +114,7 @@
 
 | 字段 | 内容 |
 | --- | --- |
-| xlang 写法 | function value、xcall、var function 调用相关 wrapper |
+| xlang 写法 | function value、xcall、var func 调用相关 wrapper |
 | 生成规则描述 | 需要运行时签名检查或 xcall 调用时，生成静态 `xrt_func_sig` 对象，包含签名 ID、名称、名称长度、参数数量、返回数量等字段。 |
 | 生成器文件名和行号 | `xl6_cgen_abi.c:251`、`xl6_cgen_abi.c:261`、`xl6_cgen_callable_wrappers.c:177`、`xl6_cgen_callable_wrappers.c:486` |
 | 对应生成的 C 代码 | `static const xrt_func_sig __xl6_sig = { 0x..., "foo", 3u, 2u, 0, 1u, 0, 0u };` |
@@ -127,7 +127,7 @@
 | 字段 | 内容 |
 | --- | --- |
 | xlang 写法 | `type(a)` / `int` 作为 type 字面量 |
-| 生成规则描述 | 普通类型 ID 使用 `type:` 前缀和类型节点 hash。class/custom 节点会转成普通类型节点后 hash；function 类型直接使用函数签名 ID，使 `function(...) (...)` 的 type id 与 callable 签名保持一致。 |
+| 生成规则描述 | 普通类型 ID 使用 `type:` 前缀和类型节点 hash。class/custom 节点会转成普通类型节点后 hash；func 类型直接使用函数签名 ID，使 `func(...) (...)` 的 type id 与 callable 签名保持一致。 |
 | 生成器文件名和行号 | `xl6_cgen_abi.c:14`、`xl6_cgen_abi.c:283`、`xl6_cgen_abi.c:309`、`xl6_cgen_abi.c:314` |
 | 对应生成的 C 代码 | `0x0123456789ABCDEFULL` |
 | 中间形态伪代码 | `typeId(typeNode) = hash("type:" + canonicalTypeText)` |
@@ -164,7 +164,7 @@
 | --- | --- |
 | xlang 写法 | 类型进入 xvalue、typed container、runtime metadata |
 | 生成规则描述 | 生成某个类型的 `xrt_type_desc*` 引用时，基础类型映射到 XRT 内置 `xrtType*()`；runtime 容器类型引用生成的 runtime type desc；class/union/custom 引用各自生成的 type desc 函数；未知类型输出 `0`。 |
-| 生成器文件名和行号 | `xl6_cgen_abi.c:365`、`xl6_cgen_args.c:261`、`xl6_cgen_value_object.c:59`、`xl6_cgen_value_assign.c:1189` |
+| 生成器文件名和行号 | `xl6_cgen_abi.c:365`、`xl6_cgen_args.c:261`、`xl6_cgen_value_object.c:59`、`xl6_cgen_value_index.c:389` |
 | 对应生成的 C 代码 | `xrtTypeInt()` / `xl6_type_desc_XL_Class_Person()` / `xl6_runtime_type_desc_ABCD()` |
 | 中间形态伪代码 | `typeDescRef(type) -> builtin/ref/generated/0` |
 | 实现同等功能手写的 C 代码 | 手写 C 需要知道每种类型的元数据入口函数。 |

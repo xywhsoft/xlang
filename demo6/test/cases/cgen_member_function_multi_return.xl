@@ -1,28 +1,32 @@
 extern "expect_i64" func expect(int actual, int expected)
 
-func pair(int seed) -> (int, int)
+func pair(int seed) as (int, int)
     return seed, seed + 1
 end
 
-func makePairer(int base) -> function(int) -> (int, int)
-    return func(int value) -> (int, int)
+func makePairer(int base) as func(int) as (int, int)
+    return func(int value) as (int, int)
         return base + value, base - value
     end
 end
 
 class PairBox
-    function(int) -> (int, int) op
+    func(int) as (int, int) op
     int bias = 0
 end
 
-func makeBox(int base) -> PairBox
+class Factory
+    func(int) as (PairBox, func(int) as (int, int)) build
+end
+
+func makeBox(int base) as PairBox
     PairBox box
     box.op = makePairer(base)
     box.bias = base
     return box
 end
 
-func makeBoxAndOp(int base) -> (PairBox, function(int) -> (int, int))
+func makeBoxAndOp(int base) as (PairBox, func(int) as (int, int))
     PairBox box = makeBox(base)
     return box, box.op
 end
@@ -66,7 +70,7 @@ expect(returnedRight + returned.bias, 78)
 PairBox assignedBox
 assignedBox.op = pair
 assignedBox.bias = 1
-function(int) -> (int, int) assignedOp = pair
+func(int) as (int, int) assignedOp = pair
 
 assignedBox, assignedOp = makeBoxAndOp(50)
 
@@ -88,3 +92,7 @@ expect(declaredFnLeft, 66)
 expect(declaredFnRight, 54)
 
 _, _ = makeBoxAndOp(70)
+
+Factory factory
+factory.build = makeBoxAndOp
+factory.build(80)

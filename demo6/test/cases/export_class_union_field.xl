@@ -7,12 +7,12 @@ union Payload
     c_double d
 end
 
-export "xl6_box_make" func makeBox(int value) -> Box
+export "xl6_box_make" func makeBox(int value) as Box
     Box box
     box.payload.i = value
     return box
 end
 
-export "xl6_box_pick" func pick(Box box) -> int
+export "xl6_box_pick" func pick(Box box) as int
     return box.payload.i
 end

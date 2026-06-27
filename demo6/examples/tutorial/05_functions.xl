@@ -7,23 +7,23 @@ func touch()
     return
 end
 
-func add(int left, int right) -> int
+func add(int left, int right) as int
     return left + right
 end
 
-func pair(int seed) -> (int, string)
+func pair(int seed) as (int, string)
     return seed + 2, "ok"
 end
 
-func optionalSum(int a, int b = 10, int c = 100) -> int
+func optionalSum(int a, int b = 10, int c = 100) as int
     return a + b + c
 end
 
-func variadicCount(int base, ...) -> int
+func variadicCount(int base, ...) as int
     return base + arg.length
 end
 
-func variadicSum(...) -> int
+func variadicSum(...) as int
     int total = 0
     for value in arg
         total += int(value)
@@ -31,7 +31,7 @@ func variadicSum(...) -> int
     return total
 end
 
-func optionValue(string path, ***) -> int
+func optionValue(string path, ***) as int
     int total = path == "demo.txt" ? 1 : 0
     if "retry" in arg then
         total += int(arg["retry"])
@@ -42,15 +42,15 @@ func optionValue(string path, ***) -> int
     return total
 end
 
-func describe(int value) -> string
+func describe(int value) as string
     return "int"
 end
 
-func describe(string value) -> string
+func describe(string value) as string
     return value
 end
 
-func main(...) -> int
+func main(...) as int
     touch()
 
     auto number, text = pair(40)

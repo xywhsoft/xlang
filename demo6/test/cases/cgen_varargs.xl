@@ -1,11 +1,11 @@
 extern "expect_i64" func expect(int actual, int expected)
 
-func count(int base, ...) -> int
+func count(int base, ...) as int
     auto n = arg.length
     return base + n
 end
 
-func optionCount(string path, ***) -> int
+func optionCount(string path, ***) as int
     return arg.length
 end
 

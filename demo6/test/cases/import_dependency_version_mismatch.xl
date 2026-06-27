@@ -1,5 +1,5 @@
 import uses_dep_bad
 
-func main(...) -> int
+func main(...) as int
     return 0
 end

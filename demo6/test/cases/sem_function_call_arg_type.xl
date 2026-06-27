@@ -1,2 +1,2 @@
-function(int) -> int inc = func(int value) -> int => value + 1
+func(int) as int inc = func(int value) as int => value + 1
 int value = inc("x")

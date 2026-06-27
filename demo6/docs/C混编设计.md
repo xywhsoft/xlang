@@ -22,7 +22,7 @@ C -> xlang 使用 `extern`。
 
 ```xlang
 extern "xrtSleep" func sleep(uint32 ms)
-extern "xrtTimer" func timer() -> float64
+extern "xrtTimer" func timer() as float64
 extern "errno" var int errno
 extern type HANDLE = point
 ```
@@ -38,7 +38,7 @@ extern type HANDLE = point
 xlang -> C 使用同一套 `export` 语法族，建议增加显式 C 符号名写法。
 
 ```xlang
-export "app_add" func add(int left, int right) -> int
+export "app_add" func add(int left, int right) as int
 	return left + right
 end
 
@@ -171,7 +171,7 @@ int64_t xxx_add(xptr self, int64_t param);
 custom xxx
 	extern "xxx_create" create()
 	extern "xxx_destroy" destroy()
-	extern "xxx_add" func add(int param) -> int
+	extern "xxx_add" func add(int param) as int
 end
 ```
 
@@ -245,11 +245,11 @@ C 没有 xlang 风格的重载，因此 C ABI export 必须有唯一 C 符号。
 建议规则：
 
 ```xlang
-export "math_add_int" func add(int a, int b) -> int
+export "math_add_int" func add(int a, int b) as int
 	return a + b
 end
 
-export "math_add_float" func add(float a, float b) -> float
+export "math_add_float" func add(float a, float b) as float
 	return a + b
 end
 ```
@@ -287,9 +287,9 @@ DEMO6 应保留 DEMO5 “模块 descriptor / export 元信息”的思路，但�
 
 ```xlang
 extern "c_symbol" func c_name(...)
-extern "c_symbol" func c_name(...) -> Type
+extern "c_symbol" func c_name(...) as Type
 export "c_symbol" func xl_name(...)
-export "c_symbol" func xl_name(...) -> Type
+export "c_symbol" func xl_name(...) as Type
 ```
 
 这是一套对称声明模型：

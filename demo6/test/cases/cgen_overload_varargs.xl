@@ -1,15 +1,15 @@
 extern "expect_i64" func expect(int actual, int expected)
 
-func pick(string value) -> int
+func pick(string value) as int
     return 1
 end
 
-func pick(string value, ...) -> int
+func pick(string value, ...) as int
     auto n = arg.length
     return 2 + n
 end
 
-func options(string path, ***) -> int
+func options(string path, ***) as int
     return arg.length
 end
 

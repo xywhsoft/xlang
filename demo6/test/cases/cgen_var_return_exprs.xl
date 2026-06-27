@@ -1,0 +1,123 @@
+extern "expect_i64" func expect(int actual, int expected)
+
+func makeValue(int value) as var
+    return value
+end
+
+func returnBinary() as var
+    return makeValue(10) + makeValue(20)
+end
+
+func returnNestedBinary() as var
+    return (makeValue(1) + makeValue(2)) + (makeValue(3) + makeValue(4))
+end
+
+func returnCompare() as bool
+    return makeValue(10) == makeValue(10)
+end
+
+func returnOrder() as bool
+    return makeValue(10) < makeValue(20)
+end
+
+func returnApprox() as bool
+    return makeValue(10) ~= 10
+end
+
+func returnConditional(bool choose) as var
+    return choose ? makeValue(30) : makeValue(40)
+end
+
+func returnNestedConditional(bool choose) as var
+    return choose ? (makeValue(50) + makeValue(60)) : (makeValue(70) ?? makeValue(80))
+end
+
+func returnArrayNested() as var
+    return [(makeValue(5) + makeValue(6)) + makeValue(7)]
+end
+
+func returnMultiBinary() as (var, int)
+    return makeValue(11) + makeValue(12), 24
+end
+
+func returnMultiConditional(bool choose) as (int, var)
+    return 31, choose ? makeValue(13) : makeValue(14)
+end
+
+func returnMultiNullCoalesce() as (var, int)
+    var empty = null
+    return empty ?? makeValue(15), 16
+end
+
+func returnMultiCompare() as (bool, int)
+    return makeValue(20) == makeValue(20), 21
+end
+
+func returnMultiCompareSecond() as (int, bool)
+    return 22, makeValue(23) < makeValue(24)
+end
+
+func returnMultiApprox() as (bool, int)
+    return makeValue(25) ~= 25, 26
+end
+
+func returnMultiLogic() as (bool, int)
+    return makeValue(0) or makeValue(27), 28
+end
+
+func returnMultiConvert() as (int, int)
+    return int(makeValue(29) + makeValue(30)), 31
+end
+
+func returnLogicAnd() as bool
+    return makeValue(1) and makeValue(1)
+end
+
+func returnLogicOr() as bool
+    return makeValue(0) or makeValue(1)
+end
+
+expect(int(returnBinary()), 30)
+expect(int(returnNestedBinary()), 10)
+expect(returnCompare(), 1)
+expect(returnOrder(), 1)
+expect(returnApprox(), 1)
+expect(int(returnConditional(false)), 40)
+expect(int(returnNestedConditional(true)), 110)
+expect(int(returnNestedConditional(false)), 70)
+expect(int(returnArrayNested()[0]), 18)
+
+auto multiBinary, multiBinaryCheck = returnMultiBinary()
+expect(int(multiBinary), 23)
+expect(multiBinaryCheck, 24)
+
+auto multiCondPrefix, multiCond = returnMultiConditional(false)
+expect(multiCondPrefix, 31)
+expect(int(multiCond), 14)
+
+auto multiNullCoalesce, multiNullCoalesceCheck = returnMultiNullCoalesce()
+expect(int(multiNullCoalesce), 15)
+expect(multiNullCoalesceCheck, 16)
+
+auto multiCompare, multiCompareCheck = returnMultiCompare()
+expect(multiCompare, 1)
+expect(multiCompareCheck, 21)
+
+auto multiComparePrefix, multiCompareSecond = returnMultiCompareSecond()
+expect(multiComparePrefix, 22)
+expect(multiCompareSecond, 1)
+
+auto multiApprox, multiApproxCheck = returnMultiApprox()
+expect(multiApprox, 1)
+expect(multiApproxCheck, 26)
+
+auto multiLogic, multiLogicCheck = returnMultiLogic()
+expect(multiLogic, 1)
+expect(multiLogicCheck, 28)
+
+auto multiConvert, multiConvertCheck = returnMultiConvert()
+expect(multiConvert, 59)
+expect(multiConvertCheck, 31)
+
+expect(returnLogicAnd(), 1)
+expect(returnLogicOr(), 1)

@@ -1,4 +1,4 @@
-func makeObj() -> var
+func makeObj() as var
     return {"name": 1}
 end
 

@@ -8,59 +8,61 @@ end
 custom Native
 end
 
-func add(int left, int right) -> int
+func add(int left, int right) as int
     return left + right
 end
 
-func pair(int seed) -> (int, int)
+func pair(int seed) as (int, int)
     return seed, seed + 1
 end
 
-func five(int seed) -> (int, int, int, int, int)
+func five(int seed) as (int, int, int, int, int)
     return seed, seed + 1, seed + 2, seed + 3, seed + 4
 end
 
-func pairDefault(int seed, int step = 2) -> (int, int)
+func pairDefault(int seed, int step = 2) as (int, int)
     return seed, seed + step
 end
 
-func optionCount(string path, ***) -> int
+func optionCount(string path, ***) as int
     return arg.length
 end
 
-func totalDefault(int base = 5, ...) -> int
+func totalDefault(int base = 5, ...) as int
     return base + arg.length
 end
 
-function(int, int) -> int fn = add
+func(int, int) as int fn = add
 type fnType = type(fn)
+type bareFuncType = func
 var boxedFn = fn
 var value = boxedFn(20, 22)
 
-function(int) -> (int, int) pairFn = pair
+func(int) as (int, int) pairFn = pair
 type pairFnType = type(pairFn)
 var boxedPairFn = pairFn
 var firstPairValue = boxedPairFn(31)
 
-function(int) -> (int, int, int, int, int) fiveFn = five
+func(int) as (int, int, int, int, int) fiveFn = five
 var boxedFiveFn = fiveFn
 var firstFiveValue = boxedFiveFn(50)
 
-function(int) -> (int, int) defaultPairFn = pairDefault
+func(int) as (int, int) defaultPairFn = pairDefault
 var boxedDefaultPairFn = defaultPairFn
 var firstDefaultPairValue = boxedDefaultPairFn(40)
 
-function(string, ***) -> int optionsFn = optionCount
+func(string, ***) as int optionsFn = optionCount
 var boxedOptions = optionsFn
 var optionValue = boxedOptions("demo.txt", mode = "fast", retry = 3)
 var optionNamedValue = boxedOptions(path = "demo.txt", mode = "slow")
 
-function(...) -> int variadicDefaultFn = totalDefault
+func(...) as int variadicDefaultFn = totalDefault
 var boxedVariadicDefault = variadicDefaultFn
 var variadicDefaultValue = boxedVariadicDefault(1, 2, 3)
 
 expect(type(boxedFn) == fnType, 1)
-expect(type(boxedFn) == function, 0)
+expect(type(boxedFn) == func, 0)
+expect(bareFuncType == func, 1)
 expect(type(value) == int, 1)
 expect(int(value), 42)
 expect(type(boxedPairFn) == pairFnType, 1)

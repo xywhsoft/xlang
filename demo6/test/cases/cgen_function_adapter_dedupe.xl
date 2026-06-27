@@ -1,10 +1,10 @@
 extern "expect_i64" func expect(int actual, int expected)
 
-func addDefault(int left, int right = 1) -> int
+func addDefault(int left, int right = 1) as int
     return left + right
 end
 
-function(int) -> int first = addDefault
-function(int) -> int second = addDefault
+func(int) as int first = addDefault
+func(int) as int second = addDefault
 
 expect(first(1) + second(2), 5)

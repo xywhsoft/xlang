@@ -1,7 +1,7 @@
 import uses_dep
 import uses_dep_v2
 
-func main(...) -> int
+func main(...) as int
     if uses_dep.addDep(2) == 42 then
         if uses_dep_v2.addDep(2) == 402 then
             return 0

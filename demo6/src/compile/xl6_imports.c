@@ -1019,7 +1019,7 @@ static void xl6ImportsAppendFunctionDecl(
     }
     xl6ImportsBuilderAppend(builder, ")");
     if ( item->returnCount == 1 ) {
-        xl6ImportsBuilderAppend(builder, " -> ");
+        xl6ImportsBuilderAppend(builder, " as ");
         xl6ImportsAppendRewrittenType(builder, module, ns, item->returns[0], NULL);
     }
     xl6ImportsBuilderAppend(builder, "\n");
@@ -1100,11 +1100,7 @@ static int xl6ImportsMergeGeneratedDecls(XL6_AstNode* root, const char* generate
     ok = xl6ParseSource(generated, "<xapi-import>", &result);
     if ( !ok ) {
         if ( diags != NULL ) {
-            size_t i;
             xl6DiagAdd(diags, 1, 1, "XAPI import generated invalid extern declarations");
-            for ( i = 0; i < result.diags.count; ++i ) {
-                xl6DiagAdd(diags, result.diags.items[i].line, result.diags.items[i].column, result.diags.items[i].message);
-            }
         }
         xl6ParseResultFree(&result);
         return 0;
@@ -1269,7 +1265,14 @@ static int xl6ImportsRewriteNamespaceRefs(XL6_AstNode* node, const XL6_ImportSym
         if ( symbol != NULL ) {
             if ( !symbol->supported ) {
                 if ( diags != NULL ) {
-                    xl6DiagAdd(diags, node->line, node->column, "imported XAPI symbol is not supported by current C ABI bridge");
+                    char message[512];
+
+                    snprintf(message,
+                             sizeof(message),
+                             "XAPI 导入符号当前不能进入 C ABI bridge: %s.%s",
+                             symbol->ns != NULL ? symbol->ns : "",
+                             symbol->name != NULL ? symbol->name : "");
+                    xl6DiagAdd(diags, node->line, node->column, message);
                 }
                 return 0;
             }

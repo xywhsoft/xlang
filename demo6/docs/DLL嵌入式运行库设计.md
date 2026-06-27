@@ -122,7 +122,7 @@ xlRegisterCFunction(ctx, "host_add", (void*)host_add);
 xlang 侧显式声明后使用：
 
 ```xlang
-extern "host_add" func hostAdd(int a, int b) -> int
+extern "host_add" func hostAdd(int a, int b) as int
 
 int value = hostAdd(20, 22)
 assert value == 42, "host function call failed"

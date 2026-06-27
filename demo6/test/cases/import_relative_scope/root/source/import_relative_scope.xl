@@ -1,5 +1,5 @@
 import "./pkg"
 
-func useRelativePackage() -> int
+func useRelativePackage() as int
     return pkg.value()
 end

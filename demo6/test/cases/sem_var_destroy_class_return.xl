@@ -5,6 +5,6 @@ class Resource
     end
 end
 
-func make() -> var
+func make() as var
     return Resource()
 end

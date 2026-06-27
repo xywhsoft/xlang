@@ -99,18 +99,18 @@ int main(void)
     }
 
     hostScript =
-        "extern \"host_add\" func hostAdd(int a, int b) -> int\n"
+        "extern \"host_add\" func hostAdd(int a, int b) as int\n"
         "\n"
         "assert dir.exists(\"release/tmp/dll_api_temp\"), \"temp dir was not prepared\"\n"
         "int value = hostAdd(20, 22)\n"
         "assert value == 42, \"host function call failed\"\n";
 
     linkScript =
-        "extern \"xl6_dll_link_value\" func linkedValue() -> int\n"
+        "extern \"xl6_dll_link_value\" func linkedValue() as int\n"
         "assert linkedValue() == 42, \"link library call failed\"\n";
 
     loadlibScript =
-        "extern \"xl6_dll_loadlib_value\" func loadedValue() -> int\n"
+        "extern \"xl6_dll_loadlib_value\" func loadedValue() as int\n"
         "assert loadedValue() == 42, \"loadlib call failed\"\n";
 
     stdlibScript =
@@ -136,7 +136,7 @@ int main(void)
         "dir.delete(\"release/tmp/dll_dir_list\")\n";
 
     buildScript =
-        "func add(int a, int b) -> int\n"
+        "func add(int a, int b) as int\n"
         "    return a + b\n"
         "end\n"
         "\n"

@@ -1,17 +1,17 @@
 // 纯 export ABI 示例：不写顶层执行语句，便于 C 宿主提供 main 并调用导出符号。
 
-export "xl6_feature_add_i64" func exportedAdd(int left, int right) -> int
+export "xl6_feature_add_i64" func exportedAdd(int left, int right) as int
     return left + right
 end
 
-export "xl6_feature_pair_i64" func exportedPair(int seed) -> (int, int)
+export "xl6_feature_pair_i64" func exportedPair(int seed) as (int, int)
     return seed, seed + 1
 end
 
 export "xl6_feature_counter" var int exportedCounter = 1
 export "xl6_feature_version" const int exportedVersion = 6
 
-export "xl6_feature_get_total" func exportedTotal() -> int
+export "xl6_feature_get_total" func exportedTotal() as int
     return exportedCounter + exportedVersion
 end
 

@@ -6,7 +6,7 @@
   "module":{"name":"unsupported_xapi","moduleId":"unsupported_xapi@1.0.0#abi1::unsupported_xapi","source":"packages/unsupported_xapi","sourceHash":""},
   "entry":{"kind":"none","requiresExplicitInit":true,"initSymbol":"xlInit","unitSymbol":"xlUnit"},
   "exports":[
-    {"kind":"function","name":"unsupportedCall","cSymbol":"xl6_unsupported_call","signature":"func(int,array<var>)->int","exportId":"unsupported_xapi@1.0.0#abi1::unsupported_xapi::unsupportedCall(func(int,array<var>)->int)","callingConvention":"cdecl","varargMode":"array","requiredParamCount":1,"fixedParamCount":1,"params":[{"name":"first","type":"int","optional":false,"vararg":false},{"name":"arg","type":"array<var>","optional":false,"vararg":true}],"returns":[{"type":"int"}]}
+    {"kind":"function","name":"unsupportedCall","cSymbol":"xl6_unsupported_call","signature":"func(int,array<var>) as int","exportId":"unsupported_xapi@1.0.0#abi1::unsupported_xapi::unsupportedCall(func(int,array<var>) as int)","callingConvention":"cdecl","varargMode":"array","requiredParamCount":1,"fixedParamCount":1,"params":[{"name":"first","type":"int","optional":false,"vararg":false},{"name":"arg","type":"array<var>","optional":false,"vararg":true}],"returns":[{"type":"int"}]}
   ],
   "types":[],
   "imports":[],

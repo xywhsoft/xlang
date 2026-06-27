@@ -1,4 +1,4 @@
-func loopThrow() -> int
+func loopThrow() as int
     int state = 0
 
     try
@@ -20,7 +20,7 @@ func loopThrow() -> int
     return state
 end
 
-func main(...) -> int
+func main(...) as int
     if loopThrow() != 112 then return 1
     return 0
 end

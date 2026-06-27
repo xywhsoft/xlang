@@ -1,4 +1,4 @@
-func clash() -> int
+func clash() as int
     return 1
 end
 

@@ -1,4 +1,4 @@
-extern "native_text" func nativeText() -> string
+extern "native_text" func nativeText() as string
 extern "expect_i64" func expect(int actual, int expected)
 
 string text = nativeText()

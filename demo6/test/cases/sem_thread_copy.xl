@@ -1,4 +1,4 @@
-func worker() -> int
+func worker() as int
     return 1
 end
 

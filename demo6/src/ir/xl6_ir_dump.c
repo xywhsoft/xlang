@@ -35,7 +35,7 @@ static void xl6IrDumpType(XL6_Output* out, const XL6_AstNode* typeNode)
     if ( xl6IrTextEquals(typeNode->text, "function") && typeNode->childCount == 2 ) {
         args = typeNode->children[0];
         returns = typeNode->children[1];
-        xl6OutputPuts("function(", out);
+        xl6OutputPuts("func(", out);
         if ( args != NULL ) {
             for ( i = 0; i < args->childCount; ++i ) {
                 if ( i > 0 ) {
@@ -46,7 +46,7 @@ static void xl6IrDumpType(XL6_Output* out, const XL6_AstNode* typeNode)
         }
         xl6OutputPutc(')', out);
         if ( returns != NULL && returns->childCount > 0 ) {
-            xl6OutputPuts(" -> ", out);
+            xl6OutputPuts(" as ", out);
             if ( returns->childCount > 1 ) {
                 xl6OutputPutc('(', out);
             }
@@ -617,7 +617,7 @@ static void xl6IrDumpReturns(XL6_Output* out, const XL6_AstNode* returns)
     if ( returns == NULL || returns->childCount == 0 ) {
         return;
     }
-    xl6OutputPuts(" -> ", out);
+    xl6OutputPuts(" as ", out);
     if ( returns->childCount > 1 ) {
         xl6OutputPutc('(', out);
     }
@@ -693,7 +693,7 @@ static void xl6IrDumpExternFunc(XL6_Output* out, const XL6_AstNode* node)
 
     returns = node->childCount > 2 ? node->children[2] : NULL;
     if ( returns != NULL && returns->childCount > 0 ) {
-        xl6OutputPuts(" -> ", out);
+        xl6OutputPuts(" as ", out);
         if ( returns->childCount > 1 ) {
             xl6OutputPutc('(', out);
         }
@@ -737,7 +737,7 @@ static void xl6IrDumpExportFunc(XL6_Output* out, const XL6_AstNode* node)
 
     returns = node->childCount > 2 ? node->children[2] : NULL;
     if ( returns != NULL && returns->childCount > 0 ) {
-        xl6OutputPuts(" -> ", out);
+        xl6OutputPuts(" as ", out);
         if ( returns->childCount > 1 ) {
             xl6OutputPutc('(', out);
         }

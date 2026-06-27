@@ -1,21 +1,21 @@
 extern "expect_i64" func expect(int actual, int expected)
 
-func makeFirst() -> function() -> int
+func makeFirst() as func() as int
     array values = [41]
-    return func() -> int
+    return func() as int
         return int(values[0])
     end
 end
 
-func makeAdder(int base) -> function(int) -> int
-    return func(int value) -> int
+func makeAdder(int base) as func(int) as int
+    return func(int value) as int
         return base + value
     end
 end
 
-func makeRunner() -> function(int) -> int
+func makeRunner() as func(int) as int
     auto inner = makeAdder(10)
-    return func(int value) -> int
+    return func(int value) as int
         return inner(value)
     end
 end

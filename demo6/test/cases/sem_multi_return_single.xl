@@ -1,7 +1,7 @@
-func pair() -> (int, int)
+func pair() as (int, int)
     return 1, 2
 end
 
-func single() -> int
+func single() as int
     return pair()
 end

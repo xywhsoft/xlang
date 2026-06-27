@@ -1,4 +1,4 @@
 custom Bad
-    extern "bag_value" func count() -> int
-    extern "bag_value" func size() -> int
+    extern "bag_value" func count() as int
+    extern "bag_value" func size() as int
 end

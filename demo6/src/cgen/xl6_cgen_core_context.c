@@ -18,7 +18,8 @@ typedef enum XL6_CgenCleanupKind {
     XL6_CGEN_CLEANUP_XVALUE,
     XL6_CGEN_CLEANUP_TYPED_CONTAINER,
     XL6_CGEN_CLEANUP_ERROR,
-    XL6_CGEN_CLEANUP_AVLTB_ITER
+    XL6_CGEN_CLEANUP_ITER_SNAPSHOT,
+    XL6_CGEN_CLEANUP_XRT_PTR
 } XL6_CgenCleanupKind;
 
 typedef struct XL6_CgenCleanup {
@@ -68,6 +69,11 @@ typedef struct XL6_CgenTryTarget {
     int id;
     int targetFinally;
 } XL6_CgenTryTarget;
+
+typedef struct XL6_CgenExprReplacement {
+    const XL6_AstNode* expr;
+    const char* cName;
+} XL6_CgenExprReplacement;
 
 typedef struct XL6_CgenContext {
     XL6_Output* out;
@@ -122,6 +128,8 @@ typedef struct XL6_CgenContext {
     const char* currentGeneratorHandleName;
     const char* currentCatchErrorName;
     const char* currentErrorExitLabel;
+    const XL6_CgenExprReplacement* exprReplacements;
+    size_t exprReplacementCount;
     int currentAsyncWorker;
     int needsXValueRuntime;
     int needsFunctionVarRuntime;

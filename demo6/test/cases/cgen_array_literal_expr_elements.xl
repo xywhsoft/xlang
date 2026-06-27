@@ -1,0 +1,32 @@
+extern "expect_i64" func expect(int actual, int expected)
+
+func mark(int value) as var
+    return value
+end
+
+func makeArray() as var
+    return [mark(1) + mark(2), true ? mark(3) : mark(99), mark(4) ?? mark(5)]
+end
+
+func makePrefixedArray() as var
+    return array[mark(11) + mark(12), false ? mark(99) : mark(13)]
+end
+
+var declared = [mark(6) + mark(7), false ? mark(99) : mark(8)]
+var prefixed = array[mark(14) + mark(15), true ? mark(16) : mark(99)]
+
+[mark(9) + mark(10)]
+array[mark(17) + mark(18)]
+
+auto returned = makeArray()
+auto prefixedReturned = makePrefixedArray()
+
+expect(int(returned[0]), 3)
+expect(int(returned[1]), 3)
+expect(int(returned[2]), 4)
+expect(int(declared[0]), 13)
+expect(int(declared[1]), 8)
+expect(int(prefixedReturned[0]), 23)
+expect(int(prefixedReturned[1]), 13)
+expect(int(prefixed[0]), 29)
+expect(int(prefixed[1]), 16)

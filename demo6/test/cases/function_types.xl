@@ -1,5 +1,5 @@
-function logger
-function(int, int) -> int binary
-function(string) -> (bool, int) parser
-function(int, ...) -> int variadic
-function(string, ***) options
+func logger
+func(int, int) as int binary
+func(string) as (bool, int) parser
+func(int, ...) as int variadic
+func(string, ***) options

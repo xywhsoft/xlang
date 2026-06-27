@@ -3,11 +3,11 @@
 // 2. 泛型可以有多个类型参数。
 // 3. 泛型 class 和泛型容器可以组合使用。
 
-func identity<T>(T value) -> T
+func identity<T>(T value) as T
     return value
 end
 
-func chooseRight<T, U>(T left, U right) -> U
+func chooseRight<T, U>(T left, U right) as U
     return right
 end
 
@@ -18,7 +18,7 @@ class Box<T>
         self.value = value
     end
 
-    func valueOf() -> T
+    func valueOf() as T
         return self.value
     end
 end
@@ -32,22 +32,22 @@ class Pair
         self.right = right
     end
 
-    func sum() -> int
+    func sum() as int
         return self.left + self.right
     end
 end
 
 typedef MyInt = int
 
-func classify<T>(T value) -> string
+func classify<T>(T value) as string
     return "generic"
 end
 
-func classify(int value) -> string
+func classify(int value) as string
     return "int"
 end
 
-func main(...) -> int
+func main(...) as int
     int explicitInt = identity::<int>(41)
     int inferredInt = identity(42)
     string explicitString = identity::<string>("xlang")

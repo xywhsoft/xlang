@@ -249,7 +249,7 @@ static void xl6CgenEmitFunctionValueInvokeProto(XL6_CgenContext* ctx, const XL6_
     if ( returns != NULL && returns->childCount > 1 ) {
         xl6CgenFunctionReturnStructName(ctx, params, returns);
     } else if ( returns != NULL && returns->childCount == 1 ) {
-        xl6OutputPuts(xl6CgenTypeName(ctx, returns->children[0]), ctx->out);
+        xl6OutputPuts(xl6CgenValueStorageCType(ctx, returns->children[0]), ctx->out);
     } else {
         xl6OutputPuts("void", ctx->out);
     }
@@ -261,7 +261,7 @@ static void xl6CgenEmitFunctionValueInvokeProto(XL6_CgenContext* ctx, const XL6_
         for ( i = 0; i < params->childCount; ++i ) {
             const XL6_AstNode* param = params->children[i];
             xl6OutputPuts(", ", ctx->out);
-            xl6OutputPuts(param != NULL && param->childCount > 0 ? xl6CgenTypeName(ctx, param->children[0]) : "int", ctx->out);
+            xl6OutputPuts(param != NULL && param->childCount > 0 ? xl6CgenValueStorageCType(ctx, param->children[0]) : "int", ctx->out);
             xl6OutputPutc(' ', ctx->out);
             xl6CgenFputsCIdent(ctx->out, param != NULL ? param->text : "_");
         }
@@ -352,7 +352,7 @@ static void xl6CgenEmitFunctionValueVarInvoke(XL6_CgenContext* ctx, const XL6_As
 
     if ( returns != NULL && returns->childCount == 1 ) {
         xl6OutputPuts("    ", ctx->out);
-        xl6OutputPuts(xl6CgenTypeName(ctx, returns->children[0]), ctx->out);
+        xl6OutputPuts(xl6CgenValueStorageCType(ctx, returns->children[0]), ctx->out);
         xl6OutputPuts(" __xl6_result = ", ctx->out);
     } else {
         xl6OutputPuts("    ", ctx->out);
@@ -428,7 +428,7 @@ static void xl6CgenEmitFunctionValueXCall(XL6_CgenContext* ctx, const XL6_AstNod
         }
     } else if ( returns != NULL && returns->childCount == 1 ) {
         xl6OutputPuts("    ", ctx->out);
-        xl6OutputPuts(xl6CgenTypeName(ctx, returns->children[0]), ctx->out);
+        xl6OutputPuts(xl6CgenValueStorageCType(ctx, returns->children[0]), ctx->out);
         xl6OutputPuts(" __xl6_single = ", ctx->out);
         xl6CgenCallableTargetSymbol(ctx, func);
         xl6OutputPutc('(', ctx->out);
@@ -527,7 +527,7 @@ static void xl6CgenEmitFunctionValueAdapterInvokeProto(XL6_CgenContext* ctx, con
     if ( returns != NULL && returns->childCount > 1 ) {
         xl6CgenFunctionReturnStructNameForPrefix(ctx, params, returns, (size_t)paramCount, includeVararg);
     } else if ( returns != NULL && returns->childCount == 1 ) {
-        xl6OutputPuts(xl6CgenTypeName(ctx, returns->children[0]), ctx->out);
+        xl6OutputPuts(xl6CgenValueStorageCType(ctx, returns->children[0]), ctx->out);
     } else {
         xl6OutputPuts("void", ctx->out);
     }
@@ -538,7 +538,7 @@ static void xl6CgenEmitFunctionValueAdapterInvokeProto(XL6_CgenContext* ctx, con
     for ( i = 0; params != NULL && i < paramCount && (size_t)i < params->childCount; ++i ) {
         const XL6_AstNode* param = params->children[i];
         xl6OutputPuts(", ", ctx->out);
-        xl6OutputPuts(param != NULL && param->childCount > 0 ? xl6CgenTypeName(ctx, param->children[0]) : "int", ctx->out);
+        xl6OutputPuts(param != NULL && param->childCount > 0 ? xl6CgenValueStorageCType(ctx, param->children[0]) : "int", ctx->out);
         xl6OutputPutc(' ', ctx->out);
         xl6CgenFputsCIdent(ctx->out, param != NULL ? param->text : "_");
     }
@@ -673,7 +673,7 @@ static void xl6CgenEmitFunctionValueAdapterXCall(XL6_CgenContext* ctx, const XL6
         }
     } else if ( returns != NULL && returns->childCount == 1 ) {
         xl6OutputPuts("    ", ctx->out);
-        xl6OutputPuts(xl6CgenTypeName(ctx, returns->children[0]), ctx->out);
+        xl6OutputPuts(xl6CgenValueStorageCType(ctx, returns->children[0]), ctx->out);
         xl6OutputPuts(" __xl6_single = ", ctx->out);
         xl6CgenFunctionValueAdapterSymbol(ctx, func, paramCount, includeVararg, "_invoke");
         xl6OutputPuts("(__xl6_env", ctx->out);
@@ -720,12 +720,14 @@ static void xl6CgenEmitFunctionValueAdapterMake(XL6_CgenContext* ctx, const XL6_
     xl6CgenFunctionValueAdapterSymbol(ctx, func, paramCount, includeVararg, "_make");
     xl6OutputPuts("(void)\n{\n", ctx->out);
     xl6OutputPuts("    XL6_Function __fn;\n", ctx->out);
-    xl6CgenEmitFunctionSigObjectForCounts(ctx,
+    xl6CgenEmitFunctionSigObjectForPrefix(ctx,
                                           "__xl6_sig",
                                           func->text,
                                           signatureId,
-                                          (unsigned int)(paramCount + (includeVararg ? 1 : 0)),
-                                          (unsigned int)(returns != NULL ? returns->childCount : 0));
+                                          params,
+                                          returns,
+                                          (size_t)paramCount,
+                                          includeVararg);
     xl6OutputPrintf(ctx->out, "    __fn.signature = 0x%016llXULL;\n", signatureId);
     xl6OutputPuts("    __fn.sig = &__xl6_sig;\n", ctx->out);
     xl6OutputPuts("    __fn.env = 0;\n", ctx->out);

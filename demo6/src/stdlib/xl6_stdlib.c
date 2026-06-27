@@ -190,7 +190,7 @@ static const XL6_StdlibParam xl6StdRuntimePathJoinParams[] = {
 
 static const XL6_StdlibParam xl6StdRuntimeHttpServerCreateParams[] = {
     {"c_int", "port"},
-    {"function(string, string, string, string) -> string", "handler"}
+    {"func(string, string, string, string) as string", "handler"}
 };
 
 static const XL6_StdlibParam xl6StdRuntimeHttpServerHandleParams[] = {
@@ -489,7 +489,7 @@ static const XL6_StdlibParam xl6StdXrtHash64SeedParams[] = {
 };
 
 static const char xl6StdMathRoundBody[] =
-    "func __xl_std_math_round(float x) -> float\n"
+    "func __xl_std_math_round(float x) as float\n"
     "    if x >= 0.0 then\n"
     "        return __xl_std_math_floor(x + 0.5)\n"
     "    else\n"
@@ -498,27 +498,27 @@ static const char xl6StdMathRoundBody[] =
     "end\n";
 
 static const char xl6StdStringCompareBody[] =
-    "func __xl_std_string_compare(string left, string right, bool ignoreCase = false) -> int\n"
+    "func __xl_std_string_compare(string left, string right, bool ignoreCase = false) as int\n"
     "    return __xl_std_xrt_str_comp(left, right, 0, ignoreCase)\n"
     "end\n";
 
 static const char xl6StdStringLenBody[] =
-    "func __xl_std_string_len(string text) -> int\n"
+    "func __xl_std_string_len(string text) as int\n"
     "    return int(__xl_std_crt_strlen(text))\n"
     "end\n";
 
 static const char xl6StdStringEqualsBody[] =
-    "func __xl_std_string_equals(string left, string right, bool ignoreCase = false) -> bool\n"
+    "func __xl_std_string_equals(string left, string right, bool ignoreCase = false) as bool\n"
     "    return __xl_std_xrt_str_comp(left, right, 0, ignoreCase) == 0\n"
     "end\n";
 
 static const char xl6StdStringContainsBody[] =
-    "func __xl_std_string_contains(string text, string part, bool ignoreCase = false) -> bool\n"
+    "func __xl_std_string_contains(string text, string part, bool ignoreCase = false) as bool\n"
     "    return __xl_std_xrt_in_str(text, 0, part, 0, ignoreCase) != 0\n"
     "end\n";
 
 static const char xl6StdStringIndexOfBody[] =
-    "func __xl_std_string_index_of(string text, string part, bool ignoreCase = false) -> int\n"
+    "func __xl_std_string_index_of(string text, string part, bool ignoreCase = false) as int\n"
     "    int pos = __xl_std_xrt_in_str(text, 0, part, 0, ignoreCase)\n"
     "    if pos == 0 then\n"
     "        return -1\n"
@@ -527,282 +527,282 @@ static const char xl6StdStringIndexOfBody[] =
     "end\n";
 
 static const char xl6StdStringStartsWithBody[] =
-    "func __xl_std_string_starts_with(string text, string prefix, bool ignoreCase = false) -> bool\n"
+    "func __xl_std_string_starts_with(string text, string prefix, bool ignoreCase = false) as bool\n"
     "    return __xl_std_runtime_string_starts_with(text, __xl_std_crt_strlen(text), prefix, __xl_std_crt_strlen(prefix), ignoreCase)\n"
     "end\n";
 
 static const char xl6StdStringEndsWithBody[] =
-    "func __xl_std_string_ends_with(string text, string suffix, bool ignoreCase = false) -> bool\n"
+    "func __xl_std_string_ends_with(string text, string suffix, bool ignoreCase = false) as bool\n"
     "    return __xl_std_runtime_string_ends_with(text, __xl_std_crt_strlen(text), suffix, __xl_std_crt_strlen(suffix), ignoreCase)\n"
     "end\n";
 
 static const char xl6StdStringHasAnyBody[] =
-    "func __xl_std_string_has_any(string text, string chars) -> bool\n"
+    "func __xl_std_string_has_any(string text, string chars) as bool\n"
     "    return __xl_std_xrt_check_str(text, 0, chars, 0) != null\n"
     "end\n";
 
 static const char xl6StdStringLikeBody[] =
-    "func __xl_std_string_like(string text, string pattern, bool ignoreCase = false) -> bool\n"
+    "func __xl_std_string_like(string text, string pattern, bool ignoreCase = false) as bool\n"
     "    return __xl_std_xrt_str_like(text, 0, pattern, 0, ignoreCase)\n"
     "end\n";
 
 static const char xl6StdStringApproxBody[] =
-    "func __xl_std_string_approx(string left, string right) -> bool\n"
+    "func __xl_std_string_approx(string left, string right) as bool\n"
     "    return __xl_std_xrt_str_approx(left, 0, right, 0)\n"
     "end\n";
 
 static const char xl6StdStringSimBody[] =
-    "func __xl_std_string_sim(string left, string right) -> float\n"
+    "func __xl_std_string_sim(string left, string right) as float\n"
     "    return float(__xl_std_xrt_str_sim(left, 0, right, 0))\n"
     "end\n";
 
 static const char xl6StdStringIsUtf8Body[] =
-    "func __xl_std_string_is_utf8(string text) -> bool\n"
+    "func __xl_std_string_is_utf8(string text) as bool\n"
     "    return __xl_std_xrt_is_utf8(text, 0)\n"
     "end\n";
 
 static const char xl6StdStringFormatIntBody[] =
-    "func __xl_std_string_format_int(int value, string format = \"\") -> string\n"
+    "func __xl_std_string_format_int(int value, string format = \"\") as string\n"
     "    return __xl_std_runtime_take_cstr(__xl_std_xrt_int_format(value, format))\n"
     "end\n";
 
 static const char xl6StdStringFormatFloatBody[] =
-    "func __xl_std_string_format_float(float value, string format = \"\") -> string\n"
+    "func __xl_std_string_format_float(float value, string format = \"\") as string\n"
     "    return __xl_std_runtime_take_cstr(__xl_std_xrt_num_format(value, format))\n"
     "end\n";
 
 static const char xl6StdStringLowerBody[] =
-    "func __xl_std_string_lower(string text) -> string\n"
+    "func __xl_std_string_lower(string text) as string\n"
     "    return __xl_std_runtime_take_cstr(__xl_std_xrt_lcase(text, 0, false))\n"
     "end\n";
 
 static const char xl6StdStringUpperBody[] =
-    "func __xl_std_string_upper(string text) -> string\n"
+    "func __xl_std_string_upper(string text) as string\n"
     "    return __xl_std_runtime_take_cstr(__xl_std_xrt_ucase(text, 0, false))\n"
     "end\n";
 
 static const char xl6StdStringTrimBody[] =
-    "func __xl_std_string_trim(string text, string chars = \"\") -> string\n"
+    "func __xl_std_string_trim(string text, string chars = \"\") as string\n"
     "    return __xl_std_runtime_take_cstr(__xl_std_xrt_trim(text, 0, chars, 0, false, null))\n"
     "end\n";
 
 static const char xl6StdStringLTrimBody[] =
-    "func __xl_std_string_ltrim(string text, string chars = \"\") -> string\n"
+    "func __xl_std_string_ltrim(string text, string chars = \"\") as string\n"
     "    return __xl_std_runtime_take_cstr(__xl_std_xrt_ltrim(text, 0, chars, 0, false, null))\n"
     "end\n";
 
 static const char xl6StdStringRTrimBody[] =
-    "func __xl_std_string_rtrim(string text, string chars = \"\") -> string\n"
+    "func __xl_std_string_rtrim(string text, string chars = \"\") as string\n"
     "    return __xl_std_runtime_take_cstr(__xl_std_xrt_rtrim(text, 0, chars, 0, false, null))\n"
     "end\n";
 
 static const char xl6StdStringFilterBody[] =
-    "func __xl_std_string_filter(string text, string chars) -> string\n"
+    "func __xl_std_string_filter(string text, string chars) as string\n"
     "    return __xl_std_runtime_take_cstr(__xl_std_xrt_filter(text, 0, chars, 0, false, null))\n"
     "end\n";
 
 static const char xl6StdStringReplaceBody[] =
-    "func __xl_std_string_replace(string text, string oldText, string newText) -> string\n"
+    "func __xl_std_string_replace(string text, string oldText, string newText) as string\n"
     "    return __xl_std_runtime_take_cstr(__xl_std_xrt_replace(text, 0, oldText, 0, newText, 0, null))\n"
     "end\n";
 
 static const char xl6StdStringSplitBody[] =
-    "func __xl_std_string_split(string text, string sep) -> array\n"
+    "func __xl_std_string_split(string text, string sep) as array\n"
     "    return array(__xl_std_runtime_string_split(text, sep))\n"
     "end\n";
 
 static const char xl6StdRegexIsMatchBody[] =
-    "func __xl_std_regex_is_match(string text, string pattern) -> bool\n"
+    "func __xl_std_regex_is_match(string text, string pattern) as bool\n"
     "    return __xl_std_runtime_regex_is_match(text, __xl_std_crt_strlen(text), pattern)\n"
     "end\n";
 
 static const char xl6StdRegexFindBody[] =
-    "func __xl_std_regex_find(string text, string pattern) -> int\n"
+    "func __xl_std_regex_find(string text, string pattern) as int\n"
     "    return int(__xl_std_runtime_regex_find(text, __xl_std_crt_strlen(text), pattern))\n"
     "end\n";
 
 static const char xl6StdProcessExecBody[] =
-    "func __xl_std_process_exec(string command, int timeoutMs = 0) -> string\n"
+    "func __xl_std_process_exec(string command, int timeoutMs = 0) as string\n"
     "    return __xl_std_runtime_take_cstr(__xl_std_runtime_process_exec(command, c_int(timeoutMs)))\n"
     "end\n";
 
 static const char xl6StdProcessSuccessBody[] =
-    "func __xl_std_process_success(string command, int timeoutMs = 0) -> bool\n"
+    "func __xl_std_process_success(string command, int timeoutMs = 0) as bool\n"
     "    return __xl_std_runtime_process_success(command, c_int(timeoutMs))\n"
     "end\n";
 
 static const char xl6StdProcessExitCodeBody[] =
-    "func __xl_std_process_exit_code(string command, int timeoutMs = 0) -> int\n"
+    "func __xl_std_process_exit_code(string command, int timeoutMs = 0) as int\n"
     "    return int(__xl_std_runtime_process_exit_code(command, c_int(timeoutMs)))\n"
     "end\n";
 
 static const char xl6StdTimeFromDateTimeBody[] =
-    "func __xl_std_time_from_datetime(int year, int month, int day, int hour = 0, int minute = 0, int second = 0) -> time\n"
+    "func __xl_std_time_from_datetime(int year, int month, int day, int hour = 0, int minute = 0, int second = 0) as time\n"
     "    return time(__xl_std_xrt_datetime_serial(year, month, day, hour, minute, second))\n"
     "end\n";
 
 static const char xl6StdTimeNowBody[] =
-    "func __xl_std_time_now() -> time\n"
+    "func __xl_std_time_now() as time\n"
     "    return time(__xl_std_xrt_now())\n"
     "end\n";
 
 static const char xl6StdTimeTodayBody[] =
-    "func __xl_std_time_today() -> time\n"
+    "func __xl_std_time_today() as time\n"
     "    return time(__xl_std_xrt_date())\n"
     "end\n";
 
 static const char xl6StdTimeClockBody[] =
-    "func __xl_std_time_clock() -> time\n"
+    "func __xl_std_time_clock() as time\n"
     "    return time(__xl_std_xrt_time())\n"
     "end\n";
 
 static const char xl6StdTimeFromTimeBody[] =
-    "func __xl_std_time_from_time(int hour, int minute, int second) -> time\n"
+    "func __xl_std_time_from_time(int hour, int minute, int second) as time\n"
     "    return time(__xl_std_xrt_time_serial(hour, minute, second))\n"
     "end\n";
 
 static const char xl6StdTimeFromDateBody[] =
-    "func __xl_std_time_from_date(int year, int month, int day) -> time\n"
+    "func __xl_std_time_from_date(int year, int month, int day) as time\n"
     "    return time(__xl_std_xrt_date_serial(year, month, day))\n"
     "end\n";
 
 static const char xl6StdTimeParseBody[] =
-    "func __xl_std_time_parse(string text) -> time\n"
+    "func __xl_std_time_parse(string text) as time\n"
     "    return time(__xl_std_xrt_str_to_time(text, 0))\n"
     "end\n";
 
 static const char xl6StdTimeParsePatternBody[] =
-    "func __xl_std_time_parse_pattern(string text, string pattern) -> time\n"
+    "func __xl_std_time_parse_pattern(string text, string pattern) as time\n"
     "    return time(__xl_std_xrt_time_parse(text, pattern))\n"
     "end\n";
 
 static const char xl6StdTimeYearBody[] =
-    "func __xl_std_time_year(time value) -> int\n"
+    "func __xl_std_time_year(time value) as int\n"
     "    return __xl_std_xrt_year(int(value))\n"
     "end\n";
 
 static const char xl6StdTimeMonthBody[] =
-    "func __xl_std_time_month(time value) -> int\n"
+    "func __xl_std_time_month(time value) as int\n"
     "    return __xl_std_xrt_month(int(value))\n"
     "end\n";
 
 static const char xl6StdTimeDayBody[] =
-    "func __xl_std_time_day(time value) -> int\n"
+    "func __xl_std_time_day(time value) as int\n"
     "    return __xl_std_xrt_day(int(value))\n"
     "end\n";
 
 static const char xl6StdTimeHourBody[] =
-    "func __xl_std_time_hour(time value) -> int\n"
+    "func __xl_std_time_hour(time value) as int\n"
     "    return __xl_std_xrt_hour(int(value))\n"
     "end\n";
 
 static const char xl6StdTimeMinuteBody[] =
-    "func __xl_std_time_minute(time value) -> int\n"
+    "func __xl_std_time_minute(time value) as int\n"
     "    return __xl_std_xrt_minute(int(value))\n"
     "end\n";
 
 static const char xl6StdTimeSecondBody[] =
-    "func __xl_std_time_second(time value) -> int\n"
+    "func __xl_std_time_second(time value) as int\n"
     "    return __xl_std_xrt_second(int(value))\n"
     "end\n";
 
 static const char xl6StdTimeWeekdayBody[] =
-    "func __xl_std_time_weekday(time value) -> int\n"
+    "func __xl_std_time_weekday(time value) as int\n"
     "    return __xl_std_xrt_weekday(int(value))\n"
     "end\n";
 
 static const char xl6StdTimeDayOfYearBody[] =
-    "func __xl_std_time_day_of_year(time value) -> int\n"
+    "func __xl_std_time_day_of_year(time value) as int\n"
     "    return __xl_std_xrt_day_of_year(int(value))\n"
     "end\n";
 
 static const char xl6StdTimeQuarterBody[] =
-    "func __xl_std_time_quarter(time value) -> int\n"
+    "func __xl_std_time_quarter(time value) as int\n"
     "    return __xl_std_xrt_quarter(int(value))\n"
     "end\n";
 
 static const char xl6StdTimeIsLeapYearBody[] =
-    "func __xl_std_time_is_leap_year(int year) -> bool\n"
+    "func __xl_std_time_is_leap_year(int year) as bool\n"
     "    return __xl_std_xrt_is_leap_year(c_int(year))\n"
     "end\n";
 
 static const char xl6StdTimeDaysInMonthBody[] =
-    "func __xl_std_time_days_in_month(int year, int month) -> int\n"
+    "func __xl_std_time_days_in_month(int year, int month) as int\n"
     "    return int(__xl_std_xrt_days_in_month(c_int(year), c_int(month)))\n"
     "end\n";
 
 static const char xl6StdTimeDaysInYearBody[] =
-    "func __xl_std_time_days_in_year(int year) -> int\n"
+    "func __xl_std_time_days_in_year(int year) as int\n"
     "    return int(__xl_std_xrt_days_in_year(c_int(year)))\n"
     "end\n";
 
 static const char xl6StdTimeDatePartBody[] =
-    "func __xl_std_time_date_part(time value) -> time\n"
+    "func __xl_std_time_date_part(time value) as time\n"
     "    return time(__xl_std_xrt_date_part(int(value)))\n"
     "end\n";
 
 static const char xl6StdTimeTimePartBody[] =
-    "func __xl_std_time_time_part(time value) -> time\n"
+    "func __xl_std_time_time_part(time value) as time\n"
     "    return time(__xl_std_xrt_time_part(int(value)))\n"
     "end\n";
 
 static const char xl6StdTimeIsSameDayBody[] =
-    "func __xl_std_time_is_same_day(time left, time right) -> bool\n"
+    "func __xl_std_time_is_same_day(time left, time right) as bool\n"
     "    return __xl_std_xrt_is_same_day(int(left), int(right))\n"
     "end\n";
 
 static const char xl6StdTimeIsSameMonthBody[] =
-    "func __xl_std_time_is_same_month(time left, time right) -> bool\n"
+    "func __xl_std_time_is_same_month(time left, time right) as bool\n"
     "    return __xl_std_xrt_is_same_month(int(left), int(right))\n"
     "end\n";
 
 static const char xl6StdTimeIsSameYearBody[] =
-    "func __xl_std_time_is_same_year(time left, time right) -> bool\n"
+    "func __xl_std_time_is_same_year(time left, time right) as bool\n"
     "    return __xl_std_xrt_is_same_year(int(left), int(right))\n"
     "end\n";
 
 static const char xl6StdTimeInRangeBody[] =
-    "func __xl_std_time_in_range(time value, time start, time endValue) -> bool\n"
+    "func __xl_std_time_in_range(time value, time start, time endValue) as bool\n"
     "    return __xl_std_xrt_time_in_range(int(value), int(start), int(endValue))\n"
     "end\n";
 
 static const char xl6StdTimeAddYearsBody[] =
-    "func __xl_std_time_add_years(time value, int amount) -> time\n"
+    "func __xl_std_time_add_years(time value, int amount) as time\n"
     "    return time(__xl_std_xrt_date_add(1, amount, int(value)))\n"
     "end\n";
 
 static const char xl6StdTimeAddMonthsBody[] =
-    "func __xl_std_time_add_months(time value, int amount) -> time\n"
+    "func __xl_std_time_add_months(time value, int amount) as time\n"
     "    return time(__xl_std_xrt_date_add(2, amount, int(value)))\n"
     "end\n";
 
 static const char xl6StdTimeAddDaysBody[] =
-    "func __xl_std_time_add_days(time value, int amount) -> time\n"
+    "func __xl_std_time_add_days(time value, int amount) as time\n"
     "    return time(__xl_std_xrt_date_add(3, amount, int(value)))\n"
     "end\n";
 
 static const char xl6StdTimeAddHoursBody[] =
-    "func __xl_std_time_add_hours(time value, int amount) -> time\n"
+    "func __xl_std_time_add_hours(time value, int amount) as time\n"
     "    return time(__xl_std_xrt_date_add(4, amount, int(value)))\n"
     "end\n";
 
 static const char xl6StdTimeAddMinutesBody[] =
-    "func __xl_std_time_add_minutes(time value, int amount) -> time\n"
+    "func __xl_std_time_add_minutes(time value, int amount) as time\n"
     "    return time(__xl_std_xrt_date_add(5, amount, int(value)))\n"
     "end\n";
 
 static const char xl6StdTimeAddSecondsBody[] =
-    "func __xl_std_time_add_seconds(time value, int amount) -> time\n"
+    "func __xl_std_time_add_seconds(time value, int amount) as time\n"
     "    return time(__xl_std_xrt_date_add(6, amount, int(value)))\n"
     "end\n";
 
 static const char xl6StdTimeDiffDaysBody[] =
-    "func __xl_std_time_diff_days(time left, time right) -> int\n"
+    "func __xl_std_time_diff_days(time left, time right) as int\n"
     "    return __xl_std_xrt_date_diff(3, int(left), int(right))\n"
     "end\n";
 
 static const char xl6StdTimeTimerBody[] =
-    "func __xl_std_time_timer() -> float\n"
+    "func __xl_std_time_timer() as float\n"
     "    return __xl_std_xrt_timer()\n"
     "end\n";
 
@@ -812,122 +812,122 @@ static const char xl6StdTimeSleepBody[] =
     "end\n";
 
 static const char xl6StdTimeNowUtcBody[] =
-    "func __xl_std_time_now_utc() -> time\n"
+    "func __xl_std_time_now_utc() as time\n"
     "    return time(__xl_std_xrt_now_utc())\n"
     "end\n";
 
 static const char xl6StdTimeTimezoneOffsetBody[] =
-    "func __xl_std_time_timezone_offset() -> int\n"
+    "func __xl_std_time_timezone_offset() as int\n"
     "    return __xl_std_xrt_timezone_offset()\n"
     "end\n";
 
 static const char xl6StdTimeRangeOverlapBody[] =
-    "func __xl_std_time_range_overlap(time start1, time end1, time start2, time end2) -> bool\n"
+    "func __xl_std_time_range_overlap(time start1, time end1, time start2, time end2) as bool\n"
     "    return __xl_std_xrt_time_range_overlap(int(start1), int(end1), int(start2), int(end2))\n"
     "end\n";
 
 static const char xl6StdTimeApproxBody[] =
-    "func __xl_std_time_approx(time left, time right) -> bool\n"
+    "func __xl_std_time_approx(time left, time right) as bool\n"
     "    return __xl_std_xrt_time_approx(int(left), int(right))\n"
     "end\n";
 
 static const char xl6StdTimeToUnixBody[] =
-    "func __xl_std_time_to_unix(time value) -> int\n"
+    "func __xl_std_time_to_unix(time value) as int\n"
     "    return __xl_std_xrt_time_to_unix(int(value))\n"
     "end\n";
 
 static const char xl6StdTimeFromUnixBody[] =
-    "func __xl_std_time_from_unix(int seconds) -> time\n"
+    "func __xl_std_time_from_unix(int seconds) as time\n"
     "    return time(__xl_std_xrt_time_from_unix(seconds))\n"
     "end\n";
 
 static const char xl6StdTimeUtcToLocalBody[] =
-    "func __xl_std_time_utc_to_local(time value) -> time\n"
+    "func __xl_std_time_utc_to_local(time value) as time\n"
     "    return time(__xl_std_xrt_utc_to_local(int(value)))\n"
     "end\n";
 
 static const char xl6StdTimeLocalToUtcBody[] =
-    "func __xl_std_time_local_to_utc(time value) -> time\n"
+    "func __xl_std_time_local_to_utc(time value) as time\n"
     "    return time(__xl_std_xrt_local_to_utc(int(value)))\n"
     "end\n";
 
 static const char xl6StdTimeFirstDayOfMonthBody[] =
-    "func __xl_std_time_first_day_of_month(time value) -> time\n"
+    "func __xl_std_time_first_day_of_month(time value) as time\n"
     "    return time(__xl_std_xrt_first_day_of_month(int(value)))\n"
     "end\n";
 
 static const char xl6StdTimeLastDayOfMonthBody[] =
-    "func __xl_std_time_last_day_of_month(time value) -> time\n"
+    "func __xl_std_time_last_day_of_month(time value) as time\n"
     "    return time(__xl_std_xrt_last_day_of_month(int(value)))\n"
     "end\n";
 
 static const char xl6StdTimeFirstDayOfYearBody[] =
-    "func __xl_std_time_first_day_of_year(time value) -> time\n"
+    "func __xl_std_time_first_day_of_year(time value) as time\n"
     "    return time(__xl_std_xrt_first_day_of_year(int(value)))\n"
     "end\n";
 
 static const char xl6StdTimeLastDayOfYearBody[] =
-    "func __xl_std_time_last_day_of_year(time value) -> time\n"
+    "func __xl_std_time_last_day_of_year(time value) as time\n"
     "    return time(__xl_std_xrt_last_day_of_year(int(value)))\n"
     "end\n";
 
 static const char xl6StdTimeFirstDayOfWeekBody[] =
-    "func __xl_std_time_first_day_of_week(time value, int startDay = 1) -> time\n"
+    "func __xl_std_time_first_day_of_week(time value, int startDay = 1) as time\n"
     "    return time(__xl_std_xrt_first_day_of_week(int(value), startDay))\n"
     "end\n";
 
 static const char xl6StdTimeLastDayOfWeekBody[] =
-    "func __xl_std_time_last_day_of_week(time value, int startDay = 1) -> time\n"
+    "func __xl_std_time_last_day_of_week(time value, int startDay = 1) as time\n"
     "    return time(__xl_std_xrt_last_day_of_week(int(value), startDay))\n"
     "end\n";
 
 static const char xl6StdTimeWeekOfYearBody[] =
-    "func __xl_std_time_week_of_year(time value) -> int\n"
+    "func __xl_std_time_week_of_year(time value) as int\n"
     "    return __xl_std_xrt_week_of_year(int(value))\n"
     "end\n";
 
 static const char xl6StdTimeWeekOfMonthBody[] =
-    "func __xl_std_time_week_of_month(time value) -> int\n"
+    "func __xl_std_time_week_of_month(time value) as int\n"
     "    return __xl_std_xrt_week_of_month(int(value))\n"
     "end\n";
 
 static const char xl6StdTimeFormatBody[] =
-    "func __xl_std_time_format(time value, int format = 0) -> string\n"
+    "func __xl_std_time_format(time value, int format = 0) as string\n"
     "    return __xl_std_runtime_take_cstr(__xl_std_xrt_time_to_str(int(value), format))\n"
     "end\n";
 
 static const char xl6StdTimeFormatPatternBody[] =
-    "func __xl_std_time_format_pattern(time value, string pattern) -> string\n"
+    "func __xl_std_time_format_pattern(time value, string pattern) as string\n"
     "    return __xl_std_runtime_take_cstr(__xl_std_xrt_time_format(int(value), pattern))\n"
     "end\n";
 
 static const char xl6StdTimeDateStringBody[] =
-    "func __xl_std_time_date_string(time value) -> string\n"
+    "func __xl_std_time_date_string(time value) as string\n"
     "    return __xl_std_runtime_take_cstr(__xl_std_xrt_time_to_str(int(value), 1))\n"
     "end\n";
 
 static const char xl6StdTimeTimeStringBody[] =
-    "func __xl_std_time_time_string(time value) -> string\n"
+    "func __xl_std_time_time_string(time value) as string\n"
     "    return __xl_std_runtime_take_cstr(__xl_std_xrt_time_to_str(int(value), 2))\n"
     "end\n";
 
 static const char xl6StdRandomU32Body[] =
-    "func __xl_std_random_u32() -> uint32\n"
+    "func __xl_std_random_u32() as uint32\n"
     "    return uint32(__xl_std_xrt_rand32())\n"
     "end\n";
 
 static const char xl6StdRandomU64Body[] =
-    "func __xl_std_random_u64() -> uint64\n"
+    "func __xl_std_random_u64() as uint64\n"
     "    return uint64(__xl_std_xrt_rand64())\n"
     "end\n";
 
 static const char xl6StdRandomRangeBody[] =
-    "func __xl_std_random_range(int min, int max) -> int\n"
+    "func __xl_std_random_range(int min, int max) as int\n"
     "    return __xl_std_xrt_rand_range(min, max)\n"
     "end\n";
 
 static const char xl6StdRandomStringBody[] =
-    "func __xl_std_random_string(int len = 16, string chars = \"\") -> string\n"
+    "func __xl_std_random_string(int len = 16, string chars = \"\") as string\n"
     "    if len < 0 then\n"
     "        return \"\"\n"
     "    end\n"
@@ -935,42 +935,42 @@ static const char xl6StdRandomStringBody[] =
     "end\n";
 
 static const char xl6StdPathExistsBody[] =
-    "func __xl_std_path_exists(string path) -> bool\n"
+    "func __xl_std_path_exists(string path) as bool\n"
     "    return __xl_std_xrt_path_exists(path)\n"
     "end\n";
 
 static const char xl6StdPathIsAbsBody[] =
-    "func __xl_std_path_is_abs(string path) -> bool\n"
+    "func __xl_std_path_is_abs(string path) as bool\n"
     "    return __xl_std_xrt_path_is_abs(path, 0)\n"
     "end\n";
 
 static const char xl6StdPathNameExtBody[] =
-    "func __xl_std_path_name_ext(string path) -> string\n"
+    "func __xl_std_path_name_ext(string path) as string\n"
     "    return __xl_std_runtime_take_cstr(__xl_std_xrt_path_get_name_ext(path, 0))\n"
     "end\n";
 
 static const char xl6StdPathNameBody[] =
-    "func __xl_std_path_name(string path) -> string\n"
+    "func __xl_std_path_name(string path) as string\n"
     "    return __xl_std_runtime_take_cstr(__xl_std_xrt_path_get_name(path, 0))\n"
     "end\n";
 
 static const char xl6StdPathExtBody[] =
-    "func __xl_std_path_ext(string path) -> string\n"
+    "func __xl_std_path_ext(string path) as string\n"
     "    return __xl_std_runtime_take_cstr(__xl_std_xrt_path_get_ext(path, 0))\n"
     "end\n";
 
 static const char xl6StdPathDirBody[] =
-    "func __xl_std_path_dir(string path) -> string\n"
+    "func __xl_std_path_dir(string path) as string\n"
     "    return __xl_std_runtime_take_cstr(__xl_std_xrt_path_get_dir(path, 0))\n"
     "end\n";
 
 static const char xl6StdPathJoinBody[] =
-    "func __xl_std_path_join(string first, string second, string third = \"\", string fourth = \"\") -> string\n"
+    "func __xl_std_path_join(string first, string second, string third = \"\", string fourth = \"\") as string\n"
     "    return __xl_std_runtime_take_cstr(__xl_std_runtime_path_join(first, second, third, fourth))\n"
     "end\n";
 
 static const char xl6StdPathRandomBody[] =
-    "func __xl_std_path_random(string head = \"\", string foot = \"\", int len = 12) -> string\n"
+    "func __xl_std_path_random(string head = \"\", string foot = \"\", int len = 12) as string\n"
     "    if len < 0 then\n"
     "        return \"\"\n"
     "    end\n"
@@ -978,87 +978,87 @@ static const char xl6StdPathRandomBody[] =
     "end\n";
 
 static const char xl6StdFileExistsBody[] =
-    "func __xl_std_file_exists(string path) -> bool\n"
+    "func __xl_std_file_exists(string path) as bool\n"
     "    return __xl_std_xrt_file_exists(path)\n"
     "end\n";
 
 static const char xl6StdFileSizeBody[] =
-    "func __xl_std_file_size(string path) -> int\n"
+    "func __xl_std_file_size(string path) as int\n"
     "    return int(__xl_std_xrt_file_get_size(path))\n"
     "end\n";
 
 static const char xl6StdFileSetSizeBody[] =
-    "func __xl_std_file_set_size(string path, int size) -> bool\n"
+    "func __xl_std_file_set_size(string path, int size) as bool\n"
     "    return __xl_std_xrt_file_set_size(path, size)\n"
     "end\n";
 
 static const char xl6StdFileAttrBody[] =
-    "func __xl_std_file_attr(string path) -> int\n"
+    "func __xl_std_file_attr(string path) as int\n"
     "    return __xl_std_xrt_file_get_attr(path)\n"
     "end\n";
 
 static const char xl6StdFileSetAttrBody[] =
-    "func __xl_std_file_set_attr(string path, int attr) -> bool\n"
+    "func __xl_std_file_set_attr(string path, int attr) as bool\n"
     "    return __xl_std_xrt_file_set_attr(path, attr)\n"
     "end\n";
 
 static const char xl6StdFileAccessTimeBody[] =
-    "func __xl_std_file_access_time(string path) -> time\n"
+    "func __xl_std_file_access_time(string path) as time\n"
     "    return time(__xl_std_xrt_file_get_access_time(path))\n"
     "end\n";
 
 static const char xl6StdFileChangeTimeBody[] =
-    "func __xl_std_file_change_time(string path) -> time\n"
+    "func __xl_std_file_change_time(string path) as time\n"
     "    return time(__xl_std_xrt_file_get_change_time(path))\n"
     "end\n";
 
 static const char xl6StdFileWriteTextBody[] =
-    "func __xl_std_file_write_text(string path, string text, int charset = 65001) -> bool\n"
+    "func __xl_std_file_write_text(string path, string text, int charset = 65001) as bool\n"
     "    return __xl_std_xrt_file_write_all(path, text, 0, charset) != 0\n"
     "end\n";
 
 static const char xl6StdFileAppendTextBody[] =
-    "func __xl_std_file_append_text(string path, string text, int charset = 65001) -> bool\n"
+    "func __xl_std_file_append_text(string path, string text, int charset = 65001) as bool\n"
     "    return __xl_std_xrt_file_append(path, text, 0, charset) != 0\n"
     "end\n";
 
 static const char xl6StdFileReadTextBody[] =
-    "func __xl_std_file_read_text(string path, int charset = 65001) -> string\n"
+    "func __xl_std_file_read_text(string path, int charset = 65001) as string\n"
     "    return __xl_std_runtime_take_cstr(__xl_std_xrt_file_read_all(path, charset, null))\n"
     "end\n";
 
 static const char xl6StdFileCopyBody[] =
-    "func __xl_std_file_copy(string source, string target, bool overwrite = true) -> bool\n"
+    "func __xl_std_file_copy(string source, string target, bool overwrite = true) as bool\n"
     "    return __xl_std_xrt_file_copy(source, target, overwrite)\n"
     "end\n";
 
 static const char xl6StdFileMoveBody[] =
-    "func __xl_std_file_move(string source, string target, bool overwrite = true) -> bool\n"
+    "func __xl_std_file_move(string source, string target, bool overwrite = true) as bool\n"
     "    return __xl_std_xrt_file_move(source, target, overwrite)\n"
     "end\n";
 
 static const char xl6StdFileDeleteBody[] =
-    "func __xl_std_file_delete(string path) -> bool\n"
+    "func __xl_std_file_delete(string path) as bool\n"
     "    return __xl_std_xrt_file_delete(path)\n"
     "end\n";
 
 static const char xl6StdDirExistsBody[] =
-    "func __xl_std_dir_exists(string path) -> bool\n"
+    "func __xl_std_dir_exists(string path) as bool\n"
     "    return __xl_std_xrt_dir_exists(path)\n"
     "end\n";
 
 static const char xl6StdDirCreateBody[] =
-    "func __xl_std_dir_create(string path) -> bool\n"
+    "func __xl_std_dir_create(string path) as bool\n"
     "    return __xl_std_xrt_dir_create(path)\n"
     "end\n";
 
 static const char xl6StdDirCreateAllBody[] =
-    "func __xl_std_dir_create_all(string path) -> bool\n"
+    "func __xl_std_dir_create_all(string path) as bool\n"
     "    return __xl_std_xrt_dir_create_all(path)\n"
     "end\n";
 
 static const char xl6StdDirCopyBody[] =
-    "func __xl_std_dir_copy(string source, string target, bool overwrite = true) -> bool\n"
+    "func __xl_std_dir_copy(string source, string target, bool overwrite = true) as bool\n"
     "    if not __xl_std_xrt_dir_exists(source) then\n"
     "        return false\n"
     "    end\n"
@@ -1067,7 +1067,7 @@ static const char xl6StdDirCopyBody[] =
     "end\n";
 
 static const char xl6StdDirMoveBody[] =
-    "func __xl_std_dir_move(string source, string target, bool overwrite = true) -> bool\n"
+    "func __xl_std_dir_move(string source, string target, bool overwrite = true) as bool\n"
     "    if not __xl_std_xrt_dir_exists(source) then\n"
     "        return false\n"
     "    end\n"
@@ -1076,7 +1076,7 @@ static const char xl6StdDirMoveBody[] =
     "end\n";
 
 static const char xl6StdDirDeleteBody[] =
-    "func __xl_std_dir_delete(string path) -> bool\n"
+    "func __xl_std_dir_delete(string path) as bool\n"
     "    if not __xl_std_xrt_dir_exists(path) then\n"
     "        return false\n"
     "    end\n"
@@ -1085,247 +1085,247 @@ static const char xl6StdDirDeleteBody[] =
     "end\n";
 
 static const char xl6StdDirListBody[] =
-    "func __xl_std_dir_list(string path, bool recursive = false) -> array\n"
+    "func __xl_std_dir_list(string path, bool recursive = false) as array\n"
     "    return array(__xl_std_runtime_dir_list(path, recursive, 0))\n"
     "end\n";
 
 static const char xl6StdDirFilesBody[] =
-    "func __xl_std_dir_files(string path, bool recursive = false) -> array\n"
+    "func __xl_std_dir_files(string path, bool recursive = false) as array\n"
     "    return array(__xl_std_runtime_dir_list(path, recursive, 1))\n"
     "end\n";
 
 static const char xl6StdDirDirsBody[] =
-    "func __xl_std_dir_dirs(string path, bool recursive = false) -> array\n"
+    "func __xl_std_dir_dirs(string path, bool recursive = false) as array\n"
     "    return array(__xl_std_runtime_dir_list(path, recursive, 2))\n"
     "end\n";
 
 static const char xl6StdJsonParseBody[] =
-    "func __xl_std_json_parse(string text) -> var\n"
+    "func __xl_std_json_parse(string text) as var\n"
     "    return __xl_std_xrt_json_parse(text, 0)\n"
     "end\n";
 
 static const char xl6StdJsonReadBody[] =
-    "func __xl_std_json_read(string path) -> var\n"
+    "func __xl_std_json_read(string path) as var\n"
     "    return __xl_std_xrt_json_parse_file(path)\n"
     "end\n";
 
 static const char xl6StdJsonStringifyBody[] =
-    "func __xl_std_json_stringify(var value, bool pretty = false) -> string\n"
+    "func __xl_std_json_stringify(var value, bool pretty = false) as string\n"
     "    return __xl_std_runtime_take_cstr(__xl_std_xrt_json_stringify(value, int(pretty), null))\n"
     "end\n";
 
 static const char xl6StdJsonWriteBody[] =
-    "func __xl_std_json_write(string path, var value, bool pretty = false) -> bool\n"
+    "func __xl_std_json_write(string path, var value, bool pretty = false) as bool\n"
     "    return __xl_std_xrt_json_write_file(path, value, int(pretty)) != 0\n"
     "end\n";
 
 static const char xl6StdXsonParseBody[] =
-    "func __xl_std_xson_parse(string text) -> var\n"
+    "func __xl_std_xson_parse(string text) as var\n"
     "    return __xl_std_xrt_xson_parse(text, 0)\n"
     "end\n";
 
 static const char xl6StdXsonReadBody[] =
-    "func __xl_std_xson_read(string path) -> var\n"
+    "func __xl_std_xson_read(string path) as var\n"
     "    return __xl_std_xrt_xson_parse_file(path)\n"
     "end\n";
 
 static const char xl6StdXsonStringifyBody[] =
-    "func __xl_std_xson_stringify(var value, bool pretty = false) -> string\n"
+    "func __xl_std_xson_stringify(var value, bool pretty = false) as string\n"
     "    return __xl_std_runtime_take_cstr(__xl_std_xrt_xson_stringify(value, int(pretty), 0, null))\n"
     "end\n";
 
 static const char xl6StdXsonWriteBody[] =
-    "func __xl_std_xson_write(string path, var value, bool pretty = false) -> bool\n"
+    "func __xl_std_xson_write(string path, var value, bool pretty = false) as bool\n"
     "    return __xl_std_xrt_xson_write_file(path, value, int(pretty), 0) != 0\n"
     "end\n";
 
 static const char xl6StdCodecHexEncodeBody[] =
-    "func __xl_std_codec_hex_encode(string text) -> string\n"
+    "func __xl_std_codec_hex_encode(string text) as string\n"
     "    return __xl_std_runtime_take_cstr(__xl_std_xrt_hex_encode(text, 0))\n"
     "end\n";
 
 static const char xl6StdCodecHexDecodeBody[] =
-    "func __xl_std_codec_hex_decode(string text) -> string\n"
+    "func __xl_std_codec_hex_decode(string text) as string\n"
     "    return __xl_std_runtime_take_cstr(__xl_std_xrt_hex_decode(text, 0))\n"
     "end\n";
 
 static const char xl6StdCodecBase64EncodeBody[] =
-    "func __xl_std_codec_base64_encode(string text) -> string\n"
+    "func __xl_std_codec_base64_encode(string text) as string\n"
     "    return __xl_std_runtime_take_cstr(__xl_std_xrt_base64_encode(text, 0, null))\n"
     "end\n";
 
 static const char xl6StdCodecBase64DecodeBody[] =
-    "func __xl_std_codec_base64_decode(string text) -> string\n"
+    "func __xl_std_codec_base64_decode(string text) as string\n"
     "    return __xl_std_runtime_take_cstr(__xl_std_xrt_base64_decode(text, 0, null))\n"
     "end\n";
 
 static const char xl6StdHashU32Body[] =
-    "func __xl_std_hash_u32(string text) -> uint32\n"
+    "func __xl_std_hash_u32(string text) as uint32\n"
     "    return __xl_std_xrt_hash32(text, __xl_std_crt_strlen(text))\n"
     "end\n";
 
 static const char xl6StdHashU32WithSeedBody[] =
-    "func __xl_std_hash_u32_with_seed(string text, uint32 seed) -> uint32\n"
+    "func __xl_std_hash_u32_with_seed(string text, uint32 seed) as uint32\n"
     "    return __xl_std_xrt_hash32_seed(text, __xl_std_crt_strlen(text), c_uint(seed))\n"
     "end\n";
 
 static const char xl6StdHashU64Body[] =
-    "func __xl_std_hash_u64(string text) -> uint64\n"
+    "func __xl_std_hash_u64(string text) as uint64\n"
     "    return __xl_std_xrt_hash64(text, __xl_std_crt_strlen(text))\n"
     "end\n";
 
 static const char xl6StdHashU64WithSeedBody[] =
-    "func __xl_std_hash_u64_with_seed(string text, uint64 seed) -> uint64\n"
+    "func __xl_std_hash_u64_with_seed(string text, uint64 seed) as uint64\n"
     "    return __xl_std_xrt_hash64_seed(text, __xl_std_crt_strlen(text), c_ulonglong(seed))\n"
     "end\n";
 
 static const char xl6StdCryptoSha1Body[] =
-    "func __xl_std_crypto_sha1(string text) -> string\n"
+    "func __xl_std_crypto_sha1(string text) as string\n"
     "    return __xl_std_runtime_take_cstr(__xl_std_runtime_sha1_hex(text, __xl_std_crt_strlen(text)))\n"
     "end\n";
 
 static const char xl6StdCryptoSha256Body[] =
-    "func __xl_std_crypto_sha256(string text) -> string\n"
+    "func __xl_std_crypto_sha256(string text) as string\n"
     "    return __xl_std_runtime_take_cstr(__xl_std_runtime_sha256_hex(text, __xl_std_crt_strlen(text)))\n"
     "end\n";
 
 static const char xl6StdCryptoSha384Body[] =
-    "func __xl_std_crypto_sha384(string text) -> string\n"
+    "func __xl_std_crypto_sha384(string text) as string\n"
     "    return __xl_std_runtime_take_cstr(__xl_std_runtime_sha384_hex(text, __xl_std_crt_strlen(text)))\n"
     "end\n";
 
 static const char xl6StdCryptoSha512Body[] =
-    "func __xl_std_crypto_sha512(string text) -> string\n"
+    "func __xl_std_crypto_sha512(string text) as string\n"
     "    return __xl_std_runtime_take_cstr(__xl_std_runtime_sha512_hex(text, __xl_std_crt_strlen(text)))\n"
     "end\n";
 
 static const char xl6StdIdXidBody[] =
-    "func __xl_std_id_xid() -> string\n"
+    "func __xl_std_id_xid() as string\n"
     "    return __xl_std_runtime_take_cstr(__xl_std_xrt_make_xids())\n"
     "end\n";
 
 static const char xl6StdNetLocalIPBody[] =
-    "func __xl_std_net_local_ip() -> string\n"
+    "func __xl_std_net_local_ip() as string\n"
     "    return __xl_std_runtime_take_cstr(__xl_std_xrt_get_local_ip())\n"
     "end\n";
 
 static const char xl6StdNetLocalMACBody[] =
-    "func __xl_std_net_local_mac() -> string\n"
+    "func __xl_std_net_local_mac() as string\n"
     "    return __xl_std_runtime_take_cstr(__xl_std_xrt_get_local_mac())\n"
     "end\n";
 
 static const char xl6StdNetLocalNameBody[] =
-    "func __xl_std_net_local_name() -> string\n"
+    "func __xl_std_net_local_name() as string\n"
     "    return __xl_std_runtime_take_cstr(__xl_std_xrt_get_local_name())\n"
     "end\n";
 
 static const char xl6StdUrlValidBody[] =
-    "func __xl_std_url_valid(string text) -> bool\n"
+    "func __xl_std_url_valid(string text) as bool\n"
     "    return __xl_std_runtime_url_flag(text, __xl_std_crt_strlen(text), 0)\n"
     "end\n";
 
 static const char xl6StdUrlIsAbsoluteBody[] =
-    "func __xl_std_url_is_absolute(string text) -> bool\n"
+    "func __xl_std_url_is_absolute(string text) as bool\n"
     "    return __xl_std_runtime_url_flag(text, __xl_std_crt_strlen(text), 1)\n"
     "end\n";
 
 static const char xl6StdUrlIsSecureBody[] =
-    "func __xl_std_url_is_secure(string text) -> bool\n"
+    "func __xl_std_url_is_secure(string text) as bool\n"
     "    return __xl_std_runtime_url_flag(text, __xl_std_crt_strlen(text), 2)\n"
     "end\n";
 
 static const char xl6StdUrlPortBody[] =
-    "func __xl_std_url_port(string text) -> int\n"
+    "func __xl_std_url_port(string text) as int\n"
     "    return int(__xl_std_runtime_url_port(text, __xl_std_crt_strlen(text)))\n"
     "end\n";
 
 static const char xl6StdUrlSchemeBody[] =
-    "func __xl_std_url_scheme(string text) -> string\n"
+    "func __xl_std_url_scheme(string text) as string\n"
     "    return __xl_std_runtime_take_cstr(__xl_std_runtime_url_part(text, __xl_std_crt_strlen(text), 1))\n"
     "end\n";
 
 static const char xl6StdUrlAuthorityBody[] =
-    "func __xl_std_url_authority(string text) -> string\n"
+    "func __xl_std_url_authority(string text) as string\n"
     "    return __xl_std_runtime_take_cstr(__xl_std_runtime_url_part(text, __xl_std_crt_strlen(text), 2))\n"
     "end\n";
 
 static const char xl6StdUrlUserInfoBody[] =
-    "func __xl_std_url_user_info(string text) -> string\n"
+    "func __xl_std_url_user_info(string text) as string\n"
     "    return __xl_std_runtime_take_cstr(__xl_std_runtime_url_part(text, __xl_std_crt_strlen(text), 3))\n"
     "end\n";
 
 static const char xl6StdUrlHostBody[] =
-    "func __xl_std_url_host(string text) -> string\n"
+    "func __xl_std_url_host(string text) as string\n"
     "    return __xl_std_runtime_take_cstr(__xl_std_runtime_url_part(text, __xl_std_crt_strlen(text), 4))\n"
     "end\n";
 
 static const char xl6StdUrlPathBody[] =
-    "func __xl_std_url_path(string text) -> string\n"
+    "func __xl_std_url_path(string text) as string\n"
     "    return __xl_std_runtime_take_cstr(__xl_std_runtime_url_part(text, __xl_std_crt_strlen(text), 5))\n"
     "end\n";
 
 static const char xl6StdUrlQueryBody[] =
-    "func __xl_std_url_query(string text) -> string\n"
+    "func __xl_std_url_query(string text) as string\n"
     "    return __xl_std_runtime_take_cstr(__xl_std_runtime_url_part(text, __xl_std_crt_strlen(text), 6))\n"
     "end\n";
 
 static const char xl6StdUrlFragmentBody[] =
-    "func __xl_std_url_fragment(string text) -> string\n"
+    "func __xl_std_url_fragment(string text) as string\n"
     "    return __xl_std_runtime_take_cstr(__xl_std_runtime_url_part(text, __xl_std_crt_strlen(text), 7))\n"
     "end\n";
 
 static const char xl6StdUrlTargetBody[] =
-    "func __xl_std_url_target(string text) -> string\n"
+    "func __xl_std_url_target(string text) as string\n"
     "    return __xl_std_runtime_take_cstr(__xl_std_runtime_url_part(text, __xl_std_crt_strlen(text), 8))\n"
     "end\n";
 
 static const char xl6StdUrlResolveBody[] =
-    "func __xl_std_url_resolve(string base, string ref) -> string\n"
+    "func __xl_std_url_resolve(string base, string ref) as string\n"
     "    return __xl_std_runtime_take_cstr(__xl_std_runtime_url_resolve(base, __xl_std_crt_strlen(base), ref, __xl_std_crt_strlen(ref)))\n"
     "end\n";
 
 static const char xl6StdUrlNormalizePathBody[] =
-    "func __xl_std_url_normalize_path(string path) -> string\n"
+    "func __xl_std_url_normalize_path(string path) as string\n"
     "    return __xl_std_runtime_take_cstr(__xl_std_runtime_url_normalize_path(path, __xl_std_crt_strlen(path)))\n"
     "end\n";
 
 static const char xl6StdQueryEncodeBody[] =
-    "func __xl_std_query_encode(string text) -> string\n"
+    "func __xl_std_query_encode(string text) as string\n"
     "    return __xl_std_runtime_take_cstr(__xl_std_runtime_query_encode(text, __xl_std_crt_strlen(text)))\n"
     "end\n";
 
 static const char xl6StdQueryDecodeBody[] =
-    "func __xl_std_query_decode(string text) -> string\n"
+    "func __xl_std_query_decode(string text) as string\n"
     "    return __xl_std_runtime_take_cstr(__xl_std_runtime_query_decode(text, __xl_std_crt_strlen(text)))\n"
     "end\n";
 
 static const char xl6StdQueryValidBody[] =
-    "func __xl_std_query_valid(string text) -> bool\n"
+    "func __xl_std_query_valid(string text) as bool\n"
     "    return __xl_std_runtime_query_valid(text, __xl_std_crt_strlen(text))\n"
     "end\n";
 
 static const char xl6StdQueryPairBody[] =
-    "func __xl_std_query_pair(string name, string value) -> string\n"
+    "func __xl_std_query_pair(string name, string value) as string\n"
     "    return __xl_std_runtime_take_cstr(__xl_std_runtime_query_pair(name, __xl_std_crt_strlen(name), value, __xl_std_crt_strlen(value)))\n"
     "end\n";
 
 static const char xl6StdQueryAppendBody[] =
-    "func __xl_std_query_append(string query, string name, string value) -> string\n"
+    "func __xl_std_query_append(string query, string name, string value) as string\n"
     "    return __xl_std_runtime_take_cstr(__xl_std_runtime_query_append(query, __xl_std_crt_strlen(query), name, __xl_std_crt_strlen(name), value, __xl_std_crt_strlen(value)))\n"
     "end\n";
 
 static const char xl6StdHttpServerCreateBody[] =
-    "func __xl_std_http_server_create(int port, function(string, string, string, string) -> string handler) -> point\n"
+    "func __xl_std_http_server_create(int port, func(string, string, string, string) as string handler) as point\n"
     "    return __xl_std_runtime_http_server_create(c_int(port), handler)\n"
     "end\n";
 
 static const char xl6StdHttpServerStartBody[] =
-    "func __xl_std_http_server_start(point server) -> bool\n"
+    "func __xl_std_http_server_start(point server) as bool\n"
     "    return __xl_std_runtime_http_server_start(server)\n"
     "end\n";
 
 static const char xl6StdHttpServerPortBody[] =
-    "func __xl_std_http_server_port(point server) -> int\n"
+    "func __xl_std_http_server_port(point server) as int\n"
     "    return int(__xl_std_runtime_http_server_port(server))\n"
     "end\n";
 
@@ -2596,7 +2596,7 @@ static void xl6StdlibAppendFuncDecl(XL6_StdlibTextBuilder* builder, const XL6_St
     }
     xl6StdlibBuilderAppend(builder, ")");
     if ( func->returnType != NULL && func->returnType[0] != '\0' ) {
-        xl6StdlibBuilderAppend(builder, " -> ");
+        xl6StdlibBuilderAppend(builder, " as ");
         xl6StdlibBuilderAppend(builder, func->returnType);
     }
     xl6StdlibBuilderAppend(builder, "\n");

@@ -419,6 +419,179 @@ static int xl6CgenProgramNeedsTypeConvertRuntime(XL6_CgenContext* ctx, const XL6
     return 0;
 }
 
+static int xl6CgenNodeNeedsDynamicForInErrorRuntime(XL6_CgenContext* ctx, const XL6_AstNode* node)
+{
+    size_t i;
+
+    if ( node == NULL ) {
+        return 0;
+    }
+
+    if ( node->kind == XL6_AST_VAR_DECL || node->kind == XL6_AST_CONST_DECL ) {
+        const XL6_AstNode* typeNode = node->childCount > 0 ? node->children[0] : NULL;
+        const XL6_AstNode* initExpr = node->childCount > 1 ? node->children[1] : NULL;
+
+        if ( initExpr != NULL && xl6CgenNodeNeedsDynamicForInErrorRuntime(ctx, initExpr) ) {
+            return 1;
+        }
+        if ( typeNode != NULL && xl6CTextEquals(typeNode->text, "auto") ) {
+            XL6_AstNode* inferredType = xl6CgenCloneExprTypeForInference(ctx, initExpr);
+            if ( inferredType != NULL ) {
+                xl6CgenOwnTypeNode(ctx, inferredType);
+                xl6CgenNeedsAddDeclVarType(ctx, node->text, inferredType, initExpr, 1);
+            }
+        } else if ( typeNode != NULL ) {
+            xl6CgenNeedsAddDeclVarType(ctx, node->text, typeNode, initExpr, 0);
+        }
+        return 0;
+    }
+
+    if ( node->kind == XL6_AST_FUNC || node->kind == XL6_AST_ASYNC_FUNC || node->kind == XL6_AST_EXPORT_FUNC || node->kind == XL6_AST_ANON_FUNC ) {
+        const XL6_AstNode* params = node->childCount > (node->kind == XL6_AST_ANON_FUNC ? 0 : 1)
+                                        ? node->children[node->kind == XL6_AST_ANON_FUNC ? 0 : 1]
+                                        : NULL;
+        const XL6_AstNode* body = node->childCount > (node->kind == XL6_AST_ANON_FUNC ? 2 : 3)
+                                      ? node->children[node->kind == XL6_AST_ANON_FUNC ? 2 : 3]
+                                      : NULL;
+        size_t varMark = ctx->varCount;
+        size_t cleanupMark = ctx->cleanupCount;
+        int result;
+
+        if ( (node->kind == XL6_AST_FUNC || node->kind == XL6_AST_ASYNC_FUNC) && xl6CgenFuncIsGeneric(node) && ctx->currentGenericParams == NULL ) {
+            return 0;
+        }
+        if ( ctx->currentClass != NULL ) {
+            xl6CgenAddVarType(ctx, "self", ctx->currentClass);
+        } else if ( ctx->currentCustom != NULL ) {
+            xl6CgenAddVarType(ctx, "self", ctx->currentCustom);
+        }
+        xl6CgenRegisterParamTypes(ctx, params);
+        result = xl6CgenNodeNeedsDynamicForInErrorRuntime(ctx, body);
+        xl6CgenFreeCleanupsSince(ctx, cleanupMark);
+        xl6CgenFreeVarsSince(ctx, varMark);
+        return result;
+    }
+
+    if ( node->kind == XL6_AST_CREATE ) {
+        const XL6_AstNode* params = node->childCount > 0 ? node->children[0] : NULL;
+        const XL6_AstNode* body = node->childCount > 1 ? node->children[1] : NULL;
+        size_t varMark = ctx->varCount;
+        size_t cleanupMark = ctx->cleanupCount;
+        int result;
+
+        if ( ctx->currentClass != NULL ) {
+            xl6CgenAddVarType(ctx, "self", ctx->currentClass);
+        } else if ( ctx->currentCustom != NULL ) {
+            xl6CgenAddVarType(ctx, "self", ctx->currentCustom);
+        }
+        xl6CgenRegisterParamTypes(ctx, params);
+        result = xl6CgenNodeNeedsDynamicForInErrorRuntime(ctx, body);
+        xl6CgenFreeCleanupsSince(ctx, cleanupMark);
+        xl6CgenFreeVarsSince(ctx, varMark);
+        return result;
+    }
+
+    if ( node->kind == XL6_AST_FOR ) {
+        const XL6_AstNode* targets = node->childCount > 0 ? node->children[0] : NULL;
+        const XL6_AstNode* iterable = node->childCount > 1 ? node->children[1] : NULL;
+        const XL6_AstNode* body = node->childCount > 2 ? node->children[2] : NULL;
+        XL6_AstNode* iterableType;
+        size_t varMark = ctx->varCount;
+        size_t cleanupMark = ctx->cleanupCount;
+        int result;
+
+        iterableType = xl6CgenCloneExprTypeForInference(ctx, iterable);
+        if ( iterableType != NULL && xl6CTextEquals(iterableType->text, "var") ) {
+            xl6AstFree(iterableType);
+            return 1;
+        }
+        if ( targets != NULL ) {
+            for ( i = 0; i < targets->childCount; ++i ) {
+                const char* typeName = xl6CgenForTargetTypeName(iterableType, i, targets->childCount);
+                xl6CgenRegisterLoopTargetType(ctx, targets->children[i], typeName);
+            }
+        }
+        result = xl6CgenNodeNeedsDynamicForInErrorRuntime(ctx, body);
+        xl6AstFree(iterableType);
+        xl6CgenFreeCleanupsSince(ctx, cleanupMark);
+        xl6CgenFreeVarsSince(ctx, varMark);
+        return result;
+    }
+
+    if ( node->kind == XL6_AST_CLASS ) {
+        const XL6_AstNode* prevClass = ctx->currentClass;
+        const XL6_AstNode* prevCustom = ctx->currentCustom;
+        int result = 0;
+
+        ctx->currentClass = node;
+        ctx->currentCustom = NULL;
+        for ( i = 0; i < node->childCount; ++i ) {
+            if ( xl6CgenNodeNeedsDynamicForInErrorRuntime(ctx, node->children[i]) ) {
+                result = 1;
+                break;
+            }
+        }
+        ctx->currentClass = prevClass;
+        ctx->currentCustom = prevCustom;
+        return result;
+    }
+
+    if ( node->kind == XL6_AST_CUSTOM ) {
+        const XL6_AstNode* prevClass = ctx->currentClass;
+        const XL6_AstNode* prevCustom = ctx->currentCustom;
+        int result = 0;
+
+        ctx->currentClass = NULL;
+        ctx->currentCustom = node;
+        for ( i = 0; i < node->childCount; ++i ) {
+            if ( xl6CgenNodeNeedsDynamicForInErrorRuntime(ctx, node->children[i]) ) {
+                result = 1;
+                break;
+            }
+        }
+        ctx->currentClass = prevClass;
+        ctx->currentCustom = prevCustom;
+        return result;
+    }
+
+    for ( i = 0; i < node->childCount; ++i ) {
+        if ( xl6CgenNodeNeedsDynamicForInErrorRuntime(ctx, node->children[i]) ) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+static int xl6CgenProgramNeedsDynamicForInErrorRuntime(XL6_CgenContext* ctx, const XL6_AstNode* root)
+{
+    size_t i;
+
+    if ( xl6CgenNodeNeedsDynamicForInErrorRuntime(ctx, root) ) {
+        xl6CgenFreeCleanupsSince(ctx, 0);
+        xl6CgenFreeVarsSince(ctx, 0);
+        return 1;
+    }
+    xl6CgenFreeCleanupsSince(ctx, 0);
+    xl6CgenFreeVarsSince(ctx, 0);
+    for ( i = 0; i < ctx->genericInstanceCount; ++i ) {
+        const XL6_AstNode* prevParams = ctx->currentGenericParams;
+        const XL6_AstNode* prevArgs = ctx->currentGenericArgs;
+        int result;
+
+        ctx->currentGenericParams = xl6CgenFuncTypeParams(ctx->genericInstances[i].func);
+        ctx->currentGenericArgs = ctx->genericInstances[i].typeArgs;
+        result = xl6CgenNodeNeedsDynamicForInErrorRuntime(ctx, ctx->genericInstances[i].func);
+        ctx->currentGenericParams = prevParams;
+        ctx->currentGenericArgs = prevArgs;
+        xl6CgenFreeCleanupsSince(ctx, 0);
+        xl6CgenFreeVarsSince(ctx, 0);
+        if ( result ) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
 static int xl6CgenNodeNeedsFunctionVarRuntime(XL6_CgenContext* ctx, const XL6_AstNode* node)
 {
     size_t i;

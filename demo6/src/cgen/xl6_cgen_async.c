@@ -227,6 +227,34 @@ static void xl6CgenEmitAsyncRuntime(XL6_Output* out)
     xl6OutputPuts("int xrtThreadGetState(void* pThread);\n", out);
     xl6OutputPuts("unsigned int xrtThreadGetExitCode(void* pThread);\n\n", out);
 
+    xl6OutputPuts("static void* xl6_channel_require_handle(void* pHandle, const char* file, int line, int column)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    if ( pHandle != 0 ) { return pHandle; }\n", out);
+    xl6OutputPuts("    xl6_error_raise(\"ChannelError\", \"channel create failed\", file, line, column);\n", out);
+    xl6OutputPuts("    return 0;\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("static void* xl6_sync_require_handle(void* pHandle, const char* message, const char* file, int line, int column)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    if ( pHandle != 0 ) { return pHandle; }\n", out);
+    xl6OutputPuts("    xl6_error_raise(\"SyncError\", message != 0 ? message : \"sync handle create failed\", file, line, column);\n", out);
+    xl6OutputPuts("    return 0;\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("static void* xl6_thread_require_handle(void* pThread, const char* file, int line, int column)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    if ( pThread != 0 ) { return pThread; }\n", out);
+    xl6OutputPuts("    xl6_error_raise(\"ThreadError\", \"thread start failed\", file, line, column);\n", out);
+    xl6OutputPuts("    return 0;\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("static xfuture* xl6_async_require_future(xfuture* pFuture, const char* file, int line, int column)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    if ( pFuture != 0 ) { return pFuture; }\n", out);
+    xl6OutputPuts("    xl6_error_raise(\"AsyncError\", \"async task start failed\", file, line, column);\n", out);
+    xl6OutputPuts("    return 0;\n", out);
+    xl6OutputPuts("}\n\n", out);
+
     xl6OutputPuts("static void xl6_thread_release(void* pThread)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    if ( pThread == 0 ) { return; }\n", out);
@@ -375,6 +403,103 @@ static void xl6CgenEmitAsyncRuntime(XL6_Output* out)
     xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    return value;\n", out);
     xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("static void xl6_future_release_if_needed(xfuture* pFuture)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    if ( pFuture != 0 ) {\n", out);
+    xl6OutputPuts("        xFutureRelease(pFuture);\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("static void xl6_future_await_copy_release(xfuture* pFuture, void* pOut, size_t valueSize, const char* file, int line, int column)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    void* value;\n", out);
+    xl6OutputPuts("    value = xl6_future_await_value(pFuture, file, line, column, 1, valueSize);\n", out);
+    xl6OutputPuts("    if ( value != 0 && pOut != 0 && valueSize > 0 ) {\n", out);
+    xl6OutputPuts("        memcpy(pOut, value, valueSize);\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    if ( xl6_error_has() && value != 0 ) {\n", out);
+    xl6OutputPuts("        xrtFree(value);\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    xl6_future_release_if_needed(pFuture);\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("static int xl6_future_await_void_release(xfuture* pFuture, const char* file, int line, int column)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    xl6_future_await_value(pFuture, file, line, column, 0, 0);\n", out);
+    xl6OutputPuts("    xl6_future_release_if_needed(pFuture);\n", out);
+    xl6OutputPuts("    return 0;\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("static int xl6_future_await_i32_release(xfuture* pFuture, const char* file, int line, int column)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    int result = 0;\n", out);
+    xl6OutputPuts("    xl6_future_await_copy_release(pFuture, &result, sizeof(result), file, line, column);\n", out);
+    xl6OutputPuts("    return result;\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("static long long xl6_future_await_i64_release(xfuture* pFuture, const char* file, int line, int column)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    long long result = 0;\n", out);
+    xl6OutputPuts("    xl6_future_await_copy_release(pFuture, &result, sizeof(result), file, line, column);\n", out);
+    xl6OutputPuts("    return result;\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("static unsigned long long xl6_future_await_u64_release(xfuture* pFuture, const char* file, int line, int column)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    unsigned long long result = 0;\n", out);
+    xl6OutputPuts("    xl6_future_await_copy_release(pFuture, &result, sizeof(result), file, line, column);\n", out);
+    xl6OutputPuts("    return result;\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("static float xl6_future_await_f32_release(xfuture* pFuture, const char* file, int line, int column)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    float result = 0.0f;\n", out);
+    xl6OutputPuts("    xl6_future_await_copy_release(pFuture, &result, sizeof(result), file, line, column);\n", out);
+    xl6OutputPuts("    return result;\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("static double xl6_future_await_f64_release(xfuture* pFuture, const char* file, int line, int column)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    double result = 0.0;\n", out);
+    xl6OutputPuts("    xl6_future_await_copy_release(pFuture, &result, sizeof(result), file, line, column);\n", out);
+    xl6OutputPuts("    return result;\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("static const char* xl6_future_await_cstr_release(xfuture* pFuture, const char* file, int line, int column)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    const char* result = 0;\n", out);
+    xl6OutputPuts("    xl6_future_await_copy_release(pFuture, &result, sizeof(result), file, line, column);\n", out);
+    xl6OutputPuts("    return result;\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("static void* xl6_future_await_ptr_release(xfuture* pFuture, const char* file, int line, int column)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    void* result = 0;\n", out);
+    xl6OutputPuts("    xl6_future_await_copy_release(pFuture, &result, sizeof(result), file, line, column);\n", out);
+    xl6OutputPuts("    return result;\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("#ifdef XL6_FUNCTION_TYPEDEF\n", out);
+    xl6OutputPuts("static XL6_Function xl6_future_await_function_release(xfuture* pFuture, const char* file, int line, int column)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    XL6_Function result;\n", out);
+    xl6OutputPuts("    void* value;\n", out);
+    xl6OutputPuts("    memset(&result, 0, sizeof(result));\n", out);
+    xl6OutputPuts("    value = xl6_future_await_value(pFuture, file, line, column, 1, sizeof(XL6_Function));\n", out);
+    xl6OutputPuts("    if ( value != 0 ) {\n", out);
+    xl6OutputPuts("        result = *(XL6_Function*)value;\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    if ( result.retain != 0 && result.env != 0 ) {\n", out);
+    xl6OutputPuts("        result.retain(result.env);\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    if ( xl6_error_has() && value != 0 ) {\n", out);
+    xl6OutputPuts("        xrtFree(value);\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    xl6_future_release_if_needed(pFuture);\n", out);
+    xl6OutputPuts("    return result;\n", out);
+    xl6OutputPuts("}\n", out);
+    xl6OutputPuts("#endif\n\n", out);
     xl6CgenEmitGeneratorRuntime(out);
 }
 
@@ -431,13 +556,13 @@ static int xl6CgenChannelCtorCall(XL6_CgenContext* ctx, const XL6_AstNode* call,
     capArg = args != NULL && args->childCount > 0 && args->children[0] != NULL &&
              args->children[0]->childCount > 0 ? args->children[0]->children[0] : NULL;
 
-    xl6OutputPuts("xrtChannelCreate(", ctx->out);
+    xl6OutputPuts("xl6_channel_require_handle(xrtChannelCreate(", ctx->out);
     if ( capArg != NULL ) {
         xl6CgenExpr(ctx, capArg);
     } else {
         xl6OutputPuts("0", ctx->out);
     }
-    xl6OutputPutc(')', ctx->out);
+    xl6OutputPrintf(ctx->out, "), \"\", %d, %d)", callee->line, callee->column);
     return 1;
 }
 
@@ -548,23 +673,32 @@ static int xl6CgenSyncCtorCall(XL6_CgenContext* ctx, const XL6_AstNode* call, co
         return 0;
     }
     if ( xl6CTextEquals(callee->text, "mutex") ) {
-        xl6OutputPuts("xrtMutexCreate()", ctx->out);
+        xl6OutputPrintf(ctx->out,
+                        "xl6_sync_require_handle(xrtMutexCreate(), \"mutex create failed\", \"\", %d, %d)",
+                        callee->line,
+                        callee->column);
         return 1;
     }
     if ( xl6CTextEquals(callee->text, "cond") ) {
-        xl6OutputPuts("xrtCondCreate()", ctx->out);
+        xl6OutputPrintf(ctx->out,
+                        "xl6_sync_require_handle(xrtCondCreate(), \"cond create failed\", \"\", %d, %d)",
+                        callee->line,
+                        callee->column);
         return 1;
     }
     if ( xl6CTextEquals(callee->text, "rwlock") ) {
-        xl6OutputPuts("xrtRWLockCreate()", ctx->out);
+        xl6OutputPrintf(ctx->out,
+                        "xl6_sync_require_handle(xrtRWLockCreate(), \"rwlock create failed\", \"\", %d, %d)",
+                        callee->line,
+                        callee->column);
         return 1;
     }
     if ( xl6CTextEquals(callee->text, "sem") ) {
-        xl6OutputPuts("xrtSemCreate(", ctx->out);
+        xl6OutputPuts("xl6_sync_require_handle(xrtSemCreate(", ctx->out);
         xl6CgenExpr(ctx, xl6CgenCallArgExpr(call, 0));
         xl6OutputPuts(", ", ctx->out);
         xl6CgenExpr(ctx, xl6CgenCallArgExpr(call, 1));
-        xl6OutputPutc(')', ctx->out);
+        xl6OutputPrintf(ctx->out, "), \"sem create failed\", \"\", %d, %d)", callee->line, callee->column);
         return 1;
     }
     return 0;
@@ -778,13 +912,17 @@ static int xl6CgenThreadCtorCall(XL6_CgenContext* ctx, const XL6_AstNode* call, 
 
     entryExpr = xl6CgenCallArgExpr(call, 0);
     targetType = xl6CgenThreadEntryType(callee);
-    xl6OutputPuts("xl6_thread_start(", ctx->out);
+    xl6OutputPuts("xl6_thread_require_handle(xl6_thread_start(", ctx->out);
     if ( targetType != NULL && entryExpr != NULL ) {
         xl6CgenFunctionValueExpr(ctx, entryExpr, targetType);
     } else {
         xl6OutputPuts("(XL6_Function){0}", ctx->out);
     }
-    xl6OutputPrintf(ctx->out, ", %d)", xl6CgenExprIsFunctionBorrow(ctx, entryExpr) ? 1 : 0);
+    xl6OutputPrintf(ctx->out,
+                    ", %d), \"\", %d, %d)",
+                    xl6CgenExprIsFunctionBorrow(ctx, entryExpr) ? 1 : 0,
+                    callee->line,
+                    callee->column);
     xl6AstFree(targetType);
     return 1;
 }
@@ -848,371 +986,4 @@ static int xl6CgenThreadMethodCall(XL6_CgenContext* ctx, const XL6_AstNode* call
         return 1;
     }
     return 0;
-}
-
-static void xl6CgenAsyncArgStructDecl(XL6_CgenContext* ctx, const XL6_AstNode* node)
-{
-    const XL6_AstNode* params = xl6CgenAsyncParams(node);
-    size_t i;
-
-    if ( params == NULL || params->childCount == 0 ) {
-        return;
-    }
-
-    xl6OutputPuts("typedef struct ", ctx->out);
-    xl6CgenAsyncArgsStructName(ctx, node);
-    xl6OutputPuts(" {\n", ctx->out);
-    for ( i = 0; i < params->childCount; ++i ) {
-        const XL6_AstNode* param = params->children[i];
-
-        xl6OutputPuts("    ", ctx->out);
-        if ( param != NULL && param->childCount > 0 ) {
-            xl6OutputPuts(xl6CgenTypeName(ctx, param->children[0]), ctx->out);
-        } else {
-            xl6OutputPuts("int", ctx->out);
-        }
-        xl6OutputPutc(' ', ctx->out);
-        xl6CgenFputsCIdent(ctx->out, param != NULL ? param->text : NULL);
-        xl6OutputPuts(";\n", ctx->out);
-    }
-    xl6OutputPuts("} ", ctx->out);
-    xl6CgenAsyncArgsStructName(ctx, node);
-    xl6OutputPuts(";\n\n", ctx->out);
-}
-
-static void xl6CgenAsyncResultFreeFunc(XL6_CgenContext* ctx, const XL6_AstNode* node)
-{
-    const XL6_AstNode* returns;
-    const XL6_AstNode* resultType;
-    XL6_AstNode* classNode;
-    int isGenericClass;
-
-    returns = node != NULL && node->childCount > 2 ? node->children[2] : NULL;
-    resultType = returns != NULL && returns->childCount == 1 ? returns->children[0] : NULL;
-    if ( !xl6CgenClassTypeNeedsFunctionFieldCleanup(ctx, resultType) ) {
-        return;
-    }
-
-    classNode = xl6CgenClassNodeForType(ctx, resultType);
-    if ( classNode == NULL ) {
-        return;
-    }
-    isGenericClass = resultType != NULL && resultType->childCount > 0 && xl6CgenClassHasTypeParams(classNode);
-
-    xl6OutputPuts("static void ", ctx->out);
-    xl6CgenAsyncResultFreeSymbol(ctx, node);
-    xl6OutputPuts("(void* pValue)\n{\n", ctx->out);
-    xl6OutputPuts("    if ( pValue != 0 ) {\n", ctx->out);
-    xl6OutputPuts("        ", ctx->out);
-    if ( isGenericClass ) {
-        xl6CgenGenericClassMemberSymbol(ctx, classNode, resultType, "destroy");
-    } else {
-        xl6CgenClassMemberSymbol(ctx->out, classNode->text, "destroy");
-    }
-    xl6OutputPuts("((", ctx->out);
-    xl6OutputPuts(xl6CgenTypeName(ctx, resultType), ctx->out);
-    xl6OutputPuts("*)pValue);\n", ctx->out);
-    xl6OutputPuts("    }\n", ctx->out);
-    xl6OutputPuts("    xrtFree(pValue);\n", ctx->out);
-    xl6OutputPuts("}\n\n", ctx->out);
-}
-
-static void xl6CgenAsyncResultFreeValue(XL6_CgenContext* ctx, const XL6_AstNode* funcNode, const XL6_AstNode* resultType)
-{
-    if ( xl6CgenIsFunctionType(resultType) ) {
-        xl6OutputPuts("xl6_async_free_function_value", ctx->out);
-        return;
-    }
-    if ( xl6CgenClassTypeNeedsFunctionFieldCleanup(ctx, resultType) ) {
-        xl6CgenAsyncResultFreeSymbol(ctx, funcNode);
-        return;
-    }
-    xl6OutputPuts("xrtFree", ctx->out);
-}
-
-static void xl6CgenAsyncReturnStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
-{
-    const XL6_AstNode* resultType = ctx->currentReturnType;
-    int id = ctx->tempId++;
-
-    if ( node == NULL || node->childCount == 0 || resultType == NULL ) {
-        xl6CgenEmitCleanupsSince(ctx, 0);
-        xl6CgenIndent(ctx);
-        xl6OutputPuts("xl6_async_result_ok(pOut);\n", ctx->out);
-        xl6CgenIndent(ctx);
-        xl6OutputPuts("return 0;\n", ctx->out);
-        return;
-    }
-
-    xl6CgenIndent(ctx);
-    xl6OutputPuts(xl6CgenTypeName(ctx, resultType), ctx->out);
-    xl6OutputPrintf(ctx->out, " __xl6_async_return_%d = ", id);
-    if ( xl6CgenIsXValueType(resultType) ) {
-        xl6CgenXValueFromExprForTarget(ctx, resultType, node->children[0]);
-    } else if ( xl6CgenIsFunctionType(resultType) ) {
-        xl6CgenFunctionValueExpr(ctx, node->children[0], resultType);
-    } else {
-        xl6CgenExpr(ctx, node->children[0]);
-    }
-    xl6OutputPuts(";\n", ctx->out);
-    if ( xl6CgenIsFunctionType(resultType) && xl6CgenExprIsFunctionBorrow(ctx, node->children[0]) ) {
-        char returnName[64];
-        snprintf(returnName, sizeof(returnName), "__xl6_async_return_%d", id);
-        xl6CgenRetainFunctionValue(ctx, returnName);
-    }
-    {
-        char returnName[64];
-        snprintf(returnName, sizeof(returnName), "__xl6_async_return_%d", id);
-        xl6CgenRetainClassFunctionFieldsForBorrowedExpr(ctx, resultType, returnName, node->children[0]);
-    }
-
-    xl6CgenIndent(ctx);
-    xl6OutputPuts(xl6CgenTypeName(ctx, resultType), ctx->out);
-    xl6OutputPrintf(ctx->out, "* __xl6_async_box_%d = (", id);
-    xl6OutputPuts(xl6CgenTypeName(ctx, resultType), ctx->out);
-    xl6OutputPuts("*)xrtMalloc(sizeof(", ctx->out);
-    xl6OutputPuts(xl6CgenTypeName(ctx, resultType), ctx->out);
-    xl6OutputPuts("));\n", ctx->out);
-
-    xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "if ( __xl6_async_box_%d == 0 ) {\n", id);
-    ctx->indent += 1;
-    xl6CgenEmitCleanupsSince(ctx, 0);
-    xl6CgenIndent(ctx);
-    xl6OutputPuts("return xl6_async_result_error(pOut, \"out of memory while completing async task\");\n", ctx->out);
-    ctx->indent -= 1;
-    xl6CgenIndent(ctx);
-    xl6OutputPuts("}\n", ctx->out);
-
-    xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "*__xl6_async_box_%d = __xl6_async_return_%d;\n", id, id);
-    xl6CgenIndent(ctx);
-    xl6OutputPuts("pOut->iStatus = 0;\n", ctx->out);
-    xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "pOut->pValue = __xl6_async_box_%d;\n", id);
-    xl6CgenIndent(ctx);
-    xl6OutputPuts("pOut->sError = 0;\n", ctx->out);
-    xl6CgenIndent(ctx);
-    xl6OutputPuts("pOut->iFlags = XFUTURE_RESULT_F_OWN_VALUE;\n", ctx->out);
-    xl6CgenIndent(ctx);
-    xl6OutputPuts("pOut->pfnFreeValue = ", ctx->out);
-    xl6CgenAsyncResultFreeValue(ctx, ctx->currentReturnFunc, resultType);
-    xl6OutputPuts(";\n", ctx->out);
-    xl6CgenIndent(ctx);
-    xl6OutputPuts("pOut->pfnFreeError = 0;\n", ctx->out);
-    xl6CgenEmitCleanupsSince(ctx, 0);
-    xl6CgenIndent(ctx);
-    xl6OutputPuts("return 0;\n", ctx->out);
-}
-
-static void xl6CgenAwaitExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
-{
-    XL6_AstNode* resultType;
-    int requireValue;
-
-    resultType = xl6CgenCloneAwaitResultType(ctx, node);
-    requireValue = resultType != NULL && !xl6CTextEquals(resultType->text, "null");
-
-    if ( !requireValue ) {
-        xl6OutputPuts("(xl6_future_await_value(", ctx->out);
-        if ( node != NULL && node->childCount > 0 ) {
-            xl6CgenExpr(ctx, node->children[0]);
-        } else {
-            xl6OutputPuts("0", ctx->out);
-        }
-        xl6OutputPrintf(ctx->out, ", \"\", %d, %d, 0, 0), 0)", node != NULL ? node->line : 0, node != NULL ? node->column : 0);
-        xl6AstFree(resultType);
-        return;
-    }
-
-    xl6OutputPuts("(*(", ctx->out);
-    xl6OutputPuts(xl6CgenTypeName(ctx, resultType), ctx->out);
-    xl6OutputPuts("*)xl6_future_await_value(", ctx->out);
-    if ( node != NULL && node->childCount > 0 ) {
-        xl6CgenExpr(ctx, node->children[0]);
-    } else {
-        xl6OutputPuts("0", ctx->out);
-    }
-    xl6OutputPrintf(ctx->out, ", \"\", %d, %d, 1, sizeof(", node != NULL ? node->line : 0, node != NULL ? node->column : 0);
-    xl6OutputPuts(xl6CgenTypeName(ctx, resultType), ctx->out);
-    xl6OutputPuts(")))", ctx->out);
-    xl6AstFree(resultType);
-}
-
-static void xl6CgenAsyncWorker(XL6_CgenContext* ctx, const XL6_AstNode* node)
-{
-    const XL6_AstNode* params = xl6CgenAsyncParams(node);
-    const XL6_AstNode* body = xl6CgenAsyncBody(node);
-    const XL6_AstNode* prevReturnType;
-    const XL6_AstNode* prevReturnParams;
-    const XL6_AstNode* prevReturns;
-    const XL6_AstNode* prevReturnFunc;
-    const char* prevErrorExitLabel;
-    int prevAsyncWorker;
-    size_t varMark;
-    size_t cleanupMark;
-    size_t i;
-
-    xl6OutputPuts("static int ", ctx->out);
-    xl6CgenAsyncWorkerSymbol(ctx, node);
-    xl6OutputPuts("(void* __xl6_arg, xfuture_result* pOut)\n{\n", ctx->out);
-    ctx->indent += 1;
-
-    varMark = ctx->varCount;
-    cleanupMark = ctx->cleanupCount;
-    prevReturnType = ctx->currentReturnType;
-    prevReturnParams = ctx->currentReturnParams;
-    prevReturns = ctx->currentReturns;
-    prevReturnFunc = ctx->currentReturnFunc;
-    prevErrorExitLabel = ctx->currentErrorExitLabel;
-    prevAsyncWorker = ctx->currentAsyncWorker;
-
-    if ( params != NULL && params->childCount > 0 ) {
-        xl6CgenIndent(ctx);
-        xl6CgenAsyncArgsStructName(ctx, node);
-        xl6OutputPuts("* __xl6_args = (", ctx->out);
-        xl6CgenAsyncArgsStructName(ctx, node);
-        xl6OutputPuts("*)__xl6_arg;\n", ctx->out);
-        xl6CgenIndent(ctx);
-        xl6OutputPuts("if ( __xl6_args == 0 ) {\n", ctx->out);
-        ctx->indent += 1;
-        xl6CgenIndent(ctx);
-        xl6OutputPuts("return xl6_async_result_error(pOut, \"missing async argument frame\");\n", ctx->out);
-        ctx->indent -= 1;
-        xl6CgenIndent(ctx);
-        xl6OutputPuts("}\n", ctx->out);
-        for ( i = 0; i < params->childCount; ++i ) {
-            const XL6_AstNode* param = params->children[i];
-
-            xl6CgenIndent(ctx);
-            xl6OutputPuts(param != NULL && param->childCount > 0 ? xl6CgenTypeName(ctx, param->children[0]) : "int", ctx->out);
-            xl6OutputPutc(' ', ctx->out);
-            xl6CgenFputsCIdent(ctx->out, param != NULL ? param->text : NULL);
-            xl6OutputPuts(" = __xl6_args->", ctx->out);
-            xl6CgenFputsCIdent(ctx->out, param != NULL ? param->text : NULL);
-            xl6OutputPuts(";\n", ctx->out);
-        }
-        xl6CgenIndent(ctx);
-        xl6OutputPuts("xrtFree(__xl6_args);\n", ctx->out);
-    } else {
-        xl6CgenIndent(ctx);
-        xl6OutputPuts("(void)__xl6_arg;\n", ctx->out);
-    }
-
-    ctx->currentReturnType = xl6CgenAsyncResultType(node);
-    ctx->currentReturnParams = params;
-    ctx->currentReturns = xl6CgenAsyncReturns(node);
-    ctx->currentReturnFunc = node;
-    ctx->currentErrorExitLabel = "__xl6_async_error";
-    ctx->currentAsyncWorker = 1;
-    xl6CgenRegisterParamTypes(ctx, params);
-    if ( body != NULL ) {
-        xl6CgenBlock(ctx, body);
-    }
-    if ( !xl6CgenBlockEndsWithReturn(body) ) {
-        xl6CgenEmitCleanupsSince(ctx, cleanupMark);
-        xl6CgenIndent(ctx);
-        xl6OutputPuts("xl6_async_result_ok(pOut);\n", ctx->out);
-        xl6CgenIndent(ctx);
-        xl6OutputPuts("return 0;\n", ctx->out);
-    }
-
-    ctx->indent -= 1;
-    xl6OutputPuts("__xl6_async_error:\n", ctx->out);
-    ctx->indent += 1;
-    xl6CgenIndent(ctx);
-    xl6OutputPuts("if ( xl6_error_has() ) {\n", ctx->out);
-    ctx->indent += 1;
-    xl6CgenIndent(ctx);
-    xl6OutputPuts("XL6_Error* __xl6_error = xl6_error_take();\n", ctx->out);
-    xl6CgenIndent(ctx);
-    xl6OutputPuts("const char* __xl6_message = xl6_error_message(__xl6_error);\n", ctx->out);
-    xl6CgenEmitCleanupsSince(ctx, cleanupMark);
-    xl6CgenIndent(ctx);
-    xl6OutputPuts("xl6_async_result_error(pOut, __xl6_message);\n", ctx->out);
-    xl6CgenIndent(ctx);
-    xl6OutputPuts("xl6_error_free(__xl6_error);\n", ctx->out);
-    xl6CgenIndent(ctx);
-    xl6OutputPuts("return -1;\n", ctx->out);
-    ctx->indent -= 1;
-    xl6CgenIndent(ctx);
-    xl6OutputPuts("}\n", ctx->out);
-    xl6CgenIndent(ctx);
-    xl6OutputPuts("return -1;\n", ctx->out);
-
-    ctx->currentReturnType = prevReturnType;
-    ctx->currentReturnParams = prevReturnParams;
-    ctx->currentReturns = prevReturns;
-    ctx->currentReturnFunc = prevReturnFunc;
-    ctx->currentErrorExitLabel = prevErrorExitLabel;
-    ctx->currentAsyncWorker = prevAsyncWorker;
-    xl6CgenFreeCleanupsSince(ctx, cleanupMark);
-    xl6CgenFreeVarsSince(ctx, varMark);
-
-    ctx->indent -= 1;
-    xl6OutputPuts("}\n\n", ctx->out);
-}
-
-static void xl6CgenAsyncFunc(XL6_CgenContext* ctx, const XL6_AstNode* node)
-{
-    const XL6_AstNode* params = xl6CgenAsyncParams(node);
-    size_t i;
-
-    xl6CgenAsyncArgStructDecl(ctx, node);
-    xl6CgenAsyncResultFreeFunc(ctx, node);
-    xl6CgenAsyncWorker(ctx, node);
-
-    xl6CgenAsyncFuncProto(ctx, node);
-    xl6OutputPuts("\n{\n", ctx->out);
-    ctx->indent += 1;
-    if ( params != NULL && params->childCount > 0 ) {
-        xl6CgenIndent(ctx);
-        xl6CgenAsyncArgsStructName(ctx, node);
-        xl6OutputPuts("* __xl6_args = (", ctx->out);
-        xl6CgenAsyncArgsStructName(ctx, node);
-        xl6OutputPuts("*)xrtMalloc(sizeof(", ctx->out);
-        xl6CgenAsyncArgsStructName(ctx, node);
-        xl6OutputPuts("));\n", ctx->out);
-        xl6CgenIndent(ctx);
-        xl6OutputPuts("xfuture* __xl6_future;\n", ctx->out);
-        xl6CgenIndent(ctx);
-        xl6OutputPuts("if ( __xl6_args == 0 ) {\n", ctx->out);
-        ctx->indent += 1;
-        xl6CgenIndent(ctx);
-        xl6OutputPuts("return 0;\n", ctx->out);
-        ctx->indent -= 1;
-        xl6CgenIndent(ctx);
-        xl6OutputPuts("}\n", ctx->out);
-        for ( i = 0; i < params->childCount; ++i ) {
-            const XL6_AstNode* param = params->children[i];
-
-            xl6CgenIndent(ctx);
-            xl6OutputPuts("__xl6_args->", ctx->out);
-            xl6CgenFputsCIdent(ctx->out, param != NULL ? param->text : NULL);
-            xl6OutputPuts(" = ", ctx->out);
-            xl6CgenFputsCIdent(ctx->out, param != NULL ? param->text : NULL);
-            xl6OutputPuts(";\n", ctx->out);
-        }
-        xl6CgenIndent(ctx);
-        xl6OutputPuts("__xl6_future = xTaskRunThread(", ctx->out);
-        xl6CgenAsyncWorkerSymbol(ctx, node);
-        xl6OutputPuts(", __xl6_args, 0);\n", ctx->out);
-        xl6CgenIndent(ctx);
-        xl6OutputPuts("if ( __xl6_future == 0 ) {\n", ctx->out);
-        ctx->indent += 1;
-        xl6CgenIndent(ctx);
-        xl6OutputPuts("xrtFree(__xl6_args);\n", ctx->out);
-        ctx->indent -= 1;
-        xl6CgenIndent(ctx);
-        xl6OutputPuts("}\n", ctx->out);
-        xl6CgenIndent(ctx);
-        xl6OutputPuts("return __xl6_future;\n", ctx->out);
-    } else {
-        xl6CgenIndent(ctx);
-        xl6OutputPuts("return xTaskRunThread(", ctx->out);
-        xl6CgenAsyncWorkerSymbol(ctx, node);
-        xl6OutputPuts(", 0, 0);\n", ctx->out);
-    }
-    ctx->indent -= 1;
-    xl6OutputPuts("}\n\n", ctx->out);
 }

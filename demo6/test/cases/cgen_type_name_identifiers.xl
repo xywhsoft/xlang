@@ -5,12 +5,10 @@ int list = 2
 int set = 3
 int dict = 4
 int type = 5
-int function = 6
 
 expect(array, 1)
 expect(list, 2)
 expect(set, 3)
 expect(dict, 4)
 expect(type, 5)
-expect(function, 6)
-expect(array + list + set + dict + type + function, 21)
+expect(array + list + set + dict + type, 15)

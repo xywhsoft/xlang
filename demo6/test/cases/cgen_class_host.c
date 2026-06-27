@@ -5,8 +5,11 @@
 typedef struct xvalue_struct* xvalue;
 
 xvalue xvoCreateInt(long long iVal);
+long long xvoGetInt(xvalue pVal);
+void xvoUnref(xvalue pVal);
 
 static long long g_nc_probe_count = 0;
+static long long g_recorded_xvalue = 0;
 
 void expect_i64(long long actual, long long expected)
 {
@@ -44,6 +47,17 @@ xvalue nc_probe_next_var(void)
 long long nc_probe_count(void)
 {
     return g_nc_probe_count;
+}
+
+void record_xvalue(xvalue value)
+{
+    g_recorded_xvalue = xvoGetInt(value);
+    xvoUnref(value);
+}
+
+long long recorded_xvalue(void)
+{
+    return g_recorded_xvalue;
 }
 
 void* native_handle(long long value)

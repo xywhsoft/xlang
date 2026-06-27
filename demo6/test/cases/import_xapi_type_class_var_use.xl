@@ -1,6 +1,6 @@
 import class_api
 
-func main(...) -> int
+func main(...) as int
     if class_api.origin.x != 11 then
         return 1
     end

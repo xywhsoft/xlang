@@ -12,15 +12,15 @@ end
 
 extern "record_destroy" func recordDestroy(int value)
 extern "expect_i64" func expect(int actual, int expected)
-extern "destroy_count" func destroyCount() -> int
-extern "destroy_value" func destroyValue() -> int
+extern "destroy_count" func destroyCount() as int
+extern "destroy_value" func destroyValue() as int
 
 func exercise()
     auto tracker = Tracker(77)
     expect(destroyCount(), 0)
 end
 
-func earlyReturn() -> int
+func earlyReturn() as int
     auto tracker = Tracker(88)
     return 9
 end

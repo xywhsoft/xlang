@@ -1,8 +1,8 @@
-func identity<T>(T value) -> T
+func identity<T>(T value) as T
     return value
 end
 
-func first<T>(array<T> values) -> T
+func first<T>(array<T> values) as T
     return values[0]
 end
 
@@ -13,7 +13,7 @@ class Box<T>
         return
     end
 
-    func valueOf() -> T
+    func valueOf() as T
         return value
     end
 end

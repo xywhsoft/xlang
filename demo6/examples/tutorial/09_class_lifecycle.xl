@@ -5,8 +5,8 @@
 
 extern "reset_destroy_log" func resetDestroyLog()
 extern "record_destroy" func recordDestroy(int value)
-extern "destroy_count" func destroyCount() -> int
-extern "destroy_value" func destroyValue() -> int
+extern "destroy_count" func destroyCount() as int
+extern "destroy_value" func destroyValue() as int
 
 class Point
     int x = 0
@@ -17,7 +17,7 @@ class Point
         self.y = y
     end
 
-    func sum() -> int
+    func sum() as int
         return self.x + self.y
     end
 
@@ -34,12 +34,12 @@ class Point3 extends Point
         self.z = z
     end
 
-    func sum3() -> int
+    func sum3() as int
         return self.sum() + self.z
     end
 end
 
-func main(...) -> int
+func main(...) as int
     resetDestroyLog()
 
     int value = 0

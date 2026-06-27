@@ -1,17 +1,21 @@
-func makeValues() -> array<int>
+func makeValues() as array<int>
     return array[1, 2, 3]
 end
 
-func makeNames() -> list<string>
+func makeNames() as list<string>
     return list[0: "a", 2: "b"]
 end
 
-func makeIds() -> set<int>
+func makeIds() as set<int>
     return set{1, 2, 3}
 end
 
-func makeScores() -> dict<int>
+func makeScores() as dict<int>
     return dict{"a": 1, "b": 2}
+end
+
+class ArrayMaker
+    func() as array<int> values
 end
 
 int arrayTotal = 0
@@ -51,3 +55,20 @@ for value in makeValues()
     breakTotal = breakTotal + value
 end
 assert breakTotal == 3, "returned typed container break cleanup failed"
+
+ArrayMaker maker
+maker.values = makeValues
+
+array<int> memberValues = maker.values()
+int memberTotal = 0
+for value in memberValues
+    memberTotal = memberTotal + value
+end
+assert memberTotal == 6, "member func returned array declaration failed"
+
+memberValues = maker.values()
+int memberAssignedTotal = 0
+for value in memberValues
+    memberAssignedTotal = memberAssignedTotal + value
+end
+assert memberAssignedTotal == 6, "member func returned array assignment failed"

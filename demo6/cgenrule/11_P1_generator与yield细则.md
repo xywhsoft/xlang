@@ -31,10 +31,10 @@
 | 字段 | 内容 |
 | --- | --- |
 | xlang 写法 | generator 变量离开作用域 |
-| 生成规则描述 | `xl6_generator_destroy` 依次销毁 coroutine、释放 value 缓冲、释放 frame、释放 generator 本体。该函数由 cleanup 机制调用。 |
-| 生成器文件名和行号 | `xl6_cgen_generator.c:47` |
-| 对应生成的 C 代码 | `if (gen->co) xrtCoDestroy(gen->co); xrtFree(gen->value); xrtFree(gen->frame); xrtFree(gen);` |
-| 中间形态伪代码 | `destroy(co); free(value); free(frame); free(gen)` |
+| 生成规则描述 | `xl6_generator_destroy` 依次销毁 coroutine、释放 value 缓冲、释放 generator 内保存的错误对象、释放 frame、释放 generator 本体。该函数由 cleanup 机制调用。第一版语义层已限制 generator 参数只能使用 bool、整数、浮点、time、point 等可按值复制类型，因此 frame 释放不需要额外析构资源字段。 |
+| 生成器文件名和行号 | `xl6_cgen_generator.c:58` |
+| 对应生成的 C 代码 | `if (gen->co) xrtCoDestroy(gen->co); xrtFree(gen->value); xl6_error_free(gen->error); xrtFree(gen->frame); xrtFree(gen);` |
+| 中间形态伪代码 | `destroy(co); free(value); free(storedError); free(frame); free(gen)` |
 | 实现同等功能手写的 C 代码 | 与生成 helper 一致。 |
 | 额外依赖的封装代码 | `xl6_generator_destroy` helper。 |
 
@@ -55,11 +55,11 @@
 | 字段 | 内容 |
 | --- | --- |
 | xlang 写法 | `for v in gen ... end` |
-| 生成规则描述 | `xl6_generator_next` 检查空 generator、done、co 是否存在；每次 resume 前清空 hasValue；`xrtCoResume` 失败或 coroutine dead 时标记 done；如果本轮产生 value 则返回 true。 |
-| 生成器文件名和行号 | `xl6_cgen_generator.c:77`、`xl6_cgen_generator.c:85`、`xl6_cgen_generator.c:90` |
-| 对应生成的 C 代码 | `gen->hasValue = 0; if (!xrtCoResume(gen->co)) { gen->done = 1; return false; } return gen->hasValue;` |
-| 中间形态伪代码 | `resume coroutine; return whether yield produced value` |
-| 实现同等功能手写的 C 代码 | 手写 C 需要维护 done/hasValue。 |
+| 生成规则描述 | `xl6_generator_next` 检查空 generator、已有存储错误、done、co 是否存在；每次 resume 前清空 hasValue；`xrtCoResume` 失败或 resume 后发现 active error 时，把错误转存到 generator，再重新抛给消费端；如果本轮产生 value 则返回 true。 |
+| 生成器文件名和行号 | `xl6_cgen_generator.c:84`、`xl6_cgen_generator.c:90`、`xl6_cgen_generator.c:95`、`xl6_cgen_generator.c:98`、`xl6_cgen_generator.c:99` |
+| 对应生成的 C 代码 | `if (storedError) reraise; gen->hasValue = 0; if (!xrtCoResume(gen->co)) { storeActiveError(gen); return false; } if (xl6_error_has()) { storeActiveError(gen); reraise; return false; } return gen->hasValue;` |
+| 中间形态伪代码 | `resume coroutine; if worker failed: gen.error = activeError; throw gen.error; else return whether yield produced value` |
+| 实现同等功能手写的 C 代码 | 手写 C 需要维护 done/hasValue/error，并在消费端重新抛出 worker 内部错误。 |
 | 额外依赖的封装代码 | `xl6_generator_next` helper。 |
 
 ## CGEN-GEN-006 generator value_into runtime
@@ -67,9 +67,9 @@
 | 字段 | 内容 |
 | --- | --- |
 | xlang 写法 | `for v in gen ... end` 中取当前值 |
-| 生成规则描述 | `xl6_generator_value_into` 校验 generator、out、value、hasValue 和 valueSize，然后把当前 value 缓冲复制到输出地址。出错时设置 `GeneratorError`。 |
-| 生成器文件名和行号 | `xl6_cgen_generator.c:94` |
-| 对应生成的 C 代码 | `memcpy(outValue, gen->value, valueSize);` |
+| 生成规则描述 | `xl6_generator_value_into` 先重抛 generator 内保存的错误，再校验 generator、out、value、hasValue 和 valueSize，然后把当前 value 缓冲复制到输出地址。出错时设置 `GeneratorError`。 |
+| 生成器文件名和行号 | `xl6_cgen_generator.c:105`、`xl6_cgen_generator.c:107` |
+| 对应生成的 C 代码 | `if (storedError) reraise; memcpy(outValue, gen->value, valueSize);` |
 | 中间形态伪代码 | `out = copy(gen.value)` |
 | 实现同等功能手写的 C 代码 | `xl6_generator_value_into(gen, &v, sizeof(T), file, line, col);` |
 | 额外依赖的封装代码 | `xl6_generator_value_into` helper。 |
@@ -91,8 +91,8 @@
 | 字段 | 内容 |
 | --- | --- |
 | xlang 写法 | `func seq(int start, int stop) generator<int>` |
-| 生成规则描述 | generator 函数有参数时生成 `XL6_GenFrame_<func>` 结构体，字段保存每个参数的 C 类型和值。无参数时不生成 frame typedef。 |
-| 生成器文件名和行号 | `xl6_cgen_generator.c:133`、`xl6_cgen_generator.c:139`、`xl6_cgen_generator.c:151` |
+| 生成规则描述 | generator 函数有参数时生成 `XL6_GenFrame_<func>` 结构体，字段保存每个参数的 C 类型和值。无参数时不生成 frame typedef。语义检查会拒绝 function、class、custom、string 等需要额外所有权处理的参数类型，避免生成只能 `xrtFree(frame)` 却无法释放资源字段的 frame。 |
+| 生成器文件名和行号 | `xl6_sem.c:7995`、`xl6_cgen_generator.c:133`、`xl6_cgen_generator.c:139`、`xl6_cgen_generator.c:151` |
 | 对应生成的 C 代码 | `typedef struct XL6_GenFrame_seq { long long start; long long stop; } XL6_GenFrame_seq;` |
 | 中间形态伪代码 | `frame = {params...}` |
 | 实现同等功能手写的 C 代码 | 手写 C 需要把函数参数复制到 coroutine 可访问的堆 frame。 |
@@ -103,8 +103,8 @@
 | 字段 | 内容 |
 | --- | --- |
 | xlang 写法 | generator 函数体 |
-| 生成规则描述 | worker 签名为 `static void worker(void* __xl6_arg)`。它把参数转换为 `XL6_Generator*`，从 generator 中取 frame，复制参数为局部变量，设置当前 return/generator/error 上下文，然后生成函数体。函数体结束后执行 cleanup 并落到错误/结束标签返回。 |
-| 生成器文件名和行号 | `xl6_cgen_generator.c:165`、`xl6_cgen_generator.c:190`、`xl6_cgen_generator.c:196`、`xl6_cgen_generator.c:220`、`xl6_cgen_generator.c:232` |
+| 生成规则描述 | worker 签名为 `static void worker(void* __xl6_arg)`。它把参数转换为 `XL6_Generator*`，从 generator 中取 frame，复制参数为局部变量，设置当前 return/generator/error 上下文，然后生成函数体。函数体结束后执行 cleanup；如果走错误标签，则把 active error 转存到 generator 再返回，让消费端 `next/value_into` 能重新抛出同一个错误对象。 |
+| 生成器文件名和行号 | `xl6_cgen_generator.c:246`、`xl6_cgen_generator.c:256`、`xl6_cgen_generator.c:259` |
 | 对应生成的 C 代码 | `static void xl_gen_worker_seq(void* arg) { XL6_Generator* gen = (XL6_Generator*)arg; Frame* frame = (Frame*)xl6_generator_frame(gen); long long start = frame->start; ... }` |
 | 中间形态伪代码 | `worker(gen): load frame; run body; cleanup; return` |
 | 实现同等功能手写的 C 代码 | 手写 C 需要在 coroutine entry 内恢复 frame 和参数。 |
@@ -115,8 +115,8 @@
 | 字段 | 内容 |
 | --- | --- |
 | xlang 写法 | `func seq(int n) generator<int>` |
-| 生成规则描述 | 对外函数先生成 frame 并复制参数，然后调用 `xl6_generator_create(sizeof(T), frame, worker)` 返回 generator。frame 分配失败返回 0。无参数时 frame 传 0。 |
-| 生成器文件名和行号 | `xl6_cgen_generator.c:253`、`xl6_cgen_generator.c:270`、`xl6_cgen_generator.c:281`、`xl6_cgen_generator.c:300` |
+| 生成规则描述 | 对外函数先生成 frame 并复制参数，然后调用 `xl6_generator_create(sizeof(T), frame, worker)` 返回 generator。frame 分配失败返回 0。无参数时 frame 传 0。由于语义层已拒绝携带资源所有权的 generator 参数，该路径只需要按值复制 frame 字段。 |
+| 生成器文件名和行号 | `xl6_sem.c:7995`、`xl6_cgen_generator.c:253`、`xl6_cgen_generator.c:270`、`xl6_cgen_generator.c:281`、`xl6_cgen_generator.c:300` |
 | 对应生成的 C 代码 | `Frame* frame = xrtMalloc(sizeof(Frame)); frame->n = n; return xl6_generator_create(sizeof(long long), frame, xl_gen_worker_seq);` |
 | 中间形态伪代码 | `frame = heapCopy(params); return createGenerator(sizeof(item), frame, worker)` |
 | 实现同等功能手写的 C 代码 | 与生成代码基本一致。 |
@@ -138,11 +138,11 @@
 
 | 字段 | 内容 |
 | --- | --- |
-| xlang 写法 | `for item in seq(10) ... end` |
-| 生成规则描述 | for-in 消费端在 `xl6_cgen_stmt_loop.c` 中实现：只支持一个迭代变量；把 iterable 表达式生成到 `XL6_Generator*` 临时值，循环调用 `xl6_generator_next`，每轮用 `xl6_generator_value_into` 拷贝当前值。 |
-| 生成器文件名和行号 | `xl6_cgen_stmt_loop.c:754`、`xl6_cgen_stmt_loop.c:789`、`xl6_cgen_stmt_loop.c:811` |
-| 对应生成的 C 代码 | `while (xl6_generator_next(gen, "", line, col)) { T item = default(T); xl6_generator_value_into(gen, &item, sizeof(T), "", line, col); ... }` |
-| 中间形态伪代码 | `while next(gen): item = valueInto<T>(gen); body` |
+| xlang 写法 | `for item in seq(10) ... end`、`for index, item in seq(10) ... end` |
+| 生成规则描述 | for-in 消费端在 `xl6_cgen_stmt_loop.c` 中实现：支持一个或两个迭代变量；把 iterable 表达式生成到 `XL6_Generator*` 临时值，循环调用 `xl6_generator_next`，每轮用 `xl6_generator_value_into` 拷贝当前值；双目标形式额外生成 0 基 index 计数器，并在循环体和 `continue` cleanup 后递增；循环体内和 `while(next)` 退出后都执行异常传播检查，因此 generator worker 内部错误可以被外层 `try/catch` 捕获。 |
+| 生成器文件名和行号 | `xl6_cgen_stmt_loop.c:787`、`xl6_cgen_stmt_loop.c:843`、`xl6_cgen_stmt_loop.c:846`、`xl6_cgen_stmt_loop.c:857`、`xl6_cgen_stmt_loop.c:873`、`xl6_cgen_stmt_loop.c:883` |
+| 对应生成的 C 代码 | `long long genIndex = 0; while (xl6_generator_next(gen, "", line, col)) { long long index = genIndex; T item = default(T); xl6_generator_value_into(gen, &item, sizeof(T), "", line, col); if (xl6_error_has()) goto catch; ...; genIndex += 1; } if (xl6_error_has()) goto catch;` |
+| 中间形态伪代码 | `index = 0; while next(gen): item = valueInto<T>(gen); propagateError(); body; index += 1; propagateError()` |
 | 实现同等功能手写的 C 代码 | 手写 C 需要自行循环 next/value_into 并销毁 generator。 |
 | 额外依赖的封装代码 | generator cleanup。 |
 
@@ -150,7 +150,7 @@
 
 | 编号 | 观察 |
 | --- | --- |
-| RISK-GEN-001 | generator yield 当前通过 `memcpy` 复制 `T`，对含 function 字段的 class 或需要 retain/release 的复杂类型还缺少精细生命周期策略。 |
-| RISK-GEN-002 | generator frame 销毁只是 `xrtFree(frame)`，参数若包含 function/class/custom 资源不会自动析构。 |
-| RISK-GEN-003 | generator worker 错误出口只是 `return`，没有把错误对象挂到 generator 状态；消费端只能通过 active error 机制感知。 |
-| RISK-GEN-004 | generator for-in 只支持一个目标变量，不支持 `(index, value)` 形式。 |
+| RISK-GEN-001 | 已收口：第一版 `generator<T>` 语义层只允许 bool/int/float/time/point 等可按值复制元素；string、class、function 等复杂所有权类型由 `sem_generator_string_element.xl`、`sem_generator_class_element.xl`、`sem_generator_function_element.xl` 负例和集中诊断断言锁住，因此不会进入当前 `memcpy` yield 路径。 |
+| RISK-GEN-002 | 已收口：第一版 generator 参数语义层只允许 bool、整数、浮点、time、point 等可按值复制类型；function、class/custom 等资源参数由 `sem_generator_function_param.xl`、`sem_generator_class_param.xl` 负例和集中诊断断言锁住，因此当前 `xrtFree(frame)` 销毁路径不会遗漏 frame 内资源析构。 |
+| RISK-GEN-003 | 已收口：generator 结构体持有 `XL6_Error* error`，worker 错误出口通过 `xl6_generator_store_active_error(__xl6_gen)` 转存 active error；`xl6_generator_next` 和 `xl6_generator_value_into` 通过 `xl6_generator_raise_stored_error` 重新抛出，for-in 消费端在 `while(next)` 退出后补充异常传播检查。`cgen_generator.xl` 和 feature suite `11_concurrency.xl` 覆盖 yield 后 throw 且外层 `try/catch` 捕获的路径。 |
+| RISK-GEN-004 | 已收口：generator for-in 支持 `(index, value)` 双目标形式，第一个目标为 0 基 `int` index，第二个目标为 `generator<T>` 的元素类型；`cgen_generator_two_targets.xl` 覆盖 check/run/build/cgen、break/continue 后 index 递增和生成形态守门。 |

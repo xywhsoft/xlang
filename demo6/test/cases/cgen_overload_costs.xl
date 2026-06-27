@@ -1,16 +1,16 @@
-func choose(int value) -> int
+func choose(int value) as int
     return 10
 end
 
-func choose(int64 value) -> int
+func choose(int64 value) as int
     return 20
 end
 
-func chooseFloat(float value) -> int
+func chooseFloat(float value) as int
     return 30
 end
 
-func chooseFloat(float64 value) -> int
+func chooseFloat(float64 value) as int
     return 40
 end
 

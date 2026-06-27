@@ -1,7 +1,7 @@
 /*
 
     XRT Single Header File
-    Generated: 2026-06-26 00:04:21
+    Generated: 2026-06-26 15:27:59
 
     MIT License
 
@@ -83194,7 +83194,10 @@ jnum_to_func(double, xrtStrToNum)
 #endif
 /**************** debug ****************/
 /* error print */
-#define JSON_ERROR_PRINT_ENABLE		 1
+/* 默认不打印解析错误，调用方通过返回值处理失败；需要调试时可在包含前定义为 1。 */
+#ifndef JSON_ERROR_PRINT_ENABLE
+#define JSON_ERROR_PRINT_ENABLE		 0
+#endif
 #if JSON_ERROR_PRINT_ENABLE
 #define JsonErr(fmt, ...) do {									  \
 	printf("[JsonErr][%s:%d] ", __func__, __LINE__);				\

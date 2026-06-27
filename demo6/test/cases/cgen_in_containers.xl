@@ -6,12 +6,28 @@ auto sparse = [0: "a", 2: "b"]
 auto unique = {1, 2, 3}
 auto table = {"a": 1, "b": 2}
 
-func makeDynArray() -> var
+func makeDynArray() as var
     return [4, 5, 6]
 end
 
-func makeDynTable() -> var
+func makeDynTable() as var
     return {"b": 2}
+end
+
+func literalArrayInExpr() as bool
+    return 2 in [1, 2, 3]
+end
+
+func dynArrayInExpr() as bool
+    return 5 in makeDynArray()
+end
+
+func literalDictInExpr() as bool
+    return "a" in {"a": 1}
+end
+
+func dynDictInExpr() as bool
+    return "b" in makeDynTable()
 end
 
 expect("pha" in text, 1)
@@ -42,3 +58,8 @@ expect("bet" in dynText, 1)
 expect("nope" in dynText, 0)
 expect("b" in dynTable, 1)
 expect("b" in makeDynTable(), 1)
+
+expect(literalArrayInExpr(), 1)
+expect(dynArrayInExpr(), 1)
+expect(literalDictInExpr(), 1)
+expect(dynDictInExpr(), 1)

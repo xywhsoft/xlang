@@ -1,0 +1,5 @@
+var value = 123
+
+for item in value
+    var seen = item
+end

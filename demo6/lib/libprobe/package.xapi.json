@@ -6,7 +6,7 @@
   "module":{"name":"libprobe","moduleId":"libprobe@1.0.0#abi1::libprobe","source":"lib/libprobe","sourceHash":""},
   "entry":{"kind":"none","requiresExplicitInit":true,"initSymbol":"xlInit","unitSymbol":"xlUnit"},
   "exports":[
-    {"kind":"function","name":"value","cSymbol":"xl6_libprobe_value","signature":"func()->int","exportId":"libprobe@1.0.0#abi1::libprobe::value(func()->int)","callingConvention":"cdecl","varargMode":"none","requiredParamCount":0,"fixedParamCount":0,"params":[],"returns":[{"type":"int"}]}
+    {"kind":"function","name":"value","cSymbol":"xl6_libprobe_value","signature":"func() as int","exportId":"libprobe@1.0.0#abi1::libprobe::value(func() as int)","callingConvention":"cdecl","varargMode":"none","requiredParamCount":0,"fixedParamCount":0,"params":[],"returns":[{"type":"int"}]}
   ],
   "types":[],
   "imports":[],

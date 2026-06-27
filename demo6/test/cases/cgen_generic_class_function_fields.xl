@@ -1,17 +1,17 @@
 extern "expect_i64" func expect(int actual, int expected)
 
-func inc(int value) -> int
+func inc(int value) as int
     return value + 1
 end
 
-func makeAdder(int base) -> function(int) -> int
-    return func(int value) -> int
+func makeAdder(int base) as func(int) as int
+    return func(int value) as int
         return base + value
     end
 end
 
 class Mapper<T>
-    function(T) -> T op
+    func(T) as T op
     T value
 end
 

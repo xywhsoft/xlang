@@ -275,6 +275,7 @@ Invoke-GuardStep "static output boundary" {
     Assert-NoPattern "removed output compat header" @("src") "xl6_output_compat"
     Assert-NoPattern "codegen and dump CRT text output" @("src\cgen", "src\common", "src\abi", "src\ast", "src\ir") "\b(fputc|fputs|fprintf)\s*\("
     Assert-NoPattern "codegen direct stdio output" @("src\cgen") "(FILE\s*\*)|(\bstdout\b)|(\bstderr\b)" -CaseSensitive
+    Assert-NoPattern "stale xvalue scalar conversion fallback" @("src\cgen") "__xl6_conv_" -CaseSensitive
 }
 
 Invoke-GuardStep "static XRT boundary" {
@@ -296,6 +297,9 @@ Invoke-GuardStep "static wiring guards" {
     $scripts = @(
         "check_docs_index.ps1",
         "check_cgenrule_docs.ps1",
+        "check_risk_ledger.ps1",
+        "check_cgen_statement_expr_allowlist.ps1",
+        "check_cgen_module_size.ps1",
         "check_markdown_links.ps1",
         "check_tool_wiring.ps1",
         "check_batch_wiring.ps1",
@@ -312,6 +316,7 @@ Invoke-GuardStep "static wiring guards" {
         "check_stdlib_coverage.ps1",
         "check_stdlib_test_wiring.ps1",
         "check_stdlib_dll_symbols.ps1",
+        "check_release_tmp_artifacts.ps1",
         "check_negative_diagnostics.ps1"
     )
 

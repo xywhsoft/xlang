@@ -19,7 +19,7 @@
 | 字段 | 内容 |
 | --- | --- |
 | xlang 写法 | 声明、赋值、表达式语句、if/while/for、yield 等 |
-| 生成规则描述 | `xl6CgenStmt` 按 AST kind 分派到声明、赋值、控制流、异常、循环跳转、yield 等生成器。声明、赋值、普通表达式、控制流和 yield 后会追加 `xl6CgenEmitExceptionPropagate`；throw/assert/try/break/continue 走各自专用路径。未知语句节点兜底诊断为 `unsupported statement kind in C generator`。 |
+| 生成规则描述 | `xl6CgenStmt` 按 AST kind 分派到声明、赋值、控制流、异常、循环跳转、yield 等生成器。声明、赋值、普通表达式、控制流和 yield 后会追加 `xl6CgenEmitExceptionPropagate`；throw/assert/try/break/continue 走各自专用路径。未知语句节点兜底诊断为 `C generator does not support statement node: <AST kind>`。 |
 | 生成器文件名和行号 | `xl6_cgen_stmt_dispatch.c:32`、`xl6_cgen_stmt_dispatch.c:39`、`xl6_cgen_stmt_dispatch.c:134`、`xl6_cgen_stmt_dispatch.c:182` |
 | 对应生成的 C 代码 | `statement; if (xl6_error_pending()) goto ...;` |
 | 中间形态伪代码 | `dispatch(stmt); maybe propagate exception` |
@@ -90,8 +90,8 @@
 
 | 字段 | 内容 |
 | --- | --- |
-| xlang 写法 | `function(int) int f = foo` / `function() int f = obj.fn` |
-| 生成规则描述 | function 类型声明初始化时不直接 `xl6CgenExpr`，而是走 `xl6CgenFunctionValueExpr`，以生成符合目标签名的 function value。若初始化表达式是借用 function，则声明后 retain function value。 |
+| xlang 写法 | `func(int) int f = foo` / `func() int f = obj.fn` |
+| 生成规则描述 | func 类型声明初始化时不直接 `xl6CgenExpr`，而是走 `xl6CgenFunctionValueExpr`，以生成符合目标签名的 function value。若初始化表达式是借用 function，则声明后 retain function value。 |
 | 生成器文件名和行号 | `xl6_cgen_stmt_decl.c:273`、`xl6_cgen_stmt_decl.c:284` |
 | 对应生成的 C 代码 | `XL6_Function f = xl6_make_function(...); if (f.retain && f.env) f.retain(f.env);` |
 | 中间形态伪代码 | `function decl = functionValueExpr(init); retain if borrowed` |
@@ -114,8 +114,8 @@
 
 | 字段 | 内容 |
 | --- | --- |
-| xlang 写法 | `a, b = f()`，其中 `f` 是 `function(...) (T1,T2)` |
-| 生成规则描述 | 如果 callee 是成员表达式，则推断成员字段类型；如果 callee 是名称，则查变量类型表。只有 function 类型且返回数量大于 1 时走 function value 多返回路径。成员 function value 会先临时求值到 `XL6_Function`。 |
+| xlang 写法 | `a, b = f()`，其中 `f` 是 `func(...) (T1,T2)` |
+| 生成规则描述 | 如果 callee 是成员表达式，则推断成员字段类型；如果 callee 是名称，则查变量类型表。只有 func 类型且返回数量大于 1 时走 function value 多返回路径。成员 func value 会先临时求值到 `XL6_Function`。 |
 | 生成器文件名和行号 | `xl6_cgen_stmt_decl.c:313`、`xl6_cgen_stmt_decl.c:360` |
 | 对应生成的 C 代码 | `XL6_Function __xl6_member_fn_multi_1 = obj.fn; xl6_function_invoke(...);` |
 | 中间形态伪代码 | `if callee type is function with multi returns -> function value invoke` |
@@ -210,8 +210,8 @@
 
 | 字段 | 内容 |
 | --- | --- |
-| xlang 写法 | `function() int f; f, n = pair()` |
-| 生成规则描述 | 目标是 function 类型变量时，赋值前调用 `xl6CgenReleaseFunctionValue` 释放旧 env，然后把返回的 function value 结构体字段写入目标。 |
+| xlang 写法 | `func() int f; f, n = pair()` |
+| 生成规则描述 | 目标是 func 类型变量时，赋值前调用 `xl6CgenReleaseFunctionValue` 释放旧 env，然后把返回的 function value 结构体字段写入目标。 |
 | 生成器文件名和行号 | `xl6_cgen_stmt_decl.c:627` |
 | 对应生成的 C 代码 | `xl6_release_function(f); f = __xl6_multi_0.value0;` |
 | 中间形态伪代码 | `release old function; assign returned function` |
@@ -237,10 +237,10 @@
 | xlang 写法 | `arr[i], b = pair()` |
 | 生成规则描述 | 索引目标不能直接接收任意 C 类型。生成器先把返回字段按返回类型装箱成临时 xvalue，再调用 `xl6CgenIndexAssignTemp` 复用索引赋值规则写入容器。typed container setValue 成功后必须释放临时 xvalue；动态 dict key 路径还必须先释放临时 key，再释放临时 value。 |
 | 生成器文件名和行号 | `xl6_cgen_stmt_decl.c:526`、`xl6_cgen_stmt_decl.c:656`、`xl6_cgen_stmt_decl.c:667`、`xl6_cgen_value_assign.c:10`、`xl6_cgen_value_assign.c:75`、`xl6_cgen_value_assign.c:1010` |
-| 对应生成的 C 代码 | `xvalue __xl6_multi_index_1 = xvoCreateInt(__xl6_multi_0.value0); if (!xrtTypedArraySetValue(values, i, __xl6_multi_index_1)) { xl6_runtime_fatal(3); } xvoUnref(__xl6_multi_index_1);` |
+| 对应生成的 C 代码 | `xvalue __xl6_multi_index_1 = xvoCreateInt(__xl6_multi_0.value0); if (!xl6_xrt_typed_array_set_at(values, (unsigned int)(i), __xl6_multi_index_1)) { xl6_runtime_fatal(3); } xvoUnref(__xl6_multi_index_1);` |
 | 中间形态伪代码 | `returned C value -> xvalue temp -> index assignment -> release temp after container takes/copies value` |
 | 实现同等功能手写的 C 代码 | 手写 C 需要按容器 API 将值装箱后 set，并在容器完成 copy/retain 后释放临时装箱值。 |
-| 额外依赖的封装代码 | xvalue 装箱、索引赋值 helper、XRT typed container setValue。 |
+| 额外依赖的封装代码 | xvalue 装箱、索引赋值 helper、XRT typed container setValue；typed array 通过 `xl6_xrt_typed_array_set_at` 集中处理 XRT 1 基 ABI。 |
 
 ## CGEN-DRET-021 多返回赋值到普通目标
 

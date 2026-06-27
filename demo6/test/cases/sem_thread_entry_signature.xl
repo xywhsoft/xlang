@@ -1,4 +1,4 @@
-func bad(int value) -> int
+func bad(int value) as int
     return value
 end
 

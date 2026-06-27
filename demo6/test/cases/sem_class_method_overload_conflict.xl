@@ -1,9 +1,9 @@
 class Bad
-    func parse(int value) -> int
+    func parse(int value) as int
         return value
     end
 
-    func parse(int value) -> string
+    func parse(int value) as string
         return "bad"
     end
 end

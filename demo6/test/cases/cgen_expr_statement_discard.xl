@@ -1,0 +1,17 @@
+extern "expect_i64" func expect(int actual, int expected)
+
+func mark(int value) as var
+    return value
+end
+
+mark(1) + mark(2)
+mark(3) == mark(3)
+mark(4) ~= 4
+mark(0) or mark(5)
+mark(1) and mark(6)
+mark(7) ?? mark(8)
+true ? mark(9) : mark(99)
+false ? mark(99) : mark(10)
+2 in [1, 2, 3]
+
+expect(1, 1)

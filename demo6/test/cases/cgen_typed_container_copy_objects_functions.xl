@@ -1,33 +1,33 @@
 extern "expect_i64" func expect(int actual, int expected)
 
-func add(int left, int right) -> int
+func add(int left, int right) as int
     return left + right
 end
 
-func mul(int left, int right) -> int
+func mul(int left, int right) as int
     return left * right
 end
 
-func makeAdder(int base) -> function(int) -> int
-    return func(int value) -> int
+func makeAdder(int base) as func(int) as int
+    return func(int value) as int
         return base + value
     end
 end
 
 class FnBox
-    function(int) -> int op
+    func(int) as int op
     int bias = 0
 end
 
-function(int) -> int add5 = makeAdder(5)
-function(int) -> int add9 = makeAdder(9)
+func(int) as int add5 = makeAdder(5)
+func(int) as int add9 = makeAdder(9)
 
-array<function(int) -> int> funcs = array[add5]
-array<function(int) -> int> funcsCopy = funcs
+array<func(int) as int> funcs = array[add5]
+array<func(int) as int> funcsCopy = funcs
 funcs[0] = add9
 
-function(int) -> int copiedFunc = funcsCopy[0]
-function(int) -> int currentFunc = funcs[0]
+func(int) as int copiedFunc = funcsCopy[0]
+func(int) as int currentFunc = funcs[0]
 expect(copiedFunc(7), 12)
 expect(currentFunc(7), 16)
 

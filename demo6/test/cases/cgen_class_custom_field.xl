@@ -14,8 +14,8 @@ class Holder
 end
 
 extern "expect_i64" func expect(int actual, int expected)
-extern "close_count" func closeCount() -> int
-extern "close_value" func closeValue(int index) -> int
+extern "close_count" func closeCount() as int
+extern "close_value" func closeValue(int index) as int
 
 func exercise()
     auto holder = Holder()

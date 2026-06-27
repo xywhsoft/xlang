@@ -1,6 +1,6 @@
 int dec = 1_000_000
 int hex = 0x2A
-int oct = &o52
+int oct = 0o52
 int bin = 0b101010
 float num = 1.2e-3
 string path = r"c:\demo6\file.txt"

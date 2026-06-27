@@ -515,6 +515,27 @@ static void xl6CgenCollectRuntimeTypeDescsInNode(XL6_CgenContext* ctx, const XL6
     if ( node->kind == XL6_AST_TYPE ) {
         xl6CgenAddRuntimeTypeDesc(ctx, node);
     }
+    if ( (node->kind == XL6_AST_EXPR_STMT || node->kind == XL6_AST_RETURN) &&
+         node->childCount > 0 ) {
+        for ( i = 0; i < node->childCount; ++i ) {
+            const XL6_AstNode* expr = node->children[i];
+
+            /*
+                只收集容器字面量这种自描述表达式。
+                预收集阶段没有局部变量表，避免推断依赖上下文的复杂表达式。
+            */
+            if ( expr != NULL &&
+                 (expr->kind == XL6_AST_ARRAY_LITERAL ||
+                  expr->kind == XL6_AST_LIST_LITERAL ||
+                  expr->kind == XL6_AST_SET_LITERAL ||
+                  expr->kind == XL6_AST_DICT_LITERAL ||
+                  expr->kind == XL6_AST_TYPED_LITERAL) ) {
+                XL6_AstNode* inferredType = xl6CgenCloneExprTypeForInference(ctx, expr);
+                xl6CgenAddRuntimeTypeDesc(ctx, inferredType);
+                xl6AstFree(inferredType);
+            }
+        }
+    }
     if ( node->kind == XL6_AST_VAR_DECL || node->kind == XL6_AST_CONST_DECL ) {
         const XL6_AstNode* typeNode = node->childCount > 0 ? node->children[0] : NULL;
         const XL6_AstNode* initExpr = node->childCount > 1 ? node->children[1] : NULL;

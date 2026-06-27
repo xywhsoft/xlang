@@ -4,11 +4,11 @@
 // 3. 换行和分号都可以分隔语句。
 // 4. main 可以接收 ...，命令行参数会进入 arg。
 
-func 加一(int 值) -> int
+func 加一(int 值) as int
     return 值 + 1
 end
 
-func main(...) -> int
+func main(...) as int
     int Name = 10
     int name = 20
     int 中文变量 = 加一(11)

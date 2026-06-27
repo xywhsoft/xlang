@@ -15,7 +15,7 @@ example:
     auto value = parseSmallInt("1")
     ```
 #end
-func parseSmallInt(string text) -> int
+func parseSmallInt(string text) as int
     if text == "" then
         throw "empty text"
     end
@@ -26,7 +26,7 @@ func parseSmallInt(string text) -> int
     return 0
 end
 
-func safeParse(string text) -> int
+func safeParse(string text) as int
     int value = 0
 
     try

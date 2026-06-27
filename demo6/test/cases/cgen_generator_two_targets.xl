@@ -1,0 +1,23 @@
+func nums() as generator<int>
+    yield 10
+    yield 20
+    yield 30
+    yield 40
+end
+
+int seen = 0
+int weighted = 0
+
+for index, value in nums()
+    seen = seen + 1
+    if index == 1 then
+        continue
+    end
+    weighted = weighted + index * 100 + value
+    if index == 2 then
+        break
+    end
+end
+
+assert seen == 3, "generator two-target seen failed"
+assert weighted == 240, "generator two-target index/value failed"

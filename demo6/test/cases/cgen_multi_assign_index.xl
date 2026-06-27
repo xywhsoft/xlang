@@ -1,6 +1,6 @@
 extern "expect_i64" func expect(int actual, int expected)
 
-func pair() -> (int, int)
+func pair() as (int, int)
     return 7, 8
 end
 

@@ -1,1 +1,1 @@
-extern "native_bad" func bad(array<int> value) -> int
+extern "native_bad" func bad(array<int> value) as int

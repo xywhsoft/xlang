@@ -180,26 +180,26 @@ expect(3 in idsCopy, 1)
 expect(scoresCopy.length, 1)
 expect(scoresCopy["z"], 99)
 
-// 泛型容器可以保存 class、custom、function 等一等公民类型。
+// 泛型容器可以保存 class、custom、func 等一等公民类型。
 class Pair
     int left = 0
     int right = 0
 end
 
 class FnBox
-    function(int) -> int op
+    func(int) as int op
     int bias = 0
 end
 
 custom Native
 end
 
-func add(int left, int right) -> int
+func add(int left, int right) as int
     return left + right
 end
 
-func makeAdder(int base) -> function(int) -> int
-    return func(int value) -> int
+func makeAdder(int base) as func(int) as int
+    return func(int value) as int
         return base + value
     end
 end
@@ -217,17 +217,17 @@ array<Native> nativeArray = array[native]
 Native fromNative = nativeArray[0]
 expect(type(fromNative) == Native, 1)
 
-function(int, int) -> int fn = add
-dict<function(int, int) -> int> funcs = dict{"add": fn}
-function(int, int) -> int picked = funcs["add"]
+func(int, int) as int fn = add
+dict<func(int, int) as int> funcs = dict{"add": fn}
+func(int, int) as int picked = funcs["add"]
 expect(picked(20, 22), 42)
 
-function(int) -> int add5 = makeAdder(5)
-function(int) -> int add9 = makeAdder(9)
-array<function(int) -> int> unaryFuncs = array[add5]
-array<function(int) -> int> unaryFuncsCopy = unaryFuncs
+func(int) as int add5 = makeAdder(5)
+func(int) as int add9 = makeAdder(9)
+array<func(int) as int> unaryFuncs = array[add5]
+array<func(int) as int> unaryFuncsCopy = unaryFuncs
 unaryFuncs[0] = add9
-function(int) -> int copiedUnary = unaryFuncsCopy[0]
+func(int) as int copiedUnary = unaryFuncsCopy[0]
 expect(copiedUnary(7), 12)
 
 FnBox box

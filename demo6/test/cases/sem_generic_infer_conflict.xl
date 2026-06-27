@@ -1,4 +1,4 @@
-func choose<T>(T left, T right) -> T
+func choose<T>(T left, T right) as T
     return right
 end
 

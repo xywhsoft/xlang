@@ -3,7 +3,7 @@
 // 2. list 使用 int64 稀疏索引。
 // 3. for in 对不同容器的遍历形态。
 
-func main(...) -> int
+func main(...) as int
     auto values = [1, 2, 3]
     auto sparse = [0: "a", 2: "b"]
     auto unique = {1, 2, 2, 3}

@@ -1,0 +1,8 @@
+func pair() as (string, int)
+    return "bad", 1
+end
+
+int first = 0
+int second = 0
+
+first, second = pair()

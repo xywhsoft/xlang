@@ -1,4 +1,4 @@
-func identity<T>(T value) -> T
+func identity<T>(T value) as T
     return value
 end
 
@@ -9,7 +9,7 @@ class Box<T>
         self.value = value
     end
 
-    func valueOf() -> T
+    func valueOf() as T
         return self.value
     end
 end

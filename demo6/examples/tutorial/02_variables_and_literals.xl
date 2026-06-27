@@ -6,7 +6,7 @@
 
 typedef Count = int
 
-func main(...) -> int
+func main(...) as int
     const int answer = 42
     auto inferred = 43
     var dynamic = "43"
@@ -19,9 +19,9 @@ func main(...) -> int
     Count count = 7
 
     int dec = 1_000_000
-    int hex = 0x10 + &H10
-    int oct = 0o10 + &O10
-    int bin = 0b10 + &B10
+    int hex = 0x10
+    int oct = 0o10
+    int bin = 0b10
 
     float pi = 3.14
     float sci = 1.25e2

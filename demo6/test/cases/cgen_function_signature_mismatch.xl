@@ -1,3 +1,3 @@
-auto raw = func(string text) -> int => 1
-function(int) -> int wrong = raw
+auto raw = func(string text) as int => 1
+func(int) as int wrong = raw
 int value = wrong(123)

@@ -1,2 +1,2 @@
-extern "native_value" func readInt() -> int
-extern "native_value" func readFloat() -> float
+extern "native_value" func readInt() as int
+extern "native_value" func readFloat() as float

@@ -1,7 +1,7 @@
-func add(int a) -> int
+func add(int a) as int
     return a
 end
 
-func add(int a, int b = 1) -> int
+func add(int a, int b = 1) as int
     return a + b
 end

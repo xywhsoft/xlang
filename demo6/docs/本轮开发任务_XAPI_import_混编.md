@@ -81,7 +81,7 @@ XAPI 不是用户常规手写源，而是机器生成的接口元数据：
 正式入口：
 
 ```xlang
-func main(...) -> int
+func main(...) as int
     return 0
 end
 ```

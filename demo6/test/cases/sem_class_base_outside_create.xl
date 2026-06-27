@@ -4,7 +4,7 @@ class Base
 end
 
 class Child extends Base
-    func reset() -> int
+    func reset() as int
         base()
         return 0
     end

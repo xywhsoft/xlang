@@ -6,11 +6,11 @@ end
 custom Native
 end
 
-func makePair(int seed, int step = 1) -> (int, int)
+func makePair(int seed, int step = 1) as (int, int)
     return seed, seed + step
 end
 
-func optionCount(string path, ***) -> int
+func optionCount(string path, ***) as int
     return arg.length
 end
 
@@ -28,7 +28,7 @@ for index, value in numbers
     total = total + index + int(value)
 end
 
-function(int) -> (int, int) pairFn = makePair
+func(int) as (int, int) pairFn = makePair
 auto left, right = pairFn(10)
 
 var boxedPairFn = pairFn

@@ -6,11 +6,11 @@ auto table = {"a": 1, "b": 2}
 var missing = null
 var dynamicValues = values
 
-func makeArray() -> array
+func makeArray() as array
     return [1, 2, 3, 4]
 end
 
-func makeDynArray() -> var
+func makeDynArray() as var
     return [1, 2, 3, 4]
 end
 
@@ -20,10 +20,12 @@ var dynamicLength = dynamicValues?.length
 var missingLength = missing?.length
 var tempArrayLength = makeArray()?.length
 var tempDynamicLength = makeDynArray()?.length
+int declaredLengthFallback = int(missingLength ?? 9)
 
 expect(int(valuesLength), 3)
 expect(int(tableLength), 2)
 expect(int(dynamicLength), 3)
 expect(int(missingLength ?? 9), 9)
+expect(declaredLengthFallback, 9)
 expect(int(tempArrayLength), 4)
 expect(int(tempDynamicLength), 4)

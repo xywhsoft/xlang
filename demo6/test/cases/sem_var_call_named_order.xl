@@ -1,0 +1,6 @@
+func count(...) as int
+    return arg.length
+end
+
+var fn = count
+fn(name = 1, 2)

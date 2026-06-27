@@ -1,0 +1,5 @@
+func takeInt(int value)
+    return
+end
+
+takeInt("x")

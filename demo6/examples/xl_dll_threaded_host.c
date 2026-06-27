@@ -145,7 +145,7 @@ static DWORD WINAPI thread_proc(LPVOID param)
 
     snprintf(source,
              sizeof(source),
-             "extern \"host_thread_value\" func hostThreadValue(int value) -> int\n"
+             "extern \"host_thread_value\" func hostThreadValue(int value) as int\n"
              "int value = hostThreadValue(%d)\n"
              "assert value == %d, \"host thread value failed\"\n"
              "file.writeText(\"thread_marker_%d.txt\", \"ok\")\n"

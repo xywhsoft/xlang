@@ -16,7 +16,7 @@ $fixtureScanDirs = @(
     "test\cases",
     "packages"
 )
-$minToolchainSourceFiles = 114
+$minToolchainSourceFiles = 123
 $minToolchainFixtureFiles = 50
 $minToolchainBatchFiles = 11
 $failures = New-Object System.Collections.Generic.List[string]

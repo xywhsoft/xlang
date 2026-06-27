@@ -13,7 +13,7 @@ union Payload
     c_double d
 end
 
-func inc(int value) -> int
+func inc(int value) as int
     return value + 1
 end
 
@@ -26,23 +26,23 @@ payload.i = 42
 
 point raw
 Native native = Native(raw)
-function(int) -> int fn = inc
+func(int) as int fn = inc
 type fnType = type(fn)
 
 array<Pair> pairs = array[pair]
 array<Payload> payloads = array[payload]
 array<Native> natives = array[native]
-array<function(int) -> int> funcs = array[fn]
+array<func(int) as int> funcs = array[fn]
 
 list<Pair> pairList = list[4: pair]
 list<Payload> payloadList = list[5: payload]
 list<Native> nativeList = list[6: native]
-list<function(int) -> int> funcList = list[7: fn]
+list<func(int) as int> funcList = list[7: fn]
 
 dict<Pair> pairDict = dict{"pair": pair}
 dict<Payload> payloadDict = dict{"payload": payload}
 dict<Native> nativeDict = dict{"native": native}
-dict<function(int) -> int> funcDict = dict{"fn": fn}
+dict<func(int) as int> funcDict = dict{"fn": fn}
 var pairKey = "pair"
 var fnKey = "fn"
 

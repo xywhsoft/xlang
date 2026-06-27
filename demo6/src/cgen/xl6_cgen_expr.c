@@ -1,8 +1,18 @@
 static void xl6CgenExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
 {
+    size_t replacementIndex;
+
     if ( node == NULL ) {
         xl6OutputPuts("0", ctx->out);
         return;
+    }
+
+    for ( replacementIndex = 0; replacementIndex < ctx->exprReplacementCount; ++replacementIndex ) {
+        const XL6_CgenExprReplacement* replacement = &ctx->exprReplacements[replacementIndex];
+        if ( replacement->expr == node && replacement->cName != NULL ) {
+            xl6OutputPuts(replacement->cName, ctx->out);
+            return;
+        }
     }
 
     switch ( node->kind ) {

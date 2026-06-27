@@ -1,4 +1,4 @@
-﻿# P2 CLI 构建运行与产物路径细则
+# P2 CLI 构建运行与产物路径细则
 
 本文细化 `demo6/src/driver/xl6_cli.c` 与 `demo6/src/backend/xl6_build_backend.c`。这些规则不一定直接改变 `xl6CgenEmitC` 的输出文本，但会决定 `.xl` 文件何时生成 C、头文件、XAPI、dump 产物、exe/dll，以及如何把 XRT、import package、用户 C 源和动态库链接进最终程序。
 

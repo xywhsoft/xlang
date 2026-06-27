@@ -1,4 +1,4 @@
-func zero() -> int
+func zero() as int
     return 0
 end
 
