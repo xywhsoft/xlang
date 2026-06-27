@@ -198,7 +198,7 @@
 
 | 字段 | 内容 |
 | --- | --- |
-| xlang 写法 | `function f = foo; f(1)` / `var v = foo; v(1)` / `obj.fn()` |
+| xlang 写法 | `func f = foo; f(1)` / `var v = foo; v(1)` / `obj.fn()` |
 | 生成规则描述 | function-var runtime 在函数类型变量调用、var 变量调用、成员函数值调用、typed container item 包含 func 类型、var 初始化为 func 值时触发。扫描时会临时维护变量类型和成员类型推断。 |
 | 生成器文件名和行号 | `xl6_cgen_needs.c:422`、`xl6_cgen_needs.c:594` |
 | 对应生成的 C 代码 | `if (xl6CgenIsFunctionType(functionType) || type == var) return 1;` |

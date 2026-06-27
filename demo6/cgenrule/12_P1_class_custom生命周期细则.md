@@ -222,7 +222,7 @@
 
 | 字段 | 内容 |
 | --- | --- |
-| xlang 写法 | `class Holder` / `func(int) int fn` |
+| xlang 写法 | `class Holder` / `func(int) as int fn` |
 | 生成规则描述 | class 字段如果是 func 类型，析构时检查 `release` 和 `env`，调用 release 后把 `env` 与 `release` 置零。该规则只处理 class 字段里的 function，普通局部 function 由变量 cleanup 规则处理。 |
 | 生成器文件名和行号 | `xl6_cgen_decl_methods.c:107`、`xl6_cgen_decl_methods.c:124` |
 | 对应生成的 C 代码 | `if (self->fn.release != 0 && self->fn.env != 0) { self->fn.release(self->fn.env); self->fn.env = 0; self->fn.release = 0; }` |

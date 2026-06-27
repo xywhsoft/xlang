@@ -67,7 +67,7 @@
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | `func(int,string) bool`、`func() (int,string)` |
-| 生成规则描述 | 类型名为 `function` 且有参数列表和返回列表两个子节点时，输出 `func(arg1,arg2)`；有返回值时追加 `->ret`，多返回值用 `->(a,b)` 包住。参数和返回类型递归走同一类型输出规则。 |
+| 生成规则描述 | 类型名为 `function` 且有参数列表和返回列表两个子节点时，输出 `func(arg1,arg2)`；有返回值时追加 `as ret`，多返回值用 `as (a,b)` 包住。参数和返回类型递归走同一类型输出规则。 |
 | 生成器文件名和行号 | `demo6/src/abi/xl6_xapi_dump.c:114` |
 | 对应生成的 C 代码 | 不生成 C；生成 XAPI 类型字符串如 `"func(int,string) as bool"`。 |
 | 中间形态伪代码 | `func(args) as returns; multi returns wrapped with parentheses` |

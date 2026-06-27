@@ -1,3 +1,0 @@
-func oldReturn() -> int
-    return 1
-end

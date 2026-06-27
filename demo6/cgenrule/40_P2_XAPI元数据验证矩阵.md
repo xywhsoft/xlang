@@ -41,7 +41,7 @@
 | `CGEN-XLOAD-007..012` param/return/field 动态追加、字符串数组、doc、参数/返回数组读取 | `xapi_load_types_host.c release\tmp\xapi_type_fields.json`、`xapi_doc.xl`、`export_alias.xl`、import XAPI function/var/type 系列 | C 宿主运行 + import 消费 | params、returns、fields、typeParams、doc raw 恢复有覆盖。 |
 | `CGEN-XLOAD-013..018` exports/types 对象和数组读取 | `import_xapi_use.xl`、`import_xapi_var_use.xl`、`import_xapi_type_union_use.xl`、`import_xapi_type_class_use.xl`、`xapi_load_types_host.c` | IR/C 检查 + C 宿主运行 + import 消费 | function/var export、class/custom/union type、字段恢复和后续 AST 注入有覆盖。 |
 | `CGEN-XLOAD-019..022` package/module/native/root format 读取 | package fixture 的 `package.xapi.json`、`import_metadata.xl`、`import_broken_xapi.xl`、`import_missing_xapi.xl` | import 消费 + 语义负例 | package/module/native/root format 读取、缺失接口和错误格式诊断有覆盖。 |
-| `CGEN-XLOAD-023..028` 读取侧 packageId/moduleId/signature/exportId 默认补齐、function ABI 默认补齐 | `export_alias.xl` 检查 `callingConvention`/`varargMode`、import XAPI fixtures、package resolver 用例；`xapi_loader_defaults_host.c` 读取 `xapi_legacy_defaults.xapi.json` | 直接 JSON 检查 + import 消费 + 手写 fixture | 缺省 package/module 身份、source/sourceHash、native load/version、function callingConvention/varargMode、signature/exportId、field storage 均有直接 host 断言。 |
+| `CGEN-XLOAD-023..028` 读取侧必需字段校验、function ABI 字段校验 | `export_alias.xl` 检查 `callingConvention`/`varargMode`、import XAPI fixtures、package resolver 用例；`xapi_loader_defaults_host.c` 读取 `xapi_unknown_fields.xapi.json` | 直接 JSON 检查 + import 消费 + 手写 fixture | package/module 身份、source/sourceHash、native load/version、function callingConvention/varargMode、signature/exportId、field storage 均按当前格式显式提供并由 loader 校验。 |
 | `CGEN-XLOAD-029..031` XAPI 文件读取、尾部校验、finalize 与失败清理 | `import_missing_xapi.xl`、`import_broken_xapi.xl`、所有 import XAPI 成功用例 | import 消费 + 语义负例 | UTF-8 文件读取、无法读取、尾部/format 错误和 finalize 成功主路径有覆盖。 |
 
 ## 剩余风险与后续增强
@@ -49,7 +49,7 @@
 | 缺口 | 建议补法 |
 |---|---|
 | JSON 字符串转义的引号、反斜杠和 `\n` 文本已由 `xapi_json_escape.xl` 覆盖。 | 后续可补 Unicode 控制字符和非 ASCII doc 文本的专门快照。 |
-| XAPI loader 的未知字段跳过、缺省字段补齐已由 `xapi_loader_defaults_host.c`、`xapi_legacy_defaults.xapi.json`、`xapi_unknown_fields.xapi.json` 覆盖。 | 后续可补畸形未知值负例，但当前合法旧格式与合法未知字段跳过路径已有直接 host 断言。 |
+| XAPI loader 的未知字段跳过和必需字段完整读取已由 `xapi_loader_defaults_host.c`、`xapi_unknown_fields.xapi.json` 覆盖。 | 后续可补畸形未知值负例，但当前合法未知字段跳过路径已有直接 host 断言；缺失必需字段会作为格式错误失败。 |
 | links/loadlibs/cSources/native 的组合输出已由 `metadata_combo/package.xapi.json`、`import_metadata_combo.xl` 与 `import_deps_snapshot_host.c` 覆盖。 | 当前 JSON 字段、实际 build/run 链路和最终 importDeps 机器快照均有直接证据；后续可扩展更多依赖图组合。 |
 
 ## 阶段结论

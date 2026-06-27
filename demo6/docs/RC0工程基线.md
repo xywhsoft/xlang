@@ -40,7 +40,7 @@ rc0_guard.bat -SkipFullTests
 - 手写 C/CRT 安全检查覆盖 `src`、`examples`、`test/cases`、`packages` 中的非生成 C/H 文件，禁止高风险字符串拷贝/拼接/格式化、宽松输入解析、临时文件名、环境变量修改、宽松数值转换、非标准数字转字符串、非移植大小写比较接口、常见 CRT 函数手写原型声明，以及常见待办、修复、待定、占位和泛化生成错误诊断标记回流；`src` 中还禁止直接 `printf` / `fprintf` / `puts` / `fputs` / `fputc` / `putchar` 控制台输出、直接 CRT/Win32 命令执行、直接 `exit` / `abort` / `assert` 进程控制，CLI 中禁止 CRT `time()` 回流，完整函数清单以 `tools/check_c_string_safety.ps1` 为准。
 - 该手写 C/CRT 安全检查已经直接接入轻量 RC0 守门，不会只依赖 `test.bat` 的完整主回归路径。
 - 测试用例 wiring 检查，确保 `test/cases/*.xl` 不会成为未接入的沉睡用例。
-- 预期失败诊断 wiring 检查，确保 xlang 负例不会只检查退出码；当前数量基线为 246 条预期失败命令、245 个诊断产物、246 条内容断言，baseline-only 必须保持为 0。
+- 预期失败诊断 wiring 检查，确保 xlang 负例不会只检查退出码；当前数量基线为 245 条预期失败命令、244 个诊断产物、245 条内容断言，baseline-only 必须保持为 0。
 - 测试数据 wiring 检查，确保 `test/cases` 下的 JSON/XAPI fixture 可解析、被测试入口或测试源码引用，并且引用不失效。
 - 范例 wiring 检查，确保 `examples/**/*.xl` 被主回归、教程、feature suite 或标准库范例入口覆盖。
 - C fixture wiring 检查，确保 C/H host 文件和 package native C 文件不会成为未接入的沉睡资产。

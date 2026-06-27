@@ -7,12 +7,12 @@
 - `xlang.package.json` 是 package manifest，描述包名、版本、ABI 版本、XAPI 文件、C source、links/loadlibs、dependencies 和 native 元数据。
 - `package.xapi.json` 是接口元数据，描述导出函数、变量、类型和 import 恢复所需信息。
 - 包内 `.c` 文件是 native fixture，由 mixed build 或 import/package 回归按需编译链接。
-- 负例包会故意缺失接口、使用旧格式或声明不可满足依赖，用于验证诊断。
+- 负例包会故意缺失接口、使用无效格式或声明不可满足依赖，用于验证诊断。
 
 ## 包目录索引
 
 <!-- package-index:start -->
-- `broken_xapi`：旧/破损 XAPI 格式负例，验证格式诊断。
+- `broken_xapi`：无效/破损 XAPI 格式负例，验证格式诊断。
 - `class_api`：导入包内 class 类型、字段、函数和 native C source。
 - `class_inherit_api`：导入带继承关系的 class 类型和 native C source。
 - `counter`：基础 package import、extern 函数注入和 native C source。

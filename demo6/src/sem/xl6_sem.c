@@ -6211,32 +6211,11 @@ static int xl6SemCompareAllowsTypeLiteral(const char* op)
     return xl6TextEquals(op, "==") || xl6TextEquals(op, "!=");
 }
 
-static int xl6SemExprLooksLikeOldGenericCallSyntax(XL6_SemContext* ctx, XL6_AstNode* node)
-{
-    XL6_AstNode* inner;
-
-    if ( node == NULL || !xl6TextEquals(node->text, ">") || node->childCount < 2 ) {
-        return 0;
-    }
-    inner = node->children[0];
-    if ( inner == NULL || inner->kind != XL6_AST_BINARY ||
-         !xl6TextEquals(inner->text, "<") || inner->childCount < 2 ) {
-        return 0;
-    }
-    return xl6SemExprIsBareFunctionSymbol(ctx, inner->children[0]) &&
-           xl6SemExprIsTypeLiteralSymbol(ctx, inner->children[1]);
-}
-
 static int xl6SemCheckBinaryExpr(XL6_SemContext* ctx, XL6_AstNode* node)
 {
     const char* leftType;
     const char* rightType;
     int ok;
-
-    if ( xl6SemExprLooksLikeOldGenericCallSyntax(ctx, node) ) {
-        xl6SemErrorNode(ctx, node, "旧式泛型调用语法不支持，请使用 name::<T>(...)");
-        return 0;
-    }
 
     ok = xl6SemCheckChildrenExpr(ctx, node);
     if ( node != NULL && (xl6TextEquals(node->text, "and") || xl6TextEquals(node->text, "or")) ) {
@@ -6333,7 +6312,7 @@ static int xl6SemCheckBinaryExpr(XL6_SemContext* ctx, XL6_AstNode* node)
 
         /*
             比较表达式必须比较“值”。
-            这条规则能防止 identity<int>(1) 被误解析为 (identity < int) > 1。
+            函数名和类型字面量不能进入普通大小比较。
         */
         if ( xl6SemExprIsBareFunctionSymbol(ctx, left) ) {
             xl6SemErrorNode(ctx, left, "函数名不能作为普通比较操作数");

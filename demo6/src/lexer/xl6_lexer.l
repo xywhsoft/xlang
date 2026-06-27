@@ -181,8 +181,6 @@ DEC_INT        {DIGIT}({DIGIT}|_)*
 HEX_INT        0x{HEXDIGIT}({HEXDIGIT}|_)*
 OCT_INT        0o{OCTDIGIT}({OCTDIGIT}|_)*
 BIN_INT        0b{BINDIGIT}({BINDIGIT}|_)*
-REMOVED_UPPER_INT 0[XOB]{ASCII_CONT}*
-REMOVED_VB_INT \&[hHoObB]{ASCII_CONT}*
 FLOAT_A        {DIGIT}({DIGIT}|_)*\.{DIGIT}({DIGIT}|_)*([eE][+-]?{DIGIT}({DIGIT}|_)*)?
 FLOAT_B        {DIGIT}({DIGIT}|_)*[eE][+-]?{DIGIT}({DIGIT}|_)*
 
@@ -227,12 +225,9 @@ FLOAT_B        {DIGIT}({DIGIT}|_)*[eE][+-]?{DIGIT}({DIGIT}|_)*
 "#"[^#\r\n]*                       { return xl6SetErrorToken(yyscanner, "未闭合的时间字面量"); }
 
 {FLOAT_A}|{FLOAT_B}                { xl6SetToken(yyscanner, XL6_TK_FLOAT); return XL6_TK_FLOAT; }
-{REMOVED_UPPER_INT}                { return xl6SetErrorToken(yyscanner, "unsupported uppercase integer prefix; use 0x, 0o, or 0b"); }
-{REMOVED_VB_INT}                   { return xl6SetErrorToken(yyscanner, "unsupported VB-style integer prefix; use 0x, 0o, or 0b"); }
 {HEX_INT}|{OCT_INT}|{BIN_INT}|{DEC_INT} { xl6SetToken(yyscanner, XL6_TK_INT); return XL6_TK_INT; }
 
 "::"                               { xl6SetToken(yyscanner, XL6_TK_SCOPE); return XL6_TK_SCOPE; }
-"->"                               { return xl6SetErrorToken(yyscanner, "use as for function return type; -> is no longer supported"); }
 "=>"                               { xl6SetToken(yyscanner, XL6_TK_FAT_ARROW); return XL6_TK_FAT_ARROW; }
 "..."                              { xl6SetToken(yyscanner, XL6_TK_ELLIPSIS); return XL6_TK_ELLIPSIS; }
 ".."                               { return xl6SetErrorToken(yyscanner, "DEMO6 第一阶段不支持 .. 范围运算符，请使用 range(...)"); }

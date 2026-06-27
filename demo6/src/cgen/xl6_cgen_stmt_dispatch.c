@@ -237,10 +237,8 @@ static int xl6CgenTryDiscardExpressionStatement(XL6_CgenContext* ctx, const XL6_
     }
 
     if ( xl6CgenIsXValueType(exprType) ) {
-        xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "xvalue %s = ", tempName);
-        xl6CgenXValueFromExprForTarget(ctx, exprType, expr);
-        xl6OutputPuts(";\n", ctx->out);
+        /* 表达式语句会丢弃结果，也必须走语句级 lowering，避免回退到 GNU 语句表达式。 */
+        xl6CgenDeclEmitXValueExprInit(ctx, exprType, tempName, expr);
         xl6CgenDiscardExpressionStatementTemp(ctx, exprType, tempName);
         xl6AstFree(exprType);
         return 1;

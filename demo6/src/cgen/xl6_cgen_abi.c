@@ -170,9 +170,9 @@ static unsigned long long xl6CgenFunctionSignatureId(XL6_CgenContext* ctx, const
     unsigned long long hash;
 
     hash = 1469598103934665603ULL;
-    xl6CgenHashText(&hash, "function(");
+    xl6CgenHashText(&hash, "func(");
     xl6CgenHashFunctionTypeList(ctx, &hash, params);
-    xl6CgenHashText(&hash, ")->(");
+    xl6CgenHashText(&hash, ") as (");
     xl6CgenHashFunctionTypeList(ctx, &hash, returns);
     xl6CgenHashText(&hash, ")");
     return hash;
@@ -183,9 +183,9 @@ static unsigned long long xl6CgenFunctionSignatureIdForPrefix(XL6_CgenContext* c
     unsigned long long hash;
 
     hash = 1469598103934665603ULL;
-    xl6CgenHashText(&hash, "function(");
+    xl6CgenHashText(&hash, "func(");
     xl6CgenHashFunctionTypePrefix(ctx, &hash, params, paramCount, includeVararg);
-    xl6CgenHashText(&hash, ")->(");
+    xl6CgenHashText(&hash, ") as (");
     xl6CgenHashFunctionTypeList(ctx, &hash, returns);
     xl6CgenHashText(&hash, ")");
     return hash;

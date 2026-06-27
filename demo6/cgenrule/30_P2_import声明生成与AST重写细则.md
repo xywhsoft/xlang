@@ -91,7 +91,7 @@
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | XAPI function export 可进入 extern |
-| 生成规则描述 | 输出 `extern "<cSymbol>" func <internalName>(...)`。参数按顺序输出重写后的类型和参数名；当前只支持 0 或 1 个返回值，1 个返回值输出 ` -> <type>`。 |
+| 生成规则描述 | 输出 `extern "<cSymbol>" func <internalName>(...)`。参数按顺序输出重写后的类型和参数名；当前只支持 0 或 1 个返回值，1 个返回值输出 ` as <type>`。 |
 | 生成器文件名和行号 | `demo6/src/compile/xl6_imports.c:994` |
 | 对应生成的 C 代码 | 经 cgen 后生成 C extern 原型并可直接调用 C symbol。 |
 | 中间形态伪代码 | `extern "cSymbol" func internal(params) as ret?` |

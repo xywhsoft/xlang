@@ -13,7 +13,7 @@ $readmePath = Join-Path $packageDir "README.md"
 $minPackages = 17
 $failures = New-Object System.Collections.Generic.List[string]
 $missingXapiPackages = @("missing_interface")
-$legacyFormatPackages = @("broken_xapi")
+$invalidFormatPackages = @("broken_xapi")
 $badDependencyPackages = @("uses_dep_bad")
 
 function Add-Failure($message)
@@ -173,9 +173,9 @@ foreach ( $pkg in $packages ) {
         continue
     }
 
-    if ( $legacyFormatPackages -contains $pkg.Name ) {
+    if ( $invalidFormatPackages -contains $pkg.Name ) {
         if ( $xapi.format -eq "xlang-xapi-1" ) {
-            Add-Failure "legacy-format negative package unexpectedly uses xlang-xapi-1: packages/$($pkg.Name)/$xapiRel"
+            Add-Failure "invalid-format negative package unexpectedly uses xlang-xapi-1: packages/$($pkg.Name)/$xapiRel"
         }
         continue
     }
@@ -307,9 +307,9 @@ foreach ( $name in $missingXapiPackages ) {
         Add-Failure "missing-xapi negative package not found: $name"
     }
 }
-foreach ( $name in $legacyFormatPackages ) {
+foreach ( $name in $invalidFormatPackages ) {
     if ( ! $manifests.ContainsKey($name) ) {
-        Add-Failure "legacy-format negative package not found: $name"
+        Add-Failure "invalid-format negative package not found: $name"
     }
 }
 foreach ( $name in $badDependencyPackages ) {

@@ -762,116 +762,6 @@ if not errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_int_literal_upper_hex.xl >nul 2> release\tmp\sem_int_literal_upper_hex.err.txt
-if not errorlevel 1 (
-    echo sem_int_literal_upper_hex.xl should fail.
-    exit /b 1
-)
-findstr /C:"unsupported" release\tmp\sem_int_literal_upper_hex.err.txt >nul
-if errorlevel 1 (
-    echo sem_int_literal_upper_hex.err.txt missing removed integer prefix diagnostic.
-    exit /b 1
-)
-
-release\xl.exe check test\cases\sem_old_return_arrow.xl >nul 2> release\tmp\sem_old_return_arrow.err.txt
-if not errorlevel 1 (
-    echo sem_old_return_arrow.xl should fail.
-    exit /b 1
-)
-findstr /C:"use as for function return type" release\tmp\sem_old_return_arrow.err.txt >nul
-if errorlevel 1 (
-    echo sem_old_return_arrow.err.txt missing old return arrow diagnostic.
-    exit /b 1
-)
-
-release\xl.exe check test\cases\sem_int_literal_vb_hex_lower.xl >nul 2> release\tmp\sem_int_literal_vb_hex_lower.err.txt
-if not errorlevel 1 (
-    echo sem_int_literal_vb_hex_lower.xl should fail.
-    exit /b 1
-)
-findstr /C:"unsupported" release\tmp\sem_int_literal_vb_hex_lower.err.txt >nul
-if errorlevel 1 (
-    echo sem_int_literal_vb_hex_lower.err.txt missing removed integer prefix diagnostic.
-    exit /b 1
-)
-
-release\xl.exe check test\cases\sem_int_literal_vb_hex_upper.xl >nul 2> release\tmp\sem_int_literal_vb_hex_upper.err.txt
-if not errorlevel 1 (
-    echo sem_int_literal_vb_hex_upper.xl should fail.
-    exit /b 1
-)
-findstr /C:"unsupported" release\tmp\sem_int_literal_vb_hex_upper.err.txt >nul
-if errorlevel 1 (
-    echo sem_int_literal_vb_hex_upper.err.txt missing removed integer prefix diagnostic.
-    exit /b 1
-)
-
-release\xl.exe check test\cases\sem_int_literal_upper_oct.xl >nul 2> release\tmp\sem_int_literal_upper_oct.err.txt
-if not errorlevel 1 (
-    echo sem_int_literal_upper_oct.xl should fail.
-    exit /b 1
-)
-findstr /C:"unsupported" release\tmp\sem_int_literal_upper_oct.err.txt >nul
-if errorlevel 1 (
-    echo sem_int_literal_upper_oct.err.txt missing removed integer prefix diagnostic.
-    exit /b 1
-)
-
-release\xl.exe check test\cases\sem_int_literal_vb_oct_lower.xl >nul 2> release\tmp\sem_int_literal_vb_oct_lower.err.txt
-if not errorlevel 1 (
-    echo sem_int_literal_vb_oct_lower.xl should fail.
-    exit /b 1
-)
-findstr /C:"unsupported" release\tmp\sem_int_literal_vb_oct_lower.err.txt >nul
-if errorlevel 1 (
-    echo sem_int_literal_vb_oct_lower.err.txt missing removed integer prefix diagnostic.
-    exit /b 1
-)
-
-release\xl.exe check test\cases\sem_int_literal_vb_oct_upper.xl >nul 2> release\tmp\sem_int_literal_vb_oct_upper.err.txt
-if not errorlevel 1 (
-    echo sem_int_literal_vb_oct_upper.xl should fail.
-    exit /b 1
-)
-findstr /C:"unsupported" release\tmp\sem_int_literal_vb_oct_upper.err.txt >nul
-if errorlevel 1 (
-    echo sem_int_literal_vb_oct_upper.err.txt missing removed integer prefix diagnostic.
-    exit /b 1
-)
-
-release\xl.exe check test\cases\sem_int_literal_upper_bin.xl >nul 2> release\tmp\sem_int_literal_upper_bin.err.txt
-if not errorlevel 1 (
-    echo sem_int_literal_upper_bin.xl should fail.
-    exit /b 1
-)
-findstr /C:"unsupported" release\tmp\sem_int_literal_upper_bin.err.txt >nul
-if errorlevel 1 (
-    echo sem_int_literal_upper_bin.err.txt missing removed integer prefix diagnostic.
-    exit /b 1
-)
-
-release\xl.exe check test\cases\sem_int_literal_vb_bin_lower.xl >nul 2> release\tmp\sem_int_literal_vb_bin_lower.err.txt
-if not errorlevel 1 (
-    echo sem_int_literal_vb_bin_lower.xl should fail.
-    exit /b 1
-)
-findstr /C:"unsupported" release\tmp\sem_int_literal_vb_bin_lower.err.txt >nul
-if errorlevel 1 (
-    echo sem_int_literal_vb_bin_lower.err.txt missing removed integer prefix diagnostic.
-    exit /b 1
-)
-
-release\xl.exe check test\cases\sem_int_literal_vb_bin_upper.xl >nul 2> release\tmp\sem_int_literal_vb_bin_upper.err.txt
-if not errorlevel 1 (
-    echo sem_int_literal_vb_bin_upper.xl should fail.
-    exit /b 1
-)
-findstr /C:"unsupported" release\tmp\sem_int_literal_vb_bin_upper.err.txt >nul
-if errorlevel 1 (
-    echo sem_int_literal_vb_bin_upper.err.txt missing removed integer prefix diagnostic.
-    exit /b 1
-)
-
 release\xl.exe check examples\containers.xl
 if errorlevel 1 exit /b 1
 
@@ -1674,10 +1564,18 @@ release\tmp\xapi_load_types_host.exe release\tmp\xapi_type_fields.json
 if errorlevel 1 exit /b 1
 "%XL6_TCC%" -I. %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% test\cases\xapi_loader_defaults_host.c src\abi\xl6_xapi_load.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\xapi_loader_defaults_host.exe
 if errorlevel 1 exit /b 1
-release\tmp\xapi_loader_defaults_host.exe legacy test\cases\xapi_legacy_defaults.xapi.json
-if errorlevel 1 exit /b 1
 release\tmp\xapi_loader_defaults_host.exe unknowns test\cases\xapi_unknown_fields.xapi.json
 if errorlevel 1 exit /b 1
+release\tmp\xapi_loader_defaults_host.exe unknowns test\cases\xapi_invalid_doc_string.xapi.json >nul 2> release\tmp\xapi_invalid_doc_string.err.txt
+if not errorlevel 1 (
+    echo xapi_invalid_doc_string.xapi.json should fail.
+    exit /b 1
+)
+findstr /C:"XAPI doc" release\tmp\xapi_invalid_doc_string.err.txt >nul
+if errorlevel 1 (
+    echo xapi_invalid_doc_string.err.txt missing strict doc diagnostic.
+    exit /b 1
+)
 release\xl.exe check test\cases\sem_union_top_anon.xl >nul 2> release\tmp\sem_union_top_anon.err.txt
 if not errorlevel 1 (
     echo sem_union_top_anon.xl should fail.
@@ -8568,17 +8466,6 @@ if not errorlevel 1 (
 findstr /C:"expected 1, actual 2" release\tmp\sem_generic_func_inst_arity.err.txt >nul
 if errorlevel 1 (
     echo sem_generic_func_inst_arity.xl missing explicit generic function argument count context.
-    exit /b 1
-)
-
-release\xl.exe check test\cases\sem_generic_old_call_syntax.xl >nul 2> release\tmp\sem_generic_old_call_syntax.err.txt
-if not errorlevel 1 (
-    echo sem_generic_old_call_syntax.xl should fail.
-    exit /b 1
-)
-findstr /C:"::<T>" release\tmp\sem_generic_old_call_syntax.err.txt >nul
-if errorlevel 1 (
-    echo sem_generic_old_call_syntax.xl missing old generic syntax diagnostic.
     exit /b 1
 )
 

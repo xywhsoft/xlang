@@ -30,7 +30,7 @@
 
 | 项目 | 内容 |
 |---|---|
-| xlang 写法 | `function a`、`func(int) string cb`、`array<func(int)>` |
+| xlang 写法 | `func a`、`func(int) as string cb`、`array<func(int)>` |
 | 生成规则描述 | 类型名为 `function` 时被识别为 func 类型；无子节点的 `function` 是裸 function；递归扫描子节点可判断嵌套类型中是否包含 function。该信息决定函数值字段、参数和返回值是否需要 retain/release。 |
 | 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_expr_support_base.c:33` |
 | 对应生成的 C 代码 | `XL6_FuncValue cb;` 并在作用域结束释放 env。 |
@@ -66,7 +66,7 @@
 
 | 项目 | 内容 |
 |---|---|
-| xlang 写法 | `function f = fn; var r = f(1, "x")` |
+| xlang 写法 | `func f = fn; var r = f(1, "x")` |
 | 生成规则描述 | 一个类型可用于 var invoke 的条件是：具体化后为 `var`，或能映射到 xvalue 运行时类型常量。class/custom/union 等不可自动进入该路径。 |
 | 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_expr_support_base.c:134` |
 | 对应生成的 C 代码 | `xl6_func_invoke_var(..., xvalue_arg_array, ...)` |
@@ -78,7 +78,7 @@
 
 | 项目 | 内容 |
 |---|---|
-| xlang 写法 | `function f = func(int a, ... ) string ... end` |
+| xlang 写法 | `func f = func(int a, ... ) as string ... end` |
 | 生成规则描述 | 匿名函数只有在固定参数都可打包为 xvalue、最多一个返回值且返回值可打包、额外参数只能是数组可变参数时，才生成 var invoke 路径；多返回值和字典可变参数不进入该路径。 |
 | 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_expr_support_base.c:149` |
 | 对应生成的 C 代码 | 生成匿名函数的 var-invoke adapter。 |
@@ -138,7 +138,7 @@
 
 | 项目 | 内容 |
 |---|---|
-| xlang 写法 | `function f = closure`、`obj.cb = closure` |
+| xlang 写法 | `func f = closure`、`obj.cb = closure` |
 | 生成规则描述 | 对任意 C 路径表达式释放 function value：仅当 `release != 0 && env != 0` 时调用 `release(env)`，随后把 `env` 和 `release` 清零，防止重复释放。 |
 | 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_expr_support_base.c:373` |
 | 对应生成的 C 代码 | `if (f.release != 0 && f.env != 0) { f.release(f.env); f.env = 0; f.release = 0; }` |
@@ -162,7 +162,7 @@
 
 | 项目 | 内容 |
 |---|---|
-| xlang 写法 | `class A` 中包含 `function cb`，或嵌套 class 字段包含 function |
+| xlang 写法 | `class A` 中包含 `func cb`，或嵌套 class 字段包含 function |
 | 生成规则描述 | 从基类到当前 class body 递归扫描字段。function 字段按路径 retain/release；嵌套 class 字段继续递归处理。该规则确保 class 值复制、返回或释放时内部闭包环境生命周期正确。 |
 | 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_expr_support_base.c:407` |
 | 对应生成的 C 代码 | `if (a.cb.release != 0 && a.cb.env != 0) { a.cb.release(a.cb.env); ... }` |
@@ -258,7 +258,7 @@
 
 | 项目 | 内容 |
 |---|---|
-| xlang 写法 | `function f = ...` |
+| xlang 写法 | `func f = ...` |
 | 生成规则描述 | 变量类型为 function 时注册 `XL6_CGEN_CLEANUP_FUNCTION`。非 func 类型不会进入该路径。 |
 | 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_expr_support_base.c:608` |
 | 对应生成的 C 代码 | `if (f.release != 0 && f.env != 0) { f.release(f.env); f.env = 0; f.release = 0; }` |
@@ -474,7 +474,7 @@
 
 | 项目 | 内容 |
 |---|---|
-| xlang 写法 | `function f` 作用域结束 |
+| xlang 写法 | `func f` 作用域结束 |
 | 生成规则描述 | cleanup kind 为 function 时，与 function path release 相同：仅当 `release` 和 `env` 均非空时释放环境，并清空 `env/release`。 |
 | 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_expr_support_base.c:835` |
 | 对应生成的 C 代码 | `if (f.release != 0 && f.env != 0) { f.release(f.env); f.env = 0; f.release = 0; }` |
@@ -522,7 +522,7 @@
 
 | 项目 | 内容 |
 |---|---|
-| xlang 写法 | `function b = a` |
+| xlang 写法 | `func b = a` |
 | 生成规则描述 | 对变量名先转为 C 标识符，再输出 retain 保护块。与路径 retain 不同，该规则输入是 xlang 名称而不是任意 C 路径。 |
 | 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_expr_support_base.c:903` |
 | 对应生成的 C 代码 | `if (a.retain != 0 && a.env != 0) { a.retain(a.env); }` |
@@ -534,7 +534,7 @@
 
 | 项目 | 内容 |
 |---|---|
-| xlang 写法 | `function f` 变量被覆盖或离开作用域 |
+| xlang 写法 | `func f` 变量被覆盖或离开作用域 |
 | 生成规则描述 | 对变量名先转为 C 标识符，再输出 release 保护块。此函数只调用 release，不清空 env/release，通常用于赋值覆盖前的释放路径。 |
 | 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_expr_support_base.c:918` |
 | 对应生成的 C 代码 | `if (f.release != 0 && f.env != 0) { f.release(f.env); }` |
@@ -546,7 +546,7 @@
 
 | 项目 | 内容 |
 |---|---|
-| xlang 写法 | `function b = a`、`function b = obj.cb`、`function b = await futureCb` |
+| xlang 写法 | `func b = a`、`func b = obj.cb`、`func b = await futureCb` |
 | 生成规则描述 | member 表达式通过成员字段类型推断判断是否是 function；await 表达式通过表达式类型推断判断是否是 function；name 表达式查变量类型。其他表达式不视为 function 借用。 |
 | 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_expr_support_base.c:933` |
 | 对应生成的 C 代码 | 借用为真时后续生成 retain。 |

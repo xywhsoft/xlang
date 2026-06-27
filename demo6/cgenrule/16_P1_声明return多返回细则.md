@@ -78,7 +78,7 @@
 
 | 字段 | 内容 |
 | --- | --- |
-| xlang 写法 | `function f` / `future<int> fut` / `channel<int> ch` / `thread t` / `generator<int> g` |
+| xlang 写法 | `func f` / `future<int> fut` / `channel<int> ch` / `thread t` / `generator<int> g` |
 | 生成规则描述 | 普通 C 类型声明前会把变量加入类型表，并按类型注册 function、future、channel、thread、generator、sync 等 cleanup。非托管基础类型注册不会产生实际释放代码。 |
 | 生成器文件名和行号 | `xl6_cgen_stmt_decl.c:261`、`xl6_cgen_stmt_decl.c:399` |
 | 对应生成的 C 代码 | `XL6_Function f = {0};` 并在作用域结束释放其 env。 |
@@ -90,7 +90,7 @@
 
 | 字段 | 内容 |
 | --- | --- |
-| xlang 写法 | `func(int) int f = foo` / `func() int f = obj.fn` |
+| xlang 写法 | `func(int) as int f = foo` / `func() as int f = obj.fn` |
 | 生成规则描述 | func 类型声明初始化时不直接 `xl6CgenExpr`，而是走 `xl6CgenFunctionValueExpr`，以生成符合目标签名的 function value。若初始化表达式是借用 function，则声明后 retain function value。 |
 | 生成器文件名和行号 | `xl6_cgen_stmt_decl.c:273`、`xl6_cgen_stmt_decl.c:284` |
 | 对应生成的 C 代码 | `XL6_Function f = xl6_make_function(...); if (f.retain && f.env) f.retain(f.env);` |
@@ -210,7 +210,7 @@
 
 | 字段 | 内容 |
 | --- | --- |
-| xlang 写法 | `func() int f; f, n = pair()` |
+| xlang 写法 | `func() as int f; f, n = pair()` |
 | 生成规则描述 | 目标是 func 类型变量时，赋值前调用 `xl6CgenReleaseFunctionValue` 释放旧 env，然后把返回的 function value 结构体字段写入目标。 |
 | 生成器文件名和行号 | `xl6_cgen_stmt_decl.c:627` |
 | 对应生成的 C 代码 | `xl6_release_function(f); f = __xl6_multi_0.value0;` |

@@ -1042,7 +1042,15 @@ static const char* xl6CliEnvPathOrDefault(const char* name, const char* fallback
         return fallback;
     }
     envPath = getenv(name);
-    return envPath != NULL && envPath[0] != '\0' ? envPath : fallback;
+    if ( envPath == NULL || envPath[0] == '\0' ) {
+        return fallback;
+    }
+#if defined(CONFIG_TCC_STATIC) || defined(XL_STATIC_TCC)
+    /* 静态内嵌 TCC 时，环境变量只覆盖真实存在的外部资源；否则回到 VFS 虚拟路径。 */
+    return xrtFileExists((char*)envPath) ? envPath : fallback;
+#else
+    return envPath;
+#endif
 }
 
 static const char* xl6CliDefaultTccIncludePath(void)

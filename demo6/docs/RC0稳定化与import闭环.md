@@ -15,7 +15,7 @@
 
 - `CompileUnit` 阶段顺序为 parse -> import -> sem。
 - import 展开只处理机器生成的 `xlang-xapi-1` 接口。
-- 当前读取器是严格 XAPI 读取器，只消费 DEMO6 生成字段；未知字段按兼容策略跳过。
+- 当前读取器是严格 XAPI 读取器，只消费 DEMO6 生成字段；未知字段按前向演进策略跳过。
 - package manifest 与 XAPI 分离：`xlang.package.json` 是包描述，`package.xapi.json` 是接口元数据。
 - package resolver 会收集 `links` 与 `loadlibs`，CLI 构建阶段会把它们并入链接命令。
 - 导入符号进入私有命名空间，使用侧通过显式 `import` 和命名空间访问，不污染全局环境。

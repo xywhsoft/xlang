@@ -230,6 +230,24 @@ static char* xlPathSnapshot(const char* baseDir, const char* path)
     return joined != NULL ? (char*)joined : NULL;
 }
 
+static char* xlToolchainPathSnapshot(const char* baseDir, const char* path)
+{
+#if defined(CONFIG_TCC_STATIC) || defined(XL_STATIC_TCC)
+    if ( path != NULL &&
+         (strcmp(path, XL6_TCC_ROOT_PATH) == 0 ||
+          strcmp(path, XL6_TCC_INCLUDE_PATH) == 0 ||
+          strcmp(path, XL6_TCC_WIN_INCLUDE_PATH) == 0 ||
+          strcmp(path, XL6_TCC_WINAPI_INCLUDE_PATH) == 0 ||
+          strcmp(path, XL6_TCC_LIB_PATH) == 0 ||
+          strcmp(path, XL6_TCC_LIBTCC1_PATH) == 0 ||
+          strcmp(path, XL6_XRT_OBJ_PATH) == 0) ) {
+        /* 静态 TCC 的默认工具链路径是 VFS 虚拟路径，不能展开成宿主文件系统绝对路径。 */
+        return xlDupText(path);
+    }
+#endif
+    return xlPathSnapshot(baseDir, path);
+}
+
 static void xlSetError(XL_Context* ctx, const char* text)
 {
     if ( ctx == NULL ) {
@@ -634,7 +652,15 @@ static const char* xlEnvPathOrDefault(const char* name, const char* fallback)
 {
     const char* envPath = xlEnvPathOrNull(name);
 
-    return envPath != NULL ? envPath : fallback;
+    if ( envPath == NULL ) {
+        return fallback;
+    }
+#if defined(CONFIG_TCC_STATIC) || defined(XL_STATIC_TCC)
+    /* 静态内嵌 TCC 时，环境变量只覆盖真实存在的外部资源；否则回到 VFS 虚拟路径。 */
+    return xrtFileExists((char*)envPath) ? envPath : fallback;
+#else
+    return envPath;
+#endif
 }
 
 static const char* xlDefaultTccRootPath(void)
@@ -1758,16 +1784,15 @@ XL_Context* xlCreateContext(const XL_ContextOptions* options)
     ctx->workDir = xlPathSnapshot(ctx->baseDir, localOptions.workDir != NULL ? localOptions.workDir : ".");
     ctx->tempDir = xlPathSnapshot(ctx->baseDir, localOptions.tempDir != NULL ? localOptions.tempDir : "release\\tmp");
     ctx->tccDllPath = xlPathSnapshot(ctx->baseDir, localOptions.tccDllPath != NULL ? localOptions.tccDllPath : "");
-    ctx->tccLibPath = xlPathSnapshot(ctx->baseDir,
-                                     localOptions.tccLibPath != NULL && localOptions.tccLibPath[0] != '\0' ?
-                                     localOptions.tccLibPath :
-                                     xlDefaultTccRootPath());
-    ctx->tccIncludePath = xlPathSnapshot(ctx->baseDir, xlDefaultTccIncludePath());
-    ctx->tccWinIncludePath = xlPathSnapshot(ctx->baseDir, xlDefaultTccWinIncludePath());
-    ctx->tccWinapiIncludePath = xlPathSnapshot(ctx->baseDir, xlDefaultTccWinapiIncludePath());
-    ctx->tccLibSearchPath = xlPathSnapshot(ctx->baseDir, xlDefaultTccLibPath());
-    ctx->tccLibtcc1Path = xlPathSnapshot(ctx->baseDir, xlDefaultTccLibtcc1Path());
-    ctx->xrtObjPath = xlPathSnapshot(ctx->baseDir, xlDefaultXrtObjPath());
+    ctx->tccLibPath = localOptions.tccLibPath != NULL && localOptions.tccLibPath[0] != '\0' ?
+                      xlPathSnapshot(ctx->baseDir, localOptions.tccLibPath) :
+                      xlToolchainPathSnapshot(ctx->baseDir, xlDefaultTccRootPath());
+    ctx->tccIncludePath = xlToolchainPathSnapshot(ctx->baseDir, xlDefaultTccIncludePath());
+    ctx->tccWinIncludePath = xlToolchainPathSnapshot(ctx->baseDir, xlDefaultTccWinIncludePath());
+    ctx->tccWinapiIncludePath = xlToolchainPathSnapshot(ctx->baseDir, xlDefaultTccWinapiIncludePath());
+    ctx->tccLibSearchPath = xlToolchainPathSnapshot(ctx->baseDir, xlDefaultTccLibPath());
+    ctx->tccLibtcc1Path = xlToolchainPathSnapshot(ctx->baseDir, xlDefaultTccLibtcc1Path());
+    ctx->xrtObjPath = xlToolchainPathSnapshot(ctx->baseDir, xlDefaultXrtObjPath());
     ctx->saveTemps = localOptions.saveTemps != 0;
     if ( ctx->baseDir == NULL || ctx->workDir == NULL || ctx->tempDir == NULL ||
          ctx->tccDllPath == NULL || ctx->tccLibPath == NULL ||

@@ -358,20 +358,20 @@ static int xl6XapiParseStringArray(XL6_XapiJson* json, char*** items, size_t* co
 
 static int xl6XapiParseDocValue(XL6_XapiJson* json, char** outDoc)
 {
+    int hasRaw;
+
     if ( outDoc == NULL ) {
         return 0;
     }
-    if ( xl6XapiJsonPeek(json) == '"' ) {
-        xrtFree(*outDoc);
-        *outDoc = xl6XapiJsonReadString(json);
-        return *outDoc != NULL;
-    }
     if ( !xl6XapiJsonConsume(json, '{') ) {
+        xl6XapiJsonError(json, "XAPI doc 需要对象");
         return 0;
     }
     if ( xl6XapiJsonConsume(json, '}') ) {
-        return 1;
+        xl6XapiJsonError(json, "XAPI doc 缺少 raw 字段");
+        return 0;
     }
+    hasRaw = 0;
     for (;;) {
         char* key = xl6XapiJsonReadString(json);
         if ( key == NULL || !xl6XapiJsonConsume(json, ':') ) {
@@ -385,13 +385,17 @@ static int xl6XapiParseDocValue(XL6_XapiJson* json, char** outDoc)
                 xrtFree(key);
                 return 0;
             }
+            hasRaw = 1;
         } else if ( !xl6XapiJsonSkipValue(json) ) {
             xrtFree(key);
             return 0;
         }
         xrtFree(key);
         if ( xl6XapiJsonConsume(json, '}') ) {
-            return 1;
+            if ( !hasRaw ) {
+                xl6XapiJsonError(json, "XAPI doc 缺少 raw 字段");
+            }
+            return hasRaw;
         }
         if ( !xl6XapiJsonConsume(json, ',') ) {
             return 0;
@@ -676,12 +680,6 @@ static int xl6XapiParseTypeFieldObject(XL6_XapiJson* json, XL6_XapiField* field)
         }
         xrtFree(key);
         if ( xl6XapiJsonConsume(json, '}') ) {
-            if ( field->storage == NULL ) {
-                field->storage = xl6XapiLoadDupText("field");
-                if ( field->storage == NULL ) {
-                    return 0;
-                }
-            }
             return 1;
         }
         if ( !xl6XapiJsonConsume(json, ',') ) {
@@ -998,191 +996,13 @@ static int xl6XapiParseRoot(XL6_XapiJson* json, XL6_XapiModule* module)
     }
 }
 
-static char* xl6XapiLoadBuildPackageId(const char* name, const char* version, const char* abiVersion)
-{
-    char buffer[512];
-    int written;
-
-    written = snprintf(buffer, sizeof(buffer), "%s@%s#abi%s",
-                       name != NULL && name[0] != '\0' ? name : "app",
-                       version != NULL && version[0] != '\0' ? version : "0.0.0",
-                       abiVersion != NULL && abiVersion[0] != '\0' ? abiVersion : "1");
-    if ( written <= 0 || (size_t)written >= sizeof(buffer) ) {
-        return NULL;
-    }
-    return xl6XapiLoadDupText(buffer);
-}
-
-static char* xl6XapiLoadBuildModuleId(const char* packageId, const char* moduleName)
-{
-    char buffer[768];
-    int written;
-
-    written = snprintf(buffer, sizeof(buffer), "%s::%s",
-                       packageId != NULL && packageId[0] != '\0' ? packageId : "app@0.0.0#abi1",
-                       moduleName != NULL && moduleName[0] != '\0' ? moduleName : "app");
-    if ( written <= 0 || (size_t)written >= sizeof(buffer) ) {
-        return NULL;
-    }
-    return xl6XapiLoadDupText(buffer);
-}
-
-static int xl6XapiLoadAppendText(char** out, size_t* len, size_t* capacity, const char* text)
-{
-    char* newData;
-    size_t add;
-    size_t required;
-    size_t newCapacity;
-
-    if ( out == NULL || len == NULL || capacity == NULL || text == NULL ) {
-        return 0;
-    }
-    add = strlen(text);
-    required = *len + add + 1;
-    if ( required > *capacity ) {
-        newCapacity = *capacity == 0 ? 64 : *capacity;
-        while ( newCapacity < required ) {
-            newCapacity *= 2;
-        }
-        newData = (char*)xrtRealloc(*out, newCapacity);
-        if ( newData == NULL ) {
-            return 0;
-        }
-        *out = newData;
-        *capacity = newCapacity;
-    }
-    if ( add > 0 ) {
-        memcpy(*out + *len, text, add);
-    }
-    *len += add;
-    (*out)[*len] = '\0';
-    return 1;
-}
-
-static char* xl6XapiLoadBuildSignature(const XL6_XapiExport* item)
-{
-    char* out;
-    size_t len;
-    size_t capacity;
-    size_t i;
-
-    out = NULL;
-    len = 0;
-    capacity = 0;
-    if ( item == NULL || item->kind == NULL ) {
-        return xl6XapiLoadDupText("");
-    }
-    if ( strcmp(item->kind, "function") == 0 ) {
-        if ( !xl6XapiLoadAppendText(&out, &len, &capacity, "func(") ) {
-            xrtFree(out);
-            return NULL;
-        }
-        for ( i = 0; i < item->paramCount; ++i ) {
-            if ( i > 0 && !xl6XapiLoadAppendText(&out, &len, &capacity, ",") ) {
-                xrtFree(out);
-                return NULL;
-            }
-            if ( !xl6XapiLoadAppendText(&out, &len, &capacity, item->params[i].type != NULL ? item->params[i].type : "<missing-type>") ) {
-                xrtFree(out);
-                return NULL;
-            }
-        }
-        if ( !xl6XapiLoadAppendText(&out, &len, &capacity, ")") ) {
-            xrtFree(out);
-            return NULL;
-        }
-        if ( item->returnCount > 0 ) {
-            if ( !xl6XapiLoadAppendText(&out, &len, &capacity, " as ") ) {
-                xrtFree(out);
-                return NULL;
-            }
-            if ( item->returnCount > 1 && !xl6XapiLoadAppendText(&out, &len, &capacity, "(") ) {
-                xrtFree(out);
-                return NULL;
-            }
-            for ( i = 0; i < item->returnCount; ++i ) {
-                if ( i > 0 && !xl6XapiLoadAppendText(&out, &len, &capacity, ",") ) {
-                    xrtFree(out);
-                    return NULL;
-                }
-                if ( !xl6XapiLoadAppendText(&out, &len, &capacity, item->returns[i] != NULL ? item->returns[i] : "<missing-type>") ) {
-                    xrtFree(out);
-                    return NULL;
-                }
-            }
-            if ( item->returnCount > 1 && !xl6XapiLoadAppendText(&out, &len, &capacity, ")") ) {
-                xrtFree(out);
-                return NULL;
-            }
-        }
-    } else {
-        if ( !xl6XapiLoadAppendText(&out, &len, &capacity, item->kind) ||
-             !xl6XapiLoadAppendText(&out, &len, &capacity, ":") ||
-             !xl6XapiLoadAppendText(&out, &len, &capacity, item->type != NULL ? item->type : "<missing-type>") ) {
-            xrtFree(out);
-            return NULL;
-        }
-    }
-    return out != NULL ? out : xl6XapiLoadDupText("");
-}
-
-static char* xl6XapiLoadBuildExportId(const XL6_XapiModule* module, const XL6_XapiExport* item)
-{
-    char* out;
-    size_t len;
-    size_t capacity;
-
-    out = NULL;
-    len = 0;
-    capacity = 0;
-    if ( !xl6XapiLoadAppendText(&out, &len, &capacity, module != NULL && module->moduleId != NULL ? module->moduleId : "app@0.0.0#abi1::app") ||
-         !xl6XapiLoadAppendText(&out, &len, &capacity, "::") ||
-         !xl6XapiLoadAppendText(&out, &len, &capacity, item != NULL && item->name != NULL ? item->name : "") ||
-         !xl6XapiLoadAppendText(&out, &len, &capacity, "(") ||
-         !xl6XapiLoadAppendText(&out, &len, &capacity, item != NULL && item->signature != NULL ? item->signature : "") ||
-         !xl6XapiLoadAppendText(&out, &len, &capacity, ")") ) {
-        xrtFree(out);
-        return NULL;
-    }
-    return out;
-}
-
 static int xl6XapiFinalizeLoadedModule(XL6_XapiModule* module)
 {
     size_t i;
+    size_t j;
 
     if ( module == NULL ) {
         return 0;
-    }
-    if ( module->name == NULL ) {
-        module->name = xl6XapiLoadDupText("app");
-    }
-    if ( module->source == NULL ) {
-        module->source = xl6XapiLoadDupText("");
-    }
-    if ( module->sourceHash == NULL ) {
-        module->sourceHash = xl6XapiLoadDupText("");
-    }
-    if ( module->packageName == NULL ) {
-        module->packageName = xl6XapiLoadDupText(module->name != NULL ? module->name : "app");
-    }
-    if ( module->packageVersion == NULL ) {
-        module->packageVersion = xl6XapiLoadDupText("0.0.0");
-    }
-    if ( module->packageAbiVersion == NULL ) {
-        module->packageAbiVersion = xl6XapiLoadDupText("1");
-    }
-    if ( module->packageId == NULL ) {
-        module->packageId = xl6XapiLoadBuildPackageId(module->packageName, module->packageVersion, module->packageAbiVersion);
-    }
-    if ( module->moduleId == NULL ) {
-        module->moduleId = xl6XapiLoadBuildModuleId(module->packageId, module->name);
-    }
-    if ( module->nativeLoadName == NULL ) {
-        module->nativeLoadName = xl6XapiLoadDupText("");
-    }
-    if ( module->nativeVersion == NULL ) {
-        module->nativeVersion = xl6XapiLoadDupText("");
     }
     if ( module->name == NULL || module->source == NULL || module->sourceHash == NULL ||
          module->packageName == NULL || module->packageVersion == NULL ||
@@ -1194,24 +1014,18 @@ static int xl6XapiFinalizeLoadedModule(XL6_XapiModule* module)
 
     for ( i = 0; i < module->exportCount; ++i ) {
         XL6_XapiExport* item = &module->exports[i];
-        if ( item->kind != NULL && strcmp(item->kind, "function") == 0 ) {
-            if ( item->callingConvention == NULL ) {
-                item->callingConvention = xl6XapiLoadDupText("cdecl");
-            }
-            if ( item->varargMode == NULL ) {
-                item->varargMode = xl6XapiLoadDupText("none");
-            }
-        }
-        if ( item->signature == NULL ) {
-            item->signature = xl6XapiLoadBuildSignature(item);
-        }
-        if ( item->exportId == NULL ) {
-            item->exportId = xl6XapiLoadBuildExportId(module, item);
-        }
         if ( item->signature == NULL || item->exportId == NULL ||
              (item->kind != NULL && strcmp(item->kind, "function") == 0 &&
               (item->callingConvention == NULL || item->varargMode == NULL)) ) {
             return 0;
+        }
+    }
+    for ( i = 0; i < module->typeCount; ++i ) {
+        XL6_XapiTypeDecl* item = &module->types[i];
+        for ( j = 0; j < item->fieldCount; ++j ) {
+            if ( item->fields[j].storage == NULL ) {
+                return 0;
+            }
         }
     }
     return 1;

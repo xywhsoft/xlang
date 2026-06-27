@@ -1,5 +1,0 @@
-func identity<T>(T value) as T
-    return value
-end
-
-auto value = identity<int>(1)

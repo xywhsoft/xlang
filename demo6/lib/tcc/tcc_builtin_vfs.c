@@ -6,7 +6,7 @@
  *   2. If a read-only open fails, try the embedded resource table.
  *
  * The embedded table uses virtual names such as "include/stdio.h" and
- * "lib/libtcc1.a". Full paths are normalized and matched by those suffixes.
+ * "lib/libtcc1.a". Runtime lookup only accepts those normalized virtual names.
  */
 #include "tcc_builtin_vfs.h"
 
@@ -68,19 +68,63 @@ static TCCVfsOpenFile *tcc_vfs_get_file(int fd)
 static void tcc_vfs_normalize_key(const char *path, char *out, size_t out_size)
 {
     size_t i;
+    size_t j;
+    size_t pos;
+    char segment[TCC_VFS_KEY_MAX];
+
     if (!out_size)
         return;
     if (!path)
         path = "";
-    for (i = 0; i + 1 < out_size && path[i]; ++i) {
-        unsigned char ch = (unsigned char)path[i];
-        if (ch == '\\')
-            ch = '/';
-        else if (ch >= 'A' && ch <= 'Z')
-            ch = (unsigned char)(ch - 'A' + 'a');
-        out[i] = (char)ch;
+    out[0] = '\0';
+    pos = 0;
+    i = 0;
+    while (path[i]) {
+        while (path[i] == '/' || path[i] == '\\')
+            ++i;
+
+        j = 0;
+        while (path[i] && path[i] != '/' && path[i] != '\\') {
+            unsigned char ch = (unsigned char)path[i++];
+            if (ch >= 'A' && ch <= 'Z')
+                ch = (unsigned char)(ch - 'A' + 'a');
+            if (j + 1 < sizeof segment)
+                segment[j++] = (char)ch;
+        }
+        segment[j] = '\0';
+
+        if (j == 0 || strcmp(segment, ".") == 0)
+            continue;
+
+        if (strcmp(segment, "..") == 0) {
+            if (pos > 0 && strcmp(out, "..") != 0) {
+                while (pos > 0 && out[pos - 1] != '/')
+                    --pos;
+                if (pos > 0)
+                    --pos;
+                out[pos] = '\0';
+            } else if (pos + 2 < out_size) {
+                if (pos > 0)
+                    out[pos++] = '/';
+                out[pos++] = '.';
+                out[pos++] = '.';
+                out[pos] = '\0';
+            }
+            continue;
+        }
+
+        if (pos > 0) {
+            if (pos + 1 >= out_size)
+                break;
+            out[pos++] = '/';
+        }
+        for (j = 0; segment[j]; ++j) {
+            if (pos + 1 >= out_size)
+                break;
+            out[pos++] = segment[j];
+        }
+        out[pos] = '\0';
     }
-    out[i] = '\0';
 }
 
 static const TCCBuiltinResource *tcc_vfs_lookup_exact(const char *key)
@@ -100,28 +144,10 @@ static const TCCBuiltinResource *tcc_vfs_lookup_exact(const char *key)
 
 static const TCCBuiltinResource *tcc_vfs_lookup_resource(const char *path)
 {
-    const char *p;
-    const TCCBuiltinResource *res;
     char norm[TCC_VFS_KEY_MAX];
 
     tcc_vfs_normalize_key(path, norm, sizeof norm);
-
-    res = tcc_vfs_lookup_exact(norm);
-    if (res)
-        return res;
-
-    p = strstr(norm, "/include/");
-    if (p) {
-        res = tcc_vfs_lookup_exact(p + 1);
-        if (res)
-            return res;
-    }
-
-    p = strstr(norm, "/lib/");
-    if (p)
-        return tcc_vfs_lookup_exact(p + 1);
-
-    return NULL;
+    return tcc_vfs_lookup_exact(norm);
 }
 
 static int tcc_vfs_materialize_resource(

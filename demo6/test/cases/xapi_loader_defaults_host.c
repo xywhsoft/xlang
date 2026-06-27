@@ -112,40 +112,6 @@ static int fail(XL6_XapiModule* module, const char* message)
     return 1;
 }
 
-static int checkLegacy(XL6_XapiModule* module)
-{
-    const XL6_XapiExport* fn;
-    const XL6_XapiTypeDecl* type;
-
-    if ( !textEquals(module->packageName, "legacy") ||
-         !textEquals(module->packageVersion, "0.0.0") ||
-         !textEquals(module->packageAbiVersion, "1") ||
-         !textEquals(module->packageId, "legacy@0.0.0#abi1") ||
-         !textEquals(module->moduleId, "legacy@0.0.0#abi1::legacy") ||
-         !textEquals(module->source, "") ||
-         !textEquals(module->sourceHash, "") ||
-         !textEquals(module->nativeLoadName, "") ||
-         !textEquals(module->nativeVersion, "") ) {
-        return 0;
-    }
-    if ( module->exportCount != 1 || module->typeCount != 1 ) {
-        return 0;
-    }
-    fn = &module->exports[0];
-    if ( !textEquals(fn->callingConvention, "cdecl") ||
-         !textEquals(fn->varargMode, "none") ||
-         !textEquals(fn->signature, "func(int,int) as int") ||
-         !textEquals(fn->exportId, "legacy@0.0.0#abi1::legacy::add(func(int,int) as int)") ) {
-        return 0;
-    }
-    type = &module->types[0];
-    if ( !textEquals(type->name, "Point") || type->fieldCount != 1 ||
-         !textEquals(type->fields[0].storage, "field") ) {
-        return 0;
-    }
-    return 1;
-}
-
 static int checkUnknowns(XL6_XapiModule* module)
 {
     const XL6_XapiExport* fn;
@@ -173,10 +139,16 @@ static int checkUnknowns(XL6_XapiModule* module)
     if ( !textEquals(fn->callingConvention, "cdecl") ||
          !textEquals(fn->varargMode, "none") ||
          !textEquals(fn->signature, "func(string) as bool") ||
-         !textEquals(fn->exportId, "unknowns@2.1.0#abi7::unknowns::touch(func(string) as bool)") ) {
+         !textEquals(fn->exportId, "unknowns@2.1.0#abi7::unknowns::touch(func(string) as bool)") ||
+         !textEquals(fn->doc, "function doc") ) {
         return 0;
     }
-    if ( module->types[0].fieldCount != 1 || !textEquals(module->types[0].fields[0].storage, "field") ) {
+    if ( !textEquals(module->types[0].doc, "type doc") ) {
+        return 0;
+    }
+    if ( module->types[0].fieldCount != 1 ||
+         !textEquals(module->types[0].fields[0].storage, "field") ||
+         !textEquals(module->types[0].fields[0].doc, "field doc") ) {
         return 0;
     }
     return 1;
@@ -189,7 +161,7 @@ int main(int argc, char** argv)
     int ok;
 
     if ( argc < 3 ) {
-        printf("usage: xapi_loader_defaults_host <legacy|unknowns> <xapi>\n");
+        printf("usage: xapi_loader_defaults_host <unknowns> <xapi>\n");
         return 1;
     }
     if ( xrtInit() == NULL ) {
@@ -201,9 +173,7 @@ int main(int argc, char** argv)
     if ( !xl6XapiLoadJsonFile(&module, argv[2], &diags) ) {
         return fail(&module, "load failed");
     }
-    if ( strcmp(argv[1], "legacy") == 0 ) {
-        ok = checkLegacy(&module);
-    } else if ( strcmp(argv[1], "unknowns") == 0 ) {
+    if ( strcmp(argv[1], "unknowns") == 0 ) {
         ok = checkUnknowns(&module);
     } else {
         ok = 0;
