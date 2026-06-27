@@ -23,7 +23,7 @@ static int write_text_file(const char* path, const char* text)
 
 static int run_script_step(XL_Context* ctx, const char* name, const char* source)
 {
-    if ( xlRunScriptString(ctx, source) ) {
+    if ( xlRunScriptStringArg(ctx, source, NULL) ) {
         return 1;
     }
     fprintf(stderr, "%s failed: %s\n", name, xlGetLastError(ctx));

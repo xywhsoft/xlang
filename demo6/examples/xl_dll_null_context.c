@@ -403,10 +403,16 @@ int main(void)
          !expect_false("xlRegisterCFunction(NULL)", xlRegisterCFunction(NULL, "dummy", (void*)dummy_host_function)) ||
          !expect_false("xlRunScriptString(NULL)", xlRunScriptString(NULL, "int a = 1")) ||
          !expect_false("xlRunScriptFile(NULL)", xlRunScriptFile(NULL, "missing.xl")) ||
-         !expect_false("xlCompileScriptStringToExe(NULL)", xlCompileScriptStringToExe(NULL, "int a = 1", "release\\tmp\\null.exe")) ||
+         !expect_false("xlRunScriptStringArg(NULL)", xlRunScriptStringArg(NULL, "int a = 1", NULL)) ||
+         !expect_false("xlRunScriptFileArg(NULL)", xlRunScriptFileArg(NULL, "missing.xl", NULL)) ) {
+        return 1;
+    }
+#if !defined(XL_RUNTIME_ONLY_API)
+    if ( !expect_false("xlCompileScriptStringToExe(NULL)", xlCompileScriptStringToExe(NULL, "int a = 1", "release\\tmp\\null.exe")) ||
          !expect_false("xlCompileScriptFileToExe(NULL)", xlCompileScriptFileToExe(NULL, "missing.xl", "release\\tmp\\null.exe")) ) {
         return 1;
     }
+#endif
 
     if ( !expect_empty_error("NULL-context API calls") ) {
         return 1;
@@ -442,13 +448,18 @@ int main(void)
         return 1;
     }
     if ( !expect_api_failure(ctx, "xlRunScriptString NULL source", xlRunScriptString(ctx, NULL), "script source is empty") ||
-         !expect_api_failure(ctx, "xlRunScriptFile empty path", xlRunScriptFile(ctx, ""), "script file path is empty") ||
-         !expect_api_failure(ctx, "xlCompileScriptStringToExe NULL source", xlCompileScriptStringToExe(ctx, NULL, "release\\tmp\\null_source.exe"), "script source is empty") ||
+         !expect_api_failure(ctx, "xlRunScriptFile empty path", xlRunScriptFile(ctx, ""), "script file path is empty") ) {
+        xlDestroyContext(ctx);
+        return 1;
+    }
+#if !defined(XL_RUNTIME_ONLY_API)
+    if ( !expect_api_failure(ctx, "xlCompileScriptStringToExe NULL source", xlCompileScriptStringToExe(ctx, NULL, "release\\tmp\\null_source.exe"), "script source is empty") ||
          !expect_api_failure(ctx, "xlCompileScriptFileToExe empty path", xlCompileScriptFileToExe(ctx, "", "release\\tmp\\empty_file.exe"), "script file path is empty") ||
          !expect_api_failure(ctx, "xlCompileScriptStringToExe empty output", xlCompileScriptStringToExe(ctx, "func ok() as int\n    return 1\nend\n", ""), "output exe path is empty") ) {
         xlDestroyContext(ctx);
         return 1;
     }
+#endif
     xlDestroyContext(ctx);
 
     if ( !get_current_dir(originalCwd, sizeof(originalCwd)) ) {

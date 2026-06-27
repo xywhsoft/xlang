@@ -21,7 +21,8 @@
 - `标准库设计.md`：标准库默认注册、短命名空间、XRT/CRT 边界、第一批标准库函数、暂缓能力和后续设计议题。
 - `异常处理与文档注释设计.md`：异常处理、断言、高级错误模型和 `#doc ... #end` 文档注释。
 - `扩展库系统设计.md`：package、XAPI、接口元数据、版本隔离、依赖解析和扩展库分发模型。
-- `DLL嵌入式运行库设计.md`：`xl.dll` 嵌入式 API、上下文、脚本运行、exe 编译、C 函数注册和 XRT 注入。
+- `DLL嵌入式运行库设计.md`：`xl.dll` / `xlc.dll` 嵌入式 API、上下文、脚本运行、exe 编译、C 函数注册和 XRT 注入。
+- `TCC内嵌与运行入口设计.md`：内嵌 `libtcc`、运行版/编译版 DLL 分层、`xlang_main(xvalue arg)` 入口 ABI、VFS 资源包和 TCC IO 边界。
 - `union设计.md`：C 风格 `union` 的语法、规则、代码生成、C ABI 和 XAPI 元数据。
 
 ## 当前工程与质量口径

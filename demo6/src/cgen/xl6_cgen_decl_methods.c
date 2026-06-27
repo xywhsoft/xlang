@@ -1,4 +1,4 @@
-static void xl6CgenRegisterParamTypes(XL6_CgenContext* ctx, const XL6_AstNode* params)
+static void xl6CgenRegisterParamTypesEx(XL6_CgenContext* ctx, const XL6_AstNode* params, int borrowVararg)
 {
     size_t i;
 
@@ -13,11 +13,21 @@ static void xl6CgenRegisterParamTypes(XL6_CgenContext* ctx, const XL6_AstNode* p
             } else {
                 xl6CgenAddVarType(ctx, param->text, param->children[0]);
             }
-            if ( xl6CgenParamIsVararg(param) ) {
+            if ( xl6CgenParamIsVararg(param) && !borrowVararg ) {
                 xl6CgenAddXValueCleanup(ctx, param->text, param->children[0]);
             }
         }
     }
+}
+
+static void xl6CgenRegisterParamTypes(XL6_CgenContext* ctx, const XL6_AstNode* params)
+{
+    xl6CgenRegisterParamTypesEx(ctx, params, 0);
+}
+
+static void xl6CgenRegisterBorrowedParamTypes(XL6_CgenContext* ctx, const XL6_AstNode* params)
+{
+    xl6CgenRegisterParamTypesEx(ctx, params, 1);
 }
 
 static int xl6CgenNodeContainsBaseCtorCall(const XL6_AstNode* node)

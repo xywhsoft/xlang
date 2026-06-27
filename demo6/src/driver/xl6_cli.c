@@ -14,6 +14,8 @@
 #include "src/parser/xl6_parser_api.h"
 #include "src/sem/xl6_sem.h"
 
+#include "libtcc.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -22,6 +24,13 @@
 #else
 #include <unistd.h>
 #endif
+
+#ifdef _WIN32
+int tcc_tool_impdef(int argc, char** argv);
+#endif
+
+#define XL6_TCC_VFS_XRT_OBJ "lib/xrt/xrt.o"
+#define XL6_TCC_VFS_LIBTCC1 "lib/libtcc1.a"
 
 static void xl6CliPrintHelp(void)
 {
@@ -791,6 +800,8 @@ typedef struct XL6_CliProcessArgs {
     int count;
 } XL6_CliProcessArgs;
 
+static const char* xl6CliEnvPathOrDefault(const char* name, const char* fallback);
+
 static void xl6CliProcessArgsInit(XL6_CliProcessArgs* args)
 {
     if ( args != NULL ) {
@@ -912,6 +923,94 @@ static int xl6CliRunProcess(const char* program, XL6_CliProcessArgs* args, char*
     return exitCode;
 }
 
+static void xl6CliTccError(void* opaque, const char* msg)
+{
+    (void)opaque;
+    xl6ConsolePrintf(XL6_CONSOLE_STDERR, "tcc: %s\n", msg != NULL ? msg : "unknown error");
+}
+
+static int xl6CliEmbeddedTccAddOption(TCCState* s, const char* arg, int* inOutSkipNext)
+{
+    if ( s == NULL || arg == NULL || inOutSkipNext == NULL ) {
+        return 0;
+    }
+
+    if ( *inOutSkipNext ) {
+        *inOutSkipNext = 0;
+        return 1;
+    }
+
+    /* 输出路径由调用者统一传给 tcc_output_file，这里只跳过原命令行形态。 */
+    if ( strcmp(arg, "-o") == 0 ) {
+        *inOutSkipNext = 1;
+        return 1;
+    }
+
+    if ( strcmp(arg, "-shared") == 0 ) {
+        return 1;
+    }
+
+    if ( strncmp(arg, "-I", 2) == 0 ) {
+        return tcc_add_include_path(s, arg + 2) == 0;
+    }
+
+    if ( strncmp(arg, "-L", 2) == 0 ) {
+        return tcc_add_library_path(s, arg + 2) == 0;
+    }
+
+    if ( strncmp(arg, "-l", 2) == 0 ) {
+        return tcc_add_library(s, arg + 2) == 0;
+    }
+
+    if ( arg[0] == '-' ) {
+        return tcc_set_options(s, arg) == 0;
+    }
+
+    return tcc_add_file(s, arg) == 0;
+}
+
+static int xl6CliRunEmbeddedTcc(XL6_CliProcessArgs* args, const char* outputPath, int outputType)
+{
+    TCCState* s;
+    int i;
+    int skipNext;
+    int ok;
+
+    if ( args == NULL || outputPath == NULL || outputPath[0] == '\0' ) {
+        return 1;
+    }
+
+    s = tcc_new();
+    if ( s == NULL ) {
+        xl6ConsolePrintf(XL6_CONSOLE_STDERR, "cannot create embedded tcc state\n");
+        return 1;
+    }
+
+    tcc_set_error_func(s, NULL, xl6CliTccError);
+    tcc_set_lib_path(s, xl6CliEnvPathOrDefault("XL6_TCC_ROOT", XL6_TCC_ROOT_PATH));
+    if ( tcc_set_output_type(s, outputType) != 0 ) {
+        xl6ConsolePrintf(XL6_CONSOLE_STDERR, "cannot set embedded tcc output type\n");
+        tcc_delete(s);
+        return 1;
+    }
+
+    ok = tcc_set_options(s, "-std=c11 -D_CRT_SECURE_NO_WARNINGS") == 0;
+    skipNext = 0;
+    for ( i = 0; ok && i < (int)args->count; ++i ) {
+        ok = xl6CliEmbeddedTccAddOption(s, args->items[i], &skipNext);
+    }
+    if ( ok ) {
+        ok = tcc_output_file(s, outputPath) == 0;
+    }
+    tcc_delete(s);
+
+    if ( !ok ) {
+        xl6ConsolePrintf(XL6_CONSOLE_STDERR, "embedded tcc output failed: %s\n", outputPath);
+        return 1;
+    }
+    return 0;
+}
+
 static int xl6CliLooksLikeLinkFile(const char* text)
 {
     const char* p;
@@ -989,10 +1088,14 @@ static const char* xl6CliDefaultXrtObjPath(void)
 
 static int xl6CliMakeLoadlibDef(const char* dllPath, int index, const char* workDir, char* outPath, size_t outSize)
 {
+#ifndef _WIN32
     XL6_CliProcessArgs args;
+#endif
     int written;
     int rc;
+#ifndef _WIN32
     const XL6_BuildBackend* backend;
+#endif
 
     if ( dllPath == NULL || dllPath[0] == '\0' || outPath == NULL || outSize == 0 ) {
         return 0;
@@ -1017,6 +1120,23 @@ static int xl6CliMakeLoadlibDef(const char* dllPath, int index, const char* work
         }
     }
 
+#ifdef _WIN32
+    {
+        char* impdefArgs[5];
+
+        impdefArgs[0] = (char*)"tcc";
+        impdefArgs[1] = (char*)dllPath;
+        impdefArgs[2] = (char*)"-o";
+        impdefArgs[3] = outPath;
+        impdefArgs[4] = NULL;
+        rc = tcc_tool_impdef(4, impdefArgs);
+    }
+    if ( rc != 0 ) {
+        xl6ConsolePrintf(XL6_CONSOLE_STDERR, "loadlib import generation failed: %s\n", dllPath);
+        return 0;
+    }
+    return 1;
+#else
     backend = xl6CliDefaultBackend();
     xl6CliProcessArgsInit(&args);
     if ( !xl6CliProcessArgsAddBorrow(&args, "-impdef") ||
@@ -1035,6 +1155,7 @@ static int xl6CliMakeLoadlibDef(const char* dllPath, int index, const char* work
         return 0;
     }
     return 1;
+#endif
 }
 
 static int xl6CliAppendTccOptions(
@@ -1161,14 +1282,16 @@ static int xl6CliAppendDefaultXrtLinks(XL6_CliProcessArgs* args, int argc, char*
                 return 0;
             }
         } else {
-            xl6ConsolePrintf(XL6_CONSOLE_STDERR, "missing XRT object: %s\n", xrtObjPath);
-            return 0;
+            if ( !xl6CliProcessArgsAddLinkOption(args, XL6_TCC_VFS_XRT_OBJ) ) {
+                return 0;
+            }
         }
     }
     tccRuntimePath = xl6CliDefaultTccLibtcc1Path();
-    if ( !xl6CliHasUserLink(argc, argv, xl6CliIsTccRuntimeLinkValue) &&
-         xrtFileExists((char*)tccRuntimePath) ) {
-        if ( !xl6CliProcessArgsAddLinkOption(args, tccRuntimePath) ) {
+    if ( !xl6CliHasUserLink(argc, argv, xl6CliIsTccRuntimeLinkValue) ) {
+        if ( !xl6CliProcessArgsAddLinkOption(
+                 args,
+                 xrtFileExists((char*)tccRuntimePath) ? tccRuntimePath : XL6_TCC_VFS_LIBTCC1) ) {
             return 0;
         }
     }
@@ -1192,14 +1315,13 @@ static int xl6CliCompileWithTccInputs(
     XL6_CliProcessArgs args;
     int i;
     int rc;
-    const XL6_BuildBackend* backend;
+    int outputType;
 
     if ( cPaths == NULL || cPathCount <= 0 ) {
         xl6ConsolePrintf(XL6_CONSOLE_STDERR, "no C input for tcc\n");
         return 1;
     }
 
-    backend = xl6CliDefaultBackend();
     xl6CliProcessArgsInit(&args);
     if ( !xl6CliProcessArgsAddDefaultToolchain(&args) ) {
         xl6CliProcessArgsFree(&args);
@@ -1234,7 +1356,8 @@ static int xl6CliCompileWithTccInputs(
         xl6ConsolePrintf(XL6_CONSOLE_STDERR, "tcc link arguments are too many\n");
         return 1;
     }
-    rc = xl6CliRunProcess(xl6BuildBackendCcPath(backend), &args, NULL, 0);
+    outputType = xl6CliHasSharedFlag(argc, argv) ? TCC_OUTPUT_DLL : TCC_OUTPUT_EXE;
+    rc = xl6CliRunEmbeddedTcc(&args, exePath, outputType);
     xl6CliProcessArgsFree(&args);
     return rc;
 }

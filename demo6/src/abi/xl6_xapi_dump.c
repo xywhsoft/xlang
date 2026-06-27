@@ -244,10 +244,10 @@ static void xl6XapiDumpEntry(XL6_Output* out, const XL6_AstNode* root)
 
     xl6OutputPuts("  \"entry\":{", out);
     if ( mainFunc != NULL ) {
-        xl6OutputPuts("\"kind\":\"xlang-main\",\"function\":\"main\",\"argvMode\":\"array<var>\",\"returnType\":\"int\",", out);
+        xl6OutputPuts("\"kind\":\"xlang-main\",\"function\":\"main\",\"cSymbol\":\"xlang_main\",\"argvMode\":\"array<var>\",\"returnType\":\"int\",", out);
         xl6OutputPuts("\"initSymbol\":\"xlInit\",\"unitSymbol\":\"xlUnit\"}", out);
     } else if ( hasTopLevel ) {
-        xl6OutputPuts("\"kind\":\"script-main\",\"argvMode\":\"array<var>\",\"returnType\":\"int\",", out);
+        xl6OutputPuts("\"kind\":\"script-main\",\"cSymbol\":\"xlang_main\",\"argvMode\":\"array<var>\",\"returnType\":\"int\",", out);
         xl6OutputPuts("\"initSymbol\":\"xlInit\",\"unitSymbol\":\"xlUnit\"}", out);
     } else {
         xl6OutputPuts("\"kind\":\"none\",\"requiresExplicitInit\":true,\"initSymbol\":\"xlInit\",\"unitSymbol\":\"xlUnit\"}", out);
@@ -1527,10 +1527,10 @@ static void xl6XapiDumpEntryModule(XL6_Output* out, const XL6_XapiModule* module
 {
     xl6OutputPuts("  \"entry\":{", out);
     if ( module != NULL && module->entryKind == XL6_XAPI_ENTRY_XLANG_MAIN ) {
-        xl6OutputPuts("\"kind\":\"xlang-main\",\"function\":\"main\",\"argvMode\":\"array<var>\",\"returnType\":\"int\",", out);
+        xl6OutputPuts("\"kind\":\"xlang-main\",\"function\":\"main\",\"cSymbol\":\"xlang_main\",\"argvMode\":\"array<var>\",\"returnType\":\"int\",", out);
         xl6OutputPuts("\"initSymbol\":\"xlInit\",\"unitSymbol\":\"xlUnit\"}", out);
     } else if ( module != NULL && module->entryKind == XL6_XAPI_ENTRY_SCRIPT_MAIN ) {
-        xl6OutputPuts("\"kind\":\"script-main\",\"argvMode\":\"array<var>\",\"returnType\":\"int\",", out);
+        xl6OutputPuts("\"kind\":\"script-main\",\"cSymbol\":\"xlang_main\",\"argvMode\":\"array<var>\",\"returnType\":\"int\",", out);
         xl6OutputPuts("\"initSymbol\":\"xlInit\",\"unitSymbol\":\"xlUnit\"}", out);
     } else {
         xl6OutputPuts("\"kind\":\"none\",\"requiresExplicitInit\":true,\"initSymbol\":\"xlInit\",\"unitSymbol\":\"xlUnit\"}", out);

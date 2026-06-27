@@ -25,13 +25,21 @@ static void xl6CgenFunc(XL6_CgenContext* ctx, const XL6_AstNode* node)
     ctx->currentReturnParams = params;
     ctx->currentReturns = returns;
     ctx->currentReturnFunc = node;
-    xl6CgenRegisterParamTypes(ctx, params);
+    if ( xl6CgenFuncIsMainEntry(node) ) {
+        xl6CgenRegisterBorrowedParamTypes(ctx, params);
+    } else {
+        xl6CgenRegisterParamTypes(ctx, params);
+    }
     body = node->childCount > 3 ? node->children[3] : NULL;
     if ( body != NULL ) {
         xl6CgenBlock(ctx, body);
     }
     if ( !xl6CgenBlockEndsWithReturn(body) ) {
         xl6CgenEmitCleanupsSince(ctx, cleanupMark);
+        if ( xl6CgenFuncIsMainEntry(node) ) {
+            xl6CgenIndent(ctx);
+            xl6OutputPuts("return 0;\n", ctx->out);
+        }
     }
     xl6CgenFreeCleanupsSince(ctx, cleanupMark);
     ctx->currentReturnType = prevReturnType;

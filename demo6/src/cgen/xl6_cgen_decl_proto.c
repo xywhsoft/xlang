@@ -6,7 +6,10 @@ static void xl6CgenFuncProto(XL6_CgenContext* ctx, const XL6_AstNode* node)
     const XL6_AstNode* nameNode;
 
     returns = node->childCount > 2 ? node->children[2] : NULL;
-    if ( returns != NULL && returns->childCount > 1 ) {
+    if ( xl6CgenFuncIsMainEntry(node) ) {
+        /* xlang main 固定暴露为运行时入口，便于 xl.dll 绕过 C main 直接调用。 */
+        xl6OutputPuts("int", ctx->out);
+    } else if ( returns != NULL && returns->childCount > 1 ) {
         xl6CgenFuncReturnStructName(ctx, node);
     } else if ( returns != NULL && returns->childCount == 1 ) {
         xl6OutputPuts(xl6CgenFuncSingleReturnCType(ctx, node), ctx->out);
@@ -676,4 +679,3 @@ static void xl6CgenEmitHandleBoxRuntime(XL6_CgenContext* ctx, const XL6_AstNode*
     xl6OutputPuts("    return boxed != 0 ? boxed : xvoCreateNull();\n", ctx->out);
     xl6OutputPuts("}\n\n", ctx->out);
 }
-

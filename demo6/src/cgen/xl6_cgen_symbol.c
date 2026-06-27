@@ -268,11 +268,11 @@ static void xl6CgenFuncSymbol(XL6_CgenContext* ctx, const XL6_AstNode* funcNode)
         return;
     }
     if ( xl6CgenFuncIsMainEntry(funcNode) ) {
-        xl6OutputPuts("xl_user_main", ctx->out);
+        xl6OutputPuts("xlang_main", ctx->out);
         return;
     }
     if ( nameNode == NULL || (xl6CgenFuncOverloadCount(ctx, nameNode->text) <= 1 &&
-         xl6CgenIsSimpleCIdent(nameNode->text)) ) {
+         xl6CgenIsSimpleCIdent(nameNode->text) && !xl6CTextEquals(nameNode->text, "xlang_main")) ) {
         xl6OutputPuts((nameNode != NULL && nameNode->text != NULL) ? nameNode->text : "_", ctx->out);
         return;
     }
