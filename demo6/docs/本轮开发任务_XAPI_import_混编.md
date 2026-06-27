@@ -114,7 +114,7 @@ int main(int argc, char** argv)
         return 1;
     }
 
-    code = xl_user_main_from_argv(argc, argv);
+    code = xlang_main(xl_argv_to_arg(argc, argv));
     xlUnit();
     return code;
 }

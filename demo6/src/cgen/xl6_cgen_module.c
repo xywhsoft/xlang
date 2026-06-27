@@ -42,7 +42,7 @@ int xl6CgenEmitC(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags)
     hasStringRuntime = xl6CgenProgramNeedsStringRuntime(&ctx, root);
     hasTypeConvertRuntime = xl6CgenProgramNeedsTypeConvertRuntime(&ctx, root);
     hasFunctionVarRuntime = xl6CgenProgramNeedsFunctionVarRuntime(&ctx, root);
-    hasXValueRuntime = xl6CgenNodeNeedsXValueRuntime(root) || hasFunctionVarRuntime || ctx.runtimeTypeDescCount > 0 || mainFunc != NULL;
+    hasXValueRuntime = xl6CgenNodeNeedsXValueRuntime(root) || hasFunctionVarRuntime || ctx.runtimeTypeDescCount > 0;
     hasTimeRuntime = xl6CgenNodeNeedsTimeRuntime(root);
     hasAsyncRuntime = xl6CgenNodeNeedsAsyncRuntime(root);
     hasDynamicForInErrorRuntime = xl6CgenProgramNeedsDynamicForInErrorRuntime(&ctx, root);
@@ -104,9 +104,9 @@ int xl6CgenEmitC(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags)
     if ( hasXValueRuntime ) {
         xl6CgenEmitXValueRuntime(&ctx);
         xl6CgenEmitRuntimeTypeDescs(&ctx);
-        if ( mainFunc != NULL ) {
-            xl6CgenEmitArgvArrayHelper(out);
-        }
+    }
+    if ( mainFunc != NULL || hasTopLevel ) {
+        xl6CgenEmitArgvArrayHelper(out);
     }
     if ( hasCryptoRuntime ) {
         xl6CgenEmitCryptoRuntime(out);
@@ -269,39 +269,11 @@ int xl6CgenEmitC(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags)
         ctx.currentGenericArgs = prevArgs;
     }
 
-    if ( mainFunc != NULL ) {
-        xl6CgenEmitMainWrapper(&ctx, mainFunc);
-    } else if ( hasTopLevel ) {
-        const char* oldErrorExitLabel = ctx.currentErrorExitLabel;
-        xl6OutputPuts("int main(int argc, char** argv)\n{\n", out);
-        xl6OutputPuts("    XL_InitOptions __xl6_options = xlInitOptions(argc, argv);\n\n", out);
-        xl6OutputPuts("    if ( !xlInit(&__xl6_options) ) {\n", out);
-        xl6OutputPuts("        return 1;\n", out);
-        xl6OutputPuts("    }\n", out);
-        ctx.indent = 1;
-        ctx.currentErrorExitLabel = "__xl6_script_error";
-        for ( i = 0; i < root->childCount; ++i ) {
-            if ( xl6CgenIsTopLevelRuntimeStmt(root->children[i]) ) {
-                xl6CgenStmt(&ctx, root->children[i]);
-            }
-        }
-        xl6CgenCloseScope(&ctx, 0);
-        if ( hasErrorRuntime ) {
-            xl6OutputPuts("    if ( xl6_error_has() ) {\n", out);
-            xl6OutputPuts("        goto __xl6_script_error;\n", out);
-            xl6OutputPuts("    }\n", out);
-        }
-        xl6OutputPuts("    xlUnit();\n", out);
-        xl6OutputPuts("    return 0;\n", out);
-        if ( hasErrorRuntime ) {
-            xl6OutputPuts("__xl6_script_error:\n", out);
-            xl6OutputPuts("    xl6_error_print_uncaught();\n", out);
-            xl6OutputPuts("    xl6_error_clear();\n", out);
-            xl6OutputPuts("    xlUnit();\n", out);
-            xl6OutputPuts("    return 1;\n", out);
-        }
-        xl6OutputPuts("}\n", out);
-        ctx.currentErrorExitLabel = oldErrorExitLabel;
+    if ( hasTopLevel && mainFunc == NULL ) {
+        xl6CgenEmitTopLevelXlangMain(&ctx, root, hasErrorRuntime);
+    }
+    if ( mainFunc != NULL || hasTopLevel ) {
+        xl6CgenEmitMainWrapper(&ctx);
     }
 
     hasTopLevel = ctx.ok && (diags == NULL || diags->count == 0);

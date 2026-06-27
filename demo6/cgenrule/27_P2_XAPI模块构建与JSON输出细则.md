@@ -266,6 +266,8 @@
 | 实现同等功能手写的 C 代码 | 手写接口元数据需要稳定 entry schema。 |
 | 额外依赖的封装代码 | XAPI entry schema。 |
 
+> 备注：`xlang-main` 与 `script-main` 的 module entry JSON 必须输出 `cSymbol:"xlang_main"`，保持 XAPI module dump 与 AST 直接 dump 的入口 ABI 字段一致。
+
 ## CGEN-XMOD-023 字符串数组 JSON 输出
 
 | 项目 | 内容 |

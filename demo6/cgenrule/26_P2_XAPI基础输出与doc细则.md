@@ -110,6 +110,8 @@
 | 实现同等功能手写的 C 代码 | 手写元数据需声明库是否有可执行入口。 |
 | 额外依赖的封装代码 | XAPI entry schema。 |
 
+> 备注：entry schema 的 `xlang-main` 与 `script-main` 分支都必须输出 `cSymbol:"xlang_main"`，该字段是 DLL 运行版和 C 侧工具直接定位入口函数的稳定 ABI 锚点。
+
 ## CGEN-XAPI-010 参数 JSON 数组输出
 
 | 项目 | 内容 |

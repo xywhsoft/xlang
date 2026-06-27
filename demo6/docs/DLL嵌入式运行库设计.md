@@ -1,22 +1,30 @@
-# DEMO6 xl.dll 嵌入式运行库
+# DEMO6 xl.dll / xlc.dll 嵌入式 API
 
-本文档记录 `xl.dll` 的第一版嵌入式 API 口径。DLL 面向“把 xlang 作为脚本语言嵌入宿主程序”的场景，不承载 CLI 调试命令。
+本文档记录 DEMO6 嵌入式 DLL API 的当前口径。DLL 面向“把 xlang 作为脚本语言嵌入宿主程序”的场景，不承载 CLI 调试命令。
 
-## 设计边界
+## 产物分层
 
-`xl.dll` 提供：
+`xl.dll` 是轻量运行版：
 
 - 创建和销毁语言上下文。
 - 设置上下文工作目录和临时目录。
 - 运行字符串脚本。
 - 运行脚本文件。
-- 将字符串脚本编译为 exe。
-- 将脚本文件编译为 exe。
+- 接收宿主提供的 `xvalue arg` 并调用固定 `xlang_main(xvalue arg)` 入口。
 - 添加 include path、library path、链接库或依赖 DLL。
 - 将宿主 C 函数注册到上下文，供 xlang `extern "symbol"` 声明调用。
-- 自动把 `xl.dll` 内部链接的 XRT 符号注入 libtcc 内存执行环境。
+- 自动把 DLL 内部链接的 XRT 符号注入 libtcc 内存执行环境。
 
-`xl.dll` 不提供：
+`xlc.dll` 是编译版 DLL：
+
+- 支持 `xl.dll` 的全部运行能力。
+- 额外导出 `xlCompileScriptStringToExe`。
+- 额外导出 `xlCompileScriptFileToExe`。
+- 后续负责携带编译 exe/dll 所需的内置 TCC/XRT 资源包。
+
+`xl.dll` 不导出编译 exe API。宿主如果只面向运行版，可以在包含 `include/xl.h` 前定义 `XL_RUNTIME_ONLY_API`，此时头文件不会声明编译 API。
+
+两个 DLL 都不提供：
 
 - 词法 dump。
 - 语法树 dump。
@@ -32,7 +40,7 @@
 #include "include/xl.h"
 ```
 
-核心 API：
+运行版核心 API：
 
 ```c
 XL_ContextOptions xlDefaultContextOptions(void);
@@ -54,16 +62,23 @@ int xlRegisterCFunction(XL_Context* ctx, const char* symbolName, void* fn);
 
 int xlRunScriptString(XL_Context* ctx, const char* source);
 int xlRunScriptFile(XL_Context* ctx, const char* path);
-int xlCompileScriptStringToExe(XL_Context* ctx, const char* source, const char* outputExe);
-int xlCompileScriptFileToExe(XL_Context* ctx, const char* path, const char* outputExe);
+int xlRunScriptStringArg(XL_Context* ctx, const char* source, xvalue arg);
+int xlRunScriptFileArg(XL_Context* ctx, const char* path, xvalue arg);
 
 const char* xlGetLastError(XL_Context* ctx);
 void xlClearLastError(XL_Context* ctx);
 ```
 
+编译版额外 API：
+
+```c
+int xlCompileScriptStringToExe(XL_Context* ctx, const char* source, const char* outputExe);
+int xlCompileScriptFileToExe(XL_Context* ctx, const char* path, const char* outputExe);
+```
+
 命名说明：
 
-- `xlRuntimeInit` / `xlRuntimeUnit` 是 `xl.dll` 的进程级公共 API，用于管理 DLL 内部 XRT/libtcc 运行时计数。
+- `xlRuntimeInit` / `xlRuntimeUnit` 是进程级公共 API，用于管理 DLL 内部 XRT/libtcc 运行时计数。
 - `xlCreateContext` / `xlDestroyContext` 会为每个 context 持有独立运行时引用；公开 `xlRuntimeUnit` 只释放公开 `xlRuntimeInit` 取得的引用，不能提前释放仍被 context 持有的运行时。
 - `xlLoadDependencyLibrary` 加载的依赖库句柄由当前 context 持有，`xlDestroyContext` 负责释放；该 API 会在调用时把路径按宿主当前目录固化为快照，然后用同一快照路径加载动态库并参与后续 TCC 链接。
 - 生成出来的 xlang/C 程序仍使用 `xlInit` / `xlUnit` 作为模块生命周期入口。
@@ -75,20 +90,24 @@ void xlClearLastError(XL_Context* ctx);
 
 1. parse
 2. import expansion
-3. sem check
+3. semantic check
 4. C code generation
 5. libtcc compile
-6. run in memory or output exe
+6. relocate
+7. get `xlang_main`
+8. call `xlang_main(xvalue arg)`
 
-进程内运行时，`xl.dll` 不额外链接外部 `xrt.o`。它会将自身内部链接的 XRT 函数和宿主注册的 C 函数注入 TCC state。
+进程内运行时，DLL 不额外链接外部 `xrt.o`。它会将自身内部链接的 XRT 函数和宿主注册的 C 函数注入 TCC state。
 
-独立 exe 输出时，目标 exe 仍需要静态链接 XRT object；创建 context 时 DLL API 会优先读取 `XL6_XRT_OBJ` 环境变量，未设置时回退到 `XL6_XRT_OBJ_PATH` 的源码级默认值，并把该路径按 context 创建目录固化为快照。
+独立 exe 输出只由 `xlc.dll` 负责。目标 exe 仍需要静态链接 XRT object；创建 context 时 DLL API 会优先读取 `XL6_XRT_OBJ` 环境变量，未设置时回退到 `XL6_XRT_OBJ_PATH` 的源码级默认值，并把该路径按 context 创建目录固化为快照。
 
-libtcc 动态库搜索顺序为：context 显式 `tccDllPath`、`XL6_TCC_DLL` 环境变量、进程默认 `libtcc.dll`、`release\libtcc.dll`、`XL6_TCC_DLL_PATH` 源码级默认值。TCC lib root 默认优先使用 context 显式 `tccLibPath`，否则读取 `XL6_TCC_ROOT`，未设置时回退到 `XL6_TCC_ROOT_PATH`。TCC include、Win include、WinAPI include、library path 和 libtcc runtime 分别优先读取 `XL6_TCC_INCLUDE`、`XL6_TCC_WIN_INCLUDE`、`XL6_TCC_WINAPI_INCLUDE`、`XL6_TCC_LIB`、`XL6_TCC_LIBTCC1`，未设置时回退到 `xl6_toolchain.h` 中的源码级默认值。
+libtcc 动态库搜索顺序为：context 显式 `tccDllPath`、`XL6_TCC_DLL` 环境变量、进程默认 `libtcc.dll`、`release\libtcc.dll`、`XL6_TCC_DLL_PATH` 源码级默认值。
 
-`xlCreateContext()` 会记录创建 context 时的当前目录，并把 `workDir`、`tempDir`、显式/默认 TCC 路径、默认 XRT object 路径都按该目录做路径快照。`xlSetWorkDir()` 和 `xlSetTempDir()` 也会按调用当下的当前目录做路径快照。之后运行脚本时即使进入了 context `workDir`，也不会改变 libtcc、TCC include/lib、libtcc runtime、XRT object 和临时目录这些内部路径的解释基准。
+TCC lib root 默认优先使用 context 显式 `tccLibPath`，否则读取 `XL6_TCC_ROOT`，未设置时回退到 `XL6_TCC_ROOT_PATH`。TCC include、Win include、WinAPI include、library path 和 libtcc runtime 分别优先读取 `XL6_TCC_INCLUDE`、`XL6_TCC_WIN_INCLUDE`、`XL6_TCC_WINAPI_INCLUDE`、`XL6_TCC_LIB`、`XL6_TCC_LIBTCC1`，未设置时回退到 `xl6_toolchain.h` 中的源码级默认值。
 
-手动追加的 include/library/link/loadlib 按 API 调用时的路径环境固定：`xlAddIncludePath` 和 `xlAddLibraryPath` 会把相对路径按宿主当前目录固化为快照；`xlAddLinkLibrary` 会保留裸库名，让它继续走 TCC library 搜索规则，但会把像路径的值固化为快照；`xlLoadDependencyLibrary` 会用快照路径加载动态库并记录到 context。这样进入 context `workDir` 后，依赖解析不会被脚本工作目录重新解释。
+`xlCreateContext()` 会记录创建 context 时的当前目录，并把 `workDir`、`tempDir`、显式或默认 TCC 路径、默认 XRT object 路径都按该目录做路径快照。`xlSetWorkDir()` 和 `xlSetTempDir()` 也会按调用当下的当前目录做路径快照。
+
+手动追加的 include/library/link/loadlib 按 API 调用时的路径环境固定。`xlAddIncludePath` 和 `xlAddLibraryPath` 会把相对路径按宿主当前目录固化为快照；`xlAddLinkLibrary` 会保留裸库名，让它继续走 TCC library 搜索规则，但会把像路径的值固化为快照；`xlLoadDependencyLibrary` 会用快照路径加载动态库并记录到 context。
 
 ## 工作目录
 
@@ -98,13 +117,13 @@ libtcc 动态库搜索顺序为：context 显式 `tccDllPath`、`XL6_TCC_DLL` �
 - 字符串脚本的相对 `import` 解析。
 - `packages` / `lib` 包搜索基准。
 
-字符串脚本使用逻辑文件名 `__xl_string.xl`，因此相对 import 会以当前上下文工作目录为基准，而不是临时目录。
+字符串脚本使用逻辑文件名 `__xl_string.xl`，因此相对 import 会以当前上下文工作目录为基准。
 
 ## 临时目录
 
-上下文临时目录由 `XL_ContextOptions.tempDir` 或 `xlSetTempDir` 设置。相对路径会在创建 context 或调用 `xlSetTempDir` 时按当时的宿主当前目录固化为路径快照；每次运行脚本或编译 exe 前，DLL API 只按该快照创建或校验目录，然后才进入 context 工作目录。
+上下文临时目录由 `XL_ContextOptions.tempDir` 或 `xlSetTempDir` 设置。相对路径会在创建 context 或调用 `xlSetTempDir` 时按当时的宿主当前目录固化为路径快照；每次运行脚本或由 `xlc.dll` 编译 exe 前，DLL API 会先按该快照创建或校验目录，然后才进入 context 工作目录。
 
-当前 DLL 执行管线以 libtcc 内存编译为主，不输出 CLI 调试 dump。`saveTemps` 目前只作为上下文配置保留，不会强制生成调试临时文件；后续如果 DLL API 引入可选落盘产物，应继续以 `tempDir` 为根目录，并由 `saveTemps` 决定是否保留。
+当前 DLL 执行管线以 libtcc 内存编译为主，不输出 CLI 调试 dump。`saveTemps` 目前作为上下文配置保留，不会强制生成调试临时文件；后续如果 DLL API 引入可选落盘产物，应继续以 `tempDir` 为根目录，并由 `saveTemps` 决定是否保留。
 
 ## C 函数注册
 
@@ -144,23 +163,23 @@ build_dll.bat
 test_dll.bat
 ```
 
-验证程序位于：
+验证程序包括：
 
 ```text
+examples\xl_dll_null_context.c
+examples\xl_dll_threaded_host.c
 examples\xl_dll_embed_string.c
 ```
 
-它覆盖：
+其中：
 
-- 创建 `XL_Context`。
-- 注册宿主 C 函数。
-- 直接运行字符串脚本。
-- 将字符串脚本编译为 exe。
-- 运行生成出的 exe。
+- `xl_dll_null_context.c` 链接 `xl.def`，验证运行版 API 的 NULL context、cwd、路径快照和生命周期边界。
+- `xl_dll_threaded_host.c` 链接 `xl.def`，验证运行版 API 的多线程宿主边界。
+- `xl_dll_embed_string.c` 链接 `xlc.def`，验证字符串脚本运行、文件脚本运行、编译字符串脚本到 exe、编译文件脚本到 exe。
 
 ## 当前约束
 
-- `xl.dll` 当前使用 libtcc 动态库，构建时会复制 `libtcc.dll` 到 `release` 目录；宿主也可以通过 `XL6_TCC_DLL`、`XL6_TCC_ROOT`、`XL6_TCC_INCLUDE`、`XL6_TCC_LIB` 等变量复用集中工具链配置。
+- `xl.dll` 和 `xlc.dll` 当前仍使用外部 `libtcc.dll`，构建时会复制 `libtcc.dll` 到 `release` 目录；宿主也可以通过 `XL6_TCC_DLL`、`XL6_TCC_ROOT`、`XL6_TCC_INCLUDE`、`XL6_TCC_LIB` 等变量复用集中工具链配置。
 - 进程内运行适合脚本执行和宿主 C 函数注册。
 - 编译为独立 exe 时，不能直接固化宿主进程函数指针；需要通过普通 C/库链接方式提供外部符号。
 - DLL API 第一版不暴露调试 dump 能力，相关能力继续由 `xl.exe` CLI 提供。

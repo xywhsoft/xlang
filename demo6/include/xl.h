@@ -20,6 +20,7 @@ extern "C" {
 #endif
 
 typedef struct XL_Context XL_Context;
+typedef struct xvalue_struct* xvalue;
 
 typedef struct XL_ContextOptions {
     unsigned int size;
@@ -50,8 +51,12 @@ XL_API int xlRegisterCFunction(XL_Context* ctx, const char* symbolName, void* fn
 
 XL_API int xlRunScriptString(XL_Context* ctx, const char* source);
 XL_API int xlRunScriptFile(XL_Context* ctx, const char* path);
+XL_API int xlRunScriptStringArg(XL_Context* ctx, const char* source, xvalue arg);
+XL_API int xlRunScriptFileArg(XL_Context* ctx, const char* path, xvalue arg);
+#if !defined(XL_RUNTIME_ONLY_API)
 XL_API int xlCompileScriptStringToExe(XL_Context* ctx, const char* source, const char* outputExe);
 XL_API int xlCompileScriptFileToExe(XL_Context* ctx, const char* path, const char* outputExe);
+#endif
 
 XL_API const char* xlGetLastError(XL_Context* ctx);
 XL_API void xlClearLastError(XL_Context* ctx);

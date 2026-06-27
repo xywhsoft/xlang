@@ -103,6 +103,71 @@ if errorlevel 1 exit /b 1
 release\xl.exe run examples\union.xl %XL6_XL_DEFAULT_LINK_ARGS%
 if errorlevel 1 exit /b 1
 
+cmd /c "set XL6_TCC=__missing_tcc__.exe&& release\xl.exe run examples\stdlib_print.xl > release\tmp\embedded_tcc_run.out.txt"
+if errorlevel 1 (
+    echo embedded libtcc run failed when external tcc is missing.
+    exit /b 1
+)
+findstr /C:"xlang print 123 done" release\tmp\embedded_tcc_run.out.txt >nul
+if errorlevel 1 (
+    echo embedded_tcc_run.out.txt missing print output.
+    exit /b 1
+)
+cmd /c "set XL6_TCC=__missing_tcc__.exe&& release\xl.exe build examples\stdlib_print.xl -o release\tmp\embedded_tcc_build.exe"
+if errorlevel 1 (
+    echo embedded libtcc build failed when external tcc is missing.
+    exit /b 1
+)
+release\tmp\embedded_tcc_build.exe > release\tmp\embedded_tcc_build.out.txt
+if errorlevel 1 exit /b 1
+findstr /C:"xlang print 123 done" release\tmp\embedded_tcc_build.out.txt >nul
+if errorlevel 1 (
+    echo embedded_tcc_build.out.txt missing print output.
+    exit /b 1
+)
+cmd /c "set XL6_TCC=__missing_tcc__.exe&& set XL6_TCC_ROOT=__missing_root__&& set XL6_TCC_INCLUDE=__missing_include__&& set XL6_TCC_WIN_INCLUDE=__missing_win_include__&& set XL6_TCC_WINAPI_INCLUDE=__missing_winapi_include__&& set XL6_TCC_LIB=__missing_lib__&& set XL6_TCC_LIBTCC1=__missing_libtcc1.a&& set XL6_XRT_OBJ=__missing_xrt.o&& release\xl.exe run examples\stdlib_print.xl > release\tmp\embedded_vfs_run.out.txt"
+if errorlevel 1 (
+    echo embedded VFS run failed when external TCC resources are missing.
+    exit /b 1
+)
+findstr /C:"xlang print 123 done" release\tmp\embedded_vfs_run.out.txt >nul
+if errorlevel 1 (
+    echo embedded_vfs_run.out.txt missing print output.
+    exit /b 1
+)
+cmd /c "set XL6_TCC=__missing_tcc__.exe&& set XL6_TCC_ROOT=__missing_root__&& set XL6_TCC_INCLUDE=__missing_include__&& set XL6_TCC_WIN_INCLUDE=__missing_win_include__&& set XL6_TCC_WINAPI_INCLUDE=__missing_winapi_include__&& set XL6_TCC_LIB=__missing_lib__&& set XL6_TCC_LIBTCC1=__missing_libtcc1.a&& set XL6_XRT_OBJ=__missing_xrt.o&& release\xl.exe build examples\stdlib_print.xl -o release\tmp\embedded_vfs_build.exe"
+if errorlevel 1 (
+    echo embedded VFS build failed when external TCC resources are missing.
+    exit /b 1
+)
+release\tmp\embedded_vfs_build.exe > release\tmp\embedded_vfs_build.out.txt
+if errorlevel 1 exit /b 1
+findstr /C:"xlang print 123 done" release\tmp\embedded_vfs_build.out.txt >nul
+if errorlevel 1 (
+    echo embedded_vfs_build.out.txt missing print output.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$utf8=New-Object System.Text.UTF8Encoding($false); [System.IO.File]::WriteAllText('release\tmp\release_cwd_vfs.xl', 'print(\"release cwd vfs ok\")' + [Environment]::NewLine, $utf8)"
+if errorlevel 1 exit /b 1
+pushd release
+xl.exe run tmp\release_cwd_vfs.xl > tmp\release_cwd_vfs.out.txt
+set XL6_RELEASE_CWD_RC=%errorlevel%
+popd
+if not "%XL6_RELEASE_CWD_RC%"=="0" (
+    echo embedded VFS run failed when current directory is release.
+    exit /b 1
+)
+findstr /C:"release cwd vfs ok" release\tmp\release_cwd_vfs.out.txt >nul
+if errorlevel 1 (
+    echo release_cwd_vfs.out.txt missing print output.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$dir = Join-Path (Resolve-Path 'release\tmp') (([char]0x4E2D)+([char]0x6587)+'_embedded_tcc'); [System.IO.Directory]::CreateDirectory($dir) | Out-Null; $srcPath = Join-Path $dir (([char]0x811A)+([char]0x672C)+'.xl'); $exePath = Join-Path $dir (([char]0x7A0B)+([char]0x5E8F)+'.exe'); $outPath = Join-Path $dir 'out.txt'; $utf8 = New-Object System.Text.UTF8Encoding($false); $src = 'print(\"unicode embedded tcc ok\")' + [Environment]::NewLine; [System.IO.File]::WriteAllText($srcPath, $src, $utf8); & .\release\xl.exe build $srcPath -o $exePath; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; & $exePath | Out-File -Encoding utf8 $outPath; $text = [System.IO.File]::ReadAllText($outPath, [System.Text.Encoding]::UTF8); if ($text.IndexOf('unicode embedded tcc ok') -lt 0) { exit 2 }; exit 0"
+if errorlevel 1 (
+    echo embedded libtcc unicode path build failed.
+    exit /b 1
+)
+
 release\xl.exe --help > release\tmp\help.stdout.txt
 if errorlevel 1 exit /b 1
 powershell -NoProfile -ExecutionPolicy Bypass -Command "$bytes=[System.IO.File]::ReadAllBytes('release\tmp\help.stdout.txt'); $enc=New-Object System.Text.UTF8Encoding($false,$true); $text=$enc.GetString($bytes); if($text.IndexOf('Usage:') -lt 0 -or $text.IndexOf('xl build') -lt 0){ Write-Host 'help.stdout.txt missing UTF-8 CLI help output.'; exit 1 }"
@@ -2673,7 +2738,7 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_minimal_runtime.xl --emit release\tmp\cgen_minimal_runtime.c
 if errorlevel 1 exit /b 1
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content 'release\tmp\cgen_minimal_runtime.c' -Raw; if($t -match 'typedef struct XL6_Function'){exit 1}; if($t -match '__xl_std_'){exit 2}; if($t -match 'xl6_xrt_array_varargs'){exit 3}; if($t -match '\bxvalue\b'){exit 4}; if($t -notmatch 'int main\(int argc, char\*\* argv\)'){exit 5}"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content 'release\tmp\cgen_minimal_runtime.c' -Raw; if($t -match 'typedef struct XL6_Function'){exit 1}; if($t -match '__xl_std_'){exit 2}; if($t -match 'xl6_xrt_array_varargs'){exit 3}; if($t -match 'static long long xl6_xrt_value_to_i64_release'){exit 4}; if($t -notmatch 'int xlang_main\(xvalue arg\)'){exit 5}; if($t -notmatch 'xvoUnref\(__xl6_arg\);'){exit 6}; if($t -notmatch 'int main\(int argc, char\*\* argv\)'){exit 7}"
 if errorlevel 1 (
     echo cgen_minimal_runtime.c runtime needs negative snapshot failed.
     exit /b 1
@@ -6800,14 +6865,31 @@ if errorlevel 1 (
     echo cgen_main_entry.c missing argv-to-arg call.
     exit /b 1
 )
-findstr /C:"__xl6_code = (int)xl_user_main(__xl6_arg);" release\tmp\cgen_main_entry.c >nul
+findstr /C:"__xl6_code = xlang_main(__xl6_arg);" release\tmp\cgen_main_entry.c >nul
 if errorlevel 1 (
     echo cgen_main_entry.c missing xlang main dispatch.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content 'release\tmp\cgen_main_entry.c' -Raw; $s=$t.IndexOf('int xlang_main(xvalue arg)'); $e=$t.IndexOf('int main(int argc, char** argv)', $s); if($s -lt 0 -or $e -lt 0){exit 1}; $body=$t.Substring($s, $e - $s); if($body -match 'xvoUnref\(arg\)'){exit 2}"
+if errorlevel 1 (
+    echo cgen_main_entry.c should borrow xlang_main arg.
+    exit /b 1
+)
+findstr /C:"xvoUnref(__xl6_arg);" release\tmp\cgen_main_entry.c >nul
+if errorlevel 1 (
+    echo cgen_main_entry.c missing argv arg release.
     exit /b 1
 )
 findstr /C:"xlUnit();" release\tmp\cgen_main_entry.c >nul
 if errorlevel 1 (
     echo cgen_main_entry.c missing xlUnit call.
+    exit /b 1
+)
+release\xl.exe xapi test\cases\cgen_main_entry.xl --emit release\tmp\cgen_main_entry.xapi.json
+if errorlevel 1 exit /b 1
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$j=Get-Content 'release\tmp\cgen_main_entry.xapi.json' -Raw | ConvertFrom-Json; if($j.entry.kind -ne 'xlang-main'){exit 1}; if($j.entry.cSymbol -ne 'xlang_main'){exit 2}; if($j.entry.returnType -ne 'int'){exit 3}"
+if errorlevel 1 (
+    echo cgen_main_entry.xapi.json missing xlang main entry metadata.
     exit /b 1
 )
 
@@ -6831,7 +6913,7 @@ if errorlevel 1 (
 
 release\xl.exe cgen test\cases\cgen_main_case_sensitive.xl --emit release\tmp\cgen_main_case_sensitive.c
 if errorlevel 1 exit /b 1
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content 'release\tmp\cgen_main_case_sensitive.c' -Raw; if($t -match 'xl_user_main'){exit 1}; if($t -match 'int main\('){exit 2}; if($t -notmatch 'long long Main\(xvalue arg\)'){exit 3}"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content 'release\tmp\cgen_main_case_sensitive.c' -Raw; if($t -match 'xlang_main'){exit 1}; if($t -match 'int main\('){exit 2}; if($t -notmatch 'long long Main\(xvalue arg\)'){exit 3}"
 if errorlevel 1 (
     echo cgen_main_case_sensitive.c should treat Main as a normal function.
     exit /b 1
@@ -6847,7 +6929,7 @@ release\xl.exe check test\cases\cgen_main_case_sensitive_script.xl
 if errorlevel 1 exit /b 1
 release\xl.exe cgen test\cases\cgen_main_case_sensitive_script.xl --emit release\tmp\cgen_main_case_sensitive_script.c
 if errorlevel 1 exit /b 1
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content 'release\tmp\cgen_main_case_sensitive_script.c' -Raw; if($t -match 'xl_user_main'){exit 1}; if($t -notmatch 'int main\('){exit 2}; if($t -notmatch 'long long Main\(xvalue arg\)'){exit 3}; if($t -notmatch 'expect_i64\(1LL, 1LL\);'){exit 4}"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content 'release\tmp\cgen_main_case_sensitive_script.c' -Raw; if($t -notmatch 'int xlang_main\(xvalue arg\)'){exit 1}; if($t -notmatch 'int main\('){exit 2}; if($t -notmatch 'long long Main\(xvalue arg\)'){exit 3}; if($t -notmatch 'expect_i64\(1LL, 1LL\);'){exit 4}"
 if errorlevel 1 (
     echo cgen_main_case_sensitive_script.c should treat Main as normal function and top-level code as script main.
     exit /b 1
@@ -6857,6 +6939,11 @@ if errorlevel 1 exit /b 1
 powershell -NoProfile -ExecutionPolicy Bypass -Command "$j=Get-Content 'release\tmp\cgen_main_case_sensitive_script.xapi.json' -Raw | ConvertFrom-Json; if($j.entry.kind -ne 'script-main'){exit 1}; if($j.entry.returnType -ne 'int'){exit 2}"
 if errorlevel 1 (
     echo cgen_main_case_sensitive_script.xapi.json should report script-main.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$j=Get-Content 'release\tmp\cgen_main_case_sensitive_script.xapi.json' -Raw | ConvertFrom-Json; if($j.entry.cSymbol -ne 'xlang_main'){exit 1}"
+if errorlevel 1 (
+    echo cgen_main_case_sensitive_script.xapi.json missing xlang_main cSymbol.
     exit /b 1
 )
 release\xl.exe build test\cases\cgen_main_case_sensitive_script.xl test\cases\cgen_class_host.c -o release\tmp\cgen_main_case_sensitive_script.exe
@@ -6973,7 +7060,7 @@ if errorlevel 1 exit /b 1
 
 "%XL6_TCC%" -shared %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% test\cases\cli_loadlib_host.c -o release\tmp\cli_loadlib_host.dll
 if errorlevel 1 exit /b 1
-release\xl.exe run test\cases\cli_loadlib.xl --loadlib release\tmp\cli_loadlib_host.dll
+cmd /c "set XL6_TCC=__missing_tcc__.exe&& release\xl.exe run test\cases\cli_loadlib.xl --loadlib release\tmp\cli_loadlib_host.dll"
 if errorlevel 1 exit /b 1
 
 release\xl.exe ir test\cases\extern_puts.xl --emit release\tmp\extern_puts.xlir

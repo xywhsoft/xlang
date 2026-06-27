@@ -62,16 +62,16 @@
 | 实现同等功能手写的 C 代码 | 手写 C 需要人工拷贝或包含这些 helper，并保证声明顺序。 |
 | 额外依赖的封装代码 | 各基础 runtime helper；XRT 依赖不计入。 |
 
-## CGEN-MODULE-006 xvalue、运行时类型描述与 main 参数 helper 注入
+## CGEN-MODULE-006 xvalue runtime、运行时类型描述与 argv 参数 helper 注入
 
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | 使用 `var`、容器、函数值、隐性类类型描述、xlang `main(...)` |
-| 生成规则描述 | 只要模块需要动态值 runtime，就输出 xvalue runtime。随后输出运行时类型描述；如果存在 xlang `main`，额外输出 argv 到 `array<var>` 的构造 helper，用于把 C `argc/argv` 映射到 xlang `arg`。 |
-| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_module.c:101` |
-| 对应生成的 C 代码 | xvalue helper、类型描述表、`argv` 数组 helper。 |
-| 中间形态伪代码 | `if needs.xvalue: emitXValueRuntime(); emitRuntimeTypeDescs(); if mainFunc: emitMainArgvArrayHelper()` |
-| 实现同等功能手写的 C 代码 | 手写 C 需要人工构造动态值数组并维护类型描述。 |
+| 生成规则描述 | 只要模块需要动态值 runtime，就输出完整 xvalue runtime 和运行时类型描述。`argc/argv` 到 `xvalue array` 的构造 helper 独立于完整 xvalue runtime：只要存在 xlang `main` 或顶层运行语句，就额外输出轻量 `xvalue` typedef、四个 XRT 原型和 `xl6_argv_to_arg` helper，用于把 C `argc/argv` 映射到 xlang `arg`，避免最小脚本被迫注入整套 xvalue helper。 |
+| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_module.c:105`、`demo6/src/cgen/xl6_cgen_module.c:106`、`demo6/src/cgen/xl6_cgen_module.c:109`、`demo6/src/cgen/xl6_cgen_main.c:1` |
+| 对应生成的 C 代码 | 完整 xvalue helper、类型描述表，或仅 `typedef struct xvalue_struct* xvalue;`、`xvoCreateArray`、`xvoCreateText`、`xvoArrayAppendValue`、`xvoUnref` 与 `xl6_argv_to_arg`。 |
+| 中间形态伪代码 | `if needs.xvalue: emitXValueRuntime(); emitRuntimeTypeDescs(); if mainFunc or hasTopLevel: emitMainArgvArrayHelper()` |
+| 实现同等功能手写的 C 代码 | 手写 C 需要人工构造动态值数组；只有真正使用动态值能力时才需要维护完整 xvalue helper。 |
 | 额外依赖的封装代码 | xvalue runtime、类型描述表、main argv helper。 |
 
 ## CGEN-MODULE-007 标准库 wrapper 与专用 helper 注入
@@ -194,40 +194,40 @@
 | 实现同等功能手写的 C 代码 | 手写 C 需要为每种类型组合复制并改写一份函数实现。 |
 | 额外依赖的封装代码 | 泛型实例函数体本身；不额外生成泛型解释器。 |
 
-## CGEN-MODULE-017 xlang main 优先生成显式 C main 包装
+## CGEN-MODULE-017 统一生成 C main wrapper 调用 xlang_main
 
 | 项目 | 内容 |
 |---|---|
-| xlang 写法 | `func main(...) int ... end` 或 xlang main 约定函数 |
-| 生成规则描述 | 如果模块中存在 xlang `main`，代码生成器优先输出显式 C `main` 包装。该包装负责初始化 xlang 运行环境、把 `argc/argv` 融合为 xlang `arg`，调用 xlang main，并在退出前调用 `xlUnit`。 |
-| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_module.c:269` |
-| 对应生成的 C 代码 | `int main(int argc, char** argv) { xlInit(...); ... call_xlang_main(...); xlUnit(); return code; }` |
-| 中间形态伪代码 | `if mainFunc != null: emitMainWrapper(mainFunc)` |
-| 实现同等功能手写的 C 代码 | 手写 C 需要自行初始化 runtime、转换参数并调用内部函数。 |
+| xlang 写法 | `func main(...) as int ... end` 或存在顶层运行语句的脚本 |
+| 生成规则描述 | 如果模块存在 xlang `main` 或顶层运行语句，模块末尾统一输出显式 C `main` wrapper。该 wrapper 负责初始化 xlang 运行环境、把 `argc/argv` 融合为 `xvalue arg`，调用固定入口 `xlang_main(__xl6_arg)`，释放 `__xl6_arg`，并在退出前调用 `xlUnit`。 |
+| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_module.c:276`、`demo6/src/cgen/xl6_cgen_module.c:277`、`demo6/src/cgen/xl6_cgen_main.c:25` |
+| 对应生成的 C 代码 | `int main(int argc, char** argv) { xlInit(...); __xl6_arg = xl6_argv_to_arg(argc, argv); __xl6_code = xlang_main(__xl6_arg); xvoUnref(__xl6_arg); xlUnit(); return __xl6_code; }` |
+| 中间形态伪代码 | `if mainFunc != null or hasTopLevel: emitMainWrapper()` |
+| 实现同等功能手写的 C 代码 | 手写 C 需要自行初始化 runtime、转换参数、调用固定入口并释放 `xvalue arg`。 |
 | 额外依赖的封装代码 | C main wrapper、argv 数组 helper。 |
 
-## CGEN-MODULE-018 无 xlang main 但有顶层语句时生成脚本 main
+## CGEN-MODULE-018 无 xlang main 但有顶层语句时生成 xlang_main
 
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | 文件顶层直接写可执行语句，例如 `print("hi")` |
-| 生成规则描述 | 如果没有 xlang main，但存在顶层运行语句，则生成脚本模式 C `main`。它初始化运行环境后，只遍历并输出顶层运行语句，跳过声明节点。执行成功后调用 `xlUnit` 并返回 0。 |
-| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_module.c:271` |
-| 对应生成的 C 代码 | `int main(int argc, char** argv) { xlInit(...); <top-level stmts>; xlUnit(); return 0; }` |
-| 中间形态伪代码 | `else if hasTopLevel: emitScriptMain(topLevelRuntimeStatements)` |
-| 实现同等功能手写的 C 代码 | 手写 C 需要把脚本顶层语句搬进一个 `main` 函数。 |
-| 额外依赖的封装代码 | 脚本模式 main wrapper。 |
+| 生成规则描述 | 如果没有 xlang main，但存在顶层运行语句，则先生成固定运行入口 `int xlang_main(xvalue arg)`。该入口忽略当前未使用的 `arg`，只遍历并输出顶层运行语句，跳过声明节点；执行成功后返回 0。随后再由 CGEN-MODULE-017 输出统一 C `main` wrapper。 |
+| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_module.c:273`、`demo6/src/cgen/xl6_cgen_module.c:274`、`demo6/src/cgen/xl6_cgen_main.c:56` |
+| 对应生成的 C 代码 | `int xlang_main(xvalue arg) { (void)arg; <top-level stmts>; return 0; }` 与统一 C `main` wrapper |
+| 中间形态伪代码 | `if hasTopLevel and mainFunc == null: emitTopLevelXlangMain(topLevelRuntimeStatements); emitMainWrapper()` |
+| 实现同等功能手写的 C 代码 | 手写 C 需要把脚本顶层语句搬进一个固定入口函数，再写外层 `main` 调用入口。 |
+| 额外依赖的封装代码 | `xlang_main` 脚本入口、C main wrapper、argv 数组 helper。 |
 
-## CGEN-MODULE-019 顶层脚本 main 的异常退出路径
+## CGEN-MODULE-019 顶层 xlang_main 的异常退出路径
 
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | 顶层语句里使用 `throw`、`assert` 或可能产生 xlang 错误的表达式 |
-| 生成规则描述 | 脚本模式 main 在错误 runtime 启用时设置 `__xl6_script_error` 标签。顶层语句执行后如果存在未清理错误，则跳转到错误路径；错误路径先输出未捕获错误诊断，再清理错误状态、调用 `xlUnit`，并返回 1。 |
-| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_module.c:286`、错误打印 `demo6/src/cgen/xl6_cgen_module.c:295` |
-| 对应生成的 C 代码 | `if (xl6_error_has()) goto __xl6_script_error; ... __xl6_script_error: xl6_error_print_uncaught(); xl6_error_clear(); xlUnit(); return 1;` |
-| 中间形态伪代码 | `currentErrorExitLabel = "__xl6_script_error"; emitTopLevel(); if error: goto label; normalExit(); label: printUncaught(); clearError(); xlUnit(); return 1` |
-| 实现同等功能手写的 C 代码 | 手写 C 需要人工维护错误标签和统一清理路径。 |
+| 生成规则描述 | 顶层脚本入口 `xlang_main` 在错误 runtime 启用时设置 `__xl6_script_error` 标签。顶层语句执行后如果存在未清理错误，则跳转到错误路径；错误路径先输出未捕获错误诊断，再清理错误状态并返回 1。外层 C `main` wrapper 继续负责释放 `arg` 和调用 `xlUnit`。 |
+| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_main.c:65`、`demo6/src/cgen/xl6_cgen_main.c:74`、`demo6/src/cgen/xl6_cgen_main.c:79` |
+| 对应生成的 C 代码 | `if (xl6_error_has()) goto __xl6_script_error; ... __xl6_script_error: xl6_error_print_uncaught(); xl6_error_clear(); return 1;` |
+| 中间形态伪代码 | `currentErrorExitLabel = "__xl6_script_error"; emitTopLevel(); if error: goto label; return 0; label: printUncaught(); clearError(); return 1` |
+| 实现同等功能手写的 C 代码 | 手写 C 需要人工维护错误标签、统一错误返回码，并确保外层 wrapper 继续做生命周期清理。 |
 | 额外依赖的封装代码 | 错误 runtime、脚本错误标签、`xl6_error_print_uncaught`。 |
 
 ## CGEN-MODULE-020 模块生成状态汇总与上下文资源释放
@@ -236,7 +236,7 @@
 |---|---|
 | xlang 写法 | 任意模块 |
 | 生成规则描述 | 输出结束后根据 `ctx.ok` 与诊断数量共同决定生成是否成功，然后释放局部变量表、已输出 class/union 标记、多返回结构体表、清理栈、循环目标栈、try 目标栈、泛型实例、泛型 class 实例、运行时类型描述、匿名函数和 owned type 节点。该规则保证失败路径也能释放编译器内部资源。 |
-| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_module.c:303` |
+| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_module.c:280`、`demo6/src/cgen/xl6_cgen_module.c:293` |
 | 对应生成的 C 代码 | 不生成 C；只影响编译器自身资源生命周期。 |
 | 中间形态伪代码 | `ok = ctx.ok && noDiagnostics; freeAllCgenTables(ctx); return ok` |
 | 实现同等功能手写的 C 代码 | 手写 C 没有此生成器资源清理步骤。 |

@@ -1,0 +1,20 @@
+# TCC builtin VFS manifest for demo6 Windows x64 builds.
+# Format:
+#   dir|virtual-prefix|source-directory
+#   file|virtual-name|source-file
+#
+# The generated VFS always tries the real filesystem first. These entries are
+# only used when external TCC/XRT resources are absent.
+
+dir|include|%XL6_EMBED_TCC_DIST_X64%\include
+
+file|lib/libtcc1.a|%XL6_EMBED_TCC_DIST_X64%\lib\libtcc1.a
+file|lib/kernel32.def|%XL6_EMBED_TCC_DIST_X64%\lib\kernel32.def
+file|lib/msvcrt.def|%XL6_EMBED_TCC_DIST_X64%\lib\msvcrt.def
+file|lib/user32.def|%XL6_EMBED_TCC_DIST_X64%\lib\user32.def
+file|lib/gdi32.def|%XL6_EMBED_TCC_DIST_X64%\lib\gdi32.def
+file|lib/ws2_32.def|%XL6_EMBED_TCC_DIST_X64%\lib\ws2_32.def
+file|lib/shell32.def|%XL6_EMBED_TCC_DIST_X64%\lib\shell32.def
+
+file|lib/xrt/xrt.h|%XL6_ROOT%\lib\xrt\xrt.h
+file|lib/xrt/xrt.o|%XL6_XRT_OBJ%
