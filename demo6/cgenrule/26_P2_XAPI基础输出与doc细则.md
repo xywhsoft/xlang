@@ -7,7 +7,7 @@
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | `main`、`Main`、`function` 等关键元数据名称 |
-| 生成规则描述 | XAPI 内部名称比较只在两侧非 NULL 且 `strcmp` 完全相等时为真，不做大小写折叠。入口识别、function 类型识别和 kind 判断都保持大小写敏感。 |
+| 生成规则描述 | XAPI 内部名称比较只在两侧非 NULL 且 `strcmp` 完全相等时为真，不做大小写折叠。入口识别、func 类型识别和 kind 判断都保持大小写敏感。 |
 | 生成器文件名和行号 | `demo6/src/abi/xl6_xapi_dump.c:9` |
 | 对应生成的 C 代码 | 不生成 C；影响 XAPI 中是否输出 main entry、function signature 等字段。 |
 | 中间形态伪代码 | `equals = a != null && b != null && strcmp(a,b)==0` |
@@ -62,15 +62,15 @@
 | 实现同等功能手写的 C 代码 | 手写接口文件通常直接写规范类型或保持别名，两者需明确约定。 |
 | 额外依赖的封装代码 | AST 根节点类型别名扫描。 |
 
-## CGEN-XAPI-006 function 类型 JSON 字符串
+## CGEN-XAPI-006 func 类型 JSON 字符串
 
 | 项目 | 内容 |
 |---|---|
-| xlang 写法 | `function(int,string) bool`、`function() (int,string)` |
-| 生成规则描述 | 类型名为 `function` 且有参数列表和返回列表两个子节点时，输出 `function(arg1,arg2)`；有返回值时追加 `->ret`，多返回值用 `->(a,b)` 包住。参数和返回类型递归走同一类型输出规则。 |
+| xlang 写法 | `func(int,string) bool`、`func() (int,string)` |
+| 生成规则描述 | 类型名为 `function` 且有参数列表和返回列表两个子节点时，输出 `func(arg1,arg2)`；有返回值时追加 `->ret`，多返回值用 `->(a,b)` 包住。参数和返回类型递归走同一类型输出规则。 |
 | 生成器文件名和行号 | `demo6/src/abi/xl6_xapi_dump.c:114` |
-| 对应生成的 C 代码 | 不生成 C；生成 XAPI 类型字符串如 `"function(int,string)->bool"`。 |
-| 中间形态伪代码 | `function(args)->returns; multi returns wrapped with parentheses` |
+| 对应生成的 C 代码 | 不生成 C；生成 XAPI 类型字符串如 `"func(int,string) as bool"`。 |
+| 中间形态伪代码 | `func(args) as returns; multi returns wrapped with parentheses` |
 | 实现同等功能手写的 C 代码 | 手写接口元数据需要稳定的函数签名字符串。 |
 | 额外依赖的封装代码 | 类型 AST 输出 helper。 |
 
@@ -79,7 +79,7 @@
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | `int`、`array<int>`、`dict<string>` |
-| 生成规则描述 | 非 function 类型先输出解析别名后的类型名；若有第一个子节点且该子节点是 list，则输出 `<...>` 泛型实参，实参之间用逗号分隔并递归输出。 |
+| 生成规则描述 | 非 func 类型先输出解析别名后的类型名；若有第一个子节点且该子节点是 list，则输出 `<...>` 泛型实参，实参之间用逗号分隔并递归输出。 |
 | 生成器文件名和行号 | `demo6/src/abi/xl6_xapi_dump.c:157` |
 | 对应生成的 C 代码 | 不生成 C；生成 `"array<int>"` 一类 XAPI 类型字符串。 |
 | 中间形态伪代码 | `name + optional "<" + args.join(",") + ">"` |
@@ -295,10 +295,10 @@
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | `export func add(int,int) int`、`export var int count` |
-| 生成规则描述 | function 导出签名为 `func(paramTypes)->returns`，多返回值用括号包住；非 function 导出签名为 `kind:type`。缺失类型使用 `<missing-type>`。 |
+| 生成规则描述 | function 导出签名为 `func(paramTypes) as returns`，多返回值用括号包住；非 function 导出签名为 `kind:type`。缺失类型使用 `<missing-type>`。 |
 | 生成器文件名和行号 | `demo6/src/abi/xl6_xapi_dump.c:841` |
-| 对应生成的 C 代码 | 不生成 C；生成 `"signature":"func(int,int)->int"`。 |
-| 中间形态伪代码 | `if function: func(args)->rets else kind:type` |
+| 对应生成的 C 代码 | 不生成 C；生成 `"signature":"func(int,int) as int"`。 |
+| 中间形态伪代码 | `if function: func(args) as rets else kind:type` |
 | 实现同等功能手写的 C 代码 | 手写接口元数据需要与编译器一致的签名字符串。 |
 | 额外依赖的封装代码 | XAPI string builder。 |
 
@@ -309,7 +309,7 @@
 | xlang 写法 | 任意 export 函数、变量或常量 |
 | 生成规则描述 | exportId 格式为 `moduleId::name(signature)`。最终化导出身份时，若 signature 或 exportId 为空，则分别构造；两者都非 NULL 才视为成功。 |
 | 生成器文件名和行号 | `demo6/src/abi/xl6_xapi_dump.c:886` |
-| 对应生成的 C 代码 | 不生成 C；生成 `"exportId":"pkg@ver#abi1::mod::add(func(int)->int)"`。 |
+| 对应生成的 C 代码 | 不生成 C；生成 `"exportId":"pkg@ver#abi1::mod::add(func(int) as int)"`。 |
 | 中间形态伪代码 | `signature ??= buildSignature(item); exportId ??= moduleId::name(signature)` |
 | 实现同等功能手写的 C 代码 | 手写接口元数据必须提供稳定唯一的导出身份。 |
 | 额外依赖的封装代码 | XAPI module identity。 |
@@ -318,8 +318,8 @@
 
 | 项目 | 内容 |
 |---|---|
-| xlang 写法 | 类型字段进入 module 模型，例如 `array<int>`、`function(int) string` |
-| 生成规则描述 | 字符串构造器版本的类型输出与 JSON 直接输出保持同一语义：先解析别名，function 输出 `function(...)` 和可选返回值，普通类型输出名称和泛型实参。公开的 `xl6XapiTypeToString` 当前委托给 canonical type 模型，保证 XAPI module 模型使用规范类型字符串。 |
+| xlang 写法 | 类型字段进入 module 模型，例如 `array<int>`、`func(int) string` |
+| 生成规则描述 | 字符串构造器版本的类型输出与 JSON 直接输出保持同一语义：先解析别名，function 输出 `func(...)` 和可选返回值，普通类型输出名称和泛型实参。公开的 `xl6XapiTypeToString` 当前委托给 canonical type 模型，保证 XAPI module 模型使用规范类型字符串。 |
 | 生成器文件名和行号 | `demo6/src/abi/xl6_xapi_dump.c:917` |
 | 对应生成的 C 代码 | 不生成 C；生成 module 模型中的 `type`、`params[].type`、`returns[]` 字符串。 |
 | 中间形态伪代码 | `canonicalTypeString(root,typeNode)` |

@@ -6,8 +6,8 @@
   "module":{"name":"union_api","moduleId":"union_api@1.0.0#abi1::union_api","source":"packages/union_api","sourceHash":""},
   "entry":{"kind":"none","requiresExplicitInit":true,"initSymbol":"xlInit","unitSymbol":"xlUnit"},
   "exports":[
-    {"kind":"function","name":"makePayload","cSymbol":"xl6_union_api_make","signature":"func(int)->Payload","exportId":"union_api@1.0.0#abi1::union_api::makePayload(func(int)->Payload)","callingConvention":"cdecl","varargMode":"none","requiredParamCount":1,"fixedParamCount":1,"params":[{"name":"value","type":"int","optional":false,"vararg":false}],"returns":[{"type":"Payload"}]},
-    {"kind":"function","name":"pick","cSymbol":"xl6_union_api_pick","signature":"func(Payload)->int","exportId":"union_api@1.0.0#abi1::union_api::pick(func(Payload)->int)","callingConvention":"cdecl","varargMode":"none","requiredParamCount":1,"fixedParamCount":1,"params":[{"name":"payload","type":"Payload","optional":false,"vararg":false}],"returns":[{"type":"int"}]},
+    {"kind":"function","name":"makePayload","cSymbol":"xl6_union_api_make","signature":"func(int) as Payload","exportId":"union_api@1.0.0#abi1::union_api::makePayload(func(int) as Payload)","callingConvention":"cdecl","varargMode":"none","requiredParamCount":1,"fixedParamCount":1,"params":[{"name":"value","type":"int","optional":false,"vararg":false}],"returns":[{"type":"Payload"}]},
+    {"kind":"function","name":"pick","cSymbol":"xl6_union_api_pick","signature":"func(Payload) as int","exportId":"union_api@1.0.0#abi1::union_api::pick(func(Payload) as int)","callingConvention":"cdecl","varargMode":"none","requiredParamCount":1,"fixedParamCount":1,"params":[{"name":"payload","type":"Payload","optional":false,"vararg":false}],"returns":[{"type":"int"}]},
     {"kind":"var","name":"defaultPayload","cSymbol":"xl6_union_api_default","signature":"var:Payload","exportId":"union_api@1.0.0#abi1::union_api::defaultPayload(var:Payload)","type":"Payload"}
   ],
   "types":[

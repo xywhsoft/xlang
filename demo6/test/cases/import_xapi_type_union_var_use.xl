@@ -1,6 +1,6 @@
 import union_api
 
-func main(...) -> int
+func main(...) as int
     if union_api.defaultPayload.i != 42 then
         return 1
     end

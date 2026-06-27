@@ -6,8 +6,8 @@
   "module":{"name":"class_api","moduleId":"class_api@1.0.0#abi1::class_api","source":"packages/class_api","sourceHash":""},
   "entry":{"kind":"none","requiresExplicitInit":true,"initSymbol":"xlInit","unitSymbol":"xlUnit"},
   "exports":[
-    {"kind":"function","name":"makePoint","cSymbol":"xl6_class_api_make","signature":"func(int,int)->Point","exportId":"class_api@1.0.0#abi1::class_api::makePoint(func(int,int)->Point)","callingConvention":"cdecl","varargMode":"none","requiredParamCount":2,"fixedParamCount":2,"params":[{"name":"x","type":"int","optional":false,"vararg":false},{"name":"y","type":"int","optional":false,"vararg":false}],"returns":[{"type":"Point"}]},
-    {"kind":"function","name":"sum","cSymbol":"xl6_class_api_sum","signature":"func(Point)->int","exportId":"class_api@1.0.0#abi1::class_api::sum(func(Point)->int)","callingConvention":"cdecl","varargMode":"none","requiredParamCount":1,"fixedParamCount":1,"params":[{"name":"point","type":"Point","optional":false,"vararg":false}],"returns":[{"type":"int"}]},
+    {"kind":"function","name":"makePoint","cSymbol":"xl6_class_api_make","signature":"func(int,int) as Point","exportId":"class_api@1.0.0#abi1::class_api::makePoint(func(int,int) as Point)","callingConvention":"cdecl","varargMode":"none","requiredParamCount":2,"fixedParamCount":2,"params":[{"name":"x","type":"int","optional":false,"vararg":false},{"name":"y","type":"int","optional":false,"vararg":false}],"returns":[{"type":"Point"}]},
+    {"kind":"function","name":"sum","cSymbol":"xl6_class_api_sum","signature":"func(Point) as int","exportId":"class_api@1.0.0#abi1::class_api::sum(func(Point) as int)","callingConvention":"cdecl","varargMode":"none","requiredParamCount":1,"fixedParamCount":1,"params":[{"name":"point","type":"Point","optional":false,"vararg":false}],"returns":[{"type":"int"}]},
     {"kind":"var","name":"origin","cSymbol":"xl6_class_api_origin","signature":"var:Point","exportId":"class_api@1.0.0#abi1::class_api::origin(var:Point)","type":"Point"}
   ],
   "types":[

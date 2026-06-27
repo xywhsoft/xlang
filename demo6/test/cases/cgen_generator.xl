@@ -1,4 +1,4 @@
-func nums(int count) -> generator<int>
+func nums(int count) as generator<int>
     int i = 0
     while i < count do
         i = i + 1
@@ -6,18 +6,24 @@ func nums(int count) -> generator<int>
     end
 end
 
-func toggles() -> generator<bool>
+func toggles() as generator<bool>
     yield true
     yield false
 end
 
-func weights() -> generator<float>
+func weights() as generator<float>
     yield 1.5
     yield 2.5
 end
 
-func clocks() -> generator<time>
+func clocks() as generator<time>
     yield #12:34:56#
+end
+
+func broken() as generator<int>
+    yield 1
+    throw "generator boom"
+    yield 2
 end
 
 int total = 0
@@ -78,3 +84,17 @@ for clock in clocks()
 end
 
 assert clockValue == #12:34:56#, "time generator failed"
+
+int errorState = 0
+try
+    for value in broken()
+        errorState = errorState + value
+    end
+    errorState = 100
+catch e
+    if e.message == "generator boom" then
+        errorState = errorState + 10
+    end
+end
+
+assert errorState == 11, "generator error propagation failed"

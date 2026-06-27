@@ -3,12 +3,12 @@
 // 2. 展示 while、do while、for in range。
 // 3. 展示多层 break/continue。
 
-func sign(int value) -> int
+func sign(int value) as int
     if value > 0 then return 1
     if value < 0 then return -1 else return 0
 end
 
-func main(...) -> int
+func main(...) as int
     int branch = 0
     if sign(12) == 0 then
         branch = 1

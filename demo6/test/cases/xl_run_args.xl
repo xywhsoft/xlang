@@ -1,4 +1,4 @@
-func main(...) -> int
+func main(...) as int
     assert arg.length == 6, "argc mismatch"
     assert arg[1] == "alpha", "argv[1] mismatch"
     assert arg[2] == "two words", "argv[2] mismatch"

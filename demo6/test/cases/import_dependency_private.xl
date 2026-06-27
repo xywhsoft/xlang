@@ -1,6 +1,6 @@
 import uses_dep
 
-func main(...) -> int
+func main(...) as int
     if uses_dep.addDep(2) == 42 then
         return 0
     end

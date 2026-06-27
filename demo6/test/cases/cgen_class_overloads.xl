@@ -13,11 +13,11 @@ end
 class Ops
     int pad = 0
 
-    func pick(int value) -> int
+    func pick(int value) as int
         return value + 1
     end
 
-    func pick(string text) -> int
+    func pick(string text) as int
         return 99
     end
 end
@@ -29,7 +29,7 @@ class Base
         self.seed = seed
     end
 
-    func pick(int value) -> int
+    func pick(int value) as int
         return self.seed + value
     end
 end
@@ -42,7 +42,7 @@ class Child extends Base
         self.extra = extra
     end
 
-    func pick(string text) -> int
+    func pick(string text) as int
         return self.extra
     end
 end

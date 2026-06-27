@@ -13,7 +13,7 @@
 | 规则范围 | 当前验证用例 | 证据等级 | 核验结论 |
 |---|---|---|---|
 | `CGEN-XAPI-001..004` 大小写敏感、JSON 字符串转义、字符串包装、C symbol 去引号 | `export_add.xl`、`export_alias.xl`、`import_metadata.xl`、`xapi_doc.xl`、`xapi_json_escape.xl`、大量 `xl xapi --emit` 输出检查 | 直接 JSON 检查 + JSON 回读快照 | XAPI 字符串字段、导出 C symbol、import target 和 doc 文本输出有覆盖；引号、反斜杠和 `\n` 文本经过 JSON 输出后可正确回读。 |
-| `CGEN-XAPI-005..007` 类型别名解析、function 类型字符串、普通/泛型类型字符串 | `export_alias.xl`；`test.bat` 检查 `"type":"int"`、`function_types.xl`、`xapi_type_fields.xl`、feature suite function/generic 示例 | 直接 JSON/IR 检查 + 运行行为检查 | alias 规范化、function 签名、多返回签名、泛型类型字符串有覆盖。 |
+| `CGEN-XAPI-005..007` 类型别名解析、func 类型字符串、普通/泛型类型字符串 | `export_alias.xl`；`test.bat` 检查 `"type":"int"`、`function_types.xl`、`xapi_type_fields.xl`、feature suite function/generic 示例 | 直接 JSON/IR 检查 + 运行行为检查 | alias 规范化、func 签名、多返回签名、泛型类型字符串有覆盖。 |
 | `CGEN-XAPI-008..009` AST 入口识别与 entry JSON 输出 | `dump_hello/hello.xapi.json`、`cgen_main_entry.xl`、`cgen_main_case_sensitive.xl`、`cgen_main_case_sensitive_script.xl`、`import_metadata.xl`、库式 export 用例 | 直接 JSON 检查 + 运行行为检查 | `xlang-main`、`script-main`、`none` 三类入口模型有覆盖；`Main` 非入口已有 XAPI `entry.kind == none` 快照，`Main` 与顶层语句共存时已有 `entry.kind == script-main` 快照。 |
 | `CGEN-XAPI-010..015` 参数、返回、export function/var/const、类型声明、import 直接 JSON 输出 | `export_alias.xl`、`export_vars.xl`、`export_union.xl` dump-dir、`import_metadata.xl`、`xapi_type_fields.xl` | 直接 JSON 检查 | params/returns、function/var/const export、class/custom/union type、imports 数组有覆盖。 |
 | `CGEN-XAPI-016..017` XAPI string builder 初始化、扩容、追加、接管和复制 | `xapi_doc.xl`、`xapi_type_fields.xl`、`import_metadata.xl`、较长 doc/example 文本 | 间接覆盖 | builder 由 doc、signature、packageId/moduleId 和 JSON 字段构造大量使用；扩容失败路径属于内部错误间接覆盖。 |

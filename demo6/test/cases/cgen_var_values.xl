@@ -1,17 +1,17 @@
 extern "expect_i64" func expect(int actual, int expected)
 extern "nc_probe_reset" func resetProbe()
-extern "nc_probe_next_var" func nextProbe() -> var
-extern "nc_probe_count" func probeCount() -> int
+extern "nc_probe_next_var" func nextProbe() as var
+extern "nc_probe_count" func probeCount() as int
 
-func makeValue(int value) -> var
+func makeValue(int value) as var
     return value
 end
 
-func makePair() -> (var, int)
+func makePair() as (var, int)
     return #2026-06-18#, 7
 end
 
-func count(...) -> int
+func count(...) as int
     return arg.length
 end
 
@@ -50,6 +50,21 @@ var conditionalTemp = chooseHigh ? makeValue(30) : makeValue(40)
 auto mixedAuto = chooseLow ? 12 : "alt"
 var mixedConditional = chooseHigh ? 12 : "alt"
 auto mixedPlus = mixedAuto + 8
+bool compareDecl = number == sameNumber
+int orderDecl = lowNumber < highNumber
+auto autoCompareDecl = highNumber >= lowNumber
+bool approxDecl = textBefore ~= "abc"
+auto autoApproxDecl = dayBefore ~= #2026-06-18#
+var assignBinary = 0
+assignBinary = lowNumber + highNumber
+var assignConditional = 0
+assignConditional = chooseHigh ? makeValue(50) : makeValue(60)
+bool assignCompare = false
+assignCompare = number == sameNumber
+int assignOrder = 0
+assignOrder = highNumber > lowNumber
+bool assignApprox = false
+assignApprox = textBefore ~= "abc"
 auto first, _ = makePair()
 auto _, pairInt = makePair()
 
@@ -107,6 +122,16 @@ expect(type(mixedPlus) == int, 1)
 expect(int(mixedPlus), 20)
 expect(type(mixedConditional) == string, 1)
 expect(string(mixedConditional) == "alt", 1)
+expect(compareDecl, 1)
+expect(orderDecl, 1)
+expect(autoCompareDecl, 1)
+expect(approxDecl, 1)
+expect(autoApproxDecl, 1)
+expect(int(assignBinary), 300)
+expect(int(assignConditional), 60)
+expect(assignCompare, 1)
+expect(assignOrder, 1)
+expect(assignApprox, 1)
 expect(not empty, 1)
 expect(not falseValue, 1)
 expect(not lowNumber, 0)
@@ -123,6 +148,101 @@ if trueValue then
     branchValue = 3
 end
 expect(branchValue, 3)
+
+int dynamicIfCompare = 0
+if makeValue(10) == makeValue(10) then
+    dynamicIfCompare = 1
+end
+expect(dynamicIfCompare, 1)
+
+int dynamicIfLogical = 0
+if makeValue(0) or makeValue(1) then
+    dynamicIfLogical = 1
+end
+expect(dynamicIfLogical, 1)
+
+int dynamicIfApprox = 0
+if textBefore ~= "abc" then
+    dynamicIfApprox = 1
+end
+expect(dynamicIfApprox, 1)
+
+int dynamicElseifCompare = 0
+if falseValue then
+    dynamicElseifCompare = 1
+elseif makeValue(20) == makeValue(20) then
+    dynamicElseifCompare = 2
+end
+expect(dynamicElseifCompare, 2)
+
+int dynamicElseifLogical = 0
+if falseValue then
+    dynamicElseifLogical = 1
+elseif makeValue(0) or makeValue(1) then
+    dynamicElseifLogical = 2
+end
+expect(dynamicElseifLogical, 2)
+
+int dynamicElseifApprox = 0
+if falseValue then
+    dynamicElseifApprox = 1
+elseif textBefore ~= "abc" then
+    dynamicElseifApprox = 2
+end
+expect(dynamicElseifApprox, 2)
+
+resetProbe()
+int dynamicElseifSkip = 0
+if trueValue then
+    dynamicElseifSkip = 1
+elseif nextProbe() then
+    dynamicElseifSkip = 2
+else
+    dynamicElseifSkip = 3
+end
+expect(dynamicElseifSkip, 1)
+expect(probeCount(), 0)
+
+int dynamicWhileCompare = 0
+while makeValue(dynamicWhileCompare) < makeValue(2) do
+    dynamicWhileCompare = dynamicWhileCompare + 1
+end
+expect(dynamicWhileCompare, 2)
+
+int dynamicWhileLogical = 0
+var dynamicWhileGate = true
+while makeValue(1) and dynamicWhileGate do
+    dynamicWhileLogical = dynamicWhileLogical + 1
+    dynamicWhileGate = false
+end
+expect(dynamicWhileLogical, 1)
+
+int dynamicWhileApprox = 0
+while textBefore ~= "abc" do
+    dynamicWhileApprox = dynamicWhileApprox + 1
+    break
+end
+expect(dynamicWhileApprox, 1)
+
+int dynamicDoCompare = 0
+do
+    dynamicDoCompare = dynamicDoCompare + 1
+while makeValue(dynamicDoCompare) < makeValue(2)
+expect(dynamicDoCompare, 2)
+
+int dynamicDoLogical = 0
+var dynamicDoGate = true
+do
+    dynamicDoLogical = dynamicDoLogical + 1
+    dynamicDoGate = false
+while makeValue(1) and dynamicDoGate
+expect(dynamicDoLogical, 1)
+
+int dynamicDoApprox = 0
+do
+    dynamicDoApprox = dynamicDoApprox + 1
+while textBefore ~= "nope"
+expect(dynamicDoApprox, 1)
 
 int loopCount = 0
 var loopFlag = true

@@ -9,12 +9,12 @@ class 点
         self.纵 = 纵
     end
 
-    func 求和() -> int
+    func 求和() as int
         return self.横 + self.纵
     end
 end
 
-func 加一(int 数值) -> int
+func 加一(int 数值) as int
     return 数值 + 1
 end
 

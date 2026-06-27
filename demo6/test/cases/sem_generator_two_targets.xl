@@ -1,6 +1,0 @@
-func nums() -> generator<int>
-    yield 1
-end
-
-for index, value in nums()
-end

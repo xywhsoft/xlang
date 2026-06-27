@@ -102,8 +102,8 @@
 
 | 项目 | 内容 |
 |---|---|
-| xlang 写法 | `func f() (int, string)`、泛型多返回、匿名函数多返回、function 类型多返回 |
-| 生成规则描述 | 普通非泛型函数和 export 函数的返回结构体先输出；随后输出所有泛型实例的返回结构体；最后输出 function 类型与匿名函数需要的返回结构体。这个顺序保证后续原型和函数体都有可引用的返回类型。 |
+| xlang 写法 | `func f() (int, string)`、泛型多返回、匿名函数多返回、func 类型多返回 |
+| 生成规则描述 | 普通非泛型函数和 export 函数的返回结构体先输出；随后输出所有泛型实例的返回结构体；最后输出 func 类型与匿名函数需要的返回结构体。这个顺序保证后续原型和函数体都有可引用的返回类型。 |
 | 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_module.c:161` |
 | 对应生成的 C 代码 | `typedef struct xl6_ret_... { ... } xl6_ret_...;` |
 | 中间形态伪代码 | `emitReturnStructs(normal/export); emitReturnStructs(genericInstances); emitFunctionReturnStructDecls()` |

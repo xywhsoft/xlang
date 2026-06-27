@@ -1,32 +1,32 @@
-func identity<T>(T value) -> T
+func identity<T>(T value) as T
     return value
 end
 
-func choose<T>(T left, T right) -> T
+func choose<T>(T left, T right) as T
     return right
 end
 
-func countArray<T>(array<T> values) -> int
+func countArray<T>(array<T> values) as int
     return values.length
 end
 
-func acceptList<T>(list<T> values) -> int
+func acceptList<T>(list<T> values) as int
     return 2
 end
 
-func acceptSet<T>(set<T> values) -> int
+func acceptSet<T>(set<T> values) as int
     return 3
 end
 
-func countDict<T>(dict<T> values) -> int
+func countDict<T>(dict<T> values) as int
     return values.length
 end
 
-func countNested<T>(array<dict<T>> values) -> int
+func countNested<T>(array<dict<T>> values) as int
     return values.length
 end
 
-func apply<T>(function(T) -> T op, T value) -> T
+func apply<T>(func(T) as T op, T value) as T
     return op(value)
 end
 
@@ -44,7 +44,7 @@ int dictCount = countDict({"a": 1, "b": 2})
 int typedDictCount = countDict(dict{"x": 3})
 int nestedCount = countNested([dict{"a": 1}, dict{"b": 2}])
 auto explicitNested = identity::<array<dict<int>>>([dict{"z": 9}])
-function(int) -> int inc = func(int value) -> int => value + 1
+func(int) as int inc = func(int value) as int => value + 1
 int applied = apply(inc, 9)
 
 expect(number, 41)

@@ -1,44 +1,44 @@
 // 教学目标：
-// 1. function 是一等公民类型。
+// 1. func 是一等公民类型。
 // 2. 匿名函数可以写成块体或 => 表达式。
 // 3. 闭包可以捕获外部变量。
 // 4. 函数值可以进入容器和 var。
 
-func inc(int value) -> int
+func inc(int value) as int
     return value + 1
 end
 
-func echo(string value) -> string
+func echo(string value) as string
     return value
 end
 
-func apply(function(int) -> int op, int value) -> int
+func apply(func(int) as int op, int value) as int
     return op(value)
 end
 
-func pair(int value) -> (int, string)
+func pair(int value) as (int, string)
     return value, "ok"
 end
 
-func main(...) -> int
-    function(int) -> int plusOne = inc
-    function(string) -> string textEcho = echo
+func main(...) as int
+    func(int) as int plusOne = inc
+    func(string) as string textEcho = echo
 
-    auto add = func(int a, int b) -> int
+    auto add = func(int a, int b) as int
         return a + b
     end
 
-    auto timesTwo = func(int value) -> int => value * 2
+    auto timesTwo = func(int value) as int => value * 2
 
     int base = 40
-    auto addBase = func(int value) -> int => base + value
+    auto addBase = func(int value) as int => base + value
 
-    function(int) -> (int, string) pairFn = pair
+    func(int) as (int, string) pairFn = pair
     auto number, label = pairFn(42)
 
-    array<function(int) -> int> ops = array[plusOne, timesTwo]
-    function(int) -> int firstOp = ops[0]
-    function(int) -> int secondOp = ops[1]
+    array<func(int) as int> ops = array[plusOne, timesTwo]
+    func(int) as int firstOp = ops[0]
+    func(int) as int secondOp = ops[1]
     var dynamicFunction = plusOne
 
     if plusOne(41) != 42 then

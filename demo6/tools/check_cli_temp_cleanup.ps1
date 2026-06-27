@@ -11,12 +11,22 @@ if ( $Root -eq "" ) {
 $xl = Join-Path $Root "release\xl.exe"
 $tmpDir = Join-Path $Root "release\tmp"
 $failures = New-Object System.Collections.Generic.List[string]
+$strictUtf8 = New-Object System.Text.UTF8Encoding($false, $true)
 
 Set-Location $Root
 
 function Add-Failure($message)
 {
     $script:failures.Add($message) | Out-Null
+}
+
+function Join-CodePoints($codes)
+{
+    $builder = New-Object System.Text.StringBuilder
+    foreach ( $code in $codes ) {
+        [void]$builder.Append([char]$code)
+    }
+    return $builder.ToString()
 }
 
 function Count-TempDirs($pattern)
@@ -59,14 +69,38 @@ function Invoke-XlCapture
     }
 }
 
-function Assert-RawNativeOutput($name, $path)
+function Read-CapturedText($name, $path)
 {
     if ( ! (Test-Path -LiteralPath $path -PathType Leaf) ) {
-        return
+        Add-Failure "$name output file is missing: $path"
+        return ""
     }
-    $text = Get-Content -LiteralPath $path -Raw
+    try {
+        $bytes = [System.IO.File]::ReadAllBytes($path)
+        $text = $script:strictUtf8.GetString($bytes)
+    } catch {
+        Add-Failure "$name output is not strict UTF-8: $path"
+        return ""
+    }
+    if ( $text.IndexOf([char]0xFFFD) -ge 0 ) {
+        Add-Failure "$name output contains UTF-8 replacement character: $path"
+    }
     if ( $text -match "CategoryInfo|FullyQualifiedErrorId|NativeCommandError" ) {
         Add-Failure "$name stderr/stdout was wrapped by PowerShell native error formatting"
+    }
+    return $text
+}
+
+function Assert-RawNativeOutput($name, $path)
+{
+    [void](Read-CapturedText $name $path)
+}
+
+function Assert-EmptyCapturedText($name, $path)
+{
+    $text = Read-CapturedText $name $path
+    if ( $text.Length -ne 0 ) {
+        Add-Failure "$name output should be empty"
     }
 }
 
@@ -106,6 +140,7 @@ $runBefore = Count-TempDirs "xl6_run_*"
 $caseBasic = "test\cases\cgen_basic.xl"
 $caseMain = "test\cases\cgen_main_entry.xl"
 $caseBadRun = "test\cases\sem_unknown_type.xl"
+$diagUnknownType = Join-CodePoints @(0x672A, 0x77E5, 0x7C7B, 0x578B)
 
 $buildOut = Join-Path $tmpDir "cli_temp_cleanup_build.out.txt"
 $buildErr = Join-Path $tmpDir "cli_temp_cleanup_build.err.txt"
@@ -116,6 +151,7 @@ Assert-RawNativeOutput "build success stderr" $buildErr
 if ( $result.Code -ne 0 ) {
     Add-Failure "build success case failed with exit code $($result.Code)"
 }
+Assert-EmptyCapturedText "build success stderr" $buildErr
 Assert-NoTempDirDelta "successful build" "xl6_build_*" $buildBefore
 
 $runOut = Join-Path $tmpDir "cli_temp_cleanup_run.out.txt"
@@ -126,6 +162,7 @@ Assert-RawNativeOutput "run success stderr" $runErr
 if ( $result.Code -ne 0 ) {
     Add-Failure "run success case failed with exit code $($result.Code)"
 }
+Assert-EmptyCapturedText "run success stderr" $runErr
 Assert-NoTempDirDelta "successful run" "xl6_run_*" $runBefore
 
 $buildFailOut = Join-Path $tmpDir "cli_temp_cleanup_build_fail.out.txt"
@@ -133,9 +170,10 @@ $buildFailErr = Join-Path $tmpDir "cli_temp_cleanup_build_fail.err.txt"
 $result = Invoke-XlCapture -Name "build failure" -CommandArgs @("build", $caseMain, "-shared", "-o", (Join-Path $tmpDir "cli_temp_cleanup_bad.dll")) -Stdout $buildFailOut -Stderr $buildFailErr
 Assert-RawNativeOutput "build failure stdout" $buildFailOut
 Assert-RawNativeOutput "build failure stderr" $buildFailErr
+$buildFailText = Read-CapturedText "build failure stderr" $buildFailErr
 if ( $result.Code -eq 0 ) {
     Add-Failure "build failure case unexpectedly succeeded"
-} elseif ( (Get-Content -LiteralPath $buildFailErr -Raw) -notmatch "shared build cannot contain xlang main" ) {
+} elseif ( $buildFailText -notmatch "shared build cannot contain xlang main" ) {
     Add-Failure "build failure case did not emit expected diagnostic"
 }
 Assert-NoTempDirDelta "failed build" "xl6_build_*" $buildBefore
@@ -145,8 +183,11 @@ $runFailErr = Join-Path $tmpDir "cli_temp_cleanup_run_fail.err.txt"
 $result = Invoke-XlCapture -Name "run failure" -CommandArgs @("run", $caseBadRun) -Stdout $runFailOut -Stderr $runFailErr
 Assert-RawNativeOutput "run failure stdout" $runFailOut
 Assert-RawNativeOutput "run failure stderr" $runFailErr
+$runFailText = Read-CapturedText "run failure stderr" $runFailErr
 if ( $result.Code -eq 0 ) {
     Add-Failure "run failure case unexpectedly succeeded"
+} elseif ( $runFailText.IndexOf($diagUnknownType) -lt 0 ) {
+    Add-Failure "run failure case did not emit expected semantic diagnostic"
 }
 Assert-NoTempDirDelta "failed run" "xl6_run_*" $runBefore
 
@@ -159,7 +200,7 @@ Assert-RawNativeOutput "save temps stderr" $saveErr
 if ( $result.Code -ne 0 ) {
     Add-Failure "save-temps build failed with exit code $($result.Code)"
 } else {
-    $log = (Get-Content -LiteralPath $saveOut -Raw) + "`n" + (Get-Content -LiteralPath $saveErr -Raw)
+    $log = (Read-CapturedText "save temps stdout" $saveOut) + "`n" + (Read-CapturedText "save temps stderr" $saveErr)
     $match = [regex]::Match($log, "temporary files kept:\s*(.+)")
     if ( ! $match.Success ) {
         Add-Failure "save-temps build did not report kept directory"

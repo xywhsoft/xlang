@@ -1,26 +1,26 @@
 extern "expect_i64" func expect(int actual, int expected)
 
-func add(int left, int right) -> int
+func add(int left, int right) as int
     return left + right
 end
 
-func mul(int left, int right) -> int
+func mul(int left, int right) as int
     return left * right
 end
 
-func makeAdder(int base) -> function(int) -> int
-    return func(int value) -> int
+func makeAdder(int base) as func(int) as int
+    return func(int value) as int
         return base + value
     end
 end
 
 class FnBox
-    function(int, int) -> int op
+    func(int, int) as int op
     int bias = 0
 end
 
 class UnaryBox
-    function(int) -> int op
+    func(int) as int op
 end
 
 FnBox seed

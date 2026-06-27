@@ -5,29 +5,29 @@ class MatrixBox
     int value
     string label
 
-    func getValue() -> int
+    func getValue() as int
         return self.value
     end
 end
 
-func makeBox(int value, string label) -> MatrixBox
+func makeBox(int value, string label) as MatrixBox
     MatrixBox box
     box.value = value
     box.label = label
     return box
 end
 
-func makeAdder(int base) -> function(int) -> int
-    return func(int value) -> int
+func makeAdder(int base) as func(int) as int
+    return func(int value) as int
         return base + value
     end
 end
 
-func add(int left, int right) -> int
+func add(int left, int right) as int
     return left + right
 end
 
-async func doubleAsync(int value) -> int
+async func doubleAsync(int value) as int
     return value * 2
 end
 

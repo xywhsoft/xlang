@@ -1,9 +1,9 @@
 typedef MyInt = int
 
-func pick(int value) -> int
+func pick(int value) as int
     return value
 end
 
-func pick(MyInt value) -> int
+func pick(MyInt value) as int
     return value
 end

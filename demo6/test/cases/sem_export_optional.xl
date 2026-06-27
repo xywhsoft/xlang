@@ -1,3 +1,3 @@
-export "bad_optional" func bad(int a = 1) -> int
+export "bad_optional" func bad(int a = 1) as int
     return a
 end

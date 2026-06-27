@@ -2,20 +2,20 @@
 // 1. extern 可以把 C 函数/变量声明到 xlang。
 // 2. custom 可以把 C 句柄 + 一组 C 函数抽象成轻量类。
 
-extern "host_add" func hostAdd(int left, int right) -> int
-extern "host_flip" func hostFlip(bool value) -> bool
+extern "host_add" func hostAdd(int left, int right) as int
+extern "host_flip" func hostFlip(bool value) as bool
 extern "host_counter" var int hostCounter
-extern "counter_closed" func counterClosed() -> int
+extern "counter_closed" func counterClosed() as int
 extern "counter_reset" func counterReset()
 
 custom Counter
     extern "counter_open" create(int seed)
     extern "counter_close" destroy()
-    extern "counter_add" func add(int value) -> int
-    extern "counter_value" func value() -> int
+    extern "counter_add" func add(int value) as int
+    extern "counter_value" func value() as int
 end
 
-func main(...) -> int
+func main(...) as int
     counterReset()
 
     if hostAdd(20, 22) != 42 then

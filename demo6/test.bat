@@ -1,4 +1,4 @@
-﻿@echo off
+@echo off
 setlocal
 cd /d %~dp0
 
@@ -8,12 +8,18 @@ if errorlevel 1 exit /b 1
 call build.bat
 if errorlevel 1 exit /b 1
 
+powershell -NoProfile -Command "$dir = Join-Path (Get-Location) 'release\tmp'; if (Test-Path -LiteralPath $dir) { Get-ChildItem -LiteralPath $dir -File | Remove-Item -Force }"
+if errorlevel 1 exit /b 1
+
 echo Running DEMO6 smoke tests...
 
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_docs_index.ps1
 if errorlevel 1 exit /b 1
 
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_cgenrule_docs.ps1
+if errorlevel 1 exit /b 1
+
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_risk_ledger.ps1
 if errorlevel 1 exit /b 1
 
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_markdown_links.ps1
@@ -35,6 +41,18 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_source_encoding.
 if errorlevel 1 exit /b 1
 
 powershell -NoProfile -Command "$dir = Join-Path 'src' 'cgen'; $m = Get-ChildItem -LiteralPath $dir -Filter '*.c' | Select-String -SimpleMatch 'code generation error'; if ($m) { Write-Host 'src cgen contains generic cgen diagnostic.'; exit 1 }"
+if errorlevel 1 exit /b 1
+
+powershell -NoProfile -Command "$dir = Join-Path 'src' 'cgen'; $m = Get-ChildItem -LiteralPath $dir -Filter '*.c' | Select-String -SimpleMatch '__xl6_conv_'; if ($m) { Write-Host 'src cgen contains stale __xl6_conv_ fallback.'; exit 1 }"
+if errorlevel 1 exit /b 1
+
+powershell -NoProfile -Command "$dir = Join-Path 'src' 'cgen'; $m = Get-ChildItem -LiteralPath $dir -Filter '*.c' | Select-String -SimpleMatch '({ XL6_Function'; if ($m) { Write-Host 'src cgen contains stale XL6_Function statement-expression fallback.'; exit 1 }"
+if errorlevel 1 exit /b 1
+
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_cgen_statement_expr_allowlist.ps1
+if errorlevel 1 exit /b 1
+
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_cgen_module_size.ps1
 if errorlevel 1 exit /b 1
 
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_toolchain_paths.ps1
@@ -129,7 +147,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$dir = Join-Path (Resolve-Path 'release\tmp') (([char]0x4E2D)+([char]0x6587)+'_path'); [System.IO.Directory]::CreateDirectory($dir) | Out-Null; $file = Join-Path $dir (([char]0x5165)+([char]0x53E3)+'.xl'); $out = Join-Path $dir 'out.ast.txt'; $utf8 = New-Object System.Text.UTF8Encoding($false); $src = 'func add(int a, int b) -> int' + [Environment]::NewLine + '    return a + b' + [Environment]::NewLine + 'end' + [Environment]::NewLine; [System.IO.File]::WriteAllText($file, $src, $utf8); & .\release\xl.exe parse $file --emit $out; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; $text = [System.IO.File]::ReadAllText($out, [System.Text.Encoding]::UTF8); if ($text -notmatch 'add') { exit 2 }; exit 0"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$dir = Join-Path (Resolve-Path 'release\tmp') (([char]0x4E2D)+([char]0x6587)+'_path'); [System.IO.Directory]::CreateDirectory($dir) | Out-Null; $file = Join-Path $dir (([char]0x5165)+([char]0x53E3)+'.xl'); $out = Join-Path $dir 'out.ast.txt'; $utf8 = New-Object System.Text.UTF8Encoding($false); $src = 'func add(int a, int b) as int' + [Environment]::NewLine + '    return a + b' + [Environment]::NewLine + 'end' + [Environment]::NewLine; [System.IO.File]::WriteAllText($file, $src, $utf8); & .\release\xl.exe parse $file --emit $out; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; $text = [System.IO.File]::ReadAllText($out, [System.Text.Encoding]::UTF8); if ($text -notmatch 'add') { exit 2 }; exit 0"
 if errorlevel 1 (
     echo unicode path parse/emit smoke test failed.
     exit /b 1
@@ -304,7 +322,7 @@ release\xl.exe ir test\cases\import_xapi_use.xl --emit release\tmp\import_xapi_u
 if errorlevel 1 exit /b 1
 findstr /C:"extern \"xl6_import_counter_add\" func __xl6_import_counter_counterAdd" release\tmp\import_xapi_use.xlir >nul
 if errorlevel 1 (
-    echo import_xapi_use.xlir missing injected extern function.
+    echo import_xapi_use.xlir missing injected extern func.
     exit /b 1
 )
 findstr /C:"call __xl6_import_counter_counterAdd" release\tmp\import_xapi_use.xlir >nul
@@ -593,7 +611,7 @@ if not errorlevel 1 (
     echo import_unsupported_xapi_use.xl should fail.
     exit /b 1
 )
-findstr /C:"not supported by current C ABI bridge" release\tmp\import_unsupported_xapi_use.err.txt >nul
+findstr /C:"C ABI bridge: unsupported_xapi.unsupportedCall" release\tmp\import_unsupported_xapi_use.err.txt >nul
 if errorlevel 1 (
     echo import_unsupported_xapi_use.err.txt missing unsupported import diagnostic.
     exit /b 1
@@ -638,9 +656,19 @@ if errorlevel 1 (
     echo cgen_numeric_literals.c missing decimal literal normalization.
     exit /b 1
 )
-findstr /C:"long long hexB = 42LL;" release\tmp\cgen_numeric_literals.c >nul
+findstr /C:"long long hexA = 42LL;" release\tmp\cgen_numeric_literals.c >nul
 if errorlevel 1 (
-    echo cgen_numeric_literals.c missing &H literal normalization.
+    echo cgen_numeric_literals.c missing hex literal normalization.
+    exit /b 1
+)
+findstr /C:"long long octA = 42LL;" release\tmp\cgen_numeric_literals.c >nul
+if errorlevel 1 (
+    echo cgen_numeric_literals.c missing oct literal normalization.
+    exit /b 1
+)
+findstr /C:"long long binA = 42LL;" release\tmp\cgen_numeric_literals.c >nul
+if errorlevel 1 (
+    echo cgen_numeric_literals.c missing bin literal normalization.
     exit /b 1
 )
 findstr /C:"double sci = 12.5e1;" release\tmp\cgen_numeric_literals.c >nul
@@ -666,6 +694,116 @@ if errorlevel 1 (
 findstr /C:"code generation error" release\tmp\cgen_int_literal_overflow.err.txt >nul
 if not errorlevel 1 (
     echo cgen_int_literal_overflow.err.txt regressed to generic cgen diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_int_literal_upper_hex.xl >nul 2> release\tmp\sem_int_literal_upper_hex.err.txt
+if not errorlevel 1 (
+    echo sem_int_literal_upper_hex.xl should fail.
+    exit /b 1
+)
+findstr /C:"unsupported" release\tmp\sem_int_literal_upper_hex.err.txt >nul
+if errorlevel 1 (
+    echo sem_int_literal_upper_hex.err.txt missing removed integer prefix diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_old_return_arrow.xl >nul 2> release\tmp\sem_old_return_arrow.err.txt
+if not errorlevel 1 (
+    echo sem_old_return_arrow.xl should fail.
+    exit /b 1
+)
+findstr /C:"use as for function return type" release\tmp\sem_old_return_arrow.err.txt >nul
+if errorlevel 1 (
+    echo sem_old_return_arrow.err.txt missing old return arrow diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_int_literal_vb_hex_lower.xl >nul 2> release\tmp\sem_int_literal_vb_hex_lower.err.txt
+if not errorlevel 1 (
+    echo sem_int_literal_vb_hex_lower.xl should fail.
+    exit /b 1
+)
+findstr /C:"unsupported" release\tmp\sem_int_literal_vb_hex_lower.err.txt >nul
+if errorlevel 1 (
+    echo sem_int_literal_vb_hex_lower.err.txt missing removed integer prefix diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_int_literal_vb_hex_upper.xl >nul 2> release\tmp\sem_int_literal_vb_hex_upper.err.txt
+if not errorlevel 1 (
+    echo sem_int_literal_vb_hex_upper.xl should fail.
+    exit /b 1
+)
+findstr /C:"unsupported" release\tmp\sem_int_literal_vb_hex_upper.err.txt >nul
+if errorlevel 1 (
+    echo sem_int_literal_vb_hex_upper.err.txt missing removed integer prefix diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_int_literal_upper_oct.xl >nul 2> release\tmp\sem_int_literal_upper_oct.err.txt
+if not errorlevel 1 (
+    echo sem_int_literal_upper_oct.xl should fail.
+    exit /b 1
+)
+findstr /C:"unsupported" release\tmp\sem_int_literal_upper_oct.err.txt >nul
+if errorlevel 1 (
+    echo sem_int_literal_upper_oct.err.txt missing removed integer prefix diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_int_literal_vb_oct_lower.xl >nul 2> release\tmp\sem_int_literal_vb_oct_lower.err.txt
+if not errorlevel 1 (
+    echo sem_int_literal_vb_oct_lower.xl should fail.
+    exit /b 1
+)
+findstr /C:"unsupported" release\tmp\sem_int_literal_vb_oct_lower.err.txt >nul
+if errorlevel 1 (
+    echo sem_int_literal_vb_oct_lower.err.txt missing removed integer prefix diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_int_literal_vb_oct_upper.xl >nul 2> release\tmp\sem_int_literal_vb_oct_upper.err.txt
+if not errorlevel 1 (
+    echo sem_int_literal_vb_oct_upper.xl should fail.
+    exit /b 1
+)
+findstr /C:"unsupported" release\tmp\sem_int_literal_vb_oct_upper.err.txt >nul
+if errorlevel 1 (
+    echo sem_int_literal_vb_oct_upper.err.txt missing removed integer prefix diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_int_literal_upper_bin.xl >nul 2> release\tmp\sem_int_literal_upper_bin.err.txt
+if not errorlevel 1 (
+    echo sem_int_literal_upper_bin.xl should fail.
+    exit /b 1
+)
+findstr /C:"unsupported" release\tmp\sem_int_literal_upper_bin.err.txt >nul
+if errorlevel 1 (
+    echo sem_int_literal_upper_bin.err.txt missing removed integer prefix diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_int_literal_vb_bin_lower.xl >nul 2> release\tmp\sem_int_literal_vb_bin_lower.err.txt
+if not errorlevel 1 (
+    echo sem_int_literal_vb_bin_lower.xl should fail.
+    exit /b 1
+)
+findstr /C:"unsupported" release\tmp\sem_int_literal_vb_bin_lower.err.txt >nul
+if errorlevel 1 (
+    echo sem_int_literal_vb_bin_lower.err.txt missing removed integer prefix diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_int_literal_vb_bin_upper.xl >nul 2> release\tmp\sem_int_literal_vb_bin_upper.err.txt
+if not errorlevel 1 (
+    echo sem_int_literal_vb_bin_upper.xl should fail.
+    exit /b 1
+)
+findstr /C:"unsupported" release\tmp\sem_int_literal_vb_bin_upper.err.txt >nul
+if errorlevel 1 (
+    echo sem_int_literal_vb_bin_upper.err.txt missing removed integer prefix diagnostic.
     exit /b 1
 )
 
@@ -782,6 +920,8 @@ if errorlevel 1 exit /b 1
 release\xl.exe parse test\cases\cgen_for_in_containers.xl > release\tmp\cgen_for_in_containers.ast.txt
 if errorlevel 1 exit /b 1
 release\xl.exe check test\cases\cgen_for_in_containers.xl
+if errorlevel 1 exit /b 1
+release\xl.exe check test\cases\cgen_for_in_var_non_container.xl
 if errorlevel 1 exit /b 1
 
 release\xl.exe parse test\cases\control_flow.xl > release\tmp\control_flow.ast.txt
@@ -946,6 +1086,11 @@ if errorlevel 1 (
     echo sem_compound_var_target.xl missing expected diagnostic.
     exit /b 1
 )
+findstr /C:"op +=, left var, right int" release\tmp\sem_compound_var_target.err.txt >nul
+if errorlevel 1 (
+    echo sem_compound_var_target.xl missing compound diagnostic context.
+    exit /b 1
+)
 release\xl.exe check test\cases\sem_compound_numeric_type.xl > release\tmp\sem_compound_numeric_type.err.txt 2>&1
 if not errorlevel 1 (
     echo sem_compound_numeric_type.xl should fail.
@@ -956,6 +1101,11 @@ if errorlevel 1 (
     echo sem_compound_numeric_type.xl missing expected diagnostic.
     exit /b 1
 )
+findstr /C:"op +=, left int, right bool" release\tmp\sem_compound_numeric_type.err.txt >nul
+if errorlevel 1 (
+    echo sem_compound_numeric_type.xl missing compound diagnostic context.
+    exit /b 1
+)
 release\xl.exe check test\cases\sem_compound_float_to_int.xl > release\tmp\sem_compound_float_to_int.err.txt 2>&1
 if not errorlevel 1 (
     echo sem_compound_float_to_int.xl should fail.
@@ -964,6 +1114,11 @@ if not errorlevel 1 (
 findstr /C:"compound assignment result type does not match target type" release\tmp\sem_compound_float_to_int.err.txt >nul
 if errorlevel 1 (
     echo sem_compound_float_to_int.xl missing expected diagnostic.
+    exit /b 1
+)
+findstr /C:"op +=, left int, right float" release\tmp\sem_compound_float_to_int.err.txt >nul
+if errorlevel 1 (
+    echo sem_compound_float_to_int.xl missing compound diagnostic context.
     exit /b 1
 )
 release\xl.exe check test\cases\sem_compound_div_zero.xl > release\tmp\sem_compound_div_zero.err.txt 2>&1
@@ -1058,9 +1213,9 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe ir examples\hello.xl > release\tmp\hello.xlir
 if errorlevel 1 exit /b 1
-findstr /C:"func add(a: int, b: int) -> int" release\tmp\hello.xlir >nul
+findstr /C:"func add(a: int, b: int) as int" release\tmp\hello.xlir >nul
 if errorlevel 1 (
-    echo hello.xlir missing function signature.
+    echo hello.xlir missing func signature.
     exit /b 1
 )
 release\xl.exe ir examples\hello.xl --json --emit release\tmp\hello.ir.json
@@ -1148,27 +1303,27 @@ if errorlevel 1 (
 
 release\xl.exe ir test\cases\function_types.xl --emit release\tmp\function_types.xlir
 if errorlevel 1 exit /b 1
-findstr /C:"var binary : function(int, int) -> int" release\tmp\function_types.xlir >nul
+findstr /C:"var binary : func(int, int) as int" release\tmp\function_types.xlir >nul
 if errorlevel 1 (
-    echo function_types.xlir missing function type signature.
+    echo function_types.xlir missing func type signature.
     exit /b 1
 )
-findstr /C:"var parser : function(string) -> (bool, int)" release\tmp\function_types.xlir >nul
+findstr /C:"var parser : func(string) as (bool, int)" release\tmp\function_types.xlir >nul
 if errorlevel 1 (
-    echo function_types.xlir missing multi-return function type.
+    echo function_types.xlir missing multi-return func type.
     exit /b 1
 )
 
 release\xl.exe ir test\cases\anonymous_functions.xl --emit release\tmp\anonymous_functions.xlir
 if errorlevel 1 exit /b 1
-findstr /C:"var inc : auto = func(value: int) -> int <body>" release\tmp\anonymous_functions.xlir >nul
+findstr /C:"var inc : auto = func(value: int) as int <body>" release\tmp\anonymous_functions.xlir >nul
 if errorlevel 1 (
-    echo anonymous_functions.xlir missing arrow anonymous function.
+    echo anonymous_functions.xlir missing arrow anonymous func.
     exit /b 1
 )
-findstr /C:"return func(value: int) -> int <body>" release\tmp\anonymous_functions.xlir >nul
+findstr /C:"return func(value: int) as int <body>" release\tmp\anonymous_functions.xlir >nul
 if errorlevel 1 (
-    echo anonymous_functions.xlir missing captured anonymous function return.
+    echo anonymous_functions.xlir missing captured anonymous func return.
     exit /b 1
 )
 
@@ -1184,7 +1339,7 @@ if errorlevel 1 (
     echo class_custom.xlir missing class field.
     exit /b 1
 )
-findstr /C:"extern \"bag_count\" func count() -> int" release\tmp\class_custom.xlir >nul
+findstr /C:"extern \"bag_count\" func count() as int" release\tmp\class_custom.xlir >nul
 if errorlevel 1 (
     echo class_custom.xlir missing custom extern method.
     exit /b 1
@@ -1192,9 +1347,9 @@ if errorlevel 1 (
 
 release\xl.exe ir test\cases\generics.xl --emit release\tmp\generics.xlir
 if errorlevel 1 exit /b 1
-findstr /C:"func identity<T>(value: T) -> T" release\tmp\generics.xlir >nul
+findstr /C:"func identity<T>(value: T) as T" release\tmp\generics.xlir >nul
 if errorlevel 1 (
-    echo generics.xlir missing generic function.
+    echo generics.xlir missing generic func.
     exit /b 1
 )
 findstr /C:"class Box<T>" release\tmp\generics.xlir >nul
@@ -1210,12 +1365,12 @@ if errorlevel 1 (
 
 release\xl.exe ir test\cases\overloads.xl --emit release\tmp\overloads.xlir
 if errorlevel 1 exit /b 1
-findstr /C:"func pick(value: int) -> int" release\tmp\overloads.xlir >nul
+findstr /C:"func pick(value: int) as int" release\tmp\overloads.xlir >nul
 if errorlevel 1 (
     echo overloads.xlir missing int overload.
     exit /b 1
 )
-findstr /C:"func pick(value: string) -> string" release\tmp\overloads.xlir >nul
+findstr /C:"func pick(value: string) as string" release\tmp\overloads.xlir >nul
 if errorlevel 1 (
     echo overloads.xlir missing string overload.
     exit /b 1
@@ -1223,17 +1378,17 @@ if errorlevel 1 (
 
 release\xl.exe ir test\cases\overload_varargs.xl --emit release\tmp\overload_varargs.xlir
 if errorlevel 1 exit /b 1
-findstr /C:"func pick(value: string) -> int" release\tmp\overload_varargs.xlir >nul
+findstr /C:"func pick(value: string) as int" release\tmp\overload_varargs.xlir >nul
 if errorlevel 1 (
     echo overload_varargs.xlir missing fixed overload.
     exit /b 1
 )
-findstr /C:"func pick(value: string, arg: array<var>) -> int" release\tmp\overload_varargs.xlir >nul
+findstr /C:"func pick(value: string, arg: array<var>) as int" release\tmp\overload_varargs.xlir >nul
 if errorlevel 1 (
     echo overload_varargs.xlir missing array vararg overload.
     exit /b 1
 )
-findstr /C:"func options(path: string, arg: dict<var>) -> int" release\tmp\overload_varargs.xlir >nul
+findstr /C:"func options(path: string, arg: dict<var>) as int" release\tmp\overload_varargs.xlir >nul
 if errorlevel 1 (
     echo overload_varargs.xlir missing dict vararg overload.
     exit /b 1
@@ -1524,6 +1679,16 @@ if not errorlevel 1 (
     echo sem_class_unknown_field.xl should fail.
     exit /b 1
 )
+findstr /C:"unknown class/union field" release\tmp\sem_class_unknown_field.err.txt >nul
+if errorlevel 1 (
+    echo sem_class_unknown_field.err.txt missing unknown field diagnostic.
+    exit /b 1
+)
+findstr /C:"member assignment receiver must be class/union field, var or dynamic dict" release\tmp\sem_class_unknown_field.err.txt >nul
+if not errorlevel 1 (
+    echo sem_class_unknown_field.err.txt should not report assignment target cascade.
+    exit /b 1
+)
 findstr /C:"code generation error" release\tmp\sem_class_unknown_field.err.txt >nul
 if not errorlevel 1 (
     echo sem_class_unknown_field.err.txt regressed to generic cgen diagnostic.
@@ -1569,9 +1734,29 @@ if errorlevel 1 (
     echo sem_union_generic_inline_function_field.err.txt missing generic inline union field diagnostic.
     exit /b 1
 )
+release\xl.exe check test\cases\sem_assign_type_mismatch.xl >nul 2> release\tmp\sem_assign_type_mismatch.err.txt
+if not errorlevel 1 (
+    echo sem_assign_type_mismatch.xl should fail.
+    exit /b 1
+)
+findstr /C:"target int, value string" release\tmp\sem_assign_type_mismatch.err.txt >nul
+if errorlevel 1 (
+    echo sem_assign_type_mismatch.xl missing variable assignment type context.
+    exit /b 1
+)
 release\xl.exe check test\cases\sem_member_assign_type.xl >nul 2> release\tmp\sem_member_assign_type.err.txt
 if not errorlevel 1 (
     echo sem_member_assign_type.xl should fail.
+    exit /b 1
+)
+findstr /C:"assignment expression type does not match member/index target type" release\tmp\sem_member_assign_type.err.txt >nul
+if errorlevel 1 (
+    echo sem_member_assign_type.xl missing member assignment mismatch diagnostic.
+    exit /b 1
+)
+findstr /C:"target int, value string" release\tmp\sem_member_assign_type.err.txt >nul
+if errorlevel 1 (
+    echo sem_member_assign_type.xl missing member assignment type context.
     exit /b 1
 )
 release\xl.exe check test\cases\sem_nested_member_assign_type.xl >nul 2> release\tmp\sem_nested_member_assign_type.err.txt
@@ -1579,14 +1764,44 @@ if not errorlevel 1 (
     echo sem_nested_member_assign_type.xl should fail.
     exit /b 1
 )
+findstr /C:"assignment expression type does not match member/index target type" release\tmp\sem_nested_member_assign_type.err.txt >nul
+if errorlevel 1 (
+    echo sem_nested_member_assign_type.xl missing nested member assignment mismatch diagnostic.
+    exit /b 1
+)
+findstr /C:"target int, value string" release\tmp\sem_nested_member_assign_type.err.txt >nul
+if errorlevel 1 (
+    echo sem_nested_member_assign_type.xl missing nested member assignment type context.
+    exit /b 1
+)
 release\xl.exe check test\cases\sem_multi_member_assign_type.xl >nul 2> release\tmp\sem_multi_member_assign_type.err.txt
 if not errorlevel 1 (
     echo sem_multi_member_assign_type.xl should fail.
     exit /b 1
 )
+findstr /C:"multi-return assignment type does not match member/index target type" release\tmp\sem_multi_member_assign_type.err.txt >nul
+if errorlevel 1 (
+    echo sem_multi_member_assign_type.xl missing multi-return member assignment mismatch diagnostic.
+    exit /b 1
+)
+findstr /C:"target int, value string" release\tmp\sem_multi_member_assign_type.err.txt >nul
+if errorlevel 1 (
+    echo sem_multi_member_assign_type.xl missing multi-return member assignment type context.
+    exit /b 1
+)
 release\xl.exe check test\cases\sem_typed_array_assign_type.xl >nul 2> release\tmp\sem_typed_array_assign_type.err.txt
 if not errorlevel 1 (
     echo sem_typed_array_assign_type.xl should fail.
+    exit /b 1
+)
+findstr /C:"assignment expression type does not match member/index target type" release\tmp\sem_typed_array_assign_type.err.txt >nul
+if errorlevel 1 (
+    echo sem_typed_array_assign_type.err.txt missing typed array assignment mismatch diagnostic.
+    exit /b 1
+)
+findstr /C:"target int, value string" release\tmp\sem_typed_array_assign_type.err.txt >nul
+if errorlevel 1 (
+    echo sem_typed_array_assign_type.err.txt missing typed array assignment type context.
     exit /b 1
 )
 findstr /C:"code generation error" release\tmp\sem_typed_array_assign_type.err.txt >nul
@@ -1597,6 +1812,16 @@ if not errorlevel 1 (
 release\xl.exe check test\cases\sem_typed_dict_assign_type.xl >nul 2> release\tmp\sem_typed_dict_assign_type.err.txt
 if not errorlevel 1 (
     echo sem_typed_dict_assign_type.xl should fail.
+    exit /b 1
+)
+findstr /C:"assignment expression type does not match member/index target type" release\tmp\sem_typed_dict_assign_type.err.txt >nul
+if errorlevel 1 (
+    echo sem_typed_dict_assign_type.err.txt missing typed dict assignment mismatch diagnostic.
+    exit /b 1
+)
+findstr /C:"target int, value string" release\tmp\sem_typed_dict_assign_type.err.txt >nul
+if errorlevel 1 (
+    echo sem_typed_dict_assign_type.err.txt missing typed dict assignment type context.
     exit /b 1
 )
 findstr /C:"code generation error" release\tmp\sem_typed_dict_assign_type.err.txt >nul
@@ -1627,6 +1852,11 @@ if not errorlevel 1 (
 findstr /C:"string compound assignment operands must both be string" release\tmp\sem_typed_string_index_compound_type.err.txt >nul
 if errorlevel 1 (
     echo sem_typed_string_index_compound_type.xl missing expected diagnostic.
+    exit /b 1
+)
+findstr /C:"op +=, left string, right int" release\tmp\sem_typed_string_index_compound_type.err.txt >nul
+if errorlevel 1 (
+    echo sem_typed_string_index_compound_type.xl missing compound diagnostic context.
     exit /b 1
 )
 
@@ -1694,9 +1924,9 @@ if errorlevel 1 (
     echo cgen_containers.c missing array default init.
     exit /b 1
 )
-findstr /C:"xl6_xrt_array_varargs(3" release\tmp\cgen_containers.c >nul
+findstr /C:"xvoArrayAppendValue(values, __xl6_array_item_" release\tmp\cgen_containers.c >nul
 if errorlevel 1 (
-    echo cgen_containers.c missing array literal lowering.
+    echo cgen_containers.c missing statement-level array literal append.
     exit /b 1
 )
 findstr /C:"xl6_xrt_list_literal(2" release\tmp\cgen_containers.c >nul
@@ -1724,9 +1954,9 @@ if errorlevel 1 (
     echo cgen_containers.c missing explicit empty dict lowering.
     exit /b 1
 )
-findstr /C:"xvalue prefixedArray = xl6_xrt_array_varargs(2" release\tmp\cgen_containers.c >nul
+findstr /C:"xvoArrayAppendValue(prefixedArray, __xl6_array_item_" release\tmp\cgen_containers.c >nul
 if errorlevel 1 (
-    echo cgen_containers.c missing prefixed array expression fallback.
+    echo cgen_containers.c missing prefixed array statement-level append.
     exit /b 1
 )
 findstr /C:"xvalue prefixedDict = xl6_xrt_dict_varargs(1" release\tmp\cgen_containers.c >nul
@@ -1766,9 +1996,19 @@ if errorlevel 1 (
     echo cgen_static_typed_containers.c missing typed array create.
     exit /b 1
 )
-findstr /C:"xrtTypedArrayGet(values" release\tmp\cgen_static_typed_containers.c >nul
+findstr /C:"xl6_xrt_typed_require_item(xl6_xrt_typed_array_get_at(values" release\tmp\cgen_static_typed_containers.c >nul
 if errorlevel 1 (
-    echo cgen_static_typed_containers.c missing typed array index.
+    echo cgen_static_typed_containers.c missing guarded typed array index.
+    exit /b 1
+)
+findstr /C:"xl6_xrt_typed_require_item(xrtTypedListGet(names" release\tmp\cgen_static_typed_containers.c >nul
+if errorlevel 1 (
+    echo cgen_static_typed_containers.c missing guarded typed list index.
+    exit /b 1
+)
+findstr /C:"xl6_xrt_typed_require_item(xrtTypedDictGet(table" release\tmp\cgen_static_typed_containers.c >nul
+if errorlevel 1 (
+    echo cgen_static_typed_containers.c missing guarded typed dict index.
     exit /b 1
 )
 findstr /C:"xrtTypedListItemAt(" release\tmp\cgen_static_typed_containers.c >nul
@@ -1807,14 +2047,99 @@ if not errorlevel 1 (
     echo cgen_typed_container_for_in_returned.c regressed to xvalue array return.
     exit /b 1
 )
-findstr /C:"xrtTypedArrayGet(__xl6_typed_iter_" release\tmp\cgen_typed_container_for_in_returned.c >nul
+findstr /C:"static xtarray xl6_fnvalue_makeValues_invoke" release\tmp\cgen_typed_container_for_in_returned.c >nul
+if errorlevel 1 (
+    echo cgen_typed_container_for_in_returned.c missing typed function value invoke ABI.
+    exit /b 1
+)
+findstr /C:"XL6_Function __xl6_member_fn_stmt_" release\tmp\cgen_typed_container_for_in_returned.c >nul
+if errorlevel 1 (
+    echo cgen_typed_container_for_in_returned.c missing member function statement temp.
+    exit /b 1
+)
+findstr /C:"((xtarray (*)(void*))__xl6_member_fn_stmt_" release\tmp\cgen_typed_container_for_in_returned.c >nul
+if errorlevel 1 (
+    echo cgen_typed_container_for_in_returned.c missing typed member function invoke cast.
+    exit /b 1
+)
+findstr /C:"xl6_function_call_var(__xl6_member_fn_stmt_" release\tmp\cgen_typed_container_for_in_returned.c >nul
+if not errorlevel 1 (
+    echo cgen_typed_container_for_in_returned.c regressed to erased member typed container call.
+    exit /b 1
+)
+findstr /C:"(xvalue (*)(void*))__xl6_member_fn_stmt_" release\tmp\cgen_typed_container_for_in_returned.c >nul
+if not errorlevel 1 (
+    echo cgen_typed_container_for_in_returned.c regressed to xvalue member typed container invoke cast.
+    exit /b 1
+)
+findstr /C:"({ XL6_Function __xl6_member_fn_" release\tmp\cgen_typed_container_for_in_returned.c >nul
+if not errorlevel 1 (
+    echo cgen_typed_container_for_in_returned.c regressed to GNU member function expression block.
+    exit /b 1
+)
+findstr /C:"xl6_xrt_typed_array_get_at(__xl6_typed_iter_" release\tmp\cgen_typed_container_for_in_returned.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_for_in_returned.c missing typed array for-in lowering.
+    exit /b 1
+)
+findstr /C:"xrtTypedListItemAt(__xl6_typed_iter_" release\tmp\cgen_typed_container_for_in_returned.c >nul
+if errorlevel 1 (
+    echo cgen_typed_container_for_in_returned.c missing typed list for-in lowering.
+    exit /b 1
+)
+findstr /C:"xrtTypedSetItemAt(__xl6_typed_iter_" release\tmp\cgen_typed_container_for_in_returned.c >nul
+if errorlevel 1 (
+    echo cgen_typed_container_for_in_returned.c missing typed set for-in lowering.
     exit /b 1
 )
 findstr /C:"xrtTypedDictItemAt(__xl6_typed_iter_" release\tmp\cgen_typed_container_for_in_returned.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_for_in_returned.c missing typed dict for-in lowering.
+    exit /b 1
+)
+findstr /C:"void* __xl6_typed_item_" release\tmp\cgen_typed_container_for_in_returned.c >nul
+if errorlevel 1 (
+    echo cgen_typed_container_for_in_returned.c missing typed for-in item temp.
+    exit /b 1
+)
+findstr /C:"if (__xl6_typed_item_" release\tmp\cgen_typed_container_for_in_returned.c >nul
+if errorlevel 1 (
+    echo cgen_typed_container_for_in_returned.c missing typed for-in item guard.
+    exit /b 1
+)
+findstr /C:"*)xl6_xrt_typed_array_get_at(__xl6_typed_iter_" release\tmp\cgen_typed_container_for_in_returned.c >nul
+if not errorlevel 1 (
+    echo cgen_typed_container_for_in_returned.c should not directly dereference typed array for-in item.
+    exit /b 1
+)
+findstr /C:"*)xrtTypedListItemAt(__xl6_typed_iter_" release\tmp\cgen_typed_container_for_in_returned.c >nul
+if not errorlevel 1 (
+    echo cgen_typed_container_for_in_returned.c should not directly dereference typed list for-in item.
+    exit /b 1
+)
+findstr /C:"*)xrtTypedSetItemAt(__xl6_typed_iter_" release\tmp\cgen_typed_container_for_in_returned.c >nul
+if not errorlevel 1 (
+    echo cgen_typed_container_for_in_returned.c should not directly dereference typed set for-in item.
+    exit /b 1
+)
+findstr /C:"*)xrtTypedDictItemAt(__xl6_typed_iter_" release\tmp\cgen_typed_container_for_in_returned.c >nul
+if not errorlevel 1 (
+    echo cgen_typed_container_for_in_returned.c should not directly dereference typed dict for-in item.
+    exit /b 1
+)
+findstr /C:"char* __xl6_typed_key_copy_" release\tmp\cgen_typed_container_for_in_returned.c >nul
+if errorlevel 1 (
+    echo cgen_typed_container_for_in_returned.c missing typed dict key copy buffer.
+    exit /b 1
+)
+findstr /C:"memcpy(__xl6_typed_key_copy_" release\tmp\cgen_typed_container_for_in_returned.c >nul
+if errorlevel 1 (
+    echo cgen_typed_container_for_in_returned.c missing typed dict key length copy.
+    exit /b 1
+)
+findstr /C:"xrtFree(__xl6_typed_key_copy_" release\tmp\cgen_typed_container_for_in_returned.c >nul
+if errorlevel 1 (
+    echo cgen_typed_container_for_in_returned.c missing typed dict key cleanup.
     exit /b 1
 )
 findstr /C:"xrtTypedArrayDestroy(__xl6_typed_iter_" release\tmp\cgen_typed_container_for_in_returned.c >nul
@@ -1918,6 +2243,11 @@ if errorlevel 1 (
     echo cgen_typed_container_copy_assign.c missing typed dict in lowering.
     exit /b 1
 )
+findstr /C:"expect_i64(({ xvalue __xl6_in_values_" release\tmp\cgen_typed_container_copy_assign.c >nul
+if not errorlevel 1 (
+    echo cgen_typed_container_copy_assign.c should pre-evaluate typed container in arguments.
+    exit /b 1
+)
 "%XL6_TCC%" -Irelease\tcc\include_win %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_typed_container_copy_assign.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_typed_container_copy_assign.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_typed_container_copy_assign.exe
@@ -1967,9 +2297,9 @@ if errorlevel 1 (
     echo cgen_typed_container_functions.c missing typed function set create.
     exit /b 1
 )
-findstr /C:"xl6_function_from_callable(*(xrt_callable**)xrtTypedArrayGet" release\tmp\cgen_typed_container_functions.c >nul
+findstr /C:"xl6_function_from_callable(*(xrt_callable**)xl6_xrt_typed_require_item(xl6_xrt_typed_array_get_at" release\tmp\cgen_typed_container_functions.c >nul
 if errorlevel 1 (
-    echo cgen_typed_container_functions.c missing callable to function bridge.
+    echo cgen_typed_container_functions.c missing guarded callable to function bridge.
     exit /b 1
 )
 findstr /C:"xl6_function_call_var(first" release\tmp\cgen_typed_container_functions.c >nul
@@ -2051,9 +2381,19 @@ if errorlevel 1 (
     echo cgen_typed_container_function_field_objects.c missing class assignment retain path.
     exit /b 1
 )
-findstr /C:"XL6_Function __xl6_member_fn_" release\tmp\cgen_typed_container_function_field_objects.c >nul
+findstr /C:"xl6_function_call_var(fromArray.op" release\tmp\cgen_typed_container_function_field_objects.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_function_field_objects.c missing member function call lowering.
+    exit /b 1
+)
+findstr /C:"xl6_function_call_var(item.op" release\tmp\cgen_typed_container_function_field_objects.c >nul
+if errorlevel 1 (
+    echo cgen_typed_container_function_field_objects.c missing iteration member function call lowering.
+    exit /b 1
+)
+findstr /C:"({ XL6_Function __xl6_member_fn_" release\tmp\cgen_typed_container_function_field_objects.c >nul
+if not errorlevel 1 (
+    echo cgen_typed_container_function_field_objects.c should not use GNU statement expressions for member function calls.
     exit /b 1
 )
 findstr /C:"static xvalue xl6_function_call_var" release\tmp\cgen_typed_container_function_field_objects.c >nul
@@ -2078,7 +2418,7 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_typed_container_index_assign.xl --emit release\tmp\cgen_typed_container_index_assign.c
 if errorlevel 1 exit /b 1
-findstr /C:"xrtTypedArraySetValue(values" release\tmp\cgen_typed_container_index_assign.c >nul
+findstr /C:"xl6_xrt_typed_array_set_at(values" release\tmp\cgen_typed_container_index_assign.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_index_assign.c missing typed array index assignment.
     exit /b 1
@@ -2135,7 +2475,7 @@ if errorlevel 1 (
     echo cgen_typed_container_index_assign_objects_functions.c missing typed class dynamic dict assignment.
     exit /b 1
 )
-findstr /C:"xrtTypedArraySetValue(payloadArray" release\tmp\cgen_typed_container_index_assign_objects_functions.c >nul
+findstr /C:"xl6_xrt_typed_array_set_at(payloadArray" release\tmp\cgen_typed_container_index_assign_objects_functions.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_index_assign_objects_functions.c missing typed union array assignment.
     exit /b 1
@@ -2150,7 +2490,7 @@ if errorlevel 1 (
     echo cgen_typed_container_index_assign_objects_functions.c missing typed union dynamic dict assignment.
     exit /b 1
 )
-findstr /C:"xrtTypedArraySetValue(nativeArray" release\tmp\cgen_typed_container_index_assign_objects_functions.c >nul
+findstr /C:"xl6_xrt_typed_array_set_at(nativeArray" release\tmp\cgen_typed_container_index_assign_objects_functions.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_index_assign_objects_functions.c missing typed custom array assignment.
     exit /b 1
@@ -2170,7 +2510,7 @@ if errorlevel 1 (
     echo cgen_typed_container_index_assign_objects_functions.c missing typed custom dynamic dict assignment.
     exit /b 1
 )
-findstr /C:"xrtTypedArraySetValue(funcs" release\tmp\cgen_typed_container_index_assign_objects_functions.c >nul
+findstr /C:"xl6_xrt_typed_array_set_at(funcs" release\tmp\cgen_typed_container_index_assign_objects_functions.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_index_assign_objects_functions.c missing typed function array assignment.
     exit /b 1
@@ -2190,12 +2530,12 @@ if errorlevel 1 (
     echo cgen_typed_container_index_assign_objects_functions.c missing function boxing for typed assignment.
     exit /b 1
 )
-findstr /C:"xl6_function_from_callable(*(xrt_callable**)xrtTypedListGet(listedFuncs" release\tmp\cgen_typed_container_index_assign_objects_functions.c >nul
+findstr /C:"xl6_function_from_callable(*(xrt_callable**)xl6_xrt_typed_require_item(xrtTypedListGet(listedFuncs" release\tmp\cgen_typed_container_index_assign_objects_functions.c >nul
 if errorlevel 1 (
-    echo cgen_typed_container_index_assign_objects_functions.c missing typed function list get lowering.
+    echo cgen_typed_container_index_assign_objects_functions.c missing guarded typed function list get lowering.
     exit /b 1
 )
-findstr /C:"xrtTypedDictGet(table, xvoGetText(__xl6_dict_key_" release\tmp\cgen_typed_container_index_assign_objects_functions.c >nul
+findstr /C:"xl6_xrt_typed_dict_get_var_key(table" release\tmp\cgen_typed_container_index_assign_objects_functions.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_index_assign_objects_functions.c missing typed function dynamic dict get lowering.
     exit /b 1
@@ -2207,7 +2547,7 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_typed_container_multi_assign_index.xl --emit release\tmp\cgen_typed_container_multi_assign_index.c
 if errorlevel 1 exit /b 1
-findstr /C:"xrtTypedArraySetValue(values" release\tmp\cgen_typed_container_multi_assign_index.c >nul
+findstr /C:"xl6_xrt_typed_array_set_at(values" release\tmp\cgen_typed_container_multi_assign_index.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_multi_assign_index.c missing typed array multi assignment.
     exit /b 1
@@ -2252,7 +2592,7 @@ if errorlevel 1 (
     echo cgen_typed_container_multi_assign_index.c missing function dynamic dict multi assignment.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content 'release\tmp\cgen_typed_container_multi_assign_index.c' -Raw; $simple=[regex]::Matches($t,'xvalue (__xl6_multi_index_\d+) = (?:xvoCreateInt|xl6_box_XL_Class_Pair|xl6_box_XL_Union_Payload|xl6_function_to_xvalue)[^;]*;\s*if \(!xrtTyped(?:Array|List|Dict)SetValue\([^\n]*\1\)\) \{\s*xl6_runtime_fatal\(3\);\s*\}\s*xvoUnref\(\1\);',[Text.RegularExpressions.RegexOptions]::Singleline); if($simple.Count -lt 6){exit 1}; if($t -notmatch 'xvalue (__xl6_multi_index_\d+) = xl6_box_XL_Custom_Native\(__xl6_multi_[^;]+;[\s\S]*?xrtTypedDictSetValue\(natives,[\s\S]*?\1[\s\S]*?xvoUnref\(\1\);'){exit 2}; if($t -notmatch 'xvalue (__xl6_multi_index_\d+) = xl6_function_to_xvalue\(__xl6_multi_[^;]+;[\s\S]*?xrtTypedDictSetValue\(table,[\s\S]*?\1[\s\S]*?xvoUnref\(\1\);'){exit 3}"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content 'release\tmp\cgen_typed_container_multi_assign_index.c' -Raw; $simple=[regex]::Matches($t,'xvalue (__xl6_multi_index_\d+) = (?:xvoCreateInt|xl6_box_XL_Class_Pair|xl6_box_XL_Union_Payload|xl6_function_to_xvalue)[^;]*;\s*if \(!(?:xl6_xrt_typed_array_set_at|xrtTyped(?:List|Dict)SetValue)\([^\n]*\1\)\) \{\s*xl6_runtime_fatal\(3\);\s*\}\s*xvoUnref\(\1\);',[Text.RegularExpressions.RegexOptions]::Singleline); if($simple.Count -lt 6){exit 1}; if($t -notmatch 'xvalue (__xl6_multi_index_\d+) = xl6_box_XL_Custom_Native\(__xl6_multi_[^;]+;[\s\S]*?xrtTypedDictSetValue\(natives,[\s\S]*?\1[\s\S]*?xvoUnref\(\1\);'){exit 2}; if($t -notmatch 'xvalue (__xl6_multi_index_\d+) = xl6_function_to_xvalue\(__xl6_multi_[^;]+;[\s\S]*?xrtTypedDictSetValue\(table,[\s\S]*?\1[\s\S]*?xvoUnref\(\1\);'){exit 3}"
 if errorlevel 1 (
     echo cgen_typed_container_multi_assign_index.c missing multi-return typed index temp cleanup ordering.
     exit /b 1
@@ -2467,9 +2807,19 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_auto_expressions.xl --emit release\tmp\cgen_auto_expressions.c
 if errorlevel 1 exit /b 1
-findstr /C:"xvalue dynSum =" release\tmp\cgen_auto_expressions.c >nul
+findstr /C:"xvalue dynSum = 0;" release\tmp\cgen_auto_expressions.c >nul
 if errorlevel 1 (
     echo cgen_auto_expressions.c missing auto dynamic expression lowering.
+    exit /b 1
+)
+findstr /C:"dynSum = xl6_xrt_basic_binary(__xl6_bin_left_" release\tmp\cgen_auto_expressions.c >nul
+if errorlevel 1 (
+    echo cgen_auto_expressions.c missing auto dynamic binary statement assignment.
+    exit /b 1
+)
+findstr /C:"xvalue dynSum = ({ xvalue __xl6_bin_left_" release\tmp\cgen_auto_expressions.c >nul
+if not errorlevel 1 (
+    echo cgen_auto_expressions.c should not emit auto dynamic binary declaration statement expressions.
     exit /b 1
 )
 findstr /C:"long long sum =" release\tmp\cgen_auto_expressions.c >nul
@@ -2491,11 +2841,302 @@ release\xl.exe check test\cases\cgen_auto_inference_matrix.xl
 if errorlevel 1 exit /b 1
 release\xl.exe cgen test\cases\cgen_auto_inference_matrix.xl --emit release\tmp\cgen_auto_inference_matrix.c
 if errorlevel 1 exit /b 1
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content -Raw -Encoding UTF8 'release\tmp\cgen_auto_inference_matrix.c'; $checks=@('long long literalInt =','double literalFloat =','int literalBool =','const char* literalString =','xvalue dynamicArray =','xvalue dynamicList =','xvalue dynamicDict =','long long typedArrayItem = (*(long long*)xrtTypedArrayGet(typedArray','const char* typedListItem = (*(const char**)xrtTypedListGet(typedList','long long typedDictItem = (*(long long*)xrtTypedDictGet(typedDict','xvalue missingTypedItem = xl6_xrt_typed_box_or_null(xrtTypeInt(), xrtTypedArrayGet(typedArray','xvalue dynamicArrayItem = xl6_xrt_retain(xvoArrayGetValue(dynamicArray','xvalue dynamicListItem = xl6_xrt_retain(xvoListGetValue(dynamicList','xvalue dynamicDictItem = xl6_xrt_retain(xvoTableGetValue(dynamicDict','XL_Class_MatrixBox box = {0};','box = makeBox(7LL,','long long fieldValue = box.value;','const char* fieldText = box.label;','long long methodValue = xl_class_MatrixBox__getValue(&box);','XL6_Function fn = makeAdder(10LL);','long long fnResult =','long long callResult = add(fieldValue, methodValue);','xfuture* futureValue = doubleAsync(6LL);','long long awaitedValue =','xchannel autoCh = xrtChannelCreate(1LL);','int sent = xl6_channel_send_value(autoCh','int received = xl6_channel_recv_into(autoCh'); foreach($p in $checks){ if($t.IndexOf($p) -lt 0){ Write-Host ('cgen_auto_inference_matrix.c missing '+$p); exit 1 } }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content -Raw -Encoding UTF8 'release\tmp\cgen_auto_inference_matrix.c'; $checks=@('long long literalInt =','double literalFloat =','int literalBool =','const char* literalString =','xvalue dynamicArray =','xvalue dynamicList =','xvalue dynamicDict =','long long typedArrayItem = (*(long long*)xl6_xrt_typed_require_item(xl6_xrt_typed_array_get_at(typedArray','const char* typedListItem = (*(const char**)xl6_xrt_typed_require_item(xrtTypedListGet(typedList','long long typedDictItem = (*(long long*)xl6_xrt_typed_require_item(xrtTypedDictGet(typedDict','xvalue missingTypedItem = xl6_xrt_typed_box_or_null(xrtTypeInt(), xl6_xrt_typed_array_get_at(typedArray','xvalue dynamicArrayItem = xl6_xrt_retain(xvoArrayGetValue(dynamicArray','xvalue dynamicListItem = xl6_xrt_retain(xvoListGetValue(dynamicList','xvalue dynamicDictItem = xl6_xrt_retain(xvoTableGetValue(dynamicDict','XL_Class_MatrixBox box = {0};','box = makeBox(7LL,','long long fieldValue = box.value;','const char* fieldText = box.label;','long long methodValue = xl_class_MatrixBox__getValue(&box);','XL6_Function fn = makeAdder(10LL);','long long fnResult =','long long callResult = add(fieldValue, methodValue);','xfuture* futureValue = doubleAsync(6LL);','long long awaitedValue =','xchannel autoCh = xl6_channel_require_handle(xrtChannelCreate(1LL)','int sent = xl6_channel_send_value(autoCh','int received = xl6_channel_recv_into(autoCh'); foreach($p in $checks){ if($t.IndexOf($p) -lt 0){ Write-Host ('cgen_auto_inference_matrix.c missing '+$p); exit 1 } }"
 if errorlevel 1 exit /b 1
 release\xl.exe build test\cases\cgen_auto_inference_matrix.xl test\cases\cgen_class_host.c -o release\tmp\cgen_auto_inference_matrix.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_auto_inference_matrix.exe
+if errorlevel 1 exit /b 1
+
+release\xl.exe check test\cases\cgen_call_var_arg_exprs.xl
+if errorlevel 1 exit /b 1
+release\xl.exe cgen test\cases\cgen_call_var_arg_exprs.xl --emit release\tmp\cgen_call_var_arg_exprs.c
+if errorlevel 1 exit /b 1
+findstr /C:"xvalue __xl6_call_arg_" release\tmp\cgen_call_var_arg_exprs.c >nul
+if errorlevel 1 (
+    echo cgen_call_var_arg_exprs.c missing var call argument temporary.
+    exit /b 1
+)
+findstr /C:"record_xvalue(__xl6_call_arg_" release\tmp\cgen_call_var_arg_exprs.c >nul
+if errorlevel 1 (
+    echo cgen_call_var_arg_exprs.c missing call argument replacement.
+    exit /b 1
+)
+findstr /C:"__xl6_call_arg_" release\tmp\cgen_call_var_arg_exprs.c | findstr /C:"xl6_xrt_basic_binary(__xl6_bin_left_" >nul
+if errorlevel 1 (
+    echo cgen_call_var_arg_exprs.c missing var argument binary lowering.
+    exit /b 1
+)
+findstr /C:"xvalue __xl6_nc_" release\tmp\cgen_call_var_arg_exprs.c >nul
+if errorlevel 1 (
+    echo cgen_call_var_arg_exprs.c missing var argument null-coalesce temporary.
+    exit /b 1
+)
+findstr /C:"__xl6_call_arg_" release\tmp\cgen_call_var_arg_exprs.c | findstr /C:"makeValue(7LL);" >nul
+if errorlevel 1 (
+    echo cgen_call_var_arg_exprs.c missing var argument conditional branch.
+    exit /b 1
+)
+findstr /C:"({" release\tmp\cgen_call_var_arg_exprs.c >nul
+if not errorlevel 1 (
+    echo cgen_call_var_arg_exprs.c should not emit statement expressions.
+    exit /b 1
+)
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_call_var_arg_exprs.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_call_var_arg_exprs.exe
+if errorlevel 1 exit /b 1
+release\tmp\cgen_call_var_arg_exprs.exe
+if errorlevel 1 exit /b 1
+
+release\xl.exe check test\cases\cgen_var_return_exprs.xl
+if errorlevel 1 exit /b 1
+release\xl.exe cgen test\cases\cgen_var_return_exprs.xl --emit release\tmp\cgen_var_return_exprs.c
+if errorlevel 1 exit /b 1
+findstr /C:"xvalue __xl6_return_" release\tmp\cgen_var_return_exprs.c >nul
+if errorlevel 1 (
+    echo cgen_var_return_exprs.c missing xvalue return temporary.
+    exit /b 1
+)
+findstr /C:"int __xl6_return_" release\tmp\cgen_var_return_exprs.c >nul
+if errorlevel 1 (
+    echo cgen_var_return_exprs.c missing scalar return temporary.
+    exit /b 1
+)
+findstr /C:"__xl6_return_" release\tmp\cgen_var_return_exprs.c | findstr /C:"xl6_xrt_basic_binary(__xl6_bin_left_" >nul
+if errorlevel 1 (
+    echo cgen_var_return_exprs.c missing statement-level return binary lowering.
+    exit /b 1
+)
+findstr /C:"xvalue __xl6_nested_value_" release\tmp\cgen_var_return_exprs.c >nul
+if errorlevel 1 (
+    echo cgen_var_return_exprs.c missing nested xvalue statement temporary.
+    exit /b 1
+)
+findstr /C:"xvalue __xl6_return_value_" release\tmp\cgen_var_return_exprs.c >nul
+if errorlevel 1 (
+    echo cgen_var_return_exprs.c missing multi-return xvalue field temporary.
+    exit /b 1
+)
+findstr /C:"value0 = __xl6_return_value_" release\tmp\cgen_var_return_exprs.c >nul
+if errorlevel 1 (
+    echo cgen_var_return_exprs.c missing multi-return first field handoff.
+    exit /b 1
+)
+findstr /C:"value1 = __xl6_return_value_" release\tmp\cgen_var_return_exprs.c >nul
+if errorlevel 1 (
+    echo cgen_var_return_exprs.c missing multi-return second field handoff.
+    exit /b 1
+)
+findstr /C:"__xl6_return_value_" release\tmp\cgen_var_return_exprs.c | findstr /C:"xl6_xrt_basic_binary(__xl6_bin_left_" >nul
+if errorlevel 1 (
+    echo cgen_var_return_exprs.c missing multi-return dynamic binary lowering.
+    exit /b 1
+)
+findstr /C:"__xl6_return_value_" release\tmp\cgen_var_return_exprs.c | findstr /C:"makeValue(14LL);" >nul
+if errorlevel 1 (
+    echo cgen_var_return_exprs.c missing multi-return conditional branch lowering.
+    exit /b 1
+)
+findstr /C:"__xl6_return_value_" release\tmp\cgen_var_return_exprs.c | findstr /C:"makeValue(15LL);" >nul
+if errorlevel 1 (
+    echo cgen_var_return_exprs.c missing multi-return null-coalesce fallback lowering.
+    exit /b 1
+)
+findstr /C:"__xl6_return_field_" release\tmp\cgen_var_return_exprs.c >nul
+if errorlevel 1 (
+    echo cgen_var_return_exprs.c missing multi-return scalar field temporary.
+    exit /b 1
+)
+findstr /C:"value0 = __xl6_return_field_" release\tmp\cgen_var_return_exprs.c >nul
+if errorlevel 1 (
+    echo cgen_var_return_exprs.c missing multi-return first scalar field handoff.
+    exit /b 1
+)
+findstr /C:"value1 = __xl6_return_field_" release\tmp\cgen_var_return_exprs.c >nul
+if errorlevel 1 (
+    echo cgen_var_return_exprs.c missing multi-return second scalar field handoff.
+    exit /b 1
+)
+findstr /C:"__xl6_return_field_" release\tmp\cgen_var_return_exprs.c | findstr /C:"__xl6_cmp_result_" >nul
+if errorlevel 1 (
+    echo cgen_var_return_exprs.c missing multi-return scalar compare lowering.
+    exit /b 1
+)
+findstr /C:"__xl6_return_field_" release\tmp\cgen_var_return_exprs.c | findstr /C:"__xl6_approx_result_" >nul
+if errorlevel 1 (
+    echo cgen_var_return_exprs.c missing multi-return scalar approximate lowering.
+    exit /b 1
+)
+findstr /C:"__xl6_return_field_" release\tmp\cgen_var_return_exprs.c | findstr /C:"xl6_xrt_value_truthy(__xl6_logic_right_" >nul
+if errorlevel 1 (
+    echo cgen_var_return_exprs.c missing multi-return scalar logical lowering.
+    exit /b 1
+)
+findstr /C:"__xl6_return_field_" release\tmp\cgen_var_return_exprs.c | findstr /C:"xl6_xrt_value_to_i64_release(__xl6_call_value_" >nul
+if errorlevel 1 (
+    echo cgen_var_return_exprs.c missing multi-return scalar conversion lowering.
+    exit /b 1
+)
+findstr /C:"__xl6_return_" release\tmp\cgen_var_return_exprs.c | findstr /C:"__xl6_cmp_result_" >nul
+if errorlevel 1 (
+    echo cgen_var_return_exprs.c missing statement-level return compare lowering.
+    exit /b 1
+)
+findstr /C:"__xl6_return_" release\tmp\cgen_var_return_exprs.c | findstr /C:"__xl6_approx_result_" >nul
+if errorlevel 1 (
+    echo cgen_var_return_exprs.c missing statement-level return approximate lowering.
+    exit /b 1
+)
+findstr /C:"__xl6_return_" release\tmp\cgen_var_return_exprs.c | findstr /C:"xl6_xrt_value_truthy(__xl6_logic_right_" >nul
+if errorlevel 1 (
+    echo cgen_var_return_exprs.c missing statement-level return logical lowering.
+    exit /b 1
+)
+findstr /C:"__xl6_return_" release\tmp\cgen_var_return_exprs.c | findstr /C:"makeValue(40LL);" >nul
+if errorlevel 1 (
+    echo cgen_var_return_exprs.c missing statement-level return conditional branch.
+    exit /b 1
+)
+findstr /C:"__xl6_return_" release\tmp\cgen_var_return_exprs.c | findstr /C:"({" >nul
+if not errorlevel 1 (
+    echo cgen_var_return_exprs.c should not emit return statement expressions.
+    exit /b 1
+)
+findstr /C:"({" release\tmp\cgen_var_return_exprs.c >nul
+if not errorlevel 1 (
+    echo cgen_var_return_exprs.c should not emit any statement expressions.
+    exit /b 1
+)
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_var_return_exprs.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_var_return_exprs.exe
+if errorlevel 1 exit /b 1
+release\tmp\cgen_var_return_exprs.exe
+if errorlevel 1 exit /b 1
+
+release\xl.exe check test\cases\cgen_expr_statement_discard.xl
+if errorlevel 1 exit /b 1
+release\xl.exe cgen test\cases\cgen_expr_statement_discard.xl --emit release\tmp\cgen_expr_statement_discard.c
+if errorlevel 1 exit /b 1
+findstr /C:"xvalue __xl6_expr_stmt_" release\tmp\cgen_expr_statement_discard.c >nul
+if errorlevel 1 (
+    echo cgen_expr_statement_discard.c missing xvalue expression statement temporary.
+    exit /b 1
+)
+findstr /C:"int __xl6_expr_stmt_" release\tmp\cgen_expr_statement_discard.c >nul
+if errorlevel 1 (
+    echo cgen_expr_statement_discard.c missing scalar expression statement temporary.
+    exit /b 1
+)
+findstr /C:"xvoUnref(__xl6_expr_stmt_" release\tmp\cgen_expr_statement_discard.c >nul
+if errorlevel 1 (
+    echo cgen_expr_statement_discard.c missing discarded xvalue expression cleanup.
+    exit /b 1
+)
+findstr /C:"__xl6_expr_stmt_" release\tmp\cgen_expr_statement_discard.c | findstr /C:"xl6_xrt_basic_binary(__xl6_bin_left_" >nul
+if errorlevel 1 (
+    echo cgen_expr_statement_discard.c missing statement-level binary discard lowering.
+    exit /b 1
+)
+findstr /C:"__xl6_expr_stmt_" release\tmp\cgen_expr_statement_discard.c | findstr /C:"__xl6_cmp_result_" >nul
+if errorlevel 1 (
+    echo cgen_expr_statement_discard.c missing statement-level compare discard lowering.
+    exit /b 1
+)
+findstr /C:"__xl6_expr_stmt_" release\tmp\cgen_expr_statement_discard.c | findstr /C:"__xl6_approx_result_" >nul
+if errorlevel 1 (
+    echo cgen_expr_statement_discard.c missing statement-level approximate discard lowering.
+    exit /b 1
+)
+findstr /C:"__xl6_expr_stmt_" release\tmp\cgen_expr_statement_discard.c | findstr /C:"xl6_xrt_value_truthy(__xl6_logic_right_" >nul
+if errorlevel 1 (
+    echo cgen_expr_statement_discard.c missing statement-level logical discard lowering.
+    exit /b 1
+)
+findstr /C:"__xl6_expr_stmt_" release\tmp\cgen_expr_statement_discard.c | findstr /C:"xl6_xrt_array_contains(__xl6_in_values_" >nul
+if errorlevel 1 (
+    echo cgen_expr_statement_discard.c missing statement-level membership discard lowering.
+    exit /b 1
+)
+findstr /C:"__xl6_expr_stmt_" release\tmp\cgen_expr_statement_discard.c | findstr /C:"({" >nul
+if not errorlevel 1 (
+    echo cgen_expr_statement_discard.c should not emit expression statement statement-expressions.
+    exit /b 1
+)
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_expr_statement_discard.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_expr_statement_discard.exe
+if errorlevel 1 exit /b 1
+release\tmp\cgen_expr_statement_discard.exe
+if errorlevel 1 exit /b 1
+
+release\xl.exe check test\cases\cgen_array_literal_expr_elements.xl
+if errorlevel 1 exit /b 1
+release\xl.exe cgen test\cases\cgen_array_literal_expr_elements.xl --emit release\tmp\cgen_array_literal_expr_elements.c
+if errorlevel 1 exit /b 1
+findstr /C:"xvalue __xl6_return_" release\tmp\cgen_array_literal_expr_elements.c | findstr /C:"xvoCreateArray()" >nul
+if errorlevel 1 (
+    echo cgen_array_literal_expr_elements.c missing statement-level array literal return creation.
+    exit /b 1
+)
+findstr /C:"xvalue declared = xvoCreateArray();" release\tmp\cgen_array_literal_expr_elements.c >nul
+if errorlevel 1 (
+    echo cgen_array_literal_expr_elements.c missing statement-level array literal declaration creation.
+    exit /b 1
+)
+findstr /C:"xvalue __xl6_expr_stmt_" release\tmp\cgen_array_literal_expr_elements.c | findstr /C:"xvoCreateArray()" >nul
+if errorlevel 1 (
+    echo cgen_array_literal_expr_elements.c missing statement-level array literal expression statement creation.
+    exit /b 1
+)
+findstr /C:"xvalue __xl6_array_item_" release\tmp\cgen_array_literal_expr_elements.c >nul
+if errorlevel 1 (
+    echo cgen_array_literal_expr_elements.c missing array literal item temporaries.
+    exit /b 1
+)
+findstr /C:"xvoArrayAppendValue(__xl6_return_" release\tmp\cgen_array_literal_expr_elements.c >nul
+if errorlevel 1 (
+    echo cgen_array_literal_expr_elements.c missing array literal return append.
+    exit /b 1
+)
+findstr /C:"xvoArrayAppendValue(declared" release\tmp\cgen_array_literal_expr_elements.c >nul
+if errorlevel 1 (
+    echo cgen_array_literal_expr_elements.c missing array literal declaration append.
+    exit /b 1
+)
+findstr /C:"xvoArrayAppendValue(prefixed" release\tmp\cgen_array_literal_expr_elements.c >nul
+if errorlevel 1 (
+    echo cgen_array_literal_expr_elements.c missing prefixed array declaration append.
+    exit /b 1
+)
+findstr /C:"xvoArrayAppendValue(__xl6_expr_stmt_" release\tmp\cgen_array_literal_expr_elements.c >nul
+if errorlevel 1 (
+    echo cgen_array_literal_expr_elements.c missing array literal expression statement append.
+    exit /b 1
+)
+findstr /C:"__xl6_array_item_" release\tmp\cgen_array_literal_expr_elements.c | findstr /C:"xl6_xrt_basic_binary(__xl6_bin_left_" >nul
+if errorlevel 1 (
+    echo cgen_array_literal_expr_elements.c missing array literal item binary lowering.
+    exit /b 1
+)
+findstr /C:"xl6_xrt_array_varargs(3, ({" release\tmp\cgen_array_literal_expr_elements.c >nul
+if not errorlevel 1 (
+    echo cgen_array_literal_expr_elements.c should not emit array varargs with statement expressions.
+    exit /b 1
+)
+findstr /C:"xl6_xrt_array_varargs(2, ({" release\tmp\cgen_array_literal_expr_elements.c >nul
+if not errorlevel 1 (
+    echo cgen_array_literal_expr_elements.c should not emit prefixed array varargs with statement expressions.
+    exit /b 1
+)
+findstr /C:"({ xvalue __xl6_bin_left_" release\tmp\cgen_array_literal_expr_elements.c >nul
+if not errorlevel 1 (
+    echo cgen_array_literal_expr_elements.c should pre-evaluate array literal items.
+    exit /b 1
+)
+findstr /C:"runtime_type_desc_" release\tmp\cgen_array_literal_expr_elements.c >nul
+if not errorlevel 1 (
+    echo cgen_array_literal_expr_elements.c should not bind dynamic array<var> runtime descriptors.
+    exit /b 1
+)
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_array_literal_expr_elements.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_array_literal_expr_elements.exe
+if errorlevel 1 exit /b 1
+release\tmp\cgen_array_literal_expr_elements.exe
 if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_var_values.xl --emit release\tmp\cgen_var_values.c
@@ -2560,19 +3201,269 @@ if errorlevel 1 (
     echo cgen_var_values.c missing dynamic value arithmetic cleanup.
     exit /b 1
 )
-findstr /C:"xvalue __xl6_unary_value_" release\tmp\cgen_var_values.c >nul
+findstr /C:"xvalue sumNumber = 0;" release\tmp\cgen_var_values.c >nul
 if errorlevel 1 (
-    echo cgen_var_values.c missing dynamic unary temporaries.
+    echo cgen_var_values.c missing statement-level sumNumber dynamic arithmetic declaration.
     exit /b 1
 )
-findstr /C:"xl6_xrt_basic_unary(__xl6_unary_value_" release\tmp\cgen_var_values.c >nul
+findstr /C:"sumNumber = xl6_xrt_basic_binary(__xl6_bin_left_" release\tmp\cgen_var_values.c >nul
 if errorlevel 1 (
-    echo cgen_var_values.c missing dynamic unary helper.
+    echo cgen_var_values.c missing statement-level sumNumber dynamic arithmetic assignment.
     exit /b 1
 )
-findstr /C:"xl6_xrt_value_truthy(__xl6_not_value_" release\tmp\cgen_var_values.c >nul
+findstr /C:"xvalue sumNumber = ({ xvalue __xl6_bin_left_" release\tmp\cgen_var_values.c >nul
+if not errorlevel 1 (
+    echo cgen_var_values.c should not emit sumNumber dynamic arithmetic declaration statement expressions.
+    exit /b 1
+)
+findstr /C:"xvalue joinedText = 0;" release\tmp\cgen_var_values.c >nul
 if errorlevel 1 (
-    echo cgen_var_values.c missing dynamic truthy helper.
+    echo cgen_var_values.c missing statement-level joinedText dynamic arithmetic declaration.
+    exit /b 1
+)
+findstr /C:"joinedText = xl6_xrt_basic_binary(__xl6_bin_left_" release\tmp\cgen_var_values.c >nul
+if errorlevel 1 (
+    echo cgen_var_values.c missing statement-level joinedText dynamic arithmetic assignment.
+    exit /b 1
+)
+findstr /C:"xvalue joinedText = ({ xvalue __xl6_bin_left_" release\tmp\cgen_var_values.c >nul
+if not errorlevel 1 (
+    echo cgen_var_values.c should not emit joinedText dynamic arithmetic declaration statement expressions.
+    exit /b 1
+)
+findstr /C:"xvalue mixedPlus = 0;" release\tmp\cgen_var_values.c >nul
+if errorlevel 1 (
+    echo cgen_var_values.c missing statement-level mixedPlus dynamic arithmetic declaration.
+    exit /b 1
+)
+findstr /C:"mixedPlus = xl6_xrt_basic_binary(__xl6_bin_left_" release\tmp\cgen_var_values.c >nul
+if errorlevel 1 (
+    echo cgen_var_values.c missing statement-level mixedPlus dynamic arithmetic assignment.
+    exit /b 1
+)
+findstr /C:"xvalue mixedPlus = ({ xvalue __xl6_bin_left_" release\tmp\cgen_var_values.c >nul
+if not errorlevel 1 (
+    echo cgen_var_values.c should not emit mixedPlus dynamic arithmetic declaration statement expressions.
+    exit /b 1
+)
+findstr /C:"xvalue conditionalPick = 0;" release\tmp\cgen_var_values.c >nul
+if errorlevel 1 (
+    echo cgen_var_values.c missing statement-level conditionalPick declaration.
+    exit /b 1
+)
+findstr /C:"conditionalPick = xl6_xrt_retain(lowNumber);" release\tmp\cgen_var_values.c >nul
+if errorlevel 1 (
+    echo cgen_var_values.c missing statement-level conditionalPick assignment.
+    exit /b 1
+)
+findstr /C:"xvalue conditionalPick = ({ xvalue __xl6_cond_result_" release\tmp\cgen_var_values.c >nul
+if not errorlevel 1 (
+    echo cgen_var_values.c should not emit conditionalPick declaration statement expressions.
+    exit /b 1
+)
+findstr /C:"xvalue conditionalTemp = 0;" release\tmp\cgen_var_values.c >nul
+if errorlevel 1 (
+    echo cgen_var_values.c missing statement-level conditionalTemp declaration.
+    exit /b 1
+)
+findstr /C:"conditionalTemp = makeValue(40LL);" release\tmp\cgen_var_values.c >nul
+if errorlevel 1 (
+    echo cgen_var_values.c missing statement-level conditionalTemp assignment.
+    exit /b 1
+)
+findstr /C:"xvalue conditionalTemp = ({ xvalue __xl6_cond_result_" release\tmp\cgen_var_values.c >nul
+if not errorlevel 1 (
+    echo cgen_var_values.c should not emit conditionalTemp declaration statement expressions.
+    exit /b 1
+)
+findstr /C:"xvalue mixedAuto = 0;" release\tmp\cgen_var_values.c >nul
+if errorlevel 1 (
+    echo cgen_var_values.c missing statement-level mixedAuto declaration.
+    exit /b 1
+)
+findstr /C:"mixedAuto = xvoCreateInt((long long)(12LL));" release\tmp\cgen_var_values.c >nul
+if errorlevel 1 (
+    echo cgen_var_values.c missing statement-level mixedAuto assignment.
+    exit /b 1
+)
+findstr /C:"xvalue mixedAuto = ({ xvalue __xl6_cond_result_" release\tmp\cgen_var_values.c >nul
+if not errorlevel 1 (
+    echo cgen_var_values.c should not emit mixedAuto declaration statement expressions.
+    exit /b 1
+)
+findstr /C:"xvalue mixedConditional = 0;" release\tmp\cgen_var_values.c >nul
+if errorlevel 1 (
+    echo cgen_var_values.c missing statement-level mixedConditional declaration.
+    exit /b 1
+)
+findstr /C:"mixedConditional = xvoCreateText((void*)(" release\tmp\cgen_var_values.c >nul
+if errorlevel 1 (
+    echo cgen_var_values.c missing statement-level mixedConditional assignment.
+    exit /b 1
+)
+findstr /C:"xvalue mixedConditional = ({ xvalue __xl6_cond_result_" release\tmp\cgen_var_values.c >nul
+if not errorlevel 1 (
+    echo cgen_var_values.c should not emit mixedConditional declaration statement expressions.
+    exit /b 1
+)
+findstr /C:"int compareDecl = 0;" release\tmp\cgen_var_values.c >nul
+if errorlevel 1 (
+    echo cgen_var_values.c missing statement-level compareDecl declaration.
+    exit /b 1
+)
+findstr /C:"compareDecl = (int)(__xl6_cmp_result_" release\tmp\cgen_var_values.c >nul
+if errorlevel 1 (
+    echo cgen_var_values.c missing statement-level compareDecl assignment.
+    exit /b 1
+)
+findstr /C:"int compareDecl = ({ xvalue __xl6_cmp_left_" release\tmp\cgen_var_values.c >nul
+if not errorlevel 1 (
+    echo cgen_var_values.c should not emit compareDecl declaration statement expressions.
+    exit /b 1
+)
+findstr /C:"long long orderDecl = 0;" release\tmp\cgen_var_values.c >nul
+if errorlevel 1 (
+    echo cgen_var_values.c missing statement-level orderDecl declaration.
+    exit /b 1
+)
+findstr /C:"orderDecl = (long long)(__xl6_cmp_result_" release\tmp\cgen_var_values.c >nul
+if errorlevel 1 (
+    echo cgen_var_values.c missing statement-level orderDecl assignment.
+    exit /b 1
+)
+findstr /C:"long long orderDecl = ({ xvalue __xl6_cmp_left_" release\tmp\cgen_var_values.c >nul
+if not errorlevel 1 (
+    echo cgen_var_values.c should not emit orderDecl declaration statement expressions.
+    exit /b 1
+)
+findstr /C:"int autoCompareDecl = 0;" release\tmp\cgen_var_values.c >nul
+if errorlevel 1 (
+    echo cgen_var_values.c missing statement-level autoCompareDecl declaration.
+    exit /b 1
+)
+findstr /C:"autoCompareDecl = (int)(__xl6_cmp_result_" release\tmp\cgen_var_values.c >nul
+if errorlevel 1 (
+    echo cgen_var_values.c missing statement-level autoCompareDecl assignment.
+    exit /b 1
+)
+findstr /C:"int autoCompareDecl = ({ xvalue __xl6_cmp_left_" release\tmp\cgen_var_values.c >nul
+if not errorlevel 1 (
+    echo cgen_var_values.c should not emit autoCompareDecl declaration statement expressions.
+    exit /b 1
+)
+findstr /C:"int approxDecl = 0;" release\tmp\cgen_var_values.c >nul
+if errorlevel 1 (
+    echo cgen_var_values.c missing statement-level approxDecl declaration.
+    exit /b 1
+)
+findstr /C:"approxDecl = (int)(__xl6_approx_result_" release\tmp\cgen_var_values.c >nul
+if errorlevel 1 (
+    echo cgen_var_values.c missing statement-level approxDecl assignment.
+    exit /b 1
+)
+findstr /C:"int approxDecl = ({ xvalue __xl6_approx_left_" release\tmp\cgen_var_values.c >nul
+if not errorlevel 1 (
+    echo cgen_var_values.c should not emit approxDecl declaration statement expressions.
+    exit /b 1
+)
+findstr /C:"int autoApproxDecl = 0;" release\tmp\cgen_var_values.c >nul
+if errorlevel 1 (
+    echo cgen_var_values.c missing statement-level autoApproxDecl declaration.
+    exit /b 1
+)
+findstr /C:"autoApproxDecl = (int)(__xl6_approx_result_" release\tmp\cgen_var_values.c >nul
+if errorlevel 1 (
+    echo cgen_var_values.c missing statement-level autoApproxDecl assignment.
+    exit /b 1
+)
+findstr /C:"int autoApproxDecl = ({ xvalue __xl6_approx_left_" release\tmp\cgen_var_values.c >nul
+if not errorlevel 1 (
+    echo cgen_var_values.c should not emit autoApproxDecl declaration statement expressions.
+    exit /b 1
+)
+findstr /R /C:"__xl6_assign_[0-9][0-9]* = xl6_xrt_basic_binary(__xl6_bin_left_" release\tmp\cgen_var_values.c >nul
+if errorlevel 1 (
+    echo cgen_var_values.c missing statement-level assignBinary dynamic arithmetic assignment.
+    exit /b 1
+)
+findstr /C:"assignBinary = __xl6_assign_" release\tmp\cgen_var_values.c >nul
+if errorlevel 1 (
+    echo cgen_var_values.c missing assignBinary target handoff.
+    exit /b 1
+)
+findstr /R /C:"xvalue __xl6_assign_[0-9][0-9]* = ({ xvalue __xl6_bin_left_" release\tmp\cgen_var_values.c >nul
+if not errorlevel 1 (
+    echo cgen_var_values.c should not emit assignBinary statement expression initializer.
+    exit /b 1
+)
+findstr /C:"__xl6_assign_" release\tmp\cgen_var_values.c | findstr /C:"makeValue(60LL);" >nul
+if errorlevel 1 (
+    echo cgen_var_values.c missing statement-level assignConditional false branch.
+    exit /b 1
+)
+findstr /C:"assignConditional = __xl6_assign_" release\tmp\cgen_var_values.c >nul
+if errorlevel 1 (
+    echo cgen_var_values.c missing assignConditional target handoff.
+    exit /b 1
+)
+findstr /R /C:"xvalue __xl6_assign_[0-9][0-9]* = ({ xvalue __xl6_cond_result_" release\tmp\cgen_var_values.c >nul
+if not errorlevel 1 (
+    echo cgen_var_values.c should not emit assignConditional statement expression initializer.
+    exit /b 1
+)
+findstr /C:"assignCompare = (int)(__xl6_cmp_result_" release\tmp\cgen_var_values.c >nul
+if errorlevel 1 (
+    echo cgen_var_values.c missing statement-level assignCompare assignment.
+    exit /b 1
+)
+findstr /C:"assignCompare = ({ xvalue __xl6_cmp_left_" release\tmp\cgen_var_values.c >nul
+if not errorlevel 1 (
+    echo cgen_var_values.c should not emit assignCompare statement expressions.
+    exit /b 1
+)
+findstr /C:"assignOrder = (long long)(__xl6_cmp_result_" release\tmp\cgen_var_values.c >nul
+if errorlevel 1 (
+    echo cgen_var_values.c missing statement-level assignOrder assignment.
+    exit /b 1
+)
+findstr /C:"assignOrder = ({ xvalue __xl6_cmp_left_" release\tmp\cgen_var_values.c >nul
+if not errorlevel 1 (
+    echo cgen_var_values.c should not emit assignOrder statement expressions.
+    exit /b 1
+)
+findstr /C:"assignApprox = (int)(__xl6_approx_result_" release\tmp\cgen_var_values.c >nul
+if errorlevel 1 (
+    echo cgen_var_values.c missing statement-level assignApprox assignment.
+    exit /b 1
+)
+findstr /C:"assignApprox = ({ xvalue __xl6_approx_left_" release\tmp\cgen_var_values.c >nul
+if not errorlevel 1 (
+    echo cgen_var_values.c should not emit assignApprox statement expressions.
+    exit /b 1
+)
+findstr /C:"xl6_xrt_basic_unary_release(" release\tmp\cgen_var_values.c >nul
+if errorlevel 1 (
+    echo cgen_var_values.c missing dynamic unary release helper.
+    exit /b 1
+)
+findstr /C:"xl6_xrt_value_truthy_release(" release\tmp\cgen_var_values.c >nul
+if errorlevel 1 (
+    echo cgen_var_values.c missing dynamic truthy release helper.
+    exit /b 1
+)
+findstr /C:"__xl6_unary_value_" release\tmp\cgen_var_values.c >nul
+if not errorlevel 1 (
+    echo cgen_var_values.c should not emit dynamic unary statement temporaries.
+    exit /b 1
+)
+findstr /C:"__xl6_not_value_" release\tmp\cgen_var_values.c >nul
+if not errorlevel 1 (
+    echo cgen_var_values.c should not emit dynamic not statement temporaries.
+    exit /b 1
+)
+findstr /C:"__xl6_truth_value_" release\tmp\cgen_var_values.c >nul
+if not errorlevel 1 (
+    echo cgen_var_values.c should not emit dynamic condition truthy statement temporaries.
     exit /b 1
 )
 findstr /C:"xvalue __xl6_logic_left_" release\tmp\cgen_var_values.c >nul
@@ -2595,14 +3486,204 @@ if errorlevel 1 (
     echo cgen_var_values.c missing dynamic approximate helper.
     exit /b 1
 )
-findstr /C:"xvalue __xl6_cond_result_" release\tmp\cgen_var_values.c >nul
+findstr /C:"int __xl6_if_cond_" release\tmp\cgen_var_values.c >nul
 if errorlevel 1 (
-    echo cgen_var_values.c missing dynamic conditional result path.
+    echo cgen_var_values.c missing statement-level dynamic if condition temporaries.
     exit /b 1
 )
-findstr /C:"xvalue __xl6_truth_value_" release\tmp\cgen_var_values.c >nul
+findstr /C:"if (__xl6_if_cond_" release\tmp\cgen_var_values.c >nul
 if errorlevel 1 (
-    echo cgen_var_values.c missing dynamic condition truthy path.
+    echo cgen_var_values.c missing dynamic if condition handoff.
+    exit /b 1
+)
+findstr /C:"__xl6_if_cond_" release\tmp\cgen_var_values.c | findstr /C:"__xl6_cmp_result_" >nul
+if errorlevel 1 (
+    echo cgen_var_values.c missing dynamic if compare condition lowering.
+    exit /b 1
+)
+findstr /C:"__xl6_if_cond_" release\tmp\cgen_var_values.c | findstr /C:"xl6_xrt_value_truthy(__xl6_logic_right_" >nul
+if errorlevel 1 (
+    echo cgen_var_values.c missing dynamic if logical condition lowering.
+    exit /b 1
+)
+findstr /C:"__xl6_if_cond_" release\tmp\cgen_var_values.c | findstr /C:"__xl6_approx_result_" >nul
+if errorlevel 1 (
+    echo cgen_var_values.c missing dynamic if approximate condition lowering.
+    exit /b 1
+)
+findstr /C:"if (({ xvalue __xl6_cmp_left_" release\tmp\cgen_var_values.c >nul
+if not errorlevel 1 (
+    echo cgen_var_values.c should not emit dynamic compare statement expressions in if conditions.
+    exit /b 1
+)
+findstr /C:"if (({ xvalue __xl6_logic_left_" release\tmp\cgen_var_values.c >nul
+if not errorlevel 1 (
+    echo cgen_var_values.c should not emit dynamic logical statement expressions in if conditions.
+    exit /b 1
+)
+findstr /C:"if (({ xvalue __xl6_approx_left_" release\tmp\cgen_var_values.c >nul
+if not errorlevel 1 (
+    echo cgen_var_values.c should not emit dynamic approximate statement expressions in if conditions.
+    exit /b 1
+)
+findstr /C:"int __xl6_elseif_cond_" release\tmp\cgen_var_values.c >nul
+if errorlevel 1 (
+    echo cgen_var_values.c missing statement-level dynamic elseif condition temporaries.
+    exit /b 1
+)
+findstr /C:"if (__xl6_elseif_cond_" release\tmp\cgen_var_values.c >nul
+if errorlevel 1 (
+    echo cgen_var_values.c missing dynamic elseif condition handoff.
+    exit /b 1
+)
+findstr /C:"__xl6_elseif_cond_" release\tmp\cgen_var_values.c | findstr /C:"__xl6_cmp_result_" >nul
+if errorlevel 1 (
+    echo cgen_var_values.c missing dynamic elseif compare condition lowering.
+    exit /b 1
+)
+findstr /C:"__xl6_elseif_cond_" release\tmp\cgen_var_values.c | findstr /C:"xl6_xrt_value_truthy(__xl6_logic_right_" >nul
+if errorlevel 1 (
+    echo cgen_var_values.c missing dynamic elseif logical condition lowering.
+    exit /b 1
+)
+findstr /C:"__xl6_elseif_cond_" release\tmp\cgen_var_values.c | findstr /C:"__xl6_approx_result_" >nul
+if errorlevel 1 (
+    echo cgen_var_values.c missing dynamic elseif approximate condition lowering.
+    exit /b 1
+)
+findstr /C:"else if (({ xvalue __xl6_cmp_left_" release\tmp\cgen_var_values.c >nul
+if not errorlevel 1 (
+    echo cgen_var_values.c should not emit dynamic compare statement expressions in elseif conditions.
+    exit /b 1
+)
+findstr /C:"else if (({ xvalue __xl6_logic_left_" release\tmp\cgen_var_values.c >nul
+if not errorlevel 1 (
+    echo cgen_var_values.c should not emit dynamic logical statement expressions in elseif conditions.
+    exit /b 1
+)
+findstr /C:"else if (({ xvalue __xl6_approx_left_" release\tmp\cgen_var_values.c >nul
+if not errorlevel 1 (
+    echo cgen_var_values.c should not emit dynamic approximate statement expressions in elseif conditions.
+    exit /b 1
+)
+findstr /C:"int __xl6_while_cond_" release\tmp\cgen_var_values.c >nul
+if errorlevel 1 (
+    echo cgen_var_values.c missing statement-level dynamic while condition temporaries.
+    exit /b 1
+)
+findstr /C:"if (!__xl6_while_cond_" release\tmp\cgen_var_values.c >nul
+if errorlevel 1 (
+    echo cgen_var_values.c missing dynamic while condition break guard.
+    exit /b 1
+)
+findstr /C:"__xl6_while_cond_" release\tmp\cgen_var_values.c | findstr /C:"__xl6_cmp_result_" >nul
+if errorlevel 1 (
+    echo cgen_var_values.c missing dynamic while compare condition lowering.
+    exit /b 1
+)
+findstr /C:"__xl6_while_cond_" release\tmp\cgen_var_values.c | findstr /C:"xl6_xrt_value_truthy(__xl6_logic_right_" >nul
+if errorlevel 1 (
+    echo cgen_var_values.c missing dynamic while logical condition lowering.
+    exit /b 1
+)
+findstr /C:"__xl6_while_cond_" release\tmp\cgen_var_values.c | findstr /C:"__xl6_approx_result_" >nul
+if errorlevel 1 (
+    echo cgen_var_values.c missing dynamic while approximate condition lowering.
+    exit /b 1
+)
+findstr /C:"while (({ xvalue __xl6_cmp_left_" release\tmp\cgen_var_values.c >nul
+if not errorlevel 1 (
+    echo cgen_var_values.c should not emit dynamic compare statement expressions in while conditions.
+    exit /b 1
+)
+findstr /C:"while (({ xvalue __xl6_logic_left_" release\tmp\cgen_var_values.c >nul
+if not errorlevel 1 (
+    echo cgen_var_values.c should not emit dynamic logical statement expressions in while conditions.
+    exit /b 1
+)
+findstr /C:"while (({ xvalue __xl6_approx_left_" release\tmp\cgen_var_values.c >nul
+if not errorlevel 1 (
+    echo cgen_var_values.c should not emit dynamic approximate statement expressions in while conditions.
+    exit /b 1
+)
+findstr /C:"int __xl6_do_cond_" release\tmp\cgen_var_values.c >nul
+if errorlevel 1 (
+    echo cgen_var_values.c missing statement-level dynamic do while condition temporaries.
+    exit /b 1
+)
+findstr /C:"if (!__xl6_do_cond_" release\tmp\cgen_var_values.c >nul
+if errorlevel 1 (
+    echo cgen_var_values.c missing dynamic do while condition break guard.
+    exit /b 1
+)
+findstr /C:"__xl6_do_cond_" release\tmp\cgen_var_values.c | findstr /C:"__xl6_cmp_result_" >nul
+if errorlevel 1 (
+    echo cgen_var_values.c missing dynamic do while compare condition lowering.
+    exit /b 1
+)
+findstr /C:"__xl6_do_cond_" release\tmp\cgen_var_values.c | findstr /C:"xl6_xrt_value_truthy(__xl6_logic_right_" >nul
+if errorlevel 1 (
+    echo cgen_var_values.c missing dynamic do while logical condition lowering.
+    exit /b 1
+)
+findstr /C:"__xl6_do_cond_" release\tmp\cgen_var_values.c | findstr /C:"__xl6_approx_result_" >nul
+if errorlevel 1 (
+    echo cgen_var_values.c missing dynamic do while approximate condition lowering.
+    exit /b 1
+)
+findstr /C:"} while (({ xvalue __xl6_cmp_left_" release\tmp\cgen_var_values.c >nul
+if not errorlevel 1 (
+    echo cgen_var_values.c should not emit dynamic compare statement expressions in do while conditions.
+    exit /b 1
+)
+findstr /C:"} while (({ xvalue __xl6_logic_left_" release\tmp\cgen_var_values.c >nul
+if not errorlevel 1 (
+    echo cgen_var_values.c should not emit dynamic logical statement expressions in do while conditions.
+    exit /b 1
+)
+findstr /C:"} while (({ xvalue __xl6_approx_left_" release\tmp\cgen_var_values.c >nul
+if not errorlevel 1 (
+    echo cgen_var_values.c should not emit dynamic approximate statement expressions in do while conditions.
+    exit /b 1
+)
+findstr /C:"long long __xl6_call_arg_" release\tmp\cgen_var_values.c >nul
+if errorlevel 1 (
+    echo cgen_var_values.c missing statement-level scalar call argument temporaries.
+    exit /b 1
+)
+findstr /C:"__xl6_call_value_" release\tmp\cgen_var_values.c | findstr /C:"makeValue(40LL);" >nul
+if errorlevel 1 (
+    echo cgen_var_values.c missing statement-level dynamic conditional call argument path.
+    exit /b 1
+)
+findstr /C:"expect_i64(__xl6_call_arg_" release\tmp\cgen_var_values.c >nul
+if errorlevel 1 (
+    echo cgen_var_values.c missing scalar call argument handoff.
+    exit /b 1
+)
+findstr /C:"const char* __xl6_call_str_left_" release\tmp\cgen_var_values.c >nul
+if errorlevel 1 (
+    echo cgen_var_values.c missing statement-level string call argument temporaries.
+    exit /b 1
+)
+findstr /C:"expect_i64(({ xvalue __xl6_cmp_left_" release\tmp\cgen_var_values.c >nul
+if not errorlevel 1 (
+    echo cgen_var_values.c should not emit dynamic compare statement expressions as direct call arguments.
+    exit /b 1
+)
+findstr /C:"expect_i64(({ xvalue __xl6_logic_left_" release\tmp\cgen_var_values.c >nul
+if not errorlevel 1 (
+    echo cgen_var_values.c should not emit dynamic logical statement expressions as direct call arguments.
+    exit /b 1
+)
+findstr /C:"expect_i64(((long long)xl6_xrt_value_to_i64_release(({ xvalue __xl6_bin_left_" release\tmp\cgen_var_values.c >nul
+if not errorlevel 1 (
+    echo cgen_var_values.c should not emit dynamic arithmetic statement expressions as direct scalar call arguments.
+    exit /b 1
+)
+findstr /C:"xl6_xrt_value_to_string_release(({ xvalue __xl6_bin_left_" release\tmp\cgen_var_values.c >nul
+if not errorlevel 1 (
+    echo cgen_var_values.c should not emit dynamic arithmetic statement expressions as direct string call arguments.
     exit /b 1
 )
 findstr /C:"xvoUnref(__xl6_cmp_left_" release\tmp\cgen_var_values.c >nul
@@ -2798,8 +3879,8 @@ if not errorlevel 1 (
     echo cgen_closure.c still contains CRT malloc.
     exit /b 1
 )
-findstr /C:"free(" release\tmp\cgen_closure.c >nul
-if not errorlevel 1 (
+powershell -NoProfile -Command "if (Select-String -Path 'release\tmp\cgen_closure.c' -Pattern '(?<![A-Za-z0-9_])free\s*\(' -Quiet) { exit 1 }"
+if errorlevel 1 (
     echo cgen_closure.c still contains CRT free.
     exit /b 1
 )
@@ -2870,8 +3951,8 @@ if not errorlevel 1 (
     echo cgen_closure_resource_capture.c still contains CRT malloc.
     exit /b 1
 )
-findstr /C:"free(" release\tmp\cgen_closure_resource_capture.c >nul
-if not errorlevel 1 (
+powershell -NoProfile -Command "if (Select-String -Path 'release\tmp\cgen_closure_resource_capture.c' -Pattern '(?<![A-Za-z0-9_])free\s*\(' -Quiet) { exit 1 }"
+if errorlevel 1 (
     echo cgen_closure_resource_capture.c still contains CRT free.
     exit /b 1
 )
@@ -2964,6 +4045,51 @@ if errorlevel 1 (
     echo cgen_function_named_value.c missing typed function dict vararg lowering.
     exit /b 1
 )
+findstr /C:"static xrt_func_param __xl6_sig_params[2u];" release\tmp\cgen_function_named_value.c >nul
+if errorlevel 1 (
+    echo cgen_function_named_value.c missing function signature parameter metadata array.
+    exit /b 1
+)
+findstr /C:"static const struct xrt_type_desc* __xl6_sig_returns[1u];" release\tmp\cgen_function_named_value.c >nul
+if errorlevel 1 (
+    echo cgen_function_named_value.c missing function signature return type metadata array.
+    exit /b 1
+)
+findstr /C:"__xl6_sig.Params = __xl6_sig_params;" release\tmp\cgen_function_named_value.c >nul
+if errorlevel 1 (
+    echo cgen_function_named_value.c missing function signature Params binding.
+    exit /b 1
+)
+findstr /C:"__xl6_sig.ReturnTypes = __xl6_sig_returns;" release\tmp\cgen_function_named_value.c >nul
+if errorlevel 1 (
+    echo cgen_function_named_value.c missing function signature ReturnTypes binding.
+    exit /b 1
+)
+findstr /C:"__xl6_sig_params[1].Flags = 0x00000001U;" release\tmp\cgen_function_named_value.c >nul
+if errorlevel 1 (
+    echo cgen_function_named_value.c missing optional parameter metadata flag.
+    exit /b 1
+)
+findstr /C:"__xl6_sig_params[0].Type = xrtTypeArray();" release\tmp\cgen_function_named_value.c >nul
+if errorlevel 1 (
+    echo cgen_function_named_value.c missing array vararg metadata type.
+    exit /b 1
+)
+findstr /C:"__xl6_sig_params[1].Type = xrtTypeDict();" release\tmp\cgen_function_named_value.c >nul
+if errorlevel 1 (
+    echo cgen_function_named_value.c missing dict vararg metadata type.
+    exit /b 1
+)
+findstr /C:"__xl6_sig.Flags = 0x00000001U;" release\tmp\cgen_function_named_value.c >nul
+if errorlevel 1 (
+    echo cgen_function_named_value.c missing array vararg signature flag.
+    exit /b 1
+)
+findstr /C:"__xl6_sig.Flags = 0x00000002U;" release\tmp\cgen_function_named_value.c >nul
+if errorlevel 1 (
+    echo cgen_function_named_value.c missing dict vararg signature flag.
+    exit /b 1
+)
 findstr /C:"copy = (char*)xrtMalloc(len + 1u);" release\tmp\cgen_function_named_value.c >nul
 if errorlevel 1 (
     echo cgen_function_named_value.c should use XRT allocation for function fallback string.
@@ -2999,8 +4125,8 @@ if not errorlevel 1 (
     echo cgen_function_named_value.c still contains CRT malloc.
     exit /b 1
 )
-findstr /C:"free(" release\tmp\cgen_function_named_value.c >nul
-if not errorlevel 1 (
+powershell -NoProfile -Command "if (Select-String -Path 'release\tmp\cgen_function_named_value.c' -Pattern '(?<![A-Za-z0-9_])free\s*\(' -Quiet) { exit 1 }"
+if errorlevel 1 (
     echo cgen_function_named_value.c still contains CRT free.
     exit /b 1
 )
@@ -3095,6 +4221,11 @@ if errorlevel 1 (
     echo cgen_member_function_multi_return.c missing member multi-return function lowering.
     exit /b 1
 )
+findstr /C:"({ XL6_Function __xl6_member_fn_multi_" release\tmp\cgen_member_function_multi_return.c >nul
+if not errorlevel 1 (
+    echo cgen_member_function_multi_return.c should not use GNU statement expressions for member multi-return calls.
+    exit /b 1
+)
 findstr /C:"XL6_Function_Return_" release\tmp\cgen_member_function_multi_return.c >nul
 if errorlevel 1 (
     echo cgen_member_function_multi_return.c missing member multi-return struct.
@@ -3140,9 +4271,146 @@ if errorlevel 1 (
     echo cgen_member_function_multi_return.c missing discarded function multi-return release.
     exit /b 1
 )
+findstr /C:"XL6_Function __xl6_member_fn_stmt_" release\tmp\cgen_member_function_multi_return.c >nul
+if errorlevel 1 (
+    echo cgen_member_function_multi_return.c missing ignored member multi-return function statement lowering.
+    exit /b 1
+)
+findstr /C:"__xl6_member_result_" release\tmp\cgen_member_function_multi_return.c >nul
+if errorlevel 1 (
+    echo cgen_member_function_multi_return.c missing ignored member multi-return result temporary.
+    exit /b 1
+)
+findstr /C:"xl_class_PairBox__destroy(&__xl6_member_result_" release\tmp\cgen_member_function_multi_return.c >nul
+if errorlevel 1 (
+    echo cgen_member_function_multi_return.c missing ignored member multi-return class cleanup.
+    exit /b 1
+)
+findstr /C:"__xl6_member_result_" release\tmp\cgen_member_function_multi_return.c | findstr /C:".value1.release != 0" >nul
+if errorlevel 1 (
+    echo cgen_member_function_multi_return.c missing ignored member multi-return function cleanup.
+    exit /b 1
+)
+findstr /C:"({ XL6_Function __xl6_member_fn_stmt_" release\tmp\cgen_member_function_multi_return.c >nul
+if not errorlevel 1 (
+    echo cgen_member_function_multi_return.c should not use GNU statement expressions for ignored member multi-return calls.
+    exit /b 1
+)
 "%XL6_TCC%" -Irelease\tcc\include_win %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_member_function_multi_return.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_member_function_multi_return.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_member_function_multi_return.exe
+if errorlevel 1 exit /b 1
+
+release\xl.exe cgen test\cases\cgen_member_function_class_return.xl --emit release\tmp\cgen_member_function_class_return.c --emit-header release\tmp\cgen_member_function_class_return.h
+if errorlevel 1 exit /b 1
+findstr /C:"typedef struct XL6_Function" release\tmp\cgen_member_function_class_return.h >nul
+if errorlevel 1 (
+    echo cgen_member_function_class_return.h missing public function value type.
+    exit /b 1
+)
+findstr /C:"XL6_Function op;" release\tmp\cgen_member_function_class_return.h >nul
+if errorlevel 1 (
+    echo cgen_member_function_class_return.h missing class function field type.
+    exit /b 1
+)
+findstr /C:"void op;" release\tmp\cgen_member_function_class_return.h >nul
+if not errorlevel 1 (
+    echo cgen_member_function_class_return.h should not emit void function fields.
+    exit /b 1
+)
+findstr /C:"XL6_Function __xl6_member_fn_stmt_" release\tmp\cgen_member_function_class_return.c >nul
+if errorlevel 1 (
+    echo cgen_member_function_class_return.c missing statement-level member function temp.
+    exit /b 1
+)
+findstr /C:"({ XL6_Function __xl6_member_fn_" release\tmp\cgen_member_function_class_return.c >nul
+if not errorlevel 1 (
+    echo cgen_member_function_class_return.c should not use GNU statement expressions for class-return member function calls.
+    exit /b 1
+)
+findstr /C:"__xl6_class_assign_" release\tmp\cgen_member_function_class_return.c >nul
+if errorlevel 1 (
+    echo cgen_member_function_class_return.c missing class assignment temporary.
+    exit /b 1
+)
+findstr /C:"__xl6_class_field_recv_" release\tmp\cgen_member_function_class_return.c >nul
+if errorlevel 1 (
+    echo cgen_member_function_class_return.c missing class field receiver temporary.
+    exit /b 1
+)
+findstr /C:"xl_class_Payload__destroy(&__xl6_class_field_recv_" release\tmp\cgen_member_function_class_return.c >nul
+if errorlevel 1 (
+    echo cgen_member_function_class_return.c missing class field receiver cleanup.
+    exit /b 1
+)
+findstr /C:"__xl6_class_arg_" release\tmp\cgen_member_function_class_return.c >nul
+if errorlevel 1 (
+    echo cgen_member_function_class_return.c missing class argument temporary.
+    exit /b 1
+)
+findstr /C:"storePayload(__xl6_class_arg_" release\tmp\cgen_member_function_class_return.c >nul
+if errorlevel 1 (
+    echo cgen_member_function_class_return.c missing expression-statement class argument call.
+    exit /b 1
+)
+findstr /C:"nestedArgumentValue = (readPayload(__xl6_class_arg_" release\tmp\cgen_member_function_class_return.c >nul
+if errorlevel 1 (
+    echo cgen_member_function_class_return.c missing nested expression class argument temporary.
+    exit /b 1
+)
+findstr /C:"expect_i64(nestedArgumentValue, 91LL)" release\tmp\cgen_member_function_class_return.c >nul
+if errorlevel 1 (
+    echo cgen_member_function_class_return.c missing nested expression class argument expectation.
+    exit /b 1
+)
+findstr /C:"expect_i64((readPayload(__xl6_class_arg_" release\tmp\cgen_member_function_class_return.c >nul
+if errorlevel 1 (
+    echo cgen_member_function_class_return.c missing extern nested expression class argument temporary.
+    exit /b 1
+)
+findstr /C:"expect_i64((readPayload(((maker.make.signature" release\tmp\cgen_member_function_class_return.c >nul
+if not errorlevel 1 (
+    echo cgen_member_function_class_return.c should not inline class-return member function values in extern nested calls.
+    exit /b 1
+)
+findstr /C:"readPayload(({ XL6_Function __xl6_member_fn_" release\tmp\cgen_member_function_class_return.c >nul
+if not errorlevel 1 (
+    echo cgen_member_function_class_return.c should not use GNU statement expressions in nested class argument calls.
+    exit /b 1
+)
+findstr /C:"void*, XL_Class_Payload, long long))__xl6_member_fn_stmt_" release\tmp\cgen_member_function_class_return.c >nul
+if errorlevel 1 (
+    echo cgen_member_function_class_return.c missing statement-level member function invoke with class argument.
+    exit /b 1
+)
+findstr /C:"__xl6_member_result_" release\tmp\cgen_member_function_class_return.c >nul
+if errorlevel 1 (
+    echo cgen_member_function_class_return.c missing ignored member function return temporary.
+    exit /b 1
+)
+findstr /C:"xl_class_Payload__destroy(&__xl6_member_result_" release\tmp\cgen_member_function_class_return.c >nul
+if errorlevel 1 (
+    echo cgen_member_function_class_return.c missing ignored member function return cleanup.
+    exit /b 1
+)
+findstr /C:"xl_class_Payload__destroy(&__xl6_class_arg_" release\tmp\cgen_member_function_class_return.c >nul
+if errorlevel 1 (
+    echo cgen_member_function_class_return.c missing class argument cleanup.
+    exit /b 1
+)
+findstr /C:"(XL_Class_Payload){0}" release\tmp\cgen_member_function_class_return.c >nul
+if errorlevel 1 (
+    echo cgen_member_function_class_return.c missing class return fallback default.
+    exit /b 1
+)
+findstr /C:"(XL_Class_Payload)0" release\tmp\cgen_member_function_class_return.c >nul
+if not errorlevel 1 (
+    echo cgen_member_function_class_return.c should not cast zero to class return value.
+    exit /b 1
+)
+"%XL6_TCC%" -Irelease\tcc\include_win %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_member_function_class_return.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_member_function_class_return.exe
+if errorlevel 1 exit /b 1
+release\tmp\cgen_member_function_class_return.exe
 if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_function_default.xl --emit release\tmp\cgen_function_default.c
@@ -3252,9 +4520,14 @@ if errorlevel 1 (
     echo cgen_in_range.c missing range contains helper.
     exit /b 1
 )
-findstr /C:"expect_i64(xl6_range_contains_i64(3LL, 0, 5LL, 1), 1LL);" release\tmp\cgen_in_range.c >nul
+findstr /C:" = xl6_range_contains_i64(3LL, 0, 5LL, 1);" release\tmp\cgen_in_range.c >nul
 if errorlevel 1 (
     echo cgen_in_range.c missing range contains call.
+    exit /b 1
+)
+findstr /C:"expect_i64(__xl6_call_arg_" release\tmp\cgen_in_range.c >nul
+if errorlevel 1 (
+    echo cgen_in_range.c missing range contains temporary argument.
     exit /b 1
 )
 "%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_in_range.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_in_range.exe
@@ -3294,6 +4567,31 @@ if errorlevel 1 (
     echo cgen_in_containers.c missing dynamic var in lowering.
     exit /b 1
 )
+findstr /C:"__xl6_return_" release\tmp\cgen_in_containers.c | findstr /C:"xl6_xrt_array_contains(__xl6_in_values_" >nul
+if errorlevel 1 (
+    echo cgen_in_containers.c missing statement-level literal array in return lowering.
+    exit /b 1
+)
+findstr /C:"xvalue __xl6_in_values_" release\tmp\cgen_in_containers.c | findstr /C:"makeDynArray()" >nul
+if errorlevel 1 (
+    echo cgen_in_containers.c missing statement-level dynamic array in return temp.
+    exit /b 1
+)
+findstr /C:"__xl6_return_" release\tmp\cgen_in_containers.c | findstr /C:"xl6_xrt_value_contains(__xl6_in_values_" >nul
+if errorlevel 1 (
+    echo cgen_in_containers.c missing statement-level dynamic container in return lowering.
+    exit /b 1
+)
+findstr /C:"__xl6_return_" release\tmp\cgen_in_containers.c | findstr /C:"xvoTableExists(__xl6_in_values_" >nul
+if errorlevel 1 (
+    echo cgen_in_containers.c missing statement-level literal dict in return lowering.
+    exit /b 1
+)
+findstr /C:"xvalue __xl6_in_values_" release\tmp\cgen_in_containers.c | findstr /C:"makeDynTable()" >nul
+if errorlevel 1 (
+    echo cgen_in_containers.c missing statement-level dynamic dict in return temp.
+    exit /b 1
+)
 findstr /C:"xvalue __xl6_in_values_" release\tmp\cgen_in_containers.c >nul
 if errorlevel 1 (
     echo cgen_in_containers.c missing temporary RHS container for in lowering.
@@ -3302,6 +4600,16 @@ if errorlevel 1 (
 findstr /C:"xvoUnref(__xl6_in_values_" release\tmp\cgen_in_containers.c >nul
 if errorlevel 1 (
     echo cgen_in_containers.c missing temporary RHS container release.
+    exit /b 1
+)
+findstr /C:"expect_i64(({ xvalue __xl6_in_values_" release\tmp\cgen_in_containers.c >nul
+if not errorlevel 1 (
+    echo cgen_in_containers.c should pre-evaluate in arguments.
+    exit /b 1
+)
+findstr /C:"({ xvalue __xl6_in_values_" release\tmp\cgen_in_containers.c >nul
+if not errorlevel 1 (
+    echo cgen_in_containers.c should not use statement expressions for in temporaries.
     exit /b 1
 )
 "%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_in_containers.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_in_containers.exe
@@ -3316,7 +4624,7 @@ if errorlevel 1 (
     echo cgen_for_in_containers.c missing array for-in lowering.
     exit /b 1
 )
-findstr /C:"xvoGetList(__xl6_iter_" release\tmp\cgen_for_in_containers.c >nul
+findstr /C:"xl6_xrt_list_snapshot(__xl6_iter_" release\tmp\cgen_for_in_containers.c >nul
 if errorlevel 1 (
     echo cgen_for_in_containers.c missing list for-in lowering.
     exit /b 1
@@ -3326,17 +4634,22 @@ if errorlevel 1 (
     echo cgen_for_in_containers.c missing set for-in lowering.
     exit /b 1
 )
-findstr /C:"xvoGetTable(__xl6_iter_" release\tmp\cgen_for_in_containers.c >nul
+findstr /C:"xl6_xrt_dict_snapshot(__xl6_iter_" release\tmp\cgen_for_in_containers.c >nul
 if errorlevel 1 (
     echo cgen_for_in_containers.c missing dict for-in lowering.
     exit /b 1
 )
-findstr /C:"xrtAVLTB_IterEnd(__xl6_avl_" release\tmp\cgen_for_in_containers.c >nul
+findstr /C:"xl6_xrt_iter_snapshot_free(__xl6_list_snapshot_" release\tmp\cgen_for_in_containers.c >nul
 if errorlevel 1 (
-    echo cgen_for_in_containers.c missing AVL iterator cleanup.
+    echo cgen_for_in_containers.c missing list snapshot cleanup.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text = Get-Content -Raw -Encoding UTF8 'release\tmp\cgen_for_in_containers.c'; $list=[regex]::Matches($text,'xavltbase (__xl6_avl_\d+) = \(xavltbase\)xvoGetList\(__xl6_iter_\d+\);[\s\S]*?xrtAVLTB_IterBegin\(\1\);[\s\S]*?xrtAVLTB_IterNext\(\1\)[\s\S]*?xrtAVLTB_IterEnd\(\1\);'); $dict=[regex]::Matches($text,'xavltbase (__xl6_avl_\d+) = \(xavltbase\)xvoGetTable\(__xl6_iter_\d+\);[\s\S]*?xrtAVLTB_IterBegin\(\1\);[\s\S]*?xrtAVLTB_IterNext\(\1\)[\s\S]*?xrtAVLTB_IterEnd\(\1\);'); if ($list.Count -lt 1) { Write-Host 'cgen_for_in_containers.c missing list AVL begin/next/end cleanup sequence.'; exit 1 }; if ($dict.Count -lt 1) { Write-Host 'cgen_for_in_containers.c missing dict AVL begin/next/end cleanup sequence.'; exit 1 }"
+findstr /C:"xl6_xrt_iter_snapshot_free(__xl6_dict_snapshot_" release\tmp\cgen_for_in_containers.c >nul
+if errorlevel 1 (
+    echo cgen_for_in_containers.c missing dict snapshot cleanup.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text = Get-Content -Raw -Encoding UTF8 'release\tmp\cgen_for_in_containers.c'; $bad=@('xrtAVLTB_Iter','__xl6_avl_','__xl6_list_data_','__xl6_dict_data_'); foreach($p in $bad){ if($text.IndexOf($p) -ge 0){ Write-Host ('cgen_for_in_containers.c regressed to AVL iterator shape: '+$p); exit 1 } }; $list=[regex]::Matches($text,'XL6_XrtIterSnapshot\* (__xl6_list_snapshot_\d+) = xl6_xrt_list_snapshot\(__xl6_iter_\d+\);[\s\S]*?for \(unsigned int __xl6_list_pos_\d+ = 0;[\s\S]*?XL6_XrtIterItem\* __xl6_list_item_\d+ = &\1->items\[[^\]]+\];[\s\S]*?xl6_xrt_iter_snapshot_free\(\1\);'); $dict=[regex]::Matches($text,'XL6_XrtIterSnapshot\* (__xl6_dict_snapshot_\d+) = xl6_xrt_dict_snapshot\(__xl6_iter_\d+\);[\s\S]*?for \(unsigned int __xl6_dict_pos_\d+ = 0;[\s\S]*?XL6_XrtIterItem\* __xl6_dict_item_\d+ = &\1->items\[[^\]]+\];[\s\S]*?xl6_xrt_iter_snapshot_free\(\1\);'); if ($list.Count -lt 1) { Write-Host 'cgen_for_in_containers.c missing list snapshot sequence.'; exit 1 }; if ($dict.Count -lt 1) { Write-Host 'cgen_for_in_containers.c missing dict snapshot sequence.'; exit 1 }"
 if errorlevel 1 exit /b 1
 findstr /C:"xrtStrComp(xl6_xrt_value_to_string(key), \"b\", 0, false)" release\tmp\cgen_for_in_containers.c >nul
 if errorlevel 1 (
@@ -3347,6 +4660,31 @@ if errorlevel 1 (
 if errorlevel 1 exit /b 1
 release\tmp\cgen_for_in_containers.exe
 if errorlevel 1 exit /b 1
+
+release\xl.exe cgen test\cases\cgen_for_in_var_non_container.xl --emit release\tmp\cgen_for_in_var_non_container.c
+if errorlevel 1 exit /b 1
+findstr /C:"xl6_error_raise(\"TypeError\", \"for in value must be array, list, set or dict\"" release\tmp\cgen_for_in_var_non_container.c >nul
+if errorlevel 1 (
+    echo cgen_for_in_var_non_container.c missing var for-in TypeError guard.
+    exit /b 1
+)
+findstr /C:"xl6_error_print_uncaught" release\tmp\cgen_for_in_var_non_container.c >nul
+if errorlevel 1 (
+    echo cgen_for_in_var_non_container.c missing uncaught runtime error printer.
+    exit /b 1
+)
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_for_in_var_non_container.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_for_in_var_non_container.exe
+if errorlevel 1 exit /b 1
+release\tmp\cgen_for_in_var_non_container.exe >nul 2> release\tmp\cgen_for_in_var_non_container.err.txt
+if not errorlevel 1 (
+    echo cgen_for_in_var_non_container.xl should fail at runtime.
+    exit /b 1
+)
+findstr /C:"uncaught TypeError: for in value must be array, list, set or dict" release\tmp\cgen_for_in_var_non_container.err.txt >nul
+if errorlevel 1 (
+    echo cgen_for_in_var_non_container.err.txt missing uncaught TypeError diagnostic.
+    exit /b 1
+)
 
 release\xl.exe cgen test\cases\cgen_approx.xl --emit release\tmp\cgen_approx.c
 if errorlevel 1 exit /b 1
@@ -3853,19 +5191,29 @@ if errorlevel 1 (
     echo cgen_index_access.c missing array index lowering.
     exit /b 1
 )
-findstr /C:"xvalue __xl6_index_values_" release\tmp\cgen_index_access.c >nul
+findstr /C:"xl6_xrt_array_index_retain_release(makeArray(), (long long)(1LL))" release\tmp\cgen_index_access.c >nul
 if errorlevel 1 (
-    echo cgen_index_access.c missing temporary index receiver capture.
+    echo cgen_index_access.c missing array temporary receiver helper.
     exit /b 1
 )
-findstr /C:"xvoUnref(__xl6_index_values_" release\tmp\cgen_index_access.c >nul
+findstr /C:"xl6_xrt_index_safe_get_i64_retain_release(makeDynArray(), (long long)(0LL))" release\tmp\cgen_index_access.c >nul
 if errorlevel 1 (
-    echo cgen_index_access.c missing temporary index receiver release.
+    echo cgen_index_access.c missing var temporary receiver numeric helper.
     exit /b 1
 )
-findstr /C:"xl6_xrt_retain(xvoArrayGetValue(__xl6_index_values_" release\tmp\cgen_index_access.c >nul
+findstr /C:"xl6_xrt_dict_get_key_retain_release(makeTable(), \"temp\")" release\tmp\cgen_index_access.c >nul
 if errorlevel 1 (
-    echo cgen_index_access.c missing retained index result for temporary receiver.
+    echo cgen_index_access.c missing dict temporary receiver helper.
+    exit /b 1
+)
+findstr /C:"xl6_xrt_index_safe_get_key_retain_release(makeDynTable(), \"temp\")" release\tmp\cgen_index_access.c >nul
+if errorlevel 1 (
+    echo cgen_index_access.c missing var temporary receiver key helper.
+    exit /b 1
+)
+findstr /C:"xl6_xrt_index_safe_get_var_key(dynTable, xl6_xrt_retain(dynKey))" release\tmp\cgen_index_access.c >nul
+if errorlevel 1 (
+    echo cgen_index_access.c missing dynamic var key index helper.
     exit /b 1
 )
 findstr /C:"xvoListGetValue(sparse, (long long)(2LL))" release\tmp\cgen_index_access.c >nul
@@ -3913,14 +5261,24 @@ if errorlevel 1 (
     echo cgen_index_access.c missing var-returning compound RHS probe.
     exit /b 1
 )
-findstr /C:"xvoUnref(__xl6_conv_" release\tmp\cgen_index_access.c >nul
+findstr /C:"xl6_xrt_value_to_i64_release(nc_probe_next_var())" release\tmp\cgen_index_access.c >nul
 if errorlevel 1 (
-    echo cgen_index_access.c missing compound RHS temporary xvalue release.
+    echo cgen_index_access.c missing compound RHS release conversion helper.
+    exit /b 1
+)
+findstr /C:"__xl6_conv_" release\tmp\cgen_index_access.c >nul
+if not errorlevel 1 (
+    echo cgen_index_access.c should not use GNU conversion temporaries.
     exit /b 1
 )
 findstr /C:"if (xvoIsNull(__xl6_index_current_" release\tmp\cgen_index_access.c >nul
 if errorlevel 1 (
     echo cgen_index_access.c missing index null assignment lowering.
+    exit /b 1
+)
+findstr /C:"xvoUnref(__xl6_index_current_" release\tmp\cgen_index_access.c >nul
+if not errorlevel 1 (
+    echo cgen_index_access.c should not unref borrowed index current values.
     exit /b 1
 )
 "%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_index_access.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_index_access.exe
@@ -3955,6 +5313,26 @@ if errorlevel 1 (
     echo cgen_safe_index.c should return borrowed null for keyed safe index misses.
     exit /b 1
 )
+findstr /C:"expect_i64(((long long)xl6_xrt_value_to_i64_release(({ xvalue __xl6_nc_" release\tmp\cgen_safe_index.c >nul
+if not errorlevel 1 (
+    echo cgen_safe_index.c should pre-evaluate null coalesce scalar arguments.
+    exit /b 1
+)
+findstr /C:"long long declaredFallback = 0;" release\tmp\cgen_safe_index.c >nul
+if errorlevel 1 (
+    echo cgen_safe_index.c missing declaration-level safe index scalar temporary.
+    exit /b 1
+)
+findstr /C:"declaredFallback = (long long)xl6_xrt_value_to_i64_release(__xl6_call_value_" release\tmp\cgen_safe_index.c >nul
+if errorlevel 1 (
+    echo cgen_safe_index.c missing declaration-level safe index scalar handoff.
+    exit /b 1
+)
+findstr /C:"declaredFallback = ((long long)xl6_xrt_value_to_i64_release(({" release\tmp\cgen_safe_index.c >nul
+if not errorlevel 1 (
+    echo cgen_safe_index.c should not use statement expressions for declaration-level safe index fallback.
+    exit /b 1
+)
 "%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_safe_index.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_safe_index.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_safe_index.exe
@@ -3962,7 +5340,7 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_typed_container_safe_index.xl --emit release\tmp\cgen_typed_container_safe_index.c
 if errorlevel 1 exit /b 1
-findstr /C:"xl6_xrt_typed_box_or_null(xrtTypeInt(), xrtTypedArrayGet(values" release\tmp\cgen_typed_container_safe_index.c >nul
+findstr /C:"xl6_xrt_typed_box_or_null(xrtTypeInt(), xl6_xrt_typed_array_get_at(values" release\tmp\cgen_typed_container_safe_index.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_safe_index.c missing typed array safe index lowering.
     exit /b 1
@@ -3977,7 +5355,7 @@ if errorlevel 1 (
     echo cgen_typed_container_safe_index.c missing typed dict safe index lowering.
     exit /b 1
 )
-findstr /C:"xvalue maybeValue = xl6_xrt_typed_box_or_null(xrtTypeInt(), xrtTypedArrayGet(values" release\tmp\cgen_typed_container_safe_index.c >nul
+findstr /C:"xvalue maybeValue = xl6_xrt_typed_box_or_null(xrtTypeInt(), xl6_xrt_typed_array_get_at(values" release\tmp\cgen_typed_container_safe_index.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_safe_index.c missing auto typed array safe index as xvalue.
     exit /b 1
@@ -3992,19 +5370,34 @@ if errorlevel 1 (
     echo cgen_typed_container_safe_index.c missing auto typed dict safe index as xvalue.
     exit /b 1
 )
-findstr /C:"xvalue __xl6_conv_" release\tmp\cgen_typed_container_safe_index.c >nul
+findstr /C:"xl6_xrt_value_to_i64_release(xl6_xrt_typed_box_or_null" release\tmp\cgen_typed_container_safe_index.c >nul
 if errorlevel 1 (
-    echo cgen_typed_container_safe_index.c missing temporary xvalue conversion lowering.
+    echo cgen_typed_container_safe_index.c missing temporary xvalue release conversion helper.
     exit /b 1
 )
-findstr /C:"xvoUnref(__xl6_conv_" release\tmp\cgen_typed_container_safe_index.c >nul
-if errorlevel 1 (
-    echo cgen_typed_container_safe_index.c missing temporary xvalue conversion release.
+findstr /C:"__xl6_conv_" release\tmp\cgen_typed_container_safe_index.c >nul
+if not errorlevel 1 (
+    echo cgen_typed_container_safe_index.c should not use GNU conversion temporaries.
     exit /b 1
 )
 findstr /C:"xl6_xrt_value_to_string_release(xl6_xrt_typed_box_or_null" release\tmp\cgen_typed_container_safe_index.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_safe_index.c missing temporary xvalue string conversion release.
+    exit /b 1
+)
+findstr /C:"expect_i64(((long long)xl6_xrt_value_to_i64_release(({ xvalue __xl6_nc_" release\tmp\cgen_typed_container_safe_index.c >nul
+if not errorlevel 1 (
+    echo cgen_typed_container_safe_index.c should pre-evaluate null coalesce scalar arguments.
+    exit /b 1
+)
+findstr /C:"expect_str(__xl6_call_arg_" release\tmp\cgen_typed_container_safe_index.c >nul
+if errorlevel 1 (
+    echo cgen_typed_container_safe_index.c missing string call argument handoff.
+    exit /b 1
+)
+findstr /C:"xl6_xrt_value_to_string_release(({ xvalue __xl6_nc_" release\tmp\cgen_typed_container_safe_index.c >nul
+if not errorlevel 1 (
+    echo cgen_typed_container_safe_index.c should pre-evaluate null coalesce string arguments.
     exit /b 1
 )
 "%XL6_TCC%" -Irelease\tcc\include_win %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_typed_container_safe_index.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_typed_container_safe_index.exe
@@ -4014,22 +5407,22 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_typed_container_safe_index_objects_functions.xl --emit release\tmp\cgen_typed_container_safe_index_objects_functions.c
 if errorlevel 1 exit /b 1
-findstr /C:"xvalue maybePair = xl6_xrt_typed_box_or_null(xl6_type_desc_XL_Class_Pair(), xrtTypedArrayGet(pairs" release\tmp\cgen_typed_container_safe_index_objects_functions.c >nul
+findstr /C:"xvalue maybePair = xl6_xrt_typed_box_or_null(xl6_type_desc_XL_Class_Pair(), xl6_xrt_typed_array_get_at(pairs" release\tmp\cgen_typed_container_safe_index_objects_functions.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_safe_index_objects_functions.c missing class typed array safe index lowering.
     exit /b 1
 )
-findstr /C:"xvalue maybePayload = xl6_xrt_typed_box_or_null(xl6_type_desc_XL_Union_Payload(), xrtTypedArrayGet(payloads" release\tmp\cgen_typed_container_safe_index_objects_functions.c >nul
+findstr /C:"xvalue maybePayload = xl6_xrt_typed_box_or_null(xl6_type_desc_XL_Union_Payload(), xl6_xrt_typed_array_get_at(payloads" release\tmp\cgen_typed_container_safe_index_objects_functions.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_safe_index_objects_functions.c missing union typed array safe index lowering.
     exit /b 1
 )
-findstr /C:"xvalue maybeNative = xl6_xrt_typed_box_or_null(xl6_type_desc_XL_Custom_Native(), xrtTypedArrayGet(natives" release\tmp\cgen_typed_container_safe_index_objects_functions.c >nul
+findstr /C:"xvalue maybeNative = xl6_xrt_typed_box_or_null(xl6_type_desc_XL_Custom_Native(), xl6_xrt_typed_array_get_at(natives" release\tmp\cgen_typed_container_safe_index_objects_functions.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_safe_index_objects_functions.c missing custom typed array safe index lowering.
     exit /b 1
 )
-findstr /C:"xvalue maybeFn = xl6_xrt_typed_box_or_null(xrtTypeFunction(), xrtTypedArrayGet(funcs" release\tmp\cgen_typed_container_safe_index_objects_functions.c >nul
+findstr /C:"xvalue maybeFn = xl6_xrt_typed_box_or_null(xrtTypeFunction(), xl6_xrt_typed_array_get_at(funcs" release\tmp\cgen_typed_container_safe_index_objects_functions.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_safe_index_objects_functions.c missing function typed array safe index lowering.
     exit /b 1
@@ -4054,7 +5447,7 @@ if errorlevel 1 (
     echo cgen_typed_container_safe_index_objects_functions.c missing function typed list safe index lowering.
     exit /b 1
 )
-findstr /C:"xrtTypedDictGet(pairDict, xvoGetText(__xl6_dict_key_" release\tmp\cgen_typed_container_safe_index_objects_functions.c >nul
+findstr /C:"xl6_xrt_typed_dict_get_var_key(pairDict" release\tmp\cgen_typed_container_safe_index_objects_functions.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_safe_index_objects_functions.c missing class typed dict dynamic safe index lowering.
     exit /b 1
@@ -4069,7 +5462,7 @@ if errorlevel 1 (
     echo cgen_typed_container_safe_index_objects_functions.c missing custom typed dict safe index lowering.
     exit /b 1
 )
-findstr /C:"xrtTypedDictGet(funcDict, xvoGetText(__xl6_dict_key_" release\tmp\cgen_typed_container_safe_index_objects_functions.c >nul
+findstr /C:"xl6_xrt_typed_dict_get_var_key(funcDict" release\tmp\cgen_typed_container_safe_index_objects_functions.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_safe_index_objects_functions.c missing function typed dict dynamic safe index lowering.
     exit /b 1
@@ -4116,14 +5509,19 @@ if errorlevel 1 (
     echo cgen_dynamic_member_access.c missing borrowed dynamic member access.
     exit /b 1
 )
-findstr /C:"xvalue __xl6_member_values_" release\tmp\cgen_dynamic_member_access.c >nul
+findstr /C:"xl6_xrt_index_safe_get_key_retain_release(makeObj()," release\tmp\cgen_dynamic_member_access.c >nul
 if errorlevel 1 (
-    echo cgen_dynamic_member_access.c missing temporary dynamic member receiver capture.
+    echo cgen_dynamic_member_access.c missing temporary dynamic member retain-release helper.
     exit /b 1
 )
-findstr /C:"xl6_xrt_retain(xl6_xrt_index_safe_get_key(__xl6_member_values_" release\tmp\cgen_dynamic_member_access.c >nul
+findstr /C:"xl6_xrt_index_safe_get_key_retain_release(xl6_xrt_index_safe_get_key_retain_release(makeObj()," release\tmp\cgen_dynamic_member_access.c >nul
 if errorlevel 1 (
-    echo cgen_dynamic_member_access.c missing temporary dynamic member retain.
+    echo cgen_dynamic_member_access.c missing nested temporary dynamic member retain-release helper.
+    exit /b 1
+)
+findstr /C:"({ xvalue __xl6_member_values_" release\tmp\cgen_dynamic_member_access.c >nul
+if not errorlevel 1 (
+    echo cgen_dynamic_member_access.c should not use GNU statement expressions for temporary dynamic members.
     exit /b 1
 )
 findstr /C:"xvalue __xl6_member_assign_" release\tmp\cgen_dynamic_member_access.c >nul
@@ -4139,6 +5537,26 @@ if errorlevel 1 (
 findstr /C:"xvoTableSetValue(xl6_xrt_index_safe_get_key(nested," release\tmp\cgen_dynamic_member_access.c >nul
 if errorlevel 1 (
     echo cgen_dynamic_member_access.c missing nested dynamic member assignment lowering.
+    exit /b 1
+)
+findstr /C:"expect_i64(((long long)xl6_xrt_value_to_i64_release(({ xvalue __xl6_nc_" release\tmp\cgen_dynamic_member_access.c >nul
+if not errorlevel 1 (
+    echo cgen_dynamic_member_access.c should pre-evaluate null coalesce scalar arguments.
+    exit /b 1
+)
+findstr /C:"long long declaredSafeMissing = 0;" release\tmp\cgen_dynamic_member_access.c >nul
+if errorlevel 1 (
+    echo cgen_dynamic_member_access.c missing declaration-level dynamic member scalar temporary.
+    exit /b 1
+)
+findstr /C:"declaredSafeMissing = (long long)xl6_xrt_value_to_i64_release(__xl6_call_value_" release\tmp\cgen_dynamic_member_access.c >nul
+if errorlevel 1 (
+    echo cgen_dynamic_member_access.c missing declaration-level dynamic member scalar handoff.
+    exit /b 1
+)
+findstr /C:"declaredSafeMissing = ((long long)xl6_xrt_value_to_i64_release(({" release\tmp\cgen_dynamic_member_access.c >nul
+if not errorlevel 1 (
+    echo cgen_dynamic_member_access.c should not use statement expressions for declaration-level dynamic member fallback.
     exit /b 1
 )
 "%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_dynamic_member_access.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_dynamic_member_access.exe
@@ -4158,14 +5576,39 @@ if errorlevel 1 (
     echo cgen_safe_member.c missing null safe member lowering.
     exit /b 1
 )
-findstr /C:"xvalue __xl6_member_values_" release\tmp\cgen_safe_member.c >nul
+findstr /C:"xl6_xrt_member_safe_length_release(makeArray())" release\tmp\cgen_safe_member.c >nul
 if errorlevel 1 (
-    echo cgen_safe_member.c missing temporary safe member receiver capture.
+    echo cgen_safe_member.c missing temporary array safe member release helper.
     exit /b 1
 )
-findstr /C:"xvoUnref(__xl6_member_values_" release\tmp\cgen_safe_member.c >nul
+findstr /C:"xl6_xrt_member_safe_length_release(makeDynArray())" release\tmp\cgen_safe_member.c >nul
 if errorlevel 1 (
-    echo cgen_safe_member.c missing temporary safe member receiver release.
+    echo cgen_safe_member.c missing temporary dynamic safe member release helper.
+    exit /b 1
+)
+findstr /C:"({ xvalue __xl6_member_values_" release\tmp\cgen_safe_member.c >nul
+if not errorlevel 1 (
+    echo cgen_safe_member.c should not use GNU statement expressions for temporary safe members.
+    exit /b 1
+)
+findstr /C:"expect_i64(((long long)xl6_xrt_value_to_i64_release(({ xvalue __xl6_nc_" release\tmp\cgen_safe_member.c >nul
+if not errorlevel 1 (
+    echo cgen_safe_member.c should pre-evaluate null coalesce scalar arguments.
+    exit /b 1
+)
+findstr /C:"long long declaredLengthFallback = 0;" release\tmp\cgen_safe_member.c >nul
+if errorlevel 1 (
+    echo cgen_safe_member.c missing declaration-level safe member scalar temporary.
+    exit /b 1
+)
+findstr /C:"declaredLengthFallback = (long long)xl6_xrt_value_to_i64_release(__xl6_call_value_" release\tmp\cgen_safe_member.c >nul
+if errorlevel 1 (
+    echo cgen_safe_member.c missing declaration-level safe member scalar handoff.
+    exit /b 1
+)
+findstr /C:"declaredLengthFallback = ((long long)xl6_xrt_value_to_i64_release(({" release\tmp\cgen_safe_member.c >nul
+if not errorlevel 1 (
+    echo cgen_safe_member.c should not use statement expressions for declaration-level safe member fallback.
     exit /b 1
 )
 "%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_safe_member.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_safe_member.exe
@@ -4236,19 +5679,49 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_null_coalesce.xl --emit release\tmp\cgen_null_coalesce.c
 if errorlevel 1 exit /b 1
-findstr /C:"xvalue fallback = ({ xvalue __xl6_nc_" release\tmp\cgen_null_coalesce.c >nul
+findstr /C:"xvalue fallback = 0;" release\tmp\cgen_null_coalesce.c >nul
 if errorlevel 1 (
-    echo cgen_null_coalesce.c missing var null coalesce lowering.
+    echo cgen_null_coalesce.c missing var null coalesce statement lowering.
     exit /b 1
 )
-findstr /C:"xvalue probed = ({ xvalue __xl6_nc_" release\tmp\cgen_null_coalesce.c >nul
+findstr /C:"fallback = xvoCreateInt((long long)(9LL));" release\tmp\cgen_null_coalesce.c >nul
+if errorlevel 1 (
+    echo cgen_null_coalesce.c missing var null coalesce fallback assignment.
+    exit /b 1
+)
+findstr /C:"xvalue probed = 0;" release\tmp\cgen_null_coalesce.c >nul
 if errorlevel 1 (
     echo cgen_null_coalesce.c missing single-evaluation null coalesce lowering.
     exit /b 1
 )
-findstr /C:"long long staticProbed = ({ long long __xl6_nc_" release\tmp\cgen_null_coalesce.c >nul
+findstr /C:"xvalue __xl6_nc_" release\tmp\cgen_null_coalesce.c | findstr /C:"nc_probe_next_var();" >nul
+if errorlevel 1 (
+    echo cgen_null_coalesce.c missing var null coalesce left temporary.
+    exit /b 1
+)
+findstr /C:"long long staticProbed = 0;" release\tmp\cgen_null_coalesce.c >nul
 if errorlevel 1 (
     echo cgen_null_coalesce.c missing static single-evaluation null coalesce lowering.
+    exit /b 1
+)
+findstr /C:"staticProbed = 44LL;" release\tmp\cgen_null_coalesce.c >nul
+if errorlevel 1 (
+    echo cgen_null_coalesce.c missing static null coalesce fallback assignment.
+    exit /b 1
+)
+findstr /C:"xvalue fallback = ({ xvalue __xl6_nc_" release\tmp\cgen_null_coalesce.c >nul
+if not errorlevel 1 (
+    echo cgen_null_coalesce.c still uses var null coalesce statement expression.
+    exit /b 1
+)
+findstr /C:"xvalue probed = ({ xvalue __xl6_nc_" release\tmp\cgen_null_coalesce.c >nul
+if not errorlevel 1 (
+    echo cgen_null_coalesce.c still uses probed null coalesce statement expression.
+    exit /b 1
+)
+findstr /C:"long long staticProbed = ({ long long __xl6_nc_" release\tmp\cgen_null_coalesce.c >nul
+if not errorlevel 1 (
+    echo cgen_null_coalesce.c still uses static null coalesce statement expression.
     exit /b 1
 )
 findstr /C:"xvalue literal = xvoCreateInt((long long)(7LL));" release\tmp\cgen_null_coalesce.c >nul
@@ -4519,7 +5992,7 @@ release\xl.exe abi test\cases\cgen_unicode_identifiers.xl --emit release\tmp\cge
 if errorlevel 1 exit /b 1
 findstr /C:"symbol: xl_fn__u52A0__u4E00___int" release\tmp\cgen_unicode_identifiers.abi.txt >nul
 if errorlevel 1 (
-    echo cgen_unicode_identifiers.abi.txt missing encoded function symbol.
+    echo cgen_unicode_identifiers.abi.txt missing encoded func symbol.
     exit /b 1
 )
 release\xl.exe cgen test\cases\cgen_unicode_identifiers.xl --emit release\tmp\cgen_unicode_identifiers.c
@@ -5016,9 +6489,19 @@ if errorlevel 1 (
     echo cgen_generic_class_function_fields.c missing generic class box helper.
     exit /b 1
 )
-findstr /C:"XL6_Function __xl6_member_fn_" release\tmp\cgen_generic_class_function_fields.c >nul
+findstr /C:"xl6_function_call_var(copied.op" release\tmp\cgen_generic_class_function_fields.c >nul
 if errorlevel 1 (
     echo cgen_generic_class_function_fields.c missing generic member function call lowering.
+    exit /b 1
+)
+findstr /C:"xl6_function_call_var(item.op" release\tmp\cgen_generic_class_function_fields.c >nul
+if errorlevel 1 (
+    echo cgen_generic_class_function_fields.c missing generic iteration member function call lowering.
+    exit /b 1
+)
+findstr /C:"({ XL6_Function __xl6_member_fn_" release\tmp\cgen_generic_class_function_fields.c >nul
+if not errorlevel 1 (
+    echo cgen_generic_class_function_fields.c should not use GNU statement expressions for generic member function calls.
     exit /b 1
 )
 findstr /C:"fromArray.op.retain(fromArray.op.env);" release\tmp\cgen_generic_class_function_fields.c >nul
@@ -5495,7 +6978,7 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe ir test\cases\extern_puts.xl --emit release\tmp\extern_puts.xlir
 if errorlevel 1 exit /b 1
-findstr /C:"extern \"puts\" func puts(text: string) -> int32" release\tmp\extern_puts.xlir >nul
+findstr /C:"extern \"puts\" func puts(text: string) as int32" release\tmp\extern_puts.xlir >nul
 if errorlevel 1 (
     echo extern_puts.xlir missing extern declaration.
     exit /b 1
@@ -5620,7 +7103,7 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe ir test\cases\export_add.xl --emit release\tmp\export_add.xlir
 if errorlevel 1 exit /b 1
-findstr /C:"export \"xl6_add_i64\" func add_i64(a: int, b: int) -> int" release\tmp\export_add.xlir >nul
+findstr /C:"export \"xl6_add_i64\" func add_i64(a: int, b: int) as int" release\tmp\export_add.xlir >nul
 if errorlevel 1 (
     echo export_add.xlir missing export declaration.
     exit /b 1
@@ -5779,7 +7262,7 @@ if not exist release\tmp\xl6_export_add_shared.h (
 
 release\xl.exe abi test\cases\export_multi_return.xl --emit release\tmp\export_multi_return.abi.txt
 if errorlevel 1 exit /b 1
-findstr /C:"signature: fn:app.pair(int)->(int,int)" release\tmp\export_multi_return.abi.txt >nul
+findstr /C:"signature: fn:app.pair(int) as (int,int)" release\tmp\export_multi_return.abi.txt >nul
 if errorlevel 1 (
     echo export_multi_return.abi.txt missing multi-return signature.
     exit /b 1
@@ -5893,7 +7376,7 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe abi test\cases\export_alias.xl --emit release\tmp\export_alias.abi.txt
 if errorlevel 1 exit /b 1
-findstr /C:"signature: fn:app.aliasAdd(int,int)->int" release\tmp\export_alias.abi.txt >nul
+findstr /C:"signature: fn:app.aliasAdd(int,int) as int" release\tmp\export_alias.abi.txt >nul
 if errorlevel 1 (
     echo export_alias.abi.txt missing canonical alias signature.
     exit /b 1
@@ -5905,7 +7388,7 @@ if errorlevel 1 (
     echo export_alias.abi.json missing ABI version.
     exit /b 1
 )
-findstr /C:"fn:app.aliasAdd(int,int)->int" release\tmp\export_alias.abi.json >nul
+findstr /C:"fn:app.aliasAdd(int,int) as int" release\tmp\export_alias.abi.json >nul
 if errorlevel 1 (
     echo export_alias.abi.json missing canonical alias signature.
     exit /b 1
@@ -6164,9 +7647,14 @@ if not errorlevel 1 (
     echo sem_dynamic_member_assign_container.xl should fail.
     exit /b 1
 )
-findstr /C:"member assignment receiver must be class/union field, var or dynamic dict" release\tmp\sem_dynamic_member_assign_container.err.txt >nul
+findstr /C:"member key receiver must be var or dynamic dict" release\tmp\sem_dynamic_member_assign_container.err.txt >nul
 if errorlevel 1 (
     echo sem_dynamic_member_assign_container.xl missing expected diagnostic.
+    exit /b 1
+)
+findstr /C:"member assignment receiver must be class/union field, var or dynamic dict" release\tmp\sem_dynamic_member_assign_container.err.txt >nul
+if not errorlevel 1 (
+    echo sem_dynamic_member_assign_container.xl should not report assignment target cascade.
     exit /b 1
 )
 
@@ -6175,9 +7663,14 @@ if not errorlevel 1 (
     echo sem_dynamic_member_assign_typed_dict.xl should fail.
     exit /b 1
 )
-findstr /C:"member assignment receiver must be class/union field, var or dynamic dict" release\tmp\sem_dynamic_member_assign_typed_dict.err.txt >nul
+findstr /C:"member key receiver must be var or dynamic dict" release\tmp\sem_dynamic_member_assign_typed_dict.err.txt >nul
 if errorlevel 1 (
     echo sem_dynamic_member_assign_typed_dict.xl missing expected diagnostic.
+    exit /b 1
+)
+findstr /C:"member assignment receiver must be class/union field, var or dynamic dict" release\tmp\sem_dynamic_member_assign_typed_dict.err.txt >nul
+if not errorlevel 1 (
+    echo sem_dynamic_member_assign_typed_dict.xl should not report assignment target cascade.
     exit /b 1
 )
 
@@ -6291,10 +7784,20 @@ if not errorlevel 1 (
     echo sem_return_multi_count.xl should fail.
     exit /b 1
 )
+findstr /C:"expected 2, actual 1" release\tmp\sem_return_multi_count.err.txt >nul
+if errorlevel 1 (
+    echo sem_return_multi_count.xl missing return count context.
+    exit /b 1
+)
 
 release\xl.exe check test\cases\sem_multi_decl_count.xl >nul 2> release\tmp\sem_multi_decl_count.err.txt
 if not errorlevel 1 (
     echo sem_multi_decl_count.xl should fail.
+    exit /b 1
+)
+findstr /C:"expected 2, actual 3" release\tmp\sem_multi_decl_count.err.txt >nul
+if errorlevel 1 (
+    echo sem_multi_decl_count.xl missing multi declaration count context.
     exit /b 1
 )
 
@@ -6307,6 +7810,22 @@ if not errorlevel 1 (
 release\xl.exe check test\cases\sem_multi_assign_count.xl >nul 2> release\tmp\sem_multi_assign_count.err.txt
 if not errorlevel 1 (
     echo sem_multi_assign_count.xl should fail.
+    exit /b 1
+)
+findstr /C:"expected 2, actual 3" release\tmp\sem_multi_assign_count.err.txt >nul
+if errorlevel 1 (
+    echo sem_multi_assign_count.xl missing multi assignment count context.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_multi_assign_type_mismatch.xl >nul 2> release\tmp\sem_multi_assign_type_mismatch.err.txt
+if not errorlevel 1 (
+    echo sem_multi_assign_type_mismatch.xl should fail.
+    exit /b 1
+)
+findstr /C:"target int, value string" release\tmp\sem_multi_assign_type_mismatch.err.txt >nul
+if errorlevel 1 (
+    echo sem_multi_assign_type_mismatch.xl missing multi-return variable assignment type context.
     exit /b 1
 )
 
@@ -6346,9 +7865,25 @@ if not errorlevel 1 (
     exit /b 1
 )
 
+release\xl.exe check test\cases\sem_call_arg_type.xl >nul 2> release\tmp\sem_call_arg_type.err.txt
+if not errorlevel 1 (
+    echo sem_call_arg_type.xl should fail.
+    exit /b 1
+)
+findstr /C:"target int, value string" release\tmp\sem_call_arg_type.err.txt >nul
+if errorlevel 1 (
+    echo sem_call_arg_type.xl missing function argument type context.
+    exit /b 1
+)
+
 release\xl.exe check test\cases\sem_call_missing_required.xl >nul 2> release\tmp\sem_call_missing_required.err.txt
 if not errorlevel 1 (
     echo sem_call_missing_required.xl should fail.
+    exit /b 1
+)
+findstr /C:"expected 2, actual 1" release\tmp\sem_call_missing_required.err.txt >nul
+if errorlevel 1 (
+    echo sem_call_missing_required.xl missing function argument count context.
     exit /b 1
 )
 findstr /C:"code generation error" release\tmp\sem_call_missing_required.err.txt >nul
@@ -6397,6 +7932,11 @@ if errorlevel 1 (
     echo sem_function_signature_mismatch.err.txt missing semantic diagnostic.
     exit /b 1
 )
+findstr /C:"target function, value function" release\tmp\sem_function_signature_mismatch.err.txt >nul
+if errorlevel 1 (
+    echo sem_function_signature_mismatch.err.txt missing function signature type context.
+    exit /b 1
+)
 findstr /C:"code generation error" release\tmp\sem_function_signature_mismatch.err.txt >nul
 if not errorlevel 1 (
     echo sem_function_signature_mismatch.err.txt regressed to generic cgen diagnostic.
@@ -6413,9 +7953,36 @@ if errorlevel 1 (
     echo cgen_function_signature_mismatch.err.txt missing semantic diagnostic.
     exit /b 1
 )
+findstr /C:"target function, value function" release\tmp\cgen_function_signature_mismatch.err.txt >nul
+if errorlevel 1 (
+    echo cgen_function_signature_mismatch.err.txt missing function signature type context.
+    exit /b 1
+)
 findstr /C:"code generation error" release\tmp\cgen_function_signature_mismatch.err.txt >nul
 if not errorlevel 1 (
     echo cgen_function_signature_mismatch.err.txt regressed to generic cgen diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_function_call_arg_count_missing.xl >nul 2> release\tmp\sem_function_call_arg_count_missing.err.txt
+if not errorlevel 1 (
+    echo sem_function_call_arg_count_missing.xl should fail.
+    exit /b 1
+)
+findstr /C:"expected 2, actual 1" release\tmp\sem_function_call_arg_count_missing.err.txt >nul
+if errorlevel 1 (
+    echo sem_function_call_arg_count_missing.xl missing function argument count context.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_function_call_arg_count_extra.xl >nul 2> release\tmp\sem_function_call_arg_count_extra.err.txt
+if not errorlevel 1 (
+    echo sem_function_call_arg_count_extra.xl should fail.
+    exit /b 1
+)
+findstr /C:"expected 2, actual 3" release\tmp\sem_function_call_arg_count_extra.err.txt >nul
+if errorlevel 1 (
+    echo sem_function_call_arg_count_extra.xl missing function argument count context.
     exit /b 1
 )
 
@@ -6424,10 +7991,20 @@ if not errorlevel 1 (
     echo sem_function_call_arg_type.xl should fail.
     exit /b 1
 )
+findstr /C:"target int, value string" release\tmp\sem_function_call_arg_type.err.txt >nul
+if errorlevel 1 (
+    echo sem_function_call_arg_type.xl missing function argument type context.
+    exit /b 1
+)
 
 release\xl.exe check test\cases\sem_member_function_field_call_arg_type.xl >nul 2> release\tmp\sem_member_function_field_call_arg_type.err.txt
 if not errorlevel 1 (
     echo sem_member_function_field_call_arg_type.xl should fail.
+    exit /b 1
+)
+findstr /C:"target int, value string" release\tmp\sem_member_function_field_call_arg_type.err.txt >nul
+if errorlevel 1 (
+    echo sem_member_function_field_call_arg_type.xl missing member function argument type context.
     exit /b 1
 )
 
@@ -6436,9 +8013,9 @@ if not errorlevel 1 (
     echo sem_function_bare_named_arg.xl should fail.
     exit /b 1
 )
-findstr /C:"function" release\tmp\sem_function_bare_named_arg.err.txt >nul
+findstr /C:"func" release\tmp\sem_function_bare_named_arg.err.txt >nul
 if errorlevel 1 (
-    echo sem_function_bare_named_arg.err.txt missing function diagnostic.
+    echo sem_function_bare_named_arg.err.txt missing func diagnostic.
     exit /b 1
 )
 findstr /C:"code generation error" release\tmp\sem_function_bare_named_arg.err.txt >nul
@@ -6447,19 +8024,30 @@ if not errorlevel 1 (
     exit /b 1
 )
 
+release\xl.exe check test\cases\sem_function_call_named_order.xl >nul 2> release\tmp\sem_function_call_named_order.err.txt
+if not errorlevel 1 (
+    echo sem_function_call_named_order.xl should fail.
+    exit /b 1
+)
+
 release\xl.exe check test\cases\sem_function_bare_overload_name.xl >nul 2> release\tmp\sem_function_bare_overload_name.err.txt
 if not errorlevel 1 (
     echo sem_function_bare_overload_name.xl should fail.
     exit /b 1
 )
-findstr /C:"function" release\tmp\sem_function_bare_overload_name.err.txt >nul
+findstr /C:"func" release\tmp\sem_function_bare_overload_name.err.txt >nul
 if errorlevel 1 (
-    echo sem_function_bare_overload_name.err.txt missing function overload diagnostic.
+    echo sem_function_bare_overload_name.err.txt missing func overload diagnostic.
     exit /b 1
 )
 findstr /C:"code generation error" release\tmp\sem_function_bare_overload_name.err.txt >nul
 if not errorlevel 1 (
     echo sem_function_bare_overload_name.err.txt regressed to generic cgen diagnostic.
+    exit /b 1
+)
+findstr /C:"target function, value <unknown>" release\tmp\sem_function_bare_overload_name.err.txt >nul
+if not errorlevel 1 (
+    echo sem_function_bare_overload_name.err.txt regressed to cascaded unknown-value mismatch.
     exit /b 1
 )
 
@@ -6468,16 +8056,42 @@ if not errorlevel 1 (
     echo sem_function_multi_return_arg_type.xl should fail.
     exit /b 1
 )
+findstr /C:"target int, value string" release\tmp\sem_function_multi_return_arg_type.err.txt >nul
+if errorlevel 1 (
+    echo sem_function_multi_return_arg_type.xl missing multi-return function argument type context.
+    exit /b 1
+)
 
 release\xl.exe check test\cases\sem_return_type_mismatch.xl >nul 2> release\tmp\sem_return_type_mismatch.err.txt
 if not errorlevel 1 (
     echo sem_return_type_mismatch.xl should fail.
     exit /b 1
 )
+findstr /C:"target int, value string" release\tmp\sem_return_type_mismatch.err.txt >nul
+if errorlevel 1 (
+    echo sem_return_type_mismatch.xl missing return type mismatch context.
+    exit /b 1
+)
 
 release\xl.exe check test\cases\sem_param_default_type.xl >nul 2> release\tmp\sem_param_default_type.err.txt
 if not errorlevel 1 (
     echo sem_param_default_type.xl should fail.
+    exit /b 1
+)
+findstr /C:"target int, value string" release\tmp\sem_param_default_type.err.txt >nul
+if errorlevel 1 (
+    echo sem_param_default_type.xl missing parameter default type mismatch context.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_type_convert_invalid.xl >nul 2> release\tmp\sem_type_convert_invalid.err.txt
+if not errorlevel 1 (
+    echo sem_type_convert_invalid.xl should fail.
+    exit /b 1
+)
+findstr /C:"target point, source int" release\tmp\sem_type_convert_invalid.err.txt >nul
+if errorlevel 1 (
+    echo sem_type_convert_invalid.xl missing type conversion context.
     exit /b 1
 )
 
@@ -6597,9 +8211,9 @@ if not errorlevel 1 (
     echo sem_class_ctor_arity.xl should fail.
     exit /b 1
 )
-findstr /C:"create" release\tmp\sem_class_ctor_arity.err.txt >nul
+findstr /C:"expected 1, actual 0" release\tmp\sem_class_ctor_arity.err.txt >nul
 if errorlevel 1 (
-    echo sem_class_ctor_arity.err.txt missing create diagnostic.
+    echo sem_class_ctor_arity.err.txt missing create argument count context.
     exit /b 1
 )
 findstr /C:"code generation error" release\tmp\sem_class_ctor_arity.err.txt >nul
@@ -6613,9 +8227,9 @@ if not errorlevel 1 (
     echo sem_class_default_ctor_args.xl should fail.
     exit /b 1
 )
-findstr /C:"create" release\tmp\sem_class_default_ctor_args.err.txt >nul
+findstr /C:"expected 0, actual 1" release\tmp\sem_class_default_ctor_args.err.txt >nul
 if errorlevel 1 (
-    echo sem_class_default_ctor_args.err.txt missing create diagnostic.
+    echo sem_class_default_ctor_args.err.txt missing default constructor count context.
     exit /b 1
 )
 findstr /C:"code generation error" release\tmp\sem_class_default_ctor_args.err.txt >nul
@@ -6639,6 +8253,11 @@ if not errorlevel 1 (
 release\xl.exe check test\cases\sem_class_field_default_type.xl >nul 2> release\tmp\sem_class_field_default_type.err.txt
 if not errorlevel 1 (
     echo sem_class_field_default_type.xl should fail.
+    exit /b 1
+)
+findstr /C:"target int, value string" release\tmp\sem_class_field_default_type.err.txt >nul
+if errorlevel 1 (
+    echo sem_class_field_default_type.err.txt missing field default type context.
     exit /b 1
 )
 findstr /C:"code generation error" release\tmp\sem_class_field_default_type.err.txt >nul
@@ -6758,11 +8377,8 @@ if not errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_as_return.xl >nul 2> release\tmp\sem_as_return.err.txt
-if not errorlevel 1 (
-    echo sem_as_return.xl should fail.
-    exit /b 1
-)
+release\xl.exe check test\cases\sem_as_return.xl
+if errorlevel 1 exit /b 1
 
 release\xl.exe check test\cases\sem_type_builtin_name.xl >nul 2> release\tmp\sem_type_builtin_name.err.txt
 if not errorlevel 1 (
@@ -6800,6 +8416,17 @@ if not errorlevel 1 (
     exit /b 1
 )
 
+release\xl.exe check test\cases\sem_export_var_init_type.xl >nul 2> release\tmp\sem_export_var_init_type.err.txt
+if not errorlevel 1 (
+    echo sem_export_var_init_type.xl should fail.
+    exit /b 1
+)
+findstr /C:"target int, value string" release\tmp\sem_export_var_init_type.err.txt >nul
+if errorlevel 1 (
+    echo sem_export_var_init_type.xl missing export variable initializer type context.
+    exit /b 1
+)
+
 release\xl.exe check test\cases\sem_export_string_return.xl >nul 2> release\tmp\sem_export_string_return.err.txt
 if not errorlevel 1 (
     echo sem_export_string_return.xl should fail.
@@ -6815,6 +8442,11 @@ if not errorlevel 1 (
 release\xl.exe check test\cases\sem_generic_arity.xl >nul 2> release\tmp\sem_generic_arity.err.txt
 if not errorlevel 1 (
     echo sem_generic_arity.xl should fail.
+    exit /b 1
+)
+findstr /C:"expected 1, actual 2" release\tmp\sem_generic_arity.err.txt >nul
+if errorlevel 1 (
+    echo sem_generic_arity.xl missing generic argument count context.
     exit /b 1
 )
 
@@ -6835,10 +8467,20 @@ if not errorlevel 1 (
     echo sem_generic_infer_conflict.xl should fail.
     exit /b 1
 )
+findstr /C:"target int, value string" release\tmp\sem_generic_infer_conflict.err.txt >nul
+if errorlevel 1 (
+    echo sem_generic_infer_conflict.xl missing generic inference conflict context.
+    exit /b 1
+)
 
 release\xl.exe check test\cases\sem_generic_func_inst_arity.xl >nul 2> release\tmp\sem_generic_func_inst_arity.err.txt
 if not errorlevel 1 (
     echo sem_generic_func_inst_arity.xl should fail.
+    exit /b 1
+)
+findstr /C:"expected 1, actual 2" release\tmp\sem_generic_func_inst_arity.err.txt >nul
+if errorlevel 1 (
+    echo sem_generic_func_inst_arity.xl missing explicit generic function argument count context.
     exit /b 1
 )
 
@@ -6847,10 +8489,20 @@ if not errorlevel 1 (
     echo sem_generic_old_call_syntax.xl should fail.
     exit /b 1
 )
+findstr /C:"::<T>" release\tmp\sem_generic_old_call_syntax.err.txt >nul
+if errorlevel 1 (
+    echo sem_generic_old_call_syntax.xl missing old generic syntax diagnostic.
+    exit /b 1
+)
 
 release\xl.exe check test\cases\sem_generic_class_ctor_arity.xl >nul 2> release\tmp\sem_generic_class_ctor_arity.err.txt
 if not errorlevel 1 (
     echo sem_generic_class_ctor_arity.xl should fail.
+    exit /b 1
+)
+findstr /C:"expected 1, actual 2" release\tmp\sem_generic_class_ctor_arity.err.txt >nul
+if errorlevel 1 (
+    echo sem_generic_class_ctor_arity.xl missing generic class constructor count context.
     exit /b 1
 )
 
@@ -6869,6 +8521,11 @@ if not errorlevel 1 (
 release\xl.exe check test\cases\sem_generic_class_arity.xl >nul 2> release\tmp\sem_generic_class_arity.err.txt
 if not errorlevel 1 (
     echo sem_generic_class_arity.xl should fail.
+    exit /b 1
+)
+findstr /C:"expected 1, actual 2" release\tmp\sem_generic_class_arity.err.txt >nul
+if errorlevel 1 (
+    echo sem_generic_class_arity.xl missing generic class type argument count context.
     exit /b 1
 )
 
@@ -6905,6 +8562,16 @@ if not errorlevel 1 (
 release\xl.exe check test\cases\sem_alias_cycle.xl >nul 2> release\tmp\sem_alias_cycle.err.txt
 if not errorlevel 1 (
     echo sem_alias_cycle.xl should fail.
+    exit /b 1
+)
+findstr /C:"type alias cycle" release\tmp\sem_alias_cycle.err.txt >nul
+if errorlevel 1 (
+    echo sem_alias_cycle.xl should report alias cycle.
+    exit /b 1
+)
+findstr /C:"target First" release\tmp\sem_alias_cycle.err.txt >nul
+if not errorlevel 1 (
+    echo sem_alias_cycle.xl should not report initializer cascade.
     exit /b 1
 )
 
@@ -6955,10 +8622,25 @@ if not errorlevel 1 (
     echo sem_string_concat_mismatch.xl should fail.
     exit /b 1
 )
+findstr /C:"numeric operator operands must be numeric" release\tmp\sem_string_concat_mismatch.err.txt >nul
+if not errorlevel 1 (
+    echo sem_string_concat_mismatch.xl should not report numeric cascade.
+    exit /b 1
+)
 
 release\xl.exe check test\cases\sem_string_assign_mismatch.xl >nul 2> release\tmp\sem_string_assign_mismatch.err.txt
 if not errorlevel 1 (
     echo sem_string_assign_mismatch.xl should fail.
+    exit /b 1
+)
+findstr /C:"string compound assignment operands must both be string" release\tmp\sem_string_assign_mismatch.err.txt >nul
+if errorlevel 1 (
+    echo sem_string_assign_mismatch.xl missing expected diagnostic.
+    exit /b 1
+)
+findstr /C:"op +=, left string, right int" release\tmp\sem_string_assign_mismatch.err.txt >nul
+if errorlevel 1 (
+    echo sem_string_assign_mismatch.xl missing compound diagnostic context.
     exit /b 1
 )
 
@@ -6983,6 +8665,11 @@ if not errorlevel 1 (
 release\xl.exe check test\cases\sem_time_assign_mismatch.xl >nul 2> release\tmp\sem_time_assign_mismatch.err.txt
 if not errorlevel 1 (
     echo sem_time_assign_mismatch.xl should fail.
+    exit /b 1
+)
+findstr /C:"target time, value int" release\tmp\sem_time_assign_mismatch.err.txt >nul
+if errorlevel 1 (
+    echo sem_time_assign_mismatch.xl missing declaration init type mismatch context.
     exit /b 1
 )
 
@@ -7010,15 +8697,42 @@ if errorlevel 1 exit /b 1
 release\xl.exe check test\cases\sem_var_function_init.xl
 if errorlevel 1 exit /b 1
 
+release\xl.exe check test\cases\sem_var_call_arg_destroy_class.xl >nul 2> release\tmp\sem_var_call_arg_destroy_class.err.txt
+if not errorlevel 1 (
+    echo sem_var_call_arg_destroy_class.xl should fail.
+    exit /b 1
+)
+findstr /C:"target var, source Resource" release\tmp\sem_var_call_arg_destroy_class.err.txt >nul
+if errorlevel 1 (
+    echo sem_var_call_arg_destroy_class.xl missing var call argument boxing context.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_var_call_named_order.xl >nul 2> release\tmp\sem_var_call_named_order.err.txt
+if not errorlevel 1 (
+    echo sem_var_call_named_order.xl should fail.
+    exit /b 1
+)
+
 release\xl.exe check test\cases\sem_var_destroy_class_init.xl >nul 2> release\tmp\sem_var_destroy_class_init.err.txt
 if not errorlevel 1 (
     echo sem_var_destroy_class_init.xl should fail.
+    exit /b 1
+)
+findstr /C:"target var, value Resource" release\tmp\sem_var_destroy_class_init.err.txt >nul
+if errorlevel 1 (
+    echo sem_var_destroy_class_init.xl missing constructor value type context.
     exit /b 1
 )
 
 release\xl.exe check test\cases\sem_var_destroy_class_return.xl >nul 2> release\tmp\sem_var_destroy_class_return.err.txt
 if not errorlevel 1 (
     echo sem_var_destroy_class_return.xl should fail.
+    exit /b 1
+)
+findstr /C:"target var, value Resource" release\tmp\sem_var_destroy_class_return.err.txt >nul
+if errorlevel 1 (
+    echo sem_var_destroy_class_return.xl missing constructor value type context.
     exit /b 1
 )
 
@@ -7184,6 +8898,26 @@ if errorlevel 1 (
     echo cgen_sync.c missing xrtRWLockCreate.
     exit /b 1
 )
+findstr /C:"xl6_sync_require_handle(xrtMutexCreate()" release\tmp\cgen_sync.c >nul
+if errorlevel 1 (
+    echo cgen_sync.c missing mutex constructor error guard.
+    exit /b 1
+)
+findstr /C:"xl6_sync_require_handle(xrtSemCreate(" release\tmp\cgen_sync.c >nul
+if errorlevel 1 (
+    echo cgen_sync.c missing sem constructor error guard.
+    exit /b 1
+)
+findstr /C:"xl6_sync_require_handle(xrtCondCreate()" release\tmp\cgen_sync.c >nul
+if errorlevel 1 (
+    echo cgen_sync.c missing cond constructor error guard.
+    exit /b 1
+)
+findstr /C:"xl6_sync_require_handle(xrtRWLockCreate()" release\tmp\cgen_sync.c >nul
+if errorlevel 1 (
+    echo cgen_sync.c missing rwlock constructor error guard.
+    exit /b 1
+)
 
 release\xl.exe check test\cases\sem_sync_ctor_args.xl >nul 2> release\tmp\sem_sync_ctor_args.err.txt
 if not errorlevel 1 (
@@ -7194,6 +8928,17 @@ if not errorlevel 1 (
 release\xl.exe check test\cases\sem_sync_method_args.xl >nul 2> release\tmp\sem_sync_method_args.err.txt
 if not errorlevel 1 (
     echo sem_sync_method_args.xl should fail.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_sync_receiver_expr.xl >nul 2> release\tmp\sem_sync_receiver_expr.err.txt
+if not errorlevel 1 (
+    echo sem_sync_receiver_expr.xl should fail.
+    exit /b 1
+)
+findstr /C:"sync method receiver" release\tmp\sem_sync_receiver_expr.err.txt >nul
+if errorlevel 1 (
+    echo sem_sync_receiver_expr.xl missing named receiver diagnostic.
     exit /b 1
 )
 
@@ -7234,6 +8979,16 @@ if errorlevel 1 (
     echo cgen_thread.c missing thread start helper.
     exit /b 1
 )
+findstr /C:"xl6_thread_require_handle(xl6_thread_start" release\tmp\cgen_thread.c >nul
+if errorlevel 1 (
+    echo cgen_thread.c missing thread constructor error guard.
+    exit /b 1
+)
+findstr /C:"thread start failed" release\tmp\cgen_thread.c >nul
+if errorlevel 1 (
+    echo cgen_thread.c missing thread start failure diagnostic.
+    exit /b 1
+)
 findstr /C:"xl6_thread_release" release\tmp\cgen_thread.c >nul
 if errorlevel 1 (
     echo cgen_thread.c missing thread release helper.
@@ -7272,10 +9027,26 @@ if not errorlevel 1 (
     echo sem_thread_entry_signature.xl should fail.
     exit /b 1
 )
+findstr /C:"function " release\tmp\sem_thread_entry_signature.err.txt >nul
+if not errorlevel 1 (
+    echo sem_thread_entry_signature.xl should not emit generic function value diagnostics.
+    exit /b 1
+)
 
 release\xl.exe check test\cases\sem_thread_method_args.xl >nul 2> release\tmp\sem_thread_method_args.err.txt
 if not errorlevel 1 (
     echo sem_thread_method_args.xl should fail.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_thread_receiver_expr.xl >nul 2> release\tmp\sem_thread_receiver_expr.err.txt
+if not errorlevel 1 (
+    echo sem_thread_receiver_expr.xl should fail.
+    exit /b 1
+)
+findstr /C:"thread method receiver" release\tmp\sem_thread_receiver_expr.err.txt >nul
+if errorlevel 1 (
+    echo sem_thread_receiver_expr.xl missing named receiver diagnostic.
     exit /b 1
 )
 
@@ -7303,6 +9074,21 @@ if errorlevel 1 exit /b 1
 findstr /C:"xTaskRunThread" release\tmp\cgen_async.c >nul
 if errorlevel 1 (
     echo cgen_async.c missing xTaskRunThread.
+    exit /b 1
+)
+findstr /C:"xl6_async_require_future(xTaskRunThread" release\tmp\cgen_async.c >nul
+if errorlevel 1 (
+    echo cgen_async.c missing async no-arg task start guard.
+    exit /b 1
+)
+findstr /C:"async task args allocation failed" release\tmp\cgen_async.c >nul
+if errorlevel 1 (
+    echo cgen_async.c missing async args allocation diagnostic.
+    exit /b 1
+)
+findstr /C:"async task start failed" release\tmp\cgen_async.c >nul
+if errorlevel 1 (
+    echo cgen_async.c missing async task start diagnostic.
     exit /b 1
 )
 findstr /C:"xl6_future_await_value" release\tmp\cgen_async.c >nul
@@ -7355,6 +9141,76 @@ if errorlevel 1 (
     echo cgen_async.c missing auto await class cleanup.
     exit /b 1
 )
+findstr /C:"long long temporaryValue = xl6_future_await_i64_release(addAsync(8LL, 9LL)" release\tmp\cgen_async.c >nul
+if errorlevel 1 (
+    echo cgen_async.c missing temporary await scalar release helper.
+    exit /b 1
+)
+findstr /C:"xl6_future_await_void_release(doneAsync()" release\tmp\cgen_async.c >nul
+if errorlevel 1 (
+    echo cgen_async.c missing temporary await void release helper.
+    exit /b 1
+)
+findstr /C:"XL6_Function temporaryFn = xl6_future_await_function_release(makeAdderAsync(60LL)" release\tmp\cgen_async.c >nul
+if errorlevel 1 (
+    echo cgen_async.c missing temporary await function release helper.
+    exit /b 1
+)
+findstr /C:"long long temporaryValue = ({ xfuture*" release\tmp\cgen_async.c >nul
+if not errorlevel 1 (
+    echo cgen_async.c should not use statement expression for temporary scalar await.
+    exit /b 1
+)
+findstr /C:"XL6_Function temporaryFn = ({ xfuture*" release\tmp\cgen_async.c >nul
+if not errorlevel 1 (
+    echo cgen_async.c should not use statement expression for temporary function await.
+    exit /b 1
+)
+findstr /C:"({ xfuture* __xl6_await_future_" release\tmp\cgen_async.c | findstr /C:"doneAsync" >nul
+if not errorlevel 1 (
+    echo cgen_async.c should not use statement expression for temporary void await.
+    exit /b 1
+)
+findstr /C:"static XL_Class_AsyncBox xl6_future_await_class_makeBoxAsync_release" release\tmp\cgen_async.c >nul
+if errorlevel 1 (
+    echo cgen_async.c missing temporary await class release helper.
+    exit /b 1
+)
+findstr /C:"temporaryBox = xl6_future_await_class_makeBoxAsync_release(makeBoxAsync(110LL)" release\tmp\cgen_async.c >nul
+if errorlevel 1 (
+    echo cgen_async.c missing temporary await class helper call.
+    exit /b 1
+)
+findstr /C:"result.op.retain(result.op.env)" release\tmp\cgen_async.c >nul
+if errorlevel 1 (
+    echo cgen_async.c missing temporary await class retained function field.
+    exit /b 1
+)
+findstr /C:"xl6_future_release_if_needed(pFuture)" release\tmp\cgen_async.c >nul
+if errorlevel 1 (
+    echo cgen_async.c missing temporary await helper future release.
+    exit /b 1
+)
+findstr /C:"temporaryBox = ({ xfuture*" release\tmp\cgen_async.c >nul
+if not errorlevel 1 (
+    echo cgen_async.c should not use statement expression for temporary class await.
+    exit /b 1
+)
+findstr /C:"__xl6_await_future_" release\tmp\cgen_async.c >nul
+if not errorlevel 1 (
+    echo cgen_async.c should not use temporary await future block.
+    exit /b 1
+)
+findstr /C:"temporaryFn.retain(temporaryFn.env)" release\tmp\cgen_async.c >nul
+if not errorlevel 1 (
+    echo cgen_async.c should not double-retain temporary await function result.
+    exit /b 1
+)
+findstr /C:"temporaryBox.op.retain(temporaryBox.op.env)" release\tmp\cgen_async.c >nul
+if not errorlevel 1 (
+    echo cgen_async.c should not double-retain temporary await class result.
+    exit /b 1
+)
 
 release\xl.exe check test\cases\cgen_async_exception_propagation.xl
 if errorlevel 1 exit /b 1
@@ -7383,6 +9239,18 @@ if errorlevel 1 (
     exit /b 1
 )
 
+findstr /C:"xl6_future_await_value(failed" release\tmp\cgen_async_exception_propagation.c >nul
+if errorlevel 1 (
+    echo cgen_async_exception_propagation.c missing borrowed named future await.
+    exit /b 1
+)
+
+findstr /C:"xl6_future_await_i64_release(failAsync()" release\tmp\cgen_async_exception_propagation.c >nul
+if errorlevel 1 (
+    echo cgen_async_exception_propagation.c missing owned temporary future await release.
+    exit /b 1
+)
+
 release\xl.exe check test\cases\sem_await_non_future.xl >nul 2> release\tmp\sem_await_non_future.err.txt
 if not errorlevel 1 (
     echo sem_await_non_future.xl should fail.
@@ -7400,16 +9268,36 @@ if not errorlevel 1 (
     echo sem_async_return_future.xl should fail.
     exit /b 1
 )
+findstr /C:"future/task" release\tmp\sem_async_return_future.err.txt >nul
+if errorlevel 1 (
+    echo sem_async_return_future.xl should report future/task return diagnostic.
+    exit /b 1
+)
+findstr /C:"target future" release\tmp\sem_async_return_future.err.txt >nul
+if not errorlevel 1 (
+    echo sem_async_return_future.xl should not report return mismatch cascade.
+    exit /b 1
+)
 
 release\xl.exe check test\cases\sem_async_multi_return.xl >nul 2> release\tmp\sem_async_multi_return.err.txt
 if not errorlevel 1 (
     echo sem_async_multi_return.xl should fail.
     exit /b 1
 )
+findstr /C:"multi-return" release\tmp\sem_async_multi_return.err.txt >nul
+if errorlevel 1 (
+    echo sem_async_multi_return.xl missing async multi-return diagnostic.
+    exit /b 1
+)
 
 release\xl.exe check test\cases\sem_async_generator.xl >nul 2> release\tmp\sem_async_generator.err.txt
 if not errorlevel 1 (
     echo sem_async_generator.xl should fail.
+    exit /b 1
+)
+findstr /C:"async generator" release\tmp\sem_async_generator.err.txt >nul
+if errorlevel 1 (
+    echo sem_async_generator.xl missing async generator diagnostic.
     exit /b 1
 )
 
@@ -7448,6 +9336,21 @@ if errorlevel 1 (
     echo cgen_generator.c missing generator cleanup helper.
     exit /b 1
 )
+findstr /C:"xl6_generator_store_active_error" release\tmp\cgen_generator.c >nul
+if errorlevel 1 (
+    echo cgen_generator.c missing generator stored error helper.
+    exit /b 1
+)
+findstr /C:"xl6_generator_raise_stored_error" release\tmp\cgen_generator.c >nul
+if errorlevel 1 (
+    echo cgen_generator.c missing generator stored error rethrow helper.
+    exit /b 1
+)
+findstr /C:"xl6_generator_store_active_error(__xl6_gen)" release\tmp\cgen_generator.c >nul
+if errorlevel 1 (
+    echo cgen_generator.c missing generator worker error capture.
+    exit /b 1
+)
 findstr /C:"xl_gen_worker_toggles" release\tmp\cgen_generator.c >nul
 if errorlevel 1 (
     echo cgen_generator.c missing bool generator worker.
@@ -7464,6 +9367,37 @@ if errorlevel 1 (
     exit /b 1
 )
 
+release\xl.exe check test\cases\cgen_generator_two_targets.xl
+if errorlevel 1 exit /b 1
+
+release\xl.exe run test\cases\cgen_generator_two_targets.xl
+if errorlevel 1 exit /b 1
+
+release\xl.exe build test\cases\cgen_generator_two_targets.xl -o release\tmp\cgen_generator_two_targets.exe
+if errorlevel 1 exit /b 1
+
+release\tmp\cgen_generator_two_targets.exe
+if errorlevel 1 exit /b 1
+
+release\xl.exe cgen test\cases\cgen_generator_two_targets.xl --emit release\tmp\cgen_generator_two_targets.c
+if errorlevel 1 exit /b 1
+
+findstr /C:"long long __xl6_gen_index_" release\tmp\cgen_generator_two_targets.c >nul
+if errorlevel 1 (
+    echo cgen_generator_two_targets.c missing generator index counter.
+    exit /b 1
+)
+findstr /C:"long long index = __xl6_gen_index_" release\tmp\cgen_generator_two_targets.c >nul
+if errorlevel 1 (
+    echo cgen_generator_two_targets.c missing generator index target.
+    exit /b 1
+)
+powershell -NoProfile -Command "if (-not (Select-String -Path 'release\tmp\cgen_generator_two_targets.c' -Pattern '__xl6_gen_index_[0-9]+ \+= 1;' -Quiet)) { exit 1 }"
+if errorlevel 1 (
+    echo cgen_generator_two_targets.c missing generator index increment.
+    exit /b 1
+)
+
 release\xl.exe check test\cases\sem_yield_outside_generator.xl >nul 2> release\tmp\sem_yield_outside_generator.err.txt
 if not errorlevel 1 (
     echo sem_yield_outside_generator.xl should fail.
@@ -7475,10 +9409,20 @@ if not errorlevel 1 (
     echo sem_generator_string_element.xl should fail.
     exit /b 1
 )
+findstr /C:"generator<T>" release\tmp\sem_generator_string_element.err.txt >nul
+if errorlevel 1 (
+    echo sem_generator_string_element.xl missing generator element diagnostic.
+    exit /b 1
+)
 
 release\xl.exe check test\cases\sem_generator_class_element.xl >nul 2> release\tmp\sem_generator_class_element.err.txt
 if not errorlevel 1 (
     echo sem_generator_class_element.xl should fail.
+    exit /b 1
+)
+findstr /C:"generator<T>" release\tmp\sem_generator_class_element.err.txt >nul
+if errorlevel 1 (
+    echo sem_generator_class_element.xl missing generator element diagnostic.
     exit /b 1
 )
 
@@ -7487,21 +9431,52 @@ if not errorlevel 1 (
     echo sem_generator_function_element.xl should fail.
     exit /b 1
 )
+findstr /C:"generator<T>" release\tmp\sem_generator_function_element.err.txt >nul
+if errorlevel 1 (
+    echo sem_generator_function_element.xl missing generator element diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_generator_class_param.xl >nul 2> release\tmp\sem_generator_class_param.err.txt
+if not errorlevel 1 (
+    echo sem_generator_class_param.xl should fail.
+    exit /b 1
+)
+findstr /C:"generator" release\tmp\sem_generator_class_param.err.txt >nul
+if errorlevel 1 (
+    echo sem_generator_class_param.xl missing generator parameter diagnostic.
+    exit /b 1
+)
+findstr /C:"bool" release\tmp\sem_generator_class_param.err.txt >nul
+if errorlevel 1 (
+    echo sem_generator_class_param.xl missing generator parameter type boundary.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_generator_function_param.xl >nul 2> release\tmp\sem_generator_function_param.err.txt
+if not errorlevel 1 (
+    echo sem_generator_function_param.xl should fail.
+    exit /b 1
+)
+findstr /C:"generator" release\tmp\sem_generator_function_param.err.txt >nul
+if errorlevel 1 (
+    echo sem_generator_function_param.xl missing generator parameter diagnostic.
+    exit /b 1
+)
+findstr /C:"bool" release\tmp\sem_generator_function_param.err.txt >nul
+if errorlevel 1 (
+    echo sem_generator_function_param.xl missing generator parameter type boundary.
+    exit /b 1
+)
 
 release\xl.exe check test\cases\sem_generator_yield_type.xl >nul 2> release\tmp\sem_generator_yield_type.err.txt
 if not errorlevel 1 (
     echo sem_generator_yield_type.xl should fail.
     exit /b 1
 )
-
-release\xl.exe check test\cases\sem_generator_two_targets.xl >nul 2> release\tmp\sem_generator_two_targets.err.txt
-if not errorlevel 1 (
-    echo sem_generator_two_targets.xl should fail.
-    exit /b 1
-)
-findstr /C:"code generation error" release\tmp\sem_generator_two_targets.err.txt >nul
-if not errorlevel 1 (
-    echo sem_generator_two_targets.err.txt regressed to generic cgen diagnostic.
+findstr /C:"target int, value float" release\tmp\sem_generator_yield_type.err.txt >nul
+if errorlevel 1 (
+    echo sem_generator_yield_type.xl missing yield type context.
     exit /b 1
 )
 
@@ -7520,6 +9495,11 @@ if errorlevel 1 exit /b 1
 findstr /C:"xrtChannelCreate" release\tmp\cgen_channel.c >nul
 if errorlevel 1 (
     echo cgen_channel.c missing xrtChannelCreate.
+    exit /b 1
+)
+findstr /C:"xl6_channel_require_handle(xrtChannelCreate" release\tmp\cgen_channel.c >nul
+if errorlevel 1 (
+    echo cgen_channel.c missing channel constructor error guard.
     exit /b 1
 )
 findstr /C:"xl6_channel_send_value" release\tmp\cgen_channel.c >nul
@@ -7553,10 +9533,42 @@ if not errorlevel 1 (
     echo sem_channel_string_element.xl should fail.
     exit /b 1
 )
+findstr /C:"channel<T>" release\tmp\sem_channel_string_element.err.txt >nul
+if errorlevel 1 (
+    echo sem_channel_string_element.xl missing channel element diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_channel_generic_arity.xl >nul 2> release\tmp\sem_channel_generic_arity.err.txt
+if not errorlevel 1 (
+    echo sem_channel_generic_arity.xl should fail.
+    exit /b 1
+)
+findstr /C:"expected 1, actual 2" release\tmp\sem_channel_generic_arity.err.txt >nul
+if errorlevel 1 (
+    echo sem_channel_generic_arity.xl missing channel generic argument count context.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_channel_receiver_expr.xl >nul 2> release\tmp\sem_channel_receiver_expr.err.txt
+if not errorlevel 1 (
+    echo sem_channel_receiver_expr.xl should fail.
+    exit /b 1
+)
+findstr /C:"channel receiver" release\tmp\sem_channel_receiver_expr.err.txt >nul
+if errorlevel 1 (
+    echo sem_channel_receiver_expr.xl missing named receiver diagnostic.
+    exit /b 1
+)
 
 release\xl.exe check test\cases\sem_channel_send_type.xl >nul 2> release\tmp\sem_channel_send_type.err.txt
 if not errorlevel 1 (
     echo sem_channel_send_type.xl should fail.
+    exit /b 1
+)
+findstr /C:"target int, value string" release\tmp\sem_channel_send_type.err.txt >nul
+if errorlevel 1 (
+    echo sem_channel_send_type.xl missing channel send type context.
     exit /b 1
 )
 
@@ -7565,16 +9577,31 @@ if not errorlevel 1 (
     echo sem_channel_recv_target_type.xl should fail.
     exit /b 1
 )
+findstr /C:"target int, value float" release\tmp\sem_channel_recv_target_type.err.txt >nul
+if errorlevel 1 (
+    echo sem_channel_recv_target_type.xl missing channel recv target type context.
+    exit /b 1
+)
 
 release\xl.exe check test\cases\sem_channel_class_element.xl >nul 2> release\tmp\sem_channel_class_element.err.txt
 if not errorlevel 1 (
     echo sem_channel_class_element.xl should fail.
     exit /b 1
 )
+findstr /C:"channel<T>" release\tmp\sem_channel_class_element.err.txt >nul
+if errorlevel 1 (
+    echo sem_channel_class_element.xl missing channel element diagnostic.
+    exit /b 1
+)
 
 release\xl.exe check test\cases\sem_channel_function_element.xl >nul 2> release\tmp\sem_channel_function_element.err.txt
 if not errorlevel 1 (
     echo sem_channel_function_element.xl should fail.
+    exit /b 1
+)
+findstr /C:"channel<T>" release\tmp\sem_channel_function_element.err.txt >nul
+if errorlevel 1 (
+    echo sem_channel_function_element.xl missing channel element diagnostic.
     exit /b 1
 )
 
@@ -7645,6 +9672,11 @@ if not errorlevel 1 (
 release\xl.exe check test\cases\sem_try_return_boundary.xl >nul 2> release\tmp\sem_try_return_boundary.err.txt
 if not errorlevel 1 (
     echo sem_try_return_boundary.xl should fail.
+    exit /b 1
+)
+findstr /C:"return/break/continue" release\tmp\sem_try_return_boundary.err.txt >nul
+if errorlevel 1 (
+    echo sem_try_return_boundary.xl missing abrupt-control boundary diagnostic.
     exit /b 1
 )
 
@@ -7837,6 +9869,8 @@ if errorlevel 1 exit /b 1
 "%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\stdlib_error_paths.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\stdlib_error_paths.exe
 if errorlevel 1 exit /b 1
 release\tmp\stdlib_error_paths.exe > release\tmp\stdlib_error_paths.out.txt 2> release\tmp\stdlib_error_paths.err.txt
+if errorlevel 1 exit /b 1
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$out=[System.IO.File]::ReadAllBytes('release\tmp\stdlib_error_paths.out.txt'); $err=[System.IO.File]::ReadAllBytes('release\tmp\stdlib_error_paths.err.txt'); if($out.Length -ne 0){ Write-Host 'stdlib_error_paths.out.txt should be empty.'; exit 1 }; if($err.Length -ne 0){ Write-Host 'stdlib_error_paths.err.txt should be empty.'; exit 2 }"
 if errorlevel 1 exit /b 1
 
 release\xl.exe check test\cases\stdlib_codec.xl
@@ -8046,6 +10080,9 @@ release\tmp\stdlib_http_server.exe
 if errorlevel 1 exit /b 1
 
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_negative_diagnostics.ps1 -Artifacts
+if errorlevel 1 exit /b 1
+
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_release_tmp_artifacts.ps1 -MinTextArtifacts 541
 if errorlevel 1 exit /b 1
 
 echo DEMO6 smoke tests ok.

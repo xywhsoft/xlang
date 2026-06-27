@@ -2,7 +2,7 @@ extern "expect_i64" func expect(int actual, int expected)
 extern "expect_str" func expectStr(string actual, string expected)
 
 // 泛型函数：可显式实例化，也可从参数推断。
-func identity<T>(T value) -> T
+func identity<T>(T value) as T
     return value
 end
 
@@ -17,7 +17,7 @@ expectStr(explicitString, "xlang")
 expectStr(inferredString, "demo6")
 
 // 多类型参数。
-func chooseRight<T, U>(T left, U right) -> U
+func chooseRight<T, U>(T left, U right) as U
     return right
 end
 
@@ -32,7 +32,7 @@ class Box<T>
         self.value = value
     end
 
-    func valueOf() -> T
+    func valueOf() as T
         return self.value
     end
 end
@@ -47,11 +47,11 @@ Box<MyInt> aliasBox = Box::<MyInt>(99)
 expect(aliasBox.valueOf(), 99)
 
 // 非泛型重载优先于泛型重载。
-func classify<T>(T value) -> string
+func classify<T>(T value) as string
     return "generic"
 end
 
-func classify(int value) -> string
+func classify(int value) as string
     return "int"
 end
 

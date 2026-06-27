@@ -1,5 +1,5 @@
-func inc(int value) -> int
+func inc(int value) as int
     return value + 1
 end
 
-channel<function(int) -> int> ch = channel::<function(int) -> int>(1)
+channel<func(int) as int> ch = channel::<func(int) as int>(1)

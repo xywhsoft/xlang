@@ -148,7 +148,7 @@
 
 内容：
 
-- 类型注册、类型值、泛型、class/custom、function 值等语义检查。
+- 类型注册、类型值、泛型、class/custom、func 值等语义检查。
 - `check --json` 增加 `phase` 字段。
 - 语义错误与 import 错误被 RC0 守门脚本检查。
 

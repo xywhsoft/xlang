@@ -1,13 +1,13 @@
 extern "expect_i64" func expect(int actual, int expected)
 extern "expect_str" func expectStr(string actual, string expected)
 
-// 无返回值函数：不写 -> 返回类型。
+// 无返回值函数：不写 as 返回类型。
 func touch()
     return
 end
 
 // 单返回值函数。
-func add(int left, int right) -> int
+func add(int left, int right) as int
     return left + right
 end
 
@@ -15,7 +15,7 @@ expect(add(20, 22), 42)
 touch()
 
 // 多返回值函数，调用侧可以拆包，也可以用 _ 丢弃。
-func pair(int seed) -> (int, string)
+func pair(int seed) as (int, string)
     return seed, "value"
 end
 
@@ -36,7 +36,7 @@ expect(assignedInt, 10)
 expectStr(assignedString, "value")
 
 // 可选参数：参数表直接赋默认值。
-func optionalSum(int a, int b = 10, int c = 100) -> int
+func optionalSum(int a, int b = 10, int c = 100) as int
     return a + b + c
 end
 
@@ -49,11 +49,11 @@ expect(optionalSum(c = 3, a = 1, b = 2), 6)
 expect(optionalSum(1, c = 3), 14)
 
 // 数组可变参数：... 通过 arg 访问，arg 是 array<var>。
-func variadicCount(int base, ...) -> int
+func variadicCount(int base, ...) as int
     return base + arg.length
 end
 
-func variadicSum(...) -> int
+func variadicSum(...) as int
     int total = 0
     for value in arg
         total += int(value)
@@ -66,7 +66,7 @@ expect(variadicCount(10, 1, "x", true), 13)
 expect(variadicSum(1, 2, 3, 4), 10)
 
 // 字典可变参数：*** 通过 arg 访问，调用侧使用命名参数。
-func optionValue(string path, ***) -> int
+func optionValue(string path, ***) as int
     int total = path == "demo.txt" ? 1 : 0
     if "retry" in arg then
         total += int(arg["retry"])
@@ -81,11 +81,11 @@ expect(optionValue(path = "demo.txt", retry = 3, cache = true), 14)
 expect(optionValue("other.txt", retry = 5), 5)
 
 // 函数重载：参数列表不同即可共存。
-func describe(int value) -> string
+func describe(int value) as string
     return "int"
 end
 
-func describe(string value) -> string
+func describe(string value) as string
     return value
 end
 

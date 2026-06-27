@@ -1,11 +1,11 @@
 class Box<T>
     T value
 
-    func pick(T value) -> int
+    func pick(T value) as int
         return 10
     end
 
-    func pick(string text) -> int
+    func pick(string text) as int
         return 20
     end
 end

@@ -1,6 +1,6 @@
 extern "expect_i64" func expect(int actual, int expected)
-extern "native_add_i64" func nativeAdd(int left, int right) -> int
-extern "native_flip_bool" func nativeFlip(bool value) -> bool
+extern "native_add_i64" func nativeAdd(int left, int right) as int
+extern "native_flip_bool" func nativeFlip(bool value) as bool
 extern "host_counter" var int hostCounter
 
 // extern 函数：xlang 声明 C 符号后直接调用。
@@ -13,12 +13,12 @@ hostCounter += 2
 expect(hostCounter, 42)
 
 // export 函数：生成给 C 调用的 ABI 符号。
-export "xl6_feature_add_i64" func exportedAdd(int left, int right) -> int
+export "xl6_feature_add_i64" func exportedAdd(int left, int right) as int
     return left + right
 end
 
 // export 多返回值：C 侧通过生成头文件中的 out 参数接收。
-export "xl6_feature_pair_i64" func exportedPair(int seed) -> (int, int)
+export "xl6_feature_pair_i64" func exportedPair(int seed) as (int, int)
     return seed, seed + 1
 end
 
@@ -26,11 +26,11 @@ end
 export "xl6_feature_counter" var int exportedCounter = 1
 export "xl6_feature_version" const int exportedVersion = 6
 
-func getExportedTotal() -> int
+func getExportedTotal() as int
     return exportedCounter + exportedVersion
 end
 
-export "xl6_feature_get_total" func exportedTotal() -> int
+export "xl6_feature_get_total" func exportedTotal() as int
     return getExportedTotal()
 end
 

@@ -5,8 +5,8 @@ class Holder
     Native native
 end
 
-func make(Holder holder) -> function() -> int
-    return func() -> int
+func make(Holder holder) as func() as int
+    return func() as int
         type(holder)
         return 1
     end

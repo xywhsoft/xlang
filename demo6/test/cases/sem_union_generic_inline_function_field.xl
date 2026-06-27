@@ -6,5 +6,5 @@ class Box<T>
 end
 
 union Bad
-    Box<function(int) -> int> box
+    Box<func(int) as int> box
 end

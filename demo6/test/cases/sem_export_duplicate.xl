@@ -1,7 +1,7 @@
-export "same_symbol" func first(int a) -> int
+export "same_symbol" func first(int a) as int
     return a
 end
 
-export "same_symbol" func second(int a) -> int
+export "same_symbol" func second(int a) as int
     return a
 end

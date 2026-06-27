@@ -9,6 +9,7 @@ int xl6CgenEmitC(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags)
     int hasFunctionVarRuntime;
     int hasXValueRuntime;
     int hasErrorRuntime;
+    int hasDynamicForInErrorRuntime;
     int hasAsyncRuntime;
     int hasCryptoRuntime;
     int hasUrlRuntime;
@@ -44,7 +45,8 @@ int xl6CgenEmitC(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags)
     hasXValueRuntime = xl6CgenNodeNeedsXValueRuntime(root) || hasFunctionVarRuntime || ctx.runtimeTypeDescCount > 0 || mainFunc != NULL;
     hasTimeRuntime = xl6CgenNodeNeedsTimeRuntime(root);
     hasAsyncRuntime = xl6CgenNodeNeedsAsyncRuntime(root);
-    hasErrorRuntime = xl6CgenNodeNeedsErrorRuntime(root) || hasAsyncRuntime;
+    hasDynamicForInErrorRuntime = xl6CgenProgramNeedsDynamicForInErrorRuntime(&ctx, root);
+    hasErrorRuntime = xl6CgenNodeNeedsErrorRuntime(root) || hasAsyncRuntime || hasDynamicForInErrorRuntime;
     hasCryptoRuntime = xl6CgenNodeNeedsCryptoRuntime(root);
     hasUrlRuntime = xl6CgenNodeNeedsUrlRuntime(root);
     hasQueryRuntime = xl6CgenNodeNeedsQueryRuntime(root);
@@ -70,7 +72,8 @@ int xl6CgenEmitC(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags)
     xl6OutputPuts("#include <stdbool.h>\n", out);
     xl6OutputPuts("#include <stdint.h>\n", out);
     xl6OutputPuts("#include <stdlib.h>\n", out);
-    xl6OutputPuts("#include <stddef.h>\n\n", out);
+    xl6OutputPuts("#include <stddef.h>\n", out);
+    xl6OutputPuts("#include <string.h>\n\n", out);
     xl6OutputPuts("typedef intptr_t xl6_ssize_t;\n\n", out);
     xl6OutputPuts("static void xl6_runtime_fatal(int code)\n", out);
     xl6OutputPuts("{\n", out);

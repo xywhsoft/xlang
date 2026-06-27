@@ -29,8 +29,8 @@
 
 | 规则范围 | 当前验证用例 | 证据等级 | 核验结论 |
 |---|---|---|---|
-| `CGEN-HDR-001..005` header 外壳、UTF-8 编码、字符串符号、类型别名、C 类型映射 | `export_*_header_host.c`、`export_c_abi_types.xl`、`export_alias.xl`、`cgen_unicode_identifiers.xl` | 直接生成检查 + C 宿主运行 | header 基础格式、别名展开、C ABI 类型映射和 UTF-8 符号有覆盖。 |
-| `CGEN-HDR-006..008` union/class/inline union 字段与依赖 | `export_union.xl`、`export_union_class_field.xl`、`export_class.xl`、`export_class_inherit.xl`、`export_class_union_field.xl` | 直接生成检查 + C 宿主运行 | union、class、继承、class/union 字段依赖排序有覆盖。 |
+| `CGEN-HDR-001..005` header 外壳、UTF-8 编码、字符串符号、类型别名、C 类型映射 | `export_*_header_host.c`、`export_c_abi_types.xl`、`export_alias.xl`、`cgen_unicode_identifiers.xl`、`cgen_member_function_class_return.xl`；`test.bat` 检查 `typedef struct XL6_Function`、`XL6_Function op;` 并禁止 `void op;` | 直接生成检查 + C 宿主运行 | header 基础格式、别名展开、C ABI 类型映射和 UTF-8 符号有覆盖；function 字段已证明映射为 `XL6_Function`，不再退化为非法 `void` 字段。 |
+| `CGEN-HDR-006..008` union/class/inline union 字段与依赖 | `export_union.xl`、`export_union_class_field.xl`、`export_class.xl`、`export_class_inherit.xl`、`export_class_union_field.xl`、`cgen_member_function_class_return.xl` | 直接生成检查 + C 宿主运行 | union、class、继承、class/union 字段依赖排序有覆盖；class 中 function 字段与 C body ABI 类型一致。 |
 | `CGEN-HDR-009..010` export 函数与变量声明 | `export_add.xl`、`export_bool.xl`、`export_multi_return.xl`、`export_vars.xl` | 直接生成检查 + C 宿主运行 | 函数原型、变量声明、多返回 wrapper 和 C 宿主调用有覆盖。 |
 | `CGEN-HDR-011` header 输出顺序 | `xl cgen --emit-header`、`xl cgen --dump-dir`、export header host 系列 | 直接生成检查 + C 宿主运行 | 依赖先于引用输出的路径由多类 export header 编译证明。 |
 | `CGEN-NEEDS-001..003` module/basic/stdlib needs 收集 | `examples/hello.xl --dump-dir`、`stdlib_*.xl`、`cgen_*` 生成文本检查 | 直接生成检查 | module needs 与标准库 wrapper 触发有覆盖。 |

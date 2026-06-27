@@ -228,7 +228,7 @@ static void xl6AbiDumpType(XL6_Output* out, const XL6_AstNode* root, const XL6_A
     if ( xl6AbiTextEquals(typeNode->text, "function") && typeNode->childCount == 2 ) {
         args = typeNode->children[0];
         returns = typeNode->children[1];
-        xl6OutputPuts("function(", out);
+        xl6OutputPuts("func(", out);
         if ( args != NULL ) {
             for ( i = 0; i < args->childCount; ++i ) {
                 if ( i > 0 ) {
@@ -239,7 +239,7 @@ static void xl6AbiDumpType(XL6_Output* out, const XL6_AstNode* root, const XL6_A
         }
         xl6OutputPutc(')', out);
         if ( returns != NULL && returns->childCount > 0 ) {
-            xl6OutputPuts("->", out);
+            xl6OutputPuts(" as ", out);
             if ( returns->childCount > 1 ) {
                 xl6OutputPutc('(', out);
             }
@@ -291,7 +291,7 @@ static void xl6AbiDumpTypeJsonBody(XL6_Output* out, const XL6_AstNode* root, con
     if ( xl6AbiTextEquals(typeNode->text, "function") && typeNode->childCount == 2 ) {
         args = typeNode->children[0];
         returns = typeNode->children[1];
-        xl6OutputPuts("function(", out);
+        xl6OutputPuts("func(", out);
         if ( args != NULL ) {
             for ( i = 0; i < args->childCount; ++i ) {
                 if ( i > 0 ) {
@@ -302,7 +302,7 @@ static void xl6AbiDumpTypeJsonBody(XL6_Output* out, const XL6_AstNode* root, con
         }
         xl6OutputPutc(')', out);
         if ( returns != NULL && returns->childCount > 0 ) {
-            xl6OutputPuts("->", out);
+            xl6OutputPuts(" as ", out);
             if ( returns->childCount > 1 ) {
                 xl6OutputPutc('(', out);
             }
@@ -370,7 +370,7 @@ static void xl6AbiDumpSignature(XL6_Output* out, const XL6_AstNode* root, const 
         }
     }
 
-    xl6OutputPuts(")->", out);
+    xl6OutputPuts(") as ", out);
     returns = node->childCount > 2 ? node->children[2] : NULL;
     if ( returns == NULL || returns->childCount == 0 ) {
         xl6OutputPuts("()", out);
@@ -415,7 +415,7 @@ static void xl6AbiDumpSignatureJsonString(XL6_Output* out, const XL6_AstNode* ro
         }
     }
 
-    xl6OutputPuts(")->", out);
+    xl6OutputPuts(") as ", out);
     returns = node->childCount > 2 ? node->children[2] : NULL;
     if ( returns == NULL || returns->childCount == 0 ) {
         xl6OutputPuts("()", out);

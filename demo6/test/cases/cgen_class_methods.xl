@@ -8,7 +8,7 @@ class Point
         return
     end
 
-    func length2() -> int
+    func length2() as int
         return self.x * self.x + self.y * self.y
     end
 end

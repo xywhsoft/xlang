@@ -8,6 +8,7 @@ static void xl6CgenEmitGeneratorRuntime(XL6_Output* out)
     xl6OutputPuts("    xcoro co;\n", out);
     xl6OutputPuts("    void* frame;\n", out);
     xl6OutputPuts("    void* value;\n", out);
+    xl6OutputPuts("    XL6_Error* error;\n", out);
     xl6OutputPuts("    size_t valueSize;\n", out);
     xl6OutputPuts("    int hasValue;\n", out);
     xl6OutputPuts("    int done;\n", out);
@@ -39,11 +40,27 @@ static void xl6CgenEmitGeneratorRuntime(XL6_Output* out)
     xl6OutputPuts("    return gen;\n", out);
     xl6OutputPuts("}\n\n", out);
 
+    xl6OutputPuts("static void xl6_generator_store_active_error(XL6_Generator* gen)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    if ( gen == 0 || !xl6_error_has() ) { return; }\n", out);
+    xl6OutputPuts("    if ( gen->error != 0 ) { xl6_error_free(gen->error); gen->error = 0; }\n", out);
+    xl6OutputPuts("    gen->error = xl6_error_take();\n", out);
+    xl6OutputPuts("    gen->done = 1;\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("static bool xl6_generator_raise_stored_error(XL6_Generator* gen)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    if ( gen == 0 || gen->error == 0 ) { return false; }\n", out);
+    xl6OutputPuts("    xl6_error_reraise(gen->error);\n", out);
+    xl6OutputPuts("    return true;\n", out);
+    xl6OutputPuts("}\n\n", out);
+
     xl6OutputPuts("static void xl6_generator_destroy(XL6_Generator* gen)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    if ( gen == 0 ) { return; }\n", out);
     xl6OutputPuts("    if ( gen->co != 0 ) { xrtCoDestroy(gen->co); gen->co = 0; }\n", out);
     xl6OutputPuts("    if ( gen->value != 0 ) { xrtFree(gen->value); gen->value = 0; }\n", out);
+    xl6OutputPuts("    if ( gen->error != 0 ) { xl6_error_free(gen->error); gen->error = 0; }\n", out);
     xl6OutputPuts("    if ( gen->frame != 0 ) { xrtFree(gen->frame); gen->frame = 0; }\n", out);
     xl6OutputPuts("    xrtFree(gen);\n", out);
     xl6OutputPuts("}\n\n", out);
@@ -70,12 +87,16 @@ static void xl6CgenEmitGeneratorRuntime(XL6_Output* out)
     xl6OutputPuts("        xl6_error_raise(\"GeneratorError\", \"iterate null generator\", file, line, column);\n", out);
     xl6OutputPuts("        return false;\n", out);
     xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    if ( xl6_generator_raise_stored_error(gen) ) { return false; }\n", out);
     xl6OutputPuts("    if ( gen->done || gen->co == 0 ) { return false; }\n", out);
     xl6OutputPuts("    gen->hasValue = 0;\n", out);
     xl6OutputPuts("    if ( !xrtCoResume(gen->co) ) {\n", out);
     xl6OutputPuts("        gen->done = 1;\n", out);
+    xl6OutputPuts("        if ( xl6_error_has() ) { xl6_generator_store_active_error(gen); xl6_generator_raise_stored_error(gen); }\n", out);
     xl6OutputPuts("        return false;\n", out);
     xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    if ( xl6_error_has() ) { xl6_generator_store_active_error(gen); xl6_generator_raise_stored_error(gen); return false; }\n", out);
+    xl6OutputPuts("    if ( xl6_generator_raise_stored_error(gen) ) { return false; }\n", out);
     xl6OutputPuts("    if ( gen->hasValue ) { return true; }\n", out);
     xl6OutputPuts("    if ( xrtCoGetState(gen->co) == XRT_CO_DEAD ) { gen->done = 1; }\n", out);
     xl6OutputPuts("    return false;\n", out);
@@ -83,6 +104,7 @@ static void xl6CgenEmitGeneratorRuntime(XL6_Output* out)
 
     xl6OutputPuts("static void xl6_generator_value_into(XL6_Generator* gen, void* outValue, size_t valueSize, const char* file, int line, int column)\n", out);
     xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    if ( xl6_generator_raise_stored_error(gen) ) { return; }\n", out);
     xl6OutputPuts("    if ( gen == 0 || outValue == 0 || gen->value == 0 || !gen->hasValue || gen->valueSize != valueSize ) {\n", out);
     xl6OutputPuts("        xl6_error_raise(\"GeneratorError\", \"invalid generator value\", file, line, column);\n", out);
     xl6OutputPuts("        return;\n", out);
@@ -234,6 +256,8 @@ static void xl6CgenGeneratorWorker(XL6_CgenContext* ctx, const XL6_AstNode* node
     xl6OutputPuts("__xl6_generator_error:\n", ctx->out);
     ctx->indent += 1;
     xl6CgenIndent(ctx);
+    xl6OutputPuts("xl6_generator_store_active_error(__xl6_gen);\n", ctx->out);
+    xl6CgenIndent(ctx);
     xl6OutputPuts("return;\n", ctx->out);
 
     ctx->currentReturnType = prevReturnType;
@@ -340,4 +364,5 @@ static void xl6CgenYieldStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
     xl6OutputPuts("}, sizeof(", ctx->out);
     xl6OutputPuts(cType, ctx->out);
     xl6OutputPrintf(ctx->out, "), \"\", %d, %d);\n", node->line, node->column);
+    xl6CgenEmitExceptionPropagate(ctx, node);
 }

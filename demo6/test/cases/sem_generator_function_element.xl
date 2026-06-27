@@ -1,7 +1,7 @@
-func inc(int value) -> int
+func inc(int value) as int
     return value + 1
 end
 
-func values() -> generator<function(int) -> int>
+func values() as generator<func(int) as int>
     yield inc
 end

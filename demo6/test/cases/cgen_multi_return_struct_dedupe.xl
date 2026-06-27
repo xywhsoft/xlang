@@ -1,11 +1,11 @@
 extern "expect_i64" func expect(int actual, int expected)
 extern "expect_str" func expectStr(string actual, string expected)
 
-func leftPair() -> (int, string)
+func leftPair() as (int, string)
     return 1, "left"
 end
 
-func rightPair() -> (int, string)
+func rightPair() as (int, string)
     return 2, "right"
 end
 

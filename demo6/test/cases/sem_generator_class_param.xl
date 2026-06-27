@@ -1,0 +1,7 @@
+class Box
+    int value = 0
+end
+
+func bad(Box box) as generator<int>
+    yield box.value
+end

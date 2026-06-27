@@ -72,6 +72,7 @@ static int xl6CgenIsRuntimeContainerTypeDesc(XL6_CgenContext* ctx, const XL6_Ast
     name = concreteType != NULL ? concreteType->text : NULL;
     args = xl6CgenTypeNodeGenericArgs(concreteType);
     return args != NULL && args->childCount > 0 &&
+           !xl6CgenContainerGenericIsVar(ctx, concreteType) &&
            (xl6CTextEquals(name, "array") ||
             xl6CTextEquals(name, "list") ||
             xl6CTextEquals(name, "set") ||
@@ -406,8 +407,9 @@ static void xl6CgenFunctionReturnStructNameForPrefix(XL6_CgenContext* ctx, const
 static void xl6CgenFunctionReturnStructDecl(XL6_CgenContext* ctx, const XL6_AstNode* params, const XL6_AstNode* returns);
 static void xl6CgenFunctionReturnStructDeclForPrefix(XL6_CgenContext* ctx, const XL6_AstNode* params, const XL6_AstNode* returns, size_t paramCount, int includeVararg);
 static void xl6CgenEmitFunctionSigObject(XL6_CgenContext* ctx, const char* localName, const char* name, unsigned long long signatureId, const XL6_AstNode* params, const XL6_AstNode* returns);
-static void xl6CgenEmitFunctionSigObjectForCounts(XL6_CgenContext* ctx, const char* localName, const char* name, unsigned long long signatureId, unsigned int paramCount, unsigned int returnCount);
+static void xl6CgenEmitFunctionSigObjectForPrefix(XL6_CgenContext* ctx, const char* localName, const char* name, unsigned long long signatureId, const XL6_AstNode* params, const XL6_AstNode* returns, size_t paramCount, int includeVararg);
 static XL6_AstNode* xl6CgenFindFunctionValueFunc(XL6_CgenContext* ctx, const char* name, const XL6_AstNode* functionType, const XL6_AstNode* atNode);
+static void xl6CgenFunctionInvoke(XL6_CgenContext* ctx, const char* name, const XL6_AstNode* functionType, const XL6_AstNode* args);
 static void xl6CgenFunctionValueMakeCall(XL6_CgenContext* ctx, const XL6_AstNode* funcNode, const XL6_AstNode* targetType);
 static void xl6CgenFunctionValueExpr(XL6_CgenContext* ctx, const XL6_AstNode* expr, const XL6_AstNode* targetType);
 static int xl6CgenAnonCaptureIndex(const XL6_CgenAnonFunc* info, const char* name);

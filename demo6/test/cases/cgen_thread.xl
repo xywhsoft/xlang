@@ -1,12 +1,12 @@
-func worker() -> int
+func worker() as int
     return 7
 end
 
-func zero() -> int
+func zero() as int
     return 0
 end
 
-function() -> int borrowedWorker = worker
+func() as int borrowedWorker = worker
 
 thread first = thread(worker)
 bool waited = first.wait()
@@ -32,7 +32,7 @@ assert borrowedWaited, "thread borrowed wait failed"
 assert borrowedCode == 7, "thread borrowed exit code failed"
 
 int base = 5
-auto capturedWorker = func() -> int
+auto capturedWorker = func() as int
     return base + 2
 end
 auto captured = thread(capturedWorker)

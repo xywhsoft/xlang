@@ -6,7 +6,7 @@ class Point
         return
     end
 
-    func length2() -> int
+    func length2() as int
         return 0
     end
 
@@ -27,9 +27,9 @@ end
 custom Bag
     extern "bag_create" create()
     extern "bag_destroy" destroy()
-    extern "bag_count" func count() -> int
+    extern "bag_count" func count() as int
 
-    func empty() -> bool
+    func empty() as bool
         return false
     end
 end

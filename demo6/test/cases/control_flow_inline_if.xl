@@ -1,6 +1,6 @@
 extern "expect_i64" func expect(int actual, int expected)
 
-func sign(int value) -> int
+func sign(int value) as int
     if value > 0 then return 1
     if value < 0 then return -1 else return 0
 end

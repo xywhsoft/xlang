@@ -10,7 +10,7 @@ if ( $Root -eq "" ) {
 
 $caseDir = Join-Path $Root "test\cases"
 $readmePath = Join-Path $Root "test\README.md"
-$minTestCaseFiles = 428
+$minTestCaseFiles = 446
 $minCasePrefixes = 28
 $wiringFiles = @(
     "test.bat",

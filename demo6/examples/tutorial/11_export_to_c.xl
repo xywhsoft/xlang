@@ -2,11 +2,11 @@
 // 1. export 可以把 xlang 函数/变量导出成 C 符号。
 // 2. cgen 可以生成配套头文件给 C 宿主调用。
 
-export "tutorial_add" func add(int left, int right) -> int
+export "tutorial_add" func add(int left, int right) as int
     return left + right
 end
 
-export "tutorial_pair" func pair(int seed) -> (int, int)
+export "tutorial_pair" func pair(int seed) as (int, int)
     return seed, seed + 1
 end
 

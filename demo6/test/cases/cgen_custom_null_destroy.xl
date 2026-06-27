@@ -3,7 +3,7 @@ custom MaybeBox
 end
 
 extern "expect_i64" func expect(int actual, int expected)
-extern "borrowed_close_count" func closeCount() -> int
+extern "borrowed_close_count" func closeCount() as int
 
 func exercise()
     MaybeBox box

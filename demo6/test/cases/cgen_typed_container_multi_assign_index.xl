@@ -13,19 +13,19 @@ union Payload
     c_double d
 end
 
-func add(int left, int right) -> int
+func add(int left, int right) as int
     return left + right
 end
 
-func mul(int left, int right) -> int
+func mul(int left, int right) as int
     return left * right
 end
 
-func pair() -> (int, int)
+func pair() as (int, int)
     return 7, 8
 end
 
-func makePairPayload() -> (Pair, Payload)
+func makePairPayload() as (Pair, Payload)
     Pair pair
     pair.left = 4
     pair.right = 5
@@ -36,11 +36,11 @@ func makePairPayload() -> (Pair, Payload)
     return pair, payload
 end
 
-func makeNative(Native value) -> (Native, int)
+func makeNative(Native value) as (Native, int)
     return value, 11
 end
 
-func makeOps() -> (function(int, int) -> int, function(int, int) -> int)
+func makeOps() as (func(int, int) as int, func(int, int) as int)
     return add, mul
 end
 
@@ -79,15 +79,15 @@ var boxedNative = gotNative
 expect(type(boxedNative) == Native, 1)
 expect(scores["native"], 11)
 
-function(int, int) -> int fn = add
-array<function(int, int) -> int> funcs = array[fn]
-dict<function(int, int) -> int> table = dict{"op": fn}
+func(int, int) as int fn = add
+array<func(int, int) as int> funcs = array[fn]
+dict<func(int, int) as int> table = dict{"op": fn}
 var opKey = "dyn"
 
 funcs[0], table[opKey] = makeOps()
 
-function(int, int) -> int gotAdd = funcs[0]
-function(int, int) -> int gotMul = table[opKey]
+func(int, int) as int gotAdd = funcs[0]
+func(int, int) as int gotMul = table[opKey]
 
 expect(gotAdd(2, 3), 5)
 expect(gotMul(4, 5), 20)

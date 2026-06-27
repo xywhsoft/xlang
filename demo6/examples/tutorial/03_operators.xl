@@ -2,7 +2,7 @@
 // 1. 覆盖常用运算符。
 // 2. 展示 null 合并、空赋值、安全成员/索引。
 
-func main(...) -> int
+func main(...) as int
     int value = 10
     value += 5
     value -= 3

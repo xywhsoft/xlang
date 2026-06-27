@@ -10,9 +10,9 @@ if ( $Root -eq "" ) {
 
 $srcDir = Join-Path $Root "src"
 $srcReadme = Join-Path $srcDir "README.md"
-$minSourceFiles = 79
+$minSourceFiles = 88
 $minDirectSources = 31
-$minIncludedSources = 48
+$minIncludedSources = 57
 $minGeneratedDirectSources = 2
 $wiringFiles = @(
     "build.bat",

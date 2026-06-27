@@ -1,10 +1,10 @@
 extern "expect_i64" func expect(int actual, int expected)
 
-func choose(var value) -> int
+func choose(var value) as int
     return 10
 end
 
-func choose<T>(T value) -> int
+func choose<T>(T value) as int
     return 20
 end
 

@@ -126,7 +126,7 @@ static void xl6XapiDumpTypeJsonBody(XL6_Output* out, const XL6_AstNode* root, co
     if ( xl6XapiTextEquals(typeNode->text, "function") && typeNode->childCount == 2 ) {
         args = typeNode->children[0];
         returns = typeNode->children[1];
-        xl6OutputPuts("function(", out);
+        xl6OutputPuts("func(", out);
         if ( args != NULL ) {
             for ( i = 0; i < args->childCount; ++i ) {
                 if ( i > 0 ) {
@@ -137,7 +137,7 @@ static void xl6XapiDumpTypeJsonBody(XL6_Output* out, const XL6_AstNode* root, co
         }
         xl6OutputPutc(')', out);
         if ( returns != NULL && returns->childCount > 0 ) {
-            xl6OutputPuts("->", out);
+            xl6OutputPuts(" as ", out);
             if ( returns->childCount > 1 ) {
                 xl6OutputPutc('(', out);
             }
@@ -859,7 +859,7 @@ static char* xl6XapiBuildSignature(const XL6_XapiExport* item)
         }
         xl6XapiStringBuilderAppendChar(&builder, ')');
         if ( item->returnCount > 0 ) {
-            xl6XapiStringBuilderAppend(&builder, "->");
+            xl6XapiStringBuilderAppend(&builder, " as ");
             if ( item->returnCount > 1 ) {
                 xl6XapiStringBuilderAppendChar(&builder, '(');
             }
@@ -929,7 +929,7 @@ static void xl6XapiAppendTypeBody(XL6_XapiStringBuilder* builder, const XL6_AstN
     if ( xl6XapiTextEquals(typeNode->text, "function") && typeNode->childCount == 2 ) {
         args = typeNode->children[0];
         returns = typeNode->children[1];
-        xl6XapiStringBuilderAppend(builder, "function(");
+        xl6XapiStringBuilderAppend(builder, "func(");
         if ( args != NULL ) {
             for ( i = 0; i < args->childCount; ++i ) {
                 if ( i > 0 ) {
@@ -940,7 +940,7 @@ static void xl6XapiAppendTypeBody(XL6_XapiStringBuilder* builder, const XL6_AstN
         }
         xl6XapiStringBuilderAppendChar(builder, ')');
         if ( returns != NULL && returns->childCount > 0 ) {
-            xl6XapiStringBuilderAppend(builder, "->");
+            xl6XapiStringBuilderAppend(builder, " as ");
             if ( returns->childCount > 1 ) {
                 xl6XapiStringBuilderAppendChar(builder, '(');
             }

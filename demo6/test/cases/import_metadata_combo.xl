@@ -1,6 +1,6 @@
 import metadata_combo
 
-func main(...) -> int
+func main(...) as int
     if metadata_combo.sourceValue() != 11 then
         return 1
     end

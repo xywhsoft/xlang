@@ -1,7 +1,7 @@
 extern "expect_i64" func expect(int actual, int expected)
 extern "nc_probe_reset" func resetProbe()
-extern "nc_probe_next_var" func nextProbe() -> var
-extern "nc_probe_count" func probeCount() -> int
+extern "nc_probe_next_var" func nextProbe() as var
+extern "nc_probe_count" func probeCount() as int
 
 auto values = [10, 20, 30]
 auto sparse = [0: 11, 2: 22]
@@ -12,19 +12,19 @@ var dynIndex = 1
 var dynTable = {"count": 6}
 var dynKey = "count"
 
-func makeArray() -> array
+func makeArray() as array
     return [101, 102]
 end
 
-func makeTable() -> dict
+func makeTable() as dict
     return {"temp": 44}
 end
 
-func makeDynArray() -> var
+func makeDynArray() as var
     return [101, 102]
 end
 
-func makeDynTable() -> var
+func makeDynTable() as var
     return {"temp": 44}
 end
 
@@ -73,7 +73,7 @@ expect(int(sparse[2]), 1518)
 expect(int(table["count"]), 6)
 expect(int(maybe[0]), 9)
 
-func options(string path, ***) -> int
+func options(string path, ***) as int
     return int(arg["retry"]) + int(arg["mode"])
 end
 

@@ -43,11 +43,11 @@ C export symbol
 示例：
 
 ```xlang
-func add(int a, int b) -> int
+func add(int a, int b) as int
     return a + b
 end
 
-export "math_add_i64" func add_i64(int64 a, int64 b) -> int64
+export "math_add_i64" func add_i64(int64 a, int64 b) as int64
     return a + b
 end
 ```
@@ -56,7 +56,7 @@ end
 
 - `add` 是 source name。
 - `fn:<module>.add` 是 overload group id。
-- `fn:<module>.add(int,int)->int` 是 signature id。
+- `fn:<module>.add(int,int) as int` 是 signature id。
 - `xl6_f_add__<hash>` 是 internal ABI symbol 的方向。
 - `math_add_i64` 是 C export symbol。
 
@@ -69,31 +69,31 @@ signature id 是 ABI 的核心稳定文本。
 普通函数：
 
 ```text
-fn:<module>.<name>(<param-types>)-><return-types>
+fn:<module>.<name>(<param-types>) as <return-types>
 ```
 
 方法：
 
 ```text
-method:<module>.<Type>.<name>(<param-types>)-><return-types>
+method:<module>.<Type>.<name>(<param-types>) as <return-types>
 ```
 
 构造：
 
 ```text
-create:<module>.<Type>(<param-types>)->()
+create:<module>.<Type>(<param-types>) as ()
 ```
 
 析构：
 
 ```text
-destroy:<module>.<Type>()->()
+destroy:<module>.<Type>() as ()
 ```
 
 custom extern 方法：
 
 ```text
-custom:<module>.<Type>.<name>(<param-types>)-><return-types>
+custom:<module>.<Type>.<name>(<param-types>) as <return-types>
 ```
 
 规则：
@@ -110,11 +110,11 @@ custom:<module>.<Type>.<name>(<param-types>)-><return-types>
 示例：
 
 ```text
-fn:app.add(int,int)->int
-fn:app.pair()->(int,string)
-method:app.Vec2.length2()->int
-create:app.Image(string)->()
-custom:app.Image.resize(int,int)->int
+fn:app.add(int,int) as int
+fn:app.pair() as (int,string)
+method:app.Vec2.length2() as int
+create:app.Image(string) as ()
+custom:app.Image.resize(int,int) as int
 ```
 
 ## 4. 类型规范化
@@ -262,7 +262,7 @@ internal ABI symbol 建议使用 signature id 的稳定哈希。
 C ABI export 必须显式指定 C 符号。
 
 ```xlang
-export "math_add_i64" func add(int64 a, int64 b) -> int64
+export "math_add_i64" func add(int64 a, int64 b) as int64
     return a + b
 end
 ```
@@ -284,11 +284,11 @@ int64_t math_add_i64(int64_t a, int64_t b);
 错误示例：
 
 ```xlang
-export "add" func add(int a, int b) -> int
+export "add" func add(int a, int b) as int
     ...
 end
 
-export "add" func add(float a, float b) -> float
+export "add" func add(float a, float b) as float
     ...
 end
 ```
@@ -299,7 +299,7 @@ C 符号进入 xlang 使用 `extern`。
 
 ```xlang
 extern "xrtSleep" func sleep(uint32 ms)
-extern "xrtTimer" func timer() -> float64
+extern "xrtTimer" func timer() as float64
 ```
 
 规则：
@@ -311,8 +311,8 @@ extern "xrtTimer" func timer() -> float64
 示例：
 
 ```xlang
-extern "math_add_i64" func add(int64 a, int64 b) -> int64
-extern "math_add_f64" func add(float64 a, float64 b) -> float64
+extern "math_add_i64" func add(int64 a, int64 b) as int64
+extern "math_add_f64" func add(float64 a, float64 b) as float64
 ```
 
 限制：
@@ -462,12 +462,12 @@ xl.exe abi module.xl --json
 建议输出：
 
 ```text
-fn app.add(int,int)->int
+fn app.add(int,int) as int
   group: fn:app.add
   symbol: xl6_f_add__6F2A91C013FE18B0
 
 export math_add_i64
-  signature: fn:app.add_i64(int64,int64)->int64
+  signature: fn:app.add_i64(int64,int64) as int64
   wrapper: xl6_wrap_math__add__i64__91AA0FBB3221A017
 ```
 

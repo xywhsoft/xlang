@@ -1,6 +1,6 @@
 import class_inherit_api
 
-func main(...) -> int
+func main(...) as int
     auto point = class_inherit_api.makeNamedPoint(5, 7, 30)
     if point.id != 5 then
         return 1

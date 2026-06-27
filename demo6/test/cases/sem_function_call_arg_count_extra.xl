@@ -1,0 +1,3 @@
+func(int, int) as int add = func(int left, int right) as int => left + right
+
+int value = add(1, 2, 3)

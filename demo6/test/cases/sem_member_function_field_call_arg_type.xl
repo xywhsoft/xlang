@@ -1,9 +1,9 @@
-func add(int left, int right) -> int
+func add(int left, int right) as int
     return left + right
 end
 
 class FnBox
-    function(int, int) -> int op
+    func(int, int) as int op
 end
 
 FnBox box

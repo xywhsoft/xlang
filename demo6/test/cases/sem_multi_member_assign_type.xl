@@ -2,7 +2,7 @@ class Box
     int value
 end
 
-func pair() -> (string, string)
+func pair() as (string, string)
     return "bad", "ok"
 end
 

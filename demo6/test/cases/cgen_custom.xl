@@ -1,12 +1,12 @@
 custom Counter
     extern "counter_open" create(int seed)
     extern "counter_close" destroy()
-    extern "counter_add" func add(int value) -> int
-    extern "counter_value" func value() -> int
+    extern "counter_add" func add(int value) as int
+    extern "counter_value" func value() as int
 end
 
 extern "expect_i64" func expect(int actual, int expected)
-extern "counter_closed" func counterClosed() -> int
+extern "counter_closed" func counterClosed() as int
 
 func exercise()
     auto counter = Counter(40)
@@ -17,7 +17,7 @@ func exercise()
     expect(current, 42)
 end
 
-func earlyReturn() -> int
+func earlyReturn() as int
     auto counter = Counter(1)
     return counter.add(1)
 end

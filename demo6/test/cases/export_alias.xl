@@ -1,5 +1,5 @@
 typedef MyInt = int
 
-export "xl6_alias_add" func aliasAdd(MyInt a, MyInt b) -> MyInt
+export "xl6_alias_add" func aliasAdd(MyInt a, MyInt b) as MyInt
     return a + b
 end

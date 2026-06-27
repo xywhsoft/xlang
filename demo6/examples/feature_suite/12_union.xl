@@ -3,19 +3,19 @@ union Payload
     c_double d
 end
 
-func makePayload(int value) -> Payload
+func makePayload(int value) as Payload
     Payload p
     p.i = value
     return p
 end
 
-func readPayload(Payload p) -> int
+func readPayload(Payload p) as int
     return p.i
 end
 
 Payload payload = makePayload(42)
 assert payload.i == 42, "union int field failed"
-assert readPayload(payload) == 42, "union function parameter failed"
+assert readPayload(payload) == 42, "union func parameter failed"
 
 payload.d = 12.5
 assert int(payload.d) == 12, "union double field failed"

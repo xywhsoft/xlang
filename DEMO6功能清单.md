@@ -583,7 +583,7 @@ auto a, b = pair()
 
 规则：
 
-- 多返回值使用 `-> (T1, T2)`。
+- 多返回值使用 `as (T1, T2)`。
 - `return a, b` 支持返回多个值。
 - `auto a, b = expr` 支持多返回值解构。
 - `a, b = expr` 支持多目标赋值。
@@ -595,7 +595,7 @@ auto a, b = pair()
 已实现：
 
 ```xlang
-func add(int a, int b = 1) -> int
+func add(int a, int b = 1) as int
     return a + b
 end
 ```
@@ -606,7 +606,9 @@ end
 - 可选参数必须位于必选参数之后。
 - 参数默认值参与类型检查。
 - 调用时可省略尾部可选参数。
-- 导出到 C ABI 的函数当前不允许可选参数。
+- 可选参数是 xlang 调用侧能力；导出到 C 环境时默认值自动失效。
+- 导出到 C 环境的函数按完整固定参数表生成 C 声明；例如 `func foo(int a = 1)` 导出为 `void foo(int a);`，C 侧必须显式传入 `a`。
+- C ABI/header 不表达默认值，也不生成用于省略参数的 C 重载包装。
 - extern C 函数当前不允许可选参数。
 
 ### 9.4 命名参数
@@ -1188,7 +1190,7 @@ extern "global_count" var int count
 已实现：
 
 ```xlang
-export "xl_add" func add(int a, int b) -> int
+export "xl_add" func add(int a, int b) as int
     return a + b
 end
 
@@ -1210,7 +1212,7 @@ export "xl_answer" const int answer = 42
 
 当前限制：
 
-- export 函数不支持可选参数。
+- export 函数允许声明可选参数，但导出到 C ABI/header 时默认值失效，C 侧按完整参数表调用。
 - export 函数不支持 vararg。
 - export 函数不支持泛型。
 - export string return 当前被语义检查限制。
@@ -1438,7 +1440,7 @@ import "local/math"
 当前边界：
 
 - stdcall 等其他调用约定尚未完整作为语言层声明落地。
-- 多返回值、可选参数、vararg 在 xcall 内部模型更自然，但 C ABI 对外导出仍保持受限。
+- 多返回值、vararg 在 xcall 内部模型更自然，但 C ABI 对外导出仍保持受限；可选参数导出到 C 时降级为完整固定参数表，默认值不进入 C ABI。
 
 ## 20. C 代码生成
 
@@ -1627,7 +1629,7 @@ import "local/math"
 - import 自动注入目前只覆盖可安全映射为 extern C 的函数和变量。
 - class/custom 的完整 XAPI 消费和跨包类型导入仍未完成。
 - stdcall 等非 cdecl 调用约定尚未形成完整语言声明与生成闭环。
-- C ABI 对 optional/vararg/generic/multi-return 的兼容仍保持受限。
+- C ABI 对 optional 的兼容采用“完整参数表 + 默认值失效”的降级规则；vararg/generic/multi-return 仍保持受限。
 - 当前 build 只接受一个 `.xl` 主模块。
 - 当前 XAPI loader 是专用严格读取器，不是完整 JSON 解析基础设施。
 

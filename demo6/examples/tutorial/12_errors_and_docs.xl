@@ -12,14 +12,14 @@ example:
     auto value = checkedDivide(8, 2)
     ```
 #end
-func checkedDivide(int left, int right) -> int
+func checkedDivide(int left, int right) as int
     if right == 0 then
         throw "division by zero"
     end
     return left / right
 end
 
-func recoverDivide(int left, int right) -> int
+func recoverDivide(int left, int right) as int
     int value = 0
 
     try
@@ -35,7 +35,7 @@ func recoverDivide(int left, int right) -> int
     return value
 end
 
-func main(...) -> int
+func main(...) as int
     if recoverDivide(8, 2) != 4 then return 1
     if recoverDivide(8, 0) != -1 then return 2
     return 0

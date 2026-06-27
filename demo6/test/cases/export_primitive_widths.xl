@@ -11,6 +11,6 @@ export "xl6_pick_u64" func pickU64(
     float64 f64,
     bool ok,
     point handle
-) -> uint64
+) as uint64
     return u64
 end

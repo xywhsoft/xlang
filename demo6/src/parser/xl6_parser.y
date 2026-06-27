@@ -172,7 +172,6 @@ item(A) ::= TOK_ERROR(E). {
 doc_block(A) ::= DOC(D). { A = D; }
 
 name_tok(A) ::= IDENT(B). { A = B; }
-name_tok(A) ::= TYPE_FUNCTION(B). [KW_NOT] { A = B; }
 
 import_decl(A) ::= KW_IMPORT(I) STRING(S) need_sep. {
     A = xl6AstNew(XL6_AST_IMPORT, &S);
@@ -432,11 +431,11 @@ param(A) ::= TRIPLE_STAR(T). {
 return_sig(A) ::= . {
     A = xl6AstNew(XL6_AST_RETURN_TYPES, NULL);
 }
-return_sig(A) ::= ARROW return_value_type_ref(T). {
+return_sig(A) ::= KW_AS return_value_type_ref(T). {
     A = xl6AstNew(XL6_AST_RETURN_TYPES, NULL);
     xl6AstAddChild(A, T);
 }
-return_sig(A) ::= ARROW LPAREN type_list(L) RPAREN. {
+return_sig(A) ::= KW_AS LPAREN type_list(L) RPAREN. {
     A = xl6AstNew(XL6_AST_RETURN_TYPES, NULL);
     xl6AstMoveChildren(A, L);
     xl6AstFree(L);
@@ -457,6 +456,9 @@ type_ref(A) ::= name_tok(N). {
 type_ref(A) ::= KW_VAR(N). {
     A = xl6AstNewText(XL6_AST_TYPE, "var", 3, &N);
 }
+type_ref(A) ::= TYPE_FUNCTION(N). {
+    A = xl6AstNewText(XL6_AST_TYPE, "function", 8, &N);
+}
 type_ref(A) ::= name_tok(N) LT type_list(L) GT. {
     A = xl6AstNewGenericType(&N, L);
 }
@@ -467,7 +469,7 @@ type_ref(A) ::= name_tok(N) TYPE_LT type_list(L) GT. {
 return_value_type_ref(A) ::= type_expr(T). { A = T; }
 
 function_type_ref(A) ::= TYPE_FUNCTION(N) LPAREN func_type_params_opt(P) RPAREN return_sig(R). {
-    A = xl6AstNew(XL6_AST_TYPE, &N);
+    A = xl6AstNewText(XL6_AST_TYPE, "function", 8, &N);
     xl6AstAddChild(A, P);
     xl6AstAddChild(A, R);
 }
@@ -860,6 +862,7 @@ postfix_expr(A) ::= postfix_expr(C) SAFE_LBRACKET(B) expr(I) RBRACKET. {
 }
 
 atom(A) ::= name_tok(N). [KW_NOT] { A = xl6AstNew(XL6_AST_NAME, &N); }
+atom(A) ::= TYPE_FUNCTION(N). [KW_NOT] { A = xl6AstNewText(XL6_AST_NAME, "function", 8, &N); }
 atom(A) ::= INT(N). { A = xl6AstNew(XL6_AST_INT, &N); }
 atom(A) ::= FLOAT(N). { A = xl6AstNew(XL6_AST_FLOAT, &N); }
 atom(A) ::= STRING(N). { A = xl6AstNew(XL6_AST_STRING, &N); }

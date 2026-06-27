@@ -157,7 +157,7 @@ static void xl6TypeAppendCanonicalBody(XL6_TypeStringBuilder* builder, const XL6
     if ( xl6TypeTextEquals(typeNode->text, "function") && typeNode->childCount == 2 ) {
         args = typeNode->children[0];
         returns = typeNode->children[1];
-        xl6TypeStringBuilderAppend(builder, "function(");
+        xl6TypeStringBuilderAppend(builder, "func(");
         if ( args != NULL ) {
             for ( i = 0; i < args->childCount; ++i ) {
                 if ( i > 0 ) {
@@ -168,7 +168,7 @@ static void xl6TypeAppendCanonicalBody(XL6_TypeStringBuilder* builder, const XL6
         }
         xl6TypeStringBuilderAppendChar(builder, ')');
         if ( returns != NULL && returns->childCount > 0 ) {
-            xl6TypeStringBuilderAppend(builder, "->");
+            xl6TypeStringBuilderAppend(builder, " as ");
             if ( returns->childCount > 1 ) {
                 xl6TypeStringBuilderAppendChar(builder, '(');
             }

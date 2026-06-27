@@ -26,12 +26,12 @@
 | 实现同等功能手写的 C 代码 | 手写 C 由程序员显式调用析构函数。 |
 | 额外依赖的封装代码 | class/custom 特殊成员查找 helper。 |
 
-## CGEN-CLEAN-003 function 类型识别
+## CGEN-CLEAN-003 func 类型识别
 
 | 项目 | 内容 |
 |---|---|
-| xlang 写法 | `function a`、`function(int) string cb`、`array<function(int)>` |
-| 生成规则描述 | 类型名为 `function` 时被识别为 function 类型；无子节点的 `function` 是裸 function；递归扫描子节点可判断嵌套类型中是否包含 function。该信息决定函数值字段、参数和返回值是否需要 retain/release。 |
+| xlang 写法 | `function a`、`func(int) string cb`、`array<func(int)>` |
+| 生成规则描述 | 类型名为 `function` 时被识别为 func 类型；无子节点的 `function` 是裸 function；递归扫描子节点可判断嵌套类型中是否包含 function。该信息决定函数值字段、参数和返回值是否需要 retain/release。 |
 | 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_expr_support_base.c:33` |
 | 对应生成的 C 代码 | `XL6_FuncValue cb;` 并在作用域结束释放 env。 |
 | 中间形态伪代码 | `isFunction(type) || any child contains function` |
@@ -211,7 +211,7 @@
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | `return f`、`return obj` |
-| 生成规则描述 | 返回值路径如果是 function 类型，则释放 function path；如果是需要 class function 字段 cleanup 的 class 类型，则释放 class 内 function 字段。该规则用于返回临时保存路径的异常或覆盖释放场景。 |
+| 生成规则描述 | 返回值路径如果是 func 类型，则释放 function path；如果是需要 class function 字段 cleanup 的 class 类型，则释放 class 内 function 字段。该规则用于返回临时保存路径的异常或覆盖释放场景。 |
 | 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_expr_support_base.c:554` |
 | 对应生成的 C 代码 | `xl6_result.release(xl6_result.env);` 或 `xl6_A_destroy(&xl6_result);` 的相关字段释放。 |
 | 中间形态伪代码 | `if function: release path; else if class needs cleanup: release class function fields` |
@@ -223,7 +223,7 @@
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | 任意需要作用域退出自动释放的局部声明 |
-| 生成规则描述 | cleanup 栈容量从 16 起按 2 倍扩容；变量名先转成 C 标识符再保存；栈项记录 cleanup kind、类型节点和可选 class 类型节点。扩容失败报告 code generation error。 |
+| 生成规则描述 | cleanup 栈容量从 16 起按 2 倍扩容；变量名先转成 C 标识符再保存；栈项记录 cleanup kind、类型节点和可选 class 类型节点。扩容失败报告 `out of memory while growing cgen cleanup stack`。 |
 | 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_expr_support_base.c:565` |
 | 对应生成的 C 代码 | 不直接输出；后续作用域结束时按栈项生成释放代码。 |
 | 中间形态伪代码 | `grow cleanups; push {cName, kind, typeNode, classTypeNode}` |
@@ -259,7 +259,7 @@
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | `function f = ...` |
-| 生成规则描述 | 变量类型为 function 时注册 `XL6_CGEN_CLEANUP_FUNCTION`。非 function 类型不会进入该路径。 |
+| 生成规则描述 | 变量类型为 function 时注册 `XL6_CGEN_CLEANUP_FUNCTION`。非 func 类型不会进入该路径。 |
 | 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_expr_support_base.c:608` |
 | 对应生成的 C 代码 | `if (f.release != 0 && f.env != 0) { f.release(f.env); f.env = 0; f.release = 0; }` |
 | 中间形态伪代码 | `if isFunctionType(type): add cleanup FUNCTION` |
@@ -386,17 +386,17 @@
 | 实现同等功能手写的 C 代码 | 手写 C 在每个异常出口释放错误对象。 |
 | 额外依赖的封装代码 | error runtime。 |
 
-## CGEN-CLEAN-033 AVLTB 迭代器 cleanup 输出
+## CGEN-CLEAN-033 动态遍历 snapshot cleanup 输出
 
 | 项目 | 内容 |
 |---|---|
-| xlang 写法 | 动态 list/dict 遍历内部迭代器 |
-| 生成规则描述 | cleanup kind 为 AVLTB iter 时输出空指针保护，并调用 `xrtAVLTB_IterEnd`。该分支用于动态 list/dict 遍历产生的内部 AVL 迭代器；动态 set 当前按位置下标遍历，不走 AVLTB iter cleanup。 |
-| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_expr_support_base.c:721` |
-| 对应生成的 C 代码 | `if (it != 0) { xrtAVLTB_IterEnd(it); }` |
-| 中间形态伪代码 | `if kind AVLTB_ITER: emit iter end` |
-| 实现同等功能手写的 C 代码 | 手写 C 在遍历结束时关闭迭代器。 |
-| 额外依赖的封装代码 | 动态容器遍历 helper。 |
+| xlang 写法 | 动态 list/dict 遍历内部 snapshot |
+| 生成规则描述 | cleanup kind 为 iter snapshot 时输出空指针保护，调用 `xl6_xrt_iter_snapshot_free` 并把变量清零。该分支用于动态 list/dict 遍历产生的稳定快照；动态 set 当前按位置下标遍历，不走 snapshot cleanup。 |
+| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_expr_support_base.c:735`、`demo6/src/cgen/xl6_cgen_expr_support_base.c:740` |
+| 对应生成的 C 代码 | `if (snapshot != 0) { xl6_xrt_iter_snapshot_free(snapshot); snapshot = 0; }` |
+| 中间形态伪代码 | `if kind ITER_SNAPSHOT: free snapshot and clear` |
+| 实现同等功能手写的 C 代码 | 手写 C 在遍历结束时释放 snapshot 数组、key 拷贝和 retained value。 |
+| 额外依赖的封装代码 | `XL6_XrtIterSnapshot` 与动态容器遍历 helper。 |
 
 ## CGEN-CLEAN-034 future cleanup 输出
 
@@ -607,7 +607,7 @@
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | `while ... break ... continue ... end`、嵌套循环 |
-| 生成规则描述 | 进入循环时记录 break cleanup mark、continue cleanup mark、break label id 和 continue label id。数组容量从 8 起按 2 倍扩容，扩容失败报告 code generation error。 |
+| 生成规则描述 | 进入循环时记录 break cleanup mark、continue cleanup mark、break label id 和 continue label id。数组容量从 8 起按 2 倍扩容，扩容失败报告 `out of memory while growing cgen loop target stack`。 |
 | 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_expr_support_base.c:1027` |
 | 对应生成的 C 代码 | 后续 `break`/`continue` 会先释放对应 mark 之后的资源，再 `goto xl6_break_N` 或 `goto xl6_continue_N`。 |
 | 中间形态伪代码 | `push {breakMark, continueMark, breakId, continueId}` |

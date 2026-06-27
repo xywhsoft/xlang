@@ -1,25 +1,25 @@
 extern "expect_i64" func expect(int actual, int expected)
 
-extern "xl6_c_echo_char" func echoChar(c_char value) -> c_char
-extern "xl6_c_echo_schar" func echoSChar(c_schar value) -> c_schar
-extern "xl6_c_echo_uchar" func echoUChar(c_uchar value) -> c_uchar
-extern "xl6_c_echo_short" func echoShort(c_short value) -> c_short
-extern "xl6_c_echo_ushort" func echoUShort(c_ushort value) -> c_ushort
-extern "xl6_c_echo_int" func echoInt(c_int value) -> c_int
-extern "xl6_c_echo_uint" func echoUInt(c_uint value) -> c_uint
-extern "xl6_c_echo_long" func echoLong(c_long value) -> c_long
-extern "xl6_c_echo_ulong" func echoULong(c_ulong value) -> c_ulong
-extern "xl6_c_echo_longlong" func echoLongLong(c_longlong value) -> c_longlong
-extern "xl6_c_echo_ulonglong" func echoULongLong(c_ulonglong value) -> c_ulonglong
-extern "xl6_c_echo_size" func echoSize(c_size value) -> c_size
-extern "xl6_c_echo_ssize" func echoSSize(c_ssize value) -> c_ssize
-extern "xl6_c_echo_ptrdiff" func echoPtrDiff(c_ptrdiff value) -> c_ptrdiff
-extern "xl6_c_echo_intptr" func echoIntPtr(c_intptr value) -> c_intptr
-extern "xl6_c_echo_uintptr" func echoUIntPtr(c_uintptr value) -> c_uintptr
-extern "xl6_c_not_bool" func notBool(c_bool value) -> c_bool
-extern "xl6_c_echo_float" func echoFloat(c_float value) -> c_float
-extern "xl6_c_echo_double" func echoDouble(c_double value) -> c_double
-extern "xl6_c_echo_wchar" func echoWChar(c_wchar value) -> c_wchar
+extern "xl6_c_echo_char" func echoChar(c_char value) as c_char
+extern "xl6_c_echo_schar" func echoSChar(c_schar value) as c_schar
+extern "xl6_c_echo_uchar" func echoUChar(c_uchar value) as c_uchar
+extern "xl6_c_echo_short" func echoShort(c_short value) as c_short
+extern "xl6_c_echo_ushort" func echoUShort(c_ushort value) as c_ushort
+extern "xl6_c_echo_int" func echoInt(c_int value) as c_int
+extern "xl6_c_echo_uint" func echoUInt(c_uint value) as c_uint
+extern "xl6_c_echo_long" func echoLong(c_long value) as c_long
+extern "xl6_c_echo_ulong" func echoULong(c_ulong value) as c_ulong
+extern "xl6_c_echo_longlong" func echoLongLong(c_longlong value) as c_longlong
+extern "xl6_c_echo_ulonglong" func echoULongLong(c_ulonglong value) as c_ulonglong
+extern "xl6_c_echo_size" func echoSize(c_size value) as c_size
+extern "xl6_c_echo_ssize" func echoSSize(c_ssize value) as c_ssize
+extern "xl6_c_echo_ptrdiff" func echoPtrDiff(c_ptrdiff value) as c_ptrdiff
+extern "xl6_c_echo_intptr" func echoIntPtr(c_intptr value) as c_intptr
+extern "xl6_c_echo_uintptr" func echoUIntPtr(c_uintptr value) as c_uintptr
+extern "xl6_c_not_bool" func notBool(c_bool value) as c_bool
+extern "xl6_c_echo_float" func echoFloat(c_float value) as c_float
+extern "xl6_c_echo_double" func echoDouble(c_double value) as c_double
+extern "xl6_c_echo_wchar" func echoWChar(c_wchar value) as c_wchar
 
 expect(echoChar(65), 65)
 expect(echoSChar(-5), -5)

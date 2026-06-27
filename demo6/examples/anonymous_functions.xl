@@ -1,5 +1,5 @@
-func makeAdder(int base) -> function(int) -> int
-    return func(int value) -> int
+func makeAdder(int base) as func(int) as int
+    return func(int value) as int
         return base + value
     end
 end
@@ -7,13 +7,13 @@ end
 auto add10 = makeAdder(10)
 auto value = add10(5)
 
-func namedAdd(int left, int right) -> int
+func namedAdd(int left, int right) as int
     return left + right
 end
 
-function(int, int) -> int named = namedAdd
+func(int, int) as int named = namedAdd
 auto namedValue = named(1, 2)
 
-function erased = func(int left, int right) -> int => left + right
+func erased = func(int left, int right) as int => left + right
 var dynamicValue = erased(20, 22)
 int dynamicInt = int(dynamicValue)

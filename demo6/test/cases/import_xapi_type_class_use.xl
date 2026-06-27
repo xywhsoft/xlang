@@ -1,6 +1,6 @@
 import class_api
 
-func main(...) -> int
+func main(...) as int
     auto point = class_api.makePoint(7, 35)
     if point.x + point.y != 42 then
         return 1

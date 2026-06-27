@@ -1,7 +1,7 @@
-func parse(string text) -> int
+func parse(string text) as int
     return 1
 end
 
-func parse(string text) -> float
+func parse(string text) as float
     return 1.0
 end

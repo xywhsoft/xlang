@@ -103,7 +103,7 @@ union Payload
     c_double d
 end
 
-export "xl6_union_pick" func pick(Payload p) -> int
+export "xl6_union_pick" func pick(Payload p) as int
     return p.i
 end
 ```

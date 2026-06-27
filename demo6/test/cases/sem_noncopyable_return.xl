@@ -3,6 +3,6 @@ class Resource
     end
 end
 
-func make() -> Resource
+func make() as Resource
     return Resource()
 end

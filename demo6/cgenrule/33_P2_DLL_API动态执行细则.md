@@ -1,4 +1,4 @@
-﻿# P2 DLL/API 动态执行细则
+# P2 DLL/API 动态执行细则
 
 本文细化 `demo6/src/api/xl_api.c` 与 `demo6/include/xl.h`。这条链路用于 `xl.dll`/嵌入式场景：创建语言上下文、运行字符串或文件脚本、编译脚本为 exe、注册宿主 C 函数，并把当前进程内的 XRT 和运行时符号注入 TCC。
 

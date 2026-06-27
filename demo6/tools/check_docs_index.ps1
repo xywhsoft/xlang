@@ -111,7 +111,15 @@ $staleCurrentCountPatterns = @(
     '251\s*\u4E2A',
     '27\s*\u4E2A\u8303\u4F8B',
     '`docs`\s*\uFF1A19\s*\u4E2A',
-    '`packages`\s*\uFF1A9\s*\u4E2A'
+    '`packages`\s*\uFF1A9\s*\u4E2A',
+    '\u5F53\u524D[^\r\n]{0,80}445\s*\u4E2A',
+    '\u5F53\u524D[^\r\n]{0,80}829\s*\u4E2A',
+    '\u6D4B\u8BD5\u7528\u4F8B\u57FA\u7EBF\s*\|[^\r\n]{0,40}\u5F53\u524D\u4E3A\s*445',
+    'UTF-8\s*\u6587\u672C\u57FA\u7EBF\s*\|[^\r\n]{0,40}\u5F53\u524D\u4E3A\s*829',
+    'Negative diagnostics artifacts ok:\s*246 files,\s*247 expected-failure commands',
+    '\u4E3B\u56DE\u5F52\u5F53\u524D\u786E\u8BA4\s*246\s*\u4E2A\u8D1F\u4F8B\u8BCA\u65AD artifact',
+    '\u4E3B\u56DE\u5F52\u5F53\u524D\u786E\u8BA4[^\r\n]{0,80}539\s*\u4E2A release/tmp',
+    '\u4E3B\u56DE\u5F52\u5F53\u524D\u786E\u8BA4[^\r\n]{0,120}\u8D1F\u4F8B\u8BCA\u65AD artifact \u4E3A 246'
 )
 
 foreach ( $doc in $docs ) {

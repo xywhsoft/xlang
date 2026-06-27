@@ -1,7 +1,7 @@
 class Box<T>
     T value
 
-    func valueOf() -> T
+    func valueOf() as T
         return self.value
     end
 end

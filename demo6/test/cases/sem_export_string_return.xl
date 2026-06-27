@@ -1,3 +1,3 @@
-export "bad_string_return" func bad() -> string
+export "bad_string_return" func bad() as string
     return "x"
 end

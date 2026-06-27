@@ -1,11 +1,11 @@
-auto inc = func(int value) -> int => value + 1
+auto inc = func(int value) as int => value + 1
 
 auto printer = func(string text)
     return
 end
 
-func makeAdder(int base) -> function(int) -> int
-    return func(int value) -> int
+func makeAdder(int base) as func(int) as int
+    return func(int value) as int
         return base + value
     end
 end

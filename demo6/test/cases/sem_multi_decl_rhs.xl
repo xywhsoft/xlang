@@ -1,4 +1,4 @@
-func single() -> int
+func single() as int
     return 1
 end
 

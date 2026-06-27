@@ -1,83 +1,83 @@
 extern "expect_i64" func expect(int actual, int expected)
 
-func add(int left, int right) -> int
+func add(int left, int right) as int
     return left + right
 end
 
-// function 是一等公民类型，可以保存函数签名。
-function(int, int) -> int binary = add
+// func 是一等公民类型，可以保存函数签名。
+func(int, int) as int binary = add
 expect(binary(20, 22), 42)
 
-// bare function 类型用于只表达“任意函数值”。
-function anyFunction = binary
+// bare func 类型用于只表达“任意函数值”。
+func anyFunction = binary
 var boxedAny = anyFunction
 expect(int(boxedAny(1, 2)), 3)
 
 // 匿名函数：箭头写法。
-auto inc = func(int value) -> int => value + 1
+auto inc = func(int value) as int => value + 1
 expect(inc(41), 42)
 
 // 匿名函数：块写法。
-auto twice = func(int value) -> int
+auto twice = func(int value) as int
     return value * 2
 end
 expect(twice(21), 42)
 
 // 捕获外部变量的闭包。
-func makeAdder(int base) -> function(int) -> int
-    return func(int value) -> int
+func makeAdder(int base) as func(int) as int
+    return func(int value) as int
         return base + value
     end
 end
 
-function(int) -> int add40 = makeAdder(40)
+func(int) as int add40 = makeAdder(40)
 expect(add40(2), 42)
 
 // 函数值作为参数与返回值。
-func callBinary(function(int, int) -> int fn, int left, int right) -> int
+func callBinary(func(int, int) as int fn, int left, int right) as int
     return fn(left, right)
 end
 
-func selectAdder() -> function(int, int) -> int
+func selectAdder() as func(int, int) as int
     return add
 end
 
 expect(callBinary(binary, 1, 2), 3)
-function(int, int) -> int selected = selectAdder()
+func(int, int) as int selected = selectAdder()
 expect(selected(30, 12), 42)
 
-// 多返回值 function 签名。
-func pair(int seed) -> (int, int)
+// 多返回值 func 签名。
+func pair(int seed) as (int, int)
     return seed, seed + 1
 end
 
-function(int) -> (int, int) pairFn = pair
+func(int) as (int, int) pairFn = pair
 auto left, right = pairFn(10)
 expect(left, 10)
 expect(right, 11)
 
-// 可变参数 function 签名。
-func count(int base, ...) -> int
+// 可变参数 func 签名。
+func count(int base, ...) as int
     return base + arg.length
 end
 
-function(int, ...) -> int counter = count
+func(int, ...) as int counter = count
 expect(counter(10, 1, 2, 3), 13)
 
-// 字典可变参数 function 签名。
-func optionCount(string path, ***) -> int
+// 字典可变参数 func 签名。
+func optionCount(string path, ***) as int
     return path == "demo.txt" ? arg.length : 0
 end
 
-function(string, ***) -> int optionFn = optionCount
+func(string, ***) as int optionFn = optionCount
 expect(optionFn("demo.txt", mode = "fast", retry = 3), 2)
 
-// function 可进入 var 并动态调用。
+// func 可进入 var 并动态调用。
 var boxedBinary = binary
 var dynamicResult = boxedBinary(20, 22)
 expect(int(dynamicResult), 42)
 
-// function 可进入静态泛型容器。
-array<function(int, int) -> int> funcs = array[binary]
-function(int, int) -> int first = funcs[0]
+// func 可进入静态泛型容器。
+array<func(int, int) as int> funcs = array[binary]
+func(int, int) as int first = funcs[0]
 expect(first(5, 6), 11)

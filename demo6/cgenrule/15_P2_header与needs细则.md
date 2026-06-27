@@ -7,9 +7,9 @@
 | 字段 | 内容 |
 | --- | --- |
 | xlang 写法 | 使用 `xl --emit-header` 或构建 DLL/混编目标时导出头文件 |
-| 生成规则描述 | header 输出 include guard、`stdbool.h/stdint.h/stddef.h`、`xl6_ssize_t` typedef、C++ `extern "C"` 外壳和 `xlInit/xlUnit` 生命周期声明。guardName 为空时使用 `XL6_GENERATED_HEADER_H`。 |
-| 生成器文件名和行号 | `xl6_cgen_header.c:723`、`xl6_cgen_header.c:735`、`xl6_cgen_header.c:745` |
-| 对应生成的 C 代码 | `#ifndef XL6_GENERATED_HEADER_H` / `extern "C" {` / `void xlInit(void); void xlUnit(void);` |
+| 生成规则描述 | header 输出 include guard、`stdbool.h/stdint.h/stddef.h`、`xl6_ssize_t` typedef、`xvalue`/`xrt_call_frame` 前置声明、`XL6_Function` 公共 ABI 结构、C++ `extern "C"` 外壳和 `xlInit/xlUnit` 生命周期声明。guardName 为空时使用 `XL6_GENERATED_HEADER_H`。 |
+| 生成器文件名和行号 | `xl6_cgen_header.c:743`、`xl6_cgen_header.c:755`、`xl6_cgen_header.c:766`、`xl6_cgen_header.c:772`、`xl6_cgen_header.c:785` |
+| 对应生成的 C 代码 | `#ifndef XL6_GENERATED_HEADER_H` / `typedef struct XL6_Function { ... } XL6_Function;` / `extern "C" {` / `void xlInit(void); void xlUnit(void);` |
 | 中间形态伪代码 | `emit header prologue; emit lifecycle; emit declarations; emit epilogue` |
 | 实现同等功能手写的 C 代码 | 手写头文件同样需要 include guard、C++ 兼容和初始化 API 声明。 |
 | 额外依赖的封装代码 | `xl6CgenHeaderLifecycleDecls`。 |
@@ -54,10 +54,10 @@
 
 | 字段 | 内容 |
 | --- | --- |
-| xlang 写法 | `export func f(c_size n, string s, point p)` |
-| 生成规则描述 | header 使用面向 C ABI 的类型映射。`c_*` 类型映射到对应 C 原生类型；xlang `int/int64` 到 `int64_t`，`float/float64` 到 `double`，`string` 到 `const char*`，`point` 到 `void*`，class/union 映射到生成的 `XL_Class_*` / `XL_Union_*`。未知类型输出 `void`。 |
-| 生成器文件名和行号 | `xl6_cgen_header.c:244`、`xl6_cgen_header.c:250`、`xl6_cgen_header.c:317`、`xl6_cgen_header.c:344` |
-| 对应生成的 C 代码 | `void f(size_t n, const char* s, void* p);` |
+| xlang 写法 | `export func f(c_size n, string s, point p)` / class 字段 `func(int) as int op` |
+| 生成规则描述 | header 使用面向 C ABI 的类型映射。`c_*` 类型映射到对应 C 原生类型；xlang `int/int64` 到 `int64_t`，`float/float64` 到 `double`，`string` 到 `const char*`，`point` 到 `void*`；`var` 与动态 `array/list/set/dict` 映射到 `xvalue`，`function` 映射到 `XL6_Function`；class/union 映射到生成的 `XL_Class_*` / `XL_Union_*`。未知类型输出 `void`。 |
+| 生成器文件名和行号 | `xl6_cgen_header.c:254`、`xl6_cgen_header.c:263`、`xl6_cgen_header.c:330`、`xl6_cgen_header.c:367`、`xl6_cgen_header.c:370`、`xl6_cgen_header.c:373` |
+| 对应生成的 C 代码 | `void f(size_t n, const char* s, void* p);` / `XL6_Function op;` |
 | 中间形态伪代码 | `xlang type -> C ABI type string` |
 | 实现同等功能手写的 C 代码 | 手写 C 需要人工对齐 ABI 类型。 |
 | 额外依赖的封装代码 | class/union 类型名编码。 |
@@ -79,9 +79,9 @@
 | 字段 | 内容 |
 | --- | --- |
 | xlang 写法 | `export class Child extends Parent ... end` |
-| 生成规则描述 | header 输出 class 前先输出父类和字段类型依赖。继承使用 `base` 字段内嵌父类 C struct，字段按声明顺序输出。每个 class 只输出一次。 |
-| 生成器文件名和行号 | `xl6_cgen_header.c:562`、`xl6_cgen_header.c:582`、`xl6_cgen_header.c:619` |
-| 对应生成的 C 代码 | `typedef struct XL_Class_Child { XL_Class_Parent base; int64_t value; } XL_Class_Child;` |
+| 生成规则描述 | header 输出 class 前先输出父类和字段类型依赖。继承使用 `base` 字段内嵌父类 C struct，字段按声明顺序输出；函数字段使用 `XL6_Function`，动态值字段使用 `xvalue`，保持和 C body 的 ABI 类型一致。每个 class 只输出一次。 |
+| 生成器文件名和行号 | `xl6_cgen_header.c:582`、`xl6_cgen_header.c:608`、`xl6_cgen_header.c:654`、`xl6_cgen_header.c:671` |
+| 对应生成的 C 代码 | `typedef struct XL_Class_Child { XL_Class_Parent base; int64_t value; XL6_Function op; } XL_Class_Child;` |
 | 中间形态伪代码 | `emit base; emit field deps; struct { base; fields }` |
 | 实现同等功能手写的 C 代码 | 手写 C 需要维护同样的继承嵌套布局。 |
 | 额外依赖的封装代码 | emitted class 去重表。 |
@@ -150,7 +150,7 @@
 
 | 字段 | 内容 |
 | --- | --- |
-| xlang 写法 | `x in range(...)` / `a ** b` / `a ~= b` / time literal / function 类型 / xvalue 容器 |
+| xlang 写法 | `x in range(...)` / `a ** b` / `a ~= b` / time literal / func 类型 / xvalue 容器 |
 | 生成规则描述 | `needs_basic` 不依赖 cgen 类型上下文，直接递归 AST。range contains、整数幂、function runtime、近似比较、time literal、xvalue runtime 都在这里按语法或类型名触发。 |
 | 生成器文件名和行号 | `xl6_cgen_needs_basic.c:236`、`xl6_cgen_needs_basic.c:255`、`xl6_cgen_needs_basic.c:276`、`xl6_cgen_needs_basic.c:304`、`xl6_cgen_needs_basic.c:322`、`xl6_cgen_needs_basic.c:340` |
 | 对应生成的 C 代码 | `if (xl6CgenNodeNeedsIntPow(root)) xl6CgenEmitIntPowHelper(out);` |
@@ -199,7 +199,7 @@
 | 字段 | 内容 |
 | --- | --- |
 | xlang 写法 | `function f = foo; f(1)` / `var v = foo; v(1)` / `obj.fn()` |
-| 生成规则描述 | function-var runtime 在函数类型变量调用、var 变量调用、成员函数值调用、typed container item 包含 function 类型、var 初始化为 function 值时触发。扫描时会临时维护变量类型和成员类型推断。 |
+| 生成规则描述 | function-var runtime 在函数类型变量调用、var 变量调用、成员函数值调用、typed container item 包含 func 类型、var 初始化为 func 值时触发。扫描时会临时维护变量类型和成员类型推断。 |
 | 生成器文件名和行号 | `xl6_cgen_needs.c:422`、`xl6_cgen_needs.c:594` |
 | 对应生成的 C 代码 | `if (xl6CgenIsFunctionType(functionType) || type == var) return 1;` |
 | 中间形态伪代码 | `if call target is function value or var callable -> need function-var runtime` |

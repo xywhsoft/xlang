@@ -6,7 +6,7 @@ class Vec2
         return
     end
 
-    func length2() -> int
+    func length2() as int
         return 0
     end
 end
@@ -14,7 +14,7 @@ end
 custom NativeClock
     extern "clock_open" create()
     extern "clock_close" destroy()
-    extern "clock_ticks" func ticks() -> int
+    extern "clock_ticks" func ticks() as int
 end
 
 Vec2 v

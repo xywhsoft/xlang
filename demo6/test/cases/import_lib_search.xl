@@ -1,5 +1,5 @@
 import libprobe
 
-func useLibProbe() -> int
+func useLibProbe() as int
     return libprobe.value()
 end

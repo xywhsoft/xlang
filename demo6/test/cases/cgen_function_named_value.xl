@@ -1,42 +1,42 @@
 extern "expect_i64" func expect(int actual, int expected)
 
-func add(int left, int right) -> int
+func add(int left, int right) as int
     return left + right
 end
 
-func pick(int value) -> int
+func pick(int value) as int
     return value + 1
 end
 
-func pick(string value) -> string
+func pick(string value) as string
     return value
 end
 
-func addDefault(int left, int right = 1) -> int
+func addDefault(int left, int right = 1) as int
     return left + right
 end
 
-func total(int base, ...) -> int
+func total(int base, ...) as int
     return base + arg.length
 end
 
-func totalDefault(int base = 5, ...) -> int
+func totalDefault(int base = 5, ...) as int
     return base + arg.length
 end
 
-func optionCount(string path, ***) -> int
+func optionCount(string path, ***) as int
     return arg.length
 end
 
-function(int, int) -> int typed = add
-function erased = add
-function(int) -> int picked = pick
-function(int, ...) -> int variadic = total
-function(int) -> int oneDefault = addDefault
-function(int, int) -> int twoDefault = addDefault
-function erasedDefault = addDefault
-function(...) -> int variadicDefault = totalDefault
-function(string, ***) -> int options = optionCount
+func(int, int) as int typed = add
+func erased = add
+func(int) as int picked = pick
+func(int, ...) as int variadic = total
+func(int) as int oneDefault = addDefault
+func(int, int) as int twoDefault = addDefault
+func erasedDefault = addDefault
+func(...) as int variadicDefault = totalDefault
+func(string, ***) as int options = optionCount
 
 int typedValue = typed(20, 22)
 var erasedValue = erased(10, 5)

@@ -1,13 +1,13 @@
 extern "expect_i64" func expect(int actual, int expected)
 
-function add = func(int left, int right) -> int => left + right
-function anonCounter = func(int base, ...) -> int => base + arg.length
+func add = func(int left, int right) as int => left + right
+func anonCounter = func(int base, ...) as int => base + arg.length
 
-func count(int base, ...) -> int
+func count(int base, ...) as int
     return base + arg.length
 end
 
-function counter = count
+func counter = count
 
 var value = add(20, 22)
 auto inferred = add(10, 5)

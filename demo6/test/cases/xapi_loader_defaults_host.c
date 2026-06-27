@@ -134,8 +134,8 @@ static int checkLegacy(XL6_XapiModule* module)
     fn = &module->exports[0];
     if ( !textEquals(fn->callingConvention, "cdecl") ||
          !textEquals(fn->varargMode, "none") ||
-         !textEquals(fn->signature, "func(int,int)->int") ||
-         !textEquals(fn->exportId, "legacy@0.0.0#abi1::legacy::add(func(int,int)->int)") ) {
+         !textEquals(fn->signature, "func(int,int) as int") ||
+         !textEquals(fn->exportId, "legacy@0.0.0#abi1::legacy::add(func(int,int) as int)") ) {
         return 0;
     }
     type = &module->types[0];
@@ -172,8 +172,8 @@ static int checkUnknowns(XL6_XapiModule* module)
     fn = &module->exports[0];
     if ( !textEquals(fn->callingConvention, "cdecl") ||
          !textEquals(fn->varargMode, "none") ||
-         !textEquals(fn->signature, "func(string)->bool") ||
-         !textEquals(fn->exportId, "unknowns@2.1.0#abi7::unknowns::touch(func(string)->bool)") ) {
+         !textEquals(fn->signature, "func(string) as bool") ||
+         !textEquals(fn->exportId, "unknowns@2.1.0#abi7::unknowns::touch(func(string) as bool)") ) {
         return 0;
     }
     if ( module->types[0].fieldCount != 1 || !textEquals(module->types[0].fields[0].storage, "field") ) {

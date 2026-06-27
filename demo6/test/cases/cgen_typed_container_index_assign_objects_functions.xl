@@ -13,11 +13,11 @@ union Payload
     c_double d
 end
 
-func add(int left, int right) -> int
+func add(int left, int right) as int
     return left + right
 end
 
-func mul(int left, int right) -> int
+func mul(int left, int right) as int
     return left * right
 end
 
@@ -97,22 +97,22 @@ expect(type(boxedListNative) == Native, 1)
 expect(type(boxedDictNative) == Native, 1)
 expect(type(boxedDynamicDictNative) == Native, 1)
 
-function(int, int) -> int fn = add
-array<function(int, int) -> int> funcs = array[fn]
-list<function(int, int) -> int> listedFuncs = list[1: fn]
-dict<function(int, int) -> int> table = dict{"op": fn}
+func(int, int) as int fn = add
+array<func(int, int) as int> funcs = array[fn]
+list<func(int, int) as int> listedFuncs = list[1: fn]
+dict<func(int, int) as int> table = dict{"op": fn}
 var opKey = "dyn"
 
-function(int, int) -> int next = mul
+func(int, int) as int next = mul
 funcs[0] = next
 listedFuncs[2] = next
 table["op"] = next
 table[opKey] = next
 
-function(int, int) -> int pickedArray = funcs[0]
-function(int, int) -> int pickedList = listedFuncs[2]
-function(int, int) -> int pickedDict = table["op"]
-function(int, int) -> int pickedDynamicDict = table[opKey]
+func(int, int) as int pickedArray = funcs[0]
+func(int, int) as int pickedList = listedFuncs[2]
+func(int, int) as int pickedDict = table["op"]
+func(int, int) as int pickedDynamicDict = table[opKey]
 
 expect(pickedArray(2, 3), 6)
 expect(pickedList(2, 4), 8)

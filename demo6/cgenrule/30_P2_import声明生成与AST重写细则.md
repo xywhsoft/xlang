@@ -94,7 +94,7 @@
 | 生成规则描述 | 输出 `extern "<cSymbol>" func <internalName>(...)`。参数按顺序输出重写后的类型和参数名；当前只支持 0 或 1 个返回值，1 个返回值输出 ` -> <type>`。 |
 | 生成器文件名和行号 | `demo6/src/compile/xl6_imports.c:994` |
 | 对应生成的 C 代码 | 经 cgen 后生成 C extern 原型并可直接调用 C symbol。 |
-| 中间形态伪代码 | `extern "cSymbol" func internal(params) -> ret?` |
+| 中间形态伪代码 | `extern "cSymbol" func internal(params) as ret?` |
 | 实现同等功能手写的 C 代码 | 手写 xlang 桥接声明需要同样写 extern 函数。 |
 | 额外依赖的封装代码 | import type rewrite helper。 |
 
@@ -223,8 +223,8 @@
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | `pkg.foo()`、`pkg.value` |
-| 生成规则描述 | 递归遍历 AST。若节点是 member，receiver 是 name，则尝试按 receiver.text 和成员名查 import symbol。找到 supported 符号时重写为内部名称；找到 unsupported 符号时报 `imported XAPI symbol is not supported by current C ABI bridge`。 |
-| 生成器文件名和行号 | `demo6/src/compile/xl6_imports.c:1254` |
+| 生成规则描述 | 递归遍历 AST。若节点是 member，receiver 是 name，则尝试按 receiver.text 和成员名查 import symbol。找到 supported 符号时重写为内部名称；找到 unsupported 符号时报 `XAPI 导入符号当前不能进入 C ABI bridge: <ns>.<symbol>`。 |
+| 生成器文件名和行号 | `demo6/src/compile/xl6_imports.c:1257` |
 | 对应生成的 C 代码 | supported 符号经 cgen 生成对应内部 extern 调用/访问。 |
 | 中间形态伪代码 | `if member ns.name and symbol supported -> rewrite; unsupported -> diag` |
 | 实现同等功能手写的 C 代码 | 手写桥接需要把包命名空间符号映射到真实 C 声明。 |

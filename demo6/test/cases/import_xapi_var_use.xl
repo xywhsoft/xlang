@@ -1,5 +1,5 @@
 import settings
 
-func readImported() -> int
+func readImported() as int
     return settings.importedCounter
 end

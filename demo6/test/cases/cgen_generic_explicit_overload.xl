@@ -1,10 +1,10 @@
 extern "expect_i64" func expect(int actual, int expected)
 
-func pick<T>(T value) -> int
+func pick<T>(T value) as int
     return 10
 end
 
-func pick<T>(array<T> values) -> int
+func pick<T>(array<T> values) as int
     return 20
 end
 

@@ -1,0 +1,17 @@
+extern "expect_i64" func expect(int actual, int expected)
+extern "record_xvalue" func record(var value)
+extern "recorded_xvalue" func recorded() as int
+
+func makeValue(int value) as var
+    return value
+end
+
+record(makeValue(1) + makeValue(2))
+expect(recorded(), 3)
+
+var empty = null
+record(empty ?? makeValue(5))
+expect(recorded(), 5)
+
+record(true ? makeValue(7) : makeValue(8))
+expect(recorded(), 7)

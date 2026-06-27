@@ -324,8 +324,8 @@ static int run_dependency_path_snapshot_case(const char* originalCwd)
     const char* workDir = "release\\tmp\\dll_dependency_snapshot";
     const char* marker = "release\\tmp\\dll_dependency_snapshot\\dependency_snapshot_marker.txt";
     const char* script =
-        "extern \"xl6_dll_link_value\" func linkedValue() -> int\n"
-        "extern \"xl6_dll_loadlib_value\" func loadedValue() -> int\n"
+        "extern \"xl6_dll_link_value\" func linkedValue() as int\n"
+        "extern \"xl6_dll_loadlib_value\" func loadedValue() as int\n"
         "assert linkedValue() == 42, \"snapshot link library failed\"\n"
         "assert loadedValue() == 42, \"snapshot loadlib failed\"\n"
         "file.writeText(\"dependency_snapshot_marker.txt\", \"ok\")\n"
@@ -445,7 +445,7 @@ int main(void)
          !expect_api_failure(ctx, "xlRunScriptFile empty path", xlRunScriptFile(ctx, ""), "script file path is empty") ||
          !expect_api_failure(ctx, "xlCompileScriptStringToExe NULL source", xlCompileScriptStringToExe(ctx, NULL, "release\\tmp\\null_source.exe"), "script source is empty") ||
          !expect_api_failure(ctx, "xlCompileScriptFileToExe empty path", xlCompileScriptFileToExe(ctx, "", "release\\tmp\\empty_file.exe"), "script file path is empty") ||
-         !expect_api_failure(ctx, "xlCompileScriptStringToExe empty output", xlCompileScriptStringToExe(ctx, "func ok() -> int\n    return 1\nend\n", ""), "output exe path is empty") ) {
+         !expect_api_failure(ctx, "xlCompileScriptStringToExe empty output", xlCompileScriptStringToExe(ctx, "func ok() as int\n    return 1\nend\n", ""), "output exe path is empty") ) {
         xlDestroyContext(ctx);
         return 1;
     }

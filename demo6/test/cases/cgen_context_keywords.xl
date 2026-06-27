@@ -5,7 +5,7 @@ int base = 2
 int create = 3
 int destroy = 4
 
-func sumContextNames(int self, int base, int create, int destroy) -> int
+func sumContextNames(int self, int base, int create, int destroy) as int
     return self + base + create + destroy
 end
 

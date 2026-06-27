@@ -1,6 +1,6 @@
 import union_api
 
-func main(...) -> int
+func main(...) as int
     auto payload = union_api.makePayload(42)
     if union_api.pick(payload) == 42 then
         return 0

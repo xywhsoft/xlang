@@ -1,8 +1,8 @@
 custom Native
 end
 
-func make(Native native) -> function() -> int
-    return func() -> int
+func make(Native native) as func() as int
+    return func() as int
         type(native)
         return 1
     end

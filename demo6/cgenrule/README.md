@@ -9,7 +9,7 @@
 - `01_入口与声明规则.md`：整体生成流程、函数、extern/export、main、class/custom/union 等规则。
 - `02_表达式规则.md`：字面量、名称、调用、成员、索引、运算符、容器等表达式规则。
 - `03_语句与控制流规则.md`：声明、赋值、return、if/while/for、异常、yield 等语句规则。
-- `04_运行时与高级规则.md`：function 值、闭包、xcall、async、thread、channel、generator、标准库运行时注入等高级能力总览；不计入唯一 `CGEN-*` 规则数。
+- `04_运行时与高级规则.md`：func 值、闭包、xcall、async、thread、channel、generator、标准库运行时注入等高级能力总览；不计入唯一 `CGEN-*` 规则数。
 - `05_继续细化清单.md`：当前已完成区域、验证矩阵状态、剩余非阻断增强项和维护准则。
 - `06_P0_参数与动态值细则.md`：参数、命名参数、默认参数、`...`/`***`、xvalue 装箱、动态运算细则。
 - `07_P0_索引与赋值细则.md`：索引读取/写入、typed container 赋值、动态成员赋值、复合赋值细则。
@@ -67,7 +67,7 @@
 
 这里的“规则”指会改变生成 C 形态的分支，不把纯字符串编码、哈希、数组扩容、上下文清理这类内部工具函数单独当成语言规则。辅助函数仍在 `_function_index.generated.md` 和 `00_文件覆盖索引.md` 中保留索引。
 
-当前已经完成主干规则、P0 细化、async/generator/class/custom/ABI 元数据/声明与多返回值 P1 细化，以及标准库 wrapper、header/needs/module/runtime helper/符号命名与类型映射/泛型推断与运行时状态/调用解析/类型克隆与表达式推断/cleanup 与借用生命周期/上下文状态表/入口判定/XAPI 输出/XAPI 读取/import 展开/package resolver/CLI 工具链/xl.dll API P2 细化。目录内已有 834 条 `CGEN-*` 规则；同时已完成主干/P0、P1 核心、P2 运行时/Header/Module/标准库、P2 符号/泛型/调用/类型推断、P2 cleanup/上下文/入口、P2 XAPI 元数据、P2 import/package、P2 CLI/DLL 验证矩阵。
+当前已经完成主干规则、P0 细化、async/generator/class/custom/ABI 元数据/声明与多返回值 P1 细化，以及标准库 wrapper、header/needs/module/runtime helper/符号命名与类型映射/泛型推断与运行时状态/调用解析/类型克隆与表达式推断/cleanup 与借用生命周期/上下文状态表/入口判定/XAPI 输出/XAPI 读取/import 展开/package resolver/CLI 工具链/xl.dll API P2 细化。目录内已有 835 条 `CGEN-*` 规则；同时已完成主干/P0、P1 核心、P2 运行时/Header/Module/标准库、P2 符号/泛型/调用/类型推断、P2 cleanup/上下文/入口、P2 XAPI 元数据、P2 import/package、P2 CLI/DLL 验证矩阵。
 
 剩余内容不再属于规则文档缺失，而是非阻断增强：把人工矩阵机器化、为内部状态补更细生成快照、扩展资源巡检和错误路径测试。新增或修改 cgen 行为时，应同步更新对应规则表、验证矩阵和 `05_继续细化清单.md`。
 

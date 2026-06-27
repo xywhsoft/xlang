@@ -7,6 +7,7 @@ auto table = {"count": 6}
 var missing = null
 var dynamicValues = values
 var dynamicTable = table
+int declaredFallback = int(missing?[0] ?? 9)
 
 expect(int(values?[1]), 20)
 expect(int(sparse?[2]), 22)
@@ -14,3 +15,4 @@ expect(int(table?["count"]), 6)
 expect(int(dynamicValues?[1]), 20)
 expect(int(dynamicTable?["count"]), 6)
 expect(int(missing?[0] ?? 9), 9)
+expect(declaredFallback, 9)

@@ -18,7 +18,7 @@
 | `CGEN-IMP-011..014` dependency 版本/ABI 匹配、解析策略、递归依赖图、resolved package 闭包 | `import_dependency_versions.xl`、`import_dependency_version_mismatch.xl`、packages `dep_value` 与 `dep_value@2.0.0`、`uses_dep_bad` | build/run + 语义负例 | 同一项目多版本依赖、版本不匹配诊断、传递依赖闭包和 private namespace 登记有覆盖。 |
 | `CGEN-IMP-015..018` 符号表生命周期、namespace public/private 合并、导入符号查找、内部名称生成 | `import_xapi_use.xl`、`import_xapi_var_use.xl`、`import_dependency_no_pollution.xl`、`import_no_global_pollution.xl` | IR/C 检查 + 语义负例 | `__xl6_import_<ns>_<name>` 内部名、公有 namespace、私有依赖不可访问和全局不污染有覆盖。 |
 | `CGEN-IMP-019..020` XAPI 类型查找、owner 泛型参数保护、导入类型文本重写 | `import_xapi_type_class_use.xl`、`import_xapi_type_class_inherit_use.xl`、`import_xapi_type_union_use.xl`、`xapi_type_fields.xl` | IR/C 检查 + build/run | class/union 类型内部改名、继承 base 重写、字段类型重写和 owner 泛型参数保留有覆盖。 |
-| `CGEN-IMP-021` 导入符号登记 | `import_xapi_use.xl`、`import_xapi_var_use.xl`、`import_unsupported_xapi_use.xl` | IR/C 检查 + 语义负例 | supported symbol 生成 extern，unsupported symbol 登记后访问时报 `not supported by current C ABI bridge`。 |
+| `CGEN-IMP-021` 导入符号登记 | `import_xapi_use.xl`、`import_xapi_var_use.xl`、`import_unsupported_xapi_use.xl` | IR/C 检查 + 语义负例 | supported symbol 生成 extern，unsupported symbol 登记后访问时报 `C ABI bridge: unsupported_xapi.unsupportedCall`，带具体 namespace 和符号名。 |
 
 ## Import 声明生成与 AST 重写
 

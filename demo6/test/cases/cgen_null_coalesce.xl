@@ -1,8 +1,8 @@
 extern "expect_i64" func expect(int actual, int expected)
 extern "nc_probe_reset" func resetProbe()
-extern "nc_probe_next" func nextProbeInt() -> int
-extern "nc_probe_next_var" func nextProbe() -> var
-extern "nc_probe_count" func probeCount() -> int
+extern "nc_probe_next" func nextProbeInt() as int
+extern "nc_probe_next_var" func nextProbe() as var
+extern "nc_probe_count" func probeCount() as int
 
 var empty
 var fallback = empty ?? 9

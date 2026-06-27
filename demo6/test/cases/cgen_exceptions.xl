@@ -1,4 +1,4 @@
-func catchThrow() -> int
+func catchThrow() as int
     int state = 0
     int messageOk = 0
     int kindOk = 0
@@ -26,7 +26,7 @@ func catchThrow() -> int
     return state + messageOk + kindOk + lineOk
 end
 
-func catchAssert() -> int
+func catchAssert() as int
     int state = 0
     int messageOk = 0
     int kindOk = 0
@@ -47,7 +47,7 @@ func catchAssert() -> int
     return state + messageOk + kindOk
 end
 
-func rethrowKeepsOriginal() -> int
+func rethrowKeepsOriginal() as int
     int state = 0
 
     try
@@ -66,7 +66,7 @@ func rethrowKeepsOriginal() -> int
     return state
 end
 
-func finallyWithoutCatchNormal() -> int
+func finallyWithoutCatchNormal() as int
     int state = 0
 
     try
@@ -78,7 +78,7 @@ func finallyWithoutCatchNormal() -> int
     return state
 end
 
-func finallyWithoutCatchThrows() -> int
+func finallyWithoutCatchThrows() as int
     int state = 0
 
     try
@@ -97,14 +97,14 @@ func finallyWithoutCatchThrows() -> int
     return state
 end
 
-func assertTrueDoesNothing() -> int
+func assertTrueDoesNothing() as int
     int state = 1
     assert state == 1
     state = state + 1
     return state
 end
 
-func main(...) -> int
+func main(...) as int
     if catchThrow() != 15 then return 1
     if catchAssert() != 3 then return 2
     if rethrowKeepsOriginal() != 11 then return 3

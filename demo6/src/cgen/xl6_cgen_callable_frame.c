@@ -9,7 +9,7 @@ static void xl6CgenEmitAnonInvokeProto(XL6_CgenContext* ctx, const XL6_CgenAnonF
     if ( returns != NULL && returns->childCount > 1 ) {
         xl6CgenFunctionReturnStructName(ctx, params, returns);
     } else if ( returns != NULL && returns->childCount == 1 ) {
-        xl6OutputPuts(xl6CgenTypeName(ctx, returns->children[0]), ctx->out);
+        xl6OutputPuts(xl6CgenValueStorageCType(ctx, returns->children[0]), ctx->out);
     } else {
         xl6OutputPuts("void", ctx->out);
     }
@@ -18,7 +18,7 @@ static void xl6CgenEmitAnonInvokeProto(XL6_CgenContext* ctx, const XL6_CgenAnonF
         for ( i = 0; i < params->childCount; ++i ) {
             const XL6_AstNode* param = params->children[i];
             xl6OutputPuts(", ", ctx->out);
-            xl6OutputPuts(xl6CgenTypeName(ctx, param->children[0]), ctx->out);
+            xl6OutputPuts(xl6CgenValueStorageCType(ctx, param->children[0]), ctx->out);
             xl6OutputPutc(' ', ctx->out);
             xl6CgenFputsCIdent(ctx->out, param->text);
         }
@@ -455,7 +455,7 @@ static void xl6CgenEmitAnonVarInvoke(XL6_CgenContext* ctx, const XL6_CgenAnonFun
 
     if ( returns != NULL && returns->childCount == 1 ) {
         xl6OutputPuts("    ", ctx->out);
-        xl6OutputPuts(xl6CgenTypeName(ctx, returns->children[0]), ctx->out);
+        xl6OutputPuts(xl6CgenValueStorageCType(ctx, returns->children[0]), ctx->out);
         xl6OutputPuts(" __xl6_result = ", ctx->out);
     } else {
         xl6OutputPuts("    ", ctx->out);
@@ -514,7 +514,7 @@ static void xl6CgenEmitAnonXCall(XL6_CgenContext* ctx, const XL6_CgenAnonFunc* i
         }
     } else if ( returns != NULL && returns->childCount == 1 ) {
         xl6OutputPuts("    ", ctx->out);
-        xl6OutputPuts(xl6CgenTypeName(ctx, returns->children[0]), ctx->out);
+        xl6OutputPuts(xl6CgenValueStorageCType(ctx, returns->children[0]), ctx->out);
         xl6OutputPrintf(ctx->out, " __xl6_single = xl6_anon_%d_invoke(__xl6_env", info->id);
         xl6CgenEmitXCallCallArgs(ctx, params, fixedCount, hasArrayVararg, hasDictVararg);
         xl6OutputPuts(");\n", ctx->out);

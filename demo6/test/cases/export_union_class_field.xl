@@ -7,13 +7,13 @@ class Point
     int y
 end
 
-export "xl6_payload_make" func makePayload(int x, int y) -> Payload
+export "xl6_payload_make" func makePayload(int x, int y) as Payload
     Payload payload
     payload.point.x = x
     payload.point.y = y
     return payload
 end
 
-export "xl6_payload_sum" func sumPayload(Payload payload) -> int
+export "xl6_payload_sum" func sumPayload(Payload payload) as int
     return payload.point.x + payload.point.y
 end

@@ -1,4 +1,4 @@
-func bad() -> int
+func bad() as int
     int value = 0
 
     try

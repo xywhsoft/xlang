@@ -1,0 +1,6 @@
+func optionCount(string base, ***) as int
+    return arg.length
+end
+
+func(string, ***) as int fn = optionCount
+auto bad = fn(extra = 1, "base")

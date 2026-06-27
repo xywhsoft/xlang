@@ -1,5 +1,41 @@
 static void xl6CgenStmt(XL6_CgenContext* ctx, const XL6_AstNode* node);
 
+static int xl6CgenDeclTryXValueArrayLiteralInit(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* typeNode,
+    const char* cName,
+    const XL6_AstNode* initExpr);
+static int xl6CgenDeclTryXValueNullCoalesceInit(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* typeNode,
+    const char* cName,
+    const XL6_AstNode* initExpr);
+static int xl6CgenDeclTryXValueBinaryInit(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* typeNode,
+    const char* cName,
+    const XL6_AstNode* initExpr);
+static int xl6CgenDeclTryXValueConditionalInit(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* typeNode,
+    const char* cName,
+    const XL6_AstNode* initExpr);
+static int xl6CgenDeclTryXValueExprInit(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* typeNode,
+    const char* cName,
+    const XL6_AstNode* initExpr);
+static void xl6CgenDeclEmitXValueExprInit(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* typeNode,
+    const char* cName,
+    const XL6_AstNode* initExpr);
+static void xl6CgenDeclEmitXValueExprAssign(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* typeNode,
+    const char* cName,
+    const XL6_AstNode* initExpr);
+
 static void xl6CgenBlock(XL6_CgenContext* ctx, const XL6_AstNode* block)
 {
     size_t i;
@@ -15,260 +51,1118 @@ static void xl6CgenBlock(XL6_CgenContext* ctx, const XL6_AstNode* block)
     xl6CgenCloseScope(ctx, cleanupMark);
 }
 
-static void xl6CgenDecl(XL6_CgenContext* ctx, const XL6_AstNode* node)
+static int xl6CgenDeclTemporaryClassFieldTypeIsPlain(XL6_CgenContext* ctx, const XL6_AstNode* typeNode)
 {
-    const char* cType;
-    const XL6_AstNode* typeNode;
-    const XL6_AstNode* initExpr;
-    XL6_AstNode* ctorCustom;
-    XL6_AstNode* declCustom;
-    XL6_AstNode* ctorClass;
-    XL6_AstNode* declClass;
-    XL6_AstNode* ctorClassType;
-    XL6_AstNode* declClassType;
-    char cName[512];
-    int declaredAuto;
+    const XL6_AstNode* concreteType;
+
+    concreteType = xl6CgenResolveAliasType(ctx, xl6CgenSubstituteGenericType(ctx, typeNode));
+    if ( concreteType == NULL ) {
+        return 0;
+    }
+
+    /*
+        当前只接管普通按值字段。function、class、custom、var 和容器字段涉及
+        借用/保留语义，必须由后续专门路径处理，避免从临时 class 中借出悬空值。
+    */
+    if ( xl6CgenIsXValueType(concreteType) ||
+         xl6CgenIsFunctionType(concreteType) ||
+         xl6CgenIsClassType(ctx, concreteType) ||
+         xl6CgenIsCustomType(ctx, concreteType) ||
+         xl6CgenIsTypedContainerType(ctx, concreteType) ||
+         xl6CgenIsFutureLikeType(concreteType) ||
+         xl6CgenIsChannelType(concreteType) ||
+         xl6CgenIsThreadType(concreteType) ||
+         xl6CgenIsGeneratorType(concreteType) ||
+         xl6CgenIsSyncHandleType(concreteType) ) {
+        return 0;
+    }
+
+    return 1;
+}
+
+static void xl6CgenDeclDestroyTemporaryClassValue(XL6_CgenContext* ctx, const XL6_AstNode* classNode, const XL6_AstNode* classTypeNode, const char* tempName)
+{
+    if ( classNode == NULL || tempName == NULL || !xl6CgenClassNeedsDestroy(ctx, classNode) ) {
+        return;
+    }
 
     xl6CgenIndent(ctx);
-    typeNode = node->childCount > 0 ? node->children[0] : NULL;
-    initExpr = node->childCount > 1 ? node->children[1] : NULL;
-    xl6CgenCIdentText(cName, sizeof(cName), node->text);
-    declaredAuto = typeNode != NULL && xl6CTextEquals(typeNode->text, "auto");
-    ctorCustom = NULL;
-    declCustom = NULL;
-    ctorClass = NULL;
-    declClass = NULL;
-    ctorClassType = NULL;
-    declClassType = NULL;
-
-    if ( typeNode != NULL && xl6CTextEquals(typeNode->text, "auto") && initExpr != NULL ) {
-        xl6CgenCallIsCustomCtor(ctx, initExpr, &ctorCustom);
-        if ( !xl6CgenCallIsClassCtor(ctx, initExpr, &ctorClass) ) {
-            ctorClassType = xl6CgenGenericClassCtorType(ctx, initExpr, &ctorClass);
-        }
-    } else if ( xl6CgenIsCustomType(ctx, typeNode) ) {
-        declCustom = xl6CgenFindCustom(ctx, typeNode->text);
-    } else if ( xl6CgenIsClassType(ctx, typeNode) ) {
-        declClass = xl6CgenFindClass(ctx, typeNode->text);
-        if ( initExpr != NULL && typeNode != NULL && typeNode->childCount > 0 ) {
-            declClassType = xl6CgenCloneCanonicalTypeNode(ctx, typeNode);
-            ctorClassType = xl6CgenGenericClassCtorType(ctx, initExpr, &ctorClass);
-            if ( declClassType == NULL ) {
-                xl6CgenError(ctx, typeNode, "generic class type could not be resolved");
-            } else if ( ctorClassType != NULL && !xl6CgenTypeNodeEqual(declClassType, ctorClassType) ) {
-                xl6CgenError(ctx, initExpr, "generic class constructor type does not match declared type");
-            }
-        } else if ( typeNode != NULL && typeNode->childCount > 0 ) {
-            declClassType = xl6CgenCloneCanonicalTypeNode(ctx, typeNode);
-            if ( declClassType == NULL ) {
-                xl6CgenError(ctx, typeNode, "generic class type could not be resolved");
-            }
-        }
-    }
-
-    if ( ctorCustom != NULL || declCustom != NULL ) {
-        const XL6_AstNode* customNode = ctorCustom != NULL ? ctorCustom : declCustom;
-        xl6CgenCustomTypeName(ctx->out, customNode->text);
-        xl6OutputPrintf(ctx->out, " %s = {0};\n", cName);
-        xl6CgenAddVarType(ctx, node->text, customNode);
-        xl6CgenAddCustomCleanup(ctx, node->text, customNode);
-        if ( initExpr != NULL ) {
-            if ( xl6CgenCallIsCustomCtor(ctx, initExpr, &ctorCustom) && xl6CTextEquals(ctorCustom->text, customNode->text) ) {
-                xl6CgenCustomCtorAssign(ctx, customNode, node->text, initExpr);
-            } else {
-                XL6_AstNode* initType = xl6CgenCloneExprTypeForInference(ctx, initExpr);
-                const XL6_AstNode* resolvedInitType = xl6CgenResolveAliasType(ctx, initType);
-
-                /*
-                    没有 destroy 的 custom 本质只是句柄值，可以按结构体值复制。
-                    有 destroy 的 custom 已经由语义层判为不可复制，这里仍保持构造表达式专用路径。
-                */
-                if ( resolvedInitType != NULL &&
-                     xl6CTextEquals(resolvedInitType->text, customNode->text) &&
-                     !xl6CgenCustomHasDestroy(customNode) ) {
-                    xl6CgenIndent(ctx);
-                    xl6OutputPrintf(ctx->out, "%s = ", cName);
-                    xl6CgenExpr(ctx, initExpr);
-                    xl6OutputPuts(";\n", ctx->out);
-                } else {
-                    xl6CgenError(ctx, initExpr, "custom 变量只能使用同类型构造表达式或可复制同类型值初始化");
-                }
-                xl6AstFree(initType);
-            }
-        }
-        return;
-    }
-
-    if ( ctorClass != NULL || declClass != NULL ) {
-        const XL6_AstNode* classNode = declClass != NULL ? declClass : ctorClass;
-        const XL6_AstNode* classTypeNode = (declClass != NULL && declClassType != NULL) ? declClassType : (ctorClassType != NULL ? ctorClassType : typeNode);
-        int isGenericClass = (ctorClassType != NULL) || (declClassType != NULL);
-        const XL6_AstNode* args = initExpr != NULL && initExpr->childCount > 1 ? initExpr->children[1] : NULL;
-        const XL6_AstNode* createNode = NULL;
-        const XL6_AstNode* prevParams = ctx->currentGenericParams;
-        const XL6_AstNode* prevArgs = ctx->currentGenericArgs;
-        int copyInit = 0;
-        if ( ctorClassType != NULL ) {
-            xl6CgenOwnTypeNode(ctx, ctorClassType);
-        }
-        if ( declClassType != NULL ) {
-            xl6CgenOwnTypeNode(ctx, declClassType);
-        }
-        if ( isGenericClass ) {
-            ctx->currentGenericParams = xl6CgenClassTypeParams(classNode);
-            ctx->currentGenericArgs = classTypeNode->children[0];
-            xl6OutputPuts(xl6CgenTypeName(ctx, classTypeNode), ctx->out);
-        } else {
-            xl6CgenClassTypeName(ctx->out, classNode->text);
-        }
-        createNode = (initExpr != NULL && ctorClass != NULL) ?
-                     xl6CgenResolveClassCreate(ctx, classNode, initExpr) :
-                     xl6CgenFindClassSpecial(classNode, "create");
-        xl6OutputPrintf(ctx->out, " %s = {0};\n", cName);
-        xl6CgenAddVarType(ctx, node->text, isGenericClass ? classTypeNode : classNode);
-        xl6CgenAddClassCleanup(ctx, node->text, classNode, isGenericClass ? classTypeNode : NULL);
-        if ( initExpr != NULL && ctorClassType == NULL ) {
-            if ( !xl6CgenCallIsClassCtor(ctx, initExpr, &ctorClass) || !xl6CTextEquals(ctorClass->text, classNode->text) ) {
-                XL6_AstNode* initType = xl6CgenCloneExprTypeForInference(ctx, initExpr);
-                const XL6_AstNode* resolvedInitType = xl6CgenResolveAliasType(ctx, initType);
-                int sameType = 0;
-
-                if ( isGenericClass ) {
-                    sameType = resolvedInitType != NULL && xl6CgenTypeNodeEqual(classTypeNode, resolvedInitType);
-                } else {
-                    sameType = resolvedInitType != NULL && xl6CTextEquals(resolvedInitType->text, classNode->text);
-                }
-
-                if ( sameType ) {
-                    copyInit = 1;
-                } else {
-                    xl6CgenError(ctx, initExpr, "class 变量只能使用同类型构造表达式或可复制同类型值初始化");
-                }
-                xl6AstFree(initType);
-            }
-        }
-        xl6CgenClassDefaultInitFields(ctx, classNode, cName);
-        ctx->currentGenericParams = prevParams;
-        ctx->currentGenericArgs = prevArgs;
-        if ( copyInit ) {
-            xl6CgenIndent(ctx);
-            xl6OutputPrintf(ctx->out, "%s = ", cName);
-            xl6CgenExpr(ctx, initExpr);
-            xl6OutputPuts(";\n", ctx->out);
-            xl6CgenRetainClassFunctionFieldsForBorrowedExpr(ctx, isGenericClass ? classTypeNode : classNode, cName, initExpr);
-        } else if ( initExpr != NULL && ctorClass != NULL && xl6CTextEquals(ctorClass->text, classNode->text) ) {
-            if ( createNode != NULL ) {
-                xl6CgenIndent(ctx);
-                if ( isGenericClass ) {
-                    ctx->currentGenericParams = xl6CgenClassTypeParams(classNode);
-                    ctx->currentGenericArgs = classTypeNode->children[0];
-                    xl6CgenGenericClassCallableSymbol(ctx, classNode, classTypeNode, createNode);
-                } else {
-                    xl6CgenClassCallableSymbol(ctx, classNode, createNode);
-                }
-                xl6OutputPrintf(ctx->out, "(&%s", cName);
-                if ( args != NULL && xl6CgenFixedParamCount(createNode->childCount > 0 ? createNode->children[0] : NULL) > 0 ) {
-                    xl6OutputPuts(", ", ctx->out);
-                    xl6CgenParamNodeArgs(ctx, createNode->childCount > 0 ? createNode->children[0] : NULL, args);
-                }
-                xl6OutputPuts(");\n", ctx->out);
-                ctx->currentGenericParams = prevParams;
-                ctx->currentGenericArgs = prevArgs;
-            } else if ( args != NULL && args->childCount > 0 ) {
-                xl6CgenError(ctx, initExpr, "class constructor has arguments but no matching create method");
-            }
-        }
-        if ( !copyInit && createNode == NULL ) {
-            xl6CgenEmitAutoBaseCreateForValue(ctx, classNode, cName, node);
-        }
-        return;
-    }
-
-    if ( declaredAuto ) {
-        XL6_AstNode* inferredTypeNode;
-        cType = initExpr != NULL ? xl6CgenInferExprType(ctx, initExpr) : "int";
-        inferredTypeNode = xl6CgenCloneExprTypeForInference(ctx, initExpr);
-        if ( inferredTypeNode != NULL ) {
-            xl6CgenOwnTypeNode(ctx, inferredTypeNode);
-            typeNode = inferredTypeNode;
-        }
+    if ( classTypeNode != NULL && classTypeNode->childCount > 0 && xl6CgenClassHasTypeParams(classNode) ) {
+        xl6CgenGenericClassMemberSymbol(ctx, classNode, classTypeNode, "destroy");
     } else {
-        cType = typeNode != NULL ? xl6CgenTypeName(ctx, typeNode) : "int";
+        xl6CgenClassMemberSymbol(ctx->out, classNode->text, "destroy");
     }
-    if ( declaredAuto && initExpr != NULL && xl6CgenIsClassType(ctx, typeNode) ) {
-        XL6_AstNode* autoClass;
-        XL6_AstNode* autoClassType;
-        const XL6_AstNode* autoClassTypeNode;
-        const XL6_AstNode* prevParams;
-        const XL6_AstNode* prevArgs;
-        int isGenericAutoClass;
+    xl6OutputPrintf(ctx->out, "(&%s);\n", tempName);
+}
 
-        autoClass = xl6CgenFindClass(ctx, typeNode != NULL ? typeNode->text : NULL);
-        if ( autoClass != NULL ) {
-            autoClassType = NULL;
-            autoClassTypeNode = autoClass;
-            isGenericAutoClass = typeNode != NULL && typeNode->childCount > 0 && xl6CgenClassHasTypeParams(autoClass);
-            if ( isGenericAutoClass ) {
-                autoClassType = xl6CgenCloneCanonicalTypeNode(ctx, typeNode);
-                if ( autoClassType == NULL ) {
-                    xl6CgenError(ctx, typeNode, "auto generic class type could not be resolved");
-                    return;
+typedef struct XL6_CgenDeclClassArgTemp {
+    int active;
+    const XL6_AstNode* expr;
+    XL6_AstNode* valueType;
+    XL6_AstNode* functionType;
+    const XL6_AstNode* classNode;
+    char valueName[64];
+    char functionName[64];
+} XL6_CgenDeclClassArgTemp;
+
+static void xl6CgenDeclFreeClassArgTemps(XL6_CgenDeclClassArgTemp* temps, int count)
+{
+    int i;
+
+    if ( temps == NULL ) {
+        return;
+    }
+    for ( i = 0; i < count; ++i ) {
+        xl6AstFree(temps[i].valueType);
+        xl6AstFree(temps[i].functionType);
+    }
+    xrtFree(temps);
+}
+
+static int xl6CgenDeclPrepareClassArgTemp(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* paramType,
+    const XL6_AstNode* expr,
+    int id,
+    XL6_CgenDeclClassArgTemp* temp)
+{
+    const XL6_AstNode* returns;
+    const XL6_AstNode* returnType;
+    XL6_AstNode* functionType;
+    XL6_AstNode* paramCanonical;
+    XL6_AstNode* returnCanonical;
+    const XL6_AstNode* classNode;
+    int matches;
+
+    if ( temp == NULL ) {
+        return 0;
+    }
+    temp->active = 0;
+    temp->expr = NULL;
+    temp->valueType = NULL;
+    temp->functionType = NULL;
+    temp->classNode = NULL;
+    temp->valueName[0] = '\0';
+    temp->functionName[0] = '\0';
+
+    functionType = xl6CgenCloneMemberFunctionCallTypeForStatementInvoke(ctx, expr);
+    if ( functionType == NULL ) {
+        return 0;
+    }
+
+    returns = xl6CgenFunctionReturnTypes(functionType);
+    returnType = returns != NULL && returns->childCount == 1 ? returns->children[0] : NULL;
+    paramCanonical = xl6CgenCloneCanonicalTypeNode(ctx, paramType);
+    returnCanonical = xl6CgenCloneCanonicalTypeNode(ctx, returnType);
+    classNode = xl6CgenClassNodeForType(ctx, returnCanonical);
+    matches = paramCanonical != NULL &&
+              returnCanonical != NULL &&
+              classNode != NULL &&
+              xl6CgenTypeNodeEqual(paramCanonical, returnCanonical);
+    xl6AstFree(paramCanonical);
+    if ( !matches ) {
+        xl6AstFree(returnCanonical);
+        xl6AstFree(functionType);
+        return 0;
+    }
+
+    temp->active = 1;
+    temp->expr = expr;
+    temp->valueType = returnCanonical;
+    temp->functionType = functionType;
+    temp->classNode = classNode;
+    snprintf(temp->valueName, sizeof(temp->valueName), "__xl6_class_arg_%d", id);
+    snprintf(temp->functionName, sizeof(temp->functionName), "__xl6_member_fn_stmt_%d", id);
+    return 1;
+}
+
+static int xl6CgenDeclAppendClassArgTemp(XL6_CgenContext* ctx,
+                                         XL6_CgenDeclClassArgTemp** temps,
+                                         int* count,
+                                         int* capacity,
+                                         const XL6_AstNode* paramType,
+                                         const XL6_AstNode* argExpr)
+{
+    XL6_CgenDeclClassArgTemp temp;
+    XL6_CgenDeclClassArgTemp* newItems;
+    int newCapacity;
+
+    if ( temps == NULL || count == NULL || capacity == NULL || argExpr == NULL ) {
+        return 0;
+    }
+    if ( !xl6CgenDeclPrepareClassArgTemp(ctx, paramType, argExpr, ctx->tempId++, &temp) ) {
+        return 0;
+    }
+
+    if ( *count >= *capacity ) {
+        newCapacity = *capacity > 0 ? (*capacity * 2) : 4;
+        newItems = (XL6_CgenDeclClassArgTemp*)xrtRealloc(*temps, (size_t)newCapacity * sizeof(XL6_CgenDeclClassArgTemp));
+        if ( newItems == NULL ) {
+            xl6AstFree(temp.valueType);
+            xl6AstFree(temp.functionType);
+            xl6CgenError(ctx, argExpr, "out of memory while preparing class argument temporaries");
+            return 0;
+        }
+        *temps = newItems;
+        *capacity = newCapacity;
+    }
+    (*temps)[*count] = temp;
+    *count += 1;
+    return 1;
+}
+
+static void xl6CgenDeclCollectClassArgTempsInExpr(XL6_CgenContext* ctx,
+                                                  const XL6_AstNode* expr,
+                                                  XL6_CgenDeclClassArgTemp** temps,
+                                                  int* count,
+                                                  int* capacity)
+{
+    const XL6_AstNode* callee;
+    const XL6_AstNode* args;
+    const XL6_AstNode* params;
+    XL6_AstNode* inferredArgs;
+    XL6_AstNode* func;
+    int fixedCount;
+    int i;
+
+    if ( ctx == NULL || expr == NULL ) {
+        return;
+    }
+
+    if ( expr->kind == XL6_AST_CALL && expr->childCount > 0 ) {
+        callee = expr->children[0];
+        if ( callee != NULL && callee->kind == XL6_AST_NAME ) {
+            inferredArgs = NULL;
+            func = xl6CgenResolveCallFuncInternal(ctx, expr, callee->text, &inferredArgs, 0);
+            if ( inferredArgs == NULL && func != NULL ) {
+                params = func->childCount > 1 ? func->children[1] : NULL;
+                fixedCount = xl6CgenFixedParamCount(params);
+                if ( params == NULL || params->childCount == (size_t)fixedCount ) {
+                    args = expr->childCount > 1 ? expr->children[1] : NULL;
+                    for ( i = 0; i < fixedCount; ++i ) {
+                        const XL6_AstNode* param = params->children[i];
+                        const XL6_AstNode* paramType = param != NULL && param->childCount > 0 ? param->children[0] : NULL;
+                        const XL6_AstNode* argExpr = param != NULL ? xl6CgenFindArgForParam(args, param->text, i) : NULL;
+                        xl6CgenDeclAppendClassArgTemp(ctx, temps, count, capacity, paramType, argExpr);
+                    }
                 }
-                xl6CgenOwnTypeNode(ctx, autoClassType);
-                autoClassTypeNode = autoClassType;
             }
+            xl6AstFree(inferredArgs);
+        }
+    }
 
-            prevParams = ctx->currentGenericParams;
-            prevArgs = ctx->currentGenericArgs;
-            if ( isGenericAutoClass ) {
-                ctx->currentGenericParams = xl6CgenClassTypeParams(autoClass);
-                ctx->currentGenericArgs = autoClassTypeNode->children[0];
+    for ( i = 0; i < (int)expr->childCount; ++i ) {
+        xl6CgenDeclCollectClassArgTempsInExpr(ctx, expr->children[i], temps, count, capacity);
+    }
+}
+
+static void xl6CgenDeclEmitClassArgTemps(XL6_CgenContext* ctx,
+                                         XL6_CgenDeclClassArgTemp* temps,
+                                         int count,
+                                         int firstLineAlreadyIndented)
+{
+    int i;
+    int firstOutput;
+
+    firstOutput = 1;
+    for ( i = 0; i < count; ++i ) {
+        if ( !temps[i].active ) {
+            continue;
+        }
+        if ( firstOutput ) {
+            if ( !firstLineAlreadyIndented ) {
+                xl6CgenIndent(ctx);
             }
-            xl6OutputPuts(xl6CgenTypeName(ctx, autoClassTypeNode), ctx->out);
-            xl6OutputPrintf(ctx->out, " %s = {0};\n", cName);
-            xl6CgenAddVarType(ctx, node->text, autoClassTypeNode);
-            xl6CgenAddClassCleanup(ctx, node->text, autoClass, isGenericAutoClass ? autoClassTypeNode : NULL);
+            firstOutput = 0;
+        } else {
             xl6CgenIndent(ctx);
-            xl6OutputPrintf(ctx->out, "%s = ", cName);
-            xl6CgenExpr(ctx, initExpr);
-            xl6OutputPuts(";\n", ctx->out);
-            xl6CgenRetainClassFunctionFieldsForBorrowedExpr(ctx, autoClassTypeNode, cName, initExpr);
-            ctx->currentGenericParams = prevParams;
-            ctx->currentGenericArgs = prevArgs;
-            return;
+        }
+        xl6OutputPrintf(ctx->out, "%s %s = {0};\n", xl6CgenTypeName(ctx, temps[i].valueType), temps[i].valueName);
+        xl6CgenEmitMemberFunctionStatementTemp(ctx, temps[i].expr, temps[i].functionName);
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "%s = ", temps[i].valueName);
+        xl6CgenMemberFunctionStatementInvokeExpr(ctx, temps[i].expr, temps[i].functionType, temps[i].functionName);
+        xl6OutputPuts(";\n", ctx->out);
+    }
+}
+
+static void xl6CgenDeclDestroyClassArgTemps(XL6_CgenContext* ctx, XL6_CgenDeclClassArgTemp* temps, int count)
+{
+    int i;
+
+    for ( i = count - 1; i >= 0; --i ) {
+        if ( temps[i].active ) {
+            xl6CgenDeclDestroyTemporaryClassValue(ctx, temps[i].classNode, temps[i].valueType, temps[i].valueName);
         }
     }
-    if ( xl6CgenDeclShouldUseTypedContainer(ctx, typeNode, initExpr, declaredAuto) ) {
-        int initByCopy = xl6CgenTypedContainerCanCopyFromExpr(ctx, typeNode, initExpr);
-        int initByMove = xl6CgenTypedContainerCanMoveFromExpr(ctx, typeNode, initExpr);
-        xl6OutputPrintf(ctx->out, "%s %s = ", xl6CgenTypedContainerCType(ctx, typeNode), cName);
-        if ( initByCopy ) {
-            xl6CgenTypedContainerCopyExpr(ctx, typeNode, initExpr);
-        } else if ( initByMove ) {
-            xl6CgenExpr(ctx, initExpr);
-        } else {
-            xl6CgenTypedContainerCreateExpr(ctx, typeNode);
+}
+
+static XL6_CgenExprReplacement* xl6CgenDeclCreateExprReplacements(XL6_CgenContext* ctx, XL6_CgenDeclClassArgTemp* temps, int count)
+{
+    XL6_CgenExprReplacement* replacements;
+    int i;
+
+    if ( count <= 0 ) {
+        return NULL;
+    }
+    replacements = (XL6_CgenExprReplacement*)xrtMalloc((size_t)count * sizeof(XL6_CgenExprReplacement));
+    if ( replacements == NULL ) {
+        xl6CgenError(ctx, NULL, "out of memory while preparing expression replacements");
+        return NULL;
+    }
+    for ( i = 0; i < count; ++i ) {
+        replacements[i].expr = temps[i].expr;
+        replacements[i].cName = temps[i].valueName;
+    }
+    return replacements;
+}
+
+typedef struct XL6_CgenDeclCallArgTemp {
+    int active;
+    const XL6_AstNode* expr;
+    XL6_AstNode* typeNode;
+    char name[64];
+} XL6_CgenDeclCallArgTemp;
+
+static void xl6CgenDeclFreeCallArgTemps(XL6_CgenDeclCallArgTemp* temps, int count)
+{
+    int i;
+
+    if ( temps == NULL ) {
+        return;
+    }
+    for ( i = 0; i < count; ++i ) {
+        xl6AstFree(temps[i].typeNode);
+    }
+    xrtFree(temps);
+}
+
+static XL6_CgenExprReplacement* xl6CgenDeclCreateCallArgReplacements(XL6_CgenContext* ctx, XL6_CgenDeclCallArgTemp* temps, int count, int activeCount)
+{
+    XL6_CgenExprReplacement* replacements;
+    int i;
+    int replacementIndex;
+
+    if ( activeCount <= 0 ) {
+        return NULL;
+    }
+    replacements = (XL6_CgenExprReplacement*)xrtMalloc((size_t)activeCount * sizeof(XL6_CgenExprReplacement));
+    if ( replacements == NULL ) {
+        xl6CgenError(ctx, NULL, "out of memory while preparing call argument replacements");
+        return NULL;
+    }
+
+    replacementIndex = 0;
+    for ( i = 0; i < count; ++i ) {
+        if ( !temps[i].active ) {
+            continue;
         }
+        replacements[replacementIndex].expr = temps[i].expr;
+        replacements[replacementIndex].cName = temps[i].name;
+        replacementIndex += 1;
+    }
+    return replacements;
+}
+
+static void xl6CgenDeclEmitKnownCallArgsWithClassTemps(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* func,
+    const XL6_AstNode* args,
+    const XL6_CgenDeclClassArgTemp* temps,
+    int fixedCount)
+{
+    const XL6_AstNode* params;
+    int i;
+
+    params = func != NULL && func->childCount > 1 ? func->children[1] : NULL;
+    for ( i = 0; i < fixedCount; ++i ) {
+        const XL6_AstNode* param = params != NULL ? params->children[i] : NULL;
+        const XL6_AstNode* expr = param != NULL ? xl6CgenFindArgForParam(args, param->text, i) : NULL;
+
+        if ( i > 0 ) {
+            xl6OutputPuts(", ", ctx->out);
+        }
+        if ( temps != NULL && temps[i].active ) {
+            xl6OutputPuts(temps[i].valueName, ctx->out);
+        } else if ( expr != NULL ) {
+            xl6CgenExpr(ctx, expr);
+        } else if ( param != NULL && param->childCount > 1 ) {
+            xl6CgenExpr(ctx, param->children[1]);
+        } else {
+            xl6CgenError(ctx, param, "missing required argument for parameter");
+            xl6OutputPuts("0", ctx->out);
+        }
+    }
+}
+
+static void xl6CgenDeclEmitKnownStatementCallSymbol(XL6_CgenContext* ctx, const XL6_AstNode* func)
+{
+    if ( func == NULL ) {
+        xl6OutputPuts("/*missing_call*/", ctx->out);
+        return;
+    }
+    if ( func->kind == XL6_AST_EXTERN_FUNC ) {
+        xl6CgenCStringSymbol(ctx->out, func->text);
+    } else if ( func->kind == XL6_AST_EXPORT_FUNC ) {
+        xl6CgenExportInternalSymbol(ctx->out, func);
+    } else {
+        xl6CgenFuncSymbol(ctx, func);
+    }
+}
+
+static int xl6CgenDeclTryTemporaryClassArgInit(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* node,
+    const XL6_AstNode* typeNode,
+    const char* cType,
+    const char* cName,
+    const XL6_AstNode* initExpr)
+{
+    const XL6_AstNode* callee;
+    const XL6_AstNode* args;
+    const XL6_AstNode* params;
+    XL6_AstNode* inferredArgs;
+    XL6_AstNode* func;
+    XL6_CgenDeclClassArgTemp* temps;
+    int fixedCount;
+    int i;
+    int tempCount;
+    int firstOutput;
+
+    if ( ctx == NULL || node == NULL || typeNode == NULL || cType == NULL || cName == NULL ||
+         initExpr == NULL || initExpr->kind != XL6_AST_CALL || initExpr->childCount == 0 ||
+         !xl6CgenDeclTemporaryClassFieldTypeIsPlain(ctx, typeNode) ) {
+        return 0;
+    }
+
+    callee = initExpr->children[0];
+    if ( callee == NULL || callee->kind != XL6_AST_NAME ) {
+        return 0;
+    }
+
+    inferredArgs = NULL;
+    func = xl6CgenResolveCallFuncInternal(ctx, initExpr, callee->text, &inferredArgs, 0);
+    if ( inferredArgs != NULL ) {
+        xl6AstFree(inferredArgs);
+        return 0;
+    }
+    if ( func == NULL ) {
+        return 0;
+    }
+
+    params = func->childCount > 1 ? func->children[1] : NULL;
+    fixedCount = xl6CgenFixedParamCount(params);
+    if ( params != NULL && params->childCount > (size_t)fixedCount ) {
+        return 0;
+    }
+    if ( fixedCount <= 0 ) {
+        return 0;
+    }
+
+    temps = (XL6_CgenDeclClassArgTemp*)xrtMalloc((size_t)fixedCount * sizeof(XL6_CgenDeclClassArgTemp));
+    if ( temps == NULL ) {
+        xl6CgenError(ctx, initExpr, "out of memory while preparing class argument temporaries");
+        return 0;
+    }
+    memset(temps, 0, (size_t)fixedCount * sizeof(XL6_CgenDeclClassArgTemp));
+
+    args = initExpr->childCount > 1 ? initExpr->children[1] : NULL;
+    tempCount = 0;
+    for ( i = 0; i < fixedCount; ++i ) {
+        const XL6_AstNode* param = params != NULL ? params->children[i] : NULL;
+        const XL6_AstNode* expr = param != NULL ? xl6CgenFindArgForParam(args, param->text, i) : NULL;
+        const XL6_AstNode* paramType = param != NULL && param->childCount > 0 ? param->children[0] : NULL;
+
+        if ( expr != NULL &&
+             xl6CgenDeclPrepareClassArgTemp(ctx, paramType, expr, ctx->tempId++, &temps[i]) ) {
+            tempCount += 1;
+        }
+    }
+
+    if ( tempCount == 0 ) {
+        xl6CgenDeclFreeClassArgTemps(temps, fixedCount);
+        return 0;
+    }
+
+    firstOutput = 1;
+    for ( i = 0; i < fixedCount; ++i ) {
+        const XL6_AstNode* param = params != NULL ? params->children[i] : NULL;
+        const XL6_AstNode* expr = param != NULL ? xl6CgenFindArgForParam(args, param->text, i) : NULL;
+
+        if ( !temps[i].active ) {
+            continue;
+        }
+        if ( !firstOutput ) {
+            xl6CgenIndent(ctx);
+        }
+        firstOutput = 0;
+        xl6OutputPrintf(ctx->out, "%s %s = {0};\n", xl6CgenTypeName(ctx, temps[i].valueType), temps[i].valueName);
+        xl6CgenEmitMemberFunctionStatementTemp(ctx, expr, temps[i].functionName);
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "%s = ", temps[i].valueName);
+        xl6CgenMemberFunctionStatementInvokeExpr(ctx, expr, temps[i].functionType, temps[i].functionName);
         xl6OutputPuts(";\n", ctx->out);
-        xl6CgenAddVarTypeWithFlags(ctx, node->text, typeNode, XL6_CGEN_VAR_TYPED_CONTAINER);
-        xl6CgenAddTypedContainerCleanup(ctx, node->text, typeNode);
-        if ( !initByCopy && !initByMove ) {
-            xl6CgenTypedContainerFillFromLiteral(ctx, cName, typeNode, initExpr);
+    }
+
+    xl6CgenAddVarType(ctx, node->text, typeNode);
+
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "%s %s = ", cType, cName);
+    xl6CgenFuncSymbol(ctx, func);
+    xl6OutputPutc('(', ctx->out);
+    xl6CgenDeclEmitKnownCallArgsWithClassTemps(ctx, func, args, temps, fixedCount);
+    xl6OutputPuts(");\n", ctx->out);
+
+    for ( i = fixedCount - 1; i >= 0; --i ) {
+        if ( temps[i].active ) {
+            xl6CgenDeclDestroyTemporaryClassValue(ctx, temps[i].classNode, temps[i].valueType, temps[i].valueName);
+        }
+    }
+
+    xl6CgenDeclFreeClassArgTemps(temps, fixedCount);
+    return 1;
+}
+
+static int xl6CgenDeclIsNullCoalesceExpr(const XL6_AstNode* expr)
+{
+    return expr != NULL && expr->kind == XL6_AST_BINARY && expr->childCount >= 2 &&
+           xl6CTextEquals(expr->text, "??");
+}
+
+static int xl6CgenDeclCanLowerStaticNullCoalesceType(XL6_CgenContext* ctx, const XL6_AstNode* typeNode)
+{
+    const XL6_AstNode* concreteType;
+
+    concreteType = xl6CgenResolveAliasType(ctx, xl6CgenSubstituteGenericType(ctx, typeNode));
+    if ( concreteType == NULL ) {
+        return 0;
+    }
+
+    /*
+        ?? 的语句级展开会接管变量初始化与赋值时机。
+        第一阶段只处理普通标量/指针类型，复杂托管类型继续走原有专门路径。
+    */
+    if ( xl6CgenIsXValueType(concreteType) ||
+         xl6CgenIsFunctionType(concreteType) ||
+         xl6CgenIsClassType(ctx, concreteType) ||
+         xl6CgenIsCustomType(ctx, concreteType) ||
+         xl6CgenIsTypedContainerType(ctx, concreteType) ||
+         xl6CgenIsFutureLikeType(concreteType) ||
+         xl6CgenIsChannelType(concreteType) ||
+         xl6CgenIsThreadType(concreteType) ||
+         xl6CgenIsGeneratorType(concreteType) ||
+         xl6CgenIsSyncHandleType(concreteType) ) {
+        return 0;
+    }
+
+    return 1;
+}
+
+static int xl6CgenDeclTryXValueNullCoalesceInit(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* typeNode,
+    const char* cName,
+    const XL6_AstNode* initExpr)
+{
+    const XL6_AstNode* left;
+    const XL6_AstNode* right;
+    XL6_AstNode* leftType;
+    int id;
+
+    if ( ctx == NULL || typeNode == NULL || cName == NULL ||
+         !xl6CgenDeclIsNullCoalesceExpr(initExpr) ) {
+        return 0;
+    }
+
+    left = initExpr->children[0];
+    right = initExpr->children[1];
+    if ( left == NULL || left->kind == XL6_AST_NULL ) {
+        return 0;
+    }
+
+    leftType = xl6CgenCloneExprTypeForInference(ctx, left);
+    if ( !xl6CgenIsXValueType(leftType) ) {
+        xl6AstFree(leftType);
+        return 0;
+    }
+    xl6AstFree(leftType);
+
+    id = ctx->tempId++;
+    xl6OutputPrintf(ctx->out, "xvalue %s = 0;\n", cName);
+    xl6CgenIndent(ctx);
+    xl6OutputPuts("{\n", ctx->out);
+    ctx->indent += 1;
+    {
+        char leftName[64];
+
+        snprintf(leftName, sizeof(leftName), "__xl6_nc_%d", id);
+        xl6CgenDeclEmitXValueExprInit(ctx, typeNode, leftName, left);
+    }
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "if (xvoIsNull(__xl6_nc_%d)) {\n", id);
+    ctx->indent += 1;
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "if (__xl6_nc_%d != 0) {\n", id);
+    ctx->indent += 1;
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "xvoUnref(__xl6_nc_%d);\n", id);
+    ctx->indent -= 1;
+    xl6CgenIndent(ctx);
+    xl6OutputPuts("}\n", ctx->out);
+    xl6CgenDeclEmitXValueExprAssign(ctx, typeNode, cName, right);
+    ctx->indent -= 1;
+    xl6CgenIndent(ctx);
+    xl6OutputPuts("} else {\n", ctx->out);
+    ctx->indent += 1;
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "%s = __xl6_nc_%d;\n", cName, id);
+    ctx->indent -= 1;
+    xl6CgenIndent(ctx);
+    xl6OutputPuts("}\n", ctx->out);
+    ctx->indent -= 1;
+    xl6CgenIndent(ctx);
+    xl6OutputPuts("}\n", ctx->out);
+    return 1;
+}
+
+static int xl6CgenDeclTryXValueBinaryInit(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* typeNode,
+    const char* cName,
+    const XL6_AstNode* initExpr)
+{
+    const XL6_AstNode* left;
+    const XL6_AstNode* right;
+    int id;
+
+    if ( ctx == NULL || typeNode == NULL || cName == NULL ||
+         initExpr == NULL || initExpr->kind != XL6_AST_BINARY || initExpr->childCount < 2 ||
+         !xl6CgenBinaryArithmeticIsXValue(ctx, initExpr) ) {
+        return 0;
+    }
+
+    left = initExpr->children[0];
+    right = initExpr->children[1];
+    id = ctx->tempId++;
+
+    xl6OutputPrintf(ctx->out, "xvalue %s = 0;\n", cName);
+    xl6CgenIndent(ctx);
+    xl6OutputPuts("{\n", ctx->out);
+    ctx->indent += 1;
+    {
+        char leftName[64];
+        char rightName[64];
+
+        snprintf(leftName, sizeof(leftName), "__xl6_bin_left_%d", id);
+        snprintf(rightName, sizeof(rightName), "__xl6_bin_right_%d", id);
+        xl6CgenDeclEmitXValueExprInit(ctx, typeNode, leftName, left);
+        xl6CgenDeclEmitXValueExprInit(ctx, typeNode, rightName, right);
+    }
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out,
+                    "%s = xl6_xrt_basic_binary(__xl6_bin_left_%d, __xl6_bin_right_%d, %d);\n",
+                    cName,
+                    id,
+                    id,
+                    xl6CgenXValueBinaryMode(initExpr->text));
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "if (__xl6_bin_left_%d != 0) {\n", id);
+    ctx->indent += 1;
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "xvoUnref(__xl6_bin_left_%d);\n", id);
+    ctx->indent -= 1;
+    xl6CgenIndent(ctx);
+    xl6OutputPuts("}\n", ctx->out);
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "if (__xl6_bin_right_%d != 0) {\n", id);
+    ctx->indent += 1;
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "xvoUnref(__xl6_bin_right_%d);\n", id);
+    ctx->indent -= 1;
+    xl6CgenIndent(ctx);
+    xl6OutputPuts("}\n", ctx->out);
+    ctx->indent -= 1;
+    xl6CgenIndent(ctx);
+    xl6OutputPuts("}\n", ctx->out);
+    return 1;
+}
+
+static int xl6CgenDeclTryXValueConditionalInit(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* typeNode,
+    const char* cName,
+    const XL6_AstNode* initExpr)
+{
+    const XL6_AstNode* cond;
+    const XL6_AstNode* thenExpr;
+    const XL6_AstNode* elseExpr;
+
+    if ( ctx == NULL || typeNode == NULL || cName == NULL ||
+         initExpr == NULL || initExpr->kind != XL6_AST_CONDITIONAL || initExpr->childCount < 3 ||
+         !xl6CgenConditionalIsXValue(ctx, initExpr) ) {
+        return 0;
+    }
+
+    cond = initExpr->children[0];
+    thenExpr = initExpr->children[1];
+    elseExpr = initExpr->children[2];
+
+    xl6OutputPrintf(ctx->out, "xvalue %s = 0;\n", cName);
+    xl6CgenIndent(ctx);
+    xl6OutputPuts("{\n", ctx->out);
+    ctx->indent += 1;
+    xl6CgenIndent(ctx);
+    xl6OutputPuts("if (", ctx->out);
+    xl6CgenConditionExpr(ctx, cond);
+    xl6OutputPuts(") {\n", ctx->out);
+    ctx->indent += 1;
+    xl6CgenDeclEmitXValueExprAssign(ctx, typeNode, cName, thenExpr);
+    ctx->indent -= 1;
+    xl6CgenIndent(ctx);
+    xl6OutputPuts("} else {\n", ctx->out);
+    ctx->indent += 1;
+    xl6CgenDeclEmitXValueExprAssign(ctx, typeNode, cName, elseExpr);
+    ctx->indent -= 1;
+    xl6CgenIndent(ctx);
+    xl6OutputPuts("}\n", ctx->out);
+    ctx->indent -= 1;
+    xl6CgenIndent(ctx);
+    xl6OutputPuts("}\n", ctx->out);
+    return 1;
+}
+
+static int xl6CgenDeclStaticBoolLikeType(const XL6_AstNode* typeNode)
+{
+    const char* name;
+
+    if ( typeNode == NULL || typeNode->text == NULL ) {
+        return 0;
+    }
+
+    name = typeNode->text;
+    return xl6CgenIsBoolTypeName(name) ||
+           xl6CTextEquals(name, "int") ||
+           xl6CTextEquals(name, "int8") ||
+           xl6CTextEquals(name, "uint8") ||
+           xl6CTextEquals(name, "int16") ||
+           xl6CTextEquals(name, "uint16") ||
+           xl6CTextEquals(name, "int32") ||
+           xl6CTextEquals(name, "uint32") ||
+           xl6CTextEquals(name, "int64") ||
+           xl6CTextEquals(name, "uint64");
+}
+
+static int xl6CgenDeclTryStaticXValueCompareInit(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* typeNode,
+    const char* cType,
+    const char* cName,
+    const XL6_AstNode* initExpr)
+{
+    const XL6_AstNode* left;
+    const XL6_AstNode* right;
+    int id;
+    int equalMode;
+    int negate;
+
+    if ( ctx == NULL || typeNode == NULL || cType == NULL || cName == NULL ||
+         initExpr == NULL || initExpr->kind != XL6_AST_BINARY || initExpr->childCount < 2 ||
+         !xl6CgenDeclStaticBoolLikeType(typeNode) ||
+         !xl6CgenBinaryCompareIsXValue(ctx, initExpr) ) {
+        return 0;
+    }
+
+    left = initExpr->children[0];
+    right = initExpr->children[1];
+    id = ctx->tempId++;
+    equalMode = xl6CTextEquals(initExpr->text, "==") || xl6CTextEquals(initExpr->text, "!=");
+    negate = xl6CTextEquals(initExpr->text, "!=");
+
+    xl6OutputPrintf(ctx->out, "%s %s = 0;\n", cType, cName);
+    xl6CgenIndent(ctx);
+    xl6OutputPuts("{\n", ctx->out);
+    ctx->indent += 1;
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "xvalue __xl6_cmp_left_%d = ", id);
+    xl6CgenXValueFromExpr(ctx, left);
+    xl6OutputPuts(";\n", ctx->out);
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "xvalue __xl6_cmp_right_%d = ", id);
+    xl6CgenXValueFromExpr(ctx, right);
+    xl6OutputPuts(";\n", ctx->out);
+    xl6CgenIndent(ctx);
+    if ( equalMode ) {
+        xl6OutputPrintf(ctx->out,
+                        "int __xl6_cmp_result_%d = xl6_xrt_basic_equal(__xl6_cmp_left_%d, __xl6_cmp_right_%d);\n",
+                        id,
+                        id,
+                        id);
+    } else {
+        xl6OutputPrintf(ctx->out,
+                        "int __xl6_cmp_result_%d = xl6_xrt_basic_order(__xl6_cmp_left_%d, __xl6_cmp_right_%d, %d);\n",
+                        id,
+                        id,
+                        id,
+                        xl6CgenXValueOrderMode(initExpr->text));
+    }
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "if (__xl6_cmp_left_%d != 0) {\n", id);
+    ctx->indent += 1;
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "xvoUnref(__xl6_cmp_left_%d);\n", id);
+    ctx->indent -= 1;
+    xl6CgenIndent(ctx);
+    xl6OutputPuts("}\n", ctx->out);
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "if (__xl6_cmp_right_%d != 0) {\n", id);
+    ctx->indent += 1;
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "xvoUnref(__xl6_cmp_right_%d);\n", id);
+    ctx->indent -= 1;
+    xl6CgenIndent(ctx);
+    xl6OutputPuts("}\n", ctx->out);
+    xl6CgenIndent(ctx);
+    if ( negate ) {
+        xl6OutputPrintf(ctx->out, "%s = (%s)(!__xl6_cmp_result_%d);\n", cName, cType, id);
+    } else {
+        xl6OutputPrintf(ctx->out, "%s = (%s)(__xl6_cmp_result_%d);\n", cName, cType, id);
+    }
+    ctx->indent -= 1;
+    xl6CgenIndent(ctx);
+    xl6OutputPuts("}\n", ctx->out);
+    return 1;
+}
+
+static int xl6CgenDeclTryStaticXValueApproxInit(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* typeNode,
+    const char* cType,
+    const char* cName,
+    const XL6_AstNode* initExpr)
+{
+    const XL6_AstNode* left;
+    const XL6_AstNode* right;
+    int id;
+
+    if ( ctx == NULL || typeNode == NULL || cType == NULL || cName == NULL ||
+         initExpr == NULL || initExpr->kind != XL6_AST_BINARY || initExpr->childCount < 2 ||
+         !xl6CgenDeclStaticBoolLikeType(typeNode) ||
+         !xl6CgenBinaryApproxIsXValue(ctx, initExpr) ) {
+        return 0;
+    }
+
+    left = initExpr->children[0];
+    right = initExpr->children[1];
+    id = ctx->tempId++;
+
+    xl6OutputPrintf(ctx->out, "%s %s = 0;\n", cType, cName);
+    xl6CgenIndent(ctx);
+    xl6OutputPuts("{\n", ctx->out);
+    ctx->indent += 1;
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "xvalue __xl6_approx_left_%d = ", id);
+    xl6CgenXValueFromExpr(ctx, left);
+    xl6OutputPuts(";\n", ctx->out);
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "xvalue __xl6_approx_right_%d = ", id);
+    xl6CgenXValueFromExpr(ctx, right);
+    xl6OutputPuts(";\n", ctx->out);
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out,
+                    "int __xl6_approx_result_%d = xl6_xrt_basic_approx(__xl6_approx_left_%d, __xl6_approx_right_%d);\n",
+                    id,
+                    id,
+                    id);
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "if (__xl6_approx_left_%d != 0) {\n", id);
+    ctx->indent += 1;
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "xvoUnref(__xl6_approx_left_%d);\n", id);
+    ctx->indent -= 1;
+    xl6CgenIndent(ctx);
+    xl6OutputPuts("}\n", ctx->out);
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "if (__xl6_approx_right_%d != 0) {\n", id);
+    ctx->indent += 1;
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "xvoUnref(__xl6_approx_right_%d);\n", id);
+    ctx->indent -= 1;
+    xl6CgenIndent(ctx);
+    xl6OutputPuts("}\n", ctx->out);
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "%s = (%s)(__xl6_approx_result_%d);\n", cName, cType, id);
+    ctx->indent -= 1;
+    xl6CgenIndent(ctx);
+    xl6OutputPuts("}\n", ctx->out);
+    return 1;
+}
+
+static int xl6CgenDeclTryStaticNullCoalesceInit(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* typeNode,
+    const char* cType,
+    const char* cName,
+    const XL6_AstNode* initExpr)
+{
+    const XL6_AstNode* left;
+    const XL6_AstNode* right;
+    XL6_AstNode* leftType;
+    XL6_AstNode* rightType;
+    int id;
+
+    if ( ctx == NULL || typeNode == NULL || cType == NULL || cName == NULL ||
+         !xl6CgenDeclIsNullCoalesceExpr(initExpr) ||
+         !xl6CgenDeclCanLowerStaticNullCoalesceType(ctx, typeNode) ) {
+        return 0;
+    }
+
+    left = initExpr->children[0];
+    right = initExpr->children[1];
+    if ( left == NULL || right == NULL || left->kind == XL6_AST_NULL ) {
+        return 0;
+    }
+
+    leftType = xl6CgenCloneExprTypeForInference(ctx, left);
+    rightType = xl6CgenCloneExprTypeForInference(ctx, right);
+    if ( leftType == NULL || rightType == NULL || !xl6CgenTypeNodeEqual(leftType, rightType) ) {
+        xl6AstFree(leftType);
+        xl6AstFree(rightType);
+        return 0;
+    }
+    xl6AstFree(leftType);
+    xl6AstFree(rightType);
+
+    id = ctx->tempId++;
+    xl6OutputPrintf(ctx->out, "%s %s = ", cType, cName);
+    xl6CgenDefaultValue(ctx, typeNode);
+    xl6OutputPuts(";\n", ctx->out);
+    xl6CgenIndent(ctx);
+    xl6OutputPuts("{\n", ctx->out);
+    ctx->indent += 1;
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "%s __xl6_nc_%d = ", cType, id);
+    xl6CgenExpr(ctx, left);
+    xl6OutputPuts(";\n", ctx->out);
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "if (__xl6_nc_%d != 0) {\n", id);
+    ctx->indent += 1;
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "%s = __xl6_nc_%d;\n", cName, id);
+    ctx->indent -= 1;
+    xl6CgenIndent(ctx);
+    xl6OutputPuts("} else {\n", ctx->out);
+    ctx->indent += 1;
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "%s = ", cName);
+    xl6CgenExpr(ctx, right);
+    xl6OutputPuts(";\n", ctx->out);
+    ctx->indent -= 1;
+    xl6CgenIndent(ctx);
+    xl6OutputPuts("}\n", ctx->out);
+    ctx->indent -= 1;
+    xl6CgenIndent(ctx);
+    xl6OutputPuts("}\n", ctx->out);
+    return 1;
+}
+
+static void xl6CgenDiscardTemporaryResultByType(XL6_CgenContext* ctx, const XL6_AstNode* typeNode, const char* tempName)
+{
+    const XL6_AstNode* concreteType;
+    const char* typeName;
+
+    if ( ctx == NULL || typeNode == NULL || tempName == NULL || tempName[0] == '\0' ) {
+        return;
+    }
+
+    concreteType = xl6CgenResolveAliasType(ctx, xl6CgenSubstituteGenericType(ctx, typeNode));
+    typeName = concreteType != NULL ? concreteType->text : NULL;
+    if ( concreteType == NULL || typeName == NULL ) {
+        return;
+    }
+
+    if ( xl6CgenIsXValueType(concreteType) ) {
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "xl6_xvalue_drop(%s);\n", tempName);
+        return;
+    }
+
+    if ( xl6CgenIsFunctionType(concreteType) ) {
+        xl6CgenReleaseFunctionPath(ctx, tempName);
+        return;
+    }
+
+    if ( xl6CgenIsTypedContainerType(ctx, concreteType) ) {
+        const XL6_AstNode* containerType = xl6CgenTypedContainerConcreteType(ctx, concreteType);
+        const char* containerName = containerType != NULL ? containerType->text : NULL;
+
+        xl6CgenIndent(ctx);
+        if ( xl6CTextEquals(containerName, "array") ) {
+            xl6OutputPrintf(ctx->out, "if (%s != 0) { xrtTypedArrayDestroy(%s); %s = 0; }\n", tempName, tempName, tempName);
+        } else if ( xl6CTextEquals(containerName, "list") ) {
+            xl6OutputPrintf(ctx->out, "if (%s != 0) { xrtTypedListDestroy(%s); %s = 0; }\n", tempName, tempName, tempName);
+        } else if ( xl6CTextEquals(containerName, "set") ) {
+            xl6OutputPrintf(ctx->out, "if (%s != 0) { xrtTypedSetDestroy(%s); %s = 0; }\n", tempName, tempName, tempName);
+        } else if ( xl6CTextEquals(containerName, "dict") ) {
+            xl6OutputPrintf(ctx->out, "if (%s != 0) { xrtTypedDictDestroy(%s); %s = 0; }\n", tempName, tempName, tempName);
         }
         return;
     }
-    if ( xl6CgenIsXValueType(typeNode) ) {
-        xl6CgenAddVarType(ctx, node->text, typeNode);
-        xl6CgenAddXValueCleanup(ctx, node->text, typeNode);
-        xl6OutputPrintf(ctx->out, "xvalue %s = ", cName);
-        if ( initExpr != NULL ) {
-            xl6CgenXValueFromExprForTarget(ctx, typeNode, initExpr);
-        } else {
-            xl6CgenDefaultXValueForTarget(ctx, typeNode);
+
+    if ( xl6CgenIsCustomType(ctx, concreteType) ) {
+        const XL6_AstNode* customNode = xl6CgenFindCustom(ctx, typeName);
+        const XL6_AstNode* destroyNode = customNode != NULL ? xl6CgenFindCustomSpecial(customNode, "destroy") : NULL;
+
+        if ( destroyNode != NULL ) {
+            xl6CgenIndent(ctx);
+            xl6OutputPrintf(ctx->out, "if (%s.handle != 0) { ", tempName);
+            xl6CgenCStringSymbol(ctx->out, destroyNode->text);
+            xl6OutputPrintf(ctx->out, "(%s.handle); %s.handle = 0; }\n", tempName, tempName);
         }
-        xl6OutputPuts(";\n", ctx->out);
         return;
     }
+
+    if ( xl6CgenIsClassType(ctx, concreteType) ) {
+        XL6_AstNode* classNode = xl6CgenClassNodeForType(ctx, concreteType);
+
+        xl6CgenDeclDestroyTemporaryClassValue(ctx, classNode, concreteType, tempName);
+        return;
+    }
+}
+
+static void xl6CgenDiscardTemporaryMultiResultByTypes(XL6_CgenContext* ctx, const XL6_AstNode* returns, const char* tempName)
+{
+    size_t i;
+
+    if ( ctx == NULL || returns == NULL || tempName == NULL || tempName[0] == '\0' ) {
+        return;
+    }
+
+    for ( i = 0; i < returns->childCount; ++i ) {
+        char valuePath[128];
+
+        snprintf(valuePath, sizeof(valuePath), "%s.value%u", tempName, (unsigned)i);
+        xl6CgenDiscardTemporaryResultByType(ctx, returns->children[i], valuePath);
+    }
+}
+
+static int xl6CgenTryMemberFunctionStatementInvoke(XL6_CgenContext* ctx, const XL6_AstNode* expr)
+{
+    const XL6_AstNode* callee;
+    const XL6_AstNode* returns;
+    const XL6_AstNode* returnType;
+    XL6_AstNode* functionType;
+    char tempName[64];
+    char resultName[64];
+    int id;
+
+    if ( ctx == NULL || expr == NULL || expr->kind != XL6_AST_CALL || expr->childCount == 0 ) {
+        return 0;
+    }
+    callee = expr->children[0];
+    if ( callee == NULL || callee->kind != XL6_AST_MEMBER ) {
+        return 0;
+    }
+
+    functionType = xl6CgenCloneMemberFieldTypeForInference(ctx, callee);
+    returns = xl6CgenFunctionReturnTypes(functionType);
+    if ( !xl6CgenIsFunctionType(functionType) ||
+         returns == NULL ||
+         xl6CgenFunctionTypeSupportsErasedCall(ctx, functionType) ) {
+        xl6AstFree(functionType);
+        return 0;
+    }
+
+    id = ctx->tempId++;
+    snprintf(tempName, sizeof(tempName), "__xl6_member_fn_stmt_%d", id);
+    xl6CgenEmitMemberFunctionStatementTemp(ctx, expr, tempName);
+    xl6CgenIndent(ctx);
+    if ( returns->childCount == 0 ) {
+        xl6CgenMemberFunctionStatementInvokeExpr(ctx, expr, functionType, tempName);
+        xl6OutputPuts(";\n", ctx->out);
+    } else if ( returns->childCount == 1 ) {
+        returnType = returns->children[0];
+        snprintf(resultName, sizeof(resultName), "__xl6_member_result_%d", id);
+        xl6OutputPrintf(ctx->out, "%s %s = ", xl6CgenTypeName(ctx, returnType), resultName);
+        xl6CgenMemberFunctionStatementInvokeExpr(ctx, expr, functionType, tempName);
+        xl6OutputPuts(";\n", ctx->out);
+        xl6CgenDiscardTemporaryResultByType(ctx, returnType, resultName);
+    } else {
+        snprintf(resultName, sizeof(resultName), "__xl6_member_result_%d", id);
+        xl6CgenFunctionReturnStructName(ctx,
+                                        xl6CgenFunctionParamTypes(functionType),
+                                        returns);
+        xl6OutputPrintf(ctx->out, " %s = ", resultName);
+        xl6CgenMemberFunctionStatementInvokeExpr(ctx, expr, functionType, tempName);
+        xl6OutputPuts(";\n", ctx->out);
+        xl6CgenDiscardTemporaryMultiResultByTypes(ctx, returns, resultName);
+    }
+    xl6AstFree(functionType);
+    return 1;
+}
+
+static int xl6CgenDeclTryTemporaryClassFieldInit(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* node,
+    const XL6_AstNode* typeNode,
+    const char* cType,
+    const char* cName,
+    const XL6_AstNode* initExpr)
+{
+    const XL6_AstNode* receiver;
+    XL6_AstNode* receiverType;
+    XL6_AstNode* fieldType;
+    XL6_AstNode* classNode;
+    XL6_AstNode* memberFunctionType;
+    const XL6_AstNode* prevParams;
+    const XL6_AstNode* prevArgs;
+    int id;
+    char receiverTempName[64];
+    char memberTempName[64];
+
+    if ( ctx == NULL || node == NULL || typeNode == NULL || cType == NULL || cName == NULL ||
+         initExpr == NULL || initExpr->kind != XL6_AST_MEMBER || initExpr->childCount == 0 ) {
+        return 0;
+    }
+
+    receiver = initExpr->children[0];
+    if ( receiver == NULL || receiver->kind != XL6_AST_CALL ) {
+        return 0;
+    }
+
+    receiverType = xl6CgenCloneExprTypeForInference(ctx, receiver);
+    classNode = xl6CgenClassNodeForType(ctx, receiverType);
+    if ( classNode == NULL ) {
+        xl6AstFree(receiverType);
+        return 0;
+    }
+
+    fieldType = xl6CgenCloneMemberFieldTypeForInference(ctx, initExpr);
+    if ( fieldType == NULL || !xl6CgenDeclTemporaryClassFieldTypeIsPlain(ctx, fieldType) ) {
+        xl6AstFree(fieldType);
+        xl6AstFree(receiverType);
+        return 0;
+    }
+
+    id = ctx->tempId++;
+    snprintf(receiverTempName, sizeof(receiverTempName), "__xl6_class_field_recv_%d", id);
+    snprintf(memberTempName, sizeof(memberTempName), "__xl6_member_fn_stmt_%d", id);
+
+    xl6OutputPrintf(ctx->out, "%s %s = {0};\n", xl6CgenTypeName(ctx, receiverType), receiverTempName);
+
+    memberFunctionType = xl6CgenCloneMemberFunctionCallTypeForStatementInvoke(ctx, receiver);
+    if ( memberFunctionType != NULL ) {
+        xl6CgenEmitMemberFunctionStatementTemp(ctx, receiver, memberTempName);
+    }
+
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "%s = ", receiverTempName);
+    if ( memberFunctionType != NULL ) {
+        xl6CgenMemberFunctionStatementInvokeExpr(ctx, receiver, memberFunctionType, memberTempName);
+    } else {
+        xl6CgenExpr(ctx, receiver);
+    }
+    xl6OutputPuts(";\n", ctx->out);
+
     xl6CgenAddVarType(ctx, node->text, typeNode);
     xl6CgenAddFunctionCleanup(ctx, node->text, typeNode);
     xl6CgenAddFutureCleanup(ctx, node->text, typeNode);
@@ -276,404 +1170,28 @@ static void xl6CgenDecl(XL6_CgenContext* ctx, const XL6_AstNode* node)
     xl6CgenAddThreadCleanup(ctx, node->text, typeNode);
     xl6CgenAddGeneratorCleanup(ctx, node->text, typeNode);
     xl6CgenAddSyncCleanup(ctx, node->text, typeNode);
-    xl6OutputPrintf(ctx->out, "%s %s", cType, cName);
-    if ( initExpr != NULL ) {
-        xl6OutputPuts(" = ", ctx->out);
-        if ( xl6CgenIsFunctionType(typeNode) ) {
-            xl6CgenFunctionValueExpr(ctx, initExpr, typeNode);
-        } else {
-            xl6CgenExpr(ctx, initExpr);
-        }
-    } else {
-        xl6OutputPuts(" = ", ctx->out);
-        xl6CgenDefaultValue(ctx, typeNode);
-    }
-    xl6OutputPuts(";\n", ctx->out);
-    if ( xl6CgenIsFunctionType(typeNode) && xl6CgenExprIsFunctionBorrow(ctx, initExpr) ) {
-        xl6CgenRetainFunctionValue(ctx, node->text);
-    }
-}
 
-static const XL6_AstNode* xl6CgenResolveMultiReturnCall(XL6_CgenContext* ctx, const XL6_AstNode* expr)
-{
-    const XL6_AstNode* callee;
-    XL6_AstNode* func;
-    const XL6_AstNode* returns;
-
-    if ( expr == NULL || expr->kind != XL6_AST_CALL || expr->childCount == 0 ) {
-        return NULL;
-    }
-    callee = expr->children[0];
-    if ( callee == NULL || callee->kind != XL6_AST_NAME ) {
-        return NULL;
-    }
-    func = xl6CgenResolveCallFunc(ctx, expr, callee->text);
-    returns = func != NULL && func->childCount > 2 ? func->children[2] : NULL;
-    return (returns != NULL && returns->childCount > 1) ? func : NULL;
-}
-
-static const XL6_AstNode* xl6CgenResolveMultiReturnFunctionType(XL6_CgenContext* ctx, const XL6_AstNode* expr, XL6_AstNode** ownedType)
-{
-    const XL6_AstNode* callee;
-    const XL6_AstNode* functionType;
-    const XL6_AstNode* returns;
-
-    if ( ownedType != NULL ) {
-        *ownedType = NULL;
-    }
-    if ( expr == NULL || expr->kind != XL6_AST_CALL || expr->childCount == 0 ) {
-        return NULL;
-    }
-    callee = expr->children[0];
-    if ( callee == NULL ) {
-        return NULL;
+    prevParams = ctx->currentGenericParams;
+    prevArgs = ctx->currentGenericArgs;
+    if ( receiverType->childCount > 0 && xl6CgenClassHasTypeParams(classNode) ) {
+        ctx->currentGenericParams = xl6CgenClassTypeParams(classNode);
+        ctx->currentGenericArgs = receiverType->children[0];
     }
 
-    if ( callee->kind == XL6_AST_MEMBER ) {
-        XL6_AstNode* memberType = xl6CgenCloneMemberFieldTypeForInference(ctx, callee);
-        returns = xl6CgenFunctionReturnTypes(memberType);
-        if ( xl6CgenIsFunctionType(memberType) && returns != NULL && returns->childCount > 1 ) {
-            if ( ownedType != NULL ) {
-                *ownedType = memberType;
-                return memberType;
-            }
-        }
-        xl6AstFree(memberType);
-        return NULL;
-    }
-    if ( callee->kind != XL6_AST_NAME ) {
-        return NULL;
-    }
-
-    functionType = xl6CgenFindVarType(ctx, callee->text);
-    returns = xl6CgenFunctionReturnTypes(functionType);
-    return (xl6CgenIsFunctionType(functionType) && returns != NULL && returns->childCount > 1) ? functionType : NULL;
-}
-static void xl6CgenEmitKnownFuncCall(XL6_CgenContext* ctx, const XL6_AstNode* func, const XL6_AstNode* call)
-{
-    xl6CgenFuncSymbol(ctx, func);
-    xl6OutputPutc('(', ctx->out);
-    if ( call != NULL && call->childCount > 1 ) {
-        xl6CgenKnownCallArgs(ctx, func, call->children[1]);
-    }
-    xl6OutputPutc(')', ctx->out);
-}
-
-static void xl6CgenEmitMultiReturnCall(XL6_CgenContext* ctx, const XL6_AstNode* expr, const XL6_AstNode* func, const XL6_AstNode* functionType)
-{
-    const XL6_AstNode* callee;
-    const XL6_AstNode* args;
-
-    if ( functionType != NULL ) {
-        callee = expr != NULL && expr->childCount > 0 ? expr->children[0] : NULL;
-        args = expr != NULL && expr->childCount > 1 ? expr->children[1] : NULL;
-        if ( callee != NULL && callee->kind == XL6_AST_NAME ) {
-            xl6CgenFunctionInvoke(ctx, callee->text, functionType, args);
-            return;
-        }
-        if ( callee != NULL && callee->kind == XL6_AST_MEMBER ) {
-            int id = ctx->tempId++;
-            char tempName[64];
-
-            snprintf(tempName, sizeof(tempName), "__xl6_member_fn_multi_%d", id);
-            xl6OutputPrintf(ctx->out, "({ XL6_Function %s = ", tempName);
-            xl6CgenExpr(ctx, callee);
-            xl6OutputPuts("; ", ctx->out);
-            xl6CgenFunctionInvoke(ctx, tempName, functionType, args);
-            xl6OutputPuts("; })", ctx->out);
-            return;
-        }
-    }
-
-    xl6CgenEmitKnownFuncCall(ctx, func, expr);
-}
-static void xl6CgenMultiReturnStructName(XL6_CgenContext* ctx, const XL6_AstNode* func, const XL6_AstNode* functionType)
-{
-    if ( functionType != NULL ) {
-        xl6CgenFunctionReturnStructName(ctx,
-                                        xl6CgenFunctionParamTypes(functionType),
-                                        xl6CgenFunctionReturnTypes(functionType));
-        return;
-    }
-    xl6CgenFuncReturnStructName(ctx, func);
-}
-
-static void xl6CgenAddManagedCleanupForType(XL6_CgenContext* ctx, const char* name, const XL6_AstNode* typeNode)
-{
-    XL6_AstNode* classNode;
-    XL6_AstNode* customNode;
-
-    if ( name == NULL || typeNode == NULL ) {
-        return;
-    }
-    if ( xl6CgenIsFunctionType(typeNode) ) {
-        xl6CgenAddFunctionCleanup(ctx, name, typeNode);
-        return;
-    }
-    if ( xl6CgenIsFutureLikeType(typeNode) ) {
-        xl6CgenAddFutureCleanup(ctx, name, typeNode);
-        return;
-    }
-    if ( xl6CgenIsChannelType(typeNode) ) {
-        xl6CgenAddChannelCleanup(ctx, name, typeNode);
-        return;
-    }
-    if ( xl6CgenIsThreadType(typeNode) ) {
-        xl6CgenAddThreadCleanup(ctx, name, typeNode);
-        return;
-    }
-    if ( xl6CgenIsGeneratorType(typeNode) ) {
-        xl6CgenAddGeneratorCleanup(ctx, name, typeNode);
-        return;
-    }
-    if ( xl6CgenIsSyncHandleType(typeNode) ) {
-        xl6CgenAddSyncCleanup(ctx, name, typeNode);
-        return;
-    }
-    if ( xl6CgenIsTypedContainerType(ctx, typeNode) ) {
-        xl6CgenAddTypedContainerCleanup(ctx, name, typeNode);
-        return;
-    }
-    if ( xl6CgenIsXValueType(typeNode) ) {
-        xl6CgenAddXValueCleanup(ctx, name, typeNode);
-        return;
-    }
-    customNode = typeNode->text != NULL ? xl6CgenFindCustom(ctx, typeNode->text) : NULL;
-    if ( customNode != NULL ) {
-        xl6CgenAddCustomCleanup(ctx, name, customNode);
-        return;
-    }
-    classNode = typeNode->text != NULL ? xl6CgenFindClass(ctx, typeNode->text) : NULL;
-    if ( classNode != NULL ) {
-        xl6CgenAddClassCleanup(ctx, name, classNode, typeNode->childCount > 0 ? typeNode : NULL);
-    }
-}
-
-static void xl6CgenMultiDecl(XL6_CgenContext* ctx, const XL6_AstNode* node)
-{
-    const XL6_AstNode* names;
-    const XL6_AstNode* expr;
-    const XL6_AstNode* func;
-    const XL6_AstNode* functionType;
-    XL6_AstNode* ownedFunctionType;
-    const XL6_AstNode* returns;
-    int id;
-    size_t i;
-
-    names = node->childCount > 0 ? node->children[0] : NULL;
-    expr = node->childCount > 1 ? node->children[1] : NULL;
-    ownedFunctionType = NULL;
-    functionType = xl6CgenResolveMultiReturnFunctionType(ctx, expr, &ownedFunctionType);
-    func = functionType == NULL ? xl6CgenResolveMultiReturnCall(ctx, expr) : NULL;
-    returns = functionType != NULL ? xl6CgenFunctionReturnTypes(functionType) : (func != NULL ? func->children[2] : NULL);
-    if ( returns == NULL || names == NULL ) {
-        xl6AstFree(ownedFunctionType);
-        xl6CgenError(ctx, node, "多返回值声明右侧必须是多返回值 xlang 函数调用");
-        return;
-    }
-
-    if ( names->childCount != returns->childCount ) {
-        xl6AstFree(ownedFunctionType);
-        xl6CgenError(ctx, node, "多返回值声明数量和函数返回值数量不匹配");
-        return;
-    }
-
-    id = ctx->tempId++;
     xl6CgenIndent(ctx);
-    xl6CgenMultiReturnStructName(ctx, func, functionType);
-    xl6OutputPrintf(ctx->out, " __xl6_multi_%d = ", id);
-    xl6CgenEmitMultiReturnCall(ctx, expr, func, functionType);
+    xl6OutputPrintf(ctx->out, "%s %s = %s", cType, cName, receiverTempName);
+    if ( !xl6CgenEmitClassFieldSuffix(ctx, classNode, initExpr->text) ) {
+        xl6CgenError(ctx, initExpr, "class field not found");
+    }
     xl6OutputPuts(";\n", ctx->out);
 
-    for ( i = 0; i < names->childCount; ++i ) {
-        const XL6_AstNode* name = names->children[i];
-        const XL6_AstNode* typeNode = returns->children[i];
-        const XL6_AstNode* varTypeNode;
-        XL6_AstNode* ownedTypeNode;
-        char cName[512];
+    ctx->currentGenericParams = prevParams;
+    ctx->currentGenericArgs = prevArgs;
 
-        if ( name == NULL || xl6CTextEquals(name->text, "_") ) {
-            char valuePath[96];
+    xl6CgenDeclDestroyTemporaryClassValue(ctx, classNode, receiverType, receiverTempName);
 
-            if ( xl6CgenIsXValueType(typeNode) ) {
-                xl6CgenIndent(ctx);
-                xl6OutputPrintf(ctx->out, "if (__xl6_multi_%d.value%u != 0) {\n", id, (unsigned)i);
-                ctx->indent += 1;
-                xl6CgenIndent(ctx);
-                xl6OutputPrintf(ctx->out, "xvoUnref(__xl6_multi_%d.value%u);\n", id, (unsigned)i);
-                ctx->indent -= 1;
-                xl6CgenIndent(ctx);
-                xl6OutputPuts("}\n", ctx->out);
-            }
-            snprintf(valuePath, sizeof(valuePath), "__xl6_multi_%d.value%u", id, (unsigned)i);
-            xl6CgenReleaseReturnedValuePath(ctx, typeNode, valuePath);
-            continue;
-        }
-        xl6CgenCIdentText(cName, sizeof(cName), name->text);
-        xl6CgenIndent(ctx);
-        xl6OutputPuts(xl6CgenTypeName(ctx, typeNode), ctx->out);
-        xl6OutputPrintf(ctx->out, " %s = __xl6_multi_%d.value%u;\n", cName, id, (unsigned)i);
-        varTypeNode = typeNode;
-        ownedTypeNode = xl6CgenCloneTypeNode(typeNode);
-        if ( ownedTypeNode != NULL ) {
-            xl6CgenOwnTypeNode(ctx, ownedTypeNode);
-            varTypeNode = ownedTypeNode;
-        }
-        xl6CgenAddVarType(ctx, name->text, varTypeNode);
-        xl6CgenAddManagedCleanupForType(ctx, name->text, varTypeNode);
-    }
-    xl6AstFree(ownedFunctionType);
-}
-
-static void xl6CgenXValueFromTypedCExpr(XL6_CgenContext* ctx, const XL6_AstNode* typeNode, const char* exprText)
-{
-    const XL6_AstNode* concreteType;
-    const char* typeName;
-    char cTypeName[512];
-
-    concreteType = xl6CgenSubstituteGenericType(ctx, typeNode);
-    concreteType = xl6CgenResolveAliasType(ctx, concreteType);
-    typeName = concreteType != NULL ? concreteType->text : NULL;
-
-    if ( xl6CgenIsXValueType(concreteType) ) {
-        xl6OutputPuts(exprText != NULL ? exprText : "xvoCreateNull()", ctx->out);
-    } else if ( xl6CgenIsIntegerTypeName(typeName) ) {
-        xl6OutputPrintf(ctx->out, "xvoCreateInt((long long)(%s))", exprText != NULL ? exprText : "0");
-    } else if ( xl6CgenIsFloatTypeName(typeName) ) {
-        xl6OutputPrintf(ctx->out, "xvoCreateFloat((double)(%s))", exprText != NULL ? exprText : "0");
-    } else if ( xl6CTextEquals(typeName, "bool") ) {
-        xl6OutputPrintf(ctx->out, "xvoCreateBool(%s)", exprText != NULL ? exprText : "0");
-    } else if ( xl6CTextEquals(typeName, "string") ) {
-        xl6OutputPrintf(ctx->out, "xvoCreateText((void*)(%s), 0, false)", exprText != NULL ? exprText : "\"\"");
-    } else if ( xl6CTextEquals(typeName, "time") ) {
-        xl6OutputPrintf(ctx->out, "xvoCreateTime((long long)(%s))", exprText != NULL ? exprText : "0");
-    } else if ( xl6CTextEquals(typeName, "point") ) {
-        xl6OutputPrintf(ctx->out, "xvoCreatePoint((void*)(%s))", exprText != NULL ? exprText : "0");
-    } else if ( xl6CgenIsFunctionType(concreteType) ) {
-        xl6OutputPrintf(ctx->out, "xl6_function_to_xvalue(%s)", exprText != NULL ? exprText : "(XL6_Function){0}");
-    } else if ( xl6CgenIsClassType(ctx, concreteType) ) {
-        xl6CgenClassTypeRefName(cTypeName, sizeof(cTypeName), concreteType);
-        xl6CgenBoxSymbol(ctx->out, cTypeName);
-        xl6OutputPrintf(ctx->out, "(%s)", exprText != NULL ? exprText : "{}");
-    } else if ( xl6CgenIsUnionType(ctx, concreteType) ) {
-        xl6CgenUnionTypeTextName(cTypeName, sizeof(cTypeName), typeName);
-        xl6CgenBoxSymbol(ctx->out, cTypeName);
-        xl6OutputPrintf(ctx->out, "(%s)", exprText != NULL ? exprText : "{}");
-    } else if ( xl6CgenIsCustomType(ctx, concreteType) ) {
-        xl6CgenCustomTypeRefName(cTypeName, sizeof(cTypeName), typeName);
-        xl6CgenBoxSymbol(ctx->out, cTypeName);
-        xl6OutputPrintf(ctx->out, "(%s)", exprText != NULL ? exprText : "{}");
-    } else {
-        snprintf(cTypeName, sizeof(cTypeName), "C generator cannot box type into var: %s (%s)",
-                 typeName != NULL ? typeName : "<missing>", concreteType != NULL ? xl6AstKindName(concreteType->kind) : "NULL");
-        xl6CgenError(ctx, typeNode, cTypeName);
-        xl6OutputPuts("xvoCreateNull()", ctx->out);
-    }
-}
-
-static void xl6CgenMultiAssign(XL6_CgenContext* ctx, const XL6_AstNode* node)
-{
-    const XL6_AstNode* targets;
-    const XL6_AstNode* expr;
-    const XL6_AstNode* func;
-    const XL6_AstNode* functionType;
-    XL6_AstNode* ownedFunctionType;
-    const XL6_AstNode* returns;
-    int id;
-    size_t i;
-
-    targets = node->childCount > 0 ? node->children[0] : NULL;
-    expr = node->childCount > 1 ? node->children[1] : NULL;
-    ownedFunctionType = NULL;
-    functionType = xl6CgenResolveMultiReturnFunctionType(ctx, expr, &ownedFunctionType);
-    func = functionType == NULL ? xl6CgenResolveMultiReturnCall(ctx, expr) : NULL;
-    returns = functionType != NULL ? xl6CgenFunctionReturnTypes(functionType) : (func != NULL ? func->children[2] : NULL);
-    if ( returns == NULL || targets == NULL ) {
-        xl6AstFree(ownedFunctionType);
-        xl6CgenError(ctx, node, "多返回值赋值右侧必须是多返回值 xlang 函数调用");
-        return;
-    }
-
-    if ( targets->childCount != returns->childCount ) {
-        xl6AstFree(ownedFunctionType);
-        xl6CgenError(ctx, node, "多返回值赋值数量和函数返回值数量不匹配");
-        return;
-    }
-
-    id = ctx->tempId++;
-    xl6CgenIndent(ctx);
-    xl6CgenMultiReturnStructName(ctx, func, functionType);
-    xl6OutputPrintf(ctx->out, " __xl6_multi_%d = ", id);
-    xl6CgenEmitMultiReturnCall(ctx, expr, func, functionType);
-    xl6OutputPuts(";\n", ctx->out);
-
-    for ( i = 0; i < targets->childCount; ++i ) {
-        const XL6_AstNode* target = targets->children[i];
-        const XL6_AstNode* typeNode = returns->children[i];
-        char cName[512];
-
-        if ( target == NULL || (target->kind == XL6_AST_NAME && xl6CTextEquals(target->text, "_")) ) {
-            char valuePath[96];
-
-            if ( xl6CgenIsXValueType(typeNode) ) {
-                xl6CgenIndent(ctx);
-                xl6OutputPrintf(ctx->out, "if (__xl6_multi_%d.value%u != 0) {\n", id, (unsigned)i);
-                ctx->indent += 1;
-                xl6CgenIndent(ctx);
-                xl6OutputPrintf(ctx->out, "xvoUnref(__xl6_multi_%d.value%u);\n", id, (unsigned)i);
-                ctx->indent -= 1;
-                xl6CgenIndent(ctx);
-                xl6OutputPuts("}\n", ctx->out);
-            }
-            snprintf(valuePath, sizeof(valuePath), "__xl6_multi_%d.value%u", id, (unsigned)i);
-            xl6CgenReleaseReturnedValuePath(ctx, typeNode, valuePath);
-            continue;
-        }
-        if ( target->kind == XL6_AST_NAME && xl6CgenIsXValueType(xl6CgenFindVarType(ctx, target->text)) ) {
-            xl6CgenCIdentText(cName, sizeof(cName), target->text);
-            xl6CgenIndent(ctx);
-            xl6OutputPrintf(ctx->out, "if (%s != 0) {\n", cName);
-            ctx->indent += 1;
-            xl6CgenIndent(ctx);
-            xl6OutputPrintf(ctx->out, "xvoUnref(%s);\n", cName);
-            ctx->indent -= 1;
-            xl6CgenIndent(ctx);
-            xl6OutputPuts("}\n", ctx->out);
-            xl6CgenIndent(ctx);
-            xl6OutputPrintf(ctx->out, "%s = __xl6_multi_%d.value%u;\n", cName, id, (unsigned)i);
-            continue;
-        }
-        if ( target->kind == XL6_AST_NAME && xl6CgenIsFunctionType(xl6CgenFindVarType(ctx, target->text)) ) {
-            xl6CgenCIdentText(cName, sizeof(cName), target->text);
-            xl6CgenReleaseFunctionValue(ctx, target->text);
-            xl6CgenIndent(ctx);
-            xl6OutputPrintf(ctx->out, "%s = __xl6_multi_%d.value%u;\n", cName, id, (unsigned)i);
-            continue;
-        }
-        if ( target->kind == XL6_AST_NAME && xl6CgenClassTypeNeedsFunctionFieldCleanup(ctx, xl6CgenFindVarType(ctx, target->text)) ) {
-            xl6CgenCIdentText(cName, sizeof(cName), target->text);
-            xl6CgenReleaseClassFunctionFieldsForType(ctx, xl6CgenFindVarType(ctx, target->text), cName);
-            xl6CgenIndent(ctx);
-            xl6OutputPrintf(ctx->out, "%s = __xl6_multi_%d.value%u;\n", cName, id, (unsigned)i);
-            continue;
-        }
-        if ( target->kind == XL6_AST_INDEX ) {
-            int valueId = ctx->tempId++;
-            char tempName[64];
-            char valueExpr[96];
-
-            snprintf(tempName, sizeof(tempName), "__xl6_multi_index_%d", valueId);
-            snprintf(valueExpr, sizeof(valueExpr), "__xl6_multi_%d.value%u", id, (unsigned)i);
-            xl6CgenIndent(ctx);
-            xl6OutputPrintf(ctx->out, "xvalue %s = ", tempName);
-            xl6CgenXValueFromTypedCExpr(ctx, typeNode, valueExpr);
-            xl6OutputPuts(";\n", ctx->out);
-            xl6CgenIndexAssignTemp(ctx, target, tempName);
-            continue;
-        }
-        xl6CgenIndent(ctx);
-        xl6CgenExpr(ctx, target);
-        xl6OutputPrintf(ctx->out, " = __xl6_multi_%d.value%u;\n", id, (unsigned)i);
-    }
-    xl6AstFree(ownedFunctionType);
+    xl6AstFree(memberFunctionType);
+    xl6AstFree(fieldType);
+    xl6AstFree(receiverType);
+    return 1;
 }

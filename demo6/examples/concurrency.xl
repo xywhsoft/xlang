@@ -1,8 +1,8 @@
-async func addAsync(int a, int b) -> int
+async func addAsync(int a, int b) as int
     return a + b
 end
 
-func numbers(int count) -> generator<int>
+func numbers(int count) as generator<int>
     int i = 0
     while i < count do
         i = i + 1
@@ -10,7 +10,7 @@ func numbers(int count) -> generator<int>
     end
 end
 
-func worker() -> int
+func worker() as int
     return 7
 end
 

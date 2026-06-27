@@ -1,10 +1,10 @@
 extern "expect_i64" func expect(int actual, int expected)
 
-func order<T, U>(T left, U right) -> int
+func order<T, U>(T left, U right) as int
     return 10
 end
 
-func order<T, U>(U left, T right) -> int
+func order<T, U>(U left, T right) as int
     return 20
 end
 

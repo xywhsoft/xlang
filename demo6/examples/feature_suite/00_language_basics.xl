@@ -45,14 +45,11 @@ expect(count, 7)
 // 整数字面量：十进制、十六进制、八进制、二进制、下划线分隔。
 int dec = 1_000_000
 int hexA = 0x2A
-int hexB = &H2A
 int octA = 0o52
-int octB = &O52
 int binA = 0b101010
-int binB = &B101010
 
 expect(dec, 1000000)
-expect(hexA + hexB + octA + octB + binA + binB, 252)
+expect(hexA + octA + binA, 126)
 
 // 浮点字面量：小数、科学计数、下划线分隔。
 float pi = 3.14

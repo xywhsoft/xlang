@@ -1,1 +1,1 @@
-extern "bad_generic_extern" func bad<T>(T value) -> T
+extern "bad_generic_extern" func bad<T>(T value) as T

@@ -295,7 +295,7 @@
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | XAPI export 缺失 signature |
-| 生成规则描述 | function 签名补构造为 `func(params)->returns`，多返回用括号；非 function 为 `kind:type`。缺失类型用 `<missing-type>`，item 或 kind 缺失时返回空字符串。 |
+| 生成规则描述 | func 签名补构造为 `func(params) as returns`，多返回用括号；非 function 为 `kind:type`。缺失类型用 `<missing-type>`，item 或 kind 缺失时返回空字符串。 |
 | 生成器文件名和行号 | `demo6/src/abi/xl6_xapi_load.c:1062` |
 | 对应生成的 C 代码 | 不生成 C；补齐 export.signature。 |
 | 中间形态伪代码 | `same signature format as dump side` |

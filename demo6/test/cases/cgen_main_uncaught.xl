@@ -1,4 +1,4 @@
-func main(...) -> int
+func main(...) as int
     throw "main boom"
     return 0
 end

@@ -1,8 +1,8 @@
-async func valueAsync() -> int
+async func valueAsync() as int
     return 1
 end
 
-func bad() -> int
+func bad() as int
     auto value = await valueAsync()
     return value
 end

@@ -1,0 +1,70 @@
+extern "expect_i64" func expect(int actual, int expected)
+
+func makeAdder(int base) as func(int) as int
+    return func(int value) as int
+        return base + value
+    end
+end
+
+class Payload
+    int value
+    func(int) as int op
+end
+
+func makePayload(int base) as Payload
+    Payload result
+    result.value = base
+    result.op = makeAdder(base)
+    return result
+end
+
+func readPayload(Payload payload) as int
+    return payload.value
+end
+
+func storePayload(Payload payload, int expected)
+    expect(payload.value, expected)
+end
+
+func consumePayload(Payload payload, int expected)
+    expect(payload.value, expected)
+end
+
+class Maker
+    func(int) as Payload make
+end
+
+class Sink
+    func(Payload, int) consume
+end
+
+Maker maker
+maker.make = makePayload
+
+Sink sink
+sink.consume = consumePayload
+
+Payload explicitPayload = maker.make(10)
+auto autoPayload = maker.make(20)
+
+Payload assignedPayload
+assignedPayload = maker.make(30)
+auto expressionValue = maker.make(40).value
+int explicitExpressionValue = maker.make(50).value
+auto argumentValue = readPayload(maker.make(60))
+storePayload(maker.make(70), 70)
+sink.consume(explicitPayload, 10)
+maker.make(80)
+int nestedArgumentValue = readPayload(maker.make(90)) + 1
+expect(readPayload(maker.make(100)) + 1, 101)
+
+expect(explicitPayload.value, 10)
+expect(explicitPayload.op(1), 11)
+expect(autoPayload.value, 20)
+expect(autoPayload.op(2), 22)
+expect(assignedPayload.value, 30)
+expect(assignedPayload.op(3), 33)
+expect(expressionValue, 40)
+expect(explicitExpressionValue, 50)
+expect(argumentValue, 60)
+expect(nestedArgumentValue, 91)
