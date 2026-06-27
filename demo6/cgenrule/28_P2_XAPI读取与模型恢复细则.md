@@ -103,11 +103,11 @@
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | XAPI export/type/field 的 `doc` 字段 |
-| 生成规则描述 | doc 字段既兼容旧式字符串，也兼容对象。若是字符串，直接作为 raw doc；若是对象，只读取 `raw` 字段，其他字段跳过。空对象保留原 doc 不变。 |
+| 生成规则描述 | doc 字段必须是对象，并且必须包含 `raw` 字符串字段；其他字段按前向演进策略跳过。 |
 | 生成器文件名和行号 | `demo6/src/abi/xl6_xapi_load.c:359` |
 | 对应生成的 C 代码 | 不生成 C；恢复 doc 原文。 |
-| 中间形态伪代码 | `doc = string or object.raw; skip fields` |
-| 实现同等功能手写的 C 代码 | 手写 loader 可只消费 raw 文档，忽略派生 fields。 |
+| 中间形态伪代码 | `doc = object.raw; skip unknown fields; missing raw -> error` |
+| 实现同等功能手写的 C 代码 | 手写 loader 只消费当前机器生成的 raw 文档，忽略派生 fields。 |
 | 额外依赖的封装代码 | XAPI doc schema。 |
 
 ## CGEN-XLOAD-010 参数对象读取
@@ -175,11 +175,11 @@
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | XAPI type field `{name,type,storage,doc}` |
-| 生成规则描述 | type field 对象消费 name、type、storage、doc；未知字段跳过。若 storage 缺失，默认补为 `field`。 |
+| 生成规则描述 | type field 对象消费 name、type、storage、doc；未知字段跳过。storage 是当前 XAPI 格式的必需字段，缺失会在模型收口阶段判定为格式错误。 |
 | 生成器文件名和行号 | `demo6/src/abi/xl6_xapi_load.c:645` |
 | 对应生成的 C 代码 | 不生成 C；恢复类型字段模型。 |
-| 中间形态伪代码 | `field.storage ??= "field"` |
-| 实现同等功能手写的 C 代码 | 手写 loader 需要给旧格式字段补默认 storage。 |
+| 中间形态伪代码 | `require field.storage` |
+| 实现同等功能手写的 C 代码 | 手写 loader 需要按当前 schema 校验字段完整性。 |
 | 额外依赖的封装代码 | XAPI type model。 |
 
 ## CGEN-XLOAD-016 类型字段数组读取
@@ -223,7 +223,7 @@
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | XAPI 顶层 `package` |
-| 生成规则描述 | package 对象消费 name、version、abiVersion、packageId；未知字段跳过。字段缺失时由 finalize 阶段补默认值。 |
+| 生成规则描述 | package 对象消费 name、version、abiVersion、packageId；未知字段跳过。这些字段属于当前 XAPI 格式的必需身份信息，缺失会在 finalize 阶段判定为格式错误。 |
 | 生成器文件名和行号 | `demo6/src/abi/xl6_xapi_load.c:812` |
 | 对应生成的 C 代码 | 不生成 C；恢复 package identity。 |
 | 中间形态伪代码 | `parse package known strings; skip unknown` |
@@ -235,7 +235,7 @@
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | XAPI 顶层 `module` |
-| 生成规则描述 | module 对象消费 name、moduleId、source、sourceHash；未知字段跳过。字段缺失时由 finalize 阶段补默认值。 |
+| 生成规则描述 | module 对象消费 name、moduleId、source、sourceHash；未知字段跳过。这些字段属于当前 XAPI 格式的必需身份信息，缺失会在 finalize 阶段判定为格式错误。 |
 | 生成器文件名和行号 | `demo6/src/abi/xl6_xapi_load.c:848` |
 | 对应生成的 C 代码 | 不生成 C；恢复 module identity。 |
 | 中间形态伪代码 | `parse module known strings; skip unknown` |
@@ -247,7 +247,7 @@
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | XAPI 顶层 `native` |
-| 生成规则描述 | native 对象消费 singleton、loadName、version；singleton 必须是 bool，未知字段跳过。缺失 loadName/version 由 finalize 补为空字符串。 |
+| 生成规则描述 | native 对象消费 singleton、loadName、version；singleton 必须是 bool，未知字段跳过。loadName/version 是当前 XAPI 格式的必需字段，缺失会在 finalize 阶段判定为格式错误。 |
 | 生成器文件名和行号 | `demo6/src/abi/xl6_xapi_load.c:884` |
 | 对应生成的 C 代码 | 不生成 C；恢复 native package 元数据。 |
 | 中间形态伪代码 | `native = { singleton?, loadName?, version? }` |
@@ -266,76 +266,76 @@
 | 实现同等功能手写的 C 代码 | 手写 loader 应校验格式版本，避免误读。 |
 | 额外依赖的封装代码 | XAPI JSON parser。 |
 
-## CGEN-XLOAD-023 读取侧 packageId 与 moduleId 补构造
+## CGEN-XLOAD-023 读取侧 packageId 与 moduleId 必需字段校验
 
 | 项目 | 内容 |
 |---|---|
-| xlang 写法 | XAPI 缺失 packageId 或 moduleId |
-| 生成规则描述 | packageId 默认构造为 `name@version#abiVersion`，默认 name=`app`、version=`0.0.0`、abiVersion=`1`；moduleId 默认构造为 `packageId::moduleName`，默认 moduleName=`app`。packageId 使用 512 字节缓冲，moduleId 使用 768 字节缓冲，溢出失败。 |
-| 生成器文件名和行号 | `demo6/src/abi/xl6_xapi_load.c:1001` |
-| 对应生成的 C 代码 | 不生成 C；补齐 module/package identity。 |
-| 中间形态伪代码 | `packageId ??= name@version#abi; moduleId ??= packageId::name` |
-| 实现同等功能手写的 C 代码 | 手写 loader 需要为旧 XAPI 或缺字段 XAPI 补默认身份。 |
-| 额外依赖的封装代码 | XAPI identity builder。 |
-
-## CGEN-XLOAD-024 读取侧字符串拼接
-
-| 项目 | 内容 |
-|---|---|
-| xlang 写法 | 补构造 signature/exportId |
-| 生成规则描述 | 读取侧使用动态 char buffer 拼接文本，容量从 64 起按 2 倍扩容。任一追加失败会释放调用方构造中的字符串并失败。 |
-| 生成器文件名和行号 | `demo6/src/abi/xl6_xapi_load.c:1030` |
-| 对应生成的 C 代码 | 不生成 C；构造 signature/exportId 字符串。 |
-| 中间形态伪代码 | `append text with grow; nul terminate` |
-| 实现同等功能手写的 C 代码 | 手写 loader 需要安全拼接身份字符串。 |
-| 额外依赖的封装代码 | XAPI identity builder。 |
-
-## CGEN-XLOAD-025 读取侧导出签名补构造
-
-| 项目 | 内容 |
-|---|---|
-| xlang 写法 | XAPI export 缺失 signature |
-| 生成规则描述 | func 签名补构造为 `func(params) as returns`，多返回用括号；非 function 为 `kind:type`。缺失类型用 `<missing-type>`，item 或 kind 缺失时返回空字符串。 |
-| 生成器文件名和行号 | `demo6/src/abi/xl6_xapi_load.c:1062` |
-| 对应生成的 C 代码 | 不生成 C；补齐 export.signature。 |
-| 中间形态伪代码 | `same signature format as dump side` |
-| 实现同等功能手写的 C 代码 | 手写 loader 应能从参数/返回列表恢复签名。 |
-| 额外依赖的封装代码 | XAPI identity builder。 |
-
-## CGEN-XLOAD-026 读取侧 exportId 补构造
-
-| 项目 | 内容 |
-|---|---|
-| xlang 写法 | XAPI export 缺失 exportId |
-| 生成规则描述 | exportId 补构造为 `moduleId::name(signature)`；缺失 moduleId 使用默认 `app@0.0.0#abi1::app`，缺失 name/signature 使用空字符串。 |
-| 生成器文件名和行号 | `demo6/src/abi/xl6_xapi_load.c:1129` |
-| 对应生成的 C 代码 | 不生成 C；补齐 export.exportId。 |
-| 中间形态伪代码 | `exportId = moduleId + "::" + name + "(" + signature + ")"` |
-| 实现同等功能手写的 C 代码 | 手写 loader 需要生成稳定导出身份。 |
-| 额外依赖的封装代码 | XAPI identity builder。 |
-
-## CGEN-XLOAD-027 module finalize 默认字段补齐
-
-| 项目 | 内容 |
-|---|---|
-| xlang 写法 | 读取缺少部分 package/module/native 字段的 XAPI |
-| 生成规则描述 | finalize 会补齐 module name/source/sourceHash、packageName/version/abiVersion/packageId、moduleId、nativeLoadName/nativeVersion。默认 module/name 为 `app`，source/sourceHash/native 字符串为空。任一补齐失败则 finalize 失败。 |
-| 生成器文件名和行号 | `demo6/src/abi/xl6_xapi_load.c:1150` |
-| 对应生成的 C 代码 | 不生成 C；保证读取后的 module 模型字段可用。 |
-| 中间形态伪代码 | `fill missing required strings with defaults` |
-| 实现同等功能手写的 C 代码 | 手写 loader 常在 parse 后做一次规范化。 |
+| xlang 写法 | XAPI 必须显式提供 packageId 和 moduleId |
+| 生成规则描述 | 读取侧不再根据 name/version/abiVersion/moduleName 构造身份字段。packageId 或 moduleId 缺失会在 finalize 阶段判定为格式错误。 |
+| 生成器文件名和行号 | `demo6/src/abi/xl6_xapi_load.c:998` |
+| 对应生成的 C 代码 | 不生成 C；校验 module/package identity。 |
+| 中间形态伪代码 | `require packageId; require moduleId` |
+| 实现同等功能手写的 C 代码 | 手写 loader 应消费机器生成的身份字段，而不是恢复残缺接口文件。 |
 | 额外依赖的封装代码 | XAPI module model。 |
 
-## CGEN-XLOAD-028 function export 默认调用约定补齐
+## CGEN-XLOAD-024 读取侧不构造身份字符串
 
 | 项目 | 内容 |
 |---|---|
-| xlang 写法 | 读取旧 XAPI 中缺少 callingConvention/varargMode 的 function export |
-| 生成规则描述 | finalize 遍历 exports。function kind 若缺少 callingConvention，补 `cdecl`；缺少 varargMode，补 `none`。随后补 signature/exportId。function 的 callingConvention/varargMode、signature/exportId 任一仍缺失则失败。 |
-| 生成器文件名和行号 | `demo6/src/abi/xl6_xapi_load.c:1195` |
-| 对应生成的 C 代码 | 不生成 C；保证 import 消费 function export 时有 ABI 信息。 |
-| 中间形态伪代码 | `if function: convention ??= cdecl; varargMode ??= none; signature/exportId ??= build` |
-| 实现同等功能手写的 C 代码 | 手写 loader 需要为旧元数据补 ABI 默认值。 |
+| xlang 写法 | XAPI signature/exportId 由 dump 侧机器生成 |
+| 生成规则描述 | 读取侧已经删除动态字符串拼接和身份构造 helper。signature、exportId、packageId、moduleId 都必须来自当前 XAPI 文件本身。 |
+| 生成器文件名和行号 | `demo6/src/abi/xl6_xapi_load.c:998` |
+| 对应生成的 C 代码 | 不生成 C；读取侧不产生派生身份字符串。 |
+| 中间形态伪代码 | `read fields; finalize requires fields` |
+| 实现同等功能手写的 C 代码 | 手写 loader 不需要为当前格式拼接身份字符串。 |
+| 额外依赖的封装代码 | XAPI module model。 |
+
+## CGEN-XLOAD-025 读取侧导出签名必需字段校验
+
+| 项目 | 内容 |
+|---|---|
+| xlang 写法 | XAPI export 必须显式提供 signature |
+| 生成规则描述 | loader 只读取当前 XAPI 格式中已经存在的 signature。signature 缺失会在 finalize 阶段判定为格式错误，不再根据参数和返回列表补构造。 |
+| 生成器文件名和行号 | `demo6/src/abi/xl6_xapi_load.c:1004` |
+| 对应生成的 C 代码 | 不生成 C；校验 export.signature。 |
+| 中间形态伪代码 | `require export.signature` |
+| 实现同等功能手写的 C 代码 | 手写 loader 应按 schema 校验机器生成的签名字段。 |
+| 额外依赖的封装代码 | XAPI module model。 |
+
+## CGEN-XLOAD-026 读取侧 exportId 必需字段校验
+
+| 项目 | 内容 |
+|---|---|
+| xlang 写法 | XAPI export 必须显式提供 exportId |
+| 生成规则描述 | loader 只读取当前 XAPI 格式中已经存在的 exportId。exportId 缺失会在 finalize 阶段判定为格式错误，不再根据 moduleId、name 和 signature 补构造。 |
+| 生成器文件名和行号 | `demo6/src/abi/xl6_xapi_load.c:1004` |
+| 对应生成的 C 代码 | 不生成 C；校验 export.exportId。 |
+| 中间形态伪代码 | `require export.exportId` |
+| 实现同等功能手写的 C 代码 | 手写 loader 应消费机器生成的稳定导出身份。 |
+| 额外依赖的封装代码 | XAPI module model。 |
+
+## CGEN-XLOAD-027 module finalize 必需字段校验
+
+| 项目 | 内容 |
+|---|---|
+| xlang 写法 | 读取当前 XAPI 格式的 package/module/native 字段 |
+| 生成规则描述 | finalize 只校验 module name/source/sourceHash、packageName/version/abiVersion/packageId、moduleId、nativeLoadName/nativeVersion 是否完整。任一必需字段缺失都会失败，不做默认值补齐。 |
+| 生成器文件名和行号 | `demo6/src/abi/xl6_xapi_load.c:998` |
+| 对应生成的 C 代码 | 不生成 C；保证读取后的 module 模型字段来自当前格式。 |
+| 中间形态伪代码 | `require module/package/native identity fields` |
+| 实现同等功能手写的 C 代码 | 手写 loader 应在 parse 后做 schema 必需字段校验。 |
+| 额外依赖的封装代码 | XAPI module model。 |
+
+## CGEN-XLOAD-028 function export 调用约定必需字段校验
+
+| 项目 | 内容 |
+|---|---|
+| xlang 写法 | 读取当前 XAPI 中的 function export ABI 字段 |
+| 生成规则描述 | finalize 遍历 exports。function kind 必须已经包含 callingConvention、varargMode、signature 和 exportId，任一缺失都会失败；loader 不再补 `cdecl`、`none` 或导出身份字段。 |
+| 生成器文件名和行号 | `demo6/src/abi/xl6_xapi_load.c:1004` |
+| 对应生成的 C 代码 | 不生成 C；保证 import 消费 function export 时有显式 ABI 信息。 |
+| 中间形态伪代码 | `if function: require convention, varargMode, signature, exportId` |
+| 实现同等功能手写的 C 代码 | 手写 loader 应拒绝残缺 function export 元数据。 |
 | 额外依赖的封装代码 | callable ABI model。 |
 
 ## CGEN-XLOAD-029 XAPI 文件读取
@@ -344,7 +344,7 @@
 |---|---|
 | xlang 写法 | `import` 解析到某个 `.xapi.json` 文件 |
 | 生成规则描述 | 公开入口要求 module 和 path 非 NULL。读取前清除 XRT error，使用 `xrtFileReadAll(path, XRT_CP_UTF8, &len)` 读取 UTF-8 文本；若 XRT error 非空或 text 为 NULL，释放 text 并向诊断追加 “无法读取 XAPI 文件”。 |
-| 生成器文件名和行号 | `demo6/src/abi/xl6_xapi_load.c:1220` |
+| 生成器文件名和行号 | `demo6/src/abi/xl6_xapi_load.c:1030` |
 | 对应生成的 C 代码 | 不生成 C；读取 XAPI 文件内容。 |
 | 中间形态伪代码 | `text = xrtFileReadAll(path, UTF8); fail -> diag` |
 | 实现同等功能手写的 C 代码 | 手写 loader 应使用 UTF-8 安全文件读取。 |
@@ -356,7 +356,7 @@
 |---|---|
 | xlang 写法 | 读取完整 XAPI 文件 |
 | 生成规则描述 | 读取成功后先释放并初始化 module，再设置 JSON parser 状态。root parse 成功后跳过尾部空白，若 pos 不等于 len，报 “XAPI JSON 末尾存在多余字符” 并失败。 |
-| 生成器文件名和行号 | `demo6/src/abi/xl6_xapi_load.c:1240` |
+| 生成器文件名和行号 | `demo6/src/abi/xl6_xapi_load.c:1058` |
 | 对应生成的 C 代码 | 不生成 C；保证 XAPI 文件没有尾随垃圾。 |
 | 中间形态伪代码 | `parseRoot; skipWs; require pos == len` |
 | 实现同等功能手写的 C 代码 | 手写 parser 通常也要检查是否完整消费输入。 |
@@ -367,8 +367,8 @@
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | XAPI 文件解析完成 |
-| 生成规则描述 | root parse 和尾部校验成功后调用 finalize 补齐默认字段和导出身份。finalize 失败时报 “XAPI metadata finalize failed”。无论成功失败都释放文件文本；失败时释放 module，成功时保留 module 给调用方。 |
-| 生成器文件名和行号 | `demo6/src/abi/xl6_xapi_load.c:1256` |
+| 生成规则描述 | root parse 和尾部校验成功后调用 finalize 校验当前 XAPI 必需字段。finalize 失败时报 “XAPI metadata finalize failed”。无论成功失败都释放文件文本；失败时释放 module，成功时保留 module 给调用方。 |
+| 生成器文件名和行号 | `demo6/src/abi/xl6_xapi_load.c:1066` |
 | 对应生成的 C 代码 | 不生成 C；控制 import 是否能继续消费 module。 |
 | 中间形态伪代码 | `if ok && finalize: keep module else free module` |
 | 实现同等功能手写的 C 代码 | 手写 loader 需要在错误路径释放半成品模型。 |

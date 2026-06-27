@@ -141,7 +141,7 @@ JSON 诊断格式基线：
 - `test/cases`：446 个 `.xl` 测试用例。
 - C/H fixture：41 个入口 fixture，9 个 package native fixture。
 - `examples`：57 个 `.xl` 范例文件，其中标准库范例 17 个。
-- 负例诊断守门：246 条预期失败命令、245 个诊断产物、246 条内容断言，baseline-only 为 0。
+- 负例诊断守门：245 条预期失败命令、244 个诊断产物、245 条内容断言，baseline-only 为 0。
 - `feature_suite` 覆盖基础语言、控制流、函数、类型、容器、泛型、闭包、class/custom、C 混编、C export ABI。
 
 ## 不属于 RC0 的范围

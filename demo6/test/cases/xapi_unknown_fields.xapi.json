@@ -12,6 +12,7 @@
     "name": "unknowns",
     "version": "2.1.0",
     "abiVersion": "7",
+    "packageId": "unknowns@2.1.0#abi7",
     "unknownPackageArray": [
       1,
       2,
@@ -20,7 +21,9 @@
   },
   "module": {
     "name": "unknowns",
+    "moduleId": "unknowns@2.1.0#abi7::unknowns",
     "source": "manual-fixture",
+    "sourceHash": "",
     "unknownModuleObject": {
       "skip": [
         "a",
@@ -33,6 +36,19 @@
       "kind": "function",
       "name": "touch",
       "cSymbol": "unknown_touch",
+      "signature": "func(string) as bool",
+      "exportId": "unknowns@2.1.0#abi7::unknowns::touch(func(string) as bool)",
+      "callingConvention": "cdecl",
+      "varargMode": "none",
+      "doc": {
+        "raw": "function doc",
+        "fields": [
+          { "kind": "desc", "text": "function doc" }
+        ],
+        "unknownDocField": {
+          "skip": true
+        }
+      },
       "unknownExportValue": {
         "nested": [
           1,
@@ -64,6 +80,12 @@
     {
       "kind": "class",
       "name": "Thing",
+      "doc": {
+        "raw": "type doc",
+        "fields": [
+          { "kind": "desc", "text": "type doc" }
+        ]
+      },
       "unknownTypeObject": {
         "skip": true
       },
@@ -71,6 +93,13 @@
         {
           "name": "label",
           "type": "string",
+          "storage": "field",
+          "doc": {
+            "raw": "field doc",
+            "fields": [
+              { "kind": "desc", "text": "field doc" }
+            ]
+          },
           "unknownField": [
             { "skip": "field" }
           ]

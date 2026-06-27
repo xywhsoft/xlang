@@ -98,9 +98,9 @@ custom:<module>.<Type>.<name>(<param-types>) as <return-types>
 
 规则：
 
-- 无返回值记为 `->()`。
-- 单返回值记为 `->int`、`->string` 等。
-- 多返回值记为 `->(int,string)`。
+- 无返回值记为 `as ()`。
+- 单返回值记为 `as int`、`as string` 等。
+- 多返回值记为 `as (int,string)`。
 - 参数列表只记录类型，不记录参数名。
 - 可选参数默认值不进入 signature id。
 - 可变参数进入 signature id，例如 `(...array<var>)` 或 `(...dict<var>)`。
