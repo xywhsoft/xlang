@@ -7,6 +7,7 @@ typedef struct XL6_BuiltinTypeSeed {
 } XL6_BuiltinTypeSeed;
 
 static const XL6_BuiltinTypeSeed g_xl6BuiltinTypeSeeds[] = {
+    {"null", 0, 0},
     {"bool", 0, 0},
     {"int", 0, 0}, {"int8", 0, 0}, {"uint8", 0, 0},
     {"int16", 0, 0}, {"uint16", 0, 0}, {"int32", 0, 0}, {"uint32", 0, 0},

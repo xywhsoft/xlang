@@ -19,7 +19,6 @@ typedef struct ThreadArg {
     char root[1024];
     char workDir[1024];
     char tempDir[1024];
-    char tccDllPath[1024];
     char tccLibPath[1024];
     char includeRoot[1024];
     char includeSrc[1024];
@@ -128,7 +127,6 @@ static DWORD WINAPI thread_proc(LPVOID param)
     options = xlDefaultContextOptions();
     options.workDir = arg->workDir;
     options.tempDir = arg->tempDir;
-    options.tccDllPath = arg->tccDllPath;
     options.tccLibPath = arg->tccLibPath;
 
     ctx = xlCreateContext(&options);
@@ -181,7 +179,6 @@ static int init_arg(ThreadArg* arg, const char* root, int index)
     snprintf(rel, sizeof(rel), "release\\tmp\\dll_thread_%d", index);
     if ( !make_full_path(root, rel, arg->workDir, sizeof(arg->workDir)) ||
          !make_full_path(root, "release\\tmp", arg->tempDir, sizeof(arg->tempDir)) ||
-         !make_full_path(root, "release\\libtcc.dll", arg->tccDllPath, sizeof(arg->tccDllPath)) ||
          !make_toolchain_path(root, "XL6_TCC_ROOT", arg->tccLibPath, sizeof(arg->tccLibPath)) ||
          !make_full_path(root, "src", arg->includeSrc, sizeof(arg->includeSrc)) ||
          !make_full_path(root, "lib\\xrt", arg->includeXrt, sizeof(arg->includeXrt)) ||

@@ -14,6 +14,20 @@ static XL6_AstNode* xl6CgenFindCustom(XL6_CgenContext* ctx, const char* name)
     return NULL;
 }
 
+static const char* xl6CgenLookupCallableName(const XL6_AstNode* node)
+{
+    if ( node == NULL ) {
+        return NULL;
+    }
+    if ( node->kind == XL6_AST_EXPORT_FUNC ||
+         node->kind == XL6_AST_CUSTOM_EXTERN_SPECIAL ||
+         node->kind == XL6_AST_CUSTOM_EXTERN_FUNC ) {
+        const XL6_AstNode* nameNode = node->childCount > 0 ? node->children[0] : NULL;
+        return nameNode != NULL ? nameNode->text : NULL;
+    }
+    return node->text;
+}
+
 static XL6_AstNode* xl6CgenFindClass(XL6_CgenContext* ctx, const char* name)
 {
     size_t i;
@@ -83,6 +97,27 @@ static int xl6CgenIsStaticMember(const XL6_AstNode* node)
 static int xl6CgenIsInstanceField(const XL6_AstNode* node)
 {
     return node != NULL && node->kind == XL6_AST_FIELD && !xl6CgenIsStaticMember(node);
+}
+
+static const XL6_AstNode* xl6CgenFieldDefaultExpr(const XL6_AstNode* field)
+{
+    size_t i;
+
+    if ( field == NULL || field->kind != XL6_AST_FIELD ) {
+        return NULL;
+    }
+
+    /*
+        字段 child[0] 固定为类型。
+        从 child[1] 开始，可能是默认值，也可能是字段注解。
+    */
+    for ( i = 1; i < field->childCount; ++i ) {
+        const XL6_AstNode* child = field->children[i];
+        if ( child != NULL && child->kind != XL6_AST_FIELD_ATTR ) {
+            return child;
+        }
+    }
+    return NULL;
 }
 
 static const XL6_AstNode* xl6CgenClassTypeParams(const XL6_AstNode* classNode)
@@ -223,7 +258,14 @@ static const XL6_AstNode* xl6CgenFindClassSpecial(const XL6_AstNode* classNode, 
     }
     for ( i = 0; i < body->childCount; ++i ) {
         const XL6_AstNode* member = body->children[i];
-        if ( member != NULL && member->kind == XL6_AST_CREATE && xl6CTextEquals(member->text, name) ) {
+        if ( member != NULL &&
+             member->kind == XL6_AST_CREATE &&
+             xl6CTextEquals(member->text, name) ) {
+            return member;
+        }
+        if ( member != NULL &&
+             member->kind == XL6_AST_CUSTOM_EXTERN_SPECIAL &&
+             xl6CTextEquals(xl6CgenLookupCallableName(member), name) ) {
             return member;
         }
     }
@@ -265,13 +307,37 @@ static const XL6_AstNode* xl6CgenFindClassCreateCallableWithoutArgs(const XL6_As
     for ( i = 0; i < body->childCount; ++i ) {
         const XL6_AstNode* member = body->children[i];
         if ( member != NULL &&
-             member->kind == XL6_AST_CREATE &&
-             xl6CTextEquals(member->text, "create") &&
+             (member->kind == XL6_AST_CREATE || member->kind == XL6_AST_CUSTOM_EXTERN_SPECIAL) &&
+             xl6CTextEquals(xl6CgenLookupCallableName(member), "create") &&
              xl6CgenParamRequiredCount(xl6CgenCallableParams(member)) == 0 ) {
             return member;
         }
     }
     return NULL;
+}
+
+static int xl6CgenClassHasNativeHandle(const XL6_AstNode* classNode)
+{
+    const XL6_AstNode* body;
+    size_t i;
+
+    body = xl6CgenClassBody(classNode);
+    for ( i = 0; body != NULL && i < body->childCount; ++i ) {
+        const XL6_AstNode* member = body->children[i];
+        const XL6_AstNode* typeNode;
+
+        if ( member == NULL ||
+             member->kind != XL6_AST_FIELD ||
+             (member->flags & XL6_AST_FLAG_NATIVE) == 0 ||
+             (member->flags & XL6_AST_FLAG_STATIC) != 0 ||
+             !xl6CTextEquals(member->text, "handle") ||
+             member->childCount == 0 ) {
+            continue;
+        }
+        typeNode = member->children[0];
+        return typeNode != NULL && xl6CTextEquals(typeNode->text, "point");
+    }
+    return 0;
 }
 
 static const XL6_AstNode* xl6CgenFindCustomMember(const XL6_AstNode* customNode, XL6_AstKind kind, const char* name)

@@ -499,9 +499,19 @@ static int xl6CgenClassProtocolCallPrefix(
     const XL6_AstNode* method,
     const XL6_AstNode* receiverType)
 {
-    (void)receiverType;
     if ( xl6CgenClassProtocolReceiverIsAddressable(receiver) ) {
-        xl6CgenClassCallableSymbol(ctx, ownerClass, method);
+        if ( receiverType != NULL && receiverType->childCount > 0 && xl6CgenClassHasTypeParams(ownerClass) ) {
+            const XL6_AstNode* prevParams = ctx->currentGenericParams;
+            const XL6_AstNode* prevArgs = ctx->currentGenericArgs;
+
+            ctx->currentGenericParams = xl6CgenClassTypeParams(ownerClass);
+            ctx->currentGenericArgs = receiverType->children[0];
+            xl6CgenGenericClassCallableSymbol(ctx, ownerClass, receiverType, method);
+            ctx->currentGenericParams = prevParams;
+            ctx->currentGenericArgs = prevArgs;
+        } else {
+            xl6CgenClassCallableSymbol(ctx, ownerClass, method);
+        }
         xl6OutputPutc('(', ctx->out);
         xl6CgenEmitClassProtocolSelf(ctx, receiver, classNode, ownerClass);
         return 1;

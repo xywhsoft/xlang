@@ -8,6 +8,8 @@
 %type doc_block { XL6_Token }
 %type class_member_mods { unsigned int }
 %type class_member_modifier { unsigned int }
+%type field_attr_arg { XL6_AstNode* }
+%type field_attr_word { XL6_Token }
 
 %include {
 #include "src/parser/xl6_parser_api.h"
@@ -542,7 +544,7 @@ static XL6_AstNode* xl6PWithFlags(XL6_AstNode* node, unsigned int flags)
 
 %nonassoc KW_THEN.
 %nonassoc KW_ELSE.
-%fallback IDENT KW_PUBLIC KW_PRIVATE KW_STATIC KW_OVERRIDE KW_FINAL KW_VIRTUAL.
+%fallback IDENT KW_PUBLIC KW_PRIVATE KW_PROTECTED KW_STATIC KW_OVERRIDE KW_FINAL KW_VIRTUAL KW_NATIVE.
 %right FAT_ARROW.
 %right QUESTION.
 %left NULL_COALESCE.
@@ -552,7 +554,7 @@ static XL6_AstNode* xl6PWithFlags(XL6_AstNode* node, unsigned int flags)
 %left BIT_XOR.
 %left BIT_AND.
 %left EQ NE APPROX.
-%left LT LE GT GE KW_IN.
+%left LT LE GT GE KW_IN KW_IS KW_AS.
 %left SHL SHR.
 %left PLUS MINUS.
 %left STAR SLASH PERCENT.
@@ -621,7 +623,29 @@ func_decl(A) ::= KW_FUNC(N) name_tok(F) generic_params_opt(G) name_params(P) ret
     xl6AstAddChild(A, B);
     xl6AstAddChild(A, G);
 }
+func_decl(A) ::= KW_FUNC(N) name_tok(F) LT generic_param_list(L) GT name_params(P) return_sig(R) need_sep block(B) KW_END. {
+    XL6_AstNode* G = xl6AstNew(XL6_AST_TYPE_PARAMS, NULL);
+    xl6AstMoveChildren(G, L);
+    xl6AstFree(L);
+    A = xl6AstNew(XL6_AST_FUNC, &N);
+    xl6AstAddChild(A, xl6AstNew(XL6_AST_NAME, &F));
+    xl6AstAddChild(A, P);
+    xl6AstAddChild(A, R);
+    xl6AstAddChild(A, B);
+    xl6AstAddChild(A, G);
+}
 func_decl(A) ::= KW_ASYNC(AW) KW_FUNC name_tok(F) generic_params_opt(G) name_params(P) return_sig(R) need_sep block(B) KW_END. {
+    A = xl6AstNew(XL6_AST_ASYNC_FUNC, &AW);
+    xl6AstAddChild(A, xl6AstNew(XL6_AST_NAME, &F));
+    xl6AstAddChild(A, P);
+    xl6AstAddChild(A, R);
+    xl6AstAddChild(A, B);
+    xl6AstAddChild(A, G);
+}
+func_decl(A) ::= KW_ASYNC(AW) KW_FUNC name_tok(F) LT generic_param_list(L) GT name_params(P) return_sig(R) need_sep block(B) KW_END. {
+    XL6_AstNode* G = xl6AstNew(XL6_AST_TYPE_PARAMS, NULL);
+    xl6AstMoveChildren(G, L);
+    xl6AstFree(L);
     A = xl6AstNew(XL6_AST_ASYNC_FUNC, &AW);
     xl6AstAddChild(A, xl6AstNew(XL6_AST_NAME, &F));
     xl6AstAddChild(A, P);
@@ -721,14 +745,19 @@ class_member_mods(A) ::= class_member_mods(B) class_member_modifier(M). { A = B 
 
 class_member_modifier(A) ::= KW_PUBLIC. { A = XL6_AST_FLAG_PUBLIC; }
 class_member_modifier(A) ::= KW_PRIVATE. { A = XL6_AST_FLAG_PRIVATE; }
+class_member_modifier(A) ::= KW_PROTECTED. { A = XL6_AST_FLAG_PROTECTED; }
 class_member_modifier(A) ::= KW_STATIC. { A = XL6_AST_FLAG_STATIC; }
 class_member_modifier(A) ::= KW_OVERRIDE. { A = XL6_AST_FLAG_OVERRIDE; }
 class_member_modifier(A) ::= KW_FINAL. { A = XL6_AST_FLAG_FINAL; }
 class_member_modifier(A) ::= KW_VIRTUAL. { A = XL6_AST_FLAG_VIRTUAL; }
 
 class_member_base(A) ::= field_decl(B). { A = B; }
+class_member_base(A) ::= native_field_decl(B). { A = B; }
 class_member_base(A) ::= derive_decl(B). { A = B; }
 class_member_base(A) ::= func_decl(B). { A = B; }
+class_member_base(A) ::= class_extern_special(B). { A = B; }
+class_member_base(A) ::= class_extern_func(B). { A = B; }
+class_member_base(A) ::= export_func_decl(B). { A = B; }
 class_member_base(A) ::= property_get_decl(B). { A = B; }
 class_member_base(A) ::= property_let_decl(B). { A = B; }
 class_member_base(A) ::= class_special_decl(B). { A = B; }
@@ -739,16 +768,108 @@ derive_decl(A) ::= KW_DERIVE(D) name_tok(N) need_sep. {
     (void)D;
 }
 
-field_decl(A) ::= var_type_ref(T) name_tok(N) field_default(D) need_sep. {
+field_decl(A) ::= var_type_ref(T) name_tok(N) field_attrs_opt(R) field_default(D) need_sep. {
     A = xl6AstNew(XL6_AST_FIELD, &N);
     xl6AstAddChild(A, T);
     if ( D != NULL ) {
         xl6AstAddChild(A, D);
     }
+    if ( R != NULL ) {
+        xl6AstMoveChildren(A, R);
+        xl6AstFree(R);
+    }
+}
+
+native_field_decl(A) ::= KW_NATIVE(K) native_type_ref(T) name_tok(N) field_attrs_opt(R) field_default(D) need_sep. {
+    A = xl6AstNew(XL6_AST_FIELD, &N);
+    A->flags |= XL6_AST_FLAG_NATIVE;
+    xl6AstAddChild(A, T);
+    if ( D != NULL ) {
+        xl6AstAddChild(A, D);
+    }
+    if ( R != NULL ) {
+        xl6AstMoveChildren(A, R);
+        xl6AstFree(R);
+    }
+    (void)K;
 }
 
 field_default(A) ::= . { A = NULL; }
 field_default(A) ::= ASSIGN expr(E). { A = E; }
+
+field_attrs_opt(A) ::= . { A = xl6PList(); }
+field_attrs_opt(A) ::= field_attrs(B). { A = B; }
+
+field_attrs(A) ::= field_attr(B). {
+    A = xl6PList();
+    xl6AstAddChild(A, B);
+}
+field_attrs(A) ::= field_attrs(B) field_attr(C). {
+    A = B;
+    xl6AstAddChild(A, C);
+}
+
+field_attr(A) ::= AT name_tok(N) LPAREN field_attr_args_opt(P) RPAREN. {
+    A = xl6AstNew(XL6_AST_FIELD_ATTR, &N);
+    xl6AstMoveChildren(A, P);
+    xl6AstFree(P);
+}
+
+field_attr_args_opt(A) ::= . { A = xl6PList(); }
+field_attr_args_opt(A) ::= field_attr_args(B). { A = B; }
+
+field_attr_args(A) ::= field_attr_arg(B). {
+    A = xl6PList();
+    xl6AstAddChild(A, B);
+}
+field_attr_args(A) ::= field_attr_args(B) COMMA field_attr_arg(C). {
+    A = B;
+    xl6AstAddChild(A, C);
+}
+
+field_attr_word(A) ::= name_tok(N). { A = N; }
+field_attr_word(A) ::= KW_INCLUDE(N). { A = N; }
+field_attr_word(A) ::= KW_NULL(N). { A = N; }
+
+field_attr_arg(A) ::= field_attr_word(N). {
+    A = xl6AstNew(XL6_AST_NAME, &N);
+}
+field_attr_arg(A) ::= STRING(S). {
+    A = xl6AstNew(XL6_AST_STRING, &S);
+}
+field_attr_arg(A) ::= field_attr_word(N) ASSIGN field_attr_word(V). {
+    A = xl6AstNew(XL6_AST_KEY_VALUE, NULL);
+    xl6AstAddChild(A, xl6AstNew(XL6_AST_NAME, &N));
+    xl6AstAddChild(A, xl6AstNew(XL6_AST_NAME, &V));
+}
+field_attr_arg(A) ::= field_attr_word(N) ASSIGN STRING(V). {
+    A = xl6AstNew(XL6_AST_KEY_VALUE, NULL);
+    xl6AstAddChild(A, xl6AstNew(XL6_AST_NAME, &N));
+    xl6AstAddChild(A, xl6AstNew(XL6_AST_STRING, &V));
+}
+
+native_type_ref(A) ::= var_type_ref(T). { A = T; }
+native_type_ref(A) ::= name_tok(N) STAR. {
+    if ( !xl6PTokenTextEquals(&N, "void") ) {
+        xl6PDiag(ctx, &N, "native pointer type only supports void* in this stage");
+    }
+    A = xl6AstNewText(XL6_AST_TYPE, "point", 5, &N);
+}
+
+class_extern_func(A) ::= KW_EXTERN(E) STRING(S) KW_FUNC name_tok(N) name_params(P) return_sig(R) need_sep. {
+    A = xl6AstNew(XL6_AST_CUSTOM_EXTERN_FUNC, &S);
+    xl6AstAddChild(A, xl6AstNew(XL6_AST_NAME, &N));
+    xl6AstAddChild(A, P);
+    xl6AstAddChild(A, R);
+    (void)E;
+}
+
+class_extern_special(A) ::= KW_EXTERN(E) STRING(S) name_tok(N) name_params(P) need_sep. {
+    A = xl6AstNew(XL6_AST_CUSTOM_EXTERN_SPECIAL, &S);
+    xl6AstAddChild(A, xl6AstNew(XL6_AST_NAME, &N));
+    xl6AstAddChild(A, P);
+    (void)E;
+}
 
 property_get_decl(A) ::= KW_GET(G) name_tok(N) name_params(P) return_sig(R) need_sep block(B) KW_END. {
     A = xl6AstNew(XL6_AST_GET, &G);
@@ -850,13 +971,36 @@ generic_params_opt(A) ::= LT generic_param_list(L) GT. {
     xl6AstFree(L);
 }
 
-generic_param_list(A) ::= name_tok(N). {
+generic_param_list(A) ::= generic_param(P). {
     A = xl6PList();
-    xl6AstAddChild(A, xl6AstNew(XL6_AST_NAME, &N));
+    xl6AstAddChild(A, P);
 }
-generic_param_list(A) ::= generic_param_list(B) COMMA name_tok(N). {
+generic_param_list(A) ::= generic_param_list(B) COMMA generic_param(P). {
     A = B;
-    xl6AstAddChild(A, xl6AstNew(XL6_AST_NAME, &N));
+    xl6AstAddChild(A, P);
+}
+
+generic_param(A) ::= name_tok(N) generic_constraint_opt(C). {
+    A = xl6AstNew(XL6_AST_NAME, &N);
+    if ( C != NULL ) {
+        xl6AstAddChild(A, C);
+    }
+}
+
+generic_constraint_opt(A) ::= . { A = NULL; }
+generic_constraint_opt(A) ::= KW_IS generic_constraint_list(L). {
+    A = xl6AstNew(XL6_AST_GENERIC_CONSTRAINT, NULL);
+    xl6AstMoveChildren(A, L);
+    xl6AstFree(L);
+}
+
+generic_constraint_list(A) ::= type_ref(T). {
+    A = xl6PList();
+    xl6AstAddChild(A, T);
+}
+generic_constraint_list(A) ::= generic_constraint_list(B) KW_AND type_ref(T). {
+    A = B;
+    xl6AstAddChild(A, T);
 }
 
 param_list_opt(A) ::= . { A = xl6PList(); }
@@ -873,6 +1017,10 @@ param_list(A) ::= param_list(B) COMMA param(C). {
 
 type_expr(A) ::= type_ref(T). { A = T; }
 type_expr(A) ::= function_type_ref(T). { A = T; }
+type_expr(A) ::= KW_ASYNC type_ref(T). {
+    T->flags |= XL6_AST_FLAG_ASYNC;
+    A = T;
+}
 
 param_type_ref(A) ::= type_expr(T). { A = T; }
 
@@ -894,7 +1042,7 @@ param(A) ::= TRIPLE_STAR(T). {
     xl6AstAddChild(A, xl6AstNewText(XL6_AST_TYPE, "dict<var>", 9, &T));
 }
 
-return_sig(A) ::= . {
+return_sig(A) ::= . [KW_THEN] {
     A = xl6AstNew(XL6_AST_RETURN_TYPES, NULL);
 }
 return_sig(A) ::= KW_AS return_value_type_ref(T). {
@@ -916,13 +1064,16 @@ type_list(A) ::= type_list(B) COMMA type_expr(T). {
     xl6AstAddChild(A, T);
 }
 
-type_ref(A) ::= name_tok(N). {
+type_ref(A) ::= name_tok(N). [KW_THEN] {
     A = xl6AstNew(XL6_AST_TYPE, &N);
 }
 type_ref(A) ::= KW_VAR(N). {
     A = xl6AstNewText(XL6_AST_TYPE, "var", 3, &N);
 }
-type_ref(A) ::= TYPE_FUNCTION(N). {
+type_ref(A) ::= KW_NULL(N). {
+    A = xl6AstNewText(XL6_AST_TYPE, "null", 4, &N);
+}
+type_ref(A) ::= TYPE_FUNCTION(N). [KW_THEN] {
     A = xl6AstNewText(XL6_AST_TYPE, "function", 8, &N);
 }
 type_ref(A) ::= name_tok(N) LT type_list(L) GT. {
@@ -1189,6 +1340,13 @@ for_stmt(A) ::= KW_FOR(F) for_targets(T) KW_IN expr(E) need_sep block(B) KW_END.
     xl6AstAddChild(A, E);
     xl6AstAddChild(A, B);
 }
+for_stmt(A) ::= KW_FOR(F) KW_AWAIT for_targets(T) KW_IN expr(E) need_sep block(B) KW_END. {
+    A = xl6AstNew(XL6_AST_FOR, &F);
+    A->flags |= XL6_AST_FLAG_ASYNC;
+    xl6AstAddChild(A, T);
+    xl6AstAddChild(A, E);
+    xl6AstAddChild(A, B);
+}
 
 for_targets(A) ::= name_tok(N). {
     A = xl6AstNew(XL6_AST_FOR_TARGETS, &N);
@@ -1271,6 +1429,16 @@ compare_expr(A) ::= compare_expr(B) LE(OP) shift_expr(C). { A = xl6AstNewBinary(
 compare_expr(A) ::= compare_expr(B) GT(OP) shift_expr(C). { A = xl6AstNewBinary(&OP, B, C); }
 compare_expr(A) ::= compare_expr(B) GE(OP) shift_expr(C). { A = xl6AstNewBinary(&OP, B, C); }
 compare_expr(A) ::= compare_expr(B) KW_IN(OP) shift_expr(C). { A = xl6AstNewBinary(&OP, B, C); }
+compare_expr(A) ::= compare_expr(B) KW_IS(OP) type_expr(T). {
+    A = xl6AstNew(XL6_AST_TYPE_IS, &OP);
+    xl6AstAddChild(A, B);
+    xl6AstAddChild(A, T);
+}
+compare_expr(A) ::= compare_expr(B) KW_AS(OP) type_expr(T). {
+    A = xl6AstNew(XL6_AST_TYPE_AS, &OP);
+    xl6AstAddChild(A, B);
+    xl6AstAddChild(A, T);
+}
 
 shift_expr(A) ::= add_expr(B). [SHL] { A = B; }
 shift_expr(A) ::= shift_expr(B) SHL(OP) add_expr(C). { A = xl6AstNewBinary(&OP, B, C); }

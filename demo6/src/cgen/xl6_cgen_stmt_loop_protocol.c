@@ -28,6 +28,11 @@ static int xl6CgenResolveClassIterableType(
     const XL6_AstNode* nextOwnerClass;
     const XL6_AstNode* nextMethod;
     const XL6_AstNode* nextReturns;
+    const XL6_AstNode* iterableTypeArgs;
+    const XL6_AstNode* iteratorTypeArgs;
+    const XL6_AstNode* prevParams;
+    const XL6_AstNode* prevArgs;
+    XL6_AstNode* ownedIteratorType;
 
     if ( outIterableClass != NULL ) {
         *outIterableClass = NULL;
@@ -58,7 +63,11 @@ static int xl6CgenResolveClassIterableType(
     }
 
     iterableClass = xl6CgenFindClass(ctx, concreteType->text);
-    if ( iterableClass == NULL || xl6CgenClassHasTypeParams(iterableClass) ) {
+    if ( iterableClass == NULL ) {
+        return 0;
+    }
+    iterableTypeArgs = xl6CgenTypeNodeGenericArgs(concreteType);
+    if ( xl6CgenClassHasTypeParams(iterableClass) && iterableTypeArgs == NULL ) {
         return 0;
     }
 
@@ -72,26 +81,55 @@ static int xl6CgenResolveClassIterableType(
         iterOwnerClass = iterableClass;
     }
 
-    iteratorType = xl6CgenSubstituteGenericType(ctx, iterReturns->children[0]);
-    iteratorType = xl6CgenResolveAliasType(ctx, iteratorType);
+    prevParams = ctx->currentGenericParams;
+    prevArgs = ctx->currentGenericArgs;
+    if ( iterableTypeArgs != NULL && xl6CgenClassHasTypeParams(iterableClass) ) {
+        ctx->currentGenericParams = xl6CgenClassTypeParams(iterableClass);
+        ctx->currentGenericArgs = iterableTypeArgs;
+    }
+    ownedIteratorType = xl6CgenCloneCanonicalTypeNode(ctx, iterReturns->children[0]);
+    ctx->currentGenericParams = prevParams;
+    ctx->currentGenericArgs = prevArgs;
+
+    iteratorType = xl6CgenResolveAliasType(ctx, ownedIteratorType);
     if ( iteratorType == NULL || iteratorType->text == NULL ) {
+        xl6AstFree(ownedIteratorType);
         return 0;
     }
     iteratorClass = xl6CgenFindClass(ctx, iteratorType->text);
-    if ( iteratorClass == NULL || xl6CgenClassHasTypeParams(iteratorClass) ) {
+    if ( iteratorClass == NULL ) {
+        xl6AstFree(ownedIteratorType);
+        return 0;
+    }
+    iteratorTypeArgs = xl6CgenTypeNodeGenericArgs(iteratorType);
+    if ( xl6CgenClassHasTypeParams(iteratorClass) && iteratorTypeArgs == NULL ) {
+        xl6AstFree(ownedIteratorType);
         return 0;
     }
 
     nextOwnerClass = NULL;
     nextMethod = xl6CgenFindClassProtocolFunc(ctx, iteratorClass, "__next__", &nextOwnerClass);
     nextReturns = nextMethod != NULL && nextMethod->childCount > 2 ? nextMethod->children[2] : NULL;
+    prevParams = ctx->currentGenericParams;
+    prevArgs = ctx->currentGenericArgs;
+    if ( iteratorTypeArgs != NULL && xl6CgenClassHasTypeParams(iteratorClass) ) {
+        ctx->currentGenericParams = xl6CgenClassTypeParams(iteratorClass);
+        ctx->currentGenericArgs = iteratorTypeArgs;
+    }
     if ( nextReturns == NULL || nextReturns->childCount != 2 ||
          !xl6CgenTypeIsBool(ctx, nextReturns->children[0]) ) {
+        ctx->currentGenericParams = prevParams;
+        ctx->currentGenericArgs = prevArgs;
+        xl6AstFree(ownedIteratorType);
         return 0;
     }
+    ctx->currentGenericParams = prevParams;
+    ctx->currentGenericArgs = prevArgs;
     if ( nextOwnerClass == NULL ) {
         nextOwnerClass = iteratorClass;
     }
+
+    xl6CgenOwnTypeNode(ctx, ownedIteratorType);
 
     if ( outIterableClass != NULL ) {
         *outIterableClass = iterableClass;
@@ -122,20 +160,39 @@ static int xl6CgenIsClassProtocolIterableType(XL6_CgenContext* ctx, const XL6_As
     return xl6CgenResolveClassIterableType(ctx, iterableType, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
 }
 
-static XL6_AstNode* xl6CgenCloneClassIterableItemType(XL6_CgenContext* ctx, const XL6_AstNode* nextMethod)
+static XL6_AstNode* xl6CgenCloneClassIterableItemType(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* iteratorType,
+    const XL6_AstNode* iteratorClass,
+    const XL6_AstNode* nextMethod)
 {
     const XL6_AstNode* returns;
+    const XL6_AstNode* typeArgs;
+    const XL6_AstNode* prevParams;
+    const XL6_AstNode* prevArgs;
+    XL6_AstNode* result;
 
     returns = nextMethod != NULL && nextMethod->childCount > 2 ? nextMethod->children[2] : NULL;
     if ( returns == NULL || returns->childCount != 2 ) {
         return NULL;
     }
-    return xl6CgenCloneCanonicalTypeNode(ctx, returns->children[1]);
+    typeArgs = xl6CgenTypeNodeGenericArgs(iteratorType);
+    prevParams = ctx->currentGenericParams;
+    prevArgs = ctx->currentGenericArgs;
+    if ( typeArgs != NULL && xl6CgenClassHasTypeParams(iteratorClass) ) {
+        ctx->currentGenericParams = xl6CgenClassTypeParams(iteratorClass);
+        ctx->currentGenericArgs = typeArgs;
+    }
+    result = xl6CgenCloneCanonicalTypeNode(ctx, returns->children[1]);
+    ctx->currentGenericParams = prevParams;
+    ctx->currentGenericArgs = prevArgs;
+    return result;
 }
 
 static void xl6CgenEmitClassIteratorNextCall(
     XL6_CgenContext* ctx,
     const char* iterName,
+    const XL6_AstNode* iteratorType,
     const XL6_AstNode* iteratorClass,
     const XL6_AstNode* nextOwnerClass,
     const XL6_AstNode* nextMethod)
@@ -147,7 +204,18 @@ static void xl6CgenEmitClassIteratorNextCall(
         xl6CgenError(ctx, nextMethod, "cannot generate iterator protocol base path");
         basePath[0] = '\0';
     }
-    xl6CgenClassCallableSymbol(ctx, nextOwnerClass, nextMethod);
+    if ( iteratorType != NULL && iteratorType->childCount > 0 && xl6CgenClassHasTypeParams(nextOwnerClass) ) {
+        const XL6_AstNode* prevParams = ctx->currentGenericParams;
+        const XL6_AstNode* prevArgs = ctx->currentGenericArgs;
+
+        ctx->currentGenericParams = xl6CgenClassTypeParams(nextOwnerClass);
+        ctx->currentGenericArgs = iteratorType->children[0];
+        xl6CgenGenericClassCallableSymbol(ctx, nextOwnerClass, iteratorType, nextMethod);
+        ctx->currentGenericParams = prevParams;
+        ctx->currentGenericArgs = prevArgs;
+    } else {
+        xl6CgenClassCallableSymbol(ctx, nextOwnerClass, nextMethod);
+    }
     xl6OutputPuts("(&", ctx->out);
     xl6OutputPuts(iterName != NULL ? iterName : "_", ctx->out);
     xl6OutputPuts(basePath, ctx->out);
@@ -203,7 +271,7 @@ static void xl6CgenForClassProtocolIterable(XL6_CgenContext* ctx, const XL6_AstN
         return;
     }
 
-    itemType = xl6CgenCloneClassIterableItemType(ctx, nextMethod);
+    itemType = xl6CgenCloneClassIterableItemType(ctx, iteratorType, iteratorClass, nextMethod);
     if ( itemType == NULL ) {
         xl6AstFree(receiverType);
         xl6CgenError(ctx, iterable, "iterator __next__ return item type is invalid");
@@ -241,9 +309,20 @@ static void xl6CgenForClassProtocolIterable(XL6_CgenContext* ctx, const XL6_AstN
     ctx->indent += 1;
 
     xl6CgenIndent(ctx);
-    xl6CgenFuncReturnStructName(ctx, nextMethod);
+    if ( iteratorType != NULL && iteratorType->childCount > 0 && xl6CgenClassHasTypeParams(iteratorClass) ) {
+        const XL6_AstNode* prevParams = ctx->currentGenericParams;
+        const XL6_AstNode* prevArgs = ctx->currentGenericArgs;
+
+        ctx->currentGenericParams = xl6CgenClassTypeParams(iteratorClass);
+        ctx->currentGenericArgs = iteratorType->children[0];
+        xl6CgenFuncReturnStructName(ctx, nextMethod);
+        ctx->currentGenericParams = prevParams;
+        ctx->currentGenericArgs = prevArgs;
+    } else {
+        xl6CgenFuncReturnStructName(ctx, nextMethod);
+    }
     xl6OutputPrintf(ctx->out, " %s = ", nextName);
-    xl6CgenEmitClassIteratorNextCall(ctx, iterName, iteratorClass, nextOwnerClass, nextMethod);
+    xl6CgenEmitClassIteratorNextCall(ctx, iterName, iteratorType, iteratorClass, nextOwnerClass, nextMethod);
     xl6OutputPuts(";\n", ctx->out);
     xl6CgenEmitExceptionPropagate(ctx, node);
 

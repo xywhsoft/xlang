@@ -100,6 +100,12 @@ if errorlevel 1 exit /b 1
 release\xl.exe run examples\concurrency.xl %XL6_XL_DEFAULT_LINK_ARGS%
 if errorlevel 1 exit /b 1
 
+release\xl.exe run examples\task_api.xl %XL6_XL_DEFAULT_LINK_ARGS%
+if errorlevel 1 exit /b 1
+
+release\xl.exe run examples\async_generator.xl %XL6_XL_DEFAULT_LINK_ARGS%
+if errorlevel 1 exit /b 1
+
 release\xl.exe run examples\union.xl %XL6_XL_DEFAULT_LINK_ARGS%
 if errorlevel 1 exit /b 1
 
@@ -1129,9 +1135,39 @@ release\xl.exe parse test\cases\generics.xl > release\tmp\generics.ast.txt
 if errorlevel 1 exit /b 1
 release\xl.exe check test\cases\generics.xl
 if errorlevel 1 exit /b 1
+release\xl.exe parse test\cases\sem_generic_constraints.xl > release\tmp\sem_generic_constraints.ast.txt
+if errorlevel 1 exit /b 1
+release\xl.exe check test\cases\sem_generic_constraints.xl
+if errorlevel 1 exit /b 1
+release\xl.exe check test\cases\sem_generic_constraint_unsatisfied.xl > release\tmp\sem_generic_constraint_unsatisfied.err.txt 2>&1
+if not errorlevel 1 (
+    echo sem_generic_constraint_unsatisfied.xl should fail.
+    exit /b 1
+)
+findstr /C:"generic type argument does not satisfy constraint" release\tmp\sem_generic_constraint_unsatisfied.err.txt >nul
+if errorlevel 1 (
+    echo sem_generic_constraint_unsatisfied.err.txt missing generic constraint diagnostic.
+    exit /b 1
+)
+release\xl.exe check test\cases\sem_generic_constraint_unknown.xl > release\tmp\sem_generic_constraint_unknown.err.txt 2>&1
+if not errorlevel 1 (
+    echo sem_generic_constraint_unknown.xl should fail.
+    exit /b 1
+)
+findstr /C:"unknown generic constraint" release\tmp\sem_generic_constraint_unknown.err.txt >nul
+if errorlevel 1 (
+    echo sem_generic_constraint_unknown.err.txt missing unknown constraint diagnostic.
+    exit /b 1
+)
 release\xl.exe check examples\generics.xl
 if errorlevel 1 exit /b 1
 release\xl.exe check examples\generic_identity.xl
+if errorlevel 1 exit /b 1
+release\xl.exe check examples\generic_constraints.xl
+if errorlevel 1 exit /b 1
+release\xl.exe run examples\generic_constraints.xl
+if errorlevel 1 exit /b 1
+release\xl.exe run examples\generic_class_iter.xl
 if errorlevel 1 exit /b 1
 
 release\xl.exe check examples\custom_counter.xl
@@ -1164,6 +1200,8 @@ release\xl.exe check test\cases\class_custom.xl
 if errorlevel 1 exit /b 1
 release\xl.exe check examples\class_custom.xl
 if errorlevel 1 exit /b 1
+release\xl.exe check examples\class_native_bridge.xl
+if errorlevel 1 exit /b 1
 release\xl.exe check examples\class_point.xl
 if errorlevel 1 exit /b 1
 release\xl.exe check examples\object_protocol.xl
@@ -1179,6 +1217,10 @@ if errorlevel 1 exit /b 1
 release\xl.exe check examples\oop_static_access.xl
 if errorlevel 1 exit /b 1
 release\xl.exe run examples\oop_static_access.xl
+if errorlevel 1 exit /b 1
+release\xl.exe check examples\oop_protected_access.xl
+if errorlevel 1 exit /b 1
+release\xl.exe run examples\oop_protected_access.xl
 if errorlevel 1 exit /b 1
 release\xl.exe check examples\oop_virtual_dispatch.xl
 if errorlevel 1 exit /b 1
@@ -1224,6 +1266,8 @@ if errorlevel 1 exit /b 1
 release\xl.exe check examples\copy_clone.xl
 if errorlevel 1 exit /b 1
 release\xl.exe run examples\class_persistence.xl
+if errorlevel 1 exit /b 1
+release\xl.exe run examples\class_field_persistence_attrs.xl
 if errorlevel 1 exit /b 1
 release\xl.exe check test\cases\sem_protocol_valid.xl
 if errorlevel 1 exit /b 1
@@ -1417,6 +1461,46 @@ if not errorlevel 1 (
 findstr /C:"derive value/json/xson" release\tmp\sem_json_stringify_without_derive.err.txt >nul
 if errorlevel 1 (
     echo sem_json_stringify_without_derive.err.txt missing persistence stringify diagnostic.
+    exit /b 1
+)
+release\xl.exe check test\cases\sem_field_attr_unknown.xl > release\tmp\sem_field_attr_unknown.err.txt 2>&1
+if not errorlevel 1 (
+    echo sem_field_attr_unknown.xl should fail.
+    exit /b 1
+)
+findstr /C:"unknown field persistence annotation" release\tmp\sem_field_attr_unknown.err.txt >nul
+if errorlevel 1 (
+    echo sem_field_attr_unknown.err.txt missing unknown annotation diagnostic.
+    exit /b 1
+)
+release\xl.exe check test\cases\sem_field_attr_conflict.xl > release\tmp\sem_field_attr_conflict.err.txt 2>&1
+if not errorlevel 1 (
+    echo sem_field_attr_conflict.xl should fail.
+    exit /b 1
+)
+findstr /C:"skip conflicts with include" release\tmp\sem_field_attr_conflict.err.txt >nul
+if errorlevel 1 (
+    echo sem_field_attr_conflict.err.txt missing conflict diagnostic.
+    exit /b 1
+)
+release\xl.exe check test\cases\sem_field_attr_static.xl > release\tmp\sem_field_attr_static.err.txt 2>&1
+if not errorlevel 1 (
+    echo sem_field_attr_static.xl should fail.
+    exit /b 1
+)
+findstr /C:"static field cannot use persistence annotation" release\tmp\sem_field_attr_static.err.txt >nul
+if errorlevel 1 (
+    echo sem_field_attr_static.err.txt missing static field diagnostic.
+    exit /b 1
+)
+release\xl.exe check test\cases\sem_field_attr_bad_name.xl > release\tmp\sem_field_attr_bad_name.err.txt 2>&1
+if not errorlevel 1 (
+    echo sem_field_attr_bad_name.xl should fail.
+    exit /b 1
+)
+findstr /C:"name option must be a string" release\tmp\sem_field_attr_bad_name.err.txt >nul
+if errorlevel 1 (
+    echo sem_field_attr_bad_name.err.txt missing name option diagnostic.
     exit /b 1
 )
 release\xl.exe check examples\second_stage.xl
@@ -4041,6 +4125,109 @@ if errorlevel 1 exit /b 1
 release\tmp\cgen_var_runtime_objects.exe
 if errorlevel 1 exit /b 1
 
+release\xl.exe cgen test\cases\cgen_runtime_type_baseline.xl --emit release\tmp\cgen_runtime_type_baseline.c
+if errorlevel 1 exit /b 1
+findstr /C:"xl6_xrt_type_value_id(boxedChild" release\tmp\cgen_runtime_type_baseline.c >nul
+if errorlevel 1 (
+    echo cgen_runtime_type_baseline.c missing boxed class runtime type query.
+    exit /b 1
+)
+findstr /C:"xvoCreateRecord(xl6_type_desc_XL_Class_Actor()" release\tmp\cgen_runtime_type_baseline.c >nul
+if errorlevel 1 (
+    echo cgen_runtime_type_baseline.c missing object-derived class record boxing.
+    exit /b 1
+)
+findstr /C:"xvoCreateHandle(xl6_type_desc_XL_Custom_Native()" release\tmp\cgen_runtime_type_baseline.c >nul
+if errorlevel 1 (
+    echo cgen_runtime_type_baseline.c missing custom handle runtime type boxing.
+    exit /b 1
+)
+findstr /C:"xl6_box_XL_Union_Payload(payload)" release\tmp\cgen_runtime_type_baseline.c >nul
+if errorlevel 1 (
+    echo cgen_runtime_type_baseline.c missing union runtime type boxing.
+    exit /b 1
+)
+findstr /C:"xvoCreateCallable(" release\tmp\cgen_runtime_type_baseline.c >nul
+if errorlevel 1 (
+    echo cgen_runtime_type_baseline.c missing callable runtime type boxing.
+    exit /b 1
+)
+findstr /C:"xl6_xrt_typed_array_to_xvalue(xl6_type_desc_XL_Class_Child()" release\tmp\cgen_runtime_type_baseline.c >nul
+if errorlevel 1 (
+    echo cgen_runtime_type_baseline.c missing typed class array runtime descriptor binding.
+    exit /b 1
+)
+"%XL6_TCC%" -Irelease\tcc\include_win %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_runtime_type_baseline.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_runtime_type_baseline.exe
+if errorlevel 1 exit /b 1
+release\tmp\cgen_runtime_type_baseline.exe
+if errorlevel 1 exit /b 1
+
+release\xl.exe cgen test\cases\cgen_runtime_is_as.xl --emit release\tmp\cgen_runtime_is_as.c
+if errorlevel 1 exit /b 1
+findstr /C:"xl6_runtime_value_is(" release\tmp\cgen_runtime_is_as.c >nul
+if errorlevel 1 (
+    echo cgen_runtime_is_as.c missing runtime is helper.
+    exit /b 1
+)
+findstr /C:"xl6_runtime_value_as_record(" release\tmp\cgen_runtime_is_as.c >nul
+if errorlevel 1 (
+    echo cgen_runtime_is_as.c missing runtime record downcast helper.
+    exit /b 1
+)
+findstr /C:"xl6_runtime_type_is(actual" release\tmp\cgen_runtime_is_as.c >nul
+if errorlevel 1 (
+    echo cgen_runtime_is_as.c missing runtime class relation helper.
+    exit /b 1
+)
+"%XL6_TCC%" -Irelease\tcc\include_win %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_runtime_is_as.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_runtime_is_as.exe
+if errorlevel 1 exit /b 1
+release\tmp\cgen_runtime_is_as.exe
+if errorlevel 1 exit /b 1
+
+release\xl.exe cgen test\cases\cgen_runtime_as_fail.xl --emit release\tmp\cgen_runtime_as_fail.c
+if errorlevel 1 (
+    echo cgen_runtime_as_fail.xl should generate runtime failure path.
+    exit /b 1
+)
+findstr /C:"xl6_runtime_fatal(4);" release\tmp\cgen_runtime_as_fail.c >nul
+if errorlevel 1 (
+    echo cgen_runtime_as_fail.c missing runtime as failure branch.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_runtime_as_container_target.xl >nul 2> release\tmp\sem_runtime_as_container_target.err.txt
+if not errorlevel 1 (
+    echo sem_runtime_as_container_target.xl should fail.
+    exit /b 1
+)
+findstr /C:"[sem] as" release\tmp\sem_runtime_as_container_target.err.txt >nul
+if errorlevel 1 (
+    echo sem_runtime_as_container_target.err.txt missing as target diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_runtime_as_static_mismatch.xl >nul 2> release\tmp\sem_runtime_as_static_mismatch.err.txt
+if not errorlevel 1 (
+    echo sem_runtime_as_static_mismatch.xl should fail.
+    exit /b 1
+)
+findstr /C:"[sem] as" release\tmp\sem_runtime_as_static_mismatch.err.txt >nul
+if errorlevel 1 (
+    echo sem_runtime_as_static_mismatch.err.txt missing as source diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_runtime_is_var_target.xl >nul 2> release\tmp\sem_runtime_is_var_target.err.txt
+if not errorlevel 1 (
+    echo sem_runtime_is_var_target.xl should fail.
+    exit /b 1
+)
+findstr /C:"[sem] is" release\tmp\sem_runtime_is_var_target.err.txt >nul
+if errorlevel 1 (
+    echo sem_runtime_is_var_target.err.txt missing is target diagnostic.
+    exit /b 1
+)
+
 release\xl.exe cgen test\cases\cgen_type_conversions.xl --emit release\tmp\cgen_type_conversions.c
 if errorlevel 1 exit /b 1
 findstr /C:"xrtStrToI64(" release\tmp\cgen_type_conversions.c >nul
@@ -6046,6 +6233,67 @@ if errorlevel 1 exit /b 1
 release\tmp\cgen_custom.exe
 if errorlevel 1 exit /b 1
 
+release\xl.exe cgen test\cases\cgen_native_class.xl --emit release\tmp\cgen_native_class.c
+if errorlevel 1 exit /b 1
+findstr /C:"void* counter_open(long long seed);" release\tmp\cgen_native_class.c >nul
+if errorlevel 1 (
+    echo cgen_native_class.c missing native create C prototype.
+    exit /b 1
+)
+findstr /C:"self->handle = counter_open(seed);" release\tmp\cgen_native_class.c >nul
+if errorlevel 1 (
+    echo cgen_native_class.c missing native create wrapper.
+    exit /b 1
+)
+findstr /C:"return counter_add(self->handle, value);" release\tmp\cgen_native_class.c >nul
+if errorlevel 1 (
+    echo cgen_native_class.c missing native method wrapper.
+    exit /b 1
+)
+findstr /C:"counter_close(self->handle);" release\tmp\cgen_native_class.c >nul
+if errorlevel 1 (
+    echo cgen_native_class.c missing native destroy wrapper.
+    exit /b 1
+)
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_native_class.c test\cases\cgen_custom_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_native_class.exe
+if errorlevel 1 exit /b 1
+release\tmp\cgen_native_class.exe
+if errorlevel 1 exit /b 1
+
+release\xl.exe cgen test\cases\cgen_native_class_bind_point.xl --emit release\tmp\cgen_native_class_bind_point.c
+if errorlevel 1 exit /b 1
+findstr /C:"box.handle = raw;" release\tmp\cgen_native_class_bind_point.c >nul
+if errorlevel 1 (
+    echo cgen_native_class_bind_point.c missing native point binding.
+    exit /b 1
+)
+findstr /C:"borrowed_box_close(self->handle);" release\tmp\cgen_native_class_bind_point.c >nul
+if errorlevel 1 (
+    echo cgen_native_class_bind_point.c missing native destroy wrapper.
+    exit /b 1
+)
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_native_class_bind_point.c test\cases\cgen_custom_bind_point_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_native_class_bind_point.exe
+if errorlevel 1 exit /b 1
+release\tmp\cgen_native_class_bind_point.exe
+if errorlevel 1 exit /b 1
+
+release\xl.exe cgen test\cases\cgen_native_class_field.xl --emit release\tmp\cgen_native_class_field.c
+if errorlevel 1 exit /b 1
+findstr /C:"xl_class_NativeBox__value(&self->box)" release\tmp\cgen_native_class_field.c >nul
+if errorlevel 1 (
+    echo cgen_native_class_field.c missing native class field method call.
+    exit /b 1
+)
+findstr /C:"xl_class_NativeBox__destroy(&self->box);" release\tmp\cgen_native_class_field.c >nul
+if errorlevel 1 (
+    echo cgen_native_class_field.c missing native class field cleanup.
+    exit /b 1
+)
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_native_class_field.c test\cases\cgen_class_custom_field_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_native_class_field.exe
+if errorlevel 1 exit /b 1
+release\tmp\cgen_native_class_field.exe
+if errorlevel 1 exit /b 1
+
 release\xl.exe cgen test\cases\cgen_custom_helper.xl --emit release\tmp\cgen_custom_helper.c
 if errorlevel 1 exit /b 1
 findstr /C:"long long xl_custom_Counter__plus(XL_Custom_Counter* self, long long extra);" release\tmp\cgen_custom_helper.c >nul
@@ -6432,6 +6680,28 @@ if errorlevel 1 (
 "%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_derive_persistence.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_derive_persistence.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_derive_persistence.exe
+if errorlevel 1 exit /b 1
+
+release\xl.exe cgen test\cases\cgen_field_persistence_attrs.xl --emit release\tmp\cgen_field_persistence_attrs.c
+if errorlevel 1 exit /b 1
+findstr /C:"display_name" release\tmp\cgen_field_persistence_attrs.c >nul
+if errorlevel 1 (
+    echo cgen_field_persistence_attrs.c missing json field alias.
+    exit /b 1
+)
+findstr /C:"displayNameX" release\tmp\cgen_field_persistence_attrs.c >nul
+if errorlevel 1 (
+    echo cgen_field_persistence_attrs.c missing xson field alias.
+    exit /b 1
+)
+findstr /C:"secret_name" release\tmp\cgen_field_persistence_attrs.c >nul
+if errorlevel 1 (
+    echo cgen_field_persistence_attrs.c missing included private field alias.
+    exit /b 1
+)
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_field_persistence_attrs.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_field_persistence_attrs.exe
+if errorlevel 1 exit /b 1
+release\tmp\cgen_field_persistence_attrs.exe
 if errorlevel 1 exit /b 1
 
 release\xl.exe check test\cases\cgen_class_overloads.xl
@@ -7191,6 +7461,33 @@ if errorlevel 1 exit /b 1
 release\tmp\cgen_generic_class_ctor.exe
 if errorlevel 1 exit /b 1
 
+release\xl.exe cgen test\cases\cgen_generic_class_iter_protocol.xl --emit release\tmp\cgen_generic_class_iter_protocol.c
+if errorlevel 1 exit /b 1
+findstr /C:"typedef struct XL_Class_PairIter__int {" release\tmp\cgen_generic_class_iter_protocol.c >nul
+if errorlevel 1 (
+    echo cgen_generic_class_iter_protocol.c missing generic iterator class dependency.
+    exit /b 1
+)
+findstr /C:"XL_Class_PairIter__T" release\tmp\cgen_generic_class_iter_protocol.c >nul
+if not errorlevel 1 (
+    echo cgen_generic_class_iter_protocol.c leaked unresolved iterator generic type.
+    exit /b 1
+)
+findstr /C:"XL_Class_PairIter__int xl_class_PairBox__int______iter____" release\tmp\cgen_generic_class_iter_protocol.c >nul
+if errorlevel 1 (
+    echo cgen_generic_class_iter_protocol.c missing generic __iter__ return type.
+    exit /b 1
+)
+findstr /C:"xl_class_PairIter__int______next____(&__xl6_class_iter_" release\tmp\cgen_generic_class_iter_protocol.c >nul
+if errorlevel 1 (
+    echo cgen_generic_class_iter_protocol.c missing generic __next__ call.
+    exit /b 1
+)
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_generic_class_iter_protocol.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_generic_class_iter_protocol.exe
+if errorlevel 1 exit /b 1
+release\tmp\cgen_generic_class_iter_protocol.exe
+if errorlevel 1 exit /b 1
+
 release\xl.exe cgen test\cases\cgen_generic_class_explicit_ctor.xl --emit release\tmp\cgen_generic_class_explicit_ctor.c
 if errorlevel 1 exit /b 1
 findstr /C:"XL_Class_Box__int intBox = {0};" release\tmp\cgen_generic_class_explicit_ctor.c >nul
@@ -7680,6 +7977,54 @@ if errorlevel 1 exit /b 1
 release\tmp\export_class_header_host.exe
 if errorlevel 1 exit /b 1
 
+release\xl.exe cgen test\cases\export_class_method.xl --emit release\tmp\export_class_method.c --emit-header release\tmp\export_class_method.h
+if errorlevel 1 exit /b 1
+findstr /C:"int64_t xl6_point_move(XL_Class_Point* self, int64_t dx, int64_t dy);" release\tmp\export_class_method.h >nul
+if errorlevel 1 (
+    echo export_class_method.h missing class method C export declaration.
+    exit /b 1
+)
+findstr /C:"void xl6_point_pair(XL_Class_Point* self, int64_t* out0, int64_t* out1);" release\tmp\export_class_method.h >nul
+if errorlevel 1 (
+    echo export_class_method.h missing class method multi-return C declaration.
+    exit /b 1
+)
+findstr /C:"return xl_class_Point__move(self, dx, dy);" release\tmp\export_class_method.c >nul
+if errorlevel 1 (
+    echo export_class_method.c missing class export wrapper call.
+    exit /b 1
+)
+"%XL6_TCC%" -Irelease\tmp %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\export_class_method.c test\cases\export_class_method_header_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\export_class_method_header_host.exe
+if errorlevel 1 exit /b 1
+release\tmp\export_class_method_header_host.exe
+if errorlevel 1 exit /b 1
+release\xl.exe xapi test\cases\export_class_method.xl --emit release\tmp\export_class_method.xapi.json
+if errorlevel 1 exit /b 1
+findstr /C:"\"kind\":\"class_method\"" release\tmp\export_class_method.xapi.json >nul
+if errorlevel 1 (
+    echo export_class_method.xapi.json missing class_method export metadata.
+    exit /b 1
+)
+findstr /C:"\"owner\":\"Point\"" release\tmp\export_class_method.xapi.json >nul
+if errorlevel 1 (
+    echo export_class_method.xapi.json missing class method owner metadata.
+    exit /b 1
+)
+release\xl.exe abi test\cases\export_class_method.xl --emit release\tmp\export_class_method.abi.txt
+if errorlevel 1 exit /b 1
+findstr /C:"signature: fn:app.Point.move(int,int) as int" release\tmp\export_class_method.abi.txt >nul
+if errorlevel 1 (
+    echo export_class_method.abi.txt missing class method ABI signature.
+    exit /b 1
+)
+release\xl.exe abi test\cases\export_class_method.xl --json --emit release\tmp\export_class_method.abi.json
+if errorlevel 1 exit /b 1
+findstr /C:"\"kind\":\"export_class_method\"" release\tmp\export_class_method.abi.json >nul
+if errorlevel 1 (
+    echo export_class_method.abi.json missing class method export kind.
+    exit /b 1
+)
+
 release\xl.exe cgen test\cases\export_class_inherit.xl --emit release\tmp\export_class_inherit.c --emit-header release\tmp\export_class_inherit.h
 if errorlevel 1 exit /b 1
 findstr /C:"typedef struct XL_Class_Entity" release\tmp\export_class_inherit.h >nul
@@ -8007,6 +8352,21 @@ if errorlevel 1 exit /b 1
 findstr /C:"export app_add_i64" release\tmp\example_c_export.abi.txt >nul
 if errorlevel 1 (
     echo examples\c_export.xl ABI dump missing export.
+    exit /b 1
+)
+
+release\xl.exe cgen examples\class_c_export.xl --emit release\tmp\example_class_c_export.c --emit-header release\tmp\example_class_c_export.h
+if errorlevel 1 exit /b 1
+findstr /C:"int64_t gauge_add(XL_Class_Gauge* self, int64_t delta);" release\tmp\example_class_c_export.h >nul
+if errorlevel 1 (
+    echo examples\class_c_export.xl header missing class method export.
+    exit /b 1
+)
+release\xl.exe abi examples\class_c_export.xl --emit release\tmp\example_class_c_export.abi.txt
+if errorlevel 1 exit /b 1
+findstr /C:"owner: Gauge" release\tmp\example_class_c_export.abi.txt >nul
+if errorlevel 1 (
+    echo examples\class_c_export.xl ABI dump missing class method owner.
     exit /b 1
 )
 
@@ -8779,6 +9139,26 @@ if not errorlevel 1 (
     echo sem_class_private_access.xl should fail.
     exit /b 1
 )
+release\xl.exe check test\cases\sem_class_protected_access.xl >nul 2> release\tmp\sem_class_protected_access.err.txt
+if not errorlevel 1 (
+    echo sem_class_protected_access.xl should fail.
+    exit /b 1
+)
+findstr /C:"protected class member is not accessible" release\tmp\sem_class_protected_access.err.txt >nul
+if errorlevel 1 (
+    echo sem_class_protected_access.xl missing protected access diagnostic.
+    exit /b 1
+)
+release\xl.exe check test\cases\sem_class_access_conflict.xl >nul 2> release\tmp\sem_class_access_conflict.err.txt
+if not errorlevel 1 (
+    echo sem_class_access_conflict.xl should fail.
+    exit /b 1
+)
+findstr /C:"public, private or protected" release\tmp\sem_class_access_conflict.err.txt >nul
+if errorlevel 1 (
+    echo sem_class_access_conflict.xl missing access conflict diagnostic.
+    exit /b 1
+)
 
 release\xl.exe check test\cases\sem_class_static_self.xl >nul 2> release\tmp\sem_class_static_self.err.txt
 if not errorlevel 1 (
@@ -8813,6 +9193,17 @@ if not errorlevel 1 (
 release\xl.exe check test\cases\sem_custom_bad_special.xl >nul 2> release\tmp\sem_custom_bad_special.err.txt
 if not errorlevel 1 (
     echo sem_custom_bad_special.xl should fail.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_native_class_missing_handle.xl >nul 2> release\tmp\sem_native_class_missing_handle.err.txt
+if not errorlevel 1 (
+    echo sem_native_class_missing_handle.xl should fail.
+    exit /b 1
+)
+findstr /C:"native-backed class extern member requires native point handle field" release\tmp\sem_native_class_missing_handle.err.txt >nul
+if errorlevel 1 (
+    echo sem_native_class_missing_handle.err.txt missing native handle diagnostic.
     exit /b 1
 )
 
@@ -8968,6 +9359,39 @@ if not errorlevel 1 (
 release\xl.exe check test\cases\sem_export_generic.xl >nul 2> release\tmp\sem_export_generic.err.txt
 if not errorlevel 1 (
     echo sem_export_generic.xl should fail.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_class_export_static.xl >nul 2> release\tmp\sem_class_export_static.err.txt
+if not errorlevel 1 (
+    echo sem_class_export_static.xl should fail.
+    exit /b 1
+)
+findstr /C:"class C ABI export member cannot be static" release\tmp\sem_class_export_static.err.txt >nul
+if errorlevel 1 (
+    echo sem_class_export_static.err.txt missing class export static diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_class_export_generic.xl >nul 2> release\tmp\sem_class_export_generic.err.txt
+if not errorlevel 1 (
+    echo sem_class_export_generic.xl should fail.
+    exit /b 1
+)
+findstr /C:"class C ABI export member does not support generic class" release\tmp\sem_class_export_generic.err.txt >nul
+if errorlevel 1 (
+    echo sem_class_export_generic.err.txt missing class export generic diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_class_export_duplicate.xl >nul 2> release\tmp\sem_class_export_duplicate.err.txt
+if not errorlevel 1 (
+    echo sem_class_export_duplicate.xl should fail.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$diag=([char]0x91CD)+([char]0x590D)+([char]0x7684)+' C export symbol'; $text=[System.IO.File]::ReadAllText('release\tmp\sem_class_export_duplicate.err.txt',[System.Text.Encoding]::UTF8); if($text.IndexOf($diag) -lt 0){ exit 1 }"
+if errorlevel 1 (
+    echo sem_class_export_duplicate.err.txt missing duplicate C export diagnostic.
     exit /b 1
 )
 
@@ -9733,6 +10157,77 @@ if not errorlevel 1 (
     exit /b 1
 )
 
+release\xl.exe check test\cases\cgen_task_api.xl
+if errorlevel 1 exit /b 1
+
+release\xl.exe cgen test\cases\cgen_task_api.xl --emit release\tmp\cgen_task_api.c
+if errorlevel 1 exit /b 1
+
+findstr /C:"xl6_task_all_start" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing task.all runtime helper.
+    exit /b 1
+)
+findstr /C:"xl6_task_all_values" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing task.all literal helper.
+    exit /b 1
+)
+findstr /C:"xl6_task_race_values" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing task.race literal helper.
+    exit /b 1
+)
+findstr /C:"xl6_task_all_from_array" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing task.all typed array path.
+    exit /b 1
+)
+findstr /C:"xl6_task_race_start" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing task.race runtime helper.
+    exit /b 1
+)
+findstr /C:"xFutureRequestCancel" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing task.cancel lowering.
+    exit /b 1
+)
+findstr /C:"xrtTypeFuture()" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing typed future descriptor.
+    exit /b 1
+)
+
+release\xl.exe build test\cases\cgen_task_api.xl test\cases\cgen_class_host.c -o release\tmp\cgen_task_api.exe
+if errorlevel 1 exit /b 1
+
+release\tmp\cgen_task_api.exe
+if errorlevel 1 exit /b 1
+
+release\xl.exe check test\cases\cgen_task_spawn.xl
+if errorlevel 1 exit /b 1
+
+release\xl.exe cgen test\cases\cgen_task_spawn.xl --emit release\tmp\cgen_task_spawn.c
+if errorlevel 1 exit /b 1
+
+findstr /C:"xl6_task_spawn_values" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing task.spawn runtime helper.
+    exit /b 1
+)
+findstr /C:"XL6_Function __xl6_task_fn_" release\tmp\cgen_task_spawn.c >nul
+if not errorlevel 1 (
+    echo cgen_task_spawn.c should not emit task.spawn statement-expression temporaries.
+    exit /b 1
+)
+
+release\xl.exe build test\cases\cgen_task_spawn.xl -o release\tmp\cgen_task_spawn.exe
+if errorlevel 1 exit /b 1
+
+release\tmp\cgen_task_spawn.exe
+if errorlevel 1 exit /b 1
+
 release\xl.exe check test\cases\cgen_async_exception_propagation.xl
 if errorlevel 1 exit /b 1
 
@@ -9811,14 +10306,130 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_async_generator.xl >nul 2> release\tmp\sem_async_generator.err.txt
+release\xl.exe check test\cases\sem_task_cancel_non_future.xl >nul 2> release\tmp\sem_task_cancel_non_future.err.txt
 if not errorlevel 1 (
-    echo sem_async_generator.xl should fail.
+    echo sem_task_cancel_non_future.xl should fail.
     exit /b 1
 )
-findstr /C:"async generator" release\tmp\sem_async_generator.err.txt >nul
+findstr /C:"task.cancel" release\tmp\sem_task_cancel_non_future.err.txt >nul
 if errorlevel 1 (
-    echo sem_async_generator.xl missing async generator diagnostic.
+    echo sem_task_cancel_non_future.xl missing task.cancel diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_task_all_mixed.xl >nul 2> release\tmp\sem_task_all_mixed.err.txt
+if not errorlevel 1 (
+    echo sem_task_all_mixed.xl should fail.
+    exit /b 1
+)
+findstr /C:"task.all/task.race" release\tmp\sem_task_all_mixed.err.txt >nul
+if errorlevel 1 (
+    echo sem_task_all_mixed.xl missing task.all diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_task_race_empty.xl >nul 2> release\tmp\sem_task_race_empty.err.txt
+if not errorlevel 1 (
+    echo sem_task_race_empty.xl should fail.
+    exit /b 1
+)
+findstr /C:"task.all/task.race" release\tmp\sem_task_race_empty.err.txt >nul
+if errorlevel 1 (
+    echo sem_task_race_empty.xl missing task.race diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_task_spawn_bare_name.xl >nul 2> release\tmp\sem_task_spawn_bare_name.err.txt
+if not errorlevel 1 (
+    echo sem_task_spawn_bare_name.xl should fail.
+    exit /b 1
+)
+findstr /C:"task.spawn first argument" release\tmp\sem_task_spawn_bare_name.err.txt >nul
+if errorlevel 1 (
+    echo sem_task_spawn_bare_name.xl missing task.spawn first argument diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_task_spawn_arg_count.xl >nul 2> release\tmp\sem_task_spawn_arg_count.err.txt
+if not errorlevel 1 (
+    echo sem_task_spawn_arg_count.xl should fail.
+    exit /b 1
+)
+findstr /C:"task.spawn argument count" release\tmp\sem_task_spawn_arg_count.err.txt >nul
+if errorlevel 1 (
+    echo sem_task_spawn_arg_count.xl missing task.spawn count diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_task_spawn_return_var.xl >nul 2> release\tmp\sem_task_spawn_return_var.err.txt
+if not errorlevel 1 (
+    echo sem_task_spawn_return_var.xl should fail.
+    exit /b 1
+)
+findstr /C:"task.spawn return type cannot be var" release\tmp\sem_task_spawn_return_var.err.txt >nul
+if errorlevel 1 (
+    echo sem_task_spawn_return_var.xl missing task.spawn return diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\cgen_async_generator.xl
+if errorlevel 1 (
+    echo cgen_async_generator.xl check failed.
+    exit /b 1
+)
+
+release\xl.exe run test\cases\cgen_async_generator.xl
+if errorlevel 1 exit /b 1
+
+release\xl.exe build test\cases\cgen_async_generator.xl -o release\tmp\cgen_async_generator.exe
+if errorlevel 1 exit /b 1
+
+release\tmp\cgen_async_generator.exe
+if errorlevel 1 exit /b 1
+
+release\xl.exe cgen test\cases\cgen_async_generator.xl --emit release\tmp\cgen_async_generator.c
+if errorlevel 1 exit /b 1
+
+findstr /C:"XL6_Generator* stream" release\tmp\cgen_async_generator.c >nul
+if errorlevel 1 (
+    echo cgen_async_generator.c missing generator return symbol for async func.
+    exit /b 1
+)
+findstr /C:"xl_gen_worker_stream" release\tmp\cgen_async_generator.c >nul
+if errorlevel 1 (
+    echo cgen_async_generator.c missing async generator worker.
+    exit /b 1
+)
+findstr /C:"xl6_future_await_i64_release" release\tmp\cgen_async_generator.c >nul
+if errorlevel 1 (
+    echo cgen_async_generator.c missing await lowering inside generator.
+    exit /b 1
+)
+findstr /C:"xl6_generator_next" release\tmp\cgen_async_generator.c >nul
+if errorlevel 1 (
+    echo cgen_async_generator.c missing for-await generator iteration.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_for_await_non_generator.xl >nul 2> release\tmp\sem_for_await_non_generator.err.txt
+if not errorlevel 1 (
+    echo sem_for_await_non_generator.xl should fail.
+    exit /b 1
+)
+findstr /C:"for await requires generator<T>" release\tmp\sem_for_await_non_generator.err.txt >nul
+if errorlevel 1 (
+    echo sem_for_await_non_generator.xl missing for-await diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_async_type_non_generator.xl >nul 2> release\tmp\sem_async_type_non_generator.err.txt
+if not errorlevel 1 (
+    echo sem_async_type_non_generator.xl should fail.
+    exit /b 1
+)
+findstr /C:"async type marker is only supported on generator<T>" release\tmp\sem_async_type_non_generator.err.txt >nul
+if errorlevel 1 (
+    echo sem_async_type_non_generator.xl missing async type marker diagnostic.
     exit /b 1
 )
 

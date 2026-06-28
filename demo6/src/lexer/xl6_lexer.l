@@ -127,7 +127,7 @@ static XL6_TokenKind xl6LookupKeyword(const char* text, int len)
         {"func", XL6_KW_FUNC}, {"const", XL6_KW_CONST}, {"var", XL6_KW_VAR}, {"auto", XL6_KW_AUTO},
         {"typedef", XL6_KW_TYPEDEF}, {"as", XL6_KW_AS},
         {"if", XL6_KW_IF}, {"then", XL6_KW_THEN}, {"else", XL6_KW_ELSE}, {"elseif", XL6_KW_ELSEIF}, {"end", XL6_KW_END},
-        {"for", XL6_KW_FOR}, {"in", XL6_KW_IN}, {"while", XL6_KW_WHILE}, {"do", XL6_KW_DO},
+        {"for", XL6_KW_FOR}, {"in", XL6_KW_IN}, {"is", XL6_KW_IS}, {"while", XL6_KW_WHILE}, {"do", XL6_KW_DO},
         {"break", XL6_KW_BREAK}, {"continue", XL6_KW_CONTINUE}, {"return", XL6_KW_RETURN},
         {"async", XL6_KW_ASYNC}, {"await", XL6_KW_AWAIT}, {"yield", XL6_KW_YIELD},
         {"try", XL6_KW_TRY}, {"catch", XL6_KW_CATCH}, {"finally", XL6_KW_FINALLY},
@@ -135,8 +135,8 @@ static XL6_TokenKind xl6LookupKeyword(const char* text, int len)
         {"import", XL6_KW_IMPORT}, {"export", XL6_KW_EXPORT}, {"extern", XL6_KW_EXTERN}, {"include", XL6_KW_INCLUDE}, {"define", XL6_KW_DEFINE},
         {"class", XL6_KW_CLASS}, {"custom", XL6_KW_CUSTOM}, {"extends", XL6_KW_EXTENDS}, {"union", XL6_KW_UNION}, {"derive", XL6_KW_DERIVE},
         {"get", XL6_KW_GET}, {"let", XL6_KW_LET},
-        {"public", XL6_KW_PUBLIC}, {"private", XL6_KW_PRIVATE}, {"static", XL6_KW_STATIC},
-        {"override", XL6_KW_OVERRIDE}, {"final", XL6_KW_FINAL}, {"virtual", XL6_KW_VIRTUAL},
+        {"public", XL6_KW_PUBLIC}, {"private", XL6_KW_PRIVATE}, {"protected", XL6_KW_PROTECTED}, {"static", XL6_KW_STATIC},
+        {"override", XL6_KW_OVERRIDE}, {"final", XL6_KW_FINAL}, {"virtual", XL6_KW_VIRTUAL}, {"native", XL6_KW_NATIVE},
         {"and", XL6_KW_AND}, {"or", XL6_KW_OR}, {"not", XL6_KW_NOT}
     };
     size_t i;
@@ -267,6 +267,7 @@ FLOAT_B        {DIGIT}({DIGIT}|_)*[eE][+-]?{DIGIT}({DIGIT}|_)*
 ","                                { xl6SetToken(yyscanner, XL6_TK_COMMA); return XL6_TK_COMMA; }
 ":"                                { xl6SetToken(yyscanner, XL6_TK_COLON); return XL6_TK_COLON; }
 "."                                { xl6SetToken(yyscanner, XL6_TK_DOT); return XL6_TK_DOT; }
+"@"                                { xl6SetToken(yyscanner, XL6_TK_AT); return XL6_TK_AT; }
 "="                                { xl6SetToken(yyscanner, XL6_TK_ASSIGN); return XL6_TK_ASSIGN; }
 "+"                                { xl6SetToken(yyscanner, XL6_TK_PLUS); return XL6_TK_PLUS; }
 "-"                                { xl6SetToken(yyscanner, XL6_TK_MINUS); return XL6_TK_MINUS; }

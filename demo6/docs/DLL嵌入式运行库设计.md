@@ -99,13 +99,13 @@ int xlCompileScriptFileToExe(XL_Context* ctx, const char* path, const char* outp
 
 进程内运行时，DLL 不额外链接外部 `xrt.o`。它会将自身内部链接的 XRT 函数和宿主注册的 C 函数注入 TCC state。
 
-独立 exe 输出只由 `xlc.dll` 负责。目标 exe 仍需要静态链接 XRT object；创建 context 时 DLL API 会优先读取 `XL6_XRT_OBJ` 环境变量，未设置时回退到 `XL6_XRT_OBJ_PATH` 的源码级默认值，并把该路径按 context 创建目录固化为快照。
+独立 exe 输出只由 `xlc.dll` 负责。目标 exe 的 XRT 实现由编译版 VFS 中的单头文件 `lib/xrt/xrt.h` 提供，`xlc.dll` 不再要求外部 `xrt.o`。
 
-libtcc 动态库搜索顺序为：context 显式 `tccDllPath`、`XL6_TCC_DLL` 环境变量、进程默认 `libtcc.dll`、`release\libtcc.dll`、`XL6_TCC_DLL_PATH` 源码级默认值。
+`xl.dll` 与 `xlc.dll` 均静态内嵌 libtcc，不再搜索或复制外部 `libtcc.dll`。`XL_ContextOptions.tccDllPath` 作为公开结构体字段保留，但当前静态 libtcc 构建不会使用它加载动态库。
 
 TCC lib root 默认优先使用 context 显式 `tccLibPath`，否则读取 `XL6_TCC_ROOT`，未设置时回退到 `XL6_TCC_ROOT_PATH`。TCC include、Win include、WinAPI include、library path 和 libtcc runtime 分别优先读取 `XL6_TCC_INCLUDE`、`XL6_TCC_WIN_INCLUDE`、`XL6_TCC_WINAPI_INCLUDE`、`XL6_TCC_LIB`、`XL6_TCC_LIBTCC1`，未设置时回退到 `xl6_toolchain.h` 中的源码级默认值。
 
-`xlCreateContext()` 会记录创建 context 时的当前目录，并把 `workDir`、`tempDir`、显式或默认 TCC 路径、默认 XRT object 路径都按该目录做路径快照。`xlSetWorkDir()` 和 `xlSetTempDir()` 也会按调用当下的当前目录做路径快照。
+`xlCreateContext()` 会记录创建 context 时的当前目录，并把 `workDir`、`tempDir`、显式或默认 TCC 路径按该目录做路径快照。`xlSetWorkDir()` 和 `xlSetTempDir()` 也会按调用当下的当前目录做路径快照。
 
 手动追加的 include/library/link/loadlib 按 API 调用时的路径环境固定。`xlAddIncludePath` 和 `xlAddLibraryPath` 会把相对路径按宿主当前目录固化为快照；`xlAddLinkLibrary` 会保留裸库名，让它继续走 TCC library 搜索规则，但会把像路径的值固化为快照；`xlLoadDependencyLibrary` 会用快照路径加载动态库并记录到 context。
 
@@ -179,7 +179,7 @@ examples\xl_dll_embed_string.c
 
 ## 当前约束
 
-- `xl.dll` 和 `xlc.dll` 当前仍使用外部 `libtcc.dll`，构建时会复制 `libtcc.dll` 到 `release` 目录；宿主也可以通过 `XL6_TCC_DLL`、`XL6_TCC_ROOT`、`XL6_TCC_INCLUDE`、`XL6_TCC_LIB` 等变量复用集中工具链配置。
+- `xl.dll` 和 `xlc.dll` 不生成、不复制、不依赖外部 `libtcc.dll`。`xl.dll` 携带运行版 VFS 小清单，`xlc.dll` 携带完整编译版 VFS 清单；外部 TCC include/lib 等路径存在时仍可覆盖内置兜底资源。
 - 进程内运行适合脚本执行和宿主 C 函数注册。
 - 编译为独立 exe 时，不能直接固化宿主进程函数指针；需要通过普通 C/库链接方式提供外部符号。
 - DLL API 第一版不暴露调试 dump 能力，相关能力继续由 `xl.exe` CLI 提供。

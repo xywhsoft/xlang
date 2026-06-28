@@ -155,6 +155,8 @@ static void xl6CgenDecl(XL6_CgenContext* ctx, const XL6_AstNode* node)
             xl6AstFree(memberFunctionType);
         } else if ( initExpr != NULL && ctorClass != NULL && xl6CTextEquals(ctorClass->text, classNode->text) ) {
             if ( createNode != NULL ) {
+                const XL6_AstNode* createParams;
+
                 xl6CgenIndent(ctx);
                 if ( isGenericClass ) {
                     ctx->currentGenericParams = xl6CgenClassTypeParams(classNode);
@@ -164,14 +166,16 @@ static void xl6CgenDecl(XL6_CgenContext* ctx, const XL6_AstNode* node)
                     xl6CgenClassCallableSymbol(ctx, classNode, createNode);
                 }
                 xl6OutputPrintf(ctx->out, "(&%s", cName);
-                if ( args != NULL && xl6CgenFixedParamCount(createNode->childCount > 0 ? createNode->children[0] : NULL) > 0 ) {
+                createParams = xl6CgenCallableParams(createNode);
+                if ( args != NULL && xl6CgenFixedParamCount(createParams) > 0 ) {
                     xl6OutputPuts(", ", ctx->out);
-                    xl6CgenParamNodeArgs(ctx, createNode->childCount > 0 ? createNode->children[0] : NULL, args);
+                    xl6CgenParamNodeArgs(ctx, createParams, args);
                 }
                 xl6OutputPuts(");\n", ctx->out);
                 ctx->currentGenericParams = prevParams;
                 ctx->currentGenericArgs = prevArgs;
-            } else if ( args != NULL && args->childCount > 0 ) {
+            } else if ( args != NULL && args->childCount > 0 &&
+                        !xl6CgenEmitNativeClassHandleBinding(ctx, classNode, cName, args) ) {
                 xl6CgenError(ctx, initExpr, "class constructor has arguments but no matching create method");
             }
         }

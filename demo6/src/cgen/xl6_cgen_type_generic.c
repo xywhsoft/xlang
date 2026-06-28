@@ -615,6 +615,13 @@ static const char* xl6CgenInferExprType(XL6_CgenContext* ctx, const XL6_AstNode*
         xl6AstFree(typeNode);
         return cType;
     }
+    case XL6_AST_TYPE_IS:
+        return "int";
+    case XL6_AST_TYPE_AS:
+        if ( expr->childCount > 1 ) {
+            return xl6CgenTypeName(ctx, expr->children[1]);
+        }
+        return "int";
     case XL6_AST_NAME:
         varType = xl6CgenFindVarType(ctx, expr->text);
         if ( varType != NULL && !xl6CTextEquals(varType->text, "auto") ) {
@@ -806,6 +813,21 @@ static const char* xl6CgenInferExprType(XL6_CgenContext* ctx, const XL6_AstNode*
                 return persistenceCType;
             }
             if ( xl6CgenIsAsyncFunc(func) ) {
+                if ( xl6CgenFuncReturnsGenerator(ctx, func) &&
+                     func->childCount > 2 &&
+                     func->children[2] != NULL &&
+                     func->children[2]->childCount == 1 ) {
+                    const XL6_AstNode* prevParams = ctx->currentGenericParams;
+                    const XL6_AstNode* prevArgs = ctx->currentGenericArgs;
+                    const char* cType;
+
+                    ctx->currentGenericParams = xl6CgenFuncTypeParams(func);
+                    ctx->currentGenericArgs = typeArgs;
+                    cType = xl6CgenTypeName(ctx, func->children[2]->children[0]);
+                    ctx->currentGenericParams = prevParams;
+                    ctx->currentGenericArgs = prevArgs;
+                    return cType;
+                }
                 return "xfuture*";
             }
             if ( func != NULL && func->childCount > 2 && func->children[2]->childCount == 1 ) {
@@ -843,6 +865,22 @@ static const char* xl6CgenInferExprType(XL6_CgenContext* ctx, const XL6_AstNode*
                 func = xl6CgenResolveCallFuncInternal(ctx, expr, expr->children[0]->text, &inferredArgs, 0);
             }
             if ( xl6CgenIsAsyncFunc(func) ) {
+                if ( xl6CgenFuncReturnsGenerator(ctx, func) &&
+                     func->childCount > 2 &&
+                     func->children[2] != NULL &&
+                     func->children[2]->childCount == 1 ) {
+                    const XL6_AstNode* prevParams = ctx->currentGenericParams;
+                    const XL6_AstNode* prevArgs = ctx->currentGenericArgs;
+                    const char* cType;
+
+                    ctx->currentGenericParams = xl6CgenFuncTypeParams(func);
+                    ctx->currentGenericArgs = inferredArgs;
+                    cType = xl6CgenTypeName(ctx, func->children[2]->children[0]);
+                    ctx->currentGenericParams = prevParams;
+                    ctx->currentGenericArgs = prevArgs;
+                    xl6AstFree(inferredArgs);
+                    return cType;
+                }
                 xl6AstFree(inferredArgs);
                 return "xfuture*";
             }
@@ -857,7 +895,7 @@ static const char* xl6CgenInferExprType(XL6_CgenContext* ctx, const XL6_AstNode*
                     cType = xl6CgenTypeName(ctx, func->children[2]->children[0]);
                     ctx->currentGenericParams = prevParams;
                     ctx->currentGenericArgs = prevArgs;
-                    xl6CgenAddOwnedGenericInstance(ctx, func, inferredArgs);
+                    xl6AstFree(inferredArgs);
                     return cType;
                 }
                 xl6AstFree(inferredArgs);

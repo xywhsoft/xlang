@@ -388,6 +388,9 @@ int xl6CgenNodeNeedsXValueRuntime(const XL6_AstNode* node)
     if ( node->kind == XL6_AST_TYPE && xl6CgenNeedsBasicIsXValueType(node) ) {
         return 1;
     }
+    if ( node->kind == XL6_AST_TYPE_IS || node->kind == XL6_AST_TYPE_AS ) {
+        return 1;
+    }
     if ( xl6CgenNeedsBasicIsToStringMemberCallSyntax(node) ) {
         return 1;
     }

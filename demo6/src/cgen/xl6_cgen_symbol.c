@@ -117,6 +117,7 @@ static const char* xl6CgenCallableName(const XL6_AstNode* node)
     }
     if ( node->kind == XL6_AST_FUNC ||
          node->kind == XL6_AST_ASYNC_FUNC ||
+         node->kind == XL6_AST_EXPORT_FUNC ||
          node->kind == XL6_AST_GET ||
          node->kind == XL6_AST_LET ||
          node->kind == XL6_AST_CUSTOM_EXTERN_FUNC ||
@@ -126,6 +127,8 @@ static const char* xl6CgenCallableName(const XL6_AstNode* node)
     }
     return node->text;
 }
+
+static int xl6CgenIsClassCallableOverloadMember(const XL6_AstNode* node);
 
 static int xl6CgenClassCallableOverloadCount(const XL6_AstNode* classNode, const XL6_AstNode* memberNode)
 {
@@ -142,13 +145,32 @@ static int xl6CgenClassCallableOverloadCount(const XL6_AstNode* classNode, const
     }
     for ( i = 0; i < body->childCount; ++i ) {
         const XL6_AstNode* other = body->children[i];
-        if ( other != NULL &&
-             other->kind == memberNode->kind &&
+        if ( memberNode->kind == XL6_AST_GET || memberNode->kind == XL6_AST_LET ) {
+            if ( other != NULL &&
+                 other->kind == memberNode->kind &&
+                 xl6CTextEquals(xl6CgenCallableName(other), name) ) {
+                count += 1;
+            }
+            continue;
+        }
+        if ( xl6CgenIsClassCallableOverloadMember(memberNode) &&
+             xl6CgenIsClassCallableOverloadMember(other) &&
              xl6CTextEquals(xl6CgenCallableName(other), name) ) {
             count += 1;
         }
     }
     return count;
+}
+
+static int xl6CgenIsClassCallableOverloadMember(const XL6_AstNode* node)
+{
+    return node != NULL &&
+           (node->kind == XL6_AST_FUNC ||
+            node->kind == XL6_AST_ASYNC_FUNC ||
+            node->kind == XL6_AST_EXPORT_FUNC ||
+            node->kind == XL6_AST_CREATE ||
+            node->kind == XL6_AST_CUSTOM_EXTERN_FUNC ||
+            node->kind == XL6_AST_CUSTOM_EXTERN_SPECIAL);
 }
 
 static void xl6CgenClassCallableSymbol(XL6_CgenContext* ctx, const XL6_AstNode* classNode, const XL6_AstNode* memberNode)
@@ -169,8 +191,10 @@ static void xl6CgenClassCallableSymbol(XL6_CgenContext* ctx, const XL6_AstNode* 
     }
 
     if ( memberNode == NULL ||
-         (memberNode->kind != XL6_AST_FUNC && memberNode->kind != XL6_AST_CREATE &&
-          memberNode->kind != XL6_AST_GET && memberNode->kind != XL6_AST_LET) ||
+         (memberNode->kind != XL6_AST_FUNC && memberNode->kind != XL6_AST_EXPORT_FUNC && memberNode->kind != XL6_AST_CREATE &&
+          memberNode->kind != XL6_AST_GET && memberNode->kind != XL6_AST_LET &&
+          memberNode->kind != XL6_AST_CUSTOM_EXTERN_FUNC &&
+          memberNode->kind != XL6_AST_CUSTOM_EXTERN_SPECIAL) ||
          xl6CgenClassCallableOverloadCount(classNode, memberNode) <= 1 ) {
         return;
     }

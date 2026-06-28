@@ -142,6 +142,60 @@ static void xl6CgenExportWrapperProto(XL6_CgenContext* ctx, const XL6_AstNode* n
     xl6OutputPutc(')', ctx->out);
 }
 
+static void xl6CgenClassExportWrapperProto(XL6_CgenContext* ctx, const XL6_AstNode* classNode, const XL6_AstNode* node)
+{
+    size_t i;
+    const XL6_AstNode* returns;
+    const XL6_AstNode* params;
+    int wroteParam;
+
+    returns = node->childCount > 2 ? node->children[2] : NULL;
+    if ( returns != NULL && returns->childCount == 1 ) {
+        xl6OutputPuts(xl6CgenCAbiTypeName(ctx, returns->children[0]), ctx->out);
+    } else {
+        xl6OutputPuts("void", ctx->out);
+    }
+
+    xl6OutputPutc(' ', ctx->out);
+    xl6CgenCStringSymbol(ctx->out, node->text);
+    xl6OutputPutc('(', ctx->out);
+
+    xl6CgenClassTypeName(ctx->out, classNode != NULL ? classNode->text : "_");
+    xl6OutputPuts("* self", ctx->out);
+    wroteParam = 1;
+
+    params = node->childCount > 1 ? node->children[1] : NULL;
+    if ( params != NULL ) {
+        for ( i = 0; i < params->childCount; ++i ) {
+            const XL6_AstNode* param = params->children[i];
+            if ( wroteParam ) {
+                xl6OutputPuts(", ", ctx->out);
+            }
+            if ( param->childCount == 0 || xl6CTextEquals(param->children[0]->text, "array<var>") ||
+                 xl6CTextEquals(param->children[0]->text, "dict<var>") ) {
+                xl6CgenError(ctx, param, "class C ABI export wrapper does not support vararg parameters");
+                xl6OutputPuts("int ", ctx->out);
+            } else {
+                xl6OutputPuts(xl6CgenCAbiTypeName(ctx, param->children[0]), ctx->out);
+                xl6OutputPutc(' ', ctx->out);
+            }
+            xl6CgenFputsCIdent(ctx->out, param->text);
+            wroteParam = 1;
+        }
+    }
+    if ( returns != NULL && returns->childCount > 1 ) {
+        for ( i = 0; i < returns->childCount; ++i ) {
+            if ( wroteParam ) {
+                xl6OutputPuts(", ", ctx->out);
+            }
+            xl6OutputPuts(xl6CgenCAbiTypeName(ctx, returns->children[i]), ctx->out);
+            xl6OutputPrintf(ctx->out, "* out%u", (unsigned)i);
+            wroteParam = 1;
+        }
+    }
+    xl6OutputPutc(')', ctx->out);
+}
+
 static void xl6CgenExternFuncProto(XL6_CgenContext* ctx, const XL6_AstNode* node)
 {
     size_t i;
@@ -279,15 +333,17 @@ static void xl6CgenClassFuncProto(XL6_CgenContext* ctx, const XL6_AstNode* class
 static void xl6CgenClassSpecialProto(XL6_CgenContext* ctx, const XL6_AstNode* classNode, const XL6_AstNode* specialNode)
 {
     const XL6_AstNode* params;
+    const char* name;
 
     xl6OutputPuts("void ", ctx->out);
-    if ( xl6CTextEquals(specialNode->text, "create") ) {
+    name = xl6CgenCallableName(specialNode);
+    if ( xl6CTextEquals(name, "create") ) {
         xl6CgenClassCallableSymbol(ctx, classNode, specialNode);
     } else {
-        xl6CgenClassMemberSymbol(ctx->out, classNode->text, specialNode->text);
+        xl6CgenClassMemberSymbol(ctx->out, classNode->text, name != NULL ? name : "_");
     }
     xl6OutputPutc('(', ctx->out);
-    params = specialNode->childCount > 0 ? specialNode->children[0] : NULL;
+    params = xl6CgenCallableParams(specialNode);
     xl6CgenClassParamList(ctx, classNode, params);
     xl6OutputPutc(')', ctx->out);
 }

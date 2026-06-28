@@ -471,6 +471,139 @@ static void xl6CgenClassAutoCopyProtocol(XL6_CgenContext* ctx, const XL6_AstNode
     xl6OutputPuts("}\n\n", ctx->out);
 }
 
+static void xl6CgenEmitNativeExternArgNames(XL6_CgenContext* ctx, const XL6_AstNode* params, int wroteArg)
+{
+    size_t i;
+
+    for ( i = 0; params != NULL && i < params->childCount; ++i ) {
+        const XL6_AstNode* param = params->children[i];
+        if ( wroteArg ) {
+            xl6OutputPuts(", ", ctx->out);
+        }
+        xl6CgenFputsCIdent(ctx->out, param != NULL ? param->text : "_");
+        wroteArg = 1;
+    }
+}
+
+static void xl6CgenClassExternFunc(XL6_CgenContext* ctx, const XL6_AstNode* classNode, const XL6_AstNode* funcNode)
+{
+    const XL6_AstNode* params;
+    const XL6_AstNode* returns;
+    int hasReturn;
+
+    params = xl6CgenCallableParams(funcNode);
+    returns = funcNode->childCount > 2 ? funcNode->children[2] : NULL;
+    hasReturn = returns != NULL && returns->childCount == 1;
+
+    xl6CgenClassFuncProto(ctx, classNode, funcNode);
+    xl6OutputPuts("\n{\n", ctx->out);
+    ctx->indent += 1;
+
+    xl6CgenIndent(ctx);
+    if ( hasReturn ) {
+        xl6OutputPuts("return ", ctx->out);
+    }
+    xl6CgenCStringSymbol(ctx->out, funcNode->text);
+    xl6OutputPuts("(self->handle", ctx->out);
+    xl6CgenEmitNativeExternArgNames(ctx, params, 1);
+    xl6OutputPuts(");\n", ctx->out);
+
+    ctx->indent -= 1;
+    xl6OutputPuts("}\n\n", ctx->out);
+}
+
+static void xl6CgenClassExternSpecial(XL6_CgenContext* ctx, const XL6_AstNode* classNode, const XL6_AstNode* specialNode)
+{
+    const XL6_AstNode* params;
+    const char* name;
+    const XL6_AstNode* prevClass;
+    size_t varMark;
+
+    params = xl6CgenCallableParams(specialNode);
+    name = xl6CgenCallableName(specialNode);
+
+    xl6CgenClassSpecialProto(ctx, classNode, specialNode);
+    xl6OutputPuts("\n{\n", ctx->out);
+    ctx->indent += 1;
+    varMark = ctx->varCount;
+    prevClass = ctx->currentClass;
+    ctx->currentClass = classNode;
+    xl6CgenAddVarType(ctx, "self", classNode);
+    xl6CgenRegisterParamTypes(ctx, params);
+
+    if ( xl6CTextEquals(name, "create") ) {
+        xl6CgenEmitAutoBaseCreateForSelf(ctx, classNode, specialNode);
+        xl6CgenIndent(ctx);
+        xl6OutputPuts("self->handle = ", ctx->out);
+        xl6CgenCStringSymbol(ctx->out, specialNode->text);
+        xl6OutputPutc('(', ctx->out);
+        xl6CgenEmitNativeExternArgNames(ctx, params, 0);
+        xl6OutputPuts(");\n", ctx->out);
+    } else if ( xl6CTextEquals(name, "destroy") ) {
+        xl6CgenIndent(ctx);
+        xl6OutputPuts("if (self->handle != 0) {\n", ctx->out);
+        ctx->indent += 1;
+        xl6CgenIndent(ctx);
+        xl6CgenCStringSymbol(ctx->out, specialNode->text);
+        xl6OutputPuts("(self->handle);\n", ctx->out);
+        xl6CgenIndent(ctx);
+        xl6OutputPuts("self->handle = 0;\n", ctx->out);
+        ctx->indent -= 1;
+        xl6CgenIndent(ctx);
+        xl6OutputPuts("}\n", ctx->out);
+        xl6CgenEmitClassDestroyTail(ctx, classNode);
+    }
+
+    ctx->currentClass = prevClass;
+    xl6CgenFreeVarsSince(ctx, varMark);
+    ctx->indent -= 1;
+    xl6OutputPuts("}\n\n", ctx->out);
+}
+
+static void xl6CgenClassExportWrapper(XL6_CgenContext* ctx, const XL6_AstNode* classNode, const XL6_AstNode* funcNode)
+{
+    size_t i;
+    const XL6_AstNode* returns;
+    const XL6_AstNode* params;
+
+    xl6CgenClassExportWrapperProto(ctx, classNode, funcNode);
+    xl6OutputPuts("\n{\n", ctx->out);
+    ctx->indent += 1;
+
+    returns = funcNode->childCount > 2 ? funcNode->children[2] : NULL;
+    params = funcNode->childCount > 1 ? funcNode->children[1] : NULL;
+
+    xl6CgenIndent(ctx);
+    if ( returns != NULL && returns->childCount > 1 ) {
+        xl6CgenFuncReturnStructName(ctx, funcNode);
+        xl6OutputPuts(" __xl6_return = ", ctx->out);
+    } else if ( returns != NULL && returns->childCount == 1 ) {
+        xl6OutputPuts("return ", ctx->out);
+    }
+    xl6CgenClassCallableSymbol(ctx, classNode, funcNode);
+    xl6OutputPuts("(self", ctx->out);
+    xl6CgenEmitNativeExternArgNames(ctx, params, 1);
+    xl6OutputPuts(");\n", ctx->out);
+
+    if ( returns != NULL && returns->childCount > 1 ) {
+        for ( i = 0; i < returns->childCount; ++i ) {
+            xl6CgenIndent(ctx);
+            xl6OutputPrintf(ctx->out, "if ( out%u != 0 ) {\n", (unsigned)i);
+            ctx->indent += 1;
+            xl6CgenIndent(ctx);
+            xl6OutputPrintf(ctx->out, "*out%u = (", (unsigned)i);
+            xl6OutputPuts(xl6CgenCAbiTypeName(ctx, returns->children[i]), ctx->out);
+            xl6OutputPrintf(ctx->out, ")__xl6_return.value%u;\n", (unsigned)i);
+            ctx->indent -= 1;
+            xl6CgenIndent(ctx);
+            xl6OutputPuts("}\n", ctx->out);
+        }
+    }
+
+    ctx->indent -= 1;
+    xl6OutputPuts("}\n\n", ctx->out);
+}
+
 static void xl6CgenClassMethods(XL6_CgenContext* ctx, const XL6_AstNode* classNode)
 {
     const XL6_AstNode* body;
@@ -487,10 +620,20 @@ static void xl6CgenClassMethods(XL6_CgenContext* ctx, const XL6_AstNode* classNo
         if ( member == NULL ) {
             continue;
         }
-        if ( member->kind == XL6_AST_FUNC || member->kind == XL6_AST_GET || member->kind == XL6_AST_LET ) {
+        if ( member->kind == XL6_AST_CUSTOM_EXTERN_FUNC ) {
+            xl6CgenClassExternFunc(ctx, classNode, member);
+        } else if ( member->kind == XL6_AST_CUSTOM_EXTERN_SPECIAL ) {
+            if ( xl6CTextEquals(xl6CgenCallableName(member), "destroy") ) {
+                hasDestroy = 1;
+            }
+            xl6CgenClassExternSpecial(ctx, classNode, member);
+        } else if ( member->kind == XL6_AST_EXPORT_FUNC ) {
+            xl6CgenClassFunc(ctx, classNode, member);
+            xl6CgenClassExportWrapper(ctx, classNode, member);
+        } else if ( member->kind == XL6_AST_FUNC || member->kind == XL6_AST_GET || member->kind == XL6_AST_LET ) {
             xl6CgenClassFunc(ctx, classNode, member);
         } else if ( member->kind == XL6_AST_CREATE ) {
-            if ( xl6CTextEquals(member->text, "destroy") ) {
+            if ( xl6CTextEquals(xl6CgenCallableName(member), "destroy") ) {
                 hasDestroy = 1;
             }
             xl6CgenClassSpecial(ctx, classNode, member);
@@ -506,9 +649,23 @@ static void xl6CgenClassMethods(XL6_CgenContext* ctx, const XL6_AstNode* classNo
         xl6CgenClassAutoCopyProtocol(ctx, classNode, "__clone__", 1);
     }
     if ( xl6CgenClassNeedsAutoValueProtocol(ctx, classNode, "__toValue__") ) {
+        xl6CgenClassAutoToValueFormatProtocol(ctx, classNode, NULL);
+        if ( xl6CgenClassHasFormatDerive(classNode, "json") ) {
+            xl6CgenClassAutoToValueFormatProtocol(ctx, classNode, "json");
+        }
+        if ( xl6CgenClassHasFormatDerive(classNode, "xson") ) {
+            xl6CgenClassAutoToValueFormatProtocol(ctx, classNode, "xson");
+        }
         xl6CgenClassAutoToValueProtocol(ctx, classNode);
     }
     if ( xl6CgenClassNeedsAutoValueProtocol(ctx, classNode, "__fromValue__") ) {
+        xl6CgenClassAutoFromValueFormatProtocol(ctx, classNode, NULL);
+        if ( xl6CgenClassHasFormatDerive(classNode, "json") ) {
+            xl6CgenClassAutoFromValueFormatProtocol(ctx, classNode, "json");
+        }
+        if ( xl6CgenClassHasFormatDerive(classNode, "xson") ) {
+            xl6CgenClassAutoFromValueFormatProtocol(ctx, classNode, "xson");
+        }
         xl6CgenClassAutoFromValueProtocol(ctx, classNode);
     }
     xl6CgenClassCopyBuiltinHelpers(ctx, classNode);

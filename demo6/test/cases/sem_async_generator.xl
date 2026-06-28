@@ -1,3 +1,0 @@
-async func bad() as generator<int>
-    yield 1
-end

@@ -8,8 +8,8 @@
 - `xl.dll` 拆分为运行版和编译版两个职责：
   - 运行版只支持宿主进程内创建语言上下文、运行字符串脚本或脚本文件、注册宿主 C 函数。
   - 编译版在运行版能力之外支持编译 exe/dll，并携带必要的内置 TCC/XRT 资源。
-- 运行版不携带 exe/dll 输出所需的头文件、库文件和启动文件，保持体积小。
-- 编译版和 `xl.exe` 使用清单驱动的 VFS，不再扫描目录后把所有文件塞进程序。
+- 运行版携带运行所需的 VFS 小清单，不携带 exe/dll 输出所需的 import def、XRT object 等编译资源，保持体积小。
+- 运行版、编译版和 `xl.exe` 都使用清单驱动的 VFS，不再扫描目录后把所有文件塞进程序。
 - VFS 分为动态 VFS 和静态 VFS：动态 VFS 保存本次编译临时生成物，静态 VFS 保存内置 TCC/XRT 兜底资源。
 - TCC 文件查找顺序固定为：动态 VFS -> 外部文件系统 -> 静态 VFS。
 
@@ -24,7 +24,8 @@
 `xl.dll`：
 - 轻量运行版。
 - 支持 `XL_Context`、运行字符串脚本、运行脚本文件、工作目录、依赖库导入、宿主 C 函数注册。
-- 不内嵌编译 exe/dll 所需资源。
+- 静态内嵌 libtcc，并只内嵌运行 generated C 所需的 TCC include 与 libtcc1 资源。
+- XRT 与宿主注册函数通过 `tcc_add_symbol` 注入 TCC 内存执行环境。
 
 `xlc.dll`：
 - 编译版 DLL。
@@ -156,7 +157,6 @@ include/stdio.h
 include/winapi/windows.h
 lib/libtcc1.a
 lib/xrt/xrt.h
-lib/xrt/xrt.o
 ```
 
 资源组建议：
@@ -165,7 +165,7 @@ lib/xrt/xrt.o
 - `tcc_winapi_include.lzma`
 - `tcc_lib.lzma`
 - `xrt_header.lzma`
-- `xrt_object.lzma`
+- `xrt_object.lzma`（仅 `xl.exe` 完整清单需要；`xlc.dll` 使用 `xrt.h` 单头文件实现）
 
 资源清单记录：
 - 虚拟路径。
@@ -192,14 +192,15 @@ lib/xrt/xrt.o
 - 构建期允许使用 LZMA encoder，但 encoder 不进入 `xl.exe` / `xlc.dll`。
 - 运行期只链接 LZMA decoder，当前为 `lib/lzma/LzmaDec.c`。
 - 解压只发生在资源命中时，不是热路径。
-- 运行版 `xl.dll` 不携带这些资源，也不链接 LZMA decoder。
+- 运行版 `xl.dll` 只携带运行版 VFS 小清单，并链接 LZMA decoder；编译版 `xlc.dll` 和 `xl.exe` 携带完整编译清单。
 - 压缩后不变小的资源仍可用 `STORE` 原样存储；这不是第二套压缩算法，只是资源表的基础存储形态。
 
 本地测算结果：
-- VFS 原始资源约 7.04 MB，LZMA 后约 1.10 MB。
+- `xlc.dll` 编译版 VFS 原始资源约 4.99 MB，LZMA 后约 0.81 MB。
+- 运行版 VFS 原始资源约 1.70 MB，LZMA 后约 0.30 MB。
 - `xl.exe` 当前约 4.12 MB。
-- `xlc.dll` 当前约 4.09 MB。
-- 轻量运行版 `xl.dll` 当前约 2.59 MB。
+- `xlc.dll` 当前约 3.97 MB。
+- 轻量运行版 `xl.dll` 当前约 3.47 MB。
 
 ## 当前已落地
 
@@ -221,7 +222,7 @@ lib/xrt/xrt.o
 - `xl.exe` 已接入清单驱动的内置 VFS 资源包，不再使用 `tcc_xlang` 中粗糙的全量实验资源表。
 - `xl.exe` / `xlc.dll` 的内置 VFS 资源已启用逐资源 LZMA 压缩，运行期只携带 LZMA decoder。
 - 主回归覆盖外部 TCC include/lib、`libtcc1.a`、`xrt.o` 全部缺失时，`xl.exe run` 与 `xl.exe build` 仍可依靠内置 VFS 完成脚本运行和 exe 输出。
-- DLL 回归覆盖移除 `release\libtcc.dll` 且外部 TCC include/lib、`libtcc1.a`、`xrt.o` 全部缺失时，`xlc.dll` 仍可依靠静态 libtcc 与内置 VFS 完成脚本运行和 exe 输出。
+- DLL 回归覆盖 `release\libtcc.dll` 不存在，且外部 TCC include/lib、`libtcc1.a`、`xrt.o` 全部缺失时，`xl.dll` 仍可依靠静态 libtcc 与运行版 VFS 完成脚本运行，`xlc.dll` 仍可依靠静态 libtcc、编译版 VFS 与 `xrt.h` 单头文件完成脚本运行和 exe 输出。
 - `lib/tcc` 已加入轻量 UTF-8 IO 适配层，Windows 下普通 `open` / `fopen` / `unlink` 会转为宽字符 API，主回归覆盖中文路径脚本编译到中文路径 exe。
 - `xl.exe --loadlib` 需要的 DLL 导出 def 生成已改为内嵌调用 `tcc_tool_impdef`，主回归覆盖外部 `tcc.exe` 缺失时的 `--loadlib` 运行。
 

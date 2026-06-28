@@ -27,6 +27,8 @@ const char* xl6AstKindName(XL6_AstKind kind)
     case XL6_AST_CUSTOM_EXTERN_SPECIAL: return "custom_extern_special";
     case XL6_AST_CUSTOM_EXTERN_FUNC: return "custom_extern_func";
     case XL6_AST_TYPE_PARAMS: return "type_params";
+    case XL6_AST_GENERIC_CONSTRAINT: return "generic_constraint";
+    case XL6_AST_FIELD_ATTR: return "field_attr";
     case XL6_AST_PARAM: return "param";
     case XL6_AST_RETURN_TYPES: return "return_types";
     case XL6_AST_BLOCK: return "block";
@@ -58,6 +60,8 @@ const char* xl6AstKindName(XL6_AstKind kind)
     case XL6_AST_MULTI_ASSIGN: return "multi_assign";
     case XL6_AST_CONDITIONAL: return "conditional";
     case XL6_AST_BINARY: return "binary";
+    case XL6_AST_TYPE_IS: return "type_is";
+    case XL6_AST_TYPE_AS: return "type_as";
     case XL6_AST_UNARY: return "unary";
     case XL6_AST_AWAIT: return "await";
     case XL6_AST_ARRAY_LITERAL: return "array_literal";

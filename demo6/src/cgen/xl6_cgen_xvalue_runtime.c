@@ -269,7 +269,9 @@ static void xl6CgenEmitXValueRuntime(XL6_CgenContext* ctx)
     xl6OutputPuts("#define XL6_XRT_TYPE_KIND_HANDLE 14u\n", out);
     xl6OutputPuts("#define XL6_XRT_HANDLE_FLAG_BORROWED 0x00000002u\n", out);
     xl6OutputPuts("#define XL6_XRT_HANDLE_FLAG_NULLABLE 0x00000004u\n", out);
+    xl6OutputPuts("#ifndef XRT_OBJMODE_LOCAL\n", out);
     xl6OutputPuts("#define XRT_OBJMODE_LOCAL 0u\n", out);
+    xl6OutputPuts("#endif\n", out);
     xl6OutputPuts("typedef void* xlist;\n", out);
     xl6OutputPuts("typedef void* xdict;\n", out);
     xl6OutputPuts("typedef void* xavltbase;\n", out);
@@ -348,14 +350,17 @@ static void xl6CgenEmitXValueRuntime(XL6_CgenContext* ctx)
     xl6OutputPuts("const xrt_type_desc* xrtTypeTime(void);\n", out);
     xl6OutputPuts("const xrt_type_desc* xrtTypePoint(void);\n", out);
     xl6OutputPuts("const xrt_type_desc* xrtTypeFunction(void);\n", out);
+    xl6OutputPuts("const xrt_type_desc* xrtTypeFuture(void);\n", out);
     xl6OutputPuts("const xrt_type_desc* xrtTypeArray(void);\n", out);
     xl6OutputPuts("const xrt_type_desc* xrtTypeList(void);\n", out);
     xl6OutputPuts("const xrt_type_desc* xrtTypeSet(void);\n", out);
     xl6OutputPuts("const xrt_type_desc* xrtTypeDict(void);\n", out);
     xl6OutputPuts("const xrt_type_desc* xrtTypeType(void);\n", out);
+    xl6OutputPuts("bool xrtTypeSame(const xrt_type_desc* pA, const xrt_type_desc* pB);\n", out);
     xl6OutputPuts("xvalue xrtTypeBoxValue(const xrt_type_desc* pType, const void* pObj);\n", out);
     xl6OutputPuts("xtarray xrtTypedArrayCreate(const xrt_type_desc* pItemType, unsigned int iMode);\n", out);
     xl6OutputPuts("void xrtTypedArrayDestroy(xtarray pArray);\n", out);
+    xl6OutputPuts("void* xrtTypedArrayAppend(xtarray pArray, const void* pItem);\n", out);
     xl6OutputPuts("bool xrtTypedArrayAppendValue(xtarray pArray, xvalue pVal);\n", out);
     xl6OutputPuts("bool xrtTypedArraySetValue(xtarray pArray, unsigned int iPos, xvalue pVal);\n", out);
     xl6OutputPuts("void* xrtTypedArrayGet(xtarray pArray, unsigned int iPos);\n", out);

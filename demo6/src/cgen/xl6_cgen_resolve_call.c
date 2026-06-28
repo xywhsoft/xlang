@@ -288,6 +288,7 @@ static const XL6_AstNode* xl6CgenResolveCallableInBodyMode(
     XL6_AstKind kind,
     const char* name,
     int requiredStatic,
+    int includeCompatibleKinds,
     int reportNoMatch)
 {
     const XL6_AstNode* fixedMatch;
@@ -318,8 +319,15 @@ static const XL6_AstNode* xl6CgenResolveCallableInBodyMode(
         const XL6_AstNode* params;
         int fixedCount;
         int hasVararg;
+        int kindMatches;
 
-        if ( member == NULL || member->kind != kind || !xl6CTextEquals(xl6CgenCallableName(member), name) ) {
+        kindMatches = member != NULL &&
+                      (member->kind == kind ||
+                       (includeCompatibleKinds &&
+                        ((kind == XL6_AST_CREATE && member->kind == XL6_AST_CUSTOM_EXTERN_SPECIAL) ||
+                         (kind == XL6_AST_FUNC &&
+                          (member->kind == XL6_AST_EXPORT_FUNC || member->kind == XL6_AST_CUSTOM_EXTERN_FUNC)))));
+        if ( member == NULL || !kindMatches || !xl6CTextEquals(xl6CgenCallableName(member), name) ) {
             continue;
         }
         if ( requiredStatic >= 0 && xl6CgenIsStaticMember(member) != requiredStatic ) {
@@ -382,7 +390,18 @@ static const XL6_AstNode* xl6CgenResolveCallableInBody(
     const char* name,
     int reportNoMatch)
 {
-    return xl6CgenResolveCallableInBodyMode(ctx, body, call, kind, name, -1, reportNoMatch);
+    return xl6CgenResolveCallableInBodyMode(ctx, body, call, kind, name, -1, 1, reportNoMatch);
+}
+
+static const XL6_AstNode* xl6CgenResolveCallableInBodyExact(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* body,
+    const XL6_AstNode* call,
+    XL6_AstKind kind,
+    const char* name,
+    int reportNoMatch)
+{
+    return xl6CgenResolveCallableInBodyMode(ctx, body, call, kind, name, -1, 0, reportNoMatch);
 }
 
 static const XL6_AstNode* xl6CgenResolveClassCreate(XL6_CgenContext* ctx, const XL6_AstNode* classNode, const XL6_AstNode* call)
@@ -408,7 +427,27 @@ static const XL6_AstNode* xl6CgenResolveClassFuncMode(
         return NULL;
     }
 
-    method = xl6CgenResolveCallableInBodyMode(ctx, xl6CgenClassBody(classNode), call, XL6_AST_FUNC, name, requiredStatic, 0);
+    method = xl6CgenResolveCallableInBodyMode(ctx, xl6CgenClassBody(classNode), call, XL6_AST_FUNC, name, requiredStatic, 1, 0);
+    if ( method == NULL ) {
+        method = xl6CgenResolveCallableInBodyMode(ctx,
+                                                  xl6CgenClassBody(classNode),
+                                                  call,
+                                                  XL6_AST_EXPORT_FUNC,
+                                                  name,
+                                                  requiredStatic,
+                                                  1,
+                                                  0);
+    }
+    if ( method == NULL ) {
+        method = xl6CgenResolveCallableInBodyMode(ctx,
+                                                  xl6CgenClassBody(classNode),
+                                                  call,
+                                                  XL6_AST_CUSTOM_EXTERN_FUNC,
+                                                  name,
+                                                  requiredStatic,
+                                                  1,
+                                                  0);
+    }
     if ( method != NULL ) {
         if ( outOwnerClass != NULL ) {
             *outOwnerClass = classNode;
@@ -453,7 +492,7 @@ static const XL6_AstNode* xl6CgenResolveCustomFunc(
     const XL6_AstNode* body;
 
     body = customNode != NULL && customNode->childCount > 0 ? customNode->children[0] : NULL;
-    return xl6CgenResolveCallableInBody(ctx, body, call, XL6_AST_FUNC, name, reportNoMatch);
+    return xl6CgenResolveCallableInBodyExact(ctx, body, call, XL6_AST_FUNC, name, reportNoMatch);
 }
 
 static const XL6_AstNode* xl6CgenResolveCustomExternFuncWithReport(

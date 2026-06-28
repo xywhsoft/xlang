@@ -29,6 +29,7 @@ const char* xl6TokenKindName(XL6_TokenKind kind)
     case XL6_KW_END: return "KW_END";
     case XL6_KW_FOR: return "KW_FOR";
     case XL6_KW_IN: return "KW_IN";
+    case XL6_KW_IS: return "KW_IS";
     case XL6_KW_WHILE: return "KW_WHILE";
     case XL6_KW_DO: return "KW_DO";
     case XL6_KW_BREAK: return "KW_BREAK";
@@ -56,10 +57,12 @@ const char* xl6TokenKindName(XL6_TokenKind kind)
     case XL6_KW_LET: return "KW_LET";
     case XL6_KW_PUBLIC: return "KW_PUBLIC";
     case XL6_KW_PRIVATE: return "KW_PRIVATE";
+    case XL6_KW_PROTECTED: return "KW_PROTECTED";
     case XL6_KW_STATIC: return "KW_STATIC";
     case XL6_KW_OVERRIDE: return "KW_OVERRIDE";
     case XL6_KW_FINAL: return "KW_FINAL";
     case XL6_KW_VIRTUAL: return "KW_VIRTUAL";
+    case XL6_KW_NATIVE: return "KW_NATIVE";
     case XL6_KW_AND: return "KW_AND";
     case XL6_KW_OR: return "KW_OR";
     case XL6_KW_NOT: return "KW_NOT";
@@ -72,6 +75,7 @@ const char* xl6TokenKindName(XL6_TokenKind kind)
     case XL6_TK_COMMA: return "COMMA";
     case XL6_TK_COLON: return "COLON";
     case XL6_TK_DOT: return "DOT";
+    case XL6_TK_AT: return "AT";
     case XL6_TK_SCOPE: return "SCOPE";
     case XL6_TK_ARROW: return "ARROW";
     case XL6_TK_FAT_ARROW: return "FAT_ARROW";
