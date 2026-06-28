@@ -1,0 +1,49 @@
+async func addAsync(int a, int b) as int
+    return a + b
+end
+
+async func stream(int start) as generator<int>
+    int first = await addAsync(start, 1)
+    yield first
+    yield await addAsync(first, 2)
+end
+
+func streamAlt(int start) as async generator<int>
+    int first = await addAsync(start, 3)
+    yield first
+    yield await addAsync(first, 4)
+end
+
+func broken() as async generator<int>
+    yield await addAsync(0, 1)
+    throw "async generator boom"
+    yield 2
+end
+
+int total = 0
+for await value in stream(10)
+    total = total + value
+end
+
+assert total == 24, "async generator total failed"
+
+int alt = 0
+for await value in streamAlt(20)
+    alt = alt + value
+end
+
+assert alt == 50, "async generator type-marker total failed"
+
+int errorState = 0
+try
+    for await value in broken()
+        errorState = errorState + value
+    end
+    errorState = 100
+catch e
+    if e.message == "async generator boom" then
+        errorState = errorState + 10
+    end
+end
+
+assert errorState == 11, "async generator error propagation failed"

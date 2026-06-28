@@ -1,0 +1,47 @@
+class Entity
+    derive copy
+
+    int id
+end
+
+class Player extends Entity
+    int score
+end
+
+class JsonData
+    derive json
+    derive clone
+
+    int value
+end
+
+class OrderedBox<T is comparable>
+    T value
+end
+
+func keepEntity<T is Entity>(T obj) as T
+    return obj
+end
+
+func keepComparable<T is comparable>(T value) as T
+    return value
+end
+
+func keepJson<T is json and cloneable>(T value) as T
+    return value
+end
+
+Player p
+p.id = 1
+p.score = 9
+
+auto p2 = keepEntity(p)
+int n = keepComparable(123)
+string s = keepComparable("abc")
+
+JsonData d
+d.value = 7
+auto d2 = keepJson(d)
+
+OrderedBox<int> b
+b.value = n

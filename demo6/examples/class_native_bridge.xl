@@ -1,0 +1,19 @@
+class NativeBuffer
+    native point handle
+
+    extern "buffer_open" create(int size)
+    extern "buffer_close" destroy()
+    extern "buffer_size" func size() as int
+    extern "buffer_write" func write(int index, int value)
+    extern "buffer_read" func read(int index) as int
+
+    func first() as int
+        return self.read(0)
+    end
+end
+
+func demoSize(int size) as int
+    NativeBuffer buffer = NativeBuffer(size)
+    buffer.write(0, 42)
+    return buffer.first() + buffer.size()
+end

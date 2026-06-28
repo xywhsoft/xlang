@@ -1,0 +1,31 @@
+class Point
+    int x
+    int y
+
+    create(int x0, int y0)
+        self.x = x0
+        self.y = y0
+    end
+
+    export "xl6_point_move" func move(int dx, int dy) as int
+        self.x = self.x + dx
+        self.y = self.y + dy
+        return self.x + self.y
+    end
+
+    export "xl6_point_pair" func pair() as (int, int)
+        return self.x, self.y
+    end
+
+    func localValue() as int
+        return self.move(1, 1)
+    end
+end
+
+export "xl6_point_make_for_method" func makePoint(int x, int y) as Point
+    return Point(x, y)
+end
+
+export "xl6_point_local_value" func pointLocalValue(Point point) as int
+    return point.localValue()
+end

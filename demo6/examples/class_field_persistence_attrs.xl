@@ -1,0 +1,66 @@
+class UserRecord
+    derive value
+    derive json
+    derive xson
+
+    int id = 0
+    string name @json("user_name") @xson("userName") = ""
+    private string token @persist(name="token_value", include) = ""
+    string password @persist(skip) = ""
+    string memo @json(omit=empty) @xson(omit=null) = ""
+
+    func setToken(string value)
+        self.token = value
+    end
+
+    func tokenValue() as string
+        return self.token
+    end
+end
+
+func main(...) as int
+    UserRecord user
+    user.id = 12
+    user.name = "Alice"
+    user.setToken("open")
+    user.password = "hidden"
+    user.memo = ""
+
+    string jsonText = json.stringify(user)
+    if string.contains(jsonText, "user_name") == 0 then
+        return 1
+    end
+    if string.contains(jsonText, "userName") != 0 then
+        return 2
+    end
+    if string.contains(jsonText, "token_value") == 0 then
+        return 3
+    end
+    if string.contains(jsonText, "password") != 0 then
+        return 4
+    end
+    if string.contains(jsonText, "memo") != 0 then
+        return 5
+    end
+
+    UserRecord fromJson = json.parse::<UserRecord>(jsonText)
+    if fromJson.id != 12 then
+        return 6
+    end
+    if fromJson.name != "Alice" then
+        return 7
+    end
+    if fromJson.tokenValue() != "open" then
+        return 8
+    end
+
+    string xsonText = xson.stringify(user)
+    if string.contains(xsonText, "userName") == 0 then
+        return 9
+    end
+    if string.contains(xsonText, "user_name") != 0 then
+        return 10
+    end
+
+    return 0
+end

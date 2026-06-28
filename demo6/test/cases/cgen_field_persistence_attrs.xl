@@ -1,0 +1,51 @@
+class Profile
+    derive value
+
+    int id = 0
+    string displayName @json("display_name") @xson("displayNameX") = ""
+    private string secret @persist(name="secret_name", include) = ""
+    string password @persist(skip) = ""
+    string note @json(omit=empty) @xson(omit=null) = ""
+
+    func setSecret(string value)
+        self.secret = value
+    end
+
+    func secretValue() as string
+        return self.secret
+    end
+end
+
+extern "expect_i64" func expect(int actual, int expected)
+extern "expect_str" func expectText(string actual, string expected)
+
+Profile p
+p.id = 42
+p.displayName = "Alice"
+p.setSecret("open")
+p.password = "hidden"
+p.note = ""
+
+string jsonText = json.stringify(p)
+expect(string.contains(jsonText, "display_name"), 1)
+expect(string.contains(jsonText, "displayNameX"), 0)
+expect(string.contains(jsonText, "secret_name"), 1)
+expect(string.contains(jsonText, "password"), 0)
+expect(string.contains(jsonText, "note"), 0)
+
+Profile fromJson = json.parse::<Profile>(jsonText)
+expect(fromJson.id, 42)
+expectText(fromJson.displayName, "Alice")
+expectText(fromJson.secretValue(), "open")
+
+string xsonText = xson.stringify(p)
+expect(string.contains(xsonText, "displayNameX"), 1)
+expect(string.contains(xsonText, "display_name"), 0)
+expect(string.contains(xsonText, "secret_name"), 1)
+expect(string.contains(xsonText, "password"), 0)
+expect(string.contains(xsonText, "note"), 1)
+
+Profile fromXson = xson.parse::<Profile>(xsonText)
+expect(fromXson.id, 42)
+expectText(fromXson.displayName, "Alice")
+expectText(fromXson.secretValue(), "open")

@@ -1,0 +1,88 @@
+extern "expect_i64" func expect(int actual, int expected)
+
+class Base
+    int seed = 1
+end
+
+class Child extends Base
+    int extra = 2
+end
+
+union Payload
+    int value
+    float ratio
+end
+
+func inc(int value) as int
+    return value + 1
+end
+
+var boxedInt = 42
+var boxedFloat = 1.5
+var boxedText = "hello"
+var boxedNull = null
+
+expect(boxedInt is int, 1)
+expect(boxedInt is float, 0)
+expect(boxedInt is null, 0)
+expect(boxedFloat is float, 1)
+expect(boxedText is string, 1)
+expect(boxedNull is null, 1)
+expect(boxedNull is int, 0)
+
+int castInt = boxedInt as int
+float castFloat = boxedFloat as float
+string castText = boxedText as string
+
+expect(castInt, 42)
+expect(castFloat > 1.0, 1)
+expect(castText == "hello", 1)
+expect((boxedInt as int) < 50, 1)
+
+Base base
+Child child
+base.seed = 7
+child.seed = 11
+child.extra = 23
+
+expect(base is Base, 1)
+expect(base is Child, 0)
+expect(child is Base, 1)
+expect(child is Child, 1)
+
+var boxedBase = base
+var boxedChild = child
+
+expect(boxedBase is Base, 1)
+expect(boxedBase is Child, 0)
+expect(boxedChild is Base, 1)
+expect(boxedChild is Child, 1)
+
+Base downBase = boxedChild as Base
+Child downChild = boxedChild as Child
+
+expect(downBase.seed, 11)
+expect(downChild.seed, 11)
+expect(downChild.extra, 23)
+
+Payload payload
+payload.value = 88
+
+var boxedPayload = payload
+expect(boxedPayload is Payload, 1)
+
+Payload castPayload = boxedPayload as Payload
+expect(castPayload.value, 88)
+
+func(int) as int fn = inc
+var boxedFn = fn
+
+expect(boxedFn is func(int) as int, 1)
+expect(boxedFn is func(string) as int, 0)
+expect(int(boxedFn(41)), 42)
+
+array<int> values = array[1, 2, 3]
+var boxedValues = values
+
+expect(boxedValues is array<int>, 1)
+expect(boxedValues is array<string>, 0)

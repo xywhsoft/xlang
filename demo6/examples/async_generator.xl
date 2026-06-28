@@ -1,0 +1,31 @@
+async func loadScore(int base, int bonus) as int
+    return base + bonus
+end
+
+async func scoreStream(int base) as generator<int>
+    int first = await loadScore(base, 1)
+    yield first
+    yield await loadScore(first, 2)
+end
+
+func scoreStreamAlias(int base) as async generator<int>
+    int first = await loadScore(base, 3)
+    yield first
+    yield await loadScore(first, 4)
+end
+
+int total = 0
+for await score in scoreStream(10)
+    total = total + score
+end
+
+assert total == 24, "scoreStream failed"
+
+int aliasTotal = 0
+for await score in scoreStreamAlias(20)
+    aliasTotal = aliasTotal + score
+end
+
+assert aliasTotal == 50, "scoreStreamAlias failed"
+
+print("async generator ok")

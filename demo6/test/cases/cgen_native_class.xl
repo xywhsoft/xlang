@@ -1,0 +1,27 @@
+class NativeCounter
+    native point handle
+
+    extern "counter_open" create(int seed)
+    extern "counter_close" destroy()
+    extern "counter_add" func add(int value) as int
+    extern "counter_value" func value() as int
+
+    func addTwice(int value) as int
+        self.add(value)
+        return self.add(value)
+    end
+end
+
+extern "expect_i64" func expect(int actual, int expected)
+extern "counter_closed" func counterClosed() as int
+
+func exercise()
+    NativeCounter counter = NativeCounter(10)
+    expect(counter.value(), 10)
+    expect(counter.add(5), 15)
+    expect(counter.addTwice(2), 19)
+    expect(counterClosed(), 0)
+end
+
+exercise()
+expect(counterClosed(), 1)

@@ -178,6 +178,41 @@ release\xl.exe --help > release\tmp\help.stdout.txt
 if errorlevel 1 exit /b 1
 powershell -NoProfile -ExecutionPolicy Bypass -Command "$bytes=[System.IO.File]::ReadAllBytes('release\tmp\help.stdout.txt'); $enc=New-Object System.Text.UTF8Encoding($false,$true); $text=$enc.GetString($bytes); if($text.IndexOf('Usage:') -lt 0 -or $text.IndexOf('xl build') -lt 0){ Write-Host 'help.stdout.txt missing UTF-8 CLI help output.'; exit 1 }"
 if errorlevel 1 exit /b 1
+findstr /C:"xl dbg" release\tmp\help.stdout.txt >nul
+if errorlevel 1 (
+    echo help.stdout.txt missing dbg command.
+    exit /b 1
+)
+findstr /C:"xl dap" release\tmp\help.stdout.txt >nul
+if errorlevel 1 (
+    echo help.stdout.txt missing dap command.
+    exit /b 1
+)
+
+release\xl.exe dbg examples\hello.xl --break 2 --commands test\data\dbg_commands.txt --save-temps > release\tmp\dbg_hello.out.txt
+if errorlevel 1 exit /b 1
+findstr /C:"xl-debug stopped reason=breakpoint" release\tmp\dbg_hello.out.txt >nul
+if errorlevel 1 (
+    echo dbg_hello.out.txt missing breakpoint stop.
+    exit /b 1
+)
+findstr /C:"function=add" release\tmp\dbg_hello.out.txt >nul
+if errorlevel 1 (
+    echo dbg_hello.out.txt missing function name.
+    exit /b 1
+)
+findstr /C:"xl-debug frame #0" release\tmp\dbg_hello.out.txt >nul
+if errorlevel 1 (
+    echo dbg_hello.out.txt missing stack frame.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$files = @(Get-ChildItem -LiteralPath 'release\tmp' -Directory -Filter 'xl6_dbg_*' | ForEach-Object { Get-ChildItem -LiteralPath $_.FullName -File -Filter 'module.c' }); if ($files.Count -eq 0) { exit 1 }; $match = $files | Select-String -SimpleMatch 'xl6_debug_probe'; if (-not $match) { exit 1 }"
+if errorlevel 1 (
+    echo debug generated C missing xl6_debug_probe.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_dap_smoke.ps1
+if errorlevel 1 exit /b 1
 
 release\xl.exe lex examples\hello.xl > release\tmp\hello.tokens.txt
 if errorlevel 1 exit /b 1

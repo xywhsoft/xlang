@@ -1,0 +1,26 @@
+class Entity
+    protected int hp = 100
+
+    protected func damage(int value)
+        self.hp = self.hp - value
+    end
+
+    func value() as int
+        return self.hp
+    end
+end
+
+class Player extends Entity
+    func hit(int value) as int
+        self.damage(value)
+        return self.hp
+    end
+end
+
+Player player
+
+assert player.value() == 100, "protected base field initial value failed"
+assert player.hit(15) == 85, "protected base method access failed"
+assert player.value() == 85, "protected base field update failed"
+
+print("oop protected access ok")

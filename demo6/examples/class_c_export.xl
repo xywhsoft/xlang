@@ -1,0 +1,28 @@
+class Gauge
+    int value
+
+    create(int initial)
+        self.value = initial
+    end
+
+    export "gauge_add" func add(int delta) as int
+        self.value = self.value + delta
+        return self.value
+    end
+
+    export "gauge_pair" func pair() as (int, int)
+        return self.value, self.value * 2
+    end
+
+    func localValue() as int
+        return self.add(1)
+    end
+end
+
+export "gauge_new" func gaugeNew(int initial) as Gauge
+    return Gauge(initial)
+end
+
+export "gauge_local_value" func gaugeLocalValue(Gauge gauge) as int
+    return gauge.localValue()
+end

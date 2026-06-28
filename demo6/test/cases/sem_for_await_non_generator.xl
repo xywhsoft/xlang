@@ -1,0 +1,3 @@
+for await value in [1, 2, 3]
+    print(value)
+end

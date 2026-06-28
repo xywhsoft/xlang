@@ -1,0 +1,5 @@
+class BadStaticAttr
+    derive value
+
+    static int value @json("value")
+end

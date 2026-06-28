@@ -1,0 +1,5 @@
+class BadNative
+    extern "counter_value" func value() as int
+end
+
+BadNative bad

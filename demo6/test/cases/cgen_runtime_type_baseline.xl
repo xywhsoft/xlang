@@ -1,0 +1,84 @@
+extern "expect_i64" func expect(int actual, int expected)
+extern "native_handle" func nativeHandle(int value) as point
+
+class Base
+    int seed = 1
+end
+
+class Child extends Base
+    int extra = 2
+end
+
+class Actor extends object
+    int id = 0
+
+    create(int id)
+        self.id = id
+    end
+end
+
+custom Native
+end
+
+union Payload
+    int i
+    c_double d
+end
+
+func inc(int value) as int
+    return value + 1
+end
+
+Base base = Base()
+Child child = Child()
+
+expect(type(base) == Base, 1)
+expect(type(child) == Child, 1)
+expect(type(base) == type(child), 0)
+
+var boxedBase = base
+var boxedChild = child
+
+expect(type(boxedBase) == Base, 1)
+expect(type(boxedChild) == Child, 1)
+expect(type(boxedBase) == type(boxedChild), 0)
+
+Actor actor = Actor(7)
+actor.hp = 120
+actor["score"] = 30
+
+expect(type(actor) == Actor, 1)
+expect(actor.id, 7)
+expect(int(actor.hp), 120)
+expect(int(actor["score"]), 30)
+
+var boxedActor = actor
+expect(type(boxedActor) == Actor, 1)
+
+point raw = nativeHandle(3)
+Native native = Native(raw)
+var boxedNative = native
+
+expect(type(boxedNative) == Native, 1)
+
+Payload payload
+payload.i = 42
+var boxedPayload = payload
+
+expect(type(payload) == Payload, 1)
+expect(type(boxedPayload) == Payload, 1)
+
+func(int) as int fn = inc
+type fnType = type(fn)
+var boxedFn = fn
+
+expect(type(boxedFn) == fnType, 1)
+expect(type(boxedFn) == func, 0)
+expect(int(boxedFn(41)), 42)
+
+array<Child> children = array[child]
+var boxedChildren = children
+
+expect(type(children) == type(boxedChildren), 1)
+expect(type(boxedChildren) == array, 0)
+expect(type(children[0]) == Child, 1)

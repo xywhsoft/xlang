@@ -1,0 +1,59 @@
+class PairBox<T>
+    T first
+    T second
+
+    create(T firstValue, T secondValue)
+        self.first = firstValue
+        self.second = secondValue
+    end
+
+    func __iter__() as PairIter<T>
+        PairIter<T> iter = PairIter::<T>(self.first, self.second)
+        return iter
+    end
+end
+
+class PairIter<T>
+    T first
+    T second
+    int index = 0
+
+    create(T firstValue, T secondValue)
+        self.first = firstValue
+        self.second = secondValue
+        self.index = 0
+    end
+
+    func __next__() as (bool, T)
+        if self.index == 0 then
+            self.index = 1
+            return true, self.first
+        elseif self.index == 1 then
+            self.index = 2
+            return true, self.second
+        end
+        return false, self.second
+    end
+end
+
+func main(...) as int
+    PairBox<int> numbers = PairBox::<int>(10, 20)
+    int sum = 0
+    int weighted = 0
+
+    for value in numbers
+        sum = sum + value
+    end
+
+    for index, value in numbers
+        weighted = weighted + index * 100 + value
+    end
+
+    if sum != 30 then
+        return 1
+    end
+    if weighted != 130 then
+        return 2
+    end
+    return 0
+end

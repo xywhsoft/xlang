@@ -131,6 +131,8 @@ typedef struct XL6_CgenContext {
     const XL6_CgenExprReplacement* exprReplacements;
     size_t exprReplacementCount;
     int currentAsyncWorker;
+    int debugMode;
+    const char* debugSourcePath;
     int needsXValueRuntime;
     int needsFunctionVarRuntime;
     int needsErrorRuntime;
@@ -150,6 +152,8 @@ static int xl6CgenNodeNeedsAsyncRuntime(const XL6_AstNode* node);
 static int xl6CgenNodeNeedsTaskSpawn(const XL6_AstNode* node);
 static void xl6CgenEmitAsyncRuntime(XL6_Output* out);
 static void xl6CgenEmitGeneratorRuntime(XL6_Output* out);
+static void xl6CgenEmitDebugRuntime(XL6_Output* out);
+static void xl6CgenDebugProbe(XL6_CgenContext* ctx, const XL6_AstNode* node);
 static void xl6CgenEmitXrtTypeDescRef(XL6_CgenContext* ctx, const XL6_AstNode* typeNode);
 static void xl6CgenAsyncFuncProto(XL6_CgenContext* ctx, const XL6_AstNode* node);
 static void xl6CgenAsyncFunc(XL6_CgenContext* ctx, const XL6_AstNode* node);

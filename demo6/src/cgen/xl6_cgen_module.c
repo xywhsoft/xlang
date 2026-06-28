@@ -1,5 +1,10 @@
 int xl6CgenEmitC(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags)
 {
+    return xl6CgenEmitCEx(out, root, diags, NULL);
+}
+
+int xl6CgenEmitCEx(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags, const XL6_CgenOptions* options)
+{
     XL6_CgenContext ctx;
     size_t i;
     int hasTopLevel;
@@ -34,6 +39,10 @@ int xl6CgenEmitC(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags)
     ctx.root = root;
     ctx.diags = diags;
     ctx.ok = 1;
+    if ( options != NULL ) {
+        ctx.debugMode = options->debugMode;
+        ctx.debugSourcePath = options->debugSourcePath;
+    }
 
     xl6CgenCollectAnonFuncs(&ctx, root);
     xl6CgenCollectGenericInstancesToFixedPoint(&ctx);
@@ -85,12 +94,18 @@ int xl6CgenEmitC(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags)
     xl6OutputPuts("#include <stdlib.h>\n", out);
     xl6OutputPuts("#include <stddef.h>\n", out);
     xl6OutputPuts("#include <string.h>\n\n", out);
+    if ( ctx.debugMode ) {
+        xl6OutputPuts("#include <stdio.h>\n\n", out);
+    }
     xl6OutputPuts("typedef intptr_t xl6_ssize_t;\n\n", out);
     xl6OutputPuts("static void xl6_runtime_fatal(int code)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    exit(code);\n", out);
     xl6OutputPuts("}\n\n", out);
     xl6CgenEmitLifecycleRuntime(out);
+    if ( ctx.debugMode ) {
+        xl6CgenEmitDebugRuntime(out);
+    }
     if ( xl6CgenNodeNeedsFunctionRuntime(root) || hasHttpServerRuntime || hasTaskSpawn ) {
         xl6CgenEmitFunctionRuntime(out);
     }

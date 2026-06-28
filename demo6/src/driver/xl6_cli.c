@@ -9,6 +9,7 @@
 #include "src/common/xl6_common.h"
 #include "src/common/xl6_console.h"
 #include "src/compile/xl6_compile_unit.h"
+#include "src/debug/xl6_dap.h"
 #include "src/ir/xl6_ir_dump.h"
 #include "src/lexer/xl6_lexer_api.h"
 #include "src/parser/xl6_parser_api.h"
@@ -51,6 +52,8 @@ static void xl6CliPrintHelp(void)
     xl6ConsolePuts(XL6_CONSOLE_STDOUT, "  xl abi <file.xl> [--json] [--emit output.abi.txt]\n");
     xl6ConsolePuts(XL6_CONSOLE_STDOUT, "  xl xapi <file.xl> [--emit output.xapi.json]\n");
     xl6ConsolePuts(XL6_CONSOLE_STDOUT, "  xl run <file.xl> [--save-temps] [--inc-path dir] [--lib-path dir] [--link lib] [--loadlib dll] [-- <args>...]\n");
+    xl6ConsolePuts(XL6_CONSOLE_STDOUT, "  xl dbg <file.xl> [--break line] [--stop-on-entry] [--commands file] [--save-temps] [-- <args>...]\n");
+    xl6ConsolePuts(XL6_CONSOLE_STDOUT, "  xl dap\n");
     xl6ConsolePuts(XL6_CONSOLE_STDOUT, "  xl build <file.xl> -o <output.exe> [-shared] [--save-temps] [--emit-header output.h] [--inc-path dir] [--lib-path dir] [--link lib] [--loadlib dll]\n");
 }
 
@@ -272,6 +275,8 @@ static int xl6CliOptionTakesValue(const char* arg)
             strcmp(arg, "--lib-path") == 0 ||
             strcmp(arg, "--link") == 0 ||
             strcmp(arg, "--loadlib") == 0 ||
+            strcmp(arg, "--break") == 0 ||
+            strcmp(arg, "--commands") == 0 ||
             strcmp(arg, "--format") == 0);
 }
 
@@ -1538,7 +1543,7 @@ static int xl6CliWriteTextFile(const char* path, const char* text, const char* l
     return xl6CliOutputClose(&out, path) ? 0 : 1;
 }
 
-static int xl6CliCgenUnitToMemory(XL6_CompileUnit* unit, char** outText)
+static int xl6CliCgenUnitToMemoryEx(XL6_CompileUnit* unit, char** outText, const XL6_CgenOptions* options)
 {
     XL6_Output out;
     int ok;
@@ -1551,7 +1556,7 @@ static int xl6CliCgenUnitToMemory(XL6_CompileUnit* unit, char** outText)
         return 1;
     }
 
-    ok = xl6CgenEmitC(&out, unit->parse.root, &unit->parse.diags);
+    ok = xl6CgenEmitCEx(&out, unit->parse.root, &unit->parse.diags, options);
     if ( ok && !xl6CliOutputToMemoryText(&out, outText) ) {
         ok = 0;
     }
@@ -1561,6 +1566,116 @@ static int xl6CliCgenUnitToMemory(XL6_CompileUnit* unit, char** outText)
         return 1;
     }
     return 0;
+}
+
+static int xl6CliCgenUnitToMemory(XL6_CompileUnit* unit, char** outText)
+{
+    return xl6CliCgenUnitToMemoryEx(unit, outText, NULL);
+}
+
+static int xl6CliHasStopOnEntryFlag(int argc, char** argv)
+{
+    int i;
+
+    for ( i = 3; i < argc; ++i ) {
+        if ( strcmp(argv[i], "--") == 0 ) {
+            break;
+        }
+        if ( strcmp(argv[i], "--stop-on-entry") == 0 ) {
+            return 1;
+        }
+        if ( xl6CliOptionTakesValue(argv[i]) ) {
+            i += 1;
+        }
+    }
+    return 0;
+}
+
+static const char* xl6CliFindCommandsPath(int argc, char** argv)
+{
+    int i;
+
+    for ( i = 3; i < argc; ++i ) {
+        if ( strcmp(argv[i], "--") == 0 ) {
+            break;
+        }
+        if ( strcmp(argv[i], "--commands") == 0 && (i + 1) < argc ) {
+            return argv[i + 1];
+        }
+        if ( xl6CliOptionTakesValue(argv[i]) ) {
+            i += 1;
+        }
+    }
+    return NULL;
+}
+
+static int xl6CliCollectBreakpoints(char* out, size_t outSize, int argc, char** argv)
+{
+    int i;
+    int started;
+
+    if ( out == NULL || outSize == 0 ) {
+        return 0;
+    }
+    out[0] = '\0';
+    started = 0;
+    for ( i = 3; i < argc; ++i ) {
+        if ( strcmp(argv[i], "--") == 0 ) {
+            break;
+        }
+        if ( strcmp(argv[i], "--break") == 0 && (i + 1) < argc ) {
+            if ( started && !xl6CliAppendText(out, outSize, ",") ) {
+                return 0;
+            }
+            if ( !xl6CliAppendText(out, outSize, argv[i + 1]) ) {
+                return 0;
+            }
+            started = 1;
+            i += 1;
+        } else if ( xl6CliOptionTakesValue(argv[i]) ) {
+            i += 1;
+        }
+    }
+    return 1;
+}
+
+static char* xl6CliMakeEnvItem(const char* name, const char* value)
+{
+    char* text;
+    size_t nameLen;
+    size_t valueLen;
+
+    if ( name == NULL || name[0] == '\0' ) {
+        return NULL;
+    }
+    value = value != NULL ? value : "";
+    nameLen = strlen(name);
+    valueLen = strlen(value);
+    text = (char*)xrtMalloc(nameLen + 1u + valueLen + 1u);
+    if ( text == NULL ) {
+        return NULL;
+    }
+    memcpy(text, name, nameLen);
+    text[nameLen] = '=';
+    memcpy(text + nameLen + 1u, value, valueLen + 1u);
+    return text;
+}
+
+static char* xl6CliReadUtf8TextFile(const char* path)
+{
+    size_t len;
+    char* text;
+
+    if ( path == NULL || path[0] == '\0' ) {
+        return NULL;
+    }
+    len = 0;
+    text = (char*)xrtFileReadAll((char*)path, XRT_CP_UTF8, &len);
+    if ( text == NULL ) {
+        xl6ConsolePrintf(XL6_CONSOLE_STDERR, "cannot read command file: %s\n", path);
+        return NULL;
+    }
+    return text;
 }
 
 static int xl6CliHeaderUnitToFile(XL6_CompileUnit* unit, const char* headerPath)
@@ -2342,6 +2457,203 @@ cleanup:
     return rc;
 }
 
+static int xl6CliDebugCommand(const char* path, int argc, char** argv)
+{
+    XL6_CliProcessArgs runArgs;
+    XL6_CgenOptions cgenOptions;
+    char workDir[512];
+    char cPath[512];
+    char exePath[512];
+    char pathEnv[8192];
+    char breakpoints[1024];
+    char* cText;
+    char* commandsText;
+    char* breakEnv;
+    char* stopEnv;
+    char* commandsEnv;
+    char* pathEnvItems[1];
+    char* envItems[4];
+    char loadlibDefPaths[32][512];
+    const char* cInputs[64];
+    XL6_CliDynamicSource dynamicSources[1];
+    XL6_CompileUnit unit;
+    const char* commandsPath;
+    int rc;
+    int loadlibDefCount;
+    int cInputCount;
+    int i;
+    int argStart;
+    int saveTemps;
+    int workDirReady;
+    int unitReady;
+    int pathEnvCount;
+    int envCount;
+    size_t depIndex;
+
+    xl6CliProcessArgsInit(&runArgs);
+    memset(&cgenOptions, 0, sizeof(cgenOptions));
+    workDir[0] = '\0';
+    cPath[0] = '\0';
+    exePath[0] = '\0';
+    pathEnv[0] = '\0';
+    breakpoints[0] = '\0';
+    cText = NULL;
+    commandsText = NULL;
+    breakEnv = NULL;
+    stopEnv = NULL;
+    commandsEnv = NULL;
+    pathEnvItems[0] = NULL;
+    loadlibDefCount = 0;
+    workDirReady = 0;
+    unitReady = 0;
+    rc = 1;
+
+    if ( !xl6CliCollectBreakpoints(breakpoints, sizeof(breakpoints), argc, argv) ) {
+        xl6ConsolePrintf(XL6_CONSOLE_STDERR, "debug breakpoint list is too long\n");
+        return 1;
+    }
+
+    commandsPath = xl6CliFindCommandsPath(argc, argv);
+    if ( commandsPath != NULL ) {
+        commandsText = xl6CliReadUtf8TextFile(commandsPath);
+        if ( commandsText == NULL ) {
+            return 1;
+        }
+    }
+
+    saveTemps = xl6CliHasSaveTempsFlag(argc, argv);
+    if ( !xl6CliMakeWorkDir(workDir, sizeof(workDir), "dbg") ) {
+        goto cleanup;
+    }
+    workDirReady = 1;
+    if ( !xl6CliJoinPath(cPath, sizeof(cPath), workDir, "module.c") ||
+         !xl6CliJoinPath(exePath, sizeof(exePath), workDir, "app.exe") ) {
+        rc = 1;
+        goto cleanup;
+    }
+
+    unitReady = 1;
+    if ( !xl6CliLoadCheckedUnit(&unit, path) ) {
+        rc = 1;
+        goto cleanup;
+    }
+
+    cgenOptions.debugMode = 1;
+    cgenOptions.debugSourcePath = path;
+    rc = xl6CliCgenUnitToMemoryEx(&unit, &cText, &cgenOptions);
+    if ( rc != 0 ) {
+        goto cleanup;
+    }
+    if ( saveTemps ) {
+        rc = xl6CliWriteTextFile(cPath, cText, "debug C output");
+        if ( rc != 0 ) {
+            goto cleanup;
+        }
+    }
+
+    dynamicSources[0].path = XL6_CLI_VFS_MODULE_C;
+    dynamicSources[0].text = cText;
+    cInputCount = 0;
+    cInputs[cInputCount++] = XL6_CLI_VFS_MODULE_C;
+    for ( depIndex = 0; depIndex < unit.importDeps.cSources.count; ++depIndex ) {
+        if ( cInputCount >= (int)XL6_ARRAY_COUNT(cInputs) ) {
+            xl6ConsolePrintf(XL6_CONSOLE_STDERR, "too many import C source files\n");
+            rc = 1;
+            goto cleanup;
+        }
+        cInputs[cInputCount++] = unit.importDeps.cSources.items[depIndex];
+    }
+    rc = xl6CliCompileWithTccInputs(cInputs, cInputCount, exePath, argc, argv, workDir, &unit.importDeps, loadlibDefPaths, 32, &loadlibDefCount, dynamicSources, 1);
+    if ( rc != 0 ) {
+        xl6ConsolePrintf(XL6_CONSOLE_STDERR, "tcc debug build failed\n");
+        rc = 1;
+        goto cleanup;
+    }
+
+    argStart = 0;
+    for ( i = 3; i < argc; ++i ) {
+        if ( strcmp(argv[i], "--") == 0 ) {
+            argStart = i + 1;
+            break;
+        }
+    }
+    if ( argStart > 0 ) {
+        for ( i = argStart; i < argc; ++i ) {
+            if ( !xl6CliProcessArgsAddBorrow(&runArgs, argv[i]) ) {
+                xl6ConsolePrintf(XL6_CONSOLE_STDERR, "too many program arguments\n");
+                rc = 1;
+                goto cleanup;
+            }
+        }
+    }
+
+    if ( !xl6CliBuildRunPathEnv(pathEnv, sizeof(pathEnv), argc, argv, &unit.importDeps, pathEnvItems, &pathEnvCount) ) {
+        xl6ConsolePrintf(XL6_CONSOLE_STDERR, "debug PATH environment is too long\n");
+        rc = 1;
+        goto cleanup;
+    }
+
+    envCount = 0;
+    if ( pathEnvCount > 0 ) {
+        envItems[envCount++] = pathEnv;
+    }
+    if ( breakpoints[0] != '\0' ) {
+        breakEnv = xl6CliMakeEnvItem("XL6_DBG_BREAKPOINTS", breakpoints);
+        if ( breakEnv == NULL ) {
+            rc = 1;
+            goto cleanup;
+        }
+        envItems[envCount++] = breakEnv;
+    }
+    if ( xl6CliHasStopOnEntryFlag(argc, argv) ) {
+        stopEnv = xl6CliMakeEnvItem("XL6_DBG_STOP_ON_ENTRY", "1");
+        if ( stopEnv == NULL ) {
+            rc = 1;
+            goto cleanup;
+        }
+        envItems[envCount++] = stopEnv;
+    }
+    if ( commandsText != NULL ) {
+        commandsEnv = xl6CliMakeEnvItem("XL6_DBG_COMMANDS", commandsText);
+        if ( commandsEnv == NULL ) {
+            rc = 1;
+            goto cleanup;
+        }
+        envItems[envCount++] = commandsEnv;
+    }
+
+    rc = xl6CliRunProcess(exePath, &runArgs, envItems, envCount);
+    if ( rc != 0 ) {
+        rc = 1;
+        goto cleanup;
+    }
+    rc = 0;
+
+cleanup:
+    xl6CliProcessArgsFree(&runArgs);
+    if ( unitReady ) {
+        xl6CompileUnitFree(&unit);
+    }
+    if ( workDirReady ) {
+        const char* tempFiles[34];
+        int tempCount;
+
+        tempCount = 0;
+        tempFiles[tempCount++] = cPath;
+        tempFiles[tempCount++] = exePath;
+        for ( i = 0; i < loadlibDefCount; ++i ) {
+            tempFiles[tempCount++] = loadlibDefPaths[i];
+        }
+        xl6CliCleanupWorkDir(workDir, tempFiles, tempCount, saveTemps);
+    }
+    xrtFree(cText);
+    xrtFree(commandsText);
+    xrtFree(breakEnv);
+    xrtFree(stopEnv);
+    xrtFree(commandsEnv);
+    return rc;
+}
+
 int xl6CliMain(int argc, char** argv)
 {
     const char* cmd;
@@ -2356,6 +2668,9 @@ int xl6CliMain(int argc, char** argv)
     if ( strcmp(cmd, "help") == 0 || strcmp(cmd, "--help") == 0 || strcmp(cmd, "-h") == 0 ) {
         xl6CliPrintHelp();
         return 0;
+    }
+    if ( strcmp(cmd, "dap") == 0 ) {
+        return xl6DapMain(argc, argv);
     }
 
     file = xl6CliFileArg(argc, argv);
@@ -2383,6 +2698,9 @@ int xl6CliMain(int argc, char** argv)
 
     if ( strcmp(cmd, "run") == 0 ) {
         return xl6CliRunCommand(file, argc, argv);
+    }
+    if ( strcmp(cmd, "dbg") == 0 ) {
+        return xl6CliDebugCommand(file, argc, argv);
     }
     if ( strcmp(cmd, "build") == 0 ) {
         return xl6CliBuildCommand(xl6CliFindOutputPath(argc, argv), xl6CliFindEmitHeaderPath(argc, argv), argc, argv);
