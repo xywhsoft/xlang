@@ -1,0 +1,5 @@
+func add(int left, int right) as int
+    return left + right
+end
+
+auto bad = task.spawn(add, 1, 2)

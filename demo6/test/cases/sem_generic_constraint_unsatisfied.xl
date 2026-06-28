@@ -1,0 +1,10 @@
+class Plain
+    int value
+end
+
+func keepComparable<T is comparable>(T value) as T
+    return value
+end
+
+Plain p
+auto bad = keepComparable(p)

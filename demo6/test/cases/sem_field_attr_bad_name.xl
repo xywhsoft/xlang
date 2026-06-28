@@ -1,0 +1,5 @@
+class BadAttrName
+    derive value
+
+    int value @json(name=bad)
+end

@@ -1,0 +1,5 @@
+class BadAttrConflict
+    derive value
+
+    int value @json(skip, include)
+end

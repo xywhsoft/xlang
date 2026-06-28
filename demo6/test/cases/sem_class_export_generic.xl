@@ -1,0 +1,5 @@
+class BadExportGeneric<T>
+    export "xl6_bad_export_generic" func valueOf() as int
+        return 1
+    end
+end

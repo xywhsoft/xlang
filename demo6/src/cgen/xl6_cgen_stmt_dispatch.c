@@ -257,6 +257,8 @@ static void xl6CgenStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
         return;
     }
 
+    xl6CgenDebugProbe(ctx, node);
+
     switch ( node->kind ) {
     case XL6_AST_VAR_DECL:
     case XL6_AST_CONST_DECL:

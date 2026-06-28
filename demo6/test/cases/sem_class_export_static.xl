@@ -1,0 +1,5 @@
+class BadExportStatic
+    static export "xl6_bad_export_static" func value() as int
+        return 1
+    end
+end

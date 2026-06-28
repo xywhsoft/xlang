@@ -1,0 +1,5 @@
+func bad<T is magic>(T value) as T
+    return value
+end
+
+int a = bad(1)

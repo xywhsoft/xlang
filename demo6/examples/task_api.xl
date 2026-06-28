@@ -1,0 +1,36 @@
+async func addAsync(int a, int b) as int
+    return a + b
+end
+
+func add(int a, int b) as int
+    return a + b
+end
+
+func makeAdder(int base) as func(int) as int
+    return func(int value) as int
+        return base + value
+    end
+end
+
+func(int, int) as int addJob = add
+int spawned = await task.spawn(addJob, 20, 22)
+assert spawned == 42, "task.spawn result"
+
+func(int) as int capturedJob = makeAdder(30)
+int captured = await task.spawn(capturedJob, 12)
+assert captured == 42, "task.spawn closure result"
+
+future<int> one = addAsync(1, 2)
+future<int> two = addAsync(3, 4)
+
+array<int> all = await task.all([one, two])
+assert all.length == 2, "task.all count"
+assert all[0] == 3, "task.all first"
+assert all[1] == 7, "task.all second"
+
+int raced = await task.race([addAsync(10, 1), addAsync(20, 2)])
+assert raced == 11 or raced == 22, "task.race result"
+
+future<int> cancelTarget = addAsync(30, 12)
+bool cancelRequested = task.cancel(cancelTarget)
+assert cancelRequested == true or cancelRequested == false, "task.cancel bool"

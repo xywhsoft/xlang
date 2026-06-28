@@ -1,0 +1,6 @@
+class Entity
+    protected int hp = 100
+end
+
+Entity entity
+int leak = entity.hp

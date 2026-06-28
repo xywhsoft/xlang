@@ -1,0 +1,5 @@
+class BadAttr
+    derive value
+
+    int value @xml(skip)
+end

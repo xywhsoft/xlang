@@ -1,0 +1,2 @@
+var values = array[1, 2, 3]
+array<int> typed = values as array<int>

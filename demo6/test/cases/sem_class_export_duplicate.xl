@@ -1,0 +1,9 @@
+class DuplicateExportOwner
+    export "xl6_duplicate_class_export" func value() as int
+        return 1
+    end
+end
+
+export "xl6_duplicate_class_export" func value2() as int
+    return 2
+end

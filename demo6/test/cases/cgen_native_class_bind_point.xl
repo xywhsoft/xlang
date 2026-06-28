@@ -1,0 +1,20 @@
+class BorrowedBox
+    native point handle
+
+    extern "borrowed_box_close" destroy()
+    extern "borrowed_box_value" func value() as int
+end
+
+extern "make_borrowed_box" func makeBox(int value) as point
+extern "borrowed_close_count" func closeCount() as int
+extern "expect_i64" func expect(int actual, int expected)
+
+func exercise()
+    point raw = makeBox(77)
+    BorrowedBox box = BorrowedBox(raw)
+    expect(box.value(), 77)
+    expect(closeCount(), 0)
+end
+
+exercise()
+expect(closeCount(), 1)

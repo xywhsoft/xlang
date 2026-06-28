@@ -1,0 +1,25 @@
+func add(int left, int right) as int
+    return left + right
+end
+
+func makeAdder(int base) as func(int) as int
+    return func(int value) as int
+        return base + value
+    end
+end
+
+func greet(string name) as string
+    return "hello " + name
+end
+
+func(int, int) as int addJob = add
+int addValue = await task.spawn(addJob, 20, 22)
+assert addValue == 42, "task.spawn should run typed func value"
+
+func(int) as int capturedJob = makeAdder(30)
+int capturedValue = await task.spawn(capturedJob, 12)
+assert capturedValue == 42, "task.spawn should retain closure func value"
+
+func(string) as string greetJob = greet
+string greetValue = await task.spawn(greetJob, "xlang")
+assert greetValue == "hello xlang", "task.spawn should transfer string result"

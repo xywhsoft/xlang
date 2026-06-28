@@ -1,0 +1,6 @@
+func makeValue() as var
+    return 1
+end
+
+func() as var fn = makeValue
+var bad = await task.spawn(fn)

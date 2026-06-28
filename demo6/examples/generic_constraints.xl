@@ -1,0 +1,57 @@
+class Entity
+    derive clone
+
+    int id = 0
+end
+
+class Player extends Entity
+    int score = 0
+end
+
+class Box<T is comparable>
+    T value
+end
+
+func maxValue<T is comparable>(T a, T b) as T
+    if a > b then
+        return a
+    end
+    return b
+end
+
+func keepEntity<T is Entity>(T obj) as T
+    return obj
+end
+
+func cloneValue<T is cloneable>(T value) as T
+    return clone(value)
+end
+
+func main(...) as int
+    int n = maxValue(3, 7)
+    if n != 7 then
+        return 1
+    end
+
+    Box<int> box
+    box.value = n
+    if box.value != 7 then
+        return 2
+    end
+
+    Player p
+    p.id = 10
+    p.score = 5
+
+    auto kept = keepEntity(p)
+    if kept.id != 10 then
+        return 3
+    end
+
+    auto copied = cloneValue(p)
+    if copied.score != 5 then
+        return 4
+    end
+
+    return 0
+end

@@ -1,0 +1,2 @@
+int value = 1
+string text = value as string

@@ -297,6 +297,7 @@ Invoke-GuardStep "static wiring guards" {
     $scripts = @(
         "check_docs_index.ps1",
         "check_cgenrule_docs.ps1",
+        "check_dap_smoke.ps1",
         "check_risk_ledger.ps1",
         "check_cgen_statement_expr_allowlist.ps1",
         "check_cgen_module_size.ps1",

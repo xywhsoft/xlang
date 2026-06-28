@@ -1,0 +1,12 @@
+# Runtime-only TCC builtin VFS manifest for demo6 Windows x64 xl.dll.
+# Format:
+#   dir|virtual-prefix|source-directory
+#   file|virtual-name|source-file
+#
+# xl.dll only needs enough resources to compile and relocate generated C inside
+# the host process. XRT functions are provided by tcc_add_symbol, so xrt.h/xrt.o
+# and executable import libraries stay in the compiler-capable manifest.
+
+dir|include|%XL6_EMBED_TCC_DIST_X64%\include
+
+file|lib/libtcc1.a|%XL6_EMBED_TCC_DIST_X64%\lib\libtcc1.a

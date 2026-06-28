@@ -84,6 +84,7 @@ echo Building DEMO6 xl.exe...
     src\compile\xl6_imports.c ^
     src\common\xl6_console.c ^
     src\common\xl6_output.c ^
+    src\debug\xl6_dap.c ^
     src\diag\xl6_diag.c ^
     src\ast\xl6_ast.c ^
     src\ast\xl6_ast_dump.c ^

@@ -1,0 +1,28 @@
+extern "expect_i64" func expect(int actual, int expected)
+
+async func addAsync(int a, int b) as int
+    return a + b
+end
+
+future<int> one = addAsync(1, 2)
+future<int> two = addAsync(3, 4)
+
+array<int> literalAll = await task.all([one, two])
+expect(literalAll.length, 2)
+expect(literalAll[0], 3)
+expect(literalAll[1], 7)
+
+future<int> three = addAsync(5, 6)
+future<int> four = addAsync(7, 8)
+array<future<int>> jobs = array[three, four]
+array<int> typedAll = await task.all(jobs)
+expect(typedAll.length, 2)
+expect(typedAll[0], 11)
+expect(typedAll[1], 15)
+
+int raced = await task.race([addAsync(9, 1), addAsync(20, 2)])
+assert raced == 10 or raced == 22, "task.race should return one completed value"
+
+future<int> cancelTarget = addAsync(30, 12)
+bool cancelRequested = task.cancel(cancelTarget)
+assert cancelRequested == true or cancelRequested == false, "task.cancel should return bool"

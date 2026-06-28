@@ -27,6 +27,7 @@
 #include "src/cgen/xl6_cgen_function_value.c"
 #include "src/cgen/xl6_cgen_function_member.c"
 #include "src/cgen/xl6_cgen_args.c"
+#include "src/cgen/xl6_cgen_debug.c"
 #include "src/cgen/xl6_cgen_fstring.c"
 #include "src/cgen/xl6_cgen_args_containers.c"
 #include "src/cgen/xl6_cgen_runtime_type.c"
