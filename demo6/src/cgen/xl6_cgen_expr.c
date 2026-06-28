@@ -97,6 +97,12 @@ static void xl6CgenExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
     case XL6_AST_SAFE_INDEX:
         xl6CgenIndexExpr(ctx, node);
         break;
+    case XL6_AST_TYPE_IS:
+        xl6CgenRuntimeTypeIsExpr(ctx, node);
+        break;
+    case XL6_AST_TYPE_AS:
+        xl6CgenRuntimeTypeAsExpr(ctx, node);
+        break;
     case XL6_AST_BINARY:
         if ( xl6CgenClassProtocolBinaryExpr(ctx, node) ) {
             break;
@@ -212,6 +218,8 @@ static void xl6CgenExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
                 } else if ( xl6CgenStaticClassMethodCall(ctx, node, callee) ) {
                     ;
                 } else if ( xl6CgenMemberFunctionInvoke(ctx, node, callee) ) {
+                    ;
+                } else if ( xl6CgenTaskNamespaceCall(ctx, node, callee) ) {
                     ;
                 } else if ( xl6CgenThreadMethodCall(ctx, node, callee) ) {
                     ;

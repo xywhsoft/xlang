@@ -1,3 +1,58 @@
+static void xl6CgenGenericClassDecl(XL6_CgenContext* ctx, const XL6_AstNode* typeNode);
+static void xl6CgenCustomExternProto(XL6_CgenContext* ctx, const XL6_AstNode* customNode, const XL6_AstNode* member);
+
+static int xl6CgenGenericClassMemberHasSignatureTypes(const XL6_AstNode* member)
+{
+    return member != NULL &&
+           (member->kind == XL6_AST_FUNC ||
+            member->kind == XL6_AST_GET ||
+            member->kind == XL6_AST_LET ||
+            member->kind == XL6_AST_CREATE);
+}
+
+static void xl6CgenGenericClassTypeDeclDependency(XL6_CgenContext* ctx, const XL6_AstNode* typeNode)
+{
+    XL6_AstNode* depType;
+
+    if ( ctx == NULL || typeNode == NULL ) {
+        return;
+    }
+    depType = xl6CgenCloneCanonicalTypeNode(ctx, typeNode);
+    if ( depType != NULL && depType->kind == XL6_AST_TYPE && depType->childCount > 0 &&
+         xl6CgenIsClassType(ctx, depType) ) {
+        xl6CgenGenericClassDecl(ctx, depType);
+    } else {
+        xl6CgenTypeDeclDependency(ctx, depType != NULL ? depType : typeNode);
+    }
+    xl6AstFree(depType);
+}
+
+static void xl6CgenGenericClassCallableDeclDependencies(XL6_CgenContext* ctx, const XL6_AstNode* member)
+{
+    const XL6_AstNode* params;
+    const XL6_AstNode* returns;
+    size_t i;
+
+    if ( ctx == NULL || member == NULL ) {
+        return;
+    }
+    params = xl6CgenCallableParams(member);
+    if ( params != NULL ) {
+        for ( i = 0; i < params->childCount; ++i ) {
+            const XL6_AstNode* param = params->children[i];
+            if ( param != NULL && param->childCount > 0 ) {
+                xl6CgenGenericClassTypeDeclDependency(ctx, param->children[0]);
+            }
+        }
+    }
+    returns = member->childCount > 2 ? member->children[2] : NULL;
+    if ( returns != NULL ) {
+        for ( i = 0; i < returns->childCount; ++i ) {
+            xl6CgenGenericClassTypeDeclDependency(ctx, returns->children[i]);
+        }
+    }
+}
+
 static void xl6CgenGenericClassDecl(XL6_CgenContext* ctx, const XL6_AstNode* typeNode)
 {
     const XL6_AstNode* classNode;
@@ -32,7 +87,6 @@ static void xl6CgenGenericClassDecl(XL6_CgenContext* ctx, const XL6_AstNode* typ
     if ( body != NULL ) {
         for ( i = 0; i < body->childCount; ++i ) {
             const XL6_AstNode* member = body->children[i];
-            XL6_AstNode* depType;
             if ( member == NULL ) {
                 continue;
             }
@@ -40,17 +94,14 @@ static void xl6CgenGenericClassDecl(XL6_CgenContext* ctx, const XL6_AstNode* typ
                 xl6CgenInlineUnionDeclDependencies(ctx, member);
                 continue;
             }
+            if ( xl6CgenGenericClassMemberHasSignatureTypes(member) ) {
+                xl6CgenGenericClassCallableDeclDependencies(ctx, member);
+                continue;
+            }
             if ( !xl6CgenIsInstanceField(member) || member->childCount == 0 ) {
                 continue;
             }
-            depType = xl6CgenCloneCanonicalTypeNode(ctx, member->children[0]);
-            if ( depType != NULL && depType->kind == XL6_AST_TYPE && depType->childCount > 0 &&
-                 xl6CgenIsClassType(ctx, depType) ) {
-                xl6CgenGenericClassDecl(ctx, depType);
-            } else {
-                xl6CgenTypeDeclDependency(ctx, depType != NULL ? depType : member->children[0]);
-            }
-            xl6AstFree(depType);
+            xl6CgenGenericClassTypeDeclDependency(ctx, member->children[0]);
         }
     }
 
@@ -414,11 +465,23 @@ static void xl6CgenClassDecls(XL6_CgenContext* ctx, const XL6_AstNode* classNode
             if ( member == NULL ) {
                 continue;
             }
-            if ( member->kind == XL6_AST_FUNC || member->kind == XL6_AST_GET || member->kind == XL6_AST_LET ) {
+            if ( member->kind == XL6_AST_CUSTOM_EXTERN_SPECIAL || member->kind == XL6_AST_CUSTOM_EXTERN_FUNC ) {
+                xl6CgenCustomExternProto(ctx, classNode, member);
+                xl6OutputPuts(";\n", ctx->out);
+            }
+            if ( member->kind == XL6_AST_FUNC ||
+                 member->kind == XL6_AST_EXPORT_FUNC ||
+                 member->kind == XL6_AST_GET ||
+                 member->kind == XL6_AST_LET ||
+                 member->kind == XL6_AST_CUSTOM_EXTERN_FUNC ) {
                 xl6CgenClassFuncProto(ctx, classNode, member);
                 xl6OutputPuts(";\n", ctx->out);
-            } else if ( member->kind == XL6_AST_CREATE ) {
-                if ( xl6CTextEquals(member->text, "destroy") ) {
+                if ( member->kind == XL6_AST_EXPORT_FUNC ) {
+                    xl6CgenClassExportWrapperProto(ctx, classNode, member);
+                    xl6OutputPuts(";\n", ctx->out);
+                }
+            } else if ( member->kind == XL6_AST_CREATE || member->kind == XL6_AST_CUSTOM_EXTERN_SPECIAL ) {
+                if ( xl6CTextEquals(xl6CgenCallableName(member), "destroy") ) {
                     hasDestroy = 1;
                 }
                 xl6CgenClassSpecialProto(ctx, classNode, member);
@@ -438,10 +501,30 @@ static void xl6CgenClassDecls(XL6_CgenContext* ctx, const XL6_AstNode* classNode
             xl6OutputPuts(";\n", ctx->out);
         }
         if ( xl6CgenClassNeedsAutoValueProtocol(ctx, classNode, "__toValue__") ) {
+            xl6CgenClassAutoToValueFormatProto(ctx, classNode, NULL);
+            xl6OutputPuts(";\n", ctx->out);
+            if ( xl6CgenClassHasFormatDerive(classNode, "json") ) {
+                xl6CgenClassAutoToValueFormatProto(ctx, classNode, "json");
+                xl6OutputPuts(";\n", ctx->out);
+            }
+            if ( xl6CgenClassHasFormatDerive(classNode, "xson") ) {
+                xl6CgenClassAutoToValueFormatProto(ctx, classNode, "xson");
+                xl6OutputPuts(";\n", ctx->out);
+            }
             xl6CgenClassAutoToValueProto(ctx, classNode);
             xl6OutputPuts(";\n", ctx->out);
         }
         if ( xl6CgenClassNeedsAutoValueProtocol(ctx, classNode, "__fromValue__") ) {
+            xl6CgenClassAutoFromValueFormatProto(ctx, classNode, NULL);
+            xl6OutputPuts(";\n", ctx->out);
+            if ( xl6CgenClassHasFormatDerive(classNode, "json") ) {
+                xl6CgenClassAutoFromValueFormatProto(ctx, classNode, "json");
+                xl6OutputPuts(";\n", ctx->out);
+            }
+            if ( xl6CgenClassHasFormatDerive(classNode, "xson") ) {
+                xl6CgenClassAutoFromValueFormatProto(ctx, classNode, "xson");
+                xl6OutputPuts(";\n", ctx->out);
+            }
             xl6CgenClassAutoFromValueProto(ctx, classNode);
             xl6OutputPuts(";\n", ctx->out);
         }
@@ -490,11 +573,14 @@ static void xl6CgenClassDefaultInitFields(XL6_CgenContext* ctx, const XL6_AstNod
         XL6_AstNode* fieldCustom;
         XL6_AstNode* ctorCustom;
 
-        if ( !xl6CgenIsInstanceField(member) || member->childCount < 2 ) {
+        if ( !xl6CgenIsInstanceField(member) ) {
             continue;
         }
         fieldType = member->children[0];
-        initExpr = member->children[1];
+        initExpr = xl6CgenFieldDefaultExpr(member);
+        if ( initExpr == NULL ) {
+            continue;
+        }
         fieldCustom = fieldType != NULL ? xl6CgenFindCustom(ctx, fieldType->text) : NULL;
         ctorCustom = NULL;
         if ( fieldCustom != NULL && xl6CgenCallIsCustomCtor(ctx, initExpr, &ctorCustom) ) {
@@ -542,7 +628,7 @@ static void xl6CgenCustomParamList(XL6_CgenContext* ctx, const XL6_AstNode* para
                 xl6CgenError(ctx, param, "custom extern parameter must have a non-vararg C ABI type");
                 xl6OutputPuts("int ", ctx->out);
             } else {
-                xl6OutputPuts(xl6CgenCAbiTypeName(ctx, param->children[0]), ctx->out);
+                xl6OutputPuts(xl6CgenTypeName(ctx, param->children[0]), ctx->out);
                 xl6OutputPutc(' ', ctx->out);
             }
             xl6CgenFputsCIdent(ctx->out, param->text);
@@ -586,7 +672,7 @@ static void xl6CgenCustomExternProto(XL6_CgenContext* ctx, const XL6_AstNode* cu
         xl6CgenError(ctx, returns, "custom extern method cannot return multiple values");
     }
     if ( returns != NULL && returns->childCount == 1 ) {
-        xl6OutputPuts(xl6CgenCAbiTypeName(ctx, returns->children[0]), ctx->out);
+        xl6OutputPuts(xl6CgenTypeName(ctx, returns->children[0]), ctx->out);
     } else {
         xl6OutputPuts("void", ctx->out);
     }

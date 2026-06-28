@@ -147,11 +147,11 @@ int64_t app_add(int64_t left, int64_t right)
 }
 ```
 
-## 6. custom C API 映射
+## 6. native-backed class C API 映射
 
-`custom` 是 C API 进入 xlang 的 OOP 声明机制。
+native-backed class 是 C API 进入 xlang 的 OOP 声明机制。
 
-当前方案已确认：DEMO6 的 `custom` 默认采用 native opaque handle 方案，不沿用 DEMO5 中“custom 强制进入动态对象 + payload”的实现路径。
+当前方案已确认：DEMO6 不再把 `custom` 作为独立用户侧类型系统继续扩展；原 custom 的 native opaque handle 能力并入 class。
 
 示例 C API：
 
@@ -168,9 +168,11 @@ int64_t xxx_add(xptr self, int64_t param);
 对应 xlang 声明：
 
 ```xlang
-custom xxx
-	extern "xxx_create" create()
-	extern "xxx_destroy" destroy()
+class xxx
+    native void* handle
+
+	extern "xxx_create" func __create__()
+	extern "xxx_destroy" func __destroy__()
 	extern "xxx_add" func add(int param) as int
 end
 ```
@@ -185,25 +187,25 @@ a.add(1)
 期望生成方向：
 
 ```c
-XL_Custom_xxx a;
-a.__handle = xxx_create();
-xxx_add(a.__handle, 1);
-xxx_destroy(a.__handle);
+XL_Class_xxx a;
+a.handle = xxx_create();
+xxx_add(a.handle, 1);
+xxx_destroy(a.handle);
 ```
 
 规则：
 
-- custom 实例内部保存一个黑盒 C 指针。
-- custom 成员函数的第一个 C 参数固定为黑盒指针 `self`。
-- xlang 调用 custom 方法时，编译器直接把内部句柄作为第一个参数传给 C 函数。
-- custom 方法调用不能触发动态查找、反射、装箱或额外分配。
-- custom 默认不绑定动态对象字典，不生成动态对象 header，不进入动态对象 method table。
+- native-backed class 实例内部保存一个黑盒 C 指针或 C 数据指针。
+- extern 成员函数的第一个 C 参数固定为 native 句柄或实例指针。
+- xlang 调用 extern 成员方法时，编译器直接把内部句柄作为第一个参数传给 C 函数。
+- native-backed extern 方法调用不能触发动态查找、反射、装箱或额外分配。
+- native-backed class 默认不绑定动态对象字典；只有继承 `object` 时才具备动态字段能力。
 - 后续如果支持 `xxx* self` 这类 typed pointer receiver，必须作为显式增强能力，不影响第一阶段统一黑盒指针规则。
-- 如果 custom 声明了 `extern create`，`Type(...)` 调用对应 C 构造函数并保存返回句柄。
-- 如果 custom 没有声明 `extern create`，`Type(point_value)` 表示直接绑定已有 C 指针，不调用任何构造函数。
-- 如果 custom 声明了 `extern destroy`，编译器在变量生命周期结束处对非空句柄插入清理调用。
-- 如果 custom 没有声明 `extern destroy`，xlang 不释放句柄，也不猜测释放方式。
-- custom 的默认初始化值是空句柄；普通方法调用不自动做空句柄检查，而是直接把句柄传给 C 函数。
+- 如果 class 声明了 extern `__create__`，`Type(...)` 调用对应 C 构造函数并保存返回句柄。
+- 如果 class 没有声明 extern `__create__`，可通过显式 native 绑定规则接收已有 C 指针。
+- 如果 class 声明了 extern `__destroy__`，编译器在变量生命周期结束处对非空句柄插入清理调用。
+- 如果 class 没有声明 extern `__destroy__`，xlang 不释放句柄，也不猜测释放方式。
+- native 资源的默认初始化值是空句柄；普通方法调用不自动做空句柄检查，而是直接把句柄传给 C 函数。
 - 第一阶段不引入手写 `delete` 语句，也不把普通关闭方法自动识别为生命周期结束。
 
 ## 7. 类型范围
@@ -222,11 +224,11 @@ xxx_destroy(a.__handle);
 
 `c_*` 类型只用于 ABI 对齐，不作为 xlang 日常推荐类型。需要固定宽度时使用 `int32`、`uint64` 等类型；需要跟随 C 编译器和目标平台 ABI 时使用 `c_int`、`c_long`、`c_size` 等类型。
 
-第一阶段建议不直接导出：
+第一阶段不做无元数据裸导出：
 
 - `var`
 - `array/list/set/dict`
-- `class/custom`
+- `class`
 - `error`
 - `future/task/channel/generator`
 - 多返回值函数
@@ -236,7 +238,9 @@ xxx_destroy(a.__handle);
 
 - 不支持的类型在 `check` 或 `cgen` 阶段直接报错。
 - 不做自动回退到 `xvalue` 的兼容方案。
-- 如果确实要跨 C 暴露复杂对象，应显式设计为 `point` 句柄或 XRT 类型。
+- 如果要跨 C 暴露复杂对象，应显式使用 XRT 类型、XAPI 元数据、生成头文件或 C ABI wrapper。
+- C 可以访问 xlang 的数据结构，但访问方式必须由 XRT 类型和 ABI 元数据支撑。
+- C 调用 xlang 成员函数必须通过显式 `export "c_symbol"` wrapper 或未来的 xcall 入口。
 
 ## 8. 重载与符号名
 
@@ -259,6 +263,33 @@ end
 如果重载函数使用 `export func add(...)` 但没有 C 符号，只影响 xlang 模块导出，不生成 C 头文件声明。
 
 重载解析的完整规则见 `函数重载设计.md`。
+
+## 8.1 class 数据与成员函数导出
+
+C 与 xlang 的 class 混编采用以下原则：
+
+- 数据尽量透明。
+- 行为显式导出。
+- 复杂语义通过 XRT 类型、XAPI 元数据和 wrapper 解释。
+
+数据透明表示：
+
+- C 可以看到生成的 class C 结构体声明。
+- C 可以访问 `string`、`array`、`list`、`set`、`dict`、`function`、object 动态字段等 XRT 能表达的数据。
+- 泛型已实例化类型可以生成具体 C 类型和元数据。
+- 泛型未实例化类型只作为元数据存在，不能直接构造值。
+- virtual class、object 动态字段和协议能力通过元数据与运行时 helper 暴露，不靠 C 直接猜测布局。
+
+行为显式导出表示：
+
+- xlang 成员函数不会默认全部进入 C API。
+- 需要给 C 调用的成员函数必须显式 `export "c_symbol"`。
+- 导出的成员函数生成 C wrapper，第一个参数是实例指针；static 方法没有实例参数。
+- 可选参数在 C API 中失效，C wrapper 使用完整参数列表。
+- `...` 映射为 XRT array 参数。
+- `***` 映射为 XRT dict 参数。
+- 多返回值使用 out 参数或 xcall wrapper。
+- 重载成员函数必须为每个 C 导出指定不同符号。
 
 ## 9. 与 DEMO5 的关系
 

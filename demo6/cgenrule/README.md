@@ -41,7 +41,7 @@
 - `33_P2_DLL_API动态执行细则.md`：xl.dll/API 上下文、libtcc 动态加载、XRT 符号注入、脚本内存运行和编译到 exe 细则。
 - `34_规则测试范例交叉索引.md`：规则文档与 `demo6/test/cases`、feature suite、tutorial、DLL/CLI 测试入口的交叉覆盖索引；不计入 `CGEN-*` 规则数。
 - `35_主干P0规则验证矩阵.md`：主干规则与 P0 规则共 175 条的验证矩阵，记录直接/间接证据和非阻断增强项；不计入 `CGEN-*` 规则数。
-- `36_P1核心规则验证矩阵.md`：async/thread/channel/sync、generator、class/custom、ABI 元数据、声明/return/多返回值共 123 条 P1 规则的验证矩阵；不计入 `CGEN-*` 规则数。
+- `36_P1核心规则验证矩阵.md`：async/thread/channel/sync/task、generator、class/custom、ABI 元数据、声明/return/多返回值共 127 条 P1 规则的验证矩阵；不计入 `CGEN-*` 规则数。
 - `37_P2运行时HeaderModule标准库验证矩阵.md`：标准库 wrapper、header/needs、module 总装配、runtime/main/xvalue helper 共 94 条 P2 规则的验证矩阵；不计入 `CGEN-*` 规则数。
 - `38_P2符号泛型调用类型推断验证矩阵.md`：符号命名与类型映射、泛型推断与运行时状态、调用解析与默认值、类型克隆与表达式推断共 136 条 P2 规则的验证矩阵；不计入 `CGEN-*` 规则数。
 - `39_P2清理上下文入口验证矩阵.md`：cleanup 与借用生命周期、上下文状态表、入口判定共 82 条 P2 规则的验证矩阵；不计入 `CGEN-*` 规则数。
@@ -67,7 +67,7 @@
 
 这里的“规则”指会改变生成 C 形态的分支，不把纯字符串编码、哈希、数组扩容、上下文清理这类内部工具函数单独当成语言规则。辅助函数仍在 `_function_index.generated.md` 和 `00_文件覆盖索引.md` 中保留索引。
 
-当前已经完成主干规则、P0 细化、async/generator/class/custom/ABI 元数据/声明与多返回值 P1 细化，以及标准库 wrapper、header/needs/module/runtime helper/符号命名与类型映射/泛型推断与运行时状态/调用解析/类型克隆与表达式推断/cleanup 与借用生命周期/上下文状态表/入口判定/XAPI 输出/XAPI 读取/import 展开/package resolver/CLI 工具链/xl.dll API P2 细化。目录内已有 835 条 `CGEN-*` 规则；同时已完成主干/P0、P1 核心、P2 运行时/Header/Module/标准库、P2 符号/泛型/调用/类型推断、P2 cleanup/上下文/入口、P2 XAPI 元数据、P2 import/package、P2 CLI/DLL 验证矩阵。
+当前已经完成主干规则、P0 细化、async/generator/class/custom/ABI 元数据/声明与多返回值 P1 细化，以及标准库 wrapper、header/needs/module runtime helper/符号命名与类型映射/泛型推断与运行时状态/调用解析/类型克隆与表达式推断/cleanup 与借用生命周期/上下文状态表/入口判定/XAPI 输出/XAPI 读取/import 展开/package resolver/CLI 工具链/xl.dll API P2 细化。目录内已有 841 条 `CGEN-*` 规则；同时已完成主干/P0、P1 核心、P2 运行时/Header/Module/标准库、P2 符号/泛型/调用/类型推断、P2 cleanup/上下文/入口、P2 XAPI 元数据、P2 import/package、P2 CLI/DLL 验证矩阵。
 
 剩余内容不再属于规则文档缺失，而是非阻断增强：把人工矩阵机器化、为内部状态补更细生成快照、扩展资源巡检和错误路径测试。新增或修改 cgen 行为时，应同步更新对应规则表、验证矩阵和 `05_继续细化清单.md`。
 

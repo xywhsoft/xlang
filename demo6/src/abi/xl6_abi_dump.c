@@ -537,6 +537,215 @@ static void xl6AbiDumpInternalSymbolJsonString(XL6_Output* out, const XL6_AstNod
     xl6OutputPutc('"', out);
 }
 
+static const char* xl6AbiCallableName(const XL6_AstNode* node)
+{
+    const XL6_AstNode* nameNode;
+
+    if ( node == NULL ) {
+        return NULL;
+    }
+    if ( node->kind == XL6_AST_FUNC ||
+         node->kind == XL6_AST_ASYNC_FUNC ||
+         node->kind == XL6_AST_EXPORT_FUNC ||
+         node->kind == XL6_AST_GET ||
+         node->kind == XL6_AST_LET ||
+         node->kind == XL6_AST_CUSTOM_EXTERN_FUNC ||
+         node->kind == XL6_AST_CUSTOM_EXTERN_SPECIAL ) {
+        nameNode = node->childCount > 0 ? node->children[0] : NULL;
+        return nameNode != NULL ? nameNode->text : NULL;
+    }
+    return node->text;
+}
+
+static int xl6AbiIsClassCallableOverloadMember(const XL6_AstNode* node)
+{
+    return node != NULL &&
+           (node->kind == XL6_AST_FUNC ||
+            node->kind == XL6_AST_ASYNC_FUNC ||
+            node->kind == XL6_AST_EXPORT_FUNC ||
+            node->kind == XL6_AST_CREATE ||
+            node->kind == XL6_AST_CUSTOM_EXTERN_FUNC ||
+            node->kind == XL6_AST_CUSTOM_EXTERN_SPECIAL);
+}
+
+static int xl6AbiClassCallableOverloadCount(const XL6_AstNode* classNode, const XL6_AstNode* memberNode)
+{
+    const XL6_AstNode* body;
+    const char* name;
+    size_t i;
+    int count;
+
+    body = classNode != NULL && classNode->childCount > 1 ? classNode->children[1] : NULL;
+    name = xl6AbiCallableName(memberNode);
+    count = 0;
+    if ( body == NULL || name == NULL ) {
+        return 0;
+    }
+    for ( i = 0; i < body->childCount; ++i ) {
+        const XL6_AstNode* other = body->children[i];
+        if ( xl6AbiIsClassCallableOverloadMember(memberNode) &&
+             xl6AbiIsClassCallableOverloadMember(other) &&
+             xl6AbiTextEquals(xl6AbiCallableName(other), name) ) {
+            count += 1;
+        }
+    }
+    return count;
+}
+
+static void xl6AbiDumpClassMemberSymbol(XL6_Output* out, const XL6_AstNode* classNode, const XL6_AstNode* memberNode)
+{
+    const XL6_AstNode* params;
+    const char* name;
+    size_t i;
+
+    name = xl6AbiCallableName(memberNode);
+    xl6OutputPuts("xl_class_", out);
+    xl6AbiEncodedText(out, classNode != NULL && classNode->text != NULL ? classNode->text : "_");
+    xl6OutputPuts("__", out);
+    xl6AbiEncodedText(out, name != NULL ? name : "_");
+
+    if ( memberNode == NULL || xl6AbiClassCallableOverloadCount(classNode, memberNode) <= 1 ) {
+        return;
+    }
+    params = memberNode->childCount > 1 ? memberNode->children[1] : NULL;
+    if ( params == NULL || params->childCount == 0 ) {
+        xl6OutputPuts("__void", out);
+        return;
+    }
+    for ( i = 0; i < params->childCount; ++i ) {
+        const XL6_AstNode* param = params->children[i];
+        xl6OutputPuts("__", out);
+        if ( param != NULL && param->childCount > 0 && param->children[0] != NULL ) {
+            xl6AbiEncodedText(out, param->children[0]->text);
+        } else {
+            xl6OutputPutc('_', out);
+        }
+    }
+}
+
+static void xl6AbiDumpClassMethodSignature(XL6_Output* out, const XL6_AstNode* root, const XL6_AstNode* classNode, const XL6_AstNode* node)
+{
+    size_t i;
+    const XL6_AstNode* params;
+    const XL6_AstNode* returns;
+
+    xl6OutputPuts("fn:app.", out);
+    xl6AbiText(out, classNode != NULL && classNode->text != NULL ? classNode->text : "<anonymous-class>");
+    xl6OutputPutc('.', out);
+    xl6AbiText(out, xl6AbiCallableName(node) != NULL ? xl6AbiCallableName(node) : "<unnamed>");
+    xl6OutputPutc('(', out);
+
+    params = node->childCount > 1 ? node->children[1] : NULL;
+    if ( params != NULL ) {
+        for ( i = 0; i < params->childCount; ++i ) {
+            if ( i > 0 ) {
+                xl6OutputPutc(',', out);
+            }
+            if ( params->children[i]->childCount > 0 ) {
+                xl6AbiDumpType(out, root, params->children[i]->children[0]);
+            } else {
+                xl6OutputPuts("<missing-type>", out);
+            }
+        }
+    }
+    xl6OutputPuts(") as ", out);
+    returns = node->childCount > 2 ? node->children[2] : NULL;
+    if ( returns == NULL || returns->childCount == 0 ) {
+        xl6OutputPuts("()", out);
+    } else if ( returns->childCount == 1 ) {
+        xl6AbiDumpType(out, root, returns->children[0]);
+    } else {
+        xl6OutputPutc('(', out);
+        for ( i = 0; i < returns->childCount; ++i ) {
+            if ( i > 0 ) {
+                xl6OutputPutc(',', out);
+            }
+            xl6AbiDumpType(out, root, returns->children[i]);
+        }
+        xl6OutputPutc(')', out);
+    }
+}
+
+static void xl6AbiDumpClassMethodSignatureJsonString(XL6_Output* out, const XL6_AstNode* root, const XL6_AstNode* classNode, const XL6_AstNode* node)
+{
+    size_t i;
+    const XL6_AstNode* params;
+    const XL6_AstNode* returns;
+
+    xl6OutputPutc('"', out);
+    xl6OutputPuts("fn:app.", out);
+    xl6AbiJsonEscaped(out, classNode != NULL && classNode->text != NULL ? classNode->text : "<anonymous-class>");
+    xl6OutputPutc('.', out);
+    xl6AbiJsonEscaped(out, xl6AbiCallableName(node) != NULL ? xl6AbiCallableName(node) : "<unnamed>");
+    xl6OutputPutc('(', out);
+
+    params = node->childCount > 1 ? node->children[1] : NULL;
+    if ( params != NULL ) {
+        for ( i = 0; i < params->childCount; ++i ) {
+            if ( i > 0 ) {
+                xl6OutputPutc(',', out);
+            }
+            if ( params->children[i]->childCount > 0 ) {
+                xl6AbiDumpTypeJsonBody(out, root, params->children[i]->children[0]);
+            } else {
+                xl6OutputPuts("<missing-type>", out);
+            }
+        }
+    }
+    xl6OutputPuts(") as ", out);
+    returns = node->childCount > 2 ? node->children[2] : NULL;
+    if ( returns == NULL || returns->childCount == 0 ) {
+        xl6OutputPuts("()", out);
+    } else if ( returns->childCount == 1 ) {
+        xl6AbiDumpTypeJsonBody(out, root, returns->children[0]);
+    } else {
+        xl6OutputPutc('(', out);
+        for ( i = 0; i < returns->childCount; ++i ) {
+            if ( i > 0 ) {
+                xl6OutputPutc(',', out);
+            }
+            xl6AbiDumpTypeJsonBody(out, root, returns->children[i]);
+        }
+        xl6OutputPutc(')', out);
+    }
+    xl6OutputPutc('"', out);
+}
+
+static void xl6AbiDumpClassExportFunc(XL6_Output* out, const XL6_AstNode* root, const XL6_AstNode* classNode, const XL6_AstNode* node)
+{
+    xl6OutputPuts("export ", out);
+    xl6AbiCStringSymbol(out, node->text);
+    xl6OutputPuts("\n  owner: ", out);
+    xl6AbiText(out, classNode != NULL && classNode->text != NULL ? classNode->text : "<anonymous-class>");
+    xl6OutputPuts("\n  name: ", out);
+    xl6AbiText(out, xl6AbiCallableName(node) != NULL ? xl6AbiCallableName(node) : "<unnamed>");
+    xl6OutputPuts("\n  signature: ", out);
+    xl6AbiDumpClassMethodSignature(out, root, classNode, node);
+    xl6OutputPuts("\n  symbol: ", out);
+    xl6AbiDumpClassMemberSymbol(out, classNode, node);
+    xl6OutputPuts("\n  c_export: ", out);
+    xl6AbiCStringSymbol(out, node->text);
+    xl6OutputPutc('\n', out);
+}
+
+static void xl6AbiDumpClassExportFuncJson(XL6_Output* out, const XL6_AstNode* root, const XL6_AstNode* classNode, const XL6_AstNode* node, int comma)
+{
+    if ( comma ) {
+        xl6OutputPuts(",\n", out);
+    }
+    xl6OutputPuts("    {\"kind\":\"export_class_method\",\"owner\":", out);
+    xl6AbiJsonString(out, classNode != NULL && classNode->text != NULL ? classNode->text : "");
+    xl6OutputPuts(",\"name\":", out);
+    xl6AbiJsonString(out, xl6AbiCallableName(node) != NULL ? xl6AbiCallableName(node) : "<unnamed>");
+    xl6OutputPuts(",\"signature\":", out);
+    xl6AbiDumpClassMethodSignatureJsonString(out, root, classNode, node);
+    xl6OutputPuts(",\"symbol\":\"", out);
+    xl6AbiDumpClassMemberSymbol(out, classNode, node);
+    xl6OutputPuts("\",\"cExport\":", out);
+    xl6AbiJsonCStringSymbol(out, node->text);
+    xl6OutputPutc('}', out);
+}
+
 static void xl6AbiDumpFuncLike(XL6_Output* out, const XL6_AstNode* root, const XL6_AstNode* node)
 {
     const XL6_AstNode* nameNode;
@@ -676,6 +885,7 @@ static void xl6AbiDumpVarLikeJson(XL6_Output* out, const XL6_AstNode* root, cons
 void xl6AbiDumpText(XL6_Output* out, const XL6_AstNode* root)
 {
     size_t i;
+    size_t j;
 
     if ( out == NULL ) {
         return;
@@ -696,6 +906,14 @@ void xl6AbiDumpText(XL6_Output* out, const XL6_AstNode* root)
                     child->kind == XL6_AST_EXPORT_VAR ||
                     child->kind == XL6_AST_EXPORT_CONST ) {
             xl6AbiDumpVarLike(out, root, child);
+        } else if ( child->kind == XL6_AST_CLASS && child->childCount > 1 ) {
+            const XL6_AstNode* body = child->children[1];
+            for ( j = 0; body != NULL && j < body->childCount; ++j ) {
+                const XL6_AstNode* member = body->children[j];
+                if ( member != NULL && member->kind == XL6_AST_EXPORT_FUNC ) {
+                    xl6AbiDumpClassExportFunc(out, root, child, member);
+                }
+            }
         }
     }
 }
@@ -703,6 +921,7 @@ void xl6AbiDumpText(XL6_Output* out, const XL6_AstNode* root)
 void xl6AbiDumpJson(XL6_Output* out, const XL6_AstNode* root)
 {
     size_t i;
+    size_t j;
     int emitted;
 
     if ( out == NULL ) {
@@ -726,6 +945,15 @@ void xl6AbiDumpJson(XL6_Output* out, const XL6_AstNode* root)
                         child->kind == XL6_AST_EXPORT_CONST ) {
                 xl6AbiDumpVarLikeJson(out, root, child, emitted);
                 emitted = 1;
+            } else if ( child->kind == XL6_AST_CLASS && child->childCount > 1 ) {
+                const XL6_AstNode* body = child->children[1];
+                for ( j = 0; body != NULL && j < body->childCount; ++j ) {
+                    const XL6_AstNode* member = body->children[j];
+                    if ( member != NULL && member->kind == XL6_AST_EXPORT_FUNC ) {
+                        xl6AbiDumpClassExportFuncJson(out, root, child, member, emitted);
+                        emitted = 1;
+                    }
+                }
             }
         }
     }

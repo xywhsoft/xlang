@@ -31,10 +31,10 @@
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | 通过 API 配置上下文 |
-| 生成规则描述 | `XL_Context` 保存 baseDir、workDir、tempDir、显式/默认 TCC 路径快照、默认 XRT object 路径快照、saveTemps、lastError、includePaths、libraryPaths、linkLibraries、loadedLibraries 和注册的 C 符号表。 |
+| 生成规则描述 | `XL_Context` 保存 baseDir、workDir、tempDir、TCC root/include/lib 路径快照、保留的 tccDllPath 字段快照、saveTemps、lastError、includePaths、libraryPaths、linkLibraries、loadedLibraries 和注册的 C 符号表。当前发布构建静态链接 libtcc，tccDllPath 不参与 TCC 加载。 |
 | 生成器文件名和行号 | `demo6/src/api/xl_api.c:62`、`demo6/src/api/xl_api.c:81`、`demo6/src/api/xl_api.c:439` |
 | 对应生成的 C 代码 | 不直接生成 C；这些字段决定内存编译和 exe 编译参数。 |
-| 中间形态伪代码 | `ctx = {baseDir, paths, toolchainSnapshots, links, loadedLibHandles, symbols, lastError}` |
+| 中间形态伪代码 | `ctx = {baseDir, paths, tccSnapshots, links, loadedLibHandles, symbols, lastError}` |
 | 实现同等功能手写的 C 代码 | 手写嵌入式上下文需要隔离不同宿主配置。 |
 | 额外依赖的封装代码 | XRT 内存 API。 |
 
@@ -74,29 +74,29 @@
 | 实现同等功能手写的 C 代码 | 宿主调用脚本时常需要隔离当前工作目录。 |
 | 额外依赖的封装代码 | XRT UTF-8/UTF-16 转换。 |
 
-## CGEN-API-007 libtcc 动态加载
+## CGEN-API-007 静态 libtcc 入口
 
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | 第一次运行或编译脚本 |
-| 生成规则描述 | API 懒加载 libtcc。Windows 用 `LoadLibraryW/GetProcAddress`，非 Windows 用 `dlopen/dlsym`。必须找到 tcc_new/delete/set_lib_path/set_error_func/set_options/add_include_path/add_library_path/add_library/add_file/add_symbol/set_output_type/compile_string/output_file/run 等符号。 |
+| 生成规则描述 | API 直接使用当前 `xl.exe` / `xl.dll` / `xlc.dll` 内静态链接的 libtcc 入口，不再动态加载外部 `libtcc.dll`。必须能访问 tcc_new/delete/set_lib_path/set_error_func/set_options/add_include_path/add_library_path/add_library/add_file/add_symbol/set_output_type/compile_string/output_file/run 等符号。 |
 | 生成器文件名和行号 | `demo6/src/api/xl_api.c:650`、`demo6/src/api/xl_api.c:714` |
 | 对应生成的 C 代码 | 不改变生成 C；决定 TCC 是否可用。 |
-| 中间形态伪代码 | `load dll; resolve required TCC procs` |
-| 实现同等功能手写的 C 代码 | 手写嵌入式 TCC 通常也动态加载或静态链接 libtcc。 |
-| 额外依赖的封装代码 | libtcc 动态库。 |
+| 中间形态伪代码 | `use statically linked libtcc procs` |
+| 实现同等功能手写的 C 代码 | 手写嵌入式 TCC 可以直接静态链接 libtcc 并调用其公开 API。 |
+| 额外依赖的封装代码 | 静态 libtcc API。 |
 
-## CGEN-API-008 libtcc 搜索顺序
+## CGEN-API-008 DLL 运行/编译资源分组
 
 | 项目 | 内容 |
 |---|---|
-| xlang 写法 | `options.tccDllPath` 可选指定 |
-| 生成规则描述 | 若 context 提供 tccDllPath，先尝试该路径；随后依次尝试 `XL6_TCC_DLL` 环境变量、`libtcc.dll`、`release\libtcc.dll`、`XL6_TCC_DLL_PATH`。全部失败时设置 `cannot load libtcc.dll`。 |
+| xlang 写法 | `xl.dll` 运行脚本，`xlc.dll` 运行并编译 exe |
+| 生成规则描述 | `xl.dll` 只携带运行脚本所需的 VFS 清单；`xlc.dll` 在运行清单基础上携带编译 exe 所需的 TCC runtime、系统 import 库、头文件等 VFS/LZMA 资源。文件查找统一遵循动态 VFS -> 外部文件系统 -> 静态 VFS，且不依赖外部 `libtcc.dll`。 |
 | 生成器文件名和行号 | `demo6/src/api/xl_api.c:714`、`demo6/src/api/xl_api.c:732` |
-| 对应生成的 C 代码 | 不改变生成 C；决定动态执行是否可启动。 |
-| 中间形态伪代码 | `try custom, getenv("XL6_TCC_DLL"), cwd, release, toolchainDefault` |
-| 实现同等功能手写的 C 代码 | 手写嵌入式 API 通常允许宿主覆盖 JIT 动态库路径。 |
-| 额外依赖的封装代码 | libtcc dll。 |
+| 对应生成的 C 代码 | 不改变生成 C；决定 TCC include/library/resource 查找能否自洽。 |
+| 中间形态伪代码 | `open(path): dynamicVfs(path) || filesystem(path) || staticVfs(path)` |
+| 实现同等功能手写的 C 代码 | 手写嵌入式 API 可把运行资源和编译资源分组打包，并用外部文件覆盖内置兜底资源。 |
+| 额外依赖的封装代码 | 静态 libtcc、内置 VFS、LZMA 解压。 |
 
 ## CGEN-API-009 默认 XRT/运行时符号注入
 
@@ -199,19 +199,19 @@
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | `xlCompileScriptFileToExe(ctx, "main.xl", "app.exe")` |
-| 生成规则描述 | outputExe 必须非空。cgen 到内存后创建 `TCC_OUTPUT_EXE` state，追加 `-DXL6_USE_XRT_LIFECYCLE`，先编译负零常量定义，再编译 cText。之后加入 TCC runtime、import cSources、依赖、context 创建时快照的 XRT object 和 Windows 系统库，最后 `tcc_output_file`。XRT object 路径在 context 创建时优先来自 `XL6_XRT_OBJ` 环境变量，未设置时使用 `XL6_XRT_OBJ_PATH` 并按创建目录快照。 |
+| 生成规则描述 | outputExe 必须非空。cgen 到内存后创建 `TCC_OUTPUT_EXE` state，追加 `-DXL6_USE_XRT_LIFECYCLE`，先编译负零常量定义，再用单头文件方式编译 XRT：定义 `XRT_IMPLEMENTATION` 并包含 `lib/xrt/xrt.h`。随后编译 cText，加入 TCC runtime、import cSources、context/import 依赖和 Windows 系统库，最后 `tcc_output_file`。 |
 | 生成器文件名和行号 | `demo6/src/api/xl_api.c:1369`、`demo6/src/api/xl_api.c:1384` |
 | 对应生成的 C 代码 | 内存中的完整 C 被 TCC 输出为 exe。 |
-| 中间形态伪代码 | `emitC -> TCC exe -> compile constants+cText -> link getenv("XL6_XRT_OBJ") || XL6_XRT_OBJ_PATH -> link system -> output` |
-| 实现同等功能手写的 C 代码 | 手写编译 API 需要链接运行库对象和系统库。 |
-| 额外依赖的封装代码 | XRT object、TCC runtime、system libs。 |
+| 中间形态伪代码 | `emitC -> TCC exe -> compile constants -> compile XRT_IMPLEMENTATION+xrt.h -> compile cText -> link runtime/system -> output` |
+| 实现同等功能手写的 C 代码 | 手写编译 API 需要编译运行库、用户代码并链接系统库。 |
+| 额外依赖的封装代码 | 单头文件 XRT、TCC runtime、system libs。 |
 
 ## CGEN-API-018 默认上下文选项
 
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | `xlDefaultContextOptions()` |
-| 生成规则描述 | 默认 size/version 填当前 API；workDir 为 `.`，tempDir 为 `release\tmp`，tccDllPath 为空，tccLibPath 为空，saveTemps 为 0。创建 context 时若 tccLibPath 仍为空，则按 `XL6_TCC_ROOT` 环境变量或 `XL6_TCC_ROOT_PATH` 默认值补齐。 |
+| 生成规则描述 | 默认 size/version 填当前 API；workDir 为 `.`，tempDir 为 `release\tmp`，保留字段 tccDllPath 为空，tccLibPath 为空，saveTemps 为 0。创建 context 时若 tccLibPath 仍为空，则按 `XL6_TCC_ROOT` 环境变量或 `XL6_TCC_ROOT_PATH` 默认值补齐。当前发布构建静态链接 libtcc，因此 tccDllPath 不作为加载路径使用。 |
 | 生成器文件名和行号 | `demo6/src/api/xl_api.c:1441` |
 | 对应生成的 C 代码 | 不生成 C；影响后续 TCC 和路径解析。 |
 | 中间形态伪代码 | `options = defaults(API_VERSION)` |
@@ -235,7 +235,7 @@
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | `xlCreateContext(&options)` |
-| 生成规则描述 | 创建 context 前初始化运行时。options 为空则用默认值；若 size 非 0 且小于当前结构体大小，或 version 非 0 且不等于当前 API_VERSION，则失败并回滚运行时计数。成功后记录创建时 cwd 作为 baseDir，并按 baseDir 快照 workDir、tempDir、显式/默认 TCC 路径和默认 XRT object 路径，最后设置 saveTemps。 |
+| 生成规则描述 | 创建 context 前初始化运行时。options 为空则用默认值；若 size 非 0 且小于当前结构体大小，或 version 非 0 且不等于当前 API_VERSION，则失败并回滚运行时计数。成功后记录创建时 cwd 作为 baseDir，并按 baseDir 快照 workDir、tempDir、保留的 tccDllPath 字段和 TCC root/include/lib 路径，最后设置 saveTemps。 |
 | 生成器文件名和行号 | `demo6/src/api/xl_api.c:1557` |
 | 对应生成的 C 代码 | 不生成 C；决定嵌入式上下文是否有效。 |
 | 中间形态伪代码 | `validate options size/version; calloc ctx; baseDir=cwd; snapshot paths; saveTemps=bool` |
@@ -247,7 +247,7 @@
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | `xlDestroyContext(ctx)` |
-| 生成规则描述 | 销毁 context 时释放 baseDir、workDir、tempDir、TCC/XRT 路径快照和 lastError，释放 include/library/link 列表，关闭并释放 loaded library 句柄表，释放符号表，释放 context，并调用 `xlRuntimeUnit`。 |
+| 生成规则描述 | 销毁 context 时释放 baseDir、workDir、tempDir、TCC 路径快照、保留字段快照和 lastError，释放 include/library/link 列表，关闭并释放 loaded library 句柄表，释放符号表，释放 context，并调用 `xlRuntimeUnit`。 |
 | 生成器文件名和行号 | `demo6/src/api/xl_api.c:1611` |
 | 对应生成的 C 代码 | 不生成 C；释放 API 侧所有资源。 |
 | 中间形态伪代码 | `free ctx fields; runtimeUnit()` |

@@ -22,6 +22,9 @@ static void xl6AstDumpFlagsText(XL6_Output* out, unsigned int flags)
     if ( flags & XL6_AST_FLAG_PRIVATE ) {
         xl6OutputPuts("private ", out);
     }
+    if ( flags & XL6_AST_FLAG_PROTECTED ) {
+        xl6OutputPuts("protected ", out);
+    }
     if ( flags & XL6_AST_FLAG_STATIC ) {
         xl6OutputPuts("static ", out);
     }
@@ -33,6 +36,12 @@ static void xl6AstDumpFlagsText(XL6_Output* out, unsigned int flags)
     }
     if ( flags & XL6_AST_FLAG_VIRTUAL ) {
         xl6OutputPuts("virtual ", out);
+    }
+    if ( flags & XL6_AST_FLAG_NATIVE ) {
+        xl6OutputPuts("native ", out);
+    }
+    if ( flags & XL6_AST_FLAG_ASYNC ) {
+        xl6OutputPuts("async ", out);
     }
     xl6OutputPutc(']', out);
 }

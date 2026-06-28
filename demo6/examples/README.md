@@ -15,18 +15,25 @@
 - `anonymous_functions.xl`：匿名函数与函数值基础示例；回归：`check`。
 - `generic_identity.xl`：泛型函数最小示例；回归：`check`。
 - `generics.xl`：泛型函数、泛型调用和泛型容器示例；回归：`check`。
+- `generic_constraints.xl`：泛型约束、class 继承约束和 cloneable 约束示例；回归：`check`、`run`。
+- `generic_class_iter.xl`：泛型 class 的 `__iter__` / `__next__` 迭代协议示例；回归：`run`。
 - `class_point.xl`：class 字段和方法基础示例；回归：`check`。
+- `class_field_persistence_attrs.xl`：字段级 `@json` / `@xson` / `@persist` 持久化注解示例；回归：`run`。
 - `object_protocol.xl`：object 标准基类、动态字段、索引、运算符和可调用协议示例；回归：`check`。
 - `oop_protocol_overload.xl`：OOP protocol overload, multi-argument index, callable and contains example；回归：`check`、`run`。
 - `oop_property_get_let.xl`：OOP property get/let, zero-dimensional and multi-dimensional property index example；回归：`check`、`run`。
 - `oop_static_access.xl`：OOP static field/static method and private member example；回归：`check`、`run`。
+- `oop_protected_access.xl`：OOP protected field and method access from derived class example；回归：`check`、`run`。
 - `oop_virtual_dispatch.xl`：OOP virtual/override/final method and property dispatch example；回归：`check`、`run`。
 - `copy_clone.xl`：`derive copy/clone`、`copy()` 和 `clone()` 示例；回归：`check`。
 - `class_persistence.xl`：`derive value`、class 与 object 的 json/xson 持久化 roundtrip 示例；回归：`run`。
 - `class_custom.xl`：class 与 custom 组合示例；回归：`check`。
+- `class_native_bridge.xl`：native-backed class 对接 C opaque handle 的声明示例；回归：`check`。
 - `custom_counter.xl`：custom 句柄类示例；回归：`check`。
 - `second_stage.xl`：第二阶段基础语义组合示例；回归：`check`、`run`。
 - `concurrency.xl`：并发、通道和异步相关示例；回归：`run`。
+- `task_api.xl`：高层 task API 的 spawn、all、race 和 cancel 示例；回归：`run`。
+- `async_generator.xl`：`async func ... as generator<T>`、`func ... as async generator<T>`、`await + yield` 和 `for await` 示例；回归：`run`。
 - `union.xl`：C 风格 union 示例；回归：`run`。
 
 ## C 混编与导出范例
@@ -34,6 +41,7 @@
 - `c_hello.xl`：调用 C/CRT 风格函数的最小示例；回归：`run`。
 - `c_variables.xl`：extern C 变量示例；回归：`check`。
 - `c_export.xl`：xlang 导出 C ABI 和 ABI dump 示例；回归：`abi`。
+- `class_c_export.xl`：class 成员函数导出 C ABI wrapper、头文件和 ABI dump 示例；回归：`cgen`、`abi`。
 
 ## 标准库范例
 

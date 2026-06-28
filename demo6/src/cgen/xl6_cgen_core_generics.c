@@ -1,6 +1,65 @@
-static int xl6CgenTypeArgsEqual(const XL6_AstNode* a, const XL6_AstNode* b)
+static const XL6_AstNode* xl6CgenTypeSymbolArgs(const XL6_AstNode* typeNode)
 {
-    return xl6CgenTypeNodeEqual(a, b);
+    if ( typeNode == NULL || typeNode->childCount == 0 ||
+         typeNode->children[0] == NULL || typeNode->children[0]->kind != XL6_AST_LIST ) {
+        return NULL;
+    }
+    return typeNode->children[0];
+}
+
+static int xl6CgenTypeSymbolEqual(XL6_CgenContext* ctx, const XL6_AstNode* a, const XL6_AstNode* b)
+{
+    const XL6_AstNode* aa;
+    const XL6_AstNode* ba;
+    size_t i;
+
+    a = xl6CgenResolveAliasType(ctx, xl6CgenSubstituteGenericType(ctx, a));
+    b = xl6CgenResolveAliasType(ctx, xl6CgenSubstituteGenericType(ctx, b));
+    if ( a == NULL || b == NULL ) {
+        return a == b;
+    }
+    if ( a->text == NULL || b->text == NULL || !xl6CTextEquals(a->text, b->text) ) {
+        return 0;
+    }
+
+    aa = xl6CgenTypeSymbolArgs(a);
+    ba = xl6CgenTypeSymbolArgs(b);
+    if ( aa == NULL || ba == NULL ) {
+        return aa == ba;
+    }
+    if ( aa->childCount != ba->childCount ) {
+        return 0;
+    }
+    for ( i = 0; i < aa->childCount; ++i ) {
+        if ( !xl6CgenTypeSymbolEqual(ctx, aa->children[i], ba->children[i]) ) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
+static int xl6CgenTypeArgsEqual(XL6_CgenContext* ctx, const XL6_AstNode* a, const XL6_AstNode* b)
+{
+    size_t i;
+
+    if ( xl6CgenTypeNodeEqual(a, b) ) {
+        return 1;
+    }
+    if ( a == NULL || b == NULL ) {
+        return a == b;
+    }
+    if ( a->kind == XL6_AST_LIST && b->kind == XL6_AST_LIST ) {
+        if ( a->childCount != b->childCount ) {
+            return 0;
+        }
+        for ( i = 0; i < a->childCount; ++i ) {
+            if ( !xl6CgenTypeSymbolEqual(ctx, a->children[i], b->children[i]) ) {
+                return 0;
+            }
+        }
+        return 1;
+    }
+    return xl6CgenTypeSymbolEqual(ctx, a, b);
 }
 
 static int xl6CgenHasGenericInstance(XL6_CgenContext* ctx, const XL6_AstNode* func, const XL6_AstNode* typeArgs)
@@ -11,7 +70,7 @@ static int xl6CgenHasGenericInstance(XL6_CgenContext* ctx, const XL6_AstNode* fu
         return 0;
     }
     for ( i = 0; i < ctx->genericInstanceCount; ++i ) {
-        if ( ctx->genericInstances[i].func == func && xl6CgenTypeArgsEqual(ctx->genericInstances[i].typeArgs, typeArgs) ) {
+        if ( ctx->genericInstances[i].func == func && xl6CgenTypeArgsEqual(ctx, ctx->genericInstances[i].typeArgs, typeArgs) ) {
             return 1;
         }
     }

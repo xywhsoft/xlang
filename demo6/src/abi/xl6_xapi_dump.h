@@ -22,6 +22,7 @@ typedef struct XL6_XapiParam {
 typedef struct XL6_XapiExport {
     char* kind;
     char* name;
+    char* owner;
     char* cSymbol;
     char* type;
     char* signature;

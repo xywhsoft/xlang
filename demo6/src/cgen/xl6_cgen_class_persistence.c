@@ -20,7 +20,7 @@ static void xl6CgenClassPersistenceFromValueHelperProto(XL6_CgenContext* ctx, co
     xl6CgenClassTypeName(ctx->out, classNode->text);
     xl6OutputPutc(' ', ctx->out);
     xl6CgenClassPersistenceFromValueHelperSymbol(ctx->out, classNode);
-    xl6OutputPuts("(xvalue value)", ctx->out);
+    xl6OutputPuts("(xvalue value, int formatKind)", ctx->out);
 }
 
 static void xl6CgenClassPersistenceStringifyHelperProto(
@@ -34,7 +34,7 @@ static void xl6CgenClassPersistenceStringifyHelperProto(
     xl6OutputPutc('(', ctx->out);
     xl6OutputPuts("const char* (*stringify_fn)(xvalue, int), ", ctx->out);
     xl6CgenClassTypeName(ctx->out, classNode->text);
-    xl6OutputPuts(" source, int borrowed, int pretty)", ctx->out);
+    xl6OutputPuts(" source, int borrowed, int pretty, int formatKind)", ctx->out);
 }
 
 static void xl6CgenClassPersistenceWriteHelperProto(
@@ -47,7 +47,18 @@ static void xl6CgenClassPersistenceWriteHelperProto(
     xl6CgenClassPersistenceFormatHelperSymbol(ctx->out, classNode, NULL, 1);
     xl6OutputPuts("(int (*write_fn)(const char*, xvalue, int), const char* path, ", ctx->out);
     xl6CgenClassTypeName(ctx->out, classNode->text);
-    xl6OutputPuts(" source, int borrowed, int pretty)", ctx->out);
+    xl6OutputPuts(" source, int borrowed, int pretty, int formatKind)", ctx->out);
+}
+
+static int xl6CgenPersistenceFormatKind(const char* format)
+{
+    if ( xl6CTextEquals(format, "json") ) {
+        return 1;
+    }
+    if ( xl6CTextEquals(format, "xson") ) {
+        return 2;
+    }
+    return 0;
 }
 
 static void xl6CgenClassPersistenceHelperProtos(XL6_CgenContext* ctx, const XL6_AstNode* classNode)
@@ -79,8 +90,22 @@ static void xl6CgenClassPersistenceFromValueHelper(XL6_CgenContext* ctx, const X
     xl6OutputPuts("if ( value != 0 ) {\n", ctx->out);
     ctx->indent += 1;
     xl6CgenIndent(ctx);
-    xl6CgenEmitClassFromValueSymbol(ctx, classNode);
-    xl6OutputPuts("(&object, value);\n", ctx->out);
+    if ( xl6CgenClassNeedsAutoValueProtocol(ctx, classNode, "__fromValue__") ) {
+        xl6OutputPuts("if ( formatKind == 1 ) { ", ctx->out);
+        xl6CgenClassAutoFromValueFormatSymbol(ctx->out, classNode, "json");
+        xl6OutputPuts("(&object, value); }\n", ctx->out);
+        xl6CgenIndent(ctx);
+        xl6OutputPuts("else if ( formatKind == 2 ) { ", ctx->out);
+        xl6CgenClassAutoFromValueFormatSymbol(ctx->out, classNode, "xson");
+        xl6OutputPuts("(&object, value); }\n", ctx->out);
+        xl6CgenIndent(ctx);
+        xl6OutputPuts("else { ", ctx->out);
+        xl6CgenClassAutoFromValueFormatSymbol(ctx->out, classNode, NULL);
+        xl6OutputPuts("(&object, value); }\n", ctx->out);
+    } else {
+        xl6CgenEmitClassFromValueSymbol(ctx, classNode);
+        xl6OutputPuts("(&object, value);\n", ctx->out);
+    }
     xl6CgenIndent(ctx);
     xl6OutputPuts("xvoUnref(value);\n", ctx->out);
     ctx->indent -= 1;
@@ -113,9 +138,23 @@ static void xl6CgenClassPersistenceStringifyHelper(
     xl6CgenIndent(ctx);
     xl6OutputPuts("}\n", ctx->out);
     xl6CgenIndent(ctx);
-    xl6OutputPuts("value = ", ctx->out);
-    xl6CgenEmitClassToValueSymbol(ctx, classNode);
-    xl6OutputPuts("(&source);\n", ctx->out);
+    if ( xl6CgenClassNeedsAutoValueProtocol(ctx, classNode, "__toValue__") ) {
+        xl6OutputPuts("if ( formatKind == 1 ) { value = ", ctx->out);
+        xl6CgenClassAutoToValueFormatSymbol(ctx->out, classNode, "json");
+        xl6OutputPuts("(&source); }\n", ctx->out);
+        xl6CgenIndent(ctx);
+        xl6OutputPuts("else if ( formatKind == 2 ) { value = ", ctx->out);
+        xl6CgenClassAutoToValueFormatSymbol(ctx->out, classNode, "xson");
+        xl6OutputPuts("(&source); }\n", ctx->out);
+        xl6CgenIndent(ctx);
+        xl6OutputPuts("else { value = ", ctx->out);
+        xl6CgenClassAutoToValueFormatSymbol(ctx->out, classNode, NULL);
+        xl6OutputPuts("(&source); }\n", ctx->out);
+    } else {
+        xl6OutputPuts("value = ", ctx->out);
+        xl6CgenEmitClassToValueSymbol(ctx, classNode);
+        xl6OutputPuts("(&source);\n", ctx->out);
+    }
     xl6CgenIndent(ctx);
     xl6OutputPuts("text = stringify_fn != 0 ? stringify_fn(value, pretty ? 1 : 0) : \"\";\n", ctx->out);
     xl6CgenIndent(ctx);
@@ -152,9 +191,23 @@ static void xl6CgenClassPersistenceWriteHelper(
     xl6CgenIndent(ctx);
     xl6OutputPuts("}\n", ctx->out);
     xl6CgenIndent(ctx);
-    xl6OutputPuts("value = ", ctx->out);
-    xl6CgenEmitClassToValueSymbol(ctx, classNode);
-    xl6OutputPuts("(&source);\n", ctx->out);
+    if ( xl6CgenClassNeedsAutoValueProtocol(ctx, classNode, "__toValue__") ) {
+        xl6OutputPuts("if ( formatKind == 1 ) { value = ", ctx->out);
+        xl6CgenClassAutoToValueFormatSymbol(ctx->out, classNode, "json");
+        xl6OutputPuts("(&source); }\n", ctx->out);
+        xl6CgenIndent(ctx);
+        xl6OutputPuts("else if ( formatKind == 2 ) { value = ", ctx->out);
+        xl6CgenClassAutoToValueFormatSymbol(ctx->out, classNode, "xson");
+        xl6OutputPuts("(&source); }\n", ctx->out);
+        xl6CgenIndent(ctx);
+        xl6OutputPuts("else { value = ", ctx->out);
+        xl6CgenClassAutoToValueFormatSymbol(ctx->out, classNode, NULL);
+        xl6OutputPuts("(&source); }\n", ctx->out);
+    } else {
+        xl6OutputPuts("value = ", ctx->out);
+        xl6CgenEmitClassToValueSymbol(ctx, classNode);
+        xl6OutputPuts("(&source);\n", ctx->out);
+    }
     xl6CgenIndent(ctx);
     xl6OutputPuts("ok = write_fn != 0 ? (write_fn(path != 0 ? path : \"\", value, pretty ? 1 : 0) ? 1 : 0) : 0;\n", ctx->out);
     xl6CgenIndent(ctx);
@@ -352,12 +405,15 @@ static int xl6CgenPersistenceGenericCall(XL6_CgenContext* ctx, const XL6_AstNode
     const XL6_AstNode* typeArg;
     const XL6_AstNode* textArg;
     XL6_AstNode* classNode;
+    const char* format;
 
     if ( !xl6CgenIsPersistenceGenericCall(node) ) {
         return 0;
     }
     instant = node->children[0];
     nameNode = instant->children[0];
+    format = NULL;
+    xl6CgenPersistenceGenericName(nameNode != NULL ? nameNode->text : NULL, &format);
     typeArg = xl6CgenPersistenceGenericTypeArg(instant);
     classNode = xl6CgenPersistenceClassForType(ctx, typeArg);
     if ( classNode == NULL || !xl6CgenClassHasValueDerive(classNode) ) {
@@ -379,7 +435,8 @@ static int xl6CgenPersistenceGenericCall(XL6_CgenContext* ctx, const XL6_AstNode
     xl6OutputPuts(nameNode->text, ctx->out);
     xl6OutputPutc('(', ctx->out);
     xl6CgenExpr(ctx, textArg);
-    xl6OutputPuts("))", ctx->out);
+    xl6OutputPuts("), ", ctx->out);
+    xl6OutputPrintf(ctx->out, "%d)", xl6CgenPersistenceFormatKind(format));
     return 1;
 }
 
@@ -465,6 +522,8 @@ static int xl6CgenPersistenceStdlibCall(XL6_CgenContext* ctx, const XL6_AstNode*
         xl6OutputPuts(xl6CgenExprIsClassBorrow(ctx, valueExpr, valueType) ? "1" : "0", ctx->out);
         xl6OutputPuts(", ", ctx->out);
         xl6CgenPersistencePrettyExpr(ctx, node, 2);
+        xl6OutputPuts(", ", ctx->out);
+        xl6OutputPrintf(ctx->out, "%d", xl6CgenPersistenceFormatKind(format));
         xl6OutputPutc(')', ctx->out);
     } else {
         xl6CgenClassPersistenceFormatHelperSymbol(ctx->out, classNode, format, 0);
@@ -476,6 +535,8 @@ static int xl6CgenPersistenceStdlibCall(XL6_CgenContext* ctx, const XL6_AstNode*
         xl6OutputPuts(xl6CgenExprIsClassBorrow(ctx, valueExpr, valueType) ? "1" : "0", ctx->out);
         xl6OutputPuts(", ", ctx->out);
         xl6CgenPersistencePrettyExpr(ctx, node, 1);
+        xl6OutputPuts(", ", ctx->out);
+        xl6OutputPrintf(ctx->out, "%d", xl6CgenPersistenceFormatKind(format));
         xl6OutputPutc(')', ctx->out);
     }
     xl6AstFree(valueType);

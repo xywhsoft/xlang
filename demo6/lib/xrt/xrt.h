@@ -1,7 +1,7 @@
 /*
 
     XRT Single Header File
-    Generated: 2026-06-26 15:27:59
+    Generated: 2026-06-28 18:50:24
 
     MIT License
 
@@ -6510,6 +6510,7 @@
 	#define XRT_TYPE_KIND_RECORD		13u
 	#define XRT_TYPE_KIND_HANDLE		14u
 	#define XRT_TYPE_KIND_TYPE			15u
+	#define XRT_TYPE_KIND_FUTURE		16u
 	#define XRT_NATIVE_ABI_XCALL		0u
 	#define XRT_NATIVE_ABI_CDECL		1u
 	#define XRT_NATIVE_ABI_STDCALL		2u
@@ -6650,6 +6651,7 @@
 	XXAPI const xrt_type_desc* xrtTypeTime();
 	XXAPI const xrt_type_desc* xrtTypePoint();
 	XXAPI const xrt_type_desc* xrtTypeFunction();
+	XXAPI const xrt_type_desc* xrtTypeFuture();
 	XXAPI const xrt_type_desc* xrtTypeArray();
 	XXAPI const xrt_type_desc* xrtTypeList();
 	XXAPI const xrt_type_desc* xrtTypeSet();
@@ -79992,7 +79994,8 @@ static bool __xvoCanBindTypeDesc(xvalue pVal, const xrt_type_desc* pType)
 		case XVO_DT_CLASS:
 			return pType->Kind == XRT_TYPE_KIND_RECORD;
 		case XVO_DT_CUSTOM:
-			return pType->Kind == XRT_TYPE_KIND_HANDLE;
+			return pType->Kind == XRT_TYPE_KIND_HANDLE
+				|| pType->Kind == XRT_TYPE_KIND_FUTURE;
 		default:
 			return FALSE;
 	}
@@ -80375,6 +80378,13 @@ XXAPI xvalue xvoCopy(xvalue pVal)
 		if ( pVal->vTypeDesc != NULL ) {
 			xrt_handle_value* pHandle = (xrt_handle_value*)pVal->vCustom;
 			uint32 iFlags = pHandle ? pHandle->Flags : XRT_HANDLE_FLAG_NULLABLE;
+			if ( pHandle != NULL && pVal->vTypeDesc->Ops != NULL && pVal->vTypeDesc->Ops->copy != NULL ) {
+				ptr pNewHandle = NULL;
+				pVal->vTypeDesc->Ops->copy(&pNewHandle, &pHandle->Handle);
+				iFlags &= ~XRT_HANDLE_FLAG_BORROWED;
+				iFlags |= XRT_HANDLE_FLAG_OWNED;
+				return xvoCreateHandle(pVal->vTypeDesc, pNewHandle, iFlags | XRT_HANDLE_FLAG_NULLABLE);
+			}
 			iFlags &= ~XRT_HANDLE_FLAG_OWNED;
 			iFlags |= XRT_HANDLE_FLAG_BORROWED;
 			return xvoCreateHandle(pVal->vTypeDesc, pHandle ? pHandle->Handle : NULL, iFlags | XRT_HANDLE_FLAG_NULLABLE);
@@ -80497,6 +80507,13 @@ XXAPI xvalue xvoDeepCopy(xvalue pVal)
 		if ( pVal->vTypeDesc != NULL ) {
 			xrt_handle_value* pHandle = (xrt_handle_value*)pVal->vCustom;
 			uint32 iFlags = pHandle ? pHandle->Flags : XRT_HANDLE_FLAG_NULLABLE;
+			if ( pHandle != NULL && pVal->vTypeDesc->Ops != NULL && pVal->vTypeDesc->Ops->copy != NULL ) {
+				ptr pNewHandle = NULL;
+				pVal->vTypeDesc->Ops->copy(&pNewHandle, &pHandle->Handle);
+				iFlags &= ~XRT_HANDLE_FLAG_BORROWED;
+				iFlags |= XRT_HANDLE_FLAG_OWNED;
+				return xvoCreateHandle(pVal->vTypeDesc, pNewHandle, iFlags | XRT_HANDLE_FLAG_NULLABLE);
+			}
 			iFlags &= ~XRT_HANDLE_FLAG_OWNED;
 			iFlags |= XRT_HANDLE_FLAG_BORROWED;
 			return xvoCreateHandle(pVal->vTypeDesc, pHandle ? pHandle->Handle : NULL, iFlags | XRT_HANDLE_FLAG_NULLABLE);
@@ -81043,6 +81060,93 @@ static bool __xrtTypeUnboxFunction(xvalue pVal, ptr pOut, const xrt_type_desc* p
 	xrtCallableAddRef(pCallable);
 	return TRUE;
 }
+static void __xrtTypeInitFuture(ptr pObj)
+{
+	if ( pObj != NULL ) {
+		*(xfuture**)pObj = NULL;
+	}
+}
+static void __xrtTypeCopyFuture(ptr pDst, const ptr pSrc)
+{
+	xfuture* pFuture;
+	if ( pDst == NULL ) {
+		return;
+	}
+	pFuture = (pSrc != NULL) ? *(xfuture* const*)pSrc : NULL;
+	*(xfuture**)pDst = pFuture;
+	if ( pFuture != NULL ) {
+		xFutureAddRef(pFuture);
+	}
+}
+static void __xrtTypeDropFuture(ptr pObj)
+{
+	xfuture* pFuture;
+	if ( pObj == NULL ) {
+		return;
+	}
+	pFuture = *(xfuture**)pObj;
+	if ( pFuture != NULL ) {
+		xFutureRelease(pFuture);
+		*(xfuture**)pObj = NULL;
+	}
+}
+static int __xrtTypeCompareFuture(const ptr pA, const ptr pB)
+{
+	uintptr a = (uintptr)((pA != NULL) ? *(xfuture* const*)pA : NULL);
+	uintptr b = (uintptr)((pB != NULL) ? *(xfuture* const*)pB : NULL);
+	return (a > b) ? 1 : ((a < b) ? -1 : 0);
+}
+static uint64 __xrtTypeHashFuture(const ptr pObj)
+{
+	xfuture* pFuture = (pObj != NULL) ? *(xfuture* const*)pObj : NULL;
+	return xrtHash64(&pFuture, sizeof(pFuture));
+}
+static str __xrtTypeToStringFuture(const ptr pObj, uint32* pSize)
+{
+	xfuture* pFuture = (pObj != NULL) ? *(xfuture* const*)pObj : NULL;
+	str sRet = xrtFormat("[future:%p]", (ptr)pFuture);
+	if ( pSize != NULL ) {
+		*pSize = (sRet != NULL && sRet != xCore.sNull) ? (uint32)strlen((const char*)sRet) : 0;
+	}
+	return sRet;
+}
+static xvalue __xrtTypeBoxFuture(const ptr pObj, const xrt_type_desc* pType)
+{
+	xfuture* pFuture;
+	xvalue pVal;
+	pFuture = (pObj != NULL) ? *(xfuture* const*)pObj : NULL;
+	if ( pFuture == NULL ) {
+		return xvoCreateNull();
+	}
+	xFutureAddRef(pFuture);
+	pVal = xvoCreateHandle(pType, pFuture, XRT_HANDLE_FLAG_OWNED);
+	if ( pVal == NULL ) {
+		xFutureRelease(pFuture);
+	}
+	return pVal;
+}
+static bool __xrtTypeUnboxFuture(xvalue pVal, ptr pOut, const xrt_type_desc* pType)
+{
+	const xrt_type_desc* pValType;
+	xfuture* pFuture;
+	if ( pOut == NULL ) {
+		return FALSE;
+	}
+	if ( pVal == NULL || xvoType(pVal) == XVO_DT_NULL ) {
+		*(xfuture**)pOut = NULL;
+		return TRUE;
+	}
+	pValType = xvoTypeDesc(pVal);
+	if ( !xrtTypeSame(pValType, pType) ) {
+		return FALSE;
+	}
+	pFuture = (xfuture*)xvoGetHandleData(pVal);
+	if ( pFuture != NULL ) {
+		xFutureAddRef(pFuture);
+	}
+	*(xfuture**)pOut = pFuture;
+	return TRUE;
+}
 static const xrt_type_ops __xrtTypeBoolOps = {
 	.init = NULL,
 	.copy = NULL,
@@ -81130,6 +81234,17 @@ static const xrt_type_ops __xrtTypeFunctionOps = {
 	.to_string = __xrtTypeToStringFunction,
 	.box = __xrtTypeBoxFunction,
 	.unbox = __xrtTypeUnboxFunction
+};
+static const xrt_type_ops __xrtTypeFutureOps = {
+	.init = __xrtTypeInitFuture,
+	.copy = __xrtTypeCopyFuture,
+	.move = NULL,
+	.drop = __xrtTypeDropFuture,
+	.compare = __xrtTypeCompareFuture,
+	.hash = __xrtTypeHashFuture,
+	.to_string = __xrtTypeToStringFuture,
+	.box = __xrtTypeBoxFuture,
+	.unbox = __xrtTypeUnboxFuture
 };
 static const xrt_type_desc __xrtTypeString;
 static const xrt_type_desc* const __xrtTypeToStringReturns[] = {
@@ -81263,6 +81378,19 @@ static const xrt_type_desc __xrtTypeFunction = {
 	.Methods = &__xrtTypeValueMethodTable,
 	.Extra = NULL
 };
+static const xrt_type_desc __xrtTypeFuture = {
+	.TypeId = XRT_TYPE_KIND_FUTURE,
+	.Kind = XRT_TYPE_KIND_FUTURE,
+	.Name = "future",
+	.NameSize = XRT_TYPE_NAME_LEN("future"),
+	.AbiName = "xfuture",
+	.AbiNameSize = XRT_TYPE_NAME_LEN("xfuture"),
+	.Size = sizeof(xfuture*),
+	.Align = sizeof(ptr),
+	.Ops = &__xrtTypeFutureOps,
+	.Methods = &__xrtTypeValueMethodTable,
+	.Extra = NULL
+};
 static const xrt_type_desc __xrtTypeArray = {
 	.TypeId = XRT_TYPE_KIND_ARRAY,
 	.Kind = XRT_TYPE_KIND_ARRAY,
@@ -81355,6 +81483,7 @@ XXAPI const xrt_type_desc* xrtTypeString() { return &__xrtTypeString; }
 XXAPI const xrt_type_desc* xrtTypeTime() { return &__xrtTypeTime; }
 XXAPI const xrt_type_desc* xrtTypePoint() { return &__xrtTypePoint; }
 XXAPI const xrt_type_desc* xrtTypeFunction() { return &__xrtTypeFunction; }
+XXAPI const xrt_type_desc* xrtTypeFuture() { return &__xrtTypeFuture; }
 XXAPI const xrt_type_desc* xrtTypeArray() { return &__xrtTypeArray; }
 XXAPI const xrt_type_desc* xrtTypeList() { return &__xrtTypeList; }
 XXAPI const xrt_type_desc* xrtTypeSet() { return &__xrtTypeSet; }

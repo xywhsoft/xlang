@@ -47,16 +47,28 @@ if errorlevel 1 (
     exit /b 1
 )
 
-echo Generating embedded TCC VFS resources...
-powershell -NoProfile -ExecutionPolicy Bypass -File tools\gen_tcc_vfs_resources.ps1 -Root "%XL6_ROOT%" -Manifest tools\tcc_vfs_manifest_win64.txt -Output release\tmp\tcc_builtin_resources.c -TccDist "%XL6_EMBED_TCC_DIST_X64%" -XrtObj "%XL6_XRT_OBJ%"
+echo Generating runtime embedded TCC VFS resources...
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\gen_tcc_vfs_resources.ps1 -Root "%XL6_ROOT%" -Manifest tools\tcc_vfs_manifest_win64_runtime.txt -Output release\tmp\tcc_builtin_resources_runtime.c -TccDist "%XL6_EMBED_TCC_DIST_X64%" -XrtObj "%XL6_XRT_OBJ%"
 if errorlevel 1 (
-    echo DEMO6 embedded TCC VFS resource generation failed.
+    echo DEMO6 runtime embedded TCC VFS resource generation failed.
+    exit /b 1
+)
+
+echo Generating compiler embedded TCC VFS resources...
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\gen_tcc_vfs_resources.ps1 -Root "%XL6_ROOT%" -Manifest tools\tcc_vfs_manifest_win64_xlc.txt -Output release\tmp\tcc_builtin_resources.c -TccDist "%XL6_EMBED_TCC_DIST_X64%" -XrtObj "%XL6_XRT_OBJ%"
+if errorlevel 1 (
+    echo DEMO6 compiler embedded TCC VFS resource generation failed.
     exit /b 1
 )
 
 echo Building DEMO6 xl.dll runtime...
-"%XL6_TCC%" -std=c11 -Wall -shared -DXL_BUILD_DLL -DXL_RUNTIME_ONLY_DLL -D_CRT_SECURE_NO_WARNINGS -I. -Iinclude -Isrc %XL6_TCC_SOURCE_INCLUDE% %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% -o release\xl.dll ^
+"%XL6_TCC%" -std=c11 -Wall -shared -DXL_BUILD_DLL -DXL_RUNTIME_ONLY_DLL -DXL_STATIC_TCC -D_CRT_SECURE_NO_WARNINGS -DCONFIG_TCC_STATIC -I. -Iinclude -Isrc -Ilib\lzma -I"%XL6_EMBED_TCC_SOURCE_ROOT%" %XL6_TCC_SOURCE_INCLUDE% %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% -o release\xl.dll ^
     src\api\xl_api.c ^
+    "%XL6_EMBED_TCC_SOURCE_ROOT%\libtcc.c" ^
+    "%XL6_EMBED_TCC_SOURCE_ROOT%\tcc_builtin_vfs.c" ^
+    "%XL6_EMBED_TCC_SOURCE_ROOT%\tcc_utf8_io.c" ^
+    lib\lzma\LzmaDec.c ^
+    release\tmp\tcc_builtin_resources_runtime.c ^
     src\abi\xl6_callable.c ^
     src\abi\xl6_xapi_dump.c ^
     src\abi\xl6_xapi_load.c ^
@@ -91,11 +103,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-copy /Y "%XL6_TCC_DLL%" release\libtcc.dll >nul
-if errorlevel 1 (
-    echo DEMO6 xl.dll build failed: cannot copy libtcc.dll.
-    exit /b 1
-)
+if exist release\libtcc.dll del /f /q release\libtcc.dll >nul 2>nul
 
 echo Generating xl.dll import definition...
 "%XL6_TCC%" -impdef release\xl.dll -o release\xl.def

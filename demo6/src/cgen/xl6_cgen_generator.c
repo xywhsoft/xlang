@@ -123,6 +123,22 @@ static int xl6CgenFuncReturnsGenerator(XL6_CgenContext* ctx, const XL6_AstNode* 
            xl6CgenIsGeneratorType(xl6CgenResolveAliasType(ctx, returns->children[0]));
 }
 
+static int xl6CgenFuncIsAsyncGenerator(XL6_CgenContext* ctx, const XL6_AstNode* node)
+{
+    const XL6_AstNode* returns;
+    const XL6_AstNode* returnType;
+
+    if ( !xl6CgenFuncReturnsGenerator(ctx, node) ) {
+        return 0;
+    }
+    if ( node->kind == XL6_AST_ASYNC_FUNC ) {
+        return 1;
+    }
+    returns = node != NULL && node->childCount > 2 ? node->children[2] : NULL;
+    returnType = returns != NULL && returns->childCount == 1 ? returns->children[0] : NULL;
+    return returnType != NULL && (returnType->flags & XL6_AST_FLAG_ASYNC) != 0;
+}
+
 static XL6_AstNode* xl6CgenCloneGeneratorItemType(XL6_CgenContext* ctx, const XL6_AstNode* typeNode)
 {
     return xl6CgenCloneSingleGenericArgType(ctx, typeNode, "generator");

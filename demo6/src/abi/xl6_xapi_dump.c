@@ -849,7 +849,8 @@ static char* xl6XapiBuildSignature(const XL6_XapiExport* item)
     }
 
     xl6XapiStringBuilderInit(&builder);
-    if ( xl6XapiTextEquals(item->kind, "function") ) {
+    if ( xl6XapiTextEquals(item->kind, "function") ||
+         xl6XapiTextEquals(item->kind, "class_method") ) {
         xl6XapiStringBuilderAppend(&builder, "func(");
         for ( i = 0; i < item->paramCount; ++i ) {
             if ( i > 0 ) {
@@ -891,6 +892,10 @@ static char* xl6XapiBuildExportId(const XL6_XapiModule* module, const XL6_XapiEx
     xl6XapiStringBuilderInit(&builder);
     xl6XapiStringBuilderAppend(&builder, module != NULL && module->moduleId != NULL ? module->moduleId : "app@0.0.0#abi1::app");
     xl6XapiStringBuilderAppend(&builder, "::");
+    if ( item != NULL && item->owner != NULL && item->owner[0] != '\0' ) {
+        xl6XapiStringBuilderAppend(&builder, item->owner);
+        xl6XapiStringBuilderAppend(&builder, ".");
+    }
     xl6XapiStringBuilderAppend(&builder, item != NULL && item->name != NULL ? item->name : "");
     xl6XapiStringBuilderAppendChar(&builder, '(');
     xl6XapiStringBuilderAppend(&builder, item != NULL && item->signature != NULL ? item->signature : "");
@@ -1235,6 +1240,7 @@ void xl6XapiModuleFree(XL6_XapiModule* module)
         XL6_XapiExport* item = &module->exports[i];
         xrtFree(item->kind);
         xrtFree(item->name);
+        xrtFree(item->owner);
         xrtFree(item->cSymbol);
         xrtFree(item->type);
         xrtFree(item->signature);
@@ -1382,6 +1388,38 @@ static int xl6XapiExportBuildVar(XL6_XapiExport* item, const XL6_AstNode* root, 
     return item->kind != NULL && item->name != NULL && item->cSymbol != NULL && item->type != NULL;
 }
 
+static size_t xl6XapiCountClassExportFuncs(const XL6_AstNode* classNode)
+{
+    const XL6_AstNode* body;
+    size_t i;
+    size_t count;
+
+    body = xl6XapiClassBody(classNode);
+    count = 0;
+    for ( i = 0; body != NULL && i < body->childCount; ++i ) {
+        const XL6_AstNode* member = body->children[i];
+        if ( member != NULL && member->kind == XL6_AST_EXPORT_FUNC ) {
+            count += 1;
+        }
+    }
+    return count;
+}
+
+static int xl6XapiExportBuildClassFunc(
+    XL6_XapiExport* item,
+    const XL6_AstNode* root,
+    const XL6_AstNode* classNode,
+    const XL6_AstNode* node)
+{
+    if ( !xl6XapiExportBuildFunc(item, root, node) ) {
+        return 0;
+    }
+    xrtFree(item->kind);
+    item->kind = xl6XapiDupText("class_method");
+    item->owner = xl6XapiDupText(classNode != NULL && classNode->text != NULL ? classNode->text : "");
+    return item->kind != NULL && item->owner != NULL;
+}
+
 int xl6XapiModuleBuild(XL6_XapiModule* module, const XL6_AstNode* root, const char* sourcePath, const char* moduleName)
 {
     size_t i;
@@ -1434,6 +1472,9 @@ int xl6XapiModuleBuild(XL6_XapiModule* module, const XL6_AstNode* root, const ch
                 exportCount += 1;
             } else if ( child->kind == XL6_AST_CLASS || child->kind == XL6_AST_CUSTOM || child->kind == XL6_AST_UNION ) {
                 typeCount += 1;
+                if ( child->kind == XL6_AST_CLASS ) {
+                    exportCount += xl6XapiCountClassExportFuncs(child);
+                }
             } else if ( child->kind == XL6_AST_IMPORT ) {
                 importCount += 1;
             }
@@ -1485,6 +1526,25 @@ int xl6XapiModuleBuild(XL6_XapiModule* module, const XL6_AstNode* root, const ch
                     return 0;
                 }
                 typeIndex += 1;
+                if ( child->kind == XL6_AST_CLASS ) {
+                    const XL6_AstNode* body = xl6XapiClassBody(child);
+                    size_t j;
+                    for ( j = 0; body != NULL && j < body->childCount; ++j ) {
+                        const XL6_AstNode* member = body->children[j];
+                        if ( member == NULL || member->kind != XL6_AST_EXPORT_FUNC ) {
+                            continue;
+                        }
+                        if ( !xl6XapiExportBuildClassFunc(&module->exports[exportIndex], root, child, member) ) {
+                            xl6XapiModuleFree(module);
+                            return 0;
+                        }
+                        if ( !xl6XapiFinalizeExportIdentity(module, &module->exports[exportIndex]) ) {
+                            xl6XapiModuleFree(module);
+                            return 0;
+                        }
+                        exportIndex += 1;
+                    }
+                }
             } else if ( child->kind == XL6_AST_IMPORT ) {
                 XL6_PackageResolveResult resolved;
                 char* target = xl6XapiDupImportTarget(child->text);
@@ -1595,6 +1655,10 @@ void xl6XapiDumpJsonModule(XL6_Output* out, const XL6_XapiModule* module)
             xl6XapiJsonString(out, item->kind);
             xl6OutputPuts(",\"name\":", out);
             xl6XapiJsonString(out, item->name);
+            if ( item->owner != NULL && item->owner[0] != '\0' ) {
+                xl6OutputPuts(",\"owner\":", out);
+                xl6XapiJsonString(out, item->owner);
+            }
             xl6OutputPuts(",\"cSymbol\":", out);
             xl6XapiJsonString(out, item->cSymbol);
             if ( item->signature != NULL ) {
@@ -1613,7 +1677,9 @@ void xl6XapiDumpJsonModule(XL6_Output* out, const XL6_XapiModule* module)
                 xl6OutputPuts(",\"doc\":", out);
                 xl6XapiDumpDocJson(out, item->doc);
             }
-            if ( item->paramCount > 0 || xl6XapiTextEquals(item->kind, "function") ) {
+            if ( item->paramCount > 0 ||
+                 xl6XapiTextEquals(item->kind, "function") ||
+                 xl6XapiTextEquals(item->kind, "class_method") ) {
                 xl6OutputPuts(",\"callingConvention\":", out);
                 xl6XapiJsonString(out, item->callingConvention);
                 xl6OutputPuts(",\"varargMode\":", out);

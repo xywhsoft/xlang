@@ -15,7 +15,11 @@
 #define XL_STATIC_TCC 1
 #endif
 
-#ifdef XL_STATIC_TCC
+#if defined(XL_STATIC_TCC) && !defined(TCC_DISABLE_BUILTIN_VFS)
+#define XL_STATIC_TCC_VFS 1
+#endif
+
+#ifdef XL_STATIC_TCC_VFS
 #include "tcc_builtin_vfs.h"
 #endif
 
@@ -110,7 +114,6 @@ struct XL_Context {
     char* tccWinapiIncludePath;
     char* tccLibSearchPath;
     char* tccLibtcc1Path;
-    char* xrtObjPath;
     int saveTemps;
     char* lastError;
     XL_StringList includePaths;
@@ -137,10 +140,10 @@ static int xl__runtimeContextCount = 0;
 static const float xl__mzerosf = -0.0f;
 static const double xl__mzerodf = -0.0;
 
-#define XL_TCC_VFS_XRT_OBJ "lib/xrt/xrt.o"
 #define XL_TCC_VFS_LIBTCC1 "lib/libtcc1.a"
 #define XL_TCC_VFS_MODULE_C "__xlvfs__/module.c"
 #define XL_TCC_VFS_RUNTIME_C "__xlvfs__/runtime.c"
+#define XL_TCC_VFS_XRT_C "__xlvfs__/xrt_impl.c"
 
 /* DLL API 会修改全局 TCC 状态和进程 cwd，公开入口必须串行化。 */
 #ifdef _WIN32
@@ -242,15 +245,14 @@ static char* xlPathSnapshot(const char* baseDir, const char* path)
 
 static char* xlToolchainPathSnapshot(const char* baseDir, const char* path)
 {
-#if defined(CONFIG_TCC_STATIC) || defined(XL_STATIC_TCC)
+#ifdef XL_STATIC_TCC_VFS
     if ( path != NULL &&
          (strcmp(path, XL6_TCC_ROOT_PATH) == 0 ||
           strcmp(path, XL6_TCC_INCLUDE_PATH) == 0 ||
           strcmp(path, XL6_TCC_WIN_INCLUDE_PATH) == 0 ||
           strcmp(path, XL6_TCC_WINAPI_INCLUDE_PATH) == 0 ||
           strcmp(path, XL6_TCC_LIB_PATH) == 0 ||
-          strcmp(path, XL6_TCC_LIBTCC1_PATH) == 0 ||
-          strcmp(path, XL6_XRT_OBJ_PATH) == 0) ) {
+          strcmp(path, XL6_TCC_LIBTCC1_PATH) == 0) ) {
         /* 静态 TCC 的默认工具链路径是 VFS 虚拟路径，不能展开成宿主文件系统绝对路径。 */
         return xlDupText(path);
     }
@@ -649,7 +651,7 @@ static const char* xlEnvPathOrDefault(const char* name, const char* fallback)
     if ( envPath == NULL ) {
         return fallback;
     }
-#if defined(CONFIG_TCC_STATIC) || defined(XL_STATIC_TCC)
+#ifdef XL_STATIC_TCC_VFS
     /* 静态内嵌 TCC 时，环境变量只覆盖真实存在的外部资源；否则回到 VFS 虚拟路径。 */
     return xrtFileExists((char*)envPath) ? envPath : fallback;
 #else
@@ -702,7 +704,7 @@ static void xlAddDefaultTccRuntime(TCCState* s, XL_Context* ctx)
         (void)xl__tcc.tcc_add_file(s, path);
         return;
     }
-#ifdef XL_STATIC_TCC
+#ifdef XL_STATIC_TCC_VFS
     (void)xl__tcc.tcc_add_file(s, XL_TCC_VFS_LIBTCC1);
 #endif
 }
@@ -1069,6 +1071,7 @@ static int xlAddDefaultRuntimeSymbols(TCCState* s)
     XL_ADD_XRT_SYMBOL(s, xrtTypePoint);
     XL_ADD_XRT_SYMBOL(s, xrtTypeType);
     XL_ADD_XRT_SYMBOL(s, xrtTypeFunction);
+    XL_ADD_XRT_SYMBOL(s, xrtTypeFuture);
     XL_ADD_XRT_SYMBOL(s, xrtTypeBoxValue);
     XL_ADD_XRT_SYMBOL(s, xrtTypedArrayCreate);
     XL_ADD_XRT_SYMBOL(s, xrtTypedArrayDestroy);
@@ -1118,10 +1121,16 @@ static int xlAddDefaultRuntimeSymbols(TCCState* s)
     XL_ADD_XRT_SYMBOL(s, xrtTypedDictRemove);
     XL_ADD_XRT_SYMBOL(s, xrtTypedDictItemType);
     XL_ADD_XRT_SYMBOL(s, xTaskRunThread);
+    XL_ADD_XRT_SYMBOL(s, xFutureAddRef);
     XL_ADD_XRT_SYMBOL(s, xFutureWait);
     XL_ADD_XRT_SYMBOL(s, xFutureValue);
     XL_ADD_XRT_SYMBOL(s, xFutureError);
     XL_ADD_XRT_SYMBOL(s, xFutureRelease);
+    XL_ADD_XRT_SYMBOL(s, xFutureRequestCancel);
+    XL_ADD_XRT_SYMBOL(s, xFutureWhenAll);
+    XL_ADD_XRT_SYMBOL(s, xFutureRace);
+    XL_ADD_XRT_SYMBOL(s, xFutureGetAllValueCount);
+    XL_ADD_XRT_SYMBOL(s, xFutureGetAllValueItem);
     XL_ADD_XRT_SYMBOL(s, xrtChannelCreate);
     XL_ADD_XRT_SYMBOL(s, xrtChannelDestroy);
     XL_ADD_XRT_SYMBOL(s, xrtChannelSend);
@@ -1314,38 +1323,6 @@ static TCCState* xlCreateTccState(XL_Context* ctx, int outputType)
     return s;
 }
 
-static const char* xlDefaultXrtObjPath(void)
-{
-    return xlEnvPathOrDefault("XL6_XRT_OBJ", XL6_XRT_OBJ_PATH);
-}
-
-static int xlAddDefaultXrtObject(XL_Context* ctx, TCCState* s)
-{
-    const char* xrtObjPath;
-
-    if ( s == NULL ) {
-        xlSetError(ctx, "cannot add xrt object");
-        return 0;
-    }
-    xrtObjPath = ctx != NULL && ctx->xrtObjPath != NULL && ctx->xrtObjPath[0] != '\0' ?
-                 ctx->xrtObjPath :
-                 xlDefaultXrtObjPath();
-    if ( !xrtFileExists((char*)xrtObjPath) ) {
-#ifdef XL_STATIC_TCC
-        if ( xl__tcc.tcc_add_file(s, XL_TCC_VFS_XRT_OBJ) == 0 ) {
-            return 1;
-        }
-#endif
-        xlSetError2(ctx, "missing XRT object", xrtObjPath);
-        return 0;
-    }
-    if ( xl__tcc.tcc_add_file(s, xrtObjPath) != 0 ) {
-        xlSetError2(ctx, "cannot add XRT object", xrtObjPath);
-        return 0;
-    }
-    return 1;
-}
-
 static void xlSetCompileDiagError(XL_Context* ctx, const XL6_CompileUnit* unit)
 {
     char text[1200];
@@ -1402,7 +1379,7 @@ static int xlCgenToMemory(XL_Context* ctx, XL6_CompileUnit* unit, char** outText
 
 static void xlTccDynamicVfsClear(void)
 {
-#ifdef XL_STATIC_TCC
+#ifdef XL_STATIC_TCC_VFS
     tcc_vfs_clear_dynamic();
 #endif
 }
@@ -1413,7 +1390,7 @@ static int xlTccCompileSourceText(XL_Context* ctx, TCCState* s, const char* virt
         xlSetError(ctx, fallbackError != NULL ? fallbackError : "TCC source is empty");
         return 0;
     }
-#ifdef XL_STATIC_TCC
+#ifdef XL_STATIC_TCC_VFS
     if ( virtualPath == NULL || virtualPath[0] == '\0' ) {
         xlSetError(ctx, "dynamic TCC VFS path is empty");
         return 0;
@@ -1644,7 +1621,10 @@ static int xlCompileUnitToExe(XL_Context* ctx, XL6_CompileUnit* unit, const char
     if ( !xlAddDependenciesToTcc(ctx, s, unit) ) {
         goto cleanup;
     }
-    if ( !xlAddDefaultXrtObject(ctx, s) ) {
+    if ( !xlTccCompileSourceText(ctx, s, XL_TCC_VFS_XRT_C,
+            "#define XRT_IMPLEMENTATION\n"
+            "#include \"lib/xrt/xrt.h\"\n",
+            "cannot compile XRT single header") ) {
         goto cleanup;
     }
     (void)xl__tcc.tcc_add_library(s, "Ws2_32");
@@ -1774,7 +1754,6 @@ static void xlDestroyContextUnlocked(XL_Context* ctx)
     xrtFree(ctx->tccWinapiIncludePath);
     xrtFree(ctx->tccLibSearchPath);
     xrtFree(ctx->tccLibtcc1Path);
-    xrtFree(ctx->xrtObjPath);
     xrtFree(ctx->lastError);
     xlStringListFree(&ctx->includePaths);
     xlStringListFree(&ctx->libraryPaths);
@@ -1824,13 +1803,12 @@ XL_Context* xlCreateContext(const XL_ContextOptions* options)
     ctx->tccWinapiIncludePath = xlToolchainPathSnapshot(ctx->baseDir, xlDefaultTccWinapiIncludePath());
     ctx->tccLibSearchPath = xlToolchainPathSnapshot(ctx->baseDir, xlDefaultTccLibPath());
     ctx->tccLibtcc1Path = xlToolchainPathSnapshot(ctx->baseDir, xlDefaultTccLibtcc1Path());
-    ctx->xrtObjPath = xlToolchainPathSnapshot(ctx->baseDir, xlDefaultXrtObjPath());
     ctx->saveTemps = localOptions.saveTemps != 0;
     if ( ctx->baseDir == NULL || ctx->workDir == NULL || ctx->tempDir == NULL ||
          ctx->tccDllPath == NULL || ctx->tccLibPath == NULL ||
          ctx->tccIncludePath == NULL || ctx->tccWinIncludePath == NULL ||
          ctx->tccWinapiIncludePath == NULL || ctx->tccLibSearchPath == NULL ||
-         ctx->tccLibtcc1Path == NULL || ctx->xrtObjPath == NULL ) {
+         ctx->tccLibtcc1Path == NULL ) {
         xlDestroyContextUnlocked(ctx);
         ctx = NULL;
     }

@@ -268,12 +268,15 @@ if ( $failures.Count -eq 0 ) {
         "XL6_TCC_WIN_INCLUDE",
         "XL6_TCC_WINAPI_INCLUDE",
         "XL6_TCC_LIB",
-        "XL6_TCC_LIBTCC1",
-        "XL6_XRT_OBJ"
+        "XL6_TCC_LIBTCC1"
     ) ) {
         if ( $api -notmatch [regex]::Escape($name) ) {
             Add-Failure "xl.dll TCC defaults must honor centralized toolchain environment variable: $name"
         }
+    }
+
+    if ( $api -notmatch 'XRT_IMPLEMENTATION' -or $api -notmatch 'lib/xrt/xrt[.]h' ) {
+        Add-Failure "xlc.dll exe compiler path must provide XRT through the single-header implementation"
     }
 
     foreach ( $name in @(
@@ -333,6 +336,13 @@ if ( $failures.Count -eq 0 ) {
 
     if ( $buildDll -notmatch 'src\\api\\xl_api[.]c' ) {
         Add-Failure "build_dll.bat does not compile src\\api\\xl_api.c"
+    }
+    if ( $buildDll -notmatch 'tcc_vfs_manifest_win64_runtime[.]txt' -or
+         $buildDll -notmatch 'tcc_vfs_manifest_win64_xlc[.]txt' ) {
+        Add-Failure "build_dll.bat must generate separate runtime and compiler VFS manifests for xl.dll/xlc.dll"
+    }
+    if ( $buildDll -match 'copy\s+/Y\s+"%XL6_TCC_DLL%"\s+release\\libtcc[.]dll' ) {
+        Add-Failure "build_dll.bat must not copy external libtcc.dll into release"
     }
 }
 

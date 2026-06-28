@@ -89,7 +89,7 @@ xl build <file.xl> -o <output.exe> [-shared] [--save-temps] [--emit-header outpu
 - TCC 文件查找顺序固定为：动态 VFS -> 外部文件系统 -> 静态 VFS。
 - 动态 VFS 保存本次编译刚生成的 C 源、生成头和 C 混编 wrapper，优先级最高。
 - 外部文件系统优先于静态 VFS，允许用户用外部头文件、库文件、def 文件覆盖内置兜底资源。
-- 静态 VFS 只保存 `xl.exe` / `xlc.dll` 内置的 TCC/XRT 兜底资源。
+- 静态 VFS 分为运行清单和编译清单：`xl.dll` 只携带脚本运行所需的 TCC include 与 libtcc1 资源，`xl.exe` / `xlc.dll` 携带完整编译兜底资源。
 - 内置资源使用当前正式虚拟路径，不为旧路径做兼容映射。
 - `run` 与 `build` 走同一套 TCC 文件解析和 VFS 规则。
 
@@ -117,7 +117,7 @@ xl build <file.xl> -o <output.exe> [-shared] [--save-temps] [--emit-header outpu
 null true false
 func const var auto typedef as
 if then else elseif end
-for in while do
+for in is while do
 break continue return
 async await yield
 try catch finally throw assert
@@ -273,10 +273,61 @@ func(string, ***) as int namedVarargProc
 - `type(expr)` 可以取得表达式类型值。
 - 类型标识符可作为类型值参与比较。
 - `typedef` 支持类型别名。
+- 泛型参数支持 `<T is Constraint>` 约束语法。
+- 多个泛型约束使用 `and` 组合，例如 `<T is json and cloneable>`。
+- 泛型约束支持内置能力约束和 class 继承约束，并在实例化时执行语义检查。
 - 泛型容器支持静态元素类型。
 - `future<T>`、`generator<T>`、`channel<T>` 服务 async/yield/channel 能力。
 - `object` 是标准库普通 class，不是特殊黑盒类型。
 - `void` 不属于 DEMO6 类型系统。
+
+运行时类型判断与向下转换：
+
+```xlang
+var value = 123
+
+if value is int then
+    int n = value as int
+end
+
+class Base
+end
+
+class Child extends Base
+end
+
+Child child
+var boxed = child
+
+if boxed is Base then
+    Base base = boxed as Base
+end
+```
+
+已实现规则：
+
+- `expr is Type` 返回 `bool`。
+- `is` 用于判断运行时值是否满足目标类型。
+- `is` 对非 `var` 的静态表达式会尽量在编译期折叠为常量。
+- `is` 支持基础类型、`null`、class 继承关系、union、custom、函数签名类型和静态泛型容器 descriptor。
+- `is` 判断 class 时支持 `Child is Base`。
+- `is` 判断函数值时保留完整 `func(...) as ...` 签名，不退化为裸 `function`。
+- `is` 判断 `array<T>`、`list<T>`、`set<T>`、`dict<T>` 时使用静态泛型容器 descriptor，`array<int>` 与 `array<string>` 不相等。
+- `expr as Type` 表示显式 checked downcast。
+- `as` 成功时返回目标类型的静态值。
+- `as` 失败时触发运行时 fatal，当前阶段不返回 nullable/option。
+- `as` 当前支持从 `var` 转出基础值、`string`、`time`、`point`、`type`、class、union、custom。
+- `as` 也允许目标类型与源静态类型完全一致的 no-op 写法。
+- `as` 不用于普通数值转换；普通转换继续使用 `int(expr)`、`float(expr)`、`string(expr)` 等构造/转换函数。
+- `is auto`、`is var`、`as auto`、`as var` 不合法。
+- `as null` 不合法，`is null` 合法。
+
+当前边界：
+
+- `type(expr)` 仍表示精确类型身份，不执行 subtype 判断。
+- `is/as` 不改变 `type()` 的语义。
+- 当前不实现控制流类型收窄，例如 `if v is int then` 内部不会自动把 `v` 改写为 `int`。
+- 当前不支持 `as array<T>`、`as list<T>`、`as set<T>`、`as dict<T>` 转出静态泛型容器；容器 downcast 后续需要结合 XRT typed container 生命周期继续设计。
 
 ## 6. 变量、常量和初始化
 
@@ -794,12 +845,24 @@ auto p = json.parse::<Packet>(text)
 - `json.parse::<Class>(text)` / `xson.parse::<Class>(text)` 反序列化为 class 实例。
 - `json.write(path, class)` / `json.read::<Class>(path)` 文件持久化入口。
 - `xson.write(path, class)` / `xson.read::<Class>(path)` 文件持久化入口。
+- 字段级 `@json(...)`、`@xson(...)`、`@persist(...)` 持久化注解。
+- `@json("name")` / `@xson("name")` 可分别指定 JSON/XSON 字段名。
+- `@persist(name="name")` 可为 JSON/XSON 提供通用字段名。
+- `@persist(skip)` 可跳过字段持久化。
+- `@persist(include)` 可允许 private 字段参与自动持久化。
+- `omit=empty` / `omit=null` 可控制空值或 null 值省略输出。
+- 泛型 class 支持 `__iter__` / `__next__` 迭代协议，返回类型中的泛型实参会在实例化代码中正确替换。
+- native-backed class 支持 `native point handle`，并支持 `extern "c_symbol" create/destroy/func` 将 C opaque handle 函数组映射为 class 生命周期和成员方法。
+- native-backed class 可混合普通 xlang 字段、方法与 C extern 成员。
+- class 成员函数支持 `export "c_symbol" func method(...)` 导出 C ABI wrapper。
+- class 成员 C ABI 导出会在生成头文件、ABI dump 和 XAPI 中记录 owner/class 信息。
+- class 成员多返回值导出为 C 输出指针参数。
 
 当前未实现并已进入下一轮设计：
 
 - `and` / `or` 短路逻辑的协议化方案。
-- 泛型 class 的 `__iter__` / `__next__` 迭代协议。
-- 字段级 json/xson 配置块。
+- 泛型约束的 trait/protocol bound 方法集合推导。
+- 泛型 class 成员直接导出 C ABI 的专用实例化 wrapper。
 
 ## 12. 异常、断言与文档注释
 
@@ -1024,6 +1087,12 @@ auto text = file.readText("data.txt")
 - C ABI 类型用于跨平台精确对齐。
 - 可选参数导出到 C 时默认值失效，C 侧按普通参数签名调用。
 - 多返回值、可变参数等 xlang 特性通过 xcall/封装边界与 C ABI 区分。
+- class 成员函数可使用 `export "c_symbol" func method(...)` 导出 C ABI wrapper。
+- 成员导出 wrapper 的第一个 C 参数固定为 `XL_Class_Name* self`。
+- 成员多返回值导出为 `out0`、`out1` 等输出指针参数。
+- 成员导出符号进入生成头文件、ABI dump 和 XAPI；XAPI kind 为 `class_method`，并记录 `owner`。
+- 当前阶段不支持 static 成员导出为 class method C ABI。
+- 当前阶段不支持泛型 class 成员直接导出 C ABI。
 
 main 与入口规则：
 
@@ -1088,7 +1157,7 @@ end
 - `xlc.dll`：带 exe 编译能力的编译版 DLL。
 - `xl.def`：DLL import definition。
 - `xlc.def`：编译版 DLL import definition。
-- `libtcc.dll`：当前 release 中保留的 TCC 动态库副本，服务 DLL 回归边界。
+- `release` 不再生成或保留 `libtcc.dll`；`xl.dll` / `xlc.dll` 均静态内嵌 libtcc，并通过各自的 VFS 清单零外部依赖运行。
 - `xlc_dll_embed_string.exe`：字符串脚本运行和编译 exe 验证程序。
 - `xl_dll_null_context.exe`：空上下文防御验证程序。
 - `xl_dll_threaded_host.exe`：多线程宿主验证程序。
@@ -1227,12 +1296,11 @@ DEMO6 是 xlang 准备发布的第一个候选口径，原则是不背负 DEMO5 
 以下能力不是当前根清单中的已实现稳定功能：
 
 - `and` / `or` 短路逻辑的协议化方案。
-- 泛型 class 的 `__iter__` / `__next__` 迭代协议。
-- 字段级 json/xson 配置块。
 - 完整 package manager。
 - HTTP client 标准库。
 - 完整调试器。
-- 泛型约束系统。
+- 泛型约束的 trait/protocol bound 方法集合推导。
+- 泛型 class 成员直接导出 C ABI 的专用实例化 wrapper。
 - 更完整的跨平台 DLL 入口封装。
 
 以下旧口径不属于 DEMO6 语法或运行模型：

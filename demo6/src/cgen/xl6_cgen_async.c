@@ -104,6 +104,17 @@ static int xl6CgenNodeNeedsAsyncRuntime(const XL6_AstNode* node)
             return 1;
         }
         if ( callee->kind == XL6_AST_MEMBER &&
+             callee->childCount > 0 &&
+             callee->children[0] != NULL &&
+             callee->children[0]->kind == XL6_AST_NAME &&
+             xl6CTextEquals(callee->children[0]->text, "task") &&
+             (xl6CTextEquals(callee->text, "spawn") ||
+              xl6CTextEquals(callee->text, "all") ||
+              xl6CTextEquals(callee->text, "race") ||
+              xl6CTextEquals(callee->text, "cancel")) ) {
+            return 1;
+        }
+        if ( callee->kind == XL6_AST_MEMBER &&
              (xl6CTextEquals(callee->text, "lock") ||
               xl6CTextEquals(callee->text, "tryLock") ||
               xl6CTextEquals(callee->text, "unlock") ||
@@ -136,14 +147,43 @@ static int xl6CgenNodeNeedsAsyncRuntime(const XL6_AstNode* node)
     return 0;
 }
 
+static int xl6CgenNodeNeedsTaskSpawn(const XL6_AstNode* node)
+{
+    size_t i;
+
+    if ( node == NULL ) {
+        return 0;
+    }
+    if ( node->kind == XL6_AST_CALL && node->childCount > 0 && node->children[0] != NULL ) {
+        const XL6_AstNode* callee = node->children[0];
+        if ( callee->kind == XL6_AST_MEMBER &&
+             callee->childCount > 0 &&
+             callee->children[0] != NULL &&
+             callee->children[0]->kind == XL6_AST_NAME &&
+             xl6CTextEquals(callee->children[0]->text, "task") &&
+             xl6CTextEquals(callee->text, "spawn") ) {
+            return 1;
+        }
+    }
+    for ( i = 0; i < node->childCount; ++i ) {
+        if ( xl6CgenNodeNeedsTaskSpawn(node->children[i]) ) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
 static void xl6CgenEmitAsyncRuntime(XL6_Output* out)
 {
     xl6OutputPuts("#include <stddef.h>\n", out);
+    xl6OutputPuts("#include <stdarg.h>\n", out);
     xl6OutputPuts("#include <string.h>\n", out);
     xl6OutputPuts("#ifndef XL6_XRT_ASYNC_TYPEDEF\n", out);
     xl6OutputPuts("#define XL6_XRT_ASYNC_TYPEDEF\n", out);
     xl6OutputPuts("typedef struct xrt_net_future xfuture;\n", out);
     xl6OutputPuts("typedef struct xchannel_struct* xchannel;\n", out);
+    xl6OutputPuts("typedef struct xrt_type_desc xrt_type_desc;\n", out);
+    xl6OutputPuts("typedef struct xrt_typed_array_struct* xtarray;\n", out);
     xl6OutputPuts("typedef enum xqueue_result { XQUEUE_OK = 0, XQUEUE_EMPTY = 1, XQUEUE_FULL = 2, XQUEUE_CLOSED = 3, XQUEUE_TIMEOUT = 4, XQUEUE_ERROR = -1 } xqueue_result;\n", out);
     xl6OutputPuts("typedef struct {\n", out);
     xl6OutputPuts("    int iStatus;\n", out);
@@ -164,10 +204,28 @@ static void xl6CgenEmitAsyncRuntime(XL6_Output* out)
     xl6OutputPuts("void* xrtMalloc(size_t iSize);\n", out);
     xl6OutputPuts("void xrtFree(void* pMem);\n", out);
     xl6OutputPuts("xfuture* xTaskRunThread(xtask_thread_fn pfnTask, void* pArg, size_t iStackSize);\n", out);
+    xl6OutputPuts("xfuture* xFutureAddRef(xfuture* pFuture);\n", out);
     xl6OutputPuts("bool xFutureWait(xfuture* pFuture);\n", out);
     xl6OutputPuts("void* xFutureValue(xfuture* pFuture);\n", out);
     xl6OutputPuts("char* xFutureError(xfuture* pFuture);\n", out);
     xl6OutputPuts("void xFutureRelease(xfuture* pFuture);\n", out);
+    xl6OutputPuts("bool xFutureRequestCancel(xfuture* pFuture);\n", out);
+    xl6OutputPuts("xfuture* xFutureWhenAll(xfuture** arrFuture, int iCount);\n", out);
+    xl6OutputPuts("xfuture* xFutureRace(xfuture** arrFuture, int iCount);\n", out);
+    xl6OutputPuts("int xFutureGetAllValueCount(xfuture* pFuture);\n", out);
+    xl6OutputPuts("void* xFutureGetAllValueItem(xfuture* pFuture, int iIndex);\n", out);
+    xl6OutputPuts("const xrt_type_desc* xrtTypeFuture(void);\n", out);
+    xl6OutputPuts("xtarray xrtTypedArrayCreate(const xrt_type_desc* pItemType, unsigned int iMode);\n", out);
+    xl6OutputPuts("void xrtTypedArrayDestroy(xtarray pArray);\n", out);
+    xl6OutputPuts("void* xrtTypedArrayAppend(xtarray pArray, const void* pItem);\n", out);
+    xl6OutputPuts("void* xrtTypedArrayGet(xtarray pArray, unsigned int iPos);\n", out);
+    xl6OutputPuts("unsigned int xrtTypedArrayCount(xtarray pArray);\n", out);
+    xl6OutputPuts("#ifndef XRT_OBJMODE_LOCAL\n", out);
+    xl6OutputPuts("#define XRT_OBJMODE_LOCAL 0x00000000u\n", out);
+    xl6OutputPuts("#endif\n", out);
+    xl6OutputPuts("#ifndef XRT_OBJMODE_SHARED\n", out);
+    xl6OutputPuts("#define XRT_OBJMODE_SHARED 0x00000001u\n", out);
+    xl6OutputPuts("#endif\n", out);
     xl6OutputPuts("xchannel xrtChannelCreate(unsigned int iCapacity);\n", out);
     xl6OutputPuts("void xrtChannelDestroy(xchannel pChannel);\n", out);
     xl6OutputPuts("xqueue_result xrtChannelSend(xchannel pChannel, void* pItem);\n", out);
@@ -178,6 +236,9 @@ static void xl6CgenEmitAsyncRuntime(XL6_Output* out)
     xl6OutputPuts("bool xrtChannelIsClosed(xchannel pChannel);\n\n", out);
 
     xl6OutputPuts("#ifdef XL6_FUNCTION_TYPEDEF\n", out);
+    xl6OutputPuts("void xvoAddRef(xvalue pVal);\n", out);
+    xl6OutputPuts("void xvoUnref(xvalue pVal);\n", out);
+    xl6OutputPuts("bool xrtTypeUnboxValue(const xrt_type_desc* pType, xvalue pVal, void* pOut);\n", out);
     xl6OutputPuts("static void xl6_async_free_function_value(void* pValue)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    XL6_Function* fn = (XL6_Function*)pValue;\n", out);
@@ -369,6 +430,390 @@ static void xl6CgenEmitAsyncRuntime(XL6_Output* out)
     xl6OutputPuts("    return -1;\n", out);
     xl6OutputPuts("}\n\n", out);
 
+    xl6OutputPuts("#ifdef XL6_FUNCTION_TYPEDEF\n", out);
+    xl6OutputPuts("typedef struct XL6_TaskSpawnArg {\n", out);
+    xl6OutputPuts("    XL6_Function fn;\n", out);
+    xl6OutputPuts("    int argc;\n", out);
+    xl6OutputPuts("    xvalue* argv;\n", out);
+    xl6OutputPuts("    const xrt_type_desc* resultType;\n", out);
+    xl6OutputPuts("    size_t resultSize;\n", out);
+    xl6OutputPuts("} XL6_TaskSpawnArg;\n\n", out);
+    xl6OutputPuts("static void xl6_task_spawn_arg_release(XL6_TaskSpawnArg* arg)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    int i;\n", out);
+    xl6OutputPuts("    if ( arg == 0 ) { return; }\n", out);
+    xl6OutputPuts("    if ( arg->fn.release != 0 && arg->fn.env != 0 ) {\n", out);
+    xl6OutputPuts("        arg->fn.release(arg->fn.env);\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    if ( arg->argv != 0 ) {\n", out);
+    xl6OutputPuts("        for ( i = 0; i < arg->argc; ++i ) {\n", out);
+    xl6OutputPuts("            if ( arg->argv[i] != 0 ) { xvoUnref(arg->argv[i]); }\n", out);
+    xl6OutputPuts("        }\n", out);
+    xl6OutputPuts("        xrtFree(arg->argv);\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    xrtFree(arg);\n", out);
+    xl6OutputPuts("}\n\n", out);
+    xl6OutputPuts("static int xl6_task_spawn_entry(void* pArg, xfuture_result* pOut)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    XL6_TaskSpawnArg* arg = (XL6_TaskSpawnArg*)pArg;\n", out);
+    xl6OutputPuts("    xvalue value;\n", out);
+    xl6OutputPuts("    void* box;\n", out);
+    xl6OutputPuts("    if ( arg == 0 || arg->fn.invoke_var == 0 || arg->resultType == 0 || arg->resultSize == 0 ) {\n", out);
+    xl6OutputPuts("        xl6_task_spawn_arg_release(arg);\n", out);
+    xl6OutputPuts("        return xl6_async_result_error(pOut, \"task.spawn received an invalid function frame\");\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    value = arg->fn.invoke_var(arg->fn.env, arg->argc, arg->argv);\n", out);
+    xl6OutputPuts("    if ( value == 0 ) {\n", out);
+    xl6OutputPuts("        xl6_task_spawn_arg_release(arg);\n", out);
+    xl6OutputPuts("        return xl6_async_result_error(pOut, \"task.spawn returned empty value\");\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    box = xrtMalloc(arg->resultSize);\n", out);
+    xl6OutputPuts("    if ( box == 0 ) {\n", out);
+    xl6OutputPuts("        xvoUnref(value);\n", out);
+    xl6OutputPuts("        xl6_task_spawn_arg_release(arg);\n", out);
+    xl6OutputPuts("        return xl6_async_result_error(pOut, \"out of memory while storing task.spawn result\");\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    memset(box, 0, arg->resultSize);\n", out);
+    xl6OutputPuts("    if ( !xrtTypeUnboxValue(arg->resultType, value, box) ) {\n", out);
+    xl6OutputPuts("        xrtFree(box);\n", out);
+    xl6OutputPuts("        xvoUnref(value);\n", out);
+    xl6OutputPuts("        xl6_task_spawn_arg_release(arg);\n", out);
+    xl6OutputPuts("        return xl6_async_result_error(pOut, \"task.spawn result type conversion failed\");\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    xvoUnref(value);\n", out);
+    xl6OutputPuts("    pOut->iStatus = 0;\n", out);
+    xl6OutputPuts("    pOut->pValue = box;\n", out);
+    xl6OutputPuts("    pOut->sError = 0;\n", out);
+    xl6OutputPuts("    pOut->iFlags = XFUTURE_RESULT_F_OWN_VALUE;\n", out);
+    xl6OutputPuts("    pOut->pfnFreeValue = xrtFree;\n", out);
+    xl6OutputPuts("    pOut->pfnFreeError = 0;\n", out);
+    xl6OutputPuts("    xl6_task_spawn_arg_release(arg);\n", out);
+    xl6OutputPuts("    return 0;\n", out);
+    xl6OutputPuts("}\n\n", out);
+    xl6OutputPuts("static xfuture* xl6_task_spawn_start(XL6_Function fn, int argc, xvalue* argv, const xrt_type_desc* resultType, size_t resultSize, const char* file, int line, int column)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    XL6_TaskSpawnArg* arg;\n", out);
+    xl6OutputPuts("    xfuture* future;\n", out);
+    xl6OutputPuts("    int i;\n", out);
+    xl6OutputPuts("    if ( fn.invoke_var == 0 || argc < 0 || resultType == 0 || resultSize == 0 ) {\n", out);
+    xl6OutputPuts("        if ( fn.release != 0 && fn.env != 0 ) { fn.release(fn.env); }\n", out);
+    xl6OutputPuts("        xl6_error_raise(\"TaskError\", \"task.spawn requires a callable func value\", file, line, column);\n", out);
+    xl6OutputPuts("        return 0;\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    arg = (XL6_TaskSpawnArg*)xrtMalloc(sizeof(XL6_TaskSpawnArg));\n", out);
+    xl6OutputPuts("    if ( arg == 0 ) {\n", out);
+    xl6OutputPuts("        if ( fn.release != 0 && fn.env != 0 ) { fn.release(fn.env); }\n", out);
+    xl6OutputPuts("        xl6_error_raise(\"TaskError\", \"out of memory while starting task.spawn\", file, line, column);\n", out);
+    xl6OutputPuts("        return 0;\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    arg->fn = fn;\n", out);
+    xl6OutputPuts("    arg->argc = argc;\n", out);
+    xl6OutputPuts("    arg->argv = 0;\n", out);
+    xl6OutputPuts("    arg->resultType = resultType;\n", out);
+    xl6OutputPuts("    arg->resultSize = resultSize;\n", out);
+    xl6OutputPuts("    if ( argc > 0 ) {\n", out);
+    xl6OutputPuts("        arg->argv = (xvalue*)xrtMalloc(sizeof(xvalue) * (size_t)argc);\n", out);
+    xl6OutputPuts("        if ( arg->argv == 0 ) {\n", out);
+    xl6OutputPuts("            xl6_task_spawn_arg_release(arg);\n", out);
+    xl6OutputPuts("            xl6_error_raise(\"TaskError\", \"out of memory while copying task.spawn arguments\", file, line, column);\n", out);
+    xl6OutputPuts("            return 0;\n", out);
+    xl6OutputPuts("        }\n", out);
+    xl6OutputPuts("        memset(arg->argv, 0, sizeof(xvalue) * (size_t)argc);\n", out);
+    xl6OutputPuts("        for ( i = 0; i < argc; ++i ) {\n", out);
+    xl6OutputPuts("            arg->argv[i] = argv != 0 ? argv[i] : 0;\n", out);
+    xl6OutputPuts("            if ( arg->argv[i] != 0 ) { xvoAddRef(arg->argv[i]); }\n", out);
+    xl6OutputPuts("        }\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    future = xTaskRunThread(xl6_task_spawn_entry, arg, 0);\n", out);
+    xl6OutputPuts("    if ( future == 0 ) {\n", out);
+    xl6OutputPuts("        xl6_task_spawn_arg_release(arg);\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    return xl6_async_require_future(future, file, line, column);\n", out);
+    xl6OutputPuts("}\n", out);
+    xl6OutputPuts("static xfuture* xl6_task_spawn_values(XL6_Function fn, const xrt_type_desc* resultType, size_t resultSize, const char* file, int line, int column, int argc, ...)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    va_list ap;\n", out);
+    xl6OutputPuts("    xvalue* argv = 0;\n", out);
+    xl6OutputPuts("    xfuture* future;\n", out);
+    xl6OutputPuts("    int i;\n", out);
+    xl6OutputPuts("    if ( fn.retain != 0 && fn.env != 0 ) {\n", out);
+    xl6OutputPuts("        fn.retain(fn.env);\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    if ( argc > 0 ) {\n", out);
+    xl6OutputPuts("        argv = (xvalue*)xrtMalloc(sizeof(xvalue) * (size_t)argc);\n", out);
+    xl6OutputPuts("        if ( argv == 0 ) {\n", out);
+    xl6OutputPuts("            if ( fn.release != 0 && fn.env != 0 ) { fn.release(fn.env); }\n", out);
+    xl6OutputPuts("            xl6_error_raise(\"TaskError\", \"out of memory while preparing task.spawn arguments\", file, line, column);\n", out);
+    xl6OutputPuts("            return 0;\n", out);
+    xl6OutputPuts("        }\n", out);
+    xl6OutputPuts("        va_start(ap, argc);\n", out);
+    xl6OutputPuts("        for ( i = 0; i < argc; ++i ) {\n", out);
+    xl6OutputPuts("            argv[i] = va_arg(ap, xvalue);\n", out);
+    xl6OutputPuts("        }\n", out);
+    xl6OutputPuts("        va_end(ap);\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    future = xl6_task_spawn_start(fn, argc, argv, resultType, resultSize, file, line, column);\n", out);
+    xl6OutputPuts("    if ( argv != 0 ) {\n", out);
+    xl6OutputPuts("        for ( i = 0; i < argc; ++i ) {\n", out);
+    xl6OutputPuts("            if ( argv[i] != 0 ) { xvoUnref(argv[i]); }\n", out);
+    xl6OutputPuts("        }\n", out);
+    xl6OutputPuts("        xrtFree(argv);\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    return future;\n", out);
+    xl6OutputPuts("}\n", out);
+    xl6OutputPuts("#endif\n\n", out);
+
+    xl6OutputPuts("typedef struct XL6_TaskAllArg {\n", out);
+    xl6OutputPuts("    xfuture** futures;\n", out);
+    xl6OutputPuts("    int count;\n", out);
+    xl6OutputPuts("    const xrt_type_desc* itemType;\n", out);
+    xl6OutputPuts("} XL6_TaskAllArg;\n\n", out);
+
+    xl6OutputPuts("static void xl6_task_future_array_release(xfuture** futures, int count)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    int i;\n", out);
+    xl6OutputPuts("    if ( futures == 0 ) { return; }\n", out);
+    xl6OutputPuts("    for ( i = 0; i < count; ++i ) {\n", out);
+    xl6OutputPuts("        if ( futures[i] != 0 ) { xFutureRelease(futures[i]); }\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    xrtFree(futures);\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("static int xl6_task_all_entry(void* pArg, xfuture_result* pOut)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    XL6_TaskAllArg* arg = (XL6_TaskAllArg*)pArg;\n", out);
+    xl6OutputPuts("    xfuture* groupFuture;\n", out);
+    xl6OutputPuts("    xtarray result;\n", out);
+    xl6OutputPuts("    xtarray* box;\n", out);
+    xl6OutputPuts("    int count;\n", out);
+    xl6OutputPuts("    int i;\n", out);
+    xl6OutputPuts("    char* error;\n", out);
+    xl6OutputPuts("    if ( arg == 0 || arg->futures == 0 || arg->count <= 0 || arg->itemType == 0 ) {\n", out);
+    xl6OutputPuts("        return xl6_async_result_error(pOut, \"task.all requires a non-empty future array\");\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    groupFuture = xFutureWhenAll(arg->futures, arg->count);\n", out);
+    xl6OutputPuts("    if ( groupFuture == 0 ) {\n", out);
+    xl6OutputPuts("        xl6_task_future_array_release(arg->futures, arg->count);\n", out);
+    xl6OutputPuts("        arg->futures = 0;\n", out);
+    xl6OutputPuts("        xrtFree(arg);\n", out);
+    xl6OutputPuts("        return xl6_async_result_error(pOut, \"task.all start failed\");\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    if ( !xFutureWait(groupFuture) ) {\n", out);
+    xl6OutputPuts("        error = xFutureError(groupFuture);\n", out);
+    xl6OutputPuts("        xFutureRelease(groupFuture);\n", out);
+    xl6OutputPuts("        xl6_task_future_array_release(arg->futures, arg->count);\n", out);
+    xl6OutputPuts("        arg->futures = 0;\n", out);
+    xl6OutputPuts("        xrtFree(arg);\n", out);
+    xl6OutputPuts("        return xl6_async_result_error(pOut, error != 0 ? error : \"task.all failed\");\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    error = xFutureError(groupFuture);\n", out);
+    xl6OutputPuts("    if ( error != 0 && error[0] != 0 ) {\n", out);
+    xl6OutputPuts("        xFutureRelease(groupFuture);\n", out);
+    xl6OutputPuts("        xl6_task_future_array_release(arg->futures, arg->count);\n", out);
+    xl6OutputPuts("        arg->futures = 0;\n", out);
+    xl6OutputPuts("        xrtFree(arg);\n", out);
+    xl6OutputPuts("        return xl6_async_result_error(pOut, error);\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    count = arg->count;\n", out);
+    xl6OutputPuts("    result = xrtTypedArrayCreate(arg->itemType, XRT_OBJMODE_SHARED);\n", out);
+    xl6OutputPuts("    if ( result == 0 ) {\n", out);
+    xl6OutputPuts("        xFutureRelease(groupFuture);\n", out);
+    xl6OutputPuts("        xl6_task_future_array_release(arg->futures, arg->count);\n", out);
+    xl6OutputPuts("        arg->futures = 0;\n", out);
+    xl6OutputPuts("        xrtFree(arg);\n", out);
+    xl6OutputPuts("        return xl6_async_result_error(pOut, \"task.all result array create failed\");\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    for ( i = 0; i < count; ++i ) {\n", out);
+    xl6OutputPuts("        void* item = xFutureValue(arg->futures[i]);\n", out);
+    xl6OutputPuts("        if ( item == 0 || xrtTypedArrayAppend(result, item) == 0 ) {\n", out);
+    xl6OutputPuts("            xrtTypedArrayDestroy(result);\n", out);
+    xl6OutputPuts("            xFutureRelease(groupFuture);\n", out);
+    xl6OutputPuts("            xl6_task_future_array_release(arg->futures, arg->count);\n", out);
+    xl6OutputPuts("            arg->futures = 0;\n", out);
+    xl6OutputPuts("            xrtFree(arg);\n", out);
+    xl6OutputPuts("            return xl6_async_result_error(pOut, \"task.all result append failed\");\n", out);
+    xl6OutputPuts("        }\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    box = (xtarray*)xrtMalloc(sizeof(xtarray));\n", out);
+    xl6OutputPuts("    if ( box == 0 ) {\n", out);
+    xl6OutputPuts("        xrtTypedArrayDestroy(result);\n", out);
+    xl6OutputPuts("        xFutureRelease(groupFuture);\n", out);
+    xl6OutputPuts("        xl6_task_future_array_release(arg->futures, arg->count);\n", out);
+    xl6OutputPuts("        arg->futures = 0;\n", out);
+    xl6OutputPuts("        xrtFree(arg);\n", out);
+    xl6OutputPuts("        return xl6_async_result_error(pOut, \"task.all result box failed\");\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    *box = result;\n", out);
+    xl6OutputPuts("    pOut->iStatus = 0;\n", out);
+    xl6OutputPuts("    pOut->pValue = box;\n", out);
+    xl6OutputPuts("    pOut->sError = 0;\n", out);
+    xl6OutputPuts("    pOut->iFlags = XFUTURE_RESULT_F_OWN_VALUE;\n", out);
+    xl6OutputPuts("    pOut->pfnFreeValue = xrtFree;\n", out);
+    xl6OutputPuts("    pOut->pfnFreeError = 0;\n", out);
+    xl6OutputPuts("    xFutureRelease(groupFuture);\n", out);
+    xl6OutputPuts("    xl6_task_future_array_release(arg->futures, arg->count);\n", out);
+    xl6OutputPuts("    arg->futures = 0;\n", out);
+    xl6OutputPuts("    xrtFree(arg);\n", out);
+    xl6OutputPuts("    return 0;\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("static xfuture* xl6_task_all_start(xfuture** futures, int count, const xrt_type_desc* itemType, const char* file, int line, int column)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    XL6_TaskAllArg* arg;\n", out);
+    xl6OutputPuts("    xfuture* future;\n", out);
+    xl6OutputPuts("    int i;\n", out);
+    xl6OutputPuts("    if ( futures == 0 || count <= 0 || itemType == 0 ) {\n", out);
+    xl6OutputPuts("        xl6_error_raise(\"TaskError\", \"task.all requires a non-empty future array\", file, line, column);\n", out);
+    xl6OutputPuts("        return 0;\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    arg = (XL6_TaskAllArg*)xrtMalloc(sizeof(XL6_TaskAllArg));\n", out);
+    xl6OutputPuts("    if ( arg == 0 ) {\n", out);
+    xl6OutputPuts("        xl6_error_raise(\"TaskError\", \"out of memory while starting task.all\", file, line, column);\n", out);
+    xl6OutputPuts("        return 0;\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    arg->futures = (xfuture**)xrtMalloc(sizeof(xfuture*) * (size_t)count);\n", out);
+    xl6OutputPuts("    arg->count = count;\n", out);
+    xl6OutputPuts("    arg->itemType = itemType;\n", out);
+    xl6OutputPuts("    if ( arg->futures == 0 ) {\n", out);
+    xl6OutputPuts("        xrtFree(arg);\n", out);
+    xl6OutputPuts("        xl6_error_raise(\"TaskError\", \"out of memory while starting task.all\", file, line, column);\n", out);
+    xl6OutputPuts("        return 0;\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    memset(arg->futures, 0, sizeof(xfuture*) * (size_t)count);\n", out);
+    xl6OutputPuts("    for ( i = 0; i < count; ++i ) {\n", out);
+    xl6OutputPuts("        if ( futures[i] == 0 ) {\n", out);
+    xl6OutputPuts("            xl6_task_future_array_release(arg->futures, count);\n", out);
+    xl6OutputPuts("            xrtFree(arg);\n", out);
+    xl6OutputPuts("            xl6_error_raise(\"TaskError\", \"task.all source future is null\", file, line, column);\n", out);
+    xl6OutputPuts("            return 0;\n", out);
+    xl6OutputPuts("        }\n", out);
+    xl6OutputPuts("        arg->futures[i] = xFutureAddRef(futures[i]);\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    future = xTaskRunThread(xl6_task_all_entry, arg, 0);\n", out);
+    xl6OutputPuts("    if ( future == 0 ) {\n", out);
+    xl6OutputPuts("        xl6_task_future_array_release(arg->futures, count);\n", out);
+    xl6OutputPuts("        xrtFree(arg);\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    return xl6_async_require_future(future, file, line, column);\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("static xfuture* xl6_task_race_start(xfuture** futures, int count, const char* file, int line, int column)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    if ( futures == 0 || count <= 0 ) {\n", out);
+    xl6OutputPuts("        xl6_error_raise(\"TaskError\", \"task.race requires a non-empty future array\", file, line, column);\n", out);
+    xl6OutputPuts("        return 0;\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    return xl6_async_require_future(xFutureRace(futures, count), file, line, column);\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("static xfuture* xl6_task_all_values(const xrt_type_desc* itemType, const char* file, int line, int column, int count, ...)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    va_list ap;\n", out);
+    xl6OutputPuts("    xfuture** futures;\n", out);
+    xl6OutputPuts("    xfuture* result;\n", out);
+    xl6OutputPuts("    int i;\n", out);
+    xl6OutputPuts("    if ( count <= 0 ) {\n", out);
+    xl6OutputPuts("        xl6_error_raise(\"TaskError\", \"task.all requires a non-empty future array\", file, line, column);\n", out);
+    xl6OutputPuts("        return 0;\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    futures = (xfuture**)xrtMalloc(sizeof(xfuture*) * (size_t)count);\n", out);
+    xl6OutputPuts("    if ( futures == 0 ) {\n", out);
+    xl6OutputPuts("        xl6_error_raise(\"TaskError\", \"out of memory while starting task.all\", file, line, column);\n", out);
+    xl6OutputPuts("        return 0;\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    va_start(ap, count);\n", out);
+    xl6OutputPuts("    for ( i = 0; i < count; ++i ) {\n", out);
+    xl6OutputPuts("        futures[i] = va_arg(ap, xfuture*);\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    va_end(ap);\n", out);
+    xl6OutputPuts("    result = xl6_task_all_start(futures, count, itemType, file, line, column);\n", out);
+    xl6OutputPuts("    xrtFree(futures);\n", out);
+    xl6OutputPuts("    return result;\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("static xfuture* xl6_task_race_values(const char* file, int line, int column, int count, ...)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    va_list ap;\n", out);
+    xl6OutputPuts("    xfuture** futures;\n", out);
+    xl6OutputPuts("    xfuture* result;\n", out);
+    xl6OutputPuts("    int i;\n", out);
+    xl6OutputPuts("    if ( count <= 0 ) {\n", out);
+    xl6OutputPuts("        xl6_error_raise(\"TaskError\", \"task.race requires a non-empty future array\", file, line, column);\n", out);
+    xl6OutputPuts("        return 0;\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    futures = (xfuture**)xrtMalloc(sizeof(xfuture*) * (size_t)count);\n", out);
+    xl6OutputPuts("    if ( futures == 0 ) {\n", out);
+    xl6OutputPuts("        xl6_error_raise(\"TaskError\", \"out of memory while starting task.race\", file, line, column);\n", out);
+    xl6OutputPuts("        return 0;\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    va_start(ap, count);\n", out);
+    xl6OutputPuts("    for ( i = 0; i < count; ++i ) {\n", out);
+    xl6OutputPuts("        futures[i] = va_arg(ap, xfuture*);\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    va_end(ap);\n", out);
+    xl6OutputPuts("    result = xl6_task_race_start(futures, count, file, line, column);\n", out);
+    xl6OutputPuts("    xrtFree(futures);\n", out);
+    xl6OutputPuts("    return result;\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("static xfuture* xl6_task_all_from_array(xtarray pArray, const xrt_type_desc* itemType, const char* file, int line, int column)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    xfuture** futures;\n", out);
+    xl6OutputPuts("    unsigned int count;\n", out);
+    xl6OutputPuts("    unsigned int i;\n", out);
+    xl6OutputPuts("    xfuture* result;\n", out);
+    xl6OutputPuts("    if ( pArray == 0 ) {\n", out);
+    xl6OutputPuts("        xl6_error_raise(\"TaskError\", \"task.all source array is null\", file, line, column);\n", out);
+    xl6OutputPuts("        return 0;\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    count = xrtTypedArrayCount(pArray);\n", out);
+    xl6OutputPuts("    if ( count == 0 ) {\n", out);
+    xl6OutputPuts("        xl6_error_raise(\"TaskError\", \"task.all requires a non-empty future array\", file, line, column);\n", out);
+    xl6OutputPuts("        return 0;\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    futures = (xfuture**)xrtMalloc(sizeof(xfuture*) * (size_t)count);\n", out);
+    xl6OutputPuts("    if ( futures == 0 ) {\n", out);
+    xl6OutputPuts("        xl6_error_raise(\"TaskError\", \"out of memory while starting task.all\", file, line, column);\n", out);
+    xl6OutputPuts("        return 0;\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    for ( i = 0; i < count; ++i ) {\n", out);
+    xl6OutputPuts("        xfuture** slot = (xfuture**)xrtTypedArrayGet(pArray, i + 1u);\n", out);
+    xl6OutputPuts("        futures[i] = slot != 0 ? *slot : 0;\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    result = xl6_task_all_start(futures, (int)count, itemType, file, line, column);\n", out);
+    xl6OutputPuts("    xrtFree(futures);\n", out);
+    xl6OutputPuts("    return result;\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("static xfuture* xl6_task_race_from_array(xtarray pArray, const char* file, int line, int column)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    xfuture** futures;\n", out);
+    xl6OutputPuts("    unsigned int count;\n", out);
+    xl6OutputPuts("    unsigned int i;\n", out);
+    xl6OutputPuts("    xfuture* result;\n", out);
+    xl6OutputPuts("    if ( pArray == 0 ) {\n", out);
+    xl6OutputPuts("        xl6_error_raise(\"TaskError\", \"task.race source array is null\", file, line, column);\n", out);
+    xl6OutputPuts("        return 0;\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    count = xrtTypedArrayCount(pArray);\n", out);
+    xl6OutputPuts("    if ( count == 0 ) {\n", out);
+    xl6OutputPuts("        xl6_error_raise(\"TaskError\", \"task.race requires a non-empty future array\", file, line, column);\n", out);
+    xl6OutputPuts("        return 0;\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    futures = (xfuture**)xrtMalloc(sizeof(xfuture*) * (size_t)count);\n", out);
+    xl6OutputPuts("    if ( futures == 0 ) {\n", out);
+    xl6OutputPuts("        xl6_error_raise(\"TaskError\", \"out of memory while starting task.race\", file, line, column);\n", out);
+    xl6OutputPuts("        return 0;\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    for ( i = 0; i < count; ++i ) {\n", out);
+    xl6OutputPuts("        xfuture** slot = (xfuture**)xrtTypedArrayGet(pArray, i + 1u);\n", out);
+    xl6OutputPuts("        futures[i] = slot != 0 ? *slot : 0;\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    result = xl6_task_race_start(futures, (int)count, file, line, column);\n", out);
+    xl6OutputPuts("    xrtFree(futures);\n", out);
+    xl6OutputPuts("    return result;\n", out);
+    xl6OutputPuts("}\n\n", out);
+
     xl6OutputPuts("static void* xl6_async_zero_value(size_t valueSize)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    unsigned char* value;\n", out);
@@ -422,6 +867,13 @@ static void xl6CgenEmitAsyncRuntime(XL6_Output* out)
     xl6OutputPuts("        xrtFree(value);\n", out);
     xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    xl6_future_release_if_needed(pFuture);\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("static void* xl6_future_await_handle_release(xfuture* pFuture, const char* file, int line, int column)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    void* result = 0;\n", out);
+    xl6OutputPuts("    xl6_future_await_copy_release(pFuture, &result, sizeof(result), file, line, column);\n", out);
+    xl6OutputPuts("    return result;\n", out);
     xl6OutputPuts("}\n\n", out);
 
     xl6OutputPuts("static int xl6_future_await_void_release(xfuture* pFuture, const char* file, int line, int column)\n", out);
@@ -503,487 +955,3 @@ static void xl6CgenEmitAsyncRuntime(XL6_Output* out)
     xl6CgenEmitGeneratorRuntime(out);
 }
 
-static void xl6CgenAsyncFuncProto(XL6_CgenContext* ctx, const XL6_AstNode* node)
-{
-    xl6OutputPuts("xfuture* ", ctx->out);
-    xl6CgenFuncSymbol(ctx, node);
-    xl6OutputPutc('(', ctx->out);
-    xl6CgenAsyncEmitParamList(ctx, xl6CgenAsyncParams(node));
-    xl6OutputPutc(')', ctx->out);
-}
-
-static int xl6CgenIsChannelGenericInstant(const XL6_AstNode* node)
-{
-    const XL6_AstNode* nameNode;
-    const XL6_AstNode* typeArgs;
-
-    if ( node == NULL || node->kind != XL6_AST_GENERIC_INSTANT || node->childCount < 2 ) {
-        return 0;
-    }
-    nameNode = node->children[0];
-    typeArgs = node->children[1];
-    return nameNode != NULL &&
-           nameNode->kind == XL6_AST_NAME &&
-           xl6CTextEquals(nameNode->text, "channel") &&
-           typeArgs != NULL &&
-           typeArgs->childCount == 1;
-}
-
-static const XL6_AstNode* xl6CgenChannelElementType(const XL6_AstNode* channelType)
-{
-    const XL6_AstNode* args;
-
-    if ( !xl6CgenIsChannelType(channelType) ||
-         channelType->childCount == 0 ||
-         channelType->children[0] == NULL ||
-         channelType->children[0]->kind != XL6_AST_LIST ) {
-        return NULL;
-    }
-    args = channelType->children[0];
-    return args->childCount > 0 ? args->children[0] : NULL;
-}
-
-static int xl6CgenChannelCtorCall(XL6_CgenContext* ctx, const XL6_AstNode* call, const XL6_AstNode* callee)
-{
-    const XL6_AstNode* args;
-    const XL6_AstNode* capArg;
-
-    if ( !xl6CgenIsChannelGenericInstant(callee) ) {
-        return 0;
-    }
-
-    args = call != NULL && call->childCount > 1 ? call->children[1] : NULL;
-    capArg = args != NULL && args->childCount > 0 && args->children[0] != NULL &&
-             args->children[0]->childCount > 0 ? args->children[0]->children[0] : NULL;
-
-    xl6OutputPuts("xl6_channel_require_handle(xrtChannelCreate(", ctx->out);
-    if ( capArg != NULL ) {
-        xl6CgenExpr(ctx, capArg);
-    } else {
-        xl6OutputPuts("0", ctx->out);
-    }
-    xl6OutputPrintf(ctx->out, "), \"\", %d, %d)", callee->line, callee->column);
-    return 1;
-}
-
-static void xl6CgenChannelReceiverExpr(XL6_CgenContext* ctx, const XL6_AstNode* receiver)
-{
-    if ( receiver != NULL && receiver->kind == XL6_AST_NAME ) {
-        xl6CgenFputsCIdent(ctx->out, receiver->text);
-        return;
-    }
-    xl6CgenExpr(ctx, receiver);
-}
-
-static int xl6CgenChannelMethodCall(XL6_CgenContext* ctx, const XL6_AstNode* call, const XL6_AstNode* member)
-{
-    const XL6_AstNode* receiver;
-    const XL6_AstNode* receiverType;
-    const XL6_AstNode* itemType;
-    const XL6_AstNode* args;
-    const XL6_AstNode* arg;
-    const XL6_AstNode* argExpr;
-    const char* cType;
-
-    if ( call == NULL || member == NULL || member->kind != XL6_AST_MEMBER ) {
-        return 0;
-    }
-    receiver = member->childCount > 0 ? member->children[0] : NULL;
-    if ( receiver == NULL || receiver->kind != XL6_AST_NAME ) {
-        return 0;
-    }
-    receiverType = xl6CgenFindVarType(ctx, receiver->text);
-    if ( !xl6CgenIsChannelType(receiverType) ) {
-        return 0;
-    }
-
-    if ( xl6CTextEquals(member->text, "close") ) {
-        xl6OutputPuts("(xrtChannelClose(", ctx->out);
-        xl6CgenChannelReceiverExpr(ctx, receiver);
-        xl6OutputPuts("), 0)", ctx->out);
-        return 1;
-    }
-    if ( xl6CTextEquals(member->text, "count") ) {
-        xl6OutputPuts("xrtChannelCount(", ctx->out);
-        xl6CgenChannelReceiverExpr(ctx, receiver);
-        xl6OutputPutc(')', ctx->out);
-        return 1;
-    }
-    if ( xl6CTextEquals(member->text, "isClosed") ) {
-        xl6OutputPuts("xrtChannelIsClosed(", ctx->out);
-        xl6CgenChannelReceiverExpr(ctx, receiver);
-        xl6OutputPutc(')', ctx->out);
-        return 1;
-    }
-
-    itemType = xl6CgenChannelElementType(receiverType);
-    cType = itemType != NULL ? xl6CgenTypeName(ctx, itemType) : "int";
-    args = call->childCount > 1 ? call->children[1] : NULL;
-    arg = args != NULL && args->childCount == 1 ? args->children[0] : NULL;
-    argExpr = arg != NULL && arg->childCount > 0 ? arg->children[0] : NULL;
-
-    if ( xl6CTextEquals(member->text, "send") ) {
-        xl6OutputPuts("xl6_channel_send_value(", ctx->out);
-        xl6CgenChannelReceiverExpr(ctx, receiver);
-        xl6OutputPuts(", &(", ctx->out);
-        xl6OutputPuts(cType, ctx->out);
-        xl6OutputPuts("){", ctx->out);
-        xl6CgenExpr(ctx, argExpr);
-        xl6OutputPuts("}, sizeof(", ctx->out);
-        xl6OutputPuts(cType, ctx->out);
-        xl6OutputPrintf(ctx->out, "), \"\", %d, %d)", member->line, member->column);
-        return 1;
-    }
-
-    if ( xl6CTextEquals(member->text, "recvInto") ||
-         xl6CTextEquals(member->text, "tryRecvInto") ) {
-        xl6OutputPuts("xl6_channel_recv_into(", ctx->out);
-        xl6CgenChannelReceiverExpr(ctx, receiver);
-        xl6OutputPuts(", &", ctx->out);
-        if ( argExpr != NULL && argExpr->kind == XL6_AST_NAME ) {
-            xl6CgenFputsCIdent(ctx->out, argExpr->text);
-        } else {
-            xl6CgenExpr(ctx, argExpr);
-        }
-        xl6OutputPuts(", sizeof(", ctx->out);
-        xl6OutputPuts(cType, ctx->out);
-        xl6OutputPrintf(ctx->out, "), %d, \"\", %d, %d)",
-                        xl6CTextEquals(member->text, "recvInto") ? 1 : 0,
-                        member->line,
-                        member->column);
-        return 1;
-    }
-
-    return 0;
-}
-
-static const XL6_AstNode* xl6CgenCallArgExpr(const XL6_AstNode* call, size_t index)
-{
-    const XL6_AstNode* args;
-    const XL6_AstNode* arg;
-
-    args = call != NULL && call->childCount > 1 ? call->children[1] : NULL;
-    arg = args != NULL && index < args->childCount ? args->children[index] : NULL;
-    return arg != NULL && arg->childCount > 0 ? arg->children[0] : NULL;
-}
-
-static int xl6CgenSyncCtorCall(XL6_CgenContext* ctx, const XL6_AstNode* call, const XL6_AstNode* callee)
-{
-    if ( callee == NULL || callee->kind != XL6_AST_NAME || !xl6CgenIsSyncHandleTypeName(callee->text) ) {
-        return 0;
-    }
-    if ( xl6CTextEquals(callee->text, "mutex") ) {
-        xl6OutputPrintf(ctx->out,
-                        "xl6_sync_require_handle(xrtMutexCreate(), \"mutex create failed\", \"\", %d, %d)",
-                        callee->line,
-                        callee->column);
-        return 1;
-    }
-    if ( xl6CTextEquals(callee->text, "cond") ) {
-        xl6OutputPrintf(ctx->out,
-                        "xl6_sync_require_handle(xrtCondCreate(), \"cond create failed\", \"\", %d, %d)",
-                        callee->line,
-                        callee->column);
-        return 1;
-    }
-    if ( xl6CTextEquals(callee->text, "rwlock") ) {
-        xl6OutputPrintf(ctx->out,
-                        "xl6_sync_require_handle(xrtRWLockCreate(), \"rwlock create failed\", \"\", %d, %d)",
-                        callee->line,
-                        callee->column);
-        return 1;
-    }
-    if ( xl6CTextEquals(callee->text, "sem") ) {
-        xl6OutputPuts("xl6_sync_require_handle(xrtSemCreate(", ctx->out);
-        xl6CgenExpr(ctx, xl6CgenCallArgExpr(call, 0));
-        xl6OutputPuts(", ", ctx->out);
-        xl6CgenExpr(ctx, xl6CgenCallArgExpr(call, 1));
-        xl6OutputPrintf(ctx->out, "), \"sem create failed\", \"\", %d, %d)", callee->line, callee->column);
-        return 1;
-    }
-    return 0;
-}
-
-static void xl6CgenSyncReceiver(XL6_CgenContext* ctx, const XL6_AstNode* receiver)
-{
-    if ( receiver != NULL && receiver->kind == XL6_AST_NAME ) {
-        xl6CgenFputsCIdent(ctx->out, receiver->text);
-        return;
-    }
-    xl6CgenExpr(ctx, receiver);
-}
-
-static int xl6CgenSyncMethodCall(XL6_CgenContext* ctx, const XL6_AstNode* call, const XL6_AstNode* member)
-{
-    const XL6_AstNode* receiver;
-    const XL6_AstNode* receiverType;
-    const char* typeName;
-
-    if ( call == NULL || member == NULL || member->kind != XL6_AST_MEMBER ) {
-        return 0;
-    }
-    receiver = member->childCount > 0 ? member->children[0] : NULL;
-    if ( receiver == NULL || receiver->kind != XL6_AST_NAME ) {
-        return 0;
-    }
-    receiverType = xl6CgenFindVarType(ctx, receiver->text);
-    if ( !xl6CgenIsSyncHandleType(receiverType) ) {
-        return 0;
-    }
-    typeName = receiverType->text;
-
-    if ( xl6CTextEquals(typeName, "mutex") ) {
-        if ( xl6CTextEquals(member->text, "lock") ) {
-            xl6OutputPuts("(xrtMutexLock(", ctx->out);
-            xl6CgenSyncReceiver(ctx, receiver);
-            xl6OutputPuts("), true)", ctx->out);
-            return 1;
-        }
-        if ( xl6CTextEquals(member->text, "tryLock") ) {
-            xl6OutputPuts("xrtMutexTryLock(", ctx->out);
-            xl6CgenSyncReceiver(ctx, receiver);
-            xl6OutputPutc(')', ctx->out);
-            return 1;
-        }
-        if ( xl6CTextEquals(member->text, "unlock") ) {
-            xl6OutputPuts("(xrtMutexUnlock(", ctx->out);
-            xl6CgenSyncReceiver(ctx, receiver);
-            xl6OutputPuts("), true)", ctx->out);
-            return 1;
-        }
-    }
-
-    if ( xl6CTextEquals(typeName, "sem") ) {
-        if ( xl6CTextEquals(member->text, "wait") ) {
-            xl6OutputPuts("(xrtSemWait(", ctx->out);
-            xl6CgenSyncReceiver(ctx, receiver);
-            xl6OutputPuts("), true)", ctx->out);
-            return 1;
-        }
-        if ( xl6CTextEquals(member->text, "tryWait") ) {
-            xl6OutputPuts("xrtSemTryWait(", ctx->out);
-            xl6CgenSyncReceiver(ctx, receiver);
-            xl6OutputPutc(')', ctx->out);
-            return 1;
-        }
-        if ( xl6CTextEquals(member->text, "waitTimeout") ) {
-            xl6OutputPuts("(xrtSemWaitTimeout(", ctx->out);
-            xl6CgenSyncReceiver(ctx, receiver);
-            xl6OutputPuts(", ", ctx->out);
-            xl6CgenExpr(ctx, xl6CgenCallArgExpr(call, 0));
-            xl6OutputPuts(") == 0)", ctx->out);
-            return 1;
-        }
-        if ( xl6CTextEquals(member->text, "post") ) {
-            xl6OutputPuts("xrtSemPost(", ctx->out);
-            xl6CgenSyncReceiver(ctx, receiver);
-            xl6OutputPutc(')', ctx->out);
-            return 1;
-        }
-        if ( xl6CTextEquals(member->text, "postMultiple") ) {
-            xl6OutputPuts("xrtSemPostMultiple(", ctx->out);
-            xl6CgenSyncReceiver(ctx, receiver);
-            xl6OutputPuts(", ", ctx->out);
-            xl6CgenExpr(ctx, xl6CgenCallArgExpr(call, 0));
-            xl6OutputPutc(')', ctx->out);
-            return 1;
-        }
-    }
-
-    if ( xl6CTextEquals(typeName, "cond") ) {
-        if ( xl6CTextEquals(member->text, "wait") ) {
-            xl6OutputPuts("(xrtCondWait(", ctx->out);
-            xl6CgenSyncReceiver(ctx, receiver);
-            xl6OutputPuts(", ", ctx->out);
-            xl6CgenExpr(ctx, xl6CgenCallArgExpr(call, 0));
-            xl6OutputPuts("), true)", ctx->out);
-            return 1;
-        }
-        if ( xl6CTextEquals(member->text, "waitTimeout") ) {
-            xl6OutputPuts("(xrtCondWaitTimeout(", ctx->out);
-            xl6CgenSyncReceiver(ctx, receiver);
-            xl6OutputPuts(", ", ctx->out);
-            xl6CgenExpr(ctx, xl6CgenCallArgExpr(call, 0));
-            xl6OutputPuts(", ", ctx->out);
-            xl6CgenExpr(ctx, xl6CgenCallArgExpr(call, 1));
-            xl6OutputPuts(") == 0)", ctx->out);
-            return 1;
-        }
-        if ( xl6CTextEquals(member->text, "signal") ) {
-            xl6OutputPuts("(xrtCondSignal(", ctx->out);
-            xl6CgenSyncReceiver(ctx, receiver);
-            xl6OutputPuts("), true)", ctx->out);
-            return 1;
-        }
-        if ( xl6CTextEquals(member->text, "broadcast") ) {
-            xl6OutputPuts("(xrtCondBroadcast(", ctx->out);
-            xl6CgenSyncReceiver(ctx, receiver);
-            xl6OutputPuts("), true)", ctx->out);
-            return 1;
-        }
-    }
-
-    if ( xl6CTextEquals(typeName, "rwlock") ) {
-        if ( xl6CTextEquals(member->text, "readLock") ) {
-            xl6OutputPuts("(xrtRWLockReadLock(", ctx->out);
-            xl6CgenSyncReceiver(ctx, receiver);
-            xl6OutputPuts("), true)", ctx->out);
-            return 1;
-        }
-        if ( xl6CTextEquals(member->text, "tryReadLock") ) {
-            xl6OutputPuts("xrtRWLockTryReadLock(", ctx->out);
-            xl6CgenSyncReceiver(ctx, receiver);
-            xl6OutputPutc(')', ctx->out);
-            return 1;
-        }
-        if ( xl6CTextEquals(member->text, "readUnlock") ) {
-            xl6OutputPuts("(xrtRWLockReadUnlock(", ctx->out);
-            xl6CgenSyncReceiver(ctx, receiver);
-            xl6OutputPuts("), true)", ctx->out);
-            return 1;
-        }
-        if ( xl6CTextEquals(member->text, "writeLock") ) {
-            xl6OutputPuts("(xrtRWLockWriteLock(", ctx->out);
-            xl6CgenSyncReceiver(ctx, receiver);
-            xl6OutputPuts("), true)", ctx->out);
-            return 1;
-        }
-        if ( xl6CTextEquals(member->text, "tryWriteLock") ) {
-            xl6OutputPuts("xrtRWLockTryWriteLock(", ctx->out);
-            xl6CgenSyncReceiver(ctx, receiver);
-            xl6OutputPutc(')', ctx->out);
-            return 1;
-        }
-        if ( xl6CTextEquals(member->text, "writeUnlock") ) {
-            xl6OutputPuts("(xrtRWLockWriteUnlock(", ctx->out);
-            xl6CgenSyncReceiver(ctx, receiver);
-            xl6OutputPuts("), true)", ctx->out);
-            return 1;
-        }
-        if ( xl6CTextEquals(member->text, "downgrade") ) {
-            xl6OutputPuts("(xrtRWLockDowngrade(", ctx->out);
-            xl6CgenSyncReceiver(ctx, receiver);
-            xl6OutputPuts("), true)", ctx->out);
-            return 1;
-        }
-        if ( xl6CTextEquals(member->text, "upgrade") ) {
-            xl6OutputPuts("xrtRWLockUpgrade(", ctx->out);
-            xl6CgenSyncReceiver(ctx, receiver);
-            xl6OutputPutc(')', ctx->out);
-            return 1;
-        }
-    }
-
-    return 0;
-}
-
-static XL6_AstNode* xl6CgenThreadEntryType(const XL6_AstNode* at)
-{
-    XL6_AstNode* typeNode;
-    XL6_AstNode* params;
-    XL6_AstNode* returns;
-    XL6_AstNode* intType;
-
-    typeNode = xl6CgenNewSimpleType("function", at);
-    params = xl6AstNew(XL6_AST_LIST, NULL);
-    returns = xl6AstNew(XL6_AST_RETURN_TYPES, NULL);
-    intType = xl6CgenNewSimpleType("int", at);
-    if ( typeNode == NULL || params == NULL || returns == NULL || intType == NULL ) {
-        xl6AstFree(typeNode);
-        xl6AstFree(params);
-        xl6AstFree(returns);
-        xl6AstFree(intType);
-        return NULL;
-    }
-    xl6AstAddChild(returns, intType);
-    xl6AstAddChild(typeNode, params);
-    xl6AstAddChild(typeNode, returns);
-    return typeNode;
-}
-
-static int xl6CgenThreadCtorCall(XL6_CgenContext* ctx, const XL6_AstNode* call, const XL6_AstNode* callee)
-{
-    const XL6_AstNode* entryExpr;
-    XL6_AstNode* targetType;
-
-    if ( callee == NULL || callee->kind != XL6_AST_NAME || !xl6CTextEquals(callee->text, "thread") ) {
-        return 0;
-    }
-
-    entryExpr = xl6CgenCallArgExpr(call, 0);
-    targetType = xl6CgenThreadEntryType(callee);
-    xl6OutputPuts("xl6_thread_require_handle(xl6_thread_start(", ctx->out);
-    if ( targetType != NULL && entryExpr != NULL ) {
-        xl6CgenFunctionValueExpr(ctx, entryExpr, targetType);
-    } else {
-        xl6OutputPuts("(XL6_Function){0}", ctx->out);
-    }
-    xl6OutputPrintf(ctx->out,
-                    ", %d), \"\", %d, %d)",
-                    xl6CgenExprIsFunctionBorrow(ctx, entryExpr) ? 1 : 0,
-                    callee->line,
-                    callee->column);
-    xl6AstFree(targetType);
-    return 1;
-}
-
-static void xl6CgenThreadReceiver(XL6_CgenContext* ctx, const XL6_AstNode* receiver)
-{
-    if ( receiver != NULL && receiver->kind == XL6_AST_NAME ) {
-        xl6CgenFputsCIdent(ctx->out, receiver->text);
-        return;
-    }
-    xl6CgenExpr(ctx, receiver);
-}
-
-static int xl6CgenThreadMethodCall(XL6_CgenContext* ctx, const XL6_AstNode* call, const XL6_AstNode* member)
-{
-    const XL6_AstNode* receiver;
-    const XL6_AstNode* receiverType;
-
-    if ( call == NULL || member == NULL || member->kind != XL6_AST_MEMBER ) {
-        return 0;
-    }
-    receiver = member->childCount > 0 ? member->children[0] : NULL;
-    if ( receiver == NULL || receiver->kind != XL6_AST_NAME ) {
-        return 0;
-    }
-    receiverType = xl6CgenFindVarType(ctx, receiver->text);
-    if ( !xl6CgenIsThreadType(receiverType) ) {
-        return 0;
-    }
-
-    if ( xl6CTextEquals(member->text, "wait") ) {
-        xl6OutputPuts("(xrtThreadWait(", ctx->out);
-        xl6CgenThreadReceiver(ctx, receiver);
-        xl6OutputPuts("), true)", ctx->out);
-        return 1;
-    }
-    if ( xl6CTextEquals(member->text, "waitTimeout") ) {
-        xl6OutputPuts("(xrtThreadWaitTimeout(", ctx->out);
-        xl6CgenThreadReceiver(ctx, receiver);
-        xl6OutputPuts(", ", ctx->out);
-        xl6CgenExpr(ctx, xl6CgenCallArgExpr(call, 0));
-        xl6OutputPuts(") == 0)", ctx->out);
-        return 1;
-    }
-    if ( xl6CTextEquals(member->text, "stop") ) {
-        xl6OutputPuts("(xrtThreadStop(", ctx->out);
-        xl6CgenThreadReceiver(ctx, receiver);
-        xl6OutputPuts("), true)", ctx->out);
-        return 1;
-    }
-    if ( xl6CTextEquals(member->text, "state") ) {
-        xl6OutputPuts("xrtThreadGetState(", ctx->out);
-        xl6CgenThreadReceiver(ctx, receiver);
-        xl6OutputPutc(')', ctx->out);
-        return 1;
-    }
-    if ( xl6CTextEquals(member->text, "exitCode") ) {
-        xl6OutputPuts("(int)xrtThreadGetExitCode(", ctx->out);
-        xl6CgenThreadReceiver(ctx, receiver);
-        xl6OutputPutc(')', ctx->out);
-        return 1;
-    }
-    return 0;
-}

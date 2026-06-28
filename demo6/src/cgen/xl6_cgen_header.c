@@ -725,6 +725,73 @@ static void xl6CgenHeaderExportFuncProto(XL6_Output* out, const XL6_AstNode* roo
     xl6OutputPuts(");\n", out);
 }
 
+static void xl6CgenHeaderClassExportFuncProto(XL6_Output* out, const XL6_AstNode* root, const XL6_AstNode* classNode, const XL6_AstNode* node)
+{
+    const XL6_AstNode* returns;
+    const XL6_AstNode* params;
+    char classTypeName[256];
+    size_t i;
+    int wroteParam;
+
+    if ( out == NULL || classNode == NULL || node == NULL ) {
+        return;
+    }
+
+    returns = node->childCount > 2 ? node->children[2] : NULL;
+    if ( returns != NULL && returns->childCount == 1 ) {
+        xl6OutputPuts(xl6CgenHeaderTypeName(root, returns->children[0]), out);
+    } else {
+        xl6OutputPuts("void", out);
+    }
+    xl6OutputPutc(' ', out);
+    xl6CgenHeaderCStringSymbol(out, node->text);
+    xl6OutputPutc('(', out);
+
+    xl6CgenHeaderClassTypeTextName(classTypeName, sizeof(classTypeName), classNode->text);
+    xl6OutputPuts(classTypeName, out);
+    xl6OutputPuts("* self", out);
+    wroteParam = 1;
+
+    params = node->childCount > 1 ? node->children[1] : NULL;
+    if ( params != NULL ) {
+        for ( i = 0; i < params->childCount; ++i ) {
+            const XL6_AstNode* param = params->children[i];
+            if ( wroteParam ) {
+                xl6OutputPuts(", ", out);
+            }
+            xl6OutputPuts(xl6CgenHeaderTypeName(root, param != NULL && param->childCount > 0 ? param->children[0] : NULL), out);
+            xl6OutputPutc(' ', out);
+            xl6CgenHeaderFputsCIdent(out, param != NULL ? param->text : NULL);
+            wroteParam = 1;
+        }
+    }
+    if ( returns != NULL && returns->childCount > 1 ) {
+        for ( i = 0; i < returns->childCount; ++i ) {
+            if ( wroteParam ) {
+                xl6OutputPuts(", ", out);
+            }
+            xl6OutputPuts(xl6CgenHeaderTypeName(root, returns->children[i]), out);
+            xl6OutputPrintf(out, "* out%u", (unsigned)i);
+            wroteParam = 1;
+        }
+    }
+    xl6OutputPuts(");\n", out);
+}
+
+static void xl6CgenHeaderClassExportFuncProtos(XL6_Output* out, const XL6_AstNode* root, const XL6_AstNode* classNode)
+{
+    const XL6_AstNode* body;
+    size_t i;
+
+    body = classNode != NULL && classNode->childCount > 1 ? classNode->children[1] : NULL;
+    for ( i = 0; body != NULL && i < body->childCount; ++i ) {
+        const XL6_AstNode* member = body->children[i];
+        if ( member != NULL && member->kind == XL6_AST_EXPORT_FUNC ) {
+            xl6CgenHeaderClassExportFuncProto(out, root, classNode, member);
+        }
+    }
+}
+
 static void xl6CgenHeaderExportVarDecl(XL6_Output* out, const XL6_AstNode* root, const XL6_AstNode* node)
 {
     const XL6_AstNode* typeNode;
@@ -825,6 +892,8 @@ int xl6CgenEmitHeader(XL6_Output* out, XL6_AstNode* root, const char* guardName,
         const XL6_AstNode* node = root->children[i];
         if ( node != NULL && node->kind == XL6_AST_EXPORT_FUNC ) {
             xl6CgenHeaderExportFuncProto(out, root, node);
+        } else if ( node != NULL && node->kind == XL6_AST_CLASS ) {
+            xl6CgenHeaderClassExportFuncProtos(out, root, node);
         }
     }
     for ( i = 0; i < root->childCount; ++i ) {

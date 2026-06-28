@@ -434,8 +434,14 @@ static int xl6CgenClassHasFormatDerive(const XL6_AstNode* classNode, const char*
 static int xl6CgenClassNeedsAutoValueProtocol(XL6_CgenContext* ctx, const XL6_AstNode* classNode, const char* protocolName);
 static void xl6CgenClassAutoToValueProto(XL6_CgenContext* ctx, const XL6_AstNode* classNode);
 static void xl6CgenClassAutoFromValueProto(XL6_CgenContext* ctx, const XL6_AstNode* classNode);
+static void xl6CgenClassAutoToValueFormatProto(XL6_CgenContext* ctx, const XL6_AstNode* classNode, const char* format);
+static void xl6CgenClassAutoFromValueFormatProto(XL6_CgenContext* ctx, const XL6_AstNode* classNode, const char* format);
 static void xl6CgenClassAutoToValueProtocol(XL6_CgenContext* ctx, const XL6_AstNode* classNode);
 static void xl6CgenClassAutoFromValueProtocol(XL6_CgenContext* ctx, const XL6_AstNode* classNode);
+static void xl6CgenClassAutoToValueFormatProtocol(XL6_CgenContext* ctx, const XL6_AstNode* classNode, const char* format);
+static void xl6CgenClassAutoFromValueFormatProtocol(XL6_CgenContext* ctx, const XL6_AstNode* classNode, const char* format);
+static void xl6CgenClassAutoToValueFormatSymbol(XL6_Output* out, const XL6_AstNode* classNode, const char* format);
+static void xl6CgenClassAutoFromValueFormatSymbol(XL6_Output* out, const XL6_AstNode* classNode, const char* format);
 static int xl6CgenIsPersistenceGenericCall(const XL6_AstNode* node);
 static XL6_AstNode* xl6CgenClonePersistenceGenericCallType(XL6_CgenContext* ctx, const XL6_AstNode* node);
 static const char* xl6CgenPersistenceGenericCallCType(XL6_CgenContext* ctx, const XL6_AstNode* node);

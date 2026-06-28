@@ -555,6 +555,8 @@ static int xl6XapiParseExportObject(XL6_XapiJson* json, XL6_XapiExport* item)
             item->kind = xl6XapiJsonReadString(json);
         } else if ( strcmp(key, "name") == 0 ) {
             item->name = xl6XapiJsonReadString(json);
+        } else if ( strcmp(key, "owner") == 0 ) {
+            item->owner = xl6XapiJsonReadString(json);
         } else if ( strcmp(key, "cSymbol") == 0 ) {
             item->cSymbol = xl6XapiJsonReadString(json);
         } else if ( strcmp(key, "type") == 0 ) {
@@ -1015,7 +1017,8 @@ static int xl6XapiFinalizeLoadedModule(XL6_XapiModule* module)
     for ( i = 0; i < module->exportCount; ++i ) {
         XL6_XapiExport* item = &module->exports[i];
         if ( item->signature == NULL || item->exportId == NULL ||
-             (item->kind != NULL && strcmp(item->kind, "function") == 0 &&
+             (item->kind != NULL &&
+              (strcmp(item->kind, "function") == 0 || strcmp(item->kind, "class_method") == 0) &&
               (item->callingConvention == NULL || item->varargMode == NULL)) ) {
             return 0;
         }

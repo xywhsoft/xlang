@@ -105,7 +105,6 @@ int main(void)
     options = xlDefaultContextOptions();
     options.workDir = ".";
     options.tempDir = "release\\tmp\\dll_api_temp";
-    options.tccDllPath = "release\\libtcc.dll";
 
     ctx = xlCreateContext(&options);
     if ( ctx == NULL ) {

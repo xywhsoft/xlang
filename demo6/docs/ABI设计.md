@@ -204,7 +204,7 @@ xl6_<kind>_<encoded-name>__<hash16>
 ```text
 f       普通函数
 m       class 方法
-cm      custom 方法
+nm      native-backed class extern 方法
 ctor    create
 dtor    destroy
 g       泛型实例
@@ -362,9 +362,11 @@ xlang point    -> C xptr
 - 带可选参数的原函数
 - 带 `...` 或 `***` 的原函数
 
-## 11. class ABI
+## 11. class 数据 ABI
 
-class 默认只作为 xlang 内部 ABI。
+class 数据 ABI 采用“数据尽量透明，行为显式导出”的原则。
+
+也就是说，C 侧可以通过生成的头文件、XRT 类型和 XAPI 元数据理解并操作 xlang 数据结构；但 C 侧不能默认直接调用所有 xlang 成员函数，成员函数需要显式 export 或通过 xcall/协议接口调用。
 
 建议内部 C 布局：
 
@@ -379,35 +381,78 @@ typedef struct XL_Class_Vec2 {
 
 - class 字段顺序按源码声明顺序。
 - 继承时父类字段作为子类布局前缀。
-- class 方法 C 侧第一个参数是实例指针。
-- class 构造和析构也是内部 ABI 函数。
-- class 不默认出现在生成给 C 用户的公开头文件里。
+- 字段类型使用 XRT 或 ABI 文档中定义的 C 可见类型表达。
+- `string`、`array`、`list`、`set`、`dict`、`function`、object 动态字段等复合数据，应通过 XRT 类型和协议 API 向 C 暴露。
+- 泛型已实例化类型应生成具体布局和类型元数据。
+- 泛型未实例化类型只能作为 XAPI 元数据存在，C 不能直接构造值。
+- 带 virtual 的 class 必须在元数据中描述 vtable 或等价动态派发表。
+- C 可以读取生成头文件中的结构声明，但对资源字段、私有字段和协议字段的写入责任由 ABI 文档约束。
 
-如果要对 C 暴露 class，第一阶段建议用 `point` 句柄或显式 C wrapper。
+## 12. native-backed class ABI
 
-## 12. custom ABI
-
-custom 是 C ABI 的轻量入口。
+原 `custom` 的 C opaque handle 能力并入 native-backed class ABI。
 
 建议内部布局：
 
 ```c
-typedef struct XL_Custom_Image {
+typedef struct XL_Class_Image {
     xptr handle;
-} XL_Custom_Image;
+} XL_Class_Image;
 ```
 
 规则：
 
-- custom 实例只保存句柄。
-- custom extern 方法直接调用用户声明的 C 符号。
-- custom helper 方法使用 internal ABI symbol。
-- custom 不生成动态 method table。
-- custom 不公开内部句柄字段给 xlang 代码。
-- custom 如果声明 `extern create`，ABI 元信息必须记录 create 对应的 C 符号和返回句柄类型。
-- custom 如果没有声明 `extern create`，ABI 元信息必须标记该类型只能通过已有指针绑定初始化。
-- custom 如果声明 `extern destroy`，ABI 元信息必须记录 destroy 对应的 C 符号，cgen 在生命周期结束处对非空句柄插入清理调用。
-- custom 如果没有声明 `extern destroy`，cgen 不释放句柄。
+- native-backed class 是 class，不另设独立 custom ABI。
+- native 字段保存 C 句柄、C 指针或未来明确支持的 typed pointer。
+- extern 成员方法直接调用用户声明的 C 符号。
+- extern 成员方法的 C 侧第一个参数固定接收 native 句柄或实例指针，由编译器自动传入。
+- xlang helper 方法使用 internal ABI symbol。
+- native-backed class 不生成动态 method table，除非 class 自身声明 virtual 能力。
+- 如果声明 `__create__`，ABI 元信息必须记录构造对应的 C 符号、返回句柄类型和失败策略。
+- 如果没有声明 `__create__`，ABI 元信息必须标记该类型只能通过已有指针或默认构造规则初始化。
+- 如果声明 `__destroy__`，ABI 元信息必须记录析构对应的 C 符号，cgen 在生命周期结束处对非空资源插入清理调用。
+- 如果没有声明 `__destroy__`，cgen 不释放 native 资源。
+
+### 12.1 class 成员函数 C export ABI
+
+xlang 成员函数只有显式导出时才进入 C 公开 API。
+
+推荐写法：
+
+```xlang
+class Player
+    int hp
+
+    export "player_get_hp" func getHp() as int
+        return self.hp
+    end
+
+    export "player_set_hp" func setHp(int value)
+        self.hp = value
+    end
+end
+```
+
+生成给 C 的公开声明方向：
+
+```c
+int64_t player_get_hp(XL_Class_Player* self);
+void player_set_hp(XL_Class_Player* self, int64_t value);
+```
+
+规则：
+
+- C export wrapper 的第一个参数是实例指针，static 方法没有该参数。
+- `export "symbol"` 是推荐形式，确保 C 头文件符号稳定、可读。
+- 如果重载成员函数需要导出到 C，必须为每个重载提供不同的 C 符号。
+- 没有显式 C 符号的 `export func` 只进入 xlang 模块导出，不生成 C 头文件声明。
+- 可选参数导出到 C 时默认值失效，C 声明必须包含完整参数列表。
+- `...` 导出到 C 时映射为 `xarray` 或等价 XRT array 类型参数。
+- `***` 导出到 C 时映射为 `xdict` 或等价 XRT dict 类型参数。
+- 多返回值导出到 C 时使用 out 参数或 xcall wrapper，不能伪装成多个 C 返回值。
+- `var`、`function`、容器、object 动态字段等复杂值导出到 C 时必须使用 XRT 类型和元数据描述。
+- internal ABI symbol 仍使用 signature id 保证唯一性，不要求人工可读。
+- C export symbol 是公开契约，不能随 internal ABI symbol 变化自动改名。
 
 ## 13. 模块 ABI
 
@@ -475,11 +520,11 @@ export math_add_i64
 
 以下 ABI 能力暂缓：
 
-- 多返回值直接导出到 C。
-- `var` 直接导出到 C。
-- 容器直接导出到 C。
-- class/custom 直接作为 C 公开值类型。
+- 多返回值作为多个 C 返回值直接导出；应使用 out 参数或 xcall wrapper。
+- `var` 脱离 XRT 类型信息直接裸导出。
+- 容器脱离 XRT 类型和 XAPI 元数据直接裸导出。
+- class 按值传参与按值返回。
 - C 调用约定属性，例如 stdcall/fastcall。
 - C 结构体按值互传。
 - 字符串返回自动分配和自动释放协议。
-- 动态对象 ABI。
+- object 动态字段的裸结构访问；应通过 XRT dict 或 object 协议 API。

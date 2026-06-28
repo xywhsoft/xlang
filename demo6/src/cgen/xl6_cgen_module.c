@@ -21,6 +21,7 @@ int xl6CgenEmitC(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags)
     int hasStdStringRuntime;
     int hasPathRuntime;
     int hasHttpServerRuntime;
+    int hasTaskSpawn;
     int needsObjectClass;
     const XL6_AstNode* mainFunc;
 
@@ -47,6 +48,7 @@ int xl6CgenEmitC(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags)
     hasXValueRuntime = xl6CgenNodeNeedsXValueRuntime(root) || hasFunctionVarRuntime || ctx.runtimeTypeDescCount > 0;
     hasTimeRuntime = xl6CgenNodeNeedsTimeRuntime(root);
     hasAsyncRuntime = xl6CgenNodeNeedsAsyncRuntime(root);
+    hasTaskSpawn = xl6CgenNodeNeedsTaskSpawn(root);
     hasDynamicForInErrorRuntime = xl6CgenProgramNeedsDynamicForInErrorRuntime(&ctx, root);
     hasErrorRuntime = xl6CgenNodeNeedsErrorRuntime(root) || hasAsyncRuntime || hasDynamicForInErrorRuntime;
     hasCryptoRuntime = xl6CgenNodeNeedsCryptoRuntime(root);
@@ -69,6 +71,10 @@ int xl6CgenEmitC(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags)
         hasFunctionVarRuntime = 1;
         hasXValueRuntime = 1;
     }
+    if ( hasTaskSpawn ) {
+        hasFunctionVarRuntime = 1;
+        hasXValueRuntime = 1;
+    }
     ctx.needsXValueRuntime = hasXValueRuntime;
     ctx.needsFunctionVarRuntime = hasFunctionVarRuntime;
     ctx.needsErrorRuntime = hasErrorRuntime;
@@ -85,7 +91,7 @@ int xl6CgenEmitC(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags)
     xl6OutputPuts("    exit(code);\n", out);
     xl6OutputPuts("}\n\n", out);
     xl6CgenEmitLifecycleRuntime(out);
-    if ( xl6CgenNodeNeedsFunctionRuntime(root) || hasHttpServerRuntime ) {
+    if ( xl6CgenNodeNeedsFunctionRuntime(root) || hasHttpServerRuntime || hasTaskSpawn ) {
         xl6CgenEmitFunctionRuntime(out);
     }
     if ( xl6CgenNodeNeedsApprox(root) ) {
@@ -167,6 +173,9 @@ int xl6CgenEmitC(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags)
             xl6CgenCustomDecls(&ctx, root->children[i]);
         }
     }
+    if ( hasXValueRuntime && xl6CgenNodeNeedsRuntimeTypeOps(root) ) {
+        xl6CgenEmitRuntimeTypeHelpers(&ctx);
+    }
     for ( i = 0; i < root->childCount; ++i ) {
         if ( (root->children[i]->kind == XL6_AST_FUNC || root->children[i]->kind == XL6_AST_EXPORT_FUNC) &&
              !xl6CgenFuncIsGeneric(root->children[i]) ) {
@@ -203,7 +212,11 @@ int xl6CgenEmitC(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags)
             xl6CgenFuncProto(&ctx, root->children[i]);
             xl6OutputPuts(";\n", out);
         } else if ( root->children[i]->kind == XL6_AST_ASYNC_FUNC && !xl6CgenFuncIsGeneric(root->children[i]) ) {
-            xl6CgenAsyncFuncProto(&ctx, root->children[i]);
+            if ( xl6CgenFuncReturnsGenerator(&ctx, root->children[i]) ) {
+                xl6CgenFuncProto(&ctx, root->children[i]);
+            } else {
+                xl6CgenAsyncFuncProto(&ctx, root->children[i]);
+            }
             xl6OutputPuts(";\n", out);
         }
     }
@@ -213,7 +226,8 @@ int xl6CgenEmitC(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags)
 
         ctx.currentGenericParams = xl6CgenFuncTypeParams(ctx.genericInstances[i].func);
         ctx.currentGenericArgs = ctx.genericInstances[i].typeArgs;
-        if ( xl6CgenIsAsyncFunc(ctx.genericInstances[i].func) ) {
+        if ( xl6CgenIsAsyncFunc(ctx.genericInstances[i].func) &&
+             !xl6CgenFuncReturnsGenerator(&ctx, ctx.genericInstances[i].func) ) {
             xl6CgenAsyncFuncProto(&ctx, ctx.genericInstances[i].func);
         } else {
             xl6CgenFuncProto(&ctx, ctx.genericInstances[i].func);
@@ -228,7 +242,7 @@ int xl6CgenEmitC(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags)
         xl6OutputPutc('\n', out);
     }
 
-    if ( xl6CgenNodeNeedsFunctionRuntime(root) ) {
+    if ( xl6CgenNodeNeedsFunctionRuntime(root) || hasTaskSpawn ) {
         xl6CgenEmitFunctionValueWrappers(&ctx);
     }
     xl6CgenEmitAnonFunctions(&ctx);
@@ -255,7 +269,11 @@ int xl6CgenEmitC(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags)
                 xl6CgenFunc(&ctx, root->children[i]);
             }
         } else if ( root->children[i]->kind == XL6_AST_ASYNC_FUNC && !xl6CgenFuncIsGeneric(root->children[i]) ) {
-            xl6CgenAsyncFunc(&ctx, root->children[i]);
+            if ( xl6CgenFuncReturnsGenerator(&ctx, root->children[i]) ) {
+                xl6CgenGeneratorFunc(&ctx, root->children[i]);
+            } else {
+                xl6CgenAsyncFunc(&ctx, root->children[i]);
+            }
         } else if ( root->children[i]->kind == XL6_AST_EXPORT_FUNC ) {
             xl6CgenExportFunc(&ctx, root->children[i]);
             xl6CgenExportWrapper(&ctx, root->children[i]);
@@ -267,10 +285,10 @@ int xl6CgenEmitC(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags)
 
         ctx.currentGenericParams = xl6CgenFuncTypeParams(ctx.genericInstances[i].func);
         ctx.currentGenericArgs = ctx.genericInstances[i].typeArgs;
-        if ( xl6CgenIsAsyncFunc(ctx.genericInstances[i].func) ) {
-            xl6CgenAsyncFunc(&ctx, ctx.genericInstances[i].func);
-        } else if ( xl6CgenFuncReturnsGenerator(&ctx, ctx.genericInstances[i].func) ) {
+        if ( xl6CgenFuncReturnsGenerator(&ctx, ctx.genericInstances[i].func) ) {
             xl6CgenGeneratorFunc(&ctx, ctx.genericInstances[i].func);
+        } else if ( xl6CgenIsAsyncFunc(ctx.genericInstances[i].func) ) {
+            xl6CgenAsyncFunc(&ctx, ctx.genericInstances[i].func);
         } else {
             xl6CgenFunc(&ctx, ctx.genericInstances[i].func);
         }

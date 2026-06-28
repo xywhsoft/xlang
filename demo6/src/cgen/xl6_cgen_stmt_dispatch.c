@@ -335,17 +335,32 @@ static void xl6CgenStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
                 snprintf(returnName, sizeof(returnName), "__xl6_return_%d", id);
                 if ( ctx->currentReturnType == NULL ||
                      !xl6CgenReturnTrySingleValueStmt(ctx, ctx->currentReturnType, returnName, node->children[0]) ) {
+                    XL6_AstNode* returnClass = ctx->currentReturnType != NULL ? xl6CgenClassNodeForType(ctx, ctx->currentReturnType) : NULL;
+                    XL6_AstNode* ctorClass = NULL;
+                    int emittedCtor = 0;
+
                     xl6CgenIndent(ctx);
                     xl6OutputPuts(ctx->currentReturnType != NULL ? xl6CgenTypeName(ctx, ctx->currentReturnType) : xl6CgenInferExprType(ctx, node->children[0]), ctx->out);
-                    xl6OutputPrintf(ctx->out, " __xl6_return_%d = ", id);
-                    if ( xl6CgenIsXValueType(ctx->currentReturnType) ) {
+                    if ( returnClass != NULL &&
+                         xl6CgenCallIsClassCtor(ctx, node->children[0], &ctorClass) &&
+                         xl6CTextEquals(returnClass->text, ctorClass->text) ) {
+                        xl6OutputPrintf(ctx->out, " __xl6_return_%d = {0};\n", id);
+                        emittedCtor = xl6CgenEmitClassCtorInto(ctx, node->children[0], returnName);
+                    } else {
+                        xl6OutputPrintf(ctx->out, " __xl6_return_%d = ", id);
+                    }
+                    if ( emittedCtor ) {
+                        ;
+                    } else if ( xl6CgenIsXValueType(ctx->currentReturnType) ) {
                         xl6CgenXValueFromExprForTarget(ctx, ctx->currentReturnType, node->children[0]);
                     } else if ( xl6CgenIsFunctionType(ctx->currentReturnType) ) {
                         xl6CgenFunctionValueExpr(ctx, node->children[0], ctx->currentReturnType);
                     } else {
                         xl6CgenExpr(ctx, node->children[0]);
                     }
-                    xl6OutputPuts(";\n", ctx->out);
+                    if ( !emittedCtor ) {
+                        xl6OutputPuts(";\n", ctx->out);
+                    }
                 }
                 if ( xl6CgenIsFunctionType(ctx->currentReturnType) && xl6CgenExprIsFunctionBorrow(ctx, node->children[0]) ) {
                     snprintf(returnName, sizeof(returnName), "__xl6_return_%d", id);

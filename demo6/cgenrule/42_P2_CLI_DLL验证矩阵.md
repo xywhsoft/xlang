@@ -51,11 +51,11 @@
 
 | 规则范围 | 当前验证用例 | 证据等级 | 核验结论 |
 |---|---|---|---|
-| `CGEN-API-007..008` libtcc 动态加载与搜索顺序 | `build_dll.bat` 复制 `libtcc.dll` 到 `release`；`xl_dll_embed_string.c` 显式设置 `options.tccDllPath = "release\\libtcc.dll"`；`xl_dll_null_context.c` 覆盖相对 `workDir` 下仅依赖默认工具链路径快照运行脚本；`test_dll.bat` 先调用 `tools\xl6_toolchain_env.bat` 设置 `XL6_TCC_DLL` / `XL6_TCC_ROOT` / `XL6_TCC_INCLUDE` / `XL6_TCC_LIB` / `XL6_TCC_LIBTCC1` 等工具链变量；`check_dll_api_boundary.ps1` 和 `check_toolchain_paths.ps1` 静态守住 `tcc_set_options` 必需符号、路径快照和集中环境变量读取 | DLL 运行 + 静态守门 | 默认分发路径、自定义 `tccDllPath`、集中工具链环境变量口径、路径快照和 libtcc 必需符号校验均有覆盖。 |
+| `CGEN-API-007..008` 静态 libtcc 与 VFS 资源分组 | `build_dll.bat` 不再复制 `libtcc.dll`；DLL/API 测试确认 `release\\libtcc.dll` 不存在也能运行；`xl_dll_embed_string.c` 使用默认静态 libtcc 入口运行字符串/文件脚本并编译 exe；`xl_dll_null_context.c` 覆盖相对 `workDir` 下的路径快照；`check_dll_api_boundary.ps1`、`check_toolchain_paths.ps1` 和 VFS 检查守住静态 libtcc、动态 VFS -> 外部文件系统 -> 静态 VFS、`xl.dll`/`xlc.dll` 资源分组口径 | DLL 运行 + 静态守门 | 无外部 libtcc 依赖、静态 libtcc 入口、VFS 优先级、运行/编译资源分组、路径快照和必需 TCC API 均有覆盖。 |
 | `CGEN-API-009..010` 默认 XRT/运行时符号注入、context C 符号注入 | `xl_dll_embed_string.c` 脚本调用 string/json/codec/hash/crypto/id/url/time/regex/process/dir/file 标准库，同时调用 host_add | DLL 运行 + 标准库覆盖 | 内存 TCC 不链接外部 xrt.o 仍能解析 XRT 和 stdlib helper，宿主 C 函数地址也能注入。 |
 | `CGEN-API-011..013` TCC state 创建、编译诊断转 lastError、cgen 到内存 | `xlRunScriptString(ctx, script)` 成功；非法脚本检查 lastError 含 `__xl_string.xl:1:` 和 `[parse]`；`tools\check_stdlib_dll_symbols.ps1` 检查 DLL 符号集合 | DLL 运行 + 符号检查 + 负例 | 内存输出、TCC include/lib path、runtime symbols、编译字符串路径和错误通道有覆盖；诊断已检查虚拟路径、行列和阶段。 |
 | `CGEN-API-014..016` 编译单元从字符串/文件加载、依赖注入、内存编译并运行 | `xlRunScriptString`、`xlRunScriptFile`；import/std library 脚本运行覆盖依赖和符号注入；`run_dependency_path_snapshot_case` 同时覆盖 bare library name、path-like link file 和 loaded library path 的依赖注入 | DLL 字符串/文件运行 | 字符串脚本和文件脚本入口均有直接测试；context 依赖注入在切换 `workDir` 后仍能解析外部符号。 |
-| `CGEN-API-017` 编译到 exe | `xlCompileScriptStringToExe(ctx, buildScript, "release\\tmp\\xl_dll_embed_string_script.exe")`，随后 `test_dll.bat` 运行该 exe；`test_dll.bat` 先调用 `tools\xl6_toolchain_env.bat` 设置 `XL6_XRT_OBJ` | DLL 编译到 exe + 产物运行 | 字符串脚本到 exe 的完整路径被直接验证，包括从集中工具链变量链接 XRT object、链接 system libs 和输出 exe。 |
+| `CGEN-API-017` 编译到 exe | `xlCompileScriptStringToExe(ctx, buildScript, "release\\tmp\\xl_dll_embed_string_script.exe")`，随后 `test_dll.bat` 运行该 exe；`xlc.dll` 通过单头文件方式编译 `lib/xrt/xrt.h` 并链接 TCC runtime/system libs | DLL 编译到 exe + 产物运行 | 字符串脚本到 exe 的完整路径被直接验证，包括单头文件 XRT 编译、runtime/system libs 链接和输出 exe。 |
 | `CGEN-API-024..027` run/compile 字符串与文件顶层 API | `xlRunScriptString`、`xlRunScriptFile`、`xlCompileScriptStringToExe`、`xlCompileScriptFileToExe` 已覆盖；`test_dll.bat` 运行两份生成 exe | 顶层 API 覆盖 | 字符串/文件 run 和字符串/文件 compile-to-exe 均达到可运行烟测。 |
 
 ## 剩余风险与后续增强
@@ -63,9 +63,9 @@
 | 缺口 | 建议补法 |
 |---|---|
 | CLI 输入上限、`xl run file.xl -- arg`、含空格/引号 argv 已分别由 33 个 `.c` 输入负例和 `xl_run_args.xl` 覆盖。 | 当前 CLI argv 转义路径已补到 RC0 所需强度；后续可增加更多 Windows 特殊字符组合。 |
-| DLL API 的 `xlAddLibraryPath`、`xlAddLinkLibrary`、`xlLoadDependencyLibrary`、自定义 `tccDllPath`、setter 空字符串负例、NULL context 边界和多上下文 cwd 恢复已由 `xl_dll_embed_string.c` 与 `xl_dll_null_context.c` 覆盖。 | 当前 DLL setter 正常/失败路径、路径快照、NULL context 返回语义、无效 options 拒绝、默认 context 创建销毁、成功/失败脚本后的 cwd 恢复均有烟测；后续可扩展到多线程宿主并发调用边界。 |
+| DLL API 的 `xlAddLibraryPath`、`xlAddLinkLibrary`、`xlLoadDependencyLibrary`、setter 空字符串负例、NULL context 边界和多上下文 cwd 恢复已由 `xl_dll_embed_string.c` 与 `xl_dll_null_context.c` 覆盖。 | 当前 DLL setter 正常/失败路径、路径快照、NULL context 返回语义、无效 options 拒绝、默认 context 创建销毁、静态 libtcc 入口、成功/失败脚本后的 cwd 恢复均有烟测；后续可扩展到多线程宿主并发调用边界。 |
 | DLL lastError 已验证非空、虚拟路径、phase、行列和清理。 | 当前诊断格式锁定强度已满足本阶段；后续可扩展到语义错误与 TCC 链接错误。 |
 
 ## 阶段结论
 
-至此，`32` 到 `33` 的 CLI/DLL P2 规则已有矩阵级覆盖说明，并已补强 help/stdout/缺 `-o`、`--save-temps` wrapper、多 C 输入、输入上限、显式 XRT 链接、`xl run --` argv 空格/引号/空字符串传递、DLL 文件入口、DLL link/loadlib setter、依赖路径快照、自定义 tccDllPath、setter 空值负例、NULL context 纯 C 单元测试、多上下文 cwd 恢复和 lastError phase/行列断言。CLI 的主干 build/run/cgen/xapi/dump/link/loadlib/C 混编路径覆盖较强；DLL 的字符串/文件运行、标准库符号注入、宿主 C 函数注册、外部 link/loadlib、字符串/文件编译到 exe、NULL context 边界、cwd 成功/失败恢复已有可运行验证。
+至此，`32` 到 `33` 的 CLI/DLL P2 规则已有矩阵级覆盖说明，并已补强 help/stdout/缺 `-o`、`--save-temps` wrapper、多 C 输入、输入上限、显式 XRT 链接、`xl run --` argv 空格/引号/空字符串传递、DLL 文件入口、DLL link/loadlib setter、依赖路径快照、静态 libtcc 入口、setter 空值负例、NULL context 纯 C 单元测试、多上下文 cwd 恢复和 lastError phase/行列断言。CLI 的主干 build/run/cgen/xapi/dump/link/loadlib/C 混编路径覆盖较强；DLL 的字符串/文件运行、标准库符号注入、宿主 C 函数注册、外部 link/loadlib、字符串/文件编译到 exe、NULL context 边界、cwd 成功/失败恢复已有可运行验证。

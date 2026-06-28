@@ -148,8 +148,7 @@ if ( (Test-Path -LiteralPath $cliPath -PathType Leaf) -and
         "XL6_TCC_WIN_INCLUDE",
         "XL6_TCC_WINAPI_INCLUDE",
         "XL6_TCC_LIB",
-        "XL6_TCC_LIBTCC1",
-        "XL6_XRT_OBJ"
+        "XL6_TCC_LIBTCC1"
     ) ) {
         if ( $cliText -notmatch [regex]::Escape($name) ) {
             Add-Failure "CLI must honor centralized toolchain environment variable: $name"
@@ -157,6 +156,12 @@ if ( (Test-Path -LiteralPath $cliPath -PathType Leaf) -and
         if ( $apiText -notmatch [regex]::Escape($name) ) {
             Add-Failure "DLL API must honor centralized toolchain environment variable: $name"
         }
+    }
+    if ( $cliText -notmatch [regex]::Escape("XL6_XRT_OBJ") ) {
+        Add-Failure "CLI must honor centralized toolchain environment variable: XL6_XRT_OBJ"
+    }
+    if ( $apiText -notmatch 'XRT_IMPLEMENTATION' -or $apiText -notmatch 'lib/xrt/xrt[.]h' ) {
+        Add-Failure "DLL compiler API must embed XRT through the single-header path instead of requiring XL6_XRT_OBJ"
     }
 
     foreach ( $name in @(

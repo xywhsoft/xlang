@@ -16,6 +16,7 @@ static XL6_AstNode* xl6CgenCloneTypeNode(const XL6_AstNode* node)
     }
     copy->line = node->line;
     copy->column = node->column;
+    copy->flags = node->flags;
     for ( i = 0; i < node->childCount; ++i ) {
         XL6_AstNode* childCopy = xl6CgenCloneTypeNode(node->children[i]);
         if ( childCopy == NULL ) {

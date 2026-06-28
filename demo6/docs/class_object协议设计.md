@@ -15,7 +15,7 @@
 - 保持零成本普通成员函数调用。
 - 让 `class X extends object` 自然具备动态字段能力。
 - 允许普通 class 通过实现协议获得索引、字段拦截、调用、运算符、复制、序列化等能力。
-- 让基础类型隐性类、class、custom、var、标准库函数共享同一套语义解释。
+- 让基础类型隐性类、class、native-backed class、var、标准库函数共享同一套语义解释。
 - 不为 DEMO5 旧语义提供兼容回退。
 
 当前已落地的第一批能力：
@@ -42,7 +42,7 @@
 - 普通 class 的 `__iter__` / `__next__` 迭代协议，支持 `for value in obj` 与 `for index, value in obj`。
 - 协议重载统一：`create(...)`、`__item__`、`__setItem__`、`__contains__`、`__call__` 和运算符协议复用 class 方法重载解析。
 - `get` / `let` 属性系统，支持零维属性、多维属性参数、属性读写重载和属性索引回退。
-- `public` / `private` 访问控制；默认公开，`private` 仅当前 class 内可访问。
+- `public` / `private` / `protected` 访问控制；默认公开，`private` 仅当前 class 内可访问，`protected` 允许当前 class 和子类访问。
 - `static` 字段和方法；通过类型名访问，static 方法没有 `self`。
 - `override` / `final` / `virtual` 规则检查，以及 virtual 方法和 getter 的 vtable 动态派发。
 
@@ -109,20 +109,51 @@ e.title = "hero"
 
 这里 `e["hp"]` 和动态字段访问不是 object 的特殊语法黑盒，而是由 `object` 基类提供对应协议方法。
 
-### 2.3 custom
+### 2.3 native-backed class
 
-`custom` 保持零成本 C opaque handle 抽象。
+DEMO6 后续不再把 `custom` 作为独立的用户侧类型系统扩展方向。
 
-它不参与 object 的动态字段模型，也不承担 class 的普通字段布局。
+零成本 C opaque handle 抽象融入 `class`，形成 native-backed class：
 
-custom 可以通过声明或绑定协议方法获得部分语言能力，例如：
+- 普通 class 负责 xlang 自有字段布局。
+- object 只是标准库 class 基类，负责动态字段能力。
+- native-backed class 负责把一组 C 函数和 C 资源句柄纳入 class 体系。
 
-- `__toString__`
-- `__copyable__`
-- `__destroy__`
-- `__item__`
+native-backed class 同时可以拥有：
 
-custom 默认不复制底层资源。只有在未来显式映射真实 C 复制协议后，才允许复制拥有资源的 custom。
+- xlang 字段。
+- xlang 方法。
+- C native 句柄。
+- extern 绑定的 C 方法。
+- 协议方法。
+- 继承、访问控制、属性、virtual 等 class 能力。
+
+示例：
+
+```xlang
+class Texture
+    native void* handle
+
+    extern "tex_open" func __create__(string path)
+    extern "tex_close" func __destroy__()
+    extern "tex_width" func width() as int
+    extern "tex_height" func height() as int
+
+    func area() as int
+        return self.width() * self.height()
+    end
+end
+```
+
+绑定规则：
+
+- `native` 字段表示由 C 管理或 C 暴露的底层资源。
+- extern 成员函数的 C 侧第一个参数固定为 native 句柄或实例指针，由编译器自动传入。
+- xlang 调用方不显式传入 C receiver 参数。
+- `__create__` 可绑定 C 构造函数，也可以由 xlang 代码实现。
+- `__destroy__` 可绑定 C 析构函数，也可以由 xlang 代码实现。
+- native-backed class 默认不可复制；只有显式提供 `derive copy`、`derive clone` 或对应协议后才允许复制。
+- 旧的 `custom` 可以作为实现层术语或迁移入口存在，但设计口径以 native-backed class 为准。
 
 ## 3. 协议方法
 
@@ -239,17 +270,18 @@ matrix[x, y] = val // matrix.__setItem__(x, y, val)
 
 P2：访问控制。
 
-第一批只引入：
+第一批引入：
 
 - `public`
 - `private`
+- `protected`
 
 规则：
 
 - 默认访问级别为 `public`。
 - `private` 只允许当前 class 内访问。
-- `protected` 暂缓。
-- 访问控制关键字只在 class/custom 成员声明位置作为上下文关键字。
+- `protected` 允许当前 class 和任意子类访问。
+- 访问控制关键字只在 class 成员声明位置作为上下文关键字。
 
 P3：静态成员。
 
@@ -269,7 +301,7 @@ auto c = Color.rgb(255, 0, 0)
 
 规则：
 
-- `static` 只在 class/custom 成员声明位置作为上下文关键字。
+- `static` 只在 class 成员声明位置作为上下文关键字。
 - 静态成员通过类型名访问。
 - 静态方法没有 `self`。
 - 静态成员不参与实例对象布局。
@@ -367,7 +399,7 @@ auto c = clone(a)
 - `derive copy` 自动生成 `__copy__`，`derive clone` 自动生成 `__clone__`。
 - `derive copy/clone` 的字段和父类必须可复制。
 - `derive moveOnly` 明确禁止复制，且不能与 `derive copy/clone` 同时出现。
-- custom 默认不可复制，拥有 destroy 的 custom 不能通过 class 自动复制绕过。
+- native-backed class 默认不可复制，拥有 `__destroy__` 的 native 资源不能通过 class 自动复制绕过。
 - 资源型 class 默认不可复制，除非显式声明复制协议或 derive 能力。
 
 ### 4.4 索引协议
@@ -517,7 +549,7 @@ a.name
 规则：
 
 - 内置数值、字符串、时间等类型优先使用内置规则。
-- 用户 class/custom 仅在内置规则不可用时进入协议查找。
+- 用户 class 和 native-backed class 仅在内置规则不可用时进入协议查找。
 - 运算符协议参与重载解析。
 - 运算符协议的返回类型必须符合对应运算语义。
 - `and`、`or` 的短路语义不能被协议破坏；协议重载只能用于非短路对象逻辑场景，具体落地需在语义阶段限制。
@@ -539,7 +571,10 @@ a.name
 - `__next__` 的第一个返回值表示是否存在下一项，第二个返回值是本次迭代值。
 - `for value in obj` 使用 `T` 作为循环值类型。
 - `for index, value in obj` 使用 `int` 作为索引类型，使用 `T` 作为循环值类型。
-- 当前已实现普通 class 迭代协议；泛型 class 的协议迭代后续单独扩展，避免语义推断和代码生成实例化边界不一致。
+- 普通 class 和泛型 class 使用同一套迭代协议。
+- 泛型 class 的 `__iter__` / `__next__` 必须参与泛型实例化；`T` 由具体实例确定。
+- `__next__() as (bool, T)` 是推荐形态，便于 `for` 语句直接获得静态循环变量类型。
+- `__next__` 支持重载，但 `for in` 只选择零参数 `__next__()`。
 
 示例：
 
@@ -557,6 +592,25 @@ for index, value in box
 end
 
 box(1, 2, 3)
+```
+
+泛型 class 示例：
+
+```xlang
+class Range<T is comparable>
+    func __iter__() as RangeIter<T>
+    end
+end
+
+class RangeIter<T is comparable>
+    func __next__() as (bool, T)
+    end
+end
+
+Range<int> r = Range::<int>()
+for value in r
+    print(value)     // value 的静态类型是 int
+end
 ```
 
 ## 7. derive 能力开关
@@ -600,9 +654,11 @@ end
 - `derive moveOnly` 与 `derive copy` 冲突。
 - 资源型字段会阻止默认复制生成。
 
-## 8. 字段级序列化配置
+## 8. 字段级持久化注解
 
-序列化配置使用 class 内的能力配置块。
+字段级 json/xson 配置采用字段尾部注解，不使用 class 内配置块。
+
+这样字段名、类型、默认值和持久化规则集中在同一行，阅读和工具处理都更直接。
 
 示例：
 
@@ -612,32 +668,45 @@ class Player
     derive xson
 
     int id
-    string playerName
-    string password
-
-    json
-        rename playerName as "player_name"
-        skip password
-    end
-
-    xson
-        rename playerName as "player_name"
-        skip password
-    end
+    string playerName @json("player_name") @xson("player_name")
+    string nick @json(omit=empty) = ""
+    private string password @json(skip) @xson(skip)
+    private int internalId @json(include, required)
 end
 ```
 
-第一阶段支持：
+支持的注解：
 
-- `rename field as "name"`
-- `skip field`
+- `@json(...)`：只影响 JSON 序列化与反序列化。
+- `@xson(...)`：只影响 XSON 序列化与反序列化。
+- `@persist(...)`：同时影响 JSON 与 XSON，可作为公共配置。
+
+支持的参数：
+
+- `@json("name")`：将字段序列化为指定名称。
+- `skip`：字段不参与序列化，也不参与反序列化。
+- `include`：强制字段参与持久化，常用于 `private` 字段。
+- `required`：反序列化时该字段必须存在。
+- `omit=empty`：字段为空值时不输出。
+- `omit=null`：字段为 `null` 时不输出。
+- `name="field_name"`：等价于字符串位置参数，适合后续扩展更多参数时保持清晰。
+
+规则：
+
+- 字段默认使用源码字段名。
+- `private` 字段默认不参与持久化，除非声明 `include`。
+- `skip` 与 `include` 冲突。
+- `skip` 与 `required` 冲突。
+- `@json(...)` 覆盖 `@persist(...)` 中与 JSON 相关的同名配置。
+- `@xson(...)` 覆盖 `@persist(...)` 中与 XSON 相关的同名配置。
+- 注解只描述持久化策略，不改变字段访问控制、不改变内存布局。
 
 后续可扩展：
 
-- 默认值。
 - 字段版本。
 - 只读字段。
 - 兼容旧字段名。
+- 自定义格式化器。
 
 ## 9. 持久化 API
 
@@ -660,7 +729,7 @@ Player r = xson.read::<Player>("player.xson")
 - 基础类型直接序列化。
 - 容器递归序列化。
 - class 需要 `derive value`、`derive json` 或 `derive xson`。
-- custom 默认不可序列化，除非显式绑定转换协议。
+- native-backed class 默认不可序列化，除非显式绑定转换协议或 derive 持久化能力。
 - object 动态字段由 object 基类的 value 能力参与序列化。
 
 ## 10. 基础类型隐性类
@@ -698,7 +767,7 @@ DEMO5 中 `nocopy` 的核心目的，是避免资源对象被意外按值复制�
 
 DEMO6 不继续扩大 `nocopy` 关键字路线，而是使用能力系统表达：
 
-- 默认资源型 class/custom 不可复制。
+- 默认资源型 class 和 native-backed class 不可复制。
 - `derive copy` 明确请求生成浅拷贝。
 - `derive clone` 明确请求生成深拷贝。
 - `derive moveOnly` 明确表达只能移动。
@@ -738,7 +807,7 @@ XAPI 建议字段：
 
 语义阶段负责：
 
-- 收集 class/custom 协议方法。
+- 收集 class 和 native-backed class 协议方法。
 - 检查协议方法签名是否符合最小要求。
 - 建立类型的协议表。
 - 将字段、索引、调用、运算符、复制、序列化等语义解析到协议表。
@@ -798,9 +867,9 @@ XAPI 建议字段：
 第三批实现：
 
 - 基础类型隐性类能力补齐。
-- custom 协议能力补齐。
+- native-backed class 协议能力补齐。
 - 泛型 class 的 `__iter__` / `__next__`。
-- 字段级 json/xson 配置块。
+- 字段级持久化注解。
 - 协议能力文档自动生成。
 - 更多容器协议与泛型约束融合。
 
@@ -823,6 +892,7 @@ XAPI 建议字段：
 - 访问控制：
   - `public`。
   - `private`。
+  - `protected`。
 - 静态成员：
   - `static const`。
   - `static func`。
@@ -837,10 +907,15 @@ XAPI 建议字段：
 ### 当前暂不纳入完成口径
 
 - `and` / `or` 短路逻辑协议化方案。
-- 泛型 class 的 `__iter__` / `__next__`。
-- 字段级 json/xson 配置块。
 - 用户自定义 `protocol` / `interface`。
-- `is` / `as` 运行时类型判断与向下转换。
+
+### 本批新增开发列表
+
+- 泛型约束系统，语法为 `<T is Constraint>`，多个约束使用 `and`。
+- 字段级持久化注解：`@json(...)`、`@xson(...)`、`@persist(...)`。
+- 泛型 class 的 `__iter__` / `__next__` 协议。
+- custom 融合到 class，形成 native-backed class。
+- class 数据 ABI 与成员函数 C export ABI。
 
 ## 16. 验收标准
 
@@ -851,7 +926,7 @@ XAPI 建议字段：
 - 新语法均有正例测试。
 - 错误路径均有负例诊断测试。
 - class/object/protocol 有功能范例。
-- copy/clone 有基础类型、容器、class、custom 边界测试。
+- copy/clone 有基础类型、容器、class、native-backed class 边界测试。
 - json/xson 持久化有 roundtrip 测试。
 - XAPI 输出包含协议与 derive 元数据测试。
 - C 混编不被 object/protocol 破坏。

@@ -147,7 +147,7 @@ static void xl6CgenStaticClassFieldDecls(XL6_CgenContext* ctx, const XL6_AstNode
             continue;
         }
         typeNode = member->children[0];
-        initExpr = member->childCount > 1 ? member->children[1] : NULL;
+        initExpr = xl6CgenFieldDefaultExpr(member);
         xl6OutputPuts("static ", ctx->out);
         xl6OutputPuts(xl6CgenTypeName(ctx, typeNode), ctx->out);
         xl6OutputPutc(' ', ctx->out);

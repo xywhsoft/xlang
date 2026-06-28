@@ -63,6 +63,10 @@ static XL6_AstNode* xl6CgenCloneAsyncCallType(
         valueType = xl6CgenNewSimpleType("null", at != NULL ? at : func);
     }
 
+    if ( xl6CgenFuncReturnsGenerator(ctx, func) ) {
+        valueType->flags &= ~XL6_AST_FLAG_ASYNC;
+        return valueType;
+    }
     return xl6CgenNewGenericTypeNode("future", valueType, at != NULL ? at : func);
 }
 
@@ -414,6 +418,7 @@ static XL6_AstNode* xl6CgenSyncMethodType(XL6_CgenContext* ctx, const XL6_AstNod
     return xl6CgenNewSimpleType("bool", call);
 }
 
+#include "src/cgen/xl6_cgen_type_infer_task.c"
 static XL6_AstNode* xl6CgenCloneSingleCallableReturnType(
     XL6_CgenContext* ctx,
     const XL6_AstNode* func,
@@ -545,6 +550,10 @@ static XL6_AstNode* xl6CgenCloneExprTypeForInference(XL6_CgenContext* ctx, const
         return xl6CgenAnonFunctionType(expr);
     case XL6_AST_AWAIT:
         return xl6CgenCloneAwaitResultType(ctx, expr);
+    case XL6_AST_TYPE_IS:
+        return xl6CgenNewSimpleType("bool", expr);
+    case XL6_AST_TYPE_AS:
+        return expr->childCount > 1 ? xl6CgenCloneTypeNode(expr->children[1]) : NULL;
     case XL6_AST_NAME:
         varType = xl6CgenFindVarType(ctx, expr->text);
         if ( varType != NULL && !xl6CTextEquals(varType->text, "auto") ) {
@@ -854,6 +863,12 @@ static XL6_AstNode* xl6CgenCloneExprTypeForInference(XL6_CgenContext* ctx, const
             XL6_AstNode* channelMethodType = xl6CgenChannelMethodType(ctx, expr);
             if ( channelMethodType != NULL ) {
                 return channelMethodType;
+            }
+        }
+        {
+            XL6_AstNode* taskCallType = xl6CgenCloneTaskCallType(ctx, expr);
+            if ( taskCallType != NULL ) {
+                return taskCallType;
             }
         }
         if ( expr->childCount > 0 && expr->children[0] != NULL &&

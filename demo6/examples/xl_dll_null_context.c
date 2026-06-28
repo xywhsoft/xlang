@@ -188,15 +188,10 @@ static XL_Context* create_context_for_workdir(const char* root, const char* work
 {
     XL_ContextOptions options;
     XL_Context* ctx;
-    char path[1024];
 
     options = xlDefaultContextOptions();
     options.workDir = workDir;
     options.tempDir = "release\\tmp";
-    if ( !make_full_path(root, "release\\libtcc.dll", path, sizeof(path)) ) {
-        return NULL;
-    }
-    options.tccDllPath = path;
     {
         char tccLibPath[1024];
         if ( !make_toolchain_path(root, "XL6_TCC_ROOT", tccLibPath, sizeof(tccLibPath)) ) {
@@ -296,7 +291,6 @@ static int run_default_toolchain_snapshot_case(const char* originalCwd)
     options = xlDefaultContextOptions();
     options.workDir = workDir;
     options.tempDir = "release\\tmp";
-    options.tccDllPath = "release\\libtcc.dll";
 
     ctx = xlCreateContext(&options);
     if ( ctx == NULL ) {
@@ -340,7 +334,6 @@ static int run_dependency_path_snapshot_case(const char* originalCwd)
     options = xlDefaultContextOptions();
     options.workDir = workDir;
     options.tempDir = "release\\tmp";
-    options.tccDllPath = "release\\libtcc.dll";
 
     ctx = xlCreateContext(&options);
     if ( ctx == NULL ) {
@@ -435,7 +428,6 @@ int main(void)
     options = xlDefaultContextOptions();
     options.workDir = ".";
     options.tempDir = "release\\tmp";
-    options.tccDllPath = "release\\libtcc.dll";
     ctx = xlCreateContext(&options);
     if ( ctx == NULL ) {
         fprintf(stderr, "xlCreateContext default options failed\n");

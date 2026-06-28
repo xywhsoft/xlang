@@ -358,6 +358,8 @@ static void xl6CgenEmitXrtTypeDescRef(XL6_CgenContext* ctx, const XL6_AstNode* t
         xl6OutputPuts("xrtTypeTime()", ctx->out);
     } else if ( xl6CTextEquals(name, "point") ) {
         xl6OutputPuts("xrtTypePoint()", ctx->out);
+    } else if ( xl6CgenIsFutureLikeType(concreteType) ) {
+        xl6OutputPuts("xrtTypeFuture()", ctx->out);
     } else if ( xl6CgenIsFunctionType(concreteType) ) {
         xl6OutputPuts("xrtTypeFunction()", ctx->out);
     } else if ( xl6CTextEquals(name, "array") || xl6CTextEquals(name, "array<var>") ) {
