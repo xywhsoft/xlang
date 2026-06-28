@@ -301,7 +301,7 @@ static void xl6CgenClassAutoToValueProtocol(XL6_CgenContext* ctx, const XL6_AstN
         const XL6_AstNode* fieldType;
         char fieldPath[512];
 
-        if ( member == NULL || member->kind != XL6_AST_FIELD || member->childCount == 0 ) {
+        if ( !xl6CgenIsInstanceField(member) || member->childCount == 0 ) {
             continue;
         }
         fieldType = member->children[0];
@@ -367,7 +367,7 @@ static void xl6CgenClassAutoFromValueProtocol(XL6_CgenContext* ctx, const XL6_As
         const XL6_AstNode* fieldType;
         char fieldPath[512];
 
-        if ( member == NULL || member->kind != XL6_AST_FIELD || member->childCount == 0 ) {
+        if ( !xl6CgenIsInstanceField(member) || member->childCount == 0 ) {
             continue;
         }
         fieldType = member->children[0];

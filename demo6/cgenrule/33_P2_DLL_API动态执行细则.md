@@ -259,10 +259,10 @@
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | `xlSetWorkDir`、`xlSetTempDir`、`xlSetSaveTemps` |
-| 生成规则描述 | workDir/tempDir 必须非空，并在 setter 调用时按宿主当前目录固化为路径快照；空路径和分配失败都会写 lastError；saveTemps 只做布尔归一。每个 run/compile 公开入口会先按 context tempDir 快照创建或校验临时目录，再进入 workDir；DLL 内存流程不生成 CLI 调试 dump，因此 saveTemps 当前不额外制造落盘产物。 |
-| 生成器文件名和行号 | `demo6/src/api/xl_api.c:292`、`demo6/src/api/xl_api.c:1621`、`demo6/src/api/xl_api.c:1645`、`demo6/src/api/xl_api.c:1669` |
-| 对应生成的 C 代码 | 不生成 C；tempDir 决定 API 调用前的临时目录准备，workDir 影响后续 chdir。 |
-| 中间形态伪代码 | `ctx.tempDir = snapshot(cwd,path); ensureTempDir(); old = cwd; chdir(ctx.workDir); ctx.saveTemps = enabled!=0` |
+| 生成规则描述 | workDir/tempDir 必须非空，并在 setter 调用时按宿主当前目录固化为路径快照；空路径和分配失败都会写 lastError；saveTemps 只做布尔归一。run/compile 公开入口进入 workDir 后执行，主生成 C 通过动态 VFS 传给 TCC，不再为了普通执行预创建 tempDir；saveTemps 当前不额外制造落盘产物。 |
+| 生成器文件名和行号 | `demo6/src/api/xl_api.c:1851`、`demo6/src/api/xl_api.c:1875`、`demo6/src/api/xl_api.c:1899`、`demo6/src/api/xl_api.c:2043`、`demo6/src/api/xl_api.c:2099` |
+| 对应生成的 C 代码 | 不生成 C；tempDir 只保存为后续显式导出动态 VFS 或其他落盘产物的根目录配置，workDir 影响后续 chdir。 |
+| 中间形态伪代码 | `ctx.tempDir = snapshot(cwd,path); old = cwd; chdir(ctx.workDir); mountDynamicVfs("__xlvfs__/module.c", cText); ctx.saveTemps = enabled!=0` |
 | 实现同等功能手写的 C 代码 | 嵌入式语言上下文通常允许宿主指定工作目录。 |
 | 额外依赖的封装代码 | cwd scope。 |
 

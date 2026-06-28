@@ -21,11 +21,58 @@ void xl6CgenEmitStringRuntime(XL6_Output* out)
 {
     xl6OutputPuts("#include <stdbool.h>\n", out);
     xl6OutputPuts("#include <stddef.h>\n", out);
+    xl6OutputPuts("#include <stdarg.h>\n", out);
     xl6OutputPuts("#include <string.h>\n", out);
     xl6OutputPuts("void* xrtMalloc(size_t iSize);\n\n", out);
     xl6OutputPuts("int xrtStrComp(const char* s1, const char* s2, size_t iSize, bool bCase);\n", out);
     xl6OutputPuts("const char* xrtFindStr(const char* sText, size_t iSize, const char* sSubText, size_t iSubSize, bool bCase);\n", out);
     xl6OutputPuts("bool xrtStrApprox(const char* s1, size_t len1, const char* s2, size_t len2);\n\n", out);
+    xl6OutputPuts("#ifndef XL6_XBUFFER_TYPEDEF\n", out);
+    xl6OutputPuts("#define XL6_XBUFFER_TYPEDEF\n", out);
+    xl6OutputPuts("typedef struct xbuffer_struct { char* Buffer; unsigned int Length; unsigned int AllocLength; unsigned int AllocStep; } xbuffer_struct, *xbuffer;\n", out);
+    xl6OutputPuts("#endif\n", out);
+    xl6OutputPuts("void xrtBufferInit(xbuffer pBuf, unsigned int iStep);\n", out);
+    xl6OutputPuts("void xrtBufferUnit(xbuffer pBuf);\n", out);
+    xl6OutputPuts("bool xrtBufferAppend(xbuffer pBuf, void* pData, unsigned int iSize, unsigned int bStrMode);\n\n", out);
+
+    xl6OutputPuts("static void xl6_xrt_fstr_append(xbuffer buffer, const char* text)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    if ( buffer == 0 || text == 0 ) {\n", out);
+    xl6OutputPuts("        return;\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    xrtBufferAppend(buffer, (void*)text, 0, 1u);\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("static const char* xl6_xrt_fstr_take(xbuffer buffer)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    char* text;\n\n", out);
+    xl6OutputPuts("    if ( buffer == 0 ) {\n", out);
+    xl6OutputPuts("        return \"\";\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    if ( buffer->Buffer == 0 ) {\n", out);
+    xl6OutputPuts("        xrtBufferAppend(buffer, (void*)\"\", 0, 1u);\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    text = buffer->Buffer;\n", out);
+    xl6OutputPuts("    buffer->Buffer = 0;\n", out);
+    xl6OutputPuts("    buffer->Length = 0;\n", out);
+    xl6OutputPuts("    buffer->AllocLength = 0;\n", out);
+    xl6OutputPuts("    xrtBufferUnit(buffer);\n", out);
+    xl6OutputPuts("    return text != 0 ? text : \"\";\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("static const char* xl6_xrt_fstr_join(int count, ...)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    xbuffer_struct buffer;\n", out);
+    xl6OutputPuts("    va_list args;\n", out);
+    xl6OutputPuts("    int i;\n\n", out);
+    xl6OutputPuts("    xrtBufferInit(&buffer, 256u);\n", out);
+    xl6OutputPuts("    va_start(args, count);\n", out);
+    xl6OutputPuts("    for ( i = 0; i < count; ++i ) {\n", out);
+    xl6OutputPuts("        xl6_xrt_fstr_append(&buffer, va_arg(args, const char*));\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    va_end(args);\n", out);
+    xl6OutputPuts("    return xl6_xrt_fstr_take(&buffer);\n", out);
+    xl6OutputPuts("}\n\n", out);
 
     xl6OutputPuts("static const char* xl6_xrt_str_concat(const char* left, const char* right)\n", out);
     xl6OutputPuts("{\n", out);

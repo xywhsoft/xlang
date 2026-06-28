@@ -44,6 +44,9 @@ static void xl6CgenExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
     case XL6_AST_STRING:
         xl6CgenStringLiteralExpr(ctx, node);
         break;
+    case XL6_AST_INTERP_STRING:
+        xl6CgenFStringExpr(ctx, node);
+        break;
     case XL6_AST_TIME:
         xl6CgenTimeLiteralExpr(ctx, node);
         break;
@@ -75,7 +78,8 @@ static void xl6CgenExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
         xl6CgenAwaitExpr(ctx, node);
         break;
     case XL6_AST_MEMBER:
-        if ( !xl6CgenErrorMemberAccess(ctx, node) &&
+        if ( !xl6CgenStaticClassFieldExpr(ctx, node) &&
+             !xl6CgenErrorMemberAccess(ctx, node) &&
              !xl6CgenXValueMemberAccess(ctx, node) &&
              !xl6CgenUnionFieldAccess(ctx, node) ) {
             xl6CgenClassFieldAccess(ctx, node);
@@ -204,6 +208,8 @@ static void xl6CgenExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
             XL6_AstNode* knownFunc = NULL;
             if ( callee->kind == XL6_AST_MEMBER ) {
                 if ( xl6CgenPersistenceStdlibCall(ctx, node) ) {
+                    ;
+                } else if ( xl6CgenStaticClassMethodCall(ctx, node, callee) ) {
                     ;
                 } else if ( xl6CgenMemberFunctionInvoke(ctx, node, callee) ) {
                     ;

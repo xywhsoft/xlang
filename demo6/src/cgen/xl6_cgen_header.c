@@ -505,7 +505,7 @@ static void xl6CgenHeaderInlineUnionDependencyDecls(
     if ( body != NULL ) {
         for ( i = 0; i < body->childCount; ++i ) {
             const XL6_AstNode* field = body->children[i];
-            if ( field->kind != XL6_AST_FIELD || field->childCount == 0 ) {
+            if ( field->kind != XL6_AST_FIELD || (field->flags & XL6_AST_FLAG_STATIC) != 0 || field->childCount == 0 ) {
                 continue;
             }
             xl6CgenHeaderTypeDependencyDecl(
@@ -633,7 +633,7 @@ static void xl6CgenHeaderClassDecl(
                     emittedClassCount);
                 continue;
             }
-            if ( field->kind != XL6_AST_FIELD || field->childCount == 0 ) {
+            if ( field->kind != XL6_AST_FIELD || (field->flags & XL6_AST_FLAG_STATIC) != 0 || field->childCount == 0 ) {
                 continue;
             }
             xl6CgenHeaderTypeDependencyDecl(
@@ -664,7 +664,7 @@ static void xl6CgenHeaderClassDecl(
                 xl6CgenHeaderInlineUnionDecl(out, root, field);
                 continue;
             }
-            if ( field->kind != XL6_AST_FIELD || field->childCount == 0 ) {
+            if ( field->kind != XL6_AST_FIELD || (field->flags & XL6_AST_FLAG_STATIC) != 0 || field->childCount == 0 ) {
                 continue;
             }
             xl6OutputPuts("    ", out);

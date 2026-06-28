@@ -37,9 +37,9 @@
 - `operators`：运算符基础用例。
 - `overload`：可变参数重载用例。
 - `overloads`：重载基础用例。
+- `parse`：解析器负例和边界诊断用例。
 - `sem`：语义诊断负例。
 - `stdlib`：标准库函数与错误路径用例。
-- `template`：模板字符串暂缓语法占位用例。
 - `type`：type 值和类型别名用例。
 - `varargs`：可变参数基础用例。
 - `xapi`：XAPI doc、JSON 转义和类型字段用例。

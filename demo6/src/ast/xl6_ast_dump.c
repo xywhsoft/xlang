@@ -10,6 +10,33 @@ static void xl6DumpIndent(XL6_Output* out, int indent)
     }
 }
 
+static void xl6AstDumpFlagsText(XL6_Output* out, unsigned int flags)
+{
+    if ( flags == 0 ) {
+        return;
+    }
+    xl6OutputPuts(" flags=[", out);
+    if ( flags & XL6_AST_FLAG_PUBLIC ) {
+        xl6OutputPuts("public ", out);
+    }
+    if ( flags & XL6_AST_FLAG_PRIVATE ) {
+        xl6OutputPuts("private ", out);
+    }
+    if ( flags & XL6_AST_FLAG_STATIC ) {
+        xl6OutputPuts("static ", out);
+    }
+    if ( flags & XL6_AST_FLAG_OVERRIDE ) {
+        xl6OutputPuts("override ", out);
+    }
+    if ( flags & XL6_AST_FLAG_FINAL ) {
+        xl6OutputPuts("final ", out);
+    }
+    if ( flags & XL6_AST_FLAG_VIRTUAL ) {
+        xl6OutputPuts("virtual ", out);
+    }
+    xl6OutputPutc(']', out);
+}
+
 void xl6AstDumpTextFile(XL6_Output* out, const XL6_AstNode* node, int indent)
 {
     size_t i;
@@ -28,6 +55,7 @@ void xl6AstDumpTextFile(XL6_Output* out, const XL6_AstNode* node, int indent)
     if ( node->line > 0 ) {
         xl6OutputPrintf(out, " @%d:%d", node->line, node->column);
     }
+    xl6AstDumpFlagsText(out, node->flags);
     if ( node->doc != NULL && node->doc[0] != '\0' ) {
         xl6OutputPuts(" #doc", out);
     }
@@ -112,6 +140,11 @@ static void xl6AstDumpJsonNode(XL6_Output* out, const XL6_AstNode* node, int ind
         xl6OutputPrintf(out, "\"line\":%d,\n", node->line);
         xl6AstDumpJsonIndent(out, indent + 1);
         xl6OutputPrintf(out, "\"column\":%d", node->column);
+    }
+    if ( node->flags != 0 ) {
+        xl6OutputPuts(",\n", out);
+        xl6AstDumpJsonIndent(out, indent + 1);
+        xl6OutputPrintf(out, "\"flags\":%u", node->flags);
     }
     if ( node->doc != NULL && node->doc[0] != '\0' ) {
         xl6OutputPuts(",\n", out);

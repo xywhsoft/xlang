@@ -229,8 +229,14 @@ static int xl6CgenTryInExprStmt(XL6_CgenContext* ctx, const XL6_AstNode* node, c
         XL6_AstNode* protocolReceiverType = right != NULL && right->kind == XL6_AST_NAME ?
                                             xl6CgenCloneExprTypeForInference(ctx, right) :
                                             NULL;
-        XL6_AstNode* protocolReturnType = xl6CgenCloneClassProtocolReturnType(ctx, protocolReceiverType, "__contains__");
+        XL6_AstNode* protocolCall = xl6CgenProtocolTempCallNew(node);
+        XL6_AstNode* protocolReturnType;
+        if ( protocolCall != NULL && left != NULL ) {
+            xl6CgenProtocolTempCallAddArg(protocolCall, left);
+        }
+        protocolReturnType = xl6CgenCloneClassProtocolReturnTypeForCall(ctx, protocolReceiverType, "__contains__", protocolCall);
         int hasProtocol = protocolReturnType != NULL;
+        xl6CgenProtocolTempCallFree(protocolCall);
         xl6AstFree(protocolReceiverType);
         xl6AstFree(protocolReturnType);
         if ( hasProtocol ) {

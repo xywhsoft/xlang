@@ -1,0 +1,22 @@
+extern "expect_i64" func expect(int actual, int expected)
+extern "expect_str" func expectStr(string actual, string expected)
+
+string name = "xlang"
+int version = 6
+bool ok = true
+var dynamic = 7
+string basic = f"hello {name} {version} {ok}"
+string escaped = f"{{name}} = {name}"
+string rawPath = rf"c:\tmp\{name}.txt"
+string exprText = f"1 + 2 = {1 + 2}"
+string varText = f"dynamic={dynamic}"
+string multi = f"""line {version}
+{name}"""
+
+expectStr(basic, "hello xlang 6 true")
+expectStr(escaped, "{name} = xlang")
+expectStr(rawPath, "c:\\tmp\\xlang.txt")
+expectStr(exprText, "1 + 2 = 3")
+expectStr(varText, "dynamic=7")
+expectStr(multi, "line 6\nxlang")
+expect(version, 6)

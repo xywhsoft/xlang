@@ -42,6 +42,8 @@ TCC_VFS_API int tcc_vfs_read(int fd, void *buf, size_t count);
 TCC_VFS_API long tcc_vfs_lseek(int fd, long offset, int whence);
 TCC_VFS_API FILE *tcc_vfs_fopen(const char *path, const char *mode);
 TCC_VFS_API int tcc_vfs_fclose(FILE *file);
+TCC_VFS_API int tcc_vfs_mount_memory(const char *path, const void *data, size_t size);
+TCC_VFS_API void tcc_vfs_clear_dynamic(void);
 
 #ifdef __cplusplus
 }

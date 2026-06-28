@@ -961,6 +961,11 @@ if errorlevel 1 exit /b 1
 release\xl.exe check test\cases\cgen_string_literals.xl
 if errorlevel 1 exit /b 1
 
+release\xl.exe parse test\cases\cgen_fstring.xl > release\tmp\cgen_fstring.ast.txt
+if errorlevel 1 exit /b 1
+release\xl.exe check test\cases\cgen_fstring.xl
+if errorlevel 1 exit /b 1
+
 release\xl.exe parse test\cases\cgen_time_literals.xl > release\tmp\cgen_time_literals.ast.txt
 if errorlevel 1 exit /b 1
 release\xl.exe check test\cases\cgen_time_literals.xl
@@ -1163,6 +1168,59 @@ release\xl.exe check examples\class_point.xl
 if errorlevel 1 exit /b 1
 release\xl.exe check examples\object_protocol.xl
 if errorlevel 1 exit /b 1
+release\xl.exe check examples\oop_protocol_overload.xl
+if errorlevel 1 exit /b 1
+release\xl.exe run examples\oop_protocol_overload.xl
+if errorlevel 1 exit /b 1
+release\xl.exe check examples\oop_property_get_let.xl
+if errorlevel 1 exit /b 1
+release\xl.exe run examples\oop_property_get_let.xl
+if errorlevel 1 exit /b 1
+release\xl.exe check examples\oop_static_access.xl
+if errorlevel 1 exit /b 1
+release\xl.exe run examples\oop_static_access.xl
+if errorlevel 1 exit /b 1
+release\xl.exe check examples\oop_virtual_dispatch.xl
+if errorlevel 1 exit /b 1
+release\xl.exe run examples\oop_virtual_dispatch.xl
+if errorlevel 1 exit /b 1
+release\xl.exe cgen test\cases\cgen_class_static_access.xl --emit release\tmp\cgen_class_static_access.c
+if errorlevel 1 exit /b 1
+findstr /C:"static long long xl_class_Counter____static__total = 2LL;" release\tmp\cgen_class_static_access.c >nul
+if errorlevel 1 (
+    echo cgen_class_static_access.c missing static class field storage.
+    exit /b 1
+)
+findstr /C:"long long xl_class_Counter__add(long long value);" release\tmp\cgen_class_static_access.c >nul
+if errorlevel 1 (
+    echo cgen_class_static_access.c missing static method prototype without self.
+    exit /b 1
+)
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_class_static_access.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_class_static_access.exe
+if errorlevel 1 exit /b 1
+release\tmp\cgen_class_static_access.exe
+if errorlevel 1 exit /b 1
+release\xl.exe cgen test\cases\cgen_class_virtual.xl --emit release\tmp\cgen_class_virtual.c
+if errorlevel 1 exit /b 1
+findstr /C:"struct XL6_VTable_Entity" release\tmp\cgen_class_virtual.c >nul
+if errorlevel 1 (
+    echo cgen_class_virtual.c missing class vtable type.
+    exit /b 1
+)
+findstr /C:"xl6_vtable_Entity__Player" release\tmp\cgen_class_virtual.c >nul
+if errorlevel 1 (
+    echo cgen_class_virtual.c missing derived vtable object.
+    exit /b 1
+)
+findstr /C:"player.base.__xl6_vt_Entity = &xl6_vtable_Entity__Player;" release\tmp\cgen_class_virtual.c >nul
+if errorlevel 1 (
+    echo cgen_class_virtual.c missing derived vtable initialization.
+    exit /b 1
+)
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_class_virtual.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_class_virtual.exe
+if errorlevel 1 exit /b 1
+release\tmp\cgen_class_virtual.exe
+if errorlevel 1 exit /b 1
 release\xl.exe check examples\copy_clone.xl
 if errorlevel 1 exit /b 1
 release\xl.exe run examples\class_persistence.xl
@@ -1187,6 +1245,26 @@ if not errorlevel 1 (
 findstr /C:"__item__" release\tmp\sem_protocol_item_arity.err.txt >nul
 if errorlevel 1 (
     echo sem_protocol_item_arity.err.txt missing protocol arity diagnostic.
+    exit /b 1
+)
+release\xl.exe check test\cases\sem_index_multi_container.xl > release\tmp\sem_index_multi_container.err.txt 2>&1
+if not errorlevel 1 (
+    echo sem_index_multi_container.xl should fail.
+    exit /b 1
+)
+findstr /C:"exactly one key" release\tmp\sem_index_multi_container.err.txt >nul
+if errorlevel 1 (
+    echo sem_index_multi_container.err.txt missing multi-index container diagnostic.
+    exit /b 1
+)
+release\xl.exe check test\cases\sem_class_property_readonly.xl > release\tmp\sem_class_property_readonly.err.txt 2>&1
+if not errorlevel 1 (
+    echo sem_class_property_readonly.xl should fail.
+    exit /b 1
+)
+findstr /C:"class property assignment requires matching let" release\tmp\sem_class_property_readonly.err.txt >nul
+if errorlevel 1 (
+    echo sem_class_property_readonly.err.txt missing readonly property diagnostic.
     exit /b 1
 )
 release\xl.exe check test\cases\sem_protocol_field_key_type.xl > release\tmp\sem_protocol_field_key_type.err.txt 2>&1
@@ -2914,6 +2992,38 @@ if errorlevel 1 (
 "%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_string_literals.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_string_literals.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_string_literals.exe
+if errorlevel 1 exit /b 1
+
+release\xl.exe cgen test\cases\cgen_fstring.xl --emit release\tmp\cgen_fstring.c
+if errorlevel 1 exit /b 1
+findstr /C:"xl6_xrt_fstr_join" release\tmp\cgen_fstring.c >nul
+if errorlevel 1 (
+    echo cgen_fstring.c missing f-string join helper.
+    exit /b 1
+)
+findstr /C:"xrtBufferInit(&buffer, 256u);" release\tmp\cgen_fstring.c >nul
+if errorlevel 1 (
+    echo cgen_fstring.c missing xbuffer initialization.
+    exit /b 1
+)
+findstr /C:"({ xbuffer_struct __xl6_fstr_" release\tmp\cgen_fstring.c >nul
+if not errorlevel 1 (
+    echo cgen_fstring.c should not emit GNU statement expressions.
+    exit /b 1
+)
+findstr /C:"xl6_xrt_i64_to_string" release\tmp\cgen_fstring.c >nul
+if errorlevel 1 (
+    echo cgen_fstring.c missing int interpolation conversion.
+    exit /b 1
+)
+findstr /C:"xl6_xrt_value_to_string(dynamic)" release\tmp\cgen_fstring.c >nul
+if errorlevel 1 (
+    echo cgen_fstring.c missing var interpolation conversion.
+    exit /b 1
+)
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_fstring.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_fstring.exe
+if errorlevel 1 exit /b 1
+release\tmp\cgen_fstring.exe
 if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_time_literals.xl --emit release\tmp\cgen_time_literals.c
@@ -6160,6 +6270,60 @@ if errorlevel 1 exit /b 1
 release\tmp\cgen_protocol_ops.exe
 if errorlevel 1 exit /b 1
 
+release\xl.exe cgen test\cases\cgen_protocol_overload_index.xl --emit release\tmp\cgen_protocol_overload_index.c
+if errorlevel 1 exit /b 1
+findstr /C:"xl_class_Grid______item______int__int" release\tmp\cgen_protocol_overload_index.c >nul
+if errorlevel 1 (
+    echo cgen_protocol_overload_index.c missing two-dimensional item overload symbol.
+    exit /b 1
+)
+findstr /C:"xl_class_Grid______setItem______int__int__int" release\tmp\cgen_protocol_overload_index.c >nul
+if errorlevel 1 (
+    echo cgen_protocol_overload_index.c missing two-dimensional setItem overload symbol.
+    exit /b 1
+)
+findstr /C:"xl_class_Grid______call______string" release\tmp\cgen_protocol_overload_index.c >nul
+if errorlevel 1 (
+    echo cgen_protocol_overload_index.c missing string call overload symbol.
+    exit /b 1
+)
+findstr /C:"xl_class_Grid______contains______string" release\tmp\cgen_protocol_overload_index.c >nul
+if errorlevel 1 (
+    echo cgen_protocol_overload_index.c missing string contains overload symbol.
+    exit /b 1
+)
+findstr /C:"xl_class_Grid______add______string" release\tmp\cgen_protocol_overload_index.c >nul
+if errorlevel 1 (
+    echo cgen_protocol_overload_index.c missing string add overload symbol.
+    exit /b 1
+)
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_protocol_overload_index.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_protocol_overload_index.exe
+if errorlevel 1 exit /b 1
+release\tmp\cgen_protocol_overload_index.exe
+if errorlevel 1 exit /b 1
+
+release\xl.exe cgen test\cases\cgen_class_property_get_let.xl --emit release\tmp\cgen_class_property_get_let.c
+if errorlevel 1 exit /b 1
+findstr /C:"xl_class_Player______get______hp__void" release\tmp\cgen_class_property_get_let.c >nul
+if errorlevel 1 (
+    echo cgen_class_property_get_let.c missing zero-dimensional property getter symbol.
+    exit /b 1
+)
+findstr /C:"xl_class_Player______let______hp__int__int__int" release\tmp\cgen_class_property_get_let.c >nul
+if errorlevel 1 (
+    echo cgen_class_property_get_let.c missing multi-dimensional property setter symbol.
+    exit /b 1
+)
+findstr /C:"xl_class_Player______get______hp__int__int(&player, 2LL, 4LL)" release\tmp\cgen_class_property_get_let.c >nul
+if errorlevel 1 (
+    echo cgen_class_property_get_let.c missing multi-dimensional property getter call.
+    exit /b 1
+)
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_class_property_get_let.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_class_property_get_let.exe
+if errorlevel 1 exit /b 1
+release\tmp\cgen_class_property_get_let.exe
+if errorlevel 1 exit /b 1
+
 release\xl.exe cgen test\cases\cgen_protocol_complex_receiver.xl --emit release\tmp\cgen_protocol_complex_receiver.c
 if errorlevel 1 exit /b 1
 findstr /C:"xl_protocol_tmp_Counter______add____" release\tmp\cgen_protocol_complex_receiver.c >nul
@@ -8610,6 +8774,36 @@ if not errorlevel 1 (
     exit /b 1
 )
 
+release\xl.exe check test\cases\sem_class_private_access.xl >nul 2> release\tmp\sem_class_private_access.err.txt
+if not errorlevel 1 (
+    echo sem_class_private_access.xl should fail.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_class_static_self.xl >nul 2> release\tmp\sem_class_static_self.err.txt
+if not errorlevel 1 (
+    echo sem_class_static_self.xl should fail.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_class_override_missing.xl >nul 2> release\tmp\sem_class_override_missing.err.txt
+if not errorlevel 1 (
+    echo sem_class_override_missing.xl should fail.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_class_override_nonvirtual.xl >nul 2> release\tmp\sem_class_override_nonvirtual.err.txt
+if not errorlevel 1 (
+    echo sem_class_override_nonvirtual.xl should fail.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_class_override_final.xl >nul 2> release\tmp\sem_class_override_final.err.txt
+if not errorlevel 1 (
+    echo sem_class_override_final.xl should fail.
+    exit /b 1
+)
+
 release\xl.exe check test\cases\sem_self_assign.xl >nul 2> release\tmp\sem_self_assign.err.txt
 if not errorlevel 1 (
     echo sem_self_assign.xl should fail.
@@ -10047,12 +10241,28 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe parse test\cases\template_todo.xl > release\tmp\template_todo.ast.txt 2> release\tmp\template_todo.err.txt
+release\xl.exe parse test\cases\parse_fstring_bad_brace.xl > release\tmp\parse_fstring_bad_brace.ast.txt 2> release\tmp\parse_fstring_bad_brace.err.txt
 if not errorlevel 1 (
-    echo template_todo.xl should fail.
+    echo parse_fstring_bad_brace.xl should fail.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$bytes=[System.IO.File]::ReadAllBytes('release\tmp\template_todo.err.txt'); $enc=New-Object System.Text.UTF8Encoding($false,$true); $text=$enc.GetString($bytes); $expected=([char]0x6A21)+([char]0x677F)+([char]0x5B57)+([char]0x7B26)+([char]0x4E32)+([char]0x7B2C)+([char]0x4E00)+([char]0x9636)+([char]0x6BB5)+([char]0x6682)+([char]0x672A)+([char]0x5B9E)+([char]0x73B0); if($text.IndexOf($expected) -lt 0){ Write-Host 'template_todo.err.txt missing template-string diagnostic.'; exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$bytes=[System.IO.File]::ReadAllBytes('release\tmp\parse_fstring_bad_brace.err.txt'); $enc=New-Object System.Text.UTF8Encoding($false,$true); $text=$enc.GetString($bytes); $expected=([char]0x5355)+([char]0x72EC)+([char]0x7684)+' }'; if($text.IndexOf($expected) -lt 0){ Write-Host 'parse_fstring_bad_brace.err.txt missing bad brace diagnostic.'; exit 1 }"
+if errorlevel 1 exit /b 1
+
+release\xl.exe parse test\cases\parse_fstring_empty_expr.xl > release\tmp\parse_fstring_empty_expr.ast.txt 2> release\tmp\parse_fstring_empty_expr.err.txt
+if not errorlevel 1 (
+    echo parse_fstring_empty_expr.xl should fail.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$bytes=[System.IO.File]::ReadAllBytes('release\tmp\parse_fstring_empty_expr.err.txt'); $enc=New-Object System.Text.UTF8Encoding($false,$true); $text=$enc.GetString($bytes); $expected=([char]0x4E0D)+([char]0x80FD)+([char]0x4E3A)+([char]0x7A7A); if($text.IndexOf($expected) -lt 0){ Write-Host 'parse_fstring_empty_expr.err.txt missing empty expr diagnostic.'; exit 1 }"
+if errorlevel 1 exit /b 1
+
+release\xl.exe parse test\cases\parse_fstring_unclosed.xl > release\tmp\parse_fstring_unclosed.ast.txt 2> release\tmp\parse_fstring_unclosed.err.txt
+if not errorlevel 1 (
+    echo parse_fstring_unclosed.xl should fail.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$bytes=[System.IO.File]::ReadAllBytes('release\tmp\parse_fstring_unclosed.err.txt'); $enc=New-Object System.Text.UTF8Encoding($false,$true); $text=$enc.GetString($bytes); $expected=([char]0x672A)+([char]0x95ED)+([char]0x5408)+([char]0x7684)+' f-string '+([char]0x63D2)+([char]0x503C)+([char]0x8868)+([char]0x8FBE)+([char]0x5F0F); if($text.IndexOf($expected) -lt 0){ Write-Host 'parse_fstring_unclosed.err.txt missing unclosed expr diagnostic.'; exit 1 }"
 if errorlevel 1 exit /b 1
 
 release\xl.exe check test\cases\stdlib_json.xl

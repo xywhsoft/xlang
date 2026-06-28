@@ -281,12 +281,13 @@ static XL6_AstNode* xl6CgenResolveCallFunc(XL6_CgenContext* ctx, const XL6_AstNo
     return NULL;
 }
 
-static const XL6_AstNode* xl6CgenResolveCallableInBody(
+static const XL6_AstNode* xl6CgenResolveCallableInBodyMode(
     XL6_CgenContext* ctx,
     const XL6_AstNode* body,
     const XL6_AstNode* call,
     XL6_AstKind kind,
     const char* name,
+    int requiredStatic,
     int reportNoMatch)
 {
     const XL6_AstNode* fixedMatch;
@@ -319,6 +320,9 @@ static const XL6_AstNode* xl6CgenResolveCallableInBody(
         int hasVararg;
 
         if ( member == NULL || member->kind != kind || !xl6CTextEquals(xl6CgenCallableName(member), name) ) {
+            continue;
+        }
+        if ( requiredStatic >= 0 && xl6CgenIsStaticMember(member) != requiredStatic ) {
             continue;
         }
         candidateCount += 1;
@@ -370,16 +374,28 @@ static const XL6_AstNode* xl6CgenResolveCallableInBody(
     return NULL;
 }
 
+static const XL6_AstNode* xl6CgenResolveCallableInBody(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* body,
+    const XL6_AstNode* call,
+    XL6_AstKind kind,
+    const char* name,
+    int reportNoMatch)
+{
+    return xl6CgenResolveCallableInBodyMode(ctx, body, call, kind, name, -1, reportNoMatch);
+}
+
 static const XL6_AstNode* xl6CgenResolveClassCreate(XL6_CgenContext* ctx, const XL6_AstNode* classNode, const XL6_AstNode* call)
 {
     return xl6CgenResolveCallableInBody(ctx, xl6CgenClassBody(classNode), call, XL6_AST_CREATE, "create", 1);
 }
 
-static const XL6_AstNode* xl6CgenResolveClassFunc(
+static const XL6_AstNode* xl6CgenResolveClassFuncMode(
     XL6_CgenContext* ctx,
     const XL6_AstNode* classNode,
     const XL6_AstNode* call,
     const char* name,
+    int requiredStatic,
     const XL6_AstNode** outOwnerClass)
 {
     const XL6_AstNode* method;
@@ -392,7 +408,7 @@ static const XL6_AstNode* xl6CgenResolveClassFunc(
         return NULL;
     }
 
-    method = xl6CgenResolveCallableInBody(ctx, xl6CgenClassBody(classNode), call, XL6_AST_FUNC, name, 0);
+    method = xl6CgenResolveCallableInBodyMode(ctx, xl6CgenClassBody(classNode), call, XL6_AST_FUNC, name, requiredStatic, 0);
     if ( method != NULL ) {
         if ( outOwnerClass != NULL ) {
             *outOwnerClass = classNode;
@@ -404,7 +420,27 @@ static const XL6_AstNode* xl6CgenResolveClassFunc(
     if ( baseClass == NULL ) {
         return NULL;
     }
-    return xl6CgenResolveClassFunc(ctx, baseClass, call, name, outOwnerClass);
+    return xl6CgenResolveClassFuncMode(ctx, baseClass, call, name, requiredStatic, outOwnerClass);
+}
+
+static const XL6_AstNode* xl6CgenResolveClassFunc(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* classNode,
+    const XL6_AstNode* call,
+    const char* name,
+    const XL6_AstNode** outOwnerClass)
+{
+    return xl6CgenResolveClassFuncMode(ctx, classNode, call, name, 0, outOwnerClass);
+}
+
+static const XL6_AstNode* xl6CgenResolveStaticClassFunc(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* classNode,
+    const XL6_AstNode* call,
+    const char* name,
+    const XL6_AstNode** outOwnerClass)
+{
+    return xl6CgenResolveClassFuncMode(ctx, classNode, call, name, 1, outOwnerClass);
 }
 
 static const XL6_AstNode* xl6CgenResolveCustomFunc(

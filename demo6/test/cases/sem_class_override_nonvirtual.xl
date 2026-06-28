@@ -1,0 +1,11 @@
+class Base
+    func value() as int
+        return 1
+    end
+end
+
+class Child extends Base
+    override func value() as int
+        return 2
+    end
+end

@@ -2,8 +2,9 @@
  * Optional builtin resource VFS for TCC.
  *
  * Policy:
- *   1. Try the external filesystem first.
- *   2. If a read-only open fails, try the embedded resource table.
+ *   1. Try the dynamic per-compile memory VFS first.
+ *   2. Try the external filesystem.
+ *   3. If a read-only open still fails, try the embedded resource table.
  *
  * The embedded table uses virtual names such as "include/stdio.h" and
  * "lib/libtcc1.a". Runtime lookup only accepts those normalized virtual names.
@@ -48,7 +49,16 @@ typedef struct TCCVfsOpenFile {
     int used;
 } TCCVfsOpenFile;
 
+typedef struct TCCVfsDynamicResource {
+    char *name;
+    unsigned char *data;
+    size_t size;
+} TCCVfsDynamicResource;
+
 static TCCVfsOpenFile tcc_vfs_open_files[TCC_VFS_MAX_OPEN];
+static TCCVfsDynamicResource *tcc_vfs_dynamic_resources;
+static unsigned int tcc_vfs_dynamic_count;
+static unsigned int tcc_vfs_dynamic_capacity;
 
 static int tcc_vfs_is_virtual_fd(int fd)
 {
@@ -150,21 +160,142 @@ static const TCCBuiltinResource *tcc_vfs_lookup_resource(const char *path)
     return tcc_vfs_lookup_exact(norm);
 }
 
+static char *tcc_vfs_copy_key(const char *key)
+{
+    size_t len;
+    char *copy;
+
+    if (!key)
+        return NULL;
+    len = strlen(key);
+    copy = (char *)malloc(len + 1);
+    if (!copy)
+        return NULL;
+    memcpy(copy, key, len + 1);
+    return copy;
+}
+
+static int tcc_vfs_find_dynamic_key(const char *key)
+{
+    unsigned int i;
+
+    if (!key || key[0] == '\0')
+        return -1;
+    for (i = 0; i < tcc_vfs_dynamic_count; ++i) {
+        if (tcc_vfs_dynamic_resources[i].name &&
+            strcmp(tcc_vfs_dynamic_resources[i].name, key) == 0)
+            return (int)i;
+    }
+    return -1;
+}
+
+static const TCCVfsDynamicResource *tcc_vfs_lookup_dynamic(const char *path)
+{
+    char norm[TCC_VFS_KEY_MAX];
+    int index;
+
+    tcc_vfs_normalize_key(path, norm, sizeof norm);
+    index = tcc_vfs_find_dynamic_key(norm);
+    return index >= 0 ? &tcc_vfs_dynamic_resources[index] : NULL;
+}
+
+static void tcc_vfs_free_dynamic_resource(TCCVfsDynamicResource *res)
+{
+    if (!res)
+        return;
+    free(res->name);
+    free(res->data);
+    memset(res, 0, sizeof *res);
+}
+
+TCC_VFS_API void tcc_vfs_clear_dynamic(void)
+{
+    unsigned int i;
+
+    for (i = 0; i < tcc_vfs_dynamic_count; ++i)
+        tcc_vfs_free_dynamic_resource(&tcc_vfs_dynamic_resources[i]);
+    free(tcc_vfs_dynamic_resources);
+    tcc_vfs_dynamic_resources = NULL;
+    tcc_vfs_dynamic_count = 0;
+    tcc_vfs_dynamic_capacity = 0;
+}
+
+TCC_VFS_API int tcc_vfs_mount_memory(const char *path, const void *data, size_t size)
+{
+    char norm[TCC_VFS_KEY_MAX];
+    char *name_copy;
+    unsigned char *data_copy;
+    TCCVfsDynamicResource *new_items;
+    unsigned int new_capacity;
+    int index;
+
+    tcc_vfs_normalize_key(path, norm, sizeof norm);
+    if (norm[0] == '\0' || (size > 0 && !data)) {
+        errno = EINVAL;
+        return 0;
+    }
+
+    name_copy = tcc_vfs_copy_key(norm);
+    if (!name_copy) {
+        errno = ENOMEM;
+        return 0;
+    }
+
+    data_copy = NULL;
+    if (size > 0) {
+        data_copy = (unsigned char *)malloc(size);
+        if (!data_copy) {
+            free(name_copy);
+            errno = ENOMEM;
+            return 0;
+        }
+        memcpy(data_copy, data, size);
+    }
+
+    index = tcc_vfs_find_dynamic_key(norm);
+    if (index >= 0) {
+        TCCVfsDynamicResource *res = &tcc_vfs_dynamic_resources[index];
+        free(res->name);
+        free(res->data);
+        res->name = name_copy;
+        res->data = data_copy;
+        res->size = size;
+        return 1;
+    }
+
+    if (tcc_vfs_dynamic_count == tcc_vfs_dynamic_capacity) {
+        new_capacity = tcc_vfs_dynamic_capacity == 0 ? 8u : tcc_vfs_dynamic_capacity * 2u;
+        new_items = (TCCVfsDynamicResource *)realloc(
+            tcc_vfs_dynamic_resources,
+            new_capacity * sizeof(TCCVfsDynamicResource));
+        if (!new_items) {
+            free(name_copy);
+            free(data_copy);
+            errno = ENOMEM;
+            return 0;
+        }
+        memset(new_items + tcc_vfs_dynamic_capacity, 0,
+               (new_capacity - tcc_vfs_dynamic_capacity) * sizeof(TCCVfsDynamicResource));
+        tcc_vfs_dynamic_resources = new_items;
+        tcc_vfs_dynamic_capacity = new_capacity;
+    }
+
+    tcc_vfs_dynamic_resources[tcc_vfs_dynamic_count].name = name_copy;
+    tcc_vfs_dynamic_resources[tcc_vfs_dynamic_count].data = data_copy;
+    tcc_vfs_dynamic_resources[tcc_vfs_dynamic_count].size = size;
+    tcc_vfs_dynamic_count += 1;
+    return 1;
+}
+
 static int tcc_vfs_materialize_resource(
     const TCCBuiltinResource *res,
     const unsigned char **out_data,
     unsigned char **out_owned_data,
     size_t *out_size);
 
-static int tcc_vfs_alloc_fd(const TCCBuiltinResource *res)
+static int tcc_vfs_alloc_materialized_fd(const unsigned char *data, unsigned char *owned_data, size_t size)
 {
     int i;
-    const unsigned char *data;
-    unsigned char *owned_data;
-    size_t size;
-
-    if (!tcc_vfs_materialize_resource(res, &data, &owned_data, &size))
-        return -1;
 
     for (i = 0; i < TCC_VFS_MAX_OPEN; ++i) {
         TCCVfsOpenFile *vf = &tcc_vfs_open_files[i];
@@ -177,10 +308,48 @@ static int tcc_vfs_alloc_fd(const TCCBuiltinResource *res)
             return TCC_VFS_FD_BASE + i;
         }
     }
-    if (owned_data)
-        free(owned_data);
+
+    free(owned_data);
     errno = EMFILE;
     return -1;
+}
+
+static int tcc_vfs_alloc_bytes_fd(const unsigned char *data, size_t size, int copy)
+{
+    unsigned char *owned_data;
+
+    owned_data = NULL;
+    if (copy && size > 0) {
+        owned_data = (unsigned char *)malloc(size);
+        if (!owned_data) {
+            errno = ENOMEM;
+            return -1;
+        }
+        memcpy(owned_data, data, size);
+        data = owned_data;
+    }
+    return tcc_vfs_alloc_materialized_fd(data, owned_data, size);
+}
+
+static int tcc_vfs_alloc_dynamic_fd(const TCCVfsDynamicResource *res)
+{
+    if (!res) {
+        errno = ENOENT;
+        return -1;
+    }
+    return tcc_vfs_alloc_bytes_fd(res->data, res->size, 1);
+}
+
+static int tcc_vfs_alloc_fd(const TCCBuiltinResource *res)
+{
+    const unsigned char *data;
+    unsigned char *owned_data;
+    size_t size;
+
+    if (!tcc_vfs_materialize_resource(res, &data, &owned_data, &size))
+        return -1;
+
+    return tcc_vfs_alloc_materialized_fd(data, owned_data, size);
 }
 
 static int tcc_vfs_is_readonly_open(int flags)
@@ -313,15 +482,9 @@ static int tcc_vfs_is_readonly_fopen(const char *mode)
     return mode && mode[0] == 'r' && strchr(mode, '+') == NULL;
 }
 
-static FILE *tcc_vfs_fopen_resource(const TCCBuiltinResource *res)
+static FILE *tcc_vfs_fopen_bytes(const unsigned char *data, size_t size, unsigned char *owned_data)
 {
     FILE *file;
-    const unsigned char *data;
-    unsigned char *owned_data;
-    size_t size;
-
-    if (!tcc_vfs_materialize_resource(res, &data, &owned_data, &size))
-        return NULL;
 
     file = tmpfile();
     if (!file) {
@@ -345,16 +508,54 @@ static FILE *tcc_vfs_fopen_resource(const TCCBuiltinResource *res)
     return file;
 }
 
+static FILE *tcc_vfs_fopen_dynamic(const TCCVfsDynamicResource *res)
+{
+    unsigned char *data;
+
+    if (!res) {
+        errno = ENOENT;
+        return NULL;
+    }
+    data = NULL;
+    if (res->size > 0) {
+        data = (unsigned char *)malloc(res->size);
+        if (!data) {
+            errno = ENOMEM;
+            return NULL;
+        }
+        memcpy(data, res->data, res->size);
+    }
+    return tcc_vfs_fopen_bytes(data, res->size, data);
+}
+
+static FILE *tcc_vfs_fopen_resource(const TCCBuiltinResource *res)
+{
+    const unsigned char *data;
+    unsigned char *owned_data;
+    size_t size;
+
+    if (!tcc_vfs_materialize_resource(res, &data, &owned_data, &size))
+        return NULL;
+    return tcc_vfs_fopen_bytes(data, size, owned_data);
+}
+
 TCC_VFS_API int tcc_vfs_open(const char *path, int flags, ...)
 {
     int fd, mode = 0;
     const TCCBuiltinResource *res;
+    const TCCVfsDynamicResource *dynamic_res;
     va_list ap;
 
     if (flags & O_CREAT) {
         va_start(ap, flags);
         mode = va_arg(ap, int);
         va_end(ap);
+    }
+
+    if (tcc_vfs_is_readonly_open(flags)) {
+        dynamic_res = tcc_vfs_lookup_dynamic(path);
+        if (dynamic_res)
+            return tcc_vfs_alloc_dynamic_fd(dynamic_res);
     }
 
     fd = tcc_vfs_real_open(path, flags, mode);
@@ -447,6 +648,13 @@ TCC_VFS_API FILE *tcc_vfs_fopen(const char *path, const char *mode)
 {
     FILE *file;
     const TCCBuiltinResource *res;
+    const TCCVfsDynamicResource *dynamic_res;
+
+    if (tcc_vfs_is_readonly_fopen(mode)) {
+        dynamic_res = tcc_vfs_lookup_dynamic(path);
+        if (dynamic_res)
+            return tcc_vfs_fopen_dynamic(dynamic_res);
+    }
 
     file = tcc_vfs_real_fopen(path, mode);
     if (file || !tcc_vfs_is_readonly_fopen(mode))

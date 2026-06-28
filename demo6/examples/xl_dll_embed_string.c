@@ -1,7 +1,15 @@
 #include "include/xl.h"
 
+#include <errno.h>
 #include <stdio.h>
 #include <string.h>
+
+#ifdef _WIN32
+#include <direct.h>
+#else
+#include <sys/stat.h>
+#include <unistd.h>
+#endif
 
 static long long host_add(long long a, long long b)
 {
@@ -19,6 +27,39 @@ static int write_text_file(const char* path, const char* text)
         return 0;
     }
     return fclose(fp) == 0;
+}
+
+static int make_dir_if_missing(const char* path)
+{
+#ifdef _WIN32
+    return _mkdir(path) == 0 || errno == EEXIST;
+#else
+    return mkdir(path, 0777) == 0 || errno == EEXIST;
+#endif
+}
+
+static void cleanup_dynamic_vfs_probe(void)
+{
+#ifdef _WIN32
+    remove("__xlvfs__\\module.c");
+    _rmdir("__xlvfs__");
+#else
+    remove("__xlvfs__/module.c");
+    rmdir("__xlvfs__");
+#endif
+}
+
+static int prepare_dynamic_vfs_probe(void)
+{
+    cleanup_dynamic_vfs_probe();
+    if ( !make_dir_if_missing("__xlvfs__") ) {
+        return 0;
+    }
+#ifdef _WIN32
+    return write_text_file("__xlvfs__\\module.c", "#error external dynamic VFS probe must be shadowed\n");
+#else
+    return write_text_file("__xlvfs__/module.c", "#error external dynamic VFS probe must be shadowed\n");
+#endif
 }
 
 static int run_script_step(XL_Context* ctx, const char* name, const char* source)
@@ -98,10 +139,15 @@ int main(void)
         return 1;
     }
 
+    if ( !prepare_dynamic_vfs_probe() ) {
+        fprintf(stderr, "cannot prepare dynamic VFS priority probe\n");
+        xlDestroyContext(ctx);
+        return 1;
+    }
+
     hostScript =
         "extern \"host_add\" func hostAdd(int a, int b) as int\n"
         "\n"
-        "assert dir.exists(\"release/tmp/dll_api_temp\"), \"temp dir was not prepared\"\n"
         "int value = hostAdd(20, 22)\n"
         "assert value == 42, \"host function call failed\"\n";
 
@@ -155,9 +201,11 @@ int main(void)
          !run_script_step(ctx, "link script", linkScript) ||
          !run_script_step(ctx, "loadlib script", loadlibScript) ||
          !run_script_step(ctx, "stdlib script", stdlibScript) ) {
+        cleanup_dynamic_vfs_probe();
         xlDestroyContext(ctx);
         return 1;
     }
+    cleanup_dynamic_vfs_probe();
     printf("xl.dll run string ok\n");
 
     ok = xlCompileScriptStringToExe(ctx, buildScript, "release\\tmp\\xl_dll_embed_string_script.exe");

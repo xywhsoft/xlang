@@ -1,0 +1,10 @@
+class Player
+    int base = 0
+
+    get hp() as int
+        return self.base
+    end
+end
+
+auto player = Player()
+player.hp = 1

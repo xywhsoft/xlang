@@ -11,6 +11,14 @@
 #include <stdlib.h>
 #include <string.h>
 
+#if defined(CONFIG_TCC_STATIC) && !defined(XL_STATIC_TCC)
+#define XL_STATIC_TCC 1
+#endif
+
+#ifdef XL_STATIC_TCC
+#include "tcc_builtin_vfs.h"
+#endif
+
 #ifndef XL_ENABLE_EXE_COMPILER
 # if defined(XL_RUNTIME_ONLY_DLL)
 #  define XL_ENABLE_EXE_COMPILER 0
@@ -131,6 +139,8 @@ static const double xl__mzerodf = -0.0;
 
 #define XL_TCC_VFS_XRT_OBJ "lib/xrt/xrt.o"
 #define XL_TCC_VFS_LIBTCC1 "lib/libtcc1.a"
+#define XL_TCC_VFS_MODULE_C "__xlvfs__/module.c"
+#define XL_TCC_VFS_RUNTIME_C "__xlvfs__/runtime.c"
 
 /* DLL API 会修改全局 TCC 状态和进程 cwd，公开入口必须串行化。 */
 #ifdef _WIN32
@@ -581,22 +591,6 @@ static void xlLeaveWorkDir(XL_CwdScope* scope)
     memset(scope, 0, sizeof(*scope));
 }
 
-static int xlEnsureTempDir(XL_Context* ctx)
-{
-    if ( ctx == NULL ) {
-        return 0;
-    }
-    if ( ctx->tempDir == NULL || ctx->tempDir[0] == '\0' ) {
-        xlSetError(ctx, "temp dir path is empty");
-        return 0;
-    }
-    if ( !xrtDirCreateAll(ctx->tempDir) ) {
-        xlSetError2(ctx, "cannot create temp dir", ctx->tempDir);
-        return 0;
-    }
-    return 1;
-}
-
 static void xlTccError(void* opaque, const char* msg)
 {
     XL_Context* ctx = (XL_Context*)opaque;
@@ -901,6 +895,13 @@ static int xlAddDefaultRuntimeSymbols(TCCState* s)
     XL_ADD_XRT_SYMBOL(s, xrtFree);
     XL_ADD_XRT_SYMBOL(s, xrtTempMemory);
     XL_ADD_XRT_SYMBOL(s, xrtFreeTempMemory);
+    XL_ADD_XRT_SYMBOL(s, xrtBufferCreate);
+    XL_ADD_XRT_SYMBOL(s, xrtBufferDestroy);
+    XL_ADD_XRT_SYMBOL(s, xrtBufferInit);
+    XL_ADD_XRT_SYMBOL(s, xrtBufferUnit);
+    XL_ADD_XRT_SYMBOL(s, xrtBufferMalloc);
+    XL_ADD_XRT_SYMBOL(s, xrtBufferInsert);
+    XL_ADD_XRT_SYMBOL(s, xrtBufferAppend);
     XL_ADD_XRT_SYMBOL(s, xrtCopyStr);
     XL_ADD_XRT_SYMBOL(s, xrtFormat);
     XL_ADD_XRT_SYMBOL(s, xrtHash32);
@@ -1202,6 +1203,7 @@ static int xlAddDefaultRuntimeSymbols(TCCState* s)
     XL_ADD_XRT_SYMBOL(s, xvoAddRef);
     XL_ADD_XRT_SYMBOL(s, xvoUnref);
     XL_ADD_XRT_SYMBOL(s, xvoCopy);
+    XL_ADD_XRT_SYMBOL(s, xvoDeepCopy);
     XL_ADD_XRT_SYMBOL(s, xvoType);
     XL_ADD_XRT_SYMBOL(s, xvoTypeDesc);
     XL_ADD_XRT_SYMBOL(s, xvoIsNull);
@@ -1398,6 +1400,46 @@ static int xlCgenToMemory(XL_Context* ctx, XL6_CompileUnit* unit, char** outText
     return ok && *outText != NULL;
 }
 
+static void xlTccDynamicVfsClear(void)
+{
+#ifdef XL_STATIC_TCC
+    tcc_vfs_clear_dynamic();
+#endif
+}
+
+static int xlTccCompileSourceText(XL_Context* ctx, TCCState* s, const char* virtualPath, const char* source, const char* fallbackError)
+{
+    if ( s == NULL || source == NULL ) {
+        xlSetError(ctx, fallbackError != NULL ? fallbackError : "TCC source is empty");
+        return 0;
+    }
+#ifdef XL_STATIC_TCC
+    if ( virtualPath == NULL || virtualPath[0] == '\0' ) {
+        xlSetError(ctx, "dynamic TCC VFS path is empty");
+        return 0;
+    }
+    if ( !tcc_vfs_mount_memory(virtualPath, source, strlen(source)) ) {
+        xlSetError2(ctx, "cannot mount dynamic TCC VFS source", virtualPath);
+        return 0;
+    }
+    if ( xl__tcc.tcc_add_file(s, virtualPath) != 0 ) {
+        if ( ctx != NULL && ctx->lastError == NULL ) {
+            xlSetError(ctx, fallbackError != NULL ? fallbackError : "TCC compile failed");
+        }
+        return 0;
+    }
+    return 1;
+#else
+    if ( xl__tcc.tcc_compile_string(s, source) != 0 ) {
+        if ( ctx != NULL && ctx->lastError == NULL ) {
+            xlSetError(ctx, fallbackError != NULL ? fallbackError : "TCC compile failed");
+        }
+        return 0;
+    }
+    return 1;
+#endif
+}
+
 static int xlLoadUnitFromSource(XL_Context* ctx, XL6_CompileUnit* unit, const char* source, const char* virtualPath)
 {
     xl6CompileUnitInit(unit);
@@ -1493,76 +1535,68 @@ static int xlCompileAndRunUnit(XL_Context* ctx, XL6_CompileUnit* unit, xvalue su
     XL_XlangMainProc entry;
     xvalue runArg;
     char* cText;
+    int ok;
     int rc;
     size_t i;
 
+    s = NULL;
+    entry = NULL;
     cText = NULL;
     runArg = NULL;
+    ok = 0;
+    xlTccDynamicVfsClear();
     if ( !xlPrepareRuntimeArg(ctx, suppliedArg, &runArg) ) {
-        return 0;
+        goto cleanup;
     }
     if ( !xlCgenToMemory(ctx, unit, &cText) ) {
-        xvoUnref(runArg);
-        return 0;
+        goto cleanup;
     }
     s = xlCreateTccState(ctx, TCC_OUTPUT_MEMORY);
     if ( s == NULL ) {
-        xvoUnref(runArg);
-        xrtFree(cText);
-        return 0;
+        goto cleanup;
     }
     for ( i = 0; i < unit->importDeps.cSources.count; ++i ) {
         if ( xl__tcc.tcc_add_file(s, unit->importDeps.cSources.items[i]) != 0 ) {
             xlSetError2(ctx, "cannot compile import C source", unit->importDeps.cSources.items[i]);
-            xl__tcc.tcc_delete(s);
-            xvoUnref(runArg);
-            xrtFree(cText);
-            return 0;
+            goto cleanup;
         }
     }
-    if ( xl__tcc.tcc_compile_string(s, cText) != 0 ) {
-        if ( ctx->lastError == NULL ) {
-            xlSetError(ctx, "TCC compile failed");
-        }
-        xl__tcc.tcc_delete(s);
-        xvoUnref(runArg);
-        xrtFree(cText);
-        return 0;
+    if ( !xlTccCompileSourceText(ctx, s, XL_TCC_VFS_MODULE_C, cText, "TCC compile failed") ) {
+        goto cleanup;
     }
     if ( !xlAddDependenciesToTcc(ctx, s, unit) ) {
-        xl__tcc.tcc_delete(s);
-        xvoUnref(runArg);
-        xrtFree(cText);
-        return 0;
+        goto cleanup;
     }
     if ( xl__tcc.tcc_relocate(s) != 0 ) {
         if ( ctx->lastError == NULL ) {
             xlSetError(ctx, "TCC relocate failed");
         }
-        xl__tcc.tcc_delete(s);
-        xvoUnref(runArg);
-        xrtFree(cText);
-        return 0;
+        goto cleanup;
     }
     entry = (XL_XlangMainProc)xl__tcc.tcc_get_symbol(s, "xlang_main");
     if ( entry == NULL ) {
         xlSetError(ctx, "script entry xlang_main not found");
-        xl__tcc.tcc_delete(s);
-        xvoUnref(runArg);
-        xrtFree(cText);
-        return 0;
+        goto cleanup;
     }
     rc = entry(runArg);
-    xl__tcc.tcc_delete(s);
-    xvoUnref(runArg);
-    xrtFree(cText);
     if ( rc != 0 ) {
         char text[128];
         snprintf(text, sizeof(text), "script returned %d", rc);
         xlSetError(ctx, text);
-        return 0;
+        goto cleanup;
     }
-    return 1;
+    ok = 1;
+
+cleanup:
+    if ( s != NULL ) {
+        xl__tcc.tcc_delete(s);
+    }
+    if ( runArg != NULL ) {
+        xvoUnref(runArg);
+    }
+    xrtFree(cText);
+    xlTccDynamicVfsClear();
+    return ok;
 }
 
 #if XL_ENABLE_EXE_COMPILER
@@ -1573,67 +1607,65 @@ static int xlCompileUnitToExe(XL_Context* ctx, XL6_CompileUnit* unit, const char
     int ok;
     size_t i;
 
+    s = NULL;
     if ( outputExe == NULL || outputExe[0] == '\0' ) {
         xlSetError(ctx, "output exe path is empty");
         return 0;
     }
     cText = NULL;
+    ok = 0;
+    xlTccDynamicVfsClear();
     if ( !xlCgenToMemory(ctx, unit, &cText) ) {
-        return 0;
+        goto cleanup;
     }
     s = xlCreateTccState(ctx, TCC_OUTPUT_EXE);
     if ( s == NULL ) {
-        xrtFree(cText);
-        return 0;
+        goto cleanup;
     }
     (void)xl__tcc.tcc_set_options(s, "-DXL6_USE_XRT_LIFECYCLE");
-    if ( xl__tcc.tcc_compile_string(s,
+    if ( !xlTccCompileSourceText(ctx, s, XL_TCC_VFS_RUNTIME_C,
             "__attribute__((weak)) unsigned int __mzerosf = 0x80000000u;\n"
-            "__attribute__((weak)) unsigned long long __mzerodf = 0x8000000000000000ull;\n") != 0 ) {
-        if ( ctx->lastError == NULL ) {
-            xlSetError(ctx, "cannot compile TCC runtime constants");
-        }
-        xl__tcc.tcc_delete(s);
-        xrtFree(cText);
-        return 0;
+            "__attribute__((weak)) unsigned long long __mzerodf = 0x8000000000000000ull;\n",
+            "cannot compile TCC runtime constants") ) {
+        goto cleanup;
     }
-    if ( xl__tcc.tcc_compile_string(s, cText) != 0 ) {
-        if ( ctx->lastError == NULL ) {
-            xlSetError(ctx, "TCC compile failed");
-        }
-        xl__tcc.tcc_delete(s);
-        xrtFree(cText);
-        return 0;
+    if ( !xlTccCompileSourceText(ctx, s, XL_TCC_VFS_MODULE_C, cText, "TCC compile failed") ) {
+        goto cleanup;
     }
     xrtFree(cText);
+    cText = NULL;
     xlAddDefaultTccRuntime(s, ctx);
     for ( i = 0; i < unit->importDeps.cSources.count; ++i ) {
         if ( xl__tcc.tcc_add_file(s, unit->importDeps.cSources.items[i]) != 0 ) {
             xlSetError2(ctx, "cannot compile import C source", unit->importDeps.cSources.items[i]);
-            xl__tcc.tcc_delete(s);
-            return 0;
+            goto cleanup;
         }
     }
     if ( !xlAddDependenciesToTcc(ctx, s, unit) ) {
-        xl__tcc.tcc_delete(s);
-        return 0;
+        goto cleanup;
     }
     if ( !xlAddDefaultXrtObject(ctx, s) ) {
-        xl__tcc.tcc_delete(s);
-        return 0;
+        goto cleanup;
     }
     (void)xl__tcc.tcc_add_library(s, "Ws2_32");
     (void)xl__tcc.tcc_add_library(s, "IPHLPAPI");
     (void)xl__tcc.tcc_add_library(s, "Shell32");
     ok = xl__tcc.tcc_output_file(s, outputExe) == 0;
-    xl__tcc.tcc_delete(s);
     if ( !ok ) {
         if ( ctx->lastError == NULL ) {
             xlSetError2(ctx, "cannot output exe", outputExe);
         }
-        return 0;
+        goto cleanup;
     }
-    return 1;
+    ok = 1;
+
+cleanup:
+    if ( s != NULL ) {
+        xl__tcc.tcc_delete(s);
+    }
+    xrtFree(cText);
+    xlTccDynamicVfsClear();
+    return ok;
 }
 #endif
 
@@ -2019,10 +2051,6 @@ int xlRunScriptStringArg(XL_Context* ctx, const char* source, xvalue arg)
     }
     xlApiLock();
     xlClearLastErrorUnlocked(ctx);
-    if ( !xlEnsureTempDir(ctx) ) {
-        xlApiUnlock();
-        return 0;
-    }
     if ( !xlEnterWorkDir(ctx, &cwd) ) {
         xlApiUnlock();
         return 0;
@@ -2053,10 +2081,6 @@ int xlRunScriptFileArg(XL_Context* ctx, const char* path, xvalue arg)
     }
     xlApiLock();
     xlClearLastErrorUnlocked(ctx);
-    if ( !xlEnsureTempDir(ctx) ) {
-        xlApiUnlock();
-        return 0;
-    }
     if ( !xlEnterWorkDir(ctx, &cwd) ) {
         xlApiUnlock();
         return 0;
@@ -2083,10 +2107,6 @@ int xlCompileScriptStringToExe(XL_Context* ctx, const char* source, const char* 
     }
     xlApiLock();
     xlClearLastErrorUnlocked(ctx);
-    if ( !xlEnsureTempDir(ctx) ) {
-        xlApiUnlock();
-        return 0;
-    }
     if ( !xlEnterWorkDir(ctx, &cwd) ) {
         xlApiUnlock();
         return 0;
@@ -2112,10 +2132,6 @@ int xlCompileScriptFileToExe(XL_Context* ctx, const char* path, const char* outp
     }
     xlApiLock();
     xlClearLastErrorUnlocked(ctx);
-    if ( !xlEnsureTempDir(ctx) ) {
-        xlApiUnlock();
-        return 0;
-    }
     if ( !xlEnterWorkDir(ctx, &cwd) ) {
         xlApiUnlock();
         return 0;

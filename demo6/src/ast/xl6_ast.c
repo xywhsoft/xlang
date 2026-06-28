@@ -21,6 +21,8 @@ const char* xl6AstKindName(XL6_AstKind kind)
     case XL6_AST_UNION: return "union";
     case XL6_AST_DERIVE: return "derive";
     case XL6_AST_FIELD: return "field";
+    case XL6_AST_GET: return "get";
+    case XL6_AST_LET: return "let";
     case XL6_AST_CREATE: return "create";
     case XL6_AST_CUSTOM_EXTERN_SPECIAL: return "custom_extern_special";
     case XL6_AST_CUSTOM_EXTERN_FUNC: return "custom_extern_func";
@@ -39,6 +41,8 @@ const char* xl6AstKindName(XL6_AstKind kind)
     case XL6_AST_INT: return "int";
     case XL6_AST_FLOAT: return "float";
     case XL6_AST_STRING: return "string";
+    case XL6_AST_INTERP_STRING: return "interp_string";
+    case XL6_AST_INTERP_TEXT: return "interp_text";
     case XL6_AST_TIME: return "time";
     case XL6_AST_BOOL: return "bool";
     case XL6_AST_NULL: return "null";

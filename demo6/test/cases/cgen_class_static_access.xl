@@ -1,0 +1,22 @@
+extern "expect_i64" func expect(int actual, int expected)
+
+class Counter
+    private int seed = 5
+    static int total = 2
+
+    static func add(int value) as int
+        Counter.total = Counter.total + value
+        return Counter.total
+    end
+
+    func reveal() as int
+        return self.seed
+    end
+end
+
+Counter counter
+expect(counter.reveal(), 5)
+expect(Counter.total, 2)
+expect(Counter.add(3), 5)
+Counter.total = 11
+expect(Counter.total, 11)

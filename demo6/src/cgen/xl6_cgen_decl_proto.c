@@ -215,18 +215,25 @@ static void xl6CgenExportVarDef(XL6_CgenContext* ctx, const XL6_AstNode* node)
     xl6OutputPuts(";\n", ctx->out);
 }
 
-static void xl6CgenClassParamList(XL6_CgenContext* ctx, const XL6_AstNode* classNode, const XL6_AstNode* params)
+static void xl6CgenClassParamListEx(XL6_CgenContext* ctx, const XL6_AstNode* classNode, const XL6_AstNode* params, int includeSelf)
 {
     size_t i;
+    int wroteParam;
 
-    xl6CgenClassTypeName(ctx->out, classNode->text);
-    xl6OutputPuts("* self", ctx->out);
+    wroteParam = 0;
+    if ( includeSelf ) {
+        xl6CgenClassTypeName(ctx->out, classNode->text);
+        xl6OutputPuts("* self", ctx->out);
+        wroteParam = 1;
+    }
     if ( params == NULL ) {
         return;
     }
     for ( i = 0; i < params->childCount; ++i ) {
         const XL6_AstNode* param = params->children[i];
-        xl6OutputPuts(", ", ctx->out);
+        if ( wroteParam ) {
+            xl6OutputPuts(", ", ctx->out);
+        }
         if ( param->childCount == 0 || xl6CTextEquals(param->children[0]->text, "array<var>") ||
              xl6CTextEquals(param->children[0]->text, "dict<var>") ) {
             xl6CgenError(ctx, param, "class C 生成暂不支持可变参数方法");
@@ -236,7 +243,13 @@ static void xl6CgenClassParamList(XL6_CgenContext* ctx, const XL6_AstNode* class
             xl6OutputPutc(' ', ctx->out);
         }
         xl6CgenFputsCIdent(ctx->out, param->text);
+        wroteParam = 1;
     }
+}
+
+static void xl6CgenClassParamList(XL6_CgenContext* ctx, const XL6_AstNode* classNode, const XL6_AstNode* params)
+{
+    xl6CgenClassParamListEx(ctx, classNode, params, 1);
 }
 
 static void xl6CgenClassFuncProto(XL6_CgenContext* ctx, const XL6_AstNode* classNode, const XL6_AstNode* funcNode)
@@ -259,7 +272,7 @@ static void xl6CgenClassFuncProto(XL6_CgenContext* ctx, const XL6_AstNode* class
     xl6CgenClassCallableSymbol(ctx, classNode, funcNode);
     xl6OutputPutc('(', ctx->out);
     params = funcNode->childCount > 1 ? funcNode->children[1] : NULL;
-    xl6CgenClassParamList(ctx, classNode, params);
+    xl6CgenClassParamListEx(ctx, classNode, params, !xl6CgenIsStaticMember(funcNode));
     xl6OutputPutc(')', ctx->out);
 }
 

@@ -1,0 +1,6 @@
+class Secret
+    private int value = 1
+end
+
+Secret secret
+int leak = secret.value

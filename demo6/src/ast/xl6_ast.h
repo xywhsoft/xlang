@@ -22,6 +22,8 @@ typedef enum XL6_AstKind {
     XL6_AST_UNION,
     XL6_AST_DERIVE,
     XL6_AST_FIELD,
+    XL6_AST_GET,
+    XL6_AST_LET,
     XL6_AST_CREATE,
     XL6_AST_CUSTOM_EXTERN_SPECIAL,
     XL6_AST_CUSTOM_EXTERN_FUNC,
@@ -40,6 +42,8 @@ typedef enum XL6_AstKind {
     XL6_AST_INT,
     XL6_AST_FLOAT,
     XL6_AST_STRING,
+    XL6_AST_INTERP_STRING,
+    XL6_AST_INTERP_TEXT,
     XL6_AST_TIME,
     XL6_AST_BOOL,
     XL6_AST_NULL,
@@ -77,8 +81,16 @@ typedef enum XL6_AstKind {
     XL6_AST_CONTINUE
 } XL6_AstKind;
 
+#define XL6_AST_FLAG_PUBLIC   0x00000001u
+#define XL6_AST_FLAG_PRIVATE  0x00000002u
+#define XL6_AST_FLAG_STATIC   0x00000004u
+#define XL6_AST_FLAG_OVERRIDE 0x00000008u
+#define XL6_AST_FLAG_FINAL    0x00000010u
+#define XL6_AST_FLAG_VIRTUAL  0x00000020u
+
 typedef struct XL6_AstNode {
     XL6_AstKind kind;
+    unsigned int flags;
     char* text;
     char* doc;
     int line;

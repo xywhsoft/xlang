@@ -1,0 +1,35 @@
+class Player
+    int value = 100
+
+    get hp() as int
+        return self.value
+    end
+
+    let hp(int value)
+        self.value = value
+    end
+
+    get hp(int idx) as int
+        return self.value + idx
+    end
+
+    let hp(int idx, int value)
+        self.value = value + idx
+    end
+
+    get hp(int x, int y) as int
+        return self.value + x * 10 + y
+    end
+
+    let hp(int x, int y, int value)
+        self.value = value + x * 10 + y
+    end
+end
+
+auto player = Player()
+
+print(player.hp)
+player.hp = 12
+print(player.hp[3])
+player.hp[2, 4] = 5
+print(player.hp)

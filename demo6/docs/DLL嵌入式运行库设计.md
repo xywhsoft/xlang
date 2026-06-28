@@ -121,9 +121,9 @@ TCC lib root 默认优先使用 context 显式 `tccLibPath`，否则读取 `XL6_
 
 ## 临时目录
 
-上下文临时目录由 `XL_ContextOptions.tempDir` 或 `xlSetTempDir` 设置。相对路径会在创建 context 或调用 `xlSetTempDir` 时按当时的宿主当前目录固化为路径快照；每次运行脚本或由 `xlc.dll` 编译 exe 前，DLL API 会先按该快照创建或校验目录，然后才进入 context 工作目录。
+上下文临时目录由 `XL_ContextOptions.tempDir` 或 `xlSetTempDir` 设置。相对路径会在创建 context 或调用 `xlSetTempDir` 时按当时的宿主当前目录固化为路径快照。
 
-当前 DLL 执行管线以 libtcc 内存编译为主，不输出 CLI 调试 dump。`saveTemps` 目前作为上下文配置保留，不会强制生成调试临时文件；后续如果 DLL API 引入可选落盘产物，应继续以 `tempDir` 为根目录，并由 `saveTemps` 决定是否保留。
+当前 DLL 执行管线以动态 VFS + libtcc 内存编译为主，不输出 CLI 调试 dump，普通运行或编译 exe 不会为了主生成 C 预创建临时目录。`saveTemps` 目前作为上下文配置保留，不会强制生成调试临时文件；后续如果 DLL API 引入“导出动态 VFS 内容”或其他可选落盘产物，应继续以 `tempDir` 为根目录，并由 `saveTemps` 决定是否保留。
 
 ## C 函数注册
 

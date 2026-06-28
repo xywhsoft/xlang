@@ -20,8 +20,8 @@ static const XL6_ProtocolRule g_xl6ProtocolRules[] = {
     {"__toValue__", XL6_PROTOCOL_TO_VALUE, 0, 0, 1, 1, 0, NULL, "var"},
     {"__fromValue__", XL6_PROTOCOL_FROM_VALUE, 1, 1, 1, 1, 0, "var", "bool"},
 
-    {"__item__", XL6_PROTOCOL_ITEM, 1, 1, 1, 1, 0, NULL, NULL},
-    {"__setItem__", XL6_PROTOCOL_SET_ITEM, 2, 2, 0, 0, 0, NULL, NULL},
+    {"__item__", XL6_PROTOCOL_ITEM, 1, XL6_PROTOCOL_ANY_COUNT, 1, 1, 0, NULL, NULL},
+    {"__setItem__", XL6_PROTOCOL_SET_ITEM, 2, XL6_PROTOCOL_ANY_COUNT, 0, 0, 0, NULL, NULL},
     {"__field__", XL6_PROTOCOL_FIELD, 1, 1, 1, 1, 0, "string", NULL},
     {"__setField__", XL6_PROTOCOL_SET_FIELD, 2, 2, 0, 0, 0, "string", NULL},
     {"__callField__", XL6_PROTOCOL_CALL_FIELD, 1, XL6_PROTOCOL_ANY_COUNT, 0, 1, 1, "string", NULL},

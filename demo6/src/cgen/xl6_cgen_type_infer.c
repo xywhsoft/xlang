@@ -1,199 +1,3 @@
-static XL6_AstNode* xl6CgenCloneTypeNode(const XL6_AstNode* node)
-{
-    XL6_AstNode* copy;
-    size_t i;
-
-    if ( node == NULL ) {
-        return NULL;
-    }
-    if ( node->text != NULL ) {
-        copy = xl6AstNewText(node->kind, node->text, strlen(node->text), NULL);
-    } else {
-        copy = xl6AstNew(node->kind, NULL);
-    }
-    if ( copy == NULL ) {
-        return NULL;
-    }
-    copy->line = node->line;
-    copy->column = node->column;
-    for ( i = 0; i < node->childCount; ++i ) {
-        XL6_AstNode* childCopy = xl6CgenCloneTypeNode(node->children[i]);
-        if ( childCopy == NULL ) {
-            xl6AstFree(copy);
-            return NULL;
-        }
-        xl6AstAddChild(copy, childCopy);
-    }
-    return copy;
-}
-
-static XL6_AstNode* xl6CgenCloneExprTypeForInference(XL6_CgenContext* ctx, const XL6_AstNode* expr);
-
-static XL6_AstNode* xl6CgenNewSimpleType(const char* name, const XL6_AstNode* at)
-{
-    XL6_AstNode* node;
-
-    if ( name == NULL ) {
-        return NULL;
-    }
-    node = xl6AstNewText(XL6_AST_TYPE, name, strlen(name), NULL);
-    if ( node != NULL && at != NULL ) {
-        node->line = at->line;
-        node->column = at->column;
-    }
-    return node;
-}
-
-static int xl6CgenTypeHasImplicitToString(XL6_CgenContext* ctx, const XL6_AstNode* typeNode)
-{
-    const char* name;
-
-    (void)ctx;
-    name = typeNode != NULL ? typeNode->text : NULL;
-    return xl6CTextEquals(name, "null") ||
-           xl6CTextEquals(name, "var") ||
-           xl6CTextEquals(name, "bool") ||
-           xl6CgenIsIntegerTypeName(name) ||
-           xl6CgenIsFloatTypeName(name) ||
-           xl6CTextEquals(name, "string") ||
-           xl6CTextEquals(name, "time") ||
-           xl6CTextEquals(name, "point");
-}
-
-static int xl6CgenIsToStringMemberCallSyntax(const XL6_AstNode* node)
-{
-    const XL6_AstNode* callee;
-    const XL6_AstNode* args;
-
-    if ( node == NULL || node->kind != XL6_AST_CALL || node->childCount == 0 ) {
-        return 0;
-    }
-    callee = node->children[0];
-    if ( callee == NULL || callee->kind != XL6_AST_MEMBER || !xl6CTextEquals(callee->text, "toString") ) {
-        return 0;
-    }
-    args = node->childCount > 1 ? node->children[1] : NULL;
-    if ( args != NULL && args->childCount != 0 ) {
-        return 0;
-    }
-    return 1;
-}
-
-static int xl6CgenIsImplicitToStringCall(XL6_CgenContext* ctx, const XL6_AstNode* node)
-{
-    const XL6_AstNode* callee;
-    const XL6_AstNode* receiver;
-    XL6_AstNode* receiverType;
-    int result;
-
-    if ( !xl6CgenIsToStringMemberCallSyntax(node) ) {
-        return 0;
-    }
-
-    callee = node->children[0];
-    receiver = callee->childCount > 0 ? callee->children[0] : NULL;
-    receiverType = xl6CgenCloneExprTypeForInference(ctx, receiver);
-    result = xl6CgenTypeHasImplicitToString(ctx, receiverType);
-    xl6AstFree(receiverType);
-    return result;
-}
-
-static XL6_AstNode* xl6CgenCloneCanonicalTypeNode(XL6_CgenContext* ctx, const XL6_AstNode* node)
-{
-    const XL6_AstNode* concrete;
-    XL6_AstNode* copy;
-    size_t i;
-
-    if ( node == NULL ) {
-        return NULL;
-    }
-
-    concrete = xl6CgenSubstituteGenericType(ctx, node);
-    concrete = xl6CgenResolveAliasType(ctx, concrete);
-    if ( concrete == NULL ) {
-        return NULL;
-    }
-
-    if ( concrete->text != NULL ) {
-        copy = xl6AstNewText(concrete->kind, concrete->text, strlen(concrete->text), NULL);
-    } else {
-        copy = xl6AstNew(concrete->kind, NULL);
-    }
-    if ( copy == NULL ) {
-        return NULL;
-    }
-    copy->line = concrete->line;
-    copy->column = concrete->column;
-
-    for ( i = 0; i < concrete->childCount; ++i ) {
-        XL6_AstNode* childCopy = xl6CgenCloneCanonicalTypeNode(ctx, concrete->children[i]);
-        if ( childCopy == NULL ) {
-            xl6AstFree(copy);
-            return NULL;
-        }
-        xl6AstAddChild(copy, childCopy);
-    }
-    return copy;
-}
-
-static XL6_AstNode* xl6CgenNewGenericTypeNode(const char* name, XL6_AstNode* typeArg, const XL6_AstNode* at)
-{
-    XL6_AstNode* typeNode;
-    XL6_AstNode* args;
-
-    if ( typeArg == NULL ) {
-        return xl6CgenNewSimpleType(name, at);
-    }
-
-    typeNode = xl6CgenNewSimpleType(name, at);
-    args = xl6AstNew(XL6_AST_LIST, NULL);
-    if ( typeNode == NULL || args == NULL ) {
-        xl6AstFree(typeNode);
-        xl6AstFree(args);
-        xl6AstFree(typeArg);
-        return NULL;
-    }
-
-    xl6AstAddChild(args, typeArg);
-    xl6AstAddChild(typeNode, args);
-    return typeNode;
-}
-
-static int xl6CgenIsFutureLikeType(const XL6_AstNode* typeNode)
-{
-    return typeNode != NULL &&
-           (xl6CTextEquals(typeNode->text, "future") ||
-            xl6CTextEquals(typeNode->text, "task"));
-}
-
-static int xl6CgenIsChannelType(const XL6_AstNode* typeNode)
-{
-    return typeNode != NULL && xl6CTextEquals(typeNode->text, "channel");
-}
-
-static int xl6CgenIsThreadType(const XL6_AstNode* typeNode)
-{
-    return typeNode != NULL && xl6CTextEquals(typeNode->text, "thread");
-}
-
-static int xl6CgenIsGeneratorType(const XL6_AstNode* typeNode)
-{
-    return typeNode != NULL && xl6CTextEquals(typeNode->text, "generator");
-}
-
-static int xl6CgenIsSyncHandleTypeName(const char* name)
-{
-    return xl6CTextEquals(name, "mutex") ||
-           xl6CTextEquals(name, "sem") ||
-           xl6CTextEquals(name, "cond") ||
-           xl6CTextEquals(name, "rwlock");
-}
-
-static int xl6CgenIsSyncHandleType(const XL6_AstNode* typeNode)
-{
-    return typeNode != NULL && xl6CgenIsSyncHandleTypeName(typeNode->text);
-}
-
 static XL6_AstNode* xl6CgenCloneSingleGenericArgType(
     XL6_CgenContext* ctx,
     const XL6_AstNode* typeNode,
@@ -610,6 +414,92 @@ static XL6_AstNode* xl6CgenSyncMethodType(XL6_CgenContext* ctx, const XL6_AstNod
     return xl6CgenNewSimpleType("bool", call);
 }
 
+static XL6_AstNode* xl6CgenCloneSingleCallableReturnType(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* func,
+    const XL6_AstNode* receiverType)
+{
+    const XL6_AstNode* returns;
+    const XL6_AstNode* prevParams;
+    const XL6_AstNode* prevArgs;
+    XL6_AstNode* result;
+
+    returns = func != NULL && func->childCount > 2 ? func->children[2] : NULL;
+    if ( returns == NULL || returns->childCount != 1 ) {
+        return NULL;
+    }
+
+    prevParams = ctx->currentGenericParams;
+    prevArgs = ctx->currentGenericArgs;
+    if ( receiverType != NULL &&
+         receiverType->childCount > 0 &&
+         func != NULL &&
+         ctx != NULL &&
+         ctx->currentClass != NULL &&
+         xl6CgenClassHasTypeParams(ctx->currentClass) ) {
+        ctx->currentGenericParams = xl6CgenClassTypeParams(ctx->currentClass);
+        ctx->currentGenericArgs = receiverType->children[0];
+    }
+    result = xl6CgenCloneCanonicalTypeNode(ctx, returns->children[0]);
+    ctx->currentGenericParams = prevParams;
+    ctx->currentGenericArgs = prevArgs;
+    return result;
+}
+
+static XL6_AstNode* xl6CgenCloneClassMethodCallType(XL6_CgenContext* ctx, const XL6_AstNode* call)
+{
+    const XL6_AstNode* member;
+    const XL6_AstNode* receiver;
+    const XL6_AstNode* ownerClass;
+    XL6_AstNode* classNode;
+    XL6_AstNode* receiverType;
+    const XL6_AstNode* method;
+    XL6_AstNode* result;
+    const XL6_AstNode* prevClass;
+
+    if ( call == NULL || call->kind != XL6_AST_CALL || call->childCount == 0 ) {
+        return NULL;
+    }
+    member = call->children[0];
+    if ( member == NULL || member->kind != XL6_AST_MEMBER || member->text == NULL || member->childCount == 0 ) {
+        return NULL;
+    }
+
+    classNode = xl6CgenClassDeclFromTypeMemberReceiver(ctx, member);
+    if ( classNode != NULL ) {
+        ownerClass = NULL;
+        method = xl6CgenResolveStaticClassFunc(ctx, classNode, call, member->text, &ownerClass);
+        return xl6CgenCloneSingleCallableReturnType(ctx, method, NULL);
+    }
+
+    receiver = member->children[0];
+    receiverType = NULL;
+    classNode = NULL;
+    if ( receiver != NULL && receiver->kind == XL6_AST_NAME &&
+         xl6CTextEquals(receiver->text, "self") && ctx->currentClass != NULL ) {
+        classNode = (XL6_AstNode*)ctx->currentClass;
+    } else {
+        receiverType = xl6CgenCloneExprTypeForInference(ctx, receiver);
+        classNode = receiverType != NULL ? xl6CgenFindClass(ctx, receiverType->text) : NULL;
+    }
+    if ( classNode == NULL ) {
+        xl6AstFree(receiverType);
+        return NULL;
+    }
+
+    prevClass = ctx->currentClass;
+    ctx->currentClass = classNode;
+    ownerClass = NULL;
+    method = xl6CgenResolveClassFunc(ctx, classNode, call, member->text, &ownerClass);
+    if ( ownerClass != NULL ) {
+        ctx->currentClass = ownerClass;
+    }
+    result = xl6CgenCloneSingleCallableReturnType(ctx, method, receiverType);
+    ctx->currentClass = prevClass;
+    xl6AstFree(receiverType);
+    return result;
+}
+
 static XL6_AstNode* xl6CgenCloneExprTypeForInference(XL6_CgenContext* ctx, const XL6_AstNode* expr)
 {
     const XL6_AstNode* varType;
@@ -624,6 +514,7 @@ static XL6_AstNode* xl6CgenCloneExprTypeForInference(XL6_CgenContext* ctx, const
     case XL6_AST_FLOAT:
         return xl6CgenNewSimpleType("float", expr);
     case XL6_AST_STRING:
+    case XL6_AST_INTERP_STRING:
         return xl6CgenNewSimpleType("string", expr);
     case XL6_AST_TIME:
         return xl6CgenNewSimpleType("time", expr);
@@ -669,9 +560,11 @@ static XL6_AstNode* xl6CgenCloneExprTypeForInference(XL6_CgenContext* ctx, const
         const char* protocolName = expr->childCount > 0 && expr->children[0] != NULL ?
                                    xl6CgenUnaryProtocolName(expr->text) :
                                    NULL;
-        XL6_AstNode* protocolType = protocolName != NULL ?
-                                    xl6CgenCloneClassProtocolReturnType(ctx, valueType, protocolName) :
+        XL6_AstNode* protocolCall = protocolName != NULL ? xl6CgenProtocolTempCallNew(expr) : NULL;
+        XL6_AstNode* protocolType = protocolCall != NULL ?
+                                    xl6CgenCloneClassProtocolReturnTypeForCall(ctx, valueType, protocolName, protocolCall) :
                                     NULL;
+        xl6CgenProtocolTempCallFree(protocolCall);
 
         if ( protocolType != NULL ) {
             xl6AstFree(valueType);
@@ -707,18 +600,27 @@ static XL6_AstNode* xl6CgenCloneExprTypeForInference(XL6_CgenContext* ctx, const
             const char* protocolName = NULL;
             XL6_AstNode* receiverType = NULL;
             XL6_AstNode* protocolType = NULL;
+            XL6_AstNode* protocolCall = NULL;
+            const XL6_AstNode* protocolArg = NULL;
             if ( xl6CTextEquals(expr->text, "in") ) {
                 protocolName = expr->children[1] != NULL ? "__contains__" : NULL;
                 receiverType = protocolName != NULL ? xl6CgenCloneExprTypeForInference(ctx, expr->children[1]) : NULL;
+                protocolArg = expr->children[0];
             } else {
                 protocolName = expr->children[0] != NULL ?
                                xl6CgenBinaryProtocolName(expr->text) :
                                NULL;
                 receiverType = protocolName != NULL ? xl6CgenCloneExprTypeForInference(ctx, expr->children[0]) : NULL;
+                protocolArg = expr->children[1];
             }
-            protocolType = protocolName != NULL ?
-                           xl6CgenCloneClassProtocolReturnType(ctx, receiverType, protocolName) :
+            protocolCall = protocolName != NULL ? xl6CgenProtocolTempCallNew(expr) : NULL;
+            if ( protocolCall != NULL && protocolArg != NULL ) {
+                xl6CgenProtocolTempCallAddArg(protocolCall, protocolArg);
+            }
+            protocolType = protocolCall != NULL ?
+                           xl6CgenCloneClassProtocolReturnTypeForCall(ctx, receiverType, protocolName, protocolCall) :
                            NULL;
+            xl6CgenProtocolTempCallFree(protocolCall);
             xl6AstFree(receiverType);
             if ( protocolType != NULL ) {
                 return protocolType;
@@ -885,8 +787,20 @@ static XL6_AstNode* xl6CgenCloneExprTypeForInference(XL6_CgenContext* ctx, const
         return NULL;
     case XL6_AST_INDEX:
     case XL6_AST_SAFE_INDEX:
+        if ( expr->childCount > 0 && expr->children[0] != NULL &&
+             expr->children[0]->kind == XL6_AST_MEMBER ) {
+            XL6_AstNode* propertyType = xl6CgenCloneClassPropertyMemberType(ctx, expr->children[0], expr);
+            if ( propertyType != NULL ) {
+                if ( expr->kind == XL6_AST_SAFE_INDEX ) {
+                    xl6AstFree(propertyType);
+                    return xl6CgenNewSimpleType("var", expr);
+                }
+                return propertyType;
+            }
+        }
         receiverType = expr->childCount > 0 ? xl6CgenCloneExprTypeForInference(ctx, expr->children[0]) : NULL;
         if ( expr->childCount > 0 &&
+             xl6CgenIndexArgCount(expr) == 1 &&
              xl6CgenExprUsesTypedContainerStorage(ctx, expr->children[0]) &&
              xl6CgenIsTypedContainerType(ctx, receiverType) ) {
             const XL6_AstNode* concreteType = xl6CgenTypedContainerConcreteType(ctx, receiverType);
@@ -904,11 +818,15 @@ static XL6_AstNode* xl6CgenCloneExprTypeForInference(XL6_CgenContext* ctx, const
         if ( xl6CgenIsArrayXValueType(receiverType) || xl6CgenIsListXValueType(receiverType) ||
               xl6CgenIsDictXValueType(receiverType) ||
               (receiverType != NULL && xl6CTextEquals(receiverType->text, "var")) ) {
+            if ( xl6CgenIndexArgCount(expr) != 1 ) {
+                xl6AstFree(receiverType);
+                return NULL;
+            }
             xl6AstFree(receiverType);
             return xl6CgenNewSimpleType("var", expr);
         }
         {
-            XL6_AstNode* protocolType = xl6CgenCloneClassProtocolReturnType(ctx, receiverType, "__item__");
+            XL6_AstNode* protocolType = xl6CgenCloneClassProtocolReturnTypeForIndex(ctx, expr, "__item__", NULL);
             if ( protocolType != NULL ) {
                 xl6AstFree(receiverType);
                 return protocolType;
@@ -940,7 +858,12 @@ static XL6_AstNode* xl6CgenCloneExprTypeForInference(XL6_CgenContext* ctx, const
         }
         if ( expr->childCount > 0 && expr->children[0] != NULL &&
              expr->children[0]->kind == XL6_AST_MEMBER ) {
+            XL6_AstNode* classMethodType = xl6CgenCloneClassMethodCallType(ctx, expr);
             XL6_AstNode* memberType = xl6CgenCloneMemberFieldTypeForInference(ctx, expr->children[0]);
+            if ( classMethodType != NULL ) {
+                xl6AstFree(memberType);
+                return classMethodType;
+            }
             if ( xl6CgenIsFunctionType(memberType) ) {
                 const XL6_AstNode* returns = xl6CgenFunctionReturnTypes(memberType);
                 XL6_AstNode* result = NULL;
@@ -972,10 +895,10 @@ static XL6_AstNode* xl6CgenCloneExprTypeForInference(XL6_CgenContext* ctx, const
             }
         }
         if ( expr->childCount > 0 && expr->children[0] != NULL &&
-             expr->children[0]->kind != XL6_AST_NAME &&
-             expr->children[0]->kind != XL6_AST_MEMBER ) {
+            expr->children[0]->kind != XL6_AST_NAME &&
+            expr->children[0]->kind != XL6_AST_MEMBER ) {
             XL6_AstNode* calleeType = xl6CgenCloneExprTypeForInference(ctx, expr->children[0]);
-            XL6_AstNode* protocolType = xl6CgenCloneClassProtocolReturnType(ctx, calleeType, "__call__");
+            XL6_AstNode* protocolType = xl6CgenCloneClassProtocolReturnTypeForCall(ctx, calleeType, "__call__", expr);
             xl6AstFree(calleeType);
             if ( protocolType != NULL ) {
                 return protocolType;
@@ -1071,7 +994,7 @@ static XL6_AstNode* xl6CgenCloneExprTypeForInference(XL6_CgenContext* ctx, const
                 return xl6CgenNewSimpleType("var", expr);
             }
             {
-                XL6_AstNode* protocolType = xl6CgenCloneClassProtocolReturnType(ctx, functionVarType, "__call__");
+                XL6_AstNode* protocolType = xl6CgenCloneClassProtocolReturnTypeForCall(ctx, functionVarType, "__call__", expr);
                 if ( protocolType != NULL ) {
                     return protocolType;
                 }

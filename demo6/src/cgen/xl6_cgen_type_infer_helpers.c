@@ -1,0 +1,195 @@
+static XL6_AstNode* xl6CgenCloneTypeNode(const XL6_AstNode* node)
+{
+    XL6_AstNode* copy;
+    size_t i;
+
+    if ( node == NULL ) {
+        return NULL;
+    }
+    if ( node->text != NULL ) {
+        copy = xl6AstNewText(node->kind, node->text, strlen(node->text), NULL);
+    } else {
+        copy = xl6AstNew(node->kind, NULL);
+    }
+    if ( copy == NULL ) {
+        return NULL;
+    }
+    copy->line = node->line;
+    copy->column = node->column;
+    for ( i = 0; i < node->childCount; ++i ) {
+        XL6_AstNode* childCopy = xl6CgenCloneTypeNode(node->children[i]);
+        if ( childCopy == NULL ) {
+            xl6AstFree(copy);
+            return NULL;
+        }
+        xl6AstAddChild(copy, childCopy);
+    }
+    return copy;
+}
+
+static XL6_AstNode* xl6CgenCloneExprTypeForInference(XL6_CgenContext* ctx, const XL6_AstNode* expr);
+
+static XL6_AstNode* xl6CgenNewSimpleType(const char* name, const XL6_AstNode* at)
+{
+    XL6_AstNode* node;
+
+    if ( name == NULL ) {
+        return NULL;
+    }
+    node = xl6AstNewText(XL6_AST_TYPE, name, strlen(name), NULL);
+    if ( node != NULL && at != NULL ) {
+        node->line = at->line;
+        node->column = at->column;
+    }
+    return node;
+}
+
+static int xl6CgenTypeHasImplicitToString(XL6_CgenContext* ctx, const XL6_AstNode* typeNode)
+{
+    const char* name;
+
+    (void)ctx;
+    name = typeNode != NULL ? typeNode->text : NULL;
+    return xl6CTextEquals(name, "null") ||
+           xl6CTextEquals(name, "var") ||
+           xl6CTextEquals(name, "bool") ||
+           xl6CgenIsIntegerTypeName(name) ||
+           xl6CgenIsFloatTypeName(name) ||
+           xl6CTextEquals(name, "string") ||
+           xl6CTextEquals(name, "time") ||
+           xl6CTextEquals(name, "point");
+}
+
+static int xl6CgenIsToStringMemberCallSyntax(const XL6_AstNode* node)
+{
+    const XL6_AstNode* callee;
+    const XL6_AstNode* args;
+
+    if ( node == NULL || node->kind != XL6_AST_CALL || node->childCount == 0 ) {
+        return 0;
+    }
+    callee = node->children[0];
+    if ( callee == NULL || callee->kind != XL6_AST_MEMBER || !xl6CTextEquals(callee->text, "toString") ) {
+        return 0;
+    }
+    args = node->childCount > 1 ? node->children[1] : NULL;
+    if ( args != NULL && args->childCount != 0 ) {
+        return 0;
+    }
+    return 1;
+}
+
+static int xl6CgenIsImplicitToStringCall(XL6_CgenContext* ctx, const XL6_AstNode* node)
+{
+    const XL6_AstNode* callee;
+    const XL6_AstNode* receiver;
+    XL6_AstNode* receiverType;
+    int result;
+
+    if ( !xl6CgenIsToStringMemberCallSyntax(node) ) {
+        return 0;
+    }
+
+    callee = node->children[0];
+    receiver = callee->childCount > 0 ? callee->children[0] : NULL;
+    receiverType = xl6CgenCloneExprTypeForInference(ctx, receiver);
+    result = xl6CgenTypeHasImplicitToString(ctx, receiverType);
+    xl6AstFree(receiverType);
+    return result;
+}
+
+static XL6_AstNode* xl6CgenCloneCanonicalTypeNode(XL6_CgenContext* ctx, const XL6_AstNode* node)
+{
+    const XL6_AstNode* concrete;
+    XL6_AstNode* copy;
+    size_t i;
+
+    if ( node == NULL ) {
+        return NULL;
+    }
+
+    concrete = xl6CgenSubstituteGenericType(ctx, node);
+    concrete = xl6CgenResolveAliasType(ctx, concrete);
+    if ( concrete == NULL ) {
+        return NULL;
+    }
+
+    if ( concrete->text != NULL ) {
+        copy = xl6AstNewText(concrete->kind, concrete->text, strlen(concrete->text), NULL);
+    } else {
+        copy = xl6AstNew(concrete->kind, NULL);
+    }
+    if ( copy == NULL ) {
+        return NULL;
+    }
+    copy->line = concrete->line;
+    copy->column = concrete->column;
+
+    for ( i = 0; i < concrete->childCount; ++i ) {
+        XL6_AstNode* childCopy = xl6CgenCloneCanonicalTypeNode(ctx, concrete->children[i]);
+        if ( childCopy == NULL ) {
+            xl6AstFree(copy);
+            return NULL;
+        }
+        xl6AstAddChild(copy, childCopy);
+    }
+    return copy;
+}
+
+static XL6_AstNode* xl6CgenNewGenericTypeNode(const char* name, XL6_AstNode* typeArg, const XL6_AstNode* at)
+{
+    XL6_AstNode* typeNode;
+    XL6_AstNode* args;
+
+    if ( typeArg == NULL ) {
+        return xl6CgenNewSimpleType(name, at);
+    }
+
+    typeNode = xl6CgenNewSimpleType(name, at);
+    args = xl6AstNew(XL6_AST_LIST, NULL);
+    if ( typeNode == NULL || args == NULL ) {
+        xl6AstFree(typeNode);
+        xl6AstFree(args);
+        xl6AstFree(typeArg);
+        return NULL;
+    }
+
+    xl6AstAddChild(args, typeArg);
+    xl6AstAddChild(typeNode, args);
+    return typeNode;
+}
+
+static int xl6CgenIsFutureLikeType(const XL6_AstNode* typeNode)
+{
+    return typeNode != NULL &&
+           (xl6CTextEquals(typeNode->text, "future") ||
+            xl6CTextEquals(typeNode->text, "task"));
+}
+
+static int xl6CgenIsChannelType(const XL6_AstNode* typeNode)
+{
+    return typeNode != NULL && xl6CTextEquals(typeNode->text, "channel");
+}
+
+static int xl6CgenIsThreadType(const XL6_AstNode* typeNode)
+{
+    return typeNode != NULL && xl6CTextEquals(typeNode->text, "thread");
+}
+
+static int xl6CgenIsGeneratorType(const XL6_AstNode* typeNode)
+{
+    return typeNode != NULL && xl6CTextEquals(typeNode->text, "generator");
+}
+
+static int xl6CgenIsSyncHandleTypeName(const char* name)
+{
+    return xl6CTextEquals(name, "mutex") ||
+           xl6CTextEquals(name, "sem") ||
+           xl6CTextEquals(name, "cond") ||
+           xl6CTextEquals(name, "rwlock");
+}
+
+static int xl6CgenIsSyncHandleType(const XL6_AstNode* typeNode)
+{
+    return typeNode != NULL && xl6CgenIsSyncHandleTypeName(typeNode->text);
+}
