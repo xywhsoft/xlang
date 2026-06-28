@@ -1,0 +1,23 @@
+class Counter
+    private int seed = 10
+    static int total = 0
+
+    static func add(int value) as int
+        Counter.total = Counter.total + value
+        return Counter.total
+    end
+
+    func reveal() as int
+        return self.seed
+    end
+end
+
+auto counter = Counter()
+
+assert counter.reveal() == 10, "private instance field failed"
+assert Counter.total == 0, "static field default failed"
+assert Counter.add(4) == 4, "static method call failed"
+Counter.total = 12
+assert Counter.total == 12, "static field assignment failed"
+
+print("oop static access ok")

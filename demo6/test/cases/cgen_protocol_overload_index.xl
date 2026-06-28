@@ -1,0 +1,79 @@
+class Grid
+    int base = 0
+
+    create(int base)
+        self.base = base
+    end
+
+    func __item__(int x) as int
+        return self.base + x
+    end
+
+    func __item__(int x, int y) as int
+        return self.base + x * 10 + y
+    end
+
+    func __item__(string key) as string
+        return key
+    end
+
+    func __setItem__(int x, int value)
+        self.base = value + x
+    end
+
+    func __setItem__(int x, int y, int value)
+        self.base = value + x * 10 + y
+    end
+
+    func __call__(int delta) as int
+        return self.base + delta
+    end
+
+    func __call__(string name) as int
+        return 1000
+    end
+
+    func __contains__(int value) as bool
+        return value == self.base
+    end
+
+    func __contains__(string key) as bool
+        return key == "name"
+    end
+
+    func __add__(int delta) as int
+        return self.base + delta
+    end
+
+    func __add__(string name) as int
+        return 2000
+    end
+end
+
+extern "expect_i64" func expect(int actual, int expected)
+extern "expect_str" func expectStr(string actual, string expected)
+
+auto grid = Grid(100)
+
+expect(grid[2], 102)
+expect(grid[2, 3], 123)
+expectStr(grid["name"], "name")
+
+grid[4] = 50
+expect(grid[0], 54)
+
+grid[2, 3] = 7
+expect(grid[0], 30)
+
+expect(grid(5), 35)
+expect(grid("abc"), 1000)
+expect(grid + 5, 35)
+expect(grid + "abc", 2000)
+
+if not (30 in grid) then
+    throw "int contains overload failed"
+end
+
+if not ("name" in grid) then
+    throw "string contains overload failed"
+end

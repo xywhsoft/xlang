@@ -40,7 +40,7 @@ static void xl6CgenGenericClassDecl(XL6_CgenContext* ctx, const XL6_AstNode* typ
                 xl6CgenInlineUnionDeclDependencies(ctx, member);
                 continue;
             }
-            if ( member->kind != XL6_AST_FIELD || member->childCount == 0 ) {
+            if ( !xl6CgenIsInstanceField(member) || member->childCount == 0 ) {
                 continue;
             }
             depType = xl6CgenCloneCanonicalTypeNode(ctx, member->children[0]);
@@ -65,7 +65,7 @@ static void xl6CgenGenericClassDecl(XL6_CgenContext* ctx, const XL6_AstNode* typ
                 xl6CgenInlineUnionFieldDecl(ctx, member);
                 continue;
             }
-            if ( member->kind != XL6_AST_FIELD || member->childCount == 0 ) {
+            if ( !xl6CgenIsInstanceField(member) || member->childCount == 0 ) {
                 continue;
             }
             xl6OutputPuts("    ", ctx->out);
@@ -156,10 +156,20 @@ static void xl6CgenGenericClassCallableSymbol(
     size_t i;
 
     name = xl6CgenCallableName(memberNode);
-    xl6CgenGenericClassMemberSymbol(ctx, classNode, typeNode, name != NULL ? name : "_");
+    if ( memberNode != NULL && (memberNode->kind == XL6_AST_GET || memberNode->kind == XL6_AST_LET) ) {
+        xl6CgenGenericClassMemberSymbol(ctx,
+                                        classNode,
+                                        typeNode,
+                                        memberNode->kind == XL6_AST_GET ? "__get__" : "__let__");
+        xl6OutputPuts("__", ctx->out);
+        xl6CgenMangledPart(ctx->out, name != NULL ? name : "_");
+    } else {
+        xl6CgenGenericClassMemberSymbol(ctx, classNode, typeNode, name != NULL ? name : "_");
+    }
 
     if ( memberNode == NULL ||
-         (memberNode->kind != XL6_AST_FUNC && memberNode->kind != XL6_AST_CREATE) ||
+         (memberNode->kind != XL6_AST_FUNC && memberNode->kind != XL6_AST_CREATE &&
+          memberNode->kind != XL6_AST_GET && memberNode->kind != XL6_AST_LET) ||
          xl6CgenClassCallableOverloadCount(classNode, memberNode) <= 1 ) {
         return;
     }
@@ -298,7 +308,8 @@ static void xl6CgenGenericClassMethodProtos(XL6_CgenContext* ctx)
         hasDestroy = 0;
         for ( j = 0; j < body->childCount; ++j ) {
             const XL6_AstNode* member = body->children[j];
-            if ( member != NULL && member->kind == XL6_AST_FUNC ) {
+            if ( member != NULL &&
+                 (member->kind == XL6_AST_FUNC || member->kind == XL6_AST_GET || member->kind == XL6_AST_LET) ) {
                 xl6CgenGenericClassFuncProto(ctx, classNode, typeNode, member);
                 xl6OutputPuts(";\n", ctx->out);
             } else if ( member != NULL && member->kind == XL6_AST_CREATE ) {
@@ -368,6 +379,7 @@ static void xl6CgenClassDecls(XL6_CgenContext* ctx, const XL6_AstNode* classNode
         xl6CgenClassTypeName(ctx->out, base->text);
         xl6OutputPuts(" base;\n", ctx->out);
     }
+    xl6CgenVirtualFieldDecl(ctx, classNode);
 
     if ( body != NULL ) {
         for ( i = 0; i < body->childCount; ++i ) {
@@ -379,7 +391,7 @@ static void xl6CgenClassDecls(XL6_CgenContext* ctx, const XL6_AstNode* classNode
                 xl6CgenInlineUnionFieldDecl(ctx, member);
                 continue;
             }
-            if ( member->kind != XL6_AST_FIELD || member->childCount == 0 ) {
+            if ( !xl6CgenIsInstanceField(member) || member->childCount == 0 ) {
                 continue;
             }
             xl6OutputPuts("    ", ctx->out);
@@ -393,10 +405,7 @@ static void xl6CgenClassDecls(XL6_CgenContext* ctx, const XL6_AstNode* classNode
     xl6CgenClassTypeName(ctx->out, classNode->text);
     xl6OutputPuts(";\n", ctx->out);
 
-    if ( ctx->needsXValueRuntime ) {
-        xl6CgenClassTypeTextName(cTypeName, sizeof(cTypeName), classNode->text);
-        xl6CgenEmitRecordBoxRuntime(ctx, classNode, NULL, cTypeName, classNode->text);
-    }
+    xl6CgenStaticClassFieldDecls(ctx, classNode);
 
     if ( body != NULL ) {
         int hasDestroy = 0;
@@ -405,7 +414,7 @@ static void xl6CgenClassDecls(XL6_CgenContext* ctx, const XL6_AstNode* classNode
             if ( member == NULL ) {
                 continue;
             }
-            if ( member->kind == XL6_AST_FUNC ) {
+            if ( member->kind == XL6_AST_FUNC || member->kind == XL6_AST_GET || member->kind == XL6_AST_LET ) {
                 xl6CgenClassFuncProto(ctx, classNode, member);
                 xl6OutputPuts(";\n", ctx->out);
             } else if ( member->kind == XL6_AST_CREATE ) {
@@ -439,6 +448,13 @@ static void xl6CgenClassDecls(XL6_CgenContext* ctx, const XL6_AstNode* classNode
         xl6CgenClassCopyBuiltinHelperProtos(ctx, classNode);
         xl6CgenClassPersistenceHelperProtos(ctx, classNode);
     }
+    xl6CgenVirtualTableStructDecl(ctx, classNode);
+    xl6CgenVirtualTableObjectDecls(ctx, classNode);
+
+    if ( ctx->needsXValueRuntime ) {
+        xl6CgenClassTypeTextName(cTypeName, sizeof(cTypeName), classNode->text);
+        xl6CgenEmitRecordBoxRuntime(ctx, classNode, NULL, cTypeName, classNode->text);
+    }
 }
 
 static void xl6CgenClassDefaultInitFields(XL6_CgenContext* ctx, const XL6_AstNode* classNode, const char* varPath)
@@ -461,6 +477,7 @@ static void xl6CgenClassDefaultInitFields(XL6_CgenContext* ctx, const XL6_AstNod
             xl6CgenClassDefaultInitFields(ctx, baseClass, basePath);
         }
     }
+    xl6CgenClassInitVTables(ctx, classNode, varPath);
 
     body = classNode->childCount > 1 ? classNode->children[1] : NULL;
     if ( body == NULL ) {
@@ -473,7 +490,7 @@ static void xl6CgenClassDefaultInitFields(XL6_CgenContext* ctx, const XL6_AstNod
         XL6_AstNode* fieldCustom;
         XL6_AstNode* ctorCustom;
 
-        if ( member == NULL || member->kind != XL6_AST_FIELD || member->childCount < 2 ) {
+        if ( !xl6CgenIsInstanceField(member) || member->childCount < 2 ) {
             continue;
         }
         fieldType = member->children[0];

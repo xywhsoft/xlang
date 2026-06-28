@@ -37,7 +37,7 @@ static int xl6ParserTokenKind(const XL6_Token* token)
     case XL6_TK_INT: return XL6PG_INT;
     case XL6_TK_FLOAT: return XL6PG_FLOAT;
     case XL6_TK_STRING: return XL6PG_STRING;
-    case XL6_TK_TEMPLATE_STRING: return XL6PG_TEMPLATE_STRING;
+    case XL6_TK_FSTRING: return XL6PG_FSTRING;
     case XL6_TK_TIME: return XL6PG_TIME;
     case XL6_TK_DOC: return XL6PG_DOC;
     case XL6_TK_SEP: return XL6PG_SEP;
@@ -63,6 +63,14 @@ static int xl6ParserTokenKind(const XL6_Token* token)
     case XL6_KW_EXTENDS: return XL6PG_KW_EXTENDS;
     case XL6_KW_UNION: return XL6PG_KW_UNION;
     case XL6_KW_DERIVE: return XL6PG_KW_DERIVE;
+    case XL6_KW_GET: return XL6PG_KW_GET;
+    case XL6_KW_LET: return XL6PG_KW_LET;
+    case XL6_KW_PUBLIC: return XL6PG_KW_PUBLIC;
+    case XL6_KW_PRIVATE: return XL6PG_KW_PRIVATE;
+    case XL6_KW_STATIC: return XL6PG_KW_STATIC;
+    case XL6_KW_OVERRIDE: return XL6PG_KW_OVERRIDE;
+    case XL6_KW_FINAL: return XL6PG_KW_FINAL;
+    case XL6_KW_VIRTUAL: return XL6PG_KW_VIRTUAL;
     case XL6_KW_RETURN: return XL6PG_KW_RETURN;
     case XL6_KW_END: return XL6PG_KW_END;
     case XL6_KW_IF: return XL6PG_KW_IF;

@@ -40,6 +40,11 @@
 - class 的 `__len__` 协议与 `.length` 只读属性，支持命名变量、函数返回值和构造表达式临时接收者。
 - class 方法多返回值，支持成员调用返回类型推断、解构声明和解构赋值。
 - 普通 class 的 `__iter__` / `__next__` 迭代协议，支持 `for value in obj` 与 `for index, value in obj`。
+- 协议重载统一：`create(...)`、`__item__`、`__setItem__`、`__contains__`、`__call__` 和运算符协议复用 class 方法重载解析。
+- `get` / `let` 属性系统，支持零维属性、多维属性参数、属性读写重载和属性索引回退。
+- `public` / `private` 访问控制；默认公开，`private` 仅当前 class 内可访问。
+- `static` 字段和方法；通过类型名访问，static 方法没有 `self`。
+- `override` / `final` / `virtual` 规则检查，以及 virtual 方法和 getter 的 vtable 动态派发。
 
 ## 2. 核心分层
 
@@ -285,19 +290,22 @@ end
 
 规则：
 
-- 子类覆盖父类方法时必须写 `override`。
-- `override` 必须能找到父类同签名方法。
-- `final` 方法不能被子类覆盖。
-- 第一批先做静态检查，不要求同时完成动态派发。
+- 子类覆盖父类方法或属性时必须写 `override`。
+- `override` 必须能找到父类同签名成员。
+- `override` 目标必须是 `virtual` 或已经处于 override 链上的成员。
+- `final` 成员不能被子类覆盖。
+- `static` 与 `private` 成员不能参与 `override` / `final` / `virtual`。
+- 第一批已完成静态检查和 virtual 动态派发。
 
 P5：`virtual` 动态派发。
 
 规则：
 
-- 只有显式 `virtual` 方法进入动态派发。
+- 只有显式 `virtual` 方法和属性 getter 进入动态派发。
 - 普通方法继续保持静态分发和零成本调用。
-- `virtual` 方法生成 vtable 或等价调度表。
+- `virtual` 成员生成 vtable 调度表；派生类 override 生成对应 vtable 对象。
 - `override` 方法必须兼容父类 virtual 方法 ABI。
+- 当前实现支持方法、getter 和 setter 的动态派发。
 - C ABI 导出默认不暴露 vtable 细节，必要时生成 wrapper。
 
 暂缓能力：

@@ -9,8 +9,9 @@
   - 运行版只支持宿主进程内创建语言上下文、运行字符串脚本或脚本文件、注册宿主 C 函数。
   - 编译版在运行版能力之外支持编译 exe/dll，并携带必要的内置 TCC/XRT 资源。
 - 运行版不携带 exe/dll 输出所需的头文件、库文件和启动文件，保持体积小。
-- 编译版和 `xl.exe` 使用清单驱动的内置 VFS，不再扫描目录后把所有文件塞进程序。
-- 外部文件优先：同名外部资源存在时，优先使用外部文件，内置 VFS 只作为零配置兜底。
+- 编译版和 `xl.exe` 使用清单驱动的 VFS，不再扫描目录后把所有文件塞进程序。
+- VFS 分为动态 VFS 和静态 VFS：动态 VFS 保存本次编译临时生成物，静态 VFS 保存内置 TCC/XRT 兜底资源。
+- TCC 文件查找顺序固定为：动态 VFS -> 外部文件系统 -> 静态 VFS。
 
 ## 产物职责
 
@@ -58,12 +59,13 @@ end
 5. 调用生成代码的 `xlUnit`。
 6. 返回 `xlang_main` 的返回值。
 
-DLL 运行版不调用 C `main`，而是：
+DLL / 内嵌运行路径不调用 C `main`，而是：
 
-1. `tcc_compile_string()` 编译生成 C。
-2. `tcc_relocate()` 完成重定位。
-3. `tcc_get_symbol("xlang_main")` 获取入口。
-4. 直接调用 `xlang_main(arg)`。
+1. 将生成 C 挂载到动态 VFS，例如 `__xlvfs__/module.c`。
+2. `tcc_add_file("__xlvfs__/module.c")` 编译生成 C。
+3. `tcc_relocate()` 完成重定位。
+4. `tcc_get_symbol("xlang_main")` 获取入口。
+5. 直接调用 `xlang_main(arg)`。
 
 ## 运行版参数
 
@@ -113,7 +115,37 @@ DEMO6 固定在 `demo6/lib/tcc` 中维护本版使用的 TCC 副本。后续修�
 #endif
 ```
 
-具体路径处理、UTF-8 到 Windows 宽字符路径转换、外部文件优先、VFS fallback 都放在独立适配层，不散落修改 TCC 主体代码。
+具体路径处理、UTF-8 到 Windows 宽字符路径转换、动态 VFS、外部文件和静态 VFS fallback 都放在独立适配层，不散落修改 TCC 主体代码。
+
+## VFS 查找顺序
+
+TCC 通过 `open/read/lseek/close/fopen/fclose` 适配层访问文件。DEMO6 固定以下查找顺序：
+
+```text
+动态 VFS -> 外部文件系统 -> 静态 VFS
+```
+
+动态 VFS：
+- 保存本次编译生成的中间文件，例如 `__xlvfs__/module.c`、`__xlvfs__/runtime.c`。
+- 生命周期跟一次编译或运行调用绑定，进入 TCC 前挂载，调用结束后清空。
+- 优先级高于外部文件系统，因为它表达的是当前编译上下文刚刚生成的权威内容。
+- 只作为读路径参与 TCC 编译，不承接 exe/dll/header 等最终输出写入。
+
+外部文件系统：
+- 用户真实提供的 `.c`、`.h`、`.a`、`.def`、`.dll` 等文件仍可被 TCC 正常读取。
+- 当外部文件存在时，它优先于静态 VFS，允许用户用更新后的头文件、库文件或启动文件覆盖内置资源。
+
+静态 VFS：
+- 保存 `xl.exe` / `xlc.dll` 内置的 TCC/XRT 资源。
+- 只作为兜底资源使用，保证缺少外部工具链文件时仍可零配置编译和运行。
+
+正常编译运行不应为了交换中间 C 文件创建磁盘临时文件。只有用户显式要求输出内容时才写真实文件，例如：
+
+- `xl cgen --emit output.c`
+- `xl cgen --emit-header output.h`
+- `xl cgen --dump-dir dir`
+- `xl build -o app.exe`
+- 后续 `saveTemps` 导出动态 VFS 内容
 
 ## VFS 资源包
 
@@ -147,7 +179,7 @@ lib/xrt/xrt.o
 - 清单文件：`tools/tcc_vfs_manifest_win64.txt`。
 - 生成器：`tools/gen_tcc_vfs_resources.ps1`。
 - 生成产物：`release\tmp\tcc_builtin_resources.c`，构建时临时生成，不作为手写源维护。
-- VFS 适配层位于 `lib/tcc/tcc_builtin_vfs.c` / `lib/tcc/tcc_builtin_vfs.h`，策略是外部真实文件优先，失败后按虚拟路径查找内置资源。
+- VFS 适配层位于 `lib/tcc/tcc_builtin_vfs.c` / `lib/tcc/tcc_builtin_vfs.h`，策略是动态 VFS 优先，其次外部真实文件，最后按虚拟路径查找内置资源。
 - 当前资源逐个压缩后进入 `xl.exe` / `xlc.dll`。资源结构包含 `method`、`packed_size`、`size`。
 - 当前压缩算法固定为 LZMA：构建期使用 `tools/tcc_vfs_lzma_pack.c` 压缩，运行期只链接 `lib/lzma/LzmaDec.c` 解压；压缩后不变小的资源自动退回原样存储。
 - `lib/tcc/win32/dist/x86_64` 已补齐当前 demo6 需要的 WinAPI 头文件、`libtcc1.a` 和 Windows import def。VFS 资源生成不再引用 demo5 或外部 TCC 仓库。
@@ -176,6 +208,11 @@ lib/xrt/xrt.o
 - 生成的 C `main` 调用 `xlang_main(__xl6_arg)`。
 - 生成的 C `main` 在正常和错误路径释放 `__xl6_arg`。
 - DLL 运行路径从 `tcc_run(main)` 改为 `tcc_relocate()` + `tcc_get_symbol("xlang_main")` + 直接调用。
+- `xlRunScriptString/File` 和 `xlCompileScriptString/FileToExe` 的主生成 C 已改为挂载动态 VFS 后通过 `tcc_add_file` 编译，不再用磁盘临时文件交换主 C 文件。
+- CLI `xl build` / `xl run` 的主生成 C、生成头和 C 混编 wrapper 已改为挂载动态 VFS 后通过 `tcc_add_file` 编译；默认不再用 `module.c`、`module.h`、`csrc_N.c` 交换中间源码。
+- CLI `--save-temps` 是显式调试输出，会把动态 VFS 中的主 C、生成头、XAPI 和 wrapper 导出到工作目录并保留。
+- CLI `xl run` 当前仍输出临时 `app.exe` 并以独立进程执行，这是运行模型产物，不属于源码交换文件；后续若改为进程内运行，可进一步取消该临时 exe。
+- DLL/API 的脚本运行和编译 exe 入口不再为了普通执行预创建 `tempDir`；`tempDir/saveTemps` 保留给后续显式导出动态 VFS 内容。
 - `xlRunScriptStringArg` / `xlRunScriptFileArg` 已加入公开头文件和实现。
 - `xl.dll` 测试已覆盖新 API 的 `NULL arg` 调用路径。
 - 内存运行时 TCC 符号表已补齐当前 generated C 需要的 typed container 与 `xrtDictWalk` 符号。

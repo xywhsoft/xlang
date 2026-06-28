@@ -6,6 +6,8 @@
 %type assign_op { XL6_Token }
 %type name_tok { XL6_Token }
 %type doc_block { XL6_Token }
+%type class_member_mods { unsigned int }
+%type class_member_modifier { unsigned int }
 
 %include {
 #include "src/parser/xl6_parser_api.h"
@@ -39,6 +41,390 @@ static void xl6PDiag(XL6_ParseContext* ctx, const XL6_Token* token, const char* 
     }
 }
 
+typedef struct XL6_PTextBuilder {
+    char* data;
+    size_t len;
+    size_t cap;
+} XL6_PTextBuilder;
+
+static void xl6PTextBuilderInit(XL6_PTextBuilder* builder)
+{
+    memset(builder, 0, sizeof(*builder));
+}
+
+static void xl6PTextBuilderUnit(XL6_PTextBuilder* builder)
+{
+    if ( builder == NULL ) {
+        return;
+    }
+    xrtFree(builder->data);
+    memset(builder, 0, sizeof(*builder));
+}
+
+static int xl6PTextBuilderGrow(XL6_PTextBuilder* builder, size_t addLen)
+{
+    char* newData;
+    size_t need;
+    size_t newCap;
+
+    if ( builder == NULL ) {
+        return 0;
+    }
+    need = builder->len + addLen + 1;
+    if ( need <= builder->cap ) {
+        return 1;
+    }
+    newCap = builder->cap != 0 ? builder->cap : 64;
+    while ( newCap < need ) {
+        newCap *= 2;
+    }
+    newData = (char*)xrtRealloc(builder->data, newCap);
+    if ( newData == NULL ) {
+        return 0;
+    }
+    builder->data = newData;
+    builder->cap = newCap;
+    return 1;
+}
+
+static int xl6PTextBuilderAppendRange(XL6_PTextBuilder* builder, const char* text, size_t len)
+{
+    if ( len == 0 ) {
+        return 1;
+    }
+    if ( text == NULL || !xl6PTextBuilderGrow(builder, len) ) {
+        return 0;
+    }
+    memcpy(builder->data + builder->len, text, len);
+    builder->len += len;
+    builder->data[builder->len] = '\0';
+    return 1;
+}
+
+static int xl6PTextBuilderAppendChar(XL6_PTextBuilder* builder, char ch)
+{
+    return xl6PTextBuilderAppendRange(builder, &ch, 1);
+}
+
+static int xl6PFlushFStringText(XL6_AstNode* node, XL6_PTextBuilder* builder, const XL6_Token* token)
+{
+    if ( builder == NULL || builder->len == 0 ) {
+        return 1;
+    }
+    xl6AstAddChild(node, xl6AstNewText(XL6_AST_INTERP_TEXT, builder->data, builder->len, token));
+    builder->len = 0;
+    if ( builder->data != NULL ) {
+        builder->data[0] = '\0';
+    }
+    return 1;
+}
+
+static int xl6PIsFStringSpace(char ch)
+{
+    return ch == ' ' || ch == '\t' || ch == '\r' || ch == '\n' || ch == '\f' || ch == '\v';
+}
+
+static int xl6PFStringExprIsEmpty(const char* text, size_t len)
+{
+    size_t i;
+
+    if ( text == NULL ) {
+        return 1;
+    }
+    for ( i = 0; i < len; ++i ) {
+        if ( !xl6PIsFStringSpace(text[i]) ) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
+static size_t xl6PFStringSkipQuoted(const char* text, size_t len, size_t pos)
+{
+    char quote;
+    int triple;
+    size_t i;
+
+    if ( text == NULL || pos >= len ) {
+        return pos;
+    }
+    if ( text[pos] == 'r' && pos + 1 < len && (text[pos + 1] == '\'' || text[pos + 1] == '"') ) {
+        ++pos;
+    } else if ( text[pos] == 'f' && pos + 1 < len && (text[pos + 1] == '\'' || text[pos + 1] == '"') ) {
+        ++pos;
+    } else if ( text[pos] == 'r' && pos + 2 < len && text[pos + 1] == 'f' && (text[pos + 2] == '\'' || text[pos + 2] == '"') ) {
+        pos += 2;
+    }
+    if ( text[pos] != '\'' && text[pos] != '"' ) {
+        return pos;
+    }
+
+    quote = text[pos];
+    triple = pos + 2 < len && text[pos + 1] == quote && text[pos + 2] == quote;
+    i = pos + (triple ? 3 : 1);
+    while ( i < len ) {
+        if ( !triple && text[i] == '\\' && i + 1 < len ) {
+            i += 2;
+            continue;
+        }
+        if ( triple ) {
+            if ( i + 2 < len && text[i] == quote && text[i + 1] == quote && text[i + 2] == quote ) {
+                return i + 3;
+            }
+        } else if ( text[i] == quote ) {
+            return i + 1;
+        }
+        ++i;
+    }
+    return len;
+}
+
+static size_t xl6PFStringSkipComment(const char* text, size_t len, size_t pos)
+{
+    size_t i;
+
+    if ( pos + 1 >= len || text[pos] != '/' ) {
+        return pos;
+    }
+    if ( text[pos + 1] == '/' ) {
+        i = pos + 2;
+        while ( i < len && text[i] != '\r' && text[i] != '\n' ) {
+            ++i;
+        }
+        return i;
+    }
+    if ( text[pos + 1] == '*' ) {
+        i = pos + 2;
+        while ( i + 1 < len ) {
+            if ( text[i] == '*' && text[i + 1] == '/' ) {
+                return i + 2;
+            }
+            ++i;
+        }
+        return len;
+    }
+    return pos;
+}
+
+static size_t xl6PFStringFindExprEnd(const char* text, size_t len, size_t pos)
+{
+    size_t i;
+    int parenDepth;
+    int bracketDepth;
+    int braceDepth;
+    size_t skipped;
+
+    parenDepth = 0;
+    bracketDepth = 0;
+    braceDepth = 0;
+    i = pos;
+    while ( i < len ) {
+        if ( text[i] == '\'' || text[i] == '"' ||
+             (text[i] == 'r' && i + 1 < len && (text[i + 1] == '\'' || text[i + 1] == '"' || (text[i + 1] == 'f' && i + 2 < len && (text[i + 2] == '\'' || text[i + 2] == '"')))) ||
+             (text[i] == 'f' && i + 1 < len && (text[i + 1] == '\'' || text[i + 1] == '"')) ) {
+            skipped = xl6PFStringSkipQuoted(text, len, i);
+            if ( skipped > i ) {
+                i = skipped;
+                continue;
+            }
+        }
+        if ( text[i] == '/' ) {
+            skipped = xl6PFStringSkipComment(text, len, i);
+            if ( skipped > i ) {
+                i = skipped;
+                continue;
+            }
+        }
+        if ( text[i] == '#' ) {
+            skipped = i + 1;
+            while ( skipped < len && text[skipped] != '#' && text[skipped] != '\r' && text[skipped] != '\n' ) {
+                ++skipped;
+            }
+            if ( skipped < len && text[skipped] == '#' ) {
+                i = skipped + 1;
+                continue;
+            }
+        }
+        switch ( text[i] ) {
+        case '(':
+            ++parenDepth;
+            break;
+        case ')':
+            if ( parenDepth > 0 ) {
+                --parenDepth;
+            }
+            break;
+        case '[':
+            ++bracketDepth;
+            break;
+        case ']':
+            if ( bracketDepth > 0 ) {
+                --bracketDepth;
+            }
+            break;
+        case '{':
+            ++braceDepth;
+            break;
+        case '}':
+            if ( parenDepth == 0 && bracketDepth == 0 && braceDepth == 0 ) {
+                return i;
+            }
+            if ( braceDepth > 0 ) {
+                --braceDepth;
+            }
+            break;
+        default:
+            break;
+        }
+        ++i;
+    }
+    return len;
+}
+
+static XL6_AstNode* xl6PDetachParsedFStringExpr(XL6_ParseResult* result)
+{
+    XL6_AstNode* root;
+    XL6_AstNode* stmt;
+    XL6_AstNode* expr;
+
+    if ( result == NULL || result->root == NULL || result->root->childCount != 1 ) {
+        return NULL;
+    }
+    root = result->root;
+    stmt = root->children[0];
+    if ( stmt == NULL || stmt->kind != XL6_AST_VAR_DECL || stmt->childCount < 2 ) {
+        return NULL;
+    }
+    expr = stmt->children[1];
+    stmt->children[1] = NULL;
+    return expr;
+}
+
+static XL6_AstNode* xl6PParseFStringExpr(XL6_ParseContext* ctx, const XL6_Token* token, const char* text, size_t len)
+{
+    static const char prefix[] = "auto __xl6_fstr_expr = (";
+    static const char suffix[] = ")\n";
+    XL6_ParseResult result;
+    XL6_AstNode* expr;
+    char* source;
+    size_t sourceLen;
+    int ok;
+
+    if ( xl6PFStringExprIsEmpty(text, len) ) {
+        xl6PDiag(ctx, token, "f-string 插值表达式不能为空");
+        return xl6AstNewText(XL6_AST_STRING, "", 0, token);
+    }
+
+    sourceLen = (sizeof(prefix) - 1) + len + (sizeof(suffix) - 1);
+    source = (char*)xrtMalloc(sourceLen + 1);
+    if ( source == NULL ) {
+        xl6PDiag(ctx, token, "内存不足，无法解析 f-string 插值表达式");
+        return xl6AstNewText(XL6_AST_STRING, "", 0, token);
+    }
+    memcpy(source, prefix, sizeof(prefix) - 1);
+    memcpy(source + sizeof(prefix) - 1, text, len);
+    memcpy(source + sizeof(prefix) - 1 + len, suffix, sizeof(suffix));
+
+    xl6ParseResultInit(&result);
+    ok = xl6ParseSource(source, "<f-string>", &result);
+    xrtFree(source);
+    if ( !ok ) {
+        xl6ParseResultFree(&result);
+        xl6PDiag(ctx, token, "f-string 插值表达式语法错误");
+        return xl6AstNewText(XL6_AST_STRING, "", 0, token);
+    }
+
+    expr = xl6PDetachParsedFStringExpr(&result);
+    xl6ParseResultFree(&result);
+    if ( expr == NULL ) {
+        xl6PDiag(ctx, token, "f-string 插值表达式语法错误");
+        return xl6AstNewText(XL6_AST_STRING, "", 0, token);
+    }
+    return expr;
+}
+
+static XL6_AstNode* xl6PParseFString(XL6_ParseContext* ctx, const XL6_Token* token)
+{
+    XL6_AstNode* node;
+    XL6_PTextBuilder builder;
+    const char* text;
+    size_t len;
+    size_t prefixLen;
+    size_t quoteLen;
+    size_t start;
+    size_t end;
+    size_t i;
+    size_t exprEnd;
+    char quote;
+
+    node = xl6AstNew(XL6_AST_INTERP_STRING, token);
+    if ( token == NULL || token->text == NULL || token->len < 3 ) {
+        xl6PDiag(ctx, token, "f-string 字面量无效");
+        return node;
+    }
+
+    text = token->text;
+    len = token->len;
+    prefixLen = (len >= 2 && text[0] == 'r' && text[1] == 'f') ? 2 : 1;
+    if ( prefixLen >= len || (text[prefixLen] != '\'' && text[prefixLen] != '"') ) {
+        xl6PDiag(ctx, token, "f-string 字面量无效");
+        return node;
+    }
+    quote = text[prefixLen];
+    quoteLen = (prefixLen + 2 < len && text[prefixLen + 1] == quote && text[prefixLen + 2] == quote) ? 3 : 1;
+    if ( len < prefixLen + quoteLen * 2 ) {
+        xl6PDiag(ctx, token, "f-string 字面量无效");
+        return node;
+    }
+
+    start = prefixLen + quoteLen;
+    end = len - quoteLen;
+    xl6PTextBuilderInit(&builder);
+    for ( i = start; i < end; ++i ) {
+        if ( text[i] == '{' ) {
+            if ( i + 1 < end && text[i + 1] == '{' ) {
+                if ( !xl6PTextBuilderAppendChar(&builder, '{') ) {
+                    xl6PDiag(ctx, token, "内存不足，无法解析 f-string 文本");
+                    break;
+                }
+                ++i;
+                continue;
+            }
+            if ( !xl6PFlushFStringText(node, &builder, token) ) {
+                xl6PDiag(ctx, token, "内存不足，无法解析 f-string 文本");
+                break;
+            }
+            exprEnd = xl6PFStringFindExprEnd(text, end, i + 1);
+            if ( exprEnd >= end ) {
+                xl6PDiag(ctx, token, "未闭合的 f-string 插值表达式");
+                break;
+            }
+            xl6AstAddChild(node, xl6PParseFStringExpr(ctx, token, text + i + 1, exprEnd - i - 1));
+            i = exprEnd;
+            continue;
+        }
+        if ( text[i] == '}' ) {
+            if ( i + 1 < end && text[i + 1] == '}' ) {
+                if ( !xl6PTextBuilderAppendChar(&builder, '}') ) {
+                    xl6PDiag(ctx, token, "内存不足，无法解析 f-string 文本");
+                    break;
+                }
+                ++i;
+                continue;
+            }
+            xl6PDiag(ctx, token, "f-string 文本区单独的 } 无效，请写 }}");
+            break;
+        }
+        if ( !xl6PTextBuilderAppendChar(&builder, text[i]) ) {
+            xl6PDiag(ctx, token, "内存不足，无法解析 f-string 文本");
+            break;
+        }
+    }
+    xl6PFlushFStringText(node, &builder, token);
+    xl6PTextBuilderUnit(&builder);
+    return node;
+}
+
 static int xl6PTokenTextEquals(const XL6_Token* token, const char* text)
 {
     size_t len;
@@ -67,22 +453,54 @@ static XL6_AstNode* xl6PTypedLiteral(const XL6_Token* token, XL6_AstNode* litera
     return node;
 }
 
+static XL6_AstNode* xl6PIndexPayloadFromList(XL6_AstNode* list)
+{
+    XL6_AstNode* only;
+
+    if ( list == NULL ) {
+        return NULL;
+    }
+    if ( list->childCount != 1 ) {
+        return list;
+    }
+
+    only = list->children[0];
+    list->children[0] = NULL;
+    xl6AstFree(list);
+    return only;
+}
+
+static XL6_AstNode* xl6PIndexPayloadFromArrayLiteral(XL6_AstNode* literal)
+{
+    XL6_AstNode* list;
+
+    if ( literal == NULL || literal->kind != XL6_AST_ARRAY_LITERAL || literal->childCount == 0 ) {
+        return literal;
+    }
+    if ( literal->childCount == 1 ) {
+        return xl6PIndexPayloadFromList(literal);
+    }
+
+    list = xl6PList();
+    xl6AstMoveChildren(list, literal);
+    xl6AstFree(literal);
+    return list;
+}
+
 static XL6_AstNode* xl6PBracketAfterName(const XL6_Token* token, XL6_AstNode* literal)
 {
     XL6_AstNode* node;
-    XL6_AstNode* indexExpr;
+    XL6_AstNode* indexPayload;
 
     if ( xl6PIsBracketLiteralPrefix(token) ) {
         return xl6PTypedLiteral(token, literal);
     }
 
-    if ( literal != NULL && literal->kind == XL6_AST_ARRAY_LITERAL && literal->childCount == 1 ) {
-        indexExpr = literal->children[0];
-        literal->children[0] = NULL;
+    if ( literal != NULL && literal->kind == XL6_AST_ARRAY_LITERAL && literal->childCount > 0 ) {
+        indexPayload = xl6PIndexPayloadFromArrayLiteral(literal);
         node = xl6AstNew(XL6_AST_INDEX, token);
         xl6AstAddChild(node, xl6AstNew(XL6_AST_NAME, token));
-        xl6AstAddChild(node, indexExpr);
-        xl6AstFree(literal);
+        xl6AstAddChild(node, indexPayload);
         return node;
     }
 
@@ -102,6 +520,14 @@ static XL6_AstNode* xl6PWithDoc(XL6_AstNode* node, const XL6_Token* doc)
     xl6AstSetDoc(node, doc);
     return node;
 }
+
+static XL6_AstNode* xl6PWithFlags(XL6_AstNode* node, unsigned int flags)
+{
+    if ( node != NULL ) {
+        node->flags |= flags;
+    }
+    return node;
+}
 }
 
 %syntax_error {
@@ -116,6 +542,7 @@ static XL6_AstNode* xl6PWithDoc(XL6_AstNode* node, const XL6_Token* doc)
 
 %nonassoc KW_THEN.
 %nonassoc KW_ELSE.
+%fallback IDENT KW_PUBLIC KW_PRIVATE KW_STATIC KW_OVERRIDE KW_FINAL KW_VIRTUAL.
 %right FAT_ARROW.
 %right QUESTION.
 %left NULL_COALESCE.
@@ -285,11 +712,25 @@ class_body(A) ::= class_body(B) class_member(M). {
 }
 
 class_member(A) ::= class_member_base(B). { A = B; }
+class_member(A) ::= class_member_mods(M) class_member_base(B). { A = xl6PWithFlags(B, M); }
 class_member(A) ::= doc_block(D) class_member_base(B). { A = xl6PWithDoc(B, &D); }
+class_member(A) ::= doc_block(D) class_member_mods(M) class_member_base(B). { A = xl6PWithDoc(xl6PWithFlags(B, M), &D); }
+
+class_member_mods(A) ::= class_member_modifier(M). { A = M; }
+class_member_mods(A) ::= class_member_mods(B) class_member_modifier(M). { A = B | M; }
+
+class_member_modifier(A) ::= KW_PUBLIC. { A = XL6_AST_FLAG_PUBLIC; }
+class_member_modifier(A) ::= KW_PRIVATE. { A = XL6_AST_FLAG_PRIVATE; }
+class_member_modifier(A) ::= KW_STATIC. { A = XL6_AST_FLAG_STATIC; }
+class_member_modifier(A) ::= KW_OVERRIDE. { A = XL6_AST_FLAG_OVERRIDE; }
+class_member_modifier(A) ::= KW_FINAL. { A = XL6_AST_FLAG_FINAL; }
+class_member_modifier(A) ::= KW_VIRTUAL. { A = XL6_AST_FLAG_VIRTUAL; }
 
 class_member_base(A) ::= field_decl(B). { A = B; }
 class_member_base(A) ::= derive_decl(B). { A = B; }
 class_member_base(A) ::= func_decl(B). { A = B; }
+class_member_base(A) ::= property_get_decl(B). { A = B; }
+class_member_base(A) ::= property_let_decl(B). { A = B; }
 class_member_base(A) ::= class_special_decl(B). { A = B; }
 class_member_base(A) ::= union_decl(B). { A = B; }
 
@@ -308,6 +749,22 @@ field_decl(A) ::= var_type_ref(T) name_tok(N) field_default(D) need_sep. {
 
 field_default(A) ::= . { A = NULL; }
 field_default(A) ::= ASSIGN expr(E). { A = E; }
+
+property_get_decl(A) ::= KW_GET(G) name_tok(N) name_params(P) return_sig(R) need_sep block(B) KW_END. {
+    A = xl6AstNew(XL6_AST_GET, &G);
+    xl6AstAddChild(A, xl6AstNew(XL6_AST_NAME, &N));
+    xl6AstAddChild(A, P);
+    xl6AstAddChild(A, R);
+    xl6AstAddChild(A, B);
+}
+
+property_let_decl(A) ::= KW_LET(L) name_tok(N) name_params(P) need_sep block(B) KW_END. {
+    A = xl6AstNew(XL6_AST_LET, &L);
+    xl6AstAddChild(A, xl6AstNew(XL6_AST_NAME, &N));
+    xl6AstAddChild(A, P);
+    xl6AstAddChild(A, xl6AstNew(XL6_AST_RETURN_TYPES, NULL));
+    xl6AstAddChild(A, B);
+}
 
 union_decl(A) ::= KW_UNION(U) need_sep union_body(B) KW_END. {
     A = xl6AstNew(XL6_AST_UNION, &U);
@@ -358,7 +815,9 @@ custom_body(A) ::= custom_body(B) custom_member(M). {
 }
 
 custom_member(A) ::= custom_member_base(B). { A = B; }
+custom_member(A) ::= class_member_mods(M) custom_member_base(B). { A = xl6PWithFlags(B, M); }
 custom_member(A) ::= doc_block(D) custom_member_base(B). { A = xl6PWithDoc(B, &D); }
+custom_member(A) ::= doc_block(D) class_member_mods(M) custom_member_base(B). { A = xl6PWithDoc(xl6PWithFlags(B, M), &D); }
 
 custom_member_base(A) ::= custom_extern_special(B). { A = B; }
 custom_member_base(A) ::= custom_extern_func(B). { A = B; }
@@ -857,15 +1316,15 @@ postfix_expr(A) ::= postfix_expr(C) SAFE_DOT name_tok(M). {
     A = xl6AstNew(XL6_AST_SAFE_MEMBER, &M);
     xl6AstAddChild(A, C);
 }
-postfix_expr(A) ::= postfix_expr(C) LBRACKET(B) expr(I) RBRACKET. {
+postfix_expr(A) ::= postfix_expr(C) LBRACKET(B) expr_list(I) RBRACKET. {
     A = xl6AstNew(XL6_AST_INDEX, &B);
     xl6AstAddChild(A, C);
-    xl6AstAddChild(A, I);
+    xl6AstAddChild(A, xl6PIndexPayloadFromList(I));
 }
-postfix_expr(A) ::= postfix_expr(C) SAFE_LBRACKET(B) expr(I) RBRACKET. {
+postfix_expr(A) ::= postfix_expr(C) SAFE_LBRACKET(B) expr_list(I) RBRACKET. {
     A = xl6AstNew(XL6_AST_SAFE_INDEX, &B);
     xl6AstAddChild(A, C);
-    xl6AstAddChild(A, I);
+    xl6AstAddChild(A, xl6PIndexPayloadFromList(I));
 }
 
 atom(A) ::= name_tok(N). [KW_NOT] { A = xl6AstNew(XL6_AST_NAME, &N); }
@@ -873,14 +1332,11 @@ atom(A) ::= TYPE_FUNCTION(N). [KW_NOT] { A = xl6AstNewText(XL6_AST_NAME, "functi
 atom(A) ::= INT(N). { A = xl6AstNew(XL6_AST_INT, &N); }
 atom(A) ::= FLOAT(N). { A = xl6AstNew(XL6_AST_FLOAT, &N); }
 atom(A) ::= STRING(N). { A = xl6AstNew(XL6_AST_STRING, &N); }
+atom(A) ::= FSTRING(N). { A = xl6PParseFString(ctx, &N); }
 atom(A) ::= TIME(N). { A = xl6AstNew(XL6_AST_TIME, &N); }
 atom(A) ::= KW_TRUE(N). { A = xl6AstNewText(XL6_AST_BOOL, "true", 4, &N); }
 atom(A) ::= KW_FALSE(N). { A = xl6AstNewText(XL6_AST_BOOL, "false", 5, &N); }
 atom(A) ::= KW_NULL(N). { A = xl6AstNew(XL6_AST_NULL, &N); }
-atom(A) ::= TEMPLATE_STRING(N). {
-    xl6PDiag(ctx, &N, "模板字符串第一阶段暂未实现");
-    A = xl6AstNew(XL6_AST_STRING, &N);
-}
 atom(A) ::= anon_func(B). { A = B; }
 atom(A) ::= LPAREN expr(E) RPAREN. { A = E; }
 atom(A) ::= bracket_literal(B). { A = B; }

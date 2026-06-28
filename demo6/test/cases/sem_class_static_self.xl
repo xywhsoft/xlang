@@ -1,0 +1,7 @@
+class Bad
+    int value = 1
+
+    static func nope() as int
+        return self.value
+    end
+end

@@ -11,6 +11,7 @@ static int xl6CgenLiteralMatchesType(const XL6_AstNode* expr, const XL6_AstNode*
         return xl6CTextEquals(typeNode->text, "float") || xl6CTextEquals(typeNode->text, "float64") ||
                xl6CTextEquals(typeNode->text, "float32");
     case XL6_AST_STRING:
+    case XL6_AST_INTERP_STRING:
         return xl6CTextEquals(typeNode->text, "string");
     case XL6_AST_TIME:
         return xl6CTextEquals(typeNode->text, "time");

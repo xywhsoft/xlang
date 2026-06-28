@@ -599,6 +599,10 @@ static int xl6CgenClassMethodCall(XL6_CgenContext* ctx, const XL6_AstNode* call,
         ownerClass = classNode;
     }
 
+    if ( xl6CgenVirtualClassMethodCall(ctx, call, member, receiver, classNode, ownerClass, method) ) {
+        return 1;
+    }
+
     prevParams = ctx->currentGenericParams;
     prevArgs = ctx->currentGenericArgs;
     if ( receiverType != NULL && receiverType->childCount > 0 && xl6CgenClassHasTypeParams(ownerClass) ) {
@@ -929,6 +933,10 @@ static void xl6CgenClassFieldAccess(XL6_CgenContext* ctx, const XL6_AstNode* mem
 
     if ( receiver->kind == XL6_AST_NAME && xl6CTextEquals(receiver->text, "self") && ctx->currentClass != NULL ) {
         if ( xl6CgenFindClassFieldNode(ctx, ctx->currentClass, member->text) == NULL &&
+             xl6CgenClassPropertyMemberAccess(ctx, member) ) {
+            return;
+        }
+        if ( xl6CgenFindClassFieldNode(ctx, ctx->currentClass, member->text) == NULL &&
              xl6CgenClassProtocolMemberAccess(ctx, member) ) {
             return;
         }
@@ -953,10 +961,12 @@ static void xl6CgenClassFieldAccess(XL6_CgenContext* ctx, const XL6_AstNode* mem
             return;
         }
 
-        if ( xl6CgenFindClassFieldNode(ctx, classNode, member->text) == NULL &&
-             xl6CgenClassProtocolMemberAccess(ctx, member) ) {
-            xl6AstFree(ownedReceiverType);
-            return;
+        if ( xl6CgenFindClassFieldNode(ctx, classNode, member->text) == NULL ) {
+            if ( xl6CgenClassPropertyMemberAccess(ctx, member) ||
+                 xl6CgenClassProtocolMemberAccess(ctx, member) ) {
+                xl6AstFree(ownedReceiverType);
+                return;
+            }
         }
         xl6CgenExpr(ctx, receiver);
         if ( !xl6CgenEmitClassFieldSuffix(ctx, classNode, member->text) ) {
@@ -974,9 +984,11 @@ static void xl6CgenClassFieldAccess(XL6_CgenContext* ctx, const XL6_AstNode* mem
         return;
     }
 
-    if ( xl6CgenFindClassFieldNode(ctx, classNode, member->text) == NULL &&
-         xl6CgenClassProtocolMemberAccess(ctx, member) ) {
-        return;
+    if ( xl6CgenFindClassFieldNode(ctx, classNode, member->text) == NULL ) {
+        if ( xl6CgenClassPropertyMemberAccess(ctx, member) ||
+             xl6CgenClassProtocolMemberAccess(ctx, member) ) {
+            return;
+        }
     }
     xl6CgenNamedValueReference(ctx, receiver->text);
     if ( !xl6CgenEmitClassFieldSuffix(ctx, classNode, member->text) ) {

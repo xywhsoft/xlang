@@ -1,0 +1,2 @@
+auto name = "xlang"
+auto text = f"hello {name"

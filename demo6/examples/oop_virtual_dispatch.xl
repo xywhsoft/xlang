@@ -1,0 +1,60 @@
+class Entity
+    int baseValue = 1
+
+    virtual func score() as int
+        return self.baseValue
+    end
+
+    func run() as int
+        return self.score() + 1
+    end
+
+    virtual get tag() as int
+        return 10
+    end
+
+    virtual let tag(int value)
+        self.baseValue = value
+    end
+
+    func readTag() as int
+        return self.tag
+    end
+
+    func writeTag(int value)
+        self.tag = value
+    end
+
+    final func stable() as int
+        return 7
+    end
+end
+
+class Player extends Entity
+    int bonus = 5
+
+    override func score() as int
+        return 40 + self.bonus
+    end
+
+    override get tag() as int
+        return 70
+    end
+
+    override let tag(int value)
+        self.bonus = value
+    end
+end
+
+auto player = Player()
+
+assert player.score() == 45, "direct override call failed"
+assert player.run() == 46, "virtual method dispatch failed"
+assert player.tag == 70, "direct virtual property read failed"
+assert player.readTag() == 70, "virtual property dispatch failed"
+player.writeTag(9)
+assert player.bonus == 9, "virtual property write failed"
+assert player.score() == 49, "virtual dispatch after property write failed"
+assert player.stable() == 7, "final inherited method failed"
+
+print("oop virtual dispatch ok")

@@ -70,6 +70,21 @@ static int xl6CgenClassHasTypeParams(const XL6_AstNode* classNode)
     return typeParams != NULL && typeParams->childCount > 0;
 }
 
+static int xl6CgenAstHasFlag(const XL6_AstNode* node, unsigned int flag)
+{
+    return node != NULL && (node->flags & flag) != 0;
+}
+
+static int xl6CgenIsStaticMember(const XL6_AstNode* node)
+{
+    return xl6CgenAstHasFlag(node, XL6_AST_FLAG_STATIC);
+}
+
+static int xl6CgenIsInstanceField(const XL6_AstNode* node)
+{
+    return node != NULL && node->kind == XL6_AST_FIELD && !xl6CgenIsStaticMember(node);
+}
+
 static const XL6_AstNode* xl6CgenClassTypeParams(const XL6_AstNode* classNode)
 {
     return classNode != NULL && classNode->childCount > 2 ? classNode->children[2] : NULL;

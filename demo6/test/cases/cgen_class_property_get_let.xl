@@ -1,0 +1,58 @@
+class Player
+    int base = 10
+
+    get hp() as int
+        return self.base
+    end
+
+    let hp(int value)
+        self.base = value
+    end
+
+    get hp(int idx) as int
+        return self.base + idx
+    end
+
+    let hp(int idx, int value)
+        self.base = value + idx
+    end
+
+    get hp(int x, int y) as int
+        return self.base + x * 10 + y
+    end
+
+    let hp(int x, int y, int value)
+        self.base = value + x * 10 + y
+    end
+end
+
+auto player = Player()
+
+if player.hp != 10 then
+    throw "property get failed"
+end
+
+player.hp = 7
+if player.hp != 7 then
+    throw "property let failed"
+end
+
+if player.hp[3] != 10 then
+    throw "property one-dimension get failed"
+end
+
+player.hp[3] = 20
+if player.hp != 23 then
+    throw "property one-dimension let failed"
+end
+
+if player.hp[2, 4] != 47 then
+    throw "property multi-dimension get failed"
+end
+
+player.hp[2, 4] = 5
+if player.hp != 29 then
+    throw "property multi-dimension let failed"
+end
+
+print("class property ok")

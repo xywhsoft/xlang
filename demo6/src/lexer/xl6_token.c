@@ -9,7 +9,7 @@ const char* xl6TokenKindName(XL6_TokenKind kind)
     case XL6_TK_INT: return "INT";
     case XL6_TK_FLOAT: return "FLOAT";
     case XL6_TK_STRING: return "STRING";
-    case XL6_TK_TEMPLATE_STRING: return "TEMPLATE_STRING";
+    case XL6_TK_FSTRING: return "FSTRING";
     case XL6_TK_TIME: return "TIME";
     case XL6_TK_DOC: return "DOC";
     case XL6_TK_SEP: return "SEP";
@@ -54,6 +54,12 @@ const char* xl6TokenKindName(XL6_TokenKind kind)
     case XL6_KW_DERIVE: return "KW_DERIVE";
     case XL6_KW_GET: return "KW_GET";
     case XL6_KW_LET: return "KW_LET";
+    case XL6_KW_PUBLIC: return "KW_PUBLIC";
+    case XL6_KW_PRIVATE: return "KW_PRIVATE";
+    case XL6_KW_STATIC: return "KW_STATIC";
+    case XL6_KW_OVERRIDE: return "KW_OVERRIDE";
+    case XL6_KW_FINAL: return "KW_FINAL";
+    case XL6_KW_VIRTUAL: return "KW_VIRTUAL";
     case XL6_KW_AND: return "KW_AND";
     case XL6_KW_OR: return "KW_OR";
     case XL6_KW_NOT: return "KW_NOT";

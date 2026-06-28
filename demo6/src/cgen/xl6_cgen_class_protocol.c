@@ -70,6 +70,91 @@ static int xl6CgenResolveClassProtocolReceiver(
     return 1;
 }
 
+static int xl6CgenResolveClassProtocolReceiverForCall(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* receiver,
+    const char* protocolName,
+    const XL6_AstNode* call,
+    const XL6_AstNode** outClass,
+    const XL6_AstNode** outOwnerClass,
+    const XL6_AstNode** outMethod,
+    XL6_AstNode** outReceiverType)
+{
+    XL6_AstNode* receiverType;
+    const XL6_AstNode* concreteType;
+    const XL6_AstNode* classNode;
+    const XL6_AstNode* ownerClass;
+    const XL6_AstNode* method;
+
+    if ( outClass != NULL ) {
+        *outClass = NULL;
+    }
+    if ( outOwnerClass != NULL ) {
+        *outOwnerClass = NULL;
+    }
+    if ( outMethod != NULL ) {
+        *outMethod = NULL;
+    }
+    if ( outReceiverType != NULL ) {
+        *outReceiverType = NULL;
+    }
+    if ( ctx == NULL || receiver == NULL || protocolName == NULL || call == NULL ) {
+        return 0;
+    }
+
+    receiverType = xl6CgenCloneExprTypeForInference(ctx, receiver);
+    concreteType = xl6CgenResolveAliasType(ctx, receiverType);
+    classNode = concreteType != NULL && concreteType->text != NULL
+        ? xl6CgenFindClass(ctx, concreteType->text)
+        : NULL;
+    if ( classNode == NULL && receiver->kind == XL6_AST_NAME &&
+         xl6CTextEquals(receiver->text, "self") && ctx->currentClass != NULL ) {
+        classNode = ctx->currentClass;
+    }
+    if ( classNode == NULL ) {
+        xl6AstFree(receiverType);
+        return 0;
+    }
+
+    ownerClass = NULL;
+    method = xl6CgenResolveClassFunc(ctx, classNode, call, protocolName, &ownerClass);
+    if ( method == NULL ) {
+        xl6AstFree(receiverType);
+        return 0;
+    }
+    if ( ownerClass == NULL ) {
+        ownerClass = classNode;
+    }
+
+    if ( outClass != NULL ) {
+        *outClass = classNode;
+    }
+    if ( outOwnerClass != NULL ) {
+        *outOwnerClass = ownerClass;
+    }
+    if ( outMethod != NULL ) {
+        *outMethod = method;
+    }
+    if ( outReceiverType != NULL ) {
+        *outReceiverType = receiverType;
+    } else {
+        xl6AstFree(receiverType);
+    }
+    return 1;
+}
+
+static int xl6CgenProtocolCallAddIndexArgs(XL6_AstNode* call, const XL6_AstNode* node)
+{
+    size_t i;
+
+    for ( i = 0; i < xl6CgenIndexArgCount(node); ++i ) {
+        if ( !xl6CgenProtocolTempCallAddArg(call, xl6CgenIndexArgAt(node, i)) ) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
 static int xl6CgenClassProtocolReceiverIsAddressable(const XL6_AstNode* receiver)
 {
     if ( receiver == NULL ) {
@@ -516,6 +601,7 @@ static int xl6CgenClassProtocolUnaryExpr(XL6_CgenContext* ctx, const XL6_AstNode
     const XL6_AstNode* ownerClass;
     const XL6_AstNode* method;
     XL6_AstNode* receiverType;
+    XL6_AstNode* protocolCall;
     const char* protocolName;
 
     if ( node == NULL || node->kind != XL6_AST_UNARY || node->childCount == 0 ) {
@@ -524,10 +610,13 @@ static int xl6CgenClassProtocolUnaryExpr(XL6_CgenContext* ctx, const XL6_AstNode
     receiver = node->children[0];
     receiverType = NULL;
     protocolName = xl6CgenUnaryProtocolName(node->text);
-    if ( protocolName == NULL ||
-         !xl6CgenResolveClassProtocolReceiver(ctx, receiver, protocolName, &classNode, &ownerClass, &method, &receiverType) ) {
+    protocolCall = protocolName != NULL ? xl6CgenProtocolTempCallNew(node) : NULL;
+    if ( protocolCall == NULL ||
+         !xl6CgenResolveClassProtocolReceiverForCall(ctx, receiver, protocolName, protocolCall, &classNode, &ownerClass, &method, &receiverType) ) {
+        xl6CgenProtocolTempCallFree(protocolCall);
         return 0;
     }
+    xl6CgenProtocolTempCallFree(protocolCall);
 
     if ( !xl6CgenClassProtocolCallPrefix(ctx, receiver, classNode, ownerClass, method, receiverType) ) {
         xl6AstFree(receiverType);
@@ -547,6 +636,7 @@ static int xl6CgenClassProtocolBinaryExpr(XL6_CgenContext* ctx, const XL6_AstNod
     const XL6_AstNode* method;
     const XL6_AstNode* argType;
     XL6_AstNode* receiverType;
+    XL6_AstNode* protocolCall;
     const char* protocolName;
 
     if ( node == NULL || node->kind != XL6_AST_BINARY || node->childCount < 2 ) {
@@ -563,10 +653,16 @@ static int xl6CgenClassProtocolBinaryExpr(XL6_CgenContext* ctx, const XL6_AstNod
         protocolName = xl6CgenBinaryProtocolName(node->text);
     }
     receiverType = NULL;
-    if ( protocolName == NULL ||
-         !xl6CgenResolveClassProtocolReceiver(ctx, receiver, protocolName, &classNode, &ownerClass, &method, &receiverType) ) {
+    protocolCall = protocolName != NULL ? xl6CgenProtocolTempCallNew(node) : NULL;
+    if ( protocolCall != NULL ) {
+        xl6CgenProtocolTempCallAddArg(protocolCall, arg);
+    }
+    if ( protocolCall == NULL ||
+         !xl6CgenResolveClassProtocolReceiverForCall(ctx, receiver, protocolName, protocolCall, &classNode, &ownerClass, &method, &receiverType) ) {
+        xl6CgenProtocolTempCallFree(protocolCall);
         return 0;
     }
+    xl6CgenProtocolTempCallFree(protocolCall);
 
     argType = xl6CgenClassProtocolParamType(method, 0);
     if ( !xl6CgenClassProtocolCallPrefix(ctx, receiver, classNode, ownerClass, method, receiverType) ) {
@@ -596,7 +692,7 @@ static int xl6CgenClassProtocolCallExpr(XL6_CgenContext* ctx, const XL6_AstNode*
     }
     receiver = node->children[0];
     receiverType = NULL;
-    if ( !xl6CgenResolveClassProtocolReceiver(ctx, receiver, "__call__", &classNode, &ownerClass, &method, &receiverType) ) {
+    if ( !xl6CgenResolveClassProtocolReceiverForCall(ctx, receiver, "__call__", node, &classNode, &ownerClass, &method, &receiverType) ) {
         return 0;
     }
 
@@ -779,42 +875,58 @@ static int xl6CgenClassProtocolMemberSetStmt(XL6_CgenContext* ctx, const XL6_Ast
 static int xl6CgenClassProtocolIndexHasGetter(XL6_CgenContext* ctx, const XL6_AstNode* node)
 {
     const XL6_AstNode* receiver;
+    XL6_AstNode* protocolCall;
+    int result;
 
     if ( node == NULL || (node->kind != XL6_AST_INDEX && node->kind != XL6_AST_SAFE_INDEX) || node->childCount < 2 ) {
         return 0;
     }
     receiver = node->children[0];
-    return xl6CgenResolveClassProtocolReceiver(ctx, receiver, "__item__", NULL, NULL, NULL, NULL);
+    protocolCall = xl6CgenProtocolTempCallNew(node);
+    if ( protocolCall == NULL || !xl6CgenProtocolCallAddIndexArgs(protocolCall, node) ) {
+        xl6CgenProtocolTempCallFree(protocolCall);
+        return 0;
+    }
+    result = xl6CgenResolveClassProtocolReceiverForCall(ctx, receiver, "__item__", protocolCall, NULL, NULL, NULL, NULL);
+    xl6CgenProtocolTempCallFree(protocolCall);
+    return result;
 }
 
 static int xl6CgenClassProtocolIndexExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
 {
     const XL6_AstNode* receiver;
-    const XL6_AstNode* index;
     const XL6_AstNode* classNode;
     const XL6_AstNode* ownerClass;
     const XL6_AstNode* method;
-    const XL6_AstNode* keyType;
     XL6_AstNode* receiverType;
+    XL6_AstNode* protocolCall;
+    size_t i;
 
     if ( node == NULL || (node->kind != XL6_AST_INDEX && node->kind != XL6_AST_SAFE_INDEX) || node->childCount < 2 ) {
         return 0;
     }
     receiver = node->children[0];
-    index = node->children[1];
     receiverType = NULL;
-    if ( !xl6CgenResolveClassProtocolReceiver(ctx, receiver, "__item__", &classNode, &ownerClass, &method, &receiverType) ) {
+    protocolCall = xl6CgenProtocolTempCallNew(node);
+    if ( protocolCall == NULL || !xl6CgenProtocolCallAddIndexArgs(protocolCall, node) ) {
+        xl6CgenProtocolTempCallFree(protocolCall);
         return 0;
     }
+    if ( !xl6CgenResolveClassProtocolReceiverForCall(ctx, receiver, "__item__", protocolCall, &classNode, &ownerClass, &method, &receiverType) ) {
+        xl6CgenProtocolTempCallFree(protocolCall);
+        return 0;
+    }
+    xl6CgenProtocolTempCallFree(protocolCall);
 
-    keyType = xl6CgenClassProtocolParamType(method, 0);
     if ( !xl6CgenClassProtocolCallPrefix(ctx, receiver, classNode, ownerClass, method, receiverType) ) {
         xl6AstFree(receiverType);
         return 1;
     }
     xl6AstFree(receiverType);
-    xl6OutputPuts(", ", ctx->out);
-    xl6CgenClassProtocolExprArg(ctx, keyType, index);
+    for ( i = 0; i < xl6CgenIndexArgCount(node); ++i ) {
+        xl6OutputPuts(", ", ctx->out);
+        xl6CgenClassProtocolExprArg(ctx, xl6CgenClassProtocolParamType(method, i), xl6CgenIndexArgAt(node, i));
+    }
     xl6OutputPutc(')', ctx->out);
     return 1;
 }
@@ -829,20 +941,33 @@ static int xl6CgenClassProtocolIndexSetStmt(XL6_CgenContext* ctx, const XL6_AstN
     const XL6_AstNode* keyType;
     const XL6_AstNode* valueType;
     XL6_AstNode* receiverType;
+    XL6_AstNode* protocolCall;
     int keyIsXValue;
     int valueIsXValue;
     char keyTemp[64];
     char valueTemp[64];
+    size_t argCount;
+    size_t i;
 
     if ( left == NULL || left->kind != XL6_AST_INDEX || left->childCount < 2 ) {
         return 0;
     }
     receiver = left->children[0];
-    index = left->children[1];
+    index = xl6CgenIndexArgAt(left, 0);
+    argCount = xl6CgenIndexArgCount(left);
     receiverType = NULL;
-    if ( !xl6CgenResolveClassProtocolReceiver(ctx, receiver, "__setItem__", &classNode, &ownerClass, &method, &receiverType) ) {
+    protocolCall = xl6CgenProtocolTempCallNew(left);
+    if ( protocolCall == NULL ||
+         !xl6CgenProtocolCallAddIndexArgs(protocolCall, left) ||
+         !xl6CgenProtocolTempCallAddArg(protocolCall, right) ) {
+        xl6CgenProtocolTempCallFree(protocolCall);
         return 0;
     }
+    if ( !xl6CgenResolveClassProtocolReceiverForCall(ctx, receiver, "__setItem__", protocolCall, &classNode, &ownerClass, &method, &receiverType) ) {
+        xl6CgenProtocolTempCallFree(protocolCall);
+        return 0;
+    }
+    xl6CgenProtocolTempCallFree(protocolCall);
     if ( !xl6CgenClassProtocolReceiverIsAddressable(receiver) ) {
         xl6AstFree(receiverType);
         xl6CgenError(ctx, left, "协议索引写入接收者必须可寻址");
@@ -850,7 +975,7 @@ static int xl6CgenClassProtocolIndexSetStmt(XL6_CgenContext* ctx, const XL6_AstN
     }
 
     keyType = xl6CgenClassProtocolParamType(method, 0);
-    valueType = xl6CgenClassProtocolParamType(method, 1);
+    valueType = xl6CgenClassProtocolParamType(method, argCount);
     keyIsXValue = xl6CgenIsXValueType(keyType);
     valueIsXValue = xl6CgenIsXValueType(valueType);
     keyTemp[0] = '\0';
@@ -874,6 +999,10 @@ static int xl6CgenClassProtocolIndexSetStmt(XL6_CgenContext* ctx, const XL6_AstN
         xl6OutputPuts(keyTemp, ctx->out);
     } else {
         xl6CgenClassProtocolExprArg(ctx, keyType, index);
+    }
+    for ( i = 1; i < argCount; ++i ) {
+        xl6OutputPuts(", ", ctx->out);
+        xl6CgenClassProtocolExprArg(ctx, xl6CgenClassProtocolParamType(method, i), xl6CgenIndexArgAt(left, i));
     }
     xl6OutputPuts(", ", ctx->out);
     if ( valueIsXValue ) {

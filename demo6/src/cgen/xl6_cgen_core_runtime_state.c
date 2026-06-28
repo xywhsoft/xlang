@@ -367,6 +367,8 @@ static int xl6CgenCallIsCustomCtor(XL6_CgenContext* ctx, const XL6_AstNode* expr
 static int xl6CgenCallIsClassCtor(XL6_CgenContext* ctx, const XL6_AstNode* expr, XL6_AstNode** outClass);
 static XL6_AstNode* xl6CgenResolveCallFunc(XL6_CgenContext* ctx, const XL6_AstNode* call, const char* name);
 static const XL6_AstNode* xl6CgenResolveClassFunc(XL6_CgenContext* ctx, const XL6_AstNode* classNode, const XL6_AstNode* call, const char* name, const XL6_AstNode** outOwnerClass);
+static const XL6_AstNode* xl6CgenResolveStaticClassFunc(XL6_CgenContext* ctx, const XL6_AstNode* classNode, const XL6_AstNode* call, const char* name, const XL6_AstNode** outOwnerClass);
+static XL6_AstNode* xl6CgenClassDeclFromTypeMemberReceiver(XL6_CgenContext* ctx, const XL6_AstNode* member);
 static const XL6_AstNode* xl6CgenResolveClassCreate(XL6_CgenContext* ctx, const XL6_AstNode* classNode, const XL6_AstNode* call);
 static const XL6_AstNode* xl6CgenResolveCustomFunc(XL6_CgenContext* ctx, const XL6_AstNode* customNode, const XL6_AstNode* call, const char* name, int reportNoMatch);
 static const XL6_AstNode* xl6CgenResolveCustomExternFuncWithReport(XL6_CgenContext* ctx, const XL6_AstNode* customNode, const XL6_AstNode* call, const char* name, int reportNoMatch);
@@ -396,6 +398,25 @@ static XL6_AstNode* xl6CgenCloneClassProtocolReturnType(XL6_CgenContext* ctx, co
 static int xl6CgenClassProtocolMemberSetStmt(XL6_CgenContext* ctx, const XL6_AstNode* left, const XL6_AstNode* right);
 static int xl6CgenClassProtocolIndexSetStmt(XL6_CgenContext* ctx, const XL6_AstNode* left, const XL6_AstNode* right);
 static int xl6CgenClassProtocolIndexExpr(XL6_CgenContext* ctx, const XL6_AstNode* node);
+static XL6_AstNode* xl6CgenCloneStaticClassFieldType(XL6_CgenContext* ctx, const XL6_AstNode* member);
+static int xl6CgenStaticClassFieldExpr(XL6_CgenContext* ctx, const XL6_AstNode* member);
+static int xl6CgenStaticClassMethodCall(XL6_CgenContext* ctx, const XL6_AstNode* call, const XL6_AstNode* member);
+static void xl6CgenStaticClassFieldDecls(XL6_CgenContext* ctx, const XL6_AstNode* classNode);
+static void xl6CgenVirtualFieldDecl(XL6_CgenContext* ctx, const XL6_AstNode* classNode);
+static void xl6CgenVirtualTableStructDecl(XL6_CgenContext* ctx, const XL6_AstNode* classNode);
+static void xl6CgenVirtualTableObjectDecls(XL6_CgenContext* ctx, const XL6_AstNode* classNode);
+static void xl6CgenClassInitVTables(XL6_CgenContext* ctx, const XL6_AstNode* classNode, const char* varPath);
+static int xl6CgenVirtualClassMethodCall(XL6_CgenContext* ctx, const XL6_AstNode* call, const XL6_AstNode* member, const XL6_AstNode* receiver, const XL6_AstNode* classNode, const XL6_AstNode* ownerClass, const XL6_AstNode* method);
+static int xl6CgenVirtualClassPropertyCall(XL6_CgenContext* ctx, const XL6_AstNode* member, const XL6_AstNode* call, const XL6_AstNode* receiver, const XL6_AstNode* classNode, const XL6_AstNode* ownerClass, const XL6_AstNode* method);
+static XL6_AstNode* xl6CgenCloneClassPropertyMemberType(XL6_CgenContext* ctx, const XL6_AstNode* member, const XL6_AstNode* indexNode);
+static int xl6CgenClassPropertyMemberAccess(XL6_CgenContext* ctx, const XL6_AstNode* member);
+static int xl6CgenClassPropertyIndexExpr(XL6_CgenContext* ctx, const XL6_AstNode* node);
+static int xl6CgenClassPropertyMemberSetStmt(XL6_CgenContext* ctx, const XL6_AstNode* left, const XL6_AstNode* right);
+static int xl6CgenClassPropertyIndexSetStmt(XL6_CgenContext* ctx, const XL6_AstNode* left, const XL6_AstNode* right);
+static int xl6CgenClassPropertyMemberHasGetter(XL6_CgenContext* ctx, const XL6_AstNode* member);
+static int xl6CgenClassPropertyIndexHasGetter(XL6_CgenContext* ctx, const XL6_AstNode* node);
+static XL6_AstNode* xl6CgenCloneClassProtocolReturnTypeForCall(XL6_CgenContext* ctx, const XL6_AstNode* receiverType, const char* protocolName, const XL6_AstNode* call);
+static XL6_AstNode* xl6CgenCloneClassProtocolReturnTypeForIndex(XL6_CgenContext* ctx, const XL6_AstNode* node, const char* protocolName, const XL6_AstNode* valueExpr);
 static int xl6CgenClassProtocolUnaryExpr(XL6_CgenContext* ctx, const XL6_AstNode* node);
 static int xl6CgenClassProtocolBinaryExpr(XL6_CgenContext* ctx, const XL6_AstNode* node);
 static int xl6CgenClassProtocolCallExpr(XL6_CgenContext* ctx, const XL6_AstNode* node);
@@ -450,6 +471,8 @@ static void xl6CgenPowExpr(XL6_CgenContext* ctx, const XL6_AstNode* node);
 static void xl6CgenApproxExpr(XL6_CgenContext* ctx, const XL6_AstNode* node);
 static void xl6CgenStringConcatExpr(XL6_CgenContext* ctx, const XL6_AstNode* node);
 static void xl6CgenStringCompareExpr(XL6_CgenContext* ctx, const XL6_AstNode* node);
+static void xl6CgenFStringExpr(XL6_CgenContext* ctx, const XL6_AstNode* node);
+static int xl6CgenFStringNeedsTypeConvertRuntime(XL6_CgenContext* ctx, const XL6_AstNode* node);
 static void xl6CgenTimeLiteralExpr(XL6_CgenContext* ctx, const XL6_AstNode* node);
 static void xl6CgenIndexExpr(XL6_CgenContext* ctx, const XL6_AstNode* node);
 static void xl6CgenExpr(XL6_CgenContext* ctx, const XL6_AstNode* node);
@@ -473,3 +496,102 @@ static int xl6CgenIsImplicitToStringCall(XL6_CgenContext* ctx, const XL6_AstNode
 static XL6_AstNode* xl6CgenResolveCallFuncInternal(XL6_CgenContext* ctx, const XL6_AstNode* call, const char* name, XL6_AstNode** outTypeArgs, int report);
 static XL6_AstNode* xl6CgenResolveCallFuncWithTypeArgs(XL6_CgenContext* ctx, const XL6_AstNode* call, const char* name, XL6_AstNode** outTypeArgs);
 static XL6_AstNode* xl6CgenResolveExplicitGenericCallFunc(XL6_CgenContext* ctx, const XL6_AstNode* call, const char* name, const XL6_AstNode* typeArgs, int report);
+
+static size_t xl6CgenIndexArgCount(const XL6_AstNode* node)
+{
+    const XL6_AstNode* payload;
+
+    if ( node == NULL ||
+         (node->kind != XL6_AST_INDEX && node->kind != XL6_AST_SAFE_INDEX) ||
+         node->childCount < 2 ) {
+        return 0;
+    }
+    payload = node->children[1];
+    if ( payload == NULL ) {
+        return 0;
+    }
+    return payload->kind == XL6_AST_LIST ? payload->childCount : 1;
+}
+
+static const XL6_AstNode* xl6CgenIndexArgAt(const XL6_AstNode* node, size_t index)
+{
+    const XL6_AstNode* payload;
+
+    if ( node == NULL ||
+         (node->kind != XL6_AST_INDEX && node->kind != XL6_AST_SAFE_INDEX) ||
+         node->childCount < 2 ) {
+        return NULL;
+    }
+    payload = node->children[1];
+    if ( payload == NULL ) {
+        return NULL;
+    }
+    if ( payload->kind == XL6_AST_LIST ) {
+        return index < payload->childCount ? payload->children[index] : NULL;
+    }
+    return index == 0 ? payload : NULL;
+}
+
+static XL6_AstNode* xl6CgenProtocolTempCallNew(const XL6_AstNode* atNode)
+{
+    XL6_AstNode* call;
+    XL6_AstNode* callee;
+    XL6_AstNode* args;
+
+    call = xl6AstNew(XL6_AST_CALL, NULL);
+    callee = xl6AstNewText(XL6_AST_NAME, "__protocol__", 12, NULL);
+    args = xl6AstNew(XL6_AST_LIST, NULL);
+    if ( call == NULL || callee == NULL || args == NULL ) {
+        xl6AstFree(call);
+        xl6AstFree(callee);
+        xl6AstFree(args);
+        return NULL;
+    }
+    if ( atNode != NULL ) {
+        call->line = atNode->line;
+        call->column = atNode->column;
+    }
+    xl6AstAddChild(call, callee);
+    xl6AstAddChild(call, args);
+    return call;
+}
+
+static int xl6CgenProtocolTempCallAddArg(XL6_AstNode* call, const XL6_AstNode* expr)
+{
+    XL6_AstNode* args;
+    XL6_AstNode* arg;
+
+    if ( call == NULL || call->childCount < 2 || expr == NULL ) {
+        return 0;
+    }
+    args = call->children[1];
+    arg = xl6AstNew(XL6_AST_ARG, NULL);
+    if ( arg == NULL ) {
+        return 0;
+    }
+    arg->line = expr->line;
+    arg->column = expr->column;
+    xl6AstAddChild(arg, (XL6_AstNode*)expr);
+    xl6AstAddChild(args, arg);
+    return 1;
+}
+
+static void xl6CgenProtocolTempCallFree(XL6_AstNode* call)
+{
+    XL6_AstNode* args;
+    size_t i;
+
+    if ( call == NULL ) {
+        return;
+    }
+    args = call->childCount > 1 ? call->children[1] : NULL;
+    if ( args != NULL ) {
+        for ( i = 0; i < args->childCount; ++i ) {
+            XL6_AstNode* arg = args->children[i];
+            if ( arg != NULL && arg->childCount > 0 ) {
+                arg->children[0] = NULL;
+            }
+        }
+    }
+    xl6AstFree(call);
+}

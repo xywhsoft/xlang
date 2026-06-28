@@ -117,6 +117,8 @@ static const char* xl6CgenCallableName(const XL6_AstNode* node)
     }
     if ( node->kind == XL6_AST_FUNC ||
          node->kind == XL6_AST_ASYNC_FUNC ||
+         node->kind == XL6_AST_GET ||
+         node->kind == XL6_AST_LET ||
          node->kind == XL6_AST_CUSTOM_EXTERN_FUNC ||
          node->kind == XL6_AST_CUSTOM_EXTERN_SPECIAL ) {
         const XL6_AstNode* nameNode = node->childCount > 0 ? node->children[0] : NULL;
@@ -156,10 +158,19 @@ static void xl6CgenClassCallableSymbol(XL6_CgenContext* ctx, const XL6_AstNode* 
     size_t i;
 
     name = xl6CgenCallableName(memberNode);
-    xl6CgenClassMemberSymbol(ctx->out, classNode != NULL ? classNode->text : "_", name != NULL ? name : "_");
+    if ( memberNode != NULL && (memberNode->kind == XL6_AST_GET || memberNode->kind == XL6_AST_LET) ) {
+        xl6CgenClassMemberSymbol(ctx->out,
+                                 classNode != NULL ? classNode->text : "_",
+                                 memberNode->kind == XL6_AST_GET ? "__get__" : "__let__");
+        xl6OutputPuts("__", ctx->out);
+        xl6CgenMangledPart(ctx->out, name != NULL ? name : "_");
+    } else {
+        xl6CgenClassMemberSymbol(ctx->out, classNode != NULL ? classNode->text : "_", name != NULL ? name : "_");
+    }
 
     if ( memberNode == NULL ||
-         (memberNode->kind != XL6_AST_FUNC && memberNode->kind != XL6_AST_CREATE) ||
+         (memberNode->kind != XL6_AST_FUNC && memberNode->kind != XL6_AST_CREATE &&
+          memberNode->kind != XL6_AST_GET && memberNode->kind != XL6_AST_LET) ||
          xl6CgenClassCallableOverloadCount(classNode, memberNode) <= 1 ) {
         return;
     }

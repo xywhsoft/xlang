@@ -20,6 +20,9 @@ static int xl6CgenNodeNeedsStringRuntime(XL6_CgenContext* ctx, const XL6_AstNode
     if ( node == NULL ) {
         return 0;
     }
+    if ( node->kind == XL6_AST_INTERP_STRING ) {
+        return 1;
+    }
     if ( xl6CgenBinaryPlusIsString(ctx, node) ) {
         return 1;
     }
@@ -249,6 +252,9 @@ static int xl6CgenNodeNeedsTypeConvertRuntime(XL6_CgenContext* ctx, const XL6_As
         return 1;
     }
     if ( xl6CgenTypeConvertCallNeedsRuntime(ctx, node) ) {
+        return 1;
+    }
+    if ( xl6CgenFStringNeedsTypeConvertRuntime(ctx, node) ) {
         return 1;
     }
     if ( node->kind == XL6_AST_CALL && node->childCount > 0 &&

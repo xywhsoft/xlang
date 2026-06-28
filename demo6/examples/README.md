@@ -17,6 +17,10 @@
 - `generics.xl`：泛型函数、泛型调用和泛型容器示例；回归：`check`。
 - `class_point.xl`：class 字段和方法基础示例；回归：`check`。
 - `object_protocol.xl`：object 标准基类、动态字段、索引、运算符和可调用协议示例；回归：`check`。
+- `oop_protocol_overload.xl`：OOP protocol overload, multi-argument index, callable and contains example；回归：`check`、`run`。
+- `oop_property_get_let.xl`：OOP property get/let, zero-dimensional and multi-dimensional property index example；回归：`check`、`run`。
+- `oop_static_access.xl`：OOP static field/static method and private member example；回归：`check`、`run`。
+- `oop_virtual_dispatch.xl`：OOP virtual/override/final method and property dispatch example；回归：`check`、`run`。
 - `copy_clone.xl`：`derive copy/clone`、`copy()` 和 `clone()` 示例；回归：`check`。
 - `class_persistence.xl`：`derive value`、class 与 object 的 json/xson 持久化 roundtrip 示例；回归：`run`。
 - `class_custom.xl`：class 与 custom 组合示例；回归：`check`。

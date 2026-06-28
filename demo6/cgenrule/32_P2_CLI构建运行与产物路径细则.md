@@ -68,8 +68,8 @@
 |---|---|
 | xlang 写法 | `xl build main.xl helper.c -o app.exe` |
 | 生成规则描述 | build 从 `argv[2]` 开始扫描。当前只允许一个 `.xl` 主模块；任意多个 `.c` 作为 C 混编源，最多 32 个；跳过带值选项、`-shared` 和其它 `-` 开头选项。遇到未知非选项输入时报错。 |
-| 生成器文件名和行号 | `demo6/src/driver/xl6_cli.c:275` |
-| 对应生成的 C 代码 | 主 `.xl` 先生成 `module.c`，用户 `.c` 会被包装为 `csrc_N.c`。 |
+| 生成器文件名和行号 | `demo6/src/driver/xl6_cli.c:315` |
+| 对应生成的 C 代码 | 主 `.xl` 默认生成到动态 VFS 的 `__xlvfs__/module.c`，用户 `.c` 会被包装为动态 VFS 中的 `__xlvfs__/csrc_N.c`；`--save-temps` 时才导出同名临时文件。 |
 | 中间形态伪代码 | `one xl input + up to 32 c inputs` |
 | 实现同等功能手写的 C 代码 | 手写混编需要手动维护主模块和 C 源列表。 |
 | 额外依赖的封装代码 | C wrapper 生成规则。 |
@@ -103,8 +103,8 @@
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | `xl build main.xl helper.c -o app.exe` |
-| 生成规则描述 | Windows 下 wrapper include 路径先 `_fullpath`，再把 `\` 转为 `/`。include 字符串会转义 `"` 和 `\`。 |
-| 生成器文件名和行号 | `demo6/src/driver/xl6_cli.c:420`、`demo6/src/driver/xl6_cli.c:448` |
+| 生成规则描述 | 用户 C 源路径在 Windows 下先 `_fullpath`，再把 `\` 转为 `/`；动态 VFS 路径 `__xlvfs__/...` 保持原样。wrapper 中生成头固定按同目录 `module.h` 引用，避免虚拟目录被重复拼接。include 字符串会转义 `"` 和 `\`。 |
+| 生成器文件名和行号 | `demo6/src/driver/xl6_cli.c:437`、`demo6/src/driver/xl6_cli.c:483`、`demo6/src/driver/xl6_cli.c:468` |
 | 对应生成的 C 代码 | `#include "D:/.../helper.c"` |
 | 中间形态伪代码 | `includePath = fullpath(path).replace("\\","/")` |
 | 实现同等功能手写的 C 代码 | 手写混编常需要处理 include 字符串转义。 |
@@ -115,8 +115,8 @@
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | `.xl` 与 `.c` 放在一起 build |
-| 生成规则描述 | 每个用户 C 源生成一个 wrapper 文件。wrapper 固定包含 `lib/xrt/xrt.h`、xlang 生成头文件和用户 C 源。这样用户 C 源无需手写 xrt/xlang 头文件 include。 |
-| 生成器文件名和行号 | `demo6/src/driver/xl6_cli.c:462` |
+| 生成规则描述 | 每个用户 C 源生成一个 wrapper。默认 wrapper 生成到动态 VFS；`--save-temps` 时额外导出 `csrc_N.c` 文件。wrapper 固定包含 `lib/xrt/xrt.h`、xlang 生成头文件和用户 C 源。这样用户 C 源无需手写 xrt/xlang 头文件 include。 |
+| 生成器文件名和行号 | `demo6/src/driver/xl6_cli.c:505`、`demo6/src/driver/xl6_cli.c:1604` |
 | 对应生成的 C 代码 | `#include "lib/xrt/xrt.h"\n#include "module.h"\n#include "helper.c"` |
 | 中间形态伪代码 | `wrapper = include(xrt.h) + include(generated.h) + include(user.c)` |
 | 实现同等功能手写的 C 代码 | 手写 C 混编需要人工 include 运行库和生成头。 |
@@ -139,10 +139,10 @@
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | `xl run main.xl` 或 `xl build main.xl -o app.exe` |
-| 生成规则描述 | 临时工作目录固定在 `release\tmp\xl6_<purpose>_<time>_<pid>_<random>_<counter>`。build/run 成功或失败都会进入统一 cleanup 出口，默认删除列出的临时文件和工作目录；`--save-temps` 时保留并打印路径。 |
-| 生成器文件名和行号 | `demo6/src/driver/xl6_cli.c:553`、`demo6/src/driver/xl6_cli.c:588`、`demo6/src/driver/xl6_cli.c:622` |
-| 对应生成的 C 代码 | 临时 C 产物通常是 `module.c`、`module.h`、`module.xapi.json`。 |
-| 中间形态伪代码 | `workDir = release/tmp/xl6_build_time_pid_random_id; try work; finally cleanupUnlessSaveTemps` |
+| 生成规则描述 | 临时工作目录固定在 `release\tmp\xl6_<purpose>_<time>_<pid>_<random>_<counter>`。正常编译的主 C、生成头和 C wrapper 通过动态 VFS 交给 TCC；run 仍会生成临时 `app.exe` 以独立进程执行；`--loadlib` 仍可能生成 def 文件。build/run 成功或失败都会进入统一 cleanup 出口，默认删除列出的临时文件和工作目录；`--save-temps` 时把动态 VFS 内容导出为 `module.c`、`module.h`、`module.xapi.json`、`csrc_N.c` 并保留路径。 |
+| 生成器文件名和行号 | `demo6/src/driver/xl6_cli.c:637`、`demo6/src/driver/xl6_cli.c:671`、`demo6/src/driver/xl6_cli.c:1351` |
+| 对应生成的 C 代码 | 默认 C 输入为动态 VFS 路径 `__xlvfs__/module.c`、`__xlvfs__/csrc_N.c`；`--save-temps` 才导出真实文件。 |
+| 中间形态伪代码 | `mount dynamic VFS; compile; finally clear VFS and cleanupUnlessSaveTemps` |
 | 实现同等功能手写的 C 代码 | 手写 build/run 需要避免临时产物互相覆盖。 |
 | 额外依赖的封装代码 | XRT 文件/目录删除 API。 |
 
@@ -223,10 +223,10 @@
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | build/run 最终编译 |
-| 生成规则描述 | 从默认工具链参数开始，依次追加所有 C 输入、`-o <exe>`、用户 TCC 参数、importDeps TCC 参数，最后追加默认 XRT/TCC runtime/system 链接，并通过 `xl6CliRunProcess()` 用 XRT process 执行 TCC。默认链接放在尾部，确保用户显式 `--link xrt.o` 时仍位于 TCC runtime 之前。无 C 输入或 argv 超过固定容量直接失败。 |
-| 生成器文件名和行号 | `demo6/src/driver/xl6_cli.c:1134`、`demo6/src/driver/xl6_cli.c:1157`、`demo6/src/driver/xl6_cli.c:1191` |
-| 对应生成的 C 代码 | 输入 C 包括生成的 `module.c`、import cSources、用户 C wrapper。 |
-| 中间形态伪代码 | `tcc <c inputs> -o exe <user opts> <import opts> <default xrt/runtime/system links>` |
+| 生成规则描述 | 从默认工具链参数开始，依次追加所有 C 输入、`-o <exe>`、用户 TCC 参数、importDeps TCC 参数，最后追加默认 XRT/TCC runtime/system 链接。CLI 使用内嵌 libtcc：编译前先挂载动态 VFS 源，再让 `tcc_add_file` 读取虚拟路径或外部 C 文件，最后 `tcc_output_file` 写最终 exe/dll。默认链接放在尾部，确保用户显式 `--link xrt.o` 时仍位于 TCC runtime 之前。无 C 输入或 argv 超过固定容量直接失败。 |
+| 生成器文件名和行号 | `demo6/src/driver/xl6_cli.c:1351`、`demo6/src/driver/xl6_cli.c:1377`、`demo6/src/driver/xl6_cli.c:1012` |
+| 对应生成的 C 代码 | 输入 C 包括动态 VFS 中的 `__xlvfs__/module.c`、import cSources、动态 VFS 中的用户 C wrapper。 |
+| 中间形态伪代码 | `mount(dynamicSources); tcc_add_file(inputs); tcc_output_file(output); clearDynamicVfs()` |
 | 实现同等功能手写的 C 代码 | 手写构建需要完整 argv 和链接参数顺序。 |
 | 额外依赖的封装代码 | backend、link option、importDeps、XRT process API。 |
 
@@ -331,20 +331,20 @@
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | `xl build main.xl -o app.exe` |
-| 生成规则描述 | build 必须提供 `-o`。收集输入后创建 `build` 工作目录，并固定生成 `module.c`、`module.h`、`module.xapi.json` 三个临时产物。工作目录创建成功后，后续失败统一跳转到 cleanup 出口。 |
-| 生成器文件名和行号 | `demo6/src/driver/xl6_cli.c:1650`、`demo6/src/driver/xl6_cli.c:1695`、`demo6/src/driver/xl6_cli.c:1699`、`demo6/src/driver/xl6_cli.c:1707` |
-| 对应生成的 C 代码 | 主模块临时 C 文件为 `<workDir>\module.c`。 |
-| 中间形态伪代码 | `workDir/build -> module.c/h/xapi` |
-| 实现同等功能手写的 C 代码 | 手写构建需要中间 C、头文件和接口元数据。 |
-| 额外依赖的封装代码 | workDir/temp cleanup。 |
+| 生成规则描述 | build 必须提供 `-o`。收集输入后创建 `build` 工作目录用于 `--save-temps` 导出和 loadlib def。主 C、生成头和 wrapper 默认只生成到内存并挂载到动态 VFS；XAPI 默认只构建内存元数据用于 shared 入口校验。工作目录创建成功后，后续失败统一跳转到 cleanup 出口。 |
+| 生成器文件名和行号 | `demo6/src/driver/xl6_cli.c:1995`、`demo6/src/driver/xl6_cli.c:2046`、`demo6/src/driver/xl6_cli.c:2091` |
+| 对应生成的 C 代码 | 主模块 C 文件虚拟路径为 `__xlvfs__/module.c`。 |
+| 中间形态伪代码 | `build -> headerMemory + xapiMemory + cMemory -> dynamic VFS` |
+| 实现同等功能手写的 C 代码 | 手写构建需要中间 C、头文件和接口元数据，但默认不必落盘。 |
+| 额外依赖的封装代码 | dynamic VFS、workDir/temp cleanup。 |
 
 ## CGEN-CLI-029 shared build 入口限制
 
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | `xl build lib.xl -shared -o lib.dll` |
-| 生成规则描述 | build 先生成 XAPI module。若指定 `-shared` 且 XAPI 判断模块含 xlang main 或顶层可执行语句，则报错：shared build 不能包含可执行入口。 |
-| 生成器文件名和行号 | `demo6/src/driver/xl6_cli.c:1723`、`demo6/src/driver/xl6_cli.c:1724` |
+| 生成规则描述 | build 先构建内存 XAPI module。若指定 `-shared` 且 XAPI 判断模块含 xlang main 或顶层可执行语句，则报错：shared build 不能包含可执行入口。`--save-temps` 时额外导出 `module.xapi.json`。 |
+| 生成器文件名和行号 | `demo6/src/driver/xl6_cli.c:2063`、`demo6/src/driver/xl6_cli.c:2078` |
 | 对应生成的 C 代码 | 不输出最终 DLL；避免把 exe 入口打进共享库目标。 |
 | 中间形态伪代码 | `if shared && hasExecutableEntry: error` |
 | 实现同等功能手写的 C 代码 | 手写 DLL 构建通常禁止 main。 |
@@ -355,10 +355,10 @@
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | `xl build main.xl -o app.exe --emit-header public.h` |
-| 生成规则描述 | build 总是先为 wrapper 生成临时 `module.h`，再生成临时 `module.xapi.json`；若用户提供 `--emit-header`，额外生成用户指定头文件；最后生成 `module.c`。 |
-| 生成器文件名和行号 | `demo6/src/driver/xl6_cli.c:1712`、`demo6/src/driver/xl6_cli.c:1719`、`demo6/src/driver/xl6_cli.c:1729`、`demo6/src/driver/xl6_cli.c:1734` |
-| 对应生成的 C 代码 | `module.c` 可 include/配合 `module.h` 与用户 C wrapper 编译。 |
-| 中间形态伪代码 | `header(temp); xapi(temp); header(user?); cgen(temp)` |
+| 生成规则描述 | build 总是先为 wrapper 生成内存 `module.h` 并挂载到动态 VFS，再构建内存 XAPI；若用户提供 `--emit-header`，额外生成用户指定头文件；最后生成内存 `module.c` 并挂载到动态 VFS。`--save-temps` 时这些内存产物会导出到工作目录。 |
+| 生成器文件名和行号 | `demo6/src/driver/xl6_cli.c:2046`、`demo6/src/driver/xl6_cli.c:2063`、`demo6/src/driver/xl6_cli.c:2086`、`demo6/src/driver/xl6_cli.c:2091` |
+| 对应生成的 C 代码 | `__xlvfs__/module.c` 配合 `__xlvfs__/module.h` 与用户 C wrapper 编译。 |
+| 中间形态伪代码 | `header(memory); xapi(memory); header(user?); cgen(memory); mount all` |
 | 实现同等功能手写的 C 代码 | 手写混编应先产出 C 可见声明再编译用户 C。 |
 | 额外依赖的封装代码 | cgen header、XAPI dump。 |
 
@@ -367,10 +367,10 @@
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | `xl build main.xl helper.c -o app.exe`，并 import 包带 cSources |
-| 生成规则描述 | TCC 输入先加入主 `module.c`，再加入 importDeps.cSources，最后为每个用户 C 源生成 wrapper 并加入。总数受 `cInputs` 固定数组限制，超限报错。 |
-| 生成器文件名和行号 | `demo6/src/driver/xl6_cli.c:1740`、`demo6/src/driver/xl6_cli.c:1749`、`demo6/src/driver/xl6_cli.c:1758`、`demo6/src/driver/xl6_cli.c:1768` |
-| 对应生成的 C 代码 | TCC 编译 `module.c`、包 C 源、`csrc_N.c` wrapper。 |
-| 中间形态伪代码 | `inputs = [module.c] + importCSources + wrappers(userC)` |
+| 生成规则描述 | TCC 输入先加入动态 VFS 主 `__xlvfs__/module.c`，再加入 importDeps.cSources，最后为每个用户 C 源生成动态 VFS wrapper `__xlvfs__/csrc_N.c` 并加入。总数受 `cInputs` 固定数组限制，超限报错。 |
+| 生成器文件名和行号 | `demo6/src/driver/xl6_cli.c:2105`、`demo6/src/driver/xl6_cli.c:2114`、`demo6/src/driver/xl6_cli.c:2125`、`demo6/src/driver/xl6_cli.c:2131` |
+| 对应生成的 C 代码 | TCC 编译 `__xlvfs__/module.c`、包 C 源、`__xlvfs__/csrc_N.c` wrapper。 |
+| 中间形态伪代码 | `inputs = [vfs module.c] + importCSources + vfsWrappers(userC)` |
 | 实现同等功能手写的 C 代码 | 手写构建需把包源和用户源一起交给 C 编译器。 |
 | 额外依赖的封装代码 | importDeps、C wrapper。 |
 
@@ -379,10 +379,10 @@
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | `xl build main.xl -o app.exe` |
-| 生成规则描述 | build 调用 TCC 编译所有 C 输入到 outputPath。成功或失败都释放 XAPI/compile unit，并清理 module.c、module.h、module.xapi.json、用户 C wrapper、loadlib def；`--save-temps` 时保留。TCC 失败时打印 `tcc build failed`。 |
-| 生成器文件名和行号 | `demo6/src/driver/xl6_cli.c:1771`、`demo6/src/driver/xl6_cli.c:1779`、`demo6/src/driver/xl6_cli.c:1799` |
-| 对应生成的 C 代码 | 临时 C 和 header 默认不保留，最终产物是 `-o` 指定的 exe/dll。 |
-| 中间形态伪代码 | `compile(inputs -> output); cleanup temps` |
+| 生成规则描述 | build 调用内嵌 TCC 编译所有 C 输入到 outputPath。成功或失败都释放 XAPI/compile unit、释放内存 C/header/wrapper，并清理 save-temps 导出文件、loadlib def 和工作目录；`--save-temps` 时保留导出文件。TCC 失败时打印 `tcc build failed`。 |
+| 生成器文件名和行号 | `demo6/src/driver/xl6_cli.c:2153`、`demo6/src/driver/xl6_cli.c:2162`、`demo6/src/driver/xl6_cli.c:2179` |
+| 对应生成的 C 代码 | 临时 C 和 header 默认只在动态 VFS/内存中存在，最终产物是 `-o` 指定的 exe/dll。 |
+| 中间形态伪代码 | `compile(vfsInputs -> output); free memory; cleanup exported temps` |
 | 实现同等功能手写的 C 代码 | 手写构建要处理失败诊断和临时产物。 |
 | 额外依赖的封装代码 | TCC argv builder。 |
 
@@ -391,10 +391,10 @@
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | `xl run main.xl` |
-| 生成规则描述 | run 创建 `run` 工作目录，生成 `module.c` 和 `app.exe`。加载受检单元后只生成 C，不生成 header/xapi；TCC 输入为 module.c 加 importDeps.cSources，输出临时 app.exe。工作目录创建成功后，后续失败统一跳转到 cleanup 出口。 |
-| 生成器文件名和行号 | `demo6/src/driver/xl6_cli.c:1804`、`demo6/src/driver/xl6_cli.c:1836`、`demo6/src/driver/xl6_cli.c:1840`、`demo6/src/driver/xl6_cli.c:1850`、`demo6/src/driver/xl6_cli.c:1864` |
-| 对应生成的 C 代码 | 临时 `<workDir>\module.c`。 |
-| 中间形态伪代码 | `run: cgen -> tcc -> temp exe` |
+| 生成规则描述 | run 创建 `run` 工作目录用于临时 `app.exe` 和 loadlib def。加载受检单元后只生成内存 C，不生成 header/xapi；TCC 输入为动态 VFS `__xlvfs__/module.c` 加 importDeps.cSources，输出临时 app.exe。工作目录创建成功后，后续失败统一跳转到 cleanup 出口。 |
+| 生成器文件名和行号 | `demo6/src/driver/xl6_cli.c:2217`、`demo6/src/driver/xl6_cli.c:2241`、`demo6/src/driver/xl6_cli.c:2250`、`demo6/src/driver/xl6_cli.c:2262` |
+| 对应生成的 C 代码 | 动态 VFS 中的 `__xlvfs__/module.c`。 |
+| 中间形态伪代码 | `run: cgen memory -> dynamic VFS -> tcc -> temp exe` |
 | 实现同等功能手写的 C 代码 | 手写脚本运行器也常先 JIT/编译到临时程序。 |
 | 额外依赖的封装代码 | TCC argv builder、importDeps。 |
 
@@ -403,8 +403,8 @@
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | `xl run main.xl -- arg1 arg2` |
-| 生成规则描述 | run 执行临时 exe 时，将 `--` 后的程序参数逐项加入 `XL6_CliProcessArgs`，空字符串也保留为独立 argv 项；动态库搜索路径通过可选 `PATH=...` env 项注入。执行路径统一走 `xl6CliRunProcess()`，运行返回非 0 则命令失败。成功或失败后按 saveTemps 规则清理 module.c、app.exe 和 loadlib def。 |
-| 生成器文件名和行号 | `demo6/src/driver/xl6_cli.c:1804`、`demo6/src/driver/xl6_cli.c:1874`、`demo6/src/driver/xl6_cli.c:1887`、`demo6/src/driver/xl6_cli.c:1893`、`demo6/src/driver/xl6_cli.c:1900` |
+| 生成规则描述 | run 执行临时 exe 时，将 `--` 后的程序参数逐项加入 `XL6_CliProcessArgs`，空字符串也保留为独立 argv 项；动态库搜索路径通过可选 `PATH=...` env 项注入。执行路径统一走 `xl6CliRunProcess()`，运行返回非 0 则命令失败。成功或失败后按 saveTemps 规则清理导出的 module.c、app.exe 和 loadlib def，并释放内存 C。 |
+| 生成器文件名和行号 | `demo6/src/driver/xl6_cli.c:2217`、`demo6/src/driver/xl6_cli.c:2272`、`demo6/src/driver/xl6_cli.c:2285`、`demo6/src/driver/xl6_cli.c:2291`、`demo6/src/driver/xl6_cli.c:2298` |
 | 对应生成的 C 代码 | 不改变 C；影响临时 exe 的 argv。 |
 | 中间形态伪代码 | `args = argvAfterDoubleDash; env = optionalPathEnv; exec(tempExe, args, env)` |
 | 实现同等功能手写的 C 代码 | 手写脚本运行器需要把宿主 CLI 参数传递给目标程序。 |

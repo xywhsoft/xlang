@@ -847,6 +847,13 @@ static void xl6CgenAssignStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
         return;
     }
     if ( left->kind == XL6_AST_INDEX ) {
+        if ( xl6CTextEquals(op, "=") && xl6CgenClassPropertyIndexSetStmt(ctx, left, right) ) {
+            return;
+        }
+        if ( xl6CTextEquals(op, "=") && xl6CgenClassPropertyIndexHasGetter(ctx, left) ) {
+            xl6CgenError(ctx, left, "class property index assignment requires let");
+            return;
+        }
         if ( xl6CTextEquals(op, "=") && xl6CgenClassProtocolIndexSetStmt(ctx, left, right) ) {
             return;
         }
@@ -863,6 +870,13 @@ static void xl6CgenAssignStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
         XL6_AstNode* fieldCustom;
 
         ctorCustom = NULL;
+        if ( xl6CgenClassPropertyMemberSetStmt(ctx, left, right) ) {
+            return;
+        }
+        if ( xl6CgenClassPropertyMemberHasGetter(ctx, left) ) {
+            xl6CgenError(ctx, left, "class property assignment requires let");
+            return;
+        }
         if ( xl6CgenClassProtocolMemberSetStmt(ctx, left, right) ) {
             return;
         }

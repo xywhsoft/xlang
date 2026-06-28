@@ -133,7 +133,7 @@ static void xl6CgenEmitClassDirectFieldCleanups(XL6_CgenContext* ctx, const XL6_
         char path[512];
         char cFieldName[512];
 
-        if ( member == NULL || member->kind != XL6_AST_FIELD || member->childCount == 0 || member->text == NULL ) {
+        if ( !xl6CgenIsInstanceField(member) || member->childCount == 0 || member->text == NULL ) {
             continue;
         }
         xl6CgenCIdentText(cFieldName, sizeof(cFieldName), member->text);
@@ -232,7 +232,9 @@ static void xl6CgenClassFunc(XL6_CgenContext* ctx, const XL6_AstNode* classNode,
     ctx->currentClass = classNode;
     returns = funcNode->childCount > 2 ? funcNode->children[2] : NULL;
     ctx->currentReturnType = returns != NULL && returns->childCount == 1 ? returns->children[0] : NULL;
-    xl6CgenAddVarType(ctx, "self", classNode);
+    if ( !xl6CgenIsStaticMember(funcNode) ) {
+        xl6CgenAddVarType(ctx, "self", classNode);
+    }
     params = funcNode->childCount > 1 ? funcNode->children[1] : NULL;
     ctx->currentReturnParams = params;
     ctx->currentReturns = returns;
@@ -281,7 +283,9 @@ static void xl6CgenGenericClassFunc(XL6_CgenContext* ctx, const XL6_AstNode* cla
     ctx->currentClass = classNode;
     returns = funcNode->childCount > 2 ? funcNode->children[2] : NULL;
     ctx->currentReturnType = returns != NULL && returns->childCount == 1 ? returns->children[0] : NULL;
-    xl6CgenAddVarType(ctx, "self", typeNode);
+    if ( !xl6CgenIsStaticMember(funcNode) ) {
+        xl6CgenAddVarType(ctx, "self", typeNode);
+    }
     params = funcNode->childCount > 1 ? funcNode->children[1] : NULL;
     ctx->currentReturnParams = params;
     ctx->currentReturns = returns;
@@ -483,7 +487,7 @@ static void xl6CgenClassMethods(XL6_CgenContext* ctx, const XL6_AstNode* classNo
         if ( member == NULL ) {
             continue;
         }
-        if ( member->kind == XL6_AST_FUNC ) {
+        if ( member->kind == XL6_AST_FUNC || member->kind == XL6_AST_GET || member->kind == XL6_AST_LET ) {
             xl6CgenClassFunc(ctx, classNode, member);
         } else if ( member->kind == XL6_AST_CREATE ) {
             if ( xl6CTextEquals(member->text, "destroy") ) {
@@ -531,7 +535,8 @@ static void xl6CgenGenericClassMethods(XL6_CgenContext* ctx)
         hasDestroy = 0;
         for ( j = 0; j < body->childCount; ++j ) {
             const XL6_AstNode* member = body->children[j];
-            if ( member != NULL && member->kind == XL6_AST_FUNC ) {
+            if ( member != NULL &&
+                 (member->kind == XL6_AST_FUNC || member->kind == XL6_AST_GET || member->kind == XL6_AST_LET) ) {
                 xl6CgenGenericClassFunc(ctx, classNode, typeNode, member);
             } else if ( member != NULL && member->kind == XL6_AST_CREATE ) {
                 if ( xl6CTextEquals(member->text, "destroy") ) {

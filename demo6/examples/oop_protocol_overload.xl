@@ -1,0 +1,81 @@
+class Grid
+    int base = 0
+
+    create(int base)
+        self.base = base
+    end
+
+    func __item__(int x) as int
+        return self.base + x
+    end
+
+    func __item__(int x, int y) as int
+        return self.base + x * 10 + y
+    end
+
+    func __item__(string key) as string
+        return key
+    end
+
+    func __setItem__(int x, int value)
+        self.base = value + x
+    end
+
+    func __setItem__(int x, int y, int value)
+        self.base = value + x * 10 + y
+    end
+
+    func __call__(int delta) as int
+        return self.base + delta
+    end
+
+    func __call__(string name) as int
+        return 1000
+    end
+
+    func __contains__(int value) as bool
+        return value == self.base
+    end
+
+    func __contains__(string key) as bool
+        return key == "name"
+    end
+end
+
+auto grid = Grid(100)
+
+if grid[2] != 102 then
+    throw "single index overload failed"
+end
+
+if grid[2, 3] != 123 then
+    throw "multi index overload failed"
+end
+
+if grid["name"] != "name" then
+    throw "string index overload failed"
+end
+
+grid[2, 3] = 7
+
+if grid[0] != 30 then
+    throw "multi setItem overload failed"
+end
+
+if grid(5) != 35 then
+    throw "call int overload failed"
+end
+
+if grid("abc") != 1000 then
+    throw "call string overload failed"
+end
+
+if not (30 in grid) then
+    throw "contains int overload failed"
+end
+
+if not ("name" in grid) then
+    throw "contains string overload failed"
+end
+
+print("oop protocol overload ok")

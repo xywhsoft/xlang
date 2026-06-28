@@ -377,6 +377,11 @@ static void xl6CgenIndexExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
     index = node != NULL && node->childCount > 1 ? node->children[1] : NULL;
     receiverType = xl6CgenCloneExprTypeForInference(ctx, receiver);
 
+    if ( xl6CgenClassPropertyIndexExpr(ctx, node) ) {
+        xl6AstFree(receiverType);
+        return;
+    }
+
     if ( xl6CgenClassProtocolIndexExpr(ctx, node) ) {
         xl6AstFree(receiverType);
         return;

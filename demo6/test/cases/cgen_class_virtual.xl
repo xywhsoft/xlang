@@ -1,0 +1,54 @@
+extern "expect_i64" func expect(int actual, int expected)
+
+class Entity
+    int baseValue = 1
+
+    virtual func score() as int
+        return self.baseValue
+    end
+
+    func run() as int
+        return self.score() + 1
+    end
+
+    virtual get prop() as int
+        return 10
+    end
+
+    virtual let prop(int value)
+        self.baseValue = value
+    end
+
+    func readProp() as int
+        return self.prop
+    end
+
+    func writeProp(int value)
+        self.prop = value
+    end
+end
+
+class Player extends Entity
+    int bonus = 5
+
+    override func score() as int
+        return 40 + self.bonus
+    end
+
+    override get prop() as int
+        return 70
+    end
+
+    override let prop(int value)
+        self.bonus = value
+    end
+end
+
+Player player
+expect(player.score(), 45)
+expect(player.run(), 46)
+expect(player.prop, 70)
+expect(player.readProp(), 70)
+player.writeProp(9)
+expect(player.bonus, 9)
+expect(player.score(), 49)

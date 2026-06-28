@@ -591,6 +591,7 @@ static const char* xl6CgenInferExprType(XL6_CgenContext* ctx, const XL6_AstNode*
     case XL6_AST_FLOAT:
         return "double";
     case XL6_AST_STRING:
+    case XL6_AST_INTERP_STRING:
         return "const char*";
     case XL6_AST_TIME:
         return "long long";
