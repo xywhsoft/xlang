@@ -6,6 +6,21 @@ async func greetAsync(string name) as string
     return "hello " + name
 end
 
+async func slowGreetAsync(string name) as string
+    time.sleep(120)
+    return "hello " + name
+end
+
+async func slowFlipAsync(bool flag) as bool
+    time.sleep(120)
+    return not flag
+end
+
+async func slowHalfAsync(float value) as float
+    time.sleep(120)
+    return value + 0.5
+end
+
 async func flipAsync(bool flag) as bool
     return not flag
 end
@@ -14,7 +29,21 @@ async func addHalfAsync(float value) as float
     return value + 0.5
 end
 
+async func fastRaceAsync(int value) as int
+    return value
+end
+
+async func slowRaceAsync(int value) as int
+    time.sleep(120)
+    return value
+end
+
 func greet(string name) as string
+    return "hello " + name
+end
+
+func slowGreet(string name) as string
+    time.sleep(120)
     return "hello " + name
 end
 
@@ -22,11 +51,26 @@ func flip(bool flag) as bool
     return not flag
 end
 
+func slowFlip(bool flag) as bool
+    time.sleep(120)
+    return not flag
+end
+
 func addHalf(float value) as float
     return value + 0.5
 end
 
+func slowAddHalf(float value) as float
+    time.sleep(120)
+    return value + 0.5
+end
+
 func add(int a, int b) as int
+    return a + b
+end
+
+func slowAdd(int a, int b) as int
+    time.sleep(120)
     return a + b
 end
 
@@ -63,6 +107,21 @@ func failJob() as int
     return 0
 end
 
+func failStringJob() as string
+    throw "task spawn string boom"
+    return ""
+end
+
+func failBoolJob() as bool
+    throw "task spawn bool boom"
+    return false
+end
+
+func failFloatJob() as float
+    throw "task spawn float boom"
+    return 0.0
+end
+
 func() as int zeroJob = fortyTwo
 int zeroSpawned = await task.spawn(zeroJob)
 assert zeroSpawned == 42, "task.spawn zero-argument result"
@@ -70,6 +129,75 @@ assert zeroSpawned == 42, "task.spawn zero-argument result"
 func(int, int) as int addJob = add
 int spawned = await task.spawn(addJob, 20, 22)
 assert spawned == 42, "task.spawn result"
+future<int> namedSpawnFuture = task.spawn(addJob, 21, 21)
+int namedSpawnA = await namedSpawnFuture
+int namedSpawnB = await namedSpawnFuture
+assert namedSpawnA == 42, "task.spawn int future first await"
+assert namedSpawnB == 42, "task.spawn int future repeated await"
+assert not task.cancel(namedSpawnFuture), "completed int task.spawn future cancel result"
+int postCancelNamedSpawn = await namedSpawnFuture
+assert postCancelNamedSpawn == 42, "post-cancel task.spawn int result"
+
+func(int, int) as int slowAddJob = slowAdd
+future<int> pendingSpawnFuture = task.spawn(slowAddJob, 40, 2)
+assert task.cancel(pendingSpawnFuture), "pending task.spawn future cancel result"
+
+int pendingSpawnState = 0
+try
+    int pendingSpawnValue = await pendingSpawnFuture
+    pendingSpawnState = pendingSpawnValue
+catch e
+    if e.message == "future cancel requested." then
+        pendingSpawnState = 1
+    end
+end
+assert pendingSpawnState == 1, "pending task.spawn future should await as canceled"
+
+time.sleep(180)
+
+int pendingSpawnStillCanceled = 0
+try
+    int pendingSpawnLateValue = await pendingSpawnFuture
+    pendingSpawnStillCanceled = pendingSpawnLateValue
+catch e
+    if e.message == "future cancel requested." then
+        pendingSpawnStillCanceled = 1
+    end
+end
+assert pendingSpawnStillCanceled == 1, "task.spawn late worker completion should not overwrite cancel"
+
+future<int> pendingSpawnAllLeft = task.spawn(slowAddJob, 50, 1)
+future<int> pendingSpawnAllRight = task.spawn(slowAddJob, 60, 2)
+future<array<int>> pendingSpawnAllGroup = task.all([pendingSpawnAllLeft, pendingSpawnAllRight])
+assert task.cancel(pendingSpawnAllGroup), "pending task.all over task.spawn cancel result"
+
+int pendingSpawnAllSourceState = 0
+try
+    int pendingSpawnAllLeftValue = await pendingSpawnAllLeft
+    pendingSpawnAllSourceState = pendingSpawnAllLeftValue
+catch e
+    if e.message == "future cancel requested." then
+        pendingSpawnAllSourceState = 1
+    end
+end
+assert pendingSpawnAllSourceState == 1, "pending task.all should cancel task.spawn source"
+
+future<int> pendingSpawnRaceLeft = task.spawn(slowAddJob, 70, 3)
+future<int> pendingSpawnRaceRight = task.spawn(slowAddJob, 80, 4)
+future<int> pendingSpawnRaceGroup = task.race([pendingSpawnRaceLeft, pendingSpawnRaceRight])
+assert task.cancel(pendingSpawnRaceGroup), "pending task.race over task.spawn cancel result"
+
+int pendingSpawnRaceSourceState = 0
+try
+    int pendingSpawnRaceRightValue = await pendingSpawnRaceRight
+    pendingSpawnRaceSourceState = pendingSpawnRaceRightValue
+catch e
+    if e.message == "future cancel requested." then
+        pendingSpawnRaceSourceState = 1
+    end
+end
+assert pendingSpawnRaceSourceState == 1, "pending task.race should cancel task.spawn source"
+time.sleep(180)
 
 func(int) as int defaultJob = addDefault
 int defaultSpawned = await task.spawn(defaultJob, 41)
@@ -87,6 +215,42 @@ catch e
 end
 assert missingJobState == 1, "task.spawn empty func value"
 
+func(string) as string missingStringJob
+int missingStringJobState = 0
+try
+    string missingStringJobValue = await task.spawn(missingStringJob, "x")
+    missingStringJobState = 9
+catch e
+    if e.message == "task.spawn requires a callable func value" then
+        missingStringJobState = 1
+    end
+end
+assert missingStringJobState == 1, "task.spawn empty string func value"
+
+func(bool) as bool missingBoolJob
+int missingBoolJobState = 0
+try
+    bool missingBoolJobValue = await task.spawn(missingBoolJob, true)
+    missingBoolJobState = int(missingBoolJobValue)
+catch e
+    if e.message == "task.spawn requires a callable func value" then
+        missingBoolJobState = 1
+    end
+end
+assert missingBoolJobState == 1, "task.spawn empty bool func value"
+
+func(float) as float missingFloatJob
+int missingFloatJobState = 0
+try
+    float missingFloatJobValue = await task.spawn(missingFloatJob, 1.5)
+    missingFloatJobState = int(missingFloatJobValue)
+catch e
+    if e.message == "task.spawn requires a callable func value" then
+        missingFloatJobState = 1
+    end
+end
+assert missingFloatJobState == 1, "task.spawn empty float func value"
+
 func(int) as int capturedJob = makeAdder(30)
 int captured = await task.spawn(capturedJob, 12)
 assert captured == 42, "task.spawn closure result"
@@ -97,6 +261,37 @@ string namedGreetA = await namedGreetFuture
 string namedGreetB = await namedGreetFuture
 assert namedGreetA == "hello spawn", "task.spawn string future first await"
 assert namedGreetB == "hello spawn", "task.spawn string future repeated await"
+assert not task.cancel(namedGreetFuture), "completed string task.spawn future cancel result"
+string postCancelNamedGreet = await namedGreetFuture
+assert postCancelNamedGreet == "hello spawn", "post-cancel task.spawn string result"
+
+func(string) as string slowGreetJob = slowGreet
+future<string> pendingStringSpawnFuture = task.spawn(slowGreetJob, "pending")
+assert task.cancel(pendingStringSpawnFuture), "pending string task.spawn cancel result"
+
+int pendingStringSpawnState = 0
+try
+    string pendingStringSpawnValue = await pendingStringSpawnFuture
+    pendingStringSpawnState = 9
+catch e
+    if e.message == "future cancel requested." then
+        pendingStringSpawnState = 1
+    end
+end
+assert pendingStringSpawnState == 1, "pending string task.spawn should await as canceled"
+
+time.sleep(180)
+
+int pendingStringSpawnStillCanceled = 0
+try
+    string pendingStringSpawnLateValue = await pendingStringSpawnFuture
+    pendingStringSpawnStillCanceled = 9
+catch e
+    if e.message == "future cancel requested." then
+        pendingStringSpawnStillCanceled = 1
+    end
+end
+assert pendingStringSpawnStillCanceled == 1, "pending string task.spawn late completion should not overwrite cancel"
 
 func(bool) as bool flipJob = flip
 bool flipped = await task.spawn(flipJob, true)
@@ -106,6 +301,37 @@ bool namedFlipA = await namedFlipFuture
 bool namedFlipB = await namedFlipFuture
 assert namedFlipA == true, "task.spawn bool future first await"
 assert namedFlipB == true, "task.spawn bool future repeated await"
+assert not task.cancel(namedFlipFuture), "completed bool task.spawn future cancel result"
+bool postCancelNamedFlip = await namedFlipFuture
+assert postCancelNamedFlip == true, "post-cancel task.spawn bool result"
+
+func(bool) as bool slowFlipJob = slowFlip
+future<bool> pendingBoolSpawnFuture = task.spawn(slowFlipJob, true)
+assert task.cancel(pendingBoolSpawnFuture), "pending bool task.spawn cancel result"
+
+int pendingBoolSpawnState = 0
+try
+    bool pendingBoolSpawnValue = await pendingBoolSpawnFuture
+    pendingBoolSpawnState = 9
+catch e
+    if e.message == "future cancel requested." then
+        pendingBoolSpawnState = 1
+    end
+end
+assert pendingBoolSpawnState == 1, "pending bool task.spawn should await as canceled"
+
+time.sleep(180)
+
+int pendingBoolSpawnStillCanceled = 0
+try
+    bool pendingBoolSpawnLateValue = await pendingBoolSpawnFuture
+    pendingBoolSpawnStillCanceled = 9
+catch e
+    if e.message == "future cancel requested." then
+        pendingBoolSpawnStillCanceled = 1
+    end
+end
+assert pendingBoolSpawnStillCanceled == 1, "pending bool task.spawn late completion should not overwrite cancel"
 
 func(float) as float halfJob = addHalf
 float halfSpawned = await task.spawn(halfJob, 1.5)
@@ -115,6 +341,37 @@ float namedHalfA = await namedHalfFuture
 float namedHalfB = await namedHalfFuture
 assert namedHalfA == 3.0, "task.spawn float future first await"
 assert namedHalfB == 3.0, "task.spawn float future repeated await"
+assert not task.cancel(namedHalfFuture), "completed float task.spawn future cancel result"
+float postCancelNamedHalf = await namedHalfFuture
+assert postCancelNamedHalf == 3.0, "post-cancel task.spawn float result"
+
+func(float) as float slowHalfJob = slowAddHalf
+future<float> pendingFloatSpawnFuture = task.spawn(slowHalfJob, 1.5)
+assert task.cancel(pendingFloatSpawnFuture), "pending float task.spawn cancel result"
+
+int pendingFloatSpawnState = 0
+try
+    float pendingFloatSpawnValue = await pendingFloatSpawnFuture
+    pendingFloatSpawnState = 9
+catch e
+    if e.message == "future cancel requested." then
+        pendingFloatSpawnState = 1
+    end
+end
+assert pendingFloatSpawnState == 1, "pending float task.spawn should await as canceled"
+
+time.sleep(180)
+
+int pendingFloatSpawnStillCanceled = 0
+try
+    float pendingFloatSpawnLateValue = await pendingFloatSpawnFuture
+    pendingFloatSpawnStillCanceled = 9
+catch e
+    if e.message == "future cancel requested." then
+        pendingFloatSpawnStillCanceled = 1
+    end
+end
+assert pendingFloatSpawnStillCanceled == 1, "pending float task.spawn late completion should not overwrite cancel"
 
 func(int, ...) as int variadicJob = sumVariadic
 int variadicSpawned = await task.spawn(variadicJob, 10, 1, 2, 3)
@@ -137,6 +394,275 @@ assert spawnAllValues[1] == 21, "task.all task.spawn second"
 
 int spawnRaced = await task.race([task.spawn(addJob, 2, 3), task.spawn(defaultJob, 8)])
 assert spawnRaced == 5 or spawnRaced == 9, "task.race task.spawn result"
+
+future<int> raceWinner = fastRaceAsync(77)
+future<int> raceLoser = slowRaceAsync(88)
+int raceValue = await task.race([raceWinner, raceLoser])
+assert raceValue == 77, "task.race winner result"
+
+int loserState = 0
+try
+    int loserValue = await raceLoser
+    loserState = loserValue
+catch e
+    if e.message == "future cancel requested." then
+        loserState = 1
+    end
+end
+assert loserState == 1, "task.race should cancel losing future"
+int winnerAgain = await raceWinner
+assert winnerAgain == 77, "task.race winner should remain awaitable"
+time.sleep(160)
+
+future<int> cancelAllLeft = slowRaceAsync(201)
+future<int> cancelAllRight = slowRaceAsync(202)
+future<array<int>> cancelAllGroup = task.all([cancelAllLeft, cancelAllRight])
+assert task.cancel(cancelAllGroup), "task.cancel should cancel pending task.all group"
+
+int cancelAllSourceState = 0
+try
+    int cancelAllLeftValue = await cancelAllLeft
+    cancelAllSourceState = cancelAllLeftValue
+catch e
+    if e.message == "future cancel requested." then
+        cancelAllSourceState = 1
+    end
+end
+assert cancelAllSourceState == 1, "task.cancel task.all should cancel sources"
+
+future<int> cancelRaceLeft = slowRaceAsync(301)
+future<int> cancelRaceRight = slowRaceAsync(302)
+future<int> cancelRaceGroup = task.race([cancelRaceLeft, cancelRaceRight])
+assert task.cancel(cancelRaceGroup), "task.cancel should cancel pending task.race group"
+
+int cancelRaceSourceState = 0
+try
+    int cancelRaceRightValue = await cancelRaceRight
+    cancelRaceSourceState = cancelRaceRightValue
+catch e
+    if e.message == "future cancel requested." then
+        cancelRaceSourceState = 1
+    end
+end
+assert cancelRaceSourceState == 1, "task.cancel task.race should cancel sources"
+time.sleep(320)
+
+future<int> cancelTypedAllLeft = slowRaceAsync(211)
+future<int> cancelTypedAllRight = slowRaceAsync(212)
+array<future<int>> cancelTypedAllJobs = array[cancelTypedAllLeft, cancelTypedAllRight]
+future<array<int>> cancelTypedAllGroup = task.all(cancelTypedAllJobs)
+assert task.cancel(cancelTypedAllGroup), "task.cancel should cancel pending typed-array task.all group"
+
+int cancelTypedAllSourceState = 0
+try
+    int cancelTypedAllRightValue = await cancelTypedAllRight
+    cancelTypedAllSourceState = cancelTypedAllRightValue
+catch e
+    if e.message == "future cancel requested." then
+        cancelTypedAllSourceState = 1
+    end
+end
+assert cancelTypedAllSourceState == 1, "task.cancel typed-array task.all should cancel sources"
+
+future<int> cancelTypedRaceLeft = slowRaceAsync(311)
+future<int> cancelTypedRaceRight = slowRaceAsync(312)
+array<future<int>> cancelTypedRaceJobs = array[cancelTypedRaceLeft, cancelTypedRaceRight]
+future<int> cancelTypedRaceGroup = task.race(cancelTypedRaceJobs)
+assert task.cancel(cancelTypedRaceGroup), "task.cancel should cancel pending typed-array task.race group"
+
+int cancelTypedRaceSourceState = 0
+try
+    int cancelTypedRaceLeftValue = await cancelTypedRaceLeft
+    cancelTypedRaceSourceState = cancelTypedRaceLeftValue
+catch e
+    if e.message == "future cancel requested." then
+        cancelTypedRaceSourceState = 1
+    end
+end
+assert cancelTypedRaceSourceState == 1, "task.cancel typed-array task.race should cancel sources"
+time.sleep(320)
+
+future<string> pendingStringAllLeft = slowGreetAsync("typed-string-left")
+future<string> pendingStringAllRight = slowGreetAsync("typed-string-right")
+array<future<string>> pendingStringAllJobs = array[pendingStringAllLeft, pendingStringAllRight]
+future<array<string>> pendingStringAllGroup = task.all(pendingStringAllJobs)
+assert task.cancel(pendingStringAllGroup), "task.cancel should cancel pending typed-string task.all group"
+
+int pendingStringAllSourceState = 0
+try
+    string pendingStringAllRightValue = await pendingStringAllRight
+    pendingStringAllSourceState = 9
+catch e
+    if e.message == "future cancel requested." then
+        pendingStringAllSourceState = 1
+    end
+end
+assert pendingStringAllSourceState == 1, "task.cancel typed-string task.all should cancel sources"
+
+future<string> pendingStringRaceLeft = slowGreetAsync("typed-race-left")
+future<string> pendingStringRaceRight = slowGreetAsync("typed-race-right")
+array<future<string>> pendingStringRaceJobs = array[pendingStringRaceLeft, pendingStringRaceRight]
+future<string> pendingStringRaceGroup = task.race(pendingStringRaceJobs)
+assert task.cancel(pendingStringRaceGroup), "task.cancel should cancel pending typed-string task.race group"
+
+int pendingStringRaceSourceState = 0
+try
+    string pendingStringRaceLeftValue = await pendingStringRaceLeft
+    pendingStringRaceSourceState = 9
+catch e
+    if e.message == "future cancel requested." then
+        pendingStringRaceSourceState = 1
+    end
+end
+assert pendingStringRaceSourceState == 1, "task.cancel typed-string task.race should cancel sources"
+time.sleep(320)
+
+future<bool> pendingBoolAllLeft = slowFlipAsync(true)
+future<bool> pendingBoolAllRight = slowFlipAsync(false)
+array<future<bool>> pendingBoolAllJobs = array[pendingBoolAllLeft, pendingBoolAllRight]
+future<array<bool>> pendingBoolAllGroup = task.all(pendingBoolAllJobs)
+assert task.cancel(pendingBoolAllGroup), "task.cancel should cancel pending typed-bool task.all group"
+
+int pendingBoolAllSourceState = 0
+try
+    bool pendingBoolAllLeftValue = await pendingBoolAllLeft
+    pendingBoolAllSourceState = int(pendingBoolAllLeftValue)
+catch e
+    if e.message == "future cancel requested." then
+        pendingBoolAllSourceState = 1
+    end
+end
+assert pendingBoolAllSourceState == 1, "task.cancel typed-bool task.all should cancel sources"
+
+future<bool> pendingBoolRaceLeft = slowFlipAsync(true)
+future<bool> pendingBoolRaceRight = slowFlipAsync(false)
+array<future<bool>> pendingBoolRaceJobs = array[pendingBoolRaceLeft, pendingBoolRaceRight]
+future<bool> pendingBoolRaceGroup = task.race(pendingBoolRaceJobs)
+assert task.cancel(pendingBoolRaceGroup), "task.cancel should cancel pending typed-bool task.race group"
+
+int pendingBoolRaceSourceState = 0
+try
+    bool pendingBoolRaceRightValue = await pendingBoolRaceRight
+    pendingBoolRaceSourceState = int(pendingBoolRaceRightValue)
+catch e
+    if e.message == "future cancel requested." then
+        pendingBoolRaceSourceState = 1
+    end
+end
+assert pendingBoolRaceSourceState == 1, "task.cancel typed-bool task.race should cancel sources"
+
+future<float> pendingFloatAllLeft = slowHalfAsync(1.5)
+future<float> pendingFloatAllRight = slowHalfAsync(2.5)
+array<future<float>> pendingFloatAllJobs = array[pendingFloatAllLeft, pendingFloatAllRight]
+future<array<float>> pendingFloatAllGroup = task.all(pendingFloatAllJobs)
+assert task.cancel(pendingFloatAllGroup), "task.cancel should cancel pending typed-float task.all group"
+
+int pendingFloatAllSourceState = 0
+try
+    float pendingFloatAllRightValue = await pendingFloatAllRight
+    pendingFloatAllSourceState = int(pendingFloatAllRightValue)
+catch e
+    if e.message == "future cancel requested." then
+        pendingFloatAllSourceState = 1
+    end
+end
+assert pendingFloatAllSourceState == 1, "task.cancel typed-float task.all should cancel sources"
+
+future<float> pendingFloatRaceLeft = slowHalfAsync(3.5)
+future<float> pendingFloatRaceRight = slowHalfAsync(4.5)
+array<future<float>> pendingFloatRaceJobs = array[pendingFloatRaceLeft, pendingFloatRaceRight]
+future<float> pendingFloatRaceGroup = task.race(pendingFloatRaceJobs)
+assert task.cancel(pendingFloatRaceGroup), "task.cancel should cancel pending typed-float task.race group"
+
+int pendingFloatRaceSourceState = 0
+try
+    float pendingFloatRaceLeftValue = await pendingFloatRaceLeft
+    pendingFloatRaceSourceState = int(pendingFloatRaceLeftValue)
+catch e
+    if e.message == "future cancel requested." then
+        pendingFloatRaceSourceState = 1
+    end
+end
+assert pendingFloatRaceSourceState == 1, "task.cancel typed-float task.race should cancel sources"
+time.sleep(320)
+
+array<string> spawnStringAll = await task.all([task.spawn(greetJob, "all-left"), task.spawn(greetJob, "all-right")])
+assert spawnStringAll.length == 2, "task.all string task.spawn count"
+assert spawnStringAll[0] == "hello all-left", "task.all string task.spawn first"
+assert spawnStringAll[1] == "hello all-right", "task.all string task.spawn second"
+
+string spawnStringRace = await task.race([task.spawn(greetJob, "race-string")])
+assert spawnStringRace == "hello race-string", "task.race string task.spawn result"
+
+array<future<string>> spawnStringAllJobs = array[task.spawn(greetJob, "typed-all-left"), task.spawn(greetJob, "typed-all-right")]
+array<string> spawnStringTypedAll = await task.all(spawnStringAllJobs)
+assert spawnStringTypedAll.length == 2, "task.all typed string task.spawn count"
+assert spawnStringTypedAll[0] == "hello typed-all-left", "task.all typed string task.spawn first"
+assert spawnStringTypedAll[1] == "hello typed-all-right", "task.all typed string task.spawn second"
+
+array<future<string>> spawnStringRaceJobs = array[task.spawn(greetJob, "typed-race-string")]
+string spawnStringTypedRace = await task.race(spawnStringRaceJobs)
+assert spawnStringTypedRace == "hello typed-race-string", "task.race typed string task.spawn result"
+
+array<future<string>> cancelSpawnStringAllJobs = array[task.spawn(greetJob, "cancel-all-left"), task.spawn(greetJob, "cancel-all-right")]
+bool cancelSpawnStringTypedAll = task.cancel(task.all(cancelSpawnStringAllJobs))
+assert cancelSpawnStringTypedAll == true or cancelSpawnStringTypedAll == false, "task.cancel typed string task.all task.spawn"
+
+array<future<string>> cancelSpawnStringRaceJobs = array[task.spawn(greetJob, "cancel-race-string")]
+bool cancelSpawnStringTypedRace = task.cancel(task.race(cancelSpawnStringRaceJobs))
+assert cancelSpawnStringTypedRace == true or cancelSpawnStringTypedRace == false, "task.cancel typed string task.race task.spawn"
+
+array<bool> spawnBoolAll = await task.all([task.spawn(flipJob, true), task.spawn(flipJob, false)])
+assert spawnBoolAll.length == 2, "task.all bool task.spawn count"
+assert spawnBoolAll[0] == false, "task.all bool task.spawn first"
+assert spawnBoolAll[1] == true, "task.all bool task.spawn second"
+
+bool spawnBoolRace = await task.race([task.spawn(flipJob, true)])
+assert spawnBoolRace == false, "task.race bool task.spawn result"
+
+array<future<bool>> spawnBoolAllJobs = array[task.spawn(flipJob, true), task.spawn(flipJob, false)]
+array<bool> spawnBoolTypedAll = await task.all(spawnBoolAllJobs)
+assert spawnBoolTypedAll.length == 2, "task.all typed bool task.spawn count"
+assert spawnBoolTypedAll[0] == false, "task.all typed bool task.spawn first"
+assert spawnBoolTypedAll[1] == true, "task.all typed bool task.spawn second"
+
+array<future<bool>> spawnBoolRaceJobs = array[task.spawn(flipJob, true)]
+bool spawnBoolTypedRace = await task.race(spawnBoolRaceJobs)
+assert spawnBoolTypedRace == false, "task.race typed bool task.spawn result"
+
+array<future<bool>> cancelSpawnBoolAllJobs = array[task.spawn(flipJob, true), task.spawn(flipJob, false)]
+bool cancelSpawnBoolTypedAll = task.cancel(task.all(cancelSpawnBoolAllJobs))
+assert cancelSpawnBoolTypedAll == true or cancelSpawnBoolTypedAll == false, "task.cancel typed bool task.all task.spawn"
+
+array<future<bool>> cancelSpawnBoolRaceJobs = array[task.spawn(flipJob, true)]
+bool cancelSpawnBoolTypedRace = task.cancel(task.race(cancelSpawnBoolRaceJobs))
+assert cancelSpawnBoolTypedRace == true or cancelSpawnBoolTypedRace == false, "task.cancel typed bool task.race task.spawn"
+
+array<float> spawnFloatAll = await task.all([task.spawn(halfJob, 3.5), task.spawn(halfJob, 4.5)])
+assert spawnFloatAll.length == 2, "task.all float task.spawn count"
+assert spawnFloatAll[0] == 4.0, "task.all float task.spawn first"
+assert spawnFloatAll[1] == 5.0, "task.all float task.spawn second"
+
+float spawnFloatRace = await task.race([task.spawn(halfJob, 5.5)])
+assert spawnFloatRace == 6.0, "task.race float task.spawn result"
+
+array<future<float>> spawnFloatAllJobs = array[task.spawn(halfJob, 6.5), task.spawn(halfJob, 7.5)]
+array<float> spawnFloatTypedAll = await task.all(spawnFloatAllJobs)
+assert spawnFloatTypedAll.length == 2, "task.all typed float task.spawn count"
+assert spawnFloatTypedAll[0] == 7.0, "task.all typed float task.spawn first"
+assert spawnFloatTypedAll[1] == 8.0, "task.all typed float task.spawn second"
+
+array<future<float>> spawnFloatRaceJobs = array[task.spawn(halfJob, 8.5)]
+float spawnFloatTypedRace = await task.race(spawnFloatRaceJobs)
+assert spawnFloatTypedRace == 9.0, "task.race typed float task.spawn result"
+
+array<future<float>> cancelSpawnFloatAllJobs = array[task.spawn(halfJob, 9.5), task.spawn(halfJob, 10.5)]
+bool cancelSpawnFloatTypedAll = task.cancel(task.all(cancelSpawnFloatAllJobs))
+assert cancelSpawnFloatTypedAll == true or cancelSpawnFloatTypedAll == false, "task.cancel typed float task.all task.spawn"
+
+array<future<float>> cancelSpawnFloatRaceJobs = array[task.spawn(halfJob, 11.5)]
+bool cancelSpawnFloatTypedRace = task.cancel(task.race(cancelSpawnFloatRaceJobs))
+assert cancelSpawnFloatTypedRace == true or cancelSpawnFloatTypedRace == false, "task.cancel typed float task.race task.spawn"
 
 func() as int throwingJob = failJob
 int spawnErrorState = 0
@@ -174,6 +700,359 @@ end
 assert repeatedSpawnErrorB == 1, "task.spawn failed future repeated await"
 
 assert not task.cancel(repeatedFailedSpawn), "task.spawn failed future cancel result"
+int postCancelFailedSpawnError = 0
+try
+    int postCancelFailedSpawn = await repeatedFailedSpawn
+    postCancelFailedSpawnError = postCancelFailedSpawn
+catch e
+    if e.message == "task spawn boom" then
+        postCancelFailedSpawnError = 1
+    end
+end
+assert postCancelFailedSpawnError == 1, "task.spawn failed future should keep error after cancel"
+
+future<int> spawnAllFailureSlowSource = task.spawn(slowAddJob, 900, 9)
+future<array<int>> spawnAllFailureGroup = task.all([task.spawn(throwingJob), spawnAllFailureSlowSource])
+int spawnAllFailureGroupState = 0
+try
+    array<int> spawnAllFailureValues = await spawnAllFailureGroup
+    spawnAllFailureGroupState = spawnAllFailureValues.length
+catch e
+    if e.message == "task spawn boom" then
+        spawnAllFailureGroupState = 1
+    end
+end
+assert spawnAllFailureGroupState == 1, "task.all over task.spawn should report fast failure"
+int spawnAllFailureSlowValue = await spawnAllFailureSlowSource
+assert spawnAllFailureSlowValue == 909, "task.all task.spawn failure should keep slow source awaitable"
+
+future<int> spawnRaceFailureSlowLoser = task.spawn(slowAddJob, 910, 9)
+future<int> spawnRaceFailureGroup = task.race([task.spawn(throwingJob), spawnRaceFailureSlowLoser])
+int spawnRaceFailureGroupState = 0
+try
+    int spawnRaceFailureValue = await spawnRaceFailureGroup
+    spawnRaceFailureGroupState = spawnRaceFailureValue
+catch e
+    if e.message == "task spawn boom" then
+        spawnRaceFailureGroupState = 1
+    end
+end
+assert spawnRaceFailureGroupState == 1, "task.race over task.spawn should report fast failure"
+
+int spawnRaceFailureLoserStateA = 0
+try
+    int spawnRaceFailureLoserValueA = await spawnRaceFailureSlowLoser
+    spawnRaceFailureLoserStateA = spawnRaceFailureLoserValueA
+catch e
+    if e.message == "future cancel requested." then
+        spawnRaceFailureLoserStateA = 1
+    end
+end
+assert spawnRaceFailureLoserStateA == 1, "task.race task.spawn failure should cancel loser"
+time.sleep(180)
+int spawnRaceFailureLoserStateB = 0
+try
+    int spawnRaceFailureLoserValueB = await spawnRaceFailureSlowLoser
+    spawnRaceFailureLoserStateB = spawnRaceFailureLoserValueB
+catch e
+    if e.message == "future cancel requested." then
+        spawnRaceFailureLoserStateB = 1
+    end
+end
+assert spawnRaceFailureLoserStateB == 1, "task.race task.spawn loser should stay canceled"
+
+func() as string throwingStringJob = failStringJob
+int stringSpawnError = 0
+try
+    string failedStringSpawn = await task.spawn(throwingStringJob)
+    stringSpawnError = 9
+catch e
+    if e.message == "task spawn string boom" then
+        stringSpawnError = 1
+    end
+end
+assert stringSpawnError == 1, "task.spawn string error propagation"
+
+future<string> repeatedFailedStringSpawn = task.spawn(throwingStringJob)
+int repeatedStringSpawnError = 0
+try
+    string repeatedFailedString = await repeatedFailedStringSpawn
+    repeatedStringSpawnError = 9
+catch e
+    if e.message == "task spawn string boom" then
+        repeatedStringSpawnError = 1
+    end
+end
+assert repeatedStringSpawnError == 1, "task.spawn failed string future first await"
+assert not task.cancel(repeatedFailedStringSpawn), "task.spawn failed string future cancel result"
+int postCancelStringSpawnError = 0
+try
+    string postCancelFailedString = await repeatedFailedStringSpawn
+    postCancelStringSpawnError = 9
+catch e
+    if e.message == "task spawn string boom" then
+        postCancelStringSpawnError = 1
+    end
+end
+assert postCancelStringSpawnError == 1, "task.spawn failed string future should keep error after cancel"
+
+int failedStringSpawnAllState = 0
+try
+    array<string> failedStringSpawnAll = await task.all([task.spawn(throwingStringJob)])
+    failedStringSpawnAllState = failedStringSpawnAll.length
+catch e
+    if e.message == "task spawn string boom" then
+        failedStringSpawnAllState = 1
+    end
+end
+assert failedStringSpawnAllState == 1, "task.all string task.spawn error propagation"
+
+int failedStringSpawnRaceState = 0
+try
+    string failedStringSpawnRace = await task.race([task.spawn(throwingStringJob)])
+    failedStringSpawnRaceState = 9
+catch e
+    if e.message == "task spawn string boom" then
+        failedStringSpawnRaceState = 1
+    end
+end
+assert failedStringSpawnRaceState == 1, "task.race string task.spawn error propagation"
+
+int failedStringSpawnTypedAllState = 0
+array<future<string>> failedStringSpawnAllJobs = array[task.spawn(throwingStringJob)]
+try
+    array<string> failedStringSpawnTypedAll = await task.all(failedStringSpawnAllJobs)
+    failedStringSpawnTypedAllState = failedStringSpawnTypedAll.length
+catch e
+    if e.message == "task spawn string boom" then
+        failedStringSpawnTypedAllState = 1
+    end
+end
+assert failedStringSpawnTypedAllState == 1, "task.all typed string task.spawn error propagation"
+
+int failedStringSpawnTypedRaceState = 0
+array<future<string>> failedStringSpawnRaceJobs = array[task.spawn(throwingStringJob)]
+try
+    string failedStringSpawnTypedRace = await task.race(failedStringSpawnRaceJobs)
+    failedStringSpawnTypedRaceState = 9
+catch e
+    if e.message == "task spawn string boom" then
+        failedStringSpawnTypedRaceState = 1
+    end
+end
+assert failedStringSpawnTypedRaceState == 1, "task.race typed string task.spawn error propagation"
+
+future<string> spawnStringAllFailureSlowSource = task.spawn(slowGreetJob, "slow-all")
+future<array<string>> spawnStringAllFailureGroup = task.all([task.spawn(throwingStringJob), spawnStringAllFailureSlowSource])
+int spawnStringAllFailureGroupState = 0
+try
+    array<string> spawnStringAllFailureValues = await spawnStringAllFailureGroup
+    spawnStringAllFailureGroupState = spawnStringAllFailureValues.length
+catch e
+    if e.message == "task spawn string boom" then
+        spawnStringAllFailureGroupState = 1
+    end
+end
+assert spawnStringAllFailureGroupState == 1, "task.all over string task.spawn should report fast failure"
+string spawnStringAllFailureSlowValue = await spawnStringAllFailureSlowSource
+assert spawnStringAllFailureSlowValue == "hello slow-all", "task.all string task.spawn failure should keep slow source awaitable"
+
+future<string> spawnStringRaceFailureSlowLoser = task.spawn(slowGreetJob, "slow-race")
+future<string> spawnStringRaceFailureGroup = task.race([task.spawn(throwingStringJob), spawnStringRaceFailureSlowLoser])
+int spawnStringRaceFailureGroupState = 0
+try
+    string spawnStringRaceFailureValue = await spawnStringRaceFailureGroup
+    spawnStringRaceFailureGroupState = 9
+catch e
+    if e.message == "task spawn string boom" then
+        spawnStringRaceFailureGroupState = 1
+    end
+end
+assert spawnStringRaceFailureGroupState == 1, "task.race over string task.spawn should report fast failure"
+
+int spawnStringRaceFailureLoserStateA = 0
+try
+    string spawnStringRaceFailureLoserValueA = await spawnStringRaceFailureSlowLoser
+    spawnStringRaceFailureLoserStateA = 9
+catch e
+    if e.message == "future cancel requested." then
+        spawnStringRaceFailureLoserStateA = 1
+    end
+end
+assert spawnStringRaceFailureLoserStateA == 1, "task.race string task.spawn failure should cancel loser"
+time.sleep(180)
+int spawnStringRaceFailureLoserStateB = 0
+try
+    string spawnStringRaceFailureLoserValueB = await spawnStringRaceFailureSlowLoser
+    spawnStringRaceFailureLoserStateB = 9
+catch e
+    if e.message == "future cancel requested." then
+        spawnStringRaceFailureLoserStateB = 1
+    end
+end
+assert spawnStringRaceFailureLoserStateB == 1, "task.race string task.spawn loser should stay canceled"
+
+func() as bool throwingBoolJob = failBoolJob
+int boolSpawnError = 0
+try
+    bool failedBoolSpawn = await task.spawn(throwingBoolJob)
+    boolSpawnError = int(failedBoolSpawn)
+catch e
+    if e.message == "task spawn bool boom" then
+        boolSpawnError = 1
+    end
+end
+assert boolSpawnError == 1, "task.spawn bool error propagation"
+
+future<bool> repeatedFailedBoolSpawn = task.spawn(throwingBoolJob)
+int repeatedBoolSpawnError = 0
+try
+    bool repeatedFailedBool = await repeatedFailedBoolSpawn
+    repeatedBoolSpawnError = int(repeatedFailedBool)
+catch e
+    if e.message == "task spawn bool boom" then
+        repeatedBoolSpawnError = 1
+    end
+end
+assert repeatedBoolSpawnError == 1, "task.spawn failed bool future first await"
+assert not task.cancel(repeatedFailedBoolSpawn), "task.spawn failed bool future cancel result"
+int postCancelBoolSpawnError = 0
+try
+    bool postCancelFailedBool = await repeatedFailedBoolSpawn
+    postCancelBoolSpawnError = int(postCancelFailedBool)
+catch e
+    if e.message == "task spawn bool boom" then
+        postCancelBoolSpawnError = 1
+    end
+end
+assert postCancelBoolSpawnError == 1, "task.spawn failed bool future should keep error after cancel"
+
+int failedBoolSpawnAllState = 0
+try
+    array<bool> failedBoolSpawnAll = await task.all([task.spawn(throwingBoolJob)])
+    failedBoolSpawnAllState = failedBoolSpawnAll.length
+catch e
+    if e.message == "task spawn bool boom" then
+        failedBoolSpawnAllState = 1
+    end
+end
+assert failedBoolSpawnAllState == 1, "task.all bool task.spawn error propagation"
+
+int failedBoolSpawnRaceState = 0
+try
+    bool failedBoolSpawnRace = await task.race([task.spawn(throwingBoolJob)])
+    failedBoolSpawnRaceState = int(failedBoolSpawnRace)
+catch e
+    if e.message == "task spawn bool boom" then
+        failedBoolSpawnRaceState = 1
+    end
+end
+assert failedBoolSpawnRaceState == 1, "task.race bool task.spawn error propagation"
+
+int failedBoolSpawnTypedAllState = 0
+array<future<bool>> failedBoolSpawnAllJobs = array[task.spawn(throwingBoolJob)]
+try
+    array<bool> failedBoolSpawnTypedAll = await task.all(failedBoolSpawnAllJobs)
+    failedBoolSpawnTypedAllState = failedBoolSpawnTypedAll.length
+catch e
+    if e.message == "task spawn bool boom" then
+        failedBoolSpawnTypedAllState = 1
+    end
+end
+assert failedBoolSpawnTypedAllState == 1, "task.all typed bool task.spawn error propagation"
+
+int failedBoolSpawnTypedRaceState = 0
+array<future<bool>> failedBoolSpawnRaceJobs = array[task.spawn(throwingBoolJob)]
+try
+    bool failedBoolSpawnTypedRace = await task.race(failedBoolSpawnRaceJobs)
+    failedBoolSpawnTypedRaceState = int(failedBoolSpawnTypedRace)
+catch e
+    if e.message == "task spawn bool boom" then
+        failedBoolSpawnTypedRaceState = 1
+    end
+end
+assert failedBoolSpawnTypedRaceState == 1, "task.race typed bool task.spawn error propagation"
+
+func() as float throwingFloatJob = failFloatJob
+int floatSpawnError = 0
+try
+    float failedFloatSpawn = await task.spawn(throwingFloatJob)
+    floatSpawnError = int(failedFloatSpawn)
+catch e
+    if e.message == "task spawn float boom" then
+        floatSpawnError = 1
+    end
+end
+assert floatSpawnError == 1, "task.spawn float error propagation"
+
+future<float> repeatedFailedFloatSpawn = task.spawn(throwingFloatJob)
+int repeatedFloatSpawnError = 0
+try
+    float repeatedFailedFloat = await repeatedFailedFloatSpawn
+    repeatedFloatSpawnError = int(repeatedFailedFloat)
+catch e
+    if e.message == "task spawn float boom" then
+        repeatedFloatSpawnError = 1
+    end
+end
+assert repeatedFloatSpawnError == 1, "task.spawn failed float future first await"
+assert not task.cancel(repeatedFailedFloatSpawn), "task.spawn failed float future cancel result"
+int postCancelFloatSpawnError = 0
+try
+    float postCancelFailedFloat = await repeatedFailedFloatSpawn
+    postCancelFloatSpawnError = int(postCancelFailedFloat)
+catch e
+    if e.message == "task spawn float boom" then
+        postCancelFloatSpawnError = 1
+    end
+end
+assert postCancelFloatSpawnError == 1, "task.spawn failed float future should keep error after cancel"
+
+int failedFloatSpawnAllState = 0
+try
+    array<float> failedFloatSpawnAll = await task.all([task.spawn(throwingFloatJob)])
+    failedFloatSpawnAllState = failedFloatSpawnAll.length
+catch e
+    if e.message == "task spawn float boom" then
+        failedFloatSpawnAllState = 1
+    end
+end
+assert failedFloatSpawnAllState == 1, "task.all float task.spawn error propagation"
+
+int failedFloatSpawnRaceState = 0
+try
+    float failedFloatSpawnRace = await task.race([task.spawn(throwingFloatJob)])
+    failedFloatSpawnRaceState = int(failedFloatSpawnRace)
+catch e
+    if e.message == "task spawn float boom" then
+        failedFloatSpawnRaceState = 1
+    end
+end
+assert failedFloatSpawnRaceState == 1, "task.race float task.spawn error propagation"
+
+int failedFloatSpawnTypedAllState = 0
+array<future<float>> failedFloatSpawnAllJobs = array[task.spawn(throwingFloatJob)]
+try
+    array<float> failedFloatSpawnTypedAll = await task.all(failedFloatSpawnAllJobs)
+    failedFloatSpawnTypedAllState = failedFloatSpawnTypedAll.length
+catch e
+    if e.message == "task spawn float boom" then
+        failedFloatSpawnTypedAllState = 1
+    end
+end
+assert failedFloatSpawnTypedAllState == 1, "task.all typed float task.spawn error propagation"
+
+int failedFloatSpawnTypedRaceState = 0
+array<future<float>> failedFloatSpawnRaceJobs = array[task.spawn(throwingFloatJob)]
+try
+    float failedFloatSpawnTypedRace = await task.race(failedFloatSpawnRaceJobs)
+    failedFloatSpawnTypedRaceState = int(failedFloatSpawnTypedRace)
+catch e
+    if e.message == "task spawn float boom" then
+        failedFloatSpawnTypedRaceState = 1
+    end
+end
+assert failedFloatSpawnTypedRaceState == 1, "task.race typed float task.spawn error propagation"
 
 future<int> one = addAsync(1, 2)
 future<int> two = addAsync(3, 4)
@@ -188,9 +1067,20 @@ array<int> namedAllA = await namedAllFuture
 array<int> namedAllB = await namedAllFuture
 assert namedAllA[0] == 11, "named task.all first await"
 assert namedAllB[1] == 22, "named task.all second await"
+assert not task.cancel(namedAllFuture), "completed task.all future cancel result"
+array<int> postCancelNamedAll = await namedAllFuture
+assert postCancelNamedAll[0] == 11, "post-cancel task.all first"
+assert postCancelNamedAll[1] == 22, "post-cancel task.all second"
 
 int raced = await task.race([addAsync(10, 1), addAsync(20, 2)])
 assert raced == 11 or raced == 22, "task.race result"
+
+future<int> namedRaceFuture = task.race([addAsync(12, 0)])
+int namedRaceValue = await namedRaceFuture
+assert namedRaceValue == 12, "named task.race int result"
+assert not task.cancel(namedRaceFuture), "completed task.race future cancel result"
+int postCancelNamedRaceValue = await namedRaceFuture
+assert postCancelNamedRaceValue == 12, "post-cancel task.race int result"
 
 array<string> stringAll = await task.all([greetAsync("alpha"), greetAsync("beta")])
 assert stringAll.length == 2, "task.all string count"
@@ -202,9 +1092,29 @@ array<string> namedStringAllA = await namedStringAllFuture
 array<string> namedStringAllB = await namedStringAllFuture
 assert namedStringAllA[0] == "hello left", "named task.all string first await"
 assert namedStringAllB[1] == "hello right", "named task.all string second await"
+assert not task.cancel(namedStringAllFuture), "completed string task.all future cancel result"
+array<string> postCancelNamedStringAll = await namedStringAllFuture
+assert postCancelNamedStringAll[0] == "hello left", "post-cancel string task.all first"
+assert postCancelNamedStringAll[1] == "hello right", "post-cancel string task.all second"
+
+array<future<string>> typedStringAllJobs = array[greetAsync("typed-left"), greetAsync("typed-right")]
+array<string> typedStringAll = await task.all(typedStringAllJobs)
+assert typedStringAll[0] == "hello typed-left", "task.all typed string first"
+assert typedStringAll[1] == "hello typed-right", "task.all typed string second"
 
 string stringRace = await task.race([greetAsync("gamma")])
 assert stringRace == "hello gamma", "task.race string result"
+
+future<string> namedStringRaceFuture = task.race([greetAsync("delta")])
+string namedStringRaceValue = await namedStringRaceFuture
+assert namedStringRaceValue == "hello delta", "named task.race string result"
+assert not task.cancel(namedStringRaceFuture), "completed string task.race future cancel result"
+string postCancelNamedStringRaceValue = await namedStringRaceFuture
+assert postCancelNamedStringRaceValue == "hello delta", "post-cancel string task.race result"
+
+array<future<string>> stringRaceJobs = array[greetAsync("typed-race-string")]
+string typedStringRace = await task.race(stringRaceJobs)
+assert typedStringRace == "hello typed-race-string", "task.race typed string array result"
 
 array<bool> boolAll = await task.all([flipAsync(true), flipAsync(false)])
 assert boolAll.length == 2, "task.all bool count"
@@ -216,6 +1126,10 @@ array<bool> namedBoolAllA = await namedBoolAllFuture
 array<bool> namedBoolAllB = await namedBoolAllFuture
 assert namedBoolAllA[0] == true, "named task.all bool first await"
 assert namedBoolAllB[1] == true, "named task.all bool second await"
+assert not task.cancel(namedBoolAllFuture), "completed bool task.all future cancel result"
+array<bool> postCancelNamedBoolAll = await namedBoolAllFuture
+assert postCancelNamedBoolAll[0] == true, "post-cancel bool task.all first"
+assert postCancelNamedBoolAll[1] == true, "post-cancel bool task.all second"
 
 array<future<bool>> typedBoolAllJobs = array[flipAsync(true), flipAsync(false)]
 array<bool> typedBoolAll = await task.all(typedBoolAllJobs)
@@ -224,6 +1138,13 @@ assert typedBoolAll[1] == true, "task.all typed bool second"
 
 bool boolRace = await task.race([flipAsync(true)])
 assert boolRace == false, "task.race bool result"
+
+future<bool> namedBoolRaceFuture = task.race([flipAsync(false)])
+bool namedBoolRaceValue = await namedBoolRaceFuture
+assert namedBoolRaceValue == true, "named task.race bool result"
+assert not task.cancel(namedBoolRaceFuture), "completed bool task.race future cancel result"
+bool postCancelNamedBoolRaceValue = await namedBoolRaceFuture
+assert postCancelNamedBoolRaceValue == true, "post-cancel bool task.race result"
 
 array<future<bool>> boolRaceJobs = array[flipAsync(false)]
 bool typedBoolRace = await task.race(boolRaceJobs)
@@ -239,6 +1160,10 @@ array<float> namedFloatAllA = await namedFloatAllFuture
 array<float> namedFloatAllB = await namedFloatAllFuture
 assert namedFloatAllA[0] == 4.0, "named task.all float first await"
 assert namedFloatAllB[1] == 5.0, "named task.all float second await"
+assert not task.cancel(namedFloatAllFuture), "completed float task.all future cancel result"
+array<float> postCancelNamedFloatAll = await namedFloatAllFuture
+assert postCancelNamedFloatAll[0] == 4.0, "post-cancel float task.all first"
+assert postCancelNamedFloatAll[1] == 5.0, "post-cancel float task.all second"
 
 array<future<float>> typedFloatAllJobs = array[addHalfAsync(5.5), addHalfAsync(6.5)]
 array<float> typedFloatAll = await task.all(typedFloatAllJobs)
@@ -247,6 +1172,13 @@ assert typedFloatAll[1] == 7.0, "task.all typed float second"
 
 float floatRace = await task.race([addHalfAsync(7.5)])
 assert floatRace == 8.0, "task.race float result"
+
+future<float> namedFloatRaceFuture = task.race([addHalfAsync(8.5)])
+float namedFloatRaceValue = await namedFloatRaceFuture
+assert namedFloatRaceValue == 9.0, "named task.race float result"
+assert not task.cancel(namedFloatRaceFuture), "completed float task.race future cancel result"
+float postCancelNamedFloatRaceValue = await namedFloatRaceFuture
+assert postCancelNamedFloatRaceValue == 9.0, "post-cancel float task.race result"
 
 array<future<float>> floatRaceJobs = array[addHalfAsync(8.5)]
 float typedFloatRace = await task.race(floatRaceJobs)
@@ -279,6 +1211,32 @@ assert cancelTypedAll == true or cancelTypedAll == false, "task.cancel typed-arr
 array<future<int>> cancelRaceJobs = array[addAsync(120, 1), addAsync(130, 2)]
 bool cancelTypedRace = task.cancel(task.race(cancelRaceJobs))
 assert cancelTypedRace == true or cancelTypedRace == false, "task.cancel typed-array task.race"
+array<future<string>> cancelStringAllJobs = array[greetAsync("cancel-string-left"), greetAsync("cancel-string-right")]
+bool cancelTypedStringAll = task.cancel(task.all(cancelStringAllJobs))
+assert cancelTypedStringAll == true or cancelTypedStringAll == false, "task.cancel typed string task.all"
+array<future<string>> cancelStringRaceJobs = array[greetAsync("cancel-string-race")]
+bool cancelTypedStringRace = task.cancel(task.race(cancelStringRaceJobs))
+assert cancelTypedStringRace == true or cancelTypedStringRace == false, "task.cancel typed string task.race"
+bool cancelTemporaryBoolAll = task.cancel(task.all([flipAsync(true), flipAsync(false)]))
+assert cancelTemporaryBoolAll == true or cancelTemporaryBoolAll == false, "task.cancel bool task.all"
+bool cancelTemporaryBoolRace = task.cancel(task.race([flipAsync(true), flipAsync(false)]))
+assert cancelTemporaryBoolRace == true or cancelTemporaryBoolRace == false, "task.cancel bool task.race"
+array<future<bool>> cancelBoolAllJobs = array[flipAsync(true), flipAsync(false)]
+bool cancelTypedBoolAll = task.cancel(task.all(cancelBoolAllJobs))
+assert cancelTypedBoolAll == true or cancelTypedBoolAll == false, "task.cancel typed bool task.all"
+array<future<bool>> cancelBoolRaceJobs = array[flipAsync(true), flipAsync(false)]
+bool cancelTypedBoolRace = task.cancel(task.race(cancelBoolRaceJobs))
+assert cancelTypedBoolRace == true or cancelTypedBoolRace == false, "task.cancel typed bool task.race"
+bool cancelTemporaryFloatAll = task.cancel(task.all([addHalfAsync(9.5), addHalfAsync(10.5)]))
+assert cancelTemporaryFloatAll == true or cancelTemporaryFloatAll == false, "task.cancel float task.all"
+bool cancelTemporaryFloatRace = task.cancel(task.race([addHalfAsync(11.5), addHalfAsync(12.5)]))
+assert cancelTemporaryFloatRace == true or cancelTemporaryFloatRace == false, "task.cancel float task.race"
+array<future<float>> cancelFloatAllJobs = array[addHalfAsync(13.5), addHalfAsync(14.5)]
+bool cancelTypedFloatAll = task.cancel(task.all(cancelFloatAllJobs))
+assert cancelTypedFloatAll == true or cancelTypedFloatAll == false, "task.cancel typed float task.all"
+array<future<float>> cancelFloatRaceJobs = array[addHalfAsync(15.5), addHalfAsync(16.5)]
+bool cancelTypedFloatRace = task.cancel(task.race(cancelFloatRaceJobs))
+assert cancelTypedFloatRace == true or cancelTypedFloatRace == false, "task.cancel typed float task.race"
 
 future<int> completedTarget = addAsync(2, 3)
 int completed = await completedTarget
@@ -288,6 +1246,21 @@ assert not task.cancel(completedTarget), "completed future cancel result"
 async func failAsync() as int
     throw "task boom"
     return 0
+end
+
+async func failStringAsync() as string
+    throw "task string boom"
+    return ""
+end
+
+async func failBoolAsync() as bool
+    throw "task bool boom"
+    return false
+end
+
+async func failFloatAsync() as float
+    throw "task float boom"
+    return 0.0
 end
 
 int errorState = 0
@@ -301,6 +1274,21 @@ catch e
 end
 
 assert errorState == 1, "task error propagation"
+
+future<int> allFailureSlowSource = slowRaceAsync(909)
+future<array<int>> allFailureGroup = task.all([failAsync(), allFailureSlowSource])
+int allFailureGroupState = 0
+try
+    array<int> allFailureValues = await allFailureGroup
+    allFailureGroupState = allFailureValues.length
+catch e
+    if e.message == "task boom" then
+        allFailureGroupState = 1
+    end
+end
+assert allFailureGroupState == 1, "task.all should report first failure after sources finish"
+int allFailureSlowValue = await allFailureSlowSource
+assert allFailureSlowValue == 909, "task.all failure should keep slow source awaitable"
 
 future<array<int>> repeatedFailedAll = task.all([failAsync()])
 int repeatedAllErrorA = 0
@@ -326,6 +1314,52 @@ end
 assert repeatedAllErrorB == 1, "task.all failed future repeated await"
 
 assert not task.cancel(repeatedFailedAll), "task.all failed future cancel result"
+int postCancelFailedAllError = 0
+try
+    array<int> postCancelFailedAll = await repeatedFailedAll
+    postCancelFailedAllError = postCancelFailedAll.length
+catch e
+    if e.message == "task boom" then
+        postCancelFailedAllError = 1
+    end
+end
+assert postCancelFailedAllError == 1, "task.all failed future should keep error after cancel"
+
+future<int> raceFailureSlowLoser = slowRaceAsync(919)
+future<int> raceFailureGroup = task.race([failAsync(), raceFailureSlowLoser])
+int raceFailureGroupState = 0
+try
+    int raceFailureValue = await raceFailureGroup
+    raceFailureGroupState = raceFailureValue
+catch e
+    if e.message == "task boom" then
+        raceFailureGroupState = 1
+    end
+end
+assert raceFailureGroupState == 1, "task.race should report first failure"
+
+int raceFailureLoserStateA = 0
+try
+    int raceFailureLoserValueA = await raceFailureSlowLoser
+    raceFailureLoserStateA = raceFailureLoserValueA
+catch e
+    if e.message == "future cancel requested." then
+        raceFailureLoserStateA = 1
+    end
+end
+assert raceFailureLoserStateA == 1, "task.race failure should cancel pending loser"
+
+time.sleep(160)
+int raceFailureLoserStateB = 0
+try
+    int raceFailureLoserValueB = await raceFailureSlowLoser
+    raceFailureLoserStateB = raceFailureLoserValueB
+catch e
+    if e.message == "future cancel requested." then
+        raceFailureLoserStateB = 1
+    end
+end
+assert raceFailureLoserStateB == 1, "task.race failure loser should stay canceled after worker exit"
 
 future<int> repeatedFailedRace = task.race([failAsync()])
 int repeatedRaceErrorA = 0
@@ -351,6 +1385,220 @@ end
 assert repeatedRaceErrorB == 1, "task.race failed future repeated await"
 
 assert not task.cancel(repeatedFailedRace), "task.race failed future cancel result"
+int postCancelFailedRaceError = 0
+try
+    int postCancelFailedRace = await repeatedFailedRace
+    postCancelFailedRaceError = postCancelFailedRace
+catch e
+    if e.message == "task boom" then
+        postCancelFailedRaceError = 1
+    end
+end
+assert postCancelFailedRaceError == 1, "task.race failed future should keep error after cancel"
+
+future<array<string>> repeatedFailedStringAll = task.all([failStringAsync()])
+int repeatedStringAllError = 0
+try
+    array<string> failedStringAll = await repeatedFailedStringAll
+    repeatedStringAllError = failedStringAll.length
+catch e
+    if e.message == "task string boom" then
+        repeatedStringAllError = 1
+    end
+end
+assert repeatedStringAllError == 1, "task.all string failed future first await"
+assert not task.cancel(repeatedFailedStringAll), "task.all string failed future cancel result"
+try
+    array<string> postCancelStringAll = await repeatedFailedStringAll
+    repeatedStringAllError = postCancelStringAll.length
+catch e
+    if e.message == "task string boom" then
+        repeatedStringAllError = 2
+    end
+end
+assert repeatedStringAllError == 2, "task.all string failed future should keep error after cancel"
+
+int typedStringAllError = 0
+array<future<string>> failedStringAllJobs = array[failStringAsync()]
+try
+    array<string> failedTypedStringAll = await task.all(failedStringAllJobs)
+    typedStringAllError = failedTypedStringAll.length
+catch e
+    if e.message == "task string boom" then
+        typedStringAllError = 1
+    end
+end
+assert typedStringAllError == 1, "task.all typed string failed future"
+
+future<string> repeatedFailedStringRace = task.race([failStringAsync()])
+int repeatedStringRaceError = 0
+try
+    string failedStringRace = await repeatedFailedStringRace
+    repeatedStringRaceError = 9
+catch e
+    if e.message == "task string boom" then
+        repeatedStringRaceError = 1
+    end
+end
+assert repeatedStringRaceError == 1, "task.race string failed future first await"
+assert not task.cancel(repeatedFailedStringRace), "task.race string failed future cancel result"
+try
+    string postCancelStringRace = await repeatedFailedStringRace
+    repeatedStringRaceError = 9
+catch e
+    if e.message == "task string boom" then
+        repeatedStringRaceError = 2
+    end
+end
+assert repeatedStringRaceError == 2, "task.race string failed future should keep error after cancel"
+
+int typedStringRaceError = 0
+array<future<string>> failedStringRaceJobs = array[failStringAsync()]
+try
+    string failedTypedStringRace = await task.race(failedStringRaceJobs)
+    typedStringRaceError = 9
+catch e
+    if e.message == "task string boom" then
+        typedStringRaceError = 1
+    end
+end
+assert typedStringRaceError == 1, "task.race typed string failed future"
+
+future<array<bool>> repeatedFailedBoolAll = task.all([failBoolAsync()])
+int repeatedBoolAllError = 0
+try
+    array<bool> failedBoolAll = await repeatedFailedBoolAll
+    repeatedBoolAllError = failedBoolAll.length
+catch e
+    if e.message == "task bool boom" then
+        repeatedBoolAllError = 1
+    end
+end
+assert repeatedBoolAllError == 1, "task.all bool failed future first await"
+assert not task.cancel(repeatedFailedBoolAll), "task.all bool failed future cancel result"
+try
+    array<bool> postCancelBoolAll = await repeatedFailedBoolAll
+    repeatedBoolAllError = postCancelBoolAll.length
+catch e
+    if e.message == "task bool boom" then
+        repeatedBoolAllError = 2
+    end
+end
+assert repeatedBoolAllError == 2, "task.all bool failed future should keep error after cancel"
+
+int typedBoolAllError = 0
+array<future<bool>> failedBoolAllJobs = array[failBoolAsync()]
+try
+    array<bool> failedTypedBoolAll = await task.all(failedBoolAllJobs)
+    typedBoolAllError = failedTypedBoolAll.length
+catch e
+    if e.message == "task bool boom" then
+        typedBoolAllError = 1
+    end
+end
+assert typedBoolAllError == 1, "task.all typed bool failed future"
+
+future<bool> repeatedFailedBoolRace = task.race([failBoolAsync()])
+int repeatedBoolRaceError = 0
+try
+    bool failedBoolRace = await repeatedFailedBoolRace
+    repeatedBoolRaceError = int(failedBoolRace)
+catch e
+    if e.message == "task bool boom" then
+        repeatedBoolRaceError = 1
+    end
+end
+assert repeatedBoolRaceError == 1, "task.race bool failed future first await"
+assert not task.cancel(repeatedFailedBoolRace), "task.race bool failed future cancel result"
+try
+    bool postCancelBoolRace = await repeatedFailedBoolRace
+    repeatedBoolRaceError = int(postCancelBoolRace)
+catch e
+    if e.message == "task bool boom" then
+        repeatedBoolRaceError = 2
+    end
+end
+assert repeatedBoolRaceError == 2, "task.race bool failed future should keep error after cancel"
+
+int typedBoolRaceError = 0
+array<future<bool>> failedBoolRaceJobs = array[failBoolAsync()]
+try
+    bool failedTypedBoolRace = await task.race(failedBoolRaceJobs)
+    typedBoolRaceError = int(failedTypedBoolRace)
+catch e
+    if e.message == "task bool boom" then
+        typedBoolRaceError = 1
+    end
+end
+assert typedBoolRaceError == 1, "task.race typed bool failed future"
+
+future<array<float>> repeatedFailedFloatAll = task.all([failFloatAsync()])
+int repeatedFloatAllError = 0
+try
+    array<float> failedFloatAll = await repeatedFailedFloatAll
+    repeatedFloatAllError = failedFloatAll.length
+catch e
+    if e.message == "task float boom" then
+        repeatedFloatAllError = 1
+    end
+end
+assert repeatedFloatAllError == 1, "task.all float failed future first await"
+assert not task.cancel(repeatedFailedFloatAll), "task.all float failed future cancel result"
+try
+    array<float> postCancelFloatAll = await repeatedFailedFloatAll
+    repeatedFloatAllError = postCancelFloatAll.length
+catch e
+    if e.message == "task float boom" then
+        repeatedFloatAllError = 2
+    end
+end
+assert repeatedFloatAllError == 2, "task.all float failed future should keep error after cancel"
+
+int typedFloatAllError = 0
+array<future<float>> failedFloatAllJobs = array[failFloatAsync()]
+try
+    array<float> failedTypedFloatAll = await task.all(failedFloatAllJobs)
+    typedFloatAllError = failedTypedFloatAll.length
+catch e
+    if e.message == "task float boom" then
+        typedFloatAllError = 1
+    end
+end
+assert typedFloatAllError == 1, "task.all typed float failed future"
+
+future<float> repeatedFailedFloatRace = task.race([failFloatAsync()])
+int repeatedFloatRaceError = 0
+try
+    float failedFloatRace = await repeatedFailedFloatRace
+    repeatedFloatRaceError = int(failedFloatRace)
+catch e
+    if e.message == "task float boom" then
+        repeatedFloatRaceError = 1
+    end
+end
+assert repeatedFloatRaceError == 1, "task.race float failed future first await"
+assert not task.cancel(repeatedFailedFloatRace), "task.race float failed future cancel result"
+try
+    float postCancelFloatRace = await repeatedFailedFloatRace
+    repeatedFloatRaceError = int(postCancelFloatRace)
+catch e
+    if e.message == "task float boom" then
+        repeatedFloatRaceError = 2
+    end
+end
+assert repeatedFloatRaceError == 2, "task.race float failed future should keep error after cancel"
+
+int typedFloatRaceError = 0
+array<future<float>> failedFloatRaceJobs = array[failFloatAsync()]
+try
+    float failedTypedFloatRace = await task.race(failedFloatRaceJobs)
+    typedFloatRaceError = int(failedTypedFloatRace)
+catch e
+    if e.message == "task float boom" then
+        typedFloatRaceError = 1
+    end
+end
+assert typedFloatRaceError == 1, "task.race typed float failed future"
 
 array<future<int>> emptyJobs = array[]
 
@@ -376,6 +1624,30 @@ catch e
 end
 assert emptyRaceState == 1, "task.race empty typed array error"
 
+array<future<int>> defaultJobs
+
+int defaultArrayAllState = 0
+try
+    array<int> defaultArrayAll = await task.all(defaultJobs)
+    defaultArrayAllState = defaultArrayAll.length
+catch e
+    if e.message == "task.all requires a non-empty future array" then
+        defaultArrayAllState = 1
+    end
+end
+assert defaultArrayAllState == 1, "task.all default typed array is empty"
+
+int defaultArrayRaceState = 0
+try
+    int defaultArrayRace = await task.race(defaultJobs)
+    defaultArrayRaceState = defaultArrayRace
+catch e
+    if e.message == "task.race requires a non-empty future array" then
+        defaultArrayRaceState = 1
+    end
+end
+assert defaultArrayRaceState == 1, "task.race default typed array is empty"
+
 future<int> missingFuture
 
 int nullAllState = 0
@@ -399,3 +1671,116 @@ catch e
     end
 end
 assert nullRaceState == 1, "task.race null source future error"
+
+future<string> missingStringFuture
+array<future<string>> nullStringJobs = array[missingStringFuture]
+
+int nullStringAllState = 0
+try
+    array<string> nullStringAll = await task.all(nullStringJobs)
+    nullStringAllState = nullStringAll.length
+catch e
+    if e.message == "task.all source future is null" then
+        nullStringAllState = 1
+    end
+end
+assert nullStringAllState == 1, "task.all typed string null source future error"
+
+int nullStringRaceState = 0
+try
+    string nullStringRace = await task.race(nullStringJobs)
+    nullStringRaceState = 9
+catch e
+    if e.message == "task.race source future is null" then
+        nullStringRaceState = 1
+    end
+end
+assert nullStringRaceState == 1, "task.race typed string null source future error"
+
+future<int> typedMixedAllSource = addAsync(160, 1)
+array<future<int>> typedMixedAllJobs = array[typedMixedAllSource, missingFuture]
+
+int typedMixedAllState = 0
+try
+    array<int> typedMixedAll = await task.all(typedMixedAllJobs)
+    typedMixedAllState = typedMixedAll.length
+catch e
+    if e.message == "task.all source future is null" then
+        typedMixedAllState = 1
+    end
+end
+assert typedMixedAllState == 1, "task.all mixed typed array null source future error"
+int typedMixedAllSourceValue = await typedMixedAllSource
+assert typedMixedAllSourceValue == 161, "task.all mixed typed array source remains awaitable"
+
+future<int> typedMixedRaceSource = addAsync(170, 1)
+array<future<int>> typedMixedRaceJobs = array[typedMixedRaceSource, missingFuture]
+
+int typedMixedRaceState = 0
+try
+    int typedMixedRace = await task.race(typedMixedRaceJobs)
+    typedMixedRaceState = typedMixedRace
+catch e
+    if e.message == "task.race source future is null" then
+        typedMixedRaceState = 1
+    end
+end
+assert typedMixedRaceState == 1, "task.race mixed typed array null source future error"
+int typedMixedRaceSourceValue = await typedMixedRaceSource
+assert typedMixedRaceSourceValue == 171, "task.race mixed typed array source remains awaitable"
+
+future<int> nullFirstAllSource = addAsync(180, 1)
+array<future<int>> nullFirstAllJobs = array[missingFuture, nullFirstAllSource]
+
+int nullFirstAllState = 0
+try
+    array<int> nullFirstAll = await task.all(nullFirstAllJobs)
+    nullFirstAllState = nullFirstAll.length
+catch e
+    if e.message == "task.all source future is null" then
+        nullFirstAllState = 1
+    end
+end
+assert nullFirstAllState == 1, "task.all null-first typed array source future error"
+int nullFirstAllSourceValue = await nullFirstAllSource
+assert nullFirstAllSourceValue == 181, "task.all null-first typed array source remains awaitable"
+
+future<int> nullFirstRaceSource = addAsync(190, 1)
+array<future<int>> nullFirstRaceJobs = array[missingFuture, nullFirstRaceSource]
+
+int nullFirstRaceState = 0
+try
+    int nullFirstRace = await task.race(nullFirstRaceJobs)
+    nullFirstRaceState = nullFirstRace
+catch e
+    if e.message == "task.race source future is null" then
+        nullFirstRaceState = 1
+    end
+end
+assert nullFirstRaceState == 1, "task.race null-first typed array source future error"
+int nullFirstRaceSourceValue = await nullFirstRaceSource
+assert nullFirstRaceSourceValue == 191, "task.race null-first typed array source remains awaitable"
+
+future<int> missingSpawnFuture
+
+int nullSpawnAllState = 0
+try
+    array<int> nullSpawnAll = await task.all([task.spawn(addJob, 140, 1), missingSpawnFuture])
+    nullSpawnAllState = nullSpawnAll.length
+catch e
+    if e.message == "task.all source future is null" then
+        nullSpawnAllState = 1
+    end
+end
+assert nullSpawnAllState == 1, "task.all task.spawn null source future error"
+
+int nullSpawnRaceState = 0
+try
+    int nullSpawnRace = await task.race([task.spawn(addJob, 150, 1), missingSpawnFuture])
+    nullSpawnRaceState = nullSpawnRace
+catch e
+    if e.message == "task.race source future is null" then
+        nullSpawnRaceState = 1
+    end
+end
+assert nullSpawnRaceState == 1, "task.race task.spawn null source future error"

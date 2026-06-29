@@ -14,6 +14,36 @@ func makeScores() as dict<int>
     return dict{"a": 1, "b": 2}
 end
 
+func firstScoreFromDict() as int
+    for key, score in makeScores()
+        return score
+    end
+    return 0
+end
+
+func firstNameFromList() as string
+    for index, name in makeNames()
+        return name
+    end
+    return ""
+end
+
+func firstIdFromSet() as int
+    for id in makeIds()
+        return id
+    end
+    return 0
+end
+
+func nestedScoreFromDict() as int
+    for outerKey, outerScore in makeScores()
+        for innerKey, innerScore in makeScores()
+            return outerScore + innerScore
+        end
+    end
+    return 0
+end
+
 class ArrayMaker
     func() as array<int> values
 end
@@ -35,11 +65,61 @@ end
 assert listIndexTotal == 2, "returned list index failed"
 assert listCount == 2, "returned list value failed"
 
+int listContinueBreakTotal = 0
+for index, name in makeNames()
+    if index == 0 then
+        continue
+    end
+    listContinueBreakTotal = index
+    break
+end
+assert listContinueBreakTotal == 2, "returned typed list continue/break cleanup failed"
+
+int listThrowState = 0
+try
+    for index, name in makeNames()
+        throw "typed list loop boom"
+    end
+catch e
+    if e.message == "typed list loop boom" then
+        listThrowState = 7
+    end
+end
+assert listThrowState == 7, "returned typed list throw cleanup failed"
+
+string listReturnName = firstNameFromList()
+assert listReturnName == "a" or listReturnName == "b", "returned typed list return cleanup failed"
+
 int setTotal = 0
 for id in makeIds()
     setTotal = setTotal + id
 end
 assert setTotal == 6, "returned set for-in failed"
+
+int setContinueBreakValue = 0
+for id in makeIds()
+    if id == 1 then
+        continue
+    end
+    setContinueBreakValue = id
+    break
+end
+assert setContinueBreakValue > 1, "returned typed set continue/break cleanup failed"
+
+int setThrowState = 0
+try
+    for id in makeIds()
+        throw "typed set loop boom"
+    end
+catch e
+    if e.message == "typed set loop boom" then
+        setThrowState = 7
+    end
+end
+assert setThrowState == 7, "returned typed set throw cleanup failed"
+
+int setReturnId = firstIdFromSet()
+assert setReturnId > 0, "returned typed set return cleanup failed"
 
 int dictTotal = 0
 for key, score in makeScores()
@@ -70,6 +150,45 @@ catch e
     end
 end
 assert dictThrowState == 7, "returned typed dict throw cleanup failed"
+
+int dictBreakCount = 0
+for key, score in makeScores()
+    dictBreakCount = dictBreakCount + 1
+    break
+end
+assert dictBreakCount == 1, "returned typed dict break cleanup failed"
+
+int dictReturnScore = firstScoreFromDict()
+assert dictReturnScore > 0, "returned typed dict return cleanup failed"
+
+int nestedDictTotal = 0
+for outerKey, outerScore in makeScores()
+    for innerKey, innerScore in makeScores()
+        if innerKey == "a" then
+            continue
+        end
+        nestedDictTotal = nestedDictTotal + outerScore * 10 + innerScore
+        break
+    end
+end
+assert nestedDictTotal == 34, "nested returned typed dict continue/break cleanup failed"
+
+int nestedDictThrowState = 0
+try
+    for outerKey, outerScore in makeScores()
+        for innerKey, innerScore in makeScores()
+            throw "nested typed dict loop boom"
+        end
+    end
+catch e
+    if e.message == "nested typed dict loop boom" then
+        nestedDictThrowState = 7
+    end
+end
+assert nestedDictThrowState == 7, "nested returned typed dict throw cleanup failed"
+
+int nestedDictReturnScore = nestedScoreFromDict()
+assert nestedDictReturnScore > 0, "nested returned typed dict return cleanup failed"
 
 int breakTotal = 0
 for value in makeValues()

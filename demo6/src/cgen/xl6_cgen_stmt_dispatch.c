@@ -38,10 +38,20 @@ static int xl6CgenReturnTrySingleValueStmt(
     const char* returnName,
     const XL6_AstNode* expr)
 {
+    const XL6_AstNode* concreteReturnType;
     const char* cType;
 
     if ( ctx == NULL || returnType == NULL || returnName == NULL || expr == NULL ) {
         return 0;
+    }
+
+    concreteReturnType = xl6CgenResolveAliasType(ctx, xl6CgenSubstituteGenericType(ctx, returnType));
+    if ( concreteReturnType != NULL && xl6CTextEquals(concreteReturnType->text, "string") ) {
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "const char* %s = xl6_xrt_str_dup(", returnName);
+        xl6CgenExpr(ctx, expr);
+        xl6OutputPuts(");\n", ctx->out);
+        return 1;
     }
 
     if ( xl6CgenIsXValueType(returnType) ) {

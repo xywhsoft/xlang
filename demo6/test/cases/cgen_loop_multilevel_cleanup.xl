@@ -1,0 +1,44 @@
+class Tracker
+    int value = 0
+
+    create(int value)
+        self.value = value
+    end
+
+    destroy()
+        recordDestroy(self.value)
+    end
+end
+
+extern "record_destroy" func recordDestroy(int value)
+extern "expect_i64" func expect(int actual, int expected)
+extern "destroy_count" func destroyCount() as int
+extern "destroy_value" func destroyValue() as int
+
+func breakTwoCleanup()
+    for outer in range(0, 2)
+        auto outerTracker = Tracker(10 + outer)
+        for inner in range(0, 2)
+            auto innerTracker = Tracker(20 + inner)
+            break 2
+        end
+    end
+end
+
+func continueTwoCleanup()
+    for outer in range(0, 2)
+        auto outerTracker = Tracker(100 + outer)
+        for inner in range(0, 2)
+            auto innerTracker = Tracker(200 + outer * 10 + inner)
+            continue 2
+        end
+    end
+end
+
+breakTwoCleanup()
+expect(destroyCount(), 2)
+expect(destroyValue(), 10)
+
+continueTwoCleanup()
+expect(destroyCount(), 6)
+expect(destroyValue(), 101)

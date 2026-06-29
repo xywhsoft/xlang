@@ -24,6 +24,26 @@ assert postedMany, "sem postMultiple failed"
 assert waited1, "sem wait 1 failed"
 assert waited2, "sem wait 2 failed"
 
+sem capped = sem(1, 2)
+bool cappedOverflow = capped.postMultiple(2)
+bool cappedOriginal = capped.waitTimeout(10)
+bool cappedPartial = capped.tryWait()
+
+assert not cappedOverflow, "sem postMultiple overflow should fail"
+assert cappedOriginal, "sem postMultiple overflow should keep original count"
+assert not cappedPartial, "sem postMultiple overflow should not partially post"
+
+sem full = sem(1, 1)
+bool fullPost = full.post()
+bool fullWaited = full.waitTimeout(10)
+bool refillPost = full.post()
+bool refillWaited = full.waitTimeout(10)
+
+assert not fullPost, "sem post on full semaphore should fail"
+assert fullWaited, "sem full original wait failed"
+assert refillPost, "sem post after drain failed"
+assert refillWaited, "sem refill wait failed"
+
 cond c = cond()
 bool signaled = c.signal()
 bool broadcasted = c.broadcast()
@@ -36,6 +56,36 @@ assert condMutex.lock(), "cond waitTimeout mutex lock failed"
 bool condTimed = c.waitTimeout(condMutex, 1)
 assert not condTimed, "cond waitTimeout should return false on timeout"
 assert condMutex.unlock(), "cond waitTimeout mutex unlock failed"
+
+cond wakeCond = cond()
+mutex wakeMutex = mutex()
+sem wakeReady = sem(0, 1)
+auto wakeWorker = func() as int
+    if not wakeReady.waitTimeout(2000) then
+        return 10
+    end
+    time.sleep(20)
+    if not wakeMutex.lock() then
+        return 11
+    end
+    if not wakeCond.signal() then
+        wakeMutex.unlock()
+        return 12
+    end
+    if not wakeMutex.unlock() then
+        return 13
+    end
+    return 17
+end
+
+thread wakeThread = thread(wakeWorker)
+assert wakeMutex.lock(), "cond cross-thread mutex lock failed"
+assert wakeReady.post(), "cond cross-thread ready post failed"
+bool wakeSignaled = wakeCond.waitTimeout(wakeMutex, 2000)
+assert wakeSignaled, "cond cross-thread waitTimeout should be signaled"
+assert wakeMutex.unlock(), "cond cross-thread mutex unlock failed"
+assert wakeThread.wait(), "cond cross-thread worker wait failed"
+assert wakeThread.exitCode() == 17, "cond cross-thread worker exit failed"
 
 rwlock rw = rwlock()
 bool readLocked = rw.readLock()
@@ -57,6 +107,14 @@ assert downgraded, "rwlock downgrade failed"
 assert readUnlocked2, "rwlock downgraded readUnlock failed"
 assert tryWriteLocked, "rwlock tryWriteLock failed"
 assert writeUnlocked, "rwlock writeUnlock failed"
+
+rwlock upgradeRw = rwlock()
+bool invalidUpgrade = upgradeRw.upgrade()
+assert not invalidUpgrade, "rwlock upgrade without read lock should fail"
+assert upgradeRw.readLock(), "rwlock upgrade readLock failed"
+bool upgraded = upgradeRw.upgrade()
+assert upgraded, "rwlock upgrade failed"
+assert upgradeRw.writeUnlock(), "rwlock upgraded writeUnlock failed"
 
 auto am = mutex()
 auto autoLocked = am.lock()

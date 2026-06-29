@@ -96,6 +96,22 @@ void xl6CgenEmitStringRuntime(XL6_Output* out)
     xl6OutputPuts("    text[totalLen] = 0;\n", out);
     xl6OutputPuts("    return text;\n", out);
     xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("static const char* xl6_xrt_str_dup(const char* text)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    size_t len = text != 0 ? strlen(text) : 0;\n", out);
+    xl6OutputPuts("    char* copy;\n\n", out);
+    xl6OutputPuts("    if ( len == 0 ) {\n", out);
+    xl6OutputPuts("        return \"\";\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    copy = (char*)xrtMalloc(len + 1);\n", out);
+    xl6OutputPuts("    if ( copy == 0 ) {\n", out);
+    xl6OutputPuts("        return \"\";\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    memcpy(copy, text, len);\n", out);
+    xl6OutputPuts("    copy[len] = 0;\n", out);
+    xl6OutputPuts("    return copy;\n", out);
+    xl6OutputPuts("}\n\n", out);
 }
 
 void xl6CgenEmitIntPowHelper(XL6_Output* out)

@@ -1,4 +1,5 @@
 extern "expect_i64" func expect(int actual, int expected)
+extern "expect_str" func expectStr(string actual, string expected)
 
 func makeAdder(int base) as func(int) as int
     return func(int value) as int
@@ -34,6 +35,30 @@ func consumePayload(Payload payload, int expected)
     expect(payload.value, expected)
 end
 
+func makeText(string value) as string
+    return value + "!"
+end
+
+func textScore(string value) as int
+    if value == "call!" then
+        return 11
+    end
+
+    if value == "nested!" then
+        return 30
+    end
+
+    return 0
+end
+
+func joinTextScore(string left, string right) as int
+    if left == "left!" and right == "right!" then
+        return 22
+    end
+
+    return 0
+end
+
 class Maker
     func(int) as Payload make
 end
@@ -42,11 +67,18 @@ class Sink
     func(Payload, int) consume
 end
 
+class TextMaker
+    func(string) as string make
+end
+
 Maker maker
 maker.make = makePayload
 
 Sink sink
 sink.consume = consumePayload
+
+TextMaker textMaker
+textMaker.make = makeText
 
 Payload explicitPayload = maker.make(10)
 auto autoPayload = maker.make(20)
@@ -64,6 +96,12 @@ expect(readPayload(maker.make(100)) + 1, 101)
 int twoArgumentValue = sumPayload(maker.make(110), maker.make(120))
 expect(sumPayload(maker.make(130), maker.make(140)), 270)
 
+string madeText = textMaker.make("plain")
+int textArgValue = textScore(textMaker.make("call"))
+int textNestedValue = textScore(textMaker.make("nested")) + 1
+int textTwoArgValue = joinTextScore(textMaker.make("left"), textMaker.make("right"))
+textMaker.make("discard")
+
 expect(explicitPayload.value, 10)
 expect(explicitPayload.op(1), 11)
 expect(autoPayload.value, 20)
@@ -75,3 +113,7 @@ expect(explicitExpressionValue, 50)
 expect(argumentValue, 60)
 expect(nestedArgumentValue, 91)
 expect(twoArgumentValue, 230)
+expectStr(madeText, "plain!")
+expect(textArgValue, 11)
+expect(textNestedValue, 31)
+expect(textTwoArgValue, 22)

@@ -2,9 +2,20 @@ async func addAsync(int a, int b) as int
     return a + b
 end
 
+async func slowAddAsync(int a, int b) as int
+    time.sleep(250)
+    return a + b
+end
+
 async func doneAsync()
     int a = 1
     assert a == 1, "async void body failed"
+end
+
+async func slowDoneAsync()
+    time.sleep(250)
+    int a = 1
+    assert a == 1, "slow async void body failed"
 end
 
 func makeAdder(int base) as func(int) as int
@@ -30,7 +41,18 @@ async func makeBoxAsync(int base) as AsyncBox
     return box
 end
 
+async func slowMakeBoxAsync(int base) as AsyncBox
+    time.sleep(250)
+    AsyncBox box = makeBox(base)
+    return box
+end
+
 async func makeAdderAsync(int base) as func(int) as int
+    return makeAdder(base)
+end
+
+async func slowMakeAdderAsync(int base) as func(int) as int
+    time.sleep(250)
     return makeAdder(base)
 end
 
@@ -38,12 +60,45 @@ async func makeVarAsync(int value) as var
     return value
 end
 
+async func slowMakeVarAsync(int value) as var
+    time.sleep(250)
+    return value
+end
+
 async func greetAsync(string name) as string
     return "hello " + name
 end
 
+async func slowGreetAsync(string name) as string
+    time.sleep(250)
+    return "hello " + name
+end
+
+async func flipAsync(bool flag) as bool
+    return not flag
+end
+
+async func slowFlipAsync(bool flag) as bool
+    time.sleep(250)
+    return not flag
+end
+
+async func halfAsync(float value) as float
+    return value + 0.5
+end
+
+async func slowHalfAsync(float value) as float
+    time.sleep(250)
+    return value + 0.5
+end
+
 async func makeItemsAsync() as array<int>
     return array[3, 4, 5]
+end
+
+async func slowMakeItemsAsync() as array<int>
+    time.sleep(250)
+    return array[13, 14, 15]
 end
 
 async func copyItemsAsync() as array<int>
@@ -55,18 +110,36 @@ async func makeListAsync() as list<int>
     return list[2: 8, 4: 9]
 end
 
+async func slowMakeListAsync() as list<int>
+    time.sleep(250)
+    return list[2: 18, 4: 19]
+end
+
 async func makeSetAsync() as set<int>
     return set{6, 7}
+end
+
+async func slowMakeSetAsync() as set<int>
+    time.sleep(250)
+    return set{16, 17}
 end
 
 async func makeDictAsync() as dict<int>
     return dict{"a": 11, "b": 12}
 end
 
+async func slowMakeDictAsync() as dict<int>
+    time.sleep(250)
+    return dict{"a": 21, "b": 22}
+end
+
 future<int> futureValue = addAsync(2, 3)
 int value = await futureValue
 
 assert value == 5, "await int result failed"
+assert not task.cancel(futureValue), "completed async int future should not be canceled"
+int postCancelValue = await futureValue
+assert postCancelValue == 5, "completed async int future should remain awaitable after cancel"
 
 auto autoFuture = addAsync(4, 6)
 auto autoValue = await autoFuture
@@ -75,11 +148,30 @@ assert autoValue == 10, "await auto result failed"
 
 auto voidFuture = doneAsync()
 await voidFuture
+assert not task.cancel(voidFuture), "completed async void future should not be canceled"
+await voidFuture
+
+future<bool> boolFuture = flipAsync(false)
+bool boolValue = await boolFuture
+assert boolValue == true, "await bool result failed"
+assert not task.cancel(boolFuture), "completed async bool future should not be canceled"
+bool postCancelBool = await boolFuture
+assert postCancelBool == true, "completed async bool future should remain awaitable after cancel"
+
+future<float> halfFuture = halfAsync(2.5)
+float halfValue = await halfFuture
+assert halfValue == 3.0, "await float result failed"
+assert not task.cancel(halfFuture), "completed async float future should not be canceled"
+float postCancelHalf = await halfFuture
+assert postCancelHalf == 3.0, "completed async float future should remain awaitable after cancel"
 
 future<AsyncBox> boxFuture = makeBoxAsync(30)
 AsyncBox box = await boxFuture
 
 assert box.op(12) + box.bias == 72, "await class func field failed"
+assert not task.cancel(boxFuture), "completed async class future should not be canceled"
+AsyncBox postCancelBox = await boxFuture
+assert postCancelBox.op(13) + postCancelBox.bias == 73, "completed async class future should remain awaitable after cancel"
 
 future<func(int) as int> fnFuture = makeAdderAsync(50)
 func(int) as int fnA = await fnFuture
@@ -87,6 +179,9 @@ func(int) as int fnB = await fnFuture
 
 assert fnA(1) == 51, "await func result failed"
 assert fnB(2) == 52, "second await func result failed"
+assert not task.cancel(fnFuture), "completed async function future should not be canceled"
+func(int) as int fnC = await fnFuture
+assert fnC(3) == 53, "completed async function future should remain awaitable after cancel"
 
 future<AsyncBox> sharedBoxFuture = makeBoxAsync(70)
 AsyncBox firstBox = await sharedBoxFuture
@@ -114,6 +209,9 @@ assert temporaryBox.op(6) + temporaryBox.bias == 226, "temporary await class res
 future<var> varFuture = makeVarAsync(120)
 var awaitedVar = await varFuture
 assert int(awaitedVar) == 120, "await var result failed"
+assert not task.cancel(varFuture), "completed async var future should not be canceled"
+var postCancelVar = await varFuture
+assert int(postCancelVar) == 120, "completed async var future should remain awaitable after cancel"
 
 var temporaryVar = await makeVarAsync(130)
 assert int(temporaryVar) == 130, "temporary await var result failed"
@@ -126,6 +224,465 @@ string namedGreetingA = await greetingFuture
 string namedGreetingB = await greetingFuture
 assert namedGreetingA == "hello named", "named future string first await failed"
 assert namedGreetingB == "hello named", "named future string second await failed"
+assert not task.cancel(greetingFuture), "completed async string future should not be canceled"
+string postCancelGreeting = await greetingFuture
+assert postCancelGreeting == "hello named", "completed async string future should remain awaitable after cancel"
+
+future<int> missingAwaitInt
+int missingAwaitIntState = 0
+try
+    int missingAwaitIntValue = await missingAwaitInt
+    missingAwaitIntState = missingAwaitIntValue
+catch e
+    if e.message == "await on null future" then
+        missingAwaitIntState = 42
+    end
+end
+assert missingAwaitIntState == 42, "await null int future should raise AsyncError"
+
+future<string> missingAwaitString
+int missingAwaitStringState = 0
+try
+    string missingAwaitStringValue = await missingAwaitString
+    missingAwaitStringState = 9
+catch e
+    if e.message == "await on null future" then
+        missingAwaitStringState = 42
+    end
+end
+assert missingAwaitStringState == 42, "await null string future should raise AsyncError"
+
+future<array<int>> missingAwaitItems
+int missingAwaitItemsState = 0
+try
+    array<int> missingAwaitItemsValue = await missingAwaitItems
+    missingAwaitItemsState = missingAwaitItemsValue.length
+catch e
+    if e.message == "await on null future" then
+        missingAwaitItemsState = 42
+    end
+end
+assert missingAwaitItemsState == 42, "await null typed array future should raise AsyncError"
+
+future<bool> missingAwaitBool
+int missingAwaitBoolState = 0
+try
+    bool missingAwaitBoolValue = await missingAwaitBool
+    missingAwaitBoolState = int(missingAwaitBoolValue)
+catch e
+    if e.message == "await on null future" then
+        missingAwaitBoolState = 42
+    end
+end
+assert missingAwaitBoolState == 42, "await null bool future should raise AsyncError"
+
+future<float> missingAwaitFloat
+int missingAwaitFloatState = 0
+try
+    float missingAwaitFloatValue = await missingAwaitFloat
+    missingAwaitFloatState = int(missingAwaitFloatValue)
+catch e
+    if e.message == "await on null future" then
+        missingAwaitFloatState = 42
+    end
+end
+assert missingAwaitFloatState == 42, "await null float future should raise AsyncError"
+
+future<var> missingAwaitVar
+int missingAwaitVarState = 0
+try
+    var missingAwaitVarValue = await missingAwaitVar
+    missingAwaitVarState = int(missingAwaitVarValue)
+catch e
+    if e.message == "await on null future" then
+        missingAwaitVarState = 42
+    end
+end
+assert missingAwaitVarState == 42, "await null var future should raise AsyncError"
+
+future<func(int) as int> missingAwaitFn
+int missingAwaitFnState = 0
+try
+    func(int) as int missingAwaitFnValue = await missingAwaitFn
+    missingAwaitFnState = missingAwaitFnValue(1)
+catch e
+    if e.message == "await on null future" then
+        missingAwaitFnState = 42
+    end
+end
+assert missingAwaitFnState == 42, "await null function future should raise AsyncError"
+
+future<AsyncBox> missingAwaitBox
+int missingAwaitBoxState = 0
+try
+    AsyncBox missingAwaitBoxValue = await missingAwaitBox
+    missingAwaitBoxState = missingAwaitBoxValue.bias
+catch e
+    if e.message == "await on null future" then
+        missingAwaitBoxState = 42
+    end
+end
+assert missingAwaitBoxState == 42, "await null class future should raise AsyncError"
+
+future<list<int>> missingAwaitList
+int missingAwaitListState = 0
+try
+    list<int> missingAwaitListValue = await missingAwaitList
+    missingAwaitListState = missingAwaitListValue.length
+catch e
+    if e.message == "await on null future" then
+        missingAwaitListState = 42
+    end
+end
+assert missingAwaitListState == 42, "await null typed list future should raise AsyncError"
+
+future<set<int>> missingAwaitSet
+int missingAwaitSetState = 0
+try
+    set<int> missingAwaitSetValue = await missingAwaitSet
+    missingAwaitSetState = missingAwaitSetValue.length
+catch e
+    if e.message == "await on null future" then
+        missingAwaitSetState = 42
+    end
+end
+assert missingAwaitSetState == 42, "await null typed set future should raise AsyncError"
+
+future<dict<int>> missingAwaitDict
+int missingAwaitDictState = 0
+try
+    dict<int> missingAwaitDictValue = await missingAwaitDict
+    missingAwaitDictState = missingAwaitDictValue.length
+catch e
+    if e.message == "await on null future" then
+        missingAwaitDictState = 42
+    end
+end
+assert missingAwaitDictState == 42, "await null typed dict future should raise AsyncError"
+
+future<int> pendingAsyncInt = slowAddAsync(40, 2)
+assert task.cancel(pendingAsyncInt), "pending async int future should accept cancel"
+
+int pendingAsyncIntStateA = 0
+try
+    int pendingAsyncIntValueA = await pendingAsyncInt
+    pendingAsyncIntStateA = pendingAsyncIntValueA
+catch e
+    if e.message == "future cancel requested." then
+        pendingAsyncIntStateA = 42
+    end
+end
+assert pendingAsyncIntStateA == 42, "pending async int future should await as canceled"
+
+time.sleep(320)
+
+int pendingAsyncIntStateB = 0
+try
+    int pendingAsyncIntValueB = await pendingAsyncInt
+    pendingAsyncIntStateB = pendingAsyncIntValueB
+catch e
+    if e.message == "future cancel requested." then
+        pendingAsyncIntStateB = 42
+    end
+end
+assert pendingAsyncIntStateB == 42, "pending async int worker completion should not overwrite cancel"
+
+future<string> pendingAsyncString = slowGreetAsync("pending")
+assert task.cancel(pendingAsyncString), "pending async string future should accept cancel"
+
+int pendingAsyncStringStateA = 0
+try
+    string pendingAsyncStringValueA = await pendingAsyncString
+    pendingAsyncStringStateA = 9
+catch e
+    if e.message == "future cancel requested." then
+        pendingAsyncStringStateA = 42
+    end
+end
+assert pendingAsyncStringStateA == 42, "pending async string future should await as canceled"
+
+time.sleep(320)
+
+int pendingAsyncStringStateB = 0
+try
+    string pendingAsyncStringValueB = await pendingAsyncString
+    pendingAsyncStringStateB = 9
+catch e
+    if e.message == "future cancel requested." then
+        pendingAsyncStringStateB = 42
+    end
+end
+assert pendingAsyncStringStateB == 42, "pending async string worker completion should not overwrite cancel"
+
+future<bool> pendingAsyncBool = slowFlipAsync(true)
+assert task.cancel(pendingAsyncBool), "pending async bool future should accept cancel"
+
+int pendingAsyncBoolStateA = 0
+try
+    bool pendingAsyncBoolValueA = await pendingAsyncBool
+    pendingAsyncBoolStateA = 9
+catch e
+    if e.message == "future cancel requested." then
+        pendingAsyncBoolStateA = 42
+    end
+end
+assert pendingAsyncBoolStateA == 42, "pending async bool future should await as canceled"
+
+time.sleep(320)
+
+int pendingAsyncBoolStateB = 0
+try
+    bool pendingAsyncBoolValueB = await pendingAsyncBool
+    pendingAsyncBoolStateB = 9
+catch e
+    if e.message == "future cancel requested." then
+        pendingAsyncBoolStateB = 42
+    end
+end
+assert pendingAsyncBoolStateB == 42, "pending async bool worker completion should not overwrite cancel"
+
+future<float> pendingAsyncFloat = slowHalfAsync(1.5)
+assert task.cancel(pendingAsyncFloat), "pending async float future should accept cancel"
+
+int pendingAsyncFloatStateA = 0
+try
+    float pendingAsyncFloatValueA = await pendingAsyncFloat
+    pendingAsyncFloatStateA = 9
+catch e
+    if e.message == "future cancel requested." then
+        pendingAsyncFloatStateA = 42
+    end
+end
+assert pendingAsyncFloatStateA == 42, "pending async float future should await as canceled"
+
+time.sleep(320)
+
+int pendingAsyncFloatStateB = 0
+try
+    float pendingAsyncFloatValueB = await pendingAsyncFloat
+    pendingAsyncFloatStateB = 9
+catch e
+    if e.message == "future cancel requested." then
+        pendingAsyncFloatStateB = 42
+    end
+end
+assert pendingAsyncFloatStateB == 42, "pending async float worker completion should not overwrite cancel"
+
+auto pendingAsyncVoid = slowDoneAsync()
+assert task.cancel(pendingAsyncVoid), "pending async void future should accept cancel"
+
+int pendingAsyncVoidStateA = 0
+try
+    await pendingAsyncVoid
+    pendingAsyncVoidStateA = 9
+catch e
+    if e.message == "future cancel requested." then
+        pendingAsyncVoidStateA = 42
+    end
+end
+assert pendingAsyncVoidStateA == 42, "pending async void future should await as canceled"
+
+time.sleep(320)
+
+int pendingAsyncVoidStateB = 0
+try
+    await pendingAsyncVoid
+    pendingAsyncVoidStateB = 9
+catch e
+    if e.message == "future cancel requested." then
+        pendingAsyncVoidStateB = 42
+    end
+end
+assert pendingAsyncVoidStateB == 42, "pending async void worker completion should not overwrite cancel"
+
+future<var> pendingAsyncVar = slowMakeVarAsync(150)
+assert task.cancel(pendingAsyncVar), "pending async var future should accept cancel"
+
+int pendingAsyncVarStateA = 0
+try
+    var pendingAsyncVarValueA = await pendingAsyncVar
+    pendingAsyncVarStateA = int(pendingAsyncVarValueA)
+catch e
+    if e.message == "future cancel requested." then
+        pendingAsyncVarStateA = 42
+    end
+end
+assert pendingAsyncVarStateA == 42, "pending async var future should await as canceled"
+
+time.sleep(320)
+
+int pendingAsyncVarStateB = 0
+try
+    var pendingAsyncVarValueB = await pendingAsyncVar
+    pendingAsyncVarStateB = int(pendingAsyncVarValueB)
+catch e
+    if e.message == "future cancel requested." then
+        pendingAsyncVarStateB = 42
+    end
+end
+assert pendingAsyncVarStateB == 42, "pending async var worker completion should not overwrite cancel"
+
+future<func(int) as int> pendingAsyncFn = slowMakeAdderAsync(160)
+assert task.cancel(pendingAsyncFn), "pending async function future should accept cancel"
+
+int pendingAsyncFnStateA = 0
+try
+    func(int) as int pendingAsyncFnValueA = await pendingAsyncFn
+    pendingAsyncFnStateA = pendingAsyncFnValueA(1)
+catch e
+    if e.message == "future cancel requested." then
+        pendingAsyncFnStateA = 42
+    end
+end
+assert pendingAsyncFnStateA == 42, "pending async function future should await as canceled"
+
+time.sleep(320)
+
+int pendingAsyncFnStateB = 0
+try
+    func(int) as int pendingAsyncFnValueB = await pendingAsyncFn
+    pendingAsyncFnStateB = pendingAsyncFnValueB(2)
+catch e
+    if e.message == "future cancel requested." then
+        pendingAsyncFnStateB = 42
+    end
+end
+assert pendingAsyncFnStateB == 42, "pending async function worker completion should not overwrite cancel"
+
+future<AsyncBox> pendingAsyncBox = slowMakeBoxAsync(170)
+assert task.cancel(pendingAsyncBox), "pending async class future should accept cancel"
+
+int pendingAsyncBoxStateA = 0
+try
+    AsyncBox pendingAsyncBoxValueA = await pendingAsyncBox
+    pendingAsyncBoxStateA = pendingAsyncBoxValueA.op(1) + pendingAsyncBoxValueA.bias
+catch e
+    if e.message == "future cancel requested." then
+        pendingAsyncBoxStateA = 42
+    end
+end
+assert pendingAsyncBoxStateA == 42, "pending async class future should await as canceled"
+
+time.sleep(320)
+
+int pendingAsyncBoxStateB = 0
+try
+    AsyncBox pendingAsyncBoxValueB = await pendingAsyncBox
+    pendingAsyncBoxStateB = pendingAsyncBoxValueB.op(2) + pendingAsyncBoxValueB.bias
+catch e
+    if e.message == "future cancel requested." then
+        pendingAsyncBoxStateB = 42
+    end
+end
+assert pendingAsyncBoxStateB == 42, "pending async class worker completion should not overwrite cancel"
+
+future<array<int>> pendingAsyncItems = slowMakeItemsAsync()
+assert task.cancel(pendingAsyncItems), "pending async typed array future should accept cancel"
+
+int pendingAsyncItemsStateA = 0
+try
+    array<int> pendingAsyncItemsValueA = await pendingAsyncItems
+    pendingAsyncItemsStateA = pendingAsyncItemsValueA.length
+catch e
+    if e.message == "future cancel requested." then
+        pendingAsyncItemsStateA = 42
+    end
+end
+assert pendingAsyncItemsStateA == 42, "pending async typed array future should await as canceled"
+
+time.sleep(320)
+
+int pendingAsyncItemsStateB = 0
+try
+    array<int> pendingAsyncItemsValueB = await pendingAsyncItems
+    pendingAsyncItemsStateB = pendingAsyncItemsValueB.length
+catch e
+    if e.message == "future cancel requested." then
+        pendingAsyncItemsStateB = 42
+    end
+end
+assert pendingAsyncItemsStateB == 42, "pending async typed array worker completion should not overwrite cancel"
+
+future<list<int>> pendingAsyncList = slowMakeListAsync()
+assert task.cancel(pendingAsyncList), "pending async typed list future should accept cancel"
+
+int pendingAsyncListStateA = 0
+try
+    list<int> pendingAsyncListValueA = await pendingAsyncList
+    pendingAsyncListStateA = pendingAsyncListValueA.length
+catch e
+    if e.message == "future cancel requested." then
+        pendingAsyncListStateA = 42
+    end
+end
+assert pendingAsyncListStateA == 42, "pending async typed list future should await as canceled"
+
+time.sleep(320)
+
+int pendingAsyncListStateB = 0
+try
+    list<int> pendingAsyncListValueB = await pendingAsyncList
+    pendingAsyncListStateB = pendingAsyncListValueB.length
+catch e
+    if e.message == "future cancel requested." then
+        pendingAsyncListStateB = 42
+    end
+end
+assert pendingAsyncListStateB == 42, "pending async typed list worker completion should not overwrite cancel"
+
+future<set<int>> pendingAsyncSet = slowMakeSetAsync()
+assert task.cancel(pendingAsyncSet), "pending async typed set future should accept cancel"
+
+int pendingAsyncSetStateA = 0
+try
+    set<int> pendingAsyncSetValueA = await pendingAsyncSet
+    pendingAsyncSetStateA = pendingAsyncSetValueA.length
+catch e
+    if e.message == "future cancel requested." then
+        pendingAsyncSetStateA = 42
+    end
+end
+assert pendingAsyncSetStateA == 42, "pending async typed set future should await as canceled"
+
+time.sleep(320)
+
+int pendingAsyncSetStateB = 0
+try
+    set<int> pendingAsyncSetValueB = await pendingAsyncSet
+    pendingAsyncSetStateB = pendingAsyncSetValueB.length
+catch e
+    if e.message == "future cancel requested." then
+        pendingAsyncSetStateB = 42
+    end
+end
+assert pendingAsyncSetStateB == 42, "pending async typed set worker completion should not overwrite cancel"
+
+future<dict<int>> pendingAsyncDict = slowMakeDictAsync()
+assert task.cancel(pendingAsyncDict), "pending async typed dict future should accept cancel"
+
+int pendingAsyncDictStateA = 0
+try
+    dict<int> pendingAsyncDictValueA = await pendingAsyncDict
+    pendingAsyncDictStateA = pendingAsyncDictValueA.length
+catch e
+    if e.message == "future cancel requested." then
+        pendingAsyncDictStateA = 42
+    end
+end
+assert pendingAsyncDictStateA == 42, "pending async typed dict future should await as canceled"
+
+time.sleep(320)
+
+int pendingAsyncDictStateB = 0
+try
+    dict<int> pendingAsyncDictValueB = await pendingAsyncDict
+    pendingAsyncDictStateB = pendingAsyncDictValueB.length
+catch e
+    if e.message == "future cancel requested." then
+        pendingAsyncDictStateB = 42
+    end
+end
+assert pendingAsyncDictStateB == 42, "pending async typed dict worker completion should not overwrite cancel"
 
 array<int> temporaryItems = await makeItemsAsync()
 assert temporaryItems.length == 3, "temporary await typed array length failed"
@@ -142,6 +699,10 @@ assert namedItemsA.length == 3, "named future typed array first length failed"
 assert namedItemsB.length == 3, "named future typed array second length failed"
 assert int(namedItemsA[2]) == 5, "named future typed array first item failed"
 assert int(namedItemsB[0]) == 3, "named future typed array second item failed"
+assert not task.cancel(itemsFuture), "completed async typed array future should not be canceled"
+array<int> postCancelItems = await itemsFuture
+assert postCancelItems.length == 3, "completed async typed array future should remain awaitable after cancel"
+assert int(postCancelItems[1]) == 4, "completed async typed array post-cancel item failed"
 
 list<int> temporaryList = await makeListAsync()
 assert temporaryList.length == 2, "temporary await typed list length failed"
@@ -152,6 +713,9 @@ list<int> namedListA = await listFuture
 list<int> namedListB = await listFuture
 assert int(namedListA[4]) == 9, "named future typed list first item failed"
 assert int(namedListB[2]) == 8, "named future typed list second item failed"
+assert not task.cancel(listFuture), "completed async typed list future should not be canceled"
+list<int> postCancelList = await listFuture
+assert int(postCancelList[4]) == 9, "completed async typed list future should remain awaitable after cancel"
 
 set<int> temporarySet = await makeSetAsync()
 assert temporarySet.length == 2, "temporary await typed set length failed"
@@ -161,6 +725,9 @@ set<int> namedSetA = await setFuture
 set<int> namedSetB = await setFuture
 assert namedSetA.length == 2, "named future typed set first length failed"
 assert namedSetB.length == 2, "named future typed set second length failed"
+assert not task.cancel(setFuture), "completed async typed set future should not be canceled"
+set<int> postCancelSet = await setFuture
+assert postCancelSet.length == 2, "completed async typed set future should remain awaitable after cancel"
 
 dict<int> temporaryDict = await makeDictAsync()
 assert temporaryDict.length == 2, "temporary await typed dict length failed"
@@ -171,3 +738,6 @@ dict<int> namedDictA = await dictFuture
 dict<int> namedDictB = await dictFuture
 assert int(namedDictA["b"]) == 12, "named future typed dict first item failed"
 assert int(namedDictB["a"]) == 11, "named future typed dict second item failed"
+assert not task.cancel(dictFuture), "completed async typed dict future should not be canceled"
+dict<int> postCancelDict = await dictFuture
+assert int(postCancelDict["b"]) == 12, "completed async typed dict future should remain awaitable after cancel"

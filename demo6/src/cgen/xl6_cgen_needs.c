@@ -13,6 +13,34 @@ static void xl6CgenNeedsAddDeclVarType(
     xl6CgenAddVarTypeWithFlags(ctx, name, typeNode, flags);
 }
 
+static int xl6CgenNeedsTypeIsString(XL6_CgenContext* ctx, const XL6_AstNode* typeNode)
+{
+    const XL6_AstNode* concreteType;
+
+    if ( ctx == NULL || typeNode == NULL ) {
+        return 0;
+    }
+
+    concreteType = xl6CgenResolveAliasType(ctx, xl6CgenSubstituteGenericType(ctx, typeNode));
+    return concreteType != NULL && xl6CTextEquals(concreteType->text, "string");
+}
+
+static int xl6CgenNeedsReturnListHasString(XL6_CgenContext* ctx, const XL6_AstNode* returns)
+{
+    size_t i;
+
+    if ( ctx == NULL || returns == NULL ) {
+        return 0;
+    }
+
+    for ( i = 0; i < returns->childCount; ++i ) {
+        if ( xl6CgenNeedsTypeIsString(ctx, returns->children[i]) ) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
 static int xl6CgenNodeNeedsStringRuntime(XL6_CgenContext* ctx, const XL6_AstNode* node)
 {
     size_t i;
@@ -62,12 +90,16 @@ static int xl6CgenNodeNeedsStringRuntime(XL6_CgenContext* ctx, const XL6_AstNode
         const XL6_AstNode* params = node->childCount > (node->kind == XL6_AST_ANON_FUNC ? 0 : 1)
                                         ? node->children[node->kind == XL6_AST_ANON_FUNC ? 0 : 1]
                                         : NULL;
+        const XL6_AstNode* returns = node->kind == XL6_AST_ANON_FUNC
+                                         ? NULL
+                                         : (node->childCount > 2 ? node->children[2] : NULL);
         const XL6_AstNode* body = node->childCount > (node->kind == XL6_AST_ANON_FUNC ? 1 : 3)
                                       ? node->children[node->kind == XL6_AST_ANON_FUNC ? 1 : 3]
                                       : NULL;
         size_t varMark = ctx->varCount;
         size_t cleanupMark = ctx->cleanupCount;
         int result;
+        int returnNeedsString;
 
         if ( (node->kind == XL6_AST_FUNC || node->kind == XL6_AST_ASYNC_FUNC) && xl6CgenFuncIsGeneric(node) && ctx->currentGenericParams == NULL ) {
             return 0;
@@ -77,8 +109,9 @@ static int xl6CgenNodeNeedsStringRuntime(XL6_CgenContext* ctx, const XL6_AstNode
         } else if ( ctx->currentCustom != NULL ) {
             xl6CgenAddVarType(ctx, "self", ctx->currentCustom);
         }
+        returnNeedsString = xl6CgenNeedsReturnListHasString(ctx, returns);
         xl6CgenRegisterParamTypes(ctx, params);
-        result = xl6CgenNodeNeedsStringRuntime(ctx, body);
+        result = returnNeedsString || xl6CgenNodeNeedsStringRuntime(ctx, body);
         xl6CgenFreeCleanupsSince(ctx, cleanupMark);
         xl6CgenFreeVarsSince(ctx, varMark);
         return result;

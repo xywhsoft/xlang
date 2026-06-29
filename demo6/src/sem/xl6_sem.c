@@ -8,7 +8,9 @@
 typedef enum XL6_SymbolKind {
     XL6_SYM_VALUE,
     XL6_SYM_CONST,
-    XL6_SYM_FUNC
+    XL6_SYM_FUNC,
+    XL6_SYM_GLOBAL_VALUE,
+    XL6_SYM_GLOBAL_CONST
 } XL6_SymbolKind;
 
 typedef struct XL6_Symbol {
@@ -43,6 +45,7 @@ typedef struct XL6_SemContext {
     size_t ownedTypeNodeCount;
     size_t ownedTypeNodeCapacity;
     XL6_Scope* captureBoundary;
+    int captureBoundaryAllowsCapture;
     XL6_AstNode* currentClass;
     XL6_AstNode* currentCustom;
     XL6_AstNode* currentFunction;
@@ -54,6 +57,7 @@ typedef struct XL6_SemContext {
 } XL6_SemContext;
 
 static void xl6SemErrorNode(XL6_SemContext* ctx, const XL6_AstNode* node, const char* message);
+static int xl6SemCheckBoundarySymbolUse(XL6_SemContext* ctx, const XL6_AstNode* node, XL6_Symbol* sym, int writeAccess);
 static XL6_AstNode* xl6SemFindTypeDecl(XL6_SemContext* ctx, const char* name);
 static const char* xl6SemExprStaticTypeName(XL6_SemContext* ctx, XL6_AstNode* expr);
 static XL6_AstNode* xl6SemInferAutoTypeNode(XL6_SemContext* ctx, XL6_AstNode* expr);
@@ -118,6 +122,18 @@ static int xl6SemCheckGenericInferredConstraints(
 static int xl6TextEquals(const char* a, const char* b)
 {
     return (a != NULL) && (b != NULL) && (strcmp(a, b) == 0);
+}
+
+static int xl6SemSymbolIsConst(const XL6_Symbol* sym)
+{
+    return sym != NULL &&
+           (sym->kind == XL6_SYM_CONST || sym->kind == XL6_SYM_GLOBAL_CONST);
+}
+
+static int xl6SemSymbolIsGlobalValue(const XL6_Symbol* sym)
+{
+    return sym != NULL &&
+           (sym->kind == XL6_SYM_GLOBAL_VALUE || sym->kind == XL6_SYM_GLOBAL_CONST);
 }
 
 static int xl6SemAstHasFlag(const XL6_AstNode* node, unsigned int flag)
@@ -7442,6 +7458,9 @@ static int xl6SemCheckCall(XL6_SemContext* ctx, XL6_AstNode* node)
 
     if ( node->childCount > 0 && node->children[0] != NULL && node->children[0]->kind == XL6_AST_NAME ) {
         sym = xl6ScopeFind(ctx->scope, node->children[0]->text);
+        if ( sym != NULL && !xl6SemCheckBoundarySymbolUse(ctx, node->children[0], sym, 0) ) {
+            return 0;
+        }
         if ( sym != NULL && sym->kind != XL6_SYM_FUNC && sym->type != NULL && xl6TextEquals(sym->type->text, "function") ) {
             if ( !xl6SemCheckFunctionValueCall(ctx, node, sym->type) ) {
                 ok = 0;
@@ -9840,6 +9859,32 @@ static int xl6SemCheckFStringExpr(XL6_SemContext* ctx, XL6_AstNode* node)
     return ok;
 }
 
+static int xl6SemCheckBoundarySymbolUse(XL6_SemContext* ctx, const XL6_AstNode* node, XL6_Symbol* sym, int writeAccess)
+{
+    if ( ctx == NULL || node == NULL || sym == NULL || node->text == NULL ) {
+        return 1;
+    }
+    if ( !xl6ScopeNameIsOutsideBoundary(ctx->scope, ctx->captureBoundary, node->text) ) {
+        return 1;
+    }
+    if ( sym->kind == XL6_SYM_FUNC || xl6SemSymbolIsGlobalValue(sym) ) {
+        return 1;
+    }
+    if ( !ctx->captureBoundaryAllowsCapture ) {
+        xl6SemErrorNode(ctx, node, "函数体不能隐式捕获外层局部变量");
+        return 0;
+    }
+    if ( writeAccess ) {
+        xl6SemErrorNode(ctx, node, "捕获变量在匿名函数体内只读");
+        return 0;
+    }
+    if ( !xl6SemTypeCanCapture(ctx, sym->type) ) {
+        xl6SemErrorNode(ctx, node, "该变量类型不能被匿名函数按值捕获");
+        return 0;
+    }
+    return 1;
+}
+
 static int xl6SemCheckNameExpr(XL6_SemContext* ctx, XL6_AstNode* node)
 {
     XL6_Symbol* sym;
@@ -9848,14 +9893,7 @@ static int xl6SemCheckNameExpr(XL6_SemContext* ctx, XL6_AstNode* node)
         return 1;
     }
     sym = xl6ScopeFind(ctx->scope, node->text);
-    if ( sym == NULL || !xl6ScopeNameIsOutsideBoundary(ctx->scope, ctx->captureBoundary, node->text) ) {
-        return 1;
-    }
-    if ( !xl6SemTypeCanCapture(ctx, sym->type) ) {
-        xl6SemErrorNode(ctx, node, "该变量类型不能被匿名函数按值捕获");
-        return 0;
-    }
-    return 1;
+    return xl6SemCheckBoundarySymbolUse(ctx, node, sym, 0);
 }
 
 static int xl6SemCheckExpr(XL6_SemContext* ctx, XL6_AstNode* node)
@@ -10404,14 +10442,13 @@ static int xl6SemCheckAssign(XL6_SemContext* ctx, XL6_AstNode* node)
         } else if ( xl6SemIsImplicitSelfTarget(ctx, left) ) {
             xl6SemErrorNode(ctx, left, "self 不能被重新赋值");
             ok = 0;
-        } else if ( sym->kind == XL6_SYM_CONST ) {
+        } else if ( xl6SemSymbolIsConst(sym) ) {
             xl6SemErrorNode(ctx, left, "const 不能被重新赋值");
             ok = 0;
         } else if ( sym->kind == XL6_SYM_FUNC ) {
             xl6SemErrorNode(ctx, left, "函数名不能作为赋值目标");
             ok = 0;
-        } else if ( xl6ScopeNameIsOutsideBoundary(ctx->scope, ctx->captureBoundary, left->text) ) {
-            xl6SemErrorNode(ctx, left, "捕获变量在匿名函数体内只读");
+        } else if ( !xl6SemCheckBoundarySymbolUse(ctx, left, sym, 1) ) {
             ok = 0;
         } else if ( right != NULL &&
                     (xl6TextEquals(op, "=") || xl6TextEquals(op, "?=")) &&
@@ -10522,14 +10559,13 @@ static int xl6SemCheckMultiAssign(XL6_SemContext* ctx, XL6_AstNode* node)
                 } else if ( xl6SemIsImplicitSelfTarget(ctx, target) ) {
                     xl6SemErrorNode(ctx, target, "self 不能被重新赋值");
                     ok = 0;
-                } else if ( sym->kind == XL6_SYM_CONST ) {
+                } else if ( xl6SemSymbolIsConst(sym) ) {
                     xl6SemErrorNode(ctx, target, "const 不能被重新赋值");
                     ok = 0;
                 } else if ( sym->kind == XL6_SYM_FUNC ) {
                     xl6SemErrorNode(ctx, target, "函数名不能作为赋值目标");
                     ok = 0;
-                } else if ( xl6ScopeNameIsOutsideBoundary(ctx->scope, ctx->captureBoundary, target->text) ) {
-                    xl6SemErrorNode(ctx, target, "捕获变量在匿名函数体内只读");
+                } else if ( !xl6SemCheckBoundarySymbolUse(ctx, target, sym, 1) ) {
                     ok = 0;
                 } else if ( !xl6SemTypeCanAssignFromType(ctx, valueType, sym->type) ) {
                     xl6SemTypeMismatchError(
@@ -11138,10 +11174,16 @@ static int xl6SemCheckFunc(XL6_SemContext* ctx, XL6_AstNode* node)
     int oldGeneratorDepth;
     int isGeneratorFunc;
     const char* oldImplicitSelfName;
+    XL6_Scope* oldCaptureBoundary;
+    int oldCaptureBoundaryAllowsCapture;
 
     ok = 1;
     pushedTypeParams = 0;
     xl6SemPushScope(ctx, &scope);
+    oldCaptureBoundary = ctx->captureBoundary;
+    oldCaptureBoundaryAllowsCapture = ctx->captureBoundaryAllowsCapture;
+    ctx->captureBoundary = &scope;
+    ctx->captureBoundaryAllowsCapture = 0;
     if ( ctx->implicitSelfName != NULL ) {
         XL6_AstNode selfNode;
         XL6_AstNode* selfType;
@@ -11303,6 +11345,8 @@ static int xl6SemCheckFunc(XL6_SemContext* ctx, XL6_AstNode* node)
     if ( pushedTypeParams ) {
         xl6SemPopTypeParams(ctx, &typeParamScope);
     }
+    ctx->captureBoundary = oldCaptureBoundary;
+    ctx->captureBoundaryAllowsCapture = oldCaptureBoundaryAllowsCapture;
     xl6SemPopScope(ctx, &scope);
     return ok;
 }
@@ -11548,7 +11592,7 @@ static int xl6SemDeclareExternalVar(XL6_SemContext* ctx, XL6_AstNode* node)
     }
 
     if ( nameNode != NULL ) {
-        kind = node->kind == XL6_AST_EXPORT_CONST ? XL6_SYM_CONST : XL6_SYM_VALUE;
+        kind = node->kind == XL6_AST_EXPORT_CONST ? XL6_SYM_GLOBAL_CONST : XL6_SYM_GLOBAL_VALUE;
         if ( !xl6ScopeAddTyped(ctx, nameNode, kind, typeNode) ) {
             ok = 0;
         }
@@ -11858,6 +11902,7 @@ static int xl6SemCheckAnonFunc(XL6_SemContext* ctx, XL6_AstNode* node)
     int oldReturnTypesValid;
     int returnTypesValid;
     XL6_Scope* oldCaptureBoundary;
+    int oldCaptureBoundaryAllowsCapture;
     XL6_AstNode* oldCurrentClass;
     XL6_AstNode* oldCurrentCustom;
     int oldInClassCreate;
@@ -11870,7 +11915,9 @@ static int xl6SemCheckAnonFunc(XL6_SemContext* ctx, XL6_AstNode* node)
     ok = 1;
     xl6SemPushScope(ctx, &scope);
     oldCaptureBoundary = ctx->captureBoundary;
+    oldCaptureBoundaryAllowsCapture = ctx->captureBoundaryAllowsCapture;
     ctx->captureBoundary = &scope;
+    ctx->captureBoundaryAllowsCapture = 1;
     if ( !xl6SemCheckParamListOnly(ctx, params, 1) ) {
         ok = 0;
     }
@@ -11897,6 +11944,7 @@ static int xl6SemCheckAnonFunc(XL6_SemContext* ctx, XL6_AstNode* node)
     ctx->currentCustom = oldCurrentCustom;
     ctx->inClassCreate = oldInClassCreate;
     ctx->captureBoundary = oldCaptureBoundary;
+    ctx->captureBoundaryAllowsCapture = oldCaptureBoundaryAllowsCapture;
     xl6SemPopScope(ctx, &scope);
     return ok;
 }

@@ -1129,6 +1129,7 @@ static int xlAddDefaultRuntimeSymbols(TCCState* s)
     XL_ADD_XRT_SYMBOL(s, xFutureError);
     XL_ADD_XRT_SYMBOL(s, xFutureRelease);
     XL_ADD_XRT_SYMBOL(s, xFutureRequestCancel);
+    XL_ADD_XRT_SYMBOL(s, xFutureForwardCancelTo);
     XL_ADD_XRT_SYMBOL(s, xFutureWhenAll);
     XL_ADD_XRT_SYMBOL(s, xFutureRace);
     XL_ADD_XRT_SYMBOL(s, xFutureGetAllValueCount);

@@ -1,0 +1,7 @@
+int outerValue = 1
+
+async func readOuterAsync() as int
+    return outerValue
+end
+
+int value = await readOuterAsync()
