@@ -1,6 +1,6 @@
 param(
     [string]$Root = "",
-    [int]$ExpectedRuleCount = 841,
+    [int]$ExpectedRuleCount = 843,
     [int]$MinMarkdownDocs = 47
 )
 
@@ -120,8 +120,8 @@ foreach ( $pattern in $stalePatterns ) {
     }
 }
 
-if ( $allText -notmatch '841\s*\u6761' ) {
-    Add-Failure "README/summary rule count wording missing: 841 count text"
+if ( $allText -notmatch '843\s*\u6761' ) {
+    Add-Failure "README/summary rule count wording missing: 843 count text"
 }
 
 $definedRuleIds = New-Object System.Collections.Generic.HashSet[string]

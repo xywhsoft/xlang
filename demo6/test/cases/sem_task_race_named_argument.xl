@@ -1,0 +1,6 @@
+async func addAsync(int left, int right) as int
+    return left + right
+end
+
+future<int> job = addAsync(1, 2)
+int value = await task.race(jobs = [job])

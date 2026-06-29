@@ -1,0 +1,16 @@
+extern "expect_i64" func expect(int actual, int expected)
+
+func makeValue(int value) as var
+    return value
+end
+
+func maybeNull(bool useNull, int fallback) as var
+    if useNull then
+        return null
+    end
+    return fallback
+end
+
+expect(int(makeValue(1) + makeValue(2)), 3)
+expect(int(maybeNull(true, 9) ?? makeValue(4)), 4)
+expect(int(false ? makeValue(5) : makeValue(6)), 6)

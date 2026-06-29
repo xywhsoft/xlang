@@ -2,6 +2,10 @@ async func addAsync(int a, int b) as int
     return a + b
 end
 
+async func makeVarAsync(int value) as var
+    return value
+end
+
 func numbers(int count) as generator<int>
     int i = 0
     while i < count do
@@ -10,19 +14,56 @@ func numbers(int count) as generator<int>
     end
 end
 
+func brokenNumbersEarly() as generator<int>
+    throw "generator boom before yield"
+    yield 1
+end
+
+func emptyNumbers() as generator<int>
+    int marker = 1
+    if marker == 0 then
+        yield marker
+    end
+end
+
 func worker() as int
     return 7
 end
 
+func() as int missingThreadWorker
+
 auto f = addAsync(20, 22)
 int answer = await f
 assert answer == 42, "async/await failed"
+
+future<var> vf = makeVarAsync(120)
+var dynamicAnswer = await vf
+assert int(dynamicAnswer) == 120, "async var await failed"
 
 int total = 0
 for value in numbers(4)
     total = total + value
 end
 assert total == 10, "generator failed"
+
+int generatorEarlyErrorState = 0
+try
+    for value in brokenNumbersEarly()
+        generatorEarlyErrorState = generatorEarlyErrorState + value
+    end
+    generatorEarlyErrorState = 100
+catch e
+    if e.message == "generator boom before yield" then
+        generatorEarlyErrorState = 42
+    end
+end
+assert generatorEarlyErrorState == 42, "generator early error propagation failed"
+
+int emptyGeneratorCount = 0
+for value in emptyNumbers()
+    emptyGeneratorCount = emptyGeneratorCount + 1
+end
+assert emptyGeneratorCount == 0, "empty generator failed"
 
 channel<int> ch = channel::<int>(1)
 assert ch.send(123), "channel send failed"
@@ -31,6 +72,33 @@ assert ch.recvInto(received), "channel recv failed"
 assert received == 123, "channel value failed"
 ch.close()
 
+int missingThreadState = 0
+try
+    thread missingThread = thread(missingThreadWorker)
+    missingThreadState = missingThread.exitCode()
+catch e
+    if e.message == "thread requires a callable func value" then
+        missingThreadState = 1
+    end
+end
+assert missingThreadState == 1, "thread empty func value"
+
 thread t = thread(worker)
 assert t.wait(), "thread wait failed"
 assert t.exitCode() == 7, "thread exit code failed"
+
+sem gate = sem(0, 2)
+assert gate.postMultiple(2), "sem postMultiple failed"
+assert gate.waitTimeout(10), "sem first waitTimeout failed"
+assert gate.waitTimeout(10), "sem second waitTimeout failed"
+assert not gate.tryWait(), "sem empty tryWait failed"
+
+cond c = cond()
+mutex m = mutex()
+assert m.lock(), "cond mutex lock failed"
+assert not c.waitTimeout(m, 1), "cond waitTimeout should time out"
+assert m.unlock(), "cond mutex unlock failed"
+
+rwlock rw = rwlock()
+assert rw.tryReadLock(), "rwlock tryReadLock failed"
+assert rw.readUnlock(), "rwlock readUnlock failed"

@@ -256,6 +256,10 @@ static void xl6CgenTypedLoopValueBegin(XL6_CgenContext* ctx, const XL6_AstNode* 
         xl6OutputPuts("xl6_function_from_callable(*(xrt_callable**)", ctx->out);
         return;
     }
+    if ( xl6CgenIsLanguageBoolType(ctx, itemType) ) {
+        xl6OutputPuts("((int)(*(bool*)", ctx->out);
+        return;
+    }
     xl6OutputPuts("(*(", ctx->out);
     xl6OutputPuts(itemType != NULL ? xl6CgenTypeName(ctx, itemType) : "xvalue", ctx->out);
     xl6OutputPuts("*)", ctx->out);
@@ -263,7 +267,10 @@ static void xl6CgenTypedLoopValueBegin(XL6_CgenContext* ctx, const XL6_AstNode* 
 
 static void xl6CgenTypedLoopValueEnd(XL6_CgenContext* ctx, const XL6_AstNode* itemType)
 {
-    (void)itemType;
+    if ( xl6CgenIsLanguageBoolType(ctx, itemType) ) {
+        xl6OutputPuts("))", ctx->out);
+        return;
+    }
     xl6OutputPutc(')', ctx->out);
 }
 

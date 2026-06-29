@@ -1,0 +1,12 @@
+class SpawnBox
+    int value = 0
+end
+
+func makeBox(int value) as SpawnBox
+    SpawnBox box
+    box.value = value
+    return box
+end
+
+func(int) as SpawnBox job = makeBox
+SpawnBox box = await task.spawn(job, 1)

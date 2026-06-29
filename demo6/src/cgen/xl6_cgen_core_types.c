@@ -56,6 +56,15 @@ static int xl6CgenIsBoolTypeName(const char* name)
     return xl6CTextEquals(name, "bool") || xl6CTextEquals(name, "c_bool");
 }
 
+static int xl6CgenIsLanguageBoolType(XL6_CgenContext* ctx, const XL6_AstNode* typeNode)
+{
+    const XL6_AstNode* concreteType;
+
+    concreteType = xl6CgenSubstituteGenericType(ctx, typeNode);
+    concreteType = xl6CgenResolveAliasType(ctx, concreteType);
+    return concreteType != NULL && xl6CTextEquals(concreteType->text, "bool");
+}
+
 static int xl6CgenIsXValueTypeName(const char* name)
 {
     return xl6CTextEquals(name, "var") ||

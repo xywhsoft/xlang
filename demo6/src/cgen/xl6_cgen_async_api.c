@@ -152,6 +152,24 @@ static int xl6CgenChannelMethodCall(XL6_CgenContext* ctx, const XL6_AstNode* cal
     return 0;
 }
 
+static int xl6CgenTaskFutureLiteralItemIsOwned(XL6_CgenContext* ctx, const XL6_AstNode* expr)
+{
+    XL6_AstNode* typeNode;
+    const XL6_AstNode* concreteType;
+    int owned;
+
+    if ( ctx == NULL || expr == NULL || expr->kind != XL6_AST_CALL ) {
+        return 0;
+    }
+
+    typeNode = xl6CgenCloneExprTypeForInference(ctx, expr);
+    concreteType = xl6CgenSubstituteGenericType(ctx, typeNode);
+    concreteType = xl6CgenResolveAliasType(ctx, concreteType);
+    owned = xl6CgenIsFutureLikeType(concreteType);
+    xl6AstFree(typeNode);
+    return owned;
+}
+
 static void xl6CgenTaskFutureLiteralArgs(XL6_CgenContext* ctx, const XL6_AstNode* literal)
 {
     size_t i;
@@ -160,6 +178,7 @@ static void xl6CgenTaskFutureLiteralArgs(XL6_CgenContext* ctx, const XL6_AstNode
         for ( i = 0; i < literal->childCount; ++i ) {
             xl6OutputPuts(", ", ctx->out);
             xl6CgenExpr(ctx, literal->children[i]);
+            xl6OutputPrintf(ctx->out, ", %d", xl6CgenTaskFutureLiteralItemIsOwned(ctx, literal->children[i]));
         }
     }
 }
@@ -253,9 +272,9 @@ static int xl6CgenTaskNamespaceCall(XL6_CgenContext* ctx, const XL6_AstNode* cal
         return xl6CgenTaskSpawnCall(ctx, call, member);
     }
     if ( xl6CTextEquals(member->text, "cancel") ) {
-        xl6OutputPuts("xFutureRequestCancel(", ctx->out);
+        xl6OutputPuts("xl6_task_cancel_value(", ctx->out);
         xl6CgenExpr(ctx, argExpr);
-        xl6OutputPutc(')', ctx->out);
+        xl6OutputPrintf(ctx->out, ", %d)", xl6CgenTaskFutureLiteralItemIsOwned(ctx, argExpr));
         return 1;
     }
 
@@ -560,8 +579,10 @@ static int xl6CgenThreadCtorCall(XL6_CgenContext* ctx, const XL6_AstNode* call, 
         xl6OutputPuts("(XL6_Function){0}", ctx->out);
     }
     xl6OutputPrintf(ctx->out,
-                    ", %d), \"\", %d, %d)",
+                    ", %d, \"\", %d, %d), \"\", %d, %d)",
                     xl6CgenExprIsFunctionBorrow(ctx, entryExpr) ? 1 : 0,
+                    callee->line,
+                    callee->column,
                     callee->line,
                     callee->column);
     xl6AstFree(targetType);

@@ -22,6 +22,10 @@ func readPayload(Payload payload) as int
     return payload.value
 end
 
+func sumPayload(Payload left, Payload right) as int
+    return left.value + right.value
+end
+
 func storePayload(Payload payload, int expected)
     expect(payload.value, expected)
 end
@@ -57,6 +61,8 @@ sink.consume(explicitPayload, 10)
 maker.make(80)
 int nestedArgumentValue = readPayload(maker.make(90)) + 1
 expect(readPayload(maker.make(100)) + 1, 101)
+int twoArgumentValue = sumPayload(maker.make(110), maker.make(120))
+expect(sumPayload(maker.make(130), maker.make(140)), 270)
 
 expect(explicitPayload.value, 10)
 expect(explicitPayload.op(1), 11)
@@ -68,3 +74,4 @@ expect(expressionValue, 40)
 expect(explicitExpressionValue, 50)
 expect(argumentValue, 60)
 expect(nestedArgumentValue, 91)
+expect(twoArgumentValue, 230)

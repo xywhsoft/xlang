@@ -7,6 +7,7 @@ $ErrorActionPreference = "Stop"
 if ( $Root -eq "" ) {
     $Root = Split-Path -Parent $PSScriptRoot
 }
+$Root = (Resolve-Path -LiteralPath $Root).Path
 
 $cgenDir = Join-Path $Root "src\cgen"
 $failures = New-Object System.Collections.Generic.List[string]
@@ -26,17 +27,7 @@ if ( ! (Test-Path -LiteralPath $cgenDir -PathType Container) ) {
     exit 1
 }
 
-$allowed = @(
-    [pscustomobject]@{ Path = "src\cgen\xl6_cgen_args.c"; Text = 'xl6OutputPrintf(ctx->out, "({ xvalue __xl6_cond_result_'; Count = 1 },
-    [pscustomobject]@{ Path = "src\cgen\xl6_cgen_args.c"; Text = 'xl6OutputPrintf(ctx->out, "({ xvalue __xl6_cmp_left_'; Count = 1 },
-    [pscustomobject]@{ Path = "src\cgen\xl6_cgen_args.c"; Text = 'xl6OutputPrintf(ctx->out, "({ xvalue __xl6_approx_left_'; Count = 1 },
-    [pscustomobject]@{ Path = "src\cgen\xl6_cgen_args.c"; Text = 'xl6OutputPrintf(ctx->out, "({ xvalue __xl6_bin_left_'; Count = 1 },
-    [pscustomobject]@{ Path = "src\cgen\xl6_cgen_args.c"; Text = 'xl6OutputPrintf(ctx->out, "({ xvalue __xl6_logic_left_'; Count = 1 },
-    [pscustomobject]@{ Path = "src\cgen\xl6_cgen_args.c"; Text = 'xl6OutputPrintf(ctx->out, "({ xvalue __xl6_nc_'; Count = 1 },
-    [pscustomobject]@{ Path = "src\cgen\xl6_cgen_args.c"; Text = 'xl6OutputPuts("({ ", ctx->out);'; Count = 1 },
-    [pscustomobject]@{ Path = "src\cgen\xl6_cgen_async_func.c"; Text = 'xl6OutputPuts("({ xfuture* ", ctx->out);'; Count = 1 },
-    [pscustomobject]@{ Path = "src\cgen\xl6_cgen_value_object.c"; Text = 'xl6OutputPuts("({\n", ctx->out);'; Count = 1 }
-)
+$allowed = @()
 
 $files = @(Get-ChildItem -LiteralPath $cgenDir -Filter "*.c" -File | Sort-Object FullName)
 $matches = @(Select-String -Path ($files | ForEach-Object { $_.FullName }) -SimpleMatch "({")

@@ -17,6 +17,7 @@
 - `generics.xl`：泛型函数、泛型调用和泛型容器示例；回归：`check`。
 - `generic_constraints.xl`：泛型约束、class 继承约束和 cloneable 约束示例；回归：`check`、`run`。
 - `generic_class_iter.xl`：泛型 class 的 `__iter__` / `__next__` 迭代协议示例；回归：`run`。
+- `runtime_type.xl`：运行时 `is` 判断、`as` checked downcast、函数签名和泛型容器类型示例；回归：`run`。
 - `class_point.xl`：class 字段和方法基础示例；回归：`check`。
 - `class_field_persistence_attrs.xl`：字段级 `@json` / `@xson` / `@persist` 持久化注解示例；回归：`run`。
 - `object_protocol.xl`：object 标准基类、动态字段、索引、运算符和可调用协议示例；回归：`check`。

@@ -67,7 +67,7 @@
 
 这里的“规则”指会改变生成 C 形态的分支，不把纯字符串编码、哈希、数组扩容、上下文清理这类内部工具函数单独当成语言规则。辅助函数仍在 `_function_index.generated.md` 和 `00_文件覆盖索引.md` 中保留索引。
 
-当前已经完成主干规则、P0 细化、async/generator/class/custom/ABI 元数据/声明与多返回值 P1 细化，以及标准库 wrapper、header/needs/module runtime helper/符号命名与类型映射/泛型推断与运行时状态/调用解析/类型克隆与表达式推断/cleanup 与借用生命周期/上下文状态表/入口判定/XAPI 输出/XAPI 读取/import 展开/package resolver/CLI 工具链/xl.dll API P2 细化。目录内已有 841 条 `CGEN-*` 规则；同时已完成主干/P0、P1 核心、P2 运行时/Header/Module/标准库、P2 符号/泛型/调用/类型推断、P2 cleanup/上下文/入口、P2 XAPI 元数据、P2 import/package、P2 CLI/DLL 验证矩阵。
+当前已经完成主干规则、P0 细化、async/generator/class/custom/ABI 元数据/声明与多返回值 P1 细化，以及标准库 wrapper、header/needs/module runtime helper/符号命名与类型映射/泛型推断与运行时状态/调用解析/类型克隆与表达式推断/cleanup 与借用生命周期/上下文状态表/入口判定/XAPI 输出/XAPI 读取/import 展开/package resolver/CLI 工具链/xl.dll API P2 细化。目录内已有 843 条 `CGEN-*` 规则；同时已完成主干/P0、P1 核心、P2 运行时/Header/Module/标准库、P2 符号/泛型/调用/类型推断、P2 cleanup/上下文/入口、P2 XAPI 元数据、P2 import/package、P2 CLI/DLL 验证矩阵。
 
 剩余内容不再属于规则文档缺失，而是非阻断增强：把人工矩阵机器化、为内部状态补更细生成快照、扩展资源巡检和错误路径测试。新增或修改 cgen 行为时，应同步更新对应规则表、验证矩阵和 `05_继续细化清单.md`。
 

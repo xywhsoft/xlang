@@ -1,0 +1,5 @@
+async func makeVar() as var
+    return 1
+end
+
+var value = await task.race([makeVar()])

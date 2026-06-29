@@ -20,6 +20,21 @@ func broken() as async generator<int>
     yield 2
 end
 
+func brokenEarly() as async generator<int>
+    int guard = await addAsync(1, 1)
+    if guard == 2 then
+        throw "async generator boom before yield"
+    end
+    yield guard
+end
+
+func emptyStream() as async generator<int>
+    int guard = await addAsync(1, 1)
+    if guard == 0 then
+        yield guard
+    end
+end
+
 int total = 0
 for await value in stream(10)
     total = total + value
@@ -47,3 +62,24 @@ catch e
 end
 
 assert errorState == 11, "async generator error propagation failed"
+
+int earlyErrorState = 0
+try
+    for await value in brokenEarly()
+        earlyErrorState = earlyErrorState + value
+    end
+    earlyErrorState = 100
+catch e
+    if e.message == "async generator boom before yield" then
+        earlyErrorState = 42
+    end
+end
+
+assert earlyErrorState == 42, "async generator early error propagation failed"
+
+int emptyCount = 0
+for await value in emptyStream()
+    emptyCount = emptyCount + 1
+end
+
+assert emptyCount == 0, "empty async generator should not yield values"

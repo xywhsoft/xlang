@@ -49,6 +49,9 @@ if errorlevel 1 exit /b 1
 powershell -NoProfile -Command "$dir = Join-Path 'src' 'cgen'; $m = Get-ChildItem -LiteralPath $dir -Filter '*.c' | Select-String -SimpleMatch '({ XL6_Function'; if ($m) { Write-Host 'src cgen contains stale XL6_Function statement-expression fallback.'; exit 1 }"
 if errorlevel 1 exit /b 1
 
+powershell -NoProfile -Command "$dir = Join-Path 'src' 'cgen'; $files = Get-ChildItem -LiteralPath $dir -Filter '*.c' | Where-Object { $_.Name -ne 'xl6_cgen_async.c' }; $m = $files | Select-String -SimpleMatch 'xFutureRequestCancel'; if ($m) { Write-Host 'src cgen emits direct future cancel outside async runtime helper.'; exit 1 }"
+if errorlevel 1 exit /b 1
+
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_cgen_statement_expr_allowlist.ps1
 if errorlevel 1 exit /b 1
 
@@ -1203,6 +1206,8 @@ if errorlevel 1 exit /b 1
 release\xl.exe run examples\generic_constraints.xl
 if errorlevel 1 exit /b 1
 release\xl.exe run examples\generic_class_iter.xl
+if errorlevel 1 exit /b 1
+release\xl.exe run examples\runtime_type.xl
 if errorlevel 1 exit /b 1
 
 release\xl.exe check examples\custom_counter.xl
@@ -2366,6 +2371,21 @@ if errorlevel 1 (
     echo cgen_static_typed_containers.c missing typed dict iteration.
     exit /b 1
 )
+findstr /C:"char* __xl6_typed_key_copy_" release\tmp\cgen_static_typed_containers.c >nul
+if errorlevel 1 (
+    echo cgen_static_typed_containers.c missing typed dict key copy buffer.
+    exit /b 1
+)
+findstr /C:"memcpy(__xl6_typed_key_copy_" release\tmp\cgen_static_typed_containers.c >nul
+if errorlevel 1 (
+    echo cgen_static_typed_containers.c missing typed dict key length copy.
+    exit /b 1
+)
+findstr /C:"xrtFree(__xl6_typed_key_copy_" release\tmp\cgen_static_typed_containers.c >nul
+if errorlevel 1 (
+    echo cgen_static_typed_containers.c missing typed dict key cleanup.
+    exit /b 1
+)
 "%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_static_typed_containers.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_static_typed_containers.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_static_typed_containers.exe
@@ -2482,6 +2502,16 @@ if errorlevel 1 (
     echo cgen_typed_container_for_in_returned.c missing typed dict key cleanup.
     exit /b 1
 )
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_typed_container_for_in_returned.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'xrtFree\(__xl6_typed_key_copy_(\d+)\);\s*__xl6_typed_key_copy_\1\s*=\s*0;\s*}\s*goto __xl6_continue_\1;'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_typed_container_for_in_returned.c missing typed dict key cleanup before continue.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_typed_container_for_in_returned.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'xrtFree\(__xl6_typed_key_copy_(\d+)\);\s*__xl6_typed_key_copy_\1\s*=\s*0;\s*}\s*if \(__xl6_typed_iter_\1 != 0\) \{\s*xrtTypedDictDestroy\(__xl6_typed_iter_\1\);\s*__xl6_typed_iter_\1 = 0;\s*}\s*goto __xl6_try_catch_'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_typed_container_for_in_returned.c missing typed dict key cleanup before throw catch.
+    exit /b 1
+)
 findstr /C:"xrtTypedArrayDestroy(__xl6_typed_iter_" release\tmp\cgen_typed_container_for_in_returned.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_for_in_returned.c missing returned typed array cleanup.
@@ -2595,22 +2625,22 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_typed_container_copy_objects_functions.xl --emit release\tmp\cgen_typed_container_copy_objects_functions.c
 if errorlevel 1 exit /b 1
-findstr /C:"xl6_xrt_typed_array_copy(xrtTypeFunction(), funcs)" release\tmp\cgen_typed_container_copy_objects_functions.c >nul
+findstr /C:"xl6_xrt_typed_array_copy_mode(xrtTypeFunction(), funcs, XRT_OBJMODE_LOCAL)" release\tmp\cgen_typed_container_copy_objects_functions.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_copy_objects_functions.c missing typed function array copy.
     exit /b 1
 )
-findstr /C:"xl6_xrt_typed_array_copy(xl6_type_desc_XL_Class_FnBox(), boxes)" release\tmp\cgen_typed_container_copy_objects_functions.c >nul
+findstr /C:"xl6_xrt_typed_array_copy_mode(xl6_type_desc_XL_Class_FnBox(), boxes, XRT_OBJMODE_LOCAL)" release\tmp\cgen_typed_container_copy_objects_functions.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_copy_objects_functions.c missing typed class array copy.
     exit /b 1
 )
-findstr /C:"xl6_xrt_typed_dict_copy(xl6_type_desc_XL_Class_FnBox(), named)" release\tmp\cgen_typed_container_copy_objects_functions.c >nul
+findstr /C:"xl6_xrt_typed_dict_copy_mode(xl6_type_desc_XL_Class_FnBox(), named, XRT_OBJMODE_LOCAL)" release\tmp\cgen_typed_container_copy_objects_functions.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_copy_objects_functions.c missing typed class dict copy.
     exit /b 1
 )
-findstr /C:"xl6_xrt_typed_array_copy(xl6_type_desc_XL_Custom_Native(), natives)" release\tmp\cgen_typed_container_copy_objects_functions.c >nul
+findstr /C:"xl6_xrt_typed_array_copy_mode(xl6_type_desc_XL_Custom_Native(), natives, XRT_OBJMODE_LOCAL)" release\tmp\cgen_typed_container_copy_objects_functions.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_copy_objects_functions.c missing typed custom array copy.
     exit /b 1
@@ -3257,6 +3287,35 @@ if not errorlevel 1 (
 "%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_call_var_arg_exprs.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_call_var_arg_exprs.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_call_var_arg_exprs.exe
+if errorlevel 1 exit /b 1
+
+release\xl.exe check test\cases\cgen_call_scalar_arg_exprs.xl
+if errorlevel 1 exit /b 1
+release\xl.exe cgen test\cases\cgen_call_scalar_arg_exprs.xl --emit release\tmp\cgen_call_scalar_arg_exprs.c
+if errorlevel 1 exit /b 1
+findstr /C:"long long __xl6_call_arg_" release\tmp\cgen_call_scalar_arg_exprs.c >nul
+if errorlevel 1 (
+    echo cgen_call_scalar_arg_exprs.c missing scalar call argument temporary.
+    exit /b 1
+)
+findstr /C:"xl6_xrt_value_to_i64_release(__xl6_call_value_" release\tmp\cgen_call_scalar_arg_exprs.c >nul
+if errorlevel 1 (
+    echo cgen_call_scalar_arg_exprs.c missing dynamic scalar argument conversion.
+    exit /b 1
+)
+findstr /C:"expect_i64(__xl6_call_arg_" release\tmp\cgen_call_scalar_arg_exprs.c >nul
+if errorlevel 1 (
+    echo cgen_call_scalar_arg_exprs.c missing call argument replacement.
+    exit /b 1
+)
+findstr /C:"({" release\tmp\cgen_call_scalar_arg_exprs.c >nul
+if not errorlevel 1 (
+    echo cgen_call_scalar_arg_exprs.c should not emit statement expressions.
+    exit /b 1
+)
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_call_scalar_arg_exprs.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_call_scalar_arg_exprs.exe
+if errorlevel 1 exit /b 1
+release\tmp\cgen_call_scalar_arg_exprs.exe
 if errorlevel 1 exit /b 1
 
 release\xl.exe check test\cases\cgen_var_return_exprs.xl
@@ -4843,6 +4902,16 @@ if errorlevel 1 (
     echo cgen_member_function_class_return.c missing extern nested expression class argument temporary.
     exit /b 1
 )
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_member_function_class_return.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'twoArgumentValue\s*=\s*sumPayload\((__xl6_class_arg_\d+),\s*(__xl6_class_arg_\d+)\);\s*xl_class_Payload__destroy\(&\2\);\s*xl_class_Payload__destroy\(&\1\);'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_member_function_class_return.c missing two temporary class arguments with reverse cleanup.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_member_function_class_return.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'expect_i64\(sumPayload\((__xl6_class_arg_\d+),\s*(__xl6_class_arg_\d+)\),\s*270LL\);\s*xl_class_Payload__destroy\(&\2\);\s*xl_class_Payload__destroy\(&\1\);'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_member_function_class_return.c missing extern two temporary class arguments with reverse cleanup.
+    exit /b 1
+)
 findstr /C:"expect_i64((readPayload(((maker.make.signature" release\tmp\cgen_member_function_class_return.c >nul
 if not errorlevel 1 (
     echo cgen_member_function_class_return.c should not inline class-return member function values in extern nested calls.
@@ -4961,6 +5030,28 @@ if errorlevel 1 (
 "%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_range_assert.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_range_assert.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_range_assert.exe
+if errorlevel 1 exit /b 1
+
+release\xl.exe cgen test\cases\cgen_assert_dynamic_condition.xl --emit release\tmp\cgen_assert_dynamic_condition.c
+if errorlevel 1 exit /b 1
+findstr /C:"int __xl6_assert_cond_" release\tmp\cgen_assert_dynamic_condition.c >nul
+if errorlevel 1 (
+    echo cgen_assert_dynamic_condition.c missing assert condition temporary.
+    exit /b 1
+)
+findstr /C:"if ( !(__xl6_assert_cond_" release\tmp\cgen_assert_dynamic_condition.c >nul
+if errorlevel 1 (
+    echo cgen_assert_dynamic_condition.c missing assert condition handoff.
+    exit /b 1
+)
+findstr /C:"({" release\tmp\cgen_assert_dynamic_condition.c >nul
+if not errorlevel 1 (
+    echo cgen_assert_dynamic_condition.c should not use GNU statement expressions.
+    exit /b 1
+)
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_assert_dynamic_condition.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_assert_dynamic_condition.exe
+if errorlevel 1 exit /b 1
+release\tmp\cgen_assert_dynamic_condition.exe
 if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_range_step_runtime_zero.xl --emit release\tmp\cgen_range_step_runtime_zero.c
@@ -6184,6 +6275,21 @@ if errorlevel 1 (
     echo cgen_null_coalesce.c missing static null coalesce fallback assignment.
     exit /b 1
 )
+findstr /C:"long long __xl6_call_arg_" release\tmp\cgen_null_coalesce.c >nul
+if errorlevel 1 (
+    echo cgen_null_coalesce.c missing static null coalesce call argument temp.
+    exit /b 1
+)
+findstr /C:"__xl6_call_arg_" release\tmp\cgen_null_coalesce.c | findstr /C:"__xl6_nc_" >nul
+if errorlevel 1 (
+    echo cgen_null_coalesce.c missing static null coalesce call argument branch assignment.
+    exit /b 1
+)
+findstr /C:"expect_i64(__xl6_call_arg_" release\tmp\cgen_null_coalesce.c >nul
+if errorlevel 1 (
+    echo cgen_null_coalesce.c missing static null coalesce call argument replacement.
+    exit /b 1
+)
 findstr /C:"xvalue fallback = ({ xvalue __xl6_nc_" release\tmp\cgen_null_coalesce.c >nul
 if not errorlevel 1 (
     echo cgen_null_coalesce.c still uses var null coalesce statement expression.
@@ -6197,6 +6303,11 @@ if not errorlevel 1 (
 findstr /C:"long long staticProbed = ({ long long __xl6_nc_" release\tmp\cgen_null_coalesce.c >nul
 if not errorlevel 1 (
     echo cgen_null_coalesce.c still uses static null coalesce statement expression.
+    exit /b 1
+)
+findstr /C:"expect_i64(({ long long __xl6_nc_" release\tmp\cgen_null_coalesce.c >nul
+if not errorlevel 1 (
+    echo cgen_null_coalesce.c still uses call argument null coalesce statement expression.
     exit /b 1
 )
 findstr /C:"xvalue literal = xvoCreateInt((long long)(7LL));" release\tmp\cgen_null_coalesce.c >nul
@@ -9878,6 +9989,21 @@ if errorlevel 1 (
     echo cgen_sync.c missing xrtRWLockCreate.
     exit /b 1
 )
+findstr /C:"xrtSemPostMultiple(gate" release\tmp\cgen_sync.c >nul
+if errorlevel 1 (
+    echo cgen_sync.c missing sem postMultiple path.
+    exit /b 1
+)
+findstr /C:"xrtCondWaitTimeout(c, condMutex" release\tmp\cgen_sync.c >nul
+if errorlevel 1 (
+    echo cgen_sync.c missing cond waitTimeout path.
+    exit /b 1
+)
+findstr /C:"xrtRWLockTryReadLock(rw" release\tmp\cgen_sync.c >nul
+if errorlevel 1 (
+    echo cgen_sync.c missing rwlock tryReadLock path.
+    exit /b 1
+)
 findstr /C:"xl6_sync_require_handle(xrtMutexCreate()" release\tmp\cgen_sync.c >nul
 if errorlevel 1 (
     echo cgen_sync.c missing mutex constructor error guard.
@@ -9962,6 +10088,26 @@ if errorlevel 1 (
 findstr /C:"xl6_thread_require_handle(xl6_thread_start" release\tmp\cgen_thread.c >nul
 if errorlevel 1 (
     echo cgen_thread.c missing thread constructor error guard.
+    exit /b 1
+)
+findstr /C:"if ( xl6_error_has() ) { return 0; }" release\tmp\cgen_thread.c >nul
+if errorlevel 1 (
+    echo cgen_thread.c missing thread active error preservation guard.
+    exit /b 1
+)
+findstr /C:"thread requires a callable func value" release\tmp\cgen_thread.c >nul
+if errorlevel 1 (
+    echo cgen_thread.c missing empty function value thread diagnostic.
+    exit /b 1
+)
+findstr /C:"XL6_Function missingWorker = {0};" release\tmp\cgen_thread.c >nul
+if errorlevel 1 (
+    echo cgen_thread.c missing empty function value thread fixture.
+    exit /b 1
+)
+findstr /C:"xl6_thread_start(missingWorker, 1" release\tmp\cgen_thread.c >nul
+if errorlevel 1 (
+    echo cgen_thread.c missing empty function value thread start call.
     exit /b 1
 )
 findstr /C:"thread start failed" release\tmp\cgen_thread.c >nul
@@ -10101,6 +10247,31 @@ if errorlevel 1 (
     echo cgen_async.c missing async function result free hook.
     exit /b 1
 )
+findstr /C:"pOut->pfnFreeValue = xl6_async_free_xvalue_value" release\tmp\cgen_async.c >nul
+if errorlevel 1 (
+    echo cgen_async.c missing async xvalue result free hook.
+    exit /b 1
+)
+findstr /C:"pOut->pfnFreeValue = xl6_async_free_typed_array_value" release\tmp\cgen_async.c >nul
+if errorlevel 1 (
+    echo cgen_async.c missing async typed array result free hook.
+    exit /b 1
+)
+findstr /C:"pOut->pfnFreeValue = xl6_async_free_typed_list_value" release\tmp\cgen_async.c >nul
+if errorlevel 1 (
+    echo cgen_async.c missing async typed list result free hook.
+    exit /b 1
+)
+findstr /C:"pOut->pfnFreeValue = xl6_async_free_typed_set_value" release\tmp\cgen_async.c >nul
+if errorlevel 1 (
+    echo cgen_async.c missing async typed set result free hook.
+    exit /b 1
+)
+findstr /C:"pOut->pfnFreeValue = xl6_async_free_typed_dict_value" release\tmp\cgen_async.c >nul
+if errorlevel 1 (
+    echo cgen_async.c missing async typed dict result free hook.
+    exit /b 1
+)
 findstr /C:"fnA.retain(fnA.env)" release\tmp\cgen_async.c >nul
 if errorlevel 1 (
     echo cgen_async.c missing await function retain.
@@ -10134,6 +10305,131 @@ if errorlevel 1 (
 findstr /C:"XL6_Function temporaryFn = xl6_future_await_function_release(makeAdderAsync(60LL)" release\tmp\cgen_async.c >nul
 if errorlevel 1 (
     echo cgen_async.c missing temporary await function release helper.
+    exit /b 1
+)
+findstr /C:"static xvalue xl6_future_await_xvalue_release" release\tmp\cgen_async.c >nul
+if errorlevel 1 (
+    echo cgen_async.c missing temporary await xvalue release helper.
+    exit /b 1
+)
+findstr /C:"xvalue awaitedVar = xl6_xrt_retain((*(xvalue*)xl6_future_await_value(varFuture" release\tmp\cgen_async.c >nul
+if errorlevel 1 (
+    echo cgen_async.c missing borrowed await xvalue retain.
+    exit /b 1
+)
+findstr /C:"xvalue temporaryVar = xl6_future_await_xvalue_release(makeVarAsync(130LL)" release\tmp\cgen_async.c >nul
+if errorlevel 1 (
+    echo cgen_async.c missing temporary await xvalue helper call.
+    exit /b 1
+)
+findstr /C:"static const char* xl6_future_await_cstr_copy" release\tmp\cgen_async.c >nul
+if errorlevel 1 (
+    echo cgen_async.c missing named string await copy helper.
+    exit /b 1
+)
+findstr /C:"temporaryGreeting = xl6_future_await_cstr_release(greetAsync(" release\tmp\cgen_async.c >nul
+if errorlevel 1 (
+    echo cgen_async.c missing temporary await string release helper call.
+    exit /b 1
+)
+findstr /C:"namedGreetingA = xl6_future_await_cstr_copy(greetingFuture" release\tmp\cgen_async.c >nul
+if errorlevel 1 (
+    echo cgen_async.c missing first named future string copy.
+    exit /b 1
+)
+findstr /C:"namedGreetingB = xl6_future_await_cstr_copy(greetingFuture" release\tmp\cgen_async.c >nul
+if errorlevel 1 (
+    echo cgen_async.c missing second named future string copy.
+    exit /b 1
+)
+findstr /C:"*(const char**)value = 0;" release\tmp\cgen_async.c >nul
+if errorlevel 1 (
+    echo cgen_async.c missing temporary string await detach.
+    exit /b 1
+)
+findstr /C:"xtarray temporaryItems = xl6_future_await_handle_release(makeItemsAsync()" release\tmp\cgen_async.c >nul
+if errorlevel 1 (
+    echo cgen_async.c missing temporary await typed container helper call.
+    exit /b 1
+)
+findstr /C:"xtarray __xl6_async_return_" release\tmp\cgen_async.c >nul
+if errorlevel 1 (
+    echo cgen_async.c missing typed container async return storage.
+    exit /b 1
+)
+findstr /C:"xtlist __xl6_async_return_" release\tmp\cgen_async.c >nul
+if errorlevel 1 (
+    echo cgen_async.c missing typed list async return storage.
+    exit /b 1
+)
+findstr /C:"xtset __xl6_async_return_" release\tmp\cgen_async.c >nul
+if errorlevel 1 (
+    echo cgen_async.c missing typed set async return storage.
+    exit /b 1
+)
+findstr /C:"xtdict __xl6_async_return_" release\tmp\cgen_async.c >nul
+if errorlevel 1 (
+    echo cgen_async.c missing typed dict async return storage.
+    exit /b 1
+)
+findstr /C:"xrtTypedArrayCreate(xrtTypeInt(), XRT_OBJMODE_SHARED)" release\tmp\cgen_async.c >nul
+if errorlevel 1 (
+    echo cgen_async.c missing typed container async shared create.
+    exit /b 1
+)
+findstr /C:"*(void**)value = 0;" release\tmp\cgen_async.c >nul
+if errorlevel 1 (
+    echo cgen_async.c missing temporary typed container await detach.
+    exit /b 1
+)
+findstr /C:"xl6_xrt_typed_array_copy_mode(xrtTypeInt(), values, XRT_OBJMODE_SHARED)" release\tmp\cgen_async.c >nul
+if errorlevel 1 (
+    echo cgen_async.c missing typed container async shared copy.
+    exit /b 1
+)
+findstr /C:"xfuture* itemsFuture = makeItemsAsync();" release\tmp\cgen_async.c >nul
+if errorlevel 1 (
+    echo cgen_async.c missing named future typed container fixture.
+    exit /b 1
+)
+findstr /C:"namedItemsA = xl6_xrt_typed_array_copy_mode(xrtTypeInt(), (*(xtarray*)xl6_future_await_value(itemsFuture" release\tmp\cgen_async.c >nul
+if errorlevel 1 (
+    echo cgen_async.c missing borrowed named future typed container copy for first await.
+    exit /b 1
+)
+findstr /C:"namedItemsB = xl6_xrt_typed_array_copy_mode(xrtTypeInt(), (*(xtarray*)xl6_future_await_value(itemsFuture" release\tmp\cgen_async.c >nul
+if errorlevel 1 (
+    echo cgen_async.c missing borrowed named future typed container copy for second await.
+    exit /b 1
+)
+findstr /C:"namedListA = xl6_xrt_typed_list_copy_mode(xrtTypeInt(), (*(xtlist*)xl6_future_await_value(listFuture" release\tmp\cgen_async.c >nul
+if errorlevel 1 (
+    echo cgen_async.c missing borrowed named future typed list copy for first await.
+    exit /b 1
+)
+findstr /C:"namedListB = xl6_xrt_typed_list_copy_mode(xrtTypeInt(), (*(xtlist*)xl6_future_await_value(listFuture" release\tmp\cgen_async.c >nul
+if errorlevel 1 (
+    echo cgen_async.c missing borrowed named future typed list copy for second await.
+    exit /b 1
+)
+findstr /C:"namedSetA = xl6_xrt_typed_set_copy_mode(xrtTypeInt(), (*(xtset*)xl6_future_await_value(setFuture" release\tmp\cgen_async.c >nul
+if errorlevel 1 (
+    echo cgen_async.c missing borrowed named future typed set copy for first await.
+    exit /b 1
+)
+findstr /C:"namedSetB = xl6_xrt_typed_set_copy_mode(xrtTypeInt(), (*(xtset*)xl6_future_await_value(setFuture" release\tmp\cgen_async.c >nul
+if errorlevel 1 (
+    echo cgen_async.c missing borrowed named future typed set copy for second await.
+    exit /b 1
+)
+findstr /C:"namedDictA = xl6_xrt_typed_dict_copy_mode(xrtTypeInt(), (*(xtdict*)xl6_future_await_value(dictFuture" release\tmp\cgen_async.c >nul
+if errorlevel 1 (
+    echo cgen_async.c missing borrowed named future typed dict copy for first await.
+    exit /b 1
+)
+findstr /C:"namedDictB = xl6_xrt_typed_dict_copy_mode(xrtTypeInt(), (*(xtdict*)xl6_future_await_value(dictFuture" release\tmp\cgen_async.c >nul
+if errorlevel 1 (
+    echo cgen_async.c missing borrowed named future typed dict copy for second await.
     exit /b 1
 )
 findstr /C:"long long temporaryValue = ({ xfuture*" release\tmp\cgen_async.c >nul
@@ -10176,6 +10472,11 @@ if not errorlevel 1 (
     echo cgen_async.c should not use statement expression for temporary class await.
     exit /b 1
 )
+findstr /C:"xvalue temporaryVar = ({ xfuture*" release\tmp\cgen_async.c >nul
+if not errorlevel 1 (
+    echo cgen_async.c should not use statement expression for temporary xvalue await.
+    exit /b 1
+)
 findstr /C:"__xl6_await_future_" release\tmp\cgen_async.c >nul
 if not errorlevel 1 (
     echo cgen_async.c should not use temporary await future block.
@@ -10198,9 +10499,59 @@ if errorlevel 1 exit /b 1
 release\xl.exe cgen test\cases\cgen_task_api.xl --emit release\tmp\cgen_task_api.c
 if errorlevel 1 exit /b 1
 
+findstr /C:"xl6_function_call_argv_borrow" release\tmp\cgen_task_api.c >nul
+if not errorlevel 1 (
+    echo cgen_task_api.c should not emit task.spawn borrowed argv helper.
+    exit /b 1
+)
 findstr /C:"xl6_task_all_start" release\tmp\cgen_task_api.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing task.all runtime helper.
+    exit /b 1
+)
+findstr /C:"status = xl6_async_result_error(pOut, error != 0 ? error :" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should copy task.all wait error before releasing group future.
+    exit /b 1
+)
+findstr /C:"status = xl6_async_result_error(pOut, error);" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should copy task.all completed error before releasing group future.
+    exit /b 1
+)
+findstr /C:"unsigned char* owned;" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing task literal future ownership flags.
+    exit /b 1
+)
+findstr /C:"owned[i] = (unsigned char)va_arg(ap, int);" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing task literal future ownership varargs.
+    exit /b 1
+)
+findstr /C:"if ( owned[i] && futures[i] != 0 ) { xFutureRelease(futures[i]); }" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing owned task literal future release.
+    exit /b 1
+)
+findstr /C:"one, 0, two, 0" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should pass named task.all futures as borrowed.
+    exit /b 1
+)
+findstr /C:"addAsync(10LL, 1LL), 1, addAsync(20LL, 2LL), 1" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should pass temporary task.all futures as owned.
+    exit /b 1
+)
+findstr /C:"addAsync(9LL, 1LL), 1, addAsync(20LL, 2LL), 1" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should pass temporary task.race futures as owned.
+    exit /b 1
+)
+findstr /C:"pOut->pfnFreeValue = xl6_async_free_typed_array_value" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing task.all typed array result free hook.
     exit /b 1
 )
 findstr /C:"xl6_task_all_values" release\tmp\cgen_task_api.c >nul
@@ -10218,19 +10569,214 @@ if errorlevel 1 (
     echo cgen_task_api.c missing task.all typed array path.
     exit /b 1
 )
+findstr /C:"xl6_task_race_from_array" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing task.race typed array path.
+    exit /b 1
+)
 findstr /C:"xl6_task_race_start" release\tmp\cgen_task_api.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing task.race runtime helper.
     exit /b 1
 )
-findstr /C:"xFutureRequestCancel" release\tmp\cgen_task_api.c >nul
+findstr /C:"static bool xl6_task_cancel_value" release\tmp\cgen_task_api.c >nul
 if errorlevel 1 (
-    echo cgen_task_api.c missing task.cancel lowering.
+    echo cgen_task_api.c missing task.cancel ownership helper.
+    exit /b 1
+)
+findstr /C:"cancelRequested = xl6_task_cancel_value(cancelTarget, 0)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should pass named task.cancel future as borrowed.
+    exit /b 1
+)
+findstr /C:"cancelTemporaryAsync = xl6_task_cancel_value(addAsync(50LL, 6LL), 1)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should release temporary async future after task.cancel.
+    exit /b 1
+)
+findstr /C:"cancelTemporaryAll = xl6_task_cancel_value(xl6_task_all_values(xrtTypeInt()" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should cancel temporary task.all future through ownership helper.
+    exit /b 1
+)
+findstr /C:"addAsync(60LL, 1LL), 1, addAsync(70LL, 2LL), 1), 1)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should release temporary task.all future after task.cancel.
+    exit /b 1
+)
+findstr /C:"cancelTemporaryRace = xl6_task_cancel_value(xl6_task_race_values" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should cancel temporary task.race future through ownership helper.
+    exit /b 1
+)
+findstr /C:"addAsync(80LL, 1LL), 1, addAsync(90LL, 2LL), 1), 1)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should release temporary task.race future after task.cancel.
+    exit /b 1
+)
+findstr /C:"cancelTypedAll = xl6_task_cancel_value(xl6_task_all_from_array((xtarray)(cancelAllJobs), xrtTypeInt()" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should cancel temporary typed-array task.all future through ownership helper.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_api.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'cancelTypedAll\s*=\s*xl6_task_cancel_value\(xl6_task_all_from_array\(\(xtarray\)\(cancelAllJobs\),\s*xrtTypeInt\(\),\s*[^;]+?\),\s*1\);'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_api.c should release temporary typed-array task.all future after task.cancel.
+    exit /b 1
+)
+findstr /C:"cancelTypedRace = xl6_task_cancel_value(xl6_task_race_from_array((xtarray)(cancelRaceJobs)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should cancel temporary typed-array task.race future through ownership helper.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_api.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'cancelTypedRace\s*=\s*xl6_task_cancel_value\(xl6_task_race_from_array\(\(xtarray\)\(cancelRaceJobs\),\s*[^;]+?\),\s*1\);'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_api.c should release temporary typed-array task.race future after task.cancel.
     exit /b 1
 )
 findstr /C:"xrtTypeFuture()" release\tmp\cgen_task_api.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing typed future descriptor.
+    exit /b 1
+)
+findstr /C:"xrtTypeString()" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing string descriptor for task.all string results.
+    exit /b 1
+)
+findstr /C:"stringAll = xl6_future_await_handle_release(xl6_task_all_values(xrtTypeString()" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing task.all string aggregation path.
+    exit /b 1
+)
+findstr /C:"stringRace = xl6_future_await_cstr_release(xl6_task_race_values" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing task.race string await path.
+    exit /b 1
+)
+findstr /C:"namedAllFuture = xl6_task_all_values(xrtTypeInt()" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing named task.all future fixture.
+    exit /b 1
+)
+findstr /C:"namedAllA = xl6_xrt_typed_array_copy_mode(xrtTypeInt(), (*(xtarray*)xl6_future_await_value(namedAllFuture" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing named task.all first await copy.
+    exit /b 1
+)
+findstr /C:"namedAllB = xl6_xrt_typed_array_copy_mode(xrtTypeInt(), (*(xtarray*)xl6_future_await_value(namedAllFuture" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing named task.all second await copy.
+    exit /b 1
+)
+findstr /C:"repeatedFailedAll = xl6_task_all_values(xrtTypeInt()" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing repeated failed task.all future fixture.
+    exit /b 1
+)
+findstr /C:"repeatedAllB = xl6_xrt_typed_array_copy_mode(xrtTypeInt(), (*(xtarray*)xl6_future_await_value(repeatedFailedAll" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing repeated await for failed task.all future.
+    exit /b 1
+)
+findstr /C:"cancelRepeatedFailedAll = xl6_task_cancel_value(repeatedFailedAll, 0)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should pass failed task.all future cancel as borrowed.
+    exit /b 1
+)
+findstr /C:"namedStringAllFuture = xl6_task_all_values(xrtTypeString()" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing named string task.all future fixture.
+    exit /b 1
+)
+findstr /C:"namedStringAllA = xl6_xrt_typed_array_copy_mode(xrtTypeString(), (*(xtarray*)xl6_future_await_value(namedStringAllFuture" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing named string task.all first await copy.
+    exit /b 1
+)
+findstr /C:"namedStringAllB = xl6_xrt_typed_array_copy_mode(xrtTypeString(), (*(xtarray*)xl6_future_await_value(namedStringAllFuture" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing named string task.all second await copy.
+    exit /b 1
+)
+findstr /C:"repeatedFailedRace = xl6_task_race_values" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing repeated failed task.race future fixture.
+    exit /b 1
+)
+findstr /C:"long long repeatedRaceB = (*(long long*)xl6_future_await_value(repeatedFailedRace" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing repeated await for failed task.race future.
+    exit /b 1
+)
+findstr /C:"cancelRepeatedFailedRace = xl6_task_cancel_value(repeatedFailedRace, 0)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should pass failed task.race future cancel as borrowed.
+    exit /b 1
+)
+findstr /C:"task.all requires a non-empty future array" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing task.all empty-array guard.
+    exit /b 1
+)
+findstr /C:"task.race requires a non-empty future array" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing task.race empty-array guard.
+    exit /b 1
+)
+findstr /C:"task.all source future is null" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing task.all null source future guard.
+    exit /b 1
+)
+findstr /C:"task.race source future is null" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing task.race null source future guard.
+    exit /b 1
+)
+findstr /C:"missingFuture, 0" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should pass named null future literal input as borrowed.
+    exit /b 1
+)
+findstr /C:"addAsync(140LL, 1LL), 1, missingFuture, 0" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should release owned task.all literal input before null future failure.
+    exit /b 1
+)
+findstr /C:"addAsync(150LL, 1LL), 1, missingFuture, 0" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should release owned task.race literal input before null future failure.
+    exit /b 1
+)
+findstr /C:"futureArg = va_arg(ap, xfuture*);" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing task all/race vararg failure cleanup future read.
+    exit /b 1
+)
+findstr /C:"ownedArg = va_arg(ap, int);" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing task all/race vararg failure cleanup ownership read.
+    exit /b 1
+)
+findstr /C:"if ( ownedArg && futureArg != 0 ) { xFutureRelease(futureArg); }" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing task all/race vararg failure cleanup release.
+    exit /b 1
+)
+findstr /C:"if ( pFuture == 0 )" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing task.cancel null future guard.
+    exit /b 1
+)
+findstr /C:"cancelMissing = xl6_task_cancel_value(missingCancelFuture, 0)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should pass named null cancel future as borrowed.
+    exit /b 1
+)
+findstr /C:"if ( !xl6_error_has() )" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing await null-future error preservation guard.
     exit /b 1
 )
 
@@ -10251,9 +10797,244 @@ if errorlevel 1 (
     echo cgen_task_spawn.c missing task.spawn runtime helper.
     exit /b 1
 )
+findstr /C:"static xvalue xl6_function_call_argv_borrow(XL6_Function fn, int argc, xvalue* argv)" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing borrowed argv function bridge.
+    exit /b 1
+)
+findstr /C:"value = xl6_function_call_argv_borrow(arg->fn, arg->argc, arg->argv);" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c should call task.spawn functions through borrowed argv bridge.
+    exit /b 1
+)
+findstr /C:"void xrtTypeDropValue(const xrt_type_desc* pType, void* pObj);" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing XRT typed value drop declaration.
+    exit /b 1
+)
+findstr /C:"static void* xl6_async_typed_box_alloc" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing typed result box allocator.
+    exit /b 1
+)
+findstr /C:"xrtTypeDropValue(box->type, pValue);" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing typed result box drop.
+    exit /b 1
+)
+findstr /C:"box = xl6_async_typed_box_alloc(arg->resultType, arg->resultSize);" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing typed result box allocation.
+    exit /b 1
+)
+findstr /C:"pOut->pfnFreeValue = xl6_async_free_typed_value_box;" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing typed result box free hook.
+    exit /b 1
+)
+findstr /C:"value = va_arg(ap, xvalue);" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing task.spawn vararg failure cleanup value read.
+    exit /b 1
+)
+findstr /C:"if ( value != 0 ) { xvoUnref(value); }" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing task.spawn vararg failure cleanup unref.
+    exit /b 1
+)
+findstr /C:"arg->fn.invoke_var == 0 && arg->fn.invoke_xcall == 0" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c should accept invoke_xcall-only function adapters.
+    exit /b 1
+)
+findstr /C:"XL6_Function defaultJob = xl6_fnvalue_addDefault_arity1_make();" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing optional-parameter adapter task.spawn case.
+    exit /b 1
+)
+findstr /C:"XL6_Function missingJob = {0};" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing empty function value task.spawn fixture.
+    exit /b 1
+)
+findstr /C:"missingJobValue = xl6_future_await_i64_release(xl6_task_spawn_values(missingJob" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing empty function value task.spawn call.
+    exit /b 1
+)
+findstr /C:"task.spawn requires a callable func value" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing empty function value task.spawn diagnostic.
+    exit /b 1
+)
+findstr /C:"xfuture* repeatedSpawn = xl6_task_spawn_values(addJob" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing named task.spawn future initialization.
+    exit /b 1
+)
+findstr /C:"long long repeatedB = (*(long long*)xl6_future_await_value(repeatedSpawn" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing repeated await for named task.spawn future.
+    exit /b 1
+)
+findstr /C:"xfuture* repeatedFailedSpawn = xl6_task_spawn_values(throwingJob" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing repeated failed task.spawn future fixture.
+    exit /b 1
+)
+findstr /C:"long long failedSpawnB = (*(long long*)xl6_future_await_value(repeatedFailedSpawn" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing repeated await for failed task.spawn future.
+    exit /b 1
+)
+findstr /C:"cancelRepeatedFailedSpawn = xl6_task_cancel_value(repeatedFailedSpawn, 0)" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c should pass failed task.spawn future cancel as borrowed.
+    exit /b 1
+)
+findstr /C:"xfuture* namedGreetFuture = xl6_task_spawn_values(greetJob" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing named string task.spawn future initialization.
+    exit /b 1
+)
+findstr /C:"namedGreetA = xl6_future_await_cstr_copy(namedGreetFuture" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing named task.spawn string first await copy.
+    exit /b 1
+)
+findstr /C:"namedGreetB = xl6_future_await_cstr_copy(namedGreetFuture" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing named task.spawn string repeated await copy.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'flippedValue\s*=\s*xl6_future_await_i32_release\(xl6_task_spawn_values\(flipJob,\s*xrtTypeBool\(\),\s*sizeof\(int\),\s*\"\",\s*\d+,\s*\d+,\s*1,\s*xvoCreateBool\(1\)\)'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing task.spawn bool temporary future bridge.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'namedFlipFuture\s*=\s*xl6_task_spawn_values\(flipJob,\s*xrtTypeBool\(\),\s*sizeof\(int\),\s*\"\",\s*\d+,\s*\d+,\s*1,\s*xvoCreateBool\(0\)\)'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing task.spawn bool named future initialization.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'namedFlipA\s*=\s*\(\*\(int\*\)xl6_future_await_value\(namedFlipFuture,\s*\"\",\s*\d+,\s*\d+,\s*1,\s*sizeof\(int\)\)' -or $text -notmatch 'namedFlipB\s*=\s*\(\*\(int\*\)xl6_future_await_value\(namedFlipFuture,\s*\"\",\s*\d+,\s*\d+,\s*1,\s*sizeof\(int\)\)'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing task.spawn bool repeated named future await copies.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'halfValue\s*=\s*xl6_future_await_f64_release\(xl6_task_spawn_values\(halfJob,\s*xrtTypeFloat\(\),\s*sizeof\(double\),\s*\"\",\s*\d+,\s*\d+,\s*1,\s*xvoCreateFloat\(\(double\)\(1\.5\)\)\)'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing task.spawn float temporary future bridge.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'namedHalfFuture\s*=\s*xl6_task_spawn_values\(halfJob,\s*xrtTypeFloat\(\),\s*sizeof\(double\),\s*\"\",\s*\d+,\s*\d+,\s*1,\s*xvoCreateFloat\(\(double\)\(2\.5\)\)\)'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing task.spawn float named future initialization.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'namedHalfA\s*=\s*\(\*\(double\*\)xl6_future_await_value\(namedHalfFuture,\s*\"\",\s*\d+,\s*\d+,\s*1,\s*sizeof\(double\)\)' -or $text -notmatch 'namedHalfB\s*=\s*\(\*\(double\*\)xl6_future_await_value\(namedHalfFuture,\s*\"\",\s*\d+,\s*\d+,\s*1,\s*sizeof\(double\)\)'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing task.spawn float repeated named future await copies.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'variadicValue\s*=\s*xl6_future_await_i64_release\(xl6_task_spawn_values\(variadicJob,\s*xrtTypeInt\(\),\s*sizeof\(long long\),\s*\"\",\s*\d+,\s*\d+,\s*4,\s*xvoCreateInt\(\(long long\)\(10LL\)\),\s*xvoCreateInt\(\(long long\)\(1LL\)\),\s*xvoCreateInt\(\(long long\)\(2LL\)\),\s*xvoCreateInt\(\(long long\)\(3LL\)\)'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing task.spawn variadic non-empty argv bridge.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'variadicEmptyValue\s*=\s*xl6_future_await_i64_release\(xl6_task_spawn_values\(variadicJob,\s*xrtTypeInt\(\),\s*sizeof\(long long\),\s*\"\",\s*\d+,\s*\d+,\s*1,\s*xvoCreateInt\(\(long long\)\(10LL\)\)\)'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing task.spawn empty array vararg argv bridge.
+    exit /b 1
+)
+findstr /C:"XL6_Function variadicDefaultJob = xl6_fnvalue_totalDefault_arity0_vararg_make();" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing zero-fixed variadic optional adapter task.spawn case.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'variadicDefaultEmptyValue\s*=\s*xl6_future_await_i64_release\(xl6_task_spawn_values\(variadicDefaultJob,\s*xrtTypeInt\(\),\s*sizeof\(long long\),\s*\"\",\s*\d+,\s*\d+,\s*0\)'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing task.spawn zero-fixed vararg adapter empty argv bridge.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'variadicDefaultExtraValue\s*=\s*xl6_future_await_i64_release\(xl6_task_spawn_values\(variadicDefaultJob,\s*xrtTypeInt\(\),\s*sizeof\(long long\),\s*\"\",\s*\d+,\s*\d+,\s*2,\s*xvoCreateText\(\(void\*\)\(\"a\"\),\s*0,\s*false\),\s*xvoCreateText\(\(void\*\)\(\"b\"\),\s*0,\s*false\)\)'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing task.spawn zero-fixed vararg adapter extra argv bridge.
+    exit /b 1
+)
+findstr /C:"!xl6_task_cancel_value(repeatedSpawn, 0)" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing completed task.spawn cancel guard.
+    exit /b 1
+)
+findstr /C:"cancelTemporarySpawn = xl6_task_cancel_value(xl6_task_spawn_values(addJob" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c should cancel temporary task.spawn future through ownership helper.
+    exit /b 1
+)
+findstr /C:"xvoCreateInt((long long)(2LL))), 1);" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c should release temporary task.spawn future after task.cancel.
+    exit /b 1
+)
+findstr /C:"cancelTemporarySpawnAll = xl6_task_cancel_value(xl6_task_all_values(xrtTypeInt()" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c should cancel temporary task.all over task.spawn futures through ownership helper.
+    exit /b 1
+)
+findstr /C:"xvoCreateInt((long long)(4LL))), 1, xl6_task_spawn_values(defaultJob" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c should release temporary task.spawn inputs inside task.cancel task.all.
+    exit /b 1
+)
+findstr /C:"xvoCreateInt((long long)(5LL))), 1), 1);" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c should release temporary task.all future after task.cancel.
+    exit /b 1
+)
+findstr /C:"cancelTemporarySpawnRace = xl6_task_cancel_value(xl6_task_race_values" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c should cancel temporary task.race over task.spawn futures through ownership helper.
+    exit /b 1
+)
+findstr /C:"xvoCreateInt((long long)(7LL))), 1, xl6_task_spawn_values(defaultJob" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c should release temporary task.spawn inputs inside task.cancel task.race.
+    exit /b 1
+)
+findstr /C:"xvoCreateInt((long long)(8LL))), 1), 1);" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c should release temporary task.race future after task.cancel.
+    exit /b 1
+)
+findstr /C:"spawnAllValues = xl6_future_await_handle_release(xl6_task_all_values(xrtTypeInt()" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing task.all over task.spawn futures.
+    exit /b 1
+)
+findstr /C:"spawnRaceValue = xl6_future_await_i64_release(xl6_task_race_values" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing task.race over task.spawn futures.
+    exit /b 1
+)
+findstr /C:"), 1, xl6_task_spawn_values(defaultJob" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c should pass temporary task.spawn race futures as owned.
+    exit /b 1
+)
 findstr /C:"XL6_Function __xl6_task_fn_" release\tmp\cgen_task_spawn.c >nul
 if not errorlevel 1 (
     echo cgen_task_spawn.c should not emit task.spawn statement-expression temporaries.
+    exit /b 1
+)
+findstr /C:"XL6_Error* error = xl6_error_take();" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing task.spawn active error transfer.
+    exit /b 1
+)
+findstr /C:"xl6_async_result_error(pOut, message);" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing task.spawn future error propagation.
     exit /b 1
 )
 
@@ -10293,6 +11074,18 @@ if errorlevel 1 (
 findstr /C:"xl6_future_await_value(failed" release\tmp\cgen_async_exception_propagation.c >nul
 if errorlevel 1 (
     echo cgen_async_exception_propagation.c missing borrowed named future await.
+    exit /b 1
+)
+
+findstr /C:"long long secondValue = (*(long long*)xl6_future_await_value(failed" release\tmp\cgen_async_exception_propagation.c >nul
+if errorlevel 1 (
+    echo cgen_async_exception_propagation.c missing repeated await for failed named future.
+    exit /b 1
+)
+
+findstr /C:"cancelFailed = xl6_task_cancel_value(failed, 0)" release\tmp\cgen_async_exception_propagation.c >nul
+if errorlevel 1 (
+    echo cgen_async_exception_propagation.c should pass failed future cancel as borrowed.
     exit /b 1
 )
 
@@ -10352,6 +11145,28 @@ if errorlevel 1 (
     exit /b 1
 )
 
+release\xl.exe check test\cases\sem_task_cancel_named_argument.xl >nul 2> release\tmp\sem_task_cancel_named_argument.err.txt
+if not errorlevel 1 (
+    echo sem_task_cancel_named_argument.xl should fail.
+    exit /b 1
+)
+findstr /C:"task API" release\tmp\sem_task_cancel_named_argument.err.txt >nul
+if errorlevel 1 (
+    echo sem_task_cancel_named_argument.xl missing task API named argument diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_task_all_empty.xl >nul 2> release\tmp\sem_task_all_empty.err.txt
+if not errorlevel 1 (
+    echo sem_task_all_empty.xl should fail.
+    exit /b 1
+)
+findstr /C:"task.all/task.race" release\tmp\sem_task_all_empty.err.txt >nul
+if errorlevel 1 (
+    echo sem_task_all_empty.xl missing task.all diagnostic.
+    exit /b 1
+)
+
 release\xl.exe check test\cases\sem_task_all_mixed.xl >nul 2> release\tmp\sem_task_all_mixed.err.txt
 if not errorlevel 1 (
     echo sem_task_all_mixed.xl should fail.
@@ -10360,6 +11175,28 @@ if not errorlevel 1 (
 findstr /C:"task.all/task.race" release\tmp\sem_task_all_mixed.err.txt >nul
 if errorlevel 1 (
     echo sem_task_all_mixed.xl missing task.all diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_task_all_named_argument.xl >nul 2> release\tmp\sem_task_all_named_argument.err.txt
+if not errorlevel 1 (
+    echo sem_task_all_named_argument.xl should fail.
+    exit /b 1
+)
+findstr /C:"task API" release\tmp\sem_task_all_named_argument.err.txt >nul
+if errorlevel 1 (
+    echo sem_task_all_named_argument.xl missing task API named argument diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_task_all_var.xl >nul 2> release\tmp\sem_task_all_var.err.txt
+if not errorlevel 1 (
+    echo sem_task_all_var.xl should fail.
+    exit /b 1
+)
+findstr /C:"future<var>" release\tmp\sem_task_all_var.err.txt >nul
+if errorlevel 1 (
+    echo sem_task_all_var.xl missing task.all future var diagnostic.
     exit /b 1
 )
 
@@ -10374,6 +11211,28 @@ if errorlevel 1 (
     exit /b 1
 )
 
+release\xl.exe check test\cases\sem_task_race_var.xl >nul 2> release\tmp\sem_task_race_var.err.txt
+if not errorlevel 1 (
+    echo sem_task_race_var.xl should fail.
+    exit /b 1
+)
+findstr /C:"future<var>" release\tmp\sem_task_race_var.err.txt >nul
+if errorlevel 1 (
+    echo sem_task_race_var.xl missing task.race future var diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_task_race_named_argument.xl >nul 2> release\tmp\sem_task_race_named_argument.err.txt
+if not errorlevel 1 (
+    echo sem_task_race_named_argument.xl should fail.
+    exit /b 1
+)
+findstr /C:"task API" release\tmp\sem_task_race_named_argument.err.txt >nul
+if errorlevel 1 (
+    echo sem_task_race_named_argument.xl missing task API named argument diagnostic.
+    exit /b 1
+)
+
 release\xl.exe check test\cases\sem_task_spawn_bare_name.xl >nul 2> release\tmp\sem_task_spawn_bare_name.err.txt
 if not errorlevel 1 (
     echo sem_task_spawn_bare_name.xl should fail.
@@ -10382,6 +11241,17 @@ if not errorlevel 1 (
 findstr /C:"task.spawn first argument" release\tmp\sem_task_spawn_bare_name.err.txt >nul
 if errorlevel 1 (
     echo sem_task_spawn_bare_name.xl missing task.spawn first argument diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_task_spawn_named_argument.xl >nul 2> release\tmp\sem_task_spawn_named_argument.err.txt
+if not errorlevel 1 (
+    echo sem_task_spawn_named_argument.xl should fail.
+    exit /b 1
+)
+findstr /C:"task.spawn does not accept named arguments" release\tmp\sem_task_spawn_named_argument.err.txt >nul
+if errorlevel 1 (
+    echo sem_task_spawn_named_argument.xl missing task.spawn named argument diagnostic.
     exit /b 1
 )
 
@@ -10396,6 +11266,17 @@ if errorlevel 1 (
     exit /b 1
 )
 
+release\xl.exe check test\cases\sem_task_spawn_multi_return.xl >nul 2> release\tmp\sem_task_spawn_multi_return.err.txt
+if not errorlevel 1 (
+    echo sem_task_spawn_multi_return.xl should fail.
+    exit /b 1
+)
+findstr /C:"task.spawn currently supports only single-return" release\tmp\sem_task_spawn_multi_return.err.txt >nul
+if errorlevel 1 (
+    echo sem_task_spawn_multi_return.xl missing task.spawn single-return diagnostic.
+    exit /b 1
+)
+
 release\xl.exe check test\cases\sem_task_spawn_return_var.xl >nul 2> release\tmp\sem_task_spawn_return_var.err.txt
 if not errorlevel 1 (
     echo sem_task_spawn_return_var.xl should fail.
@@ -10404,6 +11285,83 @@ if not errorlevel 1 (
 findstr /C:"task.spawn return type cannot be var" release\tmp\sem_task_spawn_return_var.err.txt >nul
 if errorlevel 1 (
     echo sem_task_spawn_return_var.xl missing task.spawn return diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_task_spawn_dict_vararg.xl >nul 2> release\tmp\sem_task_spawn_dict_vararg.err.txt
+if not errorlevel 1 (
+    echo sem_task_spawn_dict_vararg.xl should fail.
+    exit /b 1
+)
+findstr /C:"task.spawn does not support ***" release\tmp\sem_task_spawn_dict_vararg.err.txt >nul
+if errorlevel 1 (
+    echo sem_task_spawn_dict_vararg.xl missing task.spawn dict vararg diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_task_spawn_return_typed_array.xl >nul 2> release\tmp\sem_task_spawn_return_typed_array.err.txt
+if not errorlevel 1 (
+    echo sem_task_spawn_return_typed_array.xl should fail.
+    exit /b 1
+)
+findstr /C:"task.spawn return type must be supported" release\tmp\sem_task_spawn_return_typed_array.err.txt >nul
+if errorlevel 1 (
+    echo sem_task_spawn_return_typed_array.xl missing task.spawn typed array return diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_task_spawn_return_function.xl >nul 2> release\tmp\sem_task_spawn_return_function.err.txt
+if not errorlevel 1 (
+    echo sem_task_spawn_return_function.xl should fail.
+    exit /b 1
+)
+findstr /C:"task.spawn return type must be supported" release\tmp\sem_task_spawn_return_function.err.txt >nul
+if errorlevel 1 (
+    echo sem_task_spawn_return_function.xl missing task.spawn function return diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_task_spawn_return_class.xl >nul 2> release\tmp\sem_task_spawn_return_class.err.txt
+if not errorlevel 1 (
+    echo sem_task_spawn_return_class.xl should fail.
+    exit /b 1
+)
+findstr /C:"task.spawn return type must be supported" release\tmp\sem_task_spawn_return_class.err.txt >nul
+if errorlevel 1 (
+    echo sem_task_spawn_return_class.xl missing task.spawn class return diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_task_spawn_arg_typed_array.xl >nul 2> release\tmp\sem_task_spawn_arg_typed_array.err.txt
+if not errorlevel 1 (
+    echo sem_task_spawn_arg_typed_array.xl should fail.
+    exit /b 1
+)
+findstr /C:"task.spawn parameter type must be supported" release\tmp\sem_task_spawn_arg_typed_array.err.txt >nul
+if errorlevel 1 (
+    echo sem_task_spawn_arg_typed_array.xl missing task.spawn typed array argument diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_task_spawn_arg_function.xl >nul 2> release\tmp\sem_task_spawn_arg_function.err.txt
+if not errorlevel 1 (
+    echo sem_task_spawn_arg_function.xl should fail.
+    exit /b 1
+)
+findstr /C:"task.spawn parameter type must be supported" release\tmp\sem_task_spawn_arg_function.err.txt >nul
+if errorlevel 1 (
+    echo sem_task_spawn_arg_function.xl missing task.spawn function argument diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_task_spawn_arg_class.xl >nul 2> release\tmp\sem_task_spawn_arg_class.err.txt
+if not errorlevel 1 (
+    echo sem_task_spawn_arg_class.xl should fail.
+    exit /b 1
+)
+findstr /C:"task.spawn parameter type must be supported" release\tmp\sem_task_spawn_arg_class.err.txt >nul
+if errorlevel 1 (
+    echo sem_task_spawn_arg_class.xl missing task.spawn class argument diagnostic.
     exit /b 1
 )
 
@@ -10435,6 +11393,16 @@ if errorlevel 1 (
     echo cgen_async_generator.c missing async generator worker.
     exit /b 1
 )
+findstr /C:"xl_gen_worker_brokenEarly" release\tmp\cgen_async_generator.c >nul
+if errorlevel 1 (
+    echo cgen_async_generator.c missing async generator early-error worker.
+    exit /b 1
+)
+findstr /C:"xl_gen_worker_emptyStream" release\tmp\cgen_async_generator.c >nul
+if errorlevel 1 (
+    echo cgen_async_generator.c missing async generator empty worker.
+    exit /b 1
+)
 findstr /C:"xl6_future_await_i64_release" release\tmp\cgen_async_generator.c >nul
 if errorlevel 1 (
     echo cgen_async_generator.c missing await lowering inside generator.
@@ -10443,6 +11411,11 @@ if errorlevel 1 (
 findstr /C:"xl6_generator_next" release\tmp\cgen_async_generator.c >nul
 if errorlevel 1 (
     echo cgen_async_generator.c missing for-await generator iteration.
+    exit /b 1
+)
+findstr /C:"async generator boom before yield" release\tmp\cgen_async_generator.c >nul
+if errorlevel 1 (
+    echo cgen_async_generator.c missing async generator early-error diagnostic.
     exit /b 1
 )
 
@@ -10518,6 +11491,16 @@ if errorlevel 1 (
     echo cgen_generator.c missing generator worker error capture.
     exit /b 1
 )
+findstr /C:"xl_gen_worker_brokenEarly" release\tmp\cgen_generator.c >nul
+if errorlevel 1 (
+    echo cgen_generator.c missing generator early-error worker.
+    exit /b 1
+)
+findstr /C:"xl_gen_worker_emptyNums" release\tmp\cgen_generator.c >nul
+if errorlevel 1 (
+    echo cgen_generator.c missing empty generator worker.
+    exit /b 1
+)
 findstr /C:"xl_gen_worker_toggles" release\tmp\cgen_generator.c >nul
 if errorlevel 1 (
     echo cgen_generator.c missing bool generator worker.
@@ -10531,6 +11514,11 @@ if errorlevel 1 (
 findstr /C:"12:34:56" release\tmp\cgen_generator.c >nul
 if errorlevel 1 (
     echo cgen_generator.c missing time generator literal lowering.
+    exit /b 1
+)
+findstr /C:"generator boom before yield" release\tmp\cgen_generator.c >nul
+if errorlevel 1 (
+    echo cgen_generator.c missing generator early-error diagnostic.
     exit /b 1
 )
 
@@ -10884,6 +11872,116 @@ if errorlevel 1 (
 findstr /C:"range(...)" release\tmp\invalid_range.tokens.txt >nul
 if errorlevel 1 (
     echo invalid_range.tokens.txt missing range diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\parse_invalid_int_prefix_0X.xl >nul 2> release\tmp\parse_invalid_int_prefix_0X.err.txt
+if not errorlevel 1 (
+    echo parse_invalid_int_prefix_0X.xl should fail.
+    exit /b 1
+)
+findstr /L /C:"[parse]" release\tmp\parse_invalid_int_prefix_0X.err.txt >nul
+if errorlevel 1 (
+    echo parse_invalid_int_prefix_0X.err.txt missing parse diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\parse_invalid_int_prefix_0O.xl >nul 2> release\tmp\parse_invalid_int_prefix_0O.err.txt
+if not errorlevel 1 (
+    echo parse_invalid_int_prefix_0O.xl should fail.
+    exit /b 1
+)
+findstr /L /C:"[parse]" release\tmp\parse_invalid_int_prefix_0O.err.txt >nul
+if errorlevel 1 (
+    echo parse_invalid_int_prefix_0O.err.txt missing parse diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\parse_invalid_int_prefix_0B.xl >nul 2> release\tmp\parse_invalid_int_prefix_0B.err.txt
+if not errorlevel 1 (
+    echo parse_invalid_int_prefix_0B.xl should fail.
+    exit /b 1
+)
+findstr /L /C:"[parse]" release\tmp\parse_invalid_int_prefix_0B.err.txt >nul
+if errorlevel 1 (
+    echo parse_invalid_int_prefix_0B.err.txt missing parse diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\parse_invalid_int_prefix_amp_h_lower.xl >nul 2> release\tmp\parse_invalid_int_prefix_amp_h_lower.err.txt
+if not errorlevel 1 (
+    echo parse_invalid_int_prefix_amp_h_lower.xl should fail.
+    exit /b 1
+)
+findstr /L /C:"[parse]" release\tmp\parse_invalid_int_prefix_amp_h_lower.err.txt >nul
+if errorlevel 1 (
+    echo parse_invalid_int_prefix_amp_h_lower.err.txt missing parse diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\parse_invalid_int_prefix_amp_H_upper.xl >nul 2> release\tmp\parse_invalid_int_prefix_amp_H_upper.err.txt
+if not errorlevel 1 (
+    echo parse_invalid_int_prefix_amp_H_upper.xl should fail.
+    exit /b 1
+)
+findstr /L /C:"[parse]" release\tmp\parse_invalid_int_prefix_amp_H_upper.err.txt >nul
+if errorlevel 1 (
+    echo parse_invalid_int_prefix_amp_H_upper.err.txt missing parse diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\parse_invalid_int_prefix_amp_o_lower.xl >nul 2> release\tmp\parse_invalid_int_prefix_amp_o_lower.err.txt
+if not errorlevel 1 (
+    echo parse_invalid_int_prefix_amp_o_lower.xl should fail.
+    exit /b 1
+)
+findstr /L /C:"[parse]" release\tmp\parse_invalid_int_prefix_amp_o_lower.err.txt >nul
+if errorlevel 1 (
+    echo parse_invalid_int_prefix_amp_o_lower.err.txt missing parse diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\parse_invalid_int_prefix_amp_O_upper.xl >nul 2> release\tmp\parse_invalid_int_prefix_amp_O_upper.err.txt
+if not errorlevel 1 (
+    echo parse_invalid_int_prefix_amp_O_upper.xl should fail.
+    exit /b 1
+)
+findstr /L /C:"[parse]" release\tmp\parse_invalid_int_prefix_amp_O_upper.err.txt >nul
+if errorlevel 1 (
+    echo parse_invalid_int_prefix_amp_O_upper.err.txt missing parse diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\parse_invalid_int_prefix_amp_b_lower.xl >nul 2> release\tmp\parse_invalid_int_prefix_amp_b_lower.err.txt
+if not errorlevel 1 (
+    echo parse_invalid_int_prefix_amp_b_lower.xl should fail.
+    exit /b 1
+)
+findstr /L /C:"[parse]" release\tmp\parse_invalid_int_prefix_amp_b_lower.err.txt >nul
+if errorlevel 1 (
+    echo parse_invalid_int_prefix_amp_b_lower.err.txt missing parse diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\parse_invalid_int_prefix_amp_B_upper.xl >nul 2> release\tmp\parse_invalid_int_prefix_amp_B_upper.err.txt
+if not errorlevel 1 (
+    echo parse_invalid_int_prefix_amp_B_upper.xl should fail.
+    exit /b 1
+)
+findstr /L /C:"[parse]" release\tmp\parse_invalid_int_prefix_amp_B_upper.err.txt >nul
+if errorlevel 1 (
+    echo parse_invalid_int_prefix_amp_B_upper.err.txt missing parse diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\parse_function_arrow_removed.xl >nul 2> release\tmp\parse_function_arrow_removed.err.txt
+if not errorlevel 1 (
+    echo parse_function_arrow_removed.xl should fail.
+    exit /b 1
+)
+findstr /L /C:"[parse]" release\tmp\parse_function_arrow_removed.err.txt >nul
+if errorlevel 1 (
+    echo parse_function_arrow_removed.err.txt missing parse diagnostic.
     exit /b 1
 )
 

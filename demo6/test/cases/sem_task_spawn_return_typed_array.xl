@@ -1,0 +1,6 @@
+func makeItems() as array<int>
+    return array[1, 2, 3]
+end
+
+func() as array<int> job = makeItems
+array<int> values = await task.spawn(job)

@@ -2,6 +2,10 @@ func add(int left, int right) as int
     return left + right
 end
 
+func addDefault(int left, int right = 1) as int
+    return left + right
+end
+
 func makeAdder(int base) as func(int) as int
     return func(int value) as int
         return base + value
@@ -12,9 +16,75 @@ func greet(string name) as string
     return "hello " + name
 end
 
+func flip(bool flag) as bool
+    return not flag
+end
+
+func addHalf(float value) as float
+    return value + 0.5
+end
+
+func fortyTwo() as int
+    return 42
+end
+
+func sumVariadic(int base, ...) as int
+    int total = base
+    int i = 0
+    while i < arg.length do
+        total = total + int(arg[i])
+        i = i + 1
+    end
+    return total
+end
+
+func totalDefault(int base = 5, ...) as int
+    return base + arg.length
+end
+
+func failJob() as int
+    throw "spawn boom"
+    return 0
+end
+
+func() as int zeroJob = fortyTwo
+int zeroValue = await task.spawn(zeroJob)
+assert zeroValue == 42, "task.spawn should run zero-argument func value"
+
 func(int, int) as int addJob = add
 int addValue = await task.spawn(addJob, 20, 22)
 assert addValue == 42, "task.spawn should run typed func value"
+
+future<int> repeatedSpawn = task.spawn(addJob, 21, 21)
+int repeatedA = await repeatedSpawn
+int repeatedB = await repeatedSpawn
+assert repeatedA == 42, "task.spawn named future first await should work"
+assert repeatedB == 42, "task.spawn named future repeated await should work"
+assert not task.cancel(repeatedSpawn), "completed task.spawn future should not be canceled"
+bool cancelTemporarySpawn = task.cancel(task.spawn(addJob, 1, 2))
+assert cancelTemporarySpawn == true or cancelTemporarySpawn == false, "task.cancel should release temporary task.spawn future"
+
+func(int) as int defaultJob = addDefault
+int defaultValue = await task.spawn(defaultJob, 41)
+assert defaultValue == 42, "task.spawn should honor optional defaults"
+
+func(int) as int missingJob
+int missingJobState = 0
+try
+    int missingJobValue = await task.spawn(missingJob, 1)
+    missingJobState = missingJobValue
+catch e
+    if e.message == "task.spawn requires a callable func value" then
+        missingJobState = 42
+    end
+end
+assert missingJobState == 42, "task.spawn should reject empty func value"
+
+bool cancelTemporarySpawnAll = task.cancel(task.all([task.spawn(addJob, 3, 4), task.spawn(defaultJob, 5)]))
+assert cancelTemporarySpawnAll == true or cancelTemporarySpawnAll == false, "task.cancel should release temporary task.all over task.spawn futures"
+
+bool cancelTemporarySpawnRace = task.cancel(task.race([task.spawn(addJob, 6, 7), task.spawn(defaultJob, 8)]))
+assert cancelTemporarySpawnRace == true or cancelTemporarySpawnRace == false, "task.cancel should release temporary task.race over task.spawn futures"
 
 func(int) as int capturedJob = makeAdder(30)
 int capturedValue = await task.spawn(capturedJob, 12)
@@ -23,3 +93,87 @@ assert capturedValue == 42, "task.spawn should retain closure func value"
 func(string) as string greetJob = greet
 string greetValue = await task.spawn(greetJob, "xlang")
 assert greetValue == "hello xlang", "task.spawn should transfer string result"
+
+future<string> namedGreetFuture = task.spawn(greetJob, "future")
+string namedGreetA = await namedGreetFuture
+string namedGreetB = await namedGreetFuture
+assert namedGreetA == "hello future", "task.spawn string future first await should copy result"
+assert namedGreetB == "hello future", "task.spawn string future repeated await should copy result"
+
+func(bool) as bool flipJob = flip
+bool flippedValue = await task.spawn(flipJob, true)
+assert flippedValue == false, "task.spawn should bridge bool arguments and results"
+future<bool> namedFlipFuture = task.spawn(flipJob, false)
+bool namedFlipA = await namedFlipFuture
+bool namedFlipB = await namedFlipFuture
+assert namedFlipA == true, "task.spawn bool future first await should copy result"
+assert namedFlipB == true, "task.spawn bool future repeated await should copy result"
+
+func(float) as float halfJob = addHalf
+float halfValue = await task.spawn(halfJob, 1.5)
+assert halfValue == 2.0, "task.spawn should bridge float arguments and results"
+future<float> namedHalfFuture = task.spawn(halfJob, 2.5)
+float namedHalfA = await namedHalfFuture
+float namedHalfB = await namedHalfFuture
+assert namedHalfA == 3.0, "task.spawn float future first await should copy result"
+assert namedHalfB == 3.0, "task.spawn float future repeated await should copy result"
+
+func(int, ...) as int variadicJob = sumVariadic
+int variadicValue = await task.spawn(variadicJob, 10, 1, 2, 3)
+assert variadicValue == 16, "task.spawn should pass array varargs through xvalue bridge"
+int variadicEmptyValue = await task.spawn(variadicJob, 10)
+assert variadicEmptyValue == 10, "task.spawn should pass an empty array vararg tail"
+
+func(...) as int variadicDefaultJob = totalDefault
+int variadicDefaultEmptyValue = await task.spawn(variadicDefaultJob)
+assert variadicDefaultEmptyValue == 5, "task.spawn should run zero-argument array vararg adapter"
+int variadicDefaultExtraValue = await task.spawn(variadicDefaultJob, "a", "b")
+assert variadicDefaultExtraValue == 7, "task.spawn should run array vararg adapter with extra values"
+
+future<int> spawnAllA = task.spawn(addJob, 10, 11)
+future<int> spawnAllB = task.spawn(defaultJob, 20)
+array<int> spawnAllValues = await task.all([spawnAllA, spawnAllB])
+assert spawnAllValues.length == 2, "task.all should aggregate task.spawn futures"
+assert spawnAllValues[0] == 21, "task.all should keep first task.spawn result"
+assert spawnAllValues[1] == 21, "task.all should keep xcall adapter task.spawn result"
+
+int spawnRaceValue = await task.race([task.spawn(addJob, 2, 3), task.spawn(defaultJob, 8)])
+assert spawnRaceValue == 5 or spawnRaceValue == 9, "task.race should accept task.spawn futures"
+
+func() as int throwingJob = failJob
+int spawnErrorState = 0
+try
+    int failedValue = await task.spawn(throwingJob)
+    spawnErrorState = failedValue
+catch e
+    if e.message == "spawn boom" then
+        spawnErrorState = 42
+    end
+end
+assert spawnErrorState == 42, "task.spawn should propagate original error message"
+
+future<int> repeatedFailedSpawn = task.spawn(throwingJob)
+int repeatedFailedSpawnA = 0
+try
+    int failedSpawnA = await repeatedFailedSpawn
+    repeatedFailedSpawnA = failedSpawnA
+catch e
+    if e.message == "spawn boom" then
+        repeatedFailedSpawnA = 42
+    end
+end
+assert repeatedFailedSpawnA == 42, "task.spawn failed future first await should propagate error"
+
+int repeatedFailedSpawnB = 0
+try
+    int failedSpawnB = await repeatedFailedSpawn
+    repeatedFailedSpawnB = failedSpawnB
+catch e
+    if e.message == "spawn boom" then
+        repeatedFailedSpawnB = 42
+    end
+end
+assert repeatedFailedSpawnB == 42, "task.spawn failed future repeated await should propagate error"
+
+bool cancelRepeatedFailedSpawn = task.cancel(repeatedFailedSpawn)
+assert not cancelRepeatedFailedSpawn, "failed task.spawn future should not be canceled"

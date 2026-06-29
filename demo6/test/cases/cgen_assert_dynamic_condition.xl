@@ -1,0 +1,9 @@
+func makeValue(int value) as var
+    return value
+end
+
+var textValue = "abc"
+
+assert makeValue(10) == makeValue(10), "dynamic compare assert failed"
+assert makeValue(0) or makeValue(1), "dynamic logical assert failed"
+assert textValue ~= "abc", "dynamic approximate assert failed"

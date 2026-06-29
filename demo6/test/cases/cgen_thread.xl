@@ -8,6 +8,18 @@ end
 
 func() as int borrowedWorker = worker
 
+func() as int missingWorker
+int missingThreadState = 0
+try
+    thread missingThread = thread(missingWorker)
+    missingThreadState = missingThread.exitCode()
+catch e
+    if e.message == "thread requires a callable func value" then
+        missingThreadState = 42
+    end
+end
+assert missingThreadState == 42, "thread should reject empty func value"
+
 thread first = thread(worker)
 bool waited = first.wait()
 int code = first.exitCode()

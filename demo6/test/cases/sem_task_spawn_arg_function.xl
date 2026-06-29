@@ -1,0 +1,11 @@
+func add(int value) as int
+    return value + 1
+end
+
+func callIt(func(int) as int fn) as int
+    return fn(41)
+end
+
+func(func(int) as int) as int job = callIt
+func(int) as int fnArg = add
+int value = await task.spawn(job, fnArg)

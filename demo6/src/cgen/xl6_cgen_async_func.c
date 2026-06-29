@@ -65,8 +65,38 @@ static void xl6CgenAsyncResultFreeFunc(XL6_CgenContext* ctx, const XL6_AstNode* 
     xl6OutputPuts("}\n\n", ctx->out);
 }
 
+static const char* xl6CgenAsyncTypedContainerFreeHelper(XL6_CgenContext* ctx, const XL6_AstNode* resultType)
+{
+    const XL6_AstNode* concreteType;
+    const char* typeName;
+
+    concreteType = xl6CgenTypedContainerConcreteType(ctx, resultType);
+    typeName = concreteType != NULL ? concreteType->text : NULL;
+    if ( xl6CTextEquals(typeName, "array") ) {
+        return "xl6_async_free_typed_array_value";
+    }
+    if ( xl6CTextEquals(typeName, "list") ) {
+        return "xl6_async_free_typed_list_value";
+    }
+    if ( xl6CTextEquals(typeName, "set") ) {
+        return "xl6_async_free_typed_set_value";
+    }
+    if ( xl6CTextEquals(typeName, "dict") ) {
+        return "xl6_async_free_typed_dict_value";
+    }
+    return "xrtFree";
+}
+
 static void xl6CgenAsyncResultFreeValue(XL6_CgenContext* ctx, const XL6_AstNode* funcNode, const XL6_AstNode* resultType)
 {
+    if ( xl6CgenIsTypedContainerType(ctx, resultType) ) {
+        xl6OutputPuts(xl6CgenAsyncTypedContainerFreeHelper(ctx, resultType), ctx->out);
+        return;
+    }
+    if ( xl6CgenIsXValueType(resultType) ) {
+        xl6OutputPuts("xl6_async_free_xvalue_value", ctx->out);
+        return;
+    }
     if ( xl6CgenIsFunctionType(resultType) ) {
         xl6OutputPuts("xl6_async_free_function_value", ctx->out);
         return;
@@ -139,6 +169,8 @@ static void xl6CgenAsyncReturnStmt(XL6_CgenContext* ctx, const XL6_AstNode* node
 {
     const XL6_AstNode* resultType = ctx->currentReturnType;
     int id = ctx->tempId++;
+    const char* cType;
+    char returnName[64];
 
     if ( node == NULL || node->childCount == 0 || resultType == NULL ) {
         xl6CgenEmitCleanupsSince(ctx, 0);
@@ -149,10 +181,17 @@ static void xl6CgenAsyncReturnStmt(XL6_CgenContext* ctx, const XL6_AstNode* node
         return;
     }
 
+    snprintf(returnName, sizeof(returnName), "__xl6_async_return_%d", id);
+    cType = xl6CgenIsTypedContainerType(ctx, resultType) ?
+            xl6CgenTypedContainerCType(ctx, resultType) :
+            xl6CgenTypeName(ctx, resultType);
+
     xl6CgenIndent(ctx);
-    xl6OutputPuts(xl6CgenTypeName(ctx, resultType), ctx->out);
-    xl6OutputPrintf(ctx->out, " __xl6_async_return_%d = ", id);
-    if ( xl6CgenIsXValueType(resultType) ) {
+    xl6OutputPuts(cType, ctx->out);
+    xl6OutputPrintf(ctx->out, " %s = ", returnName);
+    if ( xl6CgenIsTypedContainerType(ctx, resultType) ) {
+        xl6CgenTypedContainerValueFromExprMode(ctx, resultType, node->children[0], "XRT_OBJMODE_SHARED");
+    } else if ( xl6CgenIsXValueType(resultType) ) {
         xl6CgenXValueFromExprForTarget(ctx, resultType, node->children[0]);
     } else if ( xl6CgenIsFunctionType(resultType) ) {
         xl6CgenFunctionValueExpr(ctx, node->children[0], resultType);
@@ -160,28 +199,27 @@ static void xl6CgenAsyncReturnStmt(XL6_CgenContext* ctx, const XL6_AstNode* node
         xl6CgenExpr(ctx, node->children[0]);
     }
     xl6OutputPuts(";\n", ctx->out);
+    if ( xl6CgenIsTypedContainerType(ctx, resultType) &&
+         xl6CgenTypedContainerInitLiteral(ctx, resultType, node->children[0]) != NULL ) {
+        xl6CgenTypedContainerFillFromLiteral(ctx, returnName, resultType, node->children[0]);
+    }
     if ( xl6CgenIsFunctionType(resultType) && xl6CgenExprIsFunctionBorrow(ctx, node->children[0]) ) {
-        char returnName[64];
-        snprintf(returnName, sizeof(returnName), "__xl6_async_return_%d", id);
         xl6CgenRetainFunctionValue(ctx, returnName);
     }
-    {
-        char returnName[64];
-        snprintf(returnName, sizeof(returnName), "__xl6_async_return_%d", id);
-        xl6CgenRetainClassFunctionFieldsForBorrowedExpr(ctx, resultType, returnName, node->children[0]);
-    }
+    xl6CgenRetainClassFunctionFieldsForBorrowedExpr(ctx, resultType, returnName, node->children[0]);
 
     xl6CgenIndent(ctx);
-    xl6OutputPuts(xl6CgenTypeName(ctx, resultType), ctx->out);
+    xl6OutputPuts(cType, ctx->out);
     xl6OutputPrintf(ctx->out, "* __xl6_async_box_%d = (", id);
-    xl6OutputPuts(xl6CgenTypeName(ctx, resultType), ctx->out);
+    xl6OutputPuts(cType, ctx->out);
     xl6OutputPuts("*)xrtMalloc(sizeof(", ctx->out);
-    xl6OutputPuts(xl6CgenTypeName(ctx, resultType), ctx->out);
+    xl6OutputPuts(cType, ctx->out);
     xl6OutputPuts("));\n", ctx->out);
 
     xl6CgenIndent(ctx);
     xl6OutputPrintf(ctx->out, "if ( __xl6_async_box_%d == 0 ) {\n", id);
     ctx->indent += 1;
+    xl6CgenDiscardTemporaryResultByType(ctx, resultType, returnName);
     xl6CgenEmitCleanupsSince(ctx, 0);
     xl6CgenIndent(ctx);
     xl6OutputPuts("return xl6_async_result_error(pOut, \"out of memory while completing async task\");\n", ctx->out);
@@ -271,6 +309,9 @@ static const char* xl6CgenAwaitReleaseHelperName(XL6_CgenContext* ctx, const XL6
     if ( xl6CgenIsTypedContainerType(ctx, resultType) ) {
         return "xl6_future_await_handle_release";
     }
+    if ( xl6CgenIsXValueType(resultType) ) {
+        return "xl6_future_await_xvalue_release";
+    }
     if ( resultType == NULL || xl6CgenIsXValueType(resultType) || xl6CgenIsClassType(ctx, resultType) ) {
         return NULL;
     }
@@ -341,65 +382,10 @@ static int xl6CgenAwaitOwnedTemporaryHelperExpr(
 
 static void xl6CgenAwaitOwnedTemporaryExpr(XL6_CgenContext* ctx, const XL6_AstNode* node, const XL6_AstNode* resultType, int requireValue)
 {
-    int id = ctx->tempId++;
-    char futureName[64];
-    char valueName[64];
-    const char* cType;
-
-    snprintf(futureName, sizeof(futureName), "__xl6_await_future_%d", id);
-    snprintf(valueName, sizeof(valueName), "__xl6_await_value_%d", id);
-    cType = xl6CgenAwaitResultCType(ctx, resultType);
-
-    xl6OutputPuts("({ xfuture* ", ctx->out);
-    xl6OutputPuts(futureName, ctx->out);
-    xl6OutputPuts(" = ", ctx->out);
-    xl6CgenAwaitOperandExpr(ctx, node);
-    xl6OutputPuts(";\n", ctx->out);
-
-    if ( !requireValue ) {
-        xl6CgenIndent(ctx);
-        xl6OutputPuts("xl6_future_await_value(", ctx->out);
-        xl6OutputPuts(futureName, ctx->out);
-        xl6OutputPrintf(ctx->out, ", \"\", %d, %d, 0, 0);\n", node != NULL ? node->line : 0, node != NULL ? node->column : 0);
-    } else {
-        xl6CgenIndent(ctx);
-        xl6OutputPuts(cType, ctx->out);
-        xl6OutputPutc(' ', ctx->out);
-        xl6OutputPuts(valueName, ctx->out);
-        xl6OutputPuts(" = (*(", ctx->out);
-        xl6OutputPuts(cType, ctx->out);
-        xl6OutputPuts("*)xl6_future_await_value(", ctx->out);
-        xl6OutputPuts(futureName, ctx->out);
-        xl6OutputPrintf(ctx->out, ", \"\", %d, %d, 1, sizeof(", node != NULL ? node->line : 0, node != NULL ? node->column : 0);
-        xl6OutputPuts(cType, ctx->out);
-        xl6OutputPuts(")));\n", ctx->out);
-        if ( xl6CgenIsFunctionType(resultType) ) {
-            xl6CgenRetainFunctionValue(ctx, valueName);
-        } else {
-            xl6CgenRetainClassFunctionFieldsForType(ctx, resultType, valueName);
-        }
-    }
-
-    xl6CgenIndent(ctx);
-    xl6OutputPuts("if (", ctx->out);
-    xl6OutputPuts(futureName, ctx->out);
-    xl6OutputPuts(" != 0) {\n", ctx->out);
-    ctx->indent += 1;
-    xl6CgenIndent(ctx);
-    xl6OutputPuts("xFutureRelease(", ctx->out);
-    xl6OutputPuts(futureName, ctx->out);
-    xl6OutputPuts(");\n", ctx->out);
-    ctx->indent -= 1;
-    xl6CgenIndent(ctx);
-    xl6OutputPuts("}\n", ctx->out);
-
-    xl6CgenIndent(ctx);
-    if ( requireValue ) {
-        xl6OutputPuts(valueName, ctx->out);
-    } else {
-        xl6OutputPuts("0", ctx->out);
-    }
-    xl6OutputPuts("; })", ctx->out);
+    (void)resultType;
+    (void)requireValue;
+    xl6CgenError(ctx, node, "temporary await requires a typed release helper");
+    xl6OutputPuts("0", ctx->out);
 }
 
 static void xl6CgenAwaitExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
@@ -422,6 +408,14 @@ static void xl6CgenAwaitExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
         xl6OutputPuts("(xl6_future_await_value(", ctx->out);
         xl6CgenAwaitOperandExpr(ctx, node);
         xl6OutputPrintf(ctx->out, ", \"\", %d, %d, 0, 0), 0)", node != NULL ? node->line : 0, node != NULL ? node->column : 0);
+        xl6AstFree(resultType);
+        return;
+    }
+
+    if ( xl6CTextEquals(xl6CgenAwaitResultCType(ctx, resultType), "const char*") ) {
+        xl6OutputPuts("xl6_future_await_cstr_copy(", ctx->out);
+        xl6CgenAwaitOperandExpr(ctx, node);
+        xl6OutputPrintf(ctx->out, ", \"\", %d, %d)", node != NULL ? node->line : 0, node != NULL ? node->column : 0);
         xl6AstFree(resultType);
         return;
     }

@@ -125,7 +125,7 @@ int xl6CgenEmitCEx(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags, cons
         xl6CgenEmitErrorRuntime(out);
     }
     if ( hasAsyncRuntime ) {
-        xl6CgenEmitAsyncRuntime(out);
+        xl6CgenEmitAsyncRuntime(out, hasTaskSpawn);
     }
     if ( hasXValueRuntime ) {
         xl6CgenEmitXValueRuntime(&ctx);

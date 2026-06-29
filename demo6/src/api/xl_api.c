@@ -1073,6 +1073,8 @@ static int xlAddDefaultRuntimeSymbols(TCCState* s)
     XL_ADD_XRT_SYMBOL(s, xrtTypeFunction);
     XL_ADD_XRT_SYMBOL(s, xrtTypeFuture);
     XL_ADD_XRT_SYMBOL(s, xrtTypeBoxValue);
+    XL_ADD_XRT_SYMBOL(s, xrtTypeUnboxValue);
+    XL_ADD_XRT_SYMBOL(s, xrtTypeDropValue);
     XL_ADD_XRT_SYMBOL(s, xrtTypedArrayCreate);
     XL_ADD_XRT_SYMBOL(s, xrtTypedArrayDestroy);
     XL_ADD_XRT_SYMBOL(s, xrtTypedArrayInit);

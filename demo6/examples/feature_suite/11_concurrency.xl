@@ -34,6 +34,10 @@ async func makeAdderAsync(int base) as func(int) as int
     return makeAdder(base)
 end
 
+async func makeVarAsync(int value) as var
+    return value
+end
+
 func numbers(int count) as generator<int>
     int i = 0
     while i < count do
@@ -62,9 +66,23 @@ func brokenNumbers() as generator<int>
     yield 2
 end
 
+func brokenNumbersEarly() as generator<int>
+    throw "generator boom before yield"
+    yield 1
+end
+
+func emptyNumbers() as generator<int>
+    int marker = 1
+    if marker == 0 then
+        yield marker
+    end
+end
+
 func worker() as int
     return 7
 end
+
+func() as int missingThreadWorker
 
 future<int> futureValue = addAsync(20, 22)
 int answer = await futureValue
@@ -108,6 +126,13 @@ assert temporaryFn(4) == 64, "temporary await func result failed"
 AsyncBox temporaryBox = await makeBoxAsync(110)
 assert temporaryBox.op(6) + temporaryBox.bias == 226, "temporary await class result failed"
 
+future<var> varFuture = makeVarAsync(120)
+var awaitedVar = await varFuture
+assert int(awaitedVar) == 120, "await var result failed"
+
+var temporaryVar = await makeVarAsync(130)
+assert int(temporaryVar) == 130, "temporary await var result failed"
+
 int total = 0
 for value in numbers(4)
     total = total + value
@@ -147,6 +172,25 @@ catch e
 end
 assert generatorErrorState == 11, "generator error propagation failed"
 
+int generatorEarlyErrorState = 0
+try
+    for value in brokenNumbersEarly()
+        generatorEarlyErrorState = generatorEarlyErrorState + value
+    end
+    generatorEarlyErrorState = 100
+catch e
+    if e.message == "generator boom before yield" then
+        generatorEarlyErrorState = 42
+    end
+end
+assert generatorEarlyErrorState == 42, "generator early error propagation failed"
+
+int emptyGeneratorCount = 0
+for value in emptyNumbers()
+    emptyGeneratorCount = emptyGeneratorCount + 1
+end
+assert emptyGeneratorCount == 0, "empty generator failed"
+
 channel<int> ch = channel::<int>(2)
 assert ch.send(123), "channel send failed"
 int received = 0
@@ -155,6 +199,17 @@ assert received == 123, "channel value failed"
 assert ch.count() == 0, "channel count failed"
 ch.close()
 assert ch.isClosed(), "channel close failed"
+
+int missingThreadState = 0
+try
+    thread missingThread = thread(missingThreadWorker)
+    missingThreadState = missingThread.exitCode()
+catch e
+    if e.message == "thread requires a callable func value" then
+        missingThreadState = 1
+    end
+end
+assert missingThreadState == 1, "thread empty func value"
 
 thread t = thread(worker)
 assert t.wait(), "thread wait failed"
@@ -182,10 +237,16 @@ assert not gate.tryWait(), "sem empty tryWait failed"
 cond c = cond()
 assert c.signal(), "cond signal failed"
 assert c.broadcast(), "cond broadcast failed"
+mutex condMutex = mutex()
+assert condMutex.lock(), "cond waitTimeout mutex lock failed"
+assert not c.waitTimeout(condMutex, 1), "cond waitTimeout should time out"
+assert condMutex.unlock(), "cond waitTimeout mutex unlock failed"
 
 rwlock rw = rwlock()
 assert rw.readLock(), "rwlock readLock failed"
 assert rw.readUnlock(), "rwlock readUnlock failed"
+assert rw.tryReadLock(), "rwlock tryReadLock failed"
+assert rw.readUnlock(), "rwlock tryReadUnlock failed"
 assert rw.writeLock(), "rwlock writeLock failed"
 assert rw.downgrade(), "rwlock downgrade failed"
 assert rw.readUnlock(), "rwlock downgraded unlock failed"

@@ -24,6 +24,10 @@ auto staticProbed = nextProbeInt() ?? 44
 expect(staticProbed, 33)
 expect(probeCount(), 1)
 
+resetProbe()
+expect(nextProbeInt() ?? 44, 33)
+expect(probeCount(), 1)
+
 expect(int(fallback), 9)
 expect(int(literal), 7)
 expect(int(assigned), 11)

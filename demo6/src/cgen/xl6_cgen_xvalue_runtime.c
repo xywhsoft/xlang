@@ -896,9 +896,9 @@ static void xl6CgenEmitXValueRuntime(XL6_CgenContext* ctx)
     xl6OutputPuts("    return result;\n", out);
     xl6OutputPuts("}\n\n", out);
 
-    xl6OutputPuts("static xtarray xl6_xrt_typed_array_copy(const xrt_type_desc* type, xtarray values)\n", out);
+    xl6OutputPuts("static xtarray xl6_xrt_typed_array_copy_mode(const xrt_type_desc* type, xtarray values, unsigned int mode)\n", out);
     xl6OutputPuts("{\n", out);
-    xl6OutputPuts("    xtarray result = xrtTypedArrayCreate(type, XRT_OBJMODE_LOCAL);\n", out);
+    xl6OutputPuts("    xtarray result = xrtTypedArrayCreate(type, mode);\n", out);
     xl6OutputPuts("    unsigned int count = xrtTypedArrayCount(values);\n", out);
     xl6OutputPuts("    unsigned int i;\n", out);
     xl6OutputPuts("    if ( result == 0 ) {\n", out);
@@ -913,6 +913,10 @@ static void xl6CgenEmitXValueRuntime(XL6_CgenContext* ctx)
     xl6OutputPuts("        }\n", out);
     xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    return result;\n", out);
+    xl6OutputPuts("}\n\n", out);
+    xl6OutputPuts("static xtarray xl6_xrt_typed_array_copy(const xrt_type_desc* type, xtarray values)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    return xl6_xrt_typed_array_copy_mode(type, values, XRT_OBJMODE_LOCAL);\n", out);
     xl6OutputPuts("}\n\n", out);
 
     xl6OutputPuts("static xvalue xl6_xrt_typed_list_to_xvalue(const xrt_type_desc* type, xtlist values)\n", out);
@@ -933,9 +937,9 @@ static void xl6CgenEmitXValueRuntime(XL6_CgenContext* ctx)
     xl6OutputPuts("    return result;\n", out);
     xl6OutputPuts("}\n\n", out);
 
-    xl6OutputPuts("static xtlist xl6_xrt_typed_list_copy(const xrt_type_desc* type, xtlist values)\n", out);
+    xl6OutputPuts("static xtlist xl6_xrt_typed_list_copy_mode(const xrt_type_desc* type, xtlist values, unsigned int mode)\n", out);
     xl6OutputPuts("{\n", out);
-    xl6OutputPuts("    xtlist result = xrtTypedListCreate(type, XRT_OBJMODE_LOCAL);\n", out);
+    xl6OutputPuts("    xtlist result = xrtTypedListCreate(type, mode);\n", out);
     xl6OutputPuts("    unsigned int count = xrtTypedListCount(values);\n", out);
     xl6OutputPuts("    unsigned int i;\n", out);
     xl6OutputPuts("    if ( result == 0 ) {\n", out);
@@ -951,6 +955,10 @@ static void xl6CgenEmitXValueRuntime(XL6_CgenContext* ctx)
     xl6OutputPuts("        }\n", out);
     xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    return result;\n", out);
+    xl6OutputPuts("}\n\n", out);
+    xl6OutputPuts("static xtlist xl6_xrt_typed_list_copy(const xrt_type_desc* type, xtlist values)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    return xl6_xrt_typed_list_copy_mode(type, values, XRT_OBJMODE_LOCAL);\n", out);
     xl6OutputPuts("}\n\n", out);
 
     xl6OutputPuts("static xvalue xl6_xrt_typed_set_to_xvalue(const xrt_type_desc* type, xtset values)\n", out);
@@ -970,9 +978,9 @@ static void xl6CgenEmitXValueRuntime(XL6_CgenContext* ctx)
     xl6OutputPuts("    return result;\n", out);
     xl6OutputPuts("}\n\n", out);
 
-    xl6OutputPuts("static xtset xl6_xrt_typed_set_copy(const xrt_type_desc* type, xtset values)\n", out);
+    xl6OutputPuts("static xtset xl6_xrt_typed_set_copy_mode(const xrt_type_desc* type, xtset values, unsigned int mode)\n", out);
     xl6OutputPuts("{\n", out);
-    xl6OutputPuts("    xtset result = xrtTypedSetCreate(type, XRT_OBJMODE_LOCAL);\n", out);
+    xl6OutputPuts("    xtset result = xrtTypedSetCreate(type, mode);\n", out);
     xl6OutputPuts("    unsigned int count = xrtTypedSetCount(values);\n", out);
     xl6OutputPuts("    unsigned int i;\n", out);
     xl6OutputPuts("    if ( result == 0 ) {\n", out);
@@ -987,6 +995,10 @@ static void xl6CgenEmitXValueRuntime(XL6_CgenContext* ctx)
     xl6OutputPuts("        }\n", out);
     xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    return result;\n", out);
+    xl6OutputPuts("}\n\n", out);
+    xl6OutputPuts("static xtset xl6_xrt_typed_set_copy(const xrt_type_desc* type, xtset values)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    return xl6_xrt_typed_set_copy_mode(type, values, XRT_OBJMODE_LOCAL);\n", out);
     xl6OutputPuts("}\n\n", out);
 
     xl6OutputPuts("static xvalue xl6_xrt_typed_dict_to_xvalue(const xrt_type_desc* type, xtdict values)\n", out);
@@ -1008,9 +1020,9 @@ static void xl6CgenEmitXValueRuntime(XL6_CgenContext* ctx)
     xl6OutputPuts("    return result;\n", out);
     xl6OutputPuts("}\n\n", out);
 
-    xl6OutputPuts("static xtdict xl6_xrt_typed_dict_copy(const xrt_type_desc* type, xtdict values)\n", out);
+    xl6OutputPuts("static xtdict xl6_xrt_typed_dict_copy_mode(const xrt_type_desc* type, xtdict values, unsigned int mode)\n", out);
     xl6OutputPuts("{\n", out);
-    xl6OutputPuts("    xtdict result = xrtTypedDictCreate(type, XRT_OBJMODE_LOCAL);\n", out);
+    xl6OutputPuts("    xtdict result = xrtTypedDictCreate(type, mode);\n", out);
     xl6OutputPuts("    unsigned int count = xrtTypedDictCount(values);\n", out);
     xl6OutputPuts("    unsigned int i;\n", out);
     xl6OutputPuts("    if ( result == 0 ) {\n", out);
@@ -1027,6 +1039,10 @@ static void xl6CgenEmitXValueRuntime(XL6_CgenContext* ctx)
     xl6OutputPuts("        }\n", out);
     xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    return result;\n", out);
+    xl6OutputPuts("}\n\n", out);
+    xl6OutputPuts("static xtdict xl6_xrt_typed_dict_copy(const xrt_type_desc* type, xtdict values)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    return xl6_xrt_typed_dict_copy_mode(type, values, XRT_OBJMODE_LOCAL);\n", out);
     xl6OutputPuts("}\n\n", out);
 
     xl6CgenEmitXValueRuntimeIndexAndOps(ctx);

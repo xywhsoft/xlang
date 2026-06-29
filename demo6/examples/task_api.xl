@@ -2,7 +2,35 @@ async func addAsync(int a, int b) as int
     return a + b
 end
 
+async func greetAsync(string name) as string
+    return "hello " + name
+end
+
+async func flipAsync(bool flag) as bool
+    return not flag
+end
+
+async func addHalfAsync(float value) as float
+    return value + 0.5
+end
+
+func greet(string name) as string
+    return "hello " + name
+end
+
+func flip(bool flag) as bool
+    return not flag
+end
+
+func addHalf(float value) as float
+    return value + 0.5
+end
+
 func add(int a, int b) as int
+    return a + b
+end
+
+func addDefault(int a, int b = 1) as int
     return a + b
 end
 
@@ -12,13 +40,140 @@ func makeAdder(int base) as func(int) as int
     end
 end
 
+func fortyTwo() as int
+    return 42
+end
+
+func sumVariadic(int base, ...) as int
+    int total = base
+    int i = 0
+    while i < arg.length do
+        total = total + int(arg[i])
+        i = i + 1
+    end
+    return total
+end
+
+func totalDefault(int base = 5, ...) as int
+    return base + arg.length
+end
+
+func failJob() as int
+    throw "task spawn boom"
+    return 0
+end
+
+func() as int zeroJob = fortyTwo
+int zeroSpawned = await task.spawn(zeroJob)
+assert zeroSpawned == 42, "task.spawn zero-argument result"
+
 func(int, int) as int addJob = add
 int spawned = await task.spawn(addJob, 20, 22)
 assert spawned == 42, "task.spawn result"
 
+func(int) as int defaultJob = addDefault
+int defaultSpawned = await task.spawn(defaultJob, 41)
+assert defaultSpawned == 42, "task.spawn default argument result"
+
+func(int) as int missingJob
+int missingJobState = 0
+try
+    int missingJobValue = await task.spawn(missingJob, 1)
+    missingJobState = missingJobValue
+catch e
+    if e.message == "task.spawn requires a callable func value" then
+        missingJobState = 1
+    end
+end
+assert missingJobState == 1, "task.spawn empty func value"
+
 func(int) as int capturedJob = makeAdder(30)
 int captured = await task.spawn(capturedJob, 12)
 assert captured == 42, "task.spawn closure result"
+
+func(string) as string greetJob = greet
+future<string> namedGreetFuture = task.spawn(greetJob, "spawn")
+string namedGreetA = await namedGreetFuture
+string namedGreetB = await namedGreetFuture
+assert namedGreetA == "hello spawn", "task.spawn string future first await"
+assert namedGreetB == "hello spawn", "task.spawn string future repeated await"
+
+func(bool) as bool flipJob = flip
+bool flipped = await task.spawn(flipJob, true)
+assert flipped == false, "task.spawn bool result"
+future<bool> namedFlipFuture = task.spawn(flipJob, false)
+bool namedFlipA = await namedFlipFuture
+bool namedFlipB = await namedFlipFuture
+assert namedFlipA == true, "task.spawn bool future first await"
+assert namedFlipB == true, "task.spawn bool future repeated await"
+
+func(float) as float halfJob = addHalf
+float halfSpawned = await task.spawn(halfJob, 1.5)
+assert halfSpawned == 2.0, "task.spawn float result"
+future<float> namedHalfFuture = task.spawn(halfJob, 2.5)
+float namedHalfA = await namedHalfFuture
+float namedHalfB = await namedHalfFuture
+assert namedHalfA == 3.0, "task.spawn float future first await"
+assert namedHalfB == 3.0, "task.spawn float future repeated await"
+
+func(int, ...) as int variadicJob = sumVariadic
+int variadicSpawned = await task.spawn(variadicJob, 10, 1, 2, 3)
+assert variadicSpawned == 16, "task.spawn array vararg result"
+int variadicEmptySpawned = await task.spawn(variadicJob, 10)
+assert variadicEmptySpawned == 10, "task.spawn empty array vararg result"
+
+func(...) as int variadicDefaultJob = totalDefault
+int variadicDefaultEmptySpawned = await task.spawn(variadicDefaultJob)
+assert variadicDefaultEmptySpawned == 5, "task.spawn zero-argument vararg adapter result"
+int variadicDefaultExtraSpawned = await task.spawn(variadicDefaultJob, "a", "b")
+assert variadicDefaultExtraSpawned == 7, "task.spawn vararg adapter extra result"
+
+future<int> spawnAllA = task.spawn(addJob, 10, 11)
+future<int> spawnAllB = task.spawn(defaultJob, 20)
+array<int> spawnAllValues = await task.all([spawnAllA, spawnAllB])
+assert spawnAllValues.length == 2, "task.all task.spawn count"
+assert spawnAllValues[0] == 21, "task.all task.spawn first"
+assert spawnAllValues[1] == 21, "task.all task.spawn second"
+
+int spawnRaced = await task.race([task.spawn(addJob, 2, 3), task.spawn(defaultJob, 8)])
+assert spawnRaced == 5 or spawnRaced == 9, "task.race task.spawn result"
+
+func() as int throwingJob = failJob
+int spawnErrorState = 0
+try
+    int failedSpawned = await task.spawn(throwingJob)
+    spawnErrorState = failedSpawned
+catch e
+    if e.message == "task spawn boom" then
+        spawnErrorState = 1
+    end
+end
+assert spawnErrorState == 1, "task.spawn error propagation"
+
+future<int> repeatedFailedSpawn = task.spawn(throwingJob)
+int repeatedSpawnErrorA = 0
+try
+    int repeatedA = await repeatedFailedSpawn
+    repeatedSpawnErrorA = repeatedA
+catch e
+    if e.message == "task spawn boom" then
+        repeatedSpawnErrorA = 1
+    end
+end
+assert repeatedSpawnErrorA == 1, "task.spawn failed future first await"
+
+int repeatedSpawnErrorB = 0
+try
+    int repeatedB = await repeatedFailedSpawn
+    repeatedSpawnErrorB = repeatedB
+catch e
+    if e.message == "task spawn boom" then
+        repeatedSpawnErrorB = 1
+    end
+end
+assert repeatedSpawnErrorB == 1, "task.spawn failed future repeated await"
+
+assert not task.cancel(repeatedFailedSpawn), "task.spawn failed future cancel result"
 
 future<int> one = addAsync(1, 2)
 future<int> two = addAsync(3, 4)
@@ -28,9 +183,219 @@ assert all.length == 2, "task.all count"
 assert all[0] == 3, "task.all first"
 assert all[1] == 7, "task.all second"
 
+future<array<int>> namedAllFuture = task.all([addAsync(10, 1), addAsync(20, 2)])
+array<int> namedAllA = await namedAllFuture
+array<int> namedAllB = await namedAllFuture
+assert namedAllA[0] == 11, "named task.all first await"
+assert namedAllB[1] == 22, "named task.all second await"
+
 int raced = await task.race([addAsync(10, 1), addAsync(20, 2)])
 assert raced == 11 or raced == 22, "task.race result"
+
+array<string> stringAll = await task.all([greetAsync("alpha"), greetAsync("beta")])
+assert stringAll.length == 2, "task.all string count"
+assert stringAll[0] == "hello alpha", "task.all string first"
+assert stringAll[1] == "hello beta", "task.all string second"
+
+future<array<string>> namedStringAllFuture = task.all([greetAsync("left"), greetAsync("right")])
+array<string> namedStringAllA = await namedStringAllFuture
+array<string> namedStringAllB = await namedStringAllFuture
+assert namedStringAllA[0] == "hello left", "named task.all string first await"
+assert namedStringAllB[1] == "hello right", "named task.all string second await"
+
+string stringRace = await task.race([greetAsync("gamma")])
+assert stringRace == "hello gamma", "task.race string result"
+
+array<bool> boolAll = await task.all([flipAsync(true), flipAsync(false)])
+assert boolAll.length == 2, "task.all bool count"
+assert boolAll[0] == false, "task.all bool first"
+assert boolAll[1] == true, "task.all bool second"
+
+future<array<bool>> namedBoolAllFuture = task.all([flipAsync(false), flipAsync(false)])
+array<bool> namedBoolAllA = await namedBoolAllFuture
+array<bool> namedBoolAllB = await namedBoolAllFuture
+assert namedBoolAllA[0] == true, "named task.all bool first await"
+assert namedBoolAllB[1] == true, "named task.all bool second await"
+
+array<future<bool>> typedBoolAllJobs = array[flipAsync(true), flipAsync(false)]
+array<bool> typedBoolAll = await task.all(typedBoolAllJobs)
+assert typedBoolAll[0] == false, "task.all typed bool first"
+assert typedBoolAll[1] == true, "task.all typed bool second"
+
+bool boolRace = await task.race([flipAsync(true)])
+assert boolRace == false, "task.race bool result"
+
+array<future<bool>> boolRaceJobs = array[flipAsync(false)]
+bool typedBoolRace = await task.race(boolRaceJobs)
+assert typedBoolRace == true, "task.race typed bool array result"
+
+array<float> floatAll = await task.all([addHalfAsync(1.5), addHalfAsync(2.5)])
+assert floatAll.length == 2, "task.all float count"
+assert floatAll[0] == 2.0, "task.all float first"
+assert floatAll[1] == 3.0, "task.all float second"
+
+future<array<float>> namedFloatAllFuture = task.all([addHalfAsync(3.5), addHalfAsync(4.5)])
+array<float> namedFloatAllA = await namedFloatAllFuture
+array<float> namedFloatAllB = await namedFloatAllFuture
+assert namedFloatAllA[0] == 4.0, "named task.all float first await"
+assert namedFloatAllB[1] == 5.0, "named task.all float second await"
+
+array<future<float>> typedFloatAllJobs = array[addHalfAsync(5.5), addHalfAsync(6.5)]
+array<float> typedFloatAll = await task.all(typedFloatAllJobs)
+assert typedFloatAll[0] == 6.0, "task.all typed float first"
+assert typedFloatAll[1] == 7.0, "task.all typed float second"
+
+float floatRace = await task.race([addHalfAsync(7.5)])
+assert floatRace == 8.0, "task.race float result"
+
+array<future<float>> floatRaceJobs = array[addHalfAsync(8.5)]
+float typedFloatRace = await task.race(floatRaceJobs)
+assert typedFloatRace == 9.0, "task.race typed float array result"
+
+array<future<int>> raceJobs = array[addAsync(11, 1), addAsync(30, 3)]
+int typedRaced = await task.race(raceJobs)
+assert typedRaced == 12 or typedRaced == 33, "task.race typed array result"
 
 future<int> cancelTarget = addAsync(30, 12)
 bool cancelRequested = task.cancel(cancelTarget)
 assert cancelRequested == true or cancelRequested == false, "task.cancel bool"
+future<int> missingCancelFuture
+assert not task.cancel(missingCancelFuture), "task.cancel null future"
+bool cancelTemporaryAsync = task.cancel(addAsync(50, 6))
+assert cancelTemporaryAsync == true or cancelTemporaryAsync == false, "task.cancel temporary async"
+bool cancelTemporarySpawn = task.cancel(task.spawn(addJob, 1, 2))
+assert cancelTemporarySpawn == true or cancelTemporarySpawn == false, "task.cancel temporary task.spawn"
+bool cancelTemporarySpawnAll = task.cancel(task.all([task.spawn(addJob, 3, 4), task.spawn(defaultJob, 5)]))
+assert cancelTemporarySpawnAll == true or cancelTemporarySpawnAll == false, "task.cancel temporary task.all task.spawn"
+bool cancelTemporarySpawnRace = task.cancel(task.race([task.spawn(addJob, 6, 7), task.spawn(defaultJob, 8)]))
+assert cancelTemporarySpawnRace == true or cancelTemporarySpawnRace == false, "task.cancel temporary task.race task.spawn"
+bool cancelTemporaryAll = task.cancel(task.all([addAsync(60, 1), addAsync(70, 2)]))
+assert cancelTemporaryAll == true or cancelTemporaryAll == false, "task.cancel temporary task.all"
+bool cancelTemporaryRace = task.cancel(task.race([addAsync(80, 1), addAsync(90, 2)]))
+assert cancelTemporaryRace == true or cancelTemporaryRace == false, "task.cancel temporary task.race"
+array<future<int>> cancelAllJobs = array[addAsync(100, 1), addAsync(110, 2)]
+bool cancelTypedAll = task.cancel(task.all(cancelAllJobs))
+assert cancelTypedAll == true or cancelTypedAll == false, "task.cancel typed-array task.all"
+array<future<int>> cancelRaceJobs = array[addAsync(120, 1), addAsync(130, 2)]
+bool cancelTypedRace = task.cancel(task.race(cancelRaceJobs))
+assert cancelTypedRace == true or cancelTypedRace == false, "task.cancel typed-array task.race"
+
+future<int> completedTarget = addAsync(2, 3)
+int completed = await completedTarget
+assert completed == 5, "completed future result"
+assert not task.cancel(completedTarget), "completed future cancel result"
+
+async func failAsync() as int
+    throw "task boom"
+    return 0
+end
+
+int errorState = 0
+try
+    array<int> failed = await task.all([failAsync()])
+    errorState = failed.length
+catch e
+    if e.message == "task boom" then
+        errorState = 1
+    end
+end
+
+assert errorState == 1, "task error propagation"
+
+future<array<int>> repeatedFailedAll = task.all([failAsync()])
+int repeatedAllErrorA = 0
+try
+    array<int> repeatedAllA = await repeatedFailedAll
+    repeatedAllErrorA = repeatedAllA.length
+catch e
+    if e.message == "task boom" then
+        repeatedAllErrorA = 1
+    end
+end
+assert repeatedAllErrorA == 1, "task.all failed future first await"
+
+int repeatedAllErrorB = 0
+try
+    array<int> repeatedAllB = await repeatedFailedAll
+    repeatedAllErrorB = repeatedAllB.length
+catch e
+    if e.message == "task boom" then
+        repeatedAllErrorB = 1
+    end
+end
+assert repeatedAllErrorB == 1, "task.all failed future repeated await"
+
+assert not task.cancel(repeatedFailedAll), "task.all failed future cancel result"
+
+future<int> repeatedFailedRace = task.race([failAsync()])
+int repeatedRaceErrorA = 0
+try
+    int repeatedRaceA = await repeatedFailedRace
+    repeatedRaceErrorA = repeatedRaceA
+catch e
+    if e.message == "task boom" then
+        repeatedRaceErrorA = 1
+    end
+end
+assert repeatedRaceErrorA == 1, "task.race failed future first await"
+
+int repeatedRaceErrorB = 0
+try
+    int repeatedRaceB = await repeatedFailedRace
+    repeatedRaceErrorB = repeatedRaceB
+catch e
+    if e.message == "task boom" then
+        repeatedRaceErrorB = 1
+    end
+end
+assert repeatedRaceErrorB == 1, "task.race failed future repeated await"
+
+assert not task.cancel(repeatedFailedRace), "task.race failed future cancel result"
+
+array<future<int>> emptyJobs = array[]
+
+int emptyAllState = 0
+try
+    array<int> emptyAll = await task.all(emptyJobs)
+    emptyAllState = emptyAll.length
+catch e
+    if e.message == "task.all requires a non-empty future array" then
+        emptyAllState = 1
+    end
+end
+assert emptyAllState == 1, "task.all empty typed array error"
+
+int emptyRaceState = 0
+try
+    int emptyRace = await task.race(emptyJobs)
+    emptyRaceState = emptyRace
+catch e
+    if e.message == "task.race requires a non-empty future array" then
+        emptyRaceState = 1
+    end
+end
+assert emptyRaceState == 1, "task.race empty typed array error"
+
+future<int> missingFuture
+
+int nullAllState = 0
+try
+    array<int> nullAll = await task.all([addAsync(90, 1), missingFuture])
+    nullAllState = nullAll.length
+catch e
+    if e.message == "task.all source future is null" then
+        nullAllState = 1
+    end
+end
+assert nullAllState == 1, "task.all null source future error"
+
+int nullRaceState = 0
+try
+    int nullRace = await task.race([addAsync(91, 1), missingFuture])
+    nullRaceState = nullRace
+catch e
+    if e.message == "task.race source future is null" then
+        nullRaceState = 1
+    end
+end
+assert nullRaceState == 1, "task.race null source future error"

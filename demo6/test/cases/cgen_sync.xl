@@ -31,9 +31,17 @@ bool broadcasted = c.broadcast()
 assert signaled, "cond signal failed"
 assert broadcasted, "cond broadcast failed"
 
+mutex condMutex = mutex()
+assert condMutex.lock(), "cond waitTimeout mutex lock failed"
+bool condTimed = c.waitTimeout(condMutex, 1)
+assert not condTimed, "cond waitTimeout should return false on timeout"
+assert condMutex.unlock(), "cond waitTimeout mutex unlock failed"
+
 rwlock rw = rwlock()
 bool readLocked = rw.readLock()
 bool readUnlocked = rw.readUnlock()
+bool tryReadLocked = rw.tryReadLock()
+bool tryReadUnlocked = rw.readUnlock()
 bool writeLocked = rw.writeLock()
 bool downgraded = rw.downgrade()
 bool readUnlocked2 = rw.readUnlock()
@@ -42,6 +50,8 @@ bool writeUnlocked = rw.writeUnlock()
 
 assert readLocked, "rwlock readLock failed"
 assert readUnlocked, "rwlock readUnlock failed"
+assert tryReadLocked, "rwlock tryReadLock failed"
+assert tryReadUnlocked, "rwlock tryReadUnlock failed"
 assert writeLocked, "rwlock writeLock failed"
 assert downgraded, "rwlock downgrade failed"
 assert readUnlocked2, "rwlock downgraded readUnlock failed"
