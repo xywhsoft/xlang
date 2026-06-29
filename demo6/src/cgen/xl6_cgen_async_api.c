@@ -367,6 +367,11 @@ static int xl6CgenSyncCtorCall(XL6_CgenContext* ctx, const XL6_AstNode* call, co
 static void xl6CgenSyncReceiver(XL6_CgenContext* ctx, const XL6_AstNode* receiver)
 {
     if ( receiver != NULL && receiver->kind == XL6_AST_NAME ) {
+        if ( xl6CgenAnonCaptureIndex(ctx->currentAnonFunc, receiver->text) >= 0 ) {
+            xl6OutputPuts("__env->", ctx->out);
+            xl6CgenFputsCIdent(ctx->out, receiver->text);
+            return;
+        }
         xl6CgenFputsCIdent(ctx->out, receiver->text);
         return;
     }

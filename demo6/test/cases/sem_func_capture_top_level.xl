@@ -1,0 +1,7 @@
+int outerValue = 1
+
+func readOuter() as int
+    return outerValue
+end
+
+int value = readOuter()

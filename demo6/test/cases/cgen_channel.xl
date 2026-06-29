@@ -52,3 +52,35 @@ assert timeValue == #12:34:56#, "time channel value mismatch"
 channel<int> closedCh = channel::<int>(1)
 closedCh.close()
 assert not closedCh.send(1), "closed channel send should fail"
+
+channel<int> defaultCh = channel::<int>()
+assert not defaultCh.isClosed(), "default channel should start open"
+assert defaultCh.send(1), "default channel first send failed"
+assert defaultCh.send(2), "default channel second send failed"
+assert defaultCh.count() == 2, "default channel count after send failed"
+
+int defaultFirst = 0
+assert defaultCh.tryRecvInto(defaultFirst), "default channel tryRecv should drain first value"
+assert defaultFirst == 1, "default channel first value mismatch"
+assert defaultCh.count() == 1, "default channel count after tryRecv failed"
+
+defaultCh.close()
+assert defaultCh.isClosed(), "default channel should report closed"
+
+int defaultSecond = 0
+assert defaultCh.recvInto(defaultSecond), "closed channel should drain buffered value"
+assert defaultSecond == 2, "closed channel buffered value mismatch"
+assert not defaultCh.tryRecvInto(defaultSecond), "closed drained channel should not receive"
+assert not defaultCh.send(3), "closed default channel send should fail"
+
+defaultCh.close()
+assert defaultCh.isClosed(), "channel close should be idempotent"
+
+channel<int> fullCh = channel::<int>(1)
+assert fullCh.send(10), "full channel first send failed"
+assert fullCh.send(11), "capacity-one channel should normalize to two slots"
+assert not fullCh.send(12), "full channel third send should fail"
+
+int fullValue = 0
+assert fullCh.recvInto(fullValue), "full channel receive failed"
+assert fullValue == 10, "full channel value mismatch"

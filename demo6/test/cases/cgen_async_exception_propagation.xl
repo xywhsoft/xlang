@@ -3,6 +3,126 @@ async func failAsync() as int
     return 0
 end
 
+async func failVoidAsync()
+    throw "async void boom"
+end
+
+async func failStringAsync() as string
+    throw "async string boom"
+    return ""
+end
+
+async func failBoolAsync() as bool
+    throw "async bool boom"
+    return false
+end
+
+async func failFloatAsync() as float
+    throw "async float boom"
+    return 0.0
+end
+
+async func failVarAsync() as var
+    throw "async var boom"
+    return 0
+end
+
+func makeAdder(int base) as func(int) as int
+    return func(int value) as int
+        return base + value
+    end
+end
+
+async func failFunctionAsync() as func(int) as int
+    throw "async function boom"
+    return makeAdder(1)
+end
+
+class FailedAsyncBox
+    int value = 0
+end
+
+async func failBoxAsync() as FailedAsyncBox
+    throw "async class boom"
+    FailedAsyncBox box
+    box.value = 1
+    return box
+end
+
+async func failItemsAsync() as array<int>
+    throw "async array boom"
+    return array[1, 2, 3]
+end
+
+async func failListAsync() as list<int>
+    throw "async list boom"
+    return list[2: 8, 4: 9]
+end
+
+async func failSetAsync() as set<int>
+    throw "async set boom"
+    return set{6, 7}
+end
+
+async func failDictAsync() as dict<int>
+    throw "async dict boom"
+    return dict{"a": 11, "b": 12}
+end
+
+async func asyncFinallyCatchAsync() as int
+    int state = 0
+
+    try
+        state = 1
+        throw "async finally catch boom"
+    catch e
+        if e.message == "async finally catch boom" then
+            state = state + 10
+        end
+    finally
+        state = state + 100
+    end
+
+    return state
+end
+
+async func asyncFinallyRethrowCatchAsync() as int
+    int state = 0
+
+    try
+        try
+            state = 1
+            throw "async finally rethrow boom"
+        finally
+            state = state + 10
+        end
+    catch e
+        if e.message == "async finally rethrow boom" then
+            state = state + 100
+        end
+    end
+
+    return state
+end
+
+async func asyncFinallyOverrideAsync() as int
+    try
+        throw "async finally original boom"
+    finally
+        throw "async finally override boom"
+    end
+
+    return 0
+end
+
+async func asyncFinallyVoidOverrideAsync()
+    try
+        throw "async finally void original boom"
+    finally
+        throw "async finally void override boom"
+    end
+end
+
 future<int> failed = failAsync()
 int state = 0
 
@@ -45,3 +165,422 @@ catch e
 end
 
 assert tempState == 9, "temporary async exception should reach catch"
+
+auto failedVoid = failVoidAsync()
+int voidState = 0
+
+try
+    await failedVoid
+    voidState = 1
+catch e
+    if e.message == "async void boom" then
+        voidState = 21
+    end
+end
+
+assert voidState == 21, "failed void async future first await should reach catch"
+assert not task.cancel(failedVoid), "failed void async future should not be canceled"
+
+try
+    await failedVoid
+    voidState = 2
+catch e
+    if e.message == "async void boom" then
+        voidState = 42
+    end
+end
+
+assert voidState == 42, "failed void async future should keep error after cancel"
+
+int tempVoidState = 0
+
+try
+    await failVoidAsync()
+    tempVoidState = 1
+catch e
+    if e.message == "async void boom" then
+        tempVoidState = 42
+    end
+end
+
+assert tempVoidState == 42, "temporary async void exception should reach catch"
+
+future<string> failedString = failStringAsync()
+int stringState = 0
+
+try
+    string failedStringValueA = await failedString
+    stringState = 1
+catch e
+    if e.message == "async string boom" then
+        stringState = 21
+    end
+end
+
+assert stringState == 21, "failed string async future first await should reach catch"
+assert not task.cancel(failedString), "failed string async future should not be canceled"
+
+try
+    string failedStringValueB = await failedString
+    stringState = 2
+catch e
+    if e.message == "async string boom" then
+        stringState = 42
+    end
+end
+
+assert stringState == 42, "failed string async future should keep error after cancel"
+
+future<bool> failedBool = failBoolAsync()
+int boolState = 0
+
+try
+    bool failedBoolValueA = await failedBool
+    boolState = int(failedBoolValueA)
+catch e
+    if e.message == "async bool boom" then
+        boolState = 21
+    end
+end
+
+assert boolState == 21, "failed bool async future first await should reach catch"
+assert not task.cancel(failedBool), "failed bool async future should not be canceled"
+
+try
+    bool failedBoolValueB = await failedBool
+    boolState = int(failedBoolValueB)
+catch e
+    if e.message == "async bool boom" then
+        boolState = 42
+    end
+end
+
+assert boolState == 42, "failed bool async future should keep error after cancel"
+
+future<float> failedFloat = failFloatAsync()
+int floatState = 0
+
+try
+    float failedFloatValueA = await failedFloat
+    floatState = int(failedFloatValueA)
+catch e
+    if e.message == "async float boom" then
+        floatState = 21
+    end
+end
+
+assert floatState == 21, "failed float async future first await should reach catch"
+assert not task.cancel(failedFloat), "failed float async future should not be canceled"
+
+try
+    float failedFloatValueB = await failedFloat
+    floatState = int(failedFloatValueB)
+catch e
+    if e.message == "async float boom" then
+        floatState = 42
+    end
+end
+
+assert floatState == 42, "failed float async future should keep error after cancel"
+
+future<var> failedVar = failVarAsync()
+int varState = 0
+
+try
+    var failedVarValueA = await failedVar
+    varState = int(failedVarValueA)
+catch e
+    if e.message == "async var boom" then
+        varState = 21
+    end
+end
+
+assert varState == 21, "failed var async future first await should reach catch"
+assert not task.cancel(failedVar), "failed var async future should not be canceled"
+
+try
+    var failedVarValueB = await failedVar
+    varState = int(failedVarValueB)
+catch e
+    if e.message == "async var boom" then
+        varState = 42
+    end
+end
+
+assert varState == 42, "failed var async future should keep error after cancel"
+
+future<func(int) as int> failedFunction = failFunctionAsync()
+int functionState = 0
+
+try
+    func(int) as int failedFunctionValueA = await failedFunction
+    functionState = failedFunctionValueA(1)
+catch e
+    if e.message == "async function boom" then
+        functionState = 21
+    end
+end
+
+assert functionState == 21, "failed function async future first await should reach catch"
+assert not task.cancel(failedFunction), "failed function async future should not be canceled"
+
+try
+    func(int) as int failedFunctionValueB = await failedFunction
+    functionState = failedFunctionValueB(2)
+catch e
+    if e.message == "async function boom" then
+        functionState = 42
+    end
+end
+
+assert functionState == 42, "failed function async future should keep error after cancel"
+
+future<FailedAsyncBox> failedBox = failBoxAsync()
+int boxState = 0
+
+try
+    FailedAsyncBox failedBoxValueA = await failedBox
+    boxState = failedBoxValueA.value
+catch e
+    if e.message == "async class boom" then
+        boxState = 21
+    end
+end
+
+assert boxState == 21, "failed class async future first await should reach catch"
+assert not task.cancel(failedBox), "failed class async future should not be canceled"
+
+try
+    FailedAsyncBox failedBoxValueB = await failedBox
+    boxState = failedBoxValueB.value
+catch e
+    if e.message == "async class boom" then
+        boxState = 42
+    end
+end
+
+assert boxState == 42, "failed class async future should keep error after cancel"
+
+future<array<int>> failedItems = failItemsAsync()
+int itemsState = 0
+
+try
+    array<int> failedItemsValueA = await failedItems
+    itemsState = failedItemsValueA.length
+catch e
+    if e.message == "async array boom" then
+        itemsState = 21
+    end
+end
+
+assert itemsState == 21, "failed typed array async future first await should reach catch"
+assert not task.cancel(failedItems), "failed typed array async future should not be canceled"
+
+try
+    array<int> failedItemsValueB = await failedItems
+    itemsState = failedItemsValueB.length
+catch e
+    if e.message == "async array boom" then
+        itemsState = 42
+    end
+end
+
+assert itemsState == 42, "failed typed array async future should keep error after cancel"
+
+future<list<int>> failedList = failListAsync()
+int listState = 0
+
+try
+    list<int> failedListValueA = await failedList
+    listState = failedListValueA.length
+catch e
+    if e.message == "async list boom" then
+        listState = 21
+    end
+end
+
+assert listState == 21, "failed typed list async future first await should reach catch"
+assert not task.cancel(failedList), "failed typed list async future should not be canceled"
+
+try
+    list<int> failedListValueB = await failedList
+    listState = failedListValueB.length
+catch e
+    if e.message == "async list boom" then
+        listState = 42
+    end
+end
+
+assert listState == 42, "failed typed list async future should keep error after cancel"
+
+future<set<int>> failedSet = failSetAsync()
+int setState = 0
+
+try
+    set<int> failedSetValueA = await failedSet
+    setState = failedSetValueA.length
+catch e
+    if e.message == "async set boom" then
+        setState = 21
+    end
+end
+
+assert setState == 21, "failed typed set async future first await should reach catch"
+assert not task.cancel(failedSet), "failed typed set async future should not be canceled"
+
+try
+    set<int> failedSetValueB = await failedSet
+    setState = failedSetValueB.length
+catch e
+    if e.message == "async set boom" then
+        setState = 42
+    end
+end
+
+assert setState == 42, "failed typed set async future should keep error after cancel"
+
+future<dict<int>> failedDict = failDictAsync()
+int dictState = 0
+
+try
+    dict<int> failedDictValueA = await failedDict
+    dictState = failedDictValueA.length
+catch e
+    if e.message == "async dict boom" then
+        dictState = 21
+    end
+end
+
+assert dictState == 21, "failed typed dict async future first await should reach catch"
+assert not task.cancel(failedDict), "failed typed dict async future should not be canceled"
+
+try
+    dict<int> failedDictValueB = await failedDict
+    dictState = failedDictValueB.length
+catch e
+    if e.message == "async dict boom" then
+        dictState = 42
+    end
+end
+
+assert dictState == 42, "failed typed dict async future should keep error after cancel"
+
+int tempStringState = 0
+
+try
+    string tempStringValue = await failStringAsync()
+    tempStringState = 1
+catch e
+    if e.message == "async string boom" then
+        tempStringState = 42
+    end
+end
+
+assert tempStringState == 42, "temporary async string exception should reach catch"
+
+int tempItemsState = 0
+
+try
+    array<int> tempItemsValue = await failItemsAsync()
+    tempItemsState = tempItemsValue.length
+catch e
+    if e.message == "async array boom" then
+        tempItemsState = 42
+    end
+end
+
+assert tempItemsState == 42, "temporary async typed array exception should reach catch"
+
+int tempListState = 0
+
+try
+    list<int> tempListValue = await failListAsync()
+    tempListState = tempListValue.length
+catch e
+    if e.message == "async list boom" then
+        tempListState = 42
+    end
+end
+
+assert tempListState == 42, "temporary async typed list exception should reach catch"
+
+int tempSetState = 0
+
+try
+    set<int> tempSetValue = await failSetAsync()
+    tempSetState = tempSetValue.length
+catch e
+    if e.message == "async set boom" then
+        tempSetState = 42
+    end
+end
+
+assert tempSetState == 42, "temporary async typed set exception should reach catch"
+
+int tempDictState = 0
+
+try
+    dict<int> tempDictValue = await failDictAsync()
+    tempDictState = tempDictValue.length
+catch e
+    if e.message == "async dict boom" then
+        tempDictState = 42
+    end
+end
+
+assert tempDictState == 42, "temporary async typed dict exception should reach catch"
+
+future<int> finallyCatchFuture = asyncFinallyCatchAsync()
+int finallyCatchState = await finallyCatchFuture
+assert finallyCatchState == 111, "async catch/finally should run finally before successful future completion"
+assert not task.cancel(finallyCatchFuture), "completed async catch/finally future should not be canceled"
+int finallyCatchRepeated = await finallyCatchFuture
+assert finallyCatchRepeated == 111, "async catch/finally completed future should remain awaitable"
+
+future<int> finallyRethrowFuture = asyncFinallyRethrowCatchAsync()
+int finallyRethrowState = await finallyRethrowFuture
+assert finallyRethrowState == 111, "async try/finally should run finally before inner catch"
+assert not task.cancel(finallyRethrowFuture), "completed async rethrow/finally future should not be canceled"
+int finallyRethrowRepeated = await finallyRethrowFuture
+assert finallyRethrowRepeated == 111, "async rethrow/finally completed future should remain awaitable"
+
+future<int> finallyOverrideFuture = asyncFinallyOverrideAsync()
+int finallyOverrideState = 0
+
+try
+    int finallyOverrideValue = await finallyOverrideFuture
+    finallyOverrideState = finallyOverrideValue
+catch e
+    if e.message == "async finally override boom" then
+        finallyOverrideState = 42
+    end
+end
+
+assert finallyOverrideState == 42, "async finally throw should override original failed future error"
+assert not task.cancel(finallyOverrideFuture), "failed async finally override future should not be canceled"
+
+try
+    int finallyOverrideRepeated = await finallyOverrideFuture
+    finallyOverrideState = finallyOverrideRepeated
+catch e
+    if e.message == "async finally override boom" then
+        finallyOverrideState = 84
+    end
+end
+
+assert finallyOverrideState == 84, "failed async finally override future should keep final error after cancel"
+
+auto finallyVoidFuture = asyncFinallyVoidOverrideAsync()
+int finallyVoidState = 0
+
+try
+    await finallyVoidFuture
+    finallyVoidState = 1
+catch e
+    if e.message == "async finally void override boom" then
+        finallyVoidState = 42
+    end
+end
+
+assert finallyVoidState == 42, "async void finally throw should override original failed future error"
+assert not task.cancel(finallyVoidFuture), "failed async void finally future should not be canceled"

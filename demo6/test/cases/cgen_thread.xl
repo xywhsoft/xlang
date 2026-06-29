@@ -6,6 +6,11 @@ func zero() as int
     return 0
 end
 
+func slowWorker() as int
+    time.sleep(30)
+    return 9
+end
+
 func() as int borrowedWorker = worker
 
 func() as int missingWorker
@@ -60,3 +65,17 @@ bool stoppedWaited = stopped.wait()
 
 assert stoppedSignal, "thread stop failed"
 assert stoppedWaited, "thread wait after stop failed"
+
+thread slow = thread(slowWorker)
+bool slowImmediate = slow.waitTimeout(0)
+assert not slowImmediate, "running thread waitTimeout(0) should time out"
+
+bool slowWaited = slow.waitTimeout(2000)
+int slowCode = slow.exitCode()
+bool slowRepeatedWait = slow.wait()
+int slowCodeAgain = slow.exitCode()
+
+assert slowWaited, "slow thread waitTimeout should eventually finish"
+assert slowCode == 9, "slow thread exit code failed"
+assert slowRepeatedWait, "completed thread repeated wait should return true"
+assert slowCodeAgain == 9, "completed thread exit code should remain stable"

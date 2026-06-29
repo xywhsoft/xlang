@@ -368,7 +368,7 @@
 
 | 编号 | 观察 |
 | --- | --- |
-| RISK-CALL-001 | 继续收窄：erased-compatible 成员 func 单返回/无返回调用已改为 `xl6_function_call_var/kwargs(memberExpr, ...)`，成员 `var` 调用已改为 `xl6_var_call/kwargs(memberExpr, ...)`，多返回成员 func 声明/赋值已改为语句级 `XL6_Function __xl6_member_fn_multi_N` 临时，非 erased-compatible 无返回值、忽略单返回值和忽略多返回值的成员 func 表达式语句已改为语句级 `XL6_Function __xl6_member_fn_stmt_N` 临时，忽略返回值时生成 `__xl6_member_result_N` 并按返回类型 cleanup，class 单返回成员 func 在显式 class 声明初始化、`auto` class 推断初始化、已有 class 赋值、临时 class 普通字段初始化、声明初始化固定实参、表达式语句固定实参和表达式语句嵌套固定实参中已改为语句级临时，复杂返回兜底改为 `(Type){0}`；函数值调用相关的 `({ XL6_Function ... })` 源码模板已清零，剩余风险转为更复杂 typed return 表达式位置、非固定实参和其他生命周期临时化路径仍需继续 helper 化或语句级化。 |
+| RISK-CALL-001 | 已收口并继续加固：erased-compatible 成员 func 单返回/无返回调用已改为 `xl6_function_call_var/kwargs(memberExpr, ...)`，成员 `var` 调用已改为 `xl6_var_call/kwargs(memberExpr, ...)`，多返回成员 func 声明/赋值已改为语句级 `XL6_Function __xl6_member_fn_multi_N` 临时，非 erased-compatible 无返回值、忽略单返回值和忽略多返回值的成员 func 表达式语句已改为语句级 `XL6_Function __xl6_member_fn_stmt_N` 临时，忽略返回值时生成 `__xl6_member_result_N` 并按返回类型 cleanup，class 单返回成员 func 在显式 class 声明初始化、`auto` class 推断初始化、已有 class 赋值、临时 class 普通字段初始化、声明初始化固定实参、表达式语句固定实参和表达式语句嵌套固定实参中已改为语句级临时，复杂返回兜底改为 `(Type){0}`；函数值调用相关的 `({ XL6_Function ... })` 源码模板已清零。后续更复杂 typed return 表达式位置、非固定实参和其他生命周期临时化路径若新增能力，必须继续 helper 化或语句级化，并补生成形态守门。 |
 | RISK-CALL-002 | 已收口：`xrt_func_sig` 现在挂接 `xrt_func_param[]` 和返回类型数组，普通 func、匿名 function、optional adapter、`...` 数组可变参数和 `***` 字典可变参数均输出参数/返回类型元数据；`test.bat` 对 `cgen_function_named_value.c` 检查 `Params`、`ReturnTypes`、optional flag、array/dict vararg type 和 vararg/kwargs flags。 |
 | RISK-CALL-003 | 已收口：`function` fallback 返回 string、function/xvalue callable env、erased call argv、闭包 closure env 均改为使用 `xrtMalloc/xrtFree`；`cgen_function_named_value.xl`、`cgen_closure.xl`、`cgen_closure_resource_capture.xl` 的生成检查确认对应生成文件不再输出小写 CRT `malloc/free`。 |
 | RISK-CALL-004 | 已收口：function/callable runtime、erased wrapper 参数检查、闭包 env 分配和 direct function invoke fallback 的错误路径不再散落生成裸 `exit(2/3)`，而是集中到 `xl6_function_fatal(code)`；`xl6_function_fatal` 再委托模块级 `xl6_runtime_fatal(code)`，后续异常系统成熟后可只替换模块级入口。 |
@@ -384,4 +384,41 @@
 - 生成位置主要在 `xl6_cgen_expr_support_base.c:92`、`146`，`xl6_cgen_function_value.c:548`、`623`、`685`、`738`、`884`，`xl6_cgen_callable_wrappers.c:241`、`515`，以及 typed container move 接管分支 `xl6_cgen_stmt_decl.c:879`、`xl6_cgen_value_assign.c:704`。
 - 守门用例为 `cgen_typed_container_for_in_returned.xl`。`test.bat` 现在检查 `static xtarray xl6_fnvalue_makeValues_invoke`、`XL6_Function __xl6_member_fn_stmt_`、`((xtarray (*)(void*))__xl6_member_fn_stmt_`，并禁止 `xl6_function_call_var(__xl6_member_fn_stmt_`、`(xvalue (*)(void*))__xl6_member_fn_stmt_` 和 `({ XL6_Function __xl6_member_fn_` 回流。
 
-本轮不新增 `CGEN-*` 规则编号，不改变 834 条唯一规则数量；`RISK-CALL-001` 仍不关闭，因为更复杂的 typed return 表达式位置、非固定实参和其他 function 表达式调用路径仍需继续 helper 化或语句级化。
+本轮不新增 `CGEN-*` 规则编号；当前全量守门确认 843 条唯一规则。`RISK-CALL-001` 保持关闭状态，但更复杂的 typed return 表达式位置、非固定实参和其他 function 表达式调用路径若后续扩展，仍需继续 helper 化或语句级化。
+
+## 补充：RISK-CALL-001 代表性复核
+
+本轮不新增调用规则，只按发布级收口要求复核 `RISK-CALL-001` 的两条硬门：
+
+- 源码级 GNU statement expression fallback 必须保持 0。
+- 成员函数返回 class 后继续进入字段读取、声明初始化、赋值、表达式语句、固定实参、双临时实参和忽略返回值 cleanup 的路径必须继续由语句级临时和显式 destroy 管理。
+
+本轮复核命令：
+
+- `release\xl.exe check test\cases\cgen_member_function_class_return.xl`
+- `release\xl.exe cgen test\cases\cgen_member_function_class_return.xl --emit release\tmp\cgen_member_function_class_return.c --emit-header release\tmp\cgen_member_function_class_return.h`
+- `release\xl.exe build test\cases\cgen_member_function_class_return.xl test\cases\cgen_class_host.c -o release\tmp\cgen_member_function_class_return_focus.exe`
+- `release\tmp\cgen_member_function_class_return_focus.exe`
+- `tools\check_cgen_statement_expr_allowlist.ps1`
+
+当前结论：`RISK-CALL-001` 继续保持已收口。当前发布口径不允许恢复隐式 GNU statement expression fallback；后续新增复杂调用、复杂返回值或临时 class/custom/typed container 实参时，必须优先补语句级 lowering、helper 或生成形态守门。
+
+## 补充：RISK-CALL-001 成员 string 返回复核
+
+本轮继续加固 erased-compatible 成员 `function` 的 string 返回路径。`cgen_member_function_class_return.xl` 新增 `TextMaker.make(string) as string`，覆盖成员函数返回 string 后进入声明初始化、普通函数参数、嵌套表达式、双实参调用和表达式语句丢弃。
+
+守门要求：
+
+- `madeText = xl6_xvalue_to_string_release(xl6_function_call_var(textMaker.make, ...))` 必须存在，证明成员 string 返回声明初始化走 callable runtime 转换。
+- `textScore(textMaker.make(...))` 和 `joinTextScore(textMaker.make(...), textMaker.make(...))` 必须生成 `xl6_xvalue_to_string_release(xl6_function_call_var(...))`，证明参数与嵌套表达式不回退 GNU statement expression。
+- 丢弃 string 返回值的表达式语句必须先落到 `__xl6_expr_stmt_N`，并通过 `xl6_xrt_str_dup(xl6_xvalue_to_string_release(...))` 形成稳定 C 形态。
+- `test.bat` 继续禁止 `({ XL6_Function __xl6_member_fn_`，源码级 `tools/check_cgen_statement_expr_allowlist.ps1` 继续保持 0 fallback templates。
+
+本轮验证：
+
+- `release\xl.exe check test\cases\cgen_member_function_class_return.xl`
+- `release\xl.exe cgen test\cases\cgen_member_function_class_return.xl --emit release\tmp\cgen_member_function_class_return.c --emit-header release\tmp\cgen_member_function_class_return.h`
+- `cmd.exe /v:on /c "call tools\xl6_toolchain_env.bat && !XL6_TCC! ... release\tmp\cgen_member_function_class_return_focus.exe && release\tmp\cgen_member_function_class_return_focus.exe"`
+- `cmd.exe /c test.bat`
+
+当前结论：`RISK-CALL-001` 在成员函数 string 返回路径上也具备直接证据。class 返回值生命周期、typed container 返回 ABI 和 erased-compatible string 返回现在分别由独立用例守门；后续新增 function 成员返回类型时，必须同步补齐运行行为和生成形态检查。
