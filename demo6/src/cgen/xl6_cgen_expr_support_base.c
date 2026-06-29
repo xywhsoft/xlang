@@ -1096,6 +1096,18 @@ static int xl6CgenExprIsXValueBorrow(XL6_CgenContext* ctx, const XL6_AstNode* ex
         }
         return xl6CgenExprIsXValueBorrow(ctx, receiver);
     }
+    if ( expr->kind == XL6_AST_AWAIT ) {
+        XL6_AstNode* awaitType;
+        int result;
+
+        if ( xl6CgenAwaitExprReturnsOwnedTemporary(expr) ) {
+            return 0;
+        }
+        awaitType = xl6CgenCloneExprTypeForInference(ctx, expr);
+        result = xl6CgenIsXValueType(awaitType);
+        xl6AstFree(awaitType);
+        return result;
+    }
     if ( expr->kind != XL6_AST_NAME ) {
         return 0;
     }

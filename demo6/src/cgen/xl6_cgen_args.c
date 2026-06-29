@@ -425,23 +425,8 @@ static int xl6CgenConditionalIsXValue(XL6_CgenContext* ctx, const XL6_AstNode* n
 
 static void xl6CgenXValueConditionalExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
 {
-    const XL6_AstNode* cond;
-    const XL6_AstNode* thenExpr;
-    const XL6_AstNode* elseExpr;
-    int id;
-
-    cond = node != NULL && node->childCount > 0 ? node->children[0] : NULL;
-    thenExpr = node != NULL && node->childCount > 1 ? node->children[1] : NULL;
-    elseExpr = node != NULL && node->childCount > 2 ? node->children[2] : NULL;
-    id = ctx->tempId++;
-
-    xl6OutputPrintf(ctx->out, "({ xvalue __xl6_cond_result_%d; if (", id);
-    xl6CgenConditionExpr(ctx, cond);
-    xl6OutputPrintf(ctx->out, ") { __xl6_cond_result_%d = ", id);
-    xl6CgenXValueFromExpr(ctx, thenExpr);
-    xl6OutputPrintf(ctx->out, "; } else { __xl6_cond_result_%d = ", id);
-    xl6CgenXValueFromExpr(ctx, elseExpr);
-    xl6OutputPrintf(ctx->out, "; } __xl6_cond_result_%d; })", id);
+    xl6CgenError(ctx, node, "dynamic var conditional expression requires statement-level lowering");
+    xl6OutputPuts("xvoCreateNull()", ctx->out);
 }
 
 static int xl6CgenBinaryCompareOpIsXValue(const char* op)
@@ -486,47 +471,8 @@ static int xl6CgenXValueOrderMode(const char* op)
 
 static void xl6CgenXValueCompareExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
 {
-    const XL6_AstNode* left;
-    const XL6_AstNode* right;
-    int id;
-    int equalMode;
-    int negate;
-
-    left = node != NULL && node->childCount > 0 ? node->children[0] : NULL;
-    right = node != NULL && node->childCount > 1 ? node->children[1] : NULL;
-    id = ctx->tempId++;
-    equalMode = node == NULL || xl6CTextEquals(node->text, "==") || xl6CTextEquals(node->text, "!=");
-    negate = node != NULL && xl6CTextEquals(node->text, "!=");
-
-    xl6OutputPrintf(ctx->out, "({ xvalue __xl6_cmp_left_%d = ", id);
-    xl6CgenXValueFromExpr(ctx, left);
-    xl6OutputPrintf(ctx->out, "; xvalue __xl6_cmp_right_%d = ", id);
-    xl6CgenXValueFromExpr(ctx, right);
-    if ( equalMode ) {
-        xl6OutputPrintf(ctx->out,
-                         "; int __xl6_cmp_result_%d = xl6_xrt_basic_equal(__xl6_cmp_left_%d, __xl6_cmp_right_%d); if (__xl6_cmp_left_%d != 0) { xvoUnref(__xl6_cmp_left_%d); } if (__xl6_cmp_right_%d != 0) { xvoUnref(__xl6_cmp_right_%d); } %s__xl6_cmp_result_%d; })",
-                         id,
-                         id,
-                         id,
-                         id,
-                         id,
-                         id,
-                         id,
-                         negate ? "!" : "",
-                         id);
-    } else {
-        xl6OutputPrintf(ctx->out,
-                         "; int __xl6_cmp_result_%d = xl6_xrt_basic_order(__xl6_cmp_left_%d, __xl6_cmp_right_%d, %d); if (__xl6_cmp_left_%d != 0) { xvoUnref(__xl6_cmp_left_%d); } if (__xl6_cmp_right_%d != 0) { xvoUnref(__xl6_cmp_right_%d); } __xl6_cmp_result_%d; })",
-                         id,
-                         id,
-                         id,
-                         xl6CgenXValueOrderMode(node != NULL ? node->text : "<"),
-                         id,
-                         id,
-                         id,
-                         id,
-                         id);
-    }
+    xl6CgenError(ctx, node, "dynamic var comparison requires statement-level lowering");
+    xl6OutputPuts("0", ctx->out);
 }
 static int xl6CgenBinaryApproxIsXValue(XL6_CgenContext* ctx, const XL6_AstNode* node)
 {
@@ -549,28 +495,8 @@ static int xl6CgenBinaryApproxIsXValue(XL6_CgenContext* ctx, const XL6_AstNode* 
 
 static void xl6CgenXValueApproxExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
 {
-    const XL6_AstNode* left;
-    const XL6_AstNode* right;
-    int id;
-
-    left = node != NULL && node->childCount > 0 ? node->children[0] : NULL;
-    right = node != NULL && node->childCount > 1 ? node->children[1] : NULL;
-    id = ctx->tempId++;
-
-    xl6OutputPrintf(ctx->out, "({ xvalue __xl6_approx_left_%d = ", id);
-    xl6CgenXValueFromExpr(ctx, left);
-    xl6OutputPrintf(ctx->out, "; xvalue __xl6_approx_right_%d = ", id);
-    xl6CgenXValueFromExpr(ctx, right);
-    xl6OutputPrintf(ctx->out,
-                     "; int __xl6_approx_result_%d = xl6_xrt_basic_approx(__xl6_approx_left_%d, __xl6_approx_right_%d); if (__xl6_approx_left_%d != 0) { xvoUnref(__xl6_approx_left_%d); } if (__xl6_approx_right_%d != 0) { xvoUnref(__xl6_approx_right_%d); } __xl6_approx_result_%d; })",
-                     id,
-                     id,
-                     id,
-                     id,
-                     id,
-                     id,
-                     id,
-                     id);
+    xl6CgenError(ctx, node, "dynamic var approximate comparison requires statement-level lowering");
+    xl6OutputPuts("0", ctx->out);
 }
 static int xl6CgenBinaryArithmeticOpIsXValue(const char* op)
 {
@@ -634,29 +560,8 @@ static int xl6CgenXValueBinaryMode(const char* op)
 
 static void xl6CgenXValueBinaryExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
 {
-    const XL6_AstNode* left;
-    const XL6_AstNode* right;
-    int id;
-
-    left = node != NULL && node->childCount > 0 ? node->children[0] : NULL;
-    right = node != NULL && node->childCount > 1 ? node->children[1] : NULL;
-    id = ctx->tempId++;
-
-    xl6OutputPrintf(ctx->out, "({ xvalue __xl6_bin_left_%d = ", id);
-    xl6CgenXValueFromExpr(ctx, left);
-    xl6OutputPrintf(ctx->out, "; xvalue __xl6_bin_right_%d = ", id);
-    xl6CgenXValueFromExpr(ctx, right);
-    xl6OutputPrintf(ctx->out,
-                     "; xvalue __xl6_bin_result_%d = xl6_xrt_basic_binary(__xl6_bin_left_%d, __xl6_bin_right_%d, %d); if (__xl6_bin_left_%d != 0) { xvoUnref(__xl6_bin_left_%d); } if (__xl6_bin_right_%d != 0) { xvoUnref(__xl6_bin_right_%d); } __xl6_bin_result_%d; })",
-                     id,
-                     id,
-                     id,
-                     xl6CgenXValueBinaryMode(node != NULL ? node->text : "+"),
-                     id,
-                     id,
-                     id,
-                     id,
-                     id);
+    xl6CgenError(ctx, node, "dynamic var binary expression requires statement-level lowering");
+    xl6OutputPuts("xvoCreateNull()", ctx->out);
 }
 static int xl6CgenUnaryIsXValue(XL6_CgenContext* ctx, const XL6_AstNode* node)
 {
@@ -726,37 +631,8 @@ static int xl6CgenBinaryLogicalIsXValue(XL6_CgenContext* ctx, const XL6_AstNode*
 
 static void xl6CgenXValueLogicalExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
 {
-    const XL6_AstNode* left;
-    const XL6_AstNode* right;
-    int id;
-    int isOr;
-
-    left = node != NULL && node->childCount > 0 ? node->children[0] : NULL;
-    right = node != NULL && node->childCount > 1 ? node->children[1] : NULL;
-    id = ctx->tempId++;
-    isOr = node != NULL && xl6CTextEquals(node->text, "or");
-
-    xl6OutputPrintf(ctx->out, "({ xvalue __xl6_logic_left_%d = ", id);
-    xl6CgenXValueFromExpr(ctx, left);
-    xl6OutputPrintf(ctx->out,
-                     "; int __xl6_logic_left_truth_%d = xl6_xrt_value_truthy(__xl6_logic_left_%d); if (__xl6_logic_left_%d != 0) { xvoUnref(__xl6_logic_left_%d); } int __xl6_logic_result_%d = %s; if (%s__xl6_logic_left_truth_%d) { xvalue __xl6_logic_right_%d = ",
-                     id,
-                     id,
-                     id,
-                     id,
-                     id,
-                     isOr ? "1" : "0",
-                     isOr ? "!" : "",
-                     id,
-                     id);
-    xl6CgenXValueFromExpr(ctx, right);
-    xl6OutputPrintf(ctx->out,
-                     "; __xl6_logic_result_%d = xl6_xrt_value_truthy(__xl6_logic_right_%d); if (__xl6_logic_right_%d != 0) { xvoUnref(__xl6_logic_right_%d); } } __xl6_logic_result_%d; })",
-                     id,
-                     id,
-                     id,
-                     id,
-                     id);
+    xl6CgenError(ctx, node, "dynamic var logical expression requires statement-level lowering");
+    xl6OutputPuts("0", ctx->out);
 }
 static const XL6_AstNode* xl6CgenTypeConvertArg(const XL6_AstNode* node)
 {
@@ -948,7 +824,6 @@ static void xl6CgenNullCoalesceExpr(XL6_CgenContext* ctx, const XL6_AstNode* nod
     XL6_AstNode* leftType;
     XL6_AstNode* rightType;
     int isXValue;
-    int id;
 
     left = node != NULL && node->childCount > 0 ? node->children[0] : NULL;
     right = node != NULL && node->childCount > 1 ? node->children[1] : NULL;
@@ -967,20 +842,8 @@ static void xl6CgenNullCoalesceExpr(XL6_CgenContext* ctx, const XL6_AstNode* nod
             xl6CgenError(ctx, node, "null coalesce with var result requires the left operand to be var or null");
             xl6OutputPuts("xvoCreateNull()", ctx->out);
         } else {
-            id = ctx->tempId++;
-            xl6OutputPrintf(ctx->out, "({ xvalue __xl6_nc_%d = ", id);
-            xl6CgenXValueFromExpr(ctx, left);
-            xl6OutputPrintf(ctx->out, "; xvalue __xl6_nc_result_%d; if (xvoIsNull(__xl6_nc_%d)) { if (__xl6_nc_%d != 0) { xvoUnref(__xl6_nc_%d); } __xl6_nc_result_%d = ",
-                             id,
-                             id,
-                             id,
-                             id,
-                             id);
-            xl6CgenXValueFromExpr(ctx, right);
-            xl6OutputPrintf(ctx->out, "; } else { __xl6_nc_result_%d = __xl6_nc_%d; } __xl6_nc_result_%d; })",
-                             id,
-                             id,
-                             id);
+            xl6CgenError(ctx, node, "dynamic var null coalesce requires statement-level lowering");
+            xl6OutputPuts("xvoCreateNull()", ctx->out);
         }
         xl6AstFree(leftType);
         xl6AstFree(rightType);
@@ -995,14 +858,8 @@ static void xl6CgenNullCoalesceExpr(XL6_CgenContext* ctx, const XL6_AstNode* nod
         return;
     }
 
-    id = ctx->tempId++;
-    xl6OutputPuts("({ ", ctx->out);
-    xl6OutputPuts(xl6CgenTypeName(ctx, leftType), ctx->out);
-    xl6OutputPrintf(ctx->out, " __xl6_nc_%d = ", id);
-    xl6CgenExpr(ctx, left);
-    xl6OutputPrintf(ctx->out, "; __xl6_nc_%d != 0 ? __xl6_nc_%d : ", id, id);
-    xl6CgenExpr(ctx, right);
-    xl6OutputPuts("; })", ctx->out);
+    xl6CgenError(ctx, node, "static null coalesce requires statement-level lowering");
+    xl6OutputPuts("0", ctx->out);
 
     xl6AstFree(leftType);
     xl6AstFree(rightType);

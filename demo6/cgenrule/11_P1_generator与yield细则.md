@@ -154,3 +154,23 @@
 | RISK-GEN-002 | 已收口：第一版 generator 参数语义层只允许 bool、整数、浮点、time、point 等可按值复制类型；function、class/custom 等资源参数由 `sem_generator_function_param.xl`、`sem_generator_class_param.xl` 负例和集中诊断断言锁住，因此当前 `xrtFree(frame)` 销毁路径不会遗漏 frame 内资源析构。 |
 | RISK-GEN-003 | 已收口：generator 结构体持有 `XL6_Error* error`，worker 错误出口通过 `xl6_generator_store_active_error(__xl6_gen)` 转存 active error；`xl6_generator_next` 和 `xl6_generator_value_into` 通过 `xl6_generator_raise_stored_error` 重新抛出，for-in 消费端在 `while(next)` 退出后补充异常传播检查。`cgen_generator.xl` 和 feature suite `11_concurrency.xl` 覆盖 yield 后 throw 且外层 `try/catch` 捕获的路径。 |
 | RISK-GEN-004 | 已收口：generator for-in 支持 `(index, value)` 双目标形式，第一个目标为 0 基 `int` index，第二个目标为 `generator<T>` 的元素类型；`cgen_generator_two_targets.xl` 覆盖 check/run/build/cgen、break/continue 后 index 递增和生成形态守门。 |
+
+## 本轮补充：首次 yield 前异常传播
+
+本轮不新增 `CGEN-*` 规则编号，只补齐 `CGEN-GEN-005`、`CGEN-GEN-009`、`CGEN-GEN-012` 的验证边界：
+
+- 普通 generator：`cgen_generator.xl` 新增 `brokenEarly()`，在首次 `yield` 前抛出 `generator boom before yield`，外层 `try/catch` 捕获原始错误。
+- async generator：`cgen_async_generator.xl` 新增 `brokenEarly()`，在内部 `await` 成功后、首次 `yield` 前抛出 `async generator boom before yield`。
+- 生成形态：`test.bat` 锁定 `xl_gen_worker_brokenEarly` 与两条 early-error 诊断字符串。
+
+该补充确认 worker 在没有设置 `hasValue` 的情况下仍能通过 `xl6_generator_store_active_error` 转存 active error，消费端 `xl6_generator_next` 通过 `xl6_generator_raise_stored_error` 重抛，`for-in` 在 `while(next)` 退出后继续执行异常传播检查。
+
+## 本轮补充：空产出正常完成
+
+本轮不新增 `CGEN-*` 规则编号，只补齐 `CGEN-GEN-005`、`CGEN-GEN-009`、`CGEN-GEN-012` 的完成态验证：
+
+- 普通 generator：`cgen_generator.xl` 新增 `emptyNums()`，函数体正常结束但不触发 `yield`，`for-in` 循环体不执行。
+- async generator：`cgen_async_generator.xl` 新增 `emptyStream()`，内部 `await` 成功后正常结束但不触发 `yield`，`for await` 循环体不执行。
+- 生成形态：`test.bat` 锁定 `xl_gen_worker_emptyNums` 与 `xl_gen_worker_emptyStream`。
+
+该补充确认 `xl6_generator_next` 在 coroutine 已结束、`hasValue == 0` 且无 active error 时，把结果解释为正常迭代结束，而不是错误或伪值产出。

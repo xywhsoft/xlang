@@ -1,0 +1,12 @@
+class SpawnArgBox
+    int value = 0
+end
+
+func readBox(SpawnArgBox box) as int
+    return box.value
+end
+
+func(SpawnArgBox) as int job = readBox
+SpawnArgBox box
+box.value = 42
+int value = await task.spawn(job, box)

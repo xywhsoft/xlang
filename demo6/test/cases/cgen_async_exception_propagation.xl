@@ -17,6 +17,22 @@ end
 
 assert state == 7, "async exception should reach catch"
 
+int repeatedState = 0
+
+try
+    int secondValue = await failed
+    repeatedState = secondValue
+catch e
+    if e.message == "async boom" then
+        repeatedState = 11
+    end
+end
+
+assert repeatedState == 11, "failed future repeated await should reach catch"
+
+bool cancelFailed = task.cancel(failed)
+assert not cancelFailed, "failed completed future should not be canceled"
+
 int tempState = 0
 
 try

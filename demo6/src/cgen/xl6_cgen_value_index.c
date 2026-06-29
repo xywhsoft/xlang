@@ -393,6 +393,7 @@ static void xl6CgenIndexExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
         const char* typeName = concreteType != NULL ? concreteType->text : NULL;
         const char* itemCType = itemType != NULL ? xl6CgenTypeName(ctx, itemType) : "xvalue";
         int itemIsFunction = xl6CgenTypeContainsFunctionType(itemType);
+        int itemIsLanguageBool = xl6CgenIsLanguageBoolType(ctx, itemType);
 
         if ( node != NULL && node->kind == XL6_AST_SAFE_INDEX ) {
             xl6OutputPuts("xl6_xrt_typed_box_or_null(", ctx->out);
@@ -420,6 +421,8 @@ static void xl6CgenIndexExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
         } else if ( xl6CTextEquals(typeName, "array") ) {
             if ( itemIsFunction ) {
                 xl6OutputPuts("xl6_function_from_callable(*(xrt_callable**)xl6_xrt_typed_require_item(xl6_xrt_typed_array_get_at(", ctx->out);
+            } else if ( itemIsLanguageBool ) {
+                xl6OutputPuts("((int)(*(bool*)xl6_xrt_typed_require_item(xl6_xrt_typed_array_get_at(", ctx->out);
             } else {
                 xl6OutputPuts("(*(", ctx->out);
                 xl6OutputPuts(itemCType, ctx->out);
@@ -428,10 +431,12 @@ static void xl6CgenIndexExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
             xl6CgenExpr(ctx, receiver);
             xl6OutputPuts(", (unsigned int)(", ctx->out);
             xl6CgenExpr(ctx, index);
-            xl6OutputPuts("))))", ctx->out);
+            xl6OutputPuts(itemIsLanguageBool ? ")))))" : "))))", ctx->out);
         } else if ( xl6CTextEquals(typeName, "list") ) {
             if ( itemIsFunction ) {
                 xl6OutputPuts("xl6_function_from_callable(*(xrt_callable**)xl6_xrt_typed_require_item(xrtTypedListGet(", ctx->out);
+            } else if ( itemIsLanguageBool ) {
+                xl6OutputPuts("((int)(*(bool*)xl6_xrt_typed_require_item(xrtTypedListGet(", ctx->out);
             } else {
                 xl6OutputPuts("(*(", ctx->out);
                 xl6OutputPuts(itemCType, ctx->out);
@@ -440,12 +445,16 @@ static void xl6CgenIndexExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
             xl6CgenExpr(ctx, receiver);
             xl6OutputPuts(", (long long)(", ctx->out);
             xl6CgenExpr(ctx, index);
-            xl6OutputPuts("))))", ctx->out);
+            xl6OutputPuts(itemIsLanguageBool ? ")))))" : "))))", ctx->out);
         } else if ( xl6CTextEquals(typeName, "dict") ) {
             if ( itemIsFunction ) {
                 xl6OutputPuts("xl6_function_from_callable(*(xrt_callable**)xl6_xrt_typed_require_item(", ctx->out);
                 xl6CgenTypedDictGetRawExpr(ctx, receiver, index);
                 xl6OutputPuts("))", ctx->out);
+            } else if ( itemIsLanguageBool ) {
+                xl6OutputPuts("((int)(*(bool*)xl6_xrt_typed_require_item(", ctx->out);
+                xl6CgenTypedDictGetRawExpr(ctx, receiver, index);
+                xl6OutputPuts(")))", ctx->out);
             } else {
                 xl6OutputPuts("(*(", ctx->out);
                 xl6OutputPuts(itemCType, ctx->out);

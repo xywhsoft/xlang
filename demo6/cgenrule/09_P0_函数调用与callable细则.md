@@ -230,6 +230,8 @@
 | 实现同等功能手写的 C 代码 | 简单 callable 场景可直接 `xvalue r = xl6_function_call_var(obj.cb, 1, arg);`；多返回或复杂 typed 场景需要先把成员字段保存为 `XL6_Function fn = obj.cb;`，再按签名检查调用 `fn.invoke`。 |
 | 额外依赖的封装代码 | 依赖 function runtime、xvalue 转换 helper、多返回 return struct、class 返回值销毁/保留规则和表达式替换表；常规 erased-compatible 成员调用、多返回成员调用、无返回成员 func 表达式语句、忽略单返回值成员 func 表达式语句、忽略多返回值成员 func 表达式语句、class 单返回声明/赋值路径、临时 class 普通字段初始化路径、声明初始化中的临时 class 固定实参路径、表达式语句中的临时 class 固定实参路径和表达式语句中的嵌套临时 class 实参路径不再使用 GNU 语句表达式，其他复杂 typed return 表达式生命周期路径仍作为 `RISK-CALL-001` 继续跟踪。 |
 
+多临时实参补充：`cgen_member_function_class_return.xl` 现在覆盖 `sumPayload(maker.make(110), maker.make(120))` 与 `expect(sumPayload(maker.make(130), maker.make(140)), 270)`。生成器必须为同一个调用中的两个 class 返回成员函数实参分别生成 `__xl6_class_arg_N`，调用后按后进先出顺序 destroy，且不得把成员函数值内联回 C 实参表达式。
+
 ## CGEN-CALL-020 成员 var 函数字段调用
 
 | 字段 | 内容 |

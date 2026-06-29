@@ -837,7 +837,7 @@ static int xl6SemCheckType(XL6_SemContext* ctx, XL6_AstNode* typeNode)
         }
         ok = 1;
         if ( typeInfo->kind == XL6_TYPE_CUSTOM && genericCount > 0 ) {
-            xl6SemErrorNode(ctx, typeNode, "第一阶段 custom 类型不支持泛型参数");
+            xl6SemErrorNode(ctx, typeNode, "custom 类型不支持泛型参数");
             ok = 0;
         } else if ( typeInfo->kind == XL6_TYPE_CLASS && typeInfo->allowGeneric ) {
             if ( genericCount != typeInfo->genericArity ) {
@@ -871,7 +871,7 @@ static int xl6SemCheckType(XL6_SemContext* ctx, XL6_AstNode* typeNode)
     typeInfo = xl6TypeRegistryFind(&ctx->types, typeNode->text);
     if ( typeInfo != NULL && typeInfo->kind != XL6_TYPE_BUILTIN ) {
         if ( typeNode->childCount > 0 ) {
-            xl6SemErrorNode(ctx, typeNode, "当前阶段 class/custom 类型暂不支持泛型参数");
+            xl6SemErrorNode(ctx, typeNode, "class/custom 类型当前不支持泛型参数");
             return 0;
         }
         return 1;
@@ -5735,7 +5735,7 @@ static int xl6SemCheckProtocolMember(XL6_SemContext* ctx, XL6_AstNode* member)
 
     /*
         协议方法是语言语义入口，签名必须稳定。
-        第一版不允许协议参数使用默认值，避免动态分发和 C ABI 产生两套解释。
+        当前不允许协议参数使用默认值，避免动态分发和 C ABI 产生两套解释。
     */
     if ( requiredCount != fixedCount ) {
         snprintf(message, sizeof(message), "协议方法 %s 参数不能声明默认值", name);
@@ -6646,7 +6646,7 @@ static int xl6SemCheckPersistenceTarget(
         return 0;
     }
     if ( xl6SemClassHasTypeParams(classNode) ) {
-        xl6SemErrorNode(ctx, atNode, "json/xson 泛型持久化第一阶段不支持泛型 class");
+        xl6SemErrorNode(ctx, atNode, "json/xson 泛型持久化当前不支持泛型 class");
         return 0;
     }
     if ( !xl6SemClassDeclHasFormatDerive(classNode, format) ) {
@@ -8475,6 +8475,7 @@ static int xl6SemCheckTaskSpawnCall(XL6_SemContext* ctx, XL6_AstNode* node)
     const XL6_AstNode* params;
     const XL6_AstNode* returns;
     size_t paramCount;
+    size_t requiredCount;
     size_t fixedCount;
     size_t actualCount;
     size_t i;
@@ -8520,16 +8521,19 @@ static int xl6SemCheckTaskSpawnCall(XL6_SemContext* ctx, XL6_AstNode* node)
     paramCount = params != NULL ? params->childCount : 0;
     hasArrayVararg = paramCount > 0 && xl6SemTypeIsArrayVararg(params->children[paramCount - 1]);
     hasDictVararg = paramCount > 0 && xl6SemTypeIsDictVararg(params->children[paramCount - 1]);
-    fixedCount = (hasArrayVararg || hasDictVararg) ? paramCount - 1 : paramCount;
-    actualCount = xl6SemCallArgCount(node) > 0 ? (size_t)xl6SemCallArgCount(node) - 1 : 0;
-    ok = 1;
-
     if ( hasDictVararg ) {
         xl6SemErrorNode(ctx, fnExpr, "task.spawn does not support *** func values yet");
-        ok = 0;
+        xl6AstFree(fnType);
+        return 0;
     }
-    if ( actualCount < fixedCount || (actualCount > fixedCount && !hasArrayVararg) ) {
-        xl6SemCountMismatchError(ctx, node, "task.spawn argument count does not match func signature", fixedCount + 1, actualCount + 1);
+    fixedCount = (hasArrayVararg || hasDictVararg) ? paramCount - 1 : paramCount;
+    /* task.spawn 读取的是 func 类型签名。签名中的 array<var> 只表示 ... 尾部，不是必填参数。 */
+    requiredCount = fixedCount;
+    actualCount = xl6SemCallArgCount(node) > 0 ? (size_t)xl6SemCallArgCount(node) - 1 : 0;
+    ok = 1;
+    if ( actualCount < requiredCount || (actualCount > fixedCount && !hasArrayVararg) ) {
+        size_t expectedCount = actualCount < requiredCount ? requiredCount : fixedCount;
+        xl6SemCountMismatchError(ctx, node, "task.spawn argument count does not match func signature", expectedCount + 1, actualCount + 1);
         ok = 0;
     }
 
@@ -8540,6 +8544,11 @@ static int xl6SemCheckTaskSpawnCall(XL6_SemContext* ctx, XL6_AstNode* node)
 
         if ( xl6SemExprIsMultiReturnCall(ctx, argExpr) ) {
             xl6SemErrorNode(ctx, argExpr, "multi-return call cannot be passed as one task.spawn argument");
+            ok = 0;
+            continue;
+        }
+        if ( paramType != NULL && !xl6SemTypeSupportsTaskSpawnXValueBridge(ctx, paramType) ) {
+            xl6SemErrorNode(ctx, paramType, "task.spawn parameter type must be supported by the current XRT xvalue call bridge");
             ok = 0;
             continue;
         }
@@ -8601,6 +8610,12 @@ static int xl6SemCheckTaskCall(XL6_SemContext* ctx, XL6_AstNode* node)
     valueType = xl6SemCloneTaskArrayItemFutureValueType(ctx, argExpr);
     if ( valueType == NULL ) {
         xl6SemErrorNode(ctx, argExpr != NULL ? argExpr : node, "task.all/task.race 参数必须是非空且完成值类型一致的 array<future<T>> 或 future<T> 数组字面量");
+        return 0;
+    }
+    concreteType = xl6SemResolveAliasType(ctx, valueType);
+    if ( concreteType != NULL && xl6TextEquals(concreteType->text, "var") ) {
+        xl6SemErrorNode(ctx, argExpr != NULL ? argExpr : node, "task.all/task.race future<var> is not supported by the current typed future bridge");
+        xl6AstFree(valueType);
         return 0;
     }
     xl6AstFree(valueType);
@@ -9023,11 +9038,19 @@ static int xl6SemFuncIsAsyncGenerator(XL6_SemContext* ctx, const XL6_AstNode* fu
 static int xl6SemExprIsFreshTypeValue(XL6_SemContext* ctx, const XL6_AstNode* expr)
 {
     const XL6_AstNode* callee;
+    const char* taskName;
     XL6_AstNode* typeNode;
     XL6_AstNode* func;
 
     if ( ctx == NULL || expr == NULL || expr->kind != XL6_AST_CALL || expr->childCount == 0 ) {
         return 0;
+    }
+    taskName = NULL;
+    if ( xl6SemIsTaskNamespaceMemberCall((XL6_AstNode*)expr, &taskName) &&
+         (xl6TextEquals(taskName, "spawn") ||
+          xl6TextEquals(taskName, "all") ||
+          xl6TextEquals(taskName, "race")) ) {
+        return 1;
     }
     callee = expr->children[0];
     typeNode = xl6SemTypeNodeFromConstructorCallee(ctx, callee);
@@ -10371,7 +10394,7 @@ static int xl6SemCheckAssign(XL6_SemContext* ctx, XL6_AstNode* node)
 
     if ( left == NULL ||
          (left->kind != XL6_AST_NAME && left->kind != XL6_AST_MEMBER && left->kind != XL6_AST_INDEX) ) {
-        xl6SemErrorNode(ctx, left != NULL ? left : node, "当前阶段赋值左侧必须是变量名");
+        xl6SemErrorNode(ctx, left != NULL ? left : node, "当前赋值左侧必须是变量名");
         ok = 0;
     } else if ( left->kind == XL6_AST_NAME ) {
         sym = xl6ScopeFind(ctx->scope, left->text);
@@ -11403,7 +11426,7 @@ static int xl6SemCheckExportCAbi(XL6_SemContext* ctx, XL6_AstNode* node)
             typeNode = (XL6_AstNode*)xl6SemResolveAliasType(ctx, typeNode);
             if ( typeNode->childCount > 0 ||
                  (!xl6SemIsCAbiParamType(typeNode->text) && !xl6SemIsCAbiUnionType(ctx, typeNode) && !xl6SemIsCAbiClassType(ctx, typeNode)) ) {
-                xl6SemErrorNode(ctx, typeNode, "该参数类型不能直接进入第一阶段 C ABI export");
+                xl6SemErrorNode(ctx, typeNode, "该参数类型不能直接进入当前 C ABI export");
                 ok = 0;
             }
         }
@@ -13376,7 +13399,7 @@ static int xl6SemCheckDeriveValueFields(XL6_SemContext* ctx, XL6_AstNode* classN
 
     ok = 1;
     if ( xl6SemClassHasTypeParams(classNode) ) {
-        xl6SemErrorNode(ctx, classNode, "derive value/json/xson 第一阶段暂不支持泛型 class");
+        xl6SemErrorNode(ctx, classNode, "derive value/json/xson 当前不支持泛型 class");
         ok = 0;
     }
 
@@ -13524,7 +13547,7 @@ static int xl6SemCheckClass(XL6_SemContext* ctx, XL6_AstNode* node)
             ok = 0;
         }
         if ( base != NULL && base->kind == XL6_AST_NAME ) {
-            xl6SemErrorNode(ctx, base, "第一阶段泛型 class 暂不支持继承");
+            xl6SemErrorNode(ctx, base, "泛型 class 当前不支持继承");
             ok = 0;
         }
         xl6SemPushTypeParams(ctx, &typeParamScope, typeParams);

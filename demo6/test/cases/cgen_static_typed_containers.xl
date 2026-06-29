@@ -5,11 +5,21 @@ array<int> values = array[10, 20, 30]
 list<string> names = list[0: "a", 2: "b"]
 set<int> unique = set{1, 2}
 dict<int> table = dict{"a": 7, "b": 9}
+array<bool> flags = array[false, true]
+list<bool> checks = list[0: false, 2: true]
+set<bool> switches = set{false, true}
+dict<bool> states = dict{"off": false, "on": true}
 
 expect(int(values[0]), 10)
 expect(int(values[2]), 30)
 expectStr(string(names[2]), "b")
 expect(int(table["a"]), 7)
+expect(int(flags[0]), 0)
+expect(int(flags[1]), 1)
+expect(int(checks[0]), 0)
+expect(int(checks[2]), 1)
+expect(int(states["off"]), 0)
+expect(int(states["on"]), 1)
 
 int total = 0
 for index, value in values
@@ -45,3 +55,60 @@ for key, value in table
 end
 expect(dictSum, 16)
 expect(sawB, 9)
+
+int dictKeyOnlyCount = 0
+int sawAKeyOnly = 0
+for key in table
+    dictKeyOnlyCount = dictKeyOnlyCount + 1
+    if key == "a" then
+        sawAKeyOnly = 1
+    end
+end
+expect(dictKeyOnlyCount, 2)
+expect(sawAKeyOnly, 1)
+
+int dictContinueCount = 0
+for key, value in table
+    if key == "a" then
+        continue
+    end
+    dictContinueCount = dictContinueCount + 1
+end
+expect(dictContinueCount, 1)
+
+int dictBreakCount = 0
+for key, value in table
+    dictBreakCount = dictBreakCount + 1
+    break
+end
+expect(dictBreakCount, 1)
+
+int flagTrueCount = 0
+for flag in flags
+    if flag then
+        flagTrueCount = flagTrueCount + 1
+    end
+end
+expect(flagTrueCount, 1)
+
+int checkTrueCount = 0
+for index, check in checks
+    if check then
+        checkTrueCount = checkTrueCount + index
+    end
+end
+expect(checkTrueCount, 2)
+
+int switchSeen = 0
+for item in switches
+    switchSeen = switchSeen + 1
+end
+expect(switchSeen, 2)
+
+int stateTrueCount = 0
+for key, state in states
+    if state then
+        stateTrueCount = stateTrueCount + 1
+    end
+end
+expect(stateTrueCount, 1)

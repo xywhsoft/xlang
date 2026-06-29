@@ -34,6 +34,35 @@ async func makeAdderAsync(int base) as func(int) as int
     return makeAdder(base)
 end
 
+async func makeVarAsync(int value) as var
+    return value
+end
+
+async func greetAsync(string name) as string
+    return "hello " + name
+end
+
+async func makeItemsAsync() as array<int>
+    return array[3, 4, 5]
+end
+
+async func copyItemsAsync() as array<int>
+    array<int> values = array[7, 8]
+    return values
+end
+
+async func makeListAsync() as list<int>
+    return list[2: 8, 4: 9]
+end
+
+async func makeSetAsync() as set<int>
+    return set{6, 7}
+end
+
+async func makeDictAsync() as dict<int>
+    return dict{"a": 11, "b": 12}
+end
+
 future<int> futureValue = addAsync(2, 3)
 int value = await futureValue
 
@@ -81,3 +110,64 @@ assert temporaryFn(4) == 64, "temporary await func result failed"
 
 AsyncBox temporaryBox = await makeBoxAsync(110)
 assert temporaryBox.op(6) + temporaryBox.bias == 226, "temporary await class result failed"
+
+future<var> varFuture = makeVarAsync(120)
+var awaitedVar = await varFuture
+assert int(awaitedVar) == 120, "await var result failed"
+
+var temporaryVar = await makeVarAsync(130)
+assert int(temporaryVar) == 130, "temporary await var result failed"
+
+string temporaryGreeting = await greetAsync("temp")
+assert temporaryGreeting == "hello temp", "temporary await string result failed"
+
+future<string> greetingFuture = greetAsync("named")
+string namedGreetingA = await greetingFuture
+string namedGreetingB = await greetingFuture
+assert namedGreetingA == "hello named", "named future string first await failed"
+assert namedGreetingB == "hello named", "named future string second await failed"
+
+array<int> temporaryItems = await makeItemsAsync()
+assert temporaryItems.length == 3, "temporary await typed array length failed"
+assert int(temporaryItems[1]) == 4, "temporary await typed array item failed"
+
+array<int> copiedItems = await copyItemsAsync()
+assert copiedItems.length == 2, "temporary await copied typed array length failed"
+assert int(copiedItems[0]) == 7, "temporary await copied typed array item failed"
+
+future<array<int>> itemsFuture = makeItemsAsync()
+array<int> namedItemsA = await itemsFuture
+array<int> namedItemsB = await itemsFuture
+assert namedItemsA.length == 3, "named future typed array first length failed"
+assert namedItemsB.length == 3, "named future typed array second length failed"
+assert int(namedItemsA[2]) == 5, "named future typed array first item failed"
+assert int(namedItemsB[0]) == 3, "named future typed array second item failed"
+
+list<int> temporaryList = await makeListAsync()
+assert temporaryList.length == 2, "temporary await typed list length failed"
+assert int(temporaryList[2]) == 8, "temporary await typed list item failed"
+
+future<list<int>> listFuture = makeListAsync()
+list<int> namedListA = await listFuture
+list<int> namedListB = await listFuture
+assert int(namedListA[4]) == 9, "named future typed list first item failed"
+assert int(namedListB[2]) == 8, "named future typed list second item failed"
+
+set<int> temporarySet = await makeSetAsync()
+assert temporarySet.length == 2, "temporary await typed set length failed"
+
+future<set<int>> setFuture = makeSetAsync()
+set<int> namedSetA = await setFuture
+set<int> namedSetB = await setFuture
+assert namedSetA.length == 2, "named future typed set first length failed"
+assert namedSetB.length == 2, "named future typed set second length failed"
+
+dict<int> temporaryDict = await makeDictAsync()
+assert temporaryDict.length == 2, "temporary await typed dict length failed"
+assert int(temporaryDict["a"]) == 11, "temporary await typed dict item failed"
+
+future<dict<int>> dictFuture = makeDictAsync()
+dict<int> namedDictA = await dictFuture
+dict<int> namedDictB = await dictFuture
+assert int(namedDictA["b"]) == 12, "named future typed dict first item failed"
+assert int(namedDictB["a"]) == 11, "named future typed dict second item failed"

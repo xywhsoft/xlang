@@ -1,12 +1,8 @@
 param(
     [string]$Root = "",
     [int]$ExpectedRiskCount = 21,
-    [int]$ExpectedClosedCount = 18,
-    [string[]]$ExpectedOpenRiskIds = @(
-        "RISK-ASYNC-001",
-        "RISK-CALL-001",
-        "RISK-LOOP-002"
-    )
+    [int]$ExpectedClosedCount = 21,
+    [string[]]$ExpectedOpenRiskIds = @()
 )
 
 $ErrorActionPreference = "Stop"
@@ -130,6 +126,10 @@ if ( $failures.Count -ne 0 ) {
     exit 1
 }
 
+$openText = "none"
+if ( $actualOpen.Count -gt 0 ) {
+    $openText = [string]::Join(", ", $actualOpen.ToArray())
+}
 Write-Host "Risk ledger ok: $($ids.Count) unique risks, $($actualClosed.Count) closed, $($actualOpen.Count) open."
-Write-Host "Open risks: $([string]::Join(', ', $actualOpen.ToArray()))"
+Write-Host "Open risks: $openText"
 exit 0

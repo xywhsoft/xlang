@@ -150,7 +150,7 @@ static int xl6CgenIsGeneratorType(const XL6_AstNode* typeNode);
 static int xl6CgenIsSyncHandleType(const XL6_AstNode* typeNode);
 static int xl6CgenNodeNeedsAsyncRuntime(const XL6_AstNode* node);
 static int xl6CgenNodeNeedsTaskSpawn(const XL6_AstNode* node);
-static void xl6CgenEmitAsyncRuntime(XL6_Output* out);
+static void xl6CgenEmitAsyncRuntime(XL6_Output* out, int hasTaskSpawn);
 static void xl6CgenEmitGeneratorRuntime(XL6_Output* out);
 static void xl6CgenEmitDebugRuntime(XL6_Output* out);
 static void xl6CgenDebugProbe(XL6_CgenContext* ctx, const XL6_AstNode* node);

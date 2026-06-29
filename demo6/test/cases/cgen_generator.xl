@@ -26,6 +26,18 @@ func broken() as generator<int>
     yield 2
 end
 
+func brokenEarly() as generator<int>
+    throw "generator boom before yield"
+    yield 1
+end
+
+func emptyNums() as generator<int>
+    int marker = 1
+    if marker == 0 then
+        yield marker
+    end
+end
+
 int total = 0
 for value in nums(3)
     total = total + value
@@ -98,3 +110,24 @@ catch e
 end
 
 assert errorState == 11, "generator error propagation failed"
+
+int earlyErrorState = 0
+try
+    for value in brokenEarly()
+        earlyErrorState = earlyErrorState + value
+    end
+    earlyErrorState = 100
+catch e
+    if e.message == "generator boom before yield" then
+        earlyErrorState = 42
+    end
+end
+
+assert earlyErrorState == 42, "generator early error propagation failed"
+
+int emptyCount = 0
+for value in emptyNums()
+    emptyCount = emptyCount + 1
+end
+
+assert emptyCount == 0, "empty generator should not yield values"

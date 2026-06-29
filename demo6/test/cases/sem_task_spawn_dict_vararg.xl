@@ -1,0 +1,6 @@
+func options(string path, ***) as int
+    return arg.length
+end
+
+func(string, ***) as int job = options
+int value = await task.spawn(job, "cfg")

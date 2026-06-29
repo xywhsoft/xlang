@@ -24,6 +24,8 @@ static void xl6CgenDefaultXValueForTarget(XL6_CgenContext* ctx, const XL6_AstNod
     xl6CgenDefaultValue(ctx, targetType);
 }
 
+static int xl6CgenAwaitOperandIsOwnedTemporary(const XL6_AstNode* node);
+
 static int xl6CgenDeclShouldUseTypedContainer(XL6_CgenContext* ctx, const XL6_AstNode* typeNode, const XL6_AstNode* initExpr, int declaredAuto)
 {
     if ( !xl6CgenIsTypedContainerType(ctx, typeNode) ) {
@@ -35,7 +37,7 @@ static int xl6CgenDeclShouldUseTypedContainer(XL6_CgenContext* ctx, const XL6_As
     return initExpr != NULL && initExpr->kind == XL6_AST_TYPED_LITERAL;
 }
 
-static void xl6CgenTypedContainerCreateExpr(XL6_CgenContext* ctx, const XL6_AstNode* typeNode)
+static void xl6CgenTypedContainerCreateExprMode(XL6_CgenContext* ctx, const XL6_AstNode* typeNode, const char* mode)
 {
     const XL6_AstNode* concreteType;
     const XL6_AstNode* itemType;
@@ -57,7 +59,14 @@ static void xl6CgenTypedContainerCreateExpr(XL6_CgenContext* ctx, const XL6_AstN
         xl6OutputPuts("(void*)(", ctx->out);
     }
     xl6CgenEmitXrtTypeDescRef(ctx, itemType);
-    xl6OutputPuts(", XRT_OBJMODE_LOCAL)", ctx->out);
+    xl6OutputPuts(", ", ctx->out);
+    xl6OutputPuts(mode != NULL ? mode : "XRT_OBJMODE_LOCAL", ctx->out);
+    xl6OutputPuts(")", ctx->out);
+}
+
+static void xl6CgenTypedContainerCreateExpr(XL6_CgenContext* ctx, const XL6_AstNode* typeNode)
+{
+    xl6CgenTypedContainerCreateExprMode(ctx, typeNode, "XRT_OBJMODE_LOCAL");
 }
 
 static const XL6_AstNode* xl6CgenTypedContainerInitLiteral(XL6_CgenContext* ctx, const XL6_AstNode* typeNode, const XL6_AstNode* initExpr)
@@ -160,6 +169,9 @@ static int xl6CgenTypedContainerCanCopyFromExpr(XL6_CgenContext* ctx, const XL6_
     if ( initExpr == NULL || xl6CgenTypedContainerInitLiteral(ctx, typeNode, initExpr) != NULL ) {
         return 0;
     }
+    if ( initExpr->kind == XL6_AST_AWAIT && !xl6CgenAwaitOperandIsOwnedTemporary(initExpr) ) {
+        return xl6CgenTypedContainerExprTypeMatches(ctx, typeNode, initExpr);
+    }
     if ( !xl6CgenExprUsesTypedContainerStorage(ctx, initExpr) ) {
         return 0;
     }
@@ -171,13 +183,17 @@ static int xl6CgenTypedContainerCanMoveFromExpr(XL6_CgenContext* ctx, const XL6_
     if ( initExpr == NULL || xl6CgenTypedContainerInitLiteral(ctx, typeNode, initExpr) != NULL ) {
         return 0;
     }
-    if ( initExpr->kind != XL6_AST_AWAIT && !xl6CgenExprIsTypedContainerReturnCall(ctx, initExpr) ) {
+    if ( initExpr->kind == XL6_AST_AWAIT ) {
+        if ( !xl6CgenAwaitOperandIsOwnedTemporary(initExpr) ) {
+            return 0;
+        }
+    } else if ( !xl6CgenExprIsTypedContainerReturnCall(ctx, initExpr) ) {
         return 0;
     }
     return xl6CgenTypedContainerExprTypeMatches(ctx, typeNode, initExpr);
 }
 
-static void xl6CgenTypedContainerCopyExpr(XL6_CgenContext* ctx, const XL6_AstNode* typeNode, const XL6_AstNode* expr)
+static void xl6CgenTypedContainerCopyExprMode(XL6_CgenContext* ctx, const XL6_AstNode* typeNode, const XL6_AstNode* expr, const char* mode)
 {
     const XL6_AstNode* concreteType;
     const XL6_AstNode* itemType;
@@ -188,13 +204,13 @@ static void xl6CgenTypedContainerCopyExpr(XL6_CgenContext* ctx, const XL6_AstNod
     typeName = concreteType != NULL ? concreteType->text : NULL;
 
     if ( xl6CTextEquals(typeName, "array") ) {
-        xl6OutputPuts("xl6_xrt_typed_array_copy(", ctx->out);
+        xl6OutputPuts("xl6_xrt_typed_array_copy_mode(", ctx->out);
     } else if ( xl6CTextEquals(typeName, "list") ) {
-        xl6OutputPuts("xl6_xrt_typed_list_copy(", ctx->out);
+        xl6OutputPuts("xl6_xrt_typed_list_copy_mode(", ctx->out);
     } else if ( xl6CTextEquals(typeName, "set") ) {
-        xl6OutputPuts("xl6_xrt_typed_set_copy(", ctx->out);
+        xl6OutputPuts("xl6_xrt_typed_set_copy_mode(", ctx->out);
     } else if ( xl6CTextEquals(typeName, "dict") ) {
-        xl6OutputPuts("xl6_xrt_typed_dict_copy(", ctx->out);
+        xl6OutputPuts("xl6_xrt_typed_dict_copy_mode(", ctx->out);
     } else {
         xl6CgenError(ctx, expr, "typed container copy requires array/list/set/dict");
         xl6OutputPuts("0", ctx->out);
@@ -203,5 +219,12 @@ static void xl6CgenTypedContainerCopyExpr(XL6_CgenContext* ctx, const XL6_AstNod
     xl6CgenEmitXrtTypeDescRef(ctx, itemType);
     xl6OutputPuts(", ", ctx->out);
     xl6CgenExpr(ctx, expr);
+    xl6OutputPuts(", ", ctx->out);
+    xl6OutputPuts(mode != NULL ? mode : "XRT_OBJMODE_LOCAL", ctx->out);
     xl6OutputPutc(')', ctx->out);
+}
+
+static void xl6CgenTypedContainerCopyExpr(XL6_CgenContext* ctx, const XL6_AstNode* typeNode, const XL6_AstNode* expr)
+{
+    xl6CgenTypedContainerCopyExprMode(ctx, typeNode, expr, "XRT_OBJMODE_LOCAL");
 }

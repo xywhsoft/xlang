@@ -47,6 +47,30 @@ for key, score in makeScores()
 end
 assert dictTotal == 3, "returned dict for-in failed"
 
+int dictContinueTotal = 0
+for key, score in makeScores()
+    if key == "a" then
+        continue
+    end
+    dictContinueTotal = dictContinueTotal + score
+end
+assert dictContinueTotal == 2, "returned typed dict continue cleanup failed"
+
+int dictThrowState = 0
+try
+    for key, score in makeScores()
+        if key == "a" then
+            throw "typed dict loop boom"
+        end
+        dictThrowState = dictThrowState + score
+    end
+catch e
+    if e.message == "typed dict loop boom" then
+        dictThrowState = 7
+    end
+end
+assert dictThrowState == 7, "returned typed dict throw cleanup failed"
+
 int breakTotal = 0
 for value in makeValues()
     if value == 3 then

@@ -1,0 +1,8 @@
+func makeAdder(int base) as func(int) as int
+    return func(int value) as int
+        return base + value
+    end
+end
+
+func(int) as func(int) as int job = makeAdder
+func(int) as int fn = await task.spawn(job, 1)

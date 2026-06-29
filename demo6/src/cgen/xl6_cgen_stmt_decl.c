@@ -540,7 +540,7 @@ static int xl6CgenDeclCanLowerStaticNullCoalesceType(XL6_CgenContext* ctx, const
 
     /*
         ?? 的语句级展开会接管变量初始化与赋值时机。
-        第一阶段只处理普通标量/指针类型，复杂托管类型继续走原有专门路径。
+        当前只处理普通标量/指针类型，复杂托管类型继续走原有专门路径。
     */
     if ( xl6CgenIsXValueType(concreteType) ||
          xl6CgenIsFunctionType(concreteType) ||
@@ -980,17 +980,6 @@ static void xl6CgenDiscardTemporaryResultByType(XL6_CgenContext* ctx, const XL6_
         return;
     }
 
-    if ( xl6CgenIsXValueType(concreteType) ) {
-        xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "xl6_xvalue_drop(%s);\n", tempName);
-        return;
-    }
-
-    if ( xl6CgenIsFunctionType(concreteType) ) {
-        xl6CgenReleaseFunctionPath(ctx, tempName);
-        return;
-    }
-
     if ( xl6CgenIsTypedContainerType(ctx, concreteType) ) {
         const XL6_AstNode* containerType = xl6CgenTypedContainerConcreteType(ctx, concreteType);
         const char* containerName = containerType != NULL ? containerType->text : NULL;
@@ -1005,6 +994,17 @@ static void xl6CgenDiscardTemporaryResultByType(XL6_CgenContext* ctx, const XL6_
         } else if ( xl6CTextEquals(containerName, "dict") ) {
             xl6OutputPrintf(ctx->out, "if (%s != 0) { xrtTypedDictDestroy(%s); %s = 0; }\n", tempName, tempName, tempName);
         }
+        return;
+    }
+
+    if ( xl6CgenIsXValueType(concreteType) ) {
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "if (%s != 0) { xvoUnref(%s); %s = 0; }\n", tempName, tempName, tempName);
+        return;
+    }
+
+    if ( xl6CgenIsFunctionType(concreteType) ) {
+        xl6CgenReleaseFunctionPath(ctx, tempName);
         return;
     }
 

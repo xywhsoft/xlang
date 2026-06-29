@@ -348,6 +348,87 @@ static int xl6CgenDeclEmitStringCompareCallArgTemp(
     return 1;
 }
 
+static int xl6CgenDeclStaticNullCoalesceCallArgMatches(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* typeNode,
+    const XL6_AstNode* expr)
+{
+    const XL6_AstNode* left;
+    const XL6_AstNode* right;
+    XL6_AstNode* leftType;
+    XL6_AstNode* rightType;
+    int result;
+
+    if ( ctx == NULL || typeNode == NULL || !xl6CgenDeclIsNullCoalesceExpr(expr) ||
+         !xl6CgenDeclCanLowerStaticNullCoalesceType(ctx, typeNode) ) {
+        return 0;
+    }
+
+    left = expr->children[0];
+    right = expr->children[1];
+    if ( left == NULL || right == NULL || left->kind == XL6_AST_NULL ) {
+        return 0;
+    }
+
+    leftType = xl6CgenCloneExprTypeForInference(ctx, left);
+    rightType = xl6CgenCloneExprTypeForInference(ctx, right);
+    result = leftType != NULL &&
+             rightType != NULL &&
+             xl6CgenTypeNodeEqual(leftType, typeNode) &&
+             xl6CgenTypeNodeEqual(rightType, typeNode);
+    xl6AstFree(leftType);
+    xl6AstFree(rightType);
+    return result;
+}
+
+static int xl6CgenDeclTryStaticNullCoalesceCallArgTemp(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* typeNode,
+    const char* cType,
+    const char* cName,
+    const XL6_AstNode* expr)
+{
+    const XL6_AstNode* left;
+    const XL6_AstNode* right;
+    int id;
+
+    if ( ctx == NULL || typeNode == NULL || cType == NULL || cName == NULL ||
+         !xl6CgenDeclStaticNullCoalesceCallArgMatches(ctx, typeNode, expr) ) {
+        return 0;
+    }
+
+    left = expr->children[0];
+    right = expr->children[1];
+    id = ctx->tempId++;
+    xl6CgenIndent(ctx);
+    xl6OutputPuts("{\n", ctx->out);
+    ctx->indent += 1;
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "%s __xl6_nc_%d = ", cType, id);
+    xl6CgenExpr(ctx, left);
+    xl6OutputPuts(";\n", ctx->out);
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "if (__xl6_nc_%d != 0) {\n", id);
+    ctx->indent += 1;
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "%s = __xl6_nc_%d;\n", cName, id);
+    ctx->indent -= 1;
+    xl6CgenIndent(ctx);
+    xl6OutputPuts("} else {\n", ctx->out);
+    ctx->indent += 1;
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "%s = ", cName);
+    xl6CgenExpr(ctx, right);
+    xl6OutputPuts(";\n", ctx->out);
+    ctx->indent -= 1;
+    xl6CgenIndent(ctx);
+    xl6OutputPuts("}\n", ctx->out);
+    ctx->indent -= 1;
+    xl6CgenIndent(ctx);
+    xl6OutputPuts("}\n", ctx->out);
+    return 1;
+}
+
 static int xl6CgenDeclTryTypeConvertCallArgTemp(
     XL6_CgenContext* ctx,
     const XL6_AstNode* typeNode,
@@ -469,6 +550,9 @@ static int xl6CgenDeclCanEmitCallArgTemp(XL6_CgenContext* ctx, const XL6_AstNode
           (expr->kind == XL6_AST_BINARY && xl6CTextEquals(expr->text, "in"))) ) {
         return 1;
     }
+    if ( xl6CgenDeclStaticNullCoalesceCallArgMatches(ctx, typeNode, expr) ) {
+        return 1;
+    }
 
     if ( xl6CgenDeclCallArgStaticScalarType(typeNode) &&
          xl6CgenDeclCallArgTypeConvertName(ctx, expr, &convertName) &&
@@ -503,6 +587,9 @@ static int xl6CgenDeclEmitCallArgTemp(
         return 1;
     }
     if ( xl6CgenDeclCallArgStaticBoolLikeType(typeNode) && xl6CgenTryInExprStmt(ctx, expr, cName) ) {
+        return 1;
+    }
+    if ( xl6CgenDeclTryStaticNullCoalesceCallArgTemp(ctx, typeNode, cType, cName, expr) ) {
         return 1;
     }
     if ( xl6CgenDeclTryTypeConvertCallArgTemp(ctx, typeNode, cType, cName, expr) ) {

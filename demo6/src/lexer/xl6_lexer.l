@@ -237,7 +237,7 @@ FLOAT_B        {DIGIT}({DIGIT}|_)*[eE][+-]?{DIGIT}({DIGIT}|_)*
 "::"                               { xl6SetToken(yyscanner, XL6_TK_SCOPE); return XL6_TK_SCOPE; }
 "=>"                               { xl6SetToken(yyscanner, XL6_TK_FAT_ARROW); return XL6_TK_FAT_ARROW; }
 "..."                              { xl6SetToken(yyscanner, XL6_TK_ELLIPSIS); return XL6_TK_ELLIPSIS; }
-".."                               { return xl6SetErrorToken(yyscanner, "DEMO6 第一阶段不支持 .. 范围运算符，请使用 range(...)"); }
+".."                               { return xl6SetErrorToken(yyscanner, "当前不支持 .. 范围运算符，请使用 range(...)"); }
 "***"                              { xl6SetToken(yyscanner, XL6_TK_TRIPLE_STAR); return XL6_TK_TRIPLE_STAR; }
 "**="                              { xl6SetToken(yyscanner, XL6_TK_POW_ASSIGN); return XL6_TK_POW_ASSIGN; }
 "**"                               { xl6SetToken(yyscanner, XL6_TK_POW); return XL6_TK_POW; }

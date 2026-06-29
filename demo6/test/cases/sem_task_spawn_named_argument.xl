@@ -1,0 +1,6 @@
+func addOne(int value) as int
+    return value + 1
+end
+
+func(int) as int job = addOne
+int value = await task.spawn(job, value = 1)

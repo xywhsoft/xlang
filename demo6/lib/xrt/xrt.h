@@ -1,7 +1,7 @@
 /*
 
     XRT Single Header File
-    Generated: 2026-06-28 18:50:24
+    Generated: 2026-06-29 04:23:02
 
     MIT License
 
@@ -6668,6 +6668,7 @@
 	XXAPI str xrtTypeToStringValue(const xrt_type_desc* pType, const ptr pObj, uint32* pSize);
 	XXAPI xvalue xrtTypeBoxValue(const xrt_type_desc* pType, const ptr pObj);
 	XXAPI bool xrtTypeUnboxValue(const xrt_type_desc* pType, xvalue pVal, ptr pOut);
+	XXAPI void xrtTypeDropValue(const xrt_type_desc* pType, ptr pObj);
 	XXAPI uint64 xrtFuncSigTypeId(const xrt_func_sig* pSig);
 	XXAPI void xrtCallResultInit(xrt_call_result* pResult);
 	XXAPI void xrtCallResultUnit(xrt_call_result* pResult);
@@ -81060,6 +81061,7 @@ static bool __xrtTypeUnboxFunction(xvalue pVal, ptr pOut, const xrt_type_desc* p
 	xrtCallableAddRef(pCallable);
 	return TRUE;
 }
+#if !defined(XRT_NO_NETWORK)
 static void __xrtTypeInitFuture(ptr pObj)
 {
 	if ( pObj != NULL ) {
@@ -81147,6 +81149,7 @@ static bool __xrtTypeUnboxFuture(xvalue pVal, ptr pOut, const xrt_type_desc* pTy
 	*(xfuture**)pOut = pFuture;
 	return TRUE;
 }
+#endif
 static const xrt_type_ops __xrtTypeBoolOps = {
 	.init = NULL,
 	.copy = NULL,
@@ -81235,6 +81238,7 @@ static const xrt_type_ops __xrtTypeFunctionOps = {
 	.box = __xrtTypeBoxFunction,
 	.unbox = __xrtTypeUnboxFunction
 };
+#if !defined(XRT_NO_NETWORK)
 static const xrt_type_ops __xrtTypeFutureOps = {
 	.init = __xrtTypeInitFuture,
 	.copy = __xrtTypeCopyFuture,
@@ -81246,6 +81250,7 @@ static const xrt_type_ops __xrtTypeFutureOps = {
 	.box = __xrtTypeBoxFuture,
 	.unbox = __xrtTypeUnboxFuture
 };
+#endif
 static const xrt_type_desc __xrtTypeString;
 static const xrt_type_desc* const __xrtTypeToStringReturns[] = {
 	&__xrtTypeString
@@ -81378,6 +81383,7 @@ static const xrt_type_desc __xrtTypeFunction = {
 	.Methods = &__xrtTypeValueMethodTable,
 	.Extra = NULL
 };
+#if !defined(XRT_NO_NETWORK)
 static const xrt_type_desc __xrtTypeFuture = {
 	.TypeId = XRT_TYPE_KIND_FUTURE,
 	.Kind = XRT_TYPE_KIND_FUTURE,
@@ -81391,6 +81397,7 @@ static const xrt_type_desc __xrtTypeFuture = {
 	.Methods = &__xrtTypeValueMethodTable,
 	.Extra = NULL
 };
+#endif
 static const xrt_type_desc __xrtTypeArray = {
 	.TypeId = XRT_TYPE_KIND_ARRAY,
 	.Kind = XRT_TYPE_KIND_ARRAY,
@@ -81483,7 +81490,9 @@ XXAPI const xrt_type_desc* xrtTypeString() { return &__xrtTypeString; }
 XXAPI const xrt_type_desc* xrtTypeTime() { return &__xrtTypeTime; }
 XXAPI const xrt_type_desc* xrtTypePoint() { return &__xrtTypePoint; }
 XXAPI const xrt_type_desc* xrtTypeFunction() { return &__xrtTypeFunction; }
+#if !defined(XRT_NO_NETWORK)
 XXAPI const xrt_type_desc* xrtTypeFuture() { return &__xrtTypeFuture; }
+#endif
 XXAPI const xrt_type_desc* xrtTypeArray() { return &__xrtTypeArray; }
 XXAPI const xrt_type_desc* xrtTypeList() { return &__xrtTypeList; }
 XXAPI const xrt_type_desc* xrtTypeSet() { return &__xrtTypeSet; }
@@ -81594,6 +81603,13 @@ XXAPI bool xrtTypeUnboxValue(const xrt_type_desc* pType, xvalue pVal, ptr pOut)
 		return FALSE;
 	}
 	return pType->Ops->unbox(pVal, pOut, pType);
+}
+XXAPI void xrtTypeDropValue(const xrt_type_desc* pType, ptr pObj)
+{
+	if ( pType == NULL || pType->Ops == NULL || pType->Ops->drop == NULL || pObj == NULL ) {
+		return;
+	}
+	pType->Ops->drop(pObj);
 }
 // 按运行时类型描述在 C 对象和 xvalue 之间转换。
 XXAPI uint64 xrtFuncSigTypeId(const xrt_func_sig* pSig)

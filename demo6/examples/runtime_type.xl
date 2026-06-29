@@ -1,0 +1,61 @@
+class Base
+    int id = 1
+end
+
+class Child extends Base
+    int score = 2
+end
+
+func inc(int value) as int
+    return value + 1
+end
+
+var boxedInt = 42
+var boxedText = "hello"
+var boxedNull = null
+
+assert boxedInt is int, "boxed int should match int"
+assert not (boxedInt is float), "boxed int should not match float"
+assert boxedText is string, "boxed string should match string"
+assert boxedNull is null, "boxed null should match null"
+
+int unboxedInt = boxedInt as int
+string unboxedText = boxedText as string
+
+assert unboxedInt == 42, "as int should return the boxed integer"
+assert unboxedText == "hello", "as string should return the boxed string"
+
+Base base = Base()
+Child child = Child()
+child.id = 7
+child.score = 30
+
+assert base is Base, "base should match Base"
+assert not (base is Child), "base should not match Child"
+assert child is Base, "child should match Base through inheritance"
+assert child is Child, "child should match Child"
+
+var boxedChild = child
+assert boxedChild is Base, "boxed child should match Base"
+assert boxedChild is Child, "boxed child should match Child"
+
+Base asBase = boxedChild as Base
+Child asChild = boxedChild as Child
+
+assert asBase.id == 7, "downcast to Base should preserve base field"
+assert asChild.score == 30, "downcast to Child should preserve child field"
+
+func(int) as int fn = inc
+var boxedFn = fn
+
+assert boxedFn is func(int) as int, "boxed function should keep signature"
+assert not (boxedFn is func(string) as int), "boxed function signature should be exact"
+assert int(boxedFn(41)) == 42, "boxed function should still be callable"
+
+array<int> values = array[1, 2, 3]
+var boxedValues = values
+
+assert boxedValues is array<int>, "boxed array should keep element type"
+assert not (boxedValues is array<string>), "boxed array element type should be exact"
+
+print("runtime type ok")

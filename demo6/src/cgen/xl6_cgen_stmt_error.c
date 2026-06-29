@@ -285,13 +285,22 @@ static void xl6CgenAssertStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
 {
     const XL6_AstNode* cond;
     const XL6_AstNode* message;
+    char conditionName[64];
+    int hasConditionTemp;
 
     cond = node != NULL && node->childCount > 0 ? node->children[0] : NULL;
     message = node != NULL && node->childCount > 1 ? node->children[1] : NULL;
+    conditionName[0] = '\0';
+    hasConditionTemp = cond != NULL &&
+                       xl6CgenTryConditionTemp(ctx, cond, "__xl6_assert_cond_", conditionName, sizeof(conditionName));
 
     xl6CgenIndent(ctx);
     xl6OutputPuts("if ( !(", ctx->out);
-    xl6CgenExpr(ctx, cond);
+    if ( hasConditionTemp ) {
+        xl6OutputPuts(conditionName, ctx->out);
+    } else {
+        xl6CgenConditionExpr(ctx, cond);
+    }
     xl6OutputPuts(") ) {\n", ctx->out);
     ctx->indent += 1;
     xl6CgenIndent(ctx);

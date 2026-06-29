@@ -1,0 +1,6 @@
+func countItems(array<int> values) as int
+    return values.length
+end
+
+func(array<int>) as int job = countItems
+int value = await task.spawn(job, array[1, 2, 3])

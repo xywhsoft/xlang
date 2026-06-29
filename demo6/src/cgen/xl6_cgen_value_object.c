@@ -217,22 +217,27 @@ static const char* xl6CgenParamCType(XL6_CgenContext* ctx, const XL6_AstNode* ty
     return xl6CgenTypeName(ctx, typeNode);
 }
 
-static void xl6CgenTypedContainerValueFromExpr(XL6_CgenContext* ctx, const XL6_AstNode* typeNode, const XL6_AstNode* expr)
+static void xl6CgenTypedContainerValueFromExprMode(XL6_CgenContext* ctx, const XL6_AstNode* typeNode, const XL6_AstNode* expr, const char* mode)
 {
     const XL6_AstNode* literal;
 
     literal = xl6CgenTypedContainerInitLiteral(ctx, typeNode, expr);
     if ( literal != NULL ) {
-        xl6CgenTypedContainerCreateExpr(ctx, typeNode);
+        xl6CgenTypedContainerCreateExprMode(ctx, typeNode, mode);
         return;
     }
 
     if ( xl6CgenExprUsesTypedContainerStorage(ctx, expr) ) {
-        xl6CgenTypedContainerCopyExpr(ctx, typeNode, expr);
+        xl6CgenTypedContainerCopyExprMode(ctx, typeNode, expr, mode);
         return;
     }
 
     xl6CgenExpr(ctx, expr);
+}
+
+static void xl6CgenTypedContainerValueFromExpr(XL6_CgenContext* ctx, const XL6_AstNode* typeNode, const XL6_AstNode* expr)
+{
+    xl6CgenTypedContainerValueFromExprMode(ctx, typeNode, expr, "XRT_OBJMODE_LOCAL");
 }
 
 static void xl6CgenTypedContainerReturnStmt(XL6_CgenContext* ctx, const XL6_AstNode* typeNode, const XL6_AstNode* expr, int id)
@@ -596,11 +601,7 @@ static int xl6CgenEmitClassCtorInto(XL6_CgenContext* ctx, const XL6_AstNode* cal
 static int xl6CgenClassConstructorExpr(XL6_CgenContext* ctx, const XL6_AstNode* call)
 {
     const XL6_AstNode* callee;
-    const XL6_AstNode* args;
     XL6_AstNode* classNode;
-    const XL6_AstNode* createNode;
-    char tempName[64];
-    int id;
 
     if ( ctx == NULL || call == NULL || call->kind != XL6_AST_CALL || call->childCount == 0 ) {
         return 0;
@@ -615,45 +616,8 @@ static int xl6CgenClassConstructorExpr(XL6_CgenContext* ctx, const XL6_AstNode* 
     if ( classNode == NULL ) {
         return 0;
     }
-    if ( xl6CgenClassHasTypeParams(classNode) ) {
-        xl6CgenError(ctx, call, "generic class constructor expression requires explicit typed storage");
-        xl6OutputPuts("0", ctx->out);
-        return 1;
-    }
-
-    args = call->childCount > 1 ? call->children[1] : NULL;
-    createNode = xl6CgenResolveClassCreate(ctx, classNode, call);
-    id = ctx->tempId++;
-    snprintf(tempName, sizeof(tempName), "__xl6_ctor_expr_%d", id);
-
-    xl6OutputPuts("({\n", ctx->out);
-    ctx->indent += 1;
-    xl6CgenIndent(ctx);
-    xl6OutputPuts(xl6CgenTypeName(ctx, classNode), ctx->out);
-    xl6OutputPrintf(ctx->out, " %s = {0};\n", tempName);
-
-    xl6CgenClassDefaultInitFields(ctx, classNode, tempName);
-    if ( createNode != NULL ) {
-        char selfExpr[96];
-
-        snprintf(selfExpr, sizeof(selfExpr), "&%s", tempName);
-        xl6CgenIndent(ctx);
-        xl6CgenEmitClassCreateCall(ctx, classNode, createNode, selfExpr, args);
-        xl6OutputPuts(";\n", ctx->out);
-    } else {
-        if ( args != NULL && args->childCount > 0 &&
-             !xl6CgenEmitNativeClassHandleBinding(ctx, classNode, tempName, args) ) {
-            xl6CgenError(ctx, call, "class constructor has arguments but no matching create method");
-        }
-        xl6CgenEmitAutoBaseCreateForValue(ctx, classNode, tempName, call);
-    }
-
-    xl6CgenIndent(ctx);
-    xl6OutputPuts(tempName, ctx->out);
-    xl6OutputPuts(";\n", ctx->out);
-    ctx->indent -= 1;
-    xl6CgenIndent(ctx);
-    xl6OutputPuts("})", ctx->out);
+    xl6CgenError(ctx, call, "class constructor expression requires statement-level lowering");
+    xl6OutputPuts("0", ctx->out);
     return 1;
 }
 
