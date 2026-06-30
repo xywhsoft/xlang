@@ -35,7 +35,9 @@ static int xl6CgenEmitConditionTemp(
     size_t capacity)
 {
     XL6_AstNode* boolType;
+    XL6_CgenTaskSpawnArgTempScope taskScope;
     int id;
+    int hasTaskScope;
 
     if ( ctx == NULL || expr == NULL || prefix == NULL || name == NULL || capacity == 0 ) {
         return 0;
@@ -48,10 +50,14 @@ static int xl6CgenEmitConditionTemp(
 
     id = ctx->tempId++;
     snprintf(name, capacity, "%s%d", prefix, id);
+    hasTaskScope = xl6CgenTaskSpawnArgTempScopeBegin(ctx, expr, &taskScope);
     xl6CgenIndent(ctx);
     xl6OutputPrintf(ctx->out, "int %s = 0;\n", name);
     if ( !xl6CgenDeclEmitCallArgTemp(ctx, boolType, "int", name, expr) ) {
         xl6CgenError(ctx, expr, "condition expression lowering failed");
+    }
+    if ( hasTaskScope ) {
+        xl6CgenTaskSpawnArgTempScopeEnd(ctx, &taskScope);
     }
     xl6AstFree(boolType);
     return 1;
@@ -83,11 +89,17 @@ static void xl6CgenEmitConditionalBranch(
 {
     char conditionName[64];
     int hasConditionTemp;
+    int hasTaskScope;
+    XL6_CgenTaskSpawnArgTempScope taskScope;
 
     conditionName[0] = '\0';
     hasConditionTemp = 0;
+    hasTaskScope = 0;
     if ( condition != NULL ) {
         hasConditionTemp = xl6CgenTryConditionTemp(ctx, condition, tempPrefix, conditionName, sizeof(conditionName));
+        if ( !hasConditionTemp ) {
+            hasTaskScope = xl6CgenTaskSpawnArgTempScopeBegin(ctx, condition, &taskScope);
+        }
     }
 
     xl6CgenIndent(ctx);
@@ -100,6 +112,9 @@ static void xl6CgenEmitConditionalBranch(
         }
     }
     xl6OutputPuts(") {\n", ctx->out);
+    if ( hasTaskScope ) {
+        xl6CgenTaskSpawnArgTempScopeEnd(ctx, &taskScope);
+    }
     ctx->indent += 1;
     if ( block != NULL ) {
         xl6CgenBlock(ctx, block);

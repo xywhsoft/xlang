@@ -35,6 +35,34 @@ func continueTwoCleanup()
     end
 end
 
+func breakTwoWhileCleanup()
+    int outer = 0
+    while outer < 2 do
+        auto outerTracker = Tracker(300 + outer)
+        int inner = 0
+        while inner < 2 do
+            auto innerTracker = Tracker(400 + inner)
+            break 2
+            inner += 1
+        end
+        outer += 1
+    end
+end
+
+func continueTwoWhileCleanup()
+    int outer = 0
+    while outer < 2 do
+        auto outerTracker = Tracker(500 + outer)
+        int inner = 0
+        while inner < 2 do
+            auto innerTracker = Tracker(600 + outer * 10 + inner)
+            outer += 1
+            continue 2
+        end
+        outer += 1
+    end
+end
+
 breakTwoCleanup()
 expect(destroyCount(), 2)
 expect(destroyValue(), 10)
@@ -42,3 +70,11 @@ expect(destroyValue(), 10)
 continueTwoCleanup()
 expect(destroyCount(), 6)
 expect(destroyValue(), 101)
+
+breakTwoWhileCleanup()
+expect(destroyCount(), 8)
+expect(destroyValue(), 300)
+
+continueTwoWhileCleanup()
+expect(destroyCount(), 12)
+expect(destroyValue(), 501)

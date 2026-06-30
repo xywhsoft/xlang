@@ -62,6 +62,46 @@ func totalDefault(int base = 5, ...) as int
     return base + arg.length
 end
 
+func addVar(var value) as int
+    return int(value) + 1
+end
+
+func scoreSpawnResult(int value) as int
+    return value + 1
+end
+
+func combineSpawnResult(int left, int right) as int
+    return left + right
+end
+
+func makeSpawnValue(int value) as var
+    return value
+end
+
+async func makeTypedDynamicSpawnAllValues(func(var) as int job) as array<int>
+    return array[
+        await task.spawn(job, true ? makeSpawnValue(101) : makeSpawnValue(0)),
+        await task.spawn(job, makeSpawnValue(30) + makeSpawnValue(11))
+    ]
+end
+
+async func makeTypedDynamicSpawnAwaitValues(func(var) as int job, var fallback) as array<int>
+    return array[
+        await task.spawn(job, fallback ?? makeSpawnValue(41))
+    ]
+end
+
+func spawnCancelReturnDynamic(func(var) as int job) as bool
+    return task.cancel(task.spawn(job, true ? makeSpawnValue(61) : makeSpawnValue(0)))
+end
+
+func scoreVarString(var value) as int
+    if string(value) == "spawn" then
+        return 42
+    end
+    return 0
+end
+
 func failJob() as int
     throw "spawn boom"
     return 0
@@ -423,6 +463,82 @@ int variadicDefaultEmptyValue = await task.spawn(variadicDefaultJob)
 assert variadicDefaultEmptyValue == 5, "task.spawn should run zero-argument array vararg adapter"
 int variadicDefaultExtraValue = await task.spawn(variadicDefaultJob, "a", "b")
 assert variadicDefaultExtraValue == 7, "task.spawn should run array vararg adapter with extra values"
+int variadicExprTailValue = await task.spawn(variadicDefaultJob, true ? makeSpawnValue(1) : makeSpawnValue(9), makeSpawnValue(2) + makeSpawnValue(3))
+assert variadicExprTailValue == 7, "task.spawn should lower dynamic vararg tail expressions"
+
+func(var) as int varArgJob = addVar
+var dynamicSpawnArg = 41
+future<int> namedVarArgSpawn = task.spawn(varArgJob, dynamicSpawnArg)
+int namedVarArgA = await namedVarArgSpawn
+int namedVarArgB = await namedVarArgSpawn
+assert namedVarArgA == 42, "task.spawn should bridge var argument from named xvalue"
+assert namedVarArgB == 42, "task.spawn var argument repeated await should remain stable"
+assert not task.cancel(namedVarArgSpawn), "completed task.spawn var argument future should not be canceled"
+int postCancelVarArg = await namedVarArgSpawn
+assert postCancelVarArg == 42, "completed task.spawn var argument future should remain awaitable after cancel"
+int literalVarArgValue = await task.spawn(varArgJob, 41)
+assert literalVarArgValue == 42, "task.spawn should bridge scalar literal into var parameter"
+int conditionalVarArgValue = await task.spawn(varArgJob, true ? makeSpawnValue(51) : makeSpawnValue(99))
+assert conditionalVarArgValue == 52, "task.spawn should lower dynamic conditional var argument"
+int binaryVarArgValue = await task.spawn(varArgJob, makeSpawnValue(20) + makeSpawnValue(21))
+assert binaryVarArgValue == 42, "task.spawn should lower dynamic binary var argument"
+var emptySpawnArg = null
+int nullCoalesceVarArgValue = await task.spawn(varArgJob, emptySpawnArg ?? makeSpawnValue(41))
+assert nullCoalesceVarArgValue == 42, "task.spawn should lower dynamic null-coalesce var argument"
+int nestedCallArgValue = scoreSpawnResult(await task.spawn(varArgJob, true ? makeSpawnValue(31) : makeSpawnValue(0)))
+assert nestedCallArgValue == 33, "task.spawn dynamic var argument should lower inside positional call arguments"
+int nestedNamedCallArgValue = combineSpawnResult(right = await task.spawn(varArgJob, makeSpawnValue(12) + makeSpawnValue(29)), left = 1)
+assert nestedNamedCallArgValue == 43, "task.spawn dynamic var argument should lower inside named call arguments"
+int conditionDynamicSpawnCount = 0
+if await task.spawn(varArgJob, true ? makeSpawnValue(1) : makeSpawnValue(0)) == 2 then
+    conditionDynamicSpawnCount = conditionDynamicSpawnCount + 1
+end
+assert conditionDynamicSpawnCount == 1, "task.spawn dynamic var argument should lower inside if conditions"
+int whileDynamicSpawnCount = 0
+while await task.spawn(varArgJob, true ? makeSpawnValue(0) : makeSpawnValue(9)) == 1 do
+    whileDynamicSpawnCount = whileDynamicSpawnCount + 1
+    if whileDynamicSpawnCount >= 2 then
+        break
+    end
+end
+assert whileDynamicSpawnCount == 2, "task.spawn dynamic var argument should lower inside while conditions"
+int doDynamicSpawnCount = 0
+do
+    doDynamicSpawnCount = doDynamicSpawnCount + 1
+while doDynamicSpawnCount < 2 and await task.spawn(varArgJob, makeSpawnValue(0) + makeSpawnValue(0)) == 1
+assert doDynamicSpawnCount == 2, "task.spawn dynamic var argument should lower inside do while conditions"
+bool returnedDynamicSpawnCancel = spawnCancelReturnDynamic(varArgJob)
+assert returnedDynamicSpawnCancel == true or returnedDynamicSpawnCancel == false, "task.spawn dynamic var argument should lower in return statements"
+future<int> assignedDynamicSpawn
+assignedDynamicSpawn = task.spawn(varArgJob, true ? makeSpawnValue(71) : makeSpawnValue(0))
+int assignedDynamicSpawnValue = await assignedDynamicSpawn
+assert assignedDynamicSpawnValue == 72, "task.spawn dynamic var argument should lower in assignments"
+task.cancel(task.spawn(varArgJob, true ? makeSpawnValue(81) : makeSpawnValue(0)))
+array<future<int>> typedDynamicSpawnAllJobs = array[
+    task.spawn(varArgJob, true ? makeSpawnValue(91) : makeSpawnValue(0)),
+    task.spawn(varArgJob, makeSpawnValue(20) + makeSpawnValue(21))
+]
+array<int> typedDynamicSpawnAllValues = await task.all(typedDynamicSpawnAllJobs)
+assert typedDynamicSpawnAllValues.length == 2, "typed array task.spawn dynamic var argument count"
+assert typedDynamicSpawnAllValues[0] == 92, "typed array task.spawn dynamic conditional argument"
+assert typedDynamicSpawnAllValues[1] == 42, "typed array task.spawn dynamic binary argument"
+array<future<int>> typedDynamicSpawnRaceJobs = array[
+    task.spawn(varArgJob, emptySpawnArg ?? makeSpawnValue(41))
+]
+int typedDynamicSpawnRaceValue = await task.race(typedDynamicSpawnRaceJobs)
+assert typedDynamicSpawnRaceValue == 42, "typed array task.spawn dynamic null-coalesce argument"
+array<int> asyncReturnDynamicSpawnAllValues = await makeTypedDynamicSpawnAllValues(varArgJob)
+assert asyncReturnDynamicSpawnAllValues.length == 2, "async returned typed array task.spawn dynamic var argument count"
+assert asyncReturnDynamicSpawnAllValues[0] == 102, "async returned typed array task.spawn dynamic conditional argument"
+assert asyncReturnDynamicSpawnAllValues[1] == 42, "async returned typed array task.spawn dynamic binary argument"
+array<int> asyncReturnDynamicSpawnAwaitValues = await makeTypedDynamicSpawnAwaitValues(varArgJob, emptySpawnArg)
+assert asyncReturnDynamicSpawnAwaitValues.length == 1, "async returned typed array task.spawn dynamic await count"
+assert asyncReturnDynamicSpawnAwaitValues[0] == 42, "async returned typed array task.spawn dynamic null-coalesce argument"
+
+func(var) as int varStringJob = scoreVarString
+var dynamicStringSpawnArg = "spawn"
+int varStringValue = await task.spawn(varStringJob, dynamicStringSpawnArg)
+assert varStringValue == 42, "task.spawn should bridge string var argument"
 
 future<int> spawnAllA = task.spawn(addJob, 10, 11)
 future<int> spawnAllB = task.spawn(defaultJob, 20)
@@ -433,6 +549,28 @@ assert spawnAllValues[1] == 21, "task.all should keep xcall adapter task.spawn r
 
 int spawnRaceValue = await task.race([task.spawn(addJob, 2, 3), task.spawn(defaultJob, 8)])
 assert spawnRaceValue == 5 or spawnRaceValue == 9, "task.race should accept task.spawn futures"
+
+array<future<int>> spawnIntAllCompletedJobs = array[task.spawn(addJob, 30, 12), task.spawn(defaultJob, 41)]
+future<array<int>> spawnIntAllCompletedFuture = task.all(spawnIntAllCompletedJobs)
+array<int> spawnIntAllCompletedA = await spawnIntAllCompletedFuture
+array<int> spawnIntAllCompletedB = await spawnIntAllCompletedFuture
+assert spawnIntAllCompletedA.length == 2, "typed-array int task.spawn task.all count"
+assert spawnIntAllCompletedB.length == 2, "typed-array int task.spawn task.all repeated count"
+assert spawnIntAllCompletedA[0] == 42, "typed-array int task.spawn task.all first await"
+assert spawnIntAllCompletedB[1] == 42, "typed-array int task.spawn task.all repeated await"
+assert not task.cancel(spawnIntAllCompletedFuture), "typed-array int task.spawn task.all completed cancel"
+array<int> postCancelSpawnIntAllCompleted = await spawnIntAllCompletedFuture
+assert postCancelSpawnIntAllCompleted[0] == 42, "typed-array int task.spawn task.all post-cancel await"
+
+array<future<int>> spawnIntRaceCompletedJobs = array[task.spawn(addJob, 70, 5)]
+future<int> spawnIntRaceCompletedFuture = task.race(spawnIntRaceCompletedJobs)
+int spawnIntRaceCompletedA = await spawnIntRaceCompletedFuture
+int spawnIntRaceCompletedB = await spawnIntRaceCompletedFuture
+assert spawnIntRaceCompletedA == 75, "typed-array int task.spawn task.race first await"
+assert spawnIntRaceCompletedB == 75, "typed-array int task.spawn task.race repeated await"
+assert not task.cancel(spawnIntRaceCompletedFuture), "typed-array int task.spawn task.race completed cancel"
+int postCancelSpawnIntRaceCompleted = await spawnIntRaceCompletedFuture
+assert postCancelSpawnIntRaceCompleted == 75, "typed-array int task.spawn task.race post-cancel await"
 
 array<string> spawnStringAllValues = await task.all([task.spawn(greetJob, "all-left"), task.spawn(greetJob, "all-right")])
 assert spawnStringAllValues.length == 2, "task.all should aggregate string task.spawn futures"
@@ -451,6 +589,28 @@ assert spawnStringTypedAll[1] == "hello typed-all-right", "task.all should keep 
 array<future<string>> spawnStringRaceJobs = array[task.spawn(greetJob, "typed-race-string")]
 string spawnStringTypedRace = await task.race(spawnStringRaceJobs)
 assert spawnStringTypedRace == "hello typed-race-string", "task.race should accept typed array string task.spawn futures"
+
+array<future<string>> spawnStringAllCompletedJobs = array[task.spawn(greetJob, "typed-complete-left"), task.spawn(greetJob, "typed-complete-right")]
+future<array<string>> spawnStringAllCompletedFuture = task.all(spawnStringAllCompletedJobs)
+array<string> spawnStringAllCompletedA = await spawnStringAllCompletedFuture
+array<string> spawnStringAllCompletedB = await spawnStringAllCompletedFuture
+assert spawnStringAllCompletedA.length == 2, "typed-array string task.spawn task.all count"
+assert spawnStringAllCompletedB.length == 2, "typed-array string task.spawn task.all repeated count"
+assert spawnStringAllCompletedA[0] == "hello typed-complete-left", "typed-array string task.spawn task.all first await"
+assert spawnStringAllCompletedB[1] == "hello typed-complete-right", "typed-array string task.spawn task.all repeated await"
+assert not task.cancel(spawnStringAllCompletedFuture), "typed-array string task.spawn task.all completed cancel"
+array<string> postCancelSpawnStringAllCompleted = await spawnStringAllCompletedFuture
+assert postCancelSpawnStringAllCompleted[0] == "hello typed-complete-left", "typed-array string task.spawn task.all post-cancel await"
+
+array<future<string>> spawnStringRaceCompletedJobs = array[task.spawn(greetJob, "typed-race-complete")]
+future<string> spawnStringRaceCompletedFuture = task.race(spawnStringRaceCompletedJobs)
+string spawnStringRaceCompletedA = await spawnStringRaceCompletedFuture
+string spawnStringRaceCompletedB = await spawnStringRaceCompletedFuture
+assert spawnStringRaceCompletedA == "hello typed-race-complete", "typed-array string task.spawn task.race first await"
+assert spawnStringRaceCompletedB == "hello typed-race-complete", "typed-array string task.spawn task.race repeated await"
+assert not task.cancel(spawnStringRaceCompletedFuture), "typed-array string task.spawn task.race completed cancel"
+string postCancelSpawnStringRaceCompleted = await spawnStringRaceCompletedFuture
+assert postCancelSpawnStringRaceCompleted == "hello typed-race-complete", "typed-array string task.spawn task.race post-cancel await"
 
 array<future<string>> cancelSpawnStringAllJobs = array[task.spawn(greetJob, "cancel-all-left"), task.spawn(greetJob, "cancel-all-right")]
 bool cancelSpawnStringTypedAll = task.cancel(task.all(cancelSpawnStringAllJobs))
@@ -478,6 +638,28 @@ array<future<bool>> spawnBoolRaceJobs = array[task.spawn(flipJob, true)]
 bool spawnBoolTypedRace = await task.race(spawnBoolRaceJobs)
 assert spawnBoolTypedRace == false, "task.race should accept typed array bool task.spawn futures"
 
+array<future<bool>> spawnBoolAllCompletedJobs = array[task.spawn(flipJob, true), task.spawn(flipJob, false)]
+future<array<bool>> spawnBoolAllCompletedFuture = task.all(spawnBoolAllCompletedJobs)
+array<bool> spawnBoolAllCompletedA = await spawnBoolAllCompletedFuture
+array<bool> spawnBoolAllCompletedB = await spawnBoolAllCompletedFuture
+assert spawnBoolAllCompletedA.length == 2, "typed-array bool task.spawn task.all count"
+assert spawnBoolAllCompletedB.length == 2, "typed-array bool task.spawn task.all repeated count"
+assert spawnBoolAllCompletedA[0] == false, "typed-array bool task.spawn task.all first await"
+assert spawnBoolAllCompletedB[1] == true, "typed-array bool task.spawn task.all repeated await"
+assert not task.cancel(spawnBoolAllCompletedFuture), "typed-array bool task.spawn task.all completed cancel"
+array<bool> postCancelSpawnBoolAllCompleted = await spawnBoolAllCompletedFuture
+assert postCancelSpawnBoolAllCompleted[1] == true, "typed-array bool task.spawn task.all post-cancel await"
+
+array<future<bool>> spawnBoolRaceCompletedJobs = array[task.spawn(flipJob, true)]
+future<bool> spawnBoolRaceCompletedFuture = task.race(spawnBoolRaceCompletedJobs)
+bool spawnBoolRaceCompletedA = await spawnBoolRaceCompletedFuture
+bool spawnBoolRaceCompletedB = await spawnBoolRaceCompletedFuture
+assert spawnBoolRaceCompletedA == false, "typed-array bool task.spawn task.race first await"
+assert spawnBoolRaceCompletedB == false, "typed-array bool task.spawn task.race repeated await"
+assert not task.cancel(spawnBoolRaceCompletedFuture), "typed-array bool task.spawn task.race completed cancel"
+bool postCancelSpawnBoolRaceCompleted = await spawnBoolRaceCompletedFuture
+assert postCancelSpawnBoolRaceCompleted == false, "typed-array bool task.spawn task.race post-cancel await"
+
 array<future<bool>> cancelSpawnBoolAllJobs = array[task.spawn(flipJob, true), task.spawn(flipJob, false)]
 bool cancelSpawnBoolTypedAll = task.cancel(task.all(cancelSpawnBoolAllJobs))
 assert cancelSpawnBoolTypedAll == true or cancelSpawnBoolTypedAll == false, "task.cancel should release typed array bool task.all over task.spawn futures"
@@ -503,6 +685,28 @@ assert spawnFloatTypedAll[1] == 8.0, "task.all should keep second typed array fl
 array<future<float>> spawnFloatRaceJobs = array[task.spawn(halfJob, 8.5)]
 float spawnFloatTypedRace = await task.race(spawnFloatRaceJobs)
 assert spawnFloatTypedRace == 9.0, "task.race should accept typed array float task.spawn futures"
+
+array<future<float>> spawnFloatAllCompletedJobs = array[task.spawn(halfJob, 12.5), task.spawn(halfJob, 13.5)]
+future<array<float>> spawnFloatAllCompletedFuture = task.all(spawnFloatAllCompletedJobs)
+array<float> spawnFloatAllCompletedA = await spawnFloatAllCompletedFuture
+array<float> spawnFloatAllCompletedB = await spawnFloatAllCompletedFuture
+assert spawnFloatAllCompletedA.length == 2, "typed-array float task.spawn task.all count"
+assert spawnFloatAllCompletedB.length == 2, "typed-array float task.spawn task.all repeated count"
+assert spawnFloatAllCompletedA[0] == 13.0, "typed-array float task.spawn task.all first await"
+assert spawnFloatAllCompletedB[1] == 14.0, "typed-array float task.spawn task.all repeated await"
+assert not task.cancel(spawnFloatAllCompletedFuture), "typed-array float task.spawn task.all completed cancel"
+array<float> postCancelSpawnFloatAllCompleted = await spawnFloatAllCompletedFuture
+assert postCancelSpawnFloatAllCompleted[0] == 13.0, "typed-array float task.spawn task.all post-cancel await"
+
+array<future<float>> spawnFloatRaceCompletedJobs = array[task.spawn(halfJob, 14.5)]
+future<float> spawnFloatRaceCompletedFuture = task.race(spawnFloatRaceCompletedJobs)
+float spawnFloatRaceCompletedA = await spawnFloatRaceCompletedFuture
+float spawnFloatRaceCompletedB = await spawnFloatRaceCompletedFuture
+assert spawnFloatRaceCompletedA == 15.0, "typed-array float task.spawn task.race first await"
+assert spawnFloatRaceCompletedB == 15.0, "typed-array float task.spawn task.race repeated await"
+assert not task.cancel(spawnFloatRaceCompletedFuture), "typed-array float task.spawn task.race completed cancel"
+float postCancelSpawnFloatRaceCompleted = await spawnFloatRaceCompletedFuture
+assert postCancelSpawnFloatRaceCompleted == 15.0, "typed-array float task.spawn task.race post-cancel await"
 
 array<future<float>> cancelSpawnFloatAllJobs = array[task.spawn(halfJob, 9.5), task.spawn(halfJob, 10.5)]
 bool cancelSpawnFloatTypedAll = task.cancel(task.all(cancelSpawnFloatAllJobs))
@@ -635,6 +839,234 @@ catch e
     end
 end
 assert nullSpawnRaceState == 42, "task.race over task.spawn should reject null source and release owned input"
+
+int nullFirstSpawnAllState = 0
+try
+    array<int> nullFirstSpawnAll = await task.all([missingSpawnFuture, task.spawn(addJob, 160, 1)])
+    nullFirstSpawnAllState = nullFirstSpawnAll.length
+catch e
+    if e.message == "task.all source future is null" then
+        nullFirstSpawnAllState = 42
+    end
+end
+assert nullFirstSpawnAllState == 42, "task.all should reject null source before owned task.spawn and still release owned input"
+
+int nullFirstSpawnRaceState = 0
+try
+    int nullFirstSpawnRace = await task.race([missingSpawnFuture, task.spawn(addJob, 170, 1)])
+    nullFirstSpawnRaceState = nullFirstSpawnRace
+catch e
+    if e.message == "task.race source future is null" then
+        nullFirstSpawnRaceState = 42
+    end
+end
+assert nullFirstSpawnRaceState == 42, "task.race should reject null source before owned task.spawn and still release owned input"
+
+array<future<int>> typedNullFirstSpawnAllJobs = array[missingSpawnFuture, task.spawn(addJob, 180, 1)]
+int typedNullFirstSpawnAllState = 0
+try
+    array<int> typedNullFirstSpawnAll = await task.all(typedNullFirstSpawnAllJobs)
+    typedNullFirstSpawnAllState = typedNullFirstSpawnAll.length
+catch e
+    if e.message == "task.all source future is null" then
+        typedNullFirstSpawnAllState = 42
+    end
+end
+assert typedNullFirstSpawnAllState == 42, "typed array task.all should reject null source before task.spawn future"
+int typedNullFirstSpawnAllTail = await typedNullFirstSpawnAllJobs[1]
+assert typedNullFirstSpawnAllTail == 181, "typed array task.all null-first should leave task.spawn source awaitable"
+
+array<future<int>> typedNullFirstSpawnRaceJobs = array[missingSpawnFuture, task.spawn(addJob, 190, 1)]
+int typedNullFirstSpawnRaceState = 0
+try
+    int typedNullFirstSpawnRace = await task.race(typedNullFirstSpawnRaceJobs)
+    typedNullFirstSpawnRaceState = typedNullFirstSpawnRace
+catch e
+    if e.message == "task.race source future is null" then
+        typedNullFirstSpawnRaceState = 42
+    end
+end
+assert typedNullFirstSpawnRaceState == 42, "typed array task.race should reject null source before task.spawn future"
+int typedNullFirstSpawnRaceTail = await typedNullFirstSpawnRaceJobs[1]
+assert typedNullFirstSpawnRaceTail == 191, "typed array task.race null-first should leave task.spawn source awaitable"
+
+future<string> missingSpawnStringFuture
+
+int nullSpawnStringAllState = 0
+try
+    array<string> nullSpawnStringAll = await task.all([task.spawn(greetJob, "null-all"), missingSpawnStringFuture])
+    nullSpawnStringAllState = nullSpawnStringAll.length
+catch e
+    if e.message == "task.all source future is null" then
+        nullSpawnStringAllState = 42
+    end
+end
+assert nullSpawnStringAllState == 42, "task.all string over task.spawn should reject null source and release owned input"
+
+int nullSpawnStringRaceState = 0
+try
+    string nullSpawnStringRace = await task.race([task.spawn(greetJob, "null-race"), missingSpawnStringFuture])
+    nullSpawnStringRaceState = 9
+catch e
+    if e.message == "task.race source future is null" then
+        nullSpawnStringRaceState = 42
+    end
+end
+assert nullSpawnStringRaceState == 42, "task.race string over task.spawn should reject null source and release owned input"
+
+int nullFirstSpawnStringAllState = 0
+try
+    array<string> nullFirstSpawnStringAll = await task.all([missingSpawnStringFuture, task.spawn(greetJob, "null-first-all")])
+    nullFirstSpawnStringAllState = nullFirstSpawnStringAll.length
+catch e
+    if e.message == "task.all source future is null" then
+        nullFirstSpawnStringAllState = 42
+    end
+end
+assert nullFirstSpawnStringAllState == 42, "task.all string should reject null source before owned task.spawn"
+
+int nullFirstSpawnStringRaceState = 0
+try
+    string nullFirstSpawnStringRace = await task.race([missingSpawnStringFuture, task.spawn(greetJob, "null-first-race")])
+    nullFirstSpawnStringRaceState = 9
+catch e
+    if e.message == "task.race source future is null" then
+        nullFirstSpawnStringRaceState = 42
+    end
+end
+assert nullFirstSpawnStringRaceState == 42, "task.race string should reject null source before owned task.spawn"
+
+array<future<string>> typedNullFirstSpawnStringAllJobs = array[missingSpawnStringFuture, task.spawn(greetJob, "typed-null-first-all")]
+int typedNullFirstSpawnStringAllState = 0
+try
+    array<string> typedNullFirstSpawnStringAll = await task.all(typedNullFirstSpawnStringAllJobs)
+    typedNullFirstSpawnStringAllState = typedNullFirstSpawnStringAll.length
+catch e
+    if e.message == "task.all source future is null" then
+        typedNullFirstSpawnStringAllState = 42
+    end
+end
+assert typedNullFirstSpawnStringAllState == 42, "typed array string task.all should reject null source before task.spawn future"
+string typedNullFirstSpawnStringAllTail = await typedNullFirstSpawnStringAllJobs[1]
+assert typedNullFirstSpawnStringAllTail == "hello typed-null-first-all", "typed array string task.all null-first should leave task.spawn source awaitable"
+
+array<future<string>> typedNullFirstSpawnStringRaceJobs = array[missingSpawnStringFuture, task.spawn(greetJob, "typed-null-first-race")]
+int typedNullFirstSpawnStringRaceState = 0
+try
+    string typedNullFirstSpawnStringRace = await task.race(typedNullFirstSpawnStringRaceJobs)
+    typedNullFirstSpawnStringRaceState = 9
+catch e
+    if e.message == "task.race source future is null" then
+        typedNullFirstSpawnStringRaceState = 42
+    end
+end
+assert typedNullFirstSpawnStringRaceState == 42, "typed array string task.race should reject null source before task.spawn future"
+string typedNullFirstSpawnStringRaceTail = await typedNullFirstSpawnStringRaceJobs[1]
+assert typedNullFirstSpawnStringRaceTail == "hello typed-null-first-race", "typed array string task.race null-first should leave task.spawn source awaitable"
+
+future<bool> missingSpawnBoolFuture
+
+int nullSpawnBoolAllState = 0
+try
+    array<bool> nullSpawnBoolAll = await task.all([task.spawn(flipJob, true), missingSpawnBoolFuture])
+    nullSpawnBoolAllState = nullSpawnBoolAll.length
+catch e
+    if e.message == "task.all source future is null" then
+        nullSpawnBoolAllState = 42
+    end
+end
+assert nullSpawnBoolAllState == 42, "task.all bool over task.spawn should reject null source and release owned input"
+
+int nullSpawnBoolRaceState = 0
+try
+    bool nullSpawnBoolRace = await task.race([task.spawn(flipJob, false), missingSpawnBoolFuture])
+    nullSpawnBoolRaceState = int(nullSpawnBoolRace)
+catch e
+    if e.message == "task.race source future is null" then
+        nullSpawnBoolRaceState = 42
+    end
+end
+assert nullSpawnBoolRaceState == 42, "task.race bool over task.spawn should reject null source and release owned input"
+
+array<future<bool>> typedNullFirstSpawnBoolAllJobs = array[missingSpawnBoolFuture, task.spawn(flipJob, true)]
+int typedNullFirstSpawnBoolAllState = 0
+try
+    array<bool> typedNullFirstSpawnBoolAll = await task.all(typedNullFirstSpawnBoolAllJobs)
+    typedNullFirstSpawnBoolAllState = typedNullFirstSpawnBoolAll.length
+catch e
+    if e.message == "task.all source future is null" then
+        typedNullFirstSpawnBoolAllState = 42
+    end
+end
+assert typedNullFirstSpawnBoolAllState == 42, "typed array bool task.all should reject null source before task.spawn future"
+bool typedNullFirstSpawnBoolAllTail = await typedNullFirstSpawnBoolAllJobs[1]
+assert typedNullFirstSpawnBoolAllTail == false, "typed array bool task.all null-first should leave task.spawn source awaitable"
+
+array<future<bool>> typedNullFirstSpawnBoolRaceJobs = array[missingSpawnBoolFuture, task.spawn(flipJob, false)]
+int typedNullFirstSpawnBoolRaceState = 0
+try
+    bool typedNullFirstSpawnBoolRace = await task.race(typedNullFirstSpawnBoolRaceJobs)
+    typedNullFirstSpawnBoolRaceState = int(typedNullFirstSpawnBoolRace)
+catch e
+    if e.message == "task.race source future is null" then
+        typedNullFirstSpawnBoolRaceState = 42
+    end
+end
+assert typedNullFirstSpawnBoolRaceState == 42, "typed array bool task.race should reject null source before task.spawn future"
+bool typedNullFirstSpawnBoolRaceTail = await typedNullFirstSpawnBoolRaceJobs[1]
+assert typedNullFirstSpawnBoolRaceTail == true, "typed array bool task.race null-first should leave task.spawn source awaitable"
+
+future<float> missingSpawnFloatFuture
+
+int nullSpawnFloatAllState = 0
+try
+    array<float> nullSpawnFloatAll = await task.all([task.spawn(halfJob, 1.5), missingSpawnFloatFuture])
+    nullSpawnFloatAllState = nullSpawnFloatAll.length
+catch e
+    if e.message == "task.all source future is null" then
+        nullSpawnFloatAllState = 42
+    end
+end
+assert nullSpawnFloatAllState == 42, "task.all float over task.spawn should reject null source and release owned input"
+
+int nullSpawnFloatRaceState = 0
+try
+    float nullSpawnFloatRace = await task.race([task.spawn(halfJob, 2.5), missingSpawnFloatFuture])
+    nullSpawnFloatRaceState = int(nullSpawnFloatRace)
+catch e
+    if e.message == "task.race source future is null" then
+        nullSpawnFloatRaceState = 42
+    end
+end
+assert nullSpawnFloatRaceState == 42, "task.race float over task.spawn should reject null source and release owned input"
+
+array<future<float>> typedNullFirstSpawnFloatAllJobs = array[missingSpawnFloatFuture, task.spawn(halfJob, 3.5)]
+int typedNullFirstSpawnFloatAllState = 0
+try
+    array<float> typedNullFirstSpawnFloatAll = await task.all(typedNullFirstSpawnFloatAllJobs)
+    typedNullFirstSpawnFloatAllState = typedNullFirstSpawnFloatAll.length
+catch e
+    if e.message == "task.all source future is null" then
+        typedNullFirstSpawnFloatAllState = 42
+    end
+end
+assert typedNullFirstSpawnFloatAllState == 42, "typed array float task.all should reject null source before task.spawn future"
+float typedNullFirstSpawnFloatAllTail = await typedNullFirstSpawnFloatAllJobs[1]
+assert typedNullFirstSpawnFloatAllTail == 4.0, "typed array float task.all null-first should leave task.spawn source awaitable"
+
+array<future<float>> typedNullFirstSpawnFloatRaceJobs = array[missingSpawnFloatFuture, task.spawn(halfJob, 4.5)]
+int typedNullFirstSpawnFloatRaceState = 0
+try
+    float typedNullFirstSpawnFloatRace = await task.race(typedNullFirstSpawnFloatRaceJobs)
+    typedNullFirstSpawnFloatRaceState = int(typedNullFirstSpawnFloatRace)
+catch e
+    if e.message == "task.race source future is null" then
+        typedNullFirstSpawnFloatRaceState = 42
+    end
+end
+assert typedNullFirstSpawnFloatRaceState == 42, "typed array float task.race should reject null source before task.spawn future"
+float typedNullFirstSpawnFloatRaceTail = await typedNullFirstSpawnFloatRaceJobs[1]
+assert typedNullFirstSpawnFloatRaceTail == 5.0, "typed array float task.race null-first should leave task.spawn source awaitable"
 
 func() as string throwingStringJob = failStringJob
 int stringSpawnErrorState = 0

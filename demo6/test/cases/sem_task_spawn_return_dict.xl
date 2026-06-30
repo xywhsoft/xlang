@@ -1,0 +1,6 @@
+func makeValues() as dict
+    return dict{"a": 1}
+end
+
+func() as dict job = makeValues
+dict values = await task.spawn(job)

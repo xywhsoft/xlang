@@ -1,7 +1,7 @@
 /*
 
     XRT Single Header File
-    Generated: 2026-06-29 13:21:15
+    Generated: 2026-06-30 08:12:02
 
     MIT License
 
@@ -53456,7 +53456,8 @@ typedef struct {
 		__XNET_FCONT_EXEC_INLINE = 1,
 		__XNET_FCONT_EXEC_CURRENT = 2,
 		__XNET_FCONT_EXEC_ENGINE = 3,
-		__XNET_FCONT_EXEC_CO = 4
+		__XNET_FCONT_EXEC_CO = 4,
+		__XNET_FCONT_EXEC_SOURCE_INLINE = 5
 	} __xnet_future_cont_exec;
 	typedef struct xrt_future_cont {
 		struct xrt_future_cont* pNext;
@@ -53514,6 +53515,7 @@ typedef struct {
 	static void __xnetFutureDispatchDetachedList(xrt_future_cont* pHead);
 	static void __xnetFutureCurrentCleanup(xrtThreadData* pThreadData, ptr pArg);
 	static bool __xnetFutureEnqueueCurrent(xrt_future_cont* pCont);
+	static xfuture* __xnetFutureFinallySourceInline(xfuture* pFuture, xfuture_finally_fn pfnCont, ptr pArg);
 	static xtaskgroup* __xnetTaskGroupAddRef(xtaskgroup* pGroup);
 	static void __xnetTaskGroupRelease(xtaskgroup* pGroup);
 	static void __xnetTaskGroupMaybeResolveJoin(xtaskgroup* pGroup);
@@ -54489,7 +54491,7 @@ static bool __xnetFutureDispatchContinuation(xrt_future_cont* pCont)
 		return false;
 	}
 	// 内联执行模式: 直接在当前线程运行
-	if ( pCont->iExec == __XNET_FCONT_EXEC_INLINE ) {
+	if ( pCont->iExec == __XNET_FCONT_EXEC_INLINE || pCont->iExec == __XNET_FCONT_EXEC_SOURCE_INLINE ) {
 		__xnetFutureContRun(pCont);
 		return true;
 	}
@@ -54981,7 +54983,6 @@ static xfuture* __xnetFutureCreateGroup(xfuture** arrFuture, int iCount, __xnet_
 	memset(pGroup->arrItems, 0, sizeof(__xnet_future_group_item) * (size_t)iCount);
 	// 遍历源 Future, 增加引用并注册完成回调
 	for ( i = 0; i < iCount; i++ ) {
-		xfuture* pChild;
 		if ( arrFuture[i] == NULL ) {
 			__xnetSyncSetError("future group source is null.");
 			__xnetFutureGroupRelease(pGroup);
@@ -54991,10 +54992,29 @@ static xfuture* __xnetFutureCreateGroup(xfuture** arrFuture, int iCount, __xnet_
 		pGroup->arrSources[i] = xFutureAddRef(arrFuture[i]);
 		pGroup->arrItems[i].pGroup = pGroup;
 		pGroup->arrItems[i].iIndex = i;
-		(void)__xnetFutureGroupAddRef(pGroup);
 		// 为每个源 Future 注册 finally 回调, 用于追踪完成事件
-		pChild = xFutureFinallyEngine(arrFuture[i], NULL, 0, __xnetFutureGroupOnSourceDone, &pGroup->arrItems[i]);
+	}
+	pOut->pPendingCtx = __xnetFutureGroupAddRef(pGroup);
+	pOut->pfnPendingCancel = __xnetFutureGroupPendingCancel;
+	pOut->pfnPendingCleanup = __xnetFutureGroupPendingCleanup;
+	// Register callbacks after pending hooks are visible to early completions.
+	for ( i = 0; i < iCount; i++ ) {
+		xfuture* pChild;
+		xfuture_state iState;
+		(void)__xnetFutureGroupAddRef(pGroup);
+		// 已完成的 source 直接 inline 触发，确保重复失败 source 的每个槽位都会计数一次。
+		iState = xFutureState(arrFuture[i]);
+		if ( iState == XFUTURE_PENDING && iMode == __XNET_FGROUP_RACE ) {
+			pChild = __xnetFutureFinallySourceInline(arrFuture[i], __xnetFutureGroupOnSourceDone, &pGroup->arrItems[i]);
+		}
+		else if ( iState == XFUTURE_PENDING ) {
+			pChild = xFutureFinallyEngine(arrFuture[i], NULL, 0, __xnetFutureGroupOnSourceDone, &pGroup->arrItems[i]);
+		}
+		else {
+			pChild = xFutureFinallyInline(arrFuture[i], __xnetFutureGroupOnSourceDone, &pGroup->arrItems[i]);
+		}
 		if ( pChild == NULL ) {
+			__xnetFutureGroupDetachPending(pGroup);
 			__xnetFutureGroupRelease(pGroup);
 			__xnetFutureGroupRelease(pGroup);
 			xFutureRelease(pOut);
@@ -55002,9 +55022,6 @@ static xfuture* __xnetFutureCreateGroup(xfuture** arrFuture, int iCount, __xnet_
 		}
 		xFutureRelease(pChild);
 	}
-	pOut->pPendingCtx = __xnetFutureGroupAddRef(pGroup);
-	pOut->pfnPendingCancel = __xnetFutureGroupPendingCancel;
-	pOut->pfnPendingCleanup = __xnetFutureGroupPendingCleanup;
 	__xnetFutureGroupRelease(pGroup);
 	return pOut;
 }
@@ -55658,6 +55675,10 @@ XXAPI xfuture* xFutureFinallyInline(xfuture* pFuture, xfuture_finally_fn pfnCont
 	return __xnetFutureAttachContinuation(pFuture, __XNET_FCONT_FINALLY, __XNET_FCONT_EXEC_INLINE, NULL, pfnCont, pArg, NULL, 0, NULL, 0);
 }
 // xFutureThenCurrent 相关处理
+static xfuture* __xnetFutureFinallySourceInline(xfuture* pFuture, xfuture_finally_fn pfnCont, ptr pArg)
+{
+	return __xnetFutureAttachContinuation(pFuture, __XNET_FCONT_FINALLY, __XNET_FCONT_EXEC_SOURCE_INLINE, NULL, pfnCont, pArg, NULL, 0, NULL, 0);
+}
 XXAPI xfuture* xFutureThenCurrent(xfuture* pFuture, xfuture_cont_fn pfnCont, ptr pArg)
 {
 	return __xnetFutureAttachContinuation(pFuture, __XNET_FCONT_THEN, __XNET_FCONT_EXEC_CURRENT, pfnCont, NULL, pArg, NULL, 0, NULL, 0);

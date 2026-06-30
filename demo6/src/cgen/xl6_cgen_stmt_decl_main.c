@@ -292,7 +292,15 @@ static void xl6CgenDecl(XL6_CgenContext* ctx, const XL6_AstNode* node)
         xl6CgenAddVarTypeWithFlags(ctx, node->text, typeNode, XL6_CGEN_VAR_TYPED_CONTAINER);
         xl6CgenAddTypedContainerCleanup(ctx, node->text, typeNode);
         if ( !initByCopy && !initByMove ) {
+            XL6_CgenTaskSpawnArgTempScope taskScope;
+            int hasTaskScope;
+
+            hasTaskScope = initExpr != NULL &&
+                           xl6CgenTaskSpawnArgTempScopeBegin(ctx, initExpr, &taskScope);
             xl6CgenTypedContainerFillFromLiteral(ctx, cName, typeNode, initExpr);
+            if ( hasTaskScope ) {
+                xl6CgenTaskSpawnArgTempScopeEnd(ctx, &taskScope);
+            }
         }
         return;
     }
@@ -309,6 +317,9 @@ static void xl6CgenDecl(XL6_CgenContext* ctx, const XL6_AstNode* node)
             return;
         }
         if ( initExpr != NULL && xl6CgenDeclTryXValueBinaryInit(ctx, typeNode, cName, initExpr) ) {
+            return;
+        }
+        if ( initExpr != NULL && xl6CgenDeclTryTaskSpawnArgTempsInit(ctx, typeNode, "xvalue", cName, initExpr) ) {
             return;
         }
         xl6OutputPrintf(ctx->out, "xvalue %s = ", cName);
@@ -334,6 +345,9 @@ static void xl6CgenDecl(XL6_CgenContext* ctx, const XL6_AstNode* node)
         return;
     }
     if ( initExpr != NULL && xl6CgenDeclTryStaticXValueApproxInit(ctx, typeNode, cType, cName, initExpr) ) {
+        return;
+    }
+    if ( initExpr != NULL && xl6CgenDeclTryTaskSpawnArgTempsInit(ctx, typeNode, cType, cName, initExpr) ) {
         return;
     }
     if ( initExpr != NULL && xl6CgenDeclCanEmitCallArgTemp(ctx, typeNode, initExpr) ) {

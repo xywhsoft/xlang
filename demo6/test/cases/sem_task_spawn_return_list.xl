@@ -1,0 +1,6 @@
+func makeValues() as list
+    return list[0: 1, 2: 3]
+end
+
+func() as list job = makeValues
+list values = await task.spawn(job)

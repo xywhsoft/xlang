@@ -1,0 +1,11 @@
+class TempRaceBox
+    int value
+end
+
+async func makeTempRaceBox(int value) as TempRaceBox
+    TempRaceBox box
+    box.value = value
+    return box
+end
+
+TempRaceBox box = await task.race([makeTempRaceBox(1), makeTempRaceBox(2)])

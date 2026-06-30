@@ -531,6 +531,12 @@ static int xl6CgenDeclTryLogicalCallArgTemp(
     return 1;
 }
 
+/*
+    临时 class 接收者上的函数字段调用独立成小分片。
+    它依赖本文件前面的标量参数判断，后续 call arg temp 入口直接复用。
+*/
+#include "xl6_cgen_stmt_decl_call_member_temp.c"
+
 static int xl6CgenDeclCanEmitCallArgTemp(XL6_CgenContext* ctx, const XL6_AstNode* typeNode, const XL6_AstNode* expr)
 {
     const XL6_AstNode* sourceExpr;
@@ -538,6 +544,9 @@ static int xl6CgenDeclCanEmitCallArgTemp(XL6_CgenContext* ctx, const XL6_AstNode
 
     if ( ctx == NULL || typeNode == NULL || expr == NULL ) {
         return 0;
+    }
+    if ( xl6CgenDeclCanEmitMemberFunctionTempReceiverCallTemp(ctx, typeNode, expr) ) {
+        return 1;
     }
     if ( xl6CgenIsXValueType(typeNode) && xl6CgenDeclCanEmitXValueCallValueTemp(ctx, expr) ) {
         return 1;
@@ -571,6 +580,9 @@ static int xl6CgenDeclEmitCallArgTemp(
     const char* cName,
     const XL6_AstNode* expr)
 {
+    if ( xl6CgenDeclTryMemberFunctionTempReceiverCallTemp(ctx, typeNode, cType, cName, expr) ) {
+        return 1;
+    }
     if ( xl6CgenIsXValueType(typeNode) && xl6CgenDeclEmitXValueCallValueTemp(ctx, typeNode, expr, cName) ) {
         return 1;
     }
@@ -596,6 +608,283 @@ static int xl6CgenDeclEmitCallArgTemp(
         return 1;
     }
     return 0;
+}
+
+static int xl6CgenDeclTaskSpawnTempAppend(
+    XL6_CgenContext* ctx,
+    XL6_CgenDeclCallArgTemp** temps,
+    int* count,
+    int* capacity,
+    const XL6_AstNode* expr,
+    XL6_AstNode* typeNode)
+{
+    XL6_CgenDeclCallArgTemp* newTemps;
+    int newCapacity;
+
+    if ( ctx == NULL || temps == NULL || count == NULL || capacity == NULL || expr == NULL || typeNode == NULL ) {
+        xl6AstFree(typeNode);
+        return 0;
+    }
+
+    if ( *count == *capacity ) {
+        newCapacity = *capacity == 0 ? 4 : (*capacity * 2);
+        newTemps = (XL6_CgenDeclCallArgTemp*)xrtRealloc(*temps, (size_t)newCapacity * sizeof(XL6_CgenDeclCallArgTemp));
+        if ( newTemps == NULL ) {
+            xl6AstFree(typeNode);
+            xl6CgenError(ctx, expr, "out of memory while preparing task.spawn argument temporaries");
+            return 0;
+        }
+        memset(newTemps + *capacity, 0, (size_t)(newCapacity - *capacity) * sizeof(XL6_CgenDeclCallArgTemp));
+        *temps = newTemps;
+        *capacity = newCapacity;
+    }
+
+    (*temps)[*count].active = 1;
+    (*temps)[*count].expr = expr;
+    (*temps)[*count].typeNode = typeNode;
+    snprintf((*temps)[*count].name, sizeof((*temps)[*count].name), "__xl6_task_arg_%d", ctx->tempId++);
+    *count += 1;
+    return 1;
+}
+
+static int xl6CgenDeclCollectTaskSpawnArgTempsFromCall(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* call,
+    XL6_CgenDeclCallArgTemp** temps,
+    int* count,
+    int* capacity)
+{
+    const XL6_AstNode* paramTypes;
+    const XL6_AstNode* fnExpr;
+    XL6_AstNode* functionType;
+    size_t argCount;
+    size_t actualCount;
+    size_t fixedCount;
+    int hasArrayVararg;
+    size_t i;
+
+    if ( ctx == NULL || call == NULL || call->kind != XL6_AST_CALL ) {
+        return 0;
+    }
+
+    fnExpr = xl6CgenTaskCallArgExprAt(call, 0);
+    functionType = xl6CgenCloneExprTypeForInference(ctx, fnExpr);
+    paramTypes = xl6CgenFunctionParamTypes(functionType);
+    if ( !xl6CgenIsFunctionType(functionType) || paramTypes == NULL ) {
+        xl6AstFree(functionType);
+        return 0;
+    }
+
+    argCount = call->childCount > 1 && call->children[1] != NULL ? call->children[1]->childCount : 0;
+    fixedCount = xl6CgenFunctionTypeFixedParamCount(paramTypes);
+    hasArrayVararg = paramTypes->childCount > fixedCount &&
+                     xl6CgenFunctionTypeParamIsArrayVararg(paramTypes->children[fixedCount]);
+    actualCount = argCount > 0 ? argCount - 1 : 0;
+
+    for ( i = 0; i < actualCount; ++i ) {
+        const XL6_AstNode* argExpr = xl6CgenTaskCallArgExprAt(call, i + 1);
+        const XL6_AstNode* targetType = i < fixedCount ? paramTypes->children[i] : NULL;
+        XL6_AstNode* tempType = NULL;
+
+        if ( argExpr == NULL ) {
+            continue;
+        }
+        if ( targetType != NULL ) {
+            tempType = xl6CgenCloneCanonicalTypeNode(ctx, targetType);
+        } else if ( hasArrayVararg ) {
+            tempType = xl6CgenNewSimpleType("var", argExpr);
+        }
+        if ( tempType == NULL ) {
+            continue;
+        }
+        if ( !xl6CgenDeclCanEmitCallArgTemp(ctx, tempType, argExpr) ) {
+            xl6AstFree(tempType);
+            continue;
+        }
+        if ( !xl6CgenDeclTaskSpawnTempAppend(ctx, temps, count, capacity, argExpr, tempType) ) {
+            xl6AstFree(functionType);
+            return 1;
+        }
+    }
+
+    xl6AstFree(functionType);
+    return 1;
+}
+
+static void xl6CgenDeclCollectTaskSpawnArgTemps(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* expr,
+    XL6_CgenDeclCallArgTemp** temps,
+    int* count,
+    int* capacity)
+{
+    const char* memberName;
+    size_t i;
+
+    if ( ctx == NULL || expr == NULL ) {
+        return;
+    }
+
+    if ( expr->kind == XL6_AST_CALL &&
+         xl6CgenIsTaskNamespaceMemberCall(expr, &memberName) &&
+         xl6CTextEquals(memberName, "spawn") ) {
+        (void)xl6CgenDeclCollectTaskSpawnArgTempsFromCall(ctx, expr, temps, count, capacity);
+    }
+
+    for ( i = 0; i < expr->childCount; ++i ) {
+        xl6CgenDeclCollectTaskSpawnArgTemps(ctx, expr->children[i], temps, count, capacity);
+    }
+}
+
+typedef struct XL6_CgenTaskSpawnArgTempScope {
+    XL6_CgenDeclCallArgTemp* temps;
+    XL6_CgenExprReplacement* replacements;
+    const XL6_CgenExprReplacement* prevExprReplacements;
+    size_t prevExprReplacementCount;
+    int tempCount;
+    int tempCapacity;
+    int active;
+} XL6_CgenTaskSpawnArgTempScope;
+
+static void xl6CgenDeclEmitTaskSpawnArgTemps(XL6_CgenContext* ctx, XL6_CgenDeclCallArgTemp* temps, int capacity)
+{
+    int i;
+
+    if ( ctx == NULL || temps == NULL || capacity <= 0 ) {
+        return;
+    }
+
+    for ( i = 0; i < capacity; ++i ) {
+        const char* tempCType;
+
+        if ( !temps[i].active ) {
+            continue;
+        }
+        tempCType = xl6CgenTypeName(ctx, temps[i].typeNode);
+        xl6CgenIndent(ctx);
+        xl6OutputPuts(tempCType, ctx->out);
+        xl6OutputPrintf(ctx->out, " %s = ", temps[i].name);
+        if ( xl6CgenIsXValueType(temps[i].typeNode) ) {
+            xl6OutputPuts("0", ctx->out);
+        } else {
+            xl6CgenDefaultValue(ctx, temps[i].typeNode);
+        }
+        xl6OutputPuts(";\n", ctx->out);
+        if ( !xl6CgenDeclEmitCallArgTemp(ctx, temps[i].typeNode, tempCType, temps[i].name, temps[i].expr) ) {
+            xl6CgenError(ctx, temps[i].expr, "task.spawn argument lowering failed");
+        }
+    }
+}
+
+static int xl6CgenTaskSpawnArgTempScopeBegin(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* expr,
+    XL6_CgenTaskSpawnArgTempScope* scope)
+{
+    if ( scope == NULL ) {
+        return 0;
+    }
+    memset(scope, 0, sizeof(*scope));
+    if ( ctx == NULL || expr == NULL ) {
+        return 0;
+    }
+
+    xl6CgenDeclCollectTaskSpawnArgTemps(ctx, expr, &scope->temps, &scope->tempCount, &scope->tempCapacity);
+    if ( scope->tempCount <= 0 ) {
+        xl6CgenDeclFreeCallArgTemps(scope->temps, scope->tempCapacity);
+        memset(scope, 0, sizeof(*scope));
+        return 0;
+    }
+
+    scope->replacements = xl6CgenDeclCreateCallArgReplacements(ctx, scope->temps, scope->tempCapacity, scope->tempCount);
+    if ( scope->replacements == NULL ) {
+        xl6CgenDeclFreeCallArgTemps(scope->temps, scope->tempCapacity);
+        memset(scope, 0, sizeof(*scope));
+        return 0;
+    }
+
+    xl6CgenDeclEmitTaskSpawnArgTemps(ctx, scope->temps, scope->tempCapacity);
+    scope->prevExprReplacements = ctx->exprReplacements;
+    scope->prevExprReplacementCount = ctx->exprReplacementCount;
+    ctx->exprReplacements = scope->replacements;
+    ctx->exprReplacementCount = (size_t)scope->tempCount;
+    scope->active = 1;
+    return 1;
+}
+
+static void xl6CgenTaskSpawnArgTempScopeEnd(XL6_CgenContext* ctx, XL6_CgenTaskSpawnArgTempScope* scope)
+{
+    if ( ctx == NULL || scope == NULL || !scope->active ) {
+        return;
+    }
+
+    ctx->exprReplacements = scope->prevExprReplacements;
+    ctx->exprReplacementCount = scope->prevExprReplacementCount;
+    xrtFree(scope->replacements);
+    xl6CgenDeclFreeCallArgTemps(scope->temps, scope->tempCapacity);
+    memset(scope, 0, sizeof(*scope));
+}
+
+static int xl6CgenDeclTryTaskSpawnArgTempsInit(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* typeNode,
+    const char* cType,
+    const char* cName,
+    const XL6_AstNode* initExpr)
+{
+    XL6_CgenDeclCallArgTemp* temps;
+    XL6_CgenExprReplacement* replacements;
+    const XL6_CgenExprReplacement* prevExprReplacements;
+    size_t prevExprReplacementCount;
+    int tempCount;
+    int tempCapacity;
+
+    if ( ctx == NULL || typeNode == NULL || cType == NULL || cName == NULL || initExpr == NULL ) {
+        return 0;
+    }
+
+    temps = NULL;
+    replacements = NULL;
+    tempCount = 0;
+    tempCapacity = 0;
+    xl6CgenDeclCollectTaskSpawnArgTemps(ctx, initExpr, &temps, &tempCount, &tempCapacity);
+    if ( tempCount <= 0 ) {
+        xl6CgenDeclFreeCallArgTemps(temps, tempCapacity);
+        return 0;
+    }
+
+    replacements = xl6CgenDeclCreateCallArgReplacements(ctx, temps, tempCapacity, tempCount);
+    if ( replacements == NULL ) {
+        xl6CgenDeclFreeCallArgTemps(temps, tempCapacity);
+        return 0;
+    }
+
+    xl6OutputPuts(cType, ctx->out);
+    xl6OutputPrintf(ctx->out, " %s = ", cName);
+    if ( xl6CgenIsXValueType(typeNode) ) {
+        xl6OutputPuts("0", ctx->out);
+    } else {
+        xl6CgenDefaultValue(ctx, typeNode);
+    }
+    xl6OutputPuts(";\n", ctx->out);
+
+    xl6CgenDeclEmitTaskSpawnArgTemps(ctx, temps, tempCapacity);
+
+    prevExprReplacements = ctx->exprReplacements;
+    prevExprReplacementCount = ctx->exprReplacementCount;
+    ctx->exprReplacements = replacements;
+    ctx->exprReplacementCount = (size_t)tempCount;
+
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "%s = ", cName);
+    xl6CgenExpr(ctx, initExpr);
+    xl6OutputPuts(";\n", ctx->out);
+
+    ctx->exprReplacements = prevExprReplacements;
+    ctx->exprReplacementCount = prevExprReplacementCount;
+    xrtFree(replacements);
+    xl6CgenDeclFreeCallArgTemps(temps, tempCapacity);
+    return 1;
 }
 
 static int xl6CgenTryKnownCallStatementWithNestedClassArgTemps(XL6_CgenContext* ctx,

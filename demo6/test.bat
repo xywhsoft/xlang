@@ -2602,6 +2602,21 @@ if errorlevel 1 (
     echo cgen_typed_container_for_in_returned.c missing returned typed set cleanup before throw catch.
     exit /b 1
 )
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_typed_container_for_in_returned.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'long long __xl6_return_(\d+) = value;\s*if \(__xl6_typed_iter_(\d+) != 0\) \{\s*xrtTypedArrayDestroy\(__xl6_typed_iter_\2\);[\s\S]*?return __xl6_return_\1;'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_typed_container_for_in_returned.c missing returned typed array cleanup before return.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_typed_container_for_in_returned.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'arrayContinueBreakValue = value;[\s\S]*?xrtTypedArrayDestroy\(__xl6_typed_iter_(\d+)\);[\s\S]*?goto __xl6_break_\1;'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_typed_container_for_in_returned.c missing returned typed array cleanup before break.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_typed_container_for_in_returned.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'xl6_error_raise\(\"Error\", \"typed array loop boom\"[\s\S]*?xrtTypedArrayDestroy\(__xl6_typed_iter_(\d+)\);[\s\S]*?goto __xl6_try_catch_'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_typed_container_for_in_returned.c missing returned typed array cleanup before throw catch.
+    exit /b 1
+)
 findstr /C:"xrtTypedArrayDestroy(__xl6_typed_iter_" release\tmp\cgen_typed_container_for_in_returned.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_for_in_returned.c missing returned typed array cleanup.
@@ -2611,6 +2626,13 @@ if errorlevel 1 (
 if errorlevel 1 exit /b 1
 release\tmp\cgen_typed_container_for_in_returned.exe
 if errorlevel 1 exit /b 1
+for /L %%I in (1,1,3) do (
+    release\tmp\cgen_typed_container_for_in_returned.exe
+    if errorlevel 1 (
+        echo cgen_typed_container_for_in_returned.exe repeat run %%I failed.
+        exit /b 1
+    )
+)
 
 release\xl.exe cgen test\cases\cgen_typed_container_box_to_var.xl --emit release\tmp\cgen_typed_container_box_to_var.c
 if errorlevel 1 exit /b 1
@@ -4972,6 +4994,21 @@ if errorlevel 1 (
     echo cgen_member_function_class_return.c missing two string-return member function argument conversions.
     exit /b 1
 )
+findstr /C:"namedTextArgValue = textScore(xl6_xvalue_to_string_release(xl6_function_call_var(textMaker.make" release\tmp\cgen_member_function_class_return.c >nul
+if errorlevel 1 (
+    echo cgen_member_function_class_return.c missing named string-return member function argument conversion.
+    exit /b 1
+)
+findstr /C:"namedTextTwoArgValue = joinTextScore(xl6_xvalue_to_string_release(xl6_function_call_var(textMaker.make" release\tmp\cgen_member_function_class_return.c >nul
+if errorlevel 1 (
+    echo cgen_member_function_class_return.c missing reordered named string-return member function argument conversions.
+    exit /b 1
+)
+findstr /C:"expect_i64(namedTextTwoArgValue, 22LL)" release\tmp\cgen_member_function_class_return.c >nul
+if errorlevel 1 (
+    echo cgen_member_function_class_return.c missing named string-return member function runtime assertion.
+    exit /b 1
+)
 findstr /C:"xl6_xrt_str_dup(xl6_xvalue_to_string_release(xl6_function_call_var(textMaker.make" release\tmp\cgen_member_function_class_return.c >nul
 if errorlevel 1 (
     echo cgen_member_function_class_return.c missing discarded string-return member function conversion.
@@ -4990,6 +5027,26 @@ if errorlevel 1 (
 findstr /C:"xl_class_Payload__destroy(&__xl6_class_field_recv_" release\tmp\cgen_member_function_class_return.c >nul
 if errorlevel 1 (
     echo cgen_member_function_class_return.c missing class field receiver cleanup.
+    exit /b 1
+)
+findstr /C:"__xl6_member_fn_call_" release\tmp\cgen_member_function_class_return.c >nul
+if errorlevel 1 (
+    echo cgen_member_function_class_return.c missing temporary receiver member function call value.
+    exit /b 1
+)
+findstr /C:"xl_class_Payload__destroy(&__xl6_member_recv_" release\tmp\cgen_member_function_class_return.c >nul
+if errorlevel 1 (
+    echo cgen_member_function_class_return.c missing temporary receiver member function cleanup.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_member_function_class_return.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'tempFunctionFieldValue\s*=\s*0;\s*\{[\s\S]*?XL_Class_Payload\s+(__xl6_member_recv_\d+)\s*=\s*\{0\};[\s\S]*?XL6_Function\s+__xl6_member_fn_call_\d+\s*=\s*\1\.op;[\s\S]*?tempFunctionFieldValue\s*=[\s\S]*?xl_class_Payload__destroy\(&\1\);'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_member_function_class_return.c missing statement-level cleanup for temporary receiver function-field call.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_member_function_class_return.c',[System.Text.Encoding]::UTF8); if($text -match 'tempFunctionFieldValue\s*=\s*\(\([^\r\n]*maker\.make\.invoke'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_member_function_class_return.c should not inline temporary receiver function-field calls.
     exit /b 1
 )
 findstr /C:"__xl6_class_arg_" release\tmp\cgen_member_function_class_return.c >nul
@@ -5025,6 +5082,26 @@ if errorlevel 1 (
 powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_member_function_class_return.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'expect_i64\(sumPayload\((__xl6_class_arg_\d+),\s*(__xl6_class_arg_\d+)\),\s*270LL\);\s*xl_class_Payload__destroy\(&\2\);\s*xl_class_Payload__destroy\(&\1\);'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_member_function_class_return.c missing extern two temporary class arguments with reverse cleanup.
+    exit /b 1
+)
+findstr /C:"namedArgumentValue = readPayload(__xl6_class_arg_" release\tmp\cgen_member_function_class_return.c >nul
+if errorlevel 1 (
+    echo cgen_member_function_class_return.c missing named class argument temporary.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_member_function_class_return.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'storePayload\((__xl6_class_arg_\d+),\s*160LL\);\s*xl_class_Payload__destroy\(&\1\);'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_member_function_class_return.c missing named expression-statement class argument temporary.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_member_function_class_return.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'namedTwoArgumentValue\s*=\s*sumPayload\((__xl6_class_arg_\d+),\s*(__xl6_class_arg_\d+)\);\s*xl_class_Payload__destroy\(&\2\);\s*xl_class_Payload__destroy\(&\1\);'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_member_function_class_return.c missing named two temporary class arguments with reverse cleanup.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_member_function_class_return.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'expect_i64\(sumPayload\((__xl6_class_arg_\d+),\s*(__xl6_class_arg_\d+)\),\s*390LL\);\s*xl_class_Payload__destroy\(&\2\);\s*xl_class_Payload__destroy\(&\1\);'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_member_function_class_return.c missing reordered named two temporary class arguments with reverse cleanup.
     exit /b 1
 )
 findstr /C:"expect_i64((readPayload(((maker.make.signature" release\tmp\cgen_member_function_class_return.c >nul
@@ -5071,6 +5148,13 @@ if not errorlevel 1 (
 if errorlevel 1 exit /b 1
 release\tmp\cgen_member_function_class_return.exe
 if errorlevel 1 exit /b 1
+for /L %%I in (1,1,3) do (
+    release\tmp\cgen_member_function_class_return.exe
+    if errorlevel 1 (
+        echo cgen_member_function_class_return.exe repeat run %%I failed.
+        exit /b 1
+    )
+)
 
 release\xl.exe cgen test\cases\cgen_function_default.xl --emit release\tmp\cgen_function_default.c
 if errorlevel 1 exit /b 1
@@ -5780,15 +5864,57 @@ if errorlevel 1 (
     echo cgen_loop_multilevel_cleanup.c should destroy inner and outer locals before multi-level jump.
     exit /b 1
 )
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$lines=Get-Content 'release\tmp\cgen_loop_multilevel_cleanup.c'; $breakGotos=@($lines | Select-String -SimpleMatch 'goto __xl6_break_'); $continueGotos=@($lines | Select-String -SimpleMatch 'goto __xl6_continue_'); if($breakGotos.Count -lt 2 -or $continueGotos.Count -lt 2){exit 1}; $breakGoto=$breakGotos[1].LineNumber; $breakInner=($lines | Select-String -SimpleMatch 'xl_class_Tracker__destroy(&innerTracker);' | Where-Object { $_.LineNumber -lt $breakGoto } | Select-Object -Last 1).LineNumber; $breakOuter=($lines | Select-String -SimpleMatch 'xl_class_Tracker__destroy(&outerTracker);' | Where-Object { $_.LineNumber -lt $breakGoto } | Select-Object -Last 1).LineNumber; $continueGoto=$continueGotos[1].LineNumber; $continueInner=($lines | Select-String -SimpleMatch 'xl_class_Tracker__destroy(&innerTracker);' | Where-Object { $_.LineNumber -gt $breakGoto -and $_.LineNumber -lt $continueGoto } | Select-Object -Last 1).LineNumber; $continueOuter=($lines | Select-String -SimpleMatch 'xl_class_Tracker__destroy(&outerTracker);' | Where-Object { $_.LineNumber -gt $breakGoto -and $_.LineNumber -lt $continueGoto } | Select-Object -Last 1).LineNumber; if(-not $breakInner -or -not $breakOuter -or -not ($breakInner -lt $breakOuter -and $breakOuter -lt $breakGoto)){exit 1}; if(-not $continueInner -or -not $continueOuter -or -not ($continueInner -lt $continueOuter -and $continueOuter -lt $continueGoto)){exit 1}"
+if errorlevel 1 (
+    echo cgen_loop_multilevel_cleanup.c should destroy while-loop inner and outer locals before multi-level jump.
+    exit /b 1
+)
 findstr /C:"expect_i64(destroy_count(), 6LL);" release\tmp\cgen_loop_multilevel_cleanup.c >nul
 if errorlevel 1 (
     echo cgen_loop_multilevel_cleanup.c missing multi-level cleanup destroy count assertion.
+    exit /b 1
+)
+findstr /C:"breakTwoWhileCleanup();" release\tmp\cgen_loop_multilevel_cleanup.c >nul
+if errorlevel 1 (
+    echo cgen_loop_multilevel_cleanup.c missing while break cleanup call.
+    exit /b 1
+)
+findstr /C:"expect_i64(destroy_count(), 8LL);" release\tmp\cgen_loop_multilevel_cleanup.c >nul
+if errorlevel 1 (
+    echo cgen_loop_multilevel_cleanup.c missing while break cleanup destroy count assertion.
+    exit /b 1
+)
+findstr /C:"expect_i64(destroy_value(), 300LL);" release\tmp\cgen_loop_multilevel_cleanup.c >nul
+if errorlevel 1 (
+    echo cgen_loop_multilevel_cleanup.c missing while break cleanup destroy value assertion.
+    exit /b 1
+)
+findstr /C:"continueTwoWhileCleanup();" release\tmp\cgen_loop_multilevel_cleanup.c >nul
+if errorlevel 1 (
+    echo cgen_loop_multilevel_cleanup.c missing while continue cleanup call.
+    exit /b 1
+)
+findstr /C:"expect_i64(destroy_count(), 12LL);" release\tmp\cgen_loop_multilevel_cleanup.c >nul
+if errorlevel 1 (
+    echo cgen_loop_multilevel_cleanup.c missing while continue cleanup destroy count assertion.
+    exit /b 1
+)
+findstr /C:"expect_i64(destroy_value(), 501LL);" release\tmp\cgen_loop_multilevel_cleanup.c >nul
+if errorlevel 1 (
+    echo cgen_loop_multilevel_cleanup.c missing while continue cleanup destroy value assertion.
     exit /b 1
 )
 "%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_loop_multilevel_cleanup.c test\cases\cgen_class_destroy_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_loop_multilevel_cleanup.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_loop_multilevel_cleanup.exe
 if errorlevel 1 exit /b 1
+for /L %%I in (1,1,3) do (
+    release\tmp\cgen_loop_multilevel_cleanup.exe
+    if errorlevel 1 (
+        echo cgen_loop_multilevel_cleanup.exe repeat run %%I failed.
+        exit /b 1
+    )
+)
 
 release\xl.exe cgen test\cases\cgen_named_args.xl --emit release\tmp\cgen_named_args.c
 if errorlevel 1 exit /b 1
@@ -10127,6 +10253,13 @@ if errorlevel 1 exit /b 1
 
 release\tmp\cgen_sync.exe
 if errorlevel 1 exit /b 1
+for /L %%I in (1,1,3) do (
+    release\tmp\cgen_sync.exe
+    if errorlevel 1 (
+        echo cgen_sync.exe repeat run %%I failed.
+        exit /b 1
+    )
+)
 
 release\xl.exe cgen test\cases\cgen_sync.xl --emit release\tmp\cgen_sync.c
 if errorlevel 1 exit /b 1
@@ -10243,6 +10376,13 @@ if errorlevel 1 exit /b 1
 
 release\tmp\cgen_thread.exe
 if errorlevel 1 exit /b 1
+for /L %%I in (1,1,3) do (
+    release\tmp\cgen_thread.exe
+    if errorlevel 1 (
+        echo cgen_thread.exe repeat run %%I failed.
+        exit /b 1
+    )
+)
 
 release\xl.exe cgen test\cases\cgen_thread.xl --emit release\tmp\cgen_thread.c
 if errorlevel 1 exit /b 1
@@ -10309,6 +10449,13 @@ if errorlevel 1 exit /b 1
 
 release\tmp\cgen_thread_default.exe
 if errorlevel 1 exit /b 1
+for /L %%I in (1,1,5) do (
+    release\tmp\cgen_thread_default.exe
+    if errorlevel 1 (
+        echo cgen_thread_default.exe repeat run %%I failed.
+        exit /b 1
+    )
+)
 
 release\xl.exe cgen test\cases\cgen_thread_default.xl --emit release\tmp\cgen_thread_default.c
 if errorlevel 1 exit /b 1
@@ -10370,6 +10517,13 @@ if errorlevel 1 exit /b 1
 
 release\tmp\cgen_async.exe
 if errorlevel 1 exit /b 1
+for /L %%I in (1,1,1) do (
+    release\tmp\cgen_async.exe
+    if errorlevel 1 (
+        echo cgen_async.exe repeat run %%I failed.
+        exit /b 1
+    )
+)
 
 release\xl.exe cgen test\cases\cgen_async.xl --emit release\tmp\cgen_async.c
 if errorlevel 1 exit /b 1
@@ -11331,6 +11485,356 @@ if errorlevel 1 (
     echo cgen_task_api.c should keep task.race winner future awaitable.
     exit /b 1
 )
+findstr /C:"multiRaceWinner, 0, multiRaceLoserA, 0, multiRaceLoserB, 0" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should pass three-way task.race named inputs as borrowed.
+    exit /b 1
+)
+findstr /C:"multiRaceLoserAValue = (*(long long*)xl6_future_await_value(multiRaceLoserA" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing first loser await after three-way task.race.
+    exit /b 1
+)
+findstr /C:"multiRaceLoserBValue = (*(long long*)xl6_future_await_value(multiRaceLoserB" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing second loser await after three-way task.race.
+    exit /b 1
+)
+findstr /C:"sourceCanceledAllGroup = xl6_task_all_values(xrtTypeInt()" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing source-canceled task.all fixture.
+    exit /b 1
+)
+findstr /C:"sourceCanceledAllLeft, 0, sourceCanceledAllRight, 0" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should pass source-canceled task.all inputs as borrowed.
+    exit /b 1
+)
+findstr /C:"sourceCanceledAllRequest = xl6_task_cancel_value(sourceCanceledAllLeft, 0)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should cancel task.all source future directly.
+    exit /b 1
+)
+findstr /C:"sourceCanceledAllRightCancel = xl6_task_cancel_value(sourceCanceledAllRight, 0)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should keep other task.all source completed after source cancel.
+    exit /b 1
+)
+findstr /C:"sourceCanceledTypedAllGroup = xl6_task_all_from_array((xtarray)(sourceCanceledTypedAllJobs)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing typed-array source-canceled task.all fixture.
+    exit /b 1
+)
+findstr /C:"sourceCanceledTypedAllRequest = xl6_task_cancel_value(sourceCanceledTypedAllLeft, 0)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should cancel typed-array task.all source future directly.
+    exit /b 1
+)
+findstr /C:"sourceCanceledTypedAllRightCancel = xl6_task_cancel_value(sourceCanceledTypedAllRight, 0)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should keep other typed-array task.all source completed after source cancel.
+    exit /b 1
+)
+findstr /C:"sourceCanceledRaceGroup = xl6_task_race_values" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing source-canceled task.race fixture.
+    exit /b 1
+)
+findstr /C:"sourceCanceledRaceWinner, 0, sourceCanceledRaceLoser, 0" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should pass source-canceled task.race inputs as borrowed.
+    exit /b 1
+)
+findstr /C:"sourceCanceledRaceRequest = xl6_task_cancel_value(sourceCanceledRaceWinner, 0)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should cancel task.race source future directly.
+    exit /b 1
+)
+findstr /C:"sourceCanceledTypedRaceGroup = xl6_task_race_from_array((xtarray)(sourceCanceledTypedRaceJobs)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing typed-array source-canceled task.race fixture.
+    exit /b 1
+)
+findstr /C:"sourceCanceledTypedRaceRequest = xl6_task_cancel_value(sourceCanceledTypedRaceWinner, 0)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should cancel typed-array task.race source future directly.
+    exit /b 1
+)
+findstr /C:"completedCanceledAllGroup = xl6_task_all_values(xrtTypeInt()" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing completed-canceled task.all source fixture.
+    exit /b 1
+)
+findstr /C:"completedCanceledAllLeft, 0, completedCanceledAllRight, 0" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should pass completed-canceled task.all source as borrowed.
+    exit /b 1
+)
+findstr /C:"completedCanceledAllRightCancel = xl6_task_cancel_value(completedCanceledAllRight, 0)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should keep other source completed after completed-canceled task.all source.
+    exit /b 1
+)
+findstr /C:"allFailedBeforeCancelGroup = xl6_task_all_values(xrtTypeInt()" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing task.all failure-before-cancel fixture.
+    exit /b 1
+)
+findstr /C:"allFailedBeforeCancelLeft, 0, allFailedBeforeCancelRight, 0" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should pass failure-before-cancel task.all inputs as borrowed.
+    exit /b 1
+)
+findstr /C:"allFailedBeforeCancelRightRequest = xl6_task_cancel_value(allFailedBeforeCancelRight, 0)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should cancel second source in failure-before-cancel task.all fixture.
+    exit /b 1
+)
+findstr /C:"allCanceledBeforeFailGroup = xl6_task_all_values(xrtTypeInt()" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing task.all cancel-before-failure fixture.
+    exit /b 1
+)
+findstr /C:"allCanceledBeforeFailLeft, 0, allCanceledBeforeFailRight, 0" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should pass cancel-before-failure task.all inputs as borrowed.
+    exit /b 1
+)
+findstr /C:"allCanceledBeforeFailLeftRequest = xl6_task_cancel_value(allCanceledBeforeFailLeft, 0)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should cancel first source in cancel-before-failure task.all fixture.
+    exit /b 1
+)
+findstr /C:"typedAllFailedBeforeCancelGroup = xl6_task_all_from_array((xtarray)(typedAllFailedBeforeCancelJobs)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing typed-array failure-before-cancel task.all fixture.
+    exit /b 1
+)
+findstr /C:"typedAllFailedBeforeCancelRightRequest = xl6_task_cancel_value(typedAllFailedBeforeCancelRight, 0)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should cancel typed-array failure-before-cancel task.all source.
+    exit /b 1
+)
+findstr /C:"completedCanceledRaceRequest = xl6_task_cancel_value(completedCanceledRaceWinner, 0)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should build completed-canceled task.race source fixture.
+    exit /b 1
+)
+findstr /C:"completedCanceledRaceWinner, 0, completedCanceledRaceLoser, 0" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should pass completed-canceled task.race source as borrowed.
+    exit /b 1
+)
+findstr /C:"slowRaceAsync(401LL), 1, fastRaceAsync(402LL), 1" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should keep task.all literal input order with slow first.
+    exit /b 1
+)
+findstr /C:"typedAllInputOrderValues = xl6_future_await_handle_release(xl6_task_all_from_array((xtarray)(typedAllInputOrderJobs), xrtTypeInt()" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing typed-array task.all input order fixture.
+    exit /b 1
+)
+findstr /C:"duplicateAllSource, 0, duplicateAllSource, 0" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should pass duplicate task.all source as borrowed twice.
+    exit /b 1
+)
+findstr /C:"duplicateRaceValue = xl6_future_await_i64_release(xl6_task_race_values" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing duplicate task.race source fixture.
+    exit /b 1
+)
+findstr /C:"duplicateRaceSource, 0, duplicateRaceSource, 0" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should pass duplicate task.race source as borrowed twice.
+    exit /b 1
+)
+findstr /C:"duplicateRaceSourceCancel = xl6_task_cancel_value(duplicateRaceSource, 0)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should keep duplicate task.race source completed after race.
+    exit /b 1
+)
+findstr /C:"duplicatePendingAllSource, 0, duplicatePendingAllSource, 0" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should pass duplicate pending task.all source as borrowed twice.
+    exit /b 1
+)
+findstr /C:"duplicatePendingAllSourceCancel = xl6_task_cancel_value(duplicatePendingAllSource, 0)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should keep duplicate pending task.all source completed after all.
+    exit /b 1
+)
+findstr /C:"duplicatePendingRaceValue = xl6_future_await_i64_release(xl6_task_race_values" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing duplicate pending task.race source fixture.
+    exit /b 1
+)
+findstr /C:"duplicatePendingRaceSource, 0, duplicatePendingRaceSource, 0" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should pass duplicate pending task.race source as borrowed twice.
+    exit /b 1
+)
+findstr /C:"duplicatePendingRaceSourceCancel = xl6_task_cancel_value(duplicatePendingRaceSource, 0)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should keep duplicate pending task.race source completed after race.
+    exit /b 1
+)
+findstr /C:"duplicateCanceledAllGroup = xl6_task_all_values(xrtTypeInt()" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing duplicate canceled task.all source fixture.
+    exit /b 1
+)
+findstr /C:"duplicateCanceledAllSource, 0, duplicateCanceledAllSource, 0" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should pass duplicate canceled task.all source as borrowed twice.
+    exit /b 1
+)
+findstr /C:"duplicateCanceledAllRequest = xl6_task_cancel_value(duplicateCanceledAllSource, 0)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should cancel duplicate task.all source before awaiting group.
+    exit /b 1
+)
+findstr /C:"duplicateCanceledAllSourceCancelAgain = xl6_task_cancel_value(duplicateCanceledAllSource, 0)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should keep duplicate canceled task.all source cancel idempotent.
+    exit /b 1
+)
+findstr /C:"duplicateCanceledRaceGroup = xl6_task_race_values" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing duplicate canceled task.race source fixture.
+    exit /b 1
+)
+findstr /C:"duplicateCanceledRaceSource, 0, duplicateCanceledRaceSource, 0" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should pass duplicate canceled task.race source as borrowed twice.
+    exit /b 1
+)
+findstr /C:"duplicateCanceledRaceRequest = xl6_task_cancel_value(duplicateCanceledRaceSource, 0)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should cancel duplicate task.race source before awaiting group.
+    exit /b 1
+)
+findstr /C:"duplicateCanceledRaceSourceCancelAgain = xl6_task_cancel_value(duplicateCanceledRaceSource, 0)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should keep duplicate canceled task.race source cancel idempotent.
+    exit /b 1
+)
+findstr /C:"duplicateTypedCanceledAllGroup = xl6_task_all_from_array((xtarray)(duplicateTypedCanceledAllJobs), xrtTypeInt()" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing typed-array duplicate canceled task.all source fixture.
+    exit /b 1
+)
+findstr /C:"duplicateTypedCanceledAllRequest = xl6_task_cancel_value(duplicateTypedCanceledAllSource, 0)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should cancel typed-array duplicate task.all source before awaiting group.
+    exit /b 1
+)
+findstr /C:"duplicateTypedCanceledAllSourceCancelAgain = xl6_task_cancel_value(duplicateTypedCanceledAllSource, 0)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should keep typed-array duplicate canceled task.all source cancel idempotent.
+    exit /b 1
+)
+findstr /C:"duplicateTypedCanceledRaceGroup = xl6_task_race_from_array((xtarray)(duplicateTypedCanceledRaceJobs)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing typed-array duplicate canceled task.race source fixture.
+    exit /b 1
+)
+findstr /C:"duplicateTypedCanceledRaceRequest = xl6_task_cancel_value(duplicateTypedCanceledRaceSource, 0)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should cancel typed-array duplicate task.race source before awaiting group.
+    exit /b 1
+)
+findstr /C:"duplicateTypedCanceledRaceSourceCancelAgain = xl6_task_cancel_value(duplicateTypedCanceledRaceSource, 0)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should keep typed-array duplicate canceled task.race source cancel idempotent.
+    exit /b 1
+)
+findstr /C:"duplicateFailedAllGroup = xl6_task_all_values(xrtTypeInt()" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing duplicate failed task.all source fixture.
+    exit /b 1
+)
+findstr /C:"duplicateFailedAllSource, 0, duplicateFailedAllSource, 0" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should pass duplicate failed task.all source as borrowed twice.
+    exit /b 1
+)
+findstr /C:"duplicateFailedAllSourceCancel = xl6_task_cancel_value(duplicateFailedAllSource, 0)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should keep duplicate failed task.all source failed after all.
+    exit /b 1
+)
+findstr /C:"duplicateFailedRaceGroup = xl6_task_race_values" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing duplicate failed task.race source fixture.
+    exit /b 1
+)
+findstr /C:"duplicateFailedRaceSource, 0, duplicateFailedRaceSource, 0" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should pass duplicate failed task.race source as borrowed twice.
+    exit /b 1
+)
+findstr /C:"duplicateFailedRaceSourceCancel = xl6_task_cancel_value(duplicateFailedRaceSource, 0)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should keep duplicate failed task.race source failed after race.
+    exit /b 1
+)
+findstr /C:"duplicateTypedFailedAllGroup = xl6_task_all_from_array((xtarray)(duplicateTypedFailedAllJobs), xrtTypeInt()" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing typed-array duplicate failed task.all source fixture.
+    exit /b 1
+)
+findstr /C:"duplicateTypedFailedAllSourceCancel = xl6_task_cancel_value(duplicateTypedFailedAllSource, 0)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should keep typed-array duplicate failed task.all source failed after all.
+    exit /b 1
+)
+findstr /C:"duplicateTypedFailedRaceGroup = xl6_task_race_from_array((xtarray)(duplicateTypedFailedRaceJobs)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing typed-array duplicate failed task.race source fixture.
+    exit /b 1
+)
+findstr /C:"duplicateTypedFailedRaceSourceCancel = xl6_task_cancel_value(duplicateTypedFailedRaceSource, 0)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should keep typed-array duplicate failed task.race source failed after race.
+    exit /b 1
+)
+findstr /C:"duplicateTypedAllValues = xl6_future_await_handle_release(xl6_task_all_from_array((xtarray)(duplicateTypedAllJobs), xrtTypeInt()" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing typed-array duplicate task.all source fixture.
+    exit /b 1
+)
+findstr /C:"duplicateTypedRaceValue = xl6_future_await_i64_release(xl6_task_race_from_array((xtarray)(duplicateTypedRaceJobs)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing typed-array duplicate task.race source fixture.
+    exit /b 1
+)
+findstr /C:"duplicateTypedRaceSourceCancel = xl6_task_cancel_value(duplicateTypedRaceSource, 0)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should keep typed-array duplicate task.race source completed after race.
+    exit /b 1
+)
+findstr /C:"duplicateTypedPendingAllValues = xl6_future_await_handle_release(xl6_task_all_from_array((xtarray)(duplicateTypedPendingAllJobs), xrtTypeInt()" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing typed-array duplicate pending task.all source fixture.
+    exit /b 1
+)
+findstr /C:"duplicateTypedPendingAllSourceCancel = xl6_task_cancel_value(duplicateTypedPendingAllSource, 0)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should keep typed-array duplicate pending task.all source completed after all.
+    exit /b 1
+)
+findstr /C:"duplicateTypedPendingRaceValue = xl6_future_await_i64_release(xl6_task_race_from_array((xtarray)(duplicateTypedPendingRaceJobs)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing typed-array duplicate pending task.race source fixture.
+    exit /b 1
+)
+findstr /C:"duplicateTypedPendingRaceSourceCancel = xl6_task_cancel_value(duplicateTypedPendingRaceSource, 0)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should keep typed-array duplicate pending task.race source completed after race.
+    exit /b 1
+)
 findstr /C:"xFutureForwardCancelTo(future, arg->groupFuture)" release\tmp\cgen_task_api.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing task.all cancel forwarding hook.
@@ -11351,14 +11855,49 @@ if errorlevel 1 (
     echo cgen_task_api.c should cancel named pending task.all group as borrowed.
     exit /b 1
 )
+findstr /C:"cancelAllRequestedAgain = xl6_task_cancel_value(cancelAllGroup, 0)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should keep canceled task.all group cancel idempotent.
+    exit /b 1
+)
+findstr /C:"cancelAllRequestedAfterAwait = xl6_task_cancel_value(cancelAllGroup, 0)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should keep canceled task.all group cancel idempotent after await.
+    exit /b 1
+)
 findstr /C:"cancelAllLeftValue = (*(long long*)xl6_future_await_value(cancelAllLeft" release\tmp\cgen_task_api.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing canceled task.all left source await.
     exit /b 1
 )
+findstr /C:"cancelAllLeftCancelAgain = xl6_task_cancel_value(cancelAllLeft, 0)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should keep canceled task.all source cancel idempotent.
+    exit /b 1
+)
 findstr /C:"cancelAllRightValue = (*(long long*)xl6_future_await_value(cancelAllRight" release\tmp\cgen_task_api.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing canceled task.all right source await.
+    exit /b 1
+)
+findstr /C:"repeatCancelFuture = slowRaceAsync(206LL)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing direct async repeated cancel fixture.
+    exit /b 1
+)
+findstr /C:"repeatCancelSecond = xl6_task_cancel_value(repeatCancelFuture, 0)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should keep direct async canceled future cancel idempotent.
+    exit /b 1
+)
+findstr /C:"repeatCancelValue = (*(long long*)xl6_future_await_value(repeatCancelFuture" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing direct async canceled future await.
+    exit /b 1
+)
+findstr /C:"repeatCancelAfterAwait = xl6_task_cancel_value(repeatCancelFuture, 0)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should keep direct async canceled future cancel idempotent after await.
     exit /b 1
 )
 findstr /C:"cancelRaceGroup = xl6_task_race_values" release\tmp\cgen_task_api.c >nul
@@ -11376,14 +11915,29 @@ if errorlevel 1 (
     echo cgen_task_api.c should cancel named pending task.race group as borrowed.
     exit /b 1
 )
+findstr /C:"cancelRaceRequestedAgain = xl6_task_cancel_value(cancelRaceGroup, 0)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should keep canceled task.race group cancel idempotent.
+    exit /b 1
+)
 findstr /C:"cancelRaceGroupState = 42LL" release\tmp\cgen_task_api.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing canceled task.race group state assertion.
     exit /b 1
 )
+findstr /C:"cancelRaceRequestedAfterAwait = xl6_task_cancel_value(cancelRaceGroup, 0)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should keep canceled task.race group cancel idempotent after await.
+    exit /b 1
+)
 findstr /C:"cancelRaceLeftValue = (*(long long*)xl6_future_await_value(cancelRaceLeft" release\tmp\cgen_task_api.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing canceled task.race left source await.
+    exit /b 1
+)
+findstr /C:"cancelRaceLeftCancelAgain = xl6_task_cancel_value(cancelRaceLeft, 0)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should keep canceled task.race source cancel idempotent.
     exit /b 1
 )
 findstr /C:"cancelRaceRightValue = (*(long long*)xl6_future_await_value(cancelRaceRight" release\tmp\cgen_task_api.c >nul
@@ -11554,6 +12108,286 @@ if errorlevel 1 (
 findstr /C:"xl6_task_race_from_array" release\tmp\cgen_task_api.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing task.race typed array path.
+    exit /b 1
+)
+findstr /C:"taskBoxes = xl6_future_await_handle_release(xl6_task_all_values(xl6_type_desc_XL_Class_TaskBox()" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing task.all class completion path.
+    exit /b 1
+)
+findstr /C:"racedTaskBoxFuture = xl6_task_race_values" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing named task.race class future path.
+    exit /b 1
+)
+findstr /C:"taskFuncs = xl6_future_await_handle_release(xl6_task_all_values(xrtTypeFunction()" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing task.all function completion path.
+    exit /b 1
+)
+findstr /C:"xvalue fnValue = xl6_function_to_xvalue(*(XL6_Function*)item);" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing task.all function xvalue bridge.
+    exit /b 1
+)
+findstr /C:"taskFuncA = xl6_function_from_callable(*(xrt_callable**)xl6_xrt_typed_require_item" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing task.all function callable extraction.
+    exit /b 1
+)
+findstr /C:"racedTaskFunc = (*(XL6_Function*)xl6_future_await_value(racedTaskFuncFuture" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing named task.race function await path.
+    exit /b 1
+)
+findstr /C:"namedTaskBoxAllFuture = xl6_task_all_values(xl6_type_desc_XL_Class_TaskBox()" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing completed named class task.all future.
+    exit /b 1
+)
+findstr /C:"namedTaskBoxAllB = xl6_xrt_typed_array_copy_mode(xl6_type_desc_XL_Class_TaskBox(), (*(xtarray*)xl6_future_await_value(namedTaskBoxAllFuture" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing repeated await for completed class task.all future.
+    exit /b 1
+)
+findstr /C:"cancelNamedTaskBoxAllCompleted = xl6_task_cancel_value(namedTaskBoxAllFuture, 0)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should pass completed class task.all cancel as borrowed.
+    exit /b 1
+)
+findstr /C:"postCancelNamedTaskBoxAll = xl6_xrt_typed_array_copy_mode(xl6_type_desc_XL_Class_TaskBox(), (*(xtarray*)xl6_future_await_value(namedTaskBoxAllFuture" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should keep completed class task.all awaitable after cancel.
+    exit /b 1
+)
+findstr /C:"namedTaskBoxRaceCompletedFuture = xl6_task_race_values" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing completed named class task.race future.
+    exit /b 1
+)
+findstr /C:"namedTaskBoxRaceB = (*(XL_Class_TaskBox*)xl6_future_await_value(namedTaskBoxRaceCompletedFuture" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing repeated await for completed class task.race future.
+    exit /b 1
+)
+findstr /C:"cancelNamedTaskBoxRaceCompleted = xl6_task_cancel_value(namedTaskBoxRaceCompletedFuture, 0)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should pass completed class task.race cancel as borrowed.
+    exit /b 1
+)
+findstr /C:"postCancelNamedTaskBoxRace = (*(XL_Class_TaskBox*)xl6_future_await_value(namedTaskBoxRaceCompletedFuture" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should keep completed class task.race awaitable after cancel.
+    exit /b 1
+)
+findstr /C:"namedTaskFuncAllFuture = xl6_task_all_values(xrtTypeFunction()" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing completed named function task.all future.
+    exit /b 1
+)
+findstr /C:"namedTaskFuncAllB = xl6_xrt_typed_array_copy_mode(xrtTypeFunction(), (*(xtarray*)xl6_future_await_value(namedTaskFuncAllFuture" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing repeated await for completed function task.all future.
+    exit /b 1
+)
+findstr /C:"cancelNamedTaskFuncAllCompleted = xl6_task_cancel_value(namedTaskFuncAllFuture, 0)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should pass completed function task.all cancel as borrowed.
+    exit /b 1
+)
+findstr /C:"postCancelNamedTaskFuncAll = xl6_xrt_typed_array_copy_mode(xrtTypeFunction(), (*(xtarray*)xl6_future_await_value(namedTaskFuncAllFuture" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should keep completed function task.all awaitable after cancel.
+    exit /b 1
+)
+findstr /C:"namedTaskFuncRaceCompletedFuture = xl6_task_race_values" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing completed named function task.race future.
+    exit /b 1
+)
+findstr /C:"namedTaskFuncRaceB = (*(XL6_Function*)xl6_future_await_value(namedTaskFuncRaceCompletedFuture" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing repeated await for completed function task.race future.
+    exit /b 1
+)
+findstr /C:"cancelNamedTaskFuncRaceCompleted = xl6_task_cancel_value(namedTaskFuncRaceCompletedFuture, 0)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should pass completed function task.race cancel as borrowed.
+    exit /b 1
+)
+findstr /C:"postCancelNamedTaskFuncRace = (*(XL6_Function*)xl6_future_await_value(namedTaskFuncRaceCompletedFuture" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should keep completed function task.race awaitable after cancel.
+    exit /b 1
+)
+findstr /C:"typedTaskBoxes = xl6_future_await_handle_release(xl6_task_all_from_array((xtarray)(typedTaskBoxJobs), xl6_type_desc_XL_Class_TaskBox()" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing typed-array task.all class completion path.
+    exit /b 1
+)
+findstr /C:"typedRacedTaskBoxFuture = xl6_task_race_from_array((xtarray)(typedTaskBoxRaceJobs)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing typed-array task.race class future path.
+    exit /b 1
+)
+findstr /C:"typedTaskFuncs = xl6_future_await_handle_release(xl6_task_all_from_array((xtarray)(typedTaskFuncJobs), xrtTypeFunction()" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing typed-array task.all function completion path.
+    exit /b 1
+)
+findstr /C:"typedTaskFuncA = xl6_function_from_callable(*(xrt_callable**)xl6_xrt_typed_require_item" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing typed-array task.all function callable extraction.
+    exit /b 1
+)
+findstr /C:"typedRacedTaskFuncFuture = xl6_task_race_from_array((xtarray)(typedTaskFuncRaceJobs)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing typed-array task.race function future path.
+    exit /b 1
+)
+findstr /C:"typedRacedTaskFunc = (*(XL6_Function*)xl6_future_await_value(typedRacedTaskFuncFuture" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing typed-array task.race function await path.
+    exit /b 1
+)
+findstr /C:"typedTaskBoxAllCompletedFuture = xl6_task_all_from_array((xtarray)(typedTaskBoxAllCompletedJobs), xl6_type_desc_XL_Class_TaskBox()" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing typed-array completed class task.all future path.
+    exit /b 1
+)
+findstr /C:"typedTaskBoxAllCompletedB = xl6_xrt_typed_array_copy_mode(xl6_type_desc_XL_Class_TaskBox(), (*(xtarray*)xl6_future_await_value(typedTaskBoxAllCompletedFuture" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing repeated await for typed-array completed class task.all future.
+    exit /b 1
+)
+findstr /C:"cancelTypedTaskBoxAllCompleted = xl6_task_cancel_value(typedTaskBoxAllCompletedFuture, 0)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should cancel typed-array completed class task.all future as borrowed.
+    exit /b 1
+)
+findstr /C:"postCancelTypedTaskBoxAllCompleted = xl6_xrt_typed_array_copy_mode(xl6_type_desc_XL_Class_TaskBox(), (*(xtarray*)xl6_future_await_value(typedTaskBoxAllCompletedFuture" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should keep typed-array completed class task.all awaitable after cancel.
+    exit /b 1
+)
+findstr /C:"typedTaskBoxRaceCompletedFuture = xl6_task_race_from_array((xtarray)(typedTaskBoxRaceCompletedJobs)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing typed-array completed class task.race future path.
+    exit /b 1
+)
+findstr /C:"typedTaskBoxRaceCompletedB = (*(XL_Class_TaskBox*)xl6_future_await_value(typedTaskBoxRaceCompletedFuture" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing repeated await for typed-array completed class task.race future.
+    exit /b 1
+)
+findstr /C:"cancelTypedTaskBoxRaceCompleted = xl6_task_cancel_value(typedTaskBoxRaceCompletedFuture, 0)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should cancel typed-array completed class task.race future as borrowed.
+    exit /b 1
+)
+findstr /C:"postCancelTypedTaskBoxRaceCompleted = (*(XL_Class_TaskBox*)xl6_future_await_value(typedTaskBoxRaceCompletedFuture" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should keep typed-array completed class task.race awaitable after cancel.
+    exit /b 1
+)
+findstr /C:"typedTaskFuncAllCompletedFuture = xl6_task_all_from_array((xtarray)(typedTaskFuncAllCompletedJobs), xrtTypeFunction()" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing typed-array completed function task.all future path.
+    exit /b 1
+)
+findstr /C:"typedTaskFuncAllCompletedB = xl6_xrt_typed_array_copy_mode(xrtTypeFunction(), (*(xtarray*)xl6_future_await_value(typedTaskFuncAllCompletedFuture" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing repeated await for typed-array completed function task.all future.
+    exit /b 1
+)
+findstr /C:"cancelTypedTaskFuncAllCompleted = xl6_task_cancel_value(typedTaskFuncAllCompletedFuture, 0)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should cancel typed-array completed function task.all future as borrowed.
+    exit /b 1
+)
+findstr /C:"postCancelTypedTaskFuncAllCompleted = xl6_xrt_typed_array_copy_mode(xrtTypeFunction(), (*(xtarray*)xl6_future_await_value(typedTaskFuncAllCompletedFuture" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should keep typed-array completed function task.all awaitable after cancel.
+    exit /b 1
+)
+findstr /C:"typedTaskFuncRaceCompletedFuture = xl6_task_race_from_array((xtarray)(typedTaskFuncRaceCompletedJobs)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing typed-array completed function task.race future path.
+    exit /b 1
+)
+findstr /C:"typedTaskFuncRaceCompletedB = (*(XL6_Function*)xl6_future_await_value(typedTaskFuncRaceCompletedFuture" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing repeated await for typed-array completed function task.race future.
+    exit /b 1
+)
+findstr /C:"cancelTypedTaskFuncRaceCompleted = xl6_task_cancel_value(typedTaskFuncRaceCompletedFuture, 0)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should cancel typed-array completed function task.race future as borrowed.
+    exit /b 1
+)
+findstr /C:"postCancelTypedTaskFuncRaceCompleted = (*(XL6_Function*)xl6_future_await_value(typedTaskFuncRaceCompletedFuture" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should keep typed-array completed function task.race awaitable after cancel.
+    exit /b 1
+)
+findstr /C:"pendingTaskBoxAllGroup = xl6_task_all_from_array((xtarray)(pendingTaskBoxAllJobs), xl6_type_desc_XL_Class_TaskBox()" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing pending typed-array class task.all group.
+    exit /b 1
+)
+findstr /C:"pendingTaskBoxAllRequested = xl6_task_cancel_value(pendingTaskBoxAllGroup, 0)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should cancel pending typed-array class task.all group as borrowed.
+    exit /b 1
+)
+findstr /C:"pendingTaskBoxAllLateValue = (*(XL_Class_TaskBox*)xl6_future_await_value(pendingTaskBoxAllRight" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing late canceled typed-array class task.all source await.
+    exit /b 1
+)
+findstr /C:"pendingTaskBoxRaceGroup = xl6_task_race_from_array((xtarray)(pendingTaskBoxRaceJobs)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing pending typed-array class task.race group.
+    exit /b 1
+)
+findstr /C:"pendingTaskBoxRaceRequested = xl6_task_cancel_value(pendingTaskBoxRaceGroup, 0)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should cancel pending typed-array class task.race group as borrowed.
+    exit /b 1
+)
+findstr /C:"pendingTaskBoxRaceLateValue = (*(XL_Class_TaskBox*)xl6_future_await_value(pendingTaskBoxRaceLeft" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing late canceled typed-array class task.race source await.
+    exit /b 1
+)
+findstr /C:"pendingTaskFuncAllGroup = xl6_task_all_from_array((xtarray)(pendingTaskFuncAllJobs), xrtTypeFunction()" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing pending typed-array function task.all group.
+    exit /b 1
+)
+findstr /C:"pendingTaskFuncAllRequested = xl6_task_cancel_value(pendingTaskFuncAllGroup, 0)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should cancel pending typed-array function task.all group as borrowed.
+    exit /b 1
+)
+findstr /C:"pendingTaskFuncAllLateValue = (*(XL6_Function*)xl6_future_await_value(pendingTaskFuncAllRight" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing late canceled typed-array function task.all source await.
+    exit /b 1
+)
+findstr /C:"pendingTaskFuncRaceGroup = xl6_task_race_from_array((xtarray)(pendingTaskFuncRaceJobs)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing pending typed-array function task.race group.
+    exit /b 1
+)
+findstr /C:"pendingTaskFuncRaceRequested = xl6_task_cancel_value(pendingTaskFuncRaceGroup, 0)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should cancel pending typed-array function task.race group as borrowed.
+    exit /b 1
+)
+findstr /C:"pendingTaskFuncRaceLateValue = (*(XL6_Function*)xl6_future_await_value(pendingTaskFuncRaceLeft" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing late canceled typed-array function task.race source await.
     exit /b 1
 )
 findstr /C:"xl6_task_race_start" release\tmp\cgen_task_api.c >nul
@@ -11871,6 +12705,46 @@ if errorlevel 1 (
     echo cgen_task_api.c should keep completed named task.race future awaitable after cancel.
     exit /b 1
 )
+findstr /C:"typedAllCompletedFuture = xl6_task_all_from_array((xtarray)(typedAllCompletedJobs), xrtTypeInt()" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing typed-array completed int task.all future path.
+    exit /b 1
+)
+findstr /C:"typedAllCompletedB = xl6_xrt_typed_array_copy_mode(xrtTypeInt(), (*(xtarray*)xl6_future_await_value(typedAllCompletedFuture" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing repeated await for typed-array completed int task.all future.
+    exit /b 1
+)
+findstr /C:"cancelTypedAllCompleted = xl6_task_cancel_value(typedAllCompletedFuture, 0)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should cancel typed-array completed int task.all future as borrowed.
+    exit /b 1
+)
+findstr /C:"postCancelTypedAllCompleted = xl6_xrt_typed_array_copy_mode(xrtTypeInt(), (*(xtarray*)xl6_future_await_value(typedAllCompletedFuture" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should keep typed-array completed int task.all awaitable after cancel.
+    exit /b 1
+)
+findstr /C:"typedRaceCompletedFuture = xl6_task_race_from_array((xtarray)(typedRaceCompletedJobs)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing typed-array completed int task.race future path.
+    exit /b 1
+)
+findstr /C:"typedRaceCompletedB = (*(long long*)xl6_future_await_value(typedRaceCompletedFuture" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing repeated await for typed-array completed int task.race future.
+    exit /b 1
+)
+findstr /C:"cancelTypedRaceCompleted = xl6_task_cancel_value(typedRaceCompletedFuture, 0)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should cancel typed-array completed int task.race future as borrowed.
+    exit /b 1
+)
+findstr /C:"postCancelTypedRaceCompleted = (*(long long*)xl6_future_await_value(typedRaceCompletedFuture" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should keep typed-array completed int task.race awaitable after cancel.
+    exit /b 1
+)
 findstr /C:"cancelNamedStringAllCompleted = xl6_task_cancel_value(namedStringAllFuture, 0)" release\tmp\cgen_task_api.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c should pass completed named string task.all future cancel as borrowed.
@@ -11899,6 +12773,126 @@ if errorlevel 1 (
 findstr /C:"typedStringRace = xl6_future_await_cstr_release(xl6_task_race_from_array((xtarray)(stringRaceJobs)" release\tmp\cgen_task_api.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing task.race typed string array path.
+    exit /b 1
+)
+findstr /C:"typedStringAllCompletedFuture = xl6_task_all_from_array((xtarray)(typedStringAllCompletedJobs), xrtTypeString()" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing typed-array completed string task.all future path.
+    exit /b 1
+)
+findstr /C:"typedStringAllCompletedB = xl6_xrt_typed_array_copy_mode(xrtTypeString(), (*(xtarray*)xl6_future_await_value(typedStringAllCompletedFuture" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing repeated await for typed-array completed string task.all future.
+    exit /b 1
+)
+findstr /C:"cancelTypedStringAllCompleted = xl6_task_cancel_value(typedStringAllCompletedFuture, 0)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should cancel typed-array completed string task.all future as borrowed.
+    exit /b 1
+)
+findstr /C:"postCancelTypedStringAllCompleted = xl6_xrt_typed_array_copy_mode(xrtTypeString(), (*(xtarray*)xl6_future_await_value(typedStringAllCompletedFuture" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should keep typed-array completed string task.all awaitable after cancel.
+    exit /b 1
+)
+findstr /C:"typedStringRaceCompletedFuture = xl6_task_race_from_array((xtarray)(typedStringRaceCompletedJobs)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing typed-array completed string task.race future path.
+    exit /b 1
+)
+findstr /C:"typedStringRaceCompletedB = xl6_future_await_cstr_copy(typedStringRaceCompletedFuture" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing repeated await for typed-array completed string task.race future.
+    exit /b 1
+)
+findstr /C:"cancelTypedStringRaceCompleted = xl6_task_cancel_value(typedStringRaceCompletedFuture, 0)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should cancel typed-array completed string task.race future as borrowed.
+    exit /b 1
+)
+findstr /C:"postCancelTypedStringRaceCompleted = xl6_future_await_cstr_copy(typedStringRaceCompletedFuture" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should keep typed-array completed string task.race awaitable after cancel.
+    exit /b 1
+)
+findstr /C:"typedBoolAllCompletedFuture = xl6_task_all_from_array((xtarray)(typedBoolAllCompletedJobs), xrtTypeBool()" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing typed-array completed bool task.all future path.
+    exit /b 1
+)
+findstr /C:"typedBoolAllCompletedB = xl6_xrt_typed_array_copy_mode(xrtTypeBool(), (*(xtarray*)xl6_future_await_value(typedBoolAllCompletedFuture" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing repeated await for typed-array completed bool task.all future.
+    exit /b 1
+)
+findstr /C:"cancelTypedBoolAllCompleted = xl6_task_cancel_value(typedBoolAllCompletedFuture, 0)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should cancel typed-array completed bool task.all future as borrowed.
+    exit /b 1
+)
+findstr /C:"postCancelTypedBoolAllCompleted = xl6_xrt_typed_array_copy_mode(xrtTypeBool(), (*(xtarray*)xl6_future_await_value(typedBoolAllCompletedFuture" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should keep typed-array completed bool task.all awaitable after cancel.
+    exit /b 1
+)
+findstr /C:"typedBoolRaceCompletedFuture = xl6_task_race_from_array((xtarray)(typedBoolRaceCompletedJobs)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing typed-array completed bool task.race future path.
+    exit /b 1
+)
+findstr /C:"typedBoolRaceCompletedB = (*(int*)xl6_future_await_value(typedBoolRaceCompletedFuture" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing repeated await for typed-array completed bool task.race future.
+    exit /b 1
+)
+findstr /C:"cancelTypedBoolRaceCompleted = xl6_task_cancel_value(typedBoolRaceCompletedFuture, 0)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should cancel typed-array completed bool task.race future as borrowed.
+    exit /b 1
+)
+findstr /C:"postCancelTypedBoolRaceCompleted = (*(int*)xl6_future_await_value(typedBoolRaceCompletedFuture" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should keep typed-array completed bool task.race awaitable after cancel.
+    exit /b 1
+)
+findstr /C:"typedFloatAllCompletedFuture = xl6_task_all_from_array((xtarray)(typedFloatAllCompletedJobs), xrtTypeFloat()" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing typed-array completed float task.all future path.
+    exit /b 1
+)
+findstr /C:"typedFloatAllCompletedB = xl6_xrt_typed_array_copy_mode(xrtTypeFloat(), (*(xtarray*)xl6_future_await_value(typedFloatAllCompletedFuture" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing repeated await for typed-array completed float task.all future.
+    exit /b 1
+)
+findstr /C:"cancelTypedFloatAllCompleted = xl6_task_cancel_value(typedFloatAllCompletedFuture, 0)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should cancel typed-array completed float task.all future as borrowed.
+    exit /b 1
+)
+findstr /C:"postCancelTypedFloatAllCompleted = xl6_xrt_typed_array_copy_mode(xrtTypeFloat(), (*(xtarray*)xl6_future_await_value(typedFloatAllCompletedFuture" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should keep typed-array completed float task.all awaitable after cancel.
+    exit /b 1
+)
+findstr /C:"typedFloatRaceCompletedFuture = xl6_task_race_from_array((xtarray)(typedFloatRaceCompletedJobs)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing typed-array completed float task.race future path.
+    exit /b 1
+)
+findstr /C:"typedFloatRaceCompletedB = (*(double*)xl6_future_await_value(typedFloatRaceCompletedFuture" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing repeated await for typed-array completed float task.race future.
+    exit /b 1
+)
+findstr /C:"cancelTypedFloatRaceCompleted = xl6_task_cancel_value(typedFloatRaceCompletedFuture, 0)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should cancel typed-array completed float task.race future as borrowed.
+    exit /b 1
+)
+findstr /C:"postCancelTypedFloatRaceCompleted = (*(double*)xl6_future_await_value(typedFloatRaceCompletedFuture" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should keep typed-array completed float task.race awaitable after cancel.
     exit /b 1
 )
 findstr /C:"cancelNamedBoolAllCompleted = xl6_task_cancel_value(namedBoolAllFuture, 0)" release\tmp\cgen_task_api.c >nul
@@ -11994,6 +12988,196 @@ if errorlevel 1 (
 findstr /C:"expect_i64(raceFailureLoserStateB, 42LL)" release\tmp\cgen_task_api.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c should preserve task.race failed-loser cancel state after worker exit.
+    exit /b 1
+)
+findstr /C:"completedFailedRaceGroup = xl6_task_race_values" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing completed-failed task.race source fixture.
+    exit /b 1
+)
+findstr /C:"completedFailedRaceWinner, 0, completedFailedRaceLoser, 0" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should pass completed-failed task.race source as borrowed.
+    exit /b 1
+)
+findstr /C:"completedFailedRaceLoserValue = (*(long long*)xl6_future_await_value(completedFailedRaceLoser" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing completed-failed task.race loser await.
+    exit /b 1
+)
+findstr /C:"completedTypedFailedRaceGroup = xl6_task_race_from_array((xtarray)(completedTypedFailedRaceJobs)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing typed-array completed-failed task.race source fixture.
+    exit /b 1
+)
+findstr /C:"raceFailedBeforeCancelGroup = xl6_task_race_values" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing task.race failure-before-cancel fixture.
+    exit /b 1
+)
+findstr /C:"raceFailedBeforeCancelWinner, 0, raceFailedBeforeCancelLoser, 0" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should pass failure-before-cancel task.race inputs as borrowed.
+    exit /b 1
+)
+findstr /C:"raceFailedBeforeCancelLoserRequest = xl6_task_cancel_value(raceFailedBeforeCancelLoser, 0)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should cancel second source in failure-before-cancel task.race fixture.
+    exit /b 1
+)
+findstr /C:"raceCanceledBeforeFailGroup = xl6_task_race_values" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing task.race cancel-before-failure fixture.
+    exit /b 1
+)
+findstr /C:"raceCanceledBeforeFailWinner, 0, raceCanceledBeforeFailLoser, 0" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should pass cancel-before-failure task.race inputs as borrowed.
+    exit /b 1
+)
+findstr /C:"raceCanceledBeforeFailWinnerRequest = xl6_task_cancel_value(raceCanceledBeforeFailWinner, 0)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should cancel first source in cancel-before-failure task.race fixture.
+    exit /b 1
+)
+findstr /C:"typedRaceFailedBeforeCancelGroup = xl6_task_race_from_array((xtarray)(typedRaceFailedBeforeCancelJobs)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing typed-array failure-before-cancel task.race fixture.
+    exit /b 1
+)
+findstr /C:"typedRaceFailedBeforeCancelLoserRequest = xl6_task_cancel_value(typedRaceFailedBeforeCancelLoser, 0)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should cancel typed-array failure-before-cancel task.race source.
+    exit /b 1
+)
+findstr /C:"failedTaskBoxAll = xl6_future_await_handle_release(xl6_task_all_values(xl6_type_desc_XL_Class_TaskBox()" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing failed class task.all await.
+    exit /b 1
+)
+findstr /C:"failedTypedTaskBoxAll = xl6_future_await_handle_release(xl6_task_all_from_array((xtarray)(failedTaskBoxAllJobs), xl6_type_desc_XL_Class_TaskBox()" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing failed typed-array class task.all await.
+    exit /b 1
+)
+findstr /C:"taskBoxRaceFailureGroup = xl6_task_race_values" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing failed class task.race group.
+    exit /b 1
+)
+findstr /C:"failTaskBoxAsync(), 1, taskBoxRaceFailureSlowLoser, 0" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should pass failed class race temporary as owned and loser as borrowed.
+    exit /b 1
+)
+findstr /C:"taskBoxRaceFailureLoserValueB = (*(XL_Class_TaskBox*)xl6_future_await_value(taskBoxRaceFailureSlowLoser" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing failed class race loser repeated await.
+    exit /b 1
+)
+findstr /C:"expect_i64(taskBoxRaceFailureLoserStateB, 42LL)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should preserve failed class race loser cancel state after worker exit.
+    exit /b 1
+)
+findstr /C:"failedTaskFuncAll = xl6_future_await_handle_release(xl6_task_all_values(xrtTypeFunction()" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing failed function task.all await.
+    exit /b 1
+)
+findstr /C:"failedTypedTaskFuncAll = xl6_future_await_handle_release(xl6_task_all_from_array((xtarray)(failedTaskFuncAllJobs), xrtTypeFunction()" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing failed typed-array function task.all await.
+    exit /b 1
+)
+findstr /C:"taskFuncRaceFailureGroup = xl6_task_race_values" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing failed function task.race group.
+    exit /b 1
+)
+findstr /C:"failTaskAdderAsync(), 1, taskFuncRaceFailureSlowLoser, 0" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should pass failed function race temporary as owned and loser as borrowed.
+    exit /b 1
+)
+findstr /C:"taskFuncRaceFailureLoserValueB = (*(XL6_Function*)xl6_future_await_value(taskFuncRaceFailureSlowLoser" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing failed function race loser repeated await.
+    exit /b 1
+)
+findstr /C:"expect_i64(taskFuncRaceFailureLoserStateB, 42LL)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should preserve failed function race loser cancel state after worker exit.
+    exit /b 1
+)
+findstr /C:"repeatedFailedTaskBoxAll = xl6_task_all_values(xl6_type_desc_XL_Class_TaskBox()" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing repeated failed class task.all future.
+    exit /b 1
+)
+findstr /C:"secondFailedTaskBoxAll = xl6_xrt_typed_array_copy_mode(xl6_type_desc_XL_Class_TaskBox(), (*(xtarray*)xl6_future_await_value(repeatedFailedTaskBoxAll" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing repeated await for failed class task.all future.
+    exit /b 1
+)
+findstr /C:"cancelRepeatedFailedTaskBoxAll = xl6_task_cancel_value(repeatedFailedTaskBoxAll, 0)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should pass failed class task.all cancel as borrowed.
+    exit /b 1
+)
+findstr /C:"postCancelFailedTaskBoxAll = xl6_xrt_typed_array_copy_mode(xl6_type_desc_XL_Class_TaskBox(), (*(xtarray*)xl6_future_await_value(repeatedFailedTaskBoxAll" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should keep failed class task.all awaitable after cancel.
+    exit /b 1
+)
+findstr /C:"repeatedFailedTaskBoxRace = xl6_task_race_values" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing repeated failed class task.race future.
+    exit /b 1
+)
+findstr /C:"secondFailedTaskBoxRace = (*(XL_Class_TaskBox*)xl6_future_await_value(repeatedFailedTaskBoxRace" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing repeated await for failed class task.race future.
+    exit /b 1
+)
+findstr /C:"failedTypedTaskBoxRaceFuture = xl6_task_race_from_array((xtarray)(failedTaskBoxRaceJobs)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing failed typed-array class task.race future.
+    exit /b 1
+)
+findstr /C:"failedTypedTaskBoxRace = (*(XL_Class_TaskBox*)xl6_future_await_value(failedTypedTaskBoxRaceFuture" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing failed typed-array class task.race await.
+    exit /b 1
+)
+findstr /C:"repeatedFailedTaskFuncAll = xl6_task_all_values(xrtTypeFunction()" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing repeated failed function task.all future.
+    exit /b 1
+)
+findstr /C:"secondFailedTaskFuncAll = xl6_xrt_typed_array_copy_mode(xrtTypeFunction(), (*(xtarray*)xl6_future_await_value(repeatedFailedTaskFuncAll" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing repeated await for failed function task.all future.
+    exit /b 1
+)
+findstr /C:"cancelRepeatedFailedTaskFuncAll = xl6_task_cancel_value(repeatedFailedTaskFuncAll, 0)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should pass failed function task.all cancel as borrowed.
+    exit /b 1
+)
+findstr /C:"repeatedFailedTaskFuncRace = xl6_task_race_values" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing repeated failed function task.race future.
+    exit /b 1
+)
+findstr /C:"secondFailedTaskFuncRace = (*(XL6_Function*)xl6_future_await_value(repeatedFailedTaskFuncRace" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing repeated await for failed function task.race future.
+    exit /b 1
+)
+findstr /C:"failedTypedTaskFuncRace = xl6_future_await_function_release(xl6_task_race_from_array((xtarray)(failedTaskFuncRaceJobs)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing failed typed-array function task.race await.
     exit /b 1
 )
 findstr /C:"repeatedFailedRace = xl6_task_race_values" release\tmp\cgen_task_api.c >nul
@@ -12241,6 +13425,91 @@ if errorlevel 1 (
     echo cgen_task_api.c missing task.race default typed-array empty assertion.
     exit /b 1
 )
+findstr /C:"emptyBoolAll = xl6_future_await_handle_release(xl6_task_all_from_array((xtarray)(emptyBoolJobs), xrtTypeBool()" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing task.all empty bool typed-array path.
+    exit /b 1
+)
+findstr /C:"emptyBoolRace = xl6_future_await_i32_release(xl6_task_race_from_array((xtarray)(emptyBoolJobs)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing task.race empty bool typed-array path.
+    exit /b 1
+)
+findstr /C:"expect_i64(emptyBoolRaceState, 42LL)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing task.race empty bool assertion.
+    exit /b 1
+)
+findstr /C:"defaultFloatJobs = xrtTypedArrayCreate(xrtTypeFuture(), XRT_OBJMODE_LOCAL)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should default-initialize float future array as empty.
+    exit /b 1
+)
+findstr /C:"defaultFloatAll = xl6_future_await_handle_release(xl6_task_all_from_array((xtarray)(defaultFloatJobs), xrtTypeFloat()" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing task.all default float typed-array path.
+    exit /b 1
+)
+findstr /C:"defaultFloatRace = xl6_future_await_f64_release(xl6_task_race_from_array((xtarray)(defaultFloatJobs)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing task.race default float typed-array path.
+    exit /b 1
+)
+findstr /C:"expect_i64(defaultFloatRaceState, 42LL)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing task.race default float assertion.
+    exit /b 1
+)
+findstr /C:"defaultTaskBoxJobs = xrtTypedArrayCreate(xrtTypeFuture(), XRT_OBJMODE_LOCAL)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should default-initialize class future array as empty.
+    exit /b 1
+)
+findstr /C:"defaultTaskBoxAll = xl6_future_await_handle_release(xl6_task_all_from_array((xtarray)(defaultTaskBoxJobs), xl6_type_desc_XL_Class_TaskBox()" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing task.all default class typed-array path.
+    exit /b 1
+)
+findstr /C:"defaultTaskBoxRaceFuture = xl6_task_race_from_array((xtarray)(defaultTaskBoxJobs)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing task.race default class future path.
+    exit /b 1
+)
+findstr /C:"defaultTaskBoxRace = (*(XL_Class_TaskBox*)xl6_future_await_value(defaultTaskBoxRaceFuture" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing task.race default class await path.
+    exit /b 1
+)
+findstr /C:"expect_i64(defaultTaskBoxRaceState, 42LL)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing task.race default class assertion.
+    exit /b 1
+)
+findstr /C:"defaultTaskFuncJobs = xrtTypedArrayCreate(xrtTypeFuture(), XRT_OBJMODE_LOCAL)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should default-initialize function future array as empty.
+    exit /b 1
+)
+findstr /C:"defaultTaskFuncAll = xl6_future_await_handle_release(xl6_task_all_from_array((xtarray)(defaultTaskFuncJobs), xrtTypeFunction()" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing task.all default function typed-array path.
+    exit /b 1
+)
+findstr /C:"defaultTaskFuncRaceFuture = xl6_task_race_from_array((xtarray)(defaultTaskFuncJobs)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing task.race default function future path.
+    exit /b 1
+)
+findstr /C:"defaultTaskFuncRace = (*(XL6_Function*)xl6_future_await_value(defaultTaskFuncRaceFuture" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing task.race default function await path.
+    exit /b 1
+)
+findstr /C:"expect_i64(defaultTaskFuncRaceState, 42LL)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing task.race default function assertion.
+    exit /b 1
+)
 findstr /C:"task.all source future is null" release\tmp\cgen_task_api.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing task.all null source future guard.
@@ -12284,6 +13553,96 @@ if errorlevel 1 (
 findstr /C:"expect_i64(nullStringRaceState, 42LL)" release\tmp\cgen_task_api.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing typed string task.race null source assertion.
+    exit /b 1
+)
+findstr /C:"missingBoolFuture = 0;" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing typed bool null future fixture.
+    exit /b 1
+)
+findstr /C:"nullBoolAll = xl6_future_await_handle_release(xl6_task_all_from_array((xtarray)(nullBoolJobs), xrtTypeBool()" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing typed bool task.all null source path.
+    exit /b 1
+)
+findstr /C:"nullBoolRace = xl6_future_await_i32_release(xl6_task_race_from_array((xtarray)(nullBoolJobs)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing typed bool task.race null source path.
+    exit /b 1
+)
+findstr /C:"expect_i64(nullBoolRaceState, 42LL)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing typed bool task.race null source assertion.
+    exit /b 1
+)
+findstr /C:"missingFloatFuture = 0;" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing typed float null future fixture.
+    exit /b 1
+)
+findstr /C:"nullFloatAll = xl6_future_await_handle_release(xl6_task_all_from_array((xtarray)(nullFloatJobs), xrtTypeFloat()" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing typed float task.all null source path.
+    exit /b 1
+)
+findstr /C:"nullFloatRace = xl6_future_await_f64_release(xl6_task_race_from_array((xtarray)(nullFloatJobs)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing typed float task.race null source path.
+    exit /b 1
+)
+findstr /C:"expect_i64(nullFloatRaceState, 42LL)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing typed float task.race null source assertion.
+    exit /b 1
+)
+findstr /C:"missingTaskBoxFuture = 0;" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing typed class null future fixture.
+    exit /b 1
+)
+findstr /C:"nullTaskBoxAll = xl6_future_await_handle_release(xl6_task_all_from_array((xtarray)(nullTaskBoxJobs), xl6_type_desc_XL_Class_TaskBox()" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing typed class task.all null source path.
+    exit /b 1
+)
+findstr /C:"nullTaskBoxRaceFuture = xl6_task_race_from_array((xtarray)(nullTaskBoxJobs)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing typed class task.race null source future path.
+    exit /b 1
+)
+findstr /C:"nullTaskBoxRace = (*(XL_Class_TaskBox*)xl6_future_await_value(nullTaskBoxRaceFuture" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing typed class task.race named future await path.
+    exit /b 1
+)
+findstr /C:"expect_i64(nullTaskBoxRaceState, 42LL)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing typed class task.race null source assertion.
+    exit /b 1
+)
+findstr /C:"missingTaskFuncFuture = 0;" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing typed function null future fixture.
+    exit /b 1
+)
+findstr /C:"nullTaskFuncAll = xl6_future_await_handle_release(xl6_task_all_from_array((xtarray)(nullTaskFuncJobs), xrtTypeFunction()" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing typed function task.all null source path.
+    exit /b 1
+)
+findstr /C:"nullTaskFuncRaceFuture = xl6_task_race_from_array((xtarray)(nullTaskFuncJobs)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing typed function task.race null source future path.
+    exit /b 1
+)
+findstr /C:"nullTaskFuncRace = (*(XL6_Function*)xl6_future_await_value(nullTaskFuncRaceFuture" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing typed function task.race named future await path.
+    exit /b 1
+)
+findstr /C:"expect_i64(nullTaskFuncRaceState, 42LL)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing typed function task.race null source assertion.
     exit /b 1
 )
 findstr /C:"typedMixedAllSource = addAsync(160LL, 1LL)" release\tmp\cgen_task_api.c >nul
@@ -12401,6 +13760,81 @@ if errorlevel 1 (
     echo cgen_task_api.c should pass named null cancel future as borrowed.
     exit /b 1
 )
+findstr /C:"missingCancelStringFuture = 0;" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing string null cancel future fixture.
+    exit /b 1
+)
+findstr /C:"cancelMissingString = xl6_task_cancel_value(missingCancelStringFuture, 0)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should pass string null cancel future as borrowed.
+    exit /b 1
+)
+findstr /C:"expect_i64(cancelMissingString, 0LL)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing string null cancel assertion.
+    exit /b 1
+)
+findstr /C:"missingCancelBoolFuture = 0;" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing bool null cancel future fixture.
+    exit /b 1
+)
+findstr /C:"cancelMissingBool = xl6_task_cancel_value(missingCancelBoolFuture, 0)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should pass bool null cancel future as borrowed.
+    exit /b 1
+)
+findstr /C:"expect_i64(cancelMissingBool, 0LL)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing bool null cancel assertion.
+    exit /b 1
+)
+findstr /C:"missingCancelFloatFuture = 0;" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing float null cancel future fixture.
+    exit /b 1
+)
+findstr /C:"cancelMissingFloat = xl6_task_cancel_value(missingCancelFloatFuture, 0)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should pass float null cancel future as borrowed.
+    exit /b 1
+)
+findstr /C:"expect_i64(cancelMissingFloat, 0LL)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing float null cancel assertion.
+    exit /b 1
+)
+findstr /C:"missingCancelTaskBoxFuture = 0;" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing class null cancel future fixture.
+    exit /b 1
+)
+findstr /C:"cancelMissingTaskBox = xl6_task_cancel_value(missingCancelTaskBoxFuture, 0)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should pass class null cancel future as borrowed.
+    exit /b 1
+)
+findstr /C:"expect_i64(cancelMissingTaskBox, 0LL)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing class null cancel assertion.
+    exit /b 1
+)
+findstr /C:"missingCancelTaskFuncFuture = 0;" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing function null cancel future fixture.
+    exit /b 1
+)
+findstr /C:"cancelMissingTaskFunc = xl6_task_cancel_value(missingCancelTaskFuncFuture, 0)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should pass function null cancel future as borrowed.
+    exit /b 1
+)
+findstr /C:"expect_i64(cancelMissingTaskFunc, 0LL)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing function null cancel assertion.
+    exit /b 1
+)
 findstr /C:"if ( !xl6_error_has() )" release\tmp\cgen_task_api.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing await null-future error preservation guard.
@@ -12412,6 +13846,14 @@ if errorlevel 1 exit /b 1
 
 release\tmp\cgen_task_api.exe
 if errorlevel 1 exit /b 1
+
+for /L %%I in (1,1,1) do (
+    release\tmp\cgen_task_api.exe
+    if errorlevel 1 (
+        echo cgen_task_api.exe repeat run %%I failed.
+        exit /b 1
+    )
+)
 
 release\xl.exe check test\cases\cgen_task_spawn.xl
 if errorlevel 1 exit /b 1
@@ -12632,6 +14074,181 @@ if errorlevel 1 (
 findstr /C:"xvoCreateInt((long long)(150LL)), xvoCreateInt((long long)(1LL))), 1, missingSpawnFuture, 0" release\tmp\cgen_task_spawn.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c should pass owned task.spawn then borrowed null source to task.race.
+    exit /b 1
+)
+findstr /C:"nullFirstSpawnAll = xl6_future_await_handle_release(xl6_task_all_values(xrtTypeInt()" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing null-first task.all fixture over owned task.spawn.
+    exit /b 1
+)
+findstr /C:"missingSpawnFuture, 0, xl6_task_spawn_values(addJob, xrtTypeInt(), sizeof(long long)" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c should pass borrowed null source before owned task.spawn to task.all/race.
+    exit /b 1
+)
+findstr /C:"xvoCreateInt((long long)(160LL)), xvoCreateInt((long long)(1LL))), 1" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing owned task.spawn source after null source for task.all.
+    exit /b 1
+)
+findstr /C:"nullFirstSpawnRace = xl6_future_await_i64_release(xl6_task_race_values" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing null-first task.race fixture over owned task.spawn.
+    exit /b 1
+)
+findstr /C:"xvoCreateInt((long long)(170LL)), xvoCreateInt((long long)(1LL))), 1" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing owned task.spawn source after null source for task.race.
+    exit /b 1
+)
+findstr /C:"nullFirstSpawnAllState == 42LL" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing null-first task.all assertion over task.spawn.
+    exit /b 1
+)
+findstr /C:"nullFirstSpawnRaceState == 42LL" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing null-first task.race assertion over task.spawn.
+    exit /b 1
+)
+findstr /C:"xfuture* missingSpawnStringFuture = 0;" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing string null task.spawn aggregation source fixture.
+    exit /b 1
+)
+findstr /C:"nullSpawnStringAll = xl6_future_await_handle_release(xl6_task_all_values(xrtTypeString()" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing string task.all null source fixture over task.spawn.
+    exit /b 1
+)
+findstr /C:"xl6_task_spawn_values(greetJob, xrtTypeString(), sizeof(const char*)" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing owned string task.spawn source for null aggregation fixture.
+    exit /b 1
+)
+findstr /C:"missingSpawnStringFuture, 0" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c should pass borrowed string null source to task aggregation.
+    exit /b 1
+)
+findstr /C:"nullSpawnStringRace = xl6_future_await_cstr_release(xl6_task_race_values" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing string task.race null source fixture over task.spawn.
+    exit /b 1
+)
+findstr /C:"nullSpawnStringAllState == 42LL" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing string task.all null source assertion.
+    exit /b 1
+)
+findstr /C:"nullSpawnStringRaceState == 42LL" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing string task.race null source assertion.
+    exit /b 1
+)
+findstr /C:"nullFirstSpawnStringAll = xl6_future_await_handle_release(xl6_task_all_values(xrtTypeString()" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing string null-first task.all fixture over owned task.spawn.
+    exit /b 1
+)
+findstr /C:"missingSpawnStringFuture, 0, xl6_task_spawn_values(greetJob, xrtTypeString(), sizeof(const char*)" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c should pass borrowed string null source before owned task.spawn.
+    exit /b 1
+)
+findstr /C:"null-first-all" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing owned string task.spawn source after null source for task.all.
+    exit /b 1
+)
+findstr /C:"nullFirstSpawnStringRace = xl6_future_await_cstr_release(xl6_task_race_values" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing string null-first task.race fixture over owned task.spawn.
+    exit /b 1
+)
+findstr /C:"null-first-race" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing owned string task.spawn source after null source for task.race.
+    exit /b 1
+)
+findstr /C:"nullFirstSpawnStringAllState == 42LL" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing string null-first task.all assertion over task.spawn.
+    exit /b 1
+)
+findstr /C:"nullFirstSpawnStringRaceState == 42LL" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing string null-first task.race assertion over task.spawn.
+    exit /b 1
+)
+findstr /C:"xfuture* missingSpawnBoolFuture = 0;" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing bool null task.spawn aggregation source fixture.
+    exit /b 1
+)
+findstr /C:"nullSpawnBoolAll = xl6_future_await_handle_release(xl6_task_all_values(xrtTypeBool()" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing bool task.all null source fixture over task.spawn.
+    exit /b 1
+)
+findstr /C:"xl6_task_spawn_values(flipJob, xrtTypeBool(), sizeof(int)" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing owned bool task.spawn source for null aggregation fixture.
+    exit /b 1
+)
+findstr /C:"missingSpawnBoolFuture, 0" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c should pass borrowed bool null source to task aggregation.
+    exit /b 1
+)
+findstr /C:"nullSpawnBoolRace = xl6_future_await_i32_release(xl6_task_race_values" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing bool task.race null source fixture over task.spawn.
+    exit /b 1
+)
+findstr /C:"nullSpawnBoolAllState == 42LL" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing bool task.all null source assertion.
+    exit /b 1
+)
+findstr /C:"nullSpawnBoolRaceState == 42LL" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing bool task.race null source assertion.
+    exit /b 1
+)
+findstr /C:"xfuture* missingSpawnFloatFuture = 0;" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing float null task.spawn aggregation source fixture.
+    exit /b 1
+)
+findstr /C:"nullSpawnFloatAll = xl6_future_await_handle_release(xl6_task_all_values(xrtTypeFloat()" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing float task.all null source fixture over task.spawn.
+    exit /b 1
+)
+findstr /C:"xl6_task_spawn_values(halfJob, xrtTypeFloat(), sizeof(double)" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing owned float task.spawn source for null aggregation fixture.
+    exit /b 1
+)
+findstr /C:"missingSpawnFloatFuture, 0" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c should pass borrowed float null source to task aggregation.
+    exit /b 1
+)
+findstr /C:"nullSpawnFloatRace = xl6_future_await_f64_release(xl6_task_race_values" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing float task.race null source fixture over task.spawn.
+    exit /b 1
+)
+findstr /C:"nullSpawnFloatAllState == 42LL" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing float task.all null source assertion.
+    exit /b 1
+)
+findstr /C:"nullSpawnFloatRaceState == 42LL" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing float task.race null source assertion.
     exit /b 1
 )
 findstr /C:"failedStringValue = xl6_future_await_cstr_release(xl6_task_spawn_values(throwingStringJob" release\tmp\cgen_task_spawn.c >nul
@@ -12882,6 +14499,21 @@ if errorlevel 1 (
 powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'variadicDefaultExtraValue\s*=\s*xl6_future_await_i64_release\(xl6_task_spawn_values\(variadicDefaultJob,\s*xrtTypeInt\(\),\s*sizeof\(long long\),\s*\"\",\s*\d+,\s*\d+,\s*2,\s*xvoCreateText\(\(void\*\)\(\"a\"\),\s*0,\s*false\),\s*xvoCreateText\(\(void\*\)\(\"b\"\),\s*0,\s*false\)\)'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_spawn.c missing task.spawn zero-fixed vararg adapter extra argv bridge.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'namedVarArgSpawn\s*=\s*xl6_task_spawn_values\(varArgJob,\s*xrtTypeInt\(\),\s*sizeof\(long long\),\s*\"\",\s*\d+,\s*\d+,\s*1,\s*xl6_xrt_retain\(dynamicSpawnArg\)\)'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing task.spawn var argument retain bridge.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'literalVarArgValue\s*=\s*xl6_future_await_i64_release\(xl6_task_spawn_values\(varArgJob,\s*xrtTypeInt\(\),\s*sizeof\(long long\),\s*\"\",\s*\d+,\s*\d+,\s*1,\s*xvoCreateInt\(\(long long\)\(41LL\)\)'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing task.spawn scalar literal to var argument bridge.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'varStringValue\s*=\s*xl6_future_await_i64_release\(xl6_task_spawn_values\(varStringJob,\s*xrtTypeInt\(\),\s*sizeof\(long long\),\s*\"\",\s*\d+,\s*\d+,\s*1,\s*xl6_xrt_retain\(dynamicStringSpawnArg\)\)'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing task.spawn string var argument retain bridge.
     exit /b 1
 )
 findstr /C:"!xl6_task_cancel_value(repeatedSpawn, 0)" release\tmp\cgen_task_spawn.c >nul
@@ -13149,6 +14781,431 @@ if errorlevel 1 (
     echo cgen_task_spawn.c missing typed-array float task.race over task.spawn futures.
     exit /b 1
 )
+findstr /C:"typedNullFirstSpawnAllJobs = xrtTypedArrayCreate(xrtTypeFuture(), XRT_OBJMODE_LOCAL);" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing typed-array null-first int task.all source array over task.spawn futures.
+    exit /b 1
+)
+findstr /C:"xvoCreateInt((long long)(180LL)), xvoCreateInt((long long)(1LL))" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing typed-array null-first int task.all task.spawn source.
+    exit /b 1
+)
+findstr /C:"typedNullFirstSpawnAll = xl6_future_await_handle_release(xl6_task_all_from_array((xtarray)(typedNullFirstSpawnAllJobs), xrtTypeInt()" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing typed-array null-first int task.all await over task.spawn futures.
+    exit /b 1
+)
+findstr /C:"xrtTypedArrayDestroy(typedNullFirstSpawnAllJobs);" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing cleanup for typed-array null-first int task.all jobs.
+    exit /b 1
+)
+findstr /C:"typedNullFirstSpawnAllState == 42LL" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing assertion for typed-array null-first int task.all error path.
+    exit /b 1
+)
+findstr /C:"typedNullFirstSpawnAllTail = (*(long long*)xl6_future_await_value((*(xfuture**)xl6_xrt_typed_require_item(xl6_xrt_typed_array_get_at(typedNullFirstSpawnAllJobs, (unsigned int)(1LL))))" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing tail await for typed-array null-first int task.all source.
+    exit /b 1
+)
+findstr /C:"typedNullFirstSpawnAllTail == 181LL" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing tail assertion for typed-array null-first int task.all source.
+    exit /b 1
+)
+findstr /C:"typedNullFirstSpawnRaceJobs = xrtTypedArrayCreate(xrtTypeFuture(), XRT_OBJMODE_LOCAL);" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing typed-array null-first int task.race source array over task.spawn futures.
+    exit /b 1
+)
+findstr /C:"xvoCreateInt((long long)(190LL)), xvoCreateInt((long long)(1LL))" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing typed-array null-first int task.race task.spawn source.
+    exit /b 1
+)
+findstr /C:"typedNullFirstSpawnRace = xl6_future_await_i64_release(xl6_task_race_from_array((xtarray)(typedNullFirstSpawnRaceJobs)" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing typed-array null-first int task.race await over task.spawn futures.
+    exit /b 1
+)
+findstr /C:"xrtTypedArrayDestroy(typedNullFirstSpawnRaceJobs);" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing cleanup for typed-array null-first int task.race jobs.
+    exit /b 1
+)
+findstr /C:"typedNullFirstSpawnRaceState == 42LL" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing assertion for typed-array null-first int task.race error path.
+    exit /b 1
+)
+findstr /C:"typedNullFirstSpawnRaceTail = (*(long long*)xl6_future_await_value((*(xfuture**)xl6_xrt_typed_require_item(xl6_xrt_typed_array_get_at(typedNullFirstSpawnRaceJobs, (unsigned int)(1LL))))" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing tail await for typed-array null-first int task.race source.
+    exit /b 1
+)
+findstr /C:"typedNullFirstSpawnRaceTail == 191LL" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing tail assertion for typed-array null-first int task.race source.
+    exit /b 1
+)
+findstr /C:"typedNullFirstSpawnStringAllJobs = xrtTypedArrayCreate(xrtTypeFuture(), XRT_OBJMODE_LOCAL);" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing typed-array null-first string task.all source array over task.spawn futures.
+    exit /b 1
+)
+findstr /C:"xl6_task_spawn_values(greetJob, xrtTypeString(), sizeof(const char*)" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing typed-array null-first string task.spawn source.
+    exit /b 1
+)
+findstr /C:"typed-null-first-all" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing typed-array null-first string task.all payload.
+    exit /b 1
+)
+findstr /C:"typedNullFirstSpawnStringAll = xl6_future_await_handle_release(xl6_task_all_from_array((xtarray)(typedNullFirstSpawnStringAllJobs), xrtTypeString()" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing typed-array null-first string task.all await over task.spawn futures.
+    exit /b 1
+)
+findstr /C:"xrtTypedArrayDestroy(typedNullFirstSpawnStringAllJobs);" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing cleanup for typed-array null-first string task.all jobs.
+    exit /b 1
+)
+findstr /C:"typedNullFirstSpawnStringAllState == 42LL" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing assertion for typed-array null-first string task.all error path.
+    exit /b 1
+)
+findstr /C:"typedNullFirstSpawnStringAllTail = xl6_future_await_cstr_copy((*(xfuture**)xl6_xrt_typed_require_item(xl6_xrt_typed_array_get_at(typedNullFirstSpawnStringAllJobs, (unsigned int)(1LL))))" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing tail await for typed-array null-first string task.all source.
+    exit /b 1
+)
+findstr /C:"typed array string task.all null-first should leave task.spawn source awaitable" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing tail assertion for typed-array null-first string task.all source.
+    exit /b 1
+)
+findstr /C:"typedNullFirstSpawnStringRaceJobs = xrtTypedArrayCreate(xrtTypeFuture(), XRT_OBJMODE_LOCAL);" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing typed-array null-first string task.race source array over task.spawn futures.
+    exit /b 1
+)
+findstr /C:"typed-null-first-race" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing typed-array null-first string task.race payload.
+    exit /b 1
+)
+findstr /C:"typedNullFirstSpawnStringRace = xl6_future_await_cstr_release(xl6_task_race_from_array((xtarray)(typedNullFirstSpawnStringRaceJobs)" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing typed-array null-first string task.race await over task.spawn futures.
+    exit /b 1
+)
+findstr /C:"xrtTypedArrayDestroy(typedNullFirstSpawnStringRaceJobs);" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing cleanup for typed-array null-first string task.race jobs.
+    exit /b 1
+)
+findstr /C:"typedNullFirstSpawnStringRaceState == 42LL" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing assertion for typed-array null-first string task.race error path.
+    exit /b 1
+)
+findstr /C:"typedNullFirstSpawnStringRaceTail = xl6_future_await_cstr_copy((*(xfuture**)xl6_xrt_typed_require_item(xl6_xrt_typed_array_get_at(typedNullFirstSpawnStringRaceJobs, (unsigned int)(1LL))))" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing tail await for typed-array null-first string task.race source.
+    exit /b 1
+)
+findstr /C:"typed array string task.race null-first should leave task.spawn source awaitable" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing tail assertion for typed-array null-first string task.race source.
+    exit /b 1
+)
+findstr /C:"typedNullFirstSpawnBoolAllJobs = xrtTypedArrayCreate(xrtTypeFuture(), XRT_OBJMODE_LOCAL);" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing typed-array null-first bool task.all source array over task.spawn futures.
+    exit /b 1
+)
+findstr /C:"typedNullFirstSpawnBoolAll = xl6_future_await_handle_release(xl6_task_all_from_array((xtarray)(typedNullFirstSpawnBoolAllJobs), xrtTypeBool()" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing typed-array null-first bool task.all await over task.spawn futures.
+    exit /b 1
+)
+findstr /C:"xrtTypedArrayDestroy(typedNullFirstSpawnBoolAllJobs);" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing cleanup for typed-array null-first bool task.all jobs.
+    exit /b 1
+)
+findstr /C:"typedNullFirstSpawnBoolAllState == 42LL" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing assertion for typed-array null-first bool task.all error path.
+    exit /b 1
+)
+findstr /C:"typedNullFirstSpawnBoolAllTail = (*(int*)xl6_future_await_value((*(xfuture**)xl6_xrt_typed_require_item(xl6_xrt_typed_array_get_at(typedNullFirstSpawnBoolAllJobs, (unsigned int)(1LL))))" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing tail await for typed-array null-first bool task.all source.
+    exit /b 1
+)
+findstr /C:"typed array bool task.all null-first should leave task.spawn source awaitable" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing tail assertion for typed-array null-first bool task.all source.
+    exit /b 1
+)
+findstr /C:"typedNullFirstSpawnBoolRaceJobs = xrtTypedArrayCreate(xrtTypeFuture(), XRT_OBJMODE_LOCAL);" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing typed-array null-first bool task.race source array over task.spawn futures.
+    exit /b 1
+)
+findstr /C:"typedNullFirstSpawnBoolRace = xl6_future_await_i32_release(xl6_task_race_from_array((xtarray)(typedNullFirstSpawnBoolRaceJobs)" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing typed-array null-first bool task.race await over task.spawn futures.
+    exit /b 1
+)
+findstr /C:"xrtTypedArrayDestroy(typedNullFirstSpawnBoolRaceJobs);" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing cleanup for typed-array null-first bool task.race jobs.
+    exit /b 1
+)
+findstr /C:"typedNullFirstSpawnBoolRaceState == 42LL" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing assertion for typed-array null-first bool task.race error path.
+    exit /b 1
+)
+findstr /C:"typedNullFirstSpawnBoolRaceTail = (*(int*)xl6_future_await_value((*(xfuture**)xl6_xrt_typed_require_item(xl6_xrt_typed_array_get_at(typedNullFirstSpawnBoolRaceJobs, (unsigned int)(1LL))))" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing tail await for typed-array null-first bool task.race source.
+    exit /b 1
+)
+findstr /C:"typed array bool task.race null-first should leave task.spawn source awaitable" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing tail assertion for typed-array null-first bool task.race source.
+    exit /b 1
+)
+findstr /C:"typedNullFirstSpawnFloatAllJobs = xrtTypedArrayCreate(xrtTypeFuture(), XRT_OBJMODE_LOCAL);" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing typed-array null-first float task.all source array over task.spawn futures.
+    exit /b 1
+)
+findstr /C:"typedNullFirstSpawnFloatAll = xl6_future_await_handle_release(xl6_task_all_from_array((xtarray)(typedNullFirstSpawnFloatAllJobs), xrtTypeFloat()" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing typed-array null-first float task.all await over task.spawn futures.
+    exit /b 1
+)
+findstr /C:"xrtTypedArrayDestroy(typedNullFirstSpawnFloatAllJobs);" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing cleanup for typed-array null-first float task.all jobs.
+    exit /b 1
+)
+findstr /C:"typedNullFirstSpawnFloatAllState == 42LL" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing assertion for typed-array null-first float task.all error path.
+    exit /b 1
+)
+findstr /C:"typedNullFirstSpawnFloatAllTail = (*(double*)xl6_future_await_value((*(xfuture**)xl6_xrt_typed_require_item(xl6_xrt_typed_array_get_at(typedNullFirstSpawnFloatAllJobs, (unsigned int)(1LL))))" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing tail await for typed-array null-first float task.all source.
+    exit /b 1
+)
+findstr /C:"typed array float task.all null-first should leave task.spawn source awaitable" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing tail assertion for typed-array null-first float task.all source.
+    exit /b 1
+)
+findstr /C:"typedNullFirstSpawnFloatRaceJobs = xrtTypedArrayCreate(xrtTypeFuture(), XRT_OBJMODE_LOCAL);" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing typed-array null-first float task.race source array over task.spawn futures.
+    exit /b 1
+)
+findstr /C:"typedNullFirstSpawnFloatRace = xl6_future_await_f64_release(xl6_task_race_from_array((xtarray)(typedNullFirstSpawnFloatRaceJobs)" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing typed-array null-first float task.race await over task.spawn futures.
+    exit /b 1
+)
+findstr /C:"xrtTypedArrayDestroy(typedNullFirstSpawnFloatRaceJobs);" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing cleanup for typed-array null-first float task.race jobs.
+    exit /b 1
+)
+findstr /C:"typedNullFirstSpawnFloatRaceState == 42LL" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing assertion for typed-array null-first float task.race error path.
+    exit /b 1
+)
+findstr /C:"typedNullFirstSpawnFloatRaceTail = (*(double*)xl6_future_await_value((*(xfuture**)xl6_xrt_typed_require_item(xl6_xrt_typed_array_get_at(typedNullFirstSpawnFloatRaceJobs, (unsigned int)(1LL))))" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing tail await for typed-array null-first float task.race source.
+    exit /b 1
+)
+findstr /C:"typed array float task.race null-first should leave task.spawn source awaitable" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing tail assertion for typed-array null-first float task.race source.
+    exit /b 1
+)
+findstr /C:"spawnIntAllCompletedFuture = xl6_task_all_from_array((xtarray)(spawnIntAllCompletedJobs), xrtTypeInt()" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing typed-array completed int task.all over task.spawn futures.
+    exit /b 1
+)
+findstr /C:"spawnIntAllCompletedB = xl6_xrt_typed_array_copy_mode(xrtTypeInt(), (*(xtarray*)xl6_future_await_value(spawnIntAllCompletedFuture" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing repeated await for typed-array completed int task.all over task.spawn futures.
+    exit /b 1
+)
+findstr /C:"xl6_task_cancel_value(spawnIntAllCompletedFuture, 0)" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c should cancel typed-array completed int task.all over task.spawn futures as borrowed.
+    exit /b 1
+)
+findstr /C:"postCancelSpawnIntAllCompleted = xl6_xrt_typed_array_copy_mode(xrtTypeInt(), (*(xtarray*)xl6_future_await_value(spawnIntAllCompletedFuture" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c should keep typed-array completed int task.all over task.spawn futures awaitable after cancel.
+    exit /b 1
+)
+findstr /C:"spawnIntRaceCompletedFuture = xl6_task_race_from_array((xtarray)(spawnIntRaceCompletedJobs)" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing typed-array completed int task.race over task.spawn futures.
+    exit /b 1
+)
+findstr /C:"spawnIntRaceCompletedB = (*(long long*)xl6_future_await_value(spawnIntRaceCompletedFuture" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing repeated await for typed-array completed int task.race over task.spawn futures.
+    exit /b 1
+)
+findstr /C:"xl6_task_cancel_value(spawnIntRaceCompletedFuture, 0)" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c should cancel typed-array completed int task.race over task.spawn futures as borrowed.
+    exit /b 1
+)
+findstr /C:"postCancelSpawnIntRaceCompleted = (*(long long*)xl6_future_await_value(spawnIntRaceCompletedFuture" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c should keep typed-array completed int task.race over task.spawn futures awaitable after cancel.
+    exit /b 1
+)
+findstr /C:"spawnStringAllCompletedFuture = xl6_task_all_from_array((xtarray)(spawnStringAllCompletedJobs), xrtTypeString()" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing typed-array completed string task.all over task.spawn futures.
+    exit /b 1
+)
+findstr /C:"spawnStringAllCompletedB = xl6_xrt_typed_array_copy_mode(xrtTypeString(), (*(xtarray*)xl6_future_await_value(spawnStringAllCompletedFuture" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing repeated await for typed-array completed string task.all over task.spawn futures.
+    exit /b 1
+)
+findstr /C:"xl6_task_cancel_value(spawnStringAllCompletedFuture, 0)" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c should cancel typed-array completed string task.all over task.spawn futures as borrowed.
+    exit /b 1
+)
+findstr /C:"postCancelSpawnStringAllCompleted = xl6_xrt_typed_array_copy_mode(xrtTypeString(), (*(xtarray*)xl6_future_await_value(spawnStringAllCompletedFuture" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c should keep typed-array completed string task.all over task.spawn futures awaitable after cancel.
+    exit /b 1
+)
+findstr /C:"spawnStringRaceCompletedFuture = xl6_task_race_from_array((xtarray)(spawnStringRaceCompletedJobs)" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing typed-array completed string task.race over task.spawn futures.
+    exit /b 1
+)
+findstr /C:"spawnStringRaceCompletedB = xl6_future_await_cstr_copy(spawnStringRaceCompletedFuture" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing repeated await for typed-array completed string task.race over task.spawn futures.
+    exit /b 1
+)
+findstr /C:"xl6_task_cancel_value(spawnStringRaceCompletedFuture, 0)" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c should cancel typed-array completed string task.race over task.spawn futures as borrowed.
+    exit /b 1
+)
+findstr /C:"postCancelSpawnStringRaceCompleted = xl6_future_await_cstr_copy(spawnStringRaceCompletedFuture" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c should keep typed-array completed string task.race over task.spawn futures awaitable after cancel.
+    exit /b 1
+)
+findstr /C:"spawnBoolAllCompletedFuture = xl6_task_all_from_array((xtarray)(spawnBoolAllCompletedJobs), xrtTypeBool()" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing typed-array completed bool task.all over task.spawn futures.
+    exit /b 1
+)
+findstr /C:"spawnBoolAllCompletedB = xl6_xrt_typed_array_copy_mode(xrtTypeBool(), (*(xtarray*)xl6_future_await_value(spawnBoolAllCompletedFuture" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing repeated await for typed-array completed bool task.all over task.spawn futures.
+    exit /b 1
+)
+findstr /C:"xl6_task_cancel_value(spawnBoolAllCompletedFuture, 0)" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c should cancel typed-array completed bool task.all over task.spawn futures as borrowed.
+    exit /b 1
+)
+findstr /C:"postCancelSpawnBoolAllCompleted = xl6_xrt_typed_array_copy_mode(xrtTypeBool(), (*(xtarray*)xl6_future_await_value(spawnBoolAllCompletedFuture" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c should keep typed-array completed bool task.all over task.spawn futures awaitable after cancel.
+    exit /b 1
+)
+findstr /C:"spawnBoolRaceCompletedFuture = xl6_task_race_from_array((xtarray)(spawnBoolRaceCompletedJobs)" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing typed-array completed bool task.race over task.spawn futures.
+    exit /b 1
+)
+findstr /C:"spawnBoolRaceCompletedB = (*(int*)xl6_future_await_value(spawnBoolRaceCompletedFuture" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing repeated await for typed-array completed bool task.race over task.spawn futures.
+    exit /b 1
+)
+findstr /C:"xl6_task_cancel_value(spawnBoolRaceCompletedFuture, 0)" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c should cancel typed-array completed bool task.race over task.spawn futures as borrowed.
+    exit /b 1
+)
+findstr /C:"postCancelSpawnBoolRaceCompleted = (*(int*)xl6_future_await_value(spawnBoolRaceCompletedFuture" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c should keep typed-array completed bool task.race over task.spawn futures awaitable after cancel.
+    exit /b 1
+)
+findstr /C:"spawnFloatAllCompletedFuture = xl6_task_all_from_array((xtarray)(spawnFloatAllCompletedJobs), xrtTypeFloat()" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing typed-array completed float task.all over task.spawn futures.
+    exit /b 1
+)
+findstr /C:"spawnFloatAllCompletedB = xl6_xrt_typed_array_copy_mode(xrtTypeFloat(), (*(xtarray*)xl6_future_await_value(spawnFloatAllCompletedFuture" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing repeated await for typed-array completed float task.all over task.spawn futures.
+    exit /b 1
+)
+findstr /C:"xl6_task_cancel_value(spawnFloatAllCompletedFuture, 0)" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c should cancel typed-array completed float task.all over task.spawn futures as borrowed.
+    exit /b 1
+)
+findstr /C:"postCancelSpawnFloatAllCompleted = xl6_xrt_typed_array_copy_mode(xrtTypeFloat(), (*(xtarray*)xl6_future_await_value(spawnFloatAllCompletedFuture" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c should keep typed-array completed float task.all over task.spawn futures awaitable after cancel.
+    exit /b 1
+)
+findstr /C:"spawnFloatRaceCompletedFuture = xl6_task_race_from_array((xtarray)(spawnFloatRaceCompletedJobs)" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing typed-array completed float task.race over task.spawn futures.
+    exit /b 1
+)
+findstr /C:"spawnFloatRaceCompletedB = (*(double*)xl6_future_await_value(spawnFloatRaceCompletedFuture" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing repeated await for typed-array completed float task.race over task.spawn futures.
+    exit /b 1
+)
+findstr /C:"xl6_task_cancel_value(spawnFloatRaceCompletedFuture, 0)" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c should cancel typed-array completed float task.race over task.spawn futures as borrowed.
+    exit /b 1
+)
+findstr /C:"postCancelSpawnFloatRaceCompleted = (*(double*)xl6_future_await_value(spawnFloatRaceCompletedFuture" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c should keep typed-array completed float task.race over task.spawn futures awaitable after cancel.
+    exit /b 1
+)
 findstr /C:"failedStringSpawnTypedAll = xl6_future_await_handle_release(xl6_task_all_from_array((xtarray)(failedStringSpawnAllJobs), xrtTypeString()" release\tmp\cgen_task_spawn.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing failed typed-array string task.all over task.spawn futures.
@@ -13244,6 +15301,86 @@ if errorlevel 1 (
     echo cgen_task_spawn.c should cancel typed-array float task.race over task.spawn futures as owned.
     exit /b 1
 )
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'conditionalVarArgValue\s*=\s*xl6_future_await_i64_release\(xl6_task_spawn_values\(varArgJob,[\s\S]*?__xl6_task_arg_'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing lowered conditional var task.spawn argument.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'binaryVarArgValue\s*=\s*xl6_future_await_i64_release\(xl6_task_spawn_values\(varArgJob,[\s\S]*?__xl6_task_arg_'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing lowered binary var task.spawn argument.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'nullCoalesceVarArgValue\s*=\s*xl6_future_await_i64_release\(xl6_task_spawn_values\(varArgJob,[\s\S]*?__xl6_task_arg_'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing lowered null-coalesce var task.spawn argument.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'nestedCallArgValue\s*=\s*scoreSpawnResult\(xl6_future_await_i64_release\(xl6_task_spawn_values\(varArgJob,[\s\S]*?__xl6_task_arg_'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing lowered positional call-argument task.spawn argument.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'nestedNamedCallArgValue\s*=\s*combineSpawnResult\(1LL,\s*xl6_future_await_i64_release\(xl6_task_spawn_values\(varArgJob,[\s\S]*?__xl6_task_arg_'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing lowered named call-argument task.spawn argument.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'conditionDynamicSpawnCount[\s\S]*?__xl6_task_arg_[\s\S]*?if \(\(xl6_future_await_i64_release\(xl6_task_spawn_values\(varArgJob,'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing lowered if-condition task.spawn argument.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'whileDynamicSpawnCount[\s\S]*?while \(1\)[\s\S]*?__xl6_task_arg_[\s\S]*?if \(!\(xl6_future_await_i64_release\(xl6_task_spawn_values\(varArgJob,'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing lowered while-condition task.spawn argument.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'doDynamicSpawnCount[\s\S]*?while \(1\)[\s\S]*?__xl6_task_arg_[\s\S]*?if \(!\(\(doDynamicSpawnCount < 2LL\) && \(xl6_future_await_i64_release\(xl6_task_spawn_values\(varArgJob,'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing lowered do-while-condition task.spawn argument.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'variadicExprTailValue\s*=\s*xl6_future_await_i64_release\(xl6_task_spawn_values\(variadicDefaultJob,[\s\S]*?__xl6_task_arg_'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing lowered array-vararg task.spawn tail argument.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'spawnCancelReturnDynamic[\s\S]*?__xl6_task_arg_[\s\S]*?xl6_task_cancel_value\(xl6_task_spawn_values\(job,'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing lowered return-statement task.spawn argument.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'assignedDynamicSpawn\s*=\s*xl6_task_spawn_values\(varArgJob,[\s\S]*?__xl6_task_arg_'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing lowered assignment task.spawn argument.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'xl6_task_cancel_value\(xl6_task_spawn_values\(varArgJob,[\s\S]*?__xl6_task_arg_'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing lowered expression-statement task.spawn argument.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'typedDynamicSpawnAllJobs[\s\S]*?__xl6_task_arg_[\s\S]*?xrtTypedArrayAppend\(typedDynamicSpawnAllJobs'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing lowered typed-array task.all task.spawn argument.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'typedDynamicSpawnRaceJobs[\s\S]*?__xl6_task_arg_[\s\S]*?xrtTypedArrayAppend\(typedDynamicSpawnRaceJobs'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing lowered typed-array task.race task.spawn argument.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); $idx=$text.IndexOf('xl_async_worker_makeTypedDynamicSpawnAllValues'); if($idx -lt 0){exit 1}; $slice=$text.Substring($idx,[Math]::Min(6000,$text.Length-$idx)); if($slice -notmatch '__xl6_task_arg_' -or $slice -notmatch 'xrtTypedArrayAppendValue\(__xl6_async_return_'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing lowered async typed-array return task.spawn arguments.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); $idx=$text.IndexOf('xl_async_worker_makeTypedDynamicSpawnAwaitValues'); if($idx -lt 0){exit 1}; $slice=$text.Substring($idx,[Math]::Min(5000,$text.Length-$idx)); if($slice -notmatch '__xl6_task_arg_' -or $slice -notmatch 'xrtTypedArrayAppendValue\(__xl6_async_return_'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing lowered async typed-array return awaited task.spawn argument.
+    exit /b 1
+)
 findstr /C:"XL6_Function __xl6_task_fn_" release\tmp\cgen_task_spawn.c >nul
 if not errorlevel 1 (
     echo cgen_task_spawn.c should not emit task.spawn statement-expression temporaries.
@@ -13259,12 +15396,30 @@ if errorlevel 1 (
     echo cgen_task_spawn.c missing task.spawn future error propagation.
     exit /b 1
 )
+findstr /C:"static xl6_win_tls_dword xl6__active_error_tls_index = XL6_WIN_TLS_OUT_OF_INDEXES;" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c should allocate Windows TLS for active error state.
+    exit /b 1
+)
+findstr /C:"return xl6_error_active_get() != 0;" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c should read active error state through TLS accessor.
+    exit /b 1
+)
 
 release\xl.exe build test\cases\cgen_task_spawn.xl -o release\tmp\cgen_task_spawn.exe
 if errorlevel 1 exit /b 1
 
 release\tmp\cgen_task_spawn.exe
 if errorlevel 1 exit /b 1
+
+for /L %%I in (1,1,3) do (
+    release\tmp\cgen_task_spawn.exe
+    if errorlevel 1 (
+        echo cgen_task_spawn.exe repeat run %%I failed.
+        exit /b 1
+    )
+)
 
 release\xl.exe check test\cases\cgen_async_exception_propagation.xl
 if errorlevel 1 exit /b 1
@@ -13277,6 +15432,14 @@ if errorlevel 1 exit /b 1
 
 release\tmp\cgen_async_exception_propagation.exe
 if errorlevel 1 exit /b 1
+
+for /L %%I in (1,1,5) do (
+    release\tmp\cgen_async_exception_propagation.exe
+    if errorlevel 1 (
+        echo cgen_async_exception_propagation.exe repeat run %%I failed.
+        exit /b 1
+    )
+)
 
 release\xl.exe cgen test\cases\cgen_async_exception_propagation.xl --emit release\tmp\cgen_async_exception_propagation.c
 if errorlevel 1 exit /b 1
@@ -13704,6 +15867,50 @@ if errorlevel 1 (
     exit /b 1
 )
 
+release\xl.exe check test\cases\sem_task_all_return_typed_array.xl >nul 2> release\tmp\sem_task_all_return_typed_array.err.txt
+if not errorlevel 1 (
+    echo sem_task_all_return_typed_array.xl should fail.
+    exit /b 1
+)
+findstr /C:"future<array/list/set/dict>" release\tmp\sem_task_all_return_typed_array.err.txt >nul
+if errorlevel 1 (
+    echo sem_task_all_return_typed_array.xl missing task.all container future diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_task_all_return_typed_list.xl >nul 2> release\tmp\sem_task_all_return_typed_list.err.txt
+if not errorlevel 1 (
+    echo sem_task_all_return_typed_list.xl should fail.
+    exit /b 1
+)
+findstr /C:"future<array/list/set/dict>" release\tmp\sem_task_all_return_typed_list.err.txt >nul
+if errorlevel 1 (
+    echo sem_task_all_return_typed_list.xl missing task.all list future diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_task_all_return_typed_set.xl >nul 2> release\tmp\sem_task_all_return_typed_set.err.txt
+if not errorlevel 1 (
+    echo sem_task_all_return_typed_set.xl should fail.
+    exit /b 1
+)
+findstr /C:"future<array/list/set/dict>" release\tmp\sem_task_all_return_typed_set.err.txt >nul
+if errorlevel 1 (
+    echo sem_task_all_return_typed_set.xl missing task.all set future diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_task_all_return_typed_dict.xl >nul 2> release\tmp\sem_task_all_return_typed_dict.err.txt
+if not errorlevel 1 (
+    echo sem_task_all_return_typed_dict.xl should fail.
+    exit /b 1
+)
+findstr /C:"future<array/list/set/dict>" release\tmp\sem_task_all_return_typed_dict.err.txt >nul
+if errorlevel 1 (
+    echo sem_task_all_return_typed_dict.xl missing task.all dict future diagnostic.
+    exit /b 1
+)
+
 release\xl.exe check test\cases\sem_task_race_empty.xl >nul 2> release\tmp\sem_task_race_empty.err.txt
 if not errorlevel 1 (
     echo sem_task_race_empty.xl should fail.
@@ -13723,6 +15930,61 @@ if not errorlevel 1 (
 findstr /C:"future<var>" release\tmp\sem_task_race_var.err.txt >nul
 if errorlevel 1 (
     echo sem_task_race_var.xl missing task.race future var diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_task_race_return_typed_array.xl >nul 2> release\tmp\sem_task_race_return_typed_array.err.txt
+if not errorlevel 1 (
+    echo sem_task_race_return_typed_array.xl should fail.
+    exit /b 1
+)
+findstr /C:"future<array/list/set/dict>" release\tmp\sem_task_race_return_typed_array.err.txt >nul
+if errorlevel 1 (
+    echo sem_task_race_return_typed_array.xl missing task.race container future diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_task_race_return_typed_list.xl >nul 2> release\tmp\sem_task_race_return_typed_list.err.txt
+if not errorlevel 1 (
+    echo sem_task_race_return_typed_list.xl should fail.
+    exit /b 1
+)
+findstr /C:"future<array/list/set/dict>" release\tmp\sem_task_race_return_typed_list.err.txt >nul
+if errorlevel 1 (
+    echo sem_task_race_return_typed_list.xl missing task.race list future diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_task_race_return_typed_set.xl >nul 2> release\tmp\sem_task_race_return_typed_set.err.txt
+if not errorlevel 1 (
+    echo sem_task_race_return_typed_set.xl should fail.
+    exit /b 1
+)
+findstr /C:"future<array/list/set/dict>" release\tmp\sem_task_race_return_typed_set.err.txt >nul
+if errorlevel 1 (
+    echo sem_task_race_return_typed_set.xl missing task.race set future diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_task_race_return_typed_dict.xl >nul 2> release\tmp\sem_task_race_return_typed_dict.err.txt
+if not errorlevel 1 (
+    echo sem_task_race_return_typed_dict.xl should fail.
+    exit /b 1
+)
+findstr /C:"future<array/list/set/dict>" release\tmp\sem_task_race_return_typed_dict.err.txt >nul
+if errorlevel 1 (
+    echo sem_task_race_return_typed_dict.xl missing task.race dict future diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_task_race_temp_class_await.xl >nul 2> release\tmp\sem_task_race_temp_class_await.err.txt
+if not errorlevel 1 (
+    echo sem_task_race_temp_class_await.xl should fail.
+    exit /b 1
+)
+findstr /C:"temporary await of task.all/task.race class result" release\tmp\sem_task_race_temp_class_await.err.txt >nul
+if errorlevel 1 (
+    echo sem_task_race_temp_class_await.xl missing temporary class race await diagnostic.
     exit /b 1
 )
 
@@ -13814,6 +16076,50 @@ if errorlevel 1 (
     exit /b 1
 )
 
+release\xl.exe check test\cases\sem_task_spawn_return_array.xl >nul 2> release\tmp\sem_task_spawn_return_array.err.txt
+if not errorlevel 1 (
+    echo sem_task_spawn_return_array.xl should fail.
+    exit /b 1
+)
+findstr /C:"task.spawn return type must be supported" release\tmp\sem_task_spawn_return_array.err.txt >nul
+if errorlevel 1 (
+    echo sem_task_spawn_return_array.xl missing task.spawn array return diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_task_spawn_return_list.xl >nul 2> release\tmp\sem_task_spawn_return_list.err.txt
+if not errorlevel 1 (
+    echo sem_task_spawn_return_list.xl should fail.
+    exit /b 1
+)
+findstr /C:"task.spawn return type must be supported" release\tmp\sem_task_spawn_return_list.err.txt >nul
+if errorlevel 1 (
+    echo sem_task_spawn_return_list.xl missing task.spawn list return diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_task_spawn_return_set.xl >nul 2> release\tmp\sem_task_spawn_return_set.err.txt
+if not errorlevel 1 (
+    echo sem_task_spawn_return_set.xl should fail.
+    exit /b 1
+)
+findstr /C:"task.spawn return type must be supported" release\tmp\sem_task_spawn_return_set.err.txt >nul
+if errorlevel 1 (
+    echo sem_task_spawn_return_set.xl missing task.spawn set return diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_task_spawn_return_dict.xl >nul 2> release\tmp\sem_task_spawn_return_dict.err.txt
+if not errorlevel 1 (
+    echo sem_task_spawn_return_dict.xl should fail.
+    exit /b 1
+)
+findstr /C:"task.spawn return type must be supported" release\tmp\sem_task_spawn_return_dict.err.txt >nul
+if errorlevel 1 (
+    echo sem_task_spawn_return_dict.xl missing task.spawn dict return diagnostic.
+    exit /b 1
+)
+
 release\xl.exe check test\cases\sem_task_spawn_return_function.xl >nul 2> release\tmp\sem_task_spawn_return_function.err.txt
 if not errorlevel 1 (
     echo sem_task_spawn_return_function.xl should fail.
@@ -13844,6 +16150,50 @@ if not errorlevel 1 (
 findstr /C:"task.spawn parameter type must be supported" release\tmp\sem_task_spawn_arg_typed_array.err.txt >nul
 if errorlevel 1 (
     echo sem_task_spawn_arg_typed_array.xl missing task.spawn typed array argument diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_task_spawn_arg_array.xl >nul 2> release\tmp\sem_task_spawn_arg_array.err.txt
+if not errorlevel 1 (
+    echo sem_task_spawn_arg_array.xl should fail.
+    exit /b 1
+)
+findstr /C:"task.spawn parameter type must be supported" release\tmp\sem_task_spawn_arg_array.err.txt >nul
+if errorlevel 1 (
+    echo sem_task_spawn_arg_array.xl missing task.spawn array argument diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_task_spawn_arg_list.xl >nul 2> release\tmp\sem_task_spawn_arg_list.err.txt
+if not errorlevel 1 (
+    echo sem_task_spawn_arg_list.xl should fail.
+    exit /b 1
+)
+findstr /C:"task.spawn parameter type must be supported" release\tmp\sem_task_spawn_arg_list.err.txt >nul
+if errorlevel 1 (
+    echo sem_task_spawn_arg_list.xl missing task.spawn list argument diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_task_spawn_arg_set.xl >nul 2> release\tmp\sem_task_spawn_arg_set.err.txt
+if not errorlevel 1 (
+    echo sem_task_spawn_arg_set.xl should fail.
+    exit /b 1
+)
+findstr /C:"task.spawn parameter type must be supported" release\tmp\sem_task_spawn_arg_set.err.txt >nul
+if errorlevel 1 (
+    echo sem_task_spawn_arg_set.xl missing task.spawn set argument diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_task_spawn_arg_dict.xl >nul 2> release\tmp\sem_task_spawn_arg_dict.err.txt
+if not errorlevel 1 (
+    echo sem_task_spawn_arg_dict.xl should fail.
+    exit /b 1
+)
+findstr /C:"task.spawn parameter type must be supported" release\tmp\sem_task_spawn_arg_dict.err.txt >nul
+if errorlevel 1 (
+    echo sem_task_spawn_arg_dict.xl missing task.spawn dict argument diagnostic.
     exit /b 1
 )
 
@@ -13883,6 +16233,14 @@ if errorlevel 1 exit /b 1
 
 release\tmp\cgen_async_generator.exe
 if errorlevel 1 exit /b 1
+
+for /L %%I in (1,1,5) do (
+    release\tmp\cgen_async_generator.exe
+    if errorlevel 1 (
+        echo cgen_async_generator.exe repeat run %%I failed.
+        exit /b 1
+    )
+)
 
 release\xl.exe cgen test\cases\cgen_async_generator.xl --emit release\tmp\cgen_async_generator.c
 if errorlevel 1 exit /b 1
@@ -13956,6 +16314,13 @@ if errorlevel 1 exit /b 1
 
 release\tmp\cgen_generator.exe
 if errorlevel 1 exit /b 1
+for /L %%I in (1,1,5) do (
+    release\tmp\cgen_generator.exe
+    if errorlevel 1 (
+        echo cgen_generator.exe repeat run %%I failed.
+        exit /b 1
+    )
+)
 
 release\xl.exe cgen test\cases\cgen_generator.xl --emit release\tmp\cgen_generator.c
 if errorlevel 1 exit /b 1
@@ -14037,6 +16402,13 @@ if errorlevel 1 exit /b 1
 
 release\tmp\cgen_generator_two_targets.exe
 if errorlevel 1 exit /b 1
+for /L %%I in (1,1,5) do (
+    release\tmp\cgen_generator_two_targets.exe
+    if errorlevel 1 (
+        echo cgen_generator_two_targets.exe repeat run %%I failed.
+        exit /b 1
+    )
+)
 
 release\xl.exe cgen test\cases\cgen_generator_two_targets.xl --emit release\tmp\cgen_generator_two_targets.c
 if errorlevel 1 exit /b 1
@@ -14147,6 +16519,13 @@ if errorlevel 1 exit /b 1
 
 release\tmp\cgen_channel.exe
 if errorlevel 1 exit /b 1
+for /L %%I in (1,1,5) do (
+    release\tmp\cgen_channel.exe
+    if errorlevel 1 (
+        echo cgen_channel.exe repeat run %%I failed.
+        exit /b 1
+    )
+)
 
 release\xl.exe cgen test\cases\cgen_channel.xl --emit release\tmp\cgen_channel.c
 if errorlevel 1 exit /b 1

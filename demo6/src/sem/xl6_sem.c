@@ -957,6 +957,7 @@ static int xl6SemTypeEquals(XL6_SemContext* ctx, const XL6_AstNode* a, const XL6
 static int xl6SemExprCanMatchFunctionType(XL6_SemContext* ctx, const XL6_AstNode* expr, const XL6_AstNode* typeNode);
 static int xl6SemExprCanMatchFunctionTypeEx(XL6_SemContext* ctx, const XL6_AstNode* expr, const XL6_AstNode* typeNode, int reportError);
 static int xl6SemFuncHasVararg(const XL6_AstNode* params);
+static int xl6SemIsContainerBaseTypeName(const char* name);
 static int xl6SemFixedParamCount(const XL6_AstNode* params);
 static int xl6SemParamRequiredCount(const XL6_AstNode* params);
 static XL6_AstNode* xl6SemFindFunctionValueFunc(XL6_SemContext* ctx, const char* name, const XL6_AstNode* functionType, const XL6_AstNode* atNode, int reportError);
@@ -8493,6 +8494,7 @@ static int xl6SemCheckTaskSpawnCall(XL6_SemContext* ctx, XL6_AstNode* node)
     XL6_AstNode* fnType;
     const XL6_AstNode* params;
     const XL6_AstNode* returns;
+    const XL6_AstNode* returnType;
     size_t paramCount;
     size_t requiredCount;
     size_t fixedCount;
@@ -8526,8 +8528,14 @@ static int xl6SemCheckTaskSpawnCall(XL6_SemContext* ctx, XL6_AstNode* node)
         xl6AstFree(fnType);
         return 0;
     }
-    if ( xl6TextEquals(xl6SemResolveAliasType(ctx, returns->children[0]) != NULL ? xl6SemResolveAliasType(ctx, returns->children[0])->text : NULL, "var") ) {
+    returnType = xl6SemResolveAliasType(ctx, returns->children[0]);
+    if ( xl6TextEquals(returnType != NULL ? returnType->text : NULL, "var") ) {
         xl6SemErrorNode(ctx, returns->children[0], "task.spawn return type cannot be var in the first XRT future bridge");
+        xl6AstFree(fnType);
+        return 0;
+    }
+    if ( xl6SemIsContainerBaseTypeName(returnType != NULL ? returnType->text : NULL) ) {
+        xl6SemErrorNode(ctx, returns->children[0], "task.spawn return type must be supported by the current XRT xvalue call bridge");
         xl6AstFree(fnType);
         return 0;
     }
@@ -8560,9 +8568,15 @@ static int xl6SemCheckTaskSpawnCall(XL6_SemContext* ctx, XL6_AstNode* node)
         XL6_AstNode* arg = args->children[i + 1];
         XL6_AstNode* argExpr = arg != NULL && arg->childCount > 0 ? arg->children[0] : NULL;
         const XL6_AstNode* paramType = i < fixedCount ? params->children[i] : NULL;
+        const XL6_AstNode* concreteParamType = paramType != NULL ? xl6SemResolveAliasType(ctx, paramType) : NULL;
 
         if ( xl6SemExprIsMultiReturnCall(ctx, argExpr) ) {
             xl6SemErrorNode(ctx, argExpr, "multi-return call cannot be passed as one task.spawn argument");
+            ok = 0;
+            continue;
+        }
+        if ( concreteParamType != NULL && xl6SemIsContainerBaseTypeName(concreteParamType->text) ) {
+            xl6SemErrorNode(ctx, paramType, "task.spawn parameter type must be supported by the current XRT xvalue call bridge");
             ok = 0;
             continue;
         }
@@ -8634,6 +8648,11 @@ static int xl6SemCheckTaskCall(XL6_SemContext* ctx, XL6_AstNode* node)
     concreteType = xl6SemResolveAliasType(ctx, valueType);
     if ( concreteType != NULL && xl6TextEquals(concreteType->text, "var") ) {
         xl6SemErrorNode(ctx, argExpr != NULL ? argExpr : node, "task.all/task.race future<var> is not supported by the current typed future bridge");
+        xl6AstFree(valueType);
+        return 0;
+    }
+    if ( concreteType != NULL && xl6SemIsContainerBaseTypeName(concreteType->text) ) {
+        xl6SemErrorNode(ctx, argExpr != NULL ? argExpr : node, "task.all/task.race future<array/list/set/dict> is not supported by the current typed future bridge");
         xl6AstFree(valueType);
         return 0;
     }
@@ -14011,6 +14030,37 @@ static int xl6SemCheckBreakContinueStmt(XL6_SemContext* ctx, XL6_AstNode* node)
     return ok;
 }
 
+static int xl6SemTypeIsClassValue(XL6_SemContext* ctx, const XL6_AstNode* typeNode)
+{
+    const XL6_AstNode* concreteType;
+    const XL6_TypeInfo* typeInfo;
+
+    concreteType = xl6SemResolveAliasType(ctx, typeNode);
+    if ( concreteType == NULL || concreteType->text == NULL ) {
+        return 0;
+    }
+    typeInfo = xl6TypeRegistryFind(&ctx->types, concreteType->text);
+    return typeInfo != NULL && typeInfo->kind == XL6_TYPE_CLASS;
+}
+
+static int xl6SemAwaitOperandIsTaskAggregateTemporary(XL6_AstNode* node)
+{
+    XL6_AstNode* operand;
+    const char* memberName;
+
+    if ( node == NULL || node->kind != XL6_AST_AWAIT || node->childCount == 0 ) {
+        return 0;
+    }
+    operand = node->children[0];
+    if ( operand == NULL || operand->kind != XL6_AST_CALL ) {
+        return 0;
+    }
+    if ( !xl6SemIsTaskNamespaceMemberCall(operand, &memberName) ) {
+        return 0;
+    }
+    return xl6TextEquals(memberName, "all") || xl6TextEquals(memberName, "race");
+}
+
 static int xl6SemCheckAwaitExpr(XL6_SemContext* ctx, XL6_AstNode* node)
 {
     XL6_AstNode* awaitType;
@@ -14027,6 +14077,10 @@ static int xl6SemCheckAwaitExpr(XL6_SemContext* ctx, XL6_AstNode* node)
     if ( awaitType == NULL ) {
         xl6SemErrorNode(ctx, node, "await 只能用于 future<T> 或 task<T> 表达式");
         return 0;
+    }
+    if ( xl6SemAwaitOperandIsTaskAggregateTemporary(node) && xl6SemTypeIsClassValue(ctx, awaitType) ) {
+        xl6SemErrorNode(ctx, node, "temporary await of task.all/task.race class result is not supported; bind the future before await");
+        ok = 0;
     }
     xl6AstFree(awaitType);
     return ok;

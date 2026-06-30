@@ -947,6 +947,11 @@ int answer = await f
 
 auto autoFuture = addAsync(1, 2)
 auto value = await autoFuture
+
+future<int> a = addAsync(1, 2)
+future<int> b = addAsync(3, 4)
+array<int> allValues = await task.all([a, b])
+int firstValue = await task.race([addAsync(10, 1), addAsync(20, 2)])
 ```
 
 生成器示例：
@@ -1013,12 +1018,23 @@ rw.readUnlock()
 当前边界：
 - `async` 函数返回 `future<T>`；无显式返回值的 async 函数可被 `await`。
 - `future<T>` 支持重复 `await` 已完成结果。
+- `task.all` / `task.race` 接收非空的 `[future<T>, ...]` 数组字面量或 `array<future<T>>`，并要求所有 future 的完成值类型一致。
+- `task.all` 返回 `future<array<T>>`，因此常见写法是 `array<T> values = await task.all(jobs)`。
+- `task.race` 返回 `future<T>`，因此常见写法是 `T value = await task.race(jobs)`。
+- `task.all` 已覆盖 `int`、`string`、`bool`、`float`、`class`、`func` 等完成值；数组字面量输入和 `array<future<Class>>` / `array<future<func(...) as T>>` typed-array 输入均已进入守门。`func` 聚合结果按 `array<func(...) as T>` 使用，建议先取到具名 `func` 变量再调用。
+- `task.race` 已覆盖 `class` 与 `func` 完成值；typed-array 输入同样支持 `class` 与 `func`。`class` 完成值当前必须先保存为 `future<Class>` 再 `await`，不开放 `Class value = await task.race(...)` 这种临时 class 聚合 await 写法。
+- 具名 pending `task.all` / `task.race` group 的 `task.cancel(...)` 已覆盖基础值、`class` 与 `func` source；取消后 source future 的后续 `await` 必须继续抛出 `future cancel requested.`，worker 晚到完成不能覆盖取消态。
+- 已完成的具名 `task.all` / `task.race` future 支持 repeated await；`task.cancel(completedFuture)` 返回 `false`，post-cancel await 仍返回原完成值。该规则已覆盖基础值、`class` 与 `func`；其中 `int`、`string`、`bool`、`float`、`class`、`func` 同时覆盖数组字面量输入和 typed-array 输入。
+- `task.all` / `task.race` 的失败传播已覆盖基础值、`string`、`class` 与 `func`；已失败的具名 task future 支持 repeated await，`task.cancel(failedFuture)` 返回 `false`，post-cancel await 仍保留原始错误。`task.race` 中某个 source 快速失败时，仍在 pending 的 loser future 会被取消，后续 repeated await 保持取消态。
+- 当前 typed future bridge 不支持 `task.all/race` 聚合 `future<var>`，也不支持完成值本身为 `array/list/set/dict` 的 `future<array/list/set/dict>`。这些 future 可以直接 `await`，但暂不能再交给 `task.all/race` 二次聚合。
+- `task.spawn` 只接收具备完整签名的 `func` 值；当前桥接不支持 `var` 返回值、`***` 字典可变参数、typed container 参数/返回值、动态 `array/list/set/dict` 参数/返回值等复杂值。
+- `task.spawn(...)` 产生的 `future<int/string/bool/float>` 进入 typed-array `task.all` / `task.race` 后，已覆盖 completed future 的 repeated await、completed cancel 返回 `false`、post-cancel await 仍返回原完成值。
 - generator 支持 `for value in gen`，异常可从生成器传播到外层 `try/catch`。
 - `thread` 入口支持普通函数值和捕获闭包，但会进行可复制性检查，避免把不可复制资源跨线程复制。
 
-当前开放风险：
+当前守门状态：
 
-- `RISK-ASYNC-001` 仍在风险总账中开放，表示异步体系仍需要继续压实边界和压力测试。
+- `RISK-ASYNC-001` 已收口并保持发布级守门。当前仍会继续补异步和任务边界测试，但这是压实质量基线，不表示该风险处于开放状态。
 
 ## 14. 标准库
 
@@ -1219,37 +1235,36 @@ void xlClearLastError(XL_Context* ctx);
 
 - cgen 已拆分为多个独立职责文件。
 - cgen 规则已形成对照表。
-- 当前 cgen C 文件基线为 80 个。
-- 当前 cgen 最大单文件为 `xl6_cgen_value_assign.c`，约 1197 行。
-- 当前 cgenrule 唯一规则基线为 835 条。
+- 当前 cgen C 文件基线为 87 个。
+- 当前 cgen 最大单文件为 `xl6_cgen_stmt_decl.c`，约 1197 行。
+- 当前 cgenrule 唯一规则基线为 843 条。
 - 当前 cgenrule Markdown 文档基线为 47 个。
 - 当前 cgen 单文件行数受守门脚本约束。
 - C 输出路径已经从大量直接 `fprintf` 逐步收口到统一输出抽象。
 - XRT buffer/file/time/memory 能力优先用于工具链与运行时。
 - 旧语法、旧路径、旧格式不做兼容回退。
 
-当前开放风险：
+当前风险状态：
 
-- `RISK-ASYNC-001`
-- `RISK-CALL-001`
-- `RISK-LOOP-002`
+- 风险总账基线为 21 条，当前 21 条已收口，0 条开放。
+- `RISK-ASYNC-001`、`RISK-CALL-001`、`RISK-LOOP-002` 已进入发布级守门；后续修改 async/task/callable/loop cleanup 时必须继续复核，不能回退为开放风险。
 
 ## 19. 范例与测试
 
 当前测试资产：
 
-- `demo6/test/cases` 下有 491 个 `.xl` 测试用例。
-- 负例诊断命令基线为 272 条。
-- 负例诊断内容断言基线为 272 条。
+- `demo6/test/cases` 下有 561 个 `.xl` 测试用例。
+- 负例诊断命令基线为 326 条。
+- 负例诊断内容断言基线为 326 条。
 - package fixture 基线为 17 个。
 - 标准库测试基线为 21 个。
 - 标准库 public function 守门基线为 180 个，不含全局 `print` / `println`。
 - DLL API 基线为 21 个。
-- 风险总账基线为 21 条，其中 18 条已收口，3 条开放。
+- 风险总账基线为 21 条，当前 21 条已收口，0 条开放。
 
 当前范例资产：
 
-- `demo6/examples` 下有 64 个 `.xl` 范例。
+- `demo6/examples` 下有 73 个 `.xl` 范例。
 - `demo6/examples` 下有 9 个 C 宿主/混编范例。
 - 包含根目录范例。
 - 包含 tutorial 范例。
@@ -1312,3 +1327,49 @@ DEMO6 是 xlang 准备发布的第一个候选口径，原则是不背负 DEMO5 
 - `lib/tcc/include/...` 这类对上层源码目录有依赖的内置资源路径。
 
 这些能力应先进入 `demo6/docs` 的权威设计文档，再进入实现与测试。
+
+## 本轮风险压实补充
+
+当前 `RISK-ASYNC-001`、`RISK-CALL-001`、`RISK-LOOP-002` 继续保持发布级关闭口径；这不表示后续停止补测，而是要求相关模块改动必须持续带着这三条风险线复核。
+
+- `RISK-ASYNC-001`：`task.spawn(...)` 临时 future 进入 `task.all/race` 时，已经覆盖 int/string/bool/float 的“owned 临时源 + borrowed 空源”组合，空源错误必须优先传播。
+- `RISK-CALL-001`：成员 function 返回 string 后进入命名参数和重排命名参数已进入 cgen 守门，不允许回退 GNU statement expression。
+- `RISK-LOOP-002`：嵌套 while 的 `break 2` / `continue 2` 已验证局部 class 按 `inner -> outer -> goto` 顺序释放，和 range-for 路径对齐。
+### task.spawn 聚合 null-first 输入守门
+
+`task.all/race` 数组字面量输入已经覆盖两种 source 顺序：
+
+- `[task.spawn(...), missingFuture]`：owned 临时 future 在前，borrowed 空 future 在后。
+- `[missingFuture, task.spawn(...)]`：borrowed 空 future 在前，owned 临时 future 在后。
+
+两种顺序都必须抛出 `task.all source future is null` 或 `task.race source future is null`，并释放已经由当前聚合调用拥有的临时 `task.spawn` future。
+
+### task.spawn typed-array null-first 输入守门
+
+显式 `array<future<T>>` 输入也已经覆盖 null-first 顺序：
+
+```xlang
+future<int> missingSpawnFuture
+array<future<int>> jobs = array[missingSpawnFuture, task.spawn(addJob, 180, 1)]
+
+int state = 0
+try
+    array<int> values = await task.all(jobs)
+    state = values.length
+catch e
+    if e.message == "task.all source future is null" then
+        state = 42
+    end
+end
+assert state == 42
+
+int tail = await jobs[1]
+assert tail == 181
+```
+
+规则：
+
+- typed array 输入走 `xl6_task_all_from_array` / `xl6_task_race_from_array`，和数组字面量的 `xl6_task_all_values` / `xl6_task_race_values` 是两条不同生成路径。
+- 第一个 source 为 null 时，聚合必须优先抛出 source-null 错误。
+- 聚合失败不能吞掉 typed array 中后续 source future；用户仍可通过 `await jobs[1]` 显式等待原 `task.spawn` future。
+- 当前守门覆盖 `int` 与 `string` 的 all/race 四条路径，并锁定生成形态和运行行为。

@@ -1,0 +1,5 @@
+async func makeScores() as dict<int>
+    return dict{"a": 1}
+end
+
+dict<int> value = await task.race([makeScores()])

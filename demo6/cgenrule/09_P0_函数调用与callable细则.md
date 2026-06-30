@@ -232,6 +232,8 @@
 
 多临时实参补充：`cgen_member_function_class_return.xl` 现在覆盖 `sumPayload(maker.make(110), maker.make(120))` 与 `expect(sumPayload(maker.make(130), maker.make(140)), 270)`。生成器必须为同一个调用中的两个 class 返回成员函数实参分别生成 `__xl6_class_arg_N`，调用后按后进先出顺序 destroy，且不得把成员函数值内联回 C 实参表达式。
 
+命名实参补充：`cgen_member_function_class_return.xl` 现在覆盖 `readPayload(payload = maker.make(150))`、`storePayload(payload = maker.make(160), expected = 160)`、`sumPayload(left = maker.make(170), right = maker.make(180))` 与 `expect(sumPayload(right = maker.make(200), left = maker.make(190)), 390)`。生成器必须先按参数声明顺序解析命名实参，再为 class 返回成员函数生成语句级 `__xl6_class_arg_N` 临时；调用后仍按后进先出顺序 destroy。该路径固定了“非固定实参”中的命名参数分支，不能回退到内联 class 返回值、GNU statement expression 或错误的命名实参顺序。
+
 ## CGEN-CALL-020 成员 var 函数字段调用
 
 | 字段 | 内容 |
@@ -422,3 +424,35 @@
 - `cmd.exe /c test.bat`
 
 当前结论：`RISK-CALL-001` 在成员函数 string 返回路径上也具备直接证据。class 返回值生命周期、typed container 返回 ABI 和 erased-compatible string 返回现在分别由独立用例守门；后续新增 function 成员返回类型时，必须同步补齐运行行为和生成形态检查。
+
+## 补充：成员 function 返回 string 进入命名参数
+
+本轮继续压实 `RISK-CALL-001`，在已覆盖成员 function 返回 class 进入命名参数之后，补齐成员 function 返回 string 的 erased-compatible 路径。
+
+| 字段 | 内容 |
+| --- | --- |
+| xlang 写法 | `textScore(value = textMaker.make("call"))`、`joinTextScore(right = textMaker.make("right"), left = textMaker.make("left"))` |
+| 生成规则描述 | 成员字段类型为 `func(string) as string` 时，返回值可经由 erased call helper 表达。命名参数先按被调用函数的形参顺序重排，再生成 `xl6_function_call_var(textMaker.make, ...)`，随后用 `xl6_xvalue_to_string_release(...)` 转换为 C string 实参。该路径不得退回 GNU statement expression，也不得因为命名参数重排而改变实参顺序。 |
+| 生成器文件名和行号 | `xl6_cgen_function_value.c` 的成员 function 调用表达式输出、`xl6_cgen_stmt_decl_call_args.c` 的语句级实参 lowering、`xl6_cgen_expr.c` 的表达式入口。 |
+| 对应生成的 C 代码 | `namedTextArgValue = textScore(xl6_xvalue_to_string_release(xl6_function_call_var(textMaker.make, 1, ...)))`；重排后的双参数调用生成 `joinTextScore(leftExpr, rightExpr)`。 |
+| 中间形态伪代码 | `kwargs -> reorderBySignature -> convert(memberCallString(arg)) -> callC(target, orderedArgs)` |
+| 实现同等功能手写的 C 代码 | 手写 C 需要先按声明顺序准备 `left/right`，分别调用成员 function，释放 xvalue 临时后再调用 `joinTextScore`。 |
+| 额外依赖的封装代码 | 依赖 function runtime、xvalue string release 转换 helper；不新增临时 wrapper。 |
+
+当前守门：`test/cases/cgen_member_function_class_return.xl` 覆盖单命名参数与重排双命名参数，`test.bat` 锁定生成形态和运行断言。
+
+## 补充：RISK-CALL-001 临时 class 接收者的函数字段调用
+
+本轮继续压实 `RISK-CALL-001`，补齐 `maker.make(...).op(...)` 这类“成员函数返回 class 临时值，再读取该临时值上的函数字段并调用”的生命周期规则。
+
+| 字段 | 内容 |
+| --- | --- |
+| xlang 写法 | `int v = maker.make(210).op(5)`、`expect(maker.make(220).op(6), 226)`、`expect(actual = maker.make(230).op(7), expected = 237)` |
+| 生成规则描述 | 当调用表达式的 callee 是成员访问，且成员访问接收者本身是返回 class 的调用表达式，同时目标类型是静态标量并与函数字段返回类型一致时，生成器不得把 `maker.make(...).op(...)` 内联成一条表达式。必须先声明临时接收者 `__xl6_member_recv_N`，把 class 返回值移动进去，再读取 `__xl6_member_recv_N.op` 为 `XL6_Function __xl6_member_fn_call_N`，调用完成后显式析构临时接收者。该规则只处理拥有临时所有权的 call receiver；普通 lvalue class 字段仍走既有表达式路径。 |
+| 生成器文件名和行号 | `xl6_cgen_stmt_decl_call_member_temp.c:1` 负责识别规则，`xl6_cgen_stmt_decl_call_member_temp.c:113` 负责输出临时接收者调用作用域；`xl6_cgen_stmt_decl_call_args.c:548` 与 `xl6_cgen_stmt_decl_call_args.c:583` 接入 can/emit 入口。 |
+| 对应生成的 C 代码 | `XL_Class_Payload __xl6_member_recv_N = {0}; __xl6_member_recv_N = maker.make.invoke(...); XL6_Function __xl6_member_fn_call_N = __xl6_member_recv_N.op; value = (long long)(...invoke...); xl_class_Payload__destroy(&__xl6_member_recv_N);` |
+| 中间形态伪代码 | `tmpReceiver = callReturningClass(); tmpFunction = tmpReceiver.fieldFunction; result = call(tmpFunction, args); destroy(tmpReceiver);` |
+| 实现同等功能手写的 C 代码 | 手写 C 必须把返回的 class 临时对象保存到局部变量，调用其中保存的函数字段后再执行 class destroy；如果直接内联调用，临时 class 的字段资源不会释放。 |
+| 额外依赖的封装代码 | 不新增运行时封装；依赖既有 `XL6_Function`、class field suffix、function invoke 与 class destroy helper。 |
+
+当前守门：`test/cases/cgen_member_function_class_return.xl` 覆盖声明初始化、位置参数和命名参数三类承载位置；`test.bat` 锁定 `__xl6_member_fn_call_N`、`xl_class_Payload__destroy(&__xl6_member_recv_N)`，并禁止 `tempFunctionFieldValue` 回退到内联 `maker.make.invoke(...)` 形态。该规则拆分到 `xl6_cgen_stmt_decl_call_member_temp.c` 后，`xl6_cgen_stmt_decl_call_args.c` 保持在 1200 行模块上限内。

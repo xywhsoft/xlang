@@ -40,6 +40,42 @@ async func slowHalfAsync(float value) as float
     return value + 0.5
 end
 
+class TaskBox
+    int base
+
+    func add(int value) as int
+        return self.base + value
+    end
+end
+
+async func makeTaskBox(int base) as TaskBox
+    TaskBox box
+    box.base = base
+    return box
+end
+
+async func slowMakeTaskBox(int base) as TaskBox
+    time.sleep(250)
+    TaskBox box
+    box.base = base
+    return box
+end
+
+func makeTaskAdderPlain(int base) as func(int) as int
+    return func(int value) as int
+        return base + value
+    end
+end
+
+async func slowMakeTaskAdder(int base) as func(int) as int
+    time.sleep(250)
+    return makeTaskAdderPlain(base)
+end
+
+async func makeTaskAdder(int base) as func(int) as int
+    return makeTaskAdderPlain(base)
+end
+
 async func failStringAsync() as string
     throw "task string boom"
     return ""
@@ -53,6 +89,17 @@ end
 async func failFloatAsync() as float
     throw "task float boom"
     return 0.0
+end
+
+async func failTaskBoxAsync() as TaskBox
+    throw "task class boom"
+    TaskBox box
+    return box
+end
+
+async func failTaskAdderAsync() as func(int) as int
+    throw "task function boom"
+    return makeTaskAdderPlain(0)
 end
 
 future<int> one = addAsync(1, 2)
@@ -92,6 +139,550 @@ array<future<int>> raceJobs = array[addAsync(11, 1), addAsync(30, 3)]
 int typedRaced = await task.race(raceJobs)
 assert typedRaced == 12 or typedRaced == 33, "task.race should accept typed future arrays"
 
+future<int> duplicateAllSource = fastRaceAsync(501)
+int duplicateAllWarm = await duplicateAllSource
+expect(duplicateAllWarm, 501)
+array<int> duplicateAllValues = await task.all([duplicateAllSource, duplicateAllSource])
+expect(duplicateAllValues.length, 2)
+expect(duplicateAllValues[0], 501)
+expect(duplicateAllValues[1], 501)
+int duplicateAllSourceAgain = await duplicateAllSource
+expect(duplicateAllSourceAgain, 501)
+
+future<int> duplicateRaceSource = fastRaceAsync(502)
+int duplicateRaceWarm = await duplicateRaceSource
+expect(duplicateRaceWarm, 502)
+int duplicateRaceValue = await task.race([duplicateRaceSource, duplicateRaceSource])
+expect(duplicateRaceValue, 502)
+int duplicateRaceSourceAgain = await duplicateRaceSource
+expect(duplicateRaceSourceAgain, 502)
+bool duplicateRaceSourceCancel = task.cancel(duplicateRaceSource)
+expect(duplicateRaceSourceCancel, 0)
+
+future<int> duplicateTypedAllSource = fastRaceAsync(503)
+int duplicateTypedAllWarm = await duplicateTypedAllSource
+expect(duplicateTypedAllWarm, 503)
+array<future<int>> duplicateTypedAllJobs = array[duplicateTypedAllSource, duplicateTypedAllSource]
+array<int> duplicateTypedAllValues = await task.all(duplicateTypedAllJobs)
+expect(duplicateTypedAllValues.length, 2)
+expect(duplicateTypedAllValues[0], 503)
+expect(duplicateTypedAllValues[1], 503)
+int duplicateTypedAllSourceAgain = await duplicateTypedAllSource
+expect(duplicateTypedAllSourceAgain, 503)
+
+future<int> duplicateTypedRaceSource = fastRaceAsync(504)
+int duplicateTypedRaceWarm = await duplicateTypedRaceSource
+expect(duplicateTypedRaceWarm, 504)
+array<future<int>> duplicateTypedRaceJobs = array[duplicateTypedRaceSource, duplicateTypedRaceSource]
+int duplicateTypedRaceValue = await task.race(duplicateTypedRaceJobs)
+expect(duplicateTypedRaceValue, 504)
+int duplicateTypedRaceSourceAgain = await duplicateTypedRaceSource
+expect(duplicateTypedRaceSourceAgain, 504)
+bool duplicateTypedRaceSourceCancel = task.cancel(duplicateTypedRaceSource)
+expect(duplicateTypedRaceSourceCancel, 0)
+
+future<int> duplicatePendingAllSource = slowRaceAsync(505)
+array<int> duplicatePendingAllValues = await task.all([duplicatePendingAllSource, duplicatePendingAllSource])
+expect(duplicatePendingAllValues.length, 2)
+expect(duplicatePendingAllValues[0], 505)
+expect(duplicatePendingAllValues[1], 505)
+int duplicatePendingAllSourceAgain = await duplicatePendingAllSource
+expect(duplicatePendingAllSourceAgain, 505)
+bool duplicatePendingAllSourceCancel = task.cancel(duplicatePendingAllSource)
+expect(duplicatePendingAllSourceCancel, 0)
+
+future<int> duplicatePendingRaceSource = slowRaceAsync(506)
+int duplicatePendingRaceValue = await task.race([duplicatePendingRaceSource, duplicatePendingRaceSource])
+expect(duplicatePendingRaceValue, 506)
+int duplicatePendingRaceSourceAgain = await duplicatePendingRaceSource
+expect(duplicatePendingRaceSourceAgain, 506)
+bool duplicatePendingRaceSourceCancel = task.cancel(duplicatePendingRaceSource)
+expect(duplicatePendingRaceSourceCancel, 0)
+
+future<int> duplicateTypedPendingAllSource = slowRaceAsync(507)
+array<future<int>> duplicateTypedPendingAllJobs = array[duplicateTypedPendingAllSource, duplicateTypedPendingAllSource]
+array<int> duplicateTypedPendingAllValues = await task.all(duplicateTypedPendingAllJobs)
+expect(duplicateTypedPendingAllValues.length, 2)
+expect(duplicateTypedPendingAllValues[0], 507)
+expect(duplicateTypedPendingAllValues[1], 507)
+int duplicateTypedPendingAllSourceAgain = await duplicateTypedPendingAllSource
+expect(duplicateTypedPendingAllSourceAgain, 507)
+bool duplicateTypedPendingAllSourceCancel = task.cancel(duplicateTypedPendingAllSource)
+expect(duplicateTypedPendingAllSourceCancel, 0)
+
+future<int> duplicateTypedPendingRaceSource = slowRaceAsync(508)
+array<future<int>> duplicateTypedPendingRaceJobs = array[duplicateTypedPendingRaceSource, duplicateTypedPendingRaceSource]
+int duplicateTypedPendingRaceValue = await task.race(duplicateTypedPendingRaceJobs)
+expect(duplicateTypedPendingRaceValue, 508)
+int duplicateTypedPendingRaceSourceAgain = await duplicateTypedPendingRaceSource
+expect(duplicateTypedPendingRaceSourceAgain, 508)
+bool duplicateTypedPendingRaceSourceCancel = task.cancel(duplicateTypedPendingRaceSource)
+expect(duplicateTypedPendingRaceSourceCancel, 0)
+
+future<int> duplicateCanceledAllSource = slowRaceAsync(509)
+future<array<int>> duplicateCanceledAllGroup = task.all([duplicateCanceledAllSource, duplicateCanceledAllSource])
+bool duplicateCanceledAllRequest = task.cancel(duplicateCanceledAllSource)
+expect(duplicateCanceledAllRequest, 1)
+int duplicateCanceledAllState = 0
+try
+    array<int> duplicateCanceledAllValues = await duplicateCanceledAllGroup
+    duplicateCanceledAllState = duplicateCanceledAllValues.length
+catch e
+    if e.message == "future cancel requested." then
+        duplicateCanceledAllState = 42
+    end
+end
+expect(duplicateCanceledAllState, 42)
+
+int duplicateCanceledAllSourceState = 0
+try
+    int duplicateCanceledAllSourceValue = await duplicateCanceledAllSource
+    duplicateCanceledAllSourceState = duplicateCanceledAllSourceValue
+catch e
+    if e.message == "future cancel requested." then
+        duplicateCanceledAllSourceState = 42
+    end
+end
+expect(duplicateCanceledAllSourceState, 42)
+bool duplicateCanceledAllSourceCancelAgain = task.cancel(duplicateCanceledAllSource)
+expect(duplicateCanceledAllSourceCancelAgain, 1)
+
+future<int> duplicateCanceledRaceSource = slowRaceAsync(510)
+future<int> duplicateCanceledRaceGroup = task.race([duplicateCanceledRaceSource, duplicateCanceledRaceSource])
+bool duplicateCanceledRaceRequest = task.cancel(duplicateCanceledRaceSource)
+expect(duplicateCanceledRaceRequest, 1)
+int duplicateCanceledRaceState = 0
+try
+    int duplicateCanceledRaceValue = await duplicateCanceledRaceGroup
+    duplicateCanceledRaceState = duplicateCanceledRaceValue
+catch e
+    if e.message == "future cancel requested." then
+        duplicateCanceledRaceState = 42
+    end
+end
+expect(duplicateCanceledRaceState, 42)
+
+int duplicateCanceledRaceSourceState = 0
+try
+    int duplicateCanceledRaceSourceValue = await duplicateCanceledRaceSource
+    duplicateCanceledRaceSourceState = duplicateCanceledRaceSourceValue
+catch e
+    if e.message == "future cancel requested." then
+        duplicateCanceledRaceSourceState = 42
+    end
+end
+expect(duplicateCanceledRaceSourceState, 42)
+bool duplicateCanceledRaceSourceCancelAgain = task.cancel(duplicateCanceledRaceSource)
+expect(duplicateCanceledRaceSourceCancelAgain, 1)
+
+future<int> duplicateTypedCanceledAllSource = slowRaceAsync(511)
+array<future<int>> duplicateTypedCanceledAllJobs = array[duplicateTypedCanceledAllSource, duplicateTypedCanceledAllSource]
+future<array<int>> duplicateTypedCanceledAllGroup = task.all(duplicateTypedCanceledAllJobs)
+bool duplicateTypedCanceledAllRequest = task.cancel(duplicateTypedCanceledAllSource)
+expect(duplicateTypedCanceledAllRequest, 1)
+int duplicateTypedCanceledAllState = 0
+try
+    array<int> duplicateTypedCanceledAllValues = await duplicateTypedCanceledAllGroup
+    duplicateTypedCanceledAllState = duplicateTypedCanceledAllValues.length
+catch e
+    if e.message == "future cancel requested." then
+        duplicateTypedCanceledAllState = 42
+    end
+end
+expect(duplicateTypedCanceledAllState, 42)
+
+int duplicateTypedCanceledAllSourceState = 0
+try
+    int duplicateTypedCanceledAllSourceValue = await duplicateTypedCanceledAllSource
+    duplicateTypedCanceledAllSourceState = duplicateTypedCanceledAllSourceValue
+catch e
+    if e.message == "future cancel requested." then
+        duplicateTypedCanceledAllSourceState = 42
+    end
+end
+expect(duplicateTypedCanceledAllSourceState, 42)
+bool duplicateTypedCanceledAllSourceCancelAgain = task.cancel(duplicateTypedCanceledAllSource)
+expect(duplicateTypedCanceledAllSourceCancelAgain, 1)
+
+future<int> duplicateTypedCanceledRaceSource = slowRaceAsync(512)
+array<future<int>> duplicateTypedCanceledRaceJobs = array[duplicateTypedCanceledRaceSource, duplicateTypedCanceledRaceSource]
+future<int> duplicateTypedCanceledRaceGroup = task.race(duplicateTypedCanceledRaceJobs)
+bool duplicateTypedCanceledRaceRequest = task.cancel(duplicateTypedCanceledRaceSource)
+expect(duplicateTypedCanceledRaceRequest, 1)
+int duplicateTypedCanceledRaceState = 0
+try
+    int duplicateTypedCanceledRaceValue = await duplicateTypedCanceledRaceGroup
+    duplicateTypedCanceledRaceState = duplicateTypedCanceledRaceValue
+catch e
+    if e.message == "future cancel requested." then
+        duplicateTypedCanceledRaceState = 42
+    end
+end
+expect(duplicateTypedCanceledRaceState, 42)
+
+int duplicateTypedCanceledRaceSourceState = 0
+try
+    int duplicateTypedCanceledRaceSourceValue = await duplicateTypedCanceledRaceSource
+    duplicateTypedCanceledRaceSourceState = duplicateTypedCanceledRaceSourceValue
+catch e
+    if e.message == "future cancel requested." then
+        duplicateTypedCanceledRaceSourceState = 42
+    end
+end
+expect(duplicateTypedCanceledRaceSourceState, 42)
+bool duplicateTypedCanceledRaceSourceCancelAgain = task.cancel(duplicateTypedCanceledRaceSource)
+expect(duplicateTypedCanceledRaceSourceCancelAgain, 1)
+
+array<future<int>> typedAllCompletedJobs = array[addAsync(40, 1), addAsync(50, 2)]
+future<array<int>> typedAllCompletedFuture = task.all(typedAllCompletedJobs)
+array<int> typedAllCompletedA = await typedAllCompletedFuture
+array<int> typedAllCompletedB = await typedAllCompletedFuture
+expect(typedAllCompletedA.length, 2)
+expect(typedAllCompletedB.length, 2)
+expect(typedAllCompletedA[0], 41)
+expect(typedAllCompletedB[1], 52)
+bool cancelTypedAllCompleted = task.cancel(typedAllCompletedFuture)
+expect(cancelTypedAllCompleted, 0)
+array<int> postCancelTypedAllCompleted = await typedAllCompletedFuture
+expect(postCancelTypedAllCompleted.length, 2)
+expect(postCancelTypedAllCompleted[0], 41)
+expect(postCancelTypedAllCompleted[1], 52)
+
+array<future<int>> typedRaceCompletedJobs = array[addAsync(60, 3)]
+future<int> typedRaceCompletedFuture = task.race(typedRaceCompletedJobs)
+int typedRaceCompletedA = await typedRaceCompletedFuture
+int typedRaceCompletedB = await typedRaceCompletedFuture
+expect(typedRaceCompletedA, 63)
+expect(typedRaceCompletedB, 63)
+bool cancelTypedRaceCompleted = task.cancel(typedRaceCompletedFuture)
+expect(cancelTypedRaceCompleted, 0)
+int postCancelTypedRaceCompleted = await typedRaceCompletedFuture
+expect(postCancelTypedRaceCompleted, 63)
+
+array<TaskBox> taskBoxes = await task.all([makeTaskBox(10), makeTaskBox(20)])
+expect(taskBoxes.length, 2)
+TaskBox taskBoxA = taskBoxes[0]
+TaskBox taskBoxB = taskBoxes[1]
+expect(taskBoxA.add(1), 11)
+expect(taskBoxB.add(2), 22)
+
+future<TaskBox> racedTaskBoxFuture = task.race([makeTaskBox(30), makeTaskBox(40)])
+TaskBox racedTaskBox = await racedTaskBoxFuture
+int racedTaskBoxValue = racedTaskBox.add(3)
+assert racedTaskBoxValue == 33 or racedTaskBoxValue == 43, "task.race class result"
+
+array<func(int) as int> taskFuncs = await task.all([makeTaskAdder(50), makeTaskAdder(60)])
+expect(taskFuncs.length, 2)
+func(int) as int taskFuncA = taskFuncs[0]
+func(int) as int taskFuncB = taskFuncs[1]
+expect(taskFuncA(1), 51)
+expect(taskFuncB(2), 62)
+
+future<func(int) as int> racedTaskFuncFuture = task.race([makeTaskAdder(70), makeTaskAdder(80)])
+func(int) as int racedTaskFunc = await racedTaskFuncFuture
+int racedTaskFuncValue = racedTaskFunc(4)
+assert racedTaskFuncValue == 74 or racedTaskFuncValue == 84, "task.race function result"
+
+future<array<TaskBox>> namedTaskBoxAllFuture = task.all([makeTaskBox(130), makeTaskBox(140)])
+array<TaskBox> namedTaskBoxAllA = await namedTaskBoxAllFuture
+array<TaskBox> namedTaskBoxAllB = await namedTaskBoxAllFuture
+expect(namedTaskBoxAllA.length, 2)
+expect(namedTaskBoxAllB.length, 2)
+TaskBox namedTaskBoxAllA0 = namedTaskBoxAllA[0]
+TaskBox namedTaskBoxAllB1 = namedTaskBoxAllB[1]
+expect(namedTaskBoxAllA0.add(1), 131)
+expect(namedTaskBoxAllB1.add(2), 142)
+bool cancelNamedTaskBoxAllCompleted = task.cancel(namedTaskBoxAllFuture)
+expect(cancelNamedTaskBoxAllCompleted, 0)
+array<TaskBox> postCancelNamedTaskBoxAll = await namedTaskBoxAllFuture
+expect(postCancelNamedTaskBoxAll.length, 2)
+TaskBox postCancelNamedTaskBoxAll0 = postCancelNamedTaskBoxAll[0]
+expect(postCancelNamedTaskBoxAll0.add(3), 133)
+
+future<TaskBox> namedTaskBoxRaceCompletedFuture = task.race([makeTaskBox(150)])
+TaskBox namedTaskBoxRaceA = await namedTaskBoxRaceCompletedFuture
+TaskBox namedTaskBoxRaceB = await namedTaskBoxRaceCompletedFuture
+expect(namedTaskBoxRaceA.add(4), 154)
+expect(namedTaskBoxRaceB.add(5), 155)
+bool cancelNamedTaskBoxRaceCompleted = task.cancel(namedTaskBoxRaceCompletedFuture)
+expect(cancelNamedTaskBoxRaceCompleted, 0)
+TaskBox postCancelNamedTaskBoxRace = await namedTaskBoxRaceCompletedFuture
+expect(postCancelNamedTaskBoxRace.add(6), 156)
+
+future<array<func(int) as int> > namedTaskFuncAllFuture = task.all([makeTaskAdder(160), makeTaskAdder(170)])
+array<func(int) as int> namedTaskFuncAllA = await namedTaskFuncAllFuture
+array<func(int) as int> namedTaskFuncAllB = await namedTaskFuncAllFuture
+expect(namedTaskFuncAllA.length, 2)
+expect(namedTaskFuncAllB.length, 2)
+func(int) as int namedTaskFuncAllA0 = namedTaskFuncAllA[0]
+func(int) as int namedTaskFuncAllB1 = namedTaskFuncAllB[1]
+expect(namedTaskFuncAllA0(1), 161)
+expect(namedTaskFuncAllB1(2), 172)
+bool cancelNamedTaskFuncAllCompleted = task.cancel(namedTaskFuncAllFuture)
+expect(cancelNamedTaskFuncAllCompleted, 0)
+array<func(int) as int> postCancelNamedTaskFuncAll = await namedTaskFuncAllFuture
+expect(postCancelNamedTaskFuncAll.length, 2)
+func(int) as int postCancelNamedTaskFuncAll0 = postCancelNamedTaskFuncAll[0]
+expect(postCancelNamedTaskFuncAll0(3), 163)
+
+future<func(int) as int> namedTaskFuncRaceCompletedFuture = task.race([makeTaskAdder(180)])
+func(int) as int namedTaskFuncRaceA = await namedTaskFuncRaceCompletedFuture
+func(int) as int namedTaskFuncRaceB = await namedTaskFuncRaceCompletedFuture
+expect(namedTaskFuncRaceA(4), 184)
+expect(namedTaskFuncRaceB(5), 185)
+bool cancelNamedTaskFuncRaceCompleted = task.cancel(namedTaskFuncRaceCompletedFuture)
+expect(cancelNamedTaskFuncRaceCompleted, 0)
+func(int) as int postCancelNamedTaskFuncRace = await namedTaskFuncRaceCompletedFuture
+expect(postCancelNamedTaskFuncRace(6), 186)
+
+array<future<TaskBox>> typedTaskBoxJobs = array[makeTaskBox(90), makeTaskBox(100)]
+array<TaskBox> typedTaskBoxes = await task.all(typedTaskBoxJobs)
+expect(typedTaskBoxes.length, 2)
+TaskBox typedTaskBoxA = typedTaskBoxes[0]
+TaskBox typedTaskBoxB = typedTaskBoxes[1]
+expect(typedTaskBoxA.add(1), 91)
+expect(typedTaskBoxB.add(2), 102)
+
+array<future<TaskBox>> typedTaskBoxRaceJobs = array[makeTaskBox(110), makeTaskBox(120)]
+future<TaskBox> typedRacedTaskBoxFuture = task.race(typedTaskBoxRaceJobs)
+TaskBox typedRacedTaskBox = await typedRacedTaskBoxFuture
+int typedRacedTaskBoxValue = typedRacedTaskBox.add(5)
+assert typedRacedTaskBoxValue == 115 or typedRacedTaskBoxValue == 125, "typed task.race class result"
+
+array<future<func(int) as int> > typedTaskFuncJobs = array[makeTaskAdder(90), makeTaskAdder(100)]
+array<func(int) as int> typedTaskFuncs = await task.all(typedTaskFuncJobs)
+expect(typedTaskFuncs.length, 2)
+func(int) as int typedTaskFuncA = typedTaskFuncs[0]
+func(int) as int typedTaskFuncB = typedTaskFuncs[1]
+expect(typedTaskFuncA(3), 93)
+expect(typedTaskFuncB(4), 104)
+
+array<future<func(int) as int> > typedTaskFuncRaceJobs = array[makeTaskAdder(110), makeTaskAdder(120)]
+future<func(int) as int> typedRacedTaskFuncFuture = task.race(typedTaskFuncRaceJobs)
+func(int) as int typedRacedTaskFunc = await typedRacedTaskFuncFuture
+int typedRacedTaskFuncValue = typedRacedTaskFunc(6)
+assert typedRacedTaskFuncValue == 116 or typedRacedTaskFuncValue == 126, "typed task.race function result"
+
+array<future<TaskBox>> typedTaskBoxAllCompletedJobs = array[makeTaskBox(350), makeTaskBox(360)]
+future<array<TaskBox>> typedTaskBoxAllCompletedFuture = task.all(typedTaskBoxAllCompletedJobs)
+array<TaskBox> typedTaskBoxAllCompletedA = await typedTaskBoxAllCompletedFuture
+array<TaskBox> typedTaskBoxAllCompletedB = await typedTaskBoxAllCompletedFuture
+expect(typedTaskBoxAllCompletedA.length, 2)
+expect(typedTaskBoxAllCompletedB.length, 2)
+TaskBox typedTaskBoxAllCompletedA0 = typedTaskBoxAllCompletedA[0]
+TaskBox typedTaskBoxAllCompletedB1 = typedTaskBoxAllCompletedB[1]
+expect(typedTaskBoxAllCompletedA0.add(1), 351)
+expect(typedTaskBoxAllCompletedB1.add(2), 362)
+bool cancelTypedTaskBoxAllCompleted = task.cancel(typedTaskBoxAllCompletedFuture)
+expect(cancelTypedTaskBoxAllCompleted, 0)
+array<TaskBox> postCancelTypedTaskBoxAllCompleted = await typedTaskBoxAllCompletedFuture
+expect(postCancelTypedTaskBoxAllCompleted.length, 2)
+TaskBox postCancelTypedTaskBoxAllCompleted0 = postCancelTypedTaskBoxAllCompleted[0]
+expect(postCancelTypedTaskBoxAllCompleted0.add(3), 353)
+
+array<future<TaskBox>> typedTaskBoxRaceCompletedJobs = array[makeTaskBox(370)]
+future<TaskBox> typedTaskBoxRaceCompletedFuture = task.race(typedTaskBoxRaceCompletedJobs)
+TaskBox typedTaskBoxRaceCompletedA = await typedTaskBoxRaceCompletedFuture
+TaskBox typedTaskBoxRaceCompletedB = await typedTaskBoxRaceCompletedFuture
+expect(typedTaskBoxRaceCompletedA.add(4), 374)
+expect(typedTaskBoxRaceCompletedB.add(5), 375)
+bool cancelTypedTaskBoxRaceCompleted = task.cancel(typedTaskBoxRaceCompletedFuture)
+expect(cancelTypedTaskBoxRaceCompleted, 0)
+TaskBox postCancelTypedTaskBoxRaceCompleted = await typedTaskBoxRaceCompletedFuture
+expect(postCancelTypedTaskBoxRaceCompleted.add(6), 376)
+
+array<future<func(int) as int> > typedTaskFuncAllCompletedJobs = array[makeTaskAdder(380), makeTaskAdder(390)]
+future<array<func(int) as int> > typedTaskFuncAllCompletedFuture = task.all(typedTaskFuncAllCompletedJobs)
+array<func(int) as int> typedTaskFuncAllCompletedA = await typedTaskFuncAllCompletedFuture
+array<func(int) as int> typedTaskFuncAllCompletedB = await typedTaskFuncAllCompletedFuture
+expect(typedTaskFuncAllCompletedA.length, 2)
+expect(typedTaskFuncAllCompletedB.length, 2)
+func(int) as int typedTaskFuncAllCompletedA0 = typedTaskFuncAllCompletedA[0]
+func(int) as int typedTaskFuncAllCompletedB1 = typedTaskFuncAllCompletedB[1]
+expect(typedTaskFuncAllCompletedA0(1), 381)
+expect(typedTaskFuncAllCompletedB1(2), 392)
+bool cancelTypedTaskFuncAllCompleted = task.cancel(typedTaskFuncAllCompletedFuture)
+expect(cancelTypedTaskFuncAllCompleted, 0)
+array<func(int) as int> postCancelTypedTaskFuncAllCompleted = await typedTaskFuncAllCompletedFuture
+expect(postCancelTypedTaskFuncAllCompleted.length, 2)
+func(int) as int postCancelTypedTaskFuncAllCompleted0 = postCancelTypedTaskFuncAllCompleted[0]
+expect(postCancelTypedTaskFuncAllCompleted0(3), 383)
+
+array<future<func(int) as int> > typedTaskFuncRaceCompletedJobs = array[makeTaskAdder(400)]
+future<func(int) as int> typedTaskFuncRaceCompletedFuture = task.race(typedTaskFuncRaceCompletedJobs)
+func(int) as int typedTaskFuncRaceCompletedA = await typedTaskFuncRaceCompletedFuture
+func(int) as int typedTaskFuncRaceCompletedB = await typedTaskFuncRaceCompletedFuture
+expect(typedTaskFuncRaceCompletedA(4), 404)
+expect(typedTaskFuncRaceCompletedB(5), 405)
+bool cancelTypedTaskFuncRaceCompleted = task.cancel(typedTaskFuncRaceCompletedFuture)
+expect(cancelTypedTaskFuncRaceCompleted, 0)
+func(int) as int postCancelTypedTaskFuncRaceCompleted = await typedTaskFuncRaceCompletedFuture
+expect(postCancelTypedTaskFuncRaceCompleted(6), 406)
+
+future<TaskBox> pendingTaskBoxAllLeft = slowMakeTaskBox(210)
+future<TaskBox> pendingTaskBoxAllRight = slowMakeTaskBox(220)
+array<future<TaskBox>> pendingTaskBoxAllJobs = array[pendingTaskBoxAllLeft, pendingTaskBoxAllRight]
+future<array<TaskBox>> pendingTaskBoxAllGroup = task.all(pendingTaskBoxAllJobs)
+bool pendingTaskBoxAllRequested = task.cancel(pendingTaskBoxAllGroup)
+expect(pendingTaskBoxAllRequested, 1)
+
+int pendingTaskBoxAllGroupState = 0
+try
+    array<TaskBox> pendingTaskBoxAllValues = await pendingTaskBoxAllGroup
+    pendingTaskBoxAllGroupState = pendingTaskBoxAllValues.length
+catch e
+    if e.message == "future cancel requested." then
+        pendingTaskBoxAllGroupState = 42
+    end
+end
+expect(pendingTaskBoxAllGroupState, 42)
+
+int pendingTaskBoxAllLeftState = 0
+try
+    TaskBox pendingTaskBoxAllLeftValue = await pendingTaskBoxAllLeft
+    pendingTaskBoxAllLeftState = pendingTaskBoxAllLeftValue.add(0)
+catch e
+    if e.message == "future cancel requested." then
+        pendingTaskBoxAllLeftState = 42
+    end
+end
+expect(pendingTaskBoxAllLeftState, 42)
+time.sleep(300)
+
+int pendingTaskBoxAllLateState = 0
+try
+    TaskBox pendingTaskBoxAllLateValue = await pendingTaskBoxAllRight
+    pendingTaskBoxAllLateState = pendingTaskBoxAllLateValue.add(0)
+catch e
+    if e.message == "future cancel requested." then
+        pendingTaskBoxAllLateState = 42
+    end
+end
+expect(pendingTaskBoxAllLateState, 42)
+
+future<TaskBox> pendingTaskBoxRaceLeft = slowMakeTaskBox(230)
+future<TaskBox> pendingTaskBoxRaceRight = slowMakeTaskBox(240)
+array<future<TaskBox>> pendingTaskBoxRaceJobs = array[pendingTaskBoxRaceLeft, pendingTaskBoxRaceRight]
+future<TaskBox> pendingTaskBoxRaceGroup = task.race(pendingTaskBoxRaceJobs)
+bool pendingTaskBoxRaceRequested = task.cancel(pendingTaskBoxRaceGroup)
+expect(pendingTaskBoxRaceRequested, 1)
+
+int pendingTaskBoxRaceGroupState = 0
+try
+    TaskBox pendingTaskBoxRaceValue = await pendingTaskBoxRaceGroup
+    pendingTaskBoxRaceGroupState = pendingTaskBoxRaceValue.add(0)
+catch e
+    if e.message == "future cancel requested." then
+        pendingTaskBoxRaceGroupState = 42
+    end
+end
+expect(pendingTaskBoxRaceGroupState, 42)
+
+int pendingTaskBoxRaceRightState = 0
+try
+    TaskBox pendingTaskBoxRaceRightValue = await pendingTaskBoxRaceRight
+    pendingTaskBoxRaceRightState = pendingTaskBoxRaceRightValue.add(0)
+catch e
+    if e.message == "future cancel requested." then
+        pendingTaskBoxRaceRightState = 42
+    end
+end
+expect(pendingTaskBoxRaceRightState, 42)
+time.sleep(300)
+
+int pendingTaskBoxRaceLateState = 0
+try
+    TaskBox pendingTaskBoxRaceLateValue = await pendingTaskBoxRaceLeft
+    pendingTaskBoxRaceLateState = pendingTaskBoxRaceLateValue.add(0)
+catch e
+    if e.message == "future cancel requested." then
+        pendingTaskBoxRaceLateState = 42
+    end
+end
+expect(pendingTaskBoxRaceLateState, 42)
+
+future<func(int) as int> pendingTaskFuncAllLeft = slowMakeTaskAdder(310)
+future<func(int) as int> pendingTaskFuncAllRight = slowMakeTaskAdder(320)
+array<future<func(int) as int> > pendingTaskFuncAllJobs = array[pendingTaskFuncAllLeft, pendingTaskFuncAllRight]
+future<array<func(int) as int> > pendingTaskFuncAllGroup = task.all(pendingTaskFuncAllJobs)
+bool pendingTaskFuncAllRequested = task.cancel(pendingTaskFuncAllGroup)
+expect(pendingTaskFuncAllRequested, 1)
+
+int pendingTaskFuncAllGroupState = 0
+try
+    array<func(int) as int> pendingTaskFuncAllValues = await pendingTaskFuncAllGroup
+    pendingTaskFuncAllGroupState = pendingTaskFuncAllValues.length
+catch e
+    if e.message == "future cancel requested." then
+        pendingTaskFuncAllGroupState = 42
+    end
+end
+expect(pendingTaskFuncAllGroupState, 42)
+
+int pendingTaskFuncAllLeftState = 0
+try
+    func(int) as int pendingTaskFuncAllLeftValue = await pendingTaskFuncAllLeft
+    pendingTaskFuncAllLeftState = pendingTaskFuncAllLeftValue(0)
+catch e
+    if e.message == "future cancel requested." then
+        pendingTaskFuncAllLeftState = 42
+    end
+end
+expect(pendingTaskFuncAllLeftState, 42)
+time.sleep(300)
+
+int pendingTaskFuncAllLateState = 0
+try
+    func(int) as int pendingTaskFuncAllLateValue = await pendingTaskFuncAllRight
+    pendingTaskFuncAllLateState = pendingTaskFuncAllLateValue(0)
+catch e
+    if e.message == "future cancel requested." then
+        pendingTaskFuncAllLateState = 42
+    end
+end
+expect(pendingTaskFuncAllLateState, 42)
+
+future<func(int) as int> pendingTaskFuncRaceLeft = slowMakeTaskAdder(330)
+future<func(int) as int> pendingTaskFuncRaceRight = slowMakeTaskAdder(340)
+array<future<func(int) as int> > pendingTaskFuncRaceJobs = array[pendingTaskFuncRaceLeft, pendingTaskFuncRaceRight]
+future<func(int) as int> pendingTaskFuncRaceGroup = task.race(pendingTaskFuncRaceJobs)
+bool pendingTaskFuncRaceRequested = task.cancel(pendingTaskFuncRaceGroup)
+expect(pendingTaskFuncRaceRequested, 1)
+
+int pendingTaskFuncRaceGroupState = 0
+try
+    func(int) as int pendingTaskFuncRaceValue = await pendingTaskFuncRaceGroup
+    pendingTaskFuncRaceGroupState = pendingTaskFuncRaceValue(0)
+catch e
+    if e.message == "future cancel requested." then
+        pendingTaskFuncRaceGroupState = 42
+    end
+end
+expect(pendingTaskFuncRaceGroupState, 42)
+
+int pendingTaskFuncRaceRightState = 0
+try
+    func(int) as int pendingTaskFuncRaceRightValue = await pendingTaskFuncRaceRight
+    pendingTaskFuncRaceRightState = pendingTaskFuncRaceRightValue(0)
+catch e
+    if e.message == "future cancel requested." then
+        pendingTaskFuncRaceRightState = 42
+    end
+end
+expect(pendingTaskFuncRaceRightState, 42)
+time.sleep(300)
+
+int pendingTaskFuncRaceLateState = 0
+try
+    func(int) as int pendingTaskFuncRaceLateValue = await pendingTaskFuncRaceLeft
+    pendingTaskFuncRaceLateState = pendingTaskFuncRaceLateValue(0)
+catch e
+    if e.message == "future cancel requested." then
+        pendingTaskFuncRaceLateState = 42
+    end
+end
+expect(pendingTaskFuncRaceLateState, 42)
+
 future<int> raceCancelWinner = fastRaceAsync(77)
 future<int> raceCancelLoser = slowRaceAsync(88)
 int raceCancelValue = await task.race([raceCancelWinner, raceCancelLoser])
@@ -112,11 +703,258 @@ int raceWinnerStillAvailable = await raceCancelWinner
 expect(raceWinnerStillAvailable, 77)
 time.sleep(300)
 
+future<int> multiRaceWinner = fastRaceAsync(177)
+future<int> multiRaceLoserA = slowRaceAsync(188)
+future<int> multiRaceLoserB = slowRaceAsync(199)
+int multiRaceValue = await task.race([multiRaceWinner, multiRaceLoserA, multiRaceLoserB])
+expect(multiRaceValue, 177)
+
+int multiRaceLoserAState = 0
+try
+    int multiRaceLoserAValue = await multiRaceLoserA
+    multiRaceLoserAState = multiRaceLoserAValue
+catch e
+    if e.message == "future cancel requested." then
+        multiRaceLoserAState = 42
+    end
+end
+expect(multiRaceLoserAState, 42)
+
+int multiRaceLoserBState = 0
+try
+    int multiRaceLoserBValue = await multiRaceLoserB
+    multiRaceLoserBState = multiRaceLoserBValue
+catch e
+    if e.message == "future cancel requested." then
+        multiRaceLoserBState = 42
+    end
+end
+expect(multiRaceLoserBState, 42)
+int multiRaceWinnerStillAvailable = await multiRaceWinner
+expect(multiRaceWinnerStillAvailable, 177)
+time.sleep(300)
+
+future<int> sourceCanceledAllLeft = slowRaceAsync(185)
+future<int> sourceCanceledAllRight = slowRaceAsync(186)
+future<array<int>> sourceCanceledAllGroup = task.all([sourceCanceledAllLeft, sourceCanceledAllRight])
+bool sourceCanceledAllRequest = task.cancel(sourceCanceledAllLeft)
+expect(sourceCanceledAllRequest, 1)
+
+int sourceCanceledAllGroupState = 0
+try
+    array<int> sourceCanceledAllValues = await sourceCanceledAllGroup
+    sourceCanceledAllGroupState = sourceCanceledAllValues.length
+catch e
+    if e.message == "future cancel requested." then
+        sourceCanceledAllGroupState = 42
+    end
+end
+expect(sourceCanceledAllGroupState, 42)
+
+int sourceCanceledAllRightState = 0
+try
+    int sourceCanceledAllRightValue = await sourceCanceledAllRight
+    sourceCanceledAllRightState = sourceCanceledAllRightValue
+catch e
+    if e.message == "future cancel requested." then
+        sourceCanceledAllRightState = 42
+    end
+end
+expect(sourceCanceledAllRightState, 186)
+bool sourceCanceledAllRightCancel = task.cancel(sourceCanceledAllRight)
+expect(sourceCanceledAllRightCancel, 0)
+
+int sourceCanceledAllLeftState = 0
+try
+    int sourceCanceledAllLeftValue = await sourceCanceledAllLeft
+    sourceCanceledAllLeftState = sourceCanceledAllLeftValue
+catch e
+    if e.message == "future cancel requested." then
+        sourceCanceledAllLeftState = 42
+    end
+end
+expect(sourceCanceledAllLeftState, 42)
+
+future<int> sourceCanceledTypedAllLeft = slowRaceAsync(195)
+future<int> sourceCanceledTypedAllRight = slowRaceAsync(196)
+array<future<int>> sourceCanceledTypedAllJobs = array[sourceCanceledTypedAllLeft, sourceCanceledTypedAllRight]
+future<array<int>> sourceCanceledTypedAllGroup = task.all(sourceCanceledTypedAllJobs)
+bool sourceCanceledTypedAllRequest = task.cancel(sourceCanceledTypedAllLeft)
+expect(sourceCanceledTypedAllRequest, 1)
+
+int sourceCanceledTypedAllGroupState = 0
+try
+    array<int> sourceCanceledTypedAllValues = await sourceCanceledTypedAllGroup
+    sourceCanceledTypedAllGroupState = sourceCanceledTypedAllValues.length
+catch e
+    if e.message == "future cancel requested." then
+        sourceCanceledTypedAllGroupState = 42
+    end
+end
+expect(sourceCanceledTypedAllGroupState, 42)
+
+int sourceCanceledTypedAllRightState = 0
+try
+    int sourceCanceledTypedAllRightValue = await sourceCanceledTypedAllRight
+    sourceCanceledTypedAllRightState = sourceCanceledTypedAllRightValue
+catch e
+    if e.message == "future cancel requested." then
+        sourceCanceledTypedAllRightState = 42
+    end
+end
+expect(sourceCanceledTypedAllRightState, 196)
+bool sourceCanceledTypedAllRightCancel = task.cancel(sourceCanceledTypedAllRight)
+expect(sourceCanceledTypedAllRightCancel, 0)
+
+future<int> sourceCanceledRaceWinner = slowRaceAsync(187)
+future<int> sourceCanceledRaceLoser = slowRaceAsync(188)
+future<int> sourceCanceledRaceGroup = task.race([sourceCanceledRaceWinner, sourceCanceledRaceLoser])
+bool sourceCanceledRaceRequest = task.cancel(sourceCanceledRaceWinner)
+expect(sourceCanceledRaceRequest, 1)
+
+int sourceCanceledRaceGroupState = 0
+try
+    int sourceCanceledRaceValue = await sourceCanceledRaceGroup
+    sourceCanceledRaceGroupState = sourceCanceledRaceValue
+catch e
+    if e.message == "future cancel requested." then
+        sourceCanceledRaceGroupState = 42
+    end
+end
+expect(sourceCanceledRaceGroupState, 42)
+
+int sourceCanceledRaceLoserStateA = 0
+try
+    int sourceCanceledRaceLoserValueA = await sourceCanceledRaceLoser
+    sourceCanceledRaceLoserStateA = sourceCanceledRaceLoserValueA
+catch e
+    if e.message == "future cancel requested." then
+        sourceCanceledRaceLoserStateA = 42
+    end
+end
+expect(sourceCanceledRaceLoserStateA, 42)
+time.sleep(300)
+
+int sourceCanceledRaceLoserStateB = 0
+try
+    int sourceCanceledRaceLoserValueB = await sourceCanceledRaceLoser
+    sourceCanceledRaceLoserStateB = sourceCanceledRaceLoserValueB
+catch e
+    if e.message == "future cancel requested." then
+        sourceCanceledRaceLoserStateB = 42
+    end
+end
+expect(sourceCanceledRaceLoserStateB, 42)
+bool sourceCanceledRaceWinnerAgain = task.cancel(sourceCanceledRaceWinner)
+expect(sourceCanceledRaceWinnerAgain, 1)
+
+future<int> sourceCanceledTypedRaceWinner = slowRaceAsync(197)
+future<int> sourceCanceledTypedRaceLoser = slowRaceAsync(198)
+array<future<int>> sourceCanceledTypedRaceJobs = array[sourceCanceledTypedRaceWinner, sourceCanceledTypedRaceLoser]
+future<int> sourceCanceledTypedRaceGroup = task.race(sourceCanceledTypedRaceJobs)
+bool sourceCanceledTypedRaceRequest = task.cancel(sourceCanceledTypedRaceWinner)
+expect(sourceCanceledTypedRaceRequest, 1)
+
+int sourceCanceledTypedRaceGroupState = 0
+try
+    int sourceCanceledTypedRaceValue = await sourceCanceledTypedRaceGroup
+    sourceCanceledTypedRaceGroupState = sourceCanceledTypedRaceValue
+catch e
+    if e.message == "future cancel requested." then
+        sourceCanceledTypedRaceGroupState = 42
+    end
+end
+expect(sourceCanceledTypedRaceGroupState, 42)
+
+int sourceCanceledTypedRaceLoserState = 0
+try
+    int sourceCanceledTypedRaceLoserValue = await sourceCanceledTypedRaceLoser
+    sourceCanceledTypedRaceLoserState = sourceCanceledTypedRaceLoserValue
+catch e
+    if e.message == "future cancel requested." then
+        sourceCanceledTypedRaceLoserState = 42
+    end
+end
+expect(sourceCanceledTypedRaceLoserState, 42)
+time.sleep(300)
+
+future<int> completedCanceledAllLeft = slowRaceAsync(205)
+bool completedCanceledAllRequest = task.cancel(completedCanceledAllLeft)
+expect(completedCanceledAllRequest, 1)
+future<int> completedCanceledAllRight = slowRaceAsync(206)
+future<array<int>> completedCanceledAllGroup = task.all([completedCanceledAllLeft, completedCanceledAllRight])
+
+int completedCanceledAllGroupState = 0
+try
+    array<int> completedCanceledAllValues = await completedCanceledAllGroup
+    completedCanceledAllGroupState = completedCanceledAllValues.length
+catch e
+    if e.message == "future cancel requested." then
+        completedCanceledAllGroupState = 42
+    end
+end
+expect(completedCanceledAllGroupState, 42)
+
+int completedCanceledAllRightState = 0
+try
+    int completedCanceledAllRightValue = await completedCanceledAllRight
+    completedCanceledAllRightState = completedCanceledAllRightValue
+catch e
+    if e.message == "future cancel requested." then
+        completedCanceledAllRightState = 42
+    end
+end
+expect(completedCanceledAllRightState, 206)
+bool completedCanceledAllRightCancel = task.cancel(completedCanceledAllRight)
+expect(completedCanceledAllRightCancel, 0)
+
+future<int> completedCanceledRaceWinner = slowRaceAsync(207)
+bool completedCanceledRaceRequest = task.cancel(completedCanceledRaceWinner)
+expect(completedCanceledRaceRequest, 1)
+future<int> completedCanceledRaceLoser = slowRaceAsync(208)
+future<int> completedCanceledRaceGroup = task.race([completedCanceledRaceWinner, completedCanceledRaceLoser])
+
+int completedCanceledRaceGroupState = 0
+try
+    int completedCanceledRaceValue = await completedCanceledRaceGroup
+    completedCanceledRaceGroupState = completedCanceledRaceValue
+catch e
+    if e.message == "future cancel requested." then
+        completedCanceledRaceGroupState = 42
+    end
+end
+expect(completedCanceledRaceGroupState, 42)
+
+int completedCanceledRaceLoserState = 0
+try
+    int completedCanceledRaceLoserValue = await completedCanceledRaceLoser
+    completedCanceledRaceLoserState = completedCanceledRaceLoserValue
+catch e
+    if e.message == "future cancel requested." then
+        completedCanceledRaceLoserState = 42
+    end
+end
+expect(completedCanceledRaceLoserState, 42)
+time.sleep(300)
+
+array<int> allInputOrderValues = await task.all([slowRaceAsync(401), fastRaceAsync(402)])
+expect(allInputOrderValues.length, 2)
+expect(allInputOrderValues[0], 401)
+expect(allInputOrderValues[1], 402)
+
+array<future<int>> typedAllInputOrderJobs = array[slowRaceAsync(403), fastRaceAsync(404)]
+array<int> typedAllInputOrderValues = await task.all(typedAllInputOrderJobs)
+expect(typedAllInputOrderValues.length, 2)
+expect(typedAllInputOrderValues[0], 403)
+expect(typedAllInputOrderValues[1], 404)
+
 future<int> cancelAllLeft = slowRaceAsync(201)
 future<int> cancelAllRight = slowRaceAsync(202)
 future<array<int>> cancelAllGroup = task.all([cancelAllLeft, cancelAllRight])
 bool cancelAllRequested = task.cancel(cancelAllGroup)
 expect(cancelAllRequested, 1)
+bool cancelAllRequestedAgain = task.cancel(cancelAllGroup)
+expect(cancelAllRequestedAgain, 1)
 
 int cancelAllGroupState = 0
 try
@@ -128,6 +966,8 @@ catch e
     end
 end
 expect(cancelAllGroupState, 42)
+bool cancelAllRequestedAfterAwait = task.cancel(cancelAllGroup)
+expect(cancelAllRequestedAfterAwait, 1)
 
 int cancelAllLeftState = 0
 try
@@ -139,6 +979,8 @@ catch e
     end
 end
 expect(cancelAllLeftState, 42)
+bool cancelAllLeftCancelAgain = task.cancel(cancelAllLeft)
+expect(cancelAllLeftCancelAgain, 1)
 
 int cancelAllRightState = 0
 try
@@ -152,11 +994,33 @@ end
 expect(cancelAllRightState, 42)
 time.sleep(300)
 
+future<int> repeatCancelFuture = slowRaceAsync(206)
+bool repeatCancelFirst = task.cancel(repeatCancelFuture)
+expect(repeatCancelFirst, 1)
+bool repeatCancelSecond = task.cancel(repeatCancelFuture)
+expect(repeatCancelSecond, 1)
+
+int repeatCancelState = 0
+try
+    int repeatCancelValue = await repeatCancelFuture
+    repeatCancelState = repeatCancelValue
+catch e
+    if e.message == "future cancel requested." then
+        repeatCancelState = 42
+    end
+end
+expect(repeatCancelState, 42)
+bool repeatCancelAfterAwait = task.cancel(repeatCancelFuture)
+expect(repeatCancelAfterAwait, 1)
+time.sleep(300)
+
 future<int> cancelRaceLeft = slowRaceAsync(301)
 future<int> cancelRaceRight = slowRaceAsync(302)
 future<int> cancelRaceGroup = task.race([cancelRaceLeft, cancelRaceRight])
 bool cancelRaceRequested = task.cancel(cancelRaceGroup)
 expect(cancelRaceRequested, 1)
+bool cancelRaceRequestedAgain = task.cancel(cancelRaceGroup)
+expect(cancelRaceRequestedAgain, 1)
 
 int cancelRaceGroupState = 0
 try
@@ -168,6 +1032,8 @@ catch e
     end
 end
 expect(cancelRaceGroupState, 42)
+bool cancelRaceRequestedAfterAwait = task.cancel(cancelRaceGroup)
+expect(cancelRaceRequestedAfterAwait, 1)
 
 int cancelRaceLeftState = 0
 try
@@ -179,6 +1045,8 @@ catch e
     end
 end
 expect(cancelRaceLeftState, 42)
+bool cancelRaceLeftCancelAgain = task.cancel(cancelRaceLeft)
+expect(cancelRaceLeftCancelAgain, 1)
 
 int cancelRaceRightState = 0
 try
@@ -568,6 +1436,32 @@ array<future<string>> stringRaceJobs = array[greetAsync("typed-race-string")]
 string typedStringRace = await task.race(stringRaceJobs)
 assert typedStringRace == "hello typed-race-string", "task.race typed string array result"
 
+array<future<string>> typedStringAllCompletedJobs = array[greetAsync("typed-complete-left"), greetAsync("typed-complete-right")]
+future<array<string>> typedStringAllCompletedFuture = task.all(typedStringAllCompletedJobs)
+array<string> typedStringAllCompletedA = await typedStringAllCompletedFuture
+array<string> typedStringAllCompletedB = await typedStringAllCompletedFuture
+expect(typedStringAllCompletedA.length, 2)
+expect(typedStringAllCompletedB.length, 2)
+assert typedStringAllCompletedA[0] == "hello typed-complete-left", "typed string task.all first await"
+assert typedStringAllCompletedB[1] == "hello typed-complete-right", "typed string task.all repeated await"
+bool cancelTypedStringAllCompleted = task.cancel(typedStringAllCompletedFuture)
+expect(cancelTypedStringAllCompleted, 0)
+array<string> postCancelTypedStringAllCompleted = await typedStringAllCompletedFuture
+expect(postCancelTypedStringAllCompleted.length, 2)
+assert postCancelTypedStringAllCompleted[0] == "hello typed-complete-left", "typed string task.all post-cancel first"
+assert postCancelTypedStringAllCompleted[1] == "hello typed-complete-right", "typed string task.all post-cancel second"
+
+array<future<string>> typedStringRaceCompletedJobs = array[greetAsync("typed-race-complete")]
+future<string> typedStringRaceCompletedFuture = task.race(typedStringRaceCompletedJobs)
+string typedStringRaceCompletedA = await typedStringRaceCompletedFuture
+string typedStringRaceCompletedB = await typedStringRaceCompletedFuture
+assert typedStringRaceCompletedA == "hello typed-race-complete", "typed string task.race first await"
+assert typedStringRaceCompletedB == "hello typed-race-complete", "typed string task.race repeated await"
+bool cancelTypedStringRaceCompleted = task.cancel(typedStringRaceCompletedFuture)
+expect(cancelTypedStringRaceCompleted, 0)
+string postCancelTypedStringRaceCompleted = await typedStringRaceCompletedFuture
+assert postCancelTypedStringRaceCompleted == "hello typed-race-complete", "typed string task.race post-cancel await"
+
 array<bool> boolAll = await task.all([flipAsync(true), flipAsync(false)])
 expect(boolAll.length, 2)
 expect(int(boolAll[0]), 0)
@@ -607,6 +1501,32 @@ expect(int(postCancelNamedBoolRaceValue), 1)
 array<future<bool>> boolRaceJobs = array[flipAsync(false)]
 bool typedBoolRace = await task.race(boolRaceJobs)
 expect(int(typedBoolRace), 1)
+
+array<future<bool>> typedBoolAllCompletedJobs = array[flipAsync(true), flipAsync(false)]
+future<array<bool>> typedBoolAllCompletedFuture = task.all(typedBoolAllCompletedJobs)
+array<bool> typedBoolAllCompletedA = await typedBoolAllCompletedFuture
+array<bool> typedBoolAllCompletedB = await typedBoolAllCompletedFuture
+expect(typedBoolAllCompletedA.length, 2)
+expect(typedBoolAllCompletedB.length, 2)
+expect(int(typedBoolAllCompletedA[0]), 0)
+expect(int(typedBoolAllCompletedB[1]), 1)
+bool cancelTypedBoolAllCompleted = task.cancel(typedBoolAllCompletedFuture)
+expect(cancelTypedBoolAllCompleted, 0)
+array<bool> postCancelTypedBoolAllCompleted = await typedBoolAllCompletedFuture
+expect(postCancelTypedBoolAllCompleted.length, 2)
+expect(int(postCancelTypedBoolAllCompleted[0]), 0)
+expect(int(postCancelTypedBoolAllCompleted[1]), 1)
+
+array<future<bool>> typedBoolRaceCompletedJobs = array[flipAsync(false)]
+future<bool> typedBoolRaceCompletedFuture = task.race(typedBoolRaceCompletedJobs)
+bool typedBoolRaceCompletedA = await typedBoolRaceCompletedFuture
+bool typedBoolRaceCompletedB = await typedBoolRaceCompletedFuture
+expect(int(typedBoolRaceCompletedA), 1)
+expect(int(typedBoolRaceCompletedB), 1)
+bool cancelTypedBoolRaceCompleted = task.cancel(typedBoolRaceCompletedFuture)
+expect(cancelTypedBoolRaceCompleted, 0)
+bool postCancelTypedBoolRaceCompleted = await typedBoolRaceCompletedFuture
+expect(int(postCancelTypedBoolRaceCompleted), 1)
 
 array<float> floatAll = await task.all([addHalfAsync(1.5), addHalfAsync(2.5)])
 expect(floatAll.length, 2)
@@ -648,6 +1568,32 @@ array<future<float>> floatRaceJobs = array[addHalfAsync(8.5)]
 float typedFloatRace = await task.race(floatRaceJobs)
 assert typedFloatRace == 9.0, "task.race typed float array result"
 
+array<future<float>> typedFloatAllCompletedJobs = array[addHalfAsync(10.5), addHalfAsync(20.5)]
+future<array<float>> typedFloatAllCompletedFuture = task.all(typedFloatAllCompletedJobs)
+array<float> typedFloatAllCompletedA = await typedFloatAllCompletedFuture
+array<float> typedFloatAllCompletedB = await typedFloatAllCompletedFuture
+expect(typedFloatAllCompletedA.length, 2)
+expect(typedFloatAllCompletedB.length, 2)
+assert typedFloatAllCompletedA[0] == 11.0, "typed float task.all first await"
+assert typedFloatAllCompletedB[1] == 21.0, "typed float task.all repeated await"
+bool cancelTypedFloatAllCompleted = task.cancel(typedFloatAllCompletedFuture)
+expect(cancelTypedFloatAllCompleted, 0)
+array<float> postCancelTypedFloatAllCompleted = await typedFloatAllCompletedFuture
+expect(postCancelTypedFloatAllCompleted.length, 2)
+assert postCancelTypedFloatAllCompleted[0] == 11.0, "typed float task.all post-cancel first"
+assert postCancelTypedFloatAllCompleted[1] == 21.0, "typed float task.all post-cancel second"
+
+array<future<float>> typedFloatRaceCompletedJobs = array[addHalfAsync(30.5)]
+future<float> typedFloatRaceCompletedFuture = task.race(typedFloatRaceCompletedJobs)
+float typedFloatRaceCompletedA = await typedFloatRaceCompletedFuture
+float typedFloatRaceCompletedB = await typedFloatRaceCompletedFuture
+assert typedFloatRaceCompletedA == 31.0, "typed float task.race first await"
+assert typedFloatRaceCompletedB == 31.0, "typed float task.race repeated await"
+bool cancelTypedFloatRaceCompleted = task.cancel(typedFloatRaceCompletedFuture)
+expect(cancelTypedFloatRaceCompleted, 0)
+float postCancelTypedFloatRaceCompleted = await typedFloatRaceCompletedFuture
+assert postCancelTypedFloatRaceCompleted == 31.0, "typed float task.race post-cancel await"
+
 future<int> cancelTarget = addAsync(30, 12)
 bool cancelRequested = task.cancel(cancelTarget)
 assert cancelRequested == true or cancelRequested == false, "task.cancel should return bool"
@@ -655,6 +1601,26 @@ assert cancelRequested == true or cancelRequested == false, "task.cancel should 
 future<int> missingCancelFuture
 bool cancelMissing = task.cancel(missingCancelFuture)
 expect(cancelMissing, 0)
+
+future<string> missingCancelStringFuture
+bool cancelMissingString = task.cancel(missingCancelStringFuture)
+expect(cancelMissingString, 0)
+
+future<bool> missingCancelBoolFuture
+bool cancelMissingBool = task.cancel(missingCancelBoolFuture)
+expect(cancelMissingBool, 0)
+
+future<float> missingCancelFloatFuture
+bool cancelMissingFloat = task.cancel(missingCancelFloatFuture)
+expect(cancelMissingFloat, 0)
+
+future<TaskBox> missingCancelTaskBoxFuture
+bool cancelMissingTaskBox = task.cancel(missingCancelTaskBoxFuture)
+expect(cancelMissingTaskBox, 0)
+
+future<func(int) as int> missingCancelTaskFuncFuture
+bool cancelMissingTaskFunc = task.cancel(missingCancelTaskFuncFuture)
+expect(cancelMissingTaskFunc, 0)
 
 bool cancelTemporaryAsync = task.cancel(addAsync(50, 6))
 assert cancelTemporaryAsync == true or cancelTemporaryAsync == false, "task.cancel should release temporary async future"
@@ -724,6 +1690,12 @@ async func failAsync() as int
     return 0
 end
 
+async func slowFailAsync() as int
+    time.sleep(250)
+    throw "task boom"
+    return 0
+end
+
 int allErrorState = 0
 try
     array<int> failedAll = await task.all([addAsync(40, 2), failAsync()])
@@ -751,6 +1723,105 @@ end
 expect(allFailureGroupState, 42)
 int allFailureSlowValue = await allFailureSlowSource
 expect(allFailureSlowValue, 909)
+
+future<int> allFailedBeforeCancelLeft = failAsync()
+int allFailedBeforeCancelLeftState = 0
+try
+    int allFailedBeforeCancelLeftValue = await allFailedBeforeCancelLeft
+    allFailedBeforeCancelLeftState = allFailedBeforeCancelLeftValue
+catch e
+    if e.message == "task boom" then
+        allFailedBeforeCancelLeftState = 42
+    end
+end
+expect(allFailedBeforeCancelLeftState, 42)
+future<int> allFailedBeforeCancelRight = slowRaceAsync(910)
+future<array<int>> allFailedBeforeCancelGroup = task.all([allFailedBeforeCancelLeft, allFailedBeforeCancelRight])
+bool allFailedBeforeCancelRightRequest = task.cancel(allFailedBeforeCancelRight)
+expect(allFailedBeforeCancelRightRequest, 1)
+int allFailedBeforeCancelGroupState = 0
+try
+    array<int> allFailedBeforeCancelValues = await allFailedBeforeCancelGroup
+    allFailedBeforeCancelGroupState = allFailedBeforeCancelValues.length
+catch e
+    if e.message == "task boom" then
+        allFailedBeforeCancelGroupState = 42
+    end
+end
+expect(allFailedBeforeCancelGroupState, 42)
+int allFailedBeforeCancelRightState = 0
+try
+    int allFailedBeforeCancelRightValue = await allFailedBeforeCancelRight
+    allFailedBeforeCancelRightState = allFailedBeforeCancelRightValue
+catch e
+    if e.message == "future cancel requested." then
+        allFailedBeforeCancelRightState = 42
+    end
+end
+expect(allFailedBeforeCancelRightState, 42)
+
+future<int> allCanceledBeforeFailLeft = slowRaceAsync(911)
+bool allCanceledBeforeFailLeftRequest = task.cancel(allCanceledBeforeFailLeft)
+expect(allCanceledBeforeFailLeftRequest, 1)
+future<int> allCanceledBeforeFailRight = failAsync()
+int allCanceledBeforeFailRightWarmState = 0
+try
+    int allCanceledBeforeFailRightWarmValue = await allCanceledBeforeFailRight
+    allCanceledBeforeFailRightWarmState = allCanceledBeforeFailRightWarmValue
+catch e
+    if e.message == "task boom" then
+        allCanceledBeforeFailRightWarmState = 42
+    end
+end
+expect(allCanceledBeforeFailRightWarmState, 42)
+future<array<int>> allCanceledBeforeFailGroup = task.all([allCanceledBeforeFailLeft, allCanceledBeforeFailRight])
+int allCanceledBeforeFailGroupState = 0
+try
+    array<int> allCanceledBeforeFailValues = await allCanceledBeforeFailGroup
+    allCanceledBeforeFailGroupState = allCanceledBeforeFailValues.length
+catch e
+    if e.message == "future cancel requested." then
+        allCanceledBeforeFailGroupState = 42
+    end
+end
+expect(allCanceledBeforeFailGroupState, 42)
+int allCanceledBeforeFailRightState = 0
+try
+    int allCanceledBeforeFailRightValue = await allCanceledBeforeFailRight
+    allCanceledBeforeFailRightState = allCanceledBeforeFailRightValue
+catch e
+    if e.message == "task boom" then
+        allCanceledBeforeFailRightState = 42
+    end
+end
+expect(allCanceledBeforeFailRightState, 42)
+
+future<int> typedAllFailedBeforeCancelLeft = failAsync()
+int typedAllFailedBeforeCancelLeftState = 0
+try
+    int typedAllFailedBeforeCancelLeftValue = await typedAllFailedBeforeCancelLeft
+    typedAllFailedBeforeCancelLeftState = typedAllFailedBeforeCancelLeftValue
+catch e
+    if e.message == "task boom" then
+        typedAllFailedBeforeCancelLeftState = 42
+    end
+end
+expect(typedAllFailedBeforeCancelLeftState, 42)
+future<int> typedAllFailedBeforeCancelRight = slowRaceAsync(912)
+array<future<int>> typedAllFailedBeforeCancelJobs = array[typedAllFailedBeforeCancelLeft, typedAllFailedBeforeCancelRight]
+future<array<int>> typedAllFailedBeforeCancelGroup = task.all(typedAllFailedBeforeCancelJobs)
+bool typedAllFailedBeforeCancelRightRequest = task.cancel(typedAllFailedBeforeCancelRight)
+expect(typedAllFailedBeforeCancelRightRequest, 1)
+int typedAllFailedBeforeCancelGroupState = 0
+try
+    array<int> typedAllFailedBeforeCancelValues = await typedAllFailedBeforeCancelGroup
+    typedAllFailedBeforeCancelGroupState = typedAllFailedBeforeCancelValues.length
+catch e
+    if e.message == "task boom" then
+        typedAllFailedBeforeCancelGroupState = 42
+    end
+end
+expect(typedAllFailedBeforeCancelGroupState, 42)
 
 future<array<int>> repeatedFailedAll = task.all([failAsync()])
 int repeatedAllErrorA = 0
@@ -854,6 +1925,180 @@ end
 
 expect(raceFailureLoserStateB, 42)
 
+future<int> completedFailedRaceWinner = failAsync()
+int completedFailedRaceWinnerState = 0
+try
+    int completedFailedRaceWinnerValue = await completedFailedRaceWinner
+    completedFailedRaceWinnerState = completedFailedRaceWinnerValue
+catch e
+    if e.message == "task boom" then
+        completedFailedRaceWinnerState = 42
+    end
+end
+expect(completedFailedRaceWinnerState, 42)
+
+future<int> completedFailedRaceLoser = slowRaceAsync(929)
+future<int> completedFailedRaceGroup = task.race([completedFailedRaceWinner, completedFailedRaceLoser])
+int completedFailedRaceGroupState = 0
+try
+    int completedFailedRaceValue = await completedFailedRaceGroup
+    completedFailedRaceGroupState = completedFailedRaceValue
+catch e
+    if e.message == "task boom" then
+        completedFailedRaceGroupState = 42
+    end
+end
+expect(completedFailedRaceGroupState, 42)
+
+int completedFailedRaceLoserState = 0
+try
+    int completedFailedRaceLoserValue = await completedFailedRaceLoser
+    completedFailedRaceLoserState = completedFailedRaceLoserValue
+catch e
+    if e.message == "future cancel requested." then
+        completedFailedRaceLoserState = 42
+    end
+end
+expect(completedFailedRaceLoserState, 42)
+time.sleep(300)
+
+future<int> completedTypedFailedRaceWinner = failAsync()
+int completedTypedFailedRaceWinnerState = 0
+try
+    int completedTypedFailedRaceWinnerValue = await completedTypedFailedRaceWinner
+    completedTypedFailedRaceWinnerState = completedTypedFailedRaceWinnerValue
+catch e
+    if e.message == "task boom" then
+        completedTypedFailedRaceWinnerState = 42
+    end
+end
+expect(completedTypedFailedRaceWinnerState, 42)
+
+future<int> completedTypedFailedRaceLoser = slowRaceAsync(939)
+array<future<int>> completedTypedFailedRaceJobs = array[completedTypedFailedRaceWinner, completedTypedFailedRaceLoser]
+future<int> completedTypedFailedRaceGroup = task.race(completedTypedFailedRaceJobs)
+int completedTypedFailedRaceGroupState = 0
+try
+    int completedTypedFailedRaceValue = await completedTypedFailedRaceGroup
+    completedTypedFailedRaceGroupState = completedTypedFailedRaceValue
+catch e
+    if e.message == "task boom" then
+        completedTypedFailedRaceGroupState = 42
+    end
+end
+expect(completedTypedFailedRaceGroupState, 42)
+
+int completedTypedFailedRaceLoserState = 0
+try
+    int completedTypedFailedRaceLoserValue = await completedTypedFailedRaceLoser
+    completedTypedFailedRaceLoserState = completedTypedFailedRaceLoserValue
+catch e
+    if e.message == "future cancel requested." then
+        completedTypedFailedRaceLoserState = 42
+    end
+end
+expect(completedTypedFailedRaceLoserState, 42)
+time.sleep(300)
+
+future<int> raceFailedBeforeCancelWinner = failAsync()
+int raceFailedBeforeCancelWinnerState = 0
+try
+    int raceFailedBeforeCancelWinnerValue = await raceFailedBeforeCancelWinner
+    raceFailedBeforeCancelWinnerState = raceFailedBeforeCancelWinnerValue
+catch e
+    if e.message == "task boom" then
+        raceFailedBeforeCancelWinnerState = 42
+    end
+end
+expect(raceFailedBeforeCancelWinnerState, 42)
+future<int> raceFailedBeforeCancelLoser = slowRaceAsync(941)
+bool raceFailedBeforeCancelLoserRequest = task.cancel(raceFailedBeforeCancelLoser)
+expect(raceFailedBeforeCancelLoserRequest, 1)
+future<int> raceFailedBeforeCancelGroup = task.race([raceFailedBeforeCancelWinner, raceFailedBeforeCancelLoser])
+int raceFailedBeforeCancelGroupState = 0
+try
+    int raceFailedBeforeCancelValue = await raceFailedBeforeCancelGroup
+    raceFailedBeforeCancelGroupState = raceFailedBeforeCancelValue
+catch e
+    if e.message == "task boom" then
+        raceFailedBeforeCancelGroupState = 42
+    end
+end
+expect(raceFailedBeforeCancelGroupState, 42)
+int raceFailedBeforeCancelLoserState = 0
+try
+    int raceFailedBeforeCancelLoserValue = await raceFailedBeforeCancelLoser
+    raceFailedBeforeCancelLoserState = raceFailedBeforeCancelLoserValue
+catch e
+    if e.message == "future cancel requested." then
+        raceFailedBeforeCancelLoserState = 42
+    end
+end
+expect(raceFailedBeforeCancelLoserState, 42)
+
+future<int> raceCanceledBeforeFailWinner = slowRaceAsync(942)
+bool raceCanceledBeforeFailWinnerRequest = task.cancel(raceCanceledBeforeFailWinner)
+expect(raceCanceledBeforeFailWinnerRequest, 1)
+future<int> raceCanceledBeforeFailLoser = failAsync()
+int raceCanceledBeforeFailLoserWarmState = 0
+try
+    int raceCanceledBeforeFailLoserWarmValue = await raceCanceledBeforeFailLoser
+    raceCanceledBeforeFailLoserWarmState = raceCanceledBeforeFailLoserWarmValue
+catch e
+    if e.message == "task boom" then
+        raceCanceledBeforeFailLoserWarmState = 42
+    end
+end
+expect(raceCanceledBeforeFailLoserWarmState, 42)
+future<int> raceCanceledBeforeFailGroup = task.race([raceCanceledBeforeFailWinner, raceCanceledBeforeFailLoser])
+int raceCanceledBeforeFailGroupState = 0
+try
+    int raceCanceledBeforeFailValue = await raceCanceledBeforeFailGroup
+    raceCanceledBeforeFailGroupState = raceCanceledBeforeFailValue
+catch e
+    if e.message == "future cancel requested." then
+        raceCanceledBeforeFailGroupState = 42
+    end
+end
+expect(raceCanceledBeforeFailGroupState, 42)
+int raceCanceledBeforeFailLoserState = 0
+try
+    int raceCanceledBeforeFailLoserValue = await raceCanceledBeforeFailLoser
+    raceCanceledBeforeFailLoserState = raceCanceledBeforeFailLoserValue
+catch e
+    if e.message == "task boom" then
+        raceCanceledBeforeFailLoserState = 42
+    end
+end
+expect(raceCanceledBeforeFailLoserState, 42)
+
+future<int> typedRaceFailedBeforeCancelWinner = failAsync()
+int typedRaceFailedBeforeCancelWinnerState = 0
+try
+    int typedRaceFailedBeforeCancelWinnerValue = await typedRaceFailedBeforeCancelWinner
+    typedRaceFailedBeforeCancelWinnerState = typedRaceFailedBeforeCancelWinnerValue
+catch e
+    if e.message == "task boom" then
+        typedRaceFailedBeforeCancelWinnerState = 42
+    end
+end
+expect(typedRaceFailedBeforeCancelWinnerState, 42)
+future<int> typedRaceFailedBeforeCancelLoser = slowRaceAsync(943)
+bool typedRaceFailedBeforeCancelLoserRequest = task.cancel(typedRaceFailedBeforeCancelLoser)
+expect(typedRaceFailedBeforeCancelLoserRequest, 1)
+array<future<int>> typedRaceFailedBeforeCancelJobs = array[typedRaceFailedBeforeCancelWinner, typedRaceFailedBeforeCancelLoser]
+future<int> typedRaceFailedBeforeCancelGroup = task.race(typedRaceFailedBeforeCancelJobs)
+int typedRaceFailedBeforeCancelGroupState = 0
+try
+    int typedRaceFailedBeforeCancelValue = await typedRaceFailedBeforeCancelGroup
+    typedRaceFailedBeforeCancelGroupState = typedRaceFailedBeforeCancelValue
+catch e
+    if e.message == "task boom" then
+        typedRaceFailedBeforeCancelGroupState = 42
+    end
+end
+expect(typedRaceFailedBeforeCancelGroupState, 42)
+
 future<int> repeatedFailedRace = task.race([failAsync()])
 int repeatedRaceErrorA = 0
 try
@@ -906,6 +2151,403 @@ catch e
 end
 
 expect(typedRaceErrorState, 42)
+
+future<int> duplicateFailedAllSource = slowFailAsync()
+future<array<int>> duplicateFailedAllGroup = task.all([duplicateFailedAllSource, duplicateFailedAllSource])
+int duplicateFailedAllState = 0
+try
+    array<int> duplicateFailedAllValues = await duplicateFailedAllGroup
+    duplicateFailedAllState = duplicateFailedAllValues.length
+catch e
+    if e.message == "task boom" then
+        duplicateFailedAllState = 42
+    end
+end
+expect(duplicateFailedAllState, 42)
+
+int duplicateFailedAllSourceState = 0
+try
+    int duplicateFailedAllSourceValue = await duplicateFailedAllSource
+    duplicateFailedAllSourceState = duplicateFailedAllSourceValue
+catch e
+    if e.message == "task boom" then
+        duplicateFailedAllSourceState = 42
+    end
+end
+expect(duplicateFailedAllSourceState, 42)
+bool duplicateFailedAllSourceCancel = task.cancel(duplicateFailedAllSource)
+expect(duplicateFailedAllSourceCancel, 0)
+
+future<int> duplicateFailedRaceSource = slowFailAsync()
+future<int> duplicateFailedRaceGroup = task.race([duplicateFailedRaceSource, duplicateFailedRaceSource])
+int duplicateFailedRaceState = 0
+try
+    int duplicateFailedRaceValue = await duplicateFailedRaceGroup
+    duplicateFailedRaceState = duplicateFailedRaceValue
+catch e
+    if e.message == "task boom" then
+        duplicateFailedRaceState = 42
+    end
+end
+expect(duplicateFailedRaceState, 42)
+
+int duplicateFailedRaceSourceState = 0
+try
+    int duplicateFailedRaceSourceValue = await duplicateFailedRaceSource
+    duplicateFailedRaceSourceState = duplicateFailedRaceSourceValue
+catch e
+    if e.message == "task boom" then
+        duplicateFailedRaceSourceState = 42
+    end
+end
+expect(duplicateFailedRaceSourceState, 42)
+bool duplicateFailedRaceSourceCancel = task.cancel(duplicateFailedRaceSource)
+expect(duplicateFailedRaceSourceCancel, 0)
+
+future<int> duplicateTypedFailedAllSource = slowFailAsync()
+array<future<int>> duplicateTypedFailedAllJobs = array[duplicateTypedFailedAllSource, duplicateTypedFailedAllSource]
+future<array<int>> duplicateTypedFailedAllGroup = task.all(duplicateTypedFailedAllJobs)
+int duplicateTypedFailedAllState = 0
+try
+    array<int> duplicateTypedFailedAllValues = await duplicateTypedFailedAllGroup
+    duplicateTypedFailedAllState = duplicateTypedFailedAllValues.length
+catch e
+    if e.message == "task boom" then
+        duplicateTypedFailedAllState = 42
+    end
+end
+expect(duplicateTypedFailedAllState, 42)
+
+int duplicateTypedFailedAllSourceState = 0
+try
+    int duplicateTypedFailedAllSourceValue = await duplicateTypedFailedAllSource
+    duplicateTypedFailedAllSourceState = duplicateTypedFailedAllSourceValue
+catch e
+    if e.message == "task boom" then
+        duplicateTypedFailedAllSourceState = 42
+    end
+end
+expect(duplicateTypedFailedAllSourceState, 42)
+bool duplicateTypedFailedAllSourceCancel = task.cancel(duplicateTypedFailedAllSource)
+expect(duplicateTypedFailedAllSourceCancel, 0)
+
+future<int> duplicateTypedFailedRaceSource = slowFailAsync()
+array<future<int>> duplicateTypedFailedRaceJobs = array[duplicateTypedFailedRaceSource, duplicateTypedFailedRaceSource]
+future<int> duplicateTypedFailedRaceGroup = task.race(duplicateTypedFailedRaceJobs)
+int duplicateTypedFailedRaceState = 0
+try
+    int duplicateTypedFailedRaceValue = await duplicateTypedFailedRaceGroup
+    duplicateTypedFailedRaceState = duplicateTypedFailedRaceValue
+catch e
+    if e.message == "task boom" then
+        duplicateTypedFailedRaceState = 42
+    end
+end
+expect(duplicateTypedFailedRaceState, 42)
+
+int duplicateTypedFailedRaceSourceState = 0
+try
+    int duplicateTypedFailedRaceSourceValue = await duplicateTypedFailedRaceSource
+    duplicateTypedFailedRaceSourceState = duplicateTypedFailedRaceSourceValue
+catch e
+    if e.message == "task boom" then
+        duplicateTypedFailedRaceSourceState = 42
+    end
+end
+expect(duplicateTypedFailedRaceSourceState, 42)
+bool duplicateTypedFailedRaceSourceCancel = task.cancel(duplicateTypedFailedRaceSource)
+expect(duplicateTypedFailedRaceSourceCancel, 0)
+
+int taskBoxAllErrorState = 0
+try
+    array<TaskBox> failedTaskBoxAll = await task.all([failTaskBoxAsync()])
+    taskBoxAllErrorState = failedTaskBoxAll.length
+catch e
+    if e.message == "task class boom" then
+        taskBoxAllErrorState = 42
+    end
+end
+expect(taskBoxAllErrorState, 42)
+
+int typedTaskBoxAllErrorState = 0
+array<future<TaskBox>> failedTaskBoxAllJobs = array[failTaskBoxAsync()]
+try
+    array<TaskBox> failedTypedTaskBoxAll = await task.all(failedTaskBoxAllJobs)
+    typedTaskBoxAllErrorState = failedTypedTaskBoxAll.length
+catch e
+    if e.message == "task class boom" then
+        typedTaskBoxAllErrorState = 42
+    end
+end
+expect(typedTaskBoxAllErrorState, 42)
+
+future<TaskBox> taskBoxRaceFailureSlowLoser = slowMakeTaskBox(410)
+future<TaskBox> taskBoxRaceFailureGroup = task.race([failTaskBoxAsync(), taskBoxRaceFailureSlowLoser])
+int taskBoxRaceFailureGroupState = 0
+try
+    TaskBox taskBoxRaceFailureValue = await taskBoxRaceFailureGroup
+    taskBoxRaceFailureGroupState = taskBoxRaceFailureValue.add(0)
+catch e
+    if e.message == "task class boom" then
+        taskBoxRaceFailureGroupState = 42
+    end
+end
+expect(taskBoxRaceFailureGroupState, 42)
+
+int taskBoxRaceFailureLoserStateA = 0
+try
+    TaskBox taskBoxRaceFailureLoserValueA = await taskBoxRaceFailureSlowLoser
+    taskBoxRaceFailureLoserStateA = taskBoxRaceFailureLoserValueA.add(0)
+catch e
+    if e.message == "future cancel requested." then
+        taskBoxRaceFailureLoserStateA = 42
+    end
+end
+expect(taskBoxRaceFailureLoserStateA, 42)
+time.sleep(300)
+
+int taskBoxRaceFailureLoserStateB = 0
+try
+    TaskBox taskBoxRaceFailureLoserValueB = await taskBoxRaceFailureSlowLoser
+    taskBoxRaceFailureLoserStateB = taskBoxRaceFailureLoserValueB.add(0)
+catch e
+    if e.message == "future cancel requested." then
+        taskBoxRaceFailureLoserStateB = 42
+    end
+end
+expect(taskBoxRaceFailureLoserStateB, 42)
+
+future<array<TaskBox>> repeatedFailedTaskBoxAll = task.all([failTaskBoxAsync()])
+int repeatedTaskBoxAllErrorA = 0
+try
+    array<TaskBox> firstFailedTaskBoxAll = await repeatedFailedTaskBoxAll
+    repeatedTaskBoxAllErrorA = firstFailedTaskBoxAll.length
+catch e
+    if e.message == "task class boom" then
+        repeatedTaskBoxAllErrorA = 42
+    end
+end
+expect(repeatedTaskBoxAllErrorA, 42)
+
+int repeatedTaskBoxAllErrorB = 0
+try
+    array<TaskBox> secondFailedTaskBoxAll = await repeatedFailedTaskBoxAll
+    repeatedTaskBoxAllErrorB = secondFailedTaskBoxAll.length
+catch e
+    if e.message == "task class boom" then
+        repeatedTaskBoxAllErrorB = 42
+    end
+end
+expect(repeatedTaskBoxAllErrorB, 42)
+
+bool cancelRepeatedFailedTaskBoxAll = task.cancel(repeatedFailedTaskBoxAll)
+expect(cancelRepeatedFailedTaskBoxAll, 0)
+
+int postCancelRepeatedTaskBoxAllError = 0
+try
+    array<TaskBox> postCancelFailedTaskBoxAll = await repeatedFailedTaskBoxAll
+    postCancelRepeatedTaskBoxAllError = postCancelFailedTaskBoxAll.length
+catch e
+    if e.message == "task class boom" then
+        postCancelRepeatedTaskBoxAllError = 42
+    end
+end
+expect(postCancelRepeatedTaskBoxAllError, 42)
+
+future<TaskBox> repeatedFailedTaskBoxRace = task.race([failTaskBoxAsync()])
+int repeatedTaskBoxRaceErrorA = 0
+try
+    TaskBox firstFailedTaskBoxRace = await repeatedFailedTaskBoxRace
+    repeatedTaskBoxRaceErrorA = firstFailedTaskBoxRace.add(0)
+catch e
+    if e.message == "task class boom" then
+        repeatedTaskBoxRaceErrorA = 42
+    end
+end
+expect(repeatedTaskBoxRaceErrorA, 42)
+
+int repeatedTaskBoxRaceErrorB = 0
+try
+    TaskBox secondFailedTaskBoxRace = await repeatedFailedTaskBoxRace
+    repeatedTaskBoxRaceErrorB = secondFailedTaskBoxRace.add(0)
+catch e
+    if e.message == "task class boom" then
+        repeatedTaskBoxRaceErrorB = 42
+    end
+end
+expect(repeatedTaskBoxRaceErrorB, 42)
+
+bool cancelRepeatedFailedTaskBoxRace = task.cancel(repeatedFailedTaskBoxRace)
+expect(cancelRepeatedFailedTaskBoxRace, 0)
+
+int postCancelRepeatedTaskBoxRaceError = 0
+try
+    TaskBox postCancelFailedTaskBoxRace = await repeatedFailedTaskBoxRace
+    postCancelRepeatedTaskBoxRaceError = postCancelFailedTaskBoxRace.add(0)
+catch e
+    if e.message == "task class boom" then
+        postCancelRepeatedTaskBoxRaceError = 42
+    end
+end
+expect(postCancelRepeatedTaskBoxRaceError, 42)
+
+int typedTaskBoxRaceErrorState = 0
+array<future<TaskBox>> failedTaskBoxRaceJobs = array[failTaskBoxAsync()]
+future<TaskBox> failedTypedTaskBoxRaceFuture = task.race(failedTaskBoxRaceJobs)
+try
+    TaskBox failedTypedTaskBoxRace = await failedTypedTaskBoxRaceFuture
+    typedTaskBoxRaceErrorState = failedTypedTaskBoxRace.add(0)
+catch e
+    if e.message == "task class boom" then
+        typedTaskBoxRaceErrorState = 42
+    end
+end
+expect(typedTaskBoxRaceErrorState, 42)
+
+int taskFuncAllErrorState = 0
+try
+    array<func(int) as int> failedTaskFuncAll = await task.all([failTaskAdderAsync()])
+    taskFuncAllErrorState = failedTaskFuncAll.length
+catch e
+    if e.message == "task function boom" then
+        taskFuncAllErrorState = 42
+    end
+end
+expect(taskFuncAllErrorState, 42)
+
+int typedTaskFuncAllErrorState = 0
+array<future<func(int) as int> > failedTaskFuncAllJobs = array[failTaskAdderAsync()]
+try
+    array<func(int) as int> failedTypedTaskFuncAll = await task.all(failedTaskFuncAllJobs)
+    typedTaskFuncAllErrorState = failedTypedTaskFuncAll.length
+catch e
+    if e.message == "task function boom" then
+        typedTaskFuncAllErrorState = 42
+    end
+end
+expect(typedTaskFuncAllErrorState, 42)
+
+future<func(int) as int> taskFuncRaceFailureSlowLoser = slowMakeTaskAdder(420)
+future<func(int) as int> taskFuncRaceFailureGroup = task.race([failTaskAdderAsync(), taskFuncRaceFailureSlowLoser])
+int taskFuncRaceFailureGroupState = 0
+try
+    func(int) as int taskFuncRaceFailureValue = await taskFuncRaceFailureGroup
+    taskFuncRaceFailureGroupState = taskFuncRaceFailureValue(0)
+catch e
+    if e.message == "task function boom" then
+        taskFuncRaceFailureGroupState = 42
+    end
+end
+expect(taskFuncRaceFailureGroupState, 42)
+
+int taskFuncRaceFailureLoserStateA = 0
+try
+    func(int) as int taskFuncRaceFailureLoserValueA = await taskFuncRaceFailureSlowLoser
+    taskFuncRaceFailureLoserStateA = taskFuncRaceFailureLoserValueA(0)
+catch e
+    if e.message == "future cancel requested." then
+        taskFuncRaceFailureLoserStateA = 42
+    end
+end
+expect(taskFuncRaceFailureLoserStateA, 42)
+time.sleep(300)
+
+int taskFuncRaceFailureLoserStateB = 0
+try
+    func(int) as int taskFuncRaceFailureLoserValueB = await taskFuncRaceFailureSlowLoser
+    taskFuncRaceFailureLoserStateB = taskFuncRaceFailureLoserValueB(0)
+catch e
+    if e.message == "future cancel requested." then
+        taskFuncRaceFailureLoserStateB = 42
+    end
+end
+expect(taskFuncRaceFailureLoserStateB, 42)
+
+future<array<func(int) as int> > repeatedFailedTaskFuncAll = task.all([failTaskAdderAsync()])
+int repeatedTaskFuncAllErrorA = 0
+try
+    array<func(int) as int> firstFailedTaskFuncAll = await repeatedFailedTaskFuncAll
+    repeatedTaskFuncAllErrorA = firstFailedTaskFuncAll.length
+catch e
+    if e.message == "task function boom" then
+        repeatedTaskFuncAllErrorA = 42
+    end
+end
+expect(repeatedTaskFuncAllErrorA, 42)
+
+int repeatedTaskFuncAllErrorB = 0
+try
+    array<func(int) as int> secondFailedTaskFuncAll = await repeatedFailedTaskFuncAll
+    repeatedTaskFuncAllErrorB = secondFailedTaskFuncAll.length
+catch e
+    if e.message == "task function boom" then
+        repeatedTaskFuncAllErrorB = 42
+    end
+end
+expect(repeatedTaskFuncAllErrorB, 42)
+
+bool cancelRepeatedFailedTaskFuncAll = task.cancel(repeatedFailedTaskFuncAll)
+expect(cancelRepeatedFailedTaskFuncAll, 0)
+
+int postCancelRepeatedTaskFuncAllError = 0
+try
+    array<func(int) as int> postCancelFailedTaskFuncAll = await repeatedFailedTaskFuncAll
+    postCancelRepeatedTaskFuncAllError = postCancelFailedTaskFuncAll.length
+catch e
+    if e.message == "task function boom" then
+        postCancelRepeatedTaskFuncAllError = 42
+    end
+end
+expect(postCancelRepeatedTaskFuncAllError, 42)
+
+future<func(int) as int> repeatedFailedTaskFuncRace = task.race([failTaskAdderAsync()])
+int repeatedTaskFuncRaceErrorA = 0
+try
+    func(int) as int firstFailedTaskFuncRace = await repeatedFailedTaskFuncRace
+    repeatedTaskFuncRaceErrorA = firstFailedTaskFuncRace(0)
+catch e
+    if e.message == "task function boom" then
+        repeatedTaskFuncRaceErrorA = 42
+    end
+end
+expect(repeatedTaskFuncRaceErrorA, 42)
+
+int repeatedTaskFuncRaceErrorB = 0
+try
+    func(int) as int secondFailedTaskFuncRace = await repeatedFailedTaskFuncRace
+    repeatedTaskFuncRaceErrorB = secondFailedTaskFuncRace(0)
+catch e
+    if e.message == "task function boom" then
+        repeatedTaskFuncRaceErrorB = 42
+    end
+end
+expect(repeatedTaskFuncRaceErrorB, 42)
+
+bool cancelRepeatedFailedTaskFuncRace = task.cancel(repeatedFailedTaskFuncRace)
+expect(cancelRepeatedFailedTaskFuncRace, 0)
+
+int postCancelRepeatedTaskFuncRaceError = 0
+try
+    func(int) as int postCancelFailedTaskFuncRace = await repeatedFailedTaskFuncRace
+    postCancelRepeatedTaskFuncRaceError = postCancelFailedTaskFuncRace(0)
+catch e
+    if e.message == "task function boom" then
+        postCancelRepeatedTaskFuncRaceError = 42
+    end
+end
+expect(postCancelRepeatedTaskFuncRaceError, 42)
+
+int typedTaskFuncRaceErrorState = 0
+array<future<func(int) as int> > failedTaskFuncRaceJobs = array[failTaskAdderAsync()]
+try
+    func(int) as int failedTypedTaskFuncRace = await task.race(failedTaskFuncRaceJobs)
+    typedTaskFuncRaceErrorState = failedTypedTaskFuncRace(0)
+catch e
+    if e.message == "task function boom" then
+        typedTaskFuncRaceErrorState = 42
+    end
+end
+expect(typedTaskFuncRaceErrorState, 42)
 
 int stringAllErrorState = 0
 try
@@ -1271,6 +2913,112 @@ end
 
 expect(defaultArrayRaceState, 42)
 
+array<future<bool>> emptyBoolJobs = array[]
+
+int emptyBoolAllState = 0
+try
+    array<bool> emptyBoolAll = await task.all(emptyBoolJobs)
+    emptyBoolAllState = emptyBoolAll.length
+catch e
+    if e.message == "task.all requires a non-empty future array" then
+        emptyBoolAllState = 42
+    end
+end
+
+expect(emptyBoolAllState, 42)
+
+int emptyBoolRaceState = 0
+try
+    bool emptyBoolRace = await task.race(emptyBoolJobs)
+    emptyBoolRaceState = int(emptyBoolRace)
+catch e
+    if e.message == "task.race requires a non-empty future array" then
+        emptyBoolRaceState = 42
+    end
+end
+
+expect(emptyBoolRaceState, 42)
+
+array<future<float>> defaultFloatJobs
+
+int defaultFloatAllState = 0
+try
+    array<float> defaultFloatAll = await task.all(defaultFloatJobs)
+    defaultFloatAllState = defaultFloatAll.length
+catch e
+    if e.message == "task.all requires a non-empty future array" then
+        defaultFloatAllState = 42
+    end
+end
+
+expect(defaultFloatAllState, 42)
+
+int defaultFloatRaceState = 0
+try
+    float defaultFloatRace = await task.race(defaultFloatJobs)
+    defaultFloatRaceState = 9
+catch e
+    if e.message == "task.race requires a non-empty future array" then
+        defaultFloatRaceState = 42
+    end
+end
+
+expect(defaultFloatRaceState, 42)
+
+array<future<TaskBox>> defaultTaskBoxJobs
+
+int defaultTaskBoxAllState = 0
+try
+    array<TaskBox> defaultTaskBoxAll = await task.all(defaultTaskBoxJobs)
+    defaultTaskBoxAllState = defaultTaskBoxAll.length
+catch e
+    if e.message == "task.all requires a non-empty future array" then
+        defaultTaskBoxAllState = 42
+    end
+end
+
+expect(defaultTaskBoxAllState, 42)
+
+int defaultTaskBoxRaceState = 0
+try
+    future<TaskBox> defaultTaskBoxRaceFuture = task.race(defaultTaskBoxJobs)
+    TaskBox defaultTaskBoxRace = await defaultTaskBoxRaceFuture
+    defaultTaskBoxRaceState = defaultTaskBoxRace.add(0)
+catch e
+    if e.message == "task.race requires a non-empty future array" then
+        defaultTaskBoxRaceState = 42
+    end
+end
+
+expect(defaultTaskBoxRaceState, 42)
+
+array<future<func(int) as int> > defaultTaskFuncJobs
+
+int defaultTaskFuncAllState = 0
+try
+    array<func(int) as int> defaultTaskFuncAll = await task.all(defaultTaskFuncJobs)
+    defaultTaskFuncAllState = defaultTaskFuncAll.length
+catch e
+    if e.message == "task.all requires a non-empty future array" then
+        defaultTaskFuncAllState = 42
+    end
+end
+
+expect(defaultTaskFuncAllState, 42)
+
+int defaultTaskFuncRaceState = 0
+try
+    future<func(int) as int> defaultTaskFuncRaceFuture = task.race(defaultTaskFuncJobs)
+    func(int) as int defaultTaskFuncRace = await defaultTaskFuncRaceFuture
+    defaultTaskFuncRaceState = defaultTaskFuncRace(0)
+catch e
+    if e.message == "task.race requires a non-empty future array" then
+        defaultTaskFuncRaceState = 42
+    end
+end
+
+expect(defaultTaskFuncRaceState, 42)
+
 future<int> missingFuture
 array<future<int>> nullJobs = array[missingFuture]
 
@@ -1324,6 +3072,116 @@ catch e
 end
 
 expect(nullStringRaceState, 42)
+
+future<bool> missingBoolFuture
+array<future<bool>> nullBoolJobs = array[missingBoolFuture]
+
+int nullBoolAllState = 0
+try
+    array<bool> nullBoolAll = await task.all(nullBoolJobs)
+    nullBoolAllState = nullBoolAll.length
+catch e
+    if e.message == "task.all source future is null" then
+        nullBoolAllState = 42
+    end
+end
+
+expect(nullBoolAllState, 42)
+
+int nullBoolRaceState = 0
+try
+    bool nullBoolRace = await task.race(nullBoolJobs)
+    nullBoolRaceState = int(nullBoolRace)
+catch e
+    if e.message == "task.race source future is null" then
+        nullBoolRaceState = 42
+    end
+end
+
+expect(nullBoolRaceState, 42)
+
+future<float> missingFloatFuture
+array<future<float>> nullFloatJobs = array[missingFloatFuture]
+
+int nullFloatAllState = 0
+try
+    array<float> nullFloatAll = await task.all(nullFloatJobs)
+    nullFloatAllState = nullFloatAll.length
+catch e
+    if e.message == "task.all source future is null" then
+        nullFloatAllState = 42
+    end
+end
+
+expect(nullFloatAllState, 42)
+
+int nullFloatRaceState = 0
+try
+    float nullFloatRace = await task.race(nullFloatJobs)
+    nullFloatRaceState = 9
+catch e
+    if e.message == "task.race source future is null" then
+        nullFloatRaceState = 42
+    end
+end
+
+expect(nullFloatRaceState, 42)
+
+future<TaskBox> missingTaskBoxFuture
+array<future<TaskBox>> nullTaskBoxJobs = array[missingTaskBoxFuture]
+
+int nullTaskBoxAllState = 0
+try
+    array<TaskBox> nullTaskBoxAll = await task.all(nullTaskBoxJobs)
+    nullTaskBoxAllState = nullTaskBoxAll.length
+catch e
+    if e.message == "task.all source future is null" then
+        nullTaskBoxAllState = 42
+    end
+end
+
+expect(nullTaskBoxAllState, 42)
+
+int nullTaskBoxRaceState = 0
+try
+    future<TaskBox> nullTaskBoxRaceFuture = task.race(nullTaskBoxJobs)
+    TaskBox nullTaskBoxRace = await nullTaskBoxRaceFuture
+    nullTaskBoxRaceState = nullTaskBoxRace.add(0)
+catch e
+    if e.message == "task.race source future is null" then
+        nullTaskBoxRaceState = 42
+    end
+end
+
+expect(nullTaskBoxRaceState, 42)
+
+future<func(int) as int> missingTaskFuncFuture
+array<future<func(int) as int> > nullTaskFuncJobs = array[missingTaskFuncFuture]
+
+int nullTaskFuncAllState = 0
+try
+    array<func(int) as int> nullTaskFuncAll = await task.all(nullTaskFuncJobs)
+    nullTaskFuncAllState = nullTaskFuncAll.length
+catch e
+    if e.message == "task.all source future is null" then
+        nullTaskFuncAllState = 42
+    end
+end
+
+expect(nullTaskFuncAllState, 42)
+
+int nullTaskFuncRaceState = 0
+try
+    future<func(int) as int> nullTaskFuncRaceFuture = task.race(nullTaskFuncJobs)
+    func(int) as int nullTaskFuncRace = await nullTaskFuncRaceFuture
+    nullTaskFuncRaceState = nullTaskFuncRace(0)
+catch e
+    if e.message == "task.race source future is null" then
+        nullTaskFuncRaceState = 42
+    end
+end
+
+expect(nullTaskFuncRaceState, 42)
 
 int nullLiteralAllState = 0
 try

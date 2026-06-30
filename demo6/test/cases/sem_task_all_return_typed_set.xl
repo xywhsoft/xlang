@@ -1,0 +1,5 @@
+async func makeItems() as set<int>
+    return set{1, 2}
+end
+
+array<set<int>> values = await task.all([makeItems()])
