@@ -1,0 +1,5 @@
+async func makeItems() as list<int>
+    return list[0: 1, 1: 2]
+end
+
+list<int> value = await task.race([makeItems()])

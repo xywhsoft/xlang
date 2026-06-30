@@ -1,0 +1,6 @@
+func countItems(dict values) as int
+    return 0
+end
+
+func(dict) as int job = countItems
+int value = await task.spawn(job, dict{"a": 1})

@@ -14,6 +14,13 @@ func makeScores() as dict<int>
     return dict{"a": 1, "b": 2}
 end
 
+func firstValueFromArray() as int
+    for value in makeValues()
+        return value
+    end
+    return 0
+end
+
 func firstScoreFromDict() as int
     for key, score in makeScores()
         return score
@@ -53,6 +60,31 @@ for value in makeValues()
     arrayTotal = arrayTotal + value
 end
 assert arrayTotal == 6, "returned array for-in failed"
+
+int arrayContinueBreakValue = 0
+for value in makeValues()
+    if value == 1 then
+        continue
+    end
+    arrayContinueBreakValue = value
+    break
+end
+assert arrayContinueBreakValue == 2, "returned typed array continue/break cleanup failed"
+
+int arrayThrowState = 0
+try
+    for value in makeValues()
+        throw "typed array loop boom"
+    end
+catch e
+    if e.message == "typed array loop boom" then
+        arrayThrowState = 7
+    end
+end
+assert arrayThrowState == 7, "returned typed array throw cleanup failed"
+
+int arrayReturnValue = firstValueFromArray()
+assert arrayReturnValue == 1, "returned typed array return cleanup failed"
 
 int listIndexTotal = 0
 int listCount = 0

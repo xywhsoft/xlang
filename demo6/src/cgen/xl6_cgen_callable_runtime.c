@@ -71,7 +71,7 @@ static void xl6CgenEmitFunctionRuntime(XL6_Output* out)
     xl6OutputPuts("}\n\n", out);
 }
 
-static void xl6CgenEmitFunctionVarRuntime(XL6_Output* out)
+static void xl6CgenEmitFunctionVarRuntime(XL6_Output* out, int emitArgvBorrow)
 {
     xl6OutputPuts("void* xrtMalloc(size_t iSize);\n", out);
     xl6OutputPuts("void xrtFree(void* pMem);\n\n", out);
@@ -425,34 +425,36 @@ static void xl6CgenEmitFunctionVarRuntime(XL6_Output* out)
     xl6OutputPuts("    return value != 0 ? value : xvoCreateNull();\n", out);
     xl6OutputPuts("}\n\n", out);
 
-    xl6OutputPuts("static xvalue xl6_function_call_argv_borrow(XL6_Function fn, int argc, xvalue* argv)\n", out);
-    xl6OutputPuts("{\n", out);
-    xl6OutputPuts("    xvalue result;\n", out);
-    xl6OutputPuts("    xrt_call_frame frame;\n", out);
-    xl6OutputPuts("    xrt_call_result callResult;\n\n", out);
-    xl6OutputPuts("    if ( argc < 0 || (fn.invoke_var == 0 && fn.invoke_xcall == 0) ) {\n", out);
-    xl6OutputPuts("        return 0;\n", out);
-    xl6OutputPuts("    }\n", out);
-    xl6OutputPuts("    if ( fn.invoke_var != 0 ) {\n", out);
-    xl6OutputPuts("        return fn.invoke_var(fn.env, argc, argv);\n", out);
-    xl6OutputPuts("    }\n", out);
-    xl6OutputPuts("    frame.Self = 0;\n", out);
-    xl6OutputPuts("    frame.Env = 0;\n", out);
-    xl6OutputPuts("    frame.Argc = (unsigned int)argc;\n", out);
-    xl6OutputPuts("    frame.Argv = argv;\n", out);
-    xl6OutputPuts("    frame.Kwargs = 0;\n", out);
-    xl6OutputPuts("    frame.Varargs = 0;\n", out);
-    xl6OutputPuts("    frame.Sig = fn.sig;\n", out);
-    xl6OutputPuts("    xrtCallResultInit(&callResult);\n", out);
-    xl6OutputPuts("    if ( !fn.invoke_xcall(fn.env, &frame, &callResult) ) {\n", out);
-    xl6OutputPuts("        xrtCallResultUnit(&callResult);\n", out);
-    xl6OutputPuts("        return 0;\n", out);
-    xl6OutputPuts("    }\n", out);
-    xl6OutputPuts("    result = callResult.Count > 0 ? callResult.Values[0] : 0;\n", out);
-    xl6OutputPuts("    if ( callResult.Count > 0 ) { callResult.Values[0] = 0; }\n", out);
-    xl6OutputPuts("    xrtCallResultUnit(&callResult);\n", out);
-    xl6OutputPuts("    return result != 0 ? result : xvoCreateNull();\n", out);
-    xl6OutputPuts("}\n\n", out);
+    if ( emitArgvBorrow ) {
+        xl6OutputPuts("static xvalue xl6_function_call_argv_borrow(XL6_Function fn, int argc, xvalue* argv)\n", out);
+        xl6OutputPuts("{\n", out);
+        xl6OutputPuts("    xvalue result;\n", out);
+        xl6OutputPuts("    xrt_call_frame frame;\n", out);
+        xl6OutputPuts("    xrt_call_result callResult;\n\n", out);
+        xl6OutputPuts("    if ( argc < 0 || (fn.invoke_var == 0 && fn.invoke_xcall == 0) ) {\n", out);
+        xl6OutputPuts("        return 0;\n", out);
+        xl6OutputPuts("    }\n", out);
+        xl6OutputPuts("    if ( fn.invoke_var != 0 ) {\n", out);
+        xl6OutputPuts("        return fn.invoke_var(fn.env, argc, argv);\n", out);
+        xl6OutputPuts("    }\n", out);
+        xl6OutputPuts("    frame.Self = 0;\n", out);
+        xl6OutputPuts("    frame.Env = 0;\n", out);
+        xl6OutputPuts("    frame.Argc = (unsigned int)argc;\n", out);
+        xl6OutputPuts("    frame.Argv = argv;\n", out);
+        xl6OutputPuts("    frame.Kwargs = 0;\n", out);
+        xl6OutputPuts("    frame.Varargs = 0;\n", out);
+        xl6OutputPuts("    frame.Sig = fn.sig;\n", out);
+        xl6OutputPuts("    xrtCallResultInit(&callResult);\n", out);
+        xl6OutputPuts("    if ( !fn.invoke_xcall(fn.env, &frame, &callResult) ) {\n", out);
+        xl6OutputPuts("        xrtCallResultUnit(&callResult);\n", out);
+        xl6OutputPuts("        return 0;\n", out);
+        xl6OutputPuts("    }\n", out);
+        xl6OutputPuts("    result = callResult.Count > 0 ? callResult.Values[0] : 0;\n", out);
+        xl6OutputPuts("    if ( callResult.Count > 0 ) { callResult.Values[0] = 0; }\n", out);
+        xl6OutputPuts("    xrtCallResultUnit(&callResult);\n", out);
+        xl6OutputPuts("    return result != 0 ? result : xvoCreateNull();\n", out);
+        xl6OutputPuts("}\n\n", out);
+    }
 
     xl6OutputPuts("static xvalue xl6_function_call_var(XL6_Function fn, int argc, ...)\n", out);
     xl6OutputPuts("{\n", out);

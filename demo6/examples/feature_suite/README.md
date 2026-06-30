@@ -15,7 +15,7 @@
 - `08_c_interop_exports.xl`：extern 函数/变量、export 函数/变量、多返回值 ABI。
 - `09_c_export_abi.xl`：纯 export ABI 示例，用于生成头文件并由 C 宿主调用。
 - `10_errors_docs.xl`：异常处理、断言和 `#doc ... #end` 文档注释。
-- `11_concurrency.xl`：async/await、generator/yield、channel、thread、mutex、sem、cond、rwlock。
+- `11_concurrency.xl`：async/await、task.all/race/spawn、async generator/for await、generator/yield、channel、thread、mutex、sem、cond、rwlock。
 - `12_union.xl`：顶层具名 union、union 传参与返回、class 内匿名 union 和嵌套 union 字段访问。
 - `host.c`：供运行范例使用的 C 宿主函数。
 - `host_exports.c`：C 调用 `09_c_export_abi.xl` 导出符号的宿主示例。

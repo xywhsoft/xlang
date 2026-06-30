@@ -639,6 +639,16 @@ static int xl6CgenNodeNeedsFunctionVarRuntime(XL6_CgenContext* ctx, const XL6_As
         return 0;
     }
 
+    if ( xl6CgenIsTaskNamespaceMemberCall(node, NULL) ) {
+        const XL6_AstNode* argExpr = xl6CgenTaskCallArgExpr(node);
+        XL6_AstNode* valueType = xl6CgenCloneTaskArrayItemFutureValueType(ctx, argExpr);
+        int needsRuntime = xl6CgenIsFunctionType(valueType);
+        xl6AstFree(valueType);
+        if ( needsRuntime ) {
+            return 1;
+        }
+    }
+
     if ( node->kind == XL6_AST_CALL && node->childCount > 0 &&
          node->children[0] != NULL && node->children[0]->kind == XL6_AST_NAME ) {
         const XL6_AstNode* functionType = xl6CgenFindVarType(ctx, node->children[0]->text);

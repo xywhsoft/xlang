@@ -34,6 +34,15 @@ for %%f in (
     if errorlevel 1 exit /b 1
 )
 
+echo Re-running concurrency feature example...
+for /L %%I in (1,1,2) do (
+    release\xl.exe run "examples\feature_suite\11_concurrency.xl" %LINKS%
+    if errorlevel 1 (
+        echo 11_concurrency.xl repeat run %%I failed.
+        exit /b 1
+    )
+)
+
 echo Verifying C export ABI...
 if not exist release\tmp\feature_exports mkdir release\tmp\feature_exports
 

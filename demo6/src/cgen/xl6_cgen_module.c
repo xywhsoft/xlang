@@ -11,6 +11,7 @@ int xl6CgenEmitCEx(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags, cons
     int hasStringRuntime;
     int hasTimeRuntime;
     int hasTypeConvertRuntime;
+    int hasFunctionRuntime;
     int hasFunctionVarRuntime;
     int hasXValueRuntime;
     int hasErrorRuntime;
@@ -53,6 +54,7 @@ int xl6CgenEmitCEx(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags, cons
     hasTopLevel = xl6CgenHasTopLevelRuntimeStmt(root);
     hasStringRuntime = xl6CgenProgramNeedsStringRuntime(&ctx, root);
     hasTypeConvertRuntime = xl6CgenProgramNeedsTypeConvertRuntime(&ctx, root);
+    hasFunctionRuntime = xl6CgenNodeNeedsFunctionRuntime(root);
     hasFunctionVarRuntime = xl6CgenProgramNeedsFunctionVarRuntime(&ctx, root);
     hasXValueRuntime = xl6CgenNodeNeedsXValueRuntime(root) || hasFunctionVarRuntime || ctx.runtimeTypeDescCount > 0;
     hasTimeRuntime = xl6CgenNodeNeedsTimeRuntime(root);
@@ -84,6 +86,10 @@ int xl6CgenEmitCEx(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags, cons
         hasFunctionVarRuntime = 1;
         hasXValueRuntime = 1;
     }
+    if ( hasAsyncRuntime && hasFunctionRuntime ) {
+        hasFunctionVarRuntime = 1;
+        hasXValueRuntime = 1;
+    }
     ctx.needsXValueRuntime = hasXValueRuntime;
     ctx.needsFunctionVarRuntime = hasFunctionVarRuntime;
     ctx.needsErrorRuntime = hasErrorRuntime;
@@ -106,7 +112,7 @@ int xl6CgenEmitCEx(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags, cons
     if ( ctx.debugMode ) {
         xl6CgenEmitDebugRuntime(out);
     }
-    if ( xl6CgenNodeNeedsFunctionRuntime(root) || hasHttpServerRuntime || hasTaskSpawn ) {
+    if ( hasFunctionRuntime || hasHttpServerRuntime || hasTaskSpawn || hasFunctionVarRuntime ) {
         xl6CgenEmitFunctionRuntime(out);
     }
     if ( xl6CgenNodeNeedsApprox(root) ) {
@@ -162,7 +168,7 @@ int xl6CgenEmitCEx(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags, cons
         xl6CgenEmitPathRuntime(out);
     }
     if ( hasFunctionVarRuntime ) {
-        xl6CgenEmitFunctionVarRuntime(out);
+        xl6CgenEmitFunctionVarRuntime(out, hasTaskSpawn);
     }
     if ( hasHttpServerRuntime ) {
         xl6CgenEmitHttpServerRuntime(out);
@@ -257,7 +263,7 @@ int xl6CgenEmitCEx(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags, cons
         xl6OutputPutc('\n', out);
     }
 
-    if ( xl6CgenNodeNeedsFunctionRuntime(root) || hasTaskSpawn ) {
+    if ( hasFunctionRuntime || hasTaskSpawn || hasFunctionVarRuntime ) {
         xl6CgenEmitFunctionValueWrappers(&ctx);
     }
     xl6CgenEmitAnonFunctions(&ctx);

@@ -1,0 +1,6 @@
+func countItems(list values) as int
+    return 0
+end
+
+func(list) as int job = countItems
+int value = await task.spawn(job, list[0: 1, 2: 3])

@@ -261,6 +261,47 @@ static int xl6CgenTryDiscardExpressionStatement(XL6_CgenContext* ctx, const XL6_
     return 0;
 }
 
+static void xl6CgenExprStatementBody(XL6_CgenContext* ctx, const XL6_AstNode* expr)
+{
+    if ( expr != NULL && xl6CgenTryKnownCallStatementWithClassArgTemps(ctx, expr) ) {
+        return;
+    }
+    if ( expr != NULL && xl6CgenTryKnownCallStatementWithScalarArgTemps(ctx, expr) ) {
+        return;
+    }
+    if ( expr != NULL && xl6CgenTryMemberFunctionStatementInvoke(ctx, expr) ) {
+        return;
+    }
+    if ( expr != NULL && xl6CgenTryDiscardExpressionStatement(ctx, expr) ) {
+        return;
+    }
+
+    xl6CgenIndent(ctx);
+    if ( expr != NULL ) {
+        xl6CgenExpr(ctx, expr);
+    }
+    xl6OutputPuts(";\n", ctx->out);
+}
+
+static int xl6CgenTryAssignWithTaskSpawnArgTemps(XL6_CgenContext* ctx, const XL6_AstNode* node)
+{
+    const XL6_AstNode* right;
+    XL6_CgenTaskSpawnArgTempScope scope;
+
+    if ( ctx == NULL || node == NULL || node->kind != XL6_AST_ASSIGN || node->childCount < 2 ) {
+        return 0;
+    }
+
+    right = node->children[1];
+    if ( !xl6CgenTaskSpawnArgTempScopeBegin(ctx, right, &scope) ) {
+        return 0;
+    }
+
+    xl6CgenAssignStmt(ctx, node);
+    xl6CgenTaskSpawnArgTempScopeEnd(ctx, &scope);
+    return 1;
+}
+
 static void xl6CgenStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
 {
     if ( node == NULL ) {
@@ -280,16 +321,26 @@ static void xl6CgenStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
         xl6CgenEmitExceptionPropagate(ctx, node);
         break;
     case XL6_AST_ASSIGN:
-        xl6CgenAssignStmt(ctx, node);
+        if ( !xl6CgenTryAssignWithTaskSpawnArgTemps(ctx, node) ) {
+            xl6CgenAssignStmt(ctx, node);
+        }
         xl6CgenEmitExceptionPropagate(ctx, node);
         break;
     case XL6_AST_MULTI_ASSIGN:
         xl6CgenMultiAssign(ctx, node);
         xl6CgenEmitExceptionPropagate(ctx, node);
         break;
-    case XL6_AST_RETURN:
+    case XL6_AST_RETURN: {
+        XL6_CgenTaskSpawnArgTempScope taskScope;
+        int hasTaskScope;
+
+        hasTaskScope = node->childCount > 0 &&
+                       xl6CgenTaskSpawnArgTempScopeBegin(ctx, node, &taskScope);
         if ( ctx->currentAsyncWorker ) {
             xl6CgenAsyncReturnStmt(ctx, node);
+            if ( hasTaskScope ) {
+                xl6CgenTaskSpawnArgTempScopeEnd(ctx, &taskScope);
+            }
             break;
         }
         if ( node->childCount > 0 ) {
@@ -389,29 +440,26 @@ static void xl6CgenStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
             xl6CgenIndent(ctx);
             xl6OutputPuts("return;\n", ctx->out);
         }
+        if ( hasTaskScope ) {
+            xl6CgenTaskSpawnArgTempScopeEnd(ctx, &taskScope);
+        }
         break;
-    case XL6_AST_EXPR_STMT:
-        if ( node->childCount > 0 &&
-             xl6CgenTryKnownCallStatementWithClassArgTemps(ctx, node->children[0]) ) {
-            ;
-        } else if ( node->childCount > 0 &&
-                    xl6CgenTryKnownCallStatementWithScalarArgTemps(ctx, node->children[0]) ) {
-            ;
-        } else if ( node->childCount > 0 &&
-                    xl6CgenTryMemberFunctionStatementInvoke(ctx, node->children[0]) ) {
-            ;
-        } else if ( node->childCount > 0 &&
-                    xl6CgenTryDiscardExpressionStatement(ctx, node->children[0]) ) {
-            ;
-        } else {
-            xl6CgenIndent(ctx);
-            if ( node->childCount > 0 ) {
-                xl6CgenExpr(ctx, node->children[0]);
-            }
-            xl6OutputPuts(";\n", ctx->out);
+    }
+    case XL6_AST_EXPR_STMT: {
+        const XL6_AstNode* expr;
+        XL6_CgenTaskSpawnArgTempScope taskScope;
+        int hasTaskScope;
+
+        expr = node->childCount > 0 ? node->children[0] : NULL;
+        hasTaskScope = expr != NULL &&
+                       xl6CgenTaskSpawnArgTempScopeBegin(ctx, expr, &taskScope);
+        xl6CgenExprStatementBody(ctx, expr);
+        if ( hasTaskScope ) {
+            xl6CgenTaskSpawnArgTempScopeEnd(ctx, &taskScope);
         }
         xl6CgenEmitExceptionPropagate(ctx, node);
         break;
+    }
     case XL6_AST_IF:
         xl6CgenIf(ctx, node);
         xl6CgenEmitExceptionPropagate(ctx, node);

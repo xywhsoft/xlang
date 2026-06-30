@@ -1,22 +1,7 @@
-static int xl6CgenIsAsyncFunc(const XL6_AstNode* node)
-{
-    return node != NULL && node->kind == XL6_AST_ASYNC_FUNC;
-}
-
-static const XL6_AstNode* xl6CgenAsyncReturns(const XL6_AstNode* node)
-{
-    return node != NULL && node->childCount > 2 ? node->children[2] : NULL;
-}
-
-static const XL6_AstNode* xl6CgenAsyncParams(const XL6_AstNode* node)
-{
-    return node != NULL && node->childCount > 1 ? node->children[1] : NULL;
-}
-
-static const XL6_AstNode* xl6CgenAsyncBody(const XL6_AstNode* node)
-{
-    return node != NULL && node->childCount > 3 ? node->children[3] : NULL;
-}
+static int xl6CgenIsAsyncFunc(const XL6_AstNode* node) { return node != NULL && node->kind == XL6_AST_ASYNC_FUNC; }
+static const XL6_AstNode* xl6CgenAsyncReturns(const XL6_AstNode* node) { return node != NULL && node->childCount > 2 ? node->children[2] : NULL; }
+static const XL6_AstNode* xl6CgenAsyncParams(const XL6_AstNode* node) { return node != NULL && node->childCount > 1 ? node->children[1] : NULL; }
+static const XL6_AstNode* xl6CgenAsyncBody(const XL6_AstNode* node) { return node != NULL && node->childCount > 3 ? node->children[3] : NULL; }
 
 static const XL6_AstNode* xl6CgenAsyncResultType(const XL6_AstNode* node)
 {
@@ -246,8 +231,11 @@ static void xl6CgenEmitAsyncRuntime(XL6_Output* out, int hasTaskSpawn)
     xl6OutputPuts("#ifdef XL6_FUNCTION_TYPEDEF\n", out);
     xl6OutputPuts("void xvoAddRef(xvalue pVal);\n", out);
     xl6OutputPuts("void xvoUnref(xvalue pVal);\n", out);
+    xl6OutputPuts("const xrt_type_desc* xrtTypeFunction(void);\n", out);
+    xl6OutputPuts("bool xrtTypedArrayAppendValue(xtarray pArray, xvalue pVal);\n", out);
     xl6OutputPuts("bool xrtTypeUnboxValue(const xrt_type_desc* pType, xvalue pVal, void* pOut);\n", out);
     xl6OutputPuts("void xrtTypeDropValue(const xrt_type_desc* pType, void* pObj);\n", out);
+    xl6OutputPuts("static xvalue xl6_function_to_xvalue(XL6_Function fn);\n", out);
     xl6OutputPuts("static void xl6_async_free_xvalue_value(void* pValue)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    xvalue* value = (xvalue*)pValue;\n", out);
@@ -417,6 +405,7 @@ static void xl6CgenEmitAsyncRuntime(XL6_Output* out, int hasTaskSpawn)
     xl6OutputPuts("        return 0;\n", out);
     xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    arg->fn = fn;\n", out);
+    xl6OutputPuts("    (void)xl6_error_active_get();\n", out);
     xl6OutputPuts("    pThread = xrtThreadCreate(xl6_thread_entry, arg, 0);\n", out);
     xl6OutputPuts("    if ( pThread == 0 ) {\n", out);
     xl6OutputPuts("        if ( fn.release != 0 && fn.env != 0 ) { fn.release(fn.env); }\n", out);
@@ -616,6 +605,7 @@ static void xl6CgenEmitAsyncRuntime(XL6_Output* out, int hasTaskSpawn)
     xl6OutputPuts("            if ( arg->argv[i] != 0 ) { xvoAddRef(arg->argv[i]); }\n", out);
     xl6OutputPuts("        }\n", out);
     xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    (void)xl6_error_active_get();\n", out);
     xl6OutputPuts("    future = xTaskRunThread(xl6_task_spawn_entry, arg, 0);\n", out);
     xl6OutputPuts("    if ( future == 0 ) {\n", out);
     xl6OutputPuts("        xl6_task_spawn_arg_release(arg);\n", out);
@@ -726,7 +716,25 @@ static void xl6CgenEmitAsyncRuntime(XL6_Output* out, int hasTaskSpawn)
     xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    for ( i = 0; i < count; ++i ) {\n", out);
     xl6OutputPuts("        void* item = xFutureValue(arg->futures[i]);\n", out);
-    xl6OutputPuts("        if ( item == 0 || xrtTypedArrayAppend(result, item) == 0 ) {\n", out);
+    xl6OutputPuts("        if ( item == 0 ) {\n", out);
+    xl6OutputPuts("            xrtTypedArrayDestroy(result);\n", out);
+    xl6OutputPuts("            xl6_task_all_arg_release(arg);\n", out);
+    xl6OutputPuts("            return xl6_async_result_error(pOut, \"task.all result append failed\");\n", out);
+    xl6OutputPuts("        }\n", out);
+    xl6OutputPuts("#ifdef XL6_FUNCTION_TYPEDEF\n", out);
+    xl6OutputPuts("        if ( arg->itemType == xrtTypeFunction() ) {\n", out);
+    xl6OutputPuts("            xvalue fnValue = xl6_function_to_xvalue(*(XL6_Function*)item);\n", out);
+    xl6OutputPuts("            if ( !xrtTypedArrayAppendValue(result, fnValue) ) {\n", out);
+    xl6OutputPuts("                if ( fnValue != 0 ) { xvoUnref(fnValue); }\n", out);
+    xl6OutputPuts("                xrtTypedArrayDestroy(result);\n", out);
+    xl6OutputPuts("                xl6_task_all_arg_release(arg);\n", out);
+    xl6OutputPuts("                return xl6_async_result_error(pOut, \"task.all result append failed\");\n", out);
+    xl6OutputPuts("            }\n", out);
+    xl6OutputPuts("            if ( fnValue != 0 ) { xvoUnref(fnValue); }\n", out);
+    xl6OutputPuts("            continue;\n", out);
+    xl6OutputPuts("        }\n", out);
+    xl6OutputPuts("#endif\n", out);
+    xl6OutputPuts("        if ( xrtTypedArrayAppend(result, item) == 0 ) {\n", out);
     xl6OutputPuts("            xrtTypedArrayDestroy(result);\n", out);
     xl6OutputPuts("            xl6_task_all_arg_release(arg);\n", out);
     xl6OutputPuts("            return xl6_async_result_error(pOut, \"task.all result append failed\");\n", out);
@@ -788,6 +796,7 @@ static void xl6CgenEmitAsyncRuntime(XL6_Output* out, int hasTaskSpawn)
     xl6OutputPuts("        xl6_error_raise(\"TaskError\", \"task.all start failed\", file, line, column);\n", out);
     xl6OutputPuts("        return 0;\n", out);
     xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    (void)xl6_error_active_get();\n", out);
     xl6OutputPuts("    future = xTaskRunThread(xl6_task_all_entry, arg, 0);\n", out);
     xl6OutputPuts("    if ( future == 0 ) {\n", out);
     xl6OutputPuts("        xl6_task_all_arg_release(arg);\n", out);

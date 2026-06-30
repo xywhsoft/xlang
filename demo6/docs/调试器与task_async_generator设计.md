@@ -89,9 +89,10 @@ task.cancel(t)
 
 - 输入必须是 array/list 形态的 future/task 集合；第一版优先支持 `array<future<T>>` 与 `array<var>`。
 - 所有任务成功时，返回 `array<T>`，顺序与输入顺序一致。
-- 任一任务失败时，`task.all` 进入失败状态。
-- 第一版采用 fail-fast 语义：发现第一个失败后，聚合 future 失败；已启动任务不强杀。
-- `task.all([])` 立即成功，返回空数组。
+- 任一任务失败或取消时，`task.all` 记录第一个非成功 source。
+- 如果多个 source 同时处于失败/取消等非成功状态，`task.all` 不设置“失败优先”或“取消优先”的额外优先级；聚合 future 传播 group 首先观察到的非成功结果。
+- 第一版采用 wait-all 语义：所有 source 都完成后，聚合 future 再传播第一个失败或取消结果；未失败的 source 不会被主动取消，后续仍可单独 `await`。
+- `task.all([])` 是运行时错误；第一版要求输入集合非空，避免空集合结果类型和失败传播语义不清晰。
 
 取消规则：
 
@@ -106,8 +107,10 @@ task.cancel(t)
 
 - 第一个成功完成的任务使 race 成功，结果为该任务结果。
 - 第一个失败完成的任务使 race 失败，并在 await race 时重新抛出对应异常。
+- 第一个取消完成的任务使 race 进入取消态，并在 await race 时抛出取消错误。
+- 如果多个 source 在 race 创建前已经完成，`task.race` 不设置“成功优先”“失败优先”或“取消优先”的额外优先级；聚合 future 传播 group 首先观察到的完成结果。
 - `task.race([])` 是语义错误或运行时错误；第一版建议在语义可判定时诊断，否则运行时抛出错误。
-- race 成功或失败后，不默认强制取消其他任务。
+- race 完成后，会向尚未完成的 loser source 发出协作式取消请求。取消不是线程强杀，worker 晚到完成不能覆盖已经进入取消态的 loser。
 
 取消规则：
 
@@ -495,7 +498,7 @@ task、future、generator、async generator 都应有明确 C 可见表示。
 - `task.spawn` 带参数和返回值。
 - `task.spawn` 抛异常并由 await 重新抛出。
 - `task.all` 全成功。
-- `task.all` 空数组。
+- `task.all([])` 负例。
 - `task.all` 子任务失败。
 - `task.race` 成功优先。
 - `task.race` 失败优先。

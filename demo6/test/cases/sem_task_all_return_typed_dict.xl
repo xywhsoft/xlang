@@ -1,0 +1,5 @@
+async func makeScores() as dict<int>
+    return {"a": 1}
+end
+
+array<dict<int>> values = await task.all([makeScores()])

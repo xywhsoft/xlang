@@ -1,0 +1,6 @@
+func makeValues() as set
+    return set{1, 2}
+end
+
+func() as set job = makeValues
+set values = await task.spawn(job)

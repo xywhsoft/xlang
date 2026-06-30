@@ -2,9 +2,33 @@ async func addAsync(int a, int b) as int
     return a + b
 end
 
+async func slowAddAsync(int a, int b) as int
+    time.sleep(120)
+    return a + b
+end
+
 async func touchAsync()
     int marker = 1
     assert marker == 1, "async void body failed"
+end
+
+async func failAsync() as int
+    throw "task async boom"
+    return 0
+end
+
+func addPlain(int a, int b) as int
+    return a + b
+end
+
+func slowAddPlain(int a, int b) as int
+    time.sleep(120)
+    return a + b
+end
+
+func failPlain() as int
+    throw "task spawn boom"
+    return 0
 end
 
 func makeAdder(int base) as func(int) as int
@@ -36,6 +60,31 @@ end
 
 async func makeVarAsync(int value) as var
     return value
+end
+
+async func asyncNumbers(int base) as generator<int>
+    int first = await addAsync(base, 1)
+    yield first
+    yield await addAsync(first, 2)
+end
+
+func asyncNumbersAlias(int base) as async generator<int>
+    int first = await addAsync(base, 3)
+    yield first
+    yield await addAsync(first, 4)
+end
+
+func brokenAsyncNumbers() as async generator<int>
+    yield await addAsync(0, 1)
+    throw "async generator boom"
+    yield 2
+end
+
+func emptyAsyncNumbers() as async generator<int>
+    int guard = await addAsync(1, 1)
+    if guard == 0 then
+        yield guard
+    end
 end
 
 func numbers(int count) as generator<int>
@@ -132,6 +181,260 @@ assert int(awaitedVar) == 120, "await var result failed"
 
 var temporaryVar = await makeVarAsync(130)
 assert int(temporaryVar) == 130, "temporary await var result failed"
+
+future<array<int>> allFuture = task.all([addAsync(1, 2), addAsync(3, 4)])
+array<int> allValuesA = await allFuture
+array<int> allValuesB = await allFuture
+assert allValuesA.length == 2, "task.all length failed"
+assert allValuesA[0] == 3, "task.all first result failed"
+assert allValuesA[1] == 7, "task.all second result failed"
+assert allValuesB[0] == 3 and allValuesB[1] == 7, "task.all repeated await failed"
+assert not task.cancel(allFuture), "completed task.all future should not cancel"
+array<int> allValuesAfterCancel = await allFuture
+assert allValuesAfterCancel[1] == 7, "completed task.all future should remain awaitable"
+
+future<int> raceFuture = task.race([addAsync(5, 6), addAsync(7, 8)])
+int raceValueA = await raceFuture
+int raceValueB = await raceFuture
+assert raceValueA == 11 or raceValueA == 15, "task.race result failed"
+assert raceValueB == raceValueA, "task.race repeated await failed"
+assert not task.cancel(raceFuture), "completed task.race future should not cancel"
+int raceValueAfterCancel = await raceFuture
+assert raceValueAfterCancel == raceValueA, "completed task.race future should remain awaitable"
+
+func(int, int) as int addTask = addPlain
+future<int> spawnFuture = task.spawn(addTask, 20, 22)
+int spawnValueA = await spawnFuture
+int spawnValueB = await spawnFuture
+assert spawnValueA == 42, "task.spawn result failed"
+assert spawnValueB == 42, "task.spawn repeated await failed"
+assert not task.cancel(spawnFuture), "completed task.spawn future should not cancel"
+int spawnValueAfterCancel = await spawnFuture
+assert spawnValueAfterCancel == 42, "completed task.spawn future should remain awaitable"
+
+int failedAllState = 0
+try
+    array<int> failedAll = await task.all([failAsync()])
+    failedAllState = failedAll.length
+catch e
+    if e.message == "task async boom" then
+        failedAllState = 1
+    end
+end
+assert failedAllState == 1, "task.all should propagate async error"
+
+future<int> failedRaceFuture = task.race([failAsync()])
+int failedRaceState = 0
+try
+    int failedRace = await failedRaceFuture
+    failedRaceState = failedRace
+catch e
+    if e.message == "task async boom" then
+        failedRaceState = 1
+    end
+end
+assert failedRaceState == 1, "task.race should propagate async error"
+assert not task.cancel(failedRaceFuture), "completed failed task.race future should not cancel"
+try
+    int failedRaceAgain = await failedRaceFuture
+    failedRaceState = failedRaceAgain
+catch e
+    if e.message == "task async boom" then
+        failedRaceState = 2
+    end
+end
+assert failedRaceState == 2, "failed task.race future should keep error"
+
+func() as int failTask = failPlain
+future<int> failedSpawnFuture = task.spawn(failTask)
+int failedSpawnState = 0
+try
+    int failedSpawn = await failedSpawnFuture
+    failedSpawnState = failedSpawn
+catch e
+    if e.message == "task spawn boom" then
+        failedSpawnState = 1
+    end
+end
+assert failedSpawnState == 1, "task.spawn should propagate worker error"
+assert not task.cancel(failedSpawnFuture), "completed failed task.spawn future should not cancel"
+try
+    int failedSpawnAgain = await failedSpawnFuture
+    failedSpawnState = failedSpawnAgain
+catch e
+    if e.message == "task spawn boom" then
+        failedSpawnState = 2
+    end
+end
+assert failedSpawnState == 2, "failed task.spawn future should keep error"
+
+future<int> pendingAsyncCancel = slowAddAsync(30, 12)
+assert task.cancel(pendingAsyncCancel), "pending async future should cancel"
+int pendingAsyncCancelState = 0
+try
+    int pendingAsyncCancelValue = await pendingAsyncCancel
+    pendingAsyncCancelState = pendingAsyncCancelValue
+catch e
+    if e.message == "future cancel requested." then
+        pendingAsyncCancelState = 1
+    end
+end
+assert pendingAsyncCancelState == 1, "pending async future should await as canceled"
+time.sleep(160)
+try
+    int pendingAsyncCancelLateValue = await pendingAsyncCancel
+    pendingAsyncCancelState = pendingAsyncCancelLateValue
+catch e
+    if e.message == "future cancel requested." then
+        pendingAsyncCancelState = 2
+    end
+end
+assert pendingAsyncCancelState == 2, "pending async worker completion should not overwrite cancel"
+
+func(int, int) as int slowAddTask = slowAddPlain
+future<int> pendingSpawnCancel = task.spawn(slowAddTask, 40, 2)
+assert task.cancel(pendingSpawnCancel), "pending task.spawn future should cancel"
+int pendingSpawnCancelState = 0
+try
+    int pendingSpawnCancelValue = await pendingSpawnCancel
+    pendingSpawnCancelState = pendingSpawnCancelValue
+catch e
+    if e.message == "future cancel requested." then
+        pendingSpawnCancelState = 1
+    end
+end
+assert pendingSpawnCancelState == 1, "pending task.spawn future should await as canceled"
+time.sleep(160)
+try
+    int pendingSpawnCancelLateValue = await pendingSpawnCancel
+    pendingSpawnCancelState = pendingSpawnCancelLateValue
+catch e
+    if e.message == "future cancel requested." then
+        pendingSpawnCancelState = 2
+    end
+end
+assert pendingSpawnCancelState == 2, "pending task.spawn worker completion should not overwrite cancel"
+
+future<int> raceWinner = addAsync(90, 1)
+future<int> raceLoser = slowAddAsync(100, 1)
+int raceCancelValue = await task.race([raceWinner, raceLoser])
+assert raceCancelValue == 91, "task.race should return fast winner"
+
+int raceLoserCancelState = 0
+try
+    int raceLoserValue = await raceLoser
+    raceLoserCancelState = raceLoserValue
+catch e
+    if e.message == "future cancel requested." then
+        raceLoserCancelState = 1
+    end
+end
+assert raceLoserCancelState == 1, "task.race should cancel losing future"
+int raceWinnerStillAvailable = await raceWinner
+assert raceWinnerStillAvailable == 91, "task.race winner should remain awaitable"
+
+future<int> multiRaceWinner = addAsync(120, 1)
+future<int> multiRaceLoserA = slowAddAsync(130, 1)
+future<int> multiRaceLoserB = slowAddAsync(140, 1)
+int multiRaceValue = await task.race([multiRaceWinner, multiRaceLoserA, multiRaceLoserB])
+assert multiRaceValue == 121, "task.race should return three-way fast winner"
+
+int multiRaceLoserAState = 0
+try
+    int multiRaceLoserAValue = await multiRaceLoserA
+    multiRaceLoserAState = multiRaceLoserAValue
+catch e
+    if e.message == "future cancel requested." then
+        multiRaceLoserAState = 1
+    end
+end
+assert multiRaceLoserAState == 1, "task.race should cancel first loser"
+
+int multiRaceLoserBState = 0
+try
+    int multiRaceLoserBValue = await multiRaceLoserB
+    multiRaceLoserBState = multiRaceLoserBValue
+catch e
+    if e.message == "future cancel requested." then
+        multiRaceLoserBState = 1
+    end
+end
+assert multiRaceLoserBState == 1, "task.race should cancel second loser"
+
+array<int> allOrderValues = await task.all([slowAddAsync(150, 1), addAsync(160, 2)])
+assert allOrderValues.length == 2, "task.all input order length failed"
+assert allOrderValues[0] == 151, "task.all should keep slow first result"
+assert allOrderValues[1] == 162, "task.all should keep fast second result"
+
+future<int> cancelAllLeft = slowAddAsync(200, 1)
+future<int> cancelAllRight = slowAddAsync(210, 2)
+future<array<int>> cancelAllGroup = task.all([cancelAllLeft, cancelAllRight])
+assert task.cancel(cancelAllGroup), "pending task.all group should cancel"
+
+int cancelAllGroupState = 0
+try
+    array<int> cancelAllValues = await cancelAllGroup
+    cancelAllGroupState = cancelAllValues.length
+catch e
+    if e.message == "future cancel requested." then
+        cancelAllGroupState = 1
+    end
+end
+assert cancelAllGroupState == 1, "canceled task.all group should await as canceled"
+
+int cancelAllLeftState = 0
+try
+    int cancelAllLeftValue = await cancelAllLeft
+    cancelAllLeftState = cancelAllLeftValue
+catch e
+    if e.message == "future cancel requested." then
+        cancelAllLeftState = 1
+    end
+end
+assert cancelAllLeftState == 1, "task.all cancel should cancel left source"
+time.sleep(160)
+
+int cancelAllRightState = 0
+try
+    int cancelAllRightValue = await cancelAllRight
+    cancelAllRightState = cancelAllRightValue
+catch e
+    if e.message == "future cancel requested." then
+        cancelAllRightState = 1
+    end
+end
+assert cancelAllRightState == 1, "task.all cancel should keep right source canceled"
+
+int asyncGeneratorTotal = 0
+for await value in asyncNumbers(10)
+    asyncGeneratorTotal = asyncGeneratorTotal + value
+end
+assert asyncGeneratorTotal == 24, "async generator total failed"
+
+int asyncGeneratorAliasTotal = 0
+for await value in asyncNumbersAlias(20)
+    asyncGeneratorAliasTotal = asyncGeneratorAliasTotal + value
+end
+assert asyncGeneratorAliasTotal == 50, "async generator alias total failed"
+
+int asyncGeneratorErrorState = 0
+try
+    for await value in brokenAsyncNumbers()
+        asyncGeneratorErrorState = asyncGeneratorErrorState + value
+    end
+    asyncGeneratorErrorState = 100
+catch e
+    if e.message == "async generator boom" then
+        asyncGeneratorErrorState = asyncGeneratorErrorState + 10
+    end
+end
+assert asyncGeneratorErrorState == 11, "async generator error propagation failed"
+
+int emptyAsyncGeneratorCount = 0
+for await value in emptyAsyncNumbers()
+    emptyAsyncGeneratorCount = emptyAsyncGeneratorCount + 1
+end
+assert emptyAsyncGeneratorCount == 0, "empty async generator failed"
 
 int total = 0
 for value in numbers(4)
