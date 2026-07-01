@@ -34,7 +34,7 @@
 - `second_stage.xl`：第二阶段基础语义组合示例；回归：`check`、`run`。
 - `concurrency.xl`：并发、通道和异步相关示例；回归：`run`。
 - `task_api.xl`：高层 task API 的 spawn、all、race 和 cancel 示例；回归：`run`。
-- `async_generator.xl`：`async func ... as generator<T>`、`func ... as async generator<T>`、`await + yield` 和 `for await` 示例；回归：`run`。
+- `async_generator.xl`：`async func ... as generator<T>`、`func ... as async generator<T>`、`await + yield`、`for await`、保存型/单次消费、错误传播、空流、双目标索引与 `break`/`continue` 示例；回归：`run`。
 - `union.xl`：C 风格 union 示例；回归：`run`。
 
 ## C 混编与导出范例
@@ -75,6 +75,9 @@
 - `xl_dll_loadlib_host.c`
 - `xl_dll_null_context.c`
 - `xl_dll_threaded_host.c`
+- `xl_dll_xrt_exports.c`
+- `xl_run_demo_win32.c`
+- `xlc_api_embed.c`
 
 ## 回归入口
 

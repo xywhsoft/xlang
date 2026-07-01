@@ -1,0 +1,2 @@
+array<int> jobs = array[1]
+auto bad = task.race(jobs)

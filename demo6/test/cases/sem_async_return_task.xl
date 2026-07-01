@@ -1,0 +1,3 @@
+async func bad() as task<int>
+    return 1
+end

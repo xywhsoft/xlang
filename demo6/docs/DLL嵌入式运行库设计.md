@@ -65,6 +65,16 @@ int xlRunScriptFile(XL_Context* ctx, const char* path);
 int xlRunScriptStringArg(XL_Context* ctx, const char* source, xvalue arg);
 int xlRunScriptFileArg(XL_Context* ctx, const char* path, xvalue arg);
 
+XL_Module* xlCompileScriptStringToModule(XL_Context* ctx, const char* source);
+XL_Module* xlCompileScriptFileToModule(XL_Context* ctx, const char* path);
+XL_Module* xlCompileCSourceStringToModule(XL_Context* ctx, const char* source);
+XL_Module* xlCompileCSourceFileToModule(XL_Context* ctx, const char* path);
+int xlRunCSourceString(XL_Context* ctx, const char* source, int argc, char** argv);
+int xlRunCSourceFile(XL_Context* ctx, const char* path, int argc, char** argv);
+int xlRunModuleMain(XL_Context* ctx, XL_Module* module, xvalue arg);
+void* xlModuleGetSymbol(XL_Module* module, const char* symbolName);
+void xlDestroyModule(XL_Module* module);
+
 const char* xlGetLastError(XL_Context* ctx);
 void xlClearLastError(XL_Context* ctx);
 ```
@@ -75,6 +85,52 @@ void xlClearLastError(XL_Context* ctx);
 int xlCompileScriptStringToExe(XL_Context* ctx, const char* source, const char* outputExe);
 int xlCompileScriptFileToExe(XL_Context* ctx, const char* path, const char* outputExe);
 ```
+
+Compiler library header:
+```c
+#include "include/xlc.h"
+```
+
+`xlc.dll` compiler library API:
+```c
+XLC_ContextOptions xlcDefaultContextOptions(void);
+XLC_Context* xlcCreateContext(const XLC_ContextOptions* options);
+void xlcDestroyContext(XLC_Context* ctx);
+
+int xlcSetWorkDir(XLC_Context* ctx, const char* path);
+int xlcSetTempDir(XLC_Context* ctx, const char* path);
+int xlcSetSaveTemps(XLC_Context* ctx, int enabled);
+int xlcAddIncludePath(XLC_Context* ctx, const char* path);
+int xlcAddLibraryPath(XLC_Context* ctx, const char* path);
+int xlcAddLinkLibrary(XLC_Context* ctx, const char* nameOrPath);
+int xlcAddCSourceFile(XLC_Context* ctx, const char* path);
+int xlcLoadDependencyLibrary(XLC_Context* ctx, const char* path);
+int xlcRegisterCFunction(XLC_Context* ctx, const char* symbolName, void* fn);
+
+int xlcAddSourceFile(XLC_Context* ctx, const char* path);
+int xlcAddSourceString(XLC_Context* ctx, const char* virtualPath, const char* source);
+int xlcCompile(XLC_Context* ctx);
+int xlcCheck(XLC_Context* ctx, const char* outputPath, int jsonOutput);
+int xlcEmitTokens(XLC_Context* ctx, const char* outputPath, int jsonOutput);
+int xlcEmitAst(XLC_Context* ctx, const char* outputPath, int jsonOutput);
+int xlcEmitIr(XLC_Context* ctx, const char* outputPath, int jsonOutput);
+int xlcEmitC(XLC_Context* ctx, const char* outputPath);
+int xlcEmitDebugC(XLC_Context* ctx, const char* outputPath, const char* debugSourcePath);
+int xlcEmitHeader(XLC_Context* ctx, const char* outputPath, const char* guardName);
+int xlcEmitAbi(XLC_Context* ctx, const char* outputPath, int jsonOutput);
+int xlcEmitXapi(XLC_Context* ctx, const char* outputPath);
+int xlcEmitExe(XLC_Context* ctx, const char* outputExe);
+int xlcEmitDebugExe(XLC_Context* ctx, const char* outputExe, const char* debugSourcePath);
+int xlcEmitSharedLibrary(XLC_Context* ctx, const char* outputDll);
+XL_Module* xlcRelocateModule(XLC_Context* ctx);
+int xlcRun(XLC_Context* ctx, int argc, char** argv);
+
+XL_Context* xlcRuntimeContext(XLC_Context* ctx);
+const char* xlcGetLastError(XLC_Context* ctx);
+void xlcClearLastError(XLC_Context* ctx);
+```
+
+`xlc.dll` owns compiler-library operations that are useful without CLI argument parsing: checking, token/AST/IR/ABI/XAPI emission, C/header/debug-C emission, executable/debug-executable/shared-library output, in-process relocation, and direct run. `xl.exe` is responsible for command-line parsing and maps those commands onto these APIs.
 
 命名说明：
 
@@ -123,7 +179,7 @@ TCC lib root 默认优先使用 context 显式 `tccLibPath`，否则读取 `XL6_
 
 上下文临时目录由 `XL_ContextOptions.tempDir` 或 `xlSetTempDir` 设置。相对路径会在创建 context 或调用 `xlSetTempDir` 时按当时的宿主当前目录固化为路径快照。
 
-当前 DLL 执行管线以动态 VFS + libtcc 内存编译为主，不输出 CLI 调试 dump，普通运行或编译 exe 不会为了主生成 C 预创建临时目录。`saveTemps` 目前作为上下文配置保留，不会强制生成调试临时文件；后续如果 DLL API 引入“导出动态 VFS 内容”或其他可选落盘产物，应继续以 `tempDir` 为根目录，并由 `saveTemps` 决定是否保留。
+当前 DLL 执行管线以动态 VFS + libtcc 内存编译为主，不输出 CLI 调试 dump，普通运行或编译 exe 不会为了主生成 C 预创建临时目录。`xlc.dll` 编译版 API 在启用 `saveTemps` 时，会把动态 VFS 中的 `module.c`、`module.h` 和 `csrc_N.c` 等可检查副本导出到 `tempDir`；未启用时不落盘。
 
 ## C 函数注册
 
@@ -161,6 +217,7 @@ build_dll.bat
 
 ```bat
 test_dll.bat
+test_xlc_shell.bat
 ```
 
 验证程序包括：
@@ -169,6 +226,9 @@ test_dll.bat
 examples\xl_dll_null_context.c
 examples\xl_dll_threaded_host.c
 examples\xl_dll_embed_string.c
+examples\xl_dll_xrt_exports.c
+examples\xlc_api_embed.c
+examples\xl_run_demo_win32.c
 ```
 
 其中：

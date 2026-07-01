@@ -35,6 +35,13 @@ func emptyStream() as async generator<int>
     end
 end
 
+func indexedStream() as async generator<int>
+    yield await addAsync(0, 10)
+    yield await addAsync(0, 20)
+    yield await addAsync(0, 30)
+    yield await addAsync(0, 40)
+end
+
 int total = 0
 for await value in stream(10)
     total = total + value
@@ -48,6 +55,120 @@ for await value in streamAlt(20)
 end
 
 assert alt == 50, "async generator type-marker total failed"
+
+generator<int> savedStream = stream(30)
+int savedTotal = 0
+for await value in savedStream
+    savedTotal = savedTotal + value
+end
+
+assert savedTotal == 64, "saved async generator value failed"
+
+generator<int> savedBroken = broken()
+int savedErrorState = 0
+try
+    for await value in savedBroken
+        savedErrorState = savedErrorState + value
+    end
+    savedErrorState = 100
+catch e
+    if e.message == "async generator boom" then
+        savedErrorState = savedErrorState + 10
+    end
+end
+
+assert savedErrorState == 11, "saved async generator error propagation failed"
+
+generator<int> savedBrokenEarly = brokenEarly()
+int savedEarlyErrorState = 0
+try
+    for await value in savedBrokenEarly
+        savedEarlyErrorState = savedEarlyErrorState + value
+    end
+    savedEarlyErrorState = 100
+catch e
+    if e.message == "async generator boom before yield" then
+        savedEarlyErrorState = 42
+    end
+end
+
+assert savedEarlyErrorState == 42, "saved async generator early error propagation failed"
+
+generator<int> savedEmpty = emptyStream()
+int savedEmptyCount = 0
+for await value in savedEmpty
+    savedEmptyCount = savedEmptyCount + 1
+end
+
+assert savedEmptyCount == 0, "saved empty async generator should not yield values"
+
+generator<int> savedIndexed = indexedStream()
+int savedBreakSeen = 0
+int savedBreakWeighted = 0
+for await savedIndex, savedValue in savedIndexed
+    savedBreakSeen = savedBreakSeen + 1
+    savedBreakWeighted = savedBreakWeighted + savedIndex * 100 + savedValue
+    if savedIndex == 1 then
+        break
+    end
+end
+
+assert savedBreakSeen == 2, "saved async generator break seen failed"
+assert savedBreakWeighted == 130, "saved async generator break index/value failed"
+
+generator<int> savedIndexedContinue = indexedStream()
+int savedContinueSeen = 0
+int savedContinueWeighted = 0
+for await savedContinueIndex, savedContinueValue in savedIndexedContinue
+    savedContinueSeen = savedContinueSeen + 1
+    if savedContinueIndex == 1 then
+        continue
+    end
+    savedContinueWeighted = savedContinueWeighted + savedContinueIndex * 100 + savedContinueValue
+    if savedContinueIndex == 2 then
+        break
+    end
+end
+
+assert savedContinueSeen == 3, "saved async generator continue seen failed"
+assert savedContinueWeighted == 240, "saved async generator continue index/value failed"
+
+generator<int> consumedAsync = stream(40)
+int consumedAsyncFirstTotal = 0
+for await value in consumedAsync
+    consumedAsyncFirstTotal = consumedAsyncFirstTotal + value
+end
+
+assert consumedAsyncFirstTotal == 84, "consumed async generator first pass failed"
+
+int consumedAsyncAgainState = 0
+try
+    for await value in consumedAsync
+        consumedAsyncAgainState = consumedAsyncAgainState + value
+    end
+    consumedAsyncAgainState = 100
+catch e
+    if e.message == "iterate null generator" then
+        consumedAsyncAgainState = 42
+    end
+end
+
+assert consumedAsyncAgainState == 42, "consumed async generator should reject second pass"
+
+generator<int> missingAsync
+int missingAsyncState = 0
+try
+    for await value in missingAsync
+        missingAsyncState = missingAsyncState + value
+    end
+    missingAsyncState = 100
+catch e
+    if e.message == "iterate null generator" then
+        missingAsyncState = 42
+    end
+end
+
+assert missingAsyncState == 42, "null async generator should reject iteration"
 
 int errorState = 0
 try
@@ -83,3 +204,19 @@ for await value in emptyStream()
 end
 
 assert emptyCount == 0, "empty async generator should not yield values"
+
+int indexedSeen = 0
+int indexedWeighted = 0
+for await asyncIndex, asyncValue in indexedStream()
+    indexedSeen = indexedSeen + 1
+    if asyncIndex == 1 then
+        continue
+    end
+    indexedWeighted = indexedWeighted + asyncIndex * 100 + asyncValue
+    if asyncIndex == 2 then
+        break
+    end
+end
+
+assert indexedSeen == 3, "async generator two-target seen failed"
+assert indexedWeighted == 240, "async generator two-target index/value failed"

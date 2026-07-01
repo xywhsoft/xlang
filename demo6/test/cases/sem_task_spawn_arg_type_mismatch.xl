@@ -1,0 +1,6 @@
+func needInt(int value) as int
+    return value
+end
+
+func(int) as int fn = needInt
+int bad = await task.spawn(fn, "x")

@@ -456,3 +456,35 @@
 | 额外依赖的封装代码 | 不新增运行时封装；依赖既有 `XL6_Function`、class field suffix、function invoke 与 class destroy helper。 |
 
 当前守门：`test/cases/cgen_member_function_class_return.xl` 覆盖声明初始化、位置参数和命名参数三类承载位置；`test.bat` 锁定 `__xl6_member_fn_call_N`、`xl_class_Payload__destroy(&__xl6_member_recv_N)`，并禁止 `tempFunctionFieldValue` 回退到内联 `maker.make.invoke(...)` 形态。该规则拆分到 `xl6_cgen_stmt_decl_call_member_temp.c` 后，`xl6_cgen_stmt_decl_call_args.c` 保持在 1200 行模块上限内。
+
+## 补充：RISK-CALL-001 var callable 内部动态实参 lowering
+
+本轮继续压实 `RISK-CALL-001`，补齐 `var` callable 调用内部实参仍需语句级 lowering 的路径。此前普通函数调用、`task.spawn`、成员 class 临时等承载位已经具备临时化守门，但 `var f; f(makeValue(1) + makeValue(2))` 这类调用会在 `xl6_var_call(...)` 内部直接装箱实参；当实参本身是动态 `var` 二元表达式或命名参数表达式时，必须先落到语句级临时量。
+
+| 字段 | 内容 |
+| --- | --- |
+| xlang 写法 | `dynamicSum(makeValue(4) + makeValue(5), makeValue(6))`、`dynamicSum(right = makeValue(10) + makeValue(5), left = makeValue(3))` |
+| 生成规则描述 | 当声明初始化或赋值右侧需要把 call 表达式整体保存为 `xvalue` 临时，且这个 call 的 callee 为 `var` callable 时，生成器递归扫描 call 内部实参。凡是目标类型为 `var` 且表达式需要语句级 lowering 的实参，先生成 `xvalue __xl6_call_arg_N = ...;`，随后通过 expression replacement 把原实参替换为临时量，再生成外层 `xl6_var_call(...)` 或 `xl6_var_call_kwargs(...)`。命名参数仍先按 kwargs dict 打包，不改变 `left/right` 的语义顺序。 |
+| 生成器文件名和行号 | `xl6_cgen_stmt_decl_call_nested_args.c:1` 收集并追加 call arg temp，`xl6_cgen_stmt_decl_call_nested_args.c:41` 递归扫描 call 实参，`xl6_cgen_stmt_decl_call_nested_args.c:85` 判断是否需要 call-arg temp，`xl6_cgen_stmt_decl_call_nested_args.c:106` 输出带临时实参的 xvalue call 表达式；`xl6_cgen_stmt_decl_call_args.c:77` / `xl6_cgen_stmt_decl_call_args.c:103` 接入 xvalue call value temp 判断与输出。 |
+| 对应生成的 C 代码 | `xvalue __xl6_call_arg_28 = xl6_xrt_basic_binary(...); xvalue __xl6_call_arg_27 = xl6_var_call(dynamicSum, 2, __xl6_call_arg_28, makeValue(6LL));`；命名参数生成 `xl6_var_call_kwargs(dynamicSum, xl6_xrt_dict_varargs(2, "right", __xl6_call_arg_37, "left", makeValue(3LL)), 0)`。 |
+| 中间形态伪代码 | `temps = collectNestedVarArgs(call.args); emitTemps(temps); replacedCall = replaceArgs(call, temps); target = emitVarCall(replacedCall)` |
+| 实现同等功能手写的 C 代码 | 手写 C 需要先把动态 `xvalue` 表达式保存到局部变量，再把局部变量传入 `xl6_var_call` 或 `xl6_xrt_dict_varargs`，避免把需要语句级求值的表达式塞进 C 实参列表。 |
+| 额外依赖的封装代码 | 不新增运行时封装；依赖既有 expression replacement 表、`xl6_var_call`、`xl6_var_call_kwargs` 与 `xl6_xrt_dict_varargs`。 |
+
+当前守门：`test/cases/cgen_call_var_arg_exprs.xl` 覆盖位置实参与命名实参；`test.bat` 锁定 `xl6_var_call(dynamicSum, 2, __xl6_call_arg_...)` 与 `xl6_var_call_kwargs(dynamicSum, xl6_xrt_dict_varargs(... __xl6_call_arg_...))`。源码级 `check_cgen_statement_expr_allowlist.ps1` 继续保持 0 fallback templates。
+
+## 补充：RISK-CALL-001 typed function container item 直接调用
+
+本轮继续加固 `RISK-CALL-001`，补齐静态函数容器元素直接作为 callee 的路径。
+
+| 字段 | 内容 |
+| --- | --- |
+| xlang 写法 | `funcs[0]` 接参数 `(6, 7)`、`listed[0]` 接参数 `(8, 9)`、`named["add"]` 接参数 `(10, 11)` |
+| 生成规则描述 | 当 `XL6_AST_CALL` 的 callee 不是名字，且类型推断为 `func(...) as T` 时，生成器进入函数表达式调用分支。稳定 lvalue 仍走原有签名校验和 direct invoke；非稳定 callee，例如 typed array/list/dict 索引结果，必须先按目标函数类型生成一次 owned `XL6_Function` 值，再调用 `xl6_function_call_var_release(...)` 或 `xl6_function_call_kwargs_release(...)`。该规则避免多次求值 `xl6_function_from_callable(...)`，也避免临时 callable AddRef 后无法释放。`var` 类型非名字 callee 仍走 `xl6_var_call(...)` / `xl6_var_call_kwargs(...)`。 |
+| 生成器文件名和行号 | `xl6_cgen_expr.c` 的非名字 callee 分派；`xl6_cgen_function_value.c` 的非稳定函数表达式 owned fallback；`xl6_cgen_callable_runtime.c` 的 `xl6_function_call_var_release`、`xl6_function_call_kwargs_release` 和 `xl6_function_release_value`。 |
+| 对应生成的 C 代码 | `xl6_xvalue_to_i64_release(xl6_function_call_var_release(xl6_function_from_callable(*(xrt_callable**)xl6_xrt_typed_require_item(xl6_xrt_typed_array_get_at(funcs, 0))), 2, xvoCreateInt(6), xvoCreateInt(7)))` |
+| 中间形态伪代码 | `fn = ownedFunctionValue(container[index]); result = callVar(fn, boxedArgs); release(fn); return convert(result)` |
+| 实现同等功能手写的 C 代码 | 手写 C 应先把容器项还原为 `XL6_Function fn`，调用完成后显式执行 `fn.release(fn.env)`，不能为了读取签名和 env 多次创建临时 `XL6_Function`。 |
+| 额外依赖的封装代码 | 依赖 function var runtime 的 release helper；不新增 wrapper。 |
+
+当前守门：`test/cases/cgen_typed_container_functions.xl` 覆盖 array/list/dict 三类直接函数项调用；`test.bat` 锁定三类调用生成 `xl6_function_call_var_release(xl6_function_from_callable(...))`，并禁止 `funcs[0]` 回退为重复 `.invoke` 展开。`RISK-CALL-001` 保持已收口并继续加固，后续多返回值非稳定函数表达式调用若放开，也必须遵守“一次求值、显式释放”的生命周期规则。

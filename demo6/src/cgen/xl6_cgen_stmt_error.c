@@ -314,8 +314,11 @@ static void xl6CgenEmitGotoIfError(XL6_CgenContext* ctx, const char* label)
 static void xl6CgenThrowStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
 {
     const XL6_AstNode* expr;
+    XL6_CgenTaskSpawnArgTempScope taskScope;
+    int hasTaskScope;
 
     expr = node != NULL && node->childCount > 0 ? node->children[0] : NULL;
+    hasTaskScope = expr != NULL && xl6CgenTaskSpawnArgTempScopeBegin(ctx, expr, &taskScope);
     xl6CgenIndent(ctx);
     if ( expr == NULL ) {
         if ( ctx->currentCatchErrorName != NULL ) {
@@ -328,6 +331,9 @@ static void xl6CgenThrowStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
         xl6CgenExpr(ctx, expr);
         xl6OutputPrintf(ctx->out, ", \"\", %d, %d);\n", node != NULL ? node->line : 0, node != NULL ? node->column : 0);
     }
+    if ( hasTaskScope ) {
+        xl6CgenTaskSpawnArgTempScopeEnd(ctx, &taskScope);
+    }
     xl6CgenEmitExceptionPropagate(ctx, node);
 }
 
@@ -337,12 +343,21 @@ static void xl6CgenAssertStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
     const XL6_AstNode* message;
     char conditionName[64];
     int hasConditionTemp;
+    int hasConditionTaskScope;
+    int hasMessageTaskScope;
+    XL6_CgenTaskSpawnArgTempScope conditionTaskScope;
+    XL6_CgenTaskSpawnArgTempScope messageTaskScope;
 
     cond = node != NULL && node->childCount > 0 ? node->children[0] : NULL;
     message = node != NULL && node->childCount > 1 ? node->children[1] : NULL;
     conditionName[0] = '\0';
     hasConditionTemp = cond != NULL &&
                        xl6CgenTryConditionTemp(ctx, cond, "__xl6_assert_cond_", conditionName, sizeof(conditionName));
+    hasConditionTaskScope = 0;
+    hasMessageTaskScope = 0;
+    if ( cond != NULL && !hasConditionTemp ) {
+        hasConditionTaskScope = xl6CgenTaskSpawnArgTempScopeBegin(ctx, cond, &conditionTaskScope);
+    }
 
     xl6CgenIndent(ctx);
     xl6OutputPuts("if ( !(", ctx->out);
@@ -352,7 +367,13 @@ static void xl6CgenAssertStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
         xl6CgenConditionExpr(ctx, cond);
     }
     xl6OutputPuts(") ) {\n", ctx->out);
+    if ( hasConditionTaskScope ) {
+        xl6CgenTaskSpawnArgTempScopeEnd(ctx, &conditionTaskScope);
+    }
     ctx->indent += 1;
+    if ( message != NULL ) {
+        hasMessageTaskScope = xl6CgenTaskSpawnArgTempScopeBegin(ctx, message, &messageTaskScope);
+    }
     xl6CgenIndent(ctx);
     xl6OutputPuts("xl6_error_raise(\"AssertError\", ", ctx->out);
     if ( message != NULL ) {
@@ -361,6 +382,9 @@ static void xl6CgenAssertStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
         xl6OutputPuts("\"assert failed\"", ctx->out);
     }
     xl6OutputPrintf(ctx->out, ", \"\", %d, %d);\n", node != NULL ? node->line : 0, node != NULL ? node->column : 0);
+    if ( hasMessageTaskScope ) {
+        xl6CgenTaskSpawnArgTempScopeEnd(ctx, &messageTaskScope);
+    }
     xl6CgenEmitExceptionPropagate(ctx, node);
     ctx->indent -= 1;
     xl6CgenIndent(ctx);

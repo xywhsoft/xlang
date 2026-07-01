@@ -20,6 +20,7 @@ extern "C" {
 #endif
 
 typedef struct XL_Context XL_Context;
+typedef struct XL_Module XL_Module;
 typedef struct xvalue_struct* xvalue;
 
 typedef struct XL_ContextOptions {
@@ -53,6 +54,15 @@ XL_API int xlRunScriptString(XL_Context* ctx, const char* source);
 XL_API int xlRunScriptFile(XL_Context* ctx, const char* path);
 XL_API int xlRunScriptStringArg(XL_Context* ctx, const char* source, xvalue arg);
 XL_API int xlRunScriptFileArg(XL_Context* ctx, const char* path, xvalue arg);
+XL_API XL_Module* xlCompileScriptStringToModule(XL_Context* ctx, const char* source);
+XL_API XL_Module* xlCompileScriptFileToModule(XL_Context* ctx, const char* path);
+XL_API XL_Module* xlCompileCSourceStringToModule(XL_Context* ctx, const char* source);
+XL_API XL_Module* xlCompileCSourceFileToModule(XL_Context* ctx, const char* path);
+XL_API int xlRunCSourceString(XL_Context* ctx, const char* source, int argc, char** argv);
+XL_API int xlRunCSourceFile(XL_Context* ctx, const char* path, int argc, char** argv);
+XL_API int xlRunModuleMain(XL_Context* ctx, XL_Module* module, xvalue arg);
+XL_API void* xlModuleGetSymbol(XL_Module* module, const char* symbolName);
+XL_API void xlDestroyModule(XL_Module* module);
 #if !defined(XL_RUNTIME_ONLY_API)
 XL_API int xlCompileScriptStringToExe(XL_Context* ctx, const char* source, const char* outputExe);
 XL_API int xlCompileScriptFileToExe(XL_Context* ctx, const char* path, const char* outputExe);

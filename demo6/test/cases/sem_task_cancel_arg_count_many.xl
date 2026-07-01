@@ -1,0 +1,5 @@
+async func one() as int
+    return 1
+end
+
+auto bad = task.cancel(one(), one())

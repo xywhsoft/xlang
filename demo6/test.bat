@@ -2622,6 +2622,11 @@ if errorlevel 1 (
     echo cgen_typed_container_for_in_returned.c missing returned typed array cleanup.
     exit /b 1
 )
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_typed_container_for_in_returned.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'memberDirectTotal = 0LL;[\s\S]*?xtarray __xl6_typed_iter_(\d+) = \(\(maker\.values\.signature == 0xDAD5AD8DCC27AA57ULL\)[\s\S]*?memberDirectTotal = \(memberDirectTotal \+ value\);[\s\S]*?xrtTypedArrayDestroy\(__xl6_typed_iter_\1\);'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_typed_container_for_in_returned.c missing direct member returned typed array for-in cleanup.
+    exit /b 1
+)
 "%XL6_TCC%" -Irelease\tcc\include_win %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_typed_container_for_in_returned.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_typed_container_for_in_returned.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_typed_container_for_in_returned.exe
@@ -2782,6 +2787,26 @@ if errorlevel 1 (
 findstr /C:"xl6_function_from_callable(*(xrt_callable**)xl6_xrt_typed_require_item(xl6_xrt_typed_array_get_at" release\tmp\cgen_typed_container_functions.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_functions.c missing guarded callable to function bridge.
+    exit /b 1
+)
+findstr /C:"xl6_function_call_var_release(xl6_function_from_callable(*(xrt_callable**)xl6_xrt_typed_require_item(xl6_xrt_typed_array_get_at(funcs" release\tmp\cgen_typed_container_functions.c >nul
+if errorlevel 1 (
+    echo cgen_typed_container_functions.c missing release fallback for direct typed function array item call.
+    exit /b 1
+)
+findstr /C:"xl6_function_call_var_release(xl6_function_from_callable(*(xrt_callable**)xl6_xrt_typed_require_item(xrtTypedListGet(listed" release\tmp\cgen_typed_container_functions.c >nul
+if errorlevel 1 (
+    echo cgen_typed_container_functions.c missing release fallback for direct typed function list item call.
+    exit /b 1
+)
+findstr /C:"xl6_function_call_var_release(xl6_function_from_callable(*(xrt_callable**)xl6_xrt_typed_require_item(xrtTypedDictGet(named" release\tmp\cgen_typed_container_functions.c >nul
+if errorlevel 1 (
+    echo cgen_typed_container_functions.c missing release fallback for direct typed function dict item call.
+    exit /b 1
+)
+findstr /C:"xrt_typed_array_get_at(funcs, (unsigned int)(0LL)))).invoke)" release\tmp\cgen_typed_container_functions.c >nul
+if not errorlevel 1 (
+    echo cgen_typed_container_functions.c should not repeat direct typed function array item invoke.
     exit /b 1
 )
 findstr /C:"xl6_function_call_var(first" release\tmp\cgen_typed_container_functions.c >nul
@@ -3389,6 +3414,16 @@ if errorlevel 1 (
 findstr /C:"__xl6_call_arg_" release\tmp\cgen_call_var_arg_exprs.c | findstr /C:"makeValue(7LL);" >nul
 if errorlevel 1 (
     echo cgen_call_var_arg_exprs.c missing var argument conditional branch.
+    exit /b 1
+)
+findstr /C:"xl6_var_call(dynamicSum, 2, __xl6_call_arg_" release\tmp\cgen_call_var_arg_exprs.c >nul
+if errorlevel 1 (
+    echo cgen_call_var_arg_exprs.c missing var callable positional argument lowering.
+    exit /b 1
+)
+findstr /C:"xl6_var_call_kwargs(dynamicSum, xl6_xrt_dict_varargs(2," release\tmp\cgen_call_var_arg_exprs.c | findstr /C:"__xl6_call_arg_" >nul
+if errorlevel 1 (
+    echo cgen_call_var_arg_exprs.c missing var callable named argument lowering.
     exit /b 1
 )
 findstr /C:"({" release\tmp\cgen_call_var_arg_exprs.c >nul
@@ -4674,6 +4709,11 @@ if errorlevel 1 (
 findstr /C:"XL6_Function variadicDefault = xl6_fnvalue_totalDefault_arity0_vararg_make();" release\tmp\cgen_function_named_value.c >nul
 if errorlevel 1 (
     echo cgen_function_named_value.c missing optional vararg function adapter.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_function_named_value.c',[System.Text.Encoding]::UTF8); if($text.IndexOf('XL6_Function mixedPicker = (chooseMixedPicker ? xl6_function_copy_value(borrowedMixedPicker) : makePicker(200LL));') -lt 0 -or $text.IndexOf('XL6_Function __xl6_function_assign_') -lt 0 -or $text.IndexOf('= (chooseMixedPicker ? xl6_function_copy_value(borrowedMixedPicker) : makePicker(300LL));') -lt 0){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_function_named_value.c missing mixed conditional function value branch copy.
     exit /b 1
 )
 findstr /C:"if (__xl6_argc < 1 || __xl6_argc > 2)" release\tmp\cgen_function_named_value.c >nul
@@ -10335,10 +10375,20 @@ if not errorlevel 1 (
     echo sem_sync_ctor_args.xl should fail.
     exit /b 1
 )
+findstr /C:"sync constructor does not accept arguments" release\tmp\sem_sync_ctor_args.err.txt >nul
+if errorlevel 1 (
+    echo sem_sync_ctor_args.xl missing sync constructor diagnostic.
+    exit /b 1
+)
 
 release\xl.exe check test\cases\sem_sync_method_args.xl >nul 2> release\tmp\sem_sync_method_args.err.txt
 if not errorlevel 1 (
     echo sem_sync_method_args.xl should fail.
+    exit /b 1
+)
+findstr /C:"sync method does not accept arguments" release\tmp\sem_sync_method_args.err.txt >nul
+if errorlevel 1 (
+    echo sem_sync_method_args.xl missing sync method argument diagnostic.
     exit /b 1
 )
 
@@ -10356,6 +10406,11 @@ if errorlevel 1 (
 release\xl.exe check test\cases\sem_sync_cond_mutex_arg.xl >nul 2> release\tmp\sem_sync_cond_mutex_arg.err.txt
 if not errorlevel 1 (
     echo sem_sync_cond_mutex_arg.xl should fail.
+    exit /b 1
+)
+findstr /C:"cond wait first argument must be mutex" release\tmp\sem_sync_cond_mutex_arg.err.txt >nul
+if errorlevel 1 (
+    echo sem_sync_cond_mutex_arg.xl missing cond mutex diagnostic.
     exit /b 1
 )
 
@@ -10427,6 +10482,11 @@ if errorlevel 1 (
     echo cgen_thread.c missing thread start failure diagnostic.
     exit /b 1
 )
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_thread.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'static void\* xl6_thread_start\([\s\S]*?if \( fn\.invoke == 0 \) \{[\s\S]*?if \( !retainBorrow && fn\.release != 0 && fn\.env != 0 \) \{ fn\.release\(fn\.env\); \}[\s\S]*?thread requires a callable func value' -or $text -notmatch 'static void\* xl6_thread_start\([\s\S]*?if \( arg == 0 \) \{[\s\S]*?if \( fn\.release != 0 && fn\.env != 0 \) \{ fn\.release\(fn\.env\); \}[\s\S]*?out of memory while starting thread' -or $text -notmatch 'static void\* xl6_thread_start\([\s\S]*?if \( pThread == 0 \) \{[\s\S]*?if \( fn\.release != 0 && fn\.env != 0 \) \{ fn\.release\(fn\.env\); \}[\s\S]*?xrtFree\(arg\);[\s\S]*?thread start failed'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_thread.c missing thread start failure cleanup.
+    exit /b 1
+)
 findstr /C:"xl6_thread_release" release\tmp\cgen_thread.c >nul
 if errorlevel 1 (
     echo cgen_thread.c missing thread release helper.
@@ -10435,6 +10495,11 @@ if errorlevel 1 (
 powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_thread.c',[System.Text.Encoding]::UTF8); $checks=@('void* slow = xl6_thread_require_handle(xl6_thread_start(xl6_fnvalue_slowWorker_make(), 0','int slowImmediate = (xrtThreadWaitTimeout(slow, 0LL) == 0)','!slowImmediate','int slowWaited = (xrtThreadWaitTimeout(slow, 2000LL) == 0)','long long slowCode = (int)xrtThreadGetExitCode(slow)','int slowRepeatedWait = (xrtThreadWait(slow), true)','long long slowCodeAgain = (int)xrtThreadGetExitCode(slow)'); foreach($p in $checks){ if($text.IndexOf($p) -lt 0){ Write-Host ('cgen_thread.c missing '+$p); exit 1 } }"
 if errorlevel 1 (
     echo cgen_thread.c missing waitTimeout timeout/completed-state guard lowering.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_thread.c',[System.Text.Encoding]::UTF8); $checks=@('conditionalBorrowedThread = xl6_thread_require_handle(xl6_thread_start((chooseBorrowedThread ? borrowedThreadLeft : borrowedThreadRight), 1','conditionalBorrowedThreadAgain = xl6_thread_require_handle(xl6_thread_start((chooseBorrowedThread ? borrowedThreadLeft : borrowedThreadRight), 1','mixedThreadOwned = xl6_thread_require_handle(xl6_thread_start((chooseMixedThread ? xl6_function_copy_value(mixedThreadSource) : makeThreadWorker(16LL)), 0','mixedThreadBorrowed = xl6_thread_require_handle(xl6_thread_start((chooseMixedThread ? xl6_function_copy_value(mixedThreadSource) : makeThreadWorker(17LL)), 0','conditionalMemberThread = xl6_thread_require_handle(xl6_thread_start((chooseThreadMember ? threadBox.op : threadBoxAlt.op), 1','borrowedThreadRight.signature ==','borrowedThreadLeft.signature ==','mixedThreadSource.signature ==','xl6_function_call_var(threadBoxAlt.op, 0)'); foreach($p in $checks){ if($text.IndexOf($p) -lt 0){ Write-Host ('cgen_thread.c missing '+$p); exit 1 } }"
+if errorlevel 1 (
+    echo cgen_thread.c missing borrowed conditional thread callable ownership guard.
     exit /b 1
 )
 
@@ -10471,10 +10536,20 @@ if not errorlevel 1 (
     echo sem_thread_ctor_args.xl should fail.
     exit /b 1
 )
+findstr /C:"thread constructor requires one func() as int entry argument" release\tmp\sem_thread_ctor_args.err.txt >nul
+if errorlevel 1 (
+    echo sem_thread_ctor_args.xl missing thread constructor diagnostic.
+    exit /b 1
+)
 
 release\xl.exe check test\cases\sem_thread_entry_signature.xl >nul 2> release\tmp\sem_thread_entry_signature.err.txt
 if not errorlevel 1 (
     echo sem_thread_entry_signature.xl should fail.
+    exit /b 1
+)
+findstr /C:"thread entry must match func() as int" release\tmp\sem_thread_entry_signature.err.txt >nul
+if errorlevel 1 (
+    echo sem_thread_entry_signature.xl missing thread entry signature diagnostic.
     exit /b 1
 )
 findstr /C:"function " release\tmp\sem_thread_entry_signature.err.txt >nul
@@ -10486,6 +10561,11 @@ if not errorlevel 1 (
 release\xl.exe check test\cases\sem_thread_method_args.xl >nul 2> release\tmp\sem_thread_method_args.err.txt
 if not errorlevel 1 (
     echo sem_thread_method_args.xl should fail.
+    exit /b 1
+)
+findstr /C:"thread method does not accept arguments" release\tmp\sem_thread_method_args.err.txt >nul
+if errorlevel 1 (
+    echo sem_thread_method_args.xl missing thread method argument diagnostic.
     exit /b 1
 )
 
@@ -10517,7 +10597,7 @@ if errorlevel 1 exit /b 1
 
 release\tmp\cgen_async.exe
 if errorlevel 1 exit /b 1
-for /L %%I in (1,1,1) do (
+for /L %%I in (1,1,3) do (
     release\tmp\cgen_async.exe
     if errorlevel 1 (
         echo cgen_async.exe repeat run %%I failed.
@@ -10546,6 +10626,11 @@ if errorlevel 1 (
 findstr /C:"async task start failed" release\tmp\cgen_async.c >nul
 if errorlevel 1 (
     echo cgen_async.c missing async task start diagnostic.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_async.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'static xfuture\* xl6_async_require_future\([\s\S]*?if \( pFuture != 0 \) \{ return pFuture; \}[\s\S]*?if \( xl6_error_has\(\) \) \{ return 0; \}[\s\S]*?async task start failed'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_async.c missing async start active error preservation.
     exit /b 1
 )
 findstr /C:"xl6_future_await_value" release\tmp\cgen_async.c >nul
@@ -10651,6 +10736,101 @@ if errorlevel 1 (
 findstr /C:"xvalue temporaryVar = xl6_future_await_xvalue_release(makeVarAsync(130LL)" release\tmp\cgen_async.c >nul
 if errorlevel 1 (
     echo cgen_async.c missing temporary await xvalue helper call.
+    exit /b 1
+)
+findstr /C:"static xfuture* xl6_future_add_ref_if_needed" release\tmp\cgen_async.c >nul
+if errorlevel 1 (
+    echo cgen_async.c missing conditional await future add-ref helper.
+    exit /b 1
+)
+findstr /C:"conditionalAwaitBorrowed = xl6_future_await_i64_release((chooseConditionalAwait ? xl6_future_add_ref_if_needed(conditionalAwaitSource) : addAsync(310LL, 1LL))" release\tmp\cgen_async.c >nul
+if errorlevel 1 (
+    echo cgen_async.c missing conditional await borrowed scalar normalization.
+    exit /b 1
+)
+findstr /C:"conditionalAwaitOwned = xl6_future_await_i64_release((chooseConditionalAwait ? xl6_future_add_ref_if_needed(conditionalAwaitSource) : addAsync(320LL, 1LL))" release\tmp\cgen_async.c >nul
+if errorlevel 1 (
+    echo cgen_async.c missing conditional await owned scalar normalization.
+    exit /b 1
+)
+findstr /C:"xl6_future_await_void_release((chooseConditionalAwait ? xl6_future_add_ref_if_needed(conditionalVoidSource) : doneAsync())" release\tmp\cgen_async.c >nul
+if errorlevel 1 (
+    echo cgen_async.c missing conditional await void normalization.
+    exit /b 1
+)
+findstr /C:"conditionalVarBorrowed = xl6_future_await_xvalue_release((chooseConditionalAwait ? xl6_future_add_ref_if_needed(conditionalVarSource) : makeVarAsync(340LL))" release\tmp\cgen_async.c >nul
+if errorlevel 1 (
+    echo cgen_async.c missing conditional await borrowed var normalization.
+    exit /b 1
+)
+findstr /C:"conditionalFnBorrowed = xl6_future_await_function_release((chooseConditionalAwait ? xl6_future_add_ref_if_needed(conditionalFnSource) : makeAdderAsync(370LL))" release\tmp\cgen_async.c >nul
+if errorlevel 1 (
+    echo cgen_async.c missing conditional await borrowed function normalization.
+    exit /b 1
+)
+findstr /C:"conditionalBoxBorrowed = (chooseConditionalAwait ? xl6_future_await_class_makeBoxAsync_release(xl6_future_add_ref_if_needed(conditionalBoxSource)" release\tmp\cgen_async.c >nul
+if errorlevel 1 (
+    echo cgen_async.c missing conditional await borrowed class release helper.
+    exit /b 1
+)
+findstr /C:": xl6_future_await_class_makeBoxAsync_release(makeBoxAsync(395LL)" release\tmp\cgen_async.c >nul
+if errorlevel 1 (
+    echo cgen_async.c missing conditional await owned class release helper.
+    exit /b 1
+)
+findstr /C:"conditionalGreetingBorrowed = (chooseConditionalGreeting ? xl6_future_await_cstr_copy(conditionalGreetingSource" release\tmp\cgen_async.c >nul
+if errorlevel 1 (
+    echo cgen_async.c missing conditional await borrowed string copy.
+    exit /b 1
+)
+findstr /C:": xl6_future_await_cstr_release(greetAsync(" release\tmp\cgen_async.c >nul
+if errorlevel 1 (
+    echo cgen_async.c missing conditional await owned string release.
+    exit /b 1
+)
+findstr /C:"conditionalItemsBorrowed = (chooseConditionalItems ? xl6_xrt_typed_array_copy_mode(xrtTypeInt(), (*(xtarray*)xl6_future_await_value(conditionalItemsSource" release\tmp\cgen_async.c >nul
+if errorlevel 1 (
+    echo cgen_async.c missing conditional await borrowed typed array copy.
+    exit /b 1
+)
+findstr /C:": (xtarray)xl6_future_await_handle_release(slowMakeItemsAsync()" release\tmp\cgen_async.c >nul
+if errorlevel 1 (
+    echo cgen_async.c missing conditional await owned typed array release.
+    exit /b 1
+)
+findstr /C:"conditionalListBorrowed = (chooseConditionalList ? xl6_xrt_typed_list_copy_mode(xrtTypeInt(), (*(xtlist*)xl6_future_await_value(conditionalListSource" release\tmp\cgen_async.c >nul
+if errorlevel 1 (
+    echo cgen_async.c missing conditional await borrowed typed list copy.
+    exit /b 1
+)
+findstr /C:": (xtlist)xl6_future_await_handle_release(slowMakeListAsync()" release\tmp\cgen_async.c >nul
+if errorlevel 1 (
+    echo cgen_async.c missing conditional await owned typed list release.
+    exit /b 1
+)
+findstr /C:"conditionalSetBorrowed = (chooseConditionalSet ? xl6_xrt_typed_set_copy_mode(xrtTypeInt(), (*(xtset*)xl6_future_await_value(conditionalSetSource" release\tmp\cgen_async.c >nul
+if errorlevel 1 (
+    echo cgen_async.c missing conditional await borrowed typed set copy.
+    exit /b 1
+)
+findstr /C:": (xtset)xl6_future_await_handle_release(slowMakeSetAsync()" release\tmp\cgen_async.c >nul
+if errorlevel 1 (
+    echo cgen_async.c missing conditional await owned typed set release.
+    exit /b 1
+)
+findstr /C:"conditionalDictBorrowed = (chooseConditionalDict ? xl6_xrt_typed_dict_copy_mode(xrtTypeInt(), (*(xtdict*)xl6_future_await_value(conditionalDictSource" release\tmp\cgen_async.c >nul
+if errorlevel 1 (
+    echo cgen_async.c missing conditional await borrowed typed dict copy.
+    exit /b 1
+)
+findstr /C:": (xtdict)xl6_future_await_handle_release(slowMakeDictAsync()" release\tmp\cgen_async.c >nul
+if errorlevel 1 (
+    echo cgen_async.c missing conditional await owned typed dict release.
+    exit /b 1
+)
+findstr /C:"conditionalMissingAwaitValue = xl6_future_await_i64_release((chooseConditionalMissingAwait ? addAsync(390LL, 1LL) : xl6_future_add_ref_if_needed(conditionalMissingAwait))" release\tmp\cgen_async.c >nul
+if errorlevel 1 (
+    echo cgen_async.c missing conditional await null branch normalization.
     exit /b 1
 )
 findstr /C:"static const char* xl6_future_await_cstr_copy" release\tmp\cgen_async.c >nul
@@ -11515,6 +11695,26 @@ if errorlevel 1 (
     echo cgen_task_api.c should cancel task.all source future directly.
     exit /b 1
 )
+findstr /C:"cancelMissingArray = xl6_task_cancel_value(missingCancelArrayFuture, 0)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should cancel null typed array future as borrowed.
+    exit /b 1
+)
+findstr /C:"cancelMissingList = xl6_task_cancel_value(missingCancelListFuture, 0)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should cancel null typed list future as borrowed.
+    exit /b 1
+)
+findstr /C:"cancelMissingSet = xl6_task_cancel_value(missingCancelSetFuture, 0)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should cancel null typed set future as borrowed.
+    exit /b 1
+)
+findstr /C:"cancelMissingDict = xl6_task_cancel_value(missingCancelDictFuture, 0)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should cancel null typed dict future as borrowed.
+    exit /b 1
+)
 findstr /C:"sourceCanceledAllRightCancel = xl6_task_cancel_value(sourceCanceledAllRight, 0)" release\tmp\cgen_task_api.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c should keep other task.all source completed after source cancel.
@@ -11838,6 +12038,11 @@ if errorlevel 1 (
 findstr /C:"xFutureForwardCancelTo(future, arg->groupFuture)" release\tmp\cgen_task_api.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing task.all cancel forwarding hook.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_api.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'static xfuture\* xl6_task_all_start\([\s\S]*?if \( arg->groupFuture == 0 \) \{[\s\S]*?xl6_task_all_arg_release\(arg\);[\s\S]*?task\.all start failed' -or $text -notmatch 'static xfuture\* xl6_task_all_start\([\s\S]*?if \( future == 0 \) \{[\s\S]*?xl6_task_all_arg_release\(arg\);'){ exit 1 }; $idx=$text.IndexOf('else if ( !xFutureForwardCancelTo(future, arg->groupFuture) )'); if($idx -lt 0){exit 1}; $end=$text.IndexOf('return 0;', $idx); if($end -lt 0){exit 1}; $slice=$text.Substring($idx,$end-$idx); if($slice -notmatch 'xFutureRequestCancel\(future\)' -or $slice -notmatch 'xFutureRelease\(future\)' -or $slice -match 'xl6_task_all_arg_release\(arg\)'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_api.c missing task.all start/cancel-forwarding failure cleanup.
     exit /b 1
 )
 findstr /C:"cancelAllGroup = xl6_task_all_values(xrtTypeInt()" release\tmp\cgen_task_api.c >nul
@@ -12528,6 +12733,11 @@ if errorlevel 1 (
 findstr /C:"xrtTypeFuture()" release\tmp\cgen_task_api.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing typed future descriptor.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_api.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'xfuture\* (__xl6_typed_future_\d+) = addAsync\(11LL, 1LL\);\s*if \(!xrtTypedArrayAppend\(raceJobs, &\1\)\) \{[\s\S]*?xFutureRelease\(\1\);[\s\S]*?xl6_runtime_fatal\(3\);[\s\S]*?\} else \{[\s\S]*?xFutureRelease\(\1\);' -or $text -notmatch 'xfuture\* (__xl6_typed_future_\d+) = addAsync\(40LL, 1LL\);\s*if \(!xrtTypedArrayAppend\(typedAllCompletedJobs, &\1\)\) \{[\s\S]*?xFutureRelease\(\1\);[\s\S]*?xl6_runtime_fatal\(3\);[\s\S]*?\} else \{[\s\S]*?xFutureRelease\(\1\);'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_api.c missing direct-call typed future append cleanup.
     exit /b 1
 )
 findstr /C:"xrtTypeString()" release\tmp\cgen_task_api.c >nul
@@ -13400,6 +13610,11 @@ if errorlevel 1 (
     echo cgen_task_api.c missing defensive task.race null source array guard.
     exit /b 1
 )
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_api.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'static void xl6_task_future_array_release\(xfuture\*\* futures, int count\)[\s\S]*?if \( futures\[i\] != 0 \) \{ xFutureRelease\(futures\[i\]\); \}[\s\S]*?xrtFree\(futures\);' -or $text -notmatch 'if \( futures\[i\] == 0 \) \{[\s\S]*?xl6_task_future_array_release\(arg->futures, i\);[\s\S]*?xrtFree\(arg\);[\s\S]*?task\.all source future is null'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_api.c missing task.all null-source retained-prefix cleanup.
+    exit /b 1
+)
 findstr /C:"defaultJobs = xrtTypedArrayCreate(xrtTypeFuture(), XRT_OBJMODE_LOCAL)" release\tmp\cgen_task_api.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c should default-initialize typed future array as an empty array.
@@ -13425,6 +13640,31 @@ if errorlevel 1 (
     echo cgen_task_api.c missing task.race default typed-array empty assertion.
     exit /b 1
 )
+findstr /C:"emptyStringAll = xl6_future_await_handle_release(xl6_task_all_from_array((xtarray)(emptyStringJobs), xrtTypeString()" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing task.all empty string typed-array path.
+    exit /b 1
+)
+findstr /C:"emptyStringRace = xl6_future_await_cstr_release(xl6_task_race_from_array((xtarray)(emptyStringJobs)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing task.race empty string typed-array path.
+    exit /b 1
+)
+findstr /C:"defaultStringJobs = xrtTypedArrayCreate(xrtTypeFuture(), XRT_OBJMODE_LOCAL)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should default-initialize string future array as empty.
+    exit /b 1
+)
+findstr /C:"defaultStringAll = xl6_future_await_handle_release(xl6_task_all_from_array((xtarray)(defaultStringJobs), xrtTypeString()" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing task.all default string typed-array path.
+    exit /b 1
+)
+findstr /C:"defaultStringRace = xl6_future_await_cstr_release(xl6_task_race_from_array((xtarray)(defaultStringJobs)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing task.race default string typed-array path.
+    exit /b 1
+)
 findstr /C:"emptyBoolAll = xl6_future_await_handle_release(xl6_task_all_from_array((xtarray)(emptyBoolJobs), xrtTypeBool()" release\tmp\cgen_task_api.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing task.all empty bool typed-array path.
@@ -13438,6 +13678,31 @@ if errorlevel 1 (
 findstr /C:"expect_i64(emptyBoolRaceState, 42LL)" release\tmp\cgen_task_api.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing task.race empty bool assertion.
+    exit /b 1
+)
+findstr /C:"defaultBoolJobs = xrtTypedArrayCreate(xrtTypeFuture(), XRT_OBJMODE_LOCAL)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should default-initialize bool future array as empty.
+    exit /b 1
+)
+findstr /C:"defaultBoolAll = xl6_future_await_handle_release(xl6_task_all_from_array((xtarray)(defaultBoolJobs), xrtTypeBool()" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing task.all default bool typed-array path.
+    exit /b 1
+)
+findstr /C:"defaultBoolRace = xl6_future_await_i32_release(xl6_task_race_from_array((xtarray)(defaultBoolJobs)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing task.race default bool typed-array path.
+    exit /b 1
+)
+findstr /C:"emptyFloatAll = xl6_future_await_handle_release(xl6_task_all_from_array((xtarray)(emptyFloatJobs), xrtTypeFloat()" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing task.all empty float typed-array path.
+    exit /b 1
+)
+findstr /C:"emptyFloatRace = xl6_future_await_f64_release(xl6_task_race_from_array((xtarray)(emptyFloatJobs)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing task.race empty float typed-array path.
     exit /b 1
 )
 findstr /C:"defaultFloatJobs = xrtTypedArrayCreate(xrtTypeFuture(), XRT_OBJMODE_LOCAL)" release\tmp\cgen_task_api.c >nul
@@ -13458,6 +13723,21 @@ if errorlevel 1 (
 findstr /C:"expect_i64(defaultFloatRaceState, 42LL)" release\tmp\cgen_task_api.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing task.race default float assertion.
+    exit /b 1
+)
+findstr /C:"emptyTaskBoxAll = xl6_future_await_handle_release(xl6_task_all_from_array((xtarray)(emptyTaskBoxJobs), xl6_type_desc_XL_Class_TaskBox()" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing task.all empty class typed-array path.
+    exit /b 1
+)
+findstr /C:"emptyTaskBoxRaceFuture = xl6_task_race_from_array((xtarray)(emptyTaskBoxJobs)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing task.race empty class future path.
+    exit /b 1
+)
+findstr /C:"emptyTaskBoxRace = (*(XL_Class_TaskBox*)xl6_future_await_value(emptyTaskBoxRaceFuture" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing task.race empty class await path.
     exit /b 1
 )
 findstr /C:"defaultTaskBoxJobs = xrtTypedArrayCreate(xrtTypeFuture(), XRT_OBJMODE_LOCAL)" release\tmp\cgen_task_api.c >nul
@@ -13483,6 +13763,21 @@ if errorlevel 1 (
 findstr /C:"expect_i64(defaultTaskBoxRaceState, 42LL)" release\tmp\cgen_task_api.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing task.race default class assertion.
+    exit /b 1
+)
+findstr /C:"emptyTaskFuncAll = xl6_future_await_handle_release(xl6_task_all_from_array((xtarray)(emptyTaskFuncJobs), xrtTypeFunction()" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing task.all empty function typed-array path.
+    exit /b 1
+)
+findstr /C:"emptyTaskFuncRaceFuture = xl6_task_race_from_array((xtarray)(emptyTaskFuncJobs)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing task.race empty function future path.
+    exit /b 1
+)
+findstr /C:"emptyTaskFuncRace = (*(XL6_Function*)xl6_future_await_value(emptyTaskFuncRaceFuture" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing task.race empty function await path.
     exit /b 1
 )
 findstr /C:"defaultTaskFuncJobs = xrtTypedArrayCreate(xrtTypeFuture(), XRT_OBJMODE_LOCAL)" release\tmp\cgen_task_api.c >nul
@@ -13735,6 +14030,96 @@ if errorlevel 1 (
     echo cgen_task_api.c should release owned task.race literal input before null future failure.
     exit /b 1
 )
+findstr /C:"static xfuture* xl6_future_add_ref_if_needed(xfuture* pFuture)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing safe future add-ref helper for conditional future arguments.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_api.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'conditionalCancelBorrowed\s*=\s*xl6_task_cancel_value\(\(chooseConditionalFuture \? xl6_future_add_ref_if_needed\(conditionalCancelSource\) : addAsync\(210LL, 1LL\)\), 1\)' -or $text -notmatch 'conditionalCancelOwned\s*=\s*xl6_task_cancel_value\(\(chooseConditionalFuture \? xl6_future_add_ref_if_needed\(conditionalCancelSource\) : addAsync\(220LL, 1LL\)\), 1\)' -or $text -notmatch 'conditionalCancelMissing\s*=\s*xl6_task_cancel_value\(\(chooseConditionalFuture \? addAsync\(230LL, 1LL\) : xl6_future_add_ref_if_needed\(conditionalMissingFuture\)\), 1\)'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_api.c missing conditional future task.cancel ownership normalization.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_api.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'conditionalAllValues\s*=\s*xl6_future_await_handle_release\(xl6_task_all_values\(xrtTypeInt\(\),[\s\S]*?\(chooseConditionalAll \? xl6_future_add_ref_if_needed\(conditionalAllSource\) : addAsync\(250LL, 1LL\)\), 1,[\s\S]*?\(0 \? xl6_future_add_ref_if_needed\(conditionalAllSource\) : addAsync\(260LL, 1LL\)\), 1' -or $text -notmatch 'conditionalRaceValue\s*=\s*xl6_future_await_i64_release\(xl6_task_race_values\([\s\S]*?\(chooseConditionalRace \? xl6_future_add_ref_if_needed\(conditionalRaceSource\) : addAsync\(280LL, 1LL\)\), 1'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_api.c missing conditional future task.all/race ownership normalization.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_api.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'typedConditionalAllJobs\s*=\s*xrtTypedArrayCreate\(xrtTypeFuture\(\), XRT_OBJMODE_LOCAL\)' -or $text -notmatch 'chooseTypedConditionalAll \? xl6_future_add_ref_if_needed\(typedConditionalAllSource\) : addAsync\(320LL, 1LL\)[\s\S]*?xrtTypedArrayAppend\(typedConditionalAllJobs,[\s\S]*?xFutureRelease\(__xl6_typed_future_' -or $text -notmatch '0 \? xl6_future_add_ref_if_needed\(typedConditionalAllSource\) : addAsync\(330LL, 1LL\)[\s\S]*?xrtTypedArrayAppend\(typedConditionalAllJobs,[\s\S]*?xFutureRelease\(__xl6_typed_future_' -or $text -notmatch 'typedConditionalAllValues\s*=\s*xl6_future_await_handle_release\(xl6_task_all_from_array\(\(xtarray\)\(typedConditionalAllJobs\), xrtTypeInt\(\)' -or $text -notmatch 'typedConditionalRaceJobs\s*=\s*xrtTypedArrayCreate\(xrtTypeFuture\(\), XRT_OBJMODE_LOCAL\)' -or $text -notmatch 'chooseTypedConditionalRace \? xl6_future_add_ref_if_needed\(typedConditionalRaceSource\) : addAsync\(350LL, 1LL\)[\s\S]*?xrtTypedArrayAppend\(typedConditionalRaceJobs,[\s\S]*?xFutureRelease\(__xl6_typed_future_' -or $text -notmatch 'typedConditionalRaceValue\s*=\s*xl6_future_await_i64_release\(xl6_task_race_from_array\(\(xtarray\)\(typedConditionalRaceJobs\)'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_api.c missing typed-array conditional future ownership normalization.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_api.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'if \(!xrtTypedArrayAppend\(typedConditionalAllJobs, &(__xl6_typed_future_\d+)\)\) \{[\s\S]*?xFutureRelease\(\1\);[\s\S]*?xl6_runtime_fatal\(3\);[\s\S]*?\} else \{[\s\S]*?xFutureRelease\(\1\);' -or $text -notmatch 'if \(!xrtTypedArrayAppend\(typedConditionalRaceJobs, &(__xl6_typed_future_\d+)\)\) \{[\s\S]*?xFutureRelease\(\1\);[\s\S]*?xl6_runtime_fatal\(3\);[\s\S]*?\} else \{[\s\S]*?xFutureRelease\(\1\);'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_api.c missing typed-array future append failure cleanup.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_api.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'typedConditionalBoolAllJobs\s*=\s*xrtTypedArrayCreate\(xrtTypeFuture\(\), XRT_OBJMODE_LOCAL\)' -or $text -notmatch 'chooseTypedConditionalBoolAll \? xl6_future_add_ref_if_needed\(typedConditionalBoolAllSource\) : flipAsync\(1\)[\s\S]*?xrtTypedArrayAppend\(typedConditionalBoolAllJobs,[\s\S]*?xFutureRelease\(__xl6_typed_future_' -or $text -notmatch '0 \? xl6_future_add_ref_if_needed\(typedConditionalBoolAllSource\) : flipAsync\(0\)[\s\S]*?xrtTypedArrayAppend\(typedConditionalBoolAllJobs,[\s\S]*?xFutureRelease\(__xl6_typed_future_' -or $text -notmatch 'typedConditionalBoolAllValues\s*=\s*xl6_future_await_handle_release\(xl6_task_all_from_array\(\(xtarray\)\(typedConditionalBoolAllJobs\), xrtTypeBool\(\)' -or $text -notmatch 'typedConditionalBoolRaceJobs\s*=\s*xrtTypedArrayCreate\(xrtTypeFuture\(\), XRT_OBJMODE_LOCAL\)' -or $text -notmatch 'chooseTypedConditionalBoolRace \? xl6_future_add_ref_if_needed\(typedConditionalBoolRaceSource\) : flipAsync\(1\)[\s\S]*?xrtTypedArrayAppend\(typedConditionalBoolRaceJobs,[\s\S]*?xFutureRelease\(__xl6_typed_future_' -or $text -notmatch 'typedConditionalBoolRaceValue\s*=\s*xl6_future_await_i32_release\(xl6_task_race_from_array\(\(xtarray\)\(typedConditionalBoolRaceJobs\)'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_api.c missing typed-array conditional bool future ownership normalization.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_api.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'typedConditionalFloatAllJobs\s*=\s*xrtTypedArrayCreate\(xrtTypeFuture\(\), XRT_OBJMODE_LOCAL\)' -or $text -notmatch 'chooseTypedConditionalFloatAll \? xl6_future_add_ref_if_needed\(typedConditionalFloatAllSource\) : addHalfAsync\(420\.5\)[\s\S]*?xrtTypedArrayAppend\(typedConditionalFloatAllJobs,[\s\S]*?xFutureRelease\(__xl6_typed_future_' -or $text -notmatch '0 \? xl6_future_add_ref_if_needed\(typedConditionalFloatAllSource\) : addHalfAsync\(430\.5\)[\s\S]*?xrtTypedArrayAppend\(typedConditionalFloatAllJobs,[\s\S]*?xFutureRelease\(__xl6_typed_future_' -or $text -notmatch 'typedConditionalFloatAllValues\s*=\s*xl6_future_await_handle_release\(xl6_task_all_from_array\(\(xtarray\)\(typedConditionalFloatAllJobs\), xrtTypeFloat\(\)' -or $text -notmatch 'typedConditionalFloatRaceJobs\s*=\s*xrtTypedArrayCreate\(xrtTypeFuture\(\), XRT_OBJMODE_LOCAL\)' -or $text -notmatch 'chooseTypedConditionalFloatRace \? xl6_future_add_ref_if_needed\(typedConditionalFloatRaceSource\) : addHalfAsync\(450\.5\)[\s\S]*?xrtTypedArrayAppend\(typedConditionalFloatRaceJobs,[\s\S]*?xFutureRelease\(__xl6_typed_future_' -or $text -notmatch 'typedConditionalFloatRaceValue\s*=\s*xl6_future_await_f64_release\(xl6_task_race_from_array\(\(xtarray\)\(typedConditionalFloatRaceJobs\)'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_api.c missing typed-array conditional float future ownership normalization.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_api.c',[System.Text.Encoding]::UTF8); foreach($name in @('typedConditionalBoolAllJobs','typedConditionalBoolRaceJobs','typedConditionalFloatAllJobs','typedConditionalFloatRaceJobs')){ $pattern='if \(!xrtTypedArrayAppend\(' + [regex]::Escape($name) + ', &(__xl6_typed_future_\d+)\)\) \{[\s\S]*?xFutureRelease\(\1\);[\s\S]*?xl6_runtime_fatal\(3\);[\s\S]*?\} else \{[\s\S]*?xFutureRelease\(\1\);'; if($text -notmatch $pattern){ exit 1 } }"
+if errorlevel 1 (
+    echo cgen_task_api.c missing typed-array scalar future append failure cleanup.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_api.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'typedConditionalStringAllJobs\s*=\s*xrtTypedArrayCreate\(xrtTypeFuture\(\), XRT_OBJMODE_LOCAL\)' -or $text -notmatch 'chooseTypedConditionalStringAll \? xl6_future_add_ref_if_needed\(typedConditionalStringAllSource\) : greetAsync\([^)]*typed-cond-string-all-alt[^)]*\)[\s\S]*?xrtTypedArrayAppend\(typedConditionalStringAllJobs,[\s\S]*?xFutureRelease\(__xl6_typed_future_' -or $text -notmatch '0 \? xl6_future_add_ref_if_needed\(typedConditionalStringAllSource\) : greetAsync\([^)]*typed-cond-string-all-owned[^)]*\)[\s\S]*?xrtTypedArrayAppend\(typedConditionalStringAllJobs,[\s\S]*?xFutureRelease\(__xl6_typed_future_' -or $text -notmatch 'typedConditionalStringAllValues\s*=\s*xl6_future_await_handle_release\(xl6_task_all_from_array\(\(xtarray\)\(typedConditionalStringAllJobs\), xrtTypeString\(\)' -or $text -notmatch 'typedConditionalStringRaceJobs\s*=\s*xrtTypedArrayCreate\(xrtTypeFuture\(\), XRT_OBJMODE_LOCAL\)' -or $text -notmatch 'chooseTypedConditionalStringRace \? xl6_future_add_ref_if_needed\(typedConditionalStringRaceSource\) : greetAsync\([^)]*typed-cond-string-race-owned[^)]*\)[\s\S]*?xrtTypedArrayAppend\(typedConditionalStringRaceJobs,[\s\S]*?xFutureRelease\(__xl6_typed_future_' -or $text -notmatch 'typedConditionalStringRaceValue\s*=\s*xl6_future_await_cstr_release\(xl6_task_race_from_array\(\(xtarray\)\(typedConditionalStringRaceJobs\)'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_api.c missing typed-array conditional string future ownership normalization.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_api.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'typedConditionalTaskBoxAllJobs\s*=\s*xrtTypedArrayCreate\(xrtTypeFuture\(\), XRT_OBJMODE_LOCAL\)' -or $text -notmatch 'chooseTypedConditionalTaskBoxAll \? xl6_future_add_ref_if_needed\(typedConditionalTaskBoxAllSource\) : makeTaskBox\(720LL\)[\s\S]*?xrtTypedArrayAppend\(typedConditionalTaskBoxAllJobs,[\s\S]*?xFutureRelease\(__xl6_typed_future_' -or $text -notmatch '0 \? xl6_future_add_ref_if_needed\(typedConditionalTaskBoxAllSource\) : makeTaskBox\(730LL\)[\s\S]*?xrtTypedArrayAppend\(typedConditionalTaskBoxAllJobs,[\s\S]*?xFutureRelease\(__xl6_typed_future_' -or $text -notmatch 'typedConditionalTaskBoxAllValues\s*=\s*xl6_future_await_handle_release\(xl6_task_all_from_array\(\(xtarray\)\(typedConditionalTaskBoxAllJobs\), xl6_type_desc_XL_Class_TaskBox\(\)' -or $text -notmatch 'typedConditionalTaskBoxRaceJobs\s*=\s*xrtTypedArrayCreate\(xrtTypeFuture\(\), XRT_OBJMODE_LOCAL\)' -or $text -notmatch 'chooseTypedConditionalTaskBoxRace \? xl6_future_add_ref_if_needed\(typedConditionalTaskBoxRaceSource\) : makeTaskBox\(750LL\)[\s\S]*?xrtTypedArrayAppend\(typedConditionalTaskBoxRaceJobs,[\s\S]*?xFutureRelease\(__xl6_typed_future_' -or $text -notmatch 'typedConditionalTaskBoxRaceFuture\s*=\s*xl6_task_race_from_array\(\(xtarray\)\(typedConditionalTaskBoxRaceJobs\)'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_api.c missing typed-array conditional class future ownership normalization.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_api.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'typedConditionalTaskFuncAllJobs\s*=\s*xrtTypedArrayCreate\(xrtTypeFuture\(\), XRT_OBJMODE_LOCAL\)' -or $text -notmatch 'chooseTypedConditionalTaskFuncAll \? xl6_future_add_ref_if_needed\(typedConditionalTaskFuncAllSource\) : makeTaskAdder\(770LL\)[\s\S]*?xrtTypedArrayAppend\(typedConditionalTaskFuncAllJobs,[\s\S]*?xFutureRelease\(__xl6_typed_future_' -or $text -notmatch '0 \? xl6_future_add_ref_if_needed\(typedConditionalTaskFuncAllSource\) : makeTaskAdder\(780LL\)[\s\S]*?xrtTypedArrayAppend\(typedConditionalTaskFuncAllJobs,[\s\S]*?xFutureRelease\(__xl6_typed_future_' -or $text -notmatch 'typedConditionalTaskFuncAllValues\s*=\s*xl6_future_await_handle_release\(xl6_task_all_from_array\(\(xtarray\)\(typedConditionalTaskFuncAllJobs\), xrtTypeFunction\(\)' -or $text -notmatch 'typedConditionalTaskFuncRaceJobs\s*=\s*xrtTypedArrayCreate\(xrtTypeFuture\(\), XRT_OBJMODE_LOCAL\)' -or $text -notmatch 'chooseTypedConditionalTaskFuncRace \? xl6_future_add_ref_if_needed\(typedConditionalTaskFuncRaceSource\) : makeTaskAdder\(800LL\)[\s\S]*?xrtTypedArrayAppend\(typedConditionalTaskFuncRaceJobs,[\s\S]*?xFutureRelease\(__xl6_typed_future_' -or $text -notmatch 'typedConditionalTaskFuncRaceFuture\s*=\s*xl6_task_race_from_array\(\(xtarray\)\(typedConditionalTaskFuncRaceJobs\)'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_api.c missing typed-array conditional function future ownership normalization.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_api.c',[System.Text.Encoding]::UTF8); foreach($name in @('typedConditionalStringAllJobs','typedConditionalStringRaceJobs','typedConditionalTaskBoxAllJobs','typedConditionalTaskBoxRaceJobs','typedConditionalTaskFuncAllJobs','typedConditionalTaskFuncRaceJobs')){ $pattern='if \(!xrtTypedArrayAppend\(' + [regex]::Escape($name) + ', &(__xl6_typed_future_\d+)\)\) \{[\s\S]*?xFutureRelease\(\1\);[\s\S]*?xl6_runtime_fatal\(3\);[\s\S]*?\} else \{[\s\S]*?xFutureRelease\(\1\);'; if($text -notmatch $pattern){ exit 1 } }"
+if errorlevel 1 (
+    echo cgen_task_api.c missing typed-array resource future append failure cleanup.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_api.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'conditionalNullAll\s*=\s*xl6_future_await_handle_release\(xl6_task_all_values\(xrtTypeInt\(\),[\s\S]*?\(chooseConditionalNull \? addAsync\(290LL, 1LL\) : xl6_future_add_ref_if_needed\(conditionalNullLiteralFuture\)\), 1' -or $text -notmatch 'conditionalNullRace\s*=\s*xl6_future_await_i64_release\(xl6_task_race_values\([\s\S]*?\(chooseConditionalNull \? addAsync\(300LL, 1LL\) : xl6_future_add_ref_if_needed\(conditionalNullLiteralFuture\)\), 1'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_api.c missing conditional null future literal normalization.
+    exit /b 1
+)
+findstr /C:"bool xFutureValueIsOwned(xfuture* pFuture);" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing future value ownership query declaration.
+    exit /b 1
+)
+findstr /C:"valueOwned = xFutureValueIsOwned(pFuture);" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing future await release ownership query.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_api.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'conditionalStringAllValues\s*=\s*xl6_future_await_handle_release\(xl6_task_all_values\(xrtTypeString\(\),[\s\S]*?\(chooseConditionalStringAll \? xl6_future_add_ref_if_needed\(conditionalStringAllSource\) : greetAsync\([\s\S]*?\), 1,[\s\S]*?\(0 \? xl6_future_add_ref_if_needed\(conditionalStringAllSource\) : greetAsync\([\s\S]*?\), 1' -or $text -notmatch 'conditionalStringRaceValue\s*=\s*xl6_future_await_cstr_release\(xl6_task_race_values\([\s\S]*?\(chooseConditionalStringRace \? xl6_future_add_ref_if_needed\(conditionalStringRaceSource\) : greetAsync\([\s\S]*?\), 1'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_api.c missing conditional string task.all/race resource ownership normalization.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_api.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'conditionalTaskBoxAllFuture\s*=\s*xl6_task_all_values\(xl6_type_desc_XL_Class_TaskBox\(\),[\s\S]*?\(chooseConditionalTaskBoxAll \? xl6_future_add_ref_if_needed\(conditionalTaskBoxAllSource\) : makeTaskBox\(620LL\)\), 1,[\s\S]*?\(0 \? xl6_future_add_ref_if_needed\(conditionalTaskBoxAllSource\) : makeTaskBox\(630LL\)\), 1' -or $text -notmatch 'conditionalTaskBoxRaceFuture\s*=\s*xl6_task_race_values\([\s\S]*?\(chooseConditionalTaskBoxRace \? xl6_future_add_ref_if_needed\(conditionalTaskBoxRaceSource\) : makeTaskBox\(650LL\)\), 1'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_api.c missing conditional class task.all/race resource ownership normalization.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_api.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'conditionalTaskFuncAllValues\s*=\s*xl6_future_await_handle_release\(xl6_task_all_values\(xrtTypeFunction\(\),[\s\S]*?\(chooseConditionalTaskFuncAll \? xl6_future_add_ref_if_needed\(conditionalTaskFuncAllSource\) : makeTaskAdder\(670LL\)\), 1,[\s\S]*?\(0 \? xl6_future_add_ref_if_needed\(conditionalTaskFuncAllSource\) : makeTaskAdder\(680LL\)\), 1' -or $text -notmatch 'conditionalTaskFuncRaceValue\s*=\s*xl6_future_await_function_release\(xl6_task_race_values\([\s\S]*?\(chooseConditionalTaskFuncRace \? xl6_future_add_ref_if_needed\(conditionalTaskFuncRaceSource\) : makeTaskAdder\(700LL\)\), 1'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_api.c missing conditional function task.all/race resource ownership normalization.
+    exit /b 1
+)
 findstr /C:"futureArg = va_arg(ap, xfuture*);" release\tmp\cgen_task_api.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing task all/race vararg failure cleanup future read.
@@ -13748,6 +14133,11 @@ if errorlevel 1 (
 findstr /C:"if ( ownedArg && futureArg != 0 ) { xFutureRelease(futureArg); }" release\tmp\cgen_task_api.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing task all/race vararg failure cleanup release.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_api.c',[System.Text.Encoding]::UTF8); $checks=@('static xfuture\* xl6_task_all_values\([\s\S]*?if \( futures == 0 \) \{[\s\S]*?futureArg = va_arg\(ap, xfuture\*\);[\s\S]*?ownedArg = va_arg\(ap, int\);[\s\S]*?if \( ownedArg && futureArg != 0 \) \{ xFutureRelease\(futureArg\); \}[\s\S]*?out of memory while starting task\.all','static xfuture\* xl6_task_all_values\([\s\S]*?if \( owned == 0 \) \{[\s\S]*?futureArg = va_arg\(ap, xfuture\*\);[\s\S]*?ownedArg = va_arg\(ap, int\);[\s\S]*?if \( ownedArg && futureArg != 0 \) \{ xFutureRelease\(futureArg\); \}[\s\S]*?xrtFree\(futures\);[\s\S]*?out of memory while starting task\.all','static xfuture\* xl6_task_race_values\([\s\S]*?if \( futures == 0 \) \{[\s\S]*?futureArg = va_arg\(ap, xfuture\*\);[\s\S]*?ownedArg = va_arg\(ap, int\);[\s\S]*?if \( ownedArg && futureArg != 0 \) \{ xFutureRelease\(futureArg\); \}[\s\S]*?out of memory while starting task\.race','static xfuture\* xl6_task_race_values\([\s\S]*?if \( owned == 0 \) \{[\s\S]*?futureArg = va_arg\(ap, xfuture\*\);[\s\S]*?ownedArg = va_arg\(ap, int\);[\s\S]*?if \( ownedArg && futureArg != 0 \) \{ xFutureRelease\(futureArg\); \}[\s\S]*?xrtFree\(futures\);[\s\S]*?out of memory while starting task\.race'); foreach($p in $checks){ if($text -notmatch $p){ exit 1 } }"
+if errorlevel 1 (
+    echo cgen_task_api.c missing task all/race vararg allocation failure cleanup shape.
     exit /b 1
 )
 findstr /C:"if ( pFuture == 0 )" release\tmp\cgen_task_api.c >nul
@@ -13847,7 +14237,7 @@ if errorlevel 1 exit /b 1
 release\tmp\cgen_task_api.exe
 if errorlevel 1 exit /b 1
 
-for /L %%I in (1,1,1) do (
+for /L %%I in (1,1,3) do (
     release\tmp\cgen_task_api.exe
     if errorlevel 1 (
         echo cgen_task_api.exe repeat run %%I failed.
@@ -13916,9 +14306,209 @@ if errorlevel 1 (
     echo cgen_task_spawn.c should accept invoke_xcall-only function adapters.
     exit /b 1
 )
+findstr /C:"static xfuture* xl6_task_spawn_start(XL6_Function fn, int retainBorrow, int argc, xvalue* argv" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing task.spawn retainBorrow start signature.
+    exit /b 1
+)
+findstr /C:"static xfuture* xl6_task_spawn_values(XL6_Function fn, const xrt_type_desc* resultType, size_t resultSize, const char* file, int line, int column, int retainBorrow, int argc, ...)" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing task.spawn retainBorrow values signature.
+    exit /b 1
+)
+findstr /C:"if ( retainBorrow && fn.retain != 0 && fn.env != 0 )" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing borrowed task.spawn function retain.
+    exit /b 1
+)
+findstr /C:"if ( !retainBorrow && fn.release != 0 && fn.env != 0 ) { fn.release(fn.env); }" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing owned task.spawn function failure release.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); $idx=$text.IndexOf('static xfuture* xl6_task_spawn_values('); if($idx -lt 0){exit 1}; $end=$text.IndexOf('future = xl6_task_spawn_start', $idx); if($end -lt 0){exit 1}; $slice=$text.Substring($idx,$end-$idx); if($slice -match 'fn\.retain\(fn\.env\)'){exit 1}"
+if errorlevel 1 (
+    echo cgen_task_spawn.c should not retain task.spawn functions before ownership classification.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'static xfuture\* xl6_task_spawn_values\([\s\S]*?if \( argv == 0 \) \{[\s\S]*?va_start\(ap, argc\);[\s\S]*?value = va_arg\(ap, xvalue\);[\s\S]*?if \( value != 0 \) \{ xvoUnref\(value\); \}[\s\S]*?va_end\(ap\);[\s\S]*?if \( !retainBorrow && fn\.release != 0 && fn\.env != 0 \) \{ fn\.release\(fn\.env\); \}[\s\S]*?out of memory while preparing task\.spawn arguments'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing task.spawn argv allocation failure cleanup.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'static xfuture\* xl6_task_spawn_start\([\s\S]*?if \( arg == 0 \) \{[\s\S]*?if \( fn\.release != 0 && fn\.env != 0 \) \{ fn\.release\(fn\.env\); \}[\s\S]*?out of memory while starting task\.spawn' -or $text -notmatch 'static xfuture\* xl6_task_spawn_start\([\s\S]*?if \( arg->argv == 0 \) \{[\s\S]*?xl6_task_spawn_arg_release\(arg\);[\s\S]*?out of memory while copying task\.spawn arguments' -or $text -notmatch 'static xfuture\* xl6_task_spawn_start\([\s\S]*?if \( future == 0 \) \{[\s\S]*?xl6_task_spawn_arg_release\(arg\);[\s\S]*?return xl6_async_require_future\(future, file, line, column\);'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing task.spawn start failure cleanup.
+    exit /b 1
+)
+findstr /C:"if ( arg->resultSize == 0 )" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing no-return task.spawn success branch.
+    exit /b 1
+)
+findstr /C:"voidSpawnFuture = xl6_task_spawn_values(voidJob, xrtTypeNull(), 0" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing no-return task.spawn future fixture.
+    exit /b 1
+)
+findstr /C:"xl6_future_await_value(voidSpawnFuture" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing no-return task.spawn void await.
+    exit /b 1
+)
+findstr /C:"cancelTemporaryVoidSpawn = xl6_task_cancel_value(xl6_task_spawn_values(voidJob, xrtTypeNull(), 0" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing temporary no-return task.spawn cancel fixture.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'xl6_task_cancel_value\(\(chooseConditionalVoidCancel \? xl6_future_add_ref_if_needed\(conditionalVoidCancelSource\) : xl6_task_spawn_values\(voidJob, xrtTypeNull\(\), 0,[\s\S]*?\), 1\)' -or $text -notmatch 'conditionalVoidOwnedCancel\s*=\s*xl6_task_cancel_value\(\(chooseConditionalVoidCancel \? xl6_future_add_ref_if_needed\(conditionalVoidCancelSource\) : xl6_task_spawn_values\(voidJob, xrtTypeNull\(\), 0,[\s\S]*?\), 1\)'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing conditional no-return task.cancel ownership normalization.
+    exit /b 1
+)
+findstr /C:"if ( arg->itemType == xrtTypeNull() )" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing void task.all runtime branch.
+    exit /b 1
+)
+findstr /C:"voidAllFuture = xl6_task_all_values(xrtTypeNull()" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing no-return task.all future fixture.
+    exit /b 1
+)
+findstr /C:"voidRaceFuture = xl6_task_race_values" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing no-return task.race future fixture.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'xl6_future_await_void_release\(xl6_task_all_values\(xrtTypeNull\(\),[\s\S]*?\(chooseConditionalVoidAll \? xl6_future_add_ref_if_needed\(conditionalVoidAllSource\) : xl6_task_spawn_values\(voidJob, xrtTypeNull\(\), 0,[\s\S]*?\), 1,[\s\S]*?\(0 \? xl6_future_add_ref_if_needed\(conditionalVoidAllSource\) : xl6_task_spawn_values\(voidJob, xrtTypeNull\(\), 0,[\s\S]*?\), 1' -or $text -notmatch 'xl6_future_await_void_release\(xl6_task_race_values\([\s\S]*?\(chooseConditionalVoidRace \? xl6_future_add_ref_if_needed\(conditionalVoidRaceSource\) : xl6_task_spawn_values\(voidJob, xrtTypeNull\(\), 0,[\s\S]*?\), 1'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing conditional no-return task.all/race ownership normalization.
+    exit /b 1
+)
+findstr /C:"typedVoidAllFuture = xl6_task_all_from_array((xtarray)(typedVoidAllJobs), xrtTypeNull()" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing typed-array no-return task.all fixture.
+    exit /b 1
+)
+findstr /C:"typedVoidRaceFuture = xl6_task_race_from_array((xtarray)(typedVoidRaceJobs)" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing typed-array no-return task.race fixture.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'typedConditionalVoidAllJobs\s*=\s*xrtTypedArrayCreate\(xrtTypeFuture\(\), XRT_OBJMODE_LOCAL\)' -or $text -notmatch 'chooseTypedConditionalVoidAll \? xl6_future_add_ref_if_needed\(typedConditionalVoidAllSource\) : xl6_task_spawn_values\(voidJob, xrtTypeNull\(\), 0,[\s\S]*?\)[\s\S]*?xrtTypedArrayAppend\(typedConditionalVoidAllJobs,[\s\S]*?xFutureRelease\(__xl6_typed_future_' -or $text -notmatch '0 \? xl6_future_add_ref_if_needed\(typedConditionalVoidAllSource\) : xl6_task_spawn_values\(voidJob, xrtTypeNull\(\), 0,[\s\S]*?\)[\s\S]*?xrtTypedArrayAppend\(typedConditionalVoidAllJobs,[\s\S]*?xFutureRelease\(__xl6_typed_future_' -or $text -notmatch 'typedConditionalVoidAllFuture\s*=\s*xl6_task_all_from_array\(\(xtarray\)\(typedConditionalVoidAllJobs\), xrtTypeNull\(\)' -or $text -notmatch 'typedConditionalVoidRaceJobs\s*=\s*xrtTypedArrayCreate\(xrtTypeFuture\(\), XRT_OBJMODE_LOCAL\)' -or $text -notmatch 'chooseTypedConditionalVoidRace \? xl6_future_add_ref_if_needed\(typedConditionalVoidRaceSource\) : xl6_task_spawn_values\(voidJob, xrtTypeNull\(\), 0,[\s\S]*?\)[\s\S]*?xrtTypedArrayAppend\(typedConditionalVoidRaceJobs,[\s\S]*?xFutureRelease\(__xl6_typed_future_' -or $text -notmatch 'typedConditionalVoidRaceFuture\s*=\s*xl6_task_race_from_array\(\(xtarray\)\(typedConditionalVoidRaceJobs\)'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing typed-array conditional no-return future ownership normalization.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); foreach($name in @('typedConditionalVoidAllJobs','typedConditionalVoidRaceJobs')){ $pattern='if \(!xrtTypedArrayAppend\(' + [regex]::Escape($name) + ', &(__xl6_typed_future_\d+)\)\) \{[\s\S]*?xFutureRelease\(\1\);[\s\S]*?xl6_runtime_fatal\(3\);[\s\S]*?\} else \{[\s\S]*?xFutureRelease\(\1\);'; if($text -notmatch $pattern){ exit 1 } }"
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing typed-array conditional no-return append failure cleanup.
+    exit /b 1
+)
+findstr /C:"emptyVoidJobs = xrtTypedArrayCreate(xrtTypeFuture(), XRT_OBJMODE_LOCAL)" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing empty no-return future array fixture.
+    exit /b 1
+)
+findstr /C:"xl6_future_await_void_release(xl6_task_all_from_array((xtarray)(emptyVoidJobs), xrtTypeNull()" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing empty no-return task.all typed-array await path.
+    exit /b 1
+)
+findstr /C:"xl6_future_await_void_release(xl6_task_race_from_array((xtarray)(emptyVoidJobs)" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing empty no-return task.race typed-array await path.
+    exit /b 1
+)
+findstr /C:"defaultVoidJobs = xrtTypedArrayCreate(xrtTypeFuture(), XRT_OBJMODE_LOCAL)" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing default no-return future array fixture.
+    exit /b 1
+)
+findstr /C:"xl6_future_await_void_release(xl6_task_all_from_array((xtarray)(defaultVoidJobs), xrtTypeNull()" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing default no-return task.all typed-array await path.
+    exit /b 1
+)
+findstr /C:"xl6_future_await_void_release(xl6_task_race_from_array((xtarray)(defaultVoidJobs)" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing default no-return task.race typed-array await path.
+    exit /b 1
+)
+findstr /C:"pendingVoidSpawn = xl6_task_spawn_values(slowVoidTask, xrtTypeNull(), 0" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing pending no-return task.spawn fixture.
+    exit /b 1
+)
+findstr /C:"xl6_task_cancel_value(pendingVoidSpawn, 0)" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c should cancel pending no-return task.spawn future as borrowed.
+    exit /b 1
+)
+findstr /C:"pendingVoidAllGroup = xl6_task_all_values(xrtTypeNull()" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing pending no-return task.all fixture.
+    exit /b 1
+)
+findstr /C:"pendingVoidRaceGroup = xl6_task_race_values" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing pending no-return task.race fixture.
+    exit /b 1
+)
+findstr /C:"failedVoidSpawn = xl6_task_spawn_values(throwingVoidJob, xrtTypeNull(), 0" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing failed no-return task.spawn fixture.
+    exit /b 1
+)
+findstr /C:"xl6_task_cancel_value(failedVoidSpawn, 0)" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c should pass failed no-return task.spawn future cancel as borrowed.
+    exit /b 1
+)
+findstr /C:"failedVoidAll = xl6_task_all_values(xrtTypeNull()" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing failed no-return task.all fixture.
+    exit /b 1
+)
+findstr /C:"failedVoidRace = xl6_task_race_values" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing failed no-return task.race fixture.
+    exit /b 1
+)
 findstr /C:"XL6_Function defaultJob = xl6_fnvalue_addDefault_arity1_make();" release\tmp\cgen_task_spawn.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing optional-parameter adapter task.spawn case.
+    exit /b 1
+)
+findstr /C:"xfuture* defaultFuture = xl6_task_spawn_values(defaultJob, xrtTypeInt(), sizeof(long long)" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing named optional adapter task.spawn future.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'defaultFuture\s*=\s*xl6_task_spawn_values\(defaultJob,\s*xrtTypeInt\(\),\s*sizeof\(long long\),\s*\"\",\s*\d+,\s*\d+,\s*1,\s*1,\s*xvoCreateInt\(\(long long\)\(41LL\)\)'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing named optional adapter task.spawn argv bridge.
+    exit /b 1
+)
+findstr /C:"defaultFutureA = (*(long long*)xl6_future_await_value(defaultFuture" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing named optional adapter task.spawn first await.
+    exit /b 1
+)
+findstr /C:"defaultFutureB = (*(long long*)xl6_future_await_value(defaultFuture" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing named optional adapter task.spawn repeated await.
+    exit /b 1
+)
+findstr /C:"!xl6_task_cancel_value(defaultFuture, 0)" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing completed optional adapter task.spawn cancel guard.
+    exit /b 1
+)
+findstr /C:"defaultFutureAfterCancel = (*(long long*)xl6_future_await_value(defaultFuture" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing post-cancel optional adapter task.spawn await.
     exit /b 1
 )
 findstr /C:"XL6_Function missingJob = {0};" release\tmp\cgen_task_spawn.c >nul
@@ -13986,6 +14576,11 @@ if errorlevel 1 (
     echo cgen_task_spawn.c missing named task.spawn future initialization.
     exit /b 1
 )
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'xl6_task_spawn_values\(addJob, xrtTypeInt\(\), sizeof\(long long\), [^,]*, \d+, 27, 1, 2'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_spawn.c should retain borrowed named function values for task.spawn.
+    exit /b 1
+)
 findstr /C:"long long repeatedB = (*(long long*)xl6_future_await_value(repeatedSpawn" release\tmp\cgen_task_spawn.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing repeated await for named task.spawn future.
@@ -13994,6 +14589,211 @@ if errorlevel 1 (
 findstr /C:"postCancelRepeatedSpawn = (*(long long*)xl6_future_await_value(repeatedSpawn" release\tmp\cgen_task_spawn.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c should keep completed task.spawn int future awaitable after cancel.
+    exit /b 1
+)
+findstr /C:"directClosureValue = xl6_future_await_i64_release(xl6_task_spawn_values(makeAdder(40LL)" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing direct closure expression task.spawn await.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'xl6_task_spawn_values\(makeAdder\(40LL\), xrtTypeInt\(\), sizeof\(long long\), [^,]*, \d+, 37, 0, 1'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_spawn.c should consume owned direct closure function values for task.spawn.
+    exit /b 1
+)
+findstr /C:"directClosureFuture = xl6_task_spawn_values(makeAdder(41LL)" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing direct closure expression named future.
+    exit /b 1
+)
+findstr /C:"directClosureA = (*(long long*)xl6_future_await_value(directClosureFuture" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing first repeated await for direct closure future.
+    exit /b 1
+)
+findstr /C:"directClosureB = (*(long long*)xl6_future_await_value(directClosureFuture" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing second repeated await for direct closure future.
+    exit /b 1
+)
+findstr /C:"!xl6_task_cancel_value(directClosureFuture, 0)" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c should cancel completed direct closure future as borrowed.
+    exit /b 1
+)
+findstr /C:"directClosureAfterCancel = (*(long long*)xl6_future_await_value(directClosureFuture" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c should keep completed direct closure future awaitable after cancel.
+    exit /b 1
+)
+findstr /C:"directClosureAllJobs = xrtTypedArrayCreate(xrtTypeFuture(), XRT_OBJMODE_LOCAL)" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing typed future array for direct closure task.all.
+    exit /b 1
+)
+findstr /C:"xl6_task_spawn_values(makeAdder(50LL)" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing first direct closure task.all source.
+    exit /b 1
+)
+findstr /C:"xrtTypedArrayAppend(directClosureAllJobs, &__xl6_typed_future_" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing typed array append for direct closure task.all.
+    exit /b 1
+)
+findstr /C:"xFutureRelease(__xl6_typed_future_" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c should release temporary typed futures after direct closure task.all append.
+    exit /b 1
+)
+findstr /C:"directClosureAllValues = xl6_future_await_handle_release(xl6_task_all_from_array((xtarray)(directClosureAllJobs), xrtTypeInt()" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing typed-array task.all await for direct closure futures.
+    exit /b 1
+)
+findstr /C:"directClosureRaceValue = xl6_future_await_i64_release(xl6_task_race_values" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing literal task.race await for direct closure future.
+    exit /b 1
+)
+findstr /C:"xl6_task_spawn_values(makeAdder(70LL)" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing direct closure task.race source.
+    exit /b 1
+)
+findstr /C:"awaitedClosureValue = xl6_future_await_i64_release(xl6_task_spawn_values(xl6_future_await_function_release(makeAsyncAdder(80LL)" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing awaited closure expression task.spawn await.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'xl6_task_spawn_values\(xl6_future_await_function_release\(makeAsyncAdder\(80LL\), [^,]*, \d+, 44\), xrtTypeInt\(\), sizeof\(long long\), [^,]*, \d+, 38, 0, 1'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_spawn.c should consume owned awaited closure function values for task.spawn.
+    exit /b 1
+)
+findstr /C:"awaitedClosureFuture = xl6_task_spawn_values(xl6_future_await_function_release(makeAsyncAdder(81LL)" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing awaited closure expression named future.
+    exit /b 1
+)
+findstr /C:"awaitedClosureA = (*(long long*)xl6_future_await_value(awaitedClosureFuture" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing first repeated await for awaited closure future.
+    exit /b 1
+)
+findstr /C:"awaitedClosureB = (*(long long*)xl6_future_await_value(awaitedClosureFuture" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing second repeated await for awaited closure future.
+    exit /b 1
+)
+findstr /C:"!xl6_task_cancel_value(awaitedClosureFuture, 0)" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c should cancel completed awaited closure future as borrowed.
+    exit /b 1
+)
+findstr /C:"awaitedClosureAfterCancel = (*(long long*)xl6_future_await_value(awaitedClosureFuture" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c should keep completed awaited closure future awaitable after cancel.
+    exit /b 1
+)
+findstr /C:"awaitedClosureAllJobs = xrtTypedArrayCreate(xrtTypeFuture(), XRT_OBJMODE_LOCAL)" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing typed future array for awaited closure task.all.
+    exit /b 1
+)
+findstr /C:"xl6_task_spawn_values(xl6_future_await_function_release(makeAsyncAdder(90LL)" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing first awaited closure task.all source.
+    exit /b 1
+)
+findstr /C:"xrtTypedArrayAppend(awaitedClosureAllJobs, &__xl6_typed_future_" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing typed array append for awaited closure task.all.
+    exit /b 1
+)
+findstr /C:"awaitedClosureAllValues = xl6_future_await_handle_release(xl6_task_all_from_array((xtarray)(awaitedClosureAllJobs), xrtTypeInt()" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing typed-array task.all await for awaited closure futures.
+    exit /b 1
+)
+findstr /C:"awaitedClosureRaceValue = xl6_future_await_i64_release(xl6_task_race_values" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing literal task.race await for awaited closure future.
+    exit /b 1
+)
+findstr /C:"xl6_task_spawn_values(xl6_future_await_function_release(makeAsyncAdder(110LL)" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing awaited closure task.race source.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'conditionalClosureValue\s*=\s*xl6_future_await_i64_release\(xl6_task_spawn_values\(\(1 \? makeAdder\(150LL\) : makeAdder\(160LL\)\)' -or $text -notmatch 'conditionalClosureFuture\s*=\s*xl6_task_spawn_values\(\(chooseFirstClosure \? makeAdder\(150LL\) : makeAdder\(160LL\)\)' -or $text -notmatch 'conditionalClosureAllJobs\s*=\s*xrtTypedArrayCreate\(xrtTypeFuture\(\), XRT_OBJMODE_LOCAL\)' -or $text -notmatch 'conditionalClosureRaceValue\s*=\s*xl6_future_await_i64_release\(xl6_task_race_values[\s\S]*?xl6_task_spawn_values\(\(1 \? makeAdder\(210LL\) : makeAdder\(220LL\)\)'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing conditional closure task.spawn source.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'xl6_task_spawn_values\(\(1 \? makeAdder\(150LL\) : makeAdder\(160LL\)\), xrtTypeInt\(\), sizeof\(long long\), [^,]*, \d+, 42, 0, 1' -or $text -notmatch 'xl6_task_spawn_values\(\(chooseFirstClosure \? makeAdder\(150LL\) : makeAdder\(160LL\)\), xrtTypeInt\(\), sizeof\(long long\), [^,]*, \d+, 45, 0, 1'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_spawn.c should consume owned conditional closure function values for task.spawn.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'borrowedConditionalClosureValue\s*=\s*xl6_future_await_i64_release\(xl6_task_spawn_values\(\(chooseBorrowedClosure \? borrowedClosureLeft : borrowedClosureRight\)' -or $text -notmatch 'borrowedConditionalClosureFuture\s*=\s*xl6_task_spawn_values\(\(chooseBorrowedClosure \? borrowedClosureLeft : borrowedClosureRight\)'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing borrowed conditional closure task.spawn source.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'xl6_task_spawn_values\(\(chooseBorrowedClosure \? borrowedClosureLeft : borrowedClosureRight\), xrtTypeInt\(\), sizeof\(long long\), [^,]*, \d+, 50, 1, 1' -or $text -notmatch 'xl6_task_spawn_values\(\(chooseBorrowedClosure \? borrowedClosureLeft : borrowedClosureRight\), xrtTypeInt\(\), sizeof\(long long\), [^,]*, \d+, 53, 1, 1'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_spawn.c should retain borrowed conditional closure function values for task.spawn.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'mixedTaskOwnedClosureValue\s*=\s*xl6_future_await_i64_release\(xl6_task_spawn_values\(\(chooseMixedTaskClosure \? xl6_function_copy_value\(mixedTaskClosureSource\) : makeAdder\(270LL\)\)' -or $text -notmatch 'mixedTaskBorrowedClosureValue\s*=\s*xl6_future_await_i64_release\(xl6_task_spawn_values\(\(chooseMixedTaskClosure \? xl6_function_copy_value\(mixedTaskClosureSource\) : makeAdder\(280LL\)\)'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing mixed conditional closure branch copy for task.spawn.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'xl6_task_spawn_values\(\(chooseMixedTaskClosure \? xl6_function_copy_value\(mixedTaskClosureSource\) : makeAdder\(270LL\)\), xrtTypeInt\(\), sizeof\(long long\), [^,]*, \d+, 45, 0, 1' -or $text -notmatch 'xl6_task_spawn_values\(\(chooseMixedTaskClosure \? xl6_function_copy_value\(mixedTaskClosureSource\) : makeAdder\(280LL\)\), xrtTypeInt\(\), sizeof\(long long\), [^,]*, \d+, 48, 0, 1'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_spawn.c should consume normalized mixed conditional function values for task.spawn.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'memberClosureValue\s*=\s*xl6_future_await_i64_release\(xl6_task_spawn_values\(memberClosureBox\.op,' -or $text -notmatch 'memberClosureFuture\s*=\s*xl6_task_spawn_values\(memberClosureBox\.op,'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing class function field task.spawn source.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'xl6_task_spawn_values\(memberClosureBox\.op, xrtTypeInt\(\), sizeof\(long long\), [^,]*, \d+, 37, 1, 1' -or $text -notmatch 'xl6_task_spawn_values\(memberClosureBox\.op, xrtTypeInt\(\), sizeof\(long long\), [^,]*, \d+, 40, 1, 1'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_spawn.c should retain borrowed class function fields for task.spawn.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'borrowedMemberConditionalValue\s*=\s*xl6_future_await_i64_release\(xl6_task_spawn_values\(\(chooseMemberClosure \? memberClosureBox\.op : memberClosureAlt\.op\)' -or $text -notmatch 'xl6_task_spawn_values\(\(chooseMemberClosure \? memberClosureBox\.op : memberClosureAlt\.op\), xrtTypeInt\(\), sizeof\(long long\), [^,]*, \d+, 49, 1, 1'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_spawn.c should retain borrowed conditional class function fields for task.spawn.
+    exit /b 1
+)
+findstr /C:"indexedClosureFuncs = xrtTypedArrayCreate(xrtTypeFunction(), XRT_OBJMODE_LOCAL)" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing typed function array for indexed closure task.spawn.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'indexedClosureValue\s*=\s*xl6_future_await_i64_release\(xl6_task_spawn_values\(xl6_function_from_callable\(\*\(xrt_callable\*\*\).*indexedClosureFuncs' -or $text -notmatch 'indexedClosureFuture\s*=\s*xl6_task_spawn_values\(xl6_function_from_callable\(\*\(xrt_callable\*\*\).*indexedClosureFuncs'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing indexed function item task.spawn source.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'indexedClosureValue\s*=\s*xl6_future_await_i64_release\(xl6_task_spawn_values\(xl6_function_from_callable\([\s\S]*?indexedClosureFuncs[\s\S]*?, xrtTypeInt\(\), sizeof\(long long\), [^,]*, \d+, 38, 0, 1' -or $text -notmatch 'indexedClosureFuture\s*=\s*xl6_task_spawn_values\(xl6_function_from_callable\([\s\S]*?indexedClosureFuncs[\s\S]*?, xrtTypeInt\(\), sizeof\(long long\), [^,]*, \d+, 41, 0, 1'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_spawn.c should consume owned indexed callable conversions for task.spawn.
+    exit /b 1
+)
+findstr /C:"indexedClosureAllJobs = xrtTypedArrayCreate(xrtTypeFuture(), XRT_OBJMODE_LOCAL)" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing typed future array for indexed closure task.all.
+    exit /b 1
+)
+findstr /C:"indexedClosureRaceValue = xl6_future_await_i64_release(xl6_task_race_values" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing literal task.race await for indexed closure future.
     exit /b 1
 )
 findstr /C:"xfuture* repeatedFailedSpawn = xl6_task_spawn_values(throwingJob" release\tmp\cgen_task_spawn.c >nul
@@ -14376,12 +15176,12 @@ if errorlevel 1 (
     echo cgen_task_spawn.c should keep pending string task.spawn future canceled after worker completes.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'flippedValue\s*=\s*xl6_future_await_i32_release\(xl6_task_spawn_values\(flipJob,\s*xrtTypeBool\(\),\s*sizeof\(int\),\s*\"\",\s*\d+,\s*\d+,\s*1,\s*xvoCreateBool\(1\)\)'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'flippedValue\s*=\s*xl6_future_await_i32_release\(xl6_task_spawn_values\(flipJob,\s*xrtTypeBool\(\),\s*sizeof\(int\),\s*\"\",\s*\d+,\s*\d+,\s*1,\s*1,\s*xvoCreateBool\(1\)\)'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_spawn.c missing task.spawn bool temporary future bridge.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'namedFlipFuture\s*=\s*xl6_task_spawn_values\(flipJob,\s*xrtTypeBool\(\),\s*sizeof\(int\),\s*\"\",\s*\d+,\s*\d+,\s*1,\s*xvoCreateBool\(0\)\)'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'namedFlipFuture\s*=\s*xl6_task_spawn_values\(flipJob,\s*xrtTypeBool\(\),\s*sizeof\(int\),\s*\"\",\s*\d+,\s*\d+,\s*1,\s*1,\s*xvoCreateBool\(0\)\)'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_spawn.c missing task.spawn bool named future initialization.
     exit /b 1
@@ -14426,12 +15226,12 @@ if errorlevel 1 (
     echo cgen_task_spawn.c should keep pending bool task.spawn future canceled after worker completes.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'halfValue\s*=\s*xl6_future_await_f64_release\(xl6_task_spawn_values\(halfJob,\s*xrtTypeFloat\(\),\s*sizeof\(double\),\s*\"\",\s*\d+,\s*\d+,\s*1,\s*xvoCreateFloat\(\(double\)\(1\.5\)\)\)'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'halfValue\s*=\s*xl6_future_await_f64_release\(xl6_task_spawn_values\(halfJob,\s*xrtTypeFloat\(\),\s*sizeof\(double\),\s*\"\",\s*\d+,\s*\d+,\s*1,\s*1,\s*xvoCreateFloat\(\(double\)\(1\.5\)\)\)'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_spawn.c missing task.spawn float temporary future bridge.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'namedHalfFuture\s*=\s*xl6_task_spawn_values\(halfJob,\s*xrtTypeFloat\(\),\s*sizeof\(double\),\s*\"\",\s*\d+,\s*\d+,\s*1,\s*xvoCreateFloat\(\(double\)\(2\.5\)\)\)'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'namedHalfFuture\s*=\s*xl6_task_spawn_values\(halfJob,\s*xrtTypeFloat\(\),\s*sizeof\(double\),\s*\"\",\s*\d+,\s*\d+,\s*1,\s*1,\s*xvoCreateFloat\(\(double\)\(2\.5\)\)\)'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_spawn.c missing task.spawn float named future initialization.
     exit /b 1
@@ -14476,12 +15276,12 @@ if errorlevel 1 (
     echo cgen_task_spawn.c should keep pending float task.spawn future canceled after worker completes.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'variadicValue\s*=\s*xl6_future_await_i64_release\(xl6_task_spawn_values\(variadicJob,\s*xrtTypeInt\(\),\s*sizeof\(long long\),\s*\"\",\s*\d+,\s*\d+,\s*4,\s*xvoCreateInt\(\(long long\)\(10LL\)\),\s*xvoCreateInt\(\(long long\)\(1LL\)\),\s*xvoCreateInt\(\(long long\)\(2LL\)\),\s*xvoCreateInt\(\(long long\)\(3LL\)\)'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'variadicValue\s*=\s*xl6_future_await_i64_release\(xl6_task_spawn_values\(variadicJob,\s*xrtTypeInt\(\),\s*sizeof\(long long\),\s*\"\",\s*\d+,\s*\d+,\s*1,\s*4,\s*xvoCreateInt\(\(long long\)\(10LL\)\),\s*xvoCreateInt\(\(long long\)\(1LL\)\),\s*xvoCreateInt\(\(long long\)\(2LL\)\),\s*xvoCreateInt\(\(long long\)\(3LL\)\)'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_spawn.c missing task.spawn variadic non-empty argv bridge.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'variadicEmptyValue\s*=\s*xl6_future_await_i64_release\(xl6_task_spawn_values\(variadicJob,\s*xrtTypeInt\(\),\s*sizeof\(long long\),\s*\"\",\s*\d+,\s*\d+,\s*1,\s*xvoCreateInt\(\(long long\)\(10LL\)\)\)'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'variadicEmptyValue\s*=\s*xl6_future_await_i64_release\(xl6_task_spawn_values\(variadicJob,\s*xrtTypeInt\(\),\s*sizeof\(long long\),\s*\"\",\s*\d+,\s*\d+,\s*1,\s*1,\s*xvoCreateInt\(\(long long\)\(10LL\)\)\)'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_spawn.c missing task.spawn empty array vararg argv bridge.
     exit /b 1
@@ -14491,27 +15291,132 @@ if errorlevel 1 (
     echo cgen_task_spawn.c missing zero-fixed variadic optional adapter task.spawn case.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'variadicDefaultEmptyValue\s*=\s*xl6_future_await_i64_release\(xl6_task_spawn_values\(variadicDefaultJob,\s*xrtTypeInt\(\),\s*sizeof\(long long\),\s*\"\",\s*\d+,\s*\d+,\s*0\)'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'variadicDefaultEmptyValue\s*=\s*xl6_future_await_i64_release\(xl6_task_spawn_values\(variadicDefaultJob,\s*xrtTypeInt\(\),\s*sizeof\(long long\),\s*\"\",\s*\d+,\s*\d+,\s*1,\s*0\)'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_spawn.c missing task.spawn zero-fixed vararg adapter empty argv bridge.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'variadicDefaultExtraValue\s*=\s*xl6_future_await_i64_release\(xl6_task_spawn_values\(variadicDefaultJob,\s*xrtTypeInt\(\),\s*sizeof\(long long\),\s*\"\",\s*\d+,\s*\d+,\s*2,\s*xvoCreateText\(\(void\*\)\(\"a\"\),\s*0,\s*false\),\s*xvoCreateText\(\(void\*\)\(\"b\"\),\s*0,\s*false\)\)'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'variadicDefaultExtraValue\s*=\s*xl6_future_await_i64_release\(xl6_task_spawn_values\(variadicDefaultJob,\s*xrtTypeInt\(\),\s*sizeof\(long long\),\s*\"\",\s*\d+,\s*\d+,\s*1,\s*2,\s*xvoCreateText\(\(void\*\)\(\"a\"\),\s*0,\s*false\),\s*xvoCreateText\(\(void\*\)\(\"b\"\),\s*0,\s*false\)\)'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_spawn.c missing task.spawn zero-fixed vararg adapter extra argv bridge.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'namedVarArgSpawn\s*=\s*xl6_task_spawn_values\(varArgJob,\s*xrtTypeInt\(\),\s*sizeof\(long long\),\s*\"\",\s*\d+,\s*\d+,\s*1,\s*xl6_xrt_retain\(dynamicSpawnArg\)\)'){ exit 1 }"
+findstr /C:"xfuture* variadicFuture = xl6_task_spawn_values(variadicJob, xrtTypeInt(), sizeof(long long)" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing named variadic task.spawn future.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'variadicFuture\s*=\s*xl6_task_spawn_values\(variadicJob,\s*xrtTypeInt\(\),\s*sizeof\(long long\),\s*\"\",\s*\d+,\s*\d+,\s*1,\s*4,\s*xvoCreateInt\(\(long long\)\(10LL\)\),\s*xvoCreateInt\(\(long long\)\(1LL\)\),\s*xvoCreateInt\(\(long long\)\(2LL\)\),\s*xvoCreateInt\(\(long long\)\(3LL\)\)'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing named variadic task.spawn argv bridge.
+    exit /b 1
+)
+findstr /C:"variadicFutureA = (*(long long*)xl6_future_await_value(variadicFuture" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing named variadic task.spawn first await.
+    exit /b 1
+)
+findstr /C:"variadicFutureB = (*(long long*)xl6_future_await_value(variadicFuture" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing named variadic task.spawn repeated await.
+    exit /b 1
+)
+findstr /C:"!xl6_task_cancel_value(variadicFuture, 0)" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing completed variadic task.spawn cancel guard.
+    exit /b 1
+)
+findstr /C:"xfuture* variadicDefaultFuture = xl6_task_spawn_values(variadicDefaultJob, xrtTypeInt(), sizeof(long long)" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing named zero-fixed variadic task.spawn future.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'variadicDefaultFuture\s*=\s*xl6_task_spawn_values\(variadicDefaultJob,\s*xrtTypeInt\(\),\s*sizeof\(long long\),\s*\"\",\s*\d+,\s*\d+,\s*1,\s*2,\s*xvoCreateText\(\(void\*\)\(\"a\"\),\s*0,\s*false\),\s*xvoCreateText\(\(void\*\)\(\"b\"\),\s*0,\s*false\)\)'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing named zero-fixed variadic task.spawn argv bridge.
+    exit /b 1
+)
+findstr /C:"variadicDefaultFutureA = (*(long long*)xl6_future_await_value(variadicDefaultFuture" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing named zero-fixed variadic task.spawn first await.
+    exit /b 1
+)
+findstr /C:"variadicDefaultFutureB = (*(long long*)xl6_future_await_value(variadicDefaultFuture" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing named zero-fixed variadic task.spawn repeated await.
+    exit /b 1
+)
+findstr /C:"!xl6_task_cancel_value(variadicDefaultFuture, 0)" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing completed zero-fixed variadic task.spawn cancel guard.
+    exit /b 1
+)
+findstr /C:"variadicAllJobs = xrtTypedArrayCreate(xrtTypeFuture(), XRT_OBJMODE_LOCAL)" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing typed array for variadic task.spawn task.all.
+    exit /b 1
+)
+findstr /C:"xfuture* variadicAllFuture = xl6_task_all_from_array((xtarray)(variadicAllJobs), xrtTypeInt()" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing task.all over variadic task.spawn typed array.
+    exit /b 1
+)
+findstr /C:"variadicAllA = xl6_xrt_typed_array_copy_mode(xrtTypeInt(), (*(xtarray*)xl6_future_await_value(variadicAllFuture" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing copied await for variadic task.all future.
+    exit /b 1
+)
+findstr /C:"!xl6_task_cancel_value(variadicAllFuture, 0)" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing completed variadic task.all cancel guard.
+    exit /b 1
+)
+findstr /C:"variadicRaceJobs = xrtTypedArrayCreate(xrtTypeFuture(), XRT_OBJMODE_LOCAL)" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing typed array for variadic task.spawn task.race.
+    exit /b 1
+)
+findstr /C:"xfuture* variadicRaceFuture = xl6_task_race_from_array((xtarray)(variadicRaceJobs)" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing task.race over variadic task.spawn typed array.
+    exit /b 1
+)
+findstr /C:"variadicRaceA = (*(long long*)xl6_future_await_value(variadicRaceFuture" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing await for variadic task.race future.
+    exit /b 1
+)
+findstr /C:"!xl6_task_cancel_value(variadicRaceFuture, 0)" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing completed variadic task.race cancel guard.
+    exit /b 1
+)
+findstr /C:"cancelTemporaryVariadicSpawn = xl6_task_cancel_value(xl6_task_spawn_values(variadicJob" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing temporary variadic task.spawn cancel ownership.
+    exit /b 1
+)
+findstr /C:"cancelTemporaryVariadicAll = xl6_task_cancel_value(xl6_task_all_values(xrtTypeInt()" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing temporary task.all over variadic task.spawn ownership.
+    exit /b 1
+)
+findstr /C:"cancelTemporaryVariadicRace = xl6_task_cancel_value(xl6_task_race_values" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing temporary task.race over variadic task.spawn ownership.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'namedVarArgSpawn\s*=\s*xl6_task_spawn_values\(varArgJob,\s*xrtTypeInt\(\),\s*sizeof\(long long\),\s*\"\",\s*\d+,\s*\d+,\s*1,\s*1,\s*xl6_xrt_retain\(dynamicSpawnArg\)\)'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_spawn.c missing task.spawn var argument retain bridge.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'literalVarArgValue\s*=\s*xl6_future_await_i64_release\(xl6_task_spawn_values\(varArgJob,\s*xrtTypeInt\(\),\s*sizeof\(long long\),\s*\"\",\s*\d+,\s*\d+,\s*1,\s*xvoCreateInt\(\(long long\)\(41LL\)\)'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'literalVarArgValue\s*=\s*xl6_future_await_i64_release\(xl6_task_spawn_values\(varArgJob,\s*xrtTypeInt\(\),\s*sizeof\(long long\),\s*\"\",\s*\d+,\s*\d+,\s*1,\s*1,\s*xvoCreateInt\(\(long long\)\(41LL\)\)'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_spawn.c missing task.spawn scalar literal to var argument bridge.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'varStringValue\s*=\s*xl6_future_await_i64_release\(xl6_task_spawn_values\(varStringJob,\s*xrtTypeInt\(\),\s*sizeof\(long long\),\s*\"\",\s*\d+,\s*\d+,\s*1,\s*xl6_xrt_retain\(dynamicStringSpawnArg\)\)'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'varStringValue\s*=\s*xl6_future_await_i64_release\(xl6_task_spawn_values\(varStringJob,\s*xrtTypeInt\(\),\s*sizeof\(long long\),\s*\"\",\s*\d+,\s*\d+,\s*1,\s*1,\s*xl6_xrt_retain\(dynamicStringSpawnArg\)\)'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_spawn.c missing task.spawn string var argument retain bridge.
     exit /b 1
@@ -14644,6 +15549,16 @@ if errorlevel 1 (
 findstr /C:"xvoCreateInt((long long)(8LL))), 1), 1);" release\tmp\cgen_task_spawn.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c should release temporary task.race future after task.cancel.
+    exit /b 1
+)
+findstr /C:"cancelTemporaryDefaultSpawn = xl6_task_cancel_value(xl6_task_spawn_values(defaultJob, xrtTypeInt(), sizeof(long long)" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing temporary optional adapter task.spawn cancel ownership.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'cancelTemporaryDefaultSpawn\s*=\s*xl6_task_cancel_value\(xl6_task_spawn_values\(defaultJob,\s*xrtTypeInt\(\),\s*sizeof\(long long\),\s*\"\",\s*\d+,\s*\d+,\s*1,\s*1,\s*xvoCreateInt\(\(long long\)\(42LL\)\)\),\s*1\)'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_spawn.c should release temporary optional adapter task.spawn future after task.cancel.
     exit /b 1
 )
 findstr /C:"spawnAllValues = xl6_future_await_handle_release(xl6_task_all_values(xrtTypeInt()" release\tmp\cgen_task_spawn.c >nul
@@ -15356,9 +16271,39 @@ if errorlevel 1 (
     echo cgen_task_spawn.c missing lowered assignment task.spawn argument.
     exit /b 1
 )
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); $idx=$text.IndexOf('multiDeclDynamicSpawnLeft = __xl6_multi_'); if($idx -lt 0){exit 1}; $start=[Math]::Max(0,$idx-2500); $slice=$text.Substring($start,$idx-$start); if($slice -notmatch '__xl6_task_arg_' -or $slice -notmatch 'pairSpawnResult'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing lowered multi-declaration task.spawn argument.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); $idx=$text.IndexOf('multiAssignDynamicSpawnLeft = __xl6_multi_'); if($idx -lt 0){exit 1}; $start=[Math]::Max(0,$idx-2500); $slice=$text.Substring($start,$idx-$start); if($slice -notmatch '__xl6_task_arg_' -or $slice -notmatch 'pairSpawnResult'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing lowered multi-assignment task.spawn argument.
+    exit /b 1
+)
 powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'xl6_task_cancel_value\(xl6_task_spawn_values\(varArgJob,[\s\S]*?__xl6_task_arg_'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_spawn.c missing lowered expression-statement task.spawn argument.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch '__xl6_task_arg_[\s\S]*?makeSpawnValue\(221LL\)[\s\S]*?xl6_task_spawn_values\(varArgJob,[\s\S]*?__xl6_task_arg_[\s\S]*?task\.spawn dynamic var argument should lower inside assert conditions'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing lowered assert-condition task.spawn argument.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch '__xl6_task_arg_[\s\S]*?makeSpawnValue\(401LL\)[\s\S]*?xl6_error_raise\(\x22AssertError\x22,[\s\S]*?xl6_task_spawn_values\(varMessageJob,[\s\S]*?__xl6_task_arg_'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing lowered assert-message task.spawn argument.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch '__xl6_task_arg_[\s\S]*?makeSpawnValue\(301LL\)[\s\S]*?xl6_error_raise\(\x22Error\x22,[\s\S]*?xl6_task_spawn_values\(varMessageJob,[\s\S]*?__xl6_task_arg_'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing lowered throw-expression task.spawn argument.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'xl_gen_worker_dynamicSpawnStream[\s\S]*?__xl6_task_arg_[\s\S]*?xl6_task_spawn_values\(job,[\s\S]*?__xl6_task_arg_[\s\S]*?xl6_generator_yield_copy'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing lowered yield-expression task.spawn argument.
     exit /b 1
 )
 powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'typedDynamicSpawnAllJobs[\s\S]*?__xl6_task_arg_[\s\S]*?xrtTypedArrayAppend\(typedDynamicSpawnAllJobs'){ exit 1 }"
@@ -15379,6 +16324,11 @@ if errorlevel 1 (
 powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); $idx=$text.IndexOf('xl_async_worker_makeTypedDynamicSpawnAwaitValues'); if($idx -lt 0){exit 1}; $slice=$text.Substring($idx,[Math]::Min(5000,$text.Length-$idx)); if($slice -notmatch '__xl6_task_arg_' -or $slice -notmatch 'xrtTypedArrayAppendValue\(__xl6_async_return_'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_spawn.c missing lowered async typed-array return awaited task.spawn argument.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'mixedTailBorrowedFuture\s*=\s*xl6_task_spawn_values\(\(chooseMixedTailClosure \? xl6_function_copy_value\(mixedTailClosureSource\) : makeAdder\(520LL\)\)[\s\S]*?, 0, 1' -or $text -notmatch 'mixedTailOwnedFuture\s*=\s*xl6_task_spawn_values\(\(chooseMixedTailClosure \? xl6_function_copy_value\(mixedTailClosureSource\) : makeAdder\(530LL\)\)[\s\S]*?, 0, 1' -or $text -notmatch 'mixedTailAllJobs\s*=\s*xrtTypedArrayCreate\(xrtTypeFuture\(\), XRT_OBJMODE_LOCAL\)' -or $text -notmatch 'xl6_task_spawn_values\(\(chooseMixedTailClosure \? xl6_function_copy_value\(mixedTailClosureSource\) : makeAdder\(540LL\)\)[\s\S]*?, 0, 1' -or $text -notmatch 'xl6_task_spawn_values\(\(0 \? xl6_function_copy_value\(mixedTailClosureSource\) : makeAdder\(550LL\)\)[\s\S]*?, 0, 1'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing mixed conditional future/all callable normalization.
     exit /b 1
 )
 findstr /C:"XL6_Function __xl6_task_fn_" release\tmp\cgen_task_spawn.c >nul
@@ -15419,6 +16369,26 @@ for /L %%I in (1,1,3) do (
         echo cgen_task_spawn.exe repeat run %%I failed.
         exit /b 1
     )
+)
+
+release\xl.exe check test\cases\cgen_async_class_conditional_await.xl
+if errorlevel 1 exit /b 1
+
+release\xl.exe run test\cases\cgen_async_class_conditional_await.xl
+if errorlevel 1 exit /b 1
+
+release\xl.exe cgen test\cases\cgen_async_class_conditional_await.xl --emit release\tmp\cgen_async_class_conditional_await.c
+if errorlevel 1 exit /b 1
+
+findstr /C:"xl6_future_await_class_conditionalAwaitBoxAsync_release" release\tmp\cgen_async_class_conditional_await.c >nul
+if errorlevel 1 (
+    echo cgen_async_class_conditional_await.c missing class await release helper.
+    exit /b 1
+)
+findstr /C:"xl6_future_add_ref_if_needed(missingConditionalAwaitBox)" release\tmp\cgen_async_class_conditional_await.c >nul
+if errorlevel 1 (
+    echo cgen_async_class_conditional_await.c missing borrowed/null future add-ref guard.
+    exit /b 1
 )
 
 release\xl.exe check test\cases\cgen_async_exception_propagation.xl
@@ -15762,6 +16732,12 @@ if errorlevel 1 (
     exit /b 1
 )
 
+findstr /C:"finallyVoidState = 84LL" release\tmp\cgen_async_exception_propagation.c >nul
+if errorlevel 1 (
+    echo cgen_async_exception_propagation.c missing async void finally repeated error state.
+    exit /b 1
+)
+
 release\xl.exe check test\cases\sem_await_non_future.xl >nul 2> release\tmp\sem_await_non_future.err.txt
 if not errorlevel 1 (
     echo sem_await_non_future.xl should fail.
@@ -15771,6 +16747,17 @@ if not errorlevel 1 (
 release\xl.exe check test\cases\sem_await_sync_func.xl >nul 2> release\tmp\sem_await_sync_func.err.txt
 if not errorlevel 1 (
     echo sem_await_sync_func.xl should fail.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_await_sync_generator.xl >nul 2> release\tmp\sem_await_sync_generator.err.txt
+if not errorlevel 1 (
+    echo sem_await_sync_generator.xl should fail.
+    exit /b 1
+)
+findstr /C:"await can only be used" release\tmp\sem_await_sync_generator.err.txt >nul
+if errorlevel 1 (
+    echo sem_await_sync_generator.xl missing await sync generator diagnostic.
     exit /b 1
 )
 
@@ -15787,6 +16774,22 @@ if errorlevel 1 (
 findstr /C:"target future" release\tmp\sem_async_return_future.err.txt >nul
 if not errorlevel 1 (
     echo sem_async_return_future.xl should not report return mismatch cascade.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_async_return_task.xl >nul 2> release\tmp\sem_async_return_task.err.txt
+if not errorlevel 1 (
+    echo sem_async_return_task.xl should fail.
+    exit /b 1
+)
+findstr /C:"future/task" release\tmp\sem_async_return_task.err.txt >nul
+if errorlevel 1 (
+    echo sem_async_return_task.xl should report future/task return diagnostic.
+    exit /b 1
+)
+findstr /C:"target task" release\tmp\sem_async_return_task.err.txt >nul
+if not errorlevel 1 (
+    echo sem_async_return_task.xl should not report return mismatch cascade.
     exit /b 1
 )
 
@@ -15823,6 +16826,50 @@ if errorlevel 1 (
     exit /b 1
 )
 
+release\xl.exe check test\cases\sem_task_cancel_arg_count_none.xl >nul 2> release\tmp\sem_task_cancel_arg_count_none.err.txt
+if not errorlevel 1 (
+    echo sem_task_cancel_arg_count_none.xl should fail.
+    exit /b 1
+)
+findstr /C:"task API" release\tmp\sem_task_cancel_arg_count_none.err.txt >nul
+if errorlevel 1 (
+    echo sem_task_cancel_arg_count_none.xl missing task.cancel argument count diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_task_cancel_arg_count_many.xl >nul 2> release\tmp\sem_task_cancel_arg_count_many.err.txt
+if not errorlevel 1 (
+    echo sem_task_cancel_arg_count_many.xl should fail.
+    exit /b 1
+)
+findstr /C:"task API" release\tmp\sem_task_cancel_arg_count_many.err.txt >nul
+if errorlevel 1 (
+    echo sem_task_cancel_arg_count_many.xl missing task.cancel too many arguments diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_task_all_arg_count_none.xl >nul 2> release\tmp\sem_task_all_arg_count_none.err.txt
+if not errorlevel 1 (
+    echo sem_task_all_arg_count_none.xl should fail.
+    exit /b 1
+)
+findstr /C:"task API" release\tmp\sem_task_all_arg_count_none.err.txt >nul
+if errorlevel 1 (
+    echo sem_task_all_arg_count_none.xl missing task.all argument count diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_task_all_arg_count_many.xl >nul 2> release\tmp\sem_task_all_arg_count_many.err.txt
+if not errorlevel 1 (
+    echo sem_task_all_arg_count_many.xl should fail.
+    exit /b 1
+)
+findstr /C:"task API" release\tmp\sem_task_all_arg_count_many.err.txt >nul
+if errorlevel 1 (
+    echo sem_task_all_arg_count_many.xl missing task.all too many arguments diagnostic.
+    exit /b 1
+)
+
 release\xl.exe check test\cases\sem_task_all_empty.xl >nul 2> release\tmp\sem_task_all_empty.err.txt
 if not errorlevel 1 (
     echo sem_task_all_empty.xl should fail.
@@ -15834,6 +16881,28 @@ if errorlevel 1 (
     exit /b 1
 )
 
+release\xl.exe check test\cases\sem_task_all_non_future.xl >nul 2> release\tmp\sem_task_all_non_future.err.txt
+if not errorlevel 1 (
+    echo sem_task_all_non_future.xl should fail.
+    exit /b 1
+)
+findstr /C:"task.all/task.race" release\tmp\sem_task_all_non_future.err.txt >nul
+if errorlevel 1 (
+    echo sem_task_all_non_future.xl missing task.all non-future diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_task_all_array_non_future.xl >nul 2> release\tmp\sem_task_all_array_non_future.err.txt
+if not errorlevel 1 (
+    echo sem_task_all_array_non_future.xl should fail.
+    exit /b 1
+)
+findstr /C:"task.all/task.race" release\tmp\sem_task_all_array_non_future.err.txt >nul
+if errorlevel 1 (
+    echo sem_task_all_array_non_future.xl missing task.all array non-future diagnostic.
+    exit /b 1
+)
+
 release\xl.exe check test\cases\sem_task_all_mixed.xl >nul 2> release\tmp\sem_task_all_mixed.err.txt
 if not errorlevel 1 (
     echo sem_task_all_mixed.xl should fail.
@@ -15842,6 +16911,39 @@ if not errorlevel 1 (
 findstr /C:"task.all/task.race" release\tmp\sem_task_all_mixed.err.txt >nul
 if errorlevel 1 (
     echo sem_task_all_mixed.xl missing task.all diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_task_race_mixed.xl >nul 2> release\tmp\sem_task_race_mixed.err.txt
+if not errorlevel 1 (
+    echo sem_task_race_mixed.xl should fail.
+    exit /b 1
+)
+findstr /C:"task.all/task.race" release\tmp\sem_task_race_mixed.err.txt >nul
+if errorlevel 1 (
+    echo sem_task_race_mixed.xl missing task.race diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_task_race_non_future.xl >nul 2> release\tmp\sem_task_race_non_future.err.txt
+if not errorlevel 1 (
+    echo sem_task_race_non_future.xl should fail.
+    exit /b 1
+)
+findstr /C:"task.all/task.race" release\tmp\sem_task_race_non_future.err.txt >nul
+if errorlevel 1 (
+    echo sem_task_race_non_future.xl missing task.race non-future diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_task_race_array_non_future.xl >nul 2> release\tmp\sem_task_race_array_non_future.err.txt
+if not errorlevel 1 (
+    echo sem_task_race_array_non_future.xl should fail.
+    exit /b 1
+)
+findstr /C:"task.all/task.race" release\tmp\sem_task_race_array_non_future.err.txt >nul
+if errorlevel 1 (
+    echo sem_task_race_array_non_future.xl missing task.race array non-future diagnostic.
     exit /b 1
 )
 
@@ -15977,6 +17079,28 @@ if errorlevel 1 (
     exit /b 1
 )
 
+release\xl.exe check test\cases\sem_task_race_arg_count_none.xl >nul 2> release\tmp\sem_task_race_arg_count_none.err.txt
+if not errorlevel 1 (
+    echo sem_task_race_arg_count_none.xl should fail.
+    exit /b 1
+)
+findstr /C:"task API" release\tmp\sem_task_race_arg_count_none.err.txt >nul
+if errorlevel 1 (
+    echo sem_task_race_arg_count_none.xl missing task.race argument count diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_task_race_arg_count_many.xl >nul 2> release\tmp\sem_task_race_arg_count_many.err.txt
+if not errorlevel 1 (
+    echo sem_task_race_arg_count_many.xl should fail.
+    exit /b 1
+)
+findstr /C:"task API" release\tmp\sem_task_race_arg_count_many.err.txt >nul
+if errorlevel 1 (
+    echo sem_task_race_arg_count_many.xl missing task.race too many arguments diagnostic.
+    exit /b 1
+)
+
 release\xl.exe check test\cases\sem_task_race_temp_class_await.xl >nul 2> release\tmp\sem_task_race_temp_class_await.err.txt
 if not errorlevel 1 (
     echo sem_task_race_temp_class_await.xl should fail.
@@ -16010,6 +17134,17 @@ if errorlevel 1 (
     exit /b 1
 )
 
+release\xl.exe check test\cases\sem_task_spawn_first_arg_non_func.xl >nul 2> release\tmp\sem_task_spawn_first_arg_non_func.err.txt
+if not errorlevel 1 (
+    echo sem_task_spawn_first_arg_non_func.xl should fail.
+    exit /b 1
+)
+findstr /C:"task.spawn first argument" release\tmp\sem_task_spawn_first_arg_non_func.err.txt >nul
+if errorlevel 1 (
+    echo sem_task_spawn_first_arg_non_func.xl missing task.spawn non-func first argument diagnostic.
+    exit /b 1
+)
+
 release\xl.exe check test\cases\sem_task_spawn_named_argument.xl >nul 2> release\tmp\sem_task_spawn_named_argument.err.txt
 if not errorlevel 1 (
     echo sem_task_spawn_named_argument.xl should fail.
@@ -16018,6 +17153,17 @@ if not errorlevel 1 (
 findstr /C:"task.spawn does not accept named arguments" release\tmp\sem_task_spawn_named_argument.err.txt >nul
 if errorlevel 1 (
     echo sem_task_spawn_named_argument.xl missing task.spawn named argument diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_task_spawn_arg_count_none.xl >nul 2> release\tmp\sem_task_spawn_arg_count_none.err.txt
+if not errorlevel 1 (
+    echo sem_task_spawn_arg_count_none.xl should fail.
+    exit /b 1
+)
+findstr /C:"task.spawn requires at least a func argument" release\tmp\sem_task_spawn_arg_count_none.err.txt >nul
+if errorlevel 1 (
+    echo sem_task_spawn_arg_count_none.xl missing task.spawn empty argument diagnostic.
     exit /b 1
 )
 
@@ -16032,14 +17178,47 @@ if errorlevel 1 (
     exit /b 1
 )
 
+release\xl.exe check test\cases\sem_task_spawn_arg_count_many.xl >nul 2> release\tmp\sem_task_spawn_arg_count_many.err.txt
+if not errorlevel 1 (
+    echo sem_task_spawn_arg_count_many.xl should fail.
+    exit /b 1
+)
+findstr /C:"task.spawn argument count" release\tmp\sem_task_spawn_arg_count_many.err.txt >nul
+if errorlevel 1 (
+    echo sem_task_spawn_arg_count_many.xl missing task.spawn too many arguments diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_task_spawn_arg_type_mismatch.xl >nul 2> release\tmp\sem_task_spawn_arg_type_mismatch.err.txt
+if not errorlevel 1 (
+    echo sem_task_spawn_arg_type_mismatch.xl should fail.
+    exit /b 1
+)
+findstr /C:"task.spawn argument type does not match func signature" release\tmp\sem_task_spawn_arg_type_mismatch.err.txt >nul
+if errorlevel 1 (
+    echo sem_task_spawn_arg_type_mismatch.xl missing task.spawn argument type diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_task_spawn_arg_multi_return.xl >nul 2> release\tmp\sem_task_spawn_arg_multi_return.err.txt
+if not errorlevel 1 (
+    echo sem_task_spawn_arg_multi_return.xl should fail.
+    exit /b 1
+)
+findstr /C:"multi-return call cannot be passed as one task.spawn argument" release\tmp\sem_task_spawn_arg_multi_return.err.txt >nul
+if errorlevel 1 (
+    echo sem_task_spawn_arg_multi_return.xl missing task.spawn multi-return argument diagnostic.
+    exit /b 1
+)
+
 release\xl.exe check test\cases\sem_task_spawn_multi_return.xl >nul 2> release\tmp\sem_task_spawn_multi_return.err.txt
 if not errorlevel 1 (
     echo sem_task_spawn_multi_return.xl should fail.
     exit /b 1
 )
-findstr /C:"task.spawn currently supports only single-return" release\tmp\sem_task_spawn_multi_return.err.txt >nul
+findstr /C:"task.spawn currently supports only no-return or single-return" release\tmp\sem_task_spawn_multi_return.err.txt >nul
 if errorlevel 1 (
-    echo sem_task_spawn_multi_return.xl missing task.spawn single-return diagnostic.
+    echo sem_task_spawn_multi_return.xl missing task.spawn no-return/single-return diagnostic.
     exit /b 1
 )
 
@@ -16073,6 +17252,39 @@ if not errorlevel 1 (
 findstr /C:"task.spawn return type must be supported" release\tmp\sem_task_spawn_return_typed_array.err.txt >nul
 if errorlevel 1 (
     echo sem_task_spawn_return_typed_array.xl missing task.spawn typed array return diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_task_spawn_return_typed_list.xl >nul 2> release\tmp\sem_task_spawn_return_typed_list.err.txt
+if not errorlevel 1 (
+    echo sem_task_spawn_return_typed_list.xl should fail.
+    exit /b 1
+)
+findstr /C:"task.spawn return type must be supported" release\tmp\sem_task_spawn_return_typed_list.err.txt >nul
+if errorlevel 1 (
+    echo sem_task_spawn_return_typed_list.xl missing task.spawn typed list return diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_task_spawn_return_typed_set.xl >nul 2> release\tmp\sem_task_spawn_return_typed_set.err.txt
+if not errorlevel 1 (
+    echo sem_task_spawn_return_typed_set.xl should fail.
+    exit /b 1
+)
+findstr /C:"task.spawn return type must be supported" release\tmp\sem_task_spawn_return_typed_set.err.txt >nul
+if errorlevel 1 (
+    echo sem_task_spawn_return_typed_set.xl missing task.spawn typed set return diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_task_spawn_return_typed_dict.xl >nul 2> release\tmp\sem_task_spawn_return_typed_dict.err.txt
+if not errorlevel 1 (
+    echo sem_task_spawn_return_typed_dict.xl should fail.
+    exit /b 1
+)
+findstr /C:"task.spawn return type must be supported" release\tmp\sem_task_spawn_return_typed_dict.err.txt >nul
+if errorlevel 1 (
+    echo sem_task_spawn_return_typed_dict.xl missing task.spawn typed dict return diagnostic.
     exit /b 1
 )
 
@@ -16150,6 +17362,39 @@ if not errorlevel 1 (
 findstr /C:"task.spawn parameter type must be supported" release\tmp\sem_task_spawn_arg_typed_array.err.txt >nul
 if errorlevel 1 (
     echo sem_task_spawn_arg_typed_array.xl missing task.spawn typed array argument diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_task_spawn_arg_typed_list.xl >nul 2> release\tmp\sem_task_spawn_arg_typed_list.err.txt
+if not errorlevel 1 (
+    echo sem_task_spawn_arg_typed_list.xl should fail.
+    exit /b 1
+)
+findstr /C:"task.spawn parameter type must be supported" release\tmp\sem_task_spawn_arg_typed_list.err.txt >nul
+if errorlevel 1 (
+    echo sem_task_spawn_arg_typed_list.xl missing task.spawn typed list argument diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_task_spawn_arg_typed_set.xl >nul 2> release\tmp\sem_task_spawn_arg_typed_set.err.txt
+if not errorlevel 1 (
+    echo sem_task_spawn_arg_typed_set.xl should fail.
+    exit /b 1
+)
+findstr /C:"task.spawn parameter type must be supported" release\tmp\sem_task_spawn_arg_typed_set.err.txt >nul
+if errorlevel 1 (
+    echo sem_task_spawn_arg_typed_set.xl missing task.spawn typed set argument diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_task_spawn_arg_typed_dict.xl >nul 2> release\tmp\sem_task_spawn_arg_typed_dict.err.txt
+if not errorlevel 1 (
+    echo sem_task_spawn_arg_typed_dict.xl should fail.
+    exit /b 1
+)
+findstr /C:"task.spawn parameter type must be supported" release\tmp\sem_task_spawn_arg_typed_dict.err.txt >nul
+if errorlevel 1 (
+    echo sem_task_spawn_arg_typed_dict.xl missing task.spawn typed dict argument diagnostic.
     exit /b 1
 )
 
@@ -16275,6 +17520,111 @@ if errorlevel 1 (
     echo cgen_async_generator.c missing for-await generator iteration.
     exit /b 1
 )
+findstr /C:"XL6_Generator* savedStream = stream(30LL);" release\tmp\cgen_async_generator.c >nul
+if errorlevel 1 (
+    echo cgen_async_generator.c missing saved async generator value.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_async_generator.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'XL6_Generator\* __xl6_gen_iter_([0-9]+) = savedStream;\s*savedStream = 0;[\s\S]*?while \(xl6_generator_next\(__xl6_gen_iter_\1,[\s\S]*?xl6_generator_value_into\(__xl6_gen_iter_\1, &value,[\s\S]*?savedTotal = \(savedTotal \+ value\);[\s\S]*?xl6_generator_destroy\(__xl6_gen_iter_\1\)'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_async_generator.c missing saved async generator move-to-iterator lowering.
+    exit /b 1
+)
+findstr /C:"XL6_Generator* savedBroken = broken();" release\tmp\cgen_async_generator.c >nul
+if errorlevel 1 (
+    echo cgen_async_generator.c missing saved async generator error source.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_async_generator.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'XL6_Generator\* __xl6_gen_iter_([0-9]+) = savedBroken;\s*savedBroken = 0;[\s\S]*?while \(xl6_generator_next\(__xl6_gen_iter_\1,[\s\S]*?goto __xl6_try_catch_([0-9]+);[\s\S]*?__xl6_try_catch_\2:[\s\S]*?xrtStrComp\(xl6_error_message\(e\), ""async generator boom""'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_async_generator.c missing saved async generator error propagation lowering.
+    exit /b 1
+)
+findstr /C:"XL6_Generator* savedBrokenEarly = brokenEarly();" release\tmp\cgen_async_generator.c >nul
+if errorlevel 1 (
+    echo cgen_async_generator.c missing saved async generator early-error source.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_async_generator.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'XL6_Generator\* __xl6_gen_iter_([0-9]+) = savedBrokenEarly;\s*savedBrokenEarly = 0;[\s\S]*?while \(xl6_generator_next\(__xl6_gen_iter_\1,[\s\S]*?goto __xl6_try_catch_([0-9]+);[\s\S]*?__xl6_try_catch_\2:[\s\S]*?xrtStrComp\(xl6_error_message\(e\), ""async generator boom before yield""'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_async_generator.c missing saved async generator early-error propagation lowering.
+    exit /b 1
+)
+findstr /C:"XL6_Generator* savedEmpty = emptyStream();" release\tmp\cgen_async_generator.c >nul
+if errorlevel 1 (
+    echo cgen_async_generator.c missing saved empty async generator source.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_async_generator.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'XL6_Generator\* __xl6_gen_iter_([0-9]+) = savedEmpty;\s*savedEmpty = 0;[\s\S]*?while \(xl6_generator_next\(__xl6_gen_iter_\1,[\s\S]*?savedEmptyCount = \(savedEmptyCount \+ 1LL\);[\s\S]*?xl6_generator_destroy\(__xl6_gen_iter_\1\)'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_async_generator.c missing saved empty async generator iterator cleanup lowering.
+    exit /b 1
+)
+findstr /C:"XL6_Generator* savedIndexed = indexedStream();" release\tmp\cgen_async_generator.c >nul
+if errorlevel 1 (
+    echo cgen_async_generator.c missing saved async generator indexed source.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_async_generator.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'XL6_Generator\* __xl6_gen_iter_([0-9]+) = savedIndexed;\s*savedIndexed = 0;\s*long long __xl6_gen_index_\1 = 0;[\s\S]*?long long savedIndex = __xl6_gen_index_\1;[\s\S]*?long long savedValue = 0;[\s\S]*?xl6_generator_value_into\(__xl6_gen_iter_\1, &savedValue,[\s\S]*?if \(\(savedIndex == 1LL\)\) \{[\s\S]*?xl6_generator_destroy\(__xl6_gen_iter_\1\);[\s\S]*?goto __xl6_break_\1;'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_async_generator.c missing saved async generator break cleanup lowering.
+    exit /b 1
+)
+findstr /C:"XL6_Generator* savedIndexedContinue = indexedStream();" release\tmp\cgen_async_generator.c >nul
+if errorlevel 1 (
+    echo cgen_async_generator.c missing saved async generator continue source.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_async_generator.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'XL6_Generator\* __xl6_gen_iter_([0-9]+) = savedIndexedContinue;\s*savedIndexedContinue = 0;\s*long long __xl6_gen_index_\1 = 0;[\s\S]*?long long savedContinueIndex = __xl6_gen_index_\1;[\s\S]*?long long savedContinueValue = 0;[\s\S]*?if \(\(savedContinueIndex == 1LL\)\) \{[\s\S]*?goto __xl6_continue_\1;[\s\S]*?if \(\(savedContinueIndex == 2LL\)\) \{[\s\S]*?xl6_generator_destroy\(__xl6_gen_iter_\1\);[\s\S]*?goto __xl6_break_\1;'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_async_generator.c missing saved async generator continue/break lowering.
+    exit /b 1
+)
+findstr /C:"iterate null generator" release\tmp\cgen_async_generator.c >nul
+if errorlevel 1 (
+    echo cgen_async_generator.c missing async generator null diagnostic.
+    exit /b 1
+)
+findstr /C:"XL6_Generator* consumedAsync = stream(40LL);" release\tmp\cgen_async_generator.c >nul
+if errorlevel 1 (
+    echo cgen_async_generator.c missing consumed async generator source.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_async_generator.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'XL6_Generator\* __xl6_gen_iter_([0-9]+) = consumedAsync;\s*consumedAsync = 0;[\s\S]*?while \(xl6_generator_next\(__xl6_gen_iter_\1,[\s\S]*?consumedAsyncFirstTotal = \(consumedAsyncFirstTotal \+ value\);[\s\S]*?xl6_generator_destroy\(__xl6_gen_iter_\1\)'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_async_generator.c missing consumed async generator first-pass move lowering.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_async_generator.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'XL6_Generator\* __xl6_gen_iter_([0-9]+) = consumedAsync;\s*consumedAsync = 0;[\s\S]*?while \(xl6_generator_next\(__xl6_gen_iter_\1,[\s\S]*?goto __xl6_try_catch_([0-9]+);[\s\S]*?__xl6_try_catch_\2:[\s\S]*?xrtStrComp\(xl6_error_message\(e\), ""iterate null generator""[\s\S]*?consumedAsyncAgainState = 42LL'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_async_generator.c missing consumed async generator second-pass null rejection.
+    exit /b 1
+)
+findstr /C:"XL6_Generator* missingAsync = 0;" release\tmp\cgen_async_generator.c >nul
+if errorlevel 1 (
+    echo cgen_async_generator.c missing null async generator initialization.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_async_generator.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'XL6_Generator\* __xl6_gen_iter_([0-9]+) = missingAsync;\s*missingAsync = 0;[\s\S]*?while \(xl6_generator_next\(__xl6_gen_iter_\1,[\s\S]*?goto __xl6_try_catch_([0-9]+);[\s\S]*?__xl6_try_catch_\2:[\s\S]*?xrtStrComp\(xl6_error_message\(e\), ""iterate null generator""[\s\S]*?missingAsyncState = 42LL'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_async_generator.c missing null async generator rejection.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_async_generator.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'xl_gen_worker_indexedStream[\s\S]*?xl6_future_await_i64_release[\s\S]*?xl6_generator_yield_copy'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_async_generator.c missing indexed async generator await-yield worker.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_async_generator.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'long long __xl6_gen_index_([0-9]+) = 0;[\s\S]*?long long asyncIndex = __xl6_gen_index_\1;[\s\S]*?long long asyncValue = 0;[\s\S]*?xl6_generator_value_into\(__xl6_gen_iter_\1, &asyncValue'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_async_generator.c missing async generator two-target index/value lowering.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_async_generator.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'if \(\(asyncIndex == 2LL\)\) \{[\s\S]*?xl6_generator_destroy\(__xl6_gen_iter_([0-9]+)\);[\s\S]*?goto __xl6_break_\1;'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_async_generator.c missing async generator break cleanup.
+    exit /b 1
+)
 findstr /C:"async generator boom before yield" release\tmp\cgen_async_generator.c >nul
 if errorlevel 1 (
     echo cgen_async_generator.c missing async generator early-error diagnostic.
@@ -16390,6 +17740,36 @@ if errorlevel 1 (
     echo cgen_generator.c missing generator early-error diagnostic.
     exit /b 1
 )
+findstr /C:"iterate null generator" release\tmp\cgen_generator.c >nul
+if errorlevel 1 (
+    echo cgen_generator.c missing generator null diagnostic.
+    exit /b 1
+)
+findstr /C:"XL6_Generator* consumedGen = nums(1LL);" release\tmp\cgen_generator.c >nul
+if errorlevel 1 (
+    echo cgen_generator.c missing consumed generator source.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_generator.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'XL6_Generator\* __xl6_gen_iter_([0-9]+) = consumedGen;\s*consumedGen = 0;[\s\S]*?while \(xl6_generator_next\(__xl6_gen_iter_\1,[\s\S]*?consumedFirstTotal = \(consumedFirstTotal \+ item\);[\s\S]*?xl6_generator_destroy\(__xl6_gen_iter_\1\)'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_generator.c missing consumed generator first-pass move lowering.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_generator.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'XL6_Generator\* __xl6_gen_iter_([0-9]+) = consumedGen;\s*consumedGen = 0;[\s\S]*?while \(xl6_generator_next\(__xl6_gen_iter_\1,[\s\S]*?goto __xl6_try_catch_([0-9]+);[\s\S]*?__xl6_try_catch_\2:[\s\S]*?xrtStrComp\(xl6_error_message\(e\), ""iterate null generator""[\s\S]*?consumedAgainState = 42LL'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_generator.c missing consumed generator second-pass null rejection.
+    exit /b 1
+)
+findstr /C:"XL6_Generator* missingGen = 0;" release\tmp\cgen_generator.c >nul
+if errorlevel 1 (
+    echo cgen_generator.c missing null generator initialization.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_generator.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'XL6_Generator\* __xl6_gen_iter_([0-9]+) = missingGen;\s*missingGen = 0;[\s\S]*?while \(xl6_generator_next\(__xl6_gen_iter_\1,[\s\S]*?goto __xl6_try_catch_([0-9]+);[\s\S]*?__xl6_try_catch_\2:[\s\S]*?xrtStrComp\(xl6_error_message\(e\), ""iterate null generator""[\s\S]*?missingGenState = 42LL'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_generator.c missing null generator rejection.
+    exit /b 1
+)
 
 release\xl.exe check test\cases\cgen_generator_two_targets.xl
 if errorlevel 1 exit /b 1
@@ -16435,6 +17815,28 @@ if not errorlevel 1 (
     exit /b 1
 )
 
+release\xl.exe check test\cases\sem_yield_sync_func.xl >nul 2> release\tmp\sem_yield_sync_func.err.txt
+if not errorlevel 1 (
+    echo sem_yield_sync_func.xl should fail.
+    exit /b 1
+)
+findstr /C:"yield" release\tmp\sem_yield_sync_func.err.txt >nul
+if errorlevel 1 (
+    echo sem_yield_sync_func.xl missing yield outside generator diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_yield_async_non_generator.xl >nul 2> release\tmp\sem_yield_async_non_generator.err.txt
+if not errorlevel 1 (
+    echo sem_yield_async_non_generator.xl should fail.
+    exit /b 1
+)
+findstr /C:"yield" release\tmp\sem_yield_async_non_generator.err.txt >nul
+if errorlevel 1 (
+    echo sem_yield_async_non_generator.xl missing async non-generator yield diagnostic.
+    exit /b 1
+)
+
 release\xl.exe check test\cases\sem_generator_string_element.xl >nul 2> release\tmp\sem_generator_string_element.err.txt
 if not errorlevel 1 (
     echo sem_generator_string_element.xl should fail.
@@ -16443,6 +17845,17 @@ if not errorlevel 1 (
 findstr /C:"generator<T>" release\tmp\sem_generator_string_element.err.txt >nul
 if errorlevel 1 (
     echo sem_generator_string_element.xl missing generator element diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_generator_var_element.xl >nul 2> release\tmp\sem_generator_var_element.err.txt
+if not errorlevel 1 (
+    echo sem_generator_var_element.xl should fail.
+    exit /b 1
+)
+findstr /C:"generator<T>" release\tmp\sem_generator_var_element.err.txt >nul
+if errorlevel 1 (
+    echo sem_generator_var_element.xl missing generator var element diagnostic.
     exit /b 1
 )
 
@@ -16468,6 +17881,22 @@ if errorlevel 1 (
     exit /b 1
 )
 
+release\xl.exe check test\cases\sem_generator_string_param.xl >nul 2> release\tmp\sem_generator_string_param.err.txt
+if not errorlevel 1 (
+    echo sem_generator_string_param.xl should fail.
+    exit /b 1
+)
+findstr /C:"generator" release\tmp\sem_generator_string_param.err.txt >nul
+if errorlevel 1 (
+    echo sem_generator_string_param.xl missing generator string parameter diagnostic.
+    exit /b 1
+)
+findstr /C:"bool" release\tmp\sem_generator_string_param.err.txt >nul
+if errorlevel 1 (
+    echo sem_generator_string_param.xl missing generator string parameter type boundary.
+    exit /b 1
+)
+
 release\xl.exe check test\cases\sem_generator_class_param.xl >nul 2> release\tmp\sem_generator_class_param.err.txt
 if not errorlevel 1 (
     echo sem_generator_class_param.xl should fail.
@@ -16481,6 +17910,22 @@ if errorlevel 1 (
 findstr /C:"bool" release\tmp\sem_generator_class_param.err.txt >nul
 if errorlevel 1 (
     echo sem_generator_class_param.xl missing generator parameter type boundary.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_generator_var_param.xl >nul 2> release\tmp\sem_generator_var_param.err.txt
+if not errorlevel 1 (
+    echo sem_generator_var_param.xl should fail.
+    exit /b 1
+)
+findstr /C:"generator" release\tmp\sem_generator_var_param.err.txt >nul
+if errorlevel 1 (
+    echo sem_generator_var_param.xl missing generator var parameter diagnostic.
+    exit /b 1
+)
+findstr /C:"bool" release\tmp\sem_generator_var_param.err.txt >nul
+if errorlevel 1 (
+    echo sem_generator_var_param.xl missing generator var parameter type boundary.
     exit /b 1
 )
 
@@ -16582,6 +18027,17 @@ if errorlevel 1 (
     exit /b 1
 )
 
+release\xl.exe check test\cases\sem_channel_var_element.xl >nul 2> release\tmp\sem_channel_var_element.err.txt
+if not errorlevel 1 (
+    echo sem_channel_var_element.xl should fail.
+    exit /b 1
+)
+findstr /C:"channel<T>" release\tmp\sem_channel_var_element.err.txt >nul
+if errorlevel 1 (
+    echo sem_channel_var_element.xl missing channel element diagnostic.
+    exit /b 1
+)
+
 release\xl.exe check test\cases\sem_channel_generic_arity.xl >nul 2> release\tmp\sem_channel_generic_arity.err.txt
 if not errorlevel 1 (
     echo sem_channel_generic_arity.xl should fail.
@@ -16590,6 +18046,39 @@ if not errorlevel 1 (
 findstr /C:"expected 1, actual 2" release\tmp\sem_channel_generic_arity.err.txt >nul
 if errorlevel 1 (
     echo sem_channel_generic_arity.xl missing channel generic argument count context.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_channel_ctor_arg_count_many.xl >nul 2> release\tmp\sem_channel_ctor_arg_count_many.err.txt
+if not errorlevel 1 (
+    echo sem_channel_ctor_arg_count_many.xl should fail.
+    exit /b 1
+)
+findstr /L /C:"[sem] channel" release\tmp\sem_channel_ctor_arg_count_many.err.txt >nul
+if errorlevel 1 (
+    echo sem_channel_ctor_arg_count_many.xl missing channel constructor diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_channel_ctor_named_argument.xl >nul 2> release\tmp\sem_channel_ctor_named_argument.err.txt
+if not errorlevel 1 (
+    echo sem_channel_ctor_named_argument.xl should fail.
+    exit /b 1
+)
+findstr /L /C:"[sem] channel" release\tmp\sem_channel_ctor_named_argument.err.txt >nul
+if errorlevel 1 (
+    echo sem_channel_ctor_named_argument.xl missing channel constructor named argument diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_channel_capacity_type.xl >nul 2> release\tmp\sem_channel_capacity_type.err.txt
+if not errorlevel 1 (
+    echo sem_channel_capacity_type.xl should fail.
+    exit /b 1
+)
+findstr /L /C:"[sem] channel" release\tmp\sem_channel_capacity_type.err.txt >nul
+if errorlevel 1 (
+    echo sem_channel_capacity_type.xl missing channel capacity diagnostic.
     exit /b 1
 )
 

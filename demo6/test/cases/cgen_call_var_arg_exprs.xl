@@ -6,6 +6,10 @@ func makeValue(int value) as var
     return value
 end
 
+func sumNamed(var left, var right) as var
+    return left + right
+end
+
 record(makeValue(1) + makeValue(2))
 expect(recorded(), 3)
 
@@ -15,3 +19,11 @@ expect(recorded(), 5)
 
 record(true ? makeValue(7) : makeValue(8))
 expect(recorded(), 7)
+
+func(var, var) as var sumFn = sumNamed
+var dynamicSum = sumFn
+record(dynamicSum(makeValue(4) + makeValue(5), makeValue(6)))
+expect(recorded(), 15)
+
+record(dynamicSum(right = makeValue(10) + makeValue(5), left = makeValue(3)))
+expect(recorded(), 18)

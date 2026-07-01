@@ -1,0 +1,6 @@
+func makeItems() as dict<int>
+    return dict{"a": 11, "b": 12}
+end
+
+func() as dict<int> job = makeItems
+dict<int> values = await task.spawn(job)

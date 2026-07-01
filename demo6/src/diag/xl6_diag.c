@@ -24,9 +24,21 @@ void xl6DiagAdd(XL6_DiagList* list, int line, int column, const char* message)
 {
     XL6_Diag* newItems;
     size_t newCapacity;
+    size_t i;
+    const char* text;
 
     if ( list == NULL ) {
         return;
+    }
+    text = message != NULL ? message : "error";
+    for ( i = 0; i < list->count; ++i ) {
+        const XL6_Diag* item = &list->items[i];
+        if ( item->line == line &&
+             item->column == column &&
+             item->message != NULL &&
+             strcmp(item->message, text) == 0 ) {
+            return;
+        }
     }
     if ( list->count == list->capacity ) {
         newCapacity = (list->capacity == 0) ? 8 : list->capacity * 2;
@@ -40,7 +52,7 @@ void xl6DiagAdd(XL6_DiagList* list, int line, int column, const char* message)
 
     list->items[list->count].line = line;
     list->items[list->count].column = column;
-    list->items[list->count].message = xrtCopyStr((char*)message, strlen(message));
+    list->items[list->count].message = xrtCopyStr((char*)text, strlen(text));
     list->count += 1;
 }
 

@@ -71,6 +71,92 @@ static int run_script_step(XL_Context* ctx, const char* name, const char* source
     return 0;
 }
 
+static int run_module_step(XL_Context* ctx, const char* name, const char* source)
+{
+    XL_Module* module;
+    void* entry;
+    int ok;
+
+    module = xlCompileScriptStringToModule(ctx, source);
+    if ( module == NULL ) {
+        fprintf(stderr, "%s compile module failed: %s\n", name, xlGetLastError(ctx));
+        return 0;
+    }
+    entry = xlModuleGetSymbol(module, "xlang_main");
+    if ( entry == NULL ) {
+        fprintf(stderr, "%s module entry missing\n", name);
+        xlDestroyModule(module);
+        return 0;
+    }
+    ok = xlRunModuleMain(ctx, module, NULL);
+    if ( !ok ) {
+        fprintf(stderr, "%s run module failed: %s\n", name, xlGetLastError(ctx));
+    }
+    xlDestroyModule(module);
+    return ok;
+}
+
+static int run_c_source_step(XL_Context* ctx)
+{
+    char* argv[2];
+    XL_Module* module;
+    int (*exported_value)(void);
+    const char* cRunSource;
+    const char* cModuleSource;
+    const char* cFileSource;
+    int ok;
+
+    cRunSource =
+        "int main(int argc, char** argv) {\n"
+        "    return argc == 2 && argv != 0 && argv[1][0] == 'x' ? 0 : 7;\n"
+        "}\n";
+    argv[0] = "xl_dll_c";
+    argv[1] = "x";
+    if ( !xlRunCSourceString(ctx, cRunSource, 2, argv) ) {
+        fprintf(stderr, "C source run failed: %s\n", xlGetLastError(ctx));
+        return 0;
+    }
+
+    cModuleSource =
+        "int exported_value(void) { return 42; }\n"
+        "int main(int argc, char** argv) { return 0; }\n";
+    module = xlCompileCSourceStringToModule(ctx, cModuleSource);
+    if ( module == NULL ) {
+        fprintf(stderr, "C source module compile failed: %s\n", xlGetLastError(ctx));
+        return 0;
+    }
+    exported_value = (int (*)(void))xlModuleGetSymbol(module, "exported_value");
+    ok = exported_value != NULL && exported_value() == 42;
+    if ( !ok ) {
+        fprintf(stderr, "C source module symbol failed\n");
+    }
+    xlDestroyModule(module);
+
+    cFileSource =
+        "int exported_file_value(void) { return 42; }\n"
+        "int main(int argc, char** argv) { return 0; }\n";
+    if ( !write_text_file("release\\tmp\\xl_dll_embed_c_file.c", cFileSource) ) {
+        fprintf(stderr, "cannot write C source file\n");
+        return 0;
+    }
+    if ( !xlRunCSourceFile(ctx, "release\\tmp\\xl_dll_embed_c_file.c", 0, NULL) ) {
+        fprintf(stderr, "C source file run failed: %s\n", xlGetLastError(ctx));
+        return 0;
+    }
+    module = xlCompileCSourceFileToModule(ctx, "release\\tmp\\xl_dll_embed_c_file.c");
+    if ( module == NULL ) {
+        fprintf(stderr, "C source file module compile failed: %s\n", xlGetLastError(ctx));
+        return 0;
+    }
+    exported_value = (int (*)(void))xlModuleGetSymbol(module, "exported_file_value");
+    ok = exported_value != NULL && exported_value() == 42;
+    if ( !ok ) {
+        fprintf(stderr, "C source file module symbol failed\n");
+    }
+    xlDestroyModule(module);
+    return ok;
+}
+
 static int expect_api_failure(XL_Context* ctx, const char* name, int ok, const char* needle)
 {
     const char* err;
@@ -100,6 +186,7 @@ int main(void)
     const char* fileScript;
     const char* fileBuildScript;
     const char* err;
+    XL_Module* fileModule;
     int ok;
 
     options = xlDefaultContextOptions();
@@ -199,7 +286,9 @@ int main(void)
     if ( !run_script_step(ctx, "host script", hostScript) ||
          !run_script_step(ctx, "link script", linkScript) ||
          !run_script_step(ctx, "loadlib script", loadlibScript) ||
-         !run_script_step(ctx, "stdlib script", stdlibScript) ) {
+         !run_script_step(ctx, "stdlib script", stdlibScript) ||
+         !run_module_step(ctx, "module script", "int value = 40 + 2\nassert value == 42, \"module run failed\"\n") ||
+         !run_c_source_step(ctx) ) {
         cleanup_dynamic_vfs_probe();
         xlDestroyContext(ctx);
         return 1;
@@ -221,6 +310,19 @@ int main(void)
     }
 
     ok = xlRunScriptFile(ctx, "release\\tmp\\xl_dll_embed_file_run.xl");
+    if ( !ok ) {
+        fprintf(stderr, "%s\n", xlGetLastError(ctx));
+        xlDestroyContext(ctx);
+        return 1;
+    }
+    fileModule = xlCompileScriptFileToModule(ctx, "release\\tmp\\xl_dll_embed_file_run.xl");
+    if ( fileModule == NULL ) {
+        fprintf(stderr, "%s\n", xlGetLastError(ctx));
+        xlDestroyContext(ctx);
+        return 1;
+    }
+    ok = xlRunModuleMain(ctx, fileModule, NULL);
+    xlDestroyModule(fileModule);
     if ( !ok ) {
         fprintf(stderr, "%s\n", xlGetLastError(ctx));
         xlDestroyContext(ctx);

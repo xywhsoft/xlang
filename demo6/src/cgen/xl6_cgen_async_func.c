@@ -123,6 +123,89 @@ static void xl6CgenAwaitClassReleaseHelperSymbol(XL6_CgenContext* ctx, const XL6
     xl6OutputPuts("_release", ctx->out);
 }
 
+static int xl6CgenAsyncClassResultMatches(XL6_CgenContext* ctx, const XL6_AstNode* funcNode, const XL6_AstNode* resultType)
+{
+    const XL6_AstNode* funcResultType;
+    const XL6_AstNode* left;
+    const XL6_AstNode* right;
+
+    if ( ctx == NULL || funcNode == NULL || resultType == NULL || !xl6CgenIsAsyncFunc(funcNode) ) {
+        return 0;
+    }
+
+    funcResultType = xl6CgenAsyncSingleResultType(funcNode);
+    left = xl6CgenResolveAliasType(ctx, xl6CgenSubstituteGenericType(ctx, funcResultType));
+    right = xl6CgenResolveAliasType(ctx, xl6CgenSubstituteGenericType(ctx, resultType));
+    return left != NULL && right != NULL && xl6CgenTypeSymbolEqual(ctx, left, right);
+}
+
+static XL6_AstNode* xl6CgenAsyncFuncFromCallExpr(XL6_CgenContext* ctx, const XL6_AstNode* expr)
+{
+    const XL6_AstNode* callee;
+    XL6_AstNode* func;
+
+    if ( ctx == NULL || expr == NULL || expr->kind != XL6_AST_CALL || expr->childCount == 0 ) {
+        return NULL;
+    }
+
+    callee = expr->children[0];
+    if ( callee == NULL || callee->kind != XL6_AST_NAME ) {
+        return NULL;
+    }
+
+    func = xl6CgenResolveCallFunc(ctx, expr, callee->text);
+    return func != NULL && func->kind == XL6_AST_ASYNC_FUNC ? func : NULL;
+}
+
+static XL6_AstNode* xl6CgenFindAsyncClassResultFunc(XL6_CgenContext* ctx, const XL6_AstNode* resultType)
+{
+    size_t i;
+
+    if ( ctx == NULL || resultType == NULL ) {
+        return NULL;
+    }
+
+    for ( i = 0; ctx->root != NULL && i < ctx->root->childCount; ++i ) {
+        XL6_AstNode* node = ctx->root->children[i];
+        if ( node != NULL && xl6CgenAsyncClassResultMatches(ctx, node, resultType) ) {
+            return node;
+        }
+    }
+
+    for ( i = 0; i < ctx->genericInstanceCount; ++i ) {
+        const XL6_AstNode* prevParams = ctx->currentGenericParams;
+        const XL6_AstNode* prevArgs = ctx->currentGenericArgs;
+        XL6_AstNode* func = (XL6_AstNode*)ctx->genericInstances[i].func;
+        int matched;
+
+        ctx->currentGenericParams = xl6CgenFuncTypeParams(func);
+        ctx->currentGenericArgs = ctx->genericInstances[i].typeArgs;
+        matched = xl6CgenAsyncClassResultMatches(ctx, func, resultType);
+        ctx->currentGenericParams = prevParams;
+        ctx->currentGenericArgs = prevArgs;
+        if ( matched ) {
+            return func;
+        }
+    }
+
+    return NULL;
+}
+
+static XL6_AstNode* xl6CgenAwaitClassReleaseHelperFunc(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* resultType,
+    const XL6_AstNode* expr)
+{
+    XL6_AstNode* func;
+
+    func = xl6CgenAsyncFuncFromCallExpr(ctx, expr);
+    if ( func != NULL && xl6CgenAsyncClassResultMatches(ctx, func, resultType) ) {
+        return func;
+    }
+
+    return xl6CgenFindAsyncClassResultFunc(ctx, resultType);
+}
+
 static void xl6CgenAsyncClassAwaitReleaseHelper(XL6_CgenContext* ctx, const XL6_AstNode* node)
 {
     const XL6_AstNode* resultType;
@@ -265,6 +348,18 @@ static int xl6CgenAwaitOperandIsOwnedTemporary(const XL6_AstNode* node)
     return operand != NULL && operand->kind == XL6_AST_CALL;
 }
 
+static const XL6_AstNode* xl6CgenAwaitOperand(const XL6_AstNode* node)
+{
+    return node != NULL && node->childCount > 0 ? node->children[0] : NULL;
+}
+
+static int xl6CgenAwaitOperandIsConditional(const XL6_AstNode* node)
+{
+    const XL6_AstNode* operand = xl6CgenAwaitOperand(node);
+
+    return operand != NULL && operand->kind == XL6_AST_CONDITIONAL && operand->childCount > 2;
+}
+
 static void xl6CgenAwaitOperandExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
 {
     if ( node != NULL && node->childCount > 0 ) {
@@ -272,6 +367,198 @@ static void xl6CgenAwaitOperandExpr(XL6_CgenContext* ctx, const XL6_AstNode* nod
     } else {
         xl6OutputPuts("0", ctx->out);
     }
+}
+
+static int xl6CgenAwaitFutureExprIsOwnedDirect(XL6_CgenContext* ctx, const XL6_AstNode* expr)
+{
+    XL6_AstNode* typeNode;
+    const XL6_AstNode* concreteType;
+    int owned;
+
+    if ( ctx == NULL || expr == NULL || expr->kind != XL6_AST_CALL ) {
+        return 0;
+    }
+
+    typeNode = xl6CgenCloneExprTypeForInference(ctx, expr);
+    concreteType = xl6CgenSubstituteGenericType(ctx, typeNode);
+    concreteType = xl6CgenResolveAliasType(ctx, concreteType);
+    owned = xl6CgenIsFutureLikeType(concreteType);
+    xl6AstFree(typeNode);
+    return owned;
+}
+
+static void xl6CgenAwaitOwnedFutureExpr(XL6_CgenContext* ctx, const XL6_AstNode* expr)
+{
+    if ( expr != NULL && expr->kind == XL6_AST_CONDITIONAL && expr->childCount > 2 ) {
+        xl6OutputPutc('(', ctx->out);
+        xl6CgenConditionExpr(ctx, expr->children[0]);
+        xl6OutputPuts(" ? ", ctx->out);
+        xl6CgenAwaitOwnedFutureExpr(ctx, expr->children[1]);
+        xl6OutputPuts(" : ", ctx->out);
+        xl6CgenAwaitOwnedFutureExpr(ctx, expr->children[2]);
+        xl6OutputPutc(')', ctx->out);
+        return;
+    }
+
+    if ( xl6CgenAwaitFutureExprIsOwnedDirect(ctx, expr) ) {
+        xl6CgenExpr(ctx, expr);
+        return;
+    }
+
+    xl6OutputPuts("xl6_future_add_ref_if_needed(", ctx->out);
+    xl6CgenExpr(ctx, expr);
+    xl6OutputPutc(')', ctx->out);
+}
+
+static void xl6CgenAwaitOwnedOperandExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
+{
+    xl6CgenAwaitOwnedFutureExpr(ctx, xl6CgenAwaitOperand(node));
+}
+
+static void xl6CgenAwaitStringBranchExpr(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* expr,
+    int line,
+    int column)
+{
+    if ( expr != NULL && expr->kind == XL6_AST_CONDITIONAL && expr->childCount > 2 ) {
+        xl6OutputPutc('(', ctx->out);
+        xl6CgenConditionExpr(ctx, expr->children[0]);
+        xl6OutputPuts(" ? ", ctx->out);
+        xl6CgenAwaitStringBranchExpr(ctx, expr->children[1], line, column);
+        xl6OutputPuts(" : ", ctx->out);
+        xl6CgenAwaitStringBranchExpr(ctx, expr->children[2], line, column);
+        xl6OutputPutc(')', ctx->out);
+        return;
+    }
+
+    xl6OutputPuts(
+        xl6CgenAwaitFutureExprIsOwnedDirect(ctx, expr) ?
+        "xl6_future_await_cstr_release(" :
+        "xl6_future_await_cstr_copy(",
+        ctx->out);
+    xl6CgenExpr(ctx, expr);
+    xl6OutputPrintf(ctx->out, ", \"\", %d, %d)", line, column);
+}
+
+static const char* xl6CgenAwaitTypedContainerCopyFuncName(const char* typeName)
+{
+    if ( xl6CTextEquals(typeName, "array") ) {
+        return "xl6_xrt_typed_array_copy_mode";
+    }
+    if ( xl6CTextEquals(typeName, "list") ) {
+        return "xl6_xrt_typed_list_copy_mode";
+    }
+    if ( xl6CTextEquals(typeName, "set") ) {
+        return "xl6_xrt_typed_set_copy_mode";
+    }
+    if ( xl6CTextEquals(typeName, "dict") ) {
+        return "xl6_xrt_typed_dict_copy_mode";
+    }
+    return NULL;
+}
+
+static void xl6CgenAwaitTypedContainerBorrowedBranchExpr(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* resultType,
+    const XL6_AstNode* expr,
+    int line,
+    int column)
+{
+    const XL6_AstNode* concreteType;
+    const XL6_AstNode* itemType;
+    const char* typeName;
+    const char* copyFunc;
+    const char* cType;
+
+    concreteType = xl6CgenTypedContainerConcreteType(ctx, resultType);
+    itemType = xl6CgenTypedContainerItemType(ctx, resultType);
+    typeName = concreteType != NULL ? concreteType->text : NULL;
+    copyFunc = xl6CgenAwaitTypedContainerCopyFuncName(typeName);
+    cType = xl6CgenTypedContainerCType(ctx, resultType);
+
+    if ( copyFunc == NULL || itemType == NULL ) {
+        xl6CgenError(ctx, expr, "conditional await typed container requires array/list/set/dict");
+        xl6OutputPuts("0", ctx->out);
+        return;
+    }
+
+    xl6OutputPuts(copyFunc, ctx->out);
+    xl6OutputPutc('(', ctx->out);
+    xl6CgenEmitXrtTypeDescRef(ctx, itemType);
+    xl6OutputPuts(", (*(", ctx->out);
+    xl6OutputPuts(cType, ctx->out);
+    xl6OutputPuts("*)xl6_future_await_value(", ctx->out);
+    xl6CgenExpr(ctx, expr);
+    xl6OutputPrintf(ctx->out, ", \"\", %d, %d, 1, sizeof(", line, column);
+    xl6OutputPuts(cType, ctx->out);
+    xl6OutputPuts("))), XRT_OBJMODE_LOCAL)", ctx->out);
+}
+
+static void xl6CgenAwaitTypedContainerBranchExpr(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* resultType,
+    const XL6_AstNode* expr,
+    int line,
+    int column)
+{
+    const char* cType;
+
+    if ( expr != NULL && expr->kind == XL6_AST_CONDITIONAL && expr->childCount > 2 ) {
+        xl6OutputPutc('(', ctx->out);
+        xl6CgenConditionExpr(ctx, expr->children[0]);
+        xl6OutputPuts(" ? ", ctx->out);
+        xl6CgenAwaitTypedContainerBranchExpr(ctx, resultType, expr->children[1], line, column);
+        xl6OutputPuts(" : ", ctx->out);
+        xl6CgenAwaitTypedContainerBranchExpr(ctx, resultType, expr->children[2], line, column);
+        xl6OutputPutc(')', ctx->out);
+        return;
+    }
+
+    if ( xl6CgenAwaitFutureExprIsOwnedDirect(ctx, expr) ) {
+        cType = xl6CgenTypedContainerCType(ctx, resultType);
+        xl6OutputPutc('(', ctx->out);
+        xl6OutputPuts(cType, ctx->out);
+        xl6OutputPuts(")xl6_future_await_handle_release(", ctx->out);
+        xl6CgenExpr(ctx, expr);
+        xl6OutputPrintf(ctx->out, ", \"\", %d, %d)", line, column);
+        return;
+    }
+
+    xl6CgenAwaitTypedContainerBorrowedBranchExpr(ctx, resultType, expr, line, column);
+}
+
+static void xl6CgenAwaitClassBranchExpr(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* resultType,
+    const XL6_AstNode* expr,
+    int line,
+    int column)
+{
+    XL6_AstNode* helperFunc;
+
+    if ( expr != NULL && expr->kind == XL6_AST_CONDITIONAL && expr->childCount > 2 ) {
+        xl6OutputPutc('(', ctx->out);
+        xl6CgenConditionExpr(ctx, expr->children[0]);
+        xl6OutputPuts(" ? ", ctx->out);
+        xl6CgenAwaitClassBranchExpr(ctx, resultType, expr->children[1], line, column);
+        xl6OutputPuts(" : ", ctx->out);
+        xl6CgenAwaitClassBranchExpr(ctx, resultType, expr->children[2], line, column);
+        xl6OutputPutc(')', ctx->out);
+        return;
+    }
+
+    helperFunc = xl6CgenAwaitClassReleaseHelperFunc(ctx, resultType, expr);
+    if ( helperFunc == NULL ) {
+        xl6CgenError(ctx, expr, "conditional await class future requires a matching async class result helper");
+        xl6OutputPuts("0", ctx->out);
+        return;
+    }
+
+    xl6CgenAwaitClassReleaseHelperSymbol(ctx, helperFunc);
+    xl6OutputPutc('(', ctx->out);
+    xl6CgenAwaitOwnedFutureExpr(ctx, expr);
+    xl6OutputPrintf(ctx->out, ", \"\", %d, %d)", line, column);
 }
 
 static XL6_AstNode* xl6CgenAwaitOwnedTemporaryAsyncFunc(XL6_CgenContext* ctx, const XL6_AstNode* node)
@@ -341,12 +628,71 @@ static const char* xl6CgenAwaitReleaseHelperName(XL6_CgenContext* ctx, const XL6
     return NULL;
 }
 
+static int xl6CgenAwaitReleaseHelperCopiesResult(XL6_CgenContext* ctx, const XL6_AstNode* resultType, int requireValue)
+{
+    const char* cType;
+
+    if ( !requireValue ) {
+        return 1;
+    }
+    if ( xl6CgenIsFunctionType(resultType) || xl6CgenIsXValueType(resultType) ) {
+        return 1;
+    }
+    if ( resultType == NULL || xl6CgenIsTypedContainerType(ctx, resultType) || xl6CgenIsClassType(ctx, resultType) ) {
+        return 0;
+    }
+
+    cType = xl6CgenTypeName(ctx, resultType);
+    return xl6CTextEquals(cType, "int") ||
+           xl6CTextEquals(cType, "long long") ||
+           xl6CTextEquals(cType, "unsigned long long") ||
+           xl6CTextEquals(cType, "float") ||
+           xl6CTextEquals(cType, "double") ||
+           xl6CTextEquals(cType, "void*");
+}
+
 static const char* xl6CgenAwaitResultCType(XL6_CgenContext* ctx, const XL6_AstNode* resultType)
 {
     if ( xl6CgenIsTypedContainerType(ctx, resultType) ) {
         return xl6CgenTypedContainerCType(ctx, resultType);
     }
     return xl6CgenTypeName(ctx, resultType);
+}
+
+static int xl6CgenAwaitConditionalBranchResultExpr(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* node,
+    const XL6_AstNode* resultType,
+    int requireValue)
+{
+    const XL6_AstNode* operand;
+    int line;
+    int column;
+
+    if ( !xl6CgenAwaitOperandIsConditional(node) ) {
+        return 0;
+    }
+
+    operand = xl6CgenAwaitOperand(node);
+    line = node != NULL ? node->line : 0;
+    column = node != NULL ? node->column : 0;
+
+    if ( requireValue && xl6CTextEquals(xl6CgenAwaitResultCType(ctx, resultType), "const char*") ) {
+        xl6CgenAwaitStringBranchExpr(ctx, operand, line, column);
+        return 1;
+    }
+
+    if ( requireValue && xl6CgenIsTypedContainerType(ctx, resultType) ) {
+        xl6CgenAwaitTypedContainerBranchExpr(ctx, resultType, operand, line, column);
+        return 1;
+    }
+
+    if ( requireValue && xl6CgenIsClassType(ctx, resultType) ) {
+        xl6CgenAwaitClassBranchExpr(ctx, resultType, operand, line, column);
+        return 1;
+    }
+
+    return 0;
 }
 
 static int xl6CgenAwaitOwnedTemporaryHelperExpr(
@@ -375,7 +721,11 @@ static int xl6CgenAwaitOwnedTemporaryHelperExpr(
 
     xl6OutputPuts(helperName, ctx->out);
     xl6OutputPutc('(', ctx->out);
-    xl6CgenAwaitOperandExpr(ctx, node);
+    if ( xl6CgenAwaitOperandIsConditional(node) ) {
+        xl6CgenAwaitOwnedOperandExpr(ctx, node);
+    } else {
+        xl6CgenAwaitOperandExpr(ctx, node);
+    }
     xl6OutputPrintf(ctx->out, ", \"\", %d, %d)", node != NULL ? node->line : 0, node != NULL ? node->column : 0);
     return 1;
 }
@@ -396,7 +746,14 @@ static void xl6CgenAwaitExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
     resultType = xl6CgenCloneAwaitResultType(ctx, node);
     requireValue = resultType != NULL && !xl6CTextEquals(resultType->text, "null");
 
-    if ( xl6CgenAwaitOperandIsOwnedTemporary(node) ) {
+    if ( xl6CgenAwaitConditionalBranchResultExpr(ctx, node, resultType, requireValue) ) {
+        xl6AstFree(resultType);
+        return;
+    }
+
+    if ( xl6CgenAwaitOperandIsOwnedTemporary(node) ||
+         (xl6CgenAwaitOperandIsConditional(node) &&
+          xl6CgenAwaitReleaseHelperCopiesResult(ctx, resultType, requireValue)) ) {
         if ( !xl6CgenAwaitOwnedTemporaryHelperExpr(ctx, node, resultType, requireValue) ) {
             xl6CgenAwaitOwnedTemporaryExpr(ctx, node, resultType, requireValue);
         }

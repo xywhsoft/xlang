@@ -22,7 +22,7 @@ $scanExtensions = @(
 $skipDirectoryNames = @(
     "release"
 )
-$minScannedTextFiles = 842
+$minScannedTextFiles = 1262
 $failures = New-Object System.Collections.Generic.List[string]
 $strictUtf8 = New-Object System.Text.UTF8Encoding($false, $true)
 $looseUtf8 = [System.Text.Encoding]::UTF8

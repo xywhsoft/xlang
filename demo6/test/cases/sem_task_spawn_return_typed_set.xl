@@ -1,0 +1,6 @@
+func makeItems() as set<int>
+    return set{6, 7}
+end
+
+func() as set<int> job = makeItems
+set<int> values = await task.spawn(job)

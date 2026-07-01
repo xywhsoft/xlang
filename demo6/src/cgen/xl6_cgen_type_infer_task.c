@@ -120,6 +120,7 @@ static XL6_AstNode* xl6CgenCloneTaskCallType(XL6_CgenContext* ctx, const XL6_Ast
     const char* name;
     const XL6_AstNode* argExpr;
     const XL6_AstNode* returns;
+    const XL6_AstNode* concreteValueType;
     XL6_AstNode* functionType;
     XL6_AstNode* valueType;
     XL6_AstNode* arrayType;
@@ -134,11 +135,15 @@ static XL6_AstNode* xl6CgenCloneTaskCallType(XL6_CgenContext* ctx, const XL6_Ast
         argExpr = xl6CgenTaskCallArgExprAt(call, 0);
         functionType = xl6CgenCloneExprTypeForInference(ctx, argExpr);
         returns = xl6CgenFunctionReturnTypes(functionType);
-        if ( !xl6CgenIsFunctionType(functionType) || returns == NULL || returns->childCount != 1 ) {
+        if ( !xl6CgenIsFunctionType(functionType) || returns == NULL || returns->childCount > 1 ) {
             xl6AstFree(functionType);
             return NULL;
         }
-        valueType = xl6CgenCloneTypeNode(returns->children[0]);
+        if ( returns->childCount == 0 ) {
+            valueType = xl6CgenNewSimpleType("null", call);
+        } else {
+            valueType = xl6CgenCloneTypeNode(returns->children[0]);
+        }
         xl6AstFree(functionType);
         return xl6CgenNewGenericTypeNode("future", valueType, call);
     }
@@ -148,6 +153,10 @@ static XL6_AstNode* xl6CgenCloneTaskCallType(XL6_CgenContext* ctx, const XL6_Ast
         return NULL;
     }
     if ( xl6CTextEquals(name, "race") ) {
+        return xl6CgenNewGenericTypeNode("future", valueType, call);
+    }
+    concreteValueType = xl6CgenResolveAliasType(ctx, valueType);
+    if ( concreteValueType != NULL && xl6CTextEquals(concreteValueType->text, "null") ) {
         return xl6CgenNewGenericTypeNode("future", valueType, call);
     }
     arrayType = xl6CgenNewGenericTypeNode("array", valueType, call);

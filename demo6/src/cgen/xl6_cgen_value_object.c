@@ -25,29 +25,77 @@ static void xl6CgenTypedContainerValueStmt(XL6_CgenContext* ctx, const char* cNa
     xl6OutputPuts("}\n", ctx->out);
 }
 
+static int xl6CgenTypedFutureExprIsOwnedDirect(const XL6_AstNode* valueExpr)
+{
+    return valueExpr != NULL && valueExpr->kind == XL6_AST_CALL;
+}
+
+static int xl6CgenTypedFutureExprNeedsRelease(const XL6_AstNode* valueExpr)
+{
+    return xl6CgenTypedFutureExprIsOwnedDirect(valueExpr) ||
+           (valueExpr != NULL && valueExpr->kind == XL6_AST_CONDITIONAL && valueExpr->childCount > 2);
+}
+
+static void xl6CgenTypedFutureOwnedExpr(XL6_CgenContext* ctx, const XL6_AstNode* valueExpr)
+{
+    if ( valueExpr != NULL && valueExpr->kind == XL6_AST_CONDITIONAL && valueExpr->childCount > 2 ) {
+        xl6OutputPuts("(", ctx->out);
+        xl6CgenExpr(ctx, valueExpr->children[0]);
+        xl6OutputPuts(" ? ", ctx->out);
+        xl6CgenTypedFutureOwnedExpr(ctx, valueExpr->children[1]);
+        xl6OutputPuts(" : ", ctx->out);
+        xl6CgenTypedFutureOwnedExpr(ctx, valueExpr->children[2]);
+        xl6OutputPuts(")", ctx->out);
+        return;
+    }
+    if ( xl6CgenTypedFutureExprIsOwnedDirect(valueExpr) ) {
+        xl6CgenExpr(ctx, valueExpr);
+        return;
+    }
+    xl6OutputPuts("xl6_future_add_ref_if_needed(", ctx->out);
+    xl6CgenExpr(ctx, valueExpr);
+    xl6OutputPuts(")", ctx->out);
+}
+
 static void xl6CgenTypedArrayFutureStmt(XL6_CgenContext* ctx, const char* cName, const XL6_AstNode* valueExpr)
 {
     int id;
+    int shouldRelease;
 
     id = ctx->tempId++;
+    shouldRelease = xl6CgenTypedFutureExprNeedsRelease(valueExpr);
     xl6CgenIndent(ctx);
     xl6OutputPuts("{\n", ctx->out);
     ctx->indent += 1;
     xl6CgenIndent(ctx);
     xl6OutputPrintf(ctx->out, "xfuture* __xl6_typed_future_%d = ", id);
-    xl6CgenExpr(ctx, valueExpr);
+    if ( valueExpr != NULL && valueExpr->kind == XL6_AST_CONDITIONAL && valueExpr->childCount > 2 ) {
+        xl6CgenTypedFutureOwnedExpr(ctx, valueExpr);
+    } else {
+        xl6CgenExpr(ctx, valueExpr);
+    }
     xl6OutputPuts(";\n", ctx->out);
     xl6CgenIndent(ctx);
     xl6OutputPrintf(ctx->out, "if (!xrtTypedArrayAppend(%s, &__xl6_typed_future_%d)) {\n", cName, id);
     ctx->indent += 1;
+    if ( shouldRelease ) {
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "xFutureRelease(__xl6_typed_future_%d);\n", id);
+    }
     xl6CgenIndent(ctx);
     xl6OutputPuts("xl6_runtime_fatal(3);\n", ctx->out);
     ctx->indent -= 1;
     xl6CgenIndent(ctx);
-    xl6OutputPuts("}\n", ctx->out);
-    if ( valueExpr != NULL && valueExpr->kind == XL6_AST_CALL ) {
+    if ( shouldRelease ) {
+        xl6OutputPuts("} else {\n", ctx->out);
+        ctx->indent += 1;
         xl6CgenIndent(ctx);
         xl6OutputPrintf(ctx->out, "xFutureRelease(__xl6_typed_future_%d);\n", id);
+        ctx->indent -= 1;
+        xl6CgenIndent(ctx);
+        xl6OutputPuts("}\n", ctx->out);
+    } else {
+        xl6OutputPuts("}\n", ctx->out);
     }
     ctx->indent -= 1;
     xl6CgenIndent(ctx);

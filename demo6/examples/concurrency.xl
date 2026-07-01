@@ -71,6 +71,14 @@ async func asyncFinallyOverrideExample() as int
     return 0
 end
 
+async func asyncFinallyVoidOverrideExample()
+    try
+        throw "async finally void original example"
+    finally
+        throw "async finally void override example"
+    end
+end
+
 async func slowVoidAsync()
     time.sleep(120)
 end
@@ -124,6 +132,11 @@ async func slowArrayAsync() as array<int>
     return array[3, 4, 5]
 end
 
+async func slowAltArrayAsync() as array<int>
+    time.sleep(120)
+    return array[13, 14, 15]
+end
+
 async func slowScoresAsync() as dict<int>
     time.sleep(120)
     return dict{"score": 42}
@@ -158,6 +171,12 @@ func slowWorker() as int
     return 9
 end
 
+func makeThreadWorker(int code) as func() as int
+    return func() as int
+        return code
+    end
+end
+
 func() as int missingThreadWorker
 
 auto f = addAsync(20, 22)
@@ -173,6 +192,66 @@ assert int(dynamicAnswer) == 120, "async var await failed"
 assert not task.cancel(vf), "completed async var future cancel result"
 var dynamicAfterCancel = await vf
 assert int(dynamicAfterCancel) == 120, "completed async var future remains awaitable"
+
+future<int> conditionalAwaitSource = addAsync(30, 12)
+bool chooseConditionalAwait = true
+int conditionalAwaitBorrowed = await (chooseConditionalAwait ? conditionalAwaitSource : addAsync(1, 1))
+assert conditionalAwaitBorrowed == 42, "conditional await borrowed future failed"
+int conditionalAwaitAgain = await conditionalAwaitSource
+assert conditionalAwaitAgain == 42, "conditional await borrowed future should remain awaitable"
+chooseConditionalAwait = false
+int conditionalAwaitOwned = await (chooseConditionalAwait ? conditionalAwaitSource : addAsync(40, 2))
+assert conditionalAwaitOwned == 42, "conditional await owned future failed"
+
+future<var> conditionalVarSource = makeVarAsync(140)
+chooseConditionalAwait = true
+var conditionalVarBorrowed = await (chooseConditionalAwait ? conditionalVarSource : makeVarAsync(1))
+assert int(conditionalVarBorrowed) == 140, "conditional await borrowed var future failed"
+var conditionalVarAgain = await conditionalVarSource
+assert int(conditionalVarAgain) == 140, "conditional await borrowed var future should remain awaitable"
+chooseConditionalAwait = false
+var conditionalVarOwned = await (chooseConditionalAwait ? conditionalVarSource : makeVarAsync(141))
+assert int(conditionalVarOwned) == 141, "conditional await owned var future failed"
+
+future<func(int) as int> conditionalFuncSource = slowFuncAsync(142)
+bool chooseConditionalFunc = true
+func(int) as int conditionalFuncBorrowed = await (chooseConditionalFunc ? conditionalFuncSource : slowFuncAsync(143))
+assert conditionalFuncBorrowed(1) == 143, "conditional await borrowed function future failed"
+func(int) as int conditionalFuncAgain = await conditionalFuncSource
+assert conditionalFuncAgain(2) == 144, "conditional await borrowed function future should remain awaitable"
+chooseConditionalFunc = false
+func(int) as int conditionalFuncOwned = await (chooseConditionalFunc ? conditionalFuncSource : slowFuncAsync(143))
+assert conditionalFuncOwned(3) == 146, "conditional await owned function future failed"
+
+future<string> conditionalTextSource = slowTextAsync("named conditional")
+bool chooseConditionalText = true
+string conditionalTextBorrowed = await (chooseConditionalText ? conditionalTextSource : slowTextAsync("owned conditional"))
+assert conditionalTextBorrowed == "hello named conditional", "conditional await borrowed string future failed"
+string conditionalTextAgain = await conditionalTextSource
+assert conditionalTextAgain == "hello named conditional", "conditional await borrowed string future should remain awaitable"
+chooseConditionalText = false
+string conditionalTextOwned = await (chooseConditionalText ? conditionalTextSource : slowTextAsync("owned conditional"))
+assert conditionalTextOwned == "hello owned conditional", "conditional await owned string future failed"
+
+future<array<int>> conditionalArraySource = slowArrayAsync()
+bool chooseConditionalArray = true
+array<int> conditionalArrayBorrowed = await (chooseConditionalArray ? conditionalArraySource : slowAltArrayAsync())
+assert conditionalArrayBorrowed[0] == 3, "conditional await borrowed array future failed"
+array<int> conditionalArrayAgain = await conditionalArraySource
+assert conditionalArrayAgain[2] == 5, "conditional await borrowed array future should remain awaitable"
+chooseConditionalArray = false
+array<int> conditionalArrayOwned = await (chooseConditionalArray ? conditionalArraySource : slowAltArrayAsync())
+assert conditionalArrayOwned[0] == 13, "conditional await owned array future failed"
+
+future<AsyncExampleBox> conditionalBoxSource = slowBoxAsync(150)
+bool chooseConditionalBox = true
+AsyncExampleBox conditionalBoxBorrowed = await (chooseConditionalBox ? conditionalBoxSource : slowBoxAsync(160))
+assert conditionalBoxBorrowed.op(2) + conditionalBoxBorrowed.bias == 302, "conditional await borrowed class future failed"
+AsyncExampleBox conditionalBoxAgain = await conditionalBoxSource
+assert conditionalBoxAgain.op(3) + conditionalBoxAgain.bias == 303, "conditional await borrowed class future should remain awaitable"
+chooseConditionalBox = false
+AsyncExampleBox conditionalBoxOwned = await (chooseConditionalBox ? conditionalBoxSource : slowBoxAsync(160))
+assert conditionalBoxOwned.op(4) + conditionalBoxOwned.bias == 324, "conditional await owned class future failed"
 
 auto failedDone = failDoneAsync()
 int failedDoneState = 0
@@ -358,6 +437,29 @@ catch e
     end
 end
 assert asyncFinallyOverrideState == 84, "failed async try/finally future remains awaitable"
+
+auto asyncFinallyVoidOverrideFuture = asyncFinallyVoidOverrideExample()
+int asyncFinallyVoidOverrideState = 0
+try
+    await asyncFinallyVoidOverrideFuture
+    asyncFinallyVoidOverrideState = 1
+catch e
+    if e.message == "async finally void override example" then
+        asyncFinallyVoidOverrideState = 42
+    end
+end
+assert asyncFinallyVoidOverrideState == 42, "async void try/finally finally error override"
+assert not task.cancel(asyncFinallyVoidOverrideFuture), "failed async void try/finally future cancel result"
+
+try
+    await asyncFinallyVoidOverrideFuture
+    asyncFinallyVoidOverrideState = 2
+catch e
+    if e.message == "async finally void override example" then
+        asyncFinallyVoidOverrideState = 84
+    end
+end
+assert asyncFinallyVoidOverrideState == 84, "failed async void try/finally future remains awaitable"
 
 future<AsyncExampleBox> completedBoxFuture = slowBoxAsync(20)
 AsyncExampleBox completedBox = await completedBoxFuture
@@ -712,6 +814,26 @@ assert missingThreadState == 1, "thread empty func value"
 thread t = thread(worker)
 assert t.wait(), "thread wait failed"
 assert t.exitCode() == 7, "thread exit code failed"
+
+func() as int borrowedThreadLeft = makeThreadWorker(11)
+func() as int borrowedThreadRight = makeThreadWorker(12)
+bool chooseBorrowedThread = false
+thread borrowedConditionalThread = thread(chooseBorrowedThread ? borrowedThreadLeft : borrowedThreadRight)
+assert borrowedConditionalThread.wait(), "thread borrowed conditional wait failed"
+assert borrowedConditionalThread.exitCode() == 12, "thread borrowed conditional exit code failed"
+assert borrowedThreadRight() == 12, "thread borrowed conditional source remains usable"
+
+func() as int mixedThreadSource = makeThreadWorker(15)
+bool chooseMixedThread = false
+thread mixedThreadOwned = thread(chooseMixedThread ? mixedThreadSource : makeThreadWorker(16))
+assert mixedThreadOwned.wait(), "thread mixed conditional owned wait failed"
+assert mixedThreadOwned.exitCode() == 16, "thread mixed conditional owned exit code failed"
+assert mixedThreadSource() == 15, "thread mixed conditional source remains usable after owned branch"
+chooseMixedThread = true
+thread mixedThreadBorrowed = thread(chooseMixedThread ? mixedThreadSource : makeThreadWorker(17))
+assert mixedThreadBorrowed.wait(), "thread mixed conditional borrowed wait failed"
+assert mixedThreadBorrowed.exitCode() == 15, "thread mixed conditional borrowed exit code failed"
+assert mixedThreadSource() == 15, "thread mixed conditional source remains usable after borrowed branch"
 
 thread slowThread = thread(slowWorker)
 assert not slowThread.waitTimeout(0), "running thread waitTimeout(0) should time out"

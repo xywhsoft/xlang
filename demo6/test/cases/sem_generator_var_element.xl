@@ -1,0 +1,3 @@
+func bad() as generator<var>
+    yield 1
+end

@@ -1,0 +1,6 @@
+func add(int value) as int
+    return value
+end
+
+func(int) as int fn = add
+int bad = await task.spawn(fn, 1, 2)

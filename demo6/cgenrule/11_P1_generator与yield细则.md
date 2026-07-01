@@ -174,3 +174,35 @@
 - 生成形态：`test.bat` 锁定 `xl_gen_worker_emptyNums` 与 `xl_gen_worker_emptyStream`。
 
 该补充确认 `xl6_generator_next` 在 coroutine 已结束、`hasValue == 0` 且无 active error 时，把结果解释为正常迭代结束，而不是错误或伪值产出。
+
+## 本轮补充：保存型 generator 空句柄与重复消费
+
+本轮不新增 `CGEN-*` 规则编号，只补齐 `CGEN-GEN-012` 消费端的 use-after-move 语义边界：
+
+- 普通 generator：`cgen_generator.xl` 新增 `generator<int> consumedGen = nums(1)`，首次 `for item in consumedGen` 正常得到 `1`，第二次 `for item in consumedGen` 必须进入 `catch` 并匹配 `iterate null generator`。
+- 空句柄 generator：同一用例新增未初始化的 `generator<int> missingGen`，直接 `for item in missingGen` 必须进入同一 `iterate null generator` 诊断路径。
+- async generator：`cgen_async_generator.xl` 采用同一单次消费规则，`consumedAsync` 首次 `for await` 成功，二次 `for await` 和未初始化 `missingAsync` 均抛出 `iterate null generator`。
+- 生成形态：`test.bat` 锁定 `consumedGen` / `consumedAsync` 首次消费时 move 到 `__xl6_gen_iter_N` 并把源变量置 `0`，二次消费时从空源变量创建迭代器并进入 `catch`；未初始化变量必须生成为 `XL6_Generator* missingGen = 0;` / `missingAsync = 0;`。
+
+该补充确认 `generator<T>` 保存值不是可重复遍历容器，而是单次消费句柄。`for in` / `for await` 会接管句柄所有权；被接管后的源变量保持空句柄，再次迭代必须报错。这一规则让所有权模型保持简单，也避免重复销毁底层 coroutine frame。
+
+## 本轮补充：yield 非 generator 函数体负例
+
+本轮不新增 `CGEN-*` 规则编号，只补齐 `CGEN-GEN-011` 的语义守门边界：
+
+- 顶层：既有 `sem_yield_outside_generator.xl` 覆盖 `yield 1` 不在任何函数体内。
+- 普通函数：新增 `sem_yield_sync_func.xl`，覆盖 `func bad() as int` 体内误写 `yield 1`。
+- async 非 generator 函数：新增 `sem_yield_async_non_generator.xl`，覆盖 `async func bad() as int` 体内误写 `yield 1`。
+- 生成形态：这些负例均在语义阶段终止，不进入 `xl6_generator_yield_copy(...)` 生成路径。
+
+该补充确认 `yield` 只属于返回 `generator<T>` 的函数体。普通 async 函数即使未来和 generator 共享更多 runtime，也不能因为带有 `async` 标记就允许 `yield`。
+
+## 本轮补充：generator string/var 类型边界负例
+
+本轮不新增 `CGEN-*` 规则编号，只补齐 `RISK-GEN-001` 和 `RISK-GEN-002` 的类型矩阵：
+
+- 元素类型：既有 `sem_generator_string_element.xl`、`sem_generator_class_element.xl`、`sem_generator_function_element.xl` 覆盖 string/class/function；新增 `sem_generator_var_element.xl` 覆盖 `generator<var>`。
+- 参数类型：既有 `sem_generator_class_param.xl`、`sem_generator_function_param.xl` 覆盖 class/function；新增 `sem_generator_string_param.xl` 和 `sem_generator_var_param.xl` 覆盖 string/var。
+- 生成形态：这些负例均在语义阶段终止，不进入 generator frame 复制、`xl6_generator_yield_copy(...)` 或 worker frame 销毁路径。
+
+该补充确认第一阶段 generator 的元素和参数都保持“可按值复制类型”边界。`string` 和 `var` 虽然是语言基础类型，但它们涉及动态所有权和资源生命周期，不能在没有 frame 资源管理协议前进入 generator worker。

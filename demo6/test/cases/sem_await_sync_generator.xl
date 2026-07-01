@@ -1,0 +1,8 @@
+async func load() as int
+    return 1
+end
+
+func nums() as generator<int>
+    int value = await load()
+    yield value
+end

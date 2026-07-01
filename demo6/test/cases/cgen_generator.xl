@@ -74,6 +74,43 @@ end
 
 assert last == 1, "explicit generator failed"
 
+generator<int> consumedGen = nums(1)
+int consumedFirstTotal = 0
+for item in consumedGen
+    consumedFirstTotal = consumedFirstTotal + item
+end
+
+assert consumedFirstTotal == 1, "consumed generator first pass failed"
+
+int consumedAgainState = 0
+try
+    for item in consumedGen
+        consumedAgainState = consumedAgainState + item
+    end
+    consumedAgainState = 100
+catch e
+    if e.message == "iterate null generator" then
+        consumedAgainState = 42
+    end
+end
+
+assert consumedAgainState == 42, "consumed generator should reject second pass"
+
+generator<int> missingGen
+int missingGenState = 0
+try
+    for item in missingGen
+        missingGenState = missingGenState + item
+    end
+    missingGenState = 100
+catch e
+    if e.message == "iterate null generator" then
+        missingGenState = 42
+    end
+end
+
+assert missingGenState == 42, "null generator should reject iteration"
+
 int trueCount = 0
 for flag in toggles()
     if flag then

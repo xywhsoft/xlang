@@ -14,6 +14,32 @@ func scoreStreamAlias(int base) as async generator<int>
     yield await loadScore(first, 4)
 end
 
+func brokenScores() as async generator<int>
+    yield await loadScore(0, 1)
+    throw "saved async generator boom"
+end
+
+func brokenEarlyScores() as async generator<int>
+    int guard = await loadScore(1, 1)
+    if guard == 2 then
+        throw "saved async generator early boom"
+    end
+    yield guard
+end
+
+func emptyScores() as async generator<int>
+    int guard = await loadScore(1, 1)
+    if guard == 0 then
+        yield guard
+    end
+end
+
+func indexedScores() as async generator<int>
+    yield await loadScore(0, 10)
+    yield await loadScore(0, 20)
+    yield await loadScore(0, 30)
+end
+
 int total = 0
 for await score in scoreStream(10)
     total = total + score
@@ -27,5 +53,98 @@ for await score in scoreStreamAlias(20)
 end
 
 assert aliasTotal == 50, "scoreStreamAlias failed"
+
+generator<int> savedScores = scoreStream(30)
+int savedTotal = 0
+for await score in savedScores
+    savedTotal = savedTotal + score
+end
+
+assert savedTotal == 64, "saved async generator failed"
+
+generator<int> savedBrokenScores = brokenScores()
+int savedErrorState = 0
+try
+    for await score in savedBrokenScores
+        savedErrorState = savedErrorState + score
+    end
+    savedErrorState = 100
+catch e
+    if e.message == "saved async generator boom" then
+        savedErrorState = savedErrorState + 10
+    end
+end
+
+assert savedErrorState == 11, "saved async generator error failed"
+
+generator<int> savedBrokenEarlyScores = brokenEarlyScores()
+int savedEarlyErrorState = 0
+try
+    for await score in savedBrokenEarlyScores
+        savedEarlyErrorState = savedEarlyErrorState + score
+    end
+    savedEarlyErrorState = 100
+catch e
+    if e.message == "saved async generator early boom" then
+        savedEarlyErrorState = 42
+    end
+end
+
+assert savedEarlyErrorState == 42, "saved async generator early error failed"
+
+generator<int> savedEmptyScores = emptyScores()
+int savedEmptyCount = 0
+for await score in savedEmptyScores
+    savedEmptyCount = savedEmptyCount + 1
+end
+
+assert savedEmptyCount == 0, "saved empty async generator failed"
+
+generator<int> savedIndexedScores = indexedScores()
+int savedBreakTotal = 0
+for await index, score in savedIndexedScores
+    savedBreakTotal = savedBreakTotal + index * 100 + score
+    if index == 1 then
+        break
+    end
+end
+
+assert savedBreakTotal == 130, "saved async generator break failed"
+
+generator<int> savedIndexedContinueScores = indexedScores()
+int savedContinueTotal = 0
+for await index, score in savedIndexedContinueScores
+    if index == 1 then
+        continue
+    end
+    savedContinueTotal = savedContinueTotal + index * 100 + score
+    if index == 2 then
+        break
+    end
+end
+
+assert savedContinueTotal == 240, "saved async generator continue failed"
+
+generator<int> singleUseScores = scoreStream(40)
+int singleUseTotal = 0
+for await score in singleUseScores
+    singleUseTotal = singleUseTotal + score
+end
+
+assert singleUseTotal == 84, "single-use async generator first pass failed"
+
+int singleUseState = 0
+try
+    for await score in singleUseScores
+        singleUseState = singleUseState + score
+    end
+    singleUseState = 100
+catch e
+    if e.message == "iterate null generator" then
+        singleUseState = 42
+    end
+end
+
+assert singleUseState == 42, "single-use async generator second pass failed"
 
 print("async generator ok")

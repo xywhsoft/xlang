@@ -11,6 +11,16 @@ func slowWorker() as int
     return 9
 end
 
+func makeThreadWorker(int code) as func() as int
+    return func() as int
+        return code
+    end
+end
+
+class ThreadFuncBox
+    func() as int op
+end
+
 func() as int borrowedWorker = worker
 
 func() as int missingWorker
@@ -58,6 +68,41 @@ int capturedCode = captured.exitCode()
 
 assert capturedWaited, "thread captured wait failed"
 assert capturedCode == 7, "thread captured exit code failed"
+
+func() as int borrowedThreadLeft = makeThreadWorker(11)
+func() as int borrowedThreadRight = makeThreadWorker(12)
+bool chooseBorrowedThread = false
+thread conditionalBorrowedThread = thread(chooseBorrowedThread ? borrowedThreadLeft : borrowedThreadRight)
+assert conditionalBorrowedThread.wait(), "thread borrowed conditional wait failed"
+assert conditionalBorrowedThread.exitCode() == 12, "thread borrowed conditional exit code failed"
+assert borrowedThreadRight() == 12, "thread borrowed conditional should not consume right source"
+chooseBorrowedThread = true
+thread conditionalBorrowedThreadAgain = thread(chooseBorrowedThread ? borrowedThreadLeft : borrowedThreadRight)
+assert conditionalBorrowedThreadAgain.wait(), "thread borrowed conditional second wait failed"
+assert conditionalBorrowedThreadAgain.exitCode() == 11, "thread borrowed conditional second exit code failed"
+assert borrowedThreadLeft() == 11, "thread borrowed conditional should not consume left source"
+
+func() as int mixedThreadSource = makeThreadWorker(15)
+bool chooseMixedThread = false
+thread mixedThreadOwned = thread(chooseMixedThread ? mixedThreadSource : makeThreadWorker(16))
+assert mixedThreadOwned.wait(), "thread mixed conditional owned wait failed"
+assert mixedThreadOwned.exitCode() == 16, "thread mixed conditional owned exit code failed"
+assert mixedThreadSource() == 15, "thread mixed conditional should leave source after owned branch"
+chooseMixedThread = true
+thread mixedThreadBorrowed = thread(chooseMixedThread ? mixedThreadSource : makeThreadWorker(17))
+assert mixedThreadBorrowed.wait(), "thread mixed conditional borrowed wait failed"
+assert mixedThreadBorrowed.exitCode() == 15, "thread mixed conditional borrowed exit code failed"
+assert mixedThreadSource() == 15, "thread mixed conditional should retain copied borrowed branch"
+
+ThreadFuncBox threadBox
+threadBox.op = makeThreadWorker(13)
+ThreadFuncBox threadBoxAlt
+threadBoxAlt.op = makeThreadWorker(14)
+bool chooseThreadMember = false
+thread conditionalMemberThread = thread(chooseThreadMember ? threadBox.op : threadBoxAlt.op)
+assert conditionalMemberThread.wait(), "thread borrowed conditional member wait failed"
+assert conditionalMemberThread.exitCode() == 14, "thread borrowed conditional member exit code failed"
+assert threadBoxAlt.op() == 14, "thread borrowed conditional member should not consume source"
 
 thread stopped = thread(zero)
 bool stoppedSignal = stopped.stop()

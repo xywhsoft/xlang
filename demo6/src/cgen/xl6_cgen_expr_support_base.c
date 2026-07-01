@@ -589,6 +589,51 @@ static int xl6CgenAwaitExprReturnsOwnedTemporary(const XL6_AstNode* expr)
     return operand != NULL && operand->kind == XL6_AST_CALL;
 }
 
+static int xl6CgenAwaitExprHasConditionalOperand(const XL6_AstNode* expr)
+{
+    const XL6_AstNode* operand;
+
+    if ( expr == NULL || expr->kind != XL6_AST_AWAIT || expr->childCount == 0 ) {
+        return 0;
+    }
+    operand = expr->children[0];
+    return operand != NULL && operand->kind == XL6_AST_CONDITIONAL && operand->childCount > 2;
+}
+
+static int xl6CgenAwaitExprReturnsOwnedTemporaryForType(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* expr,
+    const XL6_AstNode* resultType)
+{
+    if ( xl6CgenAwaitExprReturnsOwnedTemporary(expr) ) {
+        return 1;
+    }
+    if ( !xl6CgenAwaitExprHasConditionalOperand(expr) ) {
+        return 0;
+    }
+
+    /*
+        条件 await 会在分支层把 borrowed future 复制成临时引用。
+        class 结果需要额外 retain 成员函数字段，不能只靠这个 owned 标记。
+    */
+    return !xl6CgenIsClassType(ctx, resultType);
+}
+
+static int xl6CgenAwaitExprReturnsOwnedTemporaryCtx(XL6_CgenContext* ctx, const XL6_AstNode* expr)
+{
+    XL6_AstNode* resultType;
+    int result;
+
+    if ( expr == NULL || expr->kind != XL6_AST_AWAIT ) {
+        return 0;
+    }
+
+    resultType = xl6CgenCloneExprTypeForInference(ctx, expr);
+    result = xl6CgenAwaitExprReturnsOwnedTemporaryForType(ctx, expr, resultType);
+    xl6AstFree(resultType);
+    return result;
+}
+
 static int xl6CgenExprIsClassBorrow(XL6_CgenContext* ctx, const XL6_AstNode* expr, const XL6_AstNode* typeNode)
 {
     XL6_AstNode* exprType;
@@ -599,7 +644,7 @@ static int xl6CgenExprIsClassBorrow(XL6_CgenContext* ctx, const XL6_AstNode* exp
     if ( ctx == NULL || expr == NULL || !xl6CgenClassTypeNeedsFunctionFieldCleanup(ctx, typeNode) ) {
         return 0;
     }
-    if ( xl6CgenAwaitExprReturnsOwnedTemporary(expr) ) {
+    if ( xl6CgenAwaitExprReturnsOwnedTemporaryForType(ctx, expr, typeNode) ) {
         return 0;
     }
     if ( expr->kind != XL6_AST_NAME &&
@@ -1034,6 +1079,10 @@ static int xl6CgenExprIsFunctionBorrow(XL6_CgenContext* ctx, const XL6_AstNode* 
     if ( ctx == NULL || expr == NULL ) {
         return 0;
     }
+    if ( expr->kind == XL6_AST_CONDITIONAL && expr->childCount > 2 ) {
+        return xl6CgenExprIsFunctionBorrow(ctx, expr->children[1]) &&
+               xl6CgenExprIsFunctionBorrow(ctx, expr->children[2]);
+    }
     if ( expr->kind == XL6_AST_MEMBER ) {
         XL6_AstNode* memberType = xl6CgenCloneMemberFieldTypeForInference(ctx, expr);
         int result = xl6CgenIsFunctionType(memberType);
@@ -1041,7 +1090,7 @@ static int xl6CgenExprIsFunctionBorrow(XL6_CgenContext* ctx, const XL6_AstNode* 
         return result;
     }
     if ( expr->kind == XL6_AST_AWAIT ) {
-        if ( xl6CgenAwaitExprReturnsOwnedTemporary(expr) ) {
+        if ( xl6CgenAwaitExprReturnsOwnedTemporaryCtx(ctx, expr) ) {
             return 0;
         }
         XL6_AstNode* awaitType = xl6CgenCloneExprTypeForInference(ctx, expr);
@@ -1100,7 +1149,7 @@ static int xl6CgenExprIsXValueBorrow(XL6_CgenContext* ctx, const XL6_AstNode* ex
         XL6_AstNode* awaitType;
         int result;
 
-        if ( xl6CgenAwaitExprReturnsOwnedTemporary(expr) ) {
+        if ( xl6CgenAwaitExprReturnsOwnedTemporaryCtx(ctx, expr) ) {
             return 0;
         }
         awaitType = xl6CgenCloneExprTypeForInference(ctx, expr);

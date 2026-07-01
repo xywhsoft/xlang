@@ -150,10 +150,10 @@ static int xl6CgenMemberFunctionInvoke(XL6_CgenContext* ctx, const XL6_AstNode* 
 
         if ( xl6CgenFunctionTypeSupportsErasedCall(ctx, functionType) ) {
             if ( returnCount == 1 ) {
-                xl6CgenFunctionInvokeFallbackExprForExpr(ctx, returns->children[0], member, args);
+                xl6CgenFunctionInvokeFallbackExprForExpr(ctx, returns->children[0], member, functionType, args, 0);
             } else {
                 xl6OutputPuts("xl6_xvalue_drop(", ctx->out);
-                xl6CgenFunctionInvokeFallbackCallExpr(ctx, member, args);
+                xl6CgenFunctionInvokeFallbackCallExpr(ctx, member, functionType, args, 0);
                 xl6OutputPutc(')', ctx->out);
             }
             xl6AstFree(functionType);
@@ -209,6 +209,48 @@ static void xl6CgenAnonMakeCall(XL6_CgenContext* ctx, const XL6_AstNode* node)
     xl6OutputPutc(')', ctx->out);
 }
 
+static void xl6CgenFunctionValueExpr(XL6_CgenContext* ctx, const XL6_AstNode* expr, const XL6_AstNode* targetType);
+static void xl6CgenConditionExpr(XL6_CgenContext* ctx, const XL6_AstNode* expr);
+
+static int xl6CgenFunctionValueConditionalNeedsOwnedBranches(XL6_CgenContext* ctx, const XL6_AstNode* expr)
+{
+    int thenBorrow;
+    int elseBorrow;
+
+    if ( expr == NULL || expr->kind != XL6_AST_CONDITIONAL || expr->childCount < 3 ) {
+        return 0;
+    }
+    thenBorrow = xl6CgenExprIsFunctionBorrow(ctx, expr->children[1]);
+    elseBorrow = xl6CgenExprIsFunctionBorrow(ctx, expr->children[2]);
+    if ( thenBorrow != elseBorrow ) {
+        return 1;
+    }
+    return xl6CgenFunctionValueConditionalNeedsOwnedBranches(ctx, expr->children[1]) ||
+           xl6CgenFunctionValueConditionalNeedsOwnedBranches(ctx, expr->children[2]);
+}
+
+static void xl6CgenFunctionValueConditionalBranch(XL6_CgenContext* ctx, const XL6_AstNode* expr, const XL6_AstNode* targetType)
+{
+    if ( xl6CgenExprIsFunctionBorrow(ctx, expr) ) {
+        xl6OutputPuts("xl6_function_copy_value(", ctx->out);
+        xl6CgenFunctionValueExpr(ctx, expr, targetType);
+        xl6OutputPutc(')', ctx->out);
+        return;
+    }
+    xl6CgenFunctionValueExpr(ctx, expr, targetType);
+}
+
+static void xl6CgenFunctionValueConditionalExpr(XL6_CgenContext* ctx, const XL6_AstNode* expr, const XL6_AstNode* targetType)
+{
+    xl6OutputPutc('(', ctx->out);
+    xl6CgenConditionExpr(ctx, expr->children[0]);
+    xl6OutputPuts(" ? ", ctx->out);
+    xl6CgenFunctionValueConditionalBranch(ctx, expr->children[1], targetType);
+    xl6OutputPuts(" : ", ctx->out);
+    xl6CgenFunctionValueConditionalBranch(ctx, expr->children[2], targetType);
+    xl6OutputPutc(')', ctx->out);
+}
+
 static void xl6CgenFunctionValueExpr(XL6_CgenContext* ctx, const XL6_AstNode* expr, const XL6_AstNode* targetType)
 {
     if ( expr != NULL && expr->kind == XL6_AST_NAME &&
@@ -219,6 +261,11 @@ static void xl6CgenFunctionValueExpr(XL6_CgenContext* ctx, const XL6_AstNode* ex
             xl6CgenFunctionValueMakeCall(ctx, func, targetType);
             return;
         }
+    }
+    if ( xl6CgenIsFunctionType(targetType) &&
+         xl6CgenFunctionValueConditionalNeedsOwnedBranches(ctx, expr) ) {
+        xl6CgenFunctionValueConditionalExpr(ctx, expr, targetType);
+        return;
     }
     xl6CgenExpr(ctx, expr);
 }
