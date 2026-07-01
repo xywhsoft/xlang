@@ -8166,7 +8166,11 @@ static int xl6SemCheckChannelCtorCall(XL6_SemContext* ctx, XL6_AstNode* node)
         return ok;
     }
     if ( args->childCount > 1 ) {
-        xl6SemErrorNode(ctx, args, "channel 构造函数最多接受一个容量参数");
+        XL6_AstNode* errNode = args->children[1] != NULL ? args->children[1] : (args->children[0] != NULL ? args->children[0] : node);
+        if ( errNode != NULL && errNode->line <= 0 && errNode->childCount > 0 && errNode->children[0] != NULL ) {
+            errNode = errNode->children[0];
+        }
+        xl6SemErrorNode(ctx, errNode != NULL ? errNode : args, "channel 构造函数最多接受一个容量参数");
         ok = 0;
     }
     memset(&intType, 0, sizeof(intType));
@@ -8450,6 +8454,7 @@ static XL6_AstNode* xl6SemCloneTaskCallType(XL6_SemContext* ctx, XL6_AstNode* ca
     XL6_AstNode* funcType;
     XL6_AstNode* valueType;
     XL6_AstNode* arrayType;
+    const XL6_AstNode* concreteValueType;
 
     if ( !xl6SemIsTaskNamespaceMemberCall(call, &name) ) {
         return NULL;
@@ -8467,11 +8472,15 @@ static XL6_AstNode* xl6SemCloneTaskCallType(XL6_SemContext* ctx, XL6_AstNode* ca
             return NULL;
         }
         returns = funcType->children[1];
-        if ( returns == NULL || returns->childCount != 1 ) {
+        if ( returns == NULL || returns->childCount > 1 ) {
             xl6AstFree(funcType);
             return NULL;
         }
-        valueType = xl6SemCloneTypeNode(returns->children[0]);
+        if ( returns->childCount == 0 ) {
+            valueType = xl6AstNewText(XL6_AST_TYPE, "null", 4, NULL);
+        } else {
+            valueType = xl6SemCloneTypeNode(returns->children[0]);
+        }
         xl6AstFree(funcType);
         return xl6SemNewGenericUnaryType("future", valueType, call);
     }
@@ -8481,6 +8490,10 @@ static XL6_AstNode* xl6SemCloneTaskCallType(XL6_SemContext* ctx, XL6_AstNode* ca
         return NULL;
     }
     if ( xl6TextEquals(name, "race") ) {
+        return xl6SemNewGenericUnaryType("future", valueType, call);
+    }
+    concreteValueType = xl6SemResolveAliasType(ctx, valueType);
+    if ( concreteValueType != NULL && xl6TextEquals(concreteValueType->text, "null") ) {
         return xl6SemNewGenericUnaryType("future", valueType, call);
     }
     arrayType = xl6SemNewGenericUnaryType("array", valueType, call);
@@ -8523,26 +8536,28 @@ static int xl6SemCheckTaskSpawnCall(XL6_SemContext* ctx, XL6_AstNode* node)
 
     params = fnType->children[0];
     returns = fnType->children[1];
-    if ( returns == NULL || returns->childCount != 1 ) {
-        xl6SemErrorNode(ctx, fnExpr != NULL ? fnExpr : node, "task.spawn currently supports only single-return func values");
+    if ( returns == NULL || returns->childCount > 1 ) {
+        xl6SemErrorNode(ctx, fnExpr != NULL ? fnExpr : node, "task.spawn currently supports only no-return or single-return func values");
         xl6AstFree(fnType);
         return 0;
     }
-    returnType = xl6SemResolveAliasType(ctx, returns->children[0]);
-    if ( xl6TextEquals(returnType != NULL ? returnType->text : NULL, "var") ) {
-        xl6SemErrorNode(ctx, returns->children[0], "task.spawn return type cannot be var in the first XRT future bridge");
-        xl6AstFree(fnType);
-        return 0;
-    }
-    if ( xl6SemIsContainerBaseTypeName(returnType != NULL ? returnType->text : NULL) ) {
-        xl6SemErrorNode(ctx, returns->children[0], "task.spawn return type must be supported by the current XRT xvalue call bridge");
-        xl6AstFree(fnType);
-        return 0;
-    }
-    if ( !xl6SemTypeSupportsTaskSpawnXValueBridge(ctx, returns->children[0]) ) {
-        xl6SemErrorNode(ctx, returns->children[0], "task.spawn return type must be supported by the current XRT xvalue call bridge");
-        xl6AstFree(fnType);
-        return 0;
+    if ( returns->childCount == 1 ) {
+        returnType = xl6SemResolveAliasType(ctx, returns->children[0]);
+        if ( xl6TextEquals(returnType != NULL ? returnType->text : NULL, "var") ) {
+            xl6SemErrorNode(ctx, returns->children[0], "task.spawn return type cannot be var in the first XRT future bridge");
+            xl6AstFree(fnType);
+            return 0;
+        }
+        if ( xl6SemIsContainerBaseTypeName(returnType != NULL ? returnType->text : NULL) ) {
+            xl6SemErrorNode(ctx, returns->children[0], "task.spawn return type must be supported by the current XRT xvalue call bridge");
+            xl6AstFree(fnType);
+            return 0;
+        }
+        if ( !xl6SemTypeSupportsTaskSpawnXValueBridge(ctx, returns->children[0]) ) {
+            xl6SemErrorNode(ctx, returns->children[0], "task.spawn return type must be supported by the current XRT xvalue call bridge");
+            xl6AstFree(fnType);
+            return 0;
+        }
     }
 
     paramCount = params != NULL ? params->childCount : 0;
@@ -8953,11 +8968,41 @@ static XL6_AstNode* xl6SemInferAutoTypeNode(XL6_SemContext* ctx, XL6_AstNode* ex
             return xl6SemCloneTypeNode(returns->children[0]);
         }
     }
+    if ( expr->kind == XL6_AST_CONDITIONAL && expr->childCount > 2 ) {
+        XL6_AstNode* thenType = xl6SemInferAutoTypeNode(ctx, expr->children[1]);
+        XL6_AstNode* elseType = xl6SemInferAutoTypeNode(ctx, expr->children[2]);
+        const XL6_AstNode* thenConcrete = xl6SemResolveAliasType(ctx, thenType);
+        const XL6_AstNode* elseConcrete = xl6SemResolveAliasType(ctx, elseType);
+        XL6_AstNode* result = NULL;
+
+        if ( thenConcrete != NULL && xl6TextEquals(thenConcrete->text, "null") && elseType != NULL ) {
+            result = xl6SemCloneTypeNode(elseType);
+        } else if ( elseConcrete != NULL && xl6TextEquals(elseConcrete->text, "null") && thenType != NULL ) {
+            result = xl6SemCloneTypeNode(thenType);
+        } else if ( thenType != NULL && elseType != NULL && xl6SemTypeEquals(ctx, thenType, elseType) ) {
+            result = xl6SemCloneTypeNode(thenType);
+        } else if ( (thenConcrete != NULL && xl6TextEquals(thenConcrete->text, "var")) ||
+                    (elseConcrete != NULL && xl6TextEquals(elseConcrete->text, "var")) ) {
+            result = xl6AstNewText(XL6_AST_TYPE, "var", 3, NULL);
+        }
+
+        xl6AstFree(thenType);
+        xl6AstFree(elseType);
+        if ( result != NULL ) {
+            return result;
+        }
+    }
     if ( expr->kind == XL6_AST_NAME ) {
         sym = xl6ScopeFind(ctx->scope, expr->text);
         if ( sym != NULL && sym->type != NULL &&
              !xl6TextEquals(sym->type->text, "auto") && !xl6TextEquals(sym->type->text, "var") ) {
             return xl6SemCloneTypeNode(sym->type);
+        }
+    }
+    if ( expr->kind == XL6_AST_MEMBER ) {
+        XL6_AstNode* memberType = xl6SemCloneMemberFieldType(ctx, expr);
+        if ( memberType != NULL ) {
+            return memberType;
         }
     }
     if ( expr->kind == XL6_AST_CALL && expr->childCount > 0 &&
@@ -8997,6 +9042,21 @@ static XL6_AstNode* xl6SemInferAutoTypeNode(XL6_SemContext* ctx, XL6_AstNode* ex
                 }
             }
             return NULL;
+        }
+        if ( expr->children[0]->kind == XL6_AST_MEMBER ) {
+            XL6_AstNode* ownedReturnType = NULL;
+            XL6_AstNode* memberReturns = xl6SemCallReturnTypesEx(ctx, expr, &ownedReturnType);
+            XL6_AstNode* result = NULL;
+
+            /*
+             * 成员函数返回的泛型容器必须保留完整类型节点。
+             * 只返回 array/list/set/dict 名称会让 for-in 无法推断 item 类型。
+             */
+            if ( memberReturns != NULL && memberReturns->childCount == 1 ) {
+                result = xl6SemCloneTypeNode(memberReturns->children[0]);
+            }
+            xl6AstFree(ownedReturnType);
+            return result;
         }
         if ( expr->children[0]->kind != XL6_AST_NAME ) {
             return NULL;

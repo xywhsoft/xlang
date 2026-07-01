@@ -12,7 +12,7 @@ $stdlibPath = Join-Path $Root "src\stdlib\xl6_stdlib.c"
 $apiPath = Join-Path $Root "src\api\xl_api.c"
 $cgenDir = Join-Path $Root "src\cgen"
 $minStdlibCsymbols = 161
-$minRuntimeExports = 319
+$minRuntimeExports = 370
 
 function Read-Utf8Text($path)
 {

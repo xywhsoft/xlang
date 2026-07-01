@@ -30,9 +30,11 @@ static void xl6CgenEmitArgvArrayHelper(XL6_Output* out)
     xl6OutputPuts("}\n\n", out);
 }
 
-static void xl6CgenEmitMainWrapper(XL6_CgenContext* ctx)
+static void xl6CgenEmitMainLikeWrapper(XL6_CgenContext* ctx, const char* symbolName)
 {
-    xl6OutputPuts("int main(int argc, char** argv)\n{\n", ctx->out);
+    xl6OutputPuts("int ", ctx->out);
+    xl6OutputPuts(symbolName != NULL ? symbolName : "main", ctx->out);
+    xl6OutputPuts("(int argc, char** argv)\n{\n", ctx->out);
     xl6OutputPuts("    XL_InitOptions __xl6_options = xlInitOptions(argc, argv);\n", ctx->out);
     xl6OutputPuts("    xvalue __xl6_arg;\n", ctx->out);
     xl6OutputPuts("    int __xl6_code;\n", ctx->out);
@@ -59,6 +61,16 @@ static void xl6CgenEmitMainWrapper(XL6_CgenContext* ctx)
     xl6OutputPuts("    xlUnit();\n", ctx->out);
     xl6OutputPuts("    return __xl6_code;\n", ctx->out);
     xl6OutputPuts("}\n", ctx->out);
+}
+
+static void xl6CgenEmitMainWrapper(XL6_CgenContext* ctx)
+{
+    xl6CgenEmitMainLikeWrapper(ctx, "main");
+}
+
+static void xl6CgenEmitScriptEntryWrapper(XL6_CgenContext* ctx)
+{
+    xl6CgenEmitMainLikeWrapper(ctx, "xl_script_entry");
 }
 
 static void xl6CgenEmitTopLevelXlangMain(XL6_CgenContext* ctx, XL6_AstNode* root, int hasErrorRuntime)

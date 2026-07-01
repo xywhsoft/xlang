@@ -584,3 +584,14 @@ end
 
 assert finallyVoidState == 42, "async void finally throw should override original failed future error"
 assert not task.cancel(finallyVoidFuture), "failed async void finally future should not be canceled"
+
+try
+    await finallyVoidFuture
+    finallyVoidState = 2
+catch e
+    if e.message == "async finally void override boom" then
+        finallyVoidState = 84
+    end
+end
+
+assert finallyVoidState == 84, "failed async void finally future should keep final error after cancel"

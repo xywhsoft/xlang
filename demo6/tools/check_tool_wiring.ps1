@@ -12,7 +12,7 @@ $toolsDir = Join-Path $Root "tools"
 $toolsReadme = Join-Path $toolsDir "README.md"
 $testBat = Join-Path $Root "test.bat"
 $rc0Guard = Join-Path $toolsDir "rc0_guard.ps1"
-$minCheckScripts = 25
+$minCheckScripts = 26
 $failures = New-Object System.Collections.Generic.List[string]
 
 function Add-Failure($message)

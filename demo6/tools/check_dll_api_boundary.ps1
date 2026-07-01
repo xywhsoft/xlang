@@ -9,12 +9,13 @@ if ( $Root -eq "" ) {
 }
 
 $headerPath = Join-Path $Root "include\xl.h"
+$xlcHeaderPath = Join-Path $Root "include\xlc.h"
 $apiPath = Join-Path $Root "src\api\xl_api.c"
 $docName = "DLL" + ([char]0x5D4C) + ([char]0x5165) + ([char]0x5F0F) + ([char]0x8FD0) + ([char]0x884C) + ([char]0x5E93) + ([char]0x8BBE) + ([char]0x8BA1) + ".md"
 $docPath = Join-Path (Join-Path $Root "docs") $docName
 $buildDllPath = Join-Path $Root "build_dll.bat"
-$minPublicApis = 19
-$minDllHostExamples = 3
+$minPublicApis = 61
+$minDllHostExamples = 6
 $failures = New-Object System.Collections.Generic.List[string]
 
 function Add-Failure($message)
@@ -124,7 +125,7 @@ function Remove-CCommentsAndStrings($text)
     return $builder.ToString()
 }
 
-foreach ( $path in @($headerPath, $apiPath, $docPath, $buildDllPath) ) {
+foreach ( $path in @($headerPath, $xlcHeaderPath, $apiPath, $docPath, $buildDllPath) ) {
     if ( ! (Test-Path -LiteralPath $path -PathType Leaf) ) {
         Add-Failure "required DLL API file missing: $path"
     }
@@ -132,6 +133,8 @@ foreach ( $path in @($headerPath, $apiPath, $docPath, $buildDllPath) ) {
 
 if ( $failures.Count -eq 0 ) {
     $header = Read-Utf8Text $headerPath
+    $xlcHeader = Read-Utf8Text $xlcHeaderPath
+    $publicHeaders = $header + "`n" + $xlcHeader
     $api = Read-Utf8Text $apiPath
     $doc = Read-Utf8Text $docPath
     $buildDll = Read-Utf8Text $buildDllPath
@@ -158,15 +161,15 @@ if ( $failures.Count -eq 0 ) {
         Add-Failure "xl.dll C host example baseline regressed: $($exampleSources.Count) < $minDllHostExamples"
     }
 
-    foreach ( $line in ($header -split "`r?`n") ) {
-        $match = [regex]::Match($line, '^\s*XL_API\s+(.+?)\s+(xl[A-Za-z_][A-Za-z0-9_]*)\s*\(([^;]*)\)\s*;')
+    foreach ( $line in ($publicHeaders -split "`r?`n") ) {
+        $match = [regex]::Match($line, '^\s*(?:XL_API|XLC_API)\s+(.+?)\s+((?:xl|xlc)[A-Za-z_][A-Za-z0-9_]*)\s*\(([^;]*)\)\s*;')
         if ( $match.Success ) {
             $headerMatches.Add($match) | Out-Null
         }
     }
 
     if ( $headerMatches.Count -eq 0 ) {
-        Add-Failure "include/xl.h has no XL_API declarations"
+        Add-Failure "public DLL headers have no API declarations"
     }
 
     if ( $headerMatches.Count -lt $minPublicApis ) {
@@ -176,7 +179,7 @@ if ( $failures.Count -eq 0 ) {
     foreach ( $match in $headerMatches ) {
         $name = $match.Groups[2].Value
         if ( ! $headerApis.Add($name) ) {
-            Add-Failure "duplicate XL_API declaration in include/xl.h: $name"
+            Add-Failure "duplicate public API declaration in DLL headers: $name"
         }
     }
 
@@ -198,21 +201,22 @@ if ( $failures.Count -eq 0 ) {
 
     foreach ( $name in ($headerApis | Sort-Object) ) {
         if ( ! $apiDefinitions.Contains($name) ) {
-            Add-Failure "XL_API declaration has no public implementation: $name"
+            Add-Failure "public API declaration has no implementation: $name"
         }
 
         if ( $doc -notmatch ('(?<![A-Za-z0-9_])' + [regex]::Escape($name) + '(?![A-Za-z0-9_])') ) {
             Add-Failure "DLL API design document does not mention public API: $name"
         }
 
-        if ( $exampleCode -notmatch ('(?<![A-Za-z0-9_])' + [regex]::Escape($name) + '\s*\(') ) {
+        if ( $name.StartsWith("xl") -and ! $name.StartsWith("xlc") -and
+             $exampleCode -notmatch ('(?<![A-Za-z0-9_])' + [regex]::Escape($name) + '\s*\(') ) {
             Add-Failure "xl.dll C host examples do not call public API: $name"
         }
     }
 
     foreach ( $name in ($apiDefinitions | Sort-Object) ) {
         if ( ! $headerApis.Contains($name) ) {
-            Add-Failure "public xl* implementation is not declared in include/xl.h: $name"
+            Add-Failure "public xl*/xlc* implementation is not declared in DLL public headers: $name"
         }
     }
 

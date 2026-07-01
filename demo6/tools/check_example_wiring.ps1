@@ -9,7 +9,7 @@ if ( $Root -eq "" ) {
 }
 
 $exampleDir = Join-Path $Root "examples"
-$minExampleFiles = 57
+$minExampleFiles = 73
 $wiringFiles = @(
     "test.bat",
     "test_all.bat",

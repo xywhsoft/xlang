@@ -321,6 +321,9 @@ int xl6CgenEmitCEx(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags, cons
         xl6CgenEmitTopLevelXlangMain(&ctx, root, hasErrorRuntime);
     }
     if ( mainFunc != NULL || hasTopLevel ) {
+        if ( options != NULL && options->emitScriptEntry ) {
+            xl6CgenEmitScriptEntryWrapper(&ctx);
+        }
         xl6CgenEmitMainWrapper(&ctx);
     }
 

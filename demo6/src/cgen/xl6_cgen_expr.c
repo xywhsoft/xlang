@@ -249,6 +249,20 @@ static void xl6CgenExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
             if ( xl6CgenClassConstructorExpr(ctx, node) ) {
                 break;
             }
+            if ( callee->kind != XL6_AST_NAME ) {
+                XL6_AstNode* calleeType = xl6CgenCloneExprTypeForInference(ctx, callee);
+                if ( xl6CgenIsFunctionType(calleeType) ) {
+                    xl6CgenFunctionInvokeExpr(ctx, callee, calleeType, node->childCount > 1 ? node->children[1] : NULL);
+                    xl6AstFree(calleeType);
+                    break;
+                }
+                if ( calleeType != NULL && xl6CTextEquals(calleeType->text, "var") ) {
+                    xl6CgenVarFunctionInvokeExpr(ctx, callee, node->childCount > 1 ? node->children[1] : NULL);
+                    xl6AstFree(calleeType);
+                    break;
+                }
+                xl6AstFree(calleeType);
+            }
             if ( callee->kind == XL6_AST_GENERIC_INSTANT ) {
                 const XL6_AstNode* instantName = callee->childCount > 0 ? callee->children[0] : NULL;
                 const XL6_AstNode* typeArgs = callee->childCount > 1 ? callee->children[1] : NULL;

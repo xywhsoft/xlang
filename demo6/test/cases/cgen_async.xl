@@ -216,6 +216,66 @@ assert int(postCancelVar) == 120, "completed async var future should remain awai
 var temporaryVar = await makeVarAsync(130)
 assert int(temporaryVar) == 130, "temporary await var result failed"
 
+future<int> conditionalAwaitSource = addAsync(300, 1)
+bool chooseConditionalAwait = true
+int conditionalAwaitBorrowed = await (chooseConditionalAwait ? conditionalAwaitSource : addAsync(310, 1))
+assert conditionalAwaitBorrowed == 301, "conditional await borrowed int branch failed"
+int conditionalAwaitSourceAgain = await conditionalAwaitSource
+assert conditionalAwaitSourceAgain == 301, "conditional await borrowed int branch should keep named future awaitable"
+chooseConditionalAwait = false
+int conditionalAwaitOwned = await (chooseConditionalAwait ? conditionalAwaitSource : addAsync(320, 1))
+assert conditionalAwaitOwned == 321, "conditional await owned int branch failed"
+
+auto conditionalVoidSource = doneAsync()
+await conditionalVoidSource
+chooseConditionalAwait = true
+await (chooseConditionalAwait ? conditionalVoidSource : doneAsync())
+chooseConditionalAwait = false
+await (chooseConditionalAwait ? conditionalVoidSource : doneAsync())
+
+future<var> conditionalVarSource = makeVarAsync(330)
+chooseConditionalAwait = true
+var conditionalVarBorrowed = await (chooseConditionalAwait ? conditionalVarSource : makeVarAsync(340))
+assert int(conditionalVarBorrowed) == 330, "conditional await borrowed var branch failed"
+var conditionalVarSourceAgain = await conditionalVarSource
+assert int(conditionalVarSourceAgain) == 330, "conditional await borrowed var branch should keep named future awaitable"
+chooseConditionalAwait = false
+var conditionalVarOwned = await (chooseConditionalAwait ? conditionalVarSource : makeVarAsync(350))
+assert int(conditionalVarOwned) == 350, "conditional await owned var branch failed"
+
+future<func(int) as int> conditionalFnSource = makeAdderAsync(360)
+chooseConditionalAwait = true
+func(int) as int conditionalFnBorrowed = await (chooseConditionalAwait ? conditionalFnSource : makeAdderAsync(370))
+assert conditionalFnBorrowed(2) == 362, "conditional await borrowed function branch failed"
+func(int) as int conditionalFnSourceAgain = await conditionalFnSource
+assert conditionalFnSourceAgain(3) == 363, "conditional await borrowed function branch should keep named future awaitable"
+chooseConditionalAwait = false
+func(int) as int conditionalFnOwned = await (chooseConditionalAwait ? conditionalFnSource : makeAdderAsync(380))
+assert conditionalFnOwned(4) == 384, "conditional await owned function branch failed"
+
+future<AsyncBox> conditionalBoxSource = makeBoxAsync(385)
+chooseConditionalAwait = true
+AsyncBox conditionalBoxBorrowed = await (chooseConditionalAwait ? conditionalBoxSource : makeBoxAsync(395))
+assert conditionalBoxBorrowed.op(5) + conditionalBoxBorrowed.bias == 775, "conditional await borrowed class branch failed"
+AsyncBox conditionalBoxSourceAgain = await conditionalBoxSource
+assert conditionalBoxSourceAgain.op(6) + conditionalBoxSourceAgain.bias == 776, "conditional await borrowed class branch should keep named future awaitable"
+chooseConditionalAwait = false
+AsyncBox conditionalBoxOwned = await (chooseConditionalAwait ? conditionalBoxSource : makeBoxAsync(395))
+assert conditionalBoxOwned.op(7) + conditionalBoxOwned.bias == 797, "conditional await owned class branch failed"
+
+future<int> conditionalMissingAwait
+int conditionalMissingAwaitState = 0
+bool chooseConditionalMissingAwait = false
+try
+    int conditionalMissingAwaitValue = await (chooseConditionalMissingAwait ? addAsync(390, 1) : conditionalMissingAwait)
+    conditionalMissingAwaitState = conditionalMissingAwaitValue
+catch e
+    if e.message == "await on null future" then
+        conditionalMissingAwaitState = 42
+    end
+end
+assert conditionalMissingAwaitState == 42, "conditional await null int branch should raise AsyncError"
+
 string temporaryGreeting = await greetAsync("temp")
 assert temporaryGreeting == "hello temp", "temporary await string result failed"
 
@@ -227,6 +287,16 @@ assert namedGreetingB == "hello named", "named future string second await failed
 assert not task.cancel(greetingFuture), "completed async string future should not be canceled"
 string postCancelGreeting = await greetingFuture
 assert postCancelGreeting == "hello named", "completed async string future should remain awaitable after cancel"
+
+future<string> conditionalGreetingSource = greetAsync("conditional named")
+bool chooseConditionalGreeting = true
+string conditionalGreetingBorrowed = await (chooseConditionalGreeting ? conditionalGreetingSource : greetAsync("conditional owned"))
+assert conditionalGreetingBorrowed == "hello conditional named", "conditional await borrowed string branch failed"
+string conditionalGreetingAgain = await conditionalGreetingSource
+assert conditionalGreetingAgain == "hello conditional named", "conditional await borrowed string branch should keep named future awaitable"
+chooseConditionalGreeting = false
+string conditionalGreetingOwned = await (chooseConditionalGreeting ? conditionalGreetingSource : greetAsync("conditional owned"))
+assert conditionalGreetingOwned == "hello conditional owned", "conditional await owned string branch failed"
 
 future<int> missingAwaitInt
 int missingAwaitIntState = 0
@@ -704,6 +774,16 @@ array<int> postCancelItems = await itemsFuture
 assert postCancelItems.length == 3, "completed async typed array future should remain awaitable after cancel"
 assert int(postCancelItems[1]) == 4, "completed async typed array post-cancel item failed"
 
+future<array<int>> conditionalItemsSource = makeItemsAsync()
+bool chooseConditionalItems = true
+array<int> conditionalItemsBorrowed = await (chooseConditionalItems ? conditionalItemsSource : slowMakeItemsAsync())
+assert int(conditionalItemsBorrowed[0]) == 3, "conditional await borrowed typed array branch failed"
+array<int> conditionalItemsAgain = await conditionalItemsSource
+assert int(conditionalItemsAgain[2]) == 5, "conditional await borrowed typed array branch should keep named future awaitable"
+chooseConditionalItems = false
+array<int> conditionalItemsOwned = await (chooseConditionalItems ? conditionalItemsSource : slowMakeItemsAsync())
+assert int(conditionalItemsOwned[0]) == 13, "conditional await owned typed array branch failed"
+
 list<int> temporaryList = await makeListAsync()
 assert temporaryList.length == 2, "temporary await typed list length failed"
 assert int(temporaryList[2]) == 8, "temporary await typed list item failed"
@@ -717,6 +797,16 @@ assert not task.cancel(listFuture), "completed async typed list future should no
 list<int> postCancelList = await listFuture
 assert int(postCancelList[4]) == 9, "completed async typed list future should remain awaitable after cancel"
 
+future<list<int>> conditionalListSource = makeListAsync()
+bool chooseConditionalList = true
+list<int> conditionalListBorrowed = await (chooseConditionalList ? conditionalListSource : slowMakeListAsync())
+assert int(conditionalListBorrowed[2]) == 8, "conditional await borrowed typed list branch failed"
+list<int> conditionalListAgain = await conditionalListSource
+assert int(conditionalListAgain[4]) == 9, "conditional await borrowed typed list branch should keep named future awaitable"
+chooseConditionalList = false
+list<int> conditionalListOwned = await (chooseConditionalList ? conditionalListSource : slowMakeListAsync())
+assert int(conditionalListOwned[2]) == 18, "conditional await owned typed list branch failed"
+
 set<int> temporarySet = await makeSetAsync()
 assert temporarySet.length == 2, "temporary await typed set length failed"
 
@@ -728,6 +818,16 @@ assert namedSetB.length == 2, "named future typed set second length failed"
 assert not task.cancel(setFuture), "completed async typed set future should not be canceled"
 set<int> postCancelSet = await setFuture
 assert postCancelSet.length == 2, "completed async typed set future should remain awaitable after cancel"
+
+future<set<int>> conditionalSetSource = makeSetAsync()
+bool chooseConditionalSet = true
+set<int> conditionalSetBorrowed = await (chooseConditionalSet ? conditionalSetSource : slowMakeSetAsync())
+assert conditionalSetBorrowed.length == 2, "conditional await borrowed typed set branch failed"
+set<int> conditionalSetAgain = await conditionalSetSource
+assert conditionalSetAgain.length == 2, "conditional await borrowed typed set branch should keep named future awaitable"
+chooseConditionalSet = false
+set<int> conditionalSetOwned = await (chooseConditionalSet ? conditionalSetSource : slowMakeSetAsync())
+assert conditionalSetOwned.length == 2, "conditional await owned typed set branch failed"
 
 dict<int> temporaryDict = await makeDictAsync()
 assert temporaryDict.length == 2, "temporary await typed dict length failed"
@@ -741,3 +841,13 @@ assert int(namedDictB["a"]) == 11, "named future typed dict second item failed"
 assert not task.cancel(dictFuture), "completed async typed dict future should not be canceled"
 dict<int> postCancelDict = await dictFuture
 assert int(postCancelDict["b"]) == 12, "completed async typed dict future should remain awaitable after cancel"
+
+future<dict<int>> conditionalDictSource = makeDictAsync()
+bool chooseConditionalDict = true
+dict<int> conditionalDictBorrowed = await (chooseConditionalDict ? conditionalDictSource : slowMakeDictAsync())
+assert int(conditionalDictBorrowed["a"]) == 11, "conditional await borrowed typed dict branch failed"
+dict<int> conditionalDictAgain = await conditionalDictSource
+assert int(conditionalDictAgain["b"]) == 12, "conditional await borrowed typed dict branch should keep named future awaitable"
+chooseConditionalDict = false
+dict<int> conditionalDictOwned = await (chooseConditionalDict ? conditionalDictSource : slowMakeDictAsync())
+assert int(conditionalDictOwned["a"]) == 21, "conditional await owned typed dict branch failed"

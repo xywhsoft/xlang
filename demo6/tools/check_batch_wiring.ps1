@@ -9,7 +9,7 @@ if ( $Root -eq "" ) {
 }
 
 $docsDir = Join-Path $Root "docs"
-$minRootBatchFiles = 9
+$minRootBatchFiles = 10
 $minToolBatchFiles = 1
 $failures = New-Object System.Collections.Generic.List[string]
 

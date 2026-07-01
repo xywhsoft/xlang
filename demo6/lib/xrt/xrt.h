@@ -1,7 +1,7 @@
 /*
 
     XRT Single Header File
-    Generated: 2026-06-30 08:12:02
+    Generated: 2026-07-01 01:30:56
 
     MIT License
 
@@ -4823,6 +4823,8 @@
 	XXAPI str xFutureError(xfuture* pFuture);
 	// 获取 Future 结果
 	XXAPI bool xFutureGetResult(xfuture* pFuture, xfuture_result* pOut);
+	// 判断 Future 结果值是否由 Future 拥有
+	XXAPI bool xFutureValueIsOwned(xfuture* pFuture);
 	// 设置 Future 调试名称
 	XXAPI bool xFutureSetDebugName(xfuture* pFuture, str sDebugName);
 	// 获取 Future 调试名称
@@ -54840,6 +54842,7 @@ static void __xnetFutureGroupOnSourceDone(const xfuture_result* pIn, ptr pArg)
 	__xnet_future_group_item* pItem = (__xnet_future_group_item*)pArg;
 	__xnet_future_group_ctx* pGroup = NULL;
 	xfuture_result tFailure;
+	xfuture_result tComplete;
 	bool bDoComplete = false;
 	bool bDoCancelLosers = false;
 	bool bCompleteFailure = false;
@@ -54854,6 +54857,7 @@ static void __xnetFutureGroupOnSourceDone(const xfuture_result* pIn, ptr pArg)
 		return;
 	}
 	memset(&tFailure, 0, sizeof(tFailure));
+	memset(&tComplete, 0, sizeof(tComplete));
 	// 加锁, 根据聚合模式处理源 Future 完成事件
 	xrtMutexLock(pGroup->pLock);
 	if ( !pGroup->bCompleted ) {
@@ -54862,6 +54866,7 @@ static void __xnetFutureGroupOnSourceDone(const xfuture_result* pIn, ptr pArg)
 			pGroup->bCompleted = true;
 			bDoComplete = true;
 			iWinner = pItem->iIndex;
+			(void)__xnetFutureResultCopy(&tComplete, pIn);
 		}
 		else if ( pGroup->iMode == __XNET_FGROUP_RACE ) {
 			// RACE 模式: 第一个完成即标记整个组完成, 并取消其余
@@ -54869,6 +54874,7 @@ static void __xnetFutureGroupOnSourceDone(const xfuture_result* pIn, ptr pArg)
 			bDoComplete = true;
 			bDoCancelLosers = true;
 			iWinner = pItem->iIndex;
+			(void)__xnetFutureResultCopy(&tComplete, pIn);
 		}
 		else if ( pGroup->iMode == __XNET_FGROUP_ALL ) {
 			// ALL 模式: 记录首次失败
@@ -54897,7 +54903,9 @@ static void __xnetFutureGroupOnSourceDone(const xfuture_result* pIn, ptr pArg)
 	// 在锁外执行完成和取消操作
 	if ( bDoComplete ) {
 		__xnetFutureSetGroupSource(pGroup->pPromise->pFuture, pGroup->arrSources ? pGroup->arrSources[iWinner] : NULL, iWinner);
-		(void)__xnetPromiseCompleteResult(pGroup->pPromise, pIn);
+		// ANY/RACE 只借用胜出源 Future 的值，避免聚合 Future 和源 Future 争夺同一份 owned 结果。
+		(void)__xnetPromiseCompleteResult(pGroup->pPromise, &tComplete);
+		__xnetFutureResultFree(&tComplete);
 		__xnetFutureGroupDetachPending(pGroup);
 	}
 	// RACE 模式: 取消其他未完成的源 Future
@@ -55235,6 +55243,18 @@ XXAPI bool xFutureGetResult(xfuture* pFuture, xfuture_result* pOut)
 	return pOut->iStatus == XRT_NET_OK;
 }
 // 设置 Future 调试名称
+// 判断 Future 结果值是否由 Future 拥有
+XXAPI bool xFutureValueIsOwned(xfuture* pFuture)
+{
+	bool bOwned = false;
+	if ( pFuture == NULL ) {
+		return false;
+	}
+	__xnetFutureLock(pFuture);
+	bOwned = pFuture->bDone && ((pFuture->iResultFlags & XFUTURE_RESULT_F_OWN_VALUE) != 0);
+	__xnetFutureUnlock(pFuture);
+	return bOwned;
+}
 XXAPI bool xFutureSetDebugName(xfuture* pFuture, str sDebugName)
 {
 	const char* sOwned = NULL;

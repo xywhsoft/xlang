@@ -679,21 +679,44 @@ static void xl6CgenFunctionDefaultReturnExpr(XL6_CgenContext* ctx, const XL6_Ast
     }
 }
 
-static void xl6CgenFunctionInvokeFallbackCallExpr(XL6_CgenContext* ctx, const XL6_AstNode* fnExpr, const XL6_AstNode* args)
+static void xl6CgenFunctionOwnedValueExpr(XL6_CgenContext* ctx, const XL6_AstNode* fnExpr, const XL6_AstNode* functionType)
+{
+    if ( xl6CgenExprIsFunctionBorrow(ctx, fnExpr) ) {
+        xl6OutputPuts("xl6_function_copy_value(", ctx->out);
+        xl6CgenFunctionValueExpr(ctx, fnExpr, functionType);
+        xl6OutputPutc(')', ctx->out);
+        return;
+    }
+    xl6CgenFunctionValueExpr(ctx, fnExpr, functionType);
+}
+
+static void xl6CgenFunctionInvokeFallbackCallExpr(XL6_CgenContext* ctx,
+                                                  const XL6_AstNode* fnExpr,
+                                                  const XL6_AstNode* functionType,
+                                                  const XL6_AstNode* args,
+                                                  int releaseOwned)
 {
     size_t i;
     int namedCount = xl6CgenFunctionValueDictVarargCount(args);
     size_t positionalCount = xl6CgenFunctionValuePositionalArgCount(args);
 
     if ( namedCount > 0 ) {
-        xl6OutputPuts("xl6_function_call_kwargs(", ctx->out);
-        xl6CgenExpr(ctx, fnExpr);
+        xl6OutputPuts(releaseOwned ? "xl6_function_call_kwargs_release(" : "xl6_function_call_kwargs(", ctx->out);
+        if ( releaseOwned ) {
+            xl6CgenFunctionOwnedValueExpr(ctx, fnExpr, functionType);
+        } else {
+            xl6CgenExpr(ctx, fnExpr);
+        }
         xl6OutputPuts(", ", ctx->out);
         xl6CgenFunctionValueDictVarargExpr(ctx, args);
         xl6OutputPrintf(ctx->out, ", %u", (unsigned)positionalCount);
     } else {
-        xl6OutputPuts("xl6_function_call_var(", ctx->out);
-        xl6CgenExpr(ctx, fnExpr);
+        xl6OutputPuts(releaseOwned ? "xl6_function_call_var_release(" : "xl6_function_call_var(", ctx->out);
+        if ( releaseOwned ) {
+            xl6CgenFunctionOwnedValueExpr(ctx, fnExpr, functionType);
+        } else {
+            xl6CgenExpr(ctx, fnExpr);
+        }
         xl6OutputPrintf(ctx->out, ", %u", (unsigned)positionalCount);
     }
     if ( args != NULL ) {
@@ -769,7 +792,9 @@ static void xl6CgenFunctionInvokeFallbackExpr(XL6_CgenContext* ctx,
 static void xl6CgenFunctionInvokeFallbackExprForExpr(XL6_CgenContext* ctx,
                                                      const XL6_AstNode* returnType,
                                                      const XL6_AstNode* fnExpr,
-                                                     const XL6_AstNode* args)
+                                                     const XL6_AstNode* functionType,
+                                                     const XL6_AstNode* args,
+                                                     int releaseOwned)
 {
     const XL6_AstNode* concreteType = xl6CgenResolveAliasType(ctx, xl6CgenSubstituteGenericType(ctx, returnType));
     const char* typeName = concreteType != NULL ? concreteType->text : NULL;
@@ -779,38 +804,38 @@ static void xl6CgenFunctionInvokeFallbackExprForExpr(XL6_CgenContext* ctx,
         xl6CgenFunctionDefaultReturnExpr(ctx, concreteType);
         xl6OutputPutc(')', ctx->out);
     } else if ( xl6CgenIsXValueType(concreteType) ) {
-        xl6CgenFunctionInvokeFallbackCallExpr(ctx, fnExpr, args);
+        xl6CgenFunctionInvokeFallbackCallExpr(ctx, fnExpr, functionType, args, releaseOwned);
     } else if ( xl6CgenIsFunctionType(concreteType) ) {
         xl6OutputPuts("xl6_function_from_xvalue_release(", ctx->out);
-        xl6CgenFunctionInvokeFallbackCallExpr(ctx, fnExpr, args);
+        xl6CgenFunctionInvokeFallbackCallExpr(ctx, fnExpr, functionType, args, releaseOwned);
         xl6OutputPutc(')', ctx->out);
     } else if ( xl6CgenIsIntegerTypeName(typeName) ) {
         xl6OutputPrintf(ctx->out, "((%s)xl6_xvalue_to_i64_release(", xl6CgenTypeName(ctx, concreteType));
-        xl6CgenFunctionInvokeFallbackCallExpr(ctx, fnExpr, args);
+        xl6CgenFunctionInvokeFallbackCallExpr(ctx, fnExpr, functionType, args, releaseOwned);
         xl6OutputPuts("))", ctx->out);
     } else if ( xl6CgenIsFloatTypeName(typeName) ) {
         xl6OutputPrintf(ctx->out, "((%s)xl6_xvalue_to_f64_release(", xl6CgenTypeName(ctx, concreteType));
-        xl6CgenFunctionInvokeFallbackCallExpr(ctx, fnExpr, args);
+        xl6CgenFunctionInvokeFallbackCallExpr(ctx, fnExpr, functionType, args, releaseOwned);
         xl6OutputPuts("))", ctx->out);
     } else if ( xl6CgenIsBoolTypeName(typeName) ) {
         xl6OutputPuts("xl6_xvalue_to_bool_release(", ctx->out);
-        xl6CgenFunctionInvokeFallbackCallExpr(ctx, fnExpr, args);
+        xl6CgenFunctionInvokeFallbackCallExpr(ctx, fnExpr, functionType, args, releaseOwned);
         xl6OutputPutc(')', ctx->out);
     } else if ( xl6CTextEquals(typeName, "string") ) {
         xl6OutputPuts("xl6_xvalue_to_string_release(", ctx->out);
-        xl6CgenFunctionInvokeFallbackCallExpr(ctx, fnExpr, args);
+        xl6CgenFunctionInvokeFallbackCallExpr(ctx, fnExpr, functionType, args, releaseOwned);
         xl6OutputPutc(')', ctx->out);
     } else if ( xl6CTextEquals(typeName, "time") ) {
         xl6OutputPuts("xl6_xvalue_to_time_release(", ctx->out);
-        xl6CgenFunctionInvokeFallbackCallExpr(ctx, fnExpr, args);
+        xl6CgenFunctionInvokeFallbackCallExpr(ctx, fnExpr, functionType, args, releaseOwned);
         xl6OutputPutc(')', ctx->out);
     } else if ( xl6CTextEquals(typeName, "point") ) {
         xl6OutputPuts("xl6_xvalue_to_point_release(", ctx->out);
-        xl6CgenFunctionInvokeFallbackCallExpr(ctx, fnExpr, args);
+        xl6CgenFunctionInvokeFallbackCallExpr(ctx, fnExpr, functionType, args, releaseOwned);
         xl6OutputPutc(')', ctx->out);
     } else if ( xl6CTextEquals(typeName, "type") ) {
         xl6OutputPuts("((unsigned long long)xl6_xvalue_to_i64_release(", ctx->out);
-        xl6CgenFunctionInvokeFallbackCallExpr(ctx, fnExpr, args);
+        xl6CgenFunctionInvokeFallbackCallExpr(ctx, fnExpr, functionType, args, releaseOwned);
         xl6OutputPuts("))", ctx->out);
     } else {
         xl6OutputPuts("(xl6_function_fatal(3), ", ctx->out);
@@ -876,6 +901,24 @@ static void xl6CgenFunctionInvokeExpr(XL6_CgenContext* ctx, const XL6_AstNode* f
     returnCount = (int)returns->childCount;
     signatureId = xl6CgenFunctionSignatureId(ctx, paramTypes, returns);
 
+    if ( !xl6CgenFunctionExprIsRepeatableLvalue(fnExpr) ) {
+        if ( returnCount > 1 ) {
+            xl6CgenError(ctx, fnExpr, "function expression with multiple return values requires a stable function value");
+            xl6OutputPuts("(xl6_function_fatal(3), (", ctx->out);
+            xl6CgenFunctionReturnStructName(ctx, paramTypes, returns);
+            xl6OutputPuts("){0})", ctx->out);
+            return;
+        }
+        if ( returnCount == 1 ) {
+            xl6CgenFunctionInvokeFallbackExprForExpr(ctx, returns->children[0], fnExpr, functionType, args, 1);
+            return;
+        }
+        xl6OutputPuts("xl6_xvalue_drop(", ctx->out);
+        xl6CgenFunctionInvokeFallbackCallExpr(ctx, fnExpr, functionType, args, 1);
+        xl6OutputPutc(')', ctx->out);
+        return;
+    }
+
     xl6OutputPuts("((", ctx->out);
     xl6CgenFunctionExprField(ctx, fnExpr, "signature");
     xl6OutputPrintf(ctx->out, " == 0x%016llXULL) ? ", signatureId);
@@ -895,7 +938,7 @@ static void xl6CgenFunctionInvokeExpr(XL6_CgenContext* ctx, const XL6_AstNode* f
         xl6OutputPuts(" != 0) ? ", ctx->out);
         xl6CgenFunctionInvokeDirectCallExpr(ctx, fnExpr, paramTypes, returns, args, fixedCount, hasArrayVararg, hasDictVararg);
         xl6OutputPuts(" : ", ctx->out);
-        xl6CgenFunctionInvokeFallbackExprForExpr(ctx, returns->children[0], fnExpr, args);
+        xl6CgenFunctionInvokeFallbackExprForExpr(ctx, returns->children[0], fnExpr, functionType, args, 0);
         xl6OutputPuts(") : (xl6_function_fatal(3), ", ctx->out);
         xl6CgenFunctionDefaultReturnExpr(ctx, returns->children[0]);
         xl6OutputPuts("))", ctx->out);
@@ -905,7 +948,7 @@ static void xl6CgenFunctionInvokeExpr(XL6_CgenContext* ctx, const XL6_AstNode* f
         xl6OutputPuts(" != 0) ? ", ctx->out);
         xl6CgenFunctionInvokeDirectCallExpr(ctx, fnExpr, paramTypes, returns, args, fixedCount, hasArrayVararg, hasDictVararg);
         xl6OutputPuts(" : xl6_xvalue_drop(", ctx->out);
-        xl6CgenFunctionInvokeFallbackCallExpr(ctx, fnExpr, args);
+        xl6CgenFunctionInvokeFallbackCallExpr(ctx, fnExpr, functionType, args, 0);
         xl6OutputPuts(")) : xl6_function_fatal(3))", ctx->out);
     }
 }

@@ -1,0 +1,6 @@
+func countItems(set<int> values) as int
+    return values.length
+end
+
+func(set<int>) as int job = countItems
+int value = await task.spawn(job, set{6, 7})

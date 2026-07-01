@@ -1,6 +1,6 @@
 param(
     [string]$Root = "",
-    [int]$MinMarkdownFiles = 89
+    [int]$MinMarkdownFiles = 94
 )
 
 $ErrorActionPreference = "Stop"

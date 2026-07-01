@@ -1,0 +1,33 @@
+class ConditionalAwaitBox
+    int value = 0
+end
+
+async func conditionalAwaitBoxAsync(int value) as ConditionalAwaitBox
+    ConditionalAwaitBox box
+    box.value = value
+    return box
+end
+
+bool chooseConditionalAwaitBox = true
+future<ConditionalAwaitBox> conditionalAwaitBoxFuture = conditionalAwaitBoxAsync(1)
+ConditionalAwaitBox conditionalAwaitBoxValue = await (chooseConditionalAwaitBox ? conditionalAwaitBoxFuture : conditionalAwaitBoxAsync(2))
+assert conditionalAwaitBoxValue.value == 1, "conditional await class borrowed branch failed"
+
+ConditionalAwaitBox conditionalAwaitBoxAgain = await conditionalAwaitBoxFuture
+assert conditionalAwaitBoxAgain.value == 1, "conditional await class borrowed source should remain awaitable"
+
+chooseConditionalAwaitBox = false
+ConditionalAwaitBox conditionalAwaitBoxOwned = await (chooseConditionalAwaitBox ? conditionalAwaitBoxFuture : conditionalAwaitBoxAsync(2))
+assert conditionalAwaitBoxOwned.value == 2, "conditional await class owned branch failed"
+
+future<ConditionalAwaitBox> missingConditionalAwaitBox
+int missingConditionalAwaitBoxState = 0
+try
+    ConditionalAwaitBox missingConditionalAwaitBoxValue = await (chooseConditionalAwaitBox ? conditionalAwaitBoxAsync(3) : missingConditionalAwaitBox)
+    missingConditionalAwaitBoxState = missingConditionalAwaitBoxValue.value
+catch e
+    if e.message == "await on null future" then
+        missingConditionalAwaitBoxState = 1
+    end
+end
+assert missingConditionalAwaitBoxState == 1, "conditional await null class future should reject"

@@ -17,7 +17,7 @@ $entryWiringFiles = @(
     "examples\feature_suite\run_feature_suite.bat"
 )
 
-$minEntryFixtures = 41
+$minEntryFixtures = 45
 $minPackageFixtures = 9
 $failures = New-Object System.Collections.Generic.List[string]
 

@@ -1,0 +1,1 @@
+channel<var> ch = channel::<var>(1)

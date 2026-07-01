@@ -1,0 +1,4 @@
+func bad() as int
+    yield 1
+    return 0
+end

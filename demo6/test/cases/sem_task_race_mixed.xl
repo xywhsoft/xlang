@@ -1,0 +1,9 @@
+async func loadInt() as int
+    return 1
+end
+
+async func loadString() as string
+    return "x"
+end
+
+auto bad = task.race([loadInt(), loadString()])

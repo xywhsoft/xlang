@@ -24,7 +24,7 @@ static void xl6CgenDefaultXValueForTarget(XL6_CgenContext* ctx, const XL6_AstNod
     xl6CgenDefaultValue(ctx, targetType);
 }
 
-static int xl6CgenAwaitOperandIsOwnedTemporary(const XL6_AstNode* node);
+static int xl6CgenAwaitExprReturnsOwnedTemporaryCtx(XL6_CgenContext* ctx, const XL6_AstNode* expr);
 
 static int xl6CgenDeclShouldUseTypedContainer(XL6_CgenContext* ctx, const XL6_AstNode* typeNode, const XL6_AstNode* initExpr, int declaredAuto)
 {
@@ -169,7 +169,7 @@ static int xl6CgenTypedContainerCanCopyFromExpr(XL6_CgenContext* ctx, const XL6_
     if ( initExpr == NULL || xl6CgenTypedContainerInitLiteral(ctx, typeNode, initExpr) != NULL ) {
         return 0;
     }
-    if ( initExpr->kind == XL6_AST_AWAIT && !xl6CgenAwaitOperandIsOwnedTemporary(initExpr) ) {
+    if ( initExpr->kind == XL6_AST_AWAIT && !xl6CgenAwaitExprReturnsOwnedTemporaryCtx(ctx, initExpr) ) {
         return xl6CgenTypedContainerExprTypeMatches(ctx, typeNode, initExpr);
     }
     if ( !xl6CgenExprUsesTypedContainerStorage(ctx, initExpr) ) {
@@ -184,7 +184,7 @@ static int xl6CgenTypedContainerCanMoveFromExpr(XL6_CgenContext* ctx, const XL6_
         return 0;
     }
     if ( initExpr->kind == XL6_AST_AWAIT ) {
-        if ( !xl6CgenAwaitOperandIsOwnedTemporary(initExpr) ) {
+        if ( !xl6CgenAwaitExprReturnsOwnedTemporaryCtx(ctx, initExpr) ) {
             return 0;
         }
     } else if ( !xl6CgenExprIsTypedContainerReturnCall(ctx, initExpr) ) {

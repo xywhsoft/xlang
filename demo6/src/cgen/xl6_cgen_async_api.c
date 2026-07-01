@@ -152,7 +152,7 @@ static int xl6CgenChannelMethodCall(XL6_CgenContext* ctx, const XL6_AstNode* cal
     return 0;
 }
 
-static int xl6CgenTaskFutureLiteralItemIsOwned(XL6_CgenContext* ctx, const XL6_AstNode* expr)
+static int xl6CgenTaskFutureExprIsOwnedDirect(XL6_CgenContext* ctx, const XL6_AstNode* expr)
 {
     XL6_AstNode* typeNode;
     const XL6_AstNode* concreteType;
@@ -170,6 +170,45 @@ static int xl6CgenTaskFutureLiteralItemIsOwned(XL6_CgenContext* ctx, const XL6_A
     return owned;
 }
 
+static int xl6CgenTaskFutureExprIsOwned(XL6_CgenContext* ctx, const XL6_AstNode* expr)
+{
+    if ( expr != NULL && expr->kind == XL6_AST_CONDITIONAL && expr->childCount > 2 ) {
+        return 1;
+    }
+    return xl6CgenTaskFutureExprIsOwnedDirect(ctx, expr);
+}
+
+static void xl6CgenTaskFutureOwnedExpr(XL6_CgenContext* ctx, const XL6_AstNode* expr)
+{
+    if ( expr != NULL && expr->kind == XL6_AST_CONDITIONAL && expr->childCount > 2 ) {
+        xl6OutputPutc('(', ctx->out);
+        xl6CgenConditionExpr(ctx, expr->children[0]);
+        xl6OutputPuts(" ? ", ctx->out);
+        xl6CgenTaskFutureOwnedExpr(ctx, expr->children[1]);
+        xl6OutputPuts(" : ", ctx->out);
+        xl6CgenTaskFutureOwnedExpr(ctx, expr->children[2]);
+        xl6OutputPutc(')', ctx->out);
+        return;
+    }
+    if ( xl6CgenTaskFutureExprIsOwnedDirect(ctx, expr) ) {
+        xl6CgenExpr(ctx, expr);
+        return;
+    }
+    xl6OutputPuts("xl6_future_add_ref_if_needed(", ctx->out);
+    xl6CgenExpr(ctx, expr);
+    xl6OutputPutc(')', ctx->out);
+}
+
+static void xl6CgenTaskFutureArgExpr(XL6_CgenContext* ctx, const XL6_AstNode* expr)
+{
+    if ( xl6CgenTaskFutureExprIsOwned(ctx, expr) &&
+         expr != NULL && expr->kind == XL6_AST_CONDITIONAL && expr->childCount > 2 ) {
+        xl6CgenTaskFutureOwnedExpr(ctx, expr);
+        return;
+    }
+    xl6CgenExpr(ctx, expr);
+}
+
 static void xl6CgenTaskFutureLiteralArgs(XL6_CgenContext* ctx, const XL6_AstNode* literal)
 {
     size_t i;
@@ -177,8 +216,8 @@ static void xl6CgenTaskFutureLiteralArgs(XL6_CgenContext* ctx, const XL6_AstNode
     if ( literal != NULL ) {
         for ( i = 0; i < literal->childCount; ++i ) {
             xl6OutputPuts(", ", ctx->out);
-            xl6CgenExpr(ctx, literal->children[i]);
-            xl6OutputPrintf(ctx->out, ", %d", xl6CgenTaskFutureLiteralItemIsOwned(ctx, literal->children[i]));
+            xl6CgenTaskFutureArgExpr(ctx, literal->children[i]);
+            xl6OutputPrintf(ctx->out, ", %d", xl6CgenTaskFutureExprIsOwned(ctx, literal->children[i]));
         }
     }
 }
@@ -213,14 +252,14 @@ static int xl6CgenTaskSpawnCall(XL6_CgenContext* ctx, const XL6_AstNode* call, c
     functionType = xl6CgenCloneExprTypeForInference(ctx, fnExpr);
     paramTypes = xl6CgenFunctionParamTypes(functionType);
     returns = xl6CgenFunctionReturnTypes(functionType);
-    if ( !xl6CgenIsFunctionType(functionType) || paramTypes == NULL || returns == NULL || returns->childCount != 1 ) {
+    if ( !xl6CgenIsFunctionType(functionType) || paramTypes == NULL || returns == NULL || returns->childCount > 1 ) {
         xl6AstFree(functionType);
         xl6CgenError(ctx, call, "task.spawn 第一个参数必须是完整签名的 func 值");
         xl6OutputPuts("0", ctx->out);
         return 1;
     }
 
-    resultType = returns->children[0];
+    resultType = returns->childCount == 1 ? returns->children[0] : NULL;
     fixedCount = xl6CgenFunctionTypeFixedParamCount(paramTypes);
     hasArrayVararg = paramTypes->childCount > fixedCount &&
                      xl6CgenFunctionTypeParamIsArrayVararg(paramTypes->children[fixedCount]);
@@ -228,12 +267,18 @@ static int xl6CgenTaskSpawnCall(XL6_CgenContext* ctx, const XL6_AstNode* call, c
     xl6OutputPuts("xl6_task_spawn_values(", ctx->out);
     xl6CgenFunctionValueExpr(ctx, fnExpr, functionType);
     xl6OutputPuts(", ", ctx->out);
-    xl6CgenEmitXrtTypeDescRef(ctx, resultType);
-    xl6OutputPuts(", sizeof(", ctx->out);
-    xl6OutputPuts(xl6CgenTypeName(ctx, resultType), ctx->out);
-    xl6OutputPrintf(ctx->out, "), \"\", %d, %d, %d",
+    if ( resultType != NULL ) {
+        xl6CgenEmitXrtTypeDescRef(ctx, resultType);
+        xl6OutputPuts(", sizeof(", ctx->out);
+        xl6OutputPuts(xl6CgenTypeName(ctx, resultType), ctx->out);
+        xl6OutputPutc(')', ctx->out);
+    } else {
+        xl6OutputPuts("xrtTypeNull(), 0", ctx->out);
+    }
+    xl6OutputPrintf(ctx->out, ", \"\", %d, %d, %d, %d",
                     member != NULL ? member->line : 0,
                     member != NULL ? member->column : 0,
+                    xl6CgenExprIsFunctionBorrow(ctx, fnExpr) ? 1 : 0,
                     (int)actualCount);
     for ( i = 0; i < actualCount; ++i ) {
         const XL6_AstNode* argExpr = xl6CgenTaskSpawnArgExprAt(call, i + 1);
@@ -273,8 +318,8 @@ static int xl6CgenTaskNamespaceCall(XL6_CgenContext* ctx, const XL6_AstNode* cal
     }
     if ( xl6CTextEquals(member->text, "cancel") ) {
         xl6OutputPuts("xl6_task_cancel_value(", ctx->out);
-        xl6CgenExpr(ctx, argExpr);
-        xl6OutputPrintf(ctx->out, ", %d)", xl6CgenTaskFutureLiteralItemIsOwned(ctx, argExpr));
+        xl6CgenTaskFutureArgExpr(ctx, argExpr);
+        xl6OutputPrintf(ctx->out, ", %d)", xl6CgenTaskFutureExprIsOwned(ctx, argExpr));
         return 1;
     }
 

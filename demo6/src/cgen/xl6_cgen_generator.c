@@ -356,6 +356,8 @@ static void xl6CgenYieldStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
     const XL6_AstNode* itemType;
     const XL6_AstNode* expr;
     const char* cType;
+    XL6_CgenTaskSpawnArgTempScope taskScope;
+    int hasTaskScope;
 
     if ( ctx == NULL || ctx->currentGeneratorHandleName == NULL || ctx->currentGeneratorItemType == NULL ) {
         xl6CgenError(ctx, node, "yield 必须位于 generator 函数体内");
@@ -369,6 +371,7 @@ static void xl6CgenYieldStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
     itemType = ctx->currentGeneratorItemType;
     expr = node->children[0];
     cType = xl6CgenTypeName(ctx, itemType);
+    hasTaskScope = xl6CgenTaskSpawnArgTempScopeBegin(ctx, expr, &taskScope);
 
     xl6CgenIndent(ctx);
     xl6OutputPuts("xl6_generator_yield_copy(", ctx->out);
@@ -380,5 +383,8 @@ static void xl6CgenYieldStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
     xl6OutputPuts("}, sizeof(", ctx->out);
     xl6OutputPuts(cType, ctx->out);
     xl6OutputPrintf(ctx->out, "), \"\", %d, %d);\n", node->line, node->column);
+    if ( hasTaskScope ) {
+        xl6CgenTaskSpawnArgTempScopeEnd(ctx, &taskScope);
+    }
     xl6CgenEmitExceptionPropagate(ctx, node);
 }

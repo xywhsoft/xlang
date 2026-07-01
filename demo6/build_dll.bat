@@ -5,6 +5,7 @@ cd /d %~dp0
 set XL6_ROOT=%CD%
 call tools\xl6_toolchain_env.bat
 if errorlevel 1 exit /b 1
+set "XL6_DLL_LINKS="%XL6_TCC_LIBTCC1%" -lWs2_32 -lIPHLPAPI -lShell32"
 
 if not exist release mkdir release
 if not exist release\tmp mkdir release\tmp
@@ -64,6 +65,7 @@ if errorlevel 1 (
 echo Building DEMO6 xl.dll runtime...
 "%XL6_TCC%" -std=c11 -Wall -shared -DXL_BUILD_DLL -DXL_RUNTIME_ONLY_DLL -DXL_STATIC_TCC -D_CRT_SECURE_NO_WARNINGS -DCONFIG_TCC_STATIC -I. -Iinclude -Isrc -Ilib\lzma -I"%XL6_EMBED_TCC_SOURCE_ROOT%" %XL6_TCC_SOURCE_INCLUDE% %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% -o release\xl.dll ^
     src\api\xl_api.c ^
+    src\api\xl_xrt_dll.c ^
     "%XL6_EMBED_TCC_SOURCE_ROOT%\libtcc.c" ^
     "%XL6_EMBED_TCC_SOURCE_ROOT%\tcc_builtin_vfs.c" ^
     "%XL6_EMBED_TCC_SOURCE_ROOT%\tcc_utf8_io.c" ^
@@ -96,7 +98,7 @@ echo Building DEMO6 xl.dll runtime...
     src\sem\xl6_protocol.c ^
     src\sem\xl6_type_registry.c ^
     src\sem\xl6_sem.c ^
-    %XL6_DEFAULT_LINKS%
+    %XL6_DLL_LINKS%
 
 if errorlevel 1 (
     echo DEMO6 xl.dll build failed.
@@ -115,11 +117,13 @@ if errorlevel 1 (
 echo Building DEMO6 xlc.dll compiler runtime...
 "%XL6_TCC%" -std=c11 -Wall -shared -DXL_BUILD_DLL -DXL_STATIC_TCC -D_CRT_SECURE_NO_WARNINGS -DCONFIG_TCC_STATIC -I. -Iinclude -Isrc -Ilib\lzma -I"%XL6_EMBED_TCC_SOURCE_ROOT%" %XL6_TCC_SOURCE_INCLUDE% %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% -o release\xlc.dll ^
     src\api\xl_api.c ^
+    src\api\xl_xrt_dll.c ^
     "%XL6_EMBED_TCC_SOURCE_ROOT%\libtcc.c" ^
     "%XL6_EMBED_TCC_SOURCE_ROOT%\tcc_builtin_vfs.c" ^
     "%XL6_EMBED_TCC_SOURCE_ROOT%\tcc_utf8_io.c" ^
     lib\lzma\LzmaDec.c ^
     release\tmp\tcc_builtin_resources.c ^
+    src\abi\xl6_abi_dump.c ^
     src\abi\xl6_callable.c ^
     src\abi\xl6_xapi_dump.c ^
     src\abi\xl6_xapi_load.c ^
@@ -130,12 +134,14 @@ echo Building DEMO6 xlc.dll compiler runtime...
     src\common\xl6_output.c ^
     src\diag\xl6_diag.c ^
     src\ast\xl6_ast.c ^
+    src\ast\xl6_ast_dump.c ^
     src\cgen\xl6_cgen_entry.c ^
     src\cgen\xl6_cgen_lifecycle.c ^
     src\cgen\xl6_cgen_runtime.c ^
     src\cgen\xl6_cgen_header.c ^
     src\cgen\xl6_cgen_needs_basic.c ^
     src\cgen\xl6_cgen.c ^
+    src\ir\xl6_ir_dump.c ^
     src\lexer\xl6_token.c ^
     src\lexer\xl6_lexer_api.c ^
     src\lexer\xl6_lexer_gen.c ^
@@ -147,7 +153,7 @@ echo Building DEMO6 xlc.dll compiler runtime...
     src\sem\xl6_protocol.c ^
     src\sem\xl6_type_registry.c ^
     src\sem\xl6_sem.c ^
-    %XL6_DEFAULT_LINKS%
+    %XL6_DLL_LINKS%
 
 if errorlevel 1 (
     echo DEMO6 xlc.dll build failed.
@@ -190,6 +196,37 @@ echo Building xlc.dll compile verification program...
 
 if errorlevel 1 (
     echo DEMO6 xlc.dll verification program build failed.
+    exit /b 1
+)
+
+echo Building xlc.dll compiler API verification program...
+"%XL6_TCC%" -std=c11 -Wall -D_CRT_SECURE_NO_WARNINGS -I. -Iinclude %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% -o release\xlc_api_embed.exe ^
+    examples\xlc_api_embed.c ^
+    release\xlc.def
+
+if errorlevel 1 (
+    echo DEMO6 xlc.dll compiler API verification program build failed.
+    exit /b 1
+)
+
+echo Building xl.dll XRT export verification program...
+"%XL6_TCC%" -std=c11 -Wall -D_CRT_SECURE_NO_WARNINGS -I. -Iinclude %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% -o release\xl_dll_xrt_exports.exe ^
+    examples\xl_dll_xrt_exports.c ^
+    release\xl.def
+
+if errorlevel 1 (
+    echo DEMO6 xl.dll XRT export verification program build failed.
+    exit /b 1
+)
+
+echo Building xl.dll dynamic run GUI demo...
+"%XL6_TCC%" -std=c11 -Wall -D_CRT_SECURE_NO_WARNINGS -I. -Iinclude %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% -mwindows -o release\xl_run_demo.exe ^
+    examples\xl_run_demo_win32.c ^
+    release\xl.def ^
+    -luser32 -lgdi32
+
+if errorlevel 1 (
+    echo DEMO6 xl.dll dynamic run GUI demo build failed.
     exit /b 1
 )
 

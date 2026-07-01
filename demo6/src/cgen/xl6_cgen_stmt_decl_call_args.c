@@ -55,6 +55,10 @@ static int xl6CgenDeclExprIsStringType(XL6_CgenContext* ctx, const XL6_AstNode* 
 }
 
 static int xl6CgenDeclCanEmitXValueCallValueTemp(XL6_CgenContext* ctx, const XL6_AstNode* expr);
+static int xl6CgenDeclCanEmitCallArgTemp(XL6_CgenContext* ctx, const XL6_AstNode* typeNode, const XL6_AstNode* expr);
+static int xl6CgenDeclEmitCallArgTemp(XL6_CgenContext* ctx, const XL6_AstNode* typeNode, const char* cType, const char* cName, const XL6_AstNode* expr);
+static int xl6CgenDeclCallExprArgsNeedCallArgTemps(XL6_CgenContext* ctx, const XL6_AstNode* expr);
+static int xl6CgenDeclEmitXValueCallExprWithArgTemps(XL6_CgenContext* ctx, const XL6_AstNode* targetType, const XL6_AstNode* expr, const char* valueName);
 
 static int xl6CgenDeclStringConvertNeedsCallValueTemp(XL6_CgenContext* ctx, const XL6_AstNode* expr)
 {
@@ -90,6 +94,9 @@ static int xl6CgenDeclCanEmitXValueCallValueTemp(XL6_CgenContext* ctx, const XL6
     if ( expr->kind == XL6_AST_CONDITIONAL && xl6CgenConditionalIsXValue(ctx, expr) ) {
         return 1;
     }
+    if ( expr->kind == XL6_AST_CALL && xl6CgenDeclCallExprArgsNeedCallArgTemps(ctx, expr) ) {
+        return 1;
+    }
     return 0;
 }
 
@@ -104,6 +111,10 @@ static int xl6CgenDeclEmitXValueCallValueTemp(
     if ( ctx == NULL || targetType == NULL || expr == NULL || valueName == NULL ||
          !xl6CgenDeclCanEmitXValueCallValueTemp(ctx, expr) ) {
         return 0;
+    }
+
+    if ( expr->kind == XL6_AST_CALL && xl6CgenDeclCallExprArgsNeedCallArgTemps(ctx, expr) ) {
+        return xl6CgenDeclEmitXValueCallExprWithArgTemps(ctx, targetType, expr, valueName);
     }
 
     id = ctx->tempId++;
@@ -610,6 +621,12 @@ static int xl6CgenDeclEmitCallArgTemp(
     return 0;
 }
 
+/*
+    callable 调用内部实参也可能需要先落到语句级临时量。
+    该分片复用上面的 call-arg lowering，避免 kwargs/var-call 路径回退到 C 扩展。
+*/
+#include "xl6_cgen_stmt_decl_call_nested_args.c"
+
 static int xl6CgenDeclTaskSpawnTempAppend(
     XL6_CgenContext* ctx,
     XL6_CgenDeclCallArgTemp** temps,
@@ -618,33 +635,7 @@ static int xl6CgenDeclTaskSpawnTempAppend(
     const XL6_AstNode* expr,
     XL6_AstNode* typeNode)
 {
-    XL6_CgenDeclCallArgTemp* newTemps;
-    int newCapacity;
-
-    if ( ctx == NULL || temps == NULL || count == NULL || capacity == NULL || expr == NULL || typeNode == NULL ) {
-        xl6AstFree(typeNode);
-        return 0;
-    }
-
-    if ( *count == *capacity ) {
-        newCapacity = *capacity == 0 ? 4 : (*capacity * 2);
-        newTemps = (XL6_CgenDeclCallArgTemp*)xrtRealloc(*temps, (size_t)newCapacity * sizeof(XL6_CgenDeclCallArgTemp));
-        if ( newTemps == NULL ) {
-            xl6AstFree(typeNode);
-            xl6CgenError(ctx, expr, "out of memory while preparing task.spawn argument temporaries");
-            return 0;
-        }
-        memset(newTemps + *capacity, 0, (size_t)(newCapacity - *capacity) * sizeof(XL6_CgenDeclCallArgTemp));
-        *temps = newTemps;
-        *capacity = newCapacity;
-    }
-
-    (*temps)[*count].active = 1;
-    (*temps)[*count].expr = expr;
-    (*temps)[*count].typeNode = typeNode;
-    snprintf((*temps)[*count].name, sizeof((*temps)[*count].name), "__xl6_task_arg_%d", ctx->tempId++);
-    *count += 1;
-    return 1;
+    return xl6CgenDeclCallArgTempAppend(ctx, temps, count, capacity, expr, typeNode, "__xl6_task_arg_", "task.spawn argument temporaries");
 }
 
 static int xl6CgenDeclCollectTaskSpawnArgTempsFromCall(

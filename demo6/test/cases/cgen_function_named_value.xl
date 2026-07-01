@@ -28,6 +28,12 @@ func optionCount(string path, ***) as int
     return arg.length
 end
 
+func makePicker(int base) as func(int) as int
+    return func(int value) as int
+        return base + value
+    end
+end
+
 func(int, int) as int typed = add
 func erased = add
 func(int) as int picked = pick
@@ -38,6 +44,10 @@ func erasedDefault = addDefault
 func(...) as int variadicDefault = totalDefault
 func(string, ***) as int options = optionCount
 
+func(int) as int borrowedMixedPicker = makePicker(100)
+bool chooseMixedPicker = false
+func(int) as int mixedPicker = chooseMixedPicker ? borrowedMixedPicker : makePicker(200)
+
 int typedValue = typed(20, 22)
 var erasedValue = erased(10, 5)
 int pickedValue = picked(41)
@@ -47,6 +57,13 @@ int twoDefaultValue = twoDefault(10, 5)
 var erasedDefaultValue = erasedDefault(10)
 int variadicDefaultValue = variadicDefault("a", "b")
 int optionValue = options("demo.txt", mode = "fast", retry = 3)
+int mixedPickerOwnedValue = mixedPicker(1)
+int borrowedMixedPickerStillWorks = borrowedMixedPicker(2)
+
+chooseMixedPicker = true
+mixedPicker = chooseMixedPicker ? borrowedMixedPicker : makePicker(300)
+int mixedPickerBorrowedValue = mixedPicker(3)
+int borrowedMixedPickerStillWorksAgain = borrowedMixedPicker(4)
 
 expect(typedValue, 42)
 expect(int(erasedValue), 15)
@@ -57,3 +74,7 @@ expect(twoDefaultValue, 15)
 expect(int(erasedDefaultValue), 11)
 expect(variadicDefaultValue, 7)
 expect(optionValue, 2)
+expect(mixedPickerOwnedValue, 201)
+expect(borrowedMixedPickerStillWorks, 102)
+expect(mixedPickerBorrowedValue, 103)
+expect(borrowedMixedPickerStillWorksAgain, 104)

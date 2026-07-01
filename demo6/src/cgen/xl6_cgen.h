@@ -8,6 +8,7 @@
 typedef struct XL6_CgenOptions {
     int debugMode;
     const char* debugSourcePath;
+    int emitScriptEntry;
 } XL6_CgenOptions;
 
 int xl6CgenEmitC(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags);

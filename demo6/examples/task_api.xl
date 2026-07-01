@@ -105,6 +105,10 @@ func makeAdder(int base) as func(int) as int
     end
 end
 
+class TaskFuncBox
+    func(int) as int op
+end
+
 async func slowMakeTaskAdder(int base) as func(int) as int
     time.sleep(120)
     return makeAdder(base)
@@ -144,6 +148,14 @@ func combineSpawnResult(int left, int right) as int
     return left + right
 end
 
+func pairSpawnResult(int left, int right) as (int, int)
+    return left, right
+end
+
+func describeSpawnValue(var value) as string
+    return "dynamic " + string(value)
+end
+
 func makeSpawnValue(int value) as var
     return value
 end
@@ -163,6 +175,12 @@ end
 
 func spawnCancelReturnDynamic(func(var) as int job) as bool
     return task.cancel(task.spawn(job, true ? makeSpawnValue(61) : makeSpawnValue(0)))
+end
+
+func dynamicSpawnStream() as async generator<int>
+    func(var) as int job = addVar
+    yield await task.spawn(job, true ? makeSpawnValue(231) : makeSpawnValue(0))
+    yield await task.spawn(job, makeSpawnValue(80) + makeSpawnValue(1))
 end
 
 func scoreVarString(var value) as int
@@ -192,9 +210,217 @@ func failFloatJob() as float
     return 0.0
 end
 
+func markVoidJob()
+    int local = 1
+    assert local == 1, "task.spawn void body"
+end
+
+func slowVoidJob()
+    time.sleep(120)
+    int local = 2
+    assert local == 2, "task.spawn slow void body"
+end
+
+func failVoidJob()
+    throw "task spawn void boom"
+end
+
 func() as int zeroJob = fortyTwo
 int zeroSpawned = await task.spawn(zeroJob)
 assert zeroSpawned == 42, "task.spawn zero-argument result"
+
+func() voidJob = markVoidJob
+future<null> voidSpawnFuture = task.spawn(voidJob)
+await voidSpawnFuture
+await voidSpawnFuture
+assert not task.cancel(voidSpawnFuture), "completed void task.spawn future cancel result"
+await voidSpawnFuture
+
+future<null> voidAllFuture = task.all([task.spawn(voidJob), task.spawn(voidJob)])
+await voidAllFuture
+await voidAllFuture
+assert not task.cancel(voidAllFuture), "completed void task.all future cancel result"
+await voidAllFuture
+
+future<null> voidRaceFuture = task.race([task.spawn(voidJob), task.spawn(voidJob)])
+await voidRaceFuture
+await voidRaceFuture
+assert not task.cancel(voidRaceFuture), "completed void task.race future cancel result"
+await voidRaceFuture
+
+future<null> conditionalVoidSource = task.spawn(voidJob)
+await conditionalVoidSource
+bool chooseConditionalVoid = true
+assert not task.cancel(chooseConditionalVoid ? conditionalVoidSource : task.spawn(voidJob)), "conditional void borrowed future cancel result"
+await conditionalVoidSource
+chooseConditionalVoid = false
+bool conditionalVoidOwnedCancel = task.cancel(chooseConditionalVoid ? conditionalVoidSource : task.spawn(voidJob))
+assert conditionalVoidOwnedCancel == true or conditionalVoidOwnedCancel == false, "conditional void owned future cancel result"
+await conditionalVoidSource
+
+future<null> conditionalVoidAllSource = task.spawn(voidJob)
+bool chooseConditionalVoidAll = true
+await task.all([chooseConditionalVoidAll ? conditionalVoidAllSource : task.spawn(voidJob)])
+await conditionalVoidAllSource
+
+future<null> conditionalVoidRaceSource = task.spawn(voidJob)
+bool chooseConditionalVoidRace = true
+await task.race([chooseConditionalVoidRace ? conditionalVoidRaceSource : task.spawn(voidJob)])
+await conditionalVoidRaceSource
+
+future<null> typedConditionalVoidAllSource = task.spawn(voidJob)
+bool chooseTypedConditionalVoidAll = true
+array<future<null>> typedConditionalVoidAllJobs = array[
+    chooseTypedConditionalVoidAll ? typedConditionalVoidAllSource : task.spawn(voidJob),
+    false ? typedConditionalVoidAllSource : task.spawn(voidJob)
+]
+future<null> typedConditionalVoidAllFuture = task.all(typedConditionalVoidAllJobs)
+await typedConditionalVoidAllFuture
+await typedConditionalVoidAllFuture
+await typedConditionalVoidAllSource
+
+future<null> typedConditionalVoidRaceSource = task.spawn(voidJob)
+bool chooseTypedConditionalVoidRace = true
+array<future<null>> typedConditionalVoidRaceJobs = array[
+    chooseTypedConditionalVoidRace ? typedConditionalVoidRaceSource : task.spawn(voidJob)
+]
+future<null> typedConditionalVoidRaceFuture = task.race(typedConditionalVoidRaceJobs)
+await typedConditionalVoidRaceFuture
+await typedConditionalVoidRaceFuture
+await typedConditionalVoidRaceSource
+
+array<future<null>> typedVoidAllJobs = array[task.spawn(voidJob), task.spawn(voidJob)]
+future<null> typedVoidAllFuture = task.all(typedVoidAllJobs)
+await typedVoidAllFuture
+await typedVoidAllFuture
+
+array<future<null>> typedVoidRaceJobs = array[task.spawn(voidJob)]
+future<null> typedVoidRaceFuture = task.race(typedVoidRaceJobs)
+await typedVoidRaceFuture
+await typedVoidRaceFuture
+
+array<future<null>> emptyVoidJobs = array[]
+
+int emptyVoidAllState = 0
+try
+    await task.all(emptyVoidJobs)
+    emptyVoidAllState = 9
+catch e
+    if e.message == "task.all requires a non-empty future array" then
+        emptyVoidAllState = 1
+    end
+end
+assert emptyVoidAllState == 1, "empty void task.all should report non-empty requirement"
+
+int emptyVoidRaceState = 0
+try
+    await task.race(emptyVoidJobs)
+    emptyVoidRaceState = 9
+catch e
+    if e.message == "task.race requires a non-empty future array" then
+        emptyVoidRaceState = 1
+    end
+end
+assert emptyVoidRaceState == 1, "empty void task.race should report non-empty requirement"
+
+array<future<null>> defaultVoidJobs
+
+int defaultVoidAllState = 0
+try
+    await task.all(defaultVoidJobs)
+    defaultVoidAllState = 9
+catch e
+    if e.message == "task.all requires a non-empty future array" then
+        defaultVoidAllState = 1
+    end
+end
+assert defaultVoidAllState == 1, "default void task.all should report non-empty requirement"
+
+int defaultVoidRaceState = 0
+try
+    await task.race(defaultVoidJobs)
+    defaultVoidRaceState = 9
+catch e
+    if e.message == "task.race requires a non-empty future array" then
+        defaultVoidRaceState = 1
+    end
+end
+assert defaultVoidRaceState == 1, "default void task.race should report non-empty requirement"
+
+func() slowVoidTask = slowVoidJob
+future<null> pendingVoidSpawnFuture = task.spawn(slowVoidTask)
+assert task.cancel(pendingVoidSpawnFuture), "pending void task.spawn cancel result"
+
+int pendingVoidSpawnState = 0
+try
+    await pendingVoidSpawnFuture
+    pendingVoidSpawnState = 9
+catch e
+    if e.message == "future cancel requested." then
+        pendingVoidSpawnState = 1
+    end
+end
+assert pendingVoidSpawnState == 1, "pending void task.spawn should await as canceled"
+
+time.sleep(180)
+
+int pendingVoidSpawnStillCanceled = 0
+try
+    await pendingVoidSpawnFuture
+    pendingVoidSpawnStillCanceled = 9
+catch e
+    if e.message == "future cancel requested." then
+        pendingVoidSpawnStillCanceled = 1
+    end
+end
+assert pendingVoidSpawnStillCanceled == 1, "pending void task.spawn late completion should not overwrite cancel"
+
+func() throwingVoidJob = failVoidJob
+future<null> failedVoidSpawnFuture = task.spawn(throwingVoidJob)
+int failedVoidSpawnState = 0
+try
+    await failedVoidSpawnFuture
+    failedVoidSpawnState = 9
+catch e
+    if e.message == "task spawn void boom" then
+        failedVoidSpawnState = 1
+    end
+end
+assert failedVoidSpawnState == 1, "task.spawn void failed future first await"
+assert not task.cancel(failedVoidSpawnFuture), "failed void task.spawn future cancel result"
+try
+    await failedVoidSpawnFuture
+    failedVoidSpawnState = 9
+catch e
+    if e.message == "task spawn void boom" then
+        failedVoidSpawnState = 2
+    end
+end
+assert failedVoidSpawnState == 2, "failed void task.spawn future should keep error after cancel"
+
+future<null> failedVoidAllFuture = task.all([task.spawn(throwingVoidJob)])
+int failedVoidAllState = 0
+try
+    await failedVoidAllFuture
+    failedVoidAllState = 9
+catch e
+    if e.message == "task spawn void boom" then
+        failedVoidAllState = 1
+    end
+end
+assert failedVoidAllState == 1, "task.all should propagate void task.spawn error"
+
+future<null> failedVoidRaceFuture = task.race([task.spawn(throwingVoidJob)])
+int failedVoidRaceState = 0
+try
+    await failedVoidRaceFuture
+    failedVoidRaceState = 9
+catch e
+    if e.message == "task spawn void boom" then
+        failedVoidRaceState = 1
+    end
+end
+assert failedVoidRaceState == 1, "task.race should propagate void task.spawn error"
 
 func(int, int) as int addJob = add
 int spawned = await task.spawn(addJob, 20, 22)
@@ -272,6 +498,14 @@ time.sleep(180)
 func(int) as int defaultJob = addDefault
 int defaultSpawned = await task.spawn(defaultJob, 41)
 assert defaultSpawned == 42, "task.spawn default argument result"
+future<int> defaultFuture = task.spawn(defaultJob, 41)
+int defaultFutureA = await defaultFuture
+int defaultFutureB = await defaultFuture
+assert defaultFutureA == 42, "task.spawn optional adapter future first await"
+assert defaultFutureB == 42, "task.spawn optional adapter future repeated await"
+assert not task.cancel(defaultFuture), "completed optional adapter task.spawn future cancel result"
+int defaultFutureAfterCancel = await defaultFuture
+assert defaultFutureAfterCancel == 42, "post-cancel optional adapter task.spawn future result"
 
 func(int) as int missingJob
 int missingJobState = 0
@@ -324,6 +558,114 @@ assert missingFloatJobState == 1, "task.spawn empty float func value"
 func(int) as int capturedJob = makeAdder(30)
 int captured = await task.spawn(capturedJob, 12)
 assert captured == 42, "task.spawn closure result"
+
+int directClosureSpawned = await task.spawn(makeAdder(40), 2)
+assert directClosureSpawned == 42, "task.spawn direct closure result"
+future<int> directClosureFuture = task.spawn(makeAdder(41), 1)
+int directClosureA = await directClosureFuture
+int directClosureB = await directClosureFuture
+assert directClosureA == 42, "task.spawn direct closure first await"
+assert directClosureB == 42, "task.spawn direct closure repeated await"
+
+array<future<int>> directClosureJobs = array[task.spawn(makeAdder(50), 1), task.spawn(makeAdder(60), 2)]
+array<int> directClosureValues = await task.all(directClosureJobs)
+assert directClosureValues[0] == 51, "task.all direct closure first"
+assert directClosureValues[1] == 62, "task.all direct closure second"
+
+int directClosureRace = await task.race([task.spawn(makeAdder(70), 3)])
+assert directClosureRace == 73, "task.race direct closure"
+
+int awaitedClosureSpawned = await task.spawn(await makeTaskAdder(80), 2)
+assert awaitedClosureSpawned == 82, "task.spawn awaited closure result"
+future<int> awaitedClosureFuture = task.spawn(await makeTaskAdder(81), 1)
+int awaitedClosureA = await awaitedClosureFuture
+int awaitedClosureB = await awaitedClosureFuture
+assert awaitedClosureA == 82, "task.spawn awaited closure first await"
+assert awaitedClosureB == 82, "task.spawn awaited closure repeated await"
+
+array<future<int>> awaitedClosureJobs = array[task.spawn(await makeTaskAdder(90), 1), task.spawn(await makeTaskAdder(100), 2)]
+array<int> awaitedClosureValues = await task.all(awaitedClosureJobs)
+assert awaitedClosureValues[0] == 91, "task.all awaited closure first"
+assert awaitedClosureValues[1] == 102, "task.all awaited closure second"
+
+int awaitedClosureRace = await task.race([task.spawn(await makeTaskAdder(110), 3)])
+assert awaitedClosureRace == 113, "task.race awaited closure"
+
+bool chooseFirstClosure = false
+int conditionalClosureSpawned = await task.spawn(true ? makeAdder(150) : makeAdder(160), 5)
+assert conditionalClosureSpawned == 155, "task.spawn conditional closure result"
+future<int> conditionalClosureFuture = task.spawn(chooseFirstClosure ? makeAdder(150) : makeAdder(160), 6)
+int conditionalClosureA = await conditionalClosureFuture
+int conditionalClosureB = await conditionalClosureFuture
+assert conditionalClosureA == 166, "task.spawn conditional closure first await"
+assert conditionalClosureB == 166, "task.spawn conditional closure repeated await"
+assert not task.cancel(conditionalClosureFuture), "completed conditional closure task.spawn future cancel result"
+int conditionalClosureAfterCancel = await conditionalClosureFuture
+assert conditionalClosureAfterCancel == 166, "post-cancel conditional closure task.spawn result"
+
+array<future<int>> conditionalClosureJobs = array[task.spawn(true ? makeAdder(170) : makeAdder(180), 7), task.spawn(false ? makeAdder(190) : makeAdder(200), 8)]
+array<int> conditionalClosureValues = await task.all(conditionalClosureJobs)
+assert conditionalClosureValues[0] == 177, "task.all conditional closure first"
+assert conditionalClosureValues[1] == 208, "task.all conditional closure second"
+
+int conditionalClosureRace = await task.race([task.spawn(true ? makeAdder(210) : makeAdder(220), 9)])
+assert conditionalClosureRace == 219, "task.race conditional closure"
+
+func(int) as int borrowedClosureLeft = makeAdder(230)
+func(int) as int borrowedClosureRight = makeAdder(240)
+bool chooseBorrowedClosure = true
+int borrowedConditionalClosure = await task.spawn(chooseBorrowedClosure ? borrowedClosureLeft : borrowedClosureRight, 5)
+assert borrowedConditionalClosure == 235, "task.spawn borrowed conditional closure"
+assert borrowedClosureLeft(6) == 236, "borrowed conditional closure source remains usable"
+chooseBorrowedClosure = false
+future<int> borrowedConditionalClosureFuture = task.spawn(chooseBorrowedClosure ? borrowedClosureLeft : borrowedClosureRight, 7)
+assert await borrowedConditionalClosureFuture == 247, "task.spawn borrowed conditional closure future"
+assert await borrowedConditionalClosureFuture == 247, "task.spawn borrowed conditional closure repeated await"
+assert borrowedClosureRight(8) == 248, "borrowed conditional closure right source remains usable"
+
+func(int) as int mixedTaskClosureSource = makeAdder(260)
+bool chooseMixedTaskClosure = false
+int mixedTaskOwnedClosure = await task.spawn(chooseMixedTaskClosure ? mixedTaskClosureSource : makeAdder(270), 1)
+assert mixedTaskOwnedClosure == 271, "task.spawn mixed conditional owned closure"
+assert mixedTaskClosureSource(2) == 262, "mixed conditional closure source remains usable after owned branch"
+chooseMixedTaskClosure = true
+int mixedTaskBorrowedClosure = await task.spawn(chooseMixedTaskClosure ? mixedTaskClosureSource : makeAdder(280), 3)
+assert mixedTaskBorrowedClosure == 263, "task.spawn mixed conditional borrowed closure"
+assert mixedTaskClosureSource(4) == 264, "mixed conditional closure source remains usable after borrowed branch"
+
+TaskFuncBox memberClosureBox
+memberClosureBox.op = makeAdder(120)
+int memberClosureSpawned = await task.spawn(memberClosureBox.op, 3)
+assert memberClosureSpawned == 123, "task.spawn member closure result"
+future<int> memberClosureFuture = task.spawn(memberClosureBox.op, 4)
+int memberClosureA = await memberClosureFuture
+int memberClosureB = await memberClosureFuture
+assert memberClosureA == 124, "task.spawn member closure first await"
+assert memberClosureB == 124, "task.spawn member closure repeated await"
+
+TaskFuncBox memberClosureAlt
+memberClosureAlt.op = makeAdder(250)
+bool chooseMemberClosure = false
+int borrowedMemberConditionalClosure = await task.spawn(chooseMemberClosure ? memberClosureBox.op : memberClosureAlt.op, 9)
+assert borrowedMemberConditionalClosure == 259, "task.spawn borrowed conditional member closure"
+assert memberClosureAlt.op(10) == 260, "borrowed conditional member closure source remains usable"
+
+array<func(int) as int> indexedClosureFuncs = array[makeAdder(130), makeAdder(140)]
+int indexedClosureSpawned = await task.spawn(indexedClosureFuncs[0], 5)
+assert indexedClosureSpawned == 135, "task.spawn indexed closure result"
+future<int> indexedClosureFuture = task.spawn(indexedClosureFuncs[1], 6)
+int indexedClosureA = await indexedClosureFuture
+int indexedClosureB = await indexedClosureFuture
+assert indexedClosureA == 146, "task.spawn indexed closure first await"
+assert indexedClosureB == 146, "task.spawn indexed closure repeated await"
+
+array<future<int>> indexedClosureJobs = array[task.spawn(indexedClosureFuncs[0], 7), task.spawn(indexedClosureFuncs[1], 8)]
+array<int> indexedClosureValues = await task.all(indexedClosureJobs)
+assert indexedClosureValues[0] == 137, "task.all indexed closure first"
+assert indexedClosureValues[1] == 148, "task.all indexed closure second"
+
+int indexedClosureRace = await task.race([task.spawn(indexedClosureFuncs[0], 9)])
+assert indexedClosureRace == 139, "task.race indexed closure"
 
 func(string) as string greetJob = greet
 future<string> namedGreetFuture = task.spawn(greetJob, "spawn")
@@ -448,14 +790,55 @@ int variadicSpawned = await task.spawn(variadicJob, 10, 1, 2, 3)
 assert variadicSpawned == 16, "task.spawn array vararg result"
 int variadicEmptySpawned = await task.spawn(variadicJob, 10)
 assert variadicEmptySpawned == 10, "task.spawn empty array vararg result"
+future<int> variadicFuture = task.spawn(variadicJob, 10, 1, 2, 3)
+int variadicFutureA = await variadicFuture
+int variadicFutureB = await variadicFuture
+assert variadicFutureA == 16, "task.spawn variadic future first await"
+assert variadicFutureB == 16, "task.spawn variadic future repeated await"
+assert not task.cancel(variadicFuture), "completed variadic task.spawn future cancel result"
+int variadicFutureAfterCancel = await variadicFuture
+assert variadicFutureAfterCancel == 16, "post-cancel variadic task.spawn future result"
 
 func(...) as int variadicDefaultJob = totalDefault
 int variadicDefaultEmptySpawned = await task.spawn(variadicDefaultJob)
 assert variadicDefaultEmptySpawned == 5, "task.spawn zero-argument vararg adapter result"
 int variadicDefaultExtraSpawned = await task.spawn(variadicDefaultJob, "a", "b")
 assert variadicDefaultExtraSpawned == 7, "task.spawn vararg adapter extra result"
+future<int> variadicDefaultFuture = task.spawn(variadicDefaultJob, "a", "b")
+int variadicDefaultFutureA = await variadicDefaultFuture
+int variadicDefaultFutureB = await variadicDefaultFuture
+assert variadicDefaultFutureA == 7, "task.spawn zero-fixed variadic future first await"
+assert variadicDefaultFutureB == 7, "task.spawn zero-fixed variadic future repeated await"
+assert not task.cancel(variadicDefaultFuture), "completed zero-fixed variadic task.spawn future cancel result"
+int variadicDefaultFutureAfterCancel = await variadicDefaultFuture
+assert variadicDefaultFutureAfterCancel == 7, "post-cancel zero-fixed variadic task.spawn future result"
 int variadicExprTailSpawned = await task.spawn(variadicDefaultJob, true ? makeSpawnValue(1) : makeSpawnValue(9), makeSpawnValue(2) + makeSpawnValue(3))
 assert variadicExprTailSpawned == 7, "task.spawn dynamic vararg tail expressions"
+
+array<future<int>> variadicAllJobs = array[
+    task.spawn(variadicJob, 20, 1, 2),
+    task.spawn(variadicDefaultJob, "x", "y")
+]
+future<array<int>> variadicAllFuture = task.all(variadicAllJobs)
+array<int> variadicAllA = await variadicAllFuture
+array<int> variadicAllB = await variadicAllFuture
+assert variadicAllA[0] == 23, "task.all variadic task.spawn first await"
+assert variadicAllB[1] == 7, "task.all variadic task.spawn repeated await"
+assert not task.cancel(variadicAllFuture), "completed variadic task.all cancel result"
+array<int> variadicAllAfterCancel = await variadicAllFuture
+assert variadicAllAfterCancel[0] == 23, "post-cancel variadic task.all result"
+
+array<future<int>> variadicRaceJobs = array[
+    task.spawn(variadicJob, 30, 1, 2)
+]
+future<int> variadicRaceFuture = task.race(variadicRaceJobs)
+int variadicRaceA = await variadicRaceFuture
+int variadicRaceB = await variadicRaceFuture
+assert variadicRaceA == 33, "task.race variadic task.spawn first await"
+assert variadicRaceB == 33, "task.race variadic task.spawn repeated await"
+assert not task.cancel(variadicRaceFuture), "completed variadic task.race cancel result"
+int variadicRaceAfterCancel = await variadicRaceFuture
+assert variadicRaceAfterCancel == 33, "post-cancel variadic task.race result"
 
 func(var) as int varArgJob = addVar
 var dynamicSpawnArg = 41
@@ -480,6 +863,45 @@ int nestedCallArgSpawned = scoreSpawnResult(await task.spawn(varArgJob, true ? m
 assert nestedCallArgSpawned == 33, "task.spawn dynamic var argument in positional call"
 int nestedNamedCallArgSpawned = combineSpawnResult(right = await task.spawn(varArgJob, makeSpawnValue(12) + makeSpawnValue(29)), left = 1)
 assert nestedNamedCallArgSpawned == 43, "task.spawn dynamic var argument in named call"
+auto multiDeclDynamicSpawnLeft, multiDeclDynamicSpawnRight = pairSpawnResult(
+    await task.spawn(varArgJob, true ? makeSpawnValue(201) : makeSpawnValue(0)),
+    await task.spawn(varArgJob, makeSpawnValue(50) + makeSpawnValue(1))
+)
+assert multiDeclDynamicSpawnLeft == 202, "task.spawn dynamic var argument in multi declaration"
+assert multiDeclDynamicSpawnRight == 52, "task.spawn dynamic var argument in multi declaration right value"
+int multiAssignDynamicSpawnLeft = 0
+int multiAssignDynamicSpawnRight = 0
+multiAssignDynamicSpawnLeft, multiAssignDynamicSpawnRight = pairSpawnResult(
+    await task.spawn(varArgJob, emptySpawnArg ?? makeSpawnValue(211)),
+    await task.spawn(varArgJob, makeSpawnValue(60) + makeSpawnValue(1))
+)
+assert multiAssignDynamicSpawnLeft == 212, "task.spawn dynamic var argument in multi assignment"
+assert multiAssignDynamicSpawnRight == 62, "task.spawn dynamic var argument in multi assignment right value"
+assert await task.spawn(varArgJob, true ? makeSpawnValue(221) : makeSpawnValue(0)) == 222, "task.spawn dynamic var argument in assert condition"
+func(var) as string varMessageJob = describeSpawnValue
+int assertMessageDynamicSpawnState = 0
+try
+    assert false, await task.spawn(varMessageJob, true ? makeSpawnValue(401) : makeSpawnValue(0))
+catch e
+    if e.message == "dynamic 401" then
+        assertMessageDynamicSpawnState = 1
+    end
+end
+assert assertMessageDynamicSpawnState == 1, "task.spawn dynamic var argument in assert message"
+int throwDynamicSpawnState = 0
+try
+    throw await task.spawn(varMessageJob, true ? makeSpawnValue(301) : makeSpawnValue(0))
+catch e
+    if e.message == "dynamic 301" then
+        throwDynamicSpawnState = 1
+    end
+end
+assert throwDynamicSpawnState == 1, "task.spawn dynamic var argument in throw expression"
+int yieldDynamicSpawnTotal = 0
+for await value in dynamicSpawnStream()
+    yieldDynamicSpawnTotal = yieldDynamicSpawnTotal + value
+end
+assert yieldDynamicSpawnTotal == 314, "task.spawn dynamic var argument in yield expression"
 int conditionDynamicSpawnCount = 0
 if await task.spawn(varArgJob, true ? makeSpawnValue(1) : makeSpawnValue(0)) == 2 then
     conditionDynamicSpawnCount = conditionDynamicSpawnCount + 1
@@ -1935,6 +2357,14 @@ bool cancelRequested = task.cancel(cancelTarget)
 assert cancelRequested == true or cancelRequested == false, "task.cancel bool"
 future<int> missingCancelFuture
 assert not task.cancel(missingCancelFuture), "task.cancel null future"
+future<array<int>> missingCancelArrayFuture
+assert not task.cancel(missingCancelArrayFuture), "task.cancel null array future"
+future<list<int>> missingCancelListFuture
+assert not task.cancel(missingCancelListFuture), "task.cancel null list future"
+future<set<int>> missingCancelSetFuture
+assert not task.cancel(missingCancelSetFuture), "task.cancel null set future"
+future<dict<int>> missingCancelDictFuture
+assert not task.cancel(missingCancelDictFuture), "task.cancel null dict future"
 bool cancelTemporaryAsync = task.cancel(addAsync(50, 6))
 assert cancelTemporaryAsync == true or cancelTemporaryAsync == false, "task.cancel temporary async"
 bool cancelTemporarySpawn = task.cancel(task.spawn(addJob, 1, 2))
@@ -2790,6 +3220,152 @@ catch e
 end
 assert defaultArrayRaceState == 1, "task.race default typed array is empty"
 
+array<future<string>> emptyStringJobs = array[]
+
+int emptyStringAllState = 0
+try
+    array<string> emptyStringAll = await task.all(emptyStringJobs)
+    emptyStringAllState = emptyStringAll.length
+catch e
+    if e.message == "task.all requires a non-empty future array" then
+        emptyStringAllState = 1
+    end
+end
+assert emptyStringAllState == 1, "task.all empty string future array error"
+
+int emptyStringRaceState = 0
+try
+    string emptyStringRace = await task.race(emptyStringJobs)
+    emptyStringRaceState = 9
+catch e
+    if e.message == "task.race requires a non-empty future array" then
+        emptyStringRaceState = 1
+    end
+end
+assert emptyStringRaceState == 1, "task.race empty string future array error"
+
+array<future<string>> defaultStringJobs
+
+int defaultStringAllState = 0
+try
+    array<string> defaultStringAll = await task.all(defaultStringJobs)
+    defaultStringAllState = defaultStringAll.length
+catch e
+    if e.message == "task.all requires a non-empty future array" then
+        defaultStringAllState = 1
+    end
+end
+assert defaultStringAllState == 1, "task.all default string future array error"
+
+int defaultStringRaceState = 0
+try
+    string defaultStringRace = await task.race(defaultStringJobs)
+    defaultStringRaceState = 9
+catch e
+    if e.message == "task.race requires a non-empty future array" then
+        defaultStringRaceState = 1
+    end
+end
+assert defaultStringRaceState == 1, "task.race default string future array error"
+
+array<future<bool>> defaultBoolJobs
+
+int defaultBoolAllState = 0
+try
+    array<bool> defaultBoolAll = await task.all(defaultBoolJobs)
+    defaultBoolAllState = defaultBoolAll.length
+catch e
+    if e.message == "task.all requires a non-empty future array" then
+        defaultBoolAllState = 1
+    end
+end
+assert defaultBoolAllState == 1, "task.all default bool future array error"
+
+int defaultBoolRaceState = 0
+try
+    bool defaultBoolRace = await task.race(defaultBoolJobs)
+    defaultBoolRaceState = int(defaultBoolRace)
+catch e
+    if e.message == "task.race requires a non-empty future array" then
+        defaultBoolRaceState = 1
+    end
+end
+assert defaultBoolRaceState == 1, "task.race default bool future array error"
+
+array<future<float>> emptyFloatJobs = array[]
+
+int emptyFloatAllState = 0
+try
+    array<float> emptyFloatAll = await task.all(emptyFloatJobs)
+    emptyFloatAllState = emptyFloatAll.length
+catch e
+    if e.message == "task.all requires a non-empty future array" then
+        emptyFloatAllState = 1
+    end
+end
+assert emptyFloatAllState == 1, "task.all empty float future array error"
+
+int emptyFloatRaceState = 0
+try
+    float emptyFloatRace = await task.race(emptyFloatJobs)
+    emptyFloatRaceState = 9
+catch e
+    if e.message == "task.race requires a non-empty future array" then
+        emptyFloatRaceState = 1
+    end
+end
+assert emptyFloatRaceState == 1, "task.race empty float future array error"
+
+array<future<TaskBox>> emptyTaskBoxJobs = array[]
+
+int emptyTaskBoxAllState = 0
+try
+    array<TaskBox> emptyTaskBoxAll = await task.all(emptyTaskBoxJobs)
+    emptyTaskBoxAllState = emptyTaskBoxAll.length
+catch e
+    if e.message == "task.all requires a non-empty future array" then
+        emptyTaskBoxAllState = 1
+    end
+end
+assert emptyTaskBoxAllState == 1, "task.all empty class future array error"
+
+int emptyTaskBoxRaceState = 0
+try
+    future<TaskBox> emptyTaskBoxRaceFuture = task.race(emptyTaskBoxJobs)
+    TaskBox emptyTaskBoxRace = await emptyTaskBoxRaceFuture
+    emptyTaskBoxRaceState = emptyTaskBoxRace.add(0)
+catch e
+    if e.message == "task.race requires a non-empty future array" then
+        emptyTaskBoxRaceState = 1
+    end
+end
+assert emptyTaskBoxRaceState == 1, "task.race empty class future array error"
+
+array<future<func(int) as int> > emptyTaskFuncJobs = array[]
+
+int emptyTaskFuncAllState = 0
+try
+    array<func(int) as int> emptyTaskFuncAll = await task.all(emptyTaskFuncJobs)
+    emptyTaskFuncAllState = emptyTaskFuncAll.length
+catch e
+    if e.message == "task.all requires a non-empty future array" then
+        emptyTaskFuncAllState = 1
+    end
+end
+assert emptyTaskFuncAllState == 1, "task.all empty function future array error"
+
+int emptyTaskFuncRaceState = 0
+try
+    future<func(int) as int> emptyTaskFuncRaceFuture = task.race(emptyTaskFuncJobs)
+    func(int) as int emptyTaskFuncRace = await emptyTaskFuncRaceFuture
+    emptyTaskFuncRaceState = emptyTaskFuncRace(0)
+catch e
+    if e.message == "task.race requires a non-empty future array" then
+        emptyTaskFuncRaceState = 1
+    end
+end
+assert emptyTaskFuncRaceState == 1, "task.race empty function future array error"
+
 future<int> missingFuture
 
 int nullAllState = 0
@@ -3060,3 +3636,204 @@ end
 assert typedNullFirstSpawnFloatRaceState == 1, "typed array task.race float null-first task.spawn source future error"
 float typedNullFirstSpawnFloatRaceTail = await typedNullFirstSpawnFloatRaceJobs[1]
 assert typedNullFirstSpawnFloatRaceTail == 5.0, "typed array task.race float null-first leaves task.spawn source awaitable"
+
+func(int) as int mixedTailClosureSource = makeAdder(510)
+bool chooseMixedTailClosure = true
+future<int> mixedTailBorrowedFuture = task.spawn(chooseMixedTailClosure ? mixedTailClosureSource : makeAdder(520), 5)
+assert await mixedTailBorrowedFuture == 515, "task.spawn mixed tail borrowed future"
+assert await mixedTailBorrowedFuture == 515, "task.spawn mixed tail borrowed repeated await"
+assert not task.cancel(mixedTailBorrowedFuture), "completed mixed tail borrowed future should not be canceled"
+assert mixedTailClosureSource(6) == 516, "mixed tail borrowed source remains callable"
+
+chooseMixedTailClosure = false
+future<int> mixedTailOwnedFuture = task.spawn(chooseMixedTailClosure ? mixedTailClosureSource : makeAdder(530), 7)
+assert await mixedTailOwnedFuture == 537, "task.spawn mixed tail owned future"
+assert await mixedTailOwnedFuture == 537, "task.spawn mixed tail owned repeated await"
+assert not task.cancel(mixedTailOwnedFuture), "completed mixed tail owned future should not be canceled"
+assert mixedTailClosureSource(8) == 518, "mixed tail owned source remains callable"
+
+future<int> conditionalFutureSource = addAsync(610, 1)
+assert await conditionalFutureSource == 611, "conditional future source first await"
+bool chooseConditionalFuture = true
+assert not task.cancel(chooseConditionalFuture ? conditionalFutureSource : addAsync(620, 1)), "completed conditional borrowed future should not be canceled"
+assert await conditionalFutureSource == 611, "conditional future source remains awaitable after cancel"
+
+chooseConditionalFuture = false
+bool conditionalFutureOwnedCancel = task.cancel(chooseConditionalFuture ? conditionalFutureSource : addAsync(630, 1))
+assert conditionalFutureOwnedCancel == true or conditionalFutureOwnedCancel == false, "conditional owned future cancel should release temporary future"
+assert await conditionalFutureSource == 611, "conditional owned branch should not affect source future"
+
+future<string> conditionalStringFutureSource = greetAsync("conditional string")
+assert await conditionalStringFutureSource == "hello conditional string", "conditional string future source first await"
+bool chooseConditionalStringFuture = true
+assert not task.cancel(chooseConditionalStringFuture ? conditionalStringFutureSource : greetAsync("conditional temp")), "completed conditional string borrowed future should not be canceled"
+assert await conditionalStringFutureSource == "hello conditional string", "conditional string source remains awaitable"
+
+future<TaskBox> conditionalClassFutureSource = makeTaskBox(690)
+TaskBox conditionalClassBoxA = await conditionalClassFutureSource
+assert conditionalClassBoxA.add(1) == 691, "conditional class future source first await"
+bool chooseConditionalClassFuture = true
+assert not task.cancel(chooseConditionalClassFuture ? conditionalClassFutureSource : makeTaskBox(700)), "completed conditional class borrowed future should not be canceled"
+TaskBox conditionalClassBoxB = await conditionalClassFutureSource
+assert conditionalClassBoxB.add(2) == 692, "conditional class source remains awaitable"
+
+future<func(int) as int> conditionalFuncFutureSource = makeTaskAdder(710)
+func(int) as int conditionalFuncA = await conditionalFuncFutureSource
+assert conditionalFuncA(1) == 711, "conditional function future source first await"
+bool chooseConditionalFuncFuture = true
+assert not task.cancel(chooseConditionalFuncFuture ? conditionalFuncFutureSource : makeTaskAdder(720)), "completed conditional function borrowed future should not be canceled"
+func(int) as int conditionalFuncB = await conditionalFuncFutureSource
+assert conditionalFuncB(2) == 712, "conditional function source remains awaitable"
+
+future<array<int>> conditionalAllFutureSource = task.all([addAsync(730, 1), addAsync(740, 2)])
+array<int> conditionalAllSourceValues = await conditionalAllFutureSource
+assert conditionalAllSourceValues[0] == 731, "conditional task.all future source first value"
+assert conditionalAllSourceValues[1] == 742, "conditional task.all future source second value"
+bool chooseConditionalAllFuture = true
+assert not task.cancel(chooseConditionalAllFuture ? conditionalAllFutureSource : task.all([addAsync(750, 1)])), "completed conditional task.all borrowed future should not be canceled"
+array<int> conditionalAllSourceValuesAgain = await conditionalAllFutureSource
+assert conditionalAllSourceValuesAgain[0] == 731, "conditional task.all source remains awaitable"
+
+future<int> conditionalAllSource = addAsync(640, 1)
+bool chooseConditionalAll = true
+array<int> conditionalFutureAll = await task.all([
+    chooseConditionalAll ? conditionalAllSource : addAsync(650, 1),
+    false ? conditionalAllSource : addAsync(660, 1)
+])
+assert conditionalFutureAll[0] == 641, "task.all conditional future borrowed branch"
+assert conditionalFutureAll[1] == 661, "task.all conditional future owned branch"
+assert await conditionalAllSource == 641, "task.all conditional future source remains awaitable"
+
+future<int> conditionalRaceSource = addAsync(670, 1)
+bool chooseConditionalRace = true
+int conditionalFutureRace = await task.race([chooseConditionalRace ? conditionalRaceSource : addAsync(680, 1)])
+assert conditionalFutureRace == 671, "task.race conditional future borrowed branch"
+assert await conditionalRaceSource == 671, "task.race conditional future source remains awaitable"
+
+future<int> typedConditionalAllSource = addAsync(760, 1)
+bool chooseTypedConditionalAll = true
+array<future<int>> typedConditionalAllJobs = array[
+    chooseTypedConditionalAll ? typedConditionalAllSource : addAsync(770, 1),
+    false ? typedConditionalAllSource : addAsync(780, 1)
+]
+array<int> typedConditionalAll = await task.all(typedConditionalAllJobs)
+assert typedConditionalAll[0] == 761, "typed task.all conditional future borrowed branch"
+assert typedConditionalAll[1] == 781, "typed task.all conditional future owned branch"
+assert await typedConditionalAllSource == 761, "typed task.all conditional future source remains awaitable"
+
+future<int> typedConditionalRaceSource = addAsync(790, 1)
+bool chooseTypedConditionalRace = true
+array<future<int>> typedConditionalRaceJobs = array[
+    chooseTypedConditionalRace ? typedConditionalRaceSource : addAsync(800, 1)
+]
+int typedConditionalRace = await task.race(typedConditionalRaceJobs)
+assert typedConditionalRace == 791, "typed task.race conditional future borrowed branch"
+assert await typedConditionalRaceSource == 791, "typed task.race conditional future source remains awaitable"
+
+future<bool> typedConditionalBoolSource = flipAsync(false)
+bool chooseTypedConditionalBool = true
+array<future<bool>> typedConditionalBoolJobs = array[
+    chooseTypedConditionalBool ? typedConditionalBoolSource : flipAsync(true)
+]
+bool typedConditionalBoolRace = await task.race(typedConditionalBoolJobs)
+assert typedConditionalBoolRace, "typed task.race conditional bool borrowed branch"
+assert await typedConditionalBoolSource, "typed task.race conditional bool source remains awaitable"
+
+future<float> typedConditionalFloatSource = addHalfAsync(800.5)
+bool chooseTypedConditionalFloat = true
+array<future<float>> typedConditionalFloatJobs = array[
+    chooseTypedConditionalFloat ? typedConditionalFloatSource : addHalfAsync(801.5)
+]
+float typedConditionalFloatRace = await task.race(typedConditionalFloatJobs)
+assert typedConditionalFloatRace == 801.0, "typed task.race conditional float borrowed branch"
+assert await typedConditionalFloatSource == 801.0, "typed task.race conditional float source remains awaitable"
+
+future<string> typedConditionalStringSource = greetAsync("typed conditional string")
+bool chooseTypedConditionalString = true
+array<future<string>> typedConditionalStringJobs = array[
+    chooseTypedConditionalString ? typedConditionalStringSource : greetAsync("typed conditional string alt"),
+    false ? typedConditionalStringSource : greetAsync("typed conditional string owned")
+]
+array<string> typedConditionalStrings = await task.all(typedConditionalStringJobs)
+assert typedConditionalStrings[0] == "hello typed conditional string", "typed task.all conditional string borrowed branch"
+assert typedConditionalStrings[1] == "hello typed conditional string owned", "typed task.all conditional string owned branch"
+assert await typedConditionalStringSource == "hello typed conditional string", "typed task.all conditional string source remains awaitable"
+
+future<TaskBox> typedConditionalBoxSource = makeTaskBox(805)
+bool chooseTypedConditionalBox = true
+array<future<TaskBox>> typedConditionalBoxJobs = array[
+    chooseTypedConditionalBox ? typedConditionalBoxSource : makeTaskBox(806)
+]
+future<TaskBox> typedConditionalBoxRaceFuture = task.race(typedConditionalBoxJobs)
+TaskBox typedConditionalBoxRace = await typedConditionalBoxRaceFuture
+assert typedConditionalBoxRace.add(1) == 806, "typed task.race conditional class borrowed branch"
+TaskBox typedConditionalBoxAgain = await typedConditionalBoxSource
+assert typedConditionalBoxAgain.add(2) == 807, "typed task.race conditional class source remains awaitable"
+
+future<func(int) as int> typedConditionalFuncSource = makeTaskAdder(808)
+bool chooseTypedConditionalFunc = true
+array<future<func(int) as int> > typedConditionalFuncJobs = array[
+    chooseTypedConditionalFunc ? typedConditionalFuncSource : makeTaskAdder(809)
+]
+func(int) as int typedConditionalFunc = await task.race(typedConditionalFuncJobs)
+assert typedConditionalFunc(1) == 809, "typed task.race conditional function borrowed branch"
+func(int) as int typedConditionalFuncAgain = await typedConditionalFuncSource
+assert typedConditionalFuncAgain(2) == 810, "typed task.race conditional function source remains awaitable"
+
+future<string> conditionalStringAllSource = greetAsync("conditional all string")
+bool chooseConditionalStringAll = true
+array<string> conditionalStringAll = await task.all([
+    chooseConditionalStringAll ? conditionalStringAllSource : greetAsync("conditional all string borrowed alt"),
+    false ? conditionalStringAllSource : greetAsync("conditional all string owned")
+])
+assert conditionalStringAll[0] == "hello conditional all string", "task.all conditional string borrowed branch"
+assert conditionalStringAll[1] == "hello conditional all string owned", "task.all conditional string owned branch"
+assert await conditionalStringAllSource == "hello conditional all string", "task.all conditional string source remains awaitable"
+
+future<string> conditionalStringRaceSource = greetAsync("conditional race string")
+bool chooseConditionalStringRace = true
+string conditionalStringRace = await task.race([chooseConditionalStringRace ? conditionalStringRaceSource : greetAsync("conditional race string owned")])
+assert conditionalStringRace == "hello conditional race string", "task.race conditional string borrowed branch"
+assert await conditionalStringRaceSource == "hello conditional race string", "task.race conditional string source remains awaitable"
+
+future<TaskBox> conditionalBoxAllSource = makeTaskBox(810)
+bool chooseConditionalBoxAll = true
+future<array<TaskBox>> conditionalBoxAllFuture = task.all([
+    chooseConditionalBoxAll ? conditionalBoxAllSource : makeTaskBox(820),
+    false ? conditionalBoxAllSource : makeTaskBox(830)
+])
+array<TaskBox> conditionalBoxAll = await conditionalBoxAllFuture
+TaskBox conditionalBoxAllA = conditionalBoxAll[0]
+TaskBox conditionalBoxAllB = conditionalBoxAll[1]
+assert conditionalBoxAllA.add(1) == 811, "task.all conditional class borrowed branch"
+assert conditionalBoxAllB.add(2) == 832, "task.all conditional class owned branch"
+TaskBox conditionalBoxAllAgain = await conditionalBoxAllSource
+assert conditionalBoxAllAgain.add(3) == 813, "task.all conditional class source remains awaitable"
+
+future<TaskBox> conditionalBoxRaceSource = makeTaskBox(840)
+bool chooseConditionalBoxRace = true
+future<TaskBox> conditionalBoxRaceFuture = task.race([chooseConditionalBoxRace ? conditionalBoxRaceSource : makeTaskBox(850)])
+TaskBox conditionalBoxRace = await conditionalBoxRaceFuture
+assert conditionalBoxRace.add(1) == 841, "task.race conditional class borrowed branch"
+TaskBox conditionalBoxRaceAgain = await conditionalBoxRaceSource
+assert conditionalBoxRaceAgain.add(2) == 842, "task.race conditional class source remains awaitable"
+
+future<func(int) as int> conditionalFuncAllSource = makeTaskAdder(860)
+bool chooseConditionalFuncAll = true
+array<func(int) as int> conditionalFuncAll = await task.all([
+    chooseConditionalFuncAll ? conditionalFuncAllSource : makeTaskAdder(870),
+    false ? conditionalFuncAllSource : makeTaskAdder(880)
+])
+func(int) as int conditionalFuncAllA = conditionalFuncAll[0]
+func(int) as int conditionalFuncAllB = conditionalFuncAll[1]
+assert conditionalFuncAllA(1) == 861, "task.all conditional function borrowed branch"
+assert conditionalFuncAllB(2) == 882, "task.all conditional function owned branch"
+func(int) as int conditionalFuncAllAgain = await conditionalFuncAllSource
+assert conditionalFuncAllAgain(3) == 863, "task.all conditional function source remains awaitable"
+
+future<func(int) as int> conditionalFuncRaceSource = makeTaskAdder(890)
+bool chooseConditionalFuncRace = true
+func(int) as int conditionalFuncRace = await task.race([chooseConditionalFuncRace ? conditionalFuncRaceSource : makeTaskAdder(900)])
+assert conditionalFuncRace(1) == 891, "task.race conditional function borrowed branch"
+func(int) as int conditionalFuncRaceAgain = await conditionalFuncRaceSource
+assert conditionalFuncRaceAgain(2) == 892, "task.race conditional function source remains awaitable"

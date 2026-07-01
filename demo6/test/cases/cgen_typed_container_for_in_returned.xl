@@ -247,3 +247,9 @@ for value in memberValues
     memberAssignedTotal = memberAssignedTotal + value
 end
 assert memberAssignedTotal == 6, "member func returned array assignment failed"
+
+int memberDirectTotal = 0
+for value in maker.values()
+    memberDirectTotal = memberDirectTotal + value
+end
+assert memberDirectTotal == 6, "member func returned array direct for-in failed"

@@ -10,9 +10,9 @@ if ( $Root -eq "" ) {
 
 $srcDir = Join-Path $Root "src"
 $srcReadme = Join-Path $srcDir "README.md"
-$minSourceFiles = 88
-$minDirectSources = 31
-$minIncludedSources = 57
+$minSourceFiles = 120
+$minDirectSources = 34
+$minIncludedSources = 85
 $minGeneratedDirectSources = 2
 $wiringFiles = @(
     "build.bat",
@@ -24,6 +24,8 @@ $generatedSourceInputs = @{
     "src/lexer/xl6_lexer_gen.c" = "src/lexer/xl6_lexer.l"
     "src/parser/xl6_parser.c" = "src/parser/xl6_parser.y"
 }
+$retiredSources = New-Object System.Collections.Generic.HashSet[string]
+$retiredSources.Add("src/driver/xl6_cli.c") | Out-Null
 
 $failures = New-Object System.Collections.Generic.List[string]
 
@@ -130,6 +132,9 @@ foreach ( $file in $srcFiles ) {
 
 foreach ( $file in $srcFiles ) {
     $relative = Relative-From-Root $file
+    if ( $retiredSources.Contains($relative) ) {
+        continue
+    }
     if ( ! $directSources.Contains($relative) -and ! $includedSources.Contains($relative) ) {
         Add-Failure "source file is not wired: $relative"
     }

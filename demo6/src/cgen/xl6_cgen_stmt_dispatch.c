@@ -302,6 +302,44 @@ static int xl6CgenTryAssignWithTaskSpawnArgTemps(XL6_CgenContext* ctx, const XL6
     return 1;
 }
 
+static int xl6CgenTryMultiDeclWithTaskSpawnArgTemps(XL6_CgenContext* ctx, const XL6_AstNode* node)
+{
+    const XL6_AstNode* right;
+    XL6_CgenTaskSpawnArgTempScope scope;
+
+    if ( ctx == NULL || node == NULL || node->kind != XL6_AST_MULTI_VAR_DECL || node->childCount < 2 ) {
+        return 0;
+    }
+
+    right = node->children[1];
+    if ( !xl6CgenTaskSpawnArgTempScopeBegin(ctx, right, &scope) ) {
+        return 0;
+    }
+
+    xl6CgenMultiDecl(ctx, node);
+    xl6CgenTaskSpawnArgTempScopeEnd(ctx, &scope);
+    return 1;
+}
+
+static int xl6CgenTryMultiAssignWithTaskSpawnArgTemps(XL6_CgenContext* ctx, const XL6_AstNode* node)
+{
+    const XL6_AstNode* right;
+    XL6_CgenTaskSpawnArgTempScope scope;
+
+    if ( ctx == NULL || node == NULL || node->kind != XL6_AST_MULTI_ASSIGN || node->childCount < 2 ) {
+        return 0;
+    }
+
+    right = node->children[1];
+    if ( !xl6CgenTaskSpawnArgTempScopeBegin(ctx, right, &scope) ) {
+        return 0;
+    }
+
+    xl6CgenMultiAssign(ctx, node);
+    xl6CgenTaskSpawnArgTempScopeEnd(ctx, &scope);
+    return 1;
+}
+
 static void xl6CgenStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
 {
     if ( node == NULL ) {
@@ -317,7 +355,9 @@ static void xl6CgenStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
         xl6CgenEmitExceptionPropagate(ctx, node);
         break;
     case XL6_AST_MULTI_VAR_DECL:
-        xl6CgenMultiDecl(ctx, node);
+        if ( !xl6CgenTryMultiDeclWithTaskSpawnArgTemps(ctx, node) ) {
+            xl6CgenMultiDecl(ctx, node);
+        }
         xl6CgenEmitExceptionPropagate(ctx, node);
         break;
     case XL6_AST_ASSIGN:
@@ -327,7 +367,9 @@ static void xl6CgenStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
         xl6CgenEmitExceptionPropagate(ctx, node);
         break;
     case XL6_AST_MULTI_ASSIGN:
-        xl6CgenMultiAssign(ctx, node);
+        if ( !xl6CgenTryMultiAssignWithTaskSpawnArgTemps(ctx, node) ) {
+            xl6CgenMultiAssign(ctx, node);
+        }
         xl6CgenEmitExceptionPropagate(ctx, node);
         break;
     case XL6_AST_RETURN: {
