@@ -1,0 +1,6 @@
+func nums() as generator<int>
+    yield 1
+end
+
+generator<int> gen = nums()
+task.cancel(gen)

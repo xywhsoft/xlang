@@ -1,0 +1,3 @@
+future<generator<int>> generatorFuture
+array<future<generator<int>>> jobs = array[generatorFuture]
+task.all(jobs)

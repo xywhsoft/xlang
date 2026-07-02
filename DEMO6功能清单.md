@@ -1019,6 +1019,7 @@ rw.readUnlock()
 
 当前边界：
 - `async` 函数返回 `future<T>`；无显式返回值的 async 函数可被 `await`。
+- `async` 函数参数会进入异步执行帧，因此不能按值声明 `future<T>`、`generator<T>`、`channel<T>`、`sem`、`thread` 等不可复制资源句柄。
 - `future<T>` 支持重复 `await` 已完成结果。
 - `task.all` / `task.race` 接收非空的 `[future<T>, ...]` 数组字面量或 `array<future<T>>`，并要求所有 future 的完成值类型一致。
 - `task.all` 返回 `future<array<T>>`，因此常见写法是 `array<T> values = await task.all(jobs)`。
@@ -1030,6 +1031,7 @@ rw.readUnlock()
 - `task.race` 中某个 source future 已经被显式取消时，group 必须进入取消态，并取消仍在 pending 的 loser；数组字面量输入和 `array<future<int>>` typed-array 输入均已覆盖 loser late await 仍保持取消态。该规则同时覆盖“先入组再取消 winner”和“先取消 winner 再创建 group”的 completed-canceled 路径，winner repeated cancel 仍返回 true。
 - `task.all` 中某个 source future 已经被显式取消时，group 必须进入取消态，但不会主动取消其他 source；另一个 source 应正常完成。已取消 source 在数组字面量输入和 `array<future<int>>` typed-array 输入下都必须支持首次 await、late await 与 repeated cancel，且始终保持取消态；该规则同时覆盖“先入组再取消 source”和“先取消 source 再创建 group”的 completed-canceled 路径。
 - 已完成的具名 `task.all` / `task.race` future 支持 repeated await；`task.cancel(completedFuture)` 返回 `false`，post-cancel await 仍返回原完成值。该规则已覆盖基础值、`class` 与 `func`；其中 `int`、`string`、`bool`、`float`、`class`、`func` 同时覆盖数组字面量输入和 typed-array 输入。
+- `task.cancel(...)` 只接受 `future<T>` / `task<T>`；`channel<T>`、`generator<T>`、`sem`、`thread` 等资源句柄不是 task 句柄，必须使用各自的专用方法或生命周期规则，不能传给 `task.cancel`。
 - `task.all` / `task.race` 的失败传播已覆盖基础值、`string`、`class` 与 `func`；已失败的具名 task future 支持 repeated await，`task.cancel(failedFuture)` 返回 `false`，post-cancel await 仍保留原始错误。`task.all` 中某个 source 快速失败时，group 必须传播原始错误，但不会取消仍在 pending 的 sibling；数组字面量输入和 `array<future<int>>` typed-array 输入均已覆盖慢 sibling 后续正常 `await`。`task.race` 中某个 source 快速失败时，仍在 pending 的 loser future 会被取消，后续 repeated await 保持取消态；如果 race 创建前 winner 已经失败，数组字面量输入和 `array<future<int>>` typed-array 输入也都必须覆盖 loser 首次 await 与 sleep 后 late await 均保持取消态。
 - 当前 typed future bridge 不支持 `task.all/race` 聚合 `future<var>`，也不支持完成值本身为 `array/list/set/dict` 的 `future<array/list/set/dict>`，也不支持 `future<future<T>>`、`future<generator<T>>`、`future<channel<T>>`、`future<sem>`、`future<thread>` 等资源句柄完成值。该限制同时适用于 `[future<T>, ...]` 数组字面量输入和 `array<future<T>>` typed-array 输入；这些 future 可以直接 `await`，但暂不能再交给 `task.all/race` 二次聚合。
 - `task.spawn` 只接收具备完整签名的 `func` 值；当前桥接不支持 `var` 返回值、`***` 字典可变参数、typed container 参数/返回值、动态 `array/list/set/dict` 参数/返回值、`future<T>` 参数/返回值、`generator<T>` 参数/返回值、`channel<T>` / `sem` / `thread` 等资源句柄参数/返回值。

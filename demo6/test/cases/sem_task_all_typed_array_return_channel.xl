@@ -1,0 +1,3 @@
+future<channel<int>> channelFuture
+array<future<channel<int>>> jobs = array[channelFuture]
+task.all(jobs)

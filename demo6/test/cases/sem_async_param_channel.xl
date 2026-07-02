@@ -1,0 +1,3 @@
+async func bad(channel<int> ch) as int
+    return 0
+end

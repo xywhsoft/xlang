@@ -18043,6 +18043,61 @@ if errorlevel 1 (
     exit /b 1
 )
 
+release\xl.exe check test\cases\sem_async_param_future.xl >nul 2> release\tmp\sem_async_param_future.err.txt
+if not errorlevel 1 (
+    echo sem_async_param_future.xl should fail.
+    exit /b 1
+)
+findstr /C:"[sem]" release\tmp\sem_async_param_future.err.txt >nul
+if errorlevel 1 (
+    echo sem_async_param_future.xl missing async future parameter diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_async_param_generator.xl >nul 2> release\tmp\sem_async_param_generator.err.txt
+if not errorlevel 1 (
+    echo sem_async_param_generator.xl should fail.
+    exit /b 1
+)
+findstr /C:"[sem]" release\tmp\sem_async_param_generator.err.txt >nul
+if errorlevel 1 (
+    echo sem_async_param_generator.xl missing async generator parameter diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_async_param_channel.xl >nul 2> release\tmp\sem_async_param_channel.err.txt
+if not errorlevel 1 (
+    echo sem_async_param_channel.xl should fail.
+    exit /b 1
+)
+findstr /C:"[sem]" release\tmp\sem_async_param_channel.err.txt >nul
+if errorlevel 1 (
+    echo sem_async_param_channel.xl missing async channel parameter diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_async_param_sync.xl >nul 2> release\tmp\sem_async_param_sync.err.txt
+if not errorlevel 1 (
+    echo sem_async_param_sync.xl should fail.
+    exit /b 1
+)
+findstr /C:"[sem]" release\tmp\sem_async_param_sync.err.txt >nul
+if errorlevel 1 (
+    echo sem_async_param_sync.xl missing async sync parameter diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_async_param_thread.xl >nul 2> release\tmp\sem_async_param_thread.err.txt
+if not errorlevel 1 (
+    echo sem_async_param_thread.xl should fail.
+    exit /b 1
+)
+findstr /C:"[sem]" release\tmp\sem_async_param_thread.err.txt >nul
+if errorlevel 1 (
+    echo sem_async_param_thread.xl missing async thread parameter diagnostic.
+    exit /b 1
+)
+
 release\xl.exe check test\cases\sem_async_multi_return.xl >nul 2> release\tmp\sem_async_multi_return.err.txt
 if not errorlevel 1 (
     echo sem_async_multi_return.xl should fail.
@@ -18073,6 +18128,50 @@ if not errorlevel 1 (
 findstr /C:"task.cancel" release\tmp\sem_task_cancel_non_future.err.txt >nul
 if errorlevel 1 (
     echo sem_task_cancel_non_future.xl missing task.cancel diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_task_cancel_channel.xl >nul 2> release\tmp\sem_task_cancel_channel.err.txt
+if not errorlevel 1 (
+    echo sem_task_cancel_channel.xl should fail.
+    exit /b 1
+)
+findstr /C:"task.cancel" release\tmp\sem_task_cancel_channel.err.txt >nul
+if errorlevel 1 (
+    echo sem_task_cancel_channel.xl missing task.cancel channel diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_task_cancel_generator.xl >nul 2> release\tmp\sem_task_cancel_generator.err.txt
+if not errorlevel 1 (
+    echo sem_task_cancel_generator.xl should fail.
+    exit /b 1
+)
+findstr /C:"task.cancel" release\tmp\sem_task_cancel_generator.err.txt >nul
+if errorlevel 1 (
+    echo sem_task_cancel_generator.xl missing task.cancel generator diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_task_cancel_sync.xl >nul 2> release\tmp\sem_task_cancel_sync.err.txt
+if not errorlevel 1 (
+    echo sem_task_cancel_sync.xl should fail.
+    exit /b 1
+)
+findstr /C:"task.cancel" release\tmp\sem_task_cancel_sync.err.txt >nul
+if errorlevel 1 (
+    echo sem_task_cancel_sync.xl missing task.cancel sync diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_task_cancel_thread.xl >nul 2> release\tmp\sem_task_cancel_thread.err.txt
+if not errorlevel 1 (
+    echo sem_task_cancel_thread.xl should fail.
+    exit /b 1
+)
+findstr /C:"task.cancel" release\tmp\sem_task_cancel_thread.err.txt >nul
+if errorlevel 1 (
+    echo sem_task_cancel_thread.xl missing task.cancel thread diagnostic.
     exit /b 1
 )
 

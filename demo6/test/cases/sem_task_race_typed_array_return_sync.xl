@@ -1,0 +1,3 @@
+future<sem> syncFuture
+array<future<sem>> jobs = array[syncFuture]
+task.race(jobs)

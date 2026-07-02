@@ -1,12 +1,12 @@
 import rapidocr
 
-string keysPath = "packages\\rapidocr\\models\\ppocr_keys_v1.txt"
+string keysPath = rapidocr.default_model_dir() + "\\ppocr_keys_v1.txt"
 point nullResult = null
 
 assert rapidocr.available(), "rapidocr dependencies should be available"
 assert string.len(rapidocr.backend()) > 0, "rapidocr backend failed"
 assert string.contains(rapidocr.dependency_status(), "opencv="), "rapidocr dependency_status failed"
-assert rapidocr.default_model_dir() == "packages\\rapidocr\\models", "rapidocr default_model_dir failed"
+assert string.contains(rapidocr.default_model_dir(), "rapidocr\\models"), "rapidocr default_model_dir failed"
 assert string.contains(rapidocr.default_config_json(), "ch_PP-OCRv4_det_infer.onnx"), "rapidocr default_config_json failed"
 assert string.contains(rapidocr.model_layout_json(), "ppocr_keys_v1.txt"), "rapidocr model_layout_json failed"
 
