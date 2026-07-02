@@ -66,8 +66,6 @@ $extraMarkdownDocs = @(
     "examples\feature_suite\README.md",
     "examples\tutorial\README.md",
     "packages\README.md",
-    "packages\rapidocr\README.md",
-    "packages\rapidocr\models\README.md",
     "test\README.md"
 )
 
@@ -85,6 +83,7 @@ foreach ( $relative in $extraMarkdownDocs ) {
     $knownReadmeDocs.Add($relative.ToLowerInvariant()) | Out-Null
 }
 $ignoredReadmePrefixes = @(
+    "release\extlibs\",
     "release\tmp\",
     "release\tcc\",
     "lib\xrt\"

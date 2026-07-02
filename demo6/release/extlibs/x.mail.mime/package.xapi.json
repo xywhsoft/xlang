@@ -1,0 +1,26 @@
+{
+  "format":"xlang-xapi-1",
+  "compiler":{"name":"xl","version":"demo6","xlangAbi":1,"xrtAbi":1},
+  "target":{"os":"windows","arch":"x64","callingConvention":"cdecl"},
+  "package":{"name":"x.mail.mime","version":"0.1.0","abiVersion":"1","packageId":"x.mail.mime@0.1.0#abi1"},
+  "module":{"name":"x.mail.mime","moduleId":"x.mail.mime@0.1.0#abi1::x.mail.mime","source":"extlibs/x.mail.mime","sourceHash":""},
+  "entry":{"kind":"none","requiresExplicitInit":true,"initSymbol":"xlInit","unitSymbol":"xlUnit"},
+  "exports":[
+    {"kind":"function","name":"result","cSymbol":"__xl6_import_x_mail_mime_result","signature":"func(bool,string,string,var) as var","exportId":"x.mail.mime@0.1.0#abi1::x.mail.mime::result(func(bool,string,string,var) as var)","callingConvention":"cdecl","varargMode":"none","requiredParamCount":4,"fixedParamCount":4,"params":[{"name":"ok","type":"bool","optional":false,"vararg":false},{"name":"error","type":"string","optional":false,"vararg":false},{"name":"stage","type":"string","optional":false,"vararg":false},{"name":"data","type":"var","optional":false,"vararg":false}],"returns":[{"type":"var"}]},
+    {"kind":"function","name":"unsupported","cSymbol":"__xl6_import_x_mail_mime_unsupported","signature":"func(string) as var","exportId":"x.mail.mime@0.1.0#abi1::x.mail.mime::unsupported(func(string) as var)","callingConvention":"cdecl","varargMode":"none","requiredParamCount":1,"fixedParamCount":1,"params":[{"name":"operation","type":"string","optional":false,"vararg":false}],"returns":[{"type":"var"}]},
+    {"kind":"function","name":"address","cSymbol":"__xl6_import_x_mail_mime_address","signature":"func(string,string) as var","exportId":"x.mail.mime@0.1.0#abi1::x.mail.mime::address(func(string,string) as var)","callingConvention":"cdecl","varargMode":"none","requiredParamCount":2,"fixedParamCount":2,"params":[{"name":"email","type":"string","optional":false,"vararg":false},{"name":"name","type":"string","optional":false,"vararg":false}],"returns":[{"type":"var"}]},
+    {"kind":"function","name":"attachment","cSymbol":"__xl6_import_x_mail_mime_attachment","signature":"func(string,string,var,string,bool) as var","exportId":"x.mail.mime@0.1.0#abi1::x.mail.mime::attachment(func(string,string,var,string,bool) as var)","callingConvention":"cdecl","varargMode":"none","requiredParamCount":5,"fixedParamCount":5,"params":[{"name":"filename","type":"string","optional":false,"vararg":false},{"name":"content_type","type":"string","optional":false,"vararg":false},{"name":"content","type":"var","optional":false,"vararg":false},{"name":"content_id","type":"string","optional":false,"vararg":false},{"name":"is_inline","type":"bool","optional":false,"vararg":false}],"returns":[{"type":"var"}]},
+    {"kind":"function","name":"message","cSymbol":"__xl6_import_x_mail_mime_message","signature":"func(var) as var","exportId":"x.mail.mime@0.1.0#abi1::x.mail.mime::message(func(var) as var)","callingConvention":"cdecl","varargMode":"none","requiredParamCount":1,"fixedParamCount":1,"params":[{"name":"fields","type":"var","optional":false,"vararg":false}],"returns":[{"type":"var"}]},
+    {"kind":"function","name":"build","cSymbol":"__xl6_import_x_mail_mime_build","signature":"func(var) as var","exportId":"x.mail.mime@0.1.0#abi1::x.mail.mime::build(func(var) as var)","callingConvention":"cdecl","varargMode":"none","requiredParamCount":1,"fixedParamCount":1,"params":[{"name":"message_value","type":"var","optional":false,"vararg":false}],"returns":[{"type":"var"}]},
+    {"kind":"function","name":"parse","cSymbol":"__xl6_import_x_mail_mime_parse","signature":"func(string) as var","exportId":"x.mail.mime@0.1.0#abi1::x.mail.mime::parse(func(string) as var)","callingConvention":"cdecl","varargMode":"none","requiredParamCount":1,"fixedParamCount":1,"params":[{"name":"raw_message","type":"string","optional":false,"vararg":false}],"returns":[{"type":"var"}]},
+    {"kind":"function","name":"build_json","cSymbol":"__xl6_import_x_mail_mime_build_json","signature":"func(string) as string","exportId":"x.mail.mime@0.1.0#abi1::x.mail.mime::build_json(func(string) as string)","callingConvention":"cdecl","varargMode":"none","requiredParamCount":1,"fixedParamCount":1,"params":[{"name":"message_json","type":"string","optional":false,"vararg":false}],"returns":[{"type":"string"}]},
+    {"kind":"function","name":"parse_json","cSymbol":"__xl6_import_x_mail_mime_parse_json","signature":"func(string) as string","exportId":"x.mail.mime@0.1.0#abi1::x.mail.mime::parse_json(func(string) as string)","callingConvention":"cdecl","varargMode":"none","requiredParamCount":1,"fixedParamCount":1,"params":[{"name":"raw_message","type":"string","optional":false,"vararg":false}],"returns":[{"type":"string"}]}
+  ],
+  "types":[],
+  "imports":[],
+  "links":["ws2_32","iphlpapi","shell32"],
+  "loadlibs":[],
+  "cSources":["xmail_xlang.c"],
+  "native":{"singleton":false,"loadName":"","version":""},
+  "docs":[]
+}

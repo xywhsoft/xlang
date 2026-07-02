@@ -1,0 +1,681 @@
+{
+  "format": "xlang-xapi-1",
+  "compiler": {
+    "name": "xl",
+    "version": "demo6",
+    "xlangAbi": 1,
+    "xrtAbi": 1
+  },
+  "target": {
+    "os": "windows",
+    "arch": "x64",
+    "callingConvention": "cdecl"
+  },
+  "package": {
+    "name": "stb_truetype",
+    "version": "0.1.0",
+    "abiVersion": "1",
+    "packageId": "stb_truetype@0.1.0#abi1"
+  },
+  "module": {
+    "name": "stb_truetype",
+    "moduleId": "stb_truetype@0.1.0#abi1::stb_truetype",
+    "source": "extlibs/stb_truetype",
+    "sourceHash": ""
+  },
+  "entry": {
+    "kind": "none",
+    "requiresExplicitInit": true,
+    "initSymbol": "xlInit",
+    "unitSymbol": "xlUnit"
+  },
+  "exports": [
+    {
+      "kind": "function",
+      "name": "version",
+      "cSymbol": "xstbtt_version",
+      "signature": "func() as string",
+      "exportId": "stb_truetype@0.1.0#abi1::stb_truetype::version(func() as string)",
+      "callingConvention": "cdecl",
+      "varargMode": "none",
+      "requiredParamCount": 0,
+      "fixedParamCount": 0,
+      "params": [],
+      "returns": [
+        {
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "kind": "function",
+      "name": "last_error",
+      "cSymbol": "xstbtt_last_error",
+      "signature": "func() as string",
+      "exportId": "stb_truetype@0.1.0#abi1::stb_truetype::last_error(func() as string)",
+      "callingConvention": "cdecl",
+      "varargMode": "none",
+      "requiredParamCount": 0,
+      "fixedParamCount": 0,
+      "params": [],
+      "returns": [
+        {
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "kind": "function",
+      "name": "load",
+      "cSymbol": "xstbtt_load",
+      "signature": "func(string,c_int) as point",
+      "exportId": "stb_truetype@0.1.0#abi1::stb_truetype::load(func(string,c_int) as point)",
+      "callingConvention": "cdecl",
+      "varargMode": "none",
+      "requiredParamCount": 2,
+      "fixedParamCount": 2,
+      "params": [
+        {
+          "name": "path",
+          "type": "string",
+          "optional": false,
+          "vararg": false
+        },
+        {
+          "name": "font_index",
+          "type": "c_int",
+          "optional": false,
+          "vararg": false
+        }
+      ],
+      "returns": [
+        {
+          "type": "point"
+        }
+      ]
+    },
+    {
+      "kind": "function",
+      "name": "valid",
+      "cSymbol": "xstbtt_font_valid",
+      "signature": "func(point) as c_int",
+      "exportId": "stb_truetype@0.1.0#abi1::stb_truetype::valid(func(point) as c_int)",
+      "callingConvention": "cdecl",
+      "varargMode": "none",
+      "requiredParamCount": 1,
+      "fixedParamCount": 1,
+      "params": [
+        {
+          "name": "font",
+          "type": "point",
+          "optional": false,
+          "vararg": false
+        }
+      ],
+      "returns": [
+        {
+          "type": "c_int"
+        }
+      ]
+    },
+    {
+      "kind": "function",
+      "name": "release",
+      "cSymbol": "xstbtt_font_release",
+      "signature": "func(point) as c_int",
+      "exportId": "stb_truetype@0.1.0#abi1::stb_truetype::release(func(point) as c_int)",
+      "callingConvention": "cdecl",
+      "varargMode": "none",
+      "requiredParamCount": 1,
+      "fixedParamCount": 1,
+      "params": [
+        {
+          "name": "font",
+          "type": "point",
+          "optional": false,
+          "vararg": false
+        }
+      ],
+      "returns": [
+        {
+          "type": "c_int"
+        }
+      ]
+    },
+    {
+      "kind": "function",
+      "name": "scale_for_pixel_height",
+      "cSymbol": "xstbtt_scale_for_pixel_height",
+      "signature": "func(point,c_double) as c_double",
+      "exportId": "stb_truetype@0.1.0#abi1::stb_truetype::scale_for_pixel_height(func(point,c_double) as c_double)",
+      "callingConvention": "cdecl",
+      "varargMode": "none",
+      "requiredParamCount": 2,
+      "fixedParamCount": 2,
+      "params": [
+        {
+          "name": "font",
+          "type": "point",
+          "optional": false,
+          "vararg": false
+        },
+        {
+          "name": "pixel_height",
+          "type": "c_double",
+          "optional": false,
+          "vararg": false
+        }
+      ],
+      "returns": [
+        {
+          "type": "c_double"
+        }
+      ]
+    },
+    {
+      "kind": "function",
+      "name": "ascent",
+      "cSymbol": "xstbtt_ascent",
+      "signature": "func(point) as c_int",
+      "exportId": "stb_truetype@0.1.0#abi1::stb_truetype::ascent(func(point) as c_int)",
+      "callingConvention": "cdecl",
+      "varargMode": "none",
+      "requiredParamCount": 1,
+      "fixedParamCount": 1,
+      "params": [
+        {
+          "name": "font",
+          "type": "point",
+          "optional": false,
+          "vararg": false
+        }
+      ],
+      "returns": [
+        {
+          "type": "c_int"
+        }
+      ]
+    },
+    {
+      "kind": "function",
+      "name": "descent",
+      "cSymbol": "xstbtt_descent",
+      "signature": "func(point) as c_int",
+      "exportId": "stb_truetype@0.1.0#abi1::stb_truetype::descent(func(point) as c_int)",
+      "callingConvention": "cdecl",
+      "varargMode": "none",
+      "requiredParamCount": 1,
+      "fixedParamCount": 1,
+      "params": [
+        {
+          "name": "font",
+          "type": "point",
+          "optional": false,
+          "vararg": false
+        }
+      ],
+      "returns": [
+        {
+          "type": "c_int"
+        }
+      ]
+    },
+    {
+      "kind": "function",
+      "name": "line_gap",
+      "cSymbol": "xstbtt_line_gap",
+      "signature": "func(point) as c_int",
+      "exportId": "stb_truetype@0.1.0#abi1::stb_truetype::line_gap(func(point) as c_int)",
+      "callingConvention": "cdecl",
+      "varargMode": "none",
+      "requiredParamCount": 1,
+      "fixedParamCount": 1,
+      "params": [
+        {
+          "name": "font",
+          "type": "point",
+          "optional": false,
+          "vararg": false
+        }
+      ],
+      "returns": [
+        {
+          "type": "c_int"
+        }
+      ]
+    },
+    {
+      "kind": "function",
+      "name": "find_glyph_index",
+      "cSymbol": "xstbtt_find_glyph_index",
+      "signature": "func(point,c_int) as c_int",
+      "exportId": "stb_truetype@0.1.0#abi1::stb_truetype::find_glyph_index(func(point,c_int) as c_int)",
+      "callingConvention": "cdecl",
+      "varargMode": "none",
+      "requiredParamCount": 2,
+      "fixedParamCount": 2,
+      "params": [
+        {
+          "name": "font",
+          "type": "point",
+          "optional": false,
+          "vararg": false
+        },
+        {
+          "name": "codepoint",
+          "type": "c_int",
+          "optional": false,
+          "vararg": false
+        }
+      ],
+      "returns": [
+        {
+          "type": "c_int"
+        }
+      ]
+    },
+    {
+      "kind": "function",
+      "name": "h_advance",
+      "cSymbol": "xstbtt_h_advance",
+      "signature": "func(point,c_int) as c_int",
+      "exportId": "stb_truetype@0.1.0#abi1::stb_truetype::h_advance(func(point,c_int) as c_int)",
+      "callingConvention": "cdecl",
+      "varargMode": "none",
+      "requiredParamCount": 2,
+      "fixedParamCount": 2,
+      "params": [
+        {
+          "name": "font",
+          "type": "point",
+          "optional": false,
+          "vararg": false
+        },
+        {
+          "name": "codepoint",
+          "type": "c_int",
+          "optional": false,
+          "vararg": false
+        }
+      ],
+      "returns": [
+        {
+          "type": "c_int"
+        }
+      ]
+    },
+    {
+      "kind": "function",
+      "name": "left_bearing",
+      "cSymbol": "xstbtt_left_bearing",
+      "signature": "func(point,c_int) as c_int",
+      "exportId": "stb_truetype@0.1.0#abi1::stb_truetype::left_bearing(func(point,c_int) as c_int)",
+      "callingConvention": "cdecl",
+      "varargMode": "none",
+      "requiredParamCount": 2,
+      "fixedParamCount": 2,
+      "params": [
+        {
+          "name": "font",
+          "type": "point",
+          "optional": false,
+          "vararg": false
+        },
+        {
+          "name": "codepoint",
+          "type": "c_int",
+          "optional": false,
+          "vararg": false
+        }
+      ],
+      "returns": [
+        {
+          "type": "c_int"
+        }
+      ]
+    },
+    {
+      "kind": "function",
+      "name": "kern_advance",
+      "cSymbol": "xstbtt_kern_advance",
+      "signature": "func(point,c_int,c_int) as c_int",
+      "exportId": "stb_truetype@0.1.0#abi1::stb_truetype::kern_advance(func(point,c_int,c_int) as c_int)",
+      "callingConvention": "cdecl",
+      "varargMode": "none",
+      "requiredParamCount": 3,
+      "fixedParamCount": 3,
+      "params": [
+        {
+          "name": "font",
+          "type": "point",
+          "optional": false,
+          "vararg": false
+        },
+        {
+          "name": "codepoint1",
+          "type": "c_int",
+          "optional": false,
+          "vararg": false
+        },
+        {
+          "name": "codepoint2",
+          "type": "c_int",
+          "optional": false,
+          "vararg": false
+        }
+      ],
+      "returns": [
+        {
+          "type": "c_int"
+        }
+      ]
+    },
+    {
+      "kind": "function",
+      "name": "vmetrics",
+      "cSymbol": "xstbtt_vmetrics_json",
+      "signature": "func(point) as string",
+      "exportId": "stb_truetype@0.1.0#abi1::stb_truetype::vmetrics(func(point) as string)",
+      "callingConvention": "cdecl",
+      "varargMode": "none",
+      "requiredParamCount": 1,
+      "fixedParamCount": 1,
+      "params": [
+        {
+          "name": "font",
+          "type": "point",
+          "optional": false,
+          "vararg": false
+        }
+      ],
+      "returns": [
+        {
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "kind": "function",
+      "name": "hmetrics",
+      "cSymbol": "xstbtt_hmetrics_json",
+      "signature": "func(point,c_int) as string",
+      "exportId": "stb_truetype@0.1.0#abi1::stb_truetype::hmetrics(func(point,c_int) as string)",
+      "callingConvention": "cdecl",
+      "varargMode": "none",
+      "requiredParamCount": 2,
+      "fixedParamCount": 2,
+      "params": [
+        {
+          "name": "font",
+          "type": "point",
+          "optional": false,
+          "vararg": false
+        },
+        {
+          "name": "codepoint",
+          "type": "c_int",
+          "optional": false,
+          "vararg": false
+        }
+      ],
+      "returns": [
+        {
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "kind": "function",
+      "name": "codepoint_bitmap",
+      "cSymbol": "xstbtt_codepoint_bitmap",
+      "signature": "func(point,c_int,c_double) as point",
+      "exportId": "stb_truetype@0.1.0#abi1::stb_truetype::codepoint_bitmap(func(point,c_int,c_double) as point)",
+      "callingConvention": "cdecl",
+      "varargMode": "none",
+      "requiredParamCount": 3,
+      "fixedParamCount": 3,
+      "params": [
+        {
+          "name": "font",
+          "type": "point",
+          "optional": false,
+          "vararg": false
+        },
+        {
+          "name": "codepoint",
+          "type": "c_int",
+          "optional": false,
+          "vararg": false
+        },
+        {
+          "name": "pixel_height",
+          "type": "c_double",
+          "optional": false,
+          "vararg": false
+        }
+      ],
+      "returns": [
+        {
+          "type": "point"
+        }
+      ]
+    },
+    {
+      "kind": "function",
+      "name": "codepoint_bitmap_box",
+      "cSymbol": "xstbtt_codepoint_bitmap_box_json",
+      "signature": "func(point,c_int,c_double) as string",
+      "exportId": "stb_truetype@0.1.0#abi1::stb_truetype::codepoint_bitmap_box(func(point,c_int,c_double) as string)",
+      "callingConvention": "cdecl",
+      "varargMode": "none",
+      "requiredParamCount": 3,
+      "fixedParamCount": 3,
+      "params": [
+        {
+          "name": "font",
+          "type": "point",
+          "optional": false,
+          "vararg": false
+        },
+        {
+          "name": "codepoint",
+          "type": "c_int",
+          "optional": false,
+          "vararg": false
+        },
+        {
+          "name": "pixel_height",
+          "type": "c_double",
+          "optional": false,
+          "vararg": false
+        }
+      ],
+      "returns": [
+        {
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "kind": "function",
+      "name": "bitmap_valid",
+      "cSymbol": "xstbtt_bitmap_valid",
+      "signature": "func(point) as c_int",
+      "exportId": "stb_truetype@0.1.0#abi1::stb_truetype::bitmap_valid(func(point) as c_int)",
+      "callingConvention": "cdecl",
+      "varargMode": "none",
+      "requiredParamCount": 1,
+      "fixedParamCount": 1,
+      "params": [
+        {
+          "name": "bitmap",
+          "type": "point",
+          "optional": false,
+          "vararg": false
+        }
+      ],
+      "returns": [
+        {
+          "type": "c_int"
+        }
+      ]
+    },
+    {
+      "kind": "function",
+      "name": "bitmap_width",
+      "cSymbol": "xstbtt_bitmap_width",
+      "signature": "func(point) as c_int",
+      "exportId": "stb_truetype@0.1.0#abi1::stb_truetype::bitmap_width(func(point) as c_int)",
+      "callingConvention": "cdecl",
+      "varargMode": "none",
+      "requiredParamCount": 1,
+      "fixedParamCount": 1,
+      "params": [
+        {
+          "name": "bitmap",
+          "type": "point",
+          "optional": false,
+          "vararg": false
+        }
+      ],
+      "returns": [
+        {
+          "type": "c_int"
+        }
+      ]
+    },
+    {
+      "kind": "function",
+      "name": "bitmap_height",
+      "cSymbol": "xstbtt_bitmap_height",
+      "signature": "func(point) as c_int",
+      "exportId": "stb_truetype@0.1.0#abi1::stb_truetype::bitmap_height(func(point) as c_int)",
+      "callingConvention": "cdecl",
+      "varargMode": "none",
+      "requiredParamCount": 1,
+      "fixedParamCount": 1,
+      "params": [
+        {
+          "name": "bitmap",
+          "type": "point",
+          "optional": false,
+          "vararg": false
+        }
+      ],
+      "returns": [
+        {
+          "type": "c_int"
+        }
+      ]
+    },
+    {
+      "kind": "function",
+      "name": "bitmap_xoff",
+      "cSymbol": "xstbtt_bitmap_xoff",
+      "signature": "func(point) as c_int",
+      "exportId": "stb_truetype@0.1.0#abi1::stb_truetype::bitmap_xoff(func(point) as c_int)",
+      "callingConvention": "cdecl",
+      "varargMode": "none",
+      "requiredParamCount": 1,
+      "fixedParamCount": 1,
+      "params": [
+        {
+          "name": "bitmap",
+          "type": "point",
+          "optional": false,
+          "vararg": false
+        }
+      ],
+      "returns": [
+        {
+          "type": "c_int"
+        }
+      ]
+    },
+    {
+      "kind": "function",
+      "name": "bitmap_yoff",
+      "cSymbol": "xstbtt_bitmap_yoff",
+      "signature": "func(point) as c_int",
+      "exportId": "stb_truetype@0.1.0#abi1::stb_truetype::bitmap_yoff(func(point) as c_int)",
+      "callingConvention": "cdecl",
+      "varargMode": "none",
+      "requiredParamCount": 1,
+      "fixedParamCount": 1,
+      "params": [
+        {
+          "name": "bitmap",
+          "type": "point",
+          "optional": false,
+          "vararg": false
+        }
+      ],
+      "returns": [
+        {
+          "type": "c_int"
+        }
+      ]
+    },
+    {
+      "kind": "function",
+      "name": "bitmap_data",
+      "cSymbol": "xstbtt_bitmap_data",
+      "signature": "func(point) as point",
+      "exportId": "stb_truetype@0.1.0#abi1::stb_truetype::bitmap_data(func(point) as point)",
+      "callingConvention": "cdecl",
+      "varargMode": "none",
+      "requiredParamCount": 1,
+      "fixedParamCount": 1,
+      "params": [
+        {
+          "name": "bitmap",
+          "type": "point",
+          "optional": false,
+          "vararg": false
+        }
+      ],
+      "returns": [
+        {
+          "type": "point"
+        }
+      ]
+    },
+    {
+      "kind": "function",
+      "name": "bitmap_release",
+      "cSymbol": "xstbtt_bitmap_release",
+      "signature": "func(point) as c_int",
+      "exportId": "stb_truetype@0.1.0#abi1::stb_truetype::bitmap_release(func(point) as c_int)",
+      "callingConvention": "cdecl",
+      "varargMode": "none",
+      "requiredParamCount": 1,
+      "fixedParamCount": 1,
+      "params": [
+        {
+          "name": "bitmap",
+          "type": "point",
+          "optional": false,
+          "vararg": false
+        }
+      ],
+      "returns": [
+        {
+          "type": "c_int"
+        }
+      ]
+    }
+  ],
+  "types": [],
+  "imports": [],
+  "links": [],
+  "loadlibs": [],
+  "cSources": [
+    "stb_truetype_native.c"
+  ],
+  "native": {
+    "singleton": false,
+    "loadName": "",
+    "version": ""
+  },
+  "docs": []
+}

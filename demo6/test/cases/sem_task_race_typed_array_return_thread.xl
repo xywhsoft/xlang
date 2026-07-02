@@ -1,0 +1,3 @@
+future<thread> threadFuture
+array<future<thread>> jobs = array[threadFuture]
+task.race(jobs)

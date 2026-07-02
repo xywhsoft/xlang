@@ -1,0 +1,787 @@
+{
+    "format":  "xlang-xapi-1",
+    "compiler":  {
+                     "name":  "xl",
+                     "version":  "demo6",
+                     "xlangAbi":  1,
+                     "xrtAbi":  1
+                 },
+    "target":  {
+                   "os":  "windows",
+                   "arch":  "x64",
+                   "callingConvention":  "cdecl"
+               },
+    "package":  {
+                    "name":  "onnxruntime",
+                    "version":  "0.1.0",
+                    "abiVersion":  "1",
+                    "packageId":  "onnxruntime@0.1.0#abi1"
+                },
+    "module":  {
+                   "name":  "onnxruntime",
+                   "moduleId":  "onnxruntime@0.1.0#abi1::onnxruntime",
+                   "source":  "extlibs/onnxruntime",
+                   "sourceHash":  ""
+               },
+    "entry":  {
+                  "kind":  "none",
+                  "requiresExplicitInit":  true,
+                  "initSymbol":  "xlInit",
+                  "unitSymbol":  "xlUnit"
+              },
+    "exports":  [
+                    {
+                        "kind":  "function",
+                        "name":  "ort_session_create_native",
+                        "cSymbol":  "__xl6_import_onnxruntime_ort_session_create_native",
+                        "signature":  "func(string,point) as point",
+                        "exportId":  "onnxruntime@0.1.0#abi1::onnxruntime::ort_session_create_native(func(string,point) as point)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  2,
+                        "fixedParamCount":  2,
+                        "params":  [
+                                       {
+                                           "name":  "model_path",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "options",
+                                           "type":  "point",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "point"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "ort_session_release_native",
+                        "cSymbol":  "__xl6_import_onnxruntime_ort_session_release_native",
+                        "signature":  "func(point) as int",
+                        "exportId":  "onnxruntime@0.1.0#abi1::onnxruntime::ort_session_release_native(func(point) as int)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  1,
+                        "fixedParamCount":  1,
+                        "params":  [
+                                       {
+                                           "name":  "handle",
+                                           "type":  "point",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "int"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "SessionOptions",
+                        "cSymbol":  "__xl6_import_onnxruntime_SessionOptions",
+                        "signature":  "func() as SessionOptionsObject",
+                        "exportId":  "onnxruntime@0.1.0#abi1::onnxruntime::SessionOptions(func() as SessionOptionsObject)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  0,
+                        "fixedParamCount":  0,
+                        "params":  [
+
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "SessionOptionsObject"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "RunOptions",
+                        "cSymbol":  "__xl6_import_onnxruntime_RunOptions",
+                        "signature":  "func() as RunOptionsObject",
+                        "exportId":  "onnxruntime@0.1.0#abi1::onnxruntime::RunOptions(func() as RunOptionsObject)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  0,
+                        "fixedParamCount":  0,
+                        "params":  [
+
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "RunOptionsObject"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "TensorZerosF32",
+                        "cSymbol":  "__xl6_import_onnxruntime_TensorZerosF32",
+                        "signature":  "func(string) as TensorObject",
+                        "exportId":  "onnxruntime@0.1.0#abi1::onnxruntime::TensorZerosF32(func(string) as TensorObject)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  1,
+                        "fixedParamCount":  1,
+                        "params":  [
+                                       {
+                                           "name":  "shape_json",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "TensorObject"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "TensorFromOpenCV",
+                        "cSymbol":  "__xl6_import_onnxruntime_TensorFromOpenCV",
+                        "signature":  "func(point,float,float,float,float,float,float,float) as TensorObject",
+                        "exportId":  "onnxruntime@0.1.0#abi1::onnxruntime::TensorFromOpenCV(func(point,float,float,float,float,float,float,float) as TensorObject)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  8,
+                        "fixedParamCount":  8,
+                        "params":  [
+                                       {
+                                           "name":  "image",
+                                           "type":  "point",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "scale",
+                                           "type":  "float",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "mean0",
+                                           "type":  "float",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "mean1",
+                                           "type":  "float",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "mean2",
+                                           "type":  "float",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "std0",
+                                           "type":  "float",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "std1",
+                                           "type":  "float",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "std2",
+                                           "type":  "float",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "TensorObject"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "TensorFromOpenCVResized",
+                        "cSymbol":  "__xl6_import_onnxruntime_TensorFromOpenCVResized",
+                        "signature":  "func(point,int,int,float,float,float,float,float,float,float) as TensorObject",
+                        "exportId":  "onnxruntime@0.1.0#abi1::onnxruntime::TensorFromOpenCVResized(func(point,int,int,float,float,float,float,float,float,float) as TensorObject)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  10,
+                        "fixedParamCount":  10,
+                        "params":  [
+                                       {
+                                           "name":  "image",
+                                           "type":  "point",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "width",
+                                           "type":  "int",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "height",
+                                           "type":  "int",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "scale",
+                                           "type":  "float",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "mean0",
+                                           "type":  "float",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "mean1",
+                                           "type":  "float",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "mean2",
+                                           "type":  "float",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "std0",
+                                           "type":  "float",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "std1",
+                                           "type":  "float",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "std2",
+                                           "type":  "float",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "TensorObject"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "TensorFromOpenCVBatch",
+                        "cSymbol":  "__xl6_import_onnxruntime_TensorFromOpenCVBatch",
+                        "signature":  "func(int,point,point,point,point,point,point,float,float,float,float,float,float,float) as TensorObject",
+                        "exportId":  "onnxruntime@0.1.0#abi1::onnxruntime::TensorFromOpenCVBatch(func(int,point,point,point,point,point,point,float,float,float,float,float,float,float) as TensorObject)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  14,
+                        "fixedParamCount":  14,
+                        "params":  [
+                                       {
+                                           "name":  "batch_count",
+                                           "type":  "int",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "image0",
+                                           "type":  "point",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "image1",
+                                           "type":  "point",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "image2",
+                                           "type":  "point",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "image3",
+                                           "type":  "point",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "image4",
+                                           "type":  "point",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "image5",
+                                           "type":  "point",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "scale",
+                                           "type":  "float",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "mean0",
+                                           "type":  "float",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "mean1",
+                                           "type":  "float",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "mean2",
+                                           "type":  "float",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "std0",
+                                           "type":  "float",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "std1",
+                                           "type":  "float",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "std2",
+                                           "type":  "float",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "TensorObject"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "InferenceSession",
+                        "cSymbol":  "__xl6_import_onnxruntime_InferenceSession",
+                        "signature":  "func(string) as InferenceSessionObject",
+                        "exportId":  "onnxruntime@0.1.0#abi1::onnxruntime::InferenceSession(func(string) as InferenceSessionObject)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  1,
+                        "fixedParamCount":  1,
+                        "params":  [
+                                       {
+                                           "name":  "model_path",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "InferenceSessionObject"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "InferenceSession",
+                        "cSymbol":  "__xl6_import_onnxruntime_InferenceSession",
+                        "signature":  "func(string,SessionOptionsObject) as InferenceSessionObject",
+                        "exportId":  "onnxruntime@0.1.0#abi1::onnxruntime::InferenceSession(func(string,SessionOptionsObject) as InferenceSessionObject)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  2,
+                        "fixedParamCount":  2,
+                        "params":  [
+                                       {
+                                           "name":  "model_path",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "options",
+                                           "type":  "SessionOptionsObject",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "InferenceSessionObject"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "available",
+                        "cSymbol":  "__xl6_import_onnxruntime_available",
+                        "signature":  "func() as bool",
+                        "exportId":  "onnxruntime@0.1.0#abi1::onnxruntime::available(func() as bool)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  0,
+                        "fixedParamCount":  0,
+                        "params":  [
+
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "bool"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "backend",
+                        "cSymbol":  "__xl6_import_onnxruntime_backend",
+                        "signature":  "func() as string",
+                        "exportId":  "onnxruntime@0.1.0#abi1::onnxruntime::backend(func() as string)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  0,
+                        "fixedParamCount":  0,
+                        "params":  [
+
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "string"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "get_version_string",
+                        "cSymbol":  "__xl6_import_onnxruntime_get_version_string",
+                        "signature":  "func() as string",
+                        "exportId":  "onnxruntime@0.1.0#abi1::onnxruntime::get_version_string(func() as string)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  0,
+                        "fixedParamCount":  0,
+                        "params":  [
+
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "string"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "get_available_providers",
+                        "cSymbol":  "__xl6_import_onnxruntime_get_available_providers",
+                        "signature":  "func() as string",
+                        "exportId":  "onnxruntime@0.1.0#abi1::onnxruntime::get_available_providers(func() as string)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  0,
+                        "fixedParamCount":  0,
+                        "params":  [
+
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "string"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "get_providers",
+                        "cSymbol":  "__xl6_import_onnxruntime_get_providers",
+                        "signature":  "func() as string",
+                        "exportId":  "onnxruntime@0.1.0#abi1::onnxruntime::get_providers(func() as string)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  0,
+                        "fixedParamCount":  0,
+                        "params":  [
+
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "string"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "last_error",
+                        "cSymbol":  "__xl6_import_onnxruntime_last_error",
+                        "signature":  "func() as string",
+                        "exportId":  "onnxruntime@0.1.0#abi1::onnxruntime::last_error(func() as string)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  0,
+                        "fixedParamCount":  0,
+                        "params":  [
+
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "string"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "get_last_error",
+                        "cSymbol":  "__xl6_import_onnxruntime_get_last_error",
+                        "signature":  "func() as string",
+                        "exportId":  "onnxruntime@0.1.0#abi1::onnxruntime::get_last_error(func() as string)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  0,
+                        "fixedParamCount":  0,
+                        "params":  [
+
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "string"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "ort_last_error_native",
+                        "cSymbol":  "__xl6_import_onnxruntime_ort_last_error_native",
+                        "signature":  "func() as string",
+                        "exportId":  "onnxruntime@0.1.0#abi1::onnxruntime::ort_last_error_native(func() as string)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  0,
+                        "fixedParamCount":  0,
+                        "params":  [
+
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "string"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "ort_session_run_tensor_fast_native",
+                        "cSymbol":  "__xl6_import_onnxruntime_ort_session_run_tensor_fast_native",
+                        "signature":  "func(point,string,point,string) as point",
+                        "exportId":  "onnxruntime@0.1.0#abi1::onnxruntime::ort_session_run_tensor_fast_native(func(point,string,point,string) as point)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  4,
+                        "fixedParamCount":  4,
+                        "params":  [
+                                       {
+                                           "name":  "handle",
+                                           "type":  "point",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "input_name",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "tensor",
+                                           "type":  "point",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "output_names_json",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "point"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "ort_result_release_native",
+                        "cSymbol":  "__xl6_import_onnxruntime_ort_result_release_native",
+                        "signature":  "func(a,o) as int",
+                        "exportId":  "onnxruntime@0.1.0#abi1::onnxruntime::ort_result_release_native(func(a,o) as int)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  2,
+                        "fixedParamCount":  2,
+                        "params":  [
+                                       {
+                                           "name":  "h",
+                                           "type":  "a",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "p",
+                                           "type":  "o",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "int"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "ort_result_float_shape_json_native",
+                        "cSymbol":  "__xl6_import_onnxruntime_ort_result_float_shape_json_native",
+                        "signature":  "func(a,o) as string",
+                        "exportId":  "onnxruntime@0.1.0#abi1::onnxruntime::ort_result_float_shape_json_native(func(a,o) as string)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  2,
+                        "fixedParamCount":  2,
+                        "params":  [
+                                       {
+                                           "name":  "h",
+                                           "type":  "a",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "p",
+                                           "type":  "o",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "string"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "ort_result_float_count_native",
+                        "cSymbol":  "__xl6_import_onnxruntime_ort_result_float_count_native",
+                        "signature":  "func(a,o) as int",
+                        "exportId":  "onnxruntime@0.1.0#abi1::onnxruntime::ort_result_float_count_native(func(a,o) as int)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  2,
+                        "fixedParamCount":  2,
+                        "params":  [
+                                       {
+                                           "name":  "h",
+                                           "type":  "a",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "p",
+                                           "type":  "o",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "int"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "ort_result_float_at_native",
+                        "cSymbol":  "__xl6_import_onnxruntime_ort_result_float_at_native",
+                        "signature":  "func(point,int) as float",
+                        "exportId":  "onnxruntime@0.1.0#abi1::onnxruntime::ort_result_float_at_native(func(point,int) as float)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  2,
+                        "fixedParamCount":  2,
+                        "params":  [
+                                       {
+                                           "name":  "handle",
+                                           "type":  "point",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "index",
+                                           "type":  "int",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "float"
+                                        }
+                                    ]
+                    }
+                ],
+    "types":  [
+
+              ],
+    "imports":  [
+
+                ],
+    "links":  [
+
+              ],
+    "loadlibs":  [
+
+                 ],
+    "cSources":  [
+                     "src/onnxruntime_artifact.c"
+                 ],
+    "native":  {
+                   "singleton":  false,
+                   "loadName":  "",
+                   "version":  ""
+               },
+    "docs":  [
+
+             ]
+}

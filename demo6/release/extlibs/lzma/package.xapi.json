@@ -1,0 +1,260 @@
+{
+  "format": "xlang-xapi-1",
+  "compiler": {
+    "name": "xl",
+    "version": "demo6",
+    "xlangAbi": 1,
+    "xrtAbi": 1
+  },
+  "target": {
+    "os": "windows",
+    "arch": "x64",
+    "callingConvention": "cdecl"
+  },
+  "package": {
+    "name": "lzma",
+    "version": "0.1.0",
+    "abiVersion": "1",
+    "packageId": "lzma@0.1.0#abi1"
+  },
+  "module": {
+    "name": "lzma",
+    "moduleId": "lzma@0.1.0#abi1::lzma",
+    "source": "extlibs/lzma",
+    "sourceHash": ""
+  },
+  "entry": {
+    "kind": "none",
+    "requiresExplicitInit": true,
+    "initSymbol": "xlInit",
+    "unitSymbol": "xlUnit"
+  },
+  "exports": [
+    {
+      "kind": "function",
+      "name": "version",
+      "cSymbol": "xlzma_version",
+      "signature": "func() as string",
+      "exportId": "lzma@0.1.0#abi1::lzma::version(func() as string)",
+      "callingConvention": "cdecl",
+      "varargMode": "none",
+      "requiredParamCount": 0,
+      "fixedParamCount": 0,
+      "params": [],
+      "returns": [
+        {
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "kind": "function",
+      "name": "last_error",
+      "cSymbol": "xlzma_last_error",
+      "signature": "func() as string",
+      "exportId": "lzma@0.1.0#abi1::lzma::last_error(func() as string)",
+      "callingConvention": "cdecl",
+      "varargMode": "none",
+      "requiredParamCount": 0,
+      "fixedParamCount": 0,
+      "params": [],
+      "returns": [
+        {
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "kind": "function",
+      "name": "compress_hex",
+      "cSymbol": "xlzma_compress_hex",
+      "signature": "func(string) as string",
+      "exportId": "lzma@0.1.0#abi1::lzma::compress_hex(func(string) as string)",
+      "callingConvention": "cdecl",
+      "varargMode": "none",
+      "requiredParamCount": 1,
+      "fixedParamCount": 1,
+      "params": [
+        {
+          "name": "text",
+          "type": "string",
+          "optional": false,
+          "vararg": false
+        }
+      ],
+      "returns": [
+        {
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "kind": "function",
+      "name": "compress_hex_level",
+      "cSymbol": "xlzma_compress_hex_level",
+      "signature": "func(string,c_int) as string",
+      "exportId": "lzma@0.1.0#abi1::lzma::compress_hex_level(func(string,c_int) as string)",
+      "callingConvention": "cdecl",
+      "varargMode": "none",
+      "requiredParamCount": 2,
+      "fixedParamCount": 2,
+      "params": [
+        {
+          "name": "text",
+          "type": "string",
+          "optional": false,
+          "vararg": false
+        },
+        {
+          "name": "level",
+          "type": "c_int",
+          "optional": false,
+          "vararg": false
+        }
+      ],
+      "returns": [
+        {
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "kind": "function",
+      "name": "decompress_hex",
+      "cSymbol": "xlzma_decompress_hex",
+      "signature": "func(string) as string",
+      "exportId": "lzma@0.1.0#abi1::lzma::decompress_hex(func(string) as string)",
+      "callingConvention": "cdecl",
+      "varargMode": "none",
+      "requiredParamCount": 1,
+      "fixedParamCount": 1,
+      "params": [
+        {
+          "name": "hex_text",
+          "type": "string",
+          "optional": false,
+          "vararg": false
+        }
+      ],
+      "returns": [
+        {
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "kind": "function",
+      "name": "compress_file",
+      "cSymbol": "xlzma_compress_file",
+      "signature": "func(string,string) as c_int",
+      "exportId": "lzma@0.1.0#abi1::lzma::compress_file(func(string,string) as c_int)",
+      "callingConvention": "cdecl",
+      "varargMode": "none",
+      "requiredParamCount": 2,
+      "fixedParamCount": 2,
+      "params": [
+        {
+          "name": "input_path",
+          "type": "string",
+          "optional": false,
+          "vararg": false
+        },
+        {
+          "name": "output_path",
+          "type": "string",
+          "optional": false,
+          "vararg": false
+        }
+      ],
+      "returns": [
+        {
+          "type": "c_int"
+        }
+      ]
+    },
+    {
+      "kind": "function",
+      "name": "compress_file_level",
+      "cSymbol": "xlzma_compress_file_level",
+      "signature": "func(string,string,c_int) as c_int",
+      "exportId": "lzma@0.1.0#abi1::lzma::compress_file_level(func(string,string,c_int) as c_int)",
+      "callingConvention": "cdecl",
+      "varargMode": "none",
+      "requiredParamCount": 3,
+      "fixedParamCount": 3,
+      "params": [
+        {
+          "name": "input_path",
+          "type": "string",
+          "optional": false,
+          "vararg": false
+        },
+        {
+          "name": "output_path",
+          "type": "string",
+          "optional": false,
+          "vararg": false
+        },
+        {
+          "name": "level",
+          "type": "c_int",
+          "optional": false,
+          "vararg": false
+        }
+      ],
+      "returns": [
+        {
+          "type": "c_int"
+        }
+      ]
+    },
+    {
+      "kind": "function",
+      "name": "decompress_file",
+      "cSymbol": "xlzma_decompress_file",
+      "signature": "func(string,string) as c_int",
+      "exportId": "lzma@0.1.0#abi1::lzma::decompress_file(func(string,string) as c_int)",
+      "callingConvention": "cdecl",
+      "varargMode": "none",
+      "requiredParamCount": 2,
+      "fixedParamCount": 2,
+      "params": [
+        {
+          "name": "input_path",
+          "type": "string",
+          "optional": false,
+          "vararg": false
+        },
+        {
+          "name": "output_path",
+          "type": "string",
+          "optional": false,
+          "vararg": false
+        }
+      ],
+      "returns": [
+        {
+          "type": "c_int"
+        }
+      ]
+    }
+  ],
+  "types": [],
+  "imports": [],
+  "links": [],
+  "loadlibs": [],
+  "cSources": [
+    "lzma_native.c",
+    "third_party/Alloc.c",
+    "third_party/CpuArch.c",
+    "third_party/LzFind.c",
+    "third_party/LzmaDec.c",
+    "third_party/LzmaEnc.c"
+  ],
+  "native": {
+    "singleton": false,
+    "loadName": "",
+    "version": ""
+  },
+  "docs": []
+}

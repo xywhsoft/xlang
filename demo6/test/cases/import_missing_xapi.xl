@@ -1,1 +1,1 @@
-import missing_interface
+import "../../packages/missing_interface"

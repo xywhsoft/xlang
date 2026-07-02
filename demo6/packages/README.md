@@ -12,37 +12,6 @@
 ## 包目录索引
 
 <!-- package-index:start -->
-- `crc32`: CRC-32 native C extension package with xlang XAPI metadata.
-- `clipboard`: Windows clipboard source/native extension package with text, file-drop, image, and format helpers.
-- `x.com`: Windows COM source/native extension package with IDispatch helpers and an embedded test object.
-- `md4c`: MD4C native C extension package for Markdown to HTML rendering.
-- `imagehash`: image perceptual hash native C extension package using stb_image and stb_image_resize2.
-- `stb_truetype`: stb_truetype native C extension package for font metrics and glyph bitmaps.
-- `x.volc.core`: Volcengine signing and XRT HTTP native C extension package.
-- `x.volc.phone`: Volcengine phone service source package built on x.volc.core signing and HTTP helpers.
-- `sqlite`: SQLite native C extension package using point handles and XAPI constants.
-- `pkg.math`: source-only xlang extension package imported through package XAPI metadata.
-- `x.volc.sts`: source-only Volcengine STS helper package built on x.volc.core.
-- `x.mail.mime`: mail MIME source/native extension package with JSON build and parse helpers.
-- `x.mail.smtp`: SMTP source/native extension package with send and capability helpers.
-- `x.mail.pop3`: POP3 source/native extension package with capability, status, list, fetch, and delete helpers.
-- `x.mail.imap`: IMAP source/native extension package with mailbox, fetch, flag, idle, and watch helpers.
-- `x.uia`: Windows UI Automation source/native extension package with element, condition, event, and locator helpers.
-- `opencv`: OpenCV source/native extension package backed by bundled runtime DLLs and image/screenshot helpers.
-- `onnxruntime`: ONNX Runtime source/native extension package backed by bundled runtime DLLs and tensor/session helpers.
-- `dinov3`: DINOv3 source/native extension package built on OpenCV and ONNX Runtime tensor inference helpers.
-- `xfeat`: XFeat source/native extension package built on OpenCV and ONNX Runtime feature matching helpers.
-- `rapidocr`: RapidOCR source/native extension package with bundled PP-OCR models and OpenCV/ONNX Runtime fallback helpers.
-- `x.ui.auto`: high-level UI automation source package built on x.uia and opencv locators.
-- `x.redis`: Redis RESP/source/native client package with offline RESP, Sentinel, Cluster, and command API coverage.
-- `stb_image_write`: stb_image_write native C extension package for writing image files.
-- `stb_image_resize2`: stb_image_resize2 native C extension package for uint8 image resizing.
-- `stb_image`: stb_image native C extension package for loading image metadata and pixels.
-- `miniz`: miniz native C extension package with deflate and simple ZIP helpers.
-- `lzma`: LZMA native C extension package with level-aware string and file compression helpers.
-- `zstd`: Zstandard native C extension package with level-aware string and file compression helpers.
-- `lz4`: LZ4 native C extension package with string and file compression helpers.
-- `md5`: MD5 native C extension package with xlang XAPI metadata.
 - `broken_xapi`：无效/破损 XAPI 格式负例，验证格式诊断。
 - `class_api`：导入包内 class 类型、字段、函数和 native C source。
 - `class_inherit_api`：导入带继承关系的 class 类型和 native C source。

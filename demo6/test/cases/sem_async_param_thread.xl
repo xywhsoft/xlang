@@ -1,0 +1,3 @@
+async func bad(thread worker) as int
+    return 0
+end

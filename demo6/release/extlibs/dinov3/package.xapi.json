@@ -1,0 +1,378 @@
+{
+    "format":  "xlang-xapi-1",
+    "compiler":  {
+                     "name":  "xl",
+                     "version":  "demo6",
+                     "xlangAbi":  1,
+                     "xrtAbi":  1
+                 },
+    "target":  {
+                   "os":  "windows",
+                   "arch":  "x64",
+                   "callingConvention":  "cdecl"
+               },
+    "package":  {
+                    "name":  "dinov3",
+                    "version":  "0.1.0",
+                    "abiVersion":  "1",
+                    "packageId":  "dinov3@0.1.0#abi1"
+                },
+    "module":  {
+                   "name":  "dinov3",
+                   "moduleId":  "dinov3@0.1.0#abi1::dinov3",
+                   "source":  "extlibs/dinov3",
+                   "sourceHash":  ""
+               },
+    "entry":  {
+                  "kind":  "none",
+                  "requiresExplicitInit":  true,
+                  "initSymbol":  "xlInit",
+                  "unitSymbol":  "xlUnit"
+              },
+    "exports":  [
+                    {
+                        "kind":  "function",
+                        "name":  "DinoV3",
+                        "cSymbol":  "__xl6_import_dinov3_DinoV3",
+                        "signature":  "func() as DinoV3Model",
+                        "exportId":  "dinov3@0.1.0#abi1::dinov3::DinoV3(func() as DinoV3Model)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  0,
+                        "fixedParamCount":  0,
+                        "params":  [
+
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "DinoV3Model"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "DinoV3",
+                        "cSymbol":  "__xl6_import_dinov3_DinoV3",
+                        "signature":  "func(string) as DinoV3Model",
+                        "exportId":  "dinov3@0.1.0#abi1::dinov3::DinoV3(func(string) as DinoV3Model)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  1,
+                        "fixedParamCount":  1,
+                        "params":  [
+                                       {
+                                           "name":  "model_path",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "DinoV3Model"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "embedding_json",
+                        "cSymbol":  "__xl6_import_dinov3_embedding_json",
+                        "signature":  "func(string) as string",
+                        "exportId":  "dinov3@0.1.0#abi1::dinov3::embedding_json(func(string) as string)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  1,
+                        "fixedParamCount":  1,
+                        "params":  [
+                                       {
+                                           "name":  "image_path",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "string"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "embedding_json",
+                        "cSymbol":  "__xl6_import_dinov3_embedding_json",
+                        "signature":  "func(string,string) as string",
+                        "exportId":  "dinov3@0.1.0#abi1::dinov3::embedding_json(func(string,string) as string)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  2,
+                        "fixedParamCount":  2,
+                        "params":  [
+                                       {
+                                           "name":  "model_path",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "image_path",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "string"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "infer_json",
+                        "cSymbol":  "__xl6_import_dinov3_infer_json",
+                        "signature":  "func(string) as string",
+                        "exportId":  "dinov3@0.1.0#abi1::dinov3::infer_json(func(string) as string)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  1,
+                        "fixedParamCount":  1,
+                        "params":  [
+                                       {
+                                           "name":  "image_path",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "string"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "infer_json",
+                        "cSymbol":  "__xl6_import_dinov3_infer_json",
+                        "signature":  "func(string,string) as string",
+                        "exportId":  "dinov3@0.1.0#abi1::dinov3::infer_json(func(string,string) as string)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  2,
+                        "fixedParamCount":  2,
+                        "params":  [
+                                       {
+                                           "name":  "model_path",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "image_path",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "string"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "similarity",
+                        "cSymbol":  "__xl6_import_dinov3_similarity",
+                        "signature":  "func(string,string) as float",
+                        "exportId":  "dinov3@0.1.0#abi1::dinov3::similarity(func(string,string) as float)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  2,
+                        "fixedParamCount":  2,
+                        "params":  [
+                                       {
+                                           "name":  "left_image_path",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "right_image_path",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "float"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "similarity",
+                        "cSymbol":  "__xl6_import_dinov3_similarity",
+                        "signature":  "func(string,string,string) as float",
+                        "exportId":  "dinov3@0.1.0#abi1::dinov3::similarity(func(string,string,string) as float)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  3,
+                        "fixedParamCount":  3,
+                        "params":  [
+                                       {
+                                           "name":  "model_path",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "left_image_path",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "right_image_path",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "float"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "cosine_similarity",
+                        "cSymbol":  "__xl6_import_dinov3_cosine_similarity",
+                        "signature":  "func(string,string) as float",
+                        "exportId":  "dinov3@0.1.0#abi1::dinov3::cosine_similarity(func(string,string) as float)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  2,
+                        "fixedParamCount":  2,
+                        "params":  [
+                                       {
+                                           "name":  "left_image_path",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "right_image_path",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "float"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "cosine_similarity",
+                        "cSymbol":  "__xl6_import_dinov3_cosine_similarity",
+                        "signature":  "func(string,string,string) as float",
+                        "exportId":  "dinov3@0.1.0#abi1::dinov3::cosine_similarity(func(string,string,string) as float)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  3,
+                        "fixedParamCount":  3,
+                        "params":  [
+                                       {
+                                           "name":  "model_path",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "left_image_path",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "right_image_path",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "float"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "version",
+                        "cSymbol":  "__xl6_import_dinov3_version",
+                        "signature":  "func() as string",
+                        "exportId":  "dinov3@0.1.0#abi1::dinov3::version(func() as string)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  0,
+                        "fixedParamCount":  0,
+                        "params":  [
+
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "string"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "last_error",
+                        "cSymbol":  "__xl6_import_dinov3_last_error",
+                        "signature":  "func() as string",
+                        "exportId":  "dinov3@0.1.0#abi1::dinov3::last_error(func() as string)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  0,
+                        "fixedParamCount":  0,
+                        "params":  [
+
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "string"
+                                        }
+                                    ]
+                    }
+                ],
+    "types":  [
+
+              ],
+    "imports":  [
+
+                ],
+    "links":  [
+
+              ],
+    "loadlibs":  [
+
+                 ],
+    "cSources":  [
+                     "src/dinov3_artifact.c"
+                 ],
+    "native":  {
+                   "singleton":  false,
+                   "loadName":  "",
+                   "version":  ""
+               },
+    "docs":  [
+
+             ]
+}

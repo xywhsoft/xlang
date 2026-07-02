@@ -1,0 +1,3 @@
+future<future<int>> nested
+array<future<future<int>>> jobs = array[nested]
+task.all(jobs)
