@@ -28,8 +28,8 @@ end
 
 auto player = Player()
 
-print(player.hp)
+println(player.hp)
 player.hp = 12
-print(player.hp[3])
+println(player.hp[3])
 player.hp[2, 4] = 5
-print(player.hp)
+println(player.hp)

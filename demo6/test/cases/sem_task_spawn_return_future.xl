@@ -1,0 +1,2 @@
+func() as future<int> job
+task.spawn(job)

@@ -105,6 +105,13 @@ func makeAdder(int base) as func(int) as int
     end
 end
 
+func makeSleepyAdder(int base) as func(int) as int
+    return func(int delay) as int
+        time.sleep(delay)
+        return base + delay
+    end
+end
+
 class TaskFuncBox
     func(int) as int op
 end
@@ -132,7 +139,23 @@ func sumVariadic(int base, ...) as int
     return total
 end
 
+func slowSumVariadic(int base, ...) as int
+    time.sleep(120)
+    int total = base
+    int i = 0
+    while i < arg.length do
+        total = total + int(arg[i])
+        i = i + 1
+    end
+    return total
+end
+
 func totalDefault(int base = 5, ...) as int
+    return base + arg.length
+end
+
+func slowTotalDefault(int base = 5, ...) as int
+    time.sleep(120)
     return base + arg.length
 end
 
@@ -812,6 +835,61 @@ assert variadicDefaultFutureB == 7, "task.spawn zero-fixed variadic future repea
 assert not task.cancel(variadicDefaultFuture), "completed zero-fixed variadic task.spawn future cancel result"
 int variadicDefaultFutureAfterCancel = await variadicDefaultFuture
 assert variadicDefaultFutureAfterCancel == 7, "post-cancel zero-fixed variadic task.spawn future result"
+
+func(int, ...) as int slowVariadicJob = slowSumVariadic
+future<int> pendingVariadicSpawn = task.spawn(slowVariadicJob, 300, 1, 2, 3)
+assert task.cancel(pendingVariadicSpawn), "pending variadic task.spawn cancel result"
+
+int pendingVariadicSpawnState = 0
+try
+    int pendingVariadicSpawnValue = await pendingVariadicSpawn
+    pendingVariadicSpawnState = pendingVariadicSpawnValue
+catch e
+    if e.message == "future cancel requested." then
+        pendingVariadicSpawnState = 1
+    end
+end
+assert pendingVariadicSpawnState == 1, "pending variadic task.spawn await canceled"
+
+func(...) as int slowVariadicDefaultJob = slowTotalDefault
+future<int> pendingVariadicDefaultSpawn = task.spawn(slowVariadicDefaultJob, "a", "b")
+assert task.cancel(pendingVariadicDefaultSpawn), "pending zero-fixed variadic task.spawn cancel result"
+
+int pendingVariadicDefaultSpawnState = 0
+try
+    int pendingVariadicDefaultSpawnValue = await pendingVariadicDefaultSpawn
+    pendingVariadicDefaultSpawnState = pendingVariadicDefaultSpawnValue
+catch e
+    if e.message == "future cancel requested." then
+        pendingVariadicDefaultSpawnState = 1
+    end
+end
+assert pendingVariadicDefaultSpawnState == 1, "pending zero-fixed variadic task.spawn await canceled"
+
+time.sleep(180)
+
+int pendingVariadicStillCanceled = 0
+try
+    int pendingVariadicLateValue = await pendingVariadicSpawn
+    pendingVariadicStillCanceled = pendingVariadicLateValue
+catch e
+    if e.message == "future cancel requested." then
+        pendingVariadicStillCanceled = 1
+    end
+end
+assert pendingVariadicStillCanceled == 1, "pending variadic task.spawn late completion stays canceled"
+
+int pendingVariadicDefaultStillCanceled = 0
+try
+    int pendingVariadicDefaultLateValue = await pendingVariadicDefaultSpawn
+    pendingVariadicDefaultStillCanceled = pendingVariadicDefaultLateValue
+catch e
+    if e.message == "future cancel requested." then
+        pendingVariadicDefaultStillCanceled = 1
+    end
+end
+assert pendingVariadicDefaultStillCanceled == 1, "pending zero-fixed variadic task.spawn late completion stays canceled"
+
 int variadicExprTailSpawned = await task.spawn(variadicDefaultJob, true ? makeSpawnValue(1) : makeSpawnValue(9), makeSpawnValue(2) + makeSpawnValue(3))
 assert variadicExprTailSpawned == 7, "task.spawn dynamic vararg tail expressions"
 
@@ -1215,6 +1293,40 @@ future<array<int>> cancelAllGroup = task.all([cancelAllLeft, cancelAllRight])
 assert task.cancel(cancelAllGroup), "task.cancel should cancel pending task.all group"
 assert task.cancel(cancelAllGroup), "already canceled task.all group should acknowledge cancel again"
 
+int cancelAllGroupState = 0
+try
+    array<int> cancelAllValues = await cancelAllGroup
+    cancelAllGroupState = cancelAllValues.length
+catch e
+    if e.message == "future cancel requested." then
+        cancelAllGroupState = 1
+    end
+end
+assert cancelAllGroupState == 1, "canceled task.all group should await as canceled"
+
+int cancelAllGroupStateAgain = 0
+try
+    array<int> cancelAllValuesAgain = await cancelAllGroup
+    cancelAllGroupStateAgain = cancelAllValuesAgain.length
+catch e
+    if e.message == "future cancel requested." then
+        cancelAllGroupStateAgain = 1
+    end
+end
+assert cancelAllGroupStateAgain == 1, "canceled task.all group repeated await should stay canceled"
+assert task.cancel(cancelAllGroup), "canceled task.all group should acknowledge cancel after await"
+
+int cancelAllGroupStateAfterCancel = 0
+try
+    array<int> cancelAllValuesAfterCancel = await cancelAllGroup
+    cancelAllGroupStateAfterCancel = cancelAllValuesAfterCancel.length
+catch e
+    if e.message == "future cancel requested." then
+        cancelAllGroupStateAfterCancel = 1
+    end
+end
+assert cancelAllGroupStateAfterCancel == 1, "canceled task.all group post-cancel await should stay canceled"
+
 int cancelAllSourceState = 0
 try
     int cancelAllLeftValue = await cancelAllLeft
@@ -1249,6 +1361,40 @@ future<int> cancelRaceGroup = task.race([cancelRaceLeft, cancelRaceRight])
 assert task.cancel(cancelRaceGroup), "task.cancel should cancel pending task.race group"
 assert task.cancel(cancelRaceGroup), "already canceled task.race group should acknowledge cancel again"
 
+int cancelRaceGroupState = 0
+try
+    int cancelRaceValue = await cancelRaceGroup
+    cancelRaceGroupState = cancelRaceValue
+catch e
+    if e.message == "future cancel requested." then
+        cancelRaceGroupState = 1
+    end
+end
+assert cancelRaceGroupState == 1, "canceled task.race group should await as canceled"
+
+int cancelRaceGroupStateAgain = 0
+try
+    int cancelRaceValueAgain = await cancelRaceGroup
+    cancelRaceGroupStateAgain = cancelRaceValueAgain
+catch e
+    if e.message == "future cancel requested." then
+        cancelRaceGroupStateAgain = 1
+    end
+end
+assert cancelRaceGroupStateAgain == 1, "canceled task.race group repeated await should stay canceled"
+assert task.cancel(cancelRaceGroup), "canceled task.race group should acknowledge cancel after await"
+
+int cancelRaceGroupStateAfterCancel = 0
+try
+    int cancelRaceValueAfterCancel = await cancelRaceGroup
+    cancelRaceGroupStateAfterCancel = cancelRaceValueAfterCancel
+catch e
+    if e.message == "future cancel requested." then
+        cancelRaceGroupStateAfterCancel = 1
+    end
+end
+assert cancelRaceGroupStateAfterCancel == 1, "canceled task.race group post-cancel await should stay canceled"
+
 int cancelRaceSourceState = 0
 try
     int cancelRaceRightValue = await cancelRaceRight
@@ -1267,6 +1413,41 @@ future<int> cancelTypedAllRight = slowRaceAsync(212)
 array<future<int>> cancelTypedAllJobs = array[cancelTypedAllLeft, cancelTypedAllRight]
 future<array<int>> cancelTypedAllGroup = task.all(cancelTypedAllJobs)
 assert task.cancel(cancelTypedAllGroup), "task.cancel should cancel pending typed-array task.all group"
+assert task.cancel(cancelTypedAllGroup), "already canceled typed-array task.all group should acknowledge cancel again"
+
+int cancelTypedAllGroupState = 0
+try
+    array<int> cancelTypedAllValues = await cancelTypedAllGroup
+    cancelTypedAllGroupState = cancelTypedAllValues.length
+catch e
+    if e.message == "future cancel requested." then
+        cancelTypedAllGroupState = 1
+    end
+end
+assert cancelTypedAllGroupState == 1, "canceled typed-array task.all group should await as canceled"
+
+int cancelTypedAllGroupStateAgain = 0
+try
+    array<int> cancelTypedAllValuesAgain = await cancelTypedAllGroup
+    cancelTypedAllGroupStateAgain = cancelTypedAllValuesAgain.length
+catch e
+    if e.message == "future cancel requested." then
+        cancelTypedAllGroupStateAgain = 1
+    end
+end
+assert cancelTypedAllGroupStateAgain == 1, "canceled typed-array task.all group repeated await should stay canceled"
+assert task.cancel(cancelTypedAllGroup), "canceled typed-array task.all group should acknowledge cancel after await"
+
+int cancelTypedAllGroupStateAfterCancel = 0
+try
+    array<int> cancelTypedAllValuesAfterCancel = await cancelTypedAllGroup
+    cancelTypedAllGroupStateAfterCancel = cancelTypedAllValuesAfterCancel.length
+catch e
+    if e.message == "future cancel requested." then
+        cancelTypedAllGroupStateAfterCancel = 1
+    end
+end
+assert cancelTypedAllGroupStateAfterCancel == 1, "canceled typed-array task.all group post-cancel await should stay canceled"
 
 int cancelTypedAllSourceState = 0
 try
@@ -1284,6 +1465,41 @@ future<int> cancelTypedRaceRight = slowRaceAsync(312)
 array<future<int>> cancelTypedRaceJobs = array[cancelTypedRaceLeft, cancelTypedRaceRight]
 future<int> cancelTypedRaceGroup = task.race(cancelTypedRaceJobs)
 assert task.cancel(cancelTypedRaceGroup), "task.cancel should cancel pending typed-array task.race group"
+assert task.cancel(cancelTypedRaceGroup), "already canceled typed-array task.race group should acknowledge cancel again"
+
+int cancelTypedRaceGroupState = 0
+try
+    int cancelTypedRaceValue = await cancelTypedRaceGroup
+    cancelTypedRaceGroupState = cancelTypedRaceValue
+catch e
+    if e.message == "future cancel requested." then
+        cancelTypedRaceGroupState = 1
+    end
+end
+assert cancelTypedRaceGroupState == 1, "canceled typed-array task.race group should await as canceled"
+
+int cancelTypedRaceGroupStateAgain = 0
+try
+    int cancelTypedRaceValueAgain = await cancelTypedRaceGroup
+    cancelTypedRaceGroupStateAgain = cancelTypedRaceValueAgain
+catch e
+    if e.message == "future cancel requested." then
+        cancelTypedRaceGroupStateAgain = 1
+    end
+end
+assert cancelTypedRaceGroupStateAgain == 1, "canceled typed-array task.race group repeated await should stay canceled"
+assert task.cancel(cancelTypedRaceGroup), "canceled typed-array task.race group should acknowledge cancel after await"
+
+int cancelTypedRaceGroupStateAfterCancel = 0
+try
+    int cancelTypedRaceValueAfterCancel = await cancelTypedRaceGroup
+    cancelTypedRaceGroupStateAfterCancel = cancelTypedRaceValueAfterCancel
+catch e
+    if e.message == "future cancel requested." then
+        cancelTypedRaceGroupStateAfterCancel = 1
+    end
+end
+assert cancelTypedRaceGroupStateAfterCancel == 1, "canceled typed-array task.race group post-cancel await should stay canceled"
 
 int cancelTypedRaceSourceState = 0
 try
@@ -1331,6 +1547,28 @@ catch e
 end
 assert pendingStringRaceSourceState == 1, "task.cancel typed-string task.race should cancel sources"
 time.sleep(320)
+
+int pendingStringAllStillCanceled = 0
+try
+    string pendingStringAllLateValue = await pendingStringAllRight
+    pendingStringAllStillCanceled = 9
+catch e
+    if e.message == "future cancel requested." then
+        pendingStringAllStillCanceled = 1
+    end
+end
+assert pendingStringAllStillCanceled == 1, "typed-string task.all source should stay canceled after worker completion"
+
+int pendingStringRaceStillCanceled = 0
+try
+    string pendingStringRaceLateValue = await pendingStringRaceLeft
+    pendingStringRaceStillCanceled = 9
+catch e
+    if e.message == "future cancel requested." then
+        pendingStringRaceStillCanceled = 1
+    end
+end
+assert pendingStringRaceStillCanceled == 1, "typed-string task.race source should stay canceled after worker completion"
 
 future<bool> pendingBoolAllLeft = slowFlipAsync(true)
 future<bool> pendingBoolAllRight = slowFlipAsync(false)
@@ -1400,6 +1638,50 @@ catch e
 end
 assert pendingFloatRaceSourceState == 1, "task.cancel typed-float task.race should cancel sources"
 time.sleep(320)
+
+int pendingBoolAllStillCanceled = 0
+try
+    bool pendingBoolAllLateValue = await pendingBoolAllLeft
+    pendingBoolAllStillCanceled = int(pendingBoolAllLateValue)
+catch e
+    if e.message == "future cancel requested." then
+        pendingBoolAllStillCanceled = 1
+    end
+end
+assert pendingBoolAllStillCanceled == 1, "typed-bool task.all source should stay canceled after worker completion"
+
+int pendingBoolRaceStillCanceled = 0
+try
+    bool pendingBoolRaceLateValue = await pendingBoolRaceRight
+    pendingBoolRaceStillCanceled = int(pendingBoolRaceLateValue)
+catch e
+    if e.message == "future cancel requested." then
+        pendingBoolRaceStillCanceled = 1
+    end
+end
+assert pendingBoolRaceStillCanceled == 1, "typed-bool task.race source should stay canceled after worker completion"
+
+int pendingFloatAllStillCanceled = 0
+try
+    float pendingFloatAllLateValue = await pendingFloatAllRight
+    pendingFloatAllStillCanceled = int(pendingFloatAllLateValue)
+catch e
+    if e.message == "future cancel requested." then
+        pendingFloatAllStillCanceled = 1
+    end
+end
+assert pendingFloatAllStillCanceled == 1, "typed-float task.all source should stay canceled after worker completion"
+
+int pendingFloatRaceStillCanceled = 0
+try
+    float pendingFloatRaceLateValue = await pendingFloatRaceLeft
+    pendingFloatRaceStillCanceled = int(pendingFloatRaceLateValue)
+catch e
+    if e.message == "future cancel requested." then
+        pendingFloatRaceStillCanceled = 1
+    end
+end
+assert pendingFloatRaceStillCanceled == 1, "typed-float task.race source should stay canceled after worker completion"
 
 array<string> spawnStringAll = await task.all([task.spawn(greetJob, "all-left"), task.spawn(greetJob, "all-right")])
 assert spawnStringAll.length == 2, "task.all string task.spawn count"
@@ -1601,6 +1883,23 @@ assert spawnAllFailureGroupState == 1, "task.all over task.spawn should report f
 int spawnAllFailureSlowValue = await spawnAllFailureSlowSource
 assert spawnAllFailureSlowValue == 909, "task.all task.spawn failure should keep slow source awaitable"
 
+future<int> typedSpawnAllFailureSlowSource = task.spawn(slowAddJob, 920, 9)
+array<future<int>> typedSpawnAllFailureJobs = array[task.spawn(throwingJob), typedSpawnAllFailureSlowSource]
+future<array<int>> typedSpawnAllFailureGroup = task.all(typedSpawnAllFailureJobs)
+int typedSpawnAllFailureGroupState = 0
+try
+    array<int> typedSpawnAllFailureValues = await typedSpawnAllFailureGroup
+    typedSpawnAllFailureGroupState = typedSpawnAllFailureValues.length
+catch e
+    if e.message == "task spawn boom" then
+        typedSpawnAllFailureGroupState = 1
+    end
+end
+assert typedSpawnAllFailureGroupState == 1, "typed task.all over task.spawn should report fast failure"
+int typedSpawnAllFailureSlowValue = await typedSpawnAllFailureSlowSource
+assert typedSpawnAllFailureSlowValue == 929, "typed task.all task.spawn failure should keep slow source awaitable"
+assert not task.cancel(typedSpawnAllFailureSlowSource), "typed task.all slow task.spawn source should finish normally"
+
 future<int> spawnRaceFailureSlowLoser = task.spawn(slowAddJob, 910, 9)
 future<int> spawnRaceFailureGroup = task.race([task.spawn(throwingJob), spawnRaceFailureSlowLoser])
 int spawnRaceFailureGroupState = 0
@@ -1635,6 +1934,42 @@ catch e
     end
 end
 assert spawnRaceFailureLoserStateB == 1, "task.race task.spawn loser should stay canceled"
+
+future<int> typedSpawnRaceFailureSlowLoser = task.spawn(slowAddJob, 930, 9)
+array<future<int>> typedSpawnRaceFailureJobs = array[task.spawn(throwingJob), typedSpawnRaceFailureSlowLoser]
+future<int> typedSpawnRaceFailureGroup = task.race(typedSpawnRaceFailureJobs)
+int typedSpawnRaceFailureGroupState = 0
+try
+    int typedSpawnRaceFailureValue = await typedSpawnRaceFailureGroup
+    typedSpawnRaceFailureGroupState = typedSpawnRaceFailureValue
+catch e
+    if e.message == "task spawn boom" then
+        typedSpawnRaceFailureGroupState = 1
+    end
+end
+assert typedSpawnRaceFailureGroupState == 1, "typed task.race over task.spawn should report fast failure"
+
+int typedSpawnRaceFailureLoserStateA = 0
+try
+    int typedSpawnRaceFailureLoserValueA = await typedSpawnRaceFailureSlowLoser
+    typedSpawnRaceFailureLoserStateA = typedSpawnRaceFailureLoserValueA
+catch e
+    if e.message == "future cancel requested." then
+        typedSpawnRaceFailureLoserStateA = 1
+    end
+end
+assert typedSpawnRaceFailureLoserStateA == 1, "typed task.race task.spawn failure should cancel loser"
+time.sleep(180)
+int typedSpawnRaceFailureLoserStateB = 0
+try
+    int typedSpawnRaceFailureLoserValueB = await typedSpawnRaceFailureSlowLoser
+    typedSpawnRaceFailureLoserStateB = typedSpawnRaceFailureLoserValueB
+catch e
+    if e.message == "future cancel requested." then
+        typedSpawnRaceFailureLoserStateB = 1
+    end
+end
+assert typedSpawnRaceFailureLoserStateB == 1, "typed task.race task.spawn loser should stay canceled"
 
 func() as string throwingStringJob = failStringJob
 int stringSpawnError = 0
@@ -1732,6 +2067,23 @@ assert spawnStringAllFailureGroupState == 1, "task.all over string task.spawn sh
 string spawnStringAllFailureSlowValue = await spawnStringAllFailureSlowSource
 assert spawnStringAllFailureSlowValue == "hello slow-all", "task.all string task.spawn failure should keep slow source awaitable"
 
+future<string> typedSpawnStringAllFailureSlowSource = task.spawn(slowGreetJob, "typed-slow-all")
+array<future<string>> typedSpawnStringAllFailureJobs = array[task.spawn(throwingStringJob), typedSpawnStringAllFailureSlowSource]
+future<array<string>> typedSpawnStringAllFailureGroup = task.all(typedSpawnStringAllFailureJobs)
+int typedSpawnStringAllFailureGroupState = 0
+try
+    array<string> typedSpawnStringAllFailureValues = await typedSpawnStringAllFailureGroup
+    typedSpawnStringAllFailureGroupState = typedSpawnStringAllFailureValues.length
+catch e
+    if e.message == "task spawn string boom" then
+        typedSpawnStringAllFailureGroupState = 1
+    end
+end
+assert typedSpawnStringAllFailureGroupState == 1, "typed task.all over string task.spawn should report fast failure"
+string typedSpawnStringAllFailureSlowValue = await typedSpawnStringAllFailureSlowSource
+assert typedSpawnStringAllFailureSlowValue == "hello typed-slow-all", "typed task.all string task.spawn failure should keep slow source awaitable"
+assert not task.cancel(typedSpawnStringAllFailureSlowSource), "typed task.all slow string task.spawn source should finish normally"
+
 future<string> spawnStringRaceFailureSlowLoser = task.spawn(slowGreetJob, "slow-race")
 future<string> spawnStringRaceFailureGroup = task.race([task.spawn(throwingStringJob), spawnStringRaceFailureSlowLoser])
 int spawnStringRaceFailureGroupState = 0
@@ -1766,6 +2118,42 @@ catch e
     end
 end
 assert spawnStringRaceFailureLoserStateB == 1, "task.race string task.spawn loser should stay canceled"
+
+future<string> typedSpawnStringRaceFailureSlowLoser = task.spawn(slowGreetJob, "typed-slow-race")
+array<future<string>> typedSpawnStringRaceFailureJobs = array[task.spawn(throwingStringJob), typedSpawnStringRaceFailureSlowLoser]
+future<string> typedSpawnStringRaceFailureGroup = task.race(typedSpawnStringRaceFailureJobs)
+int typedSpawnStringRaceFailureGroupState = 0
+try
+    string typedSpawnStringRaceFailureValue = await typedSpawnStringRaceFailureGroup
+    typedSpawnStringRaceFailureGroupState = 9
+catch e
+    if e.message == "task spawn string boom" then
+        typedSpawnStringRaceFailureGroupState = 1
+    end
+end
+assert typedSpawnStringRaceFailureGroupState == 1, "typed task.race over string task.spawn should report fast failure"
+
+int typedSpawnStringRaceFailureLoserStateA = 0
+try
+    string typedSpawnStringRaceFailureLoserValueA = await typedSpawnStringRaceFailureSlowLoser
+    typedSpawnStringRaceFailureLoserStateA = 9
+catch e
+    if e.message == "future cancel requested." then
+        typedSpawnStringRaceFailureLoserStateA = 1
+    end
+end
+assert typedSpawnStringRaceFailureLoserStateA == 1, "typed task.race string task.spawn failure should cancel loser"
+time.sleep(180)
+int typedSpawnStringRaceFailureLoserStateB = 0
+try
+    string typedSpawnStringRaceFailureLoserValueB = await typedSpawnStringRaceFailureSlowLoser
+    typedSpawnStringRaceFailureLoserStateB = 9
+catch e
+    if e.message == "future cancel requested." then
+        typedSpawnStringRaceFailureLoserStateB = 1
+    end
+end
+assert typedSpawnStringRaceFailureLoserStateB == 1, "typed task.race string task.spawn loser should stay canceled"
 
 func() as bool throwingBoolJob = failBoolJob
 int boolSpawnError = 0
@@ -1848,6 +2236,60 @@ catch e
 end
 assert failedBoolSpawnTypedRaceState == 1, "task.race typed bool task.spawn error propagation"
 
+future<bool> typedSpawnBoolAllFailureSlowSource = task.spawn(slowFlipJob, false)
+array<future<bool>> typedSpawnBoolAllFailureJobs = array[task.spawn(throwingBoolJob), typedSpawnBoolAllFailureSlowSource]
+future<array<bool>> typedSpawnBoolAllFailureGroup = task.all(typedSpawnBoolAllFailureJobs)
+int typedSpawnBoolAllFailureGroupState = 0
+try
+    array<bool> typedSpawnBoolAllFailureValues = await typedSpawnBoolAllFailureGroup
+    typedSpawnBoolAllFailureGroupState = typedSpawnBoolAllFailureValues.length
+catch e
+    if e.message == "task spawn bool boom" then
+        typedSpawnBoolAllFailureGroupState = 1
+    end
+end
+assert typedSpawnBoolAllFailureGroupState == 1, "task.all typed bool task.spawn fast failure"
+bool typedSpawnBoolAllFailureSlowValue = await typedSpawnBoolAllFailureSlowSource
+assert int(typedSpawnBoolAllFailureSlowValue) == 1, "task.all typed bool slow task remains awaitable"
+assert not task.cancel(typedSpawnBoolAllFailureSlowSource), "task.all typed bool slow task already completed"
+
+future<bool> typedSpawnBoolRaceFailureSlowLoser = task.spawn(slowFlipJob, false)
+array<future<bool>> typedSpawnBoolRaceFailureJobs = array[task.spawn(throwingBoolJob), typedSpawnBoolRaceFailureSlowLoser]
+future<bool> typedSpawnBoolRaceFailureGroup = task.race(typedSpawnBoolRaceFailureJobs)
+int typedSpawnBoolRaceFailureGroupState = 0
+try
+    bool typedSpawnBoolRaceFailureValue = await typedSpawnBoolRaceFailureGroup
+    typedSpawnBoolRaceFailureGroupState = int(typedSpawnBoolRaceFailureValue)
+catch e
+    if e.message == "task spawn bool boom" then
+        typedSpawnBoolRaceFailureGroupState = 1
+    end
+end
+assert typedSpawnBoolRaceFailureGroupState == 1, "task.race typed bool task.spawn fast failure"
+time.sleep(180)
+
+int typedSpawnBoolRaceFailureLoserStateA = 0
+try
+    bool typedSpawnBoolRaceFailureLoserValueA = await typedSpawnBoolRaceFailureSlowLoser
+    typedSpawnBoolRaceFailureLoserStateA = int(typedSpawnBoolRaceFailureLoserValueA)
+catch e
+    if e.message == "future cancel requested." then
+        typedSpawnBoolRaceFailureLoserStateA = 1
+    end
+end
+assert typedSpawnBoolRaceFailureLoserStateA == 1, "task.race typed bool slow loser canceled"
+
+int typedSpawnBoolRaceFailureLoserStateB = 0
+try
+    bool typedSpawnBoolRaceFailureLoserValueB = await typedSpawnBoolRaceFailureSlowLoser
+    typedSpawnBoolRaceFailureLoserStateB = int(typedSpawnBoolRaceFailureLoserValueB)
+catch e
+    if e.message == "future cancel requested." then
+        typedSpawnBoolRaceFailureLoserStateB = 1
+    end
+end
+assert typedSpawnBoolRaceFailureLoserStateB == 1, "task.race typed bool loser keeps canceled state"
+
 func() as float throwingFloatJob = failFloatJob
 int floatSpawnError = 0
 try
@@ -1928,6 +2370,60 @@ catch e
     end
 end
 assert failedFloatSpawnTypedRaceState == 1, "task.race typed float task.spawn error propagation"
+
+future<float> typedSpawnFloatAllFailureSlowSource = task.spawn(slowHalfJob, 8.5)
+array<future<float>> typedSpawnFloatAllFailureJobs = array[task.spawn(throwingFloatJob), typedSpawnFloatAllFailureSlowSource]
+future<array<float>> typedSpawnFloatAllFailureGroup = task.all(typedSpawnFloatAllFailureJobs)
+int typedSpawnFloatAllFailureGroupState = 0
+try
+    array<float> typedSpawnFloatAllFailureValues = await typedSpawnFloatAllFailureGroup
+    typedSpawnFloatAllFailureGroupState = typedSpawnFloatAllFailureValues.length
+catch e
+    if e.message == "task spawn float boom" then
+        typedSpawnFloatAllFailureGroupState = 1
+    end
+end
+assert typedSpawnFloatAllFailureGroupState == 1, "task.all typed float task.spawn fast failure"
+float typedSpawnFloatAllFailureSlowValue = await typedSpawnFloatAllFailureSlowSource
+assert typedSpawnFloatAllFailureSlowValue == 9.0, "task.all typed float slow task remains awaitable"
+assert not task.cancel(typedSpawnFloatAllFailureSlowSource), "task.all typed float slow task already completed"
+
+future<float> typedSpawnFloatRaceFailureSlowLoser = task.spawn(slowHalfJob, 9.5)
+array<future<float>> typedSpawnFloatRaceFailureJobs = array[task.spawn(throwingFloatJob), typedSpawnFloatRaceFailureSlowLoser]
+future<float> typedSpawnFloatRaceFailureGroup = task.race(typedSpawnFloatRaceFailureJobs)
+int typedSpawnFloatRaceFailureGroupState = 0
+try
+    float typedSpawnFloatRaceFailureValue = await typedSpawnFloatRaceFailureGroup
+    typedSpawnFloatRaceFailureGroupState = int(typedSpawnFloatRaceFailureValue)
+catch e
+    if e.message == "task spawn float boom" then
+        typedSpawnFloatRaceFailureGroupState = 1
+    end
+end
+assert typedSpawnFloatRaceFailureGroupState == 1, "task.race typed float task.spawn fast failure"
+time.sleep(180)
+
+int typedSpawnFloatRaceFailureLoserStateA = 0
+try
+    float typedSpawnFloatRaceFailureLoserValueA = await typedSpawnFloatRaceFailureSlowLoser
+    typedSpawnFloatRaceFailureLoserStateA = int(typedSpawnFloatRaceFailureLoserValueA)
+catch e
+    if e.message == "future cancel requested." then
+        typedSpawnFloatRaceFailureLoserStateA = 1
+    end
+end
+assert typedSpawnFloatRaceFailureLoserStateA == 1, "task.race typed float slow loser canceled"
+
+int typedSpawnFloatRaceFailureLoserStateB = 0
+try
+    float typedSpawnFloatRaceFailureLoserValueB = await typedSpawnFloatRaceFailureSlowLoser
+    typedSpawnFloatRaceFailureLoserStateB = int(typedSpawnFloatRaceFailureLoserValueB)
+catch e
+    if e.message == "future cancel requested." then
+        typedSpawnFloatRaceFailureLoserStateB = 1
+    end
+end
+assert typedSpawnFloatRaceFailureLoserStateB == 1, "task.race typed float loser keeps canceled state"
 
 future<int> one = addAsync(1, 2)
 future<int> two = addAsync(3, 4)
@@ -2170,6 +2666,148 @@ int duplicatePendingRaceValue = await task.race([duplicatePendingRaceSource, dup
 assert duplicatePendingRaceValue == 506, "pending duplicate task.race source result"
 assert await duplicatePendingRaceSource == 506, "pending duplicate task.race source remains awaitable"
 assert not task.cancel(duplicatePendingRaceSource), "pending duplicate task.race source is not canceled"
+
+future<int> duplicateCancelAllSource = slowRaceAsync(513)
+future<array<int>> duplicateCancelAllGroup = task.all([duplicateCancelAllSource, duplicateCancelAllSource])
+assert task.cancel(duplicateCancelAllGroup), "duplicate pending task.all group cancel result"
+int duplicateCancelAllGroupState = 0
+try
+    array<int> duplicateCancelAllValues = await duplicateCancelAllGroup
+    duplicateCancelAllGroupState = duplicateCancelAllValues.length
+catch e
+    if e.message == "future cancel requested." then
+        duplicateCancelAllGroupState = 1
+    end
+end
+assert duplicateCancelAllGroupState == 1, "duplicate pending task.all group should await as canceled"
+int duplicateCancelAllSourceState = 0
+try
+    int duplicateCancelAllSourceValue = await duplicateCancelAllSource
+    duplicateCancelAllSourceState = duplicateCancelAllSourceValue
+catch e
+    if e.message == "future cancel requested." then
+        duplicateCancelAllSourceState = 1
+    end
+end
+assert duplicateCancelAllSourceState == 1, "duplicate pending task.all cancel should cancel source"
+time.sleep(160)
+int duplicateCancelAllLateState = 0
+try
+    int duplicateCancelAllLateValue = await duplicateCancelAllSource
+    duplicateCancelAllLateState = duplicateCancelAllLateValue
+catch e
+    if e.message == "future cancel requested." then
+        duplicateCancelAllLateState = 1
+    end
+end
+assert duplicateCancelAllLateState == 1, "duplicate pending task.all late completion should not overwrite cancel"
+
+future<int> duplicateCancelRaceSource = slowRaceAsync(514)
+future<int> duplicateCancelRaceGroup = task.race([duplicateCancelRaceSource, duplicateCancelRaceSource])
+assert task.cancel(duplicateCancelRaceGroup), "duplicate pending task.race group cancel result"
+int duplicateCancelRaceGroupState = 0
+try
+    int duplicateCancelRaceValue = await duplicateCancelRaceGroup
+    duplicateCancelRaceGroupState = duplicateCancelRaceValue
+catch e
+    if e.message == "future cancel requested." then
+        duplicateCancelRaceGroupState = 1
+    end
+end
+assert duplicateCancelRaceGroupState == 1, "duplicate pending task.race group should await as canceled"
+int duplicateCancelRaceSourceState = 0
+try
+    int duplicateCancelRaceSourceValue = await duplicateCancelRaceSource
+    duplicateCancelRaceSourceState = duplicateCancelRaceSourceValue
+catch e
+    if e.message == "future cancel requested." then
+        duplicateCancelRaceSourceState = 1
+    end
+end
+assert duplicateCancelRaceSourceState == 1, "duplicate pending task.race cancel should cancel source"
+time.sleep(160)
+int duplicateCancelRaceLateState = 0
+try
+    int duplicateCancelRaceLateValue = await duplicateCancelRaceSource
+    duplicateCancelRaceLateState = duplicateCancelRaceLateValue
+catch e
+    if e.message == "future cancel requested." then
+        duplicateCancelRaceLateState = 1
+    end
+end
+assert duplicateCancelRaceLateState == 1, "duplicate pending task.race late completion should not overwrite cancel"
+
+future<int> duplicateTypedCancelAllSource = slowRaceAsync(515)
+array<future<int>> duplicateTypedCancelAllJobs = array[duplicateTypedCancelAllSource, duplicateTypedCancelAllSource]
+future<array<int>> duplicateTypedCancelAllGroup = task.all(duplicateTypedCancelAllJobs)
+assert task.cancel(duplicateTypedCancelAllGroup), "typed duplicate pending task.all group cancel result"
+int duplicateTypedCancelAllGroupState = 0
+try
+    array<int> duplicateTypedCancelAllValues = await duplicateTypedCancelAllGroup
+    duplicateTypedCancelAllGroupState = duplicateTypedCancelAllValues.length
+catch e
+    if e.message == "future cancel requested." then
+        duplicateTypedCancelAllGroupState = 1
+    end
+end
+assert duplicateTypedCancelAllGroupState == 1, "typed duplicate pending task.all group should await as canceled"
+int duplicateTypedCancelAllSourceState = 0
+try
+    int duplicateTypedCancelAllSourceValue = await duplicateTypedCancelAllSource
+    duplicateTypedCancelAllSourceState = duplicateTypedCancelAllSourceValue
+catch e
+    if e.message == "future cancel requested." then
+        duplicateTypedCancelAllSourceState = 1
+    end
+end
+assert duplicateTypedCancelAllSourceState == 1, "typed duplicate pending task.all cancel should cancel source"
+time.sleep(160)
+int duplicateTypedCancelAllLateState = 0
+try
+    int duplicateTypedCancelAllLateValue = await duplicateTypedCancelAllSource
+    duplicateTypedCancelAllLateState = duplicateTypedCancelAllLateValue
+catch e
+    if e.message == "future cancel requested." then
+        duplicateTypedCancelAllLateState = 1
+    end
+end
+assert duplicateTypedCancelAllLateState == 1, "typed duplicate pending task.all late completion should not overwrite cancel"
+
+future<int> duplicateTypedCancelRaceSource = slowRaceAsync(516)
+array<future<int>> duplicateTypedCancelRaceJobs = array[duplicateTypedCancelRaceSource, duplicateTypedCancelRaceSource]
+future<int> duplicateTypedCancelRaceGroup = task.race(duplicateTypedCancelRaceJobs)
+assert task.cancel(duplicateTypedCancelRaceGroup), "typed duplicate pending task.race group cancel result"
+int duplicateTypedCancelRaceGroupState = 0
+try
+    int duplicateTypedCancelRaceValue = await duplicateTypedCancelRaceGroup
+    duplicateTypedCancelRaceGroupState = duplicateTypedCancelRaceValue
+catch e
+    if e.message == "future cancel requested." then
+        duplicateTypedCancelRaceGroupState = 1
+    end
+end
+assert duplicateTypedCancelRaceGroupState == 1, "typed duplicate pending task.race group should await as canceled"
+int duplicateTypedCancelRaceSourceState = 0
+try
+    int duplicateTypedCancelRaceSourceValue = await duplicateTypedCancelRaceSource
+    duplicateTypedCancelRaceSourceState = duplicateTypedCancelRaceSourceValue
+catch e
+    if e.message == "future cancel requested." then
+        duplicateTypedCancelRaceSourceState = 1
+    end
+end
+assert duplicateTypedCancelRaceSourceState == 1, "typed duplicate pending task.race cancel should cancel source"
+time.sleep(160)
+int duplicateTypedCancelRaceLateState = 0
+try
+    int duplicateTypedCancelRaceLateValue = await duplicateTypedCancelRaceSource
+    duplicateTypedCancelRaceLateState = duplicateTypedCancelRaceLateValue
+catch e
+    if e.message == "future cancel requested." then
+        duplicateTypedCancelRaceLateState = 1
+    end
+end
+assert duplicateTypedCancelRaceLateState == 1, "typed duplicate pending task.race late completion should not overwrite cancel"
 
 future<int> duplicateCanceledAllSource = slowRaceAsync(509)
 future<array<int>> duplicateCanceledAllGroup = task.all([duplicateCanceledAllSource, duplicateCanceledAllSource])
@@ -2478,6 +3116,24 @@ end
 assert allFailureGroupState == 1, "task.all should report first failure after sources finish"
 int allFailureSlowValue = await allFailureSlowSource
 assert allFailureSlowValue == 909, "task.all failure should keep slow source awaitable"
+
+future<int> typedAllFailureLeft = failAsync()
+future<int> typedAllFailureSlowSource = slowRaceAsync(914)
+array<future<int>> typedAllFailureJobs = array[typedAllFailureLeft, typedAllFailureSlowSource]
+future<array<int>> typedAllFailureGroup = task.all(typedAllFailureJobs)
+int typedAllFailureGroupState = 0
+try
+    array<int> typedAllFailureValues = await typedAllFailureGroup
+    typedAllFailureGroupState = typedAllFailureValues.length
+catch e
+    if e.message == "task boom" then
+        typedAllFailureGroupState = 1
+    end
+end
+assert typedAllFailureGroupState == 1, "typed task.all should report first failure after sources finish"
+int typedAllFailureSlowValue = await typedAllFailureSlowSource
+assert typedAllFailureSlowValue == 914, "typed task.all failure should keep slow source awaitable"
+assert not task.cancel(typedAllFailureSlowSource), "typed task.all slow source should finish normally"
 
 future<int> allFailedBeforeCancelLeft = failAsync()
 int allFailedBeforeCancelLeftState = 0
@@ -3652,6 +4308,447 @@ assert await mixedTailOwnedFuture == 537, "task.spawn mixed tail owned repeated 
 assert not task.cancel(mixedTailOwnedFuture), "completed mixed tail owned future should not be canceled"
 assert mixedTailClosureSource(8) == 518, "mixed tail owned source remains callable"
 
+func(int) as int pendingClosureSource = makeSleepyAdder(600)
+future<int> pendingClosureFuture = task.spawn(pendingClosureSource, 140)
+assert task.cancel(pendingClosureFuture), "pending closure task.spawn cancel result"
+
+int pendingClosureState = 0
+try
+    int pendingClosureValue = await pendingClosureFuture
+    pendingClosureState = pendingClosureValue
+catch e
+    if e.message == "future cancel requested." then
+        pendingClosureState = 1
+    end
+end
+assert pendingClosureState == 1, "pending closure task.spawn should await as canceled"
+
+time.sleep(180)
+
+int pendingClosureStillCanceled = 0
+try
+    int pendingClosureLateValue = await pendingClosureFuture
+    pendingClosureStillCanceled = pendingClosureLateValue
+catch e
+    if e.message == "future cancel requested." then
+        pendingClosureStillCanceled = 1
+    end
+end
+assert pendingClosureStillCanceled == 1, "pending closure task.spawn late completion should not overwrite cancel"
+assert pendingClosureSource(0) == 600, "pending closure source remains callable"
+
+func(int) as int pendingClosureAllSource = makeSleepyAdder(610)
+future<int> pendingClosureAllLeft = task.spawn(pendingClosureAllSource, 140)
+future<array<int>> pendingClosureAllGroup = task.all([
+    pendingClosureAllLeft,
+    task.spawn(makeSleepyAdder(620), 140)
+])
+assert task.cancel(pendingClosureAllGroup), "pending closure task.all group cancel result"
+
+int pendingClosureAllGroupState = 0
+try
+    array<int> pendingClosureAllValues = await pendingClosureAllGroup
+    pendingClosureAllGroupState = pendingClosureAllValues.length
+catch e
+    if e.message == "future cancel requested." then
+        pendingClosureAllGroupState = 1
+    end
+end
+assert pendingClosureAllGroupState == 1, "pending closure task.all group should await as canceled"
+
+int pendingClosureAllLeftState = 0
+try
+    int pendingClosureAllLeftValue = await pendingClosureAllLeft
+    pendingClosureAllLeftState = pendingClosureAllLeftValue
+catch e
+    if e.message == "future cancel requested." then
+        pendingClosureAllLeftState = 1
+    end
+end
+assert pendingClosureAllLeftState == 1, "pending closure task.all should cancel source closure future"
+
+time.sleep(180)
+assert pendingClosureAllSource(0) == 610, "pending closure task.all source closure remains callable"
+
+func(int) as int failureClosureAllSource = makeSleepyAdder(670)
+future<int> failureClosureAllSlow = task.spawn(failureClosureAllSource, 140)
+future<array<int>> failureClosureAllGroup = task.all([
+    task.spawn(throwingJob),
+    failureClosureAllSlow
+])
+
+int failureClosureAllGroupState = 0
+try
+    array<int> failureClosureAllValues = await failureClosureAllGroup
+    failureClosureAllGroupState = failureClosureAllValues.length
+catch e
+    if e.message == "task spawn boom" then
+        failureClosureAllGroupState = 1
+    end
+end
+assert failureClosureAllGroupState == 1, "failed task.all should propagate fast failure"
+
+int failureClosureAllGroupStateAgain = 0
+try
+    array<int> failureClosureAllValuesAgain = await failureClosureAllGroup
+    failureClosureAllGroupStateAgain = failureClosureAllValuesAgain.length
+catch e
+    if e.message == "task spawn boom" then
+        failureClosureAllGroupStateAgain = 1
+    end
+end
+assert failureClosureAllGroupStateAgain == 1, "failed task.all closure group repeated await keeps error"
+assert not task.cancel(failureClosureAllGroup), "failed task.all closure group cancel result"
+
+int failureClosureAllGroupStateAfterCancel = 0
+try
+    array<int> failureClosureAllValuesAfterCancel = await failureClosureAllGroup
+    failureClosureAllGroupStateAfterCancel = failureClosureAllValuesAfterCancel.length
+catch e
+    if e.message == "task spawn boom" then
+        failureClosureAllGroupStateAfterCancel = 1
+    end
+end
+assert failureClosureAllGroupStateAfterCancel == 1, "failed task.all closure group post-cancel await keeps error"
+
+int failureClosureAllSlowValue = await failureClosureAllSlow
+assert failureClosureAllSlowValue == 810, "failed task.all should keep slow closure source awaitable"
+assert failureClosureAllSource(0) == 670, "failed task.all closure source remains callable"
+
+func(int) as int typedFailureClosureAllSource = makeSleepyAdder(680)
+future<int> typedFailureClosureAllSlow = task.spawn(typedFailureClosureAllSource, 140)
+array<future<int>> typedFailureClosureAllJobs = array[
+    task.spawn(throwingJob),
+    typedFailureClosureAllSlow
+]
+future<array<int>> typedFailureClosureAllGroup = task.all(typedFailureClosureAllJobs)
+
+int typedFailureClosureAllGroupState = 0
+try
+    array<int> typedFailureClosureAllValues = await typedFailureClosureAllGroup
+    typedFailureClosureAllGroupState = typedFailureClosureAllValues.length
+catch e
+    if e.message == "task spawn boom" then
+        typedFailureClosureAllGroupState = 1
+    end
+end
+assert typedFailureClosureAllGroupState == 1, "failed typed task.all should propagate fast failure"
+
+int typedFailureClosureAllGroupStateAgain = 0
+try
+    array<int> typedFailureClosureAllValuesAgain = await typedFailureClosureAllGroup
+    typedFailureClosureAllGroupStateAgain = typedFailureClosureAllValuesAgain.length
+catch e
+    if e.message == "task spawn boom" then
+        typedFailureClosureAllGroupStateAgain = 1
+    end
+end
+assert typedFailureClosureAllGroupStateAgain == 1, "failed typed task.all closure group repeated await keeps error"
+assert not task.cancel(typedFailureClosureAllGroup), "failed typed task.all closure group cancel result"
+
+int typedFailureClosureAllGroupStateAfterCancel = 0
+try
+    array<int> typedFailureClosureAllValuesAfterCancel = await typedFailureClosureAllGroup
+    typedFailureClosureAllGroupStateAfterCancel = typedFailureClosureAllValuesAfterCancel.length
+catch e
+    if e.message == "task spawn boom" then
+        typedFailureClosureAllGroupStateAfterCancel = 1
+    end
+end
+assert typedFailureClosureAllGroupStateAfterCancel == 1, "failed typed task.all closure group post-cancel await keeps error"
+
+int typedFailureClosureAllSlowValue = await typedFailureClosureAllSlow
+assert typedFailureClosureAllSlowValue == 820, "failed typed task.all should keep slow closure source awaitable"
+assert typedFailureClosureAllSource(0) == 680, "failed typed task.all closure source remains callable"
+
+func(int) as int successClosureAllSource = makeSleepyAdder(695)
+future<int> successClosureAllSlow = task.spawn(successClosureAllSource, 140)
+future<array<int>> successClosureAllGroup = task.all([
+    task.spawn(addJob, 695, 1),
+    successClosureAllSlow
+])
+array<int> successClosureAllValues = await successClosureAllGroup
+assert successClosureAllValues.length == 2, "successful task.all closure source count"
+assert successClosureAllValues[0] == 696, "successful task.all fast owned value"
+assert successClosureAllValues[1] == 835, "successful task.all slow closure value"
+array<int> successClosureAllValuesAgain = await successClosureAllGroup
+assert successClosureAllValuesAgain[1] == 835, "successful task.all closure group repeated await"
+assert not task.cancel(successClosureAllGroup), "completed task.all closure group cancel result"
+array<int> successClosureAllValuesAfterCancel = await successClosureAllGroup
+assert successClosureAllValuesAfterCancel[0] == 696, "successful task.all closure group post-cancel await"
+int successClosureAllSlowAgain = await successClosureAllSlow
+assert successClosureAllSlowAgain == 835, "successful task.all leaves slow closure source awaitable"
+assert successClosureAllSource(0) == 695, "successful task.all closure source remains callable"
+
+func(int) as int typedSuccessClosureAllSource = makeSleepyAdder(700)
+future<int> typedSuccessClosureAllSlow = task.spawn(typedSuccessClosureAllSource, 140)
+array<future<int>> typedSuccessClosureAllJobs = array[
+    task.spawn(addJob, 700, 1),
+    typedSuccessClosureAllSlow
+]
+future<array<int>> typedSuccessClosureAllGroup = task.all(typedSuccessClosureAllJobs)
+array<int> typedSuccessClosureAllValues = await typedSuccessClosureAllGroup
+assert typedSuccessClosureAllValues.length == 2, "successful typed task.all closure source count"
+assert typedSuccessClosureAllValues[0] == 701, "successful typed task.all fast owned value"
+assert typedSuccessClosureAllValues[1] == 840, "successful typed task.all slow closure value"
+array<int> typedSuccessClosureAllValuesAgain = await typedSuccessClosureAllGroup
+assert typedSuccessClosureAllValuesAgain[1] == 840, "successful typed task.all closure group repeated await"
+assert not task.cancel(typedSuccessClosureAllGroup), "completed typed task.all closure group cancel result"
+array<int> typedSuccessClosureAllValuesAfterCancel = await typedSuccessClosureAllGroup
+assert typedSuccessClosureAllValuesAfterCancel[0] == 701, "successful typed task.all closure group post-cancel await"
+int typedSuccessClosureAllSlowAgain = await typedSuccessClosureAllSlow
+assert typedSuccessClosureAllSlowAgain == 840, "successful typed task.all leaves slow closure source awaitable"
+assert typedSuccessClosureAllSource(0) == 700, "successful typed task.all closure source remains callable"
+
+func(int) as int pendingClosureRaceSource = makeSleepyAdder(630)
+future<int> pendingClosureRaceLeft = task.spawn(pendingClosureRaceSource, 140)
+future<int> pendingClosureRaceGroup = task.race([
+    pendingClosureRaceLeft,
+    task.spawn(makeSleepyAdder(640), 140)
+])
+assert task.cancel(pendingClosureRaceGroup), "pending closure task.race group cancel result"
+
+int pendingClosureRaceGroupState = 0
+try
+    int pendingClosureRaceValue = await pendingClosureRaceGroup
+    pendingClosureRaceGroupState = pendingClosureRaceValue
+catch e
+    if e.message == "future cancel requested." then
+        pendingClosureRaceGroupState = 1
+    end
+end
+assert pendingClosureRaceGroupState == 1, "pending closure task.race group should await as canceled"
+
+int pendingClosureRaceLeftState = 0
+try
+    int pendingClosureRaceLeftValue = await pendingClosureRaceLeft
+    pendingClosureRaceLeftState = pendingClosureRaceLeftValue
+catch e
+    if e.message == "future cancel requested." then
+        pendingClosureRaceLeftState = 1
+    end
+end
+assert pendingClosureRaceLeftState == 1, "pending closure task.race should cancel source closure future"
+
+time.sleep(180)
+assert pendingClosureRaceSource(0) == 630, "pending closure task.race source closure remains callable"
+
+func(int) as int successClosureRaceLoserSource = makeSleepyAdder(650)
+future<int> successClosureRaceLoser = task.spawn(successClosureRaceLoserSource, 140)
+future<int> successClosureRaceGroup = task.race([
+    task.spawn(addJob, 650, 1),
+    successClosureRaceLoser
+])
+int successClosureRaceValue = await successClosureRaceGroup
+assert successClosureRaceValue == 651, "pending closure task.race fast winner"
+int successClosureRaceValueAgain = await successClosureRaceGroup
+assert successClosureRaceValueAgain == 651, "successful task.race closure group repeated await"
+assert not task.cancel(successClosureRaceGroup), "completed task.race closure group cancel result"
+int successClosureRaceValueAfterCancel = await successClosureRaceGroup
+assert successClosureRaceValueAfterCancel == 651, "successful task.race closure group post-cancel await"
+
+int successClosureRaceLoserState = 0
+try
+    int successClosureRaceLoserValue = await successClosureRaceLoser
+    successClosureRaceLoserState = successClosureRaceLoserValue
+catch e
+    if e.message == "future cancel requested." then
+        successClosureRaceLoserState = 1
+    end
+end
+assert successClosureRaceLoserState == 1, "successful task.race should cancel pending closure loser"
+
+time.sleep(180)
+
+int successClosureRaceLoserStillCanceled = 0
+try
+    int successClosureRaceLoserLateValue = await successClosureRaceLoser
+    successClosureRaceLoserStillCanceled = successClosureRaceLoserLateValue
+catch e
+    if e.message == "future cancel requested." then
+        successClosureRaceLoserStillCanceled = 1
+    end
+end
+assert successClosureRaceLoserStillCanceled == 1, "successful task.race closure loser should stay canceled"
+
+assert successClosureRaceLoserSource(0) == 650, "successful task.race closure loser source remains callable"
+
+func(int) as int typedSuccessClosureRaceLoserSource = makeSleepyAdder(710)
+future<int> typedSuccessClosureRaceLoser = task.spawn(typedSuccessClosureRaceLoserSource, 140)
+array<future<int>> typedSuccessClosureRaceJobs = array[
+    task.spawn(addJob, 710, 1),
+    typedSuccessClosureRaceLoser
+]
+future<int> typedSuccessClosureRaceGroup = task.race(typedSuccessClosureRaceJobs)
+int typedSuccessClosureRaceValue = await typedSuccessClosureRaceGroup
+assert typedSuccessClosureRaceValue == 711, "successful typed task.race should return fast winner"
+int typedSuccessClosureRaceValueAgain = await typedSuccessClosureRaceGroup
+assert typedSuccessClosureRaceValueAgain == 711, "successful typed task.race closure group repeated await"
+assert not task.cancel(typedSuccessClosureRaceGroup), "completed typed task.race closure group cancel result"
+int typedSuccessClosureRaceValueAfterCancel = await typedSuccessClosureRaceGroup
+assert typedSuccessClosureRaceValueAfterCancel == 711, "successful typed task.race closure group post-cancel await"
+
+int typedSuccessClosureRaceLoserState = 0
+try
+    int typedSuccessClosureRaceLoserValue = await typedSuccessClosureRaceLoser
+    typedSuccessClosureRaceLoserState = typedSuccessClosureRaceLoserValue
+catch e
+    if e.message == "future cancel requested." then
+        typedSuccessClosureRaceLoserState = 1
+    end
+end
+assert typedSuccessClosureRaceLoserState == 1, "successful typed task.race should cancel pending closure loser"
+
+time.sleep(180)
+
+int typedSuccessClosureRaceLoserStillCanceled = 0
+try
+    int typedSuccessClosureRaceLoserLateValue = await typedSuccessClosureRaceLoser
+    typedSuccessClosureRaceLoserStillCanceled = typedSuccessClosureRaceLoserLateValue
+catch e
+    if e.message == "future cancel requested." then
+        typedSuccessClosureRaceLoserStillCanceled = 1
+    end
+end
+assert typedSuccessClosureRaceLoserStillCanceled == 1, "successful typed task.race closure loser should stay canceled"
+
+assert typedSuccessClosureRaceLoserSource(0) == 710, "successful typed task.race closure loser source remains callable"
+
+func(int) as int failureClosureRaceLoserSource = makeSleepyAdder(660)
+future<int> failureClosureRaceLoser = task.spawn(failureClosureRaceLoserSource, 140)
+future<int> failureClosureRaceGroup = task.race([
+    task.spawn(throwingJob),
+    failureClosureRaceLoser
+])
+
+int failureClosureRaceGroupState = 0
+try
+    int failureClosureRaceValue = await failureClosureRaceGroup
+    failureClosureRaceGroupState = failureClosureRaceValue
+catch e
+    if e.message == "task spawn boom" then
+        failureClosureRaceGroupState = 1
+    end
+end
+assert failureClosureRaceGroupState == 1, "failed task.race should propagate fast failure"
+
+int failureClosureRaceGroupStateAgain = 0
+try
+    int failureClosureRaceValueAgain = await failureClosureRaceGroup
+    failureClosureRaceGroupStateAgain = failureClosureRaceValueAgain
+catch e
+    if e.message == "task spawn boom" then
+        failureClosureRaceGroupStateAgain = 1
+    end
+end
+assert failureClosureRaceGroupStateAgain == 1, "failed task.race closure group repeated await keeps error"
+assert not task.cancel(failureClosureRaceGroup), "failed task.race closure group cancel result"
+
+int failureClosureRaceGroupStateAfterCancel = 0
+try
+    int failureClosureRaceValueAfterCancel = await failureClosureRaceGroup
+    failureClosureRaceGroupStateAfterCancel = failureClosureRaceValueAfterCancel
+catch e
+    if e.message == "task spawn boom" then
+        failureClosureRaceGroupStateAfterCancel = 1
+    end
+end
+assert failureClosureRaceGroupStateAfterCancel == 1, "failed task.race closure group post-cancel await keeps error"
+
+int failureClosureRaceLoserState = 0
+try
+    int failureClosureRaceLoserValue = await failureClosureRaceLoser
+    failureClosureRaceLoserState = failureClosureRaceLoserValue
+catch e
+    if e.message == "future cancel requested." then
+        failureClosureRaceLoserState = 1
+    end
+end
+assert failureClosureRaceLoserState == 1, "failed task.race should cancel pending closure loser"
+
+time.sleep(180)
+
+int failureClosureRaceLoserStillCanceled = 0
+try
+    int failureClosureRaceLoserLateValue = await failureClosureRaceLoser
+    failureClosureRaceLoserStillCanceled = failureClosureRaceLoserLateValue
+catch e
+    if e.message == "future cancel requested." then
+        failureClosureRaceLoserStillCanceled = 1
+    end
+end
+assert failureClosureRaceLoserStillCanceled == 1, "failed task.race closure loser should stay canceled"
+
+assert failureClosureRaceLoserSource(0) == 660, "failed task.race closure loser source remains callable"
+
+func(int) as int typedFailureClosureRaceLoserSource = makeSleepyAdder(690)
+future<int> typedFailureClosureRaceLoser = task.spawn(typedFailureClosureRaceLoserSource, 140)
+array<future<int>> typedFailureClosureRaceJobs = array[
+    task.spawn(throwingJob),
+    typedFailureClosureRaceLoser
+]
+future<int> typedFailureClosureRaceGroup = task.race(typedFailureClosureRaceJobs)
+
+int typedFailureClosureRaceGroupState = 0
+try
+    int typedFailureClosureRaceValue = await typedFailureClosureRaceGroup
+    typedFailureClosureRaceGroupState = typedFailureClosureRaceValue
+catch e
+    if e.message == "task spawn boom" then
+        typedFailureClosureRaceGroupState = 1
+    end
+end
+assert typedFailureClosureRaceGroupState == 1, "failed typed task.race should propagate fast failure"
+
+int typedFailureClosureRaceGroupStateAgain = 0
+try
+    int typedFailureClosureRaceValueAgain = await typedFailureClosureRaceGroup
+    typedFailureClosureRaceGroupStateAgain = typedFailureClosureRaceValueAgain
+catch e
+    if e.message == "task spawn boom" then
+        typedFailureClosureRaceGroupStateAgain = 1
+    end
+end
+assert typedFailureClosureRaceGroupStateAgain == 1, "failed typed task.race closure group repeated await keeps error"
+assert not task.cancel(typedFailureClosureRaceGroup), "failed typed task.race closure group cancel result"
+
+int typedFailureClosureRaceGroupStateAfterCancel = 0
+try
+    int typedFailureClosureRaceValueAfterCancel = await typedFailureClosureRaceGroup
+    typedFailureClosureRaceGroupStateAfterCancel = typedFailureClosureRaceValueAfterCancel
+catch e
+    if e.message == "task spawn boom" then
+        typedFailureClosureRaceGroupStateAfterCancel = 1
+    end
+end
+assert typedFailureClosureRaceGroupStateAfterCancel == 1, "failed typed task.race closure group post-cancel await keeps error"
+
+int typedFailureClosureRaceLoserState = 0
+try
+    int typedFailureClosureRaceLoserValue = await typedFailureClosureRaceLoser
+    typedFailureClosureRaceLoserState = typedFailureClosureRaceLoserValue
+catch e
+    if e.message == "future cancel requested." then
+        typedFailureClosureRaceLoserState = 1
+    end
+end
+assert typedFailureClosureRaceLoserState == 1, "failed typed task.race should cancel pending closure loser"
+
+time.sleep(180)
+
+int typedFailureClosureRaceLoserStillCanceled = 0
+try
+    int typedFailureClosureRaceLoserLateValue = await typedFailureClosureRaceLoser
+    typedFailureClosureRaceLoserStillCanceled = typedFailureClosureRaceLoserLateValue
+catch e
+    if e.message == "future cancel requested." then
+        typedFailureClosureRaceLoserStillCanceled = 1
+    end
+end
+assert typedFailureClosureRaceLoserStillCanceled == 1, "failed typed task.race closure loser should stay canceled"
+
+assert typedFailureClosureRaceLoserSource(0) == 690, "failed typed task.race closure loser source remains callable"
+
 future<int> conditionalFutureSource = addAsync(610, 1)
 assert await conditionalFutureSource == 611, "conditional future source first await"
 bool chooseConditionalFuture = true
@@ -3837,3 +4934,46 @@ func(int) as int conditionalFuncRace = await task.race([chooseConditionalFuncRac
 assert conditionalFuncRace(1) == 891, "task.race conditional function borrowed branch"
 func(int) as int conditionalFuncRaceAgain = await conditionalFuncRaceSource
 assert conditionalFuncRaceAgain(2) == 892, "task.race conditional function source remains awaitable"
+
+future<int> nestedRaceLeft = task.race([addAsync(910, 1)])
+future<int> nestedRaceRight = task.race([addAsync(920, 2)])
+array<int> nestedRaceAll = await task.all([nestedRaceLeft, nestedRaceRight])
+assert nestedRaceAll[0] == 911, "task.all over nested task.race first value"
+assert nestedRaceAll[1] == 922, "task.all over nested task.race second value"
+assert await nestedRaceLeft == 911, "nested task.race source remains awaitable after task.all"
+assert await nestedRaceRight == 922, "nested task.race source remains awaitable after task.all"
+
+future<int> nestedRaceFast = task.race([addAsync(930, 3)])
+future<int> nestedRaceSlow = task.race([slowRaceAsync(940)])
+future<int> nestedRaceGroup = task.race([nestedRaceFast, nestedRaceSlow])
+int nestedRaceWinner = await nestedRaceGroup
+assert nestedRaceWinner == 933, "task.race over nested task.race winner"
+assert await nestedRaceGroup == 933, "nested task.race group repeated await"
+assert not task.cancel(nestedRaceGroup), "completed nested task.race group cancel result"
+assert await nestedRaceFast == 933, "nested task.race fast source remains awaitable"
+
+int nestedRaceSlowState = 0
+try
+    int nestedRaceSlowValue = await nestedRaceSlow
+    nestedRaceSlowState = nestedRaceSlowValue
+catch e
+    if e.message == "future cancel requested." then
+        nestedRaceSlowState = 1
+    end
+end
+assert nestedRaceSlowState == 1, "nested task.race should cancel pending nested loser"
+
+time.sleep(180)
+
+int nestedRaceSlowStillCanceled = 0
+try
+    int nestedRaceSlowLateValue = await nestedRaceSlow
+    nestedRaceSlowStillCanceled = nestedRaceSlowLateValue
+catch e
+    if e.message == "future cancel requested." then
+        nestedRaceSlowStillCanceled = 1
+    end
+end
+assert nestedRaceSlowStillCanceled == 1, "nested task.race loser should stay canceled"
+
+println("task api ok")

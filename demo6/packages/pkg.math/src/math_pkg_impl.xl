@@ -1,0 +1,9 @@
+func __xl6_import_pkg_math_add_one(int value = 41) as int
+    return value + 1
+end
+
+export "xpkg_math_add_one" func __xl6_import_pkg_math_add_one_export(int value) as int
+    return __xl6_import_pkg_math_add_one(value)
+end
+
+export "xpkg_math_base" var int __xl6_import_pkg_math_base = 41

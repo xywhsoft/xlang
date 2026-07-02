@@ -1,0 +1,365 @@
+import opencv
+import onnxruntime
+
+const string DEFAULT_MODEL = "E:\\workspace\\llmrunner\\models\\dinov3-vits16plus_fp32.onnx"
+const string DEFAULT_INPUT_NAME = "image"
+const string DEFAULT_OUTPUT_NAMES = "[\"embedding\"]"
+
+extern "dinov3_version_native" func dinov3_version_native() as string
+extern "dinov3_last_error_native" func dinov3_last_error_native() as string
+extern "dinov3_embedding_json_native" func dinov3_embedding_json_native(point result_handle) as string
+extern "dinov3_output_json_native" func dinov3_output_json_native(point result_handle, string source_path) as string
+extern "dinov3_l2_norm_native" func dinov3_l2_norm_native(point result_handle) as float
+extern "dinov3_cosine_native" func dinov3_cosine_native(point left_handle, point right_handle) as float
+
+func dinov3_resize_width(int width, int height, int short_side) as int
+	if width <= 0 or height <= 0 then
+		return short_side
+	end
+	if width < height then
+		return short_side
+	end
+	return (width * short_side + height - 1) / height
+end
+
+func dinov3_resize_height(int width, int height, int short_side) as int
+	if width <= 0 or height <= 0 then
+		return short_side
+	end
+	if height < width then
+		return short_side
+	end
+	return (height * short_side + width - 1) / width
+end
+
+func dinov3_center_crop(Image image, int crop_w, int crop_h) as Image
+	if image.empty() then
+		point nullHandle = null
+		return Image(nullHandle)
+	end
+	int x = (image.width() - crop_w) / 2
+	int y = (image.height() - crop_h) / 2
+	if x < 0 then
+		x = 0
+	end
+	if y < 0 then
+		y = 0
+	end
+	int w = crop_w
+	int h = crop_h
+	if x + w > image.width() then
+		w = image.width() - x
+	end
+	if y + h > image.height() then
+		h = image.height() - y
+	end
+	return opencv.crop(image, x, y, w, h)
+end
+
+class DinoV3Output
+    point handle
+    string source_path
+
+	create(point handle, string source_path)
+		self.handle = handle
+		self.source_path = source_path
+	end
+
+	func release() as bool
+		if self.handle != null then
+			onnxruntime.ort_result_release_native(self.handle)
+			self.handle = null
+			return true
+		end
+		return false
+	end
+
+	func ok() as bool
+		return self.handle != null
+	end
+
+	func valid() as bool
+		return self.handle != null
+	end
+
+	func error() as string
+		return onnxruntime.ort_last_error_native()
+	end
+
+	func shape_json() as string
+		return onnxruntime.ort_result_float_shape_json_native(self.handle)
+	end
+
+	func count() as int
+		return onnxruntime.ort_result_float_count_native(self.handle)
+	end
+
+	func at(int index) as float
+		return onnxruntime.ort_result_float_at_native(self.handle, index)
+	end
+
+	func embedding_json() as string
+		return dinov3_embedding_json_native(self.handle)
+	end
+
+	func to_json() as string
+		return dinov3_output_json_native(self.handle, self.source_path)
+	end
+
+	func l2_norm() as float
+		return dinov3_l2_norm_native(self.handle)
+	end
+end
+
+class DinoV3Model
+    string model_path
+    InferenceSessionObject session
+    string input_name
+    string output_names
+    int input_width
+    int input_height
+    int resize_short
+    bool keep_aspect
+    float scale
+    float mean0
+    float mean1
+    float mean2
+    float std0
+    float std1
+    float std2
+
+	create()
+		self.model_path = "E:\\workspace\\llmrunner\\models\\dinov3-vits16plus_fp32.onnx"
+		self.session = onnxruntime.InferenceSession(self.model_path)
+		self.input_name = "image"
+		self.output_names = "[\"embedding\"]"
+		self.input_width = 224
+		self.input_height = 224
+		self.resize_short = 256
+		self.keep_aspect = true
+		self.scale = 0.0039215689
+		self.mean0 = 0.485
+		self.mean1 = 0.456
+		self.mean2 = 0.406
+		self.std0 = 0.229
+		self.std1 = 0.224
+		self.std2 = 0.225
+	end
+
+	create(string model_path)
+		self.model_path = model_path
+		self.session = onnxruntime.InferenceSession(self.model_path)
+		self.input_name = "image"
+		self.output_names = "[\"embedding\"]"
+		self.input_width = 224
+		self.input_height = 224
+		self.resize_short = 256
+		self.keep_aspect = true
+		self.scale = 0.0039215689
+		self.mean0 = 0.485
+		self.mean1 = 0.456
+		self.mean2 = 0.406
+		self.std0 = 0.229
+		self.std1 = 0.224
+		self.std2 = 0.225
+	end
+
+	func set_input_shape(int width, int height) as bool
+		if width <= 0 or height <= 0 then
+			return false
+		end
+		self.input_width = width
+		self.input_height = height
+		return true
+	end
+
+	func set_input_name(string value) as bool
+		if value == "" then
+			return false
+		end
+		self.input_name = value
+		return true
+	end
+
+	func set_output_names(string value) as bool
+		if value == "" then
+			return false
+		end
+		self.output_names = value
+		return true
+	end
+
+	func set_resize_short(int value) as bool
+		if value <= 0 then
+			return false
+		end
+		self.resize_short = value
+		return true
+	end
+
+	func set_keep_aspect(bool value) as bool
+		self.keep_aspect = value
+		return true
+	end
+
+	func set_direct_resize(bool value) as bool
+		self.keep_aspect = value == false
+		return true
+	end
+
+	func set_normalize(float scale, float mean0, float mean1, float mean2, float std0, float std1, float std2) as bool
+		if std0 == 0 or std1 == 0 or std2 == 0 then
+			return false
+		end
+		self.scale = scale
+		self.mean0 = mean0
+		self.mean1 = mean1
+		self.mean2 = mean2
+		self.std0 = std0
+		self.std1 = std1
+		self.std2 = std2
+		return true
+	end
+
+	func op_call(string image_path) as DinoV3Output
+		Image img = opencv.imread_flags(image_path, 1)
+		if img.empty() then
+			point nullHandle = null
+			return DinoV3Output(nullHandle, image_path)
+		end
+		Image rgb = opencv.cvtColor(img, 4)
+		if self.keep_aspect then
+			int resize_w = dinov3_resize_width(rgb.width(), rgb.height(), self.resize_short)
+			int resize_h = dinov3_resize_height(rgb.width(), rgb.height(), self.resize_short)
+			Image resized = opencv.resize(rgb, resize_w, resize_h)
+			Image cropped = dinov3_center_crop(resized, self.input_width, self.input_height)
+			TensorObject tensor = onnxruntime.TensorFromOpenCV(cropped.handle, self.scale, self.mean0, self.mean1, self.mean2, self.std0, self.std1, self.std2)
+			point result_handle = onnxruntime.ort_session_run_tensor_fast_native(self.session.handle, self.input_name, tensor.handle, self.output_names)
+			return DinoV3Output(result_handle, image_path)
+		end
+		Image direct = opencv.resize(rgb, self.input_width, self.input_height)
+		TensorObject direct_tensor = onnxruntime.TensorFromOpenCV(direct.handle, self.scale, self.mean0, self.mean1, self.mean2, self.std0, self.std1, self.std2)
+		point direct_result_handle = onnxruntime.ort_session_run_tensor_fast_native(self.session.handle, self.input_name, direct_tensor.handle, self.output_names)
+		return DinoV3Output(direct_result_handle, image_path)
+	end
+
+end
+
+func dinov3_DinoV3() as DinoV3Model
+	return DinoV3Model()
+end
+
+func dinov3_DinoV3(string model_path) as DinoV3Model
+	return DinoV3Model(model_path)
+end
+
+func dinov3_embedding_json(string image_path) as string
+	DinoV3Model model = DinoV3Model()
+	DinoV3Output result = model.op_call(image_path)
+	return result.embedding_json()
+end
+
+func dinov3_embedding_json(string model_path, string image_path) as string
+	DinoV3Model model = DinoV3Model(model_path)
+	DinoV3Output result = model.op_call(image_path)
+	return result.embedding_json()
+end
+
+func dinov3_infer_json(string image_path) as string
+	DinoV3Model model = DinoV3Model()
+	DinoV3Output result = model.op_call(image_path)
+	return result.to_json()
+end
+
+func dinov3_infer_json(string model_path, string image_path) as string
+	DinoV3Model model = DinoV3Model(model_path)
+	DinoV3Output result = model.op_call(image_path)
+	return result.to_json()
+end
+
+func dinov3_similarity(string left_image_path, string right_image_path) as float
+	DinoV3Model model = DinoV3Model()
+	DinoV3Output left = model.op_call(left_image_path)
+	DinoV3Output right = model.op_call(right_image_path)
+	if left.ok() == false or right.ok() == false then
+		return 0
+	end
+	return dinov3_cosine_native(left.handle, right.handle)
+end
+
+func dinov3_similarity(string model_path, string left_image_path, string right_image_path) as float
+	DinoV3Model model = DinoV3Model(model_path)
+	DinoV3Output left = model.op_call(left_image_path)
+	DinoV3Output right = model.op_call(right_image_path)
+	if left.ok() == false or right.ok() == false then
+		return 0
+	end
+	return dinov3_cosine_native(left.handle, right.handle)
+end
+
+func dinov3_cosine_similarity(string left_image_path, string right_image_path) as float
+	return dinov3_similarity(left_image_path, right_image_path)
+end
+
+func dinov3_cosine_similarity(string model_path, string left_image_path, string right_image_path) as float
+	return dinov3_similarity(model_path, left_image_path, right_image_path)
+end
+
+func dinov3_version() as string
+	return dinov3_version_native()
+end
+
+func dinov3_last_error() as string
+	return dinov3_last_error_native()
+end
+
+// xl6 generated import wrappers begin
+func __xl6_import_dinov3_DinoV3() as DinoV3Model
+    return dinov3_DinoV3()
+end
+
+func __xl6_import_dinov3_DinoV3(string p0) as DinoV3Model
+    return dinov3_DinoV3(p0)
+end
+
+func __xl6_import_dinov3_embedding_json(string p0) as string
+    return dinov3_embedding_json(p0)
+end
+
+func __xl6_import_dinov3_embedding_json(string p0, string p1) as string
+    return dinov3_embedding_json(p0, p1)
+end
+
+func __xl6_import_dinov3_infer_json(string p0) as string
+    return dinov3_infer_json(p0)
+end
+
+func __xl6_import_dinov3_infer_json(string p0, string p1) as string
+    return dinov3_infer_json(p0, p1)
+end
+
+func __xl6_import_dinov3_similarity(string p0, string p1) as float
+    return dinov3_similarity(p0, p1)
+end
+
+func __xl6_import_dinov3_similarity(string p0, string p1, string p2) as float
+    return dinov3_similarity(p0, p1, p2)
+end
+
+func __xl6_import_dinov3_cosine_similarity(string p0, string p1) as float
+    return dinov3_cosine_similarity(p0, p1)
+end
+
+func __xl6_import_dinov3_cosine_similarity(string p0, string p1, string p2) as float
+    return dinov3_cosine_similarity(p0, p1, p2)
+end
+
+func __xl6_import_dinov3_version() as string
+    return dinov3_version()
+end
+
+func __xl6_import_dinov3_last_error() as string
+    return dinov3_last_error()
+end
+
+// xl6 generated import wrappers end

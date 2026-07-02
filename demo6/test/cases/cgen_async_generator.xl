@@ -42,6 +42,22 @@ func indexedStream() as async generator<int>
     yield await addAsync(0, 40)
 end
 
+func returnEarlyStream() as async generator<int>
+    yield await addAsync(0, 5)
+    return
+    yield await addAsync(0, 50)
+end
+
+func returnBeforeYieldStream() as async generator<int>
+    return
+    yield await addAsync(0, 60)
+end
+
+func plainStream() as generator<int>
+    yield 7
+    yield 8
+end
+
 int total = 0
 for await value in stream(10)
     total = total + value
@@ -116,6 +132,20 @@ end
 assert savedBreakSeen == 2, "saved async generator break seen failed"
 assert savedBreakWeighted == 130, "saved async generator break index/value failed"
 
+int savedBreakAgainState = 0
+try
+    for await savedBreakAgainValue in savedIndexed
+        savedBreakAgainState = savedBreakAgainState + savedBreakAgainValue
+    end
+    savedBreakAgainState = 100
+catch e
+    if e.message == "iterate null generator" then
+        savedBreakAgainState = 42
+    end
+end
+
+assert savedBreakAgainState == 42, "saved async generator should reject second pass after break"
+
 generator<int> savedIndexedContinue = indexedStream()
 int savedContinueSeen = 0
 int savedContinueWeighted = 0
@@ -132,6 +162,125 @@ end
 
 assert savedContinueSeen == 3, "saved async generator continue seen failed"
 assert savedContinueWeighted == 240, "saved async generator continue index/value failed"
+
+int savedContinueAgainState = 0
+try
+    for await savedContinueAgainValue in savedIndexedContinue
+        savedContinueAgainState = savedContinueAgainState + savedContinueAgainValue
+    end
+    savedContinueAgainState = 100
+catch e
+    if e.message == "iterate null generator" then
+        savedContinueAgainState = 42
+    end
+end
+
+assert savedContinueAgainState == 42, "saved async generator should reject second pass after continue/break"
+
+generator<int> savedReturnEarly = returnEarlyStream()
+int savedReturnEarlyCount = 0
+int savedReturnEarlyTotal = 0
+for await value in savedReturnEarly
+    savedReturnEarlyCount = savedReturnEarlyCount + 1
+    savedReturnEarlyTotal = savedReturnEarlyTotal + value
+end
+
+assert savedReturnEarlyCount == 1, "saved async generator return should stop after first yield"
+assert savedReturnEarlyTotal == 5, "saved async generator return should keep yielded value"
+
+int savedReturnEarlyAgainState = 0
+try
+    for await returnEarlyAgainValue in savedReturnEarly
+        savedReturnEarlyAgainState = savedReturnEarlyAgainState + returnEarlyAgainValue
+    end
+    savedReturnEarlyAgainState = 100
+catch e
+    if e.message == "iterate null generator" then
+        savedReturnEarlyAgainState = 42
+    end
+end
+
+assert savedReturnEarlyAgainState == 42, "saved async generator return should close generator"
+
+generator<int> savedReturnBeforeYield = returnBeforeYieldStream()
+int savedReturnBeforeYieldCount = 0
+int savedReturnBeforeYieldTotal = 0
+for await value in savedReturnBeforeYield
+    savedReturnBeforeYieldCount = savedReturnBeforeYieldCount + 1
+    savedReturnBeforeYieldTotal = savedReturnBeforeYieldTotal + value
+end
+
+assert savedReturnBeforeYieldCount == 0, "saved async generator pre-yield return should yield no values"
+assert savedReturnBeforeYieldTotal == 0, "saved async generator pre-yield return should keep total zero"
+
+int savedReturnBeforeYieldAgainState = 0
+try
+    for await returnBeforeYieldAgainValue in savedReturnBeforeYield
+        savedReturnBeforeYieldAgainState = savedReturnBeforeYieldAgainState + returnBeforeYieldAgainValue
+    end
+    savedReturnBeforeYieldAgainState = 100
+catch e
+    if e.message == "iterate null generator" then
+        savedReturnBeforeYieldAgainState = 42
+    end
+end
+
+assert savedReturnBeforeYieldAgainState == 42, "saved async generator pre-yield return should close generator"
+
+int plainAwaitTotal = 0
+for await value in plainStream()
+    plainAwaitTotal = plainAwaitTotal + value
+end
+
+assert plainAwaitTotal == 15, "for await should consume ordinary generator"
+
+generator<int> savedPlainAwait = plainStream()
+int savedPlainAwaitWeighted = 0
+for await plainIndex, plainValue in savedPlainAwait
+    savedPlainAwaitWeighted = savedPlainAwaitWeighted + plainIndex * 100 + plainValue
+end
+
+assert savedPlainAwaitWeighted == 115, "for await should consume saved ordinary generator with index"
+
+int savedPlainAwaitAgainState = 0
+try
+    for await plainAgainValue in savedPlainAwait
+        savedPlainAwaitAgainState = savedPlainAwaitAgainState + plainAgainValue
+    end
+    savedPlainAwaitAgainState = 100
+catch e
+    if e.message == "iterate null generator" then
+        savedPlainAwaitAgainState = 42
+    end
+end
+
+assert savedPlainAwaitAgainState == 42, "for await ordinary generator should reject second pass"
+
+generator<int> savedPlainAwaitBreak = plainStream()
+int savedPlainAwaitBreakTotal = 0
+for await plainBreakIndex, plainBreakValue in savedPlainAwaitBreak
+    if plainBreakIndex == 0 then
+        continue
+    end
+    savedPlainAwaitBreakTotal = savedPlainAwaitBreakTotal + plainBreakIndex * 100 + plainBreakValue
+    break
+end
+
+assert savedPlainAwaitBreakTotal == 108, "for await ordinary generator continue/break failed"
+
+int savedPlainAwaitBreakAgainState = 0
+try
+    for await plainBreakAgainValue in savedPlainAwaitBreak
+        savedPlainAwaitBreakAgainState = savedPlainAwaitBreakAgainState + plainBreakAgainValue
+    end
+    savedPlainAwaitBreakAgainState = 100
+catch e
+    if e.message == "iterate null generator" then
+        savedPlainAwaitBreakAgainState = 42
+    end
+end
+
+assert savedPlainAwaitBreakAgainState == 42, "for await ordinary generator break should close generator"
 
 generator<int> consumedAsync = stream(40)
 int consumedAsyncFirstTotal = 0
@@ -204,6 +353,26 @@ for await value in emptyStream()
 end
 
 assert emptyCount == 0, "empty async generator should not yield values"
+
+int returnEarlyCount = 0
+int returnEarlyTotal = 0
+for await value in returnEarlyStream()
+    returnEarlyCount = returnEarlyCount + 1
+    returnEarlyTotal = returnEarlyTotal + value
+end
+
+assert returnEarlyCount == 1, "async generator return should stop after first yield"
+assert returnEarlyTotal == 5, "async generator return should keep yielded value"
+
+int returnBeforeYieldCount = 0
+int returnBeforeYieldTotal = 0
+for await value in returnBeforeYieldStream()
+    returnBeforeYieldCount = returnBeforeYieldCount + 1
+    returnBeforeYieldTotal = returnBeforeYieldTotal + value
+end
+
+assert returnBeforeYieldCount == 0, "async generator pre-yield return should yield no values"
+assert returnBeforeYieldTotal == 0, "async generator pre-yield return should keep total zero"
 
 int indexedSeen = 0
 int indexedWeighted = 0

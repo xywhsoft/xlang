@@ -1,0 +1,3 @@
+sem gate = sem(0, 1)
+
+bool ok = gate.waitTimeout("10")

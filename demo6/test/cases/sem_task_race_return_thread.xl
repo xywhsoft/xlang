@@ -1,0 +1,2 @@
+future<thread> threadFuture
+task.race([threadFuture])

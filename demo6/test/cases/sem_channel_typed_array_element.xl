@@ -1,0 +1,1 @@
+channel<array<int>> ch = channel::<array<int>>(1)

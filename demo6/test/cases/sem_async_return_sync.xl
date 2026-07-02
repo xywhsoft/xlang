@@ -1,0 +1,3 @@
+async func bad() as sem
+    return sem(0, 1)
+end

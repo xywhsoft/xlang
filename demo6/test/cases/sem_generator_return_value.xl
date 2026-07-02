@@ -1,0 +1,4 @@
+func bad() as generator<int>
+    yield 1
+    return 2
+end

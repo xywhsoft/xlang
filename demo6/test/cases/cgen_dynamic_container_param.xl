@@ -1,0 +1,15 @@
+func take(array values) as var
+    return values[0]
+end
+
+func choose(dict values) as var
+    return values["name"]
+end
+
+var direct = take(array[42, 7])
+auto inferred = take(array[13])
+var named = choose({"name": "xlang"})
+
+assert int(direct) == 42
+assert int(inferred) == 13
+assert string(named) == "xlang"

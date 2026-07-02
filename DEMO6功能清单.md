@@ -984,6 +984,8 @@ end
 ch.close()
 ```
 
+`channel<T>` 当前只允许 `bool`、整数、浮点、`time`、`point` 等可按值复制的元素类型。`string`、`var`、`class`、`func`、`generator<T>`、`array<int>` 这类静态容器等涉及所有权、动态值或 move-only 句柄的类型会在语义阶段拒绝，避免进入当前 `memcpy` 发送路径。
+
 thread 与同步原语示例：
 
 ```xlang
@@ -1023,13 +1025,23 @@ rw.readUnlock()
 - `task.race` 返回 `future<T>`，因此常见写法是 `T value = await task.race(jobs)`。
 - `task.all` 已覆盖 `int`、`string`、`bool`、`float`、`class`、`func` 等完成值；数组字面量输入和 `array<future<Class>>` / `array<future<func(...) as T>>` typed-array 输入均已进入守门。`func` 聚合结果按 `array<func(...) as T>` 使用，建议先取到具名 `func` 变量再调用。
 - `task.race` 已覆盖 `class` 与 `func` 完成值；typed-array 输入同样支持 `class` 与 `func`。`class` 完成值当前必须先保存为 `future<Class>` 再 `await`，不开放 `Class value = await task.race(...)` 这种临时 class 聚合 await 写法。
-- 具名 pending `task.all` / `task.race` group 的 `task.cancel(...)` 已覆盖基础值、`class` 与 `func` source；取消后 source future 的后续 `await` 必须继续抛出 `future cancel requested.`，worker 晚到完成不能覆盖取消态。
+- 具名 pending `task.all` / `task.race` group 的 `task.cancel(...)` 已覆盖基础值、`class` 与 `func` source；取消后 source future 的后续 `await` 必须继续抛出 `future cancel requested.`，worker 晚到完成不能覆盖取消态。普通 `async func` 的非重复数组字面量输入与 `array<future<int>>` typed-array 输入，均已覆盖 sleep 后再次 await source 仍保持取消态。
+- 普通 `async func` 产生的 `future<string>`、`future<bool>`、`future<float>` 进入 `array<future<T>>` typed-array `task.all` / `task.race` 后，已覆盖 group cancel、source 首次 await 取消、等待 worker 晚到完成后 source repeated await 仍保持取消态。
+- `task.race` 中某个 source future 已经被显式取消时，group 必须进入取消态，并取消仍在 pending 的 loser；数组字面量输入和 `array<future<int>>` typed-array 输入均已覆盖 loser late await 仍保持取消态。该规则同时覆盖“先入组再取消 winner”和“先取消 winner 再创建 group”的 completed-canceled 路径，winner repeated cancel 仍返回 true。
+- `task.all` 中某个 source future 已经被显式取消时，group 必须进入取消态，但不会主动取消其他 source；另一个 source 应正常完成。已取消 source 在数组字面量输入和 `array<future<int>>` typed-array 输入下都必须支持首次 await、late await 与 repeated cancel，且始终保持取消态；该规则同时覆盖“先入组再取消 source”和“先取消 source 再创建 group”的 completed-canceled 路径。
 - 已完成的具名 `task.all` / `task.race` future 支持 repeated await；`task.cancel(completedFuture)` 返回 `false`，post-cancel await 仍返回原完成值。该规则已覆盖基础值、`class` 与 `func`；其中 `int`、`string`、`bool`、`float`、`class`、`func` 同时覆盖数组字面量输入和 typed-array 输入。
-- `task.all` / `task.race` 的失败传播已覆盖基础值、`string`、`class` 与 `func`；已失败的具名 task future 支持 repeated await，`task.cancel(failedFuture)` 返回 `false`，post-cancel await 仍保留原始错误。`task.race` 中某个 source 快速失败时，仍在 pending 的 loser future 会被取消，后续 repeated await 保持取消态。
-- 当前 typed future bridge 不支持 `task.all/race` 聚合 `future<var>`，也不支持完成值本身为 `array/list/set/dict` 的 `future<array/list/set/dict>`。这些 future 可以直接 `await`，但暂不能再交给 `task.all/race` 二次聚合。
-- `task.spawn` 只接收具备完整签名的 `func` 值；当前桥接不支持 `var` 返回值、`***` 字典可变参数、typed container 参数/返回值、动态 `array/list/set/dict` 参数/返回值等复杂值。
+- `task.all` / `task.race` 的失败传播已覆盖基础值、`string`、`class` 与 `func`；已失败的具名 task future 支持 repeated await，`task.cancel(failedFuture)` 返回 `false`，post-cancel await 仍保留原始错误。`task.all` 中某个 source 快速失败时，group 必须传播原始错误，但不会取消仍在 pending 的 sibling；数组字面量输入和 `array<future<int>>` typed-array 输入均已覆盖慢 sibling 后续正常 `await`。`task.race` 中某个 source 快速失败时，仍在 pending 的 loser future 会被取消，后续 repeated await 保持取消态；如果 race 创建前 winner 已经失败，数组字面量输入和 `array<future<int>>` typed-array 输入也都必须覆盖 loser 首次 await 与 sleep 后 late await 均保持取消态。
+- 当前 typed future bridge 不支持 `task.all/race` 聚合 `future<var>`，也不支持完成值本身为 `array/list/set/dict` 的 `future<array/list/set/dict>`，也不支持 `future<future<T>>`、`future<generator<T>>`、`future<channel<T>>`、`future<sem>`、`future<thread>` 等资源句柄完成值。该限制同时适用于 `[future<T>, ...]` 数组字面量输入和 `array<future<T>>` typed-array 输入；这些 future 可以直接 `await`，但暂不能再交给 `task.all/race` 二次聚合。
+- `task.spawn` 只接收具备完整签名的 `func` 值；当前桥接不支持 `var` 返回值、`***` 字典可变参数、typed container 参数/返回值、动态 `array/list/set/dict` 参数/返回值、`future<T>` 参数/返回值、`generator<T>` 参数/返回值、`channel<T>` / `sem` / `thread` 等资源句柄参数/返回值。
+- `task.spawn` 已覆盖 `...` 数组可变参数函数值，包括 `func(int, ...) as int` 和零固定参数的 `func(...) as int` adapter；pending vararg future 取消后，worker 晚到完成不能覆盖取消态。
 - `task.spawn(...)` 产生的 `future<int/string/bool/float>` 进入 typed-array `task.all` / `task.race` 后，已覆盖 completed future 的 repeated await、completed cancel 返回 `false`、post-cancel await 仍返回原完成值。
+- `task.spawn(...)` 产生的 `future<string>` 进入 pending `task.all` / `task.race` group 后，取消 group 必须同步取消 source；worker 晚到完成后，source future 的后续 `await` 仍必须保持 `future cancel requested.`。
+- `task.spawn(...)` 产生的 `future<bool>` / `future<float>` 进入 pending `task.all` / `task.race` group 后，也已覆盖 group cancel、source cancel、worker 晚到完成后 source repeated await 仍保持取消态。
+- `task.spawn(...)` 产生的 `future<int>` 进入 `array<future<int>>` typed-array 后，已覆盖快失败竞态：`task.all` 传播原始错误但不取消慢 source，慢 source 后续可正常 `await` 且 completed cancel 返回 `false`；`task.race` 传播原始错误并取消慢 loser，loser 首次 await 与 sleep 后 late await 均保持 `future cancel requested.`。
+- `task.spawn(...)` 产生的 `future<string>` 进入 `array<future<string>>` typed-array 后，也已覆盖同一快失败竞态；该路径额外锁定 `xl6_future_await_cstr_copy` 字符串复制 await helper，避免 race loser late completion 或 all 慢源 await 破坏字符串结果生命周期。
+- `task.spawn(...)` 产生的 `future<bool>` / `future<float>` 进入 `array<future<bool>>` / `array<future<float>>` typed-array 后，同样覆盖快失败竞态；bool 路径锁定 `xrtTypeBool()` 与 `sizeof(int)` await，float 路径锁定 `xrtTypeFloat()` 与 `sizeof(double)` await，确保 all/race 的失败、取消、late await 语义与 int/string 对齐。
 - generator 支持 `for value in gen`，异常可从生成器传播到外层 `try/catch`。
+- `generator<T>` 当前元素类型和 generator 函数参数同样只开放 `bool`、整数、浮点、`time`、`point` 等可按值复制类型；`string`、`var`、`class`、`func`、静态容器等复杂值暂不进入生成器帧。
 - `thread` 入口支持普通函数值和捕获闭包，但会进行可复制性检查，避免把不可复制资源跨线程复制。
 
 当前守门状态：
@@ -1372,4 +1384,4 @@ assert tail == 181
 - typed array 输入走 `xl6_task_all_from_array` / `xl6_task_race_from_array`，和数组字面量的 `xl6_task_all_values` / `xl6_task_race_values` 是两条不同生成路径。
 - 第一个 source 为 null 时，聚合必须优先抛出 source-null 错误。
 - 聚合失败不能吞掉 typed array 中后续 source future；用户仍可通过 `await jobs[1]` 显式等待原 `task.spawn` future。
-- 当前守门覆盖 `int` 与 `string` 的 all/race 四条路径，并锁定生成形态和运行行为。
+- 当前守门覆盖 `int`、`string`、`bool`、`float` 的 all/race 四组路径，并锁定生成形态和运行行为。

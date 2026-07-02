@@ -1,0 +1,6 @@
+func nums() as generator<int>
+    yield 1
+end
+
+for await index, value, extra in nums()
+end

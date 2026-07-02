@@ -1,0 +1,25 @@
+{
+  "format": "xlang-package-1",
+  "name": "md4c",
+  "version": "0.1.0",
+  "abiVersion": "1",
+  "xapi": "package.xapi.json",
+  "kind": "demo6-extlib",
+  "artifact": {
+    "kind": "source",
+    "cSources": [
+      "md4c_native.c",
+      "third_party/md4c/md4c.c",
+      "third_party/md4c/md4c-html.c",
+      "third_party/md4c/entity.c"
+    ]
+  },
+  "links": [],
+  "loadlibs": [],
+  "dependencies": [],
+  "native": {
+    "singleton": false,
+    "loadName": "",
+    "version": ""
+  }
+}

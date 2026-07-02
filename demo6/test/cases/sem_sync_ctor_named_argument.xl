@@ -1,0 +1,1 @@
+sem gate = sem(0, max = 1)

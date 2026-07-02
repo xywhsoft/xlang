@@ -1,0 +1,4 @@
+cond c = cond()
+mutex m = mutex()
+
+bool ok = c.waitTimeout(m, "10")

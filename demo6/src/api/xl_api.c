@@ -1066,6 +1066,9 @@ static int xlAddDefaultRuntimeSymbols(TCCState* s)
     XL_ADD_XRT_SYMBOL(s, xrtSHA256);
     XL_ADD_XRT_SYMBOL(s, xrtSHA384);
     XL_ADD_XRT_SYMBOL(s, xrtSHA512);
+    XL_ADD_XRT_SYMBOL(s, xrtHMAC_SHA256);
+    XL_ADD_XRT_SYMBOL(s, xrtHMAC_SHA384);
+    XL_ADD_XRT_SYMBOL(s, xrtHMAC_SHA512);
     XL_ADD_XRT_SYMBOL(s, xrtMakeXIDS);
     XL_ADD_XRT_SYMBOL(s, xrtGetLocalIP);
     XL_ADD_XRT_SYMBOL(s, xrtGetLocalMAC);
@@ -1172,10 +1175,16 @@ static int xlAddDefaultRuntimeSymbols(TCCState* s)
     XL_ADD_XRT_SYMBOL(s, xrtTypedDictRemove);
     XL_ADD_XRT_SYMBOL(s, xrtTypedDictItemType);
     XL_ADD_XRT_SYMBOL(s, xTaskRunThread);
+    XL_ADD_XRT_SYMBOL(s, xFutureCreate);
     XL_ADD_XRT_SYMBOL(s, xFutureAddRef);
     XL_ADD_XRT_SYMBOL(s, xFutureWait);
+    XL_ADD_XRT_SYMBOL(s, xFutureWaitCo);
+    XL_ADD_XRT_SYMBOL(s, xFutureWaitValue);
+    XL_ADD_XRT_SYMBOL(s, xFutureWaitCoValue);
     XL_ADD_XRT_SYMBOL(s, xFutureValue);
     XL_ADD_XRT_SYMBOL(s, xFutureValueIsOwned);
+    XL_ADD_XRT_SYMBOL(s, xFutureGetResult);
+    XL_ADD_XRT_SYMBOL(s, xFutureSetDebugName);
     XL_ADD_XRT_SYMBOL(s, xFutureError);
     XL_ADD_XRT_SYMBOL(s, xFutureRelease);
     XL_ADD_XRT_SYMBOL(s, xFutureRequestCancel);
@@ -1184,6 +1193,15 @@ static int xlAddDefaultRuntimeSymbols(TCCState* s)
     XL_ADD_XRT_SYMBOL(s, xFutureRace);
     XL_ADD_XRT_SYMBOL(s, xFutureGetAllValueCount);
     XL_ADD_XRT_SYMBOL(s, xFutureGetAllValueItem);
+    XL_ADD_XRT_SYMBOL(s, xPromiseCreate);
+    XL_ADD_XRT_SYMBOL(s, xPromiseDestroy);
+    XL_ADD_XRT_SYMBOL(s, xPromiseGetFuture);
+    XL_ADD_XRT_SYMBOL(s, xPromisePeekFuture);
+    XL_ADD_XRT_SYMBOL(s, xPromiseResolve);
+    XL_ADD_XRT_SYMBOL(s, xPromiseResolveOwned);
+    XL_ADD_XRT_SYMBOL(s, xPromiseReject);
+    XL_ADD_XRT_SYMBOL(s, xPromiseCancel);
+    XL_ADD_XRT_SYMBOL(s, xPromiseClose);
     XL_ADD_XRT_SYMBOL(s, xrtChannelCreate);
     XL_ADD_XRT_SYMBOL(s, xrtChannelDestroy);
     XL_ADD_XRT_SYMBOL(s, xrtChannelSend);
@@ -1232,12 +1250,55 @@ static int xlAddDefaultRuntimeSymbols(TCCState* s)
     XL_ADD_XRT_SYMBOL(s, xrtCoResume);
     XL_ADD_XRT_SYMBOL(s, xrtCoYield);
     XL_ADD_XRT_SYMBOL(s, xrtCoGetState);
+    XL_ADD_XRT_SYMBOL(s, xrtClearError);
+    XL_ADD_XRT_SYMBOL(s, xrtGetError);
+    XL_ADD_XRT_SYMBOL(s, xrtRandomBytes);
     XL_ADD_XRT_SYMBOL(s, xrtNetEngineConfigInit);
     XL_ADD_XRT_SYMBOL(s, xrtNetEngineCreate);
     XL_ADD_XRT_SYMBOL(s, xrtNetEngineDestroy);
     XL_ADD_XRT_SYMBOL(s, xrtNetEngineStart);
     XL_ADD_XRT_SYMBOL(s, xrtNetEngineStop);
     XL_ADD_XRT_SYMBOL(s, xrtNetAddrParse);
+    XL_ADD_XRT_SYMBOL(s, xrtNetConnectConfigInit);
+    XL_ADD_XRT_SYMBOL(s, xrtNetStreamCreate);
+    XL_ADD_XRT_SYMBOL(s, xrtNetStreamDestroy);
+    XL_ADD_XRT_SYMBOL(s, xrtNetStreamConnect);
+    XL_ADD_XRT_SYMBOL(s, xrtNetStreamClose);
+    XL_ADD_XRT_SYMBOL(s, xrtNetStreamSend);
+    XL_ADD_XRT_SYMBOL(s, xrtNetStreamPendingSend);
+    XL_ADD_XRT_SYMBOL(s, xrtNetStreamWaitTimeoutEx);
+    XL_ADD_XRT_SYMBOL(s, xrtNetChainBytes);
+    XL_ADD_XRT_SYMBOL(s, xrtNetChainPeek);
+    XL_ADD_XRT_SYMBOL(s, xrtNetChainConsume);
+    XL_ADD_XRT_SYMBOL(s, xrtNetTlsSessionCreate);
+    XL_ADD_XRT_SYMBOL(s, xrtNetTlsSessionDestroy);
+    XL_ADD_XRT_SYMBOL(s, xrtNetTlsSessionFeedCipher);
+    XL_ADD_XRT_SYMBOL(s, xrtNetTlsSessionPendingRecv);
+    XL_ADD_XRT_SYMBOL(s, xrtNetTlsSessionPendingCipher);
+    XL_ADD_XRT_SYMBOL(s, xrtNetTlsSessionPeekCipher);
+    XL_ADD_XRT_SYMBOL(s, xrtNetTlsSessionConsumeCipher);
+    XL_ADD_XRT_SYMBOL(s, xrtNetTlsSessionDriveHandshake);
+    XL_ADD_XRT_SYMBOL(s, xrtNetTlsSessionIsReady);
+    XL_ADD_XRT_SYMBOL(s, xrtNetTlsSessionReadPlain);
+    XL_ADD_XRT_SYMBOL(s, xrtNetTlsSessionWritePlain);
+    XL_ADD_XRT_SYMBOL(s, xrtHttpHeaderSplitLine);
+    XL_ADD_XRT_SYMBOL(s, xrtHttpHeaderBuildLineTo);
+    XL_ADD_XRT_SYMBOL(s, xrtHttpMediaTypeParse);
+    XL_ADD_XRT_SYMBOL(s, xrtHttpMediaTypeFindParam);
+    XL_ADD_XRT_SYMBOL(s, xrtHttpContentDispositionParse);
+    XL_ADD_XRT_SYMBOL(s, xrtHttpContentDispositionDecodeFileNameTo);
+    XL_ADD_XRT_SYMBOL(s, xrtMultipartNextN);
+    XL_ADD_XRT_SYMBOL(s, xrtHttpRequestInit);
+    XL_ADD_XRT_SYMBOL(s, xrtHttpRequestUnit);
+    XL_ADD_XRT_SYMBOL(s, xrtHttpRequestSetMethod);
+    XL_ADD_XRT_SYMBOL(s, xrtHttpRequestSetURL);
+    XL_ADD_XRT_SYMBOL(s, xrtHttpRequestSetHeader);
+    XL_ADD_XRT_SYMBOL(s, xrtHttpRequestSetBodyCopy);
+    XL_ADD_XRT_SYMBOL(s, xrtHttpRequestSetTimeout);
+    XL_ADD_XRT_SYMBOL(s, xrtHttpRequestSetIdleTimeout);
+    XL_ADD_XRT_SYMBOL(s, xrtHttpRequestSetVerifyPeer);
+    XL_ADD_XRT_SYMBOL(s, xrtHttpResponseDestroy);
+    XL_ADD_XRT_SYMBOL(s, xrtHttpExecuteSync);
     XL_ADD_XRT_SYMBOL(s, xrtHttpdConfigInit);
     XL_ADD_XRT_SYMBOL(s, xrtHttpdCreate);
     XL_ADD_XRT_SYMBOL(s, xrtHttpdBoundPort);
@@ -1990,7 +2051,9 @@ static int xlCompileAndRunUnit(XL_Context* ctx, XL6_CompileUnit* unit, xvalue su
     }
     for ( i = 0; i < unit->importDeps.cSources.count; ++i ) {
         if ( xl__tcc.tcc_add_file(s, unit->importDeps.cSources.items[i]) != 0 ) {
-            xlSetError2(ctx, "cannot compile import C source", unit->importDeps.cSources.items[i]);
+            if ( ctx->lastError == NULL ) {
+                xlSetError2(ctx, "cannot compile import C source", unit->importDeps.cSources.items[i]);
+            }
             goto cleanup;
         }
     }
@@ -2086,7 +2149,9 @@ static int xlCompileUnitToExternalOutputWithC(
     xlAddDefaultTccRuntime(s, ctx);
     for ( i = 0; i < unit->importDeps.cSources.count; ++i ) {
         if ( xl__tcc.tcc_add_file(s, unit->importDeps.cSources.items[i]) != 0 ) {
-            xlSetError2(ctx, "cannot compile import C source", unit->importDeps.cSources.items[i]);
+            if ( ctx->lastError == NULL ) {
+                xlSetError2(ctx, "cannot compile import C source", unit->importDeps.cSources.items[i]);
+            }
             goto cleanup;
         }
     }
@@ -2347,7 +2412,9 @@ static XL_Module* xlCompileUnitToModuleWithC(XL_Context* ctx, XL6_CompileUnit* u
     }
     for ( i = 0; unit != NULL && i < unit->importDeps.cSources.count; ++i ) {
         if ( xl__tcc.tcc_add_file(s, unit->importDeps.cSources.items[i]) != 0 ) {
-            xlSetError2(ctx, "cannot compile import C source", unit->importDeps.cSources.items[i]);
+            if ( ctx != NULL && ctx->lastError == NULL ) {
+                xlSetError2(ctx, "cannot compile import C source", unit->importDeps.cSources.items[i]);
+            }
             goto cleanup;
         }
     }

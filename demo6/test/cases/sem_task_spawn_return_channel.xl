@@ -1,0 +1,2 @@
+func() as channel<int> job
+task.spawn(job)

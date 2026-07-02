@@ -1,0 +1,3 @@
+async func badAsyncKeyword() as generator<int>
+    return 1
+end

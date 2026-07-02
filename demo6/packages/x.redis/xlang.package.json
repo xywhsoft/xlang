@@ -1,0 +1,31 @@
+{
+    "native":  {
+                   "singleton":  false,
+                   "loadName":  "",
+                   "version":  ""
+               },
+    "kind":  "demo6-extlib",
+    "version":  "0.1.0",
+    "format":  "xlang-package-1",
+    "dependencies":  [
+
+                     ],
+    "xapi":  "package.xapi.json",
+    "name":  "x.redis",
+    "links":  [
+                  "ws2_32"
+              ],
+    "artifact":  {
+                     "cSources":  [
+                                      "xredis_tcp_native.c"
+                                  ],
+                     "xlSources":  [
+                                       "src/redis.xl"
+                                   ],
+                     "kind":  "source"
+                 },
+    "loadlibs":  [
+
+                 ],
+    "abiVersion":  "1"
+}

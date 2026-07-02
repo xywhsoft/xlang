@@ -1,0 +1,28 @@
+import lzma
+
+string sample = "lzma extension round trip text"
+string srcPath = "release/tmp/extlibs/lzma_source.txt"
+string packedPath = "release/tmp/extlibs/lzma_source.lzma"
+string packedLevelPath = "release/tmp/extlibs/lzma_source_level.lzma"
+string outPath = "release/tmp/extlibs/lzma_out.txt"
+
+dir.createAll("release/tmp/extlibs")
+file.writeText(srcPath, sample)
+file.delete(packedPath)
+file.delete(packedLevelPath)
+file.delete(outPath)
+
+assert lzma.version() == "lzma 0.1.0", "lzma version mismatch"
+string packedHex = lzma.compress_hex(sample)
+string packedLevelHex = lzma.compress_hex_level(sample, 1)
+assert string.len(packedHex) > 0, "lzma compress_hex failed"
+assert string.len(packedLevelHex) > 0, "lzma compress_hex_level failed"
+assert lzma.decompress_hex(packedHex) == sample, "lzma decompress_hex mismatch"
+assert lzma.decompress_hex(packedLevelHex) == sample, "lzma decompress_hex_level mismatch"
+assert lzma.compress_file(srcPath, packedPath) != 0, "lzma compress_file failed"
+assert lzma.compress_file_level(srcPath, packedLevelPath, 1) != 0, "lzma compress_file_level failed"
+assert lzma.decompress_file(packedLevelPath, outPath) != 0, "lzma decompress_file failed"
+assert file.readText(outPath) == sample, "lzma file round trip mismatch"
+assert string.len(lzma.last_error()) >= 0, "lzma last_error should return a string"
+
+println("lzma extlib ok")

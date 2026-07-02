@@ -8287,6 +8287,11 @@ static int xl6SemCheckChannelMethodCall(XL6_SemContext* ctx, XL6_AstNode* node)
         } else if ( targetSym == NULL || targetSym->type == NULL ) {
             xl6SemErrorNode(ctx, expr, "channel.recvInto 目标变量未声明");
             ok = 0;
+        } else if ( xl6SemSymbolIsConst(targetSym) ) {
+            xl6SemErrorNode(ctx, expr, "const 不能被重新赋值");
+            ok = 0;
+        } else if ( !xl6SemCheckBoundarySymbolUse(ctx, expr, targetSym, 1) ) {
+            ok = 0;
         } else if ( itemType == NULL || !xl6SemTypeEquals(ctx, targetSym->type, itemType) ) {
             xl6SemTypeMismatchError(
                 ctx,
@@ -8301,7 +8306,7 @@ static int xl6SemCheckChannelMethodCall(XL6_SemContext* ctx, XL6_AstNode* node)
         return ok;
     }
 
-    xl6SemErrorNode(ctx, member, "未知的 channel 方法");
+    xl6SemErrorNode(ctx, member, "unknown channel method");
     xl6AstFree(receiverType);
     return 0;
 }
@@ -8368,12 +8373,6 @@ static int xl6SemIsTaskNamespaceMemberCall(const XL6_AstNode* call, const char**
     }
     receiver = member->children[0];
     if ( receiver == NULL || receiver->kind != XL6_AST_NAME || !xl6TextEquals(receiver->text, "task") ) {
-        return 0;
-    }
-    if ( !xl6TextEquals(member->text, "spawn") &&
-         !xl6TextEquals(member->text, "cancel") &&
-         !xl6TextEquals(member->text, "all") &&
-         !xl6TextEquals(member->text, "race") ) {
         return 0;
     }
     if ( outName != NULL ) {
@@ -8447,6 +8446,18 @@ static XL6_AstNode* xl6SemCloneTaskArrayItemFutureValueType(XL6_SemContext* ctx,
     return result;
 }
 
+static int xl6SemIsTaskAggregateApiName(const char* name)
+{
+    return xl6TextEquals(name, "all") || xl6TextEquals(name, "race");
+}
+
+static int xl6SemIsKnownTaskApiName(const char* name)
+{
+    return xl6TextEquals(name, "spawn") ||
+           xl6TextEquals(name, "cancel") ||
+           xl6SemIsTaskAggregateApiName(name);
+}
+
 static XL6_AstNode* xl6SemCloneTaskCallType(XL6_SemContext* ctx, XL6_AstNode* call)
 {
     const char* name;
@@ -8483,6 +8494,9 @@ static XL6_AstNode* xl6SemCloneTaskCallType(XL6_SemContext* ctx, XL6_AstNode* ca
         }
         xl6AstFree(funcType);
         return xl6SemNewGenericUnaryType("future", valueType, call);
+    }
+    if ( !xl6SemIsTaskAggregateApiName(name) ) {
+        return NULL;
     }
     argExpr = xl6SemCallArgExprAt(call, 0);
     valueType = xl6SemCloneTaskArrayItemFutureValueType(ctx, argExpr);
@@ -8621,6 +8635,7 @@ static int xl6SemCheckTaskCall(XL6_SemContext* ctx, XL6_AstNode* node)
     XL6_AstNode* argType;
     const XL6_AstNode* concreteType;
     XL6_AstNode* valueType;
+    XL6_AstNode* callee;
     int ok;
 
     if ( !xl6SemIsTaskNamespaceMemberCall(node, &name) ) {
@@ -8629,6 +8644,11 @@ static int xl6SemCheckTaskCall(XL6_SemContext* ctx, XL6_AstNode* node)
 
     if ( xl6TextEquals(name, "spawn") ) {
         return xl6SemCheckTaskSpawnCall(ctx, node);
+    }
+    if ( !xl6SemIsKnownTaskApiName(name) ) {
+        callee = node != NULL && node->childCount > 0 ? node->children[0] : node;
+        xl6SemErrorNode(ctx, callee, "unknown task API");
+        return 0;
     }
 
     ok = 1;
@@ -8671,6 +8691,11 @@ static int xl6SemCheckTaskCall(XL6_SemContext* ctx, XL6_AstNode* node)
         xl6AstFree(valueType);
         return 0;
     }
+    if ( concreteType != NULL && xl6SemIsResourceHandleTypeName(concreteType->text) ) {
+        xl6SemErrorNode(ctx, argExpr != NULL ? argExpr : node, "task.all/task.race future resource handle result is not supported by the current typed future bridge");
+        xl6AstFree(valueType);
+        return 0;
+    }
     xl6AstFree(valueType);
     return 1;
 }
@@ -8683,7 +8708,13 @@ static const char* xl6SemTaskCallResultTypeName(XL6_SemContext* ctx, XL6_AstNode
     if ( !xl6SemIsTaskNamespaceMemberCall(node, &name) ) {
         return NULL;
     }
-    return xl6TextEquals(name, "cancel") ? "bool" : "future";
+    if ( xl6TextEquals(name, "cancel") ) {
+        return "bool";
+    }
+    if ( xl6TextEquals(name, "spawn") || xl6SemIsTaskAggregateApiName(name) ) {
+        return "future";
+    }
+    return NULL;
 }
 
 static XL6_AstNode* xl6SemCloneAwaitResultType(XL6_SemContext* ctx, XL6_AstNode* expr)
@@ -11480,7 +11511,11 @@ static int xl6SemIsCAbiParamType(const char* name)
     return xl6SemIsBoolTypeName(name) || xl6SemIsIntegerTypeName(name) ||
            xl6SemIsFloatTypeName(name) ||
            xl6TextEquals(name, "point") || xl6TextEquals(name, "string") ||
-           xl6TextEquals(name, "var");
+           xl6TextEquals(name, "var") ||
+           xl6TextEquals(name, "array") || xl6TextEquals(name, "array<var>") ||
+           xl6TextEquals(name, "list") || xl6TextEquals(name, "list<var>") ||
+           xl6TextEquals(name, "set") || xl6TextEquals(name, "set<var>") ||
+           xl6TextEquals(name, "dict") || xl6TextEquals(name, "dict<var>");
 }
 
 static int xl6SemIsCAbiReturnType(const char* name)

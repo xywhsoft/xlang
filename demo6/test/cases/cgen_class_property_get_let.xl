@@ -55,4 +55,4 @@ if player.hp != 29 then
     throw "property multi-dimension let failed"
 end
 
-print("class property ok")
+println("class property ok")

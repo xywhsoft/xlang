@@ -1,0 +1,900 @@
+{
+    "format":  "xlang-xapi-1",
+    "compiler":  {
+                     "name":  "xl",
+                     "version":  "demo6",
+                     "xlangAbi":  1,
+                     "xrtAbi":  1
+                 },
+    "target":  {
+                   "os":  "windows",
+                   "arch":  "x64",
+                   "callingConvention":  "cdecl"
+               },
+    "package":  {
+                    "name":  "opencv",
+                    "version":  "0.1.0",
+                    "abiVersion":  "1",
+                    "packageId":  "opencv@0.1.0#abi1"
+                },
+    "module":  {
+                   "name":  "opencv",
+                   "moduleId":  "opencv@0.1.0#abi1::opencv",
+                   "source":  "packages/opencv",
+                   "sourceHash":  ""
+               },
+    "entry":  {
+                  "kind":  "none",
+                  "requiresExplicitInit":  true,
+                  "initSymbol":  "xlInit",
+                  "unitSymbol":  "xlUnit"
+              },
+    "exports":  [
+                    {
+                        "kind":  "function",
+                        "name":  "available",
+                        "cSymbol":  "__xl6_import_opencv_available",
+                        "signature":  "func() as bool",
+                        "exportId":  "opencv@0.1.0#abi1::opencv::available(func() as bool)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  0,
+                        "fixedParamCount":  0,
+                        "params":  [
+
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "bool"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "backend",
+                        "cSymbol":  "__xl6_import_opencv_backend",
+                        "signature":  "func() as string",
+                        "exportId":  "opencv@0.1.0#abi1::opencv::backend(func() as string)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  0,
+                        "fixedParamCount":  0,
+                        "params":  [
+
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "string"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "last_error",
+                        "cSymbol":  "__xl6_import_opencv_last_error",
+                        "signature":  "func() as string",
+                        "exportId":  "opencv@0.1.0#abi1::opencv::last_error(func() as string)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  0,
+                        "fixedParamCount":  0,
+                        "params":  [
+
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "string"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "imread",
+                        "cSymbol":  "__xl6_import_opencv_imread",
+                        "signature":  "func(string) as Image",
+                        "exportId":  "opencv@0.1.0#abi1::opencv::imread(func(string) as Image)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  1,
+                        "fixedParamCount":  1,
+                        "params":  [
+                                       {
+                                           "name":  "path",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "Image"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "imread_flags",
+                        "cSymbol":  "__xl6_import_opencv_imread_flags",
+                        "signature":  "func(string,int) as Image",
+                        "exportId":  "opencv@0.1.0#abi1::opencv::imread_flags(func(string,int) as Image)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  2,
+                        "fixedParamCount":  2,
+                        "params":  [
+                                       {
+                                           "name":  "path",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "flags",
+                                           "type":  "int",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "Image"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "imwrite",
+                        "cSymbol":  "__xl6_import_opencv_imwrite",
+                        "signature":  "func(string,Image) as bool",
+                        "exportId":  "opencv@0.1.0#abi1::opencv::imwrite(func(string,Image) as bool)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  2,
+                        "fixedParamCount":  2,
+                        "params":  [
+                                       {
+                                           "name":  "path",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "image",
+                                           "type":  "Image",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "bool"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "resize",
+                        "cSymbol":  "__xl6_import_opencv_resize",
+                        "signature":  "func(Image,int,int) as Image",
+                        "exportId":  "opencv@0.1.0#abi1::opencv::resize(func(Image,int,int) as Image)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  3,
+                        "fixedParamCount":  3,
+                        "params":  [
+                                       {
+                                           "name":  "image",
+                                           "type":  "Image",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "width",
+                                           "type":  "int",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "height",
+                                           "type":  "int",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "Image"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "crop",
+                        "cSymbol":  "__xl6_import_opencv_crop",
+                        "signature":  "func(Image,int,int,int,int) as Image",
+                        "exportId":  "opencv@0.1.0#abi1::opencv::crop(func(Image,int,int,int,int) as Image)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  5,
+                        "fixedParamCount":  5,
+                        "params":  [
+                                       {
+                                           "name":  "image",
+                                           "type":  "Image",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "x",
+                                           "type":  "int",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "y",
+                                           "type":  "int",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "width",
+                                           "type":  "int",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "height",
+                                           "type":  "int",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "Image"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "perspectiveCrop",
+                        "cSymbol":  "__xl6_import_opencv_perspectiveCrop",
+                        "signature":  "func(Image,float,float,float,float,float,float,float,float) as Image",
+                        "exportId":  "opencv@0.1.0#abi1::opencv::perspectiveCrop(func(Image,float,float,float,float,float,float,float,float) as Image)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  9,
+                        "fixedParamCount":  9,
+                        "params":  [
+                                       {
+                                           "name":  "image",
+                                           "type":  "Image",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "x0",
+                                           "type":  "float",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "y0",
+                                           "type":  "float",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "x1",
+                                           "type":  "float",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "y1",
+                                           "type":  "float",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "x2",
+                                           "type":  "float",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "y2",
+                                           "type":  "float",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "x3",
+                                           "type":  "float",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "y3",
+                                           "type":  "float",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "Image"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "rotate180",
+                        "cSymbol":  "__xl6_import_opencv_rotate180",
+                        "signature":  "func(Image) as Image",
+                        "exportId":  "opencv@0.1.0#abi1::opencv::rotate180(func(Image) as Image)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  1,
+                        "fixedParamCount":  1,
+                        "params":  [
+                                       {
+                                           "name":  "image",
+                                           "type":  "Image",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "Image"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "rotate90ccw",
+                        "cSymbol":  "__xl6_import_opencv_rotate90ccw",
+                        "signature":  "func(Image) as Image",
+                        "exportId":  "opencv@0.1.0#abi1::opencv::rotate90ccw(func(Image) as Image)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  1,
+                        "fixedParamCount":  1,
+                        "params":  [
+                                       {
+                                           "name":  "image",
+                                           "type":  "Image",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "Image"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "capture_rect",
+                        "cSymbol":  "__xl6_import_opencv_capture_rect",
+                        "signature":  "func(int,int,int,int) as Image",
+                        "exportId":  "opencv@0.1.0#abi1::opencv::capture_rect(func(int,int,int,int) as Image)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  4,
+                        "fixedParamCount":  4,
+                        "params":  [
+                                       {
+                                           "name":  "x",
+                                           "type":  "int",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "y",
+                                           "type":  "int",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "width",
+                                           "type":  "int",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "height",
+                                           "type":  "int",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "Image"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "capture_window",
+                        "cSymbol":  "__xl6_import_opencv_capture_window",
+                        "signature":  "func(point) as Image",
+                        "exportId":  "opencv@0.1.0#abi1::opencv::capture_window(func(point) as Image)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  1,
+                        "fixedParamCount":  1,
+                        "params":  [
+                                       {
+                                           "name":  "hwnd",
+                                           "type":  "point",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "Image"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "cvtColor",
+                        "cSymbol":  "__xl6_import_opencv_cvtColor",
+                        "signature":  "func(Image,int) as Image",
+                        "exportId":  "opencv@0.1.0#abi1::opencv::cvtColor(func(Image,int) as Image)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  2,
+                        "fixedParamCount":  2,
+                        "params":  [
+                                       {
+                                           "name":  "image",
+                                           "type":  "Image",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "code",
+                                           "type":  "int",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "Image"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "copyMakeBorder",
+                        "cSymbol":  "__xl6_import_opencv_copyMakeBorder",
+                        "signature":  "func(Image,int,int,int,int,int) as Image",
+                        "exportId":  "opencv@0.1.0#abi1::opencv::copyMakeBorder(func(Image,int,int,int,int,int) as Image)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  6,
+                        "fixedParamCount":  6,
+                        "params":  [
+                                       {
+                                           "name":  "image",
+                                           "type":  "Image",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "top",
+                                           "type":  "int",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "bottom",
+                                           "type":  "int",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "left",
+                                           "type":  "int",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "right",
+                                           "type":  "int",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "border_type",
+                                           "type":  "int",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "Image"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "copyMakeBorder_rgba",
+                        "cSymbol":  "__xl6_import_opencv_copyMakeBorder_rgba",
+                        "signature":  "func(Image,int,int,int,int,int,float,float,float,float) as Image",
+                        "exportId":  "opencv@0.1.0#abi1::opencv::copyMakeBorder_rgba(func(Image,int,int,int,int,int,float,float,float,float) as Image)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  10,
+                        "fixedParamCount":  10,
+                        "params":  [
+                                       {
+                                           "name":  "image",
+                                           "type":  "Image",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "top",
+                                           "type":  "int",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "bottom",
+                                           "type":  "int",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "left",
+                                           "type":  "int",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "right",
+                                           "type":  "int",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "border_type",
+                                           "type":  "int",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "value0",
+                                           "type":  "float",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "value1",
+                                           "type":  "float",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "value2",
+                                           "type":  "float",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "value3",
+                                           "type":  "float",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "Image"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "rectangle",
+                        "cSymbol":  "__xl6_import_opencv_rectangle",
+                        "signature":  "func(Image,int,int,int,int,float,float,float) as Image",
+                        "exportId":  "opencv@0.1.0#abi1::opencv::rectangle(func(Image,int,int,int,int,float,float,float) as Image)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  8,
+                        "fixedParamCount":  8,
+                        "params":  [
+                                       {
+                                           "name":  "image",
+                                           "type":  "Image",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "x1",
+                                           "type":  "int",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "y1",
+                                           "type":  "int",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "x2",
+                                           "type":  "int",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "y2",
+                                           "type":  "int",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "value0",
+                                           "type":  "float",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "value1",
+                                           "type":  "float",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "value2",
+                                           "type":  "float",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "Image"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "rectangle_thickness",
+                        "cSymbol":  "__xl6_import_opencv_rectangle_thickness",
+                        "signature":  "func(Image,int,int,int,int,float,float,float,int) as Image",
+                        "exportId":  "opencv@0.1.0#abi1::opencv::rectangle_thickness(func(Image,int,int,int,int,float,float,float,int) as Image)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  9,
+                        "fixedParamCount":  9,
+                        "params":  [
+                                       {
+                                           "name":  "image",
+                                           "type":  "Image",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "x1",
+                                           "type":  "int",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "y1",
+                                           "type":  "int",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "x2",
+                                           "type":  "int",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "y2",
+                                           "type":  "int",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "value0",
+                                           "type":  "float",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "value1",
+                                           "type":  "float",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "value2",
+                                           "type":  "float",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "thickness",
+                                           "type":  "int",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "Image"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "normalize",
+                        "cSymbol":  "__xl6_import_opencv_normalize",
+                        "signature":  "func(Image,float,float,float,float,float,float,float) as Image",
+                        "exportId":  "opencv@0.1.0#abi1::opencv::normalize(func(Image,float,float,float,float,float,float,float) as Image)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  8,
+                        "fixedParamCount":  8,
+                        "params":  [
+                                       {
+                                           "name":  "image",
+                                           "type":  "Image",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "scale",
+                                           "type":  "float",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "mean0",
+                                           "type":  "float",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "mean1",
+                                           "type":  "float",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "mean2",
+                                           "type":  "float",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "std0",
+                                           "type":  "float",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "std1",
+                                           "type":  "float",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "std2",
+                                           "type":  "float",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "Image"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "toCHWTensorJson",
+                        "cSymbol":  "__xl6_import_opencv_toCHWTensorJson",
+                        "signature":  "func(Image,float,float,float,float,float,float,float) as string",
+                        "exportId":  "opencv@0.1.0#abi1::opencv::toCHWTensorJson(func(Image,float,float,float,float,float,float,float) as string)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  8,
+                        "fixedParamCount":  8,
+                        "params":  [
+                                       {
+                                           "name":  "image",
+                                           "type":  "Image",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "scale",
+                                           "type":  "float",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "mean0",
+                                           "type":  "float",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "mean1",
+                                           "type":  "float",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "mean2",
+                                           "type":  "float",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "std0",
+                                           "type":  "float",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "std1",
+                                           "type":  "float",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "std2",
+                                           "type":  "float",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "string"
+                                        }
+                                    ]
+                    }
+                ],
+    "types":  [
+
+              ],
+    "imports":  [
+
+                ],
+    "links":  [
+
+              ],
+    "loadlibs":  [
+
+                 ],
+    "cSources":  [
+                     "opencv_artifact.c"
+                 ],
+    "native":  {
+                   "singleton":  false,
+                   "loadName":  "",
+                   "version":  ""
+               },
+    "docs":  [
+
+             ]
+}

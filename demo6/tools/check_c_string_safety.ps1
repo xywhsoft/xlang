@@ -67,6 +67,7 @@ $driverCrtTimePattern = '\btime\s*\('
 $commandExecPattern = '\b(system|popen|_popen|WinExec|ShellExecute[A-Za-z]*|CreateProcess[A-Za-z]*)\s*\('
 $processControlPattern = '\b(exit|abort|assert)\s*\('
 $manualCrtPrototypePattern = '(?m)^\s*(void|int|char\s*\*)\s+(exit|malloc|free|printf|fprintf)\s*\('
+$rootFullPath = (Resolve-Path -LiteralPath $Root).Path
 
 function Add-Failure($message)
 {
@@ -193,8 +194,10 @@ $files = @(
         }
 
         Get-ChildItem -LiteralPath $dir -Recurse -File | Where-Object {
+            $relative = $_.FullName.Substring($rootFullPath.Length + 1).Replace("\", "/")
             ($_.Extension -eq ".c" -or $_.Extension -eq ".h") -and
-            ($generatedFiles -notcontains $_.Name)
+            ($generatedFiles -notcontains $_.Name) -and
+            ($relative -notmatch '^packages/[^/]+/third_party/')
         }
     }
 ) | Sort-Object FullName

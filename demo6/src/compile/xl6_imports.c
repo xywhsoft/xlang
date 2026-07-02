@@ -696,6 +696,55 @@ static const XL6_ImportSymbol* xl6ImportsFindSymbol(const XL6_ImportSymbolTable*
     return NULL;
 }
 
+static int xl6ImportsCollectMemberParts(
+    const XL6_AstNode* node,
+    const char** parts,
+    size_t maxParts,
+    size_t* count)
+{
+    if ( node == NULL || parts == NULL || count == NULL || *count >= maxParts ) {
+        return 0;
+    }
+    if ( node->kind == XL6_AST_NAME ) {
+        parts[*count] = node->text;
+        *count += 1;
+        return node->text != NULL && node->text[0] != '\0';
+    }
+    if ( node->kind == XL6_AST_MEMBER && node->childCount > 0 && node->children[0] != NULL ) {
+        if ( !xl6ImportsCollectMemberParts(node->children[0], parts, maxParts, count) ) {
+            return 0;
+        }
+        if ( *count >= maxParts || node->text == NULL || node->text[0] == '\0' ) {
+            return 0;
+        }
+        parts[*count] = node->text;
+        *count += 1;
+        return 1;
+    }
+    return 0;
+}
+
+static char* xl6ImportsJoinParts(const char** parts, size_t count)
+{
+    XL6_ImportTextBuilder builder;
+    size_t i;
+    char* out;
+
+    if ( parts == NULL || count == 0 ) {
+        return NULL;
+    }
+    xl6ImportsBuilderInit(&builder);
+    for ( i = 0; i < count; ++i ) {
+        if ( i > 0 ) {
+            xl6ImportsBuilderAppend(&builder, ".");
+        }
+        xl6ImportsBuilderAppend(&builder, parts[i]);
+    }
+    out = xl6ImportsBuilderTake(&builder);
+    xl6ImportsBuilderFree(&builder);
+    return out;
+}
+
 static int xl6ImportsIsIdentChar(int ch)
 {
     return (ch >= 'a' && ch <= 'z') ||
@@ -1048,14 +1097,15 @@ static int xl6ImportsAppendXapiDecls(
     XL6_ImportTextBuilder* builder,
     XL6_ImportSymbolTable* symbols,
     const XL6_XapiModule* module,
-    const char* ns)
+    const char* ns,
+    int emitDecls)
 {
     size_t i;
 
     if ( builder == NULL || symbols == NULL || module == NULL || ns == NULL ) {
         return 0;
     }
-    if ( !xl6ImportsAppendXapiTypeDecls(builder, module, ns) ) {
+    if ( emitDecls && !xl6ImportsAppendXapiTypeDecls(builder, module, ns) ) {
         return 0;
     }
     for ( i = 0; i < module->exportCount; ++i ) {
@@ -1066,7 +1116,8 @@ static int xl6ImportsAppendXapiDecls(
         if ( item->name == NULL || item->name[0] == '\0' ) {
             continue;
         }
-        supported = xl6ImportsFunctionCanEnterExtern(item) ||
+        supported = (!emitDecls && xl6ImportsTextEquals(item->kind, "function")) ||
+                    xl6ImportsFunctionCanEnterExtern(item) ||
                     (xl6ImportsTextEquals(item->kind, "var") && item->type != NULL);
         internalName = supported ? xl6ImportsMakeInternalName(ns, item->name) : xl6ImportsDupText("");
         if ( internalName == NULL ) {
@@ -1076,7 +1127,7 @@ static int xl6ImportsAppendXapiDecls(
             xrtFree(internalName);
             return 0;
         }
-        if ( supported ) {
+        if ( supported && emitDecls ) {
             if ( xl6ImportsFunctionCanEnterExtern(item) ) {
                 xl6ImportsAppendFunctionDecl(builder, module, ns, item, internalName);
             } else {
@@ -1109,6 +1160,102 @@ static int xl6ImportsMergeGeneratedDecls(XL6_AstNode* root, const char* generate
         xl6AstMoveChildren(root, result.root);
     }
     xl6ParseResultFree(&result);
+    return 1;
+}
+
+static int xl6ImportsMoveAppendedChildrenBeforeBody(XL6_AstNode* root, size_t initialCount, XL6_DiagList* diags)
+{
+    size_t insertAt;
+    size_t bodyCount;
+    size_t appendedCount;
+    XL6_AstNode** appended;
+
+    if ( root == NULL || root->childCount <= initialCount ) {
+        return 1;
+    }
+    insertAt = 0;
+    while ( insertAt < initialCount &&
+            root->children[insertAt] != NULL &&
+            root->children[insertAt]->kind == XL6_AST_IMPORT ) {
+        insertAt += 1;
+    }
+    if ( insertAt >= initialCount ) {
+        return 1;
+    }
+
+    bodyCount = initialCount - insertAt;
+    appendedCount = root->childCount - initialCount;
+    appended = (XL6_AstNode**)xrtMalloc(appendedCount * sizeof(*appended));
+    if ( appended == NULL ) {
+        if ( diags != NULL ) {
+            xl6DiagAdd(diags, 1, 1, "import expansion reorder failed: out of memory");
+        }
+        return 0;
+    }
+    memcpy(appended, root->children + initialCount, appendedCount * sizeof(*appended));
+    memmove(root->children + insertAt + appendedCount,
+            root->children + insertAt,
+            bodyCount * sizeof(*root->children));
+    memcpy(root->children + insertAt, appended, appendedCount * sizeof(*root->children));
+    xrtFree(appended);
+    return 1;
+}
+
+static int xl6ImportsMergePackageSources(
+    XL6_AstNode* root,
+    const XL6_PackageManifest* manifest,
+    XL6_DiagList* diags,
+    XL6_ImportDeps* deps)
+{
+    size_t i;
+
+    if ( root == NULL || manifest == NULL ) {
+        return 1;
+    }
+    for ( i = 0; i < manifest->xlSources.count; ++i ) {
+        char sourcePath[512];
+        XL6_ParseResult result;
+        int ok;
+
+        if ( !xl6PackageJoinPath(sourcePath, sizeof(sourcePath), manifest->dir, manifest->xlSources.items[i]) ) {
+            if ( diags != NULL ) {
+                xl6DiagAdd(diags, 1, 1, "package xlSources path is too long");
+            }
+            return 0;
+        }
+        if ( !xrtFileExists((char*)sourcePath) ) {
+            if ( diags != NULL ) {
+                char message[640];
+                snprintf(message, sizeof(message), "package xlSources file is missing: %s", sourcePath);
+                xl6DiagAdd(diags, 1, 1, message);
+            }
+            return 0;
+        }
+
+        xl6ParseResultInit(&result);
+        ok = xl6ParseFile(sourcePath, &result);
+        if ( ok ) {
+            ok = xl6ImportsExpandModule(result.root, sourcePath, diags, deps);
+        }
+        if ( ok && result.root != NULL ) {
+            xl6AstMoveChildren(root, result.root);
+        } else if ( diags != NULL && result.diags.count == 0 ) {
+            xl6DiagAdd(diags, 1, 1, "package xlSources import failed");
+        }
+        if ( result.diags.count > 0 && diags != NULL ) {
+            size_t diagIndex;
+            for ( diagIndex = 0; diagIndex < result.diags.count; ++diagIndex ) {
+                xl6DiagAdd(diags,
+                           result.diags.items[diagIndex].line,
+                           result.diags.items[diagIndex].column,
+                           result.diags.items[diagIndex].message);
+            }
+        }
+        xl6ParseResultFree(&result);
+        if ( !ok ) {
+            return 0;
+        }
+    }
     return 1;
 }
 
@@ -1215,14 +1362,18 @@ static int xl6ImportsLoadOne(
         ok = xl6ImportsCollectManifestDependencyGraph(deps, &manifest, importNode, diags, symbols);
     }
     if ( ok ) {
+        int emitXapiDecls = !(hasManifest && manifest.xlSources.count > 0);
         xl6ImportsBuilderInit(&builder);
-        ok = xl6ImportsAppendXapiDecls(&builder, symbols, &module, ns);
+        ok = xl6ImportsAppendXapiDecls(&builder, symbols, &module, ns, emitXapiDecls);
         generated = xl6ImportsBuilderTake(&builder);
         xl6ImportsBuilderFree(&builder);
         if ( ok ) {
             ok = xl6ImportsMergeGeneratedDecls(root, generated, diags);
         }
         xrtFree(generated);
+    }
+    if ( ok && hasManifest ) {
+        ok = xl6ImportsMergePackageSources(root, &manifest, diags, deps);
     }
 
     xl6XapiModuleFree(&module);
@@ -1250,12 +1401,86 @@ static void xl6ImportsRewriteMemberToName(XL6_AstNode* node, const char* name)
     node->text = xl6ImportsDupText(name);
 }
 
+static int xl6ImportsTryRewriteQualifiedNamespaceRef(
+    XL6_AstNode* node,
+    const XL6_ImportSymbolTable* symbols,
+    XL6_DiagList* diags,
+    int* outHandled)
+{
+    const char* parts[64];
+    size_t count;
+    char* ns;
+    const XL6_ImportNamespace* nsInfo;
+    const XL6_ImportSymbol* symbol;
+
+    if ( outHandled != NULL ) {
+        *outHandled = 0;
+    }
+    if ( node == NULL || node->kind != XL6_AST_MEMBER ) {
+        return 1;
+    }
+    count = 0;
+    if ( !xl6ImportsCollectMemberParts(node, parts, XL6_ARRAY_COUNT(parts), &count) || count < 2 ) {
+        return 1;
+    }
+    ns = xl6ImportsJoinParts(parts, count - 1);
+    if ( ns == NULL ) {
+        return 0;
+    }
+    nsInfo = xl6ImportsFindNamespace(symbols, ns);
+    if ( nsInfo == NULL ) {
+        xrtFree(ns);
+        return 1;
+    }
+    if ( outHandled != NULL ) {
+        *outHandled = 1;
+    }
+    symbol = xl6ImportsFindSymbol(symbols, ns, parts[count - 1]);
+    if ( symbol == NULL ) {
+        if ( diags != NULL ) {
+            xl6DiagAdd(diags,
+                       node->line,
+                       node->column,
+                       nsInfo->isPrivate ?
+                           "private package dependency is not exported" :
+                           "import package has no such exported symbol");
+        }
+        xrtFree(ns);
+        return 0;
+    }
+    if ( !symbol->supported ) {
+        if ( diags != NULL ) {
+            char message[512];
+
+            snprintf(message,
+                     sizeof(message),
+                     "XAPI symbol cannot enter C ABI bridge yet: %s.%s",
+                     symbol->ns != NULL ? symbol->ns : "",
+                     symbol->name != NULL ? symbol->name : "");
+            xl6DiagAdd(diags, node->line, node->column, message);
+        }
+        xrtFree(ns);
+        return 0;
+    }
+    xl6ImportsRewriteMemberToName(node, symbol->internalName);
+    xrtFree(ns);
+    return node->text != NULL;
+}
+
 static int xl6ImportsRewriteNamespaceRefs(XL6_AstNode* node, const XL6_ImportSymbolTable* symbols, XL6_DiagList* diags)
 {
     size_t i;
     int ok;
+    int handled;
 
     if ( node == NULL ) {
+        return 1;
+    }
+    handled = 0;
+    if ( !xl6ImportsTryRewriteQualifiedNamespaceRef(node, symbols, diags, &handled) ) {
+        return 0;
+    }
+    if ( handled ) {
         return 1;
     }
     if ( node->kind == XL6_AST_MEMBER && node->childCount > 0 && node->children[0] != NULL &&
@@ -1322,6 +1547,9 @@ int xl6ImportsExpandModule(XL6_AstNode* root, const char* sourcePath, XL6_DiagLi
                 ok = 0;
             }
         }
+    }
+    if ( ok ) {
+        ok = xl6ImportsMoveAppendedChildrenBeforeBody(root, initialCount, diags);
     }
     if ( ok ) {
         ok = xl6ImportsRewriteNamespaceRefs(root, &symbols, diags);

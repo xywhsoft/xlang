@@ -97,18 +97,41 @@ if ( Test-Path -LiteralPath $packageDir -PathType Container ) {
     $jsonFiles = @(Get-ChildItem -LiteralPath $packageDir -File -Recurse -Filter "*.json" | Sort-Object FullName)
     $packageDeclaredSources = @{}
 
+    function Add-PackageDeclaredSource($sourcePath)
+    {
+        $sourceFullPath = [System.IO.Path]::GetFullPath($sourcePath)
+        $sourceKey = $sourceFullPath.ToLowerInvariant()
+
+        if ( $packageDeclaredSources.ContainsKey($sourceKey) ) {
+            return
+        }
+
+        $packageDeclaredSources[$sourceKey] = $true
+
+        if ( ! (Test-Path -LiteralPath $sourceFullPath -PathType Leaf) ) {
+            return
+        }
+
+        $sourceText = Read-Utf8Text $sourceFullPath
+        $includeMatches = [regex]::Matches($sourceText, '(?m)^\s*#\s*include\s+"([^"]+[.]c)"')
+        foreach ( $includeMatch in $includeMatches ) {
+            $includeName = $includeMatch.Groups[1].Value
+            $includePath = Join-Path ([System.IO.Path]::GetDirectoryName($sourceFullPath)) $includeName
+            Add-PackageDeclaredSource $includePath
+        }
+    }
+
     foreach ( $json in $jsonFiles ) {
         $text = Read-Utf8Text $json.FullName
 
         $sourceMatches = [regex]::Matches($text, '"cSources"\s*:\s*\[(?<items>[^\]]*)\]')
         foreach ( $sourceMatch in $sourceMatches ) {
             $items = $sourceMatch.Groups["items"].Value
-            $itemMatches = [regex]::Matches($items, '"([^"]+\.(?:c|h))"')
+            $itemMatches = [regex]::Matches($items, '"([^"]+\.c)"')
             foreach ( $itemMatch in $itemMatches ) {
                 $source = $itemMatch.Groups[1].Value
                 $sourcePath = Join-Path $json.DirectoryName $source
-                $sourceFullPath = [System.IO.Path]::GetFullPath($sourcePath)
-                $packageDeclaredSources[$sourceFullPath.ToLowerInvariant()] = $true
+                Add-PackageDeclaredSource $sourcePath
 
                 if ( ! (Test-Path -LiteralPath $sourcePath -PathType Leaf) ) {
                     $relJson = $json.FullName.Substring($rootPath.Length + 1).Replace("\", "/")
@@ -118,7 +141,7 @@ if ( Test-Path -LiteralPath $packageDir -PathType Container ) {
         }
     }
 
-    $packageAssets = @(Get-ChildItem -LiteralPath $packageDir -File -Recurse | Where-Object { $_.Extension -in ".c", ".h" } | Sort-Object FullName)
+    $packageAssets = @(Get-ChildItem -LiteralPath $packageDir -File -Recurse | Where-Object { $_.Extension -eq ".c" } | Sort-Object FullName)
     foreach ( $asset in $packageAssets ) {
         $relative = $asset.FullName.Substring($rootPath.Length + 1).Replace("\", "/")
         $assetFullPath = [System.IO.Path]::GetFullPath($asset.FullName)
@@ -131,7 +154,7 @@ if ( Test-Path -LiteralPath $packageDir -PathType Container ) {
 $entryCount = @(Get-ChildItem -Path (Join-Path $Root "test\cases"), (Join-Path $Root "examples") -File -Recurse | Where-Object { $_.Extension -in ".c", ".h" }).Count
 $packageCount = 0
 if ( Test-Path -LiteralPath $packageDir -PathType Container ) {
-    $packageCount = @(Get-ChildItem -LiteralPath $packageDir -File -Recurse | Where-Object { $_.Extension -in ".c", ".h" }).Count
+    $packageCount = @(Get-ChildItem -LiteralPath $packageDir -File -Recurse | Where-Object { $_.Extension -eq ".c" }).Count
 }
 
 if ( $entryCount -lt $minEntryFixtures ) {

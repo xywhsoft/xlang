@@ -1,0 +1,28 @@
+import zstd
+
+string sample = "zstd extension round trip text"
+string srcPath = "release/tmp/extlibs/zstd_source.txt"
+string packedPath = "release/tmp/extlibs/zstd_source.zst"
+string packedLevelPath = "release/tmp/extlibs/zstd_source_level.zst"
+string outPath = "release/tmp/extlibs/zstd_out.txt"
+
+dir.createAll("release/tmp/extlibs")
+file.writeText(srcPath, sample)
+file.delete(packedPath)
+file.delete(packedLevelPath)
+file.delete(outPath)
+
+assert string.len(zstd.version()) > 0, "zstd version missing"
+string packedHex = zstd.compress_hex(sample)
+string packedLevelHex = zstd.compress_hex_level(sample, 1)
+assert string.len(packedHex) > 0, "zstd compress_hex failed"
+assert string.len(packedLevelHex) > 0, "zstd compress_hex_level failed"
+assert zstd.decompress_hex(packedHex) == sample, "zstd decompress_hex mismatch"
+assert zstd.decompress_hex(packedLevelHex) == sample, "zstd decompress_hex_level mismatch"
+assert zstd.compress_file(srcPath, packedPath) != 0, "zstd compress_file failed"
+assert zstd.compress_file_level(srcPath, packedLevelPath, 1) != 0, "zstd compress_file_level failed"
+assert zstd.decompress_file(packedLevelPath, outPath) != 0, "zstd decompress_file failed"
+assert file.readText(outPath) == sample, "zstd file round trip mismatch"
+assert string.len(zstd.last_error()) >= 0, "zstd last_error should return a string"
+
+println("zstd extlib ok")

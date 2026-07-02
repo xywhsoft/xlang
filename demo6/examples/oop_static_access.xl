@@ -20,4 +20,4 @@ assert Counter.add(4) == 4, "static method call failed"
 Counter.total = 12
 assert Counter.total == 12, "static field assignment failed"
 
-print("oop static access ok")
+println("oop static access ok")

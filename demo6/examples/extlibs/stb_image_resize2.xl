@@ -1,0 +1,26 @@
+import stb_image
+import stb_image_resize2
+
+string imagePath = "examples/extlibs/assets/tiny.png"
+point image = stb_image.load(imagePath, 4)
+assert stb_image.valid(image) != 0, "resize source load failed"
+
+point resized = stb_image_resize2.resize_uint8(stb_image.data(image), stb_image.width(image), stb_image.height(image), stb_image.channels(image), 4, 4, 0)
+assert stb_image_resize2.valid(resized) != 0, "stb_image_resize2 resize_uint8 failed"
+assert stb_image_resize2.width(resized) == 4, "stb_image_resize2 width mismatch"
+assert stb_image_resize2.height(resized) == 4, "stb_image_resize2 height mismatch"
+assert stb_image_resize2.channels(resized) == 4, "stb_image_resize2 channels mismatch"
+assert stb_image_resize2.data(resized) != null, "stb_image_resize2 data missing"
+
+point linear = stb_image_resize2.resize_uint8_linear(stb_image.data(image), stb_image.width(image), stb_image.height(image), stb_image.channels(image), 3, 3, 0)
+assert stb_image_resize2.valid(linear) != 0, "stb_image_resize2 resize_uint8_linear failed"
+assert stb_image_resize2.width(linear) == 3, "stb_image_resize2 linear width mismatch"
+assert stb_image_resize2.height(linear) == 3, "stb_image_resize2 linear height mismatch"
+
+assert stb_image_resize2.release(resized) != 0, "stb_image_resize2 release failed"
+assert stb_image_resize2.release(linear) != 0, "stb_image_resize2 linear release failed"
+assert stb_image.release(image) != 0, "resize source release failed"
+assert string.len(stb_image_resize2.version()) > 0, "stb_image_resize2 version missing"
+assert string.len(stb_image_resize2.last_error()) >= 0, "stb_image_resize2 last_error should return a string"
+
+println("stb_image_resize2 extlib ok")

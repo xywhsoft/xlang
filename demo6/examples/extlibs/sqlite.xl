@@ -1,0 +1,67 @@
+import sqlite
+
+dir.createAll("release/tmp/extlibs")
+string dbPath = "release/tmp/extlibs/sqlite_demo.db"
+string db2Path = "release/tmp/extlibs/sqlite_demo_v2.db"
+file.delete(dbPath)
+file.delete(db2Path)
+
+assert string.len(sqlite.sqlite3_libversion()) > 0, "sqlite libversion missing"
+assert sqlite.sqlite3_libversion_number() > 0, "sqlite libversion_number missing"
+assert sqlite.SQLITE_OK == 0, "sqlite SQLITE_OK constant mismatch"
+assert sqlite.SQLITE_ROW == 100, "sqlite SQLITE_ROW constant mismatch"
+assert sqlite.SQLITE_DONE == 101, "sqlite SQLITE_DONE constant mismatch"
+assert string.contains(sqlite.sqlite3_errstr(sqlite.SQLITE_OK), "not an error"), "sqlite errstr mismatch"
+
+point db = sqlite.sqlite3_open(dbPath)
+assert db != null, "sqlite open failed"
+assert sqlite.sqlite3_exec(db, "create table items(id integer, amount real, name text, payload blob, optional text)") == sqlite.SQLITE_OK, "sqlite create table failed"
+
+point insertStmt = sqlite.sqlite3_prepare_v2(db, "insert into items(id, amount, name, payload, optional) values(?, ?, ?, ?, ?)")
+assert insertStmt != null, "sqlite prepare insert failed"
+assert sqlite.sqlite3_bind_parameter_count(insertStmt) == 5, "sqlite bind parameter count mismatch"
+assert sqlite.sqlite3_bind_int(insertStmt, 1, 7) == sqlite.SQLITE_OK, "sqlite bind int failed"
+assert sqlite.sqlite3_bind_double(insertStmt, 2, 12.5) == sqlite.SQLITE_OK, "sqlite bind double failed"
+assert sqlite.sqlite3_bind_text(insertStmt, 3, "demo") == sqlite.SQLITE_OK, "sqlite bind text failed"
+assert sqlite.sqlite3_bind_blob_text(insertStmt, 4, "blob") == sqlite.SQLITE_OK, "sqlite bind blob failed"
+assert sqlite.sqlite3_bind_null(insertStmt, 5) == sqlite.SQLITE_OK, "sqlite bind null failed"
+assert sqlite.sqlite3_step(insertStmt) == sqlite.SQLITE_DONE, "sqlite insert step failed"
+assert sqlite.sqlite3_reset(insertStmt) == sqlite.SQLITE_OK, "sqlite reset failed"
+assert sqlite.sqlite3_clear_bindings(insertStmt) == sqlite.SQLITE_OK, "sqlite clear bindings failed"
+assert sqlite.sqlite3_finalize(insertStmt) == sqlite.SQLITE_OK, "sqlite finalize insert failed"
+
+assert sqlite.sqlite3_changes(db) == 1, "sqlite changes mismatch"
+assert sqlite.sqlite3_total_changes(db) == 1, "sqlite total changes mismatch"
+assert sqlite.sqlite3_last_insert_rowid_text(db) == "1", "sqlite rowid mismatch"
+assert sqlite.sqlite3_extended_errcode(db) == sqlite.SQLITE_OK, "sqlite extended errcode mismatch"
+
+point queryStmt = sqlite.sqlite3_prepare_v2(db, "select id, amount, name, payload, optional from items")
+assert queryStmt != null, "sqlite prepare query failed"
+assert sqlite.sqlite3_column_count(queryStmt) == 5, "sqlite column count mismatch"
+assert sqlite.sqlite3_column_name(queryStmt, 0) == "id", "sqlite column name mismatch"
+assert sqlite.sqlite3_step(queryStmt) == sqlite.SQLITE_ROW, "sqlite query step failed"
+assert sqlite.sqlite3_column_type(queryStmt, 0) == sqlite.SQLITE_INTEGER, "sqlite integer column type mismatch"
+assert sqlite.sqlite3_column_int(queryStmt, 0) == 7, "sqlite column int mismatch"
+assert sqlite.sqlite3_column_type(queryStmt, 1) == sqlite.SQLITE_FLOAT, "sqlite float column type mismatch"
+assert sqlite.sqlite3_column_double(queryStmt, 1) == 12.5, "sqlite column double mismatch"
+assert sqlite.sqlite3_column_type(queryStmt, 2) == sqlite.SQLITE_TEXT, "sqlite text column type mismatch"
+assert sqlite.sqlite3_column_text(queryStmt, 2) == "demo", "sqlite column text mismatch"
+assert sqlite.sqlite3_column_type(queryStmt, 3) == sqlite.SQLITE_BLOB, "sqlite blob column type mismatch"
+assert sqlite.sqlite3_column_blob_text(queryStmt, 3) == "blob", "sqlite blob text mismatch"
+assert sqlite.sqlite3_column_bytes(queryStmt, 3) == 4, "sqlite column bytes mismatch"
+assert sqlite.sqlite3_column_type(queryStmt, 4) == sqlite.SQLITE_NULL, "sqlite null column type mismatch"
+assert sqlite.sqlite3_step(queryStmt) == sqlite.SQLITE_DONE, "sqlite query done mismatch"
+assert sqlite.sqlite3_finalize(queryStmt) == sqlite.SQLITE_OK, "sqlite finalize query failed"
+
+point db2 = sqlite.sqlite3_open_v2(db2Path, sqlite.SQLITE_OPEN_READWRITE + sqlite.SQLITE_OPEN_CREATE, "")
+assert db2 != null, "sqlite open_v2 failed"
+assert sqlite.sqlite3_close(db2) == sqlite.SQLITE_OK, "sqlite close failed"
+
+point missing = null
+assert sqlite.sqlite3_exec(missing, "select 1") == sqlite.SQLITE_MISUSE, "sqlite null exec should fail"
+assert string.contains(sqlite.sqlite3_last_error(), "null sqlite3 handle"), "sqlite last_error mismatch"
+assert string.contains(sqlite.sqlite3_errmsg(missing), "null sqlite3 handle"), "sqlite errmsg null mismatch"
+
+assert sqlite.sqlite3_close_v2(db) == sqlite.SQLITE_OK, "sqlite close_v2 failed"
+
+println("sqlite extlib ok")

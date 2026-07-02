@@ -1,0 +1,7 @@
+func worker() as int
+    return 0
+end
+
+func(thread) as int job
+thread t = thread(worker)
+task.spawn(job, t)

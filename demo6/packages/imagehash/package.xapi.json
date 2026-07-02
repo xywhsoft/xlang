@@ -1,0 +1,207 @@
+{
+  "format": "xlang-xapi-1",
+  "compiler": {
+    "name": "xl",
+    "version": "demo6",
+    "xlangAbi": 1,
+    "xrtAbi": 1
+  },
+  "target": {
+    "os": "windows",
+    "arch": "x64",
+    "callingConvention": "cdecl"
+  },
+  "package": {
+    "name": "imagehash",
+    "version": "0.1.0",
+    "abiVersion": "1",
+    "packageId": "imagehash@0.1.0#abi1"
+  },
+  "module": {
+    "name": "imagehash",
+    "moduleId": "imagehash@0.1.0#abi1::imagehash",
+    "source": "packages/imagehash",
+    "sourceHash": ""
+  },
+  "entry": {
+    "kind": "none",
+    "requiresExplicitInit": true,
+    "initSymbol": "xlInit",
+    "unitSymbol": "xlUnit"
+  },
+  "exports": [
+    {
+      "kind": "function",
+      "name": "version",
+      "cSymbol": "xihash_version",
+      "signature": "func() as string",
+      "exportId": "imagehash@0.1.0#abi1::imagehash::version(func() as string)",
+      "callingConvention": "cdecl",
+      "varargMode": "none",
+      "requiredParamCount": 0,
+      "fixedParamCount": 0,
+      "params": [],
+      "returns": [
+        {
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "kind": "function",
+      "name": "last_error",
+      "cSymbol": "xihash_last_error",
+      "signature": "func() as string",
+      "exportId": "imagehash@0.1.0#abi1::imagehash::last_error(func() as string)",
+      "callingConvention": "cdecl",
+      "varargMode": "none",
+      "requiredParamCount": 0,
+      "fixedParamCount": 0,
+      "params": [],
+      "returns": [
+        {
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "kind": "function",
+      "name": "ahash",
+      "cSymbol": "xihash_ahash",
+      "signature": "func(string) as string",
+      "exportId": "imagehash@0.1.0#abi1::imagehash::ahash(func(string) as string)",
+      "callingConvention": "cdecl",
+      "varargMode": "none",
+      "requiredParamCount": 1,
+      "fixedParamCount": 1,
+      "params": [
+        {
+          "name": "path",
+          "type": "string",
+          "optional": false,
+          "vararg": false
+        }
+      ],
+      "returns": [
+        {
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "kind": "function",
+      "name": "dhash",
+      "cSymbol": "xihash_dhash",
+      "signature": "func(string) as string",
+      "exportId": "imagehash@0.1.0#abi1::imagehash::dhash(func(string) as string)",
+      "callingConvention": "cdecl",
+      "varargMode": "none",
+      "requiredParamCount": 1,
+      "fixedParamCount": 1,
+      "params": [
+        {
+          "name": "path",
+          "type": "string",
+          "optional": false,
+          "vararg": false
+        }
+      ],
+      "returns": [
+        {
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "kind": "function",
+      "name": "phash",
+      "cSymbol": "xihash_phash",
+      "signature": "func(string) as string",
+      "exportId": "imagehash@0.1.0#abi1::imagehash::phash(func(string) as string)",
+      "callingConvention": "cdecl",
+      "varargMode": "none",
+      "requiredParamCount": 1,
+      "fixedParamCount": 1,
+      "params": [
+        {
+          "name": "path",
+          "type": "string",
+          "optional": false,
+          "vararg": false
+        }
+      ],
+      "returns": [
+        {
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "kind": "function",
+      "name": "hamming",
+      "cSymbol": "xihash_hamming",
+      "signature": "func(string,string) as c_int",
+      "exportId": "imagehash@0.1.0#abi1::imagehash::hamming(func(string,string) as c_int)",
+      "callingConvention": "cdecl",
+      "varargMode": "none",
+      "requiredParamCount": 2,
+      "fixedParamCount": 2,
+      "params": [
+        {
+          "name": "left",
+          "type": "string",
+          "optional": false,
+          "vararg": false
+        },
+        {
+          "name": "right",
+          "type": "string",
+          "optional": false,
+          "vararg": false
+        }
+      ],
+      "returns": [
+        {
+          "type": "c_int"
+        }
+      ]
+    },
+    {
+      "kind": "function",
+      "name": "valid",
+      "cSymbol": "xihash_valid",
+      "signature": "func(string) as c_int",
+      "exportId": "imagehash@0.1.0#abi1::imagehash::valid(func(string) as c_int)",
+      "callingConvention": "cdecl",
+      "varargMode": "none",
+      "requiredParamCount": 1,
+      "fixedParamCount": 1,
+      "params": [
+        {
+          "name": "hash",
+          "type": "string",
+          "optional": false,
+          "vararg": false
+        }
+      ],
+      "returns": [
+        {
+          "type": "c_int"
+        }
+      ]
+    }
+  ],
+  "types": [],
+  "imports": [],
+  "links": [],
+  "loadlibs": [],
+  "cSources": [
+    "imagehash_native.c"
+  ],
+  "native": {
+    "singleton": false,
+    "loadName": "",
+    "version": ""
+  },
+  "docs": []
+}

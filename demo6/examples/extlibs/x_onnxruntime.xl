@@ -1,0 +1,107 @@
+import onnxruntime
+
+point nullImage = null
+bool runtimeAvailable = onnxruntime.available()
+assert runtimeAvailable, "onnxruntime runtime is not available"
+assert string.len(onnxruntime.backend()) > 0, "onnxruntime backend failed"
+assert string.len(onnxruntime.get_version_string()) > 0, "onnxruntime version failed"
+assert string.contains(onnxruntime.get_available_providers(), "CPUExecutionProvider"), "onnxruntime providers failed"
+assert onnxruntime.get_providers() == onnxruntime.get_available_providers(), "onnxruntime get_providers failed"
+assert string.len(onnxruntime.last_error()) >= 0, "onnxruntime last_error failed"
+assert string.len(onnxruntime.get_last_error()) >= 0, "onnxruntime get_last_error failed"
+
+auto sessionOptions = onnxruntime.SessionOptions()
+assert sessionOptions.valid(), "onnxruntime SessionOptions valid failed"
+assert sessionOptions.ok(), "onnxruntime SessionOptions ok failed"
+assert string.len(sessionOptions.error()) >= 0, "onnxruntime SessionOptions error failed"
+assert sessionOptions.set_intra_op_num_threads(1), "onnxruntime set_intra_op_num_threads failed"
+assert sessionOptions.set_inter_op_num_threads(1), "onnxruntime set_inter_op_num_threads failed"
+assert sessionOptions.set_graph_optimization_level(99), "onnxruntime set_graph_optimization_level failed"
+assert sessionOptions.set_execution_mode(0), "onnxruntime set_execution_mode failed"
+assert sessionOptions.enable_cpu_mem_arena(), "onnxruntime enable_cpu_mem_arena failed"
+assert sessionOptions.disable_cpu_mem_arena(), "onnxruntime disable_cpu_mem_arena failed"
+assert sessionOptions.enable_mem_pattern(), "onnxruntime enable_mem_pattern failed"
+assert sessionOptions.disable_mem_pattern(), "onnxruntime disable_mem_pattern failed"
+assert sessionOptions.set_log_id("xlang-demo"), "onnxruntime set_log_id failed"
+assert sessionOptions.set_log_verbosity_level(0), "onnxruntime set_log_verbosity_level failed"
+assert sessionOptions.set_log_severity_level(2), "onnxruntime set_log_severity_level failed"
+assert sessionOptions.append_execution_provider("CPUExecutionProvider"), "onnxruntime append_execution_provider failed"
+
+auto runOptions = onnxruntime.RunOptions()
+assert runOptions.valid(), "onnxruntime RunOptions valid failed"
+assert runOptions.ok(), "onnxruntime RunOptions ok failed"
+assert string.len(runOptions.error()) >= 0, "onnxruntime RunOptions error failed"
+assert runOptions.set_log_verbosity_level(0), "onnxruntime run set_log_verbosity_level failed"
+assert runOptions.set_log_severity_level(2), "onnxruntime run set_log_severity_level failed"
+assert runOptions.set_run_tag("xlang-demo"), "onnxruntime set_run_tag failed"
+assert runOptions.set_terminate(), "onnxruntime set_terminate failed"
+assert runOptions.unset_terminate(), "onnxruntime unset_terminate failed"
+
+auto tensor = onnxruntime.TensorZerosF32("[1,2]")
+assert tensor.valid(), "onnxruntime TensorZerosF32 failed"
+assert tensor.ok(), "onnxruntime Tensor ok failed"
+assert string.len(tensor.error()) >= 0, "onnxruntime Tensor error failed"
+
+auto missingSession = onnxruntime.InferenceSession("__missing_model__.onnx")
+assert missingSession.valid() == false, "onnxruntime missing session should be invalid"
+assert missingSession.ok() == false, "onnxruntime missing session ok failed"
+assert string.len(missingSession.error()) >= 0, "onnxruntime session error failed"
+assert missingSession.get_providers() == onnxruntime.get_available_providers(), "onnxruntime session get_providers failed"
+assert missingSession.get_inputs() == "[]", "onnxruntime invalid session inputs failed"
+assert missingSession.get_outputs() == "[]", "onnxruntime invalid session outputs failed"
+assert missingSession.get_modelmeta() == "{}", "onnxruntime invalid session modelmeta failed"
+assert missingSession.end_profiling() == "", "onnxruntime invalid session profiling failed"
+
+auto binding = missingSession.io_binding()
+assert binding.valid() == false, "onnxruntime invalid binding should be invalid"
+assert binding.ok() == false, "onnxruntime invalid binding ok failed"
+assert string.len(binding.error()) >= 0, "onnxruntime binding error failed"
+assert binding.bind_cpu_input("input", "{}") == false, "onnxruntime invalid bind_cpu_input failed"
+assert binding.bind_output("output") == false, "onnxruntime invalid bind_output failed"
+assert binding.clear_inputs() == false, "onnxruntime invalid clear_inputs failed"
+assert binding.clear_outputs() == false, "onnxruntime invalid clear_outputs failed"
+assert binding.synchronize_inputs() == false, "onnxruntime invalid synchronize_inputs failed"
+assert binding.synchronize_outputs() == false, "onnxruntime invalid synchronize_outputs failed"
+assert binding.to_json() == "{}", "onnxruntime invalid binding json failed"
+
+auto jsonResult = missingSession.run("[\"output\"]", "{}")
+assert jsonResult.valid() == false, "onnxruntime invalid json run should be invalid"
+assert jsonResult.ok() == false, "onnxruntime invalid json run ok failed"
+assert string.len(jsonResult.error()) >= 0, "onnxruntime json result error failed"
+assert jsonResult.to_json() == "{}", "onnxruntime invalid result json failed"
+assert jsonResult.float_shape_json() == "[]", "onnxruntime invalid result shape failed"
+assert jsonResult.float_count() == 0, "onnxruntime invalid result count failed"
+assert jsonResult.float_at(0) == 0, "onnxruntime invalid result at failed"
+
+auto jsonResultWithOptions = missingSession.run("[\"output\"]", "{}", runOptions)
+assert jsonResultWithOptions.valid() == false, "onnxruntime invalid json run with options should be invalid"
+
+auto tensorResult = missingSession.run_tensor("input", tensor, "[\"output\"]")
+assert tensorResult.valid() == false, "onnxruntime invalid tensor run should be invalid"
+auto tensorFastResult = missingSession.run_tensor_fast("input", tensor, "[\"output\"]")
+assert tensorFastResult.valid() == false, "onnxruntime invalid tensor fast run should be invalid"
+auto bindingResult = missingSession.run_with_iobinding(binding)
+assert bindingResult.valid() == false, "onnxruntime invalid iobinding run should be invalid"
+auto bindingResultWithOptions = missingSession.run_with_iobinding(binding, runOptions)
+assert bindingResultWithOptions.valid() == false, "onnxruntime invalid iobinding run with options should be invalid"
+
+if false then
+    auto sessionWithOptions = onnxruntime.InferenceSession("__missing_model__.onnx", sessionOptions)
+    auto cvTensor = onnxruntime.TensorFromOpenCV(nullImage, 1.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0)
+    auto cvTensorResized = onnxruntime.TensorFromOpenCVResized(nullImage, 224, 224, 1.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0)
+    auto cvTensorBatch = onnxruntime.TensorFromOpenCVBatch(0, nullImage, nullImage, nullImage, nullImage, nullImage, nullImage, 1.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0)
+end
+
+assert binding.release() == false, "onnxruntime binding release failed"
+assert jsonResult.release() == false, "onnxruntime result release failed"
+assert jsonResultWithOptions.release() == false, "onnxruntime result options release failed"
+assert tensorResult.release() == false, "onnxruntime tensor result release failed"
+assert tensorFastResult.release() == false, "onnxruntime tensor fast result release failed"
+assert bindingResult.release() == false, "onnxruntime binding result release failed"
+assert bindingResultWithOptions.release() == false, "onnxruntime binding options result release failed"
+assert missingSession.release() == false, "onnxruntime missing session release failed"
+assert tensor.release(), "onnxruntime tensor release failed"
+assert runOptions.release(), "onnxruntime run options release failed"
+assert sessionOptions.release(), "onnxruntime session options release failed"
+
+println("onnxruntime extlib ok")

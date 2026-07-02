@@ -1,0 +1,37 @@
+import dinov3
+
+assert string.contains(dinov3.version(), "dinov3"), "dinov3 version failed"
+assert string.len(dinov3.last_error()) >= 0, "dinov3 last_error failed"
+
+auto model = dinov3.DinoV3("__missing_dinov3_model__.onnx")
+assert model.set_input_shape(224, 224), "dinov3 set_input_shape failed"
+assert model.set_input_name("image"), "dinov3 set_input_name failed"
+assert model.set_output_names("[\"embedding\"]"), "dinov3 set_output_names failed"
+assert model.set_resize_short(256), "dinov3 set_resize_short failed"
+assert model.set_keep_aspect(true), "dinov3 set_keep_aspect failed"
+assert model.set_direct_resize(true), "dinov3 set_direct_resize failed"
+assert model.set_normalize(0.0039215689, 0.485, 0.456, 0.406, 0.229, 0.224, 0.225), "dinov3 set_normalize failed"
+
+auto output = model.op_call("__missing_image__.png")
+assert output.ok() == false, "dinov3 missing output ok failed"
+assert output.valid() == false, "dinov3 missing output valid failed"
+assert string.len(output.error()) >= 0, "dinov3 output error failed"
+assert output.shape_json() == "[]", "dinov3 missing output shape failed"
+assert output.count() == 0, "dinov3 missing output count failed"
+assert output.at(0) == 0, "dinov3 missing output at failed"
+assert output.embedding_json() == "[]", "dinov3 missing output embedding failed"
+assert output.to_json() == "{}", "dinov3 missing output json failed"
+assert output.l2_norm() == 0, "dinov3 missing output norm failed"
+
+assert dinov3.embedding_json("__missing_image__.png") == "[]", "dinov3 embedding_json default failed"
+assert dinov3.embedding_json("__missing_dinov3_model__.onnx", "__missing_image__.png") == "[]", "dinov3 embedding_json model failed"
+assert dinov3.infer_json("__missing_image__.png") == "{}", "dinov3 infer_json default failed"
+assert dinov3.infer_json("__missing_dinov3_model__.onnx", "__missing_image__.png") == "{}", "dinov3 infer_json model failed"
+assert dinov3.similarity("__missing_left__.png", "__missing_right__.png") == 0, "dinov3 similarity default failed"
+assert dinov3.similarity("__missing_dinov3_model__.onnx", "__missing_left__.png", "__missing_right__.png") == 0, "dinov3 similarity model failed"
+assert dinov3.cosine_similarity("__missing_left__.png", "__missing_right__.png") == 0, "dinov3 cosine default failed"
+assert dinov3.cosine_similarity("__missing_dinov3_model__.onnx", "__missing_left__.png", "__missing_right__.png") == 0, "dinov3 cosine model failed"
+
+assert output.release() == false, "dinov3 output release failed"
+
+println("dinov3 extlib ok")

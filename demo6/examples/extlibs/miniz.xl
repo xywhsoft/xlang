@@ -1,0 +1,34 @@
+import miniz
+
+string sample = "miniz extension round trip text"
+string srcPath = "release/tmp/extlibs/miniz_source.txt"
+string packedPath = "release/tmp/extlibs/miniz_source.bin"
+string packedLevelPath = "release/tmp/extlibs/miniz_source_level.bin"
+string outPath = "release/tmp/extlibs/miniz_out.txt"
+string zipPath = "release/tmp/extlibs/miniz_sample.zip"
+
+dir.createAll("release/tmp/extlibs")
+file.writeText(srcPath, sample)
+file.delete(packedPath)
+file.delete(packedLevelPath)
+file.delete(outPath)
+file.delete(zipPath)
+
+assert string.len(miniz.version()) > 0, "miniz version missing"
+string packedHex = miniz.compress_hex(sample)
+string packedLevelHex = miniz.compress_hex_level(sample, 1)
+assert string.len(packedHex) > 0, "miniz compress_hex failed"
+assert string.len(packedLevelHex) > 0, "miniz compress_hex_level failed"
+assert miniz.decompress_hex(packedHex) == sample, "miniz decompress_hex mismatch"
+assert miniz.decompress_hex(packedLevelHex) == sample, "miniz decompress_hex_level mismatch"
+assert miniz.compress_file(srcPath, packedPath) != 0, "miniz compress_file failed"
+assert miniz.compress_file_level(srcPath, packedLevelPath, 1) != 0, "miniz compress_file_level failed"
+assert miniz.decompress_file(packedLevelPath, outPath) != 0, "miniz decompress_file failed"
+assert file.readText(outPath) == sample, "miniz file round trip mismatch"
+assert miniz.zip_write_text(zipPath, "hello.txt", sample) != 0, "miniz zip_write_text failed"
+assert miniz.zip_count(zipPath) == 1, "miniz zip_count mismatch"
+assert miniz.zip_first_name(zipPath) == "hello.txt", "miniz zip_first_name mismatch"
+assert miniz.zip_read_text(zipPath, "hello.txt") == sample, "miniz zip_read_text mismatch"
+assert string.len(miniz.last_error()) >= 0, "miniz last_error should return a string"
+
+println("miniz extlib ok")

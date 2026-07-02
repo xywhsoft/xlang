@@ -58,4 +58,4 @@ var boxedValues = values
 assert boxedValues is array<int>, "boxed array should keep element type"
 assert not (boxedValues is array<string>), "boxed array element type should be exact"
 
-print("runtime type ok")
+println("runtime type ok")

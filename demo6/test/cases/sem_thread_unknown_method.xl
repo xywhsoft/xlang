@@ -1,0 +1,6 @@
+func worker() as int
+    return 0
+end
+
+thread t = thread(worker)
+bool ok = t.join()

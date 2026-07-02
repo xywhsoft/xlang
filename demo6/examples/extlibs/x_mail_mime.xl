@@ -1,0 +1,41 @@
+import x.mail.mime
+
+var sender = x.mail.mime.address("sender@example.com", "Sender")
+var recipient = x.mail.mime.address("user@example.com", "User")
+var attachment = x.mail.mime.attachment("note.txt", "text/plain", "attachment body", "", false)
+var result = x.mail.mime.result(true, "", "unit", {"value": 7})
+var unsupported = x.mail.mime.unsupported("noop")
+var message = x.mail.mime.message({
+    "from": sender,
+    "to": [recipient],
+    "subject": "hello",
+    "text": "plain body",
+    "html": "<b>html body</b>",
+    "headers": [{"name": "X-Test", "value": "ok"}],
+    "attachments": [attachment]
+})
+
+assert bool(result["ok"]) == true, "result ok mismatch"
+assert string(result["stage"]) == "unit", "result stage mismatch"
+assert bool(unsupported["ok"]) == false, "unsupported ok mismatch"
+assert string(unsupported["stage"]) == "binding", "unsupported stage mismatch"
+assert string(sender["email"]) == "sender@example.com", "address email mismatch"
+assert string(attachment["filename"]) == "note.txt", "attachment filename mismatch"
+assert string(message["subject"]) == "hello", "message subject mismatch"
+
+string builtJson = x.mail.mime.build_json(json.stringify(message))
+assert string.contains(builtJson, "\"ok\":true"), "mime build_json failed"
+assert string.contains(builtJson, "Subject: hello"), "mime build_json subject missing"
+
+var built = x.mail.mime.build(message)
+assert bool(built["ok"]) == true, "mime build failed"
+
+string raw = "Subject: hi\r\nFrom: Sender <sender@example.com>\r\nTo: User <user@example.com>\r\nContent-Type: text/plain; charset=UTF-8\r\nContent-Transfer-Encoding: quoted-printable\r\n\r\nhello=20world\r\n"
+string parsedJson = x.mail.mime.parse_json(raw)
+assert string.contains(parsedJson, "\"ok\":true"), "mime parse_json failed"
+assert string.contains(parsedJson, "hello world"), "mime parse_json text missing"
+
+var parsed = x.mail.mime.parse(raw)
+assert string.contains(json.stringify(parsed), "\"ok\":true"), "mime parse failed"
+
+println("x.mail.mime extlib ok")

@@ -1,0 +1,26 @@
+import stb_image
+
+string imagePath = "examples/extlibs/assets/tiny.png"
+
+assert stb_image.version() == "stb_image 2.30", "stb_image version mismatch"
+assert stb_image.is_hdr(imagePath) == 0, "tiny png should not be hdr"
+string info = stb_image.info(imagePath)
+assert string.contains(info, "\"ok\":true"), "stb_image info ok missing"
+assert string.contains(info, "\"width\":"), "stb_image info width missing"
+
+point image = stb_image.load(imagePath, 4)
+assert stb_image.valid(image) != 0, "stb_image load failed"
+assert stb_image.width(image) > 0, "stb_image width missing"
+assert stb_image.height(image) > 0, "stb_image height missing"
+assert stb_image.channels(image) == 4, "stb_image channel conversion failed"
+assert stb_image.data(image) != null, "stb_image data missing"
+assert stb_image.is_float(image) == 0, "stb_image byte image should not be float"
+assert stb_image.release(image) != 0, "stb_image release failed"
+
+point floatImage = stb_image.loadf(imagePath, 4)
+assert stb_image.valid(floatImage) != 0, "stb_image loadf failed"
+assert stb_image.is_float(floatImage) != 0, "stb_image float image flag failed"
+assert stb_image.release(floatImage) != 0, "stb_image float release failed"
+assert string.len(stb_image.last_error()) >= 0, "stb_image last_error should return a string"
+
+println("stb_image extlib ok")

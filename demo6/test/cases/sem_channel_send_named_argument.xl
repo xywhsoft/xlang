@@ -1,0 +1,3 @@
+channel<int> ch = channel::<int>(1)
+
+bool ok = ch.send(value = 1)

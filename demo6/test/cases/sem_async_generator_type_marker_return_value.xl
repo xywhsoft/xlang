@@ -1,0 +1,3 @@
+func badAsyncTypeMarker() as async generator<int>
+    return 2
+end

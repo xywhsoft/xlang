@@ -1,0 +1,7 @@
+func worker() as int
+    return 0
+end
+
+async func bad() as thread
+    return thread(worker)
+end

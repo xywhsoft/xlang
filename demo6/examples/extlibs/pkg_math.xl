@@ -1,0 +1,11 @@
+import pkg.math
+
+int default_value = pkg.math.add_one()
+int explicit_value = pkg.math.add_one(6)
+int base_value = pkg.math.base
+
+assert default_value == 42, "pkg.math default add_one mismatch"
+assert explicit_value == 7, "pkg.math explicit add_one mismatch"
+assert base_value == 41, "pkg.math base mismatch"
+
+println("pkg.math extlib ok")

@@ -1,0 +1,74 @@
+import rapidocr
+
+string keysPath = "packages\\rapidocr\\models\\ppocr_keys_v1.txt"
+point nullResult = null
+
+assert rapidocr.available(), "rapidocr dependencies should be available"
+assert string.len(rapidocr.backend()) > 0, "rapidocr backend failed"
+assert string.contains(rapidocr.dependency_status(), "opencv="), "rapidocr dependency_status failed"
+assert rapidocr.default_model_dir() == "packages\\rapidocr\\models", "rapidocr default_model_dir failed"
+assert string.contains(rapidocr.default_config_json(), "ch_PP-OCRv4_det_infer.onnx"), "rapidocr default_config_json failed"
+assert string.contains(rapidocr.model_layout_json(), "ppocr_keys_v1.txt"), "rapidocr model_layout_json failed"
+
+string emptyBoxes = rapidocr.det_boxes_from_output("{}", 320, 240)
+assert rapidocr.box_count(emptyBoxes) == 0, "rapidocr det_boxes_from_output failed"
+assert rapidocr.box_count(rapidocr.det_boxes_from_output("{}", 320, 240, 0.5)) == 0, "rapidocr det_boxes_from_output threshold failed"
+assert string.len(rapidocr.charset_info(keysPath)) > 0, "rapidocr charset_info failed"
+assert string.len(rapidocr.rec_decode("[]", keysPath)) >= 0, "rapidocr rec_decode failed"
+assert string.len(rapidocr.rec_decode_result(nullResult, keysPath)) >= 0, "rapidocr rec_decode_result failed"
+assert string.len(rapidocr.cls_decode_result(nullResult)) >= 0, "rapidocr cls_decode_result failed"
+
+assert rapidocr.box_x("[]", 0) == 0, "rapidocr box_x failed"
+assert rapidocr.box_y("[]", 0) == 0, "rapidocr box_y failed"
+assert rapidocr.box_width("[]", 0) == 0, "rapidocr box_width failed"
+assert rapidocr.box_height("[]", 0) == 0, "rapidocr box_height failed"
+assert rapidocr.box_point_x("[]", 0, 0) == 0, "rapidocr box_point_x failed"
+assert rapidocr.box_point_y("[]", 0, 0) == 0, "rapidocr box_point_y failed"
+assert rapidocr.vis_image("__missing_image__.png", "[]", "__missing_rapidocr_vis.png") == false, "rapidocr vis_image failed"
+
+string rec0 = "{\"text\":\"\",\"score\":0,\"tokens\":0}"
+assert string.len(rapidocr.assemble_result("[]", rec0)) > 0, "rapidocr assemble_result failed"
+assert string.len(rapidocr.assemble_result("[]", rec0, 1.25)) > 0, "rapidocr assemble_result elapse failed"
+assert string.len(rapidocr.assemble_result2("[]", rec0, rec0)) > 0, "rapidocr assemble_result2 failed"
+assert string.len(rapidocr.assemble_result2("[]", rec0, rec0, 1.25)) > 0, "rapidocr assemble_result2 elapse failed"
+assert string.len(rapidocr.assemble_result4("[]", rec0, rec0, rec0, rec0)) > 0, "rapidocr assemble_result4 failed"
+assert string.len(rapidocr.assemble_result4("[]", rec0, rec0, rec0, rec0, 1.25)) > 0, "rapidocr assemble_result4 elapse failed"
+assert string.len(rapidocr.last_error()) >= 0, "rapidocr last_error failed"
+
+auto engine = rapidocr.RapidOCR("__missing_det__.onnx", "__missing_cls__.onnx", "__missing_rec__.onnx", keysPath)
+assert engine.valid(), "rapidocr engine valid failed"
+assert engine.set_det_threshold(0.3), "rapidocr set_det_threshold failed"
+assert engine.set_text_score(0.5), "rapidocr set_text_score failed"
+assert engine.set_box_thresh(0.5), "rapidocr set_box_thresh failed"
+assert engine.set_unclip_ratio(1.6), "rapidocr set_unclip_ratio failed"
+assert engine.set_cls_thresh(0.9), "rapidocr set_cls_thresh failed"
+assert engine.set_det_use_dilation(true), "rapidocr set_det_use_dilation failed"
+assert engine.set_min_box_size(3), "rapidocr set_min_box_size failed"
+assert engine.set_filter_small_boxes(true), "rapidocr set_filter_small_boxes failed"
+assert engine.set_small_box_filter(true, 3), "rapidocr set_small_box_filter failed"
+assert engine.set_cls_image_shape(192, 48), "rapidocr set_cls_image_shape failed"
+assert engine.set_rec_image_shape(320, 48), "rapidocr set_rec_image_shape failed"
+
+auto output = engine.op_call("__missing_image__.png")
+assert output.ok() == false, "rapidocr missing image output ok failed"
+assert string.len(output.text()) >= 0, "rapidocr output text failed"
+assert string.len(output.to_json()) >= 0, "rapidocr output json failed"
+assert string.len(output.to_ocr_json()) >= 0, "rapidocr output ocr json failed"
+assert string.len(output.to_ocr_json(0.25)) >= 0, "rapidocr output ocr json score failed"
+assert output.vis("__missing_rapidocr_output.png") == false, "rapidocr output vis failed"
+
+auto outputFlags = engine.op_call("__missing_image__.png", true, false, false)
+assert string.len(outputFlags.to_json()) >= 0, "rapidocr output flags failed"
+
+if false then
+	auto defaultEngine = rapidocr.RapidOCR()
+	auto configEngine = rapidocr.RapidOCR("__missing_rapidocr_config__.json")
+	defaultEngine.release()
+	configEngine.release()
+end
+
+assert output.release() == false, "rapidocr output release failed"
+assert outputFlags.release() == false, "rapidocr output flags release failed"
+assert engine.release(), "rapidocr engine release failed"
+
+println("rapidocr extlib ok")

@@ -16,14 +16,21 @@ $wiringFiles = @(
     "test_tutorial.bat",
     "test_feature_suite.bat",
     "tools\check_stdlib_examples.ps1",
+    "examples\extlibs\run_extlibs.bat",
     "examples\feature_suite\run_feature_suite.bat"
 )
+$draftExampleFiles = @()
 
 $failures = New-Object System.Collections.Generic.List[string]
 
 function Add-Failure($message)
 {
     $script:failures.Add($message) | Out-Null
+}
+
+function Normalize-ExamplePath($relative)
+{
+    return $relative.Replace("\", "/")
 }
 
 function Read-Utf8Text($path)
@@ -41,6 +48,17 @@ function Test-WildcardCovered($relative)
     }
     if ( $relative -like "examples/stdlib_*.xl" ) {
         return $true
+    }
+    return $false
+}
+
+function Test-DraftExample($relative)
+{
+    $normalized = Normalize-ExamplePath $relative
+    foreach ( $draft in $draftExampleFiles ) {
+        if ( $normalized -eq (Normalize-ExamplePath $draft) ) {
+            return $true
+        }
     }
     return $false
 }
@@ -75,7 +93,14 @@ function Test-ExampleReadmeIndex($relativeDir)
     }
 
     $readme = Read-Utf8Text $readmePath
-    $files = @(Get-ChildItem -LiteralPath $dir -File -Filter "*.xl" | Sort-Object Name)
+    $files = @(
+        Get-ChildItem -LiteralPath $dir -File -Filter "*.xl" |
+            Where-Object {
+                $relative = ($relativeDir + "/" + $_.Name).Replace("\", "/")
+                ! (Test-DraftExample $relative)
+            } |
+            Sort-Object Name
+    )
     $known = New-Object System.Collections.Generic.HashSet[string]
 
     foreach ( $file in $files ) {
@@ -260,7 +285,14 @@ function Test-ExampleExecutionIndex($relativeDir, $batchRelative, $exportOnlyNam
     }
 
     $batchText = Read-Utf8Text $batchPath
-    $files = @(Get-ChildItem -LiteralPath $dir -File -Filter "*.xl" | Sort-Object Name)
+    $files = @(
+        Get-ChildItem -LiteralPath $dir -File -Filter "*.xl" |
+            Where-Object {
+                $relative = ($relativeDir + "/" + $_.Name).Replace("\", "/")
+                -not (Test-DraftExample $relative)
+            } |
+            Sort-Object Name
+    )
     $known = New-Object System.Collections.Generic.HashSet[string]
 
     foreach ( $file in $files ) {
@@ -285,7 +317,9 @@ function Test-ExampleExecutionIndex($relativeDir, $batchRelative, $exportOnlyNam
         }
 
         $cgenPattern = '(?m)cgen\s+.*' + [regex]::Escape($name) + '.*--emit-header'
-        if ( ! ($batchText -match $cgenPattern) ) {
+        $exportCallPattern = '(?m)call\s+:export_example\s+[^\r\n]*' + [regex]::Escape($name) + '(\s|$)'
+        $exportHelperPattern = '(?ms):export_example\b.*?cgen\s+.*?--emit-header'
+        if ( ! (($batchText -match $cgenPattern) -or (($batchText -match $exportCallPattern) -and ($batchText -match $exportHelperPattern))) ) {
             Add-Failure "example export-only file is not cgen/header verified: ${relativeDir}/${name}"
         }
     }
@@ -321,6 +355,10 @@ foreach ( $example in $examples ) {
         continue
     }
 
+    if ( Test-DraftExample $relative ) {
+        continue
+    }
+
     if ( ! (Test-DirectReference $wiringText $relative) ) {
         Add-Failure "example is not wired: $relative"
     }
@@ -349,6 +387,7 @@ Test-ExampleReadmeIndex "examples\tutorial"
 Test-ExampleReadmeIndex "examples\feature_suite"
 Test-ExampleExecutionIndex "examples\tutorial" "test_tutorial.bat" @("11_export_to_c.xl")
 Test-ExampleExecutionIndex "examples\feature_suite" "examples\feature_suite\run_feature_suite.bat" @("09_c_export_abi.xl")
+Test-ExampleExecutionIndex "examples\extlibs" "examples\extlibs\run_extlibs.bat" @("x_com.xl")
 
 if ( $failures.Count -gt 0 ) {
     foreach ( $failure in $failures ) {
