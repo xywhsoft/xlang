@@ -1,0 +1,1 @@
+channel<generator<int>> ch = channel::<generator<int>>(1)

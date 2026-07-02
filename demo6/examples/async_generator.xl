@@ -40,6 +40,33 @@ func indexedScores() as async generator<int>
     yield await loadScore(0, 30)
 end
 
+func returnEarlyScores() as async generator<int>
+    yield await loadScore(0, 5)
+    return
+    yield await loadScore(0, 50)
+end
+
+func returnBeforeYieldScores() as async generator<int>
+    return
+    yield await loadScore(0, 60)
+end
+
+func plainScores() as generator<int>
+    yield 7
+    yield 8
+end
+
+func plainReturnEarlyScores() as generator<int>
+    yield 5
+    return
+    yield 50
+end
+
+func plainReturnBeforeYieldScores() as generator<int>
+    return
+    yield 60
+end
+
 int total = 0
 for await score in scoreStream(10)
     total = total + score
@@ -111,6 +138,20 @@ end
 
 assert savedBreakTotal == 130, "saved async generator break failed"
 
+int savedBreakAgainState = 0
+try
+    for await score in savedIndexedScores
+        savedBreakAgainState = savedBreakAgainState + score
+    end
+    savedBreakAgainState = 100
+catch e
+    if e.message == "iterate null generator" then
+        savedBreakAgainState = 42
+    end
+end
+
+assert savedBreakAgainState == 42, "saved async generator break second pass failed"
+
 generator<int> savedIndexedContinueScores = indexedScores()
 int savedContinueTotal = 0
 for await index, score in savedIndexedContinueScores
@@ -124,6 +165,241 @@ for await index, score in savedIndexedContinueScores
 end
 
 assert savedContinueTotal == 240, "saved async generator continue failed"
+
+int savedContinueAgainState = 0
+try
+    for await score in savedIndexedContinueScores
+        savedContinueAgainState = savedContinueAgainState + score
+    end
+    savedContinueAgainState = 100
+catch e
+    if e.message == "iterate null generator" then
+        savedContinueAgainState = 42
+    end
+end
+
+assert savedContinueAgainState == 42, "saved async generator continue second pass failed"
+
+generator<int> savedReturnEarlyScores = returnEarlyScores()
+int savedReturnEarlyCount = 0
+int savedReturnEarlyTotal = 0
+for await score in savedReturnEarlyScores
+    savedReturnEarlyCount = savedReturnEarlyCount + 1
+    savedReturnEarlyTotal = savedReturnEarlyTotal + score
+end
+
+assert savedReturnEarlyCount == 1, "saved async generator return count failed"
+assert savedReturnEarlyTotal == 5, "saved async generator return value failed"
+
+int savedReturnEarlyAgainState = 0
+try
+    for await score in savedReturnEarlyScores
+        savedReturnEarlyAgainState = savedReturnEarlyAgainState + score
+    end
+    savedReturnEarlyAgainState = 100
+catch e
+    if e.message == "iterate null generator" then
+        savedReturnEarlyAgainState = 42
+    end
+end
+
+assert savedReturnEarlyAgainState == 42, "saved async generator return second pass failed"
+
+generator<int> savedReturnBeforeYieldScores = returnBeforeYieldScores()
+int savedReturnBeforeYieldCount = 0
+int savedReturnBeforeYieldTotal = 0
+for await score in savedReturnBeforeYieldScores
+    savedReturnBeforeYieldCount = savedReturnBeforeYieldCount + 1
+    savedReturnBeforeYieldTotal = savedReturnBeforeYieldTotal + score
+end
+
+assert savedReturnBeforeYieldCount == 0, "saved async generator pre-yield return count failed"
+assert savedReturnBeforeYieldTotal == 0, "saved async generator pre-yield return total failed"
+
+int savedReturnBeforeYieldAgainState = 0
+try
+    for await score in savedReturnBeforeYieldScores
+        savedReturnBeforeYieldAgainState = savedReturnBeforeYieldAgainState + score
+    end
+    savedReturnBeforeYieldAgainState = 100
+catch e
+    if e.message == "iterate null generator" then
+        savedReturnBeforeYieldAgainState = 42
+    end
+end
+
+assert savedReturnBeforeYieldAgainState == 42, "saved async generator pre-yield return second pass failed"
+
+int plainAwaitTotal = 0
+for await score in plainScores()
+    plainAwaitTotal = plainAwaitTotal + score
+end
+
+assert plainAwaitTotal == 15, "for await plain generator total failed"
+
+generator<int> savedPlainAwaitScores = plainScores()
+int savedPlainAwaitWeighted = 0
+for await index, score in savedPlainAwaitScores
+    savedPlainAwaitWeighted = savedPlainAwaitWeighted + index * 100 + score
+end
+
+assert savedPlainAwaitWeighted == 115, "for await saved plain generator failed"
+
+int savedPlainAwaitAgainState = 0
+try
+    for await score in savedPlainAwaitScores
+        savedPlainAwaitAgainState = savedPlainAwaitAgainState + score
+    end
+    savedPlainAwaitAgainState = 100
+catch e
+    if e.message == "iterate null generator" then
+        savedPlainAwaitAgainState = 42
+    end
+end
+
+assert savedPlainAwaitAgainState == 42, "for await saved plain generator second pass failed"
+
+generator<int> savedPlainAwaitBreakScores = plainScores()
+int savedPlainAwaitBreakTotal = 0
+for await index, score in savedPlainAwaitBreakScores
+    if index == 0 then
+        continue
+    end
+    savedPlainAwaitBreakTotal = savedPlainAwaitBreakTotal + index * 100 + score
+    break
+end
+
+assert savedPlainAwaitBreakTotal == 108, "for await plain generator continue/break failed"
+
+int savedPlainAwaitBreakAgainState = 0
+try
+    for await score in savedPlainAwaitBreakScores
+        savedPlainAwaitBreakAgainState = savedPlainAwaitBreakAgainState + score
+    end
+    savedPlainAwaitBreakAgainState = 100
+catch e
+    if e.message == "iterate null generator" then
+        savedPlainAwaitBreakAgainState = 42
+    end
+end
+
+assert savedPlainAwaitBreakAgainState == 42, "for await plain generator break second pass failed"
+
+generator<int> savedPlainForBreakScores = plainScores()
+int savedPlainForBreakTotal = 0
+for index, score in savedPlainForBreakScores
+    if index == 0 then
+        continue
+    end
+    savedPlainForBreakTotal = savedPlainForBreakTotal + index * 100 + score
+    break
+end
+
+assert savedPlainForBreakTotal == 108, "plain generator for-in continue/break failed"
+
+int savedPlainForBreakAgainState = 0
+try
+    for score in savedPlainForBreakScores
+        savedPlainForBreakAgainState = savedPlainForBreakAgainState + score
+    end
+    savedPlainForBreakAgainState = 100
+catch e
+    if e.message == "iterate null generator" then
+        savedPlainForBreakAgainState = 42
+    end
+end
+
+assert savedPlainForBreakAgainState == 42, "plain generator for-in break second pass failed"
+
+generator<int> savedPlainReturnEarlyScores = plainReturnEarlyScores()
+int savedPlainReturnEarlyCount = 0
+int savedPlainReturnEarlyTotal = 0
+for score in savedPlainReturnEarlyScores
+    savedPlainReturnEarlyCount = savedPlainReturnEarlyCount + 1
+    savedPlainReturnEarlyTotal = savedPlainReturnEarlyTotal + score
+end
+
+assert savedPlainReturnEarlyCount == 1, "saved plain generator return count failed"
+assert savedPlainReturnEarlyTotal == 5, "saved plain generator return total failed"
+
+int savedPlainReturnEarlyAgainState = 0
+try
+    for score in savedPlainReturnEarlyScores
+        savedPlainReturnEarlyAgainState = savedPlainReturnEarlyAgainState + score
+    end
+    savedPlainReturnEarlyAgainState = 100
+catch e
+    if e.message == "iterate null generator" then
+        savedPlainReturnEarlyAgainState = 42
+    end
+end
+
+assert savedPlainReturnEarlyAgainState == 42, "saved plain generator return second pass failed"
+
+generator<int> savedPlainReturnBeforeYieldScores = plainReturnBeforeYieldScores()
+int savedPlainReturnBeforeYieldCount = 0
+int savedPlainReturnBeforeYieldTotal = 0
+for score in savedPlainReturnBeforeYieldScores
+    savedPlainReturnBeforeYieldCount = savedPlainReturnBeforeYieldCount + 1
+    savedPlainReturnBeforeYieldTotal = savedPlainReturnBeforeYieldTotal + score
+end
+
+assert savedPlainReturnBeforeYieldCount == 0, "saved plain generator pre-yield return count failed"
+assert savedPlainReturnBeforeYieldTotal == 0, "saved plain generator pre-yield return total failed"
+
+int savedPlainReturnBeforeYieldAgainState = 0
+try
+    for score in savedPlainReturnBeforeYieldScores
+        savedPlainReturnBeforeYieldAgainState = savedPlainReturnBeforeYieldAgainState + score
+    end
+    savedPlainReturnBeforeYieldAgainState = 100
+catch e
+    if e.message == "iterate null generator" then
+        savedPlainReturnBeforeYieldAgainState = 42
+    end
+end
+
+assert savedPlainReturnBeforeYieldAgainState == 42, "saved plain generator pre-yield return second pass failed"
+
+int plainReturnEarlyCount = 0
+int plainReturnEarlyTotal = 0
+for score in plainReturnEarlyScores()
+    plainReturnEarlyCount = plainReturnEarlyCount + 1
+    plainReturnEarlyTotal = plainReturnEarlyTotal + score
+end
+
+assert plainReturnEarlyCount == 1, "plain generator return count failed"
+assert plainReturnEarlyTotal == 5, "plain generator return total failed"
+
+int plainReturnBeforeYieldCount = 0
+int plainReturnBeforeYieldTotal = 0
+for score in plainReturnBeforeYieldScores()
+    plainReturnBeforeYieldCount = plainReturnBeforeYieldCount + 1
+    plainReturnBeforeYieldTotal = plainReturnBeforeYieldTotal + score
+end
+
+assert plainReturnBeforeYieldCount == 0, "plain generator pre-yield return count failed"
+assert plainReturnBeforeYieldTotal == 0, "plain generator pre-yield return total failed"
+
+int returnEarlyCount = 0
+int returnEarlyTotal = 0
+for await score in returnEarlyScores()
+    returnEarlyCount = returnEarlyCount + 1
+    returnEarlyTotal = returnEarlyTotal + score
+end
+
+assert returnEarlyCount == 1, "async generator return count failed"
+assert returnEarlyTotal == 5, "async generator return value failed"
+
+int returnBeforeYieldCount = 0
+int returnBeforeYieldTotal = 0
+for await score in returnBeforeYieldScores()
+    returnBeforeYieldCount = returnBeforeYieldCount + 1
+    returnBeforeYieldTotal = returnBeforeYieldTotal + score
+end
+
+assert returnBeforeYieldCount == 0, "async generator pre-yield return count failed"
+assert returnBeforeYieldTotal == 0, "async generator pre-yield return total failed"
 
 generator<int> singleUseScores = scoreStream(40)
 int singleUseTotal = 0
@@ -147,4 +423,4 @@ end
 
 assert singleUseState == 42, "single-use async generator second pass failed"
 
-print("async generator ok")
+println("async generator ok")

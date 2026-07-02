@@ -23,4 +23,4 @@ assert player.value() == 100, "protected base field initial value failed"
 assert player.hit(15) == 85, "protected base method access failed"
 assert player.value() == 85, "protected base field update failed"
 
-print("oop protected access ok")
+println("oop protected access ok")

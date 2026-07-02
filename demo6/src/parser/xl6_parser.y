@@ -5,6 +5,9 @@
 %extra_argument { XL6_ParseContext* ctx }
 %type assign_op { XL6_Token }
 %type name_tok { XL6_Token }
+%type import_name_part { XL6_Token }
+%type member_name_tok { XL6_Token }
+%type import_name { XL6_AstNode* }
 %type doc_block { XL6_Token }
 %type class_member_mods { unsigned int }
 %type class_member_modifier { unsigned int }
@@ -106,6 +109,41 @@ static int xl6PTextBuilderAppendRange(XL6_PTextBuilder* builder, const char* tex
 static int xl6PTextBuilderAppendChar(XL6_PTextBuilder* builder, char ch)
 {
     return xl6PTextBuilderAppendRange(builder, &ch, 1);
+}
+
+static XL6_AstNode* xl6PImportNameFromToken(const XL6_Token* token)
+{
+    return xl6AstNew(XL6_AST_NAME, token);
+}
+
+static XL6_AstNode* xl6PImportNameAppend(XL6_ParseContext* ctx, XL6_AstNode* node, const XL6_Token* token)
+{
+    char* text;
+    size_t leftLen;
+    size_t rightLen;
+
+    if ( node == NULL || token == NULL || token->text == NULL ) {
+        xl6PDiag(ctx, token, "invalid dotted import name");
+        return node;
+    }
+    leftLen = node->text != NULL ? strlen(node->text) : 0;
+    rightLen = token->len;
+    text = (char*)xrtMalloc(leftLen + rightLen + 2);
+    if ( text == NULL ) {
+        xl6PDiag(ctx, token, "out of memory while parsing dotted import name");
+        return node;
+    }
+    if ( leftLen > 0 ) {
+        memcpy(text, node->text, leftLen);
+    }
+    text[leftLen] = '.';
+    if ( rightLen > 0 ) {
+        memcpy(text + leftLen + 1, token->text, rightLen);
+    }
+    text[leftLen + 1 + rightLen] = '\0';
+    xrtFree(node->text);
+    node->text = text;
+    return node;
 }
 
 static int xl6PFlushFStringText(XL6_AstNode* node, XL6_PTextBuilder* builder, const XL6_Token* token)
@@ -602,12 +640,26 @@ doc_block(A) ::= DOC(D). { A = D; }
 
 name_tok(A) ::= IDENT(B). { A = B; }
 
+import_name_part(A) ::= name_tok(N). { A = N; }
+import_name_part(A) ::= KW_AUTO(N). { A = N; }
+
+member_name_tok(A) ::= name_tok(N). { A = N; }
+member_name_tok(A) ::= KW_AUTO(N). { A = N; }
+
+import_name(A) ::= import_name_part(N). {
+    A = xl6PImportNameFromToken(&N);
+}
+import_name(A) ::= import_name(P) DOT import_name_part(N). {
+    A = xl6PImportNameAppend(ctx, P, &N);
+}
+
 import_decl(A) ::= KW_IMPORT(I) STRING(S) need_sep. {
     A = xl6AstNew(XL6_AST_IMPORT, &S);
     (void)I;
 }
-import_decl(A) ::= KW_IMPORT(I) name_tok(N) need_sep. {
-    A = xl6AstNew(XL6_AST_IMPORT, &N);
+import_decl(A) ::= KW_IMPORT(I) import_name(N) need_sep. {
+    A = xl6AstNewText(XL6_AST_IMPORT, N != NULL && N->text != NULL ? N->text : "", N != NULL && N->text != NULL ? strlen(N->text) : 0, &I);
+    xl6AstFree(N);
     (void)I;
 }
 
@@ -1476,11 +1528,11 @@ postfix_expr(A) ::= postfix_expr(C) SCOPE(S) LT type_list(T) GT. {
     xl6AstAddChild(A, C);
     xl6AstAddChild(A, T);
 }
-postfix_expr(A) ::= postfix_expr(C) DOT name_tok(M). {
+postfix_expr(A) ::= postfix_expr(C) DOT member_name_tok(M). {
     A = xl6AstNew(XL6_AST_MEMBER, &M);
     xl6AstAddChild(A, C);
 }
-postfix_expr(A) ::= postfix_expr(C) SAFE_DOT name_tok(M). {
+postfix_expr(A) ::= postfix_expr(C) SAFE_DOT member_name_tok(M). {
     A = xl6AstNew(XL6_AST_SAFE_MEMBER, &M);
     xl6AstAddChild(A, C);
 }

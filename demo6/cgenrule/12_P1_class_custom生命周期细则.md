@@ -116,7 +116,7 @@
 | --- | --- |
 | xlang 写法 | `Counter c` / `Counter c = Counter(1)` |
 | 生成规则描述 | class 局部变量总是先生成 `{0}` 零初始化，并注册变量类型与 class cleanup。这样即使后续字段初始化或 create 失败，也能在作用域关闭时按统一 cleanup 机制处理。 |
-| 生成器文件名和行号 | `xl6_cgen_stmt_decl.c:18`、`xl6_cgen_stmt_decl.c:100`、`xl6_cgen_stmt_decl.c:119` |
+| 生成器文件名和行号 | `xl6_cgen_stmt_decl.c:18`、`xl6_cgen_stmt_decl_class_temp.c:47`、`xl6_cgen_stmt_decl_class_temp.c:66` |
 | 对应生成的 C 代码 | `XL_Class_Counter c = {0};` |
 | 中间形态伪代码 | `declare class var -> zero init; add cleanup(name, class)` |
 | 实现同等功能手写的 C 代码 | `Counter c = {0};` 并在离开作用域前手写 `Counter_destroy(&c)`。 |
@@ -140,7 +140,7 @@
 | --- | --- |
 | xlang 写法 | `Counter c = Counter(3)` / `auto c = Counter(3)` |
 | 生成规则描述 | 初始化表达式是同类型 class 构造时，声明规则先零初始化和字段默认初始化，再调用匹配的 `create`。如果 class 没有 create 且传入了参数，生成具体诊断 `class constructor has arguments but no matching create method`；如果没有 create 且无参数，会尝试自动调用父类无参 create。 |
-| 生成器文件名和行号 | `xl6_cgen_stmt_decl.c:45`、`xl6_cgen_stmt_decl.c:122`、`xl6_cgen_stmt_decl.c:157`、`xl6_cgen_stmt_decl.c:176`、`xl6_cgen_decl_methods.c:71` |
+| 生成器文件名和行号 | `xl6_cgen_stmt_decl.c:45`、`xl6_cgen_stmt_decl_class_temp.c:69`、`xl6_cgen_stmt_decl_class_temp.c:104`、`xl6_cgen_stmt_decl_class_temp.c:123`、`xl6_cgen_decl_methods.c:71` |
 | 对应生成的 C 代码 | `XL_Class_Counter c = {0}; xl_class_Counter__create(&c, 3);` |
 | 中间形态伪代码 | `var = zero; initFields(var); if ctor then Class.create(&var,args)` |
 | 实现同等功能手写的 C 代码 | `Counter c = {0}; Counter_create(&c, 3);` |
@@ -152,7 +152,7 @@
 | --- | --- |
 | xlang 写法 | `Counter b = a` |
 | 生成规则描述 | 初始化表达式不是构造调用时，会推断表达式类型；若与声明 class 类型一致，则允许整体赋值。赋值后如果 class 中存在 function 字段且来源是借用表达式，会保留 function 字段引用，避免闭包环境过早释放。 |
-| 生成器文件名和行号 | `xl6_cgen_stmt_decl.c:128`、`xl6_cgen_stmt_decl.c:143`、`xl6_cgen_stmt_decl.c:151` |
+| 生成器文件名和行号 | `xl6_cgen_stmt_decl_class_temp.c:75`、`xl6_cgen_stmt_decl_class_temp.c:90`、`xl6_cgen_stmt_decl_class_temp.c:98` |
 | 对应生成的 C 代码 | `XL_Class_Counter b = {0}; b = a; /* retain function fields when needed */` |
 | 中间形态伪代码 | `if type(init) == declaredClass: copy struct; retain borrowed function fields` |
 | 实现同等功能手写的 C 代码 | `Counter b = a;`，但需要人工处理函数/闭包字段的引用计数。 |
@@ -164,7 +164,7 @@
 | --- | --- |
 | xlang 写法 | `auto b = makeCounter()` |
 | 生成规则描述 | `auto` 推断结果是 class 时，生成一个具体 class 类型变量，先 `{0}`，注册 class cleanup，然后整体接收表达式结果。泛型 class 会先克隆并持有具体类型节点，再按具体类型输出变量声明。 |
-| 生成器文件名和行号 | `xl6_cgen_stmt_decl.c:220`、`xl6_cgen_stmt_decl.c:232`、`xl6_cgen_stmt_decl.c:239` |
+| 生成器文件名和行号 | `xl6_cgen_stmt_decl_class_temp.c:167`、`xl6_cgen_stmt_decl_class_temp.c:179`、`xl6_cgen_stmt_decl_class_temp.c:186` |
 | 对应生成的 C 代码 | `XL_Class_Counter b = {0}; b = makeCounter();` |
 | 中间形态伪代码 | `auto type = infer(init); if class: declare concrete class var; assign init` |
 | 实现同等功能手写的 C 代码 | 需要手动知道 `makeCounter()` 的具体返回结构体类型。 |
@@ -320,7 +320,7 @@
 | --- | --- |
 | xlang 写法 | `File f = File(path)` / `File f = File(ptr)` |
 | 生成规则描述 | custom 变量声明先生成 `{0}`，注册 custom cleanup。若初始化是 custom 构造表达式，`.handle` 接收 create 返回值；若 custom 没有 create，只允许一个 point/指针参数绑定已有句柄。 |
-| 生成器文件名和行号 | `xl6_cgen_stmt_decl.c:69`、`xl6_cgen_stmt_decl.c:76`、`xl6_cgen_resolve_call.c:453`、`xl6_cgen_resolve_call.c:525`、`xl6_cgen_resolve_call.c:550` |
+| 生成器文件名和行号 | `xl6_cgen_stmt_decl_class_temp.c:16`、`xl6_cgen_stmt_decl_class_temp.c:23`、`xl6_cgen_resolve_call.c:453`、`xl6_cgen_resolve_call.c:525`、`xl6_cgen_resolve_call.c:550` |
 | 对应生成的 C 代码 | `XL_Custom_File f = {0}; f.handle = file_open(path);` 或 `f.handle = ptr;` |
 | 中间形态伪代码 | `custom var -> zero; if create exists: handle=create(args); else handle=args[0]` |
 | 实现同等功能手写的 C 代码 | `FileRef f = {0}; f.handle = file_open(path);` |
@@ -332,7 +332,7 @@
 | --- | --- |
 | xlang 写法 | `File b = a` |
 | 生成规则描述 | 如果 custom 没有 `destroy`，它被视为普通句柄值，可进行同类型整体复制；如果 custom 有 `destroy`，声明初始化必须使用同类型构造表达式，避免两个变量持有同一资源并重复 destroy。 |
-| 生成器文件名和行号 | `xl6_cgen_stmt_decl.c:80`、`xl6_cgen_stmt_decl.c:88`、`xl6_cgen_stmt_decl.c:95` |
+| 生成器文件名和行号 | `xl6_cgen_stmt_decl_class_temp.c:27`、`xl6_cgen_stmt_decl_class_temp.c:35`、`xl6_cgen_stmt_decl_class_temp.c:42` |
 | 对应生成的 C 代码 | `XL_Custom_File b = {0}; b = a;` 仅在无 destroy 的 custom 上允许。 |
 | 中间形态伪代码 | `if custom.hasDestroy: forbid copy; else allow struct copy` |
 | 实现同等功能手写的 C 代码 | 手写 C 需要靠约定避免双重释放；xlang 在生成阶段限制。 |

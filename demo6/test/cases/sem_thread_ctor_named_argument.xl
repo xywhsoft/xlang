@@ -1,0 +1,5 @@
+func worker() as int
+    return 0
+end
+
+thread t = thread(entry = worker)

@@ -1,0 +1,20 @@
+{
+  "format": "xlang-package-1",
+  "name": "crc32",
+  "version": "0.1.0",
+  "abiVersion": "1",
+  "xapi": "package.xapi.json",
+  "kind": "demo6-extlib",
+  "artifact": {
+    "kind": "source",
+    "cSources": ["crc32_native.c"]
+  },
+  "links": [],
+  "loadlibs": [],
+  "dependencies": [],
+  "native": {
+    "singleton": false,
+    "loadName": "",
+    "version": ""
+  }
+}

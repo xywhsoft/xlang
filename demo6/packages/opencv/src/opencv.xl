@@ -1,0 +1,287 @@
+
+extern "opencv_available_native" func opencv_available_native() as int
+extern "opencv_backend_native" func opencv_backend_native() as string
+extern "opencv_last_error_native" func opencv_last_error_native() as string
+extern "opencv_imread_native" func opencv_imread_native(string path, int flags) as point
+extern "opencv_imwrite_native" func opencv_imwrite_native(string path, point image) as int
+extern "opencv_resize_native" func opencv_resize_native(point image, int width, int height) as point
+extern "opencv_crop_native" func opencv_crop_native(point image, int x, int y, int width, int height) as point
+extern "opencv_perspective_crop_native" func opencv_perspective_crop_native(point image, float x0, float y0, float x1, float y1, float x2, float y2, float x3, float y3) as point
+extern "opencv_rotate180_native" func opencv_rotate180_native(point image) as point
+extern "opencv_rotate90ccw_native" func opencv_rotate90ccw_native(point image) as point
+extern "opencv_capture_rect_native" func opencv_capture_rect_native(int x, int y, int width, int height) as point
+extern "opencv_capture_window_native" func opencv_capture_window_native(point hwnd) as point
+extern "opencv_cvt_color_native" func opencv_cvt_color_native(point image, int code) as point
+extern "opencv_copy_make_border_native" func opencv_copy_make_border_native(point image, int top, int bottom, int left, int right, int border_type, float value0, float value1, float value2, float value3) as point
+extern "opencv_rectangle_native" func opencv_rectangle_native(point image, int x1, int y1, int x2, int y2, float value0, float value1, float value2, float value3, int thickness) as point
+extern "opencv_normalize_native" func opencv_normalize_native(point image, float scale, float mean0, float mean1, float mean2, float std0, float std1, float std2) as point
+extern "opencv_to_chw_tensor_json_native" func opencv_to_chw_tensor_json_native(point image, float scale, float mean0, float mean1, float mean2, float std0, float std1, float std2) as string
+extern "opencv_width_native" func opencv_width_native(point image) as int
+extern "opencv_height_native" func opencv_height_native(point image) as int
+extern "opencv_channels_native" func opencv_channels_native(point image) as int
+extern "opencv_release_native" func opencv_release_native(point image) as int
+
+const int IMREAD_GRAYSCALE = 0
+const int IMREAD_COLOR = 1
+const int IMREAD_UNCHANGED = -1
+
+const int COLOR_BGR2GRAY = 6
+const int COLOR_GRAY2BGR = 8
+const int COLOR_BGR2RGB = 4
+const int COLOR_RGB2BGR = 4
+
+const int BORDER_CONSTANT = 0
+const int BORDER_REPLICATE = 1
+const int BORDER_REFLECT = 2
+const int BORDER_WRAP = 3
+const int BORDER_REFLECT_101 = 4
+const int BORDER_DEFAULT = 4
+
+class Image
+	point handle
+
+	create(point handle)
+		self.handle = handle
+	end
+
+
+	func empty() as bool
+		return self.handle == null
+	end
+
+	func ok() as bool
+		return self.handle != null
+	end
+
+	func valid() as bool
+		return self.handle != null
+	end
+
+	func error() as string
+		return opencv_last_error_native()
+	end
+
+	func width() as int
+		return opencv_width_native(self.handle)
+	end
+
+	func height() as int
+		return opencv_height_native(self.handle)
+	end
+
+	func channels() as int
+		return opencv_channels_native(self.handle)
+	end
+
+	func resize(int width, int height) as Image
+		return Image(opencv_resize_native(self.handle, width, height))
+	end
+
+	func crop(int x, int y, int width, int height) as Image
+		return Image(opencv_crop_native(self.handle, x, y, width, height))
+	end
+
+	func perspectiveCrop(float x0, float y0, float x1, float y1, float x2, float y2, float x3, float y3) as Image
+		return Image(opencv_perspective_crop_native(self.handle, x0, y0, x1, y1, x2, y2, x3, y3))
+	end
+
+	func rotate180() as Image
+		return Image(opencv_rotate180_native(self.handle))
+	end
+
+	func rotate90ccw() as Image
+		return Image(opencv_rotate90ccw_native(self.handle))
+	end
+
+	func cvtColor(int code) as Image
+		return Image(opencv_cvt_color_native(self.handle, code))
+	end
+
+	func copyMakeBorder(int top, int bottom, int left, int right, int border_type, float value0, float value1, float value2, float value3) as Image
+		return Image(opencv_copy_make_border_native(self.handle, top, bottom, left, right, border_type, value0, value1, value2, value3))
+	end
+
+	func rectangle(int x1, int y1, int x2, int y2, float value0, float value1, float value2, float value3, int thickness) as Image
+		return Image(opencv_rectangle_native(self.handle, x1, y1, x2, y2, value0, value1, value2, value3, thickness))
+	end
+
+	func normalize(float scale, float mean0, float mean1, float mean2, float std0, float std1, float std2) as Image
+		return Image(opencv_normalize_native(self.handle, scale, mean0, mean1, mean2, std0, std1, std2))
+	end
+
+	func toCHWTensorJson(float scale, float mean0, float mean1, float mean2, float std0, float std1, float std2) as string
+		return opencv_to_chw_tensor_json_native(self.handle, scale, mean0, mean1, mean2, std0, std1, std2)
+	end
+
+	func save(string path) as bool
+		return opencv_imwrite_native(path, self.handle) != 0
+	end
+
+	func release() as bool
+		if self.handle == null then
+			return false
+		end
+		auto ok = opencv_release_native(self.handle) != 0
+		self.handle = null
+		return ok
+	end
+end
+
+func opencv_available() as bool
+	return opencv_available_native() != 0
+end
+
+func opencv_backend() as string
+	return opencv_backend_native()
+end
+
+func opencv_last_error() as string
+	return opencv_last_error_native()
+end
+
+func opencv_imread_default(string path) as Image
+	return Image(opencv_imread_native(path, 1))
+end
+
+func opencv_imread_flags(string path, int flags) as Image
+	return Image(opencv_imread_native(path, flags))
+end
+
+func opencv_resize(Image image, int width, int height) as Image
+	return image.resize(width, height)
+end
+
+func opencv_crop(Image image, int x, int y, int width, int height) as Image
+	return image.crop(x, y, width, height)
+end
+
+func opencv_perspectiveCrop(Image image, float x0, float y0, float x1, float y1, float x2, float y2, float x3, float y3) as Image
+	return image.perspectiveCrop(x0, y0, x1, y1, x2, y2, x3, y3)
+end
+
+func opencv_rotate180(Image image) as Image
+	return image.rotate180()
+end
+
+func opencv_rotate90ccw(Image image) as Image
+	return image.rotate90ccw()
+end
+
+func opencv_capture_rect(int x, int y, int width, int height) as Image
+	return Image(opencv_capture_rect_native(x, y, width, height))
+end
+
+func opencv_capture_window(point hwnd) as Image
+	return Image(opencv_capture_window_native(hwnd))
+end
+
+func opencv_imwrite(string path, Image image) as bool
+	return image.save(path)
+end
+
+func opencv_cvtColor(Image image, int code) as Image
+	return image.cvtColor(code)
+end
+
+func opencv_copyMakeBorder_default(Image image, int top, int bottom, int left, int right, int border_type) as Image
+	return image.copyMakeBorder(top, bottom, left, right, border_type, 0.0, 0.0, 0.0, 0.0)
+end
+
+func opencv_copyMakeBorder_rgba(Image image, int top, int bottom, int left, int right, int border_type, float value0, float value1, float value2, float value3) as Image
+	return image.copyMakeBorder(top, bottom, left, right, border_type, value0, value1, value2, value3)
+end
+
+func opencv_rectangle_default(Image image, int x1, int y1, int x2, int y2, float value0, float value1, float value2) as Image
+	return image.rectangle(x1, y1, x2, y2, value0, value1, value2, 0.0, 1)
+end
+
+func opencv_rectangle_thickness(Image image, int x1, int y1, int x2, int y2, float value0, float value1, float value2, int thickness) as Image
+	return image.rectangle(x1, y1, x2, y2, value0, value1, value2, 0.0, thickness)
+end
+
+func opencv_normalize(Image image, float scale, float mean0, float mean1, float mean2, float std0, float std1, float std2) as Image
+	return image.normalize(scale, mean0, mean1, mean2, std0, std1, std2)
+end
+
+func opencv_toCHWTensorJson(Image image, float scale, float mean0, float mean1, float mean2, float std0, float std1, float std2) as string
+	return image.toCHWTensorJson(scale, mean0, mean1, mean2, std0, std1, std2)
+end
+func __xl6_import_opencv_available() as bool
+	return opencv_available()
+end
+
+func __xl6_import_opencv_backend() as string
+	return opencv_backend()
+end
+
+func __xl6_import_opencv_last_error() as string
+	return opencv_last_error()
+end
+
+func __xl6_import_opencv_imread(string path) as Image
+	return opencv_imread_default(path)
+end
+
+func __xl6_import_opencv_imread_flags(string path, int flags) as Image
+	return opencv_imread_flags(path, flags)
+end
+
+func __xl6_import_opencv_imwrite(string path, Image image) as bool
+	return opencv_imwrite(path, image)
+end
+
+func __xl6_import_opencv_resize(Image image, int width, int height) as Image
+	return opencv_resize(image, width, height)
+end
+
+func __xl6_import_opencv_crop(Image image, int x, int y, int width, int height) as Image
+	return opencv_crop(image, x, y, width, height)
+end
+
+func __xl6_import_opencv_perspectiveCrop(Image image, float x0, float y0, float x1, float y1, float x2, float y2, float x3, float y3) as Image
+	return opencv_perspectiveCrop(image, x0, y0, x1, y1, x2, y2, x3, y3)
+end
+
+func __xl6_import_opencv_rotate180(Image image) as Image
+	return opencv_rotate180(image)
+end
+
+func __xl6_import_opencv_rotate90ccw(Image image) as Image
+	return opencv_rotate90ccw(image)
+end
+
+func __xl6_import_opencv_capture_rect(int x, int y, int width, int height) as Image
+	return opencv_capture_rect(x, y, width, height)
+end
+
+func __xl6_import_opencv_capture_window(point hwnd) as Image
+	return opencv_capture_window(hwnd)
+end
+
+func __xl6_import_opencv_cvtColor(Image image, int code) as Image
+	return opencv_cvtColor(image, code)
+end
+
+func __xl6_import_opencv_copyMakeBorder(Image image, int top, int bottom, int left, int right, int border_type) as Image
+	return opencv_copyMakeBorder_default(image, top, bottom, left, right, border_type)
+end
+
+func __xl6_import_opencv_copyMakeBorder_rgba(Image image, int top, int bottom, int left, int right, int border_type, float value0, float value1, float value2, float value3) as Image
+	return opencv_copyMakeBorder_rgba(image, top, bottom, left, right, border_type, value0, value1, value2, value3)
+end
+
+func __xl6_import_opencv_rectangle(Image image, int x1, int y1, int x2, int y2, float value0, float value1, float value2) as Image
+	return opencv_rectangle_default(image, x1, y1, x2, y2, value0, value1, value2)
+end
+
+func __xl6_import_opencv_rectangle_thickness(Image image, int x1, int y1, int x2, int y2, float value0, float value1, float value2, int thickness) as Image
+	return opencv_rectangle_thickness(image, x1, y1, x2, y2, value0, value1, value2, thickness)
+end
+
+func __xl6_import_opencv_normalize(Image image, float scale, float mean0, float mean1, float mean2, float std0, float std1, float std2) as Image
+	return opencv_normalize(image, scale, mean0, mean1, mean2, std0, std1, std2)
+end
+
+func __xl6_import_opencv_toCHWTensorJson(Image image, float scale, float mean0, float mean1, float mean2, float std0, float std1, float std2) as string
+	return opencv_toCHWTensorJson(image, scale, mean0, mean1, mean2, std0, std1, std2)
+end

@@ -1,0 +1,22 @@
+import lz4
+
+string sample = "lz4 extension round trip text"
+string srcPath = "release/tmp/extlibs/lz4_source.txt"
+string packedPath = "release/tmp/extlibs/lz4_source.lz4"
+string outPath = "release/tmp/extlibs/lz4_out.txt"
+
+dir.createAll("release/tmp/extlibs")
+file.writeText(srcPath, sample)
+file.delete(packedPath)
+file.delete(outPath)
+
+assert string.len(lz4.version()) > 0, "lz4 version missing"
+string packedHex = lz4.compress_hex(sample)
+assert string.len(packedHex) > 0, "lz4 compress_hex failed"
+assert lz4.decompress_hex(packedHex) == sample, "lz4 decompress_hex mismatch"
+assert lz4.compress_file(srcPath, packedPath) != 0, "lz4 compress_file failed"
+assert lz4.decompress_file(packedPath, outPath) != 0, "lz4 decompress_file failed"
+assert file.readText(outPath) == sample, "lz4 file round trip mismatch"
+assert string.len(lz4.last_error()) >= 0, "lz4 last_error should return a string"
+
+println("lz4 extlib ok")

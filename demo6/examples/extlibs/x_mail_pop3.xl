@@ -1,0 +1,32 @@
+import x.mail.pop3
+
+var config = {"host": "", "port": 0, "timeout_ms": 1, "secure": "none"}
+var request = {"config": config, "request": {"number": 0, "top": true, "lines": 1, "parse_mime": false}}
+
+var result = x.mail.pop3.result(true, "", "unit", {"value": 7})
+assert bool(result["ok"]) == true, "pop3 result ok mismatch"
+
+var unsupported = x.mail.pop3.unsupported("noop")
+assert string.contains(json.stringify(unsupported), "x.mail.pop3.noop"), "pop3 unsupported mismatch"
+
+string capabilityJson = x.mail.pop3.capability_json(json.stringify(config))
+assert string.contains(capabilityJson, "\"ok\":false"), "pop3 capability_json failed"
+assert string.contains(json.stringify(x.mail.pop3.capability(config)), "\"ok\":false"), "pop3 capability failed"
+
+string statusJson = x.mail.pop3.status_json(json.stringify(config))
+assert string.contains(statusJson, "\"ok\":false"), "pop3 status_json failed"
+assert string.contains(json.stringify(x.mail.pop3.status(config)), "\"ok\":false"), "pop3 status failed"
+
+string listJson = x.mail.pop3.list_json(json.stringify(config))
+assert string.contains(listJson, "\"ok\":false"), "pop3 list_json failed"
+assert string.contains(json.stringify(x.mail.pop3.list(config)), "\"ok\":false"), "pop3 list failed"
+
+string fetchJson = x.mail.pop3.fetch_json(json.stringify(request))
+assert string.contains(fetchJson, "\"ok\":false"), "pop3 fetch_json failed"
+assert string.contains(json.stringify(x.mail.pop3.fetch(request)), "\"ok\":false"), "pop3 fetch failed"
+
+string deleteJson = x.mail.pop3.delete_message_json(json.stringify(request))
+assert string.contains(deleteJson, "\"ok\":false"), "pop3 delete_message_json failed"
+assert string.contains(json.stringify(x.mail.pop3.delete_message(request)), "\"ok\":false"), "pop3 delete_message failed"
+
+println("x.mail.pop3 extlib ok")

@@ -1,0 +1,3 @@
+async func bad() as channel<int>
+    return channel::<int>(1)
+end

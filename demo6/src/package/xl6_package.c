@@ -196,6 +196,7 @@ void xl6PackageManifestFree(XL6_PackageManifest* manifest)
     xrtFree(manifest->xapi);
     xrtFree(manifest->dir);
     xl6PackageStringListFree(&manifest->cSources);
+    xl6PackageStringListFree(&manifest->xlSources);
     xl6PackageStringListFree(&manifest->links);
     xl6PackageStringListFree(&manifest->loadlibs);
     for ( i = 0; i < manifest->dependencyCount; ++i ) {
@@ -578,6 +579,11 @@ static int xl6PackageManifestReadArtifact(XL6_PackageJson* json, XL6_PackageMani
                 xrtFree(key);
                 return 0;
             }
+        } else if ( strcmp(key, "xlSources") == 0 ) {
+            if ( !xl6PackageManifestReadStringArray(json, &manifest->xlSources) ) {
+                xrtFree(key);
+                return 0;
+            }
         } else if ( !xl6PackageJsonSkipValue(json) ) {
             xrtFree(key);
             return 0;
@@ -677,6 +683,11 @@ static int xl6PackageManifestParseRoot(XL6_PackageJson* json, XL6_PackageManifes
             }
         } else if ( strcmp(key, "cSources") == 0 ) {
             if ( !xl6PackageManifestReadStringArray(json, &manifest->cSources) ) {
+                xrtFree(key);
+                return 0;
+            }
+        } else if ( strcmp(key, "xlSources") == 0 ) {
+            if ( !xl6PackageManifestReadStringArray(json, &manifest->xlSources) ) {
                 xrtFree(key);
                 return 0;
             }
@@ -884,6 +895,52 @@ static int xl6PackageTryPathCandidates(XL6_PackageResolveResult* result, const c
     return 0;
 }
 
+static int xl6PackageCanBePackageName(const char* target)
+{
+    const char* p;
+
+    if ( target == NULL || target[0] == '\0' || target[0] == '.' ) {
+        return 0;
+    }
+    for ( p = target; *p != '\0'; ++p ) {
+        if ( *p == '\\' || *p == '/' || *p == ':' ) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
+static int xl6PackageTryNamedPackage(XL6_PackageResolveResult* result, const char* target)
+{
+    char path[512];
+    char path2[512];
+
+    if ( !xl6PackageCanBePackageName(target) ) {
+        return 0;
+    }
+    if ( xl6PackageJoinPath(path, sizeof(path), "packages", target) ) {
+        if ( xl6PackageJoinPath(path2, sizeof(path2), path, "xlang.package.json") &&
+             xl6PackageTryManifest(result, path2, XL6_PACKAGE_RESOLVE_PACKAGE) ) {
+            return 1;
+        }
+        if ( xl6PackageJoinPath(path2, sizeof(path2), path, "package.xapi.json") &&
+             xl6PackageTryManifest(result, path2, XL6_PACKAGE_RESOLVE_PACKAGE) ) {
+            return 1;
+        }
+    }
+    if ( xl6PackageJoinPath(path, sizeof(path), "lib", target) ) {
+        if ( xl6PackageJoinPath(path2, sizeof(path2), path, "xlang.package.json") &&
+             xl6PackageTryManifest(result, path2, XL6_PACKAGE_RESOLVE_PACKAGE) ) {
+            return 1;
+        }
+        if ( xl6PackageJoinPath(path2, sizeof(path2), path, "package.xapi.json") &&
+             xl6PackageTryManifest(result, path2, XL6_PACKAGE_RESOLVE_PACKAGE) ) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
 void xl6PackageResolveResultInit(XL6_PackageResolveResult* result)
 {
     if ( result == NULL ) {
@@ -908,7 +965,6 @@ int xl6PackageResolveImport(const char* importerPath, const char* target, XL6_Pa
 {
     char importerDir[512];
     char path[512];
-    char path2[512];
 
     if ( result == NULL ) {
         return 0;
@@ -920,6 +976,10 @@ int xl6PackageResolveImport(const char* importerPath, const char* target, XL6_Pa
     }
 
     xl6PackageDirName(importerDir, sizeof(importerDir), importerPath);
+
+    if ( xl6PackageTryNamedPackage(result, target) ) {
+        return 1;
+    }
 
     if ( xl6PackageLooksLikePath(target) ) {
         if ( xl6PackagePathIsAbsolute(target) ) {
@@ -938,26 +998,6 @@ int xl6PackageResolveImport(const char* importerPath, const char* target, XL6_Pa
         return 0;
     }
 
-    if ( xl6PackageJoinPath(path, sizeof(path), "packages", target) ) {
-        if ( xl6PackageJoinPath(path2, sizeof(path2), path, "xlang.package.json") &&
-             xl6PackageTryManifest(result, path2, XL6_PACKAGE_RESOLVE_PACKAGE) ) {
-            return 1;
-        }
-        if ( xl6PackageJoinPath(path2, sizeof(path2), path, "package.xapi.json") &&
-             xl6PackageTryManifest(result, path2, XL6_PACKAGE_RESOLVE_PACKAGE) ) {
-            return 1;
-        }
-    }
-    if ( xl6PackageJoinPath(path, sizeof(path), "lib", target) ) {
-        if ( xl6PackageJoinPath(path2, sizeof(path2), path, "xlang.package.json") &&
-             xl6PackageTryManifest(result, path2, XL6_PACKAGE_RESOLVE_PACKAGE) ) {
-            return 1;
-        }
-        if ( xl6PackageJoinPath(path2, sizeof(path2), path, "package.xapi.json") &&
-             xl6PackageTryManifest(result, path2, XL6_PACKAGE_RESOLVE_PACKAGE) ) {
-            return 1;
-        }
-    }
     return 0;
 }
 

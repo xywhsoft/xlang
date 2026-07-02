@@ -67,6 +67,16 @@ static int xl6CgenExprParamMatchCost(XL6_CgenContext* ctx, const XL6_AstNode* ex
             xl6AstFree(exprType);
             return 0;
         }
+        if ( exprTypeName != NULL &&
+             exprType->childCount > 0 &&
+             paramType->childCount == 0 &&
+             ((xl6CTextEquals(exprTypeName, "array") && xl6CgenIsArrayXValueType(paramType)) ||
+              (xl6CTextEquals(exprTypeName, "list") && xl6CgenIsListXValueType(paramType)) ||
+              (xl6CTextEquals(exprTypeName, "set") && xl6CgenIsSetXValueType(paramType)) ||
+              (xl6CTextEquals(exprTypeName, "dict") && xl6CgenIsDictXValueType(paramType))) ) {
+            xl6AstFree(exprType);
+            return 20;
+        }
         if ( xl6CTextEquals(targetType, "var") ) {
             xl6AstFree(exprType);
             return 80;

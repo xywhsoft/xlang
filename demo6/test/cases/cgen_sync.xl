@@ -44,6 +44,20 @@ assert fullWaited, "sem full original wait failed"
 assert refillPost, "sem post after drain failed"
 assert refillWaited, "sem refill wait failed"
 
+sem semWakeGate = sem(0, 1)
+auto semWakeWorker = func() as int
+    if not semWakeGate.waitTimeout(2000) then
+        return 10
+    end
+    return 23
+end
+
+thread semWakeThread = thread(semWakeWorker)
+assert not semWakeThread.waitTimeout(1), "sem worker should wait before post"
+assert semWakeGate.post(), "sem cross-thread post failed"
+assert semWakeThread.waitTimeout(2000), "sem cross-thread wait thread failed"
+assert semWakeThread.exitCode() == 23, "sem cross-thread worker exit failed"
+
 cond c = cond()
 bool signaled = c.signal()
 bool broadcasted = c.broadcast()

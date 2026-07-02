@@ -57,4 +57,4 @@ assert player.bonus == 9, "virtual property write failed"
 assert player.score() == 49, "virtual dispatch after property write failed"
 assert player.stable() == 7, "final inherited method failed"
 
-print("oop virtual dispatch ok")
+println("oop virtual dispatch ok")

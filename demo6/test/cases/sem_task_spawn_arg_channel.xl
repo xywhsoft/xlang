@@ -1,0 +1,3 @@
+func(channel<int>) as int job
+channel<int> ch = channel::<int>(1)
+task.spawn(job, ch)

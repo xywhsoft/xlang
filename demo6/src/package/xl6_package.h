@@ -49,6 +49,7 @@ typedef struct XL6_PackageManifest {
     char* xapi;
     char* dir;
     XL6_PackageStringList cSources;
+    XL6_PackageStringList xlSources;
     XL6_PackageStringList links;
     XL6_PackageStringList loadlibs;
     XL6_PackageDependency* dependencies;

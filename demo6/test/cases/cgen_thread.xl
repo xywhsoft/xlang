@@ -44,6 +44,15 @@ assert waited, "thread wait failed"
 assert code == 7, "thread exit code failed"
 assert state >= 0, "thread state failed"
 
+thread capturedReceiverThread = thread(worker)
+auto threadJoiner = func() as int
+    if not capturedReceiverThread.wait() then
+        return 10
+    end
+    return capturedReceiverThread.exitCode()
+end
+assert threadJoiner() == 7, "captured thread receiver wait/exitCode failed"
+
 auto second = thread(worker)
 bool waitedTimeout = second.waitTimeout(5000)
 int secondCode = second.exitCode()

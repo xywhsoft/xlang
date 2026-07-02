@@ -1,0 +1,18 @@
+import md5
+
+string sample = "hello xlang"
+string samplePath = "release/tmp/extlibs/md5_sample.txt"
+
+dir.createAll("release/tmp/extlibs")
+file.writeText(samplePath, sample)
+
+assert md5.version() == "md5 0.1.0", "md5 version mismatch"
+assert md5.hex("") == "d41d8cd98f00b204e9800998ecf8427e", "md5 empty digest mismatch"
+assert md5.hex("abc") == "900150983cd24fb0d6963f7d28e17f72", "md5 abc digest mismatch"
+assert md5.file(samplePath) == md5.hex(sample), "md5 file digest mismatch"
+assert md5.valid(md5.hex(sample)) != 0, "md5 valid digest failed"
+assert md5.valid("not-md5") == 0, "md5 invalid digest failed"
+assert md5.file("") == "", "md5 empty path should fail"
+assert md5.last_error() == "empty file path", "md5 diagnostic mismatch"
+
+println("md5 extlib ok")

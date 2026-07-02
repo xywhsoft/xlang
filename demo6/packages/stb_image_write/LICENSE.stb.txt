@@ -1,0 +1,5 @@
+stb single-file public domain libraries are available under either the MIT
+License or the public domain dedication included at the end of each header.
+
+The bundled header in include/stb_image_write.h contains the complete upstream
+license text.

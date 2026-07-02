@@ -1,0 +1,7 @@
+async func loadValue() as int
+    return 1
+end
+
+func(future<int>) as int job
+future<int> value = loadValue()
+task.spawn(job, value)

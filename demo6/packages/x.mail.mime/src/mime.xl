@@ -1,0 +1,45 @@
+extern "xmail_mime_result_native" func xmail_mime_result_native(bool ok, string error, string stage, var data) as var
+extern "xmail_mime_unsupported_native" func xmail_mime_unsupported_native(string operation) as var
+extern "xmail_mime_address_native" func xmail_mime_address_native(string email, string name) as var
+extern "xmail_mime_attachment_native" func xmail_mime_attachment_native(string filename, string content_type, var content, string content_id, bool is_inline) as var
+extern "xmail_mime_message_native" func xmail_mime_message_native(var fields) as var
+extern "xmail_mime_build_native" func xmail_mime_build_native(var message_value) as var
+extern "xmail_mime_parse_native" func xmail_mime_parse_native(string raw_message) as var
+extern "xmail_mime_build_json_native" func xmail_mime_build_json_native(string message_json) as string
+extern "xmail_mime_parse_json_native" func xmail_mime_parse_json_native(string raw_message) as string
+
+func __xl6_import_x_mail_mime_result(bool ok, string error, string stage, var data) as var
+    return xmail_mime_result_native(ok, error, stage, data)
+end
+
+func __xl6_import_x_mail_mime_unsupported(string operation) as var
+    return xmail_mime_unsupported_native(operation)
+end
+
+func __xl6_import_x_mail_mime_address(string email, string name) as var
+    return xmail_mime_address_native(email, name)
+end
+
+func __xl6_import_x_mail_mime_attachment(string filename, string content_type, var content, string content_id, bool is_inline) as var
+    return xmail_mime_attachment_native(filename, content_type, content, content_id, is_inline)
+end
+
+func __xl6_import_x_mail_mime_message(var fields) as var
+    return xmail_mime_message_native(fields)
+end
+
+func __xl6_import_x_mail_mime_build(var message_value) as var
+    return xmail_mime_build_native(message_value)
+end
+
+func __xl6_import_x_mail_mime_parse(string raw_message) as var
+    return xmail_mime_parse_native(raw_message)
+end
+
+func __xl6_import_x_mail_mime_build_json(string message_json) as string
+    return xmail_mime_build_json_native(message_json)
+end
+
+func __xl6_import_x_mail_mime_parse_json(string raw_message) as string
+    return xmail_mime_parse_json_native(raw_message)
+end

@@ -64,6 +64,11 @@ static int xl6CgenChannelCtorCall(XL6_CgenContext* ctx, const XL6_AstNode* call,
 static void xl6CgenChannelReceiverExpr(XL6_CgenContext* ctx, const XL6_AstNode* receiver)
 {
     if ( receiver != NULL && receiver->kind == XL6_AST_NAME ) {
+        if ( xl6CgenAnonCaptureIndex(ctx->currentAnonFunc, receiver->text) >= 0 ) {
+            xl6OutputPuts("__env->", ctx->out);
+            xl6CgenFputsCIdent(ctx->out, receiver->text);
+            return;
+        }
         xl6CgenFputsCIdent(ctx->out, receiver->text);
         return;
     }
@@ -642,6 +647,11 @@ static int xl6CgenThreadCtorCall(XL6_CgenContext* ctx, const XL6_AstNode* call, 
 static void xl6CgenThreadReceiver(XL6_CgenContext* ctx, const XL6_AstNode* receiver)
 {
     if ( receiver != NULL && receiver->kind == XL6_AST_NAME ) {
+        if ( xl6CgenAnonCaptureIndex(ctx->currentAnonFunc, receiver->text) >= 0 ) {
+            xl6OutputPuts("__env->", ctx->out);
+            xl6CgenFputsCIdent(ctx->out, receiver->text);
+            return;
+        }
         xl6CgenFputsCIdent(ctx->out, receiver->text);
         return;
     }

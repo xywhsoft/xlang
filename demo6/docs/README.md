@@ -93,3 +93,8 @@
 - 修改标准库命名、参数默认值或 XRT/CRT 边界时，同步维护 `标准库设计.md`。
 - 修改 import/package/XAPI 行为时，同步维护 `扩展库系统设计.md`、`C混编设计.md` 和相关 cgenrule 文档。
 - 历史任务单中的旧状态不能作为当前实现结论直接引用，必须回查当前权威设计或代码。
+
+## RapidOCR Package Readme Entries
+
+- ../packages/rapidocr/README.md: RapidOCR package fixture entry, native dependency boundary, model layout, and xlang fallback pipeline notes.
+- ../packages/rapidocr/models/README.md: RapidOCR bundled model directory entry and refresh helper note.

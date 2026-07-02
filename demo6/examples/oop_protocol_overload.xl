@@ -78,4 +78,4 @@ if not ("name" in grid) then
     throw "contains string overload failed"
 end
 
-print("oop protocol overload ok")
+println("oop protocol overload ok")

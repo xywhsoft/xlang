@@ -84,3 +84,64 @@ assert not fullCh.send(12), "full channel third send should fail"
 int fullValue = 0
 assert fullCh.recvInto(fullValue), "full channel receive failed"
 assert fullValue == 10, "full channel value mismatch"
+
+channel<int> crossThreadCh = channel::<int>(4)
+auto channelProducer = func() as int
+    if not crossThreadCh.send(314) then
+        return 10
+    end
+    if not crossThreadCh.send(159) then
+        return 11
+    end
+    crossThreadCh.close()
+    return 17
+end
+
+thread producerThread = thread(channelProducer)
+assert producerThread.waitTimeout(2000), "channel producer thread wait failed"
+assert producerThread.exitCode() == 17, "channel producer thread exit failed"
+assert crossThreadCh.isClosed(), "cross-thread channel close should be visible"
+
+int crossFirst = 0
+int crossSecond = 0
+assert crossThreadCh.recvInto(crossFirst), "cross-thread channel first recv failed"
+assert crossFirst == 314, "cross-thread channel first value mismatch"
+assert crossThreadCh.recvInto(crossSecond), "cross-thread channel second recv failed"
+assert crossSecond == 159, "cross-thread channel second value mismatch"
+assert not crossThreadCh.tryRecvInto(crossSecond), "cross-thread closed drained channel should not receive"
+assert not crossThreadCh.send(265), "cross-thread closed channel send should fail"
+
+channel<int> delayedRecvCh = channel::<int>(1)
+auto delayedRecvProducer = func() as int
+    time.sleep(30)
+    if not delayedRecvCh.send(271) then
+        return 10
+    end
+    return 19
+end
+
+thread delayedRecvThread = thread(delayedRecvProducer)
+int delayedRecvValue = 0
+assert delayedRecvCh.recvInto(delayedRecvValue), "blocking recv should wake after producer send"
+assert delayedRecvValue == 271, "blocking recv producer value mismatch"
+assert delayedRecvThread.waitTimeout(2000), "blocking recv producer thread wait failed"
+assert delayedRecvThread.exitCode() == 19, "blocking recv producer thread exit failed"
+delayedRecvCh.close()
+assert delayedRecvCh.isClosed(), "blocking recv channel close failed"
+
+channel<int> delayedConsumerCh = channel::<int>(1)
+auto delayedConsumer = func() as int
+    int got = 0
+    if not delayedConsumerCh.recvInto(got) then
+        return 10
+    end
+    return got
+end
+
+thread delayedConsumerThread = thread(delayedConsumer)
+time.sleep(30)
+assert delayedConsumerCh.send(2718), "blocking consumer send should wake receiver thread"
+assert delayedConsumerThread.waitTimeout(2000), "blocking consumer thread wait failed"
+assert delayedConsumerThread.exitCode() == 2718, "blocking consumer thread exit failed"
+delayedConsumerCh.close()
+assert delayedConsumerCh.isClosed(), "blocking consumer channel close failed"

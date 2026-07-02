@@ -1,0 +1,541 @@
+{
+    "format":  "xlang-xapi-1",
+    "compiler":  {
+                     "name":  "xl",
+                     "version":  "demo6",
+                     "xlangAbi":  1,
+                     "xrtAbi":  1
+                 },
+    "target":  {
+                   "os":  "windows",
+                   "arch":  "x64",
+                   "callingConvention":  "cdecl"
+               },
+    "package":  {
+                    "name":  "x.uia",
+                    "version":  "0.1.0",
+                    "abiVersion":  "1",
+                    "packageId":  "x.uia@0.1.0#abi1"
+                },
+    "module":  {
+                   "name":  "x.uia",
+                   "moduleId":  "x.uia@0.1.0#abi1::x.uia",
+                   "source":  "packages/x.uia",
+                   "sourceHash":  ""
+               },
+    "entry":  {
+                  "kind":  "none",
+                  "requiresExplicitInit":  true,
+                  "initSymbol":  "xlInit",
+                  "unitSymbol":  "xlUnit"
+              },
+    "exports":  [
+                    {
+                        "kind":  "function",
+                        "name":  "version",
+                        "cSymbol":  "__xl6_import_x_uia_version",
+                        "signature":  "func() as string",
+                        "exportId":  "x.uia@0.1.0#abi1::x.uia::version(func() as string)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  0,
+                        "fixedParamCount":  0,
+                        "params":  [
+
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "string"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "last_error",
+                        "cSymbol":  "__xl6_import_x_uia_last_error",
+                        "signature":  "func() as string",
+                        "exportId":  "x.uia@0.1.0#abi1::x.uia::last_error(func() as string)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  0,
+                        "fixedParamCount":  0,
+                        "params":  [
+
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "string"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "shutdown",
+                        "cSymbol":  "__xl6_import_x_uia_shutdown",
+                        "signature":  "func() as bool",
+                        "exportId":  "x.uia@0.1.0#abi1::x.uia::shutdown(func() as bool)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  0,
+                        "fixedParamCount":  0,
+                        "params":  [
+
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "bool"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "launch",
+                        "cSymbol":  "__xl6_import_x_uia_launch",
+                        "signature":  "func(string) as Process",
+                        "exportId":  "x.uia@0.1.0#abi1::x.uia::launch(func(string) as Process)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  1,
+                        "fixedParamCount":  1,
+                        "params":  [
+                                       {
+                                           "name":  "command",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "Process"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "test_window",
+                        "cSymbol":  "__xl6_import_x_uia_test_window",
+                        "signature":  "func() as TestWindow",
+                        "exportId":  "x.uia@0.1.0#abi1::x.uia::test_window(func() as TestWindow)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  0,
+                        "fixedParamCount":  0,
+                        "params":  [
+
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "TestWindow"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "desktop",
+                        "cSymbol":  "__xl6_import_x_uia_desktop",
+                        "signature":  "func() as Element",
+                        "exportId":  "x.uia@0.1.0#abi1::x.uia::desktop(func() as Element)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  0,
+                        "fixedParamCount":  0,
+                        "params":  [
+
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "Element"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "focused",
+                        "cSymbol":  "__xl6_import_x_uia_focused",
+                        "signature":  "func() as Element",
+                        "exportId":  "x.uia@0.1.0#abi1::x.uia::focused(func() as Element)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  0,
+                        "fixedParamCount":  0,
+                        "params":  [
+
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "Element"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "focused_locator",
+                        "cSymbol":  "__xl6_import_x_uia_focused_locator",
+                        "signature":  "func() as string",
+                        "exportId":  "x.uia@0.1.0#abi1::x.uia::focused_locator(func() as string)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  0,
+                        "fixedParamCount":  0,
+                        "params":  [
+
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "string"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "from_hwnd",
+                        "cSymbol":  "__xl6_import_x_uia_from_hwnd",
+                        "signature":  "func(point) as Element",
+                        "exportId":  "x.uia@0.1.0#abi1::x.uia::from_hwnd(func(point) as Element)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  1,
+                        "fixedParamCount":  1,
+                        "params":  [
+                                       {
+                                           "name":  "hwnd",
+                                           "type":  "point",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "Element"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "from_point",
+                        "cSymbol":  "__xl6_import_x_uia_from_point",
+                        "signature":  "func(int,int) as Element",
+                        "exportId":  "x.uia@0.1.0#abi1::x.uia::from_point(func(int,int) as Element)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  2,
+                        "fixedParamCount":  2,
+                        "params":  [
+                                       {
+                                           "name":  "x",
+                                           "type":  "int",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "y",
+                                           "type":  "int",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "Element"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "events",
+                        "cSymbol":  "__xl6_import_x_uia_events",
+                        "signature":  "func() as Events",
+                        "exportId":  "x.uia@0.1.0#abi1::x.uia::events(func() as Events)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  0,
+                        "fixedParamCount":  0,
+                        "params":  [
+
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "Events"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "element",
+                        "cSymbol":  "__xl6_import_x_uia_element",
+                        "signature":  "func(point) as Element",
+                        "exportId":  "x.uia@0.1.0#abi1::x.uia::element(func(point) as Element)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  1,
+                        "fixedParamCount":  1,
+                        "params":  [
+                                       {
+                                           "name":  "handle",
+                                           "type":  "point",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "Element"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "locator_for",
+                        "cSymbol":  "__xl6_import_x_uia_locator_for",
+                        "signature":  "func(Element) as string",
+                        "exportId":  "x.uia@0.1.0#abi1::x.uia::locator_for(func(Element) as string)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  1,
+                        "fixedParamCount":  1,
+                        "params":  [
+                                       {
+                                           "name":  "element_value",
+                                           "type":  "Element",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "string"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "by_name",
+                        "cSymbol":  "__xl6_import_x_uia_by_name",
+                        "signature":  "func(string) as Condition",
+                        "exportId":  "x.uia@0.1.0#abi1::x.uia::by_name(func(string) as Condition)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  1,
+                        "fixedParamCount":  1,
+                        "params":  [
+                                       {
+                                           "name":  "name",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "Condition"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "by_process_id",
+                        "cSymbol":  "__xl6_import_x_uia_by_process_id",
+                        "signature":  "func(int) as Condition",
+                        "exportId":  "x.uia@0.1.0#abi1::x.uia::by_process_id(func(int) as Condition)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  1,
+                        "fixedParamCount":  1,
+                        "params":  [
+                                       {
+                                           "name":  "process_id",
+                                           "type":  "int",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "Condition"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "by_automation_id",
+                        "cSymbol":  "__xl6_import_x_uia_by_automation_id",
+                        "signature":  "func(string) as Condition",
+                        "exportId":  "x.uia@0.1.0#abi1::x.uia::by_automation_id(func(string) as Condition)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  1,
+                        "fixedParamCount":  1,
+                        "params":  [
+                                       {
+                                           "name":  "automation_id",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "Condition"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "by_class_name",
+                        "cSymbol":  "__xl6_import_x_uia_by_class_name",
+                        "signature":  "func(string) as Condition",
+                        "exportId":  "x.uia@0.1.0#abi1::x.uia::by_class_name(func(string) as Condition)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  1,
+                        "fixedParamCount":  1,
+                        "params":  [
+                                       {
+                                           "name":  "class_name",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "Condition"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "by_control_type",
+                        "cSymbol":  "__xl6_import_x_uia_by_control_type",
+                        "signature":  "func(int) as Condition",
+                        "exportId":  "x.uia@0.1.0#abi1::x.uia::by_control_type(func(int) as Condition)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  1,
+                        "fixedParamCount":  1,
+                        "params":  [
+                                       {
+                                           "name":  "control_type",
+                                           "type":  "int",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "Condition"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "all_of",
+                        "cSymbol":  "__xl6_import_x_uia_all_of",
+                        "signature":  "func(Condition,Condition) as Condition",
+                        "exportId":  "x.uia@0.1.0#abi1::x.uia::all_of(func(Condition,Condition) as Condition)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  2,
+                        "fixedParamCount":  2,
+                        "params":  [
+                                       {
+                                           "name":  "left",
+                                           "type":  "Condition",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "right",
+                                           "type":  "Condition",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "Condition"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "any_of",
+                        "cSymbol":  "__xl6_import_x_uia_any_of",
+                        "signature":  "func(Condition,Condition) as Condition",
+                        "exportId":  "x.uia@0.1.0#abi1::x.uia::any_of(func(Condition,Condition) as Condition)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  2,
+                        "fixedParamCount":  2,
+                        "params":  [
+                                       {
+                                           "name":  "left",
+                                           "type":  "Condition",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "right",
+                                           "type":  "Condition",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "Condition"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "not_condition",
+                        "cSymbol":  "__xl6_import_x_uia_not_condition",
+                        "signature":  "func(Condition) as Condition",
+                        "exportId":  "x.uia@0.1.0#abi1::x.uia::not_condition(func(Condition) as Condition)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  1,
+                        "fixedParamCount":  1,
+                        "params":  [
+                                       {
+                                           "name":  "condition",
+                                           "type":  "Condition",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "Condition"
+                                        }
+                                    ]
+                    }
+                ],
+    "types":  [
+
+              ],
+    "imports":  [
+
+                ],
+    "links":  [
+                  "ole32",
+                  "oleaut32",
+                  "user32"
+              ],
+    "loadlibs":  [
+
+                 ],
+    "cSources":  [
+                     "x_uia_artifact.c"
+                 ],
+    "native":  {
+                   "singleton":  false,
+                   "loadName":  "",
+                   "version":  ""
+               },
+    "docs":  [
+
+             ]
+}

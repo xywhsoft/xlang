@@ -1,0 +1,2 @@
+future<future<int>> nested
+task.all([nested])

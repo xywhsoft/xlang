@@ -1,0 +1,3 @@
+func(sem) as int job
+sem gate = sem(0, 1)
+task.spawn(job, gate)

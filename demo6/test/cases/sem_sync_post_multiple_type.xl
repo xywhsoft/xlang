@@ -1,0 +1,3 @@
+sem gate = sem(0, 2)
+
+bool ok = gate.postMultiple("2")

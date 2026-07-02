@@ -1,0 +1,6 @@
+func nums() as generator<int>
+    yield 1
+end
+
+func() as generator<int> job = nums
+task.spawn(job)

@@ -38,6 +38,17 @@ func emptyNums() as generator<int>
     end
 end
 
+func returnEarlyNums() as generator<int>
+    yield 5
+    return
+    yield 50
+end
+
+func returnBeforeYieldNums() as generator<int>
+    return
+    yield 60
+end
+
 int total = 0
 for value in nums(3)
     total = total + value
@@ -57,6 +68,32 @@ for value in nums(5)
 end
 
 assert filtered == 8, "generator break/continue failed"
+
+generator<int> savedBreakGen = nums(3)
+int savedBreakTotal = 0
+for index, item in savedBreakGen
+    if index == 0 then
+        continue
+    end
+    savedBreakTotal = savedBreakTotal + index * 100 + item
+    break
+end
+
+assert savedBreakTotal == 102, "saved generator break/continue failed"
+
+int savedBreakAgainState = 0
+try
+    for item in savedBreakGen
+        savedBreakAgainState = savedBreakAgainState + item
+    end
+    savedBreakAgainState = 100
+catch e
+    if e.message == "iterate null generator" then
+        savedBreakAgainState = 42
+    end
+end
+
+assert savedBreakAgainState == 42, "saved generator break should close generator"
 
 auto autoGen = nums(2)
 int autoTotal = 0
@@ -168,3 +205,73 @@ for value in emptyNums()
 end
 
 assert emptyCount == 0, "empty generator should not yield values"
+
+generator<int> savedReturnEarlyNums = returnEarlyNums()
+int savedReturnEarlyCount = 0
+int savedReturnEarlyTotal = 0
+for value in savedReturnEarlyNums
+    savedReturnEarlyCount = savedReturnEarlyCount + 1
+    savedReturnEarlyTotal = savedReturnEarlyTotal + value
+end
+
+assert savedReturnEarlyCount == 1, "saved generator return count failed"
+assert savedReturnEarlyTotal == 5, "saved generator return total failed"
+
+int savedReturnEarlyAgainState = 0
+try
+    for value in savedReturnEarlyNums
+        savedReturnEarlyAgainState = savedReturnEarlyAgainState + value
+    end
+    savedReturnEarlyAgainState = 100
+catch e
+    if e.message == "iterate null generator" then
+        savedReturnEarlyAgainState = 42
+    end
+end
+
+assert savedReturnEarlyAgainState == 42, "saved generator return second pass failed"
+
+generator<int> savedReturnBeforeYieldNums = returnBeforeYieldNums()
+int savedReturnBeforeYieldCount = 0
+int savedReturnBeforeYieldTotal = 0
+for value in savedReturnBeforeYieldNums
+    savedReturnBeforeYieldCount = savedReturnBeforeYieldCount + 1
+    savedReturnBeforeYieldTotal = savedReturnBeforeYieldTotal + value
+end
+
+assert savedReturnBeforeYieldCount == 0, "saved generator pre-yield return count failed"
+assert savedReturnBeforeYieldTotal == 0, "saved generator pre-yield return total failed"
+
+int savedReturnBeforeYieldAgainState = 0
+try
+    for value in savedReturnBeforeYieldNums
+        savedReturnBeforeYieldAgainState = savedReturnBeforeYieldAgainState + value
+    end
+    savedReturnBeforeYieldAgainState = 100
+catch e
+    if e.message == "iterate null generator" then
+        savedReturnBeforeYieldAgainState = 42
+    end
+end
+
+assert savedReturnBeforeYieldAgainState == 42, "saved generator pre-yield return second pass failed"
+
+int returnEarlyCount = 0
+int returnEarlyTotal = 0
+for value in returnEarlyNums()
+    returnEarlyCount = returnEarlyCount + 1
+    returnEarlyTotal = returnEarlyTotal + value
+end
+
+assert returnEarlyCount == 1, "generator return count failed"
+assert returnEarlyTotal == 5, "generator return total failed"
+
+int returnBeforeYieldCount = 0
+int returnBeforeYieldTotal = 0
+for value in returnBeforeYieldNums()
+    returnBeforeYieldCount = returnBeforeYieldCount + 1
+    returnBeforeYieldTotal = returnBeforeYieldTotal + value
+end
+
+assert returnBeforeYieldCount == 0, "generator pre-yield return count failed"
+assert returnBeforeYieldTotal == 0, "generator pre-yield return total failed"

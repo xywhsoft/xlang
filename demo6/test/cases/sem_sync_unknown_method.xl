@@ -1,0 +1,3 @@
+mutex m = mutex()
+
+bool ok = m.wait()

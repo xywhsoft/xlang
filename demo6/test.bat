@@ -49,7 +49,7 @@ if errorlevel 1 exit /b 1
 powershell -NoProfile -Command "$dir = Join-Path 'src' 'cgen'; $m = Get-ChildItem -LiteralPath $dir -Filter '*.c' | Select-String -SimpleMatch '({ XL6_Function'; if ($m) { Write-Host 'src cgen contains stale XL6_Function statement-expression fallback.'; exit 1 }"
 if errorlevel 1 exit /b 1
 
-powershell -NoProfile -Command "$dir = Join-Path 'src' 'cgen'; $files = Get-ChildItem -LiteralPath $dir -Filter '*.c' | Where-Object { $_.Name -ne 'xl6_cgen_async.c' }; $m = $files | Select-String -SimpleMatch 'xFutureRequestCancel'; if ($m) { Write-Host 'src cgen emits direct future cancel outside async runtime helper.'; exit 1 }"
+powershell -NoProfile -Command "$dir = Join-Path 'src' 'cgen'; $files = Get-ChildItem -LiteralPath $dir -Filter '*.c' | Where-Object { $_.Name -ne 'xl6_cgen_async_runtime.c' }; $m = $files | Select-String -SimpleMatch 'xFutureRequestCancel'; if ($m) { Write-Host 'src cgen emits direct future cancel outside async runtime helper.'; exit 1 }"
 if errorlevel 1 exit /b 1
 
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_cgen_statement_expr_allowlist.ps1
@@ -76,10 +76,19 @@ if errorlevel 1 exit /b 1
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_example_wiring.ps1
 if errorlevel 1 exit /b 1
 
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_xlang_output_markers.ps1
+if errorlevel 1 exit /b 1
+
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_c_fixture_wiring.ps1
 if errorlevel 1 exit /b 1
 
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_package_fixtures.ps1
+if errorlevel 1 exit /b 1
+
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_package_xrt_symbols.ps1
+if errorlevel 1 exit /b 1
+
+call examples\extlibs\run_extlibs.bat
 if errorlevel 1 exit /b 1
 
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_stdlib_coverage.ps1
@@ -102,12 +111,33 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe run examples\concurrency.xl %XL6_XL_DEFAULT_LINK_ARGS%
 if errorlevel 1 exit /b 1
+for /L %%I in (1,1,2) do (
+    release\xl.exe run examples\concurrency.xl %XL6_XL_DEFAULT_LINK_ARGS%
+    if errorlevel 1 (
+        echo examples\concurrency.xl repeat run %%I failed.
+        exit /b 1
+    )
+)
 
 release\xl.exe run examples\task_api.xl %XL6_XL_DEFAULT_LINK_ARGS%
 if errorlevel 1 exit /b 1
+for /L %%I in (1,1,2) do (
+    release\xl.exe run examples\task_api.xl %XL6_XL_DEFAULT_LINK_ARGS%
+    if errorlevel 1 (
+        echo examples\task_api.xl repeat run %%I failed.
+        exit /b 1
+    )
+)
 
 release\xl.exe run examples\async_generator.xl %XL6_XL_DEFAULT_LINK_ARGS%
 if errorlevel 1 exit /b 1
+for /L %%I in (1,1,3) do (
+    release\xl.exe run examples\async_generator.xl %XL6_XL_DEFAULT_LINK_ARGS%
+    if errorlevel 1 (
+        echo examples\async_generator.xl repeat run %%I failed.
+        exit /b 1
+    )
+)
 
 release\xl.exe run examples\union.xl %XL6_XL_DEFAULT_LINK_ARGS%
 if errorlevel 1 exit /b 1
@@ -720,7 +750,7 @@ if not errorlevel 1 (
     echo import_unsupported_xapi_use.xl should fail.
     exit /b 1
 )
-findstr /C:"C ABI bridge: unsupported_xapi.unsupportedCall" release\tmp\import_unsupported_xapi_use.err.txt >nul
+findstr /C:"XAPI symbol cannot enter C ABI bridge yet: unsupported_xapi.unsupportedCall" release\tmp\import_unsupported_xapi_use.err.txt >nul
 if errorlevel 1 (
     echo import_unsupported_xapi_use.err.txt missing unsupported import diagnostic.
     exit /b 1
@@ -6431,6 +6461,40 @@ if errorlevel 1 exit /b 1
 release\tmp\cgen_dynamic_member_access.exe
 if errorlevel 1 exit /b 1
 
+release\xl.exe check test\cases\cgen_dynamic_container_param.xl
+if errorlevel 1 exit /b 1
+release\xl.exe cgen test\cases\cgen_dynamic_container_param.xl --emit release\tmp\cgen_dynamic_container_param.c
+if errorlevel 1 exit /b 1
+findstr /C:"xvalue take(xvalue values)" release\tmp\cgen_dynamic_container_param.c >nul
+if errorlevel 1 (
+    echo cgen_dynamic_container_param.c missing dynamic array parameter lowering.
+    exit /b 1
+)
+findstr /C:"xvalue choose(xvalue values)" release\tmp\cgen_dynamic_container_param.c >nul
+if errorlevel 1 (
+    echo cgen_dynamic_container_param.c missing dynamic dict parameter lowering.
+    exit /b 1
+)
+findstr /C:"xvoArrayGetValue(values, (unsigned int)(0LL))" release\tmp\cgen_dynamic_container_param.c >nul
+if errorlevel 1 (
+    echo cgen_dynamic_container_param.c missing dynamic array index return.
+    exit /b 1
+)
+findstr /C:"xvalue direct = take(xl6_xrt_array_varargs(2," release\tmp\cgen_dynamic_container_param.c >nul
+if errorlevel 1 (
+    echo cgen_dynamic_container_param.c missing dynamic array literal argument.
+    exit /b 1
+)
+findstr /C:"xvalue named = choose(xl6_xrt_dict_varargs(1," release\tmp\cgen_dynamic_container_param.c >nul
+if errorlevel 1 (
+    echo cgen_dynamic_container_param.c missing dynamic dict literal argument.
+    exit /b 1
+)
+release\xl.exe build test\cases\cgen_dynamic_container_param.xl -o release\tmp\cgen_dynamic_container_param.exe
+if errorlevel 1 exit /b 1
+release\tmp\cgen_dynamic_container_param.exe
+if errorlevel 1 exit /b 1
+
 release\xl.exe cgen test\cases\cgen_safe_member.xl --emit release\tmp\cgen_safe_member.c
 if errorlevel 1 exit /b 1
 findstr /C:"xl6_xrt_member_safe_length(values)" release\tmp\cgen_safe_member.c >nul
@@ -10220,6 +10284,17 @@ if not errorlevel 1 (
     exit /b 1
 )
 
+release\xl.exe check test\cases\sem_for_await_three_targets.xl >nul 2> release\tmp\sem_for_await_three_targets.err.txt
+if not errorlevel 1 (
+    echo sem_for_await_three_targets.xl should fail.
+    exit /b 1
+)
+findstr /C:"code generation error" release\tmp\sem_for_await_three_targets.err.txt >nul
+if not errorlevel 1 (
+    echo sem_for_await_three_targets.err.txt regressed to generic cgen diagnostic.
+    exit /b 1
+)
+
 release\xl.exe check test\cases\cgen_exceptions.xl
 if errorlevel 1 exit /b 1
 
@@ -10329,6 +10404,11 @@ if errorlevel 1 (
     echo cgen_sync.c missing sem overflow/full guard lowering.
     exit /b 1
 )
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_sync.c',[System.Text.Encoding]::UTF8); $checks=@('xrtSemWaitTimeout(__env->semWakeGate, 2000LL) == 0','XL6_Function semWakeWorker = xl6_anon_','_make(semWakeGate)','xl6_thread_start(semWakeWorker, 1','xrtThreadWaitTimeout(semWakeThread, 1LL) == 0','xrtSemPost(semWakeGate)','xrtThreadWaitTimeout(semWakeThread, 2000LL) == 0','(int)xrtThreadGetExitCode(semWakeThread) == 23LL'); foreach($p in $checks){ if($text.IndexOf($p) -lt 0){ Write-Host ('cgen_sync.c missing '+$p); exit 1 } }"
+if errorlevel 1 (
+    echo cgen_sync.c missing cross-thread sem wake guard lowering.
+    exit /b 1
+)
 findstr /C:"xrtCondWaitTimeout(c, condMutex" release\tmp\cgen_sync.c >nul
 if errorlevel 1 (
     echo cgen_sync.c missing cond waitTimeout path.
@@ -10381,6 +10461,17 @@ if errorlevel 1 (
     exit /b 1
 )
 
+release\xl.exe check test\cases\sem_sync_ctor_named_argument.xl >nul 2> release\tmp\sem_sync_ctor_named_argument.err.txt
+if not errorlevel 1 (
+    echo sem_sync_ctor_named_argument.xl should fail.
+    exit /b 1
+)
+findstr /C:"sync constructor accepts positional arguments only" release\tmp\sem_sync_ctor_named_argument.err.txt >nul
+if errorlevel 1 (
+    echo sem_sync_ctor_named_argument.xl missing sync constructor named argument diagnostic.
+    exit /b 1
+)
+
 release\xl.exe check test\cases\sem_sync_method_args.xl >nul 2> release\tmp\sem_sync_method_args.err.txt
 if not errorlevel 1 (
     echo sem_sync_method_args.xl should fail.
@@ -10389,6 +10480,39 @@ if not errorlevel 1 (
 findstr /C:"sync method does not accept arguments" release\tmp\sem_sync_method_args.err.txt >nul
 if errorlevel 1 (
     echo sem_sync_method_args.xl missing sync method argument diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_sync_wait_timeout_type.xl >nul 2> release\tmp\sem_sync_wait_timeout_type.err.txt
+if not errorlevel 1 (
+    echo sem_sync_wait_timeout_type.xl should fail.
+    exit /b 1
+)
+findstr /C:"sync method argument must be int" release\tmp\sem_sync_wait_timeout_type.err.txt >nul
+if errorlevel 1 (
+    echo sem_sync_wait_timeout_type.xl missing sync timeout type diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_sync_post_multiple_type.xl >nul 2> release\tmp\sem_sync_post_multiple_type.err.txt
+if not errorlevel 1 (
+    echo sem_sync_post_multiple_type.xl should fail.
+    exit /b 1
+)
+findstr /C:"sync method argument must be int" release\tmp\sem_sync_post_multiple_type.err.txt >nul
+if errorlevel 1 (
+    echo sem_sync_post_multiple_type.xl missing sync postMultiple type diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_sync_unknown_method.xl >nul 2> release\tmp\sem_sync_unknown_method.err.txt
+if not errorlevel 1 (
+    echo sem_sync_unknown_method.xl should fail.
+    exit /b 1
+)
+findstr /C:"unknown sync method" release\tmp\sem_sync_unknown_method.err.txt >nul
+if errorlevel 1 (
+    echo sem_sync_unknown_method.xl missing unknown sync method diagnostic.
     exit /b 1
 )
 
@@ -10411,6 +10535,17 @@ if not errorlevel 1 (
 findstr /C:"cond wait first argument must be mutex" release\tmp\sem_sync_cond_mutex_arg.err.txt >nul
 if errorlevel 1 (
     echo sem_sync_cond_mutex_arg.xl missing cond mutex diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_sync_cond_wait_timeout_type.xl >nul 2> release\tmp\sem_sync_cond_wait_timeout_type.err.txt
+if not errorlevel 1 (
+    echo sem_sync_cond_wait_timeout_type.xl should fail.
+    exit /b 1
+)
+findstr /C:"cond wait timeout must be int" release\tmp\sem_sync_cond_wait_timeout_type.err.txt >nul
+if errorlevel 1 (
+    echo sem_sync_cond_wait_timeout_type.xl missing cond timeout type diagnostic.
     exit /b 1
 )
 
@@ -10502,6 +10637,11 @@ if errorlevel 1 (
     echo cgen_thread.c missing borrowed conditional thread callable ownership guard.
     exit /b 1
 )
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_thread.c',[System.Text.Encoding]::UTF8); $checks=@('void* capturedReceiverThread = xl6_thread_require_handle(xl6_thread_start(xl6_fnvalue_worker_make(), 0','void* capturedReceiverThread;','xrtThreadWait(__env->capturedReceiverThread), true','(int)xrtThreadGetExitCode(__env->capturedReceiverThread)','XL6_Function threadJoiner = xl6_anon_','_make(capturedReceiverThread)'); foreach($p in $checks){ if($text.IndexOf($p) -lt 0){ Write-Host ('cgen_thread.c missing '+$p); exit 1 } }"
+if errorlevel 1 (
+    echo cgen_thread.c missing captured thread receiver guard lowering.
+    exit /b 1
+)
 
 release\xl.exe check test\cases\cgen_thread_default.xl
 if errorlevel 1 exit /b 1
@@ -10542,6 +10682,17 @@ if errorlevel 1 (
     exit /b 1
 )
 
+release\xl.exe check test\cases\sem_thread_ctor_named_argument.xl >nul 2> release\tmp\sem_thread_ctor_named_argument.err.txt
+if not errorlevel 1 (
+    echo sem_thread_ctor_named_argument.xl should fail.
+    exit /b 1
+)
+findstr /C:"thread constructor accepts positional arguments only" release\tmp\sem_thread_ctor_named_argument.err.txt >nul
+if errorlevel 1 (
+    echo sem_thread_ctor_named_argument.xl missing thread constructor named argument diagnostic.
+    exit /b 1
+)
+
 release\xl.exe check test\cases\sem_thread_entry_signature.xl >nul 2> release\tmp\sem_thread_entry_signature.err.txt
 if not errorlevel 1 (
     echo sem_thread_entry_signature.xl should fail.
@@ -10566,6 +10717,28 @@ if not errorlevel 1 (
 findstr /C:"thread method does not accept arguments" release\tmp\sem_thread_method_args.err.txt >nul
 if errorlevel 1 (
     echo sem_thread_method_args.xl missing thread method argument diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_thread_wait_timeout_type.xl >nul 2> release\tmp\sem_thread_wait_timeout_type.err.txt
+if not errorlevel 1 (
+    echo sem_thread_wait_timeout_type.xl should fail.
+    exit /b 1
+)
+findstr /C:"thread.waitTimeout argument must be int" release\tmp\sem_thread_wait_timeout_type.err.txt >nul
+if errorlevel 1 (
+    echo sem_thread_wait_timeout_type.xl missing thread waitTimeout type diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_thread_unknown_method.xl >nul 2> release\tmp\sem_thread_unknown_method.err.txt
+if not errorlevel 1 (
+    echo sem_thread_unknown_method.xl should fail.
+    exit /b 1
+)
+findstr /C:"unknown thread method" release\tmp\sem_thread_unknown_method.err.txt >nul
+if errorlevel 1 (
+    echo sem_thread_unknown_method.xl missing unknown thread method diagnostic.
     exit /b 1
 )
 
@@ -11680,6 +11853,26 @@ if errorlevel 1 (
     echo cgen_task_api.c missing second loser await after three-way task.race.
     exit /b 1
 )
+findstr /C:"nestedRaceLeft, 0, nestedRaceRight, 0" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should pass nested task.race inputs to task.all as borrowed.
+    exit /b 1
+)
+findstr /C:"nestedRaceFast, 0, nestedRaceSlow, 0" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should pass nested task.race inputs to task.race as borrowed.
+    exit /b 1
+)
+findstr /C:"xl6_task_cancel_value(nestedRaceGroup, 0)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing completed nested task.race cancel fixture.
+    exit /b 1
+)
+findstr /C:"nestedRaceSlowLateValue = (*(long long*)xl6_future_await_value(nestedRaceSlow" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing nested task.race loser late await fixture.
+    exit /b 1
+)
 findstr /C:"sourceCanceledAllGroup = xl6_task_all_values(xrtTypeInt()" release\tmp\cgen_task_api.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing source-canceled task.all fixture.
@@ -11720,6 +11913,26 @@ if errorlevel 1 (
     echo cgen_task_api.c should keep other task.all source completed after source cancel.
     exit /b 1
 )
+findstr /C:"sourceCanceledAllLeftLateValue = (*(long long*)xl6_future_await_value(sourceCanceledAllLeft" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing late await for directly canceled task.all source.
+    exit /b 1
+)
+findstr /C:"expect_i64(sourceCanceledAllLeftLateState, 42LL)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should keep directly canceled task.all source canceled after late completion.
+    exit /b 1
+)
+findstr /C:"sourceCanceledAllLeftAgain = xl6_task_cancel_value(sourceCanceledAllLeft, 0)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should keep directly canceled task.all source cancel idempotent.
+    exit /b 1
+)
+findstr /C:"expect_i64(sourceCanceledAllLeftAgain, 1LL)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing directly canceled task.all source repeated cancel assertion.
+    exit /b 1
+)
 findstr /C:"sourceCanceledTypedAllGroup = xl6_task_all_from_array((xtarray)(sourceCanceledTypedAllJobs)" release\tmp\cgen_task_api.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing typed-array source-canceled task.all fixture.
@@ -11733,6 +11946,36 @@ if errorlevel 1 (
 findstr /C:"sourceCanceledTypedAllRightCancel = xl6_task_cancel_value(sourceCanceledTypedAllRight, 0)" release\tmp\cgen_task_api.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c should keep other typed-array task.all source completed after source cancel.
+    exit /b 1
+)
+findstr /C:"sourceCanceledTypedAllLeftValue = (*(long long*)xl6_future_await_value(sourceCanceledTypedAllLeft" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing await for directly canceled typed-array task.all source.
+    exit /b 1
+)
+findstr /C:"expect_i64(sourceCanceledTypedAllLeftState, 42LL)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should keep directly canceled typed-array task.all source canceled.
+    exit /b 1
+)
+findstr /C:"sourceCanceledTypedAllLeftLateValue = (*(long long*)xl6_future_await_value(sourceCanceledTypedAllLeft" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing late await for directly canceled typed-array task.all source.
+    exit /b 1
+)
+findstr /C:"expect_i64(sourceCanceledTypedAllLeftLateState, 42LL)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should keep directly canceled typed-array task.all source canceled after late completion.
+    exit /b 1
+)
+findstr /C:"sourceCanceledTypedAllLeftAgain = xl6_task_cancel_value(sourceCanceledTypedAllLeft, 0)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should keep directly canceled typed-array task.all source cancel idempotent.
+    exit /b 1
+)
+findstr /C:"expect_i64(sourceCanceledTypedAllLeftAgain, 1LL)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing directly canceled typed-array task.all source repeated cancel assertion.
     exit /b 1
 )
 findstr /C:"sourceCanceledRaceGroup = xl6_task_race_values" release\tmp\cgen_task_api.c >nul
@@ -11760,6 +12003,26 @@ if errorlevel 1 (
     echo cgen_task_api.c should cancel typed-array task.race source future directly.
     exit /b 1
 )
+findstr /C:"sourceCanceledTypedRaceLoserLateValue = (*(long long*)xl6_future_await_value(sourceCanceledTypedRaceLoser" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing late typed-array source-canceled task.race loser await.
+    exit /b 1
+)
+findstr /C:"expect_i64(sourceCanceledTypedRaceLoserLateState, 42LL)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should keep late typed-array source-canceled task.race loser canceled.
+    exit /b 1
+)
+findstr /C:"sourceCanceledTypedRaceWinnerAgain = xl6_task_cancel_value(sourceCanceledTypedRaceWinner, 0)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should keep typed-array source-canceled task.race winner cancel idempotent.
+    exit /b 1
+)
+findstr /C:"expect_i64(sourceCanceledTypedRaceWinnerAgain, 1LL)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing typed-array source-canceled task.race winner repeated cancel assertion.
+    exit /b 1
+)
 findstr /C:"completedCanceledAllGroup = xl6_task_all_values(xrtTypeInt()" release\tmp\cgen_task_api.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing completed-canceled task.all source fixture.
@@ -11773,6 +12036,81 @@ if errorlevel 1 (
 findstr /C:"completedCanceledAllRightCancel = xl6_task_cancel_value(completedCanceledAllRight, 0)" release\tmp\cgen_task_api.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c should keep other source completed after completed-canceled task.all source.
+    exit /b 1
+)
+findstr /C:"completedCanceledAllLeftValue = (*(long long*)xl6_future_await_value(completedCanceledAllLeft" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing await for completed-canceled task.all source.
+    exit /b 1
+)
+findstr /C:"expect_i64(completedCanceledAllLeftState, 42LL)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should keep completed-canceled task.all source canceled.
+    exit /b 1
+)
+findstr /C:"completedCanceledTypedAllGroup = xl6_task_all_from_array((xtarray)(completedCanceledTypedAllJobs)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing completed-canceled typed-array task.all source fixture.
+    exit /b 1
+)
+findstr /C:"completedCanceledTypedAllRequest = xl6_task_cancel_value(completedCanceledTypedAllLeft, 0)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should cancel typed-array completed-canceled task.all source before grouping.
+    exit /b 1
+)
+findstr /C:"completedCanceledTypedAllRightCancel = xl6_task_cancel_value(completedCanceledTypedAllRight, 0)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should keep typed-array completed-canceled task.all sibling completed.
+    exit /b 1
+)
+findstr /C:"completedCanceledTypedAllLeftValue = (*(long long*)xl6_future_await_value(completedCanceledTypedAllLeft" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing await for completed-canceled typed-array task.all source.
+    exit /b 1
+)
+findstr /C:"expect_i64(completedCanceledTypedAllLeftState, 42LL)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should keep completed-canceled typed-array task.all source canceled.
+    exit /b 1
+)
+findstr /C:"completedCanceledAllLeftLateValue = (*(long long*)xl6_future_await_value(completedCanceledAllLeft" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing late await for completed-canceled task.all source.
+    exit /b 1
+)
+findstr /C:"expect_i64(completedCanceledAllLeftLateState, 42LL)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should keep completed-canceled task.all source canceled after late completion.
+    exit /b 1
+)
+findstr /C:"completedCanceledAllLeftAgain = xl6_task_cancel_value(completedCanceledAllLeft, 0)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should keep completed-canceled task.all source cancel idempotent.
+    exit /b 1
+)
+findstr /C:"expect_i64(completedCanceledAllLeftAgain, 1LL)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing completed-canceled task.all source repeated cancel assertion.
+    exit /b 1
+)
+findstr /C:"completedCanceledTypedAllLeftLateValue = (*(long long*)xl6_future_await_value(completedCanceledTypedAllLeft" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing late await for completed-canceled typed-array task.all source.
+    exit /b 1
+)
+findstr /C:"expect_i64(completedCanceledTypedAllLeftLateState, 42LL)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should keep completed-canceled typed-array task.all source canceled after late completion.
+    exit /b 1
+)
+findstr /C:"completedCanceledTypedAllLeftAgain = xl6_task_cancel_value(completedCanceledTypedAllLeft, 0)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should keep completed-canceled typed-array task.all source cancel idempotent.
+    exit /b 1
+)
+findstr /C:"expect_i64(completedCanceledTypedAllLeftAgain, 1LL)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing completed-canceled typed-array task.all source repeated cancel assertion.
     exit /b 1
 )
 findstr /C:"allFailedBeforeCancelGroup = xl6_task_all_values(xrtTypeInt()" release\tmp\cgen_task_api.c >nul
@@ -11823,6 +12161,66 @@ if errorlevel 1 (
 findstr /C:"completedCanceledRaceWinner, 0, completedCanceledRaceLoser, 0" release\tmp\cgen_task_api.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c should pass completed-canceled task.race source as borrowed.
+    exit /b 1
+)
+findstr /C:"completedCanceledRaceLoserLateValue = (*(long long*)xl6_future_await_value(completedCanceledRaceLoser" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing late loser await for completed-canceled task.race.
+    exit /b 1
+)
+findstr /C:"expect_i64(completedCanceledRaceLoserLateState, 42LL)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should keep completed-canceled task.race loser canceled after late completion.
+    exit /b 1
+)
+findstr /C:"completedCanceledRaceWinnerAgain = xl6_task_cancel_value(completedCanceledRaceWinner, 0)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should keep completed-canceled task.race winner cancel idempotent.
+    exit /b 1
+)
+findstr /C:"expect_i64(completedCanceledRaceWinnerAgain, 1LL)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing completed-canceled task.race winner repeated cancel assertion.
+    exit /b 1
+)
+findstr /C:"completedCanceledTypedRaceGroup = xl6_task_race_from_array((xtarray)(completedCanceledTypedRaceJobs)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing completed-canceled typed-array task.race fixture.
+    exit /b 1
+)
+findstr /C:"completedCanceledTypedRaceRequest = xl6_task_cancel_value(completedCanceledTypedRaceWinner, 0)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should cancel typed-array completed-canceled task.race winner before grouping.
+    exit /b 1
+)
+findstr /C:"completedCanceledTypedRaceLoserValue = (*(long long*)xl6_future_await_value(completedCanceledTypedRaceLoser" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing loser await for completed-canceled typed-array task.race.
+    exit /b 1
+)
+findstr /C:"expect_i64(completedCanceledTypedRaceLoserState, 42LL)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should cancel completed-canceled typed-array task.race loser.
+    exit /b 1
+)
+findstr /C:"completedCanceledTypedRaceLoserLateValue = (*(long long*)xl6_future_await_value(completedCanceledTypedRaceLoser" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing late loser await for completed-canceled typed-array task.race.
+    exit /b 1
+)
+findstr /C:"expect_i64(completedCanceledTypedRaceLoserLateState, 42LL)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should keep completed-canceled typed-array task.race loser canceled after late completion.
+    exit /b 1
+)
+findstr /C:"completedCanceledTypedRaceWinnerAgain = xl6_task_cancel_value(completedCanceledTypedRaceWinner, 0)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should keep completed-canceled typed-array task.race winner cancel idempotent.
+    exit /b 1
+)
+findstr /C:"expect_i64(completedCanceledTypedRaceWinnerAgain, 1LL)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing completed-canceled typed-array task.race winner repeated cancel assertion.
     exit /b 1
 )
 findstr /C:"slowRaceAsync(401LL), 1, fastRaceAsync(402LL), 1" release\tmp\cgen_task_api.c >nul
@@ -12070,6 +12468,16 @@ if errorlevel 1 (
     echo cgen_task_api.c should keep canceled task.all group cancel idempotent after await.
     exit /b 1
 )
+findstr /C:"cancelAllGroupStateAgain = 42LL" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should keep canceled task.all group repeated await canceled.
+    exit /b 1
+)
+findstr /C:"cancelAllGroupStateAfterCancel = 42LL" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should keep canceled task.all group post-cancel await canceled.
+    exit /b 1
+)
 findstr /C:"cancelAllLeftValue = (*(long long*)xl6_future_await_value(cancelAllLeft" release\tmp\cgen_task_api.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing canceled task.all left source await.
@@ -12080,9 +12488,54 @@ if errorlevel 1 (
     echo cgen_task_api.c should keep canceled task.all source cancel idempotent.
     exit /b 1
 )
+findstr /C:"cancelAllLeftLateValue = (*(long long*)xl6_future_await_value(cancelAllLeft" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing late canceled task.all left source await.
+    exit /b 1
+)
+findstr /C:"expect_i64(cancelAllLeftLateState, 42LL)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should keep late canceled task.all left source await canceled.
+    exit /b 1
+)
 findstr /C:"cancelAllRightValue = (*(long long*)xl6_future_await_value(cancelAllRight" release\tmp\cgen_task_api.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing canceled task.all right source await.
+    exit /b 1
+)
+findstr /C:"cancelDuplicateAllGroup = xl6_task_all_values(xrtTypeInt()" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing cancelable duplicate task.all group fixture.
+    exit /b 1
+)
+findstr /C:"cancelDuplicateAllSource, 0, cancelDuplicateAllSource, 0" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should pass duplicate task.all cancel sources as borrowed twice.
+    exit /b 1
+)
+findstr /C:"cancelDuplicateAllRequested = xl6_task_cancel_value(cancelDuplicateAllGroup, 0)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should cancel duplicate task.all group as borrowed.
+    exit /b 1
+)
+findstr /C:"cancelDuplicateAllSourceLate = (*(long long*)xl6_future_await_value(cancelDuplicateAllSource" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing late duplicate task.all source await after group cancel.
+    exit /b 1
+)
+findstr /C:"temporaryDuplicateAllRequested = xl6_task_cancel_value(xl6_task_all_values(xrtTypeInt()" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing temporary duplicate task.all cancel fixture.
+    exit /b 1
+)
+findstr /C:"temporaryDuplicateAllSource, 0, temporaryDuplicateAllSource, 0), 1)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should cancel temporary duplicate task.all group as owned with borrowed sources.
+    exit /b 1
+)
+findstr /C:"temporaryDuplicateAllSourceLate = (*(long long*)xl6_future_await_value(temporaryDuplicateAllSource" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing late temporary duplicate task.all source await.
     exit /b 1
 )
 findstr /C:"repeatCancelFuture = slowRaceAsync(206LL)" release\tmp\cgen_task_api.c >nul
@@ -12135,6 +12588,16 @@ if errorlevel 1 (
     echo cgen_task_api.c should keep canceled task.race group cancel idempotent after await.
     exit /b 1
 )
+findstr /C:"cancelRaceGroupStateAgain = 42LL" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should keep canceled task.race group repeated await canceled.
+    exit /b 1
+)
+findstr /C:"cancelRaceGroupStateAfterCancel = 42LL" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should keep canceled task.race group post-cancel await canceled.
+    exit /b 1
+)
 findstr /C:"cancelRaceLeftValue = (*(long long*)xl6_future_await_value(cancelRaceLeft" release\tmp\cgen_task_api.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing canceled task.race left source await.
@@ -12145,9 +12608,54 @@ if errorlevel 1 (
     echo cgen_task_api.c should keep canceled task.race source cancel idempotent.
     exit /b 1
 )
+findstr /C:"cancelRaceLeftLateValue = (*(long long*)xl6_future_await_value(cancelRaceLeft" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing late canceled task.race left source await.
+    exit /b 1
+)
+findstr /C:"expect_i64(cancelRaceLeftLateState, 42LL)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should keep late canceled task.race left source await canceled.
+    exit /b 1
+)
 findstr /C:"cancelRaceRightValue = (*(long long*)xl6_future_await_value(cancelRaceRight" release\tmp\cgen_task_api.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing canceled task.race right source await.
+    exit /b 1
+)
+findstr /C:"cancelDuplicateRaceGroup = xl6_task_race_values" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing cancelable duplicate task.race group fixture.
+    exit /b 1
+)
+findstr /C:"cancelDuplicateRaceSource, 0, cancelDuplicateRaceSource, 0" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should pass duplicate task.race cancel sources as borrowed twice.
+    exit /b 1
+)
+findstr /C:"cancelDuplicateRaceRequested = xl6_task_cancel_value(cancelDuplicateRaceGroup, 0)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should cancel duplicate task.race group as borrowed.
+    exit /b 1
+)
+findstr /C:"cancelDuplicateRaceSourceLate = (*(long long*)xl6_future_await_value(cancelDuplicateRaceSource" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing late duplicate task.race source await after group cancel.
+    exit /b 1
+)
+findstr /C:"temporaryDuplicateRaceRequested = xl6_task_cancel_value(xl6_task_race_values" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing temporary duplicate task.race cancel fixture.
+    exit /b 1
+)
+findstr /C:"temporaryDuplicateRaceSource, 0, temporaryDuplicateRaceSource, 0), 1)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should cancel temporary duplicate task.race group as owned with borrowed sources.
+    exit /b 1
+)
+findstr /C:"temporaryDuplicateRaceSourceLate = (*(long long*)xl6_future_await_value(temporaryDuplicateRaceSource" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing late temporary duplicate task.race source await.
     exit /b 1
 )
 findstr /C:"cancelTypedAllGroup = xl6_task_all_from_array((xtarray)(cancelTypedAllJobs), xrtTypeInt()" release\tmp\cgen_task_api.c >nul
@@ -12160,14 +12668,69 @@ if errorlevel 1 (
     echo cgen_task_api.c should cancel named pending typed-array task.all group as borrowed.
     exit /b 1
 )
+findstr /C:"cancelTypedAllRequestedAgain = xl6_task_cancel_value(cancelTypedAllGroup, 0)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should keep canceled typed-array task.all group cancel idempotent.
+    exit /b 1
+)
+findstr /C:"cancelTypedAllGroupStateAgain = 42LL" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should keep canceled typed-array task.all group repeated await canceled.
+    exit /b 1
+)
+findstr /C:"cancelTypedAllRequestedAfterAwait = xl6_task_cancel_value(cancelTypedAllGroup, 0)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should keep canceled typed-array task.all group cancel idempotent after await.
+    exit /b 1
+)
+findstr /C:"cancelTypedAllGroupStateAfterCancel = 42LL" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should keep canceled typed-array task.all group post-cancel await canceled.
+    exit /b 1
+)
 findstr /C:"cancelTypedAllLeftValue = (*(long long*)xl6_future_await_value(cancelTypedAllLeft" release\tmp\cgen_task_api.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing canceled typed-array task.all left source await.
     exit /b 1
 )
+findstr /C:"cancelTypedAllLeftLateValue = (*(long long*)xl6_future_await_value(cancelTypedAllLeft" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing late canceled typed-array task.all left source await.
+    exit /b 1
+)
+findstr /C:"expect_i64(cancelTypedAllLeftLateState, 42LL)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should keep late canceled typed-array task.all left source await canceled.
+    exit /b 1
+)
 findstr /C:"cancelTypedAllRightValue = (*(long long*)xl6_future_await_value(cancelTypedAllRight" release\tmp\cgen_task_api.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing canceled typed-array task.all right source await.
+    exit /b 1
+)
+findstr /C:"cancelDuplicateTypedAllGroup = xl6_task_all_from_array((xtarray)(cancelDuplicateTypedAllJobs), xrtTypeInt()" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing cancelable typed-array duplicate task.all group fixture.
+    exit /b 1
+)
+findstr /C:"cancelDuplicateTypedAllRequested = xl6_task_cancel_value(cancelDuplicateTypedAllGroup, 0)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should cancel typed-array duplicate task.all group as borrowed.
+    exit /b 1
+)
+findstr /C:"cancelDuplicateTypedAllSourceLate = (*(long long*)xl6_future_await_value(cancelDuplicateTypedAllSource" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing late typed-array duplicate task.all source await after group cancel.
+    exit /b 1
+)
+findstr /C:"temporaryDuplicateTypedAllRequested = xl6_task_cancel_value(xl6_task_all_from_array((xtarray)(temporaryDuplicateTypedAllJobs), xrtTypeInt()" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing temporary typed-array duplicate task.all cancel fixture.
+    exit /b 1
+)
+findstr /C:"temporaryDuplicateTypedAllSourceLate = (*(long long*)xl6_future_await_value(temporaryDuplicateTypedAllSource" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing late temporary typed-array duplicate task.all source await.
     exit /b 1
 )
 findstr /C:"cancelTypedRaceGroup = xl6_task_race_from_array((xtarray)(cancelTypedRaceJobs)" release\tmp\cgen_task_api.c >nul
@@ -12180,14 +12743,69 @@ if errorlevel 1 (
     echo cgen_task_api.c should cancel named pending typed-array task.race group as borrowed.
     exit /b 1
 )
+findstr /C:"cancelTypedRaceRequestedAgain = xl6_task_cancel_value(cancelTypedRaceGroup, 0)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should keep canceled typed-array task.race group cancel idempotent.
+    exit /b 1
+)
+findstr /C:"cancelTypedRaceGroupStateAgain = 42LL" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should keep canceled typed-array task.race group repeated await canceled.
+    exit /b 1
+)
+findstr /C:"cancelTypedRaceRequestedAfterAwait = xl6_task_cancel_value(cancelTypedRaceGroup, 0)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should keep canceled typed-array task.race group cancel idempotent after await.
+    exit /b 1
+)
+findstr /C:"cancelTypedRaceGroupStateAfterCancel = 42LL" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should keep canceled typed-array task.race group post-cancel await canceled.
+    exit /b 1
+)
 findstr /C:"cancelTypedRaceLeftValue = (*(long long*)xl6_future_await_value(cancelTypedRaceLeft" release\tmp\cgen_task_api.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing canceled typed-array task.race left source await.
     exit /b 1
 )
+findstr /C:"cancelTypedRaceLeftLateValue = (*(long long*)xl6_future_await_value(cancelTypedRaceLeft" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing late canceled typed-array task.race left source await.
+    exit /b 1
+)
+findstr /C:"expect_i64(cancelTypedRaceLeftLateState, 42LL)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should keep late canceled typed-array task.race left source await canceled.
+    exit /b 1
+)
 findstr /C:"cancelTypedRaceRightValue = (*(long long*)xl6_future_await_value(cancelTypedRaceRight" release\tmp\cgen_task_api.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing canceled typed-array task.race right source await.
+    exit /b 1
+)
+findstr /C:"cancelDuplicateTypedRaceGroup = xl6_task_race_from_array((xtarray)(cancelDuplicateTypedRaceJobs)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing cancelable typed-array duplicate task.race group fixture.
+    exit /b 1
+)
+findstr /C:"cancelDuplicateTypedRaceRequested = xl6_task_cancel_value(cancelDuplicateTypedRaceGroup, 0)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should cancel typed-array duplicate task.race group as borrowed.
+    exit /b 1
+)
+findstr /C:"cancelDuplicateTypedRaceSourceLate = (*(long long*)xl6_future_await_value(cancelDuplicateTypedRaceSource" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing late typed-array duplicate task.race source await after group cancel.
+    exit /b 1
+)
+findstr /C:"temporaryDuplicateTypedRaceRequested = xl6_task_cancel_value(xl6_task_race_from_array((xtarray)(temporaryDuplicateTypedRaceJobs)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing temporary typed-array duplicate task.race cancel fixture.
+    exit /b 1
+)
+findstr /C:"temporaryDuplicateTypedRaceSourceLate = (*(long long*)xl6_future_await_value(temporaryDuplicateTypedRaceSource" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing late temporary typed-array duplicate task.race source await.
     exit /b 1
 )
 findstr /C:"pendingStringAllGroup = xl6_task_all_from_array((xtarray)(pendingStringAllJobs), xrtTypeString()" release\tmp\cgen_task_api.c >nul
@@ -12210,6 +12828,16 @@ if errorlevel 1 (
     echo cgen_task_api.c missing canceled typed-array string task.all right source await.
     exit /b 1
 )
+findstr /C:"pendingStringAllLateValue = xl6_future_await_cstr_copy(pendingStringAllLeft" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing late canceled typed-array string task.all source await.
+    exit /b 1
+)
+findstr /C:"expect_i64(pendingStringAllLateState, 42LL)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should keep late typed-array string task.all source canceled.
+    exit /b 1
+)
 findstr /C:"pendingStringRaceGroup = xl6_task_race_from_array((xtarray)(pendingStringRaceJobs)" release\tmp\cgen_task_api.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing cancelable typed-array string task.race group fixture.
@@ -12230,6 +12858,16 @@ if errorlevel 1 (
     echo cgen_task_api.c missing canceled typed-array string task.race right source await.
     exit /b 1
 )
+findstr /C:"pendingStringRaceLateValue = xl6_future_await_cstr_copy(pendingStringRaceLeft" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing late canceled typed-array string task.race source await.
+    exit /b 1
+)
+findstr /C:"expect_i64(pendingStringRaceLateState, 42LL)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should keep late typed-array string task.race source canceled.
+    exit /b 1
+)
 findstr /C:"pendingBoolAllGroup = xl6_task_all_from_array((xtarray)(pendingBoolAllJobs), xrtTypeBool()" release\tmp\cgen_task_api.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing cancelable typed-array bool task.all group fixture.
@@ -12243,6 +12881,16 @@ if errorlevel 1 (
 findstr /C:"pendingBoolAllLeftValue = (*(int*)xl6_future_await_value(pendingBoolAllLeft" release\tmp\cgen_task_api.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing canceled typed-array bool task.all left source await.
+    exit /b 1
+)
+findstr /C:"pendingBoolAllLateValue = (*(int*)xl6_future_await_value(pendingBoolAllLeft" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing late canceled typed-array bool task.all source await.
+    exit /b 1
+)
+findstr /C:"expect_i64(pendingBoolAllLateState, 42LL)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should keep late typed-array bool task.all source canceled.
     exit /b 1
 )
 findstr /C:"pendingBoolRaceGroup = xl6_task_race_from_array((xtarray)(pendingBoolRaceJobs)" release\tmp\cgen_task_api.c >nul
@@ -12260,6 +12908,16 @@ if errorlevel 1 (
     echo cgen_task_api.c missing canceled typed-array bool task.race right source await.
     exit /b 1
 )
+findstr /C:"pendingBoolRaceLateValue = (*(int*)xl6_future_await_value(pendingBoolRaceLeft" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing late canceled typed-array bool task.race source await.
+    exit /b 1
+)
+findstr /C:"expect_i64(pendingBoolRaceLateState, 42LL)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should keep late typed-array bool task.race source canceled.
+    exit /b 1
+)
 findstr /C:"pendingFloatAllGroup = xl6_task_all_from_array((xtarray)(pendingFloatAllJobs), xrtTypeFloat()" release\tmp\cgen_task_api.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing cancelable typed-array float task.all group fixture.
@@ -12275,6 +12933,16 @@ if errorlevel 1 (
     echo cgen_task_api.c missing canceled typed-array float task.all right source await.
     exit /b 1
 )
+findstr /C:"pendingFloatAllLateValue = (*(double*)xl6_future_await_value(pendingFloatAllLeft" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing late canceled typed-array float task.all source await.
+    exit /b 1
+)
+findstr /C:"expect_i64(pendingFloatAllLateState, 42LL)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should keep late typed-array float task.all source canceled.
+    exit /b 1
+)
 findstr /C:"pendingFloatRaceGroup = xl6_task_race_from_array((xtarray)(pendingFloatRaceJobs)" release\tmp\cgen_task_api.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing cancelable typed-array float task.race group fixture.
@@ -12288,6 +12956,16 @@ if errorlevel 1 (
 findstr /C:"pendingFloatRaceLeftValue = (*(double*)xl6_future_await_value(pendingFloatRaceLeft" release\tmp\cgen_task_api.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing canceled typed-array float task.race left source await.
+    exit /b 1
+)
+findstr /C:"pendingFloatRaceLateValue = (*(double*)xl6_future_await_value(pendingFloatRaceLeft" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing late canceled typed-array float task.race source await.
+    exit /b 1
+)
+findstr /C:"expect_i64(pendingFloatRaceLateState, 42LL)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should keep late typed-array float task.race source canceled.
     exit /b 1
 )
 findstr /C:"pOut->pfnFreeValue = xl6_async_free_typed_array_value" release\tmp\cgen_task_api.c >nul
@@ -13175,6 +13853,26 @@ if errorlevel 1 (
     echo cgen_task_api.c should keep task.all slow source awaitable after group failure.
     exit /b 1
 )
+findstr /C:"typedAllFailureGroup = xl6_task_all_from_array((xtarray)(typedAllFailureJobs)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing typed-array task.all fast-failure slow-source fixture.
+    exit /b 1
+)
+findstr /C:"typedAllFailureValues = xl6_xrt_typed_array_copy_mode(xrtTypeInt(), (*(xtarray*)xl6_future_await_value(typedAllFailureGroup" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing typed-array task.all fast-failure group await.
+    exit /b 1
+)
+findstr /C:"typedAllFailureSlowValue = (*(long long*)xl6_future_await_value(typedAllFailureSlowSource" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should keep typed-array task.all slow source awaitable after group failure.
+    exit /b 1
+)
+findstr /C:"typedAllFailureSlowCancel = xl6_task_cancel_value(typedAllFailureSlowSource, 0)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should keep typed-array task.all slow source completed after group failure.
+    exit /b 1
+)
 findstr /C:"raceFailureGroup = xl6_task_race_values" release\tmp\cgen_task_api.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing task.race fast-failure slow-loser fixture.
@@ -13215,9 +13913,39 @@ if errorlevel 1 (
     echo cgen_task_api.c missing completed-failed task.race loser await.
     exit /b 1
 )
+findstr /C:"completedFailedRaceLoserLateValue = (*(long long*)xl6_future_await_value(completedFailedRaceLoser" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing completed-failed task.race loser late await.
+    exit /b 1
+)
+findstr /C:"expect_i64(completedFailedRaceLoserLateState, 42LL)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should preserve completed-failed task.race loser cancel state after worker exit.
+    exit /b 1
+)
 findstr /C:"completedTypedFailedRaceGroup = xl6_task_race_from_array((xtarray)(completedTypedFailedRaceJobs)" release\tmp\cgen_task_api.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing typed-array completed-failed task.race source fixture.
+    exit /b 1
+)
+findstr /C:"completedTypedFailedRaceLoserValue = (*(long long*)xl6_future_await_value(completedTypedFailedRaceLoser" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing typed-array completed-failed task.race loser await.
+    exit /b 1
+)
+findstr /C:"expect_i64(completedTypedFailedRaceLoserState, 42LL)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should preserve typed-array completed-failed task.race loser first cancel state.
+    exit /b 1
+)
+findstr /C:"completedTypedFailedRaceLoserLateValue = (*(long long*)xl6_future_await_value(completedTypedFailedRaceLoser" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing typed-array completed-failed task.race loser late await.
+    exit /b 1
+)
+findstr /C:"expect_i64(completedTypedFailedRaceLoserLateState, 42LL)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should preserve typed-array completed-failed task.race loser cancel state after worker exit.
     exit /b 1
 )
 findstr /C:"raceFailedBeforeCancelGroup = xl6_task_race_values" release\tmp\cgen_task_api.c >nul
@@ -14234,16 +14962,8 @@ if errorlevel 1 (
 release\xl.exe build test\cases\cgen_task_api.xl test\cases\cgen_class_host.c -o release\tmp\cgen_task_api.exe
 if errorlevel 1 exit /b 1
 
-release\tmp\cgen_task_api.exe
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$exe=(Resolve-Path 'release\tmp\cgen_task_api.exe').Path; for($i=1;$i -le 4;$i++){ $psi=[System.Diagnostics.ProcessStartInfo]::new(); $psi.FileName=$exe; $psi.WorkingDirectory=(Get-Location).Path; $psi.UseShellExecute=$false; $p=[System.Diagnostics.Process]::Start($psi); if(-not $p.WaitForExit(120000)){ try{$p.Kill()}catch{}; Write-Host ('cgen_task_api.exe run '+$i+' timed out.'); exit 124 }; $code=$p.ExitCode; $p.Dispose(); if($code -ne 0){ Write-Host ('cgen_task_api.exe run '+$i+' failed.'); exit $code } }"
 if errorlevel 1 exit /b 1
-
-for /L %%I in (1,1,3) do (
-    release\tmp\cgen_task_api.exe
-    if errorlevel 1 (
-        echo cgen_task_api.exe repeat run %%I failed.
-        exit /b 1
-    )
-)
 
 release\xl.exe check test\cases\cgen_task_spawn.xl
 if errorlevel 1 exit /b 1
@@ -14831,6 +15551,26 @@ if errorlevel 1 (
     echo cgen_task_spawn.c should keep slow task.spawn source awaitable after task.all failure.
     exit /b 1
 )
+findstr /C:"typedSpawnAllFailureGroup = xl6_task_all_from_array((xtarray)(typedSpawnAllFailureJobs), xrtTypeInt()" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing typed-array task.all fast-failure over task.spawn fixture.
+    exit /b 1
+)
+findstr /C:"typedSpawnAllFailureValues = xl6_xrt_typed_array_copy_mode(xrtTypeInt(), (*(xtarray*)xl6_future_await_value(typedSpawnAllFailureGroup" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing typed-array task.all fast-failure group await.
+    exit /b 1
+)
+findstr /C:"typedSpawnAllFailureSlowValue = (*(long long*)xl6_future_await_value(typedSpawnAllFailureSlowSource" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c should keep typed-array slow task.spawn source awaitable after task.all failure.
+    exit /b 1
+)
+findstr /C:"!xl6_task_cancel_value(typedSpawnAllFailureSlowSource, 0)" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c should keep typed-array task.all slow task.spawn source completed after group failure.
+    exit /b 1
+)
 findstr /C:"spawnRaceFailureGroup = xl6_task_race_values" release\tmp\cgen_task_spawn.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing task.race fast-failure over task.spawn fixture.
@@ -14849,6 +15589,31 @@ if errorlevel 1 (
 findstr /C:"spawnRaceFailureLoserStateB == 42LL" release\tmp\cgen_task_spawn.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c should preserve canceled task.spawn race loser after worker completes.
+    exit /b 1
+)
+findstr /C:"typedSpawnRaceFailureGroup = xl6_task_race_from_array((xtarray)(typedSpawnRaceFailureJobs)" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing typed-array task.race fast-failure over task.spawn fixture.
+    exit /b 1
+)
+findstr /C:"typedSpawnRaceFailureValue = (*(long long*)xl6_future_await_value(typedSpawnRaceFailureGroup" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing typed-array task.race fast-failure group await.
+    exit /b 1
+)
+findstr /C:"typedSpawnRaceFailureLoserValueA = (*(long long*)xl6_future_await_value(typedSpawnRaceFailureSlowLoser" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing first await for canceled typed-array task.spawn race loser.
+    exit /b 1
+)
+findstr /C:"typedSpawnRaceFailureLoserValueB = (*(long long*)xl6_future_await_value(typedSpawnRaceFailureSlowLoser" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing repeated await for canceled typed-array task.spawn race loser.
+    exit /b 1
+)
+findstr /C:"typedSpawnRaceFailureLoserStateB == 42LL" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c should preserve canceled typed-array task.spawn race loser after worker completes.
     exit /b 1
 )
 findstr /C:"xfuture* missingSpawnFuture = 0;" release\tmp\cgen_task_spawn.c >nul
@@ -15176,6 +15941,76 @@ if errorlevel 1 (
     echo cgen_task_spawn.c should keep pending string task.spawn future canceled after worker completes.
     exit /b 1
 )
+findstr /C:"pendingStringAllGroup = xl6_task_all_values(xrtTypeString()" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing pending string task.all over task.spawn group fixture.
+    exit /b 1
+)
+findstr /C:"pendingStringAllLeft, 0, pendingStringAllRight, 0" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c should pass pending string task.all sources as borrowed futures.
+    exit /b 1
+)
+findstr /C:"xl6_task_cancel_value(pendingStringAllGroup, 0)" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c should cancel pending string task.all group as borrowed.
+    exit /b 1
+)
+findstr /C:"pendingStringAllGroupState == 42LL" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c should await pending string task.all group as canceled.
+    exit /b 1
+)
+findstr /C:"pendingStringAllLeftValueA = xl6_future_await_cstr_copy(pendingStringAllLeft" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing first string task.all source await after group cancel.
+    exit /b 1
+)
+findstr /C:"pendingStringAllLeftValueB = xl6_future_await_cstr_copy(pendingStringAllLeft" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing late string task.all source await after worker completion.
+    exit /b 1
+)
+findstr /C:"pendingStringAllLeftStateB == 42LL" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c should keep pending string task.all source canceled after worker completes.
+    exit /b 1
+)
+findstr /C:"pendingStringRaceGroup = xl6_task_race_values" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing pending string task.race over task.spawn group fixture.
+    exit /b 1
+)
+findstr /C:"pendingStringRaceLeft, 0, pendingStringRaceRight, 0" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c should pass pending string task.race sources as borrowed futures.
+    exit /b 1
+)
+findstr /C:"xl6_task_cancel_value(pendingStringRaceGroup, 0)" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c should cancel pending string task.race group as borrowed.
+    exit /b 1
+)
+findstr /C:"pendingStringRaceGroupState == 42LL" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c should await pending string task.race group as canceled.
+    exit /b 1
+)
+findstr /C:"pendingStringRaceLeftValueA = xl6_future_await_cstr_copy(pendingStringRaceLeft" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing first string task.race source await after group cancel.
+    exit /b 1
+)
+findstr /C:"pendingStringRaceLeftValueB = xl6_future_await_cstr_copy(pendingStringRaceLeft" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing late string task.race source await after worker completion.
+    exit /b 1
+)
+findstr /C:"pendingStringRaceLeftStateB == 42LL" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c should keep pending string task.race source canceled after worker completes.
+    exit /b 1
+)
 powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'flippedValue\s*=\s*xl6_future_await_i32_release\(xl6_task_spawn_values\(flipJob,\s*xrtTypeBool\(\),\s*sizeof\(int\),\s*\"\",\s*\d+,\s*\d+,\s*1,\s*1,\s*xvoCreateBool\(1\)\)'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_spawn.c missing task.spawn bool temporary future bridge.
@@ -15226,6 +16061,76 @@ if errorlevel 1 (
     echo cgen_task_spawn.c should keep pending bool task.spawn future canceled after worker completes.
     exit /b 1
 )
+findstr /C:"pendingBoolAllGroup = xl6_task_all_values(xrtTypeBool()" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing pending bool task.all over task.spawn group fixture.
+    exit /b 1
+)
+findstr /C:"pendingBoolAllLeft, 0, pendingBoolAllRight, 0" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c should pass pending bool task.all sources as borrowed futures.
+    exit /b 1
+)
+findstr /C:"xl6_task_cancel_value(pendingBoolAllGroup, 0)" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c should cancel pending bool task.all group as borrowed.
+    exit /b 1
+)
+findstr /C:"pendingBoolAllGroupState == 42LL" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c should await pending bool task.all group as canceled.
+    exit /b 1
+)
+findstr /C:"pendingBoolAllLeftValueA = (*(int*)xl6_future_await_value(pendingBoolAllLeft" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing first bool task.all source await after group cancel.
+    exit /b 1
+)
+findstr /C:"pendingBoolAllLeftValueB = (*(int*)xl6_future_await_value(pendingBoolAllLeft" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing late bool task.all source await after worker completion.
+    exit /b 1
+)
+findstr /C:"pendingBoolAllLeftStateB == 42LL" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c should keep pending bool task.all source canceled after worker completes.
+    exit /b 1
+)
+findstr /C:"pendingBoolRaceGroup = xl6_task_race_values" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing pending bool task.race over task.spawn group fixture.
+    exit /b 1
+)
+findstr /C:"pendingBoolRaceLeft, 0, pendingBoolRaceRight, 0" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c should pass pending bool task.race sources as borrowed futures.
+    exit /b 1
+)
+findstr /C:"xl6_task_cancel_value(pendingBoolRaceGroup, 0)" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c should cancel pending bool task.race group as borrowed.
+    exit /b 1
+)
+findstr /C:"pendingBoolRaceGroupState == 42LL" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c should await pending bool task.race group as canceled.
+    exit /b 1
+)
+findstr /C:"pendingBoolRaceLeftValueA = (*(int*)xl6_future_await_value(pendingBoolRaceLeft" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing first bool task.race source await after group cancel.
+    exit /b 1
+)
+findstr /C:"pendingBoolRaceLeftValueB = (*(int*)xl6_future_await_value(pendingBoolRaceLeft" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing late bool task.race source await after worker completion.
+    exit /b 1
+)
+findstr /C:"pendingBoolRaceLeftStateB == 42LL" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c should keep pending bool task.race source canceled after worker completes.
+    exit /b 1
+)
 powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'halfValue\s*=\s*xl6_future_await_f64_release\(xl6_task_spawn_values\(halfJob,\s*xrtTypeFloat\(\),\s*sizeof\(double\),\s*\"\",\s*\d+,\s*\d+,\s*1,\s*1,\s*xvoCreateFloat\(\(double\)\(1\.5\)\)\)'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_spawn.c missing task.spawn float temporary future bridge.
@@ -15274,6 +16179,76 @@ if errorlevel 1 (
 findstr /C:"pendingFloatSpawnStateB == 42LL" release\tmp\cgen_task_spawn.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c should keep pending float task.spawn future canceled after worker completes.
+    exit /b 1
+)
+findstr /C:"pendingFloatAllGroup = xl6_task_all_values(xrtTypeFloat()" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing pending float task.all over task.spawn group fixture.
+    exit /b 1
+)
+findstr /C:"pendingFloatAllLeft, 0, pendingFloatAllRight, 0" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c should pass pending float task.all sources as borrowed futures.
+    exit /b 1
+)
+findstr /C:"xl6_task_cancel_value(pendingFloatAllGroup, 0)" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c should cancel pending float task.all group as borrowed.
+    exit /b 1
+)
+findstr /C:"pendingFloatAllGroupState == 42LL" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c should await pending float task.all group as canceled.
+    exit /b 1
+)
+findstr /C:"pendingFloatAllLeftValueA = (*(double*)xl6_future_await_value(pendingFloatAllLeft" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing first float task.all source await after group cancel.
+    exit /b 1
+)
+findstr /C:"pendingFloatAllLeftValueB = (*(double*)xl6_future_await_value(pendingFloatAllLeft" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing late float task.all source await after worker completion.
+    exit /b 1
+)
+findstr /C:"pendingFloatAllLeftStateB == 42LL" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c should keep pending float task.all source canceled after worker completes.
+    exit /b 1
+)
+findstr /C:"pendingFloatRaceGroup = xl6_task_race_values" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing pending float task.race over task.spawn group fixture.
+    exit /b 1
+)
+findstr /C:"pendingFloatRaceLeft, 0, pendingFloatRaceRight, 0" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c should pass pending float task.race sources as borrowed futures.
+    exit /b 1
+)
+findstr /C:"xl6_task_cancel_value(pendingFloatRaceGroup, 0)" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c should cancel pending float task.race group as borrowed.
+    exit /b 1
+)
+findstr /C:"pendingFloatRaceGroupState == 42LL" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c should await pending float task.race group as canceled.
+    exit /b 1
+)
+findstr /C:"pendingFloatRaceLeftValueA = (*(double*)xl6_future_await_value(pendingFloatRaceLeft" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing first float task.race source await after group cancel.
+    exit /b 1
+)
+findstr /C:"pendingFloatRaceLeftValueB = (*(double*)xl6_future_await_value(pendingFloatRaceLeft" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing late float task.race source await after worker completion.
+    exit /b 1
+)
+findstr /C:"pendingFloatRaceLeftStateB == 42LL" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c should keep pending float task.race source canceled after worker completes.
     exit /b 1
 )
 powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'variadicValue\s*=\s*xl6_future_await_i64_release\(xl6_task_spawn_values\(variadicJob,\s*xrtTypeInt\(\),\s*sizeof\(long long\),\s*\"\",\s*\d+,\s*\d+,\s*1,\s*4,\s*xvoCreateInt\(\(long long\)\(10LL\)\),\s*xvoCreateInt\(\(long long\)\(1LL\)\),\s*xvoCreateInt\(\(long long\)\(2LL\)\),\s*xvoCreateInt\(\(long long\)\(3LL\)\)'){ exit 1 }"
@@ -15349,6 +16324,66 @@ if errorlevel 1 (
 findstr /C:"!xl6_task_cancel_value(variadicDefaultFuture, 0)" release\tmp\cgen_task_spawn.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing completed zero-fixed variadic task.spawn cancel guard.
+    exit /b 1
+)
+findstr /C:"XL6_Function slowVariadicJob = xl6_fnvalue_slowSumVariadic_make();" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing pending variadic task.spawn function value.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'pendingVariadicSpawn\s*=\s*xl6_task_spawn_values\(slowVariadicJob,\s*xrtTypeInt\(\),\s*sizeof\(long long\),\s*\"\",\s*\d+,\s*\d+,\s*1,\s*4,\s*xvoCreateInt\(\(long long\)\(300LL\)\),\s*xvoCreateInt\(\(long long\)\(1LL\)\),\s*xvoCreateInt\(\(long long\)\(2LL\)\),\s*xvoCreateInt\(\(long long\)\(3LL\)\)'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing pending variadic task.spawn argv bridge.
+    exit /b 1
+)
+findstr /C:"xl6_task_cancel_value(pendingVariadicSpawn, 0)" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing pending variadic task.spawn cancel.
+    exit /b 1
+)
+findstr /C:"pendingVariadicSpawnValueA = (*(long long*)xl6_future_await_value(pendingVariadicSpawn" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing first await for canceled pending variadic task.spawn.
+    exit /b 1
+)
+findstr /C:"pendingVariadicSpawnValueB = (*(long long*)xl6_future_await_value(pendingVariadicSpawn" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing late await for canceled pending variadic task.spawn.
+    exit /b 1
+)
+findstr /C:"pendingVariadicSpawnStateB == 42LL" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c should keep pending variadic task.spawn canceled after worker completes.
+    exit /b 1
+)
+findstr /C:"XL6_Function slowVariadicDefaultJob = xl6_fnvalue_slowTotalDefault_arity0_vararg_make();" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing pending zero-fixed variadic task.spawn adapter.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'pendingVariadicDefaultSpawn\s*=\s*xl6_task_spawn_values\(slowVariadicDefaultJob,\s*xrtTypeInt\(\),\s*sizeof\(long long\),\s*\"\",\s*\d+,\s*\d+,\s*1,\s*2,\s*xvoCreateText\(\(void\*\)\(\"a\"\),\s*0,\s*false\),\s*xvoCreateText\(\(void\*\)\(\"b\"\),\s*0,\s*false\)\)'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing pending zero-fixed variadic task.spawn argv bridge.
+    exit /b 1
+)
+findstr /C:"xl6_task_cancel_value(pendingVariadicDefaultSpawn, 0)" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing pending zero-fixed variadic task.spawn cancel.
+    exit /b 1
+)
+findstr /C:"pendingVariadicDefaultSpawnValueA = (*(long long*)xl6_future_await_value(pendingVariadicDefaultSpawn" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing first await for canceled pending zero-fixed variadic task.spawn.
+    exit /b 1
+)
+findstr /C:"pendingVariadicDefaultSpawnValueB = (*(long long*)xl6_future_await_value(pendingVariadicDefaultSpawn" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing late await for canceled pending zero-fixed variadic task.spawn.
+    exit /b 1
+)
+findstr /C:"pendingVariadicDefaultSpawnStateB == 42LL" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c should keep pending zero-fixed variadic task.spawn canceled after worker completes.
     exit /b 1
 )
 findstr /C:"variadicAllJobs = xrtTypedArrayCreate(xrtTypeFuture(), XRT_OBJMODE_LOCAL)" release\tmp\cgen_task_spawn.c >nul
@@ -16146,6 +17181,26 @@ if errorlevel 1 (
     echo cgen_task_spawn.c should keep slow string task.spawn source awaitable after task.all failure.
     exit /b 1
 )
+findstr /C:"typedSpawnStringAllFailureGroup = xl6_task_all_from_array((xtarray)(typedSpawnStringAllFailureJobs), xrtTypeString()" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing typed-array string task.all fast-failure over task.spawn fixture.
+    exit /b 1
+)
+findstr /C:"typedSpawnStringAllFailureValues = xl6_xrt_typed_array_copy_mode(xrtTypeString(), (*(xtarray*)xl6_future_await_value(typedSpawnStringAllFailureGroup" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing typed-array string task.all fast-failure group await.
+    exit /b 1
+)
+findstr /C:"typedSpawnStringAllFailureSlowValue = xl6_future_await_cstr_copy(typedSpawnStringAllFailureSlowSource" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c should keep typed-array slow string task.spawn source awaitable after task.all failure.
+    exit /b 1
+)
+findstr /C:"!xl6_task_cancel_value(typedSpawnStringAllFailureSlowSource, 0)" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c should keep typed-array task.all slow string task.spawn source completed after group failure.
+    exit /b 1
+)
 findstr /C:"spawnStringRaceFailureGroup = xl6_task_race_values" release\tmp\cgen_task_spawn.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing string task.race fast-failure over task.spawn fixture.
@@ -16166,6 +17221,31 @@ if errorlevel 1 (
     echo cgen_task_spawn.c should preserve canceled string task.spawn race loser after worker completes.
     exit /b 1
 )
+findstr /C:"typedSpawnStringRaceFailureGroup = xl6_task_race_from_array((xtarray)(typedSpawnStringRaceFailureJobs)" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing typed-array string task.race fast-failure over task.spawn fixture.
+    exit /b 1
+)
+findstr /C:"typedSpawnStringRaceFailureValue = xl6_future_await_cstr_copy(typedSpawnStringRaceFailureGroup" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing typed-array string task.race fast-failure group await.
+    exit /b 1
+)
+findstr /C:"typedSpawnStringRaceFailureLoserValueA = xl6_future_await_cstr_copy(typedSpawnStringRaceFailureSlowLoser" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing first await for canceled typed-array string task.spawn race loser.
+    exit /b 1
+)
+findstr /C:"typedSpawnStringRaceFailureLoserValueB = xl6_future_await_cstr_copy(typedSpawnStringRaceFailureSlowLoser" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing repeated await for canceled typed-array string task.spawn race loser.
+    exit /b 1
+)
+findstr /C:"typedSpawnStringRaceFailureLoserStateB == 42LL" release\tmp\cgen_task_spawn.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c should preserve canceled typed-array string task.spawn race loser after worker completes.
+    exit /b 1
+)
 findstr /C:"failedBoolSpawnTypedAll = xl6_future_await_handle_release(xl6_task_all_from_array((xtarray)(failedBoolSpawnAllJobs), xrtTypeBool()" release\tmp\cgen_task_spawn.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing failed typed-array bool task.all over task.spawn futures.
@@ -16184,6 +17264,96 @@ if errorlevel 1 (
 findstr /C:"failedFloatSpawnTypedRace = xl6_future_await_f64_release(xl6_task_race_from_array((xtarray)(failedFloatSpawnRaceJobs)" release\tmp\cgen_task_spawn.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing failed typed-array float task.race over task.spawn futures.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if(-not $text.Contains('typedSpawnBoolAllFailureGroup = xl6_task_all_from_array((xtarray)(typedSpawnBoolAllFailureJobs), xrtTypeBool()')){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing typed-array bool task.all fast-failure over task.spawn fixture.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if(-not $text.Contains('typedSpawnBoolAllFailureValues = xl6_xrt_typed_array_copy_mode(xrtTypeBool(), (*(xtarray*)xl6_future_await_value(typedSpawnBoolAllFailureGroup')){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing typed-array bool task.all fast-failure group await.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if(-not $text.Contains('typedSpawnBoolAllFailureSlowValue = (*(int*)xl6_future_await_value(typedSpawnBoolAllFailureSlowSource')){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing slow-source await after typed-array bool task.all fast failure.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if(-not $text.Contains('!xl6_task_cancel_value(typedSpawnBoolAllFailureSlowSource, 0)')){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_spawn.c should keep completed bool task.all slow source non-cancelable.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if(-not $text.Contains('typedSpawnBoolRaceFailureGroup = xl6_task_race_from_array((xtarray)(typedSpawnBoolRaceFailureJobs)')){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing typed-array bool task.race fast-failure over task.spawn fixture.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if(-not $text.Contains('typedSpawnBoolRaceFailureValue = (*(int*)xl6_future_await_value(typedSpawnBoolRaceFailureGroup')){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing typed-array bool task.race fast-failure group await.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if(-not $text.Contains('typedSpawnBoolRaceFailureLoserValueA = (*(int*)xl6_future_await_value(typedSpawnBoolRaceFailureSlowLoser')){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing first await for canceled typed-array bool task.spawn race loser.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if(-not $text.Contains('typedSpawnBoolRaceFailureLoserValueB = (*(int*)xl6_future_await_value(typedSpawnBoolRaceFailureSlowLoser')){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing repeated await for canceled typed-array bool task.spawn race loser.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if(-not $text.Contains('typedSpawnBoolRaceFailureLoserStateB == 42LL')){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_spawn.c should preserve canceled typed-array bool task.spawn race loser after worker completes.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if(-not $text.Contains('typedSpawnFloatAllFailureGroup = xl6_task_all_from_array((xtarray)(typedSpawnFloatAllFailureJobs), xrtTypeFloat()')){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing typed-array float task.all fast-failure over task.spawn fixture.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if(-not $text.Contains('typedSpawnFloatAllFailureValues = xl6_xrt_typed_array_copy_mode(xrtTypeFloat(), (*(xtarray*)xl6_future_await_value(typedSpawnFloatAllFailureGroup')){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing typed-array float task.all fast-failure group await.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if(-not $text.Contains('typedSpawnFloatAllFailureSlowValue = (*(double*)xl6_future_await_value(typedSpawnFloatAllFailureSlowSource')){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing slow-source await after typed-array float task.all fast failure.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if(-not $text.Contains('!xl6_task_cancel_value(typedSpawnFloatAllFailureSlowSource, 0)')){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_spawn.c should keep completed float task.all slow source non-cancelable.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if(-not $text.Contains('typedSpawnFloatRaceFailureGroup = xl6_task_race_from_array((xtarray)(typedSpawnFloatRaceFailureJobs)')){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing typed-array float task.race fast-failure over task.spawn fixture.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if(-not $text.Contains('typedSpawnFloatRaceFailureValue = (*(double*)xl6_future_await_value(typedSpawnFloatRaceFailureGroup')){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing typed-array float task.race fast-failure group await.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if(-not $text.Contains('typedSpawnFloatRaceFailureLoserValueA = (*(double*)xl6_future_await_value(typedSpawnFloatRaceFailureSlowLoser')){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing first await for canceled typed-array float task.spawn race loser.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if(-not $text.Contains('typedSpawnFloatRaceFailureLoserValueB = (*(double*)xl6_future_await_value(typedSpawnFloatRaceFailureSlowLoser')){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing repeated await for canceled typed-array float task.spawn race loser.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if(-not $text.Contains('typedSpawnFloatRaceFailureLoserStateB == 42LL')){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_spawn.c should preserve canceled typed-array float task.spawn race loser after worker completes.
     exit /b 1
 )
 powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'cancelSpawnStringTypedAll\s*=\s*xl6_task_cancel_value\(xl6_task_all_from_array\(\(xtarray\)\(cancelSpawnStringAllJobs\),\s*xrtTypeString\(\),\s*[^;]+?\),\s*1\);'){ exit 1 }"
@@ -16331,6 +17501,61 @@ if errorlevel 1 (
     echo cgen_task_spawn.c missing mixed conditional future/all callable normalization.
     exit /b 1
 )
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'pendingClosureFuture\s*=\s*xl6_task_spawn_values\(pendingClosureSource, xrtTypeInt\(\), sizeof\(long long\),[\s\S]*?, 1, 1, xvoCreateInt' -or $text -notmatch 'xl6_task_cancel_value\(pendingClosureFuture, 0\)' -or $text -notmatch 'pendingClosureStateA = 42LL' -or $text -notmatch 'pendingClosureStateB = 42LL' -or $text -notmatch 'pendingClosureSource\.signature[\s\S]*?== 600LL'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing pending closure task.spawn cancel/source-callable lowering.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'pendingClosureAllLeft\s*=\s*xl6_task_spawn_values\(pendingClosureAllSource, xrtTypeInt\(\), sizeof\(long long\),[\s\S]*?, 1, 1, xvoCreateInt' -or $text -notmatch 'pendingClosureAllGroup\s*=\s*xl6_task_all_values\(xrtTypeInt\(\),[\s\S]*?pendingClosureAllLeft, 0, xl6_task_spawn_values\(makeSleepyAdder\(620LL\), xrtTypeInt\(\), sizeof\(long long\),[\s\S]*?, 0, 1' -or $text -notmatch 'xl6_task_cancel_value\(pendingClosureAllGroup, 0\)' -or $text -notmatch 'pendingClosureAllGroupState = 42LL' -or $text -notmatch 'pendingClosureAllLeftStateA = 42LL' -or $text -notmatch 'pendingClosureAllLeftStateB = 42LL' -or $text -notmatch 'pendingClosureAllSource\.signature[\s\S]*?== 610LL'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing pending closure task.all cancel/source-callable lowering.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'failureClosureAllSlow\s*=\s*xl6_task_spawn_values\(failureClosureAllSource, xrtTypeInt\(\), sizeof\(long long\),[\s\S]*?, 1, 1, xvoCreateInt' -or $text -notmatch 'failureClosureAllGroup\s*=\s*xl6_task_all_values\(xrtTypeInt\(\),[\s\S]*?xl6_task_spawn_values\(throwingJob, xrtTypeInt\(\), sizeof\(long long\),[\s\S]*?, 1, 0\), 1, failureClosureAllSlow, 0' -or $text -notmatch 'failureClosureAllGroupState = 42LL' -or $text -notmatch 'failureClosureAllGroupStateAgain = 42LL' -or $text -notmatch '!xl6_task_cancel_value\(failureClosureAllGroup, 0\)' -or $text -notmatch 'failureClosureAllGroupStateAfterCancel = 42LL' -or $text -notmatch 'failureClosureAllSlowValue == 890LL' -or $text -notmatch 'failureClosureAllSource\.signature[\s\S]*?== 670LL'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing failed task.all closure group repeated/cancel/post-cancel lowering.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'typedFailureClosureAllSlow\s*=\s*xl6_task_spawn_values\(typedFailureClosureAllSource, xrtTypeInt\(\), sizeof\(long long\),[\s\S]*?, 1, 1, xvoCreateInt' -or $text -notmatch 'typedFailureClosureAllJobs\s*=\s*xrtTypedArrayCreate\(xrtTypeFuture\(\), XRT_OBJMODE_LOCAL\)' -or $text -notmatch 'typedFailureClosureAllGroup\s*=\s*xl6_task_all_from_array\(\(xtarray\)\(typedFailureClosureAllJobs\), xrtTypeInt\(\)' -or $text -notmatch 'typedFailureClosureAllGroupState = 42LL' -or $text -notmatch 'typedFailureClosureAllGroupStateAgain = 42LL' -or $text -notmatch '!xl6_task_cancel_value\(typedFailureClosureAllGroup, 0\)' -or $text -notmatch 'typedFailureClosureAllGroupStateAfterCancel = 42LL' -or $text -notmatch 'typedFailureClosureAllSlowValue == 900LL' -or $text -notmatch 'typedFailureClosureAllSource\.signature[\s\S]*?== 680LL'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing failed typed-array task.all closure group repeated/cancel/post-cancel lowering.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'successClosureAllSlow\s*=\s*xl6_task_spawn_values\(successClosureAllSource, xrtTypeInt\(\), sizeof\(long long\),[\s\S]*?, 1, 1, xvoCreateInt' -or $text -notmatch 'successClosureAllGroup\s*=\s*xl6_task_all_values\(xrtTypeInt\(\),[\s\S]*?xl6_task_spawn_values\(addJob, xrtTypeInt\(\), sizeof\(long long\),[\s\S]*?\), 1, successClosureAllSlow, 0' -or $text -notmatch 'successClosureAllValuesAgain\s*=\s*xl6_xrt_typed_array_copy_mode\(xrtTypeInt\(\), \(\*\(xtarray\*\)xl6_future_await_value\(successClosureAllGroup' -or $text -notmatch '!xl6_task_cancel_value\(successClosureAllGroup, 0\)' -or $text -notmatch 'successClosureAllValuesAfterCancel\s*=\s*xl6_xrt_typed_array_copy_mode\(xrtTypeInt\(\), \(\*\(xtarray\*\)xl6_future_await_value\(successClosureAllGroup' -or $text -notmatch 'successClosureAllSlowAgain == 915LL' -or $text -notmatch 'successClosureAllSource\.signature[\s\S]*?== 695LL'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing successful task.all closure group repeated/cancel/post-cancel lowering.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'typedSuccessClosureAllSlow\s*=\s*xl6_task_spawn_values\(typedSuccessClosureAllSource, xrtTypeInt\(\), sizeof\(long long\),[\s\S]*?, 1, 1, xvoCreateInt' -or $text -notmatch 'typedSuccessClosureAllJobs\s*=\s*xrtTypedArrayCreate\(xrtTypeFuture\(\), XRT_OBJMODE_LOCAL\)' -or $text -notmatch 'typedSuccessClosureAllGroup\s*=\s*xl6_task_all_from_array\(\(xtarray\)\(typedSuccessClosureAllJobs\), xrtTypeInt\(\)' -or $text -notmatch 'typedSuccessClosureAllValuesAgain\s*=\s*xl6_xrt_typed_array_copy_mode\(xrtTypeInt\(\), \(\*\(xtarray\*\)xl6_future_await_value\(typedSuccessClosureAllGroup' -or $text -notmatch '!xl6_task_cancel_value\(typedSuccessClosureAllGroup, 0\)' -or $text -notmatch 'typedSuccessClosureAllValuesAfterCancel\s*=\s*xl6_xrt_typed_array_copy_mode\(xrtTypeInt\(\), \(\*\(xtarray\*\)xl6_future_await_value\(typedSuccessClosureAllGroup' -or $text -notmatch 'typedSuccessClosureAllSlowAgain == 920LL' -or $text -notmatch 'typedSuccessClosureAllSource\.signature[\s\S]*?== 700LL'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing successful typed-array task.all closure group repeated/cancel/post-cancel lowering.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'pendingClosureRaceLeft\s*=\s*xl6_task_spawn_values\(pendingClosureRaceSource, xrtTypeInt\(\), sizeof\(long long\),[\s\S]*?, 1, 1, xvoCreateInt' -or $text -notmatch 'pendingClosureRaceGroup\s*=\s*xl6_task_race_values\([\s\S]*?pendingClosureRaceLeft, 0, xl6_task_spawn_values\(makeSleepyAdder\(640LL\), xrtTypeInt\(\), sizeof\(long long\),[\s\S]*?, 0, 1' -or $text -notmatch 'xl6_task_cancel_value\(pendingClosureRaceGroup, 0\)' -or $text -notmatch 'pendingClosureRaceGroupState = 42LL' -or $text -notmatch 'pendingClosureRaceLeftStateA = 42LL' -or $text -notmatch 'pendingClosureRaceLeftStateB = 42LL' -or $text -notmatch 'pendingClosureRaceSource\.signature[\s\S]*?== 630LL'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing pending closure task.race cancel/source-callable lowering.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'successClosureRaceLoser\s*=\s*xl6_task_spawn_values\(successClosureRaceLoserSource, xrtTypeInt\(\), sizeof\(long long\),[\s\S]*?, 1, 1, xvoCreateInt' -or $text -notmatch 'successClosureRaceGroup\s*=\s*xl6_task_race_values\([\s\S]*?xl6_task_spawn_values\(addJob, xrtTypeInt\(\), sizeof\(long long\),[\s\S]*?, 1, 2,[\s\S]*?\), 1, successClosureRaceLoser, 0' -or $text -notmatch 'successClosureRaceValue = \(\*\(long long\*\)xl6_future_await_value\(successClosureRaceGroup' -or $text -notmatch 'successClosureRaceValueAgain = \(\*\(long long\*\)xl6_future_await_value\(successClosureRaceGroup' -or $text -notmatch 'successClosureRaceValueAgain == 651LL' -or $text -notmatch '!xl6_task_cancel_value\(successClosureRaceGroup, 0\)' -or $text -notmatch 'successClosureRaceValueAfterCancel = \(\*\(long long\*\)xl6_future_await_value\(successClosureRaceGroup' -or $text -notmatch 'successClosureRaceValueAfterCancel == 651LL' -or $text -notmatch 'successClosureRaceLoserStateA = 42LL' -or $text -notmatch 'successClosureRaceLoserStateB = 42LL' -or $text -notmatch 'successClosureRaceLoserSource\.signature[\s\S]*?== 650LL'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing successful task.race closure group repeated/cancel/post-cancel lowering.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'typedSuccessClosureRaceLoser\s*=\s*xl6_task_spawn_values\(typedSuccessClosureRaceLoserSource, xrtTypeInt\(\), sizeof\(long long\),[\s\S]*?, 1, 1, xvoCreateInt' -or $text -notmatch 'typedSuccessClosureRaceJobs\s*=\s*xrtTypedArrayCreate\(xrtTypeFuture\(\), XRT_OBJMODE_LOCAL\)' -or $text -notmatch 'typedSuccessClosureRaceGroup\s*=\s*xl6_task_race_from_array\(\(xtarray\)\(typedSuccessClosureRaceJobs\)' -or $text -notmatch 'typedSuccessClosureRaceValue == 711LL' -or $text -notmatch 'typedSuccessClosureRaceValueAgain = \(\*\(long long\*\)xl6_future_await_value\(typedSuccessClosureRaceGroup' -or $text -notmatch 'typedSuccessClosureRaceValueAgain == 711LL' -or $text -notmatch '!xl6_task_cancel_value\(typedSuccessClosureRaceGroup, 0\)' -or $text -notmatch 'typedSuccessClosureRaceValueAfterCancel = \(\*\(long long\*\)xl6_future_await_value\(typedSuccessClosureRaceGroup' -or $text -notmatch 'typedSuccessClosureRaceValueAfterCancel == 711LL' -or $text -notmatch 'typedSuccessClosureRaceLoserStateA = 42LL' -or $text -notmatch 'typedSuccessClosureRaceLoserStateB = 42LL' -or $text -notmatch 'typedSuccessClosureRaceLoserSource\.signature[\s\S]*?== 710LL'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing successful typed-array task.race closure group repeated/cancel/post-cancel lowering.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'failureClosureRaceLoser\s*=\s*xl6_task_spawn_values\(failureClosureRaceLoserSource, xrtTypeInt\(\), sizeof\(long long\),[\s\S]*?, 1, 1, xvoCreateInt' -or $text -notmatch 'failureClosureRaceGroup\s*=\s*xl6_task_race_values\([\s\S]*?xl6_task_spawn_values\(throwingJob, xrtTypeInt\(\), sizeof\(long long\),[\s\S]*?, 1, 0\), 1, failureClosureRaceLoser, 0' -or $text -notmatch 'failureClosureRaceGroupState = 42LL' -or $text -notmatch 'failureClosureRaceGroupStateAgain = 42LL' -or $text -notmatch '!xl6_task_cancel_value\(failureClosureRaceGroup, 0\)' -or $text -notmatch 'failureClosureRaceGroupStateAfterCancel = 42LL' -or $text -notmatch 'failureClosureRaceLoserStateA = 42LL' -or $text -notmatch 'failureClosureRaceLoserStateB = 42LL' -or $text -notmatch 'failureClosureRaceLoserSource\.signature[\s\S]*?== 660LL'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing failed task.race closure group repeated/cancel/post-cancel lowering.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'typedFailureClosureRaceLoser\s*=\s*xl6_task_spawn_values\(typedFailureClosureRaceLoserSource, xrtTypeInt\(\), sizeof\(long long\),[\s\S]*?, 1, 1, xvoCreateInt' -or $text -notmatch 'typedFailureClosureRaceJobs\s*=\s*xrtTypedArrayCreate\(xrtTypeFuture\(\), XRT_OBJMODE_LOCAL\)' -or $text -notmatch 'typedFailureClosureRaceGroup\s*=\s*xl6_task_race_from_array\(\(xtarray\)\(typedFailureClosureRaceJobs\)' -or $text -notmatch 'typedFailureClosureRaceGroupState = 42LL' -or $text -notmatch 'typedFailureClosureRaceGroupStateAgain = 42LL' -or $text -notmatch '!xl6_task_cancel_value\(typedFailureClosureRaceGroup, 0\)' -or $text -notmatch 'typedFailureClosureRaceGroupStateAfterCancel = 42LL' -or $text -notmatch 'typedFailureClosureRaceLoserStateA = 42LL' -or $text -notmatch 'typedFailureClosureRaceLoserStateB = 42LL' -or $text -notmatch 'typedFailureClosureRaceLoserSource\.signature[\s\S]*?== 690LL'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing failed typed-array task.race closure group repeated/cancel/post-cancel lowering.
+    exit /b 1
+)
 findstr /C:"XL6_Function __xl6_task_fn_" release\tmp\cgen_task_spawn.c >nul
 if not errorlevel 1 (
     echo cgen_task_spawn.c should not emit task.spawn statement-expression temporaries.
@@ -16360,16 +17585,8 @@ if errorlevel 1 (
 release\xl.exe build test\cases\cgen_task_spawn.xl -o release\tmp\cgen_task_spawn.exe
 if errorlevel 1 exit /b 1
 
-release\tmp\cgen_task_spawn.exe
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$exe=(Resolve-Path 'release\tmp\cgen_task_spawn.exe').Path; for($i=1;$i -le 4;$i++){ $psi=[System.Diagnostics.ProcessStartInfo]::new(); $psi.FileName=$exe; $psi.WorkingDirectory=(Get-Location).Path; $psi.UseShellExecute=$false; $p=[System.Diagnostics.Process]::Start($psi); if(-not $p.WaitForExit(120000)){ try{$p.Kill()}catch{}; Write-Host ('cgen_task_spawn.exe run '+$i+' timed out.'); exit 124 }; $code=$p.ExitCode; $p.Dispose(); if($code -ne 0){ Write-Host ('cgen_task_spawn.exe run '+$i+' failed.'); exit $code } }"
 if errorlevel 1 exit /b 1
-
-for /L %%I in (1,1,3) do (
-    release\tmp\cgen_task_spawn.exe
-    if errorlevel 1 (
-        echo cgen_task_spawn.exe repeat run %%I failed.
-        exit /b 1
-    )
-)
 
 release\xl.exe check test\cases\cgen_async_class_conditional_await.xl
 if errorlevel 1 exit /b 1
@@ -16793,6 +18010,39 @@ if not errorlevel 1 (
     exit /b 1
 )
 
+release\xl.exe check test\cases\sem_async_return_channel.xl >nul 2> release\tmp\sem_async_return_channel.err.txt
+if not errorlevel 1 (
+    echo sem_async_return_channel.xl should fail.
+    exit /b 1
+)
+findstr /C:"[sem]" release\tmp\sem_async_return_channel.err.txt >nul
+if errorlevel 1 (
+    echo sem_async_return_channel.xl missing async channel return diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_async_return_sync.xl >nul 2> release\tmp\sem_async_return_sync.err.txt
+if not errorlevel 1 (
+    echo sem_async_return_sync.xl should fail.
+    exit /b 1
+)
+findstr /C:"[sem]" release\tmp\sem_async_return_sync.err.txt >nul
+if errorlevel 1 (
+    echo sem_async_return_sync.xl missing async sync return diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_async_return_thread.xl >nul 2> release\tmp\sem_async_return_thread.err.txt
+if not errorlevel 1 (
+    echo sem_async_return_thread.xl should fail.
+    exit /b 1
+)
+findstr /C:"[sem]" release\tmp\sem_async_return_thread.err.txt >nul
+if errorlevel 1 (
+    echo sem_async_return_thread.xl missing async thread return diagnostic.
+    exit /b 1
+)
+
 release\xl.exe check test\cases\sem_async_multi_return.xl >nul 2> release\tmp\sem_async_multi_return.err.txt
 if not errorlevel 1 (
     echo sem_async_multi_return.xl should fail.
@@ -16801,6 +18051,17 @@ if not errorlevel 1 (
 findstr /C:"multi-return" release\tmp\sem_async_multi_return.err.txt >nul
 if errorlevel 1 (
     echo sem_async_multi_return.xl missing async multi-return diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_task_unknown_member.xl >nul 2> release\tmp\sem_task_unknown_member.err.txt
+if not errorlevel 1 (
+    echo sem_task_unknown_member.xl should fail.
+    exit /b 1
+)
+findstr /C:"unknown task API" release\tmp\sem_task_unknown_member.err.txt >nul
+if errorlevel 1 (
+    echo sem_task_unknown_member.xl missing unknown task API diagnostic.
     exit /b 1
 )
 
@@ -16969,6 +18230,72 @@ if errorlevel 1 (
     exit /b 1
 )
 
+release\xl.exe check test\cases\sem_task_all_return_future.xl >nul 2> release\tmp\sem_task_all_return_future.err.txt
+if not errorlevel 1 (
+    echo sem_task_all_return_future.xl should fail.
+    exit /b 1
+)
+findstr /C:"future resource handle result" release\tmp\sem_task_all_return_future.err.txt >nul
+if errorlevel 1 (
+    echo sem_task_all_return_future.xl missing task.all nested future diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_task_all_return_channel.xl >nul 2> release\tmp\sem_task_all_return_channel.err.txt
+if not errorlevel 1 (
+    echo sem_task_all_return_channel.xl should fail.
+    exit /b 1
+)
+findstr /C:"future resource handle result" release\tmp\sem_task_all_return_channel.err.txt >nul
+if errorlevel 1 (
+    echo sem_task_all_return_channel.xl missing task.all channel future diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_task_all_return_generator.xl >nul 2> release\tmp\sem_task_all_return_generator.err.txt
+if not errorlevel 1 (
+    echo sem_task_all_return_generator.xl should fail.
+    exit /b 1
+)
+findstr /C:"future resource handle result" release\tmp\sem_task_all_return_generator.err.txt >nul
+if errorlevel 1 (
+    echo sem_task_all_return_generator.xl missing task.all generator future diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_task_all_typed_array_return_future.xl >nul 2> release\tmp\sem_task_all_typed_array_return_future.err.txt
+if not errorlevel 1 (
+    echo sem_task_all_typed_array_return_future.xl should fail.
+    exit /b 1
+)
+findstr /C:"future resource handle result" release\tmp\sem_task_all_typed_array_return_future.err.txt >nul
+if errorlevel 1 (
+    echo sem_task_all_typed_array_return_future.xl missing task.all typed array nested future diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_task_all_typed_array_return_channel.xl >nul 2> release\tmp\sem_task_all_typed_array_return_channel.err.txt
+if not errorlevel 1 (
+    echo sem_task_all_typed_array_return_channel.xl should fail.
+    exit /b 1
+)
+findstr /C:"future resource handle result" release\tmp\sem_task_all_typed_array_return_channel.err.txt >nul
+if errorlevel 1 (
+    echo sem_task_all_typed_array_return_channel.xl missing task.all typed array channel future diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_task_all_typed_array_return_generator.xl >nul 2> release\tmp\sem_task_all_typed_array_return_generator.err.txt
+if not errorlevel 1 (
+    echo sem_task_all_typed_array_return_generator.xl should fail.
+    exit /b 1
+)
+findstr /C:"future resource handle result" release\tmp\sem_task_all_typed_array_return_generator.err.txt >nul
+if errorlevel 1 (
+    echo sem_task_all_typed_array_return_generator.xl missing task.all typed array generator future diagnostic.
+    exit /b 1
+)
+
 release\xl.exe check test\cases\sem_task_all_return_typed_array.xl >nul 2> release\tmp\sem_task_all_return_typed_array.err.txt
 if not errorlevel 1 (
     echo sem_task_all_return_typed_array.xl should fail.
@@ -17032,6 +18359,50 @@ if not errorlevel 1 (
 findstr /C:"future<var>" release\tmp\sem_task_race_var.err.txt >nul
 if errorlevel 1 (
     echo sem_task_race_var.xl missing task.race future var diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_task_race_return_sync.xl >nul 2> release\tmp\sem_task_race_return_sync.err.txt
+if not errorlevel 1 (
+    echo sem_task_race_return_sync.xl should fail.
+    exit /b 1
+)
+findstr /C:"future resource handle result" release\tmp\sem_task_race_return_sync.err.txt >nul
+if errorlevel 1 (
+    echo sem_task_race_return_sync.xl missing task.race sync future diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_task_race_return_thread.xl >nul 2> release\tmp\sem_task_race_return_thread.err.txt
+if not errorlevel 1 (
+    echo sem_task_race_return_thread.xl should fail.
+    exit /b 1
+)
+findstr /C:"future resource handle result" release\tmp\sem_task_race_return_thread.err.txt >nul
+if errorlevel 1 (
+    echo sem_task_race_return_thread.xl missing task.race thread future diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_task_race_typed_array_return_sync.xl >nul 2> release\tmp\sem_task_race_typed_array_return_sync.err.txt
+if not errorlevel 1 (
+    echo sem_task_race_typed_array_return_sync.xl should fail.
+    exit /b 1
+)
+findstr /C:"future resource handle result" release\tmp\sem_task_race_typed_array_return_sync.err.txt >nul
+if errorlevel 1 (
+    echo sem_task_race_typed_array_return_sync.xl missing task.race typed array sync future diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_task_race_typed_array_return_thread.xl >nul 2> release\tmp\sem_task_race_typed_array_return_thread.err.txt
+if not errorlevel 1 (
+    echo sem_task_race_typed_array_return_thread.xl should fail.
+    exit /b 1
+)
+findstr /C:"future resource handle result" release\tmp\sem_task_race_typed_array_return_thread.err.txt >nul
+if errorlevel 1 (
+    echo sem_task_race_typed_array_return_thread.xl missing task.race typed array thread future diagnostic.
     exit /b 1
 )
 
@@ -17354,6 +18725,61 @@ if errorlevel 1 (
     exit /b 1
 )
 
+release\xl.exe check test\cases\sem_task_spawn_return_channel.xl >nul 2> release\tmp\sem_task_spawn_return_channel.err.txt
+if not errorlevel 1 (
+    echo sem_task_spawn_return_channel.xl should fail.
+    exit /b 1
+)
+findstr /C:"task.spawn return type must be supported" release\tmp\sem_task_spawn_return_channel.err.txt >nul
+if errorlevel 1 (
+    echo sem_task_spawn_return_channel.xl missing task.spawn channel return diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_task_spawn_return_future.xl >nul 2> release\tmp\sem_task_spawn_return_future.err.txt
+if not errorlevel 1 (
+    echo sem_task_spawn_return_future.xl should fail.
+    exit /b 1
+)
+findstr /C:"task.spawn return type must be supported" release\tmp\sem_task_spawn_return_future.err.txt >nul
+if errorlevel 1 (
+    echo sem_task_spawn_return_future.xl missing task.spawn future return diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_task_spawn_return_generator.xl >nul 2> release\tmp\sem_task_spawn_return_generator.err.txt
+if not errorlevel 1 (
+    echo sem_task_spawn_return_generator.xl should fail.
+    exit /b 1
+)
+findstr /C:"task.spawn return type must be supported" release\tmp\sem_task_spawn_return_generator.err.txt >nul
+if errorlevel 1 (
+    echo sem_task_spawn_return_generator.xl missing task.spawn generator return diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_task_spawn_return_sync.xl >nul 2> release\tmp\sem_task_spawn_return_sync.err.txt
+if not errorlevel 1 (
+    echo sem_task_spawn_return_sync.xl should fail.
+    exit /b 1
+)
+findstr /C:"task.spawn return type must be supported" release\tmp\sem_task_spawn_return_sync.err.txt >nul
+if errorlevel 1 (
+    echo sem_task_spawn_return_sync.xl missing task.spawn sync return diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_task_spawn_return_thread.xl >nul 2> release\tmp\sem_task_spawn_return_thread.err.txt
+if not errorlevel 1 (
+    echo sem_task_spawn_return_thread.xl should fail.
+    exit /b 1
+)
+findstr /C:"task.spawn return type must be supported" release\tmp\sem_task_spawn_return_thread.err.txt >nul
+if errorlevel 1 (
+    echo sem_task_spawn_return_thread.xl missing task.spawn thread return diagnostic.
+    exit /b 1
+)
+
 release\xl.exe check test\cases\sem_task_spawn_arg_typed_array.xl >nul 2> release\tmp\sem_task_spawn_arg_typed_array.err.txt
 if not errorlevel 1 (
     echo sem_task_spawn_arg_typed_array.xl should fail.
@@ -17464,6 +18890,61 @@ if errorlevel 1 (
     exit /b 1
 )
 
+release\xl.exe check test\cases\sem_task_spawn_arg_channel.xl >nul 2> release\tmp\sem_task_spawn_arg_channel.err.txt
+if not errorlevel 1 (
+    echo sem_task_spawn_arg_channel.xl should fail.
+    exit /b 1
+)
+findstr /C:"task.spawn parameter type must be supported" release\tmp\sem_task_spawn_arg_channel.err.txt >nul
+if errorlevel 1 (
+    echo sem_task_spawn_arg_channel.xl missing task.spawn channel argument diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_task_spawn_arg_future.xl >nul 2> release\tmp\sem_task_spawn_arg_future.err.txt
+if not errorlevel 1 (
+    echo sem_task_spawn_arg_future.xl should fail.
+    exit /b 1
+)
+findstr /C:"task.spawn parameter type must be supported" release\tmp\sem_task_spawn_arg_future.err.txt >nul
+if errorlevel 1 (
+    echo sem_task_spawn_arg_future.xl missing task.spawn future argument diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_task_spawn_arg_generator.xl >nul 2> release\tmp\sem_task_spawn_arg_generator.err.txt
+if not errorlevel 1 (
+    echo sem_task_spawn_arg_generator.xl should fail.
+    exit /b 1
+)
+findstr /C:"task.spawn parameter type must be supported" release\tmp\sem_task_spawn_arg_generator.err.txt >nul
+if errorlevel 1 (
+    echo sem_task_spawn_arg_generator.xl missing task.spawn generator argument diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_task_spawn_arg_sync.xl >nul 2> release\tmp\sem_task_spawn_arg_sync.err.txt
+if not errorlevel 1 (
+    echo sem_task_spawn_arg_sync.xl should fail.
+    exit /b 1
+)
+findstr /C:"task.spawn parameter type must be supported" release\tmp\sem_task_spawn_arg_sync.err.txt >nul
+if errorlevel 1 (
+    echo sem_task_spawn_arg_sync.xl missing task.spawn sync argument diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_task_spawn_arg_thread.xl >nul 2> release\tmp\sem_task_spawn_arg_thread.err.txt
+if not errorlevel 1 (
+    echo sem_task_spawn_arg_thread.xl should fail.
+    exit /b 1
+)
+findstr /C:"task.spawn parameter type must be supported" release\tmp\sem_task_spawn_arg_thread.err.txt >nul
+if errorlevel 1 (
+    echo sem_task_spawn_arg_thread.xl missing task.spawn thread argument diagnostic.
+    exit /b 1
+)
+
 release\xl.exe check test\cases\cgen_async_generator.xl
 if errorlevel 1 (
     echo cgen_async_generator.xl check failed.
@@ -17570,6 +19051,11 @@ if errorlevel 1 (
     echo cgen_async_generator.c missing saved async generator break cleanup lowering.
     exit /b 1
 )
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_async_generator.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'long long savedBreakAgainState = 0LL;[\s\S]*?XL6_Generator\* __xl6_gen_iter_([0-9]+) = savedIndexed;\s*savedIndexed = 0;[\s\S]*?while \(xl6_generator_next\(__xl6_gen_iter_\1,[\s\S]*?goto __xl6_try_catch_([0-9]+);[\s\S]*?__xl6_try_catch_\2:[\s\S]*?savedBreakAgainState = 42LL'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_async_generator.c missing saved async generator second-pass rejection after break.
+    exit /b 1
+)
 findstr /C:"XL6_Generator* savedIndexedContinue = indexedStream();" release\tmp\cgen_async_generator.c >nul
 if errorlevel 1 (
     echo cgen_async_generator.c missing saved async generator continue source.
@@ -17578,6 +19064,96 @@ if errorlevel 1 (
 powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_async_generator.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'XL6_Generator\* __xl6_gen_iter_([0-9]+) = savedIndexedContinue;\s*savedIndexedContinue = 0;\s*long long __xl6_gen_index_\1 = 0;[\s\S]*?long long savedContinueIndex = __xl6_gen_index_\1;[\s\S]*?long long savedContinueValue = 0;[\s\S]*?if \(\(savedContinueIndex == 1LL\)\) \{[\s\S]*?goto __xl6_continue_\1;[\s\S]*?if \(\(savedContinueIndex == 2LL\)\) \{[\s\S]*?xl6_generator_destroy\(__xl6_gen_iter_\1\);[\s\S]*?goto __xl6_break_\1;'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_async_generator.c missing saved async generator continue/break lowering.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_async_generator.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'long long savedContinueAgainState = 0LL;[\s\S]*?XL6_Generator\* __xl6_gen_iter_([0-9]+) = savedIndexedContinue;\s*savedIndexedContinue = 0;[\s\S]*?while \(xl6_generator_next\(__xl6_gen_iter_\1,[\s\S]*?goto __xl6_try_catch_([0-9]+);[\s\S]*?__xl6_try_catch_\2:[\s\S]*?savedContinueAgainState = 42LL'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_async_generator.c missing saved async generator second-pass rejection after continue/break.
+    exit /b 1
+)
+findstr /C:"XL6_Generator* returnEarlyStream(void)" release\tmp\cgen_async_generator.c >nul
+if errorlevel 1 (
+    echo cgen_async_generator.c missing return-early async generator symbol.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_async_generator.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'static void xl_gen_worker_returnEarlyStream[\s\S]*?xl6_generator_yield_copy[\s\S]*?addAsync\(0LL, 5LL\)[\s\S]*?return;[\s\S]*?addAsync\(0LL, 50LL\)'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_async_generator.c missing return-early async generator worker lowering.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_async_generator.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'XL6_Generator\* savedReturnEarly = returnEarlyStream\(\);[\s\S]*?XL6_Generator\* __xl6_gen_iter_([0-9]+) = savedReturnEarly;\s*savedReturnEarly = 0;[\s\S]*?savedReturnEarlyCount = \(savedReturnEarlyCount \+ 1LL\);[\s\S]*?savedReturnEarlyTotal = \(savedReturnEarlyTotal \+ value\);[\s\S]*?xl6_generator_destroy\(__xl6_gen_iter_\1\)'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_async_generator.c missing saved return-early async generator consumption lowering.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_async_generator.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'long long savedReturnEarlyAgainState = 0LL;[\s\S]*?XL6_Generator\* __xl6_gen_iter_([0-9]+) = savedReturnEarly;\s*savedReturnEarly = 0;[\s\S]*?while \(xl6_generator_next\(__xl6_gen_iter_\1,[\s\S]*?goto __xl6_try_catch_([0-9]+);[\s\S]*?__xl6_try_catch_\2:[\s\S]*?savedReturnEarlyAgainState = 42LL'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_async_generator.c missing saved return-early async generator second-pass rejection.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_async_generator.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'long long returnEarlyCount = 0LL;[\s\S]*?XL6_Generator\* __xl6_gen_iter_([0-9]+) = returnEarlyStream\(\);[\s\S]*?returnEarlyCount = \(returnEarlyCount \+ 1LL\);[\s\S]*?returnEarlyTotal = \(returnEarlyTotal \+ value\);[\s\S]*?xl6_generator_destroy\(__xl6_gen_iter_\1\)[\s\S]*?returnEarlyCount == 1LL[\s\S]*?returnEarlyTotal == 5LL'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_async_generator.c missing temporary return-early async generator lowering.
+    exit /b 1
+)
+findstr /C:"XL6_Generator* returnBeforeYieldStream(void)" release\tmp\cgen_async_generator.c >nul
+if errorlevel 1 (
+    echo cgen_async_generator.c missing return-before-yield async generator symbol.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_async_generator.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'static void xl_gen_worker_returnBeforeYieldStream[\s\S]*?\{\s*XL6_Generator\* __xl6_gen = \(XL6_Generator\*\)__xl6_arg;\s*return;[\s\S]*?addAsync\(0LL, 60LL\)'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_async_generator.c missing return-before-yield async generator worker lowering.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_async_generator.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'XL6_Generator\* savedReturnBeforeYield = returnBeforeYieldStream\(\);[\s\S]*?XL6_Generator\* __xl6_gen_iter_([0-9]+) = savedReturnBeforeYield;\s*savedReturnBeforeYield = 0;[\s\S]*?while \(xl6_generator_next\(__xl6_gen_iter_\1,[\s\S]*?savedReturnBeforeYieldCount = \(savedReturnBeforeYieldCount \+ 1LL\);[\s\S]*?savedReturnBeforeYieldTotal = \(savedReturnBeforeYieldTotal \+ value\);[\s\S]*?xl6_generator_destroy\(__xl6_gen_iter_\1\)[\s\S]*?savedReturnBeforeYieldCount == 0LL[\s\S]*?savedReturnBeforeYieldTotal == 0LL'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_async_generator.c missing saved return-before-yield async generator empty consumption lowering.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_async_generator.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'long long savedReturnBeforeYieldAgainState = 0LL;[\s\S]*?XL6_Generator\* __xl6_gen_iter_([0-9]+) = savedReturnBeforeYield;\s*savedReturnBeforeYield = 0;[\s\S]*?while \(xl6_generator_next\(__xl6_gen_iter_\1,[\s\S]*?goto __xl6_try_catch_([0-9]+);[\s\S]*?__xl6_try_catch_\2:[\s\S]*?savedReturnBeforeYieldAgainState = 42LL'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_async_generator.c missing saved return-before-yield async generator second-pass rejection.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_async_generator.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'long long returnBeforeYieldCount = 0LL;[\s\S]*?XL6_Generator\* __xl6_gen_iter_([0-9]+) = returnBeforeYieldStream\(\);[\s\S]*?returnBeforeYieldCount = \(returnBeforeYieldCount \+ 1LL\);[\s\S]*?returnBeforeYieldTotal = \(returnBeforeYieldTotal \+ value\);[\s\S]*?xl6_generator_destroy\(__xl6_gen_iter_\1\)[\s\S]*?returnBeforeYieldCount == 0LL[\s\S]*?returnBeforeYieldTotal == 0LL'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_async_generator.c missing temporary return-before-yield async generator lowering.
+    exit /b 1
+)
+findstr /C:"XL6_Generator* plainStream(void)" release\tmp\cgen_async_generator.c >nul
+if errorlevel 1 (
+    echo cgen_async_generator.c missing ordinary generator symbol for for-await.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_async_generator.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'static void xl_gen_worker_plainStream[\s\S]*?xl6_generator_yield_copy[\s\S]*?\(long long\)\{7LL\}[\s\S]*?xl6_generator_yield_copy[\s\S]*?\(long long\)\{8LL\}'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_async_generator.c missing ordinary generator worker for for-await.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_async_generator.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'long long plainAwaitTotal = 0LL;[\s\S]*?XL6_Generator\* __xl6_gen_iter_([0-9]+) = plainStream\(\);[\s\S]*?while \(xl6_generator_next\(__xl6_gen_iter_\1,[\s\S]*?plainAwaitTotal = \(plainAwaitTotal \+ value\);[\s\S]*?xl6_generator_destroy\(__xl6_gen_iter_\1\)[\s\S]*?plainAwaitTotal == 15LL'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_async_generator.c missing for-await ordinary generator temporary consumption lowering.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_async_generator.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'XL6_Generator\* savedPlainAwait = plainStream\(\);[\s\S]*?XL6_Generator\* __xl6_gen_iter_([0-9]+) = savedPlainAwait;\s*savedPlainAwait = 0;\s*long long __xl6_gen_index_\1 = 0;[\s\S]*?long long plainIndex = __xl6_gen_index_\1;[\s\S]*?long long plainValue = 0;[\s\S]*?xl6_generator_value_into\(__xl6_gen_iter_\1, &plainValue,[\s\S]*?savedPlainAwaitWeighted = \(\(savedPlainAwaitWeighted \+ \(plainIndex \* 100LL\)\) \+ plainValue\);[\s\S]*?xl6_generator_destroy\(__xl6_gen_iter_\1\)[\s\S]*?savedPlainAwaitWeighted == 115LL'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_async_generator.c missing for-await saved ordinary generator index/value lowering.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_async_generator.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'long long savedPlainAwaitAgainState = 0LL;[\s\S]*?XL6_Generator\* __xl6_gen_iter_([0-9]+) = savedPlainAwait;\s*savedPlainAwait = 0;[\s\S]*?while \(xl6_generator_next\(__xl6_gen_iter_\1,[\s\S]*?goto __xl6_try_catch_([0-9]+);[\s\S]*?__xl6_try_catch_\2:[\s\S]*?savedPlainAwaitAgainState = 42LL'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_async_generator.c missing for-await ordinary generator second-pass rejection.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_async_generator.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'XL6_Generator\* savedPlainAwaitBreak = plainStream\(\);[\s\S]*?XL6_Generator\* __xl6_gen_iter_([0-9]+) = savedPlainAwaitBreak;\s*savedPlainAwaitBreak = 0;\s*long long __xl6_gen_index_\1 = 0;[\s\S]*?long long plainBreakIndex = __xl6_gen_index_\1;[\s\S]*?long long plainBreakValue = 0;[\s\S]*?if \(\(plainBreakIndex == 0LL\)\) \{[\s\S]*?goto __xl6_continue_\1;[\s\S]*?savedPlainAwaitBreakTotal = \(\(savedPlainAwaitBreakTotal \+ \(plainBreakIndex \* 100LL\)\) \+ plainBreakValue\);[\s\S]*?xl6_generator_destroy\(__xl6_gen_iter_\1\);[\s\S]*?goto __xl6_break_\1;[\s\S]*?__xl6_continue_\1:[\s\S]*?__xl6_gen_index_\1 \+= 1;[\s\S]*?savedPlainAwaitBreakTotal == 108LL'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_async_generator.c missing for-await ordinary generator continue/break cleanup.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_async_generator.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'long long savedPlainAwaitBreakAgainState = 0LL;[\s\S]*?XL6_Generator\* __xl6_gen_iter_([0-9]+) = savedPlainAwaitBreak;\s*savedPlainAwaitBreak = 0;[\s\S]*?while \(xl6_generator_next\(__xl6_gen_iter_\1,[\s\S]*?goto __xl6_try_catch_([0-9]+);[\s\S]*?__xl6_try_catch_\2:[\s\S]*?savedPlainAwaitBreakAgainState = 42LL'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_async_generator.c missing for-await ordinary generator break second-pass rejection.
     exit /b 1
 )
 findstr /C:"iterate null generator" release\tmp\cgen_async_generator.c >nul
@@ -17650,6 +19226,54 @@ if not errorlevel 1 (
 findstr /C:"async type marker is only supported on generator<T>" release\tmp\sem_async_type_non_generator.err.txt >nul
 if errorlevel 1 (
     echo sem_async_type_non_generator.xl missing async type marker diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_async_generator_return_value.xl >nul 2> release\tmp\sem_async_generator_return_value.err.txt
+if not errorlevel 1 (
+    echo sem_async_generator_return_value.xl should fail.
+    exit /b 1
+)
+findstr /C:"generator" release\tmp\sem_async_generator_return_value.err.txt >nul
+if errorlevel 1 (
+    echo sem_async_generator_return_value.xl missing generator diagnostic.
+    exit /b 1
+)
+findstr /C:"return" release\tmp\sem_async_generator_return_value.err.txt >nul
+if errorlevel 1 (
+    echo sem_async_generator_return_value.xl missing return diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_async_generator_type_marker_return_value.xl >nul 2> release\tmp\sem_async_generator_type_marker_return_value.err.txt
+if not errorlevel 1 (
+    echo sem_async_generator_type_marker_return_value.xl should fail.
+    exit /b 1
+)
+findstr /C:"generator" release\tmp\sem_async_generator_type_marker_return_value.err.txt >nul
+if errorlevel 1 (
+    echo sem_async_generator_type_marker_return_value.xl missing generator diagnostic.
+    exit /b 1
+)
+findstr /C:"return" release\tmp\sem_async_generator_type_marker_return_value.err.txt >nul
+if errorlevel 1 (
+    echo sem_async_generator_type_marker_return_value.xl missing return diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_generator_return_value.xl >nul 2> release\tmp\sem_generator_return_value.err.txt
+if not errorlevel 1 (
+    echo sem_generator_return_value.xl should fail.
+    exit /b 1
+)
+findstr /C:"generator" release\tmp\sem_generator_return_value.err.txt >nul
+if errorlevel 1 (
+    echo sem_generator_return_value.xl missing generator diagnostic.
+    exit /b 1
+)
+findstr /C:"return" release\tmp\sem_generator_return_value.err.txt >nul
+if errorlevel 1 (
+    echo sem_generator_return_value.xl missing return diagnostic.
     exit /b 1
 )
 
@@ -17745,6 +19369,21 @@ if errorlevel 1 (
     echo cgen_generator.c missing generator null diagnostic.
     exit /b 1
 )
+findstr /C:"XL6_Generator* savedBreakGen = nums(3LL);" release\tmp\cgen_generator.c >nul
+if errorlevel 1 (
+    echo cgen_generator.c missing saved break generator source.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_generator.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'XL6_Generator\* savedBreakGen = nums\(3LL\);[\s\S]*?XL6_Generator\* __xl6_gen_iter_([0-9]+) = savedBreakGen;\s*savedBreakGen = 0;\s*long long __xl6_gen_index_\1 = 0;[\s\S]*?long long index = __xl6_gen_index_\1;[\s\S]*?long long item = 0;[\s\S]*?if \(\(index == 0LL\)\) \{[\s\S]*?goto __xl6_continue_\1;[\s\S]*?savedBreakTotal = \(\(savedBreakTotal \+ \(index \* 100LL\)\) \+ item\);[\s\S]*?xl6_generator_destroy\(__xl6_gen_iter_\1\);[\s\S]*?goto __xl6_break_\1;[\s\S]*?__xl6_continue_\1:[\s\S]*?__xl6_gen_index_\1 \+= 1;[\s\S]*?savedBreakTotal == 102LL'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_generator.c missing saved generator continue/break cleanup.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_generator.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'long long savedBreakAgainState = 0LL;[\s\S]*?XL6_Generator\* __xl6_gen_iter_([0-9]+) = savedBreakGen;\s*savedBreakGen = 0;[\s\S]*?while \(xl6_generator_next\(__xl6_gen_iter_\1,[\s\S]*?goto __xl6_try_catch_([0-9]+);[\s\S]*?__xl6_try_catch_\2:[\s\S]*?savedBreakAgainState = 42LL'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_generator.c missing saved generator break second-pass rejection.
+    exit /b 1
+)
 findstr /C:"XL6_Generator* consumedGen = nums(1LL);" release\tmp\cgen_generator.c >nul
 if errorlevel 1 (
     echo cgen_generator.c missing consumed generator source.
@@ -17768,6 +19407,56 @@ if errorlevel 1 (
 powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_generator.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'XL6_Generator\* __xl6_gen_iter_([0-9]+) = missingGen;\s*missingGen = 0;[\s\S]*?while \(xl6_generator_next\(__xl6_gen_iter_\1,[\s\S]*?goto __xl6_try_catch_([0-9]+);[\s\S]*?__xl6_try_catch_\2:[\s\S]*?xrtStrComp\(xl6_error_message\(e\), ""iterate null generator""[\s\S]*?missingGenState = 42LL'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_generator.c missing null generator rejection.
+    exit /b 1
+)
+findstr /C:"XL6_Generator* returnEarlyNums(void)" release\tmp\cgen_generator.c >nul
+if errorlevel 1 (
+    echo cgen_generator.c missing return-early generator function.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_generator.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'static void xl_gen_worker_returnEarlyNums[\s\S]*?xl6_generator_yield_copy[\s\S]*?\{5LL\}[\s\S]*?return;[\s\S]*?\{50LL\}'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_generator.c missing return-early generator worker shape.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_generator.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'XL6_Generator\* savedReturnEarlyNums = returnEarlyNums\(\);[\s\S]*?XL6_Generator\* __xl6_gen_iter_([0-9]+) = savedReturnEarlyNums;\s*savedReturnEarlyNums = 0;[\s\S]*?savedReturnEarlyCount = \(savedReturnEarlyCount \+ 1LL\);[\s\S]*?savedReturnEarlyTotal = \(savedReturnEarlyTotal \+ value\);[\s\S]*?xl6_generator_destroy\(__xl6_gen_iter_\1\)[\s\S]*?savedReturnEarlyCount == 1LL[\s\S]*?savedReturnEarlyTotal == 5LL'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_generator.c missing saved return-early generator move lowering.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_generator.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'long long savedReturnEarlyAgainState = 0LL;[\s\S]*?XL6_Generator\* __xl6_gen_iter_([0-9]+) = savedReturnEarlyNums;\s*savedReturnEarlyNums = 0;[\s\S]*?while \(xl6_generator_next\(__xl6_gen_iter_\1,[\s\S]*?goto __xl6_try_catch_([0-9]+);[\s\S]*?__xl6_try_catch_\2:[\s\S]*?savedReturnEarlyAgainState = 42LL'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_generator.c missing saved return-early generator second-pass rejection.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_generator.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'long long returnEarlyCount = 0LL;[\s\S]*?XL6_Generator\* __xl6_gen_iter_([0-9]+) = returnEarlyNums\(\);[\s\S]*?returnEarlyCount = \(returnEarlyCount \+ 1LL\);[\s\S]*?returnEarlyTotal = \(returnEarlyTotal \+ value\);[\s\S]*?xl6_generator_destroy\(__xl6_gen_iter_\1\)[\s\S]*?returnEarlyCount == 1LL[\s\S]*?returnEarlyTotal == 5LL'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_generator.c missing temporary return-early generator lowering.
+    exit /b 1
+)
+findstr /C:"XL6_Generator* returnBeforeYieldNums(void)" release\tmp\cgen_generator.c >nul
+if errorlevel 1 (
+    echo cgen_generator.c missing pre-yield return generator function.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_generator.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'static void xl_gen_worker_returnBeforeYieldNums[\s\S]*?\{\s*XL6_Generator\* __xl6_gen = \(XL6_Generator\*\)__xl6_arg;\s*return;[\s\S]*?\{60LL\}'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_generator.c missing pre-yield return generator worker shape.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_generator.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'XL6_Generator\* savedReturnBeforeYieldNums = returnBeforeYieldNums\(\);[\s\S]*?XL6_Generator\* __xl6_gen_iter_([0-9]+) = savedReturnBeforeYieldNums;\s*savedReturnBeforeYieldNums = 0;[\s\S]*?while \(xl6_generator_next\(__xl6_gen_iter_\1,[\s\S]*?savedReturnBeforeYieldCount = \(savedReturnBeforeYieldCount \+ 1LL\);[\s\S]*?savedReturnBeforeYieldTotal = \(savedReturnBeforeYieldTotal \+ value\);[\s\S]*?xl6_generator_destroy\(__xl6_gen_iter_\1\)[\s\S]*?savedReturnBeforeYieldCount == 0LL[\s\S]*?savedReturnBeforeYieldTotal == 0LL'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_generator.c missing saved pre-yield return generator move lowering.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_generator.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'long long savedReturnBeforeYieldAgainState = 0LL;[\s\S]*?XL6_Generator\* __xl6_gen_iter_([0-9]+) = savedReturnBeforeYieldNums;\s*savedReturnBeforeYieldNums = 0;[\s\S]*?while \(xl6_generator_next\(__xl6_gen_iter_\1,[\s\S]*?goto __xl6_try_catch_([0-9]+);[\s\S]*?__xl6_try_catch_\2:[\s\S]*?savedReturnBeforeYieldAgainState = 42LL'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_generator.c missing saved pre-yield return generator second-pass rejection.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_generator.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'long long returnBeforeYieldCount = 0LL;[\s\S]*?XL6_Generator\* __xl6_gen_iter_([0-9]+) = returnBeforeYieldNums\(\);[\s\S]*?returnBeforeYieldCount = \(returnBeforeYieldCount \+ 1LL\);[\s\S]*?returnBeforeYieldTotal = \(returnBeforeYieldTotal \+ value\);[\s\S]*?xl6_generator_destroy\(__xl6_gen_iter_\1\)[\s\S]*?returnBeforeYieldCount == 0LL[\s\S]*?returnBeforeYieldTotal == 0LL'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_generator.c missing temporary pre-yield return generator lowering.
     exit /b 1
 )
 
@@ -17859,6 +19548,17 @@ if errorlevel 1 (
     exit /b 1
 )
 
+release\xl.exe check test\cases\sem_generator_typed_array_element.xl >nul 2> release\tmp\sem_generator_typed_array_element.err.txt
+if not errorlevel 1 (
+    echo sem_generator_typed_array_element.xl should fail.
+    exit /b 1
+)
+findstr /C:"generator<T>" release\tmp\sem_generator_typed_array_element.err.txt >nul
+if errorlevel 1 (
+    echo sem_generator_typed_array_element.xl missing generator typed array element diagnostic.
+    exit /b 1
+)
+
 release\xl.exe check test\cases\sem_generator_class_element.xl >nul 2> release\tmp\sem_generator_class_element.err.txt
 if not errorlevel 1 (
     echo sem_generator_class_element.xl should fail.
@@ -17926,6 +19626,22 @@ if errorlevel 1 (
 findstr /C:"bool" release\tmp\sem_generator_var_param.err.txt >nul
 if errorlevel 1 (
     echo sem_generator_var_param.xl missing generator var parameter type boundary.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_generator_typed_array_param.xl >nul 2> release\tmp\sem_generator_typed_array_param.err.txt
+if not errorlevel 1 (
+    echo sem_generator_typed_array_param.xl should fail.
+    exit /b 1
+)
+findstr /C:"generator" release\tmp\sem_generator_typed_array_param.err.txt >nul
+if errorlevel 1 (
+    echo sem_generator_typed_array_param.xl missing generator typed array parameter diagnostic.
+    exit /b 1
+)
+findstr /C:"bool" release\tmp\sem_generator_typed_array_param.err.txt >nul
+if errorlevel 1 (
+    echo sem_generator_typed_array_param.xl missing generator typed array parameter type boundary.
     exit /b 1
 )
 
@@ -18015,6 +19731,16 @@ if errorlevel 1 (
     echo cgen_channel.c missing channel close-drain or capacity guard lowering.
     exit /b 1
 )
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_channel.c',[System.Text.Encoding]::UTF8); $checks=@('xchannel crossThreadCh = xl6_channel_require_handle(xrtChannelCreate(4LL)','xchannel crossThreadCh;','xl6_channel_send_value(__env->crossThreadCh, &(long long){314LL}','xl6_channel_send_value(__env->crossThreadCh, &(long long){159LL}','xrtChannelClose(__env->crossThreadCh)','XL6_Function channelProducer = xl6_anon_','_make(crossThreadCh)','void* producerThread = xl6_thread_require_handle(xl6_thread_start(channelProducer, 1','xrtThreadWaitTimeout(producerThread, 2000LL) == 0','(int)xrtThreadGetExitCode(producerThread) == 17LL','xrtChannelIsClosed(crossThreadCh)','xl6_channel_recv_into(crossThreadCh, &crossFirst, sizeof(long long), 1','xl6_channel_recv_into(crossThreadCh, &crossSecond, sizeof(long long), 1','!xl6_channel_recv_into(crossThreadCh, &crossSecond, sizeof(long long), 0','!xl6_channel_send_value(crossThreadCh, &(long long){265LL}, sizeof(long long)'); foreach($p in $checks){ if($text.IndexOf($p) -lt 0){ Write-Host ('cgen_channel.c missing '+$p); exit 1 } }"
+if errorlevel 1 (
+    echo cgen_channel.c missing cross-thread captured channel guard lowering.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_channel.c',[System.Text.Encoding]::UTF8); $checks=@('xchannel delayedRecvCh = xl6_channel_require_handle(xrtChannelCreate(1LL)','xl6_channel_send_value(__env->delayedRecvCh, &(long long){271LL}','xl6_channel_recv_into(delayedRecvCh, &delayedRecvValue, sizeof(long long), 1','xrtThreadWaitTimeout(delayedRecvThread, 2000LL) == 0','(int)xrtThreadGetExitCode(delayedRecvThread) == 19LL','xchannel delayedConsumerCh = xl6_channel_require_handle(xrtChannelCreate(1LL)','xl6_channel_recv_into(__env->delayedConsumerCh, &got, sizeof(long long), 1','xl6_channel_send_value(delayedConsumerCh, &(long long){2718LL}','xrtThreadWaitTimeout(delayedConsumerThread, 2000LL) == 0','(int)xrtThreadGetExitCode(delayedConsumerThread) == 2718LL'); foreach($p in $checks){ if($text.IndexOf($p) -lt 0){ Write-Host ('cgen_channel.c missing '+$p); exit 1 } }"
+if errorlevel 1 (
+    echo cgen_channel.c missing blocking channel wakeup guard lowering.
+    exit /b 1
+)
 
 release\xl.exe check test\cases\sem_channel_string_element.xl >nul 2> release\tmp\sem_channel_string_element.err.txt
 if not errorlevel 1 (
@@ -18035,6 +19761,28 @@ if not errorlevel 1 (
 findstr /C:"channel<T>" release\tmp\sem_channel_var_element.err.txt >nul
 if errorlevel 1 (
     echo sem_channel_var_element.xl missing channel element diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_channel_generator_element.xl >nul 2> release\tmp\sem_channel_generator_element.err.txt
+if not errorlevel 1 (
+    echo sem_channel_generator_element.xl should fail.
+    exit /b 1
+)
+findstr /C:"channel<T>" release\tmp\sem_channel_generator_element.err.txt >nul
+if errorlevel 1 (
+    echo sem_channel_generator_element.xl missing channel element diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_channel_typed_array_element.xl >nul 2> release\tmp\sem_channel_typed_array_element.err.txt
+if not errorlevel 1 (
+    echo sem_channel_typed_array_element.xl should fail.
+    exit /b 1
+)
+findstr /C:"channel<T>" release\tmp\sem_channel_typed_array_element.err.txt >nul
+if errorlevel 1 (
+    echo sem_channel_typed_array_element.xl missing channel typed array element diagnostic.
     exit /b 1
 )
 
@@ -18093,6 +19841,39 @@ if errorlevel 1 (
     exit /b 1
 )
 
+release\xl.exe check test\cases\sem_channel_send_named_argument.xl >nul 2> release\tmp\sem_channel_send_named_argument.err.txt
+if not errorlevel 1 (
+    echo sem_channel_send_named_argument.xl should fail.
+    exit /b 1
+)
+findstr /C:"channel.send" release\tmp\sem_channel_send_named_argument.err.txt >nul
+if errorlevel 1 (
+    echo sem_channel_send_named_argument.xl missing channel send named argument diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_channel_recv_named_argument.xl >nul 2> release\tmp\sem_channel_recv_named_argument.err.txt
+if not errorlevel 1 (
+    echo sem_channel_recv_named_argument.xl should fail.
+    exit /b 1
+)
+findstr /C:"channel.recvInto" release\tmp\sem_channel_recv_named_argument.err.txt >nul
+if errorlevel 1 (
+    echo sem_channel_recv_named_argument.xl missing channel recvInto named argument diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_channel_unknown_method.xl >nul 2> release\tmp\sem_channel_unknown_method.err.txt
+if not errorlevel 1 (
+    echo sem_channel_unknown_method.xl should fail.
+    exit /b 1
+)
+findstr /C:"unknown channel method" release\tmp\sem_channel_unknown_method.err.txt >nul
+if errorlevel 1 (
+    echo sem_channel_unknown_method.xl missing unknown channel method diagnostic.
+    exit /b 1
+)
+
 release\xl.exe check test\cases\sem_channel_send_type.xl >nul 2> release\tmp\sem_channel_send_type.err.txt
 if not errorlevel 1 (
     echo sem_channel_send_type.xl should fail.
@@ -18112,6 +19893,28 @@ if not errorlevel 1 (
 findstr /C:"target int, value float" release\tmp\sem_channel_recv_target_type.err.txt >nul
 if errorlevel 1 (
     echo sem_channel_recv_target_type.xl missing channel recv target type context.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_channel_recv_captured_target.xl >nul 2> release\tmp\sem_channel_recv_captured_target.err.txt
+if not errorlevel 1 (
+    echo sem_channel_recv_captured_target.xl should fail.
+    exit /b 1
+)
+findstr /C:"[sem]" release\tmp\sem_channel_recv_captured_target.err.txt >nul
+if errorlevel 1 (
+    echo sem_channel_recv_captured_target.xl missing semantic diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_channel_recv_const_target.xl >nul 2> release\tmp\sem_channel_recv_const_target.err.txt
+if not errorlevel 1 (
+    echo sem_channel_recv_const_target.xl should fail.
+    exit /b 1
+)
+findstr /C:"const" release\tmp\sem_channel_recv_const_target.err.txt >nul
+if errorlevel 1 (
+    echo sem_channel_recv_const_target.xl missing const target diagnostic.
     exit /b 1
 )
 

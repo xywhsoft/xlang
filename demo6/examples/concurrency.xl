@@ -800,6 +800,32 @@ assert full.send(10), "full channel first send failed"
 assert full.send(11), "capacity-one channel should normalize to two slots"
 assert not full.send(12), "full channel third send should fail"
 
+channel<int> crossThreadChannel = channel::<int>(4)
+auto channelProducer = func() as int
+    if not crossThreadChannel.send(314) then
+        return 10
+    end
+    if not crossThreadChannel.send(159) then
+        return 11
+    end
+    crossThreadChannel.close()
+    return 17
+end
+
+thread producerThread = thread(channelProducer)
+assert producerThread.waitTimeout(2000), "channel producer thread wait failed"
+assert producerThread.exitCode() == 17, "channel producer thread exit failed"
+assert crossThreadChannel.isClosed(), "cross-thread channel close should be visible"
+
+int crossFirst = 0
+int crossSecond = 0
+assert crossThreadChannel.recvInto(crossFirst), "cross-thread channel first recv failed"
+assert crossFirst == 314, "cross-thread channel first value failed"
+assert crossThreadChannel.recvInto(crossSecond), "cross-thread channel second recv failed"
+assert crossSecond == 159, "cross-thread channel second value failed"
+assert not crossThreadChannel.tryRecvInto(crossSecond), "cross-thread closed drained channel recv should fail"
+assert not crossThreadChannel.send(265), "cross-thread closed channel send should fail"
+
 int missingThreadState = 0
 try
     thread missingThread = thread(missingThreadWorker)
@@ -859,6 +885,20 @@ assert fullSem.waitTimeout(10), "sem full original wait failed"
 assert fullSem.post(), "sem post after drain failed"
 assert fullSem.waitTimeout(10), "sem refill wait failed"
 
+sem semWakeGate = sem(0, 1)
+auto semWakeWorker = func() as int
+    if not semWakeGate.waitTimeout(2000) then
+        return 10
+    end
+    return 23
+end
+
+thread semWakeThread = thread(semWakeWorker)
+assert not semWakeThread.waitTimeout(1), "sem worker should wait before post"
+assert semWakeGate.post(), "sem cross-thread post failed"
+assert semWakeThread.waitTimeout(2000), "sem cross-thread wait failed"
+assert semWakeThread.exitCode() == 23, "sem cross-thread worker exit failed"
+
 cond c = cond()
 mutex m = mutex()
 assert m.lock(), "cond mutex lock failed"
@@ -903,3 +943,5 @@ assert not upgradeRw.upgrade(), "rwlock upgrade without read lock should fail"
 assert upgradeRw.readLock(), "rwlock upgrade readLock failed"
 assert upgradeRw.upgrade(), "rwlock upgrade failed"
 assert upgradeRw.writeUnlock(), "rwlock upgraded writeUnlock failed"
+
+println("concurrency ok")

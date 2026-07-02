@@ -23,6 +23,7 @@ This directory contains DEMO6 toolchain setup scripts and engineering guard chec
 - `check_markdown_links.ps1`
 - `check_negative_diagnostics.ps1`
 - `check_package_fixtures.ps1`
+- `check_package_xrt_symbols.ps1`
 - `check_release_tmp_artifacts.ps1`
 - `check_risk_ledger.ps1`
 - `check_source_encoding.ps1`
@@ -35,6 +36,7 @@ This directory contains DEMO6 toolchain setup scripts and engineering guard chec
 - `check_test_data_wiring.ps1`
 - `check_tool_wiring.ps1`
 - `check_toolchain_paths.ps1`
+- `check_xlang_output_markers.ps1`
 
 `check_dap_smoke.ps1` runs the `xl dap` protocol smoke test and verifies DAP response/event framing for initialize, breakpoints, stack/scopes/variables, unsupported requests, continue, and disconnect.
 

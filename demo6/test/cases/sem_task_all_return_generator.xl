@@ -1,0 +1,2 @@
+future<generator<int>> generatorFuture
+task.all([generatorFuture])

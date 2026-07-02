@@ -1,0 +1,3 @@
+func bad(array<int> items) as generator<int>
+    yield 1
+end

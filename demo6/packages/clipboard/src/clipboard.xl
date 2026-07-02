@@ -1,0 +1,115 @@
+extern "x_clipboard_available" func x_clipboard_available() as int
+extern "x_clipboard_last_error" func x_clipboard_last_error() as string
+extern "x_clipboard_clear" func x_clipboard_clear() as int
+extern "x_clipboard_sequence_number" func x_clipboard_sequence_number() as int
+extern "x_clipboard_count_formats" func x_clipboard_count_formats() as int
+extern "x_clipboard_formats_json" func x_clipboard_formats_json() as string
+extern "x_clipboard_format_name" func x_clipboard_format_name(int format_id) as string
+extern "x_clipboard_register_format" func x_clipboard_register_format(string name) as int
+extern "x_clipboard_is_format_available" func x_clipboard_is_format_available(int format_id) as int
+extern "x_clipboard_has_text" func x_clipboard_has_text() as int
+extern "x_clipboard_has_image" func x_clipboard_has_image() as int
+extern "x_clipboard_has_files" func x_clipboard_has_files() as int
+extern "x_clipboard_get_text" func x_clipboard_get_text() as string
+extern "x_clipboard_set_text" func x_clipboard_set_text(string text) as int
+extern "x_clipboard_get_file" func x_clipboard_get_file() as string
+extern "x_clipboard_set_file" func x_clipboard_set_file(string path) as int
+extern "x_clipboard_save_image" func x_clipboard_save_image(string path) as int
+extern "x_clipboard_set_image" func x_clipboard_set_image(string path) as int
+extern "x_clipboard_image_info_json" func x_clipboard_image_info_json() as string
+
+func __xl6_import_clipboard_available() as bool
+    return x_clipboard_available() != 0
+end
+
+func __xl6_import_clipboard_last_error() as string
+    return x_clipboard_last_error()
+end
+
+func __xl6_import_clipboard_clear() as bool
+    return x_clipboard_clear() != 0
+end
+
+func __xl6_import_clipboard_sequence_number() as int
+    return x_clipboard_sequence_number()
+end
+
+func __xl6_import_clipboard_count_formats() as int
+    return x_clipboard_count_formats()
+end
+
+func __xl6_import_clipboard_formats_json() as string
+    return x_clipboard_formats_json()
+end
+
+func __xl6_import_clipboard_types_json() as string
+    return __xl6_import_clipboard_formats_json()
+end
+
+func __xl6_import_clipboard_format_name(int format_id) as string
+    return x_clipboard_format_name(format_id)
+end
+
+func __xl6_import_clipboard_register_format(string name) as int
+    return x_clipboard_register_format(name)
+end
+
+func __xl6_import_clipboard_is_format_available(int format_id) as bool
+    return x_clipboard_is_format_available(format_id) != 0
+end
+
+func __xl6_import_clipboard_has_text() as bool
+    return x_clipboard_has_text() != 0
+end
+
+func __xl6_import_clipboard_has_image() as bool
+    return x_clipboard_has_image() != 0
+end
+
+func __xl6_import_clipboard_has_files() as bool
+    return x_clipboard_has_files() != 0
+end
+
+func __xl6_import_clipboard_get_text() as string
+    return x_clipboard_get_text()
+end
+
+func __xl6_import_clipboard_read_text() as string
+    return __xl6_import_clipboard_get_text()
+end
+
+func __xl6_import_clipboard_set_text(string text) as bool
+    return x_clipboard_set_text(text) != 0
+end
+
+func __xl6_import_clipboard_write_text(string text) as bool
+    return __xl6_import_clipboard_set_text(text)
+end
+
+func __xl6_import_clipboard_get_file() as string
+    return x_clipboard_get_file()
+end
+
+func __xl6_import_clipboard_set_file(string path) as bool
+    return x_clipboard_set_file(path) != 0
+end
+
+func __xl6_import_clipboard_save_image(string path) as bool
+    return x_clipboard_save_image(path) != 0
+end
+
+func __xl6_import_clipboard_read_image(string path) as bool
+    return __xl6_import_clipboard_save_image(path)
+end
+
+func __xl6_import_clipboard_set_image(string path) as bool
+    return x_clipboard_set_image(path) != 0
+end
+
+func __xl6_import_clipboard_write_image(string path) as bool
+    return __xl6_import_clipboard_set_image(path)
+end
+
+func __xl6_import_clipboard_image_info_json() as string
+    return x_clipboard_image_info_json()
+end
