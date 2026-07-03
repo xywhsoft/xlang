@@ -1,4 +1,5 @@
-custom BorrowedBox
+﻿class BorrowedBox
+    native point handle
     extern "borrowed_box_close" destroy()
     extern "borrowed_box_value" func value() as int
 end

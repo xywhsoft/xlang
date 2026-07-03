@@ -1,4 +1,4 @@
-class Vec2
+﻿class Vec2
     int x = 0
     int y = 0
 
@@ -11,7 +11,8 @@ class Vec2
     end
 end
 
-custom NativeClock
+class NativeClock
+    native point handle
     extern "clock_open" create()
     extern "clock_close" destroy()
     extern "clock_ticks" func ticks() as int

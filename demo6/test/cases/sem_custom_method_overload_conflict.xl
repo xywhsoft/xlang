@@ -1,4 +1,5 @@
-custom Bad
+﻿class Bad
+    native point handle
     extern "bad_int" func value(int n) as int
     extern "bad_other" func value(int n) as int
 end

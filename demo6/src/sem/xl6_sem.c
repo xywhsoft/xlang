@@ -1355,6 +1355,9 @@ static int xl6SemTypeCanCaptureDepth(XL6_SemContext* ctx, const XL6_AstNode* typ
          xl6SemClassDeclHasDerive(decl, "clone") ) {
         return 1;
     }
+    if ( xl6SemClassDeclHasNativeHandle(ctx, decl) ) {
+        return 0;
+    }
     if ( xl6SemClassDeclHasDestroy(decl) ) {
         return 0;
     }
@@ -4579,6 +4582,9 @@ static int xl6SemCheckClassCtorCall(XL6_SemContext* ctx, XL6_AstNode* call, XL6_
     hasCreate = xl6SemClassHasCreate(classNode);
     if ( xl6SemResolveCreateMember(ctx, call, classNode, XL6_AST_CREATE) != NULL ) {
         return 1;
+    }
+    if ( hasCreate ) {
+        return 0;
     }
     if ( !hasCreate && xl6SemClassDeclHasNativeHandle(ctx, classNode) && xl6SemCallArgCount(call) > 0 ) {
         return xl6SemCheckNativeClassPointBindingCtor(ctx, call);

@@ -22,7 +22,7 @@
 | `CGEN-STD-011` dir list/files/dirs | `stdlib_path_file.xl`；`test.bat` 检查 `xrtDirScanEx`、`xl6_xrt_dir_list`、`__xl_std_dir_files`、`__xl_std_dir_dirs` | 直接生成检查 + 运行行为检查 | 目录扫描和动态容器结果构造有覆盖。 |
 | `CGEN-STD-012..013` string startsWith/endsWith/split | `stdlib_string.xl`、`release/examples/stdlib_string.xl`、`cgen_string_*` | 直接生成检查 + 运行行为检查 | 字符串 wrapper 与基础字符串 runtime 组合有覆盖。 |
 | `CGEN-STD-014` path join | `stdlib_path_file.xl`、`release/examples/stdlib_path_file.xl`；`test.bat` 检查 `xrtPathJoin`、`xl6_xrt_path_join`、`__xl_std_path_join` | 直接生成检查 + 运行行为检查 | path.join runtime helper 和标准库 helper 均有覆盖。 |
-| `CGEN-STD-015..019` http.server 类型、handler 生命周期、request bridge、create/start/port/stop/destroy | `stdlib_http_server.xl`、`stdlib_http_server_host.c`、`release/examples/stdlib_http_server.xl`；`test.bat` 检查 `xrtHttpdCreate`、`xl6_xrt_http_server_create` 并运行宿主请求 | 直接生成检查 + C 宿主运行 | HTTP server wrapper、function handler 桥接、端口读取和销毁有强覆盖。 |
+| `CGEN-STD-015..019` http.server 类型、route handler 生命周期、request bridge、create/route/static/start/port/stop/destroy | `stdlib_http_server.xl`、`stdlib_http_server_host.c`、`release/examples/stdlib_http_server.xl`；`test.bat` 检查 `xrtWebServerCreate`、`xl6_xrt_http_server_create`、`xl6_xrt_http_server_get/post/any/static` 并运行宿主请求 | 直接生成检查 + C 宿主运行 | HTTP server wrapper、function handler 桥接、GET/POST/ANY 路由、静态文件、端口读取和销毁有强覆盖。 |
 | `CGEN-STD-020` 标准库 wrapper 级联 runtime 依赖 | 全部 `stdlib_*.xl` cgen + 编译运行；覆盖脚本检查 DLL 符号 | 直接生成检查 + 运行行为检查 | wrapper 触发相关 runtime 原型与 helper 的路径有批量覆盖；缺少更细的一对一 needs 快照。 |
 
 ## Header 与 Needs

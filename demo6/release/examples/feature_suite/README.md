@@ -8,10 +8,10 @@
 - `01_expressions_control_flow.xl`：运算符、空合并、空赋值、安全访问、`in`、`if`、`while`、`do while`、`for range`、`break/continue`。
 - `02_functions.xl`：普通函数、多返回值、可选参数、命名参数、`...`、`***`、函数重载。
 - `03_types_and_values.xl`：`type` 值、类型转换、隐性类方法、`var` 动态值。
-- `04_containers.xl`：array/list/set/dict 字面量、索引、遍历、静态泛型容器、容器保存 class/custom/function。
+- `04_containers.xl`：array/list/set/dict 字面量、索引、遍历、静态泛型容器、容器保存 class/native-backed class/function。
 - `05_generics.xl`：泛型函数、显式 `::<T>`、类型推断、泛型 class、嵌套泛型、泛型别名、泛型与重载。
 - `06_function_values_closures.xl`：function 一等公民、匿名函数、闭包、多返回值函数签名、可变参数函数签名、var 动态调用。
-- `07_class_custom.xl`：class、继承、构造/析构、方法重载、custom C 句柄绑定、custom 进入 var。
+- `07_class_custom.xl`：class、继承、构造/析构、方法重载、native-backed class C 句柄绑定、native-backed class 进入 var。
 - `08_c_interop_exports.xl`：extern 函数/变量、export 函数/变量、多返回值 ABI。
 - `09_c_export_abi.xl`：纯 export ABI 示例，用于生成头文件并由 C 宿主调用。
 - `10_errors_docs.xl`：异常处理、断言和 `#doc ... #end` 文档注释。

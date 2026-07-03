@@ -15,7 +15,7 @@
 - `07_containers.xl`：array/list/set/dict、索引、遍历、typed container。
 - `08_generics.xl`：泛型函数、`::<T>`、推断、多类型参数、泛型 class。
 - `09_class_lifecycle.xl`：class 字段、构造、继承、base 调用、析构顺序。
-- `10_c_interop_and_custom.xl`：extern C 函数、extern C 变量、custom C 句柄类。
+- `10_c_interop_and_custom.xl`：extern C 函数、extern C 变量、native-backed class C 句柄类。
 - `11_export_to_c.xl`：xlang 导出 C ABI，由 C 宿主调用。
 - `12_errors_and_docs.xl`：字符串异常、`try/catch/finally`、`assert` 和 `#doc ... #end`。
 

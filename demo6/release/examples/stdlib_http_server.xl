@@ -2,11 +2,29 @@ func hello(string method, string path, string query, string body) as string
     if method == "GET" and path == "/hello" then
         return "hello from xlang"
     end
+    if method == "GET" and path == "/users/42" then
+        return "user 42"
+    end
+    if method == "POST" and path == "/echo" then
+        return body
+    end
+    if path == "/any" then
+        return method
+    end
     return "xlang http server"
 end
 
 func(string, string, string, string) as string handler = hello
-point server = http.server.create(8080, handler)
+
+dir.createAll("release/tmp/example_http_static")
+file.writeText("release/tmp/example_http_static/index.txt", "static from xlang")
+
+point server = http.server.create(8080)
+http.server.get(server, "/hello", handler)
+http.server.get(server, "/users/{id}", handler)
+http.server.post(server, "/echo", handler)
+http.server.any(server, "/any", handler)
+http.server.static(server, "/public", "release/tmp/example_http_static")
 
 if http.server.start(server) then
     int boundPort = http.server.port(server)
@@ -16,3 +34,5 @@ if http.server.start(server) then
 end
 
 http.server.destroy(server)
+file.delete("release/tmp/example_http_static/index.txt")
+dir.delete("release/tmp/example_http_static")

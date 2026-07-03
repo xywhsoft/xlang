@@ -90,10 +90,10 @@ create:<module>.<Type>(<param-types>) as ()
 destroy:<module>.<Type>() as ()
 ```
 
-custom extern 方法：
+native-backed class extern 方法：
 
 ```text
-custom:<module>.<Type>.<name>(<param-types>) as <return-types>
+native:<module>.<Type>.<name>(<param-types>) as <return-types>
 ```
 
 规则：
@@ -114,7 +114,7 @@ fn:app.add(int,int) as int
 fn:app.pair() as (int,string)
 method:app.Vec2.length2() as int
 create:app.Image(string) as ()
-custom:app.Image.resize(int,int) as int
+native:app.Image.resize(int,int) as int
 ```
 
 ## 4. 类型规范化
@@ -128,7 +128,7 @@ ABI 中的类型名必须规范化。
 - `float` 代表 xlang 默认浮点类型。
 - `typedef` 默认是透明别名，进入 ABI 时展开为底层类型。
 - `array < int >`、`array<int>` 统一为 `array<int>`。
-- class/custom 类型使用模块限定名，例如 `<module>.Vec2`。
+- class/native-backed class 类型使用模块限定名，例如 `<module>.Vec2`。
 - 泛型类型参数按声明顺序规范化为 `T0`、`T1`。
 
 说明：
@@ -140,7 +140,7 @@ ABI 中的类型名必须规范化。
 
 DEMO6 提供一组 `c_*` 类型用于 C ABI 边界。
 
-这些类型不是 xlang 推荐的日常编程类型。普通 xlang 代码应优先使用 `int`、`float`、`bool`、`string` 等语言类型；只有在 `extern`、`export`、`custom`、DLL API、C 混编和头文件生成等需要精确匹配 C ABI 的场景下，才使用 `c_*` 类型。
+这些类型不是 xlang 推荐的日常编程类型。普通 xlang 代码应优先使用 `int`、`float`、`bool`、`string` 等语言类型；只有在 `extern`、`export`、native-backed class、DLL API、C 混编和头文件生成等需要精确匹配 C ABI 的场景下，才使用 `c_*` 类型。
 
 | xlang 类型 | 生成 C 类型 | 说明 |
 | --- | --- | --- |
@@ -355,7 +355,7 @@ xlang point    -> C xptr
 
 - `var`
 - `array/list/set/dict`
-- `class/custom`
+- `class/native-backed class`
 - 多返回值
 - 泛型声明
 - 捕获闭包

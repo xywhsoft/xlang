@@ -536,7 +536,11 @@ static void xl6CgenClassDecls(XL6_CgenContext* ctx, const XL6_AstNode* classNode
 
     if ( ctx->needsXValueRuntime ) {
         xl6CgenClassTypeTextName(cTypeName, sizeof(cTypeName), classNode->text);
-        xl6CgenEmitRecordBoxRuntime(ctx, classNode, NULL, cTypeName, classNode->text);
+        if ( xl6CgenClassIsPureNativeHandle(classNode) ) {
+            xl6CgenEmitHandleBoxRuntime(ctx, classNode, cTypeName, classNode->text);
+        } else {
+            xl6CgenEmitRecordBoxRuntime(ctx, classNode, NULL, cTypeName, classNode->text);
+        }
     }
 }
 
@@ -572,6 +576,9 @@ static void xl6CgenClassDefaultInitFields(XL6_CgenContext* ctx, const XL6_AstNod
         const XL6_AstNode* initExpr;
         XL6_AstNode* fieldCustom;
         XL6_AstNode* ctorCustom;
+        XL6_AstNode* fieldClass;
+        XL6_AstNode* ctorClass;
+        char fieldPath[512];
 
         if ( !xl6CgenIsInstanceField(member) ) {
             continue;
@@ -583,6 +590,8 @@ static void xl6CgenClassDefaultInitFields(XL6_CgenContext* ctx, const XL6_AstNod
         }
         fieldCustom = fieldType != NULL ? xl6CgenFindCustom(ctx, fieldType->text) : NULL;
         ctorCustom = NULL;
+        fieldClass = fieldType != NULL ? xl6CgenFindClass(ctx, fieldType->text) : NULL;
+        ctorClass = NULL;
         if ( fieldCustom != NULL && xl6CgenCallIsCustomCtor(ctx, initExpr, &ctorCustom) ) {
             if ( !xl6CTextEquals(fieldCustom->text, ctorCustom->text) ) {
                 xl6CgenError(ctx, initExpr, "custom field initializer constructor type does not match field type");
@@ -595,6 +604,16 @@ static void xl6CgenClassDefaultInitFields(XL6_CgenContext* ctx, const XL6_AstNod
             xl6OutputPuts(".handle = ", ctx->out);
             xl6CgenCustomCtorValue(ctx, ctorCustom, initExpr);
             xl6OutputPuts(";\n", ctx->out);
+            continue;
+        }
+        if ( fieldClass != NULL && xl6CgenCallIsClassCtor(ctx, initExpr, &ctorClass) ) {
+            if ( !xl6CTextEquals(fieldClass->text, ctorClass->text) ) {
+                xl6CgenError(ctx, initExpr, "class field initializer constructor type does not match field type");
+                continue;
+            }
+            snprintf(fieldPath, sizeof(fieldPath), "%s.", varPath);
+            xl6CgenCIdentText(fieldPath + strlen(fieldPath), sizeof(fieldPath) - strlen(fieldPath), member->text);
+            xl6CgenEmitClassCtorInto(ctx, initExpr, fieldPath);
             continue;
         }
         xl6CgenIndent(ctx);

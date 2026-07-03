@@ -1,4 +1,4 @@
-extern "expect_i64" func expect(int actual, int expected)
+﻿extern "expect_i64" func expect(int actual, int expected)
 extern "expect_str" func expectStr(string actual, string expected)
 
 // 动态容器字面量。
@@ -181,7 +181,7 @@ expect(3 in idsCopy, 1)
 expect(scoresCopy.length, 1)
 expect(scoresCopy["z"], 99)
 
-// 泛型容器可以保存 class、custom、func 等一等公民类型。
+// 泛型容器可以保存 class、native-backed class、func 等一等公民类型。
 class Pair
     int left = 0
     int right = 0
@@ -192,7 +192,8 @@ class FnBox
     int bias = 0
 end
 
-custom Native
+class Native
+    native point handle
 end
 
 func add(int left, int right) as int

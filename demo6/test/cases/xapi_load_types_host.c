@@ -183,7 +183,7 @@ int main(int argc, char** argv)
         xrtUnit();
         return fail("missing loaded type");
     }
-    if ( !textEquals(packet->kind, "class") || !textEquals(point->kind, "class") || !textEquals(classPayload->kind, "union") || !textEquals(payload->kind, "union") || !textEquals(nativeView->kind, "custom") ) {
+    if ( !textEquals(packet->kind, "class") || !textEquals(point->kind, "class") || !textEquals(classPayload->kind, "union") || !textEquals(payload->kind, "union") || !textEquals(nativeView->kind, "class") ) {
         xl6XapiModuleFree(&module);
         xrtUnit();
         return fail("type kind was not preserved");

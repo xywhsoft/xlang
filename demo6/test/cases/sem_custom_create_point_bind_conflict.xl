@@ -1,4 +1,5 @@
-custom Native
+﻿class Native
+    native point handle
     extern "native_create" create(int value)
 end
 

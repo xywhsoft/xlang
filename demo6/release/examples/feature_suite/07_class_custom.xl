@@ -1,4 +1,4 @@
-extern "expect_i64" func expect(int actual, int expected)
+﻿extern "expect_i64" func expect(int actual, int expected)
 extern "destroy_reset" func destroyReset()
 extern "record_destroy" func recordDestroy(int value)
 extern "destroy_count" func destroyCount() as int
@@ -75,9 +75,9 @@ class Overloaded
 end
 
 auto defaultObject = Overloaded()
-auto customObject = Overloaded(40)
+auto overloadedObject = Overloaded(40)
 expect(defaultObject.add(2), 3)
-expect(customObject.add("2"), 42)
+expect(overloadedObject.add("2"), 42)
 
 // 析构在作用域退出、return、break、continue 时自动执行。
 class Tracker
@@ -133,8 +133,9 @@ continueDestroy()
 expect(destroyCount(), 5)
 expect(destroyValue(), 201)
 
-// custom：把 C 句柄与 C 函数直接抽象为 xlang 轻量类。
-custom Counter
+// native-backed class：把 C 句柄与 C 函数直接抽象为 xlang class。
+class Counter
+    native point handle
     extern "counter_open" create(int seed)
     extern "counter_close" destroy()
     extern "counter_add" func add(int value) as int
@@ -145,7 +146,7 @@ custom Counter
     end
 end
 
-func customLifecycle()
+func nativeLifecycle()
     auto counter = Counter(40)
     expect(counter.add(2), 42)
     expect(counter.value(), 42)
@@ -153,11 +154,12 @@ func customLifecycle()
 end
 
 counterReset()
-customLifecycle()
+nativeLifecycle()
 expect(counterClosed(), 1)
 
-// custom 也可以只绑定已有 point，不额外负责内存管理。
-custom NativeView
+// native-backed class 也可以只绑定已有 point，不额外负责内存管理。
+class NativeView
+    native point handle
 end
 
 point raw

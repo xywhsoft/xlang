@@ -1,4 +1,5 @@
-custom Bad
+﻿class Bad
+    native point handle
     extern "bag_value" func count() as int
     extern "bag_value" func size() as int
 end

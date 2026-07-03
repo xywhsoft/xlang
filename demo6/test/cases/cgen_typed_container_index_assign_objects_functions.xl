@@ -1,11 +1,12 @@
-extern "expect_i64" func expect(int actual, int expected)
+﻿extern "expect_i64" func expect(int actual, int expected)
 
 class Pair
     int left = 0
     int right = 0
 end
 
-custom Native
+class Native
+    native point handle
 end
 
 union Payload

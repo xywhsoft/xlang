@@ -1,9 +1,10 @@
-class Pair
+﻿class Pair
     int left = 0
     int right = 0
 end
 
-custom Native
+class Native
+    native point handle
 end
 
 func makePair(int seed, int step = 1) as (int, int)

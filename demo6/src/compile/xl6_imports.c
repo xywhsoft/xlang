@@ -1017,13 +1017,6 @@ static void xl6ImportsAppendClassTypeDecl(
     xl6ImportsBuilderAppend(builder, "end\n");
 }
 
-static void xl6ImportsAppendCustomTypeDecl(XL6_ImportTextBuilder* builder, const char* internalName)
-{
-    xl6ImportsBuilderAppend(builder, "custom ");
-    xl6ImportsBuilderAppend(builder, internalName);
-    xl6ImportsBuilderAppend(builder, "\nend\n");
-}
-
 static int xl6ImportsAppendXapiTypeDecls(XL6_ImportTextBuilder* builder, const XL6_XapiModule* module, const char* ns)
 {
     size_t i;
@@ -1046,8 +1039,6 @@ static int xl6ImportsAppendXapiTypeDecls(XL6_ImportTextBuilder* builder, const X
             xl6ImportsAppendUnionTypeDecl(builder, module, ns, item, internalName);
         } else if ( xl6ImportsTextEquals(item->kind, "class") ) {
             xl6ImportsAppendClassTypeDecl(builder, module, ns, item, internalName);
-        } else if ( xl6ImportsTextEquals(item->kind, "custom") ) {
-            xl6ImportsAppendCustomTypeDecl(builder, internalName);
         }
         xrtFree(internalName);
     }

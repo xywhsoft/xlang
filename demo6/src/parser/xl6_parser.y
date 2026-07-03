@@ -628,7 +628,6 @@ item_base(A) ::= export_const_decl(B). { A = B; }
 item_base(A) ::= type_alias_decl(B). { A = B; }
 item_base(A) ::= extern_type_alias_decl(B). { A = B; }
 item_base(A) ::= class_decl(B). { A = B; }
-item_base(A) ::= custom_decl(B). { A = B; }
 item_base(A) ::= union_decl(B). { A = B; }
 item_base(A) ::= stmt(B). { A = B; }
 item(A) ::= TOK_ERROR(E). {
@@ -645,6 +644,9 @@ import_name_part(A) ::= KW_AUTO(N). { A = N; }
 
 member_name_tok(A) ::= name_tok(N). { A = N; }
 member_name_tok(A) ::= KW_AUTO(N). { A = N; }
+member_name_tok(A) ::= KW_GET(N). { A = N; }
+member_name_tok(A) ::= KW_LET(N). { A = N; }
+member_name_tok(A) ::= KW_STATIC(N). { A = N; }
 
 import_name(A) ::= import_name_part(N). {
     A = xl6PImportNameFromToken(&N);
@@ -968,48 +970,6 @@ class_special_decl(A) ::= name_tok(N) name_params(P) need_sep block(B) KW_END. {
     A = xl6AstNew(XL6_AST_CREATE, &N);
     xl6AstAddChild(A, P);
     xl6AstAddChild(A, B);
-}
-
-custom_decl(A) ::= KW_CUSTOM(C) name_tok(N) need_sep custom_body(B) KW_END. {
-    A = xl6AstNew(XL6_AST_CUSTOM, &N);
-    xl6AstAddChild(A, B);
-    (void)C;
-}
-
-custom_body(A) ::= . {
-    A = xl6PList();
-}
-custom_body(A) ::= custom_body(B) SEP. {
-    A = B;
-}
-custom_body(A) ::= custom_body(B) custom_member(M). {
-    A = B;
-    xl6AstAddChild(A, M);
-}
-
-custom_member(A) ::= custom_member_base(B). { A = B; }
-custom_member(A) ::= class_member_mods(M) custom_member_base(B). { A = xl6PWithFlags(B, M); }
-custom_member(A) ::= doc_block(D) custom_member_base(B). { A = xl6PWithDoc(B, &D); }
-custom_member(A) ::= doc_block(D) class_member_mods(M) custom_member_base(B). { A = xl6PWithDoc(xl6PWithFlags(B, M), &D); }
-
-custom_member_base(A) ::= custom_extern_special(B). { A = B; }
-custom_member_base(A) ::= custom_extern_func(B). { A = B; }
-custom_member_base(A) ::= derive_decl(B). { A = B; }
-custom_member_base(A) ::= func_decl(B). { A = B; }
-
-custom_extern_special(A) ::= KW_EXTERN(E) STRING(S) name_tok(N) name_params(P) need_sep. {
-    A = xl6AstNew(XL6_AST_CUSTOM_EXTERN_SPECIAL, &S);
-    xl6AstAddChild(A, xl6AstNew(XL6_AST_NAME, &N));
-    xl6AstAddChild(A, P);
-    (void)E;
-}
-
-custom_extern_func(A) ::= KW_EXTERN(E) STRING(S) KW_FUNC name_tok(N) name_params(P) return_sig(R) need_sep. {
-    A = xl6AstNew(XL6_AST_CUSTOM_EXTERN_FUNC, &S);
-    xl6AstAddChild(A, xl6AstNew(XL6_AST_NAME, &N));
-    xl6AstAddChild(A, P);
-    xl6AstAddChild(A, R);
-    (void)E;
 }
 
 name_params(A) ::= LPAREN param_list_opt(B) RPAREN. { A = B; }

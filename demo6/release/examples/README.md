@@ -29,9 +29,9 @@
 - `oop_virtual_dispatch.xl`：OOP virtual/override/final method and property dispatch example；回归：`check`、`run`。
 - `copy_clone.xl`：`derive copy/clone`、`copy()` 和 `clone()` 示例；回归：`check`。
 - `class_persistence.xl`：`derive value`、class 与 object 的 json/xson 持久化 roundtrip 示例；回归：`run`。
-- `class_custom.xl`：class 与 custom 组合示例；回归：`check`。
+- `class_custom.xl`：class 与 native-backed class 组合示例；回归：`check`。
 - `class_native_bridge.xl`：native-backed class 对接 C opaque handle 的声明示例；回归：`check`。
-- `custom_counter.xl`：custom 句柄类示例；回归：`check`。
+- `custom_counter.xl`：native-backed class 句柄类示例；回归：`check`。
 - `second_stage.xl`：第二阶段基础语义组合示例；回归：`check`、`run`。
 - `concurrency.xl`：并发、通道和异步相关示例；回归：`run`。
 - `task_api.xl`：高层 task API 的 spawn、all、race 和 cancel 示例；回归：`run`。
@@ -54,7 +54,9 @@
 - `stdlib_time.xl`
 - `stdlib_time_c.c`：与 `stdlib_time.xl` 对照的 C/XRT 时间库范例，主回归会比较两者输出。
 - `stdlib_random.xl`
+- `stdlib_random_c.c`：与 `stdlib_random.xl` 对照的 C/XRT 随机库范例，展示全局随机源和独立随机对象。
 - `stdlib_path_file.xl`
+- `stdlib_path_file_c.c`：与 `stdlib_path_file.xl` 对照的 C/XRT 路径、文件和目录范例，主回归会比较两者输出。
 - `stdlib_json.xl`
 - `stdlib_xson.xl`
 - `stdlib_print.xl`
@@ -67,6 +69,7 @@
 - `stdlib_regex.xl`
 - `stdlib_process.xl`
 - `stdlib_http_server.xl`
+- `stdlib_http_server_c.c`：与 `stdlib_http_server.xl` 对照的 C/XRT `xweb` HTTP server 范例，展示 GET/POST/ANY 路由和静态文件。
 
 ## 复合应用范例
 
@@ -98,6 +101,9 @@
 - `stdlib_math_c.c`：与 `stdlib_math.xl` 对照的 C/XRT 数学库范例，主回归会比较两者输出。
 - `stdlib_string_c.c`：与 `stdlib_string.xl` 对照的 C/XRT 字符串库范例，主回归会比较两者输出。
 - `stdlib_time_c.c`：与 `stdlib_time.xl` 对照的 C/XRT 时间库范例，主回归会比较两者输出。
+- `stdlib_random_c.c`：与 `stdlib_random.xl` 对照的 C/XRT 随机库范例，主回归会比较两者输出。
+- `stdlib_path_file_c.c`：与 `stdlib_path_file.xl` 对照的 C/XRT 路径、文件和目录范例，主回归会比较两者输出。
+- `stdlib_http_server_c.c`：与 `stdlib_http_server.xl` 对照的 C/XRT `xweb` HTTP server 范例，展示 GET/POST/ANY 路由和静态文件。
 
 ## 回归入口
 

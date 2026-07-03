@@ -1,4 +1,4 @@
-extern "expect_i64" func expect(int actual, int expected)
+﻿extern "expect_i64" func expect(int actual, int expected)
 extern "native_handle" func nativeHandle(int value) as point
 
 class Pair
@@ -6,7 +6,8 @@ class Pair
     int right = 2
 end
 
-custom Native
+class Native
+    native point handle
 end
 
 Pair seed

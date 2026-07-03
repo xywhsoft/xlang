@@ -1,3 +1,6 @@
+static void xl6CgenKnownCallArgs(XL6_CgenContext* ctx, const XL6_AstNode* func, const XL6_AstNode* args);
+static int xl6CgenNativeClassCtorHasPointBindingArgs(const XL6_AstNode* args);
+
 static int xl6CgenParamIsVararg(const XL6_AstNode* param)
 {
     return param != NULL && param->childCount > 0 &&
@@ -70,6 +73,50 @@ static const XL6_AstNode* xl6CgenArgExpr(const XL6_AstNode* arg)
         return arg->children[0];
     }
     return NULL;
+}
+
+static int xl6CgenTryNativeClassCtorBoxValue(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* classNode,
+    const XL6_AstNode* call,
+    const char* cTypeName)
+{
+    const XL6_AstNode* createNode;
+    const XL6_AstNode* args;
+
+    if ( ctx == NULL || classNode == NULL || call == NULL || cTypeName == NULL ||
+         !xl6CgenClassIsPureNativeHandle(classNode) ) {
+        return 0;
+    }
+
+    args = call->childCount > 1 ? call->children[1] : NULL;
+    createNode = xl6CgenResolveClassCreate(ctx, classNode, call);
+    if ( createNode != NULL ) {
+        if ( createNode->kind != XL6_AST_CUSTOM_EXTERN_SPECIAL ) {
+            return 0;
+        }
+        xl6OutputPrintf(ctx->out, "(%s){", cTypeName);
+        xl6CgenCStringSymbol(ctx->out, createNode->text);
+        xl6OutputPutc('(', ctx->out);
+        xl6CgenKnownCallArgs(ctx, createNode, args);
+        xl6OutputPuts(")}", ctx->out);
+        return 1;
+    }
+
+    if ( xl6CgenNativeClassCtorHasPointBindingArgs(args) ) {
+        const XL6_AstNode* arg = args->children[0];
+        xl6OutputPrintf(ctx->out, "(%s){", cTypeName);
+        xl6CgenExpr(ctx, arg->children[0]);
+        xl6OutputPutc('}', ctx->out);
+        return 1;
+    }
+
+    if ( args == NULL || args->childCount == 0 ) {
+        xl6OutputPrintf(ctx->out, "(%s){0}", cTypeName);
+        return 1;
+    }
+
+    return 0;
 }
 
 static const XL6_AstNode* xl6CgenFindArgForParam(const XL6_AstNode* args, const char* name, int index)
@@ -346,8 +393,10 @@ static void xl6CgenXValueFromExpr(XL6_CgenContext* ctx, const XL6_AstNode* expr)
         }
         if ( isCtor && ctorClass != NULL ) {
             const XL6_AstNode* args = expr->childCount > 1 ? expr->children[1] : NULL;
-            if ( xl6CgenResolveClassCreate(ctx, ctorClass, expr) != NULL ||
-                 (args != NULL && args->childCount > 0) ) {
+            if ( xl6CgenTryNativeClassCtorBoxValue(ctx, ctorClass, expr, cTypeName) ) {
+                /* 纯 native handle class 保持旧 custom 的直接装箱能力。 */
+            } else if ( xl6CgenResolveClassCreate(ctx, ctorClass, expr) != NULL ||
+                        (args != NULL && args->childCount > 0) ) {
                 xl6CgenError(ctx, expr, "class constructor with create/arguments cannot be boxed directly as var");
                 xl6OutputPrintf(ctx->out, "(%s){0}", cTypeName);
             } else {

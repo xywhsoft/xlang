@@ -1,4 +1,5 @@
-custom Native
+﻿class Native
+    native point handle
 end
 
 class Holder
@@ -6,8 +7,11 @@ class Holder
 end
 
 func make(Holder holder) as func() as int
+    Native native = holder.native
     return func() as int
-        type(holder)
+        if native.handle == null then
+            return 0
+        end
         return 1
     end
 end

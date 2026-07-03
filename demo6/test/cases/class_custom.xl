@@ -1,4 +1,4 @@
-class Point
+﻿class Point
     int x = 0
     int y = 0
 
@@ -24,7 +24,8 @@ class Point3 extends Point
     end
 end
 
-custom Bag
+class Bag
+    native point handle
     extern "bag_create" create()
     extern "bag_destroy" destroy()
     extern "bag_count" func count() as int

@@ -1,4 +1,5 @@
-custom NativeScore
+﻿class NativeScore
+    native point handle
     extern "score_open" create(int seed)
     extern "score_close" destroy()
     extern "score_add_i" func add(int value) as int
