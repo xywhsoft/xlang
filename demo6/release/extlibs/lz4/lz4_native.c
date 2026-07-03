@@ -241,6 +241,11 @@ static int xlz4_decompress_bytes(const unsigned char* src, size_t src_size, unsi
 	return 1;
 }
 
+XLZ4_EXPORT int xlz4_available(void)
+{
+	return 1;
+}
+
 XLZ4_EXPORT const char* xlz4_version(void)
 {
 	return LZ4_versionString();

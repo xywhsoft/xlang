@@ -8,6 +8,7 @@ const string DEFAULT_INPUT_NAME = "image"
 const string DEFAULT_OUTPUT_NAMES = "[\"features\"]"
 
 extern "xfeat_version_native" func xfeat_version_native() as string
+extern "xfeat_available_native" func xfeat_available_native() as int
 extern "xfeat_last_error_native" func xfeat_last_error_native() as string
 extern "xfeat_now_ms_native" func xfeat_now_ms_native() as float
 extern "xfeat_stats_reset_native" func xfeat_stats_reset_native() as int
@@ -443,6 +444,10 @@ func xfeat_version() as string
 	return xfeat_version_native()
 end
 
+func xfeat_available() as bool
+	return xfeat_available_native() != 0
+end
+
 func xfeat_last_error() as string
 	return xfeat_last_error_native()
 end
@@ -504,6 +509,9 @@ func __xl6_import_xfeat_locate_and_save(point p0, string p1, string p2, string p
 end
 func __xl6_import_xfeat_version() as string
     return xfeat_version()
+end
+func __xl6_import_xfeat_available() as bool
+    return xfeat_available()
 end
 func __xl6_import_xfeat_last_error() as string
     return xfeat_last_error()

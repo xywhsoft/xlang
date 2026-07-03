@@ -30,6 +30,7 @@
                   "unitSymbol":  "xlUnit"
               },
     "exports":  [
+                    {"kind":"function","name":"available","cSymbol":"__xl6_import_x_uia_available","signature":"func() as bool","exportId":"uia@0.1.0#abi1::uia::available(func() as bool)","callingConvention":"cdecl","varargMode":"none","requiredParamCount":0,"fixedParamCount":0,"params":[],"returns":[{"type":"bool"}]},
                     {
                         "kind":  "function",
                         "name":  "version",

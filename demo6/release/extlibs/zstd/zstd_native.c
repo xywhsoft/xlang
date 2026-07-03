@@ -221,6 +221,11 @@ static int xzstd_decompress_bytes(const unsigned char* src, size_t src_size, uns
 	return 1;
 }
 
+XZSTD_EXPORT int xzstd_available(void)
+{
+	return 1;
+}
+
 XZSTD_EXPORT const char* xzstd_version(void)
 {
 	return ZSTD_versionString();

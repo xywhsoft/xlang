@@ -2,6 +2,7 @@ import crc32
 
 string sample = "123456789"
 
+assert crc32.available(), "crc32 available failed"
 assert crc32.version() == "crc32 0.1.0", "crc32 version mismatch"
 assert crc32.checksum_hex(sample) == "cbf43926", "crc32 checksum_hex mismatch"
 assert crc32.hex(crc32.checksum(sample)) == "cbf43926", "crc32 checksum mismatch"

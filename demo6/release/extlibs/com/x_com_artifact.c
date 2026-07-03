@@ -1460,6 +1460,16 @@ XL_EXPORT void* x_com_test_object(void)
 	return &object->dispatch;
 }
 
+XL_EXPORT int x_com_available(void)
+{
+	return x_com_init();
+}
+
+XL_EXPORT const char* x_com_version(void)
+{
+	return "0.1.0";
+}
+
 XL_EXPORT int x_com_release(void* handle)
 {
 	XComObject* object = (XComObject*)handle;

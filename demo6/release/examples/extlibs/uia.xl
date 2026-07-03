@@ -2,6 +2,7 @@ import uia
 
 string versionText = uia.version()
 assert string.len(versionText) > 0, "uia version missing"
+assert uia.available(), "uia available failed"
 assert string.len(uia.last_error()) >= 0, "uia last_error should return a string"
 
 auto launched = uia.launch("cmd.exe /c exit 0")

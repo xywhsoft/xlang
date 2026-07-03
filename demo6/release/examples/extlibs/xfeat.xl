@@ -1,6 +1,7 @@
 import xfeat
 
 assert string.contains(xfeat.version(), "xfeat"), "xfeat version failed"
+assert xfeat.available(), "xfeat runtime bridge should be available"
 assert string.len(xfeat.last_error()) >= 0, "xfeat last_error failed"
 assert xfeat.reset_stats(), "xfeat reset_stats failed"
 assert string.contains(xfeat.stats_json(), "\"all\""), "xfeat stats_json failed"

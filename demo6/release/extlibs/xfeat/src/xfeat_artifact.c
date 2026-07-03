@@ -198,6 +198,29 @@ static int xfeat_try_load(const char* path)
 	return 1;
 }
 
+#if defined(_WIN32) || defined(_WIN64)
+static int xfeat_try_load_near_exe(const char* relative_path)
+{
+	char path[MAX_PATH];
+	DWORD len;
+	char* slash;
+	size_t base_len;
+	size_t rel_len;
+	if ( relative_path == NULL || relative_path[0] == '\0' ) return 0;
+	len = GetModuleFileNameA(NULL, path, (DWORD)sizeof(path));
+	if ( len == 0u || len >= (DWORD)sizeof(path) ) return 0;
+	slash = strrchr(path, '\\');
+	if ( slash == NULL ) slash = strrchr(path, '/');
+	if ( slash == NULL ) return 0;
+	slash[1] = '\0';
+	base_len = strlen(path);
+	rel_len = strlen(relative_path);
+	if ( base_len + rel_len >= sizeof(path) ) return 0;
+	memcpy(path + base_len, relative_path, rel_len + 1u);
+	return xfeat_try_load(path);
+}
+#endif
+
 static int xfeat_ort_load(void)
 {
 	const char* env_path;
@@ -218,6 +241,10 @@ static int xfeat_ort_load(void)
 	g_ort.attempted = 1;
 	env_path = getenv("ONNXRUNTIME_XLANG_DLL");
 	if ( xfeat_try_load(env_path) ) return 1;
+#if defined(_WIN32) || defined(_WIN64)
+	if ( xfeat_try_load_near_exe("extlibs\\onnxruntime\\bin\\onnxruntime_xlang.dll") ) return 1;
+	if ( xfeat_try_load_near_exe("bin\\onnxruntime_xlang.dll") ) return 1;
+#endif
 	for ( i = 0; candidates[i] != NULL; ++i ) {
 		if ( xfeat_try_load(candidates[i]) ) return 1;
 	}
@@ -366,6 +393,11 @@ static float xfeat_dot64(const float* a, const float* b)
 XL_EXPORT const char* xfeat_version_native(void)
 {
 	return "xfeat-xlang 0.1.0";
+}
+
+XL_EXPORT int xfeat_available_native(void)
+{
+	return xfeat_ort_load();
 }
 
 XL_EXPORT const char* xfeat_last_error_native(void)

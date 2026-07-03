@@ -60,6 +60,7 @@
 #include "src/cgen/xl6_cgen_stmt_branch.c"
 #include "src/cgen/xl6_cgen_stmt_loop_while.c"
 #include "src/cgen/xl6_cgen_stmt_loop.c"
+#include "src/cgen/xl6_cgen_stmt_loop_string.c"
 #include "src/cgen/xl6_cgen_stmt_loop_protocol.c"
 #include "src/cgen/xl6_cgen_stmt_loop_typed.c"
 #include "src/cgen/xl6_cgen_stmt_error.c"

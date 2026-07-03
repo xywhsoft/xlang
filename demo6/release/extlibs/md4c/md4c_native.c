@@ -187,6 +187,11 @@ static char* xmd4c_read_file(const char* path, size_t* out_size)
 	return data;
 }
 
+XMD4C_EXPORT int xmd4c_available(void)
+{
+	return 1;
+}
+
 XMD4C_EXPORT const char* xmd4c_version(void)
 {
 	return "md4c 0.5.2";

@@ -1,5 +1,8 @@
 import volc.sts
 
+assert volc.sts.available(), "volc.sts available failed"
+assert volc.sts.version() == "0.1.0", "volc.sts version failed"
+
 string fixedDate = "20240102T030405Z"
 string roleTrn = "trn:iam::123456789:role/demo"
 string spec = "access_key=AKID\nsecret_key=SECRET\nrole_trn=" + roleTrn + "\nrole_session_name=demo-session\nduration_seconds=900\nx_date=" + fixedDate + "\n"

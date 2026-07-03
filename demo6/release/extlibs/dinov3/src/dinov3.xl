@@ -6,6 +6,7 @@ const string DEFAULT_INPUT_NAME = "image"
 const string DEFAULT_OUTPUT_NAMES = "[\"embedding\"]"
 
 extern "dinov3_version_native" func dinov3_version_native() as string
+extern "dinov3_available_native" func dinov3_available_native() as int
 extern "dinov3_last_error_native" func dinov3_last_error_native() as string
 extern "dinov3_embedding_json_native" func dinov3_embedding_json_native(point result_handle) as string
 extern "dinov3_output_json_native" func dinov3_output_json_native(point result_handle, string source_path) as string
@@ -313,6 +314,10 @@ func dinov3_version() as string
 	return dinov3_version_native()
 end
 
+func dinov3_available() as bool
+	return dinov3_available_native() != 0
+end
+
 func dinov3_last_error() as string
 	return dinov3_last_error_native()
 end
@@ -360,6 +365,10 @@ end
 
 func __xl6_import_dinov3_version() as string
     return dinov3_version()
+end
+
+func __xl6_import_dinov3_available() as bool
+    return dinov3_available()
 end
 
 func __xl6_import_dinov3_last_error() as string

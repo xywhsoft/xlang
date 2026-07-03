@@ -32,6 +32,44 @@
     "exports":  [
                     {
                         "kind":  "function",
+                        "name":  "available",
+                        "cSymbol":  "__xl6_import_x_volc_phone_available",
+                        "signature":  "func() as bool",
+                        "exportId":  "volc.phone@0.1.0#abi1::volc.phone::available(func() as bool)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  0,
+                        "fixedParamCount":  0,
+                        "params":  [
+
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "bool"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "version",
+                        "cSymbol":  "__xl6_import_x_volc_phone_version",
+                        "signature":  "func() as string",
+                        "exportId":  "volc.phone@0.1.0#abi1::volc.phone::version(func() as string)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  0,
+                        "fixedParamCount":  0,
+                        "params":  [
+
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "string"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
                         "name":  "last_error",
                         "cSymbol":  "__xl6_import_x_volc_phone_last_error",
                         "signature":  "func() as string",

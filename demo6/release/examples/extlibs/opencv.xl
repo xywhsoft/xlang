@@ -3,6 +3,7 @@ import uia
 
 assert opencv.available() == true, "opencv backend should be available"
 assert string.len(opencv.backend()) > 0, "opencv backend path missing"
+assert opencv.version() == "opencv 4.13.0", "opencv version failed"
 assert string.len(opencv.last_error()) >= 0, "opencv last_error should return a string"
 
 auto screen = opencv.capture_rect(0, 0, 64, 64)

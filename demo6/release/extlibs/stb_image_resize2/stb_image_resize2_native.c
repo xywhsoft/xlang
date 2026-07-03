@@ -108,6 +108,11 @@ static void* xstbir_resize_uint8_impl(const unsigned char* data, int width, int 
 	return out;
 }
 
+XSTBIR_EXPORT int xstbir_available(void)
+{
+	return 1;
+}
+
 XSTBIR_EXPORT const char* xstbir_version(void)
 {
 	return "stb_image_resize2 2.18";

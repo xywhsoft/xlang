@@ -5,6 +5,7 @@ point nullResult = null
 
 assert rapidocr.available(), "rapidocr dependencies should be available"
 assert string.len(rapidocr.backend()) > 0, "rapidocr backend failed"
+assert rapidocr.version() == "rapidocr 0.1.0", "rapidocr version failed"
 assert string.contains(rapidocr.dependency_status(), "opencv="), "rapidocr dependency_status failed"
 assert string.contains(rapidocr.default_model_dir(), "rapidocr\\models"), "rapidocr default_model_dir failed"
 assert string.contains(rapidocr.default_config_json(), "ch_PP-OCRv4_det_infer.onnx"), "rapidocr default_config_json failed"
@@ -60,15 +61,22 @@ assert output.vis("__missing_rapidocr_output.png") == false, "rapidocr output vi
 auto outputFlags = engine.op_call("__missing_image__.png", true, false, false)
 assert string.len(outputFlags.to_json()) >= 0, "rapidocr output flags failed"
 
-if false then
-	auto defaultEngine = rapidocr.RapidOCR()
-	auto configEngine = rapidocr.RapidOCR("__missing_rapidocr_config__.json")
-	defaultEngine.release()
-	configEngine.release()
-end
+auto defaultEngine = rapidocr.RapidOCR()
+assert defaultEngine.valid(), "rapidocr default engine valid failed"
+auto defaultOutput = defaultEngine.op_call("__missing_image__.png")
+assert defaultOutput.ok() == false, "rapidocr default missing image output ok failed"
+
+auto configEngine = rapidocr.RapidOCR("__missing_rapidocr_config__.json")
+assert configEngine.valid(), "rapidocr config engine valid failed"
+auto configOutput = configEngine.op_call("__missing_image__.png")
+assert configOutput.ok() == false, "rapidocr config missing image output ok failed"
 
 assert output.release() == false, "rapidocr output release failed"
 assert outputFlags.release() == false, "rapidocr output flags release failed"
+assert defaultOutput.release() == false, "rapidocr default output release failed"
+assert configOutput.release() == false, "rapidocr config output release failed"
+assert defaultEngine.release(), "rapidocr default engine release failed"
+assert configEngine.release(), "rapidocr config engine release failed"
 assert engine.release(), "rapidocr engine release failed"
 
 println("rapidocr extlib ok")

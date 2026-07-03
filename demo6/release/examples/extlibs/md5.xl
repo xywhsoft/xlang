@@ -1,5 +1,7 @@
 import md5
 
+assert md5.available(), "md5 available failed"
+
 string sample = "hello xlang"
 string samplePath = "release/tmp/extlibs/md5_sample.txt"
 

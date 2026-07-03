@@ -79,6 +79,11 @@ static const char* xcrc32_format(uint32_t value)
     return out;
 }
 
+int xcrc32_available(void)
+{
+    return 1;
+}
+
 const char* xcrc32_version(void)
 {
     return "crc32 0.1.0";

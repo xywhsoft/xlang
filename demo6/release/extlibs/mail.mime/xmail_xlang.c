@@ -169,13 +169,6 @@ XMAIL_XLANG_API xvalue xmail_mime_result_native(bool bOk, const char* sError, co
 	return xmail_xlang_result_value(bOk, sError, sStage, bOk ? "ok" : "error", pData);
 }
 
-XMAIL_XLANG_API xvalue xmail_mime_unsupported_native(const char* sOperation)
-{
-	char sError[256];
-	snprintf(sError, sizeof(sError), "mail.mime.%s native binding is not connected", xmailMimeStrOrEmpty(sOperation));
-	return xmail_xlang_result_value(FALSE, sError, "binding", "error", xvoCreateTable());
-}
-
 XMAIL_XLANG_API xvalue xmail_mime_address_native(const char* sEmail, const char* sName)
 {
 	xvalue pRet = xvoCreateTable();

@@ -30,6 +30,7 @@
     "unitSymbol": "xlUnit"
   },
   "exports": [
+    {"kind":"function","name":"available","cSymbol":"xstbir_available","signature":"func() as bool","exportId":"stb_image_resize2@0.1.0#abi1::stb_image_resize2::available(func() as bool)","callingConvention":"cdecl","varargMode":"none","requiredParamCount":0,"fixedParamCount":0,"params":[],"returns":[{"type":"bool"}]},
     {
       "kind": "function",
       "name": "version",

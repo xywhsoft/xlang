@@ -1,5 +1,7 @@
 import volc.core
 
+assert volc.core.available(), "volc.core available failed"
+
 string sample = "abc"
 string fixedDate = "20240102T030405Z"
 string body = "{\"hello\":\"xlang\"}"

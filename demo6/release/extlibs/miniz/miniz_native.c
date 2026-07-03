@@ -245,6 +245,11 @@ static int xminiz_decompress_bytes(const unsigned char* src, size_t src_size, un
 	return 1;
 }
 
+XMINIZ_EXPORT int xminiz_available(void)
+{
+	return 1;
+}
+
 XMINIZ_EXPORT const char* xminiz_version(void)
 {
 	return mz_version();

@@ -6,7 +6,10 @@ string db2Path = "release/tmp/extlibs/sqlite_demo_v2.db"
 file.delete(dbPath)
 file.delete(db2Path)
 
+assert sqlite.available(), "sqlite available failed"
+assert string.len(sqlite.version()) > 0, "sqlite version missing"
 assert string.len(sqlite.sqlite3_libversion()) > 0, "sqlite libversion missing"
+assert sqlite.version() == sqlite.sqlite3_libversion(), "sqlite version alias mismatch"
 assert sqlite.sqlite3_libversion_number() > 0, "sqlite libversion_number missing"
 assert sqlite.SQLITE_OK == 0, "sqlite SQLITE_OK constant mismatch"
 assert sqlite.SQLITE_ROW == 100, "sqlite SQLITE_ROW constant mismatch"
@@ -59,6 +62,7 @@ assert sqlite.sqlite3_close(db2) == sqlite.SQLITE_OK, "sqlite close failed"
 
 point missing = null
 assert sqlite.sqlite3_exec(missing, "select 1") == sqlite.SQLITE_MISUSE, "sqlite null exec should fail"
+assert string.contains(sqlite.last_error(), "null sqlite3 handle"), "sqlite last_error alias mismatch"
 assert string.contains(sqlite.sqlite3_last_error(), "null sqlite3 handle"), "sqlite last_error mismatch"
 assert string.contains(sqlite.sqlite3_errmsg(missing), "null sqlite3 handle"), "sqlite errmsg null mismatch"
 

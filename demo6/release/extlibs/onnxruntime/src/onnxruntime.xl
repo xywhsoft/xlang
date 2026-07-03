@@ -473,6 +473,10 @@ func get_version_string() as string
 	return ort_get_version_string_native()
 end
 
+func version() as string
+	return get_version_string()
+end
+
 func get_available_providers() as string
 	return ort_get_available_providers_json_native()
 end
@@ -528,6 +532,10 @@ end
 
 func __xl6_import_onnxruntime_backend() as string
     return backend()
+end
+
+func __xl6_import_onnxruntime_version() as string
+    return version()
 end
 
 func __xl6_import_onnxruntime_get_version_string() as string

@@ -32,6 +32,63 @@
     "exports":  [
                     {
                         "kind":  "function",
+                        "name":  "available",
+                        "cSymbol":  "__xl6_import_x_ui_auto_available",
+                        "signature":  "func() as bool",
+                        "exportId":  "ui.auto@0.1.0#abi1::ui.auto::available(func() as bool)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  0,
+                        "fixedParamCount":  0,
+                        "params":  [
+
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "bool"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "version",
+                        "cSymbol":  "__xl6_import_x_ui_auto_version",
+                        "signature":  "func() as string",
+                        "exportId":  "ui.auto@0.1.0#abi1::ui.auto::version(func() as string)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  0,
+                        "fixedParamCount":  0,
+                        "params":  [
+
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "string"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "last_error",
+                        "cSymbol":  "__xl6_import_x_ui_auto_last_error",
+                        "signature":  "func() as string",
+                        "exportId":  "ui.auto@0.1.0#abi1::ui.auto::last_error(func() as string)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  0,
+                        "fixedParamCount":  0,
+                        "params":  [
+
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "string"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
                         "name":  "locator",
                         "cSymbol":  "__xl6_import_x_ui_auto_locator",
                         "signature":  "func() as Locator",

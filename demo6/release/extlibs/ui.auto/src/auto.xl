@@ -59,6 +59,18 @@ func x_ui_auto_shutdown() as bool
 	return x_uia_shutdown()
 end
 
+func x_ui_auto_available() as bool
+	return string.len(uia.version()) > 0 and opencv.available()
+end
+
+func x_ui_auto_version() as string
+	return "0.1.0"
+end
+
+func x_ui_auto_last_error() as string
+	return uia.last_error()
+end
+
 func x_ui_auto_by_automation_id(string automation_id, int control_type) as Locator
 	auto loc = Locator()
 	loc.automation_id = automation_id
@@ -348,6 +360,19 @@ func screenshot_in_root(Element root, Locator loc, string path) as bool
 	end
 	return image.save(path)
 end
+
+func __xl6_import_x_ui_auto_available() as bool
+	return x_ui_auto_available()
+end
+
+func __xl6_import_x_ui_auto_version() as string
+	return x_ui_auto_version()
+end
+
+func __xl6_import_x_ui_auto_last_error() as string
+	return x_ui_auto_last_error()
+end
+
 func __xl6_import_x_ui_auto_locator() as Locator
 	return x_ui_auto_locator()
 end

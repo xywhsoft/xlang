@@ -30,6 +30,7 @@
                   "unitSymbol":  "xlUnit"
               },
     "exports":  [
+                    {"kind":"function","name":"version","cSymbol":"__xl6_import_onnxruntime_version","signature":"func() as string","exportId":"onnxruntime@0.1.0#abi1::onnxruntime::version(func() as string)","callingConvention":"cdecl","varargMode":"none","requiredParamCount":0,"fixedParamCount":0,"params":[],"returns":[{"type":"string"}]},
                     {
                         "kind":  "function",
                         "name":  "SessionOptions",

@@ -648,6 +648,25 @@
                     },
                     {
                         "kind":  "function",
+                        "name":  "available",
+                        "cSymbol":  "__xl6_import_xfeat_available",
+                        "signature":  "func() as bool",
+                        "exportId":  "xfeat@0.1.0#abi1::xfeat::available(func() as bool)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  0,
+                        "fixedParamCount":  0,
+                        "params":  [
+
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "bool"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
                         "name":  "last_error",
                         "cSymbol":  "__xl6_import_xfeat_last_error",
                         "signature":  "func() as string",

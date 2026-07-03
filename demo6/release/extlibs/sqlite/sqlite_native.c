@@ -126,6 +126,16 @@ XSQLITE_EXPORT const char* xsqlite3_last_error(void)
 	return xsqlite_return_text(g_xsqlite_error);
 }
 
+XSQLITE_EXPORT const char* xsqlite_last_error_native(void)
+{
+	return xsqlite3_last_error();
+}
+
+XSQLITE_EXPORT int xsqlite_available_native(void)
+{
+	return 1;
+}
+
 XSQLITE_EXPORT void* xsqlite3_open_native(const char* filename)
 {
 	sqlite3* db = NULL;
@@ -265,6 +275,11 @@ XSQLITE_EXPORT const char* xsqlite3_errstr_native(int rc)
 XSQLITE_EXPORT const char* xsqlite3_libversion_native(void)
 {
 	return xsqlite_return_text(sqlite3_libversion());
+}
+
+XSQLITE_EXPORT const char* xsqlite_version_native(void)
+{
+	return xsqlite3_libversion_native();
 }
 
 XSQLITE_EXPORT int xsqlite3_libversion_number_native(void)

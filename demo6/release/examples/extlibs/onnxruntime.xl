@@ -4,6 +4,7 @@ point nullImage = null
 bool runtimeAvailable = onnxruntime.available()
 assert runtimeAvailable, "onnxruntime runtime is not available"
 assert string.len(onnxruntime.backend()) > 0, "onnxruntime backend failed"
+assert onnxruntime.version() == onnxruntime.get_version_string(), "onnxruntime version alias failed"
 assert string.len(onnxruntime.get_version_string()) > 0, "onnxruntime version failed"
 assert string.contains(onnxruntime.get_available_providers(), "CPUExecutionProvider"), "onnxruntime providers failed"
 assert onnxruntime.get_providers() == onnxruntime.get_available_providers(), "onnxruntime get_providers failed"
@@ -85,12 +86,17 @@ assert bindingResult.valid() == false, "onnxruntime invalid iobinding run should
 auto bindingResultWithOptions = missingSession.run_with_iobinding(binding, runOptions)
 assert bindingResultWithOptions.valid() == false, "onnxruntime invalid iobinding run with options should be invalid"
 
-if false then
-    auto sessionWithOptions = onnxruntime.InferenceSession("__missing_model__.onnx", sessionOptions)
-    auto cvTensor = onnxruntime.TensorFromOpenCV(nullImage, 1.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0)
-    auto cvTensorResized = onnxruntime.TensorFromOpenCVResized(nullImage, 224, 224, 1.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0)
-    auto cvTensorBatch = onnxruntime.TensorFromOpenCVBatch(0, nullImage, nullImage, nullImage, nullImage, nullImage, nullImage, 1.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0)
-end
+auto sessionWithOptions = onnxruntime.InferenceSession("__missing_model__.onnx", sessionOptions)
+assert sessionWithOptions.valid() == false, "onnxruntime missing session with options should be invalid"
+
+auto cvTensor = onnxruntime.TensorFromOpenCV(nullImage, 1.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0)
+assert cvTensor.valid() == false, "onnxruntime null opencv tensor should be invalid"
+
+auto cvTensorResized = onnxruntime.TensorFromOpenCVResized(nullImage, 224, 224, 1.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0)
+assert cvTensorResized.valid() == false, "onnxruntime null resized opencv tensor should be invalid"
+
+auto cvTensorBatch = onnxruntime.TensorFromOpenCVBatch(0, nullImage, nullImage, nullImage, nullImage, nullImage, nullImage, 1.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0)
+assert cvTensorBatch.valid() == false, "onnxruntime empty opencv batch tensor should be invalid"
 
 assert binding.release() == false, "onnxruntime binding release failed"
 assert jsonResult.release() == false, "onnxruntime result release failed"
@@ -99,6 +105,10 @@ assert tensorResult.release() == false, "onnxruntime tensor result release faile
 assert tensorFastResult.release() == false, "onnxruntime tensor fast result release failed"
 assert bindingResult.release() == false, "onnxruntime binding result release failed"
 assert bindingResultWithOptions.release() == false, "onnxruntime binding options result release failed"
+assert sessionWithOptions.release() == false, "onnxruntime missing session options release failed"
+assert cvTensor.release() == false, "onnxruntime null opencv tensor release failed"
+assert cvTensorResized.release() == false, "onnxruntime null resized opencv tensor release failed"
+assert cvTensorBatch.release() == false, "onnxruntime empty opencv batch tensor release failed"
 assert missingSession.release() == false, "onnxruntime missing session release failed"
 assert tensor.release(), "onnxruntime tensor release failed"
 assert runOptions.release(), "onnxruntime run options release failed"

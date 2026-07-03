@@ -231,6 +231,11 @@ static const char* xmd5_digest_bytes(const unsigned char* data, size_t len)
 	return xmd5_format(digest);
 }
 
+XMD5_EXPORT int xmd5_available(void)
+{
+	return 1;
+}
+
 XMD5_EXPORT const char* xmd5_version(void)
 {
 	return "md5 0.1.0";

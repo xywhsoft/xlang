@@ -1,6 +1,9 @@
 extern "x_clipboard_available" func x_clipboard_available() as int
+extern "x_clipboard_version" func x_clipboard_version() as string
 extern "x_clipboard_last_error" func x_clipboard_last_error() as string
 extern "x_clipboard_clear" func x_clipboard_clear() as int
+extern "x_clipboard_snapshot" func x_clipboard_snapshot() as int
+extern "x_clipboard_restore" func x_clipboard_restore() as int
 extern "x_clipboard_sequence_number" func x_clipboard_sequence_number() as int
 extern "x_clipboard_count_formats" func x_clipboard_count_formats() as int
 extern "x_clipboard_formats" func x_clipboard_formats() as var
@@ -25,12 +28,24 @@ func __xl6_import_clipboard_available() as bool
     return x_clipboard_available() != 0
 end
 
+func __xl6_import_clipboard_version() as string
+    return x_clipboard_version()
+end
+
 func __xl6_import_clipboard_last_error() as string
     return x_clipboard_last_error()
 end
 
 func __xl6_import_clipboard_clear() as bool
     return x_clipboard_clear() != 0
+end
+
+func __xl6_import_clipboard_snapshot() as bool
+    return x_clipboard_snapshot() != 0
+end
+
+func __xl6_import_clipboard_restore() as bool
+    return x_clipboard_restore() != 0
 end
 
 func __xl6_import_clipboard_sequence_number() as int

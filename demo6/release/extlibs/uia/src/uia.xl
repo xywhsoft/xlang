@@ -360,6 +360,10 @@ func version() as string
 	return x_uia_version()
 end
 
+func available() as bool
+	return string.len(version()) > 0
+end
+
 func last_error() as string
 	return x_uia_last_error()
 end
@@ -442,6 +446,10 @@ end
 
 func __xl6_import_x_uia_version() as string
 	return version()
+end
+
+func __xl6_import_x_uia_available() as bool
+	return available()
 end
 
 func __xl6_import_x_uia_last_error() as string

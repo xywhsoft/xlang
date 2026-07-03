@@ -334,6 +334,25 @@
                     },
                     {
                         "kind":  "function",
+                        "name":  "available",
+                        "cSymbol":  "__xl6_import_dinov3_available",
+                        "signature":  "func() as bool",
+                        "exportId":  "dinov3@0.1.0#abi1::dinov3::available(func() as bool)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  0,
+                        "fixedParamCount":  0,
+                        "params":  [
+
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "bool"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
                         "name":  "last_error",
                         "cSymbol":  "__xl6_import_dinov3_last_error",
                         "signature":  "func() as string",

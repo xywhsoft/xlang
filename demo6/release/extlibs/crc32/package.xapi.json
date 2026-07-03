@@ -6,6 +6,7 @@
   "module":{"name":"crc32","moduleId":"crc32@0.1.0#abi1::crc32","source":"release/extlibs/crc32","sourceHash":""},
   "entry":{"kind":"none","requiresExplicitInit":true,"initSymbol":"xlInit","unitSymbol":"xlUnit"},
   "exports":[
+    {"kind":"function","name":"available","cSymbol":"xcrc32_available","signature":"func() as bool","exportId":"crc32@0.1.0#abi1::crc32::available(func() as bool)","callingConvention":"cdecl","varargMode":"none","requiredParamCount":0,"fixedParamCount":0,"params":[],"returns":[{"type":"bool"}]},
     {"kind":"function","name":"version","cSymbol":"xcrc32_version","signature":"func() as string","exportId":"crc32@0.1.0#abi1::crc32::version(func() as string)","callingConvention":"cdecl","varargMode":"none","requiredParamCount":0,"fixedParamCount":0,"params":[],"returns":[{"type":"string"}]},
     {"kind":"function","name":"last_error","cSymbol":"xcrc32_last_error","signature":"func() as string","exportId":"crc32@0.1.0#abi1::crc32::last_error(func() as string)","callingConvention":"cdecl","varargMode":"none","requiredParamCount":0,"fixedParamCount":0,"params":[],"returns":[{"type":"string"}]},
     {"kind":"function","name":"init","cSymbol":"xcrc32_init","signature":"func() as int","exportId":"crc32@0.1.0#abi1::crc32::init(func() as int)","callingConvention":"cdecl","varargMode":"none","requiredParamCount":0,"fixedParamCount":0,"params":[],"returns":[{"type":"int"}]},

@@ -2,6 +2,22 @@ func __xl6_import_pkg_math_add_one(int value = 41) as int
     return value + 1
 end
 
+func __xl6_import_pkg_math_available() as bool
+    return true
+end
+
+func __xl6_import_pkg_math_version() as string
+    return "1.0.0"
+end
+
+func __xl6_import_pkg_math_last_error() as string
+    return ""
+end
+
+export "xpkg_math_available" func __xl6_import_pkg_math_available_export() as bool
+    return __xl6_import_pkg_math_available()
+end
+
 export "xpkg_math_add_one" func __xl6_import_pkg_math_add_one_export(int value) as int
     return __xl6_import_pkg_math_add_one(value)
 end

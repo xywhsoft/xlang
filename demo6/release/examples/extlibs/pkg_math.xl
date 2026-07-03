@@ -1,5 +1,9 @@
 import pkg.math
 
+assert pkg.math.available(), "pkg.math available failed"
+assert pkg.math.version() == "1.0.0", "pkg.math version failed"
+assert pkg.math.last_error() == "", "pkg.math last_error failed"
+
 int default_value = pkg.math.add_one()
 int explicit_value = pkg.math.add_one(6)
 int base_value = pkg.math.base

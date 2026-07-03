@@ -154,17 +154,17 @@ class Client
 
 	func list_pods() as Response
 		string spec = "action=ListPod\nversion=2023-10-30\naccess_key=" + self.access_key + "\nsecret_key=" + self.secret_key + "\nsession_token=" + self.session_token + "\nbody=" + product_body(self.product_id) + "\ntimeout_ms=" + string.formatInt(self.timeout_ms, "")
-		return normalize_response("ListPod", volc.core.request_acep_spec(spec))
+		return normalize_response("ListPod", phone_request_acep_spec(spec))
 	end
 
 	func list_hosts() as Response
 		string spec = "action=ListHost\nversion=2023-10-30\naccess_key=" + self.access_key + "\nsecret_key=" + self.secret_key + "\nsession_token=" + self.session_token + "\nbody=" + product_body(self.product_id) + "\ntimeout_ms=" + string.formatInt(self.timeout_ms, "")
-		return normalize_response("ListHost", volc.core.request_acep_spec(spec))
+		return normalize_response("ListHost", phone_request_acep_spec(spec))
 	end
 
 	func list_dcs() as Response
 		string spec = "action=ListDc\nversion=2023-10-30\naccess_key=" + self.access_key + "\nsecret_key=" + self.secret_key + "\nsession_token=" + self.session_token + "\nbody=" + product_body(self.product_id) + "\ntimeout_ms=" + string.formatInt(self.timeout_ms, "")
-		return normalize_response("ListDc", volc.core.request_acep_spec(spec))
+		return normalize_response("ListDc", phone_request_acep_spec(spec))
 	end
 
 	func detail_pod(string pod_id) as Response
@@ -264,12 +264,37 @@ func last_error() as string
 	return volc.core.last_error()
 end
 
+func available() as bool
+	return string.len(volc.core.version()) > 0
+end
+
+func version() as string
+	return "0.1.0"
+end
+
+func phone_spec_dry_run(string spec) as bool
+	if string.contains(spec, "dry_run=true") or string.contains(spec, "dry_run=1") then
+		return true
+	end
+	if string.contains(spec, "timeout_ms=0") or string.contains(spec, "timeout_ms=-") then
+		return true
+	end
+	return false
+end
+
+func phone_request_acep_spec(string spec) as string
+	if phone_spec_dry_run(spec) then
+		return volc.core.sign_preview_acep_spec(spec)
+	end
+	return volc.core.request_acep_spec(spec)
+end
+
 func call_spec(string spec) as Response
-	return normalize_response("ACEP", volc.core.request_acep_spec(spec))
+	return normalize_response("ACEP", phone_request_acep_spec(spec))
 end
 
 func raw_spec(string spec) as string
-	return volc.core.request_acep_spec(spec)
+	return phone_request_acep_spec(spec)
 end
 
 func client(string access_key, string secret_key, string product_id) as Client
@@ -282,7 +307,7 @@ end
 
 func raw_call(string access_key, string secret_key, string session_token, string action, string version, string body, int timeout_ms) as string
 	string spec = "action=" + action + "\nversion=" + version + "\naccess_key=" + access_key + "\nsecret_key=" + secret_key + "\nsession_token=" + session_token + "\nbody=" + body + "\ntimeout_ms=" + string.formatInt(timeout_ms, "")
-	return volc.core.request_acep_spec(spec)
+	return phone_request_acep_spec(spec)
 end
 
 func call(string access_key, string secret_key, string session_token, string action, string version, string body, int timeout_ms) as string
@@ -418,17 +443,17 @@ end
 
 func list_pod(string access_key, string secret_key, string session_token, string product_id, int timeout_ms) as string
 	string spec = "action=ListPod\nversion=2023-10-30\naccess_key=" + access_key + "\nsecret_key=" + secret_key + "\nsession_token=" + session_token + "\nbody=" + product_body(product_id) + "\ntimeout_ms=" + string.formatInt(timeout_ms, "")
-	return volc.core.request_acep_spec(spec)
+	return phone_request_acep_spec(spec)
 end
 
 func list_host(string access_key, string secret_key, string session_token, string product_id, int timeout_ms) as string
 	string spec = "action=ListHost\nversion=2023-10-30\naccess_key=" + access_key + "\nsecret_key=" + secret_key + "\nsession_token=" + session_token + "\nbody=" + product_body(product_id) + "\ntimeout_ms=" + string.formatInt(timeout_ms, "")
-	return volc.core.request_acep_spec(spec)
+	return phone_request_acep_spec(spec)
 end
 
 func list_dc(string access_key, string secret_key, string session_token, string product_id, int timeout_ms) as string
 	string spec = "action=ListDc\nversion=2023-10-30\naccess_key=" + access_key + "\nsecret_key=" + secret_key + "\nsession_token=" + session_token + "\nbody=" + product_body(product_id) + "\ntimeout_ms=" + string.formatInt(timeout_ms, "")
-	return volc.core.request_acep_spec(spec)
+	return phone_request_acep_spec(spec)
 end
 
 func detail_pod(string access_key, string secret_key, string session_token, string product_id, string pod_id, int timeout_ms) as string
@@ -499,6 +524,9 @@ func task_state(string task_info_json) as string
 end
 
 func wait_task(string access_key, string secret_key, string session_token, string product_id, string task_id, int timeout_ms, int poll_interval_ms) as string
+	if timeout_ms <= 0 then
+		return get_task_info(access_key, secret_key, session_token, product_id, task_id, timeout_ms)
+	end
 	int elapsed = 0
 	int interval = poll_interval_ms
 	if interval <= 0 then
@@ -631,6 +659,14 @@ end
 
 func __xl6_import_x_volc_phone_last_error() as string
 	return last_error()
+end
+
+func __xl6_import_x_volc_phone_available() as bool
+	return available()
+end
+
+func __xl6_import_x_volc_phone_version() as string
+	return version()
 end
 
 func __xl6_import_x_volc_phone_call_spec(string spec) as Response

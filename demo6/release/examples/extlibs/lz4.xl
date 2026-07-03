@@ -1,5 +1,7 @@
 import lz4
 
+assert lz4.available(), "lz4 available failed"
+
 string sample = "lz4 extension round trip text"
 string srcPath = "release/tmp/extlibs/lz4_source.txt"
 string packedPath = "release/tmp/extlibs/lz4_source.lz4"

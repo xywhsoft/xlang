@@ -156,6 +156,11 @@ static XStbttBitmap* xstbtt_cast_bitmap(void* handle)
 	return bitmap;
 }
 
+XSTBTT_EXPORT int xstbtt_available(void)
+{
+	return 1;
+}
+
 XSTBTT_EXPORT const char* xstbtt_version(void)
 {
 	return "stb_truetype 1.26";

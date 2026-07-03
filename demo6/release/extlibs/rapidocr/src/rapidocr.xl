@@ -883,6 +883,10 @@ func rapidocr_backend() as string
 	return rapidocr_backend_native()
 end
 
+func rapidocr_version() as string
+	return "rapidocr 0.1.0"
+end
+
 func rapidocr_dependency_status() as string
 	return "opencv=" + opencv.backend() + "; onnxruntime=" + onnxruntime.backend() + "; rapidocr=" + rapidocr_backend()
 end
@@ -1016,6 +1020,9 @@ func __xl6_import_rapidocr_available() as bool
 end
 func __xl6_import_rapidocr_backend() as string
     return rapidocr_backend()
+end
+func __xl6_import_rapidocr_version() as string
+    return rapidocr_version()
 end
 func __xl6_import_rapidocr_dependency_status() as string
     return rapidocr_dependency_status()

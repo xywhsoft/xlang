@@ -599,6 +599,12 @@ static int xvolc_json_escape_append(xvolc_buf* b, const char* text)
 	return xvolc_buf_append(b, "\"");
 }
 
+int x_volc_core_available(void)
+{
+	xvolc_set_error("");
+	return 1;
+}
+
 const char* x_volc_core_version(void)
 {
 	xvolc_set_error("");

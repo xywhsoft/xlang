@@ -1,10 +1,13 @@
 import mail.mime
 
+assert mail.mime.available(), "mime available failed"
+assert mail.mime.version() == "0.1.0", "mime version failed"
+assert mail.mime.last_error() == "", "mime last_error failed"
+
 var sender = mail.mime.address("sender@example.com", "Sender")
 var recipient = mail.mime.address("user@example.com", "User")
 var attachment = mail.mime.attachment("note.txt", "text/plain", "attachment body", "", false)
 var result = mail.mime.result(true, "", "unit", {"value": 7})
-var unsupported = mail.mime.unsupported("noop")
 var message = mail.mime.message({
     "from": sender,
     "to": [recipient],
@@ -17,8 +20,6 @@ var message = mail.mime.message({
 
 assert bool(result["ok"]) == true, "result ok mismatch"
 assert string(result["stage"]) == "unit", "result stage mismatch"
-assert bool(unsupported["ok"]) == false, "unsupported ok mismatch"
-assert string(unsupported["stage"]) == "binding", "unsupported stage mismatch"
 assert string(sender["email"]) == "sender@example.com", "address email mismatch"
 assert string(attachment["filename"]) == "note.txt", "attachment filename mismatch"
 assert string(message["subject"]) == "hello", "message subject mismatch"

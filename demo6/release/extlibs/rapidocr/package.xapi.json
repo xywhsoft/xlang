@@ -30,6 +30,7 @@
                   "unitSymbol":  "xlUnit"
               },
     "exports":  [
+                    {"kind":"function","name":"version","cSymbol":"__xl6_import_rapidocr_version","signature":"func() as string","exportId":"rapidocr@0.1.0#abi1::rapidocr::version(func() as string)","callingConvention":"cdecl","varargMode":"none","requiredParamCount":0,"fixedParamCount":0,"params":[],"returns":[{"type":"string"}]},
                     {
                         "kind":  "function",
                         "name":  "RapidOCR",

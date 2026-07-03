@@ -32,6 +32,63 @@
     "exports":  [
                     {
                         "kind":  "function",
+                        "name":  "available",
+                        "cSymbol":  "__xl6_import_x_redis_available",
+                        "signature":  "func() as bool",
+                        "exportId":  "redis@0.1.0#abi1::redis::available(func() as bool)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  0,
+                        "fixedParamCount":  0,
+                        "params":  [
+
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "bool"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "version",
+                        "cSymbol":  "__xl6_import_x_redis_version",
+                        "signature":  "func() as string",
+                        "exportId":  "redis@0.1.0#abi1::redis::version(func() as string)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  0,
+                        "fixedParamCount":  0,
+                        "params":  [
+
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "string"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "parser_last_error",
+                        "cSymbol":  "__xl6_import_x_redis_parser_last_error",
+                        "signature":  "func() as string",
+                        "exportId":  "redis@0.1.0#abi1::redis::parser_last_error(func() as string)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  0,
+                        "fixedParamCount":  0,
+                        "params":  [
+
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "string"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
                         "name":  "resp_encode1",
                         "cSymbol":  "__xl6_import_x_redis_resp_encode1",
                         "signature":  "func(string) as string",

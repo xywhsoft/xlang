@@ -141,6 +141,29 @@ static int dino_try_load(const char* path)
 	return 1;
 }
 
+#if defined(_WIN32) || defined(_WIN64)
+static int dino_try_load_near_exe(const char* relative_path)
+{
+	char path[MAX_PATH];
+	DWORD len;
+	char* slash;
+	size_t base_len;
+	size_t rel_len;
+	if ( relative_path == NULL || relative_path[0] == '\0' ) return 0;
+	len = GetModuleFileNameA(NULL, path, (DWORD)sizeof(path));
+	if ( len == 0u || len >= (DWORD)sizeof(path) ) return 0;
+	slash = strrchr(path, '\\');
+	if ( slash == NULL ) slash = strrchr(path, '/');
+	if ( slash == NULL ) return 0;
+	slash[1] = '\0';
+	base_len = strlen(path);
+	rel_len = strlen(relative_path);
+	if ( base_len + rel_len >= sizeof(path) ) return 0;
+	memcpy(path + base_len, relative_path, rel_len + 1u);
+	return dino_try_load(path);
+}
+#endif
+
 static int dino_ort_load(void)
 {
 	const char* env_path;
@@ -161,6 +184,10 @@ static int dino_ort_load(void)
 	g_ort.attempted = 1;
 	env_path = getenv("ONNXRUNTIME_XLANG_DLL");
 	if ( dino_try_load(env_path) ) return 1;
+#if defined(_WIN32) || defined(_WIN64)
+	if ( dino_try_load_near_exe("extlibs\\onnxruntime\\bin\\onnxruntime_xlang.dll") ) return 1;
+	if ( dino_try_load_near_exe("bin\\onnxruntime_xlang.dll") ) return 1;
+#endif
 	for ( i = 0; candidates[i] != NULL; ++i ) {
 		if ( dino_try_load(candidates[i]) ) return 1;
 	}
@@ -171,6 +198,11 @@ static int dino_ort_load(void)
 XL_EXPORT const char* dinov3_version_native(void)
 {
 	return "dinov3-xlang 0.1.0";
+}
+
+XL_EXPORT int dinov3_available_native(void)
+{
+	return dino_ort_load();
 }
 
 XL_EXPORT const char* dinov3_last_error_native(void)

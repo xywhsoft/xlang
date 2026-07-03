@@ -1,5 +1,7 @@
 import stb_truetype
 
+assert stb_truetype.available(), "stb_truetype available failed"
+
 string fontPath = stb_truetype.default_font_path()
 assert string.len(fontPath) > 0, "stb_truetype default_font_path failed"
 point font = stb_truetype.load(fontPath, 0)

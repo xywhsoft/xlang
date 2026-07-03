@@ -30,6 +30,7 @@
     "unitSymbol": "xlUnit"
   },
   "exports": [
+    {"kind":"function","name":"available","cSymbol":"xmd4c_available","signature":"func() as bool","exportId":"md4c@0.1.0#abi1::md4c::available(func() as bool)","callingConvention":"cdecl","varargMode":"none","requiredParamCount":0,"fixedParamCount":0,"params":[],"returns":[{"type":"bool"}]},
     {
       "kind": "function",
       "name": "version",

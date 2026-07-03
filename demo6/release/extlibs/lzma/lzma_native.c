@@ -277,6 +277,11 @@ static int xlzma_decompress_bytes(const unsigned char* src, size_t src_size, uns
 	return 1;
 }
 
+XLZMA_EXPORT int xlzma_available(void)
+{
+	return 1;
+}
+
 XLZMA_EXPORT const char* xlzma_version(void)
 {
 	return "lzma 0.1.0";

@@ -11412,6 +11412,15 @@ static XL6_AstNode* xl6SemCloneForTargetType(XL6_SemContext* ctx, XL6_AstNode* i
         return xl6SemNewForTargetSimpleType("var", iterable);
     }
 
+    if ( xl6TextEquals(typeName, "string") ) {
+        if ( targetCount == 2 && targetIndex == 0 ) {
+            xl6AstFree(iterableType);
+            return xl6SemNewForTargetSimpleType("int", iterable);
+        }
+        xl6AstFree(iterableType);
+        return xl6SemNewForTargetSimpleType("string", iterable);
+    }
+
     if ( xl6SemIsDictTypeName(typeName) ) {
         if ( targetCount == 1 || targetIndex == 0 ) {
             xl6AstFree(iterableType);

@@ -1,5 +1,7 @@
 import lzma
 
+assert lzma.available(), "lzma available failed"
+
 string sample = "lzma extension round trip text"
 string srcPath = "release/tmp/extlibs/lzma_source.txt"
 string packedPath = "release/tmp/extlibs/lzma_source.lzma"

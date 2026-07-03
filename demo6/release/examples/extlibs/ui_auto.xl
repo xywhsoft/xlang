@@ -1,5 +1,9 @@
 import ui.auto
 
+assert ui.auto.available(), "ui.auto available failed"
+assert ui.auto.version() == "0.1.0", "ui.auto version failed"
+assert string.len(ui.auto.last_error()) >= 0, "ui.auto last_error failed"
+
 func wait_read_contains(Locator locator, string text) as bool
     for i in range(0, 20)
         if string.contains(ui.auto.read(locator), text) then

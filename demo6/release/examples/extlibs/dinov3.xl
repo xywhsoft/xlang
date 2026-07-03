@@ -1,6 +1,7 @@
 import dinov3
 
 assert string.contains(dinov3.version(), "dinov3"), "dinov3 version failed"
+assert dinov3.available(), "dinov3 runtime bridge should be available"
 assert string.len(dinov3.last_error()) >= 0, "dinov3 last_error failed"
 
 auto model = dinov3.DinoV3("__missing_dinov3_model__.onnx")

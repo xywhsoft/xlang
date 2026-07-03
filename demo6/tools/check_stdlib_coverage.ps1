@@ -164,10 +164,12 @@ $tests = Read-ManyXlangCoverageText $testDir "stdlib_*.xl"
 $examples = Read-ManyXlangCoverageText $exampleDir "stdlib_*.xl"
 
 $funcs = New-Object System.Collections.Generic.List[string]
+$consts = New-Object System.Collections.Generic.List[string]
 $failures = New-Object System.Collections.Generic.List[string]
 $paramArrayCounts = @{}
 $paramArrayMatches = [regex]::Matches($stdlib, '(?s)static const XL6_StdlibParam\s+(\w+)\[\]\s*=\s*\{(.*?)\};')
 $registrationMatches = [regex]::Matches($stdlib, '\{"([^"]+)",\s*"([^"]+)",\s*"([^"]+)",\s*("[^"]+"|NULL),\s*([^,]+),\s*([0-9]+),\s*"([^"]*)",')
+$constMatches = [regex]::Matches($stdlib, '\{"([^"]+)",\s*"([^"]+)",\s*XL6_AST_[A-Z_]+,\s*"([^"]+)"\}')
 $publicKeys = New-Object System.Collections.Generic.HashSet[string]
 $internalNames = New-Object System.Collections.Generic.HashSet[string]
 $cSymbols = New-Object System.Collections.Generic.HashSet[string]
@@ -233,8 +235,33 @@ foreach ( $match in $registrationMatches ) {
     }
 }
 
+foreach ( $match in $constMatches ) {
+    $ns = $match.Groups[1].Value
+    $name = $match.Groups[2].Value
+
+    if ( $ns.StartsWith("__") ) {
+        continue
+    }
+    if ( $ns -eq "" ) {
+        Add-Failure $failures "public stdlib constant must be namespaced: $name"
+    }
+    if ( $ns -notmatch '^[a-z][a-z0-9]*(?:[.][a-z][a-z0-9]*)?$' ) {
+        Add-Failure $failures "invalid public stdlib namespace: $ns"
+    }
+    if ( $name -notmatch '^[A-Za-z_][A-Za-z0-9_]*$' ) {
+        Add-Failure $failures "invalid public stdlib constant name: $ns.$name"
+    }
+
+    $key = "$ns.$name"
+    if ( ! $publicKeys.Add($key) ) {
+        Add-Failure $failures "duplicate public stdlib symbol: $key"
+    }
+    $consts.Add($key)
+}
+
 $rawPublicFuncs = $funcs | Sort-Object
 $publicFuncs = $funcs | Sort-Object -Unique
+$publicConsts = $consts | Sort-Object -Unique
 $missingDocs = New-Object System.Collections.Generic.List[string]
 $missingTests = New-Object System.Collections.Generic.List[string]
 $missingExamples = New-Object System.Collections.Generic.List[string]
@@ -254,6 +281,20 @@ foreach ( $func in $publicFuncs ) {
     }
     if ( $examples -notmatch $pattern ) {
         $missingExamples.Add($func)
+    }
+}
+
+foreach ( $const in $publicConsts ) {
+    $pattern = '(?<![A-Za-z0-9_])' + [regex]::Escape($const) + '(?![A-Za-z0-9_\(])'
+
+    if ( $docs -notmatch $pattern ) {
+        $missingDocs.Add($const)
+    }
+    if ( $tests -notmatch $pattern ) {
+        $missingTests.Add($const)
+    }
+    if ( $examples -notmatch $pattern ) {
+        $missingExamples.Add($const)
     }
 }
 

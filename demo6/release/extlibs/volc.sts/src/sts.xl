@@ -1,5 +1,13 @@
 import volc.core
 
+func __xl6_import_x_volc_sts_available() as bool
+    return string.len(volc.core.version()) > 0
+end
+
+func __xl6_import_x_volc_sts_version() as string
+    return "0.1.0"
+end
+
 func __xl6_import_x_volc_sts_last_error() as string
     return volc.core.last_error()
 end

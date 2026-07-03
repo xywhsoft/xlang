@@ -30,6 +30,7 @@
                   "unitSymbol":  "xlUnit"
               },
     "exports":  [
+                    {"kind":"function","name":"version","cSymbol":"__xl6_import_opencv_version","signature":"func() as string","exportId":"opencv@0.1.0#abi1::opencv::version(func() as string)","callingConvention":"cdecl","varargMode":"none","requiredParamCount":0,"fixedParamCount":0,"params":[],"returns":[{"type":"string"}]},
                     {
                         "kind":  "function",
                         "name":  "available",

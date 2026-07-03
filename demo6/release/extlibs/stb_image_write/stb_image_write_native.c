@@ -48,6 +48,11 @@ static int xstbiw_valid(const char* path, const void* data, int width, int heigh
 	return 1;
 }
 
+XSTBIW_EXPORT int xstbiw_available(void)
+{
+	return 1;
+}
+
 XSTBIW_EXPORT const char* xstbiw_version(void)
 {
 	return "stb_image_write 1.16";

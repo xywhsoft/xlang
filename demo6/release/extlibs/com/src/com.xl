@@ -1,6 +1,8 @@
 extern "x_com_create" func x_com_create(string progid) as point
 extern "x_com_attach" func x_com_attach(point dispatch) as point
 extern "x_com_test_object" func x_com_test_object() as point
+extern "x_com_available" func x_com_available() as int
+extern "x_com_version" func x_com_version() as string
 extern "x_com_release" func x_com_release(point handle) as int
 extern "x_com_is_null" func x_com_is_null(point handle) as int
 extern "x_com_last_error" func x_com_last_error() as string
@@ -98,6 +100,14 @@ end
 
 func __xl6_import_x_com_test_object() as point
 	return x_com_attach(x_com_test_object())
+end
+
+func __xl6_import_x_com_available() as bool
+	return x_com_available() != 0
+end
+
+func __xl6_import_x_com_version() as string
+	return x_com_version()
 end
 
 func __xl6_import_x_com_missing() as point

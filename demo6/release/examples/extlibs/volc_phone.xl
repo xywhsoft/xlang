@@ -1,5 +1,7 @@
 import volc.phone
 
+assert volc.phone.available(), "volc.phone available failed"
+assert volc.phone.version() == "0.1.0", "volc.phone version failed"
 assert string.len(volc.phone.last_error()) >= 0, "volc.phone last_error failed"
 
 string productBody = volc.phone.product_body("prod-1")
@@ -66,66 +68,132 @@ assert phoneClient.set_session_token("token") == true, "volc.phone client set_se
 auto tokenClient = volc.phone.client_token("ak", "sk", "token", "prod-1")
 assert tokenClient.set_timeout(2345) == true, "volc.phone token client failed"
 
-if false then
-	auto netResponse = volc.phone.call_spec("action=ListPod\nversion=2023-10-30\ntimeout_ms=1")
-	string netRawSpec = volc.phone.raw_spec("action=ListPod\nversion=2023-10-30\ntimeout_ms=1")
-	string netRaw = volc.phone.raw_call("ak", "sk", "token", "ListPod", "2023-10-30", productBody, 1)
-	string netCall = volc.phone.call("ak", "sk", "token", "ListPod", "2023-10-30", productBody, 1)
-	string netDefault = volc.phone.call_default("ak", "sk", "token", "ListPod", productBody, 1)
-	string listPod = volc.phone.list_pod("ak", "sk", "token", "prod-1", 1)
-	string listHost = volc.phone.list_host("ak", "sk", "token", "prod-1", 1)
-	string listDc = volc.phone.list_dc("ak", "sk", "token", "prod-1", 1)
-	string detailPod = volc.phone.detail_pod("ak", "sk", "token", "prod-1", "pod-1", 1)
-	string detailHost = volc.phone.detail_host("ak", "sk", "token", "prod-1", "host-1", 1)
-	string createPod = volc.phone.create_pod("ak", "sk", "token", "prod-1", "dc-a", "small", 1, "host-1", "pod-name", "layout-1", true, 1)
-	string createPodBatch = volc.phone.create_pod_batch("ak", "sk", "token", "prod-1", "dc-a", "small", 2, 1, "host-1", "pod-name", "layout-1", false, 1)
-	string powerOn = volc.phone.power_on("ak", "sk", "token", "prod-1", "pod-1", 1)
-	string powerOff = volc.phone.power_off("ak", "sk", "token", "prod-1", "pod-1", 1)
-	string reboot = volc.phone.reboot("ak", "sk", "token", "prod-1", "pod-1", 1)
-	string reset = volc.phone.reset("ak", "sk", "token", "prod-1", "pod-1", 1)
-	string deletePod = volc.phone.delete_pod("ak", "sk", "token", "prod-1", "pod-1", 1)
-	string podAdb = volc.phone.pod_adb("ak", "sk", "token", "prod-1", "pod-1", true, 1)
-	string runSync = volc.phone.run_sync_command("ak", "sk", "token", "prod-1", "pod-1", "id", 1)
-	string runAsync = volc.phone.run_command("ak", "sk", "token", "prod-1", "pod-1", "id", 1)
-	string taskInfo = volc.phone.get_task_info("ak", "sk", "token", "prod-1", "task-1", 1)
-	string waited = volc.phone.wait_task("ak", "sk", "token", "prod-1", "task-1", 1, 1)
-	string installed = volc.phone.install_app("ak", "sk", "token", "prod-1", "pod-1", "app-1", "ver-1", 1)
-	string launched = volc.phone.launch_app("ak", "sk", "token", "prod-1", "pod-1", "com.example", 1)
-	string closed = volc.phone.close_app("ak", "sk", "token", "prod-1", "pod-1", "com.example", 1)
-	string shot = volc.phone.screenshot("ak", "sk", "token", "prod-1", "pod-1", "round-1", 1)
-	string batchShot = volc.phone.batch_screenshot("ak", "sk", "token", "prod-1", "[\"pod-1\"]", "round-1", 1)
-	string recordingStart = volc.phone.start_recording("ak", "sk", "token", "prod-1", "pod-1", "round-1", 30, true, 1)
-	string recordingStop = volc.phone.stop_recording("ak", "sk", "token", "prod-1", "pod-1", 1)
-	string pushed = volc.phone.push_file("ak", "sk", "token", "prod-1", "pod-1", "local.txt", "/sdcard/local.txt", 1)
-	string pulled = volc.phone.pull_file("ak", "sk", "token", "prod-1", "pod-1", "/sdcard/remote.txt", "remote.txt", 1)
-	auto clientResponse = phoneClient.call("ListPod", "2023-10-30", productBody)
-	auto clientDefault = phoneClient.call_default("ListPod", productBody)
-	auto clientListPods = phoneClient.list_pods()
-	auto clientListHosts = phoneClient.list_hosts()
-	auto clientListDcs = phoneClient.list_dcs()
-	auto clientDetailPod = phoneClient.detail_pod("pod-1")
-	auto clientDetailHost = phoneClient.detail_host("host-1")
-	auto clientCreatePod = phoneClient.create_pod("dc-a", "small", 1, "host-1", "pod-name", "layout-1", true)
-	auto clientCreatePodBatch = phoneClient.create_pod_batch("dc-a", "small", 2, 1, "host-1", "pod-name", "layout-1", false)
-	auto clientDeletePod = phoneClient.delete_pod("pod-1")
-	auto clientPowerOn = phoneClient.power_on("pod-1")
-	auto clientPowerOff = phoneClient.power_off("pod-1")
-	auto clientReboot = phoneClient.reboot("pod-1")
-	auto clientReset = phoneClient.reset("pod-1")
-	auto clientPodAdb = phoneClient.pod_adb("pod-1", true)
-	auto clientRunCommand = phoneClient.run_command("pod-1", "id")
-	auto clientRunSync = phoneClient.run_sync_command("pod-1", "id")
-	auto clientInstall = phoneClient.install_app("pod-1", "app-1", "ver-1")
-	auto clientLaunch = phoneClient.launch_app("pod-1", "com.example")
-	auto clientClose = phoneClient.close_app("pod-1", "com.example")
-	auto clientTaskInfo = phoneClient.get_task_info("task-1")
-	auto clientWaitTask = phoneClient.wait_task("task-1", 1, 1)
-	auto clientScreenshot = phoneClient.screenshot("pod-1", "round-1")
-	auto clientBatchScreenshot = phoneClient.batch_screenshot("[\"pod-1\"]", "round-1")
-	auto clientStartRecording = phoneClient.start_recording("pod-1", "round-1", 30, true)
-	auto clientStopRecording = phoneClient.stop_recording("pod-1")
-	auto clientPushFile = phoneClient.push_file("pod-1", "local.txt", "/sdcard/local.txt")
-	auto clientPullFile = phoneClient.pull_file("pod-1", "/sdcard/remote.txt", "remote.txt")
-end
+string drySpec = "action=ListPod\nversion=2023-10-30\naccess_key=ak\nsecret_key=sk\nsession_token=token\nbody=" + productBody + "\ntimeout_ms=0\ndry_run=true"
+auto netResponse = volc.phone.call_spec(drySpec)
+assert netResponse.action() == "ACEP", "volc.phone call_spec dry action failed"
+assert string.contains(netResponse.raw_json(), "\"authorization\""), "volc.phone call_spec dry preview failed"
+
+string netRawSpec = volc.phone.raw_spec(drySpec)
+assert string.contains(netRawSpec, "\"authorization\""), "volc.phone raw_spec dry failed"
+assert string.contains(netRawSpec, "Action=ListPod"), "volc.phone raw_spec action failed"
+string netRaw = volc.phone.raw_call("ak", "sk", "token", "ListPod", "2023-10-30", productBody, 0)
+assert string.contains(netRaw, "\"authorization\""), "volc.phone raw_call dry failed"
+assert string.contains(netRaw, "Action=ListPod"), "volc.phone raw_call action failed"
+string netCall = volc.phone.call("ak", "sk", "token", "ListPod", "2023-10-30", productBody, 0)
+assert string.contains(netCall, "\"authorization\""), "volc.phone call dry failed"
+string netDefault = volc.phone.call_default("ak", "sk", "token", "ListPod", productBody, 0)
+assert string.contains(netDefault, "\"authorization\""), "volc.phone call_default dry failed"
+
+string listPod = volc.phone.list_pod("ak", "sk", "token", "prod-1", 0)
+assert string.contains(listPod, "Action=ListPod"), "volc.phone list_pod dry failed"
+string listHost = volc.phone.list_host("ak", "sk", "token", "prod-1", 0)
+assert string.contains(listHost, "Action=ListHost"), "volc.phone list_host dry failed"
+string listDc = volc.phone.list_dc("ak", "sk", "token", "prod-1", 0)
+assert string.contains(listDc, "Action=ListDc"), "volc.phone list_dc dry failed"
+string detailPod = volc.phone.detail_pod("ak", "sk", "token", "prod-1", "pod-1", 0)
+assert string.contains(detailPod, "Action=DetailPod"), "volc.phone detail_pod dry failed"
+string detailHost = volc.phone.detail_host("ak", "sk", "token", "prod-1", "host-1", 0)
+assert string.contains(detailHost, "Action=DetailHost"), "volc.phone detail_host dry failed"
+string createPod = volc.phone.create_pod("ak", "sk", "token", "prod-1", "dc-a", "small", 1, "host-1", "pod-name", "layout-1", true, 0)
+assert string.contains(createPod, "Action=CreatePod"), "volc.phone create_pod dry failed"
+string createPodBatch = volc.phone.create_pod_batch("ak", "sk", "token", "prod-1", "dc-a", "small", 2, 1, "host-1", "pod-name", "layout-1", false, 0)
+assert string.contains(createPodBatch, "Action=CreatePod"), "volc.phone create_pod_batch dry failed"
+string powerOn = volc.phone.power_on("ak", "sk", "token", "prod-1", "pod-1", 0)
+assert string.contains(powerOn, "Action=PowerOnPod"), "volc.phone power_on dry failed"
+string powerOff = volc.phone.power_off("ak", "sk", "token", "prod-1", "pod-1", 0)
+assert string.contains(powerOff, "Action=PowerOffPod"), "volc.phone power_off dry failed"
+string rebootRaw = volc.phone.reboot("ak", "sk", "token", "prod-1", "pod-1", 0)
+assert string.contains(rebootRaw, "Action=RebootPod"), "volc.phone reboot dry failed"
+string resetRaw = volc.phone.reset("ak", "sk", "token", "prod-1", "pod-1", 0)
+assert string.contains(resetRaw, "Action=ResetPod"), "volc.phone reset dry failed"
+string deletePod = volc.phone.delete_pod("ak", "sk", "token", "prod-1", "pod-1", 0)
+assert string.contains(deletePod, "Action=DeletePod"), "volc.phone delete_pod dry failed"
+string podAdb = volc.phone.pod_adb("ak", "sk", "token", "prod-1", "pod-1", true, 0)
+assert string.contains(podAdb, "Action=PodAdb"), "volc.phone pod_adb dry failed"
+string runSync = volc.phone.run_sync_command("ak", "sk", "token", "prod-1", "pod-1", "id", 0)
+assert string.contains(runSync, "Action=RunSyncCommand"), "volc.phone run_sync_command dry failed"
+string runAsync = volc.phone.run_command("ak", "sk", "token", "prod-1", "pod-1", "id", 0)
+assert string.contains(runAsync, "Action=RunCommand"), "volc.phone run_command dry failed"
+string taskInfo = volc.phone.get_task_info("ak", "sk", "token", "prod-1", "task-1", 0)
+assert string.contains(taskInfo, "Action=GetTaskInfo"), "volc.phone get_task_info dry failed"
+string waited = volc.phone.wait_task("ak", "sk", "token", "prod-1", "task-1", 0, 0)
+assert string.contains(waited, "Action=GetTaskInfo"), "volc.phone wait_task dry failed"
+string installed = volc.phone.install_app("ak", "sk", "token", "prod-1", "pod-1", "app-1", "ver-1", 0)
+assert string.contains(installed, "Action=InstallApp"), "volc.phone install_app dry failed"
+string launched = volc.phone.launch_app("ak", "sk", "token", "prod-1", "pod-1", "com.example", 0)
+assert string.contains(launched, "Action=LaunchApp"), "volc.phone launch_app dry failed"
+string closed = volc.phone.close_app("ak", "sk", "token", "prod-1", "pod-1", "com.example", 0)
+assert string.contains(closed, "Action=CloseApp"), "volc.phone close_app dry failed"
+string shot = volc.phone.screenshot("ak", "sk", "token", "prod-1", "pod-1", "round-1", 0)
+assert string.contains(shot, "Action=ScreenShot"), "volc.phone screenshot dry failed"
+string batchShot = volc.phone.batch_screenshot("ak", "sk", "token", "prod-1", "[\"pod-1\"]", "round-1", 0)
+assert string.contains(batchShot, "Action=BatchScreenShot"), "volc.phone batch_screenshot dry failed"
+string recordingStart = volc.phone.start_recording("ak", "sk", "token", "prod-1", "pod-1", "round-1", 30, true, 0)
+assert string.contains(recordingStart, "Action=StartRecording"), "volc.phone start_recording dry failed"
+string recordingStop = volc.phone.stop_recording("ak", "sk", "token", "prod-1", "pod-1", 0)
+assert string.contains(recordingStop, "Action=StopRecording"), "volc.phone stop_recording dry failed"
+string pushed = volc.phone.push_file("ak", "sk", "token", "prod-1", "pod-1", "local.txt", "/sdcard/local.txt", 0)
+assert string.contains(pushed, "Action=PushFile"), "volc.phone push_file dry failed"
+string pulled = volc.phone.pull_file("ak", "sk", "token", "prod-1", "pod-1", "/sdcard/remote.txt", "remote.txt", 0)
+assert string.contains(pulled, "Action=PullFile"), "volc.phone pull_file dry failed"
+
+assert phoneClient.set_timeout(0) == true, "volc.phone client dry timeout failed"
+auto clientResponse = phoneClient.call("ListPod", "2023-10-30", productBody)
+assert clientResponse.action() == "ListPod", "volc.phone client call action failed"
+assert string.contains(clientResponse.raw_json(), "\"authorization\""), "volc.phone client call dry failed"
+auto clientDefault = phoneClient.call_default("ListPod", productBody)
+assert clientDefault.action() == "ListPod", "volc.phone client call_default action failed"
+auto clientListPods = phoneClient.list_pods()
+assert clientListPods.action() == "ListPod", "volc.phone client list_pods action failed"
+auto clientListHosts = phoneClient.list_hosts()
+assert clientListHosts.action() == "ListHost", "volc.phone client list_hosts action failed"
+auto clientListDcs = phoneClient.list_dcs()
+assert clientListDcs.action() == "ListDc", "volc.phone client list_dcs action failed"
+auto clientDetailPod = phoneClient.detail_pod("pod-1")
+assert clientDetailPod.action() == "DetailPod", "volc.phone client detail_pod action failed"
+auto clientDetailHost = phoneClient.detail_host("host-1")
+assert clientDetailHost.action() == "DetailHost", "volc.phone client detail_host action failed"
+auto clientCreatePod = phoneClient.create_pod("dc-a", "small", 1, "host-1", "pod-name", "layout-1", true)
+assert clientCreatePod.action() == "CreatePod", "volc.phone client create_pod action failed"
+auto clientCreatePodBatch = phoneClient.create_pod_batch("dc-a", "small", 2, 1, "host-1", "pod-name", "layout-1", false)
+assert clientCreatePodBatch.action() == "CreatePod", "volc.phone client create_pod_batch action failed"
+auto clientDeletePod = phoneClient.delete_pod("pod-1")
+assert clientDeletePod.action() == "DeletePod", "volc.phone client delete_pod action failed"
+auto clientPowerOn = phoneClient.power_on("pod-1")
+assert clientPowerOn.action() == "PowerOnPod", "volc.phone client power_on action failed"
+auto clientPowerOff = phoneClient.power_off("pod-1")
+assert clientPowerOff.action() == "PowerOffPod", "volc.phone client power_off action failed"
+auto clientReboot = phoneClient.reboot("pod-1")
+assert clientReboot.action() == "RebootPod", "volc.phone client reboot action failed"
+auto clientReset = phoneClient.reset("pod-1")
+assert clientReset.action() == "ResetPod", "volc.phone client reset action failed"
+auto clientPodAdb = phoneClient.pod_adb("pod-1", true)
+assert clientPodAdb.action() == "PodAdb", "volc.phone client pod_adb action failed"
+auto clientRunCommand = phoneClient.run_command("pod-1", "id")
+assert clientRunCommand.action() == "RunCommand", "volc.phone client run_command action failed"
+auto clientRunSync = phoneClient.run_sync_command("pod-1", "id")
+assert clientRunSync.action() == "RunSyncCommand", "volc.phone client run_sync_command action failed"
+auto clientInstall = phoneClient.install_app("pod-1", "app-1", "ver-1")
+assert clientInstall.action() == "InstallApp", "volc.phone client install_app action failed"
+auto clientLaunch = phoneClient.launch_app("pod-1", "com.example")
+assert clientLaunch.action() == "LaunchApp", "volc.phone client launch_app action failed"
+auto clientClose = phoneClient.close_app("pod-1", "com.example")
+assert clientClose.action() == "CloseApp", "volc.phone client close_app action failed"
+auto clientTaskInfo = phoneClient.get_task_info("task-1")
+assert clientTaskInfo.action() == "GetTaskInfo", "volc.phone client get_task_info action failed"
+auto clientWaitTask = phoneClient.wait_task("task-1", 0, 0)
+assert clientWaitTask.action() == "GetTaskInfo", "volc.phone client wait_task action failed"
+auto clientScreenshot = phoneClient.screenshot("pod-1", "round-1")
+assert clientScreenshot.action() == "ScreenShot", "volc.phone client screenshot action failed"
+auto clientBatchScreenshot = phoneClient.batch_screenshot("[\"pod-1\"]", "round-1")
+assert clientBatchScreenshot.action() == "BatchScreenShot", "volc.phone client batch_screenshot action failed"
+auto clientStartRecording = phoneClient.start_recording("pod-1", "round-1", 30, true)
+assert clientStartRecording.action() == "StartRecording", "volc.phone client start_recording action failed"
+auto clientStopRecording = phoneClient.stop_recording("pod-1")
+assert clientStopRecording.action() == "StopRecording", "volc.phone client stop_recording action failed"
+auto clientPushFile = phoneClient.push_file("pod-1", "local.txt", "/sdcard/local.txt")
+assert clientPushFile.action() == "PushFile", "volc.phone client push_file action failed"
+auto clientPullFile = phoneClient.pull_file("pod-1", "/sdcard/remote.txt", "remote.txt")
+assert clientPullFile.action() == "PullFile", "volc.phone client pull_file action failed"
 
 println("volc.phone extlib ok")

@@ -1,5 +1,7 @@
 import miniz
 
+assert miniz.available(), "miniz available failed"
+
 string sample = "miniz extension round trip text"
 string srcPath = "release/tmp/extlibs/miniz_source.txt"
 string packedPath = "release/tmp/extlibs/miniz_source.bin"

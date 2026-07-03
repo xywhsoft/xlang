@@ -135,6 +135,10 @@ func opencv_backend() as string
 	return opencv_backend_native()
 end
 
+func opencv_version() as string
+	return "opencv 4.13.0"
+end
+
 func opencv_last_error() as string
 	return opencv_last_error_native()
 end
@@ -212,6 +216,10 @@ end
 
 func __xl6_import_opencv_backend() as string
 	return opencv_backend()
+end
+
+func __xl6_import_opencv_version() as string
+	return opencv_version()
 end
 
 func __xl6_import_opencv_last_error() as string

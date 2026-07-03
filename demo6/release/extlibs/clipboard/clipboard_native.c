@@ -71,6 +71,96 @@ static char g_xclip_error[512];
 static char* g_xclip_text = NULL;
 static size_t g_xclip_text_cap = 0u;
 
+static void xclip_set_error(const char* text);
+
+typedef struct XClipSnapshotItem {
+	UINT format;
+	int kind;
+	SIZE_T size;
+	unsigned char* data;
+	HANDLE handle;
+} XClipSnapshotItem;
+
+#define XCLIP_SNAPSHOT_GLOBAL 1
+#define XCLIP_SNAPSHOT_BITMAP 2
+#define XCLIP_SNAPSHOT_ENHMETAFILE 3
+
+static XClipSnapshotItem* g_xclip_snapshot_items = NULL;
+static size_t g_xclip_snapshot_count = 0u;
+static int g_xclip_snapshot_valid = 0;
+
+static void xclip_snapshot_clear(void)
+{
+	size_t i;
+	for ( i = 0u; i < g_xclip_snapshot_count; ++i ) {
+		if ( g_xclip_snapshot_items[i].kind == XCLIP_SNAPSHOT_BITMAP && g_xclip_snapshot_items[i].handle != NULL ) {
+			DeleteObject(g_xclip_snapshot_items[i].handle);
+		} else if ( g_xclip_snapshot_items[i].kind == XCLIP_SNAPSHOT_ENHMETAFILE && g_xclip_snapshot_items[i].handle != NULL ) {
+			DeleteEnhMetaFile((HENHMETAFILE)g_xclip_snapshot_items[i].handle);
+		}
+		free(g_xclip_snapshot_items[i].data);
+	}
+	free(g_xclip_snapshot_items);
+	g_xclip_snapshot_items = NULL;
+	g_xclip_snapshot_count = 0u;
+	g_xclip_snapshot_valid = 0;
+}
+
+static int xclip_snapshot_append(UINT format, const void* data, SIZE_T size)
+{
+	XClipSnapshotItem* next;
+	unsigned char* copy;
+	if ( data == NULL || size == 0u ) {
+		return 1;
+	}
+	copy = (unsigned char*)malloc((size_t)size);
+	if ( copy == NULL ) {
+		xclip_set_error("out of memory");
+		return 0;
+	}
+	memcpy(copy, data, (size_t)size);
+	next = (XClipSnapshotItem*)realloc(g_xclip_snapshot_items, (g_xclip_snapshot_count + 1u) * sizeof(XClipSnapshotItem));
+	if ( next == NULL ) {
+		free(copy);
+		xclip_set_error("out of memory");
+		return 0;
+	}
+	g_xclip_snapshot_items = next;
+	g_xclip_snapshot_items[g_xclip_snapshot_count].format = format;
+	g_xclip_snapshot_items[g_xclip_snapshot_count].kind = XCLIP_SNAPSHOT_GLOBAL;
+	g_xclip_snapshot_items[g_xclip_snapshot_count].size = size;
+	g_xclip_snapshot_items[g_xclip_snapshot_count].data = copy;
+	g_xclip_snapshot_items[g_xclip_snapshot_count].handle = NULL;
+	g_xclip_snapshot_count++;
+	return 1;
+}
+
+static int xclip_snapshot_append_handle(UINT format, HANDLE handle, int kind)
+{
+	XClipSnapshotItem* next;
+	if ( handle == NULL ) {
+		return 1;
+	}
+	next = (XClipSnapshotItem*)realloc(g_xclip_snapshot_items, (g_xclip_snapshot_count + 1u) * sizeof(XClipSnapshotItem));
+	if ( next == NULL ) {
+		if ( kind == XCLIP_SNAPSHOT_BITMAP ) {
+			DeleteObject(handle);
+		} else if ( kind == XCLIP_SNAPSHOT_ENHMETAFILE ) {
+			DeleteEnhMetaFile((HENHMETAFILE)handle);
+		}
+		xclip_set_error("out of memory");
+		return 0;
+	}
+	g_xclip_snapshot_items = next;
+	g_xclip_snapshot_items[g_xclip_snapshot_count].format = format;
+	g_xclip_snapshot_items[g_xclip_snapshot_count].kind = kind;
+	g_xclip_snapshot_items[g_xclip_snapshot_count].size = 0u;
+	g_xclip_snapshot_items[g_xclip_snapshot_count].data = NULL;
+	g_xclip_snapshot_items[g_xclip_snapshot_count].handle = handle;
+	g_xclip_snapshot_count++;
+	return 1;
+}
+
 static void xclip_copy_cstr(char* out, size_t out_size, const char* text)
 {
 	size_t len;
@@ -665,6 +755,11 @@ XL_EXPORT int x_clipboard_available(void)
 	return 1;
 }
 
+XL_EXPORT const char* x_clipboard_version(void)
+{
+	return "clipboard 0.1.0";
+}
+
 XL_EXPORT const char* x_clipboard_last_error(void)
 {
 	return g_xclip_error;
@@ -683,6 +778,142 @@ XL_EXPORT int x_clipboard_clear(void)
 		xclip_set_error("");
 	}
 	CloseClipboard();
+	return ok;
+}
+
+XL_EXPORT int x_clipboard_snapshot(void)
+{
+	UINT fmt = 0u;
+	int ok = 1;
+	xclip_snapshot_clear();
+	if ( !xclip_open() ) {
+		return 0;
+	}
+	while ( (fmt = EnumClipboardFormats(fmt)) != 0u ) {
+		HANDLE hdata = GetClipboardData(fmt);
+		SIZE_T size;
+		void* data;
+		if ( hdata == NULL ) {
+			continue;
+		}
+		if ( fmt == CF_BITMAP ) {
+			HANDLE copy = CopyImage(hdata, IMAGE_BITMAP, 0, 0, LR_CREATEDIBSECTION);
+			if ( copy == NULL ) {
+				xclip_set_win_error("CopyImage");
+				ok = 0;
+				break;
+			}
+			if ( !xclip_snapshot_append_handle(fmt, copy, XCLIP_SNAPSHOT_BITMAP) ) {
+				ok = 0;
+				break;
+			}
+			continue;
+		}
+		if ( fmt == CF_ENHMETAFILE ) {
+			HENHMETAFILE copy = CopyEnhMetaFileW((HENHMETAFILE)hdata, NULL);
+			if ( copy == NULL ) {
+				xclip_set_win_error("CopyEnhMetaFileW");
+				ok = 0;
+				break;
+			}
+			if ( !xclip_snapshot_append_handle(fmt, (HANDLE)copy, XCLIP_SNAPSHOT_ENHMETAFILE) ) {
+				ok = 0;
+				break;
+			}
+			continue;
+		}
+		size = GlobalSize((HGLOBAL)hdata);
+		if ( size == 0u ) {
+			continue;
+		}
+		data = GlobalLock((HGLOBAL)hdata);
+		if ( data == NULL ) {
+			continue;
+		}
+		if ( !xclip_snapshot_append(fmt, data, size) ) {
+			GlobalUnlock((HGLOBAL)hdata);
+			ok = 0;
+			break;
+		}
+		GlobalUnlock((HGLOBAL)hdata);
+	}
+	CloseClipboard();
+	if ( !ok ) {
+		xclip_snapshot_clear();
+		return 0;
+	}
+	g_xclip_snapshot_valid = 1;
+	xclip_set_error("");
+	return 1;
+}
+
+XL_EXPORT int x_clipboard_restore(void)
+{
+	size_t i;
+	int ok = 1;
+	if ( !g_xclip_snapshot_valid ) {
+		xclip_set_error("clipboard snapshot is not available");
+		return 0;
+	}
+	if ( !xclip_open() ) {
+		return 0;
+	}
+	if ( !EmptyClipboard() ) {
+		CloseClipboard();
+		xclip_set_win_error("EmptyClipboard");
+		return 0;
+	}
+	for ( i = 0u; i < g_xclip_snapshot_count; ++i ) {
+		HANDLE hdata = NULL;
+		if ( g_xclip_snapshot_items[i].kind == XCLIP_SNAPSHOT_GLOBAL ) {
+			void* memory;
+			hdata = GlobalAlloc(GMEM_MOVEABLE, g_xclip_snapshot_items[i].size);
+			if ( hdata == NULL ) {
+				xclip_set_win_error("GlobalAlloc");
+				ok = 0;
+				break;
+			}
+			memory = GlobalLock((HGLOBAL)hdata);
+			if ( memory == NULL ) {
+				GlobalFree((HGLOBAL)hdata);
+				xclip_set_win_error("GlobalLock");
+				ok = 0;
+				break;
+			}
+			memcpy(memory, g_xclip_snapshot_items[i].data, (size_t)g_xclip_snapshot_items[i].size);
+			GlobalUnlock((HGLOBAL)hdata);
+		} else if ( g_xclip_snapshot_items[i].kind == XCLIP_SNAPSHOT_BITMAP ) {
+			hdata = CopyImage(g_xclip_snapshot_items[i].handle, IMAGE_BITMAP, 0, 0, LR_CREATEDIBSECTION);
+			if ( hdata == NULL ) {
+				xclip_set_win_error("CopyImage");
+				ok = 0;
+				break;
+			}
+		} else if ( g_xclip_snapshot_items[i].kind == XCLIP_SNAPSHOT_ENHMETAFILE ) {
+			hdata = (HANDLE)CopyEnhMetaFileW((HENHMETAFILE)g_xclip_snapshot_items[i].handle, NULL);
+			if ( hdata == NULL ) {
+				xclip_set_win_error("CopyEnhMetaFileW");
+				ok = 0;
+				break;
+			}
+		}
+		if ( hdata != NULL && SetClipboardData(g_xclip_snapshot_items[i].format, hdata) == NULL ) {
+			if ( g_xclip_snapshot_items[i].kind == XCLIP_SNAPSHOT_GLOBAL ) {
+				GlobalFree((HGLOBAL)hdata);
+			} else if ( g_xclip_snapshot_items[i].kind == XCLIP_SNAPSHOT_BITMAP ) {
+				DeleteObject(hdata);
+			} else if ( g_xclip_snapshot_items[i].kind == XCLIP_SNAPSHOT_ENHMETAFILE ) {
+				DeleteEnhMetaFile((HENHMETAFILE)hdata);
+			}
+			xclip_set_win_error("SetClipboardData");
+			ok = 0;
+			break;
+		}
+	}
+	CloseClipboard();
+	if ( ok ) {
+		xclip_set_error("");
+	}
 	return ok;
 }
 

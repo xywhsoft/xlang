@@ -41,6 +41,18 @@ export "xredis_g_resp_buffer" var string g_resp_buffer = ""
 export "xredis_g_resp_pos" var int g_resp_pos = 0
 export "xredis_g_resp_error" var string g_resp_error = ""
 
+func available() as bool
+	return true
+end
+
+func version() as string
+	return "0.1.0"
+end
+
+func parser_last_error() as string
+	return g_resp_error
+end
+
 class Client
 	point socket
 	string host
@@ -2644,6 +2656,18 @@ func smembers_json(Client client, string key) as string
 end
 
 // xl6 generated import wrappers begin
+func __xl6_import_x_redis_available() as bool
+    return available()
+end
+
+func __xl6_import_x_redis_version() as string
+    return version()
+end
+
+func __xl6_import_x_redis_parser_last_error() as string
+    return parser_last_error()
+end
+
 func __xl6_import_x_redis_resp_encode1(string p0) as string
     return resp_encode1(p0)
 end

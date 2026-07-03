@@ -71,6 +71,11 @@ static XStbiImage* xstbi_wrap(void* data, int width, int height, int channels, i
 	return image;
 }
 
+XSTBI_EXPORT int xstbi_available(void)
+{
+	return 1;
+}
+
 XSTBI_EXPORT const char* xstbi_version(void)
 {
 	return "stb_image 2.30";

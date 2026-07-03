@@ -52,6 +52,7 @@
 - `stdlib_math.xl`
 - `stdlib_string.xl`
 - `stdlib_time.xl`
+- `stdlib_time_c.c`：与 `stdlib_time.xl` 对照的 C/XRT 时间库范例，主回归会比较两者输出。
 - `stdlib_random.xl`
 - `stdlib_path_file.xl`
 - `stdlib_json.xl`
@@ -94,6 +95,9 @@
 - `xl_dll_xrt_exports.c`
 - `xl_run_demo_win32.c`
 - `xlc_api_embed.c`
+- `stdlib_math_c.c`：与 `stdlib_math.xl` 对照的 C/XRT 数学库范例，主回归会比较两者输出。
+- `stdlib_string_c.c`：与 `stdlib_string.xl` 对照的 C/XRT 字符串库范例，主回归会比较两者输出。
+- `stdlib_time_c.c`：与 `stdlib_time.xl` 对照的 C/XRT 时间库范例，主回归会比较两者输出。
 
 ## 回归入口
 

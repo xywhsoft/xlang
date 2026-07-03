@@ -1,5 +1,7 @@
 import zstd
 
+assert zstd.available(), "zstd available failed"
+
 string sample = "zstd extension round trip text"
 string srcPath = "release/tmp/extlibs/zstd_source.txt"
 string packedPath = "release/tmp/extlibs/zstd_source.zst"

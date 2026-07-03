@@ -212,6 +212,11 @@ static int xihash_popcount64(uint64_t value)
 	return count;
 }
 
+XIHASH_EXPORT int xihash_available(void)
+{
+	return 1;
+}
+
 XIHASH_EXPORT const char* xihash_version(void)
 {
 	return "imagehash 0.1.0";
