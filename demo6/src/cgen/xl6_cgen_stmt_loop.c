@@ -123,6 +123,7 @@ static int xl6CgenIsForIterableType(const XL6_AstNode* typeNode)
             xl6CgenIsListXValueType(typeNode) ||
             xl6CgenIsSetXValueType(typeNode) ||
             xl6CgenIsDictXValueType(typeNode) ||
+            xl6CTextEquals(typeNode->text, "string") ||
             xl6CgenIsGeneratorType(typeNode));
 }
 
@@ -208,6 +209,12 @@ static const char* xl6CgenForTargetTypeName(const XL6_AstNode* iterableType, siz
     }
     if ( xl6CTextEquals(iterableType->text, "var") ) {
         return "var";
+    }
+    if ( xl6CTextEquals(iterableType->text, "string") ) {
+        if ( targetCount == 2 && targetIndex == 0 ) {
+            return "int";
+        }
+        return "string";
     }
     if ( xl6CgenIsDictXValueType(iterableType) ) {
         if ( targetCount == 1 || targetIndex == 0 ) {

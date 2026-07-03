@@ -14,13 +14,15 @@ static void xl6CgenForIn(XL6_CgenContext* ctx, const XL6_AstNode* node)
     iterableType = xl6CgenCloneExprTypeForInference(ctx, node->children[1]);
     if ( !xl6CgenIsForIterableType(iterableType) &&
          !xl6CgenIsClassProtocolIterableType(ctx, iterableType) ) {
-        xl6CgenError(ctx, node->children[1], "for in right side must be range, array, list, set, dict, generator, var or class iterable protocol");
+        xl6CgenError(ctx, node->children[1], "for in right side must be range, string, array, list, set, dict, generator, var or class iterable protocol");
         xl6AstFree(iterableType);
         return;
     }
 
     if ( xl6CgenIsGeneratorType(iterableType) ) {
         xl6CgenForGeneratorIterable(ctx, node, iterableType);
+    } else if ( iterableType != NULL && xl6CTextEquals(iterableType->text, "string") ) {
+        xl6CgenForStringIterable(ctx, node, iterableType);
     } else if ( xl6CgenIsClassProtocolIterableType(ctx, iterableType) ) {
         xl6CgenForClassProtocolIterable(ctx, node, iterableType);
     } else if ( xl6CgenExprUsesTypedContainerStorage(ctx, node->children[1]) ||

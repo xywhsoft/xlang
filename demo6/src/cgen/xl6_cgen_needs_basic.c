@@ -236,7 +236,11 @@ static int xl6CgenNeedsBasicIsStdStringRuntimeCall(const XL6_AstNode* node)
     if ( callee == NULL || callee->kind != XL6_AST_NAME ) {
         return 0;
     }
-    return xl6CgenNeedsBasicTextEquals(callee->text, "__xl_std_runtime_string_split");
+    return xl6CgenNeedsBasicTextEquals(callee->text, "__xl_std_runtime_string_split") ||
+           xl6CgenNeedsBasicTextEquals(callee->text, "__xl_std_runtime_string_chars") ||
+           xl6CgenNeedsBasicTextEquals(callee->text, "__xl_std_runtime_string_bytes") ||
+           xl6CgenNeedsBasicTextEquals(callee->text, "__xl_std_runtime_string_join") ||
+           xl6CgenNeedsBasicTextEquals(callee->text, "__xl_std_runtime_string_split_lines");
 }
 
 static int xl6CgenNeedsBasicIsPathRuntimeCall(const XL6_AstNode* node)

@@ -54,6 +54,11 @@ $forbiddenTextPatterns = @(
     @{ Name = "legacy demo5 path"; Regex = "demo5" },
     @{ Name = "host absolute path"; Regex = "(^|[^A-Za-z0-9_])/(home|usr)/" }
 )
+$forbiddenExportNames = New-Object System.Collections.Generic.HashSet[string]([System.StringComparer]::OrdinalIgnoreCase)
+@("unsupported") | ForEach-Object {
+    $forbiddenExportNames.Add($_) | Out-Null
+}
+$externalServiceCoverageExemptionsByPackage = @{}
 $failures = New-Object System.Collections.Generic.List[string]
 $exportNameSetsByPackage = @{}
 
@@ -137,12 +142,56 @@ function Check-ReleaseTextContent($rootPath, $label)
     }
 }
 
+function Check-NoDraftFiles($rootPath, $label)
+{
+    $draftFiles = @(
+        Get-ChildItem -LiteralPath $rootPath -Recurse -File |
+            Where-Object {
+                $_.Name.IndexOf(".draft.", [System.StringComparison]::OrdinalIgnoreCase) -ge 0 -or
+                $_.Name.EndsWith(".draft", [System.StringComparison]::OrdinalIgnoreCase)
+            }
+    )
+    foreach ( $file in $draftFiles ) {
+        $relative = $file.FullName.Substring($script:Root.Length).TrimStart("\", "/")
+        Add-Failure "release $label must not contain draft file: $relative"
+    }
+}
+
 function Text-ContainsName($text, $name)
 {
     if ( [string]::IsNullOrEmpty($text) -or [string]::IsNullOrEmpty($name) ) {
         return $false
     }
     return [regex]::IsMatch($text, "\b$([regex]::Escape($name))\b")
+}
+
+function Remove-IfFalseBlocks($text)
+{
+    $lines = $text -split "\r?\n"
+    $out = New-Object System.Collections.Generic.List[string]
+    $inBlock = $false
+    foreach ( $line in $lines ) {
+        if ( ! $inBlock -and $line -match '^\s*if\s+false\s+then\b' ) {
+            $inBlock = $true
+            continue
+        }
+        if ( $inBlock ) {
+            if ( $line -match '^\s*end\s*$' ) {
+                $inBlock = $false
+            }
+            continue
+        }
+        $out.Add($line) | Out-Null
+    }
+    return $out -join "`n"
+}
+
+function Is-CoverageExempt($packageName, $functionName)
+{
+    if ( ! $script:externalServiceCoverageExemptionsByPackage.ContainsKey($packageName) ) {
+        return $false
+    }
+    return @($script:externalServiceCoverageExemptionsByPackage[$packageName]) -contains $functionName
 }
 
 function Get-PackageExportNameSet($packageName)
@@ -203,6 +252,8 @@ foreach ( $fixture in $fixtureNames ) {
 
 Check-ReleaseTextContent $releaseDir "extlib text"
 Check-ReleaseTextContent $exampleDir "extlib example text"
+Check-NoDraftFiles $releaseDir "extlibs"
+Check-NoDraftFiles $exampleDir "extlib examples"
 
 $runnerText = [System.IO.File]::ReadAllText($runnerPath, [System.Text.Encoding]::UTF8)
 $exampleFiles = @(Get-ChildItem -LiteralPath $exampleDir -File -Filter "*.xl" | Sort-Object Name)
@@ -214,7 +265,13 @@ foreach ( $file in $exampleFiles ) {
         Add-Failure "release extlib example must not use old x_ prefix: $($file.Name)"
     }
     $text = [System.IO.File]::ReadAllText($file.FullName, [System.Text.Encoding]::UTF8)
-    $exampleTextByFile[$file.Name] = $text
+    if ( [regex]::IsMatch($text, '(?m)^\s*if\s+false\s+then\b') ) {
+        Add-Failure "release extlib example must not hide coverage behind if false: $($file.Name)"
+    }
+    if ( [regex]::IsMatch($text, '(?<![A-Za-z0-9_])unsupported\s*\(') ) {
+        Add-Failure "release extlib example must not cover placeholder unsupported API: $($file.Name)"
+    }
+    $exampleTextByFile[$file.Name] = Remove-IfFalseBlocks $text
     foreach ( $match in [regex]::Matches($text, '(?m)^\s*import\s+([A-Za-z0-9_.]+)\b') ) {
         $importName = $match.Groups[1].Value
         if ( ! $importsByPackage.ContainsKey($importName) ) {
@@ -364,6 +421,13 @@ foreach ( $pkg in $packages ) {
                 Sort-Object -Unique
         )
         foreach ( $functionName in $functionNames ) {
+            if ( $forbiddenExportNames.Contains($functionName) ) {
+                Add-Failure "release extlib must not export placeholder function: $name.$functionName"
+                continue
+            }
+            if ( Is-CoverageExempt $name $functionName ) {
+                continue
+            }
             if ( ! (Text-ContainsName $exampleText $functionName) ) {
                 Add-Failure "release extlib example coverage missing function: $name.$functionName"
             }

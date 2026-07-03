@@ -1,7 +1,7 @@
 /*
 
     XRT Single Header File
-    Generated: 2026-07-02 23:00:15
+    Generated: 2026-07-03 14:02:32
 
     MIT License
 
@@ -1821,6 +1821,45 @@
 	// 浮点数约等于（使用 xCore 配置）
 	XXAPI bool xrtNumApprox(double a, double b);
 	
+	#ifndef XRT_MATH_PI
+		#define XRT_MATH_PI 3.14159265358979323846264338327950288
+	#endif
+	#ifndef XRT_MATH_TAU
+		#define XRT_MATH_TAU (2.0 * XRT_MATH_PI)
+	#endif
+	#ifndef XRT_MATH_E
+		#define XRT_MATH_E 2.71828182845904523536028747135266250
+	#endif
+	#ifndef XRT_MATH_INF
+		#define XRT_MATH_INF HUGE_VAL
+	#endif
+	#ifndef XRT_MATH_NAN
+		#ifdef NAN
+			#define XRT_MATH_NAN NAN
+		#else
+			#define XRT_MATH_NAN (HUGE_VAL - HUGE_VAL)
+		#endif
+	#endif
+	
+	XXAPI double xrtMathMin(double a, double b);
+	XXAPI double xrtMathMax(double a, double b);
+	XXAPI double xrtMathClamp(double value, double minValue, double maxValue);
+	XXAPI int xrtMathSign(double value);
+	XXAPI double xrtMathTrunc(double value);
+	XXAPI double xrtMathFract(double value);
+	XXAPI double xrtMathMod(double value, double divisor);
+	XXAPI double xrtMathRad(double degrees);
+	XXAPI double xrtMathDeg(double radians);
+	XXAPI bool xrtMathIsNaN(double value);
+	XXAPI bool xrtMathIsInf(double value);
+	XXAPI bool xrtMathIsFinite(double value);
+	XXAPI double xrtMathLog2(double value);
+	XXAPI double xrtMathExp2(double value);
+	XXAPI double xrtMathLog1p(double value);
+	XXAPI double xrtMathExpm1(double value);
+	XXAPI double xrtMathCbrt(double value);
+	XXAPI double xrtMathHypot(double x, double y);
+	
 	
 	
 	/* ------------------------------------ String 函数库 ------------------------------------ */
@@ -1836,6 +1875,9 @@
 	
 	// 比较字符串
 	XXAPI int xrtStrComp(str s1, str s2, size_t iSize, bool bCase);
+	XXAPI size_t xrtStrByteLen(str sText, size_t iSize);
+	XXAPI size_t xrtStrUtf8CharSize(str sText, size_t iSize, size_t iPos);
+	XXAPI size_t xrtStrCharLen(str sText, size_t iSize);
 	
 	// 字符串转为小写（ bSrcRevise 为 false 时，需使用 xrtFree 释放内存 ）
 	XXAPI str xrtLCase(str sText, size_t iSize, bool bSrcRevise);
@@ -1845,6 +1887,9 @@
 	
 	// 搜索字符串（ 没找到字符串的情况下会返回 NULL ）
 	XXAPI str xrtFindStr(str sText, size_t iSize, str sSubText, size_t iSubSize, bool bCase);
+	XXAPI int64 xrtStrIndexOf(str sText, size_t iSize, str sSubText, size_t iSubSize, bool bCase);
+	XXAPI int64 xrtStrLastIndexOf(str sText, size_t iSize, str sSubText, size_t iSubSize, bool bCase);
+	XXAPI int64 xrtStrCount(str sText, size_t iSize, str sSubText, size_t iSubSize, bool bCase);
 	// 查找子串首次出现位置（ 未找到返回 0 ）
 	XXAPI uint xrtInStr(str sText, size_t iSize, str sSubText, size_t iSubSize, bool bCase);
 	
@@ -1869,6 +1914,23 @@
 	
 	// 字符串替换（ 需使用 xrtFree 释放 ）
 	XXAPI str xrtReplace(str sText, size_t iSize, str sSubText, size_t iSubSize, str sRepText, size_t iRepSize, size_t* iRetSize);
+	XXAPI str xrtStrSlice(str sText, size_t iSize, int64 iStart, int64 iCount, size_t* iRetSize);
+	XXAPI str xrtStrLeft(str sText, size_t iSize, int64 iCount, size_t* iRetSize);
+	XXAPI str xrtStrRight(str sText, size_t iSize, int64 iCount, size_t* iRetSize);
+	XXAPI str xrtStrMid(str sText, size_t iSize, int64 iStart, int64 iCount, size_t* iRetSize);
+	XXAPI str xrtStrCharAt(str sText, size_t iSize, int64 iIndex, size_t* iRetSize);
+	XXAPI int xrtStrByteAt(str sText, size_t iSize, int64 iIndex);
+	XXAPI str xrtStrRepeat(str sText, size_t iSize, int64 iCount, size_t* iRetSize);
+	XXAPI bool xrtStrIsEmpty(str sText, size_t iSize);
+	XXAPI bool xrtStrIsBlank(str sText, size_t iSize);
+	XXAPI str xrtStrRemove(str sText, size_t iSize, str sSubText, size_t iSubSize, bool bCase, size_t* iRetSize);
+	XXAPI str xrtStrRemoveAt(str sText, size_t iSize, int64 iStart, int64 iCount, size_t* iRetSize);
+	XXAPI str xrtStrInsert(str sText, size_t iSize, int64 iStart, str sPartText, size_t iPartSize, size_t* iRetSize);
+	XXAPI str xrtStrPadLeft(str sText, size_t iSize, int64 iWidth, str sPadText, size_t iPadSize, size_t* iRetSize);
+	XXAPI str xrtStrPadRight(str sText, size_t iSize, int64 iWidth, str sPadText, size_t iPadSize, size_t* iRetSize);
+	XXAPI str xrtStrPadCenter(str sText, size_t iSize, int64 iWidth, str sPadText, size_t iPadSize, size_t* iRetSize);
+	XXAPI str xrtStrReverse(str sText, size_t iSize, size_t* iRetSize);
+	XXAPI str* xrtStrSplitLines(str sText, size_t iSize, size_t* iRetSize);
 	
 	// 字符串分割（ 任何情况返回值都必须使用 xrtFree 释放，bSrcRevise 设置为 TRUE 时会破坏原数据 ）
 	XXAPI str* xrtSplit(str sText, size_t iSize, str sSepText, size_t iSepSize, bool bSrcRevise, size_t* iRetSize);
@@ -2049,10 +2111,13 @@
 	// 支持: YYYY-MM-DD HH:MM:SS, YYYY/MM/DD, YYYYMMDD, YYYYMMDDHHMMSS, HH:MM:SS 等
 	XXAPI xtime xrtStrToTime(str sTime, size_t iSize);
 	
+	// Try to parse a string into xtime. Returns TRUE only when parsing succeeds.
+	XXAPI bool xrtTryStrToTime(str sTime, size_t iSize, xtime* pOut);
+	
 	// 时间单位累加
 	XXAPI xtime xrtDateAdd(int interval, int64 iValue, xtime iTime);
 	
-	// 单位时间差计算（ 不支持 XRT_TIME_INTERVAL_WEEKDAY ）
+	// 单位时间差计算
 	XXAPI int64 xrtDateDiff(int interval, xtime iTime1, xtime iTime2);
 	
 	// 获取季度（1-4）
@@ -2193,6 +2258,9 @@
 	// 格式占位符同 xrtTimeFormat，另支持: *(跳过任意非数字), .(至少1个非数字), ?(跳过1字符), 空格(跳过空白)
 	// 解析时自动跳过前缀冗余文本
 	XXAPI xtime xrtTimeParse(str sTime, str sFormat);
+	
+	// Try to parse a formatted string into xtime.
+	XXAPI bool xrtTryTimeParse(str sTime, str sFormat, xtime* pOut);
 	
 	// 时间约等于（使用 xCore.iApproxTimeTol 容差）
 	XXAPI bool xrtTimeApprox(xtime a, xtime b);
@@ -11005,6 +11073,113 @@ static size_t __xrtUtf8CharLenSafe(str sText, size_t iSize, size_t iPos)
 	}
 	return iCharLen;
 }
+// 内部函数：自动计算字符串字节长度
+static size_t __xrtStrByteSize(str sText, size_t iSize)
+{
+	if ( sText == NULL ) { return 0; }
+	return iSize == 0 ? strlen(__xrt_cstr(sText)) : iSize;
+}
+// 内部函数：把字符下标转换为字节偏移，越界时钳制到字符串末尾
+static size_t __xrtStrCharToByteOffset(str sText, size_t iSize, size_t iCharIndex)
+{
+	size_t iPos = 0;
+	size_t iChar = 0;
+	while ( iPos < iSize && iChar < iCharIndex ) {
+		size_t iCharLen = __xrtUtf8CharLenSafe(sText, iSize, iPos);
+		if ( iCharLen == 0 ) { break; }
+		iPos += iCharLen;
+		iChar++;
+	}
+	return iPos;
+}
+// 内部函数：把字节偏移转换为字符下标
+static size_t __xrtStrByteToCharOffset(str sText, size_t iSize, size_t iByteOffset)
+{
+	size_t iPos = 0;
+	size_t iChar = 0;
+	if ( iByteOffset > iSize ) { iByteOffset = iSize; }
+	while ( iPos < iByteOffset ) {
+		size_t iCharLen = __xrtUtf8CharLenSafe(sText, iSize, iPos);
+		if ( iCharLen == 0 || iPos + iCharLen > iByteOffset ) { break; }
+		iPos += iCharLen;
+		iChar++;
+	}
+	return iChar;
+}
+// 内部函数：规范化支持负数的字符下标
+static size_t __xrtStrNormalizeCharIndex(size_t iCharCount, int64 iIndex)
+{
+	if ( iIndex < 0 ) {
+		uint64 iBack = (uint64)(-iIndex);
+		if ( iBack >= iCharCount ) { return 0; }
+		return iCharCount - (size_t)iBack;
+	}
+	if ( (uint64)iIndex > iCharCount ) { return iCharCount; }
+	return (size_t)iIndex;
+}
+// 内部函数：复制 UTF-8 字节片段
+static str __xrtStrCopyByteRange(str sText, size_t iStart, size_t iLen, size_t* iRetSize)
+{
+	str sRet;
+	if ( iRetSize ) { *iRetSize = iLen; }
+	if ( sText == NULL || iLen == 0 ) {
+		if ( iRetSize ) { *iRetSize = 0; }
+		return xCore.sNull;
+	}
+	sRet = xrtMalloc(iLen + 1);
+	if ( sRet == NULL ) {
+		if ( iRetSize ) { *iRetSize = 0; }
+		return xCore.sNull;
+	}
+	memcpy(sRet, sText + iStart, iLen);
+	sRet[iLen] = 0;
+	return sRet;
+}
+// 内部函数：统计需要填充的字节数
+static size_t __xrtStrPadBytes(str sPadText, size_t iPadSize, size_t iNeedChars)
+{
+	size_t iBytes = 0;
+	size_t iPos = 0;
+	size_t iChars = 0;
+	if ( iNeedChars == 0 ) { return 0; }
+	if ( sPadText == NULL || iPadSize == 0 ) { return iNeedChars; }
+	while ( iChars < iNeedChars ) {
+		size_t iCharLen = __xrtUtf8CharLenSafe(sPadText, iPadSize, iPos);
+		if ( iCharLen == 0 ) {
+			iPos = 0;
+			continue;
+		}
+		iBytes += iCharLen;
+		iPos += iCharLen;
+		if ( iPos >= iPadSize ) { iPos = 0; }
+		iChars++;
+	}
+	return iBytes;
+}
+// 内部函数：写入指定数量的填充字符
+static void __xrtStrWritePad(str sDst, size_t* iDstPos, str sPadText, size_t iPadSize, size_t iNeedChars)
+{
+	size_t iPos = 0;
+	size_t iChars = 0;
+	if ( sDst == NULL || iDstPos == NULL || iNeedChars == 0 ) { return; }
+	if ( sPadText == NULL || iPadSize == 0 ) {
+		memset(sDst + *iDstPos, ' ', iNeedChars);
+		*iDstPos += iNeedChars;
+		return;
+	}
+	while ( iChars < iNeedChars ) {
+		size_t iCharLen = __xrtUtf8CharLenSafe(sPadText, iPadSize, iPos);
+		if ( iCharLen == 0 ) {
+			iPos = 0;
+			continue;
+		}
+		memcpy(sDst + *iDstPos, sPadText + iPos, iCharLen);
+		*iDstPos += iCharLen;
+		iPos += iCharLen;
+		if ( iPos >= iPadSize ) { iPos = 0; }
+		iChars++;
+	}
+}
 // 内部函数：检查字节序列是否在集合中
 static bool __xrtStrHasToken(str sText, size_t iSize, const unsigned char* sToken, size_t iTokenSize)
 {
@@ -11096,6 +11271,31 @@ XXAPI int xrtStrComp(str s1, str s2, size_t iSize, bool bCase)
 			return strcmp(__xrt_cstr(s1), __xrt_cstr(s2));
 		}
 	}
+}
+// 字符串字节长度
+XXAPI size_t xrtStrByteLen(str sText, size_t iSize)
+{
+	return __xrtStrByteSize(sText, iSize);
+}
+// 安全获取 UTF-8 字符字节长度
+XXAPI size_t xrtStrUtf8CharSize(str sText, size_t iSize, size_t iPos)
+{
+	iSize = __xrtStrByteSize(sText, iSize);
+	return __xrtUtf8CharLenSafe(sText, iSize, iPos);
+}
+// 字符串字符数量（按 UTF-8 codepoint 计数）
+XXAPI size_t xrtStrCharLen(str sText, size_t iSize)
+{
+	size_t iPos = 0;
+	size_t iCount = 0;
+	iSize = __xrtStrByteSize(sText, iSize);
+	while ( iPos < iSize ) {
+		size_t iCharLen = __xrtUtf8CharLenSafe(sText, iSize, iPos);
+		if ( iCharLen == 0 ) { break; }
+		iPos += iCharLen;
+		iCount++;
+	}
+	return iCount;
 }
 // 字符串转为小写（ bSrcRevise 为 FALSE 时，需使用 xrtFree 释放内存 ）
 XXAPI str xrtLCase(str sText, size_t iSize, bool bSrcRevise)
@@ -11191,6 +11391,85 @@ XXAPI str xrtFindStr(str sText, size_t iSize, str sSubText, size_t iSubSize, boo
 		sSub = memmem(sText, iSize, sSubText, iSubSize);
 	}
 	return sSub;
+}
+// 查找子串位置（按 UTF-8 字符下标返回，未找到返回 -1）
+XXAPI int64 xrtStrIndexOf(str sText, size_t iSize, str sSubText, size_t iSubSize, bool bCase)
+{
+	str sFound;
+	iSize = __xrtStrByteSize(sText, iSize);
+	iSubSize = __xrtStrByteSize(sSubText, iSubSize);
+	if ( sText == NULL || sSubText == NULL || iSize == 0 || iSubSize == 0 ) { return -1; }
+	sFound = xrtFindStr(sText, iSize, sSubText, iSubSize, bCase);
+	if ( sFound == NULL ) { return -1; }
+	return (int64)__xrtStrByteToCharOffset(sText, iSize, (size_t)(sFound - sText));
+}
+// 从右向左查找子串位置（按 UTF-8 字符下标返回，未找到返回 -1）
+XXAPI int64 xrtStrLastIndexOf(str sText, size_t iSize, str sSubText, size_t iSubSize, bool bCase)
+{
+	str sSearchText;
+	str sSearchSub;
+	str sFound = NULL;
+	size_t i;
+	iSize = __xrtStrByteSize(sText, iSize);
+	iSubSize = __xrtStrByteSize(sSubText, iSubSize);
+	if ( sText == NULL || sSubText == NULL || iSize == 0 || iSubSize == 0 || iSubSize > iSize ) { return -1; }
+	sSearchText = sText;
+	sSearchSub = sSubText;
+	if ( bCase ) {
+		sSearchText = xrtLCase(sText, iSize, FALSE);
+		sSearchSub = xrtLCase(sSubText, iSubSize, FALSE);
+		if ( sSearchText == NULL || sSearchSub == NULL ) {
+			xrtFree(sSearchText);
+			xrtFree(sSearchSub);
+			return -1;
+		}
+	}
+	for ( i = 0; i + iSubSize <= iSize; ++i ) {
+		if ( memcmp(sSearchText + i, sSearchSub, iSubSize) == 0 ) {
+			sFound = sText + i;
+		}
+	}
+	if ( bCase ) {
+		xrtFree(sSearchText);
+		xrtFree(sSearchSub);
+	}
+	if ( sFound == NULL ) { return -1; }
+	return (int64)__xrtStrByteToCharOffset(sText, iSize, (size_t)(sFound - sText));
+}
+// 统计子串出现次数（非重叠，空子串返回 0）
+XXAPI int64 xrtStrCount(str sText, size_t iSize, str sSubText, size_t iSubSize, bool bCase)
+{
+	str sSearchText;
+	str sSearchSub;
+	size_t i;
+	int64 iCount = 0;
+	iSize = __xrtStrByteSize(sText, iSize);
+	iSubSize = __xrtStrByteSize(sSubText, iSubSize);
+	if ( sText == NULL || sSubText == NULL || iSize == 0 || iSubSize == 0 || iSubSize > iSize ) { return 0; }
+	sSearchText = sText;
+	sSearchSub = sSubText;
+	if ( bCase ) {
+		sSearchText = xrtLCase(sText, iSize, FALSE);
+		sSearchSub = xrtLCase(sSubText, iSubSize, FALSE);
+		if ( sSearchText == NULL || sSearchSub == NULL ) {
+			xrtFree(sSearchText);
+			xrtFree(sSearchSub);
+			return 0;
+		}
+	}
+	for ( i = 0; i + iSubSize <= iSize; ) {
+		if ( memcmp(sSearchText + i, sSearchSub, iSubSize) == 0 ) {
+			iCount++;
+			i += iSubSize;
+		} else {
+			i++;
+		}
+	}
+	if ( bCase ) {
+		xrtFree(sSearchText);
+		xrtFree(sSearchSub);
+	}
+	return iCount;
 }
 // xrtInStr 相关处理
 XXAPI uint xrtInStr(str sText, size_t iSize, str sSubText, size_t iSubSize, bool bCase)
@@ -11453,7 +11732,7 @@ XXAPI str xrtReplace(str sText, size_t iSize, str sSubText, size_t iSubSize, str
 	if ( sSubText == NULL ) { if ( iRetSize ) { *iRetSize = iSize; } return xrtCopyStr(sText, iSize); }
 	if ( iSubSize == 0 ) { iSubSize = strlen(__xrt_cstr(sSubText)); }
 	if ( iSubSize == 0 ) { if ( iRetSize ) { *iRetSize = iSize; } return xrtCopyStr(sText, iSize); }
-	if ( sRepText == NULL ) { iRepSize = 0; } else { if ( iRepSize == 0 ) { iRepSize = strlen(__xrt_cstr(sRepText)); } }
+	if ( sRepText == NULL ) { sRepText = xCore.sNull; iRepSize = 0; } else { if ( iRepSize == 0 ) { iRepSize = strlen(__xrt_cstr(sRepText)); } }
 	// 计算 sSubText 在 sText 中出现的次数
 	size_t iFindCount = 0;
 	str sTextPtr;
@@ -11462,7 +11741,19 @@ XXAPI str xrtReplace(str sText, size_t iSize, str sSubText, size_t iSubSize, str
 		iFindCount++;
 	}
 	// 为新字符串分配内存
-	size_t iRet = iSize + iFindCount * (iRepSize - iSubSize);
+	size_t iRet = iSize;
+	if ( iFindCount > 0 ) {
+		if ( iRepSize >= iSubSize ) {
+			size_t iDelta = iRepSize - iSubSize;
+			if ( iDelta > 0 && iFindCount > ((SIZE_MAX - iSize) / iDelta) ) {
+				if ( iRetSize ) { *iRetSize = 0; }
+				return (str)xCore.sNull;
+			}
+			iRet = iSize + iFindCount * iDelta;
+		} else {
+			iRet = iSize - iFindCount * (iSubSize - iRepSize);
+		}
+	}
 	str sRet = (str)xrtMalloc(iRet + 1);
 	if ( sRet == NULL ) { if ( iRetSize ) { *iRetSize = 0; } return (str)xCore.sNull; }
 	// 复制原始字符串, 替换需要改变的部分
@@ -11482,6 +11773,385 @@ XXAPI str xrtReplace(str sText, size_t iSize, str sSubText, size_t iSubSize, str
 	}
 	sRet[iRet] = 0;
 	if ( iRetSize ) { *iRetSize = iRet; }
+	return sRet;
+}
+// 截取字符串（start/count 按 UTF-8 字符计数，count < 0 表示直到末尾）
+XXAPI str xrtStrSlice(str sText, size_t iSize, int64 iStart, int64 iCount, size_t* iRetSize)
+{
+	size_t iCharCount;
+	size_t iStartChar;
+	size_t iEndChar;
+	size_t iStartByte;
+	size_t iEndByte;
+	iSize = __xrtStrByteSize(sText, iSize);
+	if ( sText == NULL || iSize == 0 ) { if ( iRetSize ) { *iRetSize = 0; } return xCore.sNull; }
+	iCharCount = xrtStrCharLen(sText, iSize);
+	iStartChar = __xrtStrNormalizeCharIndex(iCharCount, iStart);
+	if ( iCount < 0 ) {
+		iEndChar = iCharCount;
+	} else {
+		uint64 iEnd = (uint64)iStartChar + (uint64)iCount;
+		iEndChar = iEnd > iCharCount ? iCharCount : (size_t)iEnd;
+	}
+	if ( iEndChar < iStartChar ) { iEndChar = iStartChar; }
+	iStartByte = __xrtStrCharToByteOffset(sText, iSize, iStartChar);
+	iEndByte = __xrtStrCharToByteOffset(sText, iSize, iEndChar);
+	return __xrtStrCopyByteRange(sText, iStartByte, iEndByte - iStartByte, iRetSize);
+}
+// 截取左侧字符
+XXAPI str xrtStrLeft(str sText, size_t iSize, int64 iCount, size_t* iRetSize)
+{
+	if ( iCount <= 0 ) { if ( iRetSize ) { *iRetSize = 0; } return xCore.sNull; }
+	return xrtStrSlice(sText, iSize, 0, iCount, iRetSize);
+}
+// 截取右侧字符
+XXAPI str xrtStrRight(str sText, size_t iSize, int64 iCount, size_t* iRetSize)
+{
+	size_t iCharCount;
+	if ( iCount <= 0 ) { if ( iRetSize ) { *iRetSize = 0; } return xCore.sNull; }
+	iSize = __xrtStrByteSize(sText, iSize);
+	iCharCount = xrtStrCharLen(sText, iSize);
+	if ( (uint64)iCount >= iCharCount ) {
+		if ( iRetSize ) { *iRetSize = iSize; }
+		return xrtCopyStr(sText, iSize);
+	}
+	return xrtStrSlice(sText, iSize, (int64)(iCharCount - (size_t)iCount), iCount, iRetSize);
+}
+// 截取中段字符
+XXAPI str xrtStrMid(str sText, size_t iSize, int64 iStart, int64 iCount, size_t* iRetSize)
+{
+	return xrtStrSlice(sText, iSize, iStart, iCount, iRetSize);
+}
+// 获取指定字符
+XXAPI str xrtStrCharAt(str sText, size_t iSize, int64 iIndex, size_t* iRetSize)
+{
+	return xrtStrSlice(sText, iSize, iIndex, 1, iRetSize);
+}
+// 获取指定字节，越界返回 -1
+XXAPI int xrtStrByteAt(str sText, size_t iSize, int64 iIndex)
+{
+	size_t iPos;
+	iSize = __xrtStrByteSize(sText, iSize);
+	if ( sText == NULL || iSize == 0 ) { return -1; }
+	iPos = __xrtStrNormalizeCharIndex(iSize, iIndex);
+	if ( iPos >= iSize ) { return -1; }
+	return (int)(unsigned char)sText[iPos];
+}
+// 重复字符串
+XXAPI str xrtStrRepeat(str sText, size_t iSize, int64 iCount, size_t* iRetSize)
+{
+	size_t iRetSizeLocal;
+	str sRet;
+	size_t i;
+	iSize = __xrtStrByteSize(sText, iSize);
+	if ( sText == NULL || iSize == 0 || iCount <= 0 ) { if ( iRetSize ) { *iRetSize = 0; } return xCore.sNull; }
+	if ( (uint64)iCount > (SIZE_MAX / iSize) ) { if ( iRetSize ) { *iRetSize = 0; } return xCore.sNull; }
+	iRetSizeLocal = iSize * (size_t)iCount;
+	sRet = xrtMalloc(iRetSizeLocal + 1);
+	if ( sRet == NULL ) { if ( iRetSize ) { *iRetSize = 0; } return xCore.sNull; }
+	for ( i = 0; i < (size_t)iCount; ++i ) {
+		memcpy(sRet + i * iSize, sText, iSize);
+	}
+	sRet[iRetSizeLocal] = 0;
+	if ( iRetSize ) { *iRetSize = iRetSizeLocal; }
+	return sRet;
+}
+// 是否为空字符串
+XXAPI bool xrtStrIsEmpty(str sText, size_t iSize)
+{
+	return __xrtStrByteSize(sText, iSize) == 0;
+}
+// 是否为空白字符串（按 ASCII 空白判断）
+XXAPI bool xrtStrIsBlank(str sText, size_t iSize)
+{
+	size_t i;
+	iSize = __xrtStrByteSize(sText, iSize);
+	if ( iSize == 0 ) { return TRUE; }
+	for ( i = 0; i < iSize; ++i ) {
+		if ( !isspace((unsigned char)sText[i]) ) { return FALSE; }
+	}
+	return TRUE;
+}
+// 删除所有匹配子串
+XXAPI str xrtStrRemove(str sText, size_t iSize, str sSubText, size_t iSubSize, bool bCase, size_t* iRetSize)
+{
+	if ( bCase ) {
+		str sResult;
+		str sSearchText;
+		str sSearchSub;
+		size_t i;
+		size_t iRet = 0;
+		size_t iCap;
+		iSize = __xrtStrByteSize(sText, iSize);
+		iSubSize = __xrtStrByteSize(sSubText, iSubSize);
+		if ( sText == NULL || iSize == 0 ) { if ( iRetSize ) { *iRetSize = 0; } return xCore.sNull; }
+		if ( sSubText == NULL || iSubSize == 0 || iSubSize > iSize ) {
+			if ( iRetSize ) { *iRetSize = iSize; }
+			return xrtCopyStr(sText, iSize);
+		}
+		sSearchText = xrtLCase(sText, iSize, FALSE);
+		sSearchSub = xrtLCase(sSubText, iSubSize, FALSE);
+		if ( sSearchText == NULL || sSearchSub == NULL ) {
+			xrtFree(sSearchText);
+			xrtFree(sSearchSub);
+			if ( iRetSize ) { *iRetSize = 0; }
+			return xCore.sNull;
+		}
+		iCap = iSize + 1;
+		sResult = xrtMalloc(iCap);
+		if ( sResult == NULL ) {
+			xrtFree(sSearchText);
+			xrtFree(sSearchSub);
+			if ( iRetSize ) { *iRetSize = 0; }
+			return xCore.sNull;
+		}
+		for ( i = 0; i < iSize; ) {
+			if ( i + iSubSize <= iSize && memcmp(sSearchText + i, sSearchSub, iSubSize) == 0 ) {
+				i += iSubSize;
+			} else {
+				sResult[iRet++] = sText[i++];
+			}
+		}
+		sResult[iRet] = 0;
+		xrtFree(sSearchText);
+		xrtFree(sSearchSub);
+		if ( iRetSize ) { *iRetSize = iRet; }
+		return sResult;
+	}
+	return xrtReplace(sText, iSize, sSubText, iSubSize, xCore.sNull, 0, iRetSize);
+}
+// 按字符范围删除
+XXAPI str xrtStrRemoveAt(str sText, size_t iSize, int64 iStart, int64 iCount, size_t* iRetSize)
+{
+	size_t iCharCount;
+	size_t iStartChar;
+	size_t iEndChar;
+	size_t iStartByte;
+	size_t iEndByte;
+	str sRet;
+	iSize = __xrtStrByteSize(sText, iSize);
+	if ( sText == NULL || iSize == 0 ) { if ( iRetSize ) { *iRetSize = 0; } return xCore.sNull; }
+	if ( iCount <= 0 ) {
+		if ( iRetSize ) { *iRetSize = iSize; }
+		return xrtCopyStr(sText, iSize);
+	}
+	iCharCount = xrtStrCharLen(sText, iSize);
+	iStartChar = __xrtStrNormalizeCharIndex(iCharCount, iStart);
+	iEndChar = iStartChar + (size_t)iCount;
+	if ( iEndChar > iCharCount ) { iEndChar = iCharCount; }
+	iStartByte = __xrtStrCharToByteOffset(sText, iSize, iStartChar);
+	iEndByte = __xrtStrCharToByteOffset(sText, iSize, iEndChar);
+	sRet = xrtMalloc(iSize - (iEndByte - iStartByte) + 1);
+	if ( sRet == NULL ) { if ( iRetSize ) { *iRetSize = 0; } return xCore.sNull; }
+	memcpy(sRet, sText, iStartByte);
+	memcpy(sRet + iStartByte, sText + iEndByte, iSize - iEndByte);
+	sRet[iSize - (iEndByte - iStartByte)] = 0;
+	if ( iRetSize ) { *iRetSize = iSize - (iEndByte - iStartByte); }
+	return sRet;
+}
+// 按字符位置插入
+XXAPI str xrtStrInsert(str sText, size_t iSize, int64 iStart, str sPartText, size_t iPartSize, size_t* iRetSize)
+{
+	size_t iCharCount;
+	size_t iStartChar;
+	size_t iStartByte;
+	size_t iRet;
+	str sRet;
+	iSize = __xrtStrByteSize(sText, iSize);
+	iPartSize = __xrtStrByteSize(sPartText, iPartSize);
+	if ( sText == NULL ) { sText = xCore.sNull; iSize = 0; }
+	if ( sPartText == NULL || iPartSize == 0 ) {
+		if ( iRetSize ) { *iRetSize = iSize; }
+		return xrtCopyStr(sText, iSize);
+	}
+	iCharCount = xrtStrCharLen(sText, iSize);
+	iStartChar = __xrtStrNormalizeCharIndex(iCharCount, iStart);
+	iStartByte = __xrtStrCharToByteOffset(sText, iSize, iStartChar);
+	if ( iPartSize > SIZE_MAX - iSize ) { if ( iRetSize ) { *iRetSize = 0; } return xCore.sNull; }
+	iRet = iSize + iPartSize;
+	sRet = xrtMalloc(iRet + 1);
+	if ( sRet == NULL ) { if ( iRetSize ) { *iRetSize = 0; } return xCore.sNull; }
+	memcpy(sRet, sText, iStartByte);
+	memcpy(sRet + iStartByte, sPartText, iPartSize);
+	memcpy(sRet + iStartByte + iPartSize, sText + iStartByte, iSize - iStartByte);
+	sRet[iRet] = 0;
+	if ( iRetSize ) { *iRetSize = iRet; }
+	return sRet;
+}
+// 左侧填充
+XXAPI str xrtStrPadLeft(str sText, size_t iSize, int64 iWidth, str sPadText, size_t iPadSize, size_t* iRetSize)
+{
+	size_t iTextChars;
+	size_t iNeedChars;
+	size_t iPadBytes;
+	size_t iRet;
+	size_t iPos = 0;
+	str sRet;
+	iSize = __xrtStrByteSize(sText, iSize);
+	iPadSize = __xrtStrByteSize(sPadText, iPadSize);
+	if ( sText == NULL ) { sText = xCore.sNull; iSize = 0; }
+	iTextChars = xrtStrCharLen(sText, iSize);
+	if ( iWidth <= 0 || (uint64)iWidth <= iTextChars ) {
+		if ( iRetSize ) { *iRetSize = iSize; }
+		return xrtCopyStr(sText, iSize);
+	}
+	iNeedChars = (size_t)iWidth - iTextChars;
+	iPadBytes = __xrtStrPadBytes(sPadText, iPadSize, iNeedChars);
+	if ( iPadBytes > SIZE_MAX - iSize ) { if ( iRetSize ) { *iRetSize = 0; } return xCore.sNull; }
+	iRet = iPadBytes + iSize;
+	sRet = xrtMalloc(iRet + 1);
+	if ( sRet == NULL ) { if ( iRetSize ) { *iRetSize = 0; } return xCore.sNull; }
+	__xrtStrWritePad(sRet, &iPos, sPadText, iPadSize, iNeedChars);
+	memcpy(sRet + iPos, sText, iSize);
+	sRet[iRet] = 0;
+	if ( iRetSize ) { *iRetSize = iRet; }
+	return sRet;
+}
+// 右侧填充
+XXAPI str xrtStrPadRight(str sText, size_t iSize, int64 iWidth, str sPadText, size_t iPadSize, size_t* iRetSize)
+{
+	size_t iTextChars;
+	size_t iNeedChars;
+	size_t iPadBytes;
+	size_t iRet;
+	size_t iPos = 0;
+	str sRet;
+	iSize = __xrtStrByteSize(sText, iSize);
+	iPadSize = __xrtStrByteSize(sPadText, iPadSize);
+	if ( sText == NULL ) { sText = xCore.sNull; iSize = 0; }
+	iTextChars = xrtStrCharLen(sText, iSize);
+	if ( iWidth <= 0 || (uint64)iWidth <= iTextChars ) {
+		if ( iRetSize ) { *iRetSize = iSize; }
+		return xrtCopyStr(sText, iSize);
+	}
+	iNeedChars = (size_t)iWidth - iTextChars;
+	iPadBytes = __xrtStrPadBytes(sPadText, iPadSize, iNeedChars);
+	if ( iPadBytes > SIZE_MAX - iSize ) { if ( iRetSize ) { *iRetSize = 0; } return xCore.sNull; }
+	iRet = iSize + iPadBytes;
+	sRet = xrtMalloc(iRet + 1);
+	if ( sRet == NULL ) { if ( iRetSize ) { *iRetSize = 0; } return xCore.sNull; }
+	memcpy(sRet, sText, iSize);
+	iPos = iSize;
+	__xrtStrWritePad(sRet, &iPos, sPadText, iPadSize, iNeedChars);
+	sRet[iRet] = 0;
+	if ( iRetSize ) { *iRetSize = iRet; }
+	return sRet;
+}
+// 两侧填充
+XXAPI str xrtStrPadCenter(str sText, size_t iSize, int64 iWidth, str sPadText, size_t iPadSize, size_t* iRetSize)
+{
+	size_t iTextChars;
+	size_t iNeedChars;
+	size_t iLeftChars;
+	size_t iRightChars;
+	size_t iLeftBytes;
+	size_t iRightBytes;
+	size_t iRet;
+	size_t iPos = 0;
+	str sRet;
+	iSize = __xrtStrByteSize(sText, iSize);
+	iPadSize = __xrtStrByteSize(sPadText, iPadSize);
+	if ( sText == NULL ) { sText = xCore.sNull; iSize = 0; }
+	iTextChars = xrtStrCharLen(sText, iSize);
+	if ( iWidth <= 0 || (uint64)iWidth <= iTextChars ) {
+		if ( iRetSize ) { *iRetSize = iSize; }
+		return xrtCopyStr(sText, iSize);
+	}
+	iNeedChars = (size_t)iWidth - iTextChars;
+	iLeftChars = iNeedChars / 2;
+	iRightChars = iNeedChars - iLeftChars;
+	iLeftBytes = __xrtStrPadBytes(sPadText, iPadSize, iLeftChars);
+	iRightBytes = __xrtStrPadBytes(sPadText, iPadSize, iRightChars);
+	if ( iLeftBytes > SIZE_MAX - iSize || iRightBytes > SIZE_MAX - iSize - iLeftBytes ) {
+		if ( iRetSize ) { *iRetSize = 0; }
+		return xCore.sNull;
+	}
+	iRet = iLeftBytes + iSize + iRightBytes;
+	sRet = xrtMalloc(iRet + 1);
+	if ( sRet == NULL ) { if ( iRetSize ) { *iRetSize = 0; } return xCore.sNull; }
+	__xrtStrWritePad(sRet, &iPos, sPadText, iPadSize, iLeftChars);
+	memcpy(sRet + iPos, sText, iSize);
+	iPos += iSize;
+	__xrtStrWritePad(sRet, &iPos, sPadText, iPadSize, iRightChars);
+	sRet[iRet] = 0;
+	if ( iRetSize ) { *iRetSize = iRet; }
+	return sRet;
+}
+// 按 UTF-8 字符反转字符串
+XXAPI str xrtStrReverse(str sText, size_t iSize, size_t* iRetSize)
+{
+	str sRet;
+	size_t iPos = 0;
+	size_t iOutPos;
+	iSize = __xrtStrByteSize(sText, iSize);
+	if ( sText == NULL || iSize == 0 ) { if ( iRetSize ) { *iRetSize = 0; } return xCore.sNull; }
+	sRet = xrtMalloc(iSize + 1);
+	if ( sRet == NULL ) { if ( iRetSize ) { *iRetSize = 0; } return xCore.sNull; }
+	iOutPos = iSize;
+	while ( iPos < iSize ) {
+		size_t iCharLen = __xrtUtf8CharLenSafe(sText, iSize, iPos);
+		if ( iCharLen == 0 ) { break; }
+		iOutPos -= iCharLen;
+		memcpy(sRet + iOutPos, sText + iPos, iCharLen);
+		iPos += iCharLen;
+	}
+	sRet[iSize] = 0;
+	if ( iRetSize ) { *iRetSize = iSize; }
+	return sRet;
+}
+// 按行分割字符串，支持 \n、\r\n、\r
+XXAPI str* xrtStrSplitLines(str sText, size_t iSize, size_t* iRetSize)
+{
+	size_t iCount = 1;
+	size_t i;
+	size_t iDataSize;
+	size_t iHeaderSize;
+	str* sRet;
+	str pData;
+	size_t iItem = 0;
+	size_t iLineStart = 0;
+	size_t iOutPos = 0;
+	iSize = __xrtStrByteSize(sText, iSize);
+	if ( iRetSize ) { *iRetSize = 0; }
+	if ( sText == NULL || iSize == 0 ) {
+		sRet = xrtMalloc(2 * sizeof(void*));
+		if ( sRet == NULL ) { return NULL; }
+		sRet[0] = xCore.sNull;
+		sRet[1] = NULL;
+		if ( iRetSize ) { *iRetSize = 1; }
+		return sRet;
+	}
+	for ( i = 0; i < iSize; ++i ) {
+		if ( sText[i] == '\n' ) {
+			iCount++;
+		} else if ( sText[i] == '\r' ) {
+			iCount++;
+			if ( i + 1 < iSize && sText[i + 1] == '\n' ) { i++; }
+		}
+	}
+	iHeaderSize = (iCount + 1) * sizeof(void*);
+	iDataSize = iSize + 1;
+	sRet = xrtMalloc(iHeaderSize + iDataSize);
+	if ( sRet == NULL ) { return NULL; }
+	pData = (str)((char*)sRet + iHeaderSize);
+	for ( i = 0; i <= iSize; ++i ) {
+		bool bLineEnd = i == iSize || sText[i] == '\n' || sText[i] == '\r';
+		if ( bLineEnd ) {
+			size_t iLineLen = i - iLineStart;
+			sRet[iItem++] = pData + iOutPos;
+			if ( iLineLen > 0 ) {
+				memcpy(pData + iOutPos, sText + iLineStart, iLineLen);
+				iOutPos += iLineLen;
+			}
+			pData[iOutPos++] = 0;
+			if ( i < iSize && sText[i] == '\r' && i + 1 < iSize && sText[i + 1] == '\n' ) {
+				i++;
+			}
+			iLineStart = i + 1;
+		}
+	}
+	sRet[iItem] = NULL;
+	if ( iRetSize ) { *iRetSize = iItem; }
 	return sRet;
 }
 // 字符串分割（ 任何情况返回值都必须使用 xrtFree 释放，bSrcRevise 设置为 TRUE 时会破坏原数据 ）
@@ -14621,6 +15291,169 @@ XXAPI bool xrtNumApprox(double a, double b)
 		return (diff <= xCore.fApproxNumTol);
 	}
 }
+// 返回两个浮点数中的较小值，任一参数为 NaN 时传播 NaN
+XXAPI double xrtMathMin(double a, double b)
+{
+	if ( xrtMathIsNaN(a) ) { return a; }
+	if ( xrtMathIsNaN(b) ) { return b; }
+	return a < b ? a : b;
+}
+// 返回两个浮点数中的较大值，任一参数为 NaN 时传播 NaN
+XXAPI double xrtMathMax(double a, double b)
+{
+	if ( xrtMathIsNaN(a) ) { return a; }
+	if ( xrtMathIsNaN(b) ) { return b; }
+	return a > b ? a : b;
+}
+// 将数值限制在闭区间内；边界顺序写反时自动归一化
+XXAPI double xrtMathClamp(double value, double minValue, double maxValue)
+{
+	double tmp;
+	
+	if ( minValue > maxValue ) {
+		tmp = minValue;
+		minValue = maxValue;
+		maxValue = tmp;
+	}
+	if ( value < minValue ) { return minValue; }
+	if ( value > maxValue ) { return maxValue; }
+	return value;
+}
+// 返回符号：负数为 -1，正数为 1，0/NaN 为 0
+XXAPI int xrtMathSign(double value)
+{
+	if ( xrtMathIsNaN(value) || value == 0.0 ) {
+		return 0;
+	}
+	return value > 0.0 ? 1 : -1;
+}
+// 向 0 截断浮点数
+XXAPI double xrtMathTrunc(double value)
+{
+	if ( !xrtMathIsFinite(value) || value == 0.0 ) {
+		return value;
+	}
+	return value > 0.0 ? floor(value) : ceil(value);
+}
+// 返回小数部分，语义与 shader/Python 风格 fract 一致：value - floor(value)
+XXAPI double xrtMathFract(double value)
+{
+	return value - floor(value);
+}
+// 浮点取模，底层采用 C fmod
+XXAPI double xrtMathMod(double value, double divisor)
+{
+	return fmod(value, divisor);
+}
+// 角度转弧度
+XXAPI double xrtMathRad(double degrees)
+{
+	return degrees * (XRT_MATH_PI / 180.0);
+}
+// 弧度转角度
+XXAPI double xrtMathDeg(double radians)
+{
+	return radians * (180.0 / XRT_MATH_PI);
+}
+// 判断 NaN，避免依赖不同 CRT 的非标准符号
+XXAPI bool xrtMathIsNaN(double value)
+{
+	return value != value;
+}
+// 判断正负无穷，避免依赖不同 CRT 的非标准符号
+XXAPI bool xrtMathIsInf(double value)
+{
+	return value == value && (value - value) != 0.0;
+}
+// 判断有限数
+XXAPI bool xrtMathIsFinite(double value)
+{
+	return value == value && (value - value) == 0.0;
+}
+// 以 2 为底的对数
+XXAPI double xrtMathLog2(double value)
+{
+	return log(value) / log(2.0);
+}
+// 2 的 value 次幂
+XXAPI double xrtMathExp2(double value)
+{
+	return pow(2.0, value);
+}
+// 高精度 log(1 + value)，小值走级数，普通值交给 C log
+XXAPI double xrtMathLog1p(double value)
+{
+	double av = fabs(value);
+	
+	if ( av > 0.0 && av < 0.0001 ) {
+		double sum = 0.0;
+		double term = value;
+		int i;
+		
+		for ( i = 1; i <= 32; ++i ) {
+			sum += term / (double)i;
+			term *= -value;
+		}
+		return sum;
+	}
+	return log(1.0 + value);
+}
+// 高精度 exp(value) - 1，小值走级数，普通值交给 C exp
+XXAPI double xrtMathExpm1(double value)
+{
+	double av = fabs(value);
+	
+	if ( av > 0.0 && av < 0.0001 ) {
+		double sum = value;
+		double term = value;
+		int i;
+		
+		for ( i = 2; i <= 32; ++i ) {
+			term *= value / (double)i;
+			sum += term;
+		}
+		return sum;
+	}
+	return exp(value) - 1.0;
+}
+// 立方根；旧 CRT 缺少 cbrt 时仍保持可用
+XXAPI double xrtMathCbrt(double value)
+{
+	if ( value == 0.0 ) {
+		return value;
+	}
+	if ( value < 0.0 ) {
+		return -pow(-value, 1.0 / 3.0);
+	}
+	return pow(value, 1.0 / 3.0);
+}
+// 稳定计算 sqrt(x*x + y*y)，避免普通平方求和更容易溢出
+XXAPI double xrtMathHypot(double x, double y)
+{
+	double ax;
+	double ay;
+	double r;
+	double tmp;
+	
+	if ( xrtMathIsInf(x) || xrtMathIsInf(y) ) {
+		return XRT_MATH_INF;
+	}
+	if ( xrtMathIsNaN(x) ) { return x; }
+	if ( xrtMathIsNaN(y) ) { return y; }
+	
+	ax = fabs(x);
+	ay = fabs(y);
+	if ( ax < ay ) {
+		tmp = ax;
+		ax = ay;
+		ay = tmp;
+	}
+	if ( ax == 0.0 ) {
+		return 0.0;
+	}
+	r = ay / ax;
+	return ax * sqrt(1.0 + r * r);
+}
 
 // ========================================
 // File: D:/GIT/xrt/lib/path.h
@@ -14931,6 +15764,28 @@ XXAPI xtime xrtDateTimeSerial(int64 iYear, int iMonth, int iDay, int iHour, int 
 	xtime iTime = (iHour * XRT_TIME_HOUR) + (iMinute * XRT_TIME_MINUTE) + iSecond;
 	xtime iDate = xrtDateSerial(iYear, iMonth, iDay);
 	return iDate + iTime;
+}
+static bool __xrtTimePartsToSerial(int64 iYear, int iMonth, int iDay, int iHour, int iMinute, int iSecond, xtime* pOut)
+{
+	if ( (iMonth < 1) || (iMonth > 12) ) {
+		return FALSE;
+	}
+	if ( (iDay < 1) || (iDay > xrtDaysInMonth((int)iYear, iMonth)) ) {
+		return FALSE;
+	}
+	if ( (iHour < 0) || (iHour > 23) ) {
+		return FALSE;
+	}
+	if ( (iMinute < 0) || (iMinute > 59) ) {
+		return FALSE;
+	}
+	if ( (iSecond < 0) || (iSecond > 59) ) {
+		return FALSE;
+	}
+	if ( pOut ) {
+		*pOut = xrtDateTimeSerial(iYear, iMonth, iDay, iHour, iMinute, iSecond);
+	}
+	return TRUE;
 }
 // 获取时间中的秒
 XXAPI int xrtSecond(xtime iTime)
@@ -15295,7 +16150,7 @@ XXAPI xtime xrtDateAdd(int interval, int64 iValue, xtime iTime)
 		return iTime;
 	}
 }
-// 单位时间差计算（ 不支持 XRT_TIME_INTERVAL_WEEKDAY ）
+// 单位时间差计算
 XXAPI int64 xrtDateDiff(int interval, xtime iTime1, xtime iTime2)
 {
 	if ( interval == XRT_TIME_INTERVAL_YEAR ) {
@@ -15322,6 +16177,8 @@ XXAPI int64 xrtDateDiff(int interval, xtime iTime1, xtime iTime2)
 	} else if ( interval == XRT_TIME_INTERVAL_SECOND ) {
 		// 秒差：直接相减
 		return iTime2 - iTime1;
+	} else if ( interval == XRT_TIME_INTERVAL_WEEKDAY ) {
+		return (iTime2 - iTime1) / (XRT_TIME_DAY * 7);
 	} else if ( interval == XRT_TIME_INTERVAL_QUARTER ) {
 		// 季度差算法 —— 复用月差计算，结果除以3
 		int64 iYear1, iYear2;
@@ -15648,6 +16505,112 @@ XXAPI xtime xrtStrToTime(str sTime, size_t iSize)
 	}
 	
 	return xrtDateTimeSerial(year, month, day, hour, minute, second);
+}
+XXAPI bool xrtTryStrToTime(str sTime, size_t iSize, xtime* pOut)
+{
+	if ( !sTime ) { return FALSE; }
+	if ( iSize == 0 ) { iSize = strlen((const char*)sTime); }
+	if ( iSize == 0 ) { return FALSE; }
+	
+	int year = 0, month = 1, day = 1, hour = 0, minute = 0, second = 0;
+	const char* p = (const char*)sTime;
+	const char* end = (const char*)sTime + iSize;
+	
+	while ( p < end && (*p < '0' || *p > '9') ) { p++; }
+	if ( p >= end ) { return FALSE; }
+	
+	int64 num1 = 0;
+	int len1 = 0;
+	while ( p < end && *p >= '0' && *p <= '9' ) {
+		num1 = num1 * 10 + (*p - '0');
+		len1++; p++;
+	}
+	
+	if ( len1 == 8 ) {
+		year = (int)(num1 / 10000);
+		month = (int)((num1 / 100) % 100);
+		day = (int)(num1 % 100);
+	} else if ( len1 == 14 ) {
+		year = (int)(num1 / 10000000000LL);
+		month = (int)((num1 / 100000000LL) % 100);
+		day = (int)((num1 / 1000000LL) % 100);
+		hour = (int)((num1 / 10000LL) % 100);
+		minute = (int)((num1 / 100LL) % 100);
+		second = (int)(num1 % 100);
+	} else if ( len1 == 4 ) {
+		year = (int)num1;
+		while ( p < end && (*p < '0' || *p > '9') ) { p++; }
+		if ( p < end ) {
+			int num2 = 0;
+			while ( p < end && *p >= '0' && *p <= '9' ) {
+				num2 = num2 * 10 + (*p - '0'); p++;
+			}
+			month = num2;
+			while ( p < end && (*p < '0' || *p > '9') ) { p++; }
+			if ( p < end ) {
+				int num3 = 0;
+				while ( p < end && *p >= '0' && *p <= '9' ) {
+					num3 = num3 * 10 + (*p - '0'); p++;
+				}
+				day = num3;
+				while ( p < end && (*p < '0' || *p > '9') ) { p++; }
+				if ( p < end ) {
+					int num4 = 0;
+					while ( p < end && *p >= '0' && *p <= '9' ) {
+						num4 = num4 * 10 + (*p - '0'); p++;
+					}
+					hour = num4;
+					while ( p < end && (*p < '0' || *p > '9') ) { p++; }
+					if ( p < end ) {
+						int num5 = 0;
+						while ( p < end && *p >= '0' && *p <= '9' ) {
+							num5 = num5 * 10 + (*p - '0'); p++;
+						}
+						minute = num5;
+						while ( p < end && (*p < '0' || *p > '9') ) { p++; }
+						if ( p < end ) {
+							int num6 = 0;
+							while ( p < end && *p >= '0' && *p <= '9' ) {
+								num6 = num6 * 10 + (*p - '0'); p++;
+							}
+							second = num6;
+						}
+					}
+				}
+			}
+		}
+	} else if ( len1 <= 2 ) {
+		char sep = (p < end) ? *p : 0;
+		if ( sep != ':' ) {
+			return FALSE;
+		}
+		hour = (int)num1;
+		p++;
+		if ( p >= end || *p < '0' || *p > '9' ) {
+			return FALSE;
+		}
+		int num2 = 0;
+		while ( p < end && *p >= '0' && *p <= '9' ) {
+			num2 = num2 * 10 + (*p - '0'); p++;
+		}
+		minute = num2;
+		if ( p < end && *p == ':' ) {
+			p++;
+			if ( p >= end || *p < '0' || *p > '9' ) {
+				return FALSE;
+			}
+			int num3 = 0;
+			while ( p < end && *p >= '0' && *p <= '9' ) {
+				num3 = num3 * 10 + (*p - '0'); p++;
+			}
+			second = num3;
+		}
+		year = 0; month = 1; day = 1;
+	} else {
+		return FALSE;
+	}
+	
+	return __xrtTimePartsToSerial(year, month, day, hour, minute, second, pOut);
 }
 // ============================================================================
 // 时间格式化与解析 (xrtTimeFormat / xrtTimeParse)
@@ -16118,6 +17081,26 @@ XXAPI xtime xrtTimeParse(str sTime, str sFormat)
 	}
 	if (year == 0 ) { xtime now = xrtNow(); year = (int)xrtYear(now); }
 	return xrtDateTimeSerial(year, month, day, hour, minute, second);
+}
+XXAPI bool xrtTryTimeParse(str sTime, str sFormat, xtime* pOut)
+{
+	if ( !sTime || !sFormat ) {
+		return FALSE;
+	}
+	xtime iTime = xrtTimeParse(sTime, sFormat);
+	str sRoundtrip = xrtTimeFormat(iTime, sFormat);
+	if ( !sRoundtrip ) {
+		return FALSE;
+	}
+	bool bOk = (strcmp((const char*)sRoundtrip, (const char*)sTime) == 0);
+	xrtFree(sRoundtrip);
+	if ( !bOk ) {
+		return FALSE;
+	}
+	if ( pOut ) {
+		*pOut = iTime;
+	}
+	return TRUE;
 }
 // 时间约等于
 XXAPI bool xrtTimeApprox(xtime a, xtime b)

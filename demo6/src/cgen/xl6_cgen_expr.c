@@ -469,6 +469,31 @@ static int xl6CgenExprApproxKind(XL6_CgenContext* ctx, const XL6_AstNode* expr)
         }
         return xl6CgenCTypeApproxKind(xl6CgenInferExprType(ctx, expr));
     }
+    case XL6_AST_UNARY:
+        if ( xl6CTextEquals(expr->text, "+") || xl6CTextEquals(expr->text, "-") ) {
+            return expr->childCount > 0 ? xl6CgenExprApproxKind(ctx, expr->children[0]) : 0;
+        }
+        return 0;
+    case XL6_AST_BINARY:
+        if ( xl6CTextEquals(expr->text, "+") || xl6CTextEquals(expr->text, "-") ||
+             xl6CTextEquals(expr->text, "*") || xl6CTextEquals(expr->text, "/") ||
+             xl6CTextEquals(expr->text, "%") || xl6CTextEquals(expr->text, "**") ) {
+            int leftKind;
+            int rightKind;
+            if ( expr->childCount < 2 ) {
+                return 0;
+            }
+            leftKind = xl6CgenExprApproxKind(ctx, expr->children[0]);
+            rightKind = xl6CgenExprApproxKind(ctx, expr->children[1]);
+            if ( leftKind == 2 || rightKind == 2 ) {
+                return 2;
+            }
+            if ( leftKind == 1 && rightKind == 1 ) {
+                return 1;
+            }
+            return 0;
+        }
+        return xl6CgenCTypeApproxKind(xl6CgenInferExprType(ctx, expr));
     default:
         return 0;
     }

@@ -1068,12 +1068,13 @@ auto now = time.now()
 auto text = file.readText("data.txt")
 ```
 
-当前标准库命名空间 public function 守门基线为 180 个；另有全局输出入口 `print` / `println` 2 个。用户可直接调用的当前列表如下：
+当前标准库公开函数为 233 个，另有标准库常量 5 个；全局输出入口 `print` / `println` 也默认进入环境。用户可直接调用的当前列表如下：
 
 - 全局：`print`、`println`。
-- `math`：`abs`、`acos`、`asin`、`atan`、`atan2`、`ceil`、`cos`、`exp`、`floor`、`log`、`log10`、`pow`、`round`、`sin`、`sqrt`、`tan`。
-- `string`：`approx`、`compare`、`contains`、`endsWith`、`equals`、`filter`、`formatFloat`、`formatInt`、`hasAny`、`indexOf`、`isUtf8`、`len`、`like`、`lower`、`ltrim`、`replace`、`rtrim`、`sim`、`split`、`startsWith`、`trim`、`upper`。
-- `time`：`addDays`、`addHours`、`addMinutes`、`addMonths`、`addSeconds`、`addYears`、`approx`、`clock`、`datePart`、`dateString`、`day`、`dayOfYear`、`daysInMonth`、`daysInYear`、`diffDays`、`firstDayOfMonth`、`firstDayOfWeek`、`firstDayOfYear`、`format`、`formatPattern`、`fromDate`、`fromDateTime`、`fromTime`、`fromUnix`、`hour`、`inRange`、`isLeapYear`、`isSameDay`、`isSameMonth`、`isSameYear`、`lastDayOfMonth`、`lastDayOfWeek`、`lastDayOfYear`、`localToUTC`、`minute`、`month`、`now`、`nowUTC`、`parse`、`parsePattern`、`quarter`、`rangeOverlap`、`second`、`sleep`、`timePart`、`timer`、`timeString`、`timezoneOffset`、`today`、`toUnix`、`utcToLocal`、`weekday`、`weekOfMonth`、`weekOfYear`、`year`。
+- `math` 常量：`pi`、`tau`、`e`、`nan`、`inf`。
+- `math` 函数：`abs`、`acos`、`asin`、`atan`、`atan2`、`cbrt`、`ceil`、`clamp`、`cos`、`deg`、`exp`、`exp2`、`expm1`、`floor`、`fract`、`hypot`、`isFinite`、`isInf`、`isNaN`、`log`、`log10`、`log1p`、`log2`、`max`、`min`、`mod`、`pow`、`rad`、`round`、`sign`、`sin`、`sqrt`、`tan`、`trunc`。
+- `string`：`approx`、`byteAt`、`byteLen`、`charAt`、`chars`、`compare`、`contains`、`count`、`endsWith`、`equals`、`filter`、`formatFloat`、`formatInt`、`hasAny`、`indexOf`、`insert`、`isBlank`、`isEmpty`、`isUtf8`、`join`、`lastIndexOf`、`left`、`len`、`like`、`lower`、`ltrim`、`mid`、`padCenter`、`padLeft`、`padRight`、`remove`、`removeAt`、`repeat`、`replace`、`reverse`、`right`、`rtrim`、`sim`、`slice`、`split`、`splitLines`、`startsWith`、`trim`、`upper`、`bytes`。
+- `time`：`addDays`、`addHours`、`addMinutes`、`addMonths`、`addQuarters`、`addSeconds`、`addWeeks`、`addYears`、`approx`、`clock`、`datePart`、`dateString`、`day`、`dayOfYear`、`daysInMonth`、`daysInYear`、`diffDays`、`diffHours`、`diffMinutes`、`diffMonths`、`diffQuarters`、`diffSeconds`、`diffWeeks`、`diffYears`、`firstDayOfMonth`、`firstDayOfWeek`、`firstDayOfYear`、`format`、`formatPattern`、`fromDate`、`fromDateTime`、`fromTime`、`fromUnix`、`hour`、`inRange`、`isLeapYear`、`isSameDay`、`isSameMonth`、`isSameYear`、`lastDayOfMonth`、`lastDayOfWeek`、`lastDayOfYear`、`localToUTC`、`minute`、`month`、`now`、`nowUTC`、`parse`、`parsePattern`、`quarter`、`rangeOverlap`、`relative`、`second`、`sleep`、`timePart`、`timer`、`timeString`、`timezoneOffset`、`today`、`toUnix`、`tryParse`、`tryParsePattern`、`utcToLocal`、`weekday`、`weekOfMonth`、`weekOfYear`、`year`。
 - `random`：`range`、`string`、`u32`、`u64`。
 - `path`：`dir`、`exists`、`ext`、`isAbs`、`join`、`name`、`nameExt`、`random`。
 - `file`：`accessTime`、`appendText`、`attr`、`changeTime`、`copy`、`delete`、`exists`、`move`、`readText`、`setAttr`、`setSize`、`size`、`writeText`。
@@ -1092,8 +1093,9 @@ auto text = file.readText("data.txt")
 - `http.server`：`create`、`destroy`、`port`、`start`、`stop`。
 
 常用默认参数：
-- `string.compare(left, right, ignoreCase = false)`、`string.equals(...)`、`string.contains(...)`、`string.indexOf(...)`、`string.startsWith(...)`、`string.endsWith(...)`、`string.like(...)`。
-- `string.formatInt(value, format = "")`、`string.formatFloat(value, format = "")`、`string.trim(text, chars = "")`、`string.ltrim(...)`、`string.rtrim(...)`。
+- `string.compare(left, right, ignoreCase = false)`、`string.equals(...)`、`string.contains(...)`、`string.indexOf(...)`、`string.lastIndexOf(...)`、`string.count(...)`、`string.startsWith(...)`、`string.endsWith(...)`、`string.like(...)`。
+- `string.formatInt(value, format = "")`、`string.formatFloat(value, format = "")`、`string.trim(text, chars = "")`、`string.ltrim(...)`、`string.rtrim(...)`、`string.slice(text, start, count = -1)`、`string.mid(text, start, count = -1)`。
+- `string.join(values, sep = "")`、`string.padLeft(text, width, pad = " ")`、`string.padRight(text, width, pad = " ")`、`string.padCenter(text, width, pad = " ")`、`string.remove(text, part, ignoreCase = false)`。
 - `time.fromDateTime(year, month, day, hour = 0, minute = 0, second = 0)`、`time.firstDayOfWeek(value, startDay = 1)`、`time.lastDayOfWeek(value, startDay = 1)`、`time.format(value, format = 0)`。
 - `random.string(len = 16, chars = "")`、`path.join(first, second, third = "", fourth = "")`、`path.random(head = "", foot = "", len = 12)`。
 - `file.readText(path, charset = 65001)`、`file.writeText(path, text, charset = 65001)`、`file.appendText(path, text, charset = 65001)`、`file.copy(source, target, overwrite = true)`、`file.move(source, target, overwrite = true)`。
@@ -1101,9 +1103,11 @@ auto text = file.readText("data.txt")
 
 当前边界：
 - HTTP client 暂缓进入标准库。
-- 标准库命名空间只在成员访问位置生效，例如 `math.sqrt`；写成已存在命名空间但不存在函数时会报错。
-- 当前不提供 `math.pi` 这类标准库属性常量。
+- 标准库命名空间只在成员访问位置生效，例如 `math.sqrt`、`math.pi`；写成已存在命名空间但不存在符号时会报错。
+- `math.pi`、`math.tau`、`math.e`、`math.nan`、`math.inf` 是标准库常量，编译期直接重写为字面量，不产生运行时函数调用。
 - 文件、目录、路径能力优先通过 XRT 处理，避免 Windows 下 CRT 对 UTF-8 路径支持不足的问题。
+- `string.len(text)` 按 UTF-8 字符数量计数，`string.byteLen(text)` 才是原始字节长度。
+- `for c in "1234你好"` 默认按 UTF-8 字符迭代，双目标 `for i, c in text` 的 `i` 为 0 基字符索引；需要逐字节处理时使用 `string.bytes(text)`。
 
 ## 15. C 混编、ABI 与导出
 
@@ -1252,8 +1256,8 @@ void xlClearLastError(XL_Context* ctx);
 
 - cgen 已拆分为多个独立职责文件。
 - cgen 规则已形成对照表。
-- 当前 cgen C 文件基线为 87 个。
-- 当前 cgen 最大单文件为 `xl6_cgen_stmt_decl.c`，约 1197 行。
+- 当前 cgen C 文件基线为 94 个。
+- 当前 cgen 最大单文件为 `xl6_cgen_expr_support_base.c`，约 1187 行。
 - 当前 cgenrule 唯一规则基线为 843 条。
 - 当前 cgenrule Markdown 文档基线为 47 个。
 - 当前 cgen 单文件行数受守门脚本约束。
@@ -1276,7 +1280,7 @@ void xlClearLastError(XL_Context* ctx);
 - 负例诊断内容断言基线为 429 条。
 - package/extlib fixture 基线为 48 个。
 - 标准库测试基线为 21 个。
-- 标准库 public function 守门基线为 180 个，不含全局 `print` / `println`。
+- 标准库公开函数当前为 233 个，标准库常量当前为 5 个。
 - DLL API 基线为 62 个。
 - 风险总账基线为 21 条，当前 21 条已收口，0 条开放。
 

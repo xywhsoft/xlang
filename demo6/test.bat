@@ -5633,9 +5633,22 @@ if errorlevel 1 (
     echo stdlib_math.c missing round helper call.
     exit /b 1
 )
+findstr /C:"double xrtMathClamp(double value, double minValue, double maxValue);" release\tmp\stdlib_math.c >nul
+if errorlevel 1 (
+    echo stdlib_math.c missing xrtMathClamp extern prototype.
+    exit /b 1
+)
 "%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\stdlib_math.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\stdlib_math.exe
 if errorlevel 1 exit /b 1
 release\tmp\stdlib_math.exe
+if errorlevel 1 exit /b 1
+release\xl.exe run release\examples\stdlib_math.xl %XL6_XL_DEFAULT_LINK_ARGS% > release\tmp\stdlib_math_xlang.out.txt
+if errorlevel 1 exit /b 1
+"%XL6_TCC%" -std=c11 -Wall -Ilib\xrt %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% release\examples\stdlib_math_c.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\stdlib_math_c.exe
+if errorlevel 1 exit /b 1
+release\tmp\stdlib_math_c.exe > release\tmp\stdlib_math_c.out.txt
+if errorlevel 1 exit /b 1
+powershell -NoProfile -Command "$a=[System.IO.File]::ReadAllLines('release\tmp\stdlib_math_xlang.out.txt'); $b=[System.IO.File]::ReadAllLines('release\tmp\stdlib_math_c.out.txt'); if (($a -join \"`n\") -ne ($b -join \"`n\")) { Write-Host 'stdlib math xlang/C output mismatch.'; Write-Host 'xlang:'; $a; Write-Host 'C:'; $b; exit 1 }"
 if errorlevel 1 exit /b 1
 
 release\xl.exe check test\cases\stdlib_string.xl
@@ -5726,6 +5739,14 @@ if errorlevel 1 (
 if errorlevel 1 exit /b 1
 release\tmp\stdlib_string.exe
 if errorlevel 1 exit /b 1
+release\xl.exe run release\examples\stdlib_string.xl %XL6_XL_DEFAULT_LINK_ARGS% > release\tmp\stdlib_string_xlang.out.txt
+if errorlevel 1 exit /b 1
+"%XL6_TCC%" -std=c11 -Wall -Ilib\xrt %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% release\examples\stdlib_string_c.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\stdlib_string_c.exe
+if errorlevel 1 exit /b 1
+release\tmp\stdlib_string_c.exe > release\tmp\stdlib_string_c.out.txt
+if errorlevel 1 exit /b 1
+powershell -NoProfile -Command "$a=[System.IO.File]::ReadAllLines('release\tmp\stdlib_string_xlang.out.txt'); $b=[System.IO.File]::ReadAllLines('release\tmp\stdlib_string_c.out.txt'); if (($a -join \"`n\") -ne ($b -join \"`n\")) { Write-Host 'stdlib string xlang/C output mismatch.'; Write-Host 'xlang:'; $a; Write-Host 'C:'; $b; exit 1 }"
+if errorlevel 1 exit /b 1
 
 release\xl.exe check test\cases\stdlib_time.xl
 if errorlevel 1 exit /b 1
@@ -5756,9 +5777,32 @@ if errorlevel 1 (
     echo stdlib_time.c missing xrtTimeParse extern prototype.
     exit /b 1
 )
+findstr /C:"bool xrtTryStrToTime" release\tmp\stdlib_time.c >nul
+if errorlevel 1 (
+    echo stdlib_time.c missing xrtTryStrToTime extern prototype.
+    exit /b 1
+)
+findstr /C:"bool xrtTryTimeParse" release\tmp\stdlib_time.c >nul
+if errorlevel 1 (
+    echo stdlib_time.c missing xrtTryTimeParse extern prototype.
+    exit /b 1
+)
+findstr /C:"int64_t xrtDateDiff" release\tmp\stdlib_time.c >nul
+if errorlevel 1 (
+    echo stdlib_time.c missing xrtDateDiff extern prototype.
+    exit /b 1
+)
 "%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\stdlib_time.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\stdlib_time.exe
 if errorlevel 1 exit /b 1
 release\tmp\stdlib_time.exe
+if errorlevel 1 exit /b 1
+release\xl.exe run release\examples\stdlib_time.xl %XL6_XL_DEFAULT_LINK_ARGS% > release\tmp\stdlib_time_xlang.out.txt
+if errorlevel 1 exit /b 1
+"%XL6_TCC%" -std=c11 -Wall -Ilib\xrt %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% release\examples\stdlib_time_c.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\stdlib_time_c.exe
+if errorlevel 1 exit /b 1
+release\tmp\stdlib_time_c.exe > release\tmp\stdlib_time_c.out.txt
+if errorlevel 1 exit /b 1
+powershell -NoProfile -Command "$a=[System.IO.File]::ReadAllLines('release\tmp\stdlib_time_xlang.out.txt'); $b=[System.IO.File]::ReadAllLines('release\tmp\stdlib_time_c.out.txt'); if (($a -join \"`n\") -ne ($b -join \"`n\")) { Write-Host 'stdlib time xlang/C output mismatch.'; Write-Host 'xlang:'; $a; Write-Host 'C:'; $b; exit 1 }"
 if errorlevel 1 exit /b 1
 
 release\xl.exe check test\cases\stdlib_time_extra.xl
@@ -5778,6 +5822,11 @@ if errorlevel 1 (
 findstr /C:"bool xrtTimeRangeOverlap" release\tmp\stdlib_time_extra.c >nul
 if errorlevel 1 (
     echo stdlib_time_extra.c missing xrtTimeRangeOverlap extern prototype.
+    exit /b 1
+)
+findstr /C:"void* xrtRelativeTime" release\tmp\stdlib_time_extra.c >nul
+if errorlevel 1 (
+    echo stdlib_time_extra.c missing xrtRelativeTime extern prototype.
     exit /b 1
 )
 "%XL6_TCC%" -DXL6_USE_XRT_LIFECYCLE %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\stdlib_time_extra.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\stdlib_time_extra.exe

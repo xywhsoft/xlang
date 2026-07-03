@@ -28,6 +28,13 @@ typedef struct XL6_StdlibFunc {
     const char* sourceBody;
 } XL6_StdlibFunc;
 
+typedef struct XL6_StdlibConst {
+    const char* ns;
+    const char* name;
+    XL6_AstKind kind;
+    const char* value;
+} XL6_StdlibConst;
+
 static const char* xl6StdlibCoreClassSource =
     "class object\n"
     "    var __fields = dict{}\n"
@@ -61,6 +68,22 @@ static const XL6_StdlibParam xl6StdMathPowParams[] = {
 static const XL6_StdlibParam xl6StdMathAtan2Params[] = {
     {"float", "y"},
     {"float", "x"}
+};
+
+static const XL6_StdlibParam xl6StdMathBinaryFloatParams[] = {
+    {"float", "a"},
+    {"float", "b"}
+};
+
+static const XL6_StdlibParam xl6StdMathClampParams[] = {
+    {"float", "value"},
+    {"float", "minValue"},
+    {"float", "maxValue"}
+};
+
+static const XL6_StdlibParam xl6StdMathModParams[] = {
+    {"float", "value"},
+    {"float", "divisor"}
 };
 
 static const XL6_StdlibParam xl6StdStringLenParams[] = {
@@ -130,6 +153,15 @@ static const XL6_StdlibParam xl6StdRuntimePrintParams[] = {
 
 static const XL6_StdlibParam xl6StdRuntimeStringSplitParams[] = {
     {"string", "text"},
+    {"string", "sep"}
+};
+
+static const XL6_StdlibParam xl6StdRuntimeStringTextParams[] = {
+    {"string", "text"}
+};
+
+static const XL6_StdlibParam xl6StdRuntimeStringJoinParams[] = {
+    {"var", "values"},
     {"string", "sep"}
 };
 
@@ -243,6 +275,80 @@ static const XL6_StdlibParam xl6StdXrtStringReplaceParams[] = {
     {"point", "retSize"}
 };
 
+static const XL6_StdlibParam xl6StdXrtStringSizeParams[] = {
+    {"string", "text"},
+    {"c_size", "size"}
+};
+
+static const XL6_StdlibParam xl6StdXrtStringFindParams[] = {
+    {"string", "text"},
+    {"c_size", "size"},
+    {"string", "part"},
+    {"c_size", "partSize"},
+    {"c_bool", "ignoreCase"}
+};
+
+static const XL6_StdlibParam xl6StdXrtStringSliceParams[] = {
+    {"string", "text"},
+    {"c_size", "size"},
+    {"int", "start"},
+    {"int", "count"},
+    {"point", "retSize"}
+};
+
+static const XL6_StdlibParam xl6StdXrtStringCountParams[] = {
+    {"string", "text"},
+    {"c_size", "size"},
+    {"int", "count"},
+    {"point", "retSize"}
+};
+
+static const XL6_StdlibParam xl6StdXrtStringIndexParams[] = {
+    {"string", "text"},
+    {"c_size", "size"},
+    {"int", "index"},
+    {"point", "retSize"}
+};
+
+static const XL6_StdlibParam xl6StdXrtStringByteAtParams[] = {
+    {"string", "text"},
+    {"c_size", "size"},
+    {"int", "index"}
+};
+
+static const XL6_StdlibParam xl6StdXrtStringRemoveParams[] = {
+    {"string", "text"},
+    {"c_size", "size"},
+    {"string", "part"},
+    {"c_size", "partSize"},
+    {"c_bool", "ignoreCase"},
+    {"point", "retSize"}
+};
+
+static const XL6_StdlibParam xl6StdXrtStringInsertParams[] = {
+    {"string", "text"},
+    {"c_size", "size"},
+    {"int", "start"},
+    {"string", "part"},
+    {"c_size", "partSize"},
+    {"point", "retSize"}
+};
+
+static const XL6_StdlibParam xl6StdXrtStringPadParams[] = {
+    {"string", "text"},
+    {"c_size", "size"},
+    {"int", "width"},
+    {"string", "pad"},
+    {"c_size", "padSize"},
+    {"point", "retSize"}
+};
+
+static const XL6_StdlibParam xl6StdXrtStringReverseParams[] = {
+    {"string", "text"},
+    {"c_size", "size"},
+    {"point", "retSize"}
+};
+
 static const XL6_StdlibParam xl6StdXrtTimeToStrParams[] = {
     {"int", "value"},
     {"c_int", "format"}
@@ -256,6 +362,18 @@ static const XL6_StdlibParam xl6StdXrtTimeFormatParams[] = {
 static const XL6_StdlibParam xl6StdXrtTimeParseParams[] = {
     {"string", "text"},
     {"string", "pattern"}
+};
+
+static const XL6_StdlibParam xl6StdXrtTryStrToTimeParams[] = {
+    {"string", "text"},
+    {"c_size", "size"},
+    {"point", "outValue"}
+};
+
+static const XL6_StdlibParam xl6StdXrtTryTimeParseParams[] = {
+    {"string", "text"},
+    {"string", "pattern"},
+    {"point", "outValue"}
 };
 
 static const XL6_StdlibParam xl6StdXrtYearParams[] = {
@@ -518,6 +636,11 @@ static const char xl6StdMathRoundBody[] =
     "    end\n"
     "end\n";
 
+static const char xl6StdMathSignBody[] =
+    "func __xl_std_math_sign(float x) as int\n"
+    "    return int(__xl_std_xrt_math_sign(x))\n"
+    "end\n";
+
 static const char xl6StdStringCompareBody[] =
     "func __xl_std_string_compare(string left, string right, bool ignoreCase = false) as int\n"
     "    return __xl_std_xrt_str_comp(left, right, 0, ignoreCase)\n"
@@ -525,7 +648,12 @@ static const char xl6StdStringCompareBody[] =
 
 static const char xl6StdStringLenBody[] =
     "func __xl_std_string_len(string text) as int\n"
-    "    return int(__xl_std_crt_strlen(text))\n"
+    "    return int(__xl_std_xrt_str_char_len(text, 0))\n"
+    "end\n";
+
+static const char xl6StdStringByteLenBody[] =
+    "func __xl_std_string_byte_len(string text) as int\n"
+    "    return int(__xl_std_xrt_str_byte_len(text, 0))\n"
     "end\n";
 
 static const char xl6StdStringEqualsBody[] =
@@ -540,11 +668,17 @@ static const char xl6StdStringContainsBody[] =
 
 static const char xl6StdStringIndexOfBody[] =
     "func __xl_std_string_index_of(string text, string part, bool ignoreCase = false) as int\n"
-    "    int pos = __xl_std_xrt_in_str(text, 0, part, 0, ignoreCase)\n"
-    "    if pos == 0 then\n"
-    "        return -1\n"
-    "    end\n"
-    "    return pos - 1\n"
+    "    return __xl_std_xrt_str_index_of(text, 0, part, 0, ignoreCase)\n"
+    "end\n";
+
+static const char xl6StdStringLastIndexOfBody[] =
+    "func __xl_std_string_last_index_of(string text, string part, bool ignoreCase = false) as int\n"
+    "    return __xl_std_xrt_str_last_index_of(text, 0, part, 0, ignoreCase)\n"
+    "end\n";
+
+static const char xl6StdStringCountBody[] =
+    "func __xl_std_string_count(string text, string part, bool ignoreCase = false) as int\n"
+    "    return __xl_std_xrt_str_count(text, 0, part, 0, ignoreCase)\n"
     "end\n";
 
 static const char xl6StdStringStartsWithBody[] =
@@ -632,6 +766,106 @@ static const char xl6StdStringSplitBody[] =
     "    return array(__xl_std_runtime_string_split(text, sep))\n"
     "end\n";
 
+static const char xl6StdStringSliceBody[] =
+    "func __xl_std_string_slice(string text, int start, int count = -1) as string\n"
+    "    return __xl_std_runtime_take_cstr(__xl_std_xrt_str_slice(text, 0, start, count, null))\n"
+    "end\n";
+
+static const char xl6StdStringLeftBody[] =
+    "func __xl_std_string_left(string text, int count) as string\n"
+    "    return __xl_std_runtime_take_cstr(__xl_std_xrt_str_left(text, 0, count, null))\n"
+    "end\n";
+
+static const char xl6StdStringRightBody[] =
+    "func __xl_std_string_right(string text, int count) as string\n"
+    "    return __xl_std_runtime_take_cstr(__xl_std_xrt_str_right(text, 0, count, null))\n"
+    "end\n";
+
+static const char xl6StdStringMidBody[] =
+    "func __xl_std_string_mid(string text, int start, int count = -1) as string\n"
+    "    return __xl_std_runtime_take_cstr(__xl_std_xrt_str_mid(text, 0, start, count, null))\n"
+    "end\n";
+
+static const char xl6StdStringCharAtBody[] =
+    "func __xl_std_string_char_at(string text, int index) as string\n"
+    "    return __xl_std_runtime_take_cstr(__xl_std_xrt_str_char_at(text, 0, index, null))\n"
+    "end\n";
+
+static const char xl6StdStringByteAtBody[] =
+    "func __xl_std_string_byte_at(string text, int index) as int\n"
+    "    return int(__xl_std_xrt_str_byte_at(text, 0, index))\n"
+    "end\n";
+
+static const char xl6StdStringJoinBody[] =
+    "func __xl_std_string_join(array values, string sep = \"\") as string\n"
+    "    return __xl_std_runtime_take_cstr(__xl_std_runtime_string_join(values, sep))\n"
+    "end\n";
+
+static const char xl6StdStringRepeatBody[] =
+    "func __xl_std_string_repeat(string text, int count) as string\n"
+    "    return __xl_std_runtime_take_cstr(__xl_std_xrt_str_repeat(text, 0, count, null))\n"
+    "end\n";
+
+static const char xl6StdStringIsEmptyBody[] =
+    "func __xl_std_string_is_empty(string text) as bool\n"
+    "    return __xl_std_xrt_str_is_empty(text, 0)\n"
+    "end\n";
+
+static const char xl6StdStringIsBlankBody[] =
+    "func __xl_std_string_is_blank(string text) as bool\n"
+    "    return __xl_std_xrt_str_is_blank(text, 0)\n"
+    "end\n";
+
+static const char xl6StdStringRemoveBody[] =
+    "func __xl_std_string_remove(string text, string part, bool ignoreCase = false) as string\n"
+    "    return __xl_std_runtime_take_cstr(__xl_std_xrt_str_remove(text, 0, part, 0, ignoreCase, null))\n"
+    "end\n";
+
+static const char xl6StdStringRemoveAtBody[] =
+    "func __xl_std_string_remove_at(string text, int start, int count) as string\n"
+    "    return __xl_std_runtime_take_cstr(__xl_std_xrt_str_remove_at(text, 0, start, count, null))\n"
+    "end\n";
+
+static const char xl6StdStringInsertBody[] =
+    "func __xl_std_string_insert(string text, int start, string part) as string\n"
+    "    return __xl_std_runtime_take_cstr(__xl_std_xrt_str_insert(text, 0, start, part, 0, null))\n"
+    "end\n";
+
+static const char xl6StdStringPadLeftBody[] =
+    "func __xl_std_string_pad_left(string text, int width, string pad = \" \") as string\n"
+    "    return __xl_std_runtime_take_cstr(__xl_std_xrt_str_pad_left(text, 0, width, pad, 0, null))\n"
+    "end\n";
+
+static const char xl6StdStringPadRightBody[] =
+    "func __xl_std_string_pad_right(string text, int width, string pad = \" \") as string\n"
+    "    return __xl_std_runtime_take_cstr(__xl_std_xrt_str_pad_right(text, 0, width, pad, 0, null))\n"
+    "end\n";
+
+static const char xl6StdStringPadCenterBody[] =
+    "func __xl_std_string_pad_center(string text, int width, string pad = \" \") as string\n"
+    "    return __xl_std_runtime_take_cstr(__xl_std_xrt_str_pad_center(text, 0, width, pad, 0, null))\n"
+    "end\n";
+
+static const char xl6StdStringReverseBody[] =
+    "func __xl_std_string_reverse(string text) as string\n"
+    "    return __xl_std_runtime_take_cstr(__xl_std_xrt_str_reverse(text, 0, null))\n"
+    "end\n";
+
+static const char xl6StdStringSplitLinesBody[] =
+    "func __xl_std_string_split_lines(string text) as array\n"
+    "    return array(__xl_std_runtime_string_split_lines(text))\n"
+    "end\n";
+
+static const char xl6StdStringCharsBody[] =
+    "func __xl_std_string_chars(string text) as array\n"
+    "    return array(__xl_std_runtime_string_chars(text))\n"
+    "end\n";
+
+static const char xl6StdStringBytesBody[] =
+    "func __xl_std_string_bytes(string text) as array\n"
+    "    return array(__xl_std_runtime_string_bytes(text))\n"
+    "end\n";
+
 static const char xl6StdRegexIsMatchBody[] =
     "func __xl_std_regex_is_match(string text, string pattern) as bool\n"
     "    return __xl_std_runtime_regex_is_match(text, __xl_std_crt_strlen(text), pattern)\n"
@@ -695,6 +929,22 @@ static const char xl6StdTimeParseBody[] =
 static const char xl6StdTimeParsePatternBody[] =
     "func __xl_std_time_parse_pattern(string text, string pattern) as time\n"
     "    return time(__xl_std_xrt_time_parse(text, pattern))\n"
+    "end\n";
+
+static const char xl6StdTimeTryParseBody[] =
+    "func __xl_std_time_try_parse(string text) as (bool, time)\n"
+    "    if __xl_std_xrt_try_str_to_time(text, 0, null) then\n"
+    "        return true, time(__xl_std_xrt_str_to_time(text, 0))\n"
+    "    end\n"
+    "    return false, time(0)\n"
+    "end\n";
+
+static const char xl6StdTimeTryParsePatternBody[] =
+    "func __xl_std_time_try_parse_pattern(string text, string pattern) as (bool, time)\n"
+    "    if __xl_std_xrt_try_time_parse(text, pattern, null) then\n"
+    "        return true, time(__xl_std_xrt_time_parse(text, pattern))\n"
+    "    end\n"
+    "    return false, time(0)\n"
     "end\n";
 
 static const char xl6StdTimeYearBody[] =
@@ -817,9 +1067,54 @@ static const char xl6StdTimeAddSecondsBody[] =
     "    return time(__xl_std_xrt_date_add(6, amount, int(value)))\n"
     "end\n";
 
+static const char xl6StdTimeAddWeeksBody[] =
+    "func __xl_std_time_add_weeks(time value, int amount) as time\n"
+    "    return time(__xl_std_xrt_date_add(7, amount, int(value)))\n"
+    "end\n";
+
+static const char xl6StdTimeAddQuartersBody[] =
+    "func __xl_std_time_add_quarters(time value, int amount) as time\n"
+    "    return time(__xl_std_xrt_date_add(8, amount, int(value)))\n"
+    "end\n";
+
+static const char xl6StdTimeDiffYearsBody[] =
+    "func __xl_std_time_diff_years(time left, time right) as int\n"
+    "    return __xl_std_xrt_date_diff(1, int(left), int(right))\n"
+    "end\n";
+
+static const char xl6StdTimeDiffMonthsBody[] =
+    "func __xl_std_time_diff_months(time left, time right) as int\n"
+    "    return __xl_std_xrt_date_diff(2, int(left), int(right))\n"
+    "end\n";
+
 static const char xl6StdTimeDiffDaysBody[] =
     "func __xl_std_time_diff_days(time left, time right) as int\n"
     "    return __xl_std_xrt_date_diff(3, int(left), int(right))\n"
+    "end\n";
+
+static const char xl6StdTimeDiffHoursBody[] =
+    "func __xl_std_time_diff_hours(time left, time right) as int\n"
+    "    return __xl_std_xrt_date_diff(4, int(left), int(right))\n"
+    "end\n";
+
+static const char xl6StdTimeDiffMinutesBody[] =
+    "func __xl_std_time_diff_minutes(time left, time right) as int\n"
+    "    return __xl_std_xrt_date_diff(5, int(left), int(right))\n"
+    "end\n";
+
+static const char xl6StdTimeDiffSecondsBody[] =
+    "func __xl_std_time_diff_seconds(time left, time right) as int\n"
+    "    return __xl_std_xrt_date_diff(6, int(left), int(right))\n"
+    "end\n";
+
+static const char xl6StdTimeDiffWeeksBody[] =
+    "func __xl_std_time_diff_weeks(time left, time right) as int\n"
+    "    return __xl_std_xrt_date_diff(7, int(left), int(right))\n"
+    "end\n";
+
+static const char xl6StdTimeDiffQuartersBody[] =
+    "func __xl_std_time_diff_quarters(time left, time right) as int\n"
+    "    return __xl_std_xrt_date_diff(8, int(left), int(right))\n"
     "end\n";
 
 static const char xl6StdTimeTimerBody[] =
@@ -930,6 +1225,11 @@ static const char xl6StdTimeDateStringBody[] =
 static const char xl6StdTimeTimeStringBody[] =
     "func __xl_std_time_time_string(time value) as string\n"
     "    return __xl_std_runtime_take_cstr(__xl_std_xrt_time_to_str(int(value), 2))\n"
+    "end\n";
+
+static const char xl6StdTimeRelativeBody[] =
+    "func __xl_std_time_relative(time value, time base) as string\n"
+    "    return __xl_std_runtime_take_cstr(__xl_std_xrt_relative_time(int(value), int(base)))\n"
     "end\n";
 
 static const char xl6StdRandomU32Body[] =
@@ -1370,11 +1670,23 @@ static const char xl6StdPrintlnBody[] =
     "    __xl_std_runtime_print(arg, true)\n"
     "end\n";
 
+static const XL6_StdlibConst xl6StdlibConsts[] = {
+    {"math", "pi", XL6_AST_FLOAT, "3.14159265358979323846264338327950288"},
+    {"math", "tau", XL6_AST_FLOAT, "6.28318530717958647692528676655900576"},
+    {"math", "e", XL6_AST_FLOAT, "2.71828182845904523536028747135266250"},
+    {"math", "nan", XL6_AST_FLOAT, "(0.0/0.0)"},
+    {"math", "inf", XL6_AST_FLOAT, "(1.0/0.0)"}
+};
+
 static const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"__crt_string", "strlen", "__xl_std_crt_strlen", "strlen", xl6StdStringLenParams, 1, "c_size", NULL},
     {"__xl_runtime", "takeCstr", "__xl_std_runtime_take_cstr", "xl6_xrt_take_cstr", xl6StdRuntimeTakeCstrParams, 1, "string", NULL},
     {"__xl_runtime", "print", "__xl_std_runtime_print", "xl6_xrt_print", xl6StdRuntimePrintParams, 2, "", NULL},
     {"__xl_runtime", "stringSplit", "__xl_std_runtime_string_split", "xl6_xrt_string_split", xl6StdRuntimeStringSplitParams, 2, "var", NULL},
+    {"__xl_runtime", "stringChars", "__xl_std_runtime_string_chars", "xl6_xrt_string_chars", xl6StdRuntimeStringTextParams, 1, "var", NULL},
+    {"__xl_runtime", "stringBytes", "__xl_std_runtime_string_bytes", "xl6_xrt_string_bytes", xl6StdRuntimeStringTextParams, 1, "var", NULL},
+    {"__xl_runtime", "stringJoin", "__xl_std_runtime_string_join", "xl6_xrt_string_join", xl6StdRuntimeStringJoinParams, 2, "point", NULL},
+    {"__xl_runtime", "stringSplitLines", "__xl_std_runtime_string_split_lines", "xl6_xrt_string_split_lines", xl6StdRuntimeStringTextParams, 1, "var", NULL},
     {"__xl_runtime", "stringStartsWith", "__xl_std_runtime_string_starts_with", "xl6_xrt_string_starts_with", xl6StdRuntimeStringEdgeParams, 5, "c_bool", NULL},
     {"__xl_runtime", "stringEndsWith", "__xl_std_runtime_string_ends_with", "xl6_xrt_string_ends_with", xl6StdRuntimeStringEdgeParams, 5, "c_bool", NULL},
     {"__xl_runtime", "sha1Hex", "__xl_std_runtime_sha1_hex", "xl6_xrt_sha1_hex", xl6StdRuntimeCryptoTextParams, 2, "point", NULL},
@@ -1405,7 +1717,12 @@ static const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"__xl_runtime", "httpServerDestroy", "__xl_std_runtime_http_server_destroy", "xl6_xrt_http_server_destroy", xl6StdRuntimeHttpServerHandleParams, 1, "", NULL},
 
     {"__xrt_string", "strComp", "__xl_std_xrt_str_comp", "xrtStrComp", xl6StdXrtStrCompParams, 4, "c_int", NULL},
+    {"__xrt_string", "strByteLen", "__xl_std_xrt_str_byte_len", "xrtStrByteLen", xl6StdXrtStringSizeParams, 2, "c_size", NULL},
+    {"__xrt_string", "strCharLen", "__xl_std_xrt_str_char_len", "xrtStrCharLen", xl6StdXrtStringSizeParams, 2, "c_size", NULL},
     {"__xrt_string", "inStr", "__xl_std_xrt_in_str", "xrtInStr", xl6StdXrtInStrParams, 5, "c_uint", NULL},
+    {"__xrt_string", "strIndexOf", "__xl_std_xrt_str_index_of", "xrtStrIndexOf", xl6StdXrtStringFindParams, 5, "int", NULL},
+    {"__xrt_string", "strLastIndexOf", "__xl_std_xrt_str_last_index_of", "xrtStrLastIndexOf", xl6StdXrtStringFindParams, 5, "int", NULL},
+    {"__xrt_string", "strCount", "__xl_std_xrt_str_count", "xrtStrCount", xl6StdXrtStringFindParams, 5, "int", NULL},
     {"__xrt_string", "checkStr", "__xl_std_xrt_check_str", "xrtCheckStr", xl6StdXrtCheckStrParams, 4, "point", NULL},
     {"__xrt_string", "strLike", "__xl_std_xrt_str_like", "xrtStrLike", xl6StdXrtStrLikeParams, 5, "c_bool", NULL},
     {"__xrt_string", "strApprox", "__xl_std_xrt_str_approx", "xrtStrApprox", xl6StdXrtStrApproxParams, 4, "c_bool", NULL},
@@ -1420,12 +1737,32 @@ static const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"__xrt_string", "rtrim", "__xl_std_xrt_rtrim", "xrtRTrim", xl6StdXrtStringTrimParams, 6, "point", NULL},
     {"__xrt_string", "filter", "__xl_std_xrt_filter", "xrtFilterStr", xl6StdXrtStringTrimParams, 6, "point", NULL},
     {"__xrt_string", "replace", "__xl_std_xrt_replace", "xrtReplace", xl6StdXrtStringReplaceParams, 7, "point", NULL},
+    {"__xrt_string", "strSlice", "__xl_std_xrt_str_slice", "xrtStrSlice", xl6StdXrtStringSliceParams, 5, "point", NULL},
+    {"__xrt_string", "strLeft", "__xl_std_xrt_str_left", "xrtStrLeft", xl6StdXrtStringCountParams, 4, "point", NULL},
+    {"__xrt_string", "strRight", "__xl_std_xrt_str_right", "xrtStrRight", xl6StdXrtStringCountParams, 4, "point", NULL},
+    {"__xrt_string", "strMid", "__xl_std_xrt_str_mid", "xrtStrMid", xl6StdXrtStringSliceParams, 5, "point", NULL},
+    {"__xrt_string", "strCharAt", "__xl_std_xrt_str_char_at", "xrtStrCharAt", xl6StdXrtStringIndexParams, 4, "point", NULL},
+    {"__xrt_string", "strByteAt", "__xl_std_xrt_str_byte_at", "xrtStrByteAt", xl6StdXrtStringByteAtParams, 3, "c_int", NULL},
+    {"__xrt_string", "strRepeat", "__xl_std_xrt_str_repeat", "xrtStrRepeat", xl6StdXrtStringCountParams, 4, "point", NULL},
+    {"__xrt_string", "strIsEmpty", "__xl_std_xrt_str_is_empty", "xrtStrIsEmpty", xl6StdXrtStringSizeParams, 2, "c_bool", NULL},
+    {"__xrt_string", "strIsBlank", "__xl_std_xrt_str_is_blank", "xrtStrIsBlank", xl6StdXrtStringSizeParams, 2, "c_bool", NULL},
+    {"__xrt_string", "strRemove", "__xl_std_xrt_str_remove", "xrtStrRemove", xl6StdXrtStringRemoveParams, 6, "point", NULL},
+    {"__xrt_string", "strRemoveAt", "__xl_std_xrt_str_remove_at", "xrtStrRemoveAt", xl6StdXrtStringSliceParams, 5, "point", NULL},
+    {"__xrt_string", "strInsert", "__xl_std_xrt_str_insert", "xrtStrInsert", xl6StdXrtStringInsertParams, 6, "point", NULL},
+    {"__xrt_string", "strPadLeft", "__xl_std_xrt_str_pad_left", "xrtStrPadLeft", xl6StdXrtStringPadParams, 6, "point", NULL},
+    {"__xrt_string", "strPadRight", "__xl_std_xrt_str_pad_right", "xrtStrPadRight", xl6StdXrtStringPadParams, 6, "point", NULL},
+    {"__xrt_string", "strPadCenter", "__xl_std_xrt_str_pad_center", "xrtStrPadCenter", xl6StdXrtStringPadParams, 6, "point", NULL},
+    {"__xrt_string", "strReverse", "__xl_std_xrt_str_reverse", "xrtStrReverse", xl6StdXrtStringReverseParams, 3, "point", NULL},
+    {"__xrt_math", "sign", "__xl_std_xrt_math_sign", "xrtMathSign", xl6StdMathUnaryFloatParams, 1, "c_int", NULL},
     {"__xrt_time", "dateAdd", "__xl_std_xrt_date_add", "xrtDateAdd", xl6StdXrtDateAddParams, 3, "int", NULL},
     {"__xrt_time", "dateDiff", "__xl_std_xrt_date_diff", "xrtDateDiff", xl6StdXrtDateDiffParams, 3, "int", NULL},
     {"__xrt_time", "strToTime", "__xl_std_xrt_str_to_time", "xrtStrToTime", xl6StdXrtStrToTimeParams, 2, "int", NULL},
+    {"__xrt_time", "tryStrToTime", "__xl_std_xrt_try_str_to_time", "xrtTryStrToTime", xl6StdXrtTryStrToTimeParams, 3, "c_bool", NULL},
     {"__xrt_time", "timeToStr", "__xl_std_xrt_time_to_str", "xrtTimeToStr", xl6StdXrtTimeToStrParams, 2, "point", NULL},
     {"__xrt_time", "timeFormat", "__xl_std_xrt_time_format", "xrtTimeFormat", xl6StdXrtTimeFormatParams, 2, "point", NULL},
     {"__xrt_time", "timeParse", "__xl_std_xrt_time_parse", "xrtTimeParse", xl6StdXrtTimeParseParams, 2, "int", NULL},
+    {"__xrt_time", "tryTimeParse", "__xl_std_xrt_try_time_parse", "xrtTryTimeParse", xl6StdXrtTryTimeParseParams, 3, "c_bool", NULL},
+    {"__xrt_time", "relativeTime", "__xl_std_xrt_relative_time", "xrtRelativeTime", xl6StdXrtIntBinaryParams, 2, "point", NULL},
     {"__xrt_time", "dateTimeSerial", "__xl_std_xrt_datetime_serial", "xrtDateTimeSerial", xl6StdTimeFromDateTimeParams, 6, "int", NULL},
     {"__xrt_time", "now", "__xl_std_xrt_now", "xrtNow", NULL, 0, "int", NULL},
     {"__xrt_time", "date", "__xl_std_xrt_date", "xrtDate", NULL, 0, "int", NULL},
@@ -1538,12 +1875,33 @@ static const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"math", "ceil", "__xl_std_math_ceil", "ceil", xl6StdMathUnaryFloatParams, 1, "float", NULL},
     {"math", "round", "__xl_std_math_round", NULL, xl6StdMathUnaryFloatParams, 1, "float", xl6StdMathRoundBody},
     {"math", "abs", "__xl_std_math_abs", "fabs", xl6StdMathUnaryFloatParams, 1, "float", NULL},
+    {"math", "min", "__xl_std_math_min", "xrtMathMin", xl6StdMathBinaryFloatParams, 2, "float", NULL},
+    {"math", "max", "__xl_std_math_max", "xrtMathMax", xl6StdMathBinaryFloatParams, 2, "float", NULL},
+    {"math", "clamp", "__xl_std_math_clamp", "xrtMathClamp", xl6StdMathClampParams, 3, "float", NULL},
+    {"math", "sign", "__xl_std_math_sign", NULL, xl6StdMathUnaryFloatParams, 1, "int", xl6StdMathSignBody},
+    {"math", "trunc", "__xl_std_math_trunc", "xrtMathTrunc", xl6StdMathUnaryFloatParams, 1, "float", NULL},
+    {"math", "fract", "__xl_std_math_fract", "xrtMathFract", xl6StdMathUnaryFloatParams, 1, "float", NULL},
+    {"math", "mod", "__xl_std_math_mod", "xrtMathMod", xl6StdMathModParams, 2, "float", NULL},
+    {"math", "rad", "__xl_std_math_rad", "xrtMathRad", xl6StdMathUnaryFloatParams, 1, "float", NULL},
+    {"math", "deg", "__xl_std_math_deg", "xrtMathDeg", xl6StdMathUnaryFloatParams, 1, "float", NULL},
+    {"math", "isNaN", "__xl_std_math_is_nan", "xrtMathIsNaN", xl6StdMathUnaryFloatParams, 1, "bool", NULL},
+    {"math", "isInf", "__xl_std_math_is_inf", "xrtMathIsInf", xl6StdMathUnaryFloatParams, 1, "bool", NULL},
+    {"math", "isFinite", "__xl_std_math_is_finite", "xrtMathIsFinite", xl6StdMathUnaryFloatParams, 1, "bool", NULL},
+    {"math", "log2", "__xl_std_math_log2", "xrtMathLog2", xl6StdMathUnaryFloatParams, 1, "float", NULL},
+    {"math", "exp2", "__xl_std_math_exp2", "xrtMathExp2", xl6StdMathUnaryFloatParams, 1, "float", NULL},
+    {"math", "log1p", "__xl_std_math_log1p", "xrtMathLog1p", xl6StdMathUnaryFloatParams, 1, "float", NULL},
+    {"math", "expm1", "__xl_std_math_expm1", "xrtMathExpm1", xl6StdMathUnaryFloatParams, 1, "float", NULL},
+    {"math", "cbrt", "__xl_std_math_cbrt", "xrtMathCbrt", xl6StdMathUnaryFloatParams, 1, "float", NULL},
+    {"math", "hypot", "__xl_std_math_hypot", "xrtMathHypot", xl6StdMathPowParams, 2, "float", NULL},
 
     {"string", "len", "__xl_std_string_len", NULL, NULL, 0, "int", xl6StdStringLenBody},
+    {"string", "byteLen", "__xl_std_string_byte_len", NULL, NULL, 0, "int", xl6StdStringByteLenBody},
     {"string", "compare", "__xl_std_string_compare", NULL, NULL, 0, "int", xl6StdStringCompareBody},
     {"string", "equals", "__xl_std_string_equals", NULL, NULL, 0, "bool", xl6StdStringEqualsBody},
     {"string", "contains", "__xl_std_string_contains", NULL, NULL, 0, "bool", xl6StdStringContainsBody},
     {"string", "indexOf", "__xl_std_string_index_of", NULL, NULL, 0, "int", xl6StdStringIndexOfBody},
+    {"string", "lastIndexOf", "__xl_std_string_last_index_of", NULL, NULL, 0, "int", xl6StdStringLastIndexOfBody},
+    {"string", "count", "__xl_std_string_count", NULL, NULL, 0, "int", xl6StdStringCountBody},
     {"string", "startsWith", "__xl_std_string_starts_with", NULL, NULL, 0, "bool", xl6StdStringStartsWithBody},
     {"string", "endsWith", "__xl_std_string_ends_with", NULL, NULL, 0, "bool", xl6StdStringEndsWithBody},
     {"string", "hasAny", "__xl_std_string_has_any", NULL, NULL, 0, "bool", xl6StdStringHasAnyBody},
@@ -1561,6 +1919,26 @@ static const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"string", "filter", "__xl_std_string_filter", NULL, NULL, 0, "string", xl6StdStringFilterBody},
     {"string", "replace", "__xl_std_string_replace", NULL, NULL, 0, "string", xl6StdStringReplaceBody},
     {"string", "split", "__xl_std_string_split", NULL, NULL, 0, "array", xl6StdStringSplitBody},
+    {"string", "slice", "__xl_std_string_slice", NULL, NULL, 0, "string", xl6StdStringSliceBody},
+    {"string", "left", "__xl_std_string_left", NULL, NULL, 0, "string", xl6StdStringLeftBody},
+    {"string", "right", "__xl_std_string_right", NULL, NULL, 0, "string", xl6StdStringRightBody},
+    {"string", "mid", "__xl_std_string_mid", NULL, NULL, 0, "string", xl6StdStringMidBody},
+    {"string", "charAt", "__xl_std_string_char_at", NULL, NULL, 0, "string", xl6StdStringCharAtBody},
+    {"string", "byteAt", "__xl_std_string_byte_at", NULL, NULL, 0, "int", xl6StdStringByteAtBody},
+    {"string", "join", "__xl_std_string_join", NULL, NULL, 0, "string", xl6StdStringJoinBody},
+    {"string", "repeat", "__xl_std_string_repeat", NULL, NULL, 0, "string", xl6StdStringRepeatBody},
+    {"string", "isEmpty", "__xl_std_string_is_empty", NULL, NULL, 0, "bool", xl6StdStringIsEmptyBody},
+    {"string", "isBlank", "__xl_std_string_is_blank", NULL, NULL, 0, "bool", xl6StdStringIsBlankBody},
+    {"string", "remove", "__xl_std_string_remove", NULL, NULL, 0, "string", xl6StdStringRemoveBody},
+    {"string", "removeAt", "__xl_std_string_remove_at", NULL, NULL, 0, "string", xl6StdStringRemoveAtBody},
+    {"string", "insert", "__xl_std_string_insert", NULL, NULL, 0, "string", xl6StdStringInsertBody},
+    {"string", "padLeft", "__xl_std_string_pad_left", NULL, NULL, 0, "string", xl6StdStringPadLeftBody},
+    {"string", "padRight", "__xl_std_string_pad_right", NULL, NULL, 0, "string", xl6StdStringPadRightBody},
+    {"string", "padCenter", "__xl_std_string_pad_center", NULL, NULL, 0, "string", xl6StdStringPadCenterBody},
+    {"string", "reverse", "__xl_std_string_reverse", NULL, NULL, 0, "string", xl6StdStringReverseBody},
+    {"string", "splitLines", "__xl_std_string_split_lines", NULL, NULL, 0, "array", xl6StdStringSplitLinesBody},
+    {"string", "chars", "__xl_std_string_chars", NULL, NULL, 0, "array", xl6StdStringCharsBody},
+    {"string", "bytes", "__xl_std_string_bytes", NULL, NULL, 0, "array", xl6StdStringBytesBody},
 
     {"time", "now", "__xl_std_time_now", NULL, NULL, 0, "time", xl6StdTimeNowBody},
     {"time", "today", "__xl_std_time_today", NULL, NULL, 0, "time", xl6StdTimeTodayBody},
@@ -1570,6 +1948,8 @@ static const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"time", "fromDateTime", "__xl_std_time_from_datetime", NULL, NULL, 0, "time", xl6StdTimeFromDateTimeBody},
     {"time", "parse", "__xl_std_time_parse", NULL, NULL, 0, "time", xl6StdTimeParseBody},
     {"time", "parsePattern", "__xl_std_time_parse_pattern", NULL, NULL, 0, "time", xl6StdTimeParsePatternBody},
+    {"time", "tryParse", "__xl_std_time_try_parse", NULL, NULL, 0, "(bool, time)", xl6StdTimeTryParseBody},
+    {"time", "tryParsePattern", "__xl_std_time_try_parse_pattern", NULL, NULL, 0, "(bool, time)", xl6StdTimeTryParsePatternBody},
     {"time", "year", "__xl_std_time_year", NULL, NULL, 0, "int", xl6StdTimeYearBody},
     {"time", "month", "__xl_std_time_month", NULL, NULL, 0, "int", xl6StdTimeMonthBody},
     {"time", "day", "__xl_std_time_day", NULL, NULL, 0, "int", xl6StdTimeDayBody},
@@ -1594,7 +1974,16 @@ static const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"time", "addHours", "__xl_std_time_add_hours", NULL, NULL, 0, "time", xl6StdTimeAddHoursBody},
     {"time", "addMinutes", "__xl_std_time_add_minutes", NULL, NULL, 0, "time", xl6StdTimeAddMinutesBody},
     {"time", "addSeconds", "__xl_std_time_add_seconds", NULL, NULL, 0, "time", xl6StdTimeAddSecondsBody},
+    {"time", "addWeeks", "__xl_std_time_add_weeks", NULL, NULL, 0, "time", xl6StdTimeAddWeeksBody},
+    {"time", "addQuarters", "__xl_std_time_add_quarters", NULL, NULL, 0, "time", xl6StdTimeAddQuartersBody},
+    {"time", "diffYears", "__xl_std_time_diff_years", NULL, NULL, 0, "int", xl6StdTimeDiffYearsBody},
+    {"time", "diffMonths", "__xl_std_time_diff_months", NULL, NULL, 0, "int", xl6StdTimeDiffMonthsBody},
     {"time", "diffDays", "__xl_std_time_diff_days", NULL, NULL, 0, "int", xl6StdTimeDiffDaysBody},
+    {"time", "diffHours", "__xl_std_time_diff_hours", NULL, NULL, 0, "int", xl6StdTimeDiffHoursBody},
+    {"time", "diffMinutes", "__xl_std_time_diff_minutes", NULL, NULL, 0, "int", xl6StdTimeDiffMinutesBody},
+    {"time", "diffSeconds", "__xl_std_time_diff_seconds", NULL, NULL, 0, "int", xl6StdTimeDiffSecondsBody},
+    {"time", "diffWeeks", "__xl_std_time_diff_weeks", NULL, NULL, 0, "int", xl6StdTimeDiffWeeksBody},
+    {"time", "diffQuarters", "__xl_std_time_diff_quarters", NULL, NULL, 0, "int", xl6StdTimeDiffQuartersBody},
     {"time", "timer", "__xl_std_time_timer", NULL, NULL, 0, "float", xl6StdTimeTimerBody},
     {"time", "sleep", "__xl_std_time_sleep", NULL, xl6StdTimeSleepParams, 1, "", xl6StdTimeSleepBody},
     {"time", "nowUTC", "__xl_std_time_now_utc", NULL, NULL, 0, "time", xl6StdTimeNowUtcBody},
@@ -1617,6 +2006,7 @@ static const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"time", "formatPattern", "__xl_std_time_format_pattern", NULL, NULL, 0, "string", xl6StdTimeFormatPatternBody},
     {"time", "dateString", "__xl_std_time_date_string", NULL, NULL, 0, "string", xl6StdTimeDateStringBody},
     {"time", "timeString", "__xl_std_time_time_string", NULL, NULL, 0, "string", xl6StdTimeTimeStringBody},
+    {"time", "relative", "__xl_std_time_relative", NULL, NULL, 0, "string", xl6StdTimeRelativeBody},
 
     {"random", "u32", "__xl_std_random_u32", NULL, NULL, 0, "uint32", xl6StdRandomU32Body},
     {"random", "u64", "__xl_std_random_u64", NULL, NULL, 0, "uint64", xl6StdRandomU64Body},
@@ -1833,12 +2223,30 @@ static const XL6_StdlibFunc* xl6StdlibFindFunc(const char* ns, const char* name,
     return NULL;
 }
 
+static const XL6_StdlibConst* xl6StdlibFindConst(const char* ns, const char* name)
+{
+    size_t i;
+
+    for ( i = 0; i < XL6_ARRAY_COUNT(xl6StdlibConsts); ++i ) {
+        if ( xl6StdlibTextEquals(xl6StdlibConsts[i].ns, ns) &&
+             xl6StdlibTextEquals(xl6StdlibConsts[i].name, name) ) {
+            return &xl6StdlibConsts[i];
+        }
+    }
+    return NULL;
+}
+
 static int xl6StdlibNamespaceExists(const char* ns)
 {
     size_t i;
 
     for ( i = 0; i < XL6_ARRAY_COUNT(xl6StdlibFuncs); ++i ) {
         if ( xl6StdlibTextEquals(xl6StdlibFuncs[i].ns, ns) ) {
+            return 1;
+        }
+    }
+    for ( i = 0; i < XL6_ARRAY_COUNT(xl6StdlibConsts); ++i ) {
+        if ( xl6StdlibTextEquals(xl6StdlibConsts[i].ns, ns) ) {
             return 1;
         }
     }
@@ -1873,6 +2281,9 @@ static void xl6StdlibApplyDeps(int* used)
         xl6StdlibMarkFuncUsed(used, "math", "floor");
         xl6StdlibMarkFuncUsed(used, "math", "ceil");
     }
+    if ( xl6StdlibFindFunc("math", "sign", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xrt_math", "sign");
+    }
 
     if ( xl6StdlibFindFunc("", "print", &index) != NULL && used[index] ) {
         xl6StdlibMarkFuncUsed(used, "__xl_runtime", "print");
@@ -1882,7 +2293,10 @@ static void xl6StdlibApplyDeps(int* used)
     }
 
     if ( xl6StdlibFindFunc("string", "len", &index) != NULL && used[index] ) {
-        xl6StdlibMarkFuncUsed(used, "__crt_string", "strlen");
+        xl6StdlibMarkFuncUsed(used, "__xrt_string", "strCharLen");
+    }
+    if ( xl6StdlibFindFunc("string", "byteLen", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xrt_string", "strByteLen");
     }
     if ( xl6StdlibFindFunc("string", "compare", &index) != NULL && used[index] ) {
         xl6StdlibMarkFuncUsed(used, "__xrt_string", "strComp");
@@ -1894,7 +2308,13 @@ static void xl6StdlibApplyDeps(int* used)
         xl6StdlibMarkFuncUsed(used, "__xrt_string", "inStr");
     }
     if ( xl6StdlibFindFunc("string", "indexOf", &index) != NULL && used[index] ) {
-        xl6StdlibMarkFuncUsed(used, "__xrt_string", "inStr");
+        xl6StdlibMarkFuncUsed(used, "__xrt_string", "strIndexOf");
+    }
+    if ( xl6StdlibFindFunc("string", "lastIndexOf", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xrt_string", "strLastIndexOf");
+    }
+    if ( xl6StdlibFindFunc("string", "count", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xrt_string", "strCount");
     }
     if ( xl6StdlibFindFunc("string", "startsWith", &index) != NULL && used[index] ) {
         xl6StdlibMarkFuncUsed(used, "__crt_string", "strlen");
@@ -1958,6 +2378,80 @@ static void xl6StdlibApplyDeps(int* used)
     if ( xl6StdlibFindFunc("string", "split", &index) != NULL && used[index] ) {
         xl6StdlibMarkFuncUsed(used, "__xl_runtime", "stringSplit");
     }
+    if ( xl6StdlibFindFunc("string", "slice", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "takeCstr");
+        xl6StdlibMarkFuncUsed(used, "__xrt_string", "strSlice");
+    }
+    if ( xl6StdlibFindFunc("string", "left", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "takeCstr");
+        xl6StdlibMarkFuncUsed(used, "__xrt_string", "strLeft");
+    }
+    if ( xl6StdlibFindFunc("string", "right", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "takeCstr");
+        xl6StdlibMarkFuncUsed(used, "__xrt_string", "strRight");
+    }
+    if ( xl6StdlibFindFunc("string", "mid", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "takeCstr");
+        xl6StdlibMarkFuncUsed(used, "__xrt_string", "strMid");
+    }
+    if ( xl6StdlibFindFunc("string", "charAt", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "takeCstr");
+        xl6StdlibMarkFuncUsed(used, "__xrt_string", "strCharAt");
+    }
+    if ( xl6StdlibFindFunc("string", "byteAt", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xrt_string", "strByteAt");
+    }
+    if ( xl6StdlibFindFunc("string", "join", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "takeCstr");
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "stringJoin");
+    }
+    if ( xl6StdlibFindFunc("string", "repeat", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "takeCstr");
+        xl6StdlibMarkFuncUsed(used, "__xrt_string", "strRepeat");
+    }
+    if ( xl6StdlibFindFunc("string", "isEmpty", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xrt_string", "strIsEmpty");
+    }
+    if ( xl6StdlibFindFunc("string", "isBlank", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xrt_string", "strIsBlank");
+    }
+    if ( xl6StdlibFindFunc("string", "remove", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "takeCstr");
+        xl6StdlibMarkFuncUsed(used, "__xrt_string", "strRemove");
+    }
+    if ( xl6StdlibFindFunc("string", "removeAt", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "takeCstr");
+        xl6StdlibMarkFuncUsed(used, "__xrt_string", "strRemoveAt");
+    }
+    if ( xl6StdlibFindFunc("string", "insert", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "takeCstr");
+        xl6StdlibMarkFuncUsed(used, "__xrt_string", "strInsert");
+    }
+    if ( xl6StdlibFindFunc("string", "padLeft", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "takeCstr");
+        xl6StdlibMarkFuncUsed(used, "__xrt_string", "strPadLeft");
+    }
+    if ( xl6StdlibFindFunc("string", "padRight", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "takeCstr");
+        xl6StdlibMarkFuncUsed(used, "__xrt_string", "strPadRight");
+    }
+    if ( xl6StdlibFindFunc("string", "padCenter", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "takeCstr");
+        xl6StdlibMarkFuncUsed(used, "__xrt_string", "strPadCenter");
+    }
+    if ( xl6StdlibFindFunc("string", "reverse", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "takeCstr");
+        xl6StdlibMarkFuncUsed(used, "__xrt_string", "strReverse");
+    }
+    if ( xl6StdlibFindFunc("string", "splitLines", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "stringSplitLines");
+    }
+    if ( xl6StdlibFindFunc("string", "chars", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "stringChars");
+    }
+    if ( xl6StdlibFindFunc("string", "bytes", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "stringBytes");
+    }
 
     if ( xl6StdlibFindFunc("time", "now", &index) != NULL && used[index] ) {
         xl6StdlibMarkFuncUsed(used, "__xrt_time", "now");
@@ -1981,6 +2475,14 @@ static void xl6StdlibApplyDeps(int* used)
         xl6StdlibMarkFuncUsed(used, "__xrt_time", "strToTime");
     }
     if ( xl6StdlibFindFunc("time", "parsePattern", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xrt_time", "timeParse");
+    }
+    if ( xl6StdlibFindFunc("time", "tryParse", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xrt_time", "tryStrToTime");
+        xl6StdlibMarkFuncUsed(used, "__xrt_time", "strToTime");
+    }
+    if ( xl6StdlibFindFunc("time", "tryParsePattern", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xrt_time", "tryTimeParse");
         xl6StdlibMarkFuncUsed(used, "__xrt_time", "timeParse");
     }
     if ( xl6StdlibFindFunc("time", "year", &index) != NULL && used[index] ) {
@@ -2055,7 +2557,34 @@ static void xl6StdlibApplyDeps(int* used)
     if ( xl6StdlibFindFunc("time", "addSeconds", &index) != NULL && used[index] ) {
         xl6StdlibMarkFuncUsed(used, "__xrt_time", "dateAdd");
     }
+    if ( xl6StdlibFindFunc("time", "addWeeks", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xrt_time", "dateAdd");
+    }
+    if ( xl6StdlibFindFunc("time", "addQuarters", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xrt_time", "dateAdd");
+    }
+    if ( xl6StdlibFindFunc("time", "diffYears", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xrt_time", "dateDiff");
+    }
+    if ( xl6StdlibFindFunc("time", "diffMonths", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xrt_time", "dateDiff");
+    }
     if ( xl6StdlibFindFunc("time", "diffDays", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xrt_time", "dateDiff");
+    }
+    if ( xl6StdlibFindFunc("time", "diffHours", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xrt_time", "dateDiff");
+    }
+    if ( xl6StdlibFindFunc("time", "diffMinutes", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xrt_time", "dateDiff");
+    }
+    if ( xl6StdlibFindFunc("time", "diffSeconds", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xrt_time", "dateDiff");
+    }
+    if ( xl6StdlibFindFunc("time", "diffWeeks", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xrt_time", "dateDiff");
+    }
+    if ( xl6StdlibFindFunc("time", "diffQuarters", &index) != NULL && used[index] ) {
         xl6StdlibMarkFuncUsed(used, "__xrt_time", "dateDiff");
     }
     if ( xl6StdlibFindFunc("time", "timer", &index) != NULL && used[index] ) {
@@ -2127,6 +2656,10 @@ static void xl6StdlibApplyDeps(int* used)
     if ( xl6StdlibFindFunc("time", "timeString", &index) != NULL && used[index] ) {
         xl6StdlibMarkFuncUsed(used, "__xl_runtime", "takeCstr");
         xl6StdlibMarkFuncUsed(used, "__xrt_time", "timeToStr");
+    }
+    if ( xl6StdlibFindFunc("time", "relative", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "takeCstr");
+        xl6StdlibMarkFuncUsed(used, "__xrt_time", "relativeTime");
     }
 
     if ( xl6StdlibFindFunc("random", "u32", &index) != NULL && used[index] ) {
@@ -2536,6 +3069,26 @@ static void xl6StdlibRewriteMemberToName(XL6_AstNode* node, const char* name)
     node->text = xl6StdlibDupText(name);
 }
 
+static void xl6StdlibRewriteMemberToLiteral(XL6_AstNode* node, XL6_AstKind kind, const char* value)
+{
+    size_t i;
+
+    if ( node == NULL || value == NULL ) {
+        return;
+    }
+    for ( i = 0; i < node->childCount; ++i ) {
+        xl6AstFree(node->children[i]);
+    }
+    xrtFree(node->children);
+    xrtFree(node->text);
+
+    node->kind = kind;
+    node->children = NULL;
+    node->childCount = 0;
+    node->childCapacity = 0;
+    node->text = xl6StdlibDupText(value);
+}
+
 static int xl6StdlibRewriteRefs(XL6_AstNode* node, int* used, XL6_DiagList* diags)
 {
     char ns[128];
@@ -2565,6 +3118,11 @@ static int xl6StdlibRewriteRefs(XL6_AstNode* node, int* used, XL6_DiagList* diag
     /* 标准库命名空间：math.log -> __xl_std_math_log。 */
     if ( node->kind == XL6_AST_MEMBER && node->childCount > 0 && node->children[0] != NULL ) {
         if ( xl6StdlibReceiverPath(node->children[0], ns, sizeof(ns)) ) {
+            const XL6_StdlibConst* constant = xl6StdlibFindConst(ns, node->text);
+            if ( constant != NULL ) {
+                xl6StdlibRewriteMemberToLiteral(node, constant->kind, constant->value);
+                return node->text != NULL;
+            }
             const XL6_StdlibFunc* func = xl6StdlibFindFunc(ns, node->text, &index);
             if ( func != NULL ) {
                 used[index] = 1;
@@ -2573,7 +3131,7 @@ static int xl6StdlibRewriteRefs(XL6_AstNode* node, int* used, XL6_DiagList* diag
             }
             if ( xl6StdlibNamespaceExists(ns) ) {
                 if ( diags != NULL ) {
-                    xl6DiagAdd(diags, node->line, node->column, "standard library namespace has no such function");
+                    xl6DiagAdd(diags, node->line, node->column, "standard library namespace has no such symbol");
                 }
                 return 0;
             }
