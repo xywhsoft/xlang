@@ -1,0 +1,38 @@
+// 文件备份范例：创建配置文件、复制到备份目录、生成备份元数据。
+
+string root = "release/tmp/examples_apps/backup"
+string sourceDir = path.join(root, "source")
+string backupDir = path.join(root, "backup")
+string sourceFile = path.join(sourceDir, "app.conf")
+string backupFile = path.join(backupDir, "app.conf.bak")
+string metaFile = path.join(backupDir, "backup.json")
+
+dir.delete(root)
+dir.createAll(sourceDir)
+dir.createAll(backupDir)
+
+string body = "host=localhost\nport=8080\n"
+file.writeText(sourceFile, body)
+file.copy(sourceFile, backupFile)
+
+var meta = {
+    "source": sourceFile,
+    "backup": backupFile,
+    "bytes": file.size(backupFile),
+    "hash": hash.u64(file.readText(backupFile)).toString()
+}
+
+json.write(metaFile, meta, pretty = true)
+
+assert file.exists(backupFile), "backup file missing"
+assert file.readText(backupFile) == body, "backup content mismatch"
+assert string.contains(file.readText(metaFile), "app.conf.bak"), "backup metadata mismatch"
+
+file.delete(metaFile)
+file.delete(backupFile)
+file.delete(sourceFile)
+dir.delete(backupDir)
+dir.delete(sourceDir)
+dir.delete(root)
+
+println("file backup ok")

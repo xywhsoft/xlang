@@ -11,6 +11,11 @@ func slowWorker() as int
     return 9
 end
 
+func monitorSlowWorker() as int
+    time.sleep(120)
+    return 19
+end
+
 func makeThreadWorker(int code) as func() as int
     return func() as int
         return code
@@ -52,6 +57,27 @@ auto threadJoiner = func() as int
     return capturedReceiverThread.exitCode()
 end
 assert threadJoiner() == 7, "captured thread receiver wait/exitCode failed"
+
+thread capturedTimedThread = thread(monitorSlowWorker)
+auto threadObserver = func() as int
+    if capturedTimedThread.waitTimeout(0) then
+        return 10
+    end
+    if capturedTimedThread.state() < 0 then
+        return 11
+    end
+    if not capturedTimedThread.waitTimeout(2000) then
+        return 12
+    end
+    if capturedTimedThread.exitCode() != 19 then
+        return 13
+    end
+    if capturedTimedThread.state() < 0 then
+        return 14
+    end
+    return capturedTimedThread.exitCode()
+end
+assert threadObserver() == 19, "captured thread receiver waitTimeout/state failed"
 
 auto second = thread(worker)
 bool waitedTimeout = second.waitTimeout(5000)
@@ -119,6 +145,18 @@ bool stoppedWaited = stopped.wait()
 
 assert stoppedSignal, "thread stop failed"
 assert stoppedWaited, "thread wait after stop failed"
+
+thread capturedStopThread = thread(slowWorker)
+auto threadStopper = func() as int
+    if not capturedStopThread.stop() then
+        return 10
+    end
+    if not capturedStopThread.wait() then
+        return 11
+    end
+    return 17
+end
+assert threadStopper() == 17, "captured thread receiver stop/wait failed"
 
 thread slow = thread(slowWorker)
 bool slowImmediate = slow.waitTimeout(0)

@@ -20,7 +20,7 @@
   "module": {
     "name": "stb_image_resize2",
     "moduleId": "stb_image_resize2@0.1.0#abi1::stb_image_resize2",
-    "source": "extlibs/stb_image_resize2",
+    "source": "release/extlibs/stb_image_resize2",
     "sourceHash": ""
   },
   "entry": {

@@ -2,6 +2,7 @@
 #include <windows.h>
 #else
 #include <dlfcn.h>
+#include <unistd.h>
 #endif
 #include <stdio.h>
 #include <stdlib.h>
@@ -86,6 +87,59 @@ static void cv_set_error(const char* text)
 	cv_copy(g_error, sizeof(g_error), text);
 }
 
+static int cv_join_path(char* out, size_t out_size, const char* a, const char* b)
+{
+	const char* sep;
+	size_t a_len;
+	int written;
+	if ( out == NULL || out_size == 0u || a == NULL || b == NULL ) return 0;
+	a_len = strlen(a);
+	sep = (a_len > 0u && (a[a_len - 1u] == '\\' || a[a_len - 1u] == '/')) ? "" : "\\";
+	written = snprintf(out, out_size, "%s%s%s", a, sep, b);
+	return written > 0 && (size_t)written < out_size;
+}
+
+static void cv_dir_name(char* out, size_t out_size, const char* path)
+{
+	const char* p;
+	const char* last_sep = NULL;
+	size_t len;
+	if ( out == NULL || out_size == 0u ) return;
+	out[0] = '\0';
+	if ( path == NULL || path[0] == '\0' ) return;
+	for ( p = path; *p != '\0'; ++p ) {
+		if ( *p == '\\' || *p == '/' || *p == ':' ) last_sep = p;
+	}
+	if ( last_sep == NULL ) return;
+	len = (size_t)(last_sep - path);
+	if ( *last_sep == ':' ) len += 1u;
+	if ( len >= out_size ) len = out_size - 1u;
+	memcpy(out, path, len);
+	out[len] = '\0';
+}
+
+static int cv_exe_dir(char* out, size_t out_size)
+{
+	char path[512];
+	if ( out == NULL || out_size == 0u ) return 0;
+	out[0] = '\0';
+#if defined(_WIN32) || defined(_WIN64)
+	{
+		DWORD len = GetModuleFileNameA(NULL, path, (DWORD)sizeof(path));
+		if ( len == 0 || len >= sizeof(path) ) return 0;
+		path[len] = '\0';
+	}
+#else
+	{
+		ssize_t len = readlink("/proc/self/exe", path, sizeof(path) - 1u);
+		if ( len <= 0 || (size_t)len >= sizeof(path) ) return 0;
+		path[len] = '\0';
+	}
+#endif
+	cv_dir_name(out, out_size, path);
+	return out[0] != '\0';
+}
+
 static void* cv_sym(const char* name)
 {
 #if defined(_WIN32) || defined(_WIN64)
@@ -99,7 +153,7 @@ static int cv_try_load(const char* path)
 {
 	if ( path == NULL || path[0] == '\0' ) return 0;
 #if defined(_WIN32) || defined(_WIN64)
-	g_cv.module = LoadLibraryA(path);
+	g_cv.module = LoadLibraryExA(path, NULL, LOAD_WITH_ALTERED_SEARCH_PATH);
 #else
 	g_cv.module = dlopen(path, RTLD_NOW | RTLD_LOCAL);
 #endif
@@ -136,6 +190,19 @@ static int cv_try_load(const char* path)
 	return 1;
 }
 
+static int cv_try_load_from_exe(const char* relative)
+{
+	char exe_dir[512];
+	char parent_dir[512];
+	char path[1024];
+	if ( !cv_exe_dir(exe_dir, sizeof(exe_dir)) ) return 0;
+	if ( !cv_join_path(path, sizeof(path), exe_dir, relative) ) return 0;
+	if ( cv_try_load(path) ) return 1;
+	cv_dir_name(parent_dir, sizeof(parent_dir), exe_dir);
+	if ( parent_dir[0] == '\0' || !cv_join_path(path, sizeof(path), parent_dir, relative) ) return 0;
+	return cv_try_load(path);
+}
+
 static int cv_load(void)
 {
 	const char* env_path;
@@ -144,10 +211,10 @@ static int cv_load(void)
 		"bin\\opencv_xlang.dll",
 		"extlibs\\opencv\\bin\\opencv_xlang.dll",
 		"release\\extlibs\\opencv\\bin\\opencv_xlang.dll",
-		"packages\\opencv\\bin\\opencv_xlang.dll",
+		"release\extlibs\\opencv\\bin\\opencv_xlang.dll",
 		"libs\\opencv\\bin\\opencv_xlang.dll",
 		"release\\libs\\opencv\\bin\\opencv_xlang.dll",
-		"examples\\libs\\opencv\\bin\\opencv_xlang.dll",
+		"release\examples\\libs\\opencv\\bin\\opencv_xlang.dll",
 		NULL
 	};
 	int i;
@@ -156,6 +223,7 @@ static int cv_load(void)
 	g_cv.attempted = 1;
 	env_path = getenv("OPENCV_XLANG_DLL");
 	if ( env_path != NULL && env_path[0] != '\0' && cv_try_load(env_path) ) return 1;
+	if ( cv_try_load_from_exe("extlibs\\opencv\\bin\\opencv_xlang.dll") ) return 1;
 	for ( i = 0; candidates[i] != NULL; ++i ) {
 		if ( cv_try_load(candidates[i]) ) return 1;
 	}

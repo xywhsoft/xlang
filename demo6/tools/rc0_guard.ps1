@@ -295,6 +295,7 @@ Invoke-GuardStep "static XRT boundary" {
 
 Invoke-GuardStep "static wiring guards" {
     $scripts = @(
+        "check_async_task_soak.ps1",
         "check_docs_index.ps1",
         "check_cgenrule_docs.ps1",
         "check_dap_smoke.ps1",
@@ -315,6 +316,7 @@ Invoke-GuardStep "static wiring guards" {
         "check_xlang_output_markers.ps1",
         "check_c_fixture_wiring.ps1",
         "check_package_fixtures.ps1",
+        "check_release_extlibs.ps1",
         "check_package_xrt_symbols.ps1",
         "check_stdlib_coverage.ps1",
         "check_stdlib_test_wiring.ps1",

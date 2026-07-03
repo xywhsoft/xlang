@@ -20,7 +20,7 @@
   "module": {
     "name": "lz4",
     "moduleId": "lz4@0.1.0#abi1::lz4",
-    "source": "extlibs/lz4",
+    "source": "release/extlibs/lz4",
     "sourceHash": ""
   },
   "entry": {

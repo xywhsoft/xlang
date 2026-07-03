@@ -347,6 +347,10 @@ end
 class InferenceSessionObject
     point handle
 
+	create(point handle)
+		self.handle = handle
+	end
+
 	create(string model_path)
 		self.handle = ort_session_create_native(model_path, null)
 	end
@@ -483,38 +487,6 @@ end
 
 func get_last_error() as string
 	return last_error()
-end
-
-func __xl6_import_onnxruntime_ort_last_error_native() as string
-    return ort_last_error_native()
-end
-
-func __xl6_import_onnxruntime_ort_session_create_native(string p0, point p1) as point
-    return ort_session_create_native(p0, p1)
-end
-
-func __xl6_import_onnxruntime_ort_session_release_native(point p0) as int
-    return ort_session_release_native(p0)
-end
-
-func __xl6_import_onnxruntime_ort_session_run_tensor_fast_native(point p0, string p1, point p2, string p3) as point
-    return ort_session_run_tensor_fast_native(p0, p1, p2, p3)
-end
-
-func __xl6_import_onnxruntime_ort_result_release_native(point p0) as int
-    return ort_result_release_native(p0)
-end
-
-func __xl6_import_onnxruntime_ort_result_float_shape_json_native(point p0) as string
-    return ort_result_float_shape_json_native(p0)
-end
-
-func __xl6_import_onnxruntime_ort_result_float_count_native(point p0) as int
-    return ort_result_float_count_native(p0)
-end
-
-func __xl6_import_onnxruntime_ort_result_float_at_native(point p0, int p1) as float
-    return ort_result_float_at_native(p0, p1)
 end
 
 // xl6 generated import wrappers begin

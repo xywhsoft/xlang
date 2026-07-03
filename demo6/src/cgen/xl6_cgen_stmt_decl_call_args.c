@@ -866,10 +866,20 @@ static int xl6CgenDeclTryTaskSpawnArgTempsInit(
     ctx->exprReplacements = replacements;
     ctx->exprReplacementCount = (size_t)tempCount;
 
-    xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "%s = ", cName);
-    xl6CgenExpr(ctx, initExpr);
-    xl6OutputPuts(";\n", ctx->out);
+    /*
+        task.spawn 的实参预求值只解决副作用顺序问题。
+        初始化表达式本身仍可能需要空合并、类型转换等语句级 lowering。
+    */
+    if ( xl6CgenDeclCanEmitCallArgTemp(ctx, typeNode, initExpr) ) {
+        if ( !xl6CgenDeclEmitCallArgTemp(ctx, typeNode, cType, cName, initExpr) ) {
+            xl6CgenError(ctx, initExpr, "task.spawn declaration expression lowering failed");
+        }
+    } else {
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "%s = ", cName);
+        xl6CgenExpr(ctx, initExpr);
+        xl6OutputPuts(";\n", ctx->out);
+    }
 
     ctx->exprReplacements = prevExprReplacements;
     ctx->exprReplacementCount = prevExprReplacementCount;

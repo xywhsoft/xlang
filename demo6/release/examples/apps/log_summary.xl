@@ -1,0 +1,46 @@
+// 日志统计范例：解析日志文本并生成 JSON 摘要。
+
+string logText = """
+2026-07-01 INFO boot
+2026-07-01 WARN cache slow
+2026-07-01 INFO ready
+2026-07-01 ERROR disk full
+2026-07-01 WARN retry
+"""
+
+array lines = string.split(logText, "\n")
+int info = 0
+int warn = 0
+int error = 0
+
+for line in lines
+    string clean = string.trim(string(line))
+
+    if clean == "" then
+        continue
+    end
+
+    if string.contains(clean, " INFO ") then
+        info += 1
+    elseif string.contains(clean, " WARN ") then
+        warn += 1
+    elseif string.contains(clean, " ERROR ") then
+        error += 1
+    end
+end
+
+var summary = {
+    "info": info,
+    "warn": warn,
+    "error": error,
+    "total": info + warn + error
+}
+
+string output = json.stringify(summary)
+
+assert info == 2, "INFO count mismatch"
+assert warn == 2, "WARN count mismatch"
+assert error == 1, "ERROR count mismatch"
+assert string.contains(output, '"total":5'), "summary total mismatch"
+
+println(output)

@@ -1,0 +1,62 @@
+import mail.imap
+
+var config = {"host": "", "port": 0, "timeout_ms": 1, "secure": "none"}
+var request = {
+    "config": config,
+    "request": {
+        "mailbox": "INBOX",
+        "criteria": "ALL",
+        "sequence": "1",
+        "uid": 1,
+        "flags": ["\\Seen"],
+        "mode": "add",
+        "max_cycles": 1,
+        "max_events": 1,
+        "max_events_per_cycle": 1
+    }
+}
+string requestJson = json.stringify(request)
+
+var result = mail.imap.result(true, "", "unit", {"value": 7})
+assert bool(result["ok"]) == true, "imap result ok mismatch"
+
+var unsupported = mail.imap.unsupported("noop")
+assert string.contains(json.stringify(unsupported), "mail.imap.noop"), "imap unsupported mismatch"
+
+assert string.contains(mail.imap.capability_json(requestJson), "\"ok\":false"), "imap capability_json failed"
+assert string.contains(json.stringify(mail.imap.capability(request)), "\"ok\":false"), "imap capability failed"
+
+assert string.contains(mail.imap.status_json(requestJson), "\"ok\":false"), "imap status_json failed"
+assert string.contains(json.stringify(mail.imap.status(request)), "\"ok\":false"), "imap status failed"
+
+assert string.contains(mail.imap.list_json(requestJson), "\"ok\":false"), "imap list_json failed"
+assert string.contains(json.stringify(mail.imap.list(request)), "\"ok\":false"), "imap list failed"
+
+assert string.contains(mail.imap.search_json(requestJson), "\"ok\":false"), "imap search_json failed"
+assert string.contains(json.stringify(mail.imap.search(request)), "\"ok\":false"), "imap search failed"
+
+assert string.contains(mail.imap.fetch_json(requestJson), "\"ok\":false"), "imap fetch_json failed"
+assert string.contains(json.stringify(mail.imap.fetch(request)), "\"ok\":false"), "imap fetch failed"
+
+assert string.contains(mail.imap.bodystructure_json(requestJson), "\"ok\":false"), "imap bodystructure_json failed"
+assert string.contains(json.stringify(mail.imap.bodystructure(request)), "\"ok\":false"), "imap bodystructure failed"
+
+assert string.contains(mail.imap.fetch_flags_json(requestJson), "\"ok\":false"), "imap fetch_flags_json failed"
+assert string.contains(json.stringify(mail.imap.fetch_flags(request)), "\"ok\":false"), "imap fetch_flags failed"
+
+assert string.contains(mail.imap.store_flags_json(requestJson), "\"ok\":false"), "imap store_flags_json failed"
+assert string.contains(json.stringify(mail.imap.store_flags(request)), "\"ok\":false"), "imap store_flags failed"
+
+assert string.contains(mail.imap.expunge_json(requestJson), "\"ok\":false"), "imap expunge_json failed"
+assert string.contains(json.stringify(mail.imap.expunge(request)), "\"ok\":false"), "imap expunge failed"
+
+assert string.contains(mail.imap.idle_probe_json(requestJson), "\"ok\":false"), "imap idle_probe_json failed"
+assert string.contains(json.stringify(mail.imap.idle_probe(request)), "\"ok\":false"), "imap idle_probe failed"
+
+assert string.contains(mail.imap.idle_json(requestJson), "\"ok\":false"), "imap idle_json failed"
+assert string.contains(json.stringify(mail.imap.idle(request)), "\"ok\":false"), "imap idle failed"
+
+assert string.contains(mail.imap.watch_json(requestJson), "\"ok\":false"), "imap watch_json failed"
+assert string.contains(json.stringify(mail.imap.watch(request)), "\"ok\":false"), "imap watch failed"
+
+println("mail.imap extlib ok")

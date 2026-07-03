@@ -20,7 +20,7 @@
   "module": {
     "name": "zstd",
     "moduleId": "zstd@0.1.0#abi1::zstd",
-    "source": "extlibs/zstd",
+    "source": "release/extlibs/zstd",
     "sourceHash": ""
   },
   "entry": {

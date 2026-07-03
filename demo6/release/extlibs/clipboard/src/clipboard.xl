@@ -3,6 +3,7 @@ extern "x_clipboard_last_error" func x_clipboard_last_error() as string
 extern "x_clipboard_clear" func x_clipboard_clear() as int
 extern "x_clipboard_sequence_number" func x_clipboard_sequence_number() as int
 extern "x_clipboard_count_formats" func x_clipboard_count_formats() as int
+extern "x_clipboard_formats" func x_clipboard_formats() as var
 extern "x_clipboard_formats_json" func x_clipboard_formats_json() as string
 extern "x_clipboard_format_name" func x_clipboard_format_name(int format_id) as string
 extern "x_clipboard_register_format" func x_clipboard_register_format(string name) as int
@@ -12,7 +13,9 @@ extern "x_clipboard_has_image" func x_clipboard_has_image() as int
 extern "x_clipboard_has_files" func x_clipboard_has_files() as int
 extern "x_clipboard_get_text" func x_clipboard_get_text() as string
 extern "x_clipboard_set_text" func x_clipboard_set_text(string text) as int
+extern "x_clipboard_get_files" func x_clipboard_get_files() as var
 extern "x_clipboard_get_file" func x_clipboard_get_file() as string
+extern "x_clipboard_set_files" func x_clipboard_set_files(array paths) as int
 extern "x_clipboard_set_file" func x_clipboard_set_file(string path) as int
 extern "x_clipboard_save_image" func x_clipboard_save_image(string path) as int
 extern "x_clipboard_set_image" func x_clipboard_set_image(string path) as int
@@ -36,6 +39,14 @@ end
 
 func __xl6_import_clipboard_count_formats() as int
     return x_clipboard_count_formats()
+end
+
+func __xl6_import_clipboard_formats() as var
+    return x_clipboard_formats()
+end
+
+func __xl6_import_clipboard_types() as var
+    return __xl6_import_clipboard_formats()
 end
 
 func __xl6_import_clipboard_formats_json() as string
@@ -86,8 +97,24 @@ func __xl6_import_clipboard_write_text(string text) as bool
     return __xl6_import_clipboard_set_text(text)
 end
 
+func __xl6_import_clipboard_get_files() as var
+    return x_clipboard_get_files()
+end
+
+func __xl6_import_clipboard_read_files() as var
+    return __xl6_import_clipboard_get_files()
+end
+
 func __xl6_import_clipboard_get_file() as string
     return x_clipboard_get_file()
+end
+
+func __xl6_import_clipboard_set_files(array paths) as bool
+    return x_clipboard_set_files(paths) != 0
+end
+
+func __xl6_import_clipboard_write_files(array paths) as bool
+    return __xl6_import_clipboard_set_files(paths)
 end
 
 func __xl6_import_clipboard_set_file(string path) as bool

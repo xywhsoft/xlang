@@ -20,7 +20,7 @@
     "module":  {
                    "name":  "xfeat",
                    "moduleId":  "xfeat@0.1.0#abi1::xfeat",
-                   "source":  "extlibs/xfeat",
+                   "source":  "release/extlibs/xfeat",
                    "sourceHash":  ""
                },
     "entry":  {

@@ -20,7 +20,7 @@
   "module": {
     "name": "sqlite",
     "moduleId": "sqlite@0.1.0#abi1::sqlite",
-    "source": "extlibs/sqlite",
+    "source": "release/extlibs/sqlite",
     "sourceHash": ""
   },
   "entry": {

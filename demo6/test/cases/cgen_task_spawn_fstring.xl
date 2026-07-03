@@ -1,0 +1,12 @@
+func makeSpawnValue(int value) as var
+    return value
+end
+
+func addVar(var value) as int
+    return int(value) + 1
+end
+
+func(var) as int varArgJob = addVar
+
+string fstringDynamicSpawn = f"value={await task.spawn(varArgJob, true ? makeSpawnValue(40) : makeSpawnValue(0))}"
+assert fstringDynamicSpawn == "value=41", "task.spawn dynamic var argument should lower inside f-string interpolation"

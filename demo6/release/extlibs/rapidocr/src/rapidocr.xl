@@ -172,7 +172,7 @@ func rapidocr_classify_image(Image source_img, InferenceSessionObject cls_sess, 
 	end
 	int cls_w = rapidocr_cls_resize_width(source_img.width(), source_img.height(), cls_img_w, cls_img_h)
 	auto cls_resized_img = opencv.resize(source_img, cls_w, cls_img_h)
-	auto cls_img = opencv.copyMakeBorder_rgba(cls_resized_img, 0, 0, 0, cls_img_w - cls_w, 0, 127.5, 127.5, 127.5, 0)
+	auto cls_img = opencv.copyMakeBorder_rgba(cls_resized_img, 0, 0, 0, cls_img_w - cls_w, 0, 127.5, 127.5, 127.5, 0.0)
 	auto cls_tensor = onnxruntime.TensorFromOpenCV(cls_img.handle, 0.0039215689, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5)
 	auto cls_result = cls_sess.run_tensor_fast("x", cls_tensor, "[]")
 	if cls_result.ok() then
@@ -188,7 +188,7 @@ func rapidocr_prepare_cls_image(Image source_img, int cls_img_w, int cls_img_h) 
 	end
 	int cls_w = rapidocr_cls_resize_width(source_img.width(), source_img.height(), cls_img_w, cls_img_h)
 	auto cls_resized_img = opencv.resize(source_img, cls_w, cls_img_h)
-	return opencv.copyMakeBorder_rgba(cls_resized_img, 0, 0, 0, cls_img_w - cls_w, 0, 127.5, 127.5, 127.5, 0)
+	return opencv.copyMakeBorder_rgba(cls_resized_img, 0, 0, 0, cls_img_w - cls_w, 0, 127.5, 127.5, 127.5, 0.0)
 end
 
 func rapidocr_prepare_cls_image(Image source_img, bool active, int cls_img_w, int cls_img_h) as Image
@@ -208,11 +208,11 @@ func rapidocr_prepare_rec_image(Image source_img, string cls_json, bool use_cls,
 		auto rotated_img = opencv.rotate180(source_img)
 		int rec_w_rot = rapidocr_rec_resize_width(rotated_img.width(), rotated_img.height(), target_rec_w, rec_img_h)
 		auto rec_resized_rot = opencv.resize(rotated_img, rec_w_rot, rec_img_h)
-		return opencv.copyMakeBorder_rgba(rec_resized_rot, 0, 0, 0, target_rec_w - rec_w_rot, 0, 127.5, 127.5, 127.5, 0)
+		return opencv.copyMakeBorder_rgba(rec_resized_rot, 0, 0, 0, target_rec_w - rec_w_rot, 0, 127.5, 127.5, 127.5, 0.0)
 	end
 	int rec_w_plain = rapidocr_rec_resize_width(source_img.width(), source_img.height(), target_rec_w, rec_img_h)
 	auto rec_resized_plain = opencv.resize(source_img, rec_w_plain, rec_img_h)
-	return opencv.copyMakeBorder_rgba(rec_resized_plain, 0, 0, 0, target_rec_w - rec_w_plain, 0, 127.5, 127.5, 127.5, 0)
+	return opencv.copyMakeBorder_rgba(rec_resized_plain, 0, 0, 0, target_rec_w - rec_w_plain, 0, 127.5, 127.5, 127.5, 0.0)
 end
 
 func rapidocr_prepare_rec_image(Image source_img, bool active, string cls_json, bool use_cls, float cls_thresh, int target_rec_w, int rec_img_h) as Image
@@ -230,7 +230,7 @@ func rapidocr_recognize_image(Image source_img, InferenceSessionObject rec_sess,
 	int target_rec_w = rapidocr_rec_target_width(source_img.width(), source_img.height(), rec_img_w, rec_img_h)
 	int rec_w = rapidocr_rec_resize_width(source_img.width(), source_img.height(), target_rec_w, rec_img_h)
 	auto rec_resized_img = opencv.resize(source_img, rec_w, rec_img_h)
-	auto rec_img = opencv.copyMakeBorder_rgba(rec_resized_img, 0, 0, 0, target_rec_w - rec_w, 0, 127.5, 127.5, 127.5, 0)
+	auto rec_img = opencv.copyMakeBorder_rgba(rec_resized_img, 0, 0, 0, target_rec_w - rec_w, 0, 127.5, 127.5, 127.5, 0.0)
 	auto rec_tensor = onnxruntime.TensorFromOpenCV(rec_img.handle, 0.0039215689, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5)
 	auto rec_result = rec_sess.run_tensor_fast("x", rec_tensor, "[]")
 	if rec_result.ok() then
@@ -452,7 +452,7 @@ end
 func rapidocr_run_xlang_pipeline(string img_path, bool use_det, bool use_cls, bool use_rec, InferenceSessionObject det_sess, InferenceSessionObject cls_sess, InferenceSessionObject rec_sess, string keys_path, float det_threshold, float box_thresh, float unclip_ratio, bool det_use_dilation, int min_box_size, bool filter_small_boxes, float cls_thresh, float text_score, int cls_img_w, int cls_img_h, int rec_img_w, int rec_img_h) as RapidOCROutput
 	auto img = opencv.imread_flags(img_path, 1)
 	if img.empty() then
-		return RapidOCROutput("", "", "[]", "[]", "[]", "[]", "[]", 0, "")
+		return RapidOCROutput("", "", "[]", "[]", "[]", "[]", "[]", 0.0, "")
 	end
 
 	string boxes = "[]"
@@ -637,8 +637,8 @@ func rapidocr_run_xlang_pipeline(string img_path, bool use_det, bool use_cls, bo
 		recs_json = parts + "]"
 	end
 
-	string assembled = rapidocr_assemble_result_list_native(boxes, recs_json, 0)
-	return RapidOCROutput(assembled, "", boxes, txts, scores, cls, "[]", 0, img_path, text_score)
+	string assembled = rapidocr_assemble_result_list_native(boxes, recs_json, 0.0)
+	return RapidOCROutput(assembled, "", boxes, txts, scores, cls, "[]", 0.0, img_path, text_score)
 end
 
 class RapidOCREngine
@@ -965,7 +965,7 @@ func rapidocr_vis_image(string source_path, string boxes_json, string save_path)
 end
 
 func rapidocr_assemble_result(string boxes_json, string rec_json) as string
-	return rapidocr_assemble_result_native(boxes_json, rec_json, 0)
+	return rapidocr_assemble_result_native(boxes_json, rec_json, 0.0)
 end
 
 func rapidocr_assemble_result(string boxes_json, string rec_json, float elapse) as string
@@ -973,7 +973,7 @@ func rapidocr_assemble_result(string boxes_json, string rec_json, float elapse) 
 end
 
 func rapidocr_assemble_result2(string boxes_json, string rec0_json, string rec1_json) as string
-	return rapidocr_assemble_result2_native(boxes_json, rec0_json, rec1_json, 0)
+	return rapidocr_assemble_result2_native(boxes_json, rec0_json, rec1_json, 0.0)
 end
 
 func rapidocr_assemble_result2(string boxes_json, string rec0_json, string rec1_json, float elapse) as string
@@ -981,7 +981,7 @@ func rapidocr_assemble_result2(string boxes_json, string rec0_json, string rec1_
 end
 
 func rapidocr_assemble_result4(string boxes_json, string rec0_json, string rec1_json, string rec2_json, string rec3_json) as string
-	return rapidocr_assemble_result4_native(boxes_json, rec0_json, rec1_json, rec2_json, rec3_json, 0)
+	return rapidocr_assemble_result4_native(boxes_json, rec0_json, rec1_json, rec2_json, rec3_json, 0.0)
 end
 
 func rapidocr_assemble_result4(string boxes_json, string rec0_json, string rec1_json, string rec2_json, string rec3_json, float elapse) as string

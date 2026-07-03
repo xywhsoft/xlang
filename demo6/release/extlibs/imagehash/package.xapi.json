@@ -20,7 +20,7 @@
   "module": {
     "name": "imagehash",
     "moduleId": "imagehash@0.1.0#abi1::imagehash",
-    "source": "extlibs/imagehash",
+    "source": "release/extlibs/imagehash",
     "sourceHash": ""
   },
   "entry": {

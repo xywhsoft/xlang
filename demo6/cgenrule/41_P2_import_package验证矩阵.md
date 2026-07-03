@@ -36,19 +36,19 @@
 | 规则范围 | 当前验证用例 | 证据等级 | 核验结论 |
 |---|---|---|---|
 | `CGEN-PKG-001..007` 字符串复制、dirname、path join、默认包名、packageId、字符串列表、manifest 生命周期 | packages 目录下所有 `xlang.package.json`、`import_metadata.xl`、`import_dependency_versions.xl` | build/run + JSON 检查 | manifest 默认身份、packageId、路径拼接、字符串列表和释放路径在多 package fixture 中反复覆盖。 |
-| `CGEN-PKG-008..016` manifest JSON parser、字符串/bool/未知值、数组、dependencies、artifact、native、根对象 | packages `counter`、`class_api`、`union_api`、`uses_dep*`、`native_one/native_two`、`metadata_combo`、`missing_interface`、`lib/libprobe` | build/run + 语义负例 + fixture | links/loadlibs/cSources/dependencies/native 字段读取、组合字段同包共存、未知字段跳过主策略和未知对象/数组跳过均有覆盖。 |
+| `CGEN-PKG-008..016` manifest JSON parser、字符串/bool/未知值、数组、dependencies、artifact、native、根对象 | packages `counter`、`class_api`、`union_api`、`uses_dep*`、`native_one/native_two`、`metadata_combo`、`missing_interface`、`test/fixtures/libprobe` | build/run + 语义负例 + fixture | links/loadlibs/cSources/dependencies/native 字段读取、组合字段同包共存、未知字段跳过主策略和未知对象/数组跳过均有覆盖。 |
 | `CGEN-PKG-017..020` manifest 文件读取、format 校验、默认字段补齐、最终身份和失败清理 | packages fixture、`import_missing_xapi.xl`、`import_dependency_version_mismatch.xl` | build/run + 语义负例 | XRT UTF-8 文件读取、格式/默认值/packageId/dir/xapi 补齐和失败清理有覆盖。 |
 | `CGEN-PKG-021..023` 直接 XAPI、manifest 归一、候选命中规则 | packages `broken_xapi/package.xapi.json`、`counter/xlang.package.json`、`import_path_no_ext.xl`、`import_broken_xapi.xl`、`import_missing_xapi.xl` | import 消费 + IR/C 检查 + 语义负例 | 直接 `.xapi.json` 与 manifest 到 interfacePath 的归一、`.xapi.json` 双后缀剥离、存在但不可用时重置并诊断有覆盖。 |
 | `CGEN-PKG-024..030` path import 判定、resolver 结果、绝对/相对候选、自动追加 `.xapi.json`、相对 importer 优先、目录包命中顺序 | `import_metadata.xl` 的 `"local/math"`、`import_path_no_ext.xl` 的 `"path_no_ext/probe"`、`test/cases/import_relative_scope/root/source/import_relative_scope.xl`、package fixture、`import_missing_xapi.xl` | JSON 检查 + IR/C 检查 + import 消费 | path target、相对 importer 目录、自动追加 `.xapi.json`、目录下 `xlang.package.json`/`package.xapi.json` 命中顺序有覆盖；`import_relative_scope` 额外证明进程 cwd 下的同名 `pkg.xapi.json` 不会遮蔽 importer 源文件旁边的 `./pkg.xapi.json`。 |
-| `CGEN-PKG-031..032` 裸包名 packages/lib 搜索与 interfacePath 查询 | `import_xapi_use.xl`、`import_lib_search.xl`、`import_dependency_private.xl`、`import_dependency_versions.xl`、packages `counter/uses_dep*`、`lib/libprobe` | build/run + IR/C 检查 | `packages/<name>` 搜索、`lib/<name>` 搜索、`name@version` 多版本目录和 interfacePath 查询均有覆盖。 |
+| `CGEN-PKG-031..032` 裸包名 release/extlibs 与 package path fixture 搜索、interfacePath 查询 | `import_xapi_use.xl`、`import_lib_search.xl`、`import_dependency_private.xl`、`import_dependency_versions.xl`、packages `counter/uses_dep*`、`test/fixtures/libprobe` | build/run + IR/C 检查 | `release/extlibs/<name>` 搜索、`test/fixtures/<name>` 搜索、`name@version` 多版本目录和 interfacePath 查询均有覆盖。 |
 
 ## 剩余风险与后续增强
 
 | 缺口 | 建议补法 |
 |---|---|
-| package JSON parser 的未知字段跳过已由 `lib/libprobe/xlang.package.json` 的未知对象/数组字段覆盖。 | 后续可增加畸形未知值负例，但不是当前 RC 阻断项。 |
-| path import 自动追加 `.xapi.json`、相对 importerDir 优先和 `lib/<name>` 搜索已分别由 `import_path_no_ext.xl`、`import_relative_scope.xl` 和 `import_lib_search.xl` 覆盖。 | 后续可补直接 XAPI 包名冲突负例。 |
-| import generated declaration 解析失败路径已由 `packages/invalid_decl_xapi` 与 `import_invalid_decl_xapi.xl` 覆盖。 | 后续可补更多畸形 type 文本，但当前已有稳定总括诊断 `XAPI import generated invalid extern declarations`。 |
+| package JSON parser 的未知字段跳过已由 `test/fixtures/libprobe/xlang.package.json` 的未知对象/数组字段覆盖。 | 后续可增加畸形未知值负例，但不是当前 RC 阻断项。 |
+| path import 自动追加 `.xapi.json`、相对 importerDir 优先和 `test/fixtures/<name>` 搜索已分别由 `import_path_no_ext.xl`、`import_relative_scope.xl` 和 `import_lib_search.xl` 覆盖。 | 后续可补直接 XAPI 包名冲突负例。 |
+| import generated declaration 解析失败路径已由 `release/extlibs/invalid_decl_xapi` 与 `import_invalid_decl_xapi.xl` 覆盖。 | 后续可补更多畸形 type 文本，但当前已有稳定总括诊断 `XAPI import generated invalid extern declarations`。 |
 | links/loadlibs/cSources/native 同包组合、相对路径拼接和 manifest/XAPI 重复依赖已由 `metadata_combo` 的 build/run 与 `import_deps_snapshot_host.c` 覆盖。 | 后续可扩展更多依赖图快照；当前最终 deps 列表数量、packageId、相对路径文本和 native 去重已有机器断言。 |
 
 ## 阶段结论

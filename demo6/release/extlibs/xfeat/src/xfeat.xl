@@ -49,6 +49,13 @@ func xfeat_round_scaled(int value, float scale) as int
 	return out
 end
 
+func xfeat_release_session(point session_handle)
+	if session_handle != null then
+		InferenceSessionObject session = InferenceSessionObject(session_handle)
+		session.release()
+	end
+end
+
 func xfeat_extract_image(point session_handle, Image image, int stats_kind) as point
 	if session_handle == null or image.empty() then
 		return null
@@ -63,16 +70,17 @@ func xfeat_extract_image(point session_handle, Image image, int stats_kind) as p
 	float t0 = xfeat_now_ms_native()
 	auto tensor = onnxruntime.TensorFromOpenCVResized(image.handle, resized_w, resized_h, 1.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0)
 	float t1 = xfeat_now_ms_native()
-	point result_handle = onnxruntime.ort_session_run_tensor_fast_native(session_handle, "image", tensor.handle, "[\"features\"]")
+	InferenceSessionObject session = InferenceSessionObject(session_handle)
+	RunResult result = session.run_tensor_fast("image", tensor, "[\"features\"]")
 	float t2 = xfeat_now_ms_native()
-	if result_handle == null then
+	if result.valid() == false then
 		xfeat_stats_add_native(stats_kind, t1 - t0, t2 - t1, 0.0)
 		return null
 	end
-	point features_handle = xfeat_features_from_result_native(result_handle, width, height, resized_w, resized_h)
+	point features_handle = xfeat_features_from_result_native(result.handle, width, height, resized_w, resized_h)
 	float t3 = xfeat_now_ms_native()
 	xfeat_stats_add_native(stats_kind, t1 - t0, t2 - t1, t3 - t2)
-	onnxruntime.ort_result_release_native(result_handle)
+	result.release()
 	return features_handle
 end
 
@@ -168,28 +176,27 @@ func xfeat_locate_with_sessions(point query_session, point target_session, strin
 end
 
 func xfeat_locate_handle(string query_model_path, string target_model_path, string query_path, string target_path, float min_cossim, int min_inliers, float ransac_reproj) as point
-	point nullOptions = null
-	point query_session = onnxruntime.ort_session_create_native(query_model_path, nullOptions)
-	point target_session = onnxruntime.ort_session_create_native(target_model_path, nullOptions)
+	point query_session = xfeat_create_session(query_model_path, 0, 0)
+	point target_session = xfeat_create_session(target_model_path, 0, 0)
 	if query_session == null or target_session == null then
 		if query_session != null then
-			onnxruntime.ort_session_release_native(query_session)
+			xfeat_release_session(query_session)
 		end
 		if target_session != null then
-			onnxruntime.ort_session_release_native(target_session)
+			xfeat_release_session(target_session)
 		end
 		return null
 	end
 	point best = xfeat_locate_with_sessions(query_session, target_session, query_path, target_path, min_cossim, min_inliers, ransac_reproj)
-	onnxruntime.ort_session_release_native(query_session)
-	onnxruntime.ort_session_release_native(target_session)
+	xfeat_release_session(query_session)
+	xfeat_release_session(target_session)
 	return best
 end
 
 func xfeat_create_session(string model_path, int intra_threads, int inter_threads) as point
 	if intra_threads <= 0 and inter_threads <= 0 then
-		point nullOptions = null
-		return onnxruntime.ort_session_create_native(model_path, nullOptions)
+		InferenceSessionObject session = onnxruntime.InferenceSession(model_path)
+		return session.handle
 	end
 	auto options = onnxruntime.SessionOptions()
 	if options.valid() == false then
@@ -203,7 +210,8 @@ func xfeat_create_session(string model_path, int intra_threads, int inter_thread
 		options.set_inter_op_num_threads(inter_threads)
 	end
 	options.set_execution_mode(0)
-	return onnxruntime.ort_session_create_native(model_path, options.handle)
+	InferenceSessionObject session = onnxruntime.InferenceSession(model_path, options)
+	return session.handle
 end
 
 func xfeat_open() as point
@@ -223,17 +231,17 @@ func xfeat_open(string query_model_path, string target_model_path, int intra_thr
 	point target_session = xfeat_create_session(target_model_path, intra_threads, inter_threads)
 	if query_session == null or target_session == null then
 		if query_session != null then
-			onnxruntime.ort_session_release_native(query_session)
+			xfeat_release_session(query_session)
 		end
 		if target_session != null then
-			onnxruntime.ort_session_release_native(target_session)
+			xfeat_release_session(target_session)
 		end
 		return null
 	end
 	point engine = xfeat_engine_create_native(query_session, target_session)
 	if engine == null then
-		onnxruntime.ort_session_release_native(query_session)
-		onnxruntime.ort_session_release_native(target_session)
+		xfeat_release_session(query_session)
+		xfeat_release_session(target_session)
 	end
 	return engine
 end
@@ -245,10 +253,10 @@ func xfeat_close(point engine) as bool
 	point query_session = xfeat_engine_query_session_native(engine)
 	point target_session = xfeat_engine_target_session_native(engine)
 	if query_session != null then
-		onnxruntime.ort_session_release_native(query_session)
+		xfeat_release_session(query_session)
 	end
 	if target_session != null then
-		onnxruntime.ort_session_release_native(target_session)
+		xfeat_release_session(target_session)
 	end
 	return xfeat_engine_release_native(engine) != 0
 end
@@ -370,7 +378,7 @@ func xfeat_locate_and_save(string query_path, string target_path, string output_
 		int y = xfeat_location_bbox_y_native(location)
 		int w = xfeat_location_bbox_w_native(location)
 		int h = xfeat_location_bbox_h_native(location)
-		auto drawn = opencv.rectangle_thickness(image, x, y, x + w, y + h, 0, 255, 0, 3)
+		auto drawn = opencv.rectangle_thickness(image, x, y, x + w, y + h, 0.0, 255.0, 0.0, 3)
 		opencv.imwrite(output_path, drawn)
 	else
 		if image.empty() == false then
@@ -393,7 +401,7 @@ func xfeat_locate_and_save(point engine, point query_set, string target_path, st
 		int y = xfeat_location_bbox_y_native(location)
 		int w = xfeat_location_bbox_w_native(location)
 		int h = xfeat_location_bbox_h_native(location)
-		auto drawn = opencv.rectangle_thickness(image, x, y, x + w, y + h, 0, 255, 0, 3)
+		auto drawn = opencv.rectangle_thickness(image, x, y, x + w, y + h, 0.0, 255.0, 0.0, 3)
 		opencv.imwrite(output_path, drawn)
 	else
 		if image.empty() == false then
@@ -417,7 +425,7 @@ func xfeat_locate_and_save(point engine, string query_path, string target_path, 
 		int y = xfeat_location_bbox_y_native(location)
 		int w = xfeat_location_bbox_w_native(location)
 		int h = xfeat_location_bbox_h_native(location)
-		auto drawn = opencv.rectangle_thickness(image, x, y, x + w, y + h, 0, 255, 0, 3)
+		auto drawn = opencv.rectangle_thickness(image, x, y, x + w, y + h, 0.0, 255.0, 0.0, 3)
 		opencv.imwrite(output_path, drawn)
 	else
 		if image.empty() == false then

@@ -1,0 +1,67 @@
+// 教学目标：
+// 1. 覆盖常用运算符。
+// 2. 展示 null 合并、空赋值、安全成员/索引。
+
+func main(...) as int
+    int value = 10
+    value += 5
+    value -= 3
+    value *= 2
+    value /= 4
+    value %= 5
+
+    int power = 2 ** 5
+    int mask = 0b1010
+    int low = mask & 0b0011
+    int high = mask | 0b0101
+    int flip = high ^ 0b0011
+    int shifted = (flip << 1) >> 1
+    int inverted = ~0
+
+    bool logic = true and not false or false
+    int selected = logic ? 100 : 200
+
+    var maybe = null
+    var fallbackValue = maybe ?? 9
+    int fallback = int(fallbackValue)
+    maybe ?= 11
+    maybe ?= 22
+
+    array values = [10, 20, 30]
+    var missing = null
+    var existingValue = values?[1]
+    var missingValue = missing?[0] ?? 99
+    var missingLength = missing?.length ?? 0
+
+    if value != 1 then
+        return 1
+    end
+    if power != 32 then
+        return 2
+    end
+    if low != 2 or high != 15 or shifted != 12 or inverted != -1 then
+        return 3
+    end
+    if logic != true or !false != true or selected != 100 then
+        return 4
+    end
+    if fallback != 9 or int(maybe) != 11 then
+        return 5
+    end
+    if int(existingValue) != 20 then
+        return 6
+    end
+    if int(missingValue) != 99 then
+        return 7
+    end
+    if values.length != 3 or int(missingLength) != 0 then
+        return 8
+    end
+    if "lang" in "xlang demo6" != true then
+        return 9
+    end
+    if 20 in values != true or 40 in values != false then
+        return 10
+    end
+    return 0
+end

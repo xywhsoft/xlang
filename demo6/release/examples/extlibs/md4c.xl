@@ -1,0 +1,25 @@
+import md4c
+
+string markdown = "# Title\n\nHello **xlang**"
+string markdownPath = "release/tmp/extlibs/md4c_sample.md"
+
+dir.createAll("release/tmp/extlibs")
+file.writeText(markdownPath, markdown)
+
+c_int commonmark = md4c.commonmark_flags()
+c_int github = md4c.github_flags()
+c_int xhtml = md4c.xhtml_flag()
+c_int skipBom = md4c.skip_utf8_bom_flag()
+c_int verbatim = md4c.verbatim_entities_flag()
+
+assert md4c.version() == "md4c 0.5.2", "md4c version mismatch"
+string html = md4c.html(markdown)
+assert string.contains(html, "<h1>Title</h1>"), "md4c html h1 missing"
+assert string.contains(html, "<strong>xlang</strong>"), "md4c html strong missing"
+string htmlFlags = md4c.html_flags(markdown, github, xhtml + verbatim)
+assert string.contains(htmlFlags, "<h1>Title</h1>"), "md4c html_flags h1 missing"
+string fileHtml = md4c.file_html(markdownPath, commonmark, skipBom)
+assert string.contains(fileHtml, "<strong>xlang</strong>"), "md4c file_html strong missing"
+assert string.len(md4c.last_error()) >= 0, "md4c last_error should return a string"
+
+println("md4c extlib ok")

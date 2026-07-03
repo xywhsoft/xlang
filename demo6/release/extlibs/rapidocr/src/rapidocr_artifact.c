@@ -199,10 +199,17 @@ static const char* rapid_resource_path(const char* relative)
 {
 	const char* rel = relative != NULL ? relative : "";
 	char exe_dir[512];
+	char parent_dir[512];
 	char base[1024];
 
 	if ( rapid_exe_dir(exe_dir, sizeof(exe_dir)) &&
 	     rapid_join_path(base, sizeof(base), exe_dir, "extlibs\\rapidocr") &&
+	     rapid_join_path(g_resource_path, sizeof(g_resource_path), base, rel) ) {
+		if ( rapid_path_exists(g_resource_path) ) return g_resource_path;
+	}
+	if ( exe_dir[0] != '\0' &&
+	     (rapid_dir_name(parent_dir, sizeof(parent_dir), exe_dir), parent_dir[0] != '\0') &&
+	     rapid_join_path(base, sizeof(base), parent_dir, "extlibs\\rapidocr") &&
 	     rapid_join_path(g_resource_path, sizeof(g_resource_path), base, rel) ) {
 		if ( rapid_path_exists(g_resource_path) ) return g_resource_path;
 	}
@@ -214,12 +221,18 @@ static const char* rapid_resource_path(const char* relative)
 		rapid_copy(g_resource_path, sizeof(g_resource_path), base);
 		if ( rapid_path_exists(g_resource_path) ) return g_resource_path;
 	}
-	if ( rapid_join_path(base, sizeof(base), "packages\\rapidocr", rel) ) {
+	if ( rapid_join_path(base, sizeof(base), "release\extlibs\\rapidocr", rel) ) {
 		rapid_copy(g_resource_path, sizeof(g_resource_path), base);
 		if ( rapid_path_exists(g_resource_path) ) return g_resource_path;
 	}
 	if ( rapid_exe_dir(exe_dir, sizeof(exe_dir)) &&
 	     rapid_join_path(base, sizeof(base), exe_dir, "extlibs\\rapidocr") &&
+	     rapid_join_path(g_resource_path, sizeof(g_resource_path), base, rel) ) {
+		return g_resource_path;
+	}
+	if ( exe_dir[0] != '\0' &&
+	     (rapid_dir_name(parent_dir, sizeof(parent_dir), exe_dir), parent_dir[0] != '\0') &&
+	     rapid_join_path(base, sizeof(base), parent_dir, "extlibs\\rapidocr") &&
 	     rapid_join_path(g_resource_path, sizeof(g_resource_path), base, rel) ) {
 		return g_resource_path;
 	}
@@ -282,6 +295,19 @@ static int rapid_try_load(const char* path)
 	return 1;
 }
 
+static int rapid_try_load_from_exe_or_parent(const char* relative, int (*load_fn)(const char*))
+{
+	char exe_dir[512];
+	char parent_dir[512];
+	char path[1024];
+
+	if ( load_fn == NULL || !rapid_exe_dir(exe_dir, sizeof(exe_dir)) ) return 0;
+	if ( rapid_join_path(path, sizeof(path), exe_dir, relative) && load_fn(path) ) return 1;
+	rapid_dir_name(parent_dir, sizeof(parent_dir), exe_dir);
+	if ( parent_dir[0] == '\0' || !rapid_join_path(path, sizeof(path), parent_dir, relative) ) return 0;
+	return load_fn(path);
+}
+
 static int rapid_load(void)
 {
 	const char* env_path;
@@ -292,7 +318,7 @@ static int rapid_load(void)
 		"release\\extlibs\\rapidocr\\bin\\rapidocr_xlang.dll",
 		"libs\\rapidocr\\bin\\rapidocr_xlang.dll",
 		"release\\libs\\rapidocr\\bin\\rapidocr_xlang.dll",
-		"examples\\libs\\rapidocr\\bin\\rapidocr_xlang.dll",
+		"release\examples\\libs\\rapidocr\\bin\\rapidocr_xlang.dll",
 		NULL
 	};
 	int i;
@@ -301,6 +327,7 @@ static int rapid_load(void)
 	g_rapid.attempted = 1;
 	env_path = getenv("RAPIDOCR_XLANG_DLL");
 	if ( env_path != NULL && env_path[0] != '\0' && rapid_try_load(env_path) ) return 1;
+	if ( rapid_try_load_from_exe_or_parent("extlibs\\rapidocr\\bin\\rapidocr_xlang.dll", rapid_try_load) ) return 1;
 	for ( i = 0; candidates[i] != NULL; ++i ) {
 		if ( rapid_try_load(candidates[i]) ) return 1;
 	}
@@ -344,7 +371,7 @@ static int rapid_ort_load(void)
 		"release\\extlibs\\onnxruntime\\bin\\onnxruntime_xlang.dll",
 		"libs\\onnxruntime\\bin\\onnxruntime_xlang.dll",
 		"release\\libs\\onnxruntime\\bin\\onnxruntime_xlang.dll",
-		"examples\\libs\\onnxruntime\\bin\\onnxruntime_xlang.dll",		NULL
+		"release\examples\\libs\\onnxruntime\\bin\\onnxruntime_xlang.dll",		NULL
 	};
 	int i;
 	if ( g_ort.loaded ) return 1;
@@ -352,6 +379,7 @@ static int rapid_ort_load(void)
 	g_ort.attempted = 1;
 	env_path = getenv("ONNXRUNTIME_XLANG_DLL");
 	if ( env_path != NULL && env_path[0] != '\0' && rapid_ort_try_load(env_path) ) return 1;
+	if ( rapid_try_load_from_exe_or_parent("extlibs\\onnxruntime\\bin\\onnxruntime_xlang.dll", rapid_ort_try_load) ) return 1;
 	for ( i = 0; candidates[i] != NULL; ++i ) {
 		if ( rapid_ort_try_load(candidates[i]) ) return 1;
 	}
@@ -396,7 +424,7 @@ static int rapid_cv_load(void)
 		"release\\extlibs\\opencv\\bin\\opencv_xlang.dll",
 		"libs\\opencv\\bin\\opencv_xlang.dll",
 		"release\\libs\\opencv\\bin\\opencv_xlang.dll",
-		"examples\\libs\\opencv\\bin\\opencv_xlang.dll",		NULL
+		"release\examples\\libs\\opencv\\bin\\opencv_xlang.dll",		NULL
 	};
 	int i;
 	if ( g_cv.loaded ) return 1;
@@ -404,6 +432,7 @@ static int rapid_cv_load(void)
 	g_cv.attempted = 1;
 	env_path = getenv("OPENCV_XLANG_DLL");
 	if ( env_path != NULL && env_path[0] != '\0' && rapid_cv_try_load(env_path) ) return 1;
+	if ( rapid_try_load_from_exe_or_parent("extlibs\\opencv\\bin\\opencv_xlang.dll", rapid_cv_try_load) ) return 1;
 	for ( i = 0; candidates[i] != NULL; ++i ) {
 		if ( rapid_cv_try_load(candidates[i]) ) return 1;
 	}

@@ -1,0 +1,38 @@
+import stb_image
+import stb_image_write
+
+string imagePath = "release/examples/extlibs/assets/tiny.png"
+string outDir = "release/tmp/extlibs/stb_image_write"
+dir.createAll(outDir)
+
+point image = stb_image.load(imagePath, 4)
+assert stb_image.valid(image) != 0, "write source load failed"
+point data = stb_image.data(image)
+c_int width = c_int(stb_image.width(image))
+c_int height = c_int(stb_image.height(image))
+c_int channels = c_int(stb_image.channels(image))
+c_int stride = c_int(0)
+c_int jpgQuality = c_int(90)
+
+assert stb_image_write.write_png(outDir + "/tiny.png", data, width, height, channels, stride) != 0, "write_png failed"
+assert stb_image_write.write_jpg(outDir + "/tiny.jpg", data, width, height, channels, jpgQuality) != 0, "write_jpg failed"
+assert stb_image_write.write_bmp(outDir + "/tiny.bmp", data, width, height, channels) != 0, "write_bmp failed"
+assert stb_image_write.write_tga(outDir + "/tiny.tga", data, width, height, channels) != 0, "write_tga failed"
+assert file.exists(outDir + "/tiny.png"), "png output missing"
+assert file.exists(outDir + "/tiny.jpg"), "jpg output missing"
+assert file.exists(outDir + "/tiny.bmp"), "bmp output missing"
+assert file.exists(outDir + "/tiny.tga"), "tga output missing"
+assert stb_image.release(image) != 0, "write source release failed"
+
+point floatImage = stb_image.loadf(imagePath, 4)
+assert stb_image.valid(floatImage) != 0, "write hdr source loadf failed"
+c_int floatWidth = c_int(stb_image.width(floatImage))
+c_int floatHeight = c_int(stb_image.height(floatImage))
+c_int floatChannels = c_int(stb_image.channels(floatImage))
+assert stb_image_write.write_hdr(outDir + "/tiny.hdr", stb_image.data(floatImage), floatWidth, floatHeight, floatChannels) != 0, "write_hdr failed"
+assert file.exists(outDir + "/tiny.hdr"), "hdr output missing"
+assert stb_image.release(floatImage) != 0, "write hdr source release failed"
+assert string.len(stb_image_write.version()) > 0, "stb_image_write version missing"
+assert string.len(stb_image_write.last_error()) >= 0, "stb_image_write last_error should return a string"
+
+println("stb_image_write extlib ok")

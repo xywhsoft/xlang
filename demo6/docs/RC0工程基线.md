@@ -30,32 +30,32 @@ rc0_guard.bat -SkipFullTests
 - 文档、工具与批处理 wiring 检查，确保设计文档索引、cgenrule 规则表、所有 `tools/check_*.ps1` 守门脚本和根目录批处理入口不会脱离主回归与 RC0 口径。
 - 工具 wiring 检查同时要求每个 `tools/check_*.ps1` 接入 `test.bat`，并且接入轻量 RC0 守门；如果某个检查脚本必须保留在完整主回归中，必须在 `check_tool_wiring.ps1` 中显式登记为完整回归例外。
 - 上述 wiring 类静态检查已经直接接入轻量 RC0 守门，包括 docs、cgenrule、Markdown 本地链接、tool、batch、source、toolchain、DLL API boundary、test case、test data、example、C fixture、package fixture 和标准库覆盖/符号检查。
-- 工程入口和接口类检查同时守住当前数量基线：120 个源码文件、34 个直接构建源码、85 个分片包含源码、2 个生成物直接构建入口、10 个根目录批处理入口、1 个工具链批处理入口、26 个守门脚本、61 个 DLL 公开 API、6 个 xl.dll C 宿主范例、161 个标准库 DLL C 符号、370 个 XRT/runtime 注入导出符号和 1262 个严格 UTF-8 扫描文本文件。
-- 文档和静态扫描类检查同时守住当前数量基线：36 个 docs Markdown、12 个额外 Markdown 入口、94 个 Markdown 本地链接扫描目标、47 个 cgenrule Markdown、843 条唯一 `CGEN-*` 规则、157 个工具链路径源码/头文件扫描目标、54 个工具链路径 fixture C/H 扫描目标、12 个工具链路径批处理扫描目标、203 个手写/fixture C/H 安全扫描目标和 2 个 lexer/parser 规格扫描目标。
+- 工程入口和接口类检查同时守住当前数量基线：122 个源码文件、34 个直接构建源码、87 个分片包含源码、2 个生成物直接构建入口、10 个根目录批处理入口、1 个工具链批处理入口、29 个守门脚本、62 个 DLL 公开 API、6 个以上 xl.dll C 宿主范例、161 个标准库 DLL C 符号、440 个 XRT/runtime 注入导出符号和 1547 个严格 UTF-8 扫描文本文件。
+- 文档和静态扫描类检查同时守住当前数量基线：36 个 docs Markdown、12 个额外 Markdown 入口、97 个 Markdown 扫描目标、47 个 cgenrule Markdown、843 条唯一 `CGEN-*` 规则、159 个工具链路径源码/头文件扫描目标、153 个工具链路径 fixture C/H 扫描目标、13 个工具链路径批处理扫描目标、258 个手写/fixture C/H 安全扫描目标和 2 个 lexer/parser 规格扫描目标。
 - 批处理字节级检查，允许文件开头 UTF-8 BOM，但正文必须保持 ASCII，避免 Windows `cmd` 在不同代码页下误解析注释或命令。
 - 批处理中的单行 TCC C 编译/链接命令必须使用集中工具链变量：C 编译命令必须带 `%XL6_TCC_INCLUDES%`、`%XL6_TCC_INCLUDES_WINAPI%` 或 `%XL6_TCC_SOURCE_INCLUDE%`；显式链接到 `.exe` / `.dll` 或使用 `-shared` 时，必须带 `%XL6_TCC_LIB_FLAGS%` 或 `%XL6_DEFAULT_LINKS%`。
 - 源码编码检查覆盖源码、文档、脚本、测试、示例和 metadata 文本，要求严格 UTF-8，并阻止替换字符和典型历史乱码回流。
 - 源码 wiring 检查，确保 `src/**/*.c` 要么直接参与构建/专项编译，要么被聚合翻译单元显式 include。
 - 工具链路径检查，确保源码中只有 `src/backend/xl6_toolchain.h`、批处理中只有 `tools/xl6_toolchain_env.bat` 可以保存当前 TCC/XRT 默认路径；示例、测试和 package 的手写 C/H fixture 也会被扫描，避免旧工具链路径重新散落到 API/CLI/cgen 实现、测试入口或宿主示例里。
-- 手写 C/CRT 安全检查覆盖 `src`、`examples`、`test/cases`、`packages` 中的非生成 C/H 文件，禁止高风险字符串拷贝/拼接/格式化、宽松输入解析、临时文件名、环境变量修改、宽松数值转换、非标准数字转字符串、非移植大小写比较接口、常见 CRT 函数手写原型声明，以及常见待办、修复、待定、占位和泛化生成错误诊断标记回流；`src` 中还禁止直接 `printf` / `fprintf` / `puts` / `fputs` / `fputc` / `putchar` 控制台输出、直接 CRT/Win32 命令执行、直接 `exit` / `abort` / `assert` 进程控制，CLI 中禁止 CRT `time()` 回流，完整函数清单以 `tools/check_c_string_safety.ps1` 为准。
+- 手写 C/CRT 安全检查覆盖 `src`、`release/examples`、`test/cases`、`release/extlibs` 中的非生成 C/H 文件，禁止高风险字符串拷贝/拼接/格式化、宽松输入解析、临时文件名、环境变量修改、宽松数值转换、非标准数字转字符串、非移植大小写比较接口、常见 CRT 函数手写原型声明，以及常见待办、修复、待定、占位和泛化生成错误诊断标记回流；`src` 中还禁止直接 `printf` / `fprintf` / `puts` / `fputs` / `fputc` / `putchar` 控制台输出、直接 CRT/Win32 命令执行、直接 `exit` / `abort` / `assert` 进程控制，CLI 中禁止 CRT `time()` 回流，完整函数清单以 `tools/check_c_string_safety.ps1` 为准。
 - 该手写 C/CRT 安全检查已经直接接入轻量 RC0 守门，不会只依赖 `test.bat` 的完整主回归路径。
 - 测试用例 wiring 检查，确保 `test/cases/*.xl` 不会成为未接入的沉睡用例。
-- 预期失败诊断 wiring 检查，确保 xlang 负例不会只检查退出码；当前数量基线为 245 条预期失败命令、244 个诊断产物、245 条内容断言，baseline-only 必须保持为 0。
+- 预期失败诊断 wiring 检查，确保 xlang 负例不会只检查退出码；当前数量基线为 429 条预期失败命令、428 个诊断产物、429 条内容断言，baseline-only 必须保持为 0。
 - 测试数据 wiring 检查，确保 `test/cases` 下的 JSON/XAPI fixture 可解析、被测试入口或测试源码引用，并且引用不失效。
-- 范例 wiring 检查，确保 `examples/**/*.xl` 被主回归、教程、feature suite 或标准库范例入口覆盖。
+- 范例 wiring 检查，确保 `release/examples/**/*.xl` 被主回归、教程、feature suite 或标准库范例入口覆盖。
 - C fixture wiring 检查，确保 C/H host 文件和 package native C 文件不会成为未接入的沉睡资产。
 - package fixture 一致性检查，确保测试包 manifest、XAPI、native cSources、links/loadlibs 和依赖目标保持同步。
-- 上述测试、范例、fixture 与标准库覆盖检查同时守住当前数量基线：607 个测试用例、28 个测试前缀、73 个范例、5 个 JSON/XAPI fixture、17 个 package fixture、180 个标准库公开函数、21 个标准库测试、17 个标准库范例、45 个入口 C/H fixture 和 9 个 package C/H fixture。
+- 上述测试、范例、fixture 与标准库覆盖检查同时守住当前数量基线：668 个测试用例、28 个测试前缀、114 个范例、5 个 JSON/XAPI fixture、48 个 package/extlib fixture、180 个标准库公开函数、21 个标准库测试、17 个标准库范例、45 个入口 C/H fixture 和 55 个 package/extlib C/H fixture。
 - `lex`、`check`、`parse`、`ir`、`cgen`、`abi`、`xapi`、`run`、`build` 命令面检查。
 - 语义错误与 import 错误的文本/JSON 诊断稳定性检查。
-- `test_all.bat` 全量测试：依次覆盖 `test.bat` 主回归、`test_tutorial.bat` 教程范例和 `test_dll.bat` 嵌入式 DLL 验收。
+- `test_all.bat` 全量测试：依次覆盖 `test.bat` 主回归、`test_tutorial.bat` 教程范例、`test_apps.bat` 复合应用范例和 `test_dll.bat` 嵌入式 DLL 验收。
 - `git diff --check -- demo6` 空白检查。
 
 快速冒烟入口：
 
 - `test_smoke.bat` 不再作为 `test.bat` 的别名，而是独立的快速验证入口。
 - 当前 smoke 覆盖 `build.bat`、文档/源码/工具接线、`lex`、`parse`、`check`、`cgen`、`abi`、`xapi`、import metadata、容器运行和一个标准库运行样本。
-- 完整功能矩阵仍以 `test.bat`、`test_all.bat`、feature suite、tutorial 和 DLL 测试为准。
+- 完整功能矩阵仍以 `test.bat`、`test_all.bat`、feature suite、tutorial、apps 和 DLL 测试为准。
 
 ## 当前基线目录
 
@@ -64,19 +64,20 @@ rc0_guard.bat -SkipFullTests
 - `src`：DEMO6 编译器源码。
 - `lib/xrt/xrt.h`：DEMO6 当前同步的 XRT 单头文件。
 - `test/cases`：语法、语义、代码生成、混编、import/XAPI 等测试用例。
-- `examples`：面向使用者的范例程序与 feature suite。
-- `packages`：import/package/XAPI 测试与示例资产。
+- `release/examples`：与 `xl.exe` 同目录的正式范例程序与 feature suite 资产。
+- `release/extlibs`：与 `xl.exe` 同目录的正式 import/package/XAPI 测试与扩展库示例资产。
 - `docs`：DEMO6 当前唯一设计口径目录。
-- `build.bat`、`test.bat`、`test_all.bat`、`test_smoke.bat`、`test_feature_suite.bat`、`test_tutorial.bat`：构建与测试入口，其中 `test_smoke.bat` 是快速冒烟入口，不替代完整主回归。
+- `build.bat`、`test.bat`、`test_all.bat`、`test_smoke.bat`、`test_feature_suite.bat`、`test_tutorial.bat`、`test_apps.bat`：构建与测试入口，其中 `test_smoke.bat` 是快速冒烟入口，不替代完整主回归。
 - `build_dll.bat`、`test_dll.bat`：`xl.dll` 构建、嵌入式运行和宿主 API 边界验收入口。
 - `test_xlc_shell.bat`：`xlc.dll` shell 专项验证入口，覆盖编译版 DLL shell smoke 和 CLI 临时目录清理。
 - `rc0_guard.bat`、`tools/rc0_guard.ps1`：RC0 工程守门入口。
 
 生成物与临时文件：
 
-- `release`：构建输出、运行临时目录、临时可执行文件。
-- `src/lexer/xl6_lexer_gen.c`、`src/lexer/xl6_lexer_gen.h`：flex 生成物。
-- `src/parser/xl6_parser.c`、`src/parser/xl6_parser.h`、`src/parser/xl6_parser.out`：lemon 生成物。
+- `release`：构建输出、运行临时目录、临时可执行文件，以及 `release/include`、`release/examples`、`release/extlibs` 三个随 `xl.exe` 分发的正式资产目录。
+- `src/lexer/xl6_lexer_gen.c`、`src/lexer/xl6_lexer_gen.h`：flex 生成的发布构建输入，默认不在 `build.bat` 中重新生成。
+- `src/parser/xl6_parser.c`、`src/parser/xl6_parser.h`：lemon 生成的发布构建输入，默认不在 `build.bat` 中重新生成。
+- `src/parser/xl6_parser.out`：lemon trace 输出，属于可忽略临时生成物。
 
 生成物不得作为设计来源；如果生成物影响构建，应从对应 `.l`、`.y` 或构建脚本修正。
 

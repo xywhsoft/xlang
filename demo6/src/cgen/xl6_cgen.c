@@ -5,6 +5,7 @@
 #include "src/cgen/xl6_cgen_runtime.h"
 
 #include <limits.h>
+#include <stddef.h>
 
 /*
     Private implementation shards.

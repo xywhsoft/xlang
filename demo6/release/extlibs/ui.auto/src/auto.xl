@@ -1,0 +1,417 @@
+import uia
+import opencv
+
+const int DEFAULT_TIMEOUT_MS = 5000
+
+class Locator
+	string automation_id
+	string class_name
+	string name
+	int control_type
+	int process_id
+	point root_hwnd
+	int timeout_ms
+
+	create()
+		self.automation_id = ""
+		self.class_name = ""
+		self.name = ""
+		self.control_type = 0
+		self.process_id = 0
+		self.root_hwnd = null
+		self.timeout_ms = 5000
+	end
+end
+
+class AutoTestWindow
+	point handle
+
+	create(point h)
+		self.handle = h
+	end
+
+	func valid() as bool
+		return x_uia_test_window_valid(self.handle)
+	end
+
+	func hwnd() as point
+		return x_uia_test_window_hwnd(self.handle)
+	end
+
+	func close() as bool
+		return x_uia_test_window_close(self.handle)
+	end
+
+	func release() as bool
+		return x_uia_test_window_release(self.handle)
+	end
+end
+
+func x_ui_auto_locator() as Locator
+	return Locator()
+end
+
+func x_ui_auto_test_window() as AutoTestWindow
+	return AutoTestWindow(x_uia_test_window_create())
+end
+
+func x_ui_auto_shutdown() as bool
+	return x_uia_shutdown()
+end
+
+func x_ui_auto_by_automation_id(string automation_id, int control_type) as Locator
+	auto loc = Locator()
+	loc.automation_id = automation_id
+	loc.control_type = control_type
+	return loc
+end
+
+func x_ui_auto_by_class_name(string class_name, string name, int control_type) as Locator
+	auto loc = Locator()
+	loc.class_name = class_name
+	loc.name = name
+	loc.control_type = control_type
+	return loc
+end
+
+func x_ui_auto_by_name(string name, int control_type) as Locator
+	auto loc = Locator()
+	loc.name = name
+	loc.control_type = control_type
+	return loc
+end
+
+func x_ui_auto_by_control_type(int control_type) as Locator
+	auto loc = Locator()
+	loc.control_type = control_type
+	return loc
+end
+
+func x_ui_auto_by_process_id(int process_id) as Locator
+	auto loc = Locator()
+	loc.process_id = process_id
+	return loc
+end
+
+func x_ui_auto_within(Locator loc, point hwnd) as Locator
+	loc.root_hwnd = hwnd
+	return loc
+end
+
+func x_ui_auto_with_timeout(Locator loc, int timeout_ms) as Locator
+	loc.timeout_ms = timeout_ms
+	return loc
+end
+
+func x_ui_auto_locator_from_json(string json) as Locator
+	auto loc = Locator()
+	loc.automation_id = json_string(json, "automationId")
+	loc.class_name = json_string(json, "className")
+	loc.name = json_string(json, "name")
+	loc.control_type = json_int(json, "controlType")
+	loc.process_id = json_int(json, "processId")
+	return loc
+end
+
+func x_ui_auto_wait_exists(Locator loc) as bool
+	if loc.root_hwnd != null then
+		auto root = uia.from_hwnd(loc.root_hwnd)
+		if root.valid() == false then
+			return false
+		end
+		return wait_exists_in_root(root, loc)
+	end
+
+	auto root = uia.desktop()
+	if root.valid() == false then
+		return false
+	end
+	return wait_exists_in_root(root, loc)
+end
+
+func x_ui_auto_click(Locator loc) as bool
+	if loc.root_hwnd != null then
+		auto root = uia.from_hwnd(loc.root_hwnd)
+		if root.valid() == false then
+			return false
+		end
+		return click_in_root(root, loc)
+	end
+
+	auto root = uia.desktop()
+	if root.valid() == false then
+		return false
+	end
+	return click_in_root(root, loc)
+end
+
+func x_ui_auto_type_text(Locator loc, string text) as bool
+	if loc.root_hwnd != null then
+		auto root = uia.from_hwnd(loc.root_hwnd)
+		if root.valid() == false then
+			return false
+		end
+		return type_text_in_root(root, loc, text)
+	end
+
+	auto root = uia.desktop()
+	if root.valid() == false then
+		return false
+	end
+	return type_text_in_root(root, loc, text)
+end
+
+func x_ui_auto_read(Locator loc) as string
+	if loc.root_hwnd != null then
+		auto root = uia.from_hwnd(loc.root_hwnd)
+		if root.valid() == false then
+			return ""
+		end
+		return read_in_root(root, loc)
+	end
+
+	auto root = uia.desktop()
+	if root.valid() == false then
+		return ""
+	end
+	return read_in_root(root, loc)
+end
+
+func x_ui_auto_screenshot(Locator loc, string path) as bool
+	if loc.root_hwnd != null then
+		auto root = uia.from_hwnd(loc.root_hwnd)
+		if root.valid() == false then
+			return false
+		end
+		return screenshot_in_root(root, loc, path)
+	end
+
+	auto root = uia.desktop()
+	if root.valid() == false then
+		return false
+	end
+	return screenshot_in_root(root, loc, path)
+end
+
+func x_ui_auto_focused_locator_json() as string
+	return uia.focused_locator()
+end
+
+func json_string(string text, string key) as string
+	var obj = json.parse(text)
+	var value = obj?[key]
+	if value == null then
+		return ""
+	end
+	return string(value)
+end
+
+func json_int(string text, string key) as int
+	var obj = json.parse(text)
+	var value = obj?[key]
+	if value == null then
+		return 0
+	end
+	return int(value)
+end
+
+func find_by_automation_id(Element root, Locator loc) as Element
+	if loc.control_type > 0 then
+		auto id_cond = uia.by_automation_id(loc.automation_id)
+		auto type_cond = uia.by_control_type(loc.control_type)
+		auto cond = uia.all_of(id_cond, type_cond)
+		return root.find_first_scope(cond, 4, loc.timeout_ms)
+	end
+	auto cond = uia.by_automation_id(loc.automation_id)
+	return root.find_first_scope(cond, 4, loc.timeout_ms)
+end
+
+func find_by_class_name(Element root, Locator loc) as Element
+	auto class_cond = uia.by_class_name(loc.class_name)
+	if loc.name != "" then
+		auto name_cond = uia.by_name(loc.name)
+		auto first = uia.all_of(class_cond, name_cond)
+		if loc.control_type > 0 then
+			auto type_cond = uia.by_control_type(loc.control_type)
+			auto cond = uia.all_of(first, type_cond)
+			return root.find_first_scope(cond, 4, loc.timeout_ms)
+		end
+		return root.find_first_scope(first, 4, loc.timeout_ms)
+	end
+	if loc.control_type > 0 then
+		auto type_cond = uia.by_control_type(loc.control_type)
+		auto cond = uia.all_of(class_cond, type_cond)
+		return root.find_first_scope(cond, 4, loc.timeout_ms)
+	end
+	return root.find_first_scope(class_cond, 4, loc.timeout_ms)
+end
+
+func find_by_name(Element root, Locator loc) as Element
+	if loc.control_type > 0 then
+		auto name_cond = uia.by_name(loc.name)
+		auto type_cond = uia.by_control_type(loc.control_type)
+		auto cond = uia.all_of(name_cond, type_cond)
+		return root.find_first_scope(cond, 4, loc.timeout_ms)
+	end
+	auto cond = uia.by_name(loc.name)
+	return root.find_first_scope(cond, 4, loc.timeout_ms)
+end
+
+func find_by_control_type(Element root, Locator loc) as Element
+	auto cond = uia.by_control_type(loc.control_type)
+	return root.find_first_scope(cond, 4, loc.timeout_ms)
+end
+
+func find_by_process_id(Element root, Locator loc) as Element
+	auto cond = uia.by_process_id(loc.process_id)
+	return root.find_first_scope(cond, 4, loc.timeout_ms)
+end
+
+func find_in_root(Element root, Locator loc) as Element
+	if loc.automation_id != "" then
+		return find_by_automation_id(root, loc)
+	end
+	if loc.class_name != "" then
+		return find_by_class_name(root, loc)
+	end
+	if loc.name != "" then
+		return find_by_name(root, loc)
+	end
+	if loc.control_type > 0 then
+		return find_by_control_type(root, loc)
+	end
+	if loc.process_id > 0 then
+		return find_by_process_id(root, loc)
+	end
+	point emptyHandle
+	return uia.element(emptyHandle)
+end
+
+func wait_exists_in_root(Element root, Locator loc) as bool
+	auto element = find_in_root(root, loc)
+	return element.valid()
+end
+
+func click_in_root(Element root, Locator loc) as bool
+	auto element = find_in_root(root, loc)
+	if element.valid() == false then
+		return false
+	end
+	return element.click()
+end
+
+func type_text_in_root(Element root, Locator loc, string text) as bool
+	auto element = find_in_root(root, loc)
+	if element.valid() == false then
+		return false
+	end
+	if element.set_value(text) == false then
+		return false
+	end
+	for i in range(0, 20)
+		if element.text() == text then
+			return true
+		end
+		time.sleep(25)
+	end
+	return element.text() == text
+end
+
+func read_in_root(Element root, Locator loc) as string
+	auto element = find_in_root(root, loc)
+	if element.valid() == false then
+		return ""
+	end
+	return element.text()
+end
+
+func screenshot_in_root(Element root, Locator loc, string path) as bool
+	auto element = find_in_root(root, loc)
+	if element.valid() == false then
+		return false
+	end
+	auto rect = element.rect_json()
+	auto left = json_int(rect, "left")
+	auto top = json_int(rect, "top")
+	auto width = json_int(rect, "width")
+	auto height = json_int(rect, "height")
+	auto hwnd = element.hwnd()
+	if hwnd != null then
+		auto window_image = opencv.capture_window(hwnd)
+		if window_image.empty() == false then
+			return window_image.save(path)
+		end
+	end
+	auto image = opencv.capture_rect(left, top, width, height)
+	if image.empty() then
+		return false
+	end
+	return image.save(path)
+end
+func __xl6_import_x_ui_auto_locator() as Locator
+	return x_ui_auto_locator()
+end
+
+func __xl6_import_x_ui_auto_test_window() as AutoTestWindow
+	return x_ui_auto_test_window()
+end
+
+func __xl6_import_x_ui_auto_shutdown() as bool
+	return x_ui_auto_shutdown()
+end
+
+func __xl6_import_x_ui_auto_by_automation_id(string automation_id, int control_type) as Locator
+	return x_ui_auto_by_automation_id(automation_id, control_type)
+end
+
+func __xl6_import_x_ui_auto_by_class_name(string class_name, string name, int control_type) as Locator
+	return x_ui_auto_by_class_name(class_name, name, control_type)
+end
+
+func __xl6_import_x_ui_auto_by_name(string name, int control_type) as Locator
+	return x_ui_auto_by_name(name, control_type)
+end
+
+func __xl6_import_x_ui_auto_by_control_type(int control_type) as Locator
+	return x_ui_auto_by_control_type(control_type)
+end
+
+func __xl6_import_x_ui_auto_by_process_id(int process_id) as Locator
+	return x_ui_auto_by_process_id(process_id)
+end
+
+func __xl6_import_x_ui_auto_within(Locator loc, point hwnd) as Locator
+	return x_ui_auto_within(loc, hwnd)
+end
+
+func __xl6_import_x_ui_auto_with_timeout(Locator loc, int timeout_ms) as Locator
+	return x_ui_auto_with_timeout(loc, timeout_ms)
+end
+
+func __xl6_import_x_ui_auto_locator_from_json(string json) as Locator
+	return x_ui_auto_locator_from_json(json)
+end
+
+func __xl6_import_x_ui_auto_wait_exists(Locator loc) as bool
+	return x_ui_auto_wait_exists(loc)
+end
+
+func __xl6_import_x_ui_auto_click(Locator loc) as bool
+	return x_ui_auto_click(loc)
+end
+
+func __xl6_import_x_ui_auto_type_text(Locator loc, string text) as bool
+	return x_ui_auto_type_text(loc, text)
+end
+
+func __xl6_import_x_ui_auto_read(Locator loc) as string
+	return x_ui_auto_read(loc)
+end
+
+func __xl6_import_x_ui_auto_screenshot(Locator loc, string path) as bool
+	return x_ui_auto_screenshot(loc, path)
+end
+
+func __xl6_import_x_ui_auto_focused_locator_json() as string
+	return x_ui_auto_focused_locator_json()
+end

@@ -15,7 +15,7 @@ $minCasePrefixes = 28
 $wiringFiles = @(
     "test.bat",
     "test_tutorial.bat",
-    "examples\feature_suite\run_feature_suite.bat"
+    "release\examples\feature_suite\run_feature_suite.bat"
 )
 
 $failures = New-Object System.Collections.Generic.List[string]

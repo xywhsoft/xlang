@@ -20,7 +20,7 @@
   "module": {
     "name": "stb_image_write",
     "moduleId": "stb_image_write@0.1.0#abi1::stb_image_write",
-    "source": "extlibs/stb_image_write",
+    "source": "release/extlibs/stb_image_write",
     "sourceHash": ""
   },
   "entry": {

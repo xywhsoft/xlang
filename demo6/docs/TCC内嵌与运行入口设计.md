@@ -176,13 +176,16 @@ lib/xrt/xrt.h
 资源生成必须清单驱动，不允许“扫描目录全塞”。
 
 当前实现：
-- 清单文件：`tools/tcc_vfs_manifest_win64.txt`。
+- 清单文件：`tools/tcc_vfs_manifest_win64_runtime.txt` 与 `tools/tcc_vfs_manifest_win64_xlc.txt`。
 - 生成器：`tools/gen_tcc_vfs_resources.ps1`。
 - 生成产物：`release\tmp\tcc_builtin_resources.c`，构建时临时生成，不作为手写源维护。
 - VFS 适配层位于 `lib/tcc/tcc_builtin_vfs.c` / `lib/tcc/tcc_builtin_vfs.h`，策略是动态 VFS 优先，其次外部真实文件，最后按虚拟路径查找内置资源。
 - 当前资源逐个压缩后进入 `xl.exe` / `xlc.dll`。资源结构包含 `method`、`packed_size`、`size`。
 - 当前压缩算法固定为 LZMA：构建期使用 `tools/tcc_vfs_lzma_pack.c` 压缩，运行期只链接 `lib/lzma/LzmaDec.c` 解压；压缩后不变小的资源自动退回原样存储。
 - `lib/tcc/win32/dist/x86_64` 已补齐当前 demo6 需要的 WinAPI 头文件、`libtcc1.a` 和 Windows import def。VFS 资源生成不再引用 demo5 或外部 TCC 仓库。
+- `build.bat` 默认先用 MinGW `gcc` 从 `lib/tcc` 自举 `release\tmp\tcc_bootstrap.exe`，再用该本地 TCC 构建 `xl.dll`、`xlc.dll` 和 `xl.exe`；`build.sh` 是 Windows Git Bash/MSYS 下的同路径包装入口，不维护第二套构建逻辑。
+- `build_dll.bat` 默认从 `lib/xrt/xrt.h` 生成 `release\tmp\xrt.o`，不再要求 `D:\GIT\xrt\release\x64\xrt.o` 预先存在。
+- `src/lexer/xl6_lexer_gen.c` / `src/lexer/xl6_lexer_gen.h` 与 `src/parser/xl6_parser.c` / `src/parser/xl6_parser.h` 作为发布构建输入随仓库保存；只有设置 `XL6_REGEN_GRAMMAR=1` 时才调用 Flex/Lemon 重新生成。
 
 ## 压缩策略
 
@@ -221,7 +224,7 @@ lib/xrt/xrt.h
 - `xl.exe` 的 `run` / `build` 主链路已静态编入 `lib/tcc/libtcc.c`，不再依赖外部 `tcc.exe` 完成编译。
 - `xl.exe` 已接入清单驱动的内置 VFS 资源包，不再使用 `tcc_xlang` 中粗糙的全量实验资源表。
 - `xl.exe` / `xlc.dll` 的内置 VFS 资源已启用逐资源 LZMA 压缩，运行期只携带 LZMA decoder。
-- 主回归覆盖外部 TCC include/lib、`libtcc1.a`、`xrt.o` 全部缺失时，`xl.exe run` 与 `xl.exe build` 仍可依靠内置 VFS 完成脚本运行和 exe 输出。
+- 主回归覆盖外部 TCC include/lib、`libtcc1.a`、`xrt.o` 全部缺失时，`xl.exe run` 与 `xl.exe build` 仍可依靠内置 VFS 完成脚本运行和 exe 输出；构建阶段所需 `libtcc1.a`、TCC 头文件/def、XRT 单头文件和 LZMA 源码均必须位于 `demo6` 目录内。
 - DLL 回归覆盖 `release\libtcc.dll` 不存在，且外部 TCC include/lib、`libtcc1.a`、`xrt.o` 全部缺失时，`xl.dll` 仍可依靠静态 libtcc 与运行版 VFS 完成脚本运行，`xlc.dll` 仍可依靠静态 libtcc、编译版 VFS 与 `xrt.h` 单头文件完成脚本运行和 exe 输出。
 - `lib/tcc` 已加入轻量 UTF-8 IO 适配层，Windows 下普通 `open` / `fopen` / `unlink` 会转为宽字符 API，主回归覆盖中文路径脚本编译到中文路径 exe。
 - `xl.exe --loadlib` 需要的 DLL 导出 def 生成已改为内嵌调用 `tcc_tool_impdef`，主回归覆盖外部 `tcc.exe` 缺失时的 `--loadlib` 运行。

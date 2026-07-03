@@ -6,8 +6,10 @@ static void xl6CgenForTypedContainerIterable(XL6_CgenContext* ctx, const XL6_Ast
     const char* typeName;
     int id;
     int ownsIter;
+    int hasTaskScope;
     char iterName[64];
     size_t iterCleanupMark;
+    XL6_CgenTaskSpawnArgTempScope taskScope;
 
     if ( node->childCount < 3 ) {
         xl6CgenError(ctx, node, "malformed typed container for-in statement");
@@ -30,10 +32,14 @@ static void xl6CgenForTypedContainerIterable(XL6_CgenContext* ctx, const XL6_Ast
     xl6OutputPuts("{\n", ctx->out);
     ctx->indent += 1;
     iterCleanupMark = ctx->cleanupCount;
+    hasTaskScope = iterable != NULL && xl6CgenTaskSpawnArgTempScopeBegin(ctx, iterable, &taskScope);
     xl6CgenIndent(ctx);
     xl6OutputPrintf(ctx->out, "%s %s = ", xl6CgenTypedContainerCType(ctx, iterableType), iterName);
     xl6CgenExpr(ctx, iterable);
     xl6OutputPuts(";\n", ctx->out);
+    if ( hasTaskScope ) {
+        xl6CgenTaskSpawnArgTempScopeEnd(ctx, &taskScope);
+    }
     ownsIter = !xl6CgenExprUsesTypedContainerStorage(ctx, iterable);
     if ( ownsIter ) {
         xl6CgenAddTypedContainerCleanup(ctx, iterName, iterableType);

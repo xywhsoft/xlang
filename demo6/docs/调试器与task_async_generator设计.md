@@ -543,7 +543,7 @@ task、future、generator、async generator 都应有明确 C 可见表示。
 ### 守门要求
 
 - 新增测试必须进入 `test.bat`。
-- 新增范例必须进入 `examples/README.md`。
+- 新增范例必须进入 `release/examples/README.md`。
 - 新增代码生成规则必须进入 `demo6/cgenrule`。
 - 调试器代码不得进入 `xl.dll` 运行版。
 - `xl.dll` 体积和导出 API 不应因调试器增加非必要内容。

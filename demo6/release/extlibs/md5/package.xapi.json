@@ -20,7 +20,7 @@
   "module": {
     "name": "md5",
     "moduleId": "md5@0.1.0#abi1::md5",
-    "source": "extlibs/md5",
+    "source": "release/extlibs/md5",
     "sourceHash": ""
   },
   "entry": {

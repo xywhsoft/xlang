@@ -10,16 +10,58 @@ static int xl6CgenIsRangeCall(const XL6_AstNode* node)
            xl6CTextEquals(node->children[0]->text, "range");
 }
 
+static const XL6_AstNode* xl6CgenRangeArgExpr(const XL6_AstNode* args, int index)
+{
+    const XL6_AstNode* arg;
+
+    if ( args == NULL || index < 0 || args->childCount <= (size_t)index ) {
+        return NULL;
+    }
+    arg = args->children[index];
+    if ( arg == NULL || arg->childCount == 0 ) {
+        return NULL;
+    }
+    return arg->children[0];
+}
+
 static void xl6CgenRangePart(XL6_CgenContext* ctx, const XL6_AstNode* args, int index, const char* defaultText)
 {
-    if ( args != NULL && args->childCount > (size_t)index ) {
-        const XL6_AstNode* arg = args->children[index];
-        if ( arg != NULL && arg->childCount > 0 ) {
-            xl6CgenExpr(ctx, arg->children[0]);
-            return;
-        }
+    const XL6_AstNode* expr;
+
+    expr = xl6CgenRangeArgExpr(args, index);
+    if ( expr != NULL ) {
+        xl6CgenExpr(ctx, expr);
+        return;
     }
     xl6OutputPuts(defaultText, ctx->out);
+}
+
+static void xl6CgenForRangeTemp(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* args,
+    int index,
+    const char* defaultText,
+    const char* name)
+{
+    const XL6_AstNode* expr;
+    XL6_CgenTaskSpawnArgTempScope taskScope;
+    int hasTaskScope;
+
+    expr = xl6CgenRangeArgExpr(args, index);
+    hasTaskScope = expr != NULL && xl6CgenTaskSpawnArgTempScopeBegin(ctx, expr, &taskScope);
+
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "long long %s = ", name);
+    if ( expr != NULL ) {
+        xl6CgenExpr(ctx, expr);
+    } else {
+        xl6OutputPuts(defaultText, ctx->out);
+    }
+    xl6OutputPuts(";\n", ctx->out);
+
+    if ( hasTaskScope ) {
+        xl6CgenTaskSpawnArgTempScopeEnd(ctx, &taskScope);
+    }
 }
 
 static void xl6CgenRangeContainsExpr(XL6_CgenContext* ctx, const XL6_AstNode* value, const XL6_AstNode* rangeCall)
@@ -507,6 +549,9 @@ static void xl6CgenForRange(XL6_CgenContext* ctx, const XL6_AstNode* node)
     size_t varMark;
     size_t loopMark;
     int id;
+    char startName[64];
+    char stopName[64];
+    char stepName[64];
 
     if ( node->childCount < 3 ) {
         xl6CgenError(ctx, node, "malformed range for-in statement");
@@ -535,32 +580,27 @@ static void xl6CgenForRange(XL6_CgenContext* ctx, const XL6_AstNode* node)
     xl6OutputPuts("{\n", ctx->out);
     ctx->indent += 1;
 
-    xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "long long __xl6_range_start_%d = ", id);
-    if ( args->childCount == 1 ) {
-        xl6OutputPuts("0", ctx->out);
-    } else {
-        xl6CgenRangePart(ctx, args, 0, "0");
-    }
-    xl6OutputPuts(";\n", ctx->out);
+    snprintf(startName, sizeof(startName), "__xl6_range_start_%d", id);
+    snprintf(stopName, sizeof(stopName), "__xl6_range_stop_%d", id);
+    snprintf(stepName, sizeof(stepName), "__xl6_range_step_%d", id);
 
-    xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "long long __xl6_range_stop_%d = ", id);
     if ( args->childCount == 1 ) {
-        xl6CgenRangePart(ctx, args, 0, "0");
+        xl6CgenForRangeTemp(ctx, NULL, 0, "0", startName);
     } else {
-        xl6CgenRangePart(ctx, args, 1, "0");
+        xl6CgenForRangeTemp(ctx, args, 0, "0", startName);
     }
-    xl6OutputPuts(";\n", ctx->out);
 
-    xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "long long __xl6_range_step_%d = ", id);
+    if ( args->childCount == 1 ) {
+        xl6CgenForRangeTemp(ctx, args, 0, "0", stopName);
+    } else {
+        xl6CgenForRangeTemp(ctx, args, 1, "0", stopName);
+    }
+
     if ( args->childCount >= 3 ) {
-        xl6CgenRangePart(ctx, args, 2, "1");
+        xl6CgenForRangeTemp(ctx, args, 2, "1", stepName);
     } else {
-        xl6OutputPuts("1", ctx->out);
+        xl6CgenForRangeTemp(ctx, NULL, 0, "1", stepName);
     }
-    xl6OutputPuts(";\n", ctx->out);
 
     if ( args->childCount >= 3 ) {
         xl6CgenIndent(ctx);
@@ -736,7 +776,9 @@ static void xl6CgenForGeneratorIterable(XL6_CgenContext* ctx, const XL6_AstNode*
     size_t loopMark;
     int id;
     int targetCount;
+    int hasTaskScope;
     char iterName[64];
+    XL6_CgenTaskSpawnArgTempScope taskScope;
 
     if ( node->childCount < 3 ) {
         xl6CgenError(ctx, node, "malformed generator for-in statement");
@@ -766,10 +808,14 @@ static void xl6CgenForGeneratorIterable(XL6_CgenContext* ctx, const XL6_AstNode*
     ctx->indent += 1;
 
     iterMark = ctx->cleanupCount;
+    hasTaskScope = iterable != NULL && xl6CgenTaskSpawnArgTempScopeBegin(ctx, iterable, &taskScope);
     xl6CgenIndent(ctx);
     xl6OutputPrintf(ctx->out, "XL6_Generator* %s = ", iterName);
     xl6CgenExpr(ctx, iterable);
     xl6OutputPuts(";\n", ctx->out);
+    if ( hasTaskScope ) {
+        xl6CgenTaskSpawnArgTempScopeEnd(ctx, &taskScope);
+    }
     if ( iterable != NULL && iterable->kind == XL6_AST_NAME ) {
         char sourceName[512];
 

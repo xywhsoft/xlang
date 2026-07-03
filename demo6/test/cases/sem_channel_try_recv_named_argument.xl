@@ -1,0 +1,4 @@
+channel<int> ch = channel::<int>(1)
+int out = 0
+
+bool ok = ch.tryRecvInto(target = out)

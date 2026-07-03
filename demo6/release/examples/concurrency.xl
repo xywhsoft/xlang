@@ -1,0 +1,1025 @@
+async func addAsync(int a, int b) as int
+    return a + b
+end
+
+async func slowAddAsync(int a, int b) as int
+    time.sleep(120)
+    return a + b
+end
+
+async func makeVarAsync(int value) as var
+    return value
+end
+
+async func failTextAsync() as string
+    throw "async text boom"
+    return ""
+end
+
+async func failDoneAsync()
+    throw "async void boom"
+end
+
+async func failScoresAsync() as dict<int>
+    throw "async dict boom"
+    return dict{"score": 42}
+end
+
+async func asyncFinallyCatchExample() as int
+    int state = 0
+
+    try
+        state = 1
+        throw "async finally catch example"
+    catch e
+        if e.message == "async finally catch example" then
+            state = state + 10
+        end
+    finally
+        state = state + 100
+    end
+
+    return state
+end
+
+async func asyncFinallyRethrowExample() as int
+    int state = 0
+
+    try
+        try
+            state = 1
+            throw "async finally rethrow example"
+        finally
+            state = state + 10
+        end
+    catch e
+        if e.message == "async finally rethrow example" then
+            state = state + 100
+        end
+    end
+
+    return state
+end
+
+async func asyncFinallyOverrideExample() as int
+    try
+        throw "async finally original example"
+    finally
+        throw "async finally override example"
+    end
+
+    return 0
+end
+
+async func asyncFinallyVoidOverrideExample()
+    try
+        throw "async finally void original example"
+    finally
+        throw "async finally void override example"
+    end
+end
+
+async func slowVoidAsync()
+    time.sleep(120)
+end
+
+async func slowVarAsync(int value) as var
+    time.sleep(120)
+    return value
+end
+
+async func slowTextAsync(string name) as string
+    time.sleep(120)
+    return "hello " + name
+end
+
+async func slowFlagAsync(bool flag) as bool
+    time.sleep(120)
+    return not flag
+end
+
+async func slowFloatAsync(float value) as float
+    time.sleep(120)
+    return value + 0.5
+end
+
+func makeOffset(int base) as func(int) as int
+    return func(int value) as int
+        return base + value
+    end
+end
+
+class AsyncExampleBox
+    int bias = 0
+    func(int) as int op
+end
+
+async func slowFuncAsync(int base) as func(int) as int
+    time.sleep(120)
+    return makeOffset(base)
+end
+
+async func slowBoxAsync(int base) as AsyncExampleBox
+    time.sleep(120)
+    AsyncExampleBox box
+    box.bias = base
+    box.op = makeOffset(base)
+    return box
+end
+
+async func slowArrayAsync() as array<int>
+    time.sleep(120)
+    return array[3, 4, 5]
+end
+
+async func slowAltArrayAsync() as array<int>
+    time.sleep(120)
+    return array[13, 14, 15]
+end
+
+async func slowScoresAsync() as dict<int>
+    time.sleep(120)
+    return dict{"score": 42}
+end
+
+func numbers(int count) as generator<int>
+    int i = 0
+    while i < count do
+        i = i + 1
+        yield i
+    end
+end
+
+func brokenNumbersEarly() as generator<int>
+    throw "generator boom before yield"
+    yield 1
+end
+
+func emptyNumbers() as generator<int>
+    int marker = 1
+    if marker == 0 then
+        yield marker
+    end
+end
+
+func worker() as int
+    return 7
+end
+
+func slowWorker() as int
+    time.sleep(30)
+    return 9
+end
+
+func monitorSlowWorker() as int
+    time.sleep(120)
+    return 19
+end
+
+func makeThreadWorker(int code) as func() as int
+    return func() as int
+        return code
+    end
+end
+
+func() as int missingThreadWorker
+
+auto f = addAsync(20, 22)
+int answer = await f
+assert answer == 42, "async/await failed"
+assert not task.cancel(f), "completed async future cancel result"
+int answerAfterCancel = await f
+assert answerAfterCancel == 42, "completed async future remains awaitable"
+
+future<var> vf = makeVarAsync(120)
+var dynamicAnswer = await vf
+assert int(dynamicAnswer) == 120, "async var await failed"
+assert not task.cancel(vf), "completed async var future cancel result"
+var dynamicAfterCancel = await vf
+assert int(dynamicAfterCancel) == 120, "completed async var future remains awaitable"
+
+future<int> conditionalAwaitSource = addAsync(30, 12)
+bool chooseConditionalAwait = true
+int conditionalAwaitBorrowed = await (chooseConditionalAwait ? conditionalAwaitSource : addAsync(1, 1))
+assert conditionalAwaitBorrowed == 42, "conditional await borrowed future failed"
+int conditionalAwaitAgain = await conditionalAwaitSource
+assert conditionalAwaitAgain == 42, "conditional await borrowed future should remain awaitable"
+chooseConditionalAwait = false
+int conditionalAwaitOwned = await (chooseConditionalAwait ? conditionalAwaitSource : addAsync(40, 2))
+assert conditionalAwaitOwned == 42, "conditional await owned future failed"
+
+future<var> conditionalVarSource = makeVarAsync(140)
+chooseConditionalAwait = true
+var conditionalVarBorrowed = await (chooseConditionalAwait ? conditionalVarSource : makeVarAsync(1))
+assert int(conditionalVarBorrowed) == 140, "conditional await borrowed var future failed"
+var conditionalVarAgain = await conditionalVarSource
+assert int(conditionalVarAgain) == 140, "conditional await borrowed var future should remain awaitable"
+chooseConditionalAwait = false
+var conditionalVarOwned = await (chooseConditionalAwait ? conditionalVarSource : makeVarAsync(141))
+assert int(conditionalVarOwned) == 141, "conditional await owned var future failed"
+
+future<func(int) as int> conditionalFuncSource = slowFuncAsync(142)
+bool chooseConditionalFunc = true
+func(int) as int conditionalFuncBorrowed = await (chooseConditionalFunc ? conditionalFuncSource : slowFuncAsync(143))
+assert conditionalFuncBorrowed(1) == 143, "conditional await borrowed function future failed"
+func(int) as int conditionalFuncAgain = await conditionalFuncSource
+assert conditionalFuncAgain(2) == 144, "conditional await borrowed function future should remain awaitable"
+chooseConditionalFunc = false
+func(int) as int conditionalFuncOwned = await (chooseConditionalFunc ? conditionalFuncSource : slowFuncAsync(143))
+assert conditionalFuncOwned(3) == 146, "conditional await owned function future failed"
+
+future<string> conditionalTextSource = slowTextAsync("named conditional")
+bool chooseConditionalText = true
+string conditionalTextBorrowed = await (chooseConditionalText ? conditionalTextSource : slowTextAsync("owned conditional"))
+assert conditionalTextBorrowed == "hello named conditional", "conditional await borrowed string future failed"
+string conditionalTextAgain = await conditionalTextSource
+assert conditionalTextAgain == "hello named conditional", "conditional await borrowed string future should remain awaitable"
+chooseConditionalText = false
+string conditionalTextOwned = await (chooseConditionalText ? conditionalTextSource : slowTextAsync("owned conditional"))
+assert conditionalTextOwned == "hello owned conditional", "conditional await owned string future failed"
+
+future<array<int>> conditionalArraySource = slowArrayAsync()
+bool chooseConditionalArray = true
+array<int> conditionalArrayBorrowed = await (chooseConditionalArray ? conditionalArraySource : slowAltArrayAsync())
+assert conditionalArrayBorrowed[0] == 3, "conditional await borrowed array future failed"
+array<int> conditionalArrayAgain = await conditionalArraySource
+assert conditionalArrayAgain[2] == 5, "conditional await borrowed array future should remain awaitable"
+chooseConditionalArray = false
+array<int> conditionalArrayOwned = await (chooseConditionalArray ? conditionalArraySource : slowAltArrayAsync())
+assert conditionalArrayOwned[0] == 13, "conditional await owned array future failed"
+
+future<AsyncExampleBox> conditionalBoxSource = slowBoxAsync(150)
+bool chooseConditionalBox = true
+AsyncExampleBox conditionalBoxBorrowed = await (chooseConditionalBox ? conditionalBoxSource : slowBoxAsync(160))
+assert conditionalBoxBorrowed.op(2) + conditionalBoxBorrowed.bias == 302, "conditional await borrowed class future failed"
+AsyncExampleBox conditionalBoxAgain = await conditionalBoxSource
+assert conditionalBoxAgain.op(3) + conditionalBoxAgain.bias == 303, "conditional await borrowed class future should remain awaitable"
+chooseConditionalBox = false
+AsyncExampleBox conditionalBoxOwned = await (chooseConditionalBox ? conditionalBoxSource : slowBoxAsync(160))
+assert conditionalBoxOwned.op(4) + conditionalBoxOwned.bias == 324, "conditional await owned class future failed"
+
+auto failedDone = failDoneAsync()
+int failedDoneState = 0
+try
+    await failedDone
+    failedDoneState = 9
+catch e
+    if e.message == "async void boom" then
+        failedDoneState = 1
+    end
+end
+assert failedDoneState == 1, "failed async void future should reach catch"
+assert not task.cancel(failedDone), "failed async void future cancel result"
+try
+    await failedDone
+    failedDoneState = 9
+catch e
+    if e.message == "async void boom" then
+        failedDoneState = 2
+    end
+end
+assert failedDoneState == 2, "failed async void future remains awaitable"
+
+future<string> failedText = failTextAsync()
+int failedTextState = 0
+try
+    string textValue = await failedText
+    failedTextState = 9
+catch e
+    if e.message == "async text boom" then
+        failedTextState = 1
+    end
+end
+assert failedTextState == 1, "failed async future should reach catch"
+assert not task.cancel(failedText), "failed async future cancel result"
+try
+    string textValueAgain = await failedText
+    failedTextState = 9
+catch e
+    if e.message == "async text boom" then
+        failedTextState = 2
+    end
+end
+assert failedTextState == 2, "failed async future remains awaitable"
+
+future<int> missingAsyncFuture
+int missingAsyncState = 0
+try
+    int missingAsyncValue = await missingAsyncFuture
+    missingAsyncState = missingAsyncValue
+catch e
+    if e.message == "await on null future" then
+        missingAsyncState = 42
+    end
+end
+assert missingAsyncState == 42, "await null future reports async error"
+
+future<bool> missingAsyncBool
+int missingAsyncBoolState = 0
+try
+    bool missingAsyncBoolValue = await missingAsyncBool
+    missingAsyncBoolState = int(missingAsyncBoolValue)
+catch e
+    if e.message == "await on null future" then
+        missingAsyncBoolState = 42
+    end
+end
+assert missingAsyncBoolState == 42, "await null bool future reports async error"
+
+future<float> missingAsyncFloat
+int missingAsyncFloatState = 0
+try
+    float missingAsyncFloatValue = await missingAsyncFloat
+    missingAsyncFloatState = int(missingAsyncFloatValue)
+catch e
+    if e.message == "await on null future" then
+        missingAsyncFloatState = 42
+    end
+end
+assert missingAsyncFloatState == 42, "await null float future reports async error"
+
+future<var> missingAsyncVar
+int missingAsyncVarState = 0
+try
+    var missingAsyncVarValue = await missingAsyncVar
+    missingAsyncVarState = int(missingAsyncVarValue)
+catch e
+    if e.message == "await on null future" then
+        missingAsyncVarState = 42
+    end
+end
+assert missingAsyncVarState == 42, "await null var future reports async error"
+
+future<func(int) as int> missingAsyncFunc
+int missingAsyncFuncState = 0
+try
+    func(int) as int missingAsyncFuncValue = await missingAsyncFunc
+    missingAsyncFuncState = missingAsyncFuncValue(1)
+catch e
+    if e.message == "await on null future" then
+        missingAsyncFuncState = 42
+    end
+end
+assert missingAsyncFuncState == 42, "await null function future reports async error"
+
+future<AsyncExampleBox> missingAsyncBox
+int missingAsyncBoxState = 0
+try
+    AsyncExampleBox missingAsyncBoxValue = await missingAsyncBox
+    missingAsyncBoxState = missingAsyncBoxValue.bias
+catch e
+    if e.message == "await on null future" then
+        missingAsyncBoxState = 42
+    end
+end
+assert missingAsyncBoxState == 42, "await null class future reports async error"
+
+future<dict<int>> missingAsyncScores
+int missingAsyncScoresState = 0
+try
+    dict<int> missingAsyncScoresValue = await missingAsyncScores
+    missingAsyncScoresState = missingAsyncScoresValue.length
+catch e
+    if e.message == "await on null future" then
+        missingAsyncScoresState = 42
+    end
+end
+assert missingAsyncScoresState == 42, "await null dict future reports async error"
+
+future<dict<int>> failedScores = failScoresAsync()
+int failedScoresState = 0
+try
+    dict<int> scores = await failedScores
+    failedScoresState = scores.length
+catch e
+    if e.message == "async dict boom" then
+        failedScoresState = 1
+    end
+end
+assert failedScoresState == 1, "failed async dict future should reach catch"
+assert not task.cancel(failedScores), "failed async dict future cancel result"
+try
+    dict<int> scoresAgain = await failedScores
+    failedScoresState = scoresAgain.length
+catch e
+    if e.message == "async dict boom" then
+        failedScoresState = 2
+    end
+end
+assert failedScoresState == 2, "failed async dict future remains awaitable"
+
+future<int> asyncFinallyCatchFuture = asyncFinallyCatchExample()
+int asyncFinallyCatchValue = await asyncFinallyCatchFuture
+assert asyncFinallyCatchValue == 111, "async catch/finally future result"
+int asyncFinallyCatchAgain = await asyncFinallyCatchFuture
+assert asyncFinallyCatchAgain == 111, "async catch/finally repeated await"
+
+future<int> asyncFinallyRethrowFuture = asyncFinallyRethrowExample()
+int asyncFinallyRethrowValue = await asyncFinallyRethrowFuture
+assert asyncFinallyRethrowValue == 111, "async try/finally rethrow result"
+int asyncFinallyRethrowAgain = await asyncFinallyRethrowFuture
+assert asyncFinallyRethrowAgain == 111, "async try/finally rethrow repeated await"
+
+future<int> asyncFinallyOverrideFuture = asyncFinallyOverrideExample()
+int asyncFinallyOverrideState = 0
+try
+    int asyncFinallyOverrideValue = await asyncFinallyOverrideFuture
+    asyncFinallyOverrideState = asyncFinallyOverrideValue
+catch e
+    if e.message == "async finally override example" then
+        asyncFinallyOverrideState = 42
+    end
+end
+assert asyncFinallyOverrideState == 42, "async try/finally finally error override"
+assert not task.cancel(asyncFinallyOverrideFuture), "failed async try/finally future cancel result"
+
+try
+    int asyncFinallyOverrideAgain = await asyncFinallyOverrideFuture
+    asyncFinallyOverrideState = asyncFinallyOverrideAgain
+catch e
+    if e.message == "async finally override example" then
+        asyncFinallyOverrideState = 84
+    end
+end
+assert asyncFinallyOverrideState == 84, "failed async try/finally future remains awaitable"
+
+auto asyncFinallyVoidOverrideFuture = asyncFinallyVoidOverrideExample()
+int asyncFinallyVoidOverrideState = 0
+try
+    await asyncFinallyVoidOverrideFuture
+    asyncFinallyVoidOverrideState = 1
+catch e
+    if e.message == "async finally void override example" then
+        asyncFinallyVoidOverrideState = 42
+    end
+end
+assert asyncFinallyVoidOverrideState == 42, "async void try/finally finally error override"
+assert not task.cancel(asyncFinallyVoidOverrideFuture), "failed async void try/finally future cancel result"
+
+try
+    await asyncFinallyVoidOverrideFuture
+    asyncFinallyVoidOverrideState = 2
+catch e
+    if e.message == "async finally void override example" then
+        asyncFinallyVoidOverrideState = 84
+    end
+end
+assert asyncFinallyVoidOverrideState == 84, "failed async void try/finally future remains awaitable"
+
+future<AsyncExampleBox> completedBoxFuture = slowBoxAsync(20)
+AsyncExampleBox completedBox = await completedBoxFuture
+assert completedBox.op(2) + completedBox.bias == 42, "async class await failed"
+assert not task.cancel(completedBoxFuture), "completed async class future cancel result"
+AsyncExampleBox completedBoxAfterCancel = await completedBoxFuture
+assert completedBoxAfterCancel.op(3) + completedBoxAfterCancel.bias == 43, "completed async class future remains awaitable"
+
+future<array<int>> completedArrayFuture = slowArrayAsync()
+array<int> completedArray = await completedArrayFuture
+assert completedArray.length == 3, "async array await failed"
+assert not task.cancel(completedArrayFuture), "completed async array future cancel result"
+array<int> completedArrayAfterCancel = await completedArrayFuture
+assert completedArrayAfterCancel[1] == 4, "completed async array future remains awaitable"
+
+future<int> pendingAsyncInt = slowAddAsync(40, 2)
+assert task.cancel(pendingAsyncInt), "pending async int cancel result"
+
+int pendingAsyncIntState = 0
+try
+    int pendingAsyncIntValue = await pendingAsyncInt
+    pendingAsyncIntState = pendingAsyncIntValue
+catch e
+    if e.message == "future cancel requested." then
+        pendingAsyncIntState = 1
+    end
+end
+assert pendingAsyncIntState == 1, "pending async int should await as canceled"
+
+time.sleep(180)
+
+int pendingAsyncIntStillCanceled = 0
+try
+    int pendingAsyncIntLateValue = await pendingAsyncInt
+    pendingAsyncIntStillCanceled = pendingAsyncIntLateValue
+catch e
+    if e.message == "future cancel requested." then
+        pendingAsyncIntStillCanceled = 1
+    end
+end
+assert pendingAsyncIntStillCanceled == 1, "pending async int late completion should not overwrite cancel"
+
+future<string> pendingAsyncString = slowTextAsync("pending")
+assert task.cancel(pendingAsyncString), "pending async string cancel result"
+
+int pendingAsyncStringState = 0
+try
+    string pendingAsyncStringValue = await pendingAsyncString
+    pendingAsyncStringState = 9
+catch e
+    if e.message == "future cancel requested." then
+        pendingAsyncStringState = 1
+    end
+end
+assert pendingAsyncStringState == 1, "pending async string should await as canceled"
+
+time.sleep(180)
+
+int pendingAsyncStringStillCanceled = 0
+try
+    string pendingAsyncStringLateValue = await pendingAsyncString
+    pendingAsyncStringStillCanceled = 9
+catch e
+    if e.message == "future cancel requested." then
+        pendingAsyncStringStillCanceled = 1
+    end
+end
+assert pendingAsyncStringStillCanceled == 1, "pending async string late completion should not overwrite cancel"
+
+future<bool> pendingAsyncBool = slowFlagAsync(true)
+assert task.cancel(pendingAsyncBool), "pending async bool cancel result"
+
+int pendingAsyncBoolState = 0
+try
+    bool pendingAsyncBoolValue = await pendingAsyncBool
+    pendingAsyncBoolState = 9
+catch e
+    if e.message == "future cancel requested." then
+        pendingAsyncBoolState = 1
+    end
+end
+assert pendingAsyncBoolState == 1, "pending async bool should await as canceled"
+
+time.sleep(180)
+
+int pendingAsyncBoolStillCanceled = 0
+try
+    bool pendingAsyncBoolLateValue = await pendingAsyncBool
+    pendingAsyncBoolStillCanceled = 9
+catch e
+    if e.message == "future cancel requested." then
+        pendingAsyncBoolStillCanceled = 1
+    end
+end
+assert pendingAsyncBoolStillCanceled == 1, "pending async bool late completion should not overwrite cancel"
+
+future<float> pendingAsyncFloat = slowFloatAsync(1.5)
+assert task.cancel(pendingAsyncFloat), "pending async float cancel result"
+
+int pendingAsyncFloatState = 0
+try
+    float pendingAsyncFloatValue = await pendingAsyncFloat
+    pendingAsyncFloatState = 9
+catch e
+    if e.message == "future cancel requested." then
+        pendingAsyncFloatState = 1
+    end
+end
+assert pendingAsyncFloatState == 1, "pending async float should await as canceled"
+
+time.sleep(180)
+
+int pendingAsyncFloatStillCanceled = 0
+try
+    float pendingAsyncFloatLateValue = await pendingAsyncFloat
+    pendingAsyncFloatStillCanceled = 9
+catch e
+    if e.message == "future cancel requested." then
+        pendingAsyncFloatStillCanceled = 1
+    end
+end
+assert pendingAsyncFloatStillCanceled == 1, "pending async float late completion should not overwrite cancel"
+
+auto pendingAsyncVoid = slowVoidAsync()
+assert task.cancel(pendingAsyncVoid), "pending async void cancel result"
+
+int pendingAsyncVoidState = 0
+try
+    await pendingAsyncVoid
+    pendingAsyncVoidState = 9
+catch e
+    if e.message == "future cancel requested." then
+        pendingAsyncVoidState = 1
+    end
+end
+assert pendingAsyncVoidState == 1, "pending async void should await as canceled"
+
+time.sleep(180)
+
+int pendingAsyncVoidStillCanceled = 0
+try
+    await pendingAsyncVoid
+    pendingAsyncVoidStillCanceled = 9
+catch e
+    if e.message == "future cancel requested." then
+        pendingAsyncVoidStillCanceled = 1
+    end
+end
+assert pendingAsyncVoidStillCanceled == 1, "pending async void late completion should not overwrite cancel"
+
+future<var> pendingAsyncVar = slowVarAsync(150)
+assert task.cancel(pendingAsyncVar), "pending async var cancel result"
+
+int pendingAsyncVarState = 0
+try
+    var pendingAsyncVarValue = await pendingAsyncVar
+    pendingAsyncVarState = int(pendingAsyncVarValue)
+catch e
+    if e.message == "future cancel requested." then
+        pendingAsyncVarState = 1
+    end
+end
+assert pendingAsyncVarState == 1, "pending async var should await as canceled"
+
+time.sleep(180)
+
+int pendingAsyncVarStillCanceled = 0
+try
+    var pendingAsyncVarLateValue = await pendingAsyncVar
+    pendingAsyncVarStillCanceled = int(pendingAsyncVarLateValue)
+catch e
+    if e.message == "future cancel requested." then
+        pendingAsyncVarStillCanceled = 1
+    end
+end
+assert pendingAsyncVarStillCanceled == 1, "pending async var late completion should not overwrite cancel"
+
+future<func(int) as int> pendingAsyncFunc = slowFuncAsync(160)
+assert task.cancel(pendingAsyncFunc), "pending async function cancel result"
+
+int pendingAsyncFuncState = 0
+try
+    func(int) as int pendingAsyncFuncValue = await pendingAsyncFunc
+    pendingAsyncFuncState = pendingAsyncFuncValue(1)
+catch e
+    if e.message == "future cancel requested." then
+        pendingAsyncFuncState = 1
+    end
+end
+assert pendingAsyncFuncState == 1, "pending async function should await as canceled"
+
+time.sleep(180)
+
+int pendingAsyncFuncStillCanceled = 0
+try
+    func(int) as int pendingAsyncFuncLateValue = await pendingAsyncFunc
+    pendingAsyncFuncStillCanceled = pendingAsyncFuncLateValue(2)
+catch e
+    if e.message == "future cancel requested." then
+        pendingAsyncFuncStillCanceled = 1
+    end
+end
+assert pendingAsyncFuncStillCanceled == 1, "pending async function late completion should not overwrite cancel"
+
+future<AsyncExampleBox> pendingAsyncBox = slowBoxAsync(170)
+assert task.cancel(pendingAsyncBox), "pending async class cancel result"
+
+int pendingAsyncBoxState = 0
+try
+    AsyncExampleBox pendingAsyncBoxValue = await pendingAsyncBox
+    pendingAsyncBoxState = pendingAsyncBoxValue.op(1) + pendingAsyncBoxValue.bias
+catch e
+    if e.message == "future cancel requested." then
+        pendingAsyncBoxState = 1
+    end
+end
+assert pendingAsyncBoxState == 1, "pending async class should await as canceled"
+
+time.sleep(180)
+
+int pendingAsyncBoxStillCanceled = 0
+try
+    AsyncExampleBox pendingAsyncBoxLateValue = await pendingAsyncBox
+    pendingAsyncBoxStillCanceled = pendingAsyncBoxLateValue.op(2) + pendingAsyncBoxLateValue.bias
+catch e
+    if e.message == "future cancel requested." then
+        pendingAsyncBoxStillCanceled = 1
+    end
+end
+assert pendingAsyncBoxStillCanceled == 1, "pending async class late completion should not overwrite cancel"
+
+future<array<int>> pendingAsyncArray = slowArrayAsync()
+assert task.cancel(pendingAsyncArray), "pending async array cancel result"
+
+int pendingAsyncArrayState = 0
+try
+    array<int> pendingAsyncArrayValue = await pendingAsyncArray
+    pendingAsyncArrayState = pendingAsyncArrayValue.length
+catch e
+    if e.message == "future cancel requested." then
+        pendingAsyncArrayState = 1
+    end
+end
+assert pendingAsyncArrayState == 1, "pending async array should await as canceled"
+
+time.sleep(180)
+
+int pendingAsyncArrayStillCanceled = 0
+try
+    array<int> pendingAsyncArrayLateValue = await pendingAsyncArray
+    pendingAsyncArrayStillCanceled = pendingAsyncArrayLateValue.length
+catch e
+    if e.message == "future cancel requested." then
+        pendingAsyncArrayStillCanceled = 1
+    end
+end
+assert pendingAsyncArrayStillCanceled == 1, "pending async array late completion should not overwrite cancel"
+
+future<dict<int>> pendingAsyncScores = slowScoresAsync()
+assert task.cancel(pendingAsyncScores), "pending async dict cancel result"
+
+int pendingAsyncScoresState = 0
+try
+    dict<int> pendingAsyncScoresValue = await pendingAsyncScores
+    pendingAsyncScoresState = pendingAsyncScoresValue.length
+catch e
+    if e.message == "future cancel requested." then
+        pendingAsyncScoresState = 1
+    end
+end
+assert pendingAsyncScoresState == 1, "pending async dict should await as canceled"
+
+time.sleep(180)
+
+int pendingAsyncScoresStillCanceled = 0
+try
+    dict<int> pendingAsyncScoresLateValue = await pendingAsyncScores
+    pendingAsyncScoresStillCanceled = pendingAsyncScoresLateValue.length
+catch e
+    if e.message == "future cancel requested." then
+        pendingAsyncScoresStillCanceled = 1
+    end
+end
+assert pendingAsyncScoresStillCanceled == 1, "pending async dict late completion should not overwrite cancel"
+
+int total = 0
+for value in numbers(4)
+    total = total + value
+end
+assert total == 10, "generator failed"
+
+int generatorEarlyErrorState = 0
+try
+    for value in brokenNumbersEarly()
+        generatorEarlyErrorState = generatorEarlyErrorState + value
+    end
+    generatorEarlyErrorState = 100
+catch e
+    if e.message == "generator boom before yield" then
+        generatorEarlyErrorState = 42
+    end
+end
+assert generatorEarlyErrorState == 42, "generator early error propagation failed"
+
+int emptyGeneratorCount = 0
+for value in emptyNumbers()
+    emptyGeneratorCount = emptyGeneratorCount + 1
+end
+assert emptyGeneratorCount == 0, "empty generator failed"
+
+channel<int> ch = channel::<int>(1)
+assert ch.send(123), "channel send failed"
+int received = 0
+assert ch.recvInto(received), "channel recv failed"
+assert received == 123, "channel value failed"
+ch.close()
+
+channel<int> buffered = channel::<int>()
+assert buffered.send(1), "default channel first send failed"
+assert buffered.send(2), "default channel second send failed"
+assert buffered.count() == 2, "default channel count failed"
+
+int bufferedFirst = 0
+assert buffered.tryRecvInto(bufferedFirst), "default channel tryRecv failed"
+assert bufferedFirst == 1, "default channel first value failed"
+
+buffered.close()
+assert buffered.isClosed(), "default channel close failed"
+
+int bufferedSecond = 0
+assert buffered.recvInto(bufferedSecond), "closed channel buffered recv failed"
+assert bufferedSecond == 2, "closed channel buffered value failed"
+assert not buffered.tryRecvInto(bufferedSecond), "closed drained channel recv should fail"
+assert not buffered.send(3), "closed channel send should fail"
+
+channel<int> full = channel::<int>(1)
+assert full.send(10), "full channel first send failed"
+assert full.send(11), "capacity-one channel should normalize to two slots"
+assert not full.send(12), "full channel third send should fail"
+
+channel<int> crossThreadChannel = channel::<int>(4)
+auto channelProducer = func() as int
+    if not crossThreadChannel.send(314) then
+        return 10
+    end
+    if not crossThreadChannel.send(159) then
+        return 11
+    end
+    crossThreadChannel.close()
+    return 17
+end
+
+thread producerThread = thread(channelProducer)
+assert producerThread.waitTimeout(2000), "channel producer thread wait failed"
+assert producerThread.exitCode() == 17, "channel producer thread exit failed"
+assert crossThreadChannel.isClosed(), "cross-thread channel close should be visible"
+
+int crossFirst = 0
+int crossSecond = 0
+assert crossThreadChannel.recvInto(crossFirst), "cross-thread channel first recv failed"
+assert crossFirst == 314, "cross-thread channel first value failed"
+assert crossThreadChannel.recvInto(crossSecond), "cross-thread channel second recv failed"
+assert crossSecond == 159, "cross-thread channel second value failed"
+assert not crossThreadChannel.tryRecvInto(crossSecond), "cross-thread closed drained channel recv should fail"
+assert not crossThreadChannel.send(265), "cross-thread closed channel send should fail"
+
+channel<int> nonblockingTryChannel = channel::<int>(1)
+auto nonblockingTryWorker = func() as int
+    int got = 0
+    if nonblockingTryChannel.tryRecvInto(got) then
+        return got
+    end
+    return 31
+end
+
+thread nonblockingTryThread = thread(nonblockingTryWorker)
+assert nonblockingTryThread.waitTimeout(2000), "nonblocking tryRecv thread wait failed"
+assert nonblockingTryThread.exitCode() == 31, "empty tryRecv in thread should return false"
+assert nonblockingTryChannel.send(42), "nonblocking tryRecv should leave channel usable"
+int nonblockingTryLater = 0
+assert nonblockingTryChannel.recvInto(nonblockingTryLater), "nonblocking tryRecv later recv failed"
+assert nonblockingTryLater == 42, "nonblocking tryRecv later value failed"
+nonblockingTryChannel.close()
+assert nonblockingTryChannel.isClosed(), "nonblocking tryRecv channel close failed"
+
+int missingThreadState = 0
+try
+    thread missingThread = thread(missingThreadWorker)
+    missingThreadState = missingThread.exitCode()
+catch e
+    if e.message == "thread requires a callable func value" then
+        missingThreadState = 1
+    end
+end
+assert missingThreadState == 1, "thread empty func value"
+
+thread t = thread(worker)
+assert t.wait(), "thread wait failed"
+assert t.exitCode() == 7, "thread exit code failed"
+
+func() as int borrowedThreadLeft = makeThreadWorker(11)
+func() as int borrowedThreadRight = makeThreadWorker(12)
+bool chooseBorrowedThread = false
+thread borrowedConditionalThread = thread(chooseBorrowedThread ? borrowedThreadLeft : borrowedThreadRight)
+assert borrowedConditionalThread.wait(), "thread borrowed conditional wait failed"
+assert borrowedConditionalThread.exitCode() == 12, "thread borrowed conditional exit code failed"
+assert borrowedThreadRight() == 12, "thread borrowed conditional source remains usable"
+
+func() as int mixedThreadSource = makeThreadWorker(15)
+bool chooseMixedThread = false
+thread mixedThreadOwned = thread(chooseMixedThread ? mixedThreadSource : makeThreadWorker(16))
+assert mixedThreadOwned.wait(), "thread mixed conditional owned wait failed"
+assert mixedThreadOwned.exitCode() == 16, "thread mixed conditional owned exit code failed"
+assert mixedThreadSource() == 15, "thread mixed conditional source remains usable after owned branch"
+chooseMixedThread = true
+thread mixedThreadBorrowed = thread(chooseMixedThread ? mixedThreadSource : makeThreadWorker(17))
+assert mixedThreadBorrowed.wait(), "thread mixed conditional borrowed wait failed"
+assert mixedThreadBorrowed.exitCode() == 15, "thread mixed conditional borrowed exit code failed"
+assert mixedThreadSource() == 15, "thread mixed conditional source remains usable after borrowed branch"
+
+thread slowThread = thread(slowWorker)
+assert not slowThread.waitTimeout(0), "running thread waitTimeout(0) should time out"
+assert slowThread.waitTimeout(2000), "slow thread waitTimeout failed"
+assert slowThread.exitCode() == 9, "slow thread exit code failed"
+assert slowThread.wait(), "completed thread repeated wait failed"
+assert slowThread.exitCode() == 9, "completed thread exit code should remain stable"
+
+thread capturedTimedThread = thread(monitorSlowWorker)
+auto threadObserver = func() as int
+    if capturedTimedThread.waitTimeout(0) then
+        return 10
+    end
+    if capturedTimedThread.state() < 0 then
+        return 11
+    end
+    if not capturedTimedThread.waitTimeout(2000) then
+        return 12
+    end
+    if capturedTimedThread.exitCode() != 19 then
+        return 13
+    end
+    if capturedTimedThread.state() < 0 then
+        return 14
+    end
+    return capturedTimedThread.exitCode()
+end
+assert threadObserver() == 19, "captured thread receiver waitTimeout/state failed"
+
+thread capturedStopThread = thread(slowWorker)
+auto threadStopper = func() as int
+    if not capturedStopThread.stop() then
+        return 10
+    end
+    if not capturedStopThread.wait() then
+        return 11
+    end
+    return 17
+end
+assert threadStopper() == 17, "captured thread receiver stop/wait failed"
+
+sem gate = sem(0, 2)
+assert gate.postMultiple(2), "sem postMultiple failed"
+assert gate.waitTimeout(10), "sem first waitTimeout failed"
+assert gate.waitTimeout(10), "sem second waitTimeout failed"
+assert not gate.tryWait(), "sem empty tryWait failed"
+
+sem capped = sem(1, 2)
+assert not capped.postMultiple(2), "sem postMultiple overflow should fail"
+assert capped.waitTimeout(10), "sem postMultiple overflow should keep original count"
+assert not capped.tryWait(), "sem postMultiple overflow should not partially post"
+
+sem fullSem = sem(1, 1)
+assert not fullSem.post(), "sem post on full semaphore should fail"
+assert fullSem.waitTimeout(10), "sem full original wait failed"
+assert fullSem.post(), "sem post after drain failed"
+assert fullSem.waitTimeout(10), "sem refill wait failed"
+
+sem semWakeGate = sem(0, 1)
+auto semWakeWorker = func() as int
+    if not semWakeGate.waitTimeout(2000) then
+        return 10
+    end
+    return 23
+end
+
+thread semWakeThread = thread(semWakeWorker)
+assert not semWakeThread.waitTimeout(1), "sem worker should wait before post"
+assert semWakeGate.post(), "sem cross-thread post failed"
+assert semWakeThread.waitTimeout(2000), "sem cross-thread wait failed"
+assert semWakeThread.exitCode() == 23, "sem cross-thread worker exit failed"
+
+cond c = cond()
+mutex m = mutex()
+assert m.lock(), "cond mutex lock failed"
+assert not c.waitTimeout(m, 1), "cond waitTimeout should time out"
+assert m.unlock(), "cond mutex unlock failed"
+
+cond wakeCond = cond()
+mutex wakeMutex = mutex()
+sem wakeReady = sem(0, 1)
+auto wakeWorker = func() as int
+    if not wakeReady.waitTimeout(2000) then
+        return 10
+    end
+    time.sleep(20)
+    if not wakeMutex.lock() then
+        return 11
+    end
+    if not wakeCond.signal() then
+        wakeMutex.unlock()
+        return 12
+    end
+    if not wakeMutex.unlock() then
+        return 13
+    end
+    return 17
+end
+
+thread wakeThread = thread(wakeWorker)
+assert wakeMutex.lock(), "cond cross-thread mutex lock failed"
+assert wakeReady.post(), "cond cross-thread ready post failed"
+assert wakeCond.waitTimeout(wakeMutex, 2000), "cond cross-thread waitTimeout should be signaled"
+assert wakeMutex.unlock(), "cond cross-thread mutex unlock failed"
+assert wakeThread.wait(), "cond cross-thread worker wait failed"
+assert wakeThread.exitCode() == 17, "cond cross-thread worker exit failed"
+
+rwlock rw = rwlock()
+assert rw.tryReadLock(), "rwlock tryReadLock failed"
+assert rw.readUnlock(), "rwlock readUnlock failed"
+
+rwlock upgradeRw = rwlock()
+assert not upgradeRw.upgrade(), "rwlock upgrade without read lock should fail"
+assert upgradeRw.readLock(), "rwlock upgrade readLock failed"
+assert upgradeRw.upgrade(), "rwlock upgrade failed"
+assert upgradeRw.writeUnlock(), "rwlock upgraded writeUnlock failed"
+
+rwlock capturedRw = rwlock()
+auto capturedRwWorker = func() as int
+    if not capturedRw.writeLock() then
+        return 10
+    end
+    if not capturedRw.downgrade() then
+        capturedRw.writeUnlock()
+        return 11
+    end
+    if not capturedRw.readUnlock() then
+        return 12
+    end
+    return 29
+end
+
+thread capturedRwThread = thread(capturedRwWorker)
+assert capturedRwThread.waitTimeout(2000), "captured rwlock worker wait failed"
+assert capturedRwThread.exitCode() == 29, "captured rwlock worker exit failed"
+assert capturedRw.tryWriteLock(), "captured rwlock should be unlocked after worker"
+assert capturedRw.writeUnlock(), "captured rwlock final writeUnlock failed"
+
+println("concurrency ok")

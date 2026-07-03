@@ -1,0 +1,29 @@
+{
+  "format":"xlang-xapi-1",
+  "compiler":{"name":"xl","version":"demo6","xlangAbi":1,"xrtAbi":1},
+  "target":{"os":"windows","arch":"x64","callingConvention":"cdecl"},
+  "package":{"name":"mail.pop3","version":"0.1.0","abiVersion":"1","packageId":"mail.pop3@0.1.0#abi1"},
+  "module":{"name":"mail.pop3","moduleId":"mail.pop3@0.1.0#abi1::mail.pop3","source":"release/extlibs/mail.pop3","sourceHash":""},
+  "entry":{"kind":"none","requiresExplicitInit":true,"initSymbol":"xlInit","unitSymbol":"xlUnit"},
+  "exports":[
+    {"kind":"function","name":"result","cSymbol":"__xl6_import_x_mail_pop3_result","signature":"func(bool,string,string,var) as var","exportId":"mail.pop3@0.1.0#abi1::mail.pop3::result(func(bool,string,string,var) as var)","callingConvention":"cdecl","varargMode":"none","requiredParamCount":4,"fixedParamCount":4,"params":[{"name":"ok","type":"bool","optional":false,"vararg":false},{"name":"error","type":"string","optional":false,"vararg":false},{"name":"stage","type":"string","optional":false,"vararg":false},{"name":"data","type":"var","optional":false,"vararg":false}],"returns":[{"type":"var"}]},
+    {"kind":"function","name":"unsupported","cSymbol":"__xl6_import_x_mail_pop3_unsupported","signature":"func(string) as var","exportId":"mail.pop3@0.1.0#abi1::mail.pop3::unsupported(func(string) as var)","callingConvention":"cdecl","varargMode":"none","requiredParamCount":1,"fixedParamCount":1,"params":[{"name":"operation","type":"string","optional":false,"vararg":false}],"returns":[{"type":"var"}]},
+    {"kind":"function","name":"capability","cSymbol":"__xl6_import_x_mail_pop3_capability","signature":"func(var) as var","exportId":"mail.pop3@0.1.0#abi1::mail.pop3::capability(func(var) as var)","callingConvention":"cdecl","varargMode":"none","requiredParamCount":1,"fixedParamCount":1,"params":[{"name":"config","type":"var","optional":false,"vararg":false}],"returns":[{"type":"var"}]},
+    {"kind":"function","name":"status","cSymbol":"__xl6_import_x_mail_pop3_status","signature":"func(var) as var","exportId":"mail.pop3@0.1.0#abi1::mail.pop3::status(func(var) as var)","callingConvention":"cdecl","varargMode":"none","requiredParamCount":1,"fixedParamCount":1,"params":[{"name":"config","type":"var","optional":false,"vararg":false}],"returns":[{"type":"var"}]},
+    {"kind":"function","name":"list","cSymbol":"__xl6_import_x_mail_pop3_list","signature":"func(var) as var","exportId":"mail.pop3@0.1.0#abi1::mail.pop3::list(func(var) as var)","callingConvention":"cdecl","varargMode":"none","requiredParamCount":1,"fixedParamCount":1,"params":[{"name":"config","type":"var","optional":false,"vararg":false}],"returns":[{"type":"var"}]},
+    {"kind":"function","name":"fetch","cSymbol":"__xl6_import_x_mail_pop3_fetch","signature":"func(var) as var","exportId":"mail.pop3@0.1.0#abi1::mail.pop3::fetch(func(var) as var)","callingConvention":"cdecl","varargMode":"none","requiredParamCount":1,"fixedParamCount":1,"params":[{"name":"request","type":"var","optional":false,"vararg":false}],"returns":[{"type":"var"}]},
+    {"kind":"function","name":"delete_message","cSymbol":"__xl6_import_x_mail_pop3_delete_message","signature":"func(var) as var","exportId":"mail.pop3@0.1.0#abi1::mail.pop3::delete_message(func(var) as var)","callingConvention":"cdecl","varargMode":"none","requiredParamCount":1,"fixedParamCount":1,"params":[{"name":"request","type":"var","optional":false,"vararg":false}],"returns":[{"type":"var"}]},
+    {"kind":"function","name":"capability_json","cSymbol":"__xl6_import_x_mail_pop3_capability_json","signature":"func(string) as string","exportId":"mail.pop3@0.1.0#abi1::mail.pop3::capability_json(func(string) as string)","callingConvention":"cdecl","varargMode":"none","requiredParamCount":1,"fixedParamCount":1,"params":[{"name":"config_json","type":"string","optional":false,"vararg":false}],"returns":[{"type":"string"}]},
+    {"kind":"function","name":"status_json","cSymbol":"__xl6_import_x_mail_pop3_status_json","signature":"func(string) as string","exportId":"mail.pop3@0.1.0#abi1::mail.pop3::status_json(func(string) as string)","callingConvention":"cdecl","varargMode":"none","requiredParamCount":1,"fixedParamCount":1,"params":[{"name":"config_json","type":"string","optional":false,"vararg":false}],"returns":[{"type":"string"}]},
+    {"kind":"function","name":"list_json","cSymbol":"__xl6_import_x_mail_pop3_list_json","signature":"func(string) as string","exportId":"mail.pop3@0.1.0#abi1::mail.pop3::list_json(func(string) as string)","callingConvention":"cdecl","varargMode":"none","requiredParamCount":1,"fixedParamCount":1,"params":[{"name":"config_json","type":"string","optional":false,"vararg":false}],"returns":[{"type":"string"}]},
+    {"kind":"function","name":"fetch_json","cSymbol":"__xl6_import_x_mail_pop3_fetch_json","signature":"func(string) as string","exportId":"mail.pop3@0.1.0#abi1::mail.pop3::fetch_json(func(string) as string)","callingConvention":"cdecl","varargMode":"none","requiredParamCount":1,"fixedParamCount":1,"params":[{"name":"request_json","type":"string","optional":false,"vararg":false}],"returns":[{"type":"string"}]},
+    {"kind":"function","name":"delete_message_json","cSymbol":"__xl6_import_x_mail_pop3_delete_message_json","signature":"func(string) as string","exportId":"mail.pop3@0.1.0#abi1::mail.pop3::delete_message_json(func(string) as string)","callingConvention":"cdecl","varargMode":"none","requiredParamCount":1,"fixedParamCount":1,"params":[{"name":"request_json","type":"string","optional":false,"vararg":false}],"returns":[{"type":"string"}]}
+  ],
+  "types":[],
+  "imports":[],
+  "links":["ws2_32","iphlpapi","shell32"],
+  "loadlibs":[],
+  "cSources":["xmail_protocol_xlang.c"],
+  "native":{"singleton":false,"loadName":"","version":""},
+  "docs":[]
+}

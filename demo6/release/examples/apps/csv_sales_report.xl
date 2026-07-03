@@ -1,0 +1,50 @@
+// CSV 报表范例：解析文本、遍历行、按区域汇总。
+
+string csv = """
+region,product,amount
+north,book,120
+south,pen,30
+north,bag,80
+west,book,50
+south,bag,70
+"""
+
+array lines = string.split(csv, "\n")
+int north = 0
+int south = 0
+int west = 0
+int rows = 0
+
+for index, line in lines
+    string clean = string.trim(string(line))
+
+    if clean == "" or string.startsWith(clean, "region,") then
+        continue
+    end
+
+    array cells = string.split(clean, ",")
+    string region = string(cells[0])
+    int amount = int(cells[2])
+
+    if region == "north" then
+        north += amount
+    elseif region == "south" then
+        south += amount
+    elseif region == "west" then
+        west += amount
+    end
+
+    rows += 1
+end
+
+int total = north + south + west
+string report = f"rows={rows};north={north};south={south};west={west};total={total}"
+
+assert rows == 5, "row count mismatch"
+assert north == 200, "north total mismatch"
+assert south == 100, "south total mismatch"
+assert west == 50, "west total mismatch"
+assert total == 350, "total mismatch"
+assert report == "rows=5;north=200;south=100;west=50;total=350", "report mismatch"
+
+println(report)

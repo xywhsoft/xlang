@@ -1,1 +1,1 @@
-import "../../packages/missing_interface"
+import "../fixtures/missing_interface"

@@ -21,7 +21,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#ifdef _WIN32
+#if defined(_WIN32) || defined(_WIN64)
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <windows.h>
 #include <process.h>
 #else
 #include <unistd.h>
@@ -706,6 +710,32 @@ static int xl6CliJoinPath(char* out, size_t outSize, const char* dir, const char
 
 static int xl6CliAppendText(char* buffer, size_t bufferSize, const char* text);
 
+static int xl6CliCopyPath(char* out, size_t outSize, const char* path)
+{
+    size_t len;
+
+    if ( out == NULL || outSize == 0 || path == NULL ) {
+        return 0;
+    }
+    len = strlen(path);
+    if ( len >= outSize ) {
+        return 0;
+    }
+    memcpy(out, path, len + 1u);
+    return 1;
+}
+
+static int xl6CliPathIsAbsolute(const char* path)
+{
+    if ( path == NULL || path[0] == '\0' ) {
+        return 0;
+    }
+    if ( path[0] == '\\' || path[0] == '/' ) {
+        return 1;
+    }
+    return path[1] == ':';
+}
+
 static void xl6CliDirName(char* out, size_t outSize, const char* path)
 {
     const char* lastSep;
@@ -741,6 +771,70 @@ static void xl6CliDirName(char* out, size_t outSize, const char* path)
     }
     memcpy(out, path, len);
     out[len] = '\0';
+}
+
+static int xl6CliExecutableDir(char* out, size_t outSize)
+{
+    char path[512];
+
+    if ( out == NULL || outSize == 0 ) {
+        return 0;
+    }
+    out[0] = '\0';
+#if defined(_WIN32) || defined(_WIN64)
+    {
+        DWORD len = GetModuleFileNameA(NULL, path, (DWORD)sizeof(path));
+        if ( len == 0 || len >= sizeof(path) ) {
+            return 0;
+        }
+        path[len] = '\0';
+    }
+#else
+    {
+        ssize_t len = readlink("/proc/self/exe", path, sizeof(path) - 1u);
+        if ( len <= 0 || (size_t)len >= sizeof(path) ) {
+            return 0;
+        }
+        path[len] = '\0';
+    }
+#endif
+    xl6CliDirName(out, outSize, path);
+    return out[0] != '\0';
+}
+
+static int xl6CliProjectRoot(char* out, size_t outSize)
+{
+    char exeDir[512];
+
+    if ( out == NULL || outSize == 0 ) {
+        return 0;
+    }
+    out[0] = '\0';
+    if ( !xl6CliExecutableDir(exeDir, sizeof(exeDir)) ) {
+        return 0;
+    }
+    if ( xl6CliTextEqualsNoCase(xl6CliBaseName(exeDir), "release") ) {
+        xl6CliDirName(out, outSize, exeDir);
+        return out[0] != '\0';
+    }
+    return xl6CliCopyPath(out, outSize, exeDir);
+}
+
+static int xl6CliResolveProjectPath(char* out, size_t outSize, const char* path)
+{
+    char root[512];
+
+    if ( out == NULL || outSize == 0 || path == NULL || path[0] == '\0' ) {
+        return 0;
+    }
+    out[0] = '\0';
+    if ( xl6CliPathIsAbsolute(path) ) {
+        return xl6CliCopyPath(out, outSize, path);
+    }
+    if ( !xl6CliProjectRoot(root, sizeof(root)) ) {
+        return 0;
+    }
+    return xl6CliJoinPath(out, outSize, root, path);
 }
 
 static int xl6CliAppendRunPathEnvDir(char* pathEnv, size_t pathEnvSize, int* started, const char* dllPath)
@@ -846,6 +940,7 @@ typedef struct XL6_CliProcessArgs {
 } XL6_CliProcessArgs;
 
 static const char* xl6CliEnvPathOrDefault(const char* name, const char* fallback);
+static const char* xl6CliRootedPathOrDefault(char* out, size_t outSize, const char* envName, const char* fallback);
 
 static void xl6CliProcessArgsInit(XL6_CliProcessArgs* args)
 {
@@ -1016,6 +1111,7 @@ static int xl6CliEmbeddedTccAddOption(TCCState* s, const char* arg, int* inOutSk
 
 static int xl6CliRunEmbeddedTcc(XL6_CliProcessArgs* args, const char* outputPath, int outputType)
 {
+    char tccRootPath[1024];
     TCCState* s;
     int i;
     int skipNext;
@@ -1032,7 +1128,7 @@ static int xl6CliRunEmbeddedTcc(XL6_CliProcessArgs* args, const char* outputPath
     }
 
     tcc_set_error_func(s, NULL, xl6CliTccError);
-    tcc_set_lib_path(s, xl6CliEnvPathOrDefault("XL6_TCC_ROOT", XL6_TCC_ROOT_PATH));
+    tcc_set_lib_path(s, xl6CliRootedPathOrDefault(tccRootPath, sizeof(tccRootPath), "XL6_TCC_ROOT", XL6_TCC_ROOT_PATH));
     if ( tcc_set_output_type(s, outputType) != 0 ) {
         xl6ConsolePrintf(XL6_CONSOLE_STDERR, "cannot set embedded tcc output type\n");
         tcc_delete(s);
@@ -1079,6 +1175,14 @@ static int xl6CliProcessArgsAddLinkOption(XL6_CliProcessArgs* args, const char* 
     return xl6CliProcessArgsAddPrefixed(args, "-l", value != NULL ? value : "");
 }
 
+static int xl6CliProcessArgsAddLinkOptionCopy(XL6_CliProcessArgs* args, const char* value)
+{
+    if ( xl6CliLooksLikeLinkFile(value) ) {
+        return xl6CliProcessArgsAddCopy(args, value);
+    }
+    return xl6CliProcessArgsAddPrefixed(args, "-l", value != NULL ? value : "");
+}
+
 static const char* xl6CliEnvPathOrDefault(const char* name, const char* fallback)
 {
     const char* envPath;
@@ -1096,6 +1200,35 @@ static const char* xl6CliEnvPathOrDefault(const char* name, const char* fallback
 #else
     return envPath;
 #endif
+}
+
+static const char* xl6CliRootedPathOrDefault(char* out, size_t outSize, const char* envName, const char* fallback)
+{
+    const char* path;
+
+    path = xl6CliEnvPathOrDefault(envName, fallback);
+    if ( path == fallback &&
+         fallback != NULL &&
+         fallback[0] != '\0' &&
+         !xl6CliPathIsAbsolute(fallback) &&
+         xl6CliResolveProjectPath(out, outSize, fallback) ) {
+        return out;
+    }
+    return path;
+}
+
+static int xl6CliProcessArgsAddRootedDefaultPrefixed(
+    XL6_CliProcessArgs* args,
+    const char* prefix,
+    const char* envName,
+    const char* fallback)
+{
+    char path[1024];
+
+    return xl6CliProcessArgsAddPrefixed(
+        args,
+        prefix,
+        xl6CliRootedPathOrDefault(path, sizeof(path), envName, fallback));
 }
 
 static const char* xl6CliDefaultTccIncludePath(void)
@@ -1125,13 +1258,14 @@ static const char* xl6CliDefaultTccLibtcc1Path(void)
 
 static int xl6CliProcessArgsAddDefaultToolchain(XL6_CliProcessArgs* args)
 {
-    return xl6CliProcessArgsAddPrefixed(args, "-I", "lib\\xrt") &&
-           xl6CliProcessArgsAddPrefixed(args, "-I", "release\\tcc\\include_win") &&
-           xl6CliProcessArgsAddPrefixed(args, "-I", xl6CliDefaultTccIncludePath()) &&
-           xl6CliProcessArgsAddPrefixed(args, "-I", xl6CliDefaultTccWinIncludePath()) &&
-           xl6CliProcessArgsAddPrefixed(args, "-I", xl6CliDefaultTccWinapiIncludePath()) &&
-           xl6CliProcessArgsAddPrefixed(args, "-I", "release\\tmp") &&
-           xl6CliProcessArgsAddPrefixed(args, "-L", xl6CliDefaultTccLibPath());
+    return xl6CliProcessArgsAddRootedDefaultPrefixed(args, "-I", NULL, ".") &&
+           xl6CliProcessArgsAddRootedDefaultPrefixed(args, "-I", NULL, "lib\\xrt") &&
+           xl6CliProcessArgsAddRootedDefaultPrefixed(args, "-I", NULL, "release\\tcc\\include_win") &&
+           xl6CliProcessArgsAddRootedDefaultPrefixed(args, "-I", "XL6_TCC_INCLUDE", XL6_TCC_INCLUDE_PATH) &&
+           xl6CliProcessArgsAddRootedDefaultPrefixed(args, "-I", "XL6_TCC_WIN_INCLUDE", XL6_TCC_WIN_INCLUDE_PATH) &&
+           xl6CliProcessArgsAddRootedDefaultPrefixed(args, "-I", "XL6_TCC_WINAPI_INCLUDE", XL6_TCC_WINAPI_INCLUDE_PATH) &&
+           xl6CliProcessArgsAddRootedDefaultPrefixed(args, "-I", NULL, "release\\tmp") &&
+           xl6CliProcessArgsAddRootedDefaultPrefixed(args, "-L", "XL6_TCC_LIB", XL6_TCC_LIB_PATH);
 }
 
 static const char* xl6CliDefaultXrtObjPath(void)
@@ -1322,29 +1456,31 @@ static int xl6CliAppendImportDepsTccOptions(
 
 static int xl6CliAppendDefaultXrtLinks(XL6_CliProcessArgs* args, int argc, char** argv)
 {
-    const char* xrtObjPath;
-    const char* tccRuntimePath;
+    char xrtObjPath[1024];
+    char tccRuntimePath[1024];
+    const char* xrtObjValue;
+    const char* tccRuntimeValue;
 
     if ( !xl6CliProcessArgsAddBorrow(args, "-DXL6_USE_XRT_LIFECYCLE") ) {
         return 0;
     }
     if ( !xl6CliHasUserLink(argc, argv, xl6CliIsXrtLinkValue) ) {
-        xrtObjPath = xl6CliDefaultXrtObjPath();
-        if ( xrtFileExists((char*)xrtObjPath) ) {
-            if ( !xl6CliProcessArgsAddLinkOption(args, xrtObjPath) ) {
+        xrtObjValue = xl6CliRootedPathOrDefault(xrtObjPath, sizeof(xrtObjPath), "XL6_XRT_OBJ", XL6_XRT_OBJ_PATH);
+        if ( xrtFileExists((char*)xrtObjValue) ) {
+            if ( !xl6CliProcessArgsAddLinkOptionCopy(args, xrtObjValue) ) {
                 return 0;
             }
         } else {
-            if ( !xl6CliProcessArgsAddLinkOption(args, XL6_TCC_VFS_XRT_OBJ) ) {
+            if ( !xl6CliProcessArgsAddLinkOptionCopy(args, XL6_TCC_VFS_XRT_OBJ) ) {
                 return 0;
             }
         }
     }
-    tccRuntimePath = xl6CliDefaultTccLibtcc1Path();
+    tccRuntimeValue = xl6CliRootedPathOrDefault(tccRuntimePath, sizeof(tccRuntimePath), "XL6_TCC_LIBTCC1", XL6_TCC_LIBTCC1_PATH);
     if ( !xl6CliHasUserLink(argc, argv, xl6CliIsTccRuntimeLinkValue) ) {
-        if ( !xl6CliProcessArgsAddLinkOption(
+        if ( !xl6CliProcessArgsAddLinkOptionCopy(
                  args,
-                 xrtFileExists((char*)tccRuntimePath) ? tccRuntimePath : XL6_TCC_VFS_LIBTCC1) ) {
+                 xrtFileExists((char*)tccRuntimeValue) ? tccRuntimeValue : XL6_TCC_VFS_LIBTCC1) ) {
             return 0;
         }
     }

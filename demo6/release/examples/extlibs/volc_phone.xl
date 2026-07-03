@@ -1,0 +1,131 @@
+import volc.phone
+
+assert string.len(volc.phone.last_error()) >= 0, "volc.phone last_error failed"
+
+string productBody = volc.phone.product_body("prod-1")
+string podBody = volc.phone.pod_body("prod-1", "pod-1")
+string createBody = volc.phone.create_pod_body("prod-1", "dc-a", "small", 1, "host-1", "pod-name", "layout-1", true)
+string batchCreateBody = volc.phone.create_pod_batch_body("prod-1", "dc-a", "small", 2, 1, "host-1", "pod-name", "layout-1", false)
+string adbBody = volc.phone.pod_adb_body("prod-1", "pod-1", true)
+string commandBody = volc.phone.command_body("prod-1", "pod-1", "echo ok")
+string appBody = volc.phone.app_body("prod-1", "pod-1", "com.example")
+string installBody = volc.phone.install_app_body("prod-1", "pod-1", "app-1", "ver-1")
+string screenshotBody = volc.phone.screenshot_body("prod-1", "pod-1", "round-1")
+string batchScreenshotBody = volc.phone.batch_screenshot_body("prod-1", "[\"pod-1\",\"pod-2\"]", "round-1")
+string recordingBody = volc.phone.recording_body("prod-1", "pod-1", "round-1", 30, true)
+string fileBody = volc.phone.file_body("prod-1", "pod-1", "local.txt", "/sdcard/local.txt")
+string pullFileBody = volc.phone.pull_file_body("prod-1", "pod-1", "/sdcard/remote.txt", "remote.txt")
+
+assert string.contains(productBody, "\"ProductId\":\"prod-1\""), "volc.phone product_body failed"
+assert string.contains(podBody, "\"PodId\":\"pod-1\""), "volc.phone pod_body failed"
+assert string.contains(createBody, "\"Start\":true"), "volc.phone create_pod_body failed"
+assert string.contains(batchCreateBody, "\"ApplyNum\":2"), "volc.phone create_pod_batch_body failed"
+assert string.contains(adbBody, "\"Enable\":true"), "volc.phone pod_adb_body failed"
+assert string.contains(commandBody, "\"Command\":\"echo ok\""), "volc.phone command_body failed"
+assert string.contains(appBody, "\"PackageName\":\"com.example\""), "volc.phone app_body failed"
+assert string.contains(installBody, "\"AppId\":\"app-1\""), "volc.phone install_app_body failed"
+assert string.contains(screenshotBody, "\"RoundId\":\"round-1\""), "volc.phone screenshot_body failed"
+assert string.contains(batchScreenshotBody, "\"PodIdList\":[\"pod-1\",\"pod-2\"]"), "volc.phone batch_screenshot_body failed"
+assert string.contains(recordingBody, "\"DurationLimit\":30"), "volc.phone recording_body failed"
+assert string.contains(fileBody, "\"LocalPath\":\"local.txt\""), "volc.phone file_body failed"
+assert string.contains(pullFileBody, "\"RemotePath\":\"/sdcard/remote.txt\""), "volc.phone pull_file_body failed"
+
+string successRaw = '{"ResponseMetadata":{"RequestId":"req-1"},"Result":{"PodId":"pod-1","Online":1,"AdbStatus":1,"Adb":"127.0.0.1:5555","PodNumAvailable":8,"PodNumOnHost":3,"DownloadUrl":"https://example.test/r.mp4"}}'
+string errorRaw = '{"ResponseMetadata":{"RequestId":"req-2","Error":{"Code":"BadRequest","CodeN":400,"Message":"bad"}}}'
+
+auto okResponse = volc.phone.normalize_response("DetailPod", successRaw)
+auto badResponse = volc.phone.normalize_response("DetailPod", errorRaw)
+
+assert okResponse.ok() == true, "volc.phone normalize success failed"
+assert okResponse.action() == "DetailPod", "volc.phone response action failed"
+assert okResponse.request_id() == "req-1", "volc.phone request id failed"
+assert string.contains(okResponse.result_json(), "\"PodId\""), "volc.phone result_json failed"
+assert string.contains(okResponse.raw_json(), "ResponseMetadata"), "volc.phone raw_json failed"
+assert string.contains(okResponse.to_json(), "\"ok\":true"), "volc.phone response to_json failed"
+assert badResponse.ok() == false, "volc.phone normalize error failed"
+assert badResponse.code() == "BadRequest", "volc.phone error code failed"
+assert badResponse.code_n() == 400, "volc.phone error code_n failed"
+assert badResponse.message() == "bad", "volc.phone error message failed"
+
+assert string.contains(volc.phone.response_json("DetailPod", successRaw), "\"action\":\"DetailPod\""), "volc.phone response_json failed"
+assert volc.phone.json_string_field(successRaw, "RequestId") == "req-1", "volc.phone json_string_field failed"
+assert volc.phone.json_int_field(successRaw, "Online") == 1, "volc.phone json_int_field failed"
+assert string.contains(volc.phone.json_section(successRaw, "Result"), "\"PodId\""), "volc.phone json_section failed"
+assert volc.phone.task_state('{"TaskResult":100}') == "success", "volc.phone task_state success failed"
+assert volc.phone.task_state('{"TaskResult":10}') == "running", "volc.phone task_state running failed"
+assert volc.phone.task_state('{"Error":{"Code":"bad"}}') == "error", "volc.phone task_state error failed"
+assert volc.phone.task_state('{}') == "unknown", "volc.phone task_state unknown failed"
+assert volc.phone.recording_download_url(successRaw) == "https://example.test/r.mp4", "volc.phone recording_download_url failed"
+assert volc.phone.pod_adb_endpoint(successRaw) == "127.0.0.1:5555", "volc.phone pod_adb_endpoint failed"
+assert volc.phone.pod_run_state(successRaw) == 1, "volc.phone pod_run_state failed"
+assert volc.phone.host_remain_text(successRaw) == "3,5", "volc.phone host_remain_text failed"
+
+auto phoneClient = volc.phone.client("ak", "sk", "prod-1")
+assert phoneClient.set_timeout(1234) == true, "volc.phone client set_timeout failed"
+assert phoneClient.set_session_token("token") == true, "volc.phone client set_session_token failed"
+auto tokenClient = volc.phone.client_token("ak", "sk", "token", "prod-1")
+assert tokenClient.set_timeout(2345) == true, "volc.phone token client failed"
+
+if false then
+	auto netResponse = volc.phone.call_spec("action=ListPod\nversion=2023-10-30\ntimeout_ms=1")
+	string netRawSpec = volc.phone.raw_spec("action=ListPod\nversion=2023-10-30\ntimeout_ms=1")
+	string netRaw = volc.phone.raw_call("ak", "sk", "token", "ListPod", "2023-10-30", productBody, 1)
+	string netCall = volc.phone.call("ak", "sk", "token", "ListPod", "2023-10-30", productBody, 1)
+	string netDefault = volc.phone.call_default("ak", "sk", "token", "ListPod", productBody, 1)
+	string listPod = volc.phone.list_pod("ak", "sk", "token", "prod-1", 1)
+	string listHost = volc.phone.list_host("ak", "sk", "token", "prod-1", 1)
+	string listDc = volc.phone.list_dc("ak", "sk", "token", "prod-1", 1)
+	string detailPod = volc.phone.detail_pod("ak", "sk", "token", "prod-1", "pod-1", 1)
+	string detailHost = volc.phone.detail_host("ak", "sk", "token", "prod-1", "host-1", 1)
+	string createPod = volc.phone.create_pod("ak", "sk", "token", "prod-1", "dc-a", "small", 1, "host-1", "pod-name", "layout-1", true, 1)
+	string createPodBatch = volc.phone.create_pod_batch("ak", "sk", "token", "prod-1", "dc-a", "small", 2, 1, "host-1", "pod-name", "layout-1", false, 1)
+	string powerOn = volc.phone.power_on("ak", "sk", "token", "prod-1", "pod-1", 1)
+	string powerOff = volc.phone.power_off("ak", "sk", "token", "prod-1", "pod-1", 1)
+	string reboot = volc.phone.reboot("ak", "sk", "token", "prod-1", "pod-1", 1)
+	string reset = volc.phone.reset("ak", "sk", "token", "prod-1", "pod-1", 1)
+	string deletePod = volc.phone.delete_pod("ak", "sk", "token", "prod-1", "pod-1", 1)
+	string podAdb = volc.phone.pod_adb("ak", "sk", "token", "prod-1", "pod-1", true, 1)
+	string runSync = volc.phone.run_sync_command("ak", "sk", "token", "prod-1", "pod-1", "id", 1)
+	string runAsync = volc.phone.run_command("ak", "sk", "token", "prod-1", "pod-1", "id", 1)
+	string taskInfo = volc.phone.get_task_info("ak", "sk", "token", "prod-1", "task-1", 1)
+	string waited = volc.phone.wait_task("ak", "sk", "token", "prod-1", "task-1", 1, 1)
+	string installed = volc.phone.install_app("ak", "sk", "token", "prod-1", "pod-1", "app-1", "ver-1", 1)
+	string launched = volc.phone.launch_app("ak", "sk", "token", "prod-1", "pod-1", "com.example", 1)
+	string closed = volc.phone.close_app("ak", "sk", "token", "prod-1", "pod-1", "com.example", 1)
+	string shot = volc.phone.screenshot("ak", "sk", "token", "prod-1", "pod-1", "round-1", 1)
+	string batchShot = volc.phone.batch_screenshot("ak", "sk", "token", "prod-1", "[\"pod-1\"]", "round-1", 1)
+	string recordingStart = volc.phone.start_recording("ak", "sk", "token", "prod-1", "pod-1", "round-1", 30, true, 1)
+	string recordingStop = volc.phone.stop_recording("ak", "sk", "token", "prod-1", "pod-1", 1)
+	string pushed = volc.phone.push_file("ak", "sk", "token", "prod-1", "pod-1", "local.txt", "/sdcard/local.txt", 1)
+	string pulled = volc.phone.pull_file("ak", "sk", "token", "prod-1", "pod-1", "/sdcard/remote.txt", "remote.txt", 1)
+	auto clientResponse = phoneClient.call("ListPod", "2023-10-30", productBody)
+	auto clientDefault = phoneClient.call_default("ListPod", productBody)
+	auto clientListPods = phoneClient.list_pods()
+	auto clientListHosts = phoneClient.list_hosts()
+	auto clientListDcs = phoneClient.list_dcs()
+	auto clientDetailPod = phoneClient.detail_pod("pod-1")
+	auto clientDetailHost = phoneClient.detail_host("host-1")
+	auto clientCreatePod = phoneClient.create_pod("dc-a", "small", 1, "host-1", "pod-name", "layout-1", true)
+	auto clientCreatePodBatch = phoneClient.create_pod_batch("dc-a", "small", 2, 1, "host-1", "pod-name", "layout-1", false)
+	auto clientDeletePod = phoneClient.delete_pod("pod-1")
+	auto clientPowerOn = phoneClient.power_on("pod-1")
+	auto clientPowerOff = phoneClient.power_off("pod-1")
+	auto clientReboot = phoneClient.reboot("pod-1")
+	auto clientReset = phoneClient.reset("pod-1")
+	auto clientPodAdb = phoneClient.pod_adb("pod-1", true)
+	auto clientRunCommand = phoneClient.run_command("pod-1", "id")
+	auto clientRunSync = phoneClient.run_sync_command("pod-1", "id")
+	auto clientInstall = phoneClient.install_app("pod-1", "app-1", "ver-1")
+	auto clientLaunch = phoneClient.launch_app("pod-1", "com.example")
+	auto clientClose = phoneClient.close_app("pod-1", "com.example")
+	auto clientTaskInfo = phoneClient.get_task_info("task-1")
+	auto clientWaitTask = phoneClient.wait_task("task-1", 1, 1)
+	auto clientScreenshot = phoneClient.screenshot("pod-1", "round-1")
+	auto clientBatchScreenshot = phoneClient.batch_screenshot("[\"pod-1\"]", "round-1")
+	auto clientStartRecording = phoneClient.start_recording("pod-1", "round-1", 30, true)
+	auto clientStopRecording = phoneClient.stop_recording("pod-1")
+	auto clientPushFile = phoneClient.push_file("pod-1", "local.txt", "/sdcard/local.txt")
+	auto clientPullFile = phoneClient.pull_file("pod-1", "/sdcard/remote.txt", "remote.txt")
+end
+
+println("volc.phone extlib ok")

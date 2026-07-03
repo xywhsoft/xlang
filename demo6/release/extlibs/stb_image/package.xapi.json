@@ -20,7 +20,7 @@
   "module": {
     "name": "stb_image",
     "moduleId": "stb_image@0.1.0#abi1::stb_image",
-    "source": "extlibs/stb_image",
+    "source": "release/extlibs/stb_image",
     "sourceHash": ""
   },
   "entry": {

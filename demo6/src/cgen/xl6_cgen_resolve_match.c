@@ -81,15 +81,9 @@ static int xl6CgenExprParamMatchCost(XL6_CgenContext* ctx, const XL6_AstNode* ex
             xl6AstFree(exprType);
             return 80;
         }
-        if ( xl6CgenIsIntegerTypeName(targetType) &&
-             (xl6CgenIsIntegerTypeName(exprTypeName) || xl6CTextEquals(exprTypeName, "bool")) ) {
-            xl6AstFree(exprType);
-            return 10;
-        }
-        if ( xl6CgenIsFloatTypeName(targetType) &&
-             (xl6CgenIsIntegerTypeName(exprTypeName) || xl6CgenIsFloatTypeName(exprTypeName) ||
-              xl6CTextEquals(exprTypeName, "bool")) ) {
-            result = (xl6CgenIsIntegerTypeName(exprTypeName) || xl6CTextEquals(exprTypeName, "bool")) ? 20 : 10;
+        if ( xl6CgenCanSafeWidenTypeName(exprTypeName, targetType) ) {
+            result = (xl6CgenIsFloatTypeName(targetType) &&
+                      (xl6CgenIsIntegerTypeName(exprTypeName) || xl6CgenIsBoolTypeName(exprTypeName))) ? 20 : 10;
             xl6AstFree(exprType);
             return result;
         }
@@ -100,7 +94,7 @@ static int xl6CgenExprParamMatchCost(XL6_CgenContext* ctx, const XL6_AstNode* ex
     if ( xl6CTextEquals(targetType, "var") ) {
         return 80;
     }
-    if ( expr->kind == XL6_AST_INT && xl6CgenIsIntegerTypeName(targetType) ) {
+    if ( xl6CgenExprIntegerLiteralFitsType(expr, targetType) ) {
         return xl6CTextEquals(targetType, "int") ? 0 : 1;
     }
     if ( expr->kind == XL6_AST_FLOAT && xl6CgenIsFloatTypeName(targetType) ) {

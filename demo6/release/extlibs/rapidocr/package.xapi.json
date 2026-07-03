@@ -20,7 +20,7 @@
     "module":  {
                    "name":  "rapidocr",
                    "moduleId":  "rapidocr@0.1.0#abi1::rapidocr",
-                   "source":  "extlibs/rapidocr",
+                   "source":  "release/extlibs/rapidocr",
                    "sourceHash":  ""
                },
     "entry":  {

@@ -659,7 +659,7 @@ static const char xl6StdProcessExitCodeBody[] =
 
 static const char xl6StdTimeFromDateTimeBody[] =
     "func __xl_std_time_from_datetime(int year, int month, int day, int hour = 0, int minute = 0, int second = 0) as time\n"
-    "    return time(__xl_std_xrt_datetime_serial(year, month, day, hour, minute, second))\n"
+    "    return time(__xl_std_xrt_datetime_serial(year, c_int(month), c_int(day), c_int(hour), c_int(minute), c_int(second)))\n"
     "end\n";
 
 static const char xl6StdTimeNowBody[] =
@@ -679,12 +679,12 @@ static const char xl6StdTimeClockBody[] =
 
 static const char xl6StdTimeFromTimeBody[] =
     "func __xl_std_time_from_time(int hour, int minute, int second) as time\n"
-    "    return time(__xl_std_xrt_time_serial(hour, minute, second))\n"
+    "    return time(__xl_std_xrt_time_serial(c_int(hour), c_int(minute), c_int(second)))\n"
     "end\n";
 
 static const char xl6StdTimeFromDateBody[] =
     "func __xl_std_time_from_date(int year, int month, int day) as time\n"
-    "    return time(__xl_std_xrt_date_serial(year, month, day))\n"
+    "    return time(__xl_std_xrt_date_serial(year, c_int(month), c_int(day)))\n"
     "end\n";
 
 static const char xl6StdTimeParseBody[] =
@@ -829,7 +829,7 @@ static const char xl6StdTimeTimerBody[] =
 
 static const char xl6StdTimeSleepBody[] =
     "func __xl_std_time_sleep(int ms)\n"
-    "    __xl_std_xrt_sleep(ms)\n"
+    "    __xl_std_xrt_sleep(c_uint(ms))\n"
     "end\n";
 
 static const char xl6StdTimeNowUtcBody[] =
@@ -894,12 +894,12 @@ static const char xl6StdTimeLastDayOfYearBody[] =
 
 static const char xl6StdTimeFirstDayOfWeekBody[] =
     "func __xl_std_time_first_day_of_week(time value, int startDay = 1) as time\n"
-    "    return time(__xl_std_xrt_first_day_of_week(int(value), startDay))\n"
+    "    return time(__xl_std_xrt_first_day_of_week(int(value), c_int(startDay)))\n"
     "end\n";
 
 static const char xl6StdTimeLastDayOfWeekBody[] =
     "func __xl_std_time_last_day_of_week(time value, int startDay = 1) as time\n"
-    "    return time(__xl_std_xrt_last_day_of_week(int(value), startDay))\n"
+    "    return time(__xl_std_xrt_last_day_of_week(int(value), c_int(startDay)))\n"
     "end\n";
 
 static const char xl6StdTimeWeekOfYearBody[] =
@@ -914,7 +914,7 @@ static const char xl6StdTimeWeekOfMonthBody[] =
 
 static const char xl6StdTimeFormatBody[] =
     "func __xl_std_time_format(time value, int format = 0) as string\n"
-    "    return __xl_std_runtime_take_cstr(__xl_std_xrt_time_to_str(int(value), format))\n"
+    "    return __xl_std_runtime_take_cstr(__xl_std_xrt_time_to_str(int(value), c_int(format)))\n"
     "end\n";
 
 static const char xl6StdTimeFormatPatternBody[] =
@@ -944,7 +944,7 @@ static const char xl6StdRandomU64Body[] =
 
 static const char xl6StdRandomRangeBody[] =
     "func __xl_std_random_range(int min, int max) as int\n"
-    "    return __xl_std_xrt_rand_range(min, max)\n"
+    "    return __xl_std_xrt_rand_range(c_int(min), c_int(max))\n"
     "end\n";
 
 static const char xl6StdRandomStringBody[] =
@@ -1010,7 +1010,7 @@ static const char xl6StdFileSizeBody[] =
 
 static const char xl6StdFileSetSizeBody[] =
     "func __xl_std_file_set_size(string path, int size) as bool\n"
-    "    return __xl_std_xrt_file_set_size(path, size)\n"
+    "    return __xl_std_xrt_file_set_size(path, c_size(size))\n"
     "end\n";
 
 static const char xl6StdFileAttrBody[] =
@@ -1020,7 +1020,7 @@ static const char xl6StdFileAttrBody[] =
 
 static const char xl6StdFileSetAttrBody[] =
     "func __xl_std_file_set_attr(string path, int attr) as bool\n"
-    "    return __xl_std_xrt_file_set_attr(path, attr)\n"
+    "    return __xl_std_xrt_file_set_attr(path, c_int(attr))\n"
     "end\n";
 
 static const char xl6StdFileAccessTimeBody[] =
@@ -1035,17 +1035,17 @@ static const char xl6StdFileChangeTimeBody[] =
 
 static const char xl6StdFileWriteTextBody[] =
     "func __xl_std_file_write_text(string path, string text, int charset = 65001) as bool\n"
-    "    return __xl_std_xrt_file_write_all(path, text, 0, charset) != 0\n"
+    "    return __xl_std_xrt_file_write_all(path, text, 0, c_int(charset)) != 0\n"
     "end\n";
 
 static const char xl6StdFileAppendTextBody[] =
     "func __xl_std_file_append_text(string path, string text, int charset = 65001) as bool\n"
-    "    return __xl_std_xrt_file_append(path, text, 0, charset) != 0\n"
+    "    return __xl_std_xrt_file_append(path, text, 0, c_int(charset)) != 0\n"
     "end\n";
 
 static const char xl6StdFileReadTextBody[] =
     "func __xl_std_file_read_text(string path, int charset = 65001) as string\n"
-    "    return __xl_std_runtime_take_cstr(__xl_std_xrt_file_read_all(path, charset, null))\n"
+    "    return __xl_std_runtime_take_cstr(__xl_std_xrt_file_read_all(path, c_int(charset), null))\n"
     "end\n";
 
 static const char xl6StdFileCopyBody[] =
@@ -1132,12 +1132,12 @@ static const char xl6StdJsonReadBody[] =
 
 static const char xl6StdJsonStringifyBody[] =
     "func __xl_std_json_stringify(var value, bool pretty = false) as string\n"
-    "    return __xl_std_runtime_take_cstr(__xl_std_xrt_json_stringify(value, int(pretty), null))\n"
+    "    return __xl_std_runtime_take_cstr(__xl_std_xrt_json_stringify(value, c_int(pretty), null))\n"
     "end\n";
 
 static const char xl6StdJsonWriteBody[] =
     "func __xl_std_json_write(string path, var value, bool pretty = false) as bool\n"
-    "    return __xl_std_xrt_json_write_file(path, value, int(pretty)) != 0\n"
+    "    return __xl_std_xrt_json_write_file(path, value, c_int(pretty)) != 0\n"
     "end\n";
 
 static const char xl6StdXsonParseBody[] =
@@ -1152,12 +1152,12 @@ static const char xl6StdXsonReadBody[] =
 
 static const char xl6StdXsonStringifyBody[] =
     "func __xl_std_xson_stringify(var value, bool pretty = false) as string\n"
-    "    return __xl_std_runtime_take_cstr(__xl_std_xrt_xson_stringify(value, int(pretty), 0, null))\n"
+    "    return __xl_std_runtime_take_cstr(__xl_std_xrt_xson_stringify(value, c_int(pretty), 0, null))\n"
     "end\n";
 
 static const char xl6StdXsonWriteBody[] =
     "func __xl_std_xson_write(string path, var value, bool pretty = false) as bool\n"
-    "    return __xl_std_xrt_xson_write_file(path, value, int(pretty), 0) != 0\n"
+    "    return __xl_std_xrt_xson_write_file(path, value, c_int(pretty), 0) != 0\n"
     "end\n";
 
 static const char xl6StdCodecHexEncodeBody[] =

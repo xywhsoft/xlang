@@ -20,7 +20,7 @@
   "module": {
     "name": "miniz",
     "moduleId": "miniz@0.1.0#abi1::miniz",
-    "source": "extlibs/miniz",
+    "source": "release/extlibs/miniz",
     "sourceHash": ""
   },
   "entry": {

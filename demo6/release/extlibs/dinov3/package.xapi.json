@@ -20,7 +20,7 @@
     "module":  {
                    "name":  "dinov3",
                    "moduleId":  "dinov3@0.1.0#abi1::dinov3",
-                   "source":  "extlibs/dinov3",
+                   "source":  "release/extlibs/dinov3",
                    "sourceHash":  ""
                },
     "entry":  {

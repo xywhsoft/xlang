@@ -20,7 +20,7 @@
   "module": {
     "name": "md4c",
     "moduleId": "md4c@0.1.0#abi1::md4c",
-    "source": "extlibs/md4c",
+    "source": "release/extlibs/md4c",
     "sourceHash": ""
   },
   "entry": {

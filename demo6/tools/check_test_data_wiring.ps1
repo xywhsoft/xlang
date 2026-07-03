@@ -15,7 +15,7 @@ $wiringFiles = @(
     "test_all.bat",
     "test_tutorial.bat",
     "test_dll.bat",
-    "examples\feature_suite\run_feature_suite.bat"
+    "release\examples\feature_suite\run_feature_suite.bat"
 )
 
 $failures = New-Object System.Collections.Generic.List[string]

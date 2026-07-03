@@ -130,6 +130,27 @@ bool upgraded = upgradeRw.upgrade()
 assert upgraded, "rwlock upgrade failed"
 assert upgradeRw.writeUnlock(), "rwlock upgraded writeUnlock failed"
 
+rwlock capturedRw = rwlock()
+auto capturedRwWorker = func() as int
+    if not capturedRw.writeLock() then
+        return 10
+    end
+    if not capturedRw.downgrade() then
+        capturedRw.writeUnlock()
+        return 11
+    end
+    if not capturedRw.readUnlock() then
+        return 12
+    end
+    return 29
+end
+
+thread capturedRwThread = thread(capturedRwWorker)
+assert capturedRwThread.waitTimeout(2000), "captured rwlock worker wait failed"
+assert capturedRwThread.exitCode() == 29, "captured rwlock worker exit failed"
+assert capturedRw.tryWriteLock(), "captured rwlock should be unlocked after worker"
+assert capturedRw.writeUnlock(), "captured rwlock final writeUnlock failed"
+
 auto am = mutex()
 auto autoLocked = am.lock()
 auto autoUnlocked = am.unlock()

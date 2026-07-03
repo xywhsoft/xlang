@@ -46,9 +46,9 @@ Run `models/download_models.ps1` to fetch the default files from HuggingFace/Pad
 
 Model location policy:
 
-- `packages/rapidocr/models` is the source package model directory.
-- `release/libs/rapidocr/models` is the release-side package model directory.
-- Example programs may reference the release-side path; package code should treat package `models/` as the authoritative layout and keep the release mirror in sync for demos.
+- `release/extlibs/rapidocr/models` is the release package model directory.
+- Example programs should use `rapidocr.default_model_dir()` instead of hardcoding repository-relative paths.
+- Package code treats package `models/` as the authoritative layout for demos and 0-config lookup.
 
 When `rapidocr_xlang.dll` is not present, the xlang wrapper currently falls back to an xlang-level pipeline:
 

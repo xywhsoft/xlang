@@ -1,0 +1,47 @@
+// 生成资源清单：文件系统 + path + hash + JSON。
+
+string root = "release/tmp/examples_apps/assets"
+dir.delete(root)
+dir.createAll(root)
+
+file.writeText(path.join(root, "app.txt"), "xlang demo6")
+file.writeText(path.join(root, "style.css"), "body { color: #222; }")
+file.writeText(path.join(root, "data.json"), '{"ok":true}')
+
+func assetEntry(string dirPath, string name) as var
+    string fullPath = path.join(dirPath, name)
+    string body = file.readText(fullPath)
+
+    return {
+        "name": name,
+        "ext": path.ext(fullPath),
+        "size": file.size(fullPath),
+        "hash": hash.u64(body).toString()
+    }
+end
+
+var manifest = {
+    "root": root,
+    "files": [
+        assetEntry(root, "app.txt"),
+        assetEntry(root, "style.css"),
+        assetEntry(root, "data.json")
+    ]
+}
+
+string output = path.join(root, "manifest.json")
+json.write(output, manifest, pretty = true)
+
+string text = file.readText(output)
+assert string.contains(text, "app.txt"), "manifest should contain app.txt"
+assert string.contains(text, "style.css"), "manifest should contain style.css"
+assert string.contains(text, "data.json"), "manifest should contain data.json"
+assert string.contains(text, "hash"), "manifest should contain hash values"
+
+file.delete(output)
+file.delete(path.join(root, "app.txt"))
+file.delete(path.join(root, "style.css"))
+file.delete(path.join(root, "data.json"))
+dir.delete(root)
+
+println("asset manifest ok")

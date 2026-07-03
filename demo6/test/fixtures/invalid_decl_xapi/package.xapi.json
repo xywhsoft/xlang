@@ -1,0 +1,18 @@
+{
+  "format": "xlang-xapi-1",
+  "compiler": {"name": "xl", "version": "demo6", "xlangAbi": 1, "xrtAbi": 1},
+  "target": {"os": "windows", "arch": "x64", "callingConvention": "cdecl"},
+  "package": {"name": "invalid_decl_xapi", "version": "1.0.0", "abiVersion": "1", "packageId": "invalid_decl_xapi@1.0.0#abi1"},
+  "module": {"name": "invalid_decl_xapi", "moduleId": "invalid_decl_xapi@1.0.0#abi1::invalid_decl_xapi", "source": "test/fixtures/invalid_decl_xapi", "sourceHash": ""},
+  "entry": {"kind": "none", "requiresExplicitInit": true, "initSymbol": "xlInit", "unitSymbol": "xlUnit"},
+  "exports": [
+    {"kind": "function", "name": "broken", "cSymbol": "xl6_invalid_decl", "signature": "func(int)) as int", "exportId": "invalid_decl_xapi@1.0.0#abi1::invalid_decl_xapi::broken(func(int)) as int)", "callingConvention": "cdecl", "varargMode": "none", "requiredParamCount": 1, "fixedParamCount": 1, "params": [{"name": "value", "type": "int)", "optional": false, "vararg": false}], "returns": [{"type": "int"}]}
+  ],
+  "types": [],
+  "imports": [],
+  "links": [],
+  "loadlibs": [],
+  "cSources": [],
+  "native": {"singleton": false, "loadName": "", "version": ""},
+  "docs": []
+}

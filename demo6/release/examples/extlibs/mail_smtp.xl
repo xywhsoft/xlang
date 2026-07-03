@@ -1,0 +1,32 @@
+import mail.smtp
+
+var config = {"host": "", "port": 0, "timeout_ms": 1, "secure": "none"}
+var message = {
+    "from": {"email": "sender@example.com", "name": "Sender"},
+    "to": [{"email": "user@example.com", "name": "User"}],
+    "subject": "hello",
+    "text": "plain body",
+    "headers": [{"name": "X-Test", "value": "ok"}],
+    "attachments": [{"filename": "note.txt", "content_type": "text/plain", "content": "body"}]
+}
+var request = {"config": config, "message": message, "dsn": {"notify": "failure", "orcpt": "rfc822;user@example.com"}}
+
+var result = mail.smtp.result(true, "", "unit", {"value": 7})
+assert bool(result["ok"]) == true, "smtp result ok mismatch"
+
+var unsupported = mail.smtp.unsupported("noop")
+assert string.contains(json.stringify(unsupported), "mail.smtp.noop"), "smtp unsupported mismatch"
+
+string capabilityJson = mail.smtp.capability_json(json.stringify(config))
+assert string.contains(capabilityJson, "\"ok\":false"), "smtp capability_json failed"
+
+var capability = mail.smtp.capability(config)
+assert string.contains(json.stringify(capability), "\"ok\":false"), "smtp capability failed"
+
+string sendJson = mail.smtp.send_json(json.stringify(request))
+assert string.contains(sendJson, "\"ok\":false"), "smtp send_json failed"
+
+var sent = mail.smtp.send(request)
+assert string.contains(json.stringify(sent), "\"ok\":false"), "smtp send failed"
+
+println("mail.smtp extlib ok")

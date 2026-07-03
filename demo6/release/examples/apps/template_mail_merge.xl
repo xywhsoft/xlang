@@ -1,0 +1,40 @@
+// 模板合并范例：用 f-string 生成多份通知文本。
+
+class Customer
+    derive value
+
+    string name = ""
+    int score = 0
+end
+
+func renderNotice(Customer customer) as string
+    string level = customer.score >= 90 ? "gold" : "standard"
+    return f"hello {customer.name}, your score is {customer.score}, level={level}"
+end
+
+string outDir = "release/tmp/examples_apps/mail"
+dir.delete(outDir)
+dir.createAll(outDir)
+
+Customer alice
+alice.name = "Alice"
+alice.score = 95
+
+Customer bob
+bob.name = "Bob"
+bob.score = 72
+
+string aliceText = renderNotice(alice)
+string bobText = renderNotice(bob)
+
+file.writeText(path.join(outDir, "alice.txt"), aliceText)
+file.writeText(path.join(outDir, "bob.txt"), bobText)
+
+assert string.contains(file.readText(path.join(outDir, "alice.txt")), "level=gold"), "alice notice mismatch"
+assert string.contains(file.readText(path.join(outDir, "bob.txt")), "level=standard"), "bob notice mismatch"
+
+file.delete(path.join(outDir, "alice.txt"))
+file.delete(path.join(outDir, "bob.txt"))
+dir.delete(outDir)
+
+println("template mail merge ok")

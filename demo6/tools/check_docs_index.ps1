@@ -59,13 +59,14 @@ $extraMarkdownDocs = @(
     "cgenrule\README.md",
     "src\README.md",
     "tools\README.md",
-    "include\README.md",
+    "release\include\README.md",
     "lib\README.md",
     "release\README.md",
-    "examples\README.md",
-    "examples\feature_suite\README.md",
-    "examples\tutorial\README.md",
-    "packages\README.md",
+    "release\examples\README.md",
+    "release\examples\apps\README.md",
+    "release\examples\feature_suite\README.md",
+    "release\examples\tutorial\README.md",
+    "release\extlibs\README.md",
     "test\README.md"
 )
 
@@ -157,8 +158,8 @@ foreach ( $doc in $docs ) {
     }
 
     if ( $doc.Name -eq $workspaceSnapshotName ) {
-        if ( $text -notmatch '\u5386\u53F2\u5FEB\u7167' -or $text -notmatch '\u4E0D\u4EE3\u8868\u5F53\u524D' ) {
-            Add-Failure "RC0 workspace snapshot must clearly state it is historical and not current"
+        if ( $text -notmatch 'release/examples' -or $text -notmatch 'release/extlibs' -or $text -notmatch '\u5F53\u524D RC0 \u57FA\u7EBF' ) {
+            Add-Failure "RC0 workspace inventory must use current release/examples and release/extlibs asset roots"
         }
     }
 }

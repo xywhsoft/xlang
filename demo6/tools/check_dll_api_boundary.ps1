@@ -8,12 +8,14 @@ if ( $Root -eq "" ) {
     $Root = Split-Path -Parent $PSScriptRoot
 }
 
-$headerPath = Join-Path $Root "include\xl.h"
-$xlcHeaderPath = Join-Path $Root "include\xlc.h"
+$headerPath = Join-Path $Root "release\include\xl.h"
+$xlcHeaderPath = Join-Path $Root "release\include\xlc.h"
 $apiPath = Join-Path $Root "src\api\xl_api.c"
 $docName = "DLL" + ([char]0x5D4C) + ([char]0x5165) + ([char]0x5F0F) + ([char]0x8FD0) + ([char]0x884C) + ([char]0x5E93) + ([char]0x8BBE) + ([char]0x8BA1) + ".md"
 $docPath = Join-Path (Join-Path $Root "docs") $docName
 $buildDllPath = Join-Path $Root "build_dll.bat"
+$runtimeManifestPath = Join-Path $Root "tools\tcc_vfs_manifest_win64_runtime.txt"
+$compilerManifestPath = Join-Path $Root "tools\tcc_vfs_manifest_win64_xlc.txt"
 $minPublicApis = 61
 $minDllHostExamples = 6
 $failures = New-Object System.Collections.Generic.List[string]
@@ -26,6 +28,91 @@ function Add-Failure($message)
 function Read-Utf8Text($path)
 {
     return [System.IO.File]::ReadAllText($path, [System.Text.Encoding]::UTF8)
+}
+
+function Normalize-VfsName($text)
+{
+    return $text.Replace("\", "/").Trim("/").ToLowerInvariant()
+}
+
+function Get-ManifestEntries($text, $name)
+{
+    $entries = New-Object System.Collections.Generic.List[object]
+    $seen = New-Object System.Collections.Generic.HashSet[string]
+    $lineNo = 0
+
+    foreach ( $rawLine in ($text -split "`r?`n") ) {
+        $lineNo += 1
+        $line = $rawLine.Trim()
+        if ( $line.Length -eq 0 -or $line.StartsWith("#") ) {
+            continue
+        }
+
+        $parts = $line.Split("|")
+        if ( $parts.Count -lt 3 ) {
+            Add-Failure "$name manifest has bad line ${lineNo}: $rawLine"
+            continue
+        }
+
+        $kind = $parts[0].Trim().ToLowerInvariant()
+        if ( $kind -ne "dir" -and $kind -ne "file" ) {
+            Add-Failure "$name manifest has unknown entry kind at line ${lineNo}: $kind"
+            continue
+        }
+
+        $virtual = Normalize-VfsName $parts[1].Trim()
+        if ( $virtual.Length -eq 0 ) {
+            Add-Failure "$name manifest has empty virtual path at line ${lineNo}"
+            continue
+        }
+
+        $key = "$kind|$virtual"
+        if ( ! $seen.Add($key) ) {
+            Add-Failure "$name manifest has duplicate virtual entry: $key"
+        }
+
+        $entries.Add([pscustomobject]@{
+            Kind = $kind
+            Virtual = $virtual
+            Source = $parts[2].Trim()
+            Line = $lineNo
+        }) | Out-Null
+    }
+
+    return $entries
+}
+
+function Test-ManifestEntry($entries, $kind, $virtual)
+{
+    $normalized = Normalize-VfsName $virtual
+    foreach ( $entry in $entries ) {
+        if ( $entry.Kind -eq $kind -and $entry.Virtual -eq $normalized ) {
+            return $true
+        }
+    }
+    return $false
+}
+
+function Test-ManifestVirtual($entries, $virtual)
+{
+    $normalized = Normalize-VfsName $virtual
+    foreach ( $entry in $entries ) {
+        if ( $entry.Virtual -eq $normalized ) {
+            return $true
+        }
+    }
+    return $false
+}
+
+function Get-BuildBlock($text, $label)
+{
+    $pattern = '(?s)echo ' + [regex]::Escape($label) + '\.\.\.(.*?)(?:\r?\nif errorlevel 1 \()'
+    $match = [regex]::Match($text, $pattern)
+    if ( ! $match.Success ) {
+        Add-Failure "build_dll.bat missing build block: $label"
+        return ""
+    }
+    return $match.Groups[1].Value
 }
 
 function Remove-CCommentsAndStrings($text)
@@ -125,7 +212,7 @@ function Remove-CCommentsAndStrings($text)
     return $builder.ToString()
 }
 
-foreach ( $path in @($headerPath, $xlcHeaderPath, $apiPath, $docPath, $buildDllPath) ) {
+foreach ( $path in @($headerPath, $xlcHeaderPath, $apiPath, $docPath, $buildDllPath, $runtimeManifestPath, $compilerManifestPath) ) {
     if ( ! (Test-Path -LiteralPath $path -PathType Leaf) ) {
         Add-Failure "required DLL API file missing: $path"
     }
@@ -138,10 +225,16 @@ if ( $failures.Count -eq 0 ) {
     $api = Read-Utf8Text $apiPath
     $doc = Read-Utf8Text $docPath
     $buildDll = Read-Utf8Text $buildDllPath
+    $runtimeManifest = Read-Utf8Text $runtimeManifestPath
+    $compilerManifest = Read-Utf8Text $compilerManifestPath
+    $runtimeManifestEntries = Get-ManifestEntries $runtimeManifest "runtime"
+    $compilerManifestEntries = Get-ManifestEntries $compilerManifest "compiler"
+    $xlRuntimeBuildBlock = Get-BuildBlock $buildDll "Building DEMO6 xl.dll runtime"
+    $xlcBuildBlock = Get-BuildBlock $buildDll "Building DEMO6 xlc.dll compiler runtime"
     $headerMatches = New-Object System.Collections.Generic.List[object]
     $headerApis = New-Object System.Collections.Generic.HashSet[string]
     $apiDefinitions = New-Object System.Collections.Generic.HashSet[string]
-    $exampleDir = Join-Path $Root "examples"
+    $exampleDir = Join-Path $Root "release\examples"
     $exampleSources = @(Get-ChildItem -LiteralPath $exampleDir -Filter "xl_dll_*.c" -File)
     $exampleTextBuilder = New-Object System.Text.StringBuilder
     $exampleCode = ""
@@ -225,7 +318,7 @@ if ( $failures.Count -eq 0 ) {
     }
 
     if ( $header -notmatch '#define\s+XL_API_VERSION\s+1u' ) {
-        Add-Failure "include/xl.h must keep XL_API_VERSION at 1u for current RC boundary"
+        Add-Failure "release/include/xl.h must keep XL_API_VERSION at 1u for current RC boundary"
     }
 
     if ( $api -match 'xl__runtimeCount' ) {
@@ -345,8 +438,48 @@ if ( $failures.Count -eq 0 ) {
          $buildDll -notmatch 'tcc_vfs_manifest_win64_xlc[.]txt' ) {
         Add-Failure "build_dll.bat must generate separate runtime and compiler VFS manifests for xl.dll/xlc.dll"
     }
+    if ( $xlRuntimeBuildBlock -notmatch '-DXL_RUNTIME_ONLY_DLL' -or
+         $xlRuntimeBuildBlock -notmatch 'release\\tmp\\tcc_builtin_resources_runtime[.]c' ) {
+        Add-Failure "xl.dll runtime build must use the runtime-only embedded TCC VFS resource set"
+    }
+    if ( $xlcBuildBlock -notmatch 'release\\tmp\\tcc_builtin_resources[.]c' ) {
+        Add-Failure "xlc.dll compiler build must use the compiler-capable embedded TCC VFS resource set"
+    }
+    if ( $xlRuntimeBuildBlock -match 'release\\tmp\\tcc_builtin_resources[.]c' ) {
+        Add-Failure "xl.dll runtime build must not use the compiler-capable VFS resource set"
+    }
+    if ( $xlcBuildBlock -match 'release\\tmp\\tcc_builtin_resources_runtime[.]c' ) {
+        Add-Failure "xlc.dll compiler build must not use the runtime-only VFS resource set"
+    }
     if ( $buildDll -match 'copy\s+/Y\s+"%XL6_TCC_DLL%"\s+release\\libtcc[.]dll' ) {
         Add-Failure "build_dll.bat must not copy external libtcc.dll into release"
+    }
+
+    if ( ! (Test-ManifestEntry $runtimeManifestEntries "dir" "include") ) {
+        Add-Failure "runtime VFS manifest must include the TCC include directory"
+    }
+    if ( ! (Test-ManifestEntry $runtimeManifestEntries "file" "lib/libtcc1.a") ) {
+        Add-Failure "runtime VFS manifest must include lib/libtcc1.a"
+    }
+    foreach ( $forbidden in @("lib/xrt/xrt.h", "lib/xrt/xrt.o", "lib/kernel32.def", "lib/msvcrt.def", "lib/user32.def", "lib/gdi32.def", "lib/ws2_32.def", "lib/shell32.def") ) {
+        if ( Test-ManifestVirtual $runtimeManifestEntries $forbidden ) {
+            Add-Failure "runtime VFS manifest must not carry compiler/exe resource: $forbidden"
+        }
+    }
+
+    foreach ( $required in @("include", "lib/libtcc1.a", "lib/kernel32.def", "lib/msvcrt.def", "lib/user32.def", "lib/gdi32.def", "lib/ws2_32.def", "lib/shell32.def", "lib/xrt/xrt.h") ) {
+        if ( ! (Test-ManifestVirtual $compilerManifestEntries $required) ) {
+            Add-Failure "compiler VFS manifest missing required resource: $required"
+        }
+    }
+    if ( Test-ManifestVirtual $compilerManifestEntries "lib/xrt/xrt.o" ) {
+        Add-Failure "compiler VFS manifest must use xrt.h and must not embed xrt.o"
+    }
+    if ( $runtimeManifest -notmatch 'XRT functions are provided by tcc_add_symbol' ) {
+        Add-Failure "runtime VFS manifest must document that XRT is provided by symbols, not xrt.h/xrt.o"
+    }
+    if ( $compilerManifest -notmatch 'XRT single-header implementation' ) {
+        Add-Failure "compiler VFS manifest must document the xrt.h single-header model"
     }
 }
 

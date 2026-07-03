@@ -10,11 +10,13 @@ if ( $Root -eq "" ) {
 
 $scanRoots = @(
     "src",
-    "examples",
+    "release\include",
+    "release\examples",
     "test\cases",
-    "packages"
+    "test\fixtures",
+    "release\extlibs"
 )
-$minSafetyCFiles = 203
+$minSafetyCFiles = 260
 $minSafetySpecFiles = 2
 $failures = New-Object System.Collections.Generic.List[string]
 $generatedFiles = @(
@@ -197,7 +199,8 @@ $files = @(
             $relative = $_.FullName.Substring($rootFullPath.Length + 1).Replace("\", "/")
             ($_.Extension -eq ".c" -or $_.Extension -eq ".h") -and
             ($generatedFiles -notcontains $_.Name) -and
-            ($relative -notmatch '^packages/[^/]+/third_party/')
+            ($relative -notmatch '^release/examples/(.*/)?release/tmp/') -and
+            ($relative -notmatch '^release/extlibs/[^/]+/third_party/')
         }
     }
 ) | Sort-Object FullName

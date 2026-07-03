@@ -6,8 +6,11 @@
 
 - `xl.exe`：DEMO6 CLI。
 - `xl.dll`：嵌入式运行库 DLL。
+- `xlc.dll`：带编译能力的嵌入式运行库 DLL。
 - `xl.def`：由 `build_dll.bat` 生成的 DLL import definition。
-- `libtcc.dll`：运行 DLL 动态编译能力所需的 TCC 动态库副本。
+- `include`：随 `xl.exe` 分发的公开 C API 头文件目录。
+- `examples`：随 `xl.exe` 分发的范例程序。
+- `extlibs`：随 `xl.exe` 分发的 import/package/XAPI 测试与扩展库资产。
 - `xl_dll_embed_string.exe`、`xl_dll_null_context.exe`、`xl_dll_threaded_host.exe`：DLL API 验证程序。
 - `tmp`：构建、测试和 DLL dependency fixture 使用的临时产物目录。
 
@@ -16,3 +19,4 @@
 - 不手工修改构建产物来修复问题；应修改源码、构建脚本或工具链配置后重新构建。
 - 如果产物和源码行为不一致，以源码、测试和构建脚本为准。
 - `release/tmp` 可以被构建或测试过程覆盖。
+- `release/libtcc.dll` 不属于发布物；`xl.dll` / `xlc.dll` 均静态链接 demo6 自带 libtcc。

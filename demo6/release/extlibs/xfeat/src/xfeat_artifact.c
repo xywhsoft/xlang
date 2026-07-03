@@ -206,10 +206,10 @@ static int xfeat_ort_load(void)
 		"bin\\onnxruntime_xlang.dll",
 		"extlibs\\onnxruntime\\bin\\onnxruntime_xlang.dll",
 		"release\\extlibs\\onnxruntime\\bin\\onnxruntime_xlang.dll",
-		"packages\\onnxruntime\\bin\\onnxruntime_xlang.dll",
+		"release\extlibs\\onnxruntime\\bin\\onnxruntime_xlang.dll",
 		"libs\\onnxruntime\\bin\\onnxruntime_xlang.dll",
 		"release\\libs\\onnxruntime\\bin\\onnxruntime_xlang.dll",
-		"examples\\libs\\onnxruntime\\bin\\onnxruntime_xlang.dll",
+		"release\examples\\libs\\onnxruntime\\bin\\onnxruntime_xlang.dll",
 		NULL
 	};
 	int i;

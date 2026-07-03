@@ -1,0 +1,19 @@
+func makeSpawnValue(int value) as var
+    return value
+end
+
+func addVar(var value) as int
+    return int(value) + 1
+end
+
+func(int) as var boxJob = makeSpawnValue
+func(var) as int varArgJob = addVar
+
+var emptySpawnArg = null
+
+bool rangeContainsDynamic = 2 in range(
+    await task.spawn(varArgJob, true ? makeSpawnValue(0) : makeSpawnValue(9)),
+    await task.spawn(varArgJob, makeSpawnValue(2) + makeSpawnValue(1)),
+    await task.spawn(varArgJob, emptySpawnArg ?? makeSpawnValue(0))
+)
+assert rangeContainsDynamic == true, "task.spawn dynamic var argument should lower inside range contains"

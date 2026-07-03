@@ -1,25 +1,26 @@
 # DEMO6 RC0 工作区清单
 
-本文档是早期 RC0 提交前工作区历史快照。它不替代 `git diff`，只记录快照当时的变更归类，避免正式源码、测试、范例、生成物混在一起。
+本文档记录 RC0 工作区的资产边界。它不替代 `git diff`，只用于把正式源码、测试、范例、扩展库资产和生成物分清楚。
 
-注意：本文保留创建时的数量和分组，不代表当前工程规模。当前数量基线以 `RC0工程基线.md`、`文档整理收口.md` 和守门脚本输出为准。
+注意：当前数量基线以 `RC0工程基线.md`、`文档整理收口.md` 和守门脚本输出为准。
 
 ## 总览
 
-快照当时 RC0 基线应包含以下正式资产：
+当前 RC0 基线应包含以下正式资产：
 
 - 编译器源码：`src`。
 - XRT 单头文件：`lib/xrt/xrt.h`。
 - 设计与工程文档：`docs`。
 - 测试用例：`test/cases`。
 - 测试入口：`test.bat`、`test_all.bat`、`test_smoke.bat`、`test_feature_suite.bat`。
-- 范例程序：`examples`。
-- package/import 测试资产：`packages`。
+- 范例程序：`release/examples`。
+- package/import/extlib 测试资产：`release/extlibs`。
 - RC0 守门入口：`rc0_guard.bat`、`tools/rc0_guard.ps1`。
 
-快照当时不应纳入正式基线的生成物：
+当前不应纳入正式基线的生成物：
 
-- `release`。
+- `release/tmp`。
+- `release` 下除 `README.md`、`examples`、`extlibs` 以外的构建输出和临时二进制。
 - `src/lexer/xl6_lexer_gen.c`。
 - `src/lexer/xl6_lexer_gen.h`。
 - `src/parser/xl6_parser.c`。
@@ -30,14 +31,14 @@
 
 ## 工作区规模
 
-快照当时非 `release` 文件规模：
+当前文件规模：
 
-- `src`：93 个源码文件，约 1.9 MB。
-- `test/cases`：271 个测试输入或 host 文件，其中 `.xl` 251 个、`.c` 20 个。
-- `examples`：27 个范例相关文件。
-- `docs`：19 个文档文件。
+- `src`：122 个源码文件。
+- `test/cases`：668 个 `.xl` 测试用例，另有 host 和测试数据 fixture。
+- `release/examples`：104 个 `.xl` 范例文件，另有 C/H 宿主、混编和辅助 fixture。
+- `docs`：36 个文档 Markdown 文件。
 - `lib/xrt/xrt.h`：约 3.0 MB。
-- `packages`：9 个 package/import 测试资产。
+- `release/extlibs`：48 个 package/import/extlib 测试资产目录。
 
 ## 变更分组
 
@@ -125,7 +126,7 @@
 - `demo6/src/abi/xl6_abi_dump.*`。
 - `demo6/src/compile/xl6_imports.*`。
 - `demo6/src/package/xl6_package.*`。
-- `demo6/packages`。
+- `demo6/release/extlibs`。
 
 内容：
 
@@ -158,8 +159,8 @@
 
 - `demo6/test.bat`。
 - `demo6/test/cases`。
-- `demo6/examples/feature_suite`。
-- `demo6/examples/second_stage.xl`。
+- `demo6/release/examples/feature_suite`。
+- `demo6/release/examples/second_stage.xl`。
 
 内容：
 
@@ -173,15 +174,17 @@
 
 - 仓库根级 `release`。
 - demo5 release 生成物。
-- demo6 `release`。
+- demo6 `release` 中除 `README.md`、`include`、`examples`、`extlibs` 之外的构建输出。
 - demo6 根目录误生成的 exe/dll/obj/o/lib/exp/pdb。
-- demo6 flex/lemon 生成物。
+- demo6 parser trace 输出 `src/parser/xl6_parser.out`。
 
 注意：
 
 - `demo6/lib/xrt/xrt.h` 不忽略，属于当前基线。
-- `demo6/packages` 不忽略，属于 import/package 测试资产。
-- `demo6/examples` 不忽略，属于范例资产。
+- `demo6/src/lexer/xl6_lexer_gen.c` / `.h` 与 `demo6/src/parser/xl6_parser.c` / `.h` 不忽略，属于无 Flex/Lemon 构建的发布输入。
+- `demo6/release/include` 不忽略，属于随 `xl.exe` 分发的公开 C API 头文件资产。
+- `demo6/release/extlibs` 不忽略，属于 import/package/extlib 测试资产。
+- `demo6/release/examples` 不忽略，属于范例资产。
 
 ## 提交前建议
 
@@ -190,5 +193,5 @@
 1. 运行 `rc0_guard.bat`。
 2. 查看 `git status --short -- demo6 .gitignore`。
 3. 按本文档的主题分组审查 diff。
-4. 确认没有把 `release`、flex/lemon 生成物或临时二进制加入提交。
+4. 确认没有把 `release/tmp`、临时二进制或 `src/parser/xl6_parser.out` 加入提交。
 5. 确认新增测试和范例是有意纳入 RC0 基线。

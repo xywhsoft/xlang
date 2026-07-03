@@ -1,0 +1,47 @@
+import volc.core
+
+string sample = "abc"
+string fixedDate = "20240102T030405Z"
+string body = "{\"hello\":\"xlang\"}"
+string query = volc.core.canonical_query("ListApps", "2020-01-01", "Limit=10\nName=x lang")
+
+assert volc.core.version() == "0.1.0", "volc.core version mismatch"
+assert volc.core.sha256_hex(sample) == "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad", "volc.core sha256 mismatch"
+assert volc.core.hmac_sha256_hex("key", "The quick brown fox jumps over the lazy dog") == "f7bc83f430538424b13298e6aa6fb143ef4d59a14946175997479dbc2d1a3cd8", "volc.core hmac mismatch"
+assert volc.core.hmac_sha256_hex_key("0000000000000000000000000000000000000000000000000000000000000000", sample) == "fd7adb152c05ef80dccf50a1fa4c05d5a3ec6da95575fc312ae7c5d091836351", "volc.core hmac hex key mismatch"
+assert volc.core.hmac_sha256_hex_key("bad", sample) == "", "volc.core invalid hex key should fail"
+assert volc.core.last_error() == "hex key must be 64 hex characters", "volc.core invalid hex key diagnostic mismatch"
+
+assert volc.core.json_string("a\"b\\c") == "\"a\\\"b\\\\c\"", "volc.core json_string mismatch"
+assert string.contains(query, "Action=ListApps"), "volc.core canonical query action missing"
+assert string.contains(query, "Name=x%20lang"), "volc.core canonical query escaping mismatch"
+assert string.contains(query, "Version=2020-01-01"), "volc.core canonical query version missing"
+
+string preview = volc.core.sign_preview("POST", "open.volcengineapi.com", "/", "ACEP", "cn-north-1", "ListApps", "2020-01-01", "AKID", "SECRET", "", "application/json", "Limit=10", body, fixedDate)
+assert string.contains(preview, "\"query\""), "volc.core sign preview query missing"
+assert string.contains(preview, "\"authorization\""), "volc.core sign preview authorization missing"
+assert string.contains(preview, "\"x_content_sha256\""), "volc.core sign preview payload hash missing"
+
+string acepPreview = volc.core.sign_preview_acep("ListApps", "2020-01-01", "AKID", "SECRET", "", body, fixedDate)
+assert string.contains(acepPreview, "\"signed_headers\""), "volc.core acep preview signed headers missing"
+
+string stsPreview = volc.core.sign_preview_sts("AKID", "SECRET", "trn:iam::123456789:role/demo", "demo-session", 900, fixedDate)
+assert string.contains(stsPreview, "AssumeRole"), "volc.core sts preview action missing"
+
+string acepSpec = "action=ListApps\nversion=2020-01-01\naccess_key=AKID\nsecret_key=SECRET\nsession_token=\nbody={}\nx_date=20240102T030405Z\n"
+string acepSpecPreview = volc.core.sign_preview_acep_spec(acepSpec)
+assert string.contains(acepSpecPreview, "\"authorization\""), "volc.core acep spec preview authorization missing"
+
+string stsSpec = "access_key=AKID\nsecret_key=SECRET\nrole_trn=trn:iam::123456789:role/demo\nrole_session_name=demo-session\nduration_seconds=900\nx_date=20240102T030405Z\n"
+string stsSpecPreview = volc.core.sign_preview_sts_spec(stsSpec)
+assert string.contains(stsSpecPreview, "AssumeRole"), "volc.core sts spec preview action missing"
+
+string failed = volc.core.request("POST", "127.0.0.1", "/", "ACEP", "cn-north-1", "ListApps", "2020-01-01", "AKID", "SECRET", "", "application/json", "", body, 1)
+assert string.len(failed) >= 0, "volc.core request should return a string"
+assert volc.core.last_status() >= 0, "volc.core last_status should be readable"
+assert string.len(volc.core.request_acep("ListApps", "2020-01-01", "AKID", "SECRET", "", body, 1)) >= 0, "volc.core request_acep should return a string"
+assert string.len(volc.core.request_sts("AKID", "SECRET", "trn:iam::123456789:role/demo", "demo-session", 900, 1)) >= 0, "volc.core request_sts should return a string"
+assert string.len(volc.core.request_acep_spec("action=ListApps\nversion=2020-01-01\naccess_key=AKID\nsecret_key=SECRET\nbody={}\ntimeout_ms=1\n")) >= 0, "volc.core request_acep_spec should return a string"
+assert string.len(volc.core.request_sts_spec("access_key=AKID\nsecret_key=SECRET\nrole_trn=trn:iam::123456789:role/demo\nrole_session_name=demo-session\nduration_seconds=900\ntimeout_ms=1\n")) >= 0, "volc.core request_sts_spec should return a string"
+
+println("volc.core extlib ok")

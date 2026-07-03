@@ -36,6 +36,7 @@ typedef struct XStbttBitmap {
 } XStbttBitmap;
 
 static XSTBTT_THREAD char g_xstbtt_error[512];
+static XSTBTT_THREAD char g_xstbtt_default_path[512];
 #define XSTBTT_JSON_SLOTS 8u
 
 static XSTBTT_THREAD char g_xstbtt_json[XSTBTT_JSON_SLOTS][256];
@@ -54,6 +55,34 @@ static void xstbtt_set_error(const char* text)
         ++i;
     }
     g_xstbtt_error[i] = '\0';
+}
+
+static int xstbtt_file_exists(const char* path)
+{
+	FILE* fp;
+	if ( path == NULL || path[0] == '\0' ) return 0;
+	fp = fopen(path, "rb");
+	if ( fp == NULL ) return 0;
+	fclose(fp);
+	return 1;
+}
+
+static int xstbtt_try_default_font(const char* root, const char* font_name)
+{
+	int written;
+	if ( root == NULL || root[0] == '\0' || font_name == NULL || font_name[0] == '\0' ) {
+		return 0;
+	}
+	written = snprintf(g_xstbtt_default_path, sizeof(g_xstbtt_default_path), "%s\\Fonts\\%s", root, font_name);
+	if ( written <= 0 || (size_t)written >= sizeof(g_xstbtt_default_path) ) {
+		g_xstbtt_default_path[0] = '\0';
+		return 0;
+	}
+	if ( xstbtt_file_exists(g_xstbtt_default_path) ) {
+		return 1;
+	}
+	g_xstbtt_default_path[0] = '\0';
+	return 0;
 }
 
 static unsigned char* xstbtt_read_file(const char* path, long* out_size)
@@ -135,6 +164,31 @@ XSTBTT_EXPORT const char* xstbtt_version(void)
 XSTBTT_EXPORT const char* xstbtt_last_error(void)
 {
 	return g_xstbtt_error;
+}
+
+XSTBTT_EXPORT const char* xstbtt_default_font_path(void)
+{
+	const char* roots[2];
+	const char* fonts[4];
+	int r;
+	int f;
+	roots[0] = getenv("WINDIR");
+	roots[1] = getenv("SystemRoot");
+	fonts[0] = "arial.ttf";
+	fonts[1] = "segoeui.ttf";
+	fonts[2] = "calibri.ttf";
+	fonts[3] = "tahoma.ttf";
+	for ( r = 0; r < 2; ++r ) {
+		for ( f = 0; f < 4; ++f ) {
+			if ( xstbtt_try_default_font(roots[r], fonts[f]) ) {
+				xstbtt_set_error("");
+				return g_xstbtt_default_path;
+			}
+		}
+	}
+	xstbtt_set_error("default font not found");
+	g_xstbtt_default_path[0] = '\0';
+	return g_xstbtt_default_path;
 }
 
 XSTBTT_EXPORT void* xstbtt_load(const char* path, int font_index)

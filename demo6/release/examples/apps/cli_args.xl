@@ -1,0 +1,36 @@
+// 命令行参数范例：main(...) 会把命令行参数放入 arg 数组。
+
+func main(...) as int
+    string command = arg.length > 1 ? string(arg[1]) : "report"
+    string name = "guest"
+    int limit = 10
+
+    int i = 2
+    while i < arg.length do
+        string key = string(arg[i])
+
+        if key == "--name" and i + 1 < arg.length then
+            name = string(arg[i + 1])
+            i += 2
+            continue
+        end
+
+        if key == "--limit" and i + 1 < arg.length then
+            limit = int(arg[i + 1])
+            i += 2
+            continue
+        end
+
+        i += 1
+    end
+
+    string summary = f"{command}:{name}:{limit}"
+
+    assert command == "report", "command mismatch"
+    assert name == "xlang", "name argument mismatch"
+    assert limit == 3, "limit argument mismatch"
+    assert summary == "report:xlang:3", "summary mismatch"
+
+    println(summary)
+    return 0
+end

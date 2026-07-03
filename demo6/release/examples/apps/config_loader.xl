@@ -1,0 +1,41 @@
+// 配置加载范例：JSON -> class，并对缺失字段提供默认值。
+
+class ServerConfig
+    derive value
+
+    string host = ""
+    int port = 0
+    bool debug = false
+    string logLevel = ""
+end
+
+func loadConfig(string text) as ServerConfig
+    var raw = json.parse(text)
+    var host = raw?.host ?? "127.0.0.1"
+    var port = raw?.port ?? 8080
+    var debug = raw?.debug ?? false
+    var logLevel = raw?.logLevel ?? "info"
+
+    ServerConfig cfg
+    cfg.host = string(host)
+    cfg.port = int(port)
+    cfg.debug = bool(debug)
+    cfg.logLevel = string(logLevel)
+
+    return cfg
+end
+
+ServerConfig dev = loadConfig('{"host":"localhost","debug":true}')
+ServerConfig prod = loadConfig('{"host":"0.0.0.0","port":9000,"logLevel":"warn"}')
+
+assert dev.host == "localhost", "dev host mismatch"
+assert dev.port == 8080, "dev default port mismatch"
+assert dev.debug == true, "dev debug mismatch"
+assert dev.logLevel == "info", "dev default log level mismatch"
+
+assert prod.host == "0.0.0.0", "prod host mismatch"
+assert prod.port == 9000, "prod port mismatch"
+assert prod.debug == false, "prod default debug mismatch"
+assert prod.logLevel == "warn", "prod log level mismatch"
+
+println("config loader ok")

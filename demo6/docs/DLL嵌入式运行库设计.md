@@ -223,12 +223,12 @@ test_xlc_shell.bat
 验证程序包括：
 
 ```text
-examples\xl_dll_null_context.c
-examples\xl_dll_threaded_host.c
-examples\xl_dll_embed_string.c
-examples\xl_dll_xrt_exports.c
-examples\xlc_api_embed.c
-examples\xl_run_demo_win32.c
+release\examples\xl_dll_null_context.c
+release\examples\xl_dll_threaded_host.c
+release\examples\xl_dll_embed_string.c
+release\examples\xl_dll_xrt_exports.c
+release\examples\xlc_api_embed.c
+release\examples\xl_run_demo_win32.c
 ```
 
 其中：
@@ -240,6 +240,9 @@ examples\xl_run_demo_win32.c
 ## 当前约束
 
 - `xl.dll` 和 `xlc.dll` 不生成、不复制、不依赖外部 `libtcc.dll`。`xl.dll` 携带运行版 VFS 小清单，`xlc.dll` 携带完整编译版 VFS 清单；外部 TCC include/lib 等路径存在时仍可覆盖内置兜底资源。
+- 运行版 VFS 清单只允许携带 TCC include 目录和 `lib/libtcc1.a`。`xrt` 由 `tcc_add_symbol` 导入，运行版清单不能携带 `lib/xrt/xrt.h`、`lib/xrt/xrt.o` 或 exe 链接所需的 `.def` 资源。
+- 编译版 VFS 清单必须携带 exe 链接所需的 `.def` 资源和 `lib/xrt/xrt.h`，但不能携带 `xrt.o`。编译 exe 时通过 `#define XRT_IMPLEMENTATION` 加载单头文件版 XRT。
+- `tools/check_dll_api_boundary.ps1` 会静态检查 runtime/xlc 两份 manifest 的职责边界，并确认 `build_dll.bat` 没有把两套内置资源用反。
 - 进程内运行适合脚本执行和宿主 C 函数注册。
 - 编译为独立 exe 时，不能直接固化宿主进程函数指针；需要通过普通 C/库链接方式提供外部符号。
 - DLL API 第一版不暴露调试 dump 能力，相关能力继续由 `xl.exe` CLI 提供。

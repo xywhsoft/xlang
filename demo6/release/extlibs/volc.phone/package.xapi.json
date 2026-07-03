@@ -1,0 +1,2758 @@
+{
+    "format":  "xlang-xapi-1",
+    "compiler":  {
+                     "name":  "xl",
+                     "version":  "demo6",
+                     "xlangAbi":  1,
+                     "xrtAbi":  1
+                 },
+    "target":  {
+                   "os":  "windows",
+                   "arch":  "x64",
+                   "callingConvention":  "cdecl"
+               },
+    "package":  {
+                    "name":  "volc.phone",
+                    "version":  "0.1.0",
+                    "abiVersion":  "1",
+                    "packageId":  "volc.phone@0.1.0#abi1"
+                },
+    "module":  {
+                   "name":  "volc.phone",
+                   "moduleId":  "volc.phone@0.1.0#abi1::volc.phone",
+                   "source":  "release/extlibs/volc.phone",
+                   "sourceHash":  ""
+               },
+    "entry":  {
+                  "kind":  "none",
+                  "requiresExplicitInit":  true,
+                  "initSymbol":  "xlInit",
+                  "unitSymbol":  "xlUnit"
+              },
+    "exports":  [
+                    {
+                        "kind":  "function",
+                        "name":  "last_error",
+                        "cSymbol":  "__xl6_import_x_volc_phone_last_error",
+                        "signature":  "func() as string",
+                        "exportId":  "volc.phone@0.1.0#abi1::volc.phone::last_error(func() as string)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  0,
+                        "fixedParamCount":  0,
+                        "params":  [
+
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "string"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "call_spec",
+                        "cSymbol":  "__xl6_import_x_volc_phone_call_spec",
+                        "signature":  "func(string) as Response",
+                        "exportId":  "volc.phone@0.1.0#abi1::volc.phone::call_spec(func(string) as Response)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  1,
+                        "fixedParamCount":  1,
+                        "params":  [
+                                       {
+                                           "name":  "spec",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "Response"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "raw_spec",
+                        "cSymbol":  "__xl6_import_x_volc_phone_raw_spec",
+                        "signature":  "func(string) as string",
+                        "exportId":  "volc.phone@0.1.0#abi1::volc.phone::raw_spec(func(string) as string)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  1,
+                        "fixedParamCount":  1,
+                        "params":  [
+                                       {
+                                           "name":  "spec",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "string"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "call",
+                        "cSymbol":  "__xl6_import_x_volc_phone_call",
+                        "signature":  "func(string,string,string,string,string,string,int) as string",
+                        "exportId":  "volc.phone@0.1.0#abi1::volc.phone::call(func(string,string,string,string,string,string,int) as string)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  7,
+                        "fixedParamCount":  7,
+                        "params":  [
+                                       {
+                                           "name":  "access_key",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "secret_key",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "session_token",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "action",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "version",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "body",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "timeout_ms",
+                                           "type":  "int",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "string"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "raw_call",
+                        "cSymbol":  "__xl6_import_x_volc_phone_raw_call",
+                        "signature":  "func(string,string,string,string,string,string,int) as string",
+                        "exportId":  "volc.phone@0.1.0#abi1::volc.phone::raw_call(func(string,string,string,string,string,string,int) as string)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  7,
+                        "fixedParamCount":  7,
+                        "params":  [
+                                       {
+                                           "name":  "access_key",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "secret_key",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "session_token",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "action",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "version",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "body",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "timeout_ms",
+                                           "type":  "int",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "string"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "call_default",
+                        "cSymbol":  "__xl6_import_x_volc_phone_call_default",
+                        "signature":  "func(string,string,string,string,string,int) as string",
+                        "exportId":  "volc.phone@0.1.0#abi1::volc.phone::call_default(func(string,string,string,string,string,int) as string)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  6,
+                        "fixedParamCount":  6,
+                        "params":  [
+                                       {
+                                           "name":  "access_key",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "secret_key",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "session_token",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "action",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "body",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "timeout_ms",
+                                           "type":  "int",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "string"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "product_body",
+                        "cSymbol":  "__xl6_import_x_volc_phone_product_body",
+                        "signature":  "func(string) as string",
+                        "exportId":  "volc.phone@0.1.0#abi1::volc.phone::product_body(func(string) as string)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  1,
+                        "fixedParamCount":  1,
+                        "params":  [
+                                       {
+                                           "name":  "product_id",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "string"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "pod_body",
+                        "cSymbol":  "__xl6_import_x_volc_phone_pod_body",
+                        "signature":  "func(string,string) as string",
+                        "exportId":  "volc.phone@0.1.0#abi1::volc.phone::pod_body(func(string,string) as string)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  2,
+                        "fixedParamCount":  2,
+                        "params":  [
+                                       {
+                                           "name":  "product_id",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "pod_id",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "string"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "create_pod_body",
+                        "cSymbol":  "__xl6_import_x_volc_phone_create_pod_body",
+                        "signature":  "func(string,string,string,int,string,string,string,bool) as string",
+                        "exportId":  "volc.phone@0.1.0#abi1::volc.phone::create_pod_body(func(string,string,string,int,string,string,string,bool) as string)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  8,
+                        "fixedParamCount":  8,
+                        "params":  [
+                                       {
+                                           "name":  "product_id",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "dc",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "configuration_code",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "resource_type",
+                                           "type":  "int",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "host_id",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "pod_name",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "display_layout_id",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "start",
+                                           "type":  "bool",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "string"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "create_pod_batch_body",
+                        "cSymbol":  "__xl6_import_x_volc_phone_create_pod_batch_body",
+                        "signature":  "func(string,string,string,int,int,string,string,string,bool) as string",
+                        "exportId":  "volc.phone@0.1.0#abi1::volc.phone::create_pod_batch_body(func(string,string,string,int,int,string,string,string,bool) as string)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  9,
+                        "fixedParamCount":  9,
+                        "params":  [
+                                       {
+                                           "name":  "product_id",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "dc",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "configuration_code",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "apply_num",
+                                           "type":  "int",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "resource_type",
+                                           "type":  "int",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "host_id",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "pod_name",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "display_layout_id",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "start",
+                                           "type":  "bool",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "string"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "pod_adb_body",
+                        "cSymbol":  "__xl6_import_x_volc_phone_pod_adb_body",
+                        "signature":  "func(string,string,bool) as string",
+                        "exportId":  "volc.phone@0.1.0#abi1::volc.phone::pod_adb_body(func(string,string,bool) as string)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  3,
+                        "fixedParamCount":  3,
+                        "params":  [
+                                       {
+                                           "name":  "product_id",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "pod_id",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "enable",
+                                           "type":  "bool",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "string"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "command_body",
+                        "cSymbol":  "__xl6_import_x_volc_phone_command_body",
+                        "signature":  "func(string,string,string) as string",
+                        "exportId":  "volc.phone@0.1.0#abi1::volc.phone::command_body(func(string,string,string) as string)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  3,
+                        "fixedParamCount":  3,
+                        "params":  [
+                                       {
+                                           "name":  "product_id",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "pod_id",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "command",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "string"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "app_body",
+                        "cSymbol":  "__xl6_import_x_volc_phone_app_body",
+                        "signature":  "func(string,string,string) as string",
+                        "exportId":  "volc.phone@0.1.0#abi1::volc.phone::app_body(func(string,string,string) as string)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  3,
+                        "fixedParamCount":  3,
+                        "params":  [
+                                       {
+                                           "name":  "product_id",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "pod_id",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "package_name",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "string"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "install_app_body",
+                        "cSymbol":  "__xl6_import_x_volc_phone_install_app_body",
+                        "signature":  "func(string,string,string,string) as string",
+                        "exportId":  "volc.phone@0.1.0#abi1::volc.phone::install_app_body(func(string,string,string,string) as string)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  4,
+                        "fixedParamCount":  4,
+                        "params":  [
+                                       {
+                                           "name":  "product_id",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "pod_id",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "app_id",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "version_id",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "string"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "screenshot_body",
+                        "cSymbol":  "__xl6_import_x_volc_phone_screenshot_body",
+                        "signature":  "func(string,string,string) as string",
+                        "exportId":  "volc.phone@0.1.0#abi1::volc.phone::screenshot_body(func(string,string,string) as string)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  3,
+                        "fixedParamCount":  3,
+                        "params":  [
+                                       {
+                                           "name":  "product_id",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "pod_id",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "round_id",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "string"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "batch_screenshot_body",
+                        "cSymbol":  "__xl6_import_x_volc_phone_batch_screenshot_body",
+                        "signature":  "func(string,string,string) as string",
+                        "exportId":  "volc.phone@0.1.0#abi1::volc.phone::batch_screenshot_body(func(string,string,string) as string)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  3,
+                        "fixedParamCount":  3,
+                        "params":  [
+                                       {
+                                           "name":  "product_id",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "pod_id_list_json",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "round_id",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "string"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "recording_body",
+                        "cSymbol":  "__xl6_import_x_volc_phone_recording_body",
+                        "signature":  "func(string,string,string,int,bool) as string",
+                        "exportId":  "volc.phone@0.1.0#abi1::volc.phone::recording_body(func(string,string,string,int,bool) as string)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  5,
+                        "fixedParamCount":  5,
+                        "params":  [
+                                       {
+                                           "name":  "product_id",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "pod_id",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "round_id",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "duration_limit",
+                                           "type":  "int",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "saved_on_pod",
+                                           "type":  "bool",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "string"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "file_body",
+                        "cSymbol":  "__xl6_import_x_volc_phone_file_body",
+                        "signature":  "func(string,string,string,string) as string",
+                        "exportId":  "volc.phone@0.1.0#abi1::volc.phone::file_body(func(string,string,string,string) as string)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  4,
+                        "fixedParamCount":  4,
+                        "params":  [
+                                       {
+                                           "name":  "product_id",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "pod_id",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "local_path",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "remote_path",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "string"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "pull_file_body",
+                        "cSymbol":  "__xl6_import_x_volc_phone_pull_file_body",
+                        "signature":  "func(string,string,string,string) as string",
+                        "exportId":  "volc.phone@0.1.0#abi1::volc.phone::pull_file_body(func(string,string,string,string) as string)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  4,
+                        "fixedParamCount":  4,
+                        "params":  [
+                                       {
+                                           "name":  "product_id",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "pod_id",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "remote_path",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "local_path",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "string"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "normalize_response",
+                        "cSymbol":  "__xl6_import_x_volc_phone_normalize_response",
+                        "signature":  "func(string,string) as Response",
+                        "exportId":  "volc.phone@0.1.0#abi1::volc.phone::normalize_response(func(string,string) as Response)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  2,
+                        "fixedParamCount":  2,
+                        "params":  [
+                                       {
+                                           "name":  "action",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "raw",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "Response"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "response_json",
+                        "cSymbol":  "__xl6_import_x_volc_phone_response_json",
+                        "signature":  "func(string,string) as string",
+                        "exportId":  "volc.phone@0.1.0#abi1::volc.phone::response_json(func(string,string) as string)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  2,
+                        "fixedParamCount":  2,
+                        "params":  [
+                                       {
+                                           "name":  "action",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "raw",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "string"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "json_string_field",
+                        "cSymbol":  "__xl6_import_x_volc_phone_json_string_field",
+                        "signature":  "func(string,string) as string",
+                        "exportId":  "volc.phone@0.1.0#abi1::volc.phone::json_string_field(func(string,string) as string)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  2,
+                        "fixedParamCount":  2,
+                        "params":  [
+                                       {
+                                           "name":  "raw",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "key",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "string"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "json_int_field",
+                        "cSymbol":  "__xl6_import_x_volc_phone_json_int_field",
+                        "signature":  "func(string,string) as int",
+                        "exportId":  "volc.phone@0.1.0#abi1::volc.phone::json_int_field(func(string,string) as int)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  2,
+                        "fixedParamCount":  2,
+                        "params":  [
+                                       {
+                                           "name":  "raw",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "key",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "int"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "json_section",
+                        "cSymbol":  "__xl6_import_x_volc_phone_json_section",
+                        "signature":  "func(string,string) as string",
+                        "exportId":  "volc.phone@0.1.0#abi1::volc.phone::json_section(func(string,string) as string)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  2,
+                        "fixedParamCount":  2,
+                        "params":  [
+                                       {
+                                           "name":  "raw",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "key",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "string"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "client",
+                        "cSymbol":  "__xl6_import_x_volc_phone_client",
+                        "signature":  "func(string,string,string) as Client",
+                        "exportId":  "volc.phone@0.1.0#abi1::volc.phone::client(func(string,string,string) as Client)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  3,
+                        "fixedParamCount":  3,
+                        "params":  [
+                                       {
+                                           "name":  "access_key",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "secret_key",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "product_id",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "Client"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "client_token",
+                        "cSymbol":  "__xl6_import_x_volc_phone_client_token",
+                        "signature":  "func(string,string,string,string) as Client",
+                        "exportId":  "volc.phone@0.1.0#abi1::volc.phone::client_token(func(string,string,string,string) as Client)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  4,
+                        "fixedParamCount":  4,
+                        "params":  [
+                                       {
+                                           "name":  "access_key",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "secret_key",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "session_token",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "product_id",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "Client"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "list_pod",
+                        "cSymbol":  "__xl6_import_x_volc_phone_list_pod",
+                        "signature":  "func(string,string,string,string,int) as string",
+                        "exportId":  "volc.phone@0.1.0#abi1::volc.phone::list_pod(func(string,string,string,string,int) as string)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  5,
+                        "fixedParamCount":  5,
+                        "params":  [
+                                       {
+                                           "name":  "access_key",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "secret_key",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "session_token",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "product_id",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "timeout_ms",
+                                           "type":  "int",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "string"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "list_host",
+                        "cSymbol":  "__xl6_import_x_volc_phone_list_host",
+                        "signature":  "func(string,string,string,string,int) as string",
+                        "exportId":  "volc.phone@0.1.0#abi1::volc.phone::list_host(func(string,string,string,string,int) as string)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  5,
+                        "fixedParamCount":  5,
+                        "params":  [
+                                       {
+                                           "name":  "access_key",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "secret_key",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "session_token",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "product_id",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "timeout_ms",
+                                           "type":  "int",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "string"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "list_dc",
+                        "cSymbol":  "__xl6_import_x_volc_phone_list_dc",
+                        "signature":  "func(string,string,string,string,int) as string",
+                        "exportId":  "volc.phone@0.1.0#abi1::volc.phone::list_dc(func(string,string,string,string,int) as string)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  5,
+                        "fixedParamCount":  5,
+                        "params":  [
+                                       {
+                                           "name":  "access_key",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "secret_key",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "session_token",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "product_id",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "timeout_ms",
+                                           "type":  "int",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "string"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "detail_pod",
+                        "cSymbol":  "__xl6_import_x_volc_phone_detail_pod",
+                        "signature":  "func(string,string,string,string,string,int) as string",
+                        "exportId":  "volc.phone@0.1.0#abi1::volc.phone::detail_pod(func(string,string,string,string,string,int) as string)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  6,
+                        "fixedParamCount":  6,
+                        "params":  [
+                                       {
+                                           "name":  "access_key",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "secret_key",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "session_token",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "product_id",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "pod_id",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "timeout_ms",
+                                           "type":  "int",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "string"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "detail_host",
+                        "cSymbol":  "__xl6_import_x_volc_phone_detail_host",
+                        "signature":  "func(string,string,string,string,string,int) as string",
+                        "exportId":  "volc.phone@0.1.0#abi1::volc.phone::detail_host(func(string,string,string,string,string,int) as string)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  6,
+                        "fixedParamCount":  6,
+                        "params":  [
+                                       {
+                                           "name":  "access_key",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "secret_key",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "session_token",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "product_id",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "host_id",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "timeout_ms",
+                                           "type":  "int",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "string"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "create_pod",
+                        "cSymbol":  "__xl6_import_x_volc_phone_create_pod",
+                        "signature":  "func(string,string,string,string,string,string,int,string,string,string,bool,int) as string",
+                        "exportId":  "volc.phone@0.1.0#abi1::volc.phone::create_pod(func(string,string,string,string,string,string,int,string,string,string,bool,int) as string)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  12,
+                        "fixedParamCount":  12,
+                        "params":  [
+                                       {
+                                           "name":  "access_key",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "secret_key",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "session_token",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "product_id",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "dc",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "configuration_code",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "resource_type",
+                                           "type":  "int",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "host_id",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "pod_name",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "display_layout_id",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "start",
+                                           "type":  "bool",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "timeout_ms",
+                                           "type":  "int",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "string"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "create_pod_batch",
+                        "cSymbol":  "__xl6_import_x_volc_phone_create_pod_batch",
+                        "signature":  "func(string,string,string,string,string,string,int,int,string,string,string,bool,int) as string",
+                        "exportId":  "volc.phone@0.1.0#abi1::volc.phone::create_pod_batch(func(string,string,string,string,string,string,int,int,string,string,string,bool,int) as string)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  13,
+                        "fixedParamCount":  13,
+                        "params":  [
+                                       {
+                                           "name":  "access_key",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "secret_key",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "session_token",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "product_id",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "dc",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "configuration_code",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "apply_num",
+                                           "type":  "int",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "resource_type",
+                                           "type":  "int",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "host_id",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "pod_name",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "display_layout_id",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "start",
+                                           "type":  "bool",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "timeout_ms",
+                                           "type":  "int",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "string"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "power_on",
+                        "cSymbol":  "__xl6_import_x_volc_phone_power_on",
+                        "signature":  "func(string,string,string,string,string,int) as string",
+                        "exportId":  "volc.phone@0.1.0#abi1::volc.phone::power_on(func(string,string,string,string,string,int) as string)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  6,
+                        "fixedParamCount":  6,
+                        "params":  [
+                                       {
+                                           "name":  "access_key",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "secret_key",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "session_token",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "product_id",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "pod_id",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "timeout_ms",
+                                           "type":  "int",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "string"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "power_off",
+                        "cSymbol":  "__xl6_import_x_volc_phone_power_off",
+                        "signature":  "func(string,string,string,string,string,int) as string",
+                        "exportId":  "volc.phone@0.1.0#abi1::volc.phone::power_off(func(string,string,string,string,string,int) as string)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  6,
+                        "fixedParamCount":  6,
+                        "params":  [
+                                       {
+                                           "name":  "access_key",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "secret_key",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "session_token",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "product_id",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "pod_id",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "timeout_ms",
+                                           "type":  "int",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "string"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "reboot",
+                        "cSymbol":  "__xl6_import_x_volc_phone_reboot",
+                        "signature":  "func(string,string,string,string,string,int) as string",
+                        "exportId":  "volc.phone@0.1.0#abi1::volc.phone::reboot(func(string,string,string,string,string,int) as string)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  6,
+                        "fixedParamCount":  6,
+                        "params":  [
+                                       {
+                                           "name":  "access_key",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "secret_key",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "session_token",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "product_id",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "pod_id",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "timeout_ms",
+                                           "type":  "int",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "string"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "reset",
+                        "cSymbol":  "__xl6_import_x_volc_phone_reset",
+                        "signature":  "func(string,string,string,string,string,int) as string",
+                        "exportId":  "volc.phone@0.1.0#abi1::volc.phone::reset(func(string,string,string,string,string,int) as string)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  6,
+                        "fixedParamCount":  6,
+                        "params":  [
+                                       {
+                                           "name":  "access_key",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "secret_key",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "session_token",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "product_id",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "pod_id",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "timeout_ms",
+                                           "type":  "int",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "string"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "delete_pod",
+                        "cSymbol":  "__xl6_import_x_volc_phone_delete_pod",
+                        "signature":  "func(string,string,string,string,string,int) as string",
+                        "exportId":  "volc.phone@0.1.0#abi1::volc.phone::delete_pod(func(string,string,string,string,string,int) as string)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  6,
+                        "fixedParamCount":  6,
+                        "params":  [
+                                       {
+                                           "name":  "access_key",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "secret_key",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "session_token",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "product_id",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "pod_id",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "timeout_ms",
+                                           "type":  "int",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "string"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "pod_adb",
+                        "cSymbol":  "__xl6_import_x_volc_phone_pod_adb",
+                        "signature":  "func(string,string,string,string,string,bool,int) as string",
+                        "exportId":  "volc.phone@0.1.0#abi1::volc.phone::pod_adb(func(string,string,string,string,string,bool,int) as string)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  7,
+                        "fixedParamCount":  7,
+                        "params":  [
+                                       {
+                                           "name":  "access_key",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "secret_key",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "session_token",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "product_id",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "pod_id",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "enable",
+                                           "type":  "bool",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "timeout_ms",
+                                           "type":  "int",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "string"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "run_sync_command",
+                        "cSymbol":  "__xl6_import_x_volc_phone_run_sync_command",
+                        "signature":  "func(string,string,string,string,string,string,int) as string",
+                        "exportId":  "volc.phone@0.1.0#abi1::volc.phone::run_sync_command(func(string,string,string,string,string,string,int) as string)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  7,
+                        "fixedParamCount":  7,
+                        "params":  [
+                                       {
+                                           "name":  "access_key",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "secret_key",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "session_token",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "product_id",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "pod_id",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "command",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "timeout_ms",
+                                           "type":  "int",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "string"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "run_command",
+                        "cSymbol":  "__xl6_import_x_volc_phone_run_command",
+                        "signature":  "func(string,string,string,string,string,string,int) as string",
+                        "exportId":  "volc.phone@0.1.0#abi1::volc.phone::run_command(func(string,string,string,string,string,string,int) as string)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  7,
+                        "fixedParamCount":  7,
+                        "params":  [
+                                       {
+                                           "name":  "access_key",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "secret_key",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "session_token",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "product_id",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "pod_id",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "command",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "timeout_ms",
+                                           "type":  "int",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "string"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "get_task_info",
+                        "cSymbol":  "__xl6_import_x_volc_phone_get_task_info",
+                        "signature":  "func(string,string,string,string,string,int) as string",
+                        "exportId":  "volc.phone@0.1.0#abi1::volc.phone::get_task_info(func(string,string,string,string,string,int) as string)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  6,
+                        "fixedParamCount":  6,
+                        "params":  [
+                                       {
+                                           "name":  "access_key",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "secret_key",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "session_token",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "product_id",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "task_id",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "timeout_ms",
+                                           "type":  "int",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "string"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "task_state",
+                        "cSymbol":  "__xl6_import_x_volc_phone_task_state",
+                        "signature":  "func(string) as string",
+                        "exportId":  "volc.phone@0.1.0#abi1::volc.phone::task_state(func(string) as string)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  1,
+                        "fixedParamCount":  1,
+                        "params":  [
+                                       {
+                                           "name":  "task_info_json",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "string"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "wait_task",
+                        "cSymbol":  "__xl6_import_x_volc_phone_wait_task",
+                        "signature":  "func(string,string,string,string,string,int,int) as string",
+                        "exportId":  "volc.phone@0.1.0#abi1::volc.phone::wait_task(func(string,string,string,string,string,int,int) as string)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  7,
+                        "fixedParamCount":  7,
+                        "params":  [
+                                       {
+                                           "name":  "access_key",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "secret_key",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "session_token",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "product_id",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "task_id",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "timeout_ms",
+                                           "type":  "int",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "poll_interval_ms",
+                                           "type":  "int",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "string"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "install_app",
+                        "cSymbol":  "__xl6_import_x_volc_phone_install_app",
+                        "signature":  "func(string,string,string,string,string,string,string,int) as string",
+                        "exportId":  "volc.phone@0.1.0#abi1::volc.phone::install_app(func(string,string,string,string,string,string,string,int) as string)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  8,
+                        "fixedParamCount":  8,
+                        "params":  [
+                                       {
+                                           "name":  "access_key",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "secret_key",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "session_token",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "product_id",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "pod_id",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "app_id",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "version_id",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "timeout_ms",
+                                           "type":  "int",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "string"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "launch_app",
+                        "cSymbol":  "__xl6_import_x_volc_phone_launch_app",
+                        "signature":  "func(string,string,string,string,string,string,int) as string",
+                        "exportId":  "volc.phone@0.1.0#abi1::volc.phone::launch_app(func(string,string,string,string,string,string,int) as string)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  7,
+                        "fixedParamCount":  7,
+                        "params":  [
+                                       {
+                                           "name":  "access_key",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "secret_key",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "session_token",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "product_id",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "pod_id",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "package_name",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "timeout_ms",
+                                           "type":  "int",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "string"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "close_app",
+                        "cSymbol":  "__xl6_import_x_volc_phone_close_app",
+                        "signature":  "func(string,string,string,string,string,string,int) as string",
+                        "exportId":  "volc.phone@0.1.0#abi1::volc.phone::close_app(func(string,string,string,string,string,string,int) as string)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  7,
+                        "fixedParamCount":  7,
+                        "params":  [
+                                       {
+                                           "name":  "access_key",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "secret_key",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "session_token",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "product_id",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "pod_id",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "package_name",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "timeout_ms",
+                                           "type":  "int",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "string"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "screenshot",
+                        "cSymbol":  "__xl6_import_x_volc_phone_screenshot",
+                        "signature":  "func(string,string,string,string,string,string,int) as string",
+                        "exportId":  "volc.phone@0.1.0#abi1::volc.phone::screenshot(func(string,string,string,string,string,string,int) as string)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  7,
+                        "fixedParamCount":  7,
+                        "params":  [
+                                       {
+                                           "name":  "access_key",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "secret_key",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "session_token",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "product_id",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "pod_id",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "round_id",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "timeout_ms",
+                                           "type":  "int",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "string"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "batch_screenshot",
+                        "cSymbol":  "__xl6_import_x_volc_phone_batch_screenshot",
+                        "signature":  "func(string,string,string,string,string,string,int) as string",
+                        "exportId":  "volc.phone@0.1.0#abi1::volc.phone::batch_screenshot(func(string,string,string,string,string,string,int) as string)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  7,
+                        "fixedParamCount":  7,
+                        "params":  [
+                                       {
+                                           "name":  "access_key",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "secret_key",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "session_token",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "product_id",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "pod_id_list_json",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "round_id",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "timeout_ms",
+                                           "type":  "int",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "string"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "start_recording",
+                        "cSymbol":  "__xl6_import_x_volc_phone_start_recording",
+                        "signature":  "func(string,string,string,string,string,string,int,bool,int) as string",
+                        "exportId":  "volc.phone@0.1.0#abi1::volc.phone::start_recording(func(string,string,string,string,string,string,int,bool,int) as string)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  9,
+                        "fixedParamCount":  9,
+                        "params":  [
+                                       {
+                                           "name":  "access_key",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "secret_key",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "session_token",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "product_id",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "pod_id",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "round_id",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "duration_limit",
+                                           "type":  "int",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "saved_on_pod",
+                                           "type":  "bool",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "timeout_ms",
+                                           "type":  "int",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "string"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "stop_recording",
+                        "cSymbol":  "__xl6_import_x_volc_phone_stop_recording",
+                        "signature":  "func(string,string,string,string,string,int) as string",
+                        "exportId":  "volc.phone@0.1.0#abi1::volc.phone::stop_recording(func(string,string,string,string,string,int) as string)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  6,
+                        "fixedParamCount":  6,
+                        "params":  [
+                                       {
+                                           "name":  "access_key",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "secret_key",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "session_token",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "product_id",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "pod_id",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "timeout_ms",
+                                           "type":  "int",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "string"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "recording_download_url",
+                        "cSymbol":  "__xl6_import_x_volc_phone_recording_download_url",
+                        "signature":  "func(string) as string",
+                        "exportId":  "volc.phone@0.1.0#abi1::volc.phone::recording_download_url(func(string) as string)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  1,
+                        "fixedParamCount":  1,
+                        "params":  [
+                                       {
+                                           "name":  "raw",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "string"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "pod_adb_endpoint",
+                        "cSymbol":  "__xl6_import_x_volc_phone_pod_adb_endpoint",
+                        "signature":  "func(string) as string",
+                        "exportId":  "volc.phone@0.1.0#abi1::volc.phone::pod_adb_endpoint(func(string) as string)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  1,
+                        "fixedParamCount":  1,
+                        "params":  [
+                                       {
+                                           "name":  "detail_pod_json",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "string"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "pod_run_state",
+                        "cSymbol":  "__xl6_import_x_volc_phone_pod_run_state",
+                        "signature":  "func(string) as int",
+                        "exportId":  "volc.phone@0.1.0#abi1::volc.phone::pod_run_state(func(string) as int)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  1,
+                        "fixedParamCount":  1,
+                        "params":  [
+                                       {
+                                           "name":  "detail_pod_json",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "int"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "host_remain_text",
+                        "cSymbol":  "__xl6_import_x_volc_phone_host_remain_text",
+                        "signature":  "func(string) as string",
+                        "exportId":  "volc.phone@0.1.0#abi1::volc.phone::host_remain_text(func(string) as string)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  1,
+                        "fixedParamCount":  1,
+                        "params":  [
+                                       {
+                                           "name":  "detail_host_json",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "string"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "push_file",
+                        "cSymbol":  "__xl6_import_x_volc_phone_push_file",
+                        "signature":  "func(string,string,string,string,string,string,string,int) as string",
+                        "exportId":  "volc.phone@0.1.0#abi1::volc.phone::push_file(func(string,string,string,string,string,string,string,int) as string)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  8,
+                        "fixedParamCount":  8,
+                        "params":  [
+                                       {
+                                           "name":  "access_key",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "secret_key",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "session_token",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "product_id",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "pod_id",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "local_path",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "remote_path",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "timeout_ms",
+                                           "type":  "int",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "string"
+                                        }
+                                    ]
+                    },
+                    {
+                        "kind":  "function",
+                        "name":  "pull_file",
+                        "cSymbol":  "__xl6_import_x_volc_phone_pull_file",
+                        "signature":  "func(string,string,string,string,string,string,string,int) as string",
+                        "exportId":  "volc.phone@0.1.0#abi1::volc.phone::pull_file(func(string,string,string,string,string,string,string,int) as string)",
+                        "callingConvention":  "cdecl",
+                        "varargMode":  "none",
+                        "requiredParamCount":  8,
+                        "fixedParamCount":  8,
+                        "params":  [
+                                       {
+                                           "name":  "access_key",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "secret_key",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "session_token",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "product_id",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "pod_id",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "remote_path",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "local_path",
+                                           "type":  "string",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       },
+                                       {
+                                           "name":  "timeout_ms",
+                                           "type":  "int",
+                                           "optional":  false,
+                                           "vararg":  false
+                                       }
+                                   ],
+                        "returns":  [
+                                        {
+                                            "type":  "string"
+                                        }
+                                    ]
+                    }
+                ],
+    "types":  [
+
+              ],
+    "imports":  [
+
+                ],
+    "links":  [
+
+              ],
+    "loadlibs":  [
+
+                 ],
+    "cSources":  [
+                     "x_volc_phone_native.c"
+                 ],
+    "native":  {
+                   "singleton":  false,
+                   "loadName":  "",
+                   "version":  ""
+               },
+    "docs":  [
+
+             ]
+}

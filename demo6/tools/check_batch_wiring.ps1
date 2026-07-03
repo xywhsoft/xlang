@@ -54,7 +54,7 @@ function Check-SmokeBatch($text)
         "test_tutorial.bat",
         "test_feature_suite.bat",
         "test_dll.bat",
-        "examples\feature_suite\run_feature_suite.bat"
+        "release\examples\feature_suite\run_feature_suite.bat"
     )
     $requiredPatterns = @(
         '(?im)^\s*call\s+build\.bat\s*$',
@@ -67,8 +67,8 @@ function Check-SmokeBatch($text)
         'release\\xl\.exe\s+cgen\s+',
         'release\\xl\.exe\s+abi\s+',
         'release\\xl\.exe\s+xapi\s+',
-        'release\\xl\.exe\s+run\s+examples\\containers\.xl',
-        'release\\xl\.exe\s+run\s+examples\\stdlib_string\.xl'
+        'release\\xl\.exe\s+run\s+release\\examples\\containers\.xl',
+        'release\\xl\.exe\s+run\s+release\\examples\\stdlib_string\.xl'
     )
 
     foreach ( $call in $forbiddenCalls ) {
@@ -111,12 +111,12 @@ function Check-AllBatch($text)
 function Check-TutorialBatch($text)
 {
     $requiredPatterns = @(
-        'for\s+%%f\s+in\s+\(examples\\tutorial\\\*\.xl\)',
+        'for\s+%%f\s+in\s+\(release\\examples\\tutorial\\\*\.xl\)',
         'release\\xl\.exe\s+check\s+"%%f"',
-        'release\\xl\.exe\s+run\s+"examples\\tutorial\\%%f"',
-        'release\\xl\.exe\s+run\s+"examples\\tutorial\\%%f"\s+--link\s+examples\\tutorial\\host\.c',
-        'release\\xl\.exe\s+cgen\s+examples\\tutorial\\11_export_to_c\.xl\s+--emit\s+release\\tmp\\tutorial\\11_export_to_c\.c\s+--emit-header\s+release\\tmp\\tutorial\\11_export_to_c\.h',
-        '"%XL6_TCC%"\s+-Irelease\\tmp\\tutorial\s+%XL6_TCC_INCLUDES%\s+%XL6_TCC_LIB_FLAGS%\s+release\\tmp\\tutorial\\11_export_to_c\.c\s+examples\\tutorial\\host_export\.c\s+%XL6_DEFAULT_LINKS%\s+-o\s+release\\tmp\\tutorial\\host_export\.exe',
+        'release\\xl\.exe\s+run\s+"release\\examples\\tutorial\\%%f"',
+        'release\\xl\.exe\s+run\s+"release\\examples\\tutorial\\%%f"\s+--link\s+release\\examples\\tutorial\\host\.c',
+        'release\\xl\.exe\s+cgen\s+release\\examples\\tutorial\\11_export_to_c\.xl\s+--emit\s+release\\tmp\\tutorial\\11_export_to_c\.c\s+--emit-header\s+release\\tmp\\tutorial\\11_export_to_c\.h',
+        '"%XL6_TCC%"\s+-Irelease\\tmp\\tutorial\s+%XL6_TCC_INCLUDES%\s+%XL6_TCC_LIB_FLAGS%\s+release\\tmp\\tutorial\\11_export_to_c\.c\s+release\\examples\\tutorial\\host_export\.c\s+%XL6_DEFAULT_LINKS%\s+-o\s+release\\tmp\\tutorial\\host_export\.exe',
         'release\\tmp\\tutorial\\host_export\.exe'
     )
     $requiredTutorialFiles = @(
@@ -264,7 +264,7 @@ $baselineText = Read-Utf8Text $baselineDocs[0].FullName
 $batchFiles = @(Get-ChildItem -LiteralPath $Root -File -Filter "*.bat" | Sort-Object Name)
 $toolBatchFiles = @(Get-ChildItem -LiteralPath (Join-Path $Root "tools") -File -Filter "*.bat" | Sort-Object Name)
 $extraBatchFiles = @(
-    (Join-Path $Root "examples\feature_suite\run_feature_suite.bat")
+    (Join-Path $Root "release\examples\feature_suite\run_feature_suite.bat")
 ) | Where-Object { Test-Path -LiteralPath $_ -PathType Leaf }
 $toolchainEnv = "tools\xl6_toolchain_env.bat"
 $toolchainEnvPath = Join-Path $Root $toolchainEnv

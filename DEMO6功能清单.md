@@ -986,6 +986,8 @@ ch.close()
 
 `channel<T>` 当前只允许 `bool`、整数、浮点、`time`、`point` 等可按值复制的元素类型。`string`、`var`、`class`、`func`、`generator<T>`、`array<int>` 这类静态容器等涉及所有权、动态值或 move-only 句柄的类型会在语义阶段拒绝，避免进入当前 `memcpy` 发送路径。
 
+`recvInto(target)` 是阻塞接收，`tryRecvInto(target)` 是非阻塞接收；两者的 `target` 都是写入目标，必须是具名变量，不能是 `const`，不能是匿名函数外层只读捕获变量，并且类型必须等于 `channel<T>` 的元素类型。
+
 thread 与同步原语示例：
 
 ```xlang
@@ -1031,6 +1033,7 @@ rw.readUnlock()
 - `task.race` 中某个 source future 已经被显式取消时，group 必须进入取消态，并取消仍在 pending 的 loser；数组字面量输入和 `array<future<int>>` typed-array 输入均已覆盖 loser late await 仍保持取消态。该规则同时覆盖“先入组再取消 winner”和“先取消 winner 再创建 group”的 completed-canceled 路径，winner repeated cancel 仍返回 true。
 - `task.all` 中某个 source future 已经被显式取消时，group 必须进入取消态，但不会主动取消其他 source；另一个 source 应正常完成。已取消 source 在数组字面量输入和 `array<future<int>>` typed-array 输入下都必须支持首次 await、late await 与 repeated cancel，且始终保持取消态；该规则同时覆盖“先入组再取消 source”和“先取消 source 再创建 group”的 completed-canceled 路径。
 - 已完成的具名 `task.all` / `task.race` future 支持 repeated await；`task.cancel(completedFuture)` 返回 `false`，post-cancel await 仍返回原完成值。该规则已覆盖基础值、`class` 与 `func`；其中 `int`、`string`、`bool`、`float`、`class`、`func` 同时覆盖数组字面量输入和 typed-array 输入。
+- `task.all` 的内部取消转发生命周期已经收紧：聚合启动时会先持有内部 group future 的本地引用，再建立取消转发，成功、启动失败和转发失败路径都会释放本地引用，避免 worker 过快完成时释放内部状态导致竞态。
 - `task.cancel(...)` 只接受 `future<T>` / `task<T>`；`channel<T>`、`generator<T>`、`sem`、`thread` 等资源句柄不是 task 句柄，必须使用各自的专用方法或生命周期规则，不能传给 `task.cancel`。
 - `task.all` / `task.race` 的失败传播已覆盖基础值、`string`、`class` 与 `func`；已失败的具名 task future 支持 repeated await，`task.cancel(failedFuture)` 返回 `false`，post-cancel await 仍保留原始错误。`task.all` 中某个 source 快速失败时，group 必须传播原始错误，但不会取消仍在 pending 的 sibling；数组字面量输入和 `array<future<int>>` typed-array 输入均已覆盖慢 sibling 后续正常 `await`。`task.race` 中某个 source 快速失败时，仍在 pending 的 loser future 会被取消，后续 repeated await 保持取消态；如果 race 创建前 winner 已经失败，数组字面量输入和 `array<future<int>>` typed-array 输入也都必须覆盖 loser 首次 await 与 sleep 后 late await 均保持取消态。
 - 当前 typed future bridge 不支持 `task.all/race` 聚合 `future<var>`，也不支持完成值本身为 `array/list/set/dict` 的 `future<array/list/set/dict>`，也不支持 `future<future<T>>`、`future<generator<T>>`、`future<channel<T>>`、`future<sem>`、`future<thread>` 等资源句柄完成值。该限制同时适用于 `[future<T>, ...]` 数组字面量输入和 `array<future<T>>` typed-array 输入；这些 future 可以直接 `await`，但暂不能再交给 `task.all/race` 二次聚合。
@@ -1205,7 +1208,7 @@ end
 - 编译脚本文件到 exe。
 - 注册 C 函数进入上下文。
 - 向执行环境注入当前进程内的 XRT/xlang 运行时符号。
-- DLL API 边界由守门脚本维护，当前公开 API 数量基线为 21。
+- DLL API 边界由守门脚本维护，当前公开 API 数量基线为 62。
 
 公开 API：
 ```c
@@ -1267,19 +1270,20 @@ void xlClearLastError(XL_Context* ctx);
 
 当前测试资产：
 
-- `demo6/test/cases` 下有 561 个 `.xl` 测试用例。
-- 负例诊断命令基线为 326 条。
-- 负例诊断内容断言基线为 326 条。
-- package fixture 基线为 17 个。
+- `demo6/test/cases` 下有 668 个 `.xl` 测试用例。
+- 负例诊断命令基线为 429 条。
+- 负例诊断产物基线为 428 个。
+- 负例诊断内容断言基线为 429 条。
+- package/extlib fixture 基线为 48 个。
 - 标准库测试基线为 21 个。
 - 标准库 public function 守门基线为 180 个，不含全局 `print` / `println`。
-- DLL API 基线为 21 个。
+- DLL API 基线为 62 个。
 - 风险总账基线为 21 条，当前 21 条已收口，0 条开放。
 
 当前范例资产：
 
-- `demo6/examples` 下有 73 个 `.xl` 范例。
-- `demo6/examples` 下有 9 个 C 宿主/混编范例。
+- `demo6/release/examples` 下有 104 个 `.xl` 范例。
+- `demo6/release/examples` 下有 124 个 C/H 宿主、混编和辅助 fixture 文件。
 - 包含根目录范例。
 - 包含 tutorial 范例。
 - 包含 feature suite 范例。
@@ -1349,6 +1353,21 @@ DEMO6 是 xlang 准备发布的第一个候选口径，原则是不背负 DEMO5 
 - `RISK-ASYNC-001`：`task.spawn(...)` 临时 future 进入 `task.all/race` 时，已经覆盖 int/string/bool/float 的“owned 临时源 + borrowed 空源”组合，空源错误必须优先传播。
 - `RISK-CALL-001`：成员 function 返回 string 后进入命名参数和重排命名参数已进入 cgen 守门，不允许回退 GNU statement expression。
 - `RISK-LOOP-002`：嵌套 while 的 `break 2` / `continue 2` 已验证局部 class 按 `inner -> outer -> goto` 顺序释放，和 range-for 路径对齐。
+
+### task.spawn 动态 var 参数承载位守门
+
+`task.spawn(varArgJob, dynamicVarExpr)` 中的动态 `var` 实参必须先生成 `xvalue __xl6_task_arg_N` 临时量，再传入 `xl6_task_spawn_values(...)`。当前守门覆盖：
+
+- 声明初始化、赋值、return、表达式语句。
+- 条件语句、循环条件、`range(...)` 循环边界。
+- typed container 字面量、async typed-container return。
+- 普通调用实参、命名实参、多返回声明/赋值 RHS。
+- `assert`、`throw`、`yield`。
+- `value in range(...)` 与 f-string 插值。
+- typed array 索引读与索引写目标，例如 `values[await task.spawn(...)]` 和 `values[await task.spawn(...)] = 77`。
+- typed array 安全索引与空合并转换，例如 `int(values?[await task.spawn(...)] ?? 88)`。
+- `for ... in` 的 typed-container iterable 与 generator iterable，例如 `for item in makeArray(await task.spawn(...))`。
+
 ### task.spawn 聚合 null-first 输入守门
 
 `task.all/race` 数组字面量输入已经覆盖两种 source 顺序：

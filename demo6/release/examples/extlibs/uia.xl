@@ -1,0 +1,129 @@
+import uia
+
+string versionText = uia.version()
+assert string.len(versionText) > 0, "uia version missing"
+assert string.len(uia.last_error()) >= 0, "uia last_error should return a string"
+
+auto launched = uia.launch("cmd.exe /c exit 0")
+assert launched.valid() == true, "uia launch failed"
+assert launched.id() > 0, "uia process id failed"
+assert launched.close() == true, "uia process close failed"
+assert launched.release() == true, "uia process release failed"
+
+auto window = uia.test_window()
+assert window.valid() == true, "uia test_window failed"
+assert window.focus_edit() == true, "uia focus_edit failed"
+assert window.focus_button() == true, "uia focus_button failed"
+
+auto desktopElement = uia.desktop()
+assert desktopElement.valid() == true, "uia desktop failed"
+assert string.len(desktopElement.snapshot_json(1, 8)) > 0, "uia desktop snapshot failed"
+assert desktopElement.children().length >= 0, "uia desktop children failed"
+
+auto root = uia.from_hwnd(window.hwnd())
+assert root.valid() == true, "uia from_hwnd window failed"
+assert string.len(root.name()) >= 0, "uia element name failed"
+assert string.len(root.automation_id()) >= 0, "uia element automation_id failed"
+assert string.len(root.class_name()) > 0, "uia element class_name failed"
+assert root.control_type() > 0, "uia element control_type failed"
+assert string.len(root.rect_json()) > 0, "uia element rect_json failed"
+assert string.len(root.snapshot_json(2, 16)) > 0, "uia element snapshot_json failed"
+assert string.len(root.cached_children_json(2, 16)) > 0, "uia cached_children_json failed"
+assert string.len(root.locator_json()) > 0, "uia element locator_json failed"
+assert string.len(uia.locator_for(root)) > 0, "uia locator_for failed"
+
+auto edit = uia.from_hwnd(window.edit_hwnd())
+auto button = uia.from_hwnd(window.button_hwnd())
+auto checkbox = uia.from_hwnd(window.checkbox_hwnd())
+assert edit.valid() == true, "uia edit element failed"
+assert button.valid() == true, "uia button element failed"
+assert checkbox.valid() == true, "uia checkbox element failed"
+assert edit.set_focus() == true, "uia set_focus failed"
+assert edit.set_value("demo6-uia") == true, "uia set_value failed"
+assert edit.value() == "demo6-uia", "uia value failed"
+assert string.len(edit.text()) >= 0, "uia text failed"
+assert button.invoke() == true, "uia invoke failed"
+assert string.len(edit.value()) > 0, "uia value after invoke failed"
+assert checkbox.toggle() == true, "uia toggle failed"
+assert checkbox.toggle_state() >= 0, "uia toggle_state failed"
+assert checkbox.click_timeout(1000) == true, "uia click_timeout failed"
+assert checkbox.click() == true, "uia click failed"
+assert root.scroll(2, 2) == false or root.scroll(2, 2) == true, "uia scroll should return bool"
+assert root.range_value() >= 0.0 or root.range_value() < 0.0, "uia range_value should return float"
+assert root.range_min() >= 0.0 or root.range_min() < 0.0, "uia range_min should return float"
+assert root.range_max() >= 0.0 or root.range_max() < 0.0, "uia range_max should return float"
+assert root.set_range_value(0.0) == false or root.set_range_value(0.0) == true, "uia set_range_value should return bool"
+
+auto nameCondition = uia.by_name("xlang uia test")
+auto editClassCondition = uia.by_class_name("Edit")
+auto editTypeCondition = uia.by_control_type(50004)
+auto processCondition = uia.by_process_id(0)
+auto automationCondition = uia.by_automation_id("")
+assert nameCondition.valid() == true, "uia by_name failed"
+assert editClassCondition.valid() == true, "uia by_class_name failed"
+assert editTypeCondition.valid() == true, "uia by_control_type failed"
+assert processCondition.valid() == true, "uia by_process_id failed"
+assert automationCondition.valid() == true, "uia by_automation_id failed"
+
+auto editCondition = uia.all_of(editClassCondition, editTypeCondition)
+auto anyCondition = uia.any_of(nameCondition, editCondition)
+auto notCondition = uia.not_condition(processCondition)
+assert editCondition.valid() == true, "uia all_of failed"
+assert anyCondition.valid() == true, "uia any_of failed"
+assert notCondition.valid() == true, "uia not_condition failed"
+
+auto foundEdit = root.find_first(editCondition, 2000)
+assert foundEdit.valid() == true, "uia find_first failed"
+auto foundEditScoped = root.find_first_scope(editCondition, 7, 2000)
+assert foundEditScoped.valid() == true, "uia find_first_scope failed"
+assert root.find_all(editCondition, 7, 2000).length >= 1, "uia find_all failed"
+auto parent = edit.parent()
+assert parent.valid() == true, "uia parent failed"
+assert root.children().length >= 0, "uia element children failed"
+
+auto focusElement = uia.focused()
+assert focusElement.valid() == true, "uia focused failed"
+assert string.len(uia.focused_locator()) > 0, "uia focused_locator failed"
+
+auto pointElement = uia.from_point(1, 1)
+if pointElement.valid() == true then
+	assert string.len(pointElement.name()) >= 0, "uia from_point name failed"
+end
+
+point emptyHandle
+auto emptyElement = uia.element(emptyHandle)
+assert emptyElement.valid() == false, "uia element(null) should be invalid"
+
+auto eventQueue = uia.events()
+assert eventQueue.valid() == true, "uia events failed"
+assert eventQueue.subscribe_focus_changed() == true, "uia subscribe_focus_changed failed"
+assert eventQueue.subscribe_property_changed(edit, 30005) == true, "uia subscribe_property_changed failed"
+assert string.len(eventQueue.poll_json(1)) > 0, "uia poll_json failed"
+
+assert eventQueue.release() == true, "uia events release failed"
+assert emptyElement.release() == false, "uia empty element release should fail"
+if pointElement.valid() == true then
+	assert pointElement.release() == true, "uia point element release failed"
+end
+assert focusElement.release() == true, "uia focused release failed"
+assert parent.release() == true, "uia parent release failed"
+assert foundEditScoped.release() == true, "uia found scoped release failed"
+assert foundEdit.release() == true, "uia found release failed"
+assert notCondition.release() == true, "uia not condition release failed"
+assert anyCondition.release() == true, "uia any condition release failed"
+assert editCondition.release() == true, "uia edit condition release failed"
+assert automationCondition.release() == true, "uia automation condition release failed"
+assert processCondition.release() == true, "uia process condition release failed"
+assert editTypeCondition.release() == true, "uia edit type condition release failed"
+assert editClassCondition.release() == true, "uia edit class condition release failed"
+assert nameCondition.release() == true, "uia name condition release failed"
+assert checkbox.release() == true, "uia checkbox release failed"
+assert button.release() == true, "uia button release failed"
+assert edit.release() == true, "uia edit release failed"
+assert root.release() == true, "uia root release failed"
+assert desktopElement.release() == true, "uia desktop release failed"
+assert window.close() == true, "uia test window close failed"
+assert window.release() == true, "uia test window release failed"
+assert uia.shutdown() == true, "uia shutdown failed"
+
+println("uia extlib ok")

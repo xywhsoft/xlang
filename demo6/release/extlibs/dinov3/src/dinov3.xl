@@ -1,7 +1,7 @@
 import opencv
 import onnxruntime
 
-const string DEFAULT_MODEL = "E:\\workspace\\llmrunner\\models\\dinov3-vits16plus_fp32.onnx"
+const string DEFAULT_MODEL = "__missing_dinov3_model__.onnx"
 const string DEFAULT_INPUT_NAME = "image"
 const string DEFAULT_OUTPUT_NAMES = "[\"embedding\"]"
 
@@ -67,7 +67,8 @@ class DinoV3Output
 
 	func release() as bool
 		if self.handle != null then
-			onnxruntime.ort_result_release_native(self.handle)
+			RunResult result = RunResult(self.handle)
+			result.release()
 			self.handle = null
 			return true
 		end
@@ -83,19 +84,22 @@ class DinoV3Output
 	end
 
 	func error() as string
-		return onnxruntime.ort_last_error_native()
+		return onnxruntime.last_error()
 	end
 
 	func shape_json() as string
-		return onnxruntime.ort_result_float_shape_json_native(self.handle)
+		RunResult result = RunResult(self.handle)
+		return result.float_shape_json()
 	end
 
 	func count() as int
-		return onnxruntime.ort_result_float_count_native(self.handle)
+		RunResult result = RunResult(self.handle)
+		return result.float_count()
 	end
 
 	func at(int index) as float
-		return onnxruntime.ort_result_float_at_native(self.handle, index)
+		RunResult result = RunResult(self.handle)
+		return result.float_at(index)
 	end
 
 	func embedding_json() as string
@@ -129,7 +133,7 @@ class DinoV3Model
     float std2
 
 	create()
-		self.model_path = "E:\\workspace\\llmrunner\\models\\dinov3-vits16plus_fp32.onnx"
+		self.model_path = "__missing_dinov3_model__.onnx"
 		self.session = onnxruntime.InferenceSession(self.model_path)
 		self.input_name = "image"
 		self.output_names = "[\"embedding\"]"
@@ -234,13 +238,13 @@ class DinoV3Model
 			Image resized = opencv.resize(rgb, resize_w, resize_h)
 			Image cropped = dinov3_center_crop(resized, self.input_width, self.input_height)
 			TensorObject tensor = onnxruntime.TensorFromOpenCV(cropped.handle, self.scale, self.mean0, self.mean1, self.mean2, self.std0, self.std1, self.std2)
-			point result_handle = onnxruntime.ort_session_run_tensor_fast_native(self.session.handle, self.input_name, tensor.handle, self.output_names)
-			return DinoV3Output(result_handle, image_path)
+			RunResult result = self.session.run_tensor_fast(self.input_name, tensor, self.output_names)
+			return DinoV3Output(result.handle, image_path)
 		end
 		Image direct = opencv.resize(rgb, self.input_width, self.input_height)
 		TensorObject direct_tensor = onnxruntime.TensorFromOpenCV(direct.handle, self.scale, self.mean0, self.mean1, self.mean2, self.std0, self.std1, self.std2)
-		point direct_result_handle = onnxruntime.ort_session_run_tensor_fast_native(self.session.handle, self.input_name, direct_tensor.handle, self.output_names)
-		return DinoV3Output(direct_result_handle, image_path)
+		RunResult direct_result = self.session.run_tensor_fast(self.input_name, direct_tensor, self.output_names)
+		return DinoV3Output(direct_result.handle, image_path)
 	end
 
 end
@@ -282,7 +286,7 @@ func dinov3_similarity(string left_image_path, string right_image_path) as float
 	DinoV3Output left = model.op_call(left_image_path)
 	DinoV3Output right = model.op_call(right_image_path)
 	if left.ok() == false or right.ok() == false then
-		return 0
+		return 0.0
 	end
 	return dinov3_cosine_native(left.handle, right.handle)
 end
@@ -292,7 +296,7 @@ func dinov3_similarity(string model_path, string left_image_path, string right_i
 	DinoV3Output left = model.op_call(left_image_path)
 	DinoV3Output right = model.op_call(right_image_path)
 	if left.ok() == false or right.ok() == false then
-		return 0
+		return 0.0
 	end
 	return dinov3_cosine_native(left.handle, right.handle)
 end

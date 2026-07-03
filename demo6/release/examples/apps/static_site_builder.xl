@@ -1,0 +1,50 @@
+// 静态页面生成范例：class 数据模型 + 字符串替换 + 文件输出。
+
+class Page
+    derive value
+
+    string title = ""
+    string body = ""
+end
+
+func escapeHtml(string text) as string
+    string escaped = string.replace(text, "&", "&amp;")
+    escaped = string.replace(escaped, "<", "&lt;")
+    escaped = string.replace(escaped, ">", "&gt;")
+    return escaped
+end
+
+func renderPage(Page page) as string
+    string title = escapeHtml(page.title)
+    string body = escapeHtml(page.body)
+
+    return f"""<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>{title}</title></head>
+<body><h1>{title}</h1><main>{body}</main></body>
+</html>"""
+end
+
+string outDir = "release/tmp/examples_apps/site"
+string outFile = path.join(outDir, "index.html")
+
+dir.delete(outDir)
+dir.createAll(outDir)
+
+Page page
+page.title = "xlang <demo>"
+page.body = "safe & simple"
+
+string html = renderPage(page)
+file.writeText(outFile, html)
+
+string saved = file.readText(outFile)
+
+assert string.contains(saved, "xlang &lt;demo&gt;"), "title should be escaped"
+assert string.contains(saved, "safe &amp; simple"), "body should be escaped"
+assert path.nameExt(outFile) == "index.html", "output file name mismatch"
+
+file.delete(outFile)
+dir.delete(outDir)
+
+println("static site builder ok")

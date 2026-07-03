@@ -1,0 +1,54 @@
+// 待办存储范例：class value 对象持久化为 JSON 并读回。
+
+class Todo
+    derive value
+
+    string title = ""
+    bool done = false
+    int priority = 0
+end
+
+class TodoBook
+    derive value
+
+    string owner = ""
+    Todo first
+    Todo second
+    Todo third
+end
+
+func score(Todo item) as int
+    return item.done ? 0 : item.priority
+end
+
+string root = "release/tmp/examples_apps/todo"
+string filePath = path.join(root, "todo.json")
+
+dir.delete(root)
+dir.createAll(root)
+
+TodoBook book
+book.owner = "demo"
+book.first.title = "write examples"
+book.first.done = true
+book.first.priority = 5
+book.second.title = "run tests"
+book.second.done = false
+book.second.priority = 9
+book.third.title = "review docs"
+book.third.done = false
+book.third.priority = 4
+
+json.write(filePath, book, pretty = true)
+TodoBook loaded = json.parse::<TodoBook>(file.readText(filePath))
+
+int openScore = score(loaded.first) + score(loaded.second) + score(loaded.third)
+
+assert loaded.owner == "demo", "owner mismatch"
+assert loaded.second.title == "run tests", "todo title mismatch"
+assert openScore == 13, "open score mismatch"
+
+file.delete(filePath)
+dir.delete(root)
+
+println("todo json store ok")

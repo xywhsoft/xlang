@@ -1,0 +1,35 @@
+extern "expect_i64" func expect(int actual, int expected)
+
+int8 i8 = -8
+int16 i16 = i8
+int32 i32 = i16
+int64 i64 = i32
+int wideInt = i8
+
+uint8 u8 = 8
+uint16 u16 = u8
+uint32 u32 = u16
+uint64 u64 = u32
+int16 signedFromU8 = u8
+int64 signedFromU32 = u32
+
+float32 f32 = 1.5
+float64 f64 = f32
+float wideFloat = f32
+
+int boolInt = true
+float boolFloat = false
+
+expect(i16, -8)
+expect(i32, -8)
+expect(i64, -8)
+expect(wideInt, -8)
+expect(u16, 8)
+expect(u32, 8)
+expect(int(u64), 8)
+expect(signedFromU8, 8)
+expect(signedFromU32, 8)
+expect(f64 == 1.5, 1)
+expect(wideFloat == 1.5, 1)
+expect(boolInt, 1)
+expect(boolFloat == 0.0, 1)

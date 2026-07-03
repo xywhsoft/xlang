@@ -20,7 +20,7 @@
     "module":  {
                    "name":  "opencv",
                    "moduleId":  "opencv@0.1.0#abi1::opencv",
-                   "source":  "extlibs/opencv",
+                   "source":  "release/extlibs/opencv",
                    "sourceHash":  ""
                },
     "entry":  {

@@ -12,12 +12,13 @@ $srcDir = Join-Path $Root "src"
 $allowedSource = "src/backend/xl6_toolchain.h"
 $allowedBatch = "tools/xl6_toolchain_env.bat"
 $fixtureScanDirs = @(
-    "examples",
+    "release\examples",
     "test\cases",
-    "packages"
+    "test\fixtures",
+    "release\extlibs"
 )
 $minToolchainSourceFiles = 157
-$minToolchainFixtureFiles = 54
+$minToolchainFixtureFiles = 153
 $minToolchainBatchFiles = 12
 $failures = New-Object System.Collections.Generic.List[string]
 
@@ -47,7 +48,11 @@ $fixtureFiles = @(
     foreach ( $relativeDir in $fixtureScanDirs ) {
         $dir = Join-Path $Root $relativeDir
         if ( Test-Path -LiteralPath $dir -PathType Container ) {
-            Get-ChildItem -LiteralPath $dir -Recurse -File | Where-Object { $_.Extension -eq ".c" -or $_.Extension -eq ".h" }
+            Get-ChildItem -LiteralPath $dir -Recurse -File | Where-Object {
+                $relative = Relative-From-Root $_.FullName
+                ($_.Extension -eq ".c" -or $_.Extension -eq ".h") -and
+                ($relative -notmatch '^release/examples/(.*/)?release/tmp/')
+            }
         }
     }
 ) | Sort-Object FullName
@@ -89,7 +94,7 @@ foreach ( $file in @(Get-ChildItem -LiteralPath $Root -File -Filter "*.bat") ) {
 
 $batchScanDirs = @(
     (Join-Path $Root "tools"),
-    (Join-Path $Root "examples")
+    (Join-Path $Root "release\examples")
 )
 
 foreach ( $dir in $batchScanDirs ) {

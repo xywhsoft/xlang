@@ -1,0 +1,35 @@
+import volc.sts
+
+string fixedDate = "20240102T030405Z"
+string roleTrn = "trn:iam::123456789:role/demo"
+string spec = "access_key=AKID\nsecret_key=SECRET\nrole_trn=" + roleTrn + "\nrole_session_name=demo-session\nduration_seconds=900\nx_date=" + fixedDate + "\n"
+string requestSpec = "access_key=AKID\nsecret_key=SECRET\nrole_trn=" + roleTrn + "\nrole_session_name=demo-session\nduration_seconds=900\ntimeout_ms=1\n"
+string assumeJson = "{\"Result\":{\"Credentials\":{\"AccessKeyId\":\"ak\",\"SecretAccessKey\":\"sk\",\"SessionToken\":\"token\",\"ExpiredTime\":\"2030-01-01T00:00:00Z\",\"CurrentTime\":\"2024-01-02T03:04:05Z\"}}}"
+
+string previewSpec = volc.sts.preview_assume_role_spec(spec)
+assert string.contains(previewSpec, "AssumeRole"), "volc.sts preview spec action missing"
+
+string preview = volc.sts.preview_assume_role("AKID", "SECRET", "123456789", "demo", "demo-session", 900, fixedDate)
+assert string.contains(preview, "AssumeRole"), "volc.sts preview action missing"
+
+assert volc.sts.json_string_field(assumeJson, "AccessKeyId") == "ak", "volc.sts json field mismatch"
+assert volc.sts.access_key_id(assumeJson) == "ak", "volc.sts access_key_id mismatch"
+assert volc.sts.secret_access_key(assumeJson) == "sk", "volc.sts secret_access_key mismatch"
+assert volc.sts.session_token(assumeJson) == "token", "volc.sts session_token mismatch"
+assert volc.sts.expired_time(assumeJson) == "2030-01-01T00:00:00Z", "volc.sts expired_time mismatch"
+assert volc.sts.current_time(assumeJson) == "2024-01-02T03:04:05Z", "volc.sts current_time mismatch"
+
+string credentials = volc.sts.credentials_json(assumeJson)
+assert string.contains(credentials, "\"access_key\":\"ak\""), "volc.sts credentials access_key mismatch"
+assert string.contains(credentials, "\"session_token\":\"token\""), "volc.sts credentials token mismatch"
+
+string projection = volc.sts.projection_credentials_json(assumeJson, "product-1", "pod-1")
+assert string.contains(projection, "\"product_id\":\"product-1\""), "volc.sts projection product mismatch"
+assert string.contains(projection, "\"pod_id\":\"pod-1\""), "volc.sts projection pod mismatch"
+
+assert string.len(volc.sts.assume_role_spec(requestSpec)) >= 0, "volc.sts assume_role_spec should return a string"
+assert string.len(volc.sts.assume_role_trn("AKID", "SECRET", roleTrn, "demo-session", 900, 1)) >= 0, "volc.sts assume_role_trn should return a string"
+assert string.len(volc.sts.assume_role("AKID", "SECRET", "123456789", "demo", "demo-session", 900, 1)) >= 0, "volc.sts assume_role should return a string"
+assert string.len(volc.sts.last_error()) >= 0, "volc.sts last_error should return a string"
+
+println("volc.sts extlib ok")

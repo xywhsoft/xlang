@@ -20,7 +20,7 @@
   "module": {
     "name": "lzma",
     "moduleId": "lzma@0.1.0#abi1::lzma",
-    "source": "extlibs/lzma",
+    "source": "release/extlibs/lzma",
     "sourceHash": ""
   },
   "entry": {

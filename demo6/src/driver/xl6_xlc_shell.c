@@ -114,6 +114,91 @@ static int xlcShellMakeDir(const char* path)
 #endif
 }
 
+static int xlcShellJoinDirPath(char* out, size_t outSize, const char* dir, const char* name)
+{
+    const char* sep;
+    size_t len;
+    int written;
+
+    if ( out == NULL || outSize == 0 || dir == NULL || name == NULL ) {
+        return 0;
+    }
+    len = strlen(dir);
+    sep = (len > 0 && (dir[len - 1u] == '\\' || dir[len - 1u] == '/')) ? "" : "\\";
+    written = snprintf(out, outSize, "%s%s%s", dir, sep, name);
+    return written > 0 && (size_t)written < outSize;
+}
+
+static int xlcShellExecutableDir(char* out, size_t outSize)
+{
+    char path[512];
+    const char* p;
+    const char* lastSep;
+    size_t len;
+
+    if ( out == NULL || outSize == 0 ) {
+        return 0;
+    }
+    out[0] = '\0';
+#ifdef _WIN32
+    {
+        DWORD got = GetModuleFileNameA(NULL, path, (DWORD)sizeof(path));
+        if ( got == 0 || got >= sizeof(path) ) {
+            return 0;
+        }
+        path[got] = '\0';
+    }
+#else
+    {
+        ssize_t got = readlink("/proc/self/exe", path, sizeof(path) - 1u);
+        if ( got <= 0 || (size_t)got >= sizeof(path) ) {
+            return 0;
+        }
+        path[got] = '\0';
+    }
+#endif
+    lastSep = NULL;
+    for ( p = path; *p != '\0'; ++p ) {
+        if ( *p == '\\' || *p == '/' || *p == ':' ) {
+            lastSep = p;
+        }
+    }
+    if ( lastSep == NULL ) {
+        return 0;
+    }
+    len = (size_t)(lastSep - path);
+    if ( *lastSep == ':' ) {
+        len += 1u;
+    }
+    if ( len >= outSize ) {
+        return 0;
+    }
+    memcpy(out, path, len);
+    out[len] = '\0';
+    return 1;
+}
+
+static int xlcShellReleaseTmpDir(char* out, size_t outSize)
+{
+    char exeDir[512];
+
+    if ( !xlcShellExecutableDir(exeDir, sizeof(exeDir)) ||
+         !xlcShellJoinDirPath(out, outSize, exeDir, "tmp") ) {
+        return 0;
+    }
+    return xlcShellMakeDir(out);
+}
+
+static int xlcShellDefaultTempDir(char* out, size_t outSize)
+{
+    char tmpDir[512];
+
+    if ( !xlcShellReleaseTmpDir(tmpDir, sizeof(tmpDir)) ) {
+        return 0;
+    }
+    return xlcShellJoinDirPath(out, outSize, tmpDir, "xlc_shell");
+}
+
 static unsigned long xlcShellProcessId(void)
 {
 #ifdef _WIN32
@@ -132,18 +217,19 @@ static int xlcShellMakeTaggedTempDir(char* out, size_t outSize, const char* tag)
 {
     unsigned long pid;
     unsigned long tick;
+    char tmpDir[512];
     int i;
 
     if ( out == NULL || outSize == 0 || tag == NULL ) {
         return 0;
     }
-    if ( !xlcShellMakeDir("release") || !xlcShellMakeDir("release\\tmp") ) {
+    if ( !xlcShellReleaseTmpDir(tmpDir, sizeof(tmpDir)) ) {
         return 0;
     }
     pid = xlcShellProcessId();
     tick = xlcShellTick();
     for ( i = 0; i < 100; ++i ) {
-        int written = snprintf(out, outSize, "release\\tmp\\xl6_%s_%lu_%lu_%d", tag, pid, tick, i);
+        int written = snprintf(out, outSize, "%s\\xl6_%s_%lu_%lu_%d", tmpDir, tag, pid, tick, i);
         if ( written <= 0 || (size_t)written >= outSize ) {
             return 0;
         }
@@ -521,12 +607,13 @@ static XLC_Context* xlcShellCreateContext(int argc, char** argv)
 {
     XLC_ContextOptions options;
     XLC_Context* ctx;
+    char defaultTempDir[512];
     char tempDir[512];
     const char* command;
 
     options = xlcDefaultContextOptions();
     options.workDir = ".";
-    options.tempDir = "release\\tmp\\xlc_shell";
+    options.tempDir = xlcShellDefaultTempDir(defaultTempDir, sizeof(defaultTempDir)) ? defaultTempDir : NULL;
     xlcShellKeptTempDir[0] = '\0';
     command = argc >= 2 ? argv[1] : "";
     if ( xlcShellHasFlag(argc, argv, "--save-temps") ) {
