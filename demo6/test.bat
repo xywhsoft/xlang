@@ -1,4 +1,4 @@
-@echo off
+﻿@echo off
 setlocal
 cd /d %~dp0
 
@@ -1732,7 +1732,7 @@ if errorlevel 1 (
 )
 findstr /C:"extern \"bag_count\" func count() as int" release\tmp\class_custom.xlir >nul
 if errorlevel 1 (
-    echo class_custom.xlir missing custom extern method.
+    echo class_custom.xlir missing native-backed class extern method.
     exit /b 1
 )
 
@@ -1989,9 +1989,9 @@ if errorlevel 1 (
     echo xapi_type_fields.json missing union class field type metadata.
     exit /b 1
 )
-findstr /C:"\"kind\":\"custom\"" release\tmp\xapi_type_fields.json >nul
+findstr /C:"\"name\":\"NativeView\"" release\tmp\xapi_type_fields.json >nul
 if errorlevel 1 (
-    echo xapi_type_fields.json missing custom type metadata.
+    echo xapi_type_fields.json missing native-backed class type metadata.
     exit /b 1
 )
 "%XL6_TCC%" -I. %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% test\cases\xapi_load_types_host.c src\abi\xl6_xapi_load.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\xapi_load_types_host.exe
@@ -2858,9 +2858,9 @@ if errorlevel 1 (
     echo cgen_typed_container_copy_objects_functions.c missing typed class dict copy.
     exit /b 1
 )
-findstr /C:"xl6_xrt_typed_array_copy_mode(xl6_type_desc_XL_Custom_Native(), natives, XRT_OBJMODE_LOCAL)" release\tmp\cgen_typed_container_copy_objects_functions.c >nul
+findstr /C:"xl6_xrt_typed_array_copy_mode(xl6_type_desc_XL_Class_Native(), natives, XRT_OBJMODE_LOCAL)" release\tmp\cgen_typed_container_copy_objects_functions.c >nul
 if errorlevel 1 (
-    echo cgen_typed_container_copy_objects_functions.c missing typed custom array copy.
+    echo cgen_typed_container_copy_objects_functions.c missing typed native-backed class array copy.
     exit /b 1
 )
 findstr /C:"(*(XL_Class_FnBox*)dst).op.retain" release\tmp\cgen_typed_container_copy_objects_functions.c >nul
@@ -2947,19 +2947,19 @@ if errorlevel 1 (
     echo cgen_typed_container_objects.c missing class hash type op.
     exit /b 1
 )
-findstr /C:"xl6_type_unbox_XL_Custom_Native" release\tmp\cgen_typed_container_objects.c >nul
+findstr /C:"xl6_type_unbox_XL_Class_Native" release\tmp\cgen_typed_container_objects.c >nul
 if errorlevel 1 (
-    echo cgen_typed_container_objects.c missing custom unbox type op.
+    echo cgen_typed_container_objects.c missing native-backed class unbox type op.
     exit /b 1
 )
-findstr /C:"static int xl6_type_compare_XL_Custom_Native" release\tmp\cgen_typed_container_objects.c >nul
+findstr /C:"static int xl6_type_compare_XL_Class_Native" release\tmp\cgen_typed_container_objects.c >nul
 if errorlevel 1 (
-    echo cgen_typed_container_objects.c missing custom compare type op.
+    echo cgen_typed_container_objects.c missing native-backed class compare type op.
     exit /b 1
 )
-findstr /C:"static unsigned long long xl6_type_hash_XL_Custom_Native" release\tmp\cgen_typed_container_objects.c >nul
+findstr /C:"static unsigned long long xl6_type_hash_XL_Class_Native" release\tmp\cgen_typed_container_objects.c >nul
 if errorlevel 1 (
-    echo cgen_typed_container_objects.c missing custom hash type op.
+    echo cgen_typed_container_objects.c missing native-backed class hash type op.
     exit /b 1
 )
 findstr /C:"xrtTypedSetAddValue(pairSet" release\tmp\cgen_typed_container_objects.c >nul
@@ -3100,22 +3100,22 @@ if errorlevel 1 (
 )
 findstr /C:"xl6_xrt_typed_array_set_at(nativeArray" release\tmp\cgen_typed_container_index_assign_objects_functions.c >nul
 if errorlevel 1 (
-    echo cgen_typed_container_index_assign_objects_functions.c missing typed custom array assignment.
+    echo cgen_typed_container_index_assign_objects_functions.c missing typed native-backed class array assignment.
     exit /b 1
 )
 findstr /C:"xrtTypedListSetValue(nativeList" release\tmp\cgen_typed_container_index_assign_objects_functions.c >nul
 if errorlevel 1 (
-    echo cgen_typed_container_index_assign_objects_functions.c missing typed custom list assignment.
+    echo cgen_typed_container_index_assign_objects_functions.c missing typed native-backed class list assignment.
     exit /b 1
 )
 findstr /C:"xrtTypedDictSetValue(nativeDict" release\tmp\cgen_typed_container_index_assign_objects_functions.c >nul
 if errorlevel 1 (
-    echo cgen_typed_container_index_assign_objects_functions.c missing typed custom dict assignment.
+    echo cgen_typed_container_index_assign_objects_functions.c missing typed native-backed class dict assignment.
     exit /b 1
 )
 findstr /C:"xrtTypedDictSetValue(nativeDict, xvoGetText(__xl6_dict_key_" release\tmp\cgen_typed_container_index_assign_objects_functions.c >nul
 if errorlevel 1 (
-    echo cgen_typed_container_index_assign_objects_functions.c missing typed custom dynamic dict assignment.
+    echo cgen_typed_container_index_assign_objects_functions.c missing typed native-backed class dynamic dict assignment.
     exit /b 1
 )
 findstr /C:"xl6_xrt_typed_array_set_at(funcs" release\tmp\cgen_typed_container_index_assign_objects_functions.c >nul
@@ -3175,9 +3175,9 @@ if errorlevel 1 (
     echo cgen_typed_container_multi_assign_index.c missing union multi assignment boxing.
     exit /b 1
 )
-findstr /C:"xl6_box_XL_Custom_Native(__xl6_multi_" release\tmp\cgen_typed_container_multi_assign_index.c >nul
+findstr /C:"xl6_box_XL_Class_Native(__xl6_multi_" release\tmp\cgen_typed_container_multi_assign_index.c >nul
 if errorlevel 1 (
-    echo cgen_typed_container_multi_assign_index.c missing custom multi assignment boxing.
+    echo cgen_typed_container_multi_assign_index.c missing native-backed class multi assignment boxing.
     exit /b 1
 )
 findstr /C:"xl6_function_to_xvalue(__xl6_multi_" release\tmp\cgen_typed_container_multi_assign_index.c >nul
@@ -3192,7 +3192,7 @@ if errorlevel 1 (
 )
 findstr /C:"xrtTypedDictSetValue(natives, xvoGetText(__xl6_dict_key_" release\tmp\cgen_typed_container_multi_assign_index.c >nul
 if errorlevel 1 (
-    echo cgen_typed_container_multi_assign_index.c missing custom dynamic dict multi assignment.
+    echo cgen_typed_container_multi_assign_index.c missing native-backed class dynamic dict multi assignment.
     exit /b 1
 )
 findstr /C:"xrtTypedDictSetValue(table, xvoGetText(__xl6_dict_key_" release\tmp\cgen_typed_container_multi_assign_index.c >nul
@@ -3200,7 +3200,7 @@ if errorlevel 1 (
     echo cgen_typed_container_multi_assign_index.c missing function dynamic dict multi assignment.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content 'release\tmp\cgen_typed_container_multi_assign_index.c' -Raw; $simple=[regex]::Matches($t,'xvalue (__xl6_multi_index_\d+) = (?:xvoCreateInt|xl6_box_XL_Class_Pair|xl6_box_XL_Union_Payload|xl6_function_to_xvalue)[^;]*;\s*if \(!(?:xl6_xrt_typed_array_set_at|xrtTyped(?:List|Dict)SetValue)\([^\n]*\1\)\) \{\s*xl6_runtime_fatal\(3\);\s*\}\s*xvoUnref\(\1\);',[Text.RegularExpressions.RegexOptions]::Singleline); if($simple.Count -lt 6){exit 1}; if($t -notmatch 'xvalue (__xl6_multi_index_\d+) = xl6_box_XL_Custom_Native\(__xl6_multi_[^;]+;[\s\S]*?xrtTypedDictSetValue\(natives,[\s\S]*?\1[\s\S]*?xvoUnref\(\1\);'){exit 2}; if($t -notmatch 'xvalue (__xl6_multi_index_\d+) = xl6_function_to_xvalue\(__xl6_multi_[^;]+;[\s\S]*?xrtTypedDictSetValue\(table,[\s\S]*?\1[\s\S]*?xvoUnref\(\1\);'){exit 3}"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content 'release\tmp\cgen_typed_container_multi_assign_index.c' -Raw; $simple=[regex]::Matches($t,'xvalue (__xl6_multi_index_\d+) = (?:xvoCreateInt|xl6_box_XL_Class_Pair|xl6_box_XL_Union_Payload|xl6_function_to_xvalue)[^;]*;\s*if \(!(?:xl6_xrt_typed_array_set_at|xrtTyped(?:List|Dict)SetValue)\([^\n]*\1\)\) \{\s*xl6_runtime_fatal\(3\);\s*\}\s*xvoUnref\(\1\);',[Text.RegularExpressions.RegexOptions]::Singleline); if($simple.Count -lt 6){exit 1}; if($t -notmatch 'xvalue (__xl6_multi_index_\d+) = xl6_box_XL_Class_Native\(__xl6_multi_[^;]+;[\s\S]*?xrtTypedDictSetValue\(natives,[\s\S]*?\1[\s\S]*?xvoUnref\(\1\);'){exit 2}; if($t -notmatch 'xvalue (__xl6_multi_index_\d+) = xl6_function_to_xvalue\(__xl6_multi_[^;]+;[\s\S]*?xrtTypedDictSetValue\(table,[\s\S]*?\1[\s\S]*?xvoUnref\(\1\);'){exit 3}"
 if errorlevel 1 (
     echo cgen_typed_container_multi_assign_index.c missing multi-return typed index temp cleanup ordering.
     exit /b 1
@@ -4429,7 +4429,7 @@ if errorlevel 1 (
 )
 findstr /C:"xvoCreateHandle(" release\tmp\cgen_var_runtime_objects.c >nul
 if errorlevel 1 (
-    echo cgen_var_runtime_objects.c missing custom handle boxing.
+    echo cgen_var_runtime_objects.c missing native-backed class handle boxing.
     exit /b 1
 )
 findstr /C:"static const xrt_type_ops xl6_type_ops_XL_Class_Pair" release\tmp\cgen_var_runtime_objects.c >nul
@@ -4437,9 +4437,9 @@ if errorlevel 1 (
     echo cgen_var_runtime_objects.c missing class record type ops.
     exit /b 1
 )
-findstr /C:"static const xrt_type_ops xl6_type_ops_XL_Custom_Native" release\tmp\cgen_var_runtime_objects.c >nul
+findstr /C:"static const xrt_type_ops xl6_type_ops_XL_Class_Native" release\tmp\cgen_var_runtime_objects.c >nul
 if errorlevel 1 (
-    echo cgen_var_runtime_objects.c missing custom handle type ops.
+    echo cgen_var_runtime_objects.c missing native-backed class handle type ops.
     exit /b 1
 )
 findstr /C:"xl6_var_call(boxedFn" release\tmp\cgen_var_runtime_objects.c >nul
@@ -4479,9 +4479,9 @@ if errorlevel 1 (
     echo cgen_runtime_type_baseline.c missing object-derived class record boxing.
     exit /b 1
 )
-findstr /C:"xvoCreateHandle(xl6_type_desc_XL_Custom_Native()" release\tmp\cgen_runtime_type_baseline.c >nul
+findstr /C:"xvoCreateHandle(xl6_type_desc_XL_Class_Native()" release\tmp\cgen_runtime_type_baseline.c >nul
 if errorlevel 1 (
-    echo cgen_runtime_type_baseline.c missing custom handle runtime type boxing.
+    echo cgen_runtime_type_baseline.c missing native-backed class handle runtime type boxing.
     exit /b 1
 )
 findstr /C:"xl6_box_XL_Union_Payload(payload)" release\tmp\cgen_runtime_type_baseline.c >nul
@@ -5892,6 +5892,26 @@ if errorlevel 1 (
     echo stdlib_random.c missing xrtRandStr extern prototype.
     exit /b 1
 )
+findstr /C:"void xrtRandSeedThread" release\tmp\stdlib_random.c >nul
+if errorlevel 1 (
+    echo stdlib_random.c missing xrtRandSeedThread extern prototype.
+    exit /b 1
+)
+findstr /C:"void* xrtRandCreate" release\tmp\stdlib_random.c >nul
+if errorlevel 1 (
+    echo stdlib_random.c missing xrtRandCreate extern prototype.
+    exit /b 1
+)
+findstr /C:"unsigned int xrtRand32Obj" release\tmp\stdlib_random.c >nul
+if errorlevel 1 (
+    echo stdlib_random.c missing xrtRand32Obj extern prototype.
+    exit /b 1
+)
+findstr /C:"void* xrtRandStrObj" release\tmp\stdlib_random.c >nul
+if errorlevel 1 (
+    echo stdlib_random.c missing xrtRandStrObj extern prototype.
+    exit /b 1
+)
 findstr /C:"const char* __xl_std_random_string" release\tmp\stdlib_random.c >nul
 if errorlevel 1 (
     echo stdlib_random.c missing random.string helper.
@@ -5900,6 +5920,23 @@ if errorlevel 1 (
 "%XL6_TCC%" -DXL6_USE_XRT_LIFECYCLE %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\stdlib_random.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\stdlib_random.exe
 if errorlevel 1 exit /b 1
 release\tmp\stdlib_random.exe
+if errorlevel 1 exit /b 1
+release\xl.exe run release\examples\stdlib_random.xl %XL6_XL_DEFAULT_LINK_ARGS% > release\tmp\stdlib_random_xlang.out.txt
+if errorlevel 1 exit /b 1
+"%XL6_TCC%" -std=c11 -Wall -Ilib\xrt %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% release\examples\stdlib_random_c.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\stdlib_random_c.exe
+if errorlevel 1 exit /b 1
+release\tmp\stdlib_random_c.exe > release\tmp\stdlib_random_c.out.txt
+if errorlevel 1 exit /b 1
+powershell -NoProfile -Command "$a=[System.IO.File]::ReadAllLines('release\tmp\stdlib_random_xlang.out.txt'); $b=[System.IO.File]::ReadAllLines('release\tmp\stdlib_random_c.out.txt'); if (($a -join \"`n\") -ne ($b -join \"`n\")) { Write-Host 'stdlib random xlang/C output mismatch.'; Write-Host 'xlang:'; $a; Write-Host 'C:'; $b; exit 1 }"
+if errorlevel 1 exit /b 1
+
+release\xl.exe run release\examples\stdlib_path_file.xl %XL6_XL_DEFAULT_LINK_ARGS% > release\tmp\stdlib_path_file_xlang.out.txt
+if errorlevel 1 exit /b 1
+"%XL6_TCC%" -std=c11 -Wall -Ilib\xrt %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% release\examples\stdlib_path_file_c.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\stdlib_path_file_c.exe
+if errorlevel 1 exit /b 1
+release\tmp\stdlib_path_file_c.exe > release\tmp\stdlib_path_file_c.out.txt
+if errorlevel 1 exit /b 1
+powershell -NoProfile -Command "$a=[System.IO.File]::ReadAllLines('release\tmp\stdlib_path_file_xlang.out.txt'); $b=[System.IO.File]::ReadAllLines('release\tmp\stdlib_path_file_c.out.txt'); if (($a -join \"`n\") -ne ($b -join \"`n\")) { Write-Host 'stdlib path/file xlang/C output mismatch.'; Write-Host 'xlang:'; $a; Write-Host 'C:'; $b; exit 1 }"
 if errorlevel 1 exit /b 1
 
 release\xl.exe check test\cases\stdlib_path_file.xl
@@ -5929,6 +5966,66 @@ if errorlevel 1 (
 findstr /C:"const char* __xl_std_path_join" release\tmp\stdlib_path_file.c >nul
 if errorlevel 1 (
     echo stdlib_path_file.c missing path.join helper.
+    exit /b 1
+)
+findstr /C:"void* xrtPathNormalize" release\tmp\stdlib_path_file.c >nul
+if errorlevel 1 (
+    echo stdlib_path_file.c missing xrtPathNormalize extern prototype.
+    exit /b 1
+)
+findstr /C:"void* xrtPathAbs" release\tmp\stdlib_path_file.c >nul
+if errorlevel 1 (
+    echo stdlib_path_file.c missing xrtPathAbs extern prototype.
+    exit /b 1
+)
+findstr /C:"void* xrtPathRel" release\tmp\stdlib_path_file.c >nul
+if errorlevel 1 (
+    echo stdlib_path_file.c missing xrtPathRel extern prototype.
+    exit /b 1
+)
+findstr /C:"void* xrtPathCwd" release\tmp\stdlib_path_file.c >nul
+if errorlevel 1 (
+    echo stdlib_path_file.c missing xrtPathCwd extern prototype.
+    exit /b 1
+)
+findstr /C:"void* xrtPathTemp" release\tmp\stdlib_path_file.c >nul
+if errorlevel 1 (
+    echo stdlib_path_file.c missing xrtPathTemp extern prototype.
+    exit /b 1
+)
+findstr /C:"void* xrtPathWithExt" release\tmp\stdlib_path_file.c >nul
+if errorlevel 1 (
+    echo stdlib_path_file.c missing xrtPathWithExt extern prototype.
+    exit /b 1
+)
+findstr /C:"void* xrtPathWithName" release\tmp\stdlib_path_file.c >nul
+if errorlevel 1 (
+    echo stdlib_path_file.c missing xrtPathWithName extern prototype.
+    exit /b 1
+)
+findstr /C:"bool xrtFileRename" release\tmp\stdlib_path_file.c >nul
+if errorlevel 1 (
+    echo stdlib_path_file.c missing xrtFileRename extern prototype.
+    exit /b 1
+)
+findstr /C:"bool xrtFileReplace" release\tmp\stdlib_path_file.c >nul
+if errorlevel 1 (
+    echo stdlib_path_file.c missing xrtFileReplace extern prototype.
+    exit /b 1
+)
+findstr /C:"bool xrtFileTouch" release\tmp\stdlib_path_file.c >nul
+if errorlevel 1 (
+    echo stdlib_path_file.c missing xrtFileTouch extern prototype.
+    exit /b 1
+)
+findstr /C:"bool xrtFileWriteAllAtomic" release\tmp\stdlib_path_file.c >nul
+if errorlevel 1 (
+    echo stdlib_path_file.c missing xrtFileWriteAllAtomic extern prototype.
+    exit /b 1
+)
+findstr /C:"typedef struct XL_Class_FileInfo" release\tmp\stdlib_path_file.c >nul
+if errorlevel 1 (
+    echo stdlib_path_file.c missing FileInfo class bridge.
     exit /b 1
 )
 findstr /C:"int xrtDirDelete" release\tmp\stdlib_path_file.c >nul
@@ -6434,9 +6531,9 @@ if errorlevel 1 (
     echo cgen_typed_container_safe_index_objects_functions.c missing union typed array safe index lowering.
     exit /b 1
 )
-findstr /C:"xvalue maybeNative = xl6_xrt_typed_box_or_null(xl6_type_desc_XL_Custom_Native(), xl6_xrt_typed_array_get_at(natives" release\tmp\cgen_typed_container_safe_index_objects_functions.c >nul
+findstr /C:"xvalue maybeNative = xl6_xrt_typed_box_or_null(xl6_type_desc_XL_Class_Native(), xl6_xrt_typed_array_get_at(natives" release\tmp\cgen_typed_container_safe_index_objects_functions.c >nul
 if errorlevel 1 (
-    echo cgen_typed_container_safe_index_objects_functions.c missing custom typed array safe index lowering.
+    echo cgen_typed_container_safe_index_objects_functions.c missing native-backed class typed array safe index lowering.
     exit /b 1
 )
 findstr /C:"xvalue maybeFn = xl6_xrt_typed_box_or_null(xrtTypeFunction(), xl6_xrt_typed_array_get_at(funcs" release\tmp\cgen_typed_container_safe_index_objects_functions.c >nul
@@ -6454,9 +6551,9 @@ if errorlevel 1 (
     echo cgen_typed_container_safe_index_objects_functions.c missing union typed list safe index lowering.
     exit /b 1
 )
-findstr /C:"xvalue maybeListNative = xl6_xrt_typed_box_or_null(xl6_type_desc_XL_Custom_Native(), xrtTypedListGet(nativeList" release\tmp\cgen_typed_container_safe_index_objects_functions.c >nul
+findstr /C:"xvalue maybeListNative = xl6_xrt_typed_box_or_null(xl6_type_desc_XL_Class_Native(), xrtTypedListGet(nativeList" release\tmp\cgen_typed_container_safe_index_objects_functions.c >nul
 if errorlevel 1 (
-    echo cgen_typed_container_safe_index_objects_functions.c missing custom typed list safe index lowering.
+    echo cgen_typed_container_safe_index_objects_functions.c missing native-backed class typed list safe index lowering.
     exit /b 1
 )
 findstr /C:"xvalue maybeListFn = xl6_xrt_typed_box_or_null(xrtTypeFunction(), xrtTypedListGet(funcList" release\tmp\cgen_typed_container_safe_index_objects_functions.c >nul
@@ -6474,9 +6571,9 @@ if errorlevel 1 (
     echo cgen_typed_container_safe_index_objects_functions.c missing union typed dict safe index lowering.
     exit /b 1
 )
-findstr /C:"xvalue maybeDictNative = xl6_xrt_typed_box_or_null(xl6_type_desc_XL_Custom_Native(), xrtTypedDictGet(nativeDict" release\tmp\cgen_typed_container_safe_index_objects_functions.c >nul
+findstr /C:"xvalue maybeDictNative = xl6_xrt_typed_box_or_null(xl6_type_desc_XL_Class_Native(), xrtTypedDictGet(nativeDict" release\tmp\cgen_typed_container_safe_index_objects_functions.c >nul
 if errorlevel 1 (
-    echo cgen_typed_container_safe_index_objects_functions.c missing custom typed dict safe index lowering.
+    echo cgen_typed_container_safe_index_objects_functions.c missing native-backed class typed dict safe index lowering.
     exit /b 1
 )
 findstr /C:"xl6_xrt_typed_dict_get_var_key(funcDict" release\tmp\cgen_typed_container_safe_index_objects_functions.c >nul
@@ -6839,24 +6936,24 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_custom.xl --emit release\tmp\cgen_custom.c
 if errorlevel 1 exit /b 1
-findstr /C:"typedef struct XL_Custom_Counter { void* handle; } XL_Custom_Counter;" release\tmp\cgen_custom.c >nul
+findstr /C:"typedef struct XL_Class_Counter {" release\tmp\cgen_custom.c >nul
 if errorlevel 1 (
-    echo cgen_custom.c missing custom handle struct.
+    echo cgen_custom.c missing native-backed class handle struct.
     exit /b 1
 )
-findstr /C:"counter.handle = counter_open(40LL);" release\tmp\cgen_custom.c >nul
+findstr /C:"xl_class_Counter__create(&counter, 40LL);" release\tmp\cgen_custom.c >nul
 if errorlevel 1 (
-    echo cgen_custom.c missing custom create call.
+    echo cgen_custom.c missing native-backed class create call.
     exit /b 1
 )
-findstr /C:"long long afterAdd = counter_add(counter.handle, 2LL);" release\tmp\cgen_custom.c >nul
+findstr /C:"long long afterAdd = xl_class_Counter__add(&counter, 2LL);" release\tmp\cgen_custom.c >nul
 if errorlevel 1 (
-    echo cgen_custom.c missing custom method call.
+    echo cgen_custom.c missing native-backed class method call.
     exit /b 1
 )
-findstr /C:"counter_close(counter.handle);" release\tmp\cgen_custom.c >nul
+findstr /C:"xl_class_Counter__destroy(&counter);" release\tmp\cgen_custom.c >nul
 if errorlevel 1 (
-    echo cgen_custom.c missing custom destroy call.
+    echo cgen_custom.c missing native-backed class destroy call.
     exit /b 1
 )
 "%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_custom.c test\cases\cgen_custom_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_custom.exe
@@ -6927,24 +7024,24 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_custom_helper.xl --emit release\tmp\cgen_custom_helper.c
 if errorlevel 1 exit /b 1
-findstr /C:"long long xl_custom_Counter__plus(XL_Custom_Counter* self, long long extra);" release\tmp\cgen_custom_helper.c >nul
+findstr /C:"long long xl_class_Counter__plus(XL_Class_Counter* self, long long extra);" release\tmp\cgen_custom_helper.c >nul
 if errorlevel 1 (
-    echo cgen_custom_helper.c missing custom helper prototype.
+    echo cgen_custom_helper.c missing native-backed class helper prototype.
     exit /b 1
 )
 findstr /C:"counter_value(self->handle)" release\tmp\cgen_custom_helper.c >nul
 if errorlevel 1 (
-    echo cgen_custom_helper.c missing custom helper self handle call.
+    echo cgen_custom_helper.c missing native-backed class helper self handle call.
     exit /b 1
 )
-findstr /C:"xl_custom_Counter__isZero(&counter)" release\tmp\cgen_custom_helper.c >nul
+findstr /C:"xl_class_Counter__isZero(&counter)" release\tmp\cgen_custom_helper.c >nul
 if errorlevel 1 (
-    echo cgen_custom_helper.c missing custom helper call.
+    echo cgen_custom_helper.c missing native-backed class helper call.
     exit /b 1
 )
-findstr /C:"xl_custom_Counter__plus(&counter, 7LL)" release\tmp\cgen_custom_helper.c >nul
+findstr /C:"xl_class_Counter__plus(&counter, 7LL)" release\tmp\cgen_custom_helper.c >nul
 if errorlevel 1 (
-    echo cgen_custom_helper.c missing custom helper call args.
+    echo cgen_custom_helper.c missing native-backed class helper call args.
     exit /b 1
 )
 "%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_custom_helper.c test\cases\cgen_custom_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_custom_helper.exe
@@ -6959,7 +7056,7 @@ if errorlevel 1 (
     echo cgen_custom_bind_point.c missing point binding.
     exit /b 1
 )
-findstr /C:"borrowed_box_close(box.handle);" release\tmp\cgen_custom_bind_point.c >nul
+findstr /C:"xl_class_BorrowedBox__destroy(&box);" release\tmp\cgen_custom_bind_point.c >nul
 if errorlevel 1 (
     echo cgen_custom_bind_point.c missing borrowed destroy.
     exit /b 1
@@ -6971,9 +7068,9 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_custom_ownership.xl --emit release\tmp\cgen_custom_ownership.c
 if errorlevel 1 exit /b 1
-findstr /C:"box.handle = make_borrowed_box(66LL);" release\tmp\cgen_custom_ownership.c >nul
+findstr /C:"xl_class_OpenOnly__create(&box, 66LL);" release\tmp\cgen_custom_ownership.c >nul
 if errorlevel 1 (
-    echo cgen_custom_ownership.c missing create-only custom construction.
+    echo cgen_custom_ownership.c missing create-only native-backed class construction.
     exit /b 1
 )
 findstr /C:"box.handle = handle;" release\tmp\cgen_custom_ownership.c >nul
@@ -6993,7 +7090,7 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_custom_null_destroy.xl --emit release\tmp\cgen_custom_null_destroy.c
 if errorlevel 1 exit /b 1
-findstr /C:"if (box.handle != 0)" release\tmp\cgen_custom_null_destroy.c >nul
+findstr /C:"if (self->handle != 0)" release\tmp\cgen_custom_null_destroy.c >nul
 if errorlevel 1 (
     echo cgen_custom_null_destroy.c missing null-handle destroy guard.
     exit /b 1
@@ -7476,22 +7573,22 @@ if errorlevel 1 (
     echo cgen_class_custom_field.c missing auto destroy prototype.
     exit /b 1
 )
-findstr /C:"self->first.handle = native_box_open(10LL);" release\tmp\cgen_class_custom_field.c >nul
+findstr /C:"xl_class_NativeBox__create(&self->first, 10LL);" release\tmp\cgen_class_custom_field.c >nul
 if errorlevel 1 (
     echo cgen_class_custom_field.c missing first custom field create.
     exit /b 1
 )
-findstr /C:"native_box_close(self->second.handle);" release\tmp\cgen_class_custom_field.c >nul
+findstr /C:"xl_class_NativeBox__destroy(&self->second);" release\tmp\cgen_class_custom_field.c >nul
 if errorlevel 1 (
     echo cgen_class_custom_field.c missing second custom field cleanup.
     exit /b 1
 )
-findstr /C:"native_box_close(self->first.handle);" release\tmp\cgen_class_custom_field.c >nul
+findstr /C:"xl_class_NativeBox__destroy(&self->first);" release\tmp\cgen_class_custom_field.c >nul
 if errorlevel 1 (
     echo cgen_class_custom_field.c missing first custom field cleanup.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$lines=Get-Content 'release\tmp\cgen_class_custom_field.c'; $second=($lines | Select-String -SimpleMatch 'native_box_close(self->second.handle);' | Select-Object -First 1).LineNumber; $first=($lines | Select-String -SimpleMatch 'native_box_close(self->first.handle);' | Select-Object -First 1).LineNumber; if(-not $second -or -not $first -or $second -ge $first){exit 1}"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$lines=Get-Content 'release\tmp\cgen_class_custom_field.c'; $second=($lines | Select-String -SimpleMatch 'xl_class_NativeBox__destroy(&self->second);' | Select-Object -First 1).LineNumber; $first=($lines | Select-String -SimpleMatch 'xl_class_NativeBox__destroy(&self->first);' | Select-Object -First 1).LineNumber; if(-not $second -or -not $first -or $second -ge $first){exit 1}"
 if errorlevel 1 (
     echo cgen_class_custom_field.c should destroy custom fields in reverse declaration order.
     exit /b 1
@@ -7508,9 +7605,9 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_custom_field_method.xl --emit release\tmp\cgen_custom_field_method.c
 if errorlevel 1 exit /b 1
-findstr /C:"long long __xl6_return_0 = native_box_value(self->box.handle);" release\tmp\cgen_custom_field_method.c >nul
+findstr /C:"long long __xl6_return_0 = xl_class_NativeBox__value(&self->box);" release\tmp\cgen_custom_field_method.c >nul
 if errorlevel 1 (
-    echo cgen_custom_field_method.c missing custom field method call.
+    echo cgen_custom_field_method.c missing native-backed class field method call.
     exit /b 1
 )
 "%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_custom_field_method.c test\cases\cgen_class_custom_field_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_custom_field_method.exe
@@ -7522,12 +7619,12 @@ release\xl.exe check test\cases\cgen_custom_overloads.xl
 if errorlevel 1 exit /b 1
 release\xl.exe cgen test\cases\cgen_custom_overloads.xl --emit release\tmp\cgen_custom_overloads.c
 if errorlevel 1 exit /b 1
-findstr /C:"score_add_i(score.handle, 5LL)" release\tmp\cgen_custom_overloads.c >nul
+findstr /C:"xl_class_NativeScore__add__int(&score, 5LL)" release\tmp\cgen_custom_overloads.c >nul
 if errorlevel 1 (
     echo cgen_custom_overloads.c missing int custom overload call.
     exit /b 1
 )
-findstr /C:"score_add_s(score.handle" release\tmp\cgen_custom_overloads.c >nul
+findstr /C:"xl_class_NativeScore__add__string(&score" release\tmp\cgen_custom_overloads.c >nul
 if errorlevel 1 (
     echo cgen_custom_overloads.c missing string custom overload call.
     exit /b 1
@@ -9846,6 +9943,17 @@ if not errorlevel 1 (
 release\xl.exe check test\cases\sem_self_assign.xl >nul 2> release\tmp\sem_self_assign.err.txt
 if not errorlevel 1 (
     echo sem_self_assign.xl should fail.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\parse_removed_keyword.xl >nul 2> release\tmp\parse_removed_keyword.err.txt
+if not errorlevel 1 (
+    echo parse_removed_keyword.xl should fail.
+    exit /b 1
+)
+findstr /C:"[parse]" release\tmp\parse_removed_keyword.err.txt >nul
+if errorlevel 1 (
+    echo parse_removed_keyword.err.txt missing syntax diagnostic.
     exit /b 1
 )
 
@@ -20888,14 +20996,34 @@ release\xl.exe check test\cases\stdlib_http_server.xl
 if errorlevel 1 exit /b 1
 release\xl.exe cgen test\cases\stdlib_http_server.xl --emit release\tmp\stdlib_http_server.c
 if errorlevel 1 exit /b 1
-findstr /C:"xhttpdserver* xrtHttpdCreate" release\tmp\stdlib_http_server.c >nul
+findstr /C:"xwebserver* xrtWebServerCreate" release\tmp\stdlib_http_server.c >nul
 if errorlevel 1 (
-    echo stdlib_http_server.c missing xrtHttpdCreate runtime prototype.
+    echo stdlib_http_server.c missing xrtWebServerCreate runtime prototype.
     exit /b 1
 )
 findstr /C:"void* xl6_xrt_http_server_create" release\tmp\stdlib_http_server.c >nul
 if errorlevel 1 (
     echo stdlib_http_server.c missing http server runtime helper.
+    exit /b 1
+)
+findstr /C:"bool xl6_xrt_http_server_post" release\tmp\stdlib_http_server.c >nul
+if errorlevel 1 (
+    echo stdlib_http_server.c missing http server route helper.
+    exit /b 1
+)
+findstr /C:"bool xl6_xrt_http_server_get" release\tmp\stdlib_http_server.c >nul
+if errorlevel 1 (
+    echo stdlib_http_server.c missing http server get helper.
+    exit /b 1
+)
+findstr /C:"bool xl6_xrt_http_server_any" release\tmp\stdlib_http_server.c >nul
+if errorlevel 1 (
+    echo stdlib_http_server.c missing http server any helper.
+    exit /b 1
+)
+findstr /C:"bool xl6_xrt_http_server_static" release\tmp\stdlib_http_server.c >nul
+if errorlevel 1 (
+    echo stdlib_http_server.c missing http server static helper.
     exit /b 1
 )
 "%XL6_TCC%" %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% release\tmp\stdlib_http_server.c test\cases\stdlib_http_server_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\stdlib_http_server.exe
@@ -20911,3 +21039,4 @@ if errorlevel 1 exit /b 1
 
 echo DEMO6 smoke tests ok.
 exit /b 0
+

@@ -1,4 +1,5 @@
-custom MaybeBox
+﻿class MaybeBox
+    native point handle
     extern "borrowed_box_close" destroy()
 end
 

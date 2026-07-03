@@ -1,4 +1,4 @@
-extern "expect_i64" func expect(int actual, int expected)
+﻿extern "expect_i64" func expect(int actual, int expected)
 extern "native_handle" func nativeHandle(int value) as point
 
 class Base
@@ -17,7 +17,8 @@ class Actor extends object
     end
 end
 
-custom Native
+class Native
+    native point handle
 end
 
 union Payload

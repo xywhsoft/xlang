@@ -1,4 +1,4 @@
-class ProtocolBox
+﻿class ProtocolBox
     int value
 
     func __item__(int64 index) as int
@@ -38,7 +38,8 @@ class ProtocolBox
     end
 end
 
-custom ProtocolHandle
+class ProtocolHandle
+    native point handle
     extern "protocol_handle_destroy" destroy()
     extern "protocol_handle_item" func __item__(int64 index) as int
 end

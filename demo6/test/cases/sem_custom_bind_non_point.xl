@@ -1,4 +1,5 @@
-custom Native
+﻿class Native
+    native point handle
 end
 
 int handle = 1

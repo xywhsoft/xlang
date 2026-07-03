@@ -29,14 +29,14 @@
 - `var` 导出转换为 `extern var`。
 - `class` 类型声明、字段和继承布局。
 - `union` 类型声明、字段和 inline union 布局。
-- `custom` 类型名占位声明。
+- native-backed class 类型名占位声明。
 - package dependency 元数据和版本约束。
 
 以下内容暂不自动注入：
 
 - 多返回值导出。
 - 可选参数/可变参数导出。
-- custom 方法实现体或生命周期语义。
+- native-backed class 方法实现体或生命周期语义。
 - object 动态对象类型。
 - export const 的只读语义。
 - xcall/function object 的完整元数据消费。
@@ -46,4 +46,4 @@
 - cgen 已拆成多个分片，但少数分片仍偏大；后续优化应继续沿职责边界细拆。
 - XAPI 读取器仍是编译器内部严格读取器，后续如果迁入 XRT JSON/XSON，需要保持错误诊断和未知字段兼容行为不退化。
 - package 自动链接已进入 CLI 链接流程，后续需要继续压测相对路径、重复链接去重和动态库加载顺序。
-- XAPI 消费侧已经覆盖函数、变量、class、union 和 custom 占位；xcall/function object/custom 方法的完整消费仍属于后续深化项。
+- XAPI 消费侧已经覆盖函数、变量、class、union 和 native-backed class 占位；xcall/function object/native-backed class 方法的完整消费仍属于后续深化项。

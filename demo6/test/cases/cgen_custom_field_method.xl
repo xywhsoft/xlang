@@ -1,4 +1,5 @@
-custom NativeBox
+﻿class NativeBox
+    native point handle
     extern "native_box_open" create(int value)
     extern "native_box_close" destroy()
     extern "native_box_value" func value() as int

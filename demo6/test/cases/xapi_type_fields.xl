@@ -1,4 +1,4 @@
-class Packet
+﻿class Packet
     #doc
     desc:
         Packet tag field.
@@ -32,5 +32,6 @@ union Payload
     c_double d
 end
 
-custom NativeView
+class NativeView
+    native point handle
 end

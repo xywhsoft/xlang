@@ -52,7 +52,7 @@ end
 - union 字段必须是平凡 C 兼容值类型。
   - 禁止 `function`、`var`、`array`、`list`、`set`、`dict` 等需要引用计数或动态生命周期的类型。
   - 禁止 `future`、`task`、`channel`、`generator`、`thread`、`mutex`、`cond`、`rwlock`、`sem` 等资源句柄类型。
-  - 禁止带 `destroy` 的 `custom`，以及包含非平凡字段或显式 `destroy` 的 `class`。
+  - 禁止带 `destroy` 的 native-backed class，以及包含非平凡字段或显式 `destroy` 的 `class`。
   - 这样做是为了保持 C 风格 union 的“只描述共享内存布局”语义，避免在没有活动字段 tag 的情况下误释放或泄漏资源。
 - union 不能为空。
 - union 字段名不能重复。

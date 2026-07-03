@@ -22,7 +22,6 @@ tcc_p
 *-tcc
 libtcc*.def
 
-config*.h
 *_.h
 config*.mak
 config.texi

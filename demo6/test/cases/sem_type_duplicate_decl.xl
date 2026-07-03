@@ -1,5 +1,6 @@
-class Thing
+﻿class Thing
 end
 
-custom Thing
+class Thing
+    native point handle
 end

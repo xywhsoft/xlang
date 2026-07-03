@@ -1,4 +1,4 @@
-extern "expect_i64" func expect(int actual, int expected)
+﻿extern "expect_i64" func expect(int actual, int expected)
 
 func add(int left, int right) as int
     return left + right
@@ -65,7 +65,8 @@ named["next"] = boxA
 FnBox namedLoaded = namedCopy["next"]
 expect(namedLoaded.op(3) + namedLoaded.bias, 32)
 
-custom Native
+class Native
+    native point handle
 end
 
 point rawA

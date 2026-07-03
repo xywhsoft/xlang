@@ -122,7 +122,7 @@ break continue return
 async await yield
 try catch finally throw assert
 import export extern include define
-class custom extends union derive get let
+class extends union derive get let
 public private static virtual override final
 and or not
 ```
@@ -250,7 +250,7 @@ channel<T>
 ```text
 class
 object
-custom
+native-backed class
 union
 typedef alias
 ```
@@ -309,14 +309,14 @@ end
 - `expr is Type` 返回 `bool`。
 - `is` 用于判断运行时值是否满足目标类型。
 - `is` 对非 `var` 的静态表达式会尽量在编译期折叠为常量。
-- `is` 支持基础类型、`null`、class 继承关系、union、custom、函数签名类型和静态泛型容器 descriptor。
+- `is` 支持基础类型、`null`、class 继承关系、union、native-backed class、函数签名类型和静态泛型容器 descriptor。
 - `is` 判断 class 时支持 `Child is Base`。
 - `is` 判断函数值时保留完整 `func(...) as ...` 签名，不退化为裸 `function`。
 - `is` 判断 `array<T>`、`list<T>`、`set<T>`、`dict<T>` 时使用静态泛型容器 descriptor，`array<int>` 与 `array<string>` 不相等。
 - `expr as Type` 表示显式 checked downcast。
 - `as` 成功时返回目标类型的静态值。
 - `as` 失败时触发运行时 fatal，当前阶段不返回 nullable/option。
-- `as` 当前支持从 `var` 转出基础值、`string`、`time`、`point`、`type`、class、union、custom。
+- `as` 当前支持从 `var` 转出基础值、`string`、`time`、`point`、`type`、class、union、native-backed class。
 - `as` 也允许目标类型与源静态类型完全一致的 no-op 写法。
 - `as` 不用于普通数值转换；普通转换继续使用 `int(expr)`、`float(expr)`、`string(expr)` 等构造/转换函数。
 - `is auto`、`is var`、`as auto`、`as var` 不合法。
@@ -578,7 +578,7 @@ set<int> empty = set<int>{}
 - 泛型容器使用静态元素类型。
 - `var` 可承载动态容器值。
 - 容器运行时依托 XRT/xvalue 基础设施。
-- typed container 可承载基础类型、class、custom、union、function 值。
+- typed container 可承载基础类型、class、native-backed class、union、function 值。
 - `list` 使用 int64 稀疏索引，字面量写作 `[index: value]`。
 - 容器支持索引读写、索引复合赋值和安全索引 `?[...]`。
 - 容器赋值和进入 `var` 时保持当前实现的复制/引用计数语义，避免裸 C 指针泄漏。
@@ -599,7 +599,7 @@ for key, value in {"a": 1, "b": 2}
 end
 ```
 
-## 11. class、object、custom、union
+## 11. class、object、native-backed class、union
 
 class 示例：
 
@@ -647,10 +647,11 @@ class Child extends Base
 end
 ```
 
-custom 示例：
+native-backed class 示例：
 
 ```xlang
-custom Counter
+class Counter
+    native point handle
     extern "counter_open" create(int seed)
     extern "counter_close" destroy()
     extern "counter_add" func add(int value) as int
@@ -805,9 +806,9 @@ auto p = json.parse::<Packet>(text)
 - `get` / `let` class 属性；支持零维、多维属性参数和属性重载。
 - `override` / `final` / `virtual` class 方法与属性规则检查。
 - virtual 方法、getter 和 setter 生成 vtable，并支持实例方法内的动态派发。
-- custom 对接 C opaque handle。
-- custom 成员函数第一个参数映射底层指针。
-- custom 生命周期映射。
+- native-backed class 对接 C opaque handle。
+- native-backed class 成员函数第一个参数映射底层指针。
+- native-backed class 生命周期映射。
 - C 风格 union。
 - union 字段访问。
 - union C ABI/XAPI 元数据。
@@ -1068,16 +1069,16 @@ auto now = time.now()
 auto text = file.readText("data.txt")
 ```
 
-当前标准库公开函数为 233 个，另有标准库常量 5 个；全局输出入口 `print` / `println` 也默认进入环境。用户可直接调用的当前列表如下：
+当前标准库公开函数为 250 个，另有标准库常量 5 个；全局输出入口 `print` / `println` 也默认进入环境。用户可直接调用的当前列表如下：
 
 - 全局：`print`、`println`。
 - `math` 常量：`pi`、`tau`、`e`、`nan`、`inf`。
 - `math` 函数：`abs`、`acos`、`asin`、`atan`、`atan2`、`cbrt`、`ceil`、`clamp`、`cos`、`deg`、`exp`、`exp2`、`expm1`、`floor`、`fract`、`hypot`、`isFinite`、`isInf`、`isNaN`、`log`、`log10`、`log1p`、`log2`、`max`、`min`、`mod`、`pow`、`rad`、`round`、`sign`、`sin`、`sqrt`、`tan`、`trunc`。
 - `string`：`approx`、`byteAt`、`byteLen`、`charAt`、`chars`、`compare`、`contains`、`count`、`endsWith`、`equals`、`filter`、`formatFloat`、`formatInt`、`hasAny`、`indexOf`、`insert`、`isBlank`、`isEmpty`、`isUtf8`、`join`、`lastIndexOf`、`left`、`len`、`like`、`lower`、`ltrim`、`mid`、`padCenter`、`padLeft`、`padRight`、`remove`、`removeAt`、`repeat`、`replace`、`reverse`、`right`、`rtrim`、`sim`、`slice`、`split`、`splitLines`、`startsWith`、`trim`、`upper`、`bytes`。
 - `time`：`addDays`、`addHours`、`addMinutes`、`addMonths`、`addQuarters`、`addSeconds`、`addWeeks`、`addYears`、`approx`、`clock`、`datePart`、`dateString`、`day`、`dayOfYear`、`daysInMonth`、`daysInYear`、`diffDays`、`diffHours`、`diffMinutes`、`diffMonths`、`diffQuarters`、`diffSeconds`、`diffWeeks`、`diffYears`、`firstDayOfMonth`、`firstDayOfWeek`、`firstDayOfYear`、`format`、`formatPattern`、`fromDate`、`fromDateTime`、`fromTime`、`fromUnix`、`hour`、`inRange`、`isLeapYear`、`isSameDay`、`isSameMonth`、`isSameYear`、`lastDayOfMonth`、`lastDayOfWeek`、`lastDayOfYear`、`localToUTC`、`minute`、`month`、`now`、`nowUTC`、`parse`、`parsePattern`、`quarter`、`rangeOverlap`、`relative`、`second`、`sleep`、`timePart`、`timer`、`timeString`、`timezoneOffset`、`today`、`toUnix`、`tryParse`、`tryParsePattern`、`utcToLocal`、`weekday`、`weekOfMonth`、`weekOfYear`、`year`。
-- `random`：`range`、`string`、`u32`、`u64`。
-- `path`：`dir`、`exists`、`ext`、`isAbs`、`join`、`name`、`nameExt`、`random`。
-- `file`：`accessTime`、`appendText`、`attr`、`changeTime`、`copy`、`delete`、`exists`、`move`、`readText`、`setAttr`、`setSize`、`size`、`writeText`。
+- `random`：`range`、`seed`、`string`、`u32`、`u64`。
+- `path`：`abs`、`appDir`、`cwd`、`dir`、`exists`、`ext`、`home`、`isAbs`、`join`、`name`、`nameExt`、`normalize`、`random`、`rel`、`sep`、`setCwd`、`temp`、`withExt`、`withName`。
+- `file`：`accessTime`、`appendText`、`attr`、`changeTime`、`copy`、`delete`、`exists`、`info`、`move`、`readText`、`rename`、`replace`、`setAttr`、`setSize`、`size`、`touch`、`writeText`、`writeTextAtomic`。
 - `dir`：`copy`、`create`、`createAll`、`delete`、`dirs`、`exists`、`files`、`list`、`move`。
 - `json`：`parse`、`read`、`stringify`、`write`。
 - `xson`：`parse`、`read`、`stringify`、`write`。
@@ -1090,16 +1091,53 @@ auto text = file.readText("data.txt")
 - `query`：`append`、`decode`、`encode`、`pair`、`valid`。
 - `regex`：`find`、`isMatch`。
 - `process`：`exec`、`exitCode`、`success`。
-- `http.server`：`create`、`destroy`、`port`、`start`、`stop`。
+- `http.server`：`create`、`get`、`post`、`any`、`static`、`destroy`、`port`、`start`、`stop`。
 
 常用默认参数：
 - `string.compare(left, right, ignoreCase = false)`、`string.equals(...)`、`string.contains(...)`、`string.indexOf(...)`、`string.lastIndexOf(...)`、`string.count(...)`、`string.startsWith(...)`、`string.endsWith(...)`、`string.like(...)`。
 - `string.formatInt(value, format = "")`、`string.formatFloat(value, format = "")`、`string.trim(text, chars = "")`、`string.ltrim(...)`、`string.rtrim(...)`、`string.slice(text, start, count = -1)`、`string.mid(text, start, count = -1)`。
 - `string.join(values, sep = "")`、`string.padLeft(text, width, pad = " ")`、`string.padRight(text, width, pad = " ")`、`string.padCenter(text, width, pad = " ")`、`string.remove(text, part, ignoreCase = false)`。
 - `time.fromDateTime(year, month, day, hour = 0, minute = 0, second = 0)`、`time.firstDayOfWeek(value, startDay = 1)`、`time.lastDayOfWeek(value, startDay = 1)`、`time.format(value, format = 0)`。
-- `random.string(len = 16, chars = "")`、`path.join(first, second, third = "", fourth = "")`、`path.random(head = "", foot = "", len = 12)`。
-- `file.readText(path, charset = 65001)`、`file.writeText(path, text, charset = 65001)`、`file.appendText(path, text, charset = 65001)`、`file.copy(source, target, overwrite = true)`、`file.move(source, target, overwrite = true)`。
-- `dir.list(path, recursive = false)`、`dir.files(path, recursive = false)`、`dir.dirs(path, recursive = false)`、`json.stringify(value, pretty = false)`、`json.write(path, value, pretty = false)`、`xson.stringify(value, pretty = false)`、`process.exec(command, timeoutMs = 0)`。
+- `random.seed(seed, seq)`、`random.string(len = 16, chars = "")`、`path.join(first, second, third = "", fourth = "")`、`path.random(head = "", foot = "", len = 12)`。
+- `file.readText(path, charset = 65001)`、`file.writeText(path, text, charset = 65001)`、`file.writeTextAtomic(path, text, charset = 65001)`、`file.appendText(path, text, charset = 65001)`。
+- `file.copy(source, target, overwrite = true)`、`file.move(source, target, overwrite = true)`、`file.rename(source, target, overwrite = false)`。
+- `dir.list(path, recursive = false)`、`dir.files(path, recursive = false)`、`dir.dirs(path, recursive = false)`、`dir.count(path, recursive = false)`、`dir.size(path, recursive = true)`、`dir.glob(path, pattern = "*", recursive = false)`、`dir.entries(path, recursive = false)`、`dir.match(path, pattern = "*", recursive = false)`、`dir.walk(path, pattern = "*")`。
+- `json.stringify(value, pretty = false)`、`json.write(path, value, pretty = false)`、`xson.stringify(value, pretty = false)`、`process.exec(command, timeoutMs = 0)`。
+- `http.server.create(port = 0)` 创建本机 HTTP server 句柄；`http.server.get/post/any(server, pattern, handler)` 注册路由；`pattern` 支持静态段、`{id}` 变量段和尾部 `*` 通配符；`http.server.static(server, mount, root)` 挂载静态文件目录。
+
+文件信息结构：
+
+```xlang
+FileInfo info = file.info("data.txt")
+println(info.path, info.exists, info.isFile, info.isDir, info.size)
+```
+
+`FileInfo` 字段为：`path`、`exists`、`isFile`、`isDir`、`size`、`attr`、`accessTime`、`changeTime`。
+
+目录结构化项：
+
+```xlang
+array items = dir.match("data", "*.txt", true)
+var first = items[0]
+println(first["name"], first["path"], first["size"])
+```
+
+`dir.entries`、`dir.match`、`dir.walk` 返回 `var` 字典数组。字段为：`dir`、`name`、`path`、`isFile`、`isDir`、`enter`、`leave`、`size`、`attr`、`accessTime`、`changeTime`。`dir.walk` 包含目录 enter/leave 事件，`dir.entries` 与 `dir.match` 不返回 leave 事件。
+
+随机数对象：
+
+```xlang
+Random rng = Random(uint64(12345), uint64(7))
+uint32 a = rng.u32()
+uint64 b = rng.u64()
+int dice = rng.range(1, 6)
+string token = rng.string(16, "0123456789abcdef")
+rng.seed(uint64(12345), uint64(7))
+```
+
+- `random.seed` 重置当前线程默认随机源，影响 `random.u32/u64/range/string`。
+- `Random(seed, seq)` 创建独立 `Random` 对象，适合游戏、模拟、测试等需要复现随机序列的场景。
+- `Random` 是 native-backed class，底层使用 XRT `xrtRandObj`，对象销毁时自动释放 XRT 句柄。
 
 当前边界：
 - HTTP client 暂缓进入标准库。
@@ -1158,7 +1196,7 @@ end
 - `xlang-xapi-1` 接口元数据。
 - XAPI strict schema。
 - doc 元数据输出。
-- class、union、custom、typedef、export 函数、export 变量/常量的接口元数据输出。
+- class、union、native-backed class、typedef、export 函数、export 变量/常量的接口元数据输出。
 - protocol / derive / generated 等 OOP 元信息进入 XAPI。
 - package fixture。
 - import 读取 XAPI 并注入声明。

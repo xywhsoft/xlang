@@ -174,61 +174,61 @@
 
 | 字段 | 内容 |
 | --- | --- |
-| xlang 写法 | `http.server.create(port, handler)` |
-| 生成规则描述 | http server wrapper 生成大量 XRT net/httpd typedef，并定义 `XL6_Http_Server`，保存 engine、server、handler function value 和 running 状态。它不是 xlang class，而是 C helper 使用的运行时句柄对象。 |
-| 生成器文件名和行号 | `xl6_cgen_http_server.c:7`、`xl6_cgen_http_server.c:112` |
-| 对应生成的 C 代码 | `typedef struct XL6_Http_Server { xnetengine* engine; xhttpdserver* server; XL6_Function handler; int running; } XL6_Http_Server;` |
-| 中间形态伪代码 | `HttpServerHandle = {engine, server, handler, running}` |
-| 实现同等功能手写的 C 代码 | 手写 C 需要维护 engine/server/handler 的聚合结构。 |
-| 额外依赖的封装代码 | HTTP server runtime typedef 和 XRT net/httpd 原型。 |
+| xlang 写法 | `http.server.create(port)` |
+| 生成规则描述 | http server wrapper 生成 XRT `xweb` 公共 typedef，并定义 `XL6_Http_Server` 与 `XL6_Http_Route`。server 只保存 `xwebserver*`、已注册 route 链表和 running 状态；每条 route 单独保存被 retain 的 `XL6_Function`。 |
+| 生成器文件名和行号 | `xl6_cgen_http_server.c:12`、`xl6_cgen_http_server.c:52`、`xl6_cgen_http_server.c:57` |
+| 对应生成的 C 代码 | `typedef struct XL6_Http_Server { xwebserver* server; XL6_Http_Route* routes; int running; } XL6_Http_Server;` |
+| 中间形态伪代码 | `HttpServerHandle = {xwebserver, route_list, running}` |
+| 实现同等功能手写的 C 代码 | 手写 C 需要创建 xwebserver，并在销毁 server 时遍历释放所有 route handler。 |
+| 额外依赖的封装代码 | HTTP server runtime typedef、XRT xweb 原型、function runtime。 |
 
 ## CGEN-STD-016 http handler function 生命周期
 
 | 字段 | 内容 |
 | --- | --- |
-| xlang 写法 | `http.server.create(8080, func(method, path, query, body) ... end)` |
-| 生成规则描述 | 创建 server 时把 handler 保存进 `XL6_Http_Server`，若 function value 有 retain/env 则 retain。销毁和失败路径调用 release，并把 function 清零，防止闭包环境泄漏或悬空。 |
-| 生成器文件名和行号 | `xl6_cgen_http_server.c:127`、`xl6_cgen_http_server.c:133`、`xl6_cgen_http_server.c:181`、`xl6_cgen_http_server.c:198`、`xl6_cgen_http_server.c:234` |
-| 对应生成的 C 代码 | `self->handler = handler; xl6_http_server_retain_function(&self->handler); ... xl6_http_server_release_function(&self->handler);` |
-| 中间形态伪代码 | `retain handler on create; release handler on destroy/fail` |
+| xlang 写法 | `http.server.get(server, "/users/{id}", handler)` / `http.server.post(...)` / `http.server.any(...)` |
+| 生成规则描述 | 注册路由时为 handler 分配 `XL6_Http_Route`，把 function value 保存到 route 并 retain。若 `xrtWebServerRoute` 注册失败，立即 release handler 并释放 route；server destroy 时遍历 route 链表统一 release。 |
+| 生成器文件名和行号 | `xl6_cgen_http_server.c:83`、`xl6_cgen_http_server.c:88`、`xl6_cgen_http_server.c:142`、`xl6_cgen_http_server.c:150`、`xl6_cgen_http_server.c:210` |
+| 对应生成的 C 代码 | `route->handler = handler; xl6_http_server_retain_function(&route->handler); ... xl6_http_server_release_function(&route->handler);` |
+| 中间形态伪代码 | `retain handler on route register; release handler on route register fail or server destroy` |
 | 实现同等功能手写的 C 代码 | 手写 C 需要遵守 `XL6_Function` retain/release ABI。 |
-| 额外依赖的封装代码 | function runtime / function-var runtime。 |
+| 额外依赖的封装代码 | function runtime / function-var runtime / route 链表释放 helper。 |
 
 ## CGEN-STD-017 http request 到 function value 调用桥
 
 | 字段 | 内容 |
 | --- | --- |
 | xlang 写法 | handler 接收 `method, path, query, body` 并返回响应文本 |
-| 生成规则描述 | XRT HTTP 回调中，生成器把 method/path/query/body 创建为 xvalue text，然后调用 `xl6_function_call_var(self->handler, 4, ...)`。返回值按 xvalue text 读取，作为 `text/plain; charset=utf-8` 响应体。handler 不存在时返回 500 空响应。 |
-| 生成器文件名和行号 | `xl6_cgen_http_server.c:139`、`xl6_cgen_http_server.c:142`、`xl6_cgen_http_server.c:159` |
-| 对应生成的 C 代码 | `result = xl6_function_call_var(self->handler, 4, method, path, query, body); xrtHttpdResponseSetBodyCopy(resp, text, strlen(text), "text/plain; charset=utf-8");` |
+| 生成规则描述 | XRT `xweb` 回调中，生成器把 method/path/query/body 创建为 xvalue text，然后调用 `xl6_function_call_var(route->handler, 4, ...)`。返回值按 xvalue text 读取，作为 `text/plain; charset=utf-8` 响应体；handler 不存在时返回 500 空响应。 |
+| 生成器文件名和行号 | `xl6_cgen_http_server.c:99`、`xl6_cgen_http_server.c:111`、`xl6_cgen_http_server.c:113`、`xl6_cgen_http_server.c:122` |
+| 对应生成的 C 代码 | `result = xl6_function_call_var(route->handler, 4, method, path, query, body); xrtWebResponseText(resp, text, "text/plain; charset=utf-8");` |
 | 中间形态伪代码 | `request -> xvalue args -> handler(args) -> text response` |
 | 实现同等功能手写的 C 代码 | 手写 C 需要自己构造 xvalue 参数并调用 function value。 |
 | 额外依赖的封装代码 | `xl6_http_server_text_value`、function-var runtime、xvalue runtime。 |
 
-## CGEN-STD-018 http.server create 失败收束
+## CGEN-STD-018 http.server create/route/static 失败收束
 
 | 字段 | 内容 |
 | --- | --- |
-| xlang 写法 | `http.server.create(port, handler)` |
-| 生成规则描述 | create 检查端口范围和 handler 可调用性，分配 `XL6_Http_Server`，启动 net engine，绑定 `127.0.0.1:port`，创建 httpd server。任一步失败跳转 `fail`，销毁已创建 server/engine，释放 handler，释放 self，返回 0。 |
-| 生成器文件名和行号 | `xl6_cgen_http_server.c:172`、`xl6_cgen_http_server.c:187`、`xl6_cgen_http_server.c:194` |
-| 对应生成的 C 代码 | `if (self->engine == 0 || xrtNetEngineStart(self->engine) != 0) goto fail; ... fail: cleanup; return 0;` |
-| 中间形态伪代码 | `allocate; init engine; init httpd; on failure cleanup in reverse order` |
-| 实现同等功能手写的 C 代码 | 手写 C 需要严格维护失败路径释放顺序。 |
-| 额外依赖的封装代码 | XRT net/httpd config 和 events。 |
+| xlang 写法 | `http.server.create(port)` / `http.server.get(server, pattern, handler)` / `http.server.static(server, mount, root)` |
+| 生成规则描述 | create 检查端口范围，分配 `XL6_Http_Server`，初始化 `xwebconfig`，绑定 `127.0.0.1:port`，调用 `xrtWebServerCreate`。route 注册检查 server、pattern 和 handler，可调用时才 retain；注册失败会释放 route。static 注册只检查 server、mount、root，并把默认 `xwebstaticconfig` 传给 XRT。 |
+| 生成器文件名和行号 | `xl6_cgen_http_server.c:127`、`xl6_cgen_http_server.c:135`、`xl6_cgen_http_server.c:142`、`xl6_cgen_http_server.c:152`、`xl6_cgen_http_server.c:177` |
+| 对应生成的 C 代码 | `self->server = xrtWebServerCreate(0, &cfg); ... if (!xrtWebServerRoute(...)) { release route; return false; } ... return xrtWebServerStatic(self->server, mount, root, &cfg);` |
+| 中间形态伪代码 | `create xweb server; route register owns function; static register delegates to xweb` |
+| 实现同等功能手写的 C 代码 | 手写 C 需要维护 xweb server 创建失败、route retain/release 和静态目录注册失败路径。 |
+| 额外依赖的封装代码 | XRT xweb config、route callback、function retain/release helper。 |
 
 ## CGEN-STD-019 http.server start/port/stop/destroy
 
 | 字段 | 内容 |
 | --- | --- |
 | xlang 写法 | `http.server.start(h)` / `http.server.port(h)` / `http.server.stop(h)` / `http.server.destroy(h)` |
-| 生成规则描述 | start 检查 handle/server 并调用 `xrtHttpdStart`，成功设置 running。port 返回 bound port，空句柄返回 0。stop 停止 server 和 engine，清 running。destroy 销毁 server、停止并销毁 engine、release handler、释放 self。 |
-| 生成器文件名和行号 | `xl6_cgen_http_server.c:203`、`xl6_cgen_http_server.c:212`、`xl6_cgen_http_server.c:219`、`xl6_cgen_http_server.c:228` |
-| 对应生成的 C 代码 | `xrtHttpdStop(self->server); xrtNetEngineStop(self->engine); xrtNetEngineDestroy(self->engine); xrtFree(self);` |
+| 生成规则描述 | start 检查 handle/server 并调用 `xrtWebServerStart`，成功设置 running。port 返回 xweb bound port，空句柄返回 0。stop 调用 `xrtWebServerStop` 并清 running。destroy 调用 `xrtWebServerDestroy`，然后遍历 route 链表 release handler，最后释放 self。 |
+| 生成器文件名和行号 | `xl6_cgen_http_server.c:186`、`xl6_cgen_http_server.c:195`、`xl6_cgen_http_server.c:202`、`xl6_cgen_http_server.c:210` |
+| 对应生成的 C 代码 | `xrtWebServerStart(self->server); xrtWebServerStop(self->server); xrtWebServerDestroy(self->server);` |
 | 中间形态伪代码 | `server lifecycle methods operate on opaque handle` |
-| 实现同等功能手写的 C 代码 | 手写 C 需要按 server/engine/handler/self 顺序释放。 |
-| 额外依赖的封装代码 | HTTP server runtime 类型。 |
+| 实现同等功能手写的 C 代码 | 手写 C 需要按 xweb server、route handler、server handle 顺序释放。 |
+| 额外依赖的封装代码 | HTTP server runtime 类型和 route 链表释放 helper。 |
 
 ## CGEN-STD-020 标准库 wrapper 的级联 runtime 依赖
 

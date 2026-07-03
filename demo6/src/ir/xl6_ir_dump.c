@@ -816,6 +816,9 @@ static void xl6IrDumpClassSpecial(XL6_Output* out, const XL6_AstNode* node, int 
     xl6OutputPrintf(out, "end_%s\n", node->text != NULL ? node->text : "special");
 }
 
+static void xl6IrDumpCustomExternSpecial(XL6_Output* out, const XL6_AstNode* node, int indent);
+static void xl6IrDumpCustomExternFunc(XL6_Output* out, const XL6_AstNode* node, int indent);
+
 static void xl6IrDumpClass(XL6_Output* out, const XL6_AstNode* node)
 {
     const XL6_AstNode* base;
@@ -845,6 +848,10 @@ static void xl6IrDumpClass(XL6_Output* out, const XL6_AstNode* node)
                 xl6IrDumpFuncAt(out, member, 1, "end_func");
             } else if ( member->kind == XL6_AST_CREATE ) {
                 xl6IrDumpClassSpecial(out, member, 1);
+            } else if ( member->kind == XL6_AST_CUSTOM_EXTERN_SPECIAL ) {
+                xl6IrDumpCustomExternSpecial(out, member, 1);
+            } else if ( member->kind == XL6_AST_CUSTOM_EXTERN_FUNC ) {
+                xl6IrDumpCustomExternFunc(out, member, 1);
             } else {
                 xl6IrIndent(out, 1);
                 xl6OutputPrintf(out, "<class-member:%s>\n", xl6AstKindName(member->kind));

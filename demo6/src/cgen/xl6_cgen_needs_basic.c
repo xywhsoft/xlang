@@ -207,7 +207,9 @@ static int xl6CgenNeedsBasicIsDirRuntimeCall(const XL6_AstNode* node)
     if ( callee == NULL || callee->kind != XL6_AST_NAME ) {
         return 0;
     }
-    return xl6CgenNeedsBasicTextEquals(callee->text, "__xl_std_runtime_dir_list");
+    return xl6CgenNeedsBasicTextEquals(callee->text, "__xl_std_runtime_dir_list") ||
+           xl6CgenNeedsBasicTextEquals(callee->text, "__xl_std_runtime_dir_glob") ||
+           xl6CgenNeedsBasicTextEquals(callee->text, "__xl_std_runtime_dir_entries");
 }
 
 static int xl6CgenNeedsBasicIsStringEdgeRuntimeCall(const XL6_AstNode* node)

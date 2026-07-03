@@ -1,4 +1,5 @@
-custom Handle
+﻿class Handle
+    native point handle
 end
 
 class Bad

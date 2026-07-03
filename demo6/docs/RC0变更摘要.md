@@ -184,7 +184,7 @@ JSON 诊断格式基线：
 - 测试数据 fixture：5 个 JSON/XAPI fixture。
 - 标准库覆盖：180 个公开函数、21 个标准库测试、17 个标准库范例。
 - 负例诊断守门：429 条预期失败命令、428 个诊断产物、429 条内容断言，baseline-only 为 0。
-- `feature_suite` 覆盖基础语言、控制流、函数、类型、容器、泛型、闭包、class/object/custom、union、C 混编、C export ABI、错误处理、文档注释、并发和任务。
+- `feature_suite` 覆盖基础语言、控制流、函数、类型、容器、泛型、闭包、class/object/native-backed class、union、C 混编、C export ABI、错误处理、文档注释、并发和任务。
 
 ### 当前完整验证证据
 
@@ -221,7 +221,7 @@ DEMO6 smoke tests ok.
 
 仍需关注：
 
-- `sem` 仍是最大单体模块，后续可按类型检查、调用检查、class/custom、泛型等边界拆分。
+- `sem` 仍是最大单体模块，后续可按类型检查、调用检查、class/native-backed class、泛型等边界拆分。
 - `test.bat` 体量很大，后续可拆成 smoke/sem/cgen/import/export 多个脚本。
 - 中文诊断文本需要持续保持 UTF-8 源文件口径。
 - `thread.stop()` 当前表示停止请求已发出，不等同于强制中断线程；未来如果设计 cooperative stop 查询 API，应另行补行为级测试。

@@ -1,4 +1,4 @@
-class DerivePoint
+﻿class DerivePoint
     derive copy
     derive clone
     derive value
@@ -12,6 +12,7 @@ class DerivePoint
     int y
 end
 
-custom DeriveHandle
+class DeriveHandle
+    native point handle
     derive moveOnly
 end

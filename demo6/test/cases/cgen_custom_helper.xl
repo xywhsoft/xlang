@@ -1,4 +1,5 @@
-custom Counter
+﻿class Counter
+    native point handle
     extern "counter_open" create(int seed)
     extern "counter_close" destroy()
     extern "counter_add" func add(int value) as int

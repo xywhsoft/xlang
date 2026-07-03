@@ -340,6 +340,39 @@ static int xl6CgenClassHasNativeHandle(const XL6_AstNode* classNode)
     return 0;
 }
 
+static int xl6CgenClassIsPureNativeHandle(const XL6_AstNode* classNode)
+{
+    const XL6_AstNode* body;
+    size_t i;
+    int hasHandle;
+
+    if ( !xl6CgenClassHasNativeHandle(classNode) ) {
+        return 0;
+    }
+
+    body = xl6CgenClassBody(classNode);
+    hasHandle = 0;
+    for ( i = 0; body != NULL && i < body->childCount; ++i ) {
+        const XL6_AstNode* member = body->children[i];
+
+        if ( member == NULL || member->kind != XL6_AST_FIELD || xl6CgenIsStaticMember(member) ) {
+            continue;
+        }
+        if ( (member->flags & XL6_AST_FLAG_NATIVE) != 0 &&
+             xl6CTextEquals(member->text, "handle") ) {
+            hasHandle = 1;
+            continue;
+        }
+
+        /*
+            只有纯句柄类使用 handle type-desc。
+            一旦 class 自己携带额外 xlang 字段，就必须保留普通 record 语义。
+        */
+        return 0;
+    }
+    return hasHandle;
+}
+
 static const XL6_AstNode* xl6CgenFindCustomMember(const XL6_AstNode* customNode, XL6_AstKind kind, const char* name)
 {
     const XL6_AstNode* body;

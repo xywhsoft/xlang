@@ -1,9 +1,11 @@
-custom OpenOnly
+﻿class OpenOnly
+    native point handle
     extern "make_borrowed_box" create(int value)
     extern "borrowed_box_value" func value() as int
 end
 
-custom ViewOnly
+class ViewOnly
+    native point handle
     extern "borrowed_box_value" func value() as int
 end
 

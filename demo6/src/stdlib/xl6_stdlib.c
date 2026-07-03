@@ -56,6 +56,41 @@ static const char* xl6StdlibCoreClassSource =
     "    end\n"
     "end\n";
 
+static const char* xl6StdlibRandomClassSource =
+    "class Random\n"
+    "    native point handle\n"
+    "    extern \"xrtRandCreate\" create(uint64 seed, uint64 seq)\n"
+    "    extern \"xrtRandDestroy\" destroy()\n"
+    "    extern \"xrtRandSeedObj\" func seed(uint64 seed, uint64 seq)\n"
+    "    extern \"xrtRand32Obj\" func u32() as uint32\n"
+    "    extern \"xrtRand64Obj\" func u64() as uint64\n"
+    "    extern \"xrtRandRangeObj\" func rangeNative(c_int min, c_int max) as c_int\n"
+    "    extern \"xrtRandStrObj\" func stringNative(string chars, c_size size, c_size len) as point\n"
+    "\n"
+    "    func range(int min, int max) as int\n"
+    "        return int(self.rangeNative(c_int(min), c_int(max)))\n"
+    "    end\n"
+    "\n"
+    "    func string(int len = 16, string chars = \"\") as string\n"
+    "        if len < 0 then\n"
+    "            return \"\"\n"
+    "        end\n"
+    "        return __xl_std_runtime_take_cstr(self.stringNative(chars, c_size(0), c_size(len)))\n"
+    "    end\n"
+    "end\n";
+
+static const char* xl6StdlibFileInfoClassSource =
+    "class FileInfo\n"
+    "    string path\n"
+    "    bool exists\n"
+    "    bool isFile\n"
+    "    bool isDir\n"
+    "    int size\n"
+    "    int attr\n"
+    "    time accessTime\n"
+    "    time changeTime\n"
+    "end\n";
+
 static const XL6_StdlibParam xl6StdMathUnaryFloatParams[] = {
     {"float", "x"}
 };
@@ -234,6 +269,32 @@ static const XL6_StdlibParam xl6StdRuntimeDirListParams[] = {
     {"c_int", "mode"}
 };
 
+static const XL6_StdlibParam xl6StdRuntimeDirGlobParams[] = {
+    {"string", "path"},
+    {"string", "pattern"},
+    {"c_bool", "recursive"},
+    {"c_int", "mode"}
+};
+
+static const XL6_StdlibParam xl6StdRuntimeDirEntriesParams[] = {
+    {"string", "path"},
+    {"c_bool", "recursive"},
+    {"c_bool", "includeLeave"},
+    {"string", "pattern"},
+    {"c_int", "mode"}
+};
+
+static const XL6_StdlibParam xl6StdXrtDirCountParams[] = {
+    {"string", "path"},
+    {"c_bool", "recursive"},
+    {"c_int", "mode"}
+};
+
+static const XL6_StdlibParam xl6StdXrtDirSizeParams[] = {
+    {"string", "path"},
+    {"c_bool", "recursive"}
+};
+
 static const XL6_StdlibParam xl6StdRuntimePathJoinParams[] = {
     {"string", "first"},
     {"string", "second"},
@@ -242,12 +303,23 @@ static const XL6_StdlibParam xl6StdRuntimePathJoinParams[] = {
 };
 
 static const XL6_StdlibParam xl6StdRuntimeHttpServerCreateParams[] = {
-    {"c_int", "port"},
-    {"func(string, string, string, string) as string", "handler"}
+    {"c_int", "port"}
 };
 
 static const XL6_StdlibParam xl6StdRuntimeHttpServerHandleParams[] = {
     {"point", "server"}
+};
+
+static const XL6_StdlibParam xl6StdRuntimeHttpServerRouteParams[] = {
+    {"point", "server"},
+    {"string", "pattern"},
+    {"func(string, string, string, string) as string", "handler"}
+};
+
+static const XL6_StdlibParam xl6StdRuntimeHttpServerStaticParams[] = {
+    {"point", "server"},
+    {"string", "mount"},
+    {"string", "root"}
 };
 
 static const XL6_StdlibParam xl6StdXrtStringCaseParams[] = {
@@ -478,6 +550,11 @@ static const XL6_StdlibParam xl6StdXrtRandRangeParams[] = {
     {"c_int", "max"}
 };
 
+static const XL6_StdlibParam xl6StdXrtRandSeedParams[] = {
+    {"uint64", "seed"},
+    {"uint64", "seq"}
+};
+
 static const XL6_StdlibParam xl6StdXrtRandStrParams[] = {
     {"string", "chars"},
     {"c_size", "size"},
@@ -499,6 +576,21 @@ static const XL6_StdlibParam xl6StdXrtPathRandomParams[] = {
     {"string", "foot"},
     {"c_size", "footSize"},
     {"c_size", "len"}
+};
+
+static const XL6_StdlibParam xl6StdPathRelParams[] = {
+    {"string", "base"},
+    {"string", "target"}
+};
+
+static const XL6_StdlibParam xl6StdPathWithExtParams[] = {
+    {"string", "path"},
+    {"string", "ext"}
+};
+
+static const XL6_StdlibParam xl6StdPathWithNameParams[] = {
+    {"string", "path"},
+    {"string", "nameExt"}
 };
 
 static const XL6_StdlibParam xl6StdFileWriteTextParams[] = {
@@ -555,6 +647,11 @@ static const XL6_StdlibParam xl6StdXrtFileCopyMoveParams[] = {
     {"string", "source"},
     {"string", "target"},
     {"c_bool", "overwrite"}
+};
+
+static const XL6_StdlibParam xl6StdFileReplaceParams[] = {
+    {"string", "source"},
+    {"string", "target"}
 };
 
 static const XL6_StdlibParam xl6StdXrtJsonParseParams[] = {
@@ -1247,6 +1344,11 @@ static const char xl6StdRandomRangeBody[] =
     "    return __xl_std_xrt_rand_range(c_int(min), c_int(max))\n"
     "end\n";
 
+static const char xl6StdRandomSeedBody[] =
+    "func __xl_std_random_seed(uint64 seed, uint64 seq)\n"
+    "    __xl_std_xrt_rand_seed_thread(seed, seq)\n"
+    "end\n";
+
 static const char xl6StdRandomStringBody[] =
     "func __xl_std_random_string(int len = 16, string chars = \"\") as string\n"
     "    if len < 0 then\n"
@@ -1296,6 +1398,61 @@ static const char xl6StdPathRandomBody[] =
     "        return \"\"\n"
     "    end\n"
     "    return __xl_std_runtime_take_cstr(__xl_std_xrt_path_random(head, 0, foot, 0, c_size(len)))\n"
+    "end\n";
+
+static const char xl6StdPathSepBody[] =
+    "func __xl_std_path_sep() as string\n"
+    "    return __xl_std_runtime_take_cstr(__xl_std_xrt_path_sep())\n"
+    "end\n";
+
+static const char xl6StdPathNormalizeBody[] =
+    "func __xl_std_path_normalize(string path) as string\n"
+    "    return __xl_std_runtime_take_cstr(__xl_std_xrt_path_normalize(path, 0))\n"
+    "end\n";
+
+static const char xl6StdPathAbsBody[] =
+    "func __xl_std_path_abs(string path) as string\n"
+    "    return __xl_std_runtime_take_cstr(__xl_std_xrt_path_abs(path, 0))\n"
+    "end\n";
+
+static const char xl6StdPathRelBody[] =
+    "func __xl_std_path_rel(string base, string target) as string\n"
+    "    return __xl_std_runtime_take_cstr(__xl_std_xrt_path_rel(base, target))\n"
+    "end\n";
+
+static const char xl6StdPathCwdBody[] =
+    "func __xl_std_path_cwd() as string\n"
+    "    return __xl_std_runtime_take_cstr(__xl_std_xrt_path_cwd())\n"
+    "end\n";
+
+static const char xl6StdPathSetCwdBody[] =
+    "func __xl_std_path_set_cwd(string path) as bool\n"
+    "    return __xl_std_xrt_path_set_cwd(path)\n"
+    "end\n";
+
+static const char xl6StdPathHomeBody[] =
+    "func __xl_std_path_home() as string\n"
+    "    return __xl_std_runtime_take_cstr(__xl_std_xrt_path_home())\n"
+    "end\n";
+
+static const char xl6StdPathTempBody[] =
+    "func __xl_std_path_temp() as string\n"
+    "    return __xl_std_runtime_take_cstr(__xl_std_xrt_path_temp())\n"
+    "end\n";
+
+static const char xl6StdPathAppDirBody[] =
+    "func __xl_std_path_app_dir() as string\n"
+    "    return __xl_std_runtime_take_cstr(__xl_std_xrt_path_app_dir())\n"
+    "end\n";
+
+static const char xl6StdPathWithExtBody[] =
+    "func __xl_std_path_with_ext(string path, string ext) as string\n"
+    "    return __xl_std_runtime_take_cstr(__xl_std_xrt_path_with_ext(path, ext))\n"
+    "end\n";
+
+static const char xl6StdPathWithNameBody[] =
+    "func __xl_std_path_with_name(string path, string nameExt) as string\n"
+    "    return __xl_std_runtime_take_cstr(__xl_std_xrt_path_with_name(path, nameExt))\n"
     "end\n";
 
 static const char xl6StdFileExistsBody[] =
@@ -1363,6 +1520,42 @@ static const char xl6StdFileDeleteBody[] =
     "    return __xl_std_xrt_file_delete(path)\n"
     "end\n";
 
+static const char xl6StdFileTouchBody[] =
+    "func __xl_std_file_touch(string path) as bool\n"
+    "    return __xl_std_xrt_file_touch(path)\n"
+    "end\n";
+
+static const char xl6StdFileRenameBody[] =
+    "func __xl_std_file_rename(string source, string target, bool overwrite = false) as bool\n"
+    "    return __xl_std_xrt_file_rename(source, target, overwrite)\n"
+    "end\n";
+
+static const char xl6StdFileReplaceBody[] =
+    "func __xl_std_file_replace(string source, string target) as bool\n"
+    "    return __xl_std_xrt_file_replace(source, target)\n"
+    "end\n";
+
+static const char xl6StdFileWriteTextAtomicBody[] =
+    "func __xl_std_file_write_text_atomic(string path, string text, int charset = 65001) as bool\n"
+    "    return __xl_std_xrt_file_write_all_atomic(path, text, 0, c_int(charset))\n"
+    "end\n";
+
+static const char xl6StdFileInfoBody[] =
+    "func __xl_std_file_info(string filePath) as FileInfo\n"
+    "    FileInfo info\n"
+    "    info.path = filePath\n"
+    "    info.exists = __xl_std_xrt_path_exists(filePath)\n"
+    "    info.isFile = __xl_std_xrt_file_exists(filePath)\n"
+    "    info.isDir = __xl_std_xrt_dir_exists(filePath)\n"
+    "    if info.isFile then\n"
+    "        info.size = int(__xl_std_xrt_file_get_size(filePath))\n"
+    "        info.attr = __xl_std_xrt_file_get_attr(filePath)\n"
+    "        info.accessTime = time(__xl_std_xrt_file_get_access_time(filePath))\n"
+    "        info.changeTime = time(__xl_std_xrt_file_get_change_time(filePath))\n"
+    "    end\n"
+    "    return info\n"
+    "end\n";
+
 static const char xl6StdDirExistsBody[] =
     "func __xl_std_dir_exists(string path) as bool\n"
     "    return __xl_std_xrt_dir_exists(path)\n"
@@ -1418,6 +1611,51 @@ static const char xl6StdDirFilesBody[] =
 static const char xl6StdDirDirsBody[] =
     "func __xl_std_dir_dirs(string path, bool recursive = false) as array\n"
     "    return array(__xl_std_runtime_dir_list(path, recursive, 2))\n"
+    "end\n";
+
+static const char xl6StdDirEmptyBody[] =
+    "func __xl_std_dir_empty(string path) as bool\n"
+    "    return __xl_std_xrt_dir_is_empty(path)\n"
+    "end\n";
+
+static const char xl6StdDirCountBody[] =
+    "func __xl_std_dir_count(string path, bool recursive = false) as int\n"
+    "    return int(__xl_std_xrt_dir_count(path, recursive, 0))\n"
+    "end\n";
+
+static const char xl6StdDirSizeBody[] =
+    "func __xl_std_dir_size(string path, bool recursive = true) as int\n"
+    "    return int(__xl_std_xrt_dir_size(path, recursive))\n"
+    "end\n";
+
+static const char xl6StdDirCleanBody[] =
+    "func __xl_std_dir_clean(string path) as bool\n"
+    "    return __xl_std_xrt_dir_clean(path)\n"
+    "end\n";
+
+static const char xl6StdDirEnsureEmptyBody[] =
+    "func __xl_std_dir_ensure_empty(string path) as bool\n"
+    "    return __xl_std_xrt_dir_ensure_empty(path)\n"
+    "end\n";
+
+static const char xl6StdDirGlobBody[] =
+    "func __xl_std_dir_glob(string path, string pattern = \"*\", bool recursive = false) as array\n"
+    "    return array(__xl_std_runtime_dir_glob(path, pattern, recursive, 0))\n"
+    "end\n";
+
+static const char xl6StdDirEntriesBody[] =
+    "func __xl_std_dir_entries(string path, bool recursive = false) as array\n"
+    "    return array(__xl_std_runtime_dir_entries(path, recursive, false, \"\", 0))\n"
+    "end\n";
+
+static const char xl6StdDirMatchBody[] =
+    "func __xl_std_dir_match(string path, string pattern = \"*\", bool recursive = false) as array\n"
+    "    return array(__xl_std_runtime_dir_entries(path, recursive, false, pattern, 0))\n"
+    "end\n";
+
+static const char xl6StdDirWalkBody[] =
+    "func __xl_std_dir_walk(string path, string pattern = \"*\") as array\n"
+    "    return array(__xl_std_runtime_dir_entries(path, true, true, pattern, 0))\n"
     "end\n";
 
 static const char xl6StdJsonParseBody[] =
@@ -1636,8 +1874,28 @@ static const char xl6StdQueryAppendBody[] =
     "end\n";
 
 static const char xl6StdHttpServerCreateBody[] =
-    "func __xl_std_http_server_create(int port, func(string, string, string, string) as string handler) as point\n"
-    "    return __xl_std_runtime_http_server_create(c_int(port), handler)\n"
+    "func __xl_std_http_server_create(int port = 0) as point\n"
+    "    return __xl_std_runtime_http_server_create(c_int(port))\n"
+    "end\n";
+
+static const char xl6StdHttpServerGetBody[] =
+    "func __xl_std_http_server_get(point server, string pattern, func(string, string, string, string) as string handler) as bool\n"
+    "    return __xl_std_runtime_http_server_get(server, pattern, handler)\n"
+    "end\n";
+
+static const char xl6StdHttpServerPostBody[] =
+    "func __xl_std_http_server_post(point server, string pattern, func(string, string, string, string) as string handler) as bool\n"
+    "    return __xl_std_runtime_http_server_post(server, pattern, handler)\n"
+    "end\n";
+
+static const char xl6StdHttpServerAnyBody[] =
+    "func __xl_std_http_server_any(point server, string pattern, func(string, string, string, string) as string handler) as bool\n"
+    "    return __xl_std_runtime_http_server_any(server, pattern, handler)\n"
+    "end\n";
+
+static const char xl6StdHttpServerStaticBody[] =
+    "func __xl_std_http_server_static(point server, string mount, string root) as bool\n"
+    "    return __xl_std_runtime_http_server_static(server, mount, root)\n"
     "end\n";
 
 static const char xl6StdHttpServerStartBody[] =
@@ -1709,8 +1967,14 @@ static const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"__xl_runtime", "processSuccess", "__xl_std_runtime_process_success", "xl6_xrt_process_success", xl6StdRuntimeProcessExecParams, 2, "c_bool", NULL},
     {"__xl_runtime", "processExitCode", "__xl_std_runtime_process_exit_code", "xl6_xrt_process_exit_code", xl6StdRuntimeProcessExecParams, 2, "c_int", NULL},
     {"__xl_runtime", "dirList", "__xl_std_runtime_dir_list", "xl6_xrt_dir_list", xl6StdRuntimeDirListParams, 3, "var", NULL},
+    {"__xl_runtime", "dirGlob", "__xl_std_runtime_dir_glob", "xl6_xrt_dir_glob", xl6StdRuntimeDirGlobParams, 4, "var", NULL},
+    {"__xl_runtime", "dirEntries", "__xl_std_runtime_dir_entries", "xl6_xrt_dir_entries", xl6StdRuntimeDirEntriesParams, 5, "var", NULL},
     {"__xl_runtime", "pathJoin", "__xl_std_runtime_path_join", "xl6_xrt_path_join", xl6StdRuntimePathJoinParams, 4, "point", NULL},
-    {"__xl_runtime", "httpServerCreate", "__xl_std_runtime_http_server_create", "xl6_xrt_http_server_create", xl6StdRuntimeHttpServerCreateParams, 2, "point", NULL},
+    {"__xl_runtime", "httpServerCreate", "__xl_std_runtime_http_server_create", "xl6_xrt_http_server_create", xl6StdRuntimeHttpServerCreateParams, 1, "point", NULL},
+    {"__xl_runtime", "httpServerGet", "__xl_std_runtime_http_server_get", "xl6_xrt_http_server_get", xl6StdRuntimeHttpServerRouteParams, 3, "c_bool", NULL},
+    {"__xl_runtime", "httpServerPost", "__xl_std_runtime_http_server_post", "xl6_xrt_http_server_post", xl6StdRuntimeHttpServerRouteParams, 3, "c_bool", NULL},
+    {"__xl_runtime", "httpServerAny", "__xl_std_runtime_http_server_any", "xl6_xrt_http_server_any", xl6StdRuntimeHttpServerRouteParams, 3, "c_bool", NULL},
+    {"__xl_runtime", "httpServerStatic", "__xl_std_runtime_http_server_static", "xl6_xrt_http_server_static", xl6StdRuntimeHttpServerStaticParams, 3, "c_bool", NULL},
     {"__xl_runtime", "httpServerStart", "__xl_std_runtime_http_server_start", "xl6_xrt_http_server_start", xl6StdRuntimeHttpServerHandleParams, 1, "c_bool", NULL},
     {"__xl_runtime", "httpServerPort", "__xl_std_runtime_http_server_port", "xl6_xrt_http_server_port", xl6StdRuntimeHttpServerHandleParams, 1, "c_int", NULL},
     {"__xl_runtime", "httpServerStop", "__xl_std_runtime_http_server_stop", "xl6_xrt_http_server_stop", xl6StdRuntimeHttpServerHandleParams, 1, "", NULL},
@@ -1808,6 +2072,7 @@ static const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"__xrt_random", "rand32", "__xl_std_xrt_rand32", "xrtRand32", NULL, 0, "c_uint", NULL},
     {"__xrt_random", "rand64", "__xl_std_xrt_rand64", "xrtRand64", NULL, 0, "c_ulonglong", NULL},
     {"__xrt_random", "range", "__xl_std_xrt_rand_range", "xrtRandRange", xl6StdXrtRandRangeParams, 2, "c_int", NULL},
+    {"__xrt_random", "seedThread", "__xl_std_xrt_rand_seed_thread", "xrtRandSeedThread", xl6StdXrtRandSeedParams, 2, "", NULL},
     {"__xrt_random", "string", "__xl_std_xrt_rand_str", "xrtRandStr", xl6StdXrtRandStrParams, 3, "point", NULL},
     {"__xrt_path", "exists", "__xl_std_xrt_path_exists", "xrtPathExists", xl6StdPathUnaryParams, 1, "c_bool", NULL},
     {"__xrt_path", "isAbs", "__xl_std_xrt_path_is_abs", "xrtPathIsAbs", xl6StdXrtPathIsAbsParams, 2, "c_bool", NULL},
@@ -1816,6 +2081,17 @@ static const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"__xrt_path", "getExt", "__xl_std_xrt_path_get_ext", "xrtPathGetExt", xl6StdXrtPathIsAbsParams, 2, "point", NULL},
     {"__xrt_path", "getDir", "__xl_std_xrt_path_get_dir", "xrtPathGetDir", xl6StdXrtPathIsAbsParams, 2, "point", NULL},
     {"__xrt_path", "random", "__xl_std_xrt_path_random", "xrtPathRandom", xl6StdXrtPathRandomParams, 5, "point", NULL},
+    {"__xrt_path", "sep", "__xl_std_xrt_path_sep", "xrtPathSep", NULL, 0, "point", NULL},
+    {"__xrt_path", "normalize", "__xl_std_xrt_path_normalize", "xrtPathNormalize", xl6StdXrtPathIsAbsParams, 2, "point", NULL},
+    {"__xrt_path", "abs", "__xl_std_xrt_path_abs", "xrtPathAbs", xl6StdXrtPathIsAbsParams, 2, "point", NULL},
+    {"__xrt_path", "rel", "__xl_std_xrt_path_rel", "xrtPathRel", xl6StdPathRelParams, 2, "point", NULL},
+    {"__xrt_path", "cwd", "__xl_std_xrt_path_cwd", "xrtPathCwd", NULL, 0, "point", NULL},
+    {"__xrt_path", "setCwd", "__xl_std_xrt_path_set_cwd", "xrtPathSetCwd", xl6StdPathUnaryParams, 1, "c_bool", NULL},
+    {"__xrt_path", "home", "__xl_std_xrt_path_home", "xrtPathHome", NULL, 0, "point", NULL},
+    {"__xrt_path", "temp", "__xl_std_xrt_path_temp", "xrtPathTemp", NULL, 0, "point", NULL},
+    {"__xrt_path", "appDir", "__xl_std_xrt_path_app_dir", "xrtPathAppDir", NULL, 0, "point", NULL},
+    {"__xrt_path", "withExt", "__xl_std_xrt_path_with_ext", "xrtPathWithExt", xl6StdPathWithExtParams, 2, "point", NULL},
+    {"__xrt_path", "withName", "__xl_std_xrt_path_with_name", "xrtPathWithName", xl6StdPathWithNameParams, 2, "point", NULL},
     {"__xrt_file", "exists", "__xl_std_xrt_file_exists", "xrtFileExists", xl6StdPathUnaryParams, 1, "c_bool", NULL},
     {"__xrt_file", "getSize", "__xl_std_xrt_file_get_size", "xrtFileGetSize", xl6StdPathUnaryParams, 1, "c_size", NULL},
     {"__xrt_file", "setSize", "__xl_std_xrt_file_set_size", "xrtFileSetSize", xl6StdXrtFileSetSizeParams, 2, "c_bool", NULL},
@@ -1829,12 +2105,21 @@ static const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"__xrt_file", "delete", "__xl_std_xrt_file_delete", "xrtFileDelete", xl6StdPathUnaryParams, 1, "c_bool", NULL},
     {"__xrt_file", "copy", "__xl_std_xrt_file_copy", "xrtFileCopy", xl6StdXrtFileCopyMoveParams, 3, "c_bool", NULL},
     {"__xrt_file", "move", "__xl_std_xrt_file_move", "xrtFileMove", xl6StdXrtFileCopyMoveParams, 3, "c_bool", NULL},
+    {"__xrt_file", "rename", "__xl_std_xrt_file_rename", "xrtFileRename", xl6StdXrtFileCopyMoveParams, 3, "c_bool", NULL},
+    {"__xrt_file", "replace", "__xl_std_xrt_file_replace", "xrtFileReplace", xl6StdFileReplaceParams, 2, "c_bool", NULL},
+    {"__xrt_file", "touch", "__xl_std_xrt_file_touch", "xrtFileTouch", xl6StdPathUnaryParams, 1, "c_bool", NULL},
+    {"__xrt_file", "writeAllAtomic", "__xl_std_xrt_file_write_all_atomic", "xrtFileWriteAllAtomic", xl6StdXrtFileWriteTextParams, 4, "c_bool", NULL},
     {"__xrt_dir", "exists", "__xl_std_xrt_dir_exists", "xrtDirExists", xl6StdPathUnaryParams, 1, "c_bool", NULL},
     {"__xrt_dir", "create", "__xl_std_xrt_dir_create", "xrtDirCreate", xl6StdPathUnaryParams, 1, "c_bool", NULL},
     {"__xrt_dir", "createAll", "__xl_std_xrt_dir_create_all", "xrtDirCreateAll", xl6StdPathUnaryParams, 1, "c_bool", NULL},
     {"__xrt_dir", "copy", "__xl_std_xrt_dir_copy", "xrtDirCopy", xl6StdXrtFileCopyMoveParams, 3, "c_int", NULL},
     {"__xrt_dir", "move", "__xl_std_xrt_dir_move", "xrtDirMove", xl6StdXrtFileCopyMoveParams, 3, "c_int", NULL},
     {"__xrt_dir", "delete", "__xl_std_xrt_dir_delete", "xrtDirDelete", xl6StdPathUnaryParams, 1, "c_int", NULL},
+    {"__xrt_dir", "isEmpty", "__xl_std_xrt_dir_is_empty", "xrtDirIsEmpty", xl6StdPathUnaryParams, 1, "c_bool", NULL},
+    {"__xrt_dir", "count", "__xl_std_xrt_dir_count", "xrtDirCount", xl6StdXrtDirCountParams, 3, "int", NULL},
+    {"__xrt_dir", "size", "__xl_std_xrt_dir_size", "xrtDirSize", xl6StdXrtDirSizeParams, 2, "int", NULL},
+    {"__xrt_dir", "clean", "__xl_std_xrt_dir_clean", "xrtDirClean", xl6StdPathUnaryParams, 1, "c_bool", NULL},
+    {"__xrt_dir", "ensureEmpty", "__xl_std_xrt_dir_ensure_empty", "xrtDirEnsureEmpty", xl6StdPathUnaryParams, 1, "c_bool", NULL},
     {"__xrt_json", "parse", "__xl_std_xrt_json_parse", "xrtParseJSON", xl6StdXrtJsonParseParams, 2, "var", NULL},
     {"__xrt_json", "parseFile", "__xl_std_xrt_json_parse_file", "xrtParseJSON_File", xl6StdPathUnaryParams, 1, "var", NULL},
     {"__xrt_json", "stringify", "__xl_std_xrt_json_stringify", "xrtStringifyJSON", xl6StdXrtJsonStringifyParams, 3, "point", NULL},
@@ -2011,6 +2296,7 @@ static const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"random", "u32", "__xl_std_random_u32", NULL, NULL, 0, "uint32", xl6StdRandomU32Body},
     {"random", "u64", "__xl_std_random_u64", NULL, NULL, 0, "uint64", xl6StdRandomU64Body},
     {"random", "range", "__xl_std_random_range", NULL, NULL, 0, "int", xl6StdRandomRangeBody},
+    {"random", "seed", "__xl_std_random_seed", NULL, NULL, 0, "", xl6StdRandomSeedBody},
     {"random", "string", "__xl_std_random_string", NULL, NULL, 0, "string", xl6StdRandomStringBody},
 
     {"path", "exists", "__xl_std_path_exists", NULL, NULL, 0, "bool", xl6StdPathExistsBody},
@@ -2021,6 +2307,17 @@ static const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"path", "dir", "__xl_std_path_dir", NULL, NULL, 0, "string", xl6StdPathDirBody},
     {"path", "join", "__xl_std_path_join", NULL, NULL, 0, "string", xl6StdPathJoinBody},
     {"path", "random", "__xl_std_path_random", NULL, NULL, 0, "string", xl6StdPathRandomBody},
+    {"path", "sep", "__xl_std_path_sep", NULL, NULL, 0, "string", xl6StdPathSepBody},
+    {"path", "normalize", "__xl_std_path_normalize", NULL, NULL, 0, "string", xl6StdPathNormalizeBody},
+    {"path", "abs", "__xl_std_path_abs", NULL, NULL, 0, "string", xl6StdPathAbsBody},
+    {"path", "rel", "__xl_std_path_rel", NULL, NULL, 0, "string", xl6StdPathRelBody},
+    {"path", "cwd", "__xl_std_path_cwd", NULL, NULL, 0, "string", xl6StdPathCwdBody},
+    {"path", "setCwd", "__xl_std_path_set_cwd", NULL, NULL, 0, "bool", xl6StdPathSetCwdBody},
+    {"path", "home", "__xl_std_path_home", NULL, NULL, 0, "string", xl6StdPathHomeBody},
+    {"path", "temp", "__xl_std_path_temp", NULL, NULL, 0, "string", xl6StdPathTempBody},
+    {"path", "appDir", "__xl_std_path_app_dir", NULL, NULL, 0, "string", xl6StdPathAppDirBody},
+    {"path", "withExt", "__xl_std_path_with_ext", NULL, NULL, 0, "string", xl6StdPathWithExtBody},
+    {"path", "withName", "__xl_std_path_with_name", NULL, NULL, 0, "string", xl6StdPathWithNameBody},
 
     {"file", "exists", "__xl_std_file_exists", NULL, NULL, 0, "bool", xl6StdFileExistsBody},
     {"file", "size", "__xl_std_file_size", NULL, NULL, 0, "int", xl6StdFileSizeBody},
@@ -2035,6 +2332,11 @@ static const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"file", "delete", "__xl_std_file_delete", NULL, NULL, 0, "bool", xl6StdFileDeleteBody},
     {"file", "copy", "__xl_std_file_copy", NULL, NULL, 0, "bool", xl6StdFileCopyBody},
     {"file", "move", "__xl_std_file_move", NULL, NULL, 0, "bool", xl6StdFileMoveBody},
+    {"file", "touch", "__xl_std_file_touch", NULL, NULL, 0, "bool", xl6StdFileTouchBody},
+    {"file", "rename", "__xl_std_file_rename", NULL, NULL, 0, "bool", xl6StdFileRenameBody},
+    {"file", "replace", "__xl_std_file_replace", NULL, NULL, 0, "bool", xl6StdFileReplaceBody},
+    {"file", "writeTextAtomic", "__xl_std_file_write_text_atomic", NULL, NULL, 0, "bool", xl6StdFileWriteTextAtomicBody},
+    {"file", "info", "__xl_std_file_info", NULL, NULL, 0, "FileInfo", xl6StdFileInfoBody},
 
     {"dir", "exists", "__xl_std_dir_exists", NULL, NULL, 0, "bool", xl6StdDirExistsBody},
     {"dir", "create", "__xl_std_dir_create", NULL, NULL, 0, "bool", xl6StdDirCreateBody},
@@ -2045,6 +2347,15 @@ static const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"dir", "list", "__xl_std_dir_list", NULL, NULL, 0, "array", xl6StdDirListBody},
     {"dir", "files", "__xl_std_dir_files", NULL, NULL, 0, "array", xl6StdDirFilesBody},
     {"dir", "dirs", "__xl_std_dir_dirs", NULL, NULL, 0, "array", xl6StdDirDirsBody},
+    {"dir", "empty", "__xl_std_dir_empty", NULL, NULL, 0, "bool", xl6StdDirEmptyBody},
+    {"dir", "count", "__xl_std_dir_count", NULL, NULL, 0, "int", xl6StdDirCountBody},
+    {"dir", "size", "__xl_std_dir_size", NULL, NULL, 0, "int", xl6StdDirSizeBody},
+    {"dir", "clean", "__xl_std_dir_clean", NULL, NULL, 0, "bool", xl6StdDirCleanBody},
+    {"dir", "ensureEmpty", "__xl_std_dir_ensure_empty", NULL, NULL, 0, "bool", xl6StdDirEnsureEmptyBody},
+    {"dir", "glob", "__xl_std_dir_glob", NULL, NULL, 0, "array", xl6StdDirGlobBody},
+    {"dir", "entries", "__xl_std_dir_entries", NULL, NULL, 0, "array", xl6StdDirEntriesBody},
+    {"dir", "match", "__xl_std_dir_match", NULL, NULL, 0, "array", xl6StdDirMatchBody},
+    {"dir", "walk", "__xl_std_dir_walk", NULL, NULL, 0, "array", xl6StdDirWalkBody},
 
     {"json", "parse", "__xl_std_json_parse", NULL, NULL, 0, "var", xl6StdJsonParseBody},
     {"json", "read", "__xl_std_json_read", NULL, NULL, 0, "var", xl6StdJsonReadBody},
@@ -2106,6 +2417,10 @@ static const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"process", "exitCode", "__xl_std_process_exit_code", NULL, NULL, 0, "int", xl6StdProcessExitCodeBody},
 
     {"http.server", "create", "__xl_std_http_server_create", NULL, NULL, 0, "point", xl6StdHttpServerCreateBody},
+    {"http.server", "get", "__xl_std_http_server_get", NULL, NULL, 0, "bool", xl6StdHttpServerGetBody},
+    {"http.server", "post", "__xl_std_http_server_post", NULL, NULL, 0, "bool", xl6StdHttpServerPostBody},
+    {"http.server", "any", "__xl_std_http_server_any", NULL, NULL, 0, "bool", xl6StdHttpServerAnyBody},
+    {"http.server", "static", "__xl_std_http_server_static", NULL, NULL, 0, "bool", xl6StdHttpServerStaticBody},
     {"http.server", "start", "__xl_std_http_server_start", NULL, NULL, 0, "bool", xl6StdHttpServerStartBody},
     {"http.server", "port", "__xl_std_http_server_port", NULL, NULL, 0, "int", xl6StdHttpServerPortBody},
     {"http.server", "stop", "__xl_std_http_server_stop", NULL, NULL, 0, "", xl6StdHttpServerStopBody},
@@ -2671,6 +2986,9 @@ static void xl6StdlibApplyDeps(int* used)
     if ( xl6StdlibFindFunc("random", "range", &index) != NULL && used[index] ) {
         xl6StdlibMarkFuncUsed(used, "__xrt_random", "range");
     }
+    if ( xl6StdlibFindFunc("random", "seed", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xrt_random", "seedThread");
+    }
     if ( xl6StdlibFindFunc("random", "string", &index) != NULL && used[index] ) {
         xl6StdlibMarkFuncUsed(used, "__xl_runtime", "takeCstr");
         xl6StdlibMarkFuncUsed(used, "__xrt_random", "string");
@@ -2705,6 +3023,49 @@ static void xl6StdlibApplyDeps(int* used)
     if ( xl6StdlibFindFunc("path", "random", &index) != NULL && used[index] ) {
         xl6StdlibMarkFuncUsed(used, "__xl_runtime", "takeCstr");
         xl6StdlibMarkFuncUsed(used, "__xrt_path", "random");
+    }
+    if ( xl6StdlibFindFunc("path", "sep", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "takeCstr");
+        xl6StdlibMarkFuncUsed(used, "__xrt_path", "sep");
+    }
+    if ( xl6StdlibFindFunc("path", "normalize", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "takeCstr");
+        xl6StdlibMarkFuncUsed(used, "__xrt_path", "normalize");
+    }
+    if ( xl6StdlibFindFunc("path", "abs", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "takeCstr");
+        xl6StdlibMarkFuncUsed(used, "__xrt_path", "abs");
+    }
+    if ( xl6StdlibFindFunc("path", "rel", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "takeCstr");
+        xl6StdlibMarkFuncUsed(used, "__xrt_path", "rel");
+    }
+    if ( xl6StdlibFindFunc("path", "cwd", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "takeCstr");
+        xl6StdlibMarkFuncUsed(used, "__xrt_path", "cwd");
+    }
+    if ( xl6StdlibFindFunc("path", "setCwd", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xrt_path", "setCwd");
+    }
+    if ( xl6StdlibFindFunc("path", "home", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "takeCstr");
+        xl6StdlibMarkFuncUsed(used, "__xrt_path", "home");
+    }
+    if ( xl6StdlibFindFunc("path", "temp", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "takeCstr");
+        xl6StdlibMarkFuncUsed(used, "__xrt_path", "temp");
+    }
+    if ( xl6StdlibFindFunc("path", "appDir", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "takeCstr");
+        xl6StdlibMarkFuncUsed(used, "__xrt_path", "appDir");
+    }
+    if ( xl6StdlibFindFunc("path", "withExt", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "takeCstr");
+        xl6StdlibMarkFuncUsed(used, "__xrt_path", "withExt");
+    }
+    if ( xl6StdlibFindFunc("path", "withName", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "takeCstr");
+        xl6StdlibMarkFuncUsed(used, "__xrt_path", "withName");
     }
 
     if ( xl6StdlibFindFunc("file", "exists", &index) != NULL && used[index] ) {
@@ -2747,6 +3108,27 @@ static void xl6StdlibApplyDeps(int* used)
     if ( xl6StdlibFindFunc("file", "move", &index) != NULL && used[index] ) {
         xl6StdlibMarkFuncUsed(used, "__xrt_file", "move");
     }
+    if ( xl6StdlibFindFunc("file", "touch", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xrt_file", "touch");
+    }
+    if ( xl6StdlibFindFunc("file", "rename", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xrt_file", "rename");
+    }
+    if ( xl6StdlibFindFunc("file", "replace", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xrt_file", "replace");
+    }
+    if ( xl6StdlibFindFunc("file", "writeTextAtomic", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xrt_file", "writeAllAtomic");
+    }
+    if ( xl6StdlibFindFunc("file", "info", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xrt_path", "exists");
+        xl6StdlibMarkFuncUsed(used, "__xrt_file", "exists");
+        xl6StdlibMarkFuncUsed(used, "__xrt_dir", "exists");
+        xl6StdlibMarkFuncUsed(used, "__xrt_file", "getSize");
+        xl6StdlibMarkFuncUsed(used, "__xrt_file", "getAttr");
+        xl6StdlibMarkFuncUsed(used, "__xrt_file", "getAccessTime");
+        xl6StdlibMarkFuncUsed(used, "__xrt_file", "getChangeTime");
+    }
 
     if ( xl6StdlibFindFunc("dir", "exists", &index) != NULL && used[index] ) {
         xl6StdlibMarkFuncUsed(used, "__xrt_dir", "exists");
@@ -2777,6 +3159,33 @@ static void xl6StdlibApplyDeps(int* used)
     }
     if ( xl6StdlibFindFunc("dir", "dirs", &index) != NULL && used[index] ) {
         xl6StdlibMarkFuncUsed(used, "__xl_runtime", "dirList");
+    }
+    if ( xl6StdlibFindFunc("dir", "empty", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xrt_dir", "isEmpty");
+    }
+    if ( xl6StdlibFindFunc("dir", "count", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xrt_dir", "count");
+    }
+    if ( xl6StdlibFindFunc("dir", "size", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xrt_dir", "size");
+    }
+    if ( xl6StdlibFindFunc("dir", "clean", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xrt_dir", "clean");
+    }
+    if ( xl6StdlibFindFunc("dir", "ensureEmpty", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xrt_dir", "ensureEmpty");
+    }
+    if ( xl6StdlibFindFunc("dir", "glob", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "dirGlob");
+    }
+    if ( xl6StdlibFindFunc("dir", "entries", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "dirEntries");
+    }
+    if ( xl6StdlibFindFunc("dir", "match", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "dirEntries");
+    }
+    if ( xl6StdlibFindFunc("dir", "walk", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "dirEntries");
     }
 
     if ( xl6StdlibFindFunc("json", "parse", &index) != NULL && used[index] ) {
@@ -2995,6 +3404,18 @@ static void xl6StdlibApplyDeps(int* used)
     if ( xl6StdlibFindFunc("http.server", "create", &index) != NULL && used[index] ) {
         xl6StdlibMarkFuncUsed(used, "__xl_runtime", "httpServerCreate");
     }
+    if ( xl6StdlibFindFunc("http.server", "get", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "httpServerGet");
+    }
+    if ( xl6StdlibFindFunc("http.server", "post", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "httpServerPost");
+    }
+    if ( xl6StdlibFindFunc("http.server", "any", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "httpServerAny");
+    }
+    if ( xl6StdlibFindFunc("http.server", "static", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "httpServerStatic");
+    }
     if ( xl6StdlibFindFunc("http.server", "start", &index) != NULL && used[index] ) {
         xl6StdlibMarkFuncUsed(used, "__xl_runtime", "httpServerStart");
     }
@@ -3147,6 +3568,47 @@ static int xl6StdlibRewriteRefs(XL6_AstNode* node, int* used, XL6_DiagList* diag
     return ok;
 }
 
+static int xl6StdlibNodeUsesTypeName(const XL6_AstNode* node, const char* typeName)
+{
+    size_t i;
+
+    if ( node == NULL || typeName == NULL ) {
+        return 0;
+    }
+    if ( node->kind == XL6_AST_TYPE && xl6StdlibTextEquals(node->text, typeName) ) {
+        return 1;
+    }
+    if ( node->kind == XL6_AST_CALL &&
+         node->childCount > 0 &&
+         node->children[0] != NULL &&
+         node->children[0]->kind == XL6_AST_NAME &&
+         xl6StdlibTextEquals(node->children[0]->text, typeName) ) {
+        return 1;
+    }
+    for ( i = 0; i < node->childCount; ++i ) {
+        if ( xl6StdlibNodeUsesTypeName(node->children[i], typeName) ) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+static int xl6StdlibNeedsRandomClass(const XL6_AstNode* root, const int* used)
+{
+    (void)used;
+    return xl6StdlibNodeUsesTypeName(root, "Random");
+}
+
+static int xl6StdlibNeedsFileInfoClass(const XL6_AstNode* root, const int* used)
+{
+    size_t index;
+
+    if ( xl6StdlibNodeUsesTypeName(root, "FileInfo") ) {
+        return 1;
+    }
+    return xl6StdlibFindFunc("file", "info", &index) != NULL && used[index];
+}
+
 static void xl6StdlibAppendFuncDecl(XL6_StdlibTextBuilder* builder, const XL6_StdlibFunc* func)
 {
     size_t i;
@@ -3216,6 +3678,8 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     int used[XL6_ARRAY_COUNT(xl6StdlibFuncs)];
     XL6_StdlibTextBuilder builder;
     size_t i;
+    int needsRandomClass;
+    int needsFileInfoClass;
     int ok;
 
     if ( root == NULL ) {
@@ -3227,11 +3691,22 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     if ( !ok ) {
         return 0;
     }
+    needsRandomClass = xl6StdlibNeedsRandomClass(root, used);
+    needsFileInfoClass = xl6StdlibNeedsFileInfoClass(root, used);
+    if ( needsRandomClass ) {
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "takeCstr");
+    }
     xl6StdlibApplyDeps(used);
 
     /* 只为实际用到的标准库函数注入 extern 声明。 */
     xl6StdlibBuilderInit(&builder);
     xl6StdlibBuilderAppend(&builder, xl6StdlibCoreClassSource);
+    if ( needsRandomClass ) {
+        xl6StdlibBuilderAppend(&builder, xl6StdlibRandomClassSource);
+    }
+    if ( needsFileInfoClass ) {
+        xl6StdlibBuilderAppend(&builder, xl6StdlibFileInfoClassSource);
+    }
     for ( i = 0; i < XL6_ARRAY_COUNT(xl6StdlibFuncs); ++i ) {
         if ( used[i] ) {
             xl6StdlibAppendFuncDecl(&builder, &xl6StdlibFuncs[i]);

@@ -24,8 +24,8 @@ const char* xl6AstKindName(XL6_AstKind kind)
     case XL6_AST_GET: return "get";
     case XL6_AST_LET: return "let";
     case XL6_AST_CREATE: return "create";
-    case XL6_AST_CUSTOM_EXTERN_SPECIAL: return "custom_extern_special";
-    case XL6_AST_CUSTOM_EXTERN_FUNC: return "custom_extern_func";
+    case XL6_AST_CUSTOM_EXTERN_SPECIAL: return "native_extern_special";
+    case XL6_AST_CUSTOM_EXTERN_FUNC: return "native_extern_func";
     case XL6_AST_TYPE_PARAMS: return "type_params";
     case XL6_AST_GENERIC_CONSTRAINT: return "generic_constraint";
     case XL6_AST_FIELD_ATTR: return "field_attr";

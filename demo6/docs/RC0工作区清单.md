@@ -149,7 +149,7 @@
 
 内容：
 
-- 类型注册、类型值、泛型、class/custom、func 值等语义检查。
+- 类型注册、类型值、泛型、class/native-backed class、func 值等语义检查。
 - `check --json` 增加 `phase` 字段。
 - 语义错误与 import 错误被 RC0 守门脚本检查。
 
@@ -165,8 +165,8 @@
 内容：
 
 - smoke 测试覆盖基础语法、语义负例和 cgen。
-- feature suite 覆盖语言基础、表达式、函数、类型、容器、泛型、闭包、class/custom、C 混编、C export ABI。
-- 新增 import/XAPI、typed containers、function value、custom/class 等测试。
+- feature suite 覆盖语言基础、表达式、函数、类型、容器、泛型、闭包、class/native-backed class、C 混编、C export ABI。
+- 新增 import/XAPI、typed containers、function value、native-backed class/class 等测试。
 
 ## 忽略规则
 

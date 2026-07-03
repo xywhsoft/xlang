@@ -66,7 +66,7 @@ XAPI 不是用户常规手写源，而是机器生成的接口元数据：
 - `export "c_symbol" var`
 - `export "c_symbol" const`
 - `class`
-- `custom`
+- native-backed class
 - function signature
 - C ABI symbol
 - 多返回值 out 参数信息
