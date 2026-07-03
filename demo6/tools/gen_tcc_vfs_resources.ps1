@@ -24,7 +24,7 @@ if ([string]::IsNullOrWhiteSpace($TccDist)) {
     $TccDist = Join-Path $Root "lib\tcc\win32\dist\x86_64"
 }
 if ([string]::IsNullOrWhiteSpace($XrtObj)) {
-    $XrtObj = Join-Path $Root "..\..\xrt\release\x64\xrt.o"
+    $XrtObj = Join-Path $Root "release\tmp\xrt.o"
 }
 if ([string]::IsNullOrWhiteSpace($PackTool)) {
     $PackTool = Join-Path $Root "release\tmp\tcc_vfs_lzma_pack.exe"

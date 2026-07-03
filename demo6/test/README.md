@@ -11,6 +11,10 @@
 - `test_feature_suite.bat`：功能范例套件回归。
 - `test_dll.bat`：`xl.dll` 嵌入式运行库回归。
 
+## fixtures
+
+- `fixtures/libprobe`：package/import/XAPI 测试用裸包名 fixture，用于验证 `XLANG_PACKAGE_PATH=release\extlibs;test\fixtures` 下的非发布物搜索路径。
+
 ## 用例前缀索引
 
 以下前缀来自 `test/cases` 下递归发现的 `.xl` 用例。新增新前缀时，必须同步更新本节，避免测试资产变成只有批处理知道。

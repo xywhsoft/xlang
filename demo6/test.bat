@@ -5,10 +5,18 @@ cd /d %~dp0
 call tools\xl6_toolchain_env.bat
 if errorlevel 1 exit /b 1
 
+set "XLANG_PACKAGE_PATH=release\extlibs;test\fixtures"
+
 call build.bat
 if errorlevel 1 exit /b 1
 
-powershell -NoProfile -Command "$dir = Join-Path (Get-Location) 'release\tmp'; if (Test-Path -LiteralPath $dir) { Get-ChildItem -LiteralPath $dir -File | Remove-Item -Force }"
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\clear_release_tmp_files.ps1
+if errorlevel 1 exit /b 1
+
+call tools\bootstrap_tcc.bat
+if errorlevel 1 exit /b 1
+
+call tools\build_xrt_obj.bat
 if errorlevel 1 exit /b 1
 
 echo Running DEMO6 smoke tests...
@@ -85,10 +93,13 @@ if errorlevel 1 exit /b 1
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_package_fixtures.ps1
 if errorlevel 1 exit /b 1
 
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_release_extlibs.ps1
+if errorlevel 1 exit /b 1
+
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_package_xrt_symbols.ps1
 if errorlevel 1 exit /b 1
 
-call examples\extlibs\run_extlibs.bat
+call release\examples\extlibs\run_extlibs.bat
 if errorlevel 1 exit /b 1
 
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_stdlib_coverage.ps1
@@ -103,46 +114,52 @@ if errorlevel 1 exit /b 1
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_negative_diagnostics.ps1
 if errorlevel 1 exit /b 1
 
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_async_task_soak.ps1
+if errorlevel 1 exit /b 1
+
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_stdlib_examples.ps1
 if errorlevel 1 exit /b 1
 
-call examples\feature_suite\run_feature_suite.bat
+call release\examples\apps\run_apps.bat
 if errorlevel 1 exit /b 1
 
-release\xl.exe run examples\concurrency.xl %XL6_XL_DEFAULT_LINK_ARGS%
+call release\examples\feature_suite\run_feature_suite.bat
+if errorlevel 1 exit /b 1
+
+release\xl.exe run release\examples\concurrency.xl %XL6_XL_DEFAULT_LINK_ARGS%
 if errorlevel 1 exit /b 1
 for /L %%I in (1,1,2) do (
-    release\xl.exe run examples\concurrency.xl %XL6_XL_DEFAULT_LINK_ARGS%
+    release\xl.exe run release\examples\concurrency.xl %XL6_XL_DEFAULT_LINK_ARGS%
     if errorlevel 1 (
-        echo examples\concurrency.xl repeat run %%I failed.
+        echo release\examples\concurrency.xl repeat run %%I failed.
         exit /b 1
     )
 )
 
-release\xl.exe run examples\task_api.xl %XL6_XL_DEFAULT_LINK_ARGS%
+release\xl.exe run release\examples\task_api.xl %XL6_XL_DEFAULT_LINK_ARGS%
 if errorlevel 1 exit /b 1
 for /L %%I in (1,1,2) do (
-    release\xl.exe run examples\task_api.xl %XL6_XL_DEFAULT_LINK_ARGS%
+    release\xl.exe run release\examples\task_api.xl %XL6_XL_DEFAULT_LINK_ARGS%
     if errorlevel 1 (
-        echo examples\task_api.xl repeat run %%I failed.
+        echo release\examples\task_api.xl repeat run %%I failed.
         exit /b 1
     )
 )
 
-release\xl.exe run examples\async_generator.xl %XL6_XL_DEFAULT_LINK_ARGS%
+release\xl.exe run release\examples\async_generator.xl %XL6_XL_DEFAULT_LINK_ARGS%
 if errorlevel 1 exit /b 1
 for /L %%I in (1,1,3) do (
-    release\xl.exe run examples\async_generator.xl %XL6_XL_DEFAULT_LINK_ARGS%
+    release\xl.exe run release\examples\async_generator.xl %XL6_XL_DEFAULT_LINK_ARGS%
     if errorlevel 1 (
-        echo examples\async_generator.xl repeat run %%I failed.
+        echo release\examples\async_generator.xl repeat run %%I failed.
         exit /b 1
     )
 )
 
-release\xl.exe run examples\union.xl %XL6_XL_DEFAULT_LINK_ARGS%
+release\xl.exe run release\examples\union.xl %XL6_XL_DEFAULT_LINK_ARGS%
 if errorlevel 1 exit /b 1
 
-cmd /c "set XL6_TCC=__missing_tcc__.exe&& release\xl.exe run examples\stdlib_print.xl > release\tmp\embedded_tcc_run.out.txt"
+cmd /c "set XL6_TCC=__missing_tcc__.exe&& release\xl.exe run release\examples\stdlib_print.xl > release\tmp\embedded_tcc_run.out.txt"
 if errorlevel 1 (
     echo embedded libtcc run failed when external tcc is missing.
     exit /b 1
@@ -152,7 +169,7 @@ if errorlevel 1 (
     echo embedded_tcc_run.out.txt missing print output.
     exit /b 1
 )
-cmd /c "set XL6_TCC=__missing_tcc__.exe&& release\xl.exe build examples\stdlib_print.xl -o release\tmp\embedded_tcc_build.exe"
+cmd /c "set XL6_TCC=__missing_tcc__.exe&& release\xl.exe build release\examples\stdlib_print.xl -o release\tmp\embedded_tcc_build.exe"
 if errorlevel 1 (
     echo embedded libtcc build failed when external tcc is missing.
     exit /b 1
@@ -164,7 +181,7 @@ if errorlevel 1 (
     echo embedded_tcc_build.out.txt missing print output.
     exit /b 1
 )
-cmd /c "set XL6_TCC=__missing_tcc__.exe&& set XL6_TCC_ROOT=__missing_root__&& set XL6_TCC_INCLUDE=__missing_include__&& set XL6_TCC_WIN_INCLUDE=__missing_win_include__&& set XL6_TCC_WINAPI_INCLUDE=__missing_winapi_include__&& set XL6_TCC_LIB=__missing_lib__&& set XL6_TCC_LIBTCC1=__missing_libtcc1.a&& set XL6_XRT_OBJ=__missing_xrt.o&& release\xl.exe run examples\stdlib_print.xl > release\tmp\embedded_vfs_run.out.txt"
+cmd /c "set XL6_TCC=__missing_tcc__.exe&& set XL6_TCC_ROOT=__missing_root__&& set XL6_TCC_INCLUDE=__missing_include__&& set XL6_TCC_WIN_INCLUDE=__missing_win_include__&& set XL6_TCC_WINAPI_INCLUDE=__missing_winapi_include__&& set XL6_TCC_LIB=__missing_lib__&& set XL6_TCC_LIBTCC1=__missing_libtcc1.a&& set XL6_XRT_OBJ=__missing_xrt.o&& release\xl.exe run release\examples\stdlib_print.xl > release\tmp\embedded_vfs_run.out.txt"
 if errorlevel 1 (
     echo embedded VFS run failed when external TCC resources are missing.
     exit /b 1
@@ -174,7 +191,7 @@ if errorlevel 1 (
     echo embedded_vfs_run.out.txt missing print output.
     exit /b 1
 )
-cmd /c "set XL6_TCC=__missing_tcc__.exe&& set XL6_TCC_ROOT=__missing_root__&& set XL6_TCC_INCLUDE=__missing_include__&& set XL6_TCC_WIN_INCLUDE=__missing_win_include__&& set XL6_TCC_WINAPI_INCLUDE=__missing_winapi_include__&& set XL6_TCC_LIB=__missing_lib__&& set XL6_TCC_LIBTCC1=__missing_libtcc1.a&& set XL6_XRT_OBJ=__missing_xrt.o&& release\xl.exe build examples\stdlib_print.xl -o release\tmp\embedded_vfs_build.exe"
+cmd /c "set XL6_TCC=__missing_tcc__.exe&& set XL6_TCC_ROOT=__missing_root__&& set XL6_TCC_INCLUDE=__missing_include__&& set XL6_TCC_WIN_INCLUDE=__missing_win_include__&& set XL6_TCC_WINAPI_INCLUDE=__missing_winapi_include__&& set XL6_TCC_LIB=__missing_lib__&& set XL6_TCC_LIBTCC1=__missing_libtcc1.a&& set XL6_XRT_OBJ=__missing_xrt.o&& release\xl.exe build release\examples\stdlib_print.xl -o release\tmp\embedded_vfs_build.exe"
 if errorlevel 1 (
     echo embedded VFS build failed when external TCC resources are missing.
     exit /b 1
@@ -222,7 +239,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe dbg examples\hello.xl --break 2 --commands test\data\dbg_commands.txt --save-temps > release\tmp\dbg_hello.out.txt
+release\xl.exe dbg release\examples\hello.xl --break 2 --commands test\data\dbg_commands.txt --save-temps > release\tmp\dbg_hello.out.txt
 if errorlevel 1 exit /b 1
 findstr /C:"xl-debug stopped reason=breakpoint" release\tmp\dbg_hello.out.txt >nul
 if errorlevel 1 (
@@ -247,16 +264,16 @@ if errorlevel 1 (
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_dap_smoke.ps1
 if errorlevel 1 exit /b 1
 
-release\xl.exe lex examples\hello.xl > release\tmp\hello.tokens.txt
+release\xl.exe lex release\examples\hello.xl > release\tmp\hello.tokens.txt
 if errorlevel 1 exit /b 1
-release\xl.exe lex examples\hello.xl --emit release\tmp\hello.tokens.emit.txt
+release\xl.exe lex release\examples\hello.xl --emit release\tmp\hello.tokens.emit.txt
 if errorlevel 1 exit /b 1
 findstr /C:"IDENT" release\tmp\hello.tokens.emit.txt >nul
 if errorlevel 1 (
     echo hello.tokens.emit.txt missing lexer emit output.
     exit /b 1
 )
-release\xl.exe lex examples\hello.xl --format json --emit release\tmp\hello.tokens.json
+release\xl.exe lex release\examples\hello.xl --format json --emit release\tmp\hello.tokens.json
 if errorlevel 1 exit /b 1
 findstr /C:"KW_FUNC" release\tmp\hello.tokens.json >nul
 if errorlevel 1 (
@@ -264,16 +281,16 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe parse examples\hello.xl > release\tmp\hello.ast.txt
+release\xl.exe parse release\examples\hello.xl > release\tmp\hello.ast.txt
 if errorlevel 1 exit /b 1
-release\xl.exe parse examples\hello.xl --emit release\tmp\hello.ast.emit.txt
+release\xl.exe parse release\examples\hello.xl --emit release\tmp\hello.ast.emit.txt
 if errorlevel 1 exit /b 1
 findstr /C:"add" release\tmp\hello.ast.emit.txt >nul
 if errorlevel 1 (
     echo hello.ast.emit.txt missing parse emit output.
     exit /b 1
 )
-release\xl.exe parse examples\hello.xl --format json --emit release\tmp\hello.ast.json
+release\xl.exe parse release\examples\hello.xl --format json --emit release\tmp\hello.ast.json
 if errorlevel 1 exit /b 1
 findstr /C:"kind" release\tmp\hello.ast.json >nul
 if errorlevel 1 (
@@ -292,9 +309,9 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check examples\hello.xl
+release\xl.exe check release\examples\hello.xl
 if errorlevel 1 exit /b 1
-release\xl.exe check examples\hello.xl --json > release\tmp\hello.check.json
+release\xl.exe check release\examples\hello.xl --json > release\tmp\hello.check.json
 if errorlevel 1 exit /b 1
 findstr /C:"diagnostics" release\tmp\hello.check.json >nul
 if errorlevel 1 (
@@ -318,7 +335,7 @@ if errorlevel 1 exit /b 1
 powershell -NoProfile -ExecutionPolicy Bypass -Command "$name=([char]0x7F3A)+([char]0x5931)+'_'+([char]0x6587)+([char]0x4EF6)+'.xl'; $missing=Join-Path 'release\tmp' $name; $err='release\tmp\cli_lex_missing_utf8.err.txt'; $out='release\tmp\cli_lex_missing_utf8.out.txt'; $p=Start-Process -FilePath 'release\xl.exe' -ArgumentList @('lex',$missing) -NoNewWindow -PassThru -Wait -RedirectStandardOutput $out -RedirectStandardError $err; if($p.ExitCode -eq 0){ Write-Host 'lex missing unicode path should fail.'; exit 1 }; $bytes=[System.IO.File]::ReadAllBytes($err); $enc=New-Object System.Text.UTF8Encoding($false,$true); $text=$enc.GetString($bytes); if($text.IndexOf('cannot read file:') -lt 0 -or $text.IndexOf($name) -lt 0){ Write-Host 'cli_lex_missing_utf8.err.txt missing UTF-8 path diagnostic.'; exit 2 }"
 if errorlevel 1 exit /b 1
 
-release\xl.exe cgen examples\hello.xl --dump-dir release\tmp\dump_hello
+release\xl.exe cgen release\examples\hello.xl --dump-dir release\tmp\dump_hello
 if errorlevel 1 exit /b 1
 findstr /C:"KW_FUNC" release\tmp\dump_hello\hello.tokens.json >nul
 if errorlevel 1 (
@@ -647,11 +664,18 @@ if errorlevel 1 exit /b 1
 release\tmp\import_dependency_versions.exe
 if errorlevel 1 exit /b 1
 
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$j=Get-Content 'packages\metadata_combo\package.xapi.json' -Raw | ConvertFrom-Json; if($j.links[0] -ne '../../release/tmp/metadata_combo_link.a'){exit 1}; if($j.loadlibs[0] -ne '../../release/tmp/metadata_combo_loadlib.dll'){exit 2}; if($j.cSources[0] -ne 'metadata_combo_native.c'){exit 3}; if(-not $j.native.singleton){exit 4}; if($j.native.loadName -ne 'metadata_combo_runtime.dll'){exit 5}; if($j.native.version -ne '1.0.0'){exit 6}"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$j=Get-Content 'test\fixtures\metadata_combo\package.xapi.json' -Raw | ConvertFrom-Json; if($j.links[0] -ne '../../../release/tmp/metadata_combo_link.a'){exit 1}; if($j.loadlibs[0] -ne '../../../release/tmp/metadata_combo_loadlib.dll'){exit 2}; if($j.cSources[0] -ne 'metadata_combo_native.c'){exit 3}; if(-not $j.native.singleton){exit 4}; if($j.native.loadName -ne 'metadata_combo_runtime.dll'){exit 5}; if($j.native.version -ne '1.0.0'){exit 6}"
 if errorlevel 1 (
     echo metadata_combo package.xapi.json missing combined dependency metadata.
     exit /b 1
 )
+
+call tools\bootstrap_tcc.bat
+if errorlevel 1 exit /b 1
+
+call tools\build_xrt_obj.bat
+if errorlevel 1 exit /b 1
+
 "%XL6_TCC%" %XL6_TCC_INCLUDES% -c test\cases\metadata_combo_link_host.c -o release\tmp\metadata_combo_link_host.o
 if errorlevel 1 exit /b 1
 "%XL6_TCC%" -ar rcs release\tmp\metadata_combo_link.a release\tmp\metadata_combo_link_host.o
@@ -782,10 +806,10 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe lex examples\literals.xl > release\tmp\literals.tokens.txt
+release\xl.exe lex release\examples\literals.xl > release\tmp\literals.tokens.txt
 if errorlevel 1 exit /b 1
 
-release\xl.exe parse examples\literals.xl > release\tmp\literals.ast.txt
+release\xl.exe parse release\examples\literals.xl > release\tmp\literals.ast.txt
 if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_numeric_literals.xl --emit release\tmp\cgen_numeric_literals.c
@@ -836,10 +860,10 @@ if not errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check examples\containers.xl
+release\xl.exe check release\examples\containers.xl
 if errorlevel 1 exit /b 1
 
-release\xl.exe run examples\containers.xl %XL6_XL_DEFAULT_LINK_ARGS%
+release\xl.exe run release\examples\containers.xl %XL6_XL_DEFAULT_LINK_ARGS%
 if errorlevel 1 exit /b 1
 
 release\xl.exe check test\cases\layout.xl
@@ -1227,20 +1251,20 @@ if errorlevel 1 (
     echo sem_generic_constraint_unknown.err.txt missing unknown constraint diagnostic.
     exit /b 1
 )
-release\xl.exe check examples\generics.xl
+release\xl.exe check release\examples\generics.xl
 if errorlevel 1 exit /b 1
-release\xl.exe check examples\generic_identity.xl
+release\xl.exe check release\examples\generic_identity.xl
 if errorlevel 1 exit /b 1
-release\xl.exe check examples\generic_constraints.xl
+release\xl.exe check release\examples\generic_constraints.xl
 if errorlevel 1 exit /b 1
-release\xl.exe run examples\generic_constraints.xl
+release\xl.exe run release\examples\generic_constraints.xl
 if errorlevel 1 exit /b 1
-release\xl.exe run examples\generic_class_iter.xl
+release\xl.exe run release\examples\generic_class_iter.xl
 if errorlevel 1 exit /b 1
-release\xl.exe run examples\runtime_type.xl
+release\xl.exe run release\examples\runtime_type.xl
 if errorlevel 1 exit /b 1
 
-release\xl.exe check examples\custom_counter.xl
+release\xl.exe check release\examples\custom_counter.xl
 if errorlevel 1 exit /b 1
 
 release\xl.exe parse test\cases\overloads.xl > release\tmp\overloads.ast.txt
@@ -1261,40 +1285,40 @@ release\xl.exe parse test\cases\anonymous_functions.xl > release\tmp\anonymous_f
 if errorlevel 1 exit /b 1
 release\xl.exe check test\cases\anonymous_functions.xl
 if errorlevel 1 exit /b 1
-release\xl.exe check examples\anonymous_functions.xl
+release\xl.exe check release\examples\anonymous_functions.xl
 if errorlevel 1 exit /b 1
 
 release\xl.exe parse test\cases\class_custom.xl > release\tmp\class_custom.ast.txt
 if errorlevel 1 exit /b 1
 release\xl.exe check test\cases\class_custom.xl
 if errorlevel 1 exit /b 1
-release\xl.exe check examples\class_custom.xl
+release\xl.exe check release\examples\class_custom.xl
 if errorlevel 1 exit /b 1
-release\xl.exe check examples\class_native_bridge.xl
+release\xl.exe check release\examples\class_native_bridge.xl
 if errorlevel 1 exit /b 1
-release\xl.exe check examples\class_point.xl
+release\xl.exe check release\examples\class_point.xl
 if errorlevel 1 exit /b 1
-release\xl.exe check examples\object_protocol.xl
+release\xl.exe check release\examples\object_protocol.xl
 if errorlevel 1 exit /b 1
-release\xl.exe check examples\oop_protocol_overload.xl
+release\xl.exe check release\examples\oop_protocol_overload.xl
 if errorlevel 1 exit /b 1
-release\xl.exe run examples\oop_protocol_overload.xl
+release\xl.exe run release\examples\oop_protocol_overload.xl
 if errorlevel 1 exit /b 1
-release\xl.exe check examples\oop_property_get_let.xl
+release\xl.exe check release\examples\oop_property_get_let.xl
 if errorlevel 1 exit /b 1
-release\xl.exe run examples\oop_property_get_let.xl
+release\xl.exe run release\examples\oop_property_get_let.xl
 if errorlevel 1 exit /b 1
-release\xl.exe check examples\oop_static_access.xl
+release\xl.exe check release\examples\oop_static_access.xl
 if errorlevel 1 exit /b 1
-release\xl.exe run examples\oop_static_access.xl
+release\xl.exe run release\examples\oop_static_access.xl
 if errorlevel 1 exit /b 1
-release\xl.exe check examples\oop_protected_access.xl
+release\xl.exe check release\examples\oop_protected_access.xl
 if errorlevel 1 exit /b 1
-release\xl.exe run examples\oop_protected_access.xl
+release\xl.exe run release\examples\oop_protected_access.xl
 if errorlevel 1 exit /b 1
-release\xl.exe check examples\oop_virtual_dispatch.xl
+release\xl.exe check release\examples\oop_virtual_dispatch.xl
 if errorlevel 1 exit /b 1
-release\xl.exe run examples\oop_virtual_dispatch.xl
+release\xl.exe run release\examples\oop_virtual_dispatch.xl
 if errorlevel 1 exit /b 1
 release\xl.exe cgen test\cases\cgen_class_static_access.xl --emit release\tmp\cgen_class_static_access.c
 if errorlevel 1 exit /b 1
@@ -1333,11 +1357,11 @@ if errorlevel 1 (
 if errorlevel 1 exit /b 1
 release\tmp\cgen_class_virtual.exe
 if errorlevel 1 exit /b 1
-release\xl.exe check examples\copy_clone.xl
+release\xl.exe check release\examples\copy_clone.xl
 if errorlevel 1 exit /b 1
-release\xl.exe run examples\class_persistence.xl
+release\xl.exe run release\examples\class_persistence.xl
 if errorlevel 1 exit /b 1
-release\xl.exe run examples\class_field_persistence_attrs.xl
+release\xl.exe run release\examples\class_field_persistence_attrs.xl
 if errorlevel 1 exit /b 1
 release\xl.exe check test\cases\sem_protocol_valid.xl
 if errorlevel 1 exit /b 1
@@ -1573,19 +1597,19 @@ if errorlevel 1 (
     echo sem_field_attr_bad_name.err.txt missing name option diagnostic.
     exit /b 1
 )
-release\xl.exe check examples\second_stage.xl
+release\xl.exe check release\examples\second_stage.xl
 if errorlevel 1 exit /b 1
-release\xl.exe run examples\second_stage.xl %XL6_XL_DEFAULT_LINK_ARGS%
+release\xl.exe run release\examples\second_stage.xl %XL6_XL_DEFAULT_LINK_ARGS%
 if errorlevel 1 exit /b 1
 
-release\xl.exe ir examples\hello.xl > release\tmp\hello.xlir
+release\xl.exe ir release\examples\hello.xl > release\tmp\hello.xlir
 if errorlevel 1 exit /b 1
 findstr /C:"func add(a: int, b: int) as int" release\tmp\hello.xlir >nul
 if errorlevel 1 (
     echo hello.xlir missing func signature.
     exit /b 1
 )
-release\xl.exe ir examples\hello.xl --json --emit release\tmp\hello.ir.json
+release\xl.exe ir release\examples\hello.xl --json --emit release\tmp\hello.ir.json
 if errorlevel 1 exit /b 1
 findstr /C:"stage" release\tmp\hello.ir.json >nul
 if errorlevel 1 (
@@ -2119,6 +2143,46 @@ if errorlevel 1 (
     echo sem_assign_type_mismatch.xl missing variable assignment type context.
     exit /b 1
 )
+release\xl.exe check test\cases\sem_numeric_narrowing_int.xl >nul 2> release\tmp\sem_numeric_narrowing_int.err.txt
+if not errorlevel 1 (
+    echo sem_numeric_narrowing_int.xl should fail.
+    exit /b 1
+)
+findstr /C:"target int8, value int64" release\tmp\sem_numeric_narrowing_int.err.txt >nul
+if errorlevel 1 (
+    echo sem_numeric_narrowing_int.xl missing numeric narrowing type context.
+    exit /b 1
+)
+release\xl.exe check test\cases\sem_numeric_signed_to_unsigned.xl >nul 2> release\tmp\sem_numeric_signed_to_unsigned.err.txt
+if not errorlevel 1 (
+    echo sem_numeric_signed_to_unsigned.xl should fail.
+    exit /b 1
+)
+findstr /C:"target uint16, value int8" release\tmp\sem_numeric_signed_to_unsigned.err.txt >nul
+if errorlevel 1 (
+    echo sem_numeric_signed_to_unsigned.xl missing signed to unsigned type context.
+    exit /b 1
+)
+release\xl.exe check test\cases\sem_numeric_int_to_float_implicit.xl >nul 2> release\tmp\sem_numeric_int_to_float_implicit.err.txt
+if not errorlevel 1 (
+    echo sem_numeric_int_to_float_implicit.xl should fail.
+    exit /b 1
+)
+findstr /C:"target float, value int" release\tmp\sem_numeric_int_to_float_implicit.err.txt >nul
+if errorlevel 1 (
+    echo sem_numeric_int_to_float_implicit.xl missing int to float type context.
+    exit /b 1
+)
+release\xl.exe check test\cases\sem_numeric_float_narrowing.xl >nul 2> release\tmp\sem_numeric_float_narrowing.err.txt
+if not errorlevel 1 (
+    echo sem_numeric_float_narrowing.xl should fail.
+    exit /b 1
+)
+findstr /C:"target float32, value float64" release\tmp\sem_numeric_float_narrowing.err.txt >nul
+if errorlevel 1 (
+    echo sem_numeric_float_narrowing.xl missing float narrowing type context.
+    exit /b 1
+)
 release\xl.exe check test\cases\sem_member_assign_type.xl >nul 2> release\tmp\sem_member_assign_type.err.txt
 if not errorlevel 1 (
     echo sem_member_assign_type.xl should fail.
@@ -2290,6 +2354,13 @@ if errorlevel 1 (
 "%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_primitive_widths.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_primitive_widths.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_primitive_widths.exe
+if errorlevel 1 exit /b 1
+
+release\xl.exe cgen test\cases\cgen_safe_widening.xl --emit release\tmp\cgen_safe_widening.c
+if errorlevel 1 exit /b 1
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_safe_widening.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_safe_widening.exe
+if errorlevel 1 exit /b 1
+release\tmp\cgen_safe_widening.exe
 if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_containers.xl --emit release\tmp\cgen_containers.c
@@ -8174,7 +8245,7 @@ if errorlevel 1 exit /b 1
 release\tmp\cgen_main_case_sensitive_script.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe build examples\feature_suite\09_c_export_abi.xl test\cases\build_mixed_host.c -o release\tmp\build_mixed_host.exe
+release\xl.exe build release\examples\feature_suite\09_c_export_abi.xl test\cases\build_mixed_host.c -o release\tmp\build_mixed_host.exe
 if errorlevel 1 exit /b 1
 release\tmp\build_mixed_host.exe
 if errorlevel 1 exit /b 1
@@ -8206,26 +8277,32 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe build examples\feature_suite\09_c_export_abi.xl test\cases\build_mixed_host.c test\cases\build_mixed_extra.c -o release\tmp\build_mixed_two_c.exe
+release\xl.exe build release\examples\feature_suite\09_c_export_abi.xl test\cases\build_mixed_host.c test\cases\build_mixed_extra.c -o release\tmp\build_mixed_two_c.exe
 if errorlevel 1 exit /b 1
 release\tmp\build_mixed_two_c.exe
 if errorlevel 1 exit /b 1
 
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$argsList=@('build','examples\feature_suite\09_c_export_abi.xl'); for($i=0;$i -lt 33;$i++){ $argsList += 'test\cases\build_mixed_extra.c' }; $argsList += @('-o','release\tmp\too_many_c.exe'); $p=Start-Process -FilePath 'release\xl.exe' -ArgumentList $argsList -NoNewWindow -PassThru -Wait -RedirectStandardOutput 'release\tmp\build_too_many_c.out.txt' -RedirectStandardError 'release\tmp\build_too_many_c.err.txt'; if($p.ExitCode -eq 0){exit 1}; if(-not (Select-String -Path 'release\tmp\build_too_many_c.err.txt' -SimpleMatch 'too many C source files')){exit 2}"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$argsList=@('build','release\examples\feature_suite\09_c_export_abi.xl'); for($i=0;$i -lt 33;$i++){ $argsList += 'test\cases\build_mixed_extra.c' }; $argsList += @('-o','release\tmp\too_many_c.exe'); $p=Start-Process -FilePath 'release\xl.exe' -ArgumentList $argsList -NoNewWindow -PassThru -Wait -RedirectStandardOutput 'release\tmp\build_too_many_c.out.txt' -RedirectStandardError 'release\tmp\build_too_many_c.err.txt'; if($p.ExitCode -eq 0){exit 1}; if(-not (Select-String -Path 'release\tmp\build_too_many_c.err.txt' -SimpleMatch 'too many C source files')){exit 2}"
 if errorlevel 1 (
     echo build too many C source diagnostic missing.
     exit /b 1
 )
 
-release\xl.exe build examples\feature_suite\09_c_export_abi.xl test\cases\build_mixed_host.c test\cases\build_mixed_extra.c --save-temps -o release\tmp\build_mixed_save_temps.exe > release\tmp\build_mixed_save_temps.log 2>&1
+release\xl.exe build release\examples\feature_suite\09_c_export_abi.xl test\cases\build_mixed_host.c test\cases\build_mixed_extra.c --save-temps -o release\tmp\build_mixed_save_temps.exe > release\tmp\build_mixed_save_temps.log 2>&1
 if errorlevel 1 exit /b 1
 release\tmp\build_mixed_save_temps.exe
 if errorlevel 1 exit /b 1
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$log=Get-Content 'release\tmp\build_mixed_save_temps.log' -Raw; $m=[regex]::Match($log,'temporary files kept:\s*(.+)'); if(-not $m.Success){exit 1}; $dir=$m.Groups[1].Value.Trim(); if(-not (Test-Path -LiteralPath $dir -PathType Container)){exit 2}; foreach($f in @('csrc_0.c','csrc_1.c')){$p=Join-Path $dir $f; if(-not (Test-Path -LiteralPath $p)){exit 3}; $t=Get-Content -LiteralPath $p -Raw; if($t -notmatch 'lib/xrt/xrt\.h'){exit 4}; if($t -notmatch 'module\.h'){exit 5}}; $t0=Get-Content -LiteralPath (Join-Path $dir 'csrc_0.c') -Raw; $t1=Get-Content -LiteralPath (Join-Path $dir 'csrc_1.c') -Raw; if($t0 -notmatch 'build_mixed_host\.c'){exit 6}; if($t1 -notmatch 'build_mixed_extra\.c'){exit 7}; Remove-Item -LiteralPath $dir -Recurse -Force"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$ErrorActionPreference='Stop'; $log=Get-Content 'release\tmp\build_mixed_save_temps.log' -Raw; $m=[regex]::Match($log,'temporary files kept:\s*(.+)'); if(-not $m.Success){exit 1}; $dir=$m.Groups[1].Value.Trim(); if(-not (Test-Path -LiteralPath $dir -PathType Container)){exit 2}; foreach($f in @('csrc_0.c','csrc_1.c')){$p=Join-Path $dir $f; if(-not (Test-Path -LiteralPath $p)){exit 3}; $t=Get-Content -LiteralPath $p -Raw; if($t -notmatch 'lib/xrt/xrt\.h'){exit 4}; if($t -notmatch 'module\.h'){exit 5}}; $t0=Get-Content -LiteralPath (Join-Path $dir 'csrc_0.c') -Raw; $t1=Get-Content -LiteralPath (Join-Path $dir 'csrc_1.c') -Raw; if($t0 -notmatch 'build_mixed_host\.c'){exit 6}; if($t1 -notmatch 'build_mixed_extra\.c'){exit 7}; Remove-Item -LiteralPath $dir -Recurse -Force -ErrorAction Stop"
 if errorlevel 1 (
     echo build save-temps wrapper check failed.
     exit /b 1
 )
+
+call tools\bootstrap_tcc.bat
+if errorlevel 1 exit /b 1
+
+call tools\build_xrt_obj.bat
+if errorlevel 1 exit /b 1
 
 release\xl.exe build test\cases\cgen_main_entry.xl -o release\tmp\explicit_xrt_link.exe --link %XL6_XRT_OBJ%
 if errorlevel 1 exit /b 1
@@ -8310,11 +8387,11 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe run examples\c_hello.xl > release\tmp\example_c_hello.out.txt
+release\xl.exe run release\examples\c_hello.xl > release\tmp\example_c_hello.out.txt
 if errorlevel 1 exit /b 1
 findstr /C:"hello from c" release\tmp\example_c_hello.out.txt >nul
 if errorlevel 1 (
-    echo examples\c_hello.xl did not run.
+    echo release\examples\c_hello.xl did not run.
     exit /b 1
 )
 
@@ -8785,7 +8862,7 @@ if errorlevel 1 exit /b 1
 release\tmp\export_alias_header_host.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe check examples\c_variables.xl
+release\xl.exe check release\examples\c_variables.xl
 if errorlevel 1 exit /b 1
 
 release\xl.exe ir test\cases\export_vars.xl --emit release\tmp\export_vars.xlir
@@ -8858,26 +8935,26 @@ if errorlevel 1 exit /b 1
 release\tmp\export_call.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe abi examples\c_export.xl --emit release\tmp\example_c_export.abi.txt
+release\xl.exe abi release\examples\c_export.xl --emit release\tmp\example_c_export.abi.txt
 if errorlevel 1 exit /b 1
 findstr /C:"export app_add_i64" release\tmp\example_c_export.abi.txt >nul
 if errorlevel 1 (
-    echo examples\c_export.xl ABI dump missing export.
+    echo release\examples\c_export.xl ABI dump missing export.
     exit /b 1
 )
 
-release\xl.exe cgen examples\class_c_export.xl --emit release\tmp\example_class_c_export.c --emit-header release\tmp\example_class_c_export.h
+release\xl.exe cgen release\examples\class_c_export.xl --emit release\tmp\example_class_c_export.c --emit-header release\tmp\example_class_c_export.h
 if errorlevel 1 exit /b 1
 findstr /C:"int64_t gauge_add(XL_Class_Gauge* self, int64_t delta);" release\tmp\example_class_c_export.h >nul
 if errorlevel 1 (
-    echo examples\class_c_export.xl header missing class method export.
+    echo release\examples\class_c_export.xl header missing class method export.
     exit /b 1
 )
-release\xl.exe abi examples\class_c_export.xl --emit release\tmp\example_class_c_export.abi.txt
+release\xl.exe abi release\examples\class_c_export.xl --emit release\tmp\example_class_c_export.abi.txt
 if errorlevel 1 exit /b 1
 findstr /C:"owner: Gauge" release\tmp\example_class_c_export.abi.txt >nul
 if errorlevel 1 (
-    echo examples\class_c_export.xl ABI dump missing class method owner.
+    echo release\examples\class_c_export.xl ABI dump missing class method owner.
     exit /b 1
 )
 
@@ -10429,6 +10506,11 @@ if errorlevel 1 (
     echo cgen_sync.c missing rwlock upgrade guard lowering.
     exit /b 1
 )
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_sync.c',[System.Text.Encoding]::UTF8); $checks=@('xrtRWLockWriteLock(__env->capturedRw)','xrtRWLockDowngrade(__env->capturedRw)','xrtRWLockReadUnlock(__env->capturedRw)','_make(capturedRw)','xrtThreadWaitTimeout(capturedRwThread, 2000LL) == 0','(int)xrtThreadGetExitCode(capturedRwThread) == 29LL','xrtRWLockTryWriteLock(capturedRw)','xrtRWLockWriteUnlock(capturedRw)'); foreach($p in $checks){ if($text.IndexOf($p) -lt 0){ Write-Host ('cgen_sync.c missing '+$p); exit 1 } }"
+if errorlevel 1 (
+    echo cgen_sync.c missing captured rwlock receiver guard lowering.
+    exit /b 1
+)
 findstr /C:"xl6_sync_require_handle(xrtMutexCreate()" release\tmp\cgen_sync.c >nul
 if errorlevel 1 (
     echo cgen_sync.c missing mutex constructor error guard.
@@ -10640,6 +10722,11 @@ if errorlevel 1 (
 powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_thread.c',[System.Text.Encoding]::UTF8); $checks=@('void* capturedReceiverThread = xl6_thread_require_handle(xl6_thread_start(xl6_fnvalue_worker_make(), 0','void* capturedReceiverThread;','xrtThreadWait(__env->capturedReceiverThread), true','(int)xrtThreadGetExitCode(__env->capturedReceiverThread)','XL6_Function threadJoiner = xl6_anon_','_make(capturedReceiverThread)'); foreach($p in $checks){ if($text.IndexOf($p) -lt 0){ Write-Host ('cgen_thread.c missing '+$p); exit 1 } }"
 if errorlevel 1 (
     echo cgen_thread.c missing captured thread receiver guard lowering.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_thread.c',[System.Text.Encoding]::UTF8); $checks=@('void* capturedTimedThread = xl6_thread_require_handle(xl6_thread_start(xl6_fnvalue_monitorSlowWorker_make(), 0','void* capturedStopThread = xl6_thread_require_handle(xl6_thread_start(xl6_fnvalue_slowWorker_make(), 0','_make(capturedTimedThread)','xrtThreadWaitTimeout(__env->capturedTimedThread, 0LL) == 0','xrtThreadGetState(__env->capturedTimedThread)','xrtThreadWaitTimeout(__env->capturedTimedThread, 2000LL) == 0','(int)xrtThreadGetExitCode(__env->capturedTimedThread)','_make(capturedStopThread)','xrtThreadStop(__env->capturedStopThread), true','xrtThreadWait(__env->capturedStopThread), true'); foreach($p in $checks){ if($text.IndexOf($p) -lt 0){ Write-Host ('cgen_thread.c missing '+$p); exit 1 } }"
+if errorlevel 1 (
+    echo cgen_thread.c missing captured thread waitTimeout/state/stop guard lowering.
     exit /b 1
 )
 
@@ -12433,14 +12520,19 @@ if errorlevel 1 (
     echo cgen_task_api.c should keep typed-array duplicate pending task.race source completed after race.
     exit /b 1
 )
-findstr /C:"xFutureForwardCancelTo(future, arg->groupFuture)" release\tmp\cgen_task_api.c >nul
+findstr /C:"groupFuture = xFutureAddRef(arg->groupFuture)" release\tmp\cgen_task_api.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c missing task.all cancel forwarding target addref.
+    exit /b 1
+)
+findstr /C:"xFutureForwardCancelTo(future, groupFuture)" release\tmp\cgen_task_api.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing task.all cancel forwarding hook.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_api.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'static xfuture\* xl6_task_all_start\([\s\S]*?if \( arg->groupFuture == 0 \) \{[\s\S]*?xl6_task_all_arg_release\(arg\);[\s\S]*?task\.all start failed' -or $text -notmatch 'static xfuture\* xl6_task_all_start\([\s\S]*?if \( future == 0 \) \{[\s\S]*?xl6_task_all_arg_release\(arg\);'){ exit 1 }; $idx=$text.IndexOf('else if ( !xFutureForwardCancelTo(future, arg->groupFuture) )'); if($idx -lt 0){exit 1}; $end=$text.IndexOf('return 0;', $idx); if($end -lt 0){exit 1}; $slice=$text.Substring($idx,$end-$idx); if($slice -notmatch 'xFutureRequestCancel\(future\)' -or $slice -notmatch 'xFutureRelease\(future\)' -or $slice -match 'xl6_task_all_arg_release\(arg\)'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_api.c',[System.Text.Encoding]::UTF8); $start=$text.IndexOf('static xfuture* xl6_task_all_start('); if($start -lt 0){exit 1}; $end=$text.IndexOf('static xfuture* xl6_task_race_start(', $start); if($end -lt 0){exit 1}; $slice=$text.Substring($start,$end-$start); $checks=@('xfuture* groupFuture;','groupFuture = xFutureAddRef(arg->groupFuture);','if ( future == 0 ) {','xFutureRelease(groupFuture);','else if ( !xFutureForwardCancelTo(future, groupFuture) )','xFutureRequestCancel(future)','xFutureRelease(future)','} else {'); foreach($c in $checks){ if($slice.IndexOf($c) -lt 0){ exit 1 } }; if($slice -notmatch 'if \( arg->groupFuture == 0 \) \{[\s\S]*?xl6_task_all_arg_release\(arg\);[\s\S]*?task\.all start failed'){ exit 1 }; $idx=$slice.IndexOf('else if ( !xFutureForwardCancelTo(future, groupFuture) )'); $ret=$slice.IndexOf('return 0;', $idx); if($idx -lt 0 -or $ret -lt 0){exit 1}; $fail=$slice.Substring($idx,$ret-$idx); if($fail.IndexOf('xl6_task_all_arg_release(arg)') -ge 0){ exit 1 }"
 if errorlevel 1 (
-    echo cgen_task_api.c missing task.all start/cancel-forwarding failure cleanup.
+    echo cgen_task_api.c missing task.all start/cancel-forwarding lifecycle guard.
     exit /b 1
 )
 findstr /C:"cancelAllGroup = xl6_task_all_values(xrtTypeInt()" release\tmp\cgen_task_api.c >nul
@@ -14965,6 +15057,40 @@ if errorlevel 1 exit /b 1
 powershell -NoProfile -ExecutionPolicy Bypass -Command "$exe=(Resolve-Path 'release\tmp\cgen_task_api.exe').Path; for($i=1;$i -le 4;$i++){ $psi=[System.Diagnostics.ProcessStartInfo]::new(); $psi.FileName=$exe; $psi.WorkingDirectory=(Get-Location).Path; $psi.UseShellExecute=$false; $p=[System.Diagnostics.Process]::Start($psi); if(-not $p.WaitForExit(120000)){ try{$p.Kill()}catch{}; Write-Host ('cgen_task_api.exe run '+$i+' timed out.'); exit 124 }; $code=$p.ExitCode; $p.Dispose(); if($code -ne 0){ Write-Host ('cgen_task_api.exe run '+$i+' failed.'); exit $code } }"
 if errorlevel 1 exit /b 1
 
+release\xl.exe check test\cases\cgen_task_spawn_range_contains.xl
+if errorlevel 1 exit /b 1
+release\xl.exe run test\cases\cgen_task_spawn_range_contains.xl
+if errorlevel 1 exit /b 1
+release\xl.exe cgen test\cases\cgen_task_spawn_range_contains.xl --emit release\tmp\cgen_task_spawn_range_contains.c
+if errorlevel 1 exit /b 1
+findstr /C:"xl6_range_contains_i64" release\tmp\cgen_task_spawn_range_contains.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn_range_contains.c missing range contains helper.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn_range_contains.c',[System.Text.Encoding]::UTF8); if($text -notmatch '__xl6_task_arg_[\s\S]*?makeSpawnValue\(0LL\)[\s\S]*?xl6_task_spawn_values\(varArgJob,[\s\S]*?__xl6_task_arg_' -or $text -notmatch 'makeSpawnValue\(2LL\)[\s\S]*?makeSpawnValue\(1LL\)[\s\S]*?xl6_task_spawn_values\(varArgJob,[\s\S]*?__xl6_task_arg_' -or $text -notmatch 'xl6_xrt_retain\(emptySpawnArg\)[\s\S]*?makeSpawnValue\(0LL\)[\s\S]*?xl6_task_spawn_values\(varArgJob,[\s\S]*?__xl6_task_arg_' -or $text -notmatch 'rangeContainsDynamic\s*=\s*xl6_range_contains_i64'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_spawn_range_contains.c missing lowered range-contains task.spawn arguments.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\cgen_task_spawn_fstring.xl
+if errorlevel 1 exit /b 1
+release\xl.exe run test\cases\cgen_task_spawn_fstring.xl
+if errorlevel 1 exit /b 1
+release\xl.exe cgen test\cases\cgen_task_spawn_fstring.xl --emit release\tmp\cgen_task_spawn_fstring.c
+if errorlevel 1 exit /b 1
+findstr /C:"xl6_xrt_fstr_join" release\tmp\cgen_task_spawn_fstring.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn_fstring.c missing f-string join helper.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn_fstring.c',[System.Text.Encoding]::UTF8); if($text -notmatch '__xl6_task_arg_[\s\S]*?makeSpawnValue\(40LL\)[\s\S]*?xl6_task_spawn_values\(varArgJob,[\s\S]*?__xl6_task_arg_' -or $text -notmatch 'fstringDynamicSpawn\s*=\s*xl6_xrt_fstr_join'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_spawn_fstring.c missing lowered f-string task.spawn argument.
+    exit /b 1
+)
+
 release\xl.exe check test\cases\cgen_task_spawn.xl
 if errorlevel 1 exit /b 1
 
@@ -17476,6 +17602,41 @@ if errorlevel 1 (
     echo cgen_task_spawn.c missing lowered yield-expression task.spawn argument.
     exit /b 1
 )
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); $idx=$text.IndexOf('rangeDynamicSpawnTotal'); if($idx -lt 0){exit 1}; $rangeIdx=$text.IndexOf('long long __xl6_range_start_', $idx); if($rangeIdx -lt 0){exit 1}; $start=[Math]::Max($idx, $rangeIdx-4000); $slice=$text.Substring($start,[Math]::Min(40000,$text.Length-$start)); if($slice -notmatch '__xl6_task_arg_[\s\S]*?makeSpawnValue\(0LL\)[\s\S]*?long long __xl6_range_start_\d+\s*=\s*xl6_future_await_i64_release\(xl6_task_spawn_values\(varArgJob,[\s\S]*?__xl6_task_arg_' -or $slice -notmatch 'makeSpawnValue\(2LL\)[\s\S]*?makeSpawnValue\(1LL\)[\s\S]*?long long __xl6_range_stop_\d+\s*=\s*xl6_future_await_i64_release\(xl6_task_spawn_values\(varArgJob,[\s\S]*?__xl6_task_arg_' -or $slice -notmatch 'xl6_xrt_retain\(emptySpawnArg\)[\s\S]*?makeSpawnValue\(0LL\)[\s\S]*?long long __xl6_range_step_\d+\s*=\s*xl6_future_await_i64_release\(xl6_task_spawn_values\(varArgJob,[\s\S]*?__xl6_task_arg_' -or $slice -notmatch 'for \(long long __xl6_range_value_\d+ = __xl6_range_start_\d+;[\s\S]*?rangeDynamicSpawnTotal = \(rangeDynamicSpawnTotal \+ i\);'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing lowered range-boundary task.spawn arguments.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); $idx=$text.IndexOf('indexDynamicSpawnRead'); if($idx -lt 0){exit 1}; $slice=$text.Substring($idx,[Math]::Min(6000,$text.Length-$idx)); if($slice -notmatch '__xl6_task_arg_' -or $slice -notmatch 'xl6_xrt_typed_array_get_at\(indexDynamicSpawnValues' -or $slice -notmatch 'xl6_task_spawn_values\(varArgJob,[\s\S]*?__xl6_task_arg_'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing lowered index-read task.spawn argument.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); $idx=$text.IndexOf('safeIndexDynamicSpawnRead'); if($idx -lt 0){exit 1}; $slice=$text.Substring($idx,[Math]::Min(6000,$text.Length-$idx)); if($slice -notmatch '__xl6_task_arg_' -or $slice -notmatch 'xl6_xrt_typed_box_or_null\(xrtTypeInt\(\), xl6_xrt_typed_array_get_at\(indexDynamicSpawnValues' -or $slice -notmatch 'xl6_task_spawn_values\(varArgJob,[\s\S]*?__xl6_task_arg_' -or $slice -notmatch 'xl6_xrt_value_to_i64_release'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing lowered safe-index-read task.spawn argument.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); $idx=$text.IndexOf('safeIndexDynamicSpawnFallback'); if($idx -lt 0){exit 1}; $slice=$text.Substring($idx,[Math]::Min(7000,$text.Length-$idx)); if($slice -notmatch '__xl6_task_arg_' -or $slice -notmatch 'xl6_xrt_typed_box_or_null\(xrtTypeInt\(\), xl6_xrt_typed_array_get_at\(indexDynamicSpawnValues' -or $slice -notmatch 'xvoIsNull\(__xl6_nc_' -or $slice -notmatch 'xvoCreateInt\(\(long long\)\(88LL\)\)' -or $slice -notmatch 'xl6_xrt_value_to_i64_release\(__xl6_call_value_'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing lowered safe-index fallback task.spawn argument.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); $idx=$text.IndexOf('iterableDynamicSpawnArrayTotal'); if($idx -lt 0){exit 1}; $slice=$text.Substring($idx,[Math]::Min(120000,$text.Length-$idx)); $checks=@('__xl6_task_arg_','makeSpawnValue(2LL)','makeDynamicSpawnArray(xl6_future_await_i64_release(xl6_task_spawn_values(varArgJob','xtarray __xl6_typed_iter_'); foreach($p in $checks){ if($slice.IndexOf($p) -lt 0){ exit 1 } }"
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing lowered typed-container iterable task.spawn argument.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); $idx=$text.IndexOf('iterableDynamicSpawnGeneratorTotal'); if($idx -lt 0){exit 1}; $slice=$text.Substring($idx,[Math]::Min(120000,$text.Length-$idx)); $checks=@('__xl6_task_arg_','xl6_xrt_basic_binary','makeDynamicSpawnGenerator(xl6_future_await_i64_release(xl6_task_spawn_values(varArgJob','XL6_Generator* __xl6_gen_iter_'); foreach($p in $checks){ if($slice.IndexOf($p) -lt 0){ exit 1 } }"
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing lowered generator iterable task.spawn argument.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); $idx=$text.IndexOf('xl6_xrt_typed_array_set_at(indexDynamicSpawnValues'); if($idx -lt 0){exit 1}; $start=[Math]::Max(0,$idx-2000); $slice=$text.Substring($start,[Math]::Min(6000,$text.Length-$start)); if($slice -notmatch '__xl6_task_arg_' -or $slice -notmatch 'xvoCreateInt\(\(long long\)\(77LL\)\)' -or $slice -notmatch 'xl6_task_spawn_values\(varArgJob,[\s\S]*?__xl6_task_arg_' -or $slice -notmatch '__xl6_index_assign_'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing lowered index-write-target task.spawn argument.
+    exit /b 1
+)
 powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'typedDynamicSpawnAllJobs[\s\S]*?__xl6_task_arg_[\s\S]*?xrtTypedArrayAppend\(typedDynamicSpawnAllJobs'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_spawn.c missing lowered typed-array task.all task.spawn argument.
@@ -19840,6 +20001,11 @@ if errorlevel 1 (
     echo cgen_channel.c missing blocking channel wakeup guard lowering.
     exit /b 1
 )
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('release\tmp\cgen_channel.c',[System.Text.Encoding]::UTF8); $checks=@('xchannel nonblockingTryThreadCh = xl6_channel_require_handle(xrtChannelCreate(1LL)','xl6_channel_recv_into(__env->nonblockingTryThreadCh, &got, sizeof(long long), 0','(int)xrtThreadGetExitCode(nonblockingTryThread) == 31LL','xl6_channel_send_value(nonblockingTryThreadCh, &(long long){42LL}, sizeof(long long)','xl6_channel_recv_into(nonblockingTryThreadCh, &nonblockingTryLater, sizeof(long long), 1','xrtChannelClose(nonblockingTryThreadCh)'); foreach($p in $checks){ if($text.IndexOf($p) -lt 0){ Write-Host ('cgen_channel.c missing '+$p); exit 1 } }"
+if errorlevel 1 (
+    echo cgen_channel.c missing captured tryRecvInto nonblocking guard lowering.
+    exit /b 1
+)
 
 release\xl.exe check test\cases\sem_channel_string_element.xl >nul 2> release\tmp\sem_channel_string_element.err.txt
 if not errorlevel 1 (
@@ -19962,6 +20128,17 @@ if errorlevel 1 (
     exit /b 1
 )
 
+release\xl.exe check test\cases\sem_channel_try_recv_named_argument.xl >nul 2> release\tmp\sem_channel_try_recv_named_argument.err.txt
+if not errorlevel 1 (
+    echo sem_channel_try_recv_named_argument.xl should fail.
+    exit /b 1
+)
+findstr /C:"channel.tryRecvInto" release\tmp\sem_channel_try_recv_named_argument.err.txt >nul
+if errorlevel 1 (
+    echo sem_channel_try_recv_named_argument.xl missing channel tryRecvInto named argument diagnostic.
+    exit /b 1
+)
+
 release\xl.exe check test\cases\sem_channel_unknown_method.xl >nul 2> release\tmp\sem_channel_unknown_method.err.txt
 if not errorlevel 1 (
     echo sem_channel_unknown_method.xl should fail.
@@ -19995,6 +20172,22 @@ if errorlevel 1 (
     exit /b 1
 )
 
+release\xl.exe check test\cases\sem_channel_try_recv_target_type.xl >nul 2> release\tmp\sem_channel_try_recv_target_type.err.txt
+if not errorlevel 1 (
+    echo sem_channel_try_recv_target_type.xl should fail.
+    exit /b 1
+)
+findstr /C:"channel.tryRecvInto" release\tmp\sem_channel_try_recv_target_type.err.txt >nul
+if errorlevel 1 (
+    echo sem_channel_try_recv_target_type.xl missing channel tryRecvInto target type method.
+    exit /b 1
+)
+findstr /C:"target int, value float" release\tmp\sem_channel_try_recv_target_type.err.txt >nul
+if errorlevel 1 (
+    echo sem_channel_try_recv_target_type.xl missing channel tryRecvInto target type context.
+    exit /b 1
+)
+
 release\xl.exe check test\cases\sem_channel_recv_captured_target.xl >nul 2> release\tmp\sem_channel_recv_captured_target.err.txt
 if not errorlevel 1 (
     echo sem_channel_recv_captured_target.xl should fail.
@@ -20006,6 +20199,17 @@ if errorlevel 1 (
     exit /b 1
 )
 
+release\xl.exe check test\cases\sem_channel_try_recv_captured_target.xl >nul 2> release\tmp\sem_channel_try_recv_captured_target.err.txt
+if not errorlevel 1 (
+    echo sem_channel_try_recv_captured_target.xl should fail.
+    exit /b 1
+)
+findstr /C:"[sem]" release\tmp\sem_channel_try_recv_captured_target.err.txt >nul
+if errorlevel 1 (
+    echo sem_channel_try_recv_captured_target.xl missing semantic diagnostic.
+    exit /b 1
+)
+
 release\xl.exe check test\cases\sem_channel_recv_const_target.xl >nul 2> release\tmp\sem_channel_recv_const_target.err.txt
 if not errorlevel 1 (
     echo sem_channel_recv_const_target.xl should fail.
@@ -20014,6 +20218,17 @@ if not errorlevel 1 (
 findstr /C:"const" release\tmp\sem_channel_recv_const_target.err.txt >nul
 if errorlevel 1 (
     echo sem_channel_recv_const_target.xl missing const target diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_channel_try_recv_const_target.xl >nul 2> release\tmp\sem_channel_try_recv_const_target.err.txt
+if not errorlevel 1 (
+    echo sem_channel_try_recv_const_target.xl should fail.
+    exit /b 1
+)
+findstr /C:"const" release\tmp\sem_channel_try_recv_const_target.err.txt >nul
+if errorlevel 1 (
+    echo sem_channel_try_recv_const_target.xl missing const target diagnostic.
     exit /b 1
 )
 

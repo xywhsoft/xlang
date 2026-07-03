@@ -126,6 +126,15 @@ async func makeTypedDynamicSpawnAwaitValues(func(var) as int job, var fallback) 
     ]
 end
 
+func makeDynamicSpawnArray(int value) as array<int>
+    return array[value, value + 1]
+end
+
+func makeDynamicSpawnGenerator(int value) as generator<int>
+    yield value
+    yield value + 1
+end
+
 func spawnCancelReturnDynamic(func(var) as int job) as bool
     return task.cancel(task.spawn(job, true ? makeSpawnValue(61) : makeSpawnValue(0)))
 end
@@ -1437,6 +1446,34 @@ do
     doDynamicSpawnCount = doDynamicSpawnCount + 1
 while doDynamicSpawnCount < 2 and await task.spawn(varArgJob, makeSpawnValue(0) + makeSpawnValue(0)) == 1
 assert doDynamicSpawnCount == 2, "task.spawn dynamic var argument should lower inside do while conditions"
+int rangeDynamicSpawnTotal = 0
+for i in range(
+    await task.spawn(varArgJob, true ? makeSpawnValue(0) : makeSpawnValue(9)),
+    await task.spawn(varArgJob, makeSpawnValue(2) + makeSpawnValue(1)),
+    await task.spawn(varArgJob, emptySpawnArg ?? makeSpawnValue(0))
+)
+    rangeDynamicSpawnTotal = rangeDynamicSpawnTotal + i
+end
+assert rangeDynamicSpawnTotal == 6, "task.spawn dynamic var argument should lower inside range boundaries"
+array<int> indexDynamicSpawnValues = array[10, 20, 30]
+int indexDynamicSpawnRead = indexDynamicSpawnValues[await task.spawn(varArgJob, true ? makeSpawnValue(1) : makeSpawnValue(0))]
+assert indexDynamicSpawnRead == 30, "task.spawn dynamic var argument should lower inside index read"
+indexDynamicSpawnValues[await task.spawn(varArgJob, true ? makeSpawnValue(0) : makeSpawnValue(9))] = 77
+assert indexDynamicSpawnValues[1] == 77, "task.spawn dynamic var argument should lower inside index write target"
+int safeIndexDynamicSpawnRead = int(indexDynamicSpawnValues?[await task.spawn(varArgJob, true ? makeSpawnValue(1) : makeSpawnValue(0))])
+assert safeIndexDynamicSpawnRead == 30, "task.spawn dynamic var argument should lower inside safe index read"
+int safeIndexDynamicSpawnFallback = int(indexDynamicSpawnValues?[await task.spawn(varArgJob, true ? makeSpawnValue(8) : makeSpawnValue(0))] ?? 88)
+assert safeIndexDynamicSpawnFallback == 88, "task.spawn dynamic var argument should lower inside missing safe index read"
+int iterableDynamicSpawnArrayTotal = 0
+for item in makeDynamicSpawnArray(await task.spawn(varArgJob, true ? makeSpawnValue(2) : makeSpawnValue(0)))
+    iterableDynamicSpawnArrayTotal = iterableDynamicSpawnArrayTotal + item
+end
+assert iterableDynamicSpawnArrayTotal == 7, "task.spawn dynamic var argument should lower inside typed container iterable"
+int iterableDynamicSpawnGeneratorTotal = 0
+for item in makeDynamicSpawnGenerator(await task.spawn(varArgJob, makeSpawnValue(3) + makeSpawnValue(0)))
+    iterableDynamicSpawnGeneratorTotal = iterableDynamicSpawnGeneratorTotal + item
+end
+assert iterableDynamicSpawnGeneratorTotal == 9, "task.spawn dynamic var argument should lower inside generator iterable"
 bool returnedDynamicSpawnCancel = spawnCancelReturnDynamic(varArgJob)
 assert returnedDynamicSpawnCancel == true or returnedDynamicSpawnCancel == false, "task.spawn dynamic var argument should lower in return statements"
 future<int> assignedDynamicSpawn

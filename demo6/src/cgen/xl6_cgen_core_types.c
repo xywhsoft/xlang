@@ -56,6 +56,256 @@ static int xl6CgenIsBoolTypeName(const char* name)
     return xl6CTextEquals(name, "bool") || xl6CTextEquals(name, "c_bool");
 }
 
+typedef struct XL6_CgenIntTypeInfo {
+    int bits;
+    int isSigned;
+} XL6_CgenIntTypeInfo;
+
+static int xl6CgenIntTypeInfo(const char* name, XL6_CgenIntTypeInfo* outInfo)
+{
+    XL6_CgenIntTypeInfo info;
+
+    if ( name == NULL ) {
+        return 0;
+    }
+    info.bits = 0;
+    info.isSigned = 1;
+    if ( xl6CTextEquals(name, "int") || xl6CTextEquals(name, "int64") ) {
+        info.bits = 64;
+        info.isSigned = 1;
+    } else if ( xl6CTextEquals(name, "uint64") ) {
+        info.bits = 64;
+        info.isSigned = 0;
+    } else if ( xl6CTextEquals(name, "int8") ) {
+        info.bits = 8;
+        info.isSigned = 1;
+    } else if ( xl6CTextEquals(name, "uint8") ) {
+        info.bits = 8;
+        info.isSigned = 0;
+    } else if ( xl6CTextEquals(name, "int16") ) {
+        info.bits = 16;
+        info.isSigned = 1;
+    } else if ( xl6CTextEquals(name, "uint16") ) {
+        info.bits = 16;
+        info.isSigned = 0;
+    } else if ( xl6CTextEquals(name, "int32") ) {
+        info.bits = 32;
+        info.isSigned = 1;
+    } else if ( xl6CTextEquals(name, "uint32") ) {
+        info.bits = 32;
+        info.isSigned = 0;
+    } else if ( xl6CTextEquals(name, "c_char") ) {
+        info.bits = (int)(sizeof(char) * CHAR_BIT);
+        info.isSigned = (CHAR_MIN < 0);
+    } else if ( xl6CTextEquals(name, "c_schar") ) {
+        info.bits = (int)(sizeof(signed char) * CHAR_BIT);
+        info.isSigned = 1;
+    } else if ( xl6CTextEquals(name, "c_uchar") ) {
+        info.bits = (int)(sizeof(unsigned char) * CHAR_BIT);
+        info.isSigned = 0;
+    } else if ( xl6CTextEquals(name, "c_short") ) {
+        info.bits = (int)(sizeof(short) * CHAR_BIT);
+        info.isSigned = 1;
+    } else if ( xl6CTextEquals(name, "c_ushort") ) {
+        info.bits = (int)(sizeof(unsigned short) * CHAR_BIT);
+        info.isSigned = 0;
+    } else if ( xl6CTextEquals(name, "c_int") ) {
+        info.bits = (int)(sizeof(int) * CHAR_BIT);
+        info.isSigned = 1;
+    } else if ( xl6CTextEquals(name, "c_uint") ) {
+        info.bits = (int)(sizeof(unsigned int) * CHAR_BIT);
+        info.isSigned = 0;
+    } else if ( xl6CTextEquals(name, "c_long") ) {
+        info.bits = (int)(sizeof(long) * CHAR_BIT);
+        info.isSigned = 1;
+    } else if ( xl6CTextEquals(name, "c_ulong") ) {
+        info.bits = (int)(sizeof(unsigned long) * CHAR_BIT);
+        info.isSigned = 0;
+    } else if ( xl6CTextEquals(name, "c_longlong") ) {
+        info.bits = (int)(sizeof(long long) * CHAR_BIT);
+        info.isSigned = 1;
+    } else if ( xl6CTextEquals(name, "c_ulonglong") ) {
+        info.bits = (int)(sizeof(unsigned long long) * CHAR_BIT);
+        info.isSigned = 0;
+    } else if ( xl6CTextEquals(name, "c_size") || xl6CTextEquals(name, "c_uintptr") ) {
+        info.bits = (int)(sizeof(size_t) * CHAR_BIT);
+        info.isSigned = 0;
+    } else if ( xl6CTextEquals(name, "c_ssize") || xl6CTextEquals(name, "c_ptrdiff") || xl6CTextEquals(name, "c_intptr") ) {
+        info.bits = (int)(sizeof(size_t) * CHAR_BIT);
+        info.isSigned = 1;
+    } else if ( xl6CTextEquals(name, "c_wchar") ) {
+        info.bits = (int)(sizeof(wchar_t) * CHAR_BIT);
+        info.isSigned = ((wchar_t)-1) < (wchar_t)0;
+    } else {
+        return 0;
+    }
+    if ( outInfo != NULL ) {
+        *outInfo = info;
+    }
+    return info.bits > 0;
+}
+
+static int xl6CgenFloatTypeBits(const char* name)
+{
+    if ( xl6CTextEquals(name, "float32") || xl6CTextEquals(name, "c_float") ) {
+        return 32;
+    }
+    if ( xl6CTextEquals(name, "float") || xl6CTextEquals(name, "float64") || xl6CTextEquals(name, "c_double") ) {
+        return 64;
+    }
+    return 0;
+}
+
+static int xl6CgenLiteralDigitValue(char ch)
+{
+    if ( ch >= '0' && ch <= '9' ) {
+        return ch - '0';
+    }
+    if ( ch >= 'a' && ch <= 'f' ) {
+        return ch - 'a' + 10;
+    }
+    if ( ch >= 'A' && ch <= 'F' ) {
+        return ch - 'A' + 10;
+    }
+    return -1;
+}
+
+static int xl6CgenParseUIntLiteralText(const char* text, uint64* outValue)
+{
+    const char* p;
+    int base;
+    uint64 value;
+
+    if ( text == NULL || text[0] == '\0' ) {
+        return 0;
+    }
+    p = text;
+    base = 10;
+    if ( p[0] == '0' && p[1] == 'x' ) {
+        base = 16;
+        p += 2;
+    } else if ( p[0] == '0' && p[1] == 'o' ) {
+        base = 8;
+        p += 2;
+    } else if ( p[0] == '0' && p[1] == 'b' ) {
+        base = 2;
+        p += 2;
+    }
+
+    value = 0;
+    while ( *p != '\0' ) {
+        int digit;
+
+        if ( *p == '_' ) {
+            ++p;
+            continue;
+        }
+        digit = xl6CgenLiteralDigitValue(*p);
+        if ( digit < 0 || digit >= base || value > (~(uint64)0 - (uint64)digit) / (uint64)base ) {
+            return 0;
+        }
+        value = value * (uint64)base + (uint64)digit;
+        ++p;
+    }
+    if ( outValue != NULL ) {
+        *outValue = value;
+    }
+    return 1;
+}
+
+static int xl6CgenExprIntegerLiteralValue(const XL6_AstNode* expr, uint64* outMagnitude, int* outNegative)
+{
+    const XL6_AstNode* valueNode;
+    int negative;
+
+    if ( expr == NULL ) {
+        return 0;
+    }
+    valueNode = expr;
+    negative = 0;
+    if ( expr->kind == XL6_AST_UNARY && expr->childCount == 1 &&
+         (xl6CTextEquals(expr->text, "-") || xl6CTextEquals(expr->text, "+")) ) {
+        negative = xl6CTextEquals(expr->text, "-");
+        valueNode = expr->children[0];
+    }
+    if ( valueNode == NULL || valueNode->kind != XL6_AST_INT ) {
+        return 0;
+    }
+    if ( !xl6CgenParseUIntLiteralText(valueNode->text, outMagnitude) ) {
+        return 0;
+    }
+    if ( outNegative != NULL ) {
+        *outNegative = negative;
+    }
+    return 1;
+}
+
+static uint64 xl6CgenUnsignedMaxForBits(int bits)
+{
+    if ( bits >= 64 ) {
+        return ~(uint64)0;
+    }
+    return (((uint64)1) << bits) - 1;
+}
+
+static int xl6CgenExprIntegerLiteralFitsType(const XL6_AstNode* expr, const char* targetType)
+{
+    XL6_CgenIntTypeInfo info;
+    uint64 magnitude;
+    int negative;
+
+    if ( !xl6CgenIntTypeInfo(targetType, &info) ||
+         !xl6CgenExprIntegerLiteralValue(expr, &magnitude, &negative) ) {
+        return 0;
+    }
+    if ( info.isSigned ) {
+        uint64 positiveMax = info.bits >= 64 ? 0x7fffffffffffffffULL : ((((uint64)1) << (info.bits - 1)) - 1);
+        uint64 negativeMax = info.bits >= 64 ? 0x8000000000000000ULL : (((uint64)1) << (info.bits - 1));
+        return negative ? magnitude <= negativeMax : magnitude <= positiveMax;
+    }
+    return !negative && magnitude <= xl6CgenUnsignedMaxForBits(info.bits);
+}
+
+static int xl6CgenCanSafeWidenTypeName(const char* source, const char* target)
+{
+    XL6_CgenIntTypeInfo srcInt;
+    XL6_CgenIntTypeInfo dstInt;
+    int srcFloatBits;
+    int dstFloatBits;
+
+    if ( source == NULL || target == NULL ) {
+        return 0;
+    }
+    if ( xl6CTextEquals(source, target) ) {
+        return 1;
+    }
+    if ( xl6CgenIsBoolTypeName(source) && xl6CgenIsBoolTypeName(target) ) {
+        return 1;
+    }
+    if ( xl6CgenIsBoolTypeName(source) &&
+         (xl6CgenIntTypeInfo(target, NULL) || xl6CgenFloatTypeBits(target) > 0) ) {
+        return 1;
+    }
+    if ( xl6CgenIntTypeInfo(source, &srcInt) && xl6CgenIntTypeInfo(target, &dstInt) ) {
+        if ( srcInt.isSigned && dstInt.isSigned ) {
+            return dstInt.bits >= srcInt.bits;
+        }
+        if ( !srcInt.isSigned && !dstInt.isSigned ) {
+            return dstInt.bits >= srcInt.bits;
+        }
+        if ( !srcInt.isSigned && dstInt.isSigned ) {
+            return dstInt.bits > srcInt.bits;
+        }
+        return 0;
+    }
+    srcFloatBits = xl6CgenFloatTypeBits(source);
+    dstFloatBits = xl6CgenFloatTypeBits(target);
+    if ( srcFloatBits > 0 && dstFloatBits > 0 ) {
+        return dstFloatBits >= srcFloatBits;
+    }
+    return 0;
+}
+
 static int xl6CgenIsLanguageBoolType(XL6_CgenContext* ctx, const XL6_AstNode* typeNode)
 {
     const XL6_AstNode* concreteType;

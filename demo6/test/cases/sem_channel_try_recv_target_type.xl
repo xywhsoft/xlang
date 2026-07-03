@@ -1,0 +1,3 @@
+channel<int> ch = channel::<int>(1)
+float value = 0.0
+bool ok = ch.tryRecvInto(value)

@@ -1,3 +1,0 @@
-export "app_add_i64" func add(int a, int b) as int
-    return a + b
-end

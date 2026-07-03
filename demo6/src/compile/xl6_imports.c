@@ -780,6 +780,16 @@ static char* xl6ImportsMakeInternalName(const char* ns, const char* name)
     return out;
 }
 
+static int xl6ImportsIsWrapperSymbol(const char* symbol)
+{
+    static const char prefix[] = "__xl6_import_";
+
+    if ( symbol == NULL ) {
+        return 0;
+    }
+    return strncmp(symbol, prefix, sizeof(prefix) - 1) == 0;
+}
+
 static int xl6ImportsRangeEquals(const char* text, size_t len, const char* value)
 {
     return text != NULL && value != NULL && strlen(value) == len && strncmp(text, value, len) == 0;
@@ -1119,7 +1129,19 @@ static int xl6ImportsAppendXapiDecls(
         supported = (!emitDecls && xl6ImportsTextEquals(item->kind, "function")) ||
                     xl6ImportsFunctionCanEnterExtern(item) ||
                     (xl6ImportsTextEquals(item->kind, "var") && item->type != NULL);
-        internalName = supported ? xl6ImportsMakeInternalName(ns, item->name) : xl6ImportsDupText("");
+        /*
+            包源码可以声明自己的 xlang 包装入口，例如 COM 包使用
+            __xl6_import_x_com_create。这里只信任 __xl6_import_ 前缀，
+            避免把普通 C 符号直接暴露给用户代码而绕过包装层。
+        */
+        if ( supported &&
+             !emitDecls &&
+             xl6ImportsTextEquals(item->kind, "function") &&
+             xl6ImportsIsWrapperSymbol(item->cSymbol) ) {
+            internalName = xl6ImportsDupText(item->cSymbol);
+        } else {
+            internalName = supported ? xl6ImportsMakeInternalName(ns, item->name) : xl6ImportsDupText("");
+        }
         if ( internalName == NULL ) {
             return 0;
         }

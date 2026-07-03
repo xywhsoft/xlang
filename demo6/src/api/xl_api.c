@@ -258,6 +258,168 @@ static int xlPathIsAbsolute(const char* path)
 #endif
 }
 
+static int xlCopyToBuffer(char* out, size_t outSize, const char* text)
+{
+    size_t len;
+
+    if ( out == NULL || outSize == 0 || text == NULL ) {
+        return 0;
+    }
+    len = strlen(text);
+    if ( len >= outSize ) {
+        return 0;
+    }
+    memcpy(out, text, len + 1u);
+    return 1;
+}
+
+static const char* xlBaseName(const char* path)
+{
+    const char* base;
+    const char* p;
+
+    base = path != NULL ? path : "";
+    for ( p = base; *p != '\0'; ++p ) {
+        if ( *p == '\\' || *p == '/' || *p == ':' ) {
+            base = p + 1;
+        }
+    }
+    return base;
+}
+
+static int xlTextEqualsNoCase(const char* a, const char* b)
+{
+    size_t i;
+
+    if ( a == NULL || b == NULL ) {
+        return 0;
+    }
+    for ( i = 0; a[i] != '\0' || b[i] != '\0'; ++i ) {
+        char ca = a[i];
+        char cb = b[i];
+        if ( ca >= 'A' && ca <= 'Z' ) {
+            ca = (char)(ca - 'A' + 'a');
+        }
+        if ( cb >= 'A' && cb <= 'Z' ) {
+            cb = (char)(cb - 'A' + 'a');
+        }
+        if ( ca != cb ) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
+static void xlDirName(char* out, size_t outSize, const char* path)
+{
+    const char* p;
+    const char* lastSep;
+    size_t len;
+
+    if ( out == NULL || outSize == 0 ) {
+        return;
+    }
+    out[0] = '\0';
+    if ( path == NULL || path[0] == '\0' ) {
+        return;
+    }
+    lastSep = NULL;
+    for ( p = path; *p != '\0'; ++p ) {
+        if ( *p == '\\' || *p == '/' || *p == ':' ) {
+            lastSep = p;
+        }
+    }
+    if ( lastSep == NULL ) {
+        return;
+    }
+    len = (size_t)(lastSep - path);
+    if ( *lastSep == ':' ) {
+        len += 1u;
+    }
+    if ( len >= outSize ) {
+        len = outSize - 1u;
+    }
+    memcpy(out, path, len);
+    out[len] = '\0';
+}
+
+static int xlJoinPathBuffer(char* out, size_t outSize, const char* dir, const char* name)
+{
+    const char* sep;
+    size_t len;
+    int written;
+
+    if ( out == NULL || outSize == 0 || dir == NULL || name == NULL ) {
+        return 0;
+    }
+    len = strlen(dir);
+    sep = (len > 0 && (dir[len - 1u] == '\\' || dir[len - 1u] == '/')) ? "" : "\\";
+    written = snprintf(out, outSize, "%s%s%s", dir, sep, name);
+    return written > 0 && (size_t)written < outSize;
+}
+
+static int xlGetModuleDir(char* out, size_t outSize)
+{
+    char path[512];
+
+    if ( out == NULL || outSize == 0 ) {
+        return 0;
+    }
+    out[0] = '\0';
+#ifdef _WIN32
+    {
+        HMODULE module = NULL;
+        DWORD len;
+        if ( !GetModuleHandleExA(
+                 GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+                 (LPCSTR)&xlGetModuleDir,
+                 &module) ) {
+            module = NULL;
+        }
+        len = GetModuleFileNameA(module, path, (DWORD)sizeof(path));
+        if ( len == 0 || len >= sizeof(path) ) {
+            return 0;
+        }
+        path[len] = '\0';
+    }
+#else
+    {
+        Dl_info info;
+        if ( dladdr((void*)&xlGetModuleDir, &info) && info.dli_fname != NULL && info.dli_fname[0] != '\0' ) {
+            if ( !xlCopyToBuffer(path, sizeof(path), info.dli_fname) ) {
+                return 0;
+            }
+        } else {
+            ssize_t len = readlink("/proc/self/exe", path, sizeof(path) - 1u);
+            if ( len <= 0 || (size_t)len >= sizeof(path) ) {
+                return 0;
+            }
+            path[len] = '\0';
+        }
+    }
+#endif
+    xlDirName(out, outSize, path);
+    return out[0] != '\0';
+}
+
+static int xlGetProjectRoot(char* out, size_t outSize)
+{
+    char moduleDir[512];
+
+    if ( out == NULL || outSize == 0 ) {
+        return 0;
+    }
+    out[0] = '\0';
+    if ( !xlGetModuleDir(moduleDir, sizeof(moduleDir)) ) {
+        return 0;
+    }
+    if ( xlTextEqualsNoCase(xlBaseName(moduleDir), "release") ) {
+        xlDirName(out, outSize, moduleDir);
+        return out[0] != '\0';
+    }
+    return xlCopyToBuffer(out, outSize, moduleDir);
+}
+
 static int xlTextLooksLikePath(const char* text)
 {
     return text != NULL &&
@@ -294,6 +456,27 @@ static char* xlToolchainPathSnapshot(const char* baseDir, const char* path)
     }
 #endif
     return xlPathSnapshot(baseDir, path);
+}
+
+static char* xlDefaultTempDirSnapshot(const char* baseDir)
+{
+    char moduleDir[512];
+    char projectRoot[512];
+    char tempPath[1024];
+    char releaseDir[1024];
+
+    if ( xlGetModuleDir(moduleDir, sizeof(moduleDir)) ) {
+        if ( xlTextEqualsNoCase(xlBaseName(moduleDir), "release") &&
+             xlJoinPathBuffer(tempPath, sizeof(tempPath), moduleDir, "tmp") ) {
+            return xlDupText(tempPath);
+        }
+    }
+    if ( xlGetProjectRoot(projectRoot, sizeof(projectRoot)) &&
+         xlJoinPathBuffer(releaseDir, sizeof(releaseDir), projectRoot, "release") &&
+         xlJoinPathBuffer(tempPath, sizeof(tempPath), releaseDir, "tmp") ) {
+        return xlDupText(tempPath);
+    }
+    return xlPathSnapshot(baseDir, "release\\tmp");
 }
 
 static void xlSetError(XL_Context* ctx, const char* text)
@@ -1385,6 +1568,38 @@ static int xlAddContextSymbols(XL_Context* ctx, TCCState* s)
     return 1;
 }
 
+static void xlAddDefaultProjectToolchainPaths(TCCState* s)
+{
+    char root[512];
+    char path[1024];
+
+    if ( s == NULL || !xlGetProjectRoot(root, sizeof(root)) ) {
+        return;
+    }
+    (void)xl__tcc.tcc_add_include_path(s, root);
+    if ( xlJoinPathBuffer(path, sizeof(path), root, "src") ) {
+        (void)xl__tcc.tcc_add_include_path(s, path);
+    }
+    if ( xlJoinPathBuffer(path, sizeof(path), root, "lib\\xrt") ) {
+        (void)xl__tcc.tcc_add_include_path(s, path);
+    }
+    if ( xlJoinPathBuffer(path, sizeof(path), root, "release\\tcc\\include_win") ) {
+        (void)xl__tcc.tcc_add_include_path(s, path);
+    }
+    if ( xlJoinPathBuffer(path, sizeof(path), root, XL6_TCC_INCLUDE_PATH) ) {
+        (void)xl__tcc.tcc_add_include_path(s, path);
+    }
+    if ( xlJoinPathBuffer(path, sizeof(path), root, XL6_TCC_WIN_INCLUDE_PATH) ) {
+        (void)xl__tcc.tcc_add_include_path(s, path);
+    }
+    if ( xlJoinPathBuffer(path, sizeof(path), root, XL6_TCC_WINAPI_INCLUDE_PATH) ) {
+        (void)xl__tcc.tcc_add_include_path(s, path);
+    }
+    if ( xlJoinPathBuffer(path, sizeof(path), root, XL6_TCC_LIB_PATH) ) {
+        (void)xl__tcc.tcc_add_library_path(s, path);
+    }
+}
+
 static TCCState* xlCreateTccState(XL_Context* ctx, int outputType)
 {
     TCCState* s;
@@ -1410,6 +1625,7 @@ static TCCState* xlCreateTccState(XL_Context* ctx, int outputType)
     }
     (void)xl__tcc.tcc_set_options(s, "-std=c11 -D_CRT_SECURE_NO_WARNINGS");
     (void)xl__tcc.tcc_add_include_path(s, ctx != NULL && ctx->baseDir != NULL ? ctx->baseDir : ".");
+    xlAddDefaultProjectToolchainPaths(s);
     (void)xl__tcc.tcc_add_include_path(s, "src");
     (void)xl__tcc.tcc_add_include_path(s, "lib\\xrt");
     (void)xl__tcc.tcc_add_include_path(s, ctx != NULL && ctx->tccIncludePath != NULL ? ctx->tccIncludePath : xlDefaultTccIncludePath());
@@ -2843,7 +3059,9 @@ XL_Context* xlCreateContext(const XL_ContextOptions* options)
     }
     ctx->baseDir = xlGetCurrentDirText(NULL);
     ctx->workDir = xlPathSnapshot(ctx->baseDir, localOptions.workDir != NULL ? localOptions.workDir : ".");
-    ctx->tempDir = xlPathSnapshot(ctx->baseDir, localOptions.tempDir != NULL ? localOptions.tempDir : "release\\tmp");
+    ctx->tempDir = localOptions.tempDir != NULL ?
+                   xlPathSnapshot(ctx->baseDir, localOptions.tempDir) :
+                   xlDefaultTempDirSnapshot(ctx->baseDir);
     ctx->tccDllPath = xlPathSnapshot(ctx->baseDir, localOptions.tccDllPath != NULL ? localOptions.tccDllPath : "");
     ctx->tccLibPath = localOptions.tccLibPath != NULL && localOptions.tccLibPath[0] != '\0' ?
                       xlPathSnapshot(ctx->baseDir, localOptions.tccLibPath) :

@@ -8,7 +8,7 @@ if ( $Root -eq "" ) {
     $Root = Split-Path -Parent $PSScriptRoot
 }
 
-$packageDir = Join-Path $Root "packages"
+$packageDir = Join-Path $Root "release\extlibs"
 $xrtPath = Join-Path $Root "lib\xrt\xrt.h"
 $apiPath = Join-Path $Root "src\api\xl_api.c"
 $failures = New-Object System.Collections.Generic.List[string]
@@ -71,7 +71,7 @@ function Read-InjectedXrtSymbols($path)
 }
 
 if ( ! (Test-Path -LiteralPath $packageDir -PathType Container) ) {
-    Write-Host "packages directory missing: $packageDir"
+    Write-Host "release extlibs directory missing: $packageDir"
     exit 1
 }
 if ( ! (Test-Path -LiteralPath $xrtPath -PathType Leaf) ) {

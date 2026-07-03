@@ -1,3 +1,0 @@
-extern "puts" func puts(string text) as int32
-
-puts("hello from c")

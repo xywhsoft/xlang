@@ -1,0 +1,7 @@
+channel<int> ch = channel::<int>(1)
+int out = 0
+
+auto recv = func() as int
+    ch.tryRecvInto(out)
+    return out
+end

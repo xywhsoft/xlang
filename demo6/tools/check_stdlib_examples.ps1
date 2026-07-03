@@ -9,7 +9,7 @@ if ( $Root -eq "" ) {
 }
 
 $xl = Join-Path $Root "release\xl.exe"
-$exampleDir = Join-Path $Root "examples"
+$exampleDir = Join-Path $Root "release\examples"
 $minStdlibExampleFiles = 17
 
 if ( !(Test-Path $xl) ) {

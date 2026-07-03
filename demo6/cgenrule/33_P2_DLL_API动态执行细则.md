@@ -1,6 +1,6 @@
 # P2 DLL/API 动态执行细则
 
-本文细化 `demo6/src/api/xl_api.c` 与 `demo6/include/xl.h`。这条链路用于 `xl.dll`/嵌入式场景：创建语言上下文、运行字符串或文件脚本、编译脚本为 exe、注册宿主 C 函数，并把当前进程内的 XRT 和运行时符号注入 TCC。
+本文细化 `demo6/src/api/xl_api.c` 与 `demo6/release/include/xl.h`。这条链路用于 `xl.dll`/嵌入式场景：创建语言上下文、运行字符串或文件脚本、编译脚本为 exe、注册宿主 C 函数，并把当前进程内的 XRT 和运行时符号注入 TCC。
 
 ## CGEN-API-001 公共 C API 导出形态
 
@@ -8,7 +8,7 @@
 |---|---|
 | xlang 写法 | 宿主 C 程序包含 `xl.h` |
 | 生成规则描述 | Windows 下定义 `XL_BUILD_DLL` 时 `XL_API` 为 `__declspec(dllexport)`，否则为 `__declspec(dllimport)`；非 Windows 为空。公共 API 使用 `extern "C"` 包裹，版本号为 `XL_API_VERSION 1u`。 |
-| 生成器文件名和行号 | `demo6/include/xl.h:1` |
+| 生成器文件名和行号 | `demo6/release/include/xl.h:1` |
 | 对应生成的 C 代码 | 不由 cgen 生成；DLL 导出函数遵守 C ABI。 |
 | 中间形态伪代码 | `XL_API = dllexport/dllimport/empty` |
 | 实现同等功能手写的 C 代码 | 手写 DLL API 需要同样区分导出和导入。 |
@@ -20,7 +20,7 @@
 |---|---|
 | xlang 写法 | `XL_ContextOptions options = xlDefaultContextOptions();` |
 | 生成规则描述 | API 暴露 context 创建/销毁、工作目录、临时目录、保存临时文件、include/lib/link/loadlib、C 函数注册、运行脚本字符串/文件、编译脚本字符串/文件到 exe，以及 lastError 读取/清理。 |
-| 生成器文件名和行号 | `demo6/include/xl.h:18` |
+| 生成器文件名和行号 | `demo6/release/include/xl.h:18` |
 | 对应生成的 C 代码 | 宿主 C 直接调用 `xlRunScriptString(ctx, source)` 等 API。 |
 | 中间形态伪代码 | `context options + execution/compile APIs` |
 | 实现同等功能手写的 C 代码 | 手写嵌入式语言 API 需要同样的上下文对象和错误通道。 |

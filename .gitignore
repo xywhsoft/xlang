@@ -11,6 +11,10 @@
 # DEMO6 generated output
 /demo6/release/*
 !/demo6/release/README.md
+!/demo6/release/include/
+!/demo6/release/include/**
+!/demo6/release/examples/
+!/demo6/release/examples/**
 !/demo6/release/extlibs/
 !/demo6/release/extlibs/**
 /demo6/*.exe
@@ -21,9 +25,5 @@
 /demo6/*.exp
 /demo6/*.pdb
 
-# DEMO6 generated lexer/parser sources
-/demo6/src/lexer/xl6_lexer_gen.c
-/demo6/src/lexer/xl6_lexer_gen.h
-/demo6/src/parser/xl6_parser.c
-/demo6/src/parser/xl6_parser.h
+# DEMO6 parser trace output
 /demo6/src/parser/xl6_parser.out

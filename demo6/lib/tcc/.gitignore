@@ -3,6 +3,7 @@
 .#*
 *.o
 *.a
+!win32/dist/x86_64/lib/libtcc1.a
 *.exe
 *.dll
 *.obj

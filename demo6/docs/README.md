@@ -13,6 +13,7 @@
 - `函数设计.md`：函数声明、参数、命名参数、可选参数、可变参数、多返回值、func 类型、匿名函数和闭包捕获。
 - `函数重载设计.md`：函数、方法、构造、native-backed class extern 方法和泛型函数的重载解析。
 - `类型与隐性类设计.md`：隐性类、类型标识符三重角色、`type` 类型、透明别名和类型值比较。
+- `类型转换规则.md`：普通隐式转换、安全拓宽、显式构造转换、`as` 运行时检查和 XRT 层统一转换 API。
 - `类型系统设计.md`：`class`、native-backed class、成员、继承、生命周期、析构和 C opaque handle 映射。
 - `class_object协议设计.md`：class/object 统一对象模型、协议方法、derive 能力、copy/clone、动态字段和持久化设计。
 - `泛型设计.md`：泛型声明、类型参数、显式实例化、静态泛型容器、泛型约束和 C 混编限制。
@@ -64,15 +65,16 @@
 
 范例目录中的 README 不作为语言设计来源，但属于当前可用功能的说明入口：
 
-- `../examples/README.md`：范例目录总入口、根目录范例和标准库范例索引。
-- `../examples/tutorial/README.md`：教学范例阅读顺序和运行入口。
-- `../examples/feature_suite/README.md`：功能范例套件索引、宿主文件和回归入口。
+- `../release/examples/README.md`：范例目录总入口、根目录范例和标准库范例索引。
+- `../release/examples/tutorial/README.md`：教学范例阅读顺序和运行入口。
+- `../release/examples/feature_suite/README.md`：功能范例套件索引、宿主文件和回归入口。
+- `../release/examples/apps/README.md`：复合应用范例索引和运行入口。
 
 ## 测试资产文档
 
 以下 README 只描述测试资产，不作为语言设计来源：
 
-- `../packages/README.md`：package/import/XAPI 测试包目录索引、正负例用途和验证入口。
+- `../release/extlibs/README.md`：package/import/XAPI 测试包目录索引、正负例用途和验证入口。
 - `../test/README.md`：测试目录入口、用例前缀索引和测试资产守门脚本说明。
 
 ## 工程目录文档
@@ -82,7 +84,7 @@
 - `../README.md`：DEMO6 根目录入口、常用命令和维护原则。
 - `../src/README.md`：源码分片职责、生成文件和源码维护规则。
 - `../tools/README.md`：工具链入口、守门脚本索引和 RC0 入口。
-- `../include/README.md`：公开 C API 头文件说明。
+- `../release/include/README.md`：公开 C API 头文件说明。
 - `../lib/README.md`：XRT 单头文件、libprobe fixture 和依赖维护规则。
 - `../release/README.md`：构建产物目录说明。
 

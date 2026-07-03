@@ -30,7 +30,7 @@
 
 | 项目 | 内容 |
 |---|---|
-| xlang 写法 | package 内 `xapi`、`packages/name`、`lib/name` |
+| xlang 写法 | package 内 `xapi`、`release/extlibs/name`、`test/fixtures/name` |
 | 生成规则描述 | `a` 末尾已有 `\` 或 `/` 时直接拼接，否则插入 `\`。输出使用固定缓冲区，只有 `snprintf` 完整写入时返回成功。 |
 | 生成器文件名和行号 | `demo6/src/package/xl6_package.c:58` |
 | 对应生成的 C 代码 | 不直接生成 C；影响 XAPI/interfacePath 和 package 搜索路径。 |
@@ -367,14 +367,14 @@
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | `import json` |
-| 生成规则描述 | target 不像路径时，先搜索 `packages/<target>/xlang.package.json`，再搜索 `packages/<target>/package.xapi.json`。两者均以 package kind 解析。 |
+| 生成规则描述 | target 不像路径时，先搜索 `release/extlibs/<target>/xlang.package.json`，再搜索 `release/extlibs/<target>/package.xapi.json`。两者均以 package kind 解析。 |
 | 生成器文件名和行号 | `demo6/src/package/xl6_package.c:907` |
 | 对应生成的 C 代码 | 不直接生成 C；命中后 import 声明生成会使用该包 XAPI。 |
 | 中间形态伪代码 | `base = join("packages", target); try base/xlang.package.json; try base/package.xapi.json` |
 | 实现同等功能手写的 C 代码 | 手写包管理器通常先查项目本地 packages 目录。 |
 | 额外依赖的封装代码 | path join 和 manifest try helper。 |
 
-## CGEN-PKG-032 裸包名 lib 搜索与接口路径查询
+## CGEN-PKG-032 裸包名 package path fixture 搜索与接口路径查询
 
 | 项目 | 内容 |
 |---|---|

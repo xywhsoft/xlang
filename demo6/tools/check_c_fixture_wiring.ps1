@@ -14,11 +14,11 @@ $entryWiringFiles = @(
     "test_tutorial.bat",
     "test_dll.bat",
     "build_dll.bat",
-    "examples\feature_suite\run_feature_suite.bat"
+    "release\examples\feature_suite\run_feature_suite.bat"
 )
 
 $minEntryFixtures = 45
-$minPackageFixtures = 9
+$minPackageFixtures = 55
 $failures = New-Object System.Collections.Generic.List[string]
 
 function Add-Failure($message)
@@ -57,7 +57,7 @@ foreach ( $relative in $entryWiringFiles ) {
 
 $entryText = [string]::Join("`n", $entryTextParts)
 $rootPath = (Resolve-Path -LiteralPath $Root).Path
-$entryAssetRoots = @("test\cases", "examples")
+$entryAssetRoots = @("test\cases", "release\examples")
 
 foreach ( $assetRoot in $entryAssetRoots ) {
     $fullRoot = Join-Path $Root $assetRoot
@@ -66,7 +66,11 @@ foreach ( $assetRoot in $entryAssetRoots ) {
         continue
     }
 
-    $assets = @(Get-ChildItem -LiteralPath $fullRoot -File -Recurse | Where-Object { $_.Extension -in ".c", ".h" } | Sort-Object FullName)
+    $assets = @(Get-ChildItem -LiteralPath $fullRoot -File -Recurse | Where-Object {
+        $relative = $_.FullName.Substring($rootPath.Length + 1).Replace("\", "/")
+        ($_.Extension -in ".c", ".h") -and
+        ($relative -notmatch '^release/examples/(.*/)?release/tmp/')
+    } | Sort-Object FullName)
     foreach ( $asset in $assets ) {
         $relative = $asset.FullName.Substring($rootPath.Length + 1).Replace("\", "/")
         if ( ! (Test-DirectReference $entryText $relative) ) {
@@ -76,7 +80,7 @@ foreach ( $assetRoot in $entryAssetRoots ) {
 }
 
 $referenced = New-Object System.Collections.Generic.HashSet[string]
-$matches = [regex]::Matches($entryText, '(test[\\/]+cases|examples)[\\/]+([^"''\s>]+\.(?:c|h))')
+$matches = [regex]::Matches($entryText, '(test[\\/]+cases|release[\\/]+examples)[\\/]+([^"''\s>]+\.(?:c|h))')
 foreach ( $match in $matches ) {
     $relative = ($match.Groups[1].Value + "/" + $match.Groups[2].Value).Replace("\", "/")
     if ( $relative.Contains("%") -or $relative.Contains("*") ) {
@@ -92,10 +96,18 @@ foreach ( $relative in ($referenced | Sort-Object) ) {
     }
 }
 
-$packageDir = Join-Path $Root "packages"
-if ( Test-Path -LiteralPath $packageDir -PathType Container ) {
+$packageDirs = @(
+    (Join-Path $Root "release\extlibs"),
+    (Join-Path $Root "test\fixtures")
+)
+$packageDeclaredSources = @{}
+
+foreach ( $packageDir in $packageDirs ) {
+    if ( ! (Test-Path -LiteralPath $packageDir -PathType Container) ) {
+        continue
+    }
+
     $jsonFiles = @(Get-ChildItem -LiteralPath $packageDir -File -Recurse -Filter "*.json" | Sort-Object FullName)
-    $packageDeclaredSources = @{}
 
     function Add-PackageDeclaredSource($sourcePath)
     {
@@ -151,10 +163,16 @@ if ( Test-Path -LiteralPath $packageDir -PathType Container ) {
     }
 }
 
-$entryCount = @(Get-ChildItem -Path (Join-Path $Root "test\cases"), (Join-Path $Root "examples") -File -Recurse | Where-Object { $_.Extension -in ".c", ".h" }).Count
+$entryCount = @(Get-ChildItem -Path (Join-Path $Root "test\cases"), (Join-Path $Root "release\examples") -File -Recurse | Where-Object {
+    $relative = $_.FullName.Substring($rootPath.Length + 1).Replace("\", "/")
+    ($_.Extension -in ".c", ".h") -and
+    ($relative -notmatch '^release/examples/(.*/)?release/tmp/')
+}).Count
 $packageCount = 0
-if ( Test-Path -LiteralPath $packageDir -PathType Container ) {
-    $packageCount = @(Get-ChildItem -LiteralPath $packageDir -File -Recurse | Where-Object { $_.Extension -eq ".c" }).Count
+foreach ( $packageDir in $packageDirs ) {
+    if ( Test-Path -LiteralPath $packageDir -PathType Container ) {
+        $packageCount += @(Get-ChildItem -LiteralPath $packageDir -File -Recurse | Where-Object { $_.Extension -eq ".c" }).Count
+    }
 }
 
 if ( $entryCount -lt $minEntryFixtures ) {

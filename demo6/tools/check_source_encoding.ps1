@@ -19,10 +19,7 @@ $scanExtensions = @(
     ".bat",
     ".json"
 )
-$skipDirectoryNames = @(
-    "release"
-)
-$minScannedTextFiles = 1262
+$minScannedTextFiles = 1547
 $failures = New-Object System.Collections.Generic.List[string]
 $strictUtf8 = New-Object System.Text.UTF8Encoding($false, $true)
 $looseUtf8 = [System.Text.Encoding]::UTF8
@@ -49,13 +46,20 @@ function Add-Failure($message)
 function Should-SkipFile($file)
 {
     $relative = $file.FullName.Substring($Root.Length).TrimStart("\", "/")
-    foreach ( $name in $skipDirectoryNames ) {
-        if ( $relative -eq $name -or
-             $relative.StartsWith($name + "\", [System.StringComparison]::OrdinalIgnoreCase) -or
-             $relative.StartsWith($name + "/", [System.StringComparison]::OrdinalIgnoreCase) ) {
-            return $true
-        }
+    $normalized = $relative.Replace("\", "/")
+
+    if ( $normalized.StartsWith("release/examples/", [System.StringComparison]::OrdinalIgnoreCase) -or
+         $normalized.StartsWith("release/extlibs/", [System.StringComparison]::OrdinalIgnoreCase) -or
+         $normalized.StartsWith("release/include/", [System.StringComparison]::OrdinalIgnoreCase) -or
+         $normalized -eq "release/README.md" ) {
+        return $false
     }
+
+    if ( $normalized -eq "release" -or
+         $normalized.StartsWith("release/", [System.StringComparison]::OrdinalIgnoreCase) ) {
+        return $true
+    }
+
     return $false
 }
 

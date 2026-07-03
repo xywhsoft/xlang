@@ -46,7 +46,7 @@ if ( ! $proc.Start() ) {
     exit 1
 }
 
-$program = Join-Path $Root "examples\hello.xl"
+$program = Join-Path $Root "release\examples\hello.xl"
 $packets = @(
     @{ seq = 1; type = "request"; command = "initialize"; arguments = @{ adapterID = "xlang" } },
     @{ seq = 2; type = "request"; command = "setBreakpoints"; arguments = @{ source = @{ path = $program }; breakpoints = @( @{ line = 2 } ) } },

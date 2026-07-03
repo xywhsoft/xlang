@@ -102,7 +102,7 @@ foreach ( $cmd in @("xl lex", "xl parse", "xl check", "xl ir", "xl cgen", "xl ab
     Assert-Contains "help" $help $cmd
 }
 
-$case = "examples\stdlib_print.xl"
+$case = "release\examples\stdlib_print.xl"
 
 Invoke-XlCapture -Name "check" -CommandArgs @("check", $case) -Stdout (Join-Path $tmpDir "xlc_shell_check.out.txt") -Stderr (Join-Path $tmpDir "xlc_shell_check.err.txt") | Out-Null
 Invoke-XlCapture -Name "lex json" -CommandArgs @("lex", $case, "--format", "json", "--emit", "release\tmp\xlc_shell.tokens.json") -Stdout (Join-Path $tmpDir "xlc_shell_lex.out.txt") -Stderr (Join-Path $tmpDir "xlc_shell_lex.err.txt") | Out-Null
@@ -166,7 +166,7 @@ Assert-Contains "reject shared main" (Read-Text $badSharedErr) "shared build can
 
 $dbgOut = Join-Path $tmpDir "xlc_shell_dbg.out.txt"
 $dbgErr = Join-Path $tmpDir "xlc_shell_dbg.err.txt"
-Invoke-XlCapture -Name "debug" -CommandArgs @("dbg", "examples\hello.xl", "--break", "2", "--commands", "test\data\dbg_commands.txt", "--save-temps") -Stdout $dbgOut -Stderr $dbgErr | Out-Null
+Invoke-XlCapture -Name "debug" -CommandArgs @("dbg", "release\examples\hello.xl", "--break", "2", "--commands", "test\data\dbg_commands.txt", "--save-temps") -Stdout $dbgOut -Stderr $dbgErr | Out-Null
 $dbgText = Read-Text $dbgOut
 Assert-Contains "debug output" $dbgText "xl-debug stopped reason=breakpoint"
 Assert-Contains "debug output" $dbgText "function=add"
@@ -202,7 +202,7 @@ $cmdErr = Join-Path $tmpDir "xlc_shell_default_links.err.txt"
 Invoke-NativeCapture `
     -Name "default link args" `
     -FilePath "cmd.exe" `
-    -CommandArgs @("/v:on", "/s", "/c", "call tools\xl6_toolchain_env.bat && release\xl.exe run examples\stdlib_print.xl !XL6_XL_DEFAULT_LINK_ARGS!") `
+    -CommandArgs @("/v:on", "/s", "/c", "call tools\xl6_toolchain_env.bat && release\xl.exe run release\examples\stdlib_print.xl !XL6_XL_DEFAULT_LINK_ARGS!") `
     -Stdout $cmdOut `
     -Stderr $cmdErr | Out-Null
 Assert-Contains "default link args output" (Read-Text $cmdOut) "xlang print 123 done"

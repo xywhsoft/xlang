@@ -285,15 +285,13 @@ static void xl6CgenExprStatementBody(XL6_CgenContext* ctx, const XL6_AstNode* ex
 
 static int xl6CgenTryAssignWithTaskSpawnArgTemps(XL6_CgenContext* ctx, const XL6_AstNode* node)
 {
-    const XL6_AstNode* right;
     XL6_CgenTaskSpawnArgTempScope scope;
 
     if ( ctx == NULL || node == NULL || node->kind != XL6_AST_ASSIGN || node->childCount < 2 ) {
         return 0;
     }
 
-    right = node->children[1];
-    if ( !xl6CgenTaskSpawnArgTempScopeBegin(ctx, right, &scope) ) {
+    if ( !xl6CgenTaskSpawnArgTempScopeBegin(ctx, node, &scope) ) {
         return 0;
     }
 
@@ -323,15 +321,13 @@ static int xl6CgenTryMultiDeclWithTaskSpawnArgTemps(XL6_CgenContext* ctx, const 
 
 static int xl6CgenTryMultiAssignWithTaskSpawnArgTemps(XL6_CgenContext* ctx, const XL6_AstNode* node)
 {
-    const XL6_AstNode* right;
     XL6_CgenTaskSpawnArgTempScope scope;
 
     if ( ctx == NULL || node == NULL || node->kind != XL6_AST_MULTI_ASSIGN || node->childCount < 2 ) {
         return 0;
     }
 
-    right = node->children[1];
-    if ( !xl6CgenTaskSpawnArgTempScopeBegin(ctx, right, &scope) ) {
+    if ( !xl6CgenTaskSpawnArgTempScopeBegin(ctx, node, &scope) ) {
         return 0;
     }
 

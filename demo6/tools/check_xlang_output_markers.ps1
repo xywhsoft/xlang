@@ -9,12 +9,12 @@ if ( $Root -eq "" ) {
 }
 
 $scanRoots = @(
-    "examples",
+    "release\examples",
     "test\cases"
 )
 
 $allowed = New-Object System.Collections.Generic.HashSet[string]
-$allowed.Add("examples/stdlib_print.xl") | Out-Null
+$allowed.Add("release/examples/stdlib_print.xl") | Out-Null
 $allowed.Add("test/cases/stdlib_print.xl") | Out-Null
 
 $failures = New-Object System.Collections.Generic.List[string]

@@ -11,7 +11,7 @@ if ( $Root -eq "" ) {
 $stdlibPath = Join-Path $Root "src\stdlib\xl6_stdlib.c"
 $docDir = Join-Path $Root "docs"
 $testDir = Join-Path $Root "test\cases"
-$exampleDir = Join-Path $Root "examples"
+$exampleDir = Join-Path $Root "release\examples"
 $minPublicStdlibFunctions = 180
 
 function Read-Utf8Text($path)

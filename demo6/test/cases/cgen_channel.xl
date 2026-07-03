@@ -145,3 +145,22 @@ assert delayedConsumerThread.waitTimeout(2000), "blocking consumer thread wait f
 assert delayedConsumerThread.exitCode() == 2718, "blocking consumer thread exit failed"
 delayedConsumerCh.close()
 assert delayedConsumerCh.isClosed(), "blocking consumer channel close failed"
+
+channel<int> nonblockingTryThreadCh = channel::<int>(1)
+auto nonblockingTryConsumer = func() as int
+    int got = 0
+    if nonblockingTryThreadCh.tryRecvInto(got) then
+        return got
+    end
+    return 31
+end
+
+thread nonblockingTryThread = thread(nonblockingTryConsumer)
+assert nonblockingTryThread.waitTimeout(2000), "nonblocking tryRecv thread wait failed"
+assert nonblockingTryThread.exitCode() == 31, "empty tryRecv in thread should return false"
+assert nonblockingTryThreadCh.send(42), "nonblocking tryRecv should leave channel usable"
+int nonblockingTryLater = 0
+assert nonblockingTryThreadCh.recvInto(nonblockingTryLater), "nonblocking tryRecv later recv failed"
+assert nonblockingTryLater == 42, "nonblocking tryRecv later value mismatch"
+nonblockingTryThreadCh.close()
+assert nonblockingTryThreadCh.isClosed(), "nonblocking tryRecv channel close failed"

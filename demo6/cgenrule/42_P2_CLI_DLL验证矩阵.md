@@ -13,13 +13,13 @@
 |---|---|---|---|
 | `CGEN-CLI-001` 默认 TCC backend | `build.bat`、`test.bat` 中大量 `release\xl.exe build/run`、`cli_link.xl`、`cli_loadlib.xl` | build/run 回归 | 默认 TCC 路径、include/lib 前缀、XRT/TCC 运行库路径在完整回归中被反复使用；属于强间接覆盖。 |
 | `CGEN-CLI-002..003` 命令帮助、公开子命令、通用选项读取 | `test.bat` 覆盖 `lex/parse/check/ir/cgen/abi/xapi/run/build`，并检查 `xl help` 输出包含 build 用法；同时使用 `--emit`、`--emit-header`、`--dump-dir`、`-o`、`--json` | CLI 行为覆盖 | 九类命令入口、帮助文本和主要带值选项均有实际调用。 |
-| `CGEN-CLI-004..005` header include guard、dump 目录创建、stdout/file 输出 | `xl cgen examples\hello.xl --dump-dir release\tmp\dump_hello`；`findstr` 检查 `hello.h` guard、`hello.c`、tokens/AST/IR/ABI/XAPI；`xl xapi export_add.xl > xapi_stdout.json` | 文件产物检查 | dump-dir 全产物、header guard、C/header 文件输出和 stdout XAPI 均有直接断言。 |
+| `CGEN-CLI-004..005` header include guard、dump 目录创建、stdout/file 输出 | `xl cgen release\examples\hello.xl --dump-dir release\tmp\dump_hello`；`findstr` 检查 `hello.h` guard、`hello.c`、tokens/AST/IR/ABI/XAPI；`xl xapi export_add.xl > xapi_stdout.json` | 文件产物检查 | dump-dir 全产物、header guard、C/header 文件输出和 stdout XAPI 均有直接断言。 |
 
 ## CLI Build/Run 与 TCC 链接
 
 | 规则范围 | 当前验证用例 | 证据等级 | 核验结论 |
 |---|---|---|---|
-| `CGEN-CLI-006` build 输入收集 | `xl build examples\feature_suite\09_c_export_abi.xl test\cases\build_mixed_host.c test\cases\build_mixed_extra.c -o ...` | C 混编运行 | 一个 `.xl` 主模块加多个用户 `.c` wrapper 的收集路径有直接运行覆盖；超 32 文件上限仍建议补负例。 |
+| `CGEN-CLI-006` build 输入收集 | `xl build release\examples\feature_suite\09_c_export_abi.xl test\cases\build_mixed_host.c test\cases\build_mixed_extra.c -o ...` | C 混编运行 | 一个 `.xl` 主模块加多个用户 `.c` wrapper 的收集路径有直接运行覆盖；超 32 文件上限仍建议补负例。 |
 | `CGEN-CLI-007` 默认链接去重识别 | `cli_link.xl` 使用 `--lib-path release\tmp --link xl6clitest`；`cgen_main_entry.xl --link %XL6_XRT_OBJ%` | build/run 回归 | 用户库名链接、显式 XRT object 去重、默认 TCC runtime/system 尾链接均有覆盖；默认 XRT object 路径由 `tools\xl6_toolchain_env.bat` 集中提供。 |
 | `CGEN-CLI-008` `-shared` 与 `--save-temps` 扫描 | `xl build export_add.xl -shared -o ... --emit-header ...`；`xl build cgen_main_entry.xl -shared` 负例；`build_mixed_save_temps.exe` 检查保留 wrapper | shared build 正/负例 + 临时产物检查 | `-shared` 对 DLL 构建和入口限制有覆盖；`--save-temps` 保留目录和 wrapper 内容已有直接断言。 |
 | `CGEN-CLI-009..010` C wrapper include 路径规范化和 wrapper 生成 | `build_mixed_host.c`、`build_mixed_extra.c` 与 `09_c_export_abi.xl` 混编；`--save-temps` 检查 `csrc_0.c/csrc_1.c` | C 宿主运行 + wrapper 文本检查 | wrapper 自动 include XRT、生成头和用户 C 源的能力已有运行与文本双重证明。 |
@@ -41,7 +41,7 @@
 
 | 规则范围 | 当前验证用例 | 证据等级 | 核验结论 |
 |---|---|---|---|
-| `CGEN-API-001..002` 公共 C API 导出形态、上下文选项与公共能力 | `build_dll.bat` 用 `-DXL_BUILD_DLL` 构建 `release\xl.dll`；`examples\xl_dll_embed_string.c`、`examples\xl_dll_null_context.c` include `xl.h` | DLL 构建 + C 宿主编译 | `XL_API` 导出、`extern "C"` 兼容、`XL_ContextOptions` 和核心 API 原型通过 DLL 与宿主验证程序编译。 |
+| `CGEN-API-001..002` 公共 C API 导出形态、上下文选项与公共能力 | `build_dll.bat` 用 `-DXL_BUILD_DLL` 构建 `release\xl.dll`；`release\examples\xl_dll_embed_string.c`、`release\examples\xl_dll_null_context.c` include `xl.h` | DLL 构建 + C 宿主编译 | `XL_API` 导出、`extern "C"` 兼容、`XL_ContextOptions` 和核心 API 原型通过 DLL 与宿主验证程序编译。 |
 | `CGEN-API-003..005` 内部上下文状态、错误/list 所有权、宿主 C 符号登记 | `xl_dll_embed_string.c` 调用 `xlCreateContext`、设置 options、`xlRegisterCFunction(ctx, "host_add", ...)`，脚本 extern 调用 `host_add` | C 宿主运行 | context 创建、字符串复制、宿主函数符号登记和 TCC 符号解析由 `hostAdd(20,22)==42` 直接证明。 |
 | `CGEN-API-006` 工作目录进入与恢复 | `xl_dll_embed_string.c` 设置 `options.workDir="."`，脚本执行相对路径 `release/tmp/dll_dir_list`；`xl_dll_null_context.c` 使用 `release\\tmp\\dll_cwd_a` 与 `release\\tmp\\dll_cwd_b` 两个 workDir，分别覆盖成功脚本和解析失败脚本后的 cwd 恢复 | DLL 运行 + C 宿主断言 | 相对路径标准库文件/目录操作成功说明 workDir 入口可用；多 context 成功/失败路径后宿主 cwd 保持不变已有直接断言。 |
 | `CGEN-API-018..023` 默认 context options、运行时引用计数、创建/销毁、路径/saveTemps/include/lib/link/loadlib 配置 | `test_dll.bat` 构建并运行 `xl_dll_embed_string.exe` 与 `xl_dll_null_context.exe`；程序调用 `xlSetWorkDir`、`xlSetTempDir`、`xlSetSaveTemps`、`xlAddIncludePath`、`xlAddLibraryPath`、`xlAddLinkLibrary`、`xlLoadDependencyLibrary`，并覆盖这些 setter 的空字符串负例；`xl_dll_embed_string.c` 在外部文件系统放置 `__xlvfs__/module.c` 毒丸文件，验证动态 VFS 中的生成 C 优先于外部同名文件；`xl_dll_null_context.c` 的 `run_dependency_path_snapshot_case` 在相对 `workDir` 下使用相对 library path、裸库名、loadlib DLL 和 def 文件，验证这些依赖不会被脚本工作目录重新解释；NULL context 宿主覆盖所有公开 API 的 NULL 入参、无效 options size/version 和默认 context 创建销毁 | DLL 冒烟 + C 宿主运行 + API 负例 | 默认 options、context 生命周期、XRT runtime init/unit、动态 VFS 优先级、工作目录和 include/lib/link/loadlib setter 正常路径、空值错误路径、路径快照、NULL context 返回失败与空 lastError、无效 options 拒绝均有覆盖。 |
