@@ -9,6 +9,7 @@ if ( $Root -eq "" ) {
 }
 
 $exampleDir = Join-Path $Root "release\examples"
+$testSuiteDir = Join-Path $Root "test\suites"
 $minExampleFiles = 73
 $wiringFiles = @(
     "test.bat",
@@ -40,6 +41,40 @@ function Read-Utf8Text($path)
     return [System.IO.File]::ReadAllText($path, [System.Text.Encoding]::UTF8)
 }
 
+function Get-TestSuiteWiringFiles()
+{
+    $files = New-Object System.Collections.Generic.List[string]
+
+    if ( Test-Path -LiteralPath $script:testSuiteDir -PathType Container ) {
+        $rootPath = (Resolve-Path -LiteralPath $script:Root).Path
+        $suiteFiles = @(Get-ChildItem -LiteralPath $script:testSuiteDir -File -Filter "*.bat" | Sort-Object Name)
+        foreach ( $suite in $suiteFiles ) {
+            $files.Add($suite.FullName.Substring($rootPath.Length + 1)) | Out-Null
+        }
+    }
+
+    return @($files)
+}
+
+function Read-TestRegressionText()
+{
+    $parts = New-Object System.Collections.Generic.List[string]
+    $rootTest = Join-Path $script:Root "test.bat"
+
+    if ( Test-Path -LiteralPath $rootTest -PathType Leaf ) {
+        $parts.Add((Read-Utf8Text $rootTest)) | Out-Null
+    }
+
+    foreach ( $relative in (Get-TestSuiteWiringFiles) ) {
+        $path = Join-Path $script:Root $relative
+        if ( Test-Path -LiteralPath $path -PathType Leaf ) {
+            $parts.Add((Read-Utf8Text $path)) | Out-Null
+        }
+    }
+
+    return [string]::Join("`n", $parts)
+}
+
 function Test-WildcardCovered($relative)
 {
     if ( $relative -like "release/examples/feature_suite/*.xl" ) {
@@ -56,6 +91,8 @@ function Test-WildcardCovered($relative)
     }
     return $false
 }
+
+$wiringFiles += Get-TestSuiteWiringFiles
 
 function Test-DraftExample($relative)
 {
@@ -205,7 +242,7 @@ function Test-RootExampleCoverageModes()
     }
 
     $readme = Read-Utf8Text $readmePath
-    $testText = Read-Utf8Text $testBatPath
+    $testText = Read-TestRegressionText
     $coverageMarker = [string]::Concat([char]0x56DE, [char]0x5F52, [char]0xFF1A)
     $modeMap = [ordered]@{
         "hello.xl" = @("lex", "parse", "check", "cgen", "ir")
@@ -281,7 +318,7 @@ function Test-RootExampleCoverageModes()
 
             $commandPattern = '(?m)release\\xl[.]exe\s+' + [regex]::Escape($mode) + '\s+release\\examples\\' + [regex]::Escape($name)
             if ( ! ($testText -match $commandPattern) ) {
-                Add-Failure "test.bat does not cover release/examples/${name} with mode: $mode"
+                Add-Failure "test.bat/test suites do not cover release/examples/${name} with mode: $mode"
             }
         }
     }

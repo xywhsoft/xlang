@@ -35,7 +35,7 @@
 | `CGEN-CLI-024..027` lex/parse/check/ir/abi/cgen dump-dir 调试产物 | `test.bat` 的 `dump_hello`、`import_xapi_use.xlir`、`export_alias.abi.json/txt` | 阶段产物检查 | tokens、AST、IR、ABI、XAPI、header、C 全阶段 dump 已直接检查关键字段。 |
 | `CGEN-CLI-028..030` build 必要参数、shared 入口限制、header/XAPI/C 输出顺序 | `cgen_main_entry.xl` build/run；`bad_main_shared.err.txt`；`export_add.xl -shared --emit-header`；`build_missing_output.err.txt` | build/run + 负例 | `-o` build、缺 `-o` 诊断、XAPI 入口判断、shared 禁止 xlang main、用户 header 输出均有覆盖。 |
 | `CGEN-CLI-031..032` build C 输入集合、编译与清理 | `build_mixed_host.exe`、import package build/run、shared DLL 生成、`bad_main_shared` 失败清理计数断言 | C 混编 + package build + 失败清理 | 动态 VFS 主 `__xlvfs__/module.c`、import cSources、动态 VFS 用户 C wrapper 一起编译的路径有覆盖；默认失败清理和 `--save-temps` 导出保留均有直接断言。 |
-| `CGEN-CLI-033..035` run 临时 exe、程序参数和 CLI 主分派 | `cgen_main_entry.exe alpha beta` 返回 argc 3；`xl_run_args.xl` 通过 `xl run ... -- alpha "two words" "quote\"value" beta ""` 断言 argv；所有命令分派均在 `test.bat` 使用 | run 行为 + 主分派 | `--` 后 argv 传递、含空格/双引号/空字符串参数、XRT process stdout/stderr 回放和 CLI 主分派均有覆盖。 |
+| `CGEN-CLI-033..035` run 内存执行、程序参数和 CLI 主分派 | `cgen_main_entry.exe alpha beta` 返回 argc 3；`xl_run_args.xl` 通过 `xl run ... -- alpha "two words" "quote\"value" beta ""` 断言 argv；所有命令分派均在 `test.bat` 使用 | run 行为 + 主分派 | `xl run` 通过 TCC 内存重定位直接调用 `xlang_main(xvalue arg)`；`--` 后 argv 传递、含空格/双引号/空字符串参数和 CLI 主分派均有覆盖。 |
 
 ## DLL/API 公共接口与 Context
 

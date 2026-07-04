@@ -68,9 +68,21 @@ static void xl6CgenEmitMainWrapper(XL6_CgenContext* ctx)
     xl6CgenEmitMainLikeWrapper(ctx, "main");
 }
 
-static void xl6CgenEmitScriptEntryWrapper(XL6_CgenContext* ctx)
+static void xl6CgenEmitScriptErrorBridge(XL6_CgenContext* ctx)
 {
-    xl6CgenEmitMainLikeWrapper(ctx, "xl_script_entry");
+    if ( !ctx->needsErrorRuntime ) {
+        return;
+    }
+
+    xl6OutputPuts("int xl_script_has_error(void)\n{\n", ctx->out);
+    xl6OutputPuts("    return xl6_error_has();\n", ctx->out);
+    xl6OutputPuts("}\n\n", ctx->out);
+    xl6OutputPuts("void xl_script_print_uncaught(void)\n{\n", ctx->out);
+    xl6OutputPuts("    xl6_error_print_uncaught();\n", ctx->out);
+    xl6OutputPuts("}\n\n", ctx->out);
+    xl6OutputPuts("void xl_script_clear_error(void)\n{\n", ctx->out);
+    xl6OutputPuts("    xl6_error_clear();\n", ctx->out);
+    xl6OutputPuts("}\n\n", ctx->out);
 }
 
 static void xl6CgenEmitTopLevelXlangMain(XL6_CgenContext* ctx, XL6_AstNode* root, int hasErrorRuntime)

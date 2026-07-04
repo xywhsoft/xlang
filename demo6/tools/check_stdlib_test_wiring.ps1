@@ -10,9 +10,25 @@ if ( $Root -eq "" ) {
 
 $testDir = Join-Path $Root "test\cases"
 $testBat = Join-Path $Root "test.bat"
+$testSuiteDir = Join-Path $Root "test\suites"
 $minStdlibTestFiles = 21
 
-$batText = [System.IO.File]::ReadAllText($testBat, [System.Text.Encoding]::UTF8)
+function Read-TestRegressionText()
+{
+    $parts = New-Object System.Collections.Generic.List[string]
+    $parts.Add([System.IO.File]::ReadAllText($script:testBat, [System.Text.Encoding]::UTF8)) | Out-Null
+
+    if ( Test-Path -LiteralPath $script:testSuiteDir -PathType Container ) {
+        $suiteFiles = @(Get-ChildItem -LiteralPath $script:testSuiteDir -File -Filter "*.bat" | Sort-Object Name)
+        foreach ( $suite in $suiteFiles ) {
+            $parts.Add([System.IO.File]::ReadAllText($suite.FullName, [System.Text.Encoding]::UTF8)) | Out-Null
+        }
+    }
+
+    return [string]::Join("`n", $parts)
+}
+
+$batText = Read-TestRegressionText
 $missing = New-Object System.Collections.Generic.List[string]
 $tests = @(Get-ChildItem -Path $testDir -Filter "stdlib_*.xl" -File | Sort-Object Name)
 

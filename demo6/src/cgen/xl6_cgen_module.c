@@ -357,11 +357,11 @@ int xl6CgenEmitCEx(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags, cons
     if ( hasTopLevel && mainFunc == NULL ) {
         xl6CgenEmitTopLevelXlangMain(&ctx, root, hasErrorRuntime);
     }
-    if ( mainFunc != NULL || hasTopLevel ) {
-        if ( options != NULL && options->emitScriptEntry ) {
-            xl6CgenEmitScriptEntryWrapper(&ctx);
-        }
+    if ( (mainFunc != NULL || hasTopLevel) && (options == NULL || !options->suppressMainWrapper) ) {
         xl6CgenEmitMainWrapper(&ctx);
+    }
+    if ( (mainFunc != NULL || hasTopLevel) && options != NULL && options->suppressMainWrapper ) {
+        xl6CgenEmitScriptErrorBridge(&ctx);
     }
 
     hasTopLevel = ctx.ok && (diags == NULL || diags->count == 0);

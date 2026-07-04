@@ -12,6 +12,7 @@ $releasePackageDir = Join-Path $Root "release\extlibs"
 $packageDir = Join-Path $Root "test\fixtures"
 $readmePath = Join-Path $releasePackageDir "README.md"
 $testBatPath = Join-Path $Root "test.bat"
+$testSuiteDir = Join-Path $Root "test\suites"
 $minReleasePackages = 31
 $minPackages = 18
 $failures = New-Object System.Collections.Generic.List[string]
@@ -117,6 +118,24 @@ function Same-StringSet($left, $right)
     return $true
 }
 
+function Get-TestRegressionText()
+{
+    $parts = New-Object System.Collections.Generic.List[string]
+
+    if ( Test-Path -LiteralPath $script:testBatPath -PathType Leaf ) {
+        $parts.Add([System.IO.File]::ReadAllText($script:testBatPath, [System.Text.Encoding]::UTF8)) | Out-Null
+    }
+
+    if ( Test-Path -LiteralPath $script:testSuiteDir -PathType Container ) {
+        $suiteFiles = @(Get-ChildItem -LiteralPath $script:testSuiteDir -File -Filter "*.bat" | Sort-Object Name)
+        foreach ( $suite in $suiteFiles ) {
+            $parts.Add([System.IO.File]::ReadAllText($suite.FullName, [System.Text.Encoding]::UTF8)) | Out-Null
+        }
+    }
+
+    return [string]::Join("`n", $parts)
+}
+
 if ( ! (Test-Path -LiteralPath $releasePackageDir -PathType Container) ) {
     Write-Host "release extlibs directory missing: $releasePackageDir"
     exit 1
@@ -128,9 +147,9 @@ if ( ! (Test-Path -LiteralPath $packageDir -PathType Container) ) {
 if ( ! (Test-Path -LiteralPath $testBatPath -PathType Leaf) ) {
     Add-Failure "test.bat missing: $testBatPath"
 } else {
-    $testBatText = [System.IO.File]::ReadAllText($testBatPath, [System.Text.Encoding]::UTF8)
+    $testBatText = Get-TestRegressionText
 if ( ! $testBatText.Contains('set "XLANG_PACKAGE_PATH=release\extlibs;test\fixtures"') ) {
-    Add-Failure "test.bat must set XLANG_PACKAGE_PATH=release\extlibs;test\fixtures before package/import regression"
+    Add-Failure "test.bat/test suites must set XLANG_PACKAGE_PATH=release\extlibs;test\fixtures before package/import regression"
 }
     foreach ( $snippet in @(
         "release\xl.exe run test\cases\import_dependency_versions.xl",
@@ -139,7 +158,7 @@ if ( ! $testBatText.Contains('set "XLANG_PACKAGE_PATH=release\extlibs;test\fixtu
         "private package dependency is not exported"
     ) ) {
         if ( ! $testBatText.Contains($snippet) ) {
-            Add-Failure "test.bat missing package dependency regression snippet: $snippet"
+            Add-Failure "test.bat/test suites missing package dependency regression snippet: $snippet"
         }
     }
 }

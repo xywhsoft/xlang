@@ -9,6 +9,7 @@ if ( $Root -eq "" ) {
 }
 
 $docsDir = Join-Path $Root "docs"
+$testSuiteDir = Join-Path $Root "test\suites"
 $minRootBatchFiles = 10
 $minToolBatchFiles = 1
 $failures = New-Object System.Collections.Generic.List[string]
@@ -263,6 +264,10 @@ if ( $baselineDocs.Count -ne 1 ) {
 $baselineText = Read-Utf8Text $baselineDocs[0].FullName
 $batchFiles = @(Get-ChildItem -LiteralPath $Root -File -Filter "*.bat" | Sort-Object Name)
 $toolBatchFiles = @(Get-ChildItem -LiteralPath (Join-Path $Root "tools") -File -Filter "*.bat" | Sort-Object Name)
+$suiteBatchFiles = @()
+if ( Test-Path -LiteralPath $testSuiteDir -PathType Container ) {
+    $suiteBatchFiles = @(Get-ChildItem -LiteralPath $testSuiteDir -File -Filter "*.bat" | Sort-Object Name)
+}
 $extraBatchFiles = @(
     (Join-Path $Root "release\examples\feature_suite\run_feature_suite.bat")
 ) | Where-Object { Test-Path -LiteralPath $_ -PathType Leaf }
@@ -281,10 +286,17 @@ if ( ! (Test-Path -LiteralPath $toolchainEnvPath -PathType Leaf) ) {
     Add-Failure "toolchain environment batch is missing: $toolchainEnv"
 }
 
-foreach ( $bat in @($batchFiles + $toolBatchFiles) ) {
+foreach ( $bat in @($batchFiles + $toolBatchFiles + $suiteBatchFiles) ) {
     $relative = $bat.FullName.Substring((Resolve-Path -LiteralPath $Root).Path.Length + 1)
     Check-BatchAsciiBytes $bat.FullName $relative
 }
+
+$mainRegressionTextParts = New-Object System.Collections.Generic.List[string]
+$mainRegressionTextParts.Add((Read-Utf8Text (Join-Path $Root "test.bat"))) | Out-Null
+foreach ( $bat in $suiteBatchFiles ) {
+    $mainRegressionTextParts.Add((Read-Utf8Text $bat.FullName)) | Out-Null
+}
+$mainRegressionText = [string]::Join("`n", $mainRegressionTextParts)
 
 foreach ( $bat in $batchFiles ) {
     $text = Read-Utf8Text $bat.FullName
@@ -339,10 +351,29 @@ foreach ( $bat in $batchFiles ) {
         Check-DllBatch $text
     }
     if ( $bat.Name -eq "test.bat" ) {
-        Check-MainRegressionBatch $text
+        Check-MainRegressionBatch $mainRegressionText
     }
     if ( $bat.Name -eq "rc0_guard.bat" ) {
         Check-Rc0Batch $text
+    }
+}
+
+foreach ( $bat in $suiteBatchFiles ) {
+    $text = Read-Utf8Text $bat.FullName
+    $relative = $bat.FullName.Substring((Resolve-Path -LiteralPath $Root).Path.Length + 1)
+    Check-TccCommandLine $text $relative
+
+    if ( $text -notmatch '(?im)^@echo\s+off\s*$' ) {
+        Add-Failure "test suite batch file missing '@echo off': $relative"
+    }
+
+    if ( $bat.Name -ne "common.bat" ) {
+        if ( $text -notmatch '(?im)^setlocal\b' ) {
+            Add-Failure "test suite batch file missing setlocal: $relative"
+        }
+        if ( $text -notmatch '(?im)^\s*call\s+"%~dp0common\.bat"\s*$' ) {
+            Add-Failure "test suite batch file must call common suite initializer: $relative"
+        }
     }
 }
 
@@ -359,5 +390,5 @@ if ( $failures.Count -gt 0 ) {
     exit 1
 }
 
-Write-Host "Batch wiring ok: $($batchFiles.Count) root batch files, toolchain env and regression entries guarded."
+Write-Host "Batch wiring ok: $($batchFiles.Count) root batch files, $($suiteBatchFiles.Count) suite batch files, toolchain env and regression entries guarded."
 exit 0

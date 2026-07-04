@@ -68,7 +68,8 @@ RC0 的目标不是继续扩张语言特性，而是把已经实现的基础能�
 - CLI 和诊断层对 `stderr` 的流程级输出。
 - `snprintf` 用于固定缓冲区安全格式化。
 - flex/lemon 生成代码内部 CRT 使用。
-- CLI 调用 TCC、生成 loadlib import definition 和运行临时 exe 已迁移到 XRT process API，不再保留 `system` 例外。
+- 当前不保留 `system` 例外。
+- CLI 调用外部工具和生成 loadlib import definition 走 `xrtExecCapture` 参数数组路径；`xl run` 运行脚本走 TCC 内存重定位并直接调用 `xlang_main(xvalue arg)`。
 
 ### XRT future 与单头同步
 

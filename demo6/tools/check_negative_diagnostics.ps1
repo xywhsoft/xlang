@@ -10,6 +10,7 @@ if ( $Root -eq "" ) {
 }
 
 $testBat = Join-Path $Root "test.bat"
+$testSuiteDir = Join-Path $Root "test\suites"
 $tmpDir = Join-Path $Root "release\tmp"
 $failures = New-Object System.Collections.Generic.List[string]
 $strictUtf8 = New-Object System.Text.UTF8Encoding($false, $true)
@@ -421,12 +422,43 @@ function Read-StrictDiagnosticText($path, $name)
     }
 }
 
+function Get-TestRegressionLineRecords()
+{
+    $records = New-Object System.Collections.Generic.List[object]
+    $files = New-Object System.Collections.Generic.List[object]
+    $files.Add([pscustomobject]@{ Path = $script:testBat; Relative = "test.bat" }) | Out-Null
+
+    if ( Test-Path -LiteralPath $script:testSuiteDir -PathType Container ) {
+        $rootPath = (Resolve-Path -LiteralPath $script:Root).Path
+        $suiteFiles = @(Get-ChildItem -LiteralPath $script:testSuiteDir -File -Filter "*.bat" | Sort-Object Name)
+        foreach ( $suite in $suiteFiles ) {
+            $relative = $suite.FullName.Substring($rootPath.Length + 1)
+            $files.Add([pscustomobject]@{ Path = $suite.FullName; Relative = $relative }) | Out-Null
+        }
+    }
+
+    foreach ( $file in $files ) {
+        $fileLines = [System.IO.File]::ReadAllLines($file.Path, [System.Text.Encoding]::UTF8)
+        for ( $i = 0; $i -lt $fileLines.Count; ++$i ) {
+            $records.Add([pscustomobject]@{
+                Text = $fileLines[$i]
+                Source = $file.Relative
+                Line = $i + 1
+            }) | Out-Null
+        }
+        $records.Add([pscustomobject]@{ Text = ""; Source = $file.Relative; Line = $fileLines.Count + 1 }) | Out-Null
+    }
+
+    return @($records.ToArray())
+}
+
 if ( ! (Test-Path -LiteralPath $testBat -PathType Leaf) ) {
     Write-Host "test.bat missing: $testBat"
     exit 1
 }
 
-$lines = [System.IO.File]::ReadAllLines($testBat, [System.Text.Encoding]::UTF8)
+$lineRecords = Get-TestRegressionLineRecords
+$lines = @($lineRecords | ForEach-Object { $_.Text })
 $artifactNames = New-Object System.Collections.Generic.SortedSet[string]
 $expectedFailureCommands = 0
 $assertedExpectedFailures = 0
@@ -518,7 +550,9 @@ for ( $i = 0; $i -lt $lines.Count; ++$i ) {
     }
 
     if ( $usedNames.Count -eq 0 ) {
-        Add-Failure "expected-failure command does not capture diagnostic artifact at test.bat:$($i + 1): $commandLine"
+        $source = $lineRecords[$i].Source
+        $lineNumber = $lineRecords[$i].Line
+        Add-Failure "expected-failure command does not capture diagnostic artifact at ${source}:${lineNumber}: $commandLine"
         continue
     }
 
@@ -535,7 +569,7 @@ for ( $i = 0; $i -lt $lines.Count; ++$i ) {
 }
 
 if ( $artifactNames.Count -eq 0 ) {
-    Add-Failure "no expected-failure diagnostic artifacts found in test.bat"
+    Add-Failure "no expected-failure diagnostic artifacts found in test.bat/test suites"
 }
 
 if ( $expectedFailureCommands -lt $minExpectedFailureCommands ) {
