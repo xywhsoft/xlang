@@ -647,6 +647,7 @@ member_name_tok(A) ::= KW_AUTO(N). { A = N; }
 member_name_tok(A) ::= KW_GET(N). { A = N; }
 member_name_tok(A) ::= KW_LET(N). { A = N; }
 member_name_tok(A) ::= KW_STATIC(N). { A = N; }
+member_name_tok(A) ::= KW_END(N). { A = N; }
 
 import_name(A) ::= import_name_part(N). {
     A = xl6PImportNameFromToken(&N);
@@ -811,6 +812,8 @@ class_member_base(A) ::= derive_decl(B). { A = B; }
 class_member_base(A) ::= func_decl(B). { A = B; }
 class_member_base(A) ::= class_extern_special(B). { A = B; }
 class_member_base(A) ::= class_extern_func(B). { A = B; }
+class_member_base(A) ::= class_extern_get(B). { A = B; }
+class_member_base(A) ::= class_extern_let(B). { A = B; }
 class_member_base(A) ::= export_func_decl(B). { A = B; }
 class_member_base(A) ::= property_get_decl(B). { A = B; }
 class_member_base(A) ::= property_let_decl(B). { A = B; }
@@ -925,7 +928,27 @@ class_extern_special(A) ::= KW_EXTERN(E) STRING(S) name_tok(N) name_params(P) ne
     (void)E;
 }
 
-property_get_decl(A) ::= KW_GET(G) name_tok(N) name_params(P) return_sig(R) need_sep block(B) KW_END. {
+class_extern_get(A) ::= KW_EXTERN(E) STRING(S) KW_GET member_name_tok(N) name_params(P) return_sig(R) need_sep. {
+    A = xl6AstNew(XL6_AST_GET, &S);
+    A->flags |= XL6_AST_FLAG_EXTERN;
+    xl6AstAddChild(A, xl6AstNew(XL6_AST_NAME, &N));
+    xl6AstAddChild(A, P);
+    xl6AstAddChild(A, R);
+    xl6AstAddChild(A, xl6AstNew(XL6_AST_BLOCK, NULL));
+    (void)E;
+}
+
+class_extern_let(A) ::= KW_EXTERN(E) STRING(S) KW_LET member_name_tok(N) name_params(P) need_sep. {
+    A = xl6AstNew(XL6_AST_LET, &S);
+    A->flags |= XL6_AST_FLAG_EXTERN;
+    xl6AstAddChild(A, xl6AstNew(XL6_AST_NAME, &N));
+    xl6AstAddChild(A, P);
+    xl6AstAddChild(A, xl6AstNew(XL6_AST_RETURN_TYPES, NULL));
+    xl6AstAddChild(A, xl6AstNew(XL6_AST_BLOCK, NULL));
+    (void)E;
+}
+
+property_get_decl(A) ::= KW_GET(G) member_name_tok(N) name_params(P) return_sig(R) need_sep block(B) KW_END. {
     A = xl6AstNew(XL6_AST_GET, &G);
     xl6AstAddChild(A, xl6AstNew(XL6_AST_NAME, &N));
     xl6AstAddChild(A, P);
@@ -933,7 +956,7 @@ property_get_decl(A) ::= KW_GET(G) name_tok(N) name_params(P) return_sig(R) need
     xl6AstAddChild(A, B);
 }
 
-property_let_decl(A) ::= KW_LET(L) name_tok(N) name_params(P) need_sep block(B) KW_END. {
+property_let_decl(A) ::= KW_LET(L) member_name_tok(N) name_params(P) need_sep block(B) KW_END. {
     A = xl6AstNew(XL6_AST_LET, &L);
     xl6AstAddChild(A, xl6AstNew(XL6_AST_NAME, &N));
     xl6AstAddChild(A, P);

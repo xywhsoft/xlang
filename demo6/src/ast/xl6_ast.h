@@ -94,6 +94,7 @@ typedef enum XL6_AstKind {
 #define XL6_AST_FLAG_VIRTUAL  0x00000040u
 #define XL6_AST_FLAG_NATIVE   0x00000080u
 #define XL6_AST_FLAG_ASYNC    0x00000100u
+#define XL6_AST_FLAG_EXTERN   0x00000200u
 
 typedef struct XL6_AstNode {
     XL6_AstKind kind;

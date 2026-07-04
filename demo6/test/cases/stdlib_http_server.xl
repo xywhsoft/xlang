@@ -1,24 +1,48 @@
 func handle(string method, string path, string query, string body) as string
-    if method == "GET" and path == "/users/42" and query == "name=xlang" then
-        return "route-get-ok"
-    end
-    if method == "POST" and path == "/demo" and query == "x=1" and body == "ping" then
-        return "xlang-http-ok"
-    end
-    if method == "PUT" and path == "/any" then
-        return "route-any-ok"
+    if method == "GET" and path == "/legacy" then
+        return "legacy-ok"
     end
     return "xlang-http-bad"
 end
 
+func handleRequest(point reqHandle, point respHandle) as bool
+    HttpRequest req = HttpRequest(reqHandle)
+    HttpResponse resp = HttpResponse(respHandle)
+
+    resp.header("X-Xlang", "request")
+
+    if req.method() == "GET" and req.path() == "/users/42" and req.query() == "name=xlang" then
+        if req.param("id") == "42" and req.queryValue("name") == "xlang" and req.header("Host") != "" then
+            resp.status(201, "Created")
+            return resp.text("route-get-ok")
+        end
+    end
+
+    if req.method() == "POST" and req.path() == "/demo" and req.queryValue("x") == "1" and req.body() == "ping" then
+        return resp.text("xlang-http-ok")
+    end
+
+    if req.method() == "PUT" and req.path() == "/any" then
+        return resp.text("route-any-ok")
+    end
+
+    resp.status(404)
+    return resp.text("not-found")
+end
+
 export "xl6_http_server_create" func createServer() as point
     func(string, string, string, string) as string fn = handle
+    func(point, point) as bool reqFn = handleRequest
     dir.createAll("release/tmp/stdlib_http_static")
     file.writeText("release/tmp/stdlib_http_static/index.txt", "static-ok")
+    assert http.server.mimeByPath("index.html") == "text/html; charset=utf-8", "mimeByPath mismatch"
     point server = http.server.create(0)
-    http.server.get(server, "/users/{id}", fn)
-    http.server.post(server, "/demo", fn)
-    http.server.any(server, "/any", fn)
+    http.server.get(server, "/legacy", fn)
+    http.server.post(server, "/legacy-post", fn)
+    http.server.any(server, "/legacy-any", fn)
+    http.server.getRequest(server, "/users/{id}", reqFn)
+    http.server.postRequest(server, "/demo", reqFn)
+    http.server.anyRequest(server, "/any", reqFn)
     http.server.static(server, "/public", "release/tmp/stdlib_http_static")
     http.server.start(server)
     return server

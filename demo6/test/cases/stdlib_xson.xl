@@ -5,6 +5,10 @@ string filePath = "release/tmp/stdlib_xson_case.xson"
 
 file.delete(filePath)
 
+expect(xson.valid('{"name":"xlang","ok":true}'), 1)
+expect(xson.valid('{"keep":1,"skip":ptr(123),"after":2}'), 0)
+expect(xson.valid('{"keep":1,"skip":ptr(123),"after":2}', true), 1)
+
 var values = xson.parse("[1,2,3]")
 string compactValues = xson.stringify(values)
 string prettyValues = xson.stringify(values, pretty = true)

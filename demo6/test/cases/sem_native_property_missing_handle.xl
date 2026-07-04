@@ -1,0 +1,5 @@
+class BadNativeProperty
+    extern "bad_get_value" get value() as int
+end
+
+BadNativeProperty bad

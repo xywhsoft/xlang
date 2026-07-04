@@ -89,6 +89,13 @@ static int xl6CgenAstHasFlag(const XL6_AstNode* node, unsigned int flag)
     return node != NULL && (node->flags & flag) != 0;
 }
 
+static int xl6CgenIsExternClassProperty(const XL6_AstNode* node)
+{
+    return node != NULL &&
+           (node->kind == XL6_AST_GET || node->kind == XL6_AST_LET) &&
+           xl6CgenAstHasFlag(node, XL6_AST_FLAG_EXTERN);
+}
+
 static int xl6CgenIsStaticMember(const XL6_AstNode* node)
 {
     return xl6CgenAstHasFlag(node, XL6_AST_FLAG_STATIC);

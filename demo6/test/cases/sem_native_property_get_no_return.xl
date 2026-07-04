@@ -1,0 +1,4 @@
+class BadNativeProperty
+    native point handle
+    extern "bad_get_value" get value()
+end

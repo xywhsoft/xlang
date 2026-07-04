@@ -55,3 +55,55 @@ expectStr(crypto.hkdfSha384("key", "salt", "info", 0), "")
 
 expect(string.len(crypto.randomHex(16)), 32)
 expectStr(crypto.randomHex(0), "")
+
+Sha256 sha256Stream = crypto.sha256Stream()
+assert sha256Stream.update("a"), "sha256 stream update failed"
+assert sha256Stream.update("bc"), "sha256 stream second update failed"
+expectStr(sha256Stream.hex(), crypto.sha256("abc"))
+expectStr(sha256Stream.hex(), crypto.sha256("abc"))
+
+Sha384 sha384Stream = crypto.sha384Stream()
+assert sha384Stream.update("ab"), "sha384 stream update failed"
+assert sha384Stream.update("c"), "sha384 stream second update failed"
+expectStr(sha384Stream.hex(), crypto.sha384("abc"))
+
+Sha512 sha512Stream = crypto.sha512Stream()
+assert sha512Stream.update("abc"), "sha512 stream update failed"
+expectStr(sha512Stream.hex(), crypto.sha512("abc"))
+
+string chacha20Cipher = crypto.chacha20Encrypt(key32, nonce, plain, 1)
+expect(string.len(chacha20Cipher), string.byteLen(plain) * 2)
+expectStr(crypto.chacha20Decrypt(key32, nonce, chacha20Cipher, 1), plain)
+expectStr(crypto.chacha20Encrypt("bad", nonce, plain, 1), "")
+expectStr(crypto.chacha20Decrypt(key32, nonce, "bad", 1), "")
+
+var edKey = crypto.ed25519Keypair()
+string edSeed = string(edKey["seed"])
+string edPub = string(edKey["publicKey"])
+expect(string.len(edSeed), 64)
+expect(string.len(edPub), 64)
+expectStr(crypto.ed25519PublicKey(edSeed), edPub)
+string edSig = crypto.ed25519Sign(edSeed, "message")
+expect(string.len(edSig), 128)
+assert crypto.ed25519Verify(edPub, "message", edSig), "ed25519 verify failed"
+assert not crypto.ed25519Verify(edPub, "message!", edSig), "ed25519 verify should reject modified text"
+assert not crypto.ed25519Verify("bad", "message", edSig), "ed25519 verify should reject bad public key"
+
+var x25519A = crypto.x25519Keypair()
+var x25519B = crypto.x25519Keypair()
+string x25519SecretA = crypto.x25519SharedSecret(string(x25519A["privateKey"]), string(x25519B["publicKey"]))
+string x25519SecretB = crypto.x25519SharedSecret(string(x25519B["privateKey"]), string(x25519A["publicKey"]))
+expect(string.len(x25519SecretA), 64)
+expectStr(x25519SecretA, x25519SecretB)
+expectStr(crypto.x25519SharedSecret("bad", string(x25519B["publicKey"])), "")
+
+var x448A = crypto.x448Keypair()
+var x448B = crypto.x448Keypair()
+string x448SecretA = crypto.x448SharedSecret(string(x448A["privateKey"]), string(x448B["publicKey"]))
+string x448SecretB = crypto.x448SharedSecret(string(x448B["privateKey"]), string(x448A["publicKey"]))
+expect(string.len(x448SecretA), 112)
+expectStr(x448SecretA, x448SecretB)
+expectStr(crypto.x448SharedSecret("bad", string(x448B["publicKey"])), "")
+
+assert not crypto.rsaPssVerify("", "", "", ""), "rsaPssVerify should reject empty hex"
+assert not crypto.rsaPkcs1Verify("bad", "00", "00", "010001"), "rsaPkcs1Verify should reject invalid hex"

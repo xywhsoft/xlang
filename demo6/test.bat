@@ -6137,6 +6137,21 @@ if errorlevel 1 (
     echo stdlib_path_file.c missing FileInfo class bridge.
     exit /b 1
 )
+findstr /C:"typedef struct XL_Class_File" release\tmp\stdlib_path_file.c >nul
+if errorlevel 1 (
+    echo stdlib_path_file.c missing File class bridge.
+    exit /b 1
+)
+findstr /C:"void* xrtOpen" release\tmp\stdlib_path_file.c >nul
+if errorlevel 1 (
+    echo stdlib_path_file.c missing xrtOpen extern prototype.
+    exit /b 1
+)
+findstr /C:"void* xl6_xrt_file_open" release\tmp\stdlib_path_file.c >nul
+if errorlevel 1 (
+    echo stdlib_path_file.c missing file.open runtime helper.
+    exit /b 1
+)
 findstr /C:"int xrtDirDelete" release\tmp\stdlib_path_file.c >nul
 if errorlevel 1 (
     echo stdlib_path_file.c missing xrtDirDelete extern prototype.
@@ -7129,6 +7144,33 @@ if errorlevel 1 (
 "%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_native_class_field.c test\cases\cgen_class_custom_field_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_native_class_field.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_native_class_field.exe
+if errorlevel 1 exit /b 1
+
+release\xl.exe cgen test\cases\cgen_native_class_property.xl --emit release\tmp\cgen_native_class_property.c
+if errorlevel 1 exit /b 1
+findstr /C:"long long native_property_get_value(void* self);" release\tmp\cgen_native_class_property.c >nul
+if errorlevel 1 (
+    echo cgen_native_class_property.c missing extern get C prototype.
+    exit /b 1
+)
+findstr /C:"void native_property_set_at(void* self, long long index, long long value);" release\tmp\cgen_native_class_property.c >nul
+if errorlevel 1 (
+    echo cgen_native_class_property.c missing extern let C prototype.
+    exit /b 1
+)
+findstr /C:"return native_property_get_value(self->handle);" release\tmp\cgen_native_class_property.c >nul
+if errorlevel 1 (
+    echo cgen_native_class_property.c missing extern get wrapper.
+    exit /b 1
+)
+findstr /C:"native_property_set_at(self->handle, index, value);" release\tmp\cgen_native_class_property.c >nul
+if errorlevel 1 (
+    echo cgen_native_class_property.c missing extern let wrapper.
+    exit /b 1
+)
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_native_class_property.c test\cases\cgen_native_class_property_host.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_native_class_property.exe
+if errorlevel 1 exit /b 1
+release\tmp\cgen_native_class_property.exe
 if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_custom_helper.xl --emit release\tmp\cgen_custom_helper.c
@@ -9864,6 +9906,12 @@ if not errorlevel 1 (
     exit /b 1
 )
 
+release\xl.exe check test\cases\sem_noncopyable_fresh_return.xl >nul
+if errorlevel 1 (
+    echo sem_noncopyable_fresh_return.xl should pass.
+    exit /b 1
+)
+
 release\xl.exe check test\cases\sem_noncopyable_return.xl >nul 2> release\tmp\sem_noncopyable_return.err.txt
 if not errorlevel 1 (
     echo sem_noncopyable_return.xl should fail.
@@ -10080,6 +10128,72 @@ if not errorlevel 1 (
 findstr /C:"native-backed class extern member requires native point handle field" release\tmp\sem_native_class_missing_handle.err.txt >nul
 if errorlevel 1 (
     echo sem_native_class_missing_handle.err.txt missing native handle diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_native_property_missing_handle.xl >nul 2> release\tmp\sem_native_property_missing_handle.err.txt
+if not errorlevel 1 (
+    echo sem_native_property_missing_handle.xl should fail.
+    exit /b 1
+)
+findstr /C:"native-backed class extern member requires native point handle field" release\tmp\sem_native_property_missing_handle.err.txt >nul
+if errorlevel 1 (
+    echo sem_native_property_missing_handle.err.txt missing native handle diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_native_property_get_no_return.xl >nul 2> release\tmp\sem_native_property_get_no_return.err.txt
+if not errorlevel 1 (
+    echo sem_native_property_get_no_return.xl should fail.
+    exit /b 1
+)
+findstr /C:"extern get property must declare exactly one return type" release\tmp\sem_native_property_get_no_return.err.txt >nul
+if errorlevel 1 (
+    echo sem_native_property_get_no_return.err.txt missing extern get diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_native_property_let_no_value.xl >nul 2> release\tmp\sem_native_property_let_no_value.err.txt
+if not errorlevel 1 (
+    echo sem_native_property_let_no_value.xl should fail.
+    exit /b 1
+)
+findstr /C:"extern let property must declare a value parameter" release\tmp\sem_native_property_let_no_value.err.txt >nul
+if errorlevel 1 (
+    echo sem_native_property_let_no_value.err.txt missing extern let diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_native_property_optional.xl >nul 2> release\tmp\sem_native_property_optional.err.txt
+if not errorlevel 1 (
+    echo sem_native_property_optional.xl should fail.
+    exit /b 1
+)
+findstr /C:"extern property parameters cannot be optional" release\tmp\sem_native_property_optional.err.txt >nul
+if errorlevel 1 (
+    echo sem_native_property_optional.err.txt missing extern property optional diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_native_property_vararg.xl >nul 2> release\tmp\sem_native_property_vararg.err.txt
+if not errorlevel 1 (
+    echo sem_native_property_vararg.xl should fail.
+    exit /b 1
+)
+findstr /C:"extern property parameters cannot be vararg" release\tmp\sem_native_property_vararg.err.txt >nul
+if errorlevel 1 (
+    echo sem_native_property_vararg.err.txt missing extern property vararg diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_native_property_duplicate_c_symbol.xl >nul 2> release\tmp\sem_native_property_duplicate_c_symbol.err.txt
+if not errorlevel 1 (
+    echo sem_native_property_duplicate_c_symbol.xl should fail.
+    exit /b 1
+)
+findstr /C:"same native-backed class cannot bind the same C symbol twice" release\tmp\sem_native_property_duplicate_c_symbol.err.txt >nul
+if errorlevel 1 (
+    echo sem_native_property_duplicate_c_symbol.err.txt missing duplicate C symbol diagnostic.
     exit /b 1
 )
 
@@ -20885,6 +20999,11 @@ if errorlevel 1 (
     echo stdlib_json.c missing xrtParseJSON extern prototype.
     exit /b 1
 )
+findstr /C:"bool xrtJsonValid" release\tmp\stdlib_json.c >nul
+if errorlevel 1 (
+    echo stdlib_json.c missing xrtJsonValid extern prototype.
+    exit /b 1
+)
 findstr /C:"void* xrtStringifyJSON" release\tmp\stdlib_json.c >nul
 if errorlevel 1 (
     echo stdlib_json.c missing xrtStringifyJSON extern prototype.
@@ -20899,6 +21018,14 @@ if errorlevel 1 (
 if errorlevel 1 exit /b 1
 release\tmp\stdlib_json.exe
 if errorlevel 1 exit /b 1
+release\xl.exe run release\examples\stdlib_json.xl %XL6_XL_DEFAULT_LINK_ARGS% > release\tmp\stdlib_json_xlang.out.txt
+if errorlevel 1 exit /b 1
+"%XL6_TCC%" -std=c11 -Wall -Ilib\xrt %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% release\examples\stdlib_json_c.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\stdlib_json_c.exe
+if errorlevel 1 exit /b 1
+release\tmp\stdlib_json_c.exe > release\tmp\stdlib_json_c.out.txt
+if errorlevel 1 exit /b 1
+powershell -NoProfile -Command "$a=[System.IO.File]::ReadAllLines('release\tmp\stdlib_json_xlang.out.txt'); $b=[System.IO.File]::ReadAllLines('release\tmp\stdlib_json_c.out.txt'); if (($a -join \"`n\") -ne ($b -join \"`n\")) { Write-Host 'stdlib json xlang/C output mismatch.'; Write-Host 'xlang:'; $a; Write-Host 'C:'; $b; exit 1 }"
+if errorlevel 1 exit /b 1
 
 release\xl.exe check test\cases\stdlib_xson.xl
 if errorlevel 1 exit /b 1
@@ -20907,6 +21034,11 @@ if errorlevel 1 exit /b 1
 findstr /C:"xvalue xrtParseXSON" release\tmp\stdlib_xson.c >nul
 if errorlevel 1 (
     echo stdlib_xson.c missing xrtParseXSON extern prototype.
+    exit /b 1
+)
+findstr /C:"bool xrtXsonValid" release\tmp\stdlib_xson.c >nul
+if errorlevel 1 (
+    echo stdlib_xson.c missing xrtXsonValid extern prototype.
     exit /b 1
 )
 findstr /C:"void* xrtStringifyXSON" release\tmp\stdlib_xson.c >nul
@@ -20922,6 +21054,14 @@ if errorlevel 1 (
 "%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\stdlib_xson.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\stdlib_xson.exe
 if errorlevel 1 exit /b 1
 release\tmp\stdlib_xson.exe
+if errorlevel 1 exit /b 1
+release\xl.exe run release\examples\stdlib_xson.xl %XL6_XL_DEFAULT_LINK_ARGS% > release\tmp\stdlib_xson_xlang.out.txt
+if errorlevel 1 exit /b 1
+"%XL6_TCC%" -std=c11 -Wall -Ilib\xrt %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% release\examples\stdlib_xson_c.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\stdlib_xson_c.exe
+if errorlevel 1 exit /b 1
+release\tmp\stdlib_xson_c.exe > release\tmp\stdlib_xson_c.out.txt
+if errorlevel 1 exit /b 1
+powershell -NoProfile -Command "$a=[System.IO.File]::ReadAllLines('release\tmp\stdlib_xson_xlang.out.txt'); $b=[System.IO.File]::ReadAllLines('release\tmp\stdlib_xson_c.out.txt'); if (($a -join \"`n\") -ne ($b -join \"`n\")) { Write-Host 'stdlib xson xlang/C output mismatch.'; Write-Host 'xlang:'; $a; Write-Host 'C:'; $b; exit 1 }"
 if errorlevel 1 exit /b 1
 
 release\xl.exe check test\cases\stdlib_print.xl
@@ -21007,12 +21147,12 @@ if errorlevel 1 (
     echo stdlib_error_paths.c missing xrtUrlResolveTo runtime prototype.
     exit /b 1
 )
-findstr /C:"bool xrtExecCapture" release\tmp\stdlib_error_paths.c >nul
+findstr /C:"bool xrtProcessRun" release\tmp\stdlib_error_paths.c >nul
 if errorlevel 1 (
-    echo stdlib_error_paths.c missing xrtExecCapture runtime prototype.
+    echo stdlib_error_paths.c missing xrtProcessRun runtime prototype.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text = Get-Content -Raw -Encoding UTF8 'release\tmp\stdlib_error_paths.c'; if ($text -notmatch 'xrtFormUrlEncodedDecodeTo\([^\)]*\) \) \{\s*xrtFree\(outText\);\s*return xl6_query_empty_string\(\);') { Write-Host 'stdlib_error_paths.c missing query decode failure cleanup.'; exit 1 }; if ($text -notmatch 'if \( !xl6_url_parse_view\(base, baseSize, &baseUrl\) \) \{ return xl6_url_empty_string\(\); \}') { Write-Host 'stdlib_error_paths.c missing url resolve invalid base fallback.'; exit 1 }; if ($text -notmatch 'if \( !xrtExecCapture\(&config, &result, timeout\) \) \{ xrtProcessResultUnit\(&result\); return xl6_process_empty_string\(\); \}') { Write-Host 'stdlib_error_paths.c missing process exec failure cleanup.'; exit 1 }; if ($text -notmatch 'xrtProcessResultUnit\(&result\);\s*return ok;') { Write-Host 'stdlib_error_paths.c missing process success result cleanup.'; exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text = Get-Content -Raw -Encoding UTF8 'release\tmp\stdlib_error_paths.c'; if ($text -notmatch 'xrtFormUrlEncodedDecodeTo\([^\)]*\) \) \{\s*xrtFree\(outText\);\s*return xl6_query_empty_string\(\);') { Write-Host 'stdlib_error_paths.c missing query decode failure cleanup.'; exit 1 }; if ($text -notmatch 'if \( !xl6_url_parse_view\(base, baseSize, &baseUrl\) \) \{ return xl6_url_empty_string\(\); \}') { Write-Host 'stdlib_error_paths.c missing url resolve invalid base fallback.'; exit 1 }; if ($text -notmatch 'if \( result == 0 \) \{ return xl6_process_empty_string\(\); \}\s*outText = xl6_process_copy_bytes\(result->pStdout, result->iStdoutSize\);\s*xl6_xrt_process_result_destroy\(result\);\s*return outText;') { Write-Host 'stdlib_error_paths.c missing process exec result cleanup.'; exit 1 }; if ($text -notmatch 'bool ok = result != 0 && xrtProcessResultSuccess\(result\);\s*xl6_xrt_process_result_destroy\(result\);\s*return ok;') { Write-Host 'stdlib_error_paths.c missing process success result cleanup.'; exit 1 }"
 if errorlevel 1 exit /b 1
 "%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\stdlib_error_paths.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\stdlib_error_paths.exe
 if errorlevel 1 exit /b 1
@@ -21035,6 +21175,26 @@ if errorlevel 1 (
     echo stdlib_codec.c missing xrtBase64Encode extern prototype.
     exit /b 1
 )
+findstr /C:"void* xrtPercentEncode" release\tmp\stdlib_codec.c >nul
+if errorlevel 1 (
+    echo stdlib_codec.c missing xrtPercentEncode extern prototype.
+    exit /b 1
+)
+findstr /C:"void* xrtFormUrlEncode" release\tmp\stdlib_codec.c >nul
+if errorlevel 1 (
+    echo stdlib_codec.c missing xrtFormUrlEncode extern prototype.
+    exit /b 1
+)
+findstr /C:"void* xrtBufferFromHex" release\tmp\stdlib_codec.c >nul
+if errorlevel 1 (
+    echo stdlib_codec.c missing xrtBufferFromHex extern prototype.
+    exit /b 1
+)
+findstr /C:"typedef struct XL_Class_Buffer" release\tmp\stdlib_codec.c >nul
+if errorlevel 1 (
+    echo stdlib_codec.c missing Buffer class bridge for bytes decode.
+    exit /b 1
+)
 findstr /C:"const char* __xl_std_codec_base64_decode" release\tmp\stdlib_codec.c >nul
 if errorlevel 1 (
     echo stdlib_codec.c missing codec.base64Decode helper.
@@ -21043,6 +21203,56 @@ if errorlevel 1 (
 "%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\stdlib_codec.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\stdlib_codec.exe
 if errorlevel 1 exit /b 1
 release\tmp\stdlib_codec.exe
+if errorlevel 1 exit /b 1
+release\xl.exe run release\examples\stdlib_codec.xl %XL6_XL_DEFAULT_LINK_ARGS% > release\tmp\stdlib_codec_xlang.out.txt
+if errorlevel 1 exit /b 1
+"%XL6_TCC%" -std=c11 -Wall -Ilib\xrt %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% release\examples\stdlib_codec_c.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\stdlib_codec_c.exe
+if errorlevel 1 exit /b 1
+release\tmp\stdlib_codec_c.exe > release\tmp\stdlib_codec_c.out.txt
+if errorlevel 1 exit /b 1
+powershell -NoProfile -Command "$a=[System.IO.File]::ReadAllLines('release\tmp\stdlib_codec_xlang.out.txt'); $b=[System.IO.File]::ReadAllLines('release\tmp\stdlib_codec_c.out.txt'); if (($a -join \"`n\") -ne ($b -join \"`n\")) { Write-Host 'stdlib codec xlang/C output mismatch.'; Write-Host 'xlang:'; $a; Write-Host 'C:'; $b; exit 1 }"
+if errorlevel 1 exit /b 1
+
+release\xl.exe check test\cases\stdlib_encoding.xl
+if errorlevel 1 exit /b 1
+release\xl.exe cgen test\cases\stdlib_encoding.xl --emit release\tmp\stdlib_encoding.c
+if errorlevel 1 exit /b 1
+findstr /C:"void* xrtConvCharset" release\tmp\stdlib_encoding.c >nul
+if errorlevel 1 (
+    echo stdlib_encoding.c missing xrtConvCharset runtime prototype.
+    exit /b 1
+)
+findstr /C:"void* xl6_xrt_encoding_to_bytes" release\tmp\stdlib_encoding.c >nul
+if errorlevel 1 (
+    echo stdlib_encoding.c missing encoding.toBytes runtime helper.
+    exit /b 1
+)
+findstr /C:"long long xl6_xrt_encoding_detect_text" release\tmp\stdlib_encoding.c >nul
+if errorlevel 1 (
+    echo stdlib_encoding.c missing encoding.detect runtime helper.
+    exit /b 1
+)
+findstr /C:"bool xl6_xrt_encoding_is_utf8_bytes" release\tmp\stdlib_encoding.c >nul
+if errorlevel 1 (
+    echo stdlib_encoding.c missing encoding.isUtf8Bytes runtime helper.
+    exit /b 1
+)
+findstr /C:"void* xl6_xrt_buffer_wrap_handle" release\tmp\stdlib_encoding.c >nul
+if errorlevel 1 (
+    echo stdlib_encoding.c missing Buffer handle wrapper.
+    exit /b 1
+)
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\stdlib_encoding.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\stdlib_encoding.exe
+if errorlevel 1 exit /b 1
+release\tmp\stdlib_encoding.exe
+if errorlevel 1 exit /b 1
+release\xl.exe run release\examples\stdlib_encoding.xl %XL6_XL_DEFAULT_LINK_ARGS% > release\tmp\stdlib_encoding_xlang.out.txt
+if errorlevel 1 exit /b 1
+"%XL6_TCC%" -std=c11 -Wall -Ilib\xrt %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% release\examples\stdlib_encoding_c.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\stdlib_encoding_c.exe
+if errorlevel 1 exit /b 1
+release\tmp\stdlib_encoding_c.exe > release\tmp\stdlib_encoding_c.out.txt
+if errorlevel 1 exit /b 1
+powershell -NoProfile -Command "$a=[System.IO.File]::ReadAllLines('release\tmp\stdlib_encoding_xlang.out.txt'); $b=[System.IO.File]::ReadAllLines('release\tmp\stdlib_encoding_c.out.txt'); if (($a -join \"`n\") -ne ($b -join \"`n\")) { Write-Host 'stdlib encoding xlang/C output mismatch.'; Write-Host 'xlang:'; $a; Write-Host 'C:'; $b; exit 1 }"
 if errorlevel 1 exit /b 1
 
 release\xl.exe check test\cases\stdlib_hash.xl
@@ -21088,6 +21298,14 @@ if errorlevel 1 (
 if errorlevel 1 exit /b 1
 release\tmp\stdlib_hash.exe
 if errorlevel 1 exit /b 1
+release\xl.exe run release\examples\stdlib_hash.xl %XL6_XL_DEFAULT_LINK_ARGS% > release\tmp\stdlib_hash_xlang.out.txt
+if errorlevel 1 exit /b 1
+"%XL6_TCC%" -std=c11 -Wall -Ilib\xrt %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% release\examples\stdlib_hash_c.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\stdlib_hash_c.exe
+if errorlevel 1 exit /b 1
+release\tmp\stdlib_hash_c.exe > release\tmp\stdlib_hash_c.out.txt
+if errorlevel 1 exit /b 1
+powershell -NoProfile -Command "$a=[System.IO.File]::ReadAllLines('release\tmp\stdlib_hash_xlang.out.txt'); $b=[System.IO.File]::ReadAllLines('release\tmp\stdlib_hash_c.out.txt'); if (($a -join \"`n\") -ne ($b -join \"`n\")) { Write-Host 'stdlib hash xlang/C output mismatch.'; Write-Host 'xlang:'; $a; Write-Host 'C:'; $b; exit 1 }"
+if errorlevel 1 exit /b 1
 
 release\xl.exe check test\cases\stdlib_crypto.xl
 if errorlevel 1 exit /b 1
@@ -21103,9 +21321,28 @@ if errorlevel 1 (
     echo stdlib_crypto.c missing sha512 runtime helper.
     exit /b 1
 )
+findstr /C:"void* xl6_xrt_sha256_stream_create" release\tmp\stdlib_crypto.c >nul
+if errorlevel 1 (
+    echo stdlib_crypto.c missing sha256 stream runtime helper.
+    exit /b 1
+)
+findstr /C:"xvalue xl6_xrt_ed25519_keypair" release\tmp\stdlib_crypto.c >nul
+if errorlevel 1 (
+    echo stdlib_crypto.c missing ed25519 keypair runtime helper.
+    exit /b 1
+)
 "%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\stdlib_crypto.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\stdlib_crypto.exe
 if errorlevel 1 exit /b 1
 release\tmp\stdlib_crypto.exe
+if errorlevel 1 exit /b 1
+
+release\xl.exe run release\examples\stdlib_crypto.xl %XL6_XL_DEFAULT_LINK_ARGS% > release\tmp\stdlib_crypto_xlang.out.txt
+if errorlevel 1 exit /b 1
+"%XL6_TCC%" -std=c11 -Wall -Ilib\xrt %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% release\examples\stdlib_crypto_c.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\stdlib_crypto_c.exe
+if errorlevel 1 exit /b 1
+release\tmp\stdlib_crypto_c.exe > release\tmp\stdlib_crypto_c.out.txt
+if errorlevel 1 exit /b 1
+powershell -NoProfile -Command "$a=[System.IO.File]::ReadAllLines('release\tmp\stdlib_crypto_xlang.out.txt'); $b=[System.IO.File]::ReadAllLines('release\tmp\stdlib_crypto_c.out.txt'); if (($a -join \"`n\") -ne ($b -join \"`n\")) { Write-Host 'stdlib crypto xlang/C output mismatch.'; Write-Host 'xlang:'; $a; Write-Host 'C:'; $b; exit 1 }"
 if errorlevel 1 exit /b 1
 
 release\xl.exe check test\cases\stdlib_id_net.xl
@@ -21126,6 +21363,14 @@ if errorlevel 1 (
 if errorlevel 1 exit /b 1
 release\tmp\stdlib_id_net.exe
 if errorlevel 1 exit /b 1
+release\xl.exe run release\examples\stdlib_id_net.xl %XL6_XL_DEFAULT_LINK_ARGS% > release\tmp\stdlib_id_net_xlang.out.txt
+if errorlevel 1 exit /b 1
+"%XL6_TCC%" -std=c11 -Wall -Ilib\xrt %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% release\examples\stdlib_id_net_c.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\stdlib_id_net_c.exe
+if errorlevel 1 exit /b 1
+release\tmp\stdlib_id_net_c.exe > release\tmp\stdlib_id_net_c.out.txt
+if errorlevel 1 exit /b 1
+powershell -NoProfile -Command "$a=[System.IO.File]::ReadAllLines('release\tmp\stdlib_id_net_xlang.out.txt'); $b=[System.IO.File]::ReadAllLines('release\tmp\stdlib_id_net_c.out.txt'); if (($a -join \"`n\") -ne ($b -join \"`n\")) { Write-Host 'stdlib id_net xlang/C output mismatch.'; Write-Host 'xlang:'; $a; Write-Host 'C:'; $b; exit 1 }"
+if errorlevel 1 exit /b 1
 
 release\xl.exe check test\cases\stdlib_url.xl
 if errorlevel 1 exit /b 1
@@ -21144,6 +21389,14 @@ if errorlevel 1 (
 "%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\stdlib_url.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\stdlib_url.exe
 if errorlevel 1 exit /b 1
 release\tmp\stdlib_url.exe
+if errorlevel 1 exit /b 1
+release\xl.exe run release\examples\stdlib_url.xl %XL6_XL_DEFAULT_LINK_ARGS% > release\tmp\stdlib_url_xlang.out.txt
+if errorlevel 1 exit /b 1
+"%XL6_TCC%" -std=c11 -Wall -Ilib\xrt %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% release\examples\stdlib_url_c.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\stdlib_url_c.exe
+if errorlevel 1 exit /b 1
+release\tmp\stdlib_url_c.exe > release\tmp\stdlib_url_c.out.txt
+if errorlevel 1 exit /b 1
+powershell -NoProfile -Command "$a=[System.IO.File]::ReadAllLines('release\tmp\stdlib_url_xlang.out.txt'); $b=[System.IO.File]::ReadAllLines('release\tmp\stdlib_url_c.out.txt'); if (($a -join \"`n\") -ne ($b -join \"`n\")) { Write-Host 'stdlib url xlang/C output mismatch.'; Write-Host 'xlang:'; $a; Write-Host 'C:'; $b; exit 1 }"
 if errorlevel 1 exit /b 1
 
 release\xl.exe check test\cases\stdlib_query.xl
@@ -21164,6 +21417,98 @@ if errorlevel 1 (
 if errorlevel 1 exit /b 1
 release\tmp\stdlib_query.exe
 if errorlevel 1 exit /b 1
+release\xl.exe run release\examples\stdlib_query.xl %XL6_XL_DEFAULT_LINK_ARGS% > release\tmp\stdlib_query_xlang.out.txt
+if errorlevel 1 exit /b 1
+"%XL6_TCC%" -std=c11 -Wall -Ilib\xrt %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% release\examples\stdlib_query_c.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\stdlib_query_c.exe
+if errorlevel 1 exit /b 1
+release\tmp\stdlib_query_c.exe > release\tmp\stdlib_query_c.out.txt
+if errorlevel 1 exit /b 1
+powershell -NoProfile -Command "$a=[System.IO.File]::ReadAllLines('release\tmp\stdlib_query_xlang.out.txt'); $b=[System.IO.File]::ReadAllLines('release\tmp\stdlib_query_c.out.txt'); if (($a -join \"`n\") -ne ($b -join \"`n\")) { Write-Host 'stdlib query xlang/C output mismatch.'; Write-Host 'xlang:'; $a; Write-Host 'C:'; $b; exit 1 }"
+if errorlevel 1 exit /b 1
+
+release\xl.exe check test\cases\stdlib_log.xl
+if errorlevel 1 exit /b 1
+release\xl.exe cgen test\cases\stdlib_log.xl --emit release\tmp\stdlib_log.c
+if errorlevel 1 exit /b 1
+findstr /C:"typedef struct XL_Class_Logger" release\tmp\stdlib_log.c >nul
+if errorlevel 1 (
+    echo stdlib_log.c missing Logger class bridge.
+    exit /b 1
+)
+findstr /C:"xlogger* xlogCreate" release\tmp\stdlib_log.c >nul
+if errorlevel 1 (
+    echo stdlib_log.c missing xlogCreate runtime prototype.
+    exit /b 1
+)
+findstr /C:"void* xl6_xrt_log_create" release\tmp\stdlib_log.c >nul
+if errorlevel 1 (
+    echo stdlib_log.c missing log create runtime helper.
+    exit /b 1
+)
+findstr /C:"void* xl6_xrt_log_wrap_handle" release\tmp\stdlib_log.c >nul
+if errorlevel 1 (
+    echo stdlib_log.c missing log handle wrap helper.
+    exit /b 1
+)
+findstr /C:"bool xl6_xrt_log_default_add_file" release\tmp\stdlib_log.c >nul
+if errorlevel 1 (
+    echo stdlib_log.c missing default addFile helper.
+    exit /b 1
+)
+findstr /C:"int xl6_xrt_log_add_rolling_file" release\tmp\stdlib_log.c >nul
+if errorlevel 1 (
+    echo stdlib_log.c missing rolling file helper.
+    exit /b 1
+)
+"%XL6_TCC%" -DXL6_USE_XRT_LIFECYCLE %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\stdlib_log.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\stdlib_log.exe
+if errorlevel 1 exit /b 1
+release\tmp\stdlib_log.exe
+if errorlevel 1 exit /b 1
+release\xl.exe run release\examples\stdlib_log.xl %XL6_XL_DEFAULT_LINK_ARGS% > release\tmp\stdlib_log_xlang.out.txt
+if errorlevel 1 exit /b 1
+"%XL6_TCC%" -std=c11 -Wall -Ilib\xrt %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% release\examples\stdlib_log_c.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\stdlib_log_c.exe
+if errorlevel 1 exit /b 1
+release\tmp\stdlib_log_c.exe > release\tmp\stdlib_log_c.out.txt
+if errorlevel 1 exit /b 1
+powershell -NoProfile -Command "$a=[System.IO.File]::ReadAllLines('release\tmp\stdlib_log_xlang.out.txt'); $b=[System.IO.File]::ReadAllLines('release\tmp\stdlib_log_c.out.txt'); if (($a -join \"`n\") -ne ($b -join \"`n\")) { Write-Host 'stdlib log xlang/C output mismatch.'; Write-Host 'xlang:'; $a; Write-Host 'C:'; $b; exit 1 }"
+if errorlevel 1 exit /b 1
+
+release\xl.exe check test\cases\stdlib_template.xl
+if errorlevel 1 exit /b 1
+release\xl.exe cgen test\cases\stdlib_template.xl --emit release\tmp\stdlib_template.c
+if errorlevel 1 exit /b 1
+findstr /C:"xtetemplate xteParse" release\tmp\stdlib_template.c >nul
+if errorlevel 1 (
+    echo stdlib_template.c missing xteParse runtime prototype.
+    exit /b 1
+)
+findstr /C:"void* xl6_xrt_template_parse" release\tmp\stdlib_template.c >nul
+if errorlevel 1 (
+    echo stdlib_template.c missing template parse helper.
+    exit /b 1
+)
+findstr /C:"void* xl6_xrt_template_render" release\tmp\stdlib_template.c >nul
+if errorlevel 1 (
+    echo stdlib_template.c missing template render helper.
+    exit /b 1
+)
+findstr /C:"unsigned int xl6_xrt_template_node_count" release\tmp\stdlib_template.c >nul
+if errorlevel 1 (
+    echo stdlib_template.c missing template stats helper.
+    exit /b 1
+)
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\stdlib_template.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\stdlib_template.exe
+if errorlevel 1 exit /b 1
+release\tmp\stdlib_template.exe
+if errorlevel 1 exit /b 1
+release\xl.exe run release\examples\stdlib_template.xl %XL6_XL_DEFAULT_LINK_ARGS% > release\tmp\stdlib_template_xlang.out.txt
+if errorlevel 1 exit /b 1
+"%XL6_TCC%" -std=c11 -Wall -Ilib\xrt %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% release\examples\stdlib_template_c.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\stdlib_template_c.exe
+if errorlevel 1 exit /b 1
+release\tmp\stdlib_template_c.exe > release\tmp\stdlib_template_c.out.txt
+if errorlevel 1 exit /b 1
+powershell -NoProfile -Command "$a=[System.IO.File]::ReadAllLines('release\tmp\stdlib_template_xlang.out.txt'); $b=[System.IO.File]::ReadAllLines('release\tmp\stdlib_template_c.out.txt'); if (($a -join \"`n\") -ne ($b -join \"`n\")) { Write-Host 'stdlib template xlang/C output mismatch.'; Write-Host 'xlang:'; $a; Write-Host 'C:'; $b; exit 1 }"
+if errorlevel 1 exit /b 1
 
 release\xl.exe check test\cases\stdlib_regex.xl
 if errorlevel 1 exit /b 1
@@ -21179,18 +21524,46 @@ if errorlevel 1 (
     echo stdlib_regex.c missing regex find runtime helper.
     exit /b 1
 )
+findstr /C:"void* xl6_xrt_regex_match(" release\tmp\stdlib_regex.c >nul
+if errorlevel 1 (
+    echo stdlib_regex.c missing regex match runtime helper.
+    exit /b 1
+)
+findstr /C:"int xl6_xrt_regex_match_ok" release\tmp\stdlib_regex.c >nul
+if errorlevel 1 (
+    echo stdlib_regex.c missing RegexMatch ok helper.
+    exit /b 1
+)
+findstr /C:"xvalue xl6_xrt_regex_set_matches" release\tmp\stdlib_regex.c >nul
+if errorlevel 1 (
+    echo stdlib_regex.c missing RegexSet matches helper.
+    exit /b 1
+)
 "%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\stdlib_regex.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\stdlib_regex.exe
 if errorlevel 1 exit /b 1
 release\tmp\stdlib_regex.exe
+if errorlevel 1 exit /b 1
+release\xl.exe run release\examples\stdlib_regex.xl %XL6_XL_DEFAULT_LINK_ARGS% > release\tmp\stdlib_regex_xlang.out.txt
+if errorlevel 1 exit /b 1
+"%XL6_TCC%" -std=c11 -Wall -Ilib\xrt %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% release\examples\stdlib_regex_c.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\stdlib_regex_c.exe
+if errorlevel 1 exit /b 1
+release\tmp\stdlib_regex_c.exe > release\tmp\stdlib_regex_c.out.txt
+if errorlevel 1 exit /b 1
+powershell -NoProfile -Command "$a=[System.IO.File]::ReadAllLines('release\tmp\stdlib_regex_xlang.out.txt'); $b=[System.IO.File]::ReadAllLines('release\tmp\stdlib_regex_c.out.txt'); if (($a -join \"`n\") -ne ($b -join \"`n\")) { Write-Host 'stdlib regex xlang/C output mismatch.'; Write-Host 'xlang:'; $a; Write-Host 'C:'; $b; exit 1 }"
 if errorlevel 1 exit /b 1
 
 release\xl.exe check test\cases\stdlib_process.xl
 if errorlevel 1 exit /b 1
 release\xl.exe cgen test\cases\stdlib_process.xl --emit release\tmp\stdlib_process.c
 if errorlevel 1 exit /b 1
-findstr /C:"bool xrtExecCapture" release\tmp\stdlib_process.c >nul
+findstr /C:"bool xrtProcessRun" release\tmp\stdlib_process.c >nul
 if errorlevel 1 (
-    echo stdlib_process.c missing xrtExecCapture runtime prototype.
+    echo stdlib_process.c missing xrtProcessRun runtime prototype.
+    exit /b 1
+)
+findstr /C:"bool xrtProcessPipelineRun" release\tmp\stdlib_process.c >nul
+if errorlevel 1 (
+    echo stdlib_process.c missing xrtProcessPipelineRun runtime prototype.
     exit /b 1
 )
 findstr /C:"void* xl6_xrt_process_exec" release\tmp\stdlib_process.c >nul
@@ -21206,6 +21579,14 @@ if errorlevel 1 (
 "%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\stdlib_process.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\stdlib_process.exe
 if errorlevel 1 exit /b 1
 release\tmp\stdlib_process.exe
+if errorlevel 1 exit /b 1
+release\xl.exe run release\examples\stdlib_process.xl %XL6_XL_DEFAULT_LINK_ARGS% > release\tmp\stdlib_process_xlang.out.txt
+if errorlevel 1 exit /b 1
+"%XL6_TCC%" -std=c11 -Wall -Ilib\xrt %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% release\examples\stdlib_process_c.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\stdlib_process_c.exe
+if errorlevel 1 exit /b 1
+release\tmp\stdlib_process_c.exe > release\tmp\stdlib_process_c.out.txt
+if errorlevel 1 exit /b 1
+powershell -NoProfile -Command "$a=[System.IO.File]::ReadAllLines('release\tmp\stdlib_process_xlang.out.txt'); $b=[System.IO.File]::ReadAllLines('release\tmp\stdlib_process_c.out.txt'); if (($a -join \"`n\") -ne ($b -join \"`n\")) { Write-Host 'stdlib process xlang/C output mismatch.'; Write-Host 'xlang:'; $a; Write-Host 'C:'; $b; exit 1 }"
 if errorlevel 1 exit /b 1
 
 release\xl.exe check test\cases\stdlib_http_server.xl
@@ -21235,6 +21616,21 @@ if errorlevel 1 (
 findstr /C:"bool xl6_xrt_http_server_any" release\tmp\stdlib_http_server.c >nul
 if errorlevel 1 (
     echo stdlib_http_server.c missing http server any helper.
+    exit /b 1
+)
+findstr /C:"bool xl6_xrt_http_server_get_request" release\tmp\stdlib_http_server.c >nul
+if errorlevel 1 (
+    echo stdlib_http_server.c missing http server request route helper.
+    exit /b 1
+)
+findstr /C:"void* xl6_xrt_http_request_param" release\tmp\stdlib_http_server.c >nul
+if errorlevel 1 (
+    echo stdlib_http_server.c missing http request object helper.
+    exit /b 1
+)
+findstr /C:"int xl6_xrt_http_response_text" release\tmp\stdlib_http_server.c >nul
+if errorlevel 1 (
+    echo stdlib_http_server.c missing http response object helper.
     exit /b 1
 )
 findstr /C:"bool xl6_xrt_http_server_static" release\tmp\stdlib_http_server.c >nul

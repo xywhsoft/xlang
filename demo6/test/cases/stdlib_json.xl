@@ -5,6 +5,9 @@ string filePath = "release/tmp/stdlib_json_case.json"
 
 file.delete(filePath)
 
+expect(json.valid('{"name":"xlang","ok":true}'), 1)
+expect(json.valid('{"name":'), 0)
+
 var values = json.parse("[1,2,3]")
 string compactValues = json.stringify(values)
 string prettyValues = json.stringify(values, pretty = true)
