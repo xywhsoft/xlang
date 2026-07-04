@@ -1069,7 +1069,7 @@ auto now = time.now()
 auto text = file.readText("data.txt")
 ```
 
-当前标准库公开函数为 250 个，另有标准库常量 5 个；全局输出入口 `print` / `println` 也默认进入环境。用户可直接调用的当前列表如下：
+当前标准库公开函数为 289 个，另有标准库常量 5 个；全局输出入口 `print` / `println` 也默认进入环境。用户可直接调用的当前列表如下：
 
 - 全局：`print`、`println`。
 - `math` 常量：`pi`、`tau`、`e`、`nan`、`inf`。
@@ -1078,15 +1078,17 @@ auto text = file.readText("data.txt")
 - `time`：`addDays`、`addHours`、`addMinutes`、`addMonths`、`addQuarters`、`addSeconds`、`addWeeks`、`addYears`、`approx`、`clock`、`datePart`、`dateString`、`day`、`dayOfYear`、`daysInMonth`、`daysInYear`、`diffDays`、`diffHours`、`diffMinutes`、`diffMonths`、`diffQuarters`、`diffSeconds`、`diffWeeks`、`diffYears`、`firstDayOfMonth`、`firstDayOfWeek`、`firstDayOfYear`、`format`、`formatPattern`、`fromDate`、`fromDateTime`、`fromTime`、`fromUnix`、`hour`、`inRange`、`isLeapYear`、`isSameDay`、`isSameMonth`、`isSameYear`、`lastDayOfMonth`、`lastDayOfWeek`、`lastDayOfYear`、`localToUTC`、`minute`、`month`、`now`、`nowUTC`、`parse`、`parsePattern`、`quarter`、`rangeOverlap`、`relative`、`second`、`sleep`、`timePart`、`timer`、`timeString`、`timezoneOffset`、`today`、`toUnix`、`tryParse`、`tryParsePattern`、`utcToLocal`、`weekday`、`weekOfMonth`、`weekOfYear`、`year`。
 - `random`：`range`、`seed`、`string`、`u32`、`u64`。
 - `path`：`abs`、`appDir`、`cwd`、`dir`、`exists`、`ext`、`home`、`isAbs`、`join`、`name`、`nameExt`、`normalize`、`random`、`rel`、`sep`、`setCwd`、`temp`、`withExt`、`withName`。
-- `file`：`accessTime`、`appendText`、`attr`、`changeTime`、`copy`、`delete`、`exists`、`info`、`move`、`readText`、`rename`、`replace`、`setAttr`、`setSize`、`size`、`touch`、`writeText`、`writeTextAtomic`。
+- `file`：`accessTime`、`appendText`、`appendTextAsync`、`attr`、`changeTime`、`copy`、`copyAsync`、`delete`、`deleteAsync`、`exists`、`info`、`move`、`moveAsync`、`readText`、`readTextAsync`、`rename`、`replace`、`setAttr`、`setSize`、`size`、`touch`、`writeText`、`writeTextAsync`、`writeTextAtomic`。
 - `dir`：`copy`、`create`、`createAll`、`delete`、`dirs`、`exists`、`files`、`list`、`move`。
 - `json`：`parse`、`read`、`stringify`、`write`。
 - `xson`：`parse`、`read`、`stringify`、`write`。
 - `codec`：`base64Decode`、`base64Encode`、`hexDecode`、`hexEncode`。
-- `hash`：`u32`、`u32WithSeed`、`u64`、`u64WithSeed`。
-- `crypto`：`sha1`、`sha256`、`sha384`、`sha512`。
+- `hash`：`u32`、`u32WithSeed`、`u64`、`u64WithSeed`、`u64Micro`、`u64MicroWithSeed`、`u64Nano`、`u64NanoWithSeed`。
+- `crypto`：`sha1`、`sha256`、`sha384`、`sha512`、`hmacSha256`、`hmacSha384`、`hmacSha512`、`hkdfSha256`、`hkdfSha384`、`randomHex`、`chacha20Poly1305Encrypt`、`chacha20Poly1305Decrypt`、`aes128GcmEncrypt`、`aes128GcmDecrypt`、`aes256GcmEncrypt`、`aes256GcmDecrypt`。
 - `id`：`xid`。
 - `net`：`localIP`、`localMAC`、`localName`。
+- `tcp`：`connect`、`connectAsync`、`listen`。
+- `udp`：`bind`。
 - `url`：`authority`、`fragment`、`host`、`isAbsolute`、`isSecure`、`normalizePath`、`path`、`port`、`query`、`resolve`、`scheme`、`target`、`userInfo`、`valid`。
 - `query`：`append`、`decode`、`encode`、`pair`、`valid`。
 - `regex`：`find`、`isMatch`。
@@ -1124,6 +1126,20 @@ println(first["name"], first["path"], first["size"])
 
 `dir.entries`、`dir.match`、`dir.walk` 返回 `var` 字典数组。字段为：`dir`、`name`、`path`、`isFile`、`isDir`、`enter`、`leave`、`size`、`attr`、`accessTime`、`changeTime`。`dir.walk` 包含目录 enter/leave 事件，`dir.entries` 与 `dir.match` 不返回 leave 事件。
 
+Buffer 对象：
+
+```xlang
+Buffer buf = Buffer()
+buf.append("abc")
+buf.appendByte(100)
+int size = buf.len()
+string text = buf.text()
+```
+
+- `Buffer` 是 native-backed class，底层使用 XRT `xbuffer`，对象销毁时自动释放句柄。
+- `Buffer(step)` 可指定自增长步长；`reserve`、`clear`、`append`、`appendBytes`、`appendByte`、`byteAt`、`setByte`、`text`、`data`、`len`、`capacity` 已进入范例和回归。
+- `buf[index]` / `buf[index] = value` 通过 `__item__` / `__setItem__` 协议映射到字节读写。
+
 随机数对象：
 
 ```xlang
@@ -1139,13 +1155,36 @@ rng.seed(uint64(12345), uint64(7))
 - `Random(seed, seq)` 创建独立 `Random` 对象，适合游戏、模拟、测试等需要复现随机序列的场景。
 - `Random` 是 native-backed class，底层使用 XRT `xrtRandObj`，对象销毁时自动释放 XRT 句柄。
 
+TCP/UDP 网络对象：
+
+```xlang
+TcpServer server = TcpServer(tcp.listen(0))
+future<point> accepted = server.acceptAsync(3000)
+TcpStream client = TcpStream(tcp.connect("127.0.0.1", server.port(), 3000))
+TcpStream peer = TcpStream(await accepted)
+client.send("ping")
+string text = peer.recv(3000)
+
+UdpSocket sock = UdpSocket(udp.bind(0))
+bool ok = sock.send("127.0.0.1", uint16(sock.port()), "hello")
+UdpPacket packet = UdpPacket(sock.recv(3000))
+```
+
+- `TcpStream`、`TcpServer`、`UdpSocket`、`UdpPacket` 均为 native-backed class。
+- `tcp.connect`、`tcp.connectAsync`、`tcp.listen`、`udp.bind` 返回 `point`，调用者必须显式构造对应 class，避免网络句柄发生隐式复制。
+- TCP 已支持同步/异步 connect、accept、send、recv、drain 和 close；UDP 已支持同步/异步 send、recv。
+- 当前网络标准库以 UTF-8 文本收发为主，C/XRT 对照范例和 xlang 范例输出会在主回归中比较一致性。
+
 当前边界：
 - HTTP client 暂缓进入标准库。
 - 标准库命名空间只在成员访问位置生效，例如 `math.sqrt`、`math.pi`；写成已存在命名空间但不存在符号时会报错。
 - `math.pi`、`math.tau`、`math.e`、`math.nan`、`math.inf` 是标准库常量，编译期直接重写为字面量，不产生运行时函数调用。
 - 文件、目录、路径能力优先通过 XRT 处理，避免 Windows 下 CRT 对 UTF-8 路径支持不足的问题。
+- `file.*Async` 返回 `future<string>` 或 `future<bool>`，当前覆盖 read/write/append/copy/move/delete 的 UTF-8 文本和基础文件操作。
 - `string.len(text)` 按 UTF-8 字符数量计数，`string.byteLen(text)` 才是原始字节长度。
 - `for c in "1234你好"` 默认按 UTF-8 字符迭代，双目标 `for i, c in text` 的 `i` 为 0 基字符索引；需要逐字节处理时使用 `string.bytes(text)`。
+- `crypto` 当前是文本/HEX 级 API：输入字符串按 UTF-8 原始字节处理；摘要、HMAC、HKDF、随机字节和 AEAD 密文返回大写 HEX；AEAD 解密校验失败返回空字符串。
+- XRT TLS 状态机不直接放入 `crypto` 命名空间，后续应作为 `net.tls`、HTTP client 或 native-backed class 形式设计。
 
 ## 15. C 混编、ABI 与导出
 
@@ -1317,8 +1356,8 @@ void xlClearLastError(XL_Context* ctx);
 - 负例诊断产物基线为 428 个。
 - 负例诊断内容断言基线为 429 条。
 - package/extlib fixture 基线为 48 个。
-- 标准库测试基线为 21 个。
-- 标准库公开函数当前为 233 个，标准库常量当前为 5 个。
+- 标准库测试基线为 24 个。
+- 标准库公开函数当前为 289 个，标准库常量当前为 5 个。
 - DLL API 基线为 62 个。
 - 风险总账基线为 21 条，当前 21 条已收口，0 条开放。
 

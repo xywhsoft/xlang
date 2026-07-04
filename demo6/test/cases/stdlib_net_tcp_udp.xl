@@ -1,0 +1,59 @@
+func requireLine(string name, bool ok)
+    assert ok, name
+    println(name + "=ok")
+end
+
+TcpServer server = TcpServer(tcp.listen(0))
+int tcpPort = int(server.port())
+future<point> accepted = server.acceptAsync(3000)
+TcpStream client = TcpStream(tcp.connect("127.0.0.1", tcpPort, 3000))
+TcpStream peer = TcpStream(await accepted)
+
+future<string> received = peer.recvAsync(3000)
+bool sent = client.send("ping")
+bool drained = client.drain(3000)
+string request = await received
+bool replied = peer.send("pong")
+bool replyDrained = peer.drain(3000)
+string reply = client.recv(3000)
+client.close()
+peer.close()
+
+requireLine("tcp", tcpPort > 0 and sent and drained and request == "ping" and replied and replyDrained and reply == "pong")
+
+TcpServer asyncServer = TcpServer(tcp.listen(0))
+int asyncPort = int(asyncServer.port())
+future<point> asyncAccepted = asyncServer.acceptAsync(3000)
+future<point> asyncConnected = tcp.connectAsync("127.0.0.1", asyncPort, 3000)
+TcpStream asyncClient = TcpStream(await asyncConnected)
+TcpStream asyncPeer = TcpStream(await asyncAccepted)
+
+future<string> asyncReceived = asyncPeer.recvAsync(3000)
+bool asyncSent = await asyncClient.sendAsync("async")
+bool asyncDrained = await asyncClient.drainAsync(3000)
+string asyncRequest = await asyncReceived
+asyncClient.close()
+asyncPeer.close()
+
+requireLine("tcp_async", asyncPort > 0 and asyncSent and asyncDrained and asyncRequest == "async")
+
+UdpSocket left = UdpSocket(udp.bind(0))
+UdpSocket right = UdpSocket(udp.bind(0))
+int leftPort = left.port()
+int rightPort = right.port()
+bool udpSent = left.send("127.0.0.1", uint16(rightPort), "hello")
+UdpPacket packet = UdpPacket(right.recv(3000))
+bool udpReplySent = right.send("127.0.0.1", uint16(leftPort), "reply")
+UdpPacket replyPacket = UdpPacket(left.recv(3000))
+
+requireLine("udp", leftPort > 0 and rightPort > 0 and udpSent and packet.text() == "hello" and udpReplySent and replyPacket.text() == "reply")
+
+UdpSocket asyncLeft = UdpSocket(udp.bind(0))
+UdpSocket asyncRight = UdpSocket(udp.bind(0))
+int asyncLeftPort = asyncLeft.port()
+int asyncRightPort = asyncRight.port()
+future<point> packetFuture = asyncRight.recvAsync(3000)
+bool asyncUdpSent = await asyncLeft.sendAsync("127.0.0.1", uint16(asyncRightPort), "async-udp")
+UdpPacket asyncPacket = UdpPacket(await packetFuture)
+
+requireLine("udp_async", asyncLeftPort > 0 and asyncRightPort > 0 and asyncUdpSent and asyncPacket.text() == "async-udp")

@@ -146,6 +146,9 @@ for /L %%I in (1,1,2) do (
     )
 )
 
+release\xl.exe run release\examples\async_task_wait.xl %XL6_XL_DEFAULT_LINK_ARGS%
+if errorlevel 1 exit /b 1
+
 release\xl.exe run release\examples\async_generator.xl %XL6_XL_DEFAULT_LINK_ARGS%
 if errorlevel 1 exit /b 1
 for /L %%I in (1,1,3) do (
@@ -5928,6 +5931,112 @@ if errorlevel 1 exit /b 1
 release\tmp\stdlib_random_c.exe > release\tmp\stdlib_random_c.out.txt
 if errorlevel 1 exit /b 1
 powershell -NoProfile -Command "$a=[System.IO.File]::ReadAllLines('release\tmp\stdlib_random_xlang.out.txt'); $b=[System.IO.File]::ReadAllLines('release\tmp\stdlib_random_c.out.txt'); if (($a -join \"`n\") -ne ($b -join \"`n\")) { Write-Host 'stdlib random xlang/C output mismatch.'; Write-Host 'xlang:'; $a; Write-Host 'C:'; $b; exit 1 }"
+if errorlevel 1 exit /b 1
+
+release\xl.exe check test\cases\stdlib_buffer.xl
+if errorlevel 1 exit /b 1
+release\xl.exe cgen test\cases\stdlib_buffer.xl --emit release\tmp\stdlib_buffer.c
+if errorlevel 1 exit /b 1
+findstr /C:"typedef struct XL_Class_Buffer" release\tmp\stdlib_buffer.c >nul
+if errorlevel 1 (
+    echo stdlib_buffer.c missing Buffer class bridge.
+    exit /b 1
+)
+findstr /C:"void* xrtBufferCreate" release\tmp\stdlib_buffer.c >nul
+if errorlevel 1 (
+    echo stdlib_buffer.c missing xrtBufferCreate extern prototype.
+    exit /b 1
+)
+findstr /C:"bool xrtBufferAppend" release\tmp\stdlib_buffer.c >nul
+if errorlevel 1 (
+    echo stdlib_buffer.c missing xrtBufferAppend extern prototype.
+    exit /b 1
+)
+findstr /C:"void* xl6_xrt_buffer_create" release\tmp\stdlib_buffer.c >nul
+if errorlevel 1 (
+    echo stdlib_buffer.c missing Buffer create runtime helper.
+    exit /b 1
+)
+findstr /C:"int xl6_xrt_buffer_append_bytes" release\tmp\stdlib_buffer.c >nul
+if errorlevel 1 (
+    echo stdlib_buffer.c missing Buffer appendBytes runtime helper.
+    exit /b 1
+)
+"%XL6_TCC%" -DXL6_USE_XRT_LIFECYCLE %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\stdlib_buffer.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\stdlib_buffer.exe
+if errorlevel 1 exit /b 1
+release\tmp\stdlib_buffer.exe
+if errorlevel 1 exit /b 1
+release\xl.exe run release\examples\stdlib_buffer.xl %XL6_XL_DEFAULT_LINK_ARGS% > release\tmp\stdlib_buffer_xlang.out.txt
+if errorlevel 1 exit /b 1
+"%XL6_TCC%" -std=c11 -Wall -Ilib\xrt %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% release\examples\stdlib_buffer_c.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\stdlib_buffer_c.exe
+if errorlevel 1 exit /b 1
+release\tmp\stdlib_buffer_c.exe > release\tmp\stdlib_buffer_c.out.txt
+if errorlevel 1 exit /b 1
+powershell -NoProfile -Command "$a=[System.IO.File]::ReadAllLines('release\tmp\stdlib_buffer_xlang.out.txt'); $b=[System.IO.File]::ReadAllLines('release\tmp\stdlib_buffer_c.out.txt'); if (($a -join \"`n\") -ne ($b -join \"`n\")) { Write-Host 'stdlib buffer xlang/C output mismatch.'; Write-Host 'xlang:'; $a; Write-Host 'C:'; $b; exit 1 }"
+if errorlevel 1 exit /b 1
+
+release\xl.exe check test\cases\stdlib_file_async.xl
+if errorlevel 1 exit /b 1
+release\xl.exe cgen test\cases\stdlib_file_async.xl --emit release\tmp\stdlib_file_async.c
+if errorlevel 1 exit /b 1
+findstr /C:"xfuture* xl6_xrt_file_read_text_async_utf8" release\tmp\stdlib_file_async.c >nul
+if errorlevel 1 (
+    echo stdlib_file_async.c missing async file read helper.
+    exit /b 1
+)
+findstr /C:"xTaskRunThread(xl6_xrt_file_read_text_async_entry" release\tmp\stdlib_file_async.c >nul
+if errorlevel 1 (
+    echo stdlib_file_async.c missing XRT task-backed read entry.
+    exit /b 1
+)
+findstr /C:"xfuture* xl6_xrt_file_delete_async" release\tmp\stdlib_file_async.c >nul
+if errorlevel 1 (
+    echo stdlib_file_async.c missing async file delete helper.
+    exit /b 1
+)
+"%XL6_TCC%" -DXL6_USE_XRT_LIFECYCLE %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\stdlib_file_async.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\stdlib_file_async.exe
+if errorlevel 1 exit /b 1
+release\tmp\stdlib_file_async.exe
+if errorlevel 1 exit /b 1
+release\xl.exe run release\examples\stdlib_file_async.xl %XL6_XL_DEFAULT_LINK_ARGS% > release\tmp\stdlib_file_async_xlang.out.txt
+if errorlevel 1 exit /b 1
+"%XL6_TCC%" -std=c11 -Wall -Ilib\xrt %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% release\examples\stdlib_file_async_c.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\stdlib_file_async_c.exe
+if errorlevel 1 exit /b 1
+release\tmp\stdlib_file_async_c.exe > release\tmp\stdlib_file_async_c.out.txt
+if errorlevel 1 exit /b 1
+powershell -NoProfile -Command "$a=[System.IO.File]::ReadAllLines('release\tmp\stdlib_file_async_xlang.out.txt'); $b=[System.IO.File]::ReadAllLines('release\tmp\stdlib_file_async_c.out.txt'); if (($a -join \"`n\") -ne ($b -join \"`n\")) { Write-Host 'stdlib file async xlang/C output mismatch.'; Write-Host 'xlang:'; $a; Write-Host 'C:'; $b; exit 1 }"
+if errorlevel 1 exit /b 1
+
+release\xl.exe check test\cases\stdlib_net_tcp_udp.xl
+if errorlevel 1 exit /b 1
+release\xl.exe cgen test\cases\stdlib_net_tcp_udp.xl --emit release\tmp\stdlib_net_tcp_udp.c
+if errorlevel 1 exit /b 1
+findstr /C:"typedef struct XL_Class_TcpStream" release\tmp\stdlib_net_tcp_udp.c >nul
+if errorlevel 1 (
+    echo stdlib_net_tcp_udp.c missing TcpStream class bridge.
+    exit /b 1
+)
+findstr /C:"void* xrtNetTcpConnect" release\tmp\stdlib_net_tcp_udp.c >nul
+if errorlevel 1 (
+    echo stdlib_net_tcp_udp.c missing xrtNetTcpConnect extern prototype.
+    exit /b 1
+)
+findstr /C:"void* xrtNetUdpBind" release\tmp\stdlib_net_tcp_udp.c >nul
+if errorlevel 1 (
+    echo stdlib_net_tcp_udp.c missing xrtNetUdpBind extern prototype.
+    exit /b 1
+)
+release\xl.exe build test\cases\stdlib_net_tcp_udp.xl -o release\tmp\stdlib_net_tcp_udp.exe
+if errorlevel 1 exit /b 1
+release\tmp\stdlib_net_tcp_udp.exe
+if errorlevel 1 exit /b 1
+release\xl.exe run release\examples\stdlib_net_tcp_udp.xl %XL6_XL_DEFAULT_LINK_ARGS% > release\tmp\stdlib_net_tcp_udp_xlang.out.txt
+if errorlevel 1 exit /b 1
+"%XL6_TCC%" -std=c11 -Wall -Ilib\xrt %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% release\examples\stdlib_net_tcp_udp_c.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\stdlib_net_tcp_udp_c.exe
+if errorlevel 1 exit /b 1
+release\tmp\stdlib_net_tcp_udp_c.exe > release\tmp\stdlib_net_tcp_udp_c.out.txt
+if errorlevel 1 exit /b 1
+powershell -NoProfile -Command "$a=[System.IO.File]::ReadAllLines('release\tmp\stdlib_net_tcp_udp_xlang.out.txt'); $b=[System.IO.File]::ReadAllLines('release\tmp\stdlib_net_tcp_udp_c.out.txt'); if (($a -join \"`n\") -ne ($b -join \"`n\")) { Write-Host 'stdlib net tcp/udp xlang/C output mismatch.'; Write-Host 'xlang:'; $a; Write-Host 'C:'; $b; exit 1 }"
 if errorlevel 1 exit /b 1
 
 release\xl.exe run release\examples\stdlib_path_file.xl %XL6_XL_DEFAULT_LINK_ARGS% > release\tmp\stdlib_path_file_xlang.out.txt
@@ -11998,6 +12107,47 @@ if not errorlevel 1 (
 findstr /C:"temporaryBox.op.retain(temporaryBox.op.env)" release\tmp\cgen_async.c >nul
 if not errorlevel 1 (
     echo cgen_async.c should not double-retain temporary await class result.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\cgen_future_task_wait.xl
+if errorlevel 1 exit /b 1
+
+release\xl.exe run test\cases\cgen_future_task_wait.xl
+if errorlevel 1 exit /b 1
+
+release\xl.exe build test\cases\cgen_future_task_wait.xl -o release\tmp\cgen_future_task_wait.exe
+if errorlevel 1 exit /b 1
+
+release\tmp\cgen_future_task_wait.exe
+if errorlevel 1 exit /b 1
+
+release\xl.exe cgen test\cases\cgen_future_task_wait.xl --emit release\tmp\cgen_future_task_wait.c
+if errorlevel 1 exit /b 1
+
+findstr /C:"xFutureWaitTimeout(pending" release\tmp\cgen_future_task_wait.c >nul
+if errorlevel 1 (
+    echo cgen_future_task_wait.c missing future.waitTimeout lowering.
+    exit /b 1
+)
+findstr /C:"xl6_future_error_text(failed)" release\tmp\cgen_future_task_wait.c >nul
+if errorlevel 1 (
+    echo cgen_future_task_wait.c missing future.error lowering.
+    exit /b 1
+)
+findstr /C:"xl6_task_cancel_value(cancelMe, 0)" release\tmp\cgen_future_task_wait.c >nul
+if errorlevel 1 (
+    echo cgen_future_task_wait.c missing borrowed future.cancel lowering.
+    exit /b 1
+)
+findstr /C:"xl6_task_when_any_values" release\tmp\cgen_future_task_wait.c >nul
+if errorlevel 1 (
+    echo cgen_future_task_wait.c missing task.whenAny literal lowering.
+    exit /b 1
+)
+findstr /C:"xl6_task_when_any_from_array((xtarray)(jobs)" release\tmp\cgen_future_task_wait.c >nul
+if errorlevel 1 (
+    echo cgen_future_task_wait.c missing task.whenAny typed array lowering.
     exit /b 1
 )
 
@@ -18279,6 +18429,39 @@ if not errorlevel 1 (
     exit /b 1
 )
 
+release\xl.exe check test\cases\sem_future_receiver_expr.xl >nul 2> release\tmp\sem_future_receiver_expr.err.txt
+if not errorlevel 1 (
+    echo sem_future_receiver_expr.xl should fail.
+    exit /b 1
+)
+findstr /C:"future receiver" release\tmp\sem_future_receiver_expr.err.txt >nul
+if errorlevel 1 (
+    echo sem_future_receiver_expr.xl missing future receiver diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_future_unknown_method.xl >nul 2> release\tmp\sem_future_unknown_method.err.txt
+if not errorlevel 1 (
+    echo sem_future_unknown_method.xl should fail.
+    exit /b 1
+)
+findstr /C:"unknown future method" release\tmp\sem_future_unknown_method.err.txt >nul
+if errorlevel 1 (
+    echo sem_future_unknown_method.xl missing future method diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_future_wait_timeout_type.xl >nul 2> release\tmp\sem_future_wait_timeout_type.err.txt
+if not errorlevel 1 (
+    echo sem_future_wait_timeout_type.xl should fail.
+    exit /b 1
+)
+findstr /C:"future.waitTimeout" release\tmp\sem_future_wait_timeout_type.err.txt >nul
+if errorlevel 1 (
+    echo sem_future_wait_timeout_type.xl missing waitTimeout type diagnostic.
+    exit /b 1
+)
+
 release\xl.exe check test\cases\sem_await_sync_func.xl >nul 2> release\tmp\sem_await_sync_func.err.txt
 if not errorlevel 1 (
     echo sem_await_sync_func.xl should fail.
@@ -18908,6 +19091,39 @@ if not errorlevel 1 (
 findstr /C:"task API" release\tmp\sem_task_race_named_argument.err.txt >nul
 if errorlevel 1 (
     echo sem_task_race_named_argument.xl missing task API named argument diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_task_when_any_empty.xl >nul 2> release\tmp\sem_task_when_any_empty.err.txt
+if not errorlevel 1 (
+    echo sem_task_when_any_empty.xl should fail.
+    exit /b 1
+)
+findstr /C:"task.whenAny" release\tmp\sem_task_when_any_empty.err.txt >nul
+if errorlevel 1 (
+    echo sem_task_when_any_empty.xl missing task.whenAny empty diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_task_when_any_non_future.xl >nul 2> release\tmp\sem_task_when_any_non_future.err.txt
+if not errorlevel 1 (
+    echo sem_task_when_any_non_future.xl should fail.
+    exit /b 1
+)
+findstr /C:"task.whenAny" release\tmp\sem_task_when_any_non_future.err.txt >nul
+if errorlevel 1 (
+    echo sem_task_when_any_non_future.xl missing task.whenAny non-future diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_task_when_any_named_argument.xl >nul 2> release\tmp\sem_task_when_any_named_argument.err.txt
+if not errorlevel 1 (
+    echo sem_task_when_any_named_argument.xl should fail.
+    exit /b 1
+)
+findstr /C:"task API" release\tmp\sem_task_when_any_named_argument.err.txt >nul
+if errorlevel 1 (
+    echo sem_task_when_any_named_argument.xl missing task API named argument diagnostic.
     exit /b 1
 )
 
@@ -21030,6 +21246,16 @@ if errorlevel 1 (
 if errorlevel 1 exit /b 1
 release\tmp\stdlib_http_server.exe
 if errorlevel 1 exit /b 1
+
+"%XL6_TCC%" -std=c11 -Wall -Ilib\xrt %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% release\examples\stdlib_http_server_c.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\stdlib_http_server_c.exe
+if errorlevel 1 exit /b 1
+release\tmp\stdlib_http_server_c.exe > release\tmp\stdlib_http_server_c.out.txt
+if errorlevel 1 exit /b 1
+findstr /C:"callback_count=ok" release\tmp\stdlib_http_server_c.out.txt >nul
+if errorlevel 1 (
+    echo stdlib_http_server_c.exe missing callback_count verification.
+    exit /b 1
+)
 
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_negative_diagnostics.ps1 -Artifacts
 if errorlevel 1 exit /b 1

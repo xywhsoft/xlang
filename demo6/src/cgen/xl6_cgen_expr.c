@@ -227,6 +227,8 @@ static void xl6CgenExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
                     ;
                 } else if ( xl6CgenChannelMethodCall(ctx, node, callee) ) {
                     ;
+                } else if ( xl6CgenFutureMethodCall(ctx, node, callee) ) {
+                    ;
                 } else if ( xl6CgenIsImplicitToStringCall(ctx, node) ) {
                     xl6CgenImplicitToStringCall(ctx, node, callee);
                 } else if ( !xl6CgenClassMethodCall(ctx, node, callee) ) {

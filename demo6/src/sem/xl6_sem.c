@@ -77,6 +77,8 @@ static int xl6SemCheckChannelTypeArg(XL6_SemContext* ctx, const XL6_AstNode* cal
 static int xl6SemChannelElementTypeIsFirstStageSafe(XL6_SemContext* ctx, const XL6_AstNode* typeNode);
 static int xl6SemCheckChannelCall(XL6_SemContext* ctx, XL6_AstNode* node);
 static const char* xl6SemChannelCallResultTypeName(XL6_SemContext* ctx, XL6_AstNode* node);
+static int xl6SemCheckFutureCall(XL6_SemContext* ctx, XL6_AstNode* node);
+static const char* xl6SemFutureCallResultTypeName(XL6_SemContext* ctx, XL6_AstNode* node);
 static int xl6SemCheckTaskCall(XL6_SemContext* ctx, XL6_AstNode* node);
 static const char* xl6SemTaskCallResultTypeName(XL6_SemContext* ctx, XL6_AstNode* node);
 static XL6_AstNode* xl6SemCloneTaskCallType(XL6_SemContext* ctx, XL6_AstNode* call);
@@ -87,6 +89,7 @@ static const char* xl6SemSyncCallResultTypeName(XL6_SemContext* ctx, XL6_AstNode
 static int xl6SemTypeCanCopy(XL6_SemContext* ctx, const XL6_AstNode* typeNode);
 static int xl6SemCheckCopyableExpr(XL6_SemContext* ctx, XL6_AstNode* expr, int allowFreshTypeValue, const char* message);
 static int xl6SemIsFutureLikeTypeName(const char* name);
+static int xl6SemFuncReturnsFutureLikeResource(XL6_SemContext* ctx, const XL6_AstNode* func);
 static int xl6SemIsSyncHandleTypeName(const char* name);
 static int xl6SemIsThreadTypeName(const char* name);
 static int xl6SemIsGeneratorTypeName(const char* name);
@@ -7592,6 +7595,7 @@ static int xl6SemCheckCall(XL6_SemContext* ctx, XL6_AstNode* node)
     int syncOk;
     int taskOk;
     int threadOk;
+    int futureOk;
     int memberCallOk;
     XL6_AstNode* func;
     XL6_Symbol* sym;
@@ -7659,6 +7663,10 @@ static int xl6SemCheckCall(XL6_SemContext* ctx, XL6_AstNode* node)
     channelOk = xl6SemCheckChannelCall(ctx, node);
     if ( channelOk >= 0 ) {
         return channelOk && ok;
+    }
+    futureOk = xl6SemCheckFutureCall(ctx, node);
+    if ( futureOk >= 0 ) {
+        return futureOk && ok;
     }
     taskOk = xl6SemCheckTaskCall(ctx, node);
     if ( taskOk >= 0 ) {
@@ -8130,6 +8138,12 @@ static const char* xl6SemExprStaticTypeName(XL6_SemContext* ctx, XL6_AstNode* ex
             }
         }
         {
+            const char* futureResultType = xl6SemFutureCallResultTypeName(ctx, expr);
+            if ( futureResultType != NULL ) {
+                return futureResultType;
+            }
+        }
+        {
             const char* taskResultType = xl6SemTaskCallResultTypeName(ctx, expr);
             if ( taskResultType != NULL ) {
                 return taskResultType;
@@ -8275,6 +8289,14 @@ static const XL6_AstNode* xl6SemTypeNodeGenericArgs(const XL6_AstNode* typeNode)
 static int xl6SemIsFutureLikeTypeName(const char* name)
 {
     return xl6TextEquals(name, "future") || xl6TextEquals(name, "task");
+}
+
+static int xl6SemTypeIsFutureLikeResource(XL6_SemContext* ctx, const XL6_AstNode* typeNode)
+{
+    const XL6_AstNode* concreteType;
+
+    concreteType = xl6SemResolveAliasType(ctx, typeNode);
+    return concreteType != NULL && xl6SemIsFutureLikeTypeName(concreteType->text);
 }
 
 static int xl6SemIsGeneratorTypeName(const char* name)
@@ -8615,6 +8637,137 @@ static const char* xl6SemChannelCallResultTypeName(XL6_SemContext* ctx, XL6_AstN
     return result;
 }
 
+static XL6_AstNode* xl6SemCloneFutureReceiverType(XL6_SemContext* ctx, XL6_AstNode* member)
+{
+    XL6_AstNode* receiver;
+
+    if ( member == NULL || member->kind != XL6_AST_MEMBER || member->childCount == 0 ) {
+        return NULL;
+    }
+    receiver = member->children[0];
+    return xl6SemInferAutoTypeNode(ctx, receiver);
+}
+
+static int xl6SemFutureMethodArgCount(const char* name)
+{
+    if ( xl6TextEquals(name, "waitTimeout") ) {
+        return 1;
+    }
+    if ( xl6TextEquals(name, "wait") ||
+         xl6TextEquals(name, "cancel") ||
+         xl6TextEquals(name, "state") ||
+         xl6TextEquals(name, "status") ||
+         xl6TextEquals(name, "isDone") ||
+         xl6TextEquals(name, "isPending") ||
+         xl6TextEquals(name, "isCancelled") ||
+         xl6TextEquals(name, "isFailed") ||
+         xl6TextEquals(name, "error") ) {
+        return 0;
+    }
+    return -1;
+}
+
+static int xl6SemCheckFutureCall(XL6_SemContext* ctx, XL6_AstNode* node)
+{
+    XL6_AstNode* member;
+    XL6_AstNode* receiver;
+    XL6_AstNode* receiverType;
+    XL6_AstNode intType;
+    const XL6_AstNode* concreteReceiverType;
+    int expectedCount;
+
+    if ( node == NULL || node->kind != XL6_AST_CALL || node->childCount == 0 ) {
+        return -1;
+    }
+    member = node->children[0];
+    if ( member == NULL || member->kind != XL6_AST_MEMBER || member->text == NULL ) {
+        return -1;
+    }
+    receiver = member->childCount > 0 ? member->children[0] : NULL;
+    receiverType = xl6SemCloneFutureReceiverType(ctx, member);
+    concreteReceiverType = xl6SemResolveAliasType(ctx, receiverType);
+    if ( concreteReceiverType == NULL || !xl6SemIsFutureLikeTypeName(concreteReceiverType->text) ) {
+        xl6AstFree(receiverType);
+        return -1;
+    }
+    if ( receiver == NULL || receiver->kind != XL6_AST_NAME ) {
+        xl6SemErrorNode(ctx, receiver != NULL ? receiver : member, "future receiver 当前只支持具名变量");
+        xl6AstFree(receiverType);
+        return 0;
+    }
+
+    expectedCount = xl6SemFutureMethodArgCount(member->text);
+    if ( expectedCount < 0 ) {
+        xl6SemErrorNode(ctx, member, "unknown future method");
+        xl6AstFree(receiverType);
+        return 0;
+    }
+    if ( xl6SemCallArgCount(node) != expectedCount ) {
+        xl6SemCountMismatchError(ctx, node, "future method argument count mismatch", (size_t)expectedCount, (size_t)xl6SemCallArgCount(node));
+        xl6AstFree(receiverType);
+        return 0;
+    }
+    if ( !xl6SemCallArgsArePositional(ctx, node, "future method does not accept named arguments") ) {
+        xl6AstFree(receiverType);
+        return 0;
+    }
+    memset(&intType, 0, sizeof(intType));
+    intType.kind = XL6_AST_TYPE;
+    intType.text = "int";
+    if ( xl6TextEquals(member->text, "waitTimeout") &&
+         !xl6SemExprCanMatchParamType(ctx, xl6SemCallArgExprAt(node, 0), &intType) ) {
+        xl6SemTypeMismatchError(ctx,
+                                xl6SemCallArgExprAt(node, 0),
+                                "future.waitTimeout 参数必须是整数毫秒",
+                                &intType,
+                                xl6SemExprStaticTypeName(ctx, xl6SemCallArgExprAt(node, 0)));
+        xl6AstFree(receiverType);
+        return 0;
+    }
+    xl6AstFree(receiverType);
+    return 1;
+}
+
+static const char* xl6SemFutureCallResultTypeName(XL6_SemContext* ctx, XL6_AstNode* node)
+{
+    XL6_AstNode* member;
+    XL6_AstNode* receiverType;
+    const XL6_AstNode* concreteReceiverType;
+    const char* result;
+
+    if ( node == NULL || node->kind != XL6_AST_CALL || node->childCount == 0 ) {
+        return NULL;
+    }
+    member = node->children[0];
+    if ( member == NULL || member->kind != XL6_AST_MEMBER || member->text == NULL ) {
+        return NULL;
+    }
+    receiverType = xl6SemCloneFutureReceiverType(ctx, member);
+    concreteReceiverType = xl6SemResolveAliasType(ctx, receiverType);
+    if ( concreteReceiverType == NULL || !xl6SemIsFutureLikeTypeName(concreteReceiverType->text) ) {
+        xl6AstFree(receiverType);
+        return NULL;
+    }
+
+    result = NULL;
+    if ( xl6TextEquals(member->text, "wait") ||
+         xl6TextEquals(member->text, "waitTimeout") ||
+         xl6TextEquals(member->text, "cancel") ||
+         xl6TextEquals(member->text, "isDone") ||
+         xl6TextEquals(member->text, "isPending") ||
+         xl6TextEquals(member->text, "isCancelled") ||
+         xl6TextEquals(member->text, "isFailed") ) {
+        result = "bool";
+    } else if ( xl6TextEquals(member->text, "state") ||
+                xl6TextEquals(member->text, "status") ) {
+        result = "int";
+    } else if ( xl6TextEquals(member->text, "error") ) {
+        result = "string";
+    }
+    xl6AstFree(receiverType);
+    return result;
+}
+
 static int xl6SemIsTaskNamespaceMemberCall(const XL6_AstNode* call, const char** outName)
 {
     const XL6_AstNode* member;
@@ -8710,11 +8863,68 @@ static int xl6SemIsTaskAggregateApiName(const char* name)
     return xl6TextEquals(name, "all") || xl6TextEquals(name, "race");
 }
 
+static int xl6SemIsTaskWaitApiName(const char* name)
+{
+    return xl6TextEquals(name, "whenAny");
+}
+
 static int xl6SemIsKnownTaskApiName(const char* name)
 {
     return xl6TextEquals(name, "spawn") ||
            xl6TextEquals(name, "cancel") ||
+           xl6SemIsTaskWaitApiName(name) ||
            xl6SemIsTaskAggregateApiName(name);
+}
+
+static int xl6SemTaskExprIsFutureLike(XL6_SemContext* ctx, XL6_AstNode* expr)
+{
+    XL6_AstNode* typeNode;
+    const XL6_AstNode* concreteType;
+    int result;
+
+    typeNode = xl6SemInferAutoTypeNode(ctx, expr);
+    concreteType = xl6SemResolveAliasType(ctx, typeNode);
+    result = concreteType != NULL && xl6SemIsFutureLikeTypeName(concreteType->text);
+    xl6AstFree(typeNode);
+    return result;
+}
+
+static int xl6SemTaskArgIsFutureCollection(XL6_SemContext* ctx, XL6_AstNode* argExpr)
+{
+    XL6_AstNode* argType;
+    const XL6_AstNode* concreteType;
+    const XL6_AstNode* args;
+    size_t i;
+    int result;
+
+    if ( argExpr == NULL ) {
+        return 0;
+    }
+    if ( argExpr->kind == XL6_AST_ARRAY_LITERAL ) {
+        if ( argExpr->childCount == 0 ) {
+            return 0;
+        }
+        for ( i = 0; i < argExpr->childCount; ++i ) {
+            if ( !xl6SemTaskExprIsFutureLike(ctx, argExpr->children[i]) ) {
+                return 0;
+            }
+        }
+        return 1;
+    }
+
+    argType = xl6SemInferAutoTypeNode(ctx, argExpr);
+    concreteType = xl6SemResolveAliasType(ctx, argType);
+    result = 0;
+    if ( concreteType != NULL && xl6TextEquals(concreteType->text, "array") ) {
+        args = xl6SemTypeNodeGenericArgs(concreteType);
+        if ( args != NULL && args->childCount == 1 ) {
+            XL6_AstNode* futureValueType = xl6SemCloneFutureValueTypeFromType(ctx, args->children[0]);
+            result = futureValueType != NULL;
+            xl6AstFree(futureValueType);
+        }
+    }
+    xl6AstFree(argType);
+    return result;
 }
 
 static XL6_AstNode* xl6SemCloneTaskCallType(XL6_SemContext* ctx, XL6_AstNode* call)
@@ -8731,6 +8941,14 @@ static XL6_AstNode* xl6SemCloneTaskCallType(XL6_SemContext* ctx, XL6_AstNode* ca
     }
     if ( xl6TextEquals(name, "cancel") ) {
         return xl6AstNewText(XL6_AST_TYPE, "bool", 4, NULL);
+    }
+    if ( xl6SemIsTaskWaitApiName(name) ) {
+        argExpr = xl6SemCallArgExprAt(call, 0);
+        if ( !xl6SemTaskArgIsFutureCollection(ctx, argExpr) ) {
+            return NULL;
+        }
+        valueType = xl6AstNewText(XL6_AST_TYPE, "int", 3, NULL);
+        return xl6SemNewGenericUnaryType("future", valueType, call);
     }
     if ( xl6TextEquals(name, "spawn") ) {
         const XL6_AstNode* returns;
@@ -8933,6 +9151,13 @@ static int xl6SemCheckTaskCall(XL6_SemContext* ctx, XL6_AstNode* node)
         xl6AstFree(argType);
         return ok;
     }
+    if ( xl6SemIsTaskWaitApiName(name) ) {
+        if ( !xl6SemTaskArgIsFutureCollection(ctx, argExpr) ) {
+            xl6SemErrorNode(ctx, argExpr != NULL ? argExpr : node, "task.whenAny 参数必须是非空 array<future<T>> 或 future<T> 数组字面量");
+            return 0;
+        }
+        return 1;
+    }
 
     valueType = xl6SemCloneTaskArrayItemFutureValueType(ctx, argExpr);
     if ( valueType == NULL ) {
@@ -8970,7 +9195,9 @@ static const char* xl6SemTaskCallResultTypeName(XL6_SemContext* ctx, XL6_AstNode
     if ( xl6TextEquals(name, "cancel") ) {
         return "bool";
     }
-    if ( xl6TextEquals(name, "spawn") || xl6SemIsTaskAggregateApiName(name) ) {
+    if ( xl6TextEquals(name, "spawn") ||
+         xl6SemIsTaskAggregateApiName(name) ||
+         xl6SemIsTaskWaitApiName(name) ) {
         return "future";
     }
     return NULL;
@@ -9437,6 +9664,7 @@ static int xl6SemExprIsFreshTypeValue(XL6_SemContext* ctx, const XL6_AstNode* ex
     if ( xl6SemIsTaskNamespaceMemberCall((XL6_AstNode*)expr, &taskName) &&
          (xl6TextEquals(taskName, "spawn") ||
           xl6TextEquals(taskName, "all") ||
+          xl6TextEquals(taskName, "whenAny") ||
           xl6TextEquals(taskName, "race")) ) {
         return 1;
     }
@@ -9451,15 +9679,42 @@ static int xl6SemExprIsFreshTypeValue(XL6_SemContext* ctx, const XL6_AstNode* ex
         XL6_AstNode* typeArgs = callee->childCount > 1 ? callee->children[1] : NULL;
         if ( nameNode != NULL && nameNode->kind == XL6_AST_NAME ) {
             func = xl6SemResolveExplicitGenericCallFunc(ctx, (XL6_AstNode*)expr, nameNode->text, typeArgs, 0);
-            return func != NULL && (func->kind == XL6_AST_ASYNC_FUNC || xl6SemFuncReturnsGenerator(ctx, func));
+            return func != NULL &&
+                   (func->kind == XL6_AST_ASYNC_FUNC ||
+                    xl6SemFuncReturnsGenerator(ctx, func) ||
+                    xl6SemFuncReturnsFutureLikeResource(ctx, func));
         }
         return 0;
     }
     if ( callee != NULL && callee->kind == XL6_AST_NAME ) {
         func = xl6SemResolveCallFuncEx(ctx, (XL6_AstNode*)expr, callee->text, 0);
-        return func != NULL && (func->kind == XL6_AST_ASYNC_FUNC || xl6SemFuncReturnsGenerator(ctx, func));
+        return func != NULL &&
+               (func->kind == XL6_AST_ASYNC_FUNC ||
+                xl6SemFuncReturnsGenerator(ctx, func) ||
+                xl6SemFuncReturnsFutureLikeResource(ctx, func));
+    }
+    if ( callee != NULL && callee->kind == XL6_AST_MEMBER ) {
+        XL6_AstNode* ownedReturnType = NULL;
+        XL6_AstNode* returns = xl6SemCallReturnTypesEx(ctx, (XL6_AstNode*)expr, &ownedReturnType);
+        const XL6_AstNode* returnType = returns != NULL && returns->childCount == 1 ? returns->children[0] : NULL;
+        int fresh = returnType != NULL && xl6SemTypeIsFutureLikeResource(ctx, returnType);
+        xl6AstFree(ownedReturnType);
+        return fresh;
     }
     return 0;
+}
+
+static int xl6SemFuncReturnsFutureLikeResource(XL6_SemContext* ctx, const XL6_AstNode* func)
+{
+    const XL6_AstNode* returns;
+
+    if ( func == NULL || func->childCount <= 2 ) {
+        return 0;
+    }
+    returns = func->children[2];
+    return returns != NULL &&
+           returns->childCount == 1 &&
+           xl6SemTypeIsFutureLikeResource(ctx, returns->children[0]);
 }
 
 static int xl6SemCheckCopyableExpr(XL6_SemContext* ctx, XL6_AstNode* expr, int allowFreshTypeValue, const char* message)
@@ -11682,6 +11937,7 @@ static int xl6SemCheckFunc(XL6_SemContext* ctx, XL6_AstNode* node)
             }
             if ( !xl6SemTypeIsAuto(returns->children[i]) &&
                  !(returnType != NULL && xl6SemIsGeneratorTypeName(returnType->text)) &&
+                 !xl6SemTypeIsFutureLikeResource(ctx, returns->children[i]) &&
                  returnTypesValid &&
                  !xl6SemTypeCanCopy(ctx, returns->children[i]) ) {
                 xl6SemErrorNode(ctx, returns->children[i], "不可复制类型不能作为返回值类型");
@@ -11931,6 +12187,9 @@ static int xl6SemCheckExternCAbi(XL6_SemContext* ctx, XL6_AstNode* node)
     if ( returns != NULL && returns->childCount == 1 ) {
         XL6_AstNode* typeNode = returns->children[0];
         typeNode = (XL6_AstNode*)xl6SemResolveAliasType(ctx, typeNode);
+        if ( typeNode != NULL && xl6SemIsFutureLikeTypeName(typeNode->text) ) {
+            return ok;
+        }
         if ( typeNode == NULL || typeNode->childCount > 0 ||
              (!xl6SemIsCAbiParamType(typeNode->text) && !xl6SemIsCAbiUnionType(ctx, typeNode) && !xl6SemIsCAbiClassType(ctx, typeNode)) ) {
             xl6SemErrorNode(ctx, typeNode, "return type cannot enter first-stage C ABI extern directly");
@@ -12266,7 +12525,9 @@ static int xl6SemCheckReturnTypes(XL6_SemContext* ctx, XL6_AstNode* returns)
         } else if ( !xl6SemCheckType(ctx, returns->children[i]) ) {
             ok = 0;
         }
-        if ( !xl6SemTypeIsAuto(returns->children[i]) && !xl6SemTypeCanCopy(ctx, returns->children[i]) ) {
+        if ( !xl6SemTypeIsAuto(returns->children[i]) &&
+             !xl6SemTypeIsFutureLikeResource(ctx, returns->children[i]) &&
+             !xl6SemTypeCanCopy(ctx, returns->children[i]) ) {
             xl6SemErrorNode(ctx, returns->children[i], "不可复制类型不能作为按值返回类型");
             ok = 0;
         }

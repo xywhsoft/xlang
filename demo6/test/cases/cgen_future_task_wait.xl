@@ -1,0 +1,75 @@
+async func fastInt(int value) as int
+    return value
+end
+
+async func slowInt(int value) as int
+    time.sleep(120)
+    return value
+end
+
+async func slowText(string value) as string
+    time.sleep(120)
+    return value
+end
+
+async func failInt() as int
+    throw "future boom"
+    return 0
+end
+
+future<int> pending = slowInt(10)
+assert pending.isPending(), "slow future should start pending"
+assert not pending.waitTimeout(5), "short waitTimeout should time out"
+assert pending.wait(), "future.wait should complete successful future"
+assert pending.isDone(), "completed future should be done"
+assert not pending.isPending(), "completed future should not be pending"
+assert not pending.isFailed(), "successful future should not be failed"
+assert pending.state() == 1, "successful future state should be resolved"
+assert await pending == 10, "future remains awaitable after wait"
+
+future<int> failed = failInt()
+assert not failed.wait(), "future.wait should report failed future"
+assert failed.isDone(), "failed future should be done"
+assert failed.isFailed(), "failed future should be failed"
+assert failed.state() == 2, "failed future state should be rejected"
+assert failed.error() == "future boom", "future.error should expose failure message"
+
+int failedCatch = 0
+try
+    int ignored = await failed
+    failedCatch = ignored
+catch e
+    if e.message == "future boom" then
+        failedCatch = 1
+    end
+end
+assert failedCatch == 1, "await failed future should throw original error"
+
+future<int> cancelMe = slowInt(20)
+assert cancelMe.cancel(), "future.cancel should request cancellation"
+assert cancelMe.isCancelled(), "canceled future should report cancelled"
+assert cancelMe.state() == 3, "canceled future state should be cancelled"
+
+int cancelCatch = 0
+try
+    int ignoredCancel = await cancelMe
+    cancelCatch = ignoredCancel
+catch e
+    if e.message == "future cancel requested." then
+        cancelCatch = 1
+    end
+end
+assert cancelCatch == 1, "await canceled future should throw cancellation"
+
+int anyIndex = await task.whenAny([slowInt(30), fastInt(40)])
+assert anyIndex == 1, "task.whenAny should return first completed index"
+
+int mixedIndex = await task.whenAny([slowText("slow"), fastInt(50)])
+assert mixedIndex == 1, "task.whenAny should accept mixed future literal values"
+
+array<future<int>> jobs = array[slowInt(60), fastInt(70)]
+future<int> anyFuture = task.whenAny(jobs)
+assert anyFuture.wait(), "task.whenAny future should be waitable"
+assert await anyFuture == 1, "task.whenAny should support typed future arrays"
+
+println("future task wait ok")

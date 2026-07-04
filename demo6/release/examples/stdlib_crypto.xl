@@ -12,3 +12,37 @@ assert string.len(sha512) == 128, "sha512 hex length mismatch"
 
 assert sha256 == crypto.sha256("xlang"), "sha256 should be stable"
 assert sha256 != crypto.sha256("xlang!"), "sha256 should change with input"
+
+string hmacText = "The quick brown fox jumps over the lazy dog"
+assert crypto.hmacSha256("key", hmacText) == "F7BC83F430538424B13298E6AA6FB143EF4D59A14946175997479DBC2D1A3CD8", "hmacSha256 mismatch"
+assert string.len(crypto.hmacSha384("key", hmacText)) == 96, "hmacSha384 hex length mismatch"
+assert string.len(crypto.hmacSha512("key", hmacText)) == 128, "hmacSha512 hex length mismatch"
+
+string key16 = "0123456789abcdef"
+string key32 = "0123456789abcdef0123456789abcdef"
+string nonce = "123456789012"
+string aad = "meta"
+string plain = "hello crypto"
+
+string chachaCipher = crypto.chacha20Poly1305Encrypt(key32, nonce, plain, aad)
+assert string.len(chachaCipher) == (string.byteLen(plain) + 16) * 2, "chacha20-poly1305 cipher length mismatch"
+assert crypto.chacha20Poly1305Decrypt(key32, nonce, chachaCipher, aad) == plain, "chacha20-poly1305 decrypt mismatch"
+assert crypto.chacha20Poly1305Decrypt(key32, nonce, chachaCipher, "bad") == "", "chacha20-poly1305 aad check failed"
+
+string aes128Cipher = crypto.aes128GcmEncrypt(key16, nonce, plain, aad)
+assert string.len(aes128Cipher) == (string.byteLen(plain) + 16) * 2, "aes128-gcm cipher length mismatch"
+assert crypto.aes128GcmDecrypt(key16, nonce, aes128Cipher, aad) == plain, "aes128-gcm decrypt mismatch"
+
+string aes256Cipher = crypto.aes256GcmEncrypt(key32, nonce, plain, aad)
+assert string.len(aes256Cipher) == (string.byteLen(plain) + 16) * 2, "aes256-gcm cipher length mismatch"
+assert crypto.aes256GcmDecrypt(key32, nonce, aes256Cipher, aad) == plain, "aes256-gcm decrypt mismatch"
+
+string hkdf256 = crypto.hkdfSha256("key", "salt", "info", 32)
+string hkdf384 = crypto.hkdfSha384("key", "salt", "info", 32)
+assert string.len(hkdf256) == 64, "hkdfSha256 output length mismatch"
+assert string.len(hkdf384) == 64, "hkdfSha384 output length mismatch"
+assert hkdf256 == crypto.hkdfSha256("key", "salt", "info", 32), "hkdfSha256 should be stable"
+assert hkdf384 == crypto.hkdfSha384("key", "salt", "info", 32), "hkdfSha384 should be stable"
+
+assert string.len(crypto.randomHex(16)) == 32, "randomHex output length mismatch"
+assert crypto.randomHex(0) == "", "randomHex(0) should be empty"

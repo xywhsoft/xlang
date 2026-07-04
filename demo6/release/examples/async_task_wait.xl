@@ -1,0 +1,29 @@
+async func fast(int value) as int
+    return value
+end
+
+async func slow(int value) as int
+    time.sleep(120)
+    return value
+end
+
+async func fail() as int
+    throw "boom"
+    return 0
+end
+
+future<int> job = slow(10)
+
+if not job.waitTimeout(5) then
+    println("timeout")
+end
+
+println(await job)
+
+future<int> failed = fail()
+if not failed.wait() then
+    println(failed.error())
+end
+
+int index = await task.whenAny([slow(1), fast(2)])
+println(index)

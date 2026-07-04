@@ -14,3 +14,44 @@ expect(string.len(crypto.sha512("abc")), 128)
 assert crypto.sha256("") == "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855", "empty sha256 mismatch"
 assert crypto.sha256("xlang") == crypto.sha256("xlang"), "sha256 should be stable"
 assert crypto.sha256("xlang") != crypto.sha256("xlang!"), "sha256 should depend on bytes"
+
+string hmacText = "The quick brown fox jumps over the lazy dog"
+expectStr(crypto.hmacSha256("key", hmacText), "F7BC83F430538424B13298E6AA6FB143EF4D59A14946175997479DBC2D1A3CD8")
+expectStr(crypto.hmacSha384("key", hmacText), "D7F4727E2C0B39AE0F1E40CC96F60242D5B7801841CEA6FC592C5D3E1AE50700582A96CF35E1E554995FE4E03381C237")
+expectStr(crypto.hmacSha512("key", hmacText), "B42AF09057BAC1E2D41708E48A902E09B5FF7F12AB428A4FE86653C73DD248FB82F948A549F7B791A5B41915EE4D1EC3935357E4E2317250D0372AFA2EBEEB3A")
+
+string key16 = "0123456789abcdef"
+string key32 = "0123456789abcdef0123456789abcdef"
+string nonce = "123456789012"
+string aad = "meta"
+string plain = "hello crypto"
+
+string chachaCipher = crypto.chacha20Poly1305Encrypt(key32, nonce, plain, aad)
+expect(string.len(chachaCipher), (string.byteLen(plain) + 16) * 2)
+expectStr(crypto.chacha20Poly1305Decrypt(key32, nonce, chachaCipher, aad), plain)
+expectStr(crypto.chacha20Poly1305Decrypt(key32, nonce, chachaCipher, "bad"), "")
+expectStr(crypto.chacha20Poly1305Encrypt("bad", nonce, plain, aad), "")
+
+string aes128Cipher = crypto.aes128GcmEncrypt(key16, nonce, plain, aad)
+expect(string.len(aes128Cipher), (string.byteLen(plain) + 16) * 2)
+expectStr(crypto.aes128GcmDecrypt(key16, nonce, aes128Cipher, aad), plain)
+expectStr(crypto.aes128GcmDecrypt(key16, nonce, aes128Cipher, "bad"), "")
+expectStr(crypto.aes128GcmEncrypt("bad", nonce, plain, aad), "")
+
+string aes256Cipher = crypto.aes256GcmEncrypt(key32, nonce, plain, aad)
+expect(string.len(aes256Cipher), (string.byteLen(plain) + 16) * 2)
+expectStr(crypto.aes256GcmDecrypt(key32, nonce, aes256Cipher, aad), plain)
+expectStr(crypto.aes256GcmDecrypt(key32, nonce, aes256Cipher, "bad"), "")
+expectStr(crypto.aes256GcmEncrypt("bad", nonce, plain, aad), "")
+
+string hkdf256 = crypto.hkdfSha256("key", "salt", "info", 32)
+string hkdf384 = crypto.hkdfSha384("key", "salt", "info", 32)
+expect(string.len(hkdf256), 64)
+expect(string.len(hkdf384), 64)
+expectStr(hkdf256, crypto.hkdfSha256("key", "salt", "info", 32))
+expectStr(hkdf384, crypto.hkdfSha384("key", "salt", "info", 32))
+expectStr(crypto.hkdfSha256("key", "salt", "info", 0), "")
+expectStr(crypto.hkdfSha384("key", "salt", "info", 0), "")
+
+expect(string.len(crypto.randomHex(16)), 32)
+expectStr(crypto.randomHex(0), "")

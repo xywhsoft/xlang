@@ -19,5 +19,7 @@ int xl6CgenNodeNeedsStringEdgeRuntime(const XL6_AstNode* node);
 int xl6CgenNodeNeedsStdStringRuntime(const XL6_AstNode* node);
 int xl6CgenNodeNeedsPathRuntime(const XL6_AstNode* node);
 int xl6CgenNodeNeedsHttpServerRuntime(const XL6_AstNode* node);
+int xl6CgenNodeNeedsBufferRuntime(const XL6_AstNode* node);
+int xl6CgenNodeNeedsAsyncFileRuntime(const XL6_AstNode* node);
 
 #endif

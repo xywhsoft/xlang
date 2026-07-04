@@ -331,6 +331,46 @@ static XL6_AstNode* xl6CgenChannelMethodType(XL6_CgenContext* ctx, const XL6_Ast
     return result;
 }
 
+static XL6_AstNode* xl6CgenFutureMethodType(XL6_CgenContext* ctx, const XL6_AstNode* call)
+{
+    const XL6_AstNode* member;
+    const XL6_AstNode* receiver;
+    XL6_AstNode* receiverType;
+    XL6_AstNode* result;
+
+    if ( call == NULL || call->kind != XL6_AST_CALL || call->childCount == 0 ) {
+        return NULL;
+    }
+    member = call->children[0];
+    if ( member == NULL || member->kind != XL6_AST_MEMBER ) {
+        return NULL;
+    }
+    receiver = member->childCount > 0 ? member->children[0] : NULL;
+    receiverType = xl6CgenCloneExprTypeForInference(ctx, receiver);
+    if ( !xl6CgenIsFutureLikeType(receiverType) ) {
+        xl6AstFree(receiverType);
+        return NULL;
+    }
+
+    result = NULL;
+    if ( xl6CTextEquals(member->text, "wait") ||
+         xl6CTextEquals(member->text, "waitTimeout") ||
+         xl6CTextEquals(member->text, "cancel") ||
+         xl6CTextEquals(member->text, "isDone") ||
+         xl6CTextEquals(member->text, "isPending") ||
+         xl6CTextEquals(member->text, "isCancelled") ||
+         xl6CTextEquals(member->text, "isFailed") ) {
+        result = xl6CgenNewSimpleType("bool", call);
+    } else if ( xl6CTextEquals(member->text, "state") ||
+                xl6CTextEquals(member->text, "status") ) {
+        result = xl6CgenNewSimpleType("int", call);
+    } else if ( xl6CTextEquals(member->text, "error") ) {
+        result = xl6CgenNewSimpleType("string", call);
+    }
+    xl6AstFree(receiverType);
+    return result;
+}
+
 static XL6_AstNode* xl6CgenSyncCtorType(XL6_CgenContext* ctx, const XL6_AstNode* call)
 {
     const XL6_AstNode* callee;
@@ -863,6 +903,12 @@ static XL6_AstNode* xl6CgenCloneExprTypeForInference(XL6_CgenContext* ctx, const
             XL6_AstNode* channelMethodType = xl6CgenChannelMethodType(ctx, expr);
             if ( channelMethodType != NULL ) {
                 return channelMethodType;
+            }
+        }
+        {
+            XL6_AstNode* futureMethodType = xl6CgenFutureMethodType(ctx, expr);
+            if ( futureMethodType != NULL ) {
+                return futureMethodType;
             }
         }
         {

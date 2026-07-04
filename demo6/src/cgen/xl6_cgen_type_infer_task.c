@@ -40,6 +40,7 @@ static int xl6CgenIsTaskNamespaceMemberCall(const XL6_AstNode* call, const char*
     if ( !xl6CTextEquals(member->text, "spawn") &&
          !xl6CTextEquals(member->text, "cancel") &&
          !xl6CTextEquals(member->text, "all") &&
+         !xl6CTextEquals(member->text, "whenAny") &&
          !xl6CTextEquals(member->text, "race") ) {
         return 0;
     }
@@ -115,6 +116,55 @@ static XL6_AstNode* xl6CgenCloneTaskArrayItemFutureValueType(XL6_CgenContext* ct
     return result;
 }
 
+static int xl6CgenTaskExprIsFutureLike(XL6_CgenContext* ctx, const XL6_AstNode* expr)
+{
+    XL6_AstNode* typeNode;
+    const XL6_AstNode* concreteType;
+    int result;
+
+    typeNode = xl6CgenCloneExprTypeForInference(ctx, expr);
+    concreteType = xl6CgenSubstituteGenericType(ctx, typeNode);
+    concreteType = xl6CgenResolveAliasType(ctx, concreteType);
+    result = xl6CgenIsFutureLikeType(concreteType);
+    xl6AstFree(typeNode);
+    return result;
+}
+
+static int xl6CgenTaskArgIsFutureCollection(XL6_CgenContext* ctx, const XL6_AstNode* argExpr)
+{
+    XL6_AstNode* argType;
+    const XL6_AstNode* concreteType;
+    const XL6_AstNode* args;
+    size_t i;
+    int result;
+
+    if ( argExpr == NULL ) {
+        return 0;
+    }
+    if ( argExpr->kind == XL6_AST_ARRAY_LITERAL ) {
+        if ( argExpr->childCount == 0 ) {
+            return 0;
+        }
+        for ( i = 0; i < argExpr->childCount; ++i ) {
+            if ( !xl6CgenTaskExprIsFutureLike(ctx, argExpr->children[i]) ) {
+                return 0;
+            }
+        }
+        return 1;
+    }
+
+    argType = xl6CgenCloneExprTypeForInference(ctx, argExpr);
+    concreteType = xl6CgenSubstituteGenericType(ctx, argType);
+    concreteType = xl6CgenResolveAliasType(ctx, concreteType);
+    result = 0;
+    if ( concreteType != NULL && xl6CTextEquals(concreteType->text, "array") ) {
+        args = xl6CgenTypeNodeGenericArgs(concreteType);
+        result = args != NULL && args->childCount == 1 && xl6CgenIsFutureLikeType(args->children[0]);
+    }
+    xl6AstFree(argType);
+    return result;
+}
+
 static XL6_AstNode* xl6CgenCloneTaskCallType(XL6_CgenContext* ctx, const XL6_AstNode* call)
 {
     const char* name;
@@ -130,6 +180,14 @@ static XL6_AstNode* xl6CgenCloneTaskCallType(XL6_CgenContext* ctx, const XL6_Ast
     }
     if ( xl6CTextEquals(name, "cancel") ) {
         return xl6CgenNewSimpleType("bool", call);
+    }
+    if ( xl6CTextEquals(name, "whenAny") ) {
+        argExpr = xl6CgenTaskCallArgExpr(call);
+        if ( !xl6CgenTaskArgIsFutureCollection(ctx, argExpr) ) {
+            return NULL;
+        }
+        valueType = xl6CgenNewSimpleType("int", call);
+        return xl6CgenNewGenericTypeNode("future", valueType, call);
     }
     if ( xl6CTextEquals(name, "spawn") ) {
         argExpr = xl6CgenTaskCallArgExprAt(call, 0);

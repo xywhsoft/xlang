@@ -157,6 +157,107 @@ static int xl6CgenChannelMethodCall(XL6_CgenContext* ctx, const XL6_AstNode* cal
     return 0;
 }
 
+static const XL6_AstNode* xl6CgenCallArgExpr(const XL6_AstNode* call, size_t index);
+
+static void xl6CgenFutureReceiverExpr(XL6_CgenContext* ctx, const XL6_AstNode* receiver)
+{
+    if ( receiver != NULL && receiver->kind == XL6_AST_NAME ) {
+        if ( xl6CgenAnonCaptureIndex(ctx->currentAnonFunc, receiver->text) >= 0 ) {
+            xl6OutputPuts("__env->", ctx->out);
+            xl6CgenFputsCIdent(ctx->out, receiver->text);
+            return;
+        }
+        xl6CgenFputsCIdent(ctx->out, receiver->text);
+        return;
+    }
+    xl6CgenExpr(ctx, receiver);
+}
+
+static int xl6CgenFutureMethodCall(XL6_CgenContext* ctx, const XL6_AstNode* call, const XL6_AstNode* member)
+{
+    const XL6_AstNode* receiver;
+    XL6_AstNode* receiverType;
+
+    if ( call == NULL || member == NULL || member->kind != XL6_AST_MEMBER ) {
+        return 0;
+    }
+    receiver = member->childCount > 0 ? member->children[0] : NULL;
+    if ( receiver == NULL || receiver->kind != XL6_AST_NAME ) {
+        return 0;
+    }
+
+    receiverType = xl6CgenCloneExprTypeForInference(ctx, receiver);
+    if ( !xl6CgenIsFutureLikeType(receiverType) ) {
+        xl6AstFree(receiverType);
+        return 0;
+    }
+    xl6AstFree(receiverType);
+
+    if ( xl6CTextEquals(member->text, "wait") ) {
+        xl6OutputPuts("xFutureWait(", ctx->out);
+        xl6CgenFutureReceiverExpr(ctx, receiver);
+        xl6OutputPutc(')', ctx->out);
+        return 1;
+    }
+    if ( xl6CTextEquals(member->text, "waitTimeout") ) {
+        xl6OutputPuts("xFutureWaitTimeout(", ctx->out);
+        xl6CgenFutureReceiverExpr(ctx, receiver);
+        xl6OutputPuts(", ", ctx->out);
+        xl6CgenExpr(ctx, xl6CgenCallArgExpr(call, 0));
+        xl6OutputPutc(')', ctx->out);
+        return 1;
+    }
+    if ( xl6CTextEquals(member->text, "cancel") ) {
+        xl6OutputPuts("xl6_task_cancel_value(", ctx->out);
+        xl6CgenFutureReceiverExpr(ctx, receiver);
+        xl6OutputPuts(", 0)", ctx->out);
+        return 1;
+    }
+    if ( xl6CTextEquals(member->text, "state") ) {
+        xl6OutputPuts("(int)xFutureState(", ctx->out);
+        xl6CgenFutureReceiverExpr(ctx, receiver);
+        xl6OutputPutc(')', ctx->out);
+        return 1;
+    }
+    if ( xl6CTextEquals(member->text, "status") ) {
+        xl6OutputPuts("(int)xFutureStatus(", ctx->out);
+        xl6CgenFutureReceiverExpr(ctx, receiver);
+        xl6OutputPutc(')', ctx->out);
+        return 1;
+    }
+    if ( xl6CTextEquals(member->text, "isDone") ) {
+        xl6OutputPuts("(xFutureState(", ctx->out);
+        xl6CgenFutureReceiverExpr(ctx, receiver);
+        xl6OutputPuts(") != 0)", ctx->out);
+        return 1;
+    }
+    if ( xl6CTextEquals(member->text, "isPending") ) {
+        xl6OutputPuts("(xFutureState(", ctx->out);
+        xl6CgenFutureReceiverExpr(ctx, receiver);
+        xl6OutputPuts(") == 0)", ctx->out);
+        return 1;
+    }
+    if ( xl6CTextEquals(member->text, "isCancelled") ) {
+        xl6OutputPuts("(xFutureState(", ctx->out);
+        xl6CgenFutureReceiverExpr(ctx, receiver);
+        xl6OutputPuts(") == 3)", ctx->out);
+        return 1;
+    }
+    if ( xl6CTextEquals(member->text, "isFailed") ) {
+        xl6OutputPuts("(xFutureState(", ctx->out);
+        xl6CgenFutureReceiverExpr(ctx, receiver);
+        xl6OutputPuts(") == 2)", ctx->out);
+        return 1;
+    }
+    if ( xl6CTextEquals(member->text, "error") ) {
+        xl6OutputPuts("xl6_future_error_text(", ctx->out);
+        xl6CgenFutureReceiverExpr(ctx, receiver);
+        xl6OutputPutc(')', ctx->out);
+        return 1;
+    }
+    return 0;
+}
+
 static int xl6CgenTaskFutureExprIsOwnedDirect(XL6_CgenContext* ctx, const XL6_AstNode* expr)
 {
     XL6_AstNode* typeNode;
@@ -325,6 +426,22 @@ static int xl6CgenTaskNamespaceCall(XL6_CgenContext* ctx, const XL6_AstNode* cal
         xl6OutputPuts("xl6_task_cancel_value(", ctx->out);
         xl6CgenTaskFutureArgExpr(ctx, argExpr);
         xl6OutputPrintf(ctx->out, ", %d)", xl6CgenTaskFutureExprIsOwned(ctx, argExpr));
+        return 1;
+    }
+
+    if ( xl6CTextEquals(member->text, "whenAny") ) {
+        if ( argExpr != NULL && argExpr->kind == XL6_AST_ARRAY_LITERAL ) {
+            xl6OutputPrintf(ctx->out, "xl6_task_when_any_values(\"\", %d, %d, %d",
+                            member->line,
+                            member->column,
+                            (int)argExpr->childCount);
+            xl6CgenTaskFutureLiteralArgs(ctx, argExpr);
+            xl6OutputPutc(')', ctx->out);
+            return 1;
+        }
+        xl6OutputPuts("xl6_task_when_any_from_array((xtarray)(", ctx->out);
+        xl6CgenExpr(ctx, argExpr);
+        xl6OutputPrintf(ctx->out, "), \"\", %d, %d)", member->line, member->column);
         return 1;
     }
 

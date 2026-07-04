@@ -1,0 +1,25 @@
+string filePath = "release/tmp/example_file_async.txt"
+string copyPath = "release/tmp/example_file_async.copy.txt"
+string movePath = "release/tmp/example_file_async.move.txt"
+
+file.delete(filePath)
+file.delete(copyPath)
+file.delete(movePath)
+
+if await file.writeTextAsync(filePath, "hello") and await file.readTextAsync(filePath) == "hello" then
+    println("write_read=ok")
+else
+    println("write_read=fail")
+end
+
+if await file.appendTextAsync(filePath, " async") and await file.copyAsync(filePath, copyPath) and await file.readTextAsync(copyPath) == "hello async" then
+    println("append_copy=ok")
+else
+    println("append_copy=fail")
+end
+
+if await file.moveAsync(copyPath, movePath) and not file.exists(copyPath) and await file.deleteAsync(filePath) and await file.deleteAsync(movePath) then
+    println("move_delete=ok")
+else
+    println("move_delete=fail")
+end

@@ -35,6 +35,7 @@
 - `second_stage.xl`：第二阶段基础语义组合示例；回归：`check`、`run`。
 - `concurrency.xl`：并发、通道和异步相关示例；回归：`run`。
 - `task_api.xl`：高层 task API 的 spawn、all、race 和 cancel 示例；回归：`run`。
+- `async_task_wait.xl`：future wait、waitTimeout、state/error、cancel 和 task.whenAny 示例；回归：`run`。
 - `async_generator.xl`：`async func ... as generator<T>`、`func ... as async generator<T>`、`await + yield`、`for await`、保存型/单次消费、错误传播、空流、双目标索引与 `break`/`continue` 示例；回归：`run`。
 - `union.xl`：C 风格 union 示例；回归：`run`。
 
@@ -55,15 +56,21 @@
 - `stdlib_time_c.c`：与 `stdlib_time.xl` 对照的 C/XRT 时间库范例，主回归会比较两者输出。
 - `stdlib_random.xl`
 - `stdlib_random_c.c`：与 `stdlib_random.xl` 对照的 C/XRT 随机库范例，展示全局随机源和独立随机对象。
+- `stdlib_buffer.xl`
+- `stdlib_buffer_c.c`：与 `stdlib_buffer.xl` 对照的 C/XRT xbuffer 范例，主回归会比较两者输出。
 - `stdlib_path_file.xl`
 - `stdlib_path_file_c.c`：与 `stdlib_path_file.xl` 对照的 C/XRT 路径、文件和目录范例，主回归会比较两者输出。
 - `stdlib_json.xl`
+- `stdlib_file_async.xl`
+- `stdlib_file_async_c.c`: C/XRT async file counterpart; main regression compares both outputs.
 - `stdlib_xson.xl`
 - `stdlib_print.xl`
 - `stdlib_codec.xl`
 - `stdlib_hash.xl`
 - `stdlib_crypto.xl`
 - `stdlib_id_net.xl`
+- `stdlib_net_tcp_udp.xl`
+- `stdlib_net_tcp_udp_c.c`：与 `stdlib_net_tcp_udp.xl` 对照的 C/XRT TCP/UDP 范例，主回归会比较两者输出。
 - `stdlib_url.xl`
 - `stdlib_query.xl`
 - `stdlib_regex.xl`
@@ -102,7 +109,9 @@
 - `stdlib_string_c.c`：与 `stdlib_string.xl` 对照的 C/XRT 字符串库范例，主回归会比较两者输出。
 - `stdlib_time_c.c`：与 `stdlib_time.xl` 对照的 C/XRT 时间库范例，主回归会比较两者输出。
 - `stdlib_random_c.c`：与 `stdlib_random.xl` 对照的 C/XRT 随机库范例，主回归会比较两者输出。
+- `stdlib_buffer_c.c`：与 `stdlib_buffer.xl` 对照的 C/XRT xbuffer 范例，主回归会比较两者输出。
 - `stdlib_path_file_c.c`：与 `stdlib_path_file.xl` 对照的 C/XRT 路径、文件和目录范例，主回归会比较两者输出。
+- `stdlib_net_tcp_udp_c.c`：与 `stdlib_net_tcp_udp.xl` 对照的 C/XRT TCP/UDP 范例，主回归会比较两者输出。
 - `stdlib_http_server_c.c`：与 `stdlib_http_server.xl` 对照的 C/XRT `xweb` HTTP server 范例，展示 GET/POST/ANY 路由和静态文件。
 
 ## 回归入口

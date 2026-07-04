@@ -87,6 +87,7 @@
 - `../release/include/README.md`：公开 C API 头文件说明。
 - `../lib/README.md`：XRT 单头文件、libprobe fixture 和依赖维护规则。
 - `../release/README.md`：构建产物目录说明。
+- `../release/projects/xs_static/README.md`：静态 xs 原型项目说明和 smoke 入口。
 
 ## 维护规则
 

@@ -1,0 +1,41 @@
+string filePath = "release/tmp/stdlib_file_async_case.txt"
+string copyPath = "release/tmp/stdlib_file_async_case.copy.txt"
+string movePath = "release/tmp/stdlib_file_async_case.move.txt"
+string missingPath = "release/tmp/stdlib_file_async_case.missing.txt"
+
+file.delete(filePath)
+file.delete(copyPath)
+file.delete(movePath)
+file.delete(missingPath)
+
+future<bool> writeFuture = file.writeTextAsync(filePath, "hello")
+assert writeFuture.wait(), "writeTextAsync future should complete"
+assert await writeFuture, "writeTextAsync should resolve true"
+assert file.exists(filePath), "writeTextAsync should create file"
+
+future<string> readFuture = file.readTextAsync(filePath)
+assert readFuture.wait(), "readTextAsync future should complete"
+assert await readFuture == "hello", "readTextAsync should read text"
+
+assert await file.appendTextAsync(filePath, " async"), "appendTextAsync should resolve true"
+assert await file.readTextAsync(filePath) == "hello async", "appendTextAsync should append text"
+
+future<bool> copyFuture = file.copyAsync(filePath, copyPath)
+assert copyFuture.wait(), "copyAsync future should complete"
+assert await copyFuture, "copyAsync should resolve true"
+assert await file.readTextAsync(copyPath) == "hello async", "copyAsync should copy file data"
+
+assert await file.moveAsync(copyPath, movePath), "moveAsync should resolve true"
+assert not file.exists(copyPath), "moveAsync should remove source"
+assert await file.readTextAsync(movePath) == "hello async", "moveAsync should keep file data"
+
+future<bool> anyDelete = file.deleteAsync(filePath)
+future<bool> anyDeleteMoved = file.deleteAsync(movePath)
+int firstDone = await task.whenAny([anyDelete, anyDeleteMoved])
+assert firstDone >= 0, "deleteAsync futures should work with task.whenAny"
+assert await anyDelete, "deleteAsync should delete source file"
+assert await anyDeleteMoved, "deleteAsync should delete moved file"
+
+assert await file.readTextAsync(missingPath) == "", "readTextAsync missing file should mirror readText empty result"
+
+println("stdlib file async ok")

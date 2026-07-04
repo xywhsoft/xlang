@@ -1,0 +1,25 @@
+Buffer buf = Buffer()
+
+assert(buf.len() == 0)
+assert(buf.append("abc"))
+assert(buf.appendByte(100))
+assert(buf.len() == 4)
+assert(buf.byteAt(0) == 97)
+assert(buf[1] == 98)
+buf[1] = 66
+assert(buf.text() == "aBcd")
+println("basic=ok")
+
+assert(buf.reserve(128))
+assert(buf.capacity() >= 128)
+assert(buf.clear())
+assert(buf.len() == 0)
+assert(buf.text() == "")
+println("reserve_clear=ok")
+
+Buffer stepped = Buffer(64)
+assert(stepped.appendBytes("hello", c_size(2)))
+assert(stepped.text() == "he")
+assert(stepped.appendBytes("ignored", c_size(0)))
+assert(stepped.len() == 2)
+println("append_bytes=ok")

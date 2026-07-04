@@ -1,0 +1,6 @@
+async func addAsync(int a, int b) as int
+    return a + b
+end
+
+future<int> job = addAsync(1, 2)
+bool done = job.waitTimeout("bad")
