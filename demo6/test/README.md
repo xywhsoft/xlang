@@ -1,15 +1,43 @@
 # DEMO6 测试资产入口
 
-本目录保存 demo6 的回归测试资产。`test/cases` 下的 `.xl` 文件会被递归纳入用例 wiring 守门，由 `test.bat`、范例批处理和工具脚本接线；`.c`/`.h` 宿主 fixture 由 C fixture 守门检查；`.json`/`.xapi.json` 数据 fixture 由 test data 守门检查。
+本目录保存 demo6 的回归测试资产。`test/cases` 下的 `.xl` 文件会被递归纳入用例 wiring 守门，由 `test.bat`、`test/suites/*.bat`、范例批处理和工具脚本接线；`.c`/`.h` 宿主 fixture 由 C fixture 守门检查；`.json`/`.xapi.json` 数据 fixture 由 test data 守门检查。
 
 ## 主要入口
 
-- `test.bat`：主回归入口，覆盖构建、静态守门、功能用例、标准库、import/package、CLI/DLL 等路径。
+- `test.bat`：主回归调度入口，先完成构建、清理和工具链准备，再按顺序运行 `test/suites` 下的分类套件。
 - `test_smoke.bat`：快速冒烟入口，覆盖构建、核心文档/源码/工具接线、CLI 基础阶段、ABI/XAPI、import、容器运行和一个标准库运行样本。
 - `test_all.bat`：完整回归入口，串联主回归、tutorial 和 DLL 测试。
 - `test_tutorial.bat`：教学范例回归。
 - `test_feature_suite.bat`：功能范例套件回归。
 - `test_dll.bat`：`xl.dll` 嵌入式运行库回归。
+
+## 分类套件
+
+`test/suites/common.bat` 是分类套件的公共初始化入口。单独运行某个套件时，它会切换到 demo6 根目录，设置 `XLANG_PACKAGE_PATH=release\extlibs;test\fixtures`，在缺少 `release\xl.exe` 或 `release\xlc.dll` 时自动构建，并准备 TCC bootstrap 与 XRT object。
+
+可以按需运行：
+
+```bat
+test\suites\02_language_frontend.bat
+```
+
+常用环境变量：
+
+- `XL6_SUITE_FORCE_BUILD=1`：运行套件前强制执行 `build.bat`。
+- `XL6_SUITE_CLEAR_TMP=1`：运行套件前清理 `release\tmp` 顶层文件。
+
+当前分类：
+
+- `00_static_smoke.bat`：文档、工具、批处理、源码、编码、临时目录、DLL/API、标准库覆盖等静态守门，以及 CLI dump/save-temps 基础冒烟。
+- `01_import_package_xapi.bat`：import、package、XAPI、依赖版本、私有依赖、native singleton 和 JSON 诊断。
+- `02_language_frontend.bat`：词法、语法、字面量、布局、运算符、泛型约束、协议、derive、字段属性和第二阶段基础示例。
+- `03_cgen_runtime_core.bat`：IR/C 生成、运行时基础、main/varargs/closure/function、容器、字符串、f-string、time、runtime type、标准库 math/string/time/random/buffer/path/file/dir 核心路径。
+- `04_oop_abi_export.bat`：控制流 lowering、OOP/class/object/native-backed class、重载、ABI、C export、XAPI、混编和链接路径。
+- `05_semantics_exceptions_concurrency_base.bat`：类型语义负例、异常/#doc、sync/thread/async 基础运行与生成形态守门。
+- `06_task_api_spawn.bat`：future/task API、task.spawn、task.all/race/cancel、任务边界和重复运行稳定性。
+- `07_async_generator_channel_docs.bat`：async class await、async generator、generator、channel、并发负例、XAPI doc 和 f-string/语法负例。
+- `08_stdlib_extended.bat`：JSON/XSON、codec/hash/crypto、URL/query、log/template/regex/process/http.server 等扩展标准库。
+- `09_artifact_closure.bat`：负例诊断产物和 `release\tmp` 文本产物收口检查，通常作为 `test.bat` 全量调度的最后一步运行。
 
 ## fixtures
 

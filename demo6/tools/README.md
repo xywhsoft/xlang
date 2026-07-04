@@ -49,7 +49,7 @@ This directory contains DEMO6 toolchain setup scripts and engineering guard chec
 
 ## Maintenance
 
-- New `check_*.ps1` files must be wired into `test.bat`.
+- New `check_*.ps1` files must be wired into `test.bat` or one of the `test/suites/*.bat` full-regression suites.
 - New `check_*.ps1` files must also be wired into `rc0_guard.ps1`, unless explicitly listed as a full-regression-only exception in `check_tool_wiring.ps1`.
 - Keep batch scripts ASCII where practical and keep toolchain paths centralized through `xl6_toolchain_env.bat`.
 - `build.bat` must be able to run on a clean Windows machine with MinGW in `PATH`; `build.sh` is a Git Bash/MSYS wrapper over the same build path. Flex/Lemon are only required when `XL6_REGEN_GRAMMAR=1`.

@@ -187,11 +187,11 @@
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | `xlRunScriptString` 或 `xlRunScriptFile` |
-| 生成规则描述 | 先 cgen 到内存，再创建 `TCC_OUTPUT_MEMORY` state。importDeps.cSources 作为文件加入 TCC；随后编译 cText；再追加 context/import link/loadlib 依赖，确保 archive 在生成 C 产生未解析符号后再参与解析；最后 `tcc_run(s, 1, NULL)`。返回码非 0 时写 `script returned N`。 |
+| 生成规则描述 | 先 cgen 到内存，内存运行 option 会抑制 C `main` wrapper，只保留 `xlang_main(xvalue arg)`；再创建 `TCC_OUTPUT_MEMORY` state。importDeps.cSources 作为文件加入 TCC；随后编译 cText；再追加 context/import link/loadlib 依赖，确保 archive 在生成 C 产生未解析符号后再参与解析；最后 `tcc_relocate()` + `tcc_get_symbol("xlang_main")` 并直接调用入口。返回码非 0 时写 `script returned N`。 |
 | 生成器文件名和行号 | `demo6/src/api/xl_api.c:1320`、`demo6/src/api/xl_api.c:1331` |
 | 对应生成的 C 代码 | `cText` 在内存中编译执行，不落盘。 |
-| 中间形态伪代码 | `emitC -> TCC memory -> add import C sources -> compile string -> add links/loadlibs -> run` |
-| 实现同等功能手写的 C 代码 | 手写 JIT 执行可直接 tcc_run。 |
+| 中间形态伪代码 | `emitC(noMainWrapper) -> TCC memory -> add import C sources -> compile string -> add links/loadlibs -> relocate -> entry(arg)` |
+| 实现同等功能手写的 C 代码 | 手写 JIT 执行可直接重定位并调用导出的入口函数。 |
 | 额外依赖的封装代码 | TCC memory output、runtime symbol injection。 |
 
 ## CGEN-API-017 编译到 exe

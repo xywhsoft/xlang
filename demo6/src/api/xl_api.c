@@ -64,6 +64,8 @@ typedef int (*XL_TccRelocateProc)(TCCState* s);
 typedef void* (*XL_TccGetSymbolProc)(TCCState* s, const char* name);
 typedef int (*XL_XlangMainProc)(xvalue arg);
 typedef int (*XL_CMainProc)(int argc, char** argv);
+typedef int (*XL_ScriptHasErrorProc)(void);
+typedef void (*XL_ScriptVoidProc)(void);
 
 typedef struct XL_TccApi {
     int ready;
@@ -2483,29 +2485,28 @@ static int xlRunMainInState(XL_Context* ctx, TCCState* state, int argc, char** a
     return 1;
 }
 
-static int xlRunCEntryInState(XL_Context* ctx, TCCState* state, const char* symbolName, int argc, char** argv, const char* missingError, const char* returnPrefix)
+static int xlCheckScriptActiveError(XL_Context* ctx, TCCState* state)
 {
-    XL_CMainProc entry;
-    int rc;
+    XL_ScriptHasErrorProc hasError;
+    XL_ScriptVoidProc printUncaught;
+    XL_ScriptVoidProc clearError;
 
-    if ( ctx == NULL || state == NULL ) {
-        xlSetError(ctx, "module is empty");
+    if ( state == NULL ) {
         return 0;
     }
-    entry = (XL_CMainProc)xl__tcc.tcc_get_symbol(state, symbolName != NULL ? symbolName : "main");
-    if ( entry == NULL ) {
-        xlSetError(ctx, missingError != NULL ? missingError : "entry not found");
+    hasError = (XL_ScriptHasErrorProc)xl__tcc.tcc_get_symbol(state, "xl_script_has_error");
+    if ( hasError == NULL || !hasError() ) {
         return 0;
     }
-    rc = entry(argc > 0 ? argc : 0, argv);
-    if ( rc != 0 ) {
-        if ( returnPrefix != NULL ) {
-            char text[128];
-            snprintf(text, sizeof(text), "%s %d", returnPrefix, rc);
-            xlSetError(ctx, text);
-        }
-        return 0;
+    printUncaught = (XL_ScriptVoidProc)xl__tcc.tcc_get_symbol(state, "xl_script_print_uncaught");
+    clearError = (XL_ScriptVoidProc)xl__tcc.tcc_get_symbol(state, "xl_script_clear_error");
+    if ( printUncaught != NULL ) {
+        printUncaught();
     }
+    if ( clearError != NULL ) {
+        clearError();
+    }
+    xlSetError(ctx, "uncaught xlang error");
     return 1;
 }
 
@@ -2515,6 +2516,7 @@ static int xlCompileAndRunUnit(XL_Context* ctx, XL6_CompileUnit* unit, xvalue su
     XL_XlangMainProc entry;
     xvalue runArg;
     char* cText;
+    XL6_CgenOptions cgenOptions;
     int ok;
     int rc;
     size_t i;
@@ -2525,10 +2527,12 @@ static int xlCompileAndRunUnit(XL_Context* ctx, XL6_CompileUnit* unit, xvalue su
     runArg = NULL;
     ok = 0;
     xlTccDynamicVfsClear();
-    if ( suppliedArg != NULL && !xlPrepareRuntimeArg(ctx, suppliedArg, &runArg) ) {
+    if ( !xlPrepareRuntimeArg(ctx, suppliedArg, &runArg) ) {
         goto cleanup;
     }
-    if ( !xlCgenToMemory(ctx, unit, &cText) ) {
+    memset(&cgenOptions, 0, sizeof(cgenOptions));
+    cgenOptions.suppressMainWrapper = 1;
+    if ( !xlCgenToMemoryEx(ctx, unit, &cText, &cgenOptions) ) {
         goto cleanup;
     }
     s = xlCreateTccState(ctx, TCC_OUTPUT_MEMORY);
@@ -2555,16 +2559,15 @@ static int xlCompileAndRunUnit(XL_Context* ctx, XL6_CompileUnit* unit, xvalue su
         }
         goto cleanup;
     }
-    if ( suppliedArg == NULL ) {
-        ok = xlRunMainInState(ctx, s, 0, NULL, "script entry main not found", "script main returned");
-        goto cleanup;
-    }
     entry = (XL_XlangMainProc)xl__tcc.tcc_get_symbol(s, "xlang_main");
     if ( entry == NULL ) {
         xlSetError(ctx, "script entry xlang_main not found");
         goto cleanup;
     }
     rc = entry(runArg);
+    if ( xlCheckScriptActiveError(ctx, s) ) {
+        goto cleanup;
+    }
     if ( rc != 0 ) {
         char text[128];
         snprintf(text, sizeof(text), "script returned %d", rc);
@@ -3044,9 +3047,6 @@ static int xlRunModuleMainUnlocked(XL_Context* ctx, XL_Module* module, xvalue su
         xlSetError(ctx, "module is empty");
         return 0;
     }
-    if ( suppliedArg == NULL ) {
-        return xlRunMainInState(ctx, module->state, 0, NULL, "script entry main not found", "script main returned");
-    }
     entry = (XL_XlangMainProc)xl__tcc.tcc_get_symbol(module->state, "xlang_main");
     if ( entry == NULL ) {
         xlSetError(ctx, "script entry xlang_main not found");
@@ -3059,6 +3059,9 @@ static int xlRunModuleMainUnlocked(XL_Context* ctx, XL_Module* module, xvalue su
     rc = entry(runArg);
     if ( runArg != NULL ) {
         xvoUnref(runArg);
+    }
+    if ( xlCheckScriptActiveError(ctx, module->state) ) {
+        return 0;
     }
     if ( rc != 0 ) {
         char text[128];
@@ -4432,6 +4435,7 @@ XL_API int xlcRun(XLC_Context* ctx, int argc, char** argv)
     XL_CwdScope cwd;
     XL6_CgenOptions cgenOptions;
     XL_Module* module;
+    xvalue arg;
     int ok;
 
     if ( ctx == NULL || ctx->runtime == NULL ) {
@@ -4444,17 +4448,17 @@ XL_API int xlcRun(XLC_Context* ctx, int argc, char** argv)
         return 0;
     }
     memset(&cgenOptions, 0, sizeof(cgenOptions));
-    cgenOptions.emitScriptEntry = 1;
+    cgenOptions.suppressMainWrapper = 1;
+    arg = xlcCreateArgArray(ctx->runtime, argc > 0 ? argc : 0, argv);
+    if ( arg == NULL ) {
+        xlLeaveWorkDir(&cwd);
+        xlApiUnlock();
+        return 0;
+    }
     module = xlcCompileUnlocked(ctx) ? xlCompileUnitToModuleWithC(ctx->runtime, &ctx->unit, &cgenOptions, &ctx->cSourceFiles) : NULL;
-    ok = module != NULL &&
-         xlRunCEntryInState(ctx->runtime,
-                            module->state,
-                            "xl_script_entry",
-                            argc,
-                            argv,
-                            "script entry xl_script_entry not found",
-                            NULL);
+    ok = module != NULL && xlRunModuleMainUnlocked(ctx->runtime, module, arg);
     xlDestroyModuleUnlocked(module);
+    xvoUnref(arg);
     xlLeaveWorkDir(&cwd);
     xlApiUnlock();
     return ok;

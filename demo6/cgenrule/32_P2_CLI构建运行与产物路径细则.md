@@ -139,7 +139,7 @@
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | `xl run main.xl` 或 `xl build main.xl -o app.exe` |
-| 生成规则描述 | 临时工作目录固定在 `release\tmp\xl6_<purpose>_<time>_<pid>_<random>_<counter>`。正常编译的主 C、生成头和 C wrapper 通过动态 VFS 交给 TCC；run 仍会生成临时 `app.exe` 以独立进程执行；`--loadlib` 仍可能生成 def 文件。build/run 成功或失败都会进入统一 cleanup 出口，默认删除列出的临时文件和工作目录；`--save-temps` 时把动态 VFS 内容导出为 `module.c`、`module.h`、`module.xapi.json`、`csrc_N.c` 并保留路径。 |
+| 生成规则描述 | build/debug/save-temps 仍可能按用途创建 `release\tmp\xl6_<purpose>_<time>_<pid>_<random>_<counter>` 工作目录。正常编译的主 C、生成头和 C wrapper 通过动态 VFS 交给 TCC；`xl run` 使用 `TCC_OUTPUT_MEMORY` 直接重定位并调用 `xlang_main(xvalue arg)`，不生成临时 `app.exe`，也不启动独立子进程执行脚本；`--loadlib` 仍可能生成 def 文件。build 成功或失败都会进入统一 cleanup 出口，默认删除列出的临时文件和工作目录；`--save-temps` 时把动态 VFS 内容导出为 `module.c`、`module.h`、`module.xapi.json`、`csrc_N.c` 并保留路径。 |
 | 生成器文件名和行号 | `demo6/src/driver/xl6_cli.c:637`、`demo6/src/driver/xl6_cli.c:671`、`demo6/src/driver/xl6_cli.c:1351` |
 | 对应生成的 C 代码 | 默认 C 输入为动态 VFS 路径 `__xlvfs__/module.c`、`__xlvfs__/csrc_N.c`；`--save-temps` 才导出真实文件。 |
 | 中间形态伪代码 | `mount dynamic VFS; compile; finally clear VFS and cleanupUnlessSaveTemps` |
@@ -151,7 +151,7 @@
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | `xl run main.xl --loadlib dep.dll` 或 import 包带 loadlibs |
-| 生成规则描述 | run 执行临时 exe 前，会把用户 `--loadlib` 和 importDeps.loadlibs 的目录收集为子进程 `PATH=dir1;dir2;<old PATH>` 环境项。该路径通过 XRT process 的 `arrEnv` 传给子进程，不经过 shell。 |
+| 生成规则描述 | run 使用内存重定位执行脚本，不再为脚本子进程注入 `PATH`。用户 `--loadlib` 和 importDeps.loadlibs 会在当前进程中由 xlc context / TCC 依赖注入路径处理；不经过 shell。 |
 | 生成器文件名和行号 | `demo6/src/driver/xl6_cli.c:692`、`demo6/src/driver/xl6_cli.c:713` |
 | 对应生成的 C 代码 | 不改变生成 C；改变运行时 DLL 搜索路径。 |
 | 中间形态伪代码 | `env = ["PATH=" + loadlibDirs + oldPath]; exec(exe, args, env)` |
@@ -386,27 +386,27 @@
 | 实现同等功能手写的 C 代码 | 手写构建要处理失败诊断和临时产物。 |
 | 额外依赖的封装代码 | TCC argv builder。 |
 
-## CGEN-CLI-033 run 编译临时 exe
+## CGEN-CLI-033 run 内存编译并直接执行
 
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | `xl run main.xl` |
-| 生成规则描述 | run 创建 `run` 工作目录用于临时 `app.exe` 和 loadlib def。加载受检单元后只生成内存 C，不生成 header/xapi；TCC 输入为动态 VFS `__xlvfs__/module.c` 加 importDeps.cSources，输出临时 app.exe。工作目录创建成功后，后续失败统一跳转到 cleanup 出口。 |
-| 生成器文件名和行号 | `demo6/src/driver/xl6_cli.c:2217`、`demo6/src/driver/xl6_cli.c:2241`、`demo6/src/driver/xl6_cli.c:2250`、`demo6/src/driver/xl6_cli.c:2262` |
-| 对应生成的 C 代码 | 动态 VFS 中的 `__xlvfs__/module.c`。 |
-| 中间形态伪代码 | `run: cgen memory -> dynamic VFS -> tcc -> temp exe` |
-| 实现同等功能手写的 C 代码 | 手写脚本运行器也常先 JIT/编译到临时程序。 |
-| 额外依赖的封装代码 | TCC argv builder、importDeps。 |
+| 生成规则描述 | run 加载受检单元后只生成内存 C，不生成 header/xapi，也不生成 C `main` wrapper；TCC 输入为动态 VFS `__xlvfs__/module.c` 加 importDeps.cSources，输出类型为 `TCC_OUTPUT_MEMORY`。重定位成功后通过 `tcc_get_symbol("xlang_main")` 取得入口，直接传入由 CLI argv 构造的 `array<var>`。 |
+| 生成器文件名和行号 | `demo6/src/driver/xl6_xlc_shell.c:760`、`demo6/src/api/xl_api.c:4410`、`demo6/src/api/xl_api.c:3256` |
+| 对应生成的 C 代码 | 动态 VFS 中的 `__xlvfs__/module.c`；内存运行时通过 cgen option 抑制 C `main` wrapper，只保留 `xlang_main(xvalue arg)`。 |
+| 中间形态伪代码 | `arg = argvToXValue(argv); emitC(noMainWrapper) -> TCC memory -> relocate -> entry = symbol("xlang_main") -> entry(arg)` |
+| 实现同等功能手写的 C 代码 | 手写脚本运行器可用 libtcc 内存编译、重定位、取符号并直接调用入口函数。 |
+| 额外依赖的封装代码 | xlc argv-to-xvalue builder、TCC memory output、runtime symbol injection、importDeps。 |
 
 ## CGEN-CLI-034 run 程序参数与进程执行
 
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | `xl run main.xl -- arg1 arg2` |
-| 生成规则描述 | run 执行临时 exe 时，将 `--` 后的程序参数逐项加入 `XL6_CliProcessArgs`，空字符串也保留为独立 argv 项；动态库搜索路径通过可选 `PATH=...` env 项注入。执行路径统一走 `xl6CliRunProcess()`，运行返回非 0 则命令失败。成功或失败后按 saveTemps 规则清理导出的 module.c、app.exe 和 loadlib def，并释放内存 C。 |
-| 生成器文件名和行号 | `demo6/src/driver/xl6_cli.c:2217`、`demo6/src/driver/xl6_cli.c:2272`、`demo6/src/driver/xl6_cli.c:2285`、`demo6/src/driver/xl6_cli.c:2291`、`demo6/src/driver/xl6_cli.c:2298` |
-| 对应生成的 C 代码 | 不改变 C；影响临时 exe 的 argv。 |
-| 中间形态伪代码 | `args = argvAfterDoubleDash; env = optionalPathEnv; exec(tempExe, args, env)` |
+| 生成规则描述 | run 将脚本文件名和 `--` 后的程序参数逐项写入 `array<var>`，空字符串也保留为独立元素；随后把该数组作为 `xlang_main(xvalue arg)` 的参数。运行返回非 0 则命令失败；成功或失败后释放 argv 数组和内存模块。 |
+| 生成器文件名和行号 | `demo6/src/driver/xl6_xlc_shell.c:760`、`demo6/src/api/xl_api.c:3256`、`demo6/src/api/xl_api.c:4410` |
+| 对应生成的 C 代码 | 不改变生成 C；影响传入 `xlang_main` 的 `arg` 数组。 |
+| 中间形态伪代码 | `arg = [scriptPath] + argvAfterDoubleDash; entry = tcc_get_symbol("xlang_main"); rc = entry(arg)` |
 | 实现同等功能手写的 C 代码 | 手写脚本运行器需要把宿主 CLI 参数传递给目标程序。 |
 | 额外依赖的封装代码 | `XL6_CliProcessArgs`、run PATH env builder、XRT process API。 |
 

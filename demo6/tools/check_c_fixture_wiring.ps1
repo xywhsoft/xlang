@@ -8,6 +8,7 @@ if ( $Root -eq "" ) {
     $Root = Split-Path -Parent $PSScriptRoot
 }
 
+$testSuiteDir = Join-Path $Root "test\suites"
 $entryWiringFiles = @(
     "test.bat",
     "test_all.bat",
@@ -31,6 +32,21 @@ function Read-Utf8Text($path)
     return [System.IO.File]::ReadAllText($path, [System.Text.Encoding]::UTF8)
 }
 
+function Get-TestSuiteWiringFiles()
+{
+    $files = New-Object System.Collections.Generic.List[string]
+
+    if ( Test-Path -LiteralPath $script:testSuiteDir -PathType Container ) {
+        $rootPath = (Resolve-Path -LiteralPath $script:Root).Path
+        $suiteFiles = @(Get-ChildItem -LiteralPath $script:testSuiteDir -File -Filter "*.bat" | Sort-Object Name)
+        foreach ( $suite in $suiteFiles ) {
+            $files.Add($suite.FullName.Substring($rootPath.Length + 1)) | Out-Null
+        }
+    }
+
+    return @($files)
+}
+
 function Test-DirectReference($text, $relative)
 {
     $slashPath = $relative.Replace("\", "/")
@@ -45,6 +61,7 @@ function Test-DirectReference($text, $relative)
     return $false
 }
 
+$entryWiringFiles += Get-TestSuiteWiringFiles
 $entryTextParts = New-Object System.Collections.Generic.List[string]
 foreach ( $relative in $entryWiringFiles ) {
     $path = Join-Path $Root $relative

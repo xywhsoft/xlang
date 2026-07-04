@@ -11,6 +11,7 @@ if ( $Root -eq "" ) {
 $toolsDir = Join-Path $Root "tools"
 $toolsReadme = Join-Path $toolsDir "README.md"
 $testBat = Join-Path $Root "test.bat"
+$testSuiteDir = Join-Path $Root "test\suites"
 $rc0Guard = Join-Path $toolsDir "rc0_guard.ps1"
 $minCheckScripts = 28
 $failures = New-Object System.Collections.Generic.List[string]
@@ -28,6 +29,21 @@ function Read-Utf8Text($path)
 function Normalize-ToolPath($path)
 {
     return $path.Replace("/", "\").ToLowerInvariant()
+}
+
+function Get-TestRegressionText()
+{
+    $parts = New-Object System.Collections.Generic.List[string]
+    $parts.Add((Read-Utf8Text $script:testBat)) | Out-Null
+
+    if ( Test-Path -LiteralPath $script:testSuiteDir -PathType Container ) {
+        $suiteFiles = @(Get-ChildItem -LiteralPath $script:testSuiteDir -File -Filter "*.bat" | Sort-Object Name)
+        foreach ( $suite in $suiteFiles ) {
+            $parts.Add((Read-Utf8Text $suite.FullName)) | Out-Null
+        }
+    }
+
+    return [string]::Join("`n", $parts)
 }
 
 if ( ! (Test-Path -LiteralPath $toolsDir -PathType Container) ) {
@@ -50,7 +66,7 @@ if ( ! (Test-Path -LiteralPath $rc0Guard -PathType Leaf) ) {
     exit 1
 }
 
-$testText = Read-Utf8Text $testBat
+$testText = Get-TestRegressionText
 $rc0Text = Read-Utf8Text $rc0Guard
 $toolsReadmeText = Read-Utf8Text $toolsReadme
 $checkScripts = @(Get-ChildItem -LiteralPath $toolsDir -Filter "check_*.ps1" -File | Sort-Object Name)
@@ -69,7 +85,7 @@ foreach ( $match in [regex]::Matches($testText, 'tools[\\/](check_[^"''\s\^<>|&]
 
     $path = Join-Path $Root $relative
     if ( ! (Test-Path -LiteralPath $path -PathType Leaf) ) {
-        Add-Failure "test.bat references missing check script: $relative"
+        Add-Failure "test regression entry references missing check script: $relative"
     }
 }
 
@@ -91,7 +107,7 @@ foreach ( $script in $checkScripts ) {
     }
 
     if ( ! $testWiredScripts.Contains($relative) ) {
-        Add-Failure "check script is not wired into test.bat: $relative"
+        Add-Failure "check script is not wired into test.bat/test suites: $relative"
     }
 
     if ( ! $rc0WiredScripts.Contains($relative) -and ! $fullRegressionOnly.Contains($relative) ) {
@@ -105,7 +121,7 @@ foreach ( $relative in $fullRegressionOnly ) {
         Add-Failure "full-regression-only check script is missing: $relative"
     }
     if ( ! $testWiredScripts.Contains($relative) ) {
-        Add-Failure "full-regression-only check script is not wired into test.bat: $relative"
+        Add-Failure "full-regression-only check script is not wired into test.bat/test suites: $relative"
     }
 }
 

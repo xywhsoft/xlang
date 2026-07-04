@@ -1354,7 +1354,7 @@ void xlClearLastError(XL_Context* ctx);
 
 运行入口：
 - xlang `func main(...) as int` 降低为 `int xlang_main(xvalue arg)`。
-- DLL 运行路径不调用 C `main`，而是编译后 `tcc_relocate()`，再通过 `tcc_get_symbol("xlang_main")` 直接调用。
+- DLL/API 和 CLI `xl run` 运行路径不调用 C `main`，也不生成临时 exe；脚本编译到 `TCC_OUTPUT_MEMORY` 后执行 `tcc_relocate()`，再通过 `tcc_get_symbol("xlang_main")` 直接调用。
 - `xlRunScriptStringArg` / `xlRunScriptFileArg` 要求宿主传入的 `arg` 是 `array` 类型的 `xvalue`。
 
 ## 18. 代码生成与工程结构

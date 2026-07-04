@@ -9,6 +9,7 @@ if ( $Root -eq "" ) {
 }
 
 $caseDir = Join-Path $Root "test\cases"
+$testSuiteDir = Join-Path $Root "test\suites"
 $minJsonFixtures = 5
 $wiringFiles = @(
     "test.bat",
@@ -28,6 +29,21 @@ function Add-Failure($message)
 function Read-Utf8Text($path)
 {
     return [System.IO.File]::ReadAllText($path, [System.Text.Encoding]::UTF8)
+}
+
+function Get-TestSuiteWiringFiles()
+{
+    $files = New-Object System.Collections.Generic.List[string]
+
+    if ( Test-Path -LiteralPath $script:testSuiteDir -PathType Container ) {
+        $rootPath = (Resolve-Path -LiteralPath $script:Root).Path
+        $suiteFiles = @(Get-ChildItem -LiteralPath $script:testSuiteDir -File -Filter "*.bat" | Sort-Object Name)
+        foreach ( $suite in $suiteFiles ) {
+            $files.Add($suite.FullName.Substring($rootPath.Length + 1)) | Out-Null
+        }
+    }
+
+    return @($files)
 }
 
 function Normalize-PathText($path)
@@ -53,6 +69,8 @@ if ( ! (Test-Path -LiteralPath $caseDir -PathType Container) ) {
     Write-Host "test cases directory missing: $caseDir"
     exit 1
 }
+
+$wiringFiles += Get-TestSuiteWiringFiles
 
 $textParts = New-Object System.Collections.Generic.List[string]
 foreach ( $relative in $wiringFiles ) {
