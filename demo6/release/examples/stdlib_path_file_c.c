@@ -21,6 +21,41 @@ static void require_line(const char* name, int ok)
     printf("%s=ok\n", name);
 }
 
+static int probe_file_stream(const char* path)
+{
+    int ok = TRUE;
+    size_t retSize = 0;
+    str first = NULL;
+    str rest = NULL;
+    xfile stream = xrtOpen((str)path, FALSE, XRT_CP_UTF8);
+
+    if ( stream == NULL ) {
+        return FALSE;
+    }
+
+    ok = ok && xrtSeek(stream, 0, XRT_SEEK_SET) == 0;
+    ok = ok && xrtWrite(stream, (str)"stream-start", 12) == 12;
+    ok = ok && xrtSeek(stream, 0, XRT_SEEK_END) == 12;
+    ok = ok && xrtSeek(stream, -6, XRT_SEEK_CUR) == 6;
+    ok = ok && xrtWrite(stream, (str)"IO", 2) == 2;
+    ok = ok && xrtSeek(stream, 0, XRT_SEEK_SET) == 0;
+
+    first = xrtRead(stream, 6, &retSize);
+    ok = ok && retSize == 6 && xrtStrComp(first, "stream", 0, FALSE) == 0;
+    ok = ok && xrtTell(stream) == 6;
+
+    rest = xrtRead(stream, xrtGetEOF(stream) - xrtTell(stream), &retSize);
+    ok = ok && retSize == 6 && xrtStrComp(rest, "IOtart", 0, FALSE) == 0;
+    ok = ok && xrtEOF(stream);
+    ok = ok && xrtSeek(stream, 6, XRT_SEEK_SET) == 6;
+    ok = ok && xrtSetEOF(stream);
+
+    xrtClose(stream);
+    xrtFree(first);
+    xrtFree(rest);
+    return ok;
+}
+
 static int scan_path_file_example(str dir, size_t dirSize, str name, size_t nameSize, str path, size_t pathSize, int isDir, ptr data, ptr param)
 {
     PathFileScanState* state = (PathFileScanState*)param;
@@ -135,6 +170,9 @@ int main(void)
     bool attrSaved = xrtFileSetAttr((str)filePath, attr);
     int64 accessTime = xrtFileGetAccessTime((str)filePath);
     int64 changeTime = xrtFileGetChangeTime((str)filePath);
+    int streamOk = probe_file_stream(filePath);
+    str streamText = xrtFileReadAll((str)filePath, XRT_CP_UTF8, NULL);
+    size_t streamSize = xrtFileGetSize((str)filePath);
     bool atomicWritten = xrtFileWriteAllAtomic((str)filePath, (str)"atomic", 0, XRT_CP_UTF8);
     bool renamed = xrtFileRename((str)filePath, (str)renamePath, FALSE);
     bool replaceSeed = xrtFileWriteAll((str)replacePath, (str)"old", 0, XRT_CP_UTF8);
@@ -160,6 +198,9 @@ int main(void)
         attrSaved &&
         xrtYear(accessTime) >= 2020 &&
         xrtYear(changeTime) >= 2020 &&
+        streamOk &&
+        xrtStrComp(streamText, "stream", 0, FALSE) == 0 &&
+        streamSize == 6 &&
         atomicWritten &&
         renamed &&
         replaceSeed &&
@@ -246,6 +287,7 @@ int main(void)
     xrtFree(randomName);
     xrtFree(firstText);
     xrtFree(fullText);
+    xrtFree(streamText);
     xrtFree(replacedText);
 
     xrtUnit();

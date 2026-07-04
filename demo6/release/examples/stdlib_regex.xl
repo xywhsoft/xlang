@@ -1,5 +1,49 @@
-string text = "item-2026-ready"
+func require(string name, bool ok)
+    assert ok, name + " failed"
+    println(name + "=ok")
+end
 
-assert regex.isMatch(text, "^item-[0-9]+-[a-z]+$"), "regex match failed"
-assert regex.find(text, "[0-9]+") == 5, "regex find failed"
-assert regex.find(text, "missing") == -1, "regex missing result failed"
+string text = "item-2026-ready"
+int flags = regex.ignoreCase + regex.multiline + regex.dotAll + regex.ungreedy
+
+require("basic",
+    flags >= 15 and
+    regex.isMatch(text, "^item-[0-9]+-[a-z]+$") and
+    regex.isMatch("ITEM-2026-READY", "^item-[0-9]+-[a-z]+$", regex.ignoreCase) and
+    regex.fullMatch(text, "^item-[0-9]+-[a-z]+$") and
+    regex.find(text, "[0-9]+") == 5 and
+    regex.find(text, "missing") == -1 and
+    regex.isMatch("aa", "a+", regex.ungreedy) and
+    regex.fullMatch("a\nb", "a.b", regex.dotAll))
+
+Regex compiled = regex.compile("[0-9]+")
+RegexMatch match = compiled.match(text)
+require("match",
+    match.ok and
+    match.byteStart == 5 and
+    match.byteEnd == 9 and
+    match.start == 5 and
+    match.end == 9 and
+    string(match.text) == "2026")
+
+RegexMatch shifted = regex.match("a1 b2", "[0-9]+", 0, 2)
+RegexMatch missing = compiled.find("missing")
+var missingText = missing.text
+require("lazy",
+    shifted.ok and
+    shifted.start == 4 and
+    string(shifted.text) == "2" and
+    not missing.ok and
+    missing.start == -1 and
+    missing.end == -1 and
+    type(missingText) == null)
+
+RegexSet set = regex.set(["[0-9]+", "ready"], regex.ignoreCase)
+array indexes = set.matches("READY 2026")
+require("set",
+    set.isMatch("READY") and
+    set.first("READY") == 1 and
+    set.first("code 2026") == 0 and
+    indexes.length == 2 and
+    (int(indexes[0]) == 0 or int(indexes[1]) == 0) and
+    (int(indexes[0]) == 1 or int(indexes[1]) == 1))

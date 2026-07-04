@@ -28,6 +28,10 @@ int xl6CgenEmitCEx(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags, cons
     int hasPathRuntime;
     int hasHttpServerRuntime;
     int hasBufferRuntime;
+    int hasEncodingRuntime;
+    int hasLogRuntime;
+    int hasTemplateRuntime;
+    int hasFileRuntime;
     int hasAsyncFileRuntime;
     int hasTaskSpawn;
     int needsObjectClass;
@@ -75,12 +79,19 @@ int xl6CgenEmitCEx(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags, cons
     hasPathRuntime = xl6CgenNodeNeedsPathRuntime(root);
     hasHttpServerRuntime = xl6CgenNodeNeedsHttpServerRuntime(root);
     hasBufferRuntime = xl6CgenNodeNeedsBufferRuntime(root);
+    hasEncodingRuntime = xl6CgenNodeNeedsEncodingRuntime(root);
+    hasLogRuntime = xl6CgenNodeNeedsLogRuntime(root);
+    hasTemplateRuntime = xl6CgenNodeNeedsTemplateRuntime(root);
+    hasFileRuntime = xl6CgenNodeNeedsFileRuntime(root);
     hasAsyncFileRuntime = xl6CgenNodeNeedsAsyncFileRuntime(root);
     if ( hasAsyncFileRuntime ) {
         hasAsyncRuntime = 1;
         hasErrorRuntime = 1;
     }
     if ( hasStdStringRuntime || hasDirRuntime ) {
+        hasXValueRuntime = 1;
+    }
+    if ( hasTemplateRuntime ) {
         hasXValueRuntime = 1;
     }
     if ( needsObjectClass ) {
@@ -144,6 +155,9 @@ int xl6CgenEmitCEx(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags, cons
     if ( hasAsyncFileRuntime ) {
         xl6CgenEmitAsyncFileRuntime(out);
     }
+    if ( hasFileRuntime ) {
+        xl6CgenEmitFileRuntime(out);
+    }
     if ( hasXValueRuntime ) {
         xl6CgenEmitXValueRuntime(&ctx);
         xl6CgenEmitRuntimeTypeDescs(&ctx);
@@ -186,6 +200,15 @@ int xl6CgenEmitCEx(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags, cons
     }
     if ( hasBufferRuntime ) {
         xl6CgenEmitBufferRuntime(out);
+    }
+    if ( hasEncodingRuntime ) {
+        xl6CgenEmitEncodingRuntime(out);
+    }
+    if ( hasLogRuntime ) {
+        xl6CgenEmitLogRuntime(out);
+    }
+    if ( hasTemplateRuntime ) {
+        xl6CgenEmitTemplateRuntime(out);
     }
     if ( xl6CgenNodeNeedsIntPow(root) ) {
         xl6CgenEmitIntPowHelper(out);

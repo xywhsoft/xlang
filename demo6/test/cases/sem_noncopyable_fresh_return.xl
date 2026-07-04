@@ -1,0 +1,13 @@
+class Resource
+    destroy()
+    end
+end
+
+func make() as Resource
+    return Resource()
+end
+
+func main(...) as int
+    Resource value = make()
+    return 0
+end

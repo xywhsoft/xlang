@@ -1,7 +1,7 @@
 /*
 
     XRT Single Header File
-    Generated: 2026-07-04 02:54:50
+    Generated: 2026-07-04 18:16:29
 
     MIT License
 
@@ -107,6 +107,7 @@
 	#include <io.h>
 	#include <direct.h>
 	#include <process.h>
+	#include <share.h>
 	#include <BaseTsd.h>
 	#ifndef XRT_MSC_RUNTIME_COMPAT_DEFINED
 		#define XRT_MSC_RUNTIME_COMPAT_DEFINED
@@ -176,6 +177,9 @@
 	#endif
 #else
 	#include <unistd.h>
+	#if defined(_WIN32) || defined(_WIN64)
+		#include <share.h>
+	#endif
 	#if !defined(_WIN32) && !defined(_WIN64)
 		#include <utime.h>
 	#endif
@@ -1747,7 +1751,25 @@
 		uint64 iStderrBaseOffset;
 		bool bStdoutTruncated;
 		bool bStderrTruncated;
+		uint64 iDurationMs;
 	} xprocessresult;
+	typedef struct {
+		xprocessresult* arrResults;
+		uint32 iResultCount;
+		uint32 iCompletedCount;
+		int iExitCode;
+		int iFailedIndex;
+		ptr pStdout;
+		size_t iStdoutSize;
+		ptr pStderr;
+		size_t iStderrSize;
+		bool bSuccess;
+		bool bTimedOut;
+		bool bCancelled;
+		bool bStdoutTruncated;
+		bool bStderrTruncated;
+		uint64 iDurationMs;
+	} xprocesspipelineresult;
 	// 初始化进程配置
 	XXAPI void xrtProcessConfigInit(xprocessconfig* pConfig);
 	// 启动进程
@@ -1798,6 +1820,11 @@
 	XXAPI bool xrtExecCapture(const xprocessconfig* pConfig, xprocessresult* pResult, uint32 iTimeoutMs);
 	// 释放进程结果
 	XXAPI void xrtProcessResultUnit(xprocessresult* pResult);
+	XXAPI bool xrtProcessResultCopy(const xprocessresult* pSrc, xprocessresult* pDst);
+	XXAPI bool xrtProcessResultSuccess(const xprocessresult* pResult);
+	XXAPI bool xrtProcessRun(const xprocessconfig* pConfig, const void* pInput, size_t iInputSize, xprocessresult* pResult, uint32 iTimeoutMs);
+	XXAPI bool xrtProcessPipelineRun(const xprocessconfig* arrConfigs, uint32 iConfigCount, xprocesspipelineresult* pResult, uint32 iTimeoutMs);
+	XXAPI void xrtProcessPipelineResultUnit(xprocesspipelineresult* pResult);
 #endif
 	
 	
@@ -1981,12 +2008,16 @@
 	
 	// HEX 编码（ 需使用 xrtFree 释放 ）
 	XXAPI str xrtHexEncode(ptr pMem, size_t iSize);
+	// HEX 编码原始字节（ 需使用 xrtFree 释放 ）
+	XXAPI str xrtHexEncodeBytes(ptr pMem, size_t iSize);
 	
 	// HEX 解码（ 需使用 xrtFree 释放 ）
 	XXAPI ptr xrtHexDecode(str pText, size_t iSize);
 	
 	// Base64 编码（ 需使用 xrtFree 释放 ）
 	XXAPI str xrtBase64Encode(ptr pMem, size_t iSize, str sTable);
+	// Base64 编码原始字节（ 需使用 xrtFree 释放 ）
+	XXAPI str xrtBase64EncodeBytes(ptr pMem, size_t iSize, str sTable);
 	
 	// Base64 解码（ 需使用 xrtFree 释放 ）
 	XXAPI ptr xrtBase64Decode(str sText, size_t iSize, str sTable);
@@ -3428,12 +3459,14 @@
 		
 		// 前向声明
 		typedef struct xrt_regex xregex;
+		typedef struct xrt_regex_match xregexmatch;
 		typedef struct xrt_regex_builder xregexbuilder;
 		typedef struct xrt_regex_set xregexset;
 		typedef struct xrt_regex_set_builder xregexsetbuilder;
 		
 		// 单模式
 		XXAPI xregex* xrtRegexCreate(const char* sPatternNt);
+		XXAPI xregex* xrtRegexCreateEx(const char* sPattern, size_t iPatternSize, xregexflags iFlags);
 		// 根据 Builder 创建正则对象
 		XXAPI int xrtRegexCreateFromBuilder(xregex** ppRegex, const xregexbuilder* pBuilder, const xregexalloc* pAlloc);
 		// 销毁正则
@@ -3462,6 +3495,17 @@
 		XXAPI uint32 xrtRegexCaptureCount(const xregex* pRegex);
 		// 获取正则 capture 名称
 		XXAPI const char* xrtRegexCaptureName(const xregex* pRegex, uint32 iCaptureIndex, size_t* pOutNameSize);
+		XXAPI int xrtRegexFullMatch(xregex* pRegex, const char* sText, size_t iTextSize);
+		XXAPI xregexmatch* xrtRegexFindMatch(xregex* pRegex, const char* sText, size_t iTextSize);
+		XXAPI xregexmatch* xrtRegexFindMatchAt(xregex* pRegex, const char* sText, size_t iTextSize, size_t iPos);
+		XXAPI void xrtRegexMatchDestroy(xregexmatch* pMatch);
+		XXAPI int xrtRegexMatchOk(const xregexmatch* pMatch);
+		XXAPI int64 xrtRegexMatchByteStart(const xregexmatch* pMatch);
+		XXAPI int64 xrtRegexMatchByteEnd(const xregexmatch* pMatch);
+		XXAPI int64 xrtRegexMatchStart(xregexmatch* pMatch);
+		XXAPI int64 xrtRegexMatchEnd(xregexmatch* pMatch);
+		XXAPI const char* xrtRegexMatchText(xregexmatch* pMatch);
+		XXAPI str xrtRegexMatchTextCopy(xregexmatch* pMatch);
 		
 		// Builder
 		XXAPI int xrtRegexBuilderCreate(xregexbuilder** ppBuilder, const char* sPattern, size_t iPatternSize, const xregexalloc* pAlloc);
@@ -3481,6 +3525,8 @@
 		XXAPI int xrtRegexSetBuilderAdd(xregexsetbuilder* pBuilder, const xregex* pRegex);
 		// 直接根据模式列表创建正则集合
 		XXAPI xregexset* xrtRegexSetCreate(const char* const* arrPatternsNt, size_t iPatternCount);
+		// 直接根据模式列表和标志创建正则集合
+		XXAPI xregexset* xrtRegexSetCreateEx(const char* const* arrPatternsNt, size_t iPatternCount, xregexflags iFlags);
 		// 根据 Builder 创建正则集合
 		XXAPI int xrtRegexSetCreateFromBuilder(xregexset** ppSet, const xregexsetbuilder* pBuilder, const xregexalloc* pAlloc);
 		// 销毁正则集合
@@ -3495,6 +3541,10 @@
 		XXAPI int xrtRegexSetMatches(xregexset* pSet, const char* sText, size_t iTextSize, uint32* pOutIndexes, uint32 iMaxIndexes, uint32* pOutIndexCount);
 		// 从指定位置判断文本是否命中任意正则集合项
 		XXAPI int xrtRegexSetIsMatchAt(xregexset* pSet, const char* sText, size_t iTextSize, size_t iPos);
+		// 获取第一个命中的正则集合项索引，未命中返回 -1
+		XXAPI int xrtRegexSetFirst(xregexset* pSet, const char* sText, size_t iTextSize);
+		// 从指定位置获取第一个命中的正则集合项索引，未命中返回 -1
+		XXAPI int xrtRegexSetFirstAt(xregexset* pSet, const char* sText, size_t iTextSize, size_t iPos);
 		// 从指定位置获取命中的正则集合项索引
 		XXAPI int xrtRegexSetMatchesAt(xregexset* pSet, const char* sText, size_t iTextSize, size_t iPos, uint32* pOutIndexes, uint32 iMaxIndexes, uint32* pOutIndexCount);
 		// 克隆正则集合
@@ -4563,6 +4613,10 @@
 		XXAPI bool xrtHttpQuotedStringBuildTo(const char* sText, char* sOut, size_t iOutCap, size_t* pOutLen);
 		// 执行百分号编码并写入输出缓冲区
 		XXAPI bool xrtPercentEncodeTo(const char* sText, size_t iLen, char* sOut, size_t iOutCap, size_t* pOutLen, bool bSpaceAsPlus);
+		// 执行百分号编码（需使用 xrtFree 释放）
+		XXAPI str xrtPercentEncode(const char* sText, size_t iLen, bool bSpaceAsPlus, size_t* pOutLen);
+		// 执行百分号解码（需使用 xrtFree 释放）
+		XXAPI str xrtPercentDecode(const char* sText, size_t iLen, bool bPlusAsSpace, size_t* pOutLen);
 		// 解码 HTTP 扩展值
 		XXAPI bool xrtHttpDecodeExtValueTo(const char* sText, size_t iLen, xrtstrview* pCharset, xrtstrview* pLanguage, char* sOut, size_t iOutCap, size_t* pOutLen);
 		// 解码 HTTP 扩展值
@@ -4743,6 +4797,10 @@
 		XXAPI bool xrtFormUrlEncodedParseTo(const char* sText, xrtquerypair* pOut, size_t iCap, size_t* pCount);
 		// 解码表单 URL 编码
 		XXAPI bool xrtFormUrlEncodedDecodeTo(const char* sText, size_t iLen, char* sOut, size_t iOutCap, size_t* pOutLen);
+		// 表单 URL 编码（需使用 xrtFree 释放）
+		XXAPI str xrtFormUrlEncode(const char* sText, size_t iLen, size_t* pOutLen);
+		// 表单 URL 解码（需使用 xrtFree 释放）
+		XXAPI str xrtFormUrlDecode(const char* sText, size_t iLen, size_t* pOutLen);
 		// 追加表单 URL 编码 field
 		XXAPI bool xrtFormUrlEncodedAppendFieldTo(char* sOut, size_t iOutCap, size_t* pOffset, const char* sName, size_t iNameLen, const char* sValue, size_t iValueLen, bool bHasValue);
 		// 追加表单 URL 编码 field
@@ -5515,14 +5573,22 @@
 		XXAPI bool xrtWebServerAny(xwebserver* pServer, const char* sPattern, xwebhandler pHandler, ptr pUserData);
 		XXAPI bool xrtWebServerStatic(xwebserver* pServer, const char* sMount, const char* sRoot, const xwebstaticconfig* pCfg);
 		XXAPI const char* xrtWebRequestMethod(const xwebrequest* pReq);
+		XXAPI str xrtWebRequestMethodCopy(const xwebrequest* pReq);
 		XXAPI uint32 xrtWebRequestMethodId(const xwebrequest* pReq);
 		XXAPI const char* xrtWebRequestPath(const xwebrequest* pReq);
+		XXAPI str xrtWebRequestPathCopy(const xwebrequest* pReq);
 		XXAPI const char* xrtWebRequestQuery(const xwebrequest* pReq);
+		XXAPI str xrtWebRequestQueryCopy(const xwebrequest* pReq);
 		XXAPI const char* xrtWebRequestHeader(const xwebrequest* pReq, const char* sName);
+		XXAPI str xrtWebRequestHeaderCopy(const xwebrequest* pReq, const char* sName);
 		XXAPI const void* xrtWebRequestBody(const xwebrequest* pReq, size_t* pLen);
+		XXAPI str xrtWebRequestBodyTextCopy(const xwebrequest* pReq);
 		XXAPI bool xrtWebRequestParam(const xwebrequest* pReq, const char* sName, char* sOut, size_t iOutCap, size_t* pOutLen);
+		XXAPI str xrtWebRequestParamCopy(const xwebrequest* pReq, const char* sName);
 		XXAPI bool xrtWebRequestQueryValue(const xwebrequest* pReq, const char* sName, char* sOut, size_t iOutCap, size_t* pOutLen);
+		XXAPI str xrtWebRequestQueryValueCopy(const xwebrequest* pReq, const char* sName);
 		XXAPI bool xrtWebRequestCookie(const xwebrequest* pReq, const char* sName, char* sOut, size_t iOutCap, size_t* pOutLen);
+		XXAPI str xrtWebRequestCookieCopy(const xwebrequest* pReq, const char* sName);
 		XXAPI void xrtWebResponseStatus(xwebresponse* pResp, uint32 iStatusCode, const char* sReason);
 		XXAPI bool xrtWebResponseSetHeader(xwebresponse* pResp, const char* sName, const char* sValue);
 		XXAPI bool xrtWebResponseAddHeader(xwebresponse* pResp, const char* sName, const char* sValue);
@@ -5633,6 +5699,12 @@
 	
 	// 创建内存缓冲区管理器
 	XXAPI xbuffer xrtBufferCreate(uint32 iStep);
+	// 通过原始内存创建 Buffer
+	XXAPI xbuffer xrtBufferFrom(ptr pData, size_t iSize);
+	// 将 HEX 文本解码为 Buffer
+	XXAPI xbuffer xrtBufferFromHex(str sText, size_t iSize);
+	// 将 Base64 文本解码为 Buffer
+	XXAPI xbuffer xrtBufferFromBase64(str sText, size_t iSize, str sTable);
 	
 	// 销毁内存缓冲区管理器
 	XXAPI void xrtBufferDestroy(xbuffer pBuf);
@@ -7816,6 +7888,8 @@
 	
 	// 解析 JSON
 	XXAPI xvalue xrtParseJSON(str sText, size_t iSize);
+	// 验证 JSON
+	XXAPI bool xrtJsonValid(str sText, size_t iSize);
 	// 解析 JSON 文件
 	XXAPI xvalue xrtParseJSON_File(str sFile);
 	
@@ -7844,6 +7918,8 @@
 	XXAPI xvalue xrtParseXSON(str sText, size_t iSize);
 	// 解析 XSON 扩展
 	XXAPI xvalue xrtParseXSONEx(str sText, size_t iSize, uint32 iFlags);
+	// 验证 XSON 扩展
+	XXAPI bool xrtXsonValid(str sText, size_t iSize, uint32 iFlags);
 	// 解析 XSON 文件
 	XXAPI xvalue xrtParseXSON_File(str sFile);
 	// 解析 XSON 文件扩展
@@ -8302,6 +8378,9 @@
 		#define xrtFSMemPoolUnit(objMM) xrtFSMemPoolUnitDbg((objMM), __FILE__, __LINE__)
 	#endif
 #endif
+// ========================================
+// Implementation
+// ========================================
 
 // ========================================
 // Implementation
@@ -12507,6 +12586,11 @@ XXAPI str xrtHexEncode(ptr pMem, size_t iSize)
 	return sRet;
 }
 // xrtHexDecode 相关处理
+// xrtHexEncodeBytes 相关处理
+XXAPI str xrtHexEncodeBytes(ptr pMem, size_t iSize)
+{
+	return xrtHexEncode(pMem, iSize);
+}
 XXAPI ptr xrtHexDecode(str sText, size_t iSize)
 {
 	// 参数检查
@@ -12570,6 +12654,11 @@ XXAPI str xrtBase64Encode(ptr pMem, size_t iSize, str sTable)
 	return sRet;
 }
 // Base64 解码（ 需使用 xrtFree 释放 ）
+// xrtBase64EncodeBytes 相关处理
+XXAPI str xrtBase64EncodeBytes(ptr pMem, size_t iSize, str sTable)
+{
+	return xrtBase64Encode(pMem, iSize, sTable);
+}
 static const str sErrorBase64_mul4 = (str)"Base64 input length must be multiple of 4 !";
 static const str sErrorBase64_char = (str)"Base64 input contains invalid characters !";
 // xrtBase64Decode 相关处理
@@ -17845,7 +17934,15 @@ XXAPI xfile xrtOpen(str sPath, int bReadOnly, int iCharset)
 	#if defined(_WIN32) || defined(_WIN64)
 		// windows 方案
 		u16str sPathW = xrtUTF8to16(sPath, 0, NULL);
-		HANDLE hFile = CreateFileW(sPathW, bReadOnly ? GENERIC_READ : GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ, NULL, bReadOnly ? OPEN_EXISTING : OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+		HANDLE hFile = CreateFileW(
+			sPathW,
+			bReadOnly ? GENERIC_READ : GENERIC_READ | GENERIC_WRITE,
+			FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+			NULL,
+			bReadOnly ? OPEN_EXISTING : OPEN_ALWAYS,
+			FILE_ATTRIBUTE_NORMAL,
+			NULL
+		);
 		DWORD iOpenError = hFile == INVALID_HANDLE_VALUE ? GetLastError() : 0;
 		xrtFree(sPathW);
 		if ( hFile == INVALID_HANDLE_VALUE ) {
@@ -18646,7 +18743,7 @@ XXAPI int xrtFilePutAll(str sPath, ptr pBuff, size_t iSize)
 		if ( iSize == 0 ) { return 0; }
 		// 打开文件（ 读写模式，不存在则创建 ）
 		u16str sPathW = xrtUTF8to16(sPath, 0, NULL);
-		HANDLE hFile = CreateFileW(sPathW, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+		HANDLE hFile = CreateFileW(sPathW, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 		xrtFree(sPathW);
 		if ( hFile == INVALID_HANDLE_VALUE ) {
 			xrtSetError(sErrorFile_Open, FALSE);
@@ -18697,7 +18794,7 @@ XXAPI ptr xrtFileGetAll(str sPath, size_t* iRetSize)
 		// windows 方案
 		// 以只读方式打开文件
 		u16str sPathW = xrtUTF8to16(sPath, 0, NULL);
-		HANDLE hFile = CreateFileW(sPathW, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+		HANDLE hFile = CreateFileW(sPathW, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 		xrtFree(sPathW);
 		if ( hFile == INVALID_HANDLE_VALUE ) {
 			xrtSetError(sErrorFile_Open, FALSE);
@@ -18870,7 +18967,7 @@ XXAPI size_t xrtFileGetSize(str sPath)
 	#if defined(_WIN32) || defined(_WIN64)
 		// windows 方案
 		u16str sPathW = xrtUTF8to16(sPath, 0, NULL);
-		HANDLE hFile = CreateFileW(sPathW, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+		HANDLE hFile = CreateFileW(sPathW, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 		xrtFree(sPathW);
 		if ( hFile == INVALID_HANDLE_VALUE ) {
 			xrtSetError(sErrorFile_Open, FALSE);
@@ -18898,7 +18995,7 @@ XXAPI bool xrtFileSetSize(str sPath, size_t iSize)
 		// windows 方案
 		// 以写模式打开文件（ 不存在则创建 ）
 		u16str sPathW = xrtUTF8to16(sPath, 0, NULL);
-		HANDLE hFile = CreateFileW(sPathW, GENERIC_WRITE, FILE_SHARE_READ, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+		HANDLE hFile = CreateFileW(sPathW, GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 		xrtFree(sPathW);
 		if ( hFile == INVALID_HANDLE_VALUE ) {
 			xrtSetError(sErrorFile_Open, FALSE);
@@ -22677,7 +22774,68 @@ static bool __xlogOwnStr(str sText)
 {
 	return sText && sText != xCore.sNull;
 }
+// 内部函数：追加打开日志文件，Windows 下保持 UTF-8 路径语义
+static FILE* __xlogOpenAppendFile(str sPath)
+{
+	if ( !sPath || sPath == xCore.sNull ) {
+		return NULL;
+	}
+	#if defined(_WIN32) || defined(_WIN64)
+		u16str sPathW = xrtUTF8to16((u8str)sPath, 0, NULL);
+		FILE* pFile = NULL;
+		if ( !sPathW ) {
+			return NULL;
+		}
+		pFile = _wfsopen((const wchar_t*)sPathW, L"ab", _SH_DENYNO);
+		xrtFree(sPathW);
+		return pFile;
+	#else
+		return fopen((const char*)sPath, "ab");
+	#endif
+}
 // 内部函数：格式化当前本地时间
+// 内部函数：删除日志文件，避免 logger 在 XRT_NO_FILE 裁剪时依赖 file 模块
+static bool __xlogDeleteFile(str sPath)
+{
+	if ( !sPath || sPath == xCore.sNull ) {
+		return FALSE;
+	}
+	#if defined(_WIN32) || defined(_WIN64)
+		u16str sPathW = xrtUTF8to16((u8str)sPath, 0, NULL);
+		int iRet;
+		if ( !sPathW ) {
+			return FALSE;
+		}
+		iRet = _wremove((const wchar_t*)sPathW);
+		xrtFree(sPathW);
+		return iRet == 0;
+	#else
+		return remove((const char*)sPath) == 0;
+	#endif
+}
+// 内部函数：重命名日志文件，避免 logger 在 XRT_NO_FILE 裁剪时依赖 file 模块
+static bool __xlogRenameFile(str sSrc, str sDst)
+{
+	if ( !sSrc || sSrc == xCore.sNull || !sDst || sDst == xCore.sNull ) {
+		return FALSE;
+	}
+	#if defined(_WIN32) || defined(_WIN64)
+		u16str sSrcW = xrtUTF8to16((u8str)sSrc, 0, NULL);
+		u16str sDstW = xrtUTF8to16((u8str)sDst, 0, NULL);
+		int iRet;
+		if ( !sSrcW || !sDstW ) {
+			xrtFree(sSrcW);
+			xrtFree(sDstW);
+			return FALSE;
+		}
+		iRet = _wrename((const wchar_t*)sSrcW, (const wchar_t*)sDstW);
+		xrtFree(sSrcW);
+		xrtFree(sDstW);
+		return iRet == 0;
+	#else
+		return rename((const char*)sSrc, (const char*)sDst) == 0;
+	#endif
+}
 static void __xlogFormatNow(char* sBuff, size_t iSize)
 {
 	time_t tRaw;
@@ -22804,15 +22962,15 @@ static bool __xlogRotateFile(xlogappender* pAppender)
 	}
 	sDst = __xlogMakeBackupPath(pAppender->sPath, pAppender->iMaxBackup);
 	if ( __xlogOwnStr(sDst) ) {
-		remove((const char*)sDst);
+		__xlogDeleteFile(sDst);
 		xrtFree(sDst);
 	}
 	for ( uint32 i = pAppender->iMaxBackup; i > 1; i-- ) {
 		sSrc = __xlogMakeBackupPath(pAppender->sPath, i - 1);
 		sDst = __xlogMakeBackupPath(pAppender->sPath, i);
 		if ( __xlogOwnStr(sSrc) && __xlogOwnStr(sDst) ) {
-			remove((const char*)sDst);
-			rename((const char*)sSrc, (const char*)sDst);
+			__xlogDeleteFile(sDst);
+			__xlogRenameFile(sSrc, sDst);
 		}
 		if ( __xlogOwnStr(sSrc) ) {
 			xrtFree(sSrc);
@@ -22823,11 +22981,11 @@ static bool __xlogRotateFile(xlogappender* pAppender)
 	}
 	sDst = __xlogMakeBackupPath(pAppender->sPath, 1);
 	if ( __xlogOwnStr(sDst) ) {
-		remove((const char*)sDst);
-		rename((const char*)pAppender->sPath, (const char*)sDst);
+		__xlogDeleteFile(sDst);
+		__xlogRenameFile(pAppender->sPath, sDst);
 		xrtFree(sDst);
 	}
-	pAppender->pFile = fopen((const char*)pAppender->sPath, "ab");
+	pAppender->pFile = __xlogOpenAppendFile(pAppender->sPath);
 	if ( !pAppender->pFile ) {
 		xrtSetError("logger reopen rolling file failed.", FALSE);
 		return FALSE;
@@ -23021,7 +23179,7 @@ XXAPI xlogappender* xlogAddFile(xlogger* pLogger, str sPath, xloglevel iMinLevel
 		return NULL;
 	}
 	pAppender->sPath = xrtCopyStr(sPath, 0);
-	pAppender->pFile = fopen((const char*)sPath, "ab");
+	pAppender->pFile = __xlogOpenAppendFile(sPath);
 	pAppender->bOwnFile = TRUE;
 	if ( !pAppender->pFile ) {
 		__xlogAppenderDestroy(pAppender);
@@ -28922,6 +29080,40 @@ XXAPI bool xrtPercentEncodeTo(const char* sText, size_t iLen, char* sOut, size_t
 // 算法说明 - 解析 RFC 5987 扩展值格式 "charset'language'encoded-value"
 //   通过两个单引号 ''' 将字符串分为 charset、language、percent-encoded-value 三部分
 //   charset 必须为合法 Token 字符, encoded-value 由百分号编码组成
+// URL 百分号编码（返回值需使用 xrtFree 释放）
+XXAPI str xrtPercentEncode(const char* sText, size_t iLen, bool bSpaceAsPlus, size_t* pOutLen)
+{
+	size_t iCap;
+	size_t iOutLen = 0u;
+	str sOut;
+	if ( pOutLen ) { *pOutLen = 0u; }
+	if ( sText == NULL ) { return NULL; }
+	iCap = iLen * 3u + 1u;
+	sOut = (str)xrtMalloc(iCap);
+	if ( sOut == NULL ) { return NULL; }
+	if ( !xrtPercentEncodeTo(sText, iLen, (char*)sOut, iCap, &iOutLen, bSpaceAsPlus) ) {
+		xrtFree(sOut);
+		return NULL;
+	}
+	if ( pOutLen ) { *pOutLen = iOutLen; }
+	return sOut;
+}
+// URL 百分号解码（返回值需使用 xrtFree 释放）
+XXAPI str xrtPercentDecode(const char* sText, size_t iLen, bool bPlusAsSpace, size_t* pOutLen)
+{
+	size_t iOutLen = 0u;
+	str sOut;
+	if ( pOutLen ) { *pOutLen = 0u; }
+	if ( sText == NULL ) { return NULL; }
+	sOut = (str)xrtMalloc(iLen + 1u);
+	if ( sOut == NULL ) { return NULL; }
+	if ( !xrtPercentDecodeTo(sText, iLen, (char*)sOut, iLen + 1u, &iOutLen, bPlusAsSpace) ) {
+		xrtFree(sOut);
+		return NULL;
+	}
+	if ( pOutLen ) { *pOutLen = iOutLen; }
+	return sOut;
+}
 static bool __xrtHttpUtilParseExtValueView(xrtstrview tRaw, xrtstrview* pCharset, xrtstrview* pLanguage, xrtstrview* pEncoded)
 {
 	size_t iFirstTick = (size_t)-1;
@@ -30280,6 +30472,16 @@ XXAPI bool xrtFormUrlEncodedAppendFieldTo(char* sOut, size_t iOutCap, size_t* pO
 	return xrtQueryAppendPairTo(sOut, iOutCap, pOffset, sName, iNameLen, sValue, iValueLen, bHasValue, true);
 }
 // 追加表单 URL 编码 field
+// 表单 URL 编码（返回值需使用 xrtFree 释放）
+XXAPI str xrtFormUrlEncode(const char* sText, size_t iLen, size_t* pOutLen)
+{
+	return xrtPercentEncode(sText, iLen, true, pOutLen);
+}
+// 表单 URL 解码（返回值需使用 xrtFree 释放）
+XXAPI str xrtFormUrlDecode(const char* sText, size_t iLen, size_t* pOutLen)
+{
+	return xrtPercentDecode(sText, iLen, true, pOutLen);
+}
 XXAPI bool xrtFormUrlEncodedAppendField(char* sOut, size_t iOutCap, size_t* pOffset, const char* sName, const char* sValue)
 {
 	if ( sName == NULL ) { return false; }
@@ -57376,7 +57578,7 @@ static int32 __xnetAsyncString(xfuture_result* pOut, char* sText)
 		if ( sText ) { xrtFree(sText); }
 		return __xnetAsyncError(pOut, "out of memory while completing network async task");
 	}
-	*pValue = sText ? sText : xrtCopyStr("", 0);
+	*pValue = sText ? sText : (char*)xrtCopyStr((str)"", 0);
 	memset(pOut, 0, sizeof(*pOut));
 	pOut->iStatus = XRT_NET_OK;
 	pOut->pValue = pValue;
@@ -65156,6 +65358,11 @@ XXAPI const char* xrtWebRequestMethod(const xwebrequest* pReq)
 {
 	return (pReq && pReq->pRaw) ? pReq->pRaw->sMethod : "";
 }
+// 复制请求方法（返回值需要使用 xrtFree 释放）
+XXAPI str xrtWebRequestMethodCopy(const xwebrequest* pReq)
+{
+	return xrtCopyStr((str)xrtWebRequestMethod(pReq), 0);
+}
 // 获取请求方法 ID
 XXAPI uint32 xrtWebRequestMethodId(const xwebrequest* pReq)
 {
@@ -65166,21 +65373,43 @@ XXAPI const char* xrtWebRequestPath(const xwebrequest* pReq)
 {
 	return (pReq && pReq->pRaw) ? pReq->pRaw->sPath : "";
 }
+// 复制请求路径（返回值需要使用 xrtFree 释放）
+XXAPI str xrtWebRequestPathCopy(const xwebrequest* pReq)
+{
+	return xrtCopyStr((str)xrtWebRequestPath(pReq), 0);
+}
 // 获取请求 query
 XXAPI const char* xrtWebRequestQuery(const xwebrequest* pReq)
 {
 	return (pReq && pReq->pRaw) ? pReq->pRaw->sQuery : "";
+}
+// 复制请求 query（返回值需要使用 xrtFree 释放）
+XXAPI str xrtWebRequestQueryCopy(const xwebrequest* pReq)
+{
+	return xrtCopyStr((str)xrtWebRequestQuery(pReq), 0);
 }
 // 获取请求头
 XXAPI const char* xrtWebRequestHeader(const xwebrequest* pReq, const char* sName)
 {
 	return (pReq && pReq->pRaw) ? xrtHttpdRequestHeader(pReq->pRaw, sName) : NULL;
 }
+// 复制请求头（返回值需要使用 xrtFree 释放）
+XXAPI str xrtWebRequestHeaderCopy(const xwebrequest* pReq, const char* sName)
+{
+	return xrtCopyStr((str)xrtWebRequestHeader(pReq, sName), 0);
+}
 // 获取请求体
 XXAPI const void* xrtWebRequestBody(const xwebrequest* pReq, size_t* pLen)
 {
 	if ( pLen ) { *pLen = (pReq && pReq->pRaw) ? pReq->pRaw->iBodyLen : 0u; }
 	return (pReq && pReq->pRaw) ? pReq->pRaw->pBody : NULL;
+}
+// 将请求体作为文本复制（返回值需要使用 xrtFree 释放）
+XXAPI str xrtWebRequestBodyTextCopy(const xwebrequest* pReq)
+{
+	size_t iLen = 0u;
+	const void* pBody = xrtWebRequestBody(pReq, &iLen);
+	return xrtCopyStr((str)pBody, iLen);
 }
 // 获取路由变量
 XXAPI bool xrtWebRequestParam(const xwebrequest* pReq, const char* sName, char* sOut, size_t iOutCap, size_t* pOutLen)
@@ -65199,11 +65428,43 @@ XXAPI bool xrtWebRequestParam(const xwebrequest* pReq, const char* sName, char* 
 	}
 	return false;
 }
+// 复制路由变量（返回值需要使用 xrtFree 释放）
+XXAPI str xrtWebRequestParamCopy(const xwebrequest* pReq, const char* sName)
+{
+	if ( !pReq || !sName ) { return xCore.sNull; }
+	for ( size_t i = 0u; i < pReq->iParamCount; ++i ) {
+		if ( __xwebStrEq(pReq->arrParams[i].sName, sName) ) {
+			return xrtCopyStr((str)pReq->arrParams[i].sValue, pReq->arrParams[i].iLen);
+		}
+	}
+	return xCore.sNull;
+}
 // 获取并解码 query 值
 XXAPI bool xrtWebRequestQueryValue(const xwebrequest* pReq, const char* sName, char* sOut, size_t iOutCap, size_t* pOutLen)
 {
 	if ( !pReq || !pReq->pRaw || !sName ) { return false; }
 	return xrtQueryFindValueTo(pReq->pRaw->sQuery, sName, sOut, iOutCap, pOutLen);
+}
+// 复制并解码 query 值（返回值需要使用 xrtFree 释放）
+XXAPI str xrtWebRequestQueryValueCopy(const xwebrequest* pReq, const char* sName)
+{
+	char* sOut;
+	size_t iCap;
+	size_t iLen = 0u;
+	if ( !pReq || !pReq->pRaw || !sName ) { return xCore.sNull; }
+	iCap = strlen(__xrt_cstr(pReq->pRaw->sQuery)) + 1u;
+	if ( iCap == 0u ) { return xCore.sNull; }
+	sOut = xrtMalloc(iCap);
+	if ( !sOut ) { return xCore.sNull; }
+	if ( !xrtQueryFindValueTo(pReq->pRaw->sQuery, sName, sOut, iCap, &iLen) ) {
+		xrtFree(sOut);
+		return xCore.sNull;
+	}
+	if ( iLen == 0u ) {
+		xrtFree(sOut);
+		return xCore.sNull;
+	}
+	return (str)sOut;
 }
 // 获取 cookie 值
 XXAPI bool xrtWebRequestCookie(const xwebrequest* pReq, const char* sName, char* sOut, size_t iOutCap, size_t* pOutLen)
@@ -65219,6 +65480,16 @@ XXAPI bool xrtWebRequestCookie(const xwebrequest* pReq, const char* sName, char*
 	sOut[tCookie.tValue.iLen] = '\0';
 	if ( pOutLen ) { *pOutLen = tCookie.tValue.iLen; }
 	return true;
+}
+// 复制 cookie 值（返回值需要使用 xrtFree 释放）
+XXAPI str xrtWebRequestCookieCopy(const xwebrequest* pReq, const char* sName)
+{
+	const char* sCookie;
+	xrtcookiepair tCookie;
+	if ( !pReq || !sName ) { return xCore.sNull; }
+	sCookie = xrtWebRequestHeader(pReq, "Cookie");
+	if ( !sCookie || !xrtCookieFind(sCookie, sName, &tCookie) ) { return xCore.sNull; }
+	return xrtCopyStr((str)tCookie.tValue.sPtr, tCookie.tValue.iLen);
 }
 // 设置响应状态
 XXAPI void xrtWebResponseStatus(xwebresponse* pResp, uint32 iStatusCode, const char* sReason)
@@ -67379,6 +67650,16 @@ static void __xprocResultInit(xprocessresult* pResult)
 	__xprocExitInfoInit(&pResult->ExitInfo);
 	pResult->iExitCode = -1;
 }
+// 内部函数：初始化 pipeline 结果
+static void __xprocPipelineResultInit(xprocesspipelineresult* pResult)
+{
+	if ( pResult == NULL ) {
+		return;
+	}
+	memset(pResult, 0, sizeof(*pResult));
+	pResult->iExitCode = -1;
+	pResult->iFailedIndex = -1;
+}
 // 内部函数：预留字符串缓冲区（按指数增长策略扩容）
 static bool __xprocStrBufReserve(__xproc_strbuf* pBuf, size_t iNeed)
 {
@@ -67903,6 +68184,63 @@ XXAPI void xrtProcessResultUnit(xprocessresult* pResult)
 	}
 	__xprocResultInit(pResult);
 }
+// 复制进程结果（stdout/stderr 会重新分配，调用方使用 xrtProcessResultUnit 释放）
+XXAPI bool xrtProcessResultCopy(const xprocessresult* pSrc, xprocessresult* pDst)
+{
+	if ( pSrc == NULL || pDst == NULL ) {
+		xrtSetError("invalid subprocess result copy arguments.", FALSE);
+		return false;
+	}
+	__xprocResultInit(pDst);
+	*pDst = *pSrc;
+	pDst->pStdout = NULL;
+	pDst->pStderr = NULL;
+	if ( pSrc->pStdout != NULL && pSrc->iStdoutSize > 0u ) {
+		pDst->pStdout = xrtCopyStr((str)pSrc->pStdout, pSrc->iStdoutSize);
+		if ( pDst->pStdout == NULL ) {
+			__xprocResultInit(pDst);
+			return false;
+		}
+	}
+	if ( pSrc->pStderr != NULL && pSrc->iStderrSize > 0u ) {
+		pDst->pStderr = xrtCopyStr((str)pSrc->pStderr, pSrc->iStderrSize);
+		if ( pDst->pStderr == NULL ) {
+			xrtProcessResultUnit(pDst);
+			return false;
+		}
+	}
+	return true;
+}
+// 判断进程结果是否为正常成功退出
+XXAPI bool xrtProcessResultSuccess(const xprocessresult* pResult)
+{
+	return pResult != NULL &&
+		pResult->ExitInfo.iKind == XPROC_EXIT_NORMAL &&
+		pResult->iExitCode == 0 &&
+		!pResult->ExitInfo.bTimedOut &&
+		!pResult->ExitInfo.bCancelled;
+}
+// 释放 pipeline 结果
+XXAPI void xrtProcessPipelineResultUnit(xprocesspipelineresult* pResult)
+{
+	uint32 i;
+	if ( pResult == NULL ) {
+		return;
+	}
+	if ( pResult->arrResults != NULL ) {
+		for ( i = 0u; i < pResult->iResultCount; i++ ) {
+			xrtProcessResultUnit(&pResult->arrResults[i]);
+		}
+		xrtFree(pResult->arrResults);
+	}
+	if ( pResult->pStdout != NULL ) {
+		xrtFree(pResult->pStdout);
+	}
+	if ( pResult->pStderr != NULL ) {
+		xrtFree(pResult->pStderr);
+	}
+	__xprocPipelineResultInit(pResult);
+}
 // 内部函数：判断 stdio 模式是否合法
 static bool __xprocIsValidStdioMode(int iMode)
 {
@@ -68420,8 +68758,27 @@ XXAPI xprocessevent* xrtProcessReadEventsSince(xprocess* pProcess, uint64 iSeq, 
 XXAPI bool xrtExecCapture(const xprocessconfig* pConfig, xprocessresult* pResult, uint32 iTimeoutMs)
 {
 	(void)pConfig;
-	(void)pResult;
 	(void)iTimeoutMs;
+	__xprocResultInit(pResult);
+	__xprocSetThreadRequiredError();
+	return false;
+}
+XXAPI bool xrtProcessRun(const xprocessconfig* pConfig, const void* pInput, size_t iInputSize, xprocessresult* pResult, uint32 iTimeoutMs)
+{
+	(void)pConfig;
+	(void)pInput;
+	(void)iInputSize;
+	(void)iTimeoutMs;
+	__xprocResultInit(pResult);
+	__xprocSetThreadRequiredError();
+	return false;
+}
+XXAPI bool xrtProcessPipelineRun(const xprocessconfig* arrConfigs, uint32 iConfigCount, xprocesspipelineresult* pResult, uint32 iTimeoutMs)
+{
+	(void)arrConfigs;
+	(void)iConfigCount;
+	(void)iTimeoutMs;
+	__xprocPipelineResultInit(pResult);
 	__xprocSetThreadRequiredError();
 	return false;
 }
@@ -70783,6 +71140,71 @@ static void __xprocStopForTimeout(xprocess* pProcess)
 	(void)__xprocRequestStop(pProcess, XPROC_STOP_KILL, true, false);
 	(void)xrtProcessWait(pProcess);
 }
+XXAPI bool xrtProcessRun(const xprocessconfig* pConfig, const void* pInput, size_t iInputSize, xprocessresult* pResult, uint32 iTimeoutMs)
+{
+	xprocessconfig tConfig;
+	xprocess* pProcess;
+	xprocessexitinfo tSpawnInfo;
+	int iWaitRet;
+	uint64 iStartMs;
+	uint64 iEndMs;
+	bool bHasInput;
+	bool bWriteOk = true;
+	if ( pConfig == NULL || pResult == NULL ) {
+		xrtSetError("invalid subprocess run arguments.", FALSE);
+		return false;
+	}
+	__xprocResultInit(pResult);
+	tConfig = *pConfig;
+	tConfig.Stdout.iMode = XPROC_STDIO_PIPE;
+	tConfig.Stdout.bCapture = true;
+	bHasInput = (pInput != NULL || iInputSize > 0u);
+	if ( bHasInput ) {
+		tConfig.Stdin.iMode = XPROC_STDIO_PIPE;
+	}
+	if ( tConfig.bMergeStderr ) {
+		tConfig.Stderr.bCapture = false;
+	} else {
+		tConfig.Stderr.iMode = XPROC_STDIO_PIPE;
+		tConfig.Stderr.bCapture = true;
+	}
+	iStartMs = __xprocNowMs();
+	pProcess = __xprocSpawnInternal(&tConfig, &tSpawnInfo);
+	if ( pProcess == NULL ) {
+		pResult->ExitInfo = tSpawnInfo;
+		pResult->iExitCode = tSpawnInfo.iExitCode;
+		iEndMs = __xprocNowMs();
+		pResult->iDurationMs = iEndMs >= iStartMs ? (iEndMs - iStartMs) : 0u;
+		return false;
+	}
+	if ( bHasInput ) {
+		if ( iInputSize > 0u && xrtProcessWrite(pProcess, pInput, iInputSize) != (int64)iInputSize ) {
+			bWriteOk = false;
+		}
+		if ( !xrtProcessCloseStdin(pProcess) ) {
+			bWriteOk = false;
+		}
+		if ( !bWriteOk ) {
+			(void)__xprocRequestStop(pProcess, XPROC_STOP_KILL_TREE, false, false);
+		}
+	}
+	iWaitRet = xrtProcessWaitTimeout(pProcess, iTimeoutMs == 0u ? UINT32_MAX : iTimeoutMs);
+	if ( iWaitRet == XRT_WAIT_TIMEOUT ) {
+		__xprocStopForTimeout(pProcess);
+	} else if ( iWaitRet == XRT_WAIT_ERROR ) {
+		(void)xrtProcessWait(pProcess);
+	}
+	(void)xrtProcessGetExitInfo(pProcess, &pResult->ExitInfo);
+	pResult->iExitCode = pResult->ExitInfo.iExitCode;
+	xrtMutexLock(&pProcess->Lock);
+	__xprocStreamMoveOut(&pProcess->StdoutBuf, &pResult->pStdout, &pResult->iStdoutSize, &pResult->iStdoutBaseOffset, &pResult->bStdoutTruncated);
+	__xprocStreamMoveOut(&pProcess->StderrBuf, &pResult->pStderr, &pResult->iStderrSize, &pResult->iStderrBaseOffset, &pResult->bStderrTruncated);
+	xrtMutexUnlock(&pProcess->Lock);
+	iEndMs = __xprocNowMs();
+	pResult->iDurationMs = iEndMs >= iStartMs ? (iEndMs - iStartMs) : 0u;
+	xrtProcessDestroy(pProcess);
+	return bWriteOk;
+}
 // xrtExecCapture 相关处理（启动子进程，捕获 stdout/stderr 输出，等待完成后返回结果）
 XXAPI bool xrtExecCapture(const xprocessconfig* pConfig, xprocessresult* pResult, uint32 iTimeoutMs)
 {
@@ -70830,6 +71252,94 @@ XXAPI bool xrtExecCapture(const xprocessconfig* pConfig, xprocessresult* pResult
 	// 销毁进程对象
 	xrtProcessDestroy(pProcess);
 	return true;
+}
+XXAPI bool xrtProcessPipelineRun(const xprocessconfig* arrConfigs, uint32 iConfigCount, xprocesspipelineresult* pResult, uint32 iTimeoutMs)
+{
+	uint32 i;
+	uint64 iStartMs;
+	uint64 iEndMs;
+	uint64 iDeadlineMs;
+	bool bApiOk = true;
+	if ( arrConfigs == NULL || iConfigCount == 0u || pResult == NULL ) {
+		xrtSetError("invalid subprocess pipeline arguments.", FALSE);
+		return false;
+	}
+	__xprocPipelineResultInit(pResult);
+	pResult->arrResults = (xprocessresult*)xrtCalloc(iConfigCount, sizeof(xprocessresult));
+	if ( pResult->arrResults == NULL ) {
+		xrtSetError("memory allocate failed.", FALSE);
+		return false;
+	}
+	pResult->iResultCount = iConfigCount;
+	for ( i = 0u; i < iConfigCount; i++ ) {
+		__xprocResultInit(&pResult->arrResults[i]);
+	}
+	iStartMs = __xprocNowMs();
+	iDeadlineMs = iTimeoutMs > 0u ? (iStartMs + (uint64)iTimeoutMs) : 0u;
+	for ( i = 0u; i < iConfigCount; i++ ) {
+		const void* pInput = NULL;
+		size_t iInputSize = 0u;
+		uint32 iStageTimeout = 0u;
+		if ( iDeadlineMs > 0u ) {
+			uint64 iNowMs = __xprocNowMs();
+			if ( iNowMs >= iDeadlineMs ) {
+				pResult->arrResults[i].ExitInfo.iKind = XPROC_EXIT_WAIT_FAILED;
+				pResult->arrResults[i].ExitInfo.iStage = XPROC_STAGE_WAIT;
+				pResult->arrResults[i].ExitInfo.bTimedOut = true;
+				pResult->arrResults[i].iExitCode = -1;
+				pResult->iFailedIndex = (int)i;
+				pResult->bTimedOut = true;
+				break;
+			}
+			iStageTimeout = (uint32)(iDeadlineMs - iNowMs);
+			if ( iStageTimeout == 0u ) {
+				iStageTimeout = 1u;
+			}
+		}
+		if ( i > 0u ) {
+			xprocessresult* pPrev = &pResult->arrResults[i - 1u];
+			pInput = pPrev->pStdout != NULL ? pPrev->pStdout : "";
+			iInputSize = pPrev->pStdout != NULL ? pPrev->iStdoutSize : 0u;
+		}
+		if ( !xrtProcessRun(&arrConfigs[i], pInput, iInputSize, &pResult->arrResults[i], iStageTimeout) ) {
+			pResult->iFailedIndex = (int)i;
+			bApiOk = false;
+			break;
+		}
+		pResult->iCompletedCount = i + 1u;
+		if ( pResult->arrResults[i].ExitInfo.bTimedOut ) {
+			pResult->iFailedIndex = (int)i;
+			pResult->bTimedOut = true;
+			break;
+		}
+		if ( pResult->arrResults[i].ExitInfo.bCancelled ) {
+			pResult->iFailedIndex = (int)i;
+			pResult->bCancelled = true;
+			break;
+		}
+		if ( !xrtProcessResultSuccess(&pResult->arrResults[i]) ) {
+			pResult->iFailedIndex = (int)i;
+			break;
+		}
+	}
+	if ( pResult->iCompletedCount > 0u ) {
+		xprocessresult* pLast = &pResult->arrResults[pResult->iCompletedCount - 1u];
+		pResult->iExitCode = pLast->iExitCode;
+		pResult->bStdoutTruncated = pLast->bStdoutTruncated;
+		pResult->bStderrTruncated = pLast->bStderrTruncated;
+		if ( pLast->pStdout != NULL && pLast->iStdoutSize > 0u ) {
+			pResult->pStdout = xrtCopyStr((str)pLast->pStdout, pLast->iStdoutSize);
+			pResult->iStdoutSize = pResult->pStdout != NULL ? pLast->iStdoutSize : 0u;
+		}
+		if ( pLast->pStderr != NULL && pLast->iStderrSize > 0u ) {
+			pResult->pStderr = xrtCopyStr((str)pLast->pStderr, pLast->iStderrSize);
+			pResult->iStderrSize = pResult->pStderr != NULL ? pLast->iStderrSize : 0u;
+		}
+	}
+	pResult->bSuccess = (pResult->iFailedIndex < 0 && pResult->iCompletedCount == iConfigCount);
+	iEndMs = __xprocNowMs();
+	pResult->iDurationMs = iEndMs >= iStartMs ? (iEndMs - iStartMs) : 0u;
+	return bApiOk;
 }
 #if !defined(XRT_NO_NETWORK)
 // 等待进程 Future（创建或复用 Future，用于异步等待进程退出）
@@ -71072,6 +71582,56 @@ XXAPI bool xrtBufferInsert(xbuffer pBuf, uint32 iPos, ptr pData, uint32 iSize, u
 XXAPI bool xrtBufferAppend(xbuffer pBuf, ptr pData, uint32 iSize, uint32 bStrMode)
 {
 	return xrtBufferInsert(pBuf, pBuf->Length, pData, iSize, bStrMode);
+}
+// 通过原始内存创建 Buffer
+XXAPI xbuffer xrtBufferFrom(ptr pData, size_t iSize)
+{
+	xbuffer pBuf;
+	if ( pData == NULL && iSize != 0u ) { return NULL; }
+	if ( iSize > 0xFFFFFFFFu ) { return NULL; }
+	pBuf = xrtBufferCreate(0u);
+	if ( pBuf == NULL ) { return NULL; }
+	if ( iSize != 0u && !xrtBufferAppend(pBuf, pData, (uint32)iSize, XBUF_BINARY) ) {
+		xrtBufferDestroy(pBuf);
+		return NULL;
+	}
+	return pBuf;
+}
+// 将 HEX 文本解码为 Buffer
+XXAPI xbuffer xrtBufferFromHex(str sText, size_t iSize)
+{
+	ptr pData;
+	xbuffer pBuf;
+	size_t iDataSize;
+	if ( sText == NULL ) { return NULL; }
+	if ( iSize == 0u ) { iSize = strlen(__xrt_cstr(sText)); }
+	if ( iSize == 0u ) { return xrtBufferCreate(0u); }
+	if ( (iSize & 1u) != 0u ) { return NULL; }
+	pData = xrtHexDecode(sText, iSize);
+	if ( pData == NULL || pData == xCore.sNull ) { return NULL; }
+	iDataSize = iSize / 2u;
+	pBuf = xrtBufferFrom(pData, iDataSize);
+	xrtFree(pData);
+	return pBuf;
+}
+// 将 Base64 文本解码为 Buffer
+XXAPI xbuffer xrtBufferFromBase64(str sText, size_t iSize, str sTable)
+{
+	ptr pData;
+	xbuffer pBuf;
+	size_t iDataSize;
+	if ( sText == NULL ) { return NULL; }
+	if ( iSize == 0u ) { iSize = strlen(__xrt_cstr(sText)); }
+	if ( iSize == 0u ) { return xrtBufferCreate(0u); }
+	if ( (iSize % 4u) != 0u ) { return NULL; }
+	iDataSize = (iSize / 4u) * 3u;
+	if ( sText[iSize - 1u] == '=' ) { iDataSize--; }
+	if ( sText[iSize - 2u] == '=' ) { iDataSize--; }
+	pData = xrtBase64Decode(sText, iSize, sTable);
+	if ( pData == NULL || pData == xCore.sNull ) { return NULL; }
+	pBuf = xrtBufferFrom(pData, iDataSize);
+	xrtFree(pData);
+	return pBuf;
 }
 #endif
 #ifndef XRT_NO_ARRAY
@@ -75463,6 +76023,15 @@ struct xrt_regex {
   bbre_error error;        /* error message and/or pos within expr */
   bbre_exec *exec; /* local execution context, NULL until actually used */
 };
+struct xrt_regex_match {
+  char *text;
+  size_t text_size;
+  xregexspan span;
+  int matched;
+  int64 char_start;
+  int64 char_end;
+  char *match_text;
+};
 /* A builder class for regular expression sets. */
 struct xrt_regex_set_builder {
   xregexalloc alloc;            /* allocator function */
@@ -79338,6 +79907,42 @@ static int bbre_set_match_internal(
 error:
   return err;
 }
+static int64 __xrtRegexByteToCharIndex(const char *text, size_t text_size, size_t byte_pos)
+{
+  if (!text || byte_pos > text_size)
+    return -1;
+  return (int64)xrtStrCharLen((str)text, byte_pos);
+}
+static xregexmatch *__xrtRegexMatchCreate(const char *text, size_t text_size, int matched, xregexspan span)
+{
+  xregexmatch *match;
+  if (!text) {
+    text = "";
+    text_size = 0;
+  } else if (text_size == 0) {
+    text_size = strlen(text);
+  }
+  match = (xregexmatch *)xrtMalloc(sizeof(xregexmatch));
+  if (!match)
+    return NULL;
+  memset(match, 0, sizeof(*match));
+  match->text = (char*)xrtCopyStr((str)text, text_size);
+  if (text_size > 0 && !match->text) {
+    xrtFree(match);
+    return NULL;
+  }
+  match->text_size = text_size;
+  match->matched = matched ? 1 : 0;
+  match->span = span;
+  match->char_start = -1;
+  match->char_end = -1;
+  match->match_text = NULL;
+  if (!match->matched) {
+    match->span.iBegin = (size_t)-1;
+    match->span.iEnd = (size_t)-1;
+  }
+  return match;
+}
 /* API */
 int xrtRegexBuilderCreate(
     xregexbuilder **pbuild, const char *s, size_t n, const xregexalloc *palloc)
@@ -79373,11 +79978,22 @@ void xrtRegexBuilderSetFlags(xregexbuilder *build, xregexflags flags)
 }
 xregex *xrtRegexCreate(const char *pat_nt)
 {
+  return xrtRegexCreateEx(pat_nt, 0, 0);
+}
+xregex *xrtRegexCreateEx(const char *pat, size_t pat_size, xregexflags flags)
+{
   int err = 0;
   xregex *r = NULL;
   xregexbuilder *spec = NULL;
-  if ((err = xrtRegexBuilderCreate(&spec, pat_nt, strlen(pat_nt), NULL)))
+  if (!pat) {
+    pat = "";
+    pat_size = 0;
+  } else if (pat_size == 0) {
+    pat_size = strlen(pat);
+  }
+  if ((err = xrtRegexBuilderCreate(&spec, pat, pat_size, NULL)))
     goto error;
+  xrtRegexBuilderSetFlags(spec, flags);
   if ((err = xrtRegexCreateFromBuilder(&r, spec, NULL)))
     goto error;
   xrtRegexBuilderDestroy(spec);
@@ -79525,6 +80141,102 @@ done:
     *out_name_size = size;
   return out;
 }
+int xrtRegexFullMatch(xregex *reg, const char *text, size_t text_size)
+{
+  xregexspan span;
+  int found;
+  if (!text) {
+    text = "";
+    text_size = 0;
+  } else if (text_size == 0) {
+    text_size = strlen(text);
+  }
+  if (!reg)
+    return 0;
+  span.iBegin = 0;
+  span.iEnd = 0;
+  found = xrtRegexFind(reg, text, text_size, &span);
+  return found > 0 && span.iBegin == 0 && span.iEnd == text_size;
+}
+xregexmatch *xrtRegexFindMatch(xregex *reg, const char *text, size_t text_size)
+{
+  return xrtRegexFindMatchAt(reg, text, text_size, 0);
+}
+xregexmatch *xrtRegexFindMatchAt(xregex *reg, const char *text, size_t text_size, size_t pos)
+{
+  xregexspan span;
+  int found;
+  if (!text) {
+    text = "";
+    text_size = 0;
+  } else if (text_size == 0) {
+    text_size = strlen(text);
+  }
+  span.iBegin = 0;
+  span.iEnd = 0;
+  if (pos > text_size)
+    pos = text_size;
+  if (!reg)
+    return __xrtRegexMatchCreate(text, text_size, 0, span);
+  found = xrtRegexFindAt(reg, text, text_size, pos, &span);
+  if (found <= 0)
+    return __xrtRegexMatchCreate(text, text_size, 0, span);
+  return __xrtRegexMatchCreate(text, text_size, 1, span);
+}
+void xrtRegexMatchDestroy(xregexmatch *match)
+{
+  if (!match)
+    return;
+  xrtFree(match->text);
+  xrtFree(match->match_text);
+  xrtFree(match);
+}
+int xrtRegexMatchOk(const xregexmatch *match)
+{
+  return match != NULL && match->matched != 0;
+}
+int64 xrtRegexMatchByteStart(const xregexmatch *match)
+{
+  if (!xrtRegexMatchOk(match))
+    return -1;
+  return (int64)match->span.iBegin;
+}
+int64 xrtRegexMatchByteEnd(const xregexmatch *match)
+{
+  if (!xrtRegexMatchOk(match))
+    return -1;
+  return (int64)match->span.iEnd;
+}
+int64 xrtRegexMatchStart(xregexmatch *match)
+{
+  if (!xrtRegexMatchOk(match))
+    return -1;
+  if (match->char_start < 0)
+    match->char_start = __xrtRegexByteToCharIndex(match->text, match->text_size, match->span.iBegin);
+  return match->char_start;
+}
+int64 xrtRegexMatchEnd(xregexmatch *match)
+{
+  if (!xrtRegexMatchOk(match))
+    return -1;
+  if (match->char_end < 0)
+    match->char_end = __xrtRegexByteToCharIndex(match->text, match->text_size, match->span.iEnd);
+  return match->char_end;
+}
+const char *xrtRegexMatchText(xregexmatch *match)
+{
+  if (!xrtRegexMatchOk(match))
+    return NULL;
+  if (match->match_text == NULL)
+    match->match_text = (char*)xrtCopyStr((str)(match->text + match->span.iBegin), match->span.iEnd - match->span.iBegin);
+  return match->match_text;
+}
+str xrtRegexMatchTextCopy(xregexmatch *match)
+{
+  if (!xrtRegexMatchOk(match))
+    return NULL;
+  return xrtCopyStr((str)(match->text + match->span.iBegin), match->span.iEnd - match->span.iBegin);
+}
 int xrtRegexSetBuilderCreate(xregexsetbuilder **pspec, const xregexalloc *palloc)
 {
   int err = 0;
@@ -79557,6 +80269,10 @@ int xrtRegexSetBuilderAdd(xregexsetbuilder *set, const xregex *b)
 }
 xregexset *xrtRegexSetCreate(const char *const *pats_nt, size_t num_pats)
 {
+  return xrtRegexSetCreateEx(pats_nt, num_pats, 0);
+}
+xregexset *xrtRegexSetCreateEx(const char *const *pats_nt, size_t num_pats, xregexflags flags)
+{
   int err = 0;
   size_t i;
   xregexalloc a = bbre_alloc_make(NULL);
@@ -79568,7 +80284,7 @@ xregexset *xrtRegexSetCreate(const char *const *pats_nt, size_t num_pats)
   for (i = 0; i < num_pats; i++)
     regs[i] = NULL;
   for (i = 0; i < num_pats; i++) {
-    regs[i] = xrtRegexCreate(pats_nt[i]);
+    regs[i] = xrtRegexCreateEx(pats_nt[i], 0, flags);
     if (!regs[i])
       goto done;
   }
@@ -79638,6 +80354,19 @@ int xrtRegexSetIsMatchAt(
     xregexset *set, const char *text, size_t text_size, size_t pos)
 {
   return bbre_set_match_internal(set, text, text_size, pos, NULL, 0, NULL);
+}
+int xrtRegexSetFirst(xregexset *set, const char *text, size_t text_size)
+{
+  return xrtRegexSetFirstAt(set, text, text_size, 0);
+}
+int xrtRegexSetFirstAt(xregexset *set, const char *text, size_t text_size, size_t pos)
+{
+  uint32 index = 0;
+  uint32 count = 0;
+  int matched = xrtRegexSetMatchesAt(set, text, text_size, pos, &index, 1, &count);
+  if (matched <= 0 || count == 0)
+    return -1;
+  return (int)index;
 }
 int xrtRegexSetMatchesAt(
     xregexset *set, const char *s, size_t n, size_t pos, uint32 *out_idxs,
@@ -88634,6 +89363,20 @@ end:
 #endif
 	return ret;
 }
+// 内部函数：JSON 验证用空 SAX 回调
+static json_sax_ret_t _xrt_json_valid_proc(json_sax_parser_t *parser)
+{
+	(void)parser;
+	return JSON_SAX_PARSE_CONTINUE;
+}
+// 验证 JSON 文本是否合法，不构造 xvalue 对象
+XXAPI bool xrtJsonValid(str sText, size_t iSize)
+{
+	if ( sText == NULL ) {
+		return FALSE;
+	}
+	return xrtJsonParseSAX(sText, iSize, _xrt_json_valid_proc) == 0;
+}
 // 解析 JSON 文件到 Value
 // JSON 解析上下文结构（线程安全）
 typedef struct {
@@ -90379,6 +91122,21 @@ XXAPI xvalue xrtParseXSON(str sText, size_t iSize)
 XXAPI xvalue xrtParseXSONEx(str sText, size_t iSize, uint32 iFlags)
 {
 	return _xson_parse_text(sText, iSize, iFlags);
+}
+// 验证 XSON 文本是否合法，验证成功后立即释放解析结果
+XXAPI bool xrtXsonValid(str sText, size_t iSize, uint32 iFlags)
+{
+	xvalue pVal;
+	if ( sText == NULL ) {
+		return FALSE;
+	}
+	pVal = xrtParseXSONEx(sText, iSize, iFlags);
+	if ( xvoIsNull(pVal) ) {
+		xvoUnref(pVal);
+		return FALSE;
+	}
+	xvoUnref(pVal);
+	return TRUE;
 }
 XXAPI xvalue xrtParseXSON_File(str sFile)
 {

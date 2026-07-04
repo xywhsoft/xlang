@@ -1,9 +1,70 @@
-string text = process.exec("cmd /c echo hello-process")
-int okCode = process.exitCode("cmd /c exit /b 0")
-int failCode = process.exitCode("cmd /c exit /b 5")
+func require(string name, bool ok)
+    assert ok, name + " failed"
+    println(name + "=ok")
+end
 
-assert string.trim(text) == "hello-process", "process exec failed"
-assert process.success("cmd /c exit /b 0"), "process success failed"
-assert !process.success("cmd /c exit /b 5"), "process failure check failed"
-assert okCode == 0, "process exitCode zero failed"
-assert failCode == 5, "process exitCode nonzero failed"
+string text = process.exec("cmd /c echo hello-process")
+require("legacy",
+    string.trim(text) == "hello-process" and
+    process.success("cmd /c exit /b 0") and
+    !process.success("cmd /c exit /b 5") and
+    process.exitCode("cmd /c exit /b 0") == 0 and
+    process.exitCode("cmd /c exit /b 5") == 5)
+
+ProcessResult runResult = process.run("cmd /c echo process-run")
+require("run",
+    runResult.success and
+    runResult.exitCode == 0 and
+    !runResult.timedOut and
+    !runResult.spawnFailed and
+    string.trim(runResult.stdout) == "process-run" and
+    string.trim(runResult.stderr) == "")
+
+ProcessResult fileResult = process.runFile("cmd", ["/c", "echo", "process-file"])
+require("runFile",
+    fileResult.success and
+    fileResult.exitCode == 0 and
+    string.trim(fileResult.stdout) == "process-file")
+
+PipelineResult pipe = process.pipeline([
+    process.shell("cmd /c echo alpha"),
+    process.cmd("cmd", ["/c", "findstr alpha"])
+])
+ProcessResult pipeStage = pipe.result(1)
+require("pipeline",
+    pipe.success and
+    pipe.exitCode == 0 and
+    pipe.failedIndex == -1 and
+    pipe.count == 2 and
+    pipe.completedCount == 2 and
+    string.trim(pipe.stdout) == "alpha" and
+    pipeStage.success)
+
+PipelineResult failedPipe = process.pipeline([
+    process.shell("cmd /c exit /b 5"),
+    process.shell("cmd /c echo should-not-run")
+])
+ProcessResult failedStage = failedPipe.result(0)
+require("pipelineFail",
+    !failedPipe.success and
+    failedPipe.exitCode == 5 and
+    failedPipe.failedIndex == 0 and
+    failedPipe.count == 2 and
+    failedPipe.completedCount == 1 and
+    failedStage.exitCode == 5)
+
+Process proc = process.startFile("cmd", ["/c", "more"])
+proc.writeLine("live-process")
+proc.closeStdin()
+Process shellProc = process.start("cmd /c more")
+shellProc.writeLine("shell-process")
+shellProc.closeStdin()
+require("process",
+    proc.wait(5000) and
+    !proc.running and
+    proc.exitCode == 0 and
+    string.trim(proc.stdout) == "live-process" and
+    shellProc.wait(5000) and
+    !shellProc.running and
+    shellProc.exitCode == 0 and
+    string.trim(shellProc.stdout) == "shell-process")

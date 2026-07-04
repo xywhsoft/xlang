@@ -465,7 +465,9 @@ static void xl6CgenClassDecls(XL6_CgenContext* ctx, const XL6_AstNode* classNode
             if ( member == NULL ) {
                 continue;
             }
-            if ( member->kind == XL6_AST_CUSTOM_EXTERN_SPECIAL || member->kind == XL6_AST_CUSTOM_EXTERN_FUNC ) {
+            if ( member->kind == XL6_AST_CUSTOM_EXTERN_SPECIAL ||
+                 member->kind == XL6_AST_CUSTOM_EXTERN_FUNC ||
+                 xl6CgenIsExternClassProperty(member) ) {
                 xl6CgenCustomExternProto(ctx, classNode, member);
                 xl6OutputPuts(";\n", ctx->out);
             }

@@ -1,0 +1,547 @@
+
+D:\GIT\x-lang\demo6>锘緻echo off 
+'锘緻echo' 不是内部或外部命令，也不是可运行的程序
+或批处理文件。
+
+D:\GIT\x-lang\demo6>setlocal
+
+D:\GIT\x-lang\demo6>cd /d D:\GIT\x-lang\demo6\ 
+
+D:\GIT\x-lang\demo6>call tools\xl6_toolchain_env.bat 
+Building DEMO6 local XRT object...
+Building embedded TCC VFS LZMA packer...
+Generating runtime embedded TCC VFS resources...
+generated 106 TCC VFS resources, 1701935 bytes packed to 309176 bytes -> D:\GIT\x-lang\demo6\release\tmp\tcc_builtin_resources_runtime.c
+Generating compiler embedded TCC VFS resources...
+generated 113 TCC VFS resources, 5143004 bytes packed to 826455 bytes -> D:\GIT\x-lang\demo6\release\tmp\tcc_builtin_resources.c
+Building DEMO6 xl.dll runtime...
+Generating xl.dll import definition...
+Building DEMO6 xlc.dll compiler runtime...
+Generating xlc.dll import definition...
+Building xl.dll dependency fixtures...
+Building xlc.dll compile verification program...
+Building xlc.dll compiler API verification program...
+Building xl.dll XRT export verification program...
+Building xl.dll dynamic run GUI demo...
+Building xl.dll API boundary verification program...
+Building xl.dll threaded host verification program...
+DEMO6 xl.dll/xlc.dll build ok: release\xl.dll release\xlc.dll
+Building DEMO6 xl.exe xlc.dll shell...
+DEMO6 build ok: release\xl.exe
+release tmp cleanup ok: 1238 files scanned.
+Bootstrapping DEMO6 local TCC...
+Building DEMO6 local XRT object...
+Running DEMO6 smoke tests...
+docs index ok: 37 docs markdown files, 14 extra markdown entry docs.
+cgenrule docs ok: 843 unique rules, 47 markdown files.
+Risk ledger ok: 21 unique risks, 21 closed, 0 open.
+Open risks: none
+markdown links ok: 100 markdown files.
+Tool wiring ok: 30 check scripts.
+Batch wiring ok: 11 root batch files, toolchain env and regression entries guarded.
+CLI temp cleanup ok: build dirs=2, run dirs=0.
+Source wiring ok: 130 source files, 34 direct, 95 included, 2 generated direct.
+Source encoding ok: 1624 text files.
+Cgen statement expression allowlist ok: 0 fallback templates.
+Cgen module size ok: 101 files, largest xl6_cgen_expr_support_base.c has 1187 lines, 0 files over 1200 lines.
+Toolchain path guard ok: 167 source headers/files, 171 fixture C/H files, 17 batch files.
+C string safety ok: 286 handwritten/fixture C/H files, 2 lexer/parser specs.
+DLL API boundary ok: 62 public APIs.
+Test case wiring ok: 695 files, 28 prefixes.
+Test data wiring ok: 5 JSON fixtures.
+Example wiring ok: 121 files.
+Xlang output markers ok.
+C fixture wiring ok: 63 entry fixtures, 55 package fixtures.
+Package fixtures ok: 18 packages.
+Release extlibs ok: 31 packages, 31 examples.
+Package XRT symbol boundary ok: 199 package C/H files, 100 public XRT symbols used, 701 runtime exports.
+Package fixtures ok: 18 packages.
+ok
+crc32 extlib ok
+crc32 extlib ok
+ok
+clipboard extlib ok
+clipboard extlib ok
+ok
+ok
+md5 extlib ok
+md5 extlib ok
+ok
+lz4 extlib ok
+lz4 extlib ok
+ok
+zstd extlib ok
+zstd extlib ok
+ok
+lzma extlib ok
+lzma extlib ok
+ok
+miniz extlib ok
+miniz extlib ok
+ok
+md4c extlib ok
+md4c extlib ok
+ok
+stb_image extlib ok
+stb_image extlib ok
+ok
+stb_image_resize2 extlib ok
+stb_image_resize2 extlib ok
+ok
+stb_image_write extlib ok
+stb_image_write extlib ok
+ok
+imagehash extlib ok
+imagehash extlib ok
+ok
+stb_truetype extlib ok
+stb_truetype extlib ok
+ok
+volc.core extlib ok
+volc.core extlib ok
+ok
+sqlite extlib ok
+sqlite extlib ok
+ok
+pkg.math extlib ok
+pkg.math extlib ok
+ok
+volc.sts extlib ok
+volc.sts extlib ok
+ok
+volc.phone extlib ok
+volc.phone extlib ok
+ok
+mail.mime extlib ok
+mail.mime extlib ok
+ok
+mail.smtp extlib ok
+mail.smtp extlib ok
+ok
+mail.pop3 extlib ok
+mail.pop3 extlib ok
+ok
+mail.imap extlib ok
+mail.imap extlib ok
+ok
+uia extlib ok
+libpng warning: iCCP: cHRM chunk does not match sRGB
+uia extlib ok
+libpng warning: iCCP: cHRM chunk does not match sRGB
+ok
+opencv extlib ok
+libpng warning: iCCP: cHRM chunk does not match sRGB
+opencv extlib ok
+libpng warning: iCCP: cHRM chunk does not match sRGB
+ok
+onnxruntime extlib ok
+onnxruntime extlib ok
+ok
+dinov3 extlib ok
+dinov3 extlib ok
+ok
+xfeat extlib ok
+xfeat extlib ok
+ok
+rapidocr extlib ok
+rapidocr extlib ok
+ok
+ui.auto extlib ok
+libpng warning: iCCP: cHRM chunk does not match sRGB
+ui.auto extlib ok
+libpng warning: iCCP: cHRM chunk does not match sRGB
+ok
+redis extlib ok
+redis extlib ok
+DEMO6 extension library examples ok.
+Standard library coverage ok: 350 public functions.
+Standard library test wiring ok: 27 files.
+Standard library DLL symbol check ok: 310 C symbols, 701 runtime exports.
+Negative diagnostics wiring ok: 445 files, 446 expected-failure commands, 446 asserted, 0 baseline-only.
+Async/task soak ok: 1 round(s), 6 run command(s), 1 build/run case(s), heavy=off.
+CHECK example stdlib_buffer.xl
+ok
+RUN example stdlib_buffer.xl
+basic=ok
+reserve_clear=ok
+append_bytes=ok
+CHECK example stdlib_codec.xl
+ok
+RUN example stdlib_codec.xl
+CHECK example stdlib_crypto.xl
+ok
+RUN example stdlib_crypto.xl
+hash=ok
+hmac=ok
+aead=ok
+hkdf_random=ok
+stream=ok
+chacha20=ok
+ed25519=ok
+x25519=ok
+x448=ok
+rsa_guard=ok
+CHECK example stdlib_encoding.xl
+ok
+RUN example stdlib_encoding.xl
+detect=ok
+utf16=ok
+convert=ok
+CHECK example stdlib_file_async.xl
+ok
+RUN example stdlib_file_async.xl
+write_read=ok
+append_copy=ok
+move_delete=ok
+CHECK example stdlib_hash.xl
+ok
+RUN example stdlib_hash.xl
+CHECK example stdlib_http_server.xl
+ok
+RUN example stdlib_http_server.xl
+CHECK example stdlib_id_net.xl
+ok
+RUN example stdlib_id_net.xl
+CHECK example stdlib_json.xl
+ok
+RUN example stdlib_json.xl
+json=ok
+CHECK example stdlib_log.xl
+ok
+RUN example stdlib_log.xl
+level=ok
+file=ok
+rolling=ok
+CHECK example stdlib_math.xl
+ok
+RUN example stdlib_math.xl
+basic=ok
+trig=ok
+exp_log=ok
+rounding=ok
+constants=ok
+range=ok
+advanced=ok
+CHECK example stdlib_net_tcp_udp.xl
+ok
+RUN example stdlib_net_tcp_udp.xl
+tcp=ok
+tcp_async=ok
+udp=ok
+udp_async=ok
+CHECK example stdlib_path_file.xl
+ok
+RUN example stdlib_path_file.xl
+path=ok
+file=ok
+dir=ok
+CHECK example stdlib_print.xl
+ok
+RUN example stdlib_print.xl
+xlang print 123 done
+null true false 42 3.14 2026-06-18 12:30:59
+[1,2,3]
+list[0:"alpha",5:"omega"]
+{"name":"xlang","stage":6}
+set{"blue","red","green"}
+CHECK example stdlib_process.xl
+ok
+RUN example stdlib_process.xl
+legacy=ok
+run=ok
+runFile=ok
+pipeline=ok
+pipelineFail=ok
+process=ok
+CHECK example stdlib_query.xl
+ok
+RUN example stdlib_query.xl
+CHECK example stdlib_random.xl
+ok
+RUN example stdlib_random.xl
+global=ok
+seed_replay=ok
+object_replay=ok
+CHECK example stdlib_regex.xl
+ok
+RUN example stdlib_regex.xl
+basic=ok
+match=ok
+lazy=ok
+set=ok
+CHECK example stdlib_string.xl
+ok
+RUN example stdlib_string.xl
+length=ok
+search=ok
+format=ok
+case_trim=ok
+slice=ok
+edit=ok
+split=ok
+arrays=ok
+iteration=ok
+CHECK example stdlib_template.xl
+ok
+RUN example stdlib_template.xl
+basic=ok
+stats=ok
+render=ok
+bracket=ok
+file=ok
+CHECK example stdlib_time.xl
+ok
+RUN example stdlib_time.xl
+construct=ok
+parse=ok
+parts=ok
+add=ok
+diff=ok
+compare=ok
+calendar=ok
+system=ok
+format=ok
+timer=ok
+CHECK example stdlib_url.xl
+ok
+RUN example stdlib_url.xl
+CHECK example stdlib_xson.xl
+ok
+RUN example stdlib_xson.xl
+xson=ok
+Standard library examples check/run ok: 23 files.
+Checking application examples...
+CHECK asset_manifest.xl
+ok
+CHECK cli_args.xl
+ok
+CHECK config_loader.xl
+ok
+CHECK csv_sales_report.xl
+ok
+CHECK file_backup.xl
+ok
+CHECK log_summary.xl
+ok
+CHECK static_site_builder.xl
+ok
+CHECK template_mail_merge.xl
+ok
+CHECK todo_json_store.xl
+ok
+CHECK url_batch_builder.xl
+ok
+Running application examples...
+RUN asset_manifest.xl
+asset manifest ok
+RUN config_loader.xl
+config loader ok
+RUN csv_sales_report.xl
+rows=5;north=200;south=100;west=50;total=350
+RUN file_backup.xl
+file backup ok
+RUN log_summary.xl
+{"info":2,"total":5,"warn":2,"error":1}
+RUN static_site_builder.xl
+static site builder ok
+RUN template_mail_merge.xl
+template mail merge ok
+RUN todo_json_store.xl
+todo json store ok
+RUN url_batch_builder.xl
+https://example.com/app/api/search?keyword=xlang+demo6&page=1
+RUN cli_args.xl
+report:xlang:3
+Application examples ok.
+Checking feature suite...
+CHECK 00_language_basics.xl
+ok
+CHECK 01_expressions_control_flow.xl
+ok
+CHECK 02_functions.xl
+ok
+CHECK 03_types_and_values.xl
+ok
+CHECK 04_containers.xl
+ok
+CHECK 05_generics.xl
+ok
+CHECK 06_function_values_closures.xl
+ok
+CHECK 07_class_custom.xl
+ok
+CHECK 08_c_interop_exports.xl
+ok
+CHECK 09_c_export_abi.xl
+ok
+CHECK 10_errors_docs.xl
+ok
+CHECK 11_concurrency.xl
+ok
+CHECK 12_union.xl
+ok
+Running executable examples...
+RUN 00_language_basics.xl
+RUN 01_expressions_control_flow.xl
+RUN 02_functions.xl
+RUN 03_types_and_values.xl
+RUN 04_containers.xl
+RUN 05_generics.xl
+RUN 06_function_values_closures.xl
+RUN 07_class_custom.xl
+RUN 08_c_interop_exports.xl
+RUN 10_errors_docs.xl
+RUN 11_concurrency.xl
+RUN 12_union.xl
+Re-running concurrency feature example...
+Verifying C export ABI...
+Feature suite ok.
+concurrency ok
+concurrency ok
+concurrency ok
+task api ok
+task api ok
+task api ok
+timeout
+10
+boom
+1
+async generator ok
+async generator ok
+async generator ok
+async generator ok
+temporary files kept: D:\GIT\x-lang\demo6\release\tmp\xl6_dbg_1584_3820863874_0
+DAP smoke ok.
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+Building DEMO6 local XRT object...
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+runtime type ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+oop protocol overload ok
+ok
+100
+15
+29
+ok
+oop static access ok
+ok
+oop protected access ok
+ok
+oop virtual dispatch ok
+ok
+hero
+120
+9
+hero
+120
+9
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+stdlib file async ok
+ok
+tcp=ok
+tcp_async=ok
+udp=ok
+udp_async=ok
+ok
+ok
+ok
+ok
+ok
+class property ok
+ok
+ok
+ok
+ok
+Building DEMO6 local XRT object...
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+future task wait ok
+future task wait ok
+ok

@@ -51,11 +51,11 @@
 #define XL6PG_KW_AUTO                         51
 #define XL6PG_KW_GET                          52
 #define XL6PG_KW_LET                          53
-#define XL6PG_KW_IMPORT                       54
-#define XL6PG_STRING                          55
-#define XL6PG_SEP                             56
-#define XL6PG_KW_FUNC                         57
-#define XL6PG_KW_END                          58
+#define XL6PG_KW_END                          54
+#define XL6PG_KW_IMPORT                       55
+#define XL6PG_STRING                          56
+#define XL6PG_SEP                             57
+#define XL6PG_KW_FUNC                         58
 #define XL6PG_KW_ASYNC                        59
 #define XL6PG_KW_EXTERN                       60
 #define XL6PG_KW_EXPORT                       61

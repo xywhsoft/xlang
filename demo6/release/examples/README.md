@@ -61,20 +61,36 @@
 - `stdlib_path_file.xl`
 - `stdlib_path_file_c.c`：与 `stdlib_path_file.xl` 对照的 C/XRT 路径、文件和目录范例，主回归会比较两者输出。
 - `stdlib_json.xl`
+- `stdlib_json_c.c`: C/XRT counterpart for `stdlib_json.xl`; covers validation, parse/stringify and file read/write.
 - `stdlib_file_async.xl`
 - `stdlib_file_async_c.c`: C/XRT async file counterpart; main regression compares both outputs.
 - `stdlib_xson.xl`
+- `stdlib_xson_c.c`: C/XRT counterpart for `stdlib_xson.xl`; covers strict validation, ignore-unsupported validation, stringify and file read/write.
 - `stdlib_print.xl`
 - `stdlib_codec.xl`
+- `stdlib_codec_c.c`：与 `stdlib_codec.xl` 对照的 C/XRT 编解码范例，覆盖 HEX、Base64、百分号编码和 form-url 编解码。
+- `stdlib_encoding.xl`
+- `stdlib_encoding_c.c`：与 `stdlib_encoding.xl` 对照的 C/XRT 编码转换范例，展示探测、UTF-16 转换和字节视图 API。
 - `stdlib_hash.xl`
+- `stdlib_hash_c.c`：与 `stdlib_hash.xl` 对照的 C/XRT 非加密哈希范例，覆盖 seed 和 32/64 位变体。
 - `stdlib_crypto.xl`
+- `stdlib_crypto_c.c`: C/XRT counterpart for `stdlib_crypto.xl`; covers hash, HMAC, HKDF, AEAD, ChaCha20, Ed25519, X25519, X448 and RSA guard validation.
 - `stdlib_id_net.xl`
+- `stdlib_id_net_c.c`：与 `stdlib_id_net.xl` 对照的 C/XRT XID 和本机网络信息范例。
 - `stdlib_net_tcp_udp.xl`
 - `stdlib_net_tcp_udp_c.c`：与 `stdlib_net_tcp_udp.xl` 对照的 C/XRT TCP/UDP 范例，主回归会比较两者输出。
 - `stdlib_url.xl`
+- `stdlib_url_c.c`：与 `stdlib_url.xl` 对照的 C/XRT URL 解析、解析片段、resolve 和路径归一化范例。
 - `stdlib_query.xl`
+- `stdlib_query_c.c`：与 `stdlib_query.xl` 对照的 C/XRT query/form-url 编解码范例。
+- `stdlib_log.xl`
+- `stdlib_log_c.c`：与 `stdlib_log.xl` 对照的 C/XRT logger 范例，展示默认 logger、独立 `Logger`、文件 appender 和滚动文件。
+- `stdlib_template.xl`
+- `stdlib_template_c.c`：与 `stdlib_template.xl` 对照的 C/XRT template 范例，展示预编译模板、控制流、定界符配置和文件模板渲染。
 - `stdlib_regex.xl`
+- `stdlib_regex_c.c`：与 `stdlib_regex.xl` 对照的 C/XRT 正则库范例，展示懒加载 match object 和 regex set。
 - `stdlib_process.xl`
+- `stdlib_process_c.c`：与 `stdlib_process.xl` 对照的 C/XRT process 库范例，展示结构化执行、pipeline 和长生命周期进程。
 - `stdlib_http_server.xl`
 - `stdlib_http_server_c.c`：与 `stdlib_http_server.xl` 对照的 C/XRT `xweb` HTTP server 范例，展示 GET/POST/ANY 路由和静态文件。
 
@@ -110,8 +126,12 @@
 - `stdlib_time_c.c`：与 `stdlib_time.xl` 对照的 C/XRT 时间库范例，主回归会比较两者输出。
 - `stdlib_random_c.c`：与 `stdlib_random.xl` 对照的 C/XRT 随机库范例，主回归会比较两者输出。
 - `stdlib_buffer_c.c`：与 `stdlib_buffer.xl` 对照的 C/XRT xbuffer 范例，主回归会比较两者输出。
+- `stdlib_encoding_c.c`：与 `stdlib_encoding.xl` 对照的 C/XRT 编码转换范例，主回归会比较两者输出。
 - `stdlib_path_file_c.c`：与 `stdlib_path_file.xl` 对照的 C/XRT 路径、文件和目录范例，主回归会比较两者输出。
 - `stdlib_net_tcp_udp_c.c`：与 `stdlib_net_tcp_udp.xl` 对照的 C/XRT TCP/UDP 范例，主回归会比较两者输出。
+- `stdlib_log_c.c`：与 `stdlib_log.xl` 对照的 C/XRT logger 范例，主回归会比较两者输出。
+- `stdlib_template_c.c`：与 `stdlib_template.xl` 对照的 C/XRT template 范例，主回归会比较两者输出。
+- `stdlib_regex_c.c`：与 `stdlib_regex.xl` 对照的 C/XRT 正则库范例，主回归会比较两者输出。
 - `stdlib_http_server_c.c`：与 `stdlib_http_server.xl` 对照的 C/XRT `xweb` HTTP server 范例，展示 GET/POST/ANY 路由和静态文件。
 
 ## 回归入口

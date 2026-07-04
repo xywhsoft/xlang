@@ -8,6 +8,18 @@ void* xl6_http_server_create(void);
 int64_t xl6_http_server_port(void* server);
 void xl6_http_server_stop(void* server);
 
+typedef struct XL_InitOptions {
+    unsigned int size;
+    unsigned int version;
+    int argc;
+    char** argv;
+    void* reserved;
+} XL_InitOptions;
+
+XL_InitOptions xlInitOptions(int argc, char** argv);
+int xlInit(const XL_InitOptions* options);
+void xlUnit(void);
+
 static int send_all(SOCKET sock, const char* data, int size)
 {
     int sent = 0;
@@ -78,15 +90,22 @@ int main(void)
     void* server;
     int64_t port;
     int ok = 1;
+    XL_InitOptions options;
 
     if ( WSAStartup(MAKEWORD(2, 2), &wsa) != 0 ) {
         return 10;
+    }
+    options = xlInitOptions(0, NULL);
+    if ( !xlInit(&options) ) {
+        WSACleanup();
+        return 9;
     }
 
     server = xl6_http_server_create();
     port = xl6_http_server_port(server);
     if ( port <= 0 || port > 65535 ) {
         xl6_http_server_stop(server);
+        xlUnit();
         WSACleanup();
         return 11;
     }
@@ -128,6 +147,7 @@ int main(void)
     ok = ok && request_once(port, request, "static-ok");
 
     xl6_http_server_stop(server);
+    xlUnit();
     WSACleanup();
     return ok ? 0 : 14;
 }

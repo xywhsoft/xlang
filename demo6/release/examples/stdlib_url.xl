@@ -29,3 +29,5 @@ assert api == "https://example.com/api/list?limit=10", "resolve mismatch"
 
 string clean = url.normalizePath("/app/./data/../index.html")
 assert clean == "/app/index.html", "normalizePath mismatch"
+
+println("url=ok")

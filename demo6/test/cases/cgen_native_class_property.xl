@@ -1,0 +1,36 @@
+class NativeBox
+    native point handle
+
+    extern "native_property_open" create(int value)
+    extern "native_property_close" destroy()
+    extern "native_property_get_value" get value() as int
+    extern "native_property_set_value" let value(int value)
+    extern "native_property_get_at" get at(int index) as int
+    extern "native_property_set_at" let at(int index, int value)
+    extern "native_property_get_cell" get cell(int x, int y) as int
+    extern "native_property_set_cell" let cell(int x, int y, int value)
+end
+
+extern "expect_i64" func expect(int actual, int expected)
+extern "native_property_closed" func closedCount() as int
+
+func exercise()
+    NativeBox box = NativeBox(10)
+    expect(box.value, 10)
+
+    box.value = 20
+    expect(box.value, 20)
+
+    expect(box.at[3], 23)
+    box.at[3] = 40
+    expect(box.value, 43)
+
+    expect(box.cell[2, 4], 67)
+    box.cell[2, 4] = 5
+    expect(box.value, 29)
+
+    expect(closedCount(), 0)
+end
+
+exercise()
+expect(closedCount(), 1)

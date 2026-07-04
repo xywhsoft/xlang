@@ -1,3 +1,7 @@
+bool validOk = xson.valid('{"name":"xlang","level":6,"enabled":true}')
+bool validBad = xson.valid('{"keep":1,"skip":ptr(123),"after":2}')
+bool validIgnored = xson.valid('{"keep":1,"skip":ptr(123),"after":2}', true)
+
 var config = xson.parse('{"name":"xlang","level":6,"enabled":true}')
 
 string compact = xson.stringify(config)
@@ -15,3 +19,12 @@ auto compactText = compact.toString()
 auto prettyText = pretty.toString()
 auto jsonTextCopy = jsonText.toString()
 auto fileTextCopy = fileText.toString()
+
+assert(validOk)
+assert(not validBad)
+assert(validIgnored)
+assert(string.contains(compact, "xlang"))
+assert(string.contains(pretty, "\n"))
+assert(string.contains(jsonText, '"level"'))
+assert(string.contains(fileText, "enabled"))
+println("xson=ok")

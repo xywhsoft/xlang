@@ -4,5 +4,6 @@ class Resource
 end
 
 func make() as Resource
-    return Resource()
+    Resource value = Resource()
+    return value
 end

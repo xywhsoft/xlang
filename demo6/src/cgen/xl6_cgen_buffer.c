@@ -30,6 +30,11 @@ static void xl6CgenEmitBufferRuntime(XL6_Output* out)
     xl6OutputPuts("    return xrtBufferCreate((unsigned int)step);\n", out);
     xl6OutputPuts("}\n\n", out);
 
+    xl6OutputPuts("void* xl6_xrt_buffer_wrap_handle(void* handle)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    return handle;\n", out);
+    xl6OutputPuts("}\n\n", out);
+
     xl6OutputPuts("long long xl6_xrt_buffer_destroy(void* self)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    xrtBufferDestroy((xbuffer)self);\n", out);

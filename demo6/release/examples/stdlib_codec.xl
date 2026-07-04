@@ -7,3 +7,28 @@ assert codec.hexDecode(hex) == text, "hex decode failed"
 auto b64 = codec.base64Encode(text)
 assert b64 == "eGxhbmc=", "base64 encode failed"
 assert codec.base64Decode(b64) == text, "base64 decode failed"
+
+auto escaped = codec.percentEncode("alice bob/ok")
+assert escaped == "alice%20bob%2Fok", "percent encode failed"
+assert codec.percentDecode(escaped) == "alice bob/ok", "percent decode failed"
+
+auto form = codec.formUrlEncode("alice bob/ok")
+assert form == "alice+bob%2Fok", "form url encode failed"
+assert codec.formUrlDecode(form) == "alice bob/ok", "form url decode failed"
+
+Buffer raw = Buffer()
+raw.appendByte(0)
+raw.appendByte(255)
+raw.append("AZ")
+
+assert codec.hexEncodeBytes(raw.data(), c_size(raw.len())) == "00FF415A", "hex bytes encode failed"
+Buffer hexBytes = codec.hexDecodeBytes("00FF415A")
+assert hexBytes.len() == 4, "hex bytes length mismatch"
+assert hexBytes[0] == 0 and hexBytes[1] == 255 and hexBytes[2] == 65 and hexBytes[3] == 90, "hex bytes decode failed"
+
+assert codec.base64EncodeBytes(raw.data(), c_size(raw.len())) == "AP9BWg==", "base64 bytes encode failed"
+Buffer b64Bytes = codec.base64DecodeBytes("AP9BWg==")
+assert b64Bytes.len() == 4, "base64 bytes length mismatch"
+assert b64Bytes[0] == 0 and b64Bytes[1] == 255 and b64Bytes[2] == 65 and b64Bytes[3] == 90, "base64 bytes decode failed"
+
+println("codec=ok")

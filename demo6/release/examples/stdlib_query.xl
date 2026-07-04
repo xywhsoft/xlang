@@ -11,3 +11,5 @@ string decoded = query.decode(encoded)
 assert decoded == "hello world/中文", "query decode mismatch"
 
 assert query.valid(q), "query should be valid"
+
+println("query=ok")

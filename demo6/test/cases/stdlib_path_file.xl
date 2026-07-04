@@ -1,6 +1,47 @@
 extern "expect_i64" func expect(int actual, int expected)
 extern "expect_str" func expectStr(string actual, string expected)
 
+func probeFileStream(string path) as bool
+    File stream = file.open(path, false)
+    if stream.seek(0, file.seekSet) != 0 then
+        return false
+    end
+    if stream.writeText("stream-start") != 12 then
+        return false
+    end
+    if stream.seek(0, file.seekEnd) != 12 then
+        return false
+    end
+    if stream.seek(-6, file.seekCur) != 6 then
+        return false
+    end
+    if stream.write("IO") != 2 then
+        return false
+    end
+    if stream.seek(0, file.seekSet) != 0 then
+        return false
+    end
+    if stream.readText(6) != "stream" then
+        return false
+    end
+    if stream.pos != 6 then
+        return false
+    end
+    if stream.readText() != "IOtart" then
+        return false
+    end
+    if not stream.eof then
+        return false
+    end
+    if stream.seek(6, file.seekSet) != 6 then
+        return false
+    end
+    if not stream.setEOF() then
+        return false
+    end
+    return true
+end
+
 string filePath = "release/tmp/stdlib_file_case.txt"
 string copyPath = "release/tmp/stdlib_file_case.copy.txt"
 string movePath = "release/tmp/stdlib_file_case.move.txt"
@@ -73,11 +114,14 @@ expect(file.size(filePath), 3)
 expect(file.appendText(filePath, "de"), 1)
 expectStr(file.readText(filePath), "abcde")
 expect(file.size(filePath), 5)
+expect(probeFileStream(filePath), 1)
+expectStr(file.readText(filePath), "stream")
+expect(file.size(filePath), 6)
 FileInfo info = file.info(filePath)
 expect(info.exists, 1)
 expect(info.isFile, 1)
 expect(info.isDir, 0)
-expect(info.size, 5)
+expect(info.size, 6)
 expect(info.attr >= 0, 1)
 expect(time.year(info.changeTime) >= 2020, 1)
 expect(file.writeTextAtomic(filePath, "atomic"), 1)

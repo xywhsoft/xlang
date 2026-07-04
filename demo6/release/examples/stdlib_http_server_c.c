@@ -24,6 +24,9 @@ static xwebaction handle_user(xwebrequest* req, xwebresponse* resp, ptr userData
     HttpServerExampleState* state = (HttpServerExampleState*)userData;
     char id[64];
     char name[64];
+    char* idCopy;
+    char* nameCopy;
+    char* cookieCopy;
     int ok;
 
     if ( state ) {
@@ -35,6 +38,16 @@ static xwebaction handle_user(xwebrequest* req, xwebresponse* resp, ptr userData
         xrtWebRequestQueryValue(req, "name", name, sizeof(name), NULL) &&
         strcmp(id, "42") == 0 &&
         strcmp(name, "xlang") == 0;
+    idCopy = xrtWebRequestParamCopy(req, "id");
+    nameCopy = xrtWebRequestQueryValueCopy(req, "name");
+    cookieCopy = xrtWebRequestCookieCopy(req, "sid");
+    ok = ok &&
+         strcmp(idCopy, "42") == 0 &&
+         strcmp(nameCopy, "xlang") == 0 &&
+         strcmp(cookieCopy, "abc") == 0;
+    xrtFree(idCopy);
+    xrtFree(nameCopy);
+    xrtFree(cookieCopy);
 
     return xrtWebResponseText(resp, ok ? "route-get-ok" : "route-get-bad", "text/plain; charset=utf-8") ? XWEB_DONE : XWEB_ERROR;
 }
@@ -76,6 +89,7 @@ static xhttpresponse* request_text(const char* url, const char* method, const ch
     if ( method ) {
         (void)xrtHttpRequestSetMethod(&req, method);
     }
+    (void)xrtHttpRequestSetHeader(&req, "Cookie", "sid=abc");
     if ( body ) {
         (void)xrtHttpRequestSetBodyCopy(&req, body, strlen(body), "text/plain");
     }

@@ -87,6 +87,7 @@ static const char* xl6SemThreadCallResultTypeName(XL6_SemContext* ctx, XL6_AstNo
 static int xl6SemCheckSyncCall(XL6_SemContext* ctx, XL6_AstNode* node);
 static const char* xl6SemSyncCallResultTypeName(XL6_SemContext* ctx, XL6_AstNode* node);
 static int xl6SemTypeCanCopy(XL6_SemContext* ctx, const XL6_AstNode* typeNode);
+static int xl6SemFuncReturnsFreshOnlyValue(XL6_SemContext* ctx, const XL6_AstNode* func);
 static int xl6SemCheckCopyableExpr(XL6_SemContext* ctx, XL6_AstNode* expr, int allowFreshTypeValue, const char* message);
 static int xl6SemIsFutureLikeTypeName(const char* name);
 static int xl6SemFuncReturnsFutureLikeResource(XL6_SemContext* ctx, const XL6_AstNode* func);
@@ -143,6 +144,21 @@ static int xl6SemSymbolIsGlobalValue(const XL6_Symbol* sym)
 static int xl6SemAstHasFlag(const XL6_AstNode* node, unsigned int flag)
 {
     return node != NULL && (node->flags & flag) != 0;
+}
+
+static int xl6SemIsExternClassProperty(const XL6_AstNode* node)
+{
+    return node != NULL &&
+           (node->kind == XL6_AST_GET || node->kind == XL6_AST_LET) &&
+           xl6SemAstHasFlag(node, XL6_AST_FLAG_EXTERN);
+}
+
+static int xl6SemIsNativeBackedExternMember(const XL6_AstNode* node)
+{
+    return node != NULL &&
+           (node->kind == XL6_AST_CUSTOM_EXTERN_SPECIAL ||
+            node->kind == XL6_AST_CUSTOM_EXTERN_FUNC ||
+            xl6SemIsExternClassProperty(node));
 }
 
 static XL6_AstNode* xl6SemFieldDefaultExpr(const XL6_AstNode* field)
@@ -1494,6 +1510,21 @@ static int xl6SemTypeCanCopyDepth(XL6_SemContext* ctx, const XL6_AstNode* typeNo
 static int xl6SemTypeCanCopy(XL6_SemContext* ctx, const XL6_AstNode* typeNode)
 {
     return xl6SemTypeCanCopyDepth(ctx, typeNode, 0);
+}
+
+static int xl6SemTypeRequiresFreshValue(XL6_SemContext* ctx, const XL6_AstNode* typeNode)
+{
+    const XL6_AstNode* concreteType;
+    const XL6_TypeInfo* typeInfo;
+
+    concreteType = xl6SemResolveAliasType(ctx, typeNode);
+    if ( concreteType == NULL || concreteType->text == NULL ) {
+        return 0;
+    }
+    typeInfo = xl6TypeRegistryFind(&ctx->types, concreteType->text);
+    return typeInfo != NULL &&
+           (typeInfo->kind == XL6_TYPE_CLASS || typeInfo->kind == XL6_TYPE_CUSTOM) &&
+           !xl6SemTypeCanCopy(ctx, concreteType);
 }
 
 static int xl6SemTypeCanBoxToVarDepth(XL6_SemContext* ctx, const XL6_AstNode* typeNode, int depth)
@@ -9682,7 +9713,8 @@ static int xl6SemExprIsFreshTypeValue(XL6_SemContext* ctx, const XL6_AstNode* ex
             return func != NULL &&
                    (func->kind == XL6_AST_ASYNC_FUNC ||
                     xl6SemFuncReturnsGenerator(ctx, func) ||
-                    xl6SemFuncReturnsFutureLikeResource(ctx, func));
+                    xl6SemFuncReturnsFutureLikeResource(ctx, func) ||
+                    xl6SemFuncReturnsFreshOnlyValue(ctx, func));
         }
         return 0;
     }
@@ -9691,13 +9723,16 @@ static int xl6SemExprIsFreshTypeValue(XL6_SemContext* ctx, const XL6_AstNode* ex
         return func != NULL &&
                (func->kind == XL6_AST_ASYNC_FUNC ||
                 xl6SemFuncReturnsGenerator(ctx, func) ||
-                xl6SemFuncReturnsFutureLikeResource(ctx, func));
+                xl6SemFuncReturnsFutureLikeResource(ctx, func) ||
+                xl6SemFuncReturnsFreshOnlyValue(ctx, func));
     }
     if ( callee != NULL && callee->kind == XL6_AST_MEMBER ) {
         XL6_AstNode* ownedReturnType = NULL;
         XL6_AstNode* returns = xl6SemCallReturnTypesEx(ctx, (XL6_AstNode*)expr, &ownedReturnType);
         const XL6_AstNode* returnType = returns != NULL && returns->childCount == 1 ? returns->children[0] : NULL;
-        int fresh = returnType != NULL && xl6SemTypeIsFutureLikeResource(ctx, returnType);
+        int fresh = returnType != NULL &&
+                    (xl6SemTypeIsFutureLikeResource(ctx, returnType) ||
+                     xl6SemTypeRequiresFreshValue(ctx, returnType));
         xl6AstFree(ownedReturnType);
         return fresh;
     }
@@ -9715,6 +9750,19 @@ static int xl6SemFuncReturnsFutureLikeResource(XL6_SemContext* ctx, const XL6_As
     return returns != NULL &&
            returns->childCount == 1 &&
            xl6SemTypeIsFutureLikeResource(ctx, returns->children[0]);
+}
+
+static int xl6SemFuncReturnsFreshOnlyValue(XL6_SemContext* ctx, const XL6_AstNode* func)
+{
+    const XL6_AstNode* returns;
+
+    if ( func == NULL || func->childCount <= 2 ) {
+        return 0;
+    }
+    returns = func->children[2];
+    return returns != NULL &&
+           returns->childCount == 1 &&
+           xl6SemTypeRequiresFreshValue(ctx, returns->children[0]);
 }
 
 static int xl6SemCheckCopyableExpr(XL6_SemContext* ctx, XL6_AstNode* expr, int allowFreshTypeValue, const char* message)
@@ -11939,7 +11987,8 @@ static int xl6SemCheckFunc(XL6_SemContext* ctx, XL6_AstNode* node)
                  !(returnType != NULL && xl6SemIsGeneratorTypeName(returnType->text)) &&
                  !xl6SemTypeIsFutureLikeResource(ctx, returns->children[i]) &&
                  returnTypesValid &&
-                 !xl6SemTypeCanCopy(ctx, returns->children[i]) ) {
+                 !xl6SemTypeCanCopy(ctx, returns->children[i]) &&
+                 !xl6SemTypeRequiresFreshValue(ctx, returns->children[i]) ) {
                 xl6SemErrorNode(ctx, returns->children[i], "不可复制类型不能作为返回值类型");
                 ok = 0;
             }
@@ -13284,6 +13333,65 @@ static int xl6SemCheckClassExternFunc(XL6_SemContext* ctx, XL6_AstNode* classNod
     return ok;
 }
 
+static int xl6SemCheckClassExternProperty(XL6_SemContext* ctx, XL6_AstNode* classNode, XL6_AstNode* node)
+{
+    XL6_AstNode* nameNode;
+    XL6_AstNode* params;
+    XL6_AstNode* returns;
+    size_t i;
+    int ok;
+    int propertyParamsOk;
+
+    ok = xl6SemCheckClassNativeExternBase(ctx, classNode, node);
+    propertyParamsOk = 1;
+    nameNode = node->childCount > 0 ? node->children[0] : NULL;
+    params = node->childCount > 1 ? node->children[1] : NULL;
+    returns = node->childCount > 2 ? node->children[2] : NULL;
+
+    if ( nameNode != NULL && xl6SemIsSpecialName(nameNode->text) ) {
+        xl6SemErrorNode(ctx, nameNode, "class native create/destroy must use the special extern declaration form");
+        ok = 0;
+    }
+    if ( !xl6SemCheckParamListOnly(ctx, params, 0) ) {
+        ok = 0;
+    }
+    for ( i = 0; params != NULL && i < params->childCount; ++i ) {
+        XL6_AstNode* param = params->children[i];
+        if ( xl6SemParamIsVararg(param) ) {
+            xl6SemErrorNode(ctx, param, "extern property parameters cannot be vararg");
+            propertyParamsOk = 0;
+            ok = 0;
+        }
+        if ( param != NULL && param->childCount > 1 ) {
+            xl6SemErrorNode(ctx, param, "extern property parameters cannot be optional");
+            propertyParamsOk = 0;
+            ok = 0;
+        }
+    }
+    if ( node->kind == XL6_AST_GET ) {
+        if ( returns == NULL || returns->childCount != 1 ) {
+            xl6SemErrorNode(ctx, node, "extern get property must declare exactly one return type");
+            ok = 0;
+        }
+        if ( returns != NULL && !xl6SemCheckReturnTypes(ctx, returns) ) {
+            ok = 0;
+        }
+    } else {
+        if ( params == NULL || params->childCount == 0 ) {
+            xl6SemErrorNode(ctx, node, "extern let property must declare a value parameter");
+            ok = 0;
+        }
+        if ( returns != NULL && returns->childCount != 0 ) {
+            xl6SemErrorNode(ctx, node, "extern let property cannot declare return types");
+            ok = 0;
+        }
+    }
+    if ( propertyParamsOk && !xl6SemCheckExternCAbi(ctx, node) ) {
+        ok = 0;
+    }
+    return ok;
+}
+
 static int xl6SemCheckClassExportFuncBase(XL6_SemContext* ctx, XL6_AstNode* classNode, XL6_AstNode* node)
 {
     XL6_AstNode* nameNode;
@@ -13904,8 +14012,8 @@ static int xl6SemCheckClassMemberConflicts(XL6_SemContext* ctx, XL6_AstNode* typ
             }
             if ( member != NULL &&
                  other != NULL &&
-                 (member->kind == XL6_AST_CUSTOM_EXTERN_SPECIAL || member->kind == XL6_AST_CUSTOM_EXTERN_FUNC) &&
-                 (other->kind == XL6_AST_CUSTOM_EXTERN_SPECIAL || other->kind == XL6_AST_CUSTOM_EXTERN_FUNC) &&
+                 xl6SemIsNativeBackedExternMember(member) &&
+                 xl6SemIsNativeBackedExternMember(other) &&
                  xl6TextEquals(member->text, other->text) ) {
                 xl6SemErrorNode(ctx, other, "same native-backed class cannot bind the same C symbol twice");
                 ok = 0;
@@ -14310,6 +14418,10 @@ static int xl6SemCheckClass(XL6_SemContext* ctx, XL6_AstNode* node)
                     ok = 0;
                 }
                 if ( !xl6SemCheckProtocolMember(ctx, member) ) {
+                    ok = 0;
+                }
+            } else if ( xl6SemIsExternClassProperty(member) ) {
+                if ( !xl6SemCheckClassExternProperty(ctx, node, member) ) {
                     ok = 0;
                 }
             } else if ( member->kind == XL6_AST_FUNC ||
@@ -14786,6 +14898,13 @@ static int xl6SemCheckReturnStmt(XL6_SemContext* ctx, XL6_AstNode* node)
                     "return 表达式类型和函数返回类型不匹配",
                     ctx->currentReturns->children[i],
                     xl6SemExprStaticTypeName(ctx, node->children[i]));
+                ok = 0;
+            } else if ( xl6SemTypeRequiresFreshValue(ctx, ctx->currentReturns->children[i]) &&
+                        !xl6SemCheckCopyableExpr(
+                            ctx,
+                            node->children[i],
+                            1,
+                            "不可复制类型不能从已有值返回") ) {
                 ok = 0;
             }
         }

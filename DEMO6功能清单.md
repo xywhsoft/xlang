@@ -1069,7 +1069,7 @@ auto now = time.now()
 auto text = file.readText("data.txt")
 ```
 
-当前标准库公开函数为 289 个，另有标准库常量 5 个；全局输出入口 `print` / `println` 也默认进入环境。用户可直接调用的当前列表如下：
+当前标准库公开函数为 325 个，另有标准库常量 28 个；全局输出入口 `print` / `println` 也默认进入环境。用户可直接调用的当前列表如下：
 
 - 全局：`print`、`println`。
 - `math` 常量：`pi`、`tau`、`e`、`nan`、`inf`。
@@ -1080,11 +1080,13 @@ auto text = file.readText("data.txt")
 - `path`：`abs`、`appDir`、`cwd`、`dir`、`exists`、`ext`、`home`、`isAbs`、`join`、`name`、`nameExt`、`normalize`、`random`、`rel`、`sep`、`setCwd`、`temp`、`withExt`、`withName`。
 - `file`：`accessTime`、`appendText`、`appendTextAsync`、`attr`、`changeTime`、`copy`、`copyAsync`、`delete`、`deleteAsync`、`exists`、`info`、`move`、`moveAsync`、`readText`、`readTextAsync`、`rename`、`replace`、`setAttr`、`setSize`、`size`、`touch`、`writeText`、`writeTextAsync`、`writeTextAtomic`。
 - `dir`：`copy`、`create`、`createAll`、`delete`、`dirs`、`exists`、`files`、`list`、`move`。
-- `json`：`parse`、`read`、`stringify`、`write`。
-- `xson`：`parse`、`read`、`stringify`、`write`。
-- `codec`：`base64Decode`、`base64Encode`、`hexDecode`、`hexEncode`。
+- `json`：`parse`、`valid`、`read`、`stringify`、`write`。
+- `xson`：`parse`、`valid`、`read`、`stringify`、`write`。
+- `codec`：`base64Decode`、`base64DecodeBytes`、`base64Encode`、`base64EncodeBytes`、`formUrlDecode`、`formUrlEncode`、`hexDecode`、`hexDecodeBytes`、`hexEncode`、`hexEncodeBytes`、`percentDecode`、`percentEncode`。
+- `encoding` 常量：`autoDetect`、`binary`、`oem`、`utf8`、`utf16`、`utf16BE`、`utf32`、`utf32BE`、`bom`。
+- `encoding`：`charSize`、`isUtf8`、`isUtf8Bytes`、`detect`、`detectBytes`、`toBytes`、`fromBytes`、`convertBytes`、`name`。
 - `hash`：`u32`、`u32WithSeed`、`u64`、`u64WithSeed`、`u64Micro`、`u64MicroWithSeed`、`u64Nano`、`u64NanoWithSeed`。
-- `crypto`：`sha1`、`sha256`、`sha384`、`sha512`、`hmacSha256`、`hmacSha384`、`hmacSha512`、`hkdfSha256`、`hkdfSha384`、`randomHex`、`chacha20Poly1305Encrypt`、`chacha20Poly1305Decrypt`、`aes128GcmEncrypt`、`aes128GcmDecrypt`、`aes256GcmEncrypt`、`aes256GcmDecrypt`。
+- `crypto`：`sha1`、`sha256`、`sha384`、`sha512`、`sha256Stream`、`sha384Stream`、`sha512Stream`、`hmacSha256`、`hmacSha384`、`hmacSha512`、`hkdfSha256`、`hkdfSha384`、`randomHex`、`chacha20Encrypt`、`chacha20Decrypt`、`chacha20Poly1305Encrypt`、`chacha20Poly1305Decrypt`、`aes128GcmEncrypt`、`aes128GcmDecrypt`、`aes256GcmEncrypt`、`aes256GcmDecrypt`、`ed25519Keypair`、`ed25519PublicKey`、`ed25519Sign`、`ed25519Verify`、`x25519Keypair`、`x25519SharedSecret`、`x448Keypair`、`x448SharedSecret`、`rsaPssVerify`、`rsaPkcs1Verify`。
 - `id`：`xid`。
 - `net`：`localIP`、`localMAC`、`localName`。
 - `tcp`：`connect`、`connectAsync`、`listen`。
@@ -1093,7 +1095,10 @@ auto text = file.readText("data.txt")
 - `query`：`append`、`decode`、`encode`、`pair`、`valid`。
 - `regex`：`find`、`isMatch`。
 - `process`：`exec`、`exitCode`、`success`。
-- `http.server`：`create`、`get`、`post`、`any`、`static`、`destroy`、`port`、`start`、`stop`。
+- `log` 常量：`traceLevel`、`debugLevel`、`infoLevel`、`warnLevel`、`errorLevel`、`fatalLevel`、`offLevel`、`textFormat`、`simpleFormat`、`jsonFormat`。
+- `log`：`create`、`default`、`setLevel`、`getLevel`、`levelName`、`addConsole`、`addFile`、`addRollingFile`、`write`、`trace`、`debug`、`info`、`warn`、`error`、`fatal`、`flush`。
+- `template`：`compile`、`render`、`renderFile`；预编译对象使用 `Template`，支持 `render`、`nodeCount`、`exprCount`、`argCount`、`stringPoolSize`。
+- `http.server`：`create`、`get`、`post`、`any`、`getRequest`、`postRequest`、`anyRequest`、`static`、`destroy`、`port`、`start`、`stop`、`mimeByPath`；对象化路由使用 `HttpRequest`、`HttpResponse`。
 
 常用默认参数：
 - `string.compare(left, right, ignoreCase = false)`、`string.equals(...)`、`string.contains(...)`、`string.indexOf(...)`、`string.lastIndexOf(...)`、`string.count(...)`、`string.startsWith(...)`、`string.endsWith(...)`、`string.like(...)`。
@@ -1101,11 +1106,15 @@ auto text = file.readText("data.txt")
 - `string.join(values, sep = "")`、`string.padLeft(text, width, pad = " ")`、`string.padRight(text, width, pad = " ")`、`string.padCenter(text, width, pad = " ")`、`string.remove(text, part, ignoreCase = false)`。
 - `time.fromDateTime(year, month, day, hour = 0, minute = 0, second = 0)`、`time.firstDayOfWeek(value, startDay = 1)`、`time.lastDayOfWeek(value, startDay = 1)`、`time.format(value, format = 0)`。
 - `random.seed(seed, seq)`、`random.string(len = 16, chars = "")`、`path.join(first, second, third = "", fourth = "")`、`path.random(head = "", foot = "", len = 12)`。
-- `file.readText(path, charset = 65001)`、`file.writeText(path, text, charset = 65001)`、`file.writeTextAtomic(path, text, charset = 65001)`、`file.appendText(path, text, charset = 65001)`。
+- `file.readText(path, charset = 65001)`、`file.writeText(path, text, charset = 65001)`、`file.writeTextAtomic(path, text, charset = 65001)`、`file.appendText(path, text, charset = 65001)`、`file.open(path, readOnly = false, charset = 65001)`。
 - `file.copy(source, target, overwrite = true)`、`file.move(source, target, overwrite = true)`、`file.rename(source, target, overwrite = false)`。
 - `dir.list(path, recursive = false)`、`dir.files(path, recursive = false)`、`dir.dirs(path, recursive = false)`、`dir.count(path, recursive = false)`、`dir.size(path, recursive = true)`、`dir.glob(path, pattern = "*", recursive = false)`、`dir.entries(path, recursive = false)`、`dir.match(path, pattern = "*", recursive = false)`、`dir.walk(path, pattern = "*")`。
-- `json.stringify(value, pretty = false)`、`json.write(path, value, pretty = false)`、`xson.stringify(value, pretty = false)`、`process.exec(command, timeoutMs = 0)`。
-- `http.server.create(port = 0)` 创建本机 HTTP server 句柄；`http.server.get/post/any(server, pattern, handler)` 注册路由；`pattern` 支持静态段、`{id}` 变量段和尾部 `*` 通配符；`http.server.static(server, mount, root)` 挂载静态文件目录。
+- `json.stringify(value, pretty = false)`、`json.write(path, value, pretty = false)`、`xson.stringify(value, pretty = false)`、`xson.valid(text, ignoreUnsupported = false)`。
+- `encoding.detect(text, withBom = true)`、`encoding.detectBytes(data, size, withBom = true)`、`encoding.toBytes(text, toCharset = encoding.utf8)`、`encoding.fromBytes(data, size, fromCharset = encoding.utf8)`。
+- `process.exec(command, timeoutMs = 0)`、`process.success(command, timeoutMs = 0)`、`process.exitCode(command, timeoutMs = 0)` 保留 shell 便捷路径；`process.run(command, timeoutMs = 0)`、`process.runFile(program, args = [], timeoutMs = 0)` 返回结构化 `ProcessResult`；`process.cmd(program, args = [])`、`process.shell(command)` 创建 pipeline 阶段；`process.pipeline(commands, timeoutMs = 0)` 返回 `PipelineResult`；`process.start(command)`、`process.startFile(program, args = [])` 返回可交互 `Process`。
+- `log.create(name = "xlang")` 创建独立 `Logger`；`log.default()` 包装默认 logger；`log.addConsole(level = log.traceLevel, color = true, format = log.textFormat)`、`log.addFile(path, level = log.infoLevel, format = log.textFormat)`、`log.addRollingFile(path, maxSize = 10485760, maxBackup = 5, level = log.infoLevel, format = log.textFormat)` 添加输出目标；`log.trace/debug/info/warn/error/fatal(message)` 写入默认 logger。
+- `template.compile(text, bracket = "{}")` 编译模板文本；`template.render(text, data = null, bracket = "{}")` 一次性渲染模板；`template.renderFile(path, data = null, bracket = "{}")` 通过 XRT UTF-8 文件层读取模板并渲染；`Template(text, bracket).render(data)` 适合重复渲染。
+- `http.server.create(port = 0)` 创建本机 HTTP server 句柄；`http.server.get/post/any(server, pattern, handler)` 注册简化文本路由，handler 签名为 `func(string, string, string, string) as string`；`http.server.getRequest/postRequest/anyRequest(server, pattern, handler)` 注册对象化路由，handler 签名为 `func(point, point) as bool`，函数内用 `HttpRequest(reqHandle)` 和 `HttpResponse(respHandle)` 访问请求与响应；`pattern` 支持静态段、`{id}` 变量段和尾部 `*` 通配符；`http.server.static(server, mount, root)` 挂载静态文件目录；`http.server.mimeByPath(path)` 根据扩展名返回 Content-Type。
 
 文件信息结构：
 
@@ -1115,6 +1124,26 @@ println(info.path, info.exists, info.isFile, info.isDir, info.size)
 ```
 
 `FileInfo` 字段为：`path`、`exists`、`isFile`、`isDir`、`size`、`attr`、`accessTime`、`changeTime`。
+
+流式文件对象：
+
+```xlang
+File f = file.open("data.txt", false)
+f.seek(0, file.seekSet)
+f.writeText("hello")
+f.seek(0, file.seekEnd)
+f.seek(-5, file.seekCur)
+string text = f.readText()
+println(f.pos, f.size, f.eof, text)
+```
+
+- `File` 是 native-backed class，底层为 XRT `xfile`，对象销毁时自动关闭文件句柄。
+- `file.seekSet`、`file.seekCur`、`file.seekEnd` 分别表示从文件开头、当前位置、文件末尾定位。
+- `f.seek(offset, whence = file.seekSet)` 返回移动后的字节位置。
+- `f.pos` 返回当前游标位置，`f.size` 返回文件末尾位置，`f.eof` 表示游标是否到达文件末尾。
+- `f.readText(size = -1)` 读取指定字节数；`-1` 表示从当前游标读取到文件末尾。
+- `f.writeText(text)` / `f.write(text)` 从当前游标写入 UTF-8 文本，返回写入字节数。
+- `f.setEOF()` 将文件截断到当前游标位置。
 
 目录结构化项：
 
@@ -1183,7 +1212,8 @@ UdpPacket packet = UdpPacket(sock.recv(3000))
 - `file.*Async` 返回 `future<string>` 或 `future<bool>`，当前覆盖 read/write/append/copy/move/delete 的 UTF-8 文本和基础文件操作。
 - `string.len(text)` 按 UTF-8 字符数量计数，`string.byteLen(text)` 才是原始字节长度。
 - `for c in "1234你好"` 默认按 UTF-8 字符迭代，双目标 `for i, c in text` 的 `i` 为 0 基字符索引；需要逐字节处理时使用 `string.bytes(text)`。
-- `crypto` 当前是文本/HEX 级 API：输入字符串按 UTF-8 原始字节处理；摘要、HMAC、HKDF、随机字节和 AEAD 密文返回大写 HEX；AEAD 解密校验失败返回空字符串。
+- `encoding` 负责字符集探测和 UTF-8/UTF-16/UTF-32 字节转换；普通文本返回 `string`，非 UTF-8 字节结果返回不可复制的 `Buffer`。`encoding.fromBytes`、`encoding.detectBytes` 等字节视图函数接收 `point data, c_size size`，常见写法是 `encoding.fromBytes(buf.data(), c_size(buf.len()), encoding.utf16)`。
+- `crypto` 当前是文本/HEX 级 API：输入字符串按 UTF-8 原始字节处理；摘要、HMAC、HKDF、随机字节、ChaCha20 密文、AEAD 密文、Ed25519/X25519/X448 密钥和签名统一使用大写 HEX；AEAD 解密校验失败返回空字符串，签名/密钥参数无效时返回空字符串或 `false`。
 - XRT TLS 状态机不直接放入 `crypto` 命名空间，后续应作为 `net.tls`、HTTP client 或 native-backed class 形式设计。
 
 ## 15. C 混编、ABI 与导出
@@ -1356,15 +1386,15 @@ void xlClearLastError(XL_Context* ctx);
 - 负例诊断产物基线为 428 个。
 - 负例诊断内容断言基线为 429 条。
 - package/extlib fixture 基线为 48 个。
-- 标准库测试基线为 24 个。
-- 标准库公开函数当前为 289 个，标准库常量当前为 5 个。
+- 标准库测试基线为 26 个。
+- 标准库公开函数当前为 325 个，标准库常量当前为 28 个。
 - DLL API 基线为 62 个。
 - 风险总账基线为 21 条，当前 21 条已收口，0 条开放。
 
 当前范例资产：
 
-- `demo6/release/examples` 下有 104 个 `.xl` 范例。
-- `demo6/release/examples` 下有 124 个 C/H 宿主、混编和辅助 fixture 文件。
+- `demo6/release/examples` 下有 120 个 `.xl` 范例。
+- `demo6/release/examples` 下有 25 个 C/H 宿主、混编和辅助 fixture 文件。
 - 包含根目录范例。
 - 包含 tutorial 范例。
 - 包含 feature suite 范例。

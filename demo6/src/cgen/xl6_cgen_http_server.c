@@ -51,6 +51,7 @@ static void xl6CgenEmitHttpServerRuntime(XL6_Output* out)
 
     xl6OutputPuts("typedef struct XL6_Http_Route {\n", out);
     xl6OutputPuts("    XL6_Function handler;\n", out);
+    xl6OutputPuts("    int objectHandler;\n", out);
     xl6OutputPuts("    struct XL6_Http_Route* next;\n", out);
     xl6OutputPuts("} XL6_Http_Route;\n\n", out);
 
@@ -62,6 +63,7 @@ static void xl6CgenEmitHttpServerRuntime(XL6_Output* out)
 
     xl6OutputPuts("void* xrtMalloc(size_t iSize);\n", out);
     xl6OutputPuts("void xrtFree(void* p);\n", out);
+    xl6OutputPuts("char* xrtCopyStr(const char* sText, size_t iSize);\n", out);
     xl6OutputPuts("xnet_result xrtNetAddrParse(xnetaddr* pAddr, const char* sIP, uint16_t iPort);\n", out);
     xl6OutputPuts("void xrtWebConfigInit(xwebconfig* pCfg);\n", out);
     xl6OutputPuts("void xrtWebStaticConfigInit(xwebstaticconfig* pCfg);\n", out);
@@ -73,12 +75,27 @@ static void xl6CgenEmitHttpServerRuntime(XL6_Output* out)
     xl6OutputPuts("bool xrtWebServerRoute(xwebserver* pServer, uint32_t iMethodMask, const char* sPattern, xwebhandler pHandler, void* pUserData);\n", out);
     xl6OutputPuts("bool xrtWebServerStatic(xwebserver* pServer, const char* sMount, const char* sRoot, const xwebstaticconfig* pCfg);\n", out);
     xl6OutputPuts("const char* xrtWebRequestMethod(const xwebrequest* pReq);\n", out);
+    xl6OutputPuts("char* xrtWebRequestMethodCopy(const xwebrequest* pReq);\n", out);
     xl6OutputPuts("const char* xrtWebRequestPath(const xwebrequest* pReq);\n", out);
+    xl6OutputPuts("char* xrtWebRequestPathCopy(const xwebrequest* pReq);\n", out);
     xl6OutputPuts("const char* xrtWebRequestQuery(const xwebrequest* pReq);\n", out);
+    xl6OutputPuts("char* xrtWebRequestQueryCopy(const xwebrequest* pReq);\n", out);
+    xl6OutputPuts("const char* xrtWebRequestHeader(const xwebrequest* pReq, const char* sName);\n", out);
+    xl6OutputPuts("char* xrtWebRequestHeaderCopy(const xwebrequest* pReq, const char* sName);\n", out);
     xl6OutputPuts("const void* xrtWebRequestBody(const xwebrequest* pReq, size_t* pLen);\n", out);
+    xl6OutputPuts("char* xrtWebRequestBodyTextCopy(const xwebrequest* pReq);\n", out);
+    xl6OutputPuts("char* xrtWebRequestParamCopy(const xwebrequest* pReq, const char* sName);\n", out);
+    xl6OutputPuts("char* xrtWebRequestQueryValueCopy(const xwebrequest* pReq, const char* sName);\n", out);
+    xl6OutputPuts("char* xrtWebRequestCookieCopy(const xwebrequest* pReq, const char* sName);\n", out);
     xl6OutputPuts("void xrtWebResponseStatus(xwebresponse* pResp, uint32_t iStatusCode, const char* sReason);\n", out);
     xl6OutputPuts("bool xrtWebResponseSetHeader(xwebresponse* pResp, const char* sName, const char* sValue);\n", out);
+    xl6OutputPuts("bool xrtWebResponseAddHeader(xwebresponse* pResp, const char* sName, const char* sValue);\n", out);
     xl6OutputPuts("bool xrtWebResponseText(xwebresponse* pResp, const char* sText, const char* sContentType);\n\n", out);
+    xl6OutputPuts("bool xrtWebResponseJsonText(xwebresponse* pResp, const char* sText);\n", out);
+    xl6OutputPuts("bool xrtWebResponseBody(xwebresponse* pResp, const void* pData, size_t iLen, const char* sContentType);\n", out);
+    xl6OutputPuts("bool xrtWebResponseFile(xwebresponse* pResp, const char* sFilePath, size_t iChunkSize);\n", out);
+    xl6OutputPuts("bool xrtWebResponseRedirect(xwebresponse* pResp, const char* sURL, uint32_t iStatusCode);\n", out);
+    xl6OutputPuts("const char* xrtWebMimeByPath(const char* sPath);\n\n", out);
 
     xl6OutputPuts("static void xl6_http_server_retain_function(XL6_Function* fn)\n", out);
     xl6OutputPuts("{\n", out);
@@ -124,6 +141,130 @@ static void xl6CgenEmitHttpServerRuntime(XL6_Output* out)
     xl6OutputPuts("    return XL6_XWEB_DONE;\n", out);
     xl6OutputPuts("}\n\n", out);
 
+    xl6OutputPuts("static xwebaction xl6_http_server_on_route_object(xwebrequest* req, xwebresponse* resp, void* userData)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    XL6_Http_Route* route = (XL6_Http_Route*)userData;\n", out);
+    xl6OutputPuts("    xvalue result;\n", out);
+    xl6OutputPuts("    int ok;\n", out);
+    xl6OutputPuts("    if ( route == 0 || req == 0 || resp == 0 || (route->handler.invoke_var == 0 && route->handler.invoke_xcall == 0) ) {\n", out);
+    xl6OutputPuts("        if ( resp != 0 ) { xrtWebResponseStatus(resp, 500u, 0); (void)xrtWebResponseText(resp, \"\", \"text/plain; charset=utf-8\"); }\n", out);
+    xl6OutputPuts("        return XL6_XWEB_DONE;\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    result = xl6_function_call_var(route->handler, 2, xvoCreatePoint(req), xvoCreatePoint(resp));\n", out);
+    xl6OutputPuts("    ok = result != 0 && xvoGetBool(result) ? 1 : 0;\n", out);
+    xl6OutputPuts("    if ( result != 0 ) { xvoUnref(result); }\n", out);
+    xl6OutputPuts("    return ok ? XL6_XWEB_DONE : XL6_XWEB_ERROR;\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("void* xl6_xrt_http_request_wrap(void* handle)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    return handle;\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("void* xl6_xrt_http_response_wrap(void* handle)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    return handle;\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("void* xl6_xrt_http_request_method(void* req)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    return xrtWebRequestMethodCopy((const xwebrequest*)req);\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("void* xl6_xrt_http_request_path(void* req)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    return xrtWebRequestPathCopy((const xwebrequest*)req);\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("void* xl6_xrt_http_request_query(void* req)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    return xrtWebRequestQueryCopy((const xwebrequest*)req);\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("void* xl6_xrt_http_request_header(void* req, const char* name)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    return xrtWebRequestHeaderCopy((const xwebrequest*)req, name);\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("void* xl6_xrt_http_request_param(void* req, const char* name)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    return xrtWebRequestParamCopy((const xwebrequest*)req, name);\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("void* xl6_xrt_http_request_query_value(void* req, const char* name)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    return xrtWebRequestQueryValueCopy((const xwebrequest*)req, name);\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("void* xl6_xrt_http_request_cookie(void* req, const char* name)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    return xrtWebRequestCookieCopy((const xwebrequest*)req, name);\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("void* xl6_xrt_http_request_body_text(void* req)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    return xrtWebRequestBodyTextCopy((const xwebrequest*)req);\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("void* xl6_xrt_http_request_body_data(void* req)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    size_t len = 0u;\n", out);
+    xl6OutputPuts("    return (void*)xrtWebRequestBody((const xwebrequest*)req, &len);\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("long long xl6_xrt_http_request_body_size(void* req)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    size_t len = 0u;\n", out);
+    xl6OutputPuts("    (void)xrtWebRequestBody((const xwebrequest*)req, &len);\n", out);
+    xl6OutputPuts("    return (long long)len;\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("void xl6_xrt_http_response_status(void* resp, long long code, const char* reason)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    if ( code < 100 || code > 999 ) { code = 500; }\n", out);
+    xl6OutputPuts("    xrtWebResponseStatus((xwebresponse*)resp, (uint32_t)code, reason);\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("int xl6_xrt_http_response_header(void* resp, const char* name, const char* value)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    return xrtWebResponseSetHeader((xwebresponse*)resp, name, value);\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("int xl6_xrt_http_response_add_header(void* resp, const char* name, const char* value)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    return xrtWebResponseAddHeader((xwebresponse*)resp, name, value);\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("int xl6_xrt_http_response_text(void* resp, const char* text, const char* contentType)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    return xrtWebResponseText((xwebresponse*)resp, text, contentType);\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("int xl6_xrt_http_response_json_text(void* resp, const char* text)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    return xrtWebResponseJsonText((xwebresponse*)resp, text);\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("int xl6_xrt_http_response_body(void* resp, void* data, size_t size, const char* contentType)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    return xrtWebResponseBody((xwebresponse*)resp, data, size, contentType);\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("int xl6_xrt_http_response_file(void* resp, const char* path, size_t chunkSize)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    return xrtWebResponseFile((xwebresponse*)resp, path, chunkSize);\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("int xl6_xrt_http_response_redirect(void* resp, const char* url, long long code)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    return xrtWebResponseRedirect((xwebresponse*)resp, url, (uint32_t)code);\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("void* xl6_xrt_http_mime_by_path(const char* path)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    return xrtCopyStr((char*)xrtWebMimeByPath(path), 0);\n", out);
+    xl6OutputPuts("}\n\n", out);
+
     xl6OutputPuts("void* xl6_xrt_http_server_create(int port)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    XL6_Http_Server* self;\n", out);
@@ -139,7 +280,7 @@ static void xl6CgenEmitHttpServerRuntime(XL6_Output* out)
     xl6OutputPuts("    return self;\n", out);
     xl6OutputPuts("}\n\n", out);
 
-    xl6OutputPuts("static bool xl6_xrt_http_server_add_route(void* handle, uint32_t methodMask, const char* pattern, XL6_Function handler)\n", out);
+    xl6OutputPuts("static bool xl6_xrt_http_server_add_route(void* handle, uint32_t methodMask, const char* pattern, XL6_Function handler, int objectHandler)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    XL6_Http_Server* self = (XL6_Http_Server*)handle;\n", out);
     xl6OutputPuts("    XL6_Http_Route* route;\n", out);
@@ -148,8 +289,9 @@ static void xl6CgenEmitHttpServerRuntime(XL6_Output* out)
     xl6OutputPuts("    if ( route == 0 ) { return false; }\n", out);
     xl6OutputPuts("    memset(route, 0, sizeof(*route));\n", out);
     xl6OutputPuts("    route->handler = handler;\n", out);
+    xl6OutputPuts("    route->objectHandler = objectHandler;\n", out);
     xl6OutputPuts("    xl6_http_server_retain_function(&route->handler);\n", out);
-    xl6OutputPuts("    if ( !xrtWebServerRoute(self->server, methodMask, pattern, xl6_http_server_on_route, route) ) {\n", out);
+    xl6OutputPuts("    if ( !xrtWebServerRoute(self->server, methodMask, pattern, objectHandler ? xl6_http_server_on_route_object : xl6_http_server_on_route, route) ) {\n", out);
     xl6OutputPuts("        xl6_http_server_release_function(&route->handler);\n", out);
     xl6OutputPuts("        xrtFree(route);\n", out);
     xl6OutputPuts("        return false;\n", out);
@@ -161,17 +303,32 @@ static void xl6CgenEmitHttpServerRuntime(XL6_Output* out)
 
     xl6OutputPuts("bool xl6_xrt_http_server_get(void* handle, const char* pattern, XL6_Function handler)\n", out);
     xl6OutputPuts("{\n", out);
-    xl6OutputPuts("    return xl6_xrt_http_server_add_route(handle, XL6_XWEB_METHOD_GET, pattern, handler);\n", out);
+    xl6OutputPuts("    return xl6_xrt_http_server_add_route(handle, XL6_XWEB_METHOD_GET, pattern, handler, 0);\n", out);
     xl6OutputPuts("}\n\n", out);
 
     xl6OutputPuts("bool xl6_xrt_http_server_post(void* handle, const char* pattern, XL6_Function handler)\n", out);
     xl6OutputPuts("{\n", out);
-    xl6OutputPuts("    return xl6_xrt_http_server_add_route(handle, XL6_XWEB_METHOD_POST, pattern, handler);\n", out);
+    xl6OutputPuts("    return xl6_xrt_http_server_add_route(handle, XL6_XWEB_METHOD_POST, pattern, handler, 0);\n", out);
     xl6OutputPuts("}\n\n", out);
 
     xl6OutputPuts("bool xl6_xrt_http_server_any(void* handle, const char* pattern, XL6_Function handler)\n", out);
     xl6OutputPuts("{\n", out);
-    xl6OutputPuts("    return xl6_xrt_http_server_add_route(handle, XL6_XWEB_METHOD_ANY, pattern, handler);\n", out);
+    xl6OutputPuts("    return xl6_xrt_http_server_add_route(handle, XL6_XWEB_METHOD_ANY, pattern, handler, 0);\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("bool xl6_xrt_http_server_get_request(void* handle, const char* pattern, XL6_Function handler)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    return xl6_xrt_http_server_add_route(handle, XL6_XWEB_METHOD_GET, pattern, handler, 1);\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("bool xl6_xrt_http_server_post_request(void* handle, const char* pattern, XL6_Function handler)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    return xl6_xrt_http_server_add_route(handle, XL6_XWEB_METHOD_POST, pattern, handler, 1);\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("bool xl6_xrt_http_server_any_request(void* handle, const char* pattern, XL6_Function handler)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    return xl6_xrt_http_server_add_route(handle, XL6_XWEB_METHOD_ANY, pattern, handler, 1);\n", out);
     xl6OutputPuts("}\n\n", out);
 
     xl6OutputPuts("bool xl6_xrt_http_server_static(void* handle, const char* mount, const char* root)\n", out);

@@ -1,0 +1,5 @@
+class BadNativeProperty
+    native point handle
+    extern "bad_value" func value() as int
+    extern "bad_value" get count() as int
+end

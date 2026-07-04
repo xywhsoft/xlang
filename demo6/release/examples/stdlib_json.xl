@@ -1,5 +1,8 @@
 string filePath = "release/tmp/example_stdlib_json.json"
 
+bool validOk = json.valid('{"name":"xlang","stage":6}')
+bool validBad = json.valid('{"name":')
+
 var values = json.parse("[1,2,3]")
 string compact = json.stringify(values)
 string pretty = json.stringify(values, pretty = true)
@@ -18,3 +21,13 @@ auto objectJsonText = objectText.toString()
 auto writtenText = written.toString()
 auto loadedJsonText = loadedText.toString()
 auto deletedText = deleted.toString()
+
+assert(validOk)
+assert(not validBad)
+assert(compact == "[1,2,3]")
+assert(string.contains(pretty, "\n"))
+assert(string.contains(objectText, '"xlang"'))
+assert(written)
+assert(string.contains(loadedText, '"stage"'))
+assert(deleted)
+println("json=ok")

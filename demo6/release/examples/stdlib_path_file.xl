@@ -12,6 +12,47 @@ string movePath = "release/tmp/example_stdlib_file.move.txt"
 string renamePath = "release/tmp/example_stdlib_file.renamed.txt"
 string replacePath = "release/tmp/example_stdlib_file.replace.txt"
 
+func probeFileStream(string path) as bool
+    File stream = file.open(path, false)
+    if stream.seek(0, file.seekSet) != 0 then
+        return false
+    end
+    if stream.writeText("stream-start") != 12 then
+        return false
+    end
+    if stream.seek(0, file.seekEnd) != 12 then
+        return false
+    end
+    if stream.seek(-6, file.seekCur) != 6 then
+        return false
+    end
+    if stream.write("IO") != 2 then
+        return false
+    end
+    if stream.seek(0, file.seekSet) != 0 then
+        return false
+    end
+    if stream.readText(6) != "stream" then
+        return false
+    end
+    if stream.pos != 6 then
+        return false
+    end
+    if stream.readText() != "IOtart" then
+        return false
+    end
+    if not stream.eof then
+        return false
+    end
+    if stream.seek(6, file.seekSet) != 6 then
+        return false
+    end
+    if not stream.setEOF() then
+        return false
+    end
+    return true
+end
+
 file.delete(filePath)
 file.delete(copyPath)
 file.delete(movePath)
@@ -62,6 +103,9 @@ bool attrSaved = file.setAttr(filePath, attr)
 time accessTime = file.accessTime(filePath)
 time changeTime = file.changeTime(filePath)
 FileInfo info = file.info(filePath)
+bool streamOk = probeFileStream(filePath)
+string streamText = file.readText(filePath)
+int streamSize = file.size(filePath)
 bool atomicWritten = file.writeTextAtomic(filePath, "atomic")
 bool renamed = file.rename(filePath, renamePath)
 bool replaceSeed = file.writeText(replacePath, "old")
@@ -151,6 +195,9 @@ auto accessYearText = time.year(accessTime).toString()
 auto changeYearText = time.year(changeTime).toString()
 auto infoSizeText = info.size.toString()
 auto infoIsFileText = info.isFile.toString()
+auto streamOkText = streamOk.toString()
+auto streamTextText = streamText.toString()
+auto streamSizeText = streamSize.toString()
 auto atomicWrittenText = atomicWritten.toString()
 auto renamedText = renamed.toString()
 auto replaceSeedText = replaceSeed.toString()
@@ -223,6 +270,9 @@ assert(info.exists)
 assert(info.isFile)
 assert(not info.isDir)
 assert(info.size == 5)
+assert(streamOk)
+assert(streamText == "stream")
+assert(streamSize == 6)
 assert(atomicWritten)
 assert(renamed)
 assert(replaceSeed)

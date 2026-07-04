@@ -620,7 +620,7 @@ static void xl6CgenClassMethods(XL6_CgenContext* ctx, const XL6_AstNode* classNo
         if ( member == NULL ) {
             continue;
         }
-        if ( member->kind == XL6_AST_CUSTOM_EXTERN_FUNC ) {
+        if ( member->kind == XL6_AST_CUSTOM_EXTERN_FUNC || xl6CgenIsExternClassProperty(member) ) {
             xl6CgenClassExternFunc(ctx, classNode, member);
         } else if ( member->kind == XL6_AST_CUSTOM_EXTERN_SPECIAL ) {
             if ( xl6CTextEquals(xl6CgenCallableName(member), "destroy") ) {

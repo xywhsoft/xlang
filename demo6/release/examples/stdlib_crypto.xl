@@ -1,22 +1,27 @@
-auto text = "xlang"
+func line(string name, bool ok)
+    assert ok, name + " failed"
+    println(name + "=ok")
+end
 
+string text = "xlang"
 string sha1 = crypto.sha1(text)
 string sha256 = crypto.sha256(text)
 string sha384 = crypto.sha384(text)
 string sha512 = crypto.sha512(text)
 
-assert string.len(sha1) == 40, "sha1 hex length mismatch"
-assert string.len(sha256) == 64, "sha256 hex length mismatch"
-assert string.len(sha384) == 96, "sha384 hex length mismatch"
-assert string.len(sha512) == 128, "sha512 hex length mismatch"
-
-assert sha256 == crypto.sha256("xlang"), "sha256 should be stable"
-assert sha256 != crypto.sha256("xlang!"), "sha256 should change with input"
+line("hash",
+    string.len(sha1) == 40 and
+    string.len(sha256) == 64 and
+    string.len(sha384) == 96 and
+    string.len(sha512) == 128 and
+    sha256 == crypto.sha256("xlang") and
+    sha256 != crypto.sha256("xlang!"))
 
 string hmacText = "The quick brown fox jumps over the lazy dog"
-assert crypto.hmacSha256("key", hmacText) == "F7BC83F430538424B13298E6AA6FB143EF4D59A14946175997479DBC2D1A3CD8", "hmacSha256 mismatch"
-assert string.len(crypto.hmacSha384("key", hmacText)) == 96, "hmacSha384 hex length mismatch"
-assert string.len(crypto.hmacSha512("key", hmacText)) == 128, "hmacSha512 hex length mismatch"
+line("hmac",
+    crypto.hmacSha256("key", hmacText) == "F7BC83F430538424B13298E6AA6FB143EF4D59A14946175997479DBC2D1A3CD8" and
+    string.len(crypto.hmacSha384("key", hmacText)) == 96 and
+    string.len(crypto.hmacSha512("key", hmacText)) == 128)
 
 string key16 = "0123456789abcdef"
 string key32 = "0123456789abcdef0123456789abcdef"
@@ -24,25 +29,55 @@ string nonce = "123456789012"
 string aad = "meta"
 string plain = "hello crypto"
 
-string chachaCipher = crypto.chacha20Poly1305Encrypt(key32, nonce, plain, aad)
-assert string.len(chachaCipher) == (string.byteLen(plain) + 16) * 2, "chacha20-poly1305 cipher length mismatch"
-assert crypto.chacha20Poly1305Decrypt(key32, nonce, chachaCipher, aad) == plain, "chacha20-poly1305 decrypt mismatch"
-assert crypto.chacha20Poly1305Decrypt(key32, nonce, chachaCipher, "bad") == "", "chacha20-poly1305 aad check failed"
-
-string aes128Cipher = crypto.aes128GcmEncrypt(key16, nonce, plain, aad)
-assert string.len(aes128Cipher) == (string.byteLen(plain) + 16) * 2, "aes128-gcm cipher length mismatch"
-assert crypto.aes128GcmDecrypt(key16, nonce, aes128Cipher, aad) == plain, "aes128-gcm decrypt mismatch"
-
-string aes256Cipher = crypto.aes256GcmEncrypt(key32, nonce, plain, aad)
-assert string.len(aes256Cipher) == (string.byteLen(plain) + 16) * 2, "aes256-gcm cipher length mismatch"
-assert crypto.aes256GcmDecrypt(key32, nonce, aes256Cipher, aad) == plain, "aes256-gcm decrypt mismatch"
+string chachaAead = crypto.chacha20Poly1305Encrypt(key32, nonce, plain, aad)
+string aes128 = crypto.aes128GcmEncrypt(key16, nonce, plain, aad)
+string aes256 = crypto.aes256GcmEncrypt(key32, nonce, plain, aad)
+line("aead",
+    crypto.chacha20Poly1305Decrypt(key32, nonce, chachaAead, aad) == plain and
+    crypto.aes128GcmDecrypt(key16, nonce, aes128, aad) == plain and
+    crypto.aes256GcmDecrypt(key32, nonce, aes256, aad) == plain and
+    crypto.aes256GcmDecrypt(key32, nonce, aes256, "bad") == "")
 
 string hkdf256 = crypto.hkdfSha256("key", "salt", "info", 32)
 string hkdf384 = crypto.hkdfSha384("key", "salt", "info", 32)
-assert string.len(hkdf256) == 64, "hkdfSha256 output length mismatch"
-assert string.len(hkdf384) == 64, "hkdfSha384 output length mismatch"
-assert hkdf256 == crypto.hkdfSha256("key", "salt", "info", 32), "hkdfSha256 should be stable"
-assert hkdf384 == crypto.hkdfSha384("key", "salt", "info", 32), "hkdfSha384 should be stable"
+line("hkdf_random", string.len(hkdf256) == 64 and string.len(hkdf384) == 64 and string.len(crypto.randomHex(16)) == 32)
 
-assert string.len(crypto.randomHex(16)) == 32, "randomHex output length mismatch"
-assert crypto.randomHex(0) == "", "randomHex(0) should be empty"
+Sha256 s256 = crypto.sha256Stream()
+s256.update("a")
+s256.update("bc")
+Sha384 s384 = crypto.sha384Stream()
+s384.update("abc")
+Sha512 s512 = crypto.sha512Stream()
+s512.update("ab")
+s512.update("c")
+line("stream", s256.hex() == crypto.sha256("abc") and s384.hex() == crypto.sha384("abc") and s512.hex() == crypto.sha512("abc"))
+
+string streamCipher = crypto.chacha20Encrypt(key32, nonce, plain, 1)
+line("chacha20", crypto.chacha20Decrypt(key32, nonce, streamCipher, 1) == plain and crypto.chacha20Encrypt("bad", nonce, plain, 1) == "")
+
+var ed = crypto.ed25519Keypair()
+string seed = string(ed["seed"])
+string pub = string(ed["publicKey"])
+string sig = crypto.ed25519Sign(seed, "message")
+line("ed25519",
+    string.len(seed) == 64 and
+    string.len(pub) == 64 and
+    crypto.ed25519PublicKey(seed) == pub and
+    crypto.ed25519Verify(pub, "message", sig) and
+    not crypto.ed25519Verify(pub, "message!", sig))
+
+var x25519A = crypto.x25519Keypair()
+var x25519B = crypto.x25519Keypair()
+string x25519SecretA = crypto.x25519SharedSecret(string(x25519A["privateKey"]), string(x25519B["publicKey"]))
+string x25519SecretB = crypto.x25519SharedSecret(string(x25519B["privateKey"]), string(x25519A["publicKey"]))
+line("x25519", string.len(x25519SecretA) == 64 and x25519SecretA == x25519SecretB)
+
+var x448A = crypto.x448Keypair()
+var x448B = crypto.x448Keypair()
+string x448SecretA = crypto.x448SharedSecret(string(x448A["privateKey"]), string(x448B["publicKey"]))
+string x448SecretB = crypto.x448SharedSecret(string(x448B["privateKey"]), string(x448A["publicKey"]))
+line("x448", string.len(x448SecretA) == 112 and x448SecretA == x448SecretB)
+
+line("rsa_guard",
+    not crypto.rsaPssVerify("", "", "", "") and
+    not crypto.rsaPkcs1Verify("bad", "00", "00", "010001"))

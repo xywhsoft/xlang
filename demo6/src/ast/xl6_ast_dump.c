@@ -43,6 +43,9 @@ static void xl6AstDumpFlagsText(XL6_Output* out, unsigned int flags)
     if ( flags & XL6_AST_FLAG_ASYNC ) {
         xl6OutputPuts("async ", out);
     }
+    if ( flags & XL6_AST_FLAG_EXTERN ) {
+        xl6OutputPuts("extern ", out);
+    }
     xl6OutputPutc(']', out);
 }
 

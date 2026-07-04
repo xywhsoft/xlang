@@ -1,0 +1,28 @@
+extern "expect_i64" func expect(int actual, int expected)
+extern "expect_str" func expectStr(string actual, string expected)
+
+var data = {
+    "title": "xlang",
+    "show": true,
+    "users": [
+        {"name": "Ada"},
+        {"name": "Lin"}
+    ]
+}
+
+Template compiled = template.compile("<h1>{$title}</h1>{#if:show}Y{#else}N{#end}:{#foreach:users}{$name};{#end}")
+expectStr(compiled.render(data), "<h1>xlang</h1>Y:Ada;Lin;")
+expect(compiled.nodeCount > 0, 1)
+expect(compiled.exprCount > 0, 1)
+expect(compiled.argCount > 0, 1)
+expect(compiled.stringPoolSize > 0, 1)
+
+expectStr(template.render("Hello {$title}", data), "Hello xlang")
+expectStr(template.render("{{$title}}", data, "{{}}"), "xlang")
+expectStr(template.render("<$title>", data, "<>"), "xlang")
+
+dir.createAll("release/tmp/stdlib_template")
+file.writeText("release/tmp/stdlib_template/page.xte", "File {$title}")
+expectStr(template.renderFile("release/tmp/stdlib_template/page.xte", data), "File xlang")
+file.delete("release/tmp/stdlib_template/page.xte")
+dir.delete("release/tmp/stdlib_template")

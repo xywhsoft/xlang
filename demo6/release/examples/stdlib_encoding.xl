@@ -1,0 +1,26 @@
+string text = "A你好"
+
+assert(encoding.charSize(encoding.utf32) == 4)
+assert(encoding.name(encoding.autoDetect) == "auto")
+assert(encoding.name(encoding.binary) == "binary")
+assert(encoding.name(encoding.utf16BE) == "utf-16be")
+assert(encoding.name(encoding.utf32) == "utf-32")
+assert(encoding.name(encoding.utf32BE) == "utf-32be")
+assert(encoding.name(encoding.utf8 + encoding.bom) == "utf-8")
+assert(encoding.isUtf8(text))
+assert(encoding.detect(text) == encoding.utf8)
+
+Buffer invalid = Buffer()
+assert(invalid.appendByte(255))
+assert(!encoding.isUtf8Bytes(invalid.data(), c_size(invalid.len())))
+assert(encoding.detectBytes(invalid.data(), c_size(invalid.len())) == encoding.oem)
+println("detect=ok")
+
+Buffer utf16 = encoding.toBytes(text, encoding.utf16)
+assert(utf16.len() == 6)
+assert(encoding.fromBytes(utf16.data(), c_size(utf16.len()), encoding.utf16) == text)
+println("utf16=ok")
+
+Buffer utf8 = encoding.convertBytes(utf16.data(), c_size(utf16.len()), encoding.utf16, encoding.utf8)
+assert(utf8.text() == text)
+println("convert=ok")
