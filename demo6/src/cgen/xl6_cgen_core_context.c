@@ -161,6 +161,7 @@ static void xl6CgenAsyncReturnStmt(XL6_CgenContext* ctx, const XL6_AstNode* node
 static void xl6CgenAwaitExpr(XL6_CgenContext* ctx, const XL6_AstNode* node);
 static int xl6CgenChannelCtorCall(XL6_CgenContext* ctx, const XL6_AstNode* call, const XL6_AstNode* callee);
 static int xl6CgenChannelMethodCall(XL6_CgenContext* ctx, const XL6_AstNode* call, const XL6_AstNode* member);
+static int xl6CgenFutureMethodCall(XL6_CgenContext* ctx, const XL6_AstNode* call, const XL6_AstNode* member);
 static int xl6CgenTaskNamespaceCall(XL6_CgenContext* ctx, const XL6_AstNode* call, const XL6_AstNode* member);
 static int xl6CgenThreadCtorCall(XL6_CgenContext* ctx, const XL6_AstNode* call, const XL6_AstNode* callee);
 static int xl6CgenThreadMethodCall(XL6_CgenContext* ctx, const XL6_AstNode* call, const XL6_AstNode* member);

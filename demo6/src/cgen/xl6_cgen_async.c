@@ -95,6 +95,7 @@ static int xl6CgenNodeNeedsAsyncRuntime(const XL6_AstNode* node)
              xl6CTextEquals(callee->children[0]->text, "task") &&
              (xl6CTextEquals(callee->text, "spawn") ||
               xl6CTextEquals(callee->text, "all") ||
+              xl6CTextEquals(callee->text, "whenAny") ||
               xl6CTextEquals(callee->text, "race") ||
               xl6CTextEquals(callee->text, "cancel")) ) {
             return 1;
@@ -118,8 +119,15 @@ static int xl6CgenNodeNeedsAsyncRuntime(const XL6_AstNode* node)
               xl6CTextEquals(callee->text, "writeUnlock") ||
               xl6CTextEquals(callee->text, "downgrade") ||
               xl6CTextEquals(callee->text, "upgrade") ||
+              xl6CTextEquals(callee->text, "waitTimeout") ||
+              xl6CTextEquals(callee->text, "isDone") ||
+              xl6CTextEquals(callee->text, "isPending") ||
+              xl6CTextEquals(callee->text, "isCancelled") ||
+              xl6CTextEquals(callee->text, "isFailed") ||
               xl6CTextEquals(callee->text, "stop") ||
               xl6CTextEquals(callee->text, "state") ||
+              xl6CTextEquals(callee->text, "status") ||
+              xl6CTextEquals(callee->text, "error") ||
               xl6CTextEquals(callee->text, "exitCode")) ) {
             return 1;
         }
@@ -146,7 +154,8 @@ static int xl6CgenNodeNeedsTaskSpawn(const XL6_AstNode* node)
              callee->children[0] != NULL &&
              callee->children[0]->kind == XL6_AST_NAME &&
              xl6CTextEquals(callee->children[0]->text, "task") &&
-             xl6CTextEquals(callee->text, "spawn") ) {
+             (xl6CTextEquals(callee->text, "spawn") ||
+              xl6CTextEquals(callee->text, "whenAny")) ) {
             return 1;
         }
     }

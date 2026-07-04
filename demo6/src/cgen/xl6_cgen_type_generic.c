@@ -740,6 +740,14 @@ static const char* xl6CgenInferExprType(XL6_CgenContext* ctx, const XL6_AstNode*
                 return cType;
             }
         }
+        {
+            XL6_AstNode* futureMethodType = xl6CgenFutureMethodType(ctx, expr);
+            if ( futureMethodType != NULL ) {
+                const char* cType = xl6CgenTypeName(ctx, futureMethodType);
+                xl6AstFree(futureMethodType);
+                return cType;
+            }
+        }
         if ( expr->childCount > 0 && expr->children[0] != NULL &&
              expr->children[0]->kind == XL6_AST_NAME &&
              xl6CTextEquals(expr->children[0]->text, "type") ) {

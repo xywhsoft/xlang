@@ -79,6 +79,147 @@ static const char* xl6StdlibRandomClassSource =
     "    end\n"
     "end\n";
 
+static const char* xl6StdlibBufferClassSource =
+    "class Buffer\n"
+    "    native point handle\n"
+    "    extern \"xl6_xrt_buffer_create\" create()\n"
+    "    extern \"xl6_xrt_buffer_create_step\" create(int step)\n"
+    "    extern \"xl6_xrt_buffer_destroy\" destroy()\n"
+    "    extern \"xl6_xrt_buffer_len\" func len() as int\n"
+    "    extern \"xl6_xrt_buffer_capacity\" func capacity() as int\n"
+    "    extern \"xl6_xrt_buffer_reserve\" func reserve(int size) as bool\n"
+    "    extern \"xl6_xrt_buffer_clear\" func clear() as bool\n"
+    "    extern \"xl6_xrt_buffer_append_string\" func append(string text) as bool\n"
+    "    extern \"xl6_xrt_buffer_append_bytes\" func appendBytes(string data, c_size size) as bool\n"
+    "    extern \"xl6_xrt_buffer_append_byte\" func appendByte(int value) as bool\n"
+    "    extern \"xl6_xrt_buffer_byte_at\" func byteAt(int index) as int\n"
+    "    extern \"xl6_xrt_buffer_set_byte\" func setByte(int index, int value) as bool\n"
+    "    extern \"xl6_xrt_buffer_text\" func textNative() as point\n"
+    "    extern \"xl6_xrt_buffer_data\" func data() as point\n"
+    "\n"
+    "    func text() as string\n"
+    "        return __xl_std_runtime_take_cstr(self.textNative())\n"
+    "    end\n"
+    "\n"
+    "    func __len__() as int\n"
+    "        return self.len()\n"
+    "    end\n"
+    "\n"
+    "    func __item__(int index) as int\n"
+    "        return self.byteAt(index)\n"
+    "    end\n"
+    "\n"
+    "    func __setItem__(int index, int value)\n"
+    "        self.setByte(index, value)\n"
+    "    end\n"
+    "end\n";
+
+static const char* xl6StdlibNetClassSource =
+    "class TcpStream\n"
+    "    native point handle\n"
+    "    extern \"xrtNetTcpStreamDestroy\" destroy()\n"
+    "    extern \"xrtNetTcpStreamClose\" func close()\n"
+    "    extern \"xrtNetStreamSendText\" func send(string text) as bool\n"
+    "    extern \"xrtNetStreamSendTextAsync\" func sendAsync(string text) as future<bool>\n"
+    "    extern \"xrtNetStreamAvailable\" func availableNative() as c_size\n"
+    "    extern \"xrtNetStreamReadText\" func readNative(c_size maxBytes) as point\n"
+    "    extern \"xrtNetStreamRecvText\" func recvNative(c_size maxBytes, int timeoutMs) as point\n"
+    "    extern \"xrtNetStreamRecvTextAsync\" func recvAsyncNative(c_size maxBytes, int timeoutMs) as future<string>\n"
+    "    extern \"xrtNetStreamDrain\" func drainNative(int timeoutMs) as bool\n"
+    "    extern \"xrtNetStreamDrainAsync\" func drainAsyncNative(int timeoutMs) as future<bool>\n"
+    "    extern \"xrtNetStreamLocalAddrText\" func localAddrNative() as point\n"
+    "    extern \"xrtNetStreamRemoteAddrText\" func remoteAddrNative() as point\n"
+    "    extern \"xrtNetStreamLocalPort\" func localPort() as int\n"
+    "    extern \"xrtNetStreamRemotePort\" func remotePort() as int\n"
+    "\n"
+    "    func available() as int\n"
+    "        return int(self.availableNative())\n"
+    "    end\n"
+    "\n"
+    "    func read(int maxBytes = 0) as string\n"
+    "        return __xl_std_runtime_take_cstr(self.readNative(c_size(maxBytes)))\n"
+    "    end\n"
+    "\n"
+    "    func recv(int timeoutMs = -1, int maxBytes = 0) as string\n"
+    "        return __xl_std_runtime_take_cstr(self.recvNative(c_size(maxBytes), timeoutMs))\n"
+    "    end\n"
+    "\n"
+    "    func recvAsync(int timeoutMs = -1, int maxBytes = 0) as future<string>\n"
+    "        return self.recvAsyncNative(c_size(maxBytes), timeoutMs)\n"
+    "    end\n"
+    "\n"
+    "    func drain(int timeoutMs = -1) as bool\n"
+    "        return self.drainNative(timeoutMs)\n"
+    "    end\n"
+    "\n"
+    "    func drainAsync(int timeoutMs = -1) as future<bool>\n"
+    "        return self.drainAsyncNative(timeoutMs)\n"
+    "    end\n"
+    "\n"
+    "    func localAddr() as string\n"
+    "        return __xl_std_runtime_take_cstr(self.localAddrNative())\n"
+    "    end\n"
+    "\n"
+    "    func remoteAddr() as string\n"
+    "        return __xl_std_runtime_take_cstr(self.remoteAddrNative())\n"
+    "    end\n"
+    "end\n"
+    "\n"
+    "class TcpServer\n"
+    "    native point handle\n"
+    "    extern \"xrtNetTcpListenerDestroy\" destroy()\n"
+    "    extern \"xrtNetTcpListenerPort\" func port() as uint16\n"
+    "    extern \"xrtNetTcpAccept\" func acceptNative(int timeoutMs) as point\n"
+    "    extern \"xrtNetTcpAcceptAsync\" func acceptAsyncNative(int timeoutMs) as future<point>\n"
+    "\n"
+    "    func accept(int timeoutMs = -1) as point\n"
+    "        return self.acceptNative(timeoutMs)\n"
+    "    end\n"
+    "\n"
+    "    func acceptAsync(int timeoutMs = -1) as future<point>\n"
+    "        return self.acceptAsyncNative(timeoutMs)\n"
+    "    end\n"
+    "end\n"
+    "\n"
+    "class UdpPacket\n"
+    "    native point handle\n"
+    "    extern \"xrtNetDgramPacketDestroy\" destroy()\n"
+    "    extern \"xrtNetDgramPacketText\" func textNative() as point\n"
+    "    extern \"xrtNetDgramPacketFromText\" func addrNative() as point\n"
+    "    extern \"xrtNetDgramPacketFromPort\" func port() as int\n"
+    "\n"
+    "    func text() as string\n"
+    "        return __xl_std_runtime_take_cstr(self.textNative())\n"
+    "    end\n"
+    "\n"
+    "    func addr() as string\n"
+    "        return __xl_std_runtime_take_cstr(self.addrNative())\n"
+    "    end\n"
+    "end\n"
+    "\n"
+    "class UdpSocket\n"
+    "    native point handle\n"
+    "    extern \"xrtNetUdpDestroy\" destroy()\n"
+    "    extern \"xrtNetUdpLocalPort\" func port() as int\n"
+    "    extern \"xrtNetUdpLocalAddrText\" func localAddrNative() as point\n"
+    "    extern \"xrtNetUdpSendText\" func send(string host, uint16 port, string text) as bool\n"
+    "    extern \"xrtNetUdpSendTextAsync\" func sendAsync(string host, uint16 port, string text) as future<bool>\n"
+    "    extern \"xrtNetUdpRecv\" func recvNative(int timeoutMs) as point\n"
+    "    extern \"xrtNetUdpRecvAsync\" func recvAsyncNative(int timeoutMs) as future<point>\n"
+    "\n"
+    "    func localAddr() as string\n"
+    "        return __xl_std_runtime_take_cstr(self.localAddrNative())\n"
+    "    end\n"
+    "\n"
+    "    func recv(int timeoutMs = -1) as point\n"
+    "        return self.recvNative(timeoutMs)\n"
+    "    end\n"
+    "\n"
+    "    func recvAsync(int timeoutMs = -1) as future<point>\n"
+    "        return self.recvAsyncNative(timeoutMs)\n"
+    "    end\n"
+    "end\n";
+
 static const char* xl6StdlibFileInfoClassSource =
     "class FileInfo\n"
     "    string path\n"
@@ -210,6 +351,38 @@ static const XL6_StdlibParam xl6StdRuntimeStringEdgeParams[] = {
 
 static const XL6_StdlibParam xl6StdRuntimeCryptoTextParams[] = {
     {"string", "text"},
+    {"c_size", "size"}
+};
+
+static const XL6_StdlibParam xl6StdRuntimeCryptoHmacParams[] = {
+    {"string", "key"},
+    {"c_size", "keySize"},
+    {"string", "text"},
+    {"c_size", "textSize"}
+};
+
+static const XL6_StdlibParam xl6StdRuntimeCryptoAeadParams[] = {
+    {"string", "key"},
+    {"c_size", "keySize"},
+    {"string", "nonce"},
+    {"c_size", "nonceSize"},
+    {"string", "text"},
+    {"c_size", "textSize"},
+    {"string", "aad"},
+    {"c_size", "aadSize"}
+};
+
+static const XL6_StdlibParam xl6StdRuntimeCryptoHkdfParams[] = {
+    {"string", "key"},
+    {"c_size", "keySize"},
+    {"string", "salt"},
+    {"c_size", "saltSize"},
+    {"string", "info"},
+    {"c_size", "infoSize"},
+    {"c_size", "outSize"}
+};
+
+static const XL6_StdlibParam xl6StdRuntimeCryptoRandomParams[] = {
     {"c_size", "size"}
 };
 
@@ -599,6 +772,11 @@ static const XL6_StdlibParam xl6StdFileWriteTextParams[] = {
     {"int", "charset"}
 };
 
+static const XL6_StdlibParam xl6StdFileWriteTextUtf8Params[] = {
+    {"string", "path"},
+    {"string", "text"}
+};
+
 static const XL6_StdlibParam xl6StdFileSetSizeParams[] = {
     {"string", "path"},
     {"int", "size"}
@@ -652,6 +830,44 @@ static const XL6_StdlibParam xl6StdXrtFileCopyMoveParams[] = {
 static const XL6_StdlibParam xl6StdFileReplaceParams[] = {
     {"string", "source"},
     {"string", "target"}
+};
+
+static const XL6_StdlibParam xl6StdTcpConnectParams[] = {
+    {"string", "host"},
+    {"uint16", "port"},
+    {"int", "timeoutMs"}
+};
+
+static const XL6_StdlibParam xl6StdTcpListenParams[] = {
+    {"string", "host"},
+    {"uint16", "port"},
+    {"c_uint", "backlog"}
+};
+
+static const XL6_StdlibParam xl6StdTcpAcceptParams[] = {
+    {"point", "server"},
+    {"int", "timeoutMs"}
+};
+
+static const XL6_StdlibParam xl6StdNetHandleParams[] = {
+    {"point", "handle"}
+};
+
+static const XL6_StdlibParam xl6StdUdpBindParams[] = {
+    {"string", "host"},
+    {"uint16", "port"}
+};
+
+static const XL6_StdlibParam xl6StdUdpSendParams[] = {
+    {"point", "socket"},
+    {"string", "host"},
+    {"uint16", "port"},
+    {"string", "text"}
+};
+
+static const XL6_StdlibParam xl6StdUdpRecvParams[] = {
+    {"point", "socket"},
+    {"int", "timeoutMs"}
 };
 
 static const XL6_StdlibParam xl6StdXrtJsonParseParams[] = {
@@ -1738,6 +1954,26 @@ static const char xl6StdHashU64WithSeedBody[] =
     "    return __xl_std_xrt_hash64_seed(text, __xl_std_crt_strlen(text), c_ulonglong(seed))\n"
     "end\n";
 
+static const char xl6StdHashU64MicroBody[] =
+    "func __xl_std_hash_u64_micro(string text) as uint64\n"
+    "    return __xl_std_xrt_hash64_micro(text, __xl_std_crt_strlen(text))\n"
+    "end\n";
+
+static const char xl6StdHashU64MicroWithSeedBody[] =
+    "func __xl_std_hash_u64_micro_with_seed(string text, uint64 seed) as uint64\n"
+    "    return __xl_std_xrt_hash64_micro_seed(text, __xl_std_crt_strlen(text), c_ulonglong(seed))\n"
+    "end\n";
+
+static const char xl6StdHashU64NanoBody[] =
+    "func __xl_std_hash_u64_nano(string text) as uint64\n"
+    "    return __xl_std_xrt_hash64_nano(text, __xl_std_crt_strlen(text))\n"
+    "end\n";
+
+static const char xl6StdHashU64NanoWithSeedBody[] =
+    "func __xl_std_hash_u64_nano_with_seed(string text, uint64 seed) as uint64\n"
+    "    return __xl_std_xrt_hash64_nano_seed(text, __xl_std_crt_strlen(text), c_ulonglong(seed))\n"
+    "end\n";
+
 static const char xl6StdCryptoSha1Body[] =
     "func __xl_std_crypto_sha1(string text) as string\n"
     "    return __xl_std_runtime_take_cstr(__xl_std_runtime_sha1_hex(text, __xl_std_crt_strlen(text)))\n"
@@ -1758,6 +1994,75 @@ static const char xl6StdCryptoSha512Body[] =
     "    return __xl_std_runtime_take_cstr(__xl_std_runtime_sha512_hex(text, __xl_std_crt_strlen(text)))\n"
     "end\n";
 
+static const char xl6StdCryptoHmacSha256Body[] =
+    "func __xl_std_crypto_hmac_sha256(string key, string text) as string\n"
+    "    return __xl_std_runtime_take_cstr(__xl_std_runtime_hmac_sha256_hex(key, __xl_std_crt_strlen(key), text, __xl_std_crt_strlen(text)))\n"
+    "end\n";
+
+static const char xl6StdCryptoHmacSha384Body[] =
+    "func __xl_std_crypto_hmac_sha384(string key, string text) as string\n"
+    "    return __xl_std_runtime_take_cstr(__xl_std_runtime_hmac_sha384_hex(key, __xl_std_crt_strlen(key), text, __xl_std_crt_strlen(text)))\n"
+    "end\n";
+
+static const char xl6StdCryptoHmacSha512Body[] =
+    "func __xl_std_crypto_hmac_sha512(string key, string text) as string\n"
+    "    return __xl_std_runtime_take_cstr(__xl_std_runtime_hmac_sha512_hex(key, __xl_std_crt_strlen(key), text, __xl_std_crt_strlen(text)))\n"
+    "end\n";
+
+static const char xl6StdCryptoChaCha20Poly1305EncryptBody[] =
+    "func __xl_std_crypto_chacha20_poly1305_encrypt(string key, string nonce, string text, string aad = \"\") as string\n"
+    "    return __xl_std_runtime_take_cstr(__xl_std_runtime_chacha20_poly1305_encrypt_hex(key, __xl_std_crt_strlen(key), nonce, __xl_std_crt_strlen(nonce), text, __xl_std_crt_strlen(text), aad, __xl_std_crt_strlen(aad)))\n"
+    "end\n";
+
+static const char xl6StdCryptoChaCha20Poly1305DecryptBody[] =
+    "func __xl_std_crypto_chacha20_poly1305_decrypt(string key, string nonce, string cipherHex, string aad = \"\") as string\n"
+    "    return __xl_std_runtime_take_cstr(__xl_std_runtime_chacha20_poly1305_decrypt_text(key, __xl_std_crt_strlen(key), nonce, __xl_std_crt_strlen(nonce), cipherHex, __xl_std_crt_strlen(cipherHex), aad, __xl_std_crt_strlen(aad)))\n"
+    "end\n";
+
+static const char xl6StdCryptoAes128GcmEncryptBody[] =
+    "func __xl_std_crypto_aes128_gcm_encrypt(string key, string nonce, string text, string aad = \"\") as string\n"
+    "    return __xl_std_runtime_take_cstr(__xl_std_runtime_aes128_gcm_encrypt_hex(key, __xl_std_crt_strlen(key), nonce, __xl_std_crt_strlen(nonce), text, __xl_std_crt_strlen(text), aad, __xl_std_crt_strlen(aad)))\n"
+    "end\n";
+
+static const char xl6StdCryptoAes128GcmDecryptBody[] =
+    "func __xl_std_crypto_aes128_gcm_decrypt(string key, string nonce, string cipherHex, string aad = \"\") as string\n"
+    "    return __xl_std_runtime_take_cstr(__xl_std_runtime_aes128_gcm_decrypt_text(key, __xl_std_crt_strlen(key), nonce, __xl_std_crt_strlen(nonce), cipherHex, __xl_std_crt_strlen(cipherHex), aad, __xl_std_crt_strlen(aad)))\n"
+    "end\n";
+
+static const char xl6StdCryptoAes256GcmEncryptBody[] =
+    "func __xl_std_crypto_aes256_gcm_encrypt(string key, string nonce, string text, string aad = \"\") as string\n"
+    "    return __xl_std_runtime_take_cstr(__xl_std_runtime_aes256_gcm_encrypt_hex(key, __xl_std_crt_strlen(key), nonce, __xl_std_crt_strlen(nonce), text, __xl_std_crt_strlen(text), aad, __xl_std_crt_strlen(aad)))\n"
+    "end\n";
+
+static const char xl6StdCryptoAes256GcmDecryptBody[] =
+    "func __xl_std_crypto_aes256_gcm_decrypt(string key, string nonce, string cipherHex, string aad = \"\") as string\n"
+    "    return __xl_std_runtime_take_cstr(__xl_std_runtime_aes256_gcm_decrypt_text(key, __xl_std_crt_strlen(key), nonce, __xl_std_crt_strlen(nonce), cipherHex, __xl_std_crt_strlen(cipherHex), aad, __xl_std_crt_strlen(aad)))\n"
+    "end\n";
+
+static const char xl6StdCryptoHkdfSha256Body[] =
+    "func __xl_std_crypto_hkdf_sha256(string key, string salt = \"\", string info = \"\", int len = 32) as string\n"
+    "    if len <= 0 then\n"
+    "        return \"\"\n"
+    "    end\n"
+    "    return __xl_std_runtime_take_cstr(__xl_std_runtime_hkdf_sha256_hex(key, __xl_std_crt_strlen(key), salt, __xl_std_crt_strlen(salt), info, __xl_std_crt_strlen(info), c_size(len)))\n"
+    "end\n";
+
+static const char xl6StdCryptoHkdfSha384Body[] =
+    "func __xl_std_crypto_hkdf_sha384(string key, string salt = \"\", string info = \"\", int len = 32) as string\n"
+    "    if len <= 0 then\n"
+    "        return \"\"\n"
+    "    end\n"
+    "    return __xl_std_runtime_take_cstr(__xl_std_runtime_hkdf_sha384_hex(key, __xl_std_crt_strlen(key), salt, __xl_std_crt_strlen(salt), info, __xl_std_crt_strlen(info), c_size(len)))\n"
+    "end\n";
+
+static const char xl6StdCryptoRandomHexBody[] =
+    "func __xl_std_crypto_random_hex(int len) as string\n"
+    "    if len <= 0 then\n"
+    "        return \"\"\n"
+    "    end\n"
+    "    return __xl_std_runtime_take_cstr(__xl_std_runtime_random_hex(c_size(len)))\n"
+    "end\n";
+
 static const char xl6StdIdXidBody[] =
     "func __xl_std_id_xid() as string\n"
     "    return __xl_std_runtime_take_cstr(__xl_std_xrt_make_xids())\n"
@@ -1776,6 +2081,41 @@ static const char xl6StdNetLocalMACBody[] =
 static const char xl6StdNetLocalNameBody[] =
     "func __xl_std_net_local_name() as string\n"
     "    return __xl_std_runtime_take_cstr(__xl_std_xrt_get_local_name())\n"
+    "end\n";
+
+static const char xl6StdTcpConnectBody[] =
+    "func __xl_std_tcp_connect(string host, int port, int timeoutMs = 5000) as point\n"
+    "    if port <= 0 or port > 65535 then\n"
+    "        return null\n"
+    "    end\n"
+    "    return __xl_std_xrt_tcp_connect(host, uint16(port), timeoutMs)\n"
+    "end\n";
+
+static const char xl6StdTcpConnectAsyncBody[] =
+    "func __xl_std_tcp_connect_async(string host, int port, int timeoutMs = 5000) as future<point>\n"
+    "    if port <= 0 or port > 65535 then\n"
+    "        return __xl_std_xrt_tcp_connect_async(\"\", uint16(0), timeoutMs)\n"
+    "    end\n"
+    "    return __xl_std_xrt_tcp_connect_async(host, uint16(port), timeoutMs)\n"
+    "end\n";
+
+static const char xl6StdTcpListenBody[] =
+    "func __xl_std_tcp_listen(int port, string host = \"127.0.0.1\", int backlog = 128) as point\n"
+    "    if port < 0 or port > 65535 then\n"
+    "        return null\n"
+    "    end\n"
+    "    if backlog < 0 then\n"
+    "        backlog = 0\n"
+    "    end\n"
+    "    return __xl_std_xrt_tcp_listen(host, uint16(port), c_uint(backlog))\n"
+    "end\n";
+
+static const char xl6StdUdpBindBody[] =
+    "func __xl_std_udp_bind(int port, string host = \"127.0.0.1\") as point\n"
+    "    if port < 0 or port > 65535 then\n"
+    "        return null\n"
+    "    end\n"
+    "    return __xl_std_xrt_udp_bind(host, uint16(port))\n"
     "end\n";
 
 static const char xl6StdUrlValidBody[] =
@@ -1951,6 +2291,18 @@ static const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"__xl_runtime", "sha256Hex", "__xl_std_runtime_sha256_hex", "xl6_xrt_sha256_hex", xl6StdRuntimeCryptoTextParams, 2, "point", NULL},
     {"__xl_runtime", "sha384Hex", "__xl_std_runtime_sha384_hex", "xl6_xrt_sha384_hex", xl6StdRuntimeCryptoTextParams, 2, "point", NULL},
     {"__xl_runtime", "sha512Hex", "__xl_std_runtime_sha512_hex", "xl6_xrt_sha512_hex", xl6StdRuntimeCryptoTextParams, 2, "point", NULL},
+    {"__xl_runtime", "hmacSha256Hex", "__xl_std_runtime_hmac_sha256_hex", "xl6_xrt_hmac_sha256_hex", xl6StdRuntimeCryptoHmacParams, 4, "point", NULL},
+    {"__xl_runtime", "hmacSha384Hex", "__xl_std_runtime_hmac_sha384_hex", "xl6_xrt_hmac_sha384_hex", xl6StdRuntimeCryptoHmacParams, 4, "point", NULL},
+    {"__xl_runtime", "hmacSha512Hex", "__xl_std_runtime_hmac_sha512_hex", "xl6_xrt_hmac_sha512_hex", xl6StdRuntimeCryptoHmacParams, 4, "point", NULL},
+    {"__xl_runtime", "chacha20Poly1305EncryptHex", "__xl_std_runtime_chacha20_poly1305_encrypt_hex", "xl6_xrt_chacha20_poly1305_encrypt_hex", xl6StdRuntimeCryptoAeadParams, 8, "point", NULL},
+    {"__xl_runtime", "chacha20Poly1305DecryptText", "__xl_std_runtime_chacha20_poly1305_decrypt_text", "xl6_xrt_chacha20_poly1305_decrypt_text", xl6StdRuntimeCryptoAeadParams, 8, "point", NULL},
+    {"__xl_runtime", "aes128GcmEncryptHex", "__xl_std_runtime_aes128_gcm_encrypt_hex", "xl6_xrt_aes128_gcm_encrypt_hex", xl6StdRuntimeCryptoAeadParams, 8, "point", NULL},
+    {"__xl_runtime", "aes128GcmDecryptText", "__xl_std_runtime_aes128_gcm_decrypt_text", "xl6_xrt_aes128_gcm_decrypt_text", xl6StdRuntimeCryptoAeadParams, 8, "point", NULL},
+    {"__xl_runtime", "aes256GcmEncryptHex", "__xl_std_runtime_aes256_gcm_encrypt_hex", "xl6_xrt_aes256_gcm_encrypt_hex", xl6StdRuntimeCryptoAeadParams, 8, "point", NULL},
+    {"__xl_runtime", "aes256GcmDecryptText", "__xl_std_runtime_aes256_gcm_decrypt_text", "xl6_xrt_aes256_gcm_decrypt_text", xl6StdRuntimeCryptoAeadParams, 8, "point", NULL},
+    {"__xl_runtime", "hkdfSha256Hex", "__xl_std_runtime_hkdf_sha256_hex", "xl6_xrt_hkdf_sha256_hex", xl6StdRuntimeCryptoHkdfParams, 7, "point", NULL},
+    {"__xl_runtime", "hkdfSha384Hex", "__xl_std_runtime_hkdf_sha384_hex", "xl6_xrt_hkdf_sha384_hex", xl6StdRuntimeCryptoHkdfParams, 7, "point", NULL},
+    {"__xl_runtime", "randomHex", "__xl_std_runtime_random_hex", "xl6_xrt_random_hex", xl6StdRuntimeCryptoRandomParams, 1, "point", NULL},
     {"__xl_runtime", "urlPart", "__xl_std_runtime_url_part", "xl6_xrt_url_part", xl6StdRuntimeUrlPartParams, 3, "point", NULL},
     {"__xl_runtime", "urlFlag", "__xl_std_runtime_url_flag", "xl6_xrt_url_flag", xl6StdRuntimeUrlPartParams, 3, "c_bool", NULL},
     {"__xl_runtime", "urlPort", "__xl_std_runtime_url_port", "xl6_xrt_url_port", xl6StdRuntimeUrlTextParams, 2, "c_int", NULL},
@@ -2136,10 +2488,25 @@ static const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"__xrt_hash", "u32WithSeed", "__xl_std_xrt_hash32_seed", "xrtHash32_WithSeed", xl6StdXrtHash32SeedParams, 3, "c_uint", NULL},
     {"__xrt_hash", "u64", "__xl_std_xrt_hash64", "xrtHash64", xl6StdXrtHashParams, 2, "c_ulonglong", NULL},
     {"__xrt_hash", "u64WithSeed", "__xl_std_xrt_hash64_seed", "xrtHash64_WithSeed", xl6StdXrtHash64SeedParams, 3, "c_ulonglong", NULL},
+    {"__xrt_hash", "u64Micro", "__xl_std_xrt_hash64_micro", "xrtHash64_Micro", xl6StdXrtHashParams, 2, "c_ulonglong", NULL},
+    {"__xrt_hash", "u64MicroWithSeed", "__xl_std_xrt_hash64_micro_seed", "xrtHash64_Micro_WithSeed", xl6StdXrtHash64SeedParams, 3, "c_ulonglong", NULL},
+    {"__xrt_hash", "u64Nano", "__xl_std_xrt_hash64_nano", "xrtHash64_Nano", xl6StdXrtHashParams, 2, "c_ulonglong", NULL},
+    {"__xrt_hash", "u64NanoWithSeed", "__xl_std_xrt_hash64_nano_seed", "xrtHash64_Nano_WithSeed", xl6StdXrtHash64SeedParams, 3, "c_ulonglong", NULL},
     {"__xrt_id", "makeXIDS", "__xl_std_xrt_make_xids", "xrtMakeXIDS", NULL, 0, "point", NULL},
     {"__xrt_net", "localIP", "__xl_std_xrt_get_local_ip", "xrtGetLocalIP", NULL, 0, "point", NULL},
     {"__xrt_net", "localMAC", "__xl_std_xrt_get_local_mac", "xrtGetLocalMAC", NULL, 0, "point", NULL},
     {"__xrt_net", "localName", "__xl_std_xrt_get_local_name", "xrtGetLocalName", NULL, 0, "point", NULL},
+    {"__xrt_tcp", "connect", "__xl_std_xrt_tcp_connect", "xrtNetTcpConnect", xl6StdTcpConnectParams, 3, "point", NULL},
+    {"__xrt_tcp", "connectAsync", "__xl_std_xrt_tcp_connect_async", "xrtNetTcpConnectAsync", xl6StdTcpConnectParams, 3, "future<point>", NULL},
+    {"__xrt_tcp", "listen", "__xl_std_xrt_tcp_listen", "xrtNetTcpListen", xl6StdTcpListenParams, 3, "point", NULL},
+    {"__xrt_tcp", "accept", "__xl_std_xrt_tcp_accept", "xrtNetTcpAccept", xl6StdTcpAcceptParams, 2, "point", NULL},
+    {"__xrt_tcp", "listenerDestroy", "__xl_std_xrt_tcp_listener_destroy", "xrtNetTcpListenerDestroy", xl6StdNetHandleParams, 1, "", NULL},
+    {"__xrt_tcp", "listenerPort", "__xl_std_xrt_tcp_listener_port", "xrtNetTcpListenerPort", xl6StdNetHandleParams, 1, "uint16", NULL},
+    {"__xrt_udp", "bind", "__xl_std_xrt_udp_bind", "xrtNetUdpBind", xl6StdUdpBindParams, 2, "point", NULL},
+    {"__xrt_udp", "sendText", "__xl_std_xrt_udp_send_text", "xrtNetUdpSendText", xl6StdUdpSendParams, 4, "c_bool", NULL},
+    {"__xrt_udp", "sendTextAsync", "__xl_std_xrt_udp_send_text_async", "xrtNetUdpSendTextAsync", xl6StdUdpSendParams, 4, "future<bool>", NULL},
+    {"__xrt_udp", "recv", "__xl_std_xrt_udp_recv", "xrtNetUdpRecv", xl6StdUdpRecvParams, 2, "point", NULL},
+    {"__xrt_udp", "recvAsync", "__xl_std_xrt_udp_recv_async", "xrtNetUdpRecvAsync", xl6StdUdpRecvParams, 2, "future<point>", NULL},
 
     {"", "print", "__xl_std_print", NULL, NULL, 0, "", xl6StdPrintBody},
     {"", "println", "__xl_std_println", NULL, NULL, 0, "", xl6StdPrintlnBody},
@@ -2337,6 +2704,12 @@ static const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"file", "replace", "__xl_std_file_replace", NULL, NULL, 0, "bool", xl6StdFileReplaceBody},
     {"file", "writeTextAtomic", "__xl_std_file_write_text_atomic", NULL, NULL, 0, "bool", xl6StdFileWriteTextAtomicBody},
     {"file", "info", "__xl_std_file_info", NULL, NULL, 0, "FileInfo", xl6StdFileInfoBody},
+    {"file", "readTextAsync", "__xl_std_file_read_text_async", "xl6_xrt_file_read_text_async_utf8", xl6StdPathUnaryParams, 1, "future<string>", NULL},
+    {"file", "writeTextAsync", "__xl_std_file_write_text_async", "xl6_xrt_file_write_text_async_utf8", xl6StdFileWriteTextUtf8Params, 2, "future<bool>", NULL},
+    {"file", "appendTextAsync", "__xl_std_file_append_text_async", "xl6_xrt_file_append_text_async_utf8", xl6StdFileWriteTextUtf8Params, 2, "future<bool>", NULL},
+    {"file", "copyAsync", "__xl_std_file_copy_async", "xl6_xrt_file_copy_async_overwrite", xl6StdFileReplaceParams, 2, "future<bool>", NULL},
+    {"file", "moveAsync", "__xl_std_file_move_async", "xl6_xrt_file_move_async_overwrite", xl6StdFileReplaceParams, 2, "future<bool>", NULL},
+    {"file", "deleteAsync", "__xl_std_file_delete_async", "xl6_xrt_file_delete_async", xl6StdPathUnaryParams, 1, "future<bool>", NULL},
 
     {"dir", "exists", "__xl_std_dir_exists", NULL, NULL, 0, "bool", xl6StdDirExistsBody},
     {"dir", "create", "__xl_std_dir_create", NULL, NULL, 0, "bool", xl6StdDirCreateBody},
@@ -2376,17 +2749,39 @@ static const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"hash", "u32WithSeed", "__xl_std_hash_u32_with_seed", NULL, NULL, 0, "uint32", xl6StdHashU32WithSeedBody},
     {"hash", "u64", "__xl_std_hash_u64", NULL, NULL, 0, "uint64", xl6StdHashU64Body},
     {"hash", "u64WithSeed", "__xl_std_hash_u64_with_seed", NULL, NULL, 0, "uint64", xl6StdHashU64WithSeedBody},
+    {"hash", "u64Micro", "__xl_std_hash_u64_micro", NULL, NULL, 0, "uint64", xl6StdHashU64MicroBody},
+    {"hash", "u64MicroWithSeed", "__xl_std_hash_u64_micro_with_seed", NULL, NULL, 0, "uint64", xl6StdHashU64MicroWithSeedBody},
+    {"hash", "u64Nano", "__xl_std_hash_u64_nano", NULL, NULL, 0, "uint64", xl6StdHashU64NanoBody},
+    {"hash", "u64NanoWithSeed", "__xl_std_hash_u64_nano_with_seed", NULL, NULL, 0, "uint64", xl6StdHashU64NanoWithSeedBody},
 
     {"crypto", "sha1", "__xl_std_crypto_sha1", NULL, NULL, 0, "string", xl6StdCryptoSha1Body},
     {"crypto", "sha256", "__xl_std_crypto_sha256", NULL, NULL, 0, "string", xl6StdCryptoSha256Body},
     {"crypto", "sha384", "__xl_std_crypto_sha384", NULL, NULL, 0, "string", xl6StdCryptoSha384Body},
     {"crypto", "sha512", "__xl_std_crypto_sha512", NULL, NULL, 0, "string", xl6StdCryptoSha512Body},
+    {"crypto", "hmacSha256", "__xl_std_crypto_hmac_sha256", NULL, NULL, 0, "string", xl6StdCryptoHmacSha256Body},
+    {"crypto", "hmacSha384", "__xl_std_crypto_hmac_sha384", NULL, NULL, 0, "string", xl6StdCryptoHmacSha384Body},
+    {"crypto", "hmacSha512", "__xl_std_crypto_hmac_sha512", NULL, NULL, 0, "string", xl6StdCryptoHmacSha512Body},
+    {"crypto", "chacha20Poly1305Encrypt", "__xl_std_crypto_chacha20_poly1305_encrypt", NULL, NULL, 0, "string", xl6StdCryptoChaCha20Poly1305EncryptBody},
+    {"crypto", "chacha20Poly1305Decrypt", "__xl_std_crypto_chacha20_poly1305_decrypt", NULL, NULL, 0, "string", xl6StdCryptoChaCha20Poly1305DecryptBody},
+    {"crypto", "aes128GcmEncrypt", "__xl_std_crypto_aes128_gcm_encrypt", NULL, NULL, 0, "string", xl6StdCryptoAes128GcmEncryptBody},
+    {"crypto", "aes128GcmDecrypt", "__xl_std_crypto_aes128_gcm_decrypt", NULL, NULL, 0, "string", xl6StdCryptoAes128GcmDecryptBody},
+    {"crypto", "aes256GcmEncrypt", "__xl_std_crypto_aes256_gcm_encrypt", NULL, NULL, 0, "string", xl6StdCryptoAes256GcmEncryptBody},
+    {"crypto", "aes256GcmDecrypt", "__xl_std_crypto_aes256_gcm_decrypt", NULL, NULL, 0, "string", xl6StdCryptoAes256GcmDecryptBody},
+    {"crypto", "hkdfSha256", "__xl_std_crypto_hkdf_sha256", NULL, NULL, 0, "string", xl6StdCryptoHkdfSha256Body},
+    {"crypto", "hkdfSha384", "__xl_std_crypto_hkdf_sha384", NULL, NULL, 0, "string", xl6StdCryptoHkdfSha384Body},
+    {"crypto", "randomHex", "__xl_std_crypto_random_hex", NULL, NULL, 0, "string", xl6StdCryptoRandomHexBody},
 
     {"id", "xid", "__xl_std_id_xid", NULL, NULL, 0, "string", xl6StdIdXidBody},
 
     {"net", "localIP", "__xl_std_net_local_ip", NULL, NULL, 0, "string", xl6StdNetLocalIPBody},
     {"net", "localMAC", "__xl_std_net_local_mac", NULL, NULL, 0, "string", xl6StdNetLocalMACBody},
     {"net", "localName", "__xl_std_net_local_name", NULL, NULL, 0, "string", xl6StdNetLocalNameBody},
+
+    {"tcp", "connect", "__xl_std_tcp_connect", NULL, NULL, 0, "point", xl6StdTcpConnectBody},
+    {"tcp", "connectAsync", "__xl_std_tcp_connect_async", NULL, NULL, 0, "future<point>", xl6StdTcpConnectAsyncBody},
+    {"tcp", "listen", "__xl_std_tcp_listen", NULL, NULL, 0, "point", xl6StdTcpListenBody},
+
+    {"udp", "bind", "__xl_std_udp_bind", NULL, NULL, 0, "point", xl6StdUdpBindBody},
 
     {"url", "valid", "__xl_std_url_valid", NULL, NULL, 0, "bool", xl6StdUrlValidBody},
     {"url", "isAbsolute", "__xl_std_url_is_absolute", NULL, NULL, 0, "bool", xl6StdUrlIsAbsoluteBody},
@@ -3129,7 +3524,6 @@ static void xl6StdlibApplyDeps(int* used)
         xl6StdlibMarkFuncUsed(used, "__xrt_file", "getAccessTime");
         xl6StdlibMarkFuncUsed(used, "__xrt_file", "getChangeTime");
     }
-
     if ( xl6StdlibFindFunc("dir", "exists", &index) != NULL && used[index] ) {
         xl6StdlibMarkFuncUsed(used, "__xrt_dir", "exists");
     }
@@ -3249,6 +3643,22 @@ static void xl6StdlibApplyDeps(int* used)
         xl6StdlibMarkFuncUsed(used, "__crt_string", "strlen");
         xl6StdlibMarkFuncUsed(used, "__xrt_hash", "u64WithSeed");
     }
+    if ( xl6StdlibFindFunc("hash", "u64Micro", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__crt_string", "strlen");
+        xl6StdlibMarkFuncUsed(used, "__xrt_hash", "u64Micro");
+    }
+    if ( xl6StdlibFindFunc("hash", "u64MicroWithSeed", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__crt_string", "strlen");
+        xl6StdlibMarkFuncUsed(used, "__xrt_hash", "u64MicroWithSeed");
+    }
+    if ( xl6StdlibFindFunc("hash", "u64Nano", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__crt_string", "strlen");
+        xl6StdlibMarkFuncUsed(used, "__xrt_hash", "u64Nano");
+    }
+    if ( xl6StdlibFindFunc("hash", "u64NanoWithSeed", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__crt_string", "strlen");
+        xl6StdlibMarkFuncUsed(used, "__xrt_hash", "u64NanoWithSeed");
+    }
 
     if ( xl6StdlibFindFunc("crypto", "sha1", &index) != NULL && used[index] ) {
         xl6StdlibMarkFuncUsed(used, "__crt_string", "strlen");
@@ -3270,6 +3680,65 @@ static void xl6StdlibApplyDeps(int* used)
         xl6StdlibMarkFuncUsed(used, "__xl_runtime", "takeCstr");
         xl6StdlibMarkFuncUsed(used, "__xl_runtime", "sha512Hex");
     }
+    if ( xl6StdlibFindFunc("crypto", "hmacSha256", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__crt_string", "strlen");
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "takeCstr");
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "hmacSha256Hex");
+    }
+    if ( xl6StdlibFindFunc("crypto", "hmacSha384", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__crt_string", "strlen");
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "takeCstr");
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "hmacSha384Hex");
+    }
+    if ( xl6StdlibFindFunc("crypto", "hmacSha512", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__crt_string", "strlen");
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "takeCstr");
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "hmacSha512Hex");
+    }
+    if ( xl6StdlibFindFunc("crypto", "chacha20Poly1305Encrypt", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__crt_string", "strlen");
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "takeCstr");
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "chacha20Poly1305EncryptHex");
+    }
+    if ( xl6StdlibFindFunc("crypto", "chacha20Poly1305Decrypt", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__crt_string", "strlen");
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "takeCstr");
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "chacha20Poly1305DecryptText");
+    }
+    if ( xl6StdlibFindFunc("crypto", "aes128GcmEncrypt", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__crt_string", "strlen");
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "takeCstr");
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "aes128GcmEncryptHex");
+    }
+    if ( xl6StdlibFindFunc("crypto", "aes128GcmDecrypt", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__crt_string", "strlen");
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "takeCstr");
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "aes128GcmDecryptText");
+    }
+    if ( xl6StdlibFindFunc("crypto", "aes256GcmEncrypt", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__crt_string", "strlen");
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "takeCstr");
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "aes256GcmEncryptHex");
+    }
+    if ( xl6StdlibFindFunc("crypto", "aes256GcmDecrypt", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__crt_string", "strlen");
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "takeCstr");
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "aes256GcmDecryptText");
+    }
+    if ( xl6StdlibFindFunc("crypto", "hkdfSha256", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__crt_string", "strlen");
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "takeCstr");
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "hkdfSha256Hex");
+    }
+    if ( xl6StdlibFindFunc("crypto", "hkdfSha384", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__crt_string", "strlen");
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "takeCstr");
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "hkdfSha384Hex");
+    }
+    if ( xl6StdlibFindFunc("crypto", "randomHex", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "takeCstr");
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "randomHex");
+    }
 
     if ( xl6StdlibFindFunc("id", "xid", &index) != NULL && used[index] ) {
         xl6StdlibMarkFuncUsed(used, "__xl_runtime", "takeCstr");
@@ -3287,6 +3756,18 @@ static void xl6StdlibApplyDeps(int* used)
     if ( xl6StdlibFindFunc("net", "localName", &index) != NULL && used[index] ) {
         xl6StdlibMarkFuncUsed(used, "__xl_runtime", "takeCstr");
         xl6StdlibMarkFuncUsed(used, "__xrt_net", "localName");
+    }
+    if ( xl6StdlibFindFunc("tcp", "connect", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xrt_tcp", "connect");
+    }
+    if ( xl6StdlibFindFunc("tcp", "connectAsync", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xrt_tcp", "connectAsync");
+    }
+    if ( xl6StdlibFindFunc("tcp", "listen", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xrt_tcp", "listen");
+    }
+    if ( xl6StdlibFindFunc("udp", "bind", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xrt_udp", "bind");
     }
 
     if ( xl6StdlibFindFunc("url", "valid", &index) != NULL && used[index] ) {
@@ -3599,6 +4080,40 @@ static int xl6StdlibNeedsRandomClass(const XL6_AstNode* root, const int* used)
     return xl6StdlibNodeUsesTypeName(root, "Random");
 }
 
+static int xl6StdlibNeedsBufferClass(const XL6_AstNode* root, const int* used)
+{
+    (void)used;
+    return xl6StdlibNodeUsesTypeName(root, "Buffer");
+}
+
+static int xl6StdlibNeedsNetClass(const XL6_AstNode* root, const int* used)
+{
+    size_t index;
+
+    if ( xl6StdlibNodeUsesTypeName(root, "TcpStream") ||
+         xl6StdlibNodeUsesTypeName(root, "TcpServer") ||
+         xl6StdlibNodeUsesTypeName(root, "UdpSocket") ||
+         xl6StdlibNodeUsesTypeName(root, "UdpPacket") ) {
+        return 1;
+    }
+    if ( used == NULL ) {
+        return 0;
+    }
+    if ( xl6StdlibFindFunc("tcp", "connect", &index) != NULL && used[index] ) {
+        return 1;
+    }
+    if ( xl6StdlibFindFunc("tcp", "connectAsync", &index) != NULL && used[index] ) {
+        return 1;
+    }
+    if ( xl6StdlibFindFunc("tcp", "listen", &index) != NULL && used[index] ) {
+        return 1;
+    }
+    if ( xl6StdlibFindFunc("udp", "bind", &index) != NULL && used[index] ) {
+        return 1;
+    }
+    return 0;
+}
+
 static int xl6StdlibNeedsFileInfoClass(const XL6_AstNode* root, const int* used)
 {
     size_t index;
@@ -3679,6 +4194,8 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     XL6_StdlibTextBuilder builder;
     size_t i;
     int needsRandomClass;
+    int needsBufferClass;
+    int needsNetClass;
     int needsFileInfoClass;
     int ok;
 
@@ -3692,8 +4209,10 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
         return 0;
     }
     needsRandomClass = xl6StdlibNeedsRandomClass(root, used);
+    needsBufferClass = xl6StdlibNeedsBufferClass(root, used);
+    needsNetClass = xl6StdlibNeedsNetClass(root, used);
     needsFileInfoClass = xl6StdlibNeedsFileInfoClass(root, used);
-    if ( needsRandomClass ) {
+    if ( needsRandomClass || needsBufferClass || needsNetClass ) {
         xl6StdlibMarkFuncUsed(used, "__xl_runtime", "takeCstr");
     }
     xl6StdlibApplyDeps(used);
@@ -3703,6 +4222,12 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     xl6StdlibBuilderAppend(&builder, xl6StdlibCoreClassSource);
     if ( needsRandomClass ) {
         xl6StdlibBuilderAppend(&builder, xl6StdlibRandomClassSource);
+    }
+    if ( needsBufferClass ) {
+        xl6StdlibBuilderAppend(&builder, xl6StdlibBufferClassSource);
+    }
+    if ( needsNetClass ) {
+        xl6StdlibBuilderAppend(&builder, xl6StdlibNetClassSource);
     }
     if ( needsFileInfoClass ) {
         xl6StdlibBuilderAppend(&builder, xl6StdlibFileInfoClassSource);

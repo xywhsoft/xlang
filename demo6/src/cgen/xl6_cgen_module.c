@@ -27,6 +27,8 @@ int xl6CgenEmitCEx(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags, cons
     int hasStdStringRuntime;
     int hasPathRuntime;
     int hasHttpServerRuntime;
+    int hasBufferRuntime;
+    int hasAsyncFileRuntime;
     int hasTaskSpawn;
     int needsObjectClass;
     const XL6_AstNode* mainFunc;
@@ -72,6 +74,12 @@ int xl6CgenEmitCEx(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags, cons
     hasStdStringRuntime = xl6CgenNodeNeedsStdStringRuntime(root);
     hasPathRuntime = xl6CgenNodeNeedsPathRuntime(root);
     hasHttpServerRuntime = xl6CgenNodeNeedsHttpServerRuntime(root);
+    hasBufferRuntime = xl6CgenNodeNeedsBufferRuntime(root);
+    hasAsyncFileRuntime = xl6CgenNodeNeedsAsyncFileRuntime(root);
+    if ( hasAsyncFileRuntime ) {
+        hasAsyncRuntime = 1;
+        hasErrorRuntime = 1;
+    }
     if ( hasStdStringRuntime || hasDirRuntime ) {
         hasXValueRuntime = 1;
     }
@@ -133,6 +141,9 @@ int xl6CgenEmitCEx(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags, cons
     if ( hasAsyncRuntime ) {
         xl6CgenEmitAsyncRuntime(out, hasTaskSpawn);
     }
+    if ( hasAsyncFileRuntime ) {
+        xl6CgenEmitAsyncFileRuntime(out);
+    }
     if ( hasXValueRuntime ) {
         xl6CgenEmitXValueRuntime(&ctx);
         xl6CgenEmitRuntimeTypeDescs(&ctx);
@@ -172,6 +183,9 @@ int xl6CgenEmitCEx(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags, cons
     }
     if ( hasHttpServerRuntime ) {
         xl6CgenEmitHttpServerRuntime(out);
+    }
+    if ( hasBufferRuntime ) {
+        xl6CgenEmitBufferRuntime(out);
     }
     if ( xl6CgenNodeNeedsIntPow(root) ) {
         xl6CgenEmitIntPowHelper(out);

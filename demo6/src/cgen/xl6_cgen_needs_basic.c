@@ -63,6 +63,14 @@ static int xl6CgenNeedsBasicIsBuiltinObjectClass(const XL6_AstNode* node)
            xl6CgenNeedsBasicTextEquals(node->text, "object");
 }
 
+static int xl6CgenNeedsBasicIsBufferClass(const XL6_AstNode* node)
+{
+    return node != NULL &&
+           node->kind == XL6_AST_CLASS &&
+           node->text != NULL &&
+           xl6CgenNeedsBasicTextEquals(node->text, "Buffer");
+}
+
 static int xl6CgenNeedsBasicIsToStringMemberCallSyntax(const XL6_AstNode* node)
 {
     const XL6_AstNode* callee;
@@ -126,7 +134,19 @@ static int xl6CgenNeedsBasicIsCryptoRuntimeCall(const XL6_AstNode* node)
     return xl6CgenNeedsBasicTextEquals(callee->text, "__xl_std_runtime_sha1_hex") ||
            xl6CgenNeedsBasicTextEquals(callee->text, "__xl_std_runtime_sha256_hex") ||
            xl6CgenNeedsBasicTextEquals(callee->text, "__xl_std_runtime_sha384_hex") ||
-           xl6CgenNeedsBasicTextEquals(callee->text, "__xl_std_runtime_sha512_hex");
+           xl6CgenNeedsBasicTextEquals(callee->text, "__xl_std_runtime_sha512_hex") ||
+           xl6CgenNeedsBasicTextEquals(callee->text, "__xl_std_runtime_hmac_sha256_hex") ||
+           xl6CgenNeedsBasicTextEquals(callee->text, "__xl_std_runtime_hmac_sha384_hex") ||
+           xl6CgenNeedsBasicTextEquals(callee->text, "__xl_std_runtime_hmac_sha512_hex") ||
+           xl6CgenNeedsBasicTextEquals(callee->text, "__xl_std_runtime_chacha20_poly1305_encrypt_hex") ||
+           xl6CgenNeedsBasicTextEquals(callee->text, "__xl_std_runtime_chacha20_poly1305_decrypt_text") ||
+           xl6CgenNeedsBasicTextEquals(callee->text, "__xl_std_runtime_aes128_gcm_encrypt_hex") ||
+           xl6CgenNeedsBasicTextEquals(callee->text, "__xl_std_runtime_aes128_gcm_decrypt_text") ||
+           xl6CgenNeedsBasicTextEquals(callee->text, "__xl_std_runtime_aes256_gcm_encrypt_hex") ||
+           xl6CgenNeedsBasicTextEquals(callee->text, "__xl_std_runtime_aes256_gcm_decrypt_text") ||
+           xl6CgenNeedsBasicTextEquals(callee->text, "__xl_std_runtime_hkdf_sha256_hex") ||
+           xl6CgenNeedsBasicTextEquals(callee->text, "__xl_std_runtime_hkdf_sha384_hex") ||
+           xl6CgenNeedsBasicTextEquals(callee->text, "__xl_std_runtime_random_hex");
 }
 
 static int xl6CgenNeedsBasicIsUrlRuntimeCall(const XL6_AstNode* node)
@@ -275,6 +295,25 @@ static int xl6CgenNeedsBasicIsHttpServerRuntimeCall(const XL6_AstNode* node)
            xl6CgenNeedsBasicTextEquals(callee->text, "__xl_std_runtime_http_server_port") ||
            xl6CgenNeedsBasicTextEquals(callee->text, "__xl_std_runtime_http_server_stop") ||
            xl6CgenNeedsBasicTextEquals(callee->text, "__xl_std_runtime_http_server_destroy");
+}
+
+static int xl6CgenNeedsBasicIsAsyncFileRuntimeCall(const XL6_AstNode* node)
+{
+    const XL6_AstNode* callee;
+
+    if ( node == NULL || node->kind != XL6_AST_CALL || node->childCount == 0 ) {
+        return 0;
+    }
+    callee = node->children[0];
+    if ( callee == NULL || callee->kind != XL6_AST_NAME ) {
+        return 0;
+    }
+    return xl6CgenNeedsBasicTextEquals(callee->text, "__xl_std_file_read_text_async") ||
+           xl6CgenNeedsBasicTextEquals(callee->text, "__xl_std_file_write_text_async") ||
+           xl6CgenNeedsBasicTextEquals(callee->text, "__xl_std_file_append_text_async") ||
+           xl6CgenNeedsBasicTextEquals(callee->text, "__xl_std_file_copy_async") ||
+           xl6CgenNeedsBasicTextEquals(callee->text, "__xl_std_file_move_async") ||
+           xl6CgenNeedsBasicTextEquals(callee->text, "__xl_std_file_delete_async");
 }
 
 int xl6CgenNodeNeedsRangeContains(const XL6_AstNode* node)
@@ -596,6 +635,42 @@ int xl6CgenNodeNeedsHttpServerRuntime(const XL6_AstNode* node)
     }
     for ( i = 0; i < node->childCount; ++i ) {
         if ( xl6CgenNodeNeedsHttpServerRuntime(node->children[i]) ) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+int xl6CgenNodeNeedsBufferRuntime(const XL6_AstNode* node)
+{
+    size_t i;
+
+    if ( node == NULL ) {
+        return 0;
+    }
+    if ( xl6CgenNeedsBasicIsBufferClass(node) ) {
+        return 1;
+    }
+    for ( i = 0; i < node->childCount; ++i ) {
+        if ( xl6CgenNodeNeedsBufferRuntime(node->children[i]) ) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+int xl6CgenNodeNeedsAsyncFileRuntime(const XL6_AstNode* node)
+{
+    size_t i;
+
+    if ( node == NULL ) {
+        return 0;
+    }
+    if ( xl6CgenNeedsBasicIsAsyncFileRuntimeCall(node) ) {
+        return 1;
+    }
+    for ( i = 0; i < node->childCount; ++i ) {
+        if ( xl6CgenNodeNeedsAsyncFileRuntime(node->children[i]) ) {
             return 1;
         }
     }

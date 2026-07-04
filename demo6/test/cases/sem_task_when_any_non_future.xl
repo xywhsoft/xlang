@@ -1,0 +1,1 @@
+auto bad = task.whenAny([1])
