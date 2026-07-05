@@ -1,0 +1,30 @@
+import tcc
+
+func expect(int actual, int expected, string name)
+    if actual != expected then
+        print("expect failed: " + name)
+        assert false
+    end
+end
+
+int rc = tcc.run("#include <stdio.h>\nint main(void){ puts(\"c from xlang tcc.run\"); return 0; }\n")
+println("tcc.run rc", rc)
+expect(rc, 0, "tcc.run")
+
+TccContext ctx = tcc.Context()
+int compileRc = int(ctx.compileString("int main(void){ return 0; }\n"))
+println("context compile rc", compileRc)
+expect(compileRc, 0, "context compile string")
+int contextRunRc = ctx.run()
+println("context run rc", contextRunRc)
+expect(contextRunRc, 0, "context run")
+
+if not tcc.vfsMount("__xlvfs__/embed_test.c", "int main(void){ return 0; }\n") then
+    assert false
+end
+int runFileRc = tcc.runFile("__xlvfs__/embed_test.c")
+println("tcc.runFile rc", runFileRc)
+expect(runFileRc, 0, "tcc.runFile dynamic vfs")
+tcc.vfsClear()
+
+println("stdlib tcc embed ok")

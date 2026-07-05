@@ -667,6 +667,71 @@ if errorlevel 1 (
     exit /b 1
 )
 
+release\xl.exe run test\cases\stdlib_tcc_import_only.xl > release\tmp\stdlib_tcc_import_only.out.txt
+if errorlevel 1 exit /b 1
+findstr /C:"stdlib tcc import only ok" release\tmp\stdlib_tcc_import_only.out.txt >nul
+if errorlevel 1 (
+    echo stdlib_tcc_import_only.out.txt missing ok output.
+    exit /b 1
+)
+
+release\xl.exe run test\cases\stdlib_tcc_context_only.xl > release\tmp\stdlib_tcc_context_only.out.txt
+if errorlevel 1 exit /b 1
+findstr /C:"after tcc context" release\tmp\stdlib_tcc_context_only.out.txt >nul
+if errorlevel 1 (
+    echo stdlib_tcc_context_only.out.txt missing context output.
+    exit /b 1
+)
+
+release\xl.exe cgen test\cases\stdlib_tcc_embed.xl --emit release\tmp\stdlib_tcc_embed.c
+if errorlevel 1 exit /b 1
+findstr /C:"void* xl6_tcc_context_create(void)" release\tmp\stdlib_tcc_embed.c >nul
+if errorlevel 1 (
+    echo stdlib_tcc_embed.c missing TCC context helper.
+    exit /b 1
+)
+findstr /C:"int tcc_relocate(void* s)" release\tmp\stdlib_tcc_embed.c >nul
+if errorlevel 1 (
+    echo stdlib_tcc_embed.c missing TCC relocate prototype.
+    exit /b 1
+)
+release\xl.exe run test\cases\stdlib_tcc_embed.xl > release\tmp\stdlib_tcc_embed.out.txt
+if errorlevel 1 exit /b 1
+findstr /C:"stdlib tcc embed ok" release\tmp\stdlib_tcc_embed.out.txt >nul
+if errorlevel 1 (
+    echo stdlib_tcc_embed.out.txt missing xlang ok output.
+    exit /b 1
+)
+findstr /C:"c from xlang tcc.run" release\tmp\stdlib_tcc_embed.out.txt >nul
+if errorlevel 1 (
+    echo stdlib_tcc_embed.out.txt missing nested C output.
+    exit /b 1
+)
+
+release\xl.exe cgen test\cases\stdlib_xlang_embed.xl --emit release\tmp\stdlib_xlang_embed.c
+if errorlevel 1 exit /b 1
+findstr /C:"void* xl6_xlang_context_create(void)" release\tmp\stdlib_xlang_embed.c >nul
+if errorlevel 1 (
+    echo stdlib_xlang_embed.c missing xlang context helper.
+    exit /b 1
+)
+findstr /C:"int xl6_xlang_run_source" release\tmp\stdlib_xlang_embed.c >nul
+if errorlevel 1 (
+    echo stdlib_xlang_embed.c missing xlang run helper.
+    exit /b 1
+)
+release\xl.exe run test\cases\stdlib_xlang_embed.xl > release\tmp\stdlib_xlang_embed.out.txt
+if errorlevel 1 exit /b 1
+findstr /C:"nested xlang shortcut ok" release\tmp\stdlib_xlang_embed.out.txt >nul
+if errorlevel 1 (
+    echo stdlib_xlang_embed.out.txt missing shortcut output.
+    exit /b 1
+)
+findstr /C:"stdlib xlang embed ok" release\tmp\stdlib_xlang_embed.out.txt >nul
+if errorlevel 1 (
+    echo stdlib_xlang_embed.out.txt missing xlang embed ok output.
+    exit /b 1
+)
 
 echo DEMO6 suite ok: extended standard library
 exit /b 0

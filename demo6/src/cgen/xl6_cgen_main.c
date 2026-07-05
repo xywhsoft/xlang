@@ -109,9 +109,7 @@ static void xl6CgenEmitTopLevelXlangMain(XL6_CgenContext* ctx, XL6_AstNode* root
     xl6OutputPuts("    return 0;\n", ctx->out);
     if ( hasErrorRuntime ) {
         xl6OutputPuts("__xl6_script_error:\n", ctx->out);
-        xl6OutputPuts("    xl6_error_print_uncaught();\n", ctx->out);
-        xl6OutputPuts("    xl6_error_clear();\n", ctx->out);
-        xl6OutputPuts("    return 1;\n", ctx->out);
+        xl6OutputPuts("    return 0;\n", ctx->out);
     }
     xl6OutputPuts("}\n\n", ctx->out);
     ctx->indent = 0;

@@ -1,0 +1,22 @@
+import xlang
+
+XLangContext quick = xlang.Context()
+if not quick.run("println(\"nested xlang string ok\")\n") then
+    println(quick.lastError)
+    assert false
+end
+
+if not xlang.run("println(\"nested xlang shortcut ok\")\n") then
+    assert false
+end
+
+XLangContext ctx = xlang.Context()
+if not ctx.run("println(\"nested xlang context ok\")\n") then
+    assert false
+end
+
+if not ctx.runFile("test\\cases\\xlang_nested_child.xl") then
+    assert false
+end
+
+println("stdlib xlang embed ok")

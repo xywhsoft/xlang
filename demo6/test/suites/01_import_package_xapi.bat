@@ -323,6 +323,8 @@ if errorlevel 1 exit /b 1
 if errorlevel 1 exit /b 1
 release\tmp\import_deps_snapshot_host.exe test\cases\import_metadata_combo.xl
 if errorlevel 1 exit /b 1
+release\tmp\import_deps_snapshot_host.exe test\cases\import_builtin_features.xl 7
+if errorlevel 1 exit /b 1
 
 release\xl.exe build test\cases\import_dependency_no_pollution.xl -o release\tmp\import_dependency_no_pollution.exe >nul 2> release\tmp\import_dependency_no_pollution.err.txt
 if not errorlevel 1 (

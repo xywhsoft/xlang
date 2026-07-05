@@ -9,6 +9,7 @@
 #include "src/cgen/xl6_cgen.h"
 #include "src/common/xl6_common.h"
 #include "src/compile/xl6_compile_unit.h"
+#include "src/compile/xl6_xrt_trim.h"
 #include "src/diag/xl6_diag.h"
 #include "src/ir/xl6_ir_dump.h"
 #include "src/lexer/xl6_lexer_api.h"
@@ -39,6 +40,7 @@
 
 #ifdef _WIN32
 #include <windows.h>
+int tcc_tool_impdef(int argc, char** argv);
 #else
 #include <dlfcn.h>
 #include <errno.h>
@@ -52,6 +54,9 @@ typedef void (*XL_TccSetLibPathProc)(TCCState* s, const char* path);
 typedef void (*XL_TccSetErrorFuncProc)(TCCState* s, void* opaque, TCCErrorFunc* errorFunc);
 typedef int (*XL_TccSetOptionsProc)(TCCState* s, const char* options);
 typedef int (*XL_TccAddIncludePathProc)(TCCState* s, const char* path);
+typedef int (*XL_TccAddSysIncludePathProc)(TCCState* s, const char* path);
+typedef void (*XL_TccDefineSymbolProc)(TCCState* s, const char* sym, const char* value);
+typedef void (*XL_TccUndefineSymbolProc)(TCCState* s, const char* sym);
 typedef int (*XL_TccAddLibraryPathProc)(TCCState* s, const char* path);
 typedef int (*XL_TccAddLibraryProc)(TCCState* s, const char* name);
 typedef int (*XL_TccAddFileProc)(TCCState* s, const char* path);
@@ -62,6 +67,8 @@ typedef int (*XL_TccOutputFileProc)(TCCState* s, const char* path);
 typedef int (*XL_TccRunProc)(TCCState* s, int argc, char** argv);
 typedef int (*XL_TccRelocateProc)(TCCState* s);
 typedef void* (*XL_TccGetSymbolProc)(TCCState* s, const char* name);
+typedef void (*XL_TccListSymbolsProc)(TCCState* s, void* ctx, void (*symbol_cb)(void* ctx, const char* name, const void* value));
+typedef void (*XL_TccSetBacktraceFuncProc)(TCCState* s, void* userdata, TCCBtFunc* func);
 typedef int (*XL_XlangMainProc)(xvalue arg);
 typedef int (*XL_CMainProc)(int argc, char** argv);
 typedef int (*XL_ScriptHasErrorProc)(void);
@@ -81,6 +88,9 @@ typedef struct XL_TccApi {
     XL_TccSetErrorFuncProc tcc_set_error_func;
     XL_TccSetOptionsProc tcc_set_options;
     XL_TccAddIncludePathProc tcc_add_include_path;
+    XL_TccAddSysIncludePathProc tcc_add_sysinclude_path;
+    XL_TccDefineSymbolProc tcc_define_symbol;
+    XL_TccUndefineSymbolProc tcc_undefine_symbol;
     XL_TccAddLibraryPathProc tcc_add_library_path;
     XL_TccAddLibraryProc tcc_add_library;
     XL_TccAddFileProc tcc_add_file;
@@ -91,6 +101,8 @@ typedef struct XL_TccApi {
     XL_TccRunProc tcc_run;
     XL_TccRelocateProc tcc_relocate;
     XL_TccGetSymbolProc tcc_get_symbol;
+    XL_TccListSymbolsProc tcc_list_symbols;
+    XL_TccSetBacktraceFuncProc tcc_set_backtrace_func;
 } XL_TccApi;
 
 typedef struct XL_StringList {
@@ -158,6 +170,39 @@ typedef struct XLC_Context {
     XL6_CompileUnit unit;
     int unitReady;
 } XLC_Context;
+
+XL_API XLC_ContextOptions xlcDefaultContextOptions(void);
+XL_API XLC_Context* xlcCreateContext(const XLC_ContextOptions* options);
+XL_API void xlcDestroyContext(XLC_Context* ctx);
+XL_API int xlcSetWorkDir(XLC_Context* ctx, const char* path);
+XL_API int xlcSetTempDir(XLC_Context* ctx, const char* path);
+XL_API int xlcSetSaveTemps(XLC_Context* ctx, int enabled);
+XL_API int xlcAddIncludePath(XLC_Context* ctx, const char* path);
+XL_API int xlcAddLibraryPath(XLC_Context* ctx, const char* path);
+XL_API int xlcAddLinkLibrary(XLC_Context* ctx, const char* nameOrPath);
+XL_API int xlcAddCSourceFile(XLC_Context* ctx, const char* path);
+XL_API int xlcLoadDependencyLibrary(XLC_Context* ctx, const char* path);
+XL_API int xlcRegisterCFunction(XLC_Context* ctx, const char* symbolName, void* fn);
+XL_API int xlcAddSourceFile(XLC_Context* ctx, const char* path);
+XL_API int xlcAddSourceString(XLC_Context* ctx, const char* virtualPath, const char* source);
+XL_API int xlcCompile(XLC_Context* ctx);
+XL_API int xlcCheck(XLC_Context* ctx, const char* outputPath, int jsonOutput);
+XL_API int xlcEmitTokens(XLC_Context* ctx, const char* outputPath, int jsonOutput);
+XL_API int xlcEmitAst(XLC_Context* ctx, const char* outputPath, int jsonOutput);
+XL_API int xlcEmitIr(XLC_Context* ctx, const char* outputPath, int jsonOutput);
+XL_API int xlcEmitC(XLC_Context* ctx, const char* outputPath);
+XL_API int xlcEmitDebugC(XLC_Context* ctx, const char* outputPath, const char* debugSourcePath);
+XL_API int xlcEmitHeader(XLC_Context* ctx, const char* outputPath, const char* guardName);
+XL_API int xlcEmitAbi(XLC_Context* ctx, const char* outputPath, int jsonOutput);
+XL_API int xlcEmitXapi(XLC_Context* ctx, const char* outputPath);
+XL_API int xlcEmitExe(XLC_Context* ctx, const char* outputExe);
+XL_API int xlcEmitDebugExe(XLC_Context* ctx, const char* outputExe, const char* debugSourcePath);
+XL_API int xlcEmitSharedLibrary(XLC_Context* ctx, const char* outputDll);
+XL_API XL_Context* xlcRuntimeContext(XLC_Context* ctx);
+XL_API XL_Module* xlcRelocateModule(XLC_Context* ctx);
+XL_API int xlcRun(XLC_Context* ctx, int argc, char** argv);
+XL_API const char* xlcGetLastError(XLC_Context* ctx);
+XL_API void xlcClearLastError(XLC_Context* ctx);
 #endif
 
 typedef struct XL_CwdScope {
@@ -946,6 +991,9 @@ static int xlLoadStaticTcc(XL_Context* ctx)
     loaded.tcc_set_error_func = tcc_set_error_func;
     loaded.tcc_set_options = tcc_set_options;
     loaded.tcc_add_include_path = tcc_add_include_path;
+    loaded.tcc_add_sysinclude_path = tcc_add_sysinclude_path;
+    loaded.tcc_define_symbol = tcc_define_symbol;
+    loaded.tcc_undefine_symbol = tcc_undefine_symbol;
     loaded.tcc_add_library_path = tcc_add_library_path;
     loaded.tcc_add_library = tcc_add_library;
     loaded.tcc_add_file = tcc_add_file;
@@ -956,6 +1004,8 @@ static int xlLoadStaticTcc(XL_Context* ctx)
     loaded.tcc_run = tcc_run;
     loaded.tcc_relocate = tcc_relocate;
     loaded.tcc_get_symbol = tcc_get_symbol;
+    loaded.tcc_list_symbols = tcc_list_symbols;
+    loaded.tcc_set_backtrace_func = tcc_set_backtrace_func;
     loaded.path = xlDupText("<static libtcc>");
     if ( loaded.path == NULL ) {
         xlSetError(ctx, "cannot remember static libtcc path");
@@ -1005,6 +1055,9 @@ static int xlLoadTccFromPath(XL_Context* ctx, const char* path)
     loaded.tcc_set_error_func = (XL_TccSetErrorFuncProc)xlLoadProc(&loaded, "tcc_set_error_func");
     loaded.tcc_set_options = (XL_TccSetOptionsProc)xlLoadProc(&loaded, "tcc_set_options");
     loaded.tcc_add_include_path = (XL_TccAddIncludePathProc)xlLoadProc(&loaded, "tcc_add_include_path");
+    loaded.tcc_add_sysinclude_path = (XL_TccAddSysIncludePathProc)xlLoadProc(&loaded, "tcc_add_sysinclude_path");
+    loaded.tcc_define_symbol = (XL_TccDefineSymbolProc)xlLoadProc(&loaded, "tcc_define_symbol");
+    loaded.tcc_undefine_symbol = (XL_TccUndefineSymbolProc)xlLoadProc(&loaded, "tcc_undefine_symbol");
     loaded.tcc_add_library_path = (XL_TccAddLibraryPathProc)xlLoadProc(&loaded, "tcc_add_library_path");
     loaded.tcc_add_library = (XL_TccAddLibraryProc)xlLoadProc(&loaded, "tcc_add_library");
     loaded.tcc_add_file = (XL_TccAddFileProc)xlLoadProc(&loaded, "tcc_add_file");
@@ -1015,6 +1068,8 @@ static int xlLoadTccFromPath(XL_Context* ctx, const char* path)
     loaded.tcc_run = (XL_TccRunProc)xlLoadProc(&loaded, "tcc_run");
     loaded.tcc_relocate = (XL_TccRelocateProc)xlLoadProc(&loaded, "tcc_relocate");
     loaded.tcc_get_symbol = (XL_TccGetSymbolProc)xlLoadProc(&loaded, "tcc_get_symbol");
+    loaded.tcc_list_symbols = (XL_TccListSymbolsProc)xlLoadProc(&loaded, "tcc_list_symbols");
+    loaded.tcc_set_backtrace_func = (XL_TccSetBacktraceFuncProc)xlLoadProc(&loaded, "tcc_set_backtrace_func");
 
     if ( loaded.tcc_new == NULL || loaded.tcc_delete == NULL || loaded.tcc_set_lib_path == NULL ||
          loaded.tcc_set_error_func == NULL || loaded.tcc_add_include_path == NULL ||
@@ -1094,7 +1149,11 @@ static int xlEnsureTcc(XL_Context* ctx)
 
 static int xlAddTccSymbol(TCCState* s, const char* name, const void* value)
 {
+#ifdef XL_STATIC_TCC
+    return tcc_add_symbol(s, name, value) == 0;
+#else
     return xl__tcc.tcc_add_symbol(s, name, value) == 0;
+#endif
 }
 
 #define XL_ADD_XRT_SYMBOL(s, name) \
@@ -1103,6 +1162,133 @@ static int xlAddTccSymbol(TCCState* s, const char* name, const void* value)
             return 0; \
         } \
     } while (0)
+
+#define XL_ADD_TCC_API_SYMBOL(s, member, name) \
+    do { \
+        if ( xl__tcc.member != NULL && !xlAddTccSymbol((s), (name), (const void*)xl__tcc.member) ) { \
+            return 0; \
+        } \
+    } while (0)
+
+static int xlAddDefaultTccApiSymbols(TCCState* s)
+{
+    if ( s == NULL || !xl__tcc.ready ) {
+        return 1;
+    }
+
+    XL_ADD_TCC_API_SYMBOL(s, tcc_new, "tcc_new");
+    XL_ADD_TCC_API_SYMBOL(s, tcc_delete, "tcc_delete");
+    XL_ADD_TCC_API_SYMBOL(s, tcc_set_lib_path, "tcc_set_lib_path");
+    XL_ADD_TCC_API_SYMBOL(s, tcc_set_error_func, "tcc_set_error_func");
+    XL_ADD_TCC_API_SYMBOL(s, tcc_set_options, "tcc_set_options");
+    XL_ADD_TCC_API_SYMBOL(s, tcc_add_include_path, "tcc_add_include_path");
+    XL_ADD_TCC_API_SYMBOL(s, tcc_add_sysinclude_path, "tcc_add_sysinclude_path");
+    XL_ADD_TCC_API_SYMBOL(s, tcc_define_symbol, "tcc_define_symbol");
+    XL_ADD_TCC_API_SYMBOL(s, tcc_undefine_symbol, "tcc_undefine_symbol");
+    XL_ADD_TCC_API_SYMBOL(s, tcc_add_library_path, "tcc_add_library_path");
+    XL_ADD_TCC_API_SYMBOL(s, tcc_add_library, "tcc_add_library");
+    XL_ADD_TCC_API_SYMBOL(s, tcc_add_file, "tcc_add_file");
+    XL_ADD_TCC_API_SYMBOL(s, tcc_add_symbol, "tcc_add_symbol");
+    XL_ADD_TCC_API_SYMBOL(s, tcc_set_output_type, "tcc_set_output_type");
+    XL_ADD_TCC_API_SYMBOL(s, tcc_compile_string, "tcc_compile_string");
+    XL_ADD_TCC_API_SYMBOL(s, tcc_output_file, "tcc_output_file");
+    XL_ADD_TCC_API_SYMBOL(s, tcc_run, "tcc_run");
+    XL_ADD_TCC_API_SYMBOL(s, tcc_relocate, "tcc_relocate");
+    XL_ADD_TCC_API_SYMBOL(s, tcc_get_symbol, "tcc_get_symbol");
+    XL_ADD_TCC_API_SYMBOL(s, tcc_list_symbols, "tcc_list_symbols");
+    XL_ADD_TCC_API_SYMBOL(s, tcc_set_backtrace_func, "tcc_set_backtrace_func");
+    if ( !xlAddTccSymbol(s, "xlDefaultContextOptions", (const void*)xlDefaultContextOptions) ||
+         !xlAddTccSymbol(s, "xlRuntimeInit", (const void*)xlRuntimeInit) ||
+         !xlAddTccSymbol(s, "xlRuntimeUnit", (const void*)xlRuntimeUnit) ||
+         !xlAddTccSymbol(s, "xlCreateContext", (const void*)xlCreateContext) ||
+         !xlAddTccSymbol(s, "xlDestroyContext", (const void*)xlDestroyContext) ||
+         !xlAddTccSymbol(s, "xlSetWorkDir", (const void*)xlSetWorkDir) ||
+         !xlAddTccSymbol(s, "xlSetTempDir", (const void*)xlSetTempDir) ||
+         !xlAddTccSymbol(s, "xlSetSaveTemps", (const void*)xlSetSaveTemps) ||
+         !xlAddTccSymbol(s, "xlAddIncludePath", (const void*)xlAddIncludePath) ||
+         !xlAddTccSymbol(s, "xlAddLibraryPath", (const void*)xlAddLibraryPath) ||
+         !xlAddTccSymbol(s, "xlAddLinkLibrary", (const void*)xlAddLinkLibrary) ||
+         !xlAddTccSymbol(s, "xlLoadDependencyLibrary", (const void*)xlLoadDependencyLibrary) ||
+         !xlAddTccSymbol(s, "xlRegisterCFunction", (const void*)xlRegisterCFunction) ||
+         !xlAddTccSymbol(s, "xlRunScriptString", (const void*)xlRunScriptString) ||
+         !xlAddTccSymbol(s, "xlRunScriptFile", (const void*)xlRunScriptFile) ||
+         !xlAddTccSymbol(s, "xlRunScriptStringArg", (const void*)xlRunScriptStringArg) ||
+         !xlAddTccSymbol(s, "xlRunScriptFileArg", (const void*)xlRunScriptFileArg) ||
+         !xlAddTccSymbol(s, "xlCompileScriptStringToModule", (const void*)xlCompileScriptStringToModule) ||
+         !xlAddTccSymbol(s, "xlCompileScriptFileToModule", (const void*)xlCompileScriptFileToModule) ||
+         !xlAddTccSymbol(s, "xlCompileCSourceStringToModule", (const void*)xlCompileCSourceStringToModule) ||
+         !xlAddTccSymbol(s, "xlCompileCSourceFileToModule", (const void*)xlCompileCSourceFileToModule) ||
+         !xlAddTccSymbol(s, "xlCompileCSourceFilesToModule", (const void*)xlCompileCSourceFilesToModule) ||
+         !xlAddTccSymbol(s, "xlRunCSourceString", (const void*)xlRunCSourceString) ||
+         !xlAddTccSymbol(s, "xlRunCSourceFile", (const void*)xlRunCSourceFile) ||
+         !xlAddTccSymbol(s, "xlRunCSourceFiles", (const void*)xlRunCSourceFiles) ||
+         !xlAddTccSymbol(s, "xlRunModuleMain", (const void*)xlRunModuleMain) ||
+         !xlAddTccSymbol(s, "xlModuleGetSymbol", (const void*)xlModuleGetSymbol) ||
+         !xlAddTccSymbol(s, "xlDestroyModule", (const void*)xlDestroyModule) ||
+         !xlAddTccSymbol(s, "xlGetLastError", (const void*)xlGetLastError) ||
+         !xlAddTccSymbol(s, "xlClearLastError", (const void*)xlClearLastError) ) {
+        return 0;
+    }
+    if ( !xlAddTccSymbol(s, "xlTccRegisterXrtEnvironment", (const void*)xlTccRegisterXrtEnvironment) ) {
+        return 0;
+    }
+#if XL_ENABLE_EXE_COMPILER
+    if ( !xlAddTccSymbol(s, "xlCompileScriptStringToExe", (const void*)xlCompileScriptStringToExe) ||
+         !xlAddTccSymbol(s, "xlCompileScriptFileToExe", (const void*)xlCompileScriptFileToExe) ||
+         !xlAddTccSymbol(s, "xlCompileCSourceFileToExe", (const void*)xlCompileCSourceFileToExe) ||
+         !xlAddTccSymbol(s, "xlCompileCSourceFilesToExe", (const void*)xlCompileCSourceFilesToExe) ||
+         !xlAddTccSymbol(s, "xlCompileCSourceFileToSharedLibrary", (const void*)xlCompileCSourceFileToSharedLibrary) ||
+         !xlAddTccSymbol(s, "xlCompileCSourceFilesToSharedLibrary", (const void*)xlCompileCSourceFilesToSharedLibrary) ||
+         !xlAddTccSymbol(s, "xlcDefaultContextOptions", (const void*)xlcDefaultContextOptions) ||
+         !xlAddTccSymbol(s, "xlcCreateContext", (const void*)xlcCreateContext) ||
+         !xlAddTccSymbol(s, "xlcDestroyContext", (const void*)xlcDestroyContext) ||
+         !xlAddTccSymbol(s, "xlcSetWorkDir", (const void*)xlcSetWorkDir) ||
+         !xlAddTccSymbol(s, "xlcSetTempDir", (const void*)xlcSetTempDir) ||
+         !xlAddTccSymbol(s, "xlcSetSaveTemps", (const void*)xlcSetSaveTemps) ||
+         !xlAddTccSymbol(s, "xlcAddIncludePath", (const void*)xlcAddIncludePath) ||
+         !xlAddTccSymbol(s, "xlcAddLibraryPath", (const void*)xlcAddLibraryPath) ||
+         !xlAddTccSymbol(s, "xlcAddLinkLibrary", (const void*)xlcAddLinkLibrary) ||
+         !xlAddTccSymbol(s, "xlcAddCSourceFile", (const void*)xlcAddCSourceFile) ||
+         !xlAddTccSymbol(s, "xlcLoadDependencyLibrary", (const void*)xlcLoadDependencyLibrary) ||
+         !xlAddTccSymbol(s, "xlcRegisterCFunction", (const void*)xlcRegisterCFunction) ||
+         !xlAddTccSymbol(s, "xlcAddSourceFile", (const void*)xlcAddSourceFile) ||
+         !xlAddTccSymbol(s, "xlcAddSourceString", (const void*)xlcAddSourceString) ||
+         !xlAddTccSymbol(s, "xlcCompile", (const void*)xlcCompile) ||
+         !xlAddTccSymbol(s, "xlcCheck", (const void*)xlcCheck) ||
+         !xlAddTccSymbol(s, "xlcEmitTokens", (const void*)xlcEmitTokens) ||
+         !xlAddTccSymbol(s, "xlcEmitAst", (const void*)xlcEmitAst) ||
+         !xlAddTccSymbol(s, "xlcEmitIr", (const void*)xlcEmitIr) ||
+         !xlAddTccSymbol(s, "xlcEmitC", (const void*)xlcEmitC) ||
+         !xlAddTccSymbol(s, "xlcEmitDebugC", (const void*)xlcEmitDebugC) ||
+         !xlAddTccSymbol(s, "xlcEmitHeader", (const void*)xlcEmitHeader) ||
+         !xlAddTccSymbol(s, "xlcEmitAbi", (const void*)xlcEmitAbi) ||
+         !xlAddTccSymbol(s, "xlcEmitXapi", (const void*)xlcEmitXapi) ||
+         !xlAddTccSymbol(s, "xlcEmitExe", (const void*)xlcEmitExe) ||
+         !xlAddTccSymbol(s, "xlcEmitDebugExe", (const void*)xlcEmitDebugExe) ||
+         !xlAddTccSymbol(s, "xlcRuntimeContext", (const void*)xlcRuntimeContext) ||
+         !xlAddTccSymbol(s, "xlcRelocateModule", (const void*)xlcRelocateModule) ||
+         !xlAddTccSymbol(s, "xlcRun", (const void*)xlcRun) ||
+         !xlAddTccSymbol(s, "xlcGetLastError", (const void*)xlcGetLastError) ||
+         !xlAddTccSymbol(s, "xlcClearLastError", (const void*)xlcClearLastError) ||
+         !xlAddTccSymbol(s, "xlcEmitSharedLibrary", (const void*)xlcEmitSharedLibrary) ) {
+        return 0;
+    }
+#endif
+
+#ifdef XL_STATIC_TCC_VFS
+    if ( !xlAddTccSymbol(s, "tcc_vfs_open", (const void*)tcc_vfs_open) ||
+         !xlAddTccSymbol(s, "tcc_vfs_close", (const void*)tcc_vfs_close) ||
+         !xlAddTccSymbol(s, "tcc_vfs_read", (const void*)tcc_vfs_read) ||
+         !xlAddTccSymbol(s, "tcc_vfs_lseek", (const void*)tcc_vfs_lseek) ||
+         !xlAddTccSymbol(s, "tcc_vfs_fopen", (const void*)tcc_vfs_fopen) ||
+         !xlAddTccSymbol(s, "tcc_vfs_fclose", (const void*)tcc_vfs_fclose) ||
+         !xlAddTccSymbol(s, "tcc_vfs_mount_memory", (const void*)tcc_vfs_mount_memory) ||
+         !xlAddTccSymbol(s, "tcc_vfs_clear_dynamic", (const void*)tcc_vfs_clear_dynamic) ) {
+        return 0;
+    }
+#endif
+    return 1;
+}
 
 static int xlAddDefaultRuntimeSymbols(TCCState* s)
 {
@@ -1140,6 +1326,8 @@ static int xlAddDefaultRuntimeSymbols(TCCState* s)
     XL_ADD_XRT_SYMBOL(s, xrtHash64_Nano_WithSeed);
     XL_ADD_XRT_SYMBOL(s, xrtStrComp);
     XL_ADD_XRT_SYMBOL(s, xrtStrByteLen);
+    XL_ADD_XRT_SYMBOL(s, xrtUTF8to16);
+    XL_ADD_XRT_SYMBOL(s, xrtUTF16to8);
     XL_ADD_XRT_SYMBOL(s, xrtStrUtf8CharSize);
     XL_ADD_XRT_SYMBOL(s, xrtStrCharLen);
     XL_ADD_XRT_SYMBOL(s, xrtFindStr);
@@ -1334,6 +1522,8 @@ static int xlAddDefaultRuntimeSymbols(TCCState* s)
     XL_ADD_XRT_SYMBOL(s, xrtFileCopyAsync);
     XL_ADD_XRT_SYMBOL(s, xrtFileMoveAsync);
     XL_ADD_XRT_SYMBOL(s, xrtFileDeleteAsync);
+    XL_ADD_XRT_SYMBOL(s, xrtAsyncFileBufDestroy);
+    XL_ADD_XRT_SYMBOL(s, xrtAsyncFileIoDestroy);
     XL_ADD_XRT_SYMBOL(s, xrtDirExists);
     XL_ADD_XRT_SYMBOL(s, xrtDirCreate);
     XL_ADD_XRT_SYMBOL(s, xrtDirCreateAll);
@@ -1407,12 +1597,16 @@ static int xlAddDefaultRuntimeSymbols(TCCState* s)
     XL_ADD_XRT_SYMBOL(s, xrtGetLocalIP);
     XL_ADD_XRT_SYMBOL(s, xrtGetLocalMAC);
     XL_ADD_XRT_SYMBOL(s, xrtGetLocalName);
+    XL_ADD_XRT_SYMBOL(s, xrtUrlParseView);
     XL_ADD_XRT_SYMBOL(s, xrtUrlParseViewN);
     XL_ADD_XRT_SYMBOL(s, xrtUrlResolveTo);
     XL_ADD_XRT_SYMBOL(s, xrtUrlNormalizePathTo);
+    XL_ADD_XRT_SYMBOL(s, xrtUrlViewCopyTargetTo);
     XL_ADD_XRT_SYMBOL(s, xrtPercentEncodeTo);
     XL_ADD_XRT_SYMBOL(s, xrtFormUrlEncodedDecodeTo);
     XL_ADD_XRT_SYMBOL(s, xrtFormUrlEncodedAppendFieldTo);
+    XL_ADD_XRT_SYMBOL(s, xrtQueryValidate);
+    XL_ADD_XRT_SYMBOL(s, xrtQueryAppendPairTo);
     XL_ADD_XRT_SYMBOL(s, xrtFormUrlEncodedValidateN);
     XL_ADD_XRT_SYMBOL(s, xrtRegexCreate);
     XL_ADD_XRT_SYMBOL(s, xrtRegexCreateEx);
@@ -1427,6 +1621,7 @@ static int xlAddDefaultRuntimeSymbols(TCCState* s)
     XL_ADD_XRT_SYMBOL(s, xrtRegexMatchByteEnd);
     XL_ADD_XRT_SYMBOL(s, xrtRegexMatchStart);
     XL_ADD_XRT_SYMBOL(s, xrtRegexMatchEnd);
+    XL_ADD_XRT_SYMBOL(s, xrtRegexMatchText);
     XL_ADD_XRT_SYMBOL(s, xrtRegexMatchTextCopy);
     XL_ADD_XRT_SYMBOL(s, xrtRegexCaptureCount);
     XL_ADD_XRT_SYMBOL(s, xrtRegexCaptureName);
@@ -1633,6 +1828,9 @@ static int xlAddDefaultRuntimeSymbols(TCCState* s)
     XL_ADD_XRT_SYMBOL(s, xrtNetEngineDestroy);
     XL_ADD_XRT_SYMBOL(s, xrtNetEngineStart);
     XL_ADD_XRT_SYMBOL(s, xrtNetEngineStop);
+    XL_ADD_XRT_SYMBOL(s, xrtNetSyncShutdownHiddenEngine);
+    XL_ADD_XRT_SYMBOL(s, xrtNetSyncGetHiddenEngine);
+    XL_ADD_XRT_SYMBOL(s, xrtHttpCloseIdleConnections);
     XL_ADD_XRT_SYMBOL(s, xrtNetAddrParse);
     XL_ADD_XRT_SYMBOL(s, xrtNetConnectConfigInit);
     XL_ADD_XRT_SYMBOL(s, xrtNetStreamCreate);
@@ -1820,7 +2018,10 @@ static int xlAddDefaultRuntimeSymbols(TCCState* s)
     XL_ADD_XRT_SYMBOL(s, xvoCollExists);
     XL_ADD_XRT_SYMBOL(s, xvoCollSetValue);
     XL_ADD_XRT_SYMBOL(s, xvoSetTypeDesc);
-    return 1;
+    if ( !xlAddTccSymbol(s, "xCore", (const void*)&xCore) ) {
+        return 0;
+    }
+    return xlAddDefaultTccApiSymbols(s);
 }
 
 static int xlAddContextSymbols(XL_Context* ctx, TCCState* s)
@@ -1872,11 +2073,53 @@ static void xlAddDefaultProjectToolchainPaths(TCCState* s)
     }
 }
 
+static void xlAddDefaultTccLinkLibraries(TCCState* s);
+
+static int xlConfigureTccStateEnvironment(XL_Context* ctx, TCCState* s)
+{
+    size_t i;
+    const char* tccLibPath;
+
+    if ( s == NULL ) {
+        xlSetError(ctx, "TCC state is empty");
+        return 0;
+    }
+
+    tccLibPath = ctx != NULL && ctx->tccLibPath != NULL && ctx->tccLibPath[0] != '\0' ?
+                 ctx->tccLibPath : xlDefaultTccRootPath();
+    xl__tcc.tcc_set_lib_path(s, tccLibPath);
+    (void)xl__tcc.tcc_set_options(s, "-std=c11 -D_CRT_SECURE_NO_WARNINGS");
+#if !XL_ENABLE_EXE_COMPILER
+    (void)xl__tcc.tcc_set_options(s, "-DXL_RUNTIME_ONLY_DLL");
+#endif
+    (void)xl__tcc.tcc_add_include_path(s, ctx != NULL && ctx->baseDir != NULL ? ctx->baseDir : ".");
+    xlAddDefaultProjectToolchainPaths(s);
+    (void)xl__tcc.tcc_add_include_path(s, "src");
+    (void)xl__tcc.tcc_add_include_path(s, "lib\\xrt");
+    (void)xl__tcc.tcc_add_include_path(s, ctx != NULL && ctx->tccIncludePath != NULL ? ctx->tccIncludePath : xlDefaultTccIncludePath());
+    (void)xl__tcc.tcc_add_include_path(s, ctx != NULL && ctx->tccWinIncludePath != NULL ? ctx->tccWinIncludePath : xlDefaultTccWinIncludePath());
+    (void)xl__tcc.tcc_add_include_path(s, ctx != NULL && ctx->tccWinapiIncludePath != NULL ? ctx->tccWinapiIncludePath : xlDefaultTccWinapiIncludePath());
+    (void)xl__tcc.tcc_add_library_path(s, ctx != NULL && ctx->tccLibSearchPath != NULL ? ctx->tccLibSearchPath : xlDefaultTccLibPath());
+    xlAddDefaultTccRuntime(s, ctx);
+    xlAddDefaultTccLinkLibraries(s);
+    for ( i = 0; ctx != NULL && i < ctx->includePaths.count; ++i ) {
+        if ( xl__tcc.tcc_add_include_path(s, ctx->includePaths.items[i]) != 0 ) {
+            xlSetError2(ctx, "cannot add include path", ctx->includePaths.items[i]);
+            return 0;
+        }
+    }
+    for ( i = 0; ctx != NULL && i < ctx->libraryPaths.count; ++i ) {
+        if ( xl__tcc.tcc_add_library_path(s, ctx->libraryPaths.items[i]) != 0 ) {
+            xlSetError2(ctx, "cannot add library path", ctx->libraryPaths.items[i]);
+            return 0;
+        }
+    }
+    return 1;
+}
+
 static TCCState* xlCreateTccState(XL_Context* ctx, int outputType)
 {
     TCCState* s;
-    size_t i;
-    const char* tccLibPath;
 
     if ( !xlEnsureTcc(ctx) ) {
         return NULL;
@@ -1887,37 +2130,14 @@ static TCCState* xlCreateTccState(XL_Context* ctx, int outputType)
         return NULL;
     }
     xl__tcc.tcc_set_error_func(s, ctx, xlTccError);
-    tccLibPath = ctx != NULL && ctx->tccLibPath != NULL && ctx->tccLibPath[0] != '\0' ?
-                 ctx->tccLibPath : xlDefaultTccRootPath();
-    xl__tcc.tcc_set_lib_path(s, tccLibPath);
     if ( xl__tcc.tcc_set_output_type(s, outputType) != 0 ) {
         xlSetError(ctx, "cannot set TCC output type");
         xl__tcc.tcc_delete(s);
         return NULL;
     }
-    (void)xl__tcc.tcc_set_options(s, "-std=c11 -D_CRT_SECURE_NO_WARNINGS");
-    (void)xl__tcc.tcc_add_include_path(s, ctx != NULL && ctx->baseDir != NULL ? ctx->baseDir : ".");
-    xlAddDefaultProjectToolchainPaths(s);
-    (void)xl__tcc.tcc_add_include_path(s, "src");
-    (void)xl__tcc.tcc_add_include_path(s, "lib\\xrt");
-    (void)xl__tcc.tcc_add_include_path(s, ctx != NULL && ctx->tccIncludePath != NULL ? ctx->tccIncludePath : xlDefaultTccIncludePath());
-    (void)xl__tcc.tcc_add_include_path(s, ctx != NULL && ctx->tccWinIncludePath != NULL ? ctx->tccWinIncludePath : xlDefaultTccWinIncludePath());
-    (void)xl__tcc.tcc_add_include_path(s, ctx != NULL && ctx->tccWinapiIncludePath != NULL ? ctx->tccWinapiIncludePath : xlDefaultTccWinapiIncludePath());
-    (void)xl__tcc.tcc_add_library_path(s, ctx != NULL && ctx->tccLibSearchPath != NULL ? ctx->tccLibSearchPath : xlDefaultTccLibPath());
-    xlAddDefaultTccRuntime(s, ctx);
-    for ( i = 0; ctx != NULL && i < ctx->includePaths.count; ++i ) {
-        if ( xl__tcc.tcc_add_include_path(s, ctx->includePaths.items[i]) != 0 ) {
-            xlSetError2(ctx, "cannot add include path", ctx->includePaths.items[i]);
-            xl__tcc.tcc_delete(s);
-            return NULL;
-        }
-    }
-    for ( i = 0; ctx != NULL && i < ctx->libraryPaths.count; ++i ) {
-        if ( xl__tcc.tcc_add_library_path(s, ctx->libraryPaths.items[i]) != 0 ) {
-            xlSetError2(ctx, "cannot add library path", ctx->libraryPaths.items[i]);
-            xl__tcc.tcc_delete(s);
-            return NULL;
-        }
+    if ( !xlConfigureTccStateEnvironment(ctx, s) ) {
+        xl__tcc.tcc_delete(s);
+        return NULL;
     }
     if ( outputType == TCC_OUTPUT_MEMORY && !xlAddContextSymbols(ctx, s) ) {
         xl__tcc.tcc_delete(s);
@@ -2436,6 +2656,137 @@ static int xlCompileAdditionalCSourceFiles(XL_Context* ctx, TCCState* s, XL6_Com
     return xlCompileAdditionalCSourceFilesDisk(ctx, s, unit, cSourceFiles);
 #endif
 }
+
+static int xlAddTccSourceFile(XL_Context* ctx, TCCState* s, const char* path)
+{
+    if ( path == NULL || path[0] == '\0' ) {
+        xlSetError(ctx, "embedded TCC source path is empty");
+        return 0;
+    }
+    if ( xl__tcc.tcc_add_file(s, path) != 0 ) {
+        if ( ctx->lastError == NULL ) {
+            xlSetError2(ctx, "cannot compile embedded TCC source", path);
+        }
+        return 0;
+    }
+    return 1;
+}
+
+static int xlAddEmbeddedTccRuntimeSources(XL_Context* ctx, TCCState* s, const XL6_CompileUnit* unit)
+{
+    unsigned int features;
+
+    if ( ctx == NULL || s == NULL || unit == NULL ) {
+        return 1;
+    }
+    features = unit->importDeps.features;
+    if ( (features & (XL6_IMPORT_FEATURE_TCC_RUNTIME |
+                      XL6_IMPORT_FEATURE_XLANG_RUNTIME |
+                      XL6_IMPORT_FEATURE_XLANG_COMPILER)) == 0 ) {
+        return 1;
+    }
+
+    /*
+     * 这些宏描述“被编进用户产物里的 libtcc”。它们只在产物需要脚本能力时启用，
+     * 普通 xlang 程序不会携带 TCC 源码和内置 VFS 资源。
+     */
+    (void)xl__tcc.tcc_set_options(s, "-DXL_STATIC_TCC -DLIBTCC_AS_DLL -DCONFIG_TCC_STATIC");
+    (void)xl__tcc.tcc_add_include_path(s, "lib\\tcc");
+    (void)xl__tcc.tcc_add_include_path(s, "lib\\lzma");
+    (void)xl__tcc.tcc_add_include_path(s, "release");
+    (void)xl__tcc.tcc_add_include_path(s, "release\\include");
+
+    if ( !xlAddTccSourceFile(ctx, s, "lib\\tcc\\libtcc.c") ||
+         !xlAddTccSourceFile(ctx, s, "lib\\tcc\\tcctools.c") ||
+         !xlAddTccSourceFile(ctx, s, "lib\\tcc\\tcc_builtin_vfs.c") ||
+         !xlAddTccSourceFile(ctx, s, "lib\\tcc\\tcc_utf8_io.c") ||
+         !xlAddTccSourceFile(ctx, s, "lib\\lzma\\LzmaDec.c") ||
+         !xlAddTccSourceFile(ctx, s, "release\\tmp\\tcc_builtin_resources_runtime.c") ) {
+        return 0;
+    }
+    return 1;
+}
+
+static int xlAddEmbeddedXlangRuntimeSources(XL_Context* ctx, TCCState* s, const XL6_CompileUnit* unit)
+{
+    static const char* runtimeSources[] = {
+        "src\\api\\xl_api.c",
+        "src\\abi\\xl6_callable.c",
+        "src\\abi\\xl6_xapi_dump.c",
+        "src\\abi\\xl6_xapi_load.c",
+        "src\\backend\\xl6_build_backend.c",
+        "src\\compile\\xl6_compile_unit.c",
+        "src\\compile\\xl6_imports.c",
+        "src\\compile\\xl6_xrt_trim.c",
+        "src\\common\\xl6_console.c",
+        "src\\common\\xl6_output.c",
+        "src\\diag\\xl6_diag.c",
+        "src\\ast\\xl6_ast.c",
+        "src\\cgen\\xl6_cgen_entry.c",
+        "src\\cgen\\xl6_cgen_lifecycle.c",
+        "src\\cgen\\xl6_cgen_runtime.c",
+        "src\\cgen\\xl6_cgen_header.c",
+        "src\\cgen\\xl6_cgen_needs_basic.c",
+        "src\\cgen\\xl6_cgen.c",
+        "src\\lexer\\xl6_token.c",
+        "src\\lexer\\xl6_lexer_api.c",
+        "src\\lexer\\xl6_lexer_gen.c",
+        "src\\parser\\xl6_parser.c",
+        "src\\parser\\xl6_parser_api.c",
+        "src\\package\\xl6_package.c",
+        "src\\stdlib\\xl6_stdlib.c",
+        "src\\type\\xl6_type_model.c",
+        "src\\sem\\xl6_protocol.c",
+        "src\\sem\\xl6_type_registry.c",
+        "src\\sem\\xl6_sem.c"
+    };
+    static const char* compilerSources[] = {
+        "src\\abi\\xl6_abi_dump.c",
+        "src\\ast\\xl6_ast_dump.c",
+        "src\\ir\\xl6_ir_dump.c"
+    };
+    unsigned int features;
+    size_t i;
+
+    if ( ctx == NULL || s == NULL || unit == NULL ) {
+        return 1;
+    }
+    features = unit->importDeps.features;
+    if ( (features & (XL6_IMPORT_FEATURE_XLANG_RUNTIME |
+                      XL6_IMPORT_FEATURE_XLANG_COMPILER)) == 0 ) {
+        return 1;
+    }
+
+    /*
+     * import xlang 表示最终产物要内嵌一份可独立运行的 xlang 宿主 API。
+     * 普通运行能力只开启 runtime-only 口径；只有 import xlang.compiler 才携带
+     * 外部 exe/dll/obj 输出和调试 dump 相关源码。
+     */
+    (void)xl__tcc.tcc_set_options(s, "-DXL_BUILD_DLL -DXL_STATIC_TCC -DLIBTCC_AS_DLL -DCONFIG_TCC_STATIC");
+    if ( (features & XL6_IMPORT_FEATURE_XLANG_COMPILER) == 0 ) {
+        (void)xl__tcc.tcc_set_options(s, "-DXL_RUNTIME_ONLY_DLL -DXL_RUNTIME_ONLY_API");
+    }
+    (void)xl__tcc.tcc_add_include_path(s, ".");
+    (void)xl__tcc.tcc_add_include_path(s, "src");
+    (void)xl__tcc.tcc_add_include_path(s, "release");
+    (void)xl__tcc.tcc_add_include_path(s, "release\\include");
+    (void)xl__tcc.tcc_add_include_path(s, "lib\\tcc");
+    (void)xl__tcc.tcc_add_include_path(s, "lib\\lzma");
+
+    for ( i = 0; i < sizeof(runtimeSources) / sizeof(runtimeSources[0]); ++i ) {
+        if ( !xlAddTccSourceFile(ctx, s, runtimeSources[i]) ) {
+            return 0;
+        }
+    }
+    if ( (features & XL6_IMPORT_FEATURE_XLANG_COMPILER) != 0 ) {
+        for ( i = 0; i < sizeof(compilerSources) / sizeof(compilerSources[0]); ++i ) {
+            if ( !xlAddTccSourceFile(ctx, s, compilerSources[i]) ) {
+                return 0;
+            }
+        }
+    }
+    return 1;
+}
 #endif
 
 static int xlPrepareRuntimeArg(XL_Context* ctx, xvalue suppliedArg, xvalue* outArg)
@@ -2485,6 +2836,31 @@ static int xlRunMainInState(XL_Context* ctx, TCCState* state, int argc, char** a
     return 1;
 }
 
+static void xlAddDefaultTccLinkLibraries(TCCState* s)
+{
+#ifdef _WIN32
+    /*
+     * XRT 是 xlang 的基础运行库。Windows 版本的 XRT 会使用 socket、
+     * IP Helper 和 shell 等系统能力，因此生成外部 exe/dll 时需要默认
+     * 链接这些库；内存运行路径调用它也无害，并能让用户直接使用同一组
+     * TCC 能力。这里不强制检查返回值，让最终链接阶段给出精确诊断。
+     */
+# ifdef XL_STATIC_TCC
+    (void)tcc_add_library(s, "Ws2_32");
+    (void)tcc_add_library(s, "IPHLPAPI");
+    (void)tcc_add_library(s, "Shell32");
+# else
+    if ( xl__tcc.tcc_add_library != NULL ) {
+        (void)xl__tcc.tcc_add_library(s, "Ws2_32");
+        (void)xl__tcc.tcc_add_library(s, "IPHLPAPI");
+        (void)xl__tcc.tcc_add_library(s, "Shell32");
+    }
+# endif
+#else
+    (void)s;
+#endif
+}
+
 static int xlCheckScriptActiveError(XL_Context* ctx, TCCState* state)
 {
     XL_ScriptHasErrorProc hasError;
@@ -2502,11 +2878,12 @@ static int xlCheckScriptActiveError(XL_Context* ctx, TCCState* state)
     clearError = (XL_ScriptVoidProc)xl__tcc.tcc_get_symbol(state, "xl_script_clear_error");
     if ( printUncaught != NULL ) {
         printUncaught();
+    } else {
+        xlSetError(ctx, "uncaught xlang error");
     }
     if ( clearError != NULL ) {
         clearError();
     }
-    xlSetError(ctx, "uncaught xlang error");
     return 1;
 }
 
@@ -2600,6 +2977,7 @@ static int xlCompileUnitToExternalOutputWithC(
 {
     TCCState* s;
     char* cText;
+    char* xrtText;
     int ok;
     size_t i;
 
@@ -2611,6 +2989,7 @@ static int xlCompileUnitToExternalOutputWithC(
         return 0;
     }
     cText = NULL;
+    xrtText = NULL;
     ok = 0;
     xlTccDynamicVfsClear();
     if ( !xlCgenToMemoryEx(ctx, unit, &cText, options) ) {
@@ -2650,15 +3029,19 @@ static int xlCompileUnitToExternalOutputWithC(
     if ( !xlAddDependenciesToTcc(ctx, s, unit) ) {
         goto cleanup;
     }
-    if ( !xlTccCompileSourceText(ctx, s, XL_TCC_VFS_XRT_C,
-            "#define XRT_IMPLEMENTATION\n"
-            "#include \"lib/xrt/xrt.h\"\n",
-            "cannot compile XRT single header") ) {
+    if ( !xlAddEmbeddedTccRuntimeSources(ctx, s, unit) ) {
         goto cleanup;
     }
-    (void)xl__tcc.tcc_add_library(s, "Ws2_32");
-    (void)xl__tcc.tcc_add_library(s, "IPHLPAPI");
-    (void)xl__tcc.tcc_add_library(s, "Shell32");
+    if ( !xlAddEmbeddedXlangRuntimeSources(ctx, s, unit) ) {
+        goto cleanup;
+    }
+    if ( !xl6XrtTrimBuildImplementationSource(unit->parse.root, &unit->importDeps, &xrtText) ) {
+        xlSetError(ctx, "cannot generate XRT implementation source");
+        goto cleanup;
+    }
+    if ( !xlTccCompileSourceText(ctx, s, XL_TCC_VFS_XRT_C, xrtText, "cannot compile XRT single header") ) {
+        goto cleanup;
+    }
     ok = xl__tcc.tcc_output_file(s, outputPath) == 0;
     if ( !ok ) {
         if ( ctx->lastError == NULL ) {
@@ -2673,6 +3056,7 @@ cleanup:
         xl__tcc.tcc_delete(s);
     }
     xrtFree(cText);
+    xrtFree(xrtText);
     xlTccDynamicVfsClear();
     return ok;
 }
@@ -2993,15 +3377,42 @@ cleanup:
     return module;
 }
 
-static XL_Module* xlCompileCSourceFileToModuleUnlocked(XL_Context* ctx, const char* path)
+static int xlAddCSourceFilesToTcc(XL_Context* ctx, TCCState* s, const char** paths, int pathCount)
+{
+    int i;
+
+    if ( s == NULL ) {
+        xlSetError(ctx, "TCC state is empty");
+        return 0;
+    }
+    if ( paths == NULL || pathCount <= 0 ) {
+        xlSetError(ctx, "C source file list is empty");
+        return 0;
+    }
+    if ( pathCount > XLC_MAX_C_SOURCE_FILES ) {
+        xlSetError(ctx, "too many C source files");
+        return 0;
+    }
+    for ( i = 0; i < pathCount; ++i ) {
+        if ( paths[i] == NULL || paths[i][0] == '\0' ) {
+            xlSetError(ctx, "C source file path is empty");
+            return 0;
+        }
+        if ( xl__tcc.tcc_add_file(s, paths[i]) != 0 ) {
+            if ( ctx != NULL && ctx->lastError == NULL ) {
+                xlSetError2(ctx, "cannot compile C source file", paths[i]);
+            }
+            return 0;
+        }
+    }
+    return 1;
+}
+
+static XL_Module* xlCompileCSourceFilesToModuleUnlocked(XL_Context* ctx, const char** paths, int pathCount)
 {
     TCCState* s;
     XL_Module* module;
 
-    if ( path == NULL || path[0] == '\0' ) {
-        xlSetError(ctx, "C source file path is empty");
-        return NULL;
-    }
     s = NULL;
     module = NULL;
     xlTccDynamicVfsClear();
@@ -3009,10 +3420,7 @@ static XL_Module* xlCompileCSourceFileToModuleUnlocked(XL_Context* ctx, const ch
     if ( s == NULL ) {
         goto cleanup;
     }
-    if ( xl__tcc.tcc_add_file(s, path) != 0 ) {
-        if ( ctx != NULL && ctx->lastError == NULL ) {
-            xlSetError2(ctx, "cannot compile C source file", path);
-        }
+    if ( !xlAddCSourceFilesToTcc(ctx, s, paths, pathCount) ) {
         goto cleanup;
     }
     if ( !xlAddDependenciesToTcc(ctx, s, NULL) ) {
@@ -3035,6 +3443,14 @@ cleanup:
     }
     xlTccDynamicVfsClear();
     return module;
+}
+
+static XL_Module* xlCompileCSourceFileToModuleUnlocked(XL_Context* ctx, const char* path)
+{
+    const char* paths[1];
+
+    paths[0] = path;
+    return xlCompileCSourceFilesToModuleUnlocked(ctx, paths, 1);
 }
 
 static int xlRunModuleMainUnlocked(XL_Context* ctx, XL_Module* module, xvalue suppliedArg)
@@ -3708,6 +4124,26 @@ XL_Module* xlCompileCSourceFileToModule(XL_Context* ctx, const char* path)
     return module;
 }
 
+XL_API XL_Module* xlCompileCSourceFilesToModule(XL_Context* ctx, const char** paths, int pathCount)
+{
+    XL_CwdScope cwd;
+    XL_Module* module;
+
+    if ( ctx == NULL ) {
+        return NULL;
+    }
+    xlApiLock();
+    xlClearLastErrorUnlocked(ctx);
+    if ( !xlEnterWorkDir(ctx, &cwd) ) {
+        xlApiUnlock();
+        return NULL;
+    }
+    module = xlCompileCSourceFilesToModuleUnlocked(ctx, paths, pathCount);
+    xlLeaveWorkDir(&cwd);
+    xlApiUnlock();
+    return module;
+}
+
 int xlRunCSourceString(XL_Context* ctx, const char* source, int argc, char** argv)
 {
     XL_CwdScope cwd;
@@ -3754,6 +4190,29 @@ int xlRunCSourceFile(XL_Context* ctx, const char* path, int argc, char** argv)
     return ok;
 }
 
+XL_API int xlRunCSourceFiles(XL_Context* ctx, const char** paths, int pathCount, int argc, char** argv)
+{
+    XL_CwdScope cwd;
+    XL_Module* module;
+    int ok;
+
+    if ( ctx == NULL ) {
+        return 0;
+    }
+    xlApiLock();
+    xlClearLastErrorUnlocked(ctx);
+    if ( !xlEnterWorkDir(ctx, &cwd) ) {
+        xlApiUnlock();
+        return 0;
+    }
+    module = xlCompileCSourceFilesToModuleUnlocked(ctx, paths, pathCount);
+    ok = module != NULL && xlRunCModuleMainUnlocked(ctx, module, argc, argv);
+    xlDestroyModuleUnlocked(module);
+    xlLeaveWorkDir(&cwd);
+    xlApiUnlock();
+    return ok;
+}
+
 int xlRunModuleMain(XL_Context* ctx, XL_Module* module, xvalue arg)
 {
     int ok;
@@ -3789,6 +4248,58 @@ void xlDestroyModule(XL_Module* module)
     xlApiLock();
     xlDestroyModuleUnlocked(module);
     xlApiUnlock();
+}
+
+XL_API int xlTccRegisterXrtEnvironment(TCCState* state)
+{
+    int ok;
+
+    if ( state == NULL ) {
+        return 0;
+    }
+    xlApiLock();
+    ok = xlEnsureTcc(NULL) &&
+         xlConfigureTccStateEnvironment(NULL, state) &&
+         xlAddDefaultRuntimeSymbols(state);
+    xlApiUnlock();
+    return ok;
+}
+
+XL_API int xlTccRegisterContextEnvironment(XL_Context* ctx, TCCState* state)
+{
+    int ok;
+
+    if ( ctx == NULL || state == NULL ) {
+        return 0;
+    }
+    xlApiLock();
+    xlClearLastErrorUnlocked(ctx);
+    ok = xlEnsureTcc(ctx) &&
+         xlConfigureTccStateEnvironment(ctx, state) &&
+         xlAddContextSymbols(ctx, state);
+    xlApiUnlock();
+    return ok;
+}
+
+XL_API int xlTccImpdef(const char* dllPath, const char* outputDef)
+{
+#ifdef _WIN32
+    char* args[5];
+
+    if ( dllPath == NULL || dllPath[0] == '\0' || outputDef == NULL || outputDef[0] == '\0' ) {
+        return 0;
+    }
+    args[0] = (char*)"tcc";
+    args[1] = (char*)dllPath;
+    args[2] = (char*)"-o";
+    args[3] = (char*)outputDef;
+    args[4] = NULL;
+    return tcc_tool_impdef(4, args) == 0;
+#else
+    (void)dllPath;
+    (void)outputDef;
+    return 0;
+#endif
 }
 
 #if XL_ENABLE_EXE_COMPILER
@@ -3841,6 +4352,81 @@ int xlCompileScriptFileToExe(XL_Context* ctx, const char* path, const char* outp
     xlApiUnlock();
     return ok;
 }
+
+static int xlCompileCSourceFilesToExternalOutput(
+    XL_Context* ctx,
+    const char** paths,
+    int pathCount,
+    const char* outputPath,
+    int outputType,
+    const char* outputKind)
+{
+    XL_CwdScope cwd;
+    TCCState* s;
+    int ok;
+
+    if ( ctx == NULL ) {
+        return 0;
+    }
+    xlApiLock();
+    xlClearLastErrorUnlocked(ctx);
+    if ( outputPath == NULL || outputPath[0] == '\0' ) {
+        xlSetError(ctx, "C output path is empty");
+        xlApiUnlock();
+        return 0;
+    }
+    if ( !xlEnterWorkDir(ctx, &cwd) ) {
+        xlApiUnlock();
+        return 0;
+    }
+    s = xlCreateTccState(ctx, outputType);
+    ok = s != NULL &&
+         xlAddCSourceFilesToTcc(ctx, s, paths, pathCount) &&
+         xlAddDependenciesToTcc(ctx, s, NULL) &&
+         xlTccCompileSourceText(ctx, s, XL_TCC_VFS_XRT_C,
+             "#define XRT_IMPLEMENTATION\n"
+             "#include \"lib/xrt/xrt.h\"\n",
+             "cannot compile XRT single header");
+    if ( ok ) {
+        ok = xl__tcc.tcc_output_file(s, outputPath) == 0;
+    }
+    if ( !ok && ctx->lastError == NULL ) {
+        xlSetError2(ctx, outputKind != NULL ? outputKind : "cannot output C target", outputPath);
+    }
+    if ( s != NULL ) {
+        xl__tcc.tcc_delete(s);
+    }
+    xlLeaveWorkDir(&cwd);
+    xlApiUnlock();
+    return ok;
+}
+
+XL_API int xlCompileCSourceFilesToExe(XL_Context* ctx, const char** paths, int pathCount, const char* outputExe)
+{
+    return xlCompileCSourceFilesToExternalOutput(ctx, paths, pathCount, outputExe, TCC_OUTPUT_EXE, "cannot output C exe");
+}
+
+XL_API int xlCompileCSourceFileToExe(XL_Context* ctx, const char* path, const char* outputExe)
+{
+    const char* paths[1];
+
+    paths[0] = path;
+    return xlCompileCSourceFilesToExe(ctx, paths, 1, outputExe);
+}
+
+XL_API int xlCompileCSourceFilesToSharedLibrary(XL_Context* ctx, const char** paths, int pathCount, const char* outputDll)
+{
+    return xlCompileCSourceFilesToExternalOutput(ctx, paths, pathCount, outputDll, TCC_OUTPUT_DLL, "cannot output C shared library");
+}
+
+XL_API int xlCompileCSourceFileToSharedLibrary(XL_Context* ctx, const char* path, const char* outputDll)
+{
+    const char* paths[1];
+
+    paths[0] = path;
+    return xlCompileCSourceFilesToSharedLibrary(ctx, paths, 1, outputDll);
+}
+
 #endif
 
 #if XL_ENABLE_EXE_COMPILER

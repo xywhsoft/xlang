@@ -4,10 +4,24 @@ int self = 1
 int base = 2
 int create = 3
 int destroy = 4
+int public = 5
+int private = 6
+int protected = 7
+int static = 8
+int override = 9
+int final = 10
+int virtual = 11
+int native = 12
 
 func sumContextNames(int self, int base, int create, int destroy) as int
     return self + base + create + destroy
 end
 
+func sumModifierNames(int public, int private, int protected, int static, int override, int final, int virtual, int native) as int
+    return public + private + protected + static + override + final + virtual + native
+end
+
 expect(self + base + create + destroy, 10)
 expect(sumContextNames(5, 6, 7, 8), 26)
+expect(public + private + protected + static + override + final + virtual + native, 68)
+expect(sumModifierNames(1, 2, 3, 4, 5, 6, 7, 8), 36)

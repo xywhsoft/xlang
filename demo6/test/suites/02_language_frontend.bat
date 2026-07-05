@@ -117,9 +117,26 @@ if errorlevel 1 (
     echo cgen_context_keywords.c missing ordinary base variable.
     exit /b 1
 )
+findstr /C:"long long xl_kw_static = 8LL;" release\tmp\cgen_context_keywords.c >nul
+if errorlevel 1 (
+    echo cgen_context_keywords.c missing escaped static context identifier.
+    exit /b 1
+)
 "%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_context_keywords.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_context_keywords.exe
 if errorlevel 1 exit /b 1
 release\tmp\cgen_context_keywords.exe
+if errorlevel 1 exit /b 1
+
+release\xl.exe cgen test\cases\cgen_context_keyword_function.xl --emit release\tmp\cgen_context_keyword_function.c
+if errorlevel 1 exit /b 1
+findstr /C:"xl_fn_static__void" release\tmp\cgen_context_keyword_function.c >nul
+if errorlevel 1 (
+    echo cgen_context_keyword_function.c missing escaped static function symbol.
+    exit /b 1
+)
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\cgen_context_keyword_function.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o release\tmp\cgen_context_keyword_function.exe
+if errorlevel 1 exit /b 1
+release\tmp\cgen_context_keyword_function.exe
 if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_unicode_identifiers.xl --emit release\tmp\cgen_unicode_identifiers.c

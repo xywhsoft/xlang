@@ -1,0 +1,5 @@
+import tcc
+
+println("before tcc context")
+TccContext ctx = tcc.Context()
+println("after tcc context")

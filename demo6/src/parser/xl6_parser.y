@@ -582,6 +582,11 @@ static XL6_AstNode* xl6PWithFlags(XL6_AstNode* node, unsigned int flags)
 
 %nonassoc KW_THEN.
 %nonassoc KW_ELSE.
+/*
+    这里不是旧语法兼容回退，而是上下文关键字机制。
+    这些词在 class 成员修饰符、native-backed class 等特定位置有语义；
+    离开这些位置后，仍可作为普通标识符交给 IDENT 规则处理。
+*/
 %fallback IDENT KW_PUBLIC KW_PRIVATE KW_PROTECTED KW_STATIC KW_OVERRIDE KW_FINAL KW_VIRTUAL KW_NATIVE.
 %right FAT_ARROW.
 %right QUESTION.

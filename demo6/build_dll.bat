@@ -88,10 +88,11 @@ if errorlevel 1 (
 )
 
 echo Building DEMO6 xl.dll runtime...
-"%XL6_TCC%" -std=c11 -Wall -shared -DXL_BUILD_DLL -DXL_RUNTIME_ONLY_DLL -DXL_STATIC_TCC -D_CRT_SECURE_NO_WARNINGS -DCONFIG_TCC_STATIC -I. -Irelease -Isrc -Ilib\lzma -I"%XL6_EMBED_TCC_SOURCE_ROOT%" %XL6_TCC_SOURCE_INCLUDE% %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% -o release\xl.dll ^
+"%XL6_TCC%" -std=c11 -Wall -shared -DXL_BUILD_DLL -DXL_RUNTIME_ONLY_DLL -DXL_STATIC_TCC -DLIBTCC_AS_DLL -D_CRT_SECURE_NO_WARNINGS -DCONFIG_TCC_STATIC -I. -Irelease -Isrc -Ilib\lzma -I"%XL6_EMBED_TCC_SOURCE_ROOT%" %XL6_TCC_SOURCE_INCLUDE% %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% -o release\xl.dll ^
     src\api\xl_api.c ^
     src\api\xl_xrt_dll.c ^
     "%XL6_EMBED_TCC_SOURCE_ROOT%\libtcc.c" ^
+    "%XL6_EMBED_TCC_SOURCE_ROOT%\tcctools.c" ^
     "%XL6_EMBED_TCC_SOURCE_ROOT%\tcc_builtin_vfs.c" ^
     "%XL6_EMBED_TCC_SOURCE_ROOT%\tcc_utf8_io.c" ^
     lib\lzma\LzmaDec.c ^
@@ -102,6 +103,7 @@ echo Building DEMO6 xl.dll runtime...
     src\backend\xl6_build_backend.c ^
     src\compile\xl6_compile_unit.c ^
     src\compile\xl6_imports.c ^
+    src\compile\xl6_xrt_trim.c ^
     src\common\xl6_console.c ^
     src\common\xl6_output.c ^
     src\diag\xl6_diag.c ^
@@ -140,10 +142,11 @@ if errorlevel 1 (
 )
 
 echo Building DEMO6 xlc.dll compiler runtime...
-"%XL6_TCC%" -std=c11 -Wall -shared -DXL_BUILD_DLL -DXL_STATIC_TCC -D_CRT_SECURE_NO_WARNINGS -DCONFIG_TCC_STATIC -I. -Irelease -Isrc -Ilib\lzma -I"%XL6_EMBED_TCC_SOURCE_ROOT%" %XL6_TCC_SOURCE_INCLUDE% %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% -o release\xlc.dll ^
+"%XL6_TCC%" -std=c11 -Wall -shared -DXL_BUILD_DLL -DXL_STATIC_TCC -DLIBTCC_AS_DLL -D_CRT_SECURE_NO_WARNINGS -DCONFIG_TCC_STATIC -I. -Irelease -Isrc -Ilib\lzma -I"%XL6_EMBED_TCC_SOURCE_ROOT%" %XL6_TCC_SOURCE_INCLUDE% %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% -o release\xlc.dll ^
     src\api\xl_api.c ^
     src\api\xl_xrt_dll.c ^
     "%XL6_EMBED_TCC_SOURCE_ROOT%\libtcc.c" ^
+    "%XL6_EMBED_TCC_SOURCE_ROOT%\tcctools.c" ^
     "%XL6_EMBED_TCC_SOURCE_ROOT%\tcc_builtin_vfs.c" ^
     "%XL6_EMBED_TCC_SOURCE_ROOT%\tcc_utf8_io.c" ^
     lib\lzma\LzmaDec.c ^
@@ -155,6 +158,7 @@ echo Building DEMO6 xlc.dll compiler runtime...
     src\backend\xl6_build_backend.c ^
     src\compile\xl6_compile_unit.c ^
     src\compile\xl6_imports.c ^
+    src\compile\xl6_xrt_trim.c ^
     src\common\xl6_console.c ^
     src\common\xl6_output.c ^
     src\diag\xl6_diag.c ^
@@ -193,7 +197,7 @@ if errorlevel 1 (
 )
 
 echo Building xl.dll dependency fixtures...
-"%XL6_TCC%" %XL6_TCC_INCLUDES% -c release\examples\xl_dll_link_host.c -o release\tmp\xl_dll_link_host.o
+"%XL6_TCC%" %XL6_TCC_INCLUDES% -DXL6_EXAMPLE_NO_STANDALONE_MAIN -c release\examples\xl_dll_link_host.c -o release\tmp\xl_dll_link_host.o
 if errorlevel 1 (
     echo DEMO6 xl.dll static dependency fixture build failed.
     exit /b 1
@@ -203,7 +207,7 @@ if errorlevel 1 (
     echo DEMO6 xl.dll static dependency fixture archive failed.
     exit /b 1
 )
-"%XL6_TCC%" -shared %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\examples\xl_dll_loadlib_host.c -o release\tmp\xl_dll_loadlib_host.dll
+"%XL6_TCC%" -shared %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% -DXL6_EXAMPLE_NO_STANDALONE_MAIN release\examples\xl_dll_loadlib_host.c -o release\tmp\xl_dll_loadlib_host.dll
 if errorlevel 1 (
     echo DEMO6 xl.dll loadlib dependency fixture build failed.
     exit /b 1
@@ -215,7 +219,7 @@ if errorlevel 1 (
 )
 
 echo Building xlc.dll compile verification program...
-"%XL6_TCC%" -std=c11 -Wall -D_CRT_SECURE_NO_WARNINGS -I. -Irelease %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% -o release\xlc_dll_embed_string.exe ^
+"%XL6_TCC%" -std=c11 -Wall -D_CRT_SECURE_NO_WARNINGS -DXL6_EXAMPLE_BOUNDARY_TEST -I. -Irelease %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% -o release\xlc_dll_embed_string.exe ^
     release\examples\xl_dll_embed_string.c ^
     release\xlc.def
 
@@ -225,7 +229,7 @@ if errorlevel 1 (
 )
 
 echo Building xlc.dll compiler API verification program...
-"%XL6_TCC%" -std=c11 -Wall -D_CRT_SECURE_NO_WARNINGS -I. -Irelease %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% -o release\xlc_api_embed.exe ^
+"%XL6_TCC%" -std=c11 -Wall -D_CRT_SECURE_NO_WARNINGS -DXL6_EXAMPLE_BOUNDARY_TEST -I. -Irelease %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% -o release\xlc_api_embed.exe ^
     release\examples\xlc_api_embed.c ^
     release\xlc.def
 
@@ -256,7 +260,7 @@ if errorlevel 1 (
 )
 
 echo Building xl.dll API boundary verification program...
-"%XL6_TCC%" -std=c11 -Wall -DXL_RUNTIME_ONLY_API -D_CRT_SECURE_NO_WARNINGS -I. -Irelease %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% -o release\xl_dll_null_context.exe ^
+"%XL6_TCC%" -std=c11 -Wall -DXL_RUNTIME_ONLY_API -D_CRT_SECURE_NO_WARNINGS -DXL6_EXAMPLE_BOUNDARY_TEST -I. -Irelease %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% -o release\xl_dll_null_context.exe ^
     release\examples\xl_dll_null_context.c ^
     release\xl.def
 
@@ -266,7 +270,7 @@ if errorlevel 1 (
 )
 
 echo Building xl.dll threaded host verification program...
-"%XL6_TCC%" -std=c11 -Wall -DXL_RUNTIME_ONLY_API -D_CRT_SECURE_NO_WARNINGS -I. -Irelease %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% -o release\xl_dll_threaded_host.exe ^
+"%XL6_TCC%" -std=c11 -Wall -DXL_RUNTIME_ONLY_API -D_CRT_SECURE_NO_WARNINGS -DXL6_EXAMPLE_BOUNDARY_TEST -I. -Irelease %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% -o release\xl_dll_threaded_host.exe ^
     release\examples\xl_dll_threaded_host.c ^
     release\xl.def
 

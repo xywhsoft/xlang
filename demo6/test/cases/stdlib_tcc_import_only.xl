@@ -1,0 +1,3 @@
+import tcc
+
+println("stdlib tcc import only ok")
