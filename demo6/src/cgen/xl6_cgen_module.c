@@ -130,11 +130,17 @@ int xl6CgenEmitCEx(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags, cons
         xl6OutputPuts("#include <stdio.h>\n\n", out);
     }
     xl6OutputPuts("typedef intptr_t xl6_ssize_t;\n\n", out);
-    xl6OutputPuts("static void xl6_runtime_fatal(int code)\n", out);
-    xl6OutputPuts("{\n", out);
-    xl6OutputPuts("    exit(code);\n", out);
-    xl6OutputPuts("}\n\n", out);
-    xl6CgenEmitLifecycleRuntime(out);
+    xl6OutputPuts("#define XL_RUNTIME_NEED_LIFECYCLE 1\n", out);
+    if ( hasStringRuntime ) {
+        xl6OutputPuts("#define XL_RUNTIME_NEED_STRING 1\n", out);
+    }
+    if ( hasXValueRuntime ) {
+        xl6OutputPuts("#define XL_RUNTIME_NEED_XVALUE 1\n", out);
+    }
+    if ( mainFunc != NULL || hasTopLevel ) {
+        xl6OutputPuts("#define XL_RUNTIME_NEED_ARGV 1\n", out);
+    }
+    xl6OutputPuts("#include <xl_runtime.h>\n\n", out);
     if ( ctx.debugMode ) {
         xl6CgenEmitDebugRuntime(out);
     }
@@ -143,9 +149,6 @@ int xl6CgenEmitCEx(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags, cons
     }
     if ( xl6CgenNodeNeedsApprox(root) ) {
         xl6CgenEmitApproxProtos(out);
-    }
-    if ( hasStringRuntime ) {
-        xl6CgenEmitStringRuntime(out);
     }
     if ( hasTypeConvertRuntime ) {
         xl6CgenEmitTypeConvertRuntime(out);
@@ -166,11 +169,7 @@ int xl6CgenEmitCEx(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags, cons
         xl6CgenEmitFileRuntime(out);
     }
     if ( hasXValueRuntime ) {
-        xl6CgenEmitXValueRuntime(&ctx);
         xl6CgenEmitRuntimeTypeDescs(&ctx);
-    }
-    if ( mainFunc != NULL || hasTopLevel ) {
-        xl6CgenEmitArgvArrayHelper(out);
     }
     if ( hasCryptoRuntime ) {
         xl6CgenEmitCryptoRuntime(out);

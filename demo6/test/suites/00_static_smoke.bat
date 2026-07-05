@@ -244,7 +244,7 @@ if errorlevel 1 (
     echo dbg_hello.out.txt missing stack frame.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$files = @(Get-ChildItem -LiteralPath 'build\tmp' -Directory -Filter 'xl6_dbg_*' | ForEach-Object { Get-ChildItem -LiteralPath $_.FullName -File -Filter 'module.c' }); if ($files.Count -eq 0) { exit 1 }; $match = $files | Select-String -SimpleMatch 'xl6_debug_probe'; if (-not $match) { exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$files = @(Get-ChildItem -LiteralPath 'release\tmp' -Directory -Filter 'xl6_dbg_*' | ForEach-Object { Get-ChildItem -LiteralPath $_.FullName -File -Filter 'module.c' }); if ($files.Count -eq 0) { exit 1 }; $match = $files | Select-String -SimpleMatch 'xl6_debug_probe'; if (-not $match) { exit 1 }"
 if errorlevel 1 (
     echo debug generated C missing xl6_debug_probe.
     exit /b 1

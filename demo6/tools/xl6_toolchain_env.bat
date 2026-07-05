@@ -12,6 +12,7 @@ if not defined XL6_EMBED_TCC_DIST_X64 set "XL6_EMBED_TCC_DIST_X64=lib\tcc\win32\
 if not defined XL6_TCC_ROOT set "XL6_TCC_ROOT=lib\tcc\win32\dist\x86_64"
 if not defined XL6_TCC_SOURCE_ROOT set "XL6_TCC_SOURCE_ROOT=lib\tcc"
 if not defined XL6_TCC_INCLUDE set "XL6_TCC_INCLUDE=lib\tcc\include"
+if not defined XL6_RUNTIME_INCLUDE set "XL6_RUNTIME_INCLUDE=release\include"
 if not defined XL6_TCC_WIN_INCLUDE set "XL6_TCC_WIN_INCLUDE=lib\tcc\win32\dist\x86_64\include"
 if not defined XL6_TCC_WINAPI_INCLUDE set "XL6_TCC_WINAPI_INCLUDE=lib\tcc\win32\dist\x86_64\include\winapi"
 if not defined XL6_TCC_LIB set "XL6_TCC_LIB=lib\tcc\win32\dist\x86_64\lib"
@@ -21,7 +22,7 @@ if not defined XL6_TCC_LIBTCC1 set "XL6_TCC_LIBTCC1=lib\tcc\win32\dist\x86_64\li
 if not defined XL6_XRT_OBJ set "XL6_XRT_OBJ=build\tmp\xrt.o"
 
 set "XL6_TCC_SOURCE_INCLUDE=-I"%XL6_TCC_SOURCE_ROOT%""
-set "XL6_TCC_INCLUDES=-I"%XL6_TCC_INCLUDE%" -I"%XL6_TCC_WIN_INCLUDE%""
+set "XL6_TCC_INCLUDES=-I"%XL6_RUNTIME_INCLUDE%" -I"%XL6_TCC_INCLUDE%" -I"%XL6_TCC_WIN_INCLUDE%""
 set "XL6_TCC_INCLUDES_WINAPI=%XL6_TCC_INCLUDES% -I"%XL6_TCC_WINAPI_INCLUDE%""
 set "XL6_TCC_LIB_FLAGS=-L"%XL6_TCC_LIB%""
 set "XL6_DEFAULT_LINKS="%XL6_XRT_OBJ%" "%XL6_TCC_LIBTCC1%" -lWs2_32 -lIPHLPAPI -lShell32"

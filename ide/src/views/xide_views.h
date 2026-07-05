@@ -6,6 +6,7 @@
 int xideCreateHomeView(xide_app_t* pApp, xui_widget* ppView);
 int xideCreateProjectView(xide_app_t* pApp, xui_widget* ppView);
 int xideWorkspaceViewRefresh(xide_app_t* pApp);
+int xideWorkspaceViewOpenNode(xide_app_t* pApp, int iNodeId);
 int xideCreateCommandView(xide_app_t* pApp, xui_widget* ppView);
 int xideCreateHelpView(xide_app_t* pApp, xui_widget* ppView);
 int xideCreateEditorView(xide_app_t* pApp, xui_widget* ppView);

@@ -1,7 +1,9 @@
 #include "app/xide_app.h"
 #include "app/xide_platform.h"
 #include "i18n/xide_i18n.h"
+#include "lib/xrt/xrt.h"
 #include "ui/xide_main_window.h"
+#include "views/xide_views.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -493,7 +495,7 @@ static const char* xideFindFallbackFont(void)
 
 static void xideUsage(void)
 {
-	printf("usage: xlang_ide [--frames N] [--seconds N] [--lang en|zh|ru|ja|fr|es] [--check-language-rules] [--check-workspace]\n");
+	printf("usage: xlang_ide [--frames N] [--seconds N] [--lang en|zh|ru|ja|fr|es] [--check-language-rules] [--check-workspace] [--check-workspace-file PATH]\n");
 }
 
 int xideAppParseArgs(xide_app_t* pApp, int argc, char** argv)
@@ -530,6 +532,15 @@ int xideAppParseArgs(xide_app_t* pApp, int argc, char** argv)
 			pApp->bCheckLanguageRules = 1;
 		} else if ( strcmp(argv[i], "--check-workspace") == 0 ) {
 			pApp->bCheckWorkspace = 1;
+		} else if ( strcmp(argv[i], "--check-workspace-file") == 0 ) {
+			if ( i + 1 >= argc ) return XGE_ERROR_INVALID_ARGUMENT;
+			pApp->bCheckWorkspace = 1;
+			strncpy(pApp->sCheckWorkspaceFile, argv[++i], sizeof(pApp->sCheckWorkspaceFile) - 1u);
+			pApp->sCheckWorkspaceFile[sizeof(pApp->sCheckWorkspaceFile) - 1u] = '\0';
+		} else if ( strncmp(argv[i], "--check-workspace-file=", 23) == 0 ) {
+			pApp->bCheckWorkspace = 1;
+			strncpy(pApp->sCheckWorkspaceFile, argv[i] + 23, sizeof(pApp->sCheckWorkspaceFile) - 1u);
+			pApp->sCheckWorkspaceFile[sizeof(pApp->sCheckWorkspaceFile) - 1u] = '\0';
 		} else if ( strcmp(argv[i], "--help") == 0 || strcmp(argv[i], "-h") == 0 ) {
 			xideUsage();
 			return 1;
@@ -706,17 +717,83 @@ int xideAppCheckWorkspace(xide_app_t* pApp)
 	int treeCount;
 	int visibleCount;
 	const xui_tree_view_node_t* node;
+	str sTmpName = NULL;
+	str sTmpDir = (str)".";
+	str sTmpPath = NULL;
+	xvalue pJson = NULL;
 	if ( pApp == NULL || pApp->pProjectTree == NULL ) return XUI_ERROR_INVALID_ARGUMENT;
+	if ( pApp->sCheckWorkspaceFile[0] != '\0' ) {
+		if ( !xideWorkspaceLoadXlw(&pApp->tWorkspace, pApp->sCheckWorkspaceFile) ) return XUI_ERROR;
+		if ( xideWorkspaceViewRefresh(pApp) != XUI_OK ) return XUI_ERROR;
+		if ( pApp->tWorkspace.iProjectCount > 0 && pApp->tWorkspace.arrProjects[0].iFileCount > 0 ) {
+			if ( xideWorkspaceViewOpenNode(pApp, pApp->tWorkspace.arrProjects[0].arrFiles[0].iNodeId) != XUI_OK ) return XUI_ERROR;
+		}
+	}
 	modelCount = xideWorkspaceGetNodeCount(&pApp->tWorkspace);
 	treeCount = xuiTreeViewGetNodeCount(pApp->pProjectTree);
 	visibleCount = xuiTreeViewGetVisibleCount(pApp->pProjectTree);
 	node = xuiTreeViewGetNodeById(pApp->pProjectTree, pApp->tWorkspace.iNodeId);
 	if ( modelCount <= 0 || treeCount != modelCount || visibleCount <= 0 || node == NULL ) return XUI_ERROR;
-	printf("xlang_ide workspace nodes=%d visible=%d projects=%d files=%d\n",
+	sTmpName = xrtPathRandom((str)"xide_workspace_", 0, (str)".xlw", 0, 8);
+	sTmpPath = xrtPathJoin(2, sTmpDir, sTmpName);
+	if ( sTmpPath == NULL || sTmpPath[0] == '\0' || !xideWorkspaceSaveXlwAs(&pApp->tWorkspace, (const char*)sTmpPath) ) {
+		if ( sTmpName != NULL ) xrtFree(sTmpName);
+		if ( sTmpPath != NULL ) xrtFree(sTmpPath);
+		return XUI_ERROR;
+	}
+	pJson = xrtParseJSON_File(sTmpPath);
+	(void)xrtFileDelete(sTmpPath);
+	if ( sTmpName != NULL ) xrtFree(sTmpName);
+	if ( sTmpPath != NULL ) xrtFree(sTmpPath);
+	if ( pJson == NULL || !xvoIsTable(pJson) ) {
+		if ( pJson != NULL ) xvoUnref(pJson);
+		return XUI_ERROR;
+	}
+	xvoUnref(pJson);
+	if ( pApp->tWorkspace.iProjectCount > 0 ) {
+		xide_workspace_t* pTmpWorkspace;
+		xide_workspace_project_t* pLoadedProject = NULL;
+		sTmpName = xrtPathRandom((str)"xide_project_", 0, (str)".xlp", 0, 8);
+		sTmpPath = xrtPathJoin(2, sTmpDir, sTmpName);
+		if ( sTmpPath == NULL || sTmpPath[0] == '\0' ||
+		     !xideWorkspaceSaveXlpAs(&pApp->tWorkspace.arrProjects[0], (const char*)sTmpPath) ) {
+			if ( sTmpName != NULL ) xrtFree(sTmpName);
+			if ( sTmpPath != NULL ) xrtFree(sTmpPath);
+			return XUI_ERROR;
+		}
+		pTmpWorkspace = (xide_workspace_t*)xrtCalloc(1, sizeof(xide_workspace_t));
+		if ( pTmpWorkspace == NULL ) {
+			(void)xrtFileDelete(sTmpPath);
+			if ( sTmpName != NULL ) xrtFree(sTmpName);
+			if ( sTmpPath != NULL ) xrtFree(sTmpPath);
+			return XUI_ERROR;
+		}
+		xideWorkspaceInit(pTmpWorkspace);
+		if ( !xideWorkspaceLoadXlp(pTmpWorkspace, (const char*)sTmpPath, &pLoadedProject) ||
+		     pLoadedProject == NULL ||
+		     pLoadedProject->iFileCount != pApp->tWorkspace.arrProjects[0].iFileCount ||
+		     pLoadedProject->iLibraryCount != pApp->tWorkspace.arrProjects[0].iLibraryCount ||
+		     pLoadedProject->iResourceCount != pApp->tWorkspace.arrProjects[0].iResourceCount ) {
+			xideWorkspaceClear(pTmpWorkspace);
+			xrtFree(pTmpWorkspace);
+			(void)xrtFileDelete(sTmpPath);
+			if ( sTmpName != NULL ) xrtFree(sTmpName);
+			if ( sTmpPath != NULL ) xrtFree(sTmpPath);
+			return XUI_ERROR;
+		}
+		xideWorkspaceClear(pTmpWorkspace);
+		xrtFree(pTmpWorkspace);
+		(void)xrtFileDelete(sTmpPath);
+		if ( sTmpName != NULL ) xrtFree(sTmpName);
+		if ( sTmpPath != NULL ) xrtFree(sTmpPath);
+	}
+	printf("xlang_ide workspace nodes=%d visible=%d projects=%d files=%d libs=%d resources=%d\n",
 		treeCount,
 		visibleCount,
 		pApp->tWorkspace.iProjectCount,
-		pApp->tWorkspace.iProjectCount > 0 ? pApp->tWorkspace.arrProjects[0].iFileCount : 0);
+		pApp->tWorkspace.iProjectCount > 0 ? pApp->tWorkspace.arrProjects[0].iFileCount : 0,
+		pApp->tWorkspace.iProjectCount > 0 ? pApp->tWorkspace.arrProjects[0].iLibraryCount : 0,
+		pApp->tWorkspace.iProjectCount > 0 ? pApp->tWorkspace.arrProjects[0].iResourceCount : 0);
 	return XUI_OK;
 }
 

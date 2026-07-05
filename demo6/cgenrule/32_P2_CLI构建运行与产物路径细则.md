@@ -139,7 +139,7 @@
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | `xl run main.xl` 或 `xl build main.xl -o app.exe` |
-| 生成规则描述 | build/debug/save-temps 仍可能按用途创建 `build\tmp\xl6_<purpose>_<time>_<pid>_<random>_<counter>` 工作目录。正常编译的主 C、生成头和 C wrapper 通过动态 VFS 交给 TCC；`xl run` 使用 `TCC_OUTPUT_MEMORY` 直接重定位并调用 `xlang_main(xvalue arg)`，不生成临时 `app.exe`，也不启动独立子进程执行脚本；`--loadlib` 仍可能生成 def 文件。build 成功或失败都会进入统一 cleanup 出口，默认删除列出的临时文件和工作目录；`--save-temps` 时把动态 VFS 内容导出为 `module.c`、`module.h`、`module.xapi.json`、`csrc_N.c` 并保留路径。 |
+| 生成规则描述 | build/debug/save-temps 仍可能按用途创建 `<xl.exe目录>\tmp\xl6_<purpose>_<pid>_<time>_<counter>` 工作目录。正常编译的主 C、生成头和 C wrapper 通过动态 VFS 交给 TCC；`xl run` 使用 `TCC_OUTPUT_MEMORY` 直接重定位并调用 `xlang_main(xvalue arg)`，不生成临时 `app.exe`，也不启动独立子进程执行脚本；`--loadlib` 仍可能生成 def 文件。build 成功或失败都会进入统一 cleanup 出口，默认删除列出的临时文件和工作目录；`--save-temps` 时把动态 VFS 内容导出为 `module.c`、`module.h`、`module.xapi.json`、`csrc_N.c` 并保留路径。 |
 | 生成器文件名和行号 | `demo6/src/driver/xl6_xlc_shell.c:126`、`demo6/src/driver/xl6_xlc_shell.c:164`、`demo6/src/driver/xl6_xlc_shell.c:609`、`demo6/src/api/xl_api.c:2367` |
 | 对应生成的 C 代码 | 默认 C 输入为动态 VFS 路径 `__xlvfs__/module.c`、`__xlvfs__/csrc_N.c`；`--save-temps` 才导出真实文件。 |
 | 中间形态伪代码 | `mount dynamic VFS; compile; finally clear VFS and cleanupUnlessSaveTemps` |
@@ -175,7 +175,7 @@
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | `xl build main.xl -o app.exe --loadlib a.dll` |
-| 生成规则描述 | 每个 loadlib 先通过 XRT process 调用 TCC `-impdef <dll> -o <def>` 生成 def 文件，再把 def 当链接文件追加到 TCC argv。def 位于当前 workDir 或 `build\tmp`，追加到 argv 时复制路径，避免引用栈上临时缓冲区。 |
+| 生成规则描述 | 每个 loadlib 先通过 XRT process 调用 TCC `-impdef <dll> -o <def>` 生成 def 文件，再把 def 当链接文件追加到 TCC argv。def 位于 XLC context 的 tempDir；xl.exe 默认 tempDir 固定在 `<xl.exe目录>\tmp` 下，追加到 argv 时复制路径，避免引用栈上临时缓冲区。 |
 | 生成器文件名和行号 | `demo6/src/driver/xl6_xlc_shell.c:949`、`demo6/src/driver/xl6_xlc_shell.c:980`、`demo6/src/driver/xl6_xlc_shell.c:990` |
 | 对应生成的 C 代码 | 不改变 C；产生 `xl6_loadlib_N.def` 并链接。 |
 | 中间形态伪代码 | `tcc -impdef dll -o def; link(def)` |

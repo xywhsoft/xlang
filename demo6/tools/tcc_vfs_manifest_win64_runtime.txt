@@ -9,4 +9,5 @@
 
 dir|include|%XL6_EMBED_TCC_DIST_X64%\include
 
+file|include/xl_runtime.h|%XL6_ROOT%\release\include\xl_runtime.h
 file|lib/libtcc1.a|%XL6_EMBED_TCC_DIST_X64%\lib\libtcc1.a

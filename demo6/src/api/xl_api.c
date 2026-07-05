@@ -1299,6 +1299,8 @@ static int xlAddDefaultRuntimeSymbols(TCCState* s)
     XL_ADD_XRT_SYMBOL(s, xrtBufferInsert);
     XL_ADD_XRT_SYMBOL(s, xrtBufferAppend);
     XL_ADD_XRT_SYMBOL(s, xrtCopyStr);
+    XL_ADD_XRT_SYMBOL(s, xrtStrConcat);
+    XL_ADD_XRT_SYMBOL(s, xrtStrJoin);
     XL_ADD_XRT_SYMBOL(s, xrtFormat);
     XL_ADD_XRT_SYMBOL(s, xrtHash32);
     XL_ADD_XRT_SYMBOL(s, xrtHash32_WithSeed);
@@ -1960,6 +1962,10 @@ static int xlAddDefaultRuntimeSymbols(TCCState* s)
     XL_ADD_XRT_SYMBOL(s, xvoCreateCallable);
     XL_ADD_XRT_SYMBOL(s, xvoCreateRecord);
     XL_ADD_XRT_SYMBOL(s, xvoCreateHandle);
+    XL_ADD_XRT_SYMBOL(s, xvoCreateArrayArgs);
+    XL_ADD_XRT_SYMBOL(s, xvoCreateListArgs);
+    XL_ADD_XRT_SYMBOL(s, xvoCreateSetArgs);
+    XL_ADD_XRT_SYMBOL(s, xvoCreateTableArgs);
     XL_ADD_XRT_SYMBOL(s, xvoAddRef);
     XL_ADD_XRT_SYMBOL(s, xvoUnref);
     XL_ADD_XRT_SYMBOL(s, xvoCopy);
@@ -2001,6 +2007,14 @@ static int xlAddDefaultRuntimeSymbols(TCCState* s)
     XL_ADD_XRT_SYMBOL(s, xvoCollItemCount);
     XL_ADD_XRT_SYMBOL(s, xvoCollExists);
     XL_ADD_XRT_SYMBOL(s, xvoCollSetValue);
+    XL_ADD_XRT_SYMBOL(s, xvoBasicCompare);
+    XL_ADD_XRT_SYMBOL(s, xvoBasicEqual);
+    XL_ADD_XRT_SYMBOL(s, xvoValueTruthy);
+    XL_ADD_XRT_SYMBOL(s, xvoIndexGetI64);
+    XL_ADD_XRT_SYMBOL(s, xvoIndexGetKey);
+    XL_ADD_XRT_SYMBOL(s, xvoIndexGetValue);
+    XL_ADD_XRT_SYMBOL(s, xvoValueContains);
+    XL_ADD_XRT_SYMBOL(s, xvoPrint);
     XL_ADD_XRT_SYMBOL(s, xvoSetTypeDesc);
     if ( !xlAddTccSymbol(s, "xCore", (const void*)&xCore) ) {
         return 0;

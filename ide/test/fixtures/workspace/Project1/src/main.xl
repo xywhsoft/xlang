@@ -1,0 +1,4 @@
+func main(...) as int
+    print("hello workspace")
+    return 0
+end
