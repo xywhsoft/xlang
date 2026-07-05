@@ -29,10 +29,11 @@ static void xlcShellPrintHelp(void)
     xl6ConsolePuts(XL6_CONSOLE_STDOUT, "  xl cgen <file.xl> [--emit output.c] [--emit-header output.h] [--dump-dir dir]\n");
     xl6ConsolePuts(XL6_CONSOLE_STDOUT, "  xl abi <file.xl> [--json] [--emit output.abi.txt]\n");
     xl6ConsolePuts(XL6_CONSOLE_STDOUT, "  xl xapi <file.xl> [--emit output.xapi.json]\n");
-    xl6ConsolePuts(XL6_CONSOLE_STDOUT, "  xl run <file.xl> [helper.c ...] [--save-temps] [--inc-path dir] [--lib-path dir] [--link lib] [--loadlib dll] [-- <args>...]\n");
+    xl6ConsolePuts(XL6_CONSOLE_STDOUT, "  xl run <file.xl|file.c> [helper.c ...] [--save-temps] [--inc-path dir] [--lib-path dir] [--link lib] [--loadlib dll] [-- <args>...]\n");
     xl6ConsolePuts(XL6_CONSOLE_STDOUT, "  xl dbg <file.xl> [--break line] [--stop-on-entry] [--commands file] [--save-temps] [-- <args>...]\n");
     xl6ConsolePuts(XL6_CONSOLE_STDOUT, "  xl dap\n");
-    xl6ConsolePuts(XL6_CONSOLE_STDOUT, "  xl build <file.xl> [helper.c ...] -o <output.exe|dll> [-shared] [--save-temps] [--emit-header output.h] [--inc-path dir] [--lib-path dir] [--link lib] [--loadlib dll]\n");
+    xl6ConsolePuts(XL6_CONSOLE_STDOUT, "  xl build <file.xl|file.c> [helper.c ...] -o <output.exe|dll> [-shared] [--save-temps] [--emit-header output.h] [--inc-path dir] [--lib-path dir] [--link lib] [--loadlib dll]\n");
+    xl6ConsolePuts(XL6_CONSOLE_STDOUT, "  xl impdef <file.dll> -o <output.def>\n");
 }
 
 static const char* xlcShellFileArg(int argc, char** argv)
@@ -191,9 +192,11 @@ static int xlcShellReleaseTmpDir(char* out, size_t outSize)
 
 static int xlcShellDefaultTempDir(char* out, size_t outSize)
 {
+    char exeDir[512];
     char tmpDir[512];
 
-    if ( !xlcShellReleaseTmpDir(tmpDir, sizeof(tmpDir)) ) {
+    if ( !xlcShellExecutableDir(exeDir, sizeof(exeDir)) ||
+         !xlcShellJoinDirPath(tmpDir, sizeof(tmpDir), exeDir, "tmp") ) {
         return 0;
     }
     return xlcShellJoinDirPath(out, outSize, tmpDir, "xlc_shell");
@@ -349,6 +352,48 @@ static int xlcShellIsCSourcePath(const char* path)
            xlcShellHasExtensionNoCase(path, ".cc") ||
            xlcShellHasExtensionNoCase(path, ".cpp") ||
            xlcShellHasExtensionNoCase(path, ".cxx");
+}
+
+static int xlcShellOptionTakesValue(const char* arg);
+
+#define XLC_SHELL_MAX_C_INPUTS 64
+
+static int xlcShellCollectCInputs(int argc, char** argv, const char** inputs, int maxInputs, int* outCount)
+{
+    int i;
+    int count;
+
+    if ( inputs == NULL || outCount == NULL || maxInputs <= 0 ) {
+        return 0;
+    }
+    count = 0;
+    for ( i = 2; i < argc; ++i ) {
+        const char* arg = argv[i];
+
+        if ( xlcShellTextEquals(arg, "--") ) {
+            break;
+        }
+        if ( xlcShellOptionTakesValue(arg) ) {
+            i += 1;
+            continue;
+        }
+        if ( arg == NULL || arg[0] == '-' ) {
+            continue;
+        }
+        if ( xlcShellIsCSourcePath(arg) ) {
+            if ( count >= maxInputs ) {
+                xl6ConsolePrintf(XL6_CONSOLE_STDERR, "too many C source files\n");
+                return 0;
+            }
+            inputs[count++] = arg;
+        }
+    }
+    if ( count <= 0 ) {
+        xl6ConsolePrintf(XL6_CONSOLE_STDERR, "missing C source file\n");
+        return 0;
+    }
+    *outCount = count;
+    return 1;
 }
 
 static int xlcShellIsDefaultRuntimeLink(const char* value)
@@ -777,6 +822,48 @@ static int xlcShellDoRun(XLC_Context* ctx, int argc, char** argv)
     return xlcRun(ctx, runArgCount, runArgs);
 }
 
+static int xlcShellRunC(int argc, char** argv)
+{
+    XLC_Context* ctx;
+    XL_Context* runtime;
+    const char* cInputs[XLC_SHELL_MAX_C_INPUTS];
+    char* runArgs[129];
+    int cInputCount;
+    int runArgCount;
+    int argStart;
+    int ok;
+    int i;
+
+    if ( !xlcShellCollectCInputs(argc, argv, cInputs, XLC_SHELL_MAX_C_INPUTS, &cInputCount) ) {
+        return 1;
+    }
+    ctx = xlcShellCreateContext(argc, argv);
+    if ( ctx == NULL ) {
+        return 1;
+    }
+    runtime = xlcRuntimeContext(ctx);
+    runArgCount = 0;
+    runArgs[runArgCount++] = (char*)cInputs[0];
+    argStart = xlcShellFindArgSplit(argc, argv);
+    for ( i = argStart; i < argc; ++i ) {
+        if ( runArgCount >= (int)(sizeof(runArgs) / sizeof(runArgs[0])) ) {
+            xl6ConsolePrintf(XL6_CONSOLE_STDERR, "too many program arguments\n");
+            xlcDestroyContext(ctx);
+            return 1;
+        }
+        runArgs[runArgCount++] = argv[i];
+    }
+    ok = runtime != NULL && xlRunCSourceFiles(runtime, cInputs, cInputCount, runArgCount, runArgs);
+    if ( !ok ) {
+        const char* errorText = runtime != NULL ? xlGetLastError(runtime) : xlcGetLastError(ctx);
+        if ( errorText != NULL && errorText[0] != '\0' ) {
+            xl6ConsolePrintf(XL6_CONSOLE_STDERR, "%s\n", errorText);
+        }
+    }
+    xlcDestroyContext(ctx);
+    return ok ? 0 : 1;
+}
+
 static int xlcShellCgenDumpDir(XLC_Context* ctx, const char* inputPath, const char* dumpDir)
 {
     char base[256];
@@ -907,6 +994,61 @@ static int xlcShellDoBuild(XLC_Context* ctx, int argc, char** argv)
         xl6ConsolePrintf(XL6_CONSOLE_STDERR, "temporary files kept: %s\n", xlcShellKeptTempDir);
     }
     return ok;
+}
+
+static int xlcShellBuildC(int argc, char** argv)
+{
+    XLC_Context* ctx;
+    XL_Context* runtime;
+    const char* cInputs[XLC_SHELL_MAX_C_INPUTS];
+    const char* output;
+    int cInputCount;
+    int ok;
+
+    output = xlcShellFindValue(argc, argv, "-o", 3);
+    if ( output == NULL ) {
+        xl6ConsolePrintf(XL6_CONSOLE_STDERR, "build requires -o <output.exe>\n");
+        return 1;
+    }
+    if ( !xlcShellCollectCInputs(argc, argv, cInputs, XLC_SHELL_MAX_C_INPUTS, &cInputCount) ) {
+        return 1;
+    }
+    ctx = xlcShellCreateContext(argc, argv);
+    if ( ctx == NULL ) {
+        return 1;
+    }
+    runtime = xlcRuntimeContext(ctx);
+    if ( xlcShellHasFlag(argc, argv, "-shared") || xlcShellHasFlag(argc, argv, "--shared") ) {
+        ok = runtime != NULL && xlCompileCSourceFilesToSharedLibrary(runtime, cInputs, cInputCount, output);
+    } else {
+        ok = runtime != NULL && xlCompileCSourceFilesToExe(runtime, cInputs, cInputCount, output);
+    }
+    if ( !ok ) {
+        const char* errorText = runtime != NULL ? xlGetLastError(runtime) : xlcGetLastError(ctx);
+        if ( errorText != NULL && errorText[0] != '\0' ) {
+            xl6ConsolePrintf(XL6_CONSOLE_STDERR, "%s\n", errorText);
+        }
+    }
+    xlcDestroyContext(ctx);
+    return ok ? 0 : 1;
+}
+
+static int xlcShellImpdef(int argc, char** argv)
+{
+    const char* dllPath;
+    const char* output;
+
+    dllPath = xlcShellFileArg(argc, argv);
+    output = xlcShellFindValue(argc, argv, "-o", 3);
+    if ( dllPath == NULL || dllPath[0] == '\0' || output == NULL || output[0] == '\0' ) {
+        xl6ConsolePrintf(XL6_CONSOLE_STDERR, "impdef requires <file.dll> -o <output.def>\n");
+        return 1;
+    }
+    if ( !xlTccImpdef(dllPath, output) ) {
+        xl6ConsolePrintf(XL6_CONSOLE_STDERR, "impdef failed: %s\n", dllPath);
+        return 1;
+    }
+    return 0;
 }
 
 #define XLC_SHELL_MAX_RUN_ARGS 128
@@ -1066,6 +1208,9 @@ int xlcShellMain(int argc, char** argv)
     if ( xlcShellTextEquals(cmd, "dap") ) {
         return xl6DapMain(argc, argv);
     }
+    if ( xlcShellTextEquals(cmd, "impdef") ) {
+        return xlcShellImpdef(argc, argv);
+    }
     if ( xlcShellTextEquals(cmd, "lex") ) {
         return xlcShellRunWithFile(argc, argv, xlcShellDoLex);
     }
@@ -1088,9 +1233,15 @@ int xlcShellMain(int argc, char** argv)
         return xlcShellRunWithFile(argc, argv, xlcShellDoXapi);
     }
     if ( xlcShellTextEquals(cmd, "run") ) {
+        if ( xlcShellIsCSourcePath(xlcShellFileArg(argc, argv)) ) {
+            return xlcShellRunC(argc, argv);
+        }
         return xlcShellRunWithFile(argc, argv, xlcShellDoRun);
     }
     if ( xlcShellTextEquals(cmd, "build") ) {
+        if ( xlcShellIsCSourcePath(xlcShellFileArg(argc, argv)) ) {
+            return xlcShellBuildC(argc, argv);
+        }
         return xlcShellRunWithFile(argc, argv, xlcShellDoBuild);
     }
     if ( xlcShellTextEquals(cmd, "dbg") ) {

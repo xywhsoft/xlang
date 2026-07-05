@@ -1,6 +1,6 @@
 // 文件备份范例：创建配置文件、复制到备份目录、生成备份元数据。
 
-string root = "release/tmp/examples_apps/backup"
+string root = "examples_out/examples_apps/backup"
 string sourceDir = path.join(root, "source")
 string backupDir = path.join(root, "backup")
 string sourceFile = path.join(sourceDir, "app.conf")

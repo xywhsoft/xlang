@@ -40,7 +40,7 @@ assert wait_read_contains(editLocator, "auto-text") == true, "ui.auto read faile
 assert ui.auto.click(nameLocator) == true, "ui.auto click failed"
 assert string.contains(ui.auto.read(editLocator), "button-clicked"), "ui.auto click result failed"
 
-assert ui.auto.screenshot(editLocator, "release/tmp/x_ui_auto_edit.png") == true, "ui.auto screenshot failed"
+assert ui.auto.screenshot(editLocator, "examples_out/x_ui_auto_edit.png") == true, "ui.auto screenshot failed"
 assert string.len(ui.auto.focused_locator_json()) > 0, "ui.auto focused_locator_json failed"
 
 assert window.close() == true, "ui.auto window close failed"

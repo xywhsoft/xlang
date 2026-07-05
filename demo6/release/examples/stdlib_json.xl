@@ -1,4 +1,6 @@
-string filePath = "release/tmp/example_stdlib_json.json"
+string filePath = "examples_out/example_stdlib_json.json"
+
+dir.createAll("examples_out")
 
 bool validOk = json.valid('{"name":"xlang","stage":6}')
 bool validBad = json.valid('{"name":')

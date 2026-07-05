@@ -84,3 +84,19 @@ long long counter_closed(void)
 {
     return g_counter_closed;
 }
+
+#ifndef XL6_EXAMPLE_NO_STANDALONE_MAIN
+#include <stdio.h>
+
+int main(void)
+{
+    if ( host_add(20, 22) != 42 ) {
+        return 1;
+    }
+    if ( host_flip(0) != 1 ) {
+        return 2;
+    }
+    printf("tutorial host ok\n");
+    return 0;
+}
+#endif

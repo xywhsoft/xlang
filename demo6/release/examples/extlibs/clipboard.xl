@@ -1,10 +1,10 @@
 import clipboard
 
-dir.createAll("release/tmp/extlibs")
+dir.createAll("examples_out/extlibs")
 string sample = "demo6 clipboard text"
-string filePath = "release/tmp/extlibs/clipboard_file.txt"
-string imagePath = "release/tmp/extlibs/clipboard_image.bmp"
-string missingImagePath = "release/tmp/extlibs/clipboard_missing.bmp"
+string filePath = "examples_out/extlibs/clipboard_file.txt"
+string imagePath = "examples_out/extlibs/clipboard_image.bmp"
+string missingImagePath = "examples_out/extlibs/clipboard_missing.bmp"
 int cfText = 1
 int cfUnicodeText = 13
 

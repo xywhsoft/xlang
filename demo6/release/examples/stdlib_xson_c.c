@@ -13,7 +13,7 @@ static void require_xson(int ok)
 
 int main(void)
 {
-    const char* filePath = "release/tmp/stdlib_xson_example.xson";
+    const char* filePath = "examples_out/stdlib_xson_example.xson";
     xvalue config;
     xvalue copy;
     xvalue fileCopy;
@@ -23,6 +23,7 @@ int main(void)
     str fileText;
 
     xrtInit();
+    xrtDirCreateAll((str)"examples_out");
     xrtFileDelete((str)filePath);
 
     require_xson(xrtXsonValid((str)"{\"name\":\"xlang\",\"level\":6,\"enabled\":true}", 0, 0));

@@ -3,10 +3,37 @@
 // 2. create/destroy 分别用于构造和析构。
 // 3. extends 和 base(...) 形成继承构造链。
 
-extern "reset_destroy_log" func resetDestroyLog()
-extern "record_destroy" func recordDestroy(int value)
-extern "destroy_count" func destroyCount() as int
-extern "destroy_value" func destroyValue() as int
+class DestroyLog
+    int unused = 0
+    static int count = 0
+    static int value = 0
+
+    static func reset()
+        DestroyLog.count = 0
+        DestroyLog.value = 0
+    end
+
+    static func record(int value)
+        DestroyLog.count += 1
+        DestroyLog.value = value
+    end
+end
+
+func resetDestroyLog()
+    DestroyLog.reset()
+end
+
+func recordDestroy(int value)
+    DestroyLog.record(value)
+end
+
+func destroyCount() as int
+    return DestroyLog.count
+end
+
+func destroyValue() as int
+    return DestroyLog.value
+end
 
 class Point
     int x = 0

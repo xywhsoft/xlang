@@ -3,13 +3,13 @@ import miniz
 assert miniz.available(), "miniz available failed"
 
 string sample = "miniz extension round trip text"
-string srcPath = "release/tmp/extlibs/miniz_source.txt"
-string packedPath = "release/tmp/extlibs/miniz_source.bin"
-string packedLevelPath = "release/tmp/extlibs/miniz_source_level.bin"
-string outPath = "release/tmp/extlibs/miniz_out.txt"
-string zipPath = "release/tmp/extlibs/miniz_sample.zip"
+string srcPath = "examples_out/extlibs/miniz_source.txt"
+string packedPath = "examples_out/extlibs/miniz_source.bin"
+string packedLevelPath = "examples_out/extlibs/miniz_source_level.bin"
+string outPath = "examples_out/extlibs/miniz_out.txt"
+string zipPath = "examples_out/extlibs/miniz_sample.zip"
 
-dir.createAll("release/tmp/extlibs")
+dir.createAll("examples_out/extlibs")
 file.writeText(srcPath, sample)
 file.delete(packedPath)
 file.delete(packedLevelPath)

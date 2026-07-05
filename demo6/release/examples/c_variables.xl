@@ -8,3 +8,9 @@ end
 export "app_get_counter" func getCounter() as int
     return counter
 end
+
+setCounter(41)
+assert getCounter() == 41, "c_variables get failed"
+counter += version
+assert getCounter() == 42, "c_variables version failed"
+println("c_variables ok")

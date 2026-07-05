@@ -41,8 +41,8 @@ end
 func(string, string, string, string) as string handler = hello
 func(point, point) as bool requestHandler = route
 
-dir.createAll("release/tmp/example_http_static")
-file.writeText("release/tmp/example_http_static/index.txt", "static from xlang")
+dir.createAll("examples_out/example_http_static")
+file.writeText("examples_out/example_http_static/index.txt", "static from xlang")
 
 point server = http.server.create(8080)
 http.server.get(server, "/legacy", handler)
@@ -53,7 +53,7 @@ http.server.getRequest(server, "/users/{id}", requestHandler)
 http.server.postRequest(server, "/echo", requestHandler)
 http.server.anyRequest(server, "/any", requestHandler)
 http.server.anyRequest(server, "/json", requestHandler)
-http.server.static(server, "/public", "release/tmp/example_http_static")
+http.server.static(server, "/public", "examples_out/example_http_static")
 assert http.server.mimeByPath("data.json") == "application/json; charset=utf-8", "mimeByPath should inspect extension"
 
 if http.server.start(server) then
@@ -64,5 +64,5 @@ if http.server.start(server) then
 end
 
 http.server.destroy(server)
-file.delete("release/tmp/example_http_static/index.txt")
-dir.delete("release/tmp/example_http_static")
+file.delete("examples_out/example_http_static/index.txt")
+dir.delete("examples_out/example_http_static")

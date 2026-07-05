@@ -23,7 +23,7 @@ static void require_ok(const char* name, int ok)
 
 static int text_contains(str text, const char* needle)
 {
-    return text != NULL && text != xCore.sNull && needle != NULL && strstr((const char*)text, needle) != NULL;
+    return text != NULL && needle != NULL && strstr((const char*)text, needle) != NULL;
 }
 
 int main(void)

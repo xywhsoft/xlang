@@ -59,7 +59,7 @@ int main(void)
     char* out = NULL;
     char* out2 = NULL;
     char* out3 = NULL;
-    const char* filePath = "release/tmp/stdlib_template_example/page.xte";
+    const char* filePath = "examples_out/stdlib_template_example/page.xte";
 
     xrtInit();
 
@@ -85,7 +85,7 @@ int main(void)
     xrtFree(out);
     xrtFree(out2);
 
-    if ( !xrtDirCreateAll("release/tmp/stdlib_template_example") ||
+    if ( !xrtDirCreateAll("examples_out/stdlib_template_example") ||
          !xrtFileWriteAll((str)filePath, (str)"File {$title}", 0u, XRT_CP_UTF8) ) {
         fprintf(stderr, "file=fail\n");
         exit(1);
@@ -96,7 +96,7 @@ int main(void)
     xrtFree(out);
     xrtFree(out3);
     xrtFileDelete((str)filePath);
-    xrtDirDelete((str)"release/tmp/stdlib_template_example");
+    xrtDirDelete((str)"examples_out/stdlib_template_example");
 
     xvoUnref(data);
     xrtUnit();

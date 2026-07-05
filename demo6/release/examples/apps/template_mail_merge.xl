@@ -12,7 +12,7 @@ func renderNotice(Customer customer) as string
     return f"hello {customer.name}, your score is {customer.score}, level={level}"
 end
 
-string outDir = "release/tmp/examples_apps/mail"
+string outDir = "examples_out/examples_apps/mail"
 dir.delete(outDir)
 dir.createAll(outDir)
 

@@ -3,7 +3,7 @@ import stb_image_resize2
 
 assert stb_image_resize2.available(), "stb_image_resize2 available failed"
 
-string imagePath = "release/examples/extlibs/assets/tiny.png"
+string imagePath = "examples/extlibs/assets/tiny.png"
 point image = stb_image.load(imagePath, 4)
 assert stb_image.valid(image) != 0, "resize source load failed"
 

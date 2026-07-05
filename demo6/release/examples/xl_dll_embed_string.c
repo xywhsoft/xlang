@@ -1,3 +1,26 @@
+#ifndef XL6_EXAMPLE_BOUNDARY_TEST
+#include "include/xl.h"
+
+#include <stdio.h>
+
+int main(void)
+{
+    XL_ContextOptions options = xlDefaultContextOptions();
+    XL_Context* ctx = xlCreateContext(&options);
+
+    if ( ctx == NULL ) {
+        fprintf(stderr, "cannot create xl context\n");
+        return 1;
+    }
+    if ( !xlRunScriptString(ctx, "println(\"xl dll embed string ok\")\nassert 40 + 2 == 42\n") ) {
+        fprintf(stderr, "%s\n", xlGetLastError(ctx));
+        xlDestroyContext(ctx);
+        return 2;
+    }
+    xlDestroyContext(ctx);
+    return 0;
+}
+#else
 #include "include/xl.h"
 
 #include <errno.h>
@@ -362,3 +385,4 @@ int main(void)
     xlDestroyContext(ctx);
     return 0;
 }
+#endif

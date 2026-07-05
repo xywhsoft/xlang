@@ -616,6 +616,17 @@ if errorlevel 1 (
     exit /b 1
 )
 
+release\xl.exe check test\cases\parse_reserved_keyword_identifier.xl >nul 2> release\tmp\parse_reserved_keyword_identifier.err.txt
+if not errorlevel 1 (
+    echo parse_reserved_keyword_identifier.xl should fail.
+    exit /b 1
+)
+findstr /C:"[parse]" release\tmp\parse_reserved_keyword_identifier.err.txt >nul
+if errorlevel 1 (
+    echo parse_reserved_keyword_identifier.err.txt missing syntax diagnostic.
+    exit /b 1
+)
+
 release\xl.exe check test\cases\sem_custom_bad_special.xl >nul 2> release\tmp\sem_custom_bad_special.err.txt
 if not errorlevel 1 (
     echo sem_custom_bad_special.xl should fail.

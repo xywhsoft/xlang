@@ -1,6 +1,6 @@
 // 生成资源清单：文件系统 + path + hash + JSON。
 
-string root = "release/tmp/examples_apps/assets"
+string root = "examples_out/examples_apps/assets"
 dir.delete(root)
 dir.createAll(root)
 

@@ -33,6 +33,8 @@ int xl6CgenEmitCEx(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags, cons
     int hasTemplateRuntime;
     int hasFileRuntime;
     int hasAsyncFileRuntime;
+    int hasTccRuntime;
+    int hasXlangRuntime;
     int hasTaskSpawn;
     int needsObjectClass;
     const XL6_AstNode* mainFunc;
@@ -84,6 +86,8 @@ int xl6CgenEmitCEx(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags, cons
     hasTemplateRuntime = xl6CgenNodeNeedsTemplateRuntime(root);
     hasFileRuntime = xl6CgenNodeNeedsFileRuntime(root);
     hasAsyncFileRuntime = xl6CgenNodeNeedsAsyncFileRuntime(root);
+    hasTccRuntime = xl6CgenNodeNeedsTccRuntime(root);
+    hasXlangRuntime = xl6CgenNodeNeedsXlangRuntime(root);
     if ( hasAsyncFileRuntime ) {
         hasAsyncRuntime = 1;
         hasErrorRuntime = 1;
@@ -93,6 +97,9 @@ int xl6CgenEmitCEx(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags, cons
     }
     if ( hasTemplateRuntime ) {
         hasXValueRuntime = 1;
+    }
+    if ( hasXlangRuntime ) {
+        hasStringRuntime = 1;
     }
     if ( needsObjectClass ) {
         hasXValueRuntime = 1;
@@ -209,6 +216,12 @@ int xl6CgenEmitCEx(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags, cons
     }
     if ( hasTemplateRuntime ) {
         xl6CgenEmitTemplateRuntime(out);
+    }
+    if ( hasTccRuntime ) {
+        xl6CgenEmitTccRuntime(out);
+    }
+    if ( hasXlangRuntime ) {
+        xl6CgenEmitXlangRuntime(out);
     }
     if ( xl6CgenNodeNeedsIntPow(root) ) {
         xl6CgenEmitIntPowHelper(out);

@@ -1,5 +1,10 @@
-extern "expect_i64" func expect(int actual, int expected)
-extern "expect_str" func expectStr(string actual, string expected)
+﻿func expect(int actual, int expected)
+    assert actual == expected, "expect int failed"
+end
+
+func expectStr(string actual, string expected)
+    assert actual == expected, "expect string failed"
+end
 
 // UTF-8 源文件、大小写敏感标识符、中文标识符。
 int Name = 1
@@ -40,7 +45,7 @@ expectStr(defaultString, "")
 // typedef 类型别名。
 typedef Count = int
 Count count = 7
-expect(count, 7)
+assert count == 7, "typedef alias failed"
 
 // 整数字面量：十进制、十六进制、八进制、二进制、下划线分隔。
 int dec = 1_000_000

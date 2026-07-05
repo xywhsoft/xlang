@@ -1,0 +1,7 @@
+extern "expect_i64" func expect(int actual, int expected)
+
+func static() as int
+    return 42
+end
+
+expect(static(), 42)

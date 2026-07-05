@@ -1,3 +1,41 @@
+#ifndef XL6_EXAMPLE_BOUNDARY_TEST
+#include "include/xlc.h"
+
+#include <stdio.h>
+
+int main(void)
+{
+    XLC_ContextOptions options = xlcDefaultContextOptions();
+    XLC_Context* ctx = xlcCreateContext(&options);
+    XL_Module* module;
+
+    if ( ctx == NULL ) {
+        fprintf(stderr, "cannot create xlc context\n");
+        return 1;
+    }
+    if ( !xlcAddSourceString(ctx, "__xlc_api_example.xl", "int value = 40 + 2\nassert value == 42, \"xlc api failed\"\nprintln(\"xlc api embed ok\")\n") ||
+         !xlcCompile(ctx) ) {
+        fprintf(stderr, "%s\n", xlcGetLastError(ctx));
+        xlcDestroyContext(ctx);
+        return 2;
+    }
+    module = xlcRelocateModule(ctx);
+    if ( module == NULL ) {
+        fprintf(stderr, "%s\n", xlcGetLastError(ctx));
+        xlcDestroyContext(ctx);
+        return 3;
+    }
+    if ( !xlRunModuleMain(xlcRuntimeContext(ctx), module, NULL) ) {
+        fprintf(stderr, "%s\n", xlcGetLastError(ctx));
+        xlDestroyModule(module);
+        xlcDestroyContext(ctx);
+        return 4;
+    }
+    xlDestroyModule(module);
+    xlcDestroyContext(ctx);
+    return 0;
+}
+#else
 #include "include/xlc.h"
 
 #include <stdio.h>
@@ -122,3 +160,4 @@ int main(void)
     printf("xlc.dll compiler API ok\n");
     return 0;
 }
+#endif

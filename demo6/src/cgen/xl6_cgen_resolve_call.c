@@ -288,7 +288,7 @@ static const XL6_AstNode* xl6CgenResolveCallableInBodyMode(
     XL6_AstKind kind,
     const char* name,
     int requiredStatic,
-    int includeCompatibleKinds,
+    int includeClassCallableAliases,
     int reportNoMatch)
 {
     const XL6_AstNode* fixedMatch;
@@ -321,9 +321,14 @@ static const XL6_AstNode* xl6CgenResolveCallableInBodyMode(
         int hasVararg;
         int kindMatches;
 
+        /*
+            class 调用解析需要把普通成员、导出成员和 native-backed class
+            的 extern 成员视为同一组可调用候选。这里的 alias 是统一
+            class 基座后的成员形态归一，不是旧 custom 语法兼容。
+        */
         kindMatches = member != NULL &&
                       (member->kind == kind ||
-                       (includeCompatibleKinds &&
+                       (includeClassCallableAliases &&
                         ((kind == XL6_AST_CREATE && member->kind == XL6_AST_CUSTOM_EXTERN_SPECIAL) ||
                          (kind == XL6_AST_FUNC &&
                           (member->kind == XL6_AST_EXPORT_FUNC || member->kind == XL6_AST_CUSTOM_EXTERN_FUNC)))));

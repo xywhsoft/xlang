@@ -3,12 +3,12 @@ import zstd
 assert zstd.available(), "zstd available failed"
 
 string sample = "zstd extension round trip text"
-string srcPath = "release/tmp/extlibs/zstd_source.txt"
-string packedPath = "release/tmp/extlibs/zstd_source.zst"
-string packedLevelPath = "release/tmp/extlibs/zstd_source_level.zst"
-string outPath = "release/tmp/extlibs/zstd_out.txt"
+string srcPath = "examples_out/extlibs/zstd_source.txt"
+string packedPath = "examples_out/extlibs/zstd_source.zst"
+string packedLevelPath = "examples_out/extlibs/zstd_source_level.zst"
+string outPath = "examples_out/extlibs/zstd_out.txt"
 
-dir.createAll("release/tmp/extlibs")
+dir.createAll("examples_out/extlibs")
 file.writeText(srcPath, sample)
 file.delete(packedPath)
 file.delete(packedLevelPath)

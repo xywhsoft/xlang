@@ -12,10 +12,10 @@ streaming = crc32.update(streaming, "1234")
 streaming = crc32.update(streaming, "56789")
 assert crc32.finish(streaming) == crc32.checksum(sample), "crc32 streaming mismatch"
 
-dir.createAll("release/tmp/extlibs")
-file.writeText("release/tmp/extlibs/crc32_sample.txt", sample)
-assert crc32.file_hex("release/tmp/extlibs/crc32_sample.txt") == "cbf43926", "crc32 file_hex mismatch"
-assert crc32.hex(crc32.file("release/tmp/extlibs/crc32_sample.txt")) == "cbf43926", "crc32 file mismatch"
+dir.createAll("examples_out/extlibs")
+file.writeText("examples_out/extlibs/crc32_sample.txt", sample)
+assert crc32.file_hex("examples_out/extlibs/crc32_sample.txt") == "cbf43926", "crc32 file_hex mismatch"
+assert crc32.hex(crc32.file("examples_out/extlibs/crc32_sample.txt")) == "cbf43926", "crc32 file mismatch"
 
 assert crc32.file("") == 0, "crc32 empty path should fail"
 assert crc32.last_error() == "empty file path", "crc32 empty path diagnostic mismatch"

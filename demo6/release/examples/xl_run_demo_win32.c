@@ -422,3 +422,10 @@ int WINAPI WinMain(HINSTANCE instance, HINSTANCE prevInstance, LPSTR cmdLine, in
     }
     return (int)msg.wParam;
 }
+
+#ifndef XL6_GUI_ENTRY_ONLY
+int main(void)
+{
+    return run_self_test();
+}
+#endif

@@ -101,5 +101,7 @@
 #include "src/cgen/xl6_cgen_encoding.c"
 #include "src/cgen/xl6_cgen_log.c"
 #include "src/cgen/xl6_cgen_template.c"
+#include "src/cgen/xl6_cgen_tcc.c"
+#include "src/cgen/xl6_cgen_xlang.c"
 #include "src/cgen/xl6_cgen_main.c"
 #include "src/cgen/xl6_cgen_module.c"

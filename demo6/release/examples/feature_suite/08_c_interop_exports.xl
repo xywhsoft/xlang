@@ -1,7 +1,16 @@
-extern "expect_i64" func expect(int actual, int expected)
-extern "native_add_i64" func nativeAdd(int left, int right) as int
-extern "native_flip_bool" func nativeFlip(bool value) as bool
-extern "host_counter" var int hostCounter
+func expect(int actual, int expected)
+    assert actual == expected, "expect int failed"
+end
+
+func nativeAdd(int left, int right) as int
+    return left + right
+end
+
+func nativeFlip(bool value) as bool
+    return not value
+end
+
+int hostCounter = 40
 
 // extern 函数：xlang 声明 C 符号后直接调用。
 expect(nativeAdd(20, 22), 42)

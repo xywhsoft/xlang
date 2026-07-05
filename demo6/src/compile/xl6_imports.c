@@ -148,6 +148,31 @@ static char* xl6ImportsDupImportTarget(const char* text)
     return xrtCopyStr((char*)text, len);
 }
 
+static int xl6ImportsTryBuiltinFeatureImport(const char* target, XL6_ImportDeps* deps)
+{
+    if ( target == NULL || deps == NULL ) {
+        return 0;
+    }
+
+    /*
+     * 内置脚本模块不是 package，也不走 XAPI 文件解析。
+     * 它们只声明编译单元需要的运行/编译能力，后续由 cgen/API/TCC 链路统一消费。
+     */
+    if ( xl6ImportsTextEquals(target, "tcc") ) {
+        deps->features |= XL6_IMPORT_FEATURE_TCC_RUNTIME;
+        return 1;
+    }
+    if ( xl6ImportsTextEquals(target, "xlang") ) {
+        deps->features |= XL6_IMPORT_FEATURE_XLANG_RUNTIME;
+        return 1;
+    }
+    if ( xl6ImportsTextEquals(target, "xlang.compiler") ) {
+        deps->features |= XL6_IMPORT_FEATURE_XLANG_RUNTIME | XL6_IMPORT_FEATURE_XLANG_COMPILER;
+        return 1;
+    }
+    return 0;
+}
+
 void xl6ImportDepsInit(XL6_ImportDeps* deps)
 {
     if ( deps == NULL ) {
@@ -1323,6 +1348,11 @@ static int xl6ImportsLoadOne(
     target = xl6ImportsDupImportTarget(importNode != NULL ? importNode->text : NULL);
     if ( target == NULL ) {
         return 0;
+    }
+
+    if ( xl6ImportsTryBuiltinFeatureImport(target, deps) ) {
+        xrtFree(target);
+        return 1;
     }
 
     xl6PackageResolveImport(sourcePath, target, &resolved);

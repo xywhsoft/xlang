@@ -1,8 +1,8 @@
 import sqlite
 
-dir.createAll("release/tmp/extlibs")
-string dbPath = "release/tmp/extlibs/sqlite_demo.db"
-string db2Path = "release/tmp/extlibs/sqlite_demo_v2.db"
+dir.createAll("examples_out/extlibs")
+string dbPath = "examples_out/extlibs/sqlite_demo.db"
+string db2Path = "examples_out/extlibs/sqlite_demo_v2.db"
 file.delete(dbPath)
 file.delete(db2Path)
 

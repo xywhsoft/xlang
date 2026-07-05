@@ -13,7 +13,7 @@ static void require_json(int ok)
 
 int main(void)
 {
-    const char* filePath = "release/tmp/example_stdlib_json.json";
+    const char* filePath = "examples_out/example_stdlib_json.json";
     xvalue values;
     xvalue object;
     xvalue loaded;
@@ -25,6 +25,7 @@ int main(void)
     int deleted;
 
     xrtInit();
+    xrtDirCreateAll((str)"examples_out");
     xrtFileDelete((str)filePath);
 
     require_json(xrtJsonValid((str)"{\"name\":\"xlang\",\"stage\":6}", 0));

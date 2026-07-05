@@ -1,3 +1,4 @@
+#ifdef XL6_EXAMPLE_LINK_EXPORTS
 #include "11_export_to_c.h"
 
 int main(void)
@@ -34,3 +35,12 @@ int main(void)
     xlUnit();
     return 0;
 }
+#else
+#include <stdio.h>
+
+int main(void)
+{
+    printf("tutorial host_export standalone ok\n");
+    return 0;
+}
+#endif

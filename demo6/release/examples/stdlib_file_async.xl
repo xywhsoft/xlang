@@ -1,7 +1,8 @@
-string filePath = "release/tmp/example_file_async.txt"
-string copyPath = "release/tmp/example_file_async.copy.txt"
-string movePath = "release/tmp/example_file_async.move.txt"
+string filePath = "examples_out/example_file_async.txt"
+string copyPath = "examples_out/example_file_async.copy.txt"
+string movePath = "examples_out/example_file_async.move.txt"
 
+dir.createAll("examples_out")
 file.delete(filePath)
 file.delete(copyPath)
 file.delete(movePath)

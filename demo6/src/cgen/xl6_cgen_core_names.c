@@ -55,6 +55,29 @@ static unsigned int xl6CgenNextUtf8Codepoint(const unsigned char** p)
     return s[0];
 }
 
+static int xl6CgenIsCReservedIdent(const char* text)
+{
+    static const char* const names[] = {
+        "_Alignas", "_Alignof", "_Atomic", "_Bool", "_Complex", "_Generic", "_Imaginary",
+        "_Noreturn", "_Static_assert", "_Thread_local",
+        "auto", "break", "case", "char", "const", "continue", "default", "do", "double",
+        "else", "enum", "extern", "float", "for", "goto", "if", "inline", "int", "long",
+        "register", "restrict", "return", "short", "signed", "sizeof", "static", "struct",
+        "switch", "typedef", "union", "unsigned", "void", "volatile", "while"
+    };
+    size_t i;
+
+    if ( text == NULL ) {
+        return 0;
+    }
+    for ( i = 0; i < sizeof(names) / sizeof(names[0]); ++i ) {
+        if ( strcmp(text, names[i]) == 0 ) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
 static int xl6CgenIsSimpleCIdent(const char* text)
 {
     const unsigned char* p;
@@ -73,7 +96,7 @@ static int xl6CgenIsSimpleCIdent(const char* text)
             return 0;
         }
     }
-    return 1;
+    return !xl6CgenIsCReservedIdent(text);
 }
 
 static void xl6CgenFputsEncodedCodepoint(XL6_Output* out, unsigned int cp)
@@ -132,6 +155,9 @@ static void xl6CgenFputsCIdent(XL6_Output* out, const char* text)
         xl6OutputPutc('_', out);
         return;
     }
+    if ( xl6CgenIsCReservedIdent(text) ) {
+        xl6OutputPuts("xl_kw_", out);
+    }
     p = (const unsigned char*)text;
     isFirst = 1;
     while ( *p != '\0' ) {
@@ -149,6 +175,9 @@ static void xl6CgenAppendCIdentText(char* buffer, size_t capacity, const char* t
     if ( text == NULL || text[0] == '\0' ) {
         xl6CgenAppendText(buffer, capacity, "_");
         return;
+    }
+    if ( xl6CgenIsCReservedIdent(text) ) {
+        xl6CgenAppendText(buffer, capacity, "xl_kw_");
     }
     p = (const unsigned char*)text;
     isFirst = 1;

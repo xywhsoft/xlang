@@ -641,6 +641,59 @@ static const char* xl6StdlibProcessClassSource =
     "    end\n"
     "end\n";
 
+static const char* xl6StdlibTccClassSource =
+    "class TccContext\n"
+    "    native point handle\n"
+    "    extern \"xl6_tcc_context_create\" create()\n"
+    "    extern \"xl6_tcc_context_create_output\" create(c_int outputType)\n"
+    "    extern \"xl6_tcc_context_destroy\" destroy()\n"
+    "    extern \"tcc_set_options\" func setOptions(string options) as c_int\n"
+    "    extern \"tcc_add_include_path\" func addIncludePath(string path) as c_int\n"
+    "    extern \"tcc_add_sysinclude_path\" func addSysIncludePath(string path) as c_int\n"
+    "    extern \"tcc_add_library_path\" func addLibraryPath(string path) as c_int\n"
+    "    extern \"tcc_add_library\" func addLibrary(string name) as c_int\n"
+    "    extern \"tcc_add_file\" func addFile(string path) as c_int\n"
+    "    extern \"tcc_add_symbol\" func addSymbol(string name, point value) as c_int\n"
+    "    extern \"tcc_define_symbol\" func defineSymbolNative(string name, string value)\n"
+    "    extern \"tcc_undefine_symbol\" func undefineSymbol(string name)\n"
+    "    extern \"tcc_set_output_type\" func setOutputType(c_int outputType) as c_int\n"
+    "    extern \"tcc_compile_string\" func compileString(string source) as c_int\n"
+    "    extern \"tcc_relocate\" func relocate() as c_int\n"
+    "    extern \"tcc_get_symbol\" func getSymbol(string name) as point\n"
+    "    extern \"xl6_tcc_context_run_args\" func runNative(array args) as c_int\n"
+    "    extern \"xl6_tcc_context_output_file\" func outputFile(string path) as c_int\n"
+    "\n"
+    "    func defineSymbol(string name, string value = \"\")\n"
+    "        self.defineSymbolNative(name, value)\n"
+    "    end\n"
+    "\n"
+    "    func run() as int\n"
+    "        return int(self.runNative([]))\n"
+    "    end\n"
+    "\n"
+    "    func run(array args) as int\n"
+    "        return int(self.runNative(args))\n"
+    "    end\n"
+    "end\n";
+
+static const char* xl6StdlibXlangClassSource =
+    "class XLangContext\n"
+    "    native point handle\n"
+    "    extern \"xl6_xlang_context_create\" create()\n"
+    "    extern \"xl6_xlang_context_destroy\" destroy()\n"
+    "    extern \"xlSetWorkDir\" func setWorkDir(string path) as bool\n"
+    "    extern \"xlSetTempDir\" func setTempDir(string path) as bool\n"
+    "    extern \"xlSetSaveTemps\" func setSaveTemps(bool enabled) as bool\n"
+    "    extern \"xlRunScriptString\" func run(string source) as bool\n"
+    "    extern \"xlRunScriptFile\" func runFile(string path) as bool\n"
+    "    extern \"xlClearLastError\" func clearLastError()\n"
+    "    extern \"xl6_xlang_context_last_error_copy\" func lastErrorNative() as point\n"
+    "\n"
+    "    get lastError() as string\n"
+    "        return __xl_std_runtime_take_cstr(self.lastErrorNative())\n"
+    "    end\n"
+    "end\n";
+
 static const XL6_StdlibParam xl6StdMathUnaryFloatParams[] = {
     {"float", "x"}
 };
@@ -3253,6 +3306,76 @@ static const char xl6StdPrintlnBody[] =
     "    __xl_std_runtime_print(arg, true)\n"
     "end\n";
 
+static const char xl6StdTccContextBody[] =
+    "func __xl_std_tcc_context() as TccContext\n"
+    "    return TccContext()\n"
+    "end\n";
+
+static const char xl6StdTccRunBody[] =
+    "func __xl_std_tcc_run(string source) as int\n"
+    "    TccContext ctx = TccContext()\n"
+    "    if ctx.compileString(source) != 0 then\n"
+    "        return -1\n"
+    "    end\n"
+    "    return ctx.run()\n"
+    "end\n";
+
+static const char xl6StdTccRunFileBody[] =
+    "func __xl_std_tcc_run_file(string path) as int\n"
+    "    TccContext ctx = TccContext()\n"
+    "    if ctx.addFile(path) != 0 then\n"
+    "        return -1\n"
+    "    end\n"
+    "    return ctx.run()\n"
+    "end\n";
+
+static const char xl6StdTccCompileBody[] =
+    "func __xl_std_tcc_compile(string source, string output, int outputType = 2) as int\n"
+    "    TccContext ctx = TccContext(c_int(outputType))\n"
+    "    if ctx.compileString(source) != 0 then\n"
+    "        return -1\n"
+    "    end\n"
+    "    return int(ctx.outputFile(output))\n"
+    "end\n";
+
+static const char xl6StdTccCompileFileBody[] =
+    "func __xl_std_tcc_compile_file(string path, string output, int outputType = 2) as int\n"
+    "    TccContext ctx = TccContext(c_int(outputType))\n"
+    "    if ctx.addFile(path) != 0 then\n"
+    "        return -1\n"
+    "    end\n"
+    "    return int(ctx.outputFile(output))\n"
+    "end\n";
+
+static const char xl6StdTccVfsMountBody[] =
+    "extern \"xl6_tcc_vfs_mount_text\" func __xl_std_tcc_vfs_mount_text(string path, string text) as c_int\n"
+    "func __xl_std_tcc_vfs_mount(string path, string text) as bool\n"
+    "    return __xl_std_tcc_vfs_mount_text(path, text) != 0\n"
+    "end\n";
+
+static const char xl6StdTccVfsClearBody[] =
+    "extern \"tcc_vfs_clear_dynamic\" func __xl_std_tcc_vfs_clear_dynamic()\n"
+    "func __xl_std_tcc_vfs_clear()\n"
+    "    __xl_std_tcc_vfs_clear_dynamic()\n"
+    "end\n";
+
+static const char xl6StdXlangContextBody[] =
+    "func __xl_std_xlang_context() as XLangContext\n"
+    "    return XLangContext()\n"
+    "end\n";
+
+static const char xl6StdXlangRunBody[] =
+    "extern \"xl6_xlang_run_source\" func __xl_std_xlang_run_source(string source) as c_int\n"
+    "func __xl_std_xlang_run(string source) as bool\n"
+    "    return __xl_std_xlang_run_source(source) != 0\n"
+    "end\n";
+
+static const char xl6StdXlangRunFileBody[] =
+    "extern \"xl6_xlang_run_file\" func __xl_std_xlang_run_file_native(string path) as c_int\n"
+    "func __xl_std_xlang_run_file(string path) as bool\n"
+    "    return __xl_std_xlang_run_file_native(path) != 0\n"
+    "end\n";
+
 static const XL6_StdlibConst xl6StdlibConsts[] = {
     {"math", "pi", XL6_AST_FLOAT, "3.14159265358979323846264338327950288"},
     {"math", "tau", XL6_AST_FLOAT, "6.28318530717958647692528676655900576"},
@@ -3284,7 +3407,12 @@ static const XL6_StdlibConst xl6StdlibConsts[] = {
     {"encoding", "utf16BE", XL6_AST_INT, "1201"},
     {"encoding", "utf32", XL6_AST_INT, "65005"},
     {"encoding", "utf32BE", XL6_AST_INT, "65006"},
-    {"encoding", "bom", XL6_AST_INT, "1073741824"}
+    {"encoding", "bom", XL6_AST_INT, "1073741824"},
+    {"tcc", "MEMORY", XL6_AST_INT, "1"},
+    {"tcc", "EXE", XL6_AST_INT, "2"},
+    {"tcc", "OBJ", XL6_AST_INT, "3"},
+    {"tcc", "DLL", XL6_AST_INT, "4"},
+    {"tcc", "PREPROCESS", XL6_AST_INT, "5"}
 };
 
 static const XL6_StdlibFunc xl6StdlibFuncs[] = {
@@ -3383,6 +3511,16 @@ static const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"__xl_runtime", "httpServerStop", "__xl_std_runtime_http_server_stop", "xl6_xrt_http_server_stop", xl6StdRuntimeHttpServerHandleParams, 1, "", NULL},
     {"__xl_runtime", "httpServerDestroy", "__xl_std_runtime_http_server_destroy", "xl6_xrt_http_server_destroy", xl6StdRuntimeHttpServerHandleParams, 1, "", NULL},
     {"__xl_runtime", "httpMimeByPath", "__xl_std_runtime_http_mime_by_path", "xl6_xrt_http_mime_by_path", xl6StdRuntimeHttpMimeByPathParams, 1, "point", NULL},
+    {"tcc", "Context", "__xl_std_tcc_context", NULL, NULL, 0, "TccContext", xl6StdTccContextBody},
+    {"tcc", "run", "__xl_std_tcc_run", NULL, NULL, 0, "int", xl6StdTccRunBody},
+    {"tcc", "runFile", "__xl_std_tcc_run_file", NULL, NULL, 0, "int", xl6StdTccRunFileBody},
+    {"tcc", "compile", "__xl_std_tcc_compile", NULL, NULL, 0, "int", xl6StdTccCompileBody},
+    {"tcc", "compileFile", "__xl_std_tcc_compile_file", NULL, NULL, 0, "int", xl6StdTccCompileFileBody},
+    {"tcc", "vfsMount", "__xl_std_tcc_vfs_mount", NULL, NULL, 0, "bool", xl6StdTccVfsMountBody},
+    {"tcc", "vfsClear", "__xl_std_tcc_vfs_clear", NULL, NULL, 0, "", xl6StdTccVfsClearBody},
+    {"xlang", "Context", "__xl_std_xlang_context", NULL, NULL, 0, "XLangContext", xl6StdXlangContextBody},
+    {"xlang", "run", "__xl_std_xlang_run", NULL, NULL, 0, "bool", xl6StdXlangRunBody},
+    {"xlang", "runFile", "__xl_std_xlang_run_file", NULL, NULL, 0, "bool", xl6StdXlangRunFileBody},
 
     {"__xrt_string", "strComp", "__xl_std_xrt_str_comp", "xrtStrComp", xl6StdXrtStrCompParams, 4, "c_int", NULL},
     {"__xrt_string", "strByteLen", "__xl_std_xrt_str_byte_len", "xrtStrByteLen", xl6StdXrtStringSizeParams, 2, "c_size", NULL},
@@ -5563,6 +5701,52 @@ static int xl6StdlibNeedsProcessClass(const XL6_AstNode* root, const int* used)
     return 0;
 }
 
+static int xl6StdlibNeedsTccClass(const XL6_AstNode* root, const int* used)
+{
+    static const char* names[] = {
+        "Context",
+        "run",
+        "runFile",
+        "compile",
+        "compileFile",
+        "vfsMount",
+        "vfsClear"
+    };
+    size_t i;
+    size_t index;
+
+    if ( xl6StdlibNodeUsesTypeName(root, "TccContext") ) {
+        return 1;
+    }
+    for ( i = 0; i < XL6_ARRAY_COUNT(names); ++i ) {
+        if ( xl6StdlibFindFunc("tcc", names[i], &index) != NULL && used[index] ) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+static int xl6StdlibNeedsXlangClass(const XL6_AstNode* root, const int* used)
+{
+    static const char* names[] = {
+        "Context",
+        "run",
+        "runFile"
+    };
+    size_t i;
+    size_t index;
+
+    if ( xl6StdlibNodeUsesTypeName(root, "XLangContext") ) {
+        return 1;
+    }
+    for ( i = 0; i < XL6_ARRAY_COUNT(names); ++i ) {
+        if ( xl6StdlibFindFunc("xlang", names[i], &index) != NULL && used[index] ) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
 static int xl6StdlibNeedsLoggerClass(const XL6_AstNode* root, const int* used)
 {
     size_t index;
@@ -5728,6 +5912,8 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     int needsTemplateClass;
     int needsCryptoClass;
     int needsHttpServerClass;
+    int needsTccClass;
+    int needsXlangClass;
     int ok;
 
     if ( root == NULL ) {
@@ -5750,6 +5936,8 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     needsTemplateClass = xl6StdlibNeedsTemplateClass(root, used);
     needsCryptoClass = xl6StdlibNeedsCryptoClass(root, used);
     needsHttpServerClass = xl6StdlibNeedsHttpServerClass(root, used);
+    needsTccClass = xl6StdlibNeedsTccClass(root, used);
+    needsXlangClass = xl6StdlibNeedsXlangClass(root, used);
     if ( needsRegexClass ) {
         xl6StdlibMarkFuncUsed(used, "__crt_string", "strlen");
     }
@@ -5759,7 +5947,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     if ( needsFileClass ) {
         xl6StdlibMarkFuncUsed(used, "__crt_string", "strlen");
     }
-    if ( needsRandomClass || needsBufferClass || needsNetClass || needsFileClass || needsRegexClass || needsProcessClass || needsHttpServerClass || needsTemplateClass || needsCryptoClass ) {
+    if ( needsRandomClass || needsBufferClass || needsNetClass || needsFileClass || needsRegexClass || needsProcessClass || needsHttpServerClass || needsTemplateClass || needsCryptoClass || needsXlangClass ) {
         xl6StdlibMarkFuncUsed(used, "__xl_runtime", "takeCstr");
     }
     xl6StdlibApplyDeps(used);
@@ -5799,6 +5987,12 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     }
     if ( needsProcessClass ) {
         xl6StdlibBuilderAppend(&builder, xl6StdlibProcessClassSource);
+    }
+    if ( needsTccClass ) {
+        xl6StdlibBuilderAppend(&builder, xl6StdlibTccClassSource);
+    }
+    if ( needsXlangClass ) {
+        xl6StdlibBuilderAppend(&builder, xl6StdlibXlangClassSource);
     }
     for ( i = 0; i < XL6_ARRAY_COUNT(xl6StdlibFuncs); ++i ) {
         if ( used[i] ) {

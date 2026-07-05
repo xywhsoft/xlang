@@ -1,10 +1,21 @@
-﻿class Counter
-    native point handle
-    extern "counter_open" create(int seed)
-    extern "counter_close" destroy()
-    extern "counter_add" func add(int value) as int
-    extern "counter_value" func value() as int
+class Counter
+    int value = 0
+
+    create(int seed)
+        self.value = seed
+    end
+
+    func add(int delta) as int
+        self.value += delta
+        return self.value
+    end
 end
 
-auto counter = Counter(40)
-int value = counter.add(2)
+Counter counter = Counter(40)
+assert counter.add(2) == 42, "counter add failed"
+
+Buffer nativeData = Buffer()
+assert nativeData.appendByte(42), "native-backed object failed"
+assert nativeData[0] == 42, "native-backed object item failed"
+
+println("custom_counter ok")

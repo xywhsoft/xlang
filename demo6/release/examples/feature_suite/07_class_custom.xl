@@ -1,10 +1,38 @@
-﻿extern "expect_i64" func expect(int actual, int expected)
-extern "destroy_reset" func destroyReset()
-extern "record_destroy" func recordDestroy(int value)
-extern "destroy_count" func destroyCount() as int
-extern "destroy_value" func destroyValue() as int
-extern "counter_reset" func counterReset()
-extern "counter_closed" func counterClosed() as int
+func expect(int actual, int expected)
+    assert actual == expected, "expect int failed"
+end
+
+class DestroyLog
+    int unused = 0
+    static int count = 0
+    static int value = 0
+
+    static func reset()
+        DestroyLog.count = 0
+        DestroyLog.value = 0
+    end
+
+    static func record(int value)
+        DestroyLog.count += 1
+        DestroyLog.value = value
+    end
+end
+
+func destroyReset()
+    DestroyLog.reset()
+end
+
+func recordDestroy(int value)
+    DestroyLog.record(value)
+end
+
+func destroyCount() as int
+    return DestroyLog.count
+end
+
+func destroyValue() as int
+    return DestroyLog.value
+end
 
 // class：标准 OOP 数据类型，字段、构造、方法、析构。
 class Point
@@ -133,29 +161,15 @@ continueDestroy()
 expect(destroyCount(), 5)
 expect(destroyValue(), 201)
 
-// native-backed class：把 C 句柄与 C 函数直接抽象为 xlang class。
-class Counter
-    native point handle
-    extern "counter_open" create(int seed)
-    extern "counter_close" destroy()
-    extern "counter_add" func add(int value) as int
-    extern "counter_value" func value() as int
-
-    func isZero() as bool
-        return self.value() == 0
-    end
+// native-backed class：标准库对象同样走 class 体系，可以直接拥有 C 句柄。
+func nativeBackedClass()
+    Buffer buffer = Buffer()
+    assert buffer.append("xlang"), "buffer append failed"
+    expect(buffer.len(), 5)
+    expect(buffer[0], 120)
 end
 
-func nativeLifecycle()
-    auto counter = Counter(40)
-    expect(counter.add(2), 42)
-    expect(counter.value(), 42)
-    expect(counter.isZero(), 0)
-end
-
-counterReset()
-nativeLifecycle()
-expect(counterClosed(), 1)
+nativeBackedClass()
 
 // native-backed class 也可以只绑定已有 point，不额外负责内存管理。
 class NativeView

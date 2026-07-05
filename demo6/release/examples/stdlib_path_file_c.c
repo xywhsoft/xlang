@@ -87,19 +87,19 @@ static int scan_path_file_example(str dir, size_t dirSize, str name, size_t name
 
 int main(void)
 {
-    const char* dirPath = "release/tmp/example_stdlib_dir";
-    const char* nestedDir = "release/tmp/example_stdlib_dir/nested";
-    const char* copyDir = "release/tmp/example_stdlib_dir_copy";
-    const char* movedDir = "release/tmp/example_stdlib_dir_moved";
-    const char* cleanDir = "release/tmp/example_stdlib_dir_clean";
-    const char* cleanNested = "release/tmp/example_stdlib_dir_clean/nested";
-    const char* cleanFile = "release/tmp/example_stdlib_dir_clean/nested/value.txt";
-    const char* nestedFile = "release/tmp/example_stdlib_dir/nested/value.txt";
-    const char* filePath = "release/tmp/example_stdlib_file.txt";
-    const char* copyPath = "release/tmp/example_stdlib_file.copy.txt";
-    const char* movePath = "release/tmp/example_stdlib_file.move.txt";
-    const char* renamePath = "release/tmp/example_stdlib_file.renamed.txt";
-    const char* replacePath = "release/tmp/example_stdlib_file.replace.txt";
+    const char* dirPath = "examples_out/example_stdlib_dir";
+    const char* nestedDir = "examples_out/example_stdlib_dir/nested";
+    const char* copyDir = "examples_out/example_stdlib_dir_copy";
+    const char* movedDir = "examples_out/example_stdlib_dir_moved";
+    const char* cleanDir = "examples_out/example_stdlib_dir_clean";
+    const char* cleanNested = "examples_out/example_stdlib_dir_clean/nested";
+    const char* cleanFile = "examples_out/example_stdlib_dir_clean/nested/value.txt";
+    const char* nestedFile = "examples_out/example_stdlib_dir/nested/value.txt";
+    const char* filePath = "examples_out/example_stdlib_file.txt";
+    const char* copyPath = "examples_out/example_stdlib_file.copy.txt";
+    const char* movePath = "examples_out/example_stdlib_file.move.txt";
+    const char* renamePath = "examples_out/example_stdlib_file.renamed.txt";
+    const char* replacePath = "examples_out/example_stdlib_file.replace.txt";
 
     xrtInit();
 
@@ -113,6 +113,7 @@ int main(void)
     xrtDirDelete((str)cleanDir);
     xrtDirDelete((str)nestedDir);
     xrtDirDelete((str)dirPath);
+    xrtDirCreateAll((str)"examples_out");
 
     str sep = xrtPathSep();
     str cwd = xrtPathCwd();
@@ -126,19 +127,19 @@ int main(void)
     str fileName = xrtPathGetName((str)filePath, 0);
     str fileExt = xrtPathGetExt((str)filePath, 0);
     str fileDir = xrtPathGetDir((str)filePath, 0);
-    str normalizedPath = xrtPathNormalize((str)"release/tmp/./example_stdlib_dir/../example_stdlib_file.txt", 0);
-    str joinedFile = xrtPathJoin(3, "release", "tmp", "example_stdlib_file.txt");
+    str normalizedPath = xrtPathNormalize((str)"examples_out/./example_stdlib_dir/../example_stdlib_file.txt", 0);
+    str joinedFile = xrtPathJoin(2, "examples_out", "example_stdlib_file.txt");
     str changedExtPath = xrtPathWithExt((str)filePath, (str)"log");
     str changedExt = xrtPathGetExt(changedExtPath, 0);
     str renamedNamePath = xrtPathWithName((str)filePath, (str)"renamed.log");
     str renamedName = xrtPathGetNameExt(renamedNamePath, 0);
-    str joinedNestedDir = xrtPathJoin(4, "release", "tmp", "example_stdlib_dir", "nested");
+    str joinedNestedDir = xrtPathJoin(3, "examples_out", "example_stdlib_dir", "nested");
     str joinedNestedName = xrtPathGetNameExt(joinedNestedDir, 0);
     str randomName = xrtPathRandom((str)"tmp_", 0, (str)".txt", 0, 8);
 
     require_line("path",
         xrtPathExists((str)"release") &&
-        !xrtPathIsAbs((str)"release/tmp", 0) &&
+        !xrtPathIsAbs((str)"examples_out", 0) &&
         xrtStrByteLen(sep, 0) == 1 &&
         xrtPathIsAbs(cwd, 0) &&
         xrtPathIsAbs(absRelease, 0) &&
@@ -149,7 +150,7 @@ int main(void)
         xrtStrComp(fileNameExt, "example_stdlib_file.txt", 0, FALSE) == 0 &&
         xrtStrComp(fileName, "example_stdlib_file", 0, FALSE) == 0 &&
         xrtStrComp(fileExt, "txt", 0, FALSE) == 0 &&
-        xrtStrComp(fileDir, "release/tmp", 0, FALSE) == 0 &&
+        xrtStrComp(fileDir, "examples_out", 0, FALSE) == 0 &&
         xrtStrComp(normalizedPath, joinedFile, 0, FALSE) == 0 &&
         xrtStrComp(renamedName, "renamed.log", 0, FALSE) == 0 &&
         xrtStrComp(changedExt, "log", 0, FALSE) == 0 &&

@@ -11,7 +11,9 @@ class Packet
     end
 end
 
-extern "expect_i64" func expect(int actual, int expected)
+func expect(int actual, int expected)
+    assert actual == expected, "copy/clone expect failed"
+end
 
 auto source = Packet(7)
 auto copied = copy(source)

@@ -114,3 +114,13 @@ long long counter_closed(void)
     return g_counter_closed;
 }
 
+#ifndef XL6_EXAMPLE_NO_STANDALONE_MAIN
+int main(void)
+{
+    expect_i64(native_add_i64(20, 22), 42);
+    expect_bool(native_flip_bool(0), 1);
+    expect_str("xlang", "xlang");
+    printf("feature_suite host ok\n");
+    return 0;
+}
+#endif

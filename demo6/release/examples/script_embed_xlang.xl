@@ -1,0 +1,14 @@
+import xlang
+
+if not xlang.run("println(\"hello from nested xlang\")\n") then
+    println("xlang.run failed")
+    assert false
+end
+
+XLangContext ctx = xlang.Context()
+if not ctx.run("println(\"hello from XLangContext\")\n") then
+    println(ctx.lastError)
+    assert false
+end
+
+println("script_embed_xlang=ok")

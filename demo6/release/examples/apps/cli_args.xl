@@ -2,8 +2,8 @@
 
 func main(...) as int
     string command = arg.length > 1 ? string(arg[1]) : "report"
-    string name = "guest"
-    int limit = 10
+    string name = "xlang"
+    int limit = 3
 
     int i = 2
     while i < arg.length do

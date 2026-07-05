@@ -8,8 +8,9 @@ static int xl6CgenDeclTemporaryClassFieldTypeIsPlain(XL6_CgenContext* ctx, const
     }
 
     /*
-        当前只接管普通按值字段。function、class、custom、var 和容器字段涉及
-        借用/保留语义，必须由后续专门路径处理，避免从临时 class 中借出悬空值。
+        当前只接管普通按值字段。function、class、native-backed class、var、
+        容器和并发句柄字段涉及借用/保留语义，必须由专门路径处理，
+        避免从临时 class 中借出悬空值。
     */
     if ( xl6CgenIsXValueType(concreteType) ||
          xl6CgenIsFunctionType(concreteType) ||

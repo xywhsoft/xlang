@@ -22,8 +22,8 @@ requireLine("stats", compiled.nodeCount > 0 and compiled.exprCount > 0 and compi
 requireLine("render", template.render("Hello {$title}", data) == "Hello xlang")
 requireLine("bracket", template.render("{{$title}}", data, "{{}}") == "xlang" and template.render("<$title>", data, "<>") == "xlang")
 
-dir.createAll("release/tmp/stdlib_template_example")
-file.writeText("release/tmp/stdlib_template_example/page.xte", "File {$title}")
-requireLine("file", template.renderFile("release/tmp/stdlib_template_example/page.xte", data) == "File xlang")
-file.delete("release/tmp/stdlib_template_example/page.xte")
-dir.delete("release/tmp/stdlib_template_example")
+dir.createAll("examples_out/stdlib_template_example")
+file.writeText("examples_out/stdlib_template_example/page.xte", "File {$title}")
+requireLine("file", template.renderFile("examples_out/stdlib_template_example/page.xte", data) == "File xlang")
+file.delete("examples_out/stdlib_template_example/page.xte")
+dir.delete("examples_out/stdlib_template_example")

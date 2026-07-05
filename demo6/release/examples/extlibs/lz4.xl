@@ -3,11 +3,11 @@ import lz4
 assert lz4.available(), "lz4 available failed"
 
 string sample = "lz4 extension round trip text"
-string srcPath = "release/tmp/extlibs/lz4_source.txt"
-string packedPath = "release/tmp/extlibs/lz4_source.lz4"
-string outPath = "release/tmp/extlibs/lz4_out.txt"
+string srcPath = "examples_out/extlibs/lz4_source.txt"
+string packedPath = "examples_out/extlibs/lz4_source.lz4"
+string outPath = "examples_out/extlibs/lz4_out.txt"
 
-dir.createAll("release/tmp/extlibs")
+dir.createAll("examples_out/extlibs")
 file.writeText(srcPath, sample)
 file.delete(packedPath)
 file.delete(outPath)

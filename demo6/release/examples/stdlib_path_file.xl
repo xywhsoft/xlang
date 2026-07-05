@@ -1,16 +1,16 @@
-string dirPath = "release/tmp/example_stdlib_dir"
-string nestedDir = "release/tmp/example_stdlib_dir/nested"
-string copyDir = "release/tmp/example_stdlib_dir_copy"
-string movedDir = "release/tmp/example_stdlib_dir_moved"
-string cleanDir = "release/tmp/example_stdlib_dir_clean"
-string cleanNested = "release/tmp/example_stdlib_dir_clean/nested"
-string cleanFile = "release/tmp/example_stdlib_dir_clean/nested/value.txt"
-string nestedFile = "release/tmp/example_stdlib_dir/nested/value.txt"
-string filePath = "release/tmp/example_stdlib_file.txt"
-string copyPath = "release/tmp/example_stdlib_file.copy.txt"
-string movePath = "release/tmp/example_stdlib_file.move.txt"
-string renamePath = "release/tmp/example_stdlib_file.renamed.txt"
-string replacePath = "release/tmp/example_stdlib_file.replace.txt"
+string dirPath = "examples_out/example_stdlib_dir"
+string nestedDir = "examples_out/example_stdlib_dir/nested"
+string copyDir = "examples_out/example_stdlib_dir_copy"
+string movedDir = "examples_out/example_stdlib_dir_moved"
+string cleanDir = "examples_out/example_stdlib_dir_clean"
+string cleanNested = "examples_out/example_stdlib_dir_clean/nested"
+string cleanFile = "examples_out/example_stdlib_dir_clean/nested/value.txt"
+string nestedFile = "examples_out/example_stdlib_dir/nested/value.txt"
+string filePath = "examples_out/example_stdlib_file.txt"
+string copyPath = "examples_out/example_stdlib_file.copy.txt"
+string movePath = "examples_out/example_stdlib_file.move.txt"
+string renamePath = "examples_out/example_stdlib_file.renamed.txt"
+string replacePath = "examples_out/example_stdlib_file.replace.txt"
 
 func probeFileStream(string path) as bool
     File stream = file.open(path, false)
@@ -63,9 +63,10 @@ dir.delete(movedDir)
 dir.delete(cleanDir)
 dir.delete(nestedDir)
 dir.delete(dirPath)
+dir.createAll("examples_out")
 
 bool releaseExists = path.exists("release")
-bool relativePath = not path.isAbs("release/tmp")
+bool relativePath = not path.isAbs("examples_out")
 string separator = path.sep()
 string cwd = path.cwd()
 bool cwdSaved = path.setCwd(cwd)
@@ -79,11 +80,11 @@ string fileNameExt = path.nameExt(filePath)
 string fileName = path.name(filePath)
 string fileExt = path.ext(filePath)
 string fileDir = path.dir(filePath)
-string normalizedPath = path.normalize("release/tmp/./example_stdlib_dir/../example_stdlib_file.txt")
+string normalizedPath = path.normalize("examples_out/./example_stdlib_dir/../example_stdlib_file.txt")
 string renamedNamePath = path.withName(filePath, "renamed.log")
 string changedExtPath = path.withExt(filePath, "log")
-string joinedFile = path.join("release", "tmp", "example_stdlib_file.txt")
-string joinedNestedDir = path.join("release", "tmp", "example_stdlib_dir", "nested")
+string joinedFile = path.join("examples_out", "example_stdlib_file.txt")
+string joinedNestedDir = path.join("examples_out", "example_stdlib_dir", "nested")
 string randomName = path.random("tmp_", ".txt", 8)
 int randomNameLen = string.len(randomName)
 
@@ -246,7 +247,7 @@ assert(path.isAbs(appDir))
 assert(fileNameExt == "example_stdlib_file.txt")
 assert(fileName == "example_stdlib_file")
 assert(fileExt == "txt")
-assert(fileDir == "release/tmp")
+assert(fileDir == "examples_out")
 assert(normalizedPath == joinedFile)
 assert(path.nameExt(renamedNamePath) == "renamed.log")
 assert(path.ext(changedExtPath) == "log")

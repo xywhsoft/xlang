@@ -26,3 +26,9 @@ end
 export "gauge_local_value" func gaugeLocalValue(Gauge gauge) as int
     return gauge.localValue()
 end
+
+Gauge gauge = Gauge(40)
+assert gaugeLocalValue(gauge) == 41, "class_c_export local value failed"
+auto current, doubled = gauge.pair()
+assert current == 40 and doubled == 80, "class_c_export pair failed"
+println("class_c_export ok")

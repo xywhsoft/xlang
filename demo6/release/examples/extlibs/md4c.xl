@@ -3,9 +3,9 @@ import md4c
 assert md4c.available(), "md4c available failed"
 
 string markdown = "# Title\n\nHello **xlang**"
-string markdownPath = "release/tmp/extlibs/md4c_sample.md"
+string markdownPath = "examples_out/extlibs/md4c_sample.md"
 
-dir.createAll("release/tmp/extlibs")
+dir.createAll("examples_out/extlibs")
 file.writeText(markdownPath, markdown)
 
 c_int commonmark = md4c.commonmark_flags()

@@ -1,3 +1,32 @@
+#ifndef XL6_EXAMPLE_BOUNDARY_TEST
+#include "include/xl.h"
+
+#include <stdio.h>
+
+int main(void)
+{
+    XL_ContextOptions options = xlDefaultContextOptions();
+    XL_Context* ctx;
+
+    if ( xlGetLastError(NULL)[0] != '\0' ) {
+        fprintf(stderr, "NULL context error should be empty\n");
+        return 1;
+    }
+
+    ctx = xlCreateContext(&options);
+    if ( ctx == NULL ) {
+        fprintf(stderr, "cannot create xl context\n");
+        return 2;
+    }
+    if ( !xlRunScriptString(ctx, "assert 40 + 2 == 42, \"null context example failed\"\nprintln(\"xl dll null context ok\")\n") ) {
+        fprintf(stderr, "%s\n", xlGetLastError(ctx));
+        xlDestroyContext(ctx);
+        return 3;
+    }
+    xlDestroyContext(ctx);
+    return 0;
+}
+#else
 #include "include/xl.h"
 
 #include <stdio.h>
@@ -468,3 +497,4 @@ int main(void)
     printf("xl.dll NULL context and cwd boundary ok\n");
     return 0;
 }
+#endif

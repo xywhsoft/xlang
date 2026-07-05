@@ -1,3 +1,5 @@
+dir.createAll("examples_out")
+
 bool validOk = xson.valid('{"name":"xlang","level":6,"enabled":true}')
 bool validBad = xson.valid('{"keep":1,"skip":ptr(123),"after":2}')
 bool validIgnored = xson.valid('{"keep":1,"skip":ptr(123),"after":2}', true)
@@ -10,10 +12,10 @@ string pretty = xson.stringify(config, pretty = true)
 var copy = xson.parse(compact)
 string jsonText = json.stringify(copy)
 
-xson.write("release/tmp/stdlib_xson_example.xson", config)
-var fileCopy = xson.read("release/tmp/stdlib_xson_example.xson")
+xson.write("examples_out/stdlib_xson_example.xson", config)
+var fileCopy = xson.read("examples_out/stdlib_xson_example.xson")
 string fileText = xson.stringify(fileCopy)
-file.delete("release/tmp/stdlib_xson_example.xson")
+file.delete("examples_out/stdlib_xson_example.xson")
 
 auto compactText = compact.toString()
 auto prettyText = pretty.toString()

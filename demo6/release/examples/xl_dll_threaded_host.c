@@ -1,3 +1,26 @@
+#ifndef XL6_EXAMPLE_BOUNDARY_TEST
+#include "include/xl.h"
+
+#include <stdio.h>
+
+int main(void)
+{
+    XL_ContextOptions options = xlDefaultContextOptions();
+    XL_Context* ctx = xlCreateContext(&options);
+
+    if ( ctx == NULL ) {
+        fprintf(stderr, "cannot create xl context\n");
+        return 1;
+    }
+    if ( !xlRunScriptString(ctx, "assert 21 * 2 == 42, \"threaded host example failed\"\nprintln(\"xl dll threaded host ok\")\n") ) {
+        fprintf(stderr, "%s\n", xlGetLastError(ctx));
+        xlDestroyContext(ctx);
+        return 2;
+    }
+    xlDestroyContext(ctx);
+    return 0;
+}
+#else
 #include "include/xl.h"
 
 #include <stdio.h>
@@ -249,3 +272,4 @@ int main(void)
     printf("xl.dll threaded host API boundary ok\n");
     return 0;
 }
+#endif

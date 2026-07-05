@@ -3,9 +3,9 @@ import md5
 assert md5.available(), "md5 available failed"
 
 string sample = "hello xlang"
-string samplePath = "release/tmp/extlibs/md5_sample.txt"
+string samplePath = "examples_out/extlibs/md5_sample.txt"
 
-dir.createAll("release/tmp/extlibs")
+dir.createAll("examples_out/extlibs")
 file.writeText(samplePath, sample)
 
 assert md5.version() == "md5 0.1.0", "md5 version mismatch"

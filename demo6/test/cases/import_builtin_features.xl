@@ -1,0 +1,5 @@
+import tcc
+import xlang
+import xlang.compiler
+
+print("builtin import features")

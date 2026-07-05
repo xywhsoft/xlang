@@ -131,8 +131,8 @@ int main(void)
     memset(&state, 0, sizeof(state));
     xrtInit();
 
-    xrtDirCreateAll("release/tmp/example_http_server_c_static");
-    xrtFileWriteAll("release/tmp/example_http_server_c_static/index.txt", "static-ok", 9, XRT_CP_UTF8);
+    xrtDirCreateAll("examples_out/example_http_server_c_static");
+    xrtFileWriteAll("examples_out/example_http_server_c_static/index.txt", "static-ok", 9, XRT_CP_UTF8);
 
     xrtWebConfigInit(&cfg);
     (void)xrtNetAddrParse(&cfg.tBindAddr, "127.0.0.1", 0);
@@ -144,7 +144,7 @@ int main(void)
     require_line("route_any", xrtWebServerAny(server, "/any", handle_any, &state));
 
     xrtWebStaticConfigInit(&staticCfg);
-    require_line("static_mount", xrtWebServerStatic(server, "/public", "release/tmp/example_http_server_c_static", &staticCfg));
+    require_line("static_mount", xrtWebServerStatic(server, "/public", "examples_out/example_http_server_c_static", &staticCfg));
     require_line("start", xrtWebServerStart(server) == XRT_NET_OK);
 
     port = xrtWebServerPort(server);
@@ -171,8 +171,8 @@ int main(void)
     xrtHttpCloseIdleConnections(xrtNetSyncGetHiddenEngine());
     xrtNetSyncShutdownHiddenEngine();
     xrtWebServerDestroy(server);
-    xrtFileDelete("release/tmp/example_http_server_c_static/index.txt");
-    xrtDirDelete("release/tmp/example_http_server_c_static");
+    xrtFileDelete("examples_out/example_http_server_c_static/index.txt");
+    xrtDirDelete("examples_out/example_http_server_c_static");
     xrtUnit();
     return 0;
 }

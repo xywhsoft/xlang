@@ -21,7 +21,7 @@ func score(Todo item) as int
     return item.done ? 0 : item.priority
 end
 
-string root = "release/tmp/examples_apps/todo"
+string root = "examples_out/examples_apps/todo"
 string filePath = path.join(root, "todo.json")
 
 dir.delete(root)

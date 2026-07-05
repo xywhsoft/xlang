@@ -3,6 +3,7 @@
 #include "src/parser/xl6_parser_api.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 static int text_equals(const char* a, const char* b)
@@ -51,6 +52,29 @@ int main(int argc, char** argv)
         xl6ParseResultFree(&parse);
         xrtUnit();
         return 1;
+    }
+
+    if ( argc > 2 ) {
+        unsigned int expectedFeatures = (unsigned int)strtoul(argv[2], NULL, 0);
+        if ( deps.features != expectedFeatures ||
+             deps.packageCount != 0 ||
+             deps.cSources.count != 0 ||
+             deps.links.count != 0 ||
+             deps.loadlibs.count != 0 ||
+             deps.nativeCount != 0 ) {
+            fprintf(stderr,
+                    "builtin import features expected 0x%x, got 0x%x\n",
+                    expectedFeatures,
+                    deps.features);
+            xl6ImportDepsFree(&deps);
+            xl6ParseResultFree(&parse);
+            xrtUnit();
+            return 1;
+        }
+        xl6ImportDepsFree(&deps);
+        xl6ParseResultFree(&parse);
+        xrtUnit();
+        return 0;
     }
 
     if ( !expect_size("package count", deps.packageCount, 1) ||

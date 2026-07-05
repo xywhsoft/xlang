@@ -12,6 +12,12 @@ typedef struct XL6_ImportNativeItem {
     char* version;
 } XL6_ImportNativeItem;
 
+enum {
+    XL6_IMPORT_FEATURE_TCC_RUNTIME = 1u << 0,
+    XL6_IMPORT_FEATURE_XLANG_RUNTIME = 1u << 1,
+    XL6_IMPORT_FEATURE_XLANG_COMPILER = 1u << 2
+};
+
 typedef struct XL6_ImportDeps {
     XL6_PackageStringList cSources;
     XL6_PackageStringList links;
@@ -20,6 +26,7 @@ typedef struct XL6_ImportDeps {
     size_t packageCount;
     XL6_ImportNativeItem* natives;
     size_t nativeCount;
+    unsigned int features;
 } XL6_ImportDeps;
 
 void xl6ImportDepsInit(XL6_ImportDeps* deps);

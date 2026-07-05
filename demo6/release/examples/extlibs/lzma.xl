@@ -3,12 +3,12 @@ import lzma
 assert lzma.available(), "lzma available failed"
 
 string sample = "lzma extension round trip text"
-string srcPath = "release/tmp/extlibs/lzma_source.txt"
-string packedPath = "release/tmp/extlibs/lzma_source.lzma"
-string packedLevelPath = "release/tmp/extlibs/lzma_source_level.lzma"
-string outPath = "release/tmp/extlibs/lzma_out.txt"
+string srcPath = "examples_out/extlibs/lzma_source.txt"
+string packedPath = "examples_out/extlibs/lzma_source.lzma"
+string packedLevelPath = "examples_out/extlibs/lzma_source_level.lzma"
+string outPath = "examples_out/extlibs/lzma_out.txt"
 
-dir.createAll("release/tmp/extlibs")
+dir.createAll("examples_out/extlibs")
 file.writeText(srcPath, sample)
 file.delete(packedPath)
 file.delete(packedLevelPath)

@@ -21,6 +21,7 @@ extern "C" {
 
 typedef struct XL_Context XL_Context;
 typedef struct XL_Module XL_Module;
+typedef struct TCCState TCCState;
 typedef struct xvalue_struct* xvalue;
 
 typedef struct XL_ContextOptions {
@@ -58,14 +59,23 @@ XL_API XL_Module* xlCompileScriptStringToModule(XL_Context* ctx, const char* sou
 XL_API XL_Module* xlCompileScriptFileToModule(XL_Context* ctx, const char* path);
 XL_API XL_Module* xlCompileCSourceStringToModule(XL_Context* ctx, const char* source);
 XL_API XL_Module* xlCompileCSourceFileToModule(XL_Context* ctx, const char* path);
+XL_API XL_Module* xlCompileCSourceFilesToModule(XL_Context* ctx, const char** paths, int pathCount);
 XL_API int xlRunCSourceString(XL_Context* ctx, const char* source, int argc, char** argv);
 XL_API int xlRunCSourceFile(XL_Context* ctx, const char* path, int argc, char** argv);
+XL_API int xlRunCSourceFiles(XL_Context* ctx, const char** paths, int pathCount, int argc, char** argv);
 XL_API int xlRunModuleMain(XL_Context* ctx, XL_Module* module, xvalue arg);
 XL_API void* xlModuleGetSymbol(XL_Module* module, const char* symbolName);
 XL_API void xlDestroyModule(XL_Module* module);
+XL_API int xlTccRegisterXrtEnvironment(TCCState* state);
+XL_API int xlTccRegisterContextEnvironment(XL_Context* ctx, TCCState* state);
+XL_API int xlTccImpdef(const char* dllPath, const char* outputDef);
 #if !defined(XL_RUNTIME_ONLY_API)
 XL_API int xlCompileScriptStringToExe(XL_Context* ctx, const char* source, const char* outputExe);
 XL_API int xlCompileScriptFileToExe(XL_Context* ctx, const char* path, const char* outputExe);
+XL_API int xlCompileCSourceFileToExe(XL_Context* ctx, const char* path, const char* outputExe);
+XL_API int xlCompileCSourceFilesToExe(XL_Context* ctx, const char** paths, int pathCount, const char* outputExe);
+XL_API int xlCompileCSourceFileToSharedLibrary(XL_Context* ctx, const char* path, const char* outputDll);
+XL_API int xlCompileCSourceFilesToSharedLibrary(XL_Context* ctx, const char** paths, int pathCount, const char* outputDll);
 #endif
 
 XL_API const char* xlGetLastError(XL_Context* ctx);

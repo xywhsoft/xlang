@@ -1,0 +1,29 @@
+import tcc
+
+int rc = tcc.run("#include <stdio.h>\nint main(void){ puts(\"hello from embedded C\"); return 0; }\n")
+if rc != 0 then
+    println("tcc.run failed", rc)
+    assert false
+end
+
+TccContext ctx = tcc.Context()
+if ctx.compileString("#include <stdio.h>\nint main(void){ puts(\"hello from TccContext\"); return 0; }\n") != 0 then
+    println("TccContext compile failed")
+    assert false
+end
+if ctx.run() != 0 then
+    println("TccContext run failed")
+    assert false
+end
+
+if not tcc.vfsMount("__xlvfs__/example_embed.c", "#include <stdio.h>\nint main(void){ puts(\"hello from dynamic VFS\"); return 0; }\n") then
+    println("vfs mount failed")
+    assert false
+end
+if tcc.runFile("__xlvfs__/example_embed.c") != 0 then
+    println("tcc.runFile failed")
+    assert false
+end
+tcc.vfsClear()
+
+println("script_embed_tcc=ok")

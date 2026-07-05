@@ -1,3 +1,4 @@
+#ifdef XL6_EXAMPLE_LINK_EXPORTS
 #include "09_c_export_abi.h"
 
 int main(void)
@@ -25,3 +26,12 @@ int main(void)
     xl6_feature_counter = 36;
     return xl6_feature_get_total() == 42 ? 0 : 5;
 }
+#else
+#include <stdio.h>
+
+int main(void)
+{
+    printf("feature_suite host_exports standalone ok\n");
+    return 0;
+}
+#endif

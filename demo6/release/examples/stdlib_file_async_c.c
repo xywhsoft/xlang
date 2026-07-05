@@ -66,11 +66,12 @@ static int wait_file_text(xfuture* future, const char* expected)
 
 int main(void)
 {
-    const char* filePath = "release/tmp/example_file_async.txt";
-    const char* copyPath = "release/tmp/example_file_async.copy.txt";
-    const char* movePath = "release/tmp/example_file_async.move.txt";
+    const char* filePath = "examples_out/example_file_async.txt";
+    const char* copyPath = "examples_out/example_file_async.copy.txt";
+    const char* movePath = "examples_out/example_file_async.move.txt";
 
     xrtInit();
+    xrtDirCreateAll((str)"examples_out");
 
     xrtFileDelete((str)filePath);
     xrtFileDelete((str)copyPath);

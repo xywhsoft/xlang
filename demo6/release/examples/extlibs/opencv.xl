@@ -15,8 +15,8 @@ assert screen.width() > 0, "opencv Image.width failed"
 assert screen.height() > 0, "opencv Image.height failed"
 assert screen.channels() > 0, "opencv Image.channels failed"
 
-string sourcePath = "release/tmp/opencv_extlib_source.png"
-string outputPath = "release/tmp/opencv_extlib_output.png"
+string sourcePath = "examples_out/opencv_extlib_source.png"
+string outputPath = "examples_out/opencv_extlib_output.png"
 dir.createAll(path.dir(sourcePath))
 assert screen.save(sourcePath) == true, "opencv Image.save failed"
 
