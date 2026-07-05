@@ -55,6 +55,7 @@ int xideDockCreate(xide_app_t* pApp)
 	(void)xuiDockPanelSetRegionSize(pApp->pDockPanel, XUI_DOCK_PANEL_REGION_RIGHT, XUI_DOCK_PANEL_SIZE_PIXEL, 300.0f);
 	(void)xuiDockPanelSetRegionSize(pApp->pDockPanel, XUI_DOCK_PANEL_REGION_BOTTOM, XUI_DOCK_PANEL_SIZE_PIXEL, 190.0f);
 	ret = xuiDockPanelDockWindow(pApp->pDockPanel, pApp->iDockHome, XUI_DOCK_PANEL_REGION_DOCUMENT, XUI_DOCK_PANEL_SIDE_FILL, 0.0f, &documentPane);
+	if ( ret == XUI_OK ) pApp->iDockDocumentPane = documentPane;
 	if ( ret == XUI_OK ) ret = xuiDockPanelDockWindowToPane(pApp->pDockPanel, pApp->iDockEditor, documentPane);
 	if ( ret == XUI_OK ) ret = xuiDockPanelDockWindow(pApp->pDockPanel, pApp->iDockCommand, XUI_DOCK_PANEL_REGION_LEFT, XUI_DOCK_PANEL_SIDE_FILL, 0.0f, &leftPane);
 	if ( ret == XUI_OK ) ret = xuiDockPanelDockWindow(pApp->pDockPanel, pApp->iDockProject, XUI_DOCK_PANEL_REGION_RIGHT, XUI_DOCK_PANEL_SIDE_FILL, 0.0f, &rightPane);
@@ -64,7 +65,7 @@ int xideDockCreate(xide_app_t* pApp)
 	if ( ret == XUI_OK ) ret = xuiDockPanelDockWindowToPane(pApp->pDockPanel, pApp->iDockTask, bottomPane);
 	if ( ret == XUI_OK ) ret = xuiDockPanelDockWindowToPane(pApp->pDockPanel, pApp->iDockDebug, bottomPane);
 	if ( ret == XUI_OK ) ret = xuiDockPanelDockWindowToPane(pApp->pDockPanel, pApp->iDockTools, bottomPane);
-	if ( ret == XUI_OK ) (void)xuiDockPanelSetPaneActiveWindow(pApp->pDockPanel, documentPane, pApp->iDockEditor);
+	if ( ret == XUI_OK ) (void)xuiDockPanelSetPaneActiveWindow(pApp->pDockPanel, documentPane, pApp->iDockHome);
 	if ( ret == XUI_OK ) (void)xuiDockPanelSetPaneActiveWindow(pApp->pDockPanel, rightPane, pApp->iDockProject);
 	return ret;
 }

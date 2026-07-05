@@ -49,7 +49,7 @@ set SRC=%SRC% "%ROOT%src\views\xide_property_view.c"
 set SRC=%SRC% "%ROOT%src\lang\xide_xlang_language.c"
 
 set FLAGS=-O2 -Wall -Wextra -Wno-unused-parameter -finput-charset=UTF-8 -fexec-charset=UTF-8 -DXGE_DLL -DXUI_DLL -DXGE_DEBUGMODE=0
-set LIBS="%XGE_DLL%" -lm -lws2_32 -liphlpapi -lgdi32 -luser32 -lshell32 -lopengl32 -lole32 -lwinmm -lavrt
+set LIBS="%XGE_DLL%" -lm -lws2_32 -liphlpapi -lgdi32 -luser32 -lcomdlg32 -lshell32 -lopengl32 -lole32 -lwinmm -lavrt
 
 echo [BUILD] %OUT%
 gcc %FLAGS% %INC% -o "%OUT%" %SRC% %LIBS%

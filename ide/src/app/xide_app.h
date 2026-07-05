@@ -7,6 +7,14 @@
 
 #define XIDE_WINDOW_W 1280
 #define XIDE_WINDOW_H 800
+#define XIDE_HOME_HISTORY_MAX 50
+
+typedef struct xide_home_history_item_t {
+	char sIcon[64];
+	char sTitle[XIDE_WORKSPACE_NAME_MAX];
+	char sDate[64];
+	char sPath[XIDE_WORKSPACE_PATH_MAX];
+} xide_home_history_item_t;
 
 typedef struct xide_app_t {
 	xui_proxy_t tProxy;
@@ -35,7 +43,11 @@ typedef struct xide_app_t {
 	xui_widget pEditor;
 	xui_widget pOutputTerminal;
 	xui_widget pTaskTable;
+	xui_widget pHomeHistoryTable;
 	xide_workspace_t tWorkspace;
+	xide_home_history_item_t arrHomeHistory[XIDE_HOME_HISTORY_MAX];
+	int iHomeHistoryCount;
+	int iUntitledFileIndex;
 	int iDockHome;
 	int iDockProject;
 	int iDockCommand;
@@ -46,6 +58,7 @@ typedef struct xide_app_t {
 	int iDockDebug;
 	int iDockTools;
 	int iDockProperty;
+	int iDockDocumentPane;
 	int iViewportW;
 	int iViewportH;
 	int iFrame;
