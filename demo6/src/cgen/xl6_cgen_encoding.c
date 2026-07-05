@@ -28,7 +28,7 @@ static void xl6CgenEmitEncodingRuntime(XL6_Output* out)
 
     xl6OutputPuts("void* xrtMalloc(size_t iSize);\n", out);
     xl6OutputPuts("void xrtFree(void* pMem);\n", out);
-    xl6OutputPuts("void* xrtCopyStr(const char* sText, size_t iSize);\n", out);
+    xl6OutputPuts("char* xrtCopyStr(const char* sText, size_t iSize);\n", out);
     xl6OutputPuts("void* xrtBufferCreate(unsigned int iStep);\n", out);
     xl6OutputPuts("void xrtBufferDestroy(xbuffer pBuf);\n", out);
     xl6OutputPuts("bool xrtBufferAppend(xbuffer pBuf, void* pData, unsigned int iSize, unsigned int bStrMode);\n", out);

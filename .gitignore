@@ -27,3 +27,6 @@
 
 # DEMO6 parser trace output
 /demo6/src/parser/xl6_parser.out
+
+# IDE runtime state
+/ide/release/option/History.json

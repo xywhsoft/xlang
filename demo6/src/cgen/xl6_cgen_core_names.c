@@ -206,6 +206,59 @@ static void xl6CgenCIdentText(char* buffer, size_t capacity, const char* text)
     xl6CgenAppendCIdentText(buffer, capacity, text);
 }
 
+static int xl6CgenIsPrintIntrinsicName(const char* name)
+{
+    return xl6CTextEquals(name, "__xl_std_print") ||
+           xl6CTextEquals(name, "__xl_std_println");
+}
+
+static int xl6CgenPrintIntrinsicNewline(const char* name)
+{
+    return xl6CTextEquals(name, "__xl_std_println") ? 1 : 0;
+}
+
+static int xl6CgenIsPrintIntrinsicFunc(const XL6_AstNode* node)
+{
+    const XL6_AstNode* nameNode;
+
+    if ( node == NULL || node->kind != XL6_AST_FUNC || node->childCount == 0 ) {
+        return 0;
+    }
+    nameNode = node->children[0];
+    return nameNode != NULL &&
+           nameNode->kind == XL6_AST_NAME &&
+           xl6CgenIsPrintIntrinsicName(nameNode->text);
+}
+
+static int xl6CgenExternTextEqualsSymbol(const char* text, const char* symbol)
+{
+    size_t len;
+    size_t textLen;
+
+    if ( xl6CTextEquals(text, symbol) ) {
+        return 1;
+    }
+    if ( text == NULL || symbol == NULL ) {
+        return 0;
+    }
+    len = strlen(symbol);
+    textLen = strlen(text);
+    if ( textLen != len + 2 ) {
+        return 0;
+    }
+    return ((text[0] == '"' && text[len + 1] == '"' && text[len + 2] == '\0') ||
+            (text[0] == '\'' && text[len + 1] == '\'' && text[len + 2] == '\0')) &&
+           strncmp(text + 1, symbol, len) == 0;
+}
+
+static int xl6CgenIsRuntimeHeaderExtern(const XL6_AstNode* node)
+{
+    return node != NULL &&
+           node->kind == XL6_AST_EXTERN_FUNC &&
+           (xl6CgenExternTextEqualsSymbol(node->text, "xl6_xrt_print") ||
+            xl6CgenExternTextEqualsSymbol(node->text, "xrtHash64"));
+}
+
 static void xl6CgenNativeBackedTypeName(XL6_Output* out, const char* name)
 {
     xl6OutputPuts("XL_Class_", out);

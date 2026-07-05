@@ -85,19 +85,24 @@ release\xl.exe check test\cases\stdlib_print.xl
 if errorlevel 1 exit /b 1
 release\xl.exe cgen test\cases\stdlib_print.xl --emit build\test\stdlib_print.c
 if errorlevel 1 exit /b 1
-findstr /C:"void xl6_xrt_print(xvalue values, bool newline)" build\test\stdlib_print.c >nul
+findstr /C:"#include <xl_runtime.h>" build\test\stdlib_print.c >nul
 if errorlevel 1 (
-    echo stdlib_print.c missing print runtime helper.
+    echo stdlib_print.c missing xl_runtime.h include.
     exit /b 1
 )
-findstr /C:"void* xrtStringifyJSON" build\test\stdlib_print.c >nul
+findstr /C:"xl6_xrt_print(__xl6_print_args_" build\test\stdlib_print.c >nul
 if errorlevel 1 (
-    echo stdlib_print.c missing xrtStringifyJSON runtime prototype.
+    echo stdlib_print.c missing direct print runtime call.
     exit /b 1
 )
-findstr /C:"void* xrtStringifyXSON" build\test\stdlib_print.c >nul
-if errorlevel 1 (
-    echo stdlib_print.c missing xrtStringifyXSON runtime prototype.
+findstr /C:"__xl_std_print(" build\test\stdlib_print.c >nul
+if not errorlevel 1 (
+    echo stdlib_print.c still emits __xl_std_print wrapper.
+    exit /b 1
+)
+findstr /C:"__xl_std_println(" build\test\stdlib_print.c >nul
+if not errorlevel 1 (
+    echo stdlib_print.c still emits __xl_std_println wrapper.
     exit /b 1
 )
 "%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\stdlib_print.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\stdlib_print.exe

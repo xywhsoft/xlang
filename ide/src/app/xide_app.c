@@ -598,6 +598,7 @@ int xideAppCreate(xide_app_t* pApp)
 	const char* codeFont;
 	const char* fallbackFont;
 	int ret;
+	pApp->iDockDocumentPane = -1;
 	xideWorkspaceInit(&pApp->tWorkspace);
 	if ( !xideWorkspaceCreateDefault(&pApp->tWorkspace) ) return XUI_ERROR;
 	xideFontConfigLoad(&fontConfig);

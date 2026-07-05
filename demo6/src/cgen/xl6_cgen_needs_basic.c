@@ -17,6 +17,20 @@ static int xl6CgenNeedsBasicIsRangeCall(const XL6_AstNode* node)
            xl6CgenNeedsBasicTextEquals(node->children[0]->text, "range");
 }
 
+static int xl6CgenNeedsBasicIsPrintIntrinsicCall(const XL6_AstNode* node)
+{
+    const XL6_AstNode* callee;
+
+    if ( node == NULL || node->kind != XL6_AST_CALL || node->childCount == 0 ) {
+        return 0;
+    }
+    callee = node->children[0];
+    return callee != NULL &&
+           callee->kind == XL6_AST_NAME &&
+           (xl6CgenNeedsBasicTextEquals(callee->text, "__xl_std_print") ||
+            xl6CgenNeedsBasicTextEquals(callee->text, "__xl_std_println"));
+}
+
 static int xl6CgenNeedsBasicIsArrayXValueType(const XL6_AstNode* typeNode)
 {
     return typeNode != NULL && typeNode->text != NULL &&
@@ -596,6 +610,9 @@ int xl6CgenNodeNeedsXValueRuntime(const XL6_AstNode* node)
     if ( node->kind == XL6_AST_CALL && node->childCount > 0 &&
          node->children[0] != NULL && node->children[0]->kind == XL6_AST_NAME &&
          xl6CgenNeedsBasicTextEquals(node->children[0]->text, "var") ) {
+        return 1;
+    }
+    if ( xl6CgenNeedsBasicIsPrintIntrinsicCall(node) ) {
         return 1;
     }
     if ( node->kind == XL6_AST_ARRAY_LITERAL || node->kind == XL6_AST_LIST_LITERAL ||

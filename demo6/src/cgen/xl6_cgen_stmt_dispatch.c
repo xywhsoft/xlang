@@ -263,8 +263,54 @@ static int xl6CgenTryDiscardExpressionStatement(XL6_CgenContext* ctx, const XL6_
     return 0;
 }
 
+static int xl6CgenTryPrintIntrinsicStatement(XL6_CgenContext* ctx, const XL6_AstNode* expr)
+{
+    const XL6_AstNode* callee;
+    const XL6_AstNode* args;
+    int id;
+    int newline;
+
+    if ( ctx == NULL || expr == NULL || expr->kind != XL6_AST_CALL || expr->childCount == 0 ) {
+        return 0;
+    }
+    callee = expr->children[0];
+    if ( callee == NULL ||
+         callee->kind != XL6_AST_NAME ||
+         !xl6CgenIsPrintIntrinsicName(callee->text) ) {
+        return 0;
+    }
+
+    args = expr->childCount > 1 ? expr->children[1] : NULL;
+    id = ctx->tempId++;
+    newline = xl6CgenPrintIntrinsicNewline(callee->text);
+
+    /* print/println 的参数由语句自身持有，调用运行时后立即释放。 */
+    xl6CgenIndent(ctx);
+    xl6OutputPuts("{\n", ctx->out);
+    ctx->indent += 1;
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "xvalue __xl6_print_args_%d = ", id);
+    xl6CgenArrayVarargExpr(ctx, args, 0);
+    xl6OutputPuts(";\n", ctx->out);
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "xl6_xrt_print(__xl6_print_args_%d, %d);\n", id, newline);
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out,
+                    "if (__xl6_print_args_%d != 0) { xvoUnref(__xl6_print_args_%d); __xl6_print_args_%d = 0; }\n",
+                    id,
+                    id,
+                    id);
+    ctx->indent -= 1;
+    xl6CgenIndent(ctx);
+    xl6OutputPuts("}\n", ctx->out);
+    return 1;
+}
+
 static void xl6CgenExprStatementBody(XL6_CgenContext* ctx, const XL6_AstNode* expr)
 {
+    if ( expr != NULL && xl6CgenTryPrintIntrinsicStatement(ctx, expr) ) {
+        return;
+    }
     if ( expr != NULL && xl6CgenTryKnownCallStatementWithClassArgTemps(ctx, expr) ) {
         return;
     }
