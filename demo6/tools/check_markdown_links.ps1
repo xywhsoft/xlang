@@ -41,7 +41,8 @@ function Is-IgnoredMarkdownPath($rootFull, $path)
     $relative = Normalize-RelativePath $rootFull $path
     $lower = $relative.Replace("/", "\").ToLowerInvariant()
 
-    return $lower.StartsWith("release\tmp\") -or
+    return $lower.StartsWith("build\tmp\") -or
+        $lower.StartsWith("build\test\") -or
         $lower.StartsWith("release\tcc\") -or
         $lower.StartsWith("lib\xrt\")
 }

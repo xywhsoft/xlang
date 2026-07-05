@@ -1,4 +1,4 @@
-# P2 cleanup 与借用生命周期细则
+﻿# P2 cleanup 与借用生命周期细则
 
 本文细化 `xl6_cgen_expr_support_base.c`。该分片不直接承担完整语法节点输出，但会决定生成 C 代码中的 retain/release、自动析构、cleanup 栈、break/continue 清理边界和借用判定，是当前 cgen 稳定性的核心辅助层之一。
 

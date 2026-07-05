@@ -1,4 +1,4 @@
-# P1 声明、return 与多返回值细则
+﻿# P1 声明、return 与多返回值细则
 
 本文细化 `xl6_cgen_stmt_decl.c` 与 `xl6_cgen_stmt_dispatch.c` 中声明、block cleanup、语句分派、return、多返回值声明/赋值的生成规则。class/custom 的生命周期细节见 `12_P1_class_custom生命周期细则.md`，本文件只记录它们在声明分支中的入口和与其他声明规则的优先级。
 

@@ -1,4 +1,4 @@
-# P2 标准库 wrapper 细则
+﻿# P2 标准库 wrapper 细则
 
 本文细化当前 cgen 中标准库 wrapper 的 C 生成规则。这里的 xlang 写法按用户可见标准库写法描述；实际触发点是标准库声明层生成或引用的 `__xl_std_runtime_*` 内部调用名，needs 扫描命中后由 `xl6CgenEmit*Runtime` 注入对应 helper。
 

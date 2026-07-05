@@ -42,21 +42,21 @@ func probeFileStream(string path) as bool
     return true
 end
 
-string filePath = "release/tmp/stdlib_file_case.txt"
-string copyPath = "release/tmp/stdlib_file_case.copy.txt"
-string movePath = "release/tmp/stdlib_file_case.move.txt"
-string renamePath = "release/tmp/stdlib_file_case.renamed.txt"
-string replacePath = "release/tmp/stdlib_file_case.replace.txt"
-string dirPath = "release/tmp/stdlib_dir_case"
-string nestedDir = "release/tmp/stdlib_dir_case/nested"
-string nestedFile = "release/tmp/stdlib_dir_case/nested/value.txt"
-string copyDir = "release/tmp/stdlib_dir_case_copy"
-string copyFile = "release/tmp/stdlib_dir_case_copy/nested/value.txt"
-string movedDir = "release/tmp/stdlib_dir_case_moved"
-string movedFile = "release/tmp/stdlib_dir_case_moved/nested/value.txt"
-string cleanDir = "release/tmp/stdlib_dir_clean"
-string cleanNested = "release/tmp/stdlib_dir_clean/nested"
-string cleanFile = "release/tmp/stdlib_dir_clean/nested/value.txt"
+string filePath = "build/test/stdlib_file_case.txt"
+string copyPath = "build/test/stdlib_file_case.copy.txt"
+string movePath = "build/test/stdlib_file_case.move.txt"
+string renamePath = "build/test/stdlib_file_case.renamed.txt"
+string replacePath = "build/test/stdlib_file_case.replace.txt"
+string dirPath = "build/test/stdlib_dir_case"
+string nestedDir = "build/test/stdlib_dir_case/nested"
+string nestedFile = "build/test/stdlib_dir_case/nested/value.txt"
+string copyDir = "build/test/stdlib_dir_case_copy"
+string copyFile = "build/test/stdlib_dir_case_copy/nested/value.txt"
+string movedDir = "build/test/stdlib_dir_case_moved"
+string movedFile = "build/test/stdlib_dir_case_moved/nested/value.txt"
+string cleanDir = "build/test/stdlib_dir_clean"
+string cleanNested = "build/test/stdlib_dir_clean/nested"
+string cleanFile = "build/test/stdlib_dir_clean/nested/value.txt"
 
 file.delete(filePath)
 file.delete(copyPath)
@@ -70,7 +70,7 @@ dir.delete(nestedDir)
 dir.delete(dirPath)
 
 expect(path.exists("release"), 1)
-expect(path.isAbs("release/tmp"), 0)
+expect(path.isAbs("build/test"), 0)
 expectStr(path.sep(), "\\")
 expect(path.isAbs(path.cwd()), 1)
 expect(path.setCwd(path.cwd()), 1)
@@ -82,14 +82,14 @@ expect(path.isAbs(path.appDir()), 1)
 expectStr(path.nameExt(filePath), "stdlib_file_case.txt")
 expectStr(path.name(filePath), "stdlib_file_case")
 expectStr(path.ext(filePath), "txt")
-expectStr(path.dir(filePath), "release/tmp")
-expectStr(path.normalize("release/tmp/./stdlib_dir_case/../stdlib_file_case.txt"), path.join("release", "tmp", "stdlib_file_case.txt"))
+expectStr(path.dir(filePath), "build/test")
+expectStr(path.normalize("build/test/./stdlib_dir_case/../stdlib_file_case.txt"), path.join("build", "test", "stdlib_file_case.txt"))
 expectStr(path.nameExt(path.withName(filePath, "renamed.log")), "renamed.log")
 expectStr(path.ext(path.withExt(filePath, "log")), "log")
 
-string joinedFile2 = path.join("release/tmp", "stdlib_file_case.txt")
-string joinedFile3 = path.join("release", "tmp", "stdlib_file_case.txt")
-string joinedNested = path.join("release", "tmp", "stdlib_dir_case", "nested")
+string joinedFile2 = path.join("build/test", "stdlib_file_case.txt")
+string joinedFile3 = path.join("build", "test", "stdlib_file_case.txt")
+string joinedNested = path.join("build", "test", "stdlib_dir_case", "nested")
 expectStr(path.nameExt(joinedFile2), "stdlib_file_case.txt")
 expectStr(path.name(joinedFile3), "stdlib_file_case")
 expectStr(path.ext(joinedFile3), "txt")
@@ -97,9 +97,9 @@ expect(string.contains(joinedNested, "stdlib_dir_case"), 1)
 expectStr(path.nameExt(joinedNested), "nested")
 expect(string.len(path.random()), 12)
 
-string randomPath = path.random("release/tmp/std_", ".txt", 8)
-expect(string.len(randomPath), 28)
-expectStr(path.dir(randomPath), "release/tmp")
+string randomPath = path.random("build/test/std_", ".txt", 8)
+expect(string.len(randomPath), 27)
+expectStr(path.dir(randomPath), "build/test")
 expectStr(path.ext(randomPath), "txt")
 expect(string.contains(path.nameExt(randomPath), "std_"), 1)
 expect(string.len(path.name(randomPath)), 12)

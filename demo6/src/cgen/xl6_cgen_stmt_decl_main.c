@@ -25,12 +25,12 @@ static void xl6CgenDecl(XL6_CgenContext* ctx, const XL6_AstNode* node)
     declClassType = NULL;
 
     if ( typeNode != NULL && xl6CTextEquals(typeNode->text, "auto") && initExpr != NULL ) {
-        xl6CgenCallIsCustomCtor(ctx, initExpr, &ctorCustom);
+        xl6CgenCallIsNativeBackedCtor(ctx, initExpr, &ctorCustom);
         if ( !xl6CgenCallIsClassCtor(ctx, initExpr, &ctorClass) ) {
             ctorClassType = xl6CgenGenericClassCtorType(ctx, initExpr, &ctorClass);
         }
-    } else if ( xl6CgenIsCustomType(ctx, typeNode) ) {
-        declCustom = xl6CgenFindCustom(ctx, typeNode->text);
+    } else if ( xl6CgenIsNativeBackedClassType(ctx, typeNode) ) {
+        declCustom = xl6CgenFindNativeBackedClass(ctx, typeNode->text);
     } else if ( xl6CgenIsClassType(ctx, typeNode) ) {
         declClass = xl6CgenFindClass(ctx, typeNode->text);
         if ( initExpr != NULL && typeNode != NULL && typeNode->childCount > 0 ) {
@@ -51,30 +51,31 @@ static void xl6CgenDecl(XL6_CgenContext* ctx, const XL6_AstNode* node)
 
     if ( ctorCustom != NULL || declCustom != NULL ) {
         const XL6_AstNode* customNode = ctorCustom != NULL ? ctorCustom : declCustom;
-        xl6CgenCustomTypeName(ctx->out, customNode->text);
+        xl6CgenNativeBackedTypeName(ctx->out, customNode->text);
         xl6OutputPrintf(ctx->out, " %s = {0};\n", cName);
         xl6CgenAddVarType(ctx, node->text, customNode);
-        xl6CgenAddCustomCleanup(ctx, node->text, customNode);
+        xl6CgenAddNativeClassCleanup(ctx, node->text, customNode);
         if ( initExpr != NULL ) {
-            if ( xl6CgenCallIsCustomCtor(ctx, initExpr, &ctorCustom) && xl6CTextEquals(ctorCustom->text, customNode->text) ) {
-                xl6CgenCustomCtorAssign(ctx, customNode, node->text, initExpr);
+            if ( xl6CgenCallIsNativeBackedCtor(ctx, initExpr, &ctorCustom) && xl6CTextEquals(ctorCustom->text, customNode->text) ) {
+                xl6CgenNativeBackedCtorAssign(ctx, customNode, node->text, initExpr);
             } else {
                 XL6_AstNode* initType = xl6CgenCloneExprTypeForInference(ctx, initExpr);
                 const XL6_AstNode* resolvedInitType = xl6CgenResolveAliasType(ctx, initType);
 
                 /*
-                    没有 destroy 的 custom 本质只是句柄值，可以按结构体值复制。
-                    有 destroy 的 custom 已经由语义层判为不可复制，这里仍保持构造表达式专用路径。
+                    没有 destroy 的 native-backed class 本质只是句柄值，可以按结构体值复制。
+                    有 destroy 的 native-backed class 已经由语义层判为不可复制，这里仍保持构造表达式专用路径。
                 */
                 if ( resolvedInitType != NULL &&
                      xl6CTextEquals(resolvedInitType->text, customNode->text) &&
-                     !xl6CgenCustomHasDestroy(customNode) ) {
+                     (!xl6CgenNativeBackedClassHasDestroy(customNode) ||
+                      (initExpr != NULL && initExpr->kind == XL6_AST_CALL)) ) {
                     xl6CgenIndent(ctx);
                     xl6OutputPrintf(ctx->out, "%s = ", cName);
                     xl6CgenExpr(ctx, initExpr);
                     xl6OutputPuts(";\n", ctx->out);
                 } else {
-                    xl6CgenError(ctx, initExpr, "custom 变量只能使用同类型构造表达式或可复制同类型值初始化");
+                    xl6CgenError(ctx, initExpr, "native-backed class variable must be initialized by same-type constructor or copyable same-type value");
                 }
                 xl6AstFree(initType);
             }

@@ -8,7 +8,10 @@ if ( $Root -eq "" ) {
     $Root = Split-Path -Parent $PSScriptRoot
 }
 
-$stdlibPath = Join-Path $Root "src\stdlib\xl6_stdlib.c"
+$stdlibPaths = @(
+    (Join-Path $Root "src\stdlib\xl6_stdlib.c"),
+    (Join-Path $Root "src\stdlib\xl6_stdlib_data.c")
+)
 $apiPath = Join-Path $Root "src\api\xl_api.c"
 $cgenDir = Join-Path $Root "src\cgen"
 $minStdlibCsymbols = 161
@@ -42,7 +45,13 @@ function Print-Missing($title, $items)
     }
 }
 
-$stdlib = Read-Utf8Text $stdlibPath
+$stdlibParts = New-Object System.Collections.Generic.List[string]
+foreach ( $stdlibPath in $stdlibPaths ) {
+    if ( Test-Path $stdlibPath ) {
+        $stdlibParts.Add((Read-Utf8Text $stdlibPath))
+    }
+}
+$stdlib = [string]::Join("`n", $stdlibParts)
 $api = Read-Utf8Text $apiPath
 $cgen = Read-CgenText $cgenDir
 

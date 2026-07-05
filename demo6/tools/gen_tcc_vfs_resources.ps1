@@ -18,16 +18,16 @@ if ([string]::IsNullOrWhiteSpace($Manifest)) {
     $Manifest = Join-Path $Root "tools\tcc_vfs_manifest_win64.txt"
 }
 if ([string]::IsNullOrWhiteSpace($Output)) {
-    $Output = Join-Path $Root "release\tmp\tcc_builtin_resources.c"
+    $Output = Join-Path $Root "build\tmp\tcc_builtin_resources.c"
 }
 if ([string]::IsNullOrWhiteSpace($TccDist)) {
     $TccDist = Join-Path $Root "lib\tcc\win32\dist\x86_64"
 }
 if ([string]::IsNullOrWhiteSpace($XrtObj)) {
-    $XrtObj = Join-Path $Root "release\tmp\xrt.o"
+    $XrtObj = Join-Path $Root "build\tmp\xrt.o"
 }
 if ([string]::IsNullOrWhiteSpace($PackTool)) {
-    $PackTool = Join-Path $Root "release\tmp\tcc_vfs_lzma_pack.exe"
+    $PackTool = Join-Path $Root "build\tmp\tcc_vfs_lzma_pack.exe"
 }
 
 function Resolve-RootPath([string]$Base, [string]$Path) {

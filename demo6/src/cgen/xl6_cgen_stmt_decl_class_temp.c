@@ -15,7 +15,7 @@ static int xl6CgenDeclTemporaryClassFieldTypeIsPlain(XL6_CgenContext* ctx, const
     if ( xl6CgenIsXValueType(concreteType) ||
          xl6CgenIsFunctionType(concreteType) ||
          xl6CgenIsClassType(ctx, concreteType) ||
-         xl6CgenIsCustomType(ctx, concreteType) ||
+         xl6CgenIsNativeBackedClassType(ctx, concreteType) ||
          xl6CgenIsTypedContainerType(ctx, concreteType) ||
          xl6CgenIsFutureLikeType(concreteType) ||
          xl6CgenIsChannelType(concreteType) ||

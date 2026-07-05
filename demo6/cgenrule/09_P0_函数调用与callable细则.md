@@ -1,4 +1,4 @@
-# P0 函数调用与 callable 生成细则
+﻿# P0 函数调用与 callable 生成细则
 
 本文细化函数调用、重载解析、泛型函数调用、`function` 值、`var` 函数调用、匿名函数、XCall 调用帧、函数签名与多返回值 wrapper 的生成规则。该部分是 xlang 与 C/XRT ABI 沟通的核心。
 
@@ -398,9 +398,9 @@
 本轮复核命令：
 
 - `release\xl.exe check test\cases\cgen_member_function_class_return.xl`
-- `release\xl.exe cgen test\cases\cgen_member_function_class_return.xl --emit release\tmp\cgen_member_function_class_return.c --emit-header release\tmp\cgen_member_function_class_return.h`
-- `release\xl.exe build test\cases\cgen_member_function_class_return.xl test\cases\cgen_class_host.c -o release\tmp\cgen_member_function_class_return_focus.exe`
-- `release\tmp\cgen_member_function_class_return_focus.exe`
+- `release\xl.exe cgen test\cases\cgen_member_function_class_return.xl --emit build\test\cgen_member_function_class_return.c --emit-header build\test\cgen_member_function_class_return.h`
+- `release\xl.exe build test\cases\cgen_member_function_class_return.xl test\cases\cgen_class_host.c -o build\test\cgen_member_function_class_return_focus.exe`
+- `build\test\cgen_member_function_class_return_focus.exe`
 - `tools\check_cgen_statement_expr_allowlist.ps1`
 
 当前结论：`RISK-CALL-001` 继续保持已收口。当前发布口径不允许恢复隐式 GNU statement expression fallback；后续新增复杂调用、复杂返回值或临时 class/custom/typed container 实参时，必须优先补语句级 lowering、helper 或生成形态守门。
@@ -419,8 +419,8 @@
 本轮验证：
 
 - `release\xl.exe check test\cases\cgen_member_function_class_return.xl`
-- `release\xl.exe cgen test\cases\cgen_member_function_class_return.xl --emit release\tmp\cgen_member_function_class_return.c --emit-header release\tmp\cgen_member_function_class_return.h`
-- `cmd.exe /v:on /c "call tools\xl6_toolchain_env.bat && !XL6_TCC! ... release\tmp\cgen_member_function_class_return_focus.exe && release\tmp\cgen_member_function_class_return_focus.exe"`
+- `release\xl.exe cgen test\cases\cgen_member_function_class_return.xl --emit build\test\cgen_member_function_class_return.c --emit-header build\test\cgen_member_function_class_return.h`
+- `cmd.exe /v:on /c "call tools\xl6_toolchain_env.bat && !XL6_TCC! ... build\test\cgen_member_function_class_return_focus.exe && build\test\cgen_member_function_class_return_focus.exe"`
 - `cmd.exe /c test.bat`
 
 当前结论：`RISK-CALL-001` 在成员函数 string 返回路径上也具备直接证据。class 返回值生命周期、typed container 返回 ABI 和 erased-compatible string 返回现在分别由独立用例守门；后续新增 function 成员返回类型时，必须同步补齐运行行为和生成形态检查。

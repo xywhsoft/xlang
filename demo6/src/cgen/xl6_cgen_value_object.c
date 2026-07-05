@@ -252,7 +252,7 @@ static int xl6CgenParamTypeUsesTypedContainerStorage(XL6_CgenContext* ctx, const
            ctx->currentGenericParams == NULL &&
            ctx->currentGenericArgs == NULL &&
            ctx->currentClass == NULL &&
-           ctx->currentCustom == NULL &&
+           ctx->currentNativeClass == NULL &&
            ctx->currentAnonFunc == NULL &&
            xl6CgenIsTypedContainerType(ctx, typeNode);
 }
@@ -301,13 +301,22 @@ static void xl6CgenTypedContainerReturnStmt(XL6_CgenContext* ctx, const XL6_AstN
         xl6CgenTypedContainerFillFromLiteral(ctx, returnName, typeNode, expr);
     }
 }
-static int xl6CgenIsCurrentCustomSelfReceiver(XL6_CgenContext* ctx, const XL6_AstNode* receiver)
+static int xl6CgenIsCurrentNativeClassSelfReceiver(XL6_CgenContext* ctx, const XL6_AstNode* receiver)
 {
-    return ctx != NULL &&
-           ctx->currentCustom != NULL &&
-           receiver != NULL &&
-           receiver->kind == XL6_AST_NAME &&
-           xl6CTextEquals(receiver->text, "self");
+    const XL6_AstNode* selfType;
+
+    if ( ctx == NULL ||
+         receiver == NULL ||
+         receiver->kind != XL6_AST_NAME ||
+         !xl6CTextEquals(receiver->text, "self") ) {
+        return 0;
+    }
+    if ( ctx->currentNativeClass != NULL ) {
+        return 1;
+    }
+
+    selfType = xl6CgenFindVarType(ctx, "self");
+    return selfType != NULL && xl6CgenFindNativeBackedClass(ctx, selfType->text) != NULL;
 }
 static void xl6CgenNamedValueReference(XL6_CgenContext* ctx, const char* name)
 {
@@ -326,9 +335,9 @@ static void xl6CgenNamedValueReference(XL6_CgenContext* ctx, const char* name)
     xl6CgenFputsCIdent(ctx->out, name);
 }
 
-static void xl6CgenCustomReceiverHandleExpr(XL6_CgenContext* ctx, const XL6_AstNode* receiver)
+static void xl6CgenNativeReceiverHandleExpr(XL6_CgenContext* ctx, const XL6_AstNode* receiver)
 {
-    if ( xl6CgenIsCurrentCustomSelfReceiver(ctx, receiver) ) {
+    if ( xl6CgenIsCurrentNativeClassSelfReceiver(ctx, receiver) ) {
         xl6OutputPuts("self->handle", ctx->out);
         return;
     }
@@ -342,9 +351,9 @@ static void xl6CgenCustomReceiverHandleExpr(XL6_CgenContext* ctx, const XL6_AstN
     xl6OutputPuts(".handle", ctx->out);
 }
 
-static void xl6CgenCustomReceiverPtrExpr(XL6_CgenContext* ctx, const XL6_AstNode* receiver)
+static void xl6CgenNativeReceiverPtrExpr(XL6_CgenContext* ctx, const XL6_AstNode* receiver)
 {
-    if ( xl6CgenIsCurrentCustomSelfReceiver(ctx, receiver) ) {
+    if ( xl6CgenIsCurrentNativeClassSelfReceiver(ctx, receiver) ) {
         xl6OutputPuts("self", ctx->out);
         return;
     }
@@ -357,7 +366,7 @@ static void xl6CgenCustomReceiverPtrExpr(XL6_CgenContext* ctx, const XL6_AstNode
     }
 }
 
-static void xl6CgenCustomMethodCall(XL6_CgenContext* ctx, const XL6_AstNode* call, const XL6_AstNode* member)
+static int xl6CgenNativeClassMethodCall(XL6_CgenContext* ctx, const XL6_AstNode* call, const XL6_AstNode* member)
 {
     const XL6_AstNode* receiver;
     const XL6_AstNode* receiverType;
@@ -371,45 +380,41 @@ static void xl6CgenCustomMethodCall(XL6_CgenContext* ctx, const XL6_AstNode* cal
 
     receiver = member->childCount > 0 ? member->children[0] : NULL;
     if ( receiver == NULL || (receiver->kind != XL6_AST_NAME && receiver->kind != XL6_AST_MEMBER) ) {
-        xl6CgenError(ctx, member, "custom 方法调用接收者必须是变量名或 class 字段");
-        xl6OutputPuts("0", ctx->out);
-        return;
+        return 0;
     }
 
     receiverName = receiver->kind == XL6_AST_NAME ? receiver->text : NULL;
     receiverType = receiver->kind == XL6_AST_NAME ? xl6CgenFindVarType(ctx, receiverName) : xl6CgenMemberFieldType(ctx, receiver);
-    customNode = receiverType != NULL ? xl6CgenFindCustom(ctx, receiverType->text) : NULL;
+    customNode = receiverType != NULL ? xl6CgenFindNativeBackedClass(ctx, receiverType->text) : NULL;
     if ( customNode == NULL ) {
-        xl6CgenError(ctx, member, "custom method receiver is not a custom value");
-        xl6OutputPuts("0", ctx->out);
-        return;
+        return 0;
     }
 
-    helperMethod = xl6CgenResolveCustomFunc(ctx, customNode, call, member->text, 0);
-    externMethod = xl6CgenResolveCustomExternFuncWithReport(ctx, customNode, call, member->text, 0);
+    helperMethod = xl6CgenResolveNativeClassFunc(ctx, customNode, call, member->text, 0);
+    externMethod = xl6CgenResolveNativeExternFuncWithReport(ctx, customNode, call, member->text, 0);
     if ( helperMethod != NULL && externMethod != NULL ) {
-        xl6CgenError(ctx, member, "custom 方法调用存在 helper / extern 歧义");
+        xl6CgenError(ctx, member, "native-backed class method call is ambiguous between helper and extern");
         xl6OutputPuts("0", ctx->out);
-        return;
+        return 1;
     }
 
     method = helperMethod != NULL ? helperMethod : externMethod;
     if ( method == NULL ) {
-        xl6CgenError(ctx, member, "找不到 custom extern 方法");
+        xl6CgenError(ctx, member, "native extern method not found");
         xl6OutputPuts("0", ctx->out);
-        return;
+        return 1;
     }
 
     if ( helperMethod != NULL ) {
-        xl6CgenCustomCallableSymbol(ctx, customNode, method);
+        xl6CgenClassCallableSymbol(ctx, customNode, method);
     } else {
         xl6CgenCStringSymbol(ctx->out, method->text);
     }
     xl6OutputPutc('(', ctx->out);
     if ( helperMethod != NULL ) {
-        xl6CgenCustomReceiverPtrExpr(ctx, receiver);
+        xl6CgenNativeReceiverPtrExpr(ctx, receiver);
     } else {
-        xl6CgenCustomReceiverHandleExpr(ctx, receiver);
+        xl6CgenNativeReceiverHandleExpr(ctx, receiver);
     }
     args = call->childCount > 1 ? call->children[1] : NULL;
     params = xl6CgenCallableParams(method);
@@ -418,6 +423,7 @@ static void xl6CgenCustomMethodCall(XL6_CgenContext* ctx, const XL6_AstNode* cal
         xl6CgenKnownCallArgs(ctx, method, args);
     }
     xl6OutputPutc(')', ctx->out);
+    return 1;
 }
 
 static void xl6CgenImplicitToStringCall(XL6_CgenContext* ctx, const XL6_AstNode* call, const XL6_AstNode* member)

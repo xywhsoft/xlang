@@ -1,7 +1,7 @@
-string filePath = "release/tmp/stdlib_file_async_case.txt"
-string copyPath = "release/tmp/stdlib_file_async_case.copy.txt"
-string movePath = "release/tmp/stdlib_file_async_case.move.txt"
-string missingPath = "release/tmp/stdlib_file_async_case.missing.txt"
+string filePath = "build/test/stdlib_file_async_case.txt"
+string copyPath = "build/test/stdlib_file_async_case.copy.txt"
+string movePath = "build/test/stdlib_file_async_case.move.txt"
+string missingPath = "build/test/stdlib_file_async_case.missing.txt"
 
 file.delete(filePath)
 file.delete(copyPath)

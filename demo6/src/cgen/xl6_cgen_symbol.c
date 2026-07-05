@@ -1,4 +1,4 @@
-static int xl6CgenFuncOverloadCount(XL6_CgenContext* ctx, const char* name)
+﻿static int xl6CgenFuncOverloadCount(XL6_CgenContext* ctx, const char* name)
 {
     size_t i;
     int count;
@@ -120,8 +120,8 @@ static const char* xl6CgenCallableName(const XL6_AstNode* node)
          node->kind == XL6_AST_EXPORT_FUNC ||
          node->kind == XL6_AST_GET ||
          node->kind == XL6_AST_LET ||
-         node->kind == XL6_AST_CUSTOM_EXTERN_FUNC ||
-         node->kind == XL6_AST_CUSTOM_EXTERN_SPECIAL ) {
+         node->kind == XL6_AST_NATIVE_EXTERN_FUNC ||
+         node->kind == XL6_AST_NATIVE_EXTERN_SPECIAL ) {
         const XL6_AstNode* nameNode = node->childCount > 0 ? node->children[0] : NULL;
         return nameNode != NULL ? nameNode->text : NULL;
     }
@@ -169,8 +169,8 @@ static int xl6CgenIsClassCallableOverloadMember(const XL6_AstNode* node)
             node->kind == XL6_AST_ASYNC_FUNC ||
             node->kind == XL6_AST_EXPORT_FUNC ||
             node->kind == XL6_AST_CREATE ||
-            node->kind == XL6_AST_CUSTOM_EXTERN_FUNC ||
-            node->kind == XL6_AST_CUSTOM_EXTERN_SPECIAL);
+            node->kind == XL6_AST_NATIVE_EXTERN_FUNC ||
+            node->kind == XL6_AST_NATIVE_EXTERN_SPECIAL);
 }
 
 static void xl6CgenClassCallableSymbol(XL6_CgenContext* ctx, const XL6_AstNode* classNode, const XL6_AstNode* memberNode)
@@ -193,8 +193,8 @@ static void xl6CgenClassCallableSymbol(XL6_CgenContext* ctx, const XL6_AstNode* 
     if ( memberNode == NULL ||
          (memberNode->kind != XL6_AST_FUNC && memberNode->kind != XL6_AST_EXPORT_FUNC && memberNode->kind != XL6_AST_CREATE &&
           memberNode->kind != XL6_AST_GET && memberNode->kind != XL6_AST_LET &&
-          memberNode->kind != XL6_AST_CUSTOM_EXTERN_FUNC &&
-          memberNode->kind != XL6_AST_CUSTOM_EXTERN_SPECIAL) ||
+          memberNode->kind != XL6_AST_NATIVE_EXTERN_FUNC &&
+          memberNode->kind != XL6_AST_NATIVE_EXTERN_SPECIAL) ||
          xl6CgenClassCallableOverloadCount(classNode, memberNode) <= 1 ) {
         return;
     }
@@ -215,22 +215,22 @@ static void xl6CgenClassCallableSymbol(XL6_CgenContext* ctx, const XL6_AstNode* 
     }
 }
 
-static void xl6CgenCustomMemberSymbol(XL6_Output* out, const char* customName, const char* memberName)
+static void xl6CgenNativeMemberSymbol(XL6_Output* out, const char* customName, const char* memberName)
 {
-    xl6OutputPuts("xl_custom_", out);
+    xl6OutputPuts("xl_native_", out);
     xl6CgenFputsEncodedText(out, customName);
     xl6OutputPuts("__", out);
     xl6CgenFputsEncodedText(out, memberName);
 }
 
-static int xl6CgenCustomCallableOverloadCount(const XL6_AstNode* customNode, const XL6_AstNode* memberNode)
+static int xl6CgenNativeCallableOverloadCount(const XL6_AstNode* customNode, const XL6_AstNode* memberNode)
 {
     const XL6_AstNode* body;
     const char* name;
     size_t i;
     int count;
 
-    body = customNode != NULL && customNode->childCount > 0 ? customNode->children[0] : NULL;
+    body = xl6CgenClassBody(customNode);
     name = xl6CgenCallableName(memberNode);
     count = 0;
     if ( body == NULL || memberNode == NULL || name == NULL ) {
@@ -247,18 +247,18 @@ static int xl6CgenCustomCallableOverloadCount(const XL6_AstNode* customNode, con
     return count;
 }
 
-static void xl6CgenCustomCallableSymbol(XL6_CgenContext* ctx, const XL6_AstNode* customNode, const XL6_AstNode* memberNode)
+static void xl6CgenNativeCallableSymbol(XL6_CgenContext* ctx, const XL6_AstNode* customNode, const XL6_AstNode* memberNode)
 {
     const XL6_AstNode* params;
     const char* name;
     size_t i;
 
     name = xl6CgenCallableName(memberNode);
-    xl6CgenCustomMemberSymbol(ctx->out, customNode != NULL ? customNode->text : "_", name != NULL ? name : "_");
+    xl6CgenNativeMemberSymbol(ctx->out, customNode != NULL ? customNode->text : "_", name != NULL ? name : "_");
 
     if ( memberNode == NULL ||
          memberNode->kind != XL6_AST_FUNC ||
-         xl6CgenCustomCallableOverloadCount(customNode, memberNode) <= 1 ) {
+         xl6CgenNativeCallableOverloadCount(customNode, memberNode) <= 1 ) {
         return;
     }
 
@@ -287,7 +287,7 @@ static void xl6CgenFuncSymbol(XL6_CgenContext* ctx, const XL6_AstNode* funcNode)
     nameNode = funcNode != NULL && funcNode->childCount > 0 ? funcNode->children[0] : NULL;
     if ( xl6CgenFuncIsGeneric(funcNode) ) {
         if ( ctx->currentGenericArgs == NULL ) {
-            xl6CgenError(ctx, funcNode, "泛型函数必须先实例化再生成 C 符号");
+            xl6CgenError(ctx, funcNode, "娉涘瀷鍑芥暟蹇呴』鍏堝疄渚嬪寲鍐嶇敓鎴?C 绗﹀彿");
             xl6OutputPuts("xl_gen_uninstantiated", ctx->out);
             return;
         }

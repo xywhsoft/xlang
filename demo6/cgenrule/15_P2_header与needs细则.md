@@ -1,4 +1,4 @@
-# P2 header 与 needs 细则
+﻿# P2 header 与 needs 细则
 
 本文细化导出头文件生成和 runtime needs 扫描规则。header 生成决定 C 侧如何看见 xlang 导出的 ABI；needs 扫描决定某段 xlang 程序最终会注入哪些运行时 helper。
 

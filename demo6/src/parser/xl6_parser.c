@@ -371,7 +371,7 @@ static XL6_AstNode* xl6PParseFStringExpr(XL6_ParseContext* ctx, const XL6_Token*
     sourceLen = (sizeof(prefix) - 1) + len + (sizeof(suffix) - 1);
     source = (char*)xrtMalloc(sourceLen + 1);
     if ( source == NULL ) {
-        xl6PDiag(ctx, token, "内存不足，无法解析 f-string 插值表达式");
+        xl6PDiag(ctx, token, "out of memory while parsing f-string interpolation expression");
         return xl6AstNewText(XL6_AST_STRING, "", 0, token);
     }
     memcpy(source, prefix, sizeof(prefix) - 1);
@@ -383,14 +383,14 @@ static XL6_AstNode* xl6PParseFStringExpr(XL6_ParseContext* ctx, const XL6_Token*
     xrtFree(source);
     if ( !ok ) {
         xl6ParseResultFree(&result);
-        xl6PDiag(ctx, token, "f-string 插值表达式语法错误");
+        xl6PDiag(ctx, token, "invalid f-string interpolation expression");
         return xl6AstNewText(XL6_AST_STRING, "", 0, token);
     }
 
     expr = xl6PDetachParsedFStringExpr(&result);
     xl6ParseResultFree(&result);
     if ( expr == NULL ) {
-        xl6PDiag(ctx, token, "f-string 插值表达式语法错误");
+        xl6PDiag(ctx, token, "invalid f-string interpolation expression");
         return xl6AstNewText(XL6_AST_STRING, "", 0, token);
     }
     return expr;
@@ -412,7 +412,7 @@ static XL6_AstNode* xl6PParseFString(XL6_ParseContext* ctx, const XL6_Token* tok
 
     node = xl6AstNew(XL6_AST_INTERP_STRING, token);
     if ( token == NULL || token->text == NULL || token->len < 3 ) {
-        xl6PDiag(ctx, token, "f-string 字面量无效");
+        xl6PDiag(ctx, token, "invalid f-string literal");
         return node;
     }
 
@@ -420,13 +420,13 @@ static XL6_AstNode* xl6PParseFString(XL6_ParseContext* ctx, const XL6_Token* tok
     len = token->len;
     prefixLen = (len >= 2 && text[0] == 'r' && text[1] == 'f') ? 2 : 1;
     if ( prefixLen >= len || (text[prefixLen] != '\'' && text[prefixLen] != '"') ) {
-        xl6PDiag(ctx, token, "f-string 字面量无效");
+        xl6PDiag(ctx, token, "invalid f-string literal");
         return node;
     }
     quote = text[prefixLen];
     quoteLen = (prefixLen + 2 < len && text[prefixLen + 1] == quote && text[prefixLen + 2] == quote) ? 3 : 1;
     if ( len < prefixLen + quoteLen * 2 ) {
-        xl6PDiag(ctx, token, "f-string 字面量无效");
+        xl6PDiag(ctx, token, "invalid f-string literal");
         return node;
     }
 
@@ -437,14 +437,14 @@ static XL6_AstNode* xl6PParseFString(XL6_ParseContext* ctx, const XL6_Token* tok
         if ( text[i] == '{' ) {
             if ( i + 1 < end && text[i + 1] == '{' ) {
                 if ( !xl6PTextBuilderAppendChar(&builder, '{') ) {
-                    xl6PDiag(ctx, token, "内存不足，无法解析 f-string 文本");
+                    xl6PDiag(ctx, token, "out of memory while parsing f-string text");
                     break;
                 }
                 ++i;
                 continue;
             }
             if ( !xl6PFlushFStringText(node, &builder, token) ) {
-                xl6PDiag(ctx, token, "内存不足，无法解析 f-string 文本");
+                xl6PDiag(ctx, token, "out of memory while parsing f-string text");
                 break;
             }
             exprEnd = xl6PFStringFindExprEnd(text, end, i + 1);
@@ -459,17 +459,17 @@ static XL6_AstNode* xl6PParseFString(XL6_ParseContext* ctx, const XL6_Token* tok
         if ( text[i] == '}' ) {
             if ( i + 1 < end && text[i + 1] == '}' ) {
                 if ( !xl6PTextBuilderAppendChar(&builder, '}') ) {
-                    xl6PDiag(ctx, token, "内存不足，无法解析 f-string 文本");
+                    xl6PDiag(ctx, token, "out of memory while parsing f-string text");
                     break;
                 }
                 ++i;
                 continue;
             }
-            xl6PDiag(ctx, token, "f-string 文本区单独的 } 无效，请写 }}");
+            xl6PDiag(ctx, token, "单独的 } 在 f-string 文本中无效，请写成 }}");
             break;
         }
         if ( !xl6PTextBuilderAppendChar(&builder, text[i]) ) {
-            xl6PDiag(ctx, token, "内存不足，无法解析 f-string 文本");
+            xl6PDiag(ctx, token, "out of memory while parsing f-string text");
             break;
         }
     }
@@ -3786,7 +3786,7 @@ static YYACTIONTYPE yy_reduce(
       case 17: /* item ::= TOK_ERROR */
 #line 633 "xl6_parser.y"
 {
-    xl6PDiag(ctx, &yymsp[0].minor.yy0, "当前语法位置不支持该 token");
+    xl6PDiag(ctx, &yymsp[0].minor.yy0, "褰撳墠璇硶浣嶇疆涓嶆敮鎸佽 token");
     yylhsminor.yy428 = xl6AstNew(XL6_AST_LIST, NULL);
 }
 #line 3792 "xl6_parser.c"
@@ -4264,7 +4264,7 @@ static YYACTIONTYPE yy_reduce(
       case 98: /* class_extern_func ::= KW_EXTERN STRING KW_FUNC name_tok name_params return_sig need_sep */
 #line 916 "xl6_parser.y"
 {
-    yylhsminor.yy428 = xl6AstNew(XL6_AST_CUSTOM_EXTERN_FUNC, &yymsp[-5].minor.yy0);
+    yylhsminor.yy428 = xl6AstNew(XL6_AST_NATIVE_EXTERN_FUNC, &yymsp[-5].minor.yy0);
     xl6AstAddChild(yylhsminor.yy428, xl6AstNew(XL6_AST_NAME, &yymsp[-3].minor.yy297));
     xl6AstAddChild(yylhsminor.yy428, yymsp[-2].minor.yy428);
     xl6AstAddChild(yylhsminor.yy428, yymsp[-1].minor.yy428);
@@ -4276,7 +4276,7 @@ static YYACTIONTYPE yy_reduce(
       case 99: /* class_extern_special ::= KW_EXTERN STRING name_tok name_params need_sep */
 #line 924 "xl6_parser.y"
 {
-    yylhsminor.yy428 = xl6AstNew(XL6_AST_CUSTOM_EXTERN_SPECIAL, &yymsp[-3].minor.yy0);
+    yylhsminor.yy428 = xl6AstNew(XL6_AST_NATIVE_EXTERN_SPECIAL, &yymsp[-3].minor.yy0);
     xl6AstAddChild(yylhsminor.yy428, xl6AstNew(XL6_AST_NAME, &yymsp[-2].minor.yy297));
     xl6AstAddChild(yylhsminor.yy428, yymsp[-1].minor.yy428);
     (void)yymsp[-4].minor.yy0;

@@ -19,12 +19,23 @@ int contextRunRc = ctx.run()
 println("context run rc", contextRunRc)
 expect(contextRunRc, 0, "context run")
 
+int modeSum = tcc.MEMORY + tcc.EXE + tcc.OBJ + tcc.DLL + tcc.PREPROCESS
+expect(modeSum, 15, "tcc output type constants")
+
 if not tcc.vfsMount("__xlvfs__/embed_test.c", "int main(void){ return 0; }\n") then
     assert false
 end
 int runFileRc = tcc.runFile("__xlvfs__/embed_test.c")
 println("tcc.runFile rc", runFileRc)
 expect(runFileRc, 0, "tcc.runFile dynamic vfs")
+
+int compileRc2 = tcc.compile("int main(void){ return 0; }\n", "build/test/stdlib_tcc_compile.exe", tcc.EXE)
+println("tcc.compile rc", compileRc2)
+expect(compileRc2, 0, "tcc.compile")
+
+int compileFileRc = tcc.compileFile("__xlvfs__/embed_test.c", "build/test/stdlib_tcc_compile_file.exe", tcc.EXE)
+println("tcc.compileFile rc", compileFileRc)
+expect(compileFileRc, 0, "tcc.compileFile")
 tcc.vfsClear()
 
 println("stdlib tcc embed ok")

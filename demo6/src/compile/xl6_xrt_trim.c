@@ -66,6 +66,61 @@ static void xl6XrtTrimKeepNetworkStack(XL6_XrtTrimConfig* cfg)
     cfg->keepFileAsync = 1;
 }
 
+static void xl6XrtTrimKeepUrlStack(XL6_XrtTrimConfig* cfg)
+{
+    if ( cfg == NULL ) {
+        return;
+    }
+    xl6XrtTrimKeepNetworkStack(cfg);
+    cfg->keepXUrl = 1;
+}
+
+static void xl6XrtTrimKeepHttpUtilStack(XL6_XrtTrimConfig* cfg)
+{
+    if ( cfg == NULL ) {
+        return;
+    }
+    xl6XrtTrimKeepNetworkStack(cfg);
+    cfg->keepHttpUtil = 1;
+}
+
+static void xl6XrtTrimKeepCodecStack(XL6_XrtTrimConfig* cfg)
+{
+    if ( cfg == NULL ) {
+        return;
+    }
+    xl6XrtTrimKeepNetworkStack(cfg);
+    cfg->keepXCodec = 1;
+}
+
+static void xl6XrtTrimKeepWebStack(XL6_XrtTrimConfig* cfg)
+{
+    if ( cfg == NULL ) {
+        return;
+    }
+    xl6XrtTrimKeepNetworkStack(cfg);
+    cfg->keepXUrl = 1;
+    cfg->keepHttpUtil = 1;
+    cfg->keepXCodec = 1;
+    cfg->keepXHttpd = 1;
+    cfg->keepXWeb = 1;
+}
+
+static void xl6XrtTrimKeepCoroutineStack(XL6_XrtTrimConfig* cfg)
+{
+    if ( cfg == NULL ) {
+        return;
+    }
+    cfg->keepCoroutine = 1;
+    /*
+     * XRT 目前把 future 类型描述和若干异步对象挂在 network 裁剪组下。
+     * xlang 的 task/future 只要参与静态编译，就必须保留 network 根模块；
+     * 等 XRT 后续将 future 从 network 中拆出后，这里可以再收窄。
+     */
+    xl6XrtTrimKeepNetworkStack(cfg);
+    xl6XrtTrimKeepValueStack(cfg);
+}
+
 static void xl6XrtTrimScanText(XL6_XrtTrimConfig* cfg, const char* text)
 {
     if ( cfg == NULL || text == NULL || text[0] == '\0' ) {
@@ -84,6 +139,20 @@ static void xl6XrtTrimScanText(XL6_XrtTrimConfig* cfg, const char* text)
          */
         cfg->full = 1;
         return;
+    }
+
+    if ( strcmp(text, "future") == 0 ||
+         strcmp(text, "task") == 0 ||
+         strcmp(text, "generator") == 0 ||
+         strcmp(text, "channel") == 0 ||
+         strcmp(text, "thread") == 0 ||
+         strcmp(text, "mutex") == 0 ||
+         strcmp(text, "sem") == 0 ||
+         strcmp(text, "cond") == 0 ||
+         strcmp(text, "rwlock") == 0 ||
+         xl6XrtTrimTextStartsWith(text, "xl6_task_") ||
+         xl6XrtTrimTextStartsWith(text, "__xl_std_task_") ) {
+        xl6XrtTrimKeepCoroutineStack(cfg);
     }
 
     if ( xl6XrtTrimTextStartsWith(text, "__xl_std_xrt_date_") ||
@@ -143,28 +212,28 @@ static void xl6XrtTrimScanText(XL6_XrtTrimConfig* cfg, const char* text)
     if ( xl6XrtTrimTextStartsWith(text, "__xl_std_runtime_http_") ||
          strcmp(text, "HttpRequest") == 0 ||
          strcmp(text, "HttpResponse") == 0 ) {
-        xl6XrtTrimKeepNetworkStack(cfg);
+        xl6XrtTrimKeepWebStack(cfg);
         cfg->keepJson = 1;
         cfg->keepJnum = 1;
         xl6XrtTrimKeepValueStack(cfg);
     }
-    if ( xl6XrtTrimTextStartsWith(text, "__xl_std_runtime_url_") ||
-         xl6XrtTrimTextStartsWith(text, "__xl_std_runtime_query_") ||
-         xl6XrtTrimTextStartsWith(text, "__xl_std_xrt_get_local_") ||
+    if ( xl6XrtTrimTextStartsWith(text, "__xl_std_runtime_url_") ) {
+        xl6XrtTrimKeepUrlStack(cfg);
+    }
+    if ( xl6XrtTrimTextStartsWith(text, "__xl_std_runtime_query_") ) {
+        xl6XrtTrimKeepHttpUtilStack(cfg);
+    }
+    if ( xl6XrtTrimTextStartsWith(text, "__xl_std_xrt_get_local_") ||
          xl6XrtTrimTextStartsWith(text, "__xl_std_xrt_tcp_") ||
          xl6XrtTrimTextStartsWith(text, "__xl_std_xrt_udp_") ) {
         xl6XrtTrimKeepNetworkStack(cfg);
     }
-    if ( xl6XrtTrimTextStartsWith(text, "__xl_std_xrt_hex_") ||
-         xl6XrtTrimTextStartsWith(text, "__xl_std_xrt_base64_") ||
-         xl6XrtTrimTextStartsWith(text, "__xl_std_xrt_percent_") ||
-         xl6XrtTrimTextStartsWith(text, "__xl_std_xrt_form_url_") ||
-         xl6XrtTrimTextStartsWith(text, "__xl_std_xrt_buffer_from_") ) {
-        /*
-         * 当前 XRT 中 XCODEC 仍挂在 network 裁剪组下。保留 codec 时必须暂时保留
-         * network 根模块；后续 XRT 将 XCODEC 拆出后，这条规则即可收窄。
-         */
-        xl6XrtTrimKeepNetworkStack(cfg);
+    if ( xl6XrtTrimTextStartsWith(text, "__xl_std_xrt_percent_") ||
+         xl6XrtTrimTextStartsWith(text, "__xl_std_xrt_form_url_") ) {
+        xl6XrtTrimKeepHttpUtilStack(cfg);
+    }
+    if ( xl6XrtTrimTextStartsWith(text, "__xl_std_xrt_buffer_from_") ) {
+        cfg->keepBuffer = 1;
     }
     if ( xl6XrtTrimTextStartsWith(text, "__xl_std_runtime_encoding_") ) {
         /* charset/encoding 暂无独立裁剪宏，保持核心实现可见即可。 */
@@ -210,6 +279,11 @@ static void xl6XrtTrimScanNode(XL6_XrtTrimConfig* cfg, const XL6_AstNode* node)
     if ( cfg == NULL || node == NULL || cfg->full ) {
         return;
     }
+    if ( node->kind == XL6_AST_ASYNC_FUNC ||
+         node->kind == XL6_AST_AWAIT ||
+         node->kind == XL6_AST_YIELD ) {
+        xl6XrtTrimKeepCoroutineStack(cfg);
+    }
     xl6XrtTrimScanText(cfg, node->text);
     if ( cfg->full ) {
         return;
@@ -254,7 +328,7 @@ static void xl6XrtTrimApplyBasicNeeds(XL6_XrtTrimConfig* cfg, const XL6_AstNode*
         cfg->keepQueue = 1;
     }
     if ( xl6CgenNodeNeedsHttpServerRuntime(root) ) {
-        xl6XrtTrimKeepNetworkStack(cfg);
+        xl6XrtTrimKeepWebStack(cfg);
         cfg->keepJson = 1;
         cfg->keepJnum = 1;
         xl6XrtTrimKeepValueStack(cfg);
@@ -286,6 +360,21 @@ static void xl6XrtTrimApplyDeps(XL6_XrtTrimConfig* cfg)
         cfg->keepQueue = 1;
         cfg->keepFile = 1;
         cfg->keepFileAsync = 1;
+    }
+    if ( cfg->keepXWeb ) {
+        cfg->keepXHttpd = 1;
+    }
+    if ( cfg->keepXHttp || cfg->keepXHttpd || cfg->keepXWeb || cfg->keepXWs ) {
+        cfg->keepXUrl = 1;
+        cfg->keepHttpUtil = 1;
+        cfg->keepXCodec = 1;
+    }
+    if ( cfg->keepXUrl || cfg->keepHttpUtil || cfg->keepXCodec ||
+         cfg->keepXHttp || cfg->keepXHttpd || cfg->keepXWeb || cfg->keepXWs ) {
+        cfg->keepNetwork = 1;
+    }
+    if ( cfg->keepXWs ) {
+        cfg->keepCrypto = 1;
     }
     if ( cfg->keepNetTls ) {
         cfg->keepCrypto = 1;
@@ -333,6 +422,14 @@ void xl6XrtTrimAnalyze(XL6_XrtTrimConfig* cfg, const XL6_AstNode* root, const XL
          (deps->features & (XL6_IMPORT_FEATURE_TCC_RUNTIME |
                             XL6_IMPORT_FEATURE_XLANG_RUNTIME |
                             XL6_IMPORT_FEATURE_XLANG_COMPILER)) != 0 ) {
+        cfg->full = 1;
+        return;
+    }
+    if ( deps != NULL && deps->cSources.count > 0 ) {
+        /*
+            native C package 可以调用任意 XRT 公开函数。
+            当前裁剪器只分析 xlang AST 和标准库需求，不能可靠推断 C 源内部的 XRT 依赖。
+        */
         cfg->full = 1;
         return;
     }
@@ -391,6 +488,16 @@ int xl6XrtTrimEmitImplementationSource(XL6_Output* out, const XL6_XrtTrimConfig*
          !xl6XrtTrimEmitNoMacro(out, cfg->keepRegex, "XRT_NO_REGEX") ||
          !xl6XrtTrimEmitNoMacro(out, cfg->keepSubprocess, "XRT_NO_SUBPROCESS") ||
          !xl6XrtTrimEmitNoMacro(out, cfg->keepLogger, "XRT_NO_LOGGER") ) {
+        return 0;
+    }
+    if ( cfg->keepNetwork &&
+         (!xl6XrtTrimEmitNoMacro(out, cfg->keepXUrl, "XRT_NO_XURL") ||
+          !xl6XrtTrimEmitNoMacro(out, cfg->keepHttpUtil, "XRT_NO_HTTP_UTIL") ||
+          !xl6XrtTrimEmitNoMacro(out, cfg->keepXCodec, "XRT_NO_XCODEC") ||
+          !xl6XrtTrimEmitNoMacro(out, cfg->keepXHttp, "XRT_NO_XHTTP") ||
+          !xl6XrtTrimEmitNoMacro(out, cfg->keepXHttpd, "XRT_NO_XHTTPD") ||
+          !xl6XrtTrimEmitNoMacro(out, cfg->keepXWeb, "XRT_NO_XWEB") ||
+          !xl6XrtTrimEmitNoMacro(out, cfg->keepXWs, "XRT_NO_XWS")) ) {
         return 0;
     }
     return xl6OutputPuts("#include \"lib/xrt/xrt.h\"\n", out) != EOF;

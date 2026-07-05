@@ -278,9 +278,9 @@ static void xl6CgenAddManagedCleanupForType(XL6_CgenContext* ctx, const char* na
         xl6CgenAddXValueCleanup(ctx, name, typeNode);
         return;
     }
-    customNode = typeNode->text != NULL ? xl6CgenFindCustom(ctx, typeNode->text) : NULL;
+    customNode = typeNode->text != NULL ? xl6CgenFindNativeBackedClass(ctx, typeNode->text) : NULL;
     if ( customNode != NULL ) {
-        xl6CgenAddCustomCleanup(ctx, name, customNode);
+        xl6CgenAddNativeClassCleanup(ctx, name, customNode);
         return;
     }
     classNode = typeNode->text != NULL ? xl6CgenFindClass(ctx, typeNode->text) : NULL;
@@ -415,8 +415,8 @@ static void xl6CgenXValueFromTypedCExpr(XL6_CgenContext* ctx, const XL6_AstNode*
         xl6CgenUnionTypeTextName(cTypeName, sizeof(cTypeName), typeName);
         xl6CgenBoxSymbol(ctx->out, cTypeName);
         xl6OutputPrintf(ctx->out, "(%s)", exprText != NULL ? exprText : "{}");
-    } else if ( xl6CgenIsCustomType(ctx, concreteType) ) {
-        xl6CgenCustomTypeRefName(cTypeName, sizeof(cTypeName), typeName);
+    } else if ( xl6CgenIsNativeBackedClassType(ctx, concreteType) ) {
+        xl6CgenNativeBackedTypeRefName(cTypeName, sizeof(cTypeName), typeName);
         xl6CgenBoxSymbol(ctx->out, cTypeName);
         xl6OutputPrintf(ctx->out, "(%s)", exprText != NULL ? exprText : "{}");
     } else {

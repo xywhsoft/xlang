@@ -50,8 +50,7 @@ $fixtureFiles = @(
         if ( Test-Path -LiteralPath $dir -PathType Container ) {
             Get-ChildItem -LiteralPath $dir -Recurse -File | Where-Object {
                 $relative = Relative-From-Root $_.FullName
-                ($_.Extension -eq ".c" -or $_.Extension -eq ".h") -and
-                ($relative -notmatch '^release/examples/(.*/)?release/tmp/')
+                ($_.Extension -eq ".c" -or $_.Extension -eq ".h")
             }
         }
     }
@@ -124,20 +123,17 @@ foreach ( $file in $batchFiles ) {
     }
 }
 
-$cliPath = Join-Path $Root "src\driver\xl6_cli.c"
 $apiPath = Join-Path $Root "src\api\xl_api.c"
 $backendPath = Join-Path $Root "src\backend\xl6_build_backend.c"
 
-foreach ( $path in @($cliPath, $apiPath, $backendPath) ) {
+foreach ( $path in @($apiPath, $backendPath) ) {
     if ( ! (Test-Path -LiteralPath $path -PathType Leaf) ) {
         Add-Failure "toolchain consumer source is missing: $(Relative-From-Root $path)"
     }
 }
 
-if ( (Test-Path -LiteralPath $cliPath -PathType Leaf) -and
-     (Test-Path -LiteralPath $apiPath -PathType Leaf) -and
+if ( (Test-Path -LiteralPath $apiPath -PathType Leaf) -and
      (Test-Path -LiteralPath $backendPath -PathType Leaf) ) {
-    $cliText = Read-Utf8Text $cliPath
     $apiText = Read-Utf8Text $apiPath
     $backendText = Read-Utf8Text $backendPath
 
@@ -155,30 +151,12 @@ if ( (Test-Path -LiteralPath $cliPath -PathType Leaf) -and
         "XL6_TCC_LIB",
         "XL6_TCC_LIBTCC1"
     ) ) {
-        if ( $cliText -notmatch [regex]::Escape($name) ) {
-            Add-Failure "CLI must honor centralized toolchain environment variable: $name"
-        }
         if ( $apiText -notmatch [regex]::Escape($name) ) {
             Add-Failure "DLL API must honor centralized toolchain environment variable: $name"
         }
     }
-    if ( $cliText -notmatch [regex]::Escape("XL6_XRT_OBJ") ) {
-        Add-Failure "CLI must honor centralized toolchain environment variable: XL6_XRT_OBJ"
-    }
     if ( $apiText -notmatch 'XRT_IMPLEMENTATION' -or $apiText -notmatch 'lib/xrt/xrt[.]h' ) {
         Add-Failure "DLL compiler API must embed XRT through the single-header path instead of requiring XL6_XRT_OBJ"
-    }
-
-    foreach ( $name in @(
-        "xl6CliDefaultTccIncludePath",
-        "xl6CliDefaultTccWinIncludePath",
-        "xl6CliDefaultTccWinapiIncludePath",
-        "xl6CliDefaultTccLibPath",
-        "xl6CliDefaultTccLibtcc1Path"
-    ) ) {
-        if ( $cliText -notmatch ('(?<![A-Za-z0-9_])' + [regex]::Escape($name) + '(?![A-Za-z0-9_])') ) {
-            Add-Failure "CLI must keep centralized TCC default helper: $name"
-        }
     }
 
     foreach ( $name in @(

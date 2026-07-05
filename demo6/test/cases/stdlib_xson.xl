@@ -1,7 +1,7 @@
 extern "expect_i64" func expect(int actual, int expected)
 extern "expect_str" func expectStr(string actual, string expected)
 
-string filePath = "release/tmp/stdlib_xson_case.xson"
+string filePath = "build/test/stdlib_xson_case.xson"
 
 file.delete(filePath)
 

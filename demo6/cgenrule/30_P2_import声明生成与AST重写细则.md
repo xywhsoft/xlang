@@ -1,4 +1,4 @@
-# P2 import 声明生成与 AST 重写细则
+﻿# P2 import 声明生成与 AST 重写细则
 
 本文继续细化 `demo6/src/compile/xl6_imports.c` 的后半部分，覆盖 XAPI export/type 到 xlang extern 声明的生成、生成声明重新解析并合并 AST、命名空间冲突检查，以及 `pkg.symbol` 成员访问重写为内部名称。
 

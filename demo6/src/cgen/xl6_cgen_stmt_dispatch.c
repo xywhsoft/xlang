@@ -431,7 +431,7 @@ static void xl6CgenStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
                 }
             } else if ( ctx->currentReturnType != NULL &&
                         ctx->currentClass == NULL &&
-                        ctx->currentCustom == NULL &&
+                        ctx->currentNativeClass == NULL &&
                         xl6CgenFuncSingleReturnUsesTypedContainerStorage(ctx, ctx->currentReturnFunc) ) {
                 xl6CgenTypedContainerReturnStmt(ctx, ctx->currentReturnType, node->children[0], id);
             } else {

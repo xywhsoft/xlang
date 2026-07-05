@@ -5,7 +5,7 @@ cd /d %~dp0
 call tools\xl6_toolchain_env.bat
 if errorlevel 1 exit /b 1
 
-if not exist release\tmp\tutorial mkdir release\tmp\tutorial
+if not exist build\test\tutorial mkdir build\test\tutorial
 
 echo Checking tutorial examples...
 for %%f in (release\examples\tutorial\*.xl) do (
@@ -42,13 +42,16 @@ for %%f in (
 )
 
 echo Verifying tutorial C export ABI...
-release\xl.exe cgen release\examples\tutorial\11_export_to_c.xl --emit release\tmp\tutorial\11_export_to_c.c --emit-header release\tmp\tutorial\11_export_to_c.h
+release\xl.exe cgen release\examples\tutorial\11_export_to_c.xl --emit build\test\tutorial\11_export_to_c.c --emit-header build\test\tutorial\11_export_to_c.h
 if errorlevel 1 exit /b 1
 
-"%XL6_TCC%" -Irelease\tmp\tutorial %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% release\tmp\tutorial\11_export_to_c.c release\examples\tutorial\host_export.c %XL6_DEFAULT_LINKS% -o release\tmp\tutorial\host_export.exe
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$path='build\test\tutorial\host_export.exe'; for($i=0; $i -lt 20 -and (Test-Path -LiteralPath $path -PathType Leaf); $i++){ Remove-Item -LiteralPath $path -Force -ErrorAction SilentlyContinue; if(Test-Path -LiteralPath $path -PathType Leaf){ Start-Sleep -Milliseconds 250 } }; if(Test-Path -LiteralPath $path -PathType Leaf){ Write-Host 'tutorial host_export.exe is still present before build.'; exit 1 }"
 if errorlevel 1 exit /b 1
 
-release\tmp\tutorial\host_export.exe
+"%XL6_TCC%" -DXL6_EXAMPLE_LINK_EXPORTS -Ibuild\test\tutorial %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\tutorial\11_export_to_c.c release\examples\tutorial\host_export.c %XL6_DEFAULT_LINKS% -o build\test\tutorial\host_export.exe
+if errorlevel 1 exit /b 1
+
+build\test\tutorial\host_export.exe
 if errorlevel 1 exit /b 1
 
 echo Tutorial examples ok.

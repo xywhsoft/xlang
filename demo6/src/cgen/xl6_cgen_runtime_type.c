@@ -223,7 +223,7 @@ static void xl6CgenEmitRuntimeTypeRecordCastHelper(XL6_CgenContext* ctx, const X
     if ( concreteTarget == NULL ||
          !(xl6CgenIsClassType(ctx, concreteTarget) ||
            xl6CgenIsUnionType(ctx, concreteTarget) ||
-           xl6CgenIsCustomType(ctx, concreteTarget)) ) {
+           xl6CgenIsNativeBackedClassType(ctx, concreteTarget)) ) {
         return;
     }
 
@@ -233,7 +233,7 @@ static void xl6CgenEmitRuntimeTypeRecordCastHelper(XL6_CgenContext* ctx, const X
     xl6OutputPrintf(ctx->out, "static %s xl6_runtime_value_as_%s(xvalue value, bool release)\n", cType, cType);
     xl6OutputPuts("{\n", ctx->out);
     xl6OutputPrintf(ctx->out, "    %s result = {0};\n", cType);
-    if ( xl6CgenIsCustomType(ctx, concreteTarget) ) {
+    if ( xl6CgenIsNativeBackedClassType(ctx, concreteTarget) ) {
         xl6OutputPuts("    if (!xl6_runtime_value_as_handle(value, ", ctx->out);
     } else {
         xl6OutputPuts("    if (!xl6_runtime_value_as_record(value, ", ctx->out);
@@ -442,7 +442,7 @@ static void xl6CgenRuntimeTypeAsExpr(XL6_CgenContext* ctx, const XL6_AstNode* no
         return;
     }
 
-    if ( concreteTarget != NULL && xl6CgenIsCustomType(ctx, concreteTarget) ) {
+    if ( concreteTarget != NULL && xl6CgenIsNativeBackedClassType(ctx, concreteTarget) ) {
         cType = xl6CgenTypeName(ctx, concreteTarget);
         xl6OutputPrintf(ctx->out, "xl6_runtime_value_as_%s(", cType);
         xl6CgenExpr(ctx, value);

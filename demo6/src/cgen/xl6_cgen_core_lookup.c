@@ -1,4 +1,6 @@
-static XL6_AstNode* xl6CgenFindCustom(XL6_CgenContext* ctx, const char* name)
+﻿static int xl6CgenClassHasNativeHandle(const XL6_AstNode* classNode);
+
+static XL6_AstNode* xl6CgenFindNativeBackedClass(XL6_CgenContext* ctx, const char* name)
 {
     size_t i;
 
@@ -7,7 +9,9 @@ static XL6_AstNode* xl6CgenFindCustom(XL6_CgenContext* ctx, const char* name)
     }
     for ( i = 0; i < ctx->root->childCount; ++i ) {
         XL6_AstNode* node = ctx->root->children[i];
-        if ( node->kind == XL6_AST_CUSTOM && xl6CTextEquals(node->text, name) ) {
+        if ( node->kind == XL6_AST_CLASS &&
+             xl6CTextEquals(node->text, name) &&
+             xl6CgenClassHasNativeHandle(node) ) {
             return node;
         }
     }
@@ -20,8 +24,8 @@ static const char* xl6CgenLookupCallableName(const XL6_AstNode* node)
         return NULL;
     }
     if ( node->kind == XL6_AST_EXPORT_FUNC ||
-         node->kind == XL6_AST_CUSTOM_EXTERN_SPECIAL ||
-         node->kind == XL6_AST_CUSTOM_EXTERN_FUNC ) {
+         node->kind == XL6_AST_NATIVE_EXTERN_SPECIAL ||
+         node->kind == XL6_AST_NATIVE_EXTERN_FUNC ) {
         const XL6_AstNode* nameNode = node->childCount > 0 ? node->children[0] : NULL;
         return nameNode != NULL ? nameNode->text : NULL;
     }
@@ -60,9 +64,9 @@ static XL6_AstNode* xl6CgenFindUnion(XL6_CgenContext* ctx, const char* name)
     return NULL;
 }
 
-static int xl6CgenIsCustomType(XL6_CgenContext* ctx, const XL6_AstNode* typeNode)
+static int xl6CgenIsNativeBackedClassType(XL6_CgenContext* ctx, const XL6_AstNode* typeNode)
 {
-    return typeNode != NULL && typeNode->text != NULL && xl6CgenFindCustom(ctx, typeNode->text) != NULL;
+    return typeNode != NULL && typeNode->text != NULL && xl6CgenFindNativeBackedClass(ctx, typeNode->text) != NULL;
 }
 
 static int xl6CgenIsClassType(XL6_CgenContext* ctx, const XL6_AstNode* typeNode)
@@ -115,9 +119,7 @@ static const XL6_AstNode* xl6CgenFieldDefaultExpr(const XL6_AstNode* field)
     }
 
     /*
-        字段 child[0] 固定为类型。
-        从 child[1] 开始，可能是默认值，也可能是字段注解。
-    */
+        瀛楁 child[0] 鍥哄畾涓虹被鍨嬨€?        浠?child[1] 寮€濮嬶紝鍙兘鏄粯璁ゅ€硷紝涔熷彲鑳芥槸瀛楁娉ㄨВ銆?    */
     for ( i = 1; i < field->childCount; ++i ) {
         const XL6_AstNode* child = field->children[i];
         if ( child != NULL && child->kind != XL6_AST_FIELD_ATTR ) {
@@ -200,11 +202,11 @@ static int xl6CgenClassHasDerive(const XL6_AstNode* classNode, const char* abili
     return xl6CgenBodyHasDerive(xl6CgenClassBody(classNode), ability);
 }
 
-static int xl6CgenCustomHasDerive(const XL6_AstNode* customNode, const char* ability)
+static int xl6CgenNativeBackedClassHasDerive(const XL6_AstNode* customNode, const char* ability)
 {
     const XL6_AstNode* body;
 
-    body = customNode != NULL && customNode->childCount > 0 ? customNode->children[0] : NULL;
+    body = xl6CgenClassBody(customNode);
     return xl6CgenBodyHasDerive(body, ability);
 }
 
@@ -271,7 +273,7 @@ static const XL6_AstNode* xl6CgenFindClassSpecial(const XL6_AstNode* classNode, 
             return member;
         }
         if ( member != NULL &&
-             member->kind == XL6_AST_CUSTOM_EXTERN_SPECIAL &&
+             member->kind == XL6_AST_NATIVE_EXTERN_SPECIAL &&
              xl6CTextEquals(xl6CgenLookupCallableName(member), name) ) {
             return member;
         }
@@ -291,8 +293,7 @@ static const XL6_AstNode* xl6CgenCallableParams(const XL6_AstNode* node)
     }
 
     /*
-        不同声明节点的参数表位置不同，这里统一成“可调用参数表”。
-        普通 func / custom extern func: child[1]
+        涓嶅悓澹版槑鑺傜偣鐨勫弬鏁拌〃浣嶇疆涓嶅悓锛岃繖閲岀粺涓€鎴愨€滃彲璋冪敤鍙傛暟琛ㄢ€濄€?        鏅€?func / custom extern func: child[1]
         class create: child[0]
         custom extern create/destroy: child[1]
     */
@@ -314,7 +315,7 @@ static const XL6_AstNode* xl6CgenFindClassCreateCallableWithoutArgs(const XL6_As
     for ( i = 0; i < body->childCount; ++i ) {
         const XL6_AstNode* member = body->children[i];
         if ( member != NULL &&
-             (member->kind == XL6_AST_CREATE || member->kind == XL6_AST_CUSTOM_EXTERN_SPECIAL) &&
+             (member->kind == XL6_AST_CREATE || member->kind == XL6_AST_NATIVE_EXTERN_SPECIAL) &&
              xl6CTextEquals(xl6CgenLookupCallableName(member), "create") &&
              xl6CgenParamRequiredCount(xl6CgenCallableParams(member)) == 0 ) {
             return member;
@@ -372,23 +373,24 @@ static int xl6CgenClassIsPureNativeHandle(const XL6_AstNode* classNode)
         }
 
         /*
-            只有纯句柄类使用 handle type-desc。
-            一旦 class 自己携带额外 xlang 字段，就必须保留普通 record 语义。
-        */
+            鍙湁绾彞鏌勭被浣跨敤 handle type-desc銆?            涓€鏃?class 鑷繁鎼哄甫棰濆 xlang 瀛楁锛屽氨蹇呴』淇濈暀鏅€?record 璇箟銆?        */
         return 0;
     }
     return hasHandle;
 }
 
-static const XL6_AstNode* xl6CgenFindCustomMember(const XL6_AstNode* customNode, XL6_AstKind kind, const char* name)
+static const XL6_AstNode* xl6CgenFindNativeBackedClassMember(const XL6_AstNode* customNode, XL6_AstKind kind, const char* name)
 {
     const XL6_AstNode* body;
     size_t i;
 
-    if ( customNode == NULL || customNode->childCount == 0 || name == NULL ) {
+    if ( customNode == NULL || name == NULL ) {
         return NULL;
     }
-    body = customNode->children[0];
+    body = xl6CgenClassBody(customNode);
+    if ( body == NULL ) {
+        return NULL;
+    }
     for ( i = 0; i < body->childCount; ++i ) {
         const XL6_AstNode* member = body->children[i];
         const XL6_AstNode* nameNode;
@@ -403,14 +405,14 @@ static const XL6_AstNode* xl6CgenFindCustomMember(const XL6_AstNode* customNode,
     return NULL;
 }
 
-static const XL6_AstNode* xl6CgenFindCustomSpecial(const XL6_AstNode* customNode, const char* name)
+static const XL6_AstNode* xl6CgenFindNativeBackedClassSpecial(const XL6_AstNode* customNode, const char* name)
 {
-    return xl6CgenFindCustomMember(customNode, XL6_AST_CUSTOM_EXTERN_SPECIAL, name);
+    return xl6CgenFindNativeBackedClassMember(customNode, XL6_AST_NATIVE_EXTERN_SPECIAL, name);
 }
 
-static const XL6_AstNode* xl6CgenFindCustomExternFunc(const XL6_AstNode* customNode, const char* name)
+static const XL6_AstNode* xl6CgenFindNativeBackedClassExternFunc(const XL6_AstNode* customNode, const char* name)
 {
-    return xl6CgenFindCustomMember(customNode, XL6_AST_CUSTOM_EXTERN_FUNC, name);
+    return xl6CgenFindNativeBackedClassMember(customNode, XL6_AST_NATIVE_EXTERN_FUNC, name);
 }
 
 static int xl6CgenIsExternalVarDecl(const XL6_AstNode* node)

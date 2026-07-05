@@ -1,4 +1,5 @@
 #include "src/abi/xl6_xapi_dump.h"
+#include "src/abi/xl6_abi_json.h"
 
 #include "src/abi/xl6_callable.h"
 #include "src/common/xl6_common.h"
@@ -9,67 +10,6 @@
 static int xl6XapiTextEquals(const char* a, const char* b)
 {
     return a != NULL && b != NULL && strcmp(a, b) == 0;
-}
-
-static void xl6XapiJsonEscapedRange(XL6_Output* out, const char* text, size_t len)
-{
-    size_t i;
-
-    if ( out == NULL || text == NULL ) {
-        return;
-    }
-    for ( i = 0; i < len; ++i ) {
-        unsigned char ch = (unsigned char)text[i];
-        if ( ch == '"' ) {
-            xl6OutputPuts("\\\"", out);
-        } else if ( ch == '\\' ) {
-            xl6OutputPuts("\\\\", out);
-        } else if ( ch == '\b' ) {
-            xl6OutputPuts("\\b", out);
-        } else if ( ch == '\f' ) {
-            xl6OutputPuts("\\f", out);
-        } else if ( ch == '\n' ) {
-            xl6OutputPuts("\\n", out);
-        } else if ( ch == '\r' ) {
-            xl6OutputPuts("\\r", out);
-        } else if ( ch == '\t' ) {
-            xl6OutputPuts("\\t", out);
-        } else if ( ch < 0x20 ) {
-            xl6OutputPrintf(out, "\\u%04X", (unsigned)ch);
-        } else {
-            xl6OutputPutc((int)ch, out);
-        }
-    }
-}
-
-static void xl6XapiJsonEscaped(XL6_Output* out, const char* text)
-{
-    if ( text != NULL ) {
-        xl6XapiJsonEscapedRange(out, text, strlen(text));
-    }
-}
-
-static void xl6XapiJsonString(XL6_Output* out, const char* text)
-{
-    xl6OutputPutc('"', out);
-    xl6XapiJsonEscaped(out, text);
-    xl6OutputPutc('"', out);
-}
-
-static void xl6XapiJsonCStringSymbol(XL6_Output* out, const char* text)
-{
-    size_t len;
-
-    xl6OutputPutc('"', out);
-    if ( text != NULL ) {
-        len = strlen(text);
-        if ( len >= 2 && (text[0] == '"' || text[0] == '\'') ) {
-            xl6XapiJsonEscapedRange(out, text + 1, len - 2);
-        } else {
-            xl6XapiJsonEscapedRange(out, text, len);
-        }
-    }
-    xl6OutputPutc('"', out);
 }
 
 static int xl6XapiIsTypeAliasDecl(const XL6_AstNode* node)
@@ -154,7 +94,7 @@ static void xl6XapiDumpTypeJsonBody(XL6_Output* out, const XL6_AstNode* root, co
         return;
     }
 
-    xl6XapiJsonEscaped(out, typeNode->text);
+    xl6AbiJsonEscaped(out, typeNode->text);
     if ( typeNode->childCount == 0 ) {
         return;
     }
@@ -193,7 +133,6 @@ static int xl6XapiIsTopLevelRuntimeStmt(const XL6_AstNode* node)
            node->kind != XL6_AST_EXPORT_CONST &&
            node->kind != XL6_AST_TYPE_ALIAS &&
            node->kind != XL6_AST_EXTERN_TYPE_ALIAS &&
-           node->kind != XL6_AST_CUSTOM &&
            node->kind != XL6_AST_UNION &&
            node->kind != XL6_AST_CLASS;
 }
@@ -266,12 +205,12 @@ static void xl6XapiDumpParams(XL6_Output* out, const XL6_AstNode* root, const XL
                 xl6OutputPutc(',', out);
             }
             xl6OutputPuts("{\"name\":", out);
-            xl6XapiJsonString(out, param != NULL && param->text != NULL ? param->text : "");
+            xl6AbiJsonString(out, param != NULL && param->text != NULL ? param->text : "");
             xl6OutputPuts(",\"type\":", out);
             if ( param != NULL && param->childCount > 0 ) {
                 xl6XapiDumpTypeJsonString(out, root, param->children[0]);
             } else {
-                xl6XapiJsonString(out, "<missing-type>");
+                xl6AbiJsonString(out, "<missing-type>");
             }
             xl6OutputPutc('}', out);
         }
@@ -311,9 +250,9 @@ static void xl6XapiDumpExportFunc(XL6_Output* out, const XL6_AstNode* root, cons
     returns = node->childCount > 2 ? node->children[2] : NULL;
 
     xl6OutputPuts("    {\"kind\":\"function\",\"name\":", out);
-    xl6XapiJsonString(out, nameNode != NULL ? nameNode->text : "");
+    xl6AbiJsonString(out, nameNode != NULL ? nameNode->text : "");
     xl6OutputPuts(",\"cSymbol\":", out);
-    xl6XapiJsonCStringSymbol(out, node->text);
+    xl6AbiJsonCStringSymbol(out, node->text);
     xl6OutputPuts(",\"params\":", out);
     xl6XapiDumpParams(out, root, params);
     xl6OutputPuts(",\"returns\":", out);
@@ -333,11 +272,11 @@ static void xl6XapiDumpExportVar(XL6_Output* out, const XL6_AstNode* root, const
     typeNode = node->childCount > 1 ? node->children[1] : NULL;
 
     xl6OutputPuts("    {\"kind\":", out);
-    xl6XapiJsonString(out, node->kind == XL6_AST_EXPORT_CONST ? "const" : "var");
+    xl6AbiJsonString(out, node->kind == XL6_AST_EXPORT_CONST ? "const" : "var");
     xl6OutputPuts(",\"name\":", out);
-    xl6XapiJsonString(out, nameNode != NULL ? nameNode->text : "");
+    xl6AbiJsonString(out, nameNode != NULL ? nameNode->text : "");
     xl6OutputPuts(",\"cSymbol\":", out);
-    xl6XapiJsonCStringSymbol(out, node->text);
+    xl6AbiJsonCStringSymbol(out, node->text);
     xl6OutputPuts(",\"type\":", out);
     xl6XapiDumpTypeJsonString(out, root, typeNode);
     xl6OutputPutc('}', out);
@@ -349,9 +288,9 @@ static void xl6XapiDumpTypeDecl(XL6_Output* out, const XL6_AstNode* node, int co
         xl6OutputPuts(",\n", out);
     }
     xl6OutputPuts("    {\"kind\":", out);
-    xl6XapiJsonString(out, node->kind == XL6_AST_CUSTOM ? "custom" : (node->kind == XL6_AST_UNION ? "union" : "class"));
+    xl6AbiJsonString(out, node->kind == XL6_AST_UNION ? "union" : "class");
     xl6OutputPuts(",\"name\":", out);
-    xl6XapiJsonString(out, node->text != NULL ? node->text : "");
+    xl6AbiJsonString(out, node->text != NULL ? node->text : "");
     xl6OutputPutc('}', out);
 }
 
@@ -369,10 +308,10 @@ static void xl6XapiDumpImport(XL6_Output* out, const XL6_AstNode* node, int comm
     if ( len >= 2 && ((target[0] == '"' && target[len - 1] == '"') ||
                       (target[0] == '\'' && target[len - 1] == '\'')) ) {
         xl6OutputPutc('"', out);
-        xl6XapiJsonEscapedRange(out, target + 1, len - 2);
+        xl6AbiJsonEscapedRange(out, target + 1, len - 2);
         xl6OutputPutc('"', out);
     } else {
-        xl6XapiJsonString(out, target);
+        xl6AbiJsonString(out, target);
     }
     xl6OutputPuts(",\"mode\":\"package-or-path\"}", out);
 }
@@ -616,7 +555,7 @@ static void xl6XapiDocDumpDedentedString(XL6_Output* out, const char* text)
     int hasContent;
 
     if ( text == NULL ) {
-        xl6XapiJsonString(out, "");
+        xl6AbiJsonString(out, "");
         return;
     }
 
@@ -668,7 +607,7 @@ static void xl6XapiDocDumpDedentedString(XL6_Output* out, const char* text)
         if ( lineEnd > line && lineEnd[-1] == '\r' ) {
             lineEnd -= 1;
         }
-        xl6XapiJsonEscapedRange(out, line, (size_t)(lineEnd - line));
+        xl6AbiJsonEscapedRange(out, line, (size_t)(lineEnd - line));
         if ( *p == '\n' ) {
             p += 1;
             if ( *p != '\0' ) {
@@ -695,10 +634,10 @@ static void xl6XapiDocDumpField(
     }
     *first = 0;
     xl6OutputPuts("{\"kind\":", out);
-    xl6XapiJsonString(out, kind);
+    xl6AbiJsonString(out, kind);
     if ( name != NULL ) {
         xl6OutputPuts(",\"name\":\"", out);
-        xl6XapiJsonEscapedRange(out, name, nameLen);
+        xl6AbiJsonEscapedRange(out, name, nameLen);
         xl6OutputPutc('"', out);
     }
     xl6OutputPuts(",\"text\":", out);
@@ -717,7 +656,7 @@ static void xl6XapiDumpDocJson(XL6_Output* out, const char* raw)
     int first;
 
     xl6OutputPuts("{\"raw\":", out);
-    xl6XapiJsonString(out, raw != NULL ? raw : "");
+    xl6AbiJsonString(out, raw != NULL ? raw : "");
     xl6OutputPuts(",\"fields\":[", out);
     if ( raw == NULL ) {
         xl6OutputPuts("]}", out);
@@ -1470,7 +1409,7 @@ int xl6XapiModuleBuild(XL6_XapiModule* module, const XL6_AstNode* root, const ch
             }
             if ( child->kind == XL6_AST_EXPORT_FUNC || child->kind == XL6_AST_EXPORT_VAR || child->kind == XL6_AST_EXPORT_CONST ) {
                 exportCount += 1;
-            } else if ( child->kind == XL6_AST_CLASS || child->kind == XL6_AST_CUSTOM || child->kind == XL6_AST_UNION ) {
+            } else if ( child->kind == XL6_AST_CLASS || child->kind == XL6_AST_UNION ) {
                 typeCount += 1;
                 if ( child->kind == XL6_AST_CLASS ) {
                     exportCount += xl6XapiCountClassExportFuncs(child);
@@ -1514,8 +1453,8 @@ int xl6XapiModuleBuild(XL6_XapiModule* module, const XL6_AstNode* root, const ch
                     return 0;
                 }
                 exportIndex += 1;
-            } else if ( child->kind == XL6_AST_CLASS || child->kind == XL6_AST_CUSTOM || child->kind == XL6_AST_UNION ) {
-                module->types[typeIndex].kind = xl6XapiDupText(child->kind == XL6_AST_CUSTOM ? "custom" : (child->kind == XL6_AST_UNION ? "union" : "class"));
+            } else if ( child->kind == XL6_AST_CLASS || child->kind == XL6_AST_UNION ) {
+                module->types[typeIndex].kind = xl6XapiDupText(child->kind == XL6_AST_UNION ? "union" : "class");
                 module->types[typeIndex].name = xl6XapiDupText(child->text != NULL ? child->text : "");
                 module->types[typeIndex].doc = child->doc != NULL ? xl6XapiDupText(child->doc) : NULL;
                 if ( module->types[typeIndex].kind == NULL ||
@@ -1606,7 +1545,7 @@ static void xl6XapiDumpStringArray(XL6_Output* out, char** items, size_t count)
         if ( i > 0 ) {
             xl6OutputPutc(',', out);
         }
-        xl6XapiJsonString(out, items[i]);
+        xl6AbiJsonString(out, items[i]);
     }
     xl6OutputPutc(']', out);
 }
@@ -1624,22 +1563,22 @@ void xl6XapiDumpJsonModule(XL6_Output* out, const XL6_XapiModule* module)
     xl6OutputPuts("  \"compiler\":{\"name\":\"xl\",\"version\":\"demo6\",\"xlangAbi\":1,\"xrtAbi\":1},\n", out);
     xl6OutputPuts("  \"target\":{\"os\":\"windows\",\"arch\":\"x64\",\"callingConvention\":\"cdecl\"},\n", out);
     xl6OutputPuts("  \"package\":{\"name\":", out);
-    xl6XapiJsonString(out, module != NULL ? module->packageName : "app");
+    xl6AbiJsonString(out, module != NULL ? module->packageName : "app");
     xl6OutputPuts(",\"version\":", out);
-    xl6XapiJsonString(out, module != NULL ? module->packageVersion : "0.0.0");
+    xl6AbiJsonString(out, module != NULL ? module->packageVersion : "0.0.0");
     xl6OutputPuts(",\"abiVersion\":", out);
-    xl6XapiJsonString(out, module != NULL ? module->packageAbiVersion : "1");
+    xl6AbiJsonString(out, module != NULL ? module->packageAbiVersion : "1");
     xl6OutputPuts(",\"packageId\":", out);
-    xl6XapiJsonString(out, module != NULL ? module->packageId : "app@0.0.0#abi1");
+    xl6AbiJsonString(out, module != NULL ? module->packageId : "app@0.0.0#abi1");
     xl6OutputPuts("},\n", out);
     xl6OutputPuts("  \"module\":{\"name\":", out);
-    xl6XapiJsonString(out, module != NULL ? module->name : "app");
+    xl6AbiJsonString(out, module != NULL ? module->name : "app");
     xl6OutputPuts(",\"moduleId\":", out);
-    xl6XapiJsonString(out, module != NULL ? module->moduleId : "app@0.0.0#abi1::app");
+    xl6AbiJsonString(out, module != NULL ? module->moduleId : "app@0.0.0#abi1::app");
     xl6OutputPuts(",\"source\":", out);
-    xl6XapiJsonString(out, module != NULL ? module->source : "");
+    xl6AbiJsonString(out, module != NULL ? module->source : "");
     xl6OutputPuts(",\"sourceHash\":", out);
-    xl6XapiJsonString(out, module != NULL ? module->sourceHash : "");
+    xl6AbiJsonString(out, module != NULL ? module->sourceHash : "");
     xl6OutputPuts("},\n", out);
     xl6XapiDumpEntryModule(out, module);
     xl6OutputPuts(",\n", out);
@@ -1652,26 +1591,26 @@ void xl6XapiDumpJsonModule(XL6_Output* out, const XL6_XapiModule* module)
                 xl6OutputPuts(",\n", out);
             }
             xl6OutputPuts("    {\"kind\":", out);
-            xl6XapiJsonString(out, item->kind);
+            xl6AbiJsonString(out, item->kind);
             xl6OutputPuts(",\"name\":", out);
-            xl6XapiJsonString(out, item->name);
+            xl6AbiJsonString(out, item->name);
             if ( item->owner != NULL && item->owner[0] != '\0' ) {
                 xl6OutputPuts(",\"owner\":", out);
-                xl6XapiJsonString(out, item->owner);
+                xl6AbiJsonString(out, item->owner);
             }
             xl6OutputPuts(",\"cSymbol\":", out);
-            xl6XapiJsonString(out, item->cSymbol);
+            xl6AbiJsonString(out, item->cSymbol);
             if ( item->signature != NULL ) {
                 xl6OutputPuts(",\"signature\":", out);
-                xl6XapiJsonString(out, item->signature);
+                xl6AbiJsonString(out, item->signature);
             }
             if ( item->exportId != NULL ) {
                 xl6OutputPuts(",\"exportId\":", out);
-                xl6XapiJsonString(out, item->exportId);
+                xl6AbiJsonString(out, item->exportId);
             }
             if ( item->type != NULL ) {
                 xl6OutputPuts(",\"type\":", out);
-                xl6XapiJsonString(out, item->type);
+                xl6AbiJsonString(out, item->type);
             }
             if ( item->doc != NULL ) {
                 xl6OutputPuts(",\"doc\":", out);
@@ -1681,9 +1620,9 @@ void xl6XapiDumpJsonModule(XL6_Output* out, const XL6_XapiModule* module)
                  xl6XapiTextEquals(item->kind, "function") ||
                  xl6XapiTextEquals(item->kind, "class_method") ) {
                 xl6OutputPuts(",\"callingConvention\":", out);
-                xl6XapiJsonString(out, item->callingConvention);
+                xl6AbiJsonString(out, item->callingConvention);
                 xl6OutputPuts(",\"varargMode\":", out);
-                xl6XapiJsonString(out, item->varargMode);
+                xl6AbiJsonString(out, item->varargMode);
                 xl6OutputPrintf(out, ",\"requiredParamCount\":%d,\"fixedParamCount\":%d",
                         item->requiredParamCount,
                         item->fixedParamCount);
@@ -1693,9 +1632,9 @@ void xl6XapiDumpJsonModule(XL6_Output* out, const XL6_XapiModule* module)
                         xl6OutputPutc(',', out);
                     }
                     xl6OutputPuts("{\"name\":", out);
-                    xl6XapiJsonString(out, item->params[j].name);
+                    xl6AbiJsonString(out, item->params[j].name);
                     xl6OutputPuts(",\"type\":", out);
-                    xl6XapiJsonString(out, item->params[j].type);
+                    xl6AbiJsonString(out, item->params[j].type);
                     xl6OutputPuts(",\"optional\":", out);
                     xl6OutputPuts(item->params[j].optional ? "true" : "false", out);
                     xl6OutputPuts(",\"vararg\":", out);
@@ -1708,7 +1647,7 @@ void xl6XapiDumpJsonModule(XL6_Output* out, const XL6_XapiModule* module)
                         xl6OutputPutc(',', out);
                     }
                     xl6OutputPuts("{\"type\":", out);
-                    xl6XapiJsonString(out, item->returns[j]);
+                    xl6AbiJsonString(out, item->returns[j]);
                     xl6OutputPutc('}', out);
                 }
                 xl6OutputPutc(']', out);
@@ -1728,12 +1667,12 @@ void xl6XapiDumpJsonModule(XL6_Output* out, const XL6_XapiModule* module)
                 xl6OutputPuts(",\n", out);
             }
             xl6OutputPuts("    {\"kind\":", out);
-            xl6XapiJsonString(out, module->types[i].kind);
+            xl6AbiJsonString(out, module->types[i].kind);
             xl6OutputPuts(",\"name\":", out);
-            xl6XapiJsonString(out, module->types[i].name);
+            xl6AbiJsonString(out, module->types[i].name);
             if ( module->types[i].base != NULL && module->types[i].base[0] != '\0' ) {
                 xl6OutputPuts(",\"base\":", out);
-                xl6XapiJsonString(out, module->types[i].base);
+                xl6AbiJsonString(out, module->types[i].base);
             }
             if ( module->types[i].typeParamCount > 0 ) {
                 xl6OutputPuts(",\"typeParams\":[", out);
@@ -1741,7 +1680,7 @@ void xl6XapiDumpJsonModule(XL6_Output* out, const XL6_XapiModule* module)
                     if ( j > 0 ) {
                         xl6OutputPutc(',', out);
                     }
-                    xl6XapiJsonString(out, module->types[i].typeParams[j]);
+                    xl6AbiJsonString(out, module->types[i].typeParams[j]);
                 }
                 xl6OutputPutc(']', out);
             }
@@ -1757,11 +1696,11 @@ void xl6XapiDumpJsonModule(XL6_Output* out, const XL6_XapiModule* module)
                         xl6OutputPutc(',', out);
                     }
                     xl6OutputPuts("{\"name\":", out);
-                    xl6XapiJsonString(out, field->name);
+                    xl6AbiJsonString(out, field->name);
                     xl6OutputPuts(",\"type\":", out);
-                    xl6XapiJsonString(out, field->type);
+                    xl6AbiJsonString(out, field->type);
                     xl6OutputPuts(",\"storage\":", out);
-                    xl6XapiJsonString(out, field->storage);
+                    xl6AbiJsonString(out, field->storage);
                     if ( field->doc != NULL ) {
                         xl6OutputPuts(",\"doc\":", out);
                         xl6XapiDumpDocJson(out, field->doc);
@@ -1785,19 +1724,19 @@ void xl6XapiDumpJsonModule(XL6_Output* out, const XL6_XapiModule* module)
                 xl6OutputPuts(",\n", out);
             }
             xl6OutputPuts("    {\"target\":", out);
-            xl6XapiJsonString(out, module->imports[i].target);
+            xl6AbiJsonString(out, module->imports[i].target);
             xl6OutputPuts(",\"mode\":", out);
-            xl6XapiJsonString(out, module->imports[i].mode);
+            xl6AbiJsonString(out, module->imports[i].mode);
             xl6OutputPuts(",\"resolved\":", out);
             xl6OutputPuts(module->imports[i].resolved ? "true" : "false", out);
             xl6OutputPuts(",\"resolvedKind\":", out);
-            xl6XapiJsonString(out, module->imports[i].resolvedKind);
+            xl6AbiJsonString(out, module->imports[i].resolvedKind);
             xl6OutputPuts(",\"manifest\":", out);
-            xl6XapiJsonString(out, module->imports[i].manifestPath);
+            xl6AbiJsonString(out, module->imports[i].manifestPath);
             xl6OutputPuts(",\"interface\":", out);
-            xl6XapiJsonString(out, module->imports[i].interfacePath);
+            xl6AbiJsonString(out, module->imports[i].interfacePath);
             xl6OutputPuts(",\"packageId\":", out);
-            xl6XapiJsonString(out, module->imports[i].packageId);
+            xl6AbiJsonString(out, module->imports[i].packageId);
             xl6OutputPutc('}', out);
         }
         if ( module->importCount > 0 ) {
@@ -1817,9 +1756,9 @@ void xl6XapiDumpJsonModule(XL6_Output* out, const XL6_XapiModule* module)
     xl6OutputPuts("  \"native\":{\"singleton\":", out);
     xl6OutputPuts(module != NULL && module->nativeSingleton ? "true" : "false", out);
     xl6OutputPuts(",\"loadName\":", out);
-    xl6XapiJsonString(out, module != NULL ? module->nativeLoadName : "");
+    xl6AbiJsonString(out, module != NULL ? module->nativeLoadName : "");
     xl6OutputPuts(",\"version\":", out);
-    xl6XapiJsonString(out, module != NULL ? module->nativeVersion : "");
+    xl6AbiJsonString(out, module != NULL ? module->nativeVersion : "");
     xl6OutputPuts("},\n", out);
     xl6OutputPuts("  \"docs\":[]\n", out);
     xl6OutputPuts("}\n", out);

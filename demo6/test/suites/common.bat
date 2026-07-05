@@ -19,12 +19,12 @@ if defined XL6_NEED_BUILD (
 )
 
 if "%XL6_SUITE_CLEAR_TMP%"=="1" (
-    if exist release\tmp (
-        powershell -NoProfile -ExecutionPolicy Bypass -File tools\clear_release_tmp_files.ps1 release\tmp
+    if exist build\test (
+        powershell -NoProfile -ExecutionPolicy Bypass -File tools\clear_release_tmp_files.ps1 build\test
         if errorlevel 1 exit /b 1
     )
 )
-if not exist release\tmp mkdir release\tmp
+if not exist build\test mkdir build\test
 
 call tools\bootstrap_tcc.bat
 if errorlevel 1 exit /b 1

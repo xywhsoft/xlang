@@ -1,14 +1,14 @@
 extern "expect_i64" func expect(int actual, int expected)
 extern "expect_str" func expectStr(string actual, string expected)
 
-string missingFile = "release/tmp/stdlib_missing_file.txt"
-string missingCopy = "release/tmp/stdlib_missing_copy.txt"
-string missingMove = "release/tmp/stdlib_missing_move.txt"
-string missingDir = "release/tmp/stdlib_missing_dir"
-string missingDirCopy = "release/tmp/stdlib_missing_dir_copy"
-string missingDirMove = "release/tmp/stdlib_missing_dir_move"
-string badJson = "release/tmp/stdlib_bad.json"
-string badXson = "release/tmp/stdlib_bad.xson"
+string missingFile = "build/test/stdlib_missing_file.txt"
+string missingCopy = "build/test/stdlib_missing_copy.txt"
+string missingMove = "build/test/stdlib_missing_move.txt"
+string missingDir = "build/test/stdlib_missing_dir"
+string missingDirCopy = "build/test/stdlib_missing_dir_copy"
+string missingDirMove = "build/test/stdlib_missing_dir_move"
+string badJson = "build/test/stdlib_bad.json"
+string badXson = "build/test/stdlib_bad.xson"
 
 file.delete(missingFile)
 file.delete(missingCopy)
@@ -39,7 +39,7 @@ expect(missingDirs.length, 0)
 
 var invalidJson = json.parse("{")
 expect(type(invalidJson) == null, 1)
-expect(json.write("release/tmp/stdlib_missing_dir/out.json", {"a": 1}), 0)
+expect(json.write("build/test/stdlib_missing_dir/out.json", {"a": 1}), 0)
 expect(file.writeText(badJson, "{"), 1)
 var invalidJsonFile = json.read(badJson)
 expect(type(invalidJsonFile) == null, 1)
@@ -47,7 +47,7 @@ expect(file.delete(badJson), 1)
 
 var invalidXson = xson.parse("{")
 expect(type(invalidXson) == null, 1)
-expect(xson.write("release/tmp/stdlib_missing_dir/out.xson", {"a": 1}), 0)
+expect(xson.write("build/test/stdlib_missing_dir/out.xson", {"a": 1}), 0)
 expect(file.writeText(badXson, "{"), 1)
 var invalidXsonFile = xson.read(badXson)
 expect(type(invalidXsonFile) == null, 1)

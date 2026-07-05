@@ -1,4 +1,4 @@
-# P2 DLL/API 动态执行细则
+﻿# P2 DLL/API 动态执行细则
 
 本文细化 `demo6/src/api/xl_api.c` 与 `demo6/release/include/xl.h`。这条链路用于 `xl.dll`/嵌入式场景：创建语言上下文、运行字符串或文件脚本、编译脚本为 exe、注册宿主 C 函数，并把当前进程内的 XRT 和运行时符号注入 TCC。
 
@@ -211,7 +211,7 @@
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | `xlDefaultContextOptions()` |
-| 生成规则描述 | 默认 size/version 填当前 API；workDir 为 `.`，tempDir 为 `release\tmp`，保留字段 tccDllPath 为空，tccLibPath 为空，saveTemps 为 0。创建 context 时若 tccLibPath 仍为空，则按 `XL6_TCC_ROOT` 环境变量或 `XL6_TCC_ROOT_PATH` 默认值补齐。当前发布构建静态链接 libtcc，因此 tccDllPath 不作为加载路径使用。 |
+| 生成规则描述 | 默认 size/version 填当前 API；workDir 为 `.`，tempDir 为 `build\test`，保留字段 tccDllPath 为空，tccLibPath 为空，saveTemps 为 0。创建 context 时若 tccLibPath 仍为空，则按 `XL6_TCC_ROOT` 环境变量或 `XL6_TCC_ROOT_PATH` 默认值补齐。当前发布构建静态链接 libtcc，因此 tccDllPath 不作为加载路径使用。 |
 | 生成器文件名和行号 | `demo6/src/api/xl_api.c:1441` |
 | 对应生成的 C 代码 | 不生成 C；影响后续 TCC 和路径解析。 |
 | 中间形态伪代码 | `options = defaults(API_VERSION)` |

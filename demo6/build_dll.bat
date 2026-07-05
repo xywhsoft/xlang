@@ -6,9 +6,11 @@ set XL6_ROOT=%CD%
 call tools\xl6_toolchain_env.bat
 if errorlevel 1 exit /b 1
 set "XL6_DLL_LINKS="%XL6_TCC_LIBTCC1%" -lWs2_32 -lIPHLPAPI -lShell32"
+set "XL6_BUILD_TMP=build\tmp"
 
 if not exist release mkdir release
-if not exist release\tmp mkdir release\tmp
+if not exist build mkdir build
+if not exist "%XL6_BUILD_TMP%" mkdir "%XL6_BUILD_TMP%"
 
 call tools\bootstrap_tcc.bat
 if errorlevel 1 exit /b 1
@@ -62,7 +64,7 @@ if "%XL6_REGEN_GRAMMAR%"=="1" (
 )
 
 echo Building embedded TCC VFS LZMA packer...
-"%XL6_TCC%" -std=c11 -Wall -D_CRT_SECURE_NO_WARNINGS -DZ7_ST -Ilib\lzma %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% -o release\tmp\tcc_vfs_lzma_pack.exe ^
+"%XL6_TCC%" -std=c11 -Wall -D_CRT_SECURE_NO_WARNINGS -DZ7_ST -Ilib\lzma %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% -o "%XL6_BUILD_TMP%\tcc_vfs_lzma_pack.exe" ^
     tools\tcc_vfs_lzma_pack.c ^
     lib\lzma\LzmaEnc.c ^
     lib\lzma\LzFind.c ^
@@ -74,14 +76,14 @@ if errorlevel 1 (
 )
 
 echo Generating runtime embedded TCC VFS resources...
-powershell -NoProfile -ExecutionPolicy Bypass -File tools\gen_tcc_vfs_resources.ps1 -Root "%XL6_ROOT%" -Manifest tools\tcc_vfs_manifest_win64_runtime.txt -Output release\tmp\tcc_builtin_resources_runtime.c -TccDist "%XL6_EMBED_TCC_DIST_X64%" -XrtObj "%XL6_XRT_OBJ%"
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\gen_tcc_vfs_resources.ps1 -Root "%XL6_ROOT%" -Manifest tools\tcc_vfs_manifest_win64_runtime.txt -Output "%XL6_BUILD_TMP%\tcc_builtin_resources_runtime.c" -TccDist "%XL6_EMBED_TCC_DIST_X64%" -XrtObj "%XL6_XRT_OBJ%" -PackTool "%XL6_BUILD_TMP%\tcc_vfs_lzma_pack.exe"
 if errorlevel 1 (
     echo DEMO6 runtime embedded TCC VFS resource generation failed.
     exit /b 1
 )
 
 echo Generating compiler embedded TCC VFS resources...
-powershell -NoProfile -ExecutionPolicy Bypass -File tools\gen_tcc_vfs_resources.ps1 -Root "%XL6_ROOT%" -Manifest tools\tcc_vfs_manifest_win64_xlc.txt -Output release\tmp\tcc_builtin_resources.c -TccDist "%XL6_EMBED_TCC_DIST_X64%" -XrtObj "%XL6_XRT_OBJ%"
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\gen_tcc_vfs_resources.ps1 -Root "%XL6_ROOT%" -Manifest tools\tcc_vfs_manifest_win64_xlc.txt -Output "%XL6_BUILD_TMP%\tcc_builtin_resources.c" -TccDist "%XL6_EMBED_TCC_DIST_X64%" -XrtObj "%XL6_XRT_OBJ%" -PackTool "%XL6_BUILD_TMP%\tcc_vfs_lzma_pack.exe"
 if errorlevel 1 (
     echo DEMO6 compiler embedded TCC VFS resource generation failed.
     exit /b 1
@@ -96,7 +98,8 @@ echo Building DEMO6 xl.dll runtime...
     "%XL6_EMBED_TCC_SOURCE_ROOT%\tcc_builtin_vfs.c" ^
     "%XL6_EMBED_TCC_SOURCE_ROOT%\tcc_utf8_io.c" ^
     lib\lzma\LzmaDec.c ^
-    release\tmp\tcc_builtin_resources_runtime.c ^
+    "%XL6_BUILD_TMP%\tcc_builtin_resources_runtime.c" ^
+    src\abi\xl6_abi_json.c ^
     src\abi\xl6_callable.c ^
     src\abi\xl6_xapi_dump.c ^
     src\abi\xl6_xapi_load.c ^
@@ -121,6 +124,7 @@ echo Building DEMO6 xl.dll runtime...
     src\parser\xl6_parser_api.c ^
     src\package\xl6_package.c ^
     src\stdlib\xl6_stdlib.c ^
+    src\stdlib\xl6_stdlib_data.c ^
     src\type\xl6_type_model.c ^
     src\sem\xl6_protocol.c ^
     src\sem\xl6_type_registry.c ^
@@ -150,8 +154,9 @@ echo Building DEMO6 xlc.dll compiler runtime...
     "%XL6_EMBED_TCC_SOURCE_ROOT%\tcc_builtin_vfs.c" ^
     "%XL6_EMBED_TCC_SOURCE_ROOT%\tcc_utf8_io.c" ^
     lib\lzma\LzmaDec.c ^
-    release\tmp\tcc_builtin_resources.c ^
+    "%XL6_BUILD_TMP%\tcc_builtin_resources.c" ^
     src\abi\xl6_abi_dump.c ^
+    src\abi\xl6_abi_json.c ^
     src\abi\xl6_callable.c ^
     src\abi\xl6_xapi_dump.c ^
     src\abi\xl6_xapi_load.c ^
@@ -178,6 +183,7 @@ echo Building DEMO6 xlc.dll compiler runtime...
     src\parser\xl6_parser_api.c ^
     src\package\xl6_package.c ^
     src\stdlib\xl6_stdlib.c ^
+    src\stdlib\xl6_stdlib_data.c ^
     src\type\xl6_type_model.c ^
     src\sem\xl6_protocol.c ^
     src\sem\xl6_type_registry.c ^
@@ -197,22 +203,22 @@ if errorlevel 1 (
 )
 
 echo Building xl.dll dependency fixtures...
-"%XL6_TCC%" %XL6_TCC_INCLUDES% -DXL6_EXAMPLE_NO_STANDALONE_MAIN -c release\examples\xl_dll_link_host.c -o release\tmp\xl_dll_link_host.o
+"%XL6_TCC%" %XL6_TCC_INCLUDES% -DXL6_EXAMPLE_NO_STANDALONE_MAIN -c release\examples\xl_dll_link_host.c -o "%XL6_BUILD_TMP%\xl_dll_link_host.o"
 if errorlevel 1 (
     echo DEMO6 xl.dll static dependency fixture build failed.
     exit /b 1
 )
-"%XL6_TCC%" -ar rcs release\tmp\libxl6dlllink.a release\tmp\xl_dll_link_host.o
+"%XL6_TCC%" -ar rcs "%XL6_BUILD_TMP%\libxl6dlllink.a" "%XL6_BUILD_TMP%\xl_dll_link_host.o"
 if errorlevel 1 (
     echo DEMO6 xl.dll static dependency fixture archive failed.
     exit /b 1
 )
-"%XL6_TCC%" -shared %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% -DXL6_EXAMPLE_NO_STANDALONE_MAIN release\examples\xl_dll_loadlib_host.c -o release\tmp\xl_dll_loadlib_host.dll
+"%XL6_TCC%" -shared %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% -DXL6_EXAMPLE_NO_STANDALONE_MAIN release\examples\xl_dll_loadlib_host.c -o "%XL6_BUILD_TMP%\xl_dll_loadlib_host.dll"
 if errorlevel 1 (
     echo DEMO6 xl.dll loadlib dependency fixture build failed.
     exit /b 1
 )
-"%XL6_TCC%" -impdef release\tmp\xl_dll_loadlib_host.dll -o release\tmp\xl_dll_loadlib_host.def
+"%XL6_TCC%" -impdef "%XL6_BUILD_TMP%\xl_dll_loadlib_host.dll" -o "%XL6_BUILD_TMP%\xl_dll_loadlib_host.def"
 if errorlevel 1 (
     echo DEMO6 xl.dll loadlib dependency fixture import definition failed.
     exit /b 1

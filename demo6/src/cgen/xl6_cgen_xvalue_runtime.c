@@ -440,7 +440,7 @@ static void xl6CgenEmitXValueRuntime(XL6_CgenContext* ctx)
     xl6OutputPuts("#define XL6_XVO_DT_COLL 10\n", out);
     xl6OutputPuts("#define XL6_XVO_DT_TABLE 11\n\n", out);
     xl6OutputPuts("#define XL6_XVO_DT_CLASS 12\n", out);
-    xl6OutputPuts("#define XL6_XVO_DT_CUSTOM 15\n\n", out);
+    xl6OutputPuts("#define XL6_XVO_DT_NATIVE 15\n\n", out);
 
     xl6OutputPuts("static void xl6_xrt_stdout_write(const char* text, size_t size)\n", out);
     xl6OutputPuts("{\n", out);
@@ -662,7 +662,7 @@ static void xl6CgenEmitXValueRuntime(XL6_CgenContext* ctx)
     xl6OutputPuts("    case XL6_XVO_DT_COLL:\n", out);
     xl6OutputPuts("    case XL6_XVO_DT_TABLE:\n", out);
     xl6OutputPuts("    case XL6_XVO_DT_CLASS:\n", out);
-    xl6OutputPuts("    case XL6_XVO_DT_CUSTOM:\n", out);
+    xl6OutputPuts("    case XL6_XVO_DT_NATIVE:\n", out);
     xl6OutputPuts("        desc = xvoTypeDesc(value);\n", out);
     xl6OutputPuts("        result = (desc != 0 && desc->Name != 0 && desc->NameSize > 0) ? xl6_xrt_type_name_id(desc->Name, desc->NameSize) : ", out);
     xl6CgenEmitTypeIdForName(ctx, "var", NULL);

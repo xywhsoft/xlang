@@ -5,9 +5,9 @@ This directory contains DEMO6 toolchain setup scripts and engineering guard chec
 ## Toolchain
 
 - `xl6_toolchain_env.bat`: centralizes TCC, optional Flex/Lemon regeneration tools, XRT, include, lib, and default link settings.
-- `bootstrap_tcc.bat`: builds `release\tmp\tcc_bootstrap.exe` from `lib\tcc` with MinGW `gcc` when no `XL6_TCC` override exists.
-- `build_xrt_obj.bat`: builds `release\tmp\xrt.o` from `lib\xrt\xrt.h`, so normal builds do not depend on an external XRT repository checkout.
-- `clear_release_tmp_files.ps1`: removes top-level `release\tmp` files with bounded retries so regression cleanup fails hard instead of continuing after file-lock errors.
+- `bootstrap_tcc.bat`: builds `build\tmp\tcc_bootstrap.exe` from `lib\tcc` with MinGW `gcc` when no `XL6_TCC` override exists.
+- `build_xrt_obj.bat`: builds `build\tmp\xrt.o` from `lib\xrt\xrt.h`, so normal builds do not depend on an external XRT repository checkout.
+- `clear_release_tmp_files.ps1`: removes top-level `build\test` regression artifacts with bounded retries so cleanup fails hard instead of continuing after file-lock errors.
 - `rc0_guard.ps1`: lightweight release-candidate guard for required files, static boundaries, build, command smoke, diagnostics, docs, risk ledger, cgen size, and wiring.
 
 ## Guard Scripts
@@ -37,6 +37,7 @@ This directory contains DEMO6 toolchain setup scripts and engineering guard chec
 - `check_stdlib_dll_symbols.ps1`
 - `check_stdlib_examples.ps1`
 - `check_stdlib_test_wiring.ps1`
+- `check_tcc_export_environment.ps1`
 - `check_test_case_wiring.ps1`
 - `check_test_data_wiring.ps1`
 - `check_tool_wiring.ps1`

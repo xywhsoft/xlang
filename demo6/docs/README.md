@@ -27,6 +27,7 @@
 - `扩展库系统设计.md`：package、XAPI、接口元数据、版本隔离、依赖解析和扩展库分发模型。
 - `DLL嵌入式运行库设计.md`：`xl.dll` / `xlc.dll` 嵌入式 API、上下文、脚本运行、exe 编译、C 函数注册和 XRT 注入。
 - `TCC内嵌与运行入口设计.md`：内嵌 `libtcc`、运行版/编译版 DLL 分层、`xlang_main(xvalue arg)` 入口 ABI、VFS 资源包和 TCC IO 边界。
+- `脚本嵌入与TCC模块设计.md`：`tcc` 模块、脚本嵌入、动态 VFS、运行版/编译版能力边界和按需嵌入裁剪口径。
 - `union设计.md`：C 风格 `union` 的语法、规则、代码生成、C ABI 和 XAPI 元数据。
 
 ## 当前工程与质量口径

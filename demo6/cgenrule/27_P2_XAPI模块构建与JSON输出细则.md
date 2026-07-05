@@ -1,4 +1,4 @@
-# P2 XAPI 模块构建与 JSON 输出细则
+﻿# P2 XAPI 模块构建与 JSON 输出细则
 
 本文继续细化 `demo6/src/abi/xl6_xapi_dump.c` 的后半部分，覆盖 class/union 形状收集、`XL6_XapiModule` 内存模型、export/type/import 模型构建，以及最终 `xlang-xapi-1` JSON 输出。
 

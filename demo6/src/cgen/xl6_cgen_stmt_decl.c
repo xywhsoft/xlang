@@ -73,7 +73,7 @@ static int xl6CgenDeclCanLowerStaticNullCoalesceType(XL6_CgenContext* ctx, const
     if ( xl6CgenIsXValueType(concreteType) ||
          xl6CgenIsFunctionType(concreteType) ||
          xl6CgenIsClassType(ctx, concreteType) ||
-         xl6CgenIsCustomType(ctx, concreteType) ||
+         xl6CgenIsNativeBackedClassType(ctx, concreteType) ||
          xl6CgenIsTypedContainerType(ctx, concreteType) ||
          xl6CgenIsFutureLikeType(concreteType) ||
          xl6CgenIsChannelType(concreteType) ||
@@ -536,9 +536,9 @@ static void xl6CgenDiscardTemporaryResultByType(XL6_CgenContext* ctx, const XL6_
         return;
     }
 
-    if ( xl6CgenIsCustomType(ctx, concreteType) ) {
-        const XL6_AstNode* customNode = xl6CgenFindCustom(ctx, typeName);
-        const XL6_AstNode* destroyNode = customNode != NULL ? xl6CgenFindCustomSpecial(customNode, "destroy") : NULL;
+    if ( xl6CgenIsNativeBackedClassType(ctx, concreteType) ) {
+        const XL6_AstNode* customNode = xl6CgenFindNativeBackedClass(ctx, typeName);
+        const XL6_AstNode* destroyNode = customNode != NULL ? xl6CgenFindNativeBackedClassSpecial(customNode, "destroy") : NULL;
 
         if ( destroyNode != NULL ) {
             xl6CgenIndent(ctx);

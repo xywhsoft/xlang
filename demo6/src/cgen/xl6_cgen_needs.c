@@ -1,4 +1,4 @@
-static void xl6CgenNeedsAddDeclVarType(
+﻿static void xl6CgenNeedsAddDeclVarType(
     XL6_CgenContext* ctx,
     const char* name,
     const XL6_AstNode* typeNode,
@@ -106,8 +106,8 @@ static int xl6CgenNodeNeedsStringRuntime(XL6_CgenContext* ctx, const XL6_AstNode
         }
         if ( ctx->currentClass != NULL ) {
             xl6CgenAddVarType(ctx, "self", ctx->currentClass);
-        } else if ( ctx->currentCustom != NULL ) {
-            xl6CgenAddVarType(ctx, "self", ctx->currentCustom);
+        } else if ( ctx->currentNativeClass != NULL ) {
+            xl6CgenAddVarType(ctx, "self", ctx->currentNativeClass);
         }
         returnNeedsString = xl6CgenNeedsReturnListHasString(ctx, returns);
         xl6CgenRegisterParamTypes(ctx, params);
@@ -152,8 +152,8 @@ static int xl6CgenNodeNeedsStringRuntime(XL6_CgenContext* ctx, const XL6_AstNode
 
         if ( ctx->currentClass != NULL ) {
             xl6CgenAddVarType(ctx, "self", ctx->currentClass);
-        } else if ( ctx->currentCustom != NULL ) {
-            xl6CgenAddVarType(ctx, "self", ctx->currentCustom);
+        } else if ( ctx->currentNativeClass != NULL ) {
+            xl6CgenAddVarType(ctx, "self", ctx->currentNativeClass);
         }
         xl6CgenRegisterParamTypes(ctx, params);
         result = xl6CgenNodeNeedsStringRuntime(ctx, body);
@@ -164,11 +164,11 @@ static int xl6CgenNodeNeedsStringRuntime(XL6_CgenContext* ctx, const XL6_AstNode
 
     if ( node->kind == XL6_AST_CLASS ) {
         const XL6_AstNode* prevClass = ctx->currentClass;
-        const XL6_AstNode* prevCustom = ctx->currentCustom;
+        const XL6_AstNode* prevNativeClass = ctx->currentNativeClass;
         int result = 0;
 
         ctx->currentClass = node;
-        ctx->currentCustom = NULL;
+        ctx->currentNativeClass = NULL;
         for ( i = 0; i < node->childCount; ++i ) {
             if ( xl6CgenNodeNeedsStringRuntime(ctx, node->children[i]) ) {
                 result = 1;
@@ -176,27 +176,10 @@ static int xl6CgenNodeNeedsStringRuntime(XL6_CgenContext* ctx, const XL6_AstNode
             }
         }
         ctx->currentClass = prevClass;
-        ctx->currentCustom = prevCustom;
+        ctx->currentNativeClass = prevNativeClass;
         return result;
     }
 
-    if ( node->kind == XL6_AST_CUSTOM ) {
-        const XL6_AstNode* prevClass = ctx->currentClass;
-        const XL6_AstNode* prevCustom = ctx->currentCustom;
-        int result = 0;
-
-        ctx->currentClass = NULL;
-        ctx->currentCustom = node;
-        for ( i = 0; i < node->childCount; ++i ) {
-            if ( xl6CgenNodeNeedsStringRuntime(ctx, node->children[i]) ) {
-                result = 1;
-                break;
-            }
-        }
-        ctx->currentClass = prevClass;
-        ctx->currentCustom = prevCustom;
-        return result;
-    }
 
     for ( i = 0; i < node->childCount; ++i ) {
         if ( xl6CgenNodeNeedsStringRuntime(ctx, node->children[i]) ) {
@@ -332,8 +315,8 @@ static int xl6CgenNodeNeedsTypeConvertRuntime(XL6_CgenContext* ctx, const XL6_As
         }
         if ( ctx->currentClass != NULL ) {
             xl6CgenAddVarType(ctx, "self", ctx->currentClass);
-        } else if ( ctx->currentCustom != NULL ) {
-            xl6CgenAddVarType(ctx, "self", ctx->currentCustom);
+        } else if ( ctx->currentNativeClass != NULL ) {
+            xl6CgenAddVarType(ctx, "self", ctx->currentNativeClass);
         }
         xl6CgenRegisterParamTypes(ctx, params);
         result = xl6CgenNodeNeedsTypeConvertRuntime(ctx, body);
@@ -351,8 +334,8 @@ static int xl6CgenNodeNeedsTypeConvertRuntime(XL6_CgenContext* ctx, const XL6_As
 
         if ( ctx->currentClass != NULL ) {
             xl6CgenAddVarType(ctx, "self", ctx->currentClass);
-        } else if ( ctx->currentCustom != NULL ) {
-            xl6CgenAddVarType(ctx, "self", ctx->currentCustom);
+        } else if ( ctx->currentNativeClass != NULL ) {
+            xl6CgenAddVarType(ctx, "self", ctx->currentNativeClass);
         }
         xl6CgenRegisterParamTypes(ctx, params);
         result = xl6CgenNodeNeedsTypeConvertRuntime(ctx, body);
@@ -386,11 +369,11 @@ static int xl6CgenNodeNeedsTypeConvertRuntime(XL6_CgenContext* ctx, const XL6_As
 
     if ( node->kind == XL6_AST_CLASS ) {
         const XL6_AstNode* prevClass = ctx->currentClass;
-        const XL6_AstNode* prevCustom = ctx->currentCustom;
+        const XL6_AstNode* prevNativeClass = ctx->currentNativeClass;
         int result = 0;
 
         ctx->currentClass = node;
-        ctx->currentCustom = NULL;
+        ctx->currentNativeClass = NULL;
         for ( i = 0; i < node->childCount; ++i ) {
             if ( xl6CgenNodeNeedsTypeConvertRuntime(ctx, node->children[i]) ) {
                 result = 1;
@@ -398,27 +381,10 @@ static int xl6CgenNodeNeedsTypeConvertRuntime(XL6_CgenContext* ctx, const XL6_As
             }
         }
         ctx->currentClass = prevClass;
-        ctx->currentCustom = prevCustom;
+        ctx->currentNativeClass = prevNativeClass;
         return result;
     }
 
-    if ( node->kind == XL6_AST_CUSTOM ) {
-        const XL6_AstNode* prevClass = ctx->currentClass;
-        const XL6_AstNode* prevCustom = ctx->currentCustom;
-        int result = 0;
-
-        ctx->currentClass = NULL;
-        ctx->currentCustom = node;
-        for ( i = 0; i < node->childCount; ++i ) {
-            if ( xl6CgenNodeNeedsTypeConvertRuntime(ctx, node->children[i]) ) {
-                result = 1;
-                break;
-            }
-        }
-        ctx->currentClass = prevClass;
-        ctx->currentCustom = prevCustom;
-        return result;
-    }
 
     for ( i = 0; i < node->childCount; ++i ) {
         if ( xl6CgenNodeNeedsTypeConvertRuntime(ctx, node->children[i]) ) {
@@ -501,8 +467,8 @@ static int xl6CgenNodeNeedsDynamicForInErrorRuntime(XL6_CgenContext* ctx, const 
         }
         if ( ctx->currentClass != NULL ) {
             xl6CgenAddVarType(ctx, "self", ctx->currentClass);
-        } else if ( ctx->currentCustom != NULL ) {
-            xl6CgenAddVarType(ctx, "self", ctx->currentCustom);
+        } else if ( ctx->currentNativeClass != NULL ) {
+            xl6CgenAddVarType(ctx, "self", ctx->currentNativeClass);
         }
         xl6CgenRegisterParamTypes(ctx, params);
         result = xl6CgenNodeNeedsDynamicForInErrorRuntime(ctx, body);
@@ -520,8 +486,8 @@ static int xl6CgenNodeNeedsDynamicForInErrorRuntime(XL6_CgenContext* ctx, const 
 
         if ( ctx->currentClass != NULL ) {
             xl6CgenAddVarType(ctx, "self", ctx->currentClass);
-        } else if ( ctx->currentCustom != NULL ) {
-            xl6CgenAddVarType(ctx, "self", ctx->currentCustom);
+        } else if ( ctx->currentNativeClass != NULL ) {
+            xl6CgenAddVarType(ctx, "self", ctx->currentNativeClass);
         }
         xl6CgenRegisterParamTypes(ctx, params);
         result = xl6CgenNodeNeedsDynamicForInErrorRuntime(ctx, body);
@@ -559,11 +525,11 @@ static int xl6CgenNodeNeedsDynamicForInErrorRuntime(XL6_CgenContext* ctx, const 
 
     if ( node->kind == XL6_AST_CLASS ) {
         const XL6_AstNode* prevClass = ctx->currentClass;
-        const XL6_AstNode* prevCustom = ctx->currentCustom;
+        const XL6_AstNode* prevNativeClass = ctx->currentNativeClass;
         int result = 0;
 
         ctx->currentClass = node;
-        ctx->currentCustom = NULL;
+        ctx->currentNativeClass = NULL;
         for ( i = 0; i < node->childCount; ++i ) {
             if ( xl6CgenNodeNeedsDynamicForInErrorRuntime(ctx, node->children[i]) ) {
                 result = 1;
@@ -571,27 +537,10 @@ static int xl6CgenNodeNeedsDynamicForInErrorRuntime(XL6_CgenContext* ctx, const 
             }
         }
         ctx->currentClass = prevClass;
-        ctx->currentCustom = prevCustom;
+        ctx->currentNativeClass = prevNativeClass;
         return result;
     }
 
-    if ( node->kind == XL6_AST_CUSTOM ) {
-        const XL6_AstNode* prevClass = ctx->currentClass;
-        const XL6_AstNode* prevCustom = ctx->currentCustom;
-        int result = 0;
-
-        ctx->currentClass = NULL;
-        ctx->currentCustom = node;
-        for ( i = 0; i < node->childCount; ++i ) {
-            if ( xl6CgenNodeNeedsDynamicForInErrorRuntime(ctx, node->children[i]) ) {
-                result = 1;
-                break;
-            }
-        }
-        ctx->currentClass = prevClass;
-        ctx->currentCustom = prevCustom;
-        return result;
-    }
 
     for ( i = 0; i < node->childCount; ++i ) {
         if ( xl6CgenNodeNeedsDynamicForInErrorRuntime(ctx, node->children[i]) ) {
@@ -717,8 +666,8 @@ static int xl6CgenNodeNeedsFunctionVarRuntime(XL6_CgenContext* ctx, const XL6_As
         }
         if ( ctx->currentClass != NULL ) {
             xl6CgenAddVarType(ctx, "self", ctx->currentClass);
-        } else if ( ctx->currentCustom != NULL ) {
-            xl6CgenAddVarType(ctx, "self", ctx->currentCustom);
+        } else if ( ctx->currentNativeClass != NULL ) {
+            xl6CgenAddVarType(ctx, "self", ctx->currentNativeClass);
         }
         xl6CgenRegisterParamTypes(ctx, params);
         result = xl6CgenNodeNeedsFunctionVarRuntime(ctx, body);
@@ -736,8 +685,8 @@ static int xl6CgenNodeNeedsFunctionVarRuntime(XL6_CgenContext* ctx, const XL6_As
 
         if ( ctx->currentClass != NULL ) {
             xl6CgenAddVarType(ctx, "self", ctx->currentClass);
-        } else if ( ctx->currentCustom != NULL ) {
-            xl6CgenAddVarType(ctx, "self", ctx->currentCustom);
+        } else if ( ctx->currentNativeClass != NULL ) {
+            xl6CgenAddVarType(ctx, "self", ctx->currentNativeClass);
         }
         xl6CgenRegisterParamTypes(ctx, params);
         result = xl6CgenNodeNeedsFunctionVarRuntime(ctx, body);
@@ -771,11 +720,11 @@ static int xl6CgenNodeNeedsFunctionVarRuntime(XL6_CgenContext* ctx, const XL6_As
 
     if ( node->kind == XL6_AST_CLASS ) {
         const XL6_AstNode* prevClass = ctx->currentClass;
-        const XL6_AstNode* prevCustom = ctx->currentCustom;
+        const XL6_AstNode* prevNativeClass = ctx->currentNativeClass;
         int result = 0;
 
         ctx->currentClass = node;
-        ctx->currentCustom = NULL;
+        ctx->currentNativeClass = NULL;
         for ( i = 0; i < node->childCount; ++i ) {
             if ( xl6CgenNodeNeedsFunctionVarRuntime(ctx, node->children[i]) ) {
                 result = 1;
@@ -783,27 +732,10 @@ static int xl6CgenNodeNeedsFunctionVarRuntime(XL6_CgenContext* ctx, const XL6_As
             }
         }
         ctx->currentClass = prevClass;
-        ctx->currentCustom = prevCustom;
+        ctx->currentNativeClass = prevNativeClass;
         return result;
     }
 
-    if ( node->kind == XL6_AST_CUSTOM ) {
-        const XL6_AstNode* prevClass = ctx->currentClass;
-        const XL6_AstNode* prevCustom = ctx->currentCustom;
-        int result = 0;
-
-        ctx->currentClass = NULL;
-        ctx->currentCustom = node;
-        for ( i = 0; i < node->childCount; ++i ) {
-            if ( xl6CgenNodeNeedsFunctionVarRuntime(ctx, node->children[i]) ) {
-                result = 1;
-                break;
-            }
-        }
-        ctx->currentClass = prevClass;
-        ctx->currentCustom = prevCustom;
-        return result;
-    }
 
     for ( i = 0; i < node->childCount; ++i ) {
         if ( xl6CgenNodeNeedsFunctionVarRuntime(ctx, node->children[i]) ) {

@@ -1,4 +1,4 @@
-# P2 package 解析与 resolver 细则
+﻿# P2 package 解析与 resolver 细则
 
 本文细化 `demo6/src/package/xl6_package.c`。该文件不直接输出 C 代码，但它决定 `import` 目标如何解析为 XAPI 接口文件、package 身份、native/link/cSource 依赖以及私有命名空间输入，因此属于代码生成链路的前置规则。
 

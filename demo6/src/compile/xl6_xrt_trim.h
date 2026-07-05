@@ -13,6 +13,13 @@ typedef struct XL6_XrtTrimConfig {
     int keepQueue;
     int keepCoroutine;
     int keepNetwork;
+    int keepXUrl;
+    int keepHttpUtil;
+    int keepXCodec;
+    int keepXHttp;
+    int keepXHttpd;
+    int keepXWeb;
+    int keepXWs;
     int keepCrypto;
     int keepNetTls;
     int keepXid;

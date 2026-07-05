@@ -7,7 +7,8 @@ call tools\xl6_toolchain_env.bat
 if errorlevel 1 exit /b 1
 
 if not exist release mkdir release
-if not exist release\tmp mkdir release\tmp
+if not exist build mkdir build
+if not exist build\tmp mkdir build\tmp
 
 call tools\bootstrap_tcc.bat
 if errorlevel 1 exit /b 1

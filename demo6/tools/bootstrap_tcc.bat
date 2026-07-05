@@ -6,14 +6,14 @@ set XL6_ROOT=%CD%
 call tools\xl6_toolchain_env.bat
 if errorlevel 1 exit /b 1
 
-if not exist release mkdir release
-if not exist release\tmp mkdir release\tmp
+if not exist build mkdir build
+if not exist build\tmp mkdir build\tmp
 
 if exist "%XL6_TCC%" (
     exit /b 0
 )
 
-if not "%XL6_TCC%"=="release\tmp\tcc_bootstrap.exe" (
+if not "%XL6_TCC%"=="build\tmp\tcc_bootstrap.exe" (
     echo DEMO6 TCC bootstrap failed: custom XL6_TCC does not exist: "%XL6_TCC%".
     exit /b 1
 )

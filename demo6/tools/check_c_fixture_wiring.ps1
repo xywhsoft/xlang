@@ -85,8 +85,7 @@ foreach ( $assetRoot in $entryAssetRoots ) {
 
     $assets = @(Get-ChildItem -LiteralPath $fullRoot -File -Recurse | Where-Object {
         $relative = $_.FullName.Substring($rootPath.Length + 1).Replace("\", "/")
-        ($_.Extension -in ".c", ".h") -and
-        ($relative -notmatch '^release/examples/(.*/)?release/tmp/')
+        ($_.Extension -in ".c", ".h")
     } | Sort-Object FullName)
     foreach ( $asset in $assets ) {
         $relative = $asset.FullName.Substring($rootPath.Length + 1).Replace("\", "/")
@@ -182,8 +181,7 @@ foreach ( $packageDir in $packageDirs ) {
 
 $entryCount = @(Get-ChildItem -Path (Join-Path $Root "test\cases"), (Join-Path $Root "release\examples") -File -Recurse | Where-Object {
     $relative = $_.FullName.Substring($rootPath.Length + 1).Replace("\", "/")
-    ($_.Extension -in ".c", ".h") -and
-    ($relative -notmatch '^release/examples/(.*/)?release/tmp/')
+    ($_.Extension -in ".c", ".h")
 }).Count
 $packageCount = 0
 foreach ( $packageDir in $packageDirs ) {

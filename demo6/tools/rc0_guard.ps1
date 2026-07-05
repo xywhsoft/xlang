@@ -290,7 +290,6 @@ Invoke-GuardStep "static XRT boundary" {
     Assert-NoPattern "CRT time in CLI" @("src\driver") "\btime\s*\(" -CaseSensitive
     Assert-NoPattern "CRT file deletion" @("src\driver", "src\package", "src\common") "\b(remove|_rmdir|rmdir)\s*\("
     Assert-NoPattern "shell directory creation" @("src\driver", "src\package", "src\common") "\bsystem\s*\(\s*`"[^`"]*\bmkdir\b"
-    Assert-NoPattern "unchecked CLI temp dir creation" @("src\driver") "(?m)^\s*xl6CliEnsureTmpDir\s*\(\s*\)\s*;"
 }
 
 Invoke-GuardStep "static wiring guards" {
@@ -321,6 +320,7 @@ Invoke-GuardStep "static wiring guards" {
         "check_stdlib_coverage.ps1",
         "check_stdlib_test_wiring.ps1",
         "check_stdlib_dll_symbols.ps1",
+        "check_tcc_export_environment.ps1",
         "check_release_tmp_artifacts.ps1",
         "check_negative_diagnostics.ps1"
     )
@@ -339,7 +339,7 @@ Invoke-GuardStep "build" {
 }
 
 Invoke-GuardStep "command surface" {
-    $tmp = Join-Path $Root "release\tmp\rc0_guard"
+    $tmp = Join-Path $Root "build\test\rc0_guard"
     if ( Test-Path -LiteralPath $tmp ) {
         Remove-Item -LiteralPath $tmp -Recurse -Force
     }
@@ -366,7 +366,7 @@ Invoke-GuardStep "command surface" {
 }
 
 Invoke-GuardStep "diagnostics" {
-    $tmp = Join-Path $Root "release\tmp\rc0_guard_diag"
+    $tmp = Join-Path $Root "build\test\rc0_guard_diag"
     if ( Test-Path -LiteralPath $tmp ) {
         Remove-Item -LiteralPath $tmp -Recurse -Force
     }

@@ -82,9 +82,9 @@ int main(int argc, char** argv)
          !expect_size("cSources count", deps.cSources.count, 1) ||
          !expect_text("cSource[0]", deps.cSources.items[0], "test\\fixtures\\metadata_combo\\metadata_combo_native.c") ||
          !expect_size("links count", deps.links.count, 1) ||
-         !expect_text("link[0]", deps.links.items[0], "test\\fixtures\\metadata_combo\\../../../release/tmp/metadata_combo_link.a") ||
+         !expect_text("link[0]", deps.links.items[0], "test\\fixtures\\metadata_combo\\../../../build/test/metadata_combo_link.a") ||
          !expect_size("loadlibs count", deps.loadlibs.count, 1) ||
-         !expect_text("loadlib[0]", deps.loadlibs.items[0], "test\\fixtures\\metadata_combo\\../../../release/tmp/metadata_combo_loadlib.dll") ||
+         !expect_text("loadlib[0]", deps.loadlibs.items[0], "test\\fixtures\\metadata_combo\\../../../build/test/metadata_combo_loadlib.dll") ||
          !expect_size("native count", deps.nativeCount, 1) ||
          !expect_text("native package", deps.natives[0].packageId, "metadata_combo@1.0.0#abi1") ||
          !expect_text("native loadName", deps.natives[0].loadName, "metadata_combo_runtime.dll") ||

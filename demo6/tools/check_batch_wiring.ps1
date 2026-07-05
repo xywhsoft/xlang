@@ -116,9 +116,9 @@ function Check-TutorialBatch($text)
         'release\\xl\.exe\s+check\s+"%%f"',
         'release\\xl\.exe\s+run\s+"release\\examples\\tutorial\\%%f"',
         'release\\xl\.exe\s+run\s+"release\\examples\\tutorial\\%%f"\s+--link\s+release\\examples\\tutorial\\host\.c',
-        'release\\xl\.exe\s+cgen\s+release\\examples\\tutorial\\11_export_to_c\.xl\s+--emit\s+release\\tmp\\tutorial\\11_export_to_c\.c\s+--emit-header\s+release\\tmp\\tutorial\\11_export_to_c\.h',
-        '"%XL6_TCC%"\s+-Irelease\\tmp\\tutorial\s+%XL6_TCC_INCLUDES%\s+%XL6_TCC_LIB_FLAGS%\s+release\\tmp\\tutorial\\11_export_to_c\.c\s+release\\examples\\tutorial\\host_export\.c\s+%XL6_DEFAULT_LINKS%\s+-o\s+release\\tmp\\tutorial\\host_export\.exe',
-        'release\\tmp\\tutorial\\host_export\.exe'
+        'release\\xl\.exe\s+cgen\s+release\\examples\\tutorial\\11_export_to_c\.xl\s+--emit\s+build\\test\\tutorial\\11_export_to_c\.c\s+--emit-header\s+build\\test\\tutorial\\11_export_to_c\.h',
+        '"%XL6_TCC%"\s+-DXL6_EXAMPLE_LINK_EXPORTS\s+-Ibuild\\test\\tutorial\s+%XL6_TCC_INCLUDES%\s+%XL6_TCC_LIB_FLAGS%\s+build\\test\\tutorial\\11_export_to_c\.c\s+release\\examples\\tutorial\\host_export\.c\s+%XL6_DEFAULT_LINKS%\s+-o\s+build\\test\\tutorial\\host_export\.exe',
+        'build\\test\\tutorial\\host_export\.exe'
     )
     $requiredTutorialFiles = @(
         "01_entry_and_layout.xl",
@@ -158,12 +158,12 @@ function Check-DllBatch($text)
         'release\\xlc_dll_embed_string\.exe',
         'release\\xlc\.dll',
         'release\\xlc\.def',
-        'release\\tmp\\xl_dll_embed_string_script\.exe',
-        'release\\tmp\\xl_dll_embed_file_script\.exe',
-        'release\\tmp\\xl_dll_link_host\.o',
-        'release\\tmp\\libxl6dlllink\.a',
-        'release\\tmp\\xl_dll_loadlib_host\.dll',
-        'release\\tmp\\xl_dll_loadlib_host\.def'
+        'build\\test\\xl_dll_embed_string_script\.exe',
+        'build\\test\\xl_dll_embed_file_script\.exe',
+        'build\\tmp\\xl_dll_link_host\.o',
+        'build\\tmp\\libxl6dlllink\.a',
+        'build\\tmp\\xl_dll_loadlib_host\.dll',
+        'build\\tmp\\xl_dll_loadlib_host\.def'
     )
 
     foreach ( $pattern in $requiredPatterns ) {

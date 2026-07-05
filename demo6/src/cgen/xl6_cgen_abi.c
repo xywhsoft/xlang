@@ -1,4 +1,4 @@
-static void xl6CgenHashText(unsigned long long* hash, const char* text)
+﻿static void xl6CgenHashText(unsigned long long* hash, const char* text)
 {
     const unsigned char* p;
 
@@ -255,7 +255,7 @@ static unsigned long long xl6CgenTypeIdForTypeNode(XL6_CgenContext* ctx, const X
 
     typeNode = xl6CgenSubstituteGenericType(ctx, typeNode);
     typeNode = xl6CgenResolveAliasType(ctx, typeNode);
-    if ( typeNode != NULL && (typeNode->kind == XL6_AST_CLASS || typeNode->kind == XL6_AST_CUSTOM) ) {
+    if ( typeNode != NULL && typeNode->kind == XL6_AST_CLASS ) {
         memset(&namedType, 0, sizeof(namedType));
         namedType.kind = XL6_AST_TYPE;
         namedType.text = typeNode->text;
@@ -380,8 +380,8 @@ static void xl6CgenEmitXrtTypeDescRef(XL6_CgenContext* ctx, const XL6_AstNode* t
         xl6CgenUnionTypeTextName(cTypeName, sizeof(cTypeName), concreteType->text);
         xl6CgenTypeDescSymbol(ctx->out, cTypeName);
         xl6OutputPuts("()", ctx->out);
-    } else if ( xl6CgenIsCustomType(ctx, concreteType) ) {
-        xl6CgenCustomTypeRefName(cTypeName, sizeof(cTypeName), concreteType->text);
+    } else if ( xl6CgenIsNativeBackedClassType(ctx, concreteType) ) {
+        xl6CgenNativeBackedTypeRefName(cTypeName, sizeof(cTypeName), concreteType->text);
         xl6CgenTypeDescSymbol(ctx->out, cTypeName);
         xl6OutputPuts("()", ctx->out);
     } else {
@@ -522,7 +522,7 @@ static void xl6CgenEmitFunctionSigObjectForPrefix(XL6_CgenContext* ctx, const ch
     nameSize = (unsigned int)strlen(name);
     flags = xl6CgenFunctionSigFlags(params, paramCount, includeVararg);
 
-    /* 签名元数据包含运行时类型指针，需要在 make 函数内按需填充。 */
+    /* 绛惧悕鍏冩暟鎹寘鍚繍琛屾椂绫诲瀷鎸囬拡锛岄渶瑕佸湪 make 鍑芥暟鍐呮寜闇€濉厖銆?*/
     if ( actualParamCount > 0 ) {
         xl6CgenFunctionSigIndent(ctx);
         xl6OutputPrintf(ctx->out, "static xrt_func_param %s_params[%uu];\n", localName, actualParamCount);
@@ -610,8 +610,8 @@ static void xl6CgenEmitRuntimeTypeDescDependencyProto(XL6_CgenContext* ctx, cons
         xl6CgenClassTypeRefName(cTypeName, sizeof(cTypeName), concreteType);
     } else if ( xl6CgenIsUnionType(ctx, concreteType) ) {
         xl6CgenUnionTypeTextName(cTypeName, sizeof(cTypeName), name);
-    } else if ( xl6CgenIsCustomType(ctx, concreteType) ) {
-        xl6CgenCustomTypeRefName(cTypeName, sizeof(cTypeName), name);
+    } else if ( xl6CgenIsNativeBackedClassType(ctx, concreteType) ) {
+        xl6CgenNativeBackedTypeRefName(cTypeName, sizeof(cTypeName), name);
     } else {
         return;
     }

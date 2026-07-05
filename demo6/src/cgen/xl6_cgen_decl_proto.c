@@ -652,7 +652,7 @@ static void xl6CgenEmitHandleBoxRuntime(XL6_CgenContext* ctx, const XL6_AstNode*
     if ( customNode != NULL && customNode->kind == XL6_AST_CLASS ) {
         destroyNode = xl6CgenFindClassSpecial(customNode, "destroy");
     } else {
-        destroyNode = xl6CgenFindCustomSpecial(customNode, "destroy");
+        destroyNode = xl6CgenFindNativeBackedClassSpecial(customNode, "destroy");
     }
 
     xl6OutputPrintf(ctx->out, "static void xl6_type_copy_%s(void* dst, const void* src)\n{\n", cTypeName);

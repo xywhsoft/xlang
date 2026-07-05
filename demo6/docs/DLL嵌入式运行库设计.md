@@ -69,11 +69,16 @@ XL_Module* xlCompileScriptStringToModule(XL_Context* ctx, const char* source);
 XL_Module* xlCompileScriptFileToModule(XL_Context* ctx, const char* path);
 XL_Module* xlCompileCSourceStringToModule(XL_Context* ctx, const char* source);
 XL_Module* xlCompileCSourceFileToModule(XL_Context* ctx, const char* path);
+XL_Module* xlCompileCSourceFilesToModule(XL_Context* ctx, const char** paths, int pathCount);
 int xlRunCSourceString(XL_Context* ctx, const char* source, int argc, char** argv);
 int xlRunCSourceFile(XL_Context* ctx, const char* path, int argc, char** argv);
+int xlRunCSourceFiles(XL_Context* ctx, const char** paths, int pathCount, int argc, char** argv);
 int xlRunModuleMain(XL_Context* ctx, XL_Module* module, xvalue arg);
 void* xlModuleGetSymbol(XL_Module* module, const char* symbolName);
 void xlDestroyModule(XL_Module* module);
+int xlTccRegisterXrtEnvironment(TCCState* state);
+int xlTccRegisterContextEnvironment(XL_Context* ctx, TCCState* state);
+int xlTccImpdef(const char* dllPath, const char* outputDef);
 
 const char* xlGetLastError(XL_Context* ctx);
 void xlClearLastError(XL_Context* ctx);
@@ -84,6 +89,10 @@ void xlClearLastError(XL_Context* ctx);
 ```c
 int xlCompileScriptStringToExe(XL_Context* ctx, const char* source, const char* outputExe);
 int xlCompileScriptFileToExe(XL_Context* ctx, const char* path, const char* outputExe);
+int xlCompileCSourceFileToExe(XL_Context* ctx, const char* path, const char* outputExe);
+int xlCompileCSourceFilesToExe(XL_Context* ctx, const char** paths, int pathCount, const char* outputExe);
+int xlCompileCSourceFileToSharedLibrary(XL_Context* ctx, const char* path, const char* outputDll);
+int xlCompileCSourceFilesToSharedLibrary(XL_Context* ctx, const char** paths, int pathCount, const char* outputDll);
 ```
 
 Compiler library header:

@@ -507,23 +507,7 @@ static char* xlToolchainPathSnapshot(const char* baseDir, const char* path)
 
 static char* xlDefaultTempDirSnapshot(const char* baseDir)
 {
-    char moduleDir[512];
-    char projectRoot[512];
-    char tempPath[1024];
-    char releaseDir[1024];
-
-    if ( xlGetModuleDir(moduleDir, sizeof(moduleDir)) ) {
-        if ( xlTextEqualsNoCase(xlBaseName(moduleDir), "release") &&
-             xlJoinPathBuffer(tempPath, sizeof(tempPath), moduleDir, "tmp") ) {
-            return xlDupText(tempPath);
-        }
-    }
-    if ( xlGetProjectRoot(projectRoot, sizeof(projectRoot)) &&
-         xlJoinPathBuffer(releaseDir, sizeof(releaseDir), projectRoot, "release") &&
-         xlJoinPathBuffer(tempPath, sizeof(tempPath), releaseDir, "tmp") ) {
-        return xlDupText(tempPath);
-    }
-    return xlPathSnapshot(baseDir, "release\\tmp");
+    return xlPathSnapshot(baseDir, "build\\tmp");
 }
 
 static void xlSetError(XL_Context* ctx, const char* text)
@@ -2701,7 +2685,7 @@ static int xlAddEmbeddedTccRuntimeSources(XL_Context* ctx, TCCState* s, const XL
          !xlAddTccSourceFile(ctx, s, "lib\\tcc\\tcc_builtin_vfs.c") ||
          !xlAddTccSourceFile(ctx, s, "lib\\tcc\\tcc_utf8_io.c") ||
          !xlAddTccSourceFile(ctx, s, "lib\\lzma\\LzmaDec.c") ||
-         !xlAddTccSourceFile(ctx, s, "release\\tmp\\tcc_builtin_resources_runtime.c") ) {
+        !xlAddTccSourceFile(ctx, s, "build\\tmp\\tcc_builtin_resources_runtime.c") ) {
         return 0;
     }
     return 1;
@@ -2711,6 +2695,7 @@ static int xlAddEmbeddedXlangRuntimeSources(XL_Context* ctx, TCCState* s, const 
 {
     static const char* runtimeSources[] = {
         "src\\api\\xl_api.c",
+        "src\\abi\\xl6_abi_json.c",
         "src\\abi\\xl6_callable.c",
         "src\\abi\\xl6_xapi_dump.c",
         "src\\abi\\xl6_xapi_load.c",
@@ -2735,6 +2720,7 @@ static int xlAddEmbeddedXlangRuntimeSources(XL_Context* ctx, TCCState* s, const 
         "src\\parser\\xl6_parser_api.c",
         "src\\package\\xl6_package.c",
         "src\\stdlib\\xl6_stdlib.c",
+        "src\\stdlib\\xl6_stdlib_data.c",
         "src\\type\\xl6_type_model.c",
         "src\\sem\\xl6_protocol.c",
         "src\\sem\\xl6_type_registry.c",
@@ -3140,7 +3126,7 @@ XL_ContextOptions xlDefaultContextOptions(void)
     options.size = (unsigned int)sizeof(options);
     options.version = XL_API_VERSION;
     options.workDir = ".";
-    options.tempDir = "release\\tmp";
+    options.tempDir = "build\\tmp";
     options.tccDllPath = NULL;
     options.tccLibPath = NULL;
     options.saveTemps = 0;

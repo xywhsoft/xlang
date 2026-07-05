@@ -8,7 +8,7 @@ if ( $Root -eq "" ) {
     $Root = Split-Path -Parent $PSScriptRoot
 }
 
-$stdlibPath = Join-Path $Root "src\stdlib\xl6_stdlib.c"
+$stdlibPath = Join-Path $Root "src\stdlib\xl6_stdlib_data.c"
 $docDir = Join-Path $Root "docs"
 $testDir = Join-Path $Root "test\cases"
 $exampleDir = Join-Path $Root "release\examples"
