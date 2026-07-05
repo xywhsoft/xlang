@@ -1,0 +1,31 @@
+import dir
+import file
+import tcc
+import xlang
+
+dir.createAll("build/test")
+
+string cSource = "#include <stdio.h>\nint main(void){ puts(\"stdlib tcc compile ok\"); return 0; }\n"
+int modeSum = tcc.MEMORY + tcc.EXE + tcc.OBJ + tcc.DLL + tcc.PREPROCESS
+assert modeSum == 15, "tcc output type constants failed"
+
+assert tcc.run(cSource) == 0, "tcc.run failed"
+assert tcc.vfsMount("__xlvfs__/stdlib_tcc_xlang_embed.c", cSource), "tcc.vfsMount failed"
+assert tcc.runFile("__xlvfs__/stdlib_tcc_xlang_embed.c") == 0, "tcc.runFile failed"
+assert tcc.compile(cSource, "build/test/stdlib_tcc_compile_example.exe", tcc.EXE) == 0, "tcc.compile failed"
+assert file.exists("build/test/stdlib_tcc_compile_example.exe"), "tcc.compile output missing"
+assert tcc.compileFile("__xlvfs__/stdlib_tcc_xlang_embed.c", "build/test/stdlib_tcc_compile_file_example.exe", tcc.EXE) == 0, "tcc.compileFile failed"
+assert file.exists("build/test/stdlib_tcc_compile_file_example.exe"), "tcc.compileFile output missing"
+tcc.vfsClear()
+
+auto tccCtx = tcc.Context()
+assert tccCtx.compileString("int main(void){ return 0; }\n") == 0, "TccContext.compileString failed"
+assert tccCtx.run() == 0, "TccContext.run failed"
+
+assert xlang.run("println(\"stdlib nested xlang ok\")\n"), "xlang.run failed"
+assert xlang.runFile("test\\cases\\xlang_nested_child.xl"), "xlang.runFile failed"
+auto xlCtx = xlang.Context()
+assert xlCtx.run("println(\"stdlib XLangContext ok\")\n"), "XLangContext.run failed"
+assert xlCtx.runFile("test\\cases\\xlang_nested_child.xl"), "xlang.runFile failed"
+
+println("stdlib tcc xlang embed ok")

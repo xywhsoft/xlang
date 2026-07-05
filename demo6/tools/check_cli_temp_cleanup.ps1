@@ -9,7 +9,7 @@ if ( $Root -eq "" ) {
 }
 
 $xl = Join-Path $Root "release\xl.exe"
-$tmpDir = Join-Path $Root "release\tmp"
+$tmpDir = Join-Path $Root "build\tmp"
 $failures = New-Object System.Collections.Generic.List[string]
 $strictUtf8 = New-Object System.Text.UTF8Encoding($false, $true)
 
@@ -120,7 +120,7 @@ function Assert-WithinTmpDir($path)
         $resolvedTmp = $resolvedTmp + "\"
     }
     if ( ! $resolvedPath.StartsWith($resolvedTmp, [System.StringComparison]::OrdinalIgnoreCase) ) {
-        throw "save-temps directory is outside release\tmp: $resolvedPath"
+        throw "save-temps directory is outside build\tmp: $resolvedPath"
     }
     return $resolvedPath
 }

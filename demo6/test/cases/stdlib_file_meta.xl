@@ -1,6 +1,6 @@
 extern "expect_i64" func expect(int actual, int expected)
 
-string filePath = "release/tmp/stdlib_file_meta.txt"
+string filePath = "build/test/stdlib_file_meta.txt"
 
 file.delete(filePath)
 

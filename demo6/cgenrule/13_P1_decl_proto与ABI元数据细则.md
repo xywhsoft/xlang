@@ -1,4 +1,4 @@
-# P1 decl_proto 与 ABI 元数据细则
+﻿# P1 decl_proto 与 ABI 元数据细则
 
 本文细化函数原型、extern/export C ABI、record/handle box runtime、函数签名 ID、多返回值结构、运行时 type desc 和 `type(expr)` 的生成规则。主要覆盖 `xl6_cgen_decl_proto.c`、`xl6_cgen_abi.c`、`xl6_cgen_symbol.c`、`xl6_cgen_module.c` 中与 ABI 元数据直接相关的路径。
 

@@ -1,4 +1,4 @@
-# P2 import 依赖与命名空间细则
+﻿# P2 import 依赖与命名空间细则
 
 本文细化 `demo6/src/compile/xl6_imports.c` 的前半部分，覆盖 import 生成文本缓冲、依赖收集、package 多版本图、native singleton 冲突、命名空间表和导入类型名重写。
 

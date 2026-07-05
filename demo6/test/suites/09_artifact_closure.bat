@@ -13,57 +13,57 @@ if errorlevel 1 exit /b 1
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_tcc_export_environment.ps1
 if errorlevel 1 exit /b 1
 
-release\xl.exe build release\examples\hello.xl -o release\tmp\trim_hello.exe
+release\xl.exe build release\examples\hello.xl -o build\test\trim_hello.exe
 if errorlevel 1 exit /b 1
-release\tmp\trim_hello.exe
-if errorlevel 1 exit /b 1
-
-release\xl.exe build release\examples\stdlib_crypto.xl -o release\tmp\trim_stdlib_crypto.exe
-if errorlevel 1 exit /b 1
-release\tmp\trim_stdlib_crypto.exe > release\tmp\trim_stdlib_crypto.out
-if errorlevel 1 exit /b 1
-findstr /C:"rsa_guard=ok" release\tmp\trim_stdlib_crypto.out >nul
+build\test\trim_hello.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe build release\examples\stdlib_regex.xl -o release\tmp\trim_stdlib_regex.exe
+release\xl.exe build release\examples\stdlib_crypto.xl -o build\test\trim_stdlib_crypto.exe
 if errorlevel 1 exit /b 1
-release\tmp\trim_stdlib_regex.exe > release\tmp\trim_stdlib_regex.out
+build\test\trim_stdlib_crypto.exe > build\test\trim_stdlib_crypto.out
 if errorlevel 1 exit /b 1
-findstr /C:"set=ok" release\tmp\trim_stdlib_regex.out >nul
-if errorlevel 1 exit /b 1
-
-release\xl.exe build release\examples\stdlib_json.xl -o release\tmp\trim_stdlib_json.exe
-if errorlevel 1 exit /b 1
-release\tmp\trim_stdlib_json.exe > release\tmp\trim_stdlib_json.out
-if errorlevel 1 exit /b 1
-findstr /C:"json=ok" release\tmp\trim_stdlib_json.out >nul
+findstr /C:"rsa_guard=ok" build\test\trim_stdlib_crypto.out >nul
 if errorlevel 1 exit /b 1
 
-release\xl.exe build release\examples\stdlib_path_file.xl -o release\tmp\trim_stdlib_path_file.exe
+release\xl.exe build release\examples\stdlib_regex.xl -o build\test\trim_stdlib_regex.exe
 if errorlevel 1 exit /b 1
-release\tmp\trim_stdlib_path_file.exe > release\tmp\trim_stdlib_path_file.out
+build\test\trim_stdlib_regex.exe > build\test\trim_stdlib_regex.out
 if errorlevel 1 exit /b 1
-findstr /C:"dir=ok" release\tmp\trim_stdlib_path_file.out >nul
-if errorlevel 1 exit /b 1
-
-release\xl.exe build release\examples\script_embed_tcc.xl -o release\tmp\trim_script_embed_tcc.exe
-if errorlevel 1 exit /b 1
-release\tmp\trim_script_embed_tcc.exe > release\tmp\trim_script_embed_tcc.out
-if errorlevel 1 exit /b 1
-findstr /C:"hello from embedded C" release\tmp\trim_script_embed_tcc.out >nul
-if errorlevel 1 exit /b 1
-findstr /C:"hello from dynamic VFS" release\tmp\trim_script_embed_tcc.out >nul
-if errorlevel 1 exit /b 1
-findstr /C:"script_embed_tcc=ok" release\tmp\trim_script_embed_tcc.out >nul
+findstr /C:"set=ok" build\test\trim_stdlib_regex.out >nul
 if errorlevel 1 exit /b 1
 
-release\xl.exe build release\examples\script_embed_xlang.xl -o release\tmp\trim_script_embed_xlang.exe
+release\xl.exe build release\examples\stdlib_json.xl -o build\test\trim_stdlib_json.exe
 if errorlevel 1 exit /b 1
-release\tmp\trim_script_embed_xlang.exe > release\tmp\trim_script_embed_xlang.out
+build\test\trim_stdlib_json.exe > build\test\trim_stdlib_json.out
 if errorlevel 1 exit /b 1
-findstr /C:"hello from nested xlang" release\tmp\trim_script_embed_xlang.out >nul
+findstr /C:"json=ok" build\test\trim_stdlib_json.out >nul
 if errorlevel 1 exit /b 1
-findstr /C:"script_embed_xlang=ok" release\tmp\trim_script_embed_xlang.out >nul
+
+release\xl.exe build release\examples\stdlib_path_file.xl -o build\test\trim_stdlib_path_file.exe
+if errorlevel 1 exit /b 1
+build\test\trim_stdlib_path_file.exe > build\test\trim_stdlib_path_file.out
+if errorlevel 1 exit /b 1
+findstr /C:"dir=ok" build\test\trim_stdlib_path_file.out >nul
+if errorlevel 1 exit /b 1
+
+release\xl.exe build release\examples\script_embed_tcc.xl -o build\test\trim_script_embed_tcc.exe
+if errorlevel 1 exit /b 1
+build\test\trim_script_embed_tcc.exe > build\test\trim_script_embed_tcc.out
+if errorlevel 1 exit /b 1
+findstr /C:"hello from embedded C" build\test\trim_script_embed_tcc.out >nul
+if errorlevel 1 exit /b 1
+findstr /C:"hello from dynamic VFS" build\test\trim_script_embed_tcc.out >nul
+if errorlevel 1 exit /b 1
+findstr /C:"script_embed_tcc=ok" build\test\trim_script_embed_tcc.out >nul
+if errorlevel 1 exit /b 1
+
+release\xl.exe build release\examples\script_embed_xlang.xl -o build\test\trim_script_embed_xlang.exe
+if errorlevel 1 exit /b 1
+build\test\trim_script_embed_xlang.exe > build\test\trim_script_embed_xlang.out
+if errorlevel 1 exit /b 1
+findstr /C:"hello from nested xlang" build\test\trim_script_embed_xlang.out >nul
+if errorlevel 1 exit /b 1
+findstr /C:"script_embed_xlang=ok" build\test\trim_script_embed_xlang.out >nul
 if errorlevel 1 exit /b 1
 
 echo DEMO6 suite ok: artifact closure checks

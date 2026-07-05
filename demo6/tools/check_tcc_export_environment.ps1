@@ -10,7 +10,7 @@ if ( $Root -eq "" ) {
 
 $Root = (Resolve-Path -LiteralPath $Root).Path
 $releaseDir = Join-Path $Root "release"
-$tmpDir = Join-Path $releaseDir "tmp"
+$tmpDir = Join-Path $Root "build\test\tcc_export_environment"
 $includeDir = Join-Path $releaseDir "include"
 $xlExe = Join-Path $releaseDir "xl.exe"
 $xlDef = Join-Path $releaseDir "xl.def"
@@ -106,6 +106,10 @@ if ( $failures.Count -eq 0 ) {
 }
 
 if ( $failures.Count -eq 0 ) {
+    if ( !(Test-Path -LiteralPath $tmpDir -PathType Container) ) {
+        New-Item -ItemType Directory -Path $tmpDir | Out-Null
+    }
+
     $runText = Invoke-Checked -File $xlExe -Arguments @("run", $cExample) -Name "xl run C example"
     if ( $runText.IndexOf("advanced=ok") -lt 0 ) {
         Add-Failure "xl run C example output missing advanced=ok"
@@ -139,7 +143,7 @@ if ( $failures.Count -eq 0 ) {
 }
 
 if ( $failures.Count -eq 0 ) {
-    $tcc = Resolve-Under-Root $env:XL6_TCC "release\tmp\tcc_bootstrap.exe"
+    $tcc = Resolve-Under-Root $env:XL6_TCC "build\tmp\tcc_bootstrap.exe"
     if ( !(Test-Path -LiteralPath $tcc -PathType Leaf) ) {
         Add-Failure "TCC bootstrap compiler missing: $tcc"
     } else {

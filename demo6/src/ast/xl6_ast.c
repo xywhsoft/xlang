@@ -1,4 +1,4 @@
-#include "src/ast/xl6_ast.h"
+﻿#include "src/ast/xl6_ast.h"
 
 const char* xl6AstKindName(XL6_AstKind kind)
 {
@@ -17,15 +17,14 @@ const char* xl6AstKindName(XL6_AstKind kind)
     case XL6_AST_TYPE_ALIAS: return "type_alias";
     case XL6_AST_EXTERN_TYPE_ALIAS: return "extern_type_alias";
     case XL6_AST_CLASS: return "class";
-    case XL6_AST_CUSTOM: return "custom";
     case XL6_AST_UNION: return "union";
     case XL6_AST_DERIVE: return "derive";
     case XL6_AST_FIELD: return "field";
     case XL6_AST_GET: return "get";
     case XL6_AST_LET: return "let";
     case XL6_AST_CREATE: return "create";
-    case XL6_AST_CUSTOM_EXTERN_SPECIAL: return "native_extern_special";
-    case XL6_AST_CUSTOM_EXTERN_FUNC: return "native_extern_func";
+    case XL6_AST_NATIVE_EXTERN_SPECIAL: return "native_extern_special";
+    case XL6_AST_NATIVE_EXTERN_FUNC: return "native_extern_func";
     case XL6_AST_TYPE_PARAMS: return "type_params";
     case XL6_AST_GENERIC_CONSTRAINT: return "generic_constraint";
     case XL6_AST_FIELD_ATTR: return "field_attr";

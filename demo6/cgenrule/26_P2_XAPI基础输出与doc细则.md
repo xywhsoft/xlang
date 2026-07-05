@@ -1,4 +1,4 @@
-# P2 XAPI 基础输出与 doc 细则
+﻿# P2 XAPI 基础输出与 doc 细则
 
 本文细化 `demo6/src/abi/xl6_xapi_dump.c` 的前半部分。XAPI 不是 C 代码，但它是 xl 生成的接口元数据产物，会影响 import/package/C 互通，因此本目录把它作为“生成规则”一并记录。
 

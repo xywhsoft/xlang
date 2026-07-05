@@ -11,7 +11,7 @@ if ( $Root -eq "" ) {
 
 $testBat = Join-Path $Root "test.bat"
 $testSuiteDir = Join-Path $Root "test\suites"
-$tmpDir = Join-Path $Root "release\tmp"
+$tmpDir = Join-Path $Root "build\test"
 $failures = New-Object System.Collections.Generic.List[string]
 $strictUtf8 = New-Object System.Text.UTF8Encoding($false, $true)
 $looseUtf8 = [System.Text.Encoding]::UTF8
@@ -468,7 +468,7 @@ function Is-XlangExpectedFailureCommand($line)
 {
     $trimmed = $line.Trim()
     return [regex]::IsMatch($trimmed, '^release\\xl\.exe\s+') -or
-        [regex]::IsMatch($trimmed, '^release\\tmp\\[^ \t&|<>]+\.exe(\s|$)')
+        [regex]::IsMatch($trimmed, '^build\\test\\[^ \t&|<>]+\.exe(\s|$)')
 }
 
 function Add-MatchesToSet($matches, $set)
@@ -533,8 +533,8 @@ for ( $i = 0; $i -lt $lines.Count; ++$i ) {
 
     $stderrNames = New-Object System.Collections.Generic.SortedSet[string]
     $stdoutNames = New-Object System.Collections.Generic.SortedSet[string]
-    Add-MatchesToSet ([regex]::Matches($commandLine, '2>\s*release\\tmp\\([^ \t&|<>]+)')) $stderrNames
-    Add-MatchesToSet ([regex]::Matches($commandLine, '(?<![0-9])>\s*release\\tmp\\([^ \t&|<>]+)')) $stdoutNames
+    Add-MatchesToSet ([regex]::Matches($commandLine, '2>\s*build\\test\\([^ \t&|<>]+)')) $stderrNames
+    Add-MatchesToSet ([regex]::Matches($commandLine, '(?<![0-9])>\s*build\\test\\([^ \t&|<>]+)')) $stdoutNames
 
     $usedNames = New-Object System.Collections.Generic.SortedSet[string]
     foreach ( $name in $stderrNames ) {

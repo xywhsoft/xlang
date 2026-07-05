@@ -1,4 +1,4 @@
-# P2 XAPI 元数据验证矩阵
+﻿# P2 XAPI 元数据验证矩阵
 
 本文继续细化 `34_规则测试范例交叉索引.md`，覆盖以下 P2 规则文档：
 
@@ -38,7 +38,7 @@
 | 规则范围 | 当前验证用例 | 证据等级 | 核验结论 |
 |---|---|---|---|
 | `CGEN-XLOAD-001..006` JSON parser 状态、空白/consume、字符串/bool/int、未知 value 跳过 | `import_broken_xapi.xl`；`test.bat` 检查格式错误诊断含 `xlang-xapi-1`；`xapi_load_types_host.c` 读取真实 JSON；`xapi_loader_defaults_host.c` 读取 `xapi_unknown_fields.xapi.json` | C 宿主运行 + 语义负例 + 手写 fixture | parser 基础读取、format 错误、真实 JSON 成功解析和未知 root/package/module/export/param/return/type/field/native 字段跳过均有覆盖。 |
-| `CGEN-XLOAD-007..012` param/return/field 动态追加、字符串数组、doc、参数/返回数组读取 | `xapi_load_types_host.c release\tmp\xapi_type_fields.json`、`xapi_doc.xl`、`export_alias.xl`、import XAPI function/var/type 系列 | C 宿主运行 + import 消费 | params、returns、fields、typeParams、doc raw 恢复有覆盖。 |
+| `CGEN-XLOAD-007..012` param/return/field 动态追加、字符串数组、doc、参数/返回数组读取 | `xapi_load_types_host.c build\test\xapi_type_fields.json`、`xapi_doc.xl`、`export_alias.xl`、import XAPI function/var/type 系列 | C 宿主运行 + import 消费 | params、returns、fields、typeParams、doc raw 恢复有覆盖。 |
 | `CGEN-XLOAD-013..018` exports/types 对象和数组读取 | `import_xapi_use.xl`、`import_xapi_var_use.xl`、`import_xapi_type_union_use.xl`、`import_xapi_type_class_use.xl`、`xapi_load_types_host.c` | IR/C 检查 + C 宿主运行 + import 消费 | function/var export、class/custom/union type、字段恢复和后续 AST 注入有覆盖。 |
 | `CGEN-XLOAD-019..022` package/module/native/root format 读取 | package fixture 的 `package.xapi.json`、`import_metadata.xl`、`import_broken_xapi.xl`、`import_missing_xapi.xl` | import 消费 + 语义负例 | package/module/native/root format 读取、缺失接口和错误格式诊断有覆盖。 |
 | `CGEN-XLOAD-023..028` 读取侧必需字段校验、function ABI 字段校验 | `export_alias.xl` 检查 `callingConvention`/`varargMode`、import XAPI fixtures、package resolver 用例；`xapi_loader_defaults_host.c` 读取 `xapi_unknown_fields.xapi.json` | 直接 JSON 检查 + import 消费 + 手写 fixture | package/module 身份、source/sourceHash、native load/version、function callingConvention/varargMode、signature/exportId、field storage 均按当前格式显式提供并由 loader 校验。 |

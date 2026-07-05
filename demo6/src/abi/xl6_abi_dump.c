@@ -1,4 +1,5 @@
 #include "src/abi/xl6_abi_dump.h"
+#include "src/abi/xl6_abi_json.h"
 #include "src/common/xl6_output.h"
 
 static void xl6AbiText(XL6_Output* out, const char* text)
@@ -110,68 +111,6 @@ static void xl6AbiCStringSymbol(XL6_Output* out, const char* text)
         return;
     }
     xl6OutputPuts(text, out);
-}
-
-static void xl6AbiJsonEscapedRange(XL6_Output* out, const char* text, size_t len)
-{
-    size_t i;
-
-    if ( text == NULL ) {
-        return;
-    }
-    for ( i = 0; i < len; ++i ) {
-        unsigned char ch = (unsigned char)text[i];
-        if ( ch == '"' ) {
-            xl6OutputPuts("\\\"", out);
-        } else if ( ch == '\\' ) {
-            xl6OutputPuts("\\\\", out);
-        } else if ( ch == '\b' ) {
-            xl6OutputPuts("\\b", out);
-        } else if ( ch == '\f' ) {
-            xl6OutputPuts("\\f", out);
-        } else if ( ch == '\n' ) {
-            xl6OutputPuts("\\n", out);
-        } else if ( ch == '\r' ) {
-            xl6OutputPuts("\\r", out);
-        } else if ( ch == '\t' ) {
-            xl6OutputPuts("\\t", out);
-        } else if ( ch < 0x20 ) {
-            xl6OutputPrintf(out, "\\u%04X", (unsigned)ch);
-        } else {
-            xl6OutputPutc((int)ch, out);
-        }
-    }
-}
-
-static void xl6AbiJsonEscaped(XL6_Output* out, const char* text)
-{
-    if ( text == NULL ) {
-        return;
-    }
-    xl6AbiJsonEscapedRange(out, text, strlen(text));
-}
-
-static void xl6AbiJsonString(XL6_Output* out, const char* text)
-{
-    xl6OutputPutc('"', out);
-    xl6AbiJsonEscaped(out, text);
-    xl6OutputPutc('"', out);
-}
-
-static void xl6AbiJsonCStringSymbol(XL6_Output* out, const char* text)
-{
-    size_t len;
-
-    xl6OutputPutc('"', out);
-    if ( text != NULL ) {
-        len = strlen(text);
-        if ( len >= 2 && (text[0] == '"' || text[0] == '\'') ) {
-            xl6AbiJsonEscapedRange(out, text + 1, len - 2);
-        } else {
-            xl6AbiJsonEscapedRange(out, text, len);
-        }
-    }
-    xl6OutputPutc('"', out);
 }
 
 static int xl6AbiIsTypeAliasDecl(const XL6_AstNode* node)
@@ -549,8 +488,8 @@ static const char* xl6AbiCallableName(const XL6_AstNode* node)
          node->kind == XL6_AST_EXPORT_FUNC ||
          node->kind == XL6_AST_GET ||
          node->kind == XL6_AST_LET ||
-         node->kind == XL6_AST_CUSTOM_EXTERN_FUNC ||
-         node->kind == XL6_AST_CUSTOM_EXTERN_SPECIAL ) {
+         node->kind == XL6_AST_NATIVE_EXTERN_FUNC ||
+         node->kind == XL6_AST_NATIVE_EXTERN_SPECIAL ) {
         nameNode = node->childCount > 0 ? node->children[0] : NULL;
         return nameNode != NULL ? nameNode->text : NULL;
     }
@@ -564,8 +503,8 @@ static int xl6AbiIsClassCallableOverloadMember(const XL6_AstNode* node)
             node->kind == XL6_AST_ASYNC_FUNC ||
             node->kind == XL6_AST_EXPORT_FUNC ||
             node->kind == XL6_AST_CREATE ||
-            node->kind == XL6_AST_CUSTOM_EXTERN_FUNC ||
-            node->kind == XL6_AST_CUSTOM_EXTERN_SPECIAL);
+            node->kind == XL6_AST_NATIVE_EXTERN_FUNC ||
+            node->kind == XL6_AST_NATIVE_EXTERN_SPECIAL);
 }
 
 static int xl6AbiClassCallableOverloadCount(const XL6_AstNode* classNode, const XL6_AstNode* memberNode)

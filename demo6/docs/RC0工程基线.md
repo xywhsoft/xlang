@@ -98,7 +98,7 @@ rc0_guard.bat -SkipFullTests
 - `src` 中不得重新引入 `xl6_time_literal`。
 - `driver`、`package`、`common` 中不得使用 CRT `remove`、`_rmdir`、`rmdir` 删除文件或目录。
 - `driver`、`package`、`common` 中不得使用 shell 创建目录；目录创建必须走 XRT。
-- CLI 临时目录创建必须检查 `xl6CliEnsureTmpDir()` 返回值，不得吞掉目录创建失败。
+- CLI 临时目录创建必须检查 `xlcShellBuildTmpDir()` 返回值，不得吞掉目录创建失败。
 - CLI 临时目录名必须使用 XRT 时间和随机数，不得重新使用 CRT `time()`。
 
 ## XRT 与 CRT 边界

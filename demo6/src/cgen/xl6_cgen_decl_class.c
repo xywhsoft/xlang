@@ -1,5 +1,5 @@
-static void xl6CgenGenericClassDecl(XL6_CgenContext* ctx, const XL6_AstNode* typeNode);
-static void xl6CgenCustomExternProto(XL6_CgenContext* ctx, const XL6_AstNode* customNode, const XL6_AstNode* member);
+﻿static void xl6CgenGenericClassDecl(XL6_CgenContext* ctx, const XL6_AstNode* typeNode);
+static void xl6CgenNativeExternProto(XL6_CgenContext* ctx, const XL6_AstNode* customNode, const XL6_AstNode* member);
 
 static int xl6CgenGenericClassMemberHasSignatureTypes(const XL6_AstNode* member)
 {
@@ -255,7 +255,7 @@ static void xl6CgenGenericClassParamList(XL6_CgenContext* ctx, const XL6_AstNode
         xl6OutputPuts(", ", ctx->out);
         if ( param->childCount == 0 || xl6CTextEquals(param->children[0]->text, "array<var>") ||
              xl6CTextEquals(param->children[0]->text, "dict<var>") ) {
-            xl6CgenError(ctx, param, "泛型 class 方法暂不支持可变参数");
+            xl6CgenError(ctx, param, "娉涘瀷 class 鏂规硶鏆備笉鏀寔鍙彉鍙傛暟");
             xl6OutputPuts("int ", ctx->out);
         } else {
             xl6OutputPuts(xl6CgenTypeName(ctx, param->children[0]), ctx->out);
@@ -391,7 +391,7 @@ static void xl6CgenClassDecls(XL6_CgenContext* ctx, const XL6_AstNode* classNode
     }
     if ( xl6CgenClassHasTypeParams(classNode) ) {
         return;
-        xl6CgenError(ctx, classNode, "当前 C 生成暂不支持泛型 class");
+        xl6CgenError(ctx, classNode, "褰撳墠 C 鐢熸垚鏆備笉鏀寔娉涘瀷 class");
         return;
     }
 
@@ -465,24 +465,24 @@ static void xl6CgenClassDecls(XL6_CgenContext* ctx, const XL6_AstNode* classNode
             if ( member == NULL ) {
                 continue;
             }
-            if ( member->kind == XL6_AST_CUSTOM_EXTERN_SPECIAL ||
-                 member->kind == XL6_AST_CUSTOM_EXTERN_FUNC ||
+            if ( member->kind == XL6_AST_NATIVE_EXTERN_SPECIAL ||
+                 member->kind == XL6_AST_NATIVE_EXTERN_FUNC ||
                  xl6CgenIsExternClassProperty(member) ) {
-                xl6CgenCustomExternProto(ctx, classNode, member);
+                xl6CgenNativeExternProto(ctx, classNode, member);
                 xl6OutputPuts(";\n", ctx->out);
             }
             if ( member->kind == XL6_AST_FUNC ||
                  member->kind == XL6_AST_EXPORT_FUNC ||
                  member->kind == XL6_AST_GET ||
                  member->kind == XL6_AST_LET ||
-                 member->kind == XL6_AST_CUSTOM_EXTERN_FUNC ) {
+                 member->kind == XL6_AST_NATIVE_EXTERN_FUNC ) {
                 xl6CgenClassFuncProto(ctx, classNode, member);
                 xl6OutputPuts(";\n", ctx->out);
                 if ( member->kind == XL6_AST_EXPORT_FUNC ) {
                     xl6CgenClassExportWrapperProto(ctx, classNode, member);
                     xl6OutputPuts(";\n", ctx->out);
                 }
-            } else if ( member->kind == XL6_AST_CREATE || member->kind == XL6_AST_CUSTOM_EXTERN_SPECIAL ) {
+            } else if ( member->kind == XL6_AST_CREATE || member->kind == XL6_AST_NATIVE_EXTERN_SPECIAL ) {
                 if ( xl6CTextEquals(xl6CgenCallableName(member), "destroy") ) {
                     hasDestroy = 1;
                 }
@@ -590,13 +590,13 @@ static void xl6CgenClassDefaultInitFields(XL6_CgenContext* ctx, const XL6_AstNod
         if ( initExpr == NULL ) {
             continue;
         }
-        fieldCustom = fieldType != NULL ? xl6CgenFindCustom(ctx, fieldType->text) : NULL;
+        fieldCustom = fieldType != NULL ? xl6CgenFindNativeBackedClass(ctx, fieldType->text) : NULL;
         ctorCustom = NULL;
         fieldClass = fieldType != NULL ? xl6CgenFindClass(ctx, fieldType->text) : NULL;
         ctorClass = NULL;
-        if ( fieldCustom != NULL && xl6CgenCallIsCustomCtor(ctx, initExpr, &ctorCustom) ) {
+        if ( fieldCustom != NULL && xl6CgenCallIsNativeBackedCtor(ctx, initExpr, &ctorCustom) ) {
             if ( !xl6CTextEquals(fieldCustom->text, ctorCustom->text) ) {
-                xl6CgenError(ctx, initExpr, "custom field initializer constructor type does not match field type");
+                xl6CgenError(ctx, initExpr, "native-backed class field initializer constructor type does not match field type");
                 continue;
             }
             xl6CgenIndent(ctx);
@@ -604,7 +604,7 @@ static void xl6CgenClassDefaultInitFields(XL6_CgenContext* ctx, const XL6_AstNod
             xl6OutputPutc('.', ctx->out);
             xl6CgenFputsCIdent(ctx->out, member->text);
             xl6OutputPuts(".handle = ", ctx->out);
-            xl6CgenCustomCtorValue(ctx, ctorCustom, initExpr);
+            xl6CgenNativeBackedCtorValue(ctx, ctorCustom, initExpr);
             xl6OutputPuts(";\n", ctx->out);
             continue;
         }
@@ -628,7 +628,7 @@ static void xl6CgenClassDefaultInitFields(XL6_CgenContext* ctx, const XL6_AstNod
     }
 }
 
-static void xl6CgenCustomParamList(XL6_CgenContext* ctx, const XL6_AstNode* params, int includeSelf)
+static void xl6CgenNativeParamList(XL6_CgenContext* ctx, const XL6_AstNode* params, int includeSelf)
 {
     size_t i;
     int wrote;
@@ -646,7 +646,7 @@ static void xl6CgenCustomParamList(XL6_CgenContext* ctx, const XL6_AstNode* para
             }
             if ( param->childCount == 0 || xl6CTextEquals(param->children[0]->text, "array<var>") ||
                  xl6CTextEquals(param->children[0]->text, "dict<var>") ) {
-                xl6CgenError(ctx, param, "custom extern parameter must have a non-vararg C ABI type");
+                xl6CgenError(ctx, param, "native extern parameter must have a non-vararg C ABI type");
                 xl6OutputPuts("int ", ctx->out);
             } else {
                 xl6OutputPuts(xl6CgenTypeName(ctx, param->children[0]), ctx->out);
@@ -661,21 +661,21 @@ static void xl6CgenCustomParamList(XL6_CgenContext* ctx, const XL6_AstNode* para
     }
 }
 
-static void xl6CgenCustomExternProto(XL6_CgenContext* ctx, const XL6_AstNode* customNode, const XL6_AstNode* member)
+static void xl6CgenNativeExternProto(XL6_CgenContext* ctx, const XL6_AstNode* customNode, const XL6_AstNode* member)
 {
     const XL6_AstNode* nameNode;
     const XL6_AstNode* params;
     const XL6_AstNode* returns;
 
     (void)customNode;
-    if ( member->kind == XL6_AST_CUSTOM_EXTERN_SPECIAL ) {
+    if ( member->kind == XL6_AST_NATIVE_EXTERN_SPECIAL ) {
         nameNode = member->childCount > 0 ? member->children[0] : NULL;
         params = member->childCount > 1 ? member->children[1] : NULL;
         if ( nameNode != NULL && xl6CTextEquals(nameNode->text, "create") ) {
             xl6OutputPuts("void* ", ctx->out);
             xl6CgenCStringSymbol(ctx->out, member->text);
             xl6OutputPutc('(', ctx->out);
-            xl6CgenCustomParamList(ctx, params, 0);
+            xl6CgenNativeParamList(ctx, params, 0);
             xl6OutputPutc(')', ctx->out);
         } else if ( nameNode != NULL && xl6CTextEquals(nameNode->text, "destroy") ) {
             xl6OutputPuts("long long ", ctx->out);
@@ -690,7 +690,7 @@ static void xl6CgenCustomExternProto(XL6_CgenContext* ctx, const XL6_AstNode* cu
     params = member->childCount > 1 ? member->children[1] : NULL;
     returns = member->childCount > 2 ? member->children[2] : NULL;
     if ( returns != NULL && returns->childCount > 1 ) {
-        xl6CgenError(ctx, returns, "custom extern method cannot return multiple values");
+        xl6CgenError(ctx, returns, "native extern method cannot return multiple values");
     }
     if ( returns != NULL && returns->childCount == 1 ) {
         xl6OutputPuts(xl6CgenTypeName(ctx, returns->children[0]), ctx->out);
@@ -700,15 +700,15 @@ static void xl6CgenCustomExternProto(XL6_CgenContext* ctx, const XL6_AstNode* cu
     xl6OutputPutc(' ', ctx->out);
     xl6CgenCStringSymbol(ctx->out, member->text);
     xl6OutputPutc('(', ctx->out);
-    xl6CgenCustomParamList(ctx, params, 1);
+    xl6CgenNativeParamList(ctx, params, 1);
     xl6OutputPutc(')', ctx->out);
 }
 
-static void xl6CgenCustomHelperParamList(XL6_CgenContext* ctx, const XL6_AstNode* customNode, const XL6_AstNode* params)
+static void xl6CgenNativeHelperParamList(XL6_CgenContext* ctx, const XL6_AstNode* customNode, const XL6_AstNode* params)
 {
     size_t i;
 
-    xl6CgenCustomTypeName(ctx->out, customNode->text);
+    xl6CgenNativeBackedTypeName(ctx->out, customNode->text);
     xl6OutputPuts("* self", ctx->out);
     if ( params == NULL ) {
         return;
@@ -719,7 +719,7 @@ static void xl6CgenCustomHelperParamList(XL6_CgenContext* ctx, const XL6_AstNode
         xl6OutputPuts(", ", ctx->out);
         if ( param->childCount == 0 || xl6CTextEquals(param->children[0]->text, "array<var>") ||
              xl6CTextEquals(param->children[0]->text, "dict<var>") ) {
-            xl6CgenError(ctx, param, "custom helper C 生成暂不支持可变参数方法");
+            xl6CgenError(ctx, param, "native-backed class helper C generation does not support vararg methods");
             xl6OutputPuts("int ", ctx->out);
         } else {
             xl6OutputPuts(xl6CgenTypeName(ctx, param->children[0]), ctx->out);
@@ -729,14 +729,14 @@ static void xl6CgenCustomHelperParamList(XL6_CgenContext* ctx, const XL6_AstNode
     }
 }
 
-static void xl6CgenCustomFuncProto(XL6_CgenContext* ctx, const XL6_AstNode* customNode, const XL6_AstNode* funcNode)
+static void xl6CgenNativeClassFuncProto(XL6_CgenContext* ctx, const XL6_AstNode* customNode, const XL6_AstNode* funcNode)
 {
     const XL6_AstNode* params;
     const XL6_AstNode* returns;
 
     returns = funcNode->childCount > 2 ? funcNode->children[2] : NULL;
     if ( returns != NULL && returns->childCount > 1 ) {
-        xl6CgenError(ctx, returns, "custom helper method cannot return multiple values");
+        xl6CgenError(ctx, returns, "native-backed class helper method cannot return multiple values");
     }
     if ( returns != NULL && returns->childCount == 1 ) {
         xl6OutputPuts(xl6CgenTypeName(ctx, returns->children[0]), ctx->out);
@@ -744,41 +744,41 @@ static void xl6CgenCustomFuncProto(XL6_CgenContext* ctx, const XL6_AstNode* cust
         xl6OutputPuts("void", ctx->out);
     }
     xl6OutputPutc(' ', ctx->out);
-    xl6CgenCustomCallableSymbol(ctx, customNode, funcNode);
+    xl6CgenNativeCallableSymbol(ctx, customNode, funcNode);
     xl6OutputPutc('(', ctx->out);
     params = funcNode->childCount > 1 ? funcNode->children[1] : NULL;
-    xl6CgenCustomHelperParamList(ctx, customNode, params);
+    xl6CgenNativeHelperParamList(ctx, customNode, params);
     xl6OutputPutc(')', ctx->out);
 }
 
-static void xl6CgenCustomDecls(XL6_CgenContext* ctx, const XL6_AstNode* customNode)
+static void xl6CgenNativeBackedClassDecls(XL6_CgenContext* ctx, const XL6_AstNode* customNode)
 {
     const XL6_AstNode* body;
     char cTypeName[512];
     size_t i;
 
     xl6OutputPuts("typedef struct ", ctx->out);
-    xl6CgenCustomTypeName(ctx->out, customNode->text);
+    xl6CgenNativeBackedTypeName(ctx->out, customNode->text);
     xl6OutputPuts(" { void* handle; } ", ctx->out);
-    xl6CgenCustomTypeName(ctx->out, customNode->text);
+    xl6CgenNativeBackedTypeName(ctx->out, customNode->text);
     xl6OutputPuts(";\n", ctx->out);
 
     if ( ctx->needsXValueRuntime ) {
-        xl6CgenCustomTypeRefName(cTypeName, sizeof(cTypeName), customNode->text);
+        xl6CgenNativeBackedTypeRefName(cTypeName, sizeof(cTypeName), customNode->text);
         xl6CgenEmitHandleBoxRuntime(ctx, customNode, cTypeName, customNode->text);
     }
 
-    if ( customNode->childCount == 0 ) {
+    body = xl6CgenClassBody(customNode);
+    if ( body == NULL ) {
         return;
     }
-    body = customNode->children[0];
     for ( i = 0; i < body->childCount; ++i ) {
         const XL6_AstNode* member = body->children[i];
-        if ( member->kind == XL6_AST_CUSTOM_EXTERN_SPECIAL || member->kind == XL6_AST_CUSTOM_EXTERN_FUNC ) {
-            xl6CgenCustomExternProto(ctx, customNode, member);
+        if ( member->kind == XL6_AST_NATIVE_EXTERN_SPECIAL || member->kind == XL6_AST_NATIVE_EXTERN_FUNC ) {
+            xl6CgenNativeExternProto(ctx, customNode, member);
             xl6OutputPuts(";\n", ctx->out);
         } else if ( member->kind == XL6_AST_FUNC ) {
-            xl6CgenCustomFuncProto(ctx, customNode, member);
+            xl6CgenNativeClassFuncProto(ctx, customNode, member);
             xl6OutputPuts(";\n", ctx->out);
         }
     }

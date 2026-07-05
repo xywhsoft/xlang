@@ -15,6 +15,10 @@ int main(void)
         xlUnit();
         return 2;
     }
+    if ( tutorial_self_check() != 0 ) {
+        xlUnit();
+        return 7;
+    }
     if ( tutorial_counter != 40 || tutorial_answer != 42 ) {
         xlUnit();
         return 3;

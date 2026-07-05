@@ -1,4 +1,4 @@
-#ifndef XL6_TYPE_REGISTRY_H
+﻿#ifndef XL6_TYPE_REGISTRY_H
 #define XL6_TYPE_REGISTRY_H
 
 #include "src/ast/xl6_ast.h"
@@ -7,7 +7,6 @@ typedef enum XL6_TypeKind {
     XL6_TYPE_BUILTIN,
     XL6_TYPE_ALIAS,
     XL6_TYPE_CLASS,
-    XL6_TYPE_CUSTOM,
     XL6_TYPE_UNION
 } XL6_TypeKind;
 

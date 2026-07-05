@@ -12,11 +12,10 @@
 - `examples`：随 `xl.exe` 分发的范例程序。
 - `extlibs`：随 `xl.exe` 分发的 import/package/XAPI 测试与扩展库资产。
 - `xl_dll_embed_string.exe`、`xl_dll_null_context.exe`、`xl_dll_threaded_host.exe`：DLL API 验证程序。
-- `tmp`：构建、测试和 DLL dependency fixture 使用的临时产物目录。
 
 ## 维护规则
 
 - 不手工修改构建产物来修复问题；应修改源码、构建脚本或工具链配置后重新构建。
 - 如果产物和源码行为不一致，以源码、测试和构建脚本为准。
-- `release/tmp` 可以被构建或测试过程覆盖。
+- 发布目录不保存临时产物；构建中间文件进入 `build/tmp`，测试与范例回归产物进入 `build/test`。
 - `release/libtcc.dll` 不属于发布物；`xl.dll` / `xlc.dll` 均静态链接 demo6 自带 libtcc。

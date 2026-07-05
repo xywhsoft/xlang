@@ -885,22 +885,22 @@ static void xl6CgenAssignStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
             xl6AstFree(fieldType);
             return;
         }
-        if ( xl6CgenCallIsCustomCtor(ctx, right, &ctorCustom) ) {
-            fieldCustom = fieldType != NULL ? xl6CgenFindCustom(ctx, fieldType->text) : NULL;
+        if ( xl6CgenCallIsNativeBackedCtor(ctx, right, &ctorCustom) ) {
+            fieldCustom = fieldType != NULL ? xl6CgenFindNativeBackedClass(ctx, fieldType->text) : NULL;
             if ( fieldCustom == NULL ) {
                 xl6AstFree(fieldType);
-                xl6CgenError(ctx, left, "custom 构造只能赋给同类型 custom 字段");
+                xl6CgenError(ctx, left, "native-backed class constructor can only assign to same-type native-backed class field");
                 return;
             }
             if ( !xl6CTextEquals(fieldCustom->text, ctorCustom->text) ) {
-                xl6CgenError(ctx, right, "custom constructor type does not match target field type");
+                xl6CgenError(ctx, right, "native-backed class constructor type does not match target field type");
                 xl6AstFree(fieldType);
                 return;
             }
             xl6CgenIndent(ctx);
             xl6CgenExpr(ctx, left);
             xl6OutputPuts(".handle = ", ctx->out);
-            xl6CgenCustomCtorValue(ctx, ctorCustom, right);
+            xl6CgenNativeBackedCtorValue(ctx, ctorCustom, right);
             xl6OutputPuts(";\n", ctx->out);
             xl6AstFree(fieldType);
             return;

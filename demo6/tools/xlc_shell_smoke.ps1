@@ -9,7 +9,7 @@ if ( $Root -eq "" ) {
 }
 
 $xl = Join-Path $Root "release\xl.exe"
-$tmpDir = Join-Path $Root "release\tmp"
+$tmpDir = Join-Path $Root "build\test"
 $failures = New-Object System.Collections.Generic.List[string]
 
 Set-Location $Root
@@ -105,12 +105,12 @@ foreach ( $cmd in @("xl lex", "xl parse", "xl check", "xl ir", "xl cgen", "xl ab
 $case = "release\examples\stdlib_print.xl"
 
 Invoke-XlCapture -Name "check" -CommandArgs @("check", $case) -Stdout (Join-Path $tmpDir "xlc_shell_check.out.txt") -Stderr (Join-Path $tmpDir "xlc_shell_check.err.txt") | Out-Null
-Invoke-XlCapture -Name "lex json" -CommandArgs @("lex", $case, "--format", "json", "--emit", "release\tmp\xlc_shell.tokens.json") -Stdout (Join-Path $tmpDir "xlc_shell_lex.out.txt") -Stderr (Join-Path $tmpDir "xlc_shell_lex.err.txt") | Out-Null
-Invoke-XlCapture -Name "parse json" -CommandArgs @("parse", $case, "--format", "json", "--emit", "release\tmp\xlc_shell.ast.json") -Stdout (Join-Path $tmpDir "xlc_shell_parse.out.txt") -Stderr (Join-Path $tmpDir "xlc_shell_parse.err.txt") | Out-Null
-Invoke-XlCapture -Name "ir" -CommandArgs @("ir", $case, "--emit", "release\tmp\xlc_shell.xlir") -Stdout (Join-Path $tmpDir "xlc_shell_ir.out.txt") -Stderr (Join-Path $tmpDir "xlc_shell_ir.err.txt") | Out-Null
-Invoke-XlCapture -Name "cgen" -CommandArgs @("cgen", $case, "--emit", "release\tmp\xlc_shell.c", "--emit-header", "release\tmp\xlc_shell.h") -Stdout (Join-Path $tmpDir "xlc_shell_cgen.out.txt") -Stderr (Join-Path $tmpDir "xlc_shell_cgen.err.txt") | Out-Null
-Invoke-XlCapture -Name "abi" -CommandArgs @("abi", $case, "--json", "--emit", "release\tmp\xlc_shell.abi.json") -Stdout (Join-Path $tmpDir "xlc_shell_abi.out.txt") -Stderr (Join-Path $tmpDir "xlc_shell_abi.err.txt") | Out-Null
-Invoke-XlCapture -Name "xapi" -CommandArgs @("xapi", $case, "--emit", "release\tmp\xlc_shell.xapi.json") -Stdout (Join-Path $tmpDir "xlc_shell_xapi.out.txt") -Stderr (Join-Path $tmpDir "xlc_shell_xapi.err.txt") | Out-Null
+Invoke-XlCapture -Name "lex json" -CommandArgs @("lex", $case, "--format", "json", "--emit", "build\test\xlc_shell.tokens.json") -Stdout (Join-Path $tmpDir "xlc_shell_lex.out.txt") -Stderr (Join-Path $tmpDir "xlc_shell_lex.err.txt") | Out-Null
+Invoke-XlCapture -Name "parse json" -CommandArgs @("parse", $case, "--format", "json", "--emit", "build\test\xlc_shell.ast.json") -Stdout (Join-Path $tmpDir "xlc_shell_parse.out.txt") -Stderr (Join-Path $tmpDir "xlc_shell_parse.err.txt") | Out-Null
+Invoke-XlCapture -Name "ir" -CommandArgs @("ir", $case, "--emit", "build\test\xlc_shell.xlir") -Stdout (Join-Path $tmpDir "xlc_shell_ir.out.txt") -Stderr (Join-Path $tmpDir "xlc_shell_ir.err.txt") | Out-Null
+Invoke-XlCapture -Name "cgen" -CommandArgs @("cgen", $case, "--emit", "build\test\xlc_shell.c", "--emit-header", "build\test\xlc_shell.h") -Stdout (Join-Path $tmpDir "xlc_shell_cgen.out.txt") -Stderr (Join-Path $tmpDir "xlc_shell_cgen.err.txt") | Out-Null
+Invoke-XlCapture -Name "abi" -CommandArgs @("abi", $case, "--json", "--emit", "build\test\xlc_shell.abi.json") -Stdout (Join-Path $tmpDir "xlc_shell_abi.out.txt") -Stderr (Join-Path $tmpDir "xlc_shell_abi.err.txt") | Out-Null
+Invoke-XlCapture -Name "xapi" -CommandArgs @("xapi", $case, "--emit", "build\test\xlc_shell.xapi.json") -Stdout (Join-Path $tmpDir "xlc_shell_xapi.out.txt") -Stderr (Join-Path $tmpDir "xlc_shell_xapi.err.txt") | Out-Null
 
 $runOut = Join-Path $tmpDir "xlc_shell_run.out.txt"
 $runErr = Join-Path $tmpDir "xlc_shell_run.err.txt"
@@ -161,7 +161,7 @@ foreach ( $path in @($sharedDll, $sharedHeader) ) {
 }
 
 $badSharedErr = Join-Path $tmpDir "xlc_shell_bad_shared.err.txt"
-Invoke-XlCapture -Name "reject shared main" -CommandArgs @("build", "test\cases\cgen_main_entry.xl", "-shared", "-o", "release\tmp\xlc_shell_bad_shared.dll") -Stdout (Join-Path $tmpDir "xlc_shell_bad_shared.out.txt") -Stderr $badSharedErr -ExpectedCode 1 | Out-Null
+Invoke-XlCapture -Name "reject shared main" -CommandArgs @("build", "test\cases\cgen_main_entry.xl", "-shared", "-o", "build\test\xlc_shell_bad_shared.dll") -Stdout (Join-Path $tmpDir "xlc_shell_bad_shared.out.txt") -Stderr $badSharedErr -ExpectedCode 1 | Out-Null
 Assert-Contains "reject shared main" (Read-Text $badSharedErr) "shared build cannot contain xlang main"
 
 $dbgOut = Join-Path $tmpDir "xlc_shell_dbg.out.txt"

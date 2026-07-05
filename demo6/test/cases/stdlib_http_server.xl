@@ -33,8 +33,8 @@ end
 export "xl6_http_server_create" func createServer() as point
     func(string, string, string, string) as string fn = handle
     func(point, point) as bool reqFn = handleRequest
-    dir.createAll("release/tmp/stdlib_http_static")
-    file.writeText("release/tmp/stdlib_http_static/index.txt", "static-ok")
+    dir.createAll("build/test/stdlib_http_static")
+    file.writeText("build/test/stdlib_http_static/index.txt", "static-ok")
     assert http.server.mimeByPath("index.html") == "text/html; charset=utf-8", "mimeByPath mismatch"
     point server = http.server.create(0)
     http.server.get(server, "/legacy", fn)
@@ -43,7 +43,7 @@ export "xl6_http_server_create" func createServer() as point
     http.server.getRequest(server, "/users/{id}", reqFn)
     http.server.postRequest(server, "/demo", reqFn)
     http.server.anyRequest(server, "/any", reqFn)
-    http.server.static(server, "/public", "release/tmp/stdlib_http_static")
+    http.server.static(server, "/public", "build/test/stdlib_http_static")
     http.server.start(server)
     return server
 end
@@ -55,6 +55,6 @@ end
 export "xl6_http_server_stop" func stopServer(point server)
     http.server.stop(server)
     http.server.destroy(server)
-    file.delete("release/tmp/stdlib_http_static/index.txt")
-    dir.delete("release/tmp/stdlib_http_static")
+    file.delete("build/test/stdlib_http_static/index.txt")
+    dir.delete("build/test/stdlib_http_static")
 end

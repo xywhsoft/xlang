@@ -1,4 +1,4 @@
-# P1 generator 与 yield 生成细则
+﻿# P1 generator 与 yield 生成细则
 
 本文细化 `xl6_cgen_generator.c` 中的 generator runtime、`generator<T>` 函数、frame、worker 和 `yield` 生成规则。`for item in generator` 的循环消费路径已在 `08_P0_控制流与循环细则.md` 中记录，这里补全 generator 的生产端。
 

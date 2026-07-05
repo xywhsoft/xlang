@@ -1,4 +1,4 @@
-# P2 runtime helper 细则
+﻿# P2 runtime helper 细则
 
 本文细化 `xl6_cgen_runtime.c`、`xl6_cgen_lifecycle.c`、`xl6_cgen_main.c`、`xl6_cgen_xvalue_runtime.c` 和 `xl6_cgen_xvalue_runtime_index_ops.c`。这些规则多数不是单一语法节点本体，而是为了表达式、动态值、脚本入口和生命周期生成额外 C helper。`xl6_cgen_xvalue_runtime*.c` 中的 emitter 是 `static`，通过 `xl6_cgen.c` 的分片 include 顺序进入同一个翻译单元，由 `xl6_cgen_module.c` 调用。
 

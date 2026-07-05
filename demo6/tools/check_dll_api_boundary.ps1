@@ -277,6 +277,10 @@ if ( $failures.Count -eq 0 ) {
     }
 
     foreach ( $line in ($api -split "`r?`n") ) {
+        $trimmedLine = $line.Trim()
+        if ( $trimmedLine.EndsWith(";") ) {
+            continue
+        }
         if ( $line -match '^\s' ) {
             continue
         }
@@ -438,17 +442,19 @@ if ( $failures.Count -eq 0 ) {
          $buildDll -notmatch 'tcc_vfs_manifest_win64_xlc[.]txt' ) {
         Add-Failure "build_dll.bat must generate separate runtime and compiler VFS manifests for xl.dll/xlc.dll"
     }
+    $runtimeResourcePattern = '(build\\tmp|%XL6_BUILD_TMP%)\\tcc_builtin_resources_runtime[.]c'
+    $compilerResourcePattern = '(build\\tmp|%XL6_BUILD_TMP%)\\tcc_builtin_resources[.]c'
     if ( $xlRuntimeBuildBlock -notmatch '-DXL_RUNTIME_ONLY_DLL' -or
-         $xlRuntimeBuildBlock -notmatch 'release\\tmp\\tcc_builtin_resources_runtime[.]c' ) {
+         $xlRuntimeBuildBlock -notmatch $runtimeResourcePattern ) {
         Add-Failure "xl.dll runtime build must use the runtime-only embedded TCC VFS resource set"
     }
-    if ( $xlcBuildBlock -notmatch 'release\\tmp\\tcc_builtin_resources[.]c' ) {
+    if ( $xlcBuildBlock -notmatch $compilerResourcePattern ) {
         Add-Failure "xlc.dll compiler build must use the compiler-capable embedded TCC VFS resource set"
     }
-    if ( $xlRuntimeBuildBlock -match 'release\\tmp\\tcc_builtin_resources[.]c' ) {
+    if ( $xlRuntimeBuildBlock -match $compilerResourcePattern ) {
         Add-Failure "xl.dll runtime build must not use the compiler-capable VFS resource set"
     }
-    if ( $xlcBuildBlock -match 'release\\tmp\\tcc_builtin_resources_runtime[.]c' ) {
+    if ( $xlcBuildBlock -match $runtimeResourcePattern ) {
         Add-Failure "xlc.dll compiler build must not use the runtime-only VFS resource set"
     }
     if ( $buildDll -match 'copy\s+/Y\s+"%XL6_TCC_DLL%"\s+release\\libtcc[.]dll' ) {

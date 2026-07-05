@@ -24,7 +24,7 @@ test\suites\02_language_frontend.bat
 常用环境变量：
 
 - `XL6_SUITE_FORCE_BUILD=1`：运行套件前强制执行 `build.bat`。
-- `XL6_SUITE_CLEAR_TMP=1`：运行套件前清理 `release\tmp` 顶层文件。
+- `XL6_SUITE_CLEAR_TMP=1`：运行套件前清理 `build\test` 顶层文件。
 
 当前分类：
 
@@ -37,7 +37,7 @@ test\suites\02_language_frontend.bat
 - `06_task_api_spawn.bat`：future/task API、task.spawn、task.all/race/cancel、任务边界和重复运行稳定性。
 - `07_async_generator_channel_docs.bat`：async class await、async generator、generator、channel、并发负例、XAPI doc 和 f-string/语法负例。
 - `08_stdlib_extended.bat`：JSON/XSON、codec/hash/crypto、URL/query、log/template/regex/process/http.server 等扩展标准库。
-- `09_artifact_closure.bat`：负例诊断产物和 `release\tmp` 文本产物收口检查，通常作为 `test.bat` 全量调度的最后一步运行。
+- `09_artifact_closure.bat`：负例诊断产物和 `build\tmp` 文本产物收口检查，通常作为 `test.bat` 全量调度的最后一步运行。
 
 ## fixtures
 
@@ -74,6 +74,7 @@ test\suites\02_language_frontend.bat
 - `stdlib`：标准库函数与错误路径用例。
 - `type`：type 值和类型别名用例。
 - `varargs`：可变参数基础用例。
+- `xlang`：xlang 嵌入、嵌套运行和脚本上下文用例。
 - `xapi`：XAPI doc、JSON 转义和类型字段用例。
 - `xl`：`xl run` 参数用例。
 <!-- case-prefix-index:end -->

@@ -81,7 +81,7 @@ int main(void)
 
     options = xlcDefaultContextOptions();
     options.workDir = ".";
-    options.tempDir = "release\\tmp\\xlc_api_temp";
+    options.tempDir = "build\\test\\xlc_api_temp";
 
     ctx = xlcCreateContext(&options);
     if ( ctx == NULL ) {
@@ -94,25 +94,25 @@ int main(void)
     if ( !xlcCompile(ctx) ) {
         return fail_xlc(ctx, "xlcCompile");
     }
-    if ( !xlcCheck(ctx, "release\\tmp\\xlc_api_check.json", 1) ) {
+    if ( !xlcCheck(ctx, "build\\test\\xlc_api_check.json", 1) ) {
         return fail_xlc(ctx, "xlcCheck");
     }
-    if ( !xlcEmitAst(ctx, "release\\tmp\\xlc_api_ast.json", 1) ) {
+    if ( !xlcEmitAst(ctx, "build\\test\\xlc_api_ast.json", 1) ) {
         return fail_xlc(ctx, "xlcEmitAst");
     }
-    if ( !xlcEmitIr(ctx, "release\\tmp\\xlc_api_ir.txt", 0) ) {
+    if ( !xlcEmitIr(ctx, "build\\test\\xlc_api_ir.txt", 0) ) {
         return fail_xlc(ctx, "xlcEmitIr");
     }
-    if ( !xlcEmitC(ctx, "release\\tmp\\xlc_api_string.c") ) {
+    if ( !xlcEmitC(ctx, "build\\test\\xlc_api_string.c") ) {
         return fail_xlc(ctx, "xlcEmitC");
     }
-    if ( !xlcEmitHeader(ctx, "release\\tmp\\xlc_api_string.h", "XLC_API_STRING_H") ) {
+    if ( !xlcEmitHeader(ctx, "build\\test\\xlc_api_string.h", "XLC_API_STRING_H") ) {
         return fail_xlc(ctx, "xlcEmitHeader");
     }
-    if ( !xlcEmitAbi(ctx, "release\\tmp\\xlc_api_abi.json", 1) ) {
+    if ( !xlcEmitAbi(ctx, "build\\test\\xlc_api_abi.json", 1) ) {
         return fail_xlc(ctx, "xlcEmitAbi");
     }
-    if ( !xlcEmitXapi(ctx, "release\\tmp\\xlc_api_xapi.json") ) {
+    if ( !xlcEmitXapi(ctx, "build\\test\\xlc_api_xapi.json") ) {
         return fail_xlc(ctx, "xlcEmitXapi");
     }
     module = xlcRelocateModule(ctx);
@@ -124,24 +124,24 @@ int main(void)
         return fail_xlc(ctx, "xlRunModuleMain");
     }
     xlDestroyModule(module);
-    if ( !xlcEmitExe(ctx, "release\\tmp\\xlc_api_string.exe") ) {
+    if ( !xlcEmitExe(ctx, "build\\test\\xlc_api_string.exe") ) {
         return fail_xlc(ctx, "xlcEmitExe");
     }
-    if ( !xlcEmitDebugC(ctx, "release\\tmp\\xlc_api_debug.c", "__xlc_api_string.xl") ) {
+    if ( !xlcEmitDebugC(ctx, "build\\test\\xlc_api_debug.c", "__xlc_api_string.xl") ) {
         return fail_xlc(ctx, "xlcEmitDebugC");
     }
-    if ( !xlcEmitDebugExe(ctx, "release\\tmp\\xlc_api_debug.exe", "__xlc_api_string.xl") ) {
+    if ( !xlcEmitDebugExe(ctx, "build\\test\\xlc_api_debug.exe", "__xlc_api_string.xl") ) {
         return fail_xlc(ctx, "xlcEmitDebugExe");
     }
-    if ( !write_text_file("release\\tmp\\xlc_api_file.xl", source) ) {
+    if ( !write_text_file("build\\test\\xlc_api_file.xl", source) ) {
         fprintf(stderr, "cannot write xlc API file source\n");
         xlcDestroyContext(ctx);
         return 1;
     }
-    if ( !xlcAddSourceFile(ctx, "release\\tmp\\xlc_api_file.xl") ) {
+    if ( !xlcAddSourceFile(ctx, "build\\test\\xlc_api_file.xl") ) {
         return fail_xlc(ctx, "xlcAddSourceFile");
     }
-    if ( !xlcEmitTokens(ctx, "release\\tmp\\xlc_api_tokens.json", 1) ) {
+    if ( !xlcEmitTokens(ctx, "build\\test\\xlc_api_tokens.json", 1) ) {
         return fail_xlc(ctx, "xlcEmitTokens");
     }
     if ( !xlcRun(ctx, 0, NULL) ) {
@@ -150,10 +150,10 @@ int main(void)
     if ( !xlcAddSourceString(ctx, "__xlc_api_shared.xl", sharedSource) ) {
         return fail_xlc(ctx, "xlcAddSourceString shared");
     }
-    if ( !xlcEmitHeader(ctx, "release\\tmp\\xlc_api_shared.h", "XLC_API_SHARED_H") ) {
+    if ( !xlcEmitHeader(ctx, "build\\test\\xlc_api_shared.h", "XLC_API_SHARED_H") ) {
         return fail_xlc(ctx, "xlcEmitHeader shared");
     }
-    if ( !xlcEmitSharedLibrary(ctx, "release\\tmp\\xlc_api_shared.dll") ) {
+    if ( !xlcEmitSharedLibrary(ctx, "build\\test\\xlc_api_shared.dll") ) {
         return fail_xlc(ctx, "xlcEmitSharedLibrary");
     }
     xlcDestroyContext(ctx);

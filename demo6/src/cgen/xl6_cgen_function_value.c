@@ -668,7 +668,7 @@ static void xl6CgenFunctionDefaultReturnExpr(XL6_CgenContext* ctx, const XL6_Ast
     } else if ( xl6CgenIsFunctionType(concreteType) ||
                 xl6CgenIsClassType(ctx, concreteType) ||
                 xl6CgenIsUnionType(ctx, concreteType) ||
-                xl6CgenIsCustomType(ctx, concreteType) ) {
+                xl6CgenIsNativeBackedClassType(ctx, concreteType) ) {
         xl6OutputPrintf(ctx->out, "(%s){0}", xl6CgenTypeName(ctx, concreteType));
     } else if ( xl6CTextEquals(typeName, "string") ) {
         xl6OutputPuts("\"\"", ctx->out);

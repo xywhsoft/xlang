@@ -1,4 +1,4 @@
-#include "src/ir/xl6_ir_dump.h"
+﻿#include "src/ir/xl6_ir_dump.h"
 #include "src/ast/xl6_ast_dump.h"
 #include "src/common/xl6_output.h"
 
@@ -848,9 +848,9 @@ static void xl6IrDumpClass(XL6_Output* out, const XL6_AstNode* node)
                 xl6IrDumpFuncAt(out, member, 1, "end_func");
             } else if ( member->kind == XL6_AST_CREATE ) {
                 xl6IrDumpClassSpecial(out, member, 1);
-            } else if ( member->kind == XL6_AST_CUSTOM_EXTERN_SPECIAL ) {
+            } else if ( member->kind == XL6_AST_NATIVE_EXTERN_SPECIAL ) {
                 xl6IrDumpCustomExternSpecial(out, member, 1);
-            } else if ( member->kind == XL6_AST_CUSTOM_EXTERN_FUNC ) {
+            } else if ( member->kind == XL6_AST_NATIVE_EXTERN_FUNC ) {
                 xl6IrDumpCustomExternFunc(out, member, 1);
             } else {
                 xl6IrIndent(out, 1);
@@ -906,9 +906,9 @@ static void xl6IrDumpCustom(XL6_Output* out, const XL6_AstNode* node)
             if ( member == NULL ) {
                 continue;
             }
-            if ( member->kind == XL6_AST_CUSTOM_EXTERN_SPECIAL ) {
+            if ( member->kind == XL6_AST_NATIVE_EXTERN_SPECIAL ) {
                 xl6IrDumpCustomExternSpecial(out, member, 1);
-            } else if ( member->kind == XL6_AST_CUSTOM_EXTERN_FUNC ) {
+            } else if ( member->kind == XL6_AST_NATIVE_EXTERN_FUNC ) {
                 xl6IrDumpCustomExternFunc(out, member, 1);
             } else if ( member->kind == XL6_AST_FUNC ) {
                 xl6IrDumpFuncAt(out, member, 1, "end_func");
@@ -953,8 +953,6 @@ void xl6IrDumpText(XL6_Output* out, const XL6_AstNode* root)
             xl6IrDumpTypeAlias(out, child);
         } else if ( child->kind == XL6_AST_CLASS ) {
             xl6IrDumpClass(out, child);
-        } else if ( child->kind == XL6_AST_CUSTOM ) {
-            xl6IrDumpCustom(out, child);
         } else {
             xl6IrDumpStmt(out, child, 0);
         }

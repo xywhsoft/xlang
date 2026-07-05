@@ -770,8 +770,8 @@ static const char* xl6CgenInferExprType(XL6_CgenContext* ctx, const XL6_AstNode*
              xl6CgenIsKnownTypeName(ctx, expr->children[0]->text) ) {
             return xl6CgenConvertCTypeName(expr->children[0]->text);
         }
-        if ( xl6CgenCallIsCustomCtor(ctx, expr, &customNode) ) {
-            xl6CgenCustomTypeRefName(customTypeName, sizeof(customTypeName), customNode->text);
+        if ( xl6CgenCallIsNativeBackedCtor(ctx, expr, &customNode) ) {
+            xl6CgenNativeBackedTypeRefName(customTypeName, sizeof(customTypeName), customNode->text);
             return customTypeName;
         }
         if ( xl6CgenCallIsClassCtor(ctx, expr, &classNode) ) {
@@ -915,7 +915,7 @@ static const char* xl6CgenInferExprType(XL6_CgenContext* ctx, const XL6_AstNode*
             const XL6_AstNode* receiver = member->childCount > 0 ? member->children[0] : NULL;
             const XL6_AstNode* receiverType = (receiver != NULL && receiver->kind == XL6_AST_NAME) ? xl6CgenFindVarType(ctx, receiver->text) : NULL;
             const XL6_AstNode* customReceiverType = receiver != NULL && receiver->kind == XL6_AST_MEMBER ? xl6CgenMemberFieldType(ctx, receiver) : receiverType;
-            const XL6_AstNode* customDecl = customReceiverType != NULL ? xl6CgenFindCustom(ctx, customReceiverType->text) : NULL;
+            const XL6_AstNode* customDecl = customReceiverType != NULL ? xl6CgenFindNativeBackedClass(ctx, customReceiverType->text) : NULL;
             const XL6_AstNode* method = NULL;
             const XL6_AstNode* returns = method != NULL && method->childCount > 2 ? method->children[2] : NULL;
             {
@@ -939,10 +939,10 @@ static const char* xl6CgenInferExprType(XL6_CgenContext* ctx, const XL6_AstNode*
                 xl6AstFree(memberType);
             }
             if ( customDecl != NULL ) {
-                const XL6_AstNode* helperMethod = xl6CgenResolveCustomFunc(ctx, customDecl, expr, member->text, 0);
-                const XL6_AstNode* externMethod = xl6CgenResolveCustomExternFuncWithReport(ctx, customDecl, expr, member->text, 0);
+                const XL6_AstNode* helperMethod = xl6CgenResolveNativeClassFunc(ctx, customDecl, expr, member->text, 0);
+                const XL6_AstNode* externMethod = xl6CgenResolveNativeExternFuncWithReport(ctx, customDecl, expr, member->text, 0);
                 if ( helperMethod != NULL && externMethod != NULL ) {
-                    xl6CgenError(ctx, expr, "custom method call is ambiguous between helper and extern");
+                    xl6CgenError(ctx, expr, "native-backed class method call is ambiguous between helper and extern");
                     return "int";
                 }
                 method = helperMethod != NULL ? helperMethod : externMethod;

@@ -5,6 +5,9 @@ cd /d %~dp0\..\..\..
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_package_fixtures.ps1
 if errorlevel 1 exit /b 1
 
+set "EXTLIB_TEST_DIR=build\test\extlibs"
+if not exist "%EXTLIB_TEST_DIR%" mkdir "%EXTLIB_TEST_DIR%"
+
 call :run_example release\examples\extlibs\crc32.xl crc32 xcrc32_string_hex
 if errorlevel 1 exit /b 1
 call :run_example release\examples\extlibs\clipboard.xl clipboard x_clipboard_set_text
@@ -79,17 +82,17 @@ set "symbol=%~3"
 release\xl.exe check %example%
 if errorlevel 1 exit /b 1
 
-release\xl.exe xapi %example% --emit release\tmp\ext_%name%_example.xapi.json
+release\xl.exe xapi %example% --emit "%EXTLIB_TEST_DIR%\ext_%name%_example.xapi.json"
 if errorlevel 1 exit /b 1
-findstr /C:"%name%" release\tmp\ext_%name%_example.xapi.json >nul
+findstr /C:"%name%" "%EXTLIB_TEST_DIR%\ext_%name%_example.xapi.json" >nul
 if errorlevel 1 (
     echo ext_%name%_example.xapi.json missing %name% import metadata.
     exit /b 1
 )
 
-release\xl.exe cgen %example% --emit release\tmp\ext_%name%_example.c --emit-header release\tmp\ext_%name%_example.h
+release\xl.exe cgen %example% --emit "%EXTLIB_TEST_DIR%\ext_%name%_example.c" --emit-header "%EXTLIB_TEST_DIR%\ext_%name%_example.h"
 if errorlevel 1 exit /b 1
-findstr /C:"%symbol%" release\tmp\ext_%name%_example.c >nul
+findstr /C:"%symbol%" "%EXTLIB_TEST_DIR%\ext_%name%_example.c" >nul
 if errorlevel 1 (
     echo ext_%name%_example.c missing %name% native symbol.
     exit /b 1
@@ -105,17 +108,17 @@ set "symbol=%~3"
 release\xl.exe check %example%
 if errorlevel 1 exit /b 1
 
-release\xl.exe xapi %example% --emit release\tmp\ext_%name%_example.xapi.json
+release\xl.exe xapi %example% --emit "%EXTLIB_TEST_DIR%\ext_%name%_example.xapi.json"
 if errorlevel 1 exit /b 1
-findstr /C:"%name%" release\tmp\ext_%name%_example.xapi.json >nul
+findstr /C:"%name%" "%EXTLIB_TEST_DIR%\ext_%name%_example.xapi.json" >nul
 if errorlevel 1 (
     echo ext_%name%_example.xapi.json missing %name% import metadata.
     exit /b 1
 )
 
-release\xl.exe cgen %example% --emit release\tmp\ext_%name%_example.c
+release\xl.exe cgen %example% --emit "%EXTLIB_TEST_DIR%\ext_%name%_example.c"
 if errorlevel 1 exit /b 1
-findstr /C:"%symbol%" release\tmp\ext_%name%_example.c >nul
+findstr /C:"%symbol%" "%EXTLIB_TEST_DIR%\ext_%name%_example.c" >nul
 if errorlevel 1 (
     echo ext_%name%_example.c missing %name% native symbol.
     exit /b 1
@@ -124,19 +127,26 @@ if errorlevel 1 (
 release\xl.exe run %example%
 if errorlevel 1 exit /b 1
 
-release\xl.exe build %example% -o release\tmp\ext_%name%_example.exe
+if exist "%EXTLIB_TEST_DIR%\ext_%name%_example.exe" (
+    del /f /q "%EXTLIB_TEST_DIR%\ext_%name%_example.exe"
+    if exist "%EXTLIB_TEST_DIR%\ext_%name%_example.exe" (
+        echo ext_%name%_example.exe is still present before build.
+        exit /b 1
+    )
+)
+release\xl.exe build %example% -o "%EXTLIB_TEST_DIR%\ext_%name%_example.exe"
 if errorlevel 1 exit /b 1
-if not exist release\tmp\ext_%name%_example.exe (
+if not exist "%EXTLIB_TEST_DIR%\ext_%name%_example.exe" (
     echo ext_%name%_example.exe missing after build, retrying once.
-    release\xl.exe build %example% -o release\tmp\ext_%name%_example.exe
+    release\xl.exe build %example% -o "%EXTLIB_TEST_DIR%\ext_%name%_example.exe"
     if errorlevel 1 exit /b 1
 )
-if not exist release\tmp\ext_%name%_example.exe (
+if not exist "%EXTLIB_TEST_DIR%\ext_%name%_example.exe" (
     echo ext_%name%_example.exe build returned success but output is missing.
     exit /b 1
 )
 
-release\tmp\ext_%name%_example.exe
+"%EXTLIB_TEST_DIR%\ext_%name%_example.exe"
 if errorlevel 1 exit /b 1
 
 exit /b 0

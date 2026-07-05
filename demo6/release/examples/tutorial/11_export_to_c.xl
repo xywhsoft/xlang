@@ -1,6 +1,7 @@
 // 教学目标：
-// 1. export 可以把 xlang 函数/变量导出成 C 符号。
-// 2. cgen 可以生成配套头文件给 C 宿主调用。
+// 1. export 可以把 xlang 函数和变量导出为 C 符号。
+// 2. cgen 可以生成配套头文件，交给 C 宿主直接调用。
+// 3. 纯导出模块不写顶层执行语句，由 C 宿主提供 main。
 
 export "tutorial_add" func add(int left, int right) as int
     return left + right
@@ -14,6 +15,12 @@ export "tutorial_counter" var int counter = 40
 
 export "tutorial_answer" const int answer = 42
 
-assert add(20, 22) == 42, "tutorial export add failed"
-assert counter + 2 == answer, "tutorial export const failed"
-println("tutorial_export_to_c ok")
+export "tutorial_self_check" func selfCheck() as int
+    if add(20, 22) != 42 then
+        return 1
+    end
+    if counter + 2 != answer then
+        return 2
+    end
+    return 0
+end

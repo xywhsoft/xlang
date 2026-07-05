@@ -7,7 +7,7 @@ typedef struct XL6_CgenVar {
 #define XL6_CGEN_VAR_TYPED_CONTAINER 0x00000001u
 
 typedef enum XL6_CgenCleanupKind {
-    XL6_CGEN_CLEANUP_CUSTOM,
+    XL6_CGEN_CLEANUP_NATIVE_CLASS,
     XL6_CGEN_CLEANUP_CLASS,
     XL6_CGEN_CLEANUP_FUNCTION,
     XL6_CGEN_CLEANUP_FUTURE,
@@ -122,7 +122,7 @@ typedef struct XL6_CgenContext {
     const XL6_AstNode* currentReturns;
     const XL6_AstNode* currentReturnFunc;
     const XL6_AstNode* currentClass;
-    const XL6_AstNode* currentCustom;
+    const XL6_AstNode* currentNativeClass;
     const XL6_CgenAnonFunc* currentAnonFunc;
     const XL6_AstNode* currentGeneratorItemType;
     const char* currentGeneratorHandleName;

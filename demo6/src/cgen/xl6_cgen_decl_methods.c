@@ -89,14 +89,14 @@ static void xl6CgenEmitAutoBaseCreateForValue(XL6_CgenContext* ctx, const XL6_As
     xl6CgenEmitAutoBaseCreateWithSelfExpr(ctx, classNode, selfExpr, atNode);
 }
 
-static void xl6CgenEmitCustomHandleCleanupPath(XL6_CgenContext* ctx, const XL6_AstNode* customNode, const char* handlePath)
+static void xl6CgenEmitNativeHandleCleanupPath(XL6_CgenContext* ctx, const XL6_AstNode* customNode, const char* handlePath)
 {
     const XL6_AstNode* destroyNode;
 
     if ( customNode == NULL || handlePath == NULL ) {
         return;
     }
-    destroyNode = xl6CgenFindCustomSpecial(customNode, "destroy");
+    destroyNode = xl6CgenFindNativeBackedClassSpecial(customNode, "destroy");
     if ( destroyNode == NULL ) {
         return;
     }
@@ -158,10 +158,10 @@ static void xl6CgenEmitClassDirectFieldCleanups(XL6_CgenContext* ctx, const XL6_
             xl6OutputPuts("}\n", ctx->out);
             continue;
         }
-        customNode = xl6CgenFindCustom(ctx, typeNode != NULL ? typeNode->text : NULL);
-        if ( customNode != NULL && xl6CgenCustomHasDestroy(customNode) ) {
+        customNode = xl6CgenFindNativeBackedClass(ctx, typeNode != NULL ? typeNode->text : NULL);
+        if ( customNode != NULL && xl6CgenNativeBackedClassHasDestroy(customNode) ) {
             snprintf(path, sizeof(path), "self->%s.handle", cFieldName);
-            xl6CgenEmitCustomHandleCleanupPath(ctx, customNode, path);
+            xl6CgenEmitNativeHandleCleanupPath(ctx, customNode, path);
             continue;
         }
 
@@ -620,9 +620,9 @@ static void xl6CgenClassMethods(XL6_CgenContext* ctx, const XL6_AstNode* classNo
         if ( member == NULL ) {
             continue;
         }
-        if ( member->kind == XL6_AST_CUSTOM_EXTERN_FUNC || xl6CgenIsExternClassProperty(member) ) {
+        if ( member->kind == XL6_AST_NATIVE_EXTERN_FUNC || xl6CgenIsExternClassProperty(member) ) {
             xl6CgenClassExternFunc(ctx, classNode, member);
-        } else if ( member->kind == XL6_AST_CUSTOM_EXTERN_SPECIAL ) {
+        } else if ( member->kind == XL6_AST_NATIVE_EXTERN_SPECIAL ) {
             if ( xl6CTextEquals(xl6CgenCallableName(member), "destroy") ) {
                 hasDestroy = 1;
             }
@@ -719,21 +719,21 @@ static int xl6CgenBlockEndsWithReturn(const XL6_AstNode* block)
     return last != NULL && last->kind == XL6_AST_RETURN;
 }
 
-static void xl6CgenCustomFunc(XL6_CgenContext* ctx, const XL6_AstNode* customNode, const XL6_AstNode* funcNode)
+static void xl6CgenNativeClassFunc(XL6_CgenContext* ctx, const XL6_AstNode* customNode, const XL6_AstNode* funcNode)
 {
     const XL6_AstNode* prevReturnType;
     const XL6_AstNode* prevReturnParams;
     const XL6_AstNode* prevReturns;
     const XL6_AstNode* prevReturnFunc;
     const XL6_AstNode* prevClass;
-    const XL6_AstNode* prevCustom;
+    const XL6_AstNode* prevNativeClass;
     const XL6_AstNode* returns;
     const XL6_AstNode* params;
     const XL6_AstNode* body;
     size_t varMark;
     size_t cleanupMark;
 
-    xl6CgenCustomFuncProto(ctx, customNode, funcNode);
+    xl6CgenNativeClassFuncProto(ctx, customNode, funcNode);
     xl6OutputPuts("\n{\n", ctx->out);
     ctx->indent += 1;
 
@@ -744,7 +744,7 @@ static void xl6CgenCustomFunc(XL6_CgenContext* ctx, const XL6_AstNode* customNod
     prevReturns = ctx->currentReturns;
     prevReturnFunc = ctx->currentReturnFunc;
     prevClass = ctx->currentClass;
-    prevCustom = ctx->currentCustom;
+    prevNativeClass = ctx->currentNativeClass;
 
     returns = funcNode->childCount > 2 ? funcNode->children[2] : NULL;
     params = funcNode->childCount > 1 ? funcNode->children[1] : NULL;
@@ -755,7 +755,7 @@ static void xl6CgenCustomFunc(XL6_CgenContext* ctx, const XL6_AstNode* customNod
     ctx->currentReturns = returns;
     ctx->currentReturnFunc = funcNode;
     ctx->currentClass = NULL;
-    ctx->currentCustom = customNode;
+    ctx->currentNativeClass = customNode;
 
     xl6CgenAddVarType(ctx, "self", customNode);
     xl6CgenRegisterParamTypes(ctx, params);
@@ -772,19 +772,19 @@ static void xl6CgenCustomFunc(XL6_CgenContext* ctx, const XL6_AstNode* customNod
     ctx->currentReturns = prevReturns;
     ctx->currentReturnFunc = prevReturnFunc;
     ctx->currentClass = prevClass;
-    ctx->currentCustom = prevCustom;
+    ctx->currentNativeClass = prevNativeClass;
     xl6CgenFreeVarsSince(ctx, varMark);
 
     ctx->indent -= 1;
     xl6OutputPuts("}\n\n", ctx->out);
 }
 
-static void xl6CgenCustomMethods(XL6_CgenContext* ctx, const XL6_AstNode* customNode)
+static void xl6CgenNativeClassMethods(XL6_CgenContext* ctx, const XL6_AstNode* customNode)
 {
     const XL6_AstNode* body;
     size_t i;
 
-    body = customNode != NULL && customNode->childCount > 0 ? customNode->children[0] : NULL;
+    body = xl6CgenClassBody(customNode);
     if ( body == NULL ) {
         return;
     }
@@ -792,7 +792,7 @@ static void xl6CgenCustomMethods(XL6_CgenContext* ctx, const XL6_AstNode* custom
     for ( i = 0; i < body->childCount; ++i ) {
         const XL6_AstNode* member = body->children[i];
         if ( member != NULL && member->kind == XL6_AST_FUNC ) {
-            xl6CgenCustomFunc(ctx, customNode, member);
+            xl6CgenNativeClassFunc(ctx, customNode, member);
         }
     }
 }

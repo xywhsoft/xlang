@@ -10,7 +10,7 @@ if ( $Root -eq "" ) {
     $Root = Split-Path -Parent $PSScriptRoot
 }
 
-$tmpDir = Join-Path $Root "release\tmp"
+$tmpDir = Join-Path $Root "build\test"
 if ( ! (Test-Path -LiteralPath $tmpDir -PathType Container) ) {
     Write-Host "release tmp cleanup ok: directory absent."
     exit 0

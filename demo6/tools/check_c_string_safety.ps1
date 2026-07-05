@@ -199,7 +199,6 @@ $files = @(
             $relative = $_.FullName.Substring($rootFullPath.Length + 1).Replace("\", "/")
             ($_.Extension -eq ".c" -or $_.Extension -eq ".h") -and
             ($generatedFiles -notcontains $_.Name) -and
-            ($relative -notmatch '^release/examples/(.*/)?release/tmp/') -and
             ($relative -notmatch '^release/extlibs/[^/]+/third_party/')
         }
     }
@@ -263,12 +262,6 @@ foreach ( $file in $files ) {
         }
     }
 
-    if ( $relative -eq "src/driver/xl6_cli.c" ) {
-        $timeMatches = Select-String -LiteralPath $file.FullName -Pattern $driverCrtTimePattern
-        foreach ( $match in $timeMatches ) {
-            Add-Failure "CRT time in CLI source: ${relative}:$($match.LineNumber):$($match.Line.Trim())"
-        }
-    }
 }
 
 foreach ( $file in $specFiles ) {

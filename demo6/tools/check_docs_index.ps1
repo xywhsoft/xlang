@@ -86,7 +86,8 @@ foreach ( $relative in $extraMarkdownDocs ) {
 }
 $ignoredReadmePrefixes = @(
     "release\extlibs\",
-    "release\tmp\",
+    "build\tmp\",
+    "build\test\",
     "release\tcc\",
     "lib\xrt\"
 )
@@ -103,6 +104,7 @@ $stalePatterns = @(
 $forbiddenPolicyPatterns = @(
     '\.\.\\demo5\\release',
     'demo5\\release\\tcc\\lib\\libtcc1-64\.a',
+    'release[\\/]tmp',
     'xlUninit',
     'xlUnInit',
     '`system`.*\u7528\u4E8E\u8C03\u7528\s*tcc',
@@ -121,7 +123,7 @@ $staleCurrentCountPatterns = @(
     'UTF-8\s*\u6587\u672C\u57FA\u7EBF\s*\|[^\r\n]{0,40}\u5F53\u524D\u4E3A\s*829',
     'Negative diagnostics artifacts ok:\s*246 files,\s*247 expected-failure commands',
     '\u4E3B\u56DE\u5F52\u5F53\u524D\u786E\u8BA4\s*246\s*\u4E2A\u8D1F\u4F8B\u8BCA\u65AD artifact',
-    '\u4E3B\u56DE\u5F52\u5F53\u524D\u786E\u8BA4[^\r\n]{0,80}539\s*\u4E2A release/tmp',
+    '\u4E3B\u56DE\u5F52\u5F53\u524D\u786E\u8BA4[^\r\n]{0,80}539\s*\u4E2A build/tmp',
     '\u4E3B\u56DE\u5F52\u5F53\u524D\u786E\u8BA4[^\r\n]{0,120}\u8D1F\u4F8B\u8BCA\u65AD artifact \u4E3A 246'
 )
 

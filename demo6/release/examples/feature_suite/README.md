@@ -41,7 +41,7 @@ for %f in (release\examples\feature_suite\*.xl) do release\xl.exe check "%f"
 `09_c_export_abi.xl` 是纯导出库，没有 `main`，不直接使用 `run`。导出 ABI 示例需要先生成 C 与头文件，再用 `host_exports.c` 编译链接。生成头文件的示例命令：
 
 ```bat
-release\xl.exe cgen release\examples\feature_suite\09_c_export_abi.xl --emit release\tmp\feature_exports\09_c_export_abi.c --emit-header release\tmp\feature_exports\09_c_export_abi.h
+release\xl.exe cgen release\examples\feature_suite\09_c_export_abi.xl --emit build\test\feature_exports\09_c_export_abi.c --emit-header build\test\feature_exports\09_c_export_abi.h
 ```
 
 一键回归：

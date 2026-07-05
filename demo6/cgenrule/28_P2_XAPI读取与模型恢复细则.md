@@ -1,4 +1,4 @@
-# P2 XAPI 读取与模型恢复细则
+﻿# P2 XAPI 读取与模型恢复细则
 
 本文细化 `demo6/src/abi/xl6_xapi_load.c`。该文件读取 `xlang-xapi-1` JSON，并恢复为 `XL6_XapiModule` 模型，供 import/package 链路消费。
 

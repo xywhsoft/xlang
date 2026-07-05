@@ -1,4 +1,4 @@
-#include "src/cgen/xl6_cgen_entry.h"
+﻿#include "src/cgen/xl6_cgen_entry.h"
 
 #include <string.h>
 
@@ -19,9 +19,7 @@ int xl6CgenIsTopLevelRuntimeStmt(const XL6_AstNode* node)
            node->kind != XL6_AST_EXPORT_VAR &&
            node->kind != XL6_AST_EXPORT_CONST &&
            node->kind != XL6_AST_TYPE_ALIAS &&
-           node->kind != XL6_AST_EXTERN_TYPE_ALIAS &&
-           node->kind != XL6_AST_CUSTOM &&
-           node->kind != XL6_AST_UNION &&
+           node->kind != XL6_AST_EXTERN_TYPE_ALIAS &&           node->kind != XL6_AST_UNION &&
            node->kind != XL6_AST_CLASS;
 }
 

@@ -1,6 +1,6 @@
 import imagehash
 
-string imagePath = "examples/extlibs/assets/tiny.png"
+string imagePath = "release/examples/extlibs/assets/tiny.png"
 
 assert imagehash.available(), "imagehash available failed"
 assert imagehash.version() == "imagehash 0.1.0", "imagehash version mismatch"

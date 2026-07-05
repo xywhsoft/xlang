@@ -231,8 +231,11 @@ static void xl6CgenExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
                     ;
                 } else if ( xl6CgenIsImplicitToStringCall(ctx, node) ) {
                     xl6CgenImplicitToStringCall(ctx, node, callee);
+                } else if ( xl6CgenNativeClassMethodCall(ctx, node, callee) ) {
+                    ;
                 } else if ( !xl6CgenClassMethodCall(ctx, node, callee) ) {
-                    xl6CgenCustomMethodCall(ctx, node, callee);
+                    xl6CgenError(ctx, callee, "找不到 class 方法");
+                    xl6OutputPuts("0", ctx->out);
                 }
                 break;
             }

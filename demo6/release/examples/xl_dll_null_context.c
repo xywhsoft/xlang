@@ -220,7 +220,7 @@ static XL_Context* create_context_for_workdir(const char* root, const char* work
 
     options = xlDefaultContextOptions();
     options.workDir = workDir;
-    options.tempDir = "release\\tmp";
+    options.tempDir = "build\\test";
     {
         char tccLibPath[1024];
         if ( !make_toolchain_path(root, "XL6_TCC_ROOT", tccLibPath, sizeof(tccLibPath)) ) {
@@ -243,13 +243,13 @@ static XL_Context* create_context_for_workdir(const char* root, const char* work
 static int run_cwd_success_case(const char* root, const char* originalCwd)
 {
     XL_Context* ctx;
-    const char* workDir = "release\\tmp\\dll_cwd_a";
-    const char* marker = "release\\tmp\\dll_cwd_a\\cwd_probe.txt";
+    const char* workDir = "build\\test\\dll_cwd_a";
+    const char* marker = "build\\test\\dll_cwd_a\\cwd_probe.txt";
     const char* script =
         "file.writeText(\"cwd_probe.txt\", \"ok\")\n"
         "assert file.exists(\"cwd_probe.txt\"), \"cwd probe missing\"\n";
 
-    if ( !make_dir("release\\tmp\\dll_cwd_a") ) {
+    if ( !make_dir("build\\test\\dll_cwd_a") ) {
         fprintf(stderr, "cannot create dll_cwd_a\n");
         return 0;
     }
@@ -275,9 +275,9 @@ static int run_cwd_success_case(const char* root, const char* originalCwd)
 static int run_cwd_failure_case(const char* root, const char* originalCwd)
 {
     XL_Context* ctx;
-    const char* workDir = "release\\tmp\\dll_cwd_b";
+    const char* workDir = "build\\test\\dll_cwd_b";
 
-    if ( !make_dir("release\\tmp\\dll_cwd_b") ) {
+    if ( !make_dir("build\\test\\dll_cwd_b") ) {
         fprintf(stderr, "cannot create dll_cwd_b\n");
         return 0;
     }
@@ -304,14 +304,14 @@ static int run_default_toolchain_snapshot_case(const char* originalCwd)
 {
     XL_ContextOptions options;
     XL_Context* ctx;
-    const char* workDir = "release\\tmp\\dll_cwd_default_toolchain";
-    const char* marker = "release\\tmp\\dll_cwd_default_toolchain\\default_toolchain_marker.txt";
+    const char* workDir = "build\\test\\dll_cwd_default_toolchain";
+    const char* marker = "build\\test\\dll_cwd_default_toolchain\\default_toolchain_marker.txt";
     const char* script =
         "assert string.trim(\" ok \") == \"ok\", \"default toolchain string failed\"\n"
         "file.writeText(\"default_toolchain_marker.txt\", \"ok\")\n"
         "assert file.exists(\"default_toolchain_marker.txt\"), \"default toolchain marker missing\"\n";
 
-    if ( !make_dir("release\\tmp\\dll_cwd_default_toolchain") ) {
+    if ( !make_dir("build\\test\\dll_cwd_default_toolchain") ) {
         fprintf(stderr, "cannot create dll_cwd_default_toolchain\n");
         return 0;
     }
@@ -319,7 +319,7 @@ static int run_default_toolchain_snapshot_case(const char* originalCwd)
 
     options = xlDefaultContextOptions();
     options.workDir = workDir;
-    options.tempDir = "release\\tmp";
+    options.tempDir = "build\\test";
 
     ctx = xlCreateContext(&options);
     if ( ctx == NULL ) {
@@ -344,8 +344,8 @@ static int run_dependency_path_snapshot_case(const char* originalCwd)
 {
     XL_ContextOptions options;
     XL_Context* ctx;
-    const char* workDir = "release\\tmp\\dll_dependency_snapshot";
-    const char* marker = "release\\tmp\\dll_dependency_snapshot\\dependency_snapshot_marker.txt";
+    const char* workDir = "build\\test\\dll_dependency_snapshot";
+    const char* marker = "build\\test\\dll_dependency_snapshot\\dependency_snapshot_marker.txt";
     const char* script =
         "extern \"xl6_dll_link_value\" func linkedValue() as int\n"
         "extern \"xl6_dll_loadlib_value\" func loadedValue() as int\n"
@@ -354,7 +354,7 @@ static int run_dependency_path_snapshot_case(const char* originalCwd)
         "file.writeText(\"dependency_snapshot_marker.txt\", \"ok\")\n"
         "assert file.exists(\"dependency_snapshot_marker.txt\"), \"snapshot marker missing\"\n";
 
-    if ( !make_dir("release\\tmp\\dll_dependency_snapshot") ) {
+    if ( !make_dir("build\\test\\dll_dependency_snapshot") ) {
         fprintf(stderr, "cannot create dll_dependency_snapshot\n");
         return 0;
     }
@@ -362,17 +362,17 @@ static int run_dependency_path_snapshot_case(const char* originalCwd)
 
     options = xlDefaultContextOptions();
     options.workDir = workDir;
-    options.tempDir = "release\\tmp";
+    options.tempDir = "build\\test";
 
     ctx = xlCreateContext(&options);
     if ( ctx == NULL ) {
         fprintf(stderr, "cannot create dependency snapshot context\n");
         return 0;
     }
-    if ( !xlAddLibraryPath(ctx, "release\\tmp") ||
+    if ( !xlAddLibraryPath(ctx, "build\\tmp") ||
          !xlAddLinkLibrary(ctx, "xl6dlllink") ||
-         !xlLoadDependencyLibrary(ctx, "release\\tmp\\xl_dll_loadlib_host.dll") ||
-         !xlAddLinkLibrary(ctx, "release\\tmp\\xl_dll_loadlib_host.def") ) {
+          !xlLoadDependencyLibrary(ctx, "build\\tmp\\xl_dll_loadlib_host.dll") ||
+          !xlAddLinkLibrary(ctx, "build\\tmp\\xl_dll_loadlib_host.def") ) {
         fprintf(stderr, "cannot add dependency snapshot paths: %s\n", xlGetLastError(ctx));
         xlDestroyContext(ctx);
         return 0;
@@ -395,6 +395,7 @@ int main(void)
 {
     XL_ContextOptions options;
     XL_Context* ctx;
+    const char* nullCPaths[1];
     char originalCwd[1024];
 
     if ( !xlRuntimeInit() ) {
@@ -416,10 +417,10 @@ int main(void)
     }
 
     if ( !expect_false("xlSetWorkDir(NULL)", xlSetWorkDir(NULL, ".")) ||
-         !expect_false("xlSetTempDir(NULL)", xlSetTempDir(NULL, "release\\tmp")) ||
+         !expect_false("xlSetTempDir(NULL)", xlSetTempDir(NULL, "build\\test")) ||
          !expect_false("xlSetSaveTemps(NULL)", xlSetSaveTemps(NULL, 1)) ||
          !expect_false("xlAddIncludePath(NULL)", xlAddIncludePath(NULL, ".")) ||
-         !expect_false("xlAddLibraryPath(NULL)", xlAddLibraryPath(NULL, "release\\tmp")) ||
+         !expect_false("xlAddLibraryPath(NULL)", xlAddLibraryPath(NULL, "build\\test")) ||
          !expect_false("xlAddLinkLibrary(NULL)", xlAddLinkLibrary(NULL, "x")) ||
          !expect_false("xlLoadDependencyLibrary(NULL)", xlLoadDependencyLibrary(NULL, "x.dll")) ||
          !expect_false("xlRegisterCFunction(NULL)", xlRegisterCFunction(NULL, "dummy", (void*)dummy_host_function)) ||
@@ -430,8 +431,24 @@ int main(void)
         return 1;
     }
 #if !defined(XL_RUNTIME_ONLY_API)
-    if ( !expect_false("xlCompileScriptStringToExe(NULL)", xlCompileScriptStringToExe(NULL, "int a = 1", "release\\tmp\\null.exe")) ||
-         !expect_false("xlCompileScriptFileToExe(NULL)", xlCompileScriptFileToExe(NULL, "missing.xl", "release\\tmp\\null.exe")) ) {
+    if ( !expect_false("xlCompileScriptStringToExe(NULL)", xlCompileScriptStringToExe(NULL, "int a = 1", "build\\test\\null.exe")) ||
+         !expect_false("xlCompileScriptFileToExe(NULL)", xlCompileScriptFileToExe(NULL, "missing.xl", "build\\test\\null.exe")) ) {
+        return 1;
+    }
+#endif
+    nullCPaths[0] = "missing.c";
+    if ( !expect_false("xlCompileCSourceFilesToModule(NULL)", xlCompileCSourceFilesToModule(NULL, nullCPaths, 1) != NULL) ||
+         !expect_false("xlRunCSourceFiles(NULL)", xlRunCSourceFiles(NULL, nullCPaths, 1, 0, NULL)) ||
+         !expect_false("xlTccRegisterXrtEnvironment(NULL)", xlTccRegisterXrtEnvironment(NULL)) ||
+         !expect_false("xlTccRegisterContextEnvironment(NULL)", xlTccRegisterContextEnvironment(NULL, NULL)) ||
+         !expect_false("xlTccImpdef(NULL)", xlTccImpdef(NULL, "build\\test\\null.def")) ) {
+        return 1;
+    }
+#if !defined(XL_RUNTIME_ONLY_API)
+    if ( !expect_false("xlCompileCSourceFileToExe(NULL)", xlCompileCSourceFileToExe(NULL, "missing.c", "build\\test\\null_c.exe")) ||
+         !expect_false("xlCompileCSourceFilesToExe(NULL)", xlCompileCSourceFilesToExe(NULL, nullCPaths, 1, "build\\test\\null_c.exe")) ||
+         !expect_false("xlCompileCSourceFileToSharedLibrary(NULL)", xlCompileCSourceFileToSharedLibrary(NULL, "missing.c", "build\\test\\null_c.dll")) ||
+         !expect_false("xlCompileCSourceFilesToSharedLibrary(NULL)", xlCompileCSourceFilesToSharedLibrary(NULL, nullCPaths, 1, "build\\test\\null_c.dll")) ) {
         return 1;
     }
 #endif
@@ -456,7 +473,7 @@ int main(void)
 
     options = xlDefaultContextOptions();
     options.workDir = ".";
-    options.tempDir = "release\\tmp";
+    options.tempDir = "build\\test";
     ctx = xlCreateContext(&options);
     if ( ctx == NULL ) {
         fprintf(stderr, "xlCreateContext default options failed\n");
@@ -474,8 +491,8 @@ int main(void)
         return 1;
     }
 #if !defined(XL_RUNTIME_ONLY_API)
-    if ( !expect_api_failure(ctx, "xlCompileScriptStringToExe NULL source", xlCompileScriptStringToExe(ctx, NULL, "release\\tmp\\null_source.exe"), "script source is empty") ||
-         !expect_api_failure(ctx, "xlCompileScriptFileToExe empty path", xlCompileScriptFileToExe(ctx, "", "release\\tmp\\empty_file.exe"), "script file path is empty") ||
+    if ( !expect_api_failure(ctx, "xlCompileScriptStringToExe NULL source", xlCompileScriptStringToExe(ctx, NULL, "build\\test\\null_source.exe"), "script source is empty") ||
+         !expect_api_failure(ctx, "xlCompileScriptFileToExe empty path", xlCompileScriptFileToExe(ctx, "", "build\\test\\empty_file.exe"), "script file path is empty") ||
          !expect_api_failure(ctx, "xlCompileScriptStringToExe empty output", xlCompileScriptStringToExe(ctx, "func ok() as int\n    return 1\nend\n", ""), "output exe path is empty") ) {
         xlDestroyContext(ctx);
         return 1;

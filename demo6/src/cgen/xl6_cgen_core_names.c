@@ -206,9 +206,9 @@ static void xl6CgenCIdentText(char* buffer, size_t capacity, const char* text)
     xl6CgenAppendCIdentText(buffer, capacity, text);
 }
 
-static void xl6CgenCustomTypeName(XL6_Output* out, const char* name)
+static void xl6CgenNativeBackedTypeName(XL6_Output* out, const char* name)
 {
-    xl6OutputPuts("XL_Custom_", out);
+    xl6OutputPuts("XL_Class_", out);
     xl6CgenFputsEncodedText(out, name);
 }
 
@@ -316,13 +316,13 @@ static void xl6CgenAppendTypeId(char* buffer, size_t capacity, const XL6_AstNode
     }
 }
 
-static void xl6CgenCustomTypeRefName(char* buffer, size_t capacity, const char* name)
+static void xl6CgenNativeBackedTypeRefName(char* buffer, size_t capacity, const char* name)
 {
     if ( buffer == NULL || capacity == 0 ) {
         return;
     }
     buffer[0] = '\0';
-    xl6CgenAppendText(buffer, capacity, "XL_Custom_");
+    xl6CgenAppendText(buffer, capacity, "XL_Class_");
     xl6CgenAppendMangledText(buffer, capacity, name);
 }
 

@@ -445,7 +445,7 @@ static int xl6CgenIsKnownTypeName(XL6_CgenContext* ctx, const char* name)
     return xl6CgenIsBuiltinTypeName(name) ||
            xl6CgenFindTypeAlias(ctx, name) != NULL ||
            xl6CgenFindClass(ctx, name) != NULL ||
-           xl6CgenFindCustom(ctx, name) != NULL ||
+           xl6CgenFindNativeBackedClass(ctx, name) != NULL ||
            xl6CgenFindUnion(ctx, name) != NULL;
 }
 
@@ -548,8 +548,8 @@ static const char* xl6CgenTypeName(XL6_CgenContext* ctx, const XL6_AstNode* type
     if ( xl6CTextEquals(typeNode->text, "function") ) {
         return "XL6_Function";
     }
-    if ( xl6CgenIsCustomType(ctx, typeNode) ) {
-        xl6CgenCustomTypeRefName(customTypeName, sizeof(customTypeName), typeNode->text);
+    if ( xl6CgenIsNativeBackedClassType(ctx, typeNode) ) {
+        xl6CgenNativeBackedTypeRefName(customTypeName, sizeof(customTypeName), typeNode->text);
         return customTypeName;
     }
     if ( xl6CgenIsClassType(ctx, typeNode) ) {

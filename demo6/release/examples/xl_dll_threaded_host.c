@@ -199,9 +199,9 @@ static int init_arg(ThreadArg* arg, const char* root, int index)
     snprintf(arg->root, sizeof(arg->root), "%s", root);
     snprintf(arg->includeRoot, sizeof(arg->includeRoot), "%s", root);
 
-    snprintf(rel, sizeof(rel), "release\\tmp\\dll_thread_%d", index);
+    snprintf(rel, sizeof(rel), "build\\test\\dll_thread_%d", index);
     if ( !make_full_path(root, rel, arg->workDir, sizeof(arg->workDir)) ||
-         !make_full_path(root, "release\\tmp", arg->tempDir, sizeof(arg->tempDir)) ||
+         !make_full_path(root, "build\\test", arg->tempDir, sizeof(arg->tempDir)) ||
          !make_toolchain_path(root, "XL6_TCC_ROOT", arg->tccLibPath, sizeof(arg->tccLibPath)) ||
          !make_full_path(root, "src", arg->includeSrc, sizeof(arg->includeSrc)) ||
          !make_full_path(root, "lib\\xrt", arg->includeXrt, sizeof(arg->includeXrt)) ||

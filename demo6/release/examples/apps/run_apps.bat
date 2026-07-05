@@ -5,7 +5,7 @@ cd /d %~dp0\..\..\..
 call tools\xl6_toolchain_env.bat
 if errorlevel 1 exit /b 1
 
-if not exist release\tmp\examples_apps mkdir release\tmp\examples_apps
+if not exist build\test\examples_apps mkdir build\test\examples_apps
 
 echo Checking application examples...
 for %%f in (

@@ -182,7 +182,7 @@ static int run_source_capture(int isC, const char* source, char** outCaptured, c
     }
     options = xlDefaultContextOptions();
     options.workDir = ".";
-    options.tempDir = "release\\tmp\\xl_run_demo";
+    options.tempDir = "build\\test\\xl_run_demo";
     ctx = xlCreateContext(&options);
     if ( ctx == NULL ) {
         if ( outCaptured != NULL ) {

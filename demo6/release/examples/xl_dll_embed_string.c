@@ -158,15 +158,15 @@ static int run_c_source_step(XL_Context* ctx)
     cFileSource =
         "int exported_file_value(void) { return 42; }\n"
         "int main(int argc, char** argv) { return 0; }\n";
-    if ( !write_text_file("release\\tmp\\xl_dll_embed_c_file.c", cFileSource) ) {
+    if ( !write_text_file("build\\test\\xl_dll_embed_c_file.c", cFileSource) ) {
         fprintf(stderr, "cannot write C source file\n");
         return 0;
     }
-    if ( !xlRunCSourceFile(ctx, "release\\tmp\\xl_dll_embed_c_file.c", 0, NULL) ) {
+    if ( !xlRunCSourceFile(ctx, "build\\test\\xl_dll_embed_c_file.c", 0, NULL) ) {
         fprintf(stderr, "C source file run failed: %s\n", xlGetLastError(ctx));
         return 0;
     }
-    module = xlCompileCSourceFileToModule(ctx, "release\\tmp\\xl_dll_embed_c_file.c");
+    module = xlCompileCSourceFileToModule(ctx, "build\\test\\xl_dll_embed_c_file.c");
     if ( module == NULL ) {
         fprintf(stderr, "C source file module compile failed: %s\n", xlGetLastError(ctx));
         return 0;
@@ -214,7 +214,7 @@ int main(void)
 
     options = xlDefaultContextOptions();
     options.workDir = ".";
-    options.tempDir = "release\\tmp\\dll_api_temp";
+    options.tempDir = "build\\test\\dll_api_temp";
 
     ctx = xlCreateContext(&options);
     if ( ctx == NULL ) {
@@ -222,11 +222,11 @@ int main(void)
         return 1;
     }
 
-    if ( !xlSetWorkDir(ctx, ".") || !xlSetTempDir(ctx, "release\\tmp\\dll_api_temp") || !xlSetSaveTemps(ctx, 0) ||
-         !xlAddIncludePath(ctx, ".") || !xlAddLibraryPath(ctx, "release\\tmp") ||
+    if ( !xlSetWorkDir(ctx, ".") || !xlSetTempDir(ctx, "build\\test\\dll_api_temp") || !xlSetSaveTemps(ctx, 0) ||
+         !xlAddIncludePath(ctx, ".") || !xlAddLibraryPath(ctx, "build\\tmp") ||
          !xlAddLinkLibrary(ctx, "xl6dlllink") ||
-         !xlLoadDependencyLibrary(ctx, "release\\tmp\\xl_dll_loadlib_host.dll") ||
-         !xlAddLinkLibrary(ctx, "release\\tmp\\xl_dll_loadlib_host.def") ) {
+          !xlLoadDependencyLibrary(ctx, "build\\tmp\\xl_dll_loadlib_host.dll") ||
+          !xlAddLinkLibrary(ctx, "build\\tmp\\xl_dll_loadlib_host.def") ) {
         fprintf(stderr, "%s\n", xlGetLastError(ctx));
         xlDestroyContext(ctx);
         return 1;
@@ -283,12 +283,12 @@ int main(void)
         "assert regex.find(\"dll-2026\", \"[0-9]+\") == 4, \"stdlib regex failed\"\n"
         "assert string.trim(process.exec(\"cmd /c echo dll-process\")) == \"dll-process\", \"stdlib process failed\"\n"
         "assert process.exitCode(\"cmd /c exit /b 6\") == 6, \"stdlib process exitCode failed\"\n"
-        "dir.createAll(\"release/tmp/dll_dir_list\")\n"
-        "file.writeText(\"release/tmp/dll_dir_list/a.txt\", \"a\")\n"
-        "assert string.contains(json.stringify(dir.list(\"release/tmp/dll_dir_list\")), \"a.txt\"), \"stdlib dir.list failed\"\n"
-        "assert string.contains(json.stringify(dir.files(\"release/tmp/dll_dir_list\")), \"a.txt\"), \"stdlib dir.files failed\"\n"
-        "assert !string.contains(json.stringify(dir.dirs(\"release/tmp/dll_dir_list\")), \"a.txt\"), \"stdlib dir.dirs failed\"\n"
-        "dir.delete(\"release/tmp/dll_dir_list\")\n";
+        "dir.createAll(\"build/test/dll_dir_list\")\n"
+        "file.writeText(\"build/test/dll_dir_list/a.txt\", \"a\")\n"
+        "assert string.contains(json.stringify(dir.list(\"build/test/dll_dir_list\")), \"a.txt\"), \"stdlib dir.list failed\"\n"
+        "assert string.contains(json.stringify(dir.files(\"build/test/dll_dir_list\")), \"a.txt\"), \"stdlib dir.files failed\"\n"
+        "assert !string.contains(json.stringify(dir.dirs(\"build/test/dll_dir_list\")), \"a.txt\"), \"stdlib dir.dirs failed\"\n"
+        "dir.delete(\"build/test/dll_dir_list\")\n";
 
     buildScript =
         "func add(int a, int b) as int\n"
@@ -319,26 +319,26 @@ int main(void)
     cleanup_dynamic_vfs_probe();
     printf("xl.dll run string ok\n");
 
-    ok = xlCompileScriptStringToExe(ctx, buildScript, "release\\tmp\\xl_dll_embed_string_script.exe");
+    ok = xlCompileScriptStringToExe(ctx, buildScript, "build\\test\\xl_dll_embed_string_script.exe");
     if ( !ok ) {
         fprintf(stderr, "%s\n", xlGetLastError(ctx));
         xlDestroyContext(ctx);
         return 1;
     }
 
-    if ( !write_text_file("release\\tmp\\xl_dll_embed_file_run.xl", fileScript) || !write_text_file("release\\tmp\\xl_dll_embed_file_build.xl", fileBuildScript) ) {
+    if ( !write_text_file("build\\test\\xl_dll_embed_file_run.xl", fileScript) || !write_text_file("build\\test\\xl_dll_embed_file_build.xl", fileBuildScript) ) {
         fprintf(stderr, "cannot write xl.dll file scripts\n");
         xlDestroyContext(ctx);
         return 1;
     }
 
-    ok = xlRunScriptFile(ctx, "release\\tmp\\xl_dll_embed_file_run.xl");
+    ok = xlRunScriptFile(ctx, "build\\test\\xl_dll_embed_file_run.xl");
     if ( !ok ) {
         fprintf(stderr, "%s\n", xlGetLastError(ctx));
         xlDestroyContext(ctx);
         return 1;
     }
-    fileModule = xlCompileScriptFileToModule(ctx, "release\\tmp\\xl_dll_embed_file_run.xl");
+    fileModule = xlCompileScriptFileToModule(ctx, "build\\test\\xl_dll_embed_file_run.xl");
     if ( fileModule == NULL ) {
         fprintf(stderr, "%s\n", xlGetLastError(ctx));
         xlDestroyContext(ctx);
@@ -353,7 +353,7 @@ int main(void)
     }
     printf("xl.dll run file ok\n");
 
-    ok = xlCompileScriptFileToExe(ctx, "release\\tmp\\xl_dll_embed_file_build.xl", "release\\tmp\\xl_dll_embed_file_script.exe");
+    ok = xlCompileScriptFileToExe(ctx, "build\\test\\xl_dll_embed_file_build.xl", "build\\test\\xl_dll_embed_file_script.exe");
     if ( !ok ) {
         fprintf(stderr, "%s\n", xlGetLastError(ctx));
         xlDestroyContext(ctx);

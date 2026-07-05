@@ -3,17 +3,14 @@
 #include "src/common/xl6_console.h"
 #include "src/debug/xl6_dap.h"
 
-#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #ifdef _WIN32
-#include <direct.h>
 #include <windows.h>
 #include <shellapi.h>
 #else
-#include <sys/stat.h>
 #include <unistd.h>
 #endif
 
@@ -108,11 +105,7 @@ static int xlcShellMakeDir(const char* path)
     if ( path == NULL || path[0] == '\0' ) {
         return 0;
     }
-#ifdef _WIN32
-    return _mkdir(path) == 0 || errno == EEXIST;
-#else
-    return mkdir(path, 0777) == 0 || errno == EEXIST;
-#endif
+    return xrtDirCreateAll((str)path) != 0;
 }
 
 static int xlcShellJoinDirPath(char* out, size_t outSize, const char* dir, const char* name)
@@ -130,61 +123,15 @@ static int xlcShellJoinDirPath(char* out, size_t outSize, const char* dir, const
     return written > 0 && (size_t)written < outSize;
 }
 
-static int xlcShellExecutableDir(char* out, size_t outSize)
+static int xlcShellBuildTmpDir(char* out, size_t outSize)
 {
-    char path[512];
-    const char* p;
-    const char* lastSep;
-    size_t len;
+    int written;
 
     if ( out == NULL || outSize == 0 ) {
         return 0;
     }
-    out[0] = '\0';
-#ifdef _WIN32
-    {
-        DWORD got = GetModuleFileNameA(NULL, path, (DWORD)sizeof(path));
-        if ( got == 0 || got >= sizeof(path) ) {
-            return 0;
-        }
-        path[got] = '\0';
-    }
-#else
-    {
-        ssize_t got = readlink("/proc/self/exe", path, sizeof(path) - 1u);
-        if ( got <= 0 || (size_t)got >= sizeof(path) ) {
-            return 0;
-        }
-        path[got] = '\0';
-    }
-#endif
-    lastSep = NULL;
-    for ( p = path; *p != '\0'; ++p ) {
-        if ( *p == '\\' || *p == '/' || *p == ':' ) {
-            lastSep = p;
-        }
-    }
-    if ( lastSep == NULL ) {
-        return 0;
-    }
-    len = (size_t)(lastSep - path);
-    if ( *lastSep == ':' ) {
-        len += 1u;
-    }
-    if ( len >= outSize ) {
-        return 0;
-    }
-    memcpy(out, path, len);
-    out[len] = '\0';
-    return 1;
-}
-
-static int xlcShellReleaseTmpDir(char* out, size_t outSize)
-{
-    char exeDir[512];
-
-    if ( !xlcShellExecutableDir(exeDir, sizeof(exeDir)) ||
-         !xlcShellJoinDirPath(out, outSize, exeDir, "tmp") ) {
+    written = snprintf(out, outSize, "build\\tmp");
+    if ( written <= 0 || (size_t)written >= outSize ) {
         return 0;
     }
     return xlcShellMakeDir(out);
@@ -192,11 +139,9 @@ static int xlcShellReleaseTmpDir(char* out, size_t outSize)
 
 static int xlcShellDefaultTempDir(char* out, size_t outSize)
 {
-    char exeDir[512];
     char tmpDir[512];
 
-    if ( !xlcShellExecutableDir(exeDir, sizeof(exeDir)) ||
-         !xlcShellJoinDirPath(tmpDir, sizeof(tmpDir), exeDir, "tmp") ) {
+    if ( !xlcShellBuildTmpDir(tmpDir, sizeof(tmpDir)) ) {
         return 0;
     }
     return xlcShellJoinDirPath(out, outSize, tmpDir, "xlc_shell");
@@ -226,7 +171,7 @@ static int xlcShellMakeTaggedTempDir(char* out, size_t outSize, const char* tag)
     if ( out == NULL || outSize == 0 || tag == NULL ) {
         return 0;
     }
-    if ( !xlcShellReleaseTmpDir(tmpDir, sizeof(tmpDir)) ) {
+    if ( !xlcShellBuildTmpDir(tmpDir, sizeof(tmpDir)) ) {
         return 0;
     }
     pid = xlcShellProcessId();
@@ -764,13 +709,13 @@ static int xlcShellDoCheck(XLC_Context* ctx, int argc, char** argv)
     if ( xlcShellHasJson(argc, argv) ) {
         return xlcCheck(ctx, NULL, 1);
     }
-    if ( !xlcShellMakeDir("release") || !xlcShellMakeDir("release\\tmp") ) {
+    if ( !xlcShellBuildTmpDir(outputPath, sizeof(outputPath)) ) {
         xl6ConsolePrintf(XL6_CONSOLE_STDERR, "cannot create temporary directory\n");
         return 0;
     }
     if ( snprintf(outputPath,
                   sizeof(outputPath),
-                  "release\\tmp\\xlc_check_%lu_%lu.txt",
+                  "build\\tmp\\xlc_check_%lu_%lu.txt",
                   xlcShellProcessId(),
                   xlcShellTick()) <= 0 ) {
         xl6ConsolePrintf(XL6_CONSOLE_STDERR, "cannot create temporary check path\n");

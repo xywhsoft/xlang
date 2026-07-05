@@ -145,6 +145,7 @@ int main(void)
     replyPacket = NULL;
     packetText = NULL;
     replyText = NULL;
+    xrtSleep(10);
     udpOk = left != NULL && right != NULL &&
             xrtNetUdpLocalPort(left) > 0 &&
             xrtNetUdpLocalPort(right) > 0 &&
@@ -167,6 +168,7 @@ int main(void)
     asyncLeft = xrtNetUdpBind("127.0.0.1", 0);
     asyncRight = xrtNetUdpBind("127.0.0.1", 0);
     packetFuture = xrtNetUdpRecvAsync(asyncRight, 3000);
+    xrtSleep(10);
     udpAsyncOk = asyncLeft != NULL && asyncRight != NULL &&
                  xrtNetUdpLocalPort(asyncLeft) > 0 &&
                  xrtNetUdpLocalPort(asyncRight) > 0 &&

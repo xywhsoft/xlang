@@ -1,4 +1,4 @@
-# P1 class/custom 生命周期细则
+﻿# P1 class/custom 生命周期细则
 
 本文细化 `class`、`custom` 的声明布局、构造、默认初始化、成员访问、方法调用、继承路径、析构和 cleanup 生成规则。主要覆盖 `xl6_cgen_decl_class.c`、`xl6_cgen_decl_methods.c`、`xl6_cgen_decl_proto.c`、`xl6_cgen_stmt_decl.c`、`xl6_cgen_value_object.c`、`xl6_cgen_resolve_call.c`。
 

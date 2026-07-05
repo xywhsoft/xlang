@@ -19,7 +19,7 @@
 
 当前不应纳入正式基线的生成物：
 
-- `release/tmp`。
+- `build/test`。
 - `release` 下除 `README.md`、`examples`、`extlibs` 以外的构建输出和临时二进制。
 - `src/lexer/xl6_lexer_gen.c`。
 - `src/lexer/xl6_lexer_gen.h`。
@@ -68,7 +68,7 @@
 
 - `demo6/build.bat`。
 - `demo6/main.c`。
-- `demo6/src/driver/xl6_cli.c`。
+- `demo6/src/driver/xl6_xlc_shell.c`。
 - `demo6/src/backend`。
 - `demo6/src/compile`。
 - `demo6/src/package`。
@@ -193,5 +193,5 @@
 1. 运行 `rc0_guard.bat`。
 2. 查看 `git status --short -- demo6 .gitignore`。
 3. 按本文档的主题分组审查 diff。
-4. 确认没有把 `release/tmp`、临时二进制或 `src/parser/xl6_parser.out` 加入提交。
+4. 确认没有把 `build/test`、临时二进制或 `src/parser/xl6_parser.out` 加入提交。
 5. 确认新增测试和范例是有意纳入 RC0 基线。

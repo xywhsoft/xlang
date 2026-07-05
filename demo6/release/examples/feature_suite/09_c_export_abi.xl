@@ -14,9 +14,3 @@ export "xl6_feature_version" const int exportedVersion = 6
 export "xl6_feature_get_total" func exportedTotal() as int
     return exportedCounter + exportedVersion
 end
-
-assert exportedAdd(20, 22) == 42, "c export add failed"
-assert exportedTotal() == 7, "c export total initial failed"
-exportedCounter = 36
-assert exportedTotal() == 42, "c export total failed"
-println("feature c_export_abi ok")

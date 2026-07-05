@@ -1034,7 +1034,7 @@ static XL6_AstNode* xl6CgenCloneExprTypeForInference(XL6_CgenContext* ctx, const
             {
                 XL6_AstNode* customCtor = NULL;
                 XL6_AstNode* classCtor = NULL;
-                if ( xl6CgenCallIsCustomCtor(ctx, expr, &customCtor) && customCtor != NULL ) {
+                if ( xl6CgenCallIsNativeBackedCtor(ctx, expr, &customCtor) && customCtor != NULL ) {
                     return xl6CgenNewSimpleType(customCtor->text, expr);
                 }
                 if ( xl6CgenCallIsClassCtor(ctx, expr, &classCtor) && classCtor != NULL ) {

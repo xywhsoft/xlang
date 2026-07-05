@@ -12,8 +12,8 @@
   ],
   "types":[],
   "imports":[],
-  "links":["../../../release/tmp/metadata_combo_link.a"],
-  "loadlibs":["../../../release/tmp/metadata_combo_loadlib.dll"],
+  "links":["../../../build/test/metadata_combo_link.a"],
+  "loadlibs":["../../../build/test/metadata_combo_loadlib.dll"],
   "cSources":["metadata_combo_native.c"],
   "native":{"singleton":true,"loadName":"metadata_combo_runtime.dll","version":"1.0.0"},
   "docs":[]

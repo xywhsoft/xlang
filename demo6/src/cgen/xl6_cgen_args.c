@@ -1,4 +1,4 @@
-static void xl6CgenKnownCallArgs(XL6_CgenContext* ctx, const XL6_AstNode* func, const XL6_AstNode* args);
+﻿static void xl6CgenKnownCallArgs(XL6_CgenContext* ctx, const XL6_AstNode* func, const XL6_AstNode* args);
 static int xl6CgenNativeClassCtorHasPointBindingArgs(const XL6_AstNode* args);
 
 static int xl6CgenParamIsVararg(const XL6_AstNode* param)
@@ -92,7 +92,7 @@ static int xl6CgenTryNativeClassCtorBoxValue(
     args = call->childCount > 1 ? call->children[1] : NULL;
     createNode = xl6CgenResolveClassCreate(ctx, classNode, call);
     if ( createNode != NULL ) {
-        if ( createNode->kind != XL6_AST_CUSTOM_EXTERN_SPECIAL ) {
+        if ( createNode->kind != XL6_AST_NATIVE_EXTERN_SPECIAL ) {
             return 0;
         }
         xl6OutputPrintf(ctx->out, "(%s){", cTypeName);
@@ -247,7 +247,7 @@ static void xl6CgenStringLiteralExpr(XL6_CgenContext* ctx, const XL6_AstNode* no
 
     text = node != NULL ? node->text : NULL;
     if ( !xl6CgenStringLiteralParts(text, &start, &end, &raw) ) {
-        xl6CgenError(ctx, node, "字符串字面量格式无效");
+        xl6CgenError(ctx, node, "瀛楃涓插瓧闈㈤噺鏍煎紡鏃犳晥");
         xl6OutputPuts("\"\"", ctx->out);
         return;
     }
@@ -394,7 +394,7 @@ static void xl6CgenXValueFromExpr(XL6_CgenContext* ctx, const XL6_AstNode* expr)
         if ( isCtor && ctorClass != NULL ) {
             const XL6_AstNode* args = expr->childCount > 1 ? expr->children[1] : NULL;
             if ( xl6CgenTryNativeClassCtorBoxValue(ctx, ctorClass, expr, cTypeName) ) {
-                /* 纯 native handle class 保持旧 custom 的直接装箱能力。 */
+                /* 纯 native handle class 保持直接装箱能力。 */
             } else if ( xl6CgenResolveClassCreate(ctx, ctorClass, expr) != NULL ||
                         (args != NULL && args->childCount > 0) ) {
                 xl6CgenError(ctx, expr, "class constructor with create/arguments cannot be boxed directly as var");
@@ -413,22 +413,22 @@ static void xl6CgenXValueFromExpr(XL6_CgenContext* ctx, const XL6_AstNode* expr)
         xl6OutputPutc('(', ctx->out);
         xl6CgenExpr(ctx, expr);
         xl6OutputPutc(')', ctx->out);
-    } else if ( typeNode != NULL && xl6CgenIsCustomType(ctx, typeNode) ) {
+    } else if ( typeNode != NULL && xl6CgenIsNativeBackedClassType(ctx, typeNode) ) {
         XL6_AstNode* ctorCustom = NULL;
         int isCtor;
-        xl6CgenCustomTypeRefName(cTypeName, sizeof(cTypeName), typeNode->text);
+        xl6CgenNativeBackedTypeRefName(cTypeName, sizeof(cTypeName), typeNode->text);
         xl6CgenBoxSymbol(ctx->out, cTypeName);
         xl6OutputPutc('(', ctx->out);
-        isCtor = xl6CgenCallIsCustomCtor(ctx, expr, &ctorCustom);
+        isCtor = xl6CgenCallIsNativeBackedCtor(ctx, expr, &ctorCustom);
         if ( !isCtor && expr->kind == XL6_AST_CALL && expr->childCount > 0 &&
              expr->children[0] != NULL && expr->children[0]->kind == XL6_AST_NAME &&
              xl6CTextEquals(expr->children[0]->text, typeNode->text) ) {
-            ctorCustom = xl6CgenFindCustom(ctx, typeNode->text);
+            ctorCustom = xl6CgenFindNativeBackedClass(ctx, typeNode->text);
             isCtor = ctorCustom != NULL;
         }
         if ( isCtor && ctorCustom != NULL ) {
             xl6OutputPrintf(ctx->out, "(%s){", cTypeName);
-            xl6CgenCustomCtorValue(ctx, ctorCustom, expr);
+            xl6CgenNativeBackedCtorValue(ctx, ctorCustom, expr);
             xl6OutputPutc('}', ctx->out);
         } else {
             xl6CgenExpr(ctx, expr);
@@ -900,7 +900,7 @@ static void xl6CgenNullCoalesceExpr(XL6_CgenContext* ctx, const XL6_AstNode* nod
     }
 
     if ( leftType == NULL || rightType == NULL || !xl6CgenTypeNodeEqual(leftType, rightType) ) {
-        xl6CgenError(ctx, node, "当前 C 生成 ?? 两侧必须是同一静态类型，或左侧为 null/var");
+        xl6CgenError(ctx, node, "褰撳墠 C 鐢熸垚 ?? 涓や晶蹇呴』鏄悓涓€闈欐€佺被鍨嬶紝鎴栧乏渚т负 null/var");
         xl6OutputPuts("0", ctx->out);
         xl6AstFree(leftType);
         xl6AstFree(rightType);

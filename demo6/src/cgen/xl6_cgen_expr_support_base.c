@@ -380,8 +380,8 @@ static int xl6CgenClassNeedsDestroy(XL6_CgenContext* ctx, const XL6_AstNode* cla
             if ( xl6CgenIsXValueType(typeNode) ) {
                 return 1;
             }
-            customNode = xl6CgenFindCustom(ctx, typeNode != NULL ? typeNode->text : NULL);
-            if ( customNode != NULL && xl6CgenCustomHasDestroy(customNode) ) {
+            customNode = xl6CgenFindNativeBackedClass(ctx, typeNode != NULL ? typeNode->text : NULL);
+            if ( customNode != NULL && xl6CgenNativeBackedClassHasDestroy(customNode) ) {
                 return 1;
             }
             nestedClass = xl6CgenFindClass(ctx, typeNode != NULL ? typeNode->text : NULL);
@@ -716,12 +716,12 @@ static void xl6CgenAddCleanupEntry(XL6_CgenContext* ctx, const char* name, XL6_C
     ctx->cleanupCount += 1;
 }
 
-static void xl6CgenAddCustomCleanup(XL6_CgenContext* ctx, const char* name, const XL6_AstNode* customNode)
+static void xl6CgenAddNativeClassCleanup(XL6_CgenContext* ctx, const char* name, const XL6_AstNode* customNode)
 {
-    if ( customNode == NULL || !xl6CgenCustomHasDestroy(customNode) ) {
+    if ( customNode == NULL || !xl6CgenNativeBackedClassHasDestroy(customNode) ) {
         return;
     }
-    xl6CgenAddCleanupEntry(ctx, name, XL6_CGEN_CLEANUP_CUSTOM, customNode, NULL);
+    xl6CgenAddCleanupEntry(ctx, name, XL6_CGEN_CLEANUP_NATIVE_CLASS, customNode, NULL);
 }
 
 static void xl6CgenAddClassCleanup(XL6_CgenContext* ctx, const char* name, const XL6_AstNode* classNode, const XL6_AstNode* classTypeNode)
@@ -954,8 +954,8 @@ static void xl6CgenEmitOneCleanup(XL6_CgenContext* ctx, const XL6_CgenCleanup* c
         xl6OutputPuts("}\n", ctx->out);
         return;
     }
-    if ( cleanup->kind == XL6_CGEN_CLEANUP_CUSTOM ) {
-        destroyNode = xl6CgenFindCustomSpecial(cleanup->typeNode, "destroy");
+    if ( cleanup->kind == XL6_CGEN_CLEANUP_NATIVE_CLASS ) {
+        destroyNode = xl6CgenFindNativeBackedClassSpecial(cleanup->typeNode, "destroy");
         if ( destroyNode == NULL ) {
             return;
         }

@@ -69,11 +69,11 @@ static void xl6CgenEmitTccRuntime(XL6_Output* out)
     xl6OutputPuts("void xrtBufferUnit(xbuffer pBuffer);\n", out);
     xl6OutputPuts("bool xrtBufferMalloc(xbuffer pBuffer, unsigned int iCount);\n", out);
     xl6OutputPuts("bool xrtBufferAppend(xbuffer pBuffer, void* pData, unsigned int iSize, unsigned int bStrMode);\n", out);
-    xl6OutputPuts("void* xrtCopyStr(char* pStr, size_t iSize);\n", out);
+    xl6OutputPuts("char* xrtCopyStr(const char* sText, size_t iSize);\n", out);
     xl6OutputPuts("unsigned int xrtRand32(void);\n", out);
     xl6OutputPuts("unsigned long long xrtRand64(void);\n", out);
     xl6OutputPuts("int xrtRandRange(int iMin, int iMax);\n", out);
-    xl6OutputPuts("long long xrtStrToI64(const char* sStr);\n", out);
+    xl6OutputPuts("long long xrtStrToI64(const void* pStr);\n", out);
     xl6OutputPuts("double xrtStrToNum(const void* pStr);\n", out);
     xl6OutputPuts("int xrtI64ToStr(long long num, char* buffer);\n", out);
     xl6OutputPuts("int xrtNumToStr(double num, char* buffer);\n", out);

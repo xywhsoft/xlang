@@ -5,6 +5,9 @@ cd /d %~dp0
 call tools\xl6_toolchain_env.bat
 if errorlevel 1 exit /b 1
 
+if not exist build mkdir build
+if not exist build\test mkdir build\test
+
 call build_dll.bat
 if errorlevel 1 exit /b 1
 
@@ -61,40 +64,40 @@ if not exist release\xl_run_demo.exe (
     exit /b 1
 )
 
-release\tmp\xl_dll_embed_string_script.exe
+build\test\xl_dll_embed_string_script.exe
 if errorlevel 1 exit /b 1
 
-release\tmp\xl_dll_embed_file_script.exe
+build\test\xl_dll_embed_file_script.exe
 if errorlevel 1 exit /b 1
 
-release\tmp\xlc_api_string.exe
+build\test\xlc_api_string.exe
 if errorlevel 1 exit /b 1
 
-release\tmp\xlc_api_debug.exe
+build\test\xlc_api_debug.exe
 if errorlevel 1 exit /b 1
 
-if not exist release\tmp\xlc_api_shared.dll (
+if not exist build\test\xlc_api_shared.dll (
     echo xlc_api_shared.dll missing.
     exit /b 1
 )
-if not exist release\tmp\xlc_api_shared.h (
+if not exist build\test\xlc_api_shared.h (
     echo xlc_api_shared.h missing.
     exit /b 1
 )
 
-if not exist release\tmp\xl_dll_link_host.o (
+if not exist build\tmp\xl_dll_link_host.o (
     echo xl_dll_link_host.o missing.
     exit /b 1
 )
-if not exist release\tmp\libxl6dlllink.a (
+if not exist build\tmp\libxl6dlllink.a (
     echo libxl6dlllink.a missing.
     exit /b 1
 )
-if not exist release\tmp\xl_dll_loadlib_host.dll (
+if not exist build\tmp\xl_dll_loadlib_host.dll (
     echo xl_dll_loadlib_host.dll missing.
     exit /b 1
 )
-if not exist release\tmp\xl_dll_loadlib_host.def (
+if not exist build\tmp\xl_dll_loadlib_host.def (
     echo xl_dll_loadlib_host.def missing.
     exit /b 1
 )

@@ -1,4 +1,4 @@
-# xlang demo6 cgen 规则对照表
+﻿# xlang demo6 cgen 规则对照表
 
 本目录记录 demo6 当前代码生成器的生成规则。行号以 `demo6/src/cgen` 下各分片文件自身行号为准，不以 `xl6_cgen.c` 合并后的翻译单元行号为准。
 

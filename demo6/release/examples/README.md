@@ -38,6 +38,8 @@
 - `async_task_wait.xl`：future wait、waitTimeout、state/error、cancel 和 task.whenAny 示例；回归：`run`。
 - `async_generator.xl`：`async func ... as generator<T>`、`func ... as async generator<T>`、`await + yield`、`for await`、保存型/单次消费、错误传播、空流、双目标索引与 `break`/`continue` 示例；回归：`run`。
 - `union.xl`：C 风格 union 示例；回归：`run`。
+- `script_embed_tcc.xl`：内嵌 TCC 脚本运行、Context 和动态 VFS 示例；回归：`run`。
+- `script_embed_xlang.xl`：内嵌 xlang 脚本运行和 `XLangContext` 示例；回归：`run`。
 
 ## C 混编与导出范例
 
@@ -93,10 +95,11 @@
 - `stdlib_process_c.c`：与 `stdlib_process.xl` 对照的 C/XRT process 库范例，展示结构化执行、pipeline 和长生命周期进程。
 - `stdlib_http_server.xl`
 - `stdlib_http_server_c.c`：与 `stdlib_http_server.xl` 对照的 C/XRT `xweb` HTTP server 范例，展示 GET/POST/ANY 路由和静态文件。
+- `stdlib_tcc_xlang_embed.xl`：TCC C 脚本、动态 VFS、编译输出和内嵌 xlang 运行范例。
 
 ## 复合应用范例
 
-复合应用范例位于 `apps` 子目录，由 `test_apps.bat` 批量 `check` 和 `run`。这些范例优先展示“用户实际会写的小工具”，每个范例都自造输入数据、输出到 `release/tmp/examples_apps`，并用 `assert` 校验结果。
+复合应用范例位于 `apps` 子目录，由 `test_apps.bat` 批量 `check` 和 `run`。这些范例优先展示“用户实际会写的小工具”，每个范例都自造输入数据、输出到 `build/test/examples_apps`，并用 `assert` 校验结果。
 
 - `apps/asset_manifest.xl`：文件扫描、hash 和 JSON 清单。
 - `apps/cli_args.xl`：`main(...)` 命令行参数解析。
