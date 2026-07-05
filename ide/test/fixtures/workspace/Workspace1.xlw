@@ -1,0 +1,20 @@
+{
+  "Version": 1,
+  "Name": "Workspace1",
+  "NewFileIndex": 1,
+  "Status": {
+    "IsExpand": true
+  },
+  "Projects": [
+    {
+      "Path": "Project1\\Project1.xlp",
+      "Open": true
+    }
+  ],
+  "Files": [
+    {
+      "Path": "notes\\readme.txt",
+      "Open": false
+    }
+  ]
+}

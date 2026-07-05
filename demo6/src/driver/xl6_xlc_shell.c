@@ -108,6 +108,92 @@ static int xlcShellMakeDir(const char* path)
     return xrtDirCreateAll((str)path) != 0;
 }
 
+static int xlcShellCopyText(char* out, size_t outSize, const char* text)
+{
+    size_t len;
+
+    if ( out == NULL || outSize == 0 || text == NULL ) {
+        return 0;
+    }
+    len = strlen(text);
+    if ( len >= outSize ) {
+        return 0;
+    }
+    memcpy(out, text, len + 1u);
+    return 1;
+}
+
+static void xlcShellDirNameInPlace(char* path)
+{
+    char* slash;
+    char* backslash;
+    char* cut;
+
+    if ( path == NULL || path[0] == '\0' ) {
+        return;
+    }
+    slash = strrchr(path, '/');
+    backslash = strrchr(path, '\\');
+    cut = slash != NULL && (backslash == NULL || slash > backslash) ? slash : backslash;
+    if ( cut == NULL ) {
+        path[0] = '\0';
+        return;
+    }
+    if ( cut == path ) {
+        cut[1] = '\0';
+        return;
+    }
+    *cut = '\0';
+}
+
+static int xlcShellGetExeDir(char* out, size_t outSize)
+{
+    if ( out == NULL || outSize == 0 ) {
+        return 0;
+    }
+    out[0] = '\0';
+#ifdef _WIN32
+    {
+        wchar_t wide[32768];
+        DWORD len;
+        char* utf8;
+        int ok;
+
+        len = GetModuleFileNameW(NULL, wide, (DWORD)(sizeof(wide) / sizeof(wide[0])));
+        if ( len == 0 || len >= (DWORD)(sizeof(wide) / sizeof(wide[0])) ) {
+            return 0;
+        }
+        wide[len] = L'\0';
+        utf8 = (char*)xrtUTF16to8((u16str)wide, 0, NULL);
+        if ( utf8 == NULL ) {
+            return 0;
+        }
+        ok = xlcShellCopyText(out, outSize, utf8);
+        xrtFree(utf8);
+        if ( !ok ) {
+            out[0] = '\0';
+            return 0;
+        }
+    }
+#else
+    {
+        char path[4096];
+        ssize_t len;
+
+        len = readlink("/proc/self/exe", path, sizeof(path) - 1u);
+        if ( len <= 0 || (size_t)len >= sizeof(path) ) {
+            return 0;
+        }
+        path[len] = '\0';
+        if ( !xlcShellCopyText(out, outSize, path) ) {
+            return 0;
+        }
+    }
+#endif
+    xlcShellDirNameInPlace(out);
+    return out[0] != '\0';
+}
+
 static int xlcShellJoinDirPath(char* out, size_t outSize, const char* dir, const char* name)
 {
     const char* sep;
@@ -125,13 +211,13 @@ static int xlcShellJoinDirPath(char* out, size_t outSize, const char* dir, const
 
 static int xlcShellBuildTmpDir(char* out, size_t outSize)
 {
-    int written;
+    char exeDir[512];
 
     if ( out == NULL || outSize == 0 ) {
         return 0;
     }
-    written = snprintf(out, outSize, "build\\tmp");
-    if ( written <= 0 || (size_t)written >= outSize ) {
+    if ( !xlcShellGetExeDir(exeDir, sizeof(exeDir)) ||
+         !xlcShellJoinDirPath(out, outSize, exeDir, "tmp") ) {
         return 0;
     }
     return xlcShellMakeDir(out);

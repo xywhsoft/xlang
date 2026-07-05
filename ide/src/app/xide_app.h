@@ -53,6 +53,7 @@ typedef struct xide_app_t {
 	int iLanguageId;
 	int bCheckLanguageRules;
 	int bCheckWorkspace;
+	char sCheckWorkspaceFile[XIDE_WORKSPACE_PATH_MAX];
 	double fMaxSeconds;
 	int bHasMouse;
 	float fLastMouseX;

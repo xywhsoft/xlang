@@ -1443,9 +1443,9 @@ if errorlevel 1 (
     echo cgen_typed_container_index_assign.c missing typed dict index assignment.
     exit /b 1
 )
-findstr /C:"static void xl6_runtime_fatal(int code)" build\test\cgen_typed_container_index_assign.c >nul
+findstr /C:"#include <xl_runtime.h>" build\test\cgen_typed_container_index_assign.c >nul
 if errorlevel 1 (
-    echo cgen_typed_container_index_assign.c missing centralized runtime fatal helper.
+    echo cgen_typed_container_index_assign.c missing centralized runtime header.
     exit /b 1
 )
 findstr /C:"xl6_runtime_fatal(3);" build\test\cgen_typed_container_index_assign.c >nul
@@ -1724,9 +1724,9 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_string_concat.xl --emit build\test\cgen_string_concat.c
 if errorlevel 1 exit /b 1
-findstr /C:"static const char* xl6_xrt_str_concat" build\test\cgen_string_concat.c >nul
+findstr /C:"#define XL_RUNTIME_NEED_STRING 1" build\test\cgen_string_concat.c >nul
 if errorlevel 1 (
-    echo cgen_string_concat.c missing string concat helper.
+    echo cgen_string_concat.c missing string runtime trim macro.
     exit /b 1
 )
 findstr /C:"const char* joined = xl6_xrt_str_concat" build\test\cgen_string_concat.c >nul
@@ -1790,9 +1790,9 @@ if errorlevel 1 (
     echo cgen_fstring.c missing f-string join helper.
     exit /b 1
 )
-findstr /C:"xrtBufferInit(&buffer, 256u);" build\test\cgen_fstring.c >nul
+findstr /C:"#define XL_RUNTIME_NEED_STRING 1" build\test\cgen_fstring.c >nul
 if errorlevel 1 (
-    echo cgen_fstring.c missing xbuffer initialization.
+    echo cgen_fstring.c missing string runtime trim macro.
     exit /b 1
 )
 findstr /C:"({ xbuffer_struct __xl6_fstr_" build\test\cgen_fstring.c >nul
@@ -3324,9 +3324,9 @@ if errorlevel 1 (
     echo cgen_function_named_value.c missing centralized function fatal helper.
     exit /b 1
 )
-findstr /C:"static void xl6_runtime_fatal(int code)" build\test\cgen_function_named_value.c >nul
+findstr /C:"#include <xl_runtime.h>" build\test\cgen_function_named_value.c >nul
 if errorlevel 1 (
-    echo cgen_function_named_value.c missing centralized runtime fatal helper.
+    echo cgen_function_named_value.c missing centralized runtime header.
     exit /b 1
 )
 findstr /C:"xl6_function_fatal(3);" build\test\cgen_function_named_value.c >nul

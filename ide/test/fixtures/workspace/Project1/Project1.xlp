@@ -1,0 +1,58 @@
+{
+  "Version": 1,
+  "Project": {
+    "Description": "Project1",
+    "AppPath": "bin",
+    "Icon": ""
+  },
+  "Status": {
+    "ProjExpand": true,
+    "FileExpand": true,
+    "LibsExpand": true,
+    "ResourceExpand": true
+  },
+  "Build": {
+    "File": "Project1.exe",
+    "Icon": "res\\app.ico",
+    "ProcessName": "Project1",
+    "Comments": "xlang application",
+    "CompanyName": "",
+    "FileDescription": "Project1",
+    "LegalCopyright": "",
+    "LegalTrademarks": "",
+    "ProductName": "Project1",
+    "ProductVersion": "1.0.0.0",
+    "UseFileVersion": true,
+    "OriginalFilename": "Project1.exe",
+    "FileVersion1": 1,
+    "FileVersion2": 0,
+    "FileVersion3": 0,
+    "FileVersion4": 0,
+    "FileVersionAutoAdd": 0,
+    "Charset": "UTF-8"
+  },
+  "Library": [
+    "console"
+  ],
+  "File": [
+    {
+      "Path": "src\\main.xl",
+      "Open": true
+    },
+    {
+      "Path": "src\\helper.c",
+      "Open": false
+    }
+  ],
+  "Resource": [
+    {
+      "Path": "res\\app.ico",
+      "Open": false
+    },
+    {
+      "Path": "res\\data.xson",
+      "Open": false
+    }
+  ],
+  "BootCode": ""
+}
