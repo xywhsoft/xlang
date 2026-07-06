@@ -1928,6 +1928,8 @@ static int xlAddDefaultRuntimeSymbols(TCCState* s)
     XL_ADD_XRT_SYMBOL(s, xrtWebAppRoute);
     XL_ADD_XRT_SYMBOL(s, xrtWebAppStreamRouteEx);
     XL_ADD_XRT_SYMBOL(s, xrtWebAppStreamRoute);
+    XL_ADD_XRT_SYMBOL(s, xrtWebAppStreamRouteAsyncEx);
+    XL_ADD_XRT_SYMBOL(s, xrtWebAppStreamRouteAsync);
     XL_ADD_XRT_SYMBOL(s, xrtWebAppGet);
     XL_ADD_XRT_SYMBOL(s, xrtWebAppPost);
     XL_ADD_XRT_SYMBOL(s, xrtWebAppAny);
@@ -1957,6 +1959,8 @@ static int xlAddDefaultRuntimeSymbols(TCCState* s)
     XL_ADD_XRT_SYMBOL(s, xrtWebServerRoute);
     XL_ADD_XRT_SYMBOL(s, xrtWebServerStreamRouteEx);
     XL_ADD_XRT_SYMBOL(s, xrtWebServerStreamRoute);
+    XL_ADD_XRT_SYMBOL(s, xrtWebServerStreamRouteAsyncEx);
+    XL_ADD_XRT_SYMBOL(s, xrtWebServerStreamRouteAsync);
     XL_ADD_XRT_SYMBOL(s, xrtWebServerGet);
     XL_ADD_XRT_SYMBOL(s, xrtWebServerPost);
     XL_ADD_XRT_SYMBOL(s, xrtWebServerAny);

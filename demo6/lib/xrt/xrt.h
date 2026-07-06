@@ -1,7 +1,7 @@
 /*
 
     XRT Single Header File
-    Generated: 2026-07-06 16:04:05
+    Generated: 2026-07-06 17:42:53
 
     MIT License
 
@@ -4329,6 +4329,7 @@
 			bool (*OnRequestBodyBegin)(ptr pOwner, xhttpdserver* pServer, xhttpdconn* pConn, const xhttpdrequest* pReq);
 			bool (*OnRequestBody)(ptr pOwner, xhttpdserver* pServer, xhttpdconn* pConn, const xhttpdrequest* pReq, const void* pData, size_t iLen);
 			bool (*OnRequestBodyEnd)(ptr pOwner, xhttpdserver* pServer, xhttpdconn* pConn, const xhttpdrequest* pReq, xhttpdresponse* pResp);
+			xfuture* (*OnRequestBodyEndAsync)(ptr pOwner, xhttpdserver* pServer, xhttpdconn* pConn, const xhttpdrequest* pReq);
 			void (*OnClose)(ptr pOwner, xhttpdserver* pServer, xhttpdconn* pConn, xnet_result iReason);
 			void (*OnError)(ptr pOwner, xhttpdserver* pServer, xhttpdconn* pConn, int iSysErr);
 		} xhttpdevents;
@@ -4350,6 +4351,7 @@
 		typedef bool (*xwebbodybegin)(xwebrequest* pReq, ptr pUserData);
 		typedef bool (*xwebbodychunk)(xwebrequest* pReq, const void* pData, size_t iLen, ptr pUserData);
 		typedef xwebaction (*xwebbodyend)(xwebrequest* pReq, xwebresponse* pResp, ptr pUserData);
+		typedef xfuture* (*xwebbodyendasync)(xwebrequest* pReq, ptr pUserData);
 		typedef xwebaction (*xweberrorhandler)(xwebrequest* pReq, xwebresponse* pResp, uint32 iStatusCode, const char* sMessage, ptr pUserData);
 		typedef void (*xwebfree)(ptr pUserData);
 		typedef struct {
@@ -5650,6 +5652,8 @@ XXAPI str xrtNetDgramPacketText(const xnetdgrampkt* pPacket);
 		XXAPI bool xrtWebAppRouteEx(xwebapp* pApp, uint32 iMethodMask, const char* sPattern, xwebhandler pHandler, ptr pUserData, xwebfree pFreeUserData);
 		XXAPI bool xrtWebAppStreamRouteEx(xwebapp* pApp, uint32 iMethodMask, const char* sPattern, xwebbodybegin pBegin, xwebbodychunk pBody, xwebbodyend pEnd, ptr pUserData, xwebfree pFreeUserData);
 		XXAPI bool xrtWebAppStreamRoute(xwebapp* pApp, uint32 iMethodMask, const char* sPattern, xwebbodybegin pBegin, xwebbodychunk pBody, xwebbodyend pEnd, ptr pUserData);
+		XXAPI bool xrtWebAppStreamRouteAsyncEx(xwebapp* pApp, uint32 iMethodMask, const char* sPattern, xwebbodybegin pBegin, xwebbodychunk pBody, xwebbodyendasync pEndAsync, ptr pUserData, xwebfree pFreeUserData);
+		XXAPI bool xrtWebAppStreamRouteAsync(xwebapp* pApp, uint32 iMethodMask, const char* sPattern, xwebbodybegin pBegin, xwebbodychunk pBody, xwebbodyendasync pEndAsync, ptr pUserData);
 		XXAPI bool xrtWebAppRoute(xwebapp* pApp, uint32 iMethodMask, const char* sPattern, xwebhandler pHandler, ptr pUserData);
 		XXAPI bool xrtWebAppGet(xwebapp* pApp, const char* sPattern, xwebhandler pHandler, ptr pUserData);
 		XXAPI bool xrtWebAppPost(xwebapp* pApp, const char* sPattern, xwebhandler pHandler, ptr pUserData);
@@ -5679,6 +5683,8 @@ XXAPI str xrtNetDgramPacketText(const xnetdgrampkt* pPacket);
 		XXAPI bool xrtWebServerRoute(xwebserver* pServer, uint32 iMethodMask, const char* sPattern, xwebhandler pHandler, ptr pUserData);
 		XXAPI bool xrtWebServerStreamRouteEx(xwebserver* pServer, uint32 iMethodMask, const char* sPattern, xwebbodybegin pBegin, xwebbodychunk pBody, xwebbodyend pEnd, ptr pUserData, xwebfree pFreeUserData);
 		XXAPI bool xrtWebServerStreamRoute(xwebserver* pServer, uint32 iMethodMask, const char* sPattern, xwebbodybegin pBegin, xwebbodychunk pBody, xwebbodyend pEnd, ptr pUserData);
+		XXAPI bool xrtWebServerStreamRouteAsyncEx(xwebserver* pServer, uint32 iMethodMask, const char* sPattern, xwebbodybegin pBegin, xwebbodychunk pBody, xwebbodyendasync pEndAsync, ptr pUserData, xwebfree pFreeUserData);
+		XXAPI bool xrtWebServerStreamRouteAsync(xwebserver* pServer, uint32 iMethodMask, const char* sPattern, xwebbodybegin pBegin, xwebbodychunk pBody, xwebbodyendasync pEndAsync, ptr pUserData);
 		XXAPI bool xrtWebServerGet(xwebserver* pServer, const char* sPattern, xwebhandler pHandler, ptr pUserData);
 		XXAPI bool xrtWebServerPost(xwebserver* pServer, const char* sPattern, xwebhandler pHandler, ptr pUserData);
 		XXAPI bool xrtWebServerAny(xwebserver* pServer, const char* sPattern, xwebhandler pHandler, ptr pUserData);
@@ -63462,6 +63468,7 @@ typedef struct {
 	bool (*OnRequestBodyBegin)(ptr pOwner, xhttpdserver* pServer, xhttpdconn* pConn, const xhttpdrequest* pReq);
 	bool (*OnRequestBody)(ptr pOwner, xhttpdserver* pServer, xhttpdconn* pConn, const xhttpdrequest* pReq, const void* pData, size_t iLen);
 	bool (*OnRequestBodyEnd)(ptr pOwner, xhttpdserver* pServer, xhttpdconn* pConn, const xhttpdrequest* pReq, xhttpdresponse* pResp);
+	xfuture* (*OnRequestBodyEndAsync)(ptr pOwner, xhttpdserver* pServer, xhttpdconn* pConn, const xhttpdrequest* pReq);
 	void (*OnClose)(ptr pOwner, xhttpdserver* pServer, xhttpdconn* pConn, xnet_result iReason);
 	void (*OnError)(ptr pOwner, xhttpdserver* pServer, xhttpdconn* pConn, int iSysErr);
 } xhttpdevents;
@@ -65103,6 +65110,71 @@ XXAPI xnet_result xrtHttpdConnSendFile(xhttpdconn* pConn, const xhttpdresponse* 
 	return iRet;
 }
 // xrtHttpdConnClose 相关处理
+// xrtHttpdConnSendFileRange 相关处理
+XXAPI xnet_result xrtHttpdConnSendFileRange(xhttpdconn* pConn, const xhttpdresponse* pResp, const char* sFilePath, size_t iStart, size_t iLen, size_t iChunkSize)
+{
+	xhttpdresponse tFile;
+	xfile objFile = NULL;
+	char* pBuf = NULL;
+	char sLength[32];
+	size_t iFileSize;
+	size_t iRemain;
+	xnet_result iRet = XRT_NET_ERROR;
+	if ( !pConn || !pResp || !sFilePath || !sFilePath[0] ) { return XRT_NET_ERROR; }
+	if ( iChunkSize == 0u ) { iChunkSize = 64u * 1024u; }
+	iFileSize = xrtFileGetSize((str)sFilePath);
+	if ( iStart > iFileSize ) { return XRT_NET_ERROR; }
+	if ( iLen > iFileSize - iStart ) { iLen = iFileSize - iStart; }
+	objFile = xrtOpen((str)sFilePath, TRUE, XRT_CP_BINARY);
+	if ( objFile == NULL ) { return XRT_NET_ERROR; }
+	memset(&tFile, 0, sizeof(tFile));
+	if ( !__xhttpdResponseCopy(&tFile, pResp) ) {
+		xrtClose(objFile);
+		return XRT_NET_ERROR;
+	}
+	if ( !__xhttpdResponseHasHeader(&tFile, "Content-Length") ) {
+		snprintf(sLength, sizeof(sLength), "%llu", (unsigned long long)iLen);
+		if ( !xrtHttpdResponseSetHeader(&tFile, "Content-Length", sLength) ) {
+			xrtClose(objFile);
+			xrtHttpdResponseUnit(&tFile);
+			return XRT_NET_ERROR;
+		}
+	}
+	if ( iLen == 0u ) {
+		iRet = xrtHttpdConnRespond(pConn, &tFile);
+		xrtClose(objFile);
+		xrtHttpdResponseUnit(&tFile);
+		return iRet;
+	}
+	if ( xrtSeek(objFile, (int64)iStart, XRT_SEEK_SET) != iStart ) {
+		xrtClose(objFile);
+		xrtHttpdResponseUnit(&tFile);
+		return XRT_NET_ERROR;
+	}
+	pBuf = (char*)XNET_ALLOC(iChunkSize);
+	if ( pBuf == NULL ) {
+		xrtClose(objFile);
+		xrtHttpdResponseUnit(&tFile);
+		return XRT_NET_ERROR;
+	}
+	iRet = xrtHttpdConnStart(pConn, &tFile);
+	if ( iRet == XRT_NET_OK ) {
+		iRemain = iLen;
+		while ( iRemain > 0u ) {
+			size_t iWant = iRemain < iChunkSize ? iRemain : iChunkSize;
+			size_t iRead = xrtGetBuffer(objFile, pBuf, iWant);
+			if ( iRead == 0u ) { iRet = XRT_NET_ERROR; break; }
+			iRet = xrtHttpdConnSend(pConn, pBuf, iRead);
+			if ( iRet != XRT_NET_OK ) { break; }
+			iRemain -= iRead;
+		}
+		if ( iRet == XRT_NET_OK ) { iRet = xrtHttpdConnEnd(pConn); }
+	}
+	XNET_FREE(pBuf);
+	xrtClose(objFile);
+	xrtHttpdResponseUnit(&tFile);
+	return iRet;
+}
 XXAPI xnet_result xrtHttpdConnClose(xhttpdconn* pConn, uint32 iCloseFlags)
 {
 	xnetstream* pStream;
@@ -65683,7 +65755,7 @@ static bool __xhttpdHasRequestBodyStream(const xhttpdserver* pServer)
 {
 	return pServer &&
 		pServer->tEvents.OnRequestBody != NULL &&
-		pServer->tEvents.OnRequestBodyEnd != NULL;
+		(pServer->tEvents.OnRequestBodyEnd != NULL || pServer->tEvents.OnRequestBodyEndAsync != NULL);
 }
 // 内部函数：重置 request body 流式状态
 static void __xhttpdResetBodyStreamLocked(xhttpdconn* pConn)
@@ -65802,6 +65874,7 @@ static void __xhttpdCompleteRequestBodyStream(xhttpdconn* pConn)
 	xhttpdserver* pServer;
 	xhttpdrequest* pReq;
 	xhttpdresponse tResp;
+	xfuture* pAsync = NULL;
 	bool bHandled = false;
 	bool bResponseCommitted = false;
 	if ( !pConn ) { return; }
@@ -65812,6 +65885,32 @@ static void __xhttpdCompleteRequestBodyStream(xhttpdconn* pConn)
 	pReq = pConn->pRequest;
 	__xhttpdResetBodyStreamLocked(pConn);
 	__xhttpdUnlock(&pConn->iConnLock);
+	if ( pServer && pReq && pServer->tEvents.OnRequestBodyEndAsync ) {
+		__xhttpdLock(&pConn->iConnLock);
+		pConn->bAsyncPending = true;
+		__xhttpdUnlock(&pConn->iConnLock);
+		pAsync = pServer->tEvents.OnRequestBodyEndAsync(pServer->pUserData, pServer, pConn, pReq);
+		if ( pAsync ) {
+			if ( !__xhttpdAttachAsyncRequest(pConn, pAsync) ) {
+				__xhttpdLock(&pConn->iConnLock);
+				pConn->bAsyncPending = false;
+				__xhttpdUnlock(&pConn->iConnLock);
+				__xhttpdEmitServerError(pServer, pConn, -1);
+				__xhttpdSendSimpleStatus(pConn, 500u, __xhttpdStatusBody(500u));
+			}
+			xrtHttpdResponseUnit(&tResp);
+			return;
+		}
+		__xhttpdLock(&pConn->iConnLock);
+		pConn->bAsyncPending = false;
+		bResponseCommitted = pConn->bResponseCommitted;
+		__xhttpdUnlock(&pConn->iConnLock);
+		if ( bResponseCommitted ) {
+			xrtHttpdResponseUnit(&tResp);
+			__xhttpdConnFinalizeMaybeAsync(pConn);
+			return;
+		}
+	}
 	if ( pServer && pReq && pServer->tEvents.OnRequestBodyEnd ) {
 		bHandled = pServer->tEvents.OnRequestBodyEnd(pServer->pUserData, pServer, pConn, pReq, &tResp);
 	}
@@ -66633,6 +66732,7 @@ typedef xwebaction (*xwebhandler)(xwebrequest* pReq, xwebresponse* pResp, ptr pU
 typedef bool (*xwebbodybegin)(xwebrequest* pReq, ptr pUserData);
 typedef bool (*xwebbodychunk)(xwebrequest* pReq, const void* pData, size_t iLen, ptr pUserData);
 typedef xwebaction (*xwebbodyend)(xwebrequest* pReq, xwebresponse* pResp, ptr pUserData);
+typedef xfuture* (*xwebbodyendasync)(xwebrequest* pReq, ptr pUserData);
 typedef xwebaction (*xweberrorhandler)(xwebrequest* pReq, xwebresponse* pResp, uint32 iStatusCode, const char* sMessage, ptr pUserData);
 typedef void (*xwebfree)(ptr pUserData);
 typedef struct {
@@ -66703,6 +66803,7 @@ struct __xweb_route {
 	xwebbodybegin pBodyBegin;
 	xwebbodychunk pBody;
 	xwebbodyend pBodyEnd;
+	xwebbodyendasync pBodyEndAsync;
 	xwebfree pFreeUserData;
 	ptr pUserData;
 };
@@ -67205,6 +67306,135 @@ static xwebaction __xwebRespondError(xwebrequest* pReq, xwebresponse* pResp, uin
 	return __xwebRespondSimple(pReq, pResp, iStatusCode, sText);
 }
 // 内部函数：处理静态文件
+static bool __xwebFormatHttpDateUnix(int64 iUnixTime, char* sOut, size_t iOutCap)
+{
+	static const char* arrWeek[] = {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
+	static const char* arrMonth[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
+	time_t tRaw;
+	struct tm tTm;
+	if ( !sOut || iOutCap < 32u ) { return false; }
+	if ( iUnixTime < 0 ) { iUnixTime = 0; }
+	tRaw = (time_t)iUnixTime;
+#if defined(_WIN32) || defined(_WIN64)
+# ifdef __TINYC__
+	{
+		struct tm* pTm = gmtime(&tRaw);
+		if ( !pTm ) { return false; }
+		tTm = *pTm;
+	}
+# else
+	if ( gmtime_s(&tTm, &tRaw) != 0 ) { return false; }
+# endif
+#else
+	if ( gmtime_r(&tRaw, &tTm) == NULL ) { return false; }
+#endif
+	snprintf(sOut, iOutCap, "%s, %02d %s %04d %02d:%02d:%02d GMT",
+		arrWeek[tTm.tm_wday >= 0 && tTm.tm_wday < 7 ? tTm.tm_wday : 0],
+		tTm.tm_mday,
+		arrMonth[tTm.tm_mon >= 0 && tTm.tm_mon < 12 ? tTm.tm_mon : 0],
+		tTm.tm_year + 1900,
+		tTm.tm_hour,
+		tTm.tm_min,
+		tTm.tm_sec);
+	return true;
+}
+static void __xwebStaticETag(char* sOut, size_t iOutCap, size_t iSize, int64 iMTime)
+{
+	if ( !sOut || iOutCap == 0u ) { return; }
+	snprintf(sOut, iOutCap, "\"%llx-%llx\"",
+		(unsigned long long)iSize,
+		(unsigned long long)(iMTime > 0 ? iMTime : 0));
+}
+static bool __xwebStaticETagMatches(const char* sHeader, const char* sETag)
+{
+	size_t iETagLen;
+	const char* p;
+	if ( !sHeader || !sETag ) { return false; }
+	iETagLen = strlen(sETag);
+	p = sHeader;
+	while ( *p ) {
+		const char* sBegin;
+		const char* sEnd;
+		while ( *p == ' ' || *p == '\t' || *p == ',' ) { p++; }
+		if ( *p == '*' ) { return true; }
+		sBegin = p;
+		while ( *p && *p != ',' ) { p++; }
+		sEnd = p;
+		while ( sEnd > sBegin && (sEnd[-1] == ' ' || sEnd[-1] == '\t') ) { sEnd--; }
+		if ( (size_t)(sEnd - sBegin) == iETagLen && strncmp(sBegin, sETag, iETagLen) == 0 ) { return true; }
+		if ( sEnd - sBegin > 2 && sBegin[0] == 'W' && sBegin[1] == '/' ) {
+			sBegin += 2;
+			if ( (size_t)(sEnd - sBegin) == iETagLen && strncmp(sBegin, sETag, iETagLen) == 0 ) { return true; }
+		}
+	}
+	return false;
+}
+static bool __xwebParseSizeT(const char** ppText, size_t* pOut)
+{
+	const char* p;
+	size_t iVal = 0u;
+	size_t iMax = ~(size_t)0u;
+	bool bAny = false;
+	if ( !ppText || !*ppText || !pOut ) { return false; }
+	p = *ppText;
+	while ( *p >= '0' && *p <= '9' ) {
+		size_t iDigit = (size_t)(*p - '0');
+		if ( iVal > (iMax - iDigit) / 10u ) { return false; }
+		iVal = iVal * 10u + iDigit;
+		p++;
+		bAny = true;
+	}
+	if ( !bAny ) { return false; }
+	*ppText = p;
+	*pOut = iVal;
+	return true;
+}
+static int __xwebParseByteRange(const char* sRange, size_t iFileSize, size_t* pStart, size_t* pLen)
+{
+	const char* p;
+	size_t iStart = 0u;
+	size_t iEnd = 0u;
+	size_t iSuffix = 0u;
+	if ( pStart ) { *pStart = 0u; }
+	if ( pLen ) { *pLen = 0u; }
+	if ( !sRange || !pStart || !pLen ) { return 0; }
+	while ( *sRange == ' ' || *sRange == '\t' ) { sRange++; }
+	if ( strncmp(sRange, "bytes=", 6u) != 0 ) { return 0; }
+	p = sRange + 6u;
+	while ( *p == ' ' || *p == '\t' ) { p++; }
+	if ( strchr(p, ',') != NULL ) { return 0; }
+	if ( iFileSize == 0u ) { return -1; }
+	if ( *p == '-' ) {
+		p++;
+		if ( !__xwebParseSizeT(&p, &iSuffix) || iSuffix == 0u ) { return -1; }
+		while ( *p == ' ' || *p == '\t' ) { p++; }
+		if ( *p != '\0' ) { return -1; }
+		if ( iSuffix >= iFileSize ) {
+			*pStart = 0u;
+			*pLen = iFileSize;
+		} else {
+			*pStart = iFileSize - iSuffix;
+			*pLen = iSuffix;
+		}
+		return 1;
+	}
+	if ( !__xwebParseSizeT(&p, &iStart) ) { return -1; }
+	if ( *p != '-' ) { return -1; }
+	p++;
+	if ( *p >= '0' && *p <= '9' ) {
+		if ( !__xwebParseSizeT(&p, &iEnd) ) { return -1; }
+		if ( iEnd < iStart ) { return -1; }
+	} else {
+		iEnd = iFileSize - 1u;
+	}
+	while ( *p == ' ' || *p == '\t' ) { p++; }
+	if ( *p != '\0' ) { return -1; }
+	if ( iStart >= iFileSize ) { return -1; }
+	if ( iEnd >= iFileSize ) { iEnd = iFileSize - 1u; }
+	*pStart = iStart;
+	*pLen = iEnd - iStart + 1u;
+	return 1;
+}
 static bool __xwebTryStatic(xwebrequest* pReq, xwebresponse* pResp)
 {
 		__xweb_static_mount* pMount;
@@ -67215,6 +67445,16 @@ static bool __xwebTryStatic(xwebrequest* pReq, xwebresponse* pResp)
 	char* sPath = NULL;
 	bool bHead;
 	bool bOk = false;
+	size_t iFileSize;
+	int64 iMTime;
+	char sETag[64];
+	char sLastModified[64];
+	const char* sIfNoneMatch;
+	const char* sIfRange;
+	const char* sRange;
+	size_t iRangeStart = 0u;
+	size_t iRangeLen = 0u;
+	int iRangeState = 0;
 	if ( !pReq || !pResp || !pReq->pApp || !pReq->pRaw ) { return false; }
 	if ( pReq->pRaw->iMethod != XHTTPD_METHOD_GET && pReq->pRaw->iMethod != XHTTPD_METHOD_HEAD ) { return false; }
 	bHead = pReq->pRaw->iMethod == XHTTPD_METHOD_HEAD;
@@ -67269,14 +67509,68 @@ static bool __xwebTryStatic(xwebrequest* pReq, xwebresponse* pResp)
 			sPath = NULL;
 			continue;
 		}
+		iFileSize = xrtFileGetSize((str)sPath);
+		iMTime = xrtFileGetChangeTime((str)sPath);
+		__xwebStaticETag(sETag, sizeof(sETag), iFileSize, iMTime);
+		if ( !__xwebFormatHttpDateUnix(iMTime > XRT_TIME_19700101 ? iMTime - XRT_TIME_19700101 : 0, sLastModified, sizeof(sLastModified)) ) {
+			sLastModified[0] = '\0';
+		}
 		xrtWebResponseStatus(pResp, 200u, NULL);
 		(void)xrtWebResponseSetHeader(pResp, "Content-Type", xrtWebMimeByPath(sPath));
+		(void)xrtWebResponseSetHeader(pResp, "Accept-Ranges", "bytes");
+		(void)xrtWebResponseSetHeader(pResp, "ETag", sETag);
+		if ( sLastModified[0] ) { (void)xrtWebResponseSetHeader(pResp, "Last-Modified", sLastModified); }
 		if ( pMount->tConfig.sCacheControl && pMount->tConfig.sCacheControl[0] ) {
 			(void)xrtWebResponseSetHeader(pResp, "Cache-Control", pMount->tConfig.sCacheControl);
 		}
+		sIfNoneMatch = xrtHttpdRequestHeader(pReq->pRaw, "If-None-Match");
+		if ( __xwebStaticETagMatches(sIfNoneMatch, sETag) ) {
+			xrtWebResponseStatus(pResp, 304u, NULL);
+			(void)xrtWebResponseSetHeader(pResp, "Content-Length", "0");
+			pResp->bCommitted = xrtHttpdConnRespond(pReq->pConn, pResp->pRaw) == XRT_NET_OK;
+			xrtFree(sPath);
+			return pResp->bCommitted;
+		}
+		sRange = xrtHttpdRequestHeader(pReq->pRaw, "Range");
+		sIfRange = xrtHttpdRequestHeader(pReq->pRaw, "If-Range");
+		iRangeState = __xwebParseByteRange(sRange, iFileSize, &iRangeStart, &iRangeLen);
+		if ( iRangeState != 0 && sIfRange && sIfRange[0] && strcmp(sIfRange, sETag) != 0 && (!sLastModified[0] || strcmp(sIfRange, sLastModified) != 0) ) {
+			iRangeState = 0;
+		}
+		if ( iRangeState < 0 ) {
+			char sContentRange[64];
+			snprintf(sContentRange, sizeof(sContentRange), "bytes */%llu", (unsigned long long)iFileSize);
+			xrtWebResponseStatus(pResp, 416u, NULL);
+			(void)xrtWebResponseSetHeader(pResp, "Content-Range", sContentRange);
+			(void)xrtWebResponseSetHeader(pResp, "Content-Length", "0");
+			pResp->bCommitted = xrtHttpdConnRespond(pReq->pConn, pResp->pRaw) == XRT_NET_OK;
+			xrtFree(sPath);
+			return pResp->bCommitted;
+		}
+		if ( iRangeState > 0 ) {
+			char sLen[32];
+			char sContentRange[96];
+			xrtWebResponseStatus(pResp, 206u, NULL);
+			snprintf(sLen, sizeof(sLen), "%llu", (unsigned long long)iRangeLen);
+			snprintf(sContentRange, sizeof(sContentRange), "bytes %llu-%llu/%llu",
+				(unsigned long long)iRangeStart,
+				(unsigned long long)(iRangeStart + iRangeLen - 1u),
+				(unsigned long long)iFileSize);
+			(void)xrtWebResponseSetHeader(pResp, "Content-Length", sLen);
+			(void)xrtWebResponseSetHeader(pResp, "Content-Range", sContentRange);
+			if ( bHead ) {
+				pResp->bCommitted = xrtHttpdConnRespond(pReq->pConn, pResp->pRaw) == XRT_NET_OK;
+				bOk = true;
+			} else {
+				pResp->bCommitted = xrtHttpdConnSendFileRange(pReq->pConn, pResp->pRaw, sPath, iRangeStart, iRangeLen, pMount->tConfig.iChunkSize) == XRT_NET_OK;
+				bOk = pResp->bCommitted;
+			}
+			xrtFree(sPath);
+			return bOk;
+		}
 		if ( bHead ) {
 			char sLen[32];
-			snprintf(sLen, sizeof(sLen), "%llu", (unsigned long long)xrtFileGetSize((str)sPath));
+			snprintf(sLen, sizeof(sLen), "%llu", (unsigned long long)iFileSize);
 			(void)xrtWebResponseSetHeader(pResp, "Content-Length", sLen);
 			pResp->bCommitted = xrtHttpdConnRespond(pReq->pConn, pResp->pRaw) == XRT_NET_OK;
 			bOk = true;
@@ -67487,7 +67781,7 @@ static bool __xwebOnRequestBodyBegin(ptr pOwner, xhttpdserver* pHttpd, xhttpdcon
 	__xwebLock(&pApp->iLock);
 	pRoute = __xwebRouteMatch(pApp, pRawReq->iMethod, pRawReq->sPath, pCtx->tReq.arrParams, &pCtx->tReq.iParamCount);
 	__xwebUnlock(&pApp->iLock);
-	if ( !pRoute || !pRoute->pBody || !pRoute->pBodyEnd ) {
+	if ( !pRoute || !pRoute->pBody || (!pRoute->pBodyEnd && !pRoute->pBodyEndAsync) ) {
 		__xwebStreamCtxDestroy(pCtx);
 		return false;
 	}
@@ -67516,6 +67810,22 @@ static bool __xwebOnRequestBody(ptr pOwner, xhttpdserver* pHttpd, xhttpdconn* pC
 	return pCtx->pRoute->pBody(&pCtx->tReq, pData, iLen, pCtx->pRoute->pUserData);
 }
 // 内部函数：xhttpd request body streaming end 回调
+static xfuture* __xwebOnRequestBodyEndAsync(ptr pOwner, xhttpdserver* pHttpd, xhttpdconn* pConn, const xhttpdrequest* pRawReq)
+{
+	xwebserver* pServer = (xwebserver*)pOwner;
+	__xweb_stream_ctx* pCtx;
+	xfuture* pFuture;
+	(void)pHttpd;
+	(void)pRawReq;
+	if ( !pServer || !pConn ) { return NULL; }
+	pCtx = __xwebStreamCtxFind(pServer, pConn);
+	if ( !pCtx || !pCtx->pRoute || !pCtx->pRoute->pBodyEndAsync ) { return NULL; }
+	pFuture = pCtx->pRoute->pBodyEndAsync(&pCtx->tReq, pCtx->pRoute->pUserData);
+	if ( !pFuture ) { return NULL; }
+	pCtx = __xwebStreamCtxDetach(pServer, pConn);
+	__xwebStreamCtxDestroy(pCtx);
+	return pFuture;
+}
 static bool __xwebOnRequestBodyEnd(ptr pOwner, xhttpdserver* pHttpd, xhttpdconn* pConn, const xhttpdrequest* pRawReq, xhttpdresponse* pRawResp)
 {
 	xwebserver* pServer = (xwebserver*)pOwner;
@@ -67724,6 +68034,7 @@ XXAPI xwebserver* xrtWebServerCreate(xnetengine* pEngine, const xwebconfig* pCfg
 	pServer->tEvents.OnRequestBodyBegin = __xwebOnRequestBodyBegin;
 	pServer->tEvents.OnRequestBody = __xwebOnRequestBody;
 	pServer->tEvents.OnRequestBodyEnd = __xwebOnRequestBodyEnd;
+	pServer->tEvents.OnRequestBodyEndAsync = __xwebOnRequestBodyEndAsync;
 	pServer->tEvents.OnClose = __xwebOnClose;
 	xrtHttpdConfigInit(&tHttpdCfg);
 	tHttpdCfg.tBindAddr = pServer->tConfig.tBindAddr;
@@ -68003,7 +68314,7 @@ XXAPI bool xrtWebServerError(xwebserver* pServer, xweberrorhandler pHandler, ptr
 	return pServer ? xrtWebAppError(pServer->pApp, pHandler, pUserData, pFreeUserData) : false;
 }
 // 内部函数：注册 app 路由核心逻辑
-static bool __xwebAppRouteCore(xwebapp* pApp, uint32 iMethodMask, const char* sPattern, xwebhandler pHandler, xwebbodybegin pBodyBegin, xwebbodychunk pBody, xwebbodyend pBodyEnd, ptr pUserData, xwebfree pFreeUserData)
+static bool __xwebAppRouteCore(xwebapp* pApp, uint32 iMethodMask, const char* sPattern, xwebhandler pHandler, xwebbodybegin pBodyBegin, xwebbodychunk pBody, xwebbodyend pBodyEnd, xwebbodyendasync pBodyEndAsync, ptr pUserData, xwebfree pFreeUserData)
 {
 	const char* sCur;
 	const char* sSeg;
@@ -68012,7 +68323,7 @@ static bool __xwebAppRouteCore(xwebapp* pApp, uint32 iMethodMask, const char* sP
 	bool bAnyMethod = false;
 	bool bUserDataOwnerAssigned = false;
 	uint32 iRegisteredMask = 0u;
-	if ( !pApp || !sPattern || (!pHandler && (!pBody || !pBodyEnd)) ) { return false; }
+	if ( !pApp || !sPattern || (!pHandler && (!pBody || (!pBodyEnd && !pBodyEndAsync))) ) { return false; }
 	if ( sPattern[0] != '/' ) { return false; }
 	__xwebLock(&pApp->iLock);
 	for ( uint32 iMethod = 0u; iMethod <= XHTTPD_METHOD_OPTIONS; ++iMethod ) {
@@ -68034,6 +68345,7 @@ static bool __xwebAppRouteCore(xwebapp* pApp, uint32 iMethodMask, const char* sP
 		pRoute->pBodyBegin = pBodyBegin;
 		pRoute->pBody = pBody;
 		pRoute->pBodyEnd = pBodyEnd;
+		pRoute->pBodyEndAsync = pBodyEndAsync;
 		pRoute->pUserData = pUserData;
 		// 一个 RouteEx 调用可能同时注册多个方法；userData 只允许一个 route 拥有析构权。
 		if ( !bUserDataOwnerAssigned ) {
@@ -68141,17 +68453,25 @@ static bool __xwebAppRouteCore(xwebapp* pApp, uint32 iMethodMask, const char* sP
 // 在 app 中注册路由，可指定 userData 析构回调
 XXAPI bool xrtWebAppRouteEx(xwebapp* pApp, uint32 iMethodMask, const char* sPattern, xwebhandler pHandler, ptr pUserData, xwebfree pFreeUserData)
 {
-	return __xwebAppRouteCore(pApp, iMethodMask, sPattern, pHandler, NULL, NULL, NULL, pUserData, pFreeUserData);
+	return __xwebAppRouteCore(pApp, iMethodMask, sPattern, pHandler, NULL, NULL, NULL, NULL, pUserData, pFreeUserData);
 }
 // 在 app 中注册 request body 流式路由，可指定 userData 析构回调
 XXAPI bool xrtWebAppStreamRouteEx(xwebapp* pApp, uint32 iMethodMask, const char* sPattern, xwebbodybegin pBegin, xwebbodychunk pBody, xwebbodyend pEnd, ptr pUserData, xwebfree pFreeUserData)
 {
-	return __xwebAppRouteCore(pApp, iMethodMask, sPattern, NULL, pBegin, pBody, pEnd, pUserData, pFreeUserData);
+	return __xwebAppRouteCore(pApp, iMethodMask, sPattern, NULL, pBegin, pBody, pEnd, NULL, pUserData, pFreeUserData);
 }
 // 在 app 中注册 request body 流式路由
 XXAPI bool xrtWebAppStreamRoute(xwebapp* pApp, uint32 iMethodMask, const char* sPattern, xwebbodybegin pBegin, xwebbodychunk pBody, xwebbodyend pEnd, ptr pUserData)
 {
 	return xrtWebAppStreamRouteEx(pApp, iMethodMask, sPattern, pBegin, pBody, pEnd, pUserData, NULL);
+}
+XXAPI bool xrtWebAppStreamRouteAsyncEx(xwebapp* pApp, uint32 iMethodMask, const char* sPattern, xwebbodybegin pBegin, xwebbodychunk pBody, xwebbodyendasync pEndAsync, ptr pUserData, xwebfree pFreeUserData)
+{
+	return __xwebAppRouteCore(pApp, iMethodMask, sPattern, NULL, pBegin, pBody, NULL, pEndAsync, pUserData, pFreeUserData);
+}
+XXAPI bool xrtWebAppStreamRouteAsync(xwebapp* pApp, uint32 iMethodMask, const char* sPattern, xwebbodybegin pBegin, xwebbodychunk pBody, xwebbodyendasync pEndAsync, ptr pUserData)
+{
+	return xrtWebAppStreamRouteAsyncEx(pApp, iMethodMask, sPattern, pBegin, pBody, pEndAsync, pUserData, NULL);
 }
 // 在 app 中注册路由
 XXAPI bool xrtWebAppRoute(xwebapp* pApp, uint32 iMethodMask, const char* sPattern, xwebhandler pHandler, ptr pUserData)
@@ -68210,6 +68530,23 @@ XXAPI bool xrtWebServerStreamRouteEx(xwebserver* pServer, uint32 iMethodMask, co
 XXAPI bool xrtWebServerStreamRoute(xwebserver* pServer, uint32 iMethodMask, const char* sPattern, xwebbodybegin pBegin, xwebbodychunk pBody, xwebbodyend pEnd, ptr pUserData)
 {
 	return xrtWebServerStreamRouteEx(pServer, iMethodMask, sPattern, pBegin, pBody, pEnd, pUserData, NULL);
+}
+XXAPI bool xrtWebServerStreamRouteAsyncEx(xwebserver* pServer, uint32 iMethodMask, const char* sPattern, xwebbodybegin pBegin, xwebbodychunk pBody, xwebbodyendasync pEndAsync, ptr pUserData, xwebfree pFreeUserData)
+{
+	bool bRet;
+	xwebapp* pApp;
+	if ( !pServer ) { return false; }
+	__xwebLock(&pServer->iAppLock);
+	pApp = pServer->pApp;
+	__xwebAppRetain(pApp);
+	__xwebUnlock(&pServer->iAppLock);
+	bRet = xrtWebAppStreamRouteAsyncEx(pApp, iMethodMask, sPattern, pBegin, pBody, pEndAsync, pUserData, pFreeUserData);
+	__xwebAppRelease(pApp);
+	return bRet;
+}
+XXAPI bool xrtWebServerStreamRouteAsync(xwebserver* pServer, uint32 iMethodMask, const char* sPattern, xwebbodybegin pBegin, xwebbodychunk pBody, xwebbodyendasync pEndAsync, ptr pUserData)
+{
+	return xrtWebServerStreamRouteAsyncEx(pServer, iMethodMask, sPattern, pBegin, pBody, pEndAsync, pUserData, NULL);
 }
 // 注册 GET 路由
 XXAPI bool xrtWebServerGet(xwebserver* pServer, const char* sPattern, xwebhandler pHandler, ptr pUserData)

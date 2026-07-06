@@ -15,6 +15,7 @@ static void xl6CgenEmitHttpServerRuntime(XL6_Output* out)
     xl6OutputPuts("typedef struct xrt_web_app xwebapp;\n", out);
     xl6OutputPuts("typedef struct xrt_web_request xwebrequest;\n", out);
     xl6OutputPuts("typedef struct xrt_web_response xwebresponse;\n", out);
+    xl6OutputPuts("typedef struct xrt_net_future xfuture;\n", out);
     xl6OutputPuts("typedef struct xrt_tls_session xtlssession;\n", out);
     xl6OutputPuts("typedef struct xrt_tls_resume xtlsresume;\n", out);
     xl6OutputPuts("typedef struct { uint16_t iFamily; uint16_t iPort; uint32_t iScopeId; uint8_t aAddr[16]; } xnetaddr;\n", out);
@@ -57,6 +58,8 @@ static void xl6CgenEmitHttpServerRuntime(XL6_Output* out)
     xl6OutputPuts("bool xrtWebAppError(xwebapp* pApp, int (*pHandler)(xwebrequest* pReq, xwebresponse* pResp, uint32_t iStatusCode, const char* sMessage, void* pUserData), void* pUserData, void (*pFreeUserData)(void* pUserData));\n", out);
     xl6OutputPuts("bool xrtWebAppRouteEx(xwebapp* pApp, uint32_t iMethodMask, const char* sPattern, int (*pHandler)(xwebrequest* pReq, xwebresponse* pResp, void* pUserData), void* pUserData, void (*pFreeUserData)(void* pUserData));\n", out);
     xl6OutputPuts("bool xrtWebAppStreamRouteEx(xwebapp* pApp, uint32_t iMethodMask, const char* sPattern, bool (*pBegin)(xwebrequest* pReq, void* pUserData), bool (*pBody)(xwebrequest* pReq, const void* pData, size_t iLen, void* pUserData), int (*pEnd)(xwebrequest* pReq, xwebresponse* pResp, void* pUserData), void* pUserData, void (*pFreeUserData)(void* pUserData));\n", out);
+    xl6OutputPuts("bool xrtWebAppStreamRouteAsyncEx(xwebapp* pApp, uint32_t iMethodMask, const char* sPattern, bool (*pBegin)(xwebrequest* pReq, void* pUserData), bool (*pBody)(xwebrequest* pReq, const void* pData, size_t iLen, void* pUserData), xfuture* (*pEndAsync)(xwebrequest* pReq, void* pUserData), void* pUserData, void (*pFreeUserData)(void* pUserData));\n", out);
+    xl6OutputPuts("bool xrtWebAppStreamRouteAsync(xwebapp* pApp, uint32_t iMethodMask, const char* sPattern, bool (*pBegin)(xwebrequest* pReq, void* pUserData), bool (*pBody)(xwebrequest* pReq, const void* pData, size_t iLen, void* pUserData), xfuture* (*pEndAsync)(xwebrequest* pReq, void* pUserData), void* pUserData);\n", out);
     xl6OutputPuts("bool xrtWebAppStaticDefault(xwebapp* pApp, const char* sMount, const char* sRoot);\n", out);
     xl6OutputPuts("bool xrtWebAppStaticEx(xwebapp* pApp, const char* sMount, const char* sRoot, const char* sIndexNames, const char* sCacheControl, size_t iChunkSize, uint32_t iFlags);\n", out);
     xl6OutputPuts("int xrtNetAddrParse(xnetaddr* pAddr, const char* sHost, uint16_t iPort);\n", out);
@@ -81,6 +84,8 @@ static void xl6CgenEmitHttpServerRuntime(XL6_Output* out)
     xl6OutputPuts("bool xrtWebServerRouteEx(xwebserver* pServer, uint32_t iMethodMask, const char* sPattern, int (*pHandler)(xwebrequest* pReq, xwebresponse* pResp, void* pUserData), void* pUserData, void (*pFreeUserData)(void* pUserData));\n", out);
     xl6OutputPuts("bool xrtWebServerRoute(xwebserver* pServer, uint32_t iMethodMask, const char* sPattern, int (*pHandler)(xwebrequest* pReq, xwebresponse* pResp, void* pUserData), void* pUserData);\n", out);
     xl6OutputPuts("bool xrtWebServerStreamRouteEx(xwebserver* pServer, uint32_t iMethodMask, const char* sPattern, bool (*pBegin)(xwebrequest* pReq, void* pUserData), bool (*pBody)(xwebrequest* pReq, const void* pData, size_t iLen, void* pUserData), int (*pEnd)(xwebrequest* pReq, xwebresponse* pResp, void* pUserData), void* pUserData, void (*pFreeUserData)(void* pUserData));\n", out);
+    xl6OutputPuts("bool xrtWebServerStreamRouteAsyncEx(xwebserver* pServer, uint32_t iMethodMask, const char* sPattern, bool (*pBegin)(xwebrequest* pReq, void* pUserData), bool (*pBody)(xwebrequest* pReq, const void* pData, size_t iLen, void* pUserData), xfuture* (*pEndAsync)(xwebrequest* pReq, void* pUserData), void* pUserData, void (*pFreeUserData)(void* pUserData));\n", out);
+    xl6OutputPuts("bool xrtWebServerStreamRouteAsync(xwebserver* pServer, uint32_t iMethodMask, const char* sPattern, bool (*pBegin)(xwebrequest* pReq, void* pUserData), bool (*pBody)(xwebrequest* pReq, const void* pData, size_t iLen, void* pUserData), xfuture* (*pEndAsync)(xwebrequest* pReq, void* pUserData), void* pUserData);\n", out);
     xl6OutputPuts("bool xrtWebServerStaticDefault(xwebserver* pServer, const char* sMount, const char* sRoot);\n", out);
     xl6OutputPuts("bool xrtWebServerStaticEx(xwebserver* pServer, const char* sMount, const char* sRoot, const char* sIndexNames, const char* sCacheControl, size_t iChunkSize, uint32_t iFlags);\n", out);
     xl6OutputPuts("const char* xrtWebRequestMethod(const xwebrequest* pReq);\n", out);

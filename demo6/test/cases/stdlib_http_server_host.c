@@ -488,6 +488,40 @@ int main(void)
         "\r\n",
         (long long)port);
     check_step("static", request_once(port, request, "static-ok"), &ok);
+    check_step("static accept-ranges", request_once(port, request, "Accept-Ranges: bytes"), &ok);
+    check_step("static etag", request_once(port, request, "ETag: "), &ok);
+    check_step("static last-modified", request_once(port, request, "Last-Modified: "), &ok);
+
+    snprintf(request, sizeof(request),
+        "GET /public/index.txt HTTP/1.1\r\n"
+        "Host: 127.0.0.1:%lld\r\n"
+        "Connection: close\r\n"
+        "Range: bytes=0-5\r\n"
+        "\r\n",
+        (long long)port);
+    check_step("static range status", request_once(port, request, "HTTP/1.1 206"), &ok);
+    check_step("static range header", request_once(port, request, "Content-Range: bytes 0-5/9"), &ok);
+    check_step("static range body", request_once(port, request, "static"), &ok);
+
+    snprintf(request, sizeof(request),
+        "GET /public/index.txt HTTP/1.1\r\n"
+        "Host: 127.0.0.1:%lld\r\n"
+        "Connection: close\r\n"
+        "Range: bytes=-2\r\n"
+        "\r\n",
+        (long long)port);
+    check_step("static suffix range status", request_once(port, request, "HTTP/1.1 206"), &ok);
+    check_step("static suffix range header", request_once(port, request, "Content-Range: bytes 7-8/9"), &ok);
+    check_step("static suffix range body", request_once(port, request, "ok"), &ok);
+
+    snprintf(request, sizeof(request),
+        "GET /public/index.txt HTTP/1.1\r\n"
+        "Host: 127.0.0.1:%lld\r\n"
+        "Connection: close\r\n"
+        "If-None-Match: *\r\n"
+        "\r\n",
+        (long long)port);
+    check_step("static if-none-match", request_once(port, request, "HTTP/1.1 304"), &ok);
 
     snprintf(request, sizeof(request),
         "GET /assets/ HTTP/1.1\r\n"

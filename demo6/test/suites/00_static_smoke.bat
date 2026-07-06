@@ -191,6 +191,57 @@ if errorlevel 1 (
     echo embedded_vfs_build.out.txt missing print output.
     exit /b 1
 )
+
+if exist stdlib_print.exe del /Q stdlib_print.exe
+release\xl.exe build release\examples\stdlib_print.xl
+if errorlevel 1 (
+    echo xl build default output for xlang failed.
+    exit /b 1
+)
+if not exist stdlib_print.exe (
+    echo xl build default output stdlib_print.exe missing.
+    exit /b 1
+)
+stdlib_print.exe > build\test\default_xlang_build.out.txt
+if errorlevel 1 exit /b 1
+findstr /C:"xlang print 123 done" build\test\default_xlang_build.out.txt >nul
+if errorlevel 1 (
+    echo default_xlang_build.out.txt missing print output.
+    exit /b 1
+)
+del /Q stdlib_print.exe
+
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$utf8=New-Object System.Text.UTF8Encoding($false); [System.IO.File]::WriteAllText('build\test\default_c_build.c', '#include <stdio.h>' + [Environment]::NewLine + 'int main(void) { puts(\"c default build ok\"); return 0; }' + [Environment]::NewLine, $utf8)"
+if errorlevel 1 exit /b 1
+if exist default_c_build.exe del /Q default_c_build.exe
+release\xl.exe build build\test\default_c_build.c
+if errorlevel 1 (
+    echo xl build default output for C failed.
+    exit /b 1
+)
+if not exist default_c_build.exe (
+    echo xl build default output default_c_build.exe missing.
+    exit /b 1
+)
+default_c_build.exe > build\test\default_c_build.out.txt
+if errorlevel 1 exit /b 1
+findstr /C:"c default build ok" build\test\default_c_build.out.txt >nul
+if errorlevel 1 (
+    echo default_c_build.out.txt missing output.
+    exit /b 1
+)
+del /Q default_c_build.exe
+
+release\xl.exe build release\examples\stdlib_print.xl --shared >nul 2> build\test\default_shared_build.err.txt
+if not errorlevel 1 (
+    echo xl build --shared without -o should fail.
+    exit /b 1
+)
+findstr /C:"build shared library requires -o" build\test\default_shared_build.err.txt >nul
+if errorlevel 1 (
+    echo default_shared_build.err.txt missing -o diagnostic.
+    exit /b 1
+)
 powershell -NoProfile -ExecutionPolicy Bypass -Command "$utf8=New-Object System.Text.UTF8Encoding($false); [System.IO.File]::WriteAllText('build\test\release_cwd_vfs.xl', 'print(\"release cwd vfs ok\")' + [Environment]::NewLine, $utf8)"
 if errorlevel 1 exit /b 1
 pushd release
