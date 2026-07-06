@@ -1,0 +1,6 @@
+print("top:")
+
+func main(...) as int
+    println("main")
+    return 7
+end

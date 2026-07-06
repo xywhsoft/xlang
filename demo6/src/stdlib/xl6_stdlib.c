@@ -1750,7 +1750,8 @@ static int xl6StdlibNeedsTccClass(const XL6_AstNode* root, const int* used)
     size_t i;
     size_t index;
 
-    if ( xl6StdlibNodeUsesTypeName(root, "TccContext") ) {
+    if ( xl6StdlibNodeUsesTypeName(root, "TccContext") ||
+         xl6StdlibNodeUsesTypeName(root, "TccHandler") ) {
         return 1;
     }
     for ( i = 0; i < XL6_ARRAY_COUNT(names); ++i ) {
@@ -1771,7 +1772,8 @@ static int xl6StdlibNeedsXlangClass(const XL6_AstNode* root, const int* used)
     size_t i;
     size_t index;
 
-    if ( xl6StdlibNodeUsesTypeName(root, "XLangContext") ) {
+    if ( xl6StdlibNodeUsesTypeName(root, "XLangContext") ||
+         xl6StdlibNodeUsesTypeName(root, "XLangHandler") ) {
         return 1;
     }
     for ( i = 0; i < XL6_ARRAY_COUNT(names); ++i ) {

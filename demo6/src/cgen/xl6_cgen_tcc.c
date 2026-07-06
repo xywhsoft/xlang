@@ -7,7 +7,8 @@ static int xl6CgenNodeNeedsTccRuntime(const XL6_AstNode* node)
     }
     if ( node->text != NULL ) {
         if ( (node->kind == XL6_AST_TYPE || node->kind == XL6_AST_NAME) &&
-             xl6CTextEquals(node->text, "TccContext") ) {
+             (xl6CTextEquals(node->text, "TccContext") ||
+              xl6CTextEquals(node->text, "TccHandler")) ) {
             return 1;
         }
         if ( node->kind == XL6_AST_NAME &&
@@ -225,6 +226,9 @@ static void xl6CgenEmitTccRuntime(XL6_Output* out)
     xl6OutputPuts("    return 0;\n", out);
     xl6OutputPuts("}\n\n", out);
 
+    xl6OutputPuts("typedef int (*XL6_TccMainProc)(int, char**);\n", out);
+    xl6OutputPuts("typedef struct xl6_tcc_handler { void* state; XL6_TccMainProc mainProc; } XL6_TccHandler;\n\n", out);
+
     xl6OutputPuts("static int xl6_tcc_run_state(void* state, xvalue args)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    unsigned int count = args != 0 ? xvoArrayItemCount(args) : 0u;\n", out);
@@ -254,6 +258,59 @@ static void xl6CgenEmitTccRuntime(XL6_Output* out)
     xl6OutputPuts("int xl6_tcc_context_run_args(void* state, xvalue args)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    return xl6_tcc_run_state(state, args);\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("void* xl6_tcc_handler_create(const char* path)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    XL6_TccHandler* handler;\n", out);
+    xl6OutputPuts("    if ( path == 0 || path[0] == '\\0' ) { return 0; }\n", out);
+    xl6OutputPuts("    handler = (XL6_TccHandler*)xrtCalloc(1u, sizeof(XL6_TccHandler));\n", out);
+    xl6OutputPuts("    if ( handler == 0 ) { return 0; }\n", out);
+    xl6OutputPuts("    handler->state = xl6_tcc_context_create();\n", out);
+    xl6OutputPuts("    if ( handler->state == 0 ) { xrtFree(handler); return 0; }\n", out);
+    xl6OutputPuts("    if ( tcc_add_file(handler->state, path) != 0 || tcc_relocate(handler->state) != 0 ) {\n", out);
+    xl6OutputPuts("        xl6_tcc_context_destroy(handler->state);\n", out);
+    xl6OutputPuts("        xrtFree(handler);\n", out);
+    xl6OutputPuts("        return 0;\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    handler->mainProc = (XL6_TccMainProc)tcc_get_symbol(handler->state, \"main\");\n", out);
+    xl6OutputPuts("    if ( handler->mainProc == 0 ) {\n", out);
+    xl6OutputPuts("        xl6_tcc_context_destroy(handler->state);\n", out);
+    xl6OutputPuts("        xrtFree(handler);\n", out);
+    xl6OutputPuts("        return 0;\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    return handler;\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("long long xl6_tcc_handler_destroy(void* value)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    XL6_TccHandler* handler = (XL6_TccHandler*)value;\n", out);
+    xl6OutputPuts("    if ( handler != 0 ) {\n", out);
+    xl6OutputPuts("        if ( handler->state != 0 ) { xl6_tcc_context_destroy(handler->state); }\n", out);
+    xl6OutputPuts("        xrtFree(handler);\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    return 0;\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("int xl6_tcc_handler_run_args(void* value, xvalue args)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    XL6_TccHandler* handler = (XL6_TccHandler*)value;\n", out);
+    xl6OutputPuts("    unsigned int count = args != 0 ? xvoArrayItemCount(args) : 0u;\n", out);
+    xl6OutputPuts("    char** argv = 0;\n", out);
+    xl6OutputPuts("    unsigned int i;\n", out);
+    xl6OutputPuts("    int rc;\n", out);
+    xl6OutputPuts("    if ( handler == 0 || handler->mainProc == 0 ) { return -1; }\n", out);
+    xl6OutputPuts("    if ( count > 0u ) {\n", out);
+    xl6OutputPuts("        argv = (char**)xrtCalloc(count, sizeof(char*));\n", out);
+    xl6OutputPuts("        if ( argv == 0 ) { return -1; }\n", out);
+    xl6OutputPuts("        for ( i = 0u; i < count; ++i ) {\n", out);
+    xl6OutputPuts("            const char* item = xvoGetText(xvoArrayGetValue(args, i));\n", out);
+    xl6OutputPuts("            argv[i] = (char*)(item != 0 ? item : \"\");\n", out);
+    xl6OutputPuts("        }\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    rc = handler->mainProc((int)count, argv);\n", out);
+    xl6OutputPuts("    if ( argv != 0 ) { xrtFree(argv); }\n", out);
+    xl6OutputPuts("    return rc;\n", out);
     xl6OutputPuts("}\n\n", out);
 
     xl6OutputPuts("int xl6_tcc_context_output_file(void* state, const char* path)\n", out);

@@ -17,6 +17,10 @@
 !/demo6/release/examples/**
 !/demo6/release/extlibs/
 !/demo6/release/extlibs/**
+!/demo6/release/projects/
+/demo6/release/projects/*
+!/demo6/release/projects/xs/
+!/demo6/release/projects/xs/**
 /demo6/*.exe
 /demo6/*.dll
 /demo6/*.obj

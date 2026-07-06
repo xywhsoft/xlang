@@ -14696,12 +14696,10 @@ static int xl6SemCheckMainEntry(XL6_SemContext* ctx)
     size_t i;
     int ok;
     int mainCount;
-    int hasTopLevel;
     XL6_AstNode* mainNode;
 
     ok = 1;
     mainCount = 0;
-    hasTopLevel = 0;
     mainNode = NULL;
 
     if ( ctx == NULL || ctx->root == NULL ) {
@@ -14713,7 +14711,6 @@ static int xl6SemCheckMainEntry(XL6_SemContext* ctx)
         XL6_AstNode* nameNode;
 
         if ( xl6SemIsTopLevelRuntimeStmt(child) ) {
-            hasTopLevel = 1;
             continue;
         }
         if ( child == NULL ||
@@ -14739,10 +14736,6 @@ static int xl6SemCheckMainEntry(XL6_SemContext* ctx)
 
     if ( mainCount > 1 ) {
         xl6SemErrorNode(ctx, mainNode, "涓€涓紪璇戠洰鏍囧彧鑳藉０鏄庝竴涓?xlang main 鍑芥暟");
-        ok = 0;
-    }
-    if ( mainNode != NULL && hasTopLevel ) {
-        xl6SemErrorNode(ctx, mainNode, "鏄惧紡 main 鍑芥暟涓嶈兘鍜岄《灞傛墽琛岃鍙ュ悓鏃跺瓨鍦");
         ok = 0;
     }
     if ( mainNode != NULL ) {

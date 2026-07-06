@@ -85,7 +85,7 @@ static void xl6CgenEmitScriptErrorBridge(XL6_CgenContext* ctx)
     xl6OutputPuts("}\n\n", ctx->out);
 }
 
-static void xl6CgenEmitTopLevelXlangMain(XL6_CgenContext* ctx, XL6_AstNode* root, int hasErrorRuntime)
+static void xl6CgenEmitTopLevelXlangMain(XL6_CgenContext* ctx, XL6_AstNode* root, const XL6_AstNode* mainFunc, int hasErrorRuntime)
 {
     const char* oldErrorExitLabel;
     size_t i;
@@ -93,6 +93,9 @@ static void xl6CgenEmitTopLevelXlangMain(XL6_CgenContext* ctx, XL6_AstNode* root
     oldErrorExitLabel = ctx->currentErrorExitLabel;
     xl6OutputPuts("int xlang_main(xvalue arg)\n{\n", ctx->out);
     xl6OutputPuts("    (void)arg;\n", ctx->out);
+    if ( mainFunc != NULL ) {
+        xl6OutputPuts("    int __xl6_main_code = 0;\n", ctx->out);
+    }
     ctx->indent = 1;
     ctx->currentErrorExitLabel = "__xl6_script_error";
     for ( i = 0; i < root->childCount; ++i ) {
@@ -100,13 +103,21 @@ static void xl6CgenEmitTopLevelXlangMain(XL6_CgenContext* ctx, XL6_AstNode* root
             xl6CgenStmt(ctx, root->children[i]);
         }
     }
-    xl6CgenCloseScope(ctx, 0);
     if ( hasErrorRuntime ) {
         xl6OutputPuts("    if ( xl6_error_has() ) {\n", ctx->out);
         xl6OutputPuts("        goto __xl6_script_error;\n", ctx->out);
         xl6OutputPuts("    }\n", ctx->out);
     }
-    xl6OutputPuts("    return 0;\n", ctx->out);
+    if ( mainFunc != NULL ) {
+        xl6OutputPuts("    __xl6_main_code = ", ctx->out);
+        xl6CgenUserMainSymbol(ctx->out);
+        xl6OutputPuts("(arg);\n", ctx->out);
+        xl6CgenCloseScope(ctx, 0);
+        xl6OutputPuts("    return __xl6_main_code;\n", ctx->out);
+    } else {
+        xl6CgenCloseScope(ctx, 0);
+        xl6OutputPuts("    return 0;\n", ctx->out);
+    }
     if ( hasErrorRuntime ) {
         xl6OutputPuts("__xl6_script_error:\n", ctx->out);
         xl6OutputPuts("    return 0;\n", ctx->out);

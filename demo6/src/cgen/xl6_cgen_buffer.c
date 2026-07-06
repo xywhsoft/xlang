@@ -11,7 +11,7 @@ static void xl6CgenEmitBufferRuntime(XL6_Output* out)
     xl6OutputPuts("#endif\n", out);
     xl6OutputPuts("void* xrtMalloc(size_t iSize);\n", out);
     xl6OutputPuts("void xrtFree(void* pMem);\n", out);
-    xl6OutputPuts("void* xrtBufferCreate(unsigned int iStep);\n", out);
+    xl6OutputPuts("xbuffer xrtBufferCreate(unsigned int iStep);\n", out);
     xl6OutputPuts("void xrtBufferDestroy(xbuffer pBuf);\n", out);
     xl6OutputPuts("void xrtBufferUnit(xbuffer pBuf);\n", out);
     xl6OutputPuts("bool xrtBufferMalloc(xbuffer pBuf, unsigned int iCount);\n", out);

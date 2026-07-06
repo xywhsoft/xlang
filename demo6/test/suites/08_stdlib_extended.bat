@@ -821,6 +821,8 @@ release\xl.exe run release\examples\stdlib_http_server.xl > build\test\stdlib_ht
 if errorlevel 1 exit /b 1
 cmd /c release\projects\xs_static\test_smoke.bat
 if errorlevel 1 exit /b 1
+cmd /c release\projects\xs\test_smoke.bat
+if errorlevel 1 exit /b 1
 
 release\xl.exe run test\cases\stdlib_tcc_import_only.xl > build\test\stdlib_tcc_import_only.out.txt
 if errorlevel 1 exit /b 1

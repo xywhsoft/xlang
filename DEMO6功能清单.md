@@ -1270,6 +1270,8 @@ main 与入口规则：
 - 生成的 C `main` 负责初始化 xlang/XRT 运行环境。
 - 命令行参数转换为 xvalue 数组形式传入 xlang main。
 - xlang main 返回值作为进程退出码。
+- 顶层可执行语句可以和显式 `func main(...) as int` 共存；执行顺序固定为先执行顶层语句，再调用显式 `main`。
+- 顶层语句和显式 `main` 共存时，生成器会把用户 `main` 降低为内部 `__xl6_user_main(xvalue arg)`，再由外层 `xlang_main(xvalue arg)` 统一调度。
 - 如果 `.xl` 中没有 main，exe 目标假定 C 源提供 main。
 - C main 场景下，C 代码需要显式调用 `xlInit` 和 `xlUnit`。
 - DLL 目标不要求 main。
@@ -1379,7 +1381,8 @@ void xlClearLastError(XL_Context* ctx);
 ```
 
 运行入口：
-- xlang `func main(...) as int` 降低为 `int xlang_main(xvalue arg)`。
+- xlang `func main(...) as int` 通常降低为 `int xlang_main(xvalue arg)`。
+- 若同一编译目标同时包含顶层可执行语句和显式 `main`，外层入口仍为 `int xlang_main(xvalue arg)`，用户 `main` 降低为内部 `int __xl6_user_main(xvalue arg)`。
 - DLL/API 和 CLI `xl run` 运行路径不调用 C `main`，也不生成临时 exe；脚本编译到 `TCC_OUTPUT_MEMORY` 后执行 `tcc_relocate()`，再通过 `tcc_get_symbol("xlang_main")` 直接调用。
 - `xlRunScriptStringArg` / `xlRunScriptFileArg` 要求宿主传入的 `arg` 是 `array` 类型的 `xvalue`。
 

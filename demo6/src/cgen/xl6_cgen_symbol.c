@@ -278,6 +278,11 @@ static void xl6CgenNativeCallableSymbol(XL6_CgenContext* ctx, const XL6_AstNode*
     }
 }
 
+static void xl6CgenUserMainSymbol(XL6_Output* out)
+{
+    xl6OutputPuts("__xl6_user_main", out);
+}
+
 static void xl6CgenFuncSymbol(XL6_CgenContext* ctx, const XL6_AstNode* funcNode)
 {
     const XL6_AstNode* nameNode;
@@ -303,7 +308,11 @@ static void xl6CgenFuncSymbol(XL6_CgenContext* ctx, const XL6_AstNode* funcNode)
         return;
     }
     if ( xl6CgenFuncIsMainEntry(funcNode) ) {
-        xl6OutputPuts("xlang_main", ctx->out);
+        if ( ctx != NULL && ctx->wrapExplicitMainWithTopLevel ) {
+            xl6CgenUserMainSymbol(ctx->out);
+        } else {
+            xl6OutputPuts("xlang_main", ctx->out);
+        }
         return;
     }
     if ( nameNode == NULL || (xl6CgenFuncOverloadCount(ctx, nameNode->text) <= 1 &&
