@@ -2033,6 +2033,9 @@ static int xlAddDefaultRuntimeSymbols(TCCState* s)
     XL_ADD_XRT_SYMBOL(s, xrtWebResponseText);
     XL_ADD_XRT_SYMBOL(s, xrtWebResponseJsonText);
     XL_ADD_XRT_SYMBOL(s, xrtWebResponseBody);
+    XL_ADD_XRT_SYMBOL(s, xrtWebResponseReserveBody);
+    XL_ADD_XRT_SYMBOL(s, xrtWebResponseAppendBody);
+    XL_ADD_XRT_SYMBOL(s, xrtWebResponseAppendText);
     XL_ADD_XRT_SYMBOL(s, xrtWebResponseStart);
     XL_ADD_XRT_SYMBOL(s, xrtWebResponseSend);
     XL_ADD_XRT_SYMBOL(s, xrtWebResponseWriteText);

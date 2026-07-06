@@ -21,7 +21,7 @@ if ([string]::IsNullOrWhiteSpace($Output)) {
     $Output = Join-Path $Root "build\tmp\tcc_builtin_resources.c"
 }
 if ([string]::IsNullOrWhiteSpace($TccDist)) {
-    $TccDist = Join-Path $Root "lib\tcc\win32\dist\x86_64"
+    $TccDist = Join-Path $Root "res\tcc\win64\x86_64"
 }
 if ([string]::IsNullOrWhiteSpace($XrtObj)) {
     $XrtObj = Join-Path $Root "build\tmp\xrt.o"

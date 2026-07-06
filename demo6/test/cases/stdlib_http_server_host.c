@@ -313,6 +313,14 @@ int main(void)
     check_step("json", request_once(port, request, "{\"ok\":true}"), &ok);
 
     snprintf(request, sizeof(request),
+        "GET /append-body HTTP/1.1\r\n"
+        "Host: 127.0.0.1:%lld\r\n"
+        "Connection: close\r\n"
+        "\r\n",
+        (long long)port);
+    check_step("append body", request_once(port, request, "append-body"), &ok);
+
+    snprintf(request, sizeof(request),
         "POST /bytes HTTP/1.1\r\n"
         "Host: 127.0.0.1:%lld\r\n"
         "Connection: close\r\n"

@@ -178,10 +178,10 @@ int main(void)
         $includeArgs = @(
             "-I$includeDir",
             "-I$(Resolve-Under-Root $env:XL6_TCC_INCLUDE 'lib\tcc\include')",
-            "-I$(Resolve-Under-Root $env:XL6_TCC_WIN_INCLUDE 'lib\tcc\win32\dist\x86_64\include')",
-            "-I$(Resolve-Under-Root $env:XL6_TCC_WINAPI_INCLUDE 'lib\tcc\win32\dist\x86_64\include\winapi')"
+            "-I$(Resolve-Under-Root $env:XL6_TCC_WIN_INCLUDE 'res\tcc\win64\x86_64\include')",
+            "-I$(Resolve-Under-Root $env:XL6_TCC_WINAPI_INCLUDE 'res\tcc\win64\x86_64\include\winapi')"
         )
-        $libArgs = @("-L$(Resolve-Under-Root $env:XL6_TCC_LIB 'lib\tcc\win32\dist\x86_64\lib')")
+        $libArgs = @("-L$(Resolve-Under-Root $env:XL6_TCC_LIB 'res\tcc\win64\x86_64\lib')")
         $oldPath = $env:PATH
         $env:PATH = "$releaseDir;$oldPath"
         try {

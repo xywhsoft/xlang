@@ -19,6 +19,11 @@ int contextRunRc = ctx.run()
 println("context run rc", contextRunRc)
 expect(contextRunRc, 0, "context run")
 
+TccContext xrtCtx = tcc.Context()
+string xrtSymbolSource = "#include <stddef.h>\n#include <stdbool.h>\ntypedef struct xrt_web_response xwebresponse;\nbool xrtWebResponseReserveBody(xwebresponse* pResp, size_t iCap);\nbool xrtWebResponseAppendBody(xwebresponse* pResp, const void* pData, size_t iLen);\nbool xrtWebResponseAppendText(xwebresponse* pResp, const char* sText);\nint main(void){ return (xrtWebResponseReserveBody && xrtWebResponseAppendBody && xrtWebResponseAppendText) ? 0 : 1; }\n"
+expect(int(xrtCtx.compileString(xrtSymbolSource)), 0, "xrt response append symbol compile")
+expect(xrtCtx.run(), 0, "xrt response append symbol run")
+
 int modeSum = tcc.MEMORY + tcc.EXE + tcc.OBJ + tcc.DLL + tcc.PREPROCESS
 expect(modeSum, 15, "tcc output type constants")
 

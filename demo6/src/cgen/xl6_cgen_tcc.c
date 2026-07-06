@@ -42,6 +42,7 @@ static void xl6CgenEmitTccRuntime(XL6_Output* out)
     xl6OutputPuts("#define XL6_XBUFFER_TYPEDEF\n", out);
     xl6OutputPuts("typedef struct xbuffer_struct { char* Buffer; unsigned int Length; unsigned int AllocLength; unsigned int AllocStep; } xbuffer_struct, *xbuffer;\n", out);
     xl6OutputPuts("#endif\n", out);
+    xl6OutputPuts("typedef struct xrt_web_response xwebresponse;\n", out);
     xl6OutputPuts("void* tcc_new(void);\n", out);
     xl6OutputPuts("void tcc_delete(void* s);\n", out);
     xl6OutputPuts("void tcc_set_lib_path(void* s, const char* path);\n", out);
@@ -89,6 +90,9 @@ static void xl6CgenEmitTccRuntime(XL6_Output* out)
     xl6OutputPuts("void* xrtStringifyJSON(xvalue varVal, int bFormat, void* pRetSize);\n", out);
     xl6OutputPuts("void* xrtParseXSON(const char* sText, size_t iSize);\n", out);
     xl6OutputPuts("void* xrtStringifyXSON(xvalue varVal, int bFormat, unsigned int iFlags, void* pRetSize);\n", out);
+    xl6OutputPuts("bool xrtWebResponseReserveBody(xwebresponse* pResp, size_t iCap);\n", out);
+    xl6OutputPuts("bool xrtWebResponseAppendBody(xwebresponse* pResp, const void* pData, size_t iLen);\n", out);
+    xl6OutputPuts("bool xrtWebResponseAppendText(xwebresponse* pResp, const char* sText);\n", out);
     xl6OutputPuts("unsigned int xvoArrayItemCount(xvalue pArr);\n", out);
     xl6OutputPuts("xvalue xvoArrayGetValue(xvalue pArr, unsigned int index);\n", out);
     xl6OutputPuts("const char* xvoGetText(xvalue pVal);\n", out);
@@ -152,6 +156,9 @@ static void xl6CgenEmitTccRuntime(XL6_Output* out)
     xl6OutputPuts("    XL6_TCC_ADD_SYMBOL(xrtStringifyJSON);\n", out);
     xl6OutputPuts("    XL6_TCC_ADD_SYMBOL(xrtParseXSON);\n", out);
     xl6OutputPuts("    XL6_TCC_ADD_SYMBOL(xrtStringifyXSON);\n", out);
+    xl6OutputPuts("    XL6_TCC_ADD_SYMBOL(xrtWebResponseReserveBody);\n", out);
+    xl6OutputPuts("    XL6_TCC_ADD_SYMBOL(xrtWebResponseAppendBody);\n", out);
+    xl6OutputPuts("    XL6_TCC_ADD_SYMBOL(xrtWebResponseAppendText);\n", out);
     xl6OutputPuts("    XL6_TCC_ADD_SYMBOL(xvoCreateNull);\n", out);
     xl6OutputPuts("    XL6_TCC_ADD_SYMBOL(xvoCreateBool);\n", out);
     xl6OutputPuts("    XL6_TCC_ADD_SYMBOL(xvoCreateInt);\n", out);

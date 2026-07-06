@@ -753,6 +753,11 @@ if errorlevel 1 (
     echo stdlib_http_server.c missing http response body helper.
     exit /b 1
 )
+findstr /C:"int xl6_xrt_http_response_append_text" build\test\stdlib_http_server.c >nul
+if errorlevel 1 (
+    echo stdlib_http_server.c missing http response append text helper.
+    exit /b 1
+)
 findstr /C:"int xl6_xrt_http_response_file" build\test\stdlib_http_server.c >nul
 if errorlevel 1 (
     echo stdlib_http_server.c missing http response file helper.
@@ -814,6 +819,8 @@ if errorlevel 1 (
 )
 release\xl.exe run release\examples\stdlib_http_server.xl > build\test\stdlib_http_server_example.out.txt
 if errorlevel 1 exit /b 1
+cmd /c release\projects\xs_static\test_smoke.bat
+if errorlevel 1 exit /b 1
 
 release\xl.exe run test\cases\stdlib_tcc_import_only.xl > build\test\stdlib_tcc_import_only.out.txt
 if errorlevel 1 exit /b 1
@@ -841,6 +848,16 @@ if errorlevel 1 (
 findstr /C:"int tcc_relocate(void* s)" build\test\stdlib_tcc_embed.c >nul
 if errorlevel 1 (
     echo stdlib_tcc_embed.c missing TCC relocate prototype.
+    exit /b 1
+)
+findstr /C:"bool xrtWebResponseAppendText" build\test\stdlib_tcc_embed.c >nul
+if errorlevel 1 (
+    echo stdlib_tcc_embed.c missing XRT response append symbol prototype.
+    exit /b 1
+)
+findstr /C:"XL6_TCC_ADD_SYMBOL(xrtWebResponseAppendText)" build\test\stdlib_tcc_embed.c >nul
+if errorlevel 1 (
+    echo stdlib_tcc_embed.c missing XRT response append symbol registration.
     exit /b 1
 )
 release\xl.exe run test\cases\stdlib_tcc_embed.xl > build\test\stdlib_tcc_embed.out.txt

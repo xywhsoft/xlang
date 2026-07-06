@@ -63,6 +63,22 @@ func route(point reqHandle, point respHandle) as bool
         return resp.jsonText("{\"ok\":true}")
     end
 
+    if req.path() == "/append-body" then
+        if not resp.reserveBody(16) then
+            resp.status(500)
+            return resp.text("append reserve failed")
+        end
+        if not resp.appendText("append") then
+            resp.status(500)
+            return resp.text("append failed")
+        end
+        if not resp.appendText("-body") then
+            resp.status(500)
+            return resp.text("append failed")
+        end
+        return true
+    end
+
     if req.path() == "/download" then
         return resp.file("examples_out/example_http_static/index.txt")
     end
@@ -181,6 +197,7 @@ http.server.routeStreamRequest(server, "PUT|PATCH", "/upload-route/{name}", uplo
 http.server.anyStreamRequest(server, "/upload-any/{name}", uploadBeginHandler, uploadChunkHandler, uploadEndHandler)
 http.server.anyRequest(server, "/any", requestHandler)
 http.server.anyRequest(server, "/json", requestHandler)
+http.server.getRequest(server, "/append-body", requestHandler)
 http.server.route(server, "OPTIONS", "/legacy-route", handler)
 http.server.routeRequest(server, "PUT|PATCH|DELETE|OPTIONS", "/generic-method", requestHandler)
 http.server.getRequest(server, "/download", requestHandler)
