@@ -34,3 +34,5 @@
 
 # IDE runtime state
 /ide/release/option/History.json
+/demo6/examples_out
+/demo6/build
